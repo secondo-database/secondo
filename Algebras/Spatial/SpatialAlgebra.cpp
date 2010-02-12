@@ -885,6 +885,108 @@ bool Point::Inside( const Rectangle<2>& r ) const
   return true;
 }
 
+
+void Point::Intersection(const Point& p, Points& result) const{
+  result.Clear();
+  if(!IsDefined() || !p.IsDefined()){
+    result.SetDefined(false);
+    return;
+  }
+  result.SetDefined(true);
+  if(AlmostEqual(*this, p)){
+    result += *this;
+  } 
+}
+void Point::Intersection(const Points& ps, Points& result) const{
+  ps.Intersection(*this, result);
+}
+
+void Point::Intersection(const Line& l, Points& result) const{
+  l.Intersection(*this, result);
+}
+
+void Point::Intersection(const Region& r, Points& result) const{
+  r.Intersection(*this, result);
+}
+
+
+void Point::Minus(const Point& p, Points& result) const{
+  result.Clear();
+  if(!IsDefined() || !p.IsDefined()){
+    result.SetDefined(false);
+    return;
+  }
+  result.SetDefined(true);
+  if(!AlmostEqual(*this, p)){
+     result += *this;
+  }
+ 
+}
+void Point::Minus(const Points& ps, Points& result) const{
+  result.Clear();
+  if(!IsDefined() || !ps.IsDefined()){
+    result.SetDefined(false);
+    return;
+  }
+  result.SetDefined(true);
+  
+  if(!ps.Contains(*this)){
+    result += *this;   
+  }
+}
+
+void Point::Minus(const Line& l, Points& result) const{
+  result.Clear();
+  if(!IsDefined() || !l.IsDefined()){
+    result.SetDefined(false);
+    return;
+  }
+  result.SetDefined(true);
+  if(!l.Contains(*this)){
+     result += *this;
+  }
+}
+
+void Point::Minus(const Region& r, Points& result) const{
+  result.Clear();
+  if(!IsDefined() || !r.IsDefined()){
+    result.SetDefined(false);
+    return;
+  }
+  result.SetDefined(true);
+  if(!r.Contains(*this)){
+    result += *this;
+  }
+}
+
+
+void Point::Union(const Point& p, Points& result) const{
+  result.Clear();
+  if(!IsDefined() || !p.IsDefined()){
+    result.SetDefined(false);
+    return;
+  }
+  result.SetDefined(true);
+  result.StartBulkLoad();
+  result += *this;
+  result += p;
+  result.EndBulkLoad();
+}
+
+void Point::Union(const Points& ps, Points& result) const{
+  ps.Union(*this, result);
+}
+
+void Point::Union(const Line& l, Line& result) const{
+  l.Union(*this, result);
+}
+
+void Point::Union(const Region& r, Region& result) const{
+  r.Union(*this, result);
+}
+
+
+
 double Point::Distance( const Point& p ) const
 {
   assert( IsDefined() );
@@ -1777,6 +1879,17 @@ bool Points::Adjacent( const Region& r ) const
   return found;
 }
 
+void Points::Intersection(const Point& p, Points& result) const{
+   result.Clear();
+   if(!IsDefined() || ! p.IsDefined()){
+     result.SetDefined(false);
+     return;  
+   }
+   if(this->Contains(p)){
+      result += p;
+   }
+}
+
 void Points::Intersection( const Points& ps, Points& result ) const
 {
   result.Clear();
@@ -2030,6 +2143,16 @@ void Points::Union( const Points& ps, Points& result ) const
   }
   result.EndBulkLoad( false, true );
 }
+
+
+void Points::Union( const Line& line, Line& result ) const{
+   line.Union(*this,result);
+}
+
+void Points::Union( const Region& region, Region& result ) const{
+   region.Union(*this,result);
+}
+
 
 
 double Points::Distance( const Point& p ) const
@@ -4233,43 +4356,102 @@ bool Line::Adjacent( const Region& r ) const
   return found;
 }
 
+
+void Line::Intersection(const Point& p, Points& result)const {
+   result.Clear();
+   if(!IsDefined() || !p.IsDefined()){
+     result.SetDefined(false);
+     return;
+   }
+   result.SetDefined(true);
+   if(this->Contains(p)){
+     result += p;
+   }
+}
+
+void Line::Intersection(const Points& ps, Points& result) const{
+  // naive implementation, should be changed to be faster
+   result.Clear();
+   if(!IsDefined() || !ps.IsDefined()){
+     result.SetDefined(false);
+     return;
+   }
+   Point p;
+   result.StartBulkLoad();
+   for(int i=0;i<ps.Size(); i++){
+     ps.Get(i,p);
+     if(this->Contains(p)){
+        result += p;
+     }
+   } 
+   result.EndBulkLoad(false,false,false);
+}
+
+
 void Line::Intersection( const Line& l, Line& result ) const
 {
-  result.Clear();
-  if( !IsDefined() || !l.IsDefined() ) {
-    result.SetDefined( false );
-    return;
-  }
-  result.SetDefined( true );
-  if( IsEmpty() || l.IsEmpty() )
-    return;
-
-  assert( IsOrdered() );
-  assert( l.IsOrdered() );
-  HalfSegment hs1, hs2;
-  HalfSegment hs;
-  result.StartBulkLoad();
-  for( int i = 0; i < Size(); i++ )
-  {
-    Get( i, hs1 );
-
-    if( hs1.IsLeftDomPoint() )
-    {
-      for( int j = 0; j < l.Size(); j++ )
-      {
-        l.Get( j, hs2 );
-
-        if( hs2.IsLeftDomPoint() && hs1.Intersection( hs2, hs ) )
-        {
-          result += hs;
-          hs.SetLeftDomPoint( !hs.IsLeftDomPoint() );
-          result += hs;
-        }
-      }
-    }
-  }
-  result.EndBulkLoad();
+  SetOp(*this,l,result,avlseg::intersection_op);
 }
+
+void Line::Intersection(const Region& r, Line& result) const{
+   r.Intersection(*this,result);
+}
+
+void Line::Minus(const Point& p, Line& result) const {
+  result.Clear();
+  if(!IsDefined() || !p.IsDefined()){
+    result.SetDefined(false);
+    return;
+  }
+  result.CopyFrom(this);
+}
+
+void Line::Minus(const Points& ps, Line& result) const {
+  result.Clear();
+  if(!IsDefined() || !ps.IsDefined()){
+    result.SetDefined(false);
+    return;
+  }
+  result.CopyFrom(this);
+}
+
+void Line::Minus(const Line& line, Line& result) const{
+   SetOp(*this,line,result,avlseg::difference_op);
+}
+
+void Line::Minus(const Region& region, Line& result) const{
+   SetOp(*this,region, result,avlseg::difference_op);
+}
+
+
+void Line::Union(const Point& p, Line& result) const{
+  result.Clear();
+  if(!IsDefined() || !p.IsDefined()){
+    result.SetDefined(false);
+    return;
+  }
+  result.CopyFrom(this);
+}
+
+void Line::Union(const Points& ps, Line& result) const{
+  result.Clear();
+  if(!IsDefined() || !ps.IsDefined()){
+    result.SetDefined(false);
+    return;
+  }
+  result.CopyFrom(this);
+}
+
+void Line::Union(const Line& line, Line& result) const{
+   SetOp(*this, line, result, avlseg::union_op);
+}
+
+void Line::Union(const Region& region, Region& result) const{
+   region.Union(*this,result);
+}
+
+
+
 
 void Line::Crossings( const Line& l, Points& result ) const
 {
@@ -7209,6 +7391,116 @@ bool Region::Intersects( const Region &r ) const
 
   return false;
 }
+
+
+void Region::Intersection(const Point& p, Points& result) const{
+  result.Clear();
+  if(!IsDefined() || !p.IsDefined()){
+    result.SetDefined(false);
+    return;
+  }
+  result.SetDefined(true);
+  if(this->Contains(p)){
+    result+= p;
+  }
+}
+
+void Region::Intersection(const Points& ps, Points& result) const{
+  result.Clear();
+  if(!IsDefined() || !ps.IsDefined()){
+    result.SetDefined(false);
+    return;
+  }
+  Point p;
+  result.StartBulkLoad();
+  for(int i=0;i<ps.Size();i++){
+    ps.Get(i,p);
+    if(this->Contains(p)){
+      result += p;
+    }
+  } 
+  result.EndBulkLoad(false,false,false);
+}
+
+void Region::Intersection(const Line& l, Line& result) const{
+  SetOp(l,*this,result,avlseg::intersection_op);  
+}
+
+
+void Region::Intersection(const Region& r, Region& result) const{
+  SetOp(*this,r,result,avlseg::intersection_op);  
+}
+
+void Region::Union(const Point& p, Region& result) const{
+  if(!IsDefined() || !p.IsDefined()){
+    result.Clear();
+    result.SetDefined(false);
+    return;
+  }
+  result.SetDefined(true);
+  result.CopyFrom(this);
+}
+
+void Region::Union(const Points& ps, Region& result) const{
+  if(!IsDefined() || !ps.IsDefined()){
+    result.Clear();
+    result.SetDefined(false);
+    return;
+  }
+  result.SetDefined(true);
+  result.CopyFrom(this);
+}
+
+void Region::Union(const Line& line, Region& result) const{
+  if(!IsDefined() || !line.IsDefined()){
+    result.Clear();
+    result.SetDefined(false);
+    return;
+  }
+  result.SetDefined(true);
+  result.CopyFrom(this);
+}
+
+void Region::Union(const Region& region, Region& result) const{
+   SetOp(*this,region,result,avlseg::union_op);
+}
+
+
+void Region::Minus(const Point& p, Region& result) const{
+  if(!IsDefined() || !p.IsDefined()){
+    result.Clear();
+    result.SetDefined(false);
+    return;
+  }
+  result.SetDefined(true);
+  result.CopyFrom(this);
+}
+
+void Region::Minus(const Points& ps, Region& result) const{
+  if(!IsDefined() || !ps.IsDefined()){
+    result.Clear();
+    result.SetDefined(false);
+    return;
+  }
+  result.SetDefined(true);
+  result.CopyFrom(this);
+}
+
+void Region::Minus(const Line& line, Region& result) const{
+  if(!IsDefined() || !line.IsDefined()){
+    result.Clear();
+    result.SetDefined(false);
+    return;
+  }
+  result.SetDefined(true);
+  result.CopyFrom(this);
+}
+
+void Region::Minus(const Region& region, Region& result) const{
+   SetOp(*this,region,result,avlseg::difference_op);
+}
+
+
 
 bool Region::Inside( const Region& r ) const
 {
@@ -13923,6 +14215,38 @@ ListExpr SpatialTypeMapCompare(ListExpr args){
    return nl->TypeError();
 }
 
+ListExpr SpatialTypeMapEqual(ListExpr args){
+  string err = "spatial x spatial expected";
+  if(nl->ListLength(args)!=2){
+    return listutils::typeError(err + " wrong number of arguments");
+  }
+  ListExpr arg1 = nl->First(args);
+  ListExpr arg2 = nl->Second(args);
+  if(!listutils::isSymbol(arg1) || !listutils::isSymbol(arg2)){
+    return listutils::typeError(err + " composite type detected");
+  }
+  string s1 = nl->SymbolValue(arg1);
+  string s2 = nl->SymbolValue(arg2);
+  if(s1==s2){
+    if( (s1==symbols::POINT) ||
+        (s1==symbols::POINTS) ||
+        (s1==symbols::LINE) ||
+        (s1==symbols::REGION) ||
+        (s1==symbols::SLINE)){
+      return nl->SymbolAtom(symbols::BOOL);
+    }
+    return listutils::typeError(err + " (only spatial types allowed");
+  }
+  if( (s1==symbols::POINT) && (s2==symbols::POINTS)){
+      return nl->SymbolAtom(symbols::BOOL);
+  }
+  if( (s1==symbols::POINTS) && (s2==symbols::POINT)){
+      return nl->SymbolAtom(symbols::BOOL);
+  }
+  return listutils::typeError(err + " (only spatial types allowed");
+}
+
+
 /*
 10.1.2 Type mapping function GeoGeoMapBool
 
@@ -14175,196 +14499,149 @@ SpatialTypeMapBool1( ListExpr args )
   return (nl->SymbolAtom( "typeerror" ));
 }
 
-/*
-10.1.4 Type mapping function for operator ~intersection~
-
-This type mapping function is the one for ~intersection~ operator. This is a SET operation
-so that the result type is a set such as points, line, or region.
-
-*/
-
-ListExpr
-SpatialIntersectionMap( ListExpr args )
-{
-  ListExpr arg1, arg2;
-  if ( nl->ListLength( args ) == 2 )
-  {
-    arg1 = nl->First( args );
-    arg2 = nl->Second( args );
-
-    if ( SpatialTypeOfSymbol( arg1 ) == stpoint &&
-         SpatialTypeOfSymbol( arg2 ) == stpoint )
-      return (nl->SymbolAtom( "point" ));
-
-    if ( SpatialTypeOfSymbol( arg1 ) == stpoint &&
-         SpatialTypeOfSymbol( arg2 ) == stpoints )
-      return (nl->SymbolAtom( "point" ));
-
-    if ( SpatialTypeOfSymbol( arg1 ) == stpoints &&
-         SpatialTypeOfSymbol( arg2 ) == stpoint )
-      return (nl->SymbolAtom( "point" ));
-
-    if ( SpatialTypeOfSymbol( arg1 ) == stpoint &&
-         SpatialTypeOfSymbol( arg2 ) == stline )
-      return (nl->SymbolAtom( "point" ));
-
-    if ( SpatialTypeOfSymbol( arg1 ) == stline &&
-         SpatialTypeOfSymbol( arg2 ) == stpoint )
-      return (nl->SymbolAtom( "point" ));
-
-    if ( SpatialTypeOfSymbol( arg1 ) == stpoint &&
-         SpatialTypeOfSymbol( arg2 ) == stregion )
-      return (nl->SymbolAtom( "point" ));
-
-    if ( SpatialTypeOfSymbol( arg1 ) == stregion &&
-         SpatialTypeOfSymbol( arg2 ) == stpoint )
-      return (nl->SymbolAtom( "point" ));
-
-    if ( SpatialTypeOfSymbol( arg1 ) == stpoints &&
-         SpatialTypeOfSymbol( arg2 ) == stpoints )
-      return (nl->SymbolAtom( "points" ));
-
-    if ( SpatialTypeOfSymbol( arg1 ) == stpoints &&
-         SpatialTypeOfSymbol( arg2 ) == stline )
-      return (nl->SymbolAtom( "points" ));
-
-    if ( SpatialTypeOfSymbol( arg1 ) == stline &&
-         SpatialTypeOfSymbol( arg2 ) == stpoints )
-      return (nl->SymbolAtom( "points" ));
-
-    if ( SpatialTypeOfSymbol( arg1 ) == stpoints &&
-         SpatialTypeOfSymbol( arg2 ) == stregion )
-      return (nl->SymbolAtom( "points" ));
-
-    if ( SpatialTypeOfSymbol( arg1 ) == stregion &&
-         SpatialTypeOfSymbol( arg2 ) == stpoints )
-      return (nl->SymbolAtom( "points" ));
-
-    if ( SpatialTypeOfSymbol( arg1 ) == stline &&
-         SpatialTypeOfSymbol( arg2 ) == stline )
-      return (nl->SymbolAtom( "line" ));
-
-    if ( SpatialTypeOfSymbol( arg1 ) == stline &&
-         SpatialTypeOfSymbol( arg2 ) == stregion )
-      return (nl->SymbolAtom( "line" ));
-
-    if ( SpatialTypeOfSymbol( arg1 ) == stregion &&
-         SpatialTypeOfSymbol( arg2 ) == stline )
-      return (nl->SymbolAtom( "line" ));
-
-    if ( SpatialTypeOfSymbol( arg1 ) == stregion &&
-         SpatialTypeOfSymbol( arg2 ) == stregion )
-      return (nl->SymbolAtom( "region" ));
+ListExpr SpatialIntersectionTypeMap(ListExpr args){
+  string err = "t1 x t2 expected, t_i in {points, points, line, region";
+  if(nl->ListLength(args)!=2){
+    return listutils::typeError(err + ": wrong number of arguments");
   }
-  return (nl->SymbolAtom( "typeerror" ));
+  ListExpr arg1 = nl->First(args);
+  ListExpr arg2 = nl->Second(args);
+  if(!listutils::isSymbol(arg1)){
+    return listutils::typeError(err+ ": first arg not a spatial type");
+  }
+  if(!listutils::isSymbol(arg2)){
+    return listutils::typeError(err+ ": second arg not a spatial type");
+  }
+  string a1 = nl->SymbolValue(arg1);
+  string a2 = nl->SymbolValue(arg2);
+
+  if(a1==symbols::POINT){
+    if(a2==symbols::POINT)  return nl->SymbolAtom(symbols::POINTS);
+    if(a2==symbols::POINTS) return nl->SymbolAtom(symbols::POINTS);
+    if(a2==symbols::LINE)   return nl->SymbolAtom(symbols::POINTS);
+    if(a2==symbols::REGION)  return nl->SymbolAtom(symbols::POINTS);
+    return listutils::typeError(err+ ": second arg not a spatial type");
+  }
+  if(a1==symbols::POINTS){
+    if(a2==symbols::POINT)  return nl->SymbolAtom(symbols::POINTS);
+    if(a2==symbols::POINTS) return nl->SymbolAtom(symbols::POINTS);
+    if(a2==symbols::LINE)   return nl->SymbolAtom(symbols::POINTS);
+    if(a2==symbols::REGION)  return nl->SymbolAtom(symbols::POINTS);
+    return listutils::typeError(err+ ": second arg not a spatial type");
+  }
+  if(a1==symbols::LINE){
+    if(a2==symbols::POINT)  return nl->SymbolAtom(symbols::POINTS);
+    if(a2==symbols::POINTS) return nl->SymbolAtom(symbols::POINTS);
+    if(a2==symbols::LINE)   return nl->SymbolAtom(symbols::LINE);
+    if(a2==symbols::REGION)  return nl->SymbolAtom(symbols::LINE);
+    return listutils::typeError(err+ ": second arg not a spatial type");
+  }
+  if(a1==symbols::REGION){
+    if(a2==symbols::POINT)  return nl->SymbolAtom(symbols::POINTS);
+    if(a2==symbols::POINTS) return nl->SymbolAtom(symbols::POINTS);
+    if(a2==symbols::LINE)   return nl->SymbolAtom(symbols::LINE);
+    if(a2==symbols::REGION)  return nl->SymbolAtom(symbols::REGION);
+    return listutils::typeError(err+ ": second arg not a spatial type");
+  }
+  return listutils::typeError(err+ ": first arg not a spatial type");
+
 }
 
-
-/*
-10.1.5 Type mapping function for operator ~minus~
-
-This type mapping function is the one for ~minus~ operator. This is a SET operation
-so that the result type is a set such as points, line, or region.
-
-*/
-ListExpr
-SpatialMinusMap( ListExpr args )
-{
-  ListExpr arg1, arg2;
-  if ( nl->ListLength( args ) == 2 )
-  {
-    arg1 = nl->First( args );
-    arg2 = nl->Second( args );
-
-    if ( SpatialTypeOfSymbol( arg1 ) == stpoint &&
-         SpatialTypeOfSymbol( arg2 ) == stpoint )
-        return (nl->SymbolAtom( "point" ));
-
-    if ( SpatialTypeOfSymbol( arg1 ) == stpoint &&
-         SpatialTypeOfSymbol( arg2 ) == stpoints )
-        return (nl->SymbolAtom( "point" ));
-
-    if ( SpatialTypeOfSymbol( arg1 ) == stpoint &&
-         SpatialTypeOfSymbol( arg2 ) == stline )
-        return (nl->SymbolAtom( "point" ));
-
-    if ( SpatialTypeOfSymbol( arg1 ) == stpoint &&
-         SpatialTypeOfSymbol( arg2 ) == stregion )
-        return (nl->SymbolAtom( "point" ));
-
-    if ( SpatialTypeOfSymbol( arg1 ) == stpoints &&
-         SpatialTypeOfSymbol( arg2 ) == stpoint )
-        return (nl->SymbolAtom( "points" ));
-
-    if ( SpatialTypeOfSymbol( arg1 ) == stpoints &&
-         SpatialTypeOfSymbol( arg2 ) == stpoints )
-        return (nl->SymbolAtom( "points" ));
-
-    if ( SpatialTypeOfSymbol( arg1 ) == stpoints &&
-         SpatialTypeOfSymbol( arg2 ) == stline )
-        return (nl->SymbolAtom( "points" ));
-
-    if ( SpatialTypeOfSymbol( arg1 ) == stpoints &&
-         SpatialTypeOfSymbol( arg2 ) == stregion )
-        return (nl->SymbolAtom( "points" ));
-
-    if ( SpatialTypeOfSymbol( arg1 ) == stline &&
-         SpatialTypeOfSymbol( arg2 ) == stpoint )
-        return (nl->SymbolAtom( "line" ));
-
-    if ( SpatialTypeOfSymbol( arg1 ) == stline &&
-         SpatialTypeOfSymbol( arg2 ) == stpoints )
-        return (nl->SymbolAtom( "line" ));
-
-    if ( SpatialTypeOfSymbol( arg1 ) == stline &&
-         SpatialTypeOfSymbol( arg2 ) == stline )
-        return (nl->SymbolAtom( "line" ));
-
-    if ( SpatialTypeOfSymbol( arg1 ) == stregion &&
-         SpatialTypeOfSymbol( arg2 ) == stpoint )
-        return (nl->SymbolAtom( "region" ));
-
-    if ( SpatialTypeOfSymbol( arg1 ) == stregion &&
-         SpatialTypeOfSymbol( arg2 ) == stpoints )
-        return (nl->SymbolAtom( "region" ));
-
-    if ( SpatialTypeOfSymbol( arg1 ) == stregion &&
-         SpatialTypeOfSymbol( arg2 ) == stline )
-        return (nl->SymbolAtom( "region" ));
+ListExpr SpatialMinusTypeMap(ListExpr args){
+  string err = "t1 x t2 expected, t_i in {points, points, line, region";
+  if(nl->ListLength(args)!=2){
+    return listutils::typeError(err + ": wrong number of arguments");
   }
-  return (nl->SymbolAtom( "typeerror" ));
+  ListExpr arg1 = nl->First(args);
+  ListExpr arg2 = nl->Second(args);
+  if(!listutils::isSymbol(arg1)){
+    return listutils::typeError(err+ ": first arg not a spatial type");
+  }
+  if(!listutils::isSymbol(arg2)){
+    return listutils::typeError(err+ ": second arg not a spatial type");
+  }
+  string a1 = nl->SymbolValue(arg1);
+  string a2 = nl->SymbolValue(arg2);
+
+  if(a1==symbols::POINT){
+    if(a2==symbols::POINT)  return nl->SymbolAtom(symbols::POINTS);
+    if(a2==symbols::POINTS) return nl->SymbolAtom(symbols::POINTS);
+    if(a2==symbols::LINE)   return nl->SymbolAtom(symbols::POINTS);
+    if(a2==symbols::REGION) return nl->SymbolAtom(symbols::POINTS);
+    return listutils::typeError(err+ ": second arg not a spatial type");
+  }
+  if(a1==symbols::POINTS){
+    if(a2==symbols::POINT)  return nl->SymbolAtom(symbols::POINTS);
+    if(a2==symbols::POINTS) return nl->SymbolAtom(symbols::POINTS);
+    if(a2==symbols::LINE)   return nl->SymbolAtom(symbols::POINTS);
+    if(a2==symbols::REGION) return nl->SymbolAtom(symbols::POINTS);
+    return listutils::typeError(err+ ": second arg not a spatial type");
+  }
+  if(a1==symbols::LINE){
+    if(a2==symbols::POINT)  return nl->SymbolAtom(symbols::LINE);
+    if(a2==symbols::POINTS) return nl->SymbolAtom(symbols::LINE);
+    if(a2==symbols::LINE)   return nl->SymbolAtom(symbols::LINE);
+    if(a2==symbols::REGION) return nl->SymbolAtom(symbols::LINE);
+    return listutils::typeError(err+ ": second arg not a spatial type");
+  }
+  if(a1==symbols::REGION){
+    if(a2==symbols::POINT)  return nl->SymbolAtom(symbols::REGION);
+    if(a2==symbols::POINTS) return nl->SymbolAtom(symbols::REGION);
+    if(a2==symbols::LINE)   return nl->SymbolAtom(symbols::REGION);
+    if(a2==symbols::REGION) return nl->SymbolAtom(symbols::REGION);
+    return listutils::typeError(err+ ": second arg not a spatial type");
+  }
+  return listutils::typeError(err+ ": first arg not a spatial type");
+
 }
 
-/*
-10.1.6 Type mapping function for operator ~union~
-
-This type mapping function is the one for ~union~ operator. This is a SET operation
-so that the result type is a set such as points, line, or region.
-
-*/
-ListExpr
-SpatialUnionMap( ListExpr args )
-{
-  ListExpr arg1, arg2;
-  if ( nl->ListLength( args ) == 2 )
-  {
-    arg1 = nl->First( args );
-    arg2 = nl->Second( args );
-
-    if ( SpatialTypeOfSymbol( arg1 ) == stpoint &&
-         SpatialTypeOfSymbol( arg2 ) == stpoints )
-      return (nl->SymbolAtom( "points" ));
-
-    if ( SpatialTypeOfSymbol( arg1 ) == stpoints &&
-         SpatialTypeOfSymbol( arg2 ) == stpoint )
-      return (nl->SymbolAtom( "points" ));
-
-    if ( SpatialTypeOfSymbol( arg1 ) == stpoints &&
-         SpatialTypeOfSymbol( arg2 ) == stpoints )
-      return (nl->SymbolAtom( "points" ));
+ListExpr SpatialUnionTypeMap(ListExpr args){
+  string err = "t1 x t2 expected, t_i in {points, points, line, region";
+  if(nl->ListLength(args)!=2){
+    return listutils::typeError(err + ": wrong number of arguments");
   }
-  return (nl->SymbolAtom( "typeerror" ));
+  ListExpr arg1 = nl->First(args);
+  ListExpr arg2 = nl->Second(args);
+  if(!listutils::isSymbol(arg1)){
+    return listutils::typeError(err+ ": first arg not a spatial type");
+  }
+  if(!listutils::isSymbol(arg2)){
+    return listutils::typeError(err+ ": second arg not a spatial type");
+  }
+  string a1 = nl->SymbolValue(arg1);
+  string a2 = nl->SymbolValue(arg2);
+
+  if(a1==symbols::POINT){
+    if(a2==symbols::POINT)  return nl->SymbolAtom(symbols::POINTS);
+    if(a2==symbols::POINTS) return nl->SymbolAtom(symbols::POINTS);
+    if(a2==symbols::LINE)   return nl->SymbolAtom(symbols::LINE);
+    if(a2==symbols::REGION)  return nl->SymbolAtom(symbols::REGION);
+    return listutils::typeError(err+ ": second arg not a spatial type");
+  }
+  if(a1==symbols::POINTS){
+    if(a2==symbols::POINT)  return nl->SymbolAtom(symbols::POINTS);
+    if(a2==symbols::POINTS) return nl->SymbolAtom(symbols::POINTS);
+    if(a2==symbols::LINE)   return nl->SymbolAtom(symbols::LINE);
+    if(a2==symbols::REGION)  return nl->SymbolAtom(symbols::REGION);
+    return listutils::typeError(err+ ": second arg not a spatial type");
+  }
+  if(a1==symbols::LINE){
+    if(a2==symbols::POINT)  return nl->SymbolAtom(symbols::LINE);
+    if(a2==symbols::POINTS) return nl->SymbolAtom(symbols::LINE);
+    if(a2==symbols::LINE)   return nl->SymbolAtom(symbols::LINE);
+    if(a2==symbols::REGION)  return nl->SymbolAtom(symbols::REGION);
+    return listutils::typeError(err+ ": second arg not a spatial type");
+  }
+  if(a1==symbols::REGION){
+    if(a2==symbols::POINT)  return nl->SymbolAtom(symbols::REGION);
+    if(a2==symbols::POINTS) return nl->SymbolAtom(symbols::REGION);
+    if(a2==symbols::LINE)   return nl->SymbolAtom(symbols::REGION);
+    if(a2==symbols::REGION)  return nl->SymbolAtom(symbols::REGION);
+    return listutils::typeError(err+ ": second arg not a spatial type");
+  }
+  return listutils::typeError(err+ ": first arg not a spatial type");
 }
+
 
 /*
 10.1.7 Type mapping function for operator ~crossings~
@@ -15271,148 +15548,6 @@ ListExpr MakeSLineTypeMap(ListExpr args){
   }
 }
 
-/*
-~Union2TypeMap~
-
-Signatures:
-
-  line [x] line [->] line
-
-  line [x] region [->] region
-
-  region [x] line [->] region
-
-  region [x] region [->] region
-
-*/
-
-
-ListExpr Union2TypeMap(ListExpr args){
-
-   if(nl->ListLength(args)!=2){
-     ErrorReporter::ReportError("2 arguments expected.");
-     return nl->TypeError();
-   }
-   ListExpr arg1 = nl->First(args);
-   ListExpr arg2 = nl->Second(args);
-
-   if(!IsSpatialType(arg1) || !IsSpatialType(arg2)){
-     ErrorReporter::ReportError("two spatial type expected");
-     return nl->TypeError();
-   }
-
-   if(nl->IsEqual(arg1,"line") && nl->IsEqual(arg2,"line")){
-     return nl->SymbolAtom("line");
-   }
-   if(nl->IsEqual(arg1,"region") && nl->IsEqual(arg2,"region")){
-     return nl->SymbolAtom("region");
-   }
-
-   if(nl->IsEqual(arg1,"line") && nl->IsEqual(arg2,"region")){
-     return nl->SymbolAtom("region");
-   }
-
-   if(nl->IsEqual(arg1,"region") && nl->IsEqual(arg2,"line")){
-     return nl->SymbolAtom("region");
-   }
-   ErrorReporter::ReportError("combination not implemented yet");
-   return nl->TypeError();
-}
-
-/*
-~Intersection2TypeMap~
-
-Signatures:
-
-  line [x] line [->] line
-
-  line [x] region [->] line
-
-  region [x] line [->] line
-
-  region [x] region [->] region
-
-*/
-ListExpr Intersection2TypeMap(ListExpr args){
-
-   if(nl->ListLength(args)!=2){
-     ErrorReporter::ReportError("2 arguments expected.");
-     return nl->TypeError();
-   }
-   ListExpr arg1 = nl->First(args);
-   ListExpr arg2 = nl->Second(args);
-
-   if(!IsSpatialType(arg1) || !IsSpatialType(arg2)){
-     ErrorReporter::ReportError("two spatial type expected");
-     return nl->TypeError();
-   }
-
-   if(nl->IsEqual(arg1,"line") && nl->IsEqual(arg2,"line")){
-     return nl->SymbolAtom("line");
-   }
-   if(nl->IsEqual(arg1,"region") && nl->IsEqual(arg2,"region")){
-     return nl->SymbolAtom("region");
-   }
-
-   if(nl->IsEqual(arg1,"line") && nl->IsEqual(arg2,"region")){
-     return nl->SymbolAtom("line");
-   }
-
-   if(nl->IsEqual(arg1,"region") && nl->IsEqual(arg2,"line")){
-     return nl->SymbolAtom("line");
-   }
-   ErrorReporter::ReportError("combination not implemented yet");
-   return nl->TypeError();
-}
-
-
-/*
-~Difference2TypeMap~
-
-Signatures:
-
-  line [x] line [->] line
-
-  line [x] region [->] line
-
-  region [x] line [->] region
-
-  region [x] region [->] region
-
-*/
-
-ListExpr Difference2TypeMap(ListExpr args){
-
-   if(nl->ListLength(args)!=2){
-     ErrorReporter::ReportError("2 arguments expected.");
-     return nl->TypeError();
-   }
-   ListExpr arg1 = nl->First(args);
-   ListExpr arg2 = nl->Second(args);
-
-   if(!IsSpatialType(arg1) || !IsSpatialType(arg2)){
-     ErrorReporter::ReportError("two spatial type expected");
-     return nl->TypeError();
-   }
-
-   if(nl->IsEqual(arg1,"line") && nl->IsEqual(arg2,"line")){
-     return nl->SymbolAtom("line");
-   }
-   if(nl->IsEqual(arg1,"region") && nl->IsEqual(arg2,"region")){
-     return nl->SymbolAtom("region");
-   }
-
-   if(nl->IsEqual(arg1,"line") && nl->IsEqual(arg2,"region")){
-     return nl->SymbolAtom("line");
-   }
-
-   if(nl->IsEqual(arg1,"region") && nl->IsEqual(arg2,"line")){
-     return nl->SymbolAtom("region");
-   }
-   ErrorReporter::ReportError("combination not implemented yet");
-   return nl->TypeError();
-}
-
 
 /*
 ~CommonBorder2TypeMap~
@@ -15713,6 +15848,26 @@ SpatialSelectCompare( ListExpr args )
   return -1; // This point should never be reached
 }
 
+int SpatialSelectEqual(ListExpr args){
+   ListExpr a1 = nl->First(args);
+   ListExpr a2 = nl->Second(args);
+   string s1 = nl->SymbolValue(a1);
+   if(nl->Equal(a1,a2)){
+     if(s1 == symbols::POINT) return 0;
+     if(s1 == symbols::POINTS) return 1;
+     if(s1 == symbols::LINE) return 2;
+     if(s1 == symbols::REGION) return 3;
+     if(s1 == symbols::SLINE) return 4;
+     return -1;
+   } else {
+     string s2 = nl->SymbolValue(a2);
+     if( (s1==symbols::POINT) && (s2==symbols::POINTS)) return 5;
+     if((s1==symbols::POINTS) && (s2==symbols::POINT)) return 6;
+   }
+   return -1;
+}
+
+
 /*
 10.3.4 Selection function ~SpatialSelectIntersects~
 
@@ -15905,166 +16060,43 @@ SpatialSelectAdjacent( ListExpr args )
   return -1; // This point should never be reached
 }
 
-/*
-10.3.8 Selection function ~SpatialSelectIntersection~
 
-This select function is used for the ~intersection~ operator.
+int SpatialSetOpSelect(ListExpr args){
+  string a1 = nl->SymbolValue(nl->First(args));
+  string a2 = nl->SymbolValue(nl->Second(args));
 
-*/
-int
-SpatialSelectIntersection( ListExpr args )
-{
-  ListExpr arg1 = nl->First( args );
-  ListExpr arg2 = nl->Second( args );
-
-  if ( SpatialTypeOfSymbol( arg1 ) == stpoint &&
-       SpatialTypeOfSymbol( arg2 ) == stpoint )
-    return 0;
-
-  if ( SpatialTypeOfSymbol( arg1 ) == stpoint &&
-       SpatialTypeOfSymbol( arg2 ) == stpoints )
-    return 1;
-
-  if ( SpatialTypeOfSymbol( arg1 ) == stpoint &&
-       SpatialTypeOfSymbol( arg2 ) == stline )
-    return 2;
-
-  if ( SpatialTypeOfSymbol( arg1 ) == stpoint &&
-       SpatialTypeOfSymbol( arg2 ) == stregion )
-    return 3;
-
-  if ( SpatialTypeOfSymbol( arg1 ) == stpoints &&
-       SpatialTypeOfSymbol( arg2 ) == stpoint )
-    return 4;
-
-  if ( SpatialTypeOfSymbol( arg1 ) == stpoints &&
-       SpatialTypeOfSymbol( arg2 ) == stpoints )
-    return 5;
-
-  if ( SpatialTypeOfSymbol( arg1 ) == stpoints &&
-       SpatialTypeOfSymbol( arg2 ) == stline )
-    return 6;
-
-  if ( SpatialTypeOfSymbol( arg1 ) == stpoints &&
-       SpatialTypeOfSymbol( arg2 ) == stregion )
-    return 7;
-
-  if ( SpatialTypeOfSymbol( arg1 ) == stline &&
-       SpatialTypeOfSymbol( arg2 ) == stpoint )
-    return 8;
-
-  if ( SpatialTypeOfSymbol( arg1 ) == stline &&
-       SpatialTypeOfSymbol( arg2 ) == stpoints )
-    return 9;
-
-  if ( SpatialTypeOfSymbol( arg1 ) == stline &&
-       SpatialTypeOfSymbol( arg2 ) == stline )
-    return 10;
-
-  if ( SpatialTypeOfSymbol( arg1 ) == stregion &&
-       SpatialTypeOfSymbol( arg2 ) == stpoint )
-    return 11;
-
-  if ( SpatialTypeOfSymbol( arg1 ) == stregion &&
-       SpatialTypeOfSymbol( arg2 ) == stpoints )
-    return 12;
-
-  return -1; // This point should never be reached
+  if(a1==symbols::POINT){
+    if(a2==symbols::POINT)  return 0;
+    if(a2==symbols::POINTS) return 1;
+    if(a2==symbols::LINE)   return 2;
+    if(a2==symbols::REGION) return 3; 
+    return -1;
+  }
+  if(a1==symbols::POINTS){
+    if(a2==symbols::POINT)  return 4;
+    if(a2==symbols::POINTS) return 5;
+    if(a2==symbols::LINE)   return 6;
+    if(a2==symbols::REGION) return 7; 
+    return -1;
+  }
+  if(a1==symbols::LINE){
+    if(a2==symbols::POINT)  return 8;
+    if(a2==symbols::POINTS) return 9;
+    if(a2==symbols::LINE)   return 10;
+    if(a2==symbols::REGION) return 11; 
+    return -1;
+  }
+  
+  if(a1==symbols::REGION){
+    if(a2==symbols::POINT)  return 12;
+    if(a2==symbols::POINTS) return 13;
+    if(a2==symbols::LINE)   return 14;
+    if(a2==symbols::REGION) return 15; 
+    return -1;
+  }
+  return -1;
 }
 
-/*
-10.3.9 Selection function ~SpatialSelectMinus~
-
-This select function is used for the ~minus~ operator.
-
-*/
-int
-SpatialSelectMinus( ListExpr args )
-{
-  ListExpr arg1 = nl->First( args );
-  ListExpr arg2 = nl->Second( args );
-
-  if ( SpatialTypeOfSymbol( arg1 ) == stpoint &&
-       SpatialTypeOfSymbol( arg2 ) == stpoint )
-    return 0;
-
-  if ( SpatialTypeOfSymbol( arg1 ) == stpoint &&
-       SpatialTypeOfSymbol( arg2 ) == stpoints )
-    return 1;
-
-  if ( SpatialTypeOfSymbol( arg1 ) == stpoint &&
-       SpatialTypeOfSymbol( arg2 ) == stline )
-    return 2;
-
-  if ( SpatialTypeOfSymbol( arg1 ) == stpoint &&
-       SpatialTypeOfSymbol( arg2 ) == stregion )
-    return 3;
-
-  if ( SpatialTypeOfSymbol( arg1 ) == stpoints &&
-       SpatialTypeOfSymbol( arg2 ) == stpoint )
-    return 4;
-
-  if ( SpatialTypeOfSymbol( arg1 ) == stpoints &&
-       SpatialTypeOfSymbol( arg2 ) == stpoints )
-    return 5;
-
-  if ( SpatialTypeOfSymbol( arg1 ) == stpoints &&
-       SpatialTypeOfSymbol( arg2 ) == stline )
-    return 6;
-
-  if ( SpatialTypeOfSymbol( arg1 ) == stpoints &&
-       SpatialTypeOfSymbol( arg2 ) == stregion )
-    return 7;
-
-  if ( SpatialTypeOfSymbol( arg1 ) == stline &&
-       SpatialTypeOfSymbol( arg2 ) == stpoint )
-    return 8;
-
-  if ( SpatialTypeOfSymbol( arg1 ) == stline &&
-       SpatialTypeOfSymbol( arg2 ) == stpoints )
-    return 9;
-
-  if ( SpatialTypeOfSymbol( arg1 ) == stregion &&
-       SpatialTypeOfSymbol( arg2 ) == stpoint )
-    return 10;
-
-  if ( SpatialTypeOfSymbol( arg1 ) == stregion &&
-       SpatialTypeOfSymbol( arg2 ) == stpoints )
-    return 11;
-
-  if ( SpatialTypeOfSymbol( arg1 ) == stregion &&
-       SpatialTypeOfSymbol( arg2 ) == stline )
-    return 12;
-
-  return -1; // This point should never be reached
-}
-
-/*
-10.3.10 Selection function ~SpatialSelectUnion~
-
-This select function is used for the ~union~ operator.
-
-*/
-int
-SpatialSelectUnion( ListExpr args )
-{
-  ListExpr arg1 = nl->First( args );
-  ListExpr arg2 = nl->Second( args );
-
-  if ( SpatialTypeOfSymbol( arg1 ) == stpoint &&
-       SpatialTypeOfSymbol( arg2 ) == stpoints )
-    return 0;
-
-  if ( SpatialTypeOfSymbol( arg1 ) == stpoints &&
-       SpatialTypeOfSymbol( arg2 ) == stpoint )
-    return 1;
-
-  if ( SpatialTypeOfSymbol( arg1 ) == stpoints &&
-       SpatialTypeOfSymbol( arg2 ) == stpoints )
-    return 2;
-
-  return -1; // This point should never be reached
-}
 
 /*
 10.3.13 Selection function ~SpatialSelectDistance~
@@ -16362,24 +16394,6 @@ int SpatialSimplifySelect(ListExpr args){
 
 }
 
-static int SetOpSelect(ListExpr args){
-   string type1 = nl->SymbolValue(nl->First(args));
-   string type2 = nl->SymbolValue(nl->Second(args));
-
-  if( (type1=="line") && (type2=="line")){
-      return 0;
-   }
-  if( (type1=="region") && (type2=="region")){
-      return 1;
-   }
-   if( (type1=="region") && (type2=="line")){
-      return 2;
-   }
-   if( (type1=="line") && (type2=="region")){
-      return 3;
-   }
-   return -1;
-}
 
 static int SpatialSelectSize(ListExpr args){
    SpatialType st = SpatialTypeOfSymbol(nl->First(args));
@@ -16470,15 +16484,15 @@ int SpatialIsEmpty(Word* args, Word& result, int message,
 10.4.2 Value mapping functions of operator ~$=$~
 
 */
-template<class T>
+template<class T1, class T2>
 int
 SpatialEqual( Word* args, Word& result, int message,
               Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
   CcBool* res = static_cast<CcBool*>(result.addr);
-  T* a1 = static_cast<T*>(args[0].addr);
-  T* a2 = static_cast<T*>(args[1].addr);
+  T1* a1 = static_cast<T1*>(args[0].addr);
+  T2* a2 = static_cast<T2*>(args[1].addr);
   if(!a1->IsDefined() || !a2->IsDefined()){
      res->Set(false,false);
      return 0;
@@ -16690,378 +16704,56 @@ SpatialInInterior_pr( Word* args, Word& result, int message,
 10.4.15 Value mapping functions of operator ~intersection~
 
 */
-int
-SpatialIntersection_pp( Word* args, Word& result, int message,
-                        Word& local, Supplier s )
-{
+template<class A1, class A2, class R>
+int SpatialIntersectionGeneric(Word* args, Word& result, int message,
+                    Word& local, Supplier s){
+
   result = qp->ResultStorage( s );
-  Point *p1 = ((Point*)args[0].addr);
-  Point *p2 = ((Point*)args[1].addr);
-  if ( p1->IsDefined() && p2->IsDefined() && *p1 == *p2 )
-    *((Point *)result.addr) = *p1;
-  else
-    ((Point *)result.addr)->SetDefined( false );
+  A1* arg1 = static_cast<A1*>(args[0].addr);
+  A2* arg2 = static_cast<A2*>(args[1].addr);
+  R* res = static_cast<R*>(result.addr);
+  arg1->Intersection(*arg2, *res);
   return 0;
 }
 
-int
-SpatialIntersection_pps( Word* args, Word& result, int message,
-                         Word& local, Supplier s )
-{
-  result = qp->ResultStorage( s );
-  Point  *p  = static_cast<Point*>(args[0].addr);
-  Points *ps = static_cast<Points*>(args[1].addr);
-  if( p->IsDefined() && ps->IsDefined() && ps->Contains( *p ) )
-    *((Point *)result.addr) = *p;
-  else
-    ((Point *)result.addr)->SetDefined( false );
-  return 0;
-}
 
-int
-SpatialIntersection_psp( Word* args, Word& result, int message,
-                         Word& local, Supplier s )
-{
-  result = qp->ResultStorage( s );
-  Points *ps = static_cast<Points*>(args[0].addr);
-  Point  *p  = static_cast<Point*>(args[1].addr);
-  if( p->IsDefined() && ps->IsDefined() && ps->Contains(*p) )
-    *((Point *)result.addr) = *p;
-  else
-    ((Point *)result.addr)->SetDefined( false );
-  return 0;
-}
 
-int
-SpatialIntersection_pl( Word* args, Word& result, int message,
-                        Word& local, Supplier s )
-{
-  result = qp->ResultStorage( s );
-  Point  *p  = static_cast<Point*>(args[0].addr);
-  Line   *l  = static_cast<Line*>(args[1].addr);
-  if( p->IsDefined() && l->IsDefined() && l->Contains( *p ) )
-    *((Point *)result.addr) = *p;
-  else
-    ((Point *)result.addr)->SetDefined( false );
-  return 0;
-}
 
-int
-SpatialIntersection_lp( Word* args, Word& result, int message,
-                        Word& local, Supplier s )
-{
-  result = qp->ResultStorage( s );
-  Line   *l  = static_cast<Line*>(args[0].addr);
-  Point  *p  = static_cast<Point*>(args[1].addr);
-  if( p->IsDefined() && l->IsDefined() && l->Contains( *p ) )
-    *((Point *)result.addr) = *p;
-  else
-    ((Point *)result.addr)->SetDefined( false );
-  return 0;
-}
 
-int
-SpatialIntersection_pr( Word* args, Word& result, int message,
-                        Word& local, Supplier s )
-{
-  result = qp->ResultStorage( s );
-  Point  *p  = static_cast<Point*>(args[0].addr);
-  Region *r  = static_cast<Region*>(args[1].addr);
-  if( p->IsDefined() && r->IsDefined() && r->Contains( *p ) )
-    *((Point *)result.addr) = *p;
-  else
-    ((Point *)result.addr)->SetDefined( false );
-  return 0;
-}
 
-int
-SpatialIntersection_rp( Word* args, Word& result, int message,
-                        Word& local, Supplier s )
-{
-  result = qp->ResultStorage( s );
-  Region *r  = static_cast<Region*>(args[0].addr);
-  Point  *p  = static_cast<Point*>(args[1].addr);
-  if( p->IsDefined() && r->IsDefined() && r->Contains( *p ) )
-    *((Point *)result.addr) = *p;
-  else
-    ((Point *)result.addr)->SetDefined( false );
-  return 0;
-}
-
-int
-SpatialIntersection_psps( Word* args, Word& result, int message,
-                          Word& local, Supplier s )
-{
-  result = qp->ResultStorage( s );
-  Points *ps1 = ((Points*)args[0].addr),
-         *ps2 = ((Points*)args[1].addr);
-  ps1->Intersection( *ps2, *((Points *)result.addr) );
-  return 0;
-}
-
-int
-SpatialIntersection_psl( Word* args, Word& result, int message,
-                         Word& local, Supplier s )
-{
-  result = qp->ResultStorage( s );
-  Points *ps = ((Points*)args[0].addr);
-  Line *l = ((Line*)args[1].addr);
-  ps->Intersection( *l, *((Points *)result.addr) );
-  return 0;
-}
-
-int
-SpatialIntersection_lps( Word* args, Word& result, int message,
-                         Word& local, Supplier s )
-{
-  result = qp->ResultStorage( s );
-  Points *ps = ((Points*)args[1].addr);
-  Line *l = ((Line*)args[0].addr);
-  ps->Intersection( *l, *((Points *)result.addr) );
-  return 0;
-}
-
-int
-SpatialIntersection_psr( Word* args, Word& result, int message,
-                         Word& local, Supplier s )
-{
-  result = qp->ResultStorage( s );
-  ((Points*)args[0].addr)->
-    Intersection( *((Region*)args[1].addr), *((Points *)result.addr) );
-  return 0;
-}
-
-int
-SpatialIntersection_rps( Word* args, Word& result, int message,
-                         Word& local, Supplier s )
-{
-  result = qp->ResultStorage( s );
-  ((Points*)args[1].addr)->
-    Intersection( *((Region*)args[0].addr), *((Points *)result.addr) );
-  return 0;
-}
-
-int
-SpatialIntersection_ll( Word* args, Word& result, int message,
-                        Word& local, Supplier s )
-{
-  result = qp->ResultStorage( s );
-  ((Line*)args[0].addr)->
-    Intersection( *((Line*)args[1].addr), *((Line *)result.addr) );
-  return 0;
-}
 
 /*
 10.4.16 Value mapping functions of operator ~minus~
 
 */
-int
-SpatialMinus_pp( Word* args, Word& result, int message,
-                 Word& local, Supplier s )
-{
+
+template<class A1, class A2, class R>
+int SpatialMinusGeneric(Word* args, Word& result, int message,
+                    Word& local, Supplier s){
+
   result = qp->ResultStorage( s );
-  Point *p1 = (Point*)args[0].addr,
-        *p2 = (Point*)args[1].addr;
-  if( p1->IsDefined() && p2->IsDefined() && *p1 == *p2 )
-    *((Point *)result.addr) = *p1;
-  else
-    ((Point *)result.addr)->SetDefined( false );
+  A1* arg1 = static_cast<A1*>(args[0].addr);
+  A2* arg2 = static_cast<A2*>(args[1].addr);
+  R* res = static_cast<R*>(result.addr);
+  arg1->Minus(*arg2, *res);
   return 0;
 }
 
-int
-SpatialMinus_pps( Word* args, Word& result, int message,
-                  Word& local, Supplier s )
-{
-  result = qp->ResultStorage( s );
-  Point  *p  = static_cast<Point*>(args[0].addr);
-  Points *ps = static_cast<Points*>(args[1].addr);
-  if( p->IsDefined() && ps->IsDefined() && ps->Contains( *p ) )
-    *((Point *)result.addr) = *p;
-  else
-    ((Point *)result.addr)->SetDefined( false );
-  return 0;
-}
-
-int
-SpatialMinus_pl( Word* args, Word& result, int message,
-                 Word& local, Supplier s )
-{
-  result = qp->ResultStorage( s );
-  Point *p = static_cast<Point*>(args[0].addr);
-  Line  *l = static_cast<Line*>(args[1].addr);
-  if( p->IsDefined() && l->IsDefined() && l->Contains( *p ) )
-    *((Point *)result.addr) = *p;
-  else
-    ((Point *)result.addr)->SetDefined( false );
-  return 0;
-}
-
-int
-SpatialMinus_pr( Word* args, Word& result, int message,
-                 Word& local, Supplier s )
-{
-  result = qp->ResultStorage( s );
-  Point  *p = static_cast<Point*>(args[0].addr);
-  Region *r = static_cast<Region*>(args[1].addr);
-  if( p->IsDefined() && r->IsDefined() && r->Contains( *p ) )
-    *((Point *)result.addr) = *p;
-  else
-    ((Point *)(result.addr))->SetDefined( false );
-  return 0;
-}
-
-int
-SpatialMinus_psp( Word* args, Word& result, int message,
-                  Word& local, Supplier s )
-{
-  result = qp->ResultStorage( s );
-  Points *ps = static_cast<Points*>(args[0].addr);
-  Point  *p  = static_cast<Point*>(args[1].addr);
-  if( ps->IsDefined() && p->IsDefined() )
-    ps->Minus( *p, *((Points *)result.addr) );
-  else
-    ((Points *)(result.addr))->SetDefined( false );
-  return 0;
-}
-
-int
-SpatialMinus_lp( Word* args, Word& result, int message,
-                 Word& local, Supplier s )
-{
-  result = qp->ResultStorage( s );
-  Line  *l  = static_cast<Line*>(args[0].addr);
-  Point *p  = static_cast<Point*>(args[1].addr);
-  if( l->IsDefined() && p->IsDefined() )
-    *((Line*)result.addr) = *l;
-  else
-    ((Line*)(result.addr))->SetDefined(false);
-  return 0;
-}
-
-int
-SpatialMinus_rp( Word* args, Word& result, int message,
-                 Word& local, Supplier s )
-{
-  result = qp->ResultStorage( s );
-  Region *r  = static_cast<Region*>(args[0].addr);
-  Point  *p  = static_cast<Point*>(args[1].addr);
-  if( r->IsDefined() && p->IsDefined() )
-    *(Region*)result.addr = *r;
-  else
-    ((Region*)(result.addr))->SetDefined( false );
-  return 0;
-}
-
-int
-SpatialMinus_psps( Word* args, Word& result, int message,
-                   Word& local, Supplier s )
-{
-  result = qp->ResultStorage( s );
-  Points *ps1 = ((Points*)args[0].addr),
-         *ps2=((Points*)args[1].addr);
-  ps1->Minus( *ps2, *((Points *)result.addr) );
-  return 0;
-}
-
-int
-SpatialMinus_psl( Word* args, Word& result, int message,
-                  Word& local, Supplier s )
-{
-  result = qp->ResultStorage( s );
-  Points *ps = ((Points*)args[0].addr);
-  Line *l = ((Line*)args[1].addr);
-  ps->Minus( *l, *((Points *)result.addr) );
-  return 0;
-}
-
-int
-SpatialMinus_psr( Word* args, Word& result, int message,
-                  Word& local, Supplier s )
-{
-  result = qp->ResultStorage( s );
-  Points *ps = ((Points*)args[0].addr);
-  Region *r = ((Region*)args[1].addr);
-  ps->Minus( *r, *((Points *)result.addr) );
-  return 0;
-}
-
-int
-SpatialMinus_lps( Word* args, Word& result, int message,
-                  Word& local, Supplier s )
-{
-  result = qp->ResultStorage( s );
-  Line   *l  = ((Line*)args[0].addr);
-  Points *ps = ((Points*)args[1].addr);
-  if( l->IsDefined() && ps->IsDefined() )
-    *(Line*)result.addr = *l;
-  else
-    ((Line*)(result.addr))->SetDefined( false );
-  return 0;
-}
-
-int
-SpatialMinus_rps( Word* args, Word& result, int message,
-                  Word& local, Supplier s )
-{
-  result = qp->ResultStorage( s );
-  Region *r  = ((Region*)args[0].addr);
-  Points *ps = ((Points*)args[1].addr);
-  if( r->IsDefined() && ps->IsDefined() )
-    *(Region*)result.addr = *r;
-  else
-    ((Region*)(result.addr))->SetDefined( false );
-  return 0;
-}
-
-int
-SpatialMinus_rl( Word* args, Word& result, int message,
-                     Word& local, Supplier s )
-{
-  result = qp->ResultStorage( s );
-  Region *r  = ((Region*)args[0].addr);
-  Line   *l  = ((Line*)args[1].addr);
-  if( r->IsDefined() && l->IsDefined() )
-    *(Region*)result.addr = *r;
-  else
-    ((Region*)(result.addr))->SetDefined( false );
-  return 0;
-}
 
 /*
 10.4.17 Value mapping functions of operator ~union~
 
 */
-int
-SpatialUnion_pps( Word* args, Word& result, int message,
-                  Word& local, Supplier s )
-{
-  result = qp->ResultStorage( s );
-  Point *p = ((Point*)args[0].addr);
-  Points *ps = ((Points*)args[1].addr);
-  ps->Union( *p, *((Points *)result.addr) );
-  return 0;
-}
 
-int
-SpatialUnion_psp( Word* args, Word& result, int message,
-                  Word& local, Supplier s )
-{
-  result = qp->ResultStorage( s );
-  Point *p = ((Point*)args[1].addr);
-  Points *ps = ((Points*)args[0].addr);
-  ps->Union( *p, *((Points *)result.addr) );
-  return 0;
-}
+template<class A1, class A2, class R>
+int SpatialUnionGeneric(Word* args, Word& result, int message,
+                    Word& local, Supplier s){
 
-int
-SpatialUnion_psps( Word* args, Word& result, int message,
-                   Word& local, Supplier s )
-{
   result = qp->ResultStorage( s );
-  Points *ps1 = ((Points*)args[1].addr),
-         *ps2 = ((Points*)args[0].addr);
-  ps1->Union( *ps2, *((Points *)result.addr) );
+  A1* arg1 = static_cast<A1*>(args[0].addr);
+  A2* arg2 = static_cast<A2*>(args[1].addr);
+  R* res = static_cast<R*>(result.addr);
+  arg1->Union(*arg2, *res);
   return 0;
 }
 
@@ -18943,33 +18635,6 @@ int RealminizeVM(Word* args, Word& result, int message,
 }
 
 
-/*
-Value mapping for set operations
-
-*/
-
-template<class t1, class t2, class tres, avlseg::SetOperation op>
-int SetOpVM(Word* args, Word& result, int message,
-            Word& local, Supplier s){
-   result = qp->ResultStorage(s);
-   t1* arg1 = static_cast<t1*>(args[0].addr);
-   t2* arg2 = static_cast<t2*>(args[1].addr);
-   tres* res = static_cast<tres*>(result.addr);
-   SetOp(*arg1,*arg2,*res,op);
-   return 0;
-}
-
-template<class t1, class t2, class tres, avlseg::SetOperation op>
-int SetOpVMSym(Word* args, Word& result, int message,
-            Word& local, Supplier s){
-   result = qp->ResultStorage(s);
-   t1* arg1 = static_cast<t1*>(args[0].addr);
-   t2* arg2 = static_cast<t2*>(args[1].addr);
-   tres* res = static_cast<tres*>(result.addr);
-   SetOp(*arg2,*arg1,*res,op);
-   return 0;
-}
-
 
 /*
 Value Mapping for ~CommonBorder2~
@@ -19329,11 +18994,13 @@ ValueMapping spatialisemptymap[] = {
   SpatialIsEmpty<SimpleLine> };
 
 ValueMapping spatialequalmap[] = {
-  SpatialEqual<Point>,
-  SpatialEqual<Points>,
-  SpatialEqual<Line>,
-  SpatialEqual<Region>,
-  SpatialEqual<SimpleLine>};
+  SpatialEqual<Point,Point>,
+  SpatialEqual<Points, Points>,
+  SpatialEqual<Line,Line>,
+  SpatialEqual<Region, Region>,
+  SpatialEqual<SimpleLine, SimpleLine>,
+  SpatialEqual<Point,Points>,
+  SpatialEqual<Points, Point>};
 
 ValueMapping spatialnotequalmap[] = {
   SpatialNotEqual<Point>,
@@ -19373,40 +19040,76 @@ ValueMapping spatialadjacentmap[] = {
   SpatialAdjacent_rl,
   SpatialAdjacent_rr };
 
-ValueMapping spatialintersectionmap[] = {
-  SpatialIntersection_pp,
-  SpatialIntersection_pps,
-  SpatialIntersection_pl,
-  SpatialIntersection_pr,
-  SpatialIntersection_psp,
-  SpatialIntersection_psps,
-  SpatialIntersection_psl,
-  SpatialIntersection_psr,
-  SpatialIntersection_lp,
-  SpatialIntersection_lps,
-  SpatialIntersection_ll,
-  SpatialIntersection_rp,
-  SpatialIntersection_rps };
 
-ValueMapping spatialminusmap[] = {
-  SpatialMinus_pp,
-  SpatialMinus_pps,
-  SpatialMinus_pl,
-  SpatialMinus_pr,
-  SpatialMinus_psp,
-  SpatialMinus_psps,
-  SpatialMinus_psl,
-  SpatialMinus_psr,
-  SpatialMinus_lp,
-  SpatialMinus_lps,
-  SpatialMinus_rp,
-  SpatialMinus_rps,
-  SpatialMinus_rl };
+ValueMapping spatialintersectionVM[] = {
+  SpatialIntersectionGeneric<Point, Point, Points>,
+  SpatialIntersectionGeneric<Point, Points, Points>,
+  SpatialIntersectionGeneric<Point, Line, Points>,
+  SpatialIntersectionGeneric<Point, Region, Points>,
+  
+  SpatialIntersectionGeneric<Points, Point, Points>,
+  SpatialIntersectionGeneric<Points, Points, Points>,
+  SpatialIntersectionGeneric<Points, Line, Points>,
+  SpatialIntersectionGeneric<Points, Region, Points>,
 
-ValueMapping spatialunionmap[] = {
-  SpatialUnion_pps,
-  SpatialUnion_psp,
-  SpatialUnion_psps };
+  SpatialIntersectionGeneric<Line, Point, Points>,
+  SpatialIntersectionGeneric<Line, Points, Points>,
+  SpatialIntersectionGeneric<Line, Line, Line>,
+  SpatialIntersectionGeneric<Line, Region, Line>,
+
+  SpatialIntersectionGeneric<Region, Point, Points>,
+  SpatialIntersectionGeneric<Region, Points, Points>,
+  SpatialIntersectionGeneric<Region, Line, Line>,
+  SpatialIntersectionGeneric<Region, Region, Region>
+
+};
+
+ValueMapping spatialminusVM[] = {
+  SpatialMinusGeneric<Point, Point, Points>,
+  SpatialMinusGeneric<Point, Points, Points>,
+  SpatialMinusGeneric<Point, Line, Points>,
+  SpatialMinusGeneric<Point, Region, Points>,
+  
+  SpatialMinusGeneric<Points, Point, Points>,
+  SpatialMinusGeneric<Points, Points, Points>,
+  SpatialMinusGeneric<Points, Line, Points>,
+  SpatialMinusGeneric<Points, Region, Points>,
+
+  SpatialMinusGeneric<Line, Point, Line>,
+  SpatialMinusGeneric<Line, Points, Line>,
+  SpatialMinusGeneric<Line, Line, Line>,
+  SpatialMinusGeneric<Line, Region, Line>,
+
+  SpatialMinusGeneric<Region, Point, Region>,
+  SpatialMinusGeneric<Region, Points, Region>,
+  SpatialMinusGeneric<Region, Line, Region>,
+  SpatialMinusGeneric<Region, Region, Region>
+
+};
+
+
+ValueMapping spatialunionVM[] = {
+  SpatialUnionGeneric<Point, Point, Points>,
+  SpatialUnionGeneric<Point, Points, Points>,
+  SpatialUnionGeneric<Point, Line, Line>,
+  SpatialUnionGeneric<Point, Region, Region>,
+  
+  SpatialUnionGeneric<Points, Point, Points>,
+  SpatialUnionGeneric<Points, Points, Points>,
+  SpatialUnionGeneric<Points, Line, Line>,
+  SpatialUnionGeneric<Points, Region, Region>,
+
+  SpatialUnionGeneric<Line, Point, Line>,
+  SpatialUnionGeneric<Line, Points, Line>,
+  SpatialUnionGeneric<Line, Line, Line>,
+  SpatialUnionGeneric<Line, Region, Region>,
+
+  SpatialUnionGeneric<Region, Point, Region>,
+  SpatialUnionGeneric<Region, Points, Region>,
+  SpatialUnionGeneric<Region, Line, Region>,
+  SpatialUnionGeneric<Region, Region, Region>
+
+};
 
 ValueMapping spatialdistancemap[] = {
   SpatialDistance<Point,Point,false>,
@@ -19517,26 +19220,6 @@ ValueMapping spatialsizemap[] = {
   };
 
 
-ValueMapping Union2Map[] = {
-       SetOpVM<Line,Line,Line,avlseg::union_op>,
-       SetOpVM<Region,Region,Region,avlseg::union_op>,
-       SetOpVM<Region,Line,Region,avlseg::union_op>,
-       SetOpVMSym<Line,Region,Region,avlseg::union_op>
-       };
-
-ValueMapping Intersection2Map[] = {
-       SetOpVM<Line,Line,Line,avlseg::intersection_op>,
-       SetOpVM<Region,Region,Region,avlseg::intersection_op>,
-       SetOpVMSym<Region,Line,Line,avlseg::intersection_op>,
-       SetOpVM<Line,Region,Line,avlseg::intersection_op>
-      };
-
-ValueMapping Difference2Map[] = {
-       SetOpVM<Line,Line,Line,avlseg::difference_op>,
-       SetOpVM<Region,Region,Region,avlseg::difference_op>,
-       SetOpVM<Region,Line,Region,avlseg::difference_op>,
-       SetOpVM<Line,Region,Line,avlseg::difference_op>
-      };
 
 ValueMapping SpatialCrossingsMap[] = {
           SpatialCrossings<Line>,
@@ -19661,32 +19344,36 @@ const string SpatialSpecInInterior  =
   "<text>query point ininterior region</text--->"
   ") )";
 
-const string SpatialSpecIntersection  =
+const string SpatialIntersectionSpec  =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-  "( <text> (point||points||line||region x point||points||line||region)"
-  "-> points||line||region</text--->"
-  "<text>_intersection_</text--->"
-  "<text>intersection of two sets.</text--->"
-  "<text>query points intersection region</text--->"
+  "( <text>{point x points, line, region } x"
+  "   {point, points, line, region} -> T, "
+  " where T = points if any point or point type is one of the "
+  " arguments or the argument having the smaller dimension </text--->" 
+  "<text>intersection(arg1, arg2)</text--->"
+  "<text>intersection of two spatial objects</text--->"
+  "<text>query intersection(tiergarten, thecenter) </text--->"
   ") )";
 
-const string SpatialSpecMinus  =
+
+const string SpatialMinusSpec  =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-  "( <text>(point||points||line||region x point||points||line||region)"
-  " -> point||points||line||region</text--->"
-  "<text>_ minus _</text--->"
-  "<text>minus of two sets.</text--->"
-  "<text>query points minus point</text--->"
+  "( <text>{point x points, line, region } x"
+  "   {point, points, line, region} -> T "
+  " </text--->" 
+  "<text>minus(arg1, arg2)</text--->"
+  "<text>difference of two spatial objects</text--->"
+  "<text>query minus(tiergarten,  thecenter) </text--->"
   ") )";
 
-const string SpatialSpecUnion  =
+const string SpatialUnionSpec  =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-  "( <text>(point x points) -> points\n"
-  "(points x point) -> points\n"
-  "(points x points) -> points</text--->"
-  "<text>_ union _</text--->"
-  "<text>union of two sets. Also see: 'union_new'.</text--->"
-  "<text>query points union point</text--->"
+  "( <text>{point x points, line, region } x"
+  "   {point, points, line, region} -> T "
+  " </text--->" 
+  "<text>union(arg1, arg2)</text--->"
+  "<text>union of two spatial objects</text--->"
+  "<text>query union(tiergarten,  thecenter) </text--->"
   ") )";
 
 const string SpatialSpecCrossings  =
@@ -20006,27 +19693,6 @@ const string SpatialSpecMakeSLine  =
            " [ const point value (100 40)])</text--->"
     ") )";
 
-const string Union2Spec =
- "((\"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
- " ( <text> t1 x t2 -> tx, ti in {line, region}  </text--->"
- " \"  _ union2 _ \" "
- "  \" computes the union of two spatial values \" "
-  "  \" query l1 union2 l2 \" ))";
-
-const string Intersection2Spec =
- "((\"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
- " ( <text> {line,region} x {line,region} -> {line,region} </text--->"
- " \"  _ intersection2 _ \" "
- "  <text> computes the intersection of two spatial values </text---> "
-  "  \" query l1 intersection2 l2 \" ))";
-
-const string Difference2Spec =
- "((\"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
- " ( <text> {line,region} x {line,region} -> {line,region} </text--->"
- " \"  _ difference2 _ \" "
- "  \" computes the difference of two spatial values \" "
-  "  \" query l1 difference2 l2 \" ))";
-
 const string CommonBorder2Spec =
  "((\"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
  " ( <text> region x region -> line </text--->"
@@ -20139,10 +19805,10 @@ Operator spatialisempty (
 Operator spatialequal (
   "=",
   SpatialSpecEqual,
-  5,
+  7,
   spatialequalmap,
-  SpatialSelectCompare,
-  SpatialTypeMapCompare );
+  SpatialSelectEqual,
+  SpatialTypeMapEqual );
 
 Operator spatialnotequal (
   "#",
@@ -20197,29 +19863,30 @@ Operator spatialininterior (
   Operator::SimpleSelect,
   PointRegionMapBool );
 
+
 Operator spatialintersection (
   "intersection",
-  SpatialSpecIntersection,
-  13,
-  spatialintersectionmap,
-  SpatialSelectIntersection,
-  SpatialIntersectionMap );
+  SpatialIntersectionSpec,
+  16,
+  spatialintersectionVM,
+  SpatialSetOpSelect,
+  SpatialIntersectionTypeMap );
 
 Operator spatialminus (
   "minus",
-  SpatialSpecMinus,
-  13,
-  spatialminusmap,
-  SpatialSelectMinus,
-  SpatialMinusMap );
+  SpatialMinusSpec,
+  16,
+  spatialminusVM,
+  SpatialSetOpSelect,
+  SpatialMinusTypeMap );
 
 Operator spatialunion (
   "union",
-  SpatialSpecUnion,
-  3,
-  spatialunionmap,
-  SpatialSelectUnion,
-  SpatialUnionMap );
+  SpatialUnionSpec,
+  16,
+  spatialunionVM,
+  SpatialSetOpSelect,
+  SpatialUnionTypeMap );
 
 Operator spatialcrossings (
   "crossings",
@@ -20503,34 +20170,6 @@ Operator realminize(
 );
 
 
-Operator union2(
-        "union2",     // name
-         Union2Spec,   // specification
-         sizeof(Union2Map)/sizeof(ValueMapping),  // number of functions
-         Union2Map,    // array of value mappings
-         SetOpSelect,
-         Union2TypeMap
-         );
-
-
-Operator intersection2(
-        "intersection2",     // name
-         Intersection2Spec,   // specification
-         sizeof(Intersection2Map)/sizeof(ValueMapping),  // number of functions
-         Intersection2Map,    // array of value mappings
-         SetOpSelect,
-         Intersection2TypeMap
-         );
-
-Operator difference2(
-        "difference2",     // name
-         Difference2Spec,   // specification
-         sizeof(Difference2Map)/sizeof(ValueMapping),  // number of functions
-         Difference2Map,    // array of value mappings
-         SetOpSelect,
-         Difference2TypeMap
-         );
-
 
 Operator commonborder2(
          "commonborder2",           //name
@@ -20749,7 +20388,7 @@ class SpatialAlgebra : public Algebra
     AddOperator( &spatialoverlaps );
     AddOperator( &spatialonborder );
     AddOperator( &spatialininterior );
-    AddOperator( &spatialintersection );
+    AddOperator( &spatialintersection);
     AddOperator( &spatialminus );
     AddOperator( &spatialunion );
     AddOperator( &spatialcrossings );
@@ -20789,9 +20428,6 @@ class SpatialAlgebra : public Algebra
     AddOperator( &realminize);
     AddOperator( &makeline);
     AddOperator( &makesline);
-    AddOperator(&union2);
-    AddOperator(&intersection2);
-    AddOperator(&difference2);
     AddOperator(&commonborder2);
     AddOperator(&spatialtoline);
     AddOperator(&spatialfromline);

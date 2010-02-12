@@ -234,6 +234,9 @@ Operators redefinition.
 
 */
     inline bool operator==( const Point& p ) const;
+
+    inline bool operator==( const Points& p) const;
+
 /*
 4.3.2 Operation $\neq$ (~not equal~)
 
@@ -350,6 +353,38 @@ with a degree of alpha. The result is stored in res.
 
    inline void Rotate(const Coord& x, const Coord& y, const double alpha,
                       Point& res) const;
+
+
+/*
+4.3.16 Intersection with different other spatial types
+
+*/
+   void Intersection(const Point& p, Points& result) const;
+   void Intersection(const Points& ps, Points& result) const;
+   void Intersection(const Line& l, Points& result) const;
+   void Intersection(const Region& r, Points& result) const;
+
+
+/*
+4.3.16 Minus with different other spatial types
+
+*/
+   void Minus(const Point& p, Points& result) const;
+   void Minus(const Points& ps, Points& result) const;
+   void Minus(const Line& l, Points& result) const;
+   void Minus(const Region& r, Points& result) const;
+
+
+/*
+4.3.16 Union with different other spatial types
+
+*/
+   void Union(const Point& p, Points& result) const;
+   void Union(const Points& ps, Points& result) const;
+   void Union(const Line& l, Line& result) const;
+   void Union(const Region& r, Region& result) const;
+
+
 
 
 /*
@@ -679,6 +714,9 @@ Returns ~true~ if this point set contains the ~ps~ point set and
 
 */
     bool operator==( const Points& ) const;
+
+    bool operator==( const Point&) const;
+
 /*
 5.4.2 Operation $\neq$ (~not equal~)
 
@@ -801,114 +839,34 @@ the size of ~U~ and ~m~ is the size of ~V~.
 */
     bool Adjacent( const Region& r ) const;
 /*
-5.4.8 Operation ~intersection~ (with ~points~)
-
-*Precondition:* ~U.IsOrdered() $\&\&$ V.IsOrdered()~
-
-*Semantics:* $U \cap V$
-
-*Complexity:* $O(m + n)$ where ~m~ is the size of ~U~ and ~n~ the size of ~V~.
+5.4.8 Operation ~intersection~ 
 
 */
-    void Intersection( const Points& ps, Points& result ) const;
+   void Intersection(const Point& p, Points& result) const;
+   void Intersection( const Points& ps, Points& result ) const;
+   void Intersection( const Line& l, Points& result ) const;
+   void Intersection( const Region& r, Points& result ) const;
 /*
-5.4.8 Operation ~intersection~ (with ~line~)
-
-*Precondition:* ~U.IsOrdered() $\&\&$ V.IsOrdered()~
-
-*Semantics:* $U \cap V$
-
-*Complexity:* $O(m.n)$ where ~m~ is the size of ~U~ and ~n~ the size of ~V~.
-
-*/
-    void Intersection( const Line& l, Points& result ) const;
-/*
-5.4.8 Operation ~intersection~ (with ~region~)
-
-*Precondition:* ~U.IsOrdered() $\&\&$ V.IsOrdered()~
-
-*Semantics:* $U \cap V$
-
-*Complexity:* $O(m.n)$ where ~m~ is the size of ~U~ and ~n~ the size of ~V~.
-
-*/
-    void Intersection( const Region& r, Points& result ) const;
-/*
-5.4.8 Operation ~minus~ (with ~point~)
-
-*Precondition:* ~U.IsOrdered() $\&\&$ v.IsDefined()~
-
-*Semantics:* $U \ \{v\}$
-
-*Complexity:* $O(n)$ where ~n~ is the size of ~U~.
+5.4.8 Operation ~minus~ 
 
 */
     void Minus( const Point& p, Points& result ) const;
-/*
-5.4.8 Operation ~minus~ (with ~points~)
-
-*Precondition:* ~U.IsOrdered() $\&\&$ V.IsOrdered()~
-
-*Semantics:* $U \ V$
-
-*Complexity:* $O(m + n)$ where ~m~ is the size of ~U~ and ~n~ the size of ~V~.
-
-*/
     void Minus( const Points& ps, Points& result ) const;
-/*
-5.4.8 Operation ~minus~ (with ~line~)
-
-*Precondition:* ~U.IsOrdered() $\&\&$ V.IsOrdered()~
-
-*Semantics:* $U \ V$
-
-*Complexity:* $O(m.n)$ where ~m~ is the size of ~U~ and ~n~ the size of ~V~.
-
-*/
     void Minus( const Line& l, Points& result ) const;
-/*
-5.4.8 Operation ~minus~ (with ~region~)
-
-*Precondition:* ~U.IsOrdered() $\&\&$ V.IsOrdered()~
-
-*Semantics:* $U \ V$
-
-*Complexity:* $O(m.n)$ where ~m~ is the size of ~U~ and ~n~ the size of ~V~.
-
-*/
     void Minus( const Region& r, Points& result ) const;
+
+
 /*
-5.4.8 Operation ~union~ (with ~point~)
-
-*Precondition:* ~U.IsOrdered() $\&\&$ v.IsDefined()~
-
-*Semantics:* $U \cup \{v\}$
-
-*Complexity:* $O(n)$ where ~n~ is the size of ~U~.
+5.4.9 Operation ~union~ 
 
 */
-    void Union( const Point& p, Points& result ) const;
-/*
-5.4.8 Operation ~union~ (with ~points~)
+    void Union(const Point& p, Points& result ) const;
+    void Union(const Points& ps, Points& result ) const;
+    void Union(const Line& line, Line& result) const;
+    void Union(const Region& region, Region& result) const;
 
-*Precondition:* ~U.IsOrdered() $\&\&$ V.IsOrdered()~
 
-*Semantics:* $U \cup V$
 
-*Complexity:* $O(m + n)$ where ~m~ is the size of ~U~ and ~n~ the size of ~V~.
-
-*/
-    void Union( const Points& ps, Points& result ) const;
-/*
-5.4.9 Operation ~distance~ (with ~point~)
-
-*Precondition:* ~U.IsOrdered() and v.IsDefined()~
-
-*Semantics:* $\min\{ dist(u, v) | u \in U \}$
-
-*Complexity:* $O(n)$, where ~n~ is the size of ~U~
-
-*/
     double Distance( const Point& p ) const;
 /*
 5.4.9 Operation ~distance~ (with ~points~)
@@ -1762,6 +1720,9 @@ This instance must must be in bulkload mode.
 
 */
     bool Intersects( const Region& r ) const;
+
+
+
 /*
 6.4.4 Operation ~inside~ (with ~line~)
 
@@ -1795,28 +1756,33 @@ This instance must must be in bulkload mode.
 
 */
     bool Adjacent( const Region& r ) const;
+
 /*
-6.4.4 Operation ~intersection~ (with ~line~)
-
-*Precondition:* ~U.IsOrdered() and V.IsOrdered()~
-
-*Semantics:* $U \cap V$
-
-*Complexity:* $O(m.n)$, where ~m~ is the size of ~U~ and ~n~ the size of ~V~.
+6.4.4 Operation ~intersection~ 
 
 */
+    void Intersection(const Point& p, Points& result) const;
+    void Intersection(const Points& ps, Points& result) const;
     void Intersection( const Line& l, Line& result ) const;
+    void Intersection( const Region& l, Line& result ) const;
 /*
-6.4.4 Operation ~minus~ (with ~line~)
-
-*Precondition:* ~U.IsOrdered() and V.IsOrdered()~
-
-*Semantics:* $U \backslash V$
-
-*Complexity:* $O(m.n)$, where ~m~ is the size of ~U~ and ~n~ the size of ~V~.
+6.4.4 Operation ~minus~ 
 
 */
+    void Minus( const Point& l, Line& result ) const;
+    void Minus( const Points& l, Line& result ) const;
     void Minus( const Line& l, Line& result ) const;
+    void Minus( const Region& l, Line& result ) const;
+
+/*
+6.4.4 Operation ~union~ 
+
+*/
+    void Union( const Point& l, Line& result ) const;
+    void Union( const Points& l, Line& result ) const;
+    void Union( const Line& l, Line& result ) const;
+    void Union( const Region& l, Region& result ) const;
+
 /*
 6.4.5 Operation ~crossings~
 
@@ -3000,6 +2966,35 @@ Assignement operator redefinition.
 */
     bool Intersects( const Region& r ) const;
 /*
+6.4.4 Operation ~intersection~
+
+*/
+   void Intersection(const Point& p, Points& result) const;
+   void Intersection(const Points& ps, Points& result) const;
+   void Intersection(const Line& l, Line& result) const;
+   void Intersection(const Region& r, Region& result) const;
+
+/*
+6.4.4 Operation ~Union~
+
+*/
+   void Union(const Point& p, Region& result) const;
+   void Union(const Points& ps, Region& result) const;
+   void Union(const Line& l, Region& result) const;
+   void Union(const Region& r, Region& result) const;
+
+
+/*
+6.4.4 Operation ~Minus~
+
+*/
+   void Minus(const Point& p, Region& result) const;
+   void Minus(const Points& ps, Region& result) const;
+   void Minus(const Line& l, Region& result) const;
+   void Minus(const Region& r, Region& result) const;
+
+
+/*
 6.4.4 Operation ~inside~
 
 *Precondition:* ~U.IsOrdered() and V.IsOrdered()~
@@ -3999,6 +3994,22 @@ inline bool Point::operator==( const Point& p ) const
   //  return x == p.x && y == p.y;
 }
 
+inline bool Point::operator==(const Points& ps) const{
+   if(!IsDefined() && !ps.IsDefined()){
+     return true;
+   }
+   if(!IsDefined() || !ps.IsDefined()){
+     return false;
+   }
+   if(ps.Size()!=1){
+     return false;
+   }
+   Point p1;
+   ps.Get(0,p1);
+   return AlmostEqual(*this,p1);
+}
+
+
 inline bool Point::operator!=( const Point& p ) const
 {
   return !( *this == p );
@@ -4130,6 +4141,22 @@ inline int Points::NumOfFLOBs() const
 {
   return 1;
 }
+
+inline bool Points::operator==(const Point& p) const{
+   if(!IsDefined() && !p.IsDefined()){
+     return true;
+   } 
+   if(!IsDefined() || !p.IsDefined()){
+     return false;
+   }
+   if(Size()!=1){
+     return false;
+   }
+   Point p1;
+   Get(0,p1);
+   return AlmostEqual(p,p1);
+}
+
 
 inline Flob *Points::GetFLOB(const int i)
 {
@@ -5231,6 +5258,20 @@ or avlseg::intersection[_]op.
 */
 Region* SetOp(const Region& reg1, const Region& reg2, avlseg::SetOperation op);
 
+
+
+void SetOp(const Line& line, const Region& region, 
+           Line& result, avlseg::SetOperation op);
+
+void SetOp(const Line& line, const Region& region, 
+           Region& result, avlseg::SetOperation op);
+
+
+void SetOp(const Line& line1, const Line& line2, 
+           Line& result, avlseg::SetOperation op);
+
+void SetOp(const Region& reg1, const Region& reg2, 
+          Region& result, avlseg::SetOperation op);
 /*
 ~Realminize~
 

@@ -470,8 +470,8 @@ query (pointrel feed {a} regionrel feed {b} symmjoin[ (.p_a minus ..r_b) = .p_a 
       pointrel feed {a} regionrel feed {b} symmjoin[ TRUE ] count;
 
 #testcase minus_psp
-#yields (int 8)
-query pointsrel feed {a} pointrel feed {b} product extend[na: no_components(.ps_a), n1: no_components(.ps_a) - ifthenelse(isempty(intersection(.p_b,.ps_a)) and (not(isdefined(intersection(.p_b,.ps_a)))),0,1), n2: no_components(.ps_a minus .p_b)] filter[.n1 # .n2] count
+#yields (int 0)
+query pointsrel feed {a} pointrel feed filter[isdefined(.p)] {b} product extend[n1: no_components(.ps_a) - ifthenelse(isempty(intersection(.p_b,.ps_a)),0,1), n2: no_components(.ps_a minus .p_b)] filter[(.n1 # .n2) ] count
 
 #testcase minus_psps
 #yields (int 89)
@@ -739,5 +739,5 @@ query linerel feed extend[p: atposition(fromline(.l), atpoint(fromline(.l), [con
 
 #teardown
 close database;
-delete database spatialtest;
+#delete database spatialtest;
 
