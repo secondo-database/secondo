@@ -310,11 +310,11 @@ by arel to identify its relation among all open relations.
         
 */
 
-	AttributeRelation(){}
+        AttributeRelation(){}
 /*
 The empty constructor.
 
-*/	
+*/
 };
 
 /*
