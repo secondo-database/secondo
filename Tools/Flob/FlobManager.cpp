@@ -17,6 +17,7 @@ of that class.
 #include <iostream>
 #include "NativeFlobCache.h"
 #include "PersistentFlobCache.h"
+#include "Stack.h"
 
 #undef __TRACE_ENTER__
 #undef __TRACE_LEAVE__
@@ -36,6 +37,7 @@ FlobManager* FlobManager::instance = 0;
 
 static NativeFlobCache* nativeFlobCache = 0;
 static PersistentFlobCache* persistentFlobCache = 0;
+static Stack<Flob>* DestroyedFlobs=0;
 
 /*
  
@@ -103,6 +105,11 @@ and the nativFlobFile is deleted.
          delete persistentFlobCache;
          persistentFlobCache = 0;
        }
+
+       DestroyedFlobs->makeEmpty();
+       delete DestroyedFlobs;
+       DestroyedFlobs=0;
+
      }
 
 
@@ -333,6 +340,16 @@ bool FlobManager::destroy(Flob& victim) {
 
  __TRACE_ENTER__
 
+   if(victim.id.fileId == nativeFlobs){
+      nativeFlobCache->erase(victim); // delete from cache
+      DestroyedFlobs->push(victim);
+      if(DestroyedFlobs->getSize() > 64000){
+        cerr << "Stack of destroyed flobs reaches a critical size " << endl;
+      }
+      return true;
+   }
+
+
    FlobId id = victim.id;
    SmiSize size = victim.getSize();
    SmiRecordId recordId = id.recordId;
@@ -415,6 +432,7 @@ bool FlobManager::saveTo(const Flob& src,   // Flob to save
        Flob& result)  {   // offset within the record  
 
  __TRACE_ENTER__
+   assert(fileId != nativeFlobs);
    if(src.size==0){
      __TRACE_LEAVE__
      return false;
@@ -448,6 +466,7 @@ bool FlobManager::saveTo(const Flob& src,   // Flob to save
    //  __TRACE_LEAVE__
    //  return false;
    //}
+   assert(file->GetFileId() != nativeFlobs);
 
    SmiRecord record;
    if(!file->SelectRecord(recordId, record, SmiFile::Update)){
@@ -493,7 +512,7 @@ Must be changed to support real large Flobs
              const Flob& src,             // flob to save
              const SmiFileId fileId,      // target file
              Flob& result){         // result
-   
+    assert(fileId != nativeFlobs); 
     SmiRecordFile* file = getFile(fileId);
     return saveTo(src, file, result);
 }
@@ -506,6 +525,7 @@ Must be changed to support real large Flobs
 
 
  __TRACE_ENTER__
+    assert(file->GetFileId() != nativeFlobs);
     SmiRecordId recId;
     SmiRecord rec;
     if(!file->AppendRecord(recId,rec)){
@@ -637,7 +657,13 @@ Creates a new Flob with a given size which is assigned to a temporal file.
  __TRACE_ENTER__
    SmiRecord rec;
    SmiRecordId recId;
-  
+ 
+   if(!DestroyedFlobs->isEmpty()){
+     result = DestroyedFlobs->pop();
+     result.size = size;
+     return true;
+   }
+ 
 
    // create a record from the flob to get an id 
    if(!(nativeFlobFile->AppendRecord(recId,rec))){
@@ -674,6 +700,7 @@ must exists.
              Flob& result){       // initial size of the Flob
 
  __TRACE_ENTER__
+   assert(fileId != nativeFlobs);
    SmiRecordFile* file = getFile(fileId);
    SmiRecord record;
    if(!file->SelectRecord(recordId,record)){
@@ -720,7 +747,7 @@ return a Flob with persistent storage allocated and defined elsewhere
                                     const SmiRecordId& rid,
                                     const SmiSize& offset, 
                                     const SmiSize& size) {
-
+        //assert(fid!=nativeFlobs);
         Flob flob;
         FlobId flob_id(fid, rid, offset);
         flob.id = flob_id;
@@ -734,6 +761,7 @@ return a Flob with persistent storage allocated and defined elsewhere
            nativeFlobCache->clear();
         }
         bool ok = nativeFlobFile->ReCreate();  
+        DestroyedFlobs->makeEmpty();
         assert(ok);
       }
 
@@ -767,6 +795,9 @@ by the FlobManager class itself.
 
     size_t maxPCache = 64 * 1024 * 1024;
     persistentFlobCache = new PersistentFlobCache(maxPCache, 4096);  
+
+    DestroyedFlobs = new Stack<Flob>();
+
 
     __TRACE_LEAVE__
   }
