@@ -403,15 +403,15 @@ comparisons are more expensive than the Real comparisons.
 */
 int CSP::MBool2Vec(const MBool* mb, vector<Interval<CcReal> >& vec)
 {
-  const UBool* unit;
+  UBool unit(0);
   vec.clear();
   Interval<CcReal> elem(CcReal(true,0.0),CcReal(true,0.0),true,true);
   for(int i=0; i<mb->GetNoComponents(); i++)
   {
     mb->Get(i, unit);
-    if( ((CcBool)unit->constValue).GetValue())
+    if( ((CcBool)unit.constValue).GetValue())
     {
-      IntervalInstant2IntervalCcReal(unit->timeInterval, elem);
+      IntervalInstant2IntervalCcReal(unit.timeInterval, elem);
       vec.push_back(elem);
     }
   }
@@ -710,11 +710,11 @@ void RandomDelay(const MPoint* actual, const Instant* threshold, MPoint& res)
   bool debugme= false;
 
   MPoint delayed(actual->GetNoComponents());
-  const UPoint *first, *next;
+  UPoint first(0), next(0);
   UPoint *shifted,*temp, *cur;
   int rmillisec=0, rday=0;
   actual->Get( 0, first );
-  cur=new UPoint(*first);
+  cur=new UPoint(first);
   for( int i = 1; i < actual->GetNoComponents(); i++ )
   {
     actual->Get( i, next );
@@ -726,10 +726,10 @@ void RandomDelay(const MPoint* actual, const Instant* threshold, MPoint& res)
 
     shifted= new UPoint(*cur);
     delete cur;
-    temp= new UPoint(*next);
+    temp= new UPoint(next);
     if(rmillisec > rand()%24000 )
     {
-      if((shifted->timeInterval.end + delta) <  next->timeInterval.end )
+      if((shifted->timeInterval.end + delta) <  next.timeInterval.end )
       {
         shifted->timeInterval.end += delta ;
         temp->timeInterval.start= shifted->timeInterval.end;
