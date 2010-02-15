@@ -158,10 +158,6 @@ Creates a new cache of maximum size and given slotsize.
 PersistentFlobCache::PersistentFlobCache(size_t _maxSize, size_t _slotSize):
     maxSize(_maxSize), slotSize(_slotSize), usedSize(0), first(0), last(0) {
 
-    // debug
-    slotSize = 128;
-    _maxSize = 1048576;
-
 
    assert(slotSize + sizeof(CacheEntry) + sizeof(void*) < maxSize);
    // compute a good tablesize
