@@ -16,7 +16,7 @@
     bool debugme=true;
     res->Clear();
     res->StartBulkLoad();
-    const UBool *uarg;
+    UBool uarg;
     UBool uBool(nval->GetBoolval()), uBool2(nval->GetBoolval());
     uBool.constValue= *nval;
     if(!arg->IsDefined()||arg->GetNoComponents() == 0)
@@ -25,18 +25,18 @@
       return;
     }
     arg->Get(0, uarg);
-    uarg->Print(cout);
-    uBool2.CopyFrom(uarg);  
+    uarg.Print(cout);
+    uBool2.CopyFrom(&uarg);  
     res->MergeAdd(uBool2);
     res->Print(cout);
-    uBool.timeInterval.lc = !uarg->timeInterval.rc;
-    uBool.timeInterval.start = uarg->timeInterval.end;
+    uBool.timeInterval.lc = !uarg.timeInterval.rc;
+    uBool.timeInterval.start = uarg.timeInterval.end;
     for( int i = 1; i < arg->GetNoComponents(); i++) 
     {
       arg->Get(i, uarg);
 
-      uBool.timeInterval.rc = !uarg->timeInterval.lc;
-      uBool.timeInterval.end = uarg->timeInterval.start;
+      uBool.timeInterval.rc = !uarg.timeInterval.lc;
+      uBool.timeInterval.end = uarg.timeInterval.start;
 
       if(uBool.timeInterval.start < uBool.timeInterval.end
           || (uBool.timeInterval.start == uBool.timeInterval.end
@@ -46,11 +46,11 @@
         res->Print(cout);
       }
 
-        uBool2.CopyFrom(uarg);  
+        uBool2.CopyFrom(&uarg);  
         res->MergeAdd(uBool2);
         res->Print(cout);
-        uBool.timeInterval.lc = !uarg->timeInterval.rc;
-        uBool.timeInterval.start = uarg->timeInterval.end;
+        uBool.timeInterval.lc = !uarg.timeInterval.rc;
+        uBool.timeInterval.start = uarg.timeInterval.end;
     }
     res->EndBulkLoad(false);
     if(debugme)
