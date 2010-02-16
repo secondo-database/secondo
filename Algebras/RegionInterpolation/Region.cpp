@@ -27,26 +27,26 @@ RegionForInterpolation :: RegionForInterpolation(Region *newRegion)
    newRegion->SelectFirst();
    while(!newRegion->EndOfHs())
     {
-      const HalfSegment *tmp;       
+      HalfSegment tmp;       
       newRegion->GetHs(tmp);
       newRegion->SelectNext();
-      if(tmp->GetAttr().faceno >= tmpvec.size())
+      if(tmp.GetAttr().faceno >= tmpvec.size())
       {
-         tmpvec.resize(tmp->GetAttr().faceno + 1);          
+         tmpvec.resize(tmp.GetAttr().faceno + 1);          
       }
       
-      if(tmp->GetAttr().cycleno >= tmpvec[tmp->GetAttr().faceno].size())
+      if(tmp.GetAttr().cycleno >= tmpvec[tmp.GetAttr().faceno].size())
       {
-         tmpvec[tmp->GetAttr().faceno].resize((tmp->GetAttr().cycleno + 1));
+         tmpvec[tmp.GetAttr().faceno].resize((tmp.GetAttr().cycleno + 1));
       }           
-      if(tmp->GetAttr().edgeno >= tmpvec[tmp->GetAttr().faceno] 
-         [tmp->GetAttr().cycleno].size())
+      if(tmp.GetAttr().edgeno >= tmpvec[tmp.GetAttr().faceno] 
+         [tmp.GetAttr().cycleno].size())
       {
-         tmpvec[tmp->GetAttr().faceno] [tmp->GetAttr().cycleno].resize(
-            (tmp->GetAttr().edgeno + 1));
+         tmpvec[tmp.GetAttr().faceno] [tmp.GetAttr().cycleno].resize(
+            (tmp.GetAttr().edgeno + 1));
       }           
-      tmpvec[tmp->GetAttr().faceno] [tmp->GetAttr().cycleno] 
-         [tmp->GetAttr().edgeno] = (HalfSegment*) tmp;    
+      tmpvec[tmp.GetAttr().faceno] [tmp.GetAttr().cycleno] 
+         [tmp.GetAttr().edgeno] = &((HalfSegment) tmp);    
     }    
     
     for(unsigned int i = 0; i < tmpvec.size(); i++)

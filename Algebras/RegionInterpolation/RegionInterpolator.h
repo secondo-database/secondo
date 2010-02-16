@@ -57,7 +57,8 @@ It is usesed to include all other header files.
 #include <stack>
 #include <typeinfo>
 #include <map>
-#include "DBArray.h"        //needed in graph and path
+//#include "DBArray.h"        //needed in graph and path
+#include "../../Tools/Flob/DbArray.h"
 #include "SpatialAlgebra.h"    //needed for Points
 #include "Algebra.h"        //always needed in Algebras
 #include "NestedList.h"        //always needed in Algebras
