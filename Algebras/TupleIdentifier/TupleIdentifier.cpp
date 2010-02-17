@@ -60,7 +60,7 @@ extern QueryProcessor *qp;
 void TupleIdentifier::CopyFrom(const Attribute* attr)
 {
   const TupleIdentifier* tupleI = (const TupleIdentifier*) attr;
-  defined = tupleI->IsDefined();
+  SetDefined(tupleI->IsDefined());
   tid = tupleI->GetTid();
 }
 
@@ -71,28 +71,21 @@ bool TupleIdentifier::Adjacent( const Attribute* arg ) const
   return( tid == argTid -1 || tid == argTid + 1 );
 }
 
-TupleIdentifier::TupleIdentifier(bool DEFINED, TupleId TID)
+TupleIdentifier::TupleIdentifier(bool DEFINED, TupleId TID):
+Attribute(DEFINED), tid(TID)
 {
-  defined = DEFINED;
-  tid = TID;
-  del.refs = 1;
-  del.isDelete = true;
 }
 
-TupleIdentifier::TupleIdentifier(const TupleIdentifier& source){
-   defined = source.defined;
-   tid = source.tid;
-   del.refs = 1;
-   del.isDelete=true;
+TupleIdentifier::TupleIdentifier(const TupleIdentifier& source):
+  Attribute(source.IsDefined()), tid(source.tid){
 }
-
 
 TupleIdentifier::~TupleIdentifier() {}
 
 TupleId TupleIdentifier::GetTid() const {return tid;}
 
 void TupleIdentifier::SetTid(TupleId TID)
-{tid = TID; defined = true;}
+{tid = TID; SetDefined(true);}
 
 TupleIdentifier* TupleIdentifier::Clone() const
 { return new TupleIdentifier( *this ); }

@@ -4704,14 +4704,14 @@ public:
   DefPoint(){
     SetDefined(false);
     del.refs=1;
-    del.isDelete=true;
+    del.SetDelete();
   }
   DefPoint(const Point& p){
     Set(p.IsDefined(),p.GetX(),p.GetY());
   }
   DefPoint(const DefPoint& p){
     Set(p.IsDefined(),p.GetX(),p.GetY());
-    del.refs=1;del.isDelete=true;
+    del.refs=1;del.SetDelete();
   }
   ~DefPoint(){}
   DefPoint& operator=(const DefPoint& p){

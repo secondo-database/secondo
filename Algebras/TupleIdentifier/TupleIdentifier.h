@@ -74,20 +74,11 @@ This constructor should not be used.
   void     SetTid( const TupleId tid);
   TupleIdentifier*   Clone() const;
   ostream& Print( ostream& os ) const;
-  inline bool IsDefined() const
-  {
-    return (defined);
-  }
 
   inline void Set(const bool DEFINED, const TupleId ID)
   {
-    this->defined = DEFINED;
+    SetDefined( DEFINED);
     this->tid = static_cast<long>(ID);
-  }
-
-  inline void SetDefined(bool DEFINED)
-  {
-    this->defined = DEFINED;
   }
 
   inline size_t Sizeof() const
@@ -97,7 +88,7 @@ This constructor should not be used.
 
   inline size_t HashValue() const
   {
-    return (defined ? tid : 0);
+    return (IsDefined() ? tid : 0);
   }
 
   void CopyFrom(const Attribute* right);
@@ -106,9 +97,9 @@ This constructor should not be used.
   {
     const TupleIdentifier* tupleI = (const TupleIdentifier*)(arg);
     bool argDefined = tupleI->IsDefined();
-    if(!defined && !argDefined)
+    if(!IsDefined() && !argDefined)
       return 0;
-    if(!defined)
+    if(!IsDefined())
       return -1;
     if(!argDefined)
       return 1;
@@ -123,7 +114,6 @@ This constructor should not be used.
 
  private:
   long tid;
-  bool defined;
 };
 
 

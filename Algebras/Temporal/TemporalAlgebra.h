@@ -1067,10 +1067,11 @@ Use this constructor when declaring temporal object variables etc.
 */
 
     StandardTemporalUnit( const Interval<Instant>& interval ):
+      Attribute(true),
       TemporalUnit<Alpha>( interval )
       {
         del.refs=1;
-        del.isDelete=true;
+        del.SetDelete();
         del.isDefined=true;
       }
 /*
@@ -1531,10 +1532,10 @@ struct UReal : public StandardTemporalUnit<CcReal>
 */
   UReal() {};
 
-  UReal(bool is_defined)
+  UReal(bool is_defined):StandardTemporalUnit<CcReal>(is_defined)
   {
     del.refs=1;
-    del.isDelete=true;
+    del.SetDelete();
     del.isDefined=is_defined;
   };
 
@@ -1548,7 +1549,7 @@ struct UReal : public StandardTemporalUnit<CcReal>
     r( r )
     {
       del.refs=1;
-      del.isDelete=true;
+      del.SetDelete();
       del.isDefined=true;
     }
 
@@ -1567,7 +1568,7 @@ struct UReal : public StandardTemporalUnit<CcReal>
        }
        b = (v2-v1) / diff.ToDouble();
        del.refs=1;
-       del.isDelete=true;
+       del.SetDelete();
        del.isDefined = true;
   }
 
@@ -1967,9 +1968,11 @@ struct UPoint : public SpatialTemporalUnit<Point, 3>
 */
   UPoint() {};
 
-  UPoint(bool is_defined){
+  UPoint(bool is_defined):
+    SpatialTemporalUnit<Point, 3>(is_defined)
+  {
     del.refs=1;
-    del.isDelete=true;
+    del.SetDelete();
     del.isDefined = is_defined;
   };
 
@@ -1980,7 +1983,7 @@ struct UPoint : public SpatialTemporalUnit<Point, 3>
     p0( true, x0, y0 ),
     p1( true, x1, y1 )
     { del.refs=1;
-      del.isDelete=true;
+      del.SetDelete();
       del.isDefined = true;
     }
 
@@ -1990,16 +1993,17 @@ struct UPoint : public SpatialTemporalUnit<Point, 3>
     p0( _p0 ),
     p1( _p1 )
     { del.refs=1;
-      del.isDelete=true;
+      del.SetDelete();
       del.isDefined = p0.IsDefined() && p1.IsDefined();
     }
 
-  UPoint(const UPoint& source){
+  UPoint(const UPoint& source):
+    SpatialTemporalUnit<Point, 3>(source.IsDefined()) {
      *((TemporalUnit<Point>*)this) = *((TemporalUnit<Point>*)&source);
      p0 = source.p0;
      p1 = source.p1;
      del.refs=1;
-     del.isDelete=true;
+     del.SetDelete();
      del.isDefined = source.del.isDefined;
   }
 
@@ -2769,7 +2773,7 @@ public:
       Mapping< UReal, CcReal >( n )
       {
         del.refs=1;
-        del.isDelete=true;
+        del.SetDelete();
         del.isDefined = true;
       }
 
@@ -2881,7 +2885,7 @@ The simple constructor. This constructor should not be used.
       Mapping< UPoint, Point >( n )
       {
         del.refs=1;
-        del.isDelete=true;
+        del.SetDelete();
         del.isDefined = true;
         bbox = Rectangle<3>(false, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
       }
@@ -3460,12 +3464,13 @@ int  Interval<Alpha>::CompareTo( const Interval<Alpha>& i) const{
 */
 template <class Alpha>
 Range<Alpha>::Range( const int n ):
+  Attribute(true),
   canDestroy( false ),
   ordered( true ),
   intervals( n )
 {
   del.refs=1;
-  del.isDelete=true;
+  del.SetDelete();
   del.isDefined=true;
 }
 
@@ -4998,12 +5003,13 @@ bool TemporalUnit<Alpha>::After( const Instant& a ) const
 */
 template <class Unit, class Alpha>
 Mapping<Unit, Alpha>::Mapping( const int n ):
+  Attribute(true),
   canDestroy( false ),
   ordered( true ),
   units( n )
 {
   del.refs=1;
-  del.isDelete=true;
+  del.SetDelete();
   del.isDefined = true;
 }
 

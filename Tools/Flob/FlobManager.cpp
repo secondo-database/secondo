@@ -125,7 +125,8 @@ SmiRecordFile* FlobManager::getFile(const SmiFileId& fileId) {
    if(it == openFiles.end()){
      file = new SmiRecordFile(false);
      openFiles[fileId] = file;
-     file->Open(fileId);
+     bool openOk = file->Open(fileId);
+     assert(openOk);
      changed = true;
    } else{
      file = it->second;

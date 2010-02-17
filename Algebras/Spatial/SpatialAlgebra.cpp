@@ -1266,7 +1266,6 @@ Points& Points::operator=( const Points& ps )
   points.copyFrom(ps.points);
   bbox = ps.BoundingBox();
   ordered = true;
-  del.isDelete=true;
   SetDefined(ps.IsDefined());
   return *this;
 }
@@ -2549,7 +2548,7 @@ InPoints( const ListExpr typeInfo, const ListExpr instance,
         delete p;
       }
       cout << __PRETTY_FUNCTION__ << ": Incorrect or undefined point!" << endl;
-      delete points;
+      points->DeleteIfAllowed();
       correct = false;
       return SetWord( Address(0) );
     }
@@ -2561,7 +2560,7 @@ InPoints( const ListExpr typeInfo, const ListExpr instance,
     correct = true;
     return SetWord( points );
   }
-  delete points;
+  points->DeleteIfAllowed();
   correct = false;
   cout << __PRETTY_FUNCTION__ << ": Invalid points value!" << endl;
   return SetWord( Address(0) );
@@ -2586,7 +2585,7 @@ DeletePoints( const ListExpr typeInfo, Word& w )
 {
   Points *ps = (Points *)w.addr;
   ps->Destroy();
-  ps->DeleteIfAllowed();
+  ps->DeleteIfAllowed(false);
   w.addr = 0;
 }
 
@@ -5414,6 +5413,7 @@ void Line::computeComponents() {
     }
   }
   noComponents = faceno;
+  used.Destroy();
 }
 
 void Line::Sort()
@@ -5795,7 +5795,7 @@ InLine( const ListExpr typeInfo, const ListExpr instance,
                         nl->Third(first),
                         nl->Fourth(first)));
       } else { // wrong list representation
-         delete l;
+         l->DeleteIfAllowed();
          correct = false;
          return SetWord( Address(0) );
       }
@@ -5816,7 +5816,7 @@ InLine( const ListExpr typeInfo, const ListExpr instance,
     correct = true;
     return SetWord( l );
   }
-  delete l;
+  l->DeleteIfAllowed();
   correct = false;
   return SetWord( Address(0) );
 }
@@ -5840,7 +5840,7 @@ DeleteLine( const ListExpr typeInfo, Word& w )
 {
   Line *l = (Line *)w.addr;
   l->Destroy();
-  l->DeleteIfAllowed();
+  l->DeleteIfAllowed(false);
   w.addr = 0;
 }
 
@@ -5975,10 +5975,9 @@ If ~src~ is not simple, the simple line will be invalidated, i.e.
 the defined flag is set to false;
 
 */
-SimpleLine::SimpleLine(const Line& src):segments(0),lrsArray(0){
+SimpleLine::SimpleLine(const Line& src):
+     StandardSpatialAttribute<2>(src.IsDefined()),segments(0),lrsArray(0){
   fromLine(src);
-  del.refs = 1;
-  del.isDelete = true;
 }
 
 /*
@@ -6765,7 +6764,7 @@ Word
    ListExpr segment = nl->First(rest);
    if(!nl->HasLength(segment,4)){
       correct=false;
-      delete line;
+      line->DeleteIfAllowed();
       return SetWord(Address(0));
    }
    ListExpr halfSegment = nl->TwoElemList(
@@ -6790,7 +6789,7 @@ Word
    rest = nl->Rest(rest);
  }
  if(!line->EndBulkLoad()){
-   delete line;
+   line->DeleteIfAllowed();
    return SetWord(Address(0));
  }else{
    return SetWord(line);
@@ -6845,7 +6844,7 @@ Word
 void DeleteSimpleLine( const ListExpr typeInfo, Word& w ) {
   SimpleLine *l = static_cast<SimpleLine*>(w.addr);
   l->Destroy();
-  l->DeleteIfAllowed();
+  l->DeleteIfAllowed(false);
   w.addr = 0;
 }
 
@@ -6911,15 +6910,13 @@ expressed as a set of faces, and each face is composed of a set of cycles.  Howe
 
 */
 Region::Region( const Region& cr, bool onlyLeft ) :
+StandardSpatialAttribute<2>(cr.IsDefined()),
 region( cr.Size() ),
 bbox( cr.bbox ),
 noComponents( cr.noComponents ),
 ordered( true )
 {
-  del.refs=1;
-  del.isDelete=true;
-  del.isDefined = cr.del.isDefined;
-  if( del.isDefined && cr.Size() >0 ) {
+  if( IsDefined() && cr.Size() >0 ) {
     assert( cr.IsOrdered() );
     if( !onlyLeft ){
       region.copyFrom(cr.region);
@@ -8214,8 +8211,6 @@ Region& Region::operator=( const Region& r )
   region.copyFrom(r.region);
   bbox = r.bbox;
   noComponents = r.noComponents;
-  del.refs=1;
-  del.isDelete=true;
   del.isDefined = r.del.isDefined;
   return *this;
 }
@@ -13674,7 +13669,7 @@ OutRegion( ListExpr typeInfo, Word value )
     }
     faceNL = nl->TheEmptyList();
 
-    delete RCopy;
+    RCopy->DeleteIfAllowed();
     return regionNL;
   }
 }
@@ -14003,7 +13998,7 @@ DeleteRegion( const ListExpr typeInfo, Word& w )
 
   Region *cr = (Region *)w.addr;
   cr->Destroy();
-  cr->DeleteIfAllowed();
+  cr->DeleteIfAllowed(false);
   w.addr = 0;
 }
 

@@ -74,12 +74,12 @@ struct Field : public Attribute
             throw runtime_error( "Row must be in range '1'-'8'." );
         */
        del.refs=1;
-       del.isDelete = true;
+       del.SetDelete();
        SetDefined(true);
     }
     Field( undef_t undef ) : file(0), row(0)  {
        del.refs=1;
-       del.isDelete = true;
+       del.SetDelete();
        SetDefined(false);
         
     }
@@ -95,7 +95,7 @@ struct Field : public Attribute
             throw runtime_error( "Row must be in range '1'-'8'." );
 
         del.refs=1;
-        del.isDelete=true;
+        del.SetDelete();
         SetDefined(true);
     }
 

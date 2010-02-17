@@ -131,7 +131,7 @@ Default save function.
       elem = static_cast<Attribute*>(
 	       (algMgr->Cast(algId, typeId))( elem ) );
       elem->del.refs = 1;
-      elem->del.isDelete = true;
+      elem->del.SetDelete();
       offset += size;
 
       return elem;
@@ -141,19 +141,21 @@ Default open function.
 
 */
 
-    bool Attribute::DeleteIfAllowed()
+    bool Attribute::DeleteIfAllowed( const bool destroyFlobs /*=true*/ )
     {
       assert( del.refs > 0 );
       del.refs--;
       if( del.refs == 0 )
       {
         Finalize();
-        if( del.isDelete )
+        if(destroyFlobs && !IsPinned()){ // destroy if unpinned
+          for( int i = 0; i < NumOfFLOBs(); i++) {
+            GetFLOB(i)->destroyIfNonPersistent();
+          }
+        }        
+        if( del.IsDelete() )
           delete this;
         else {
-          for( int i = 0; i < NumOfFLOBs(); i++) {
-            GetFLOB(i)->clean();
-          }
           free( this );
         }
         return true;
@@ -202,7 +204,7 @@ clones it.
       Result += " del.Refs=";
       Result += str;
       Result += ", del.IsDelete=";
-      if (del.isDelete)
+      if (del.IsDelete())
         Result += "true";
       else
         Result +="false";

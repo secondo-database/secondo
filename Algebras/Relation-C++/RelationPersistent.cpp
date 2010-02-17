@@ -433,6 +433,7 @@ char* Tuple::WriteToBlock( size_t coreSize,
   uint32_t currentExtSize = 0;
 
   // collect all attributes into the memory block
+
   for( int i = 0; i < noAttributes; i++)
   {
     SHOW(attributes[i]->IsDefined())
@@ -444,11 +445,13 @@ char* Tuple::WriteToBlock( size_t coreSize,
       //Write Flob data and adjust FlobIds if necessary
 
       SHOW(attributes[i]->NumOfFLOBs() )
+      vector<Flob> destroyableFlobs;
 
       // iterate the FLOBs
       for( int j = 0; j < attributes[i]->NumOfFLOBs(); j++)
       {
         SHOW((void*)ext)    
+
 
         Flob *tmpFlob = attributes[i]->GetFLOB(j);
         SmiSize flobsz = tmpFlob->getSize(); 
@@ -458,6 +461,9 @@ char* Tuple::WriteToBlock( size_t coreSize,
         if(!ignoreLobs) {
             if (flobsz >= extensionLimit ) {
               DEBUG_MSG("tmpFlob->saveToFile");
+              if(!attributes[i]->IsPinned()){
+                 destroyableFlobs.push_back(*tmpFlob);
+              }
               tmpFlob->saveToFile( lobFileId, *tmpFlob );
             }  
         }
@@ -476,6 +482,9 @@ char* Tuple::WriteToBlock( size_t coreSize,
           SmiFileId  fid = tupleFile->GetFileId();      
           Flob newFlob = Flob::createFrom( fid, tupleId, 
                                            extOffset, flobsz );
+         if(!attributes[i]->IsPinned()){
+             destroyableFlobs.push_back(*tmpFlob);
+          }
           *tmpFlob = newFlob;
           SHOW(newFlob)
 
@@ -485,6 +494,12 @@ char* Tuple::WriteToBlock( size_t coreSize,
         }       
 
         SHOW(extOffset)
+      }
+
+      // destroy flobs
+      vector<Flob>::iterator it;
+      for(it=destroyableFlobs.begin();it!=destroyableFlobs.end(); it++){
+         it->destroyIfNonPersistent();
       }
       
       //Write attribute data        
@@ -1597,6 +1612,7 @@ void TupleBuffer::AppendTuple( Tuple *t )
       while( iter != memoryBuffer.end() )
       {
         Tuple* tuple = *iter;
+        tuple->PinAttributes();
         diskBuffer->AppendTupleNoLOBs( tuple );
         appendCalls++;
         tuple->DeleteIfAllowed();
@@ -1606,6 +1622,7 @@ void TupleBuffer::AppendTuple( Tuple *t )
       totalMemSize = 0;
       totalExtSize = 0;
       totalSize = 0;
+      t->PinAttributes();
       diskBuffer->AppendTupleNoLOBs( t );
       appendCalls++;
       inMemory = false;
@@ -1613,6 +1630,7 @@ void TupleBuffer::AppendTuple( Tuple *t )
   }
   else
   {
+    t->PinAttributes();
     return diskBuffer->AppendTupleNoLOBs( t );
   }
 }

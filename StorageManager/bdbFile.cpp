@@ -393,11 +393,20 @@ SmiFile::Create( const string& context /* = "Default" */,
 }
 
 bool SmiFile::ReCreate(){
-   assert(impl->isTemporaryFile);
    uint16_t ps = GetPageSize();
 
+   DbEnv* env(0);
+   uint16_t closeFlags;
+   if(impl->isTemporaryFile){
+       env = SmiEnvironment::instance.impl->tmpEnv;
+       closeFlags = DB_NOSYNC;
+   } else {
+       env = SmiEnvironment::instance.impl->bdbEnv;
+       closeFlags = 0;
+   }
+
    if(opened){
-     int rc = impl->bdbFile->close(0);
+     int rc = impl->bdbFile->close(closeFlags);
      if(rc){
         SmiEnvironment::SetBDBError( rc );
         return false;
@@ -405,8 +414,7 @@ bool SmiFile::ReCreate(){
      opened = false;
      // after closing, the old db handle is invalid, create a new one
      delete impl->bdbFile;
-     impl->bdbFile = new Db(SmiEnvironment::instance.impl->tmpEnv,
-                          DB_CXX_NO_EXCEPTIONS );
+     impl->bdbFile = new Db(env, DB_CXX_NO_EXCEPTIONS );
    }
 
 
@@ -419,8 +427,7 @@ bool SmiFile::ReCreate(){
 
    // after removing, the old db handle is invalid, create a new one
    delete impl->bdbFile;
-   impl->bdbFile = new Db(SmiEnvironment::instance.impl->tmpEnv,
-                          DB_CXX_NO_EXCEPTIONS );
+   impl->bdbFile = new Db(env, DB_CXX_NO_EXCEPTIONS );
 
    return  Create(fileName,fileContext, ps, true);
 }

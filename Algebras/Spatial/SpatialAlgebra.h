@@ -2266,14 +2266,11 @@ contained arrays to have ~size~ number od slots.
 
 */
   SimpleLine(int size):
+            StandardSpatialAttribute<2>(false),
             segments(size),lrsArray(size/2),
             startSmaller(true),
             isCycle(false),isOrdered(true),length(0.0),
-            bbox(false),currentHS(-1){
-     del.refs=1;
-     del.isDelete=true;
-     SetDefined(false);
-    }
+            bbox(false),currentHS(-1){ }
 
 /*
 ~Constructor~
@@ -2289,10 +2286,9 @@ Constructs a ~SimpleLine~ from a complex one.
 
 */
   SimpleLine(const SimpleLine& src):
+    StandardSpatialAttribute<2>(src.IsDefined()),
     segments(src.Size()),lrsArray(src.Size()){
     Equalize(src);
-    del.refs=1;
-    del.isDelete=true;
   }
 
 /*
@@ -3921,21 +3917,15 @@ double VectorSize(const Point &p1, const Point &p2);
 
 */
 inline Point::Point( const bool d, const Coord& x, const Coord& y ) :
+  StandardSpatialAttribute<2>(d),
   x( x ),
   y( y )
-{
-  SetDefined(d);
-  del.refs=1;
-  del.isDelete=true;
-}
+{ }
 
 inline Point::Point( const Point& p ) :
+    StandardSpatialAttribute<2>(p.IsDefined()),
     x( p.x ), y( p.y )
-{
-  SetDefined( p.IsDefined() );
-  del.refs=1;
-  del.isDelete=true;
-}
+{ }
 
 inline const Rectangle<2> Point::BoundingBox() const
 {
@@ -4089,23 +4079,19 @@ inline void Point::Translate(const Coord& x, const Coord& y){
 
 */
 inline Points::Points( const int initsize ) :
+StandardSpatialAttribute<2>(true),
 points( initsize ),
 bbox( false ),
 ordered( true )
-{ del.refs=1;
-  del.isDelete=true;
-  del.isDefined=true;
-}
+{ }
 
 inline Points::Points( const Points& ps ) :
+StandardSpatialAttribute<2>(ps.IsDefined()),
 points( ps.Size() ),
 bbox( ps.BoundingBox() ),
 ordered( true )
 {
-  del.refs=1;
-  del.isDelete=true;
-  del.isDefined = ps.del.isDefined;
-  if( del.isDefined ) {
+  if( IsDefined() ) {
     assert( ps.IsOrdered() );
     points.copyFrom(ps.points);
   }
@@ -4370,18 +4356,17 @@ HalfSegment::SubHalfSegment( double pos1, double pos2,
 
 */
 inline Line::Line( const int n ) :
+StandardSpatialAttribute<2>(true),
 line( n ),
 bbox( false ),
 ordered( true ),
 noComponents( 0 ),
 length( 0.0 ),
 currentHS( -1 )
-{ del.refs=1;
-  del.isDelete=true;
-  del.isDefined=true;
-}
+{ }
 
 inline Line::Line( const Line& cl ) :
+StandardSpatialAttribute<2>(cl.IsDefined()),
 line( cl.Size() ),
 bbox( cl.bbox ),
 ordered( true ),
@@ -4389,10 +4374,7 @@ noComponents( cl.noComponents ),
 length( cl.length ),
 currentHS ( cl.currentHS)
 {
-  del.refs=1;
-  del.isDelete=true;
-  del.isDefined = cl.IsDefined();
-  if(!del.isDefined)
+  if(!IsDefined())
     return;
   assert( cl.IsOrdered() );
   line.copyFrom(cl.line);
@@ -4516,14 +4498,12 @@ inline bool Line::GetHs(  HalfSegment& hs ) const
 
 */
 inline Region::Region( const int initsize ) :
+StandardSpatialAttribute<2>(true),
 region( initsize ),
 bbox( false ),
 noComponents( 0 ),
 ordered( true )
-{ del.refs=1;
-  del.isDelete=true;
-  del.isDefined = true;
-}
+{ }
 
 inline void Region::Destroy()
 {

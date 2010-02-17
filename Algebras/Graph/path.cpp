@@ -603,7 +603,7 @@ void DeletePath( const ListExpr typeInfo, Word& w )
 {
     Path * pPath = static_cast<Path *>(w.addr);
     pPath->Destroy();
-    pPath->DeleteIfAllowed();
+    pPath->DeleteIfAllowed(false);
     w.addr = 0;
 
 }

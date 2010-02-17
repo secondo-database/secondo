@@ -71,22 +71,12 @@ class Vertex: public Attribute
 
 */        
         Vertex();
-        Vertex(bool d):key(0),pos(false,0,0) { 
-          SetDefined(d);
-          del.refs=1;
-          del.isDelete=true;
-        }
-        Vertex(int nKey, Point const & pntPos):key(nKey), pos(pntPos){
-           SetDefined(true);
-           del.refs=1;
-           del.isDelete=true;
-        }
+        Vertex(bool d):Attribute(d), key(0),pos(false,0,0) { }
+        Vertex(int nKey, Point const & pntPos):
+           Attribute(true),key(nKey), pos(pntPos){ }
         Vertex(int nKey, Coord coordX, Coord coordY): 
-               key(nKey), pos(true,coordX,coordY){
-           SetDefined(true);
-           del.refs=1;
-           del.isDelete=true;
-        }
+           Attribute(true),
+           key(nKey), pos(true,coordX,coordY){ }
 
         ~Vertex();
 /*

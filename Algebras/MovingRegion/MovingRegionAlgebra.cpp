@@ -6344,8 +6344,6 @@ Assignment operator
        U.segments.Get(i+start, &seg);
        segments.Put(i, seg);
      }
-   del.refs=1;
-   del.isDelete=true;
    return *this;
  }
 
@@ -6877,12 +6875,8 @@ void MRegion::InsideAddUBool(MBool& res,
 MRegion::MRegion(const int n) :
     Mapping<URegionEmb, Region>(n),
     msegmentdata(n) {
-
     if (MRA_DEBUG)
         cerr << "MRegion::MRegion(int) called" << endl;
-    del.refs=1;
-    del.isDelete=true;
-    del.isDefined=true;
 }
 
 //MRegion::MRegion(MPoint& mp, Region& r) :
@@ -6898,14 +6892,12 @@ MRegion::MRegion(const MPoint& mp, const Region& _r) :
              << endl;
 
     if( !_r.IsDefined() || !mp.IsDefined() ){
-      del.refs=1;
-      del.isDelete=true;
       del.isDefined=false;
       return;
     }
 
-    Region r(_r);
-    r.LogicSort();
+    Region* r = new Region(_r);
+    r->LogicSort();
 
     for (int i = 0; i < mp.GetNoComponents(); i++) {
         UPoint up;
@@ -6933,13 +6925,12 @@ MRegion::MRegion(const MPoint& mp, const Region& _r) :
         URegionEmb
             ur(&msegmentdata,
                up.timeInterval,
-               r,
+               *r,
                msegmentdata.Size());
         Add(ur);
     }
-    del.refs=1;
-    del.isDelete=true;
     del.isDefined=true;
+    r->DeleteIfAllowed();
 }
 
 MRegion::MRegion(const MPoint& mp, const Region& _r, const int dummy) :
@@ -6951,15 +6942,13 @@ MRegion::MRegion(const MPoint& mp, const Region& _r, const int dummy) :
              << endl;
 
     if( !_r.IsDefined() || !mp.IsDefined() ){
-      del.refs=1;
-      del.isDelete=true;
       del.isDefined=false;
       return;
     }
 
-    Region r(_r);
+    Region* r = new Region(_r);
 
-    r.LogicSort();
+    r->LogicSort();
     bool isFirst = true;
     Coord lastX = 0.0, lastY = 0.0;
     Coord firstX = 0.0, firstY = 0.0;
@@ -6970,7 +6959,7 @@ MRegion::MRegion(const MPoint& mp, const Region& _r, const int dummy) :
         firstY = up.p0.GetY();
 
         if( ! isFirst &&  (firstX !=lastX || firstY != lastY)){
-            r.Translate(firstX-lastX, firstY-lastY);
+            r->Translate(firstX-lastX, firstY-lastY);
         }else{
             isFirst=false;
         }
@@ -6981,7 +6970,7 @@ MRegion::MRegion(const MPoint& mp, const Region& _r, const int dummy) :
         URegionEmb
             ur(&msegmentdata,
                up.timeInterval,
-               r,
+               *r,
                msegmentdata.Size());
         // now ur represents a static region
         // if this is not the case, we change the final line
@@ -7009,12 +6998,11 @@ MRegion::MRegion(const MPoint& mp, const Region& _r, const int dummy) :
         rbb = rbb.Translate(t);
         ur.SetBBox(ur.BoundingBox().Union(rbb));
 
-        r.Translate(tx,ty);
+        r->Translate(tx,ty);
         Add(ur);
     }
-    del.refs=1;
-    del.isDelete=true;
     del.isDefined=true;
+    r->DeleteIfAllowed();
 }
 
 /*
@@ -8576,8 +8564,7 @@ static int AtValueMap_MPoint(Word* args,
             MRegion* mr = new MRegion(*mp, *r);
 
             mr->Intersection(*mp, *res);
-            mr->Destroy();
-            delete mr;
+            mr->DeleteIfAllowed();
         }
     } catch (invalid_argument& e) {
         cerr << "-----------------------------------------------------------"

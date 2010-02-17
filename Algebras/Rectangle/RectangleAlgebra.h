@@ -72,6 +72,9 @@ template <unsigned dim>
 class StandardSpatialAttribute : public Attribute
 {
   public:
+    StandardSpatialAttribute() {}
+    StandardSpatialAttribute(bool defined):Attribute(defined) {}
+
     virtual const Rectangle<dim> BoundingBox() const = 0;
     virtual double Distance(const Rectangle<dim>& rect) const = 0;
     virtual bool IsEmpty() const = 0;

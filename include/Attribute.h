@@ -81,30 +81,49 @@ is ~true~, the attribute was created with ~new~ and must
 be deleted with ~delete~. The default is ~DeleteAttr~.
 
 */
-struct AttrDelete
+
+const uint8_t ONE = 1;
+const uint8_t TWO = 2;
+
+const uint8_t NOT_ONE = ~ONE;
+const uint8_t NOT_TWO = ~TWO;
+
+
+class AttrDelete
 {
-  AttrDelete():
-  refs( 1 ), isDelete( true )
-  // Note: variable isDefined belongs to the state of
-  // Attribute objects thus the default constructor should
-  // not change the value here since the default persistency
-  // mechanism does simply copy byte blocks of the object's
-  // current state!
-  {}
+  public:
+    AttrDelete():
+    refs( 1 ) 
+    // Note: variable isDefined belongs to the state of
+    // Attribute objects thus the default constructor should
+    // not change the value here since the default persistency
+    // mechanism does simply copy byte blocks of the object's
+    // current state!
+    { SetDelete(); }
 
-  AttrDelete(bool defined): refs(1), isDelete(true), isDefined(defined)
-  { }
+    AttrDelete(bool defined): refs(1), isDefined(defined), delInfo(ONE) 
+    { }
 
-  AttrDelete& operator=(const AttrDelete& d){
-    isDefined =  d.isDefined;
-    // do not change Construction properties
-    return *this;
-  } 
-  
+    AttrDelete& operator=(const AttrDelete& d){
+      isDefined =  d.isDefined;
+      // do not change Construction properties
+      return *this;
+    } 
 
-  uint16_t refs;
-  bool isDelete;
-  bool isDefined;
+    void SetDelete() { delInfo = delInfo | ONE; }
+    void SetMalloc() { delInfo = delInfo & NOT_ONE; }
+    bool IsDelete() const { return (delInfo & ONE) > 0; }
+
+    void Pin() { delInfo = delInfo | TWO; }
+    bool IsPinned() const { return (delInfo & TWO) >0; }
+
+    uint16_t refs;
+    bool isDefined;
+
+  private:
+    uint8_t delInfo;  // bit 1 : isDelete
+                      // bit 2 : isPinned
+
 };
 
 /*
@@ -145,6 +164,24 @@ The virtual destructor.
 Returns whether the attribute is defined.
 
 */
+
+     bool IsPinned() const { return del.IsPinned(); }
+/*
+Checks whether this attrobute is pinned. This means if 
+~DeleteIfAllowed~ is called, native flobs are not destroyed.
+
+*/
+
+
+     void Pin() { del.Pin(); }
+
+/*
+Marks this attribute to be pinned, i.e. persistent stored in an
+tenporal buffer.
+
+*/
+
+
     virtual void SetDefined(bool defined) { del.isDefined = defined; }
 /*
 Sets the ~defined~ flag of the attribute.
@@ -452,7 +489,7 @@ Default open function.
 
 */
 
-    bool DeleteIfAllowed();
+    bool DeleteIfAllowed(const bool DestroyNonPersistentFlobs = true);
 /*
 Decreases the Attribute's reference counter ~refs~. If ~refs~ becomes 0,
 it deletes the attribute.
@@ -474,7 +511,8 @@ to initialize ~refs~ with 1 within all constructors
 */
     inline void SetFreeAttr()
     {
-      del.isDelete = false;
+      del.SetMalloc();
+
     }
 /*
 Sets the delete type.

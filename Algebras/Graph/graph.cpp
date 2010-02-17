@@ -1596,7 +1596,7 @@ void DeleteGraph( const ListExpr typeInfo, Word& w ) {
    Graph* graph = (Graph*)w.addr;
 
    graph->Destroy();
-   graph->DeleteIfAllowed();
+   graph->DeleteIfAllowed(false);
    w.addr = 0;
 }
 

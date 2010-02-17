@@ -72,6 +72,14 @@ with given slot size.
 
     assert(_flob.size>0);
     size_t offset = _slotNo * _slotSize;
+
+ //    if(offset > _flob.getSize()){
+ //      cout << "Inavlid offset" << endl;
+ //      cout << "offset = " << offset << endl;
+ //      cout << " flob.size = " << _flob.getSize() << endl;
+ //     cout << "slotno = " << _slotNo << endl;
+ //   }
+
     assert(offset <=  _flob.getSize());
 
     size = min(_slotSize, (_flob.getSize() - offset)); 

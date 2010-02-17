@@ -722,6 +722,13 @@ disk. The implementation of this function is found in the
 Update Relation Algebra.
 
 */
+
+    inline void PinAttributes(){
+      for(unsigned i=0;i<noAttributes;i++){
+        attributes[i]->Pin();
+      }
+    }
+
     inline int GetRootSize() const
     {
       return tupleType->GetCoreSize();
