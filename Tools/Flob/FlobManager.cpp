@@ -11,8 +11,8 @@ of that class.
 
 #include "SecondoSMI.h"
 #include <stdlib.h>
+#include <utility>
 #include "Flob.h"
-#include "LRU.h"
 #include "assert.h"
 #include <iostream>
 #include "NativeFlobCache.h"
@@ -33,8 +33,8 @@ of that class.
         __PRETTY_FUNCTION__ << "@" << __LINE__ << std::endl;
 
   */
-FlobManager* FlobManager::instance = 0;
 
+FlobManager* FlobManager::instance = 0;
 static NativeFlobCache* nativeFlobCache = 0;
 static PersistentFlobCache* persistentFlobCache = 0;
 static Stack<Flob>* DestroyedFlobs=0;
@@ -91,9 +91,9 @@ and the nativFlobFile is deleted.
        delete nativeFlobFile;
        nativeFlobFile = 0;
        // close all files stored in Map   
-       map<SmiFileId, SmiRecordFile*>::iterator iter;
+       map< pair<SmiFileId, bool>, SmiRecordFile*>::iterator iter;
        for( iter = openFiles.begin(); iter != openFiles.end(); iter++ ) {
-         if(iter->first!=nativeFlobs) {      
+         if(iter->first.first!=nativeFlobs && iter->first.second) {      
            iter->second->Close(); 
            delete iter->second;
          }  
@@ -113,21 +113,22 @@ and the nativFlobFile is deleted.
      }
 
 
-SmiRecordFile* FlobManager::getFile(const SmiFileId& fileId) {
+SmiRecordFile* FlobManager::getFile(const SmiFileId& fileId, bool isTemp) {
  __TRACE_ENTER__
 
-   if(fileId==nativeFlobs){
+   if(fileId==nativeFlobs && isTemp){
      return nativeFlobFile;
    }
 
    SmiRecordFile* file(0);
-   map<SmiFileId, SmiRecordFile*>::iterator it = openFiles.find(fileId);
-   if(it == openFiles.end()){
-     file = new SmiRecordFile(false);
-     openFiles[fileId] = file;
+   pair<SmiFileId, bool> finder(fileId,isTemp);
+   map< pair<SmiFileId,bool>, SmiRecordFile*>::iterator it = 
+         openFiles.find(finder);
+   if(it == openFiles.end()){ // file not found
+     file = new SmiRecordFile(false, 0, isTemp);
+     openFiles[finder] = file;
      bool openOk = file->Open(fileId);
      assert(openOk);
-     changed = true;
    } else{
      file = it->second;
    }
@@ -145,19 +146,20 @@ the flobmanger has to give up the control over that file.
 This can be realized by calling the ~dropFile~ function.
 
 */
-  bool FlobManager::dropFile(const SmiFileId& id){
+  bool FlobManager::dropFile(const SmiFileId& id, const bool isTemp){
      __TRACE_ENTER__
-     if(id==nativeFlobs){ // never give up the control of native flobs
+     if(isTemp && id==nativeFlobs){ //never give up the control of native flobs
         return false; 
      }
-     map<SmiFileId, SmiRecordFile*>::iterator it = openFiles.find(id);
+     pair<SmiFileId,bool> finder(id,isTemp);
+     map< pair<SmiFileId,bool>, SmiRecordFile*>::iterator it = 
+            openFiles.find(finder);
      if(it!= openFiles.end()){
          SmiRecordFile* file;
          file  = it->second;
          file->Close();
          delete file;
          openFiles.erase(it);
-         changed = true;
          __TRACE_LEAVE__
          return true;
       } else{
@@ -168,10 +170,11 @@ This can be realized by calling the ~dropFile~ function.
 
  
  bool FlobManager::dropFiles(){
-    map<SmiFileId, SmiRecordFile*>::iterator it = openFiles.begin();
+    map< pair<SmiFileId, bool>, SmiRecordFile*>::iterator it = 
+           openFiles.begin();
     int count = 0;
     while(it!=openFiles.end()){
-       if(it->first != nativeFlobs){
+       if(it->first.first != nativeFlobs || !it->first.second){
           it->second->Close();
           delete it->second;
           count++;
@@ -179,8 +182,6 @@ This can be realized by calling the ~dropFile~ function.
        it++;
     }
     openFiles.clear();
-    openFiles[nativeFlobs] = nativeFlobFile;
-    changed = count>0;
     return count > 0;
  }
 
@@ -209,19 +210,20 @@ bool FlobManager::resize(Flob& flob, const SmiSize& newSize,
     SmiFileId   fileId =  id.fileId;
     SmiRecordId recordId = id.recordId;
     SmiSize     offset = id.offset;
+    bool        isTemp = id.isTemp;
 
-    if(persistentFlobCache && (fileId != nativeFlobs)){
+    if(!isTemp || (fileId != nativeFlobs)){
       // the allocated memory for the slot may be too small now
       persistentFlobCache->killLastSlot(flob);
     }
 
-    if(nativeFlobCache && (fileId == nativeFlobs) && !ignoreCache){
+    if(isTemp &&  (fileId == nativeFlobs) && !ignoreCache){
       return nativeFlobCache->resize(flob, newSize);
     }
 
     // resize the record containing the flob
     SmiRecord record;
-    SmiRecordFile* file = getFile(fileId);
+    SmiRecordFile* file = getFile(fileId,isTemp);
     bool ok = file->SelectRecord(recordId, record, SmiFile::Update);
     if(!ok){
       cerr << __PRETTY_FUNCTION__ << "@" << __LINE__ 
@@ -282,7 +284,7 @@ bool FlobManager::getData(
   SmiRecordId recordId = id.recordId;
   SmiSize     floboffset = id.offset;
   SmiRecord record;
-  SmiRecordFile* file = getFile(fileId);
+  SmiRecordFile* file = getFile(fileId,id.isTemp);
 
   bool ok = file->SelectRecord(recordId, record);
   if(!ok){
@@ -341,7 +343,7 @@ bool FlobManager::destroy(Flob& victim) {
 
  __TRACE_ENTER__
 
-   if(victim.id.fileId == nativeFlobs){
+   if(victim.id.fileId == nativeFlobs && victim.id.isTemp){
       nativeFlobCache->erase(victim); // delete from cache
       DestroyedFlobs->push(victim);
       if(DestroyedFlobs->getSize() > 64000){
@@ -360,7 +362,7 @@ bool FlobManager::destroy(Flob& victim) {
    // or wait until cache is removed automatically = current state
 
 
-   SmiRecordFile* file = getFile(id.fileId);
+   SmiRecordFile* file = getFile(id.fileId,id.isTemp);
    SmiRecord record;
    bool ok = file->SelectRecord(recordId, record, SmiFile::Update);  
    if(!ok){ // record not found in file
@@ -371,7 +373,7 @@ bool FlobManager::destroy(Flob& victim) {
      return false; 
    }
    
-   if(id.fileId == nativeFlobs){
+   if(id.fileId == nativeFlobs && id.isTemp){
       // each native flob is exlusive owner of an record
       nativeFlobCache->erase(victim);
       file->DeleteRecord(recordId);
@@ -408,7 +410,7 @@ bool FlobManager::destroy(Flob& victim) {
 
 
 bool FlobManager::destroyIfNonPersistent(Flob& victim) {
-   if(victim.id.fileId == nativeFlobs){
+   if(victim.id.fileId == nativeFlobs && victim.id.isTemp){
       return destroy(victim);
    }
    return true;
@@ -430,6 +432,7 @@ bool FlobManager::saveTo(const Flob& src,   // Flob to save
        const SmiFileId fileId,  // target file id
        const SmiRecordId recordId, // target record id
        const SmiSize offset,
+       const bool isTemp,
        Flob& result)  {   // offset within the record  
 
  __TRACE_ENTER__
@@ -439,7 +442,7 @@ bool FlobManager::saveTo(const Flob& src,   // Flob to save
      return false;
    }
 
-   SmiRecordFile* file = getFile(fileId);
+   SmiRecordFile* file = getFile(fileId, isTemp);
    return saveTo(src, file, recordId, offset, result);
 
 }
@@ -467,7 +470,7 @@ bool FlobManager::saveTo(const Flob& src,   // Flob to save
    //  __TRACE_LEAVE__
    //  return false;
    //}
-   assert(file->GetFileId() != nativeFlobs);
+   assert(file->GetFileId() != nativeFlobs || !file->IsTemp());
 
    SmiRecord record;
    if(!file->SelectRecord(recordId, record, SmiFile::Update)){
@@ -485,10 +488,7 @@ bool FlobManager::saveTo(const Flob& src,   // Flob to save
      __TRACE_LEAVE__
      return false;
    }
-   FlobId id;
-   id.fileId = file->GetFileId();
-   id.recordId = recordId;
-   id.offset = offset;
+   FlobId id(file->GetFileId(), recordId, offset, file->IsTemp());
    result.id = id;
    result.size = src.size;   
    __TRACE_LEAVE__
@@ -512,9 +512,10 @@ Must be changed to support real large Flobs
  bool FlobManager::saveTo(
              const Flob& src,             // flob to save
              const SmiFileId fileId,      // target file
+             const bool isTemp,           // environment
              Flob& result){         // result
     assert(fileId != nativeFlobs); 
-    SmiRecordFile* file = getFile(fileId);
+    SmiRecordFile* file = getFile(fileId,isTemp);
     return saveTo(src, file, result);
 }
 
@@ -526,7 +527,7 @@ Must be changed to support real large Flobs
 
 
  __TRACE_ENTER__
-    assert(file->GetFileId() != nativeFlobs);
+    assert(file->GetFileId() != nativeFlobs || !file->IsTemp());
     SmiRecordId recId;
     SmiRecord rec;
     if(!file->AppendRecord(recId,rec)){
@@ -546,7 +547,7 @@ Must be changed to support real large Flobs
     rec.Write(buffer, src.size,0);
     delete [] buffer;
     rec.Finish();
-    FlobId fid(file->GetFileId(), recId,0);
+    FlobId fid(file->GetFileId(), recId,0,file->IsTemp());
     result.id = fid;
     result.size = src.size;
     __TRACE_LEAVE__
@@ -585,7 +586,7 @@ bool FlobManager::putData(const Flob& dest,         // destination flob
 
   // put data to disk
   SmiRecord record;
-  SmiRecordFile* file = getFile(fileId);
+  SmiRecordFile* file = getFile(fileId,id.isTemp);
   bool ok = file->SelectRecord(recordId, record, SmiFile::Update);
   if(!ok){
       cerr << __PRETTY_FUNCTION__ << "@" << __LINE__ 
@@ -594,7 +595,7 @@ bool FlobManager::putData(const Flob& dest,         // destination flob
     __TRACE_LEAVE__
     return false;
   }
-  if(fileId==nativeFlobs){ // auto Resize for native Flobs
+  if(fileId==nativeFlobs && id.isTemp){ // auto Resize for native Flobs
     if(dest.size != record.Size()){
       record.Resize(dest.size);
     }
@@ -626,7 +627,7 @@ bool FlobManager::putData(const FlobId& id,         // destination flob
 
   // put data to disk
   SmiRecord record;
-  SmiRecordFile* file = getFile(fileId);
+  SmiRecordFile* file = getFile(fileId,id.isTemp);
   bool ok = file->SelectRecord(recordId, record, SmiFile::Update);
   if(!ok){
       cerr << __PRETTY_FUNCTION__ << "@" << __LINE__ 
@@ -672,7 +673,7 @@ Creates a new Flob with a given size which is assigned to a temporal file.
       return false;
    }
 
-   FlobId fid(nativeFlobs, recId, 0);
+   FlobId fid(nativeFlobs, recId, 0,true);
    result.id = fid;
    result.size = size;
 
@@ -697,18 +698,19 @@ must exists.
  bool FlobManager::create(const SmiFileId& fileId,        // target file
              const SmiRecordId& recordId,    // target record id
              const SmiSize& offset,      // offset within the record
+             const bool isTemp,
              const SmiSize& size,
              Flob& result){       // initial size of the Flob
 
  __TRACE_ENTER__
-   assert(fileId != nativeFlobs);
-   SmiRecordFile* file = getFile(fileId);
+   assert(fileId != nativeFlobs || !isTemp);
+   SmiRecordFile* file = getFile(fileId, isTemp);
    SmiRecord record;
    if(!file->SelectRecord(recordId,record)){
      __TRACE_LEAVE__
      return false;
    } 
-   FlobId fid(fileId, recordId, offset);
+   FlobId fid(fileId, recordId, offset, isTemp);
    result.id = fid;
    result.size = size;
    __TRACE_LEAVE__
@@ -746,11 +748,12 @@ return a Flob with persistent storage allocated and defined elsewhere
 
       Flob FlobManager::createFrom( const SmiFileId& fid,
                                     const SmiRecordId& rid,
-                                    const SmiSize& offset, 
+                                    const SmiSize& offset,
+                                    const bool isTemp, 
                                     const SmiSize& size) {
         //assert(fid!=nativeFlobs);
         Flob flob;
-        FlobId flob_id(fid, rid, offset);
+        FlobId flob_id(fid, rid, offset,isTemp);
         flob.id = flob_id;
         flob.size = size;          
         return  flob;
@@ -775,7 +778,7 @@ by the FlobManager class itself.
 
 */
 
-  FlobManager::FlobManager():openFiles(), changed(true){
+  FlobManager::FlobManager():openFiles(){
      __TRACE_ENTER__
     assert(instance==0); // the constructor should only called one time
     // construct the temporarly FlobFile
@@ -788,7 +791,6 @@ by the FlobManager class itself.
     assert(created);
 
     nativeFlobs = nativeFlobFile->GetFileId();
-    openFiles[nativeFlobs] = nativeFlobFile;
 
 
     size_t maxCache = 64 * 1024 * 1024;

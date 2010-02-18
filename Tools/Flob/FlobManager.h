@@ -93,7 +93,8 @@ function.
       bool saveTo(const Flob& src,   // Flob tp save
                   const SmiFileId fileId,  // target file id
                   const SmiRecordId recordId, // target record id
-                  const SmiSize offset,
+                  const SmiSize offset,       // offset within the record
+                  const bool isTemp,          // environment
                   Flob& result);    // offset within the record  
 
 
@@ -113,7 +114,8 @@ is the result of this function.
 */
 
       bool saveTo(const Flob& src,             // flob to save
-                  const SmiFileId fileId,
+                  const SmiFileId fileId,      // target file id
+                  const bool isTemp,           // target environment
                   Flob& result);  // target file id
 
       
@@ -167,6 +169,7 @@ Creates a new flob with given file and position.
       bool create(const SmiFileId& fileId,        // target file
                   const SmiRecordId& recordId,    // target record id
                   const SmiSize& offset,      // offset within the record
+                  const bool isTemp,              // environment
                   const SmiSize& size,
                   Flob& result);       // initial size of the Flob
 
@@ -180,6 +183,7 @@ return a Flob with persistent storage allocated and defined elsewhere
       static Flob createFrom( const SmiFileId& fid,
                               const SmiRecordId& rid,
                               const SmiSize& offset, 
+                              const bool isTemp,
                               const SmiSize& size); 
 
 
@@ -216,7 +220,7 @@ the flobmanger has to giv up the control over that file.
 This can be realized by calling the ~dropFile~ function.
 
 */
-     bool dropFile(const SmiFileId& id);
+     bool dropFile(const SmiFileId& id, const bool isTemp);
 
 /*
 ~dropFiles~
@@ -278,15 +282,7 @@ File id for freshly created Flobs. Only to use by the Flobmanager class itself.
 ~open Files~
 
 */
-    map<SmiFileId, SmiRecordFile*> openFiles;
-
-/*
-~changed~
-
-Flag determining whether the openFiles was changed - for debugging only. 
-
-*/
-    bool changed;
+    map< pair<SmiFileId, bool>, SmiRecordFile*> openFiles;
 
 
 /*
@@ -295,7 +291,7 @@ Flag determining whether the openFiles was changed - for debugging only.
 Return the file to a fileid;
 
 */
-   SmiRecordFile* getFile(const SmiFileId& fileId);
+   SmiRecordFile* getFile(const SmiFileId& fileId, const bool isTemp);
 
 
 };

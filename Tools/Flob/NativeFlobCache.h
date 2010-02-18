@@ -969,7 +969,7 @@ class NativeCacheEntry{
     bool changed;
 
 
-    NativeCacheEntry(): flobId(0,0,0), size(0),mem(0),prev(0),
+    NativeCacheEntry(): flobId(0,0,0,true), size(0),mem(0),prev(0),
                         next(0),changed(true){}
 
 

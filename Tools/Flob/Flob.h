@@ -123,11 +123,13 @@ This construcvtor create a native flob having a given size.
 Constructs a Flob from a given position.
 
 */
-    inline Flob(const SmiFileId fileId,
-                const SmiRecordId recordId,
-                const SmiSize offset) : id(), size( 0 ){
+    inline Flob(const SmiFileId& fileId,
+                const SmiRecordId& recordId,
+                const SmiSize& offset,
+                const bool isTemp) : id(), size( 0 ){
          FlobManager::getInstance().create(fileId, recordId,
-                                           offset, size, *this);
+                                           offset, isTemp,
+                                           size, *this);
     };
 
 /*
@@ -274,11 +276,13 @@ database LOB file. It can also be used to write the LOB data into a
 tuple file. In this case, we speak of a FAKED LOB (or FLOB).
 
 */
-    inline bool saveToFile(const SmiFileId fid,
-                          const SmiRecordId rid,
-                          const SmiSize offset,
+    inline bool saveToFile(const SmiFileId& fid,
+                          const SmiRecordId& rid,
+                          const SmiSize& offset,
+                          const bool isTemp,
                           Flob& result) const{
-      return FlobManager::getInstance().saveTo(*this, fid, rid, offset, result);
+      return FlobManager::getInstance().saveTo(*this, fid, rid, offset,
+                                               isTemp, result);
     };
 
 /*
@@ -309,9 +313,10 @@ Saves this Flob to the given file id and returns the new created Flob
 in parameter ~result~. The data is stored in a new record with offset zero.
 
 */
-    inline bool saveToFile(const SmiFileId fid,
+    inline bool saveToFile(const SmiFileId& fid,
+                           const bool isTemp,
                           Flob& result) const{
-      return FlobManager::getInstance().saveTo(*this, fid, result);
+      return FlobManager::getInstance().saveTo(*this, fid, isTemp, result);
     };
 
 
@@ -342,8 +347,10 @@ small Flob data within the tuple itself.
     inline static Flob createFrom( const SmiFileId& fid,
                                    const SmiRecordId& rid,
                                    const SmiSize& offset,
+                                   const bool isTemp,
                                    const SmiSize& size    ) {
-      return  FlobManager::getInstance().createFrom(fid, rid, offset, size);
+      return  FlobManager::getInstance().createFrom(fid, rid, offset, 
+                                                    isTemp,size);
     };
 
 
@@ -426,8 +433,8 @@ is not longer possible.
 Gives up the control of the FlobManager over the specific file.
 
 */
-  inline static bool dropFile(const SmiFileId& id){
-    return FlobManager::getInstance().dropFile(id);
+  inline static bool dropFile(const SmiFileId& id, const bool isTemp){
+    return FlobManager::getInstance().dropFile(id, isTemp);
   }
 
   inline static bool dropFiles(){

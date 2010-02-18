@@ -32,39 +32,49 @@ class FlobId{
  friend class NativeCacheEntry;
  public: 
    FlobId(){} // makes nothing to support cast function
+
    ~FlobId(){}
+
    FlobId(const FlobId& src): fileId(src.fileId),
                               recordId(src.recordId), 
-                              offset(src.offset){}
+                              offset(src.offset),
+                              isTemp(src.isTemp){}
+
    FlobId& operator=(const FlobId& src){
      fileId = src.fileId;
      recordId = src.recordId;
      offset = src.offset;
+     isTemp = src.isTemp;
      return *this;
    }
 
    ostream& print(ostream& os) const {
      os << "id(file = "<< fileId << ", "
         << "rec = " << recordId << ", "
-        << "offset = " << offset << ")";
+        << "offset = " << offset << ", "
+        << "isTemp = " << (isTemp?"true":"false") << ")";
      return os;
    }    
 
    inline bool operator==(const FlobId& fid) const{
      return fileId == fid.fileId &&
             recordId == fid.recordId &&
-            offset   == fid.offset;
+            offset   == fid.offset &&
+            isTemp == fid.isTemp;
    }
    
    inline bool operator!=(const FlobId& fid) const{
      return fileId != fid.fileId ||
             recordId != fid.recordId ||
-            offset   != fid.offset;
+            offset   != fid.offset ||
+            isTemp != fid.isTemp;
    }
 
    
  
    inline bool operator>(const FlobId& fid) const{
+      if(isTemp && !fid.isTemp) return false;
+      if(!isTemp && fid.isTemp) return true;
       if( fileId > fid.fileId) return true;
       if( fileId < fid.fileId) return false;
       if( recordId > fid.recordId) return true;
@@ -73,6 +83,8 @@ class FlobId{
       return false;
    } 
    inline bool operator<(const FlobId& fid) const{
+      if(isTemp && !fid.isTemp) return true;
+      if(!isTemp && fid.isTemp) return false;
       if( fileId < fid.fileId) return true;
       if( fileId > fid.fileId) return false;
       if( recordId < fid.recordId) return true;
@@ -82,18 +94,22 @@ class FlobId{
    } 
 
    inline size_t hashValue() const{
-      return (size_t)(fileId + recordId + offset); 
+      size_t t = isTemp?1:0;
+      return (size_t)(fileId + recordId + offset + t); 
    }
 
  private:
-   SmiFileId fileId;  
+   SmiFileId   fileId;  
    SmiRecordId recordId;
-   SmiSize offset;
+   SmiSize     offset;
+   bool        isTemp;
 
 
    FlobId(const SmiFileId fid, 
           const SmiRecordId rid,
-          const SmiSize os) : fileId(fid), recordId(rid), offset(os){}
+          const SmiSize os,
+          const bool tmp) : fileId(fid), recordId(rid), 
+                            offset(os),isTemp(tmp){}
 
 
 
