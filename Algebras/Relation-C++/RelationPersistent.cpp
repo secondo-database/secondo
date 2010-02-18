@@ -464,7 +464,7 @@ char* Tuple::WriteToBlock( size_t coreSize,
               if(!attributes[i]->IsPinned()){
                  destroyableFlobs.push_back(*tmpFlob);
               }
-              tmpFlob->saveToFile( lobFileId, *tmpFlob );
+              tmpFlob->saveToFile( lobFileId,false, *tmpFlob );
             }  
         }
 
@@ -481,7 +481,7 @@ char* Tuple::WriteToBlock( size_t coreSize,
           // adjust the Flobs persistent storage 
           SmiFileId  fid = tupleFile->GetFileId();      
           Flob newFlob = Flob::createFrom( fid, tupleId, 
-                                           extOffset, flobsz );
+                         extOffset,tupleFile->IsTemp(), flobsz );
          if(!attributes[i]->IsPinned()){
              destroyableFlobs.push_back(*tmpFlob);
           }
@@ -2083,9 +2083,11 @@ void Relation::Delete()
 
 void Relation::DeleteAndTruncate()
 {
+  Flob::dropFile(tupleFile.GetFileId(), tupleFile.IsTemp());
   tupleFile.Remove();
   tupleFile.Drop();
   if(relDesc.lobFileId){
+    Flob::dropFile(relDesc.lobFileId, relDesc.isTemp);
     SmiRecordFile rf(false,0, relDesc.isTemp);
     rf.Open(relDesc.lobFileId);
     rf.Close();
