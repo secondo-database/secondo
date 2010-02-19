@@ -110,13 +110,13 @@ class CcInt : public Attribute
     intsCreated++; 
   }
  
-  inline CcInt( bool d, int v = 0 ) : intval(v)
+  inline CcInt( bool d, int v = 0 ) : Attribute(d),intval(v)
   { 
     SetDefined(d); 
     intsCreated++; 
   }
  
-  inline CcInt( int v, bool d=true ) : intval(v)
+  inline CcInt( int v, bool d=true ) : Attribute(d),intval(v)
   { 
     SetDefined(d); 
     intsCreated++; 
@@ -363,13 +363,13 @@ class CcReal : public Attribute
      realsCreated++; 
   }
 
-  inline CcReal( bool d, SEC_STD_REAL v = 0.0 ) : realval(v) 
+  inline CcReal( bool d, SEC_STD_REAL v = 0.0 ) : Attribute(d),realval(v) 
   { 
     SetDefined(d); 
     realsCreated++; 
   }
 
-  inline CcReal( SEC_STD_REAL v, bool d=true ) : realval(v) 
+  inline CcReal( SEC_STD_REAL v, bool d=true ) : Attribute(d),realval(v) 
   { 
     SetDefined(d); 
     realsCreated++; 
@@ -576,7 +576,7 @@ class CcBool : public Attribute
     boolsCreated++; 
   }
 
-  inline CcBool( bool d, int v = false ) : boolval(v)
+  inline CcBool( bool d, int v = false ) : Attribute(d),boolval(v)
   { 
     SetDefined(d); 
     boolsCreated++; 
@@ -724,13 +724,13 @@ class CcString : public Attribute
     stringsCreated++; 
   }
 
-  inline CcString( bool d, const STRING_T* v ) 
+  inline CcString( bool d, const STRING_T* v ):Attribute(d) 
   { 
     Set(d, v);
     stringsCreated++; 
   }
 
-  inline CcString( const bool d, const string& v )
+  inline CcString( const bool d, const string& v ):Attribute(d)
   {
     Set(d, v);
     stringsCreated++;

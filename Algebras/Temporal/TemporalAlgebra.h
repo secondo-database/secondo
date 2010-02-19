@@ -1163,7 +1163,8 @@ The simple constructor. This constructor should not be used.
 
 */
 
-    SpatialTemporalUnit( bool is_defined ){
+    SpatialTemporalUnit( bool is_defined )
+      :StandardSpatialAttribute<dim>(is_defined){
       this->del.isDefined=is_defined;
     }
 
@@ -1173,6 +1174,7 @@ Use this constructor when declaring temporal object variables etc.
 */
 
     SpatialTemporalUnit( const Interval<Instant>& interval ):
+      StandardSpatialAttribute<dim>(true),
       TemporalUnit<Alpha>( interval )
       {
         this->del.isDefined = true;

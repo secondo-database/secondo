@@ -47,7 +47,8 @@ Edge::Edge()
 {
 }
 
-Edge::Edge(int nSource, int nTarget, float fCost) : 
+Edge::Edge(int nSource, int nTarget, float fCost) :
+  Attribute(true), 
   source(nSource), target(nTarget), cost(fCost)
 {
   SetDefined(true);

@@ -56,7 +56,7 @@ Read GraphAlgebra.h for more informations about the member functions.
 Graph::Graph() { }
 
 
-Graph::Graph(const bool Defined) : vertices(0), adjlist(0){
+Graph::Graph(const bool Defined) : Attribute(Defined),vertices(0), adjlist(0){
    SetDefined(Defined);
    
    if (IsDefined())
@@ -64,7 +64,8 @@ Graph::Graph(const bool Defined) : vertices(0), adjlist(0){
 }
 
 
-Graph::Graph(const Graph& g) : vertices(0), adjlist(0) {
+Graph::Graph(const Graph& g) : 
+  Attribute(g.IsDefined()),vertices(0), adjlist(0) {
    
    CopyFrom(&g);
 }
