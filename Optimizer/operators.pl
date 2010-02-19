@@ -2581,10 +2581,14 @@ in their ~opSignature/5~ description.
 */
 
 % Replacement for old version: if optimizerOption(determinePredSig) is NOT used
+% can handle both, complete terms and operator names
 isBBoxPredicate(Term) :-
-  not(optimizerOption(determinePredSig)),
-  compound(Term), not(is_list(Term)),
-  Term =.. [Op|_],
+% not(optimizerOption(determinePredSig)),
+  not(is_list(Term)),
+  ( compound(Term)
+    -> Term =.. [Op|_]
+    ; Op = Term
+  ),
   opSignature(Op, _, _ArgsTypeList,bool,Flags),
   memberchk(bbox(_Dim),Flags),
   dm(gettypetree,['INFO:\tOperator name matching used to determine ',
