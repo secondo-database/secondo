@@ -1169,7 +1169,8 @@ to ~defAttributes~, otherwise it is dinamically constructed.
                              double& extSize,
                              double& size,
                              vector<double>& attrExtSize,
-                             vector<double>& attrSize     );
+                             vector<double>& attrSize,
+                             const bool ignoreFlobs );
 
 
   char* GetSMIBufferData(SmiRecord& r, uint16_t& rootSize);

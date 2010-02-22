@@ -251,7 +251,7 @@ void Tuple::Save( SmiRecordFile* file,
                          const SmiFileId& fid,
                          double& extSize, double& size,
                          vector<double>& attrExtSize, vector<double>& attrSize,
-                         bool ignoreLobs /*=false*/)
+                         const bool ignoreFlobs /*=false*/)
 {
   TRACE_ENTER
 
@@ -281,9 +281,10 @@ void Tuple::Save( SmiRecordFile* file,
   size_t extensionSize
              = CalculateBlockSize( coreSize, extSize,
                                    size, attrExtSize,
-                                   attrSize );
+                                   attrSize,
+                                   ignoreFlobs );
 
-  char* data = WriteToBlock(coreSize, extensionSize, ignoreLobs);
+  char* data = WriteToBlock(coreSize, extensionSize, ignoreFlobs);
 
   // Write data into the record
   DEBUG_MSG("Writing tuple record!")
@@ -319,7 +320,7 @@ void Tuple::Save(TupleFile& tuplefile)
   size_t coreSize = 0;
   size_t extensionSize = CalculateBlockSize( coreSize, extSize,
                                              size, attrExtSize,
-                                             attrSize );
+                                             attrSize, true );
 
   // Put core and extension part into a single memory block
   // Note: this memory block contains already the block size
@@ -346,9 +347,9 @@ void Tuple::UpdateSave( const vector<int>& changedIndices,
   size_t attrSizes = 0;
   size_t extensionSize
 	      = CalculateBlockSize( attrSizes, extSize,
-				    size, attrExtSize, attrSize );
+				    size, attrExtSize, attrSize, false );
 
-  char* data = WriteToBlock( attrSizes, extensionSize );
+  char* data = WriteToBlock( attrSizes, extensionSize, false );
 
   SmiRecord *tupleRecord = new SmiRecord();
   bool ok = tupleFile->SelectRecord( tupleId, *tupleRecord,
@@ -389,7 +390,7 @@ void Tuple::UpdateSave( const vector<int>& changedIndices,
 
 char* Tuple::WriteToBlock( size_t coreSize,
                            size_t extensionSize,
-                           bool ignoreLobs /*=false*/   )
+                           bool ignoreFlobs /*=false*/   )
 {
  TRACE_ENTER
   // create a single block able to pick up the roots of the
@@ -447,53 +448,43 @@ char* Tuple::WriteToBlock( size_t coreSize,
       SHOW(attributes[i]->NumOfFLOBs() )
       vector<Flob> destroyableFlobs;
 
-      // iterate the FLOBs
-      for( int j = 0; j < attributes[i]->NumOfFLOBs(); j++)
-      {
-        SHOW((void*)ext)    
+      
+      if(!ignoreFlobs){
+        for( int j = 0; j < attributes[i]->NumOfFLOBs(); j++) {
+          SHOW((void*)ext)    
 
+          Flob *tmpFlob = attributes[i]->GetFLOB(j);
+          SmiSize flobsz = tmpFlob->getSize(); 
 
-        Flob *tmpFlob = attributes[i]->GetFLOB(j);
-        SmiSize flobsz = tmpFlob->getSize(); 
+          SHOW(flobsz)      
+          if(!attributes[i]->IsPinned()){
+            destroyableFlobs.push_back(*tmpFlob);
+          }
+          if (flobsz >= extensionLimit ) {
+            DEBUG_MSG("tmpFlob->saveToFile");
+            tmpFlob->saveToFile( lobFileId,false, *tmpFlob );
+          } else { // handle small flobs
+            SHOW("read flob data to extension ptr")
+            SHOW(*tmpFlob)            
+            tmpFlob->read(ext, flobsz);
 
-        SHOW(flobsz)      
-
-        if(!ignoreLobs) {
-            if (flobsz >= extensionLimit ) {
-              DEBUG_MSG("tmpFlob->saveToFile");
-              if(!attributes[i]->IsPinned()){
-                 destroyableFlobs.push_back(*tmpFlob);
-              }
-              tmpFlob->saveToFile( lobFileId,false, *tmpFlob );
-            }  
-        }
-
-        // handle small flobs
-        if ( flobsz < extensionLimit) {
-  
-          SHOW("read flob data to extension ptr")
-          SHOW(*tmpFlob)            
-          tmpFlob->read(ext, flobsz);
-
-          DEBUG_MSG( Array2HexStr(ext, flobsz) )
+            DEBUG_MSG( Array2HexStr(ext, flobsz) )
             
 
-          // adjust the Flobs persistent storage 
-          SmiFileId  fid = tupleFile->GetFileId();      
-          Flob newFlob = Flob::createFrom( fid, tupleId, 
-                         extOffset,tupleFile->IsTemp(), flobsz );
-         if(!attributes[i]->IsPinned()){
-             destroyableFlobs.push_back(*tmpFlob);
-          }
-          *tmpFlob = newFlob;
-          SHOW(newFlob)
+            // adjust the Flobs persistent storage 
+            SmiFileId  fid = tupleFile->GetFileId();      
+            Flob newFlob = Flob::createFrom( fid, tupleId, 
+                           extOffset,tupleFile->IsTemp(), flobsz );
+            *tmpFlob = newFlob;
+            SHOW(newFlob)
 
-          // update ext offset
-          extOffset += flobsz;
-          ext += flobsz;
-        }       
+            // update ext offset
+            extOffset += flobsz;
+            ext += flobsz;
+          }       
 
-        SHOW(extOffset)
+          SHOW(extOffset)
+        }
       }
 
       // destroy flobs
@@ -563,7 +554,8 @@ size_t Tuple::CalculateBlockSize( size_t& coreSize,
                                   double& extSize,
                                   double& size,
                                   vector<double>& attrExtSize,
-                                  vector<double>& attrSize )
+                                  vector<double>& attrSize,
+                                  const bool ignoreFlobs )
 {
 /*
 The size values represent aggregate values for a complete relation!!!
@@ -591,8 +583,7 @@ The core size has already be added in the calling function!
   // Calculate the size of the small FLOB data which will be
   // saved together with the tuple attributes and save the LOBs
   // in the lobFile.
-  for( int i = 0; i < numOfAttr; i++)
-  {
+  for( int i = 0; i < numOfAttr; i++) {
     Attribute::StorageType st =  attributes[i]->GetStorageType();
 
     uint16_t currentSize = 0;
@@ -623,29 +614,27 @@ The core size has already be added in the calling function!
          SHOW(currentExtSize)
          SHOW(extensionSize)     
 
-    // handle Flobs
-    double attrLobSize = 0.0;
-    for( int j = 0; j < attributes[i]->NumOfFLOBs(); j++)
-    {
-      Flob* tmpFlob = attributes[i]->GetFLOB(j);
+    if(!ignoreFlobs){
+      // handle Flobs
+      double attrLobSize = 0.0;
+      for( int j = 0; j < attributes[i]->NumOfFLOBs(); j++)
+      {
+        Flob* tmpFlob = attributes[i]->GetFLOB(j);
 
-      //assert( i >= 0 && (size_t)i < attrSize.size() );
-      const SmiSize tmpFlobSize = tmpFlob->getSize();
-      SHOW(tmpFlobSize)
-
-
-      if (tmpFlobSize < extensionLimit) {
-	// small Flobs      
-        extensionSize += tmpFlobSize;
-        attrExtSize[i] += tmpFlobSize;
-      }	else {
-        // big Flobs
-	attrLobSize += tmpFlobSize;
-      }	
-      attrSize[i] += tmpFlobSize;
+        //assert( i >= 0 && (size_t)i < attrSize.size() );
+        const SmiSize tmpFlobSize = tmpFlob->getSize();
+        SHOW(tmpFlobSize)
+        if (tmpFlobSize < extensionLimit) { // small Flobs      
+          extensionSize += tmpFlobSize;
+          attrExtSize[i] += tmpFlobSize;
+        }	else { // big Flobs
+          attrLobSize += tmpFlobSize;
+        }	
+        attrSize[i] += tmpFlobSize;
+      }
+      lobSize += attrLobSize;
     }
-    lobSize += attrLobSize;
-  }
+  } // for each attribute
 
   extSize += extensionSize;
   size += (extensionSize + lobSize);
