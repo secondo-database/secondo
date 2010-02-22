@@ -297,9 +297,10 @@ variables is described in the introduction of procedure ~annotate~.
 
 QueryProcessor::QueryProcessor( NestedList* newNestedList,
   AlgebraManager* newAlgebraManager )
-  : nl( newNestedList ), algebraManager( newAlgebraManager ),
-    testMode( false ), debugMode( false ), traceMode( false ),
-    traceNodes( false ), progressView(0)
+  : progressView(0),nl( newNestedList ), 
+    algebraManager( newAlgebraManager ),
+    testMode( false ), debugMode( false ),
+    traceMode( false ), traceNodes( false )
 {
   values.resize( MAXVALUES );
   argVectors.resize( MAXFUNCTIONS );
@@ -315,6 +316,10 @@ QueryProcessor::QueryProcessor( NestedList* newNestedList,
 
 QueryProcessor::~QueryProcessor()
 {
+  if(progressView){
+    delete progressView;
+    progressView = 0;
+  }
 }
 
 void
