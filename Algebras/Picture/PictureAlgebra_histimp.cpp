@@ -60,7 +60,7 @@ histgram. Furthermore some private variables such as ~channel~ and the
 */
 Histogram::Histogram( unsigned char * rgbData,
                       unsigned long rgbSize,
-                      HistogramChannel _channel) {
+                      HistogramChannel _channel): Attribute(true) {
 
     if (PA_DEBUG) cerr << "Histogram::Histogram()-1 called" << endl;
     
@@ -158,7 +158,7 @@ the ~histogram~. These information are saved in the ~histogram~ object.
 */
 Histogram::Histogram( double * _histogram,
                       HistogramChannel _channel,
-                      double maxValue) {
+                      double maxValue):Attribute(true) {
     if (PA_DEBUG) cerr << "Histogram::Histogram()-2 called" << endl;
 
     //

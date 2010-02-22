@@ -323,8 +323,8 @@ no attributes are changed when ~Picture~ objects are copied.
 */
 
  public:
-    Picture(bool) : jpegData(0) { SetDefined(false); };
-    Picture(void) { };
+    Picture(bool) : Attribute(false),jpegData(0) { }
+    Picture(void) { }
 
 /*
 

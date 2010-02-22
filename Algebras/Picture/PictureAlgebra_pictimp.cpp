@@ -98,7 +98,7 @@ Picture::Picture(string imgdataB64,
                  string fn,
                  string cat,
                  bool isp,
-                 string dt) : jpegData(0) {
+                 string dt) : Attribute(true),jpegData(0) {
     if (PA_DEBUG) cerr << "Picture::Picture()-1 called" << endl;
 
     strcpy(filename, fn.c_str());
@@ -233,7 +233,7 @@ Picture::Picture(char* imgdata,
                  string fn,
                  string cat,
                  bool isp,
-                 string dt) : jpegData(0) {
+                 string dt) : Attribute(true),jpegData(0) {
     if (PA_DEBUG) cerr << "Picture::Picture()-2 called" << endl;
 
     Set(imgdata, size, fn, cat, isp, dt);
