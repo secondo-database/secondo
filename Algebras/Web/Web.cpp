@@ -525,7 +525,7 @@ URL::~URL()
 }
 
 URL::URL(const string& u)
-:host(0),path(0)
+:IndexableAttribute(true),host(0),path(0)
 {
 //  __TRACE__
   string p;
@@ -548,7 +548,7 @@ URL::URL(const string& u)
 }
 
 URL::URL(const string &prot, const string &h, const string &p)
-: host(h.length()+1), path(p.length()+2)
+: IndexableAttribute(true),host(h.length()+1), path(p.length()+2)
 //: host(h.length()+1), path(p.length()+1)
 {
    __TRACE__
@@ -575,7 +575,8 @@ URL::URL(const string &prot, const string &h, const string &p)
 }
 
 URL::URL(const URL& u)
-:host(u.getHost().length()+1),path(u.getPath().length()+1)
+:IndexableAttribute(u.IsDefined()),host(u.getHost().length()+1),
+ path(u.getPath().length()+1)
 {
 //  __TRACE__
 

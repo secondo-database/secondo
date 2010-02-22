@@ -1059,7 +1059,8 @@ The simple constructor. This constructor should not be used.
 
 */
 
-    StandardTemporalUnit( bool is_defined){ del.isDefined=is_defined;}
+    StandardTemporalUnit( bool is_defined):Attribute(is_defined)
+     {}
 
 /*
 Use this constructor when declaring temporal object variables etc.

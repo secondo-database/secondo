@@ -123,6 +123,7 @@ inline FText::FText()
 }
 
 inline FText::FText( bool newDefined, const char *newText /* =0*/ ) :
+IndexableAttribute(newDefined),
 theText( 0 )
 {
   LOGMSG( "FText:Trace",
@@ -136,6 +137,7 @@ theText( 0 )
 }
 
 inline FText::FText( bool newDefined, const string& newText ) :
+    IndexableAttribute(newDefined),
     theText( 0 )
 {
   LOGMSG( "FText:Trace",
@@ -150,6 +152,7 @@ inline FText::FText( bool newDefined, const string& newText ) :
 
 
 inline FText::FText( const FText& f ) :
+IndexableAttribute(f.IsDefined()),
 theText( 0 )
 {
   LOGMSG( "FText:Trace", cout << '\n' <<"Start FText(FText& f)"<<'\n'; )

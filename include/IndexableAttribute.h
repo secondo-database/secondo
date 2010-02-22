@@ -72,6 +72,9 @@ For an example, see the ~DateTime~ algebra.
 class IndexableAttribute : public Attribute
 {
   public:
+    IndexableAttribute() {}
+
+    IndexableAttribute(const bool defined): Attribute(defined){}
 
     virtual void WriteTo( char *dest ) const = 0;
 /*
