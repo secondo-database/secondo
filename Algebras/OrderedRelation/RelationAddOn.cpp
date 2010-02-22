@@ -42,18 +42,17 @@ RelationAlgebra.h.
 
 void Tuple::SaveOrel(SmiRecord* record, SmiFileId& lobFileId, double& extSize,
                  double& size, vector<double>& attrExtSize,
-                 vector<double>& attrSize, bool ignorePersistentLOBs,
+                 vector<double>& attrSize, bool ignoreLobs,
                  TupleId tupleId) {
   this->tupleId = tupleId;
   this->lobFileId = lobFileId;
-  extSize += tupleType->GetTotalSize();
-  size += tupleType->GetTotalSize();
-  size_t attrSizes = tupleType->GetTotalSize();
-  size_t extensionSize = CalculateBlockSize(attrSizes, extSize, size,
-                                            attrExtSize, attrSize,
-                                            ignorePersistentLOBs);
-  char* data = WriteToBlock(attrSizes,extensionSize);
-  bool rc = record->Write(data, sizeof(uint16_t)+attrSizes+extensionSize, 0);
+  extSize += tupleType->GetCoreSize();
+  size += tupleType->GetCoreSize();
+  size_t coreSize = 0;
+  size_t extensionSize = CalculateBlockSize(coreSize, extSize, size,
+                                            attrExtSize, attrSize);
+  char* data = WriteToBlock(coreSize, extensionSize, ignoreLobs);
+  bool rc = record->Write(data, sizeof(uint16_t)+coreSize+extensionSize, 0);
   assert(rc==true);
   free(data);
 }
@@ -67,13 +66,11 @@ bool Tuple::OpenOrel(SmiFileId lobfileId,
   return ReadFrom( record );
 }
 
-#ifdef USE_SERIALIZATION
-
 bool Tuple::OpenOrel(SmiFileId lobfileId,
                   PrefetchingIterator *iter, TupleId tupleId )
 {
   TRACE_ENTER
-  DEBUG(this, "Open::Prefetch")
+  DEBUG_MSG("Open::Prefetch")
   
   this->tupleFile = 0;
   this->lobFileId = lobfileId;
@@ -94,93 +91,6 @@ bool Tuple::OpenOrel(SmiFileId lobfileId,
   TRACE_LEAVE
 }
 
-#else
-
-bool Tuple::OpenOrel(SmiFileId lobfileId,
-                  PrefetchingIterator *iter, TupleId tupleId )
-{
-  this->tupleId = tupleId;
-  this->tupleFile = 0;
-  this->lobFileId = lobfileId;
-  
-  
-  /* In case of the prefetching iterator, we don't need
-  *  to read the data first into a single block.
-  *  Indeed, we can read each attribute by a single call.
-  **/
-  
-  size_t offset = 0;
-  
-  for( int i = 0; i < noAttributes; i++ )
-  {
-    int algId = tupleType->GetAttributeType(i).algId;
-    int typeId = tupleType->GetAttributeType(i).typeId;
-    int size = tupleType->GetAttributeType(i).size;
-    
-    attributes[i] = (Attribute*)malloc(size);
-    if( (int)iter->ReadCurrentData(attributes[i],
-      size, offset)!=size){
-      // problem in reading, delete all attributes allocated
-      // before
-      for(int k=0;k<=i;k++){
-        free(attributes[k]);
-      }
-      return false;
-    }
-    offset += size;
-    // all fine, cast the attribute
-    attributes[i] = (Attribute*)(*(am->Cast(algId, typeId)))(attributes[i]);
-    attributes[i]->SetFreeAttr();
-    
-  }
-  
-  // Read the small FLOBs. The read of LOBs is postponed to its
-  // usage.
-  
-  for(int i=0; i< noAttributes; i++){
-    for( int j = 0; j < attributes[i]->NumOfFLOBs(); j++ )
-    {
-      FLOB *tmpFLOB = attributes[i]->GetFLOB( j );
-      if( !tmpFLOB->IsLob()){
-        void* ptr = tmpFLOB->Malloc();
-        if(ptr){
-          int size = tmpFLOB->Size();
-          if((int)iter->ReadCurrentData( ptr,
-            size,
-                                         offset)!=size){
-            // error in getting the data
-            // free all mallocs
-            for(int k=0;k<noAttributes;k++){
-              for(int m=0;m<attributes[i]->NumOfFLOBs();m++){
-                FLOB* victim = attributes[k]->GetFLOB(m);
-                if(k<=i || m<=j){ // FLOB buffer already allocated
-                  delete victim;
-                }
-              }
-              free(attributes[k]);
-            }
-            return false;
-          }
-          offset += size;
-        }
-      } else{
-        //tmpFLOB->SetLobFileId( lobFileId );
-      }
-    }
-  }
-  // Call the Initialize function for every attribute
-  // and initialize the reference counter
-  for( int i = 0; i < noAttributes; i++ ){
-    attributes[i]->Initialize();
-    attributes[i]->InitRefs();
-  }
-
-  return true;
-
-}
-
-#endif
-
 
 bool Tuple::OpenPartialOrel( TupleType* newtype, const list<int>& attrIdList,
                          SmiFileId lobfileId,
@@ -188,7 +98,7 @@ bool Tuple::OpenPartialOrel( TupleType* newtype, const list<int>& attrIdList,
                          TupleId tupleId)
 {
   TRACE_ENTER
-  DEBUG(this, "OpenPartial using PrefetchingIterator")
+  DEBUG_MSG("OpenPartial using PrefetchingIterator")
 
   this->tupleId = tupleId;
   this->tupleFile = 0;
@@ -208,4 +118,27 @@ bool Tuple::OpenPartialOrel( TupleType* newtype, const list<int>& attrIdList,
   }
 
   TRACE_LEAVE
+}
+
+void Tuple::UpdateAttributesOrel( const vector<int>& changedIndices,
+                                  const vector<Attribute*>& newAttrs )
+{
+  int index;
+  for ( size_t i = 0; i < changedIndices.size(); i++)
+  {
+    index = changedIndices[i];
+    assert( index >= 0 && index < GetNoAttributes() );
+    assert( attributes[index] != 0 );
+    for (int j = 0;
+         j < attributes[index]->NumOfFLOBs();
+         j++)
+    {
+      Flob *tmpFlob = attributes[index]->GetFLOB(j);
+
+      tmpFlob->destroy();
+    }
+
+    attributes[index]->DeleteIfAllowed();
+    attributes[index] = newAttrs[i];
+  }
 }

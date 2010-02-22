@@ -34,7 +34,8 @@ Winter 2009 Nicolai Voget
 
 The Ordered Relational Algebra implements the type constructor ~orel~.
 
-For more information see the OrderedRelation.h header file.
+For more information about what the functions should do, see the
+OrderedRelation.h header file.
 
 2 Defines, includes, and constants
 
@@ -42,6 +43,7 @@ For more information see the OrderedRelation.h header file.
 #include "OrderedRelationAlgebra.h"
 #include "StandardTypes.h"
 #include "ListUtils.h"
+#include "Progress.h"
 
 // #define DEBUG_OREL
 
@@ -60,7 +62,7 @@ OrderedRelationIterator::OrderedRelationIterator(const OrderedRelation* orel,
                                                 const CompositeKey& to):
               tupleType(orel->tupleType), outtype(newType),
               tupleFile(orel->tupleFile), lobFileId(orel->lobFileId),
-              tupleId(-1) {
+              appendix(-1) {
 #ifdef DEBUG_OREL
 cout << "Konstruktor_OrelIter" << endl;
 #endif
@@ -101,7 +103,7 @@ cout << "GetNextTuple_OrelIter" << endl;
     return 0;
   }
   Tuple* t = new Tuple(tupleType);
-  if(t->OpenOrel(lobFileId, it, tupleId)) {
+  if(t->OpenOrel(lobFileId, it, appendix)) {
     return t;
   } else {
     delete t;
@@ -114,7 +116,7 @@ Tuple* OrderedRelationIterator::GetNextTuple(const list<int>& attrList) {
     return 0;
   }
   Tuple* t = new Tuple(tupleType);
-  if(t->OpenPartialOrel(outtype, attrList, lobFileId, it, tupleId)) {
+  if(t->OpenPartialOrel(outtype, attrList, lobFileId, it, appendix)) {
     return t;
   } else {
     delete t;
@@ -126,7 +128,7 @@ TupleId OrderedRelationIterator::GetTupleId() const {
 #ifdef DEBUG_OREL
 cout << "GetTupleId_OrelIter" << endl;
 #endif
-  return tupleId;
+  return appendix;
 }
 
 const CompositeKey& OrderedRelationIterator::GetKey() const {
@@ -147,8 +149,8 @@ bool OrderedRelationIterator::Advance() {
   it->CurrentKey(k);
   key = CompositeKey(k);
   
-  tupleId = key.GetAppendix();
-  return (tupleId>=0);
+  appendix = key.GetAppendix();
+  return (appendix>=MIN_TUPLE_ID);
 }
 
 /*
@@ -171,12 +173,16 @@ cout << "Konstruktor_Orel(typeInfo)" << endl;
     lobFileId = 0;
     if (tupleType->NumOfFlobs() > 0) {
       hasLobs = true;
-      SmiRecordFile* lobFile = SecondoSystem::GetFLOBCache()->CreateFile(false);
-      lobFileId = lobFile->GetFileId();
+      SmiRecordFile rf(false, 0, false);
+      if(!rf.Create()) {
+        assert(false);
+      }
+      lobFileId = rf.GetFileId();
+      rf.Close();
     }
   }
   noTuples = 0;
-  maxId = 0;
+  maxId = MIN_TUPLE_ID;
 }
 
 OrderedRelation::~OrderedRelation() {
@@ -264,22 +270,6 @@ cout << nl->ToString(typeInfo) << endl;
   return SetWord(orel);
 }
 
-ListExpr OrderedRelation::SaveToList(const ListExpr typeInfo, const Word value){
-#ifdef DEBUG_OREL
-cout << "Save_Orel" << endl;
-#endif
-  return Out(typeInfo, value);
-}
-
-Word OrderedRelation::RestoreFromList(const ListExpr typeInfo,
-                                      const ListExpr value, const int errorPos,
-                                      ListExpr& errorInfo, bool& correct) {
-#ifdef DEBUG_OREL
-cout << "Restore_Orel" << endl;
-#endif
-  return In(typeInfo, value, errorPos, errorInfo, correct);
-}
-
 Word OrderedRelation::Create(const ListExpr typeInfo) {
 #ifdef DEBUG_OREL
 cout << "Create_Orel" << endl;
@@ -298,7 +288,10 @@ cout << "Delete_Orel" << endl;
   delete orel->tupleFile;
   orel->tupleFile = 0; //to prevent ~OrderedRelation from closing tupleFile
   if (orel->hasLobs) {
-    SecondoSystem::GetFLOBCache()->Drop( orel->lobFileId, false );
+    SmiRecordFile rf(false, 0, false);
+    rf.Open(orel->lobFileId);
+    rf.Close();
+    rf.Drop();
   }
   delete orel;
   value.addr = 0;
@@ -440,7 +433,7 @@ double OrderedRelation::GetTotalRootSize() const {
 #ifdef DEBUG_OREL
 cout << "GetTotalRootSize_Orel" << endl;
 #endif
-  return 12;
+  return noTuples*tupleType->GetCoreSize();
 }
 
 
@@ -448,7 +441,7 @@ double OrderedRelation::GetTotalRootSize(int i) const {
 #ifdef DEBUG_OREL
 cout << "GetTotalRootSize[i]_Orel" << endl;
 #endif
-  return 3;
+  return noTuples*tupleType->GetAttributeType(i).coreSize;
 }
 
 
@@ -489,9 +482,13 @@ void OrderedRelation::Clear() {
 cout << "Clear_Orel" << endl;
 #endif
   noTuples=0;
+  maxId = MIN_TUPLE_ID;
   tupleFile->Truncate();
   if(hasLobs) {
-    SecondoSystem::GetFLOBCache()->Truncate( lobFileId, false );
+    SmiRecordFile rf(false, 0, false);
+    rf.Open(lobFileId);
+    rf.Truncate();
+    rf.Close();
   }
   for(int i;i<tupleType->GetNoAttributes();i++) {
     attrSize[i] = 0.0;
@@ -534,7 +531,6 @@ Tuple* OrderedRelation::GetTuple(const TupleId& id, const int attrIndex,
 
 Tuple* OrderedRelation::GetTuple(const CompositeKey& key) const {
   Tuple* t = 0;
-  SmiKeyedFileIterator iter;
   SmiRecord record;
   if(tupleFile->SelectRecord(key.GetSmiKey(), record)) {
       t = new Tuple(tupleType);
@@ -552,20 +548,69 @@ Tuple* OrderedRelation::GetTuple(const CompositeKey& key, const int attrIndex,
   return t;
 }
 
-bool OrderedRelation::DeleteTuple(Tuple* t) {
-  GetKey(t, true, t->GetTupleId());
-  return false;
+bool OrderedRelation::DeleteTuple(Tuple* tuple) {
+  return DeleteTuple(tuple, true);
+}
+
+bool OrderedRelation::DeleteTuple(Tuple* tuple, bool deleteComplete) {
+  CompositeKey key = GetKey(tuple, true, tuple->GetTupleId());
+  SmiKeyedFileIterator iter;
+  bool ok;
+  SmiRecord record;
+  if(tupleFile->SelectRecord(key.GetSmiKey(), iter, SmiFile::Update))
+    ok = iter.Next(record) && iter.DeleteCurrent();
+  if(ok) {
+    Attribute* nextAttr;
+    Flob* nextFlob;
+
+    noTuples--;
+    totalExtSize -= tuple->GetRootSize();
+    totalSize -= tuple->GetRootSize();
+
+    for (int i = 0; i < tuple->GetNoAttributes(); i++)
+    {
+      nextAttr = tuple->GetAttribute(i);
+      if(deleteComplete) nextAttr->Finalize();
+      for (int j = 0; j < nextAttr->NumOfFLOBs(); j++)
+      {
+        nextFlob = nextAttr->GetFLOB(j);
+        SmiSize fsz = nextFlob->getSize();
+
+        assert( i >= 0 &&
+                (size_t)i < attrSize.size() );
+        attrSize[i] -= fsz;
+        totalSize -= fsz;
+
+        if( fsz < Tuple::extensionLimit )
+        {
+          assert( i >= 0 &&
+                  (size_t)i < attrExtSize.size() );
+          attrExtSize[i] -= fsz;
+          totalExtSize -= fsz;
+        }
+
+        if(deleteComplete) nextFlob->destroy();
+      }
+    }
+  }
+  return ok;
 }
 
 void OrderedRelation::UpdateTuple( Tuple *tuple,
                                    const vector<int>& changedIndices,
                                    const vector<Attribute *>& newAttrs ) {
-  tuple->UpdateAttributes(changedIndices, newAttrs,
-                          relDesc.totalExtSize,
-                          relDesc.totalSize,
-                          relDesc.attrExtSize,
-                          relDesc.attrSize );
-
+  DeleteTuple(tuple, false);
+  tuple->UpdateAttributesOrel(changedIndices, newAttrs );
+  
+  SmiRecord record;
+  TupleId extension = tuple->GetTupleId();
+  bool rc = tupleFile->InsertRecord(GetKey(tuple, true, extension).GetSmiKey(),
+                                    record);
+  assert(rc==true);
+  tuple->SaveOrel(&record, lobFileId, totalExtSize, totalSize, attrExtSize,
+              attrSize, false, extension);
+  record.Finish();
+  noTuples++;
 }
 
 GenericRelationIterator* OrderedRelation::MakeScan() const {
@@ -748,20 +793,36 @@ cout << nl->ToString(current) << endl;
   return true;
 }
 
-OrderedRelation::OrderedRelation() :
-    tupleType(new TupleType(nl->TheEmptyList())) {
+const SmiBtreeFile* OrderedRelation::GetTupleFile() const {
+  return tupleFile;
+}
+
+const TupleType* OrderedRelation::GetTupleType() const {
+  return tupleType;
+}
+
+OrderedRelation::OrderedRelation() {
 #ifdef DEBUG_OREL
 cout << "Konstruktor_Orel" << endl;
 #endif
-  noTuples = 0;
-  maxId = 0;
 }
 
+/*
+4 Operators
+
+4.1 orange, oleftrange \& orightrange
+
+*/
 enum RangeKind {
   LeftRange,
   RightRange,
   Range
 };
+
+/*
+4.1.1 Type Mapping function for orange operators
+
+*/
 template<RangeKind rk> ListExpr ORangeTypeMap(ListExpr args) {
 #ifdef DEBUG_OREL
 cout << "RangeTypeMap" << endl;
@@ -851,6 +912,12 @@ cout << nl->ToString(args) << endl;
         nl->TwoElemList(nl->SymbolAtom("stream"),nl->Second(nl->First(args))));
 }
 
+#ifndef USE_PROGRESS
+/*
+4.1.2 Value Mapping function of orange operators without progress estimation
+
+*/
+
 template<RangeKind rk> int ORangeValueMap(Word* args, Word& result, int message,
                                           Word& local, Supplier s) {
   GenericRelationIterator* rit;
@@ -899,6 +966,143 @@ template<RangeKind rk> int ORangeValueMap(Word* args, Word& result, int message,
   return 0;
 }
 
+#else
+
+struct ORangeLocalInfo: public ProgressLocalInfo
+{
+  GenericRelationIterator* iter;
+  CompositeKey fromKey, toKey;
+  bool first;
+  int Card;
+  int completeCalls;
+  int completeReturned;
+};
+
+/*
+4.1.3 Value Mapping function of orange operators with progress estimation
+
+*/
+template<RangeKind rk> int ORangeValueMap(Word* args, Word& result, int message,
+                                          Word& local, Supplier s) {
+  
+  ORangeLocalInfo* linfo = (ORangeLocalInfo*)local.addr;
+  
+  switch(message) {
+    case OPEN: {
+      OrderedRelation* orel = (OrderedRelation*)args[0].addr;
+      if(!linfo) {
+        linfo = new ORangeLocalInfo;
+        linfo->completeCalls = 0;
+        linfo->completeReturned = 0;
+        local = SetWord(linfo);
+
+        //initialization of sizes
+        linfo->total = orel->GetNoTuples();
+        linfo->defaultValue = 50;
+        linfo->Size = 0;
+        linfo->SizeExt = 0;
+        linfo->noAttrs = orel->GetTupleType()->GetNoAttributes();
+        linfo->attrSize = new double[linfo->noAttrs];
+        linfo->attrSizeExt = new double[linfo->noAttrs];
+        for(int i=0; i < linfo->noAttrs; i++) {
+          linfo->attrSize[i] = orel->GetTotalSize(i) / (linfo->total + 0.001);
+          linfo->attrSizeExt[i] = orel->GetTotalExtSize(i) /
+                                 (linfo->total + 0.001);
+          linfo->Size += linfo->attrSize[i];
+          linfo->SizeExt += linfo->attrSizeExt[i];
+        }
+        linfo->sizesInitialized = true;
+        linfo->sizesChanged = true;
+        
+        int l1 = 0;
+        int l2 = 0;
+        if(rk==Range) {
+          l1 = ((CcInt*)args[3].addr)->GetIntval();
+          l2 = ((CcInt*)args[4].addr)->GetIntval();
+        } else {
+          l1 = ((CcInt*)args[2].addr)->GetIntval();
+        }
+        if(rk==LeftRange) {
+          linfo->toKey = orel->GetUpperRangeKey(args[1],l1);
+        } else if(rk==RightRange) {
+          linfo->fromKey = orel->GetLowerRangeKey(args[1],l1);
+        } else if(rk==Range) {
+          linfo->fromKey = orel->GetLowerRangeKey(args[1],l1);
+          linfo->toKey = orel->GetUpperRangeKey(args[2],l2);
+        }
+        
+        SmiKeyRange fromRange, toRange;
+        if(rk==RightRange || Range) {
+          orel->GetTupleFile()->KeyRange(linfo->fromKey.GetSmiKey(),fromRange);
+          linfo->Card = linfo->total*(1-fromRange.less);
+          if(rk==Range) {
+            orel->GetTupleFile()->KeyRange(linfo->toKey.GetSmiKey(), toRange);
+            linfo->Card = linfo->total*(1-toRange.greater-fromRange.less);
+          }
+        } else {
+          orel->GetTupleFile()->KeyRange(linfo->toKey.GetSmiKey(), toRange);
+          linfo->Card = linfo->total*(1-toRange.greater);
+        }
+      }
+      
+      linfo->iter = orel->MakeRangeScan(linfo->fromKey,linfo->toKey);
+      return 0;
+    }
+    case REQUEST:
+      Tuple* t;
+      if((t = linfo->iter->GetNextTuple())) {
+        linfo->returned++;
+        result.setAddr(t);
+        return YIELD;
+      }
+      return CANCEL;
+
+    case CLOSE:
+      if(linfo) {
+        delete linfo->iter;
+        linfo->completeCalls++;
+        linfo->completeReturned += linfo->returned;
+        linfo->returned = 0;
+
+        linfo->Card = linfo->completeReturned/linfo->completeCalls;
+      }
+      return 0;
+   
+    case REQUESTPROGRESS: {
+      const double uORange = 0.08;  //ms per search
+      const double vORange = 0.009; //ms per result tuple
+      if(!linfo) return CANCEL;
+      
+      ProgressInfo* p;
+      p = (ProgressInfo*)result.addr;
+      p->CopySizes(linfo);
+      if(linfo->returned > linfo->Card) {
+        linfo->Card = linfo->returned * 1.1;
+        if (linfo->Card > linfo->total) {
+          linfo->Card = linfo->total;
+        }
+      }
+      p->Card = linfo->Card;
+      p->Time = uORange + p->Card*vORange;
+      p->Progress = (uORange + linfo->returned*vORange)/p->Time;
+      
+      return YIELD;
+    }
+    case CLOSEPROGRESS:
+      if(linfo) {
+        delete linfo;
+        local = SetWord(Address(0));
+      }
+      return 0;
+  }
+  return 0;
+}
+#endif
+
+/*
+4.1.4 Specifications of orange operators
+
+*/
 const string OLeftRangeSpec = 
   "( ( \"Signature\" \"Syntax\" \"Meaning\" "
   "\"Example\" ) "
@@ -962,6 +1166,11 @@ Operator orange (
                         
                           
                           
+/*
+5. Type constructors
+5.1 orel
+
+*/
 ListExpr ORelProperty() {
   ListExpr examplelist = nl->TextAtom();
   nl->AppendText(examplelist,"((\"Hagen\" 193)(\"Solingen\" 163))");
@@ -985,14 +1194,19 @@ ListExpr ORelProperty() {
 
 TypeConstructor cpporel( OREL, ORelProperty,
                           OrderedRelation::Out, OrderedRelation::In,
-                          OrderedRelation::SaveToList,
-                          OrderedRelation::RestoreFromList,
+                          OrderedRelation::Out, OrderedRelation::In,
                           OrderedRelation::Create, OrderedRelation::Delete,
                           OrderedRelation::Open, OrderedRelation::Save,
                           OrderedRelation::Close, OrderedRelation::Clone,
                           OrderedRelation::Cast, OrderedRelation::SizeOf,
                           OrderedRelation::CheckKind);
 
+
+/*
+5.2 compkey
+The implementation of CompositeKey is found in CompositeKey.h/cpp
+
+*/
 ListExpr CompKeyProperty() {
   ListExpr examplelist = nl->TextAtom();
   nl->AppendText(examplelist,"no listrepresentation");
@@ -1022,6 +1236,10 @@ TypeConstructor cppcompkey( "compkey", CompKeyProperty,
 
 
                           
+/*
+6. OrderedRelationAlgebra definition
+
+*/
 class OrderedRelationAlgebra : public Algebra {
   public:
     OrderedRelationAlgebra() : Algebra() {
@@ -1034,13 +1252,21 @@ class OrderedRelationAlgebra : public Algebra {
       AddOperator(&oleftrange);
       AddOperator(&orightrange);
       AddOperator(&orange);
+      #ifdef USE_PROGRESS
+      oleftrange.EnableProgress();
+      orightrange.EnableProgress();
+      orange.EnableProgress();
+      #endif
     };
     
     ~OrderedRelationAlgebra() {};
 };
 
 
+/*
+7. Registration of the OrderedRelationAlgebra
 
+*/
 extern "C" Algebra* InitializeOrderedRelationAlgebra(NestedList* nlRef,
                                                   QueryProcessor* qpRef) {
   nl = nlRef;

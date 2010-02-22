@@ -198,7 +198,7 @@ inline size_t CompositeKey::HashValue() const {
 
 void CompositeKey::CopyFrom(const Attribute* attr) {
 cout << "Composite::CopyFrom" << endl;
-  const CompositeKey* other = static_cast<const CompositeKey*>(attr);
+  const CompositeKey* other = (CompositeKey*)attr;
   if(defined)
     free(data);
   defined = other->defined;
@@ -287,23 +287,6 @@ CompositeKey::~CompositeKey() {
 
 ListExpr CompositeKey::Out(const ListExpr typeInfo, Word value) {
   return nl->TheEmptyList();
-  CompositeKey* comp = (CompositeKey*)value.addr;
-  SmiSize length = comp->SizeOfChars();
-  long lVal;
-  bool first = true;
-  ListExpr result = nl->TheEmptyList();
-  ListExpr last = result;
-  for (SmiSize i=0;i+sizeof(lVal)<=length;i+=sizeof(lVal)) {
-    SmiKey::Unmap((void*)(((int)comp->data) + i),lVal);
-    if(first) {
-      result = nl->OneElemList(nl->IntAtom(lVal));
-      last = result;
-      first = false;
-    } else {
-      last = nl->Append(last, nl->IntAtom(lVal));
-    }
-  }
-  return result;
 };
 
 Word CompositeKey::In(const ListExpr typeInfo, const ListExpr value,

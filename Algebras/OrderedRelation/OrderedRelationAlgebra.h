@@ -47,6 +47,7 @@ RelationAlgebra.cpp file.
 #include "CompositeKey.h"
 
 const string OREL = "orel";
+const int MIN_TUPLE_ID = 1;
 
 /*
 3 Declaration of classes
@@ -62,17 +63,17 @@ class OrderedRelationIterator : public GenericRelationIterator {
                             const CompositeKey& from = CompositeKey(),
                             const CompositeKey& to = CompositeKey());
     
-    ~OrderedRelationIterator();
+    virtual ~OrderedRelationIterator();
     
-    Tuple* GetNextTuple();
-    Tuple* GetNextTuple(const list<int>& attrList);
+    virtual Tuple* GetNextTuple();
+    virtual Tuple* GetNextTuple(const list<int>& attrList);
     
-    TupleId GetTupleId() const;
+    virtual TupleId GetTupleId() const;
+    
+    virtual bool EndOfScan() const {return endOfScan;};
     
     const CompositeKey& GetKey() const;
-    
-    bool EndOfScan() const {return endOfScan;};
-    
+        
   private:
     bool Advance();
     
@@ -83,7 +84,7 @@ class OrderedRelationIterator : public GenericRelationIterator {
     SmiBtreeFile* tupleFile;
     SmiFileId lobFileId;
     CompositeKey key;
-    TupleId tupleId;
+    TupleId appendix;
 };
 
 /*
@@ -103,11 +104,6 @@ class OrderedRelation : public GenericRelation {
 
     static Word In(const ListExpr typeInfo, const ListExpr value,
                     const int errorPos, ListExpr& errorInfo, bool& correct);
-
-    static ListExpr SaveToList(const ListExpr typeInfo, const Word value);
-
-    static Word RestoreFromList(const ListExpr typeInfo, const ListExpr value,
-                   const int errorPos, ListExpr& errorInfo, bool& correct);
 
     static Word Create(const ListExpr typeInfo);
 
@@ -164,10 +160,10 @@ class OrderedRelation : public GenericRelation {
                             const int attrIndex,
                             const vector< pair<int, int> >& intervals) const;
     
-    //not yet complete
     virtual bool DeleteTuple(Tuple* t);
     
-    //also not yet complete
+    bool DeleteTuple(Tuple* t, bool deleteComplete = true);
+    
     virtual void UpdateTuple( Tuple *tuple,
                               const vector<int>& changedIndices,
                               const vector<Attribute *>& newAttrs );
@@ -199,7 +195,9 @@ class OrderedRelation : public GenericRelation {
     static bool GetKeyStructure (ListExpr typeInfo, vector<int>& keyElement,
                             vector<SmiKey::KeyDataType>& keyElemType);
     
-
+    const SmiBtreeFile* GetTupleFile() const;
+    
+    const TupleType* GetTupleType() const;
   private:
     OrderedRelation();
     SmiBtreeFile* tupleFile;
