@@ -2913,17 +2913,40 @@ Loopindexjoin with bbox predicate using specialized spatial R-Tree indices
 
 */
 
-join(arg(N), Arg2, pr(Pred, _, _)) => filter(loopjoin(Arg2S, RTSpExpr),Pred) :-
-  Pred =.. [Op, X, Y],
-  isBBoxPredicate(Op),
-  isOfFirst(Attr1, X, Y),     % determine attribute from the first relation
-  isNotOfFirst(Expr2, X, Y),  % determine attribute not from the first relation
-  argument(N, RelDescription),  % get first relation
-  hasIndex(RelDescription, Attr1, DCindex, spatial(rtree, unit)),
-  dcName2externalName(DCindex,IndexName),
-  Arg2 => Arg2S,
-  rtSpExpr(IndexName, arg(N), Expr2) => RTSpExpr.
+/*
+The first case deals with predicates having at most two attributes as direct
+arguments (no expressions).
 
+*/
+
+join(arg(N), Arg2, pr(Pred, _, _)) => filter(loopjoin(Arg2S, RTSpExpr),Pred) :-
+  writeln('*********** Try: Goehr join 1.1 *************'),
+  write_list(['Call is:',join(arg(N), Arg2, pr(Pred, _, _)) => filter(loopjoin(Arg2S, RTSpExpr),Pred),'\n']),
+  Pred =.. [Op, X, Y],
+  writeln('*********** Try: Goehr join 1.2 *************'),
+  isBBoxPredicate(Op),
+  writeln('*********** Try: Goehr join 1.3 *************'),
+  isOfFirst(Attr1, X, Y),     % determine attribute from the first relation
+  writeln('*********** Try: Goehr join 1.4 *************'),
+  isNotOfFirst(Expr2, X, Y),  % determine attribute not from the first relation
+  writeln('*********** Try: Goehr join 1.5 *************'),
+  argument(N, RelDescription),  % get first relation
+  writeln('*********** Try: Goehr join 1.6 *************'),
+  hasIndex(RelDescription, Attr1, DCindex, spatial(rtree, unit)),
+  writeln('*********** Try: Goehr join 1.7 *************'),
+  dcName2externalName(DCindex,IndexName),
+  writeln('*********** Try: Goehr join 1.8 *************'),
+  Arg2 => Arg2S,
+  writeln('*********** Try: Goehr join 1.9 *************'),
+  rtSpExpr(IndexName, arg(N), Expr2) => RTSpExpr,
+  writeln('*********** Accepted: Goehr join 1 used *************').
+
+
+/*
+The second case deals with predicates having trhee attributes as direct
+arguments (no expressions).
+
+*/
 
 rtSpExpr(IndexName, arg(N), Expr) =>
   rename(gettuples(rdup(sort(windowintersectsS(dbobject(IndexName),
@@ -2931,6 +2954,7 @@ rtSpExpr(IndexName, arg(N), Expr) =>
           :-
   argument(N, Rel),
   Rel = rel(_, Var),    % with renaming
+  writeln('*********** Goehr rtSpExpr 1 used *************'),
   !.
 
 rtSpExpr(IndexName, arg(N), Expr) =>
@@ -2938,18 +2962,33 @@ rtSpExpr(IndexName, arg(N), Expr) =>
           :-
   argument(N, Rel),
   Rel = rel(_, *),    % without renaming
+  writeln('*********** Goehr rtSpExpr 2 used *************'),
   !.
 
 join(arg(N), Arg2, pr(Pred, _, _))
   => filter(loopjoin(Arg2S, RTSpTmpExpr),Pred) :-
-  fetchAttributeList(Pred,[A,B,C]),
+  writeln('*********** Try: Goehr join 2.1 *************'),
+  write_list(['Call is:',join(arg(N), Arg2, pr(Pred, _, _)) => filter(loopjoin(Arg2S, RTSpTmpExpr),Pred),'\n']),
+  writeln('*********** Try: Goehr join 2.2a *************'),
+  fetchAttributeList(Pred,L),
+  write_list(['L = ', L , '\n']),
+  writeln('*********** Try: Goehr join 2.2b *************'),
+  L = [A,B,C],
+  writeln('*********** Try: Goehr join 2.2 *************'),
   isOfFirst(Attr1,A,B,C),
+  writeln('*********** Try: Goehr join 2.3 *************'),
   areNotOfFirst(Attr2,Attr3,A,B,C),
+  writeln('*********** Try: Goehr join 2.4 *************'),
   argument(N, RelDescription),
+  writeln('*********** Try: Goehr join 2.5 *************'),
   hasIndex(RelDescription, Attr1, DCindex, spatiotemporal(rtree3, unit)),
+  writeln('*********** Try: Goehr join 2.6 *************'),
   dcName2externalName(DCindex,IndexName),
+  writeln('*********** Try: Goehr join 2.7 *************'),
   Arg2 => Arg2S,
-  rtSpTmpExpr(IndexName, arg(N), Attr2, Attr3) => RTSpTmpExpr.
+  writeln('*********** Try: Goehr join 2.8 *************'),
+  rtSpTmpExpr(IndexName, arg(N), Attr2, Attr3) => RTSpTmpExpr,
+  writeln('*********** Accepted: Goehr join 2 used *************').
 
 rtSpTmpExpr(IndexName, arg(N), Expr1, Expr2) =>
  rename(gettuples(rdup(sort(windowintersectsS(dbobject(IndexName),
@@ -2957,6 +2996,7 @@ rtSpTmpExpr(IndexName, arg(N), Expr1, Expr2) =>
   :-
  argument(N,Rel),
  Rel = rel(_,Var), % with renaming
+ writeln('*********** Goehr rtSpTmpExpr 1 used *************'),
  !.
 
 rtSpTmpExpr(IndexName, arg(N), Expr1, Expr2) =>
@@ -2965,6 +3005,7 @@ rtSpTmpExpr(IndexName, arg(N), Expr1, Expr2) =>
   :-
  argument(N,Rel),
  Rel = rel(_, *), % without renaming
+ writeln('*********** Goehr rtSpTmpExpr 2 used *************'),
  !.
 
 /*
@@ -3674,19 +3715,37 @@ indexselectLifted(arg(N), Pred ) =>
   dcName2externalName(DCindex,IndexName).
 % Section:End:translationRule_2_e
 
+
+%     isOfFirst(Res, X, Y)
+% Returns X or Y, depending on which of them comes from the first stream
+% argument (if both do, X comes first).
+% Fails, iff none of X and Y are attributes from the first (left/ outer) stream.
 isOfFirst(X, X, _) :- X = attr(_, 1, _).
 isOfFirst(Y, _, Y) :- Y = attr(_, 1, _).
+
+%     isOfSecond(Res, X, Y)
+% Return X or Y, depending on which of them comes from the second stream
+% argument  (if both do, X comes first).
+% Fails, iff none of X and Y are attributes from the 2nd (right/ inner) stream.
 isOfSecond(X, X, _) :- X = attr(_, 2, _).
 isOfSecond(Y, _, Y) :- Y = attr(_, 2, _).
 
+%    isNotOfFirst(Res, X, Y)
+% Return the attribute (X or Y), that does not come from the first stream
+% (X comes first)
 isNotOfFirst(Y, X, Y) :- X = attr(_, 1, _).
 isNotOfFirst(X, X, Y) :- Y = attr(_, 1, _).
+
+%    isNotOfSecond(Res, X, Y)
+% Return the attribute (X or Y), that does not come from the second stream
+% (X comes first)
 isNotOfSecond(Y, X, Y) :- X = attr(_, 2, _).
 isNotOfSecond(X, X, Y) :- Y = attr(_, 2, _).
 
 /*
 Begin of Goehr's extension
 
+The same as above, but for three attributes (return order: X, Y, Z).
 */
 
 isOfFirst(X, X, _, _) :- X = attr(_, 1, _).
@@ -3718,20 +3777,21 @@ in ~Expr~.
 */
 fetchAttributeList([],[]) :- !.
 
-fetchAttributeList([X|L],R) :-
-  fetchAttributeList(X,R1),
+fetchAttributeList([T|L],R) :-
+  fetchAttributeList(T,R1),
   fetchAttributeList(L,R2),
   append(R1, R2, R), !.
 
-fetchAttributeList(X,[]) :-
-  atom(X), !.
-
 fetchAttributeList(attr(A,B,C),[attr(A,B,C)]) :- !.
 
-fetchAttributeList(X,R) :-
-  compound(T), not(is_list(T)),
-  X =.. Y,
-  fetchAttributeList(Y,R), !.
+fetchAttributeList(T,R) :-
+  compound(T),
+  \+ is_list(T),
+  T =.. L,
+  fetchAttributeList(L,R), !.
+
+fetchAttributeList(A,[]) :-
+  atom(A), !.
 
 /*
 End of Goehr's extension
