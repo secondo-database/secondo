@@ -67,14 +67,13 @@ Returns true if the ~RouteInterval~ ~pRi~ is found in the set of ~rint~.
 false elsewhere.
 
 */
-bool searchUnit(DbArray<RouteInterval> &rint, size_t low, size_t high,
+bool searchUnit(DbArray<RouteInterval> &rint, int low, int high,
                  RouteInterval pRi){
   RouteInterval rI;
   if (low <= high) {
-    size_t mid = (high + low) / 2;
-    size_t n = 0;
-    int imid = (int) mid;
-    if (mid < n || imid >= rint.Size()) {
+    int mid = (high + low) / 2;
+    int n = 0;
+    if (mid < n || mid >= rint.Size()) {
       return false;
     }else {
       rint.Get(mid, rI);
@@ -160,12 +159,11 @@ Returns true if a ~RouteInterval~ is found that contains the ~gpoint~
 
 */
 bool searchRouteInterval(GPoint *pGPoint, DbArray<RouteInterval> &tra,
-                          size_t low, size_t high) {
+                          int low, int high) {
   RouteInterval rI;
   if (low <= high) {
-    size_t mid = (high + low) / 2;
-    int imid = mid;
-    if ((imid < 0) || (imid >= tra.Size())) {
+    int mid = (high + low) / 2;
+    if ((mid < 0) || (mid >= tra.Size())) {
       return false;
     }else {
       tra.Get(mid, rI);
@@ -275,31 +273,47 @@ bool checkPoint (SimpleLine *&route, Point point, bool startSmaller,
           x = point.GetX(),
           y = point.GetY();
     if ((fabs(x-xr) < 0.01 && fabs (y-yr) < 0.01) ||
-       (fabs(x-xl) < 0.01 && fabs (y-yl) < 0.01)){
+        (fabs(x-xl) < 0.01 && fabs (y-yl) < 0.01))
+    {
       difference = 0.0;
       result = true;
     } else {
       if (xl != xr && xl != x) {
         k1 = (y - yl) / (x - xl);
         k2 = (yr - yl) / (xr - xl);
-        if ((fabs(k1-k2) < 0.01) &&
-           ((xl < xr && (x > xl || fabs(x-xl) < 0.01) &&
-           (x < xr || fabs(x-xr) < 0.01)) || (xl > xr &&  (x < xl ||
-           fabs(x-xl)<0.01)  && ( x > xr || fabs(x-xr)))) && (((yl < yr ||
-           fabs(yl-yr)<0.01) && (y > yl || fabs(y-yl)<0.01 )&& (y < yr ||
-           fabs(y-yr)<0.01)) || (yl > yr && (y < yl || fabs(y-yl) <0.01) &&
-           (y > yr || fabs(y-yr)<0.01)))) {
+        if ((fabs(k1-k2) < 0.004) &&
+            ((xl < xr &&
+              (x > xl || fabs(x-xl) < 0.01) &&
+              (x < xr || fabs(x-xr) < 0.01)) ||
+            (xl > xr &&
+              (x < xl || fabs(x-xl)<0.01) &&
+              (x > xr || fabs(x-xr) < 0.01))) &&
+            (((yl < yr || fabs(yl-yr)<0.01) &&
+              (y > yl || fabs(y-yl)<0.01 ) &&
+              (y < yr || fabs(y-yr)<0.01)) ||
+            (yl > yr &&
+              (y < yl || fabs(y-yl) <0.01) &&
+              (y > yr || fabs(y-yr)<0.01))))
+        {
               difference = fabs(k1-k2);
               result = true;
-        } else {result = false;}
-      } else {
+        }
+        else {result = false;}
+      }
+      else
+      {
         if (( fabs(xl - xr) < 0.01 && fabs(xl -x) < 0.01) &&
-           (((yl < yr|| fabs(yl-yr)<0.01) && (yl < y || fabs(yl-y) <0.01)&&
-           (y < yr ||fabs(y-yr)<0.01))|| (yl > yr && (yl > y ||
-           fabs(yl-y)<0.01)&& (y > yr ||fabs(y-yr)<0.01)))) {
+            (((yl < yr|| fabs(yl-yr)<0.01) &&
+                (yl < y || fabs(yl-y) <0.01)&&
+                (y < yr ||fabs(y-yr)<0.01))||
+              (yl > yr &&
+                (yl > y || fabs(yl-y)<0.01)&&
+                (y > yr ||fabs(y-yr)<0.01))))
+        {
               difference = 0.0;
               result = true;
-        } else {result = false;}
+        }
+        else {result = false;}
       }
     }
     if (result) {
@@ -346,22 +360,31 @@ bool checkPointN (SimpleLine route, Point point, bool startSmaller,
       {
         k1 = (y - yl) / (x - xl);
         k2 = (yr - yl) / (xr - xl);
-        if ((fabs(k1-k2) < 0.01) &&
-            ((xl < xr && (x > xl || fabs(x-xl) < 0.01) &&
-            (x < xr || fabs(x-xr) < 0.01)) || (xl > xr &&  (x < xl ||
-            fabs(x-xl)<0.01)  && ( x > xr || fabs(x-xr)))) && (((yl < yr ||
-            fabs(yl-yr)<0.01) && (y > yl || fabs(y-yl)<0.01 )&& (y < yr ||
-            fabs(y-yr)<0.01)) || (yl > yr && (y < yl || fabs(y-yl) <0.01) &&
-            (y > yr || fabs(y-yr)<0.01))))
+        if ((fabs(k1-k2) < 0.004) &&
+              ((xl < xr &&
+                (x > xl || fabs(x-xl) < 0.01) &&
+                (x < xr || fabs(x-xr) < 0.01)) ||
+              (xl > xr &&
+                (x < xl || fabs(x-xl) < 0.01) &&
+                (x > xr || fabs(x-xr) < 0.01))) &&
+              (((yl < yr || fabs(yl-yr) < 0.01) &&
+                (y > yl || fabs(y-yl) < 0.01) &&
+                (y < yr || fabs(y-yr) < 0.01)) ||
+              (yl > yr &&
+                (y < yl || fabs(y-yl) <0.01) &&
+                (y > yr || fabs(y-yr)<0.01))))
           result = true;
         else result = false;
       }
       else
       {
         if (( fabs(xl - xr) < 0.01 && fabs(xl -x) < 0.01) &&
-              (((yl < yr|| fabs(yl-yr)<0.01) && (yl < y || fabs(yl-y) <0.01)&&
-              (y < yr ||fabs(y-yr)<0.01))|| (yl > yr && (yl > y ||
-              fabs(yl-y)<0.01)&& (y > yr ||fabs(y-yr)<0.01))))
+              (((yl < yr|| fabs(yl-yr)<0.01) &&
+                  (yl < y || fabs(yl-y) <0.01)&&
+                  (y < yr ||fabs(y-yr)<0.01))||
+                (yl > yr &&
+                  (yl > y ||fabs(yl-y)<0.01)&&
+                  (y > yr ||fabs(y-yr)<0.01))))
           result = true;
         else result = false;
       }
@@ -414,37 +437,53 @@ bool checkPoint03 (SimpleLine *&route, Point point, bool startSmaller,
         k1 = (y - yl) / (x - xl);
         k2 = (yr - yl) / (xr - xl);
         if ((fabs(k1-k2) < 1.2) &&
-           ((xl < xr && (x > xl || fabs(x-xl) < 0.01) &&
-           (x < xr || fabs(x-xr) < 0.01)) || (xl > xr &&  (x < xl ||
-           fabs(x-xl)<0.01)  && ( x > xr || fabs(x-xr)))) && (((yl < yr ||
-           fabs(yl-yr)<0.01) && (y > yl || fabs(y-yl)<0.01 )&& (y < yr ||
-           fabs(y-yr)<0.01)) || (yl > yr && (y < yl || fabs(y-yl) <0.01) &&
-           (y > yr || fabs(y-yr)<0.01)))) {
+            ((xl < xr &&
+                (x > xl || fabs(x-xl) < 0.01) &&
+                (x < xr || fabs(x-xr) < 0.01)) ||
+             (xl > xr &&
+                (x < xl || fabs(x-xl) < 0.01) &&
+                ( x > xr || fabs(x-xr) < 0.01))) &&
+            (((yl < yr || fabs(yl-yr) < 0.01) &&
+                (y > yl || fabs(y-yl) < 0.01 ) &&
+                (y < yr || fabs(y-yr)<0.01)) ||
+            (yl > yr &&
+                (y < yl || fabs(y-yl) <0.01) &&
+                (y > yr || fabs(y-yr)<0.01))))
+        {
               difference = fabs(k1-k2);
               result = true;
-        } else {result = false;}
-      } else {
+        }
+        else {result = false;}
+      }
+      else
+      {
         if (( fabs(xl - xr) < 0.01 && fabs(xl -x) < 0.01) &&
-           (((yl < yr|| fabs(yl-yr)<0.01) && (yl < y || fabs(yl-y) <0.01)&&
-           (y < yr ||fabs(y-yr)<0.01))|| (yl > yr && (yl > y ||
-           fabs(yl-y)<0.01)&& (y > yr ||fabs(y-yr)<0.01)))) {
+            (((yl < yr|| fabs(yl-yr)<0.01) &&
+                  (yl < y || fabs(yl-y) <0.01)&&
+                  (y < yr ||fabs(y-yr)<0.01))||
+              (yl > yr &&
+                  (yl > y || fabs(yl-y)<0.01)&&
+                  (y > yr ||fabs(y-yr)<0.01))))
+        {
               difference = 0.0;
               result = true;
-        } else {result = false;}
+        }
+        else {result = false;}
       }
     }
-    if (result) {
+    if (result)
+    {
        LRS lrs;
-        route->Get( hs.attr.edgeno, lrs );
-        route->Get( lrs.hsPos, hs );
-        pos = lrs.lrsPos + point.Distance( hs.GetDomPoint() );
-        if( startSmaller != route->GetStartSmaller())
-          pos = route->Length() - pos;
-        if( fabs(pos-0.0) < 0.01)
-          pos = 0.0;
-        else if (fabs(pos-route->Length())<0.01)
-              pos = route->Length();
-        return result;
+      route->Get( hs.attr.edgeno, lrs );
+      route->Get( lrs.hsPos, hs );
+      pos = lrs.lrsPos + point.Distance( hs.GetDomPoint() );
+      if( startSmaller != route->GetStartSmaller())
+        pos = route->Length() - pos;
+      if( fabs(pos-0.0) < 0.01)
+        pos = 0.0;
+      else if (fabs(pos-route->Length())<0.01)
+            pos = route->Length();
+      return result;
     }
   }
   return result;
@@ -474,23 +513,38 @@ bool lastcheckPoint03 (SimpleLine *&route, Point point, bool startSmaller,
       if (xl != xr && xl != x) {
         k1 = (y - yl) / (x - xl);
         k2 = (yr - yl) / (xr - xl);
-        if (((xl < xr && (x > xl || fabs(x-xl) < 0.1) &&
-           (x < xr || fabs(x-xr) < 0.01)) || (xl > xr &&  (x < xl ||
-           fabs(x-xl)<0.01)  && ( x > xr || fabs(x-xr)))) && (((yl < yr ||
-           fabs(yl-yr)<0.01) && (y > yl || fabs(y-yl)<0.01 )&& (y < yr ||
-           fabs(y-yr)<0.01)) || (yl > yr && (y < yl || fabs(y-yl) <0.01) &&
-           (y > yr || fabs(y-yr)<0.01)))) {
+        if (((xl < xr &&
+                (x > xl || fabs(x-xl) < 0.1) &&
+                (x < xr || fabs(x-xr) < 0.01)) ||
+            (xl > xr &&
+                ( x < xl || fabs(x-xl)<0.01)  &&
+                ( x > xr || fabs(x-xr)<0.01))) &&
+            (((yl < yr || fabs(yl-yr)<0.01) &&
+                (y > yl || fabs(y-yl)<0.01 )&&
+                (y < yr || fabs(y-yr)<0.01)) ||
+            (yl > yr &&
+                (y < yl || fabs(y-yl) <0.01) &&
+                (y > yr || fabs(y-yr)<0.01))))
+        {
               difference = fabs(k1-k2);
               result = true;
-        } else {result = false;}
-      } else {
+        }
+        else {result = false;}
+      }
+      else
+      {
         if (( fabs(xl - xr) < 0.1 && fabs(xl -x) < 0.1) &&
-           (((yl < yr|| fabs(yl-yr)<0.1) && (yl < y || fabs(yl-y) <0.1)&&
-           (y < yr ||fabs(y-yr)<0.1))|| (yl > yr && (yl > y ||
-           fabs(yl-y)<0.1)&& (y > yr ||fabs(y-yr)<0.1)))) {
+            (((yl < yr|| fabs(yl-yr)<0.1) &&
+                  (yl < y || fabs(yl-y) <0.1)&&
+                  (y < yr || fabs(y-yr)<0.1))||
+            (yl > yr &&
+                  (yl > y || fabs(yl-y)<0.1)&&
+                  (y > yr ||fabs(y-yr)<0.1))))
+        {
               difference = 0.0;
               result = true;
-        } else {result = false;}
+        }
+        else {result = false;}
       }
     }
     if (result) {
@@ -1648,11 +1702,13 @@ Network* MGPoint::GetNetwork() const
 }
 
 double MGPoint::GetLength() const{
-  return m_length;
+  if (IsDefined()) return m_length;
+  else return 0.0;
 }
 
 double MGPoint::Length(){
-  return m_length;
+  if (IsDefined()) return m_length;
+  else return 0.0;
 }
 
 void MGPoint::SetBoundingBox(Rectangle<3> mbr){
@@ -1662,23 +1718,25 @@ void MGPoint::SetBoundingBox(Rectangle<3> mbr){
 void MGPoint::SetTrajectory(const DbArray<RouteInterval>& tra){
   if (tra.Size() > 0){
     m_traj_Defined = true;
-    m_trajectory.resize(tra.Size());
+    /*m_trajectory.resize(tra.Size());
     RouteInterval ri;
     for (int i = 0; i < tra.Size(); i++) {
       tra.Get(i,ri);
       m_trajectory.Put(i,ri);
-    }
+    }*/
+    m_trajectory.copyFrom(tra);
   } else m_traj_Defined = false;
 }
 
 void MGPoint::SetTrajectory(GLine src){
   if (src.IsDefined() && src.NoOfComponents() > 0) {
-    m_trajectory.resize(src.NoOfComponents());
+    m_trajectory.copyFrom(*(src.GetRouteIntervals()));
+    /*m_trajectory.resize(src.NoOfComponents());
     RouteInterval ri;
     for (int i = 0; i < src.NoOfComponents(); i++) {
       src.Get(i,ri);
       m_trajectory.Put(i,ri);
-    }
+    }*/
     m_traj_Defined = true;
   }else m_traj_Defined = false;
 }
@@ -3102,6 +3160,8 @@ Checks if ~mgpoint~ is present in the given ~periods~
 */
 
 bool MGPoint::Present(Periods *&per) {
+  if (!IsDefined() || !per->IsDefined() || IsEmpty() || per->IsEmpty())
+    return false;
   Interval<Instant> intper;
   UGPoint pCurrUnit;
   int j = 0;
@@ -3670,17 +3730,17 @@ Restricts the ~mgpoint~ to the given ~periods~
 */
 
 void MGPoint::Atperiods(Periods *&per, MGPoint *&res){
-  Instant utstart, utend;
-  GPoint uGPstart, uGPend;
-  bool ulc = true;
-  bool urc = true;
-  UGPoint pCurrentUnit;
   if(!IsDefined() || !per->IsDefined() || IsEmpty() || per->IsEmpty())
   {
     res->SetDefined(false);
   }
   else //both are defined and have at least one interval
   {
+    Instant utstart, utend;
+    GPoint uGPstart, uGPend;
+    bool ulc = true;
+    bool urc = true;
+    UGPoint pCurrentUnit;
     int i = 0;
     Get(i, pCurrentUnit);
     int j = 0;
@@ -4785,17 +4845,22 @@ Otherwise the union is undefined.
 
 */
 
-void MGPoint::Union(MGPoint *mp, MGPoint *res){
-  if (IsDefined()&&mp->IsDefined()){
+void MGPoint::Union(MGPoint *mp, MGPoint *res)
+{
+  if (IsDefined() && mp->IsDefined() &&
+      GetNoComponents() > 0 && mp->GetNoComponents() > 0)
+  {
     int i = 0;
     int j = 0;
     UGPoint u1, u2;
     res->StartBulkLoad();
-    while (i < GetNoComponents() && j < mp->GetNoComponents()){
+    while (i < GetNoComponents() && j < mp->GetNoComponents())
+    {
       Get(i, u1);
       mp->Get(j,u2);
-      if (u1.timeInterval.end.ToDouble() <
-         u2.timeInterval.start.ToDouble()) {
+      if (u1.timeInterval.end.ToDouble() <=
+            u2.timeInterval.start.ToDouble())
+      {
         res->Add(UGPoint(Interval<Instant> (u1.timeInterval.start,
                         u1.timeInterval.end,
                         true, false),
@@ -4805,9 +4870,12 @@ void MGPoint::Union(MGPoint *mp, MGPoint *res){
                         u1.p0.GetPosition(),
                         u1.p1.GetPosition()));
         i++;
-      } else {
-        if (u2.timeInterval.end.ToDouble() <
-            u1.timeInterval.start.ToDouble()) {
+      }
+      else
+      {
+        if (u2.timeInterval.end.ToDouble() <=
+             u1.timeInterval.start.ToDouble())
+        {
           res->Add(UGPoint(Interval<Instant> (u2.timeInterval.start,
                         u2.timeInterval.end,
                         true, false),
@@ -4816,9 +4884,12 @@ void MGPoint::Union(MGPoint *mp, MGPoint *res){
                         u2.p0.GetSide(),
                         u2.p0.GetPosition(),
                         u2.p1.GetPosition()));
-        j++;
-        } else {
-          if (u1 == u2){
+          j++;
+        }
+        else
+        {
+          if (u1 == u2)
+          {
             res->Add(UGPoint(Interval<Instant> (u1.timeInterval.start,
                         u1.timeInterval.end,
                         true, false),
@@ -4829,69 +4900,18 @@ void MGPoint::Union(MGPoint *mp, MGPoint *res){
                         u1.p1.GetPosition()));
             i++;
             j++;
-          } else {
-            if(u1.timeInterval.end.ToDouble() >
-                u2.timeInterval.start.ToDouble() &&
-               fabs(u1.timeInterval.end.ToDouble() -
-                      u2.timeInterval.start.ToDouble()) < 0.00002)
-            {
-              res->Add(UGPoint(Interval<Instant> (u1.timeInterval.start,
-                       u2.timeInterval.start,
-                       true, false),
-                       u1.p0.GetNetworkId(),
-                       u1.p0.GetRouteId(),
-                       u1.p0.GetSide(),
-                       u1.p0.GetPosition(),
-                       u1.p1.GetPosition()));
-              res->Add(UGPoint(Interval<Instant> (u2.timeInterval.start,
-                       u2.timeInterval.end,
-                       true, false),
-                       u2.p0.GetNetworkId(),
-                       u2.p0.GetRouteId(),
-                       u2.p0.GetSide(),
-                       u2.p0.GetPosition(),
-                       u2.p1.GetPosition()));
-              i++;
-              j++;
-            }
-            else
-            {
-              if (u2.timeInterval.end.ToDouble() >
-                  u1.timeInterval.start.ToDouble() &&
-                  fabs(u2.timeInterval.end.ToDouble() -
-                  u1.timeInterval.start.ToDouble()) < 0.00002)
-              {
-                res->Add(UGPoint(Interval<Instant> (u2.timeInterval.start,
-                        u1.timeInterval.start,
-                        true, false),
-                        u2.p0.GetNetworkId(),
-                        u2.p0.GetRouteId(),
-                        u2.p0.GetSide(),
-                        u2.p0.GetPosition(),
-                        u2.p1.GetPosition()));
-                res->Add(UGPoint(Interval<Instant> (u1.timeInterval.start,
-                         u1.timeInterval.end,
-                         true, false),
-                         u1.p0.GetNetworkId(),
-                         u1.p0.GetRouteId(),
-                         u1.p0.GetSide(),
-                         u1.p0.GetPosition(),
-                         u1.p1.GetPosition()));
-                i++;
-                j++;
-              }
-              else
-              {
-                res->SetDefined(false);
-                i = GetNoComponents();
-                j = mp->GetNoComponents();
-              }
-            }
+          }
+          else
+          {
+            res->SetDefined(false);
+            i = GetNoComponents();
+            j = mp->GetNoComponents();
           }
         }
       }
     }
-    if (i < GetNoComponents()){
+    if (i < GetNoComponents())
+    {
       Get(i,u1);
       res->Add(UGPoint(Interval<Instant> (u1.timeInterval.start,
                         u1.timeInterval.end,
@@ -4902,7 +4922,8 @@ void MGPoint::Union(MGPoint *mp, MGPoint *res){
                         u1.p0.GetPosition(),
                         u1.p1.GetPosition()));
       i++;
-      while (i < GetNoComponents()){
+      while (i < GetNoComponents())
+      {
         Get(i,u1);
         res->Add(UGPoint(Interval<Instant> (u1.timeInterval.start,
                         u1.timeInterval.end,
@@ -4915,7 +4936,8 @@ void MGPoint::Union(MGPoint *mp, MGPoint *res){
         i++;
       }
     }
-    if (j < mp->GetNoComponents()){
+    if (j < mp->GetNoComponents())
+    {
       mp->Get(j,u2);
       res->Add(UGPoint(Interval<Instant> (u2.timeInterval.start,
                         u2.timeInterval.end,
@@ -4926,7 +4948,8 @@ void MGPoint::Union(MGPoint *mp, MGPoint *res){
                         u2.p0.GetPosition(),
                         u2.p1.GetPosition()));
       j++;
-      while (j < mp->GetNoComponents()){
+      while (j < mp->GetNoComponents())
+      {
         mp->Get(j,u2);
         res->Add(UGPoint(Interval<Instant> (u2.timeInterval.start,
                         u2.timeInterval.end,
@@ -4940,12 +4963,16 @@ void MGPoint::Union(MGPoint *mp, MGPoint *res){
       }
     }
     res->EndBulkLoad();
-  } else {
-    if (IsDefined() && !(mp->IsDefined())){
+  }
+  else
+  {
+    if (IsDefined() && !(mp->IsDefined()) && GetNoComponents() > 0)
+    {
       int i = 0;
       UGPoint u1;
       res->StartBulkLoad();
-      while (i < GetNoComponents()){
+      while (i < GetNoComponents())
+      {
         Get(i,u1);
         res->Add(UGPoint(Interval<Instant> (u1.timeInterval.start,
                         u1.timeInterval.end,
@@ -4958,12 +4985,16 @@ void MGPoint::Union(MGPoint *mp, MGPoint *res){
         i++;
       }
       res->EndBulkLoad();
-    } else {
-      if (mp->IsDefined() && !(IsDefined())){
+    }
+    else
+    {
+      if (mp->IsDefined() && !(IsDefined()) && mp->GetNoComponents() > 0)
+      {
         int j = 0;
         UGPoint u2;
         res->StartBulkLoad();
-        while (j < mp->GetNoComponents()){
+        while (j < mp->GetNoComponents())
+        {
           mp->Get(j,u2);
           res->Add(UGPoint(Interval<Instant> (u2.timeInterval.start,
                         u2.timeInterval.end,
@@ -4976,7 +5007,9 @@ void MGPoint::Union(MGPoint *mp, MGPoint *res){
           j++;
         }
         res->EndBulkLoad();
-      } else {
+      }
+      else
+      {
         res->SetDefined(false);
       }
     }
@@ -5809,7 +5842,6 @@ MGPSecUnit::MGPSecUnit(bool defined, int secId, int part, Side direct,
     m_time(timeInterval)
 {
   del.refs=1;
-  del.isDelete=true;
   SetDefined(defined);
 }
 
@@ -5818,7 +5850,6 @@ MGPSecUnit::MGPSecUnit( const MGPSecUnit& in_xOther)
   if (in_xOther.IsDefined())
   {
     del.refs=1;
-    del.isDelete=true;
     SetDefined(in_xOther.IsDefined());
     m_secId = in_xOther.GetSecId();
     m_part = in_xOther.GetPart();
@@ -6629,19 +6660,19 @@ int OpMPoint2MGPointValueMappingNeu(Word* args,
   if (pNetwork == 0 || !pNetwork->IsDefined())
   {
     res->SetDefined(false);
-    cerr << "Network not defined!" << endl;
+    cout << "Network not defined!" << endl;
     return 0;
   }
   MPoint *pMPoint = (MPoint*)args[1].addr;
   if (pMPoint == 0 || !pMPoint->IsDefined())
   {
     res->SetDefined(false);
-    cerr << "MPoint is not defined!" << endl;
+    cout << "MPoint is not defined!" << endl;
     return 0;
   }
   if (pMPoint->GetNoComponents() == 0)
   {
-    cerr << "MPoint is empty!" << endl;
+    cout << "MPoint is empty!" << endl;
     res->SetDefined(false);
     return 0;
   }
@@ -6656,7 +6687,7 @@ int OpMPoint2MGPointValueMappingNeu(Word* args,
   RouteInterval *ri = pNetwork->FindInterval(pUPoint.p0, pUPoint.p1);
   if (ri == 0 || ri->GetRouteId() == numeric_limits<int>::max())
   {
-    cerr << "First Interval not found!"<< endl;
+    cout << "First Interval not found!"<< endl;
     res->SetDefined(false);
     return 0;
   }
@@ -6687,6 +6718,7 @@ int OpMPoint2MGPointValueMappingNeu(Word* args,
   else
     riTree = new RITree(ri->GetRouteId(), ri->GetEndPos(), ri->GetStartPos());
   delete ri;
+  ri = 0;
   /*
   Continue with translation of all other units.
 
@@ -6772,68 +6804,72 @@ int OpMPoint2MGPointValueMappingNeu(Word* args,
           */
           pMPoint->Get(i,pUPoint);
           ri = pNetwork->FindInterval(pUPoint.p0, pUPoint.p1);
-        }
-        if (ri != 0)
-        {
-          /*
-          Calculate shortest path between last known network position and
-          new network position. Fill in ugpoint units for the shortest path
-          route intervals. For the time interval between network lost and
-          network found again.
 
-          */
-          Instant tend = pUPoint.timeInterval.start;
-          Side s = None;
-          if (ri->GetStartPos() > ri->GetEndPos()) bMovingUp = false;
-          else bMovingUp = true;
-          if (bDual && bMovingUp) s = Up;
-          else
-            if (bDual && !bMovingUp) s = Down;
-            else s = None;
-          pActRouteCurve = pNetwork->GetRouteCurve(ri->GetRouteId());
-          bDual = pNetwork->GetDual(ri->GetRouteId());
-          GPoint end = GPoint(true, iNetworkId, ri->GetRouteId(),
-                              ri->GetStartPos(), s);
-          GLine *gl = new GLine(0);
-          if (!start.ShortestPath(&end,gl))
+          if (ri != 0)
           {
-            cerr << "One unit couldn't be mapped to the network." << endl;
-          }
-          else
-          {
-            for (int k = 0; k < gl->NoOfComponents(); k++)
+            /*
+            Calculate shortest path between last known network position and
+            new network position. Fill in ugpoint units for the shortest path
+            route intervals. For the time interval between network lost and
+            network found again.
+
+            */
+            Instant tend = pUPoint.timeInterval.start;
+            Side s = None;
+            if (ri->GetStartPos() > ri->GetEndPos()) bMovingUp = false;
+            else bMovingUp = true;
+            if (bDual && bMovingUp) s = Up;
+            else
+              if (bDual && !bMovingUp) s = Down;
+              else s = None;
+            pActRouteCurve = pNetwork->GetRouteCurve(ri->GetRouteId());
+            bDual = pNetwork->GetDual(ri->GetRouteId());
+            GPoint end = GPoint(true, iNetworkId, ri->GetRouteId(),
+                                ri->GetStartPos(), s);
+            GLine *gl = new GLine(0);
+            if (!start.ShortestPath(&end,gl))
             {
-              RouteInterval gri;
-              gl->Get(k,gri);
-              Instant tpos =(tend - tstart) *
-                              (fabs(gri.GetEndPos()-gri.GetStartPos())/
-                                gl->GetLength()) +
-                            tstart;
-              if (gri.GetRouteId() == end.GetRouteId() &&
-                  gri.GetEndPos() == end.GetPosition()) tpos = tend;
-              Side s = None;
-              if (ri->GetStartPos() > ri->GetEndPos()) bMovingUp = false;
-              else bMovingUp = true;
-              if (bDual && gri.GetStartPos() <= gri.GetEndPos()) s = Up;
-              else
-                if (bDual && gri.GetStartPos() > gri.GetEndPos()) s = Down;
-                else s = None;
-              res->Add(UGPoint(Interval<Instant> (tstart, tpos, true, false),
-                               iNetworkId,
-                               gri.GetRouteId(),
-                               s,
-                               gri.GetStartPos(),
-                               gri.GetEndPos()));
-              riTree->InsertUnit(gri.GetRouteId(),
-                                 gri.GetStartPos(),
-                                 gri.GetEndPos());
-              tstart = tpos;
+              cout << "One unit couldn't be mapped to the network." << endl;
+              delete ri;
+              ri = 0;
             }
+            else
+            {
+              for (int k = 0; k < gl->NoOfComponents(); k++)
+              {
+                RouteInterval gri;
+                gl->Get(k,gri);
+                Instant tpos =(tend - tstart) *
+                                (fabs(gri.GetEndPos()-gri.GetStartPos())/
+                                  gl->GetLength()) +
+                              tstart;
+                if (gri.GetRouteId() == end.GetRouteId() &&
+                    gri.GetEndPos() == end.GetPosition()) tpos = tend;
+                Side s = None;
+                if (ri->GetStartPos() > ri->GetEndPos()) bMovingUp = false;
+                else bMovingUp = true;
+                if (bDual && gri.GetStartPos() <= gri.GetEndPos()) s = Up;
+                else
+                  if (bDual && gri.GetStartPos() > gri.GetEndPos()) s = Down;
+                  else s = None;
+                res->Add(UGPoint(Interval<Instant> (tstart, tpos, true, false),
+                                iNetworkId,
+                                gri.GetRouteId(),
+                                s,
+                                gri.GetStartPos(),
+                                gri.GetEndPos()));
+                riTree->InsertUnit(gri.GetRouteId(),
+                                  gri.GetStartPos(),
+                                  gri.GetEndPos());
+                tstart = tpos;
+              }
+            }
+            delete gl;
           }
         }
-        else
+        if (ri == 0)
         {
-          cerr << "MPoint lost Network! Translation stopped!" << endl;
+          cout << "MPoint lost Network! Translation stopped!" << endl;
           res->EndBulkLoad(true);
           riTree->TreeToDbArray(&(res->m_trajectory));
           res->SetTrajectoryDefined(true);
@@ -6857,6 +6893,8 @@ int OpMPoint2MGPointValueMappingNeu(Word* args,
         if (bDual && !bMovingUp) side = Down;
         else side = None;
       aktUGPoint.SetUnitSide(side);
+      delete ri;
+      ri = 0;
     }
   }
   /*

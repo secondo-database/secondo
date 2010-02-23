@@ -273,10 +273,7 @@ class GPoint : public Attribute
 */
 
     GPoint()
-    {
-      del.refs=1;
-      del.isDelete=true;
-    }
+    {del.refs = 1; }
 
     GPoint( bool in_bDefined,
             int in_iNetworkId = 0,
@@ -286,19 +283,13 @@ class GPoint : public Attribute
     m_iNetworkId( in_iNetworkId ),
     m_xRouteLocation( in_xRid, in_dLocation, in_xSide ),
     m_bDefined( in_bDefined )
-    {
-      del.refs=1;
-      del.isDelete=true;
-    }
+    { del.refs = 1;}
 
     GPoint( const GPoint& in_xOther ):
     m_iNetworkId( in_xOther.m_iNetworkId ),
     m_xRouteLocation( in_xOther.m_xRouteLocation ),
     m_bDefined( in_xOther.m_bDefined )
-    {
-      del.refs=1;
-      del.isDelete=true;
-    }
+    { del.refs = 1;}
 
     ~GPoint(){};
 

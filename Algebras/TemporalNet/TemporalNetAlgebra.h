@@ -185,17 +185,12 @@ SpatialTemporalUnit class.
 class UGPoint : public SpatialTemporalUnit<GPoint, 3>
 {
   public:
-  UGPoint() {
-    del.refs=1;
-    del.isDelete=true;
-  };
+  UGPoint() {del.refs = 1; };
 
   UGPoint(bool is_defined):
     SpatialTemporalUnit<GPoint, 3>(is_defined)
     {
       del.refs=1;
-      del.isDelete=true;
-      del.isDefined = is_defined;
     };
 
   UGPoint( const Interval<Instant>& interval,
@@ -217,7 +212,6 @@ class UGPoint : public SpatialTemporalUnit<GPoint, 3>
         in_Side)       // Side
     {
       del.refs=1;
-      del.isDelete=true;
     }
 
   UGPoint( const Interval<Instant>& interval,
@@ -228,8 +222,6 @@ class UGPoint : public SpatialTemporalUnit<GPoint, 3>
     p1( p1 )
     {
       del.refs=1;
-      del.isDelete=true;
-      del.isDefined=true;
     }
 
     UGPoint( const Interval<Instant>& interval,
@@ -252,7 +244,6 @@ class UGPoint : public SpatialTemporalUnit<GPoint, 3>
         in_Side)       // Side
     {
       del.refs=1;
-      del.isDelete=true;
     }
 
   UGPoint( const Interval<Instant>& interval,
@@ -264,7 +255,6 @@ class UGPoint : public SpatialTemporalUnit<GPoint, 3>
     p1( p1 )
     {
       del.refs=1;
-      del.isDelete=true;
       del.isDefined=true;
     }
 
@@ -273,7 +263,6 @@ class UGPoint : public SpatialTemporalUnit<GPoint, 3>
     p0=source.p0;
     p1=source.p1;
     del.refs=1;
-    del.isDelete=true;
     del.isDefined = source.del.isDefined;
   }
 
@@ -658,19 +647,16 @@ The simple constructor should not be used.
     void CopyFrom(const Attribute* right)
     {
       const MGPoint *src = (const MGPoint*) right;
-      Clear();
-      StartBulkLoad();
-      UGPoint u;
-      for (int i = 0; i < src->GetNoComponents(); i++) {
-        src->Get(i,u);
-        Add(u);
+      if (src->IsDefined())
+      {
+        units.copyFrom(src->units);
+        if (src->m_traj_Defined) SetTrajectory(src->m_trajectory);
+        SetTrajectoryDefined(src->m_traj_Defined);
+        m_trajectory.TrimToSize();
+        if (src->m_bbox.IsDefined()) SetBoundingBox(src->BoundingBox());
+        SetBoundingBoxDefined(m_bbox.IsDefined());
       }
-      EndBulkLoad(true);
-      if (src->m_traj_Defined) SetTrajectory(src->m_trajectory);
-      SetTrajectoryDefined(src->m_traj_Defined);
-      m_trajectory.TrimToSize();
-      if (src->m_bbox.IsDefined()) SetBoundingBox(src->BoundingBox());
-      SetBoundingBoxDefined(m_bbox.IsDefined());
+      else SetDefined(false);
     }
 
 

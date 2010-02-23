@@ -341,13 +341,13 @@ bool chkPoint ( SimpleLine *&route, Point point, bool startSmaller, double &pos,
     left = hs.GetLeftPoint();
     right = hs.GetRightPoint();
     Coord xl = left.GetX(),
-               yl = left.GetY(),
-                    xr = right.GetX(),
-                         yr = right.GetY(),
-                              x = point.GetX(),
-                                  y = point.GetY();
+          yl = left.GetY(),
+          xr = right.GetX(),
+          yr = right.GetY(),
+          x = point.GetX(),
+          y = point.GetY();
     if ( ( fabs ( x-xr ) < 0.01 && fabs ( y-yr ) < 0.01 ) ||
-            ( fabs ( x-xl ) < 0.01 && fabs ( y-yl ) < 0.01 ) )
+         ( fabs ( x-xl ) < 0.01 && fabs ( y-yl ) < 0.01 ) )
     {
       difference = 0.0;
       result = true;
@@ -358,16 +358,19 @@ bool chkPoint ( SimpleLine *&route, Point point, bool startSmaller, double &pos,
       {
         k1 = ( y - yl ) / ( x - xl );
         k2 = ( yr - yl ) / ( xr - xl );
-        if ( ( fabs ( k1-k2 ) < 0.01 ) &&
-             ( ( xl < xr && ( x > xl || fabs ( x-xl ) < 0.01 ) &&
-             ( x < xr || fabs ( x-xr ) < 0.01 ) ) ||
-                  ( xl > xr && ( x < xl || fabs ( x-xl ) <0.01 )  &&
-                               ( x > xr || fabs ( x-xr ) ) ) ) &&
-                               ( ( ( yl < yr || fabs ( yl-yr ) <0.01 ) &&
-                                 ( y > yl || fabs ( y-yl ) <0.01 ) &&
-                                 ( y < yr || fabs ( y-yr ) <0.01 ) ) ||
-                            ( yl > yr && ( y < yl || fabs ( y-yl ) <0.01 ) &&
-                            ( y > yr || fabs ( y-yr ) <0.01 ) ) ) )
+        if ( ( fabs ( k1-k2 ) < 0.004 ) &&
+             ( ( xl < xr &&
+                  ( x > xl || fabs ( x-xl ) < 0.01 ) &&
+                  ( x < xr || fabs ( x-xr ) < 0.01 ) ) ||
+               ( xl > xr &&
+                  ( x < xl || fabs ( x-xl ) <0.01 )  &&
+                  ( x > xr || fabs ( x-xr ) < 0.01 ) ) ) &&
+             ((( yl <= yr  &&
+                   ( y > yl || fabs ( y-yl ) <0.01 ) &&
+                   ( y < yr || fabs ( y-yr ) <0.01 ) ) ||
+               ( yl > yr &&
+                   ( y < yl || fabs ( y-yl ) <0.01 ) &&
+                   ( y > yr || fabs ( y-yr ) <0.01 ) ) ) ))
         {
           difference = fabs ( k1-k2 );
           result = true;
@@ -377,12 +380,12 @@ bool chkPoint ( SimpleLine *&route, Point point, bool startSmaller, double &pos,
       else
       {
         if ( ( fabs ( xl - xr ) < 0.01 && fabs ( xl -x ) < 0.01 ) &&
-                ( ( ( yl < yr|| fabs ( yl-yr ) <0.01 ) && ( yl < y || fabs (
-yl-y ) <0.01 ) &&
-                    ( y < yr ||fabs ( y-yr ) <0.01 ) ) || ( yl > yr && ( yl > y
-||
-                                                            fabs ( yl-y ) <0.01
-) && ( y > yr ||fabs ( y-yr ) <0.01 ) ) ) )
+            ( ( ( yl <= yr &&
+                  ( yl < y || fabs (yl-y ) < 0.01 ) &&
+                  ( y < yr ||fabs ( y-yr ) <0.01 ) ) ||
+                ( yl > yr &&
+                  ( yl > y || fabs ( yl-y ) < 0.01) &&
+                  ( y > yr ||fabs ( y-yr ) <0.01 ) ) ) ))
         {
           difference = 0.0;
           result = true;
@@ -429,13 +432,13 @@ bool chkPoint03 ( SimpleLine *&route, Point point, bool startSmaller,
     left = hs.GetLeftPoint();
     right = hs.GetRightPoint();
     Coord xl = left.GetX(),
-               yl = left.GetY(),
-                    xr = right.GetX(),
-                         yr = right.GetY(),
-                              x = point.GetX(),
-                                  y = point.GetY();
+          yl = left.GetY(),
+          xr = right.GetX(),
+          yr = right.GetY(),
+          x = point.GetX(),
+          y = point.GetY();
     if ( ( fabs ( x-xl ) < 0.01 && fabs ( y-yl ) < 0.01 ) ||
-            ( fabs ( x-xr ) < 0.01 && fabs ( y-yr ) < 0.01 ) )
+         ( fabs ( x-xr ) < 0.01 && fabs ( y-yr ) < 0.01 ) )
     {
       difference = 0.0;
       result = true;
@@ -447,17 +450,18 @@ bool chkPoint03 ( SimpleLine *&route, Point point, bool startSmaller,
         k1 = ( y - yl ) / ( x - xl );
         k2 = ( yr - yl ) / ( xr - xl );
         if ( ( fabs ( k1-k2 ) < 1.2 ) &&
-                ( ( xl < xr && ( x > xl || fabs ( x-xl ) < 0.01 ) &&
-                    ( x < xr || fabs ( x-xr ) < 0.01 ) ) || ( xl > xr && ( x <
-xl ||
-                            fabs ( x-xl ) <0.01 )  && ( x > xr || fabs ( x-xr )
-) ) ) && ( ( ( yl < yr ||
-                                    fabs ( yl-yr ) <0.01 ) && ( y > yl || fabs (
-y-yl ) <0.01 ) && ( y < yr ||
-                                            fabs ( y-yr ) <0.01 ) ) || ( yl > yr
-&& ( y < yl || fabs ( y-yl ) <0.01 ) &&
-                                                                         ( y >
-yr || fabs ( y-yr ) <0.01 ) ) ) )
+             ( ( xl < xr &&
+                  ( x > xl || fabs ( x-xl ) < 0.01 ) &&
+                  ( x < xr || fabs ( x-xr ) < 0.01 ) ) ||
+               ( xl > xr &&
+                  ( x < xl || fabs ( x-xl ) < 0.01 )  &&
+                  ( x > xr || fabs ( x-xr ) < 0.01 ) ) ) &&
+             ( ( ( yl < yr || fabs ( yl-yr ) < 0.01 ) &&
+                  ( y > yl || fabs (y-yl ) <0.01 ) &&
+                  ( y < yr || fabs ( y-yr ) <0.01 ) ) ||
+               ( yl > yr &&
+                  ( y < yl || fabs ( y-yl ) <0.01 ) &&
+                  ( y > yr || fabs ( y-yr ) <0.01 ) ) ) )
         {
           difference = fabs ( k1-k2 );
           result = true;
@@ -467,12 +471,12 @@ yr || fabs ( y-yr ) <0.01 ) ) ) )
       else
       {
         if ( ( fabs ( xl - xr ) < 0.01 && fabs ( xl -x ) < 0.01 ) &&
-                ( ( ( yl < yr|| fabs ( yl-yr ) <0.01 ) && ( yl < y || fabs (
-yl-y ) <0.01 ) &&
-                    ( y < yr ||fabs ( y-yr ) <0.01 ) ) || ( yl > yr && ( yl > y
-||
-                                                            fabs ( yl-y ) <0.01
-) && ( y > yr ||fabs ( y-yr ) <0.01 ) ) ) )
+             ( ( ( yl < yr|| fabs ( yl-yr ) <0.01 ) &&
+                    ( yl < y || fabs (yl-y ) <0.01 ) &&
+                    ( y < yr ||fabs ( y-yr ) <0.01 ) ) ||
+                 ( yl > yr  &&
+                    ( yl > y || fabs ( yl-y ) < 0.01) &&
+                    ( y > yr ||fabs ( y-yr ) <0.01 ) ) ) )
         {
           difference = 0.0;
           result = true;
@@ -511,13 +515,13 @@ bool lastchkPoint03 ( SimpleLine *&route, Point point, bool startSmaller,
     left = hs.GetLeftPoint();
     right = hs.GetRightPoint();
     Coord xl = left.GetX(),
-               yl = left.GetY(),
-                    xr = right.GetX(),
-                         yr = right.GetY(),
-                              x = point.GetX(),
-                                  y = point.GetY();
+          yl = left.GetY(),
+          xr = right.GetX(),
+          yr = right.GetY(),
+          x = point.GetX(),
+          y = point.GetY();
     if ( ( fabs ( x-xl ) < 0.01 && fabs ( y-yl ) < 0.01 ) ||
-            ( fabs ( x-xr ) < 0.01 && fabs ( y-yr ) < 0.01 ) )
+         ( fabs ( x-xr ) < 0.01 && fabs ( y-yr ) < 0.01 ) )
     {
       difference = 0.0;
       result = true;
@@ -528,17 +532,18 @@ bool lastchkPoint03 ( SimpleLine *&route, Point point, bool startSmaller,
       {
         k1 = ( y - yl ) / ( x - xl );
         k2 = ( yr - yl ) / ( xr - xl );
-        if ( ( ( xl < xr && ( x > xl || fabs ( x-xl ) < 0.1 ) &&
-                 ( x < xr || fabs ( x-xr ) < 0.01 ) ) || ( xl > xr && ( x < xl
-||
-                         fabs ( x-xl ) <0.01 )  && ( x > xr || fabs ( x-xr ) ) )
-) && ( ( ( yl < yr ||
-                                 fabs ( yl-yr ) <0.01 ) && ( y > yl || fabs (
-y-yl ) <0.01 ) && ( y < yr ||
-                                         fabs ( y-yr ) <0.01 ) ) || ( yl > yr &&
-( y < yl || fabs ( y-yl ) <0.01 ) &&
-                                                                      ( y > yr
-|| fabs ( y-yr ) <0.01 ) ) ) )
+        if ( ( ( xl < xr &&
+                  ( x > xl || fabs ( x-xl ) < 0.1 ) &&
+                  ( x < xr || fabs ( x-xr ) < 0.01 ) ) ||
+               ( xl > xr &&
+                  ( x < xl || fabs ( x-xl ) <0.01 ) &&
+                  ( x > xr || fabs ( x-xr ) < 0.01) ) ) &&
+             ( ( ( yl < yr || fabs ( yl-yr ) < 0.01 ) &&
+                  ( y > yl || fabs (y-yl ) < 0.01 ) &&
+                  ( y < yr || fabs ( y-yr ) < 0.01 ) ) ||
+               ( yl > yr &&
+                  ( y < yl || fabs ( y-yl ) <0.01 ) &&
+                  ( y > yr || fabs ( y-yr ) <0.01 ) ) ) )
         {
           difference = fabs ( k1-k2 );
           result = true;
@@ -548,12 +553,12 @@ y-yl ) <0.01 ) && ( y < yr ||
       else
       {
         if ( ( fabs ( xl - xr ) < 0.01 && fabs ( xl -x ) < 0.01 ) &&
-                ( ( ( yl < yr|| fabs ( yl-yr ) <0.01 ) && ( yl < y || fabs (
-yl-y ) <0.01 ) &&
-                    ( y < yr ||fabs ( y-yr ) <0.01 ) ) || ( yl > yr && ( yl > y
-||
-                                                            fabs ( yl-y ) <0.01
-) && ( y > yr ||fabs ( y-yr ) <0.01 ) ) ) )
+             ( ( ( yl < yr|| fabs ( yl-yr ) <0.01 ) &&
+                    ( yl < y || fabs ( yl-y ) <0.01 ) &&
+                    ( y < yr ||fabs ( y-yr ) <0.01 ) ) ||
+                 ( yl > yr &&
+                    ( yl > y || fabs ( yl-y ) < 0.01 ) &&
+                    ( y > yr ||fabs ( y-yr ) <0.01 ) ) ) )
         {
           difference = 0.0;
           result = true;
@@ -598,13 +603,13 @@ bool checkPoint ( SimpleLine *&route, Point point, bool startSmaller,
     left = hs.GetLeftPoint();
     right = hs.GetRightPoint();
     Coord xl = left.GetX(),
-               yl = left.GetY(),
-                    xr = right.GetX(),
-                         yr = right.GetY(),
-                              x = point.GetX(),
-                                  y = point.GetY();
+          yl = left.GetY(),
+          xr = right.GetX(),
+          yr = right.GetY(),
+          x = point.GetX(),
+          y = point.GetY();
     if ( ( fabs ( x-xr ) < 0.01 && fabs ( y-yr ) < 0.01 ) ||
-            ( fabs ( x-xl ) < 0.01 && fabs ( y-yl ) < 0.01 ) )
+         ( fabs ( x-xl ) < 0.01 && fabs ( y-yl ) < 0.01 ) )
     {
       result = true;
     }
@@ -614,18 +619,19 @@ bool checkPoint ( SimpleLine *&route, Point point, bool startSmaller,
       {
         k1 = ( y - yl ) / ( x - xl );
         k2 = ( yr - yl ) / ( xr - xl );
-        if ( ( fabs ( k1-k2 ) < 0.01 ) &&
-                ( ( xl < xr && ( x > xl || fabs ( x-xl ) < 0.01 ) &&
-                    ( x < xr || fabs ( x-xr ) < 0.01 ) ) || ( xl > xr && ( x <
-xl ||
-                            fabs ( x-xl ) <0.01 )  && ( x > xr || fabs ( x-xr )
-) ) ) && ( ( ( yl < yr ||
-                                    fabs ( yl-yr ) <0.01 ) && ( y > yl || fabs (
-y-yl ) <0.01 ) && ( y < yr ||
-                                            fabs ( y-yr ) <0.01 ) ) || ( yl > yr
-&& ( y < yl || fabs ( y-yl ) <0.01 ) &&
-                                                                         ( y >
-yr || fabs ( y-yr ) <0.01 ) ) ) )
+        if ( ( fabs ( k1-k2 ) < 0.004 ) &&
+             ( ( xl < xr &&
+                  ( x > xl || fabs ( x-xl ) < 0.01 ) &&
+                  ( x < xr || fabs ( x-xr ) < 0.01 ) ) ||
+               ( xl > xr &&
+                  ( x < xl || fabs ( x-xl ) < 0.01 )  &&
+                  ( x > xr || fabs ( x-xr ) < 0.01 ) ) ) &&
+             ( ( ( yl < yr || fabs ( yl-yr ) < 0.01 ) &&
+                  ( y > yl || fabs ( y-yl ) < 0.01 ) &&
+                  ( y < yr || fabs ( y-yr ) < 0.01 ) ) ||
+               ( yl > yr &&
+                  ( y < yl || fabs ( y-yl ) < 0.01 ) &&
+                  ( y > yr || fabs ( y-yr ) < 0.01 ) ) ) )
         {
           result = true;
         }
@@ -634,12 +640,12 @@ yr || fabs ( y-yr ) <0.01 ) ) ) )
       else
       {
         if ( ( fabs ( xl - xr ) < 0.01 && fabs ( xl -x ) < 0.01 ) &&
-                ( ( ( yl < yr|| fabs ( yl-yr ) <0.01 ) && ( yl < y || fabs (
-yl-y ) <0.01 ) &&
-                    ( y < yr ||fabs ( y-yr ) <0.01 ) ) || ( yl > yr && ( yl > y
-||
-                                                            fabs ( yl-y ) <0.01
-) && ( y > yr ||fabs ( y-yr ) <0.01 ) ) ) )
+             ( ( ( yl < yr|| fabs ( yl-yr ) < 0.01 ) &&
+                    ( yl < y || fabs ( yl-y ) <0.01 ) &&
+                    ( y < yr ||fabs ( y-yr ) <0.01 ) ) ||
+                 ( yl > yr &&
+                    ( yl > y || fabs ( yl-y ) < 0.01) &&
+                    ( y > yr ||fabs ( y-yr ) <0.01 ) ) ) )
         {
           result = true;
         }
@@ -1237,9 +1243,10 @@ struct PrioQueue
     {
       PQEntry result, last, test1, test2;
       prioQ.Get ( 0,result );
-      PQEntry *retValue = new PQEntry ( result.sectID, result.distFromStart,
-                                        result.upDownFlag, result.beforeSectID
-);
+      PQEntry *retValue = new PQEntry ( result.sectID,
+                                        result.distFromStart,
+                                        result.upDownFlag,
+                                        result.beforeSectID );
       SectIDTree *tRet = sectTree->Find ( result.sectID );
       tRet->SetIndex ( numeric_limits<int>::max() );
       prioQ.Get ( firstFree-1, last );
@@ -2691,7 +2698,7 @@ bool Network::InShortestPath ( GPoint*start,GPoint *to, GLine *result )
   {
     sendMessage ( "Both gpoints must exist and be defined." );
     result->SetDefined ( false );
-
+    delete end;
     return false;
   }
   // Check wether both points belong to the same network
@@ -2699,7 +2706,7 @@ bool Network::InShortestPath ( GPoint*start,GPoint *to, GLine *result )
   {
     sendMessage ( "Both gpoints belong to different networks." );
     result->SetDefined ( false );
-
+    delete end;
     return false;
   }
 
@@ -2711,7 +2718,7 @@ bool Network::InShortestPath ( GPoint*start,GPoint *to, GLine *result )
   {
     sendMessage ( "Starting GPoint not found in network." );
     result->SetDefined ( false );
-
+    delete end;
     return false;
   }
   Tuple* endSection = GetSectionOnRoute ( end );
@@ -2720,7 +2727,7 @@ bool Network::InShortestPath ( GPoint*start,GPoint *to, GLine *result )
     sendMessage ( "End GPoint not found in network." );
     startSection->DeleteIfAllowed();
     result->SetDefined ( false );
-
+    delete end;
     return false;
   }
 ////////////////////////////////////////////////////
@@ -4810,19 +4817,15 @@ The simple constructor. Should not be used.
 
 */
 GLine::GLine()
-{
-  del.refs=1;
-  del.isDelete=true;
-}
+{del.refs = 1; }
 
 GLine::GLine ( int in_iSize ) :
     m_xRouteIntervals ( in_iSize )
 {
+  del.refs = 1;
   m_bDefined = false;
   m_bSorted = false;
   m_dLength = 0.0;
-  del.refs=1;
-  del.isDelete=true;
 }
 
 GLine::GLine ( const GLine* in_xOther ) :
@@ -4846,8 +4849,7 @@ GLine::GLine ( const GLine* in_xOther ) :
                        dStart,
                        dEnd );
   }
-  del.refs=1;
-  del.isDelete=true;
+  del.refs = 1;
   TrimToSize();
 }
 
@@ -4935,8 +4937,6 @@ GLine::GLine ( ListExpr in_xValue,
     m_bSorted = false;
     inout_bCorrect = true;
   }
-  del.refs=1;
-  del.isDelete=true;
   TrimToSize();
   return;
 }
@@ -5148,7 +5148,7 @@ GLine* GLine::Clone() const
   xOther->SetDefined ( m_bDefined );
   xOther->SetSorted ( m_bSorted );
   xOther->SetNetworkId ( m_iNetworkId );
-  RouteInterval ri;
+  /*RouteInterval ri;
   for ( int i = 0; i < Size(); i++ )
   {
     Get ( i, ri );
@@ -5156,7 +5156,8 @@ GLine* GLine::Clone() const
     double start = ri.GetStartPos();
     double end = ri.GetEndPos();
     xOther->AddRouteInterval ( rid, start, end );
-  }
+  }*/
+  xOther->m_xRouteIntervals.copyFrom(m_xRouteIntervals);
   return xOther;
 }
 
@@ -5251,20 +5252,7 @@ int GLine::Compare ( const Attribute* arg ) const
 
 GLine& GLine::operator= ( const GLine& l )
 {
-  m_xRouteIntervals.clean();
-  if ( l.m_xRouteIntervals.Size() > 0 )
-  {
-    m_xRouteIntervals.resize ( l.m_xRouteIntervals.Size() );
-    RouteInterval ri;
-    for ( int i = 0; i < l.m_xRouteIntervals.Size(); i++ )
-    {
-      l.m_xRouteIntervals.Get ( i, ri );
-      int rid = ri.GetRouteId();
-      double start = ri.GetStartPos();
-      double end = ri.GetEndPos();
-      AddRouteInterval ( rid, start, end );
-    }
-  }
+  m_xRouteIntervals.copyFrom(l.m_xRouteIntervals);
   m_bSorted = l.m_bSorted;
   m_bDefined = l.m_bDefined;
   m_iNetworkId = l.m_iNetworkId;
@@ -6792,15 +6780,9 @@ string edistjoinpointlist = "(rel(tuple((pid int)(p point))))";
 enum edistjoinpointlistrelation {POINTSID = 0,POINTSOBJECT};
 
 GPoints::GPoints()
-{
-  del.refs = 1;
-  del.isDelete = true;
-}
+{del.refs = 1; }
 GPoints::GPoints ( int in_iSize ) :m_xGPoints ( in_iSize )
-{
-  del.refs = 1;
-  del.isDelete = true;
-}
+{ del.refs = 1;}
 GPoints::GPoints ( GPoints* in_xOther ) :m_xGPoints ( 0 )
 {
   GPoint pCurrentInterval;
@@ -6810,8 +6792,7 @@ GPoints::GPoints ( GPoints* in_xOther ) :m_xGPoints ( 0 )
     in_xOther->m_xGPoints.Get ( i, pCurrentInterval );
     m_xGPoints.Append ( pCurrentInterval );
   }
-  del.refs=1;
-  del.isDelete=true;
+  del.refs = 1;
   TrimToSize();
 }
 
@@ -6833,13 +6814,7 @@ ostream& GPoints::Print ( ostream& os ) const
 }
 GPoints& GPoints::operator= ( const GPoints& gps )
 {
-  m_xGPoints.clean();
-  GPoint gp;
-  for ( int i = 0 ; i < gps.Size();i++ )
-  {
-    gps.Get ( i,gp );
-    m_xGPoints.Append ( gp );
-  }
+  m_xGPoints.copyFrom(gps.m_xGPoints);
   TrimToSize();
   return *this;
 }
