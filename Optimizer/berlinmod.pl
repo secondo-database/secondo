@@ -233,12 +233,6 @@ sqlBerlinMOD_R_query(17,
   where n:hits = poscounttemp
 ).
 
-/*
-Preparating Steps for All Benchmark Queries
-
-*/
-
-
 
 /*
 Preparating Steps for Certain Benchmark Queries
@@ -321,10 +315,12 @@ optBMOD(Nr) :- optBMOD(Nr, none).
 optBMOD(Nr, S) :-
   sqlBerlinMOD_R_query(Nr, SqlQuery),
   ( S = none
-    -> ( write('# =============================================================\n'),
+    -> ( write('# ======================================================='),
+         write('======\n'),
          write_list(['\nQuery-Nr:          ', Nr, '\n'])
        )
-    ;  ( write(S, '# =============================================================\n'),
+    ;  ( write(S, '# ===================================================='),
+         write('=========\n'),
          write(S, '# BerlinMOD Query '), write(S, Nr), write(S, '\n'),
          write(S, '#    Deleting old result:\n'),
          write(S, '     delete BMODres'), write(S, Nr), write(S, ';\n')
@@ -355,10 +351,7 @@ optAllBMOD :-
   findall(Nr,catch((sqlBerlinMOD_R_query(Nr,_), optBMOD(Nr)),_,true),L),
   write_list(['Optimized queries: ', L, '.\n']).
 
-
-
-
-% Run a given BerlinMod Query
+% Run a given BerlinMOD Query
 runBMOD(Nr) :-
   sqlBerlinMOD_R_query(Nr, SqlQuery),
   prepareSqlBerlinMOD_R_query(Nr, none),
