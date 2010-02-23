@@ -1309,7 +1309,6 @@ writeStoredPETs :-
 
 writeStoredPET(Stream) :-
   storedPET(DB, X, Y, Z),
-
   replaceCharList(X, XReplaced),
   write(Stream, storedPET(DB, XReplaced, Y, Z)), write(Stream, '.\n').
 
