@@ -51,6 +51,17 @@ extern QueryProcessor* qp;
 namespace extrel2
 {
 
+const double GraceHashJoinProgressLocalInfo::uHashJoin = 0.023;
+const double GraceHashJoinProgressLocalInfo::vHashJoin = 0.0067;
+const double GraceHashJoinProgressLocalInfo::wHashJoin = 0.0025;
+const double GraceHashJoinProgressLocalInfo::t_read = 0.001090;
+const double GraceHashJoinProgressLocalInfo::t_write = 0.001090;
+const double GraceHashJoinProgressLocalInfo::t_probe = 0.001557;
+const double GraceHashJoinProgressLocalInfo::t_hash = 0.004163;
+const double GraceHashJoinProgressLocalInfo::t_result = 0.0044;
+
+
+
 /*
 5 Implementation of class ~GraceHashJoinProgressLocalInfo~
 

@@ -51,6 +51,17 @@ extern QueryProcessor* qp;
 namespace extrel2
 {
 
+
+ const double HybridHashJoinProgressLocalInfo::uHashJoin = 0.023;
+ const double HybridHashJoinProgressLocalInfo::vHashJoin = 0.0067;
+ const double HybridHashJoinProgressLocalInfo::wHashJoin = 0.0025;
+ const double HybridHashJoinProgressLocalInfo::t_read = 0.001090;
+ const double HybridHashJoinProgressLocalInfo::t_write = 0.001090;
+ const double HybridHashJoinProgressLocalInfo::t_probe = 0.001557;
+ const double HybridHashJoinProgressLocalInfo::t_hash = 0.004163;
+ const double HybridHashJoinProgressLocalInfo::t_result = 0.0044;
+
+
 HybridHashJoinProgressLocalInfo::HybridHashJoinProgressLocalInfo()
 : ProgressLocalInfo()
 , maxOperatorMemory(qp->MemoryAvailableForOperator())
