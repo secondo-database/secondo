@@ -21,34 +21,68 @@ Choose Option Settings
 :- setOption(earlyproject).      % remove unused attributes as soon as possible
 :- setOption(subqueryUnnesting). % fully activate subquery processing
 
+/*
+Open the databasae
+
+*/
+:- catch(open database berlinmod,_,fail).
+
+
+/*
+Create samples with defined cardinalities to avoid long selectivity queries
+
+*/
+:- createSamples(datamctrip, 100, 50).
+:- createSamples(datamtrip, 100, 50).
+:- createSamples(datasccar, 20, 5).
+:- createSamples(datascar, 20, 5).
 
 /*
 Create some materialized views:
 
 */
 
+% define the list of global auxiliary objects as pairs [Name,SQL_create_query]
+globalBMODauxObjects([
+  [querylicences1, select * from querylicences where id <= 10 orderby id first 10],
+  [querylicences2, select * from querylicences where id > 10  orderby id first 10],
+  [queryinstants1, select * from queryinstants where id <= 10 orderby id first 10],
+  [queryinstants2, select * from queryinstants where id > 10  orderby id first 10],
+  [querypoints1,   select * from querypoints   where id <= 10 orderby id first 10],
+  [querypoints2,   select * from querypoints   where id > 10  orderby id first 10],
+  [queryperiods1,  select * from queryperiods  where id <= 10 orderby id first 10],
+  [queryperiods2,  select * from queryperiods  where id > 10  orderby id first 10],
+  [queryregions1,  select * from queryregions  where id <= 10 orderby id first 10],
+  [queryregions2,  select * from queryregions  where id > 10  orderby id first 10]
+  ]).
 
-:- catch(open database berlinmod,_,fail),
-   catch(
-    (
-      let(querylicences1, select * from querylicences where id <= 10 orderby id first 10),
-      let(querylicences2, select * from querylicences where id > 10  orderby id first 10),
-      let(queryinstants1, select * from queryinstants where id <= 10 orderby id first 10),
-      let(queryinstants2, select * from queryinstants where id > 10  orderby id first 10),
-      let(querypoints1,   select * from querypoints   where id <= 10 orderby id first 10),
-      let(querypoints2,   select * from querypoints   where id > 10  orderby id first 10),
-      let(queryperiods1,  select * from queryperiods  where id <= 10 orderby id first 10),
-      let(queryperiods2,  select * from queryperiods  where id > 10  orderby id first 10),
-      let(queryregions1,  select * from queryregions  where id <= 10 orderby id first 10),
-      let(queryregions2,  select * from queryregions  where id > 10  orderby id first 10)
-    ), _, true
-   ).
+% create an auxiliary object ~Name~ using the optimized ~Query~. Append the
+% command to strem ~S~ (unless ~S~ != none) and execute it, if necessary.
+createBMODauxObject(Name, Query, S) :-
+  optimize(Query, Plan, Cost),!,
+  ( S = none
+    -> true
+    ; ( write(S, '## Auxiliary object: '), write(S, Name), write(S, '\n'),
+        write(S, '## SQL: '), write(S, Query),
+        write(S, '\n## Expected Cost: '), write(S, Cost),
+        write(S, '\ndelete '), write(S, Name), write(S, ';\n'),
+        write(S, 'let '), write(S, Name), write(S, ' = '),
+        write(S, Plan), write(S, ';\n\n')
+      )
+  ),
+  ( secondoCatalogInfo(Name, _, _, _)
+    -> true
+    ;  let(Name,Plan)
+  ),
+  !.
 
+% create all global auxiliary objects
+createBMODglobalObjects(S) :-
+  globalBMODauxObjects(OL),
+  member([Name,SQL],OL),
+  createBMODauxObject(Name, SQL, S).
 
-:- createSamples(datamctrip, 100, 50).
-:- createSamples(datamtrip, 100, 50).
-:- createSamples(datasccar, 20, 5).
-:- createSamples(datascar, 20, 5).
+:- findall(_,createBMODglobalObjects(none),_).
 
 /*
 Secondo-SQL Query Definitions
@@ -193,7 +227,6 @@ sqlBerlinMOD_R_query(16, nonimplemented) :-
               '\n']).
 
 % Query 17:
-
 sqlBerlinMOD_R_query(17,
   select n:pos
   from poscount as n
@@ -201,106 +234,164 @@ sqlBerlinMOD_R_query(17,
 ).
 
 /*
-Preparating Steps for Certain Benchmark Queries
+Preparating Steps for All Benchmark Queries
 
 */
-prepareSqlBerlinMOD_R_query(11) :-
-  (secondoCatalogInfo(pointsinstants, _, _, _) ;
-  let(pointsinstants,
-    select [p:pos as pos, i:instant as instant]
-    from [querypoints1 as p, queryinstants1 as i]
-  )),
-  !.
 
-prepareSqlBerlinMOD_R_query(12) :-
-  (secondoCatalogInfo(pointsinstants, _, _, _) ;
-  let(pointsinstants,
-    select [p:pos as pos, i:instant as instant]
-    from [querypoints1 as p, queryinstants1 as i]
-  )),
-  !.
-
-prepareSqlBerlinMOD_R_query(13) :-
-  (secondoCatalogInfo(regionsperiods, _, _, _) ;
-  let(regionsperiods,
-    select [r:region as region, p:period as period]
-    from [queryregions1 as r, queryperiods1 as p]
-  )),
-  !.
-
-prepareSqlBerlinMOD_R_query(14) :-
-  (secondoCatalogInfo(regionsinstants, _, _, _) ;
-  let(regionsinstants,
-    select [r:region as region, i:instant as instant]
-    from [queryregions1 as r, queryinstants1 as i]
-  )),
-  !.
-
-prepareSqlBerlinMOD_R_query(15) :-
-  (secondoCatalogInfo(pointsperiods, _, _, _) ;
-  let(pointsperiods,
-    select [p:pos as pos, pp:period as period]
-    from [querypoints1 as p, queryperiods1 as pp]
-  )),
-  !.
-
-prepareSqlBerlinMOD_R_query(17) :-
-  (secondoCatalogInfo(poscount, _, _, _) ;
-  let(poscount,
-    select [pp:pos as pos, count(c:licence) as hits]
-    from [querypoints as pp, datasccar as c]
-    where c:journey passes pp:pos
-    groupby pp:pos
-  )),
-  (secondoCatalogInfo(poscounttemp, _, _, _) ;
-  let(poscounttemp,
-    select max(hits)
-    from poscount
-  )),
-  !.
-
-prepareSqlBerlinMOD_R_query(_) :- !, true.
 
 
 /*
-Run a Benchmark Query
+Preparating Steps for Certain Benchmark Queries
 
 */
 
-optBMOD(Nr) :-
-  prepareSqlBerlinMOD_R_query(Nr),
-  sqlBerlinMOD_R_query(Nr, SqlQuery),
-  optimize(SqlQuery, ExecutableQuery, Cost),
-  write_list(['\nQuery-Nr:          ', Nr, '\n']),
-  write_list(['Secondo-SQL-Query: ', SqlQuery, '\n']),
-  write_list(['Executable Query:  ', ExecutableQuery, '\n']),
-  write_list(['Estimated Cost:    ', Cost, '\n']).
+% Query 11
+prepareSqlBerlinMOD_R_query(11,S) :-
+  createBMODauxObject(pointsinstants,
+      select [p:pos as pos, i:instant as instant]
+      from [querypoints1 as p, queryinstants1 as i]
+    ,S),
+  !.
 
-runBMOD(Nr) :-
-  prepareSqlBerlinMOD_R_query(Nr),
+% Query 12
+prepareSqlBerlinMOD_R_query(12,S) :-
+  createBMODauxObject(pointsinstants,
+      select [p:pos as pos, i:instant as instant]
+      from [querypoints1 as p, queryinstants1 as i]
+    ,S),
+  !.
+
+% Query 13
+prepareSqlBerlinMOD_R_query(13,S) :-
+  createBMODauxObject(regionsperiods,
+    select [r:region as region, p:period as period]
+    from [queryregions1 as r, queryperiods1 as p],
+    S),
+  !.
+
+% Query 14
+prepareSqlBerlinMOD_R_query(14,S) :-
+   createBMODauxObject(regionsinstants,
+    select [r:region as region, i:instant as instant]
+    from [queryregions1 as r, queryinstants1 as i],
+    S),
+  !.
+
+% Query 15
+prepareSqlBerlinMOD_R_query(15,S) :-
+   createBMODauxObject(pointsperiods,
+    select [p:pos as pos, pp:period as period]
+    from [querypoints1 as p, queryperiods1 as pp],
+    S),
+  !.
+
+% Query 17
+prepareSqlBerlinMOD_R_query(17,S) :-
+  createBMODauxObject(poscount,
+    select [pp:pos as pos, count(c:licence) as hits]
+    from [querypoints as pp, datasccar as c]
+    where c:journey passes pp:pos
+    groupby pp:pos,
+    S),
+  createBMODauxObject(poscounttemp,
+    select max(hits)
+    from poscount,
+    S),
+  !.
+
+% Rule to handle Queries without auxiliary objects.
+prepareSqlBerlinMOD_R_query(_,_) :- !, true.
+
+
+/*
+Optimizing and Running the Queries, Creating a script
+
+*/
+
+:- assert(helpLine(optAllBMOD,0, [],
+    'Optimize (but not execute) all BerlinMOD queries.')).
+:- assert(helpLine(optBMOD,1,
+    [[+,'QueryNumber','The number of the BerlinMOD query to optimize.']],
+    'Optimize (but not execute) a single BerlinMOD query.')).
+% optimize a given BerlinMod Query
+optBMOD(Nr) :- optBMOD(Nr, none).
+
+% optimize a given BerlinMod Query and additionally write all executable queries
+% to a stream/ file ~S~
+optBMOD(Nr, S) :-
   sqlBerlinMOD_R_query(Nr, SqlQuery),
-  writeln('======================================================================================'),
+  ( S = none
+    -> ( write('# =============================================================\n'),
+         write_list(['\nQuery-Nr:          ', Nr, '\n'])
+       )
+    ;  ( write(S, '# =============================================================\n'),
+         write(S, '# BerlinMOD Query '), write(S, Nr), write(S, '\n'),
+         write(S, '#    Deleting old result:\n'),
+         write(S, '     delete BMODres'), write(S, Nr), write(S, ';\n')
+       )
+  ),
+  prepareSqlBerlinMOD_R_query(Nr, S),
+  optimize(SqlQuery, ExecutableQuery, ExpectedCost),
+  ( S = none
+    -> ( write_list(['Secondo-SQL-Query: ', SqlQuery, '\n']),
+         write_list(['Executable Query:  ', ExecutableQuery, '\n']),
+         write_list(['Estimated Cost:    ', ExpectedCost, '\n'])
+       )
+    ;  (
+         write(S, '# SQL: '),write(S, SqlQuery), write(S, '\n'),
+         write(S, '# Expected Cost: '), write(S, ExpectedCost), write(S, '\n'),
+         write(S, 'let BMODres'), write(S, Nr), write(S, ' = '),
+         write(S, ExecutableQuery), write(S, ';\n\n')
+       )
+  ).
+
+:- assert(helpLine(runBMOD,1,
+    [[+,'QueryNumber','The number of the BerlinMOD query to run.']],
+    'Optimize and execute a single BerlinMOD query.')).
+:- assert(helpLine(runALLBMOD,0, [],
+    'Optimize and execute all BerlinMOD queries.')).
+
+optAllBMOD :-
+  findall(Nr,catch((sqlBerlinMOD_R_query(Nr,_), optBMOD(Nr)),_,true),L),
+  write_list(['Optimized queries: ', L, '.\n']).
+
+
+
+
+% Run a given BerlinMod Query
+runBMOD(Nr) :-
+  sqlBerlinMOD_R_query(Nr, SqlQuery),
+  prepareSqlBerlinMOD_R_query(Nr, none),
+  writeln('=================================================================='),
   write('Query No: '), write(Nr), nl,
   write(SqlQuery), nl, nl, nl,
   sql SqlQuery.
-  
-  %optimize(SqlQuery, ExecutableQuery, EstimCost),
 
-  %write_list(['\nQuery-Nr:          ', Nr, '\n']),
-  %write_list(['Secondo-SQL-Query: ', SqlQuery, '\n']),
-  %write_list(['Executable Query:  ', ExecutableQuery, '\n']),
-  %write_list(['Estimated Cost:    ', EstimCost, '\n']),
-  %write_list(['Execution Cost:    ', ExecCost, '\n']).
-  
-  runAll :- runAllBMOD(1).
-  
-  runAllBMOD(N) :- N > 17.
-  
-  runAllBMOD(N) :- N < 1.
-  
-  runAllBMOD(N) :- 
-    N < 18,
-    runBMOD(N),
-    M is N+1, 
-    runAllBMOD(M).
-    
+runAllBMOD :-
+  findall(Nr,catch((sqlBerlinMOD_R_query(Nr,_), runBMOD(Nr)),_,true),L),
+  write_list(['Executed queries: ', L, '.\n']).
+
+:- assert(helpLine(createBMODqueries,1,
+    [[+,'QueryNumberList','A list of Query Numbers to optimize.']],
+    'Create a script of optimized executable BerlinMOD queries.')).
+% Create a script to run the optimized BerlinMOD queries
+createBMODqueries(QueryNumberList) :-
+  open('optimized_BerlinMOD_queries.SEC', write, FD),
+  write(FD, '# Automatically generated file, do not edit by hand.\n'),
+  write(FD, '# ============================================================\n'),
+  write(FD, 'open database berlinmod;\n\n'),
+  write(FD, '# ============================================================\n'),
+  write(FD, '# Creating global auxiliary objects: \n\n'),
+  findall(_,createBMODglobalObjects(FD),_),!,
+  write(FD, '# ============================================================\n'),
+  write(FD, '# START OF OPTIMIZED BERLINMOD QUERIES\n'),
+  findall( _, ( member(Nr,QueryNumberList),
+                sqlBerlinMOD_R_query(Nr,_),
+                optBMOD(Nr, FD) ), _ ),!,
+  write(FD, '# ============================================================\n'),
+  write(FD, '# END OF OPTIMIZED BERLINMOD QUERIES\n'),
+  write(FD, '# ============================================================\n'),
+  write(FD, 'close database;\n\n'),
+  write('\n\n>>> Optimized queries have been written to file '),
+  close(FD),
+  writeln('\'optimized_BerlinMOD_queries.SEC\'. <<<\n').
