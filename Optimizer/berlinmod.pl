@@ -357,7 +357,7 @@ optBMOD(Nr, S) :-
   ).
 
 :- assert(helpLine(runBMOD,1,
-    [[+,'QueryNumber','The number of the BerlinMOD query to run.']],
+    [[+,'Queries','Number (or a list of such) of the BerlinMOD query to run.']],
     'Optimize and execute a single BerlinMOD query.')).
 :- assert(helpLine(runALLBMOD,0, [],
     'Optimize and execute all BerlinMOD queries.')).
@@ -375,9 +375,19 @@ runBMOD(Nr) :-
   write(SqlQuery), nl, nl, nl,
   sql SqlQuery.
 
+runBMOD(QL) :-
+  is_list(QL),
+  findall( Nr, catch(( member(Nr, QL), runBMOD(Nr)), _, fail ), PosQL),
+  write_list(['\n\nSuccessful queries: ', PosQL,'\n\n']).
+
 runAllBMOD :-
   findall(Nr,catch((sqlBerlinMOD_R_query(Nr,_), runBMOD(Nr)),_,true),L),
   write_list(['Executed queries: ', L, '.\n']).
+
+
+
+
+
 
 :- assert(helpLine(createBMODqueries,0,[],
     'Create a script of optimized executable BerlinMOD queries.')).
