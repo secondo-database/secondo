@@ -238,6 +238,16 @@ Precondition: isAttrList(list)
   ListExpr concat(ListExpr l1, ListExpr l2);
 
 
+/*
+Replaces the attributenames in attrlist according to the map and stores the
+result in resAttrlist. The returnvalue indicated the success. If the function
+fails, e.g. if the attribute names are not uniwue in the result, the errmsg
+parameter is set. The strings stored in the map must be valid symbols.
+
+*/
+
+  bool replaceAttributes( ListExpr attrList, map<string, string>& renameMap, 
+                          ListExpr& resAttrList, string& errmsg);
 } // end of namespace
 #endif
 
