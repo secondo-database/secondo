@@ -316,18 +316,33 @@ optBMOD(Nr, S) :-
   sqlBerlinMOD_R_query(Nr, SqlQuery),
   ( S = none
     -> ( write('# ======================================================='),
-         write('======\n'),
+         write(S, '======\n'),
          write_list(['\nQuery-Nr:          ', Nr, '\n'])
        )
     ;  ( write(S, '# ===================================================='),
-         write('=========\n'),
+         write(S, '=========\n'),
          write(S, '# BerlinMOD Query '), write(S, Nr), write(S, '\n'),
          write(S, '#    Deleting old result:\n'),
          write(S, '     delete BMODres'), write(S, Nr), write(S, ';\n')
        )
   ),
   prepareSqlBerlinMOD_R_query(Nr, S),
-  optimize(SqlQuery, ExecutableQuery, ExpectedCost),
+  catch(
+    optimize(SqlQuery, ExecutableQuery, ExpectedCost),
+    Exception,
+    ( ( S = none
+        -> ( write('\n\nError during optimization of this query:\n\t'),
+            write(Exception),
+            write('\n\n')
+          )
+        ;  ( write(S, '# Error during optimization of this query: '),
+            write(S, Exception),
+            write(S, '\n\n')
+          )
+      ),
+      fail
+    )
+  ),
   ( S = none
     -> ( write_list(['Secondo-SQL-Query: ', SqlQuery, '\n']),
          write_list(['Executable Query:  ', ExecutableQuery, '\n']),
@@ -364,6 +379,8 @@ runAllBMOD :-
   findall(Nr,catch((sqlBerlinMOD_R_query(Nr,_), runBMOD(Nr)),_,true),L),
   write_list(['Executed queries: ', L, '.\n']).
 
+:- assert(helpLine(createBMODqueries,0,[],
+    'Create a script of optimized executable BerlinMOD queries.')).
 :- assert(helpLine(createBMODqueries,1,
     [[+,'QueryNumberList','A list of Query Numbers to optimize.']],
     'Create a script of optimized executable BerlinMOD queries.')).
@@ -378,13 +395,19 @@ createBMODqueries(QueryNumberList) :-
   findall(_,createBMODglobalObjects(FD),_),!,
   write(FD, '# ============================================================\n'),
   write(FD, '# START OF OPTIMIZED BERLINMOD QUERIES\n'),
-  findall( _, ( member(Nr,QueryNumberList),
+  findall( Nr, ( member(Nr,QueryNumberList),
                 sqlBerlinMOD_R_query(Nr,_),
-                optBMOD(Nr, FD) ), _ ),!,
+                optBMOD(Nr, FD) ), QL ),!,
   write(FD, '# ============================================================\n'),
   write(FD, '# END OF OPTIMIZED BERLINMOD QUERIES\n'),
+  write(FD, '# Successfully optimized queries: '),write(FD,QL),write(FD,'.\n'),
   write(FD, '# ============================================================\n'),
   write(FD, 'close database;\n\n'),
   write('\n\n>>> Optimized queries have been written to file '),
   close(FD),
   writeln('\'optimized_BerlinMOD_queries.SEC\'. <<<\n').
+
+% Create a script with all optimizable queries:
+createBMODqueries :-
+  findall(Nr, sqlBerlinMOD_R_query(Nr,_), QL),
+  createBMODqueries(QL).
