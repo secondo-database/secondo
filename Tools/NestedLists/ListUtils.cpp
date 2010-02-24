@@ -475,4 +475,47 @@ Checks for a stream of kind DATA
   }
 
 
+
+  bool replaceAttributes( ListExpr attrList, map<string, string>& renameMap, 
+                          ListExpr& resAttrList, string& errmsg){
+
+    bool firstCall = true;
+    ListExpr last;
+    map<string, string>::iterator it;
+    while(!nl->IsEmpty(attrList)){
+        ListExpr attr = nl->First(attrList);
+        attrList = nl->Rest(attrList);
+        string name = nl->SymbolValue(nl->First(attr));
+        it =  renameMap.find(name);
+        ListExpr newAttr;
+        if(it==renameMap.end()){
+           newAttr = attr;
+        } else {
+           newAttr = nl->TwoElemList( nl->SymbolAtom(it->second), 
+                                      nl->Second(attr));
+        }
+        if(firstCall){
+          resAttrList = nl->OneElemList(newAttr);
+          last = resAttrList;
+          firstCall = false;
+        } else {
+          last = nl->Append(last, newAttr);
+        }
+    }
+    if(firstCall){
+      errmsg = "empty attribute list cannot be renamed";
+      resAttrList = nl->TheEmptyList();
+      return false;
+    }
+    
+    if(!isAttrList(resAttrList)){
+      errmsg = "renamed names are not unique";
+      resAttrList = nl->TheEmptyList();
+      return  false;
+    }
+
+    return true;
+    
+  }
+
 } // end of namespace listutils
