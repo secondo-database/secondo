@@ -5117,6 +5117,53 @@ RenameTypeMap( ListExpr args )
     nl->TwoElemList(nl->SymbolAtom("tuple"),listn));
 }
 
+ListExpr RenameAttrTypeMap(ListExpr args){
+
+  if(!nl->ListLength(args)==2){
+     return listutils::typeError("two arguments expected");
+  }
+
+  ListExpr stream = nl->First(args);
+  if(!listutils::isTupleStream(stream)){
+    return listutils::typeError("first argument must be a tuple stream");
+  }
+
+
+  map<string,string> renameMap;
+  ListExpr renames = nl->Second(args);
+  ListExpr attrList = nl->Second(nl->Second(stream));
+
+  while(!nl->IsEmpty(renames)){
+    ListExpr rename = nl->First(renames);
+    renames = nl->Rest(renames);
+    if(nl->ListLength(rename)!=2){
+      return listutils::typeError("each rename must consist of the "
+                                  "old and the new name");
+    }
+    if(!listutils::isSymbol(nl->First(rename)) ||
+       !listutils::isSymbol(nl->Second(rename))){
+      return listutils::typeError("invalid attribute name detected");
+    }
+    string oldname = nl->SymbolValue(nl->First(rename));
+    string newname = nl->SymbolValue(nl->Second(rename));
+    if(renameMap.find(oldname)!=renameMap.end()){
+       return listutils::typeError("attribute name renamed twice");
+    } else {
+        renameMap[oldname] = newname;
+    }
+  }
+
+  ListExpr resAttrList;
+  string errmsg;
+  if(!listutils::replaceAttributes(attrList, renameMap, resAttrList, errmsg)){
+    return listutils::typeError(errmsg);
+  }  
+
+  return nl->TwoElemList( nl->SymbolAtom("stream"),
+                          nl->TwoElemList(nl->SymbolAtom("tuple"),
+                                          resAttrList));
+}
+
 /*
 
 5.12.2 Value mapping function of operator ~rename~
@@ -5196,6 +5243,20 @@ const string RenameSpec  =
   "has format e.g. n_r1</text--->"
   ") )";
 
+
+
+const string RenameAttrSpec  =
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+  "\"Example\" ) "
+  "( <text> stream(tuple) x (name newname)* -> stream(tuple)"
+  "</text--->"
+  "<text>_ renameattr [ oldname1 newname1; oldname2 newname2; ... ] "
+  "</text--->"
+  "<text>Renames the specified attributes"
+  "</text--->"
+  "<text>query ten feed renameattr [ no No ] consume "
+  "</text--->"
+  ") )";
 /*
 
 5.12.4 Definition of operator ~rename~
@@ -5210,6 +5271,13 @@ Operator relalgrename (
 );
 
 
+Operator relalgrenameattr (
+         "renameattr",               // name
+         RenameAttrSpec,             // specification
+         Rename,                 // value mapping
+         Operator::SimpleSelect, // trivial selection function
+         RenameAttrTypeMap           // type mapping
+);
 
 
 
@@ -5694,6 +5762,7 @@ class RelationAlgebra : public Algebra
     AddOperator(&relalgextattrsize);
     AddOperator(&relalgattrsize);
     AddOperator(&relalgrename);
+    AddOperator(&relalgrenameattr);
     AddOperator(&relalgbuffer);
     AddOperator(&relalgbuffer2);
     AddOperator(&relalggetfileinfo);
