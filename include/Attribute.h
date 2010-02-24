@@ -455,8 +455,10 @@ the default ~Serialize~ function. The size of the object is  ~sz~
 
       // call the spezialized Rebuild function, if not implemented, the default
       // above will be called.
-      for (int i = 0; i < attr->NumOfFLOBs(); i++) {
-        //SPM? attr->GetFLOB(i)->DeleteFD();
+      if(!attr->IsPinned()){
+        for (int i = 0; i < attr->NumOfFLOBs(); i++) {
+          attr->GetFLOB(i)->destroyIfNonPersistent();
+        }
       }
       attr->Rebuild(state, sz ,am->Cast(algId, typeId));
 
