@@ -5793,6 +5793,7 @@ Register operators which are able to handle progress messages
     relalgproduct.EnableProgress();
     relalgcount.EnableProgress();
     relalgrename.EnableProgress();
+    relalgrenameattr.EnableProgress();
     relalgbuffer.EnableProgress();
 #endif
 
