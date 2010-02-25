@@ -39,7 +39,7 @@ Creates a new Cache with given maximum size and given slotsize.
 The maximumSize must be greater than the slotsize.
 
 */    
-    PersistentFlobCache(size_t _maxSize, size_t _slotSize);
+    PersistentFlobCache(size_t _maxSize, size_t _slotSize, size_t _avgSize);
 /*
 1.2 Destructor
 

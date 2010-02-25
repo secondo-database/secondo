@@ -249,6 +249,25 @@ clears all caches.
    void clearCaches();
 
 
+/* 
+SetNativeCache 
+
+Sets sizes for the native flobcache. The slotsize must be smaller 
+than the maxSize. The avgSize must be smaller or equal to the
+slotSize. Can only be called befor any other flob operation, i.e.
+instance will not exist.
+
+*/
+   static void SetNativeCache(const size_t maxSize, 
+                              const size_t slotSize,
+                              const size_t avgSize);
+
+
+   static void SetPersistentCache(const size_t maxSize, 
+                              const size_t slotSize,
+                              const size_t avgSize);
+
+
 /*
 ~Destructor~
 

@@ -455,6 +455,20 @@ Clears both cashes. Its required after closing or opening a database.
     FlobManager::getInstance().clearCaches();
   }
 
+/*
+ SetNativeCache
+
+*/
+   static void SetNativeCache(size_t maxSize, 
+                              size_t slotSize, size_t avgSize){
+     FlobManager::SetNativeCache(maxSize, slotSize, avgSize);
+   }
+
+   static void SetPersistentCache(size_t maxSize, 
+                              size_t slotSize, size_t avgSize){
+     FlobManager::SetPersistentCache(maxSize, slotSize, avgSize);
+   }
+
 
   ostream& print(ostream& os) const {
     return os << "[" << id << ", size = " << size << "]";

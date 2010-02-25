@@ -372,6 +372,56 @@ SecondoInterface::Initialize( const string& user, const string& pswd,
                              textMem, parmFile);
 
 
+  size_t native_flobcache_maxSize = 0;
+  size_t native_flobcache_slotSize = 0;
+  size_t native_flobcache_avgSize = 0;
+
+  size_t persistent_flobcache_maxSize = 0;
+  size_t persistent_flobcache_slotSize = 0;
+  size_t persistent_flobcache_avgSize = 0;
+
+  native_flobcache_maxSize =
+     SmiProfile::GetParameter("FlobCache", "Native_MaxSize", 0, parmFile);
+  native_flobcache_slotSize =
+     SmiProfile::GetParameter("FlobCache", "Native_SlotSize", 0, parmFile);
+  native_flobcache_avgSize =
+     SmiProfile::GetParameter("FlobCache", "Native_AvgSize", 0, parmFile);
+
+
+  if(native_flobcache_maxSize >0 && native_flobcache_slotSize >0 &&
+     native_flobcache_avgSize > 0){
+    if(native_flobcache_slotSize > native_flobcache_maxSize ||
+        native_flobcache_avgSize > native_flobcache_slotSize ){
+      cout << "conflicting values for native flob cache found";
+    } else {
+       Flob::SetNativeCache(native_flobcache_maxSize, 
+                            native_flobcache_slotSize, 
+                            native_flobcache_avgSize);
+    }
+
+  }
+
+
+  persistent_flobcache_maxSize =
+     SmiProfile::GetParameter("FlobCache", "Persistent_MaxSize", 0, parmFile);
+  persistent_flobcache_slotSize =
+     SmiProfile::GetParameter("FlobCache", "Persistent_SlotSize", 0, parmFile);
+  persistent_flobcache_avgSize =
+     SmiProfile::GetParameter("FlobCache", "Persistent_AvgSize", 0, parmFile);
+
+
+  if(persistent_flobcache_maxSize >0 && persistent_flobcache_slotSize >0 &&
+     persistent_flobcache_avgSize > 0){
+    if(persistent_flobcache_slotSize > persistent_flobcache_maxSize ||
+        persistent_flobcache_avgSize > persistent_flobcache_slotSize ){
+      cout << "conflicting values for persistent flob cache found";
+    } else {
+       Flob::SetPersistentCache(persistent_flobcache_maxSize, 
+                            persistent_flobcache_slotSize, 
+                            persistent_flobcache_avgSize);
+    }
+
+  }
 
   if (ok)
   {

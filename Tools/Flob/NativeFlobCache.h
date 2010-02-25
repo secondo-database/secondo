@@ -203,16 +203,15 @@ Creates a new cache of maximum size and given slotsize.
 */
 
 
-NativeFlobCache(size_t _maxSize):
-    maxSize(_maxSize), slotSize(_maxSize / 4 ), usedSize(0), first(0), last(0) {
+NativeFlobCache(size_t _maxSize, size_t _slotSize, size_t _avgSize):
+    maxSize(_maxSize), slotSize(_slotSize), usedSize(0), first(0), last(0) {
 
-   assert(slotSize + sizeof(NativeCacheEntry) + sizeof(void*) < maxSize);
-   // compute a good tablesize
+  assert(maxSize > slotSize);
+  assert(_avgSize <= slotSize);
+
    assert(slotSize);
  
-   size_t averageSize = 2048;
-   
-   tableSize = ((maxSize / averageSize) * 2);
+   tableSize = ((maxSize / _avgSize) * 2);
    if(tableSize < 1u){
       tableSize = 1u;
    }  

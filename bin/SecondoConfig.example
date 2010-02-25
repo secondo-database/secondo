@@ -136,10 +136,6 @@ RTFlags +=  Server:BinaryTransfer
 # id or construnction of a filename
 #RTFlags += SMI:LogFileCreation
 
-# trace activity of the FLOB Cache
-#
-#RTFlags += FlobCache:trace 
-
 
 ###
 ### ALGEBRA SPECIFIC SWITCHES
@@ -175,6 +171,29 @@ RTFlags +=  Server:BinaryTransfer
 # to see a stack trace when Secondo chrashes.
 # Note: The stack trace is not available on windows!
 RTFlags += DEBUG:DemangleStackTrace
+
+
+#Flobcache section--
+[FlobCache]
+# maximum size used by the native flob cache in bytes , default = 67108864
+Native_MaxSize=67108864
+
+# maximum size of a single slot in bytes, default : 16777216
+Native_SlotSize=16777216
+
+# average size of  a native flob, default = 512
+Native_AvgSize=512
+
+
+# maximum size used by the native flob cache in bytes , default = 67108864
+Persistent_MaxSize=67108864
+
+# maximum size of a single slot in bytes, default : 16777216
+Persistent_SlotSize=16777216
+
+# average size of  a native flob, default = 512
+Persistent_AvgSize=512
+
 
 
 # --- QueryProcessor Section ---

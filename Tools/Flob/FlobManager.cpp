@@ -39,6 +39,17 @@ static NativeFlobCache* nativeFlobCache = 0;
 static PersistentFlobCache* persistentFlobCache = 0;
 static Stack<Flob>* DestroyedFlobs=0;
 
+ // some value for cache sizes
+static size_t NATIVE_CACHE_MAXSIZE  = 64 * 1024 * 1024;
+static size_t NATIVE_CACHE_SLOTSIZE = 16 * 1024 * 1024;
+static size_t NATIVE_CACHE_AVGSIZE  = 512;
+
+
+static size_t PERSISTENT_CACHE_MAXSIZE  = 64 * 1024 * 1024;
+static size_t PERSISTENT_CACHE_SLOTSIZE = 16 * 1024 * 1024;
+static size_t PERSISTENT_CACHE_AVGSIZE  = 512;
+
+
 /*
  
 The FlobManager is realized to be a singleton. So, not the contructor
@@ -793,11 +804,13 @@ by the FlobManager class itself.
     nativeFlobs = nativeFlobFile->GetFileId();
 
 
-    size_t maxCache = 64 * 1024 * 1024;
-    nativeFlobCache = new NativeFlobCache( maxCache);
+    nativeFlobCache = new NativeFlobCache(NATIVE_CACHE_MAXSIZE, 
+                                          NATIVE_CACHE_SLOTSIZE,
+                                          NATIVE_CACHE_AVGSIZE);
 
-    size_t maxPCache = 64 * 1024 * 1024;
-    persistentFlobCache = new PersistentFlobCache(maxPCache, 4096);  
+    persistentFlobCache = new PersistentFlobCache(PERSISTENT_CACHE_MAXSIZE, 
+                                          PERSISTENT_CACHE_SLOTSIZE,
+                                          PERSISTENT_CACHE_AVGSIZE);
 
     DestroyedFlobs = new Stack<Flob>();
 
@@ -805,6 +818,25 @@ by the FlobManager class itself.
     __TRACE_LEAVE__
   }
 
+
+void FlobManager::SetNativeCache(const size_t maxSize, 
+                              const size_t slotSize,
+                              const size_t avgSize){
+   assert(FlobManager::instance == 0);
+   NATIVE_CACHE_MAXSIZE = maxSize;
+   NATIVE_CACHE_SLOTSIZE = slotSize;
+   NATIVE_CACHE_AVGSIZE = avgSize;
+ }
+
+void FlobManager::SetPersistentCache(const size_t maxSize, 
+                              const size_t slotSize,
+                              const size_t avgSize){
+   assert(FlobManager::instance == 0);
+   PERSISTENT_CACHE_MAXSIZE = maxSize;
+   PERSISTENT_CACHE_SLOTSIZE = slotSize;
+   PERSISTENT_CACHE_AVGSIZE = avgSize;
+ }
+ 
 
 
 ostream& operator<<(ostream& os, const FlobId& fid) {
