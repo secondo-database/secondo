@@ -45,6 +45,10 @@ The algebra ~FText~ provides the type constructor ~text~ and two operators:
 #include "IndexableAttribute.h"
 #include "../../Tools/Flob/Flob.h"
 
+// switch off log messages
+#undef LOGMSG
+#define LOGMSG(a, b)
+
 class FText: public IndexableAttribute
 {
 public:
@@ -130,7 +134,9 @@ theText( 0 )
            cout << '\n'
                 <<"Start FText(bool newDefined, textType newText)"
                 <<'\n'; )
-  Set( newDefined, newText );
+  if(newDefined && newText){
+     Set( newDefined, newText );
+  }
   LOGMSG( "FText:Trace",
            cout <<"End FText(bool newDefined, textType newText)"
                 <<'\n'; )
@@ -144,7 +150,9 @@ inline FText::FText( bool newDefined, const string& newText ) :
           cout << '\n'
               <<"Start FText( bool newDefined, const string newText )"
               <<'\n'; )
+  if(newDefined){
       Set( newDefined, newText );
+  }
   LOGMSG( "FText:Trace",
           cout <<"End FText( bool newDefined, const string newText )"
               <<'\n'; )
@@ -153,7 +161,7 @@ inline FText::FText( bool newDefined, const string& newText ) :
 
 inline FText::FText( const FText& f ) :
 IndexableAttribute(f.IsDefined()),
-theText( 0 )
+theText( f.theText.getSize() )
 {
   LOGMSG( "FText:Trace", cout << '\n' <<"Start FText(FText& f)"<<'\n'; )
   //SPM? Assuming Flob fits into memory  

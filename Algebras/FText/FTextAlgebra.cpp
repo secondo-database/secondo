@@ -74,7 +74,6 @@ October 2008, Christian D[ue]ntgen added operators ~sendtextUDP~ and
 #include "StandardTypes.h"
 #include "RelationAlgebra.h"
 #include "NList.h"
-#include "LogMsg.h"
 #include "DiceCoeff.h"
 #include "SecParser.h"
 #include "StopWatch.h"
@@ -87,8 +86,13 @@ October 2008, Christian D[ue]ntgen added operators ~sendtextUDP~ and
 #include <math.h>
 #include <time.h>
 #include <sys/timeb.h>
-#include "LogMsg.h"
 #include <limits>
+
+#define LOGMSG_OFF
+#include "LogMsg.h"
+#undef LOGMSG
+#define LOGMSG(a, b)
+
 
 extern NestedList *nl;
 extern QueryProcessor *qp;
@@ -304,8 +308,6 @@ The following Functions must be defined if we want to use ~text~ as an attribute
 Word
 CreateFText( const ListExpr typeInfo )
 {
-  if(traces)
-    cout << '\n' << "Start CreateFText" << '\n';
   return (SetWord(new FText( false )));
 }
 
