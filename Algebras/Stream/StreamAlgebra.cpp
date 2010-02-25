@@ -120,6 +120,7 @@ This file contains the implementation of the stream operators.
 #include <sstream>
 #include <vector>
 #include <fstream>
+#include <time.h>
 
 
 #include "NestedList.h"
@@ -132,6 +133,7 @@ This file contains the implementation of the stream operators.
 #include "Symbols.h"
 #include "NList.h"
 #include "ListUtils.h"
+#include "Progress.h"
 
 extern NestedList* nl;
 extern QueryProcessor* qp;
@@ -161,6 +163,9 @@ The operator is used to cast a single value T to a (stream T)
 having a single element of type T.
 
 5.19.1 Type Mapping for ~feed~
+
+---- DATA -> stream(DATA)
+----
 
 */
 ListExpr
@@ -2085,6 +2090,11 @@ or be processed using ordinary tuplestream operators.
 /*
 5.27.1 Type mapping function for ~transformstream~
 
+----
+    stream(DATA)  --> stream(tuple((elem DATA)))
+    stream(tuple((attrname DATA))) --> stream(DATA)
+----
+
 */
 
 ListExpr StreamTransformstreamTypeMap(ListExpr args)
@@ -2166,6 +2176,9 @@ transformstream operator. The only difference is, additional to the
 stream argument, this operator receives also a name for the attribute instead
 using the defaul name 'elem'.
 
+---- stream(DATA) x ident --> stream(tuple((ident DATA)))
+----
+
 */
 ListExpr NamedtransformstreamTypemap(ListExpr args){
 
@@ -2224,8 +2237,9 @@ ListExpr NamedtransformstreamTypemap(ListExpr args){
 
 struct TransformstreamLocalInfo
 {
-  bool     finished;
-  TupleType *resultTupleType;
+  bool       finished;
+  TupleType* resultTupleType;
+  bool       progressinitialized;
 };
 
 // The first variant creates a tuplestream from a stream:
@@ -2238,21 +2252,19 @@ int Transformstream_S_TS(Word* args, Word& result, int message,
   Tuple     *newTuple;
 
 
-  switch ( message )
-    {
-    case OPEN:
-
+  switch ( message ) {
+    case OPEN:{
       qp->Open( args[0].addr );
       sli = new TransformstreamLocalInfo;
 
       resultType = GetTupleResultType( s );
       sli->resultTupleType = new TupleType( nl->Second( resultType ) );
       sli->finished = false;
+      sli->progressinitialized = false;
       local.setAddr(sli);
       return 0;
-
-    case REQUEST:
-
+    }
+    case REQUEST:{
       if (local.addr == 0)
         return CANCEL;
 
@@ -2276,20 +2288,51 @@ int Transformstream_S_TS(Word* args, Word& result, int message,
       ((Attribute*)(value.addr))->DeleteIfAllowed();
       result.setAddr(newTuple);
       return YIELD;
-
-    case CLOSE:
-
+    }
+    case CLOSE:{
+      if (local.addr != 0) {
+        sli = (TransformstreamLocalInfo*) (local.addr);
+        if (!sli->finished){
+          qp->Close( args[0].addr );
+          sli->finished = true;
+        }
+      }
+      return 0;
+    }
+    case CLOSEPROGRESS:{
       if (local.addr != 0)
         {
           sli = (TransformstreamLocalInfo*) (local.addr);
-          if (!sli->finished)
-            qp->Close( args[0].addr );
           sli->resultTupleType->DeleteIfAllowed();
           delete sli;
           local.setAddr(0);
         }
       return 0;
     }
+    case REQUESTPROGRESS:{
+      sli = (TransformstreamLocalInfo*) (local.addr);
+      if( !sli ){
+        return CANCEL;
+      }
+      ProgressInfo p1;
+      ProgressInfo* pRes = (ProgressInfo*) result.addr;
+      if( !qp->RequestProgress(args[0].addr, &p1) ){
+        return CANCEL;
+      };
+      const double uProject = 0.00073; //millisecs per tuple
+      const double vProject = 0.0004;  //millisecs per tuple and attribute
+      pRes->Copy(p1);
+      pRes->Time = p1.Time + pRes->Card *  (uProject + vProject);
+      pRes->Progress = p1.Progress;  //a number between 0 and 1
+      if( !sli->progressinitialized || p1.sizesChanged ) {
+        pRes->sizesChanged = true;
+        sli->progressinitialized = true;
+      } else {
+        pRes->sizesChanged = false;
+      }
+      return YIELD;
+    }
+  } // switch
   cout << "Transformstream_S_TS: UNKNOWN MESSAGE!" << endl;
   return 0;
 }
@@ -2302,39 +2345,24 @@ int Transformstream_TS_S(Word* args, Word& result, int message,
   Word   tuple;
   Tuple* tupleptr;
 
-  switch ( message )
-    {
-    case OPEN:
-#ifdef GSA_DEBUG
-      cout << "Transformstream_TS_S: OPEN called" << endl;
-#endif
+  switch ( message ){
+    case OPEN:{
       qp->Open( args[0].addr );
       sli = new TransformstreamLocalInfo;
       sli->finished = false;
+      sli->progressinitialized = false;
       local.setAddr(sli);
-#ifdef GSA_DEBUG
-      cout << "Transformstream_TS_S: OPEN finished" << endl;
-#endif
       return 0;
-
-    case REQUEST:
-#ifdef GSA_DEBUG
-      cout << "Transformstream_TS_S: REQUEST called" << endl;
-#endif
+    }
+    case REQUEST:{
       if (local.addr == 0)
         {
-#ifdef GSA_DEBUG
-          cout<< "Transformstream_TS_S: REQUEST return CANCEL (1)" << endl;
-#endif
           return CANCEL;
         }
 
       sli = (TransformstreamLocalInfo*) (local.addr);
       if (sli->finished)
         {
-#ifdef GSA_DEBUG
-          cout<< "Transformstream_TS_S: REQUEST return CANCEL (2)" << endl;
-#endif
           return CANCEL;
         }
 
@@ -2344,25 +2372,26 @@ int Transformstream_TS_S(Word* args, Word& result, int message,
           qp->Close( args[0].addr );
           sli->finished = true;
           result.addr = 0;
-#ifdef GSA_DEBUG
-          cout<< "Transformstream_TS_S: REQUEST return CANCEL (3)" << endl;
-#endif
           return CANCEL;
         }
       // extract, copy and pass value, delete tuple
       tupleptr = (Tuple*)tuple.addr;
       result.addr = tupleptr->GetAttribute(0)->Copy();
       tupleptr->DeleteIfAllowed();
-#ifdef GSA_DEBUG
-      cout<< "Transformstream_TS_S: REQUEST return YIELD" << endl;
-#endif
       return YIELD;
-
-    case CLOSE:
-
-#ifdef GSA_DEBUG
-      cout << "Transformstream_TS_S: CLOSE called" << endl;
-#endif
+    }
+    case CLOSE:{
+      if (local.addr != 0){
+          sli = (TransformstreamLocalInfo*) (local.addr);
+          if (!sli->finished){
+            qp->Close( args[0].addr );
+            sli->finished = true;
+            // disposal of localinfo done in CLOSEPROGRESS
+          }
+      }
+      return 0;
+    }
+    case CLOSEPROGRESS:{
       if (local.addr != 0)
         {
           sli = (TransformstreamLocalInfo*) (local.addr);
@@ -2371,14 +2400,34 @@ int Transformstream_TS_S(Word* args, Word& result, int message,
           delete sli;
           local.setAddr(0);
         }
-#ifdef GSA_DEBUG
-      cout << "Transformstream_TS_S: CLOSE finished" << endl;
-#endif
       return 0;
-
     }
-  cout << "Transformstream_TS_S: UNKNOWN MESSAGE!" << endl;
-  return 0;
+    case REQUESTPROGRESS:{
+      sli = (TransformstreamLocalInfo*) (local.addr);
+      if( !sli ){
+        return CANCEL;
+      }
+      ProgressInfo p1;
+      ProgressInfo* pRes = (ProgressInfo*) result.addr;
+      if( !qp->RequestProgress(args[0].addr, &p1) ){
+        return CANCEL;
+      };
+      const double uProject = 0.00073; //millisecs per tuple
+      const double vProject = 0.0004;  //millisecs per tuple and attribute
+      pRes->Copy(p1);
+      pRes->Time = p1.Time + pRes->Card *  (uProject + vProject);
+      pRes->Progress = p1.Progress;  //a number between 0 and 1
+      if( !sli->progressinitialized || p1.sizesChanged ) {
+        pRes->sizesChanged = true;
+        sli->progressinitialized = true;
+      } else {
+        pRes->sizesChanged = false;
+      }
+      return YIELD;
+    }
+  }
+  cout << __PRETTY_FUNCTION__ <<": UNKNOWN MESSAGE!" << endl;
+  return -1;
 }
 
 /*
@@ -2466,6 +2515,9 @@ Operator streamtransformstream( "transformstream",
 5.28 Operator ~projecttransformstream~
 
 5.28.1 Type Mapping
+
+---- stream(tuple((a1 t1) (a2 t2)...(an tn))) x ai --> stream(ti)
+----
 
 */
 ListExpr ProjecttransformstreamTM(ListExpr args){
@@ -2802,21 +2854,38 @@ streamCountFun (Word* args, Word& result, int message, Word& local, Supplier s)
   Word elem;
   int count = 0;
 
-  qp->Open(args[0].addr);
-  qp->Request(args[0].addr, elem);
+  if ( message <= CLOSE ) {
+    qp->Open(args[0].addr);
+    qp->Request(args[0].addr, elem);
 
-  while ( qp->Received(args[0].addr) )
-    {
-      count++;
-      Attribute* attr = static_cast<Attribute*>( elem.addr );
-      attr->DeleteIfAllowed(); // consume the stream object
-      qp->Request(args[0].addr, elem);
+    while ( qp->Received(args[0].addr) )
+      {
+        count++;
+        Attribute* attr = static_cast<Attribute*>( elem.addr );
+        attr->DeleteIfAllowed(); // consume the stream object
+        qp->Request(args[0].addr, elem);
+      }
+    result = qp->ResultStorage(s);
+    static_cast<CcInt*>(result.addr)->Set(true, count);
+
+    qp->Close(args[0].addr);
+
+    return 0;
+  } else if ( message == REQUESTPROGRESS ) {
+    ProgressInfo p1;
+    ProgressInfo* pRes;
+
+    pRes = (ProgressInfo*) result.addr;
+
+    if ( qp->RequestProgress(args[0].addr, &p1) ){
+      pRes->Copy(p1);
+      return YIELD;
     }
-  result = qp->ResultStorage(s);
-  static_cast<CcInt*>(result.addr)->Set(true, count);
-
-  qp->Close(args[0].addr);
-
+    else return CANCEL;
+  }
+  else if ( message == CLOSEPROGRESS ){
+    return 0;
+  }
   return 0;
 }
 
@@ -3313,6 +3382,7 @@ realstreamFun (Word* args, Word& result, int message, Word& local, Supplier s)
   struct RangeAndDiff {
     double first, last, diff;
     int iter;
+    int card;
 
     RangeAndDiff(Word* args) {
 
@@ -3333,6 +3403,12 @@ realstreamFun (Word* args, Word& result, int message, Word& local, Supplier s)
         last = -1;
         diff = 1;
       }
+      if(diff > 0.0) {
+        card = ceil(fabs( (last - first) / diff ) + 1.0);
+        cout << __PRETTY_FUNCTION__ << "card = " << card << endl;
+      } else {
+        card = 1;
+      }
     }
   };
 
@@ -3343,50 +3419,78 @@ realstreamFun (Word* args, Word& result, int message, Word& local, Supplier s)
 
   switch( message )
   {
-    case OPEN:
-
-      range_d = new RangeAndDiff(args);
-      local.addr = range_d;
-      return 0;
-
-    case REQUEST:
-      range_d = ((RangeAndDiff*) local.addr);
-      cd = (double) range_d->iter * range_d->diff;
-      current = range_d->first + cd;
-      if(range_d->diff == 0.0){ // don't allow endless loops
-        return CANCEL;
-      } else if(range_d->diff < 0.0){
-         if(current < range_d->last){
-            return CANCEL;
-         } else {
-            elem = new CcReal(true,current);
-            result.addr = elem;
-            range_d->iter++;
-            return YIELD;
-         }
-      } else { // diff > 0.0
-         if(current > range_d->last){
-            return CANCEL;
-         } else {
-            elem = new CcReal(true,current);
-            result.addr = elem;
-            range_d->iter++;
-            return YIELD;
-         }
+    case OPEN: {
+        range_d = new RangeAndDiff(args);
+        local.addr = range_d;
+        return 0;
       }
-      // should never happen
-      return -1;
-    case CLOSE:
-      range_d = ((RangeAndDiff*) local.addr);
-      if(range_d){
-         delete range_d;
-         local.setAddr(0);
+    case REQUEST: {
+        range_d = ((RangeAndDiff*) local.addr);
+        cd = (double) range_d->iter * range_d->diff;
+        current = range_d->first + cd;
+        if(range_d->diff == 0.0){ // don't allow endless loops
+          return CANCEL;
+        } else if(range_d->diff < 0.0){
+          if(current < range_d->last){
+              return CANCEL;
+          } else {
+              elem = new CcReal(true,current);
+              result.addr = elem;
+              range_d->iter++;
+              return YIELD;
+          }
+        } else { // diff > 0.0
+          if(current > range_d->last){
+              return CANCEL;
+          } else {
+              elem = new CcReal(true,current);
+              result.addr = elem;
+              range_d->iter++;
+              return YIELD;
+          }
+        }
       }
-      range_d = 0;
-      return 0;
-  }
-  /* should not happen */
-  return -1;
+    case CLOSE: {
+      // localinfo is destroyed in CLOSEPROGRESS
+        return 0;
+      }
+    case CLOSEPROGRESS: {
+        range_d = ((RangeAndDiff*) local.addr);
+        if(range_d){
+          delete range_d;
+          local.setAddr(0);
+        }
+        range_d = 0;
+          return 0;
+        }
+    case REQUESTPROGRESS: {
+          ProgressInfo* pRes = (ProgressInfo*) result.addr;
+          range_d = ((RangeAndDiff*) local.addr);
+          if( range_d ){
+            const double feedccreal = 0.001; //milliseconds per CcReal
+            pRes->Card = range_d->card;      //expected cardinality
+            pRes->Time = (range_d->card) * feedccreal; //expected time, [ms]
+            pRes->Progress = (double) range_d-> iter / (double) range_d->card;
+            pRes->BTime = 0.00001;          // blocking time must not be 0
+            pRes->BProgress = 1.0;          // blocking progress [0,1]
+            pRes->Size = sizeof(CcReal);    //total tuple size (including FLOBs)
+            pRes->SizeExt = sizeof(CcReal); //tuple root and extension part
+            pRes->noAttrs = 1;              //no of attributes
+            pRes->attrSize = new double[1]; //complete size per attr
+            pRes->attrSize[0] = sizeof(CcReal);
+            pRes->attrSizeExt = new double[1];  //root +extension size per attr
+            pRes->attrSizeExt[0] = sizeof(CcReal);
+            pRes->sizesChanged = (range_d->iter > 0);  //sizes were recomputed
+            return YIELD;
+          } else {
+            return CANCEL;
+          }
+        }
+    default: {
+      return -1; /* should not happen */
+      }
+  } // switch
+  return -1; /* should not happen */
 }
 
 /*
@@ -3404,6 +3508,8 @@ struct realstreamInfo : OperatorInfo
     meaning   = "Creates a stream of reals containing the numbers "
                 "between the first and the second argument. The third "
                 "argument defines the step width.";
+    example =   "realstream(-100.0, 100.0, 0.5) count";
+    supportsProgress = true;
   }
 };
 
@@ -4123,6 +4229,168 @@ Operator kinds (
       Operator::SimpleSelect,
       KindsTypeMap );
 
+/*
+6.7 Operator ~timeout~
+
+This operator will terminate stream procesing, when it its result is requested
+a specified time after opening it. Until then, is just returns the result of its
+stream predecessor.
+
+*/
+
+/*
+Type Mapping Fubnction:
+
+----  stream(X) x real --> stream(X)
+----
+
+*/
+ListExpr TimeoutTypeMap(const ListExpr args){
+  if(nl->ListLength(args)!=2){
+    ErrorReporter::ReportError("Wrong number of arguments ");
+    return nl->TypeError();
+  }
+  ListExpr first = nl->First(args);
+  if(nl->ListLength(first)!=2){
+    return listutils::typeError("Expected stream as 1st argument.");
+  }
+  if(!nl->IsEqual(nl->First(first),"stream")) {
+    return listutils::typeError("Expected stream as 1st argument.");
+  }
+  ListExpr second = nl->Second(args);
+  if( !listutils::isSymbol(second, "real") ) {
+    return listutils::typeError("Expected real as 2nd argument.");
+  }
+  return nl->First(args);
+}
+
+
+struct TimeoutLocalInfo {
+  TimeoutLocalInfo(const double _seconds):
+    useProgress( false ),
+    seconds( _seconds),
+    elemcounter( 0 ),
+    finished( false ),
+    streamisopen( false )
+  {
+    initial = time( 0 ); // get current time
+    if(seconds < 0.0){
+      seconds = 0.0;
+      finished = true;
+    }
+  };
+  bool useProgress;   // check during RequestProgress only
+  time_t initial;     // the time, when the stopwatch started
+  double seconds;     // the time difference for the timeout (in seconds)
+  long   elemcounter; // number of already returned stream elements
+  bool   finished;    // true iff finished
+  bool   streamisopen;
+};
+
+int TimeoutVM(Word* args, Word& result, int message, Word& local, Supplier s)
+{
+  switch(message){
+    case OPEN: {
+              // set termination conditions
+              TimeoutLocalInfo* li = new TimeoutLocalInfo(
+                  (static_cast<CcReal*>(args[1].addr))->GetRealval());
+              local.setAddr(li);
+              qp->Open(args[0].addr);
+              li->streamisopen = true;
+              return 0;
+             }
+    case REQUEST: {
+              TimeoutLocalInfo* li = static_cast<TimeoutLocalInfo*>(local.addr);
+              if(!li){
+                 return CANCEL;
+              } else if(    li->finished
+                         || (    !li->useProgress
+                              && (difftime(time(0),li->initial) >= li->seconds)
+                            ) ) {
+                li->finished = true;
+                return CANCEL;
+              } else {
+                qp->Request(args[0].addr,result);
+                if(result.addr == 0){
+                  li->finished = true;
+                  return CANCEL;
+                } else {
+                  li->elemcounter++;
+                  return YIELD;
+                }
+              }
+            }
+    case CLOSE: {
+              TimeoutLocalInfo* li = static_cast<TimeoutLocalInfo*>(local.addr);
+              if(li && li->streamisopen){
+                 qp->Close(args[0].addr);
+              }
+              return 0;
+         }
+    case CLOSEPROGRESS: {
+          TimeoutLocalInfo* li = (TimeoutLocalInfo*) local.addr;
+          if ( li ) {
+            delete li;
+            local.setAddr(0);
+          }
+          return 0;
+        }
+    case REQUESTPROGRESS: {
+          TimeoutLocalInfo* li = (TimeoutLocalInfo*) local.addr;
+          if( !li ) {
+            return CANCEL;
+          }
+          li->useProgress = true;
+          ProgressInfo *pRes;
+          pRes = (ProgressInfo*) result.addr;
+          ProgressInfo p1;
+          li->finished = ( difftime(time(0),li->initial) >= li->seconds );
+          if ( qp->RequestProgress(args[0].addr, &p1) ) {
+            pRes->Copy(p1);
+            double myprogress = difftime(time(0),li->initial)/li->seconds;
+            if(myprogress <= 0.0){
+              myprogress = 0.0000001; // avoid div/0
+            }
+            double mycard = li->elemcounter / myprogress;
+            if(mycard <= 1){
+              mycard = 1; // avoid div/0
+            }
+            pRes->Progress = max(max(p1.Progress, myprogress), pRes->BProgress);
+            pRes->Time = min( p1.Time, li->seconds*1000 );
+            if( p1.BTime > pRes->Time){
+              pRes->Time = max(pRes->Time, p1.BTime);
+            }
+            pRes->Card = min( p1.Card, mycard); //a number between 0 and 1
+          } else {
+            return CANCEL;
+          }
+          if(li->finished){
+            pRes->Progress = 1.0;
+          }
+          return YIELD;
+        }
+    default: {
+        return 0;
+      }
+  }
+}
+
+
+const string TimeoutSpec =
+   "(( \"Signature\" \"Syntax\" \"Meaning\" \"Remarks\" )"
+    "( <text>stream(T) x real -> stream(T)</text--->"
+      "<text>_ timeout [ Seconds ]</text--->"
+      "<text>Stops stream processing after the specified time has passed. "
+      "Negative arguments are interpreted as 0.</text--->"
+      "<text>query intstream(1,9999999999) timeout[5.0] count</text---> ))";
+
+Operator timeout (
+      "timeout",
+      TimeoutSpec,
+      TimeoutVM,
+      Operator::SimpleSelect,
+      TimeoutTypeMap );
+
 
 /*
 7 Creating the Algebra
@@ -4151,7 +4419,15 @@ public:
     AddOperator( &STREAMELEM2 );
     AddOperator( &streamtail );
     AddOperator( &kinds);
+    AddOperator( &timeout);
+
+#ifdef USE_PROGRESS
+    streamcount.EnableProgress();
+    streamtransformstream.EnableProgress();
+    timeout.EnableProgress();
+#endif
   }
+
   ~StreamAlgebra() {};
 };
 

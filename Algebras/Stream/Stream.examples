@@ -183,7 +183,6 @@ Signature: stream(tuple X) [x bool] -> stream(tuple X)
 Example  : query plz feed tail[100] count
 Result   : 100
 
-
 Operator : tail
 Number   : 4
 Signature: stream(T) [x bool] -> stream(T), T in DATA
@@ -202,9 +201,16 @@ Signature: stream(T) [x bool] -> stream(T), T in DATA
 Example  : query realstream(1.0,1050000.0,1.0) tail[666] count
 Result   : 666
 
-Operator : kinds 
+
+Operator : kinds
 Number   : 1
 Signature: string -> stream(string)
 Example  : query "int" kinds count
 Result   : 4
 
+
+Operator : timeout
+Number   : 1
+Signature: stream(X) x real -> stream(X)
+Example  : query ten feed timeout[10.0] count
+Result   : 10
