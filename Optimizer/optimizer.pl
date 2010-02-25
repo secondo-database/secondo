@@ -2920,26 +2920,16 @@ arguments (no expressions).
 */
 
 join(arg(N), Arg2, pr(Pred, _, _)) => filter(loopjoin(Arg2S, RTSpExpr),Pred) :-
-  writeln('*********** Try: Goehr join 1.1 *************'),
   write_list(['Call is:',join(arg(N), Arg2, pr(Pred, _, _)) => filter(loopjoin(Arg2S, RTSpExpr),Pred),'\n']),
   Pred =.. [Op, X, Y],
-  writeln('*********** Try: Goehr join 1.2 *************'),
   isBBoxPredicate(Op),
-  writeln('*********** Try: Goehr join 1.3 *************'),
   isOfFirst(Attr1, X, Y),     % determine attribute from the first relation
-  writeln('*********** Try: Goehr join 1.4 *************'),
   isNotOfFirst(Expr2, X, Y),  % determine attribute not from the first relation
-  writeln('*********** Try: Goehr join 1.5 *************'),
   argument(N, RelDescription),  % get first relation
-  writeln('*********** Try: Goehr join 1.6 *************'),
   hasIndex(RelDescription, Attr1, DCindex, spatial(rtree, unit)),
-  writeln('*********** Try: Goehr join 1.7 *************'),
   dcName2externalName(DCindex,IndexName),
-  writeln('*********** Try: Goehr join 1.8 *************'),
   Arg2 => Arg2S,
-  writeln('*********** Try: Goehr join 1.9 *************'),
-  rtSpExpr(IndexName, arg(N), Expr2) => RTSpExpr,
-  writeln('*********** Accepted: Goehr join 1 used *************').
+  rtSpExpr(IndexName, arg(N), Expr2) => RTSpExpr.
 
 
 /*
@@ -2954,7 +2944,6 @@ rtSpExpr(IndexName, arg(N), Expr) =>
           :-
   argument(N, Rel),
   Rel = rel(_, Var),    % with renaming
-  writeln('*********** Goehr rtSpExpr 1 used *************'),
   !.
 
 rtSpExpr(IndexName, arg(N), Expr) =>
@@ -2962,33 +2951,21 @@ rtSpExpr(IndexName, arg(N), Expr) =>
           :-
   argument(N, Rel),
   Rel = rel(_, *),    % without renaming
-  writeln('*********** Goehr rtSpExpr 2 used *************'),
   !.
 
 join(arg(N), Arg2, pr(Pred, _, _))
   => filter(loopjoin(Arg2S, RTSpTmpExpr),Pred) :-
-  writeln('*********** Try: Goehr join 2.1 *************'),
   write_list(['Call is:',join(arg(N), Arg2, pr(Pred, _, _)) => filter(loopjoin(Arg2S, RTSpTmpExpr),Pred),'\n']),
-  writeln('*********** Try: Goehr join 2.2a *************'),
   fetchAttributeList(Pred,L),
   write_list(['L = ', L , '\n']),
-  writeln('*********** Try: Goehr join 2.2b *************'),
   L = [A,B,C],
-  writeln('*********** Try: Goehr join 2.2 *************'),
   isOfFirst(Attr1,A,B,C),
-  writeln('*********** Try: Goehr join 2.3 *************'),
   areNotOfFirst(Attr2,Attr3,A,B,C),
-  writeln('*********** Try: Goehr join 2.4 *************'),
   argument(N, RelDescription),
-  writeln('*********** Try: Goehr join 2.5 *************'),
   hasIndex(RelDescription, Attr1, DCindex, spatiotemporal(rtree3, unit)),
-  writeln('*********** Try: Goehr join 2.6 *************'),
   dcName2externalName(DCindex,IndexName),
-  writeln('*********** Try: Goehr join 2.7 *************'),
   Arg2 => Arg2S,
-  writeln('*********** Try: Goehr join 2.8 *************'),
-  rtSpTmpExpr(IndexName, arg(N), Attr2, Attr3) => RTSpTmpExpr,
-  writeln('*********** Accepted: Goehr join 2 used *************').
+  rtSpTmpExpr(IndexName, arg(N), Attr2, Attr3) => RTSpTmpExpr.
 
 rtSpTmpExpr(IndexName, arg(N), Expr1, Expr2) =>
  rename(gettuples(rdup(sort(windowintersectsS(dbobject(IndexName),
@@ -2996,7 +2973,6 @@ rtSpTmpExpr(IndexName, arg(N), Expr1, Expr2) =>
   :-
  argument(N,Rel),
  Rel = rel(_,Var), % with renaming
- writeln('*********** Goehr rtSpTmpExpr 1 used *************'),
  !.
 
 rtSpTmpExpr(IndexName, arg(N), Expr1, Expr2) =>
@@ -3005,7 +2981,6 @@ rtSpTmpExpr(IndexName, arg(N), Expr1, Expr2) =>
   :-
  argument(N,Rel),
  Rel = rel(_, *), % without renaming
- writeln('*********** Goehr rtSpTmpExpr 2 used *************'),
  !.
 
 /*
