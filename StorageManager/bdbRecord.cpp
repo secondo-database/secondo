@@ -266,8 +266,6 @@ bool SmiRecord::Resize(const SmiSize newSize){
         char* buffer = new char[addSize];
         memset(buffer,'\0',addSize);
         SmiSize written = Write(buffer,addSize,recordSize);
-        string errmsg;
-        SmiEnvironment::GetLastErrorCode(errmsg);
         delete[] buffer;
         if(written!=addSize){
           return false;
