@@ -538,7 +538,7 @@ Opens an existing named ~SmiFile~ or creates a new named ~SmiFile~ if it does no
 exist. Optionally a ~context~ can be specified.
 
 */
-  bool Close();
+  bool Close(const bool sync = true );
 /*
 Closes an open ~SmiFile~.
 
@@ -1170,6 +1170,31 @@ or update access. The user has to provide a record handle which is
 initialized by this method.
 
 */
+
+bool Read(const SmiRecordId recno,
+               void* buffer,
+               const SmiSize length,
+               const SmiSize offset,
+               SmiSize& actSize);
+
+/*
+Reads data from a specified record. This will accelerate
+operations if the record is only used local.
+
+*/
+
+ bool Write(const SmiRecordId recno,
+           const void* buffer,
+           const SmiSize length,
+           const SmiSize offset,
+           SmiSize& written);
+
+/*
+Writes data to a specified record.
+
+*/
+
+
   bool SelectAll( SmiRecordFileIterator& iterator,
                   const SmiFile::AccessType accessType =
                         SmiFile::ReadOnly);
