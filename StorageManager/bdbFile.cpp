@@ -798,7 +798,7 @@ SmiFile::Open( const SmiFileId fileid, const string& context /* = "Default" */ )
 }
 
 bool
-SmiFile::Close()
+SmiFile::Close( const bool sync /* = true */)
 {
   static long& ctr = Counter::getRef("SmiFile::Close");
   TRACE("SmiFile::Close")
@@ -824,7 +824,8 @@ SmiFile::Close()
     }
     else
     {
-      rc = impl->bdbFile->close( 0 );
+      uint32_t flags = sync?0:DB_NOSYNC;
+      rc = impl->bdbFile->close( flags );
       if (trace)
         cerr << "closing " << *this << endl;
       SmiEnvironment::SetBDBError( rc );
@@ -888,7 +889,7 @@ SmiFile::Remove()
 
   int rc = 0;
   if(opened){
-    if(! Close()){
+    if(! Close(false)){
       return false;
     }
   }
