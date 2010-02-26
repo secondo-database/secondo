@@ -140,6 +140,92 @@ SmiRecordFile::SelectRecord( const SmiRecordId recno,
   return (record.initialized);
 }
 
+/*
+Selects an record and reads the data from it.
+
+*/
+bool SmiRecordFile::Read(const SmiRecordId recno,
+                         void* buffer,
+                         const SmiSize length,
+                         const SmiSize offset,
+                         SmiSize& actSize){
+
+  // initialize key
+  int rc = 0;
+  Dbt key;
+  key.set_data( (void*) &recno );
+  key.set_size( sizeof( SmiRecordId ) );
+  
+  // initialize data
+  Dbt data;
+  data.set_data( buffer );
+  data.set_ulen( length );
+  data.set_flags( DB_DBT_PARTIAL | DB_DBT_USERMEM );
+  data.set_dlen( length );
+  data.set_doff( offset );
+  DbTxn* tid = !impl->isTemporaryFile ? 
+                   SmiEnvironment::instance.impl->usrTxn : 0;
+  actSize = 0;
+ 
+  if ( !impl->isSystemCatalogFile ) {
+    rc = impl->bdbFile->get( tid, &key, &data, 0 );
+  }
+  else {
+    u_int32_t flags = (!impl->isTemporaryFile) && useTxn ? DB_DIRTY_READ : 0;
+    rc = impl->bdbFile->get( tid , &key, &data, flags );
+  }
+  if(rc){
+    SmiEnvironment::SetBDBError(rc);
+    return false;
+  }
+  actSize = data.get_size();
+  return true;
+}
+
+/*
+Writes data to a specified record.
+
+*/
+bool SmiRecordFile::Write(const SmiRecordId recno,
+                          const void* buffer,
+                          const SmiSize length,
+                          const SmiSize offset,
+                          SmiSize& written){
+
+ // prepare data
+ Dbt data( (void*) buffer, length );
+ data.set_flags( DB_DBT_PARTIAL );
+ data.set_dlen( length );
+ data.set_doff( offset );
+
+  // initialize key
+  Dbt key;
+  key.set_data( (void*) &recno );
+  key.set_size( sizeof( SmiRecordId ) );
+
+
+  DbTxn* tid = !impl->isTemporaryFile ?
+                SmiEnvironment::instance.impl->usrTxn : 0;
+
+  int rc = impl->bdbFile->put( tid, &key, &data, 0 );
+  if(rc){
+     SmiEnvironment::SetBDBError(rc);
+     written = 0;
+     return false;
+  } else {
+     written = length;
+     return true; 
+  }
+
+}
+
+
+ 
+
+
+
+
+
 bool
 SmiRecordFile::SelectAll( SmiRecordFileIterator& iterator,
                           const SmiFile::AccessType accessType
