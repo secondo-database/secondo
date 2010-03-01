@@ -1,5 +1,5 @@
 /*
----- 
+----
 This file is part of SECONDO.
 
 Copyright (C) 2004-2007, University in Hagen, Faculty of Mathematics and
@@ -31,9 +31,9 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //[#]  [\neq]
 //[tilde] [\verb|~|]
 
-1 Header File Progress.h 
+1 Header File Progress.h
 
-April 2007 M. Spiekermann 
+April 2007 M. Spiekermann
 
 2 Overview
 
@@ -79,11 +79,17 @@ public:
 
   double Card;		//expected cardinality
   double Size;		//expected total tuple size (including FLOBs)
-  double SizeExt;	//expected size of tuple root and extension part 
+  double SizeExt;	//expected size of tuple root and extension part
     			//   (no FLOBs)
   int noAttrs;		//no of attributes
-  double *attrSize;	//for each attribute, the complete size
-  double *attrSizeExt;	//for each attribute, the root and extension size
+  double *attrSize;	// array: for each attribute, the complete size
+                    // stream sources should allocate the memory only once
+                    // and delete it in CLOSEPROGRESS. Other operators
+                    // should just copy the pointer and pass it on, unless they
+                    // have impact on the size table. Then they should work
+                    // like a stream source operator.
+  double *attrSizeExt;	// for each attribute, the root and extension size
+                        // also see ~attrSize~
   bool sizesChanged;	//true if sizes have been recomputed in this request
 
   double Time;		//expected time, in millisecond
@@ -97,7 +103,7 @@ public:
 
   void CopySizes(ProgressLocalInfo* pli);  //copy the size fields
 
-  void CopyBlocking(ProgressInfo p);	//copy BTime, BProgress 
+  void CopyBlocking(ProgressInfo p);	//copy BTime, BProgress
 					//for non blocking unary op.
 
   void CopyBlocking(ProgressInfo p1,ProgressInfo p2); //copy BTime, BProgress
@@ -105,7 +111,7 @@ public:
 
   void Copy(ProgressInfo p);		//copy all fields
 
-};	
+};
 
 
 
@@ -115,11 +121,11 @@ public:
 
 class ProgressLocalInfo
 {
-  
+
 public:
 
-  ProgressLocalInfo(); 
-	  
+  ProgressLocalInfo();
+
   ~ProgressLocalInfo();
 
   int returned;        	//current number of tuples returned
@@ -127,7 +133,7 @@ public:
   int readFirst;	//no of tuples read from first arg stream
   int readSecond;	//no of tuples read from second argument stream
   int total;          	//total number of tuples in argument relation
-  int defaultValue;	//default assumption of result size, needed for 
+  int defaultValue;	//default assumption of result size, needed for
 			//some operators
   int state;		//to keep state info if needed
   int memoryFirst,
@@ -168,7 +174,7 @@ object inside the implementation of a special class, e.g. ~SortByLocalInfo~
 
 class ProgressWrapper {
 
-public:	
+public:
 
   ProgressWrapper(ProgressLocalInfo* p) : progress(p) {}
   ~ProgressWrapper(){}
@@ -179,15 +185,15 @@ protected:
   // the object pointed to may be modified.
   ProgressLocalInfo* const progress;
 
-};	
+};
 
 
 
-/* 
+/*
 Class ~LocalInfo~
 
 This class inherits from class ~ProgressLocalinfo~ and has an additional
-pointer to some class ~T~. 
+pointer to some class ~T~.
 
 In operator implementations you may define the local.addr pointer
 like this:
@@ -210,12 +216,12 @@ class LocalInfo : public ProgressLocalInfo {
 
   public:
     LocalInfo() : ProgressLocalInfo(), ptr(0) {}
-    ~LocalInfo() { if (ptr) delete ptr; }   
+    ~LocalInfo() { if (ptr) delete ptr; }
 
     inline void deletePtr() { if (ptr) {delete ptr; ptr = 0; } }
 
-    T* ptr;  
-};	
+    T* ptr;
+};
 
 
 
