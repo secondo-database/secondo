@@ -193,32 +193,60 @@ TypeMapStreamfeed( ListExpr args )
 struct SFeedLocalInfo
 {
   bool finished;
+  bool sonIsObjectNode;
+  bool progressinitialized;
+  double* attrSize;
+  double* attrSizeExt;
+
+  SFeedLocalInfo(Attribute* arg, const bool isObject):
+    finished( false ),
+    sonIsObjectNode( isObject ),
+    progressinitialized( false )
+  {
+    double coresize = arg->Sizeof();
+    double flobsize = 0.0;
+    for(int i=0; i < arg->NumOfFLOBs(); i++){
+      flobsize += arg->GetFLOB(i)->getSize();
+    }
+    attrSize = new double[1];
+    attrSize[0] = coresize + flobsize;
+    attrSizeExt = new double[1];
+    attrSizeExt[0] = coresize;
+  }
+
+  ~SFeedLocalInfo(){
+    if(attrSize) {delete[] attrSize; attrSize = 0;}
+    if(attrSizeExt) {delete[] attrSizeExt; attrSizeExt = 0;}
+  }
 };
 
 int MappingStreamFeed( Word* args, Word& result, int message,
                   Word& local, Supplier s )
 {
   SFeedLocalInfo *linfo;
+  Attribute* arg = (static_cast<Attribute*>(args[0].addr));
 
-  switch( message )
-    {
-    case OPEN:
-      linfo = new SFeedLocalInfo;
-      linfo->finished = false;
+  switch( message ){
+    case OPEN:{
+      linfo = new SFeedLocalInfo(arg,qp->IsObjectNode(qp->GetSupplierSon(s,0)));
       local.setAddr(linfo);
       return 0;
-
-    case REQUEST:
+    }
+    case REQUEST:{
       if ( local.addr == 0 )
         return CANCEL;
       linfo = static_cast<SFeedLocalInfo*>(local.addr);
       if ( linfo->finished )
         return CANCEL;
-      result.setAddr((static_cast<Attribute*>(args[0].addr))->Clone());
+      result.setAddr(arg->Clone());
       linfo->finished = true;
       return YIELD;
-
-    case CLOSE:
+    }
+    case CLOSE:{
+      // localinfo is disposed by CLOSEPROGRESS
+      return 0;
+    }
+    case CLOSEPROGRESS:{
       if ( local.addr )
         {
           linfo = static_cast<SFeedLocalInfo*>(local.addr);
@@ -227,6 +255,45 @@ int MappingStreamFeed( Word* args, Word& result, int message,
         }
       return 0;
     }
+    case REQUESTPROGRESS:{
+      if ( !local.addr ) {
+        return CANCEL;
+      }
+      linfo = static_cast<SFeedLocalInfo*>(local.addr);
+      ProgressInfo *pRes;
+      pRes = (ProgressInfo*) result.addr;
+      ProgressInfo p1;
+      if( !linfo->sonIsObjectNode && qp->RequestProgress(args[0].addr, &p1) ) {
+        // the son is a computed result node
+        // just copy everything
+        pRes->CopyBlocking(p1);
+        pRes->Time = p1.Time;
+      } else {
+        // the son is a database object
+        pRes->BTime = 0.00001; // no blocking time
+        pRes->BProgress = 1.0; // non-blocking
+        pRes->Time = 0.00001;  // (almost) zero runtime
+      }
+      if(!linfo->progressinitialized){
+        pRes->Card = 1;    // cardinality
+        pRes->Size = linfo->attrSize[0]; // total size
+        pRes->SizeExt = linfo->attrSizeExt[0]; // size w/o FLOBS
+        pRes->noAttrs = 1;    //no of attributes
+        pRes->attrSize = linfo->attrSize;
+        pRes->attrSizeExt = linfo->attrSizeExt;
+        linfo->progressinitialized = true;
+        pRes->sizesChanged = true;  //sizes have been recomputed
+        linfo->progressinitialized = true;
+      } else {
+        pRes->sizesChanged = false;
+      }
+      if(linfo->finished){
+        pRes->Progress = 1.0;
+        pRes->Time = 0.00001;
+      }
+      return YIELD;
+    }
+  } // switch
   return -1; // should not be reached
 }
 
@@ -2844,6 +2911,7 @@ streamCountType( ListExpr args )
 
 */
 
+
 int
 streamCountFun (Word* args, Word& result, int message, Word& local, Supplier s)
 /*
@@ -2853,38 +2921,69 @@ streamCountFun (Word* args, Word& result, int message, Word& local, Supplier s)
 {
   Word elem;
   int count = 0;
+  bool* initializedprogress;
 
-  if ( message <= CLOSE ) {
-    qp->Open(args[0].addr);
-    qp->Request(args[0].addr, elem);
-
-    while ( qp->Received(args[0].addr) )
-      {
+  switch(message){
+    case OPEN:
+    case CLOSE:
+    case REQUEST: {
+      initializedprogress = new bool(false);
+      local.addr = initializedprogress;
+      qp->Open(args[0].addr);
+      qp->Request(args[0].addr, elem);
+      while ( qp->Received(args[0].addr) ){
         count++;
         Attribute* attr = static_cast<Attribute*>( elem.addr );
         attr->DeleteIfAllowed(); // consume the stream object
         qp->Request(args[0].addr, elem);
       }
-    result = qp->ResultStorage(s);
-    static_cast<CcInt*>(result.addr)->Set(true, count);
-
-    qp->Close(args[0].addr);
-
-    return 0;
-  } else if ( message == REQUESTPROGRESS ) {
-    ProgressInfo p1;
-    ProgressInfo* pRes;
-
-    pRes = (ProgressInfo*) result.addr;
-
-    if ( qp->RequestProgress(args[0].addr, &p1) ){
-      pRes->Copy(p1);
-      return YIELD;
+      result = qp->ResultStorage(s);
+      static_cast<CcInt*>(result.addr)->Set(true, count);
+      qp->Close(args[0].addr);
+      return 0;
     }
-    else return CANCEL;
-  }
-  else if ( message == CLOSEPROGRESS ){
-    return 0;
+    case REQUESTPROGRESS:{
+      if(!local.addr){
+        return CANCEL;
+      }
+      ProgressInfo* pRes;
+      pRes = (ProgressInfo*) result.addr;
+      initializedprogress = static_cast<bool*>(local.addr);
+      if(!*initializedprogress){
+        pRes->Card = 1 ;                //expected cardinality
+        pRes->Size = sizeof(CcInt);     //expected total size
+        pRes->SizeExt = sizeof(CcInt);  //expected root+ext size (no FLOBs)
+        pRes->noAttrs = 1;              //no of attributes
+        pRes->attrSize = new double[1]; // the complete size
+        pRes->attrSize[0] = sizeof(CcInt);
+        pRes->attrSizeExt = new double[1];  //the root and extension size
+        pRes->attrSizeExt[0] = sizeof(CcInt);
+        pRes->sizesChanged = true;  //sizes have been recomputed
+        *initializedprogress = true;
+      }
+      ProgressInfo p1;
+      if ( qp->RequestProgress(args[0].addr, &p1) ){
+        pRes->BTime = p1.Time;        // this is a blocking operator!
+        pRes->BProgress = p1.Progress; // this is a blocking operator!
+        pRes->Progress = p1.Progress;
+        pRes->Time = p1.Time;
+        return YIELD;
+      } else {
+        return CANCEL;
+      }
+      break;
+    }
+    case CLOSEPROGRESS:{
+        if(local.addr){
+          initializedprogress = static_cast<bool*>(local.addr);
+          delete initializedprogress;
+          local.addr = 0;
+        }
+        return 0;
+    }
+    default: {
+      return -1;
+    }
   }
   return 0;
 }
@@ -3381,10 +3480,14 @@ realstreamFun (Word* args, Word& result, int message, Word& local, Supplier s)
 {
   struct RangeAndDiff {
     double first, last, diff;
-    int iter;
-    int card;
+    long iter;
+    long card;
+    bool initializedprogress;
+    double* attrSize;
+    double* attrSizeExt;
 
     RangeAndDiff(Word* args) {
+      initializedprogress = false;
 
       CcReal* r1 = ((CcReal*)args[0].addr);
       CcReal* r2 = ((CcReal*)args[1].addr);
@@ -3409,6 +3512,15 @@ realstreamFun (Word* args, Word& result, int message, Word& local, Supplier s)
       } else {
         card = 1;
       }
+      attrSize = new double[1];
+      attrSize[0] = sizeof(CcReal);
+      attrSizeExt = new double[1];
+      attrSizeExt[0] = sizeof(CcReal);
+    }
+
+    ~RangeAndDiff() {
+      if(attrSize) { delete[] attrSize; attrSize = 0;}
+      if(attrSizeExt) {delete[] attrSizeExt; attrSizeExt = 0;}
     }
   };
 
@@ -3467,20 +3579,25 @@ realstreamFun (Word* args, Word& result, int message, Word& local, Supplier s)
           ProgressInfo* pRes = (ProgressInfo*) result.addr;
           range_d = ((RangeAndDiff*) local.addr);
           if( range_d ){
-            const double feedccreal = 0.001; //milliseconds per CcReal
-            pRes->Card = range_d->card;      //expected cardinality
+            if(!range_d->initializedprogress){
+              pRes->Size = sizeof(CcReal);    //total tuple size
+                                              //  (including FLOBs)
+              pRes->SizeExt = sizeof(CcReal); //tuple root and extension part
+              pRes->noAttrs = 1;              //no of attributes
+              pRes->attrSize = range_d->attrSize; // complete size per attr
+              pRes->attrSizeExt = range_d->attrSizeExt; // root +extension
+                                                        // size per attr
+              pRes->sizesChanged = true;      //sizes were recomputed
+              range_d->initializedprogress = true;
+            } else {
+              pRes->sizesChanged = false;     //sizes were not recomputed
+            }
+            const double feedccreal = 0.001;  //milliseconds per CcReal
+            pRes->Card = range_d->card;       //expected cardinality
             pRes->Time = (range_d->card) * feedccreal; //expected time, [ms]
             pRes->Progress = (double) range_d-> iter / (double) range_d->card;
-            pRes->BTime = 0.00001;          // blocking time must not be 0
-            pRes->BProgress = 1.0;          // blocking progress [0,1]
-            pRes->Size = sizeof(CcReal);    //total tuple size (including FLOBs)
-            pRes->SizeExt = sizeof(CcReal); //tuple root and extension part
-            pRes->noAttrs = 1;              //no of attributes
-            pRes->attrSize = new double[1]; //complete size per attr
-            pRes->attrSize[0] = sizeof(CcReal);
-            pRes->attrSizeExt = new double[1];  //root +extension size per attr
-            pRes->attrSizeExt[0] = sizeof(CcReal);
-            pRes->sizesChanged = (range_d->iter > 0);  //sizes were recomputed
+            pRes->BTime = 0.00001;            // blocking time must not be 0
+            pRes->BProgress = 1.0;            // blocking progress [0,1]
             return YIELD;
           } else {
             return CANCEL;
@@ -4340,14 +4457,14 @@ int TimeoutVM(Word* args, Word& result, int message, Word& local, Supplier s)
           if( !li ) {
             return CANCEL;
           }
-          li->useProgress = true;
           ProgressInfo *pRes;
           pRes = (ProgressInfo*) result.addr;
           ProgressInfo p1;
-          li->finished = ( difftime(time(0),li->initial) >= li->seconds );
+          double runtime = difftime(time(0),li->initial);
+          li->finished = ( runtime >= li->seconds );
           if ( qp->RequestProgress(args[0].addr, &p1) ) {
             pRes->Copy(p1);
-            double myprogress = difftime(time(0),li->initial)/li->seconds;
+            double myprogress = runtime / li->seconds;
             if(myprogress <= 0.0){
               myprogress = 0.0000001; // avoid div/0
             }
@@ -4355,7 +4472,7 @@ int TimeoutVM(Word* args, Word& result, int message, Word& local, Supplier s)
             if(mycard <= 1){
               mycard = 1; // avoid div/0
             }
-            pRes->Progress = max(max(p1.Progress, myprogress), pRes->BProgress);
+            pRes->Progress = min(max(p1.Progress, myprogress), pRes->BProgress);
             pRes->Time = min( p1.Time, li->seconds*1000 );
             if( p1.BTime > pRes->Time){
               pRes->Time = max(pRes->Time, p1.BTime);
@@ -4363,6 +4480,10 @@ int TimeoutVM(Word* args, Word& result, int message, Word& local, Supplier s)
             pRes->Card = min( p1.Card, mycard); //a number between 0 and 1
           } else {
             return CANCEL;
+          }
+          if( !li->useProgress || p1.sizesChanged ){
+            li->useProgress = true;
+            pRes->sizesChanged = true;
           }
           if(li->finished){
             pRes->Progress = 1.0;
@@ -4424,6 +4545,8 @@ public:
 #ifdef USE_PROGRESS
     streamcount.EnableProgress();
     streamtransformstream.EnableProgress();
+    namedtransformstream.EnableProgress();
+    streamfeed.EnableProgress();
     timeout.EnableProgress();
 #endif
   }
