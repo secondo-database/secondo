@@ -5119,6 +5119,7 @@ RenameTypeMap( ListExpr args )
 
 ListExpr RenameAttrTypeMap(ListExpr args){
 
+
   if(!nl->ListLength(args)==2){
      return listutils::typeError("two arguments expected");
   }
@@ -5144,8 +5145,8 @@ ListExpr RenameAttrTypeMap(ListExpr args){
        !listutils::isSymbol(nl->Second(rename))){
       return listutils::typeError("invalid attribute name detected");
     }
-    string oldname = nl->SymbolValue(nl->First(rename));
-    string newname = nl->SymbolValue(nl->Second(rename));
+    string newname = nl->SymbolValue(nl->First(rename));
+    string oldname = nl->SymbolValue(nl->Second(rename));
     if(renameMap.find(oldname)!=renameMap.end()){
        return listutils::typeError("attribute name renamed twice");
     } else {
@@ -5158,7 +5159,6 @@ ListExpr RenameAttrTypeMap(ListExpr args){
   if(!listutils::replaceAttributes(attrList, renameMap, resAttrList, errmsg)){
     return listutils::typeError(errmsg);
   }  
-
   return nl->TwoElemList( nl->SymbolAtom("stream"),
                           nl->TwoElemList(nl->SymbolAtom("tuple"),
                                           resAttrList));
@@ -5250,11 +5250,11 @@ const string RenameAttrSpec  =
   "\"Example\" ) "
   "( <text> stream(tuple) x (name newname)* -> stream(tuple)"
   "</text--->"
-  "<text>_ renameattr [ oldname1 newname1; oldname2 newname2; ... ] "
+  "<text>_ renameattr [ newname1 : oldname1 , .... ] "
   "</text--->"
   "<text>Renames the specified attributes"
   "</text--->"
-  "<text>query ten feed renameattr [ no No ] consume "
+  "<text>query ten feed renameattr [ No : no ] consume "
   "</text--->"
   ") )";
 /*
