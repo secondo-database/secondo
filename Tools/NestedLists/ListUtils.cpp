@@ -476,7 +476,8 @@ Checks for a stream of kind DATA
 
 
 
-  bool replaceAttributes( ListExpr attrList, map<string, string>& renameMap, 
+  bool replaceAttributes( ListExpr attrList, 
+                          map<string, string>& renameMap, 
                           ListExpr& resAttrList, string& errmsg){
 
     bool firstCall = true;
@@ -493,6 +494,7 @@ Checks for a stream of kind DATA
         } else {
            newAttr = nl->TwoElemList( nl->SymbolAtom(it->second), 
                                       nl->Second(attr));
+           renameMap.erase(it);
         }
         if(firstCall){
           resAttrList = nl->OneElemList(newAttr);
@@ -507,6 +509,13 @@ Checks for a stream of kind DATA
       resAttrList = nl->TheEmptyList();
       return false;
     }
+    if(!renameMap.empty()){
+      it = renameMap.begin();
+      errmsg = "attribute " + it->first + " not found in attrlist";
+      resAttrList = nl->TheEmptyList();
+      return false;
+    }
+
     
     if(!isAttrList(resAttrList)){
       errmsg = "renamed names are not unique";
