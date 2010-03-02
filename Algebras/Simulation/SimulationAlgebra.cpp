@@ -1379,7 +1379,7 @@ int sim_trips_VM ( Word* args, Word& result,
         { // special case: last unit of the mpoint is stationary and
           // was scheduled to form an own trip
           sli->trip++;
-          res = new MPoint(true);
+          res = new MPoint(0);
           res->Clear();
           res->StartBulkLoad();
 //           cout << " Starting New Trip #" << sli->trip << ":" << endl;
@@ -1406,7 +1406,7 @@ int sim_trips_VM ( Word* args, Word& result,
       // else: regular case
       newtrip = false;
       sli->trip++;
-      res = new MPoint(true);
+      res = new MPoint(0);
       res->Clear();
       res->StartBulkLoad();
 //       cout << " Starting Trip " << sli->trip << ":" << endl;
