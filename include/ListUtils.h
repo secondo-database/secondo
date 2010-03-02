@@ -187,7 +187,10 @@ Checks for a valid description of a relation
 
   bool isRelDescription2(ListExpr rel, const string& reltype);
 
-
+  bool isOrelDescription(ListExpr orel);
+  
+  bool isKeyDescription(ListExpr tupleList, ListExpr keyList);
+  
 /*
 Checks for a tuple stream
 

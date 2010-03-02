@@ -132,12 +132,14 @@ Checks for a BTreeDescription
 
 */
 bool isBTreeDescription(ListExpr btree){
-  if(nl->ListLength(btree)!=3){
+  if((nl->ListLength(btree)<3) || (nl->ListLength(btree)>4)){
     return false;
   }
   return nl->IsEqual(nl->First(btree),"btree") &&
          isTupleDescription(nl->Second(btree)) &&
-         isDATA(nl->Third(btree));
+         isDATA(nl->Third(btree)) &&
+         ((nl->ListLength(btree) == 3) ||
+           isKeyDescription(nl->Second(btree), nl->Fourth(btree)));
 }
 
   bool isHashDescription(ListExpr hash){
@@ -327,6 +329,50 @@ Checks for a valid relation description.
     return isTupleDescription(nl->Second(rel),mtuple);   
   }
 
+  bool isOrelDescription(ListExpr orel) {
+    if(nl->ListLength(orel)!=3) {
+      return false;
+    }
+    return isSymbol(nl->First(orel),"orel") &&
+            isTupleDescription(nl->Second(orel),false) &&
+            isKeyDescription(nl->Second(orel), nl->Third(orel));
+  }
+  
+  bool isKeyDescription(ListExpr tupleList, ListExpr keyList) {
+    ListExpr attrType;
+    int attrIndex;
+    if(nl->IsAtom(keyList)) {
+      if(nl->AtomType(keyList)!=SymbolType)
+        return false;
+      attrIndex = findAttribute(nl->Second(tupleList),
+                                nl->SymbolValue(keyList), attrType);
+      return attrIndex > 0 &&
+              (isSymbol(attrType,"string") ||
+                isSymbol(attrType,"int") ||
+                isSymbol(attrType,"real") ||
+                isKind(attrType,"INDEXABLE"));
+    }
+    while(!nl->IsEmpty(keyList)) {
+      ListExpr elem = nl->First(keyList);
+      if(nl->AtomType(elem)!=SymbolType) {
+        return false;
+      }
+      keyList = nl->Rest(keyList);
+      ListExpr attrType;
+      int attrIndex = findAttribute(nl->Second(tupleList),
+                                    nl->SymbolValue(elem), attrType);
+      if (attrIndex = 0 ||
+          ( !isSymbol(attrType,"string") &&
+            !isSymbol(attrType,"int") &&
+            !isSymbol(attrType,"real") &&
+            !isKind(attrType,"INDEXABLE"))){
+        return false;
+      }
+    }
+    return true;
+  }
+      
+                                           
 
 /*
 Checks for a tuple stream
