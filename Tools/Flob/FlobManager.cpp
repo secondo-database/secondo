@@ -235,6 +235,8 @@ bool FlobManager::resize(Flob& flob, const SmiSize& newSize,
     // resize the record containing the flob
     SmiRecord record;
     SmiRecordFile* file = getFile(fileId,isTemp);
+
+
     bool ok = file->SelectRecord(recordId, record, SmiFile::Update);
     if(!ok){
       cerr << __PRETTY_FUNCTION__ << "@" << __LINE__ 
@@ -276,6 +278,10 @@ bool FlobManager::getData(
          const bool ignoreCache /* = false*/ ) {  // requested data size
   __TRACE_ENTER__
 
+ if(size==0){
+   return true;
+ }
+
   FlobId id = flob.id;
   SmiFileId   fileId =  id.fileId;
 
@@ -297,47 +303,28 @@ bool FlobManager::getData(
   SmiRecord record;
   SmiRecordFile* file = getFile(fileId,id.isTemp);
 
-  bool ok = file->SelectRecord(recordId, record);
-  if(!ok){
-      cerr << __PRETTY_FUNCTION__ << "@" << __LINE__ 
-           << "Select Record failed:" << flob << endl;
-      assert(false);
-    __TRACE_LEAVE__
-    return false;
-  }
-
   SmiSize recOffset = floboffset + offset;
 
-  // assert that the requested data are inside the record
-  if(( recOffset > record.Size() ) && (fileId==nativeFlobs)){
-     return true;
+  SmiSize actRead;
+  bool ok = file->Read(recordId, dest, size, recOffset, actRead);
+
+  if(!ok){
+    cerr << " eeror in getting data from flob " << flob << endl;
+    cerr << " actSize = " << actRead << endl;
+    cerr << "try to read = " << size << endl;
+    string err;
+    SmiEnvironment::GetLastErrorCode( err );
+    cerr << " err "<< err << endl;
+    
   }
+  assert(ok);
 
-  assert(recOffset <= record.Size());
 
-
-  SmiSize mySize = size;
-  if(record.Size()< recOffset + size){
-  // cerr << "try   to get data outside a stored record" << endl;
-  // cerr << "Flob = " << flob << endl;
-  // cerr << "offset = " << offset << endl;
-  // cerr << "size = " << size << endl;
-   mySize = record.Size() - recOffset;
+  if(actRead!= size&& file == nativeFlobFile){
+    return true;
   }
-
-  SmiSize read = record.Read(dest, mySize, recOffset);
-
-  if(read!=mySize){
-    cout << "Error in reding data from flob" << endl;
-    cout << "read = " << read << endl;
-    cout << "size = " << size << endl;
-    cout << "record.Size = " << record.Size() << endl;
-    cout << "floboffset = " << floboffset << endl;
-    cout << "offset = " << offset << endl;
-    assert(false);
-    __TRACE_LEAVE__
-    return false;
-  } 
+  assert(actRead == size);
+  
   __TRACE_LEAVE__
   return true;
 }
@@ -357,9 +344,9 @@ bool FlobManager::destroy(Flob& victim) {
    if(victim.id.fileId == nativeFlobs && victim.id.isTemp){
       nativeFlobCache->erase(victim); // delete from cache
       DestroyedFlobs->push(victim);
-      if(DestroyedFlobs->getSize() > 64000){
-        cerr << "Stack of destroyed flobs reaches a critical size " << endl;
-      }
+     // if(DestroyedFlobs->getSize() > 64000){
+     //   cerr << "Stack of destroyed flobs reaches a critical size " << endl;
+     // }
       return true;
    }
 
@@ -483,27 +470,18 @@ bool FlobManager::saveTo(const Flob& src,   // Flob to save
    //}
    assert(file->GetFileId() != nativeFlobs || !file->IsTemp());
 
-   SmiRecord record;
-   if(!file->SelectRecord(recordId, record, SmiFile::Update)){
-     __TRACE_LEAVE__
-     return false;
-   }
    char* buffer = new char[src.size];
    getData(src,buffer,0,src.size);
-   // save the data
-   SmiSize wsize = record.Write(buffer, src.size, offset);
-   record.Finish();
-   if(wsize!=src.size){
-     delete[] buffer;
-     assert(false);
-     __TRACE_LEAVE__
-     return false;
-   }
+
+   SmiSize written;
+   bool ok = file->Write(recordId, buffer, src.size, offset, written);
+   assert(ok);
+   delete[] buffer;
+   
    FlobId id(file->GetFileId(), recordId, offset, file->IsTemp());
    result.id = id;
    result.size = src.size;   
    __TRACE_LEAVE__
-   delete[] buffer;
    return true;
 }
 
@@ -596,30 +574,11 @@ bool FlobManager::putData(const Flob& dest,         // destination flob
   }
 
   // put data to disk
-  SmiRecord record;
   SmiRecordFile* file = getFile(fileId,id.isTemp);
-  bool ok = file->SelectRecord(recordId, record, SmiFile::Update);
-  if(!ok){
-      cerr << __PRETTY_FUNCTION__ << "@" << __LINE__ 
-           << "Select Record failed:" << dest << endl;
-      assert(false);
-    __TRACE_LEAVE__
-    return false;
-  }
-  if(fileId==nativeFlobs && id.isTemp){ // auto Resize for native Flobs
-    if(dest.size != record.Size()){
-      record.Resize(dest.size);
-    }
-  }
-
-  SmiSize wsize = record.Write(buffer, length, offset + targetoffset);
-  if(wsize!=length){
-    __TRACE_LEAVE__
-    return false;
-  }
-  record.Finish();
-
-  __TRACE_LEAVE__
+  SmiSize written;
+  bool ok = file->Write(recordId, buffer, length, 
+                        offset+targetoffset, written); 
+  assert(ok);
   return true;
 }
 
@@ -635,29 +594,15 @@ bool FlobManager::putData(const FlobId& id,         // destination flob
   SmiRecordId recordId = id.recordId;
   SmiSize     offset = id.offset;
 
-
-  // put data to disk
-  SmiRecord record;
+  
   SmiRecordFile* file = getFile(fileId,id.isTemp);
-  bool ok = file->SelectRecord(recordId, record, SmiFile::Update);
-  if(!ok){
-      cerr << __PRETTY_FUNCTION__ << "@" << __LINE__ 
-           << "Select Record failed:" << id << endl;
-      assert(false);
-    __TRACE_LEAVE__
-    return false;
-  }
-
-  SmiSize wsize = record.Write(buffer, length, offset + targetoffset);
-  if(wsize!=length){
-    __TRACE_LEAVE__
-    return false;
-  }
-  record.Finish();
-
-  __TRACE_LEAVE__
+  SmiSize written;
+  bool ok = file->Write(recordId, buffer, length , 
+                        offset + targetoffset , written);
+  assert(ok);
   return true;
 }
+
 /*
 ~create~
 
