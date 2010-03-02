@@ -6423,8 +6423,10 @@ template <class Mapping, class Unit,
 Word InMapping( const ListExpr typeInfo, const ListExpr instance,
                 const int errorPos, ListExpr& errorInfo, bool& correct )
 {
-
-  int numUnits = nl->ListLength(instance);
+  int numUnits = 0;
+  if(nl->AtomType(instance)==NoAtom){
+    numUnits = nl->ListLength(instance);
+  }
   Mapping* m = new Mapping( numUnits );
   correct = true;
   int unitcounter = 0;
@@ -6538,7 +6540,7 @@ void DeleteMapping( const ListExpr typeInfo, Word& w )
 template <class Mapping>
 void CloseMapping( const ListExpr typeInfo, Word& w )
 {
-  delete (Mapping *)w.addr;
+  ((Mapping *)w.addr)->DeleteIfAllowed();
   w.addr = 0;
 }
 
