@@ -76,8 +76,7 @@ SmiKey::SmiKey( const IndexableAttribute* key )
 
 SmiKey::SmiKey( const SmiKey& other )
 {
-  keyType   = other.keyType;
-  keyLength = other.keyLength;
+  keyType = SmiKey::Unknown;
   SetKey( other.keyType, other.GetAddr(), other.keyLength );
 }
 
@@ -405,6 +404,12 @@ SmiKey::GetKey( IndexableAttribute* key )
   }
 
   return ok;
+}
+
+SmiSize SmiKey::GetLength() const {
+  if(keyType == SmiKey::Composite)
+    return keyLength;
+  return -1;
 }
 
 void
