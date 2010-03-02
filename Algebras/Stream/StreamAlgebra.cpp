@@ -3350,6 +3350,7 @@ streamFilterType( ListExpr args )
 5.30.2 Value mapping for operator ~filter~
 
 */
+
 int
 streamFilterFun (Word* args, Word& result, int message, Word& local, Supplier s)
 /*
@@ -3358,45 +3359,110 @@ operator and also for one calling a parameter function.
 
 */
 {
+  struct StreamFilterLocalInfo{
+    StreamFilterLocalInfo():current( 0 ), returned( 0 ), done( false ){};
+    int current;     //tuples read
+    int returned;    //tuples returned
+    bool done;       //arg stream exhausted
+  };
   Word elem, funresult;
   ArgVectorPointer funargs;
+  StreamFilterLocalInfo *fli = static_cast<StreamFilterLocalInfo*>(local.addr);
 
-  switch( message )
-    {
-    case OPEN:
-
+  switch( message ){
+    case OPEN:{
+      if(fli){
+        delete fli;
+      }
+      fli = new StreamFilterLocalInfo();
+      local.setAddr(fli);
       qp->Open(args[0].addr);
       return 0;
-
-    case REQUEST:
-
+    }
+    case REQUEST:{
+      if(!fli || fli->done){ return CANCEL; }
       funargs = qp->Argument(args[1].addr);  //Get the argument vector for
       //the parameter function.
       qp->Request(args[0].addr, elem);
-      while ( qp->Received(args[0].addr) )
-        {
-          (*funargs)[0] = elem;
-          //Supply the argument for the
-          //parameter function.
-          qp->Request(args[1].addr, funresult);
-          //Ask the parameter function
-          //to be evaluated.
-          if ( ((CcBool*) funresult.addr)->GetBoolval() )
-            {
-              result = elem;
-              return YIELD;
-            }
-          //consume the stream object:
+      while ( qp->Received(args[0].addr) ) {
+        fli->current++;
+        (*funargs)[0] = elem;
+        //Supply the argument for the
+        //parameter function.
+        qp->Request(args[1].addr, funresult);
+        //Ask the parameter function
+        //to be evaluated.
+        if ( ((CcBool*) funresult.addr)->GetBoolval() ){
+          // object fulfills condition - pass it on:
+          result = elem;
+          fli->returned++;
+          return YIELD;
+        }
+        //otherwise: consume the stream object:
         ((Attribute*) elem.addr)->DeleteIfAllowed();
         qp->Request(args[0].addr, elem); // get next element
-        }
+      } // while
       return CANCEL;
-
-    case CLOSE:
-
+    }
+    case CLOSE:{
       qp->Close(args[0].addr);
       return 0;
     }
+    case CLOSEPROGRESS:{
+      if( fli ){
+        delete fli;
+        local.setAddr(0);
+      }
+      return 0;
+    }
+    case REQUESTPROGRESS:{
+      ProgressInfo p1;
+      ProgressInfo* pRes;
+      const double uFilter = 0.01;
+      pRes = (ProgressInfo*) result.addr;
+      if ( qp->RequestProgress(args[0].addr, &p1) ){
+        pRes->CopySizes(p1);
+        if ( fli ){    //filter was started
+          if ( fli->done ){  //arg stream exhausted, all known
+            pRes->Card = (double) fli->returned;
+            pRes->Time = p1.Time + (double) fli->current
+                          * qp->GetPredCost(s) * uFilter;
+            pRes->Progress = 1.0;
+            pRes->CopyBlocking(p1);
+            return YIELD;
+          }
+          if ( fli->returned >= enoughSuccessesSelection ){
+            //stable state assumed now
+            pRes->Card =  p1.Card *
+              ( (double) fli->returned / (double) (fli->current));
+            pRes->Time = p1.Time + p1.Card * qp->GetPredCost(s) * uFilter;
+            if ( p1.BTime < 0.1 && pipelinedProgress ){
+              //non-blocking, use pipelining
+              pRes->Progress = p1.Progress;
+            } else {
+              pRes->Progress = (p1.Progress * p1.Time
+                + fli->current * qp->GetPredCost(s) * uFilter) / pRes->Time;
+            }
+            pRes->CopyBlocking(p1);
+            return YIELD;
+          }
+        }
+        //filter not yet started or not enough seen
+        pRes->Card = p1.Card * qp->GetSelectivity(s);
+        pRes->Time = p1.Time + p1.Card * qp->GetPredCost(s) * uFilter;
+        if ( p1.BTime < 0.1 && pipelinedProgress ){
+          //non-blocking, use pipelining
+          pRes->Progress = p1.Progress;
+        } else {
+          pRes->Progress = (p1.Progress * p1.Time) / pRes->Time;
+        }
+        pRes->CopyBlocking(p1);
+        return YIELD;
+      } else {
+        return CANCEL;
+      }
+    }
+  } // switch
   /* should not happen */
   return -1;
 }
@@ -4547,6 +4613,7 @@ public:
     streamtransformstream.EnableProgress();
     namedtransformstream.EnableProgress();
     streamfeed.EnableProgress();
+    streamfilter.EnableProgress();
     timeout.EnableProgress();
 #endif
   }
