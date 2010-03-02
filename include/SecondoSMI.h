@@ -391,6 +391,12 @@ Returns the type of the key.
 Returns the value of the key. The argument type must match the type of the key!
 
 */
+  SmiSize GetLength() const;
+/*
+Returns the length of the key if the key is a composite key, otherwise -1 is
+returned.
+
+*/
   static void Map( const long   inData, void* outData );
   static void Map( const double inData, void* outData );
   static void Unmap( const void* inData, long&   outData );
@@ -1386,7 +1392,7 @@ Destroys a file handle.
 
 */
 
-  bool KeyRange( const SmiKey& key, SmiKeyRange& range );
+  bool KeyRange( const SmiKey& key, SmiKeyRange& range ) const;
 
 /*
 Returns three double values stored in the reference argument range, 

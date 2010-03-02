@@ -302,7 +302,7 @@ SmiBtreeFile::SelectAll( SmiKeyedFileIterator& iterator,
 
 bool
 SmiBtreeFile::KeyRange( const SmiKey& key,
-                        SmiKeyRange& range )
+                        SmiKeyRange& range ) const
 {
     int rc = 0;
 
