@@ -17,6 +17,7 @@ using namespace std;
 
 #include "SecondoSMI.h"
 #include "StandardTypes.h"
+#include "CompositeKey.h"
 
 /*
 
@@ -72,12 +73,19 @@ Returns the tuple id of the iterator's current position.
 
 */
 
+    const CompositeKey& GetTupleKey() const;
+/*
+Returns the tupleKey of the iterator's current position, if the
+BTree is build over an OrderedRelation.
+
+*/
+
   private:
 
     BTreeFileIteratorT* fileIter;
     SmiRecordId id;
     SmiKey smiKey;
-    SmiRecord record;
+    CompositeKey tupleKey;
 };
 
 /*
@@ -150,9 +158,21 @@ Inserts in the B-Tree the pair <~key~, ~recordid~>.
 
 */
 
+    bool Append(const SmiKey& key, const CompositeKey& tupleKey);
+/*
+Inserts in the B-Tree the pair <~key~, ~tupleKey~>.
+
+*/
+
     bool Delete(const SmiKey& key, const SmiRecordId id);
 /*
 Deletes in the B-Tree the pair <~key~, ~recordid~>.
+
+*/
+
+    bool Delete(const SmiKey& key, const CompositeKey& tupleKey);
+/*
+Deletes in the B-Tree the pair <~key~, ~tupleKey~>.
 
 */
 

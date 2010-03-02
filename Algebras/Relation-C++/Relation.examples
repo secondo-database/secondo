@@ -47,6 +47,12 @@ Signature: (stream x) -> (rel x)
 Example  : query plz feed consume feed filter[.Ort = "Unna"] count
 Result   : 16
 
+Operator : oconsume
+Number   : 1
+Signature: (stream (tuple X) x (ident1 ... identn) -> (orel (tuple X) (ident1 ... identn))
+Example  : query plz feed oconsume [Ort]
+Result   : TRUE
+
 Operator : count
 Number   : 1
 Signature: ((stream/rel (tuple x))) -> int

@@ -66,6 +66,7 @@ RelationAlgebra.h header file.
 
 */
 #include "RelationAlgebra.h"
+#include "OrderedRelationAlgebra.h"
 //#include "OldRelationAlgebra.h"
 #include "NestedList.h"
 #include "QueryProcessor.h"
@@ -979,7 +980,10 @@ ListExpr FeedTypeMap(ListExpr args)
      listutils::isRelDescription(first,false)){
     return nl->Cons(nl->SymbolAtom("stream"), nl->Rest(first));
   }
-  ErrorReporter::ReportError("rel(tuple(...)) or trel(tuple(...)) expected");
+  if(listutils::isOrelDescription(first))
+    return nl->TwoElemList(nl->SymbolAtom("stream"), nl->Second(first));
+  ErrorReporter::ReportError("rel(tuple(...)), trel(tuple(...)) or "
+                              "orel(tuple(...)) expected");
   return nl->TypeError();
 }
 /*
@@ -1557,17 +1561,19 @@ Operator ~consume~ accepts a stream of tuples and returns a relation.
 
 */
 
-ListExpr ConsumeTypeMap(ListExpr args)
+template<bool isOrel> ListExpr ConsumeTypeMap(ListExpr args)
 {
-  if(nl->ListLength(args)!=1){
-    ErrorReporter::ReportError("one argument expected");
+  string expected = isOrel?"(stream(tuple(...)) (sortby_Ids)) expected":
+                            "stream(tuple(...)) expected";
+  if(nl->ListLength(args) != (isOrel?2:1)){
+    ErrorReporter::ReportError(expected);
     return nl->TypeError();
   }
 
   ListExpr first = nl->First(args);
 
   if(!listutils::isTupleStream(first)){
-    ErrorReporter::ReportError("stream(tuple(...)) expected");
+    ErrorReporter::ReportError(expected);
     return nl->TypeError();
   }
 
@@ -1586,8 +1592,19 @@ ListExpr ConsumeTypeMap(ListExpr args)
       return nl->TypeError();
     }
   }
-
-  return nl->Cons(nl->SymbolAtom("rel"), nl->Rest(first));
+  if(!isOrel) {
+    return nl->Cons(nl->SymbolAtom("rel"), nl->Rest(first));
+  } else {
+    if(!listutils::isKeyDescription(nl->Second(first),nl->Second(args))) {
+      ErrorReporter::ReportError("all identifiers of second argument must "
+                                  "appear in the first argument");
+      return nl->TypeError();
+    }
+    ListExpr result = nl->ThreeElemList(nl->SymbolAtom(OREL),
+                                        nl->Second(first),
+                                        nl->Second(args));
+    return result;
+  }
 }
 
 /*
@@ -1605,7 +1622,7 @@ Consume(Word* args, Word& result, int message,
 {
   Word actual;
 
-  GenericRelation* rel = (Relation*)((qp->ResultStorage(s)).addr);
+  GenericRelation* rel = (GenericRelation*)((qp->ResultStorage(s)).addr);
   if(rel->GetNoTuples() > 0)
   {
     rel->Clear();
@@ -1656,7 +1673,7 @@ Consume(Word* args, Word& result, int message,
     cli->current = 0;
     local.setAddr(cli);
 
-    GenericRelation* rel = (Relation*)((qp->ResultStorage(s)).addr);
+    GenericRelation* rel = (GenericRelation*)((qp->ResultStorage(s)).addr);
     if(rel->GetNoTuples() > 0)
     {
       rel->Clear();
@@ -1768,6 +1785,17 @@ const string ConsumeSpec  =
   "<text>query cities feed consume</text--->"
   ") )";
 
+const string OConsumeSpec = 
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+  "\"Example\" ) "
+  "( <text>(stream (tuple(a1:t1 ... an:tn) x (ai aj ak) -> "
+  "(orel (tuple(a1:t1 ... an:tn)) (ai aj ak))</text--->"
+  "<text>_ oconsume [list]</text--->"
+  "<text>Collects objects from a stream and sorts them according to the second"
+  " argument.</text--->"
+  "<text>query cities feed oconsume [BevT,Name]</text--->"
+  ") )";
+
 /*
 
 5.6.4 Definition of operator ~consume~
@@ -1778,7 +1806,15 @@ Operator relalgconsume (
    ConsumeSpec,            // specification
    Consume,                // value mapping
    Operator::SimpleSelect, // trivial selection function
-   ConsumeTypeMap          // type mapping
+   ConsumeTypeMap<false>   // type mapping
+);
+
+Operator relalgoconsume (
+   "oconsume",             // name
+   OConsumeSpec,           // specification
+   Consume,                // value mapping
+   Operator::SimpleSelect, // trivial selection function
+   ConsumeTypeMap<true>    // type mapping
 );
 
 /*
@@ -5746,6 +5782,7 @@ class RelationAlgebra : public Algebra
 
     AddOperator(&relalgfeed);
     AddOperator(&relalgconsume);
+    AddOperator(&relalgoconsume);
     AddOperator(&relalgTUPLE);
     AddOperator(&relalgTUPLE2);
     AddOperator(&relalgattr);
@@ -5787,6 +5824,7 @@ Register operators which are able to handle progress messages
 #ifdef USE_PROGRESS
     relalgfeed.EnableProgress();
     relalgconsume.EnableProgress();
+    relalgoconsume.EnableProgress();
     relalgfilter.EnableProgress();
     relalgproject.EnableProgress();
     relalgremove.EnableProgress();

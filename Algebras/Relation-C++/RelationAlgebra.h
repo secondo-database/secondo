@@ -966,6 +966,26 @@ record.
                    vector<double>& attrSize );
 
 
+  void SaveOrel(SmiRecord* record, SmiFileId& lobFileId, double& extSize,
+                double& size, vector<double>& attrExtSize, 
+                vector<double>& attrSize,
+                bool ignorePersistentLOBs, TupleId tupleId);
+
+  bool OpenOrel( SmiFileId lobfileId,
+                 SmiRecord& record, TupleId tupleId );
+ 
+  bool OpenOrel(SmiFileId lobFileId,
+                PrefetchingIterator* iter, TupleId tupleId);
+
+  bool OpenPartialOrel( TupleType* newtype, const list<int>& attrList,
+                        SmiFileId lobfileId, PrefetchingIterator* iter,
+                        TupleId tupleId);
+
+  void UpdateAttributesOrel( const vector<int>& changedIndices,
+                             const vector<Attribute*>& newAttrs );
+
+
+
 
 /*
 Opens a tuple from ~tuplefile~(~rid~) and ~lobfile~.
@@ -1734,6 +1754,8 @@ The function to retrieve the current tuple ~id~.
 
 */
 
+ virtual bool EndOfScan() const{ return false;} 
+
 };
 
 /*
@@ -1843,6 +1865,16 @@ tuple data, resp. LOB data of the relation.
 Return value will be false, if an error occured.
 
 */
+
+   virtual bool DeleteTuple(Tuple* t) = 0;
+/*
+  The function that deletes the given Tuple from the relation
+
+*/
+  virtual void UpdateTuple( Tuple *tuple,
+                            const vector<int>& changedIndices,
+                            const vector<Attribute *>& newAttrs ) = 0;
+
 
 };
 
@@ -1996,6 +2028,24 @@ Checks if the tuple buffer is empty or not.
 
 */
 
+
+   virtual bool DeleteTuple(Tuple* t){ 
+      bool implemented = false;
+      assert(implemented);
+      return false;
+   }
+/*
+  The function that deletes the given Tuple from the relation
+
+*/
+  virtual void UpdateTuple( Tuple *tuple,
+                            const vector<int>& changedIndices,
+                            const vector<Attribute *>& newAttrs ){
+     bool implemented = false;
+     assert(implemented);
+  }
+
+
     friend class TupleBufferIterator;
 
   private:
@@ -2125,7 +2175,7 @@ the end of a relation.
 Returns the tuple identifier of the current tuple.
 
 */
-    bool EndOfScan();
+    bool EndOfScan() const;
 /*
 Tells whether the cursor is in the end of a relation.
 

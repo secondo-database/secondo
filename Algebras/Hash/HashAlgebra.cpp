@@ -49,7 +49,7 @@ using namespace std;
 #include "DateTime.h"
 #include "TupleIdentifier.h"
 #include "Progress.h"
-#include "../BTree/BTreeAlgebra.h"
+#include "BTreeAlgebra.h"
 #include "FTextAlgebra.h"
 #include "ListUtils.h"
 
@@ -67,6 +67,56 @@ using namespace std;
 extern NestedList* nl;
 extern QueryProcessor *qp;
 extern AlgebraManager *am;
+
+
+/*
+2.5 Function ~WriteRecordId~
+
+Writes a ~SmiRecordId~ to a ~SmiRecord~.
+
+*/
+bool WriteRecordId(SmiRecord& record, SmiRecordId id)
+{
+  SmiSize bytesWritten;
+  SmiSize idSize = sizeof(SmiRecordId);
+  
+  bytesWritten = record.Write(&id, idSize);
+  return bytesWritten == idSize;
+}
+
+/*
+2.6 Function ~ReadRecordId~
+
+Reads a ~SmiRecordId~ from a ~SmiRecord~.
+
+*/
+bool ReadRecordId(SmiRecord& record, SmiRecordId& id)
+{
+  SmiSize bytesRead;
+  SmiRecordId ids[2];
+  SmiSize idSize = sizeof(SmiRecordId);
+  
+  bytesRead = record.Read(ids, 2 * idSize);
+  id = ids[0];
+  return bytesRead == idSize;
+}
+
+/*
+2.7 Function ~ReadRecordId~
+
+Reads a ~SmiRecordId~ from a ~PrefetchingIterator~.
+
+*/
+bool ReadRecordId(PrefetchingIterator* iter, SmiRecordId& id)
+{
+  SmiSize bytesRead;
+  SmiRecordId ids[2];
+  SmiSize idSize = sizeof(SmiRecordId);
+  
+  bytesRead = iter->ReadCurrentData(ids, 2 * idSize);
+  id = ids[0];
+  return bytesRead == idSize;
+}
 
 
 /*

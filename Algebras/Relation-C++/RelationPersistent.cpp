@@ -2433,7 +2433,7 @@ TupleId RelationIterator::GetTupleId() const
   return currentTupleId;
 }
 
-bool RelationIterator::EndOfScan()
+bool RelationIterator::EndOfScan() const
 {
   return endOfScan;
 }

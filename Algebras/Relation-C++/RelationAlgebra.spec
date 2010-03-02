@@ -30,6 +30,7 @@ operator sizecounters alias SIZECOUNTERS pattern _ op[ _ ]
 operator dumpstream alias DUMPSTREAM pattern _ op[ _ ]
 operator feed alias FEED pattern _ op
 operator consume alias CONSUME pattern _ op
+operator oconsume alias OCONSUME pattern _ op [ list ]
 operator tconsume alias TCONSUME pattern _ op
 operator attr alias ATTR pattern op (_, _)
 operator project alias PROJECT pattern _ op [list]
