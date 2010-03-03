@@ -52,6 +52,9 @@ ALGEBRAS     += RelationAlgebra
 ALGEBRA_DIRS += ExtRelation-C++
 ALGEBRAS     += ExtRelationAlgebra
 
+ALGEBRA_DIRS += OrderedRelation
+ALGEBRAS     += OrderedRelationAlgebra
+
 ALGEBRA_DIRS += BTree
 ALGEBRAS     += BTreeAlgebra
 
