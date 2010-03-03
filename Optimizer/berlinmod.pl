@@ -64,9 +64,7 @@ createBMODauxObject(Name, Query, S) :-
     -> ( write('## Auxiliary object: '), write(Name), write('\n'),
          write('## SQL: '), write(Query),
          write('\n## Expected Cost: '), write(Cost),
-         write('\ndelete '), write(Name), write(';\n'),
-         write('let '), write(Name), write(' = '),
-         write(Plan), write(';\n\n')
+         write('\n## Optimized Plan: let '), write(Name), write(' ='), write(Plan), write(';\n\n')
       )
     ; ( write(S, '## Auxiliary object: '), write(S, Name), write(S, '\n'),
         write(S, '## SQL: '), write(S, Query),
@@ -78,7 +76,7 @@ createBMODauxObject(Name, Query, S) :-
   ),
   ( secondoCatalogInfo(Name, _, _, _)
     -> write_list(['Object \'', Name, '\' already exists.\n\n'])
-    ;  ( write_list(['Creating Object \'', Name, '\' ...']),
+    ;  ( write_list(['Creating Object \'', Name, '\' to continue with optimization...']),
          concat_atom([Name, '=', Plan], ' ', Plan2),
          let(Plan2),
          write_list(['finished.\n\n'])
