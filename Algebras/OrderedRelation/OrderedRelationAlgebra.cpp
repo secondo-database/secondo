@@ -1034,14 +1034,15 @@ template<RangeKind rk> int ORangeValueMap(Word* args, Word& result, int message,
         SmiKeyRange fromRange, toRange;
         if(rk==RightRange || Range) {
           orel->GetTupleFile()->KeyRange(linfo->fromKey.GetSmiKey(),fromRange);
-          linfo->Card = linfo->total*(1-fromRange.less);
+          linfo->Card = (int)(linfo->total*(1-fromRange.less));
           if(rk==Range) {
             orel->GetTupleFile()->KeyRange(linfo->toKey.GetSmiKey(), toRange);
-            linfo->Card = linfo->total*(1-toRange.greater-fromRange.less);
+            linfo->Card = (int)(linfo->total*(1-toRange.greater - 
+                                                fromRange.less));
           }
         } else {
           orel->GetTupleFile()->KeyRange(linfo->toKey.GetSmiKey(), toRange);
-          linfo->Card = linfo->total*(1-toRange.greater);
+          linfo->Card = (int)(linfo->total*(1-toRange.greater));
         }
       }
       
@@ -1077,7 +1078,7 @@ template<RangeKind rk> int ORangeValueMap(Word* args, Word& result, int message,
       p = (ProgressInfo*)result.addr;
       p->CopySizes(linfo);
       if(linfo->returned > linfo->Card) {
-        linfo->Card = linfo->returned * 1.1;
+        linfo->Card = (int)(linfo->returned * 1.1);
         if (linfo->Card > linfo->total) {
           linfo->Card = linfo->total;
         }
@@ -1274,3 +1275,5 @@ extern "C" Algebra* InitializeOrderedRelationAlgebra(NestedList* nlRef,
   am = SecondoSystem::GetAlgebraManager();
   return new OrderedRelationAlgebra();
 }
+
+

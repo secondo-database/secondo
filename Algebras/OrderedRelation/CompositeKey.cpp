@@ -110,6 +110,7 @@ CompositeKey::CompositeKey(SmiKey& key) {
       charsize = key.GetLength();
       key.GetKey(this);
       return;
+    default: assert(false);
   }
   defined = true;
 }
@@ -269,13 +270,14 @@ SmiKey CompositeKey::GetSmiKey() const {
       return SmiKey(sVal);
     case SmiKey::Composite:
       return SmiKey(this);
+    default: assert(false);
   }
   return SmiKey();
 }
 
 TupleId CompositeKey::GetAppendix() const {
   long lVal;
-  SmiKey::Unmap((void*)(((int)data)+charsize-sizeof(lVal)), lVal);
+  SmiKey::Unmap((void*)((char*)(data)+charsize-sizeof(lVal)), lVal);
   return (TupleId)lVal;
 }
 
@@ -423,12 +425,12 @@ void CompositeKey::init(const vector<void*>& attributes,
     if(charsize+tmpSize>maxSize){
       tmpSize = maxSize-charsize;
     }
-    memcpy((void*)(((int)data)+charsize), tmpData, tmpSize);
+    memcpy((void*)(((char*)data)+charsize), tmpData, tmpSize);
     free(tmpData);
     charsize += tmpSize;
   }
   if(mode == appendNumber) {
-    SmiKey::Map((long)appendix, (void*)(((int)data)+charsize));
+    SmiKey::Map((long)appendix, (void*)(((char*)data)+charsize));
     charsize += sizeof(long);
     maxSize += sizeof(long);
   } else if(mode == upperRange) {
@@ -509,3 +511,5 @@ void CompositeKey::init(PrefetchingIterator* iter, SmiSize& offset) {
   offset += charsize;
   defined = true;
 }
+
+
