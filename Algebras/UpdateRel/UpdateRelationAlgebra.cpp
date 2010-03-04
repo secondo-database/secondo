@@ -106,7 +106,8 @@ ListExpr createAuxiliaryRelTypeMap( const ListExpr& args,
   }
   first = nl->First(args);
 
-  if(!listutils::isRelDescription(first)){
+  if(!listutils::isRelDescription(first) &&
+      !listutils::isOrelDescription(first)){
     return listutils::typeError("relation expected");
   }
 
@@ -304,8 +305,9 @@ ListExpr insertDeleteRelTypeMap( ListExpr& args, string opName )
    return listutils::typeError("first argument must be a tuple stream");
   }
 
-  if(!listutils::isRelDescription(second)){
-   return listutils::typeError("second argument must be of type relation");
+  if(!listutils::isRelDescription(second) &&
+      !listutils::isOrelDescription(second)){
+    return listutils::typeError("second argument must be of type rel or orel");
   }
 
   if(!nl->Equal(nl->Second(first),nl->Second(second))){
@@ -354,7 +356,7 @@ int insertRelValueMap(Word* args, Word& result, int message,
 {
   Word t;
   Tuple* tup;
-  Relation* relation;
+  GenericRelation* relation;
   TupleType *resultTupleType;
   ListExpr resultType;
 
@@ -369,7 +371,7 @@ int insertRelValueMap(Word* args, Word& result, int message,
 
     case REQUEST :
       resultTupleType = (TupleType*) local.addr;
-      relation = (Relation*)(args[1].addr);
+      relation = (GenericRelation*)(args[1].addr);
       assert(relation != 0);
       qp->Request(args[0].addr,t);
       if (qp->Received(args[0].addr))
@@ -475,12 +477,13 @@ ListExpr insertSaveRelTypeMap( ListExpr args )
     return listutils::typeError("first argument must be a tuple stream");
   }
 
-  if(!listutils::isRelDescription(second)){
+  if(!listutils::isRelDescription(second) &&
+     !listutils::isOrelDescription(second)){
     return listutils::typeError("second argument must be a relation");
   }
 
   if(!listutils::isRelDescription(third)){
-    return listutils::typeError("third arguments muts be a relation");
+    return listutils::typeError("third argument must be a relation");
   }
 
   if(!nl->Equal(nl->Second(first),nl->Second(second))){
@@ -502,13 +505,11 @@ ListExpr insertSaveRelTypeMap( ListExpr args )
                         nl->TwoElemList(
                           nl->SymbolAtom("TID"),
                           nl->SymbolAtom("tid")));
-  nl->WriteToString(argstr, listn);
-  nl->WriteToString(argstr2, nl->Second(nl->Second(third)));
   
   if(!nl->Equal(listn, nl->Second(nl->Second(third)))){
     return listutils::typeError("tuple type of the third argument must equal "
               "to the tuple type of the first arguments with an additional "
-              " tid as last attribute");
+              "tid as last attribute");
         
   }
   outList = nl->TwoElemList(nl->SymbolAtom("stream"),
@@ -525,7 +526,7 @@ int insertSaveRelValueMap(Word* args, Word& result, int message,
 {
   Word t;
   Tuple* tup;
-  Relation* relation;
+  GenericRelation* relation;
   Relation* auxRelation;
   TupleType *resultTupleType;
   ListExpr resultType;
@@ -639,8 +640,8 @@ int deleteSearchRelValueMap(Word* args, Word& result, int message,
   Tuple* tup;
   Tuple* nextTup;
   Tuple* newTuple;
-  Relation* relation;
-  RelationIterator* iter;
+  GenericRelation* relation;
+  GenericRelationIterator* iter;
   ListExpr resultType;
   vector<Tuple*>* nextBucket;
   struct LocalTransport
@@ -692,9 +693,9 @@ int deleteSearchRelValueMap(Word* args, Word& result, int message,
     case OPEN :
       qp->Open(args[0].addr);
       localTransport = new LocalTransport();
-      relation = (Relation*)(args[1].addr);
+      relation = (GenericRelation*)(args[1].addr);
       assert(relation != 0);
-      iter = new RelationIterator(*relation);
+      iter = relation->MakeScan();
       nextTup = iter->GetNextTuple();
       // fill hashtable
       while (!iter->EndOfScan())
@@ -730,7 +731,7 @@ int deleteSearchRelValueMap(Word* args, Word& result, int message,
       }
 
       // no duplicate has to be send to the resultstream
-      relation = (Relation*)(args[1].addr);
+      relation = (GenericRelation*)(args[1].addr);
       assert(relation != 0);
       tupleFound = false;
       // tupleFound will stay false until a matching tuple to a
@@ -868,7 +869,7 @@ int deleteDirectRelValueMap(Word* args, Word& result, int message,
 {
   Word t;
   Tuple* tup;
-  Relation* relation;
+  GenericRelation* relation;
   TupleType *resultTupleType;
   ListExpr resultType;
 
@@ -883,7 +884,7 @@ int deleteDirectRelValueMap(Word* args, Word& result, int message,
 
     case REQUEST :
       resultTupleType = (TupleType*) local.addr;
-      relation = (Relation*)(args[1].addr);
+      relation = (GenericRelation*)(args[1].addr);
       assert(relation != 0);
       qp->Request(args[0].addr,t);
       if (qp->Received(args[0].addr))
@@ -992,8 +993,10 @@ ListExpr deleteSaveRelTypeMap( ListExpr& args, string opName )
    return listutils::typeError("first argument has to be a tuple stream");
   }
 
-  if(!listutils::isRelDescription(second)){
-    return listutils::typeError("second argument has to be of type rel");
+  if(!listutils::isRelDescription(second) &&
+      !listutils::isOrelDescription(second)){
+    return listutils::typeError("second argument has to be of type rel "
+                                "or orel");
   }
   
   if(!listutils::isRelDescription(third)){
@@ -1001,7 +1004,7 @@ ListExpr deleteSaveRelTypeMap( ListExpr& args, string opName )
   }
 
   if(!nl->Equal(nl->Second(first),nl->Second(second))){
-   return listutils::typeError("tuple types of the firrst two "
+   return listutils::typeError("tuple types of the first two "
                                "arguments must be equal");
   }
 
@@ -1022,7 +1025,7 @@ ListExpr deleteSaveRelTypeMap( ListExpr& args, string opName )
   if(!nl->Equal(listn,nl->Second(nl->Second(third)))){
     return listutils::typeError("attribute list of the third argument "
             "must be equal to the attribute list of the first element "
-            " with an additional tid attribute");
+            "with an additional tid attribute");
   }
 
   outList = nl->TwoElemList(nl->SymbolAtom("stream"),
@@ -1052,9 +1055,9 @@ int deleteSearchSaveRelValueMap(Word* args, Word& result, int message,
   Tuple* tup;
   Tuple* nextTup;
   Tuple* newTuple;
-  Relation* relation;
+  GenericRelation* relation;
   Relation* auxRelation;
-  RelationIterator* iter;
+  GenericRelationIterator* iter;
   ListExpr resultType;
   vector<Tuple*>* nextBucket;
   struct LocalTransport
@@ -1105,9 +1108,9 @@ int deleteSearchSaveRelValueMap(Word* args, Word& result, int message,
     case OPEN :
       qp->Open(args[0].addr);
       localTransport = new LocalTransport();
-      relation = (Relation*)(args[1].addr);
+      relation = (GenericRelation*)(args[1].addr);
       assert(relation != 0);
-      iter = new RelationIterator(*relation);
+      iter = relation->MakeScan();
       nextTup = iter->GetNextTuple();
       while (!iter->EndOfScan())
       {
@@ -1289,7 +1292,7 @@ int deleteDirectSaveRelValueMap(Word* args, Word& result,
 {
   Word t;
   Tuple* tup;
-  Relation* relation;
+  GenericRelation* relation;
   Relation* auxRelation;
   TupleType *resultTupleType;
   ListExpr resultType;
@@ -1305,7 +1308,7 @@ int deleteDirectSaveRelValueMap(Word* args, Word& result,
 
     case REQUEST :
       resultTupleType = (TupleType*) local.addr;
-      relation = (Relation*)(args[1].addr);
+      relation = (GenericRelation*)(args[1].addr);
       assert(relation != 0);
       auxRelation = (Relation*)(args[2].addr);
       assert(auxRelation != 0);
@@ -1410,8 +1413,9 @@ ListExpr insertTupleTypeMap(ListExpr args)
   first = nl->First(args);
   second = nl->Second(args);
   
-  if(!listutils::isRelDescription(first)){
-    return listutils::typeError("relation as first arg expected");
+  if(!listutils::isRelDescription(first) &&
+    !listutils::isOrelDescription(first)){
+    return listutils::typeError("rel or orel as first arg expected");
   }
 
   if(nl->AtomType(second)!=NoAtom){
@@ -1462,9 +1466,13 @@ int insertTupleRelValueMap(Word* args, Word& result, int message,
   Word attrValue;
   Tuple* insertTuple;
   Tuple* resultTuple;
-  Relation* relation;
+  GenericRelation* relation;
   TupleType *resultTupleType;
   ListExpr resultType;
+  TupleType* insertTupleType;
+  ListExpr insertType;
+  ListExpr rest;
+  ListExpr last;
   bool* firstcall;
   Supplier supplier, supplier1;
   Attribute* attr;
@@ -1484,10 +1492,23 @@ int insertTupleRelValueMap(Word* args, Word& result, int message,
         *firstcall = false;
         resultType = GetTupleResultType( s );
         resultTupleType = new TupleType( nl->Second( resultType ) );
-        relation = (Relation*)(args[0].addr);
+        relation = (GenericRelation*)(args[0].addr);
         assert(relation != 0);
         resultTuple = new Tuple( resultTupleType );
-        insertTuple = new Tuple( relation->GetTupleType());
+        
+        rest = nl->Second(nl->Second(resultType));
+        insertType = nl->OneElemList(nl->First(rest));
+        last = insertType;
+        rest = nl->Rest(rest);
+        while(nl->ListLength(rest)>1) {
+          last = nl->Append(last, nl->First(rest));
+          rest = nl->Rest(rest);
+        }
+        insertType = nl->TwoElemList(nl->SymbolAtom("tuple"),
+                                     insertType);
+        
+        insertTupleType = new TupleType( insertType );
+        insertTuple = new Tuple( insertTupleType );
         supplier = args[1].addr;
         for( int i = 0; i < resultTuple->GetNoAttributes()-1; i++ )
         {
@@ -1505,6 +1526,7 @@ int insertTupleRelValueMap(Word* args, Word& result, int message,
         result.setAddr(resultTuple);
         insertTuple->DeleteIfAllowed();
         resultTupleType->DeleteIfAllowed();
+        insertTupleType->DeleteIfAllowed();
         return YIELD;
       }
       else
@@ -1589,7 +1611,8 @@ ListExpr insertTupleSaveTypeMap(ListExpr args)
   second = nl->Second(args);
   third= nl->Third(args);
 
-  if(!listutils::isRelDescription(first)){
+  if(!listutils::isRelDescription(first) &&
+    !listutils::isOrelDescription(first)){
     return listutils::typeError("first argument must be a relation");
   }
 
@@ -1631,8 +1654,6 @@ ListExpr insertTupleSaveTypeMap(ListExpr args)
                            nl->SymbolAtom("tid")));
   // Check if result-tupletype and type of the auxiliary relation
   // are the same
-  nl->WriteToString(argstr, listn);
-  nl->WriteToString(argstr2, nl->Second(nl->Second(second)));
 
   if(!nl->Equal(listn, nl->Second(nl->Second(second)))){
     return listutils::typeError("second argument must be a relation having "
@@ -1656,10 +1677,14 @@ int insertTupleSaveRelValueMap(Word* args, Word& result,
   Word attrValue;
   Tuple* insertTuple;
   Tuple* resultTuple;
-  Relation* relation;
+  GenericRelation* relation;
   Relation* auxRelation;
   TupleType *resultTupleType;
   ListExpr resultType;
+  TupleType* insertTupleType;
+  ListExpr insertType;
+  ListExpr rest;
+  ListExpr last;
   bool* firstcall;
   Supplier supplier, supplier1;
   Attribute* attr;
@@ -1679,12 +1704,25 @@ int insertTupleSaveRelValueMap(Word* args, Word& result,
         *firstcall = false;
         resultType = GetTupleResultType( s );
         resultTupleType = new TupleType( nl->Second( resultType ) );
-        relation = (Relation*)(args[0].addr);
+        relation = (GenericRelation*)(args[0].addr);
         assert(relation != 0);
         auxRelation = (Relation*)(args[1].addr);
         assert(auxRelation != 0);
         resultTuple = new Tuple( resultTupleType );
-        insertTuple = new Tuple( relation->GetTupleType());
+        
+        rest = nl->Second(nl->Second(resultType));
+        insertType = nl->OneElemList(nl->First(rest));
+        last = insertType;
+        rest = nl->Rest(rest);
+        while(nl->ListLength(rest)>1) {
+          last = nl->Append(last, nl->First(rest));
+          rest = nl->Rest(rest);
+        }
+        insertType = nl->TwoElemList(nl->SymbolAtom("tuple"),
+                                     insertType);
+        
+        insertTupleType = new TupleType( insertType );
+        insertTuple = new Tuple( insertTupleType );
         supplier = args[2].addr;
         for( int i = 0; i < resultTuple->GetNoAttributes()-1; i++ )
         {
@@ -1703,6 +1741,7 @@ int insertTupleSaveRelValueMap(Word* args, Word& result,
         result.setAddr(resultTuple);
         insertTuple->DeleteIfAllowed();
         resultTupleType->DeleteIfAllowed();
+        insertTupleType->DeleteIfAllowed();
         return YIELD;
       }
       else
@@ -1797,7 +1836,8 @@ ListExpr updateTypeMap( ListExpr& args, string opName )
     return listutils::typeError("tuple stream expected");
   }
   
-  if(!listutils::isRelDescription(second)){
+  if(!listutils::isRelDescription(second) &&
+    !listutils::isOrelDescription(second)){
     return listutils::typeError("second argument must be a relation");
   }
 
@@ -1870,7 +1910,7 @@ ListExpr updateTypeMap( ListExpr& args, string opName )
     lastlistn = nl->Append(lastlistn,nl->First(rest));
     rest = nl->Rest(rest);
   }
-  // build secondo part of the resultstream
+  // build second part of the resultstream
   rest = nl->Second(nl->Second(first));
   while (!(nl->IsEmpty(rest)))
   {
@@ -1926,7 +1966,7 @@ int UpdateDirect(Word* args, Word& result, int message,
   ArgVectorPointer funargs;
   TupleType *resultTupleType;
   ListExpr resultType;
-  Relation* relation;
+  GenericRelation* relation;
   Attribute* newAttribute;
 
   switch (message)
@@ -1942,7 +1982,7 @@ int UpdateDirect(Word* args, Word& result, int message,
     case REQUEST :
 
       resultTupleType = (TupleType *)local.addr;
-      relation = (Relation*) args[1].addr;
+      relation = (GenericRelation*) args[1].addr;
       qp->Request(args[0].addr,t);
       if (qp->Received(args[0].addr))
       {
@@ -2074,8 +2114,8 @@ int UpdateSearch(Word* args, Word& result, int message,
   int noOfAttrs, index;
   ArgVectorPointer funargs;
   ListExpr resultType;
-  Relation* relation;
-  RelationIterator* iter;
+  GenericRelation* relation;
+  GenericRelationIterator* iter;
   Attribute* newAttribute;
   vector<Tuple*>* nextBucket;
   struct LocalTransport
@@ -2127,9 +2167,9 @@ int UpdateSearch(Word* args, Word& result, int message,
 
       qp->Open(args[0].addr);
       localTransport = new LocalTransport();
-      relation = (Relation*)(args[1].addr);
+      relation = (GenericRelation*)(args[1].addr);
       assert(relation != 0);
-      iter = new RelationIterator(*relation);
+      iter = relation->MakeScan();
       nextTup = iter->GetNextTuple();
       // Fill hashtable
       while (!iter->EndOfScan())
@@ -2165,7 +2205,7 @@ int UpdateSearch(Word* args, Word& result, int message,
         return YIELD;
       }
       // No more duplicates to send to the resultstream
-      relation = (Relation*) args[1].addr;
+      relation = (GenericRelation*) args[1].addr;
       tupleFound = false;
       // tupleFound will stay false until a tuple with the same
       // values as the inputtuple was found and updated
@@ -2359,7 +2399,8 @@ ListExpr updateSaveTypeMap( ListExpr& args, string opName )
   if(!listutils::isTupleStream(first)){
     return listutils::typeError("first argument must be a tuple stream");
   }
-  if(!listutils::isRelDescription(second)){
+  if(!listutils::isRelDescription(second) &&
+    !listutils::isOrelDescription(second)){
     return listutils::typeError("second argument must be a relation");
   }
   if(!nl->Equal(nl->Second(first),nl->Second(second))){
@@ -2403,8 +2444,6 @@ ListExpr updateSaveTypeMap( ListExpr& args, string opName )
     if(attrIndex==0){
       return listutils::typeError("attribute " + argstr + " unknown");
     }
-    nl->WriteToString(argstr2, attrType);
-    nl->WriteToString(argstr3, nl->Third(second2));
     if(!nl->Equal(attrType, nl->Third(second2))){
       return  listutils::typeError("result type of function differs from"
                                    " corresponding attribute type");
@@ -2435,7 +2474,7 @@ ListExpr updateSaveTypeMap( ListExpr& args, string opName )
     lastlistn = nl->Append(lastlistn,nl->First(rest));
     rest = nl->Rest(rest);
   }
-  // build secondo part of the resultstream
+  // build second part of the resultstream
   rest = nl->Second(nl->Second(first));
   while (!(nl->IsEmpty(rest)))
   {
@@ -2496,7 +2535,7 @@ int UpdateDirectSave(Word* args, Word& result, int message,
   ArgVectorPointer funargs;
   TupleType *resultTupleType = 0;
   ListExpr resultType;
-  Relation* relation = 0;
+  GenericRelation* relation = 0;
   Relation* auxRelation  = 0;
   Attribute* newAttribute = 0;
 
@@ -2513,7 +2552,7 @@ int UpdateDirectSave(Word* args, Word& result, int message,
     case REQUEST :
 
       resultTupleType = (TupleType *)local.addr;
-      relation = (Relation*) args[1].addr;
+      relation = (GenericRelation*) args[1].addr;
       auxRelation = (Relation*)(args[2].addr);
       assert(auxRelation != 0);
       qp->Request(args[0].addr,t);
@@ -2680,9 +2719,9 @@ int UpdateSearchSave(Word* args, Word& result, int message,
   int noOfAttrs = 0, index = 0;
   ArgVectorPointer funargs;
   ListExpr resultType = nl->Empty();
-  Relation* relation = 0;
+  GenericRelation* relation = 0;
   Relation* auxRelation = 0;
-  RelationIterator* iter = 0;
+  GenericRelationIterator* iter = 0;
   Attribute* newAttribute = 0;
 
   typedef vector<Tuple*> Bucket;
@@ -2771,11 +2810,11 @@ int UpdateSearchSave(Word* args, Word& result, int message,
 
       localTransport = new LocalTransport();
       qp->Open(args[0].addr);
-      relation = (Relation*)(args[1].addr);
+      relation = (GenericRelation*)(args[1].addr);
       assert(relation != 0);
 
       // fill hashtable
-      iter = new RelationIterator(*relation);
+      iter = relation->MakeScan();
       nextTup = iter->GetNextTuple();
       while (!iter->EndOfScan())
       {
@@ -2812,7 +2851,7 @@ int UpdateSearchSave(Word* args, Word& result, int message,
       }
 
       // No more duplicates to be sent to the outputstream
-      relation = (Relation*) args[1].addr;
+      relation = (GenericRelation*) args[1].addr;
       auxRelation = (Relation*)(args[2].addr);
       assert(auxRelation != 0);
 
