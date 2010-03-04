@@ -38,7 +38,7 @@ The following classes are defined in this file:
 #include "TemporalAlgebra.h"
 #include "RelationAlgebra.h"
 #include "TupleIdentifier.h"
-#include "DBArray.h"
+#include "../Tools/Flob/DbArray.h"
 #include "Attribute.h"
 #include "StandardTypes.h"
 #include <iostream>
