@@ -5,24 +5,28 @@ VIEWER_CLASSES +=   FormattedViewer.class
 VIEWER_CLASSES +=   InquiryViewer.class
 VIEWER_CLASSES +=   QueryViewer.class
 VIEWER_CLASSES +=   RelViewer.class
-VIEWER_CLASSES +=   Viewer3D.class 
-VIEWER_CLASSES +=   Fuzzy2D.class 
+VIEWER_CLASSES +=   Viewer3D.class
+VIEWER_CLASSES +=   Fuzzy2D.class
 VIEWER_CLASSES +=   RelSplit.class
 VIEWER_CLASSES +=   HoeseViewer.class
 VIEWER_CLASSES +=   MP3V.class
 VIEWER_CLASSES +=   MidiViewer.class
 VIEWER_CLASSES +=   TreeViewer.class
 VIEWER_CLASSES +=   PictureViewer.class
-VIEWER_CLASSES +=   UpdateViewer.class 
-#VIEWER_CLASSES +=   GrappaViewer.class 
-#VIEWER_CLASSES +=   SvgViewer.class 
+VIEWER_CLASSES +=   UpdateViewer.class
+#VIEWER_CLASSES +=   GrappaViewer.class
+#VIEWER_CLASSES +=   SvgViewer.class
+#### RTreeViewer requires Java 2.5:
+#VIEWER_CLASSES +=   RTreeViewer.class
 
 
 VIEWER_DIRS := hoese
-VIEWER_DIRS += fuzzy2d 
-VIEWER_DIRS += midi 
+VIEWER_DIRS += fuzzy2d
+VIEWER_DIRS += midi
 VIEWER_DIRS += relsplit
-VIEWER_DIRS += viewer3d 
+VIEWER_DIRS += viewer3d
 VIEWER_DIRS += pictureviewer
 VIEWER_DIRS += update
+#### RTreeViewer requires Java 2.5:
+#VIEWER_DIRS += rtree
 

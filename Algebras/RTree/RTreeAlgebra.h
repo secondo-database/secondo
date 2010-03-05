@@ -527,7 +527,7 @@ class IntrospectResult
       entries[i] = NULL;
   }
 
-  
+
    IntrospectResult<dim>& operator=(const IntrospectResult<dim>& src){
       // delete old entries
       for(int i=0;i<=maxEntries;i++){
@@ -570,7 +570,7 @@ class IntrospectResult
           }
           delete[] entries;
           entries = 0;
-       }  
+       }
     }
 };
 
@@ -1801,6 +1801,11 @@ Loads ~nodePtr~ with the root node and returns it.
 
 */
 
+
+    bool checkRecordId(SmiRecordId nodeId);
+
+
+
     bool InitializeBulkLoad(const bool &leafSkipping = BULKLOAD_LEAF_SKIPPING);
 
 /*
@@ -2472,7 +2477,7 @@ R_Tree<dim, LeafInfo>::~R_Tree()
 
     if( fileOwner )
       file->Close();
-  } 
+  }
   if( fileOwner )
     delete file;
 }

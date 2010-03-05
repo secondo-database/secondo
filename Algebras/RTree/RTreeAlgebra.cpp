@@ -65,6 +65,7 @@ relation which bounding boxes of the indexed attribute intersect the window
 */
 #include <iostream>
 #include <stack>
+#include <limits>
 
 using namespace std;
 
@@ -1263,9 +1264,9 @@ int WindowIntersects( Word* args, Word& result,
         localInfo->completeReturned += localInfo->returned;
         localInfo->returned = 0;
 
-        //Do not delete localInfo data structure in CLOSE! 
-        //To be kept over several 
-        //calls for correct progress estimation when embedded in a loopjoin. 
+        //Do not delete localInfo data structure in CLOSE!
+        //To be kept over several
+        //calls for correct progress estimation when embedded in a loopjoin.
         //Is deleted at the end of the query in CLOSEPROGRESS.
       }
       return 0;
@@ -1327,7 +1328,7 @@ int WindowIntersects( Word* args, Word& result,
 	if ( localInfo->completeCalls > 0 )     //called in a loopjoin
         {
           pRes->Card =
-            (double) localInfo->completeReturned / 
+            (double) localInfo->completeReturned /
             (double) localInfo->completeCalls;
         }
         else	//single or first call
@@ -1348,7 +1349,7 @@ int WindowIntersects( Word* args, Word& result,
 	}
 
         pRes->Time = uSearch + pRes->Card * vResult;
-        
+
         pRes->Progress = (localInfo->returned + 1) / pRes->Card;
 
         return YIELD;
@@ -1769,14 +1770,14 @@ int WindowIntersectsSStandard( Word* args, Word& result,
         new BBox<dim> (
           (((StandardSpatialAttribute<dim> *)args[1].addr)->
             BoundingBox()) );
- 
+
       local.setAddr(localInfo);
       return 0;
     }
 
     case REQUEST :
     {
- 
+
       R_TreeLeafEntry<dim, TupleId> e;
 
       if ( !localInfo->searchBox->IsDefined() )
@@ -1825,9 +1826,9 @@ int WindowIntersectsSStandard( Word* args, Word& result,
 
         delete localInfo->searchBox;
 
-        //Do not delete localInfo data structure in CLOSE! 
-        //To be kept over several 
-        //calls for correct progress estimation when embedded in a loopjoin. 
+        //Do not delete localInfo data structure in CLOSE!
+        //To be kept over several
+        //calls for correct progress estimation when embedded in a loopjoin.
         //Is deleted at the end of the query in CLOSEPROGRESS.
 
       }
@@ -1880,7 +1881,7 @@ int WindowIntersectsSStandard( Word* args, Word& result,
 	if ( localInfo->completeCalls > 0 )     //called in a loopjoin
         {
           pRes->Card =
-            (double) localInfo->completeReturned / 
+            (double) localInfo->completeReturned /
             (double) localInfo->completeCalls;
         }
         else	//single or first call
@@ -1901,7 +1902,7 @@ int WindowIntersectsSStandard( Word* args, Word& result,
 	}
 
         pRes->Time = uSearch + pRes->Card * vResult;
-        
+
         pRes->Progress = (localInfo->returned + 1) / pRes->Card;
 
         return YIELD;
@@ -1945,7 +1946,7 @@ int WindowIntersectsSDoubleLayer( Word* args, Word& result,
         new BBox<dim> (
           (((StandardSpatialAttribute<dim> *)args[1].addr)->
             BoundingBox()) );
- 
+
       local.setAddr(localInfo);
       return 0;
     }
@@ -2009,9 +2010,9 @@ int WindowIntersectsSDoubleLayer( Word* args, Word& result,
 
         delete localInfo->searchBox;
 
-        //Do not delete localInfo data structure in CLOSE! 
-        //To be kept over several 
-        //calls for correct progress estimation when embedded in a loopjoin. 
+        //Do not delete localInfo data structure in CLOSE!
+        //To be kept over several
+        //calls for correct progress estimation when embedded in a loopjoin.
         //Is deleted at the end of the query in CLOSEPROGRESS.
 
       }
@@ -2070,7 +2071,7 @@ int WindowIntersectsSDoubleLayer( Word* args, Word& result,
 	if ( localInfo->completeCalls > 0 )     //called in a loopjoin
         {
           pRes->Card =
-            (double) localInfo->completeReturned / 
+            (double) localInfo->completeReturned /
             (double) localInfo->completeCalls;
         }
         else	//single or first call
@@ -2091,7 +2092,7 @@ int WindowIntersectsSDoubleLayer( Word* args, Word& result,
 	}
 
         pRes->Time = uSearch + pRes->Card * vResult;
-        
+
         pRes->Progress = (localInfo->returned + 1) / pRes->Card;
 
         return YIELD;
@@ -2381,13 +2382,13 @@ template<int TidIndexPos>
       qp->Open(args[0].addr);
 
       if ( !localInfo )  // first time
-      { 
+      {
         localInfo = new GetTuplesLocalInfo();
         localInfo->relation = (Relation*)args[1].addr;
         localInfo->resultTupleType =
           new TupleType(nl->Second(GetTupleResultType(s)));
         localInfo->tidIndex = ((CcInt*)args[TidIndexPos].addr)->GetIntval() - 1;
- 
+
         local.setAddr(localInfo);
       }
       return 0;
@@ -2447,8 +2448,8 @@ template<int TidIndexPos>
 
     case CLOSEPROGRESS :
     {
-      if ( localInfo ) 
-      { 
+      if ( localInfo )
+      {
         localInfo->resultTupleType->DeleteIfAllowed();
         delete localInfo;
       }
@@ -2466,7 +2467,7 @@ template<int TidIndexPos>
       //Experiments described in file Cost functions
       const double uTuple = 0.061;    //milliseconds per tuple
       const double vByte = 0.0000628;  //milliseconds per byte
-  
+
       if ( !localInfo ) return CANCEL;
       else
       {
@@ -2501,8 +2502,8 @@ template<int TidIndexPos>
         if ( qp->RequestProgress(args[0].addr, &p1) )
         {
           pRes->Card = p1.Card;
-          
-          pRes->Time = p1.Time 
+
+          pRes->Time = p1.Time
             + p1.Card * (uTuple + vByte * localInfo->SizeExt);
 
           if ( p1.BTime < 0.1 && pipelinedProgress )   //non-blocking,
@@ -2510,9 +2511,9 @@ template<int TidIndexPos>
             pRes->Progress = p1.Progress;
           else
           {
-            pRes->Progress = 
-             ((p1.Progress * p1.Time) 
-              + (localInfo->read / p1.Card) 
+            pRes->Progress =
+             ((p1.Progress * p1.Time)
+              + (localInfo->read / p1.Card)
                    * (uTuple + vByte * localInfo->SizeExt))
              / pRes->Time;
           }
@@ -3575,14 +3576,14 @@ Operator bulkloadrtree(
 
 
 /*
-5.9 Inquiry Operators ~treeheight~, ~no\_nodes~, ~no\_entries~, ~bbox~
+5.9 Inquiry Operators ~treeheight~, ~no\_nodes~, ~no\_entries~, ~bbox~, ~getRootNode~
 
 This operators can be used to inquire some basic R-tree statistics.
 
 */
 
 /*
-5.9.1 Type Mapping Function for ~treeheight~, ~no\_nodes~, ~no\_entries~, ~bbox~
+5.9.1 Type Mapping Function for ~treeheight~, ~no\_nodes~, ~no\_entries~, ~bbox~, ~getRootNode~
 
 */
 ListExpr RTree2IntTypeMap(ListExpr args)
@@ -3641,7 +3642,7 @@ ListExpr RTree2RectTypeMap(ListExpr args)
 }
 
 /*
-5.9.2 Value Mapping Functions for ~treeheight~, ~no\_nodes~, ~no\_entries~, ~bbox~
+5.9.2 Value Mapping Functions for ~treeheight~, ~no\_nodes~, ~no\_entries~, ~bbox~, ~getRootNode~
 
 */
 template<unsigned dim, class LeafInfo>
@@ -3688,8 +3689,20 @@ int RTreeBboxVM( Word* args, Word& result, int message,
   return 0;
 }
 
+template<unsigned dim, class LeafInfo>
+int RTreeGetRootNodeVM( Word* args, Word& result, int message,
+                       Word& local, Supplier s )
+{
+  R_Tree<dim, LeafInfo> *rtree = (R_Tree<dim, LeafInfo>*) args[0].addr;
+  result = qp->ResultStorage( s );
+  CcInt *res = (CcInt*) result.addr;
+  res->Set( true, rtree->RootRecordId() );
+  return 0;
+}
+
+
 /*
-5.9.3 Selection Function for ~treeheight~, ~no\_nodes~, ~no\_entries~, ~bbox~
+5.9.3 Selection Function for ~treeheight~, ~no\_nodes~, ~no\_entries~, ~bbox~, ~getRootNode~
 
 */
 int RTreeInquirySelect (ListExpr args)
@@ -3715,7 +3728,7 @@ int RTreeInquirySelect (ListExpr args)
 }
 
 /*
-5.9.3 Value Mapping Arrays for ~treeheight~, ~no\_nodes~, ~no\_entries~, ~bbox~
+5.9.3 Value Mapping Arrays for ~treeheight~, ~no\_nodes~, ~no\_entries~, ~bbox~, ~getRootNode~
 
 */
 
@@ -3763,10 +3776,20 @@ ValueMapping RTreeBbox [] =
   RTreeBboxVM<8, TwoLayerLeafInfo>   // 7
 };
 
+ValueMapping RTreeGetRootNode [] =
+{ RTreeGetRootNodeVM<2, TupleId>,  // 0
+  RTreeGetRootNodeVM<3, TupleId>,  // 1
+  RTreeGetRootNodeVM<4, TupleId>,  // 2
+  RTreeGetRootNodeVM<8, TupleId>,  // 3
+  RTreeGetRootNodeVM<2, TwoLayerLeafInfo>,  // 4
+  RTreeGetRootNodeVM<3, TwoLayerLeafInfo>,  // 5
+  RTreeGetRootNodeVM<4, TwoLayerLeafInfo>,  // 6
+  RTreeGetRootNodeVM<8, TwoLayerLeafInfo>   // 7
+};
 
 
 /*
-5.9.5 Specification Strings for ~treeheight~, ~no\_nodes~, ~no\_entries~, ~bbox~
+5.9.5 Specification Strings for ~treeheight~, ~no\_nodes~, ~no\_entries~, ~bbox~, ~getRootNode~
 
 */
 const string RTreeTreeHeightSpec  =
@@ -3811,8 +3834,18 @@ const string RTreeBboxSpec  =
     "<text>Rectangle will be undefined for an empty R-tree.</text--->"
     ") )";
 
+const string RTreeGetRootNodeSpec  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+    "\"Example\" \"Comment\" ) "
+    "(<text>rtree<D> -> int</text--->"
+    "<text>getRootNode( _ )</text--->"
+    "<text>Returns R-tree's record number of root node.</text--->"
+    "<text>query getRootNode(strassen_geoData)</text--->"
+    "<text>Always defined.</text--->"
+    ") )";
+
 /*
-5.9.6 Definitions of ~treeheight~, ~no\_nodes~, ~no\_entries~, ~bbox~
+5.9.6 Definitions of ~treeheight~, ~no\_nodes~, ~no\_entries~, ~bbox~, ~getRootNode~
 
 */
 
@@ -3851,6 +3884,15 @@ Operator rtreebbox(
                       RTreeInquirySelect, // selection function
                       RTree2RectTypeMap    // type mapping
                     );
+
+Operator rtreegetrootnode(
+                       "getRootNode",           // name
+                       RTreeGetRootNodeSpec,    // specification
+                       8,
+                       RTreeGetRootNode,        // value mapping
+                       RTreeInquirySelect,      // selection function
+                       RTree2IntTypeMap         // type mapping
+                     );
 
 
 /*
@@ -4205,6 +4247,11 @@ int RTreeEntriesSelect (ListExpr args)
 
   return -1;
 }
+
+/*
+Value mapping for ~entries~
+
+*/
 
 ListExpr RTreeEntriesTypeMap(ListExpr args)
 {
@@ -4625,6 +4672,1297 @@ Operator updatebulkloadrtree(
 
 
 /*
+5.13 Operator ~getNodeInfo~
+
+This operator allows introspection of an RTree. It creates a stream
+of a tuple, which describes one node of the R-Tree. The node is
+selected by the given recordnumber (int-value).
+The stream is empty, if the given recordnumber is not existing/not valid.
+MBRsize is the size of the node-MBR,
+MBRdead is the size of the node-MBR, which is not covered by a son-MBR,
+MBRoverlapSize is the size of the node-MBR, where two (or more) son-MBRs overlap,
+MBRoverlapsNo is the count of overlapping son-MBRs and
+MBRdensity is the number of son-MBRs per MBRsize.
+
+Signature is
+
+----
+    getNodeInfo: (rtree<D>) x int --> stream(tuple((NodeId int) (MBR rect<D>)
+                                             (NoOfSons int) (IsLeafNode bool)
+                                             (IsRootNode bool) (MBRsize real)
+                                         (MBRdead real) (MBRoverlapSize real)
+                                        (MBRoverlapsNo int) (MBRdensity real)))
+
+----
+
+*/
+
+/*
+5.13.1 TypeMapping for Operator ~getNodeInfo~
+
+The typemapping function uses a template parameter InfoType to differ between
+the typemapping of the operators ~getNodeInfo~, ~getNodeSons~ and
+~getLeafEntries~.
+The typemapping of operator ~getNodeInfo~ uses InfoType = NODEINFO.
+
+*/
+
+enum InfoType { NODEINFO, NODESONS, LEAFENTRIES };
+
+template <InfoType iTyp>
+ListExpr RTreeGetInfoTypeTypeMap(ListExpr args)
+{
+  if(nl->IsEmpty(args) || nl->IsAtom(args) || nl->ListLength(args) != 2){
+    return listutils::typeError("Expected exactly 2 arguments.");
+  };
+  // test first argument for rtree
+  ListExpr rtreeDescription = nl->First(args);
+  if( !listutils::isRTreeDescription(rtreeDescription ) ){
+    return listutils::typeError("Expected rtree<dim> as 1st argument.");
+  }
+  // check type of rtree
+  ListExpr rtreeKeyType = nl->Third(rtreeDescription);
+  ListExpr MBR_ATOM;
+  if(    listutils::isKind(rtreeKeyType, "SPATIAL2D")
+      || listutils::isSymbol(rtreeKeyType, "rect") ){
+      MBR_ATOM = nl->SymbolAtom("rect"); }
+  else if(    listutils::isKind(rtreeKeyType, "SPATIAL3D")
+      || listutils::isSymbol(rtreeKeyType, "rect3") ){
+      MBR_ATOM = nl->SymbolAtom("rect3"); }
+  else if(    listutils::isKind(rtreeKeyType, "SPATIAL4D")
+      || listutils::isSymbol(rtreeKeyType, "rect4") ){
+      MBR_ATOM = nl->SymbolAtom("rect4"); }
+  else if(    listutils::isKind(rtreeKeyType, "SPATIAL8D")
+      || listutils::isSymbol(rtreeKeyType, "rect8") ){
+      MBR_ATOM = nl->SymbolAtom("rect8"); }
+  else return listutils::typeError("Unsupported rtree-type.");
+
+  // test second argument for integer
+  ListExpr RecNumber = nl->Second(args);
+  if ( !nl->IsAtom(RecNumber) || !listutils::isNumericType(RecNumber) )
+  {
+    return listutils::typeError("Expecting int as second argument.");
+  }
+
+  ListExpr reslist = nl->Empty();
+  switch (iTyp) {
+    case NODEINFO:
+    {
+      reslist =
+       nl->TwoElemList(
+        nl->SymbolAtom("stream"),
+        nl->TwoElemList(
+         nl->SymbolAtom("tuple"),
+         nl->Cons(
+         nl->TwoElemList(nl->SymbolAtom("NodeId"), nl->SymbolAtom("int")),
+         nl->Cons(
+          nl->TwoElemList(nl->SymbolAtom("MBR"), MBR_ATOM),
+         nl->Cons(
+          nl->TwoElemList(nl->SymbolAtom("NoOfSons"), nl->SymbolAtom("int")),
+         nl->Cons(
+          nl->TwoElemList(nl->SymbolAtom("IsLeafNode"), nl->SymbolAtom("bool")),
+          nl->SixElemList(
+          nl->TwoElemList(nl->SymbolAtom("IsRootNode"), nl->SymbolAtom("bool")),
+          nl->TwoElemList(nl->SymbolAtom("MBRsize"), nl->SymbolAtom("real")),
+          nl->TwoElemList(nl->SymbolAtom("MBRdead"), nl->SymbolAtom("real")),
+          nl->TwoElemList(nl->SymbolAtom("MBRoverlapSize"),
+                                          nl->SymbolAtom("real")),
+          nl->TwoElemList(nl->SymbolAtom("MBRoverlapsNo"),
+                                          nl->SymbolAtom("int")),
+          nl->TwoElemList(nl->SymbolAtom("MBRdensity"), nl->SymbolAtom("real"))
+      )))))));
+      break;
+    }
+    case NODESONS:
+    {
+      reslist =
+        nl->TwoElemList(
+          nl->SymbolAtom("stream"),
+          nl->TwoElemList(
+            nl->SymbolAtom("tuple"),
+            nl->Cons(
+        nl->TwoElemList(nl->SymbolAtom("NodeId"), nl->SymbolAtom("int")),
+        nl->TwoElemList(
+        nl->TwoElemList(nl->SymbolAtom("SonId"), nl->SymbolAtom("int")),
+        nl->TwoElemList(nl->SymbolAtom("SonMBR"), MBR_ATOM)
+      ))));
+      break;
+    }
+    case LEAFENTRIES:
+    {
+      reslist =
+        nl->TwoElemList(
+          nl->SymbolAtom("stream"),
+          nl->TwoElemList(
+            nl->SymbolAtom("tuple"),
+            nl->Cons(
+        nl->TwoElemList(nl->SymbolAtom("NodeId"), nl->SymbolAtom("int")),
+        nl->TwoElemList(
+        nl->TwoElemList(nl->SymbolAtom("TupleID"),nl->SymbolAtom("tid")),
+        nl->TwoElemList(nl->SymbolAtom("EntryMBR"), MBR_ATOM)
+      ))));
+      break;
+    }
+  }
+  return reslist;
+}
+
+
+/*
+5.13.2 Value Mapping for Operator ~getNodeInfo~
+
+*/
+
+template<unsigned dim, class LeafInfo>
+struct GetSonsInfo{
+  int index;
+  int maxEntries;
+  R_TreeNode<dim, LeafInfo>* father;
+  TupleType* ttype;
+  long nodeId;
+  bool IsRoot;
+
+  GetSonsInfo( int i, int m, R_TreeNode<dim, LeafInfo>* f,
+                              TupleType* tt, long ni, bool ir) :
+                                         index(i), maxEntries(m),
+                                         father(f), ttype(tt),
+                                         nodeId(ni), IsRoot(ir) {}
+};
+
+/*
+Structure to handle the information of the interesting node.
+
+*/
+
+template <unsigned dim, class LeafInfo>
+bool checkRecordId(R_Tree<dim, LeafInfo>* rtree, int nodeId)
+{
+  bool findRID = false;
+  if (   (nodeId > 0)
+      && (nodeId != static_cast<int>(rtree->HeaderRecordId()))
+      && (nodeId < rtree->NodeCount()+2))
+      findRID = true;
+  return findRID;
+}
+
+/*
+Checks if the given nodeId is valid in rtree.
+
+*/
+
+
+
+struct seg_node {
+double bottom, top;
+int count;
+double measure;
+seg_node *left, *right;
+
+seg_node(double b, double t): bottom(b), top(t), count(0),
+                          measure(0.0), left(0), right(0) {}
+};
+/*
+node-structure of the segment tree used for 2D-sweepline
+
+*/
+
+struct quad_node {
+double left, right, bottom, top;
+int count;
+double measure;
+quad_node *bottomleft, *bottomright, *topleft, *topright;
+
+quad_node(double l, double r, double b, double t):
+          left(l), right(r), bottom(b), top(t),
+          count(0), measure(0.0),
+          bottomleft(0), bottomright(0), topleft(0), topright(0)  {}
+};
+/*
+node-structure of the quad tree used for sweepline with dimensions dim $ >=$ 3
+
+*/
+
+struct event {
+double xVal;
+int index;
+
+event(): xVal(0.), index(0) {}
+event(double x, int i): xVal(x), index(i) {}
+};
+
+struct eventComp {
+  bool operator() (const event& lhs, const event& rhs) const
+  {
+    return lhs.xVal<rhs.xVal;
+  }
+};
+/*
+insertion or deletion event at x-value for MBR with named index
+eventComp is the comparator for the sorted set
+
+*/
+
+seg_node* buildTree(set<double> &yVals)
+{
+  seg_node* sTree;
+  set<double>::iterator yValiter = yVals.begin();
+  if (yVals.size()==2) { //segment is the new leaf
+    double b = *yValiter++;
+    double t = *yValiter;
+    sTree = new seg_node(b,t);
+  }
+  else
+  {  //divide the list in the middle
+    int subsetSize = yVals.size()/2;
+    for (int i=0; i<subsetSize; i++)
+      yValiter++;
+    set<double> yValsRight (yValiter++, yVals.end());
+    set<double> yValsLeft (yVals.begin(), yValiter);
+    //left element of right list is equal to
+    //right element of the left list
+    seg_node* sTreeLeft = buildTree(yValsLeft);
+    seg_node* sTreeRight = buildTree(yValsRight);
+    //create new node with trees of the two sublists
+    sTree = new seg_node(sTreeLeft->bottom, sTreeRight->top);
+    sTree->left = sTreeLeft;
+    sTree->right = sTreeRight;
+  }
+  return sTree;
+}
+/*
+builds the segment tree for the given sorted set of y-values
+
+*/
+
+void deleteSegTree(seg_node* segTree)
+{
+  if (segTree==0) return;
+  deleteSegTree(segTree->left);
+  deleteSegTree(segTree->right);
+  delete segTree;
+  segTree = 0;
+}
+/*
+deletes the segment tree
+
+*/
+
+quad_node* buildTree(set<double> &yVals, set<double> &zVals)
+{
+  quad_node* qTree;
+  set<double>::iterator yValiter = yVals.begin();
+  set<double>::iterator zValiter = zVals.begin();
+  if ((yVals.size()==2)&&(zVals.size()==2)) {
+    //quad is the new leaf
+    double l = *yValiter++;
+    double r = *yValiter;
+    double b = *zValiter++;
+    double t = *zValiter;
+    qTree = new quad_node(l, r, b, t);
+  }
+  else
+  if (yVals.size()==2) { //divide the z-list in the middle
+    int subsetSizeZ = zVals.size()/2;
+    for (int i=0; i<subsetSizeZ; i++)
+      zValiter++;
+    set<double> zValsTop (zValiter++, zVals.end());
+    set<double> zValsBottom (zVals.begin(), zValiter);
+    //top element of bottom list is equal to
+    //bottom element of the top list
+
+    quad_node* qTreeBottom = buildTree(yVals, zValsBottom);
+    quad_node* qTreeTop = buildTree(yVals, zValsTop);
+
+    //create new node with trees of the two sublists
+    qTree = new quad_node(qTreeBottom->left, qTreeTop->right,
+                          qTreeBottom->bottom, qTreeTop->top);
+    qTree->bottomright = qTreeBottom;
+    qTree->topright = qTreeTop;
+  }
+  else
+  if (zVals.size()==2) { //divide the y-list in the middle
+    int subsetSizeY = yVals.size()/2;
+    for (int i=0; i<subsetSizeY; i++)
+      yValiter++;
+    set<double> yValsRight (yValiter++, yVals.end());
+    set<double> yValsLeft (yVals.begin(), yValiter);
+    //left element of right list is equal to
+    //right element of the left list
+
+    quad_node* qTreeLeft = buildTree(yValsLeft, zVals);
+    quad_node* qTreeRight = buildTree(yValsRight, zVals);
+
+    //create new node with trees of the two sublists
+    qTree = new quad_node(qTreeLeft->left, qTreeRight->right,
+                          qTreeLeft->bottom, qTreeRight->top);
+    qTree->topleft = qTreeLeft;
+    qTree->topright = qTreeRight;
+  }
+  else
+  { //divide the two list in the middle
+    int subsetSizeY = yVals.size()/2;
+    for (int i=0; i<subsetSizeY; i++)
+      yValiter++;
+    set<double> yValsRight (yValiter++, yVals.end());
+    set<double> yValsLeft (yVals.begin(), yValiter);
+    //left element of right list is equal to
+    //right element of the left list
+
+    int subsetSizeZ = zVals.size()/2;
+    for (int i=0; i<subsetSizeZ; i++)
+      zValiter++;
+    set<double> zValsTop (zValiter++, zVals.end());
+    set<double> zValsBottom (zVals.begin(), zValiter);
+    //top element of bottom list is equal to
+    //bottom element of the top list
+
+    quad_node* qTreeBottomLeft = buildTree(yValsLeft, zValsBottom);
+    quad_node* qTreeBottomRight = buildTree(yValsRight, zValsBottom);
+    quad_node* qTreeTopLeft = buildTree(yValsLeft, zValsTop);
+    quad_node* qTreeTopRight = buildTree(yValsRight, zValsTop);
+
+    //create new node with trees of the two sublists
+    qTree = new quad_node(qTreeBottomLeft->left, qTreeTopRight->right,
+                          qTreeBottomLeft->bottom, qTreeTopRight->top);
+    qTree->bottomleft = qTreeBottomLeft;
+    qTree->bottomright = qTreeBottomRight;
+    qTree->topleft = qTreeTopLeft;
+    qTree->topright = qTreeTopRight;
+  }
+  return qTree;
+}
+/*
+builds the quad tree for the given sorted set of y- and z-values
+
+*/
+
+void deleteQuadTree(quad_node* quadTree)
+{
+  if (quadTree==0) return;
+  deleteQuadTree(quadTree->bottomleft);
+  deleteQuadTree(quadTree->bottomright);
+  deleteQuadTree(quadTree->topleft);
+  deleteQuadTree(quadTree->topright);
+  delete quadTree;
+  quadTree = 0;
+}
+/*
+deletes the quad tree
+
+*/
+
+void deleteNode(seg_node* sTree, double b, double t)
+{
+  if ((sTree->bottom >= b)&&(sTree->top <= t))
+  {
+    sTree->count--;
+    if (sTree->count==0)
+      sTree->measure = 0;
+  }
+  else
+  {
+    if (b < sTree->left->top) deleteNode(sTree->left, b, t);
+    if (sTree->right->bottom < t) deleteNode(sTree->right, b, t);
+    if (sTree->count == 0)
+      sTree->measure = sTree->left->measure + sTree->right->measure;
+  }
+}
+/*
+deletes the entry of segment (b)-(t) in the segment tree
+
+*/
+
+void insertNode(seg_node* sTree, double b, double t)
+{
+  if ((sTree->bottom >= b)&&(sTree->top <= t))
+  {
+    sTree->count++;
+    if (sTree->count==1)
+      sTree->measure = sTree->top - sTree->bottom;
+  }
+  else
+  {
+    if (b < sTree->left->top) insertNode(sTree->left, b, t);
+    if (sTree->right->bottom < t) insertNode(sTree->right, b, t);
+    if (sTree->count == 0)
+      sTree->measure = sTree->left->measure + sTree->right->measure;
+  }
+}
+/*
+inserts the entry of segment (b)-(t) in the segment tree
+
+*/
+
+
+void deleteNode(quad_node* sTree, double l, double r, double b, double t)
+{
+  if ((sTree->left >= l)&&(sTree->right <= r)
+    &&(sTree->bottom >= b)&&(sTree->top <= t))
+  {
+    sTree->count--;
+    if (sTree->count==0)
+      sTree->measure = 0.0;
+  }
+  else
+  {
+    if ((sTree->bottomleft)
+      &&(sTree->bottomleft->left < r)&&(sTree->bottomleft->bottom < t))
+      deleteNode(sTree->bottomleft, l, r, b, t);
+    if ((sTree->bottomright)
+      &&(l < sTree->bottomright->right)&&(sTree->bottomright->bottom < t))
+      deleteNode(sTree->bottomright, l, r , b, t);
+    if ((sTree->topleft)
+      &&(sTree->topleft->left < r)&&(b < sTree->topleft->top))
+      deleteNode(sTree->topleft, l, r, b, t);
+    if ((sTree->topright)
+      &&(l < sTree->topright->right)&&(b < sTree->topright->top))
+      deleteNode(sTree->topright, l, r , b, t);
+
+    if (sTree->count == 0)
+    {
+      sTree->measure = 0.0;
+      if (sTree->bottomleft) sTree->measure += sTree->bottomleft->measure;
+      if (sTree->bottomright) sTree->measure += sTree->bottomright->measure;
+      if (sTree->topleft) sTree->measure += sTree->topleft->measure;
+      if (sTree->topright) sTree->measure += sTree->topright->measure;
+    }
+  }
+}
+/*
+deletes the entry of rectangle (l,b)-(r,t) in the quad tree
+
+*/
+
+void insertNode(quad_node* sTree, double l, double r, double b, double t)
+{
+  if ((sTree->left >= l)&&(sTree->right <= r)
+    &&(sTree->bottom >= b)&&(sTree->top <= t))
+  {
+    sTree->count++;
+    if (sTree->count==1)
+      sTree->measure = (sTree->right - sTree->left)
+                     * (sTree->top - sTree->bottom);
+  }
+  else
+  {
+    if ((sTree->bottomleft)
+      &&(sTree->bottomleft->left < r)&&(sTree->bottomleft->bottom < t))
+      insertNode(sTree->bottomleft, l, r, b, t);
+    if ((sTree->bottomright)
+      &&(l < sTree->bottomright->right)&&(sTree->bottomright->bottom < t))
+      insertNode(sTree->bottomright, l, r , b, t);
+    if ((sTree->topleft)
+      &&(sTree->topleft->left < r)&&(b < sTree->topleft->top))
+      insertNode(sTree->topleft, l, r, b, t);
+    if ((sTree->topright)
+      &&(l < sTree->topright->right)&&(b < sTree->topright->top))
+      insertNode(sTree->topright, l, r , b, t);
+
+    if (sTree->count == 0)
+    {
+      sTree->measure = 0.0;
+      if (sTree->bottomleft) sTree->measure += sTree->bottomleft->measure;
+      if (sTree->bottomright) sTree->measure += sTree->bottomright->measure;
+      if (sTree->topleft) sTree->measure += sTree->topleft->measure;
+      if (sTree->topright) sTree->measure += sTree->topright->measure;
+    }
+  }
+}
+/*
+inserts the entry of rectangle (l,b)-(r,t) in the quad tree
+
+*/
+
+template<unsigned dim>
+double getSweepAreas2D(vector< Rectangle<dim> > BBox)
+{
+  if (dim!=2) return 0.0; //SweepLine with segmenttree only for dim=2
+  if (BBox.empty()) return 0.0; //area of empty rectangle is 0
+
+  unsigned int it = 0;  //remove rectangles with size=0 (e.g. points/lines)
+  while (it<BBox.size())
+  {
+    if ((abs((BBox[it].MinD(0)-BBox[it].MaxD(0))/BBox[it].MaxD(0))<1E-8)
+      ||(abs((BBox[it].MinD(1)-BBox[it].MaxD(1))/BBox[it].MaxD(1))<1E-8))
+    { BBox.erase(BBox.begin()+it); }
+    else
+    { it++;
+    }
+  }
+  if (BBox.empty()) return 0.0;  //area of empty rectangle is 0
+
+  seg_node* segmentTree;
+  set<double> xVals;
+  set<double> yVals;
+  multiset<event, eventComp> insertMBR;
+  multiset<event, eventComp> deleteMBR;
+  multiset<event, eventComp>::iterator iterateInsert;
+  multiset<event, eventComp>::iterator iterateDelete;
+
+  for (unsigned int i=0; i<BBox.size(); i++)
+  //build sorted lists of values and events
+  {
+    xVals.insert(BBox[i].MinD(0));
+    xVals.insert(BBox[i].MaxD(0));
+    insertMBR.insert(event(BBox[i].MinD(0),i));
+    deleteMBR.insert(event(BBox[i].MaxD(0),i));
+    yVals.insert(BBox[i].MinD(1));
+    yVals.insert(BBox[i].MaxD(1));
+  }
+  segmentTree = buildTree(yVals);
+
+  //initialization of the x-value-list
+  double cover = 0.0;
+  double x = 0.0;
+  set<double>::iterator xValiter;
+  xValiter = xVals.begin();
+  iterateInsert = insertMBR.begin();
+  iterateDelete = deleteMBR.begin();
+  x = *xValiter;
+  xValiter++;
+
+  while (xValiter != xVals.end()) {
+  //sweep line for all x-values
+    while ((iterateDelete!=deleteMBR.end())&&
+          ((*iterateDelete).xVal == x)) {
+      //delete segments from tree at position x
+      int index = (*iterateDelete).index;
+      deleteNode(segmentTree, BBox[index].MinD(1),
+                              BBox[index].MaxD(1));
+      iterateDelete++;
+    }
+    while ((iterateInsert!=insertMBR.end())&&
+           ((*iterateInsert).xVal == x)) {
+      //insert segments from tree at position x
+      int index = (*iterateInsert).index;
+      insertNode(segmentTree, BBox[index].MinD(1),
+                              BBox[index].MaxD(1));
+      iterateInsert++;
+    }
+    cover += (segmentTree->measure) * (*xValiter - x);
+    x = *xValiter;
+    xValiter++;
+  }
+  deleteSegTree(segmentTree);
+  return cover;
+}
+/*
+sweep line algorithm with segment tree only for dimension 2
+
+*/
+
+template<unsigned dim>
+double getSweepAreas(vector< Rectangle<dim> > BBox)
+{
+  if (dim<1) return 0.0; //no Area available
+  if (dim==2) return getSweepAreas2D(BBox); //2D-Sweepline
+  //SweepLine with Quadtree is only for dim>2
+  if (BBox.size()<1) return 0.0;  //area of empty rectangle is 0
+
+  unsigned int it = 0;  //remove rectangles with size=0 (e.g. points/lines)
+  bool zero = false;
+  while (it<BBox.size())
+  {
+    zero = false;
+    for (unsigned int j=0; j<dim; j++)
+      zero |= (abs((BBox[it].MinD(j)-BBox[it].MaxD(j))/BBox[it].MaxD(j))<1E-8);
+    if (zero)
+    { BBox.erase(BBox.begin()+it); }
+    else
+    { it++; }
+  }
+  if (BBox.empty()) return 0.0;  //area of empty rectangle is 0
+
+  quad_node* quadTreeYZ;
+  set<double> xVals[dim-1];
+  set<double> yVals;
+  set<double> zVals;
+  multiset<event, eventComp> insertMBR[dim-1];
+  multiset<event, eventComp> deleteMBR[dim-1];
+  multiset<event, eventComp>::iterator iterateInsert[dim-1];
+  multiset<event, eventComp>::iterator iterateDelete[dim-1];
+
+  for (unsigned int i=0; i<BBox.size(); i++)
+  //build sorted lists of values and events
+  {
+    for (unsigned int j=0; j<dim-2; j++)
+    {
+      xVals[j].insert(BBox[i].MinD(j));
+      xVals[j].insert(BBox[i].MaxD(j));
+      insertMBR[j].insert(event(BBox[i].MinD(j),i));
+      deleteMBR[j].insert(event(BBox[i].MaxD(j),i));
+    }
+    yVals.insert(BBox[i].MinD(dim-2));
+    yVals.insert(BBox[i].MaxD(dim-2));
+    zVals.insert(BBox[i].MinD(dim-1));
+    zVals.insert(BBox[i].MaxD(dim-1));
+  }
+  quadTreeYZ = buildTree(yVals, zVals);
+
+  set<double>::iterator xValiter[dim-1];
+  double coversweep[dim];
+  for (unsigned int j=0; j<dim; j++)
+  {
+    coversweep[j] = 0.0;
+  }
+
+  double x[dim-1];
+  set<int> xindex[dim-1];
+  unsigned int di;
+  bool again;
+  set<int>::iterator indexIter;
+
+  //initialization of the lists
+  for (unsigned int j=0; j<dim-3; j++)
+  {
+    xValiter[j] = xVals[j].begin();
+    iterateInsert[j] = insertMBR[j].begin();
+    iterateDelete[j] = deleteMBR[j].begin();
+    x[j] = *xValiter[j];
+    xValiter[j]++;
+    while ((iterateInsert[j]!=insertMBR[j].end())&&
+           ((*iterateInsert[j]).xVal == x[j])) {
+      //insert index of valid rectangles at position <x>
+      int index = (*iterateInsert[j]).index;
+      xindex[j].insert(index);
+      iterateInsert[j]++;
+    }
+  }
+  xValiter[dim-3] = xVals[dim-3].begin();
+  iterateInsert[dim-3] = insertMBR[dim-3].begin();
+  iterateDelete[dim-3] = deleteMBR[dim-3].begin();
+  x[dim-3] = *xValiter[dim-3];
+  xValiter[dim-3]++;
+
+  while (xValiter[0] != xVals[0].end())
+  //sweep "hypearea" for the values of all dimensions except the last two
+  {
+    while ((iterateDelete[dim-3]!=deleteMBR[dim-3].end())&&
+          ((*iterateDelete[dim-3]).xVal == x[dim-3])) {
+      //delete rectangles from tree at position <x>
+      int index = (*iterateDelete[dim-3]).index;
+      xindex[dim-3].erase(index);
+      iterateDelete[dim-3]++;
+      bool all = true;
+      for (unsigned int j=0; j<dim-3;j++)
+        all &=(xindex[j].find(index)!=xindex[j].end());
+      if (all)
+        deleteNode(quadTreeYZ,
+                BBox[index].MinD(dim-2),
+                BBox[index].MaxD(dim-2),
+                BBox[index].MinD(dim-1),
+                BBox[index].MaxD(dim-1));
+    }
+    while ((iterateInsert[dim-3]!=insertMBR[dim-3].end())&&
+          ((*iterateInsert[dim-3]).xVal == x[dim-3])) {
+      //insert rectangles from tree at position <x>
+      int index = (*iterateInsert[dim-3]).index;
+      xindex[dim-3].insert(index);
+      iterateInsert[dim-3]++;
+      bool all = true;
+      for (unsigned int j=0; j<dim-3;j++)
+        all &=(xindex[j].find(index)!=xindex[j].end());
+      if (all)
+        insertNode(quadTreeYZ,
+                BBox[index].MinD(dim-2),
+                BBox[index].MaxD(dim-2),
+                BBox[index].MinD(dim-1),
+                BBox[index].MaxD(dim-1));
+    }
+    coversweep[dim-2] = (quadTreeYZ->measure);
+
+    di = dim-3;
+    again = true;
+    while ((di>=0)&&again)
+    {
+      //set "sweepline" to next position <x>
+      coversweep[di]  += coversweep[di+1] * (*xValiter[di] - x[di]);
+      coversweep[di+1] = 0.0;
+      x[di] = *xValiter[di];
+      xValiter[di]++;
+      again = false;
+      if ((xValiter[di] == xVals[di].end())&&(di>0))
+      {
+        if (di==dim-3) {
+          //clear the tree from resting rectangles...
+          while  ((iterateDelete[di]!=deleteMBR[di].end())&&
+                 ((*iterateDelete[di]).xVal == x[di])) {
+            int index = (*iterateDelete[di]).index;
+            xindex[di].erase(index);
+            iterateDelete[di]++;
+            bool all = true;
+            for (unsigned int j=0; j<dim-3;j++)
+              all &=(xindex[j].find(index)!=xindex[j].end());
+            if (all)
+              deleteNode(quadTreeYZ,
+                BBox[index].MinD(dim-2),
+                BBox[index].MaxD(dim-2),
+                BBox[index].MinD(dim-1),
+                BBox[index].MaxD(dim-1));
+          }
+        }
+        xValiter[di] = xVals[di].begin();
+        iterateInsert[di] = insertMBR[di].begin();
+        iterateDelete[di] = deleteMBR[di].begin();
+        x[di] = *xValiter[di];
+        xValiter[di]++;
+        again = true;
+      }
+      while ((di!=dim-3)&&
+             (iterateDelete[di]!=deleteMBR[di].end())&&
+             ((*iterateDelete[di]).xVal == x[di])) {
+        //delete index of non-valid rectangles at position <x>
+        int index = (*iterateDelete[di]).index;
+        xindex[di].erase(index);
+        iterateDelete[di]++;
+      }
+      while ((di!=dim-3)&&
+             (iterateInsert[di]!=insertMBR[di].end())&&
+             ((*iterateInsert[di]).xVal == x[di])) {
+        //insert index of valid rectangles at position <x>
+        int index = (*iterateInsert[di]).index;
+        xindex[di].insert(index);
+        iterateInsert[di]++;
+      }
+      di--;
+    }
+  }
+  deleteQuadTree(quadTreeYZ);
+  return coversweep[0];
+}
+/*
+sweep line algorithm with quad tree for dimensions $ >$ 2
+
+
+
+...and finally:
+
+Value mapping for operator ~getNodeInfo~:
+
+*/
+
+
+template<unsigned dim>
+int RTreeGetNodeInfoVM( Word* args, Word& result, int message,
+                  Word& local, Supplier s )
+{
+  GetSonsInfo<dim, TupleId>* gsi;
+
+  switch( message )
+  {
+    case OPEN:
+    {
+      int nodeId = ((CcInt*)args[1].addr)->GetIntval();
+      R_Tree<dim, TupleId>* tree = (R_Tree<dim, TupleId>*) args[0].addr;
+      if (checkRecordId(tree, nodeId))
+      {
+        int maxIntEntries = tree->MaxEntries(0);
+        int maxLeafEntries = tree->MaxEntries(tree->Height());
+        int maxEntr = maxIntEntries > maxLeafEntries ? maxIntEntries
+            : maxLeafEntries;//needed to properly read the node.
+        R_TreeNode<dim, TupleId>* f = new R_TreeNode<dim, TupleId>
+                                           (false, 0, maxEntr);
+        tree->GetNode(nodeId, *f);
+
+        int m = f->EntryCount();
+
+        bool isRootNode = (nodeId==static_cast<int>(tree->RootRecordId()));
+        gsi = new GetSonsInfo<dim, TupleId>(-1, m, f, new TupleType
+                      (nl->Second(GetTupleResultType(s))), nodeId, isRootNode);
+        local.setAddr(gsi);
+      }
+      else
+        local.setAddr(0);
+      return 0;
+    }
+
+    case REQUEST :
+    {
+      if(local.addr == NULL)
+      {
+        return CANCEL;
+      }
+      gsi = (GetSonsInfo<dim, TupleId>*)local.addr;
+
+      if (gsi->index == gsi->maxEntries)
+      {
+        return CANCEL;
+      }
+
+      double MBRsize = (gsi->father->BoundingBox()).Area();
+
+      int numSons = gsi->father->IsLeaf()? 0 : gsi->maxEntries;
+
+      double MBRdead = 0.0;
+      vector< Rectangle<dim> > sonBB; //vector of BoundingBoxes of sons
+      for (int i=0; i<gsi->maxEntries; i++)
+      {
+        sonBB.push_back(gsi->father->BoundingBox(i));
+      }
+      MBRdead = MBRsize - getSweepAreas(sonBB);
+
+      int MBRoverlapsNo = 0;
+      double MBRoverlapSize = 0.0;
+      sonBB.clear();
+      for (int i=0; i<gsi->maxEntries-1; i++)
+      {
+        for (int j= i+1; j<gsi->maxEntries; j++)
+        {
+        //if intersection between sonMBR_i and sonMBR_j
+          if ((gsi->father->BoundingBox(i)).Intersects(
+                                     gsi->father->BoundingBox(j)))
+            {
+            MBRoverlapsNo++;  //count the overlappings
+            //and build a vector of the overlapped MBRs
+            sonBB.push_back((gsi->father->BoundingBox(i)).Intersection(
+                                     gsi->father->BoundingBox(j)));
+            }
+        }
+      }
+      MBRoverlapSize = getSweepAreas(sonBB); //get size of overlapped MBRs
+
+      double MBRdensity = gsi->maxEntries / MBRsize;
+
+      Tuple *tuple = new Tuple( gsi->ttype );
+      tuple->PutAttribute(0, new CcInt(true, gsi->nodeId));
+      tuple->PutAttribute(1, new Rectangle<dim>(gsi->father->BoundingBox()));
+      tuple->PutAttribute(2, new CcInt(true, numSons));
+      tuple->PutAttribute(3, new CcBool(true, gsi->father->IsLeaf()));
+      tuple->PutAttribute(4, new CcBool(true, gsi->IsRoot));
+      tuple->PutAttribute(5, new CcReal(true, MBRsize));
+      tuple->PutAttribute(6, new CcReal(true, MBRdead));
+      tuple->PutAttribute(7, new CcReal(true, MBRoverlapSize));
+      tuple->PutAttribute(8, new CcInt(true, MBRoverlapsNo));
+      tuple->PutAttribute(9, new CcReal(true, MBRdensity));
+      result.setAddr(tuple);
+      gsi->index = gsi->maxEntries;
+      return YIELD;
+    }
+
+    case CLOSE :
+    {
+      if(local.addr)
+      {
+        gsi = (GetSonsInfo<dim, TupleId>*)local.addr;
+        delete gsi->father;
+        gsi->ttype->DeleteIfAllowed();
+        delete gsi;
+        local.setAddr(Address(0));
+      }
+      return 0;
+    }
+  } // end switch
+  cout << "RTreeGetNodeInfoVM(): Received UNKNOWN message!" << endl;
+  return 0;
+}
+
+/*
+5.13.3 Specification for Operator ~getNodeInfo~
+
+*/
+
+const string RTreeGetNodeInfoSpec  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+    "\"Example\" \"Comment\" ) "
+    "(<text>(rtree<D> (tuple ((x1 t1)...(xn tn))) ti false) x int"
+    "-> stream(tuple((NodeId int) (MBR rect<D>) (NoOfSons int) \n"
+    "                (IsLeafNode bool) (IsRootNode bool) \n"
+    "                (MBRsize real) (MBRdead real) (MBRoverlapSize real) \n"
+    "                (MBRoverlapsNo int) (MBRdensity real)))</text--->"
+    "<text>getNodeInfo( _ , _ )</text--->"
+    "<text>This operator allows introspection of an RTree. It creates a "
+    "stream of a tuple, which describes one node of the R-Tree.</text--->"
+    "<text>query getNodeInfo(strassen_geoData_rtree, 2);</text--->"
+    "<text>Stream is empty, if given record no is not existing.</text--->"
+    ") )";
+
+/*
+5.13.4 Selection Function for Operator ~getNodeInfo~
+
+The selection function is used for the operators ~getNodeInfo~,
+~getNodeSons~ and ~getLeafEntries~.
+
+*/
+
+int RTreeGetInfoTypeSelect (ListExpr args)
+{
+  AlgebraManager *algMgr = SecondoSystem::GetAlgebraManager();
+  ListExpr errorInfo = nl->OneElemList( nl->SymbolAtom( "ERRORS" ) );
+
+  string rtreeDescriptionStr;
+
+  /* handle rtree part of argument */
+  ListExpr rtreeDescription = nl->First(args);
+  ListExpr rtreeKeyType = nl->Third(rtreeDescription);
+
+  if(         nl->IsEqual(rtreeKeyType, "rect")
+           || algMgr->CheckKind("SPATIAL2D", rtreeKeyType, errorInfo))
+    return 0;
+  else if(    nl->IsEqual(rtreeKeyType, "rect3")
+           || algMgr->CheckKind("SPATIAL3D", rtreeKeyType, errorInfo))
+    return 1;
+  else if(    nl->IsEqual(rtreeKeyType, "rect4")
+           || algMgr->CheckKind("SPATIAL4D", rtreeKeyType, errorInfo))
+    return 2;
+  else if(    nl->IsEqual(rtreeKeyType, "rect8")
+           || algMgr->CheckKind("SPATIAL8D", rtreeKeyType, errorInfo))
+    return 3;
+
+  return -1;
+}
+
+ValueMapping RTreeGetNodeInfo [] =
+{ RTreeGetNodeInfoVM<2>,  // 0
+  RTreeGetNodeInfoVM<3>,  // 1
+  RTreeGetNodeInfoVM<4>,  // 2
+  RTreeGetNodeInfoVM<8>   // 3
+};
+
+
+/*
+5.13.5 Definition of Operator ~getNodeInfo~
+
+*/
+Operator rtreegetnodeinfo(
+         "getNodeInfo",                       // name
+         RTreeGetNodeInfoSpec,                // specification
+         4,
+         RTreeGetNodeInfo,                    // value mapping
+         RTreeGetInfoTypeSelect,              // selection function
+         RTreeGetInfoTypeTypeMap<NODEINFO>    // type mapping
+        );
+
+
+
+
+/*
+5.14 Operator ~getNodeSons~
+
+This operator allows introspection of an R-tree. It creates a stream
+of tuples, each describe a son node of the node with the specified record no.
+The stream is empty, if the given recordnumber is not existing/not valid.
+
+Signature is
+
+----
+   getNodeSons: (rtree<D>) x int --> stream(tuple((NodeId int) (SonId int)
+                                                  (SonMBR rect<D>)))
+
+----
+
+*/
+
+/*
+5.14.1 TypeMapping for Operator ~getNodeSons~
+
+The typemapping function is the one of the operator ~getNodeInfo~ and uses
+a template parameter InfoType to differ between the typemapping of the
+operators ~getNodeInfo~, ~getNodeSons~ and ~getLeafEntries~.
+The typemapping of operator ~getNodeSons~ uses InfoType = NODESONS.
+
+*/
+
+
+/*
+5.14.2 Value Mapping for Operator ~getNodeSons~
+
+*/
+
+template<unsigned dim>
+int RTreeGetNodeSonsVM( Word* args, Word& result, int message,
+                  Word& local, Supplier s )
+{
+  GetSonsInfo<dim, TupleId>* gsi;
+
+  switch( message )
+  {
+    case OPEN:
+    {
+      int nodeId = ((CcInt*)args[1].addr)->GetIntval();
+      R_Tree<dim, TupleId>* tree = (R_Tree<dim, TupleId>*) args[0].addr;
+      if (checkRecordId(tree, nodeId))
+      {
+        int maxIntEntries = tree->MaxEntries(0);
+        int maxLeafEntries = tree->MaxEntries(tree->Height());
+        int maxEntr = maxIntEntries > maxLeafEntries ? maxIntEntries
+            : maxLeafEntries;//needed to properly read the node.
+        R_TreeNode<dim, TupleId>* f = new R_TreeNode<dim, TupleId>
+                                           (false, 0, maxEntr);
+        tree->GetNode(nodeId, *f);
+        int m = f->EntryCount();
+        bool isRootNode = (nodeId==static_cast<int>(tree->RootRecordId()));
+        gsi = new GetSonsInfo<dim, TupleId>(0, m, f, new TupleType
+                      (nl->Second(GetTupleResultType(s))), nodeId, isRootNode);
+        local.setAddr(gsi);
+      }
+      else
+        local.setAddr(0);
+      return 0;
+    }
+
+    case REQUEST :
+    {
+      if(local.addr == NULL)
+      {
+        return CANCEL;
+      }
+      gsi = (GetSonsInfo<dim, TupleId>*)local.addr;
+
+      if (gsi->index == gsi->maxEntries)
+      {
+        return CANCEL;
+      }
+
+      if (gsi->father->IsLeaf())
+      {
+        Tuple *tuple = new Tuple( gsi->ttype );
+        tuple->PutAttribute(0, new CcInt(true, gsi->nodeId));
+        tuple->PutAttribute(1, new CcInt(false, 0));
+        tuple->PutAttribute(2, new Rectangle<dim>(false));
+        result.setAddr(tuple);
+        gsi->index = gsi->maxEntries;
+/*
+ensures that CANCEL will be returned at next call.
+
+*/
+        return YIELD;
+      }
+
+      Tuple *tuple = new Tuple( gsi->ttype );
+      tuple->PutAttribute(0, new CcInt(true, gsi->nodeId));
+      R_TreeInternalEntry<dim>* son = gsi->father->
+                                GetInternalEntry(gsi->index);
+      tuple->PutAttribute(1, new CcInt(true, son->pointer));
+      tuple->PutAttribute(2, new Rectangle<dim>(son->box));
+      result.setAddr(tuple);
+      gsi->index++;
+      return YIELD;
+    }
+
+    case CLOSE :
+    {
+      if(local.addr)
+      {
+        gsi = (GetSonsInfo<dim, TupleId>*)local.addr;
+        delete gsi->father;
+        gsi->ttype->DeleteIfAllowed();
+        delete gsi;
+        local.setAddr(Address(0));
+      }
+      return 0;
+    }
+  } // end switch
+  cout << "RTreeGetNodeSonsVM(): Received UNKNOWN message!" << endl;
+  return 0;
+}
+
+/*
+5.14.3 Specification for Operator ~getNodeSons~
+
+*/
+
+const string RTreeGetNodeSonsSpec  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+    "\"Example\" \"Comment\" ) "
+    "(<text>(rtree<D> (tuple ((x1 t1)...(xn tn))) ti false) x int "
+    "-> stream(tuple((NodeId int) (SonId int) (SonMBR rect<D>)))</text--->"
+    "<text>getNodeSons( _ , _ )</text--->"
+    "<text>This operator allows introspection of an RTree. It creates a "
+    "stream of tuples, each describe a "
+    "son node of the node with the specified record no.</text--->"
+    "<text>query getNodeSons(strassen_geodata_rtree, 2);</text--->"
+    "<text>Stream is empty, if given record no is not existing.</text--->"
+    ") )";
+
+/*
+5.14.4 Selection Function for Operator ~getNodeSons~
+
+The selection function is the one of the operator ~getNodeInfo~.
+
+*/
+
+ValueMapping RTreeGetNodeSons [] =
+{ RTreeGetNodeSonsVM<2>,  // 0
+  RTreeGetNodeSonsVM<3>,  // 1
+  RTreeGetNodeSonsVM<4>,  // 2
+  RTreeGetNodeSonsVM<8>   // 3
+};
+
+
+/*
+5.14.5 Definition of Operator ~getNodeSons~
+
+*/
+Operator rtreegetnodesons(
+         "getNodeSons",                       // name
+         RTreeGetNodeSonsSpec,                // specification
+         4,
+         RTreeGetNodeSons,                    // value mapping
+         RTreeGetInfoTypeSelect,              // selection function
+         RTreeGetInfoTypeTypeMap<NODESONS>    // type mapping
+        );
+
+
+/*
+5.14 Operator ~getLeafEntries~
+
+This operator allows introspection of an R-tree. It creates a stream
+of tuples, each describe an entry of the leafnode with the specified
+record no. The entries of the leafnode are tupleidentifiers (tid).
+The stream is empty, if the given recordnumber is not existing/not valid
+or the specified node is not a leafnode.
+
+Signature is
+
+----
+   getLeafEntries: (rtree<D>) x int --> stream(tuple((NodeId int) (TupleID tid)))
+                                                  (EntryMBR rect<D>)))
+
+----
+
+*/
+
+/*
+5.14.1 TypeMapping for Operator ~getLeafEntries~
+
+The typemapping function is the one of the operator ~getNodeInfo~ and uses
+a template parameter InfoType to differ between the typemapping of the
+operators ~getNodeInfo~, ~getNodeSons~ and ~getLeafEntries~.
+The typemapping of operator ~getLeafEntries~ uses InfoType = LEAFENTRIES.
+
+*/
+
+
+/*
+5.14.2 Value Mapping for Operator ~getLeafEntries~
+
+*/
+
+template<unsigned dim>
+int RTreeGetLeafEntriesVM( Word* args, Word& result, int message,
+                  Word& local, Supplier s )
+{
+  GetSonsInfo<dim, TupleId>* gsi;
+
+  switch( message )
+  {
+    case OPEN:
+    {
+      int nodeId = ((CcInt*)args[1].addr)->GetIntval();
+      R_Tree<dim, TupleId>* tree = (R_Tree<dim, TupleId>*) args[0].addr;
+      if (checkRecordId(tree, nodeId))
+      {
+        int maxIntEntries = tree->MaxEntries(0);
+        int maxLeafEntries = tree->MaxEntries(tree->Height());
+        int maxEntr = maxIntEntries > maxLeafEntries ? maxIntEntries
+            : maxLeafEntries;//needed to properly read the node.
+        R_TreeNode<dim, TupleId>* f = new R_TreeNode<dim, TupleId>
+                                           (false, 0, maxEntr);
+        tree->GetNode(nodeId, *f);
+        int m = f->EntryCount();
+        bool isRootNode = (nodeId==static_cast<int>(tree->RootRecordId()));
+        gsi = new GetSonsInfo<dim, TupleId>(0, m, f, new TupleType
+                      (nl->Second(GetTupleResultType(s))), nodeId, isRootNode);
+        local.setAddr(gsi);
+      }
+      else
+        local.setAddr(0);
+      return 0;
+    }
+
+    case REQUEST :
+    {
+      if(local.addr == NULL)
+      {
+        return CANCEL;
+      }
+      gsi = (GetSonsInfo<dim, TupleId>*)local.addr;
+
+      if (gsi->index == gsi->maxEntries)
+      {
+        return CANCEL;
+      }
+
+      if (!(gsi->father->IsLeaf()))
+      {
+        return CANCEL;
+      }
+
+      Tuple *tuple = new Tuple( gsi->ttype );
+      tuple->PutAttribute(0, new CcInt(true, gsi->nodeId));
+      R_TreeLeafEntry<dim,TupleId>* entry = gsi->father->
+                                GetLeafEntry(gsi->index);
+      tuple->PutAttribute(1, new TupleIdentifier(true, entry->info));
+      tuple->PutAttribute(2, new Rectangle<dim>(entry->box));
+      result.setAddr(tuple);
+      gsi->index++;
+      return YIELD;
+    }
+
+    case CLOSE :
+    {
+      if(local.addr)
+      {
+        gsi = (GetSonsInfo<dim, TupleId>*)local.addr;
+        delete gsi->father;
+        gsi->ttype->DeleteIfAllowed();
+        delete gsi;
+        local.setAddr(Address(0));
+      }
+      return 0;
+    }
+  } // end switch
+  cout << "RTreeGetLeafEntriesVM(): Received UNKNOWN message!" << endl;
+  return 0;
+}
+
+/*
+5.14.3 Specification for Operator ~getLeafEntries~
+
+*/
+
+const string RTreeGetLeafEntriesSpec  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+    "\"Example\" \"Comment\" ) "
+    "(<text>(rtree<D> (tuple ((x1 t1)...(xn tn))) ti false) x int "
+    "-> stream(tuple((NodeId int)(TupleID tid)(EntryMBR rect<D>)))</text--->"
+    "<text>getLeafEntries( _ , _ )</text--->"
+    "<text>This operator allows introspection of an RTree. It creates a "
+    "stream of tupleids, each describe an entry "
+    "of the leafnode with the specified record no.</text--->"
+    "<text>query getLeafEntries(strassen_geodata_rtree, 2);</text--->"
+    "<text>Stream is empty, if given record no is not existing.</text--->"
+    ") )";
+
+/*
+5.14.4 Selection Function for Operator ~getLeafEntries~
+
+The selection function is the one of the operator ~getNodeInfo~.
+
+*/
+
+ValueMapping RTreeGetLeafEntries [] =
+{ RTreeGetLeafEntriesVM<2>,  // 0
+  RTreeGetLeafEntriesVM<3>,  // 1
+  RTreeGetLeafEntriesVM<4>,  // 2
+  RTreeGetLeafEntriesVM<8>   // 3
+};
+
+
+/*
+5.14.5 Definition of Operator ~getLeafEntries~
+
+*/
+Operator rtreegetleafentries(
+         "getLeafEntries",                    // name
+         RTreeGetLeafEntriesSpec,             // specification
+         4,
+         RTreeGetLeafEntries,                 // value mapping
+         RTreeGetInfoTypeSelect,              // selection function
+         RTreeGetInfoTypeTypeMap<LEAFENTRIES> // type mapping
+        );
+
+/*
 6 Definition and initialization of RTree Algebra
 
 */
@@ -4655,6 +5993,12 @@ class RTreeAlgebra : public Algebra
     AddOperator( &rtreeentries);
     AddOperator( &getfileinfortree);
     AddOperator( &updatebulkloadrtree);
+    AddOperator( &rtreegetrootnode );
+    AddOperator( &rtreegetnodeinfo );
+    AddOperator( &rtreegetnodesons );
+    AddOperator( &rtreegetleafentries );
+
+
 
 #else
 
@@ -4676,6 +6020,10 @@ class RTreeAlgebra : public Algebra
     AddOperator( &rtreeentries);
     AddOperator(&getfileinfortree);
     AddOperator( &updatebulkloadrtree);
+    AddOperator( &rtreegetrootnode );
+    AddOperator( &rtreegetnodeinfo );
+    AddOperator( &rtreegetnodesons );
+    AddOperator( &rtreegetleafentries );
 
 #endif
 

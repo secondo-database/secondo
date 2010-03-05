@@ -123,3 +123,27 @@ Signature: (rtree<d> (tuple ((x1 t1)...(xn tn))) ti false) stream (tuple (x1 t1)
 Example  : query nodes(UTOrdered_1 UTOrdered feed extend[TID : tupleid(.)] sortby[UTrip asc] filter[tid2int(.TID) > 30000] updatebulkloadrtree[UTrip]) count;
 Result   : 49341
 
+
+Operator : getRootNode
+Number   : 1
+Signature: rtree<D> -> int
+Example  : query getRootNode(strassen_geoData_rtree)
+Result   : 2
+
+Operator : getNodeInfo
+Number   : 1
+Signature: rtree<D> (tuple ((x1 t1)...(xn tn))) ti false) x int -> stream(tuple((nodeId int) (MBR rect<D>) (IsLeafNode bool) (IsRootNode bool) (MBRsize real) (MBRdead real) (MBRoverlapSize real) (MBRoverlapsNo int) (MBRdensity real)))
+Example  : query getNodeInfo(strassen_geoData_rtree, 2) count
+Result   : 1
+
+Operator : getNodeSons
+Number   : 1
+Signature: rtree<D> (tuple ((x1 t1)...(xn tn))) ti false) x int -> stream(tuple((NodeId int) (SonId int) (SonMBR rect<D>)))
+Example  : query getNodeSons(strassen_geoData_rtree, 2) count
+Result   : 54
+
+Operator : getLeafEntries
+Number   : 1
+Signature: rtree<D> (tuple ((x1 t1)...(xn tn))) ti false) x int -> stream(tuple((NodeId int) (TupleID tid) (EntryMBR rect<D>)))
+Example  : query getLeafEntries(strassen_geoData_rtree, 3) count
+Result   : 49
