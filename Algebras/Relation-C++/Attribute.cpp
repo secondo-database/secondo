@@ -63,6 +63,36 @@ derived attribute class must implement.
 
 const double FACTOR = 0.00000001; // Precision factor, used within AlmostEqual
 
+Attribute* Attribute::Create(char* state,
+                              size_t& offset, const ListExpr typeInfo ) {
+  NestedList *nl = SecondoSystem::GetNestedList();
+  AlgebraManager* algMgr = SecondoSystem::GetAlgebraManager();
+  int algId, typeId;
+  size_t size;
+  if (!nl->IsAtom(nl->First(typeInfo)))
+  {
+    ListExpr type = nl->First(typeInfo);
+    algId = nl->IntValue( nl->First( type ) );
+      typeId = nl->IntValue( nl->Second( type ) );
+      size = (algMgr->SizeOfObj(algId, typeId))();
+      }
+  else
+   {
+       algId = nl->IntValue( nl->First( typeInfo ) );
+      typeId = nl->IntValue( nl->Second( typeInfo ) );
+      size = (algMgr->SizeOfObj(algId, typeId))();
+      }
+
+  Attribute*
+    elem = (Attribute*)(algMgr->CreateObj(algId, typeId))( typeInfo ).addr;
+  // Read the element
+  elem->Rebuild(state, offset, algMgr->Cast(algId,typeId));
+  elem->del.refs = 1;
+  elem->del.SetDelete();
+  offset += size;
+  return elem;
+}
+
 
     void Attribute::Save( SmiRecord& valueRecord, size_t& offset,
                              const ListExpr typeInfo, Attribute *elem )
@@ -152,7 +182,7 @@ Default open function.
           for( int i = 0; i < NumOfFLOBs(); i++) {
             GetFLOB(i)->destroyIfNonPersistent();
           }
-        }        
+        }
         if( del.IsDelete() )
           delete this;
         else {

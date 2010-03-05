@@ -1,8 +1,8 @@
 /*
----- 
+----
 This file is part of SECONDO.
 
-Copyright (C) 2004-2009, University in Hagen, Faculty of Mathematics and Computer Science, 
+Copyright (C) 2004-2009, University in Hagen, Faculty of Mathematics and Computer Science,
 Database Systems for New Applications.
 
 SECONDO is free software; you can redistribute it and/or modify
@@ -55,11 +55,11 @@ Checks for a Spatial type.
     return algMgr->CheckKind("SPATIAL2D", arg, errorInfo) ||
             algMgr->CheckKind("SPATIAL3D", arg, errorInfo) ||
             algMgr->CheckKind("SPATIAL4D", arg, errorInfo) ||
-            algMgr->CheckKind("SPATIAL8D", arg, errorInfo);      
+            algMgr->CheckKind("SPATIAL8D", arg, errorInfo);
   }
 
 /*
-Checks for a rectangle type 
+Checks for a rectangle type
 
 */
 
@@ -68,7 +68,7 @@ Checks for a rectangle type
            nl->IsEqual(arg, "rect3") ||
            nl->IsEqual(arg, "rect4") ||
            nl->IsEqual(arg, "rect8");
- 
+
   }
 
 
@@ -79,9 +79,9 @@ Creates a list "typeerror".
 */
   ListExpr typeError(){
      return nl->TypeError();
-  } 
+  }
 
-/* 
+/*
 Writes a message to the errorreporter and returns
 "typeerror".
 
@@ -96,7 +96,7 @@ Writes a message to the errorreporter and returns
 Checks for a valid description of an rtree.
 
 
-*/  
+*/
 
   bool isRTreeDescription(ListExpr rtree){
    // (rtree tupledescription type bool)
@@ -106,8 +106,8 @@ Checks for a valid description of an rtree.
    ListExpr rtreeSymbol = nl->First(rtree);
    if(nl->AtomType(rtreeSymbol)!=SymbolType){
      return false;
-   }   
-   string rtreestr = nl->SymbolValue(rtreeSymbol);  
+   }
+   string rtreestr = nl->SymbolValue(rtreeSymbol);
 
    if( (rtreestr != "rtree") &&
        (rtreestr != "rtree3") &&
@@ -115,7 +115,7 @@ Checks for a valid description of an rtree.
        (rtreestr != "rtree8") ){
       return false;
    }
- 
+
    if(!isTupleDescription(nl->Second(rtree))){
      return false;
    }
@@ -142,6 +142,40 @@ bool isBTreeDescription(ListExpr btree){
            isKeyDescription(nl->Second(btree), nl->Fourth(btree)));
 }
 
+
+/*
+Checks for a BTree2Description
+
+*/
+bool isBTree2Description(ListExpr btree2){
+  if(nl->ListLength(btree2)!=4){
+    return false;
+  }
+  ListExpr errorInfo = emptyErrorInfo();
+  ListExpr uniq = nl->Fourth(btree2);
+  AlgebraManager *algMgr = SecondoSystem::GetAlgebraManager();
+  ListExpr key = nl->Second(btree2);
+  bool indexable = algMgr->CheckKind("INDEXABLE", key,errorInfo) ||
+                   (nl->IsAtom(key) &&
+                    nl->AtomType(key) == SymbolType &&
+                    (nl->SymbolValue(key) == "int" ||
+                     nl->SymbolValue(key) == "real" ||
+                     nl->SymbolValue(key) == "bool" ||
+                     nl->SymbolValue(key) == "string"));
+  return (nl->IsEqual(nl->First(btree2),"btree2") &&
+            indexable &&
+            nl->IsAtom(nl->Third(btree2)) &&
+            nl->AtomType(uniq) == SymbolType) &&
+            (nl->SymbolValue(uniq) == "multiple" ||
+            nl->SymbolValue(uniq) == "uniqueKey" ||
+            nl->SymbolValue(uniq) == "uniqueKeyMultiData");
+}
+
+/*
+ Checks for a valid hash table
+
+*/
+
   bool isHashDescription(ListExpr hash){
     if(nl->ListLength(hash)!=3){
       return false;
@@ -155,7 +189,7 @@ bool isBTreeDescription(ListExpr btree){
 /*
 Checks for valid description of a tuple.
 
-*/ 
+*/
 
   bool isTupleDescription(ListExpr tuple, const bool ismtuple /*=false*/){
     if(nl->ListLength(tuple)!=2){
@@ -169,7 +203,7 @@ Checks for valid description of a tuple.
   }
 
 /*
-Checks for a valid atribute list 
+Checks for a valid atribute list
 
 */
   bool isAttrList(ListExpr attrList){
@@ -236,7 +270,7 @@ Precondition isAttrList(l1) [&]  isAttrList(l2)
 /*
 Checks whether the list corresponds to a given symbol.
 
-*/  
+*/
  bool isSymbol(const ListExpr list, const string& v){
    if(nl->AtomType(list)!=SymbolType){
      return false;
@@ -280,7 +314,7 @@ Concatenates l1 and l2.
    return res;
  }
 
- 
+
 
 
 
@@ -305,7 +339,7 @@ Returns the dimension of an rtree.
      if(t=="rtree4") return 4;
      if(t=="rtree8") return 8;
      assert(false);
-     return -1; 
+     return -1;
   }
 
 /*
@@ -326,7 +360,7 @@ Checks for a valid relation description.
        return false;
     }
     bool mtuple = relsymb=="mrel";
-    return isTupleDescription(nl->Second(rel),mtuple);   
+    return isTupleDescription(nl->Second(rel),mtuple);
   }
 
   bool isOrelDescription(ListExpr orel) {
@@ -337,7 +371,7 @@ Checks for a valid relation description.
             isTupleDescription(nl->Second(orel),false) &&
             isKeyDescription(nl->Second(orel), nl->Third(orel));
   }
-  
+
   bool isKeyDescription(ListExpr tupleList, ListExpr keyList) {
     ListExpr attrType;
     int attrIndex;
@@ -371,8 +405,8 @@ Checks for a valid relation description.
     }
     return true;
   }
-      
-                                           
+
+
 
 /*
 Checks for a tuple stream
@@ -432,7 +466,7 @@ double getNumValue(ListExpr n){
 bool isNumericType(ListExpr n){
   if(nl->AtomType(n)!=SymbolType){
      return false;
-  } 
+  }
   string v = nl->SymbolValue(n);
   return v=="int" || v=="real";
 }
@@ -464,14 +498,14 @@ Checks for a stream of kind DATA
        j++;
        if(nl->IsEqual(nl->First(current),name)){
           type = nl->Second(current);
-          return j; 
-       }  
+          return j;
+       }
        rest = nl->Rest(rest);
      }
-     return 0; 
+     return 0;
   }
 
-  int findType(ListExpr attrList, const ListExpr type, 
+  int findType(ListExpr attrList, const ListExpr type,
                 string& name, const int start/*=1*/){
     assert(isAttrList(attrList));
     ListExpr rest = attrList;
@@ -485,7 +519,7 @@ Checks for a stream of kind DATA
               name = nl->SymbolValue(nl->First(current));
               return j;
           }
-       } 
+       }
     }
     return 0;
 
@@ -507,7 +541,7 @@ Checks for a stream of kind DATA
            last = head;
          } else {
            last = nl->Append(last, pair);
-         } 
+         }
        } else {
          count++;
        }
@@ -522,8 +556,8 @@ Checks for a stream of kind DATA
 
 
 
-  bool replaceAttributes( ListExpr attrList, 
-                          map<string, string>& renameMap, 
+  bool replaceAttributes( ListExpr attrList,
+                          map<string, string>& renameMap,
                           ListExpr& resAttrList, string& errmsg){
 
     bool firstCall = true;
@@ -538,7 +572,7 @@ Checks for a stream of kind DATA
         if(it==renameMap.end()){
            newAttr = attr;
         } else {
-           newAttr = nl->TwoElemList( nl->SymbolAtom(it->second), 
+           newAttr = nl->TwoElemList( nl->SymbolAtom(it->second),
                                       nl->Second(attr));
            renameMap.erase(it);
         }
@@ -562,7 +596,7 @@ Checks for a stream of kind DATA
       return false;
     }
 
-    
+
     if(!isAttrList(resAttrList)){
       errmsg = "renamed names are not unique";
       resAttrList = nl->TheEmptyList();
@@ -570,7 +604,7 @@ Checks for a stream of kind DATA
     }
 
     return true;
-    
+
   }
 
 } // end of namespace listutils

@@ -1,9 +1,9 @@
 
 /*
----- 
+----
 This file is part of SECONDO.
 
-Copyright (C) 2004-2009, University in Hagen, Faculty of Mathematics and Computer Science, 
+Copyright (C) 2004-2009, University in Hagen, Faculty of Mathematics and Computer Science,
 Database Systems for New Applications.
 
 SECONDO is free software; you can redistribute it and/or modify
@@ -41,13 +41,13 @@ namespace listutils{
 /*
 ~emptyErrorInfo~
 
-Returns a one elem lsit containing the symbol "ERROR". 
+Returns a one elem lsit containing the symbol "ERROR".
 
-*/   
-  ListExpr emptyErrorInfo(); 
+*/
+  ListExpr emptyErrorInfo();
 
 /*
-  
+
 Permforms a kind check for SPATIAL?D
 
 */
@@ -76,7 +76,7 @@ Check for map
   bool isMap(ListExpr map){
 
     int a = noArgs+2;
-    
+
 
     return nl->ListLength(map)==a &&
            nl->AtomType(nl->First(map))==SymbolType &&
@@ -112,6 +112,13 @@ Checks for a valid btree description.
   bool isBTreeDescription(ListExpr btree);
 
 /*
+Checks for a valid btree2 description.
+
+*/
+  bool isBTree2Description(ListExpr btree2);
+
+/*
+
  Checks for a valid hash table
 
 */
@@ -132,11 +139,11 @@ Checks for kind DATA
 
 
 /*
-Checks for a numeric value 
+Checks for a numeric value
 
 */
  bool isNumeric(const ListExpr num);
- 
+
 
  bool isSymbol(const ListExpr list);
 
@@ -188,15 +195,15 @@ Checks for a valid description of a relation
   bool isRelDescription2(ListExpr rel, const string& reltype);
 
   bool isOrelDescription(ListExpr orel);
-  
+
   bool isKeyDescription(ListExpr tupleList, ListExpr keyList);
-  
+
 /*
 Checks for a tuple stream
 
 */
   bool isTupleStream(ListExpr s);
-  
+
 
 /*
 Checks for a stream of kind DATA
@@ -204,15 +211,15 @@ Checks for a stream of kind DATA
 */
   bool isDATAStream(ListExpr s);
 
-/* 
+/*
 
 searches for an attribute name within the list.
-The attrlist has to be a valid attribute list. If the attribute was found, 
-its position is returned and type is set to the corresponding attribute 
+The attrlist has to be a valid attribute list. If the attribute was found,
+its position is returned and type is set to the corresponding attribute
 type. If not is found, type remains unchanged and the result is 0.
 
 */
-   
+
   int findAttribute(ListExpr attrList, const string& name, ListExpr& type);
 
 /*
@@ -221,19 +228,19 @@ If the type was found, its positon is returned and the name is changed to the
 name of the attribute. Otherwise, 0 is returned.
 
 */
-  int findType(ListExpr attrList, const ListExpr type, 
+  int findType(ListExpr attrList, const ListExpr type,
                string& name, const int start=1);
 
 
 /*
 Removes all attributes with names in __names__ from the list. It returns the
-number of removed entries as well as the begin and the end of the resulting 
+number of removed entries as well as the begin and the end of the resulting
 list.
 
 Precondition: isAttrList(list)
 
 */
-  int removeAttributes(ListExpr list, const set<string>& names, 
+  int removeAttributes(ListExpr list, const set<string>& names,
                        ListExpr& head, ListExpr& last);
 
 
@@ -249,7 +256,7 @@ parameter is set. The strings stored in the map must be valid symbols.
 
 */
 
-  bool replaceAttributes( ListExpr attrList, map<string, string>& renameMap, 
+  bool replaceAttributes( ListExpr attrList, map<string, string>& renameMap,
                           ListExpr& resAttrList, string& errmsg);
 } // end of namespace
 #endif

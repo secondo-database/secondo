@@ -93,7 +93,7 @@ class AttrDelete
 {
   public:
     AttrDelete():
-    refs( 1 ) 
+    refs( 1 )
     // Note: variable isDefined belongs to the state of
     // Attribute objects thus the default constructor should
     // not change the value here since the default persistency
@@ -101,14 +101,14 @@ class AttrDelete
     // current state!
     { SetDelete(); }
 
-    AttrDelete(bool defined): refs(1), isDefined(defined), delInfo(ONE) 
+    AttrDelete(bool defined): refs(1), isDefined(defined), delInfo(ONE)
     { }
 
     AttrDelete& operator=(const AttrDelete& d){
       isDefined =  d.isDefined;
       // do not change Construction properties
       return *this;
-    } 
+    }
 
     void SetDelete() { delInfo = delInfo | ONE; }
     void SetMalloc() { delInfo = delInfo & NOT_ONE; }
@@ -151,7 +151,7 @@ The simple constructor.
 
 
     Attribute(const Attribute& a) : del(a.del.isDefined) {}
- 
+
 
     inline virtual ~Attribute()
     {}
@@ -167,7 +167,7 @@ Returns whether the attribute is defined.
 
      bool IsPinned() const { return del.IsPinned(); }
 /*
-Checks whether this attrobute is pinned. This means if 
+Checks whether this attrobute is pinned. This means if
 ~DeleteIfAllowed~ is called, native flobs are not destroyed.
 
 */
@@ -448,6 +448,8 @@ implementation excpects the state contains the byte block which was produced by
 the default ~Serialize~ function. The size of the object is  ~sz~
 
 */
+   static Attribute* Create(char* state, size_t& offset,
+                            const ListExpr typeInfo );
 
    inline static Attribute*
    Create(Attribute* attr, char* state, size_t sz, int algId, int typeId)
