@@ -185,13 +185,11 @@ SpatialTemporalUnit class.
 class UGPoint : public SpatialTemporalUnit<GPoint, 3>
 {
   public:
-  UGPoint() {del.refs = 1; };
+  UGPoint():SpatialTemporalUnit<GPoint,3>() {};
 
   UGPoint(bool is_defined):
     SpatialTemporalUnit<GPoint, 3>(is_defined)
-    {
-      del.refs=1;
-    };
+    {  };
 
   UGPoint( const Interval<Instant>& interval,
            const int in_NetworkID,
@@ -210,9 +208,7 @@ class UGPoint : public SpatialTemporalUnit<GPoint, 3>
         in_RouteID,      // RouteID
         in_Position1,    // d
         in_Side)       // Side
-    {
-      del.refs=1;
-    }
+    {};
 
   UGPoint( const Interval<Instant>& interval,
            const GPoint& p0,
@@ -220,9 +216,7 @@ class UGPoint : public SpatialTemporalUnit<GPoint, 3>
     SpatialTemporalUnit<GPoint, 3>( interval ),
     p0( p0 ),
     p1( p1 )
-    {
-      del.refs=1;
-    }
+    {  }
 
     UGPoint( const Interval<Instant>& interval,
            const int in_NetworkID,
@@ -242,9 +236,7 @@ class UGPoint : public SpatialTemporalUnit<GPoint, 3>
         in_RouteID,      // RouteID
         in_Position1,    // d
         in_Side)       // Side
-    {
-      del.refs=1;
-    }
+    { }
 
   UGPoint( const Interval<Instant>& interval,
            const GPoint& p0,
@@ -253,17 +245,15 @@ class UGPoint : public SpatialTemporalUnit<GPoint, 3>
     SpatialTemporalUnit<GPoint, 3>( interval ),
     p0( p0 ),
     p1( p1 )
-    {
-      del.refs=1;
-      del.isDefined=true;
-    }
+    {  }
 
-  UGPoint(const UGPoint &source){
+  UGPoint(const UGPoint &source):
+        SpatialTemporalUnit<GPoint,3>(source.IsDefined())
+  {
     *((TemporalUnit<GPoint>*)this)=*((TemporalUnit<GPoint>*)&source);
     p0=source.p0;
     p1=source.p1;
-    del.refs=1;
-    del.isDefined = source.del.isDefined;
+    SetDefined(source.IsDefined());
   }
 
   ostream& Print( ostream &os ) const
@@ -285,7 +275,7 @@ Redefinition of the copy operator ~=~.
     *((TemporalUnit<GPoint>*)this) = *((TemporalUnit<GPoint>*)&i);
     p0 = i.p0;
     p1 = i.p1;
-    del.isDefined=i.del.isDefined;
+    SetDefined(i.IsDefined());
     return *this;
   }
 
@@ -331,7 +321,7 @@ Functions to be part of relations
   {
     const UGPoint* i = (const UGPoint*)right;
 
-    if(i->del.isDefined)
+    if(i->IsDefined())
       {
         timeInterval.CopyFrom( i->timeInterval );
         p0 = i->p0;
@@ -631,7 +621,7 @@ The simple constructor should not be used.
 
 */
 
-    MGPoint(){};
+    MGPoint():Mapping<UGPoint,GPoint>() {};
 
     MGPoint( const int n );
 
@@ -647,7 +637,8 @@ The simple constructor should not be used.
     void CopyFrom(const Attribute* right)
     {
       const MGPoint *src = (const MGPoint*) right;
-      if (src->IsDefined())
+      SetDefined(src->IsDefined());
+      if (IsDefined())
       {
         units.copyFrom(src->units);
         if (src->m_traj_Defined) SetTrajectory(src->m_trajectory);
@@ -656,7 +647,6 @@ The simple constructor should not be used.
         if (src->m_bbox.IsDefined()) SetBoundingBox(src->BoundingBox());
         SetBoundingBoxDefined(m_bbox.IsDefined());
       }
-      else SetDefined(false);
     }
 
 

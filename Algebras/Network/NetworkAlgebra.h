@@ -272,24 +272,28 @@ class GPoint : public Attribute
 
 */
 
-    GPoint()
-    {del.refs = 1; }
+    GPoint():Attribute()
+    {}
 
     GPoint( bool in_bDefined,
             int in_iNetworkId = 0,
             int in_xRid = 0,
             double in_dLocation = 0.0,
             Side in_xSide = None ):
+    Attribute(in_bDefined),
     m_iNetworkId( in_iNetworkId ),
-    m_xRouteLocation( in_xRid, in_dLocation, in_xSide ),
-    m_bDefined( in_bDefined )
-    { del.refs = 1;}
+    m_xRouteLocation( in_xRid, in_dLocation, in_xSide )
+    {
+      SetDefined(in_bDefined);
+    }
 
     GPoint( const GPoint& in_xOther ):
+    Attribute(in_xOther.IsDefined()),
     m_iNetworkId( in_xOther.m_iNetworkId ),
-    m_xRouteLocation( in_xOther.m_xRouteLocation ),
-    m_bDefined( in_xOther.m_bDefined )
-    { del.refs = 1;}
+    m_xRouteLocation( in_xOther.m_xRouteLocation )
+    {
+      SetDefined(in_xOther.IsDefined());
+    }
 
     ~GPoint(){};
 
@@ -300,8 +304,8 @@ class GPoint : public Attribute
 
     GPoint& operator=( const GPoint& in_xOther )
     {
-      m_bDefined = in_xOther.m_bDefined;
-      if( m_bDefined )
+      SetDefined(in_xOther.IsDefined());
+      if( IsDefined())
       {
         m_iNetworkId = in_xOther.m_iNetworkId;
         m_xRouteLocation = in_xOther.m_xRouteLocation;
@@ -334,10 +338,6 @@ Get Methods of ~gpoint~
       return m_xRouteLocation.side;
     }
 
-    inline bool IsDefined() const
-    {
-      return m_bDefined;
-    }
 
 /*
 Set Methods of ~gpoint~
@@ -357,11 +357,6 @@ Set Methods of ~gpoint~
     inline void SetSide( Side s )
     {
       m_xRouteLocation.SetSide(s);
-    }
-
-    inline void SetDefined( bool in_bDefined )
-    {
-      m_bDefined = in_bDefined;
     }
 
     size_t Sizeof() const
@@ -518,10 +513,10 @@ to a single point.
 */
 
     inline const Rectangle<2> BoundingBox(){
-      if (m_bDefined) {
+      if (IsDefined()) {
         Point *p = ToPoint();
         Rectangle<2> result = p->BoundingBox();
-        delete p;
+        p->DeleteIfAllowed();
         return result;
       } else return Rectangle<2> (false, 0.0, 0.0, 0.0, 0.0);
     };
@@ -532,7 +527,7 @@ Returns a point degenerated rectangle as network bounding box of the gpoint
 */
 
     inline const Rectangle<2> NetBoundingBox() const {
-      if (m_bDefined)
+      if (IsDefined())
         return Rectangle<2>(true,
                             (double) m_xRouteLocation.rid,
                             (double) m_xRouteLocation.rid,
@@ -567,11 +562,7 @@ Route location see struct ~rloc~ for detailed fields
 */
     RLoc m_xRouteLocation;
 
-/*
-Defined flag.
 
-*/
-    bool m_bDefined;
 };
 
 /*
@@ -1519,6 +1510,7 @@ isDefined
 */
 
  int IsDefined();
+
  void SetDefined(bool def)
  {
    m_bDefined = def;
@@ -1850,10 +1842,6 @@ Returns the Bounding GPoints of the GLine.
 
     static bool Check( ListExpr type, ListExpr& errorInfo );
 
-    bool IsDefined() const;
-
-    void SetDefined(bool);
-
     int Compare(const Attribute*) const;
 
     bool Adjacent(const Attribute*) const;
@@ -1880,12 +1868,6 @@ The network id.
 
     int m_iNetworkId;
 
-/*
-Defined Flag: True if all members are defined
-
-*/
-
-    bool m_bDefined;
 
 /*
 Sorted Flag: True if route intervals of the gline are sorted.
@@ -2158,10 +2140,8 @@ public:
   size_t Sizeof()const;
   GPoints& operator+=(const GPoint &gp);
   GPoints& operator-=(const GPoint &gp);
-  bool IsDefined()const{return m_defined;}
   int NumOfFLOBs()const;
   Flob* GetFLOB(const int i);
-  void SetDefined( bool in_bDefined ){m_defined = in_bDefined;}
   void Get(int i, GPoint& gp)const;
   inline int Size()const;
   static int SizeOf();
@@ -2189,7 +2169,6 @@ public:
   void TrimToSize () {m_xGPoints.TrimToSize();}
 
 private:
-  bool m_defined;
   DbArray<GPoint> m_xGPoints;
 };
 

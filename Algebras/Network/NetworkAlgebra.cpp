@@ -89,7 +89,7 @@ Rectangle<2> RouteInterval::BoundingBox ( Network* pNetwork ) const
     Rectangle<2> bbox = Rectangle<2> ( true,
                                        p->GetX(), p->GetX(),
                                        p->GetY(), p->GetY() );
-    delete p;
+    p->DeleteIfAllowed();
     return bbox;
   }
   else
@@ -99,12 +99,12 @@ Rectangle<2> RouteInterval::BoundingBox ( Network* pNetwork ) const
     if ( !line->IsEmpty() )
     {
       Rectangle<2> res = line->BoundingBox();
-      delete line;
+      line->DeleteIfAllowed();
       return res;
     }
     else
     {
-      delete line;
+      line->DeleteIfAllowed();
       Point *p1 = ( GPoint ( true, pNetwork->GetId(), m_iRouteId,
                              m_dStart ) ).ToPoint ( pNetwork );
       Point *p2 = ( GPoint ( true, pNetwork->GetId(), m_iRouteId,
@@ -114,8 +114,8 @@ Rectangle<2> RouteInterval::BoundingBox ( Network* pNetwork ) const
                                          max ( p1->GetX(), p2->GetX() ),
                                          min ( p1->GetY(), p2->GetY() ),
                                          max ( p1->GetY(), p2->GetY() ) );
-      delete p1;
-      delete p2;
+      p1->DeleteIfAllowed();
+      p2->DeleteIfAllowed();
       return bbox;
     }
   }
@@ -1380,7 +1380,7 @@ string Network::junctionsInternalTypeInfo =
 
 string Network::junctionsBTreeTypeInfo =
     "(btree (tuple ((r1id int) (meas1 real) (r2id int) "
-    "(meas2 real) (cc int) (pos point) (r1rc tid) (r2rc tid) "
+    "(meas2 real) (cc int) (loc point) (r1rc tid) (r2rc tid) "
     "(sauprc tid) (sadownrc tid)(sbuprc tid) (sbdownrc tid))) int)";
 string Network::sectionsInternalTypeInfo =
     "(rel (tuple ((rid int) (meas1 real) (meas2 real) (dual bool)"
@@ -2705,7 +2705,7 @@ bool Network::InShortestPath ( GPoint*start,GPoint *to, GLine *result )
   {
     sendMessage ( "Both gpoints must exist and be defined." );
     result->SetDefined ( false );
-    delete end;
+    end->DeleteIfAllowed();
     return false;
   }
   // Check wether both points belong to the same network
@@ -2713,7 +2713,7 @@ bool Network::InShortestPath ( GPoint*start,GPoint *to, GLine *result )
   {
     sendMessage ( "Both gpoints belong to different networks." );
     result->SetDefined ( false );
-    delete end;
+    end->DeleteIfAllowed();
     return false;
   }
 
@@ -2725,7 +2725,7 @@ bool Network::InShortestPath ( GPoint*start,GPoint *to, GLine *result )
   {
     sendMessage ( "Starting GPoint not found in network." );
     result->SetDefined ( false );
-    delete end;
+    end->DeleteIfAllowed();
     return false;
   }
   Tuple* endSection = GetSectionOnRoute ( end );
@@ -2734,7 +2734,7 @@ bool Network::InShortestPath ( GPoint*start,GPoint *to, GLine *result )
     sendMessage ( "End GPoint not found in network." );
     startSection->DeleteIfAllowed();
     result->SetDefined ( false );
-    delete end;
+    end->DeleteIfAllowed();
     return false;
   }
 ////////////////////////////////////////////////////
@@ -2776,8 +2776,8 @@ bool Network::InShortestPath ( GPoint*start,GPoint *to, GLine *result )
         secjunid.push_back ( sectionlist[i].GetSectionTid() );
     }
   }
-  delete endp;
-  delete routeid;
+  endp->DeleteIfAllowed();
+  routeid->DeleteIfAllowed();
 /////////////////////////////////////////////////////
 // Calculate the shortest path using dijkstras algorithm.
 
@@ -2944,14 +2944,14 @@ bool Network::InShortestPath ( GPoint*start,GPoint *to, GLine *result )
               GPoint* temp = new GPoint ( true,end->GetNetworkId(),
                                           end->GetRouteId(),m2,None );
               *end = *temp;
-              delete temp;
+              temp->DeleteIfAllowed();
             }
             else
             {
               GPoint* temp = new GPoint ( true,end->GetNetworkId(),
                                           end->GetRouteId(),m1,None );
               *end = *temp;
-              delete temp;
+              temp->DeleteIfAllowed();
             }
             sect->DeleteIfAllowed();
             break;
@@ -3106,7 +3106,7 @@ bool Network::InShortestPath ( GPoint*start,GPoint *to, GLine *result )
   result->SetSorted ( false );
   result->SetDefined ( true );
   result->TrimToSize();
-  delete end;
+  end->DeleteIfAllowed();
   return true;
 };
 
@@ -3187,12 +3187,12 @@ void Network::FillDistanceStorage()
       gline->Get ( gline->Size()-1,ri );
       temp->AddRouteInterval ( ri );//tail
       tuple->PutAttribute ( 3,new GLine ( temp ) );
-      delete temp;
-      delete gline;
+      temp->DeleteIfAllowed();
+      gline->DeleteIfAllowed();
       alldistance->AppendTuple ( tuple );
       tuple->DeleteIfAllowed();
-      delete gp1;
-      delete gp2;
+      gp1->DeleteIfAllowed();
+      gp2->DeleteIfAllowed();
     }
   }
 }
@@ -3268,7 +3268,7 @@ TupleId Network::GetTupleIdSectionOnRoute ( GPoint* in_xGPoint )
   CcInt *ciRouteId = new CcInt ( true, in_xGPoint->GetRouteId() );
   BTreeIterator* pSectionIter =
       m_pBTreeSectionsByRoute->ExactMatch ( ciRouteId );
-  delete ciRouteId;
+  ciRouteId->DeleteIfAllowed();
   Tuple *actSect = 0;
   TupleId result;
   while ( pSectionIter->Next() )
@@ -3338,7 +3338,7 @@ Tuple* Network::GetSectionOnRoute ( GPoint* in_xGPoint )
   CcInt *ciRouteId = new CcInt(true, in_xGPoint->GetRouteId());
   BTreeIterator* pSectionIter =
       m_pBTreeSectionsByRoute->ExactMatch(ciRouteId);
-  delete ciRouteId;
+  ciRouteId->DeleteIfAllowed();
   Tuple *actSect = 0;
   while (pSectionIter->Next()){
     actSect =
@@ -3427,7 +3427,7 @@ Tuple* Network::GetRoute ( int in_RouteId )
 {
   CcInt* pRouteId = new CcInt ( true, in_RouteId );
   BTreeIterator *pRoutesIter = m_pBTreeRoutes->ExactMatch ( pRouteId );
-  delete pRouteId;
+  pRouteId->DeleteIfAllowed();
   Tuple *pRoute = 0;
   if ( pRoutesIter->Next() )
     pRoute = m_pRoutes->GetTuple ( pRoutesIter->GetId() );
@@ -3450,7 +3450,7 @@ void Network::GetSectionsOfRouteInterval ( const RouteInterval *ri,
   CcInt* ciRouteId = new CcInt ( true, ri->GetRouteId() );
   BTreeIterator* pSectionIter =
       m_pBTreeSectionsByRoute->ExactMatch ( ciRouteId );
-  delete ciRouteId;
+  ciRouteId->DeleteIfAllowed();
   Tuple *actSect;
   TupleId actSectTID;
   bool bsectstart = true;
@@ -3505,7 +3505,7 @@ void Network::GetSectionsOfRoutInterval ( const RouteInterval *ri,
   CcInt* ciRouteId = new CcInt ( true, ri->GetRouteId() );
   BTreeIterator* pSectionIter =
       m_pBTreeSectionsByRoute->ExactMatch ( ciRouteId );
-  delete ciRouteId;
+  ciRouteId->DeleteIfAllowed();
   Tuple *actSect;
   TupleId actSectTID;
   //bool bsectstart = true;
@@ -3550,7 +3550,7 @@ void Network::GetPointOnRoute ( const GPoint* in_pGPoint, Point*& res )
   /*Point *res = new Point(false);*/
   CcInt* pRouteId = new CcInt ( true, in_pGPoint->GetRouteId() );
   BTreeIterator* pRoutesIter = m_pBTreeRoutes->ExactMatch ( pRouteId );
-  delete pRouteId;
+  pRouteId->DeleteIfAllowed();
   Tuple *pRoute = 0;
   if ( pRoutesIter->Next() )
     pRoute = m_pRoutes->GetTuple ( pRoutesIter->GetId() );
@@ -3646,7 +3646,7 @@ bool Network::ShorterConnection ( Tuple *route, double &start,
   double difference;
   GPoint *gp = new GPoint ( true, GetId(), route->GetTupleId(), end - 0.01 );
   TupleId pSection1 = GetTupleIdSectionOnRoute ( gp );
-  delete gp;
+  gp->DeleteIfAllowed();
   vector<DirectedSection> pAdjSect1;
   vector<DirectedSection> pAdjSect2;
   pAdjSect1.clear();
@@ -3734,7 +3734,7 @@ bool Network::ShorterConnection2 ( Tuple *route, double &start,
       else difference = end; //start == end
   GPoint *gp = new GPoint ( true, GetId(), route->GetTupleId(), difference );
   TupleId pSection1 = GetTupleIdSectionOnRoute ( gp );
-  delete gp;
+  gp->DeleteIfAllowed();
   vector<DirectedSection> pAdjSect1;
   vector<DirectedSection> pAdjSect2;
   pAdjSect1.clear();
@@ -3815,7 +3815,7 @@ SimpleLine Network::GetRouteCurve ( int in_iRouteId )
 {
   Tuple *pRoute = GetRoute ( in_iRouteId );
   SimpleLine sl = * ( ( SimpleLine* ) pRoute->GetAttribute ( ROUTE_CURVE ) );
-  delete pRoute;
+  pRoute->DeleteIfAllowed();
   return sl;
 }
 
@@ -3830,7 +3830,7 @@ bool Network::GetDual ( int in_iRouteId )
 {
   Tuple *pRoute = GetRoute ( in_iRouteId );
   bool dual = ( ( CcBool* ) pRoute->GetAttribute ( ROUTE_DUAL ) )->GetBoolval();
-  delete pRoute;
+  pRoute->DeleteIfAllowed();
   return dual;
 }
 
@@ -3856,15 +3856,15 @@ RouteInterval* Network::Find ( Point p1, Point p2 )
     if ( ShorterConnection ( pRoute, start, end, dpos, dpos2, rid, ridt, p1, p2
 ) )
     {
-      delete gpp1;
-      delete gpp2;
+      gpp1->DeleteIfAllowed();
+      gpp2->DeleteIfAllowed();
       pRoute->DeleteIfAllowed();
       return new RouteInterval ( ridt, dpos, dpos2 );
     }
     else
     {
-      delete gpp1;
-      delete gpp2;
+      gpp1->DeleteIfAllowed();
+      gpp2->DeleteIfAllowed();
       pRoute->DeleteIfAllowed();
       return new RouteInterval ( rid, start, end );
     }
@@ -3884,15 +3884,15 @@ RouteInterval* Network::Find ( Point p1, Point p2 )
       if ( ShorterConnection ( pRoute, start, end, dpos, dpos2, rid, ridt, p1,
                                p2 ) )
       {
-        delete gpp1;
-        delete gpp2;
+        gpp1->DeleteIfAllowed();
+        gpp2->DeleteIfAllowed();
         pRoute->DeleteIfAllowed();
         return new RouteInterval ( ridt, dpos, dpos2 );
       }
       else
       {
-        delete gpp1;
-        delete gpp2;
+        gpp1->DeleteIfAllowed();
+        gpp2->DeleteIfAllowed();
         pRoute->DeleteIfAllowed();
         return new RouteInterval ( rid, start, end );
       }
@@ -3910,15 +3910,15 @@ RouteInterval* Network::Find ( Point p1, Point p2 )
       if ( ShorterConnection ( pRoute, start, end, dpos, dpos2, rid, ridt, p1,
                                p2 ) )
       {
-        delete gpp1;
-        delete gpp2;
+        gpp1->DeleteIfAllowed();
+        gpp2->DeleteIfAllowed();
         pRoute->DeleteIfAllowed();
         return new RouteInterval ( ridt, dpos, dpos2 );
       }
       else
       {
-        delete gpp1;
-        delete gpp2;
+        gpp1->DeleteIfAllowed();
+        gpp2->DeleteIfAllowed();
         pRoute->DeleteIfAllowed();
         return new RouteInterval ( rid, start, end );
       }
@@ -3952,15 +3952,15 @@ RouteInterval* Network::Find ( Point p1, Point p2 )
         if ( ShorterConnection ( pRoute, start, end, dpos, dpos2,
                                  rid, ridt, p1, p2 ) )
         {
-          delete gpp1;
-          delete gpp2;
+          gpp1->DeleteIfAllowed();
+          gpp2->DeleteIfAllowed();
           pRoute->DeleteIfAllowed();
           return new RouteInterval ( ridt, dpos, dpos2 );
         }
         else
         {
-          delete gpp1;
-          delete gpp2;
+          gpp1->DeleteIfAllowed();
+          gpp2->DeleteIfAllowed();
           pRoute->DeleteIfAllowed();
           return new RouteInterval ( rid, start, end );
         }
@@ -3988,15 +3988,15 @@ RouteInterval* Network::Find ( Point p1, Point p2 )
         if ( ShorterConnection ( pRoute, start, end, dpos, dpos2,
                                  rid, ridt, p1, p2 ) )
         {
-          delete gpp1;
-          delete gpp2;
+          gpp1->DeleteIfAllowed();
+          gpp2->DeleteIfAllowed();
           pRoute->DeleteIfAllowed();
           return new RouteInterval ( ridt, dpos, dpos2 );
         }
         else
         {
-          delete gpp1;
-          delete gpp2;
+          gpp1->DeleteIfAllowed();
+          gpp2->DeleteIfAllowed();
           pRoute->DeleteIfAllowed();
           return new RouteInterval ( rid, start, end );
         }
@@ -4006,8 +4006,8 @@ RouteInterval* Network::Find ( Point p1, Point p2 )
     }//should never be reached
     pAdjSect2.clear();
   }//should never be reached
-  delete gpp1;
-  delete gpp2;
+  gpp1->DeleteIfAllowed();
+  gpp2->DeleteIfAllowed();
   return 0;
 }
 
@@ -4030,18 +4030,18 @@ RouteInterval* Network::FindInterval ( Point p1, Point p2 )
     start = gpp1->GetPosition();
     end = gpp2->GetPosition();
     Tuple *pRoute = GetRoute ( rid );
-    if ( ShorterConnection2 ( pRoute, start, end, dpos, dpos2, rid, ridt, p1, p2
-) )
+    if ( ShorterConnection2 ( pRoute, start, end, dpos, dpos2, rid, ridt,
+         p1, p2) )
     {
-      delete gpp1;
-      delete gpp2;
+      gpp1->DeleteIfAllowed();
+      gpp2->DeleteIfAllowed();
       pRoute->DeleteIfAllowed();
       return new RouteInterval ( ridt, dpos, dpos2 );
     }
     else
     {
-      delete gpp1;
-      delete gpp2;
+      gpp1->DeleteIfAllowed();
+      gpp2->DeleteIfAllowed();
       pRoute->DeleteIfAllowed();
       return new RouteInterval ( rid, start, end );
     }
@@ -4060,15 +4060,15 @@ RouteInterval* Network::FindInterval ( Point p1, Point p2 )
       if ( ShorterConnection2 ( pRoute, start, end, dpos, dpos2,
                                 rid, ridt, p1, p2 ) )
       {
-        delete gpp1;
-        delete gpp2;
+        gpp1->DeleteIfAllowed();
+        gpp2->DeleteIfAllowed();
         pRoute->DeleteIfAllowed();
         return new RouteInterval ( ridt, dpos, dpos2 );
       }
       else
       {
-        delete gpp1;
-        delete gpp2;
+        gpp1->DeleteIfAllowed();
+        gpp2->DeleteIfAllowed();
         pRoute->DeleteIfAllowed();
         return new RouteInterval ( rid, start, end );
       }
@@ -4085,15 +4085,15 @@ RouteInterval* Network::FindInterval ( Point p1, Point p2 )
       if ( ShorterConnection2 ( pRoute, start, end, dpos, dpos2,
                                 rid, ridt, p1, p2 ) )
       {
-        delete gpp1;
-        delete gpp2;
+        gpp1->DeleteIfAllowed();
+        gpp2->DeleteIfAllowed();
         pRoute->DeleteIfAllowed();
         return new RouteInterval ( ridt, dpos, dpos2 );
       }
       else
       {
-        delete gpp1;
-        delete gpp2;
+        gpp1->DeleteIfAllowed();
+        gpp2->DeleteIfAllowed();
         pRoute->DeleteIfAllowed();
         return new RouteInterval ( rid, start, end );
       }
@@ -4126,15 +4126,15 @@ RouteInterval* Network::FindInterval ( Point p1, Point p2 )
         if ( ShorterConnection2 ( pRoute, start, end, dpos, dpos2,
                                   rid, ridt, p1, p2 ) )
         {
-          delete gpp1;
-          delete gpp2;
+          gpp1->DeleteIfAllowed();
+          gpp2->DeleteIfAllowed();
           pRoute->DeleteIfAllowed();
           return new RouteInterval ( ridt, dpos, dpos2 );
         }
         else
         {
-          delete gpp1;
-          delete gpp2;
+          gpp1->DeleteIfAllowed();
+          gpp2->DeleteIfAllowed();
           pRoute->DeleteIfAllowed();
           return new RouteInterval ( rid, start, end );
         }
@@ -4161,15 +4161,15 @@ RouteInterval* Network::FindInterval ( Point p1, Point p2 )
         if ( ShorterConnection2 ( pRoute, start, end, dpos, dpos2,
                                   rid, ridt, p1, p2 ) )
         {
-          delete gpp1;
-          delete gpp2;
+          gpp1->DeleteIfAllowed();
+          gpp2->DeleteIfAllowed();
           pRoute->DeleteIfAllowed();
           return new RouteInterval ( ridt, dpos, dpos2 );
         }
         else
         {
-          delete gpp1;
-          delete gpp2;
+          gpp1->DeleteIfAllowed();
+          gpp2->DeleteIfAllowed();
           pRoute->DeleteIfAllowed();
           return new RouteInterval ( rid, start, end );
         }
@@ -4179,8 +4179,8 @@ RouteInterval* Network::FindInterval ( Point p1, Point p2 )
     }//should never be reached
     pAdjSect2.clear();
   }//should never be reached
-  delete gpp1;
-  delete gpp2;
+  gpp1->DeleteIfAllowed();
+  gpp2->DeleteIfAllowed();
   return 0;
 }
 
@@ -4532,6 +4532,7 @@ void Network::DeleteNetwork ( const ListExpr typeInfo, Word& w )
   Network* n = ( Network* ) w.addr;
   //n->Destroy();
   delete n;
+  w.addr = 0;
 }
 
 bool Network::CheckNetwork ( ListExpr type, ListExpr& errorInfo )
@@ -4784,7 +4785,7 @@ void Network::GetLineValueOfRouteInterval ( const RouteInterval *in_ri,
 {
   CcInt* pRouteId = new CcInt ( true, in_ri->GetRouteId() );
   BTreeIterator *pRoutesIter = m_pBTreeRoutes->ExactMatch ( pRouteId );
-  delete pRouteId;
+  pRouteId->DeleteIfAllowed();
   Tuple *pRoute = 0;
   if ( pRoutesIter->Next() ) pRoute = m_pRoutes->GetTuple ( pRoutesIter->GetId()
 );
@@ -4823,22 +4824,23 @@ TypeConstructor network ( "network",          Network::NetworkProp,
 The simple constructor. Should not be used.
 
 */
-GLine::GLine()
-{del.refs = 1; }
+GLine::GLine():Attribute()
+{}
 
 GLine::GLine ( int in_iSize ) :
+    Attribute(true),
     m_xRouteIntervals ( in_iSize )
 {
-  del.refs = 1;
-  m_bDefined = false;
+  SetDefined(true);
   m_bSorted = false;
   m_dLength = 0.0;
 }
 
 GLine::GLine ( const GLine* in_xOther ) :
+    Attribute(in_xOther->IsDefined()),
     m_xRouteIntervals ( 0 )
 {
-  m_bDefined = in_xOther->m_bDefined;
+  SetDefined(in_xOther->IsDefined());
   m_bSorted = in_xOther->m_bSorted;
   m_iNetworkId = in_xOther->m_iNetworkId;
   m_dLength = 0.0;
@@ -4856,14 +4858,14 @@ GLine::GLine ( const GLine* in_xOther ) :
                        dStart,
                        dEnd );
   }
-  del.refs = 1;
   TrimToSize();
 }
 
 GLine::GLine ( ListExpr in_xValue,
                int in_iErrorPos,
                ListExpr& inout_xErrorInfo,
-               bool& inout_bCorrect )
+               bool& inout_bCorrect ):
+    Attribute(true)
 {
   // Check the list
   if ( ! ( nl->ListLength ( in_xValue ) == 2 ) )
@@ -4872,7 +4874,7 @@ GLine::GLine ( ListExpr in_xValue,
     inout_xErrorInfo = nl->Append ( inout_xErrorInfo,
                                     nl->StringAtom ( strErrorMessage ) );
     inout_bCorrect = false;
-    m_bDefined = false;
+    SetDefined(false);
     m_bSorted = false;
     return;
   }
@@ -4888,7 +4890,7 @@ GLine::GLine ( ListExpr in_xValue,
     string strErrorMessage = "GLine(): Error while reading network-id.";
     inout_xErrorInfo = nl->Append ( inout_xErrorInfo,
                                     nl->StringAtom ( strErrorMessage ) );
-    m_bDefined = false;
+    SetDefined(false);
     m_bSorted = false;
     inout_bCorrect = false;
     return;
@@ -4918,7 +4920,7 @@ GLine::GLine ( ListExpr in_xValue,
         inout_xErrorInfo = nl->Append ( inout_xErrorInfo,
                                         nl->StringAtom ( strErrorMessage ) );
         inout_bCorrect = false;
-        m_bDefined = false;
+        SetDefined(false);
         m_bSorted = false;
         return;
       }
@@ -4935,12 +4937,12 @@ GLine::GLine ( ListExpr in_xValue,
 
     }
     inout_bCorrect = true;
-    m_bDefined = true;
+    SetDefined(true);
     m_bSorted = false;
   }
   else
   {
-    m_bDefined = false;
+    SetDefined(false);
     m_bSorted = false;
     inout_bCorrect = true;
   }
@@ -4955,7 +4957,7 @@ GLine::GLine ( ListExpr in_xValue,
 void GLine::SetNetworkId ( int in_iNetworkId )
 {
   m_iNetworkId = in_iNetworkId;
-  m_bDefined = true;
+  SetDefined(true);
 }
 
 void GLine::AddRouteInterval ( RouteInterval ri )
@@ -4975,15 +4977,6 @@ void GLine::AddRouteInterval ( int in_iRouteId,
   delete ri;
 }
 
-bool GLine::IsDefined() const
-{
-  return m_bDefined;
-}
-
-void GLine::SetDefined ( bool in_bDefined )
-{
-  m_bDefined = in_bDefined;
-}
 
 bool GLine::IsSorted()
 {
@@ -5012,7 +5005,7 @@ Word GLine::In ( const ListExpr typeInfo, const ListExpr instance,
   if ( nl->ListLength ( instance ) != 2 )
   {
     correct = false;
-    delete pGline;
+    pGline->DeleteIfAllowed();
     cmsg.inFunError ( "Expecting (networkid (list of routeintervals))" );
     return SetWord ( Address ( 0 ) );
   }
@@ -5021,7 +5014,7 @@ Word GLine::In ( const ListExpr typeInfo, const ListExpr instance,
   if ( !nl->IsAtom ( FirstElem ) || !nl->AtomType ( FirstElem ) == IntType )
   {
     correct = false;
-    delete pGline;
+    pGline->DeleteIfAllowed();
     cmsg.inFunError ( "Networkadress is not evaluable" );
     return SetWord ( Address ( 0 ) );
   }
@@ -5029,7 +5022,7 @@ Word GLine::In ( const ListExpr typeInfo, const ListExpr instance,
   if ( nl->IsEmpty ( SecondElem ) )
   {
     correct = false;
-    delete pGline;
+    pGline->DeleteIfAllowed();
     return SetWord ( Address ( 0 ) );
   }
   while ( !nl->IsEmpty ( SecondElem ) )
@@ -5039,7 +5032,7 @@ Word GLine::In ( const ListExpr typeInfo, const ListExpr instance,
     if ( nl->ListLength ( start ) != 3 )
     {
       correct = false;
-      delete pGline;
+      pGline->DeleteIfAllowed();
       cmsg.inFunError ( "Routeinterval incorrect.Expected list of 3 Elements."
 );
       return SetWord ( Address ( 0 ) );
@@ -5052,7 +5045,7 @@ Word GLine::In ( const ListExpr typeInfo, const ListExpr instance,
             !nl->IsAtom ( lpos2 ) || !nl->AtomType ( lpos2 ) == RealType )
     {
       correct = false;
-      delete pGline;
+      pGline->DeleteIfAllowed();
       cmsg.inFunError ( "Routeinterval should be list int, real, real." );
       return SetWord ( Address ( 0 ) );
     }
@@ -5061,6 +5054,7 @@ Word GLine::In ( const ListExpr typeInfo, const ListExpr instance,
                                nl->RealValue ( lpos2 ) );
   }
   correct = true;
+  pGline->SetDefined(true);
   pGline->TrimToSize();
   return SetWord ( pGline );
 }
@@ -5152,7 +5146,7 @@ Word GLine::CloneGLine ( const ListExpr typeInfo,
 GLine* GLine::Clone() const
 {
   GLine *xOther = new GLine ( Size() );
-  xOther->SetDefined ( m_bDefined );
+  xOther->SetDefined ( IsDefined() );
   xOther->SetSorted ( m_bSorted );
   xOther->SetNetworkId ( m_iNetworkId );
   /*RouteInterval ri;
@@ -5261,7 +5255,7 @@ GLine& GLine::operator= ( const GLine& l )
 {
   m_xRouteIntervals.copyFrom(l.m_xRouteIntervals);
   m_bSorted = l.m_bSorted;
-  m_bDefined = l.m_bDefined;
+  SetDefined(l.IsDefined());
   m_iNetworkId = l.m_iNetworkId;
   TrimToSize();
   return *this;
@@ -5269,7 +5263,7 @@ GLine& GLine::operator= ( const GLine& l )
 
 bool GLine::operator== ( const GLine& l ) const
 {
-  if ( !m_bDefined || !l.m_bDefined )
+  if ( !IsDefined() || !l.IsDefined())
   {
     return false;
   }
@@ -5436,8 +5430,8 @@ double GLine::Netdistance ( GLine* pgl2 )
     bGPgl1->Get ( i,gp1 );
     if ( gp1.Inside ( pgl2 ) )
     {
-      delete bGPgl1;
-      delete bGPgl2;
+      bGPgl1->DeleteIfAllowed();
+      bGPgl2->DeleteIfAllowed();
       return 0.0;
     }
     for ( int j = 0; j < bGPgl2->Size(); j++ )
@@ -5445,22 +5439,22 @@ double GLine::Netdistance ( GLine* pgl2 )
       bGPgl2->Get ( j, gp2 );
       if ( gp2.Inside ( this ) )
       {
-        delete bGPgl1;
-        delete bGPgl2;
+        bGPgl1->DeleteIfAllowed();
+        bGPgl2->DeleteIfAllowed();
         return 0.0;
       }
       aktDist = gp1.Netdistance ( &gp2 );
       if ( aktDist < minDist ) minDist = aktDist;
       if ( minDist <= 0.0 )
       {
-        delete bGPgl1;
-        delete bGPgl2;
+        bGPgl1->DeleteIfAllowed();
+        bGPgl2->DeleteIfAllowed();
         return 0.0;
       }
     }
   }
-  delete bGPgl1;
-  delete bGPgl2;
+  bGPgl1->DeleteIfAllowed();
+  bGPgl2->DeleteIfAllowed();
   return minDist;
 }
 
@@ -5479,8 +5473,8 @@ double GLine::Distance ( GLine* pgl2 )
   if ( l1->IsDefined() && l2->IsDefined() )
   {
     double res = l1->Distance ( *l2 );
-    delete l1;
-    delete l2;
+    l1->DeleteIfAllowed();
+    l2->DeleteIfAllowed();
     return res;
   }
   else return numeric_limits<double>::max();
@@ -5733,18 +5727,16 @@ void GLine::Gline2line ( Line* res )
       {
         Line *partLine = new Line ( 0 );
         pSubline->toLine ( *partLine );
-        delete pSubline;
+        pSubline->DeleteIfAllowed();
         x = SetOp ( *l, *partLine, avlseg::union_op );
-        delete partLine;
-        delete l;
+        partLine->DeleteIfAllowed();
+        l->DeleteIfAllowed();
         l = x;
       }
     }
-    l = 0;
-    delete l;
     NetworkManager::CloseNetwork ( pNetwork );
     ( *res ) = *x;
-    delete x;
+    x->DeleteIfAllowed();
     res->SetDefined ( true );
   }
   else
@@ -5906,14 +5898,14 @@ Word GPoint::CreateGPoint ( const ListExpr typeInfo )
 
 void GPoint::DeleteGPoint ( const ListExpr typeInfo, Word& w )
 {
-  delete ( GPoint* ) w.addr;
-  w.addr = 0;
+  GPoint *gp = ( GPoint* ) w.addr;
+  if (gp->DeleteIfAllowed()) w.addr = 0;
 }
 
 void GPoint::CloseGPoint ( const ListExpr typeInfo, Word& w )
 {
-  delete ( GPoint* ) w.addr;
-  w.addr = 0;
+  GPoint *gp = ( GPoint* ) w.addr;
+  if(gp->DeleteIfAllowed()) w.addr = 0;
 }
 
 Word GPoint::CloneGPoint ( const ListExpr typeInfo, const Word& w )
@@ -5963,12 +5955,12 @@ double GPoint::Netdistance ( GPoint* pToGPoint )
   if ( ShortestPath ( pToGPoint, pGLine ) )
   {
     res = pGLine->GetLength();
-    delete pGLine;
+    pGLine->DeleteIfAllowed();
     return res;
   }
   else
   {
-    delete pGLine;
+    pGLine->DeleteIfAllowed();
     return 0;
   }
 }
@@ -5983,15 +5975,15 @@ double GPoint::NewNetdistance ( GPoint* pToGPoint,GLine* gline )
   {
     res = gline->GetLength();
 
-    delete gp1;
-    delete gp2;
+    gp1->DeleteIfAllowed();
+    gp2->DeleteIfAllowed();
     return res;
   }
   else
   {
 
-    delete gp1;
-    delete gp2;
+    gp1->DeleteIfAllowed();
+    gp2->DeleteIfAllowed();
     return 0;
   }
 
@@ -6016,8 +6008,8 @@ double GPoint::Distance ( GPoint* pToGPoint )
     Point *to = new Point ( false );
     pNetwork->GetPointOnRoute ( pToGPoint,to );
     double res = from->Distance ( *to );
-    delete from;
-    delete to;
+    from->DeleteIfAllowed();
+    to->DeleteIfAllowed();
     NetworkManager::CloseNetwork ( pNetwork );
     return res;
   }
@@ -6064,7 +6056,7 @@ bool GPoint::Inside ( GLine *gl )
 
 bool GPoint::operator== ( const GPoint& p ) const
 {
-  if ( !m_bDefined || !p.IsDefined() ) return false;
+  if ( !IsDefined() || !p.IsDefined() ) return false;
   else
   {
     if ( m_iNetworkId == p.GetNetworkId() &&
@@ -6103,8 +6095,8 @@ bool GPoint::ShortestPath ( GPoint *to, GLine *result )
   {
     sendMessage ( "Both gpoints must exist and be defined." );
     result->SetDefined ( false );
-    delete start;
-    delete end;
+    start->DeleteIfAllowed();
+    end->DeleteIfAllowed();
     return false;
   }
   // Check wether both points belong to the same network
@@ -6112,8 +6104,8 @@ bool GPoint::ShortestPath ( GPoint *to, GLine *result )
   {
     sendMessage ( "Both gpoints belong to different networks." );
     result->SetDefined ( false );
-    delete start;
-    delete end;
+    start->DeleteIfAllowed();
+    end->DeleteIfAllowed();
     return false;
   }
   result->SetNetworkId ( start->GetNetworkId() );
@@ -6125,8 +6117,8 @@ bool GPoint::ShortestPath ( GPoint *to, GLine *result )
   {
     sendMessage ( "Network not found." );
     result->SetDefined ( false );
-    delete start;
-    delete end;
+    start->DeleteIfAllowed();
+    end->DeleteIfAllowed();
     return false;
   }
   // Get sections where the path should start or end
@@ -6137,8 +6129,8 @@ bool GPoint::ShortestPath ( GPoint *to, GLine *result )
     sendMessage ( "Starting GPoint not found in network." );
     NetworkManager::CloseNetwork ( pNetwork );
     result->SetDefined ( false );
-    delete start;
-    delete end;
+    start->DeleteIfAllowed();
+    end->DeleteIfAllowed();
     return false;
   }
   TupleId lastSectTID = pNetwork->GetTupleIdSectionOnRoute ( end );
@@ -6149,8 +6141,8 @@ bool GPoint::ShortestPath ( GPoint *to, GLine *result )
     startSection->DeleteIfAllowed();
     NetworkManager::CloseNetwork ( pNetwork );
     result->SetDefined ( false );
-    delete start;
-    delete end;
+    start->DeleteIfAllowed();
+    end->DeleteIfAllowed();
     return false;
   }
 ////////////////////////////////////////////////////
@@ -6161,10 +6153,10 @@ bool GPoint::ShortestPath ( GPoint *to, GLine *result )
   pNetwork->GetPointOnRoute(start,startp);
   if(fabs(endp->GetX() - startp->GetX()) < 0.1 &&
      fabs(endp->GetY() - startp->GetY()) < 0.1){
-    delete endp;
-    delete startp;
-    delete start;
-    delete end;
+  endp->DeleteIfAllowed();
+  startp->DeleteIfAllowed();
+  start->DeleteIfAllowed();
+  end->DeleteIfAllowed();
     startSection->DeleteIfAllowed();
     endSection->DeleteIfAllowed();
     NetworkManager::CloseNetwork(pNetwork);
@@ -6200,8 +6192,8 @@ bool GPoint::ShortestPath ( GPoint *to, GLine *result )
         secjunid.push_back(sectionlist[i].GetSectionTid());
     }
   }
-  delete endp;
-  delete routeid;*/
+  endp->DeleteIfAllowed();
+  routeid->DeleteIfAllowed();*/
 /////////////////////////////////////////////////////
   /*
   Calculate the shortest path using dijkstras algorithm.
@@ -6372,12 +6364,12 @@ bool GPoint::ShortestPath ( GPoint *to, GLine *result )
               GPoint* temp = new GPoint(true,end->GetNetworkId(),
                         end->GetRouteId(),m2,None);
               *end = *temp;
-              delete temp;
+      temp->DeleteIfAllowed();
             }else{
               GPoint* temp = new GPoint(true,end->GetNetworkId(),
                         end->GetRouteId(),m1,None);
               *end = *temp;
-              delete temp;
+      temp->DeleteIfAllowed();
             }
             sect->DeleteIfAllowed();
             break;
@@ -6437,7 +6429,7 @@ bool GPoint::ShortestPath ( GPoint *to, GLine *result )
         act->DeleteIfAllowed();
           if(temp->distFromStart >=
             (actPQEntry->distFromStart+fabs(sectMeas2-sectMeas1))){
-            delete temp;
+        temp->DeleteIfAllowed();
             break;
           }
         if(junctionpoint){ //end point is a junction point
@@ -6459,12 +6451,12 @@ bool GPoint::ShortestPath ( GPoint *to, GLine *result )
               GPoint* temp = new GPoint(true,end->GetNetworkId(),
                         end->GetRouteId(),m2,None);
               *end = *temp;
-              delete temp;
+        temp->DeleteIfAllowed();
             }else{
               GPoint* temp = new GPoint(true,end->GetNetworkId(),
                         end->GetRouteId(),m1,None);
               *end = *temp;
-              delete temp;
+        temp->DeleteIfAllowed();
             }
             sect->DeleteIfAllowed();
             break;
@@ -6498,7 +6490,7 @@ bool GPoint::ShortestPath ( GPoint *to, GLine *result )
             }
             tempsec->DeleteIfAllowed();
           }
-          delete temp;
+        temp->DeleteIfAllowed();
 
         }
 
@@ -6671,8 +6663,8 @@ on a
   result->SetSorted ( false );
   result->SetDefined ( true );
   result->TrimToSize();
-  delete start;
-  delete end;
+  start->DeleteIfAllowed();
+  end->DeleteIfAllowed();
   return true;
 };
 
@@ -6786,11 +6778,13 @@ TypeConstructor gpoint (
 string edistjoinpointlist = "(rel(tuple((pid int)(p point))))";
 enum edistjoinpointlistrelation {POINTSID = 0,POINTSOBJECT};
 
-GPoints::GPoints()
-{del.refs = 1; }
-GPoints::GPoints ( int in_iSize ) :m_xGPoints ( in_iSize )
-{ del.refs = 1;}
-GPoints::GPoints ( GPoints* in_xOther ) :m_xGPoints ( 0 )
+GPoints::GPoints():Attribute()
+{}
+GPoints::GPoints ( int in_iSize ) :Attribute(true),m_xGPoints ( in_iSize )
+{}
+GPoints::GPoints ( GPoints* in_xOther ) :
+    Attribute(in_xOther->IsDefined()),
+    m_xGPoints ( 0 )
 {
   GPoint pCurrentInterval;
   for ( int i = 0; i < in_xOther->m_xGPoints.Size(); i++ )
@@ -6799,7 +6793,7 @@ GPoints::GPoints ( GPoints* in_xOther ) :m_xGPoints ( 0 )
     in_xOther->m_xGPoints.Get ( i, pCurrentInterval );
     m_xGPoints.Append ( pCurrentInterval );
   }
-  del.refs = 1;
+  SetDefined(in_xOther->IsDefined());
   TrimToSize();
 }
 
@@ -6942,11 +6936,11 @@ nl->TheEmptyList(),first,0,errorInfo,correct ).addr;
     if ( correct )
     {
       ( *pGPS ) += ( *pgp );
-      delete pgp;
+      pgp->DeleteIfAllowed();
     }
     else
     {
-      delete pgp;
+      pgp->DeleteIfAllowed();
       return SetWord ( Address ( 0 ) );
     }
   }
@@ -7386,7 +7380,7 @@ int OpLine2GLineValueMapping ( Word* args,
     sendMessage ( strMessage );
     res->SetDefined ( false );
     pGLine->CopyFrom ( res );
-    delete res;
+    res->DeleteIfAllowed();
     return 0;
   }
   res->SetNetworkId ( pNetwork->GetId() );
@@ -7398,7 +7392,7 @@ int OpLine2GLineValueMapping ( Word* args,
     sendMessage ( strMessage );
     res->SetDefined ( false );
     pGLine->CopyFrom ( res );
-    delete res;
+    res->DeleteIfAllowed();
     return 0;
   }
   if ( pLine->Size() <= 0 )
@@ -7408,7 +7402,7 @@ int OpLine2GLineValueMapping ( Word* args,
     sendMessage ( strMessage );
     res->SetDefined ( true );
     pGLine->CopyFrom ( res );
-    delete res;
+    res->DeleteIfAllowed();
     return 0;
   }
 
@@ -7436,13 +7430,13 @@ int OpLine2GLineValueMapping ( Word* args,
     res->SetDefined ( true );
     res->SetSorted ( true );
     pGLine->CopyFrom ( res );
-    delete res;
+    res->DeleteIfAllowed();
   }
   else
   {
     res->SetDefined ( false );
     pGLine->CopyFrom ( res );
-    delete res;
+    res->DeleteIfAllowed();
   }
   return 0;
 } //end ValueMapping
@@ -8015,7 +8009,7 @@ int OpPoint2GPointValueMapping ( Word* args,
   }
   GPoint *res = pNetwork->GetNetworkPosOfPoint ( *pPoint );
   pGPoint->CopyFrom ( res );
-  delete res;
+  res->DeleteIfAllowed();
   /*GPoint *res = pNetwork->GetNetworkPosOfPoint(*pPoint);
   qp->ChangeResultStorage(in_xSupplier, res);*/
   return 0;

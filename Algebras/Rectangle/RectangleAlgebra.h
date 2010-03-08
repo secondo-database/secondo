@@ -89,7 +89,7 @@ class Rectangle: public StandardSpatialAttribute<dim>
 {
   public:
 
-    inline Rectangle() {}
+    inline Rectangle():StandardSpatialAttribute<dim>() {}
 /*
 Do not use this constructor.
 
@@ -411,9 +411,9 @@ the coordinates can be set.
 
 */
 template <unsigned dim>
-inline Rectangle<dim>::Rectangle( const bool defined, ... )
+inline Rectangle<dim>::Rectangle( const bool defined, ... ):
+    StandardSpatialAttribute<dim>(defined)
 {
-  this->del.isDefined = defined;
   va_list ap;
   va_start( ap, defined );
   for( unsigned i = 0; i < dim; i++ )
@@ -442,7 +442,8 @@ the coordinates can be set.
 */
 template <unsigned dim>
 inline Rectangle<dim>::Rectangle( const bool defined, const double *min,
-                                  const double *max )
+                                  const double *max ):
+    StandardSpatialAttribute<dim>(defined)
 {
    Set(defined,min,max);
 }
@@ -452,9 +453,9 @@ The copy constructor.
 
 */
 template <unsigned dim>
-inline Rectangle<dim>::Rectangle( const Rectangle<dim>& r )
+inline Rectangle<dim>::Rectangle( const Rectangle<dim>& r ):
+    StandardSpatialAttribute<dim>(r.IsDefined())
 {
-  this->del.isDefined = r.IsDefined();
   for( unsigned i = 0; i < dim; i++ )
   {
     min[i] = r.min[i];

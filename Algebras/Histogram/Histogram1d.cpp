@@ -52,6 +52,7 @@ and comment the second one. To switch off test output, uncomment the line
 #include "Histogram1d.h"
 #include "ListUtils.h"
 #include <limits>
+#include "../ExtRelation-C++/Tupleorder.h"
 
 using namespace symbols;
 
@@ -2011,53 +2012,53 @@ The function makes use of four arguments:
 
   static LexicographicalTupleSmaller lexSmaller;
 
-  class TupleAndRelPos
-  {
-  public:
-
-    TupleAndRelPos() :
-    tuple(0),
-    pos(0),
-    cmpPtr(0)
-    {};
-
-    TupleAndRelPos(Tuple* newTuple, TupleCompareBy* cmpObjPtr = 0,
-        int newPos = 0) :
-    tuple(newTuple),
-    pos(newPos),
-    cmpPtr(cmpObjPtr)
-    {};
-
-    inline bool operator<(const TupleAndRelPos& ref) const
-    {
-      // by default < is used to define a sort order
-      // the priority queue creates a maximum heap, hence
-      // we change the result to create a minimum queue.
-      // It would be nice to have also an < operator in the class
-      // Tuple. Moreover lexicographical comparison should be done by means of
-      // TupleCompareBy and an appropriate sort order specification,
-
-      if (!this->tuple || !ref.tuple)
-      {
-        return true;
-      }
-      if ( cmpPtr )
-      {
-        return !(*(TupleCompareBy*)cmpPtr)( this->tuple, ref.tuple );
-      }
-      else
-      {
-        return !lexSmaller( this->tuple, ref.tuple );
-      }
-    }
-
-    Tuple* tuple;
-    int pos;
-
-  private:
-    void* cmpPtr;
-
-  };
+//   class TupleAndRelPos
+//   {
+//   public:
+//
+//     TupleAndRelPos() :
+//     tuple(0),
+//     pos(0),
+//     cmpPtr(0)
+//     {};
+//
+//     TupleAndRelPos(Tuple* newTuple, TupleCompareBy* cmpObjPtr = 0,
+//         int newPos = 0) :
+//     tuple(newTuple),
+//     pos(newPos),
+//     cmpPtr(cmpObjPtr)
+//     {};
+//
+//     inline bool operator<(const TupleAndRelPos& ref) const
+//     {
+//       // by default < is used to define a sort order
+//       // the priority queue creates a maximum heap, hence
+//       // we change the result to create a minimum queue.
+//       // It would be nice to have also an < operator in the class
+//       // Tuple. Moreover lexicographical comparison should be done by means
+//       // of TupleCompareBy and an appropriate sort order specification,
+//
+//       if (!this->tuple || !ref.tuple)
+//       {
+//         return true;
+//       }
+//       if ( cmpPtr )
+//       {
+//         return !(*(TupleCompareBy*)cmpPtr)( this->tuple, ref.tuple );
+//       }
+//       else
+//       {
+//         return !lexSmaller( this->tuple, ref.tuple );
+//       }
+//     }
+//
+//     Tuple* tuple;
+//     int pos;
+//
+//   private:
+//     void* cmpPtr;
+//
+//   };
 
   class SortStream1d
   {
@@ -2513,8 +2514,8 @@ The function makes use of four arguments:
     ListExpr attrType;
 
     ListExpr attrList = nl->Second(nl->Second(stream));
-    int index = listutils::findAttribute(attrList, attrName, attrType);  
- 
+    int index = listutils::findAttribute(attrList, attrName, attrType);
+
     if(index==0){
        return listutils::typeError(attrName+
                     " does not name an attribute in the stream");

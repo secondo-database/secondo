@@ -37,6 +37,7 @@ December 2007, S.H[oe]cher,M.H[oe]ger,A.Belz,B.Poneleit
 #include "Histogram2d.h"
 #include "ListUtils.h"
 #include <limits>
+#include "../Algebras/ExtRelation-C++/Tupleorder.h"
 
 using namespace symbols;
 using namespace std;
@@ -2772,53 +2773,53 @@ Argument 0 Histogram2d, 1 real value
 9.13 Class TupleAndRelPos
 
 */
-  class TupleAndRelPos
-  {
-  public:
-
-    TupleAndRelPos() :
-    tuple(0),
-    pos(0),
-    cmpPtr(0)
-    {};
-
-    TupleAndRelPos(Tuple* newTuple, TupleCompareBy* cmpObjPtr = 0,
-        int newPos = 0) :
-    tuple(newTuple),
-    pos(newPos),
-    cmpPtr(cmpObjPtr)
-    {};
-
-    inline bool operator<(const TupleAndRelPos& ref) const
-    {
-      // by default < is used to define a sort order
-      // the priority queue creates a maximum heap, hence
-      // we change the result to create a minimum queue.
-      // It would be nice to have also an < operator in the class
-      // Tuple. Moreover lexicographical comparison should be done by means of
-      // TupleCompareBy and an appropriate sort order specification,
-
-      if (!this->tuple || !ref.tuple)
-      {
-        return true;
-      }
-      if ( cmpPtr )
-      {
-        return !(*(TupleCompareBy*)cmpPtr)( this->tuple, ref.tuple );
-      }
-      else
-      {
-        return !lexSmaller( this->tuple, ref.tuple );
-      }
-    }
-
-    Tuple* tuple;
-    int pos;
-
-  private:
-    void* cmpPtr;
-
-  };
+//   class TupleAndRelPos
+//   {
+//   public:
+//
+//     TupleAndRelPos() :
+//     tuple(0),
+//     pos(0),
+//     cmpPtr(0)
+//     {};
+//
+//     TupleAndRelPos(Tuple* newTuple, TupleCompareBy* cmpObjPtr = 0,
+//         int newPos = 0) :
+//     tuple(newTuple),
+//     pos(newPos),
+//     cmpPtr(cmpObjPtr)
+//     {};
+//
+//     inline bool operator<(const TupleAndRelPos& ref) const
+//     {
+//       // by default < is used to define a sort order
+//       // the priority queue creates a maximum heap, hence
+//       // we change the result to create a minimum queue.
+//       // It would be nice to have also an < operator in the class
+//       // Tuple. Moreover lexicographical comparison should be done by means
+//       // of TupleCompareBy and an appropriate sort order specification,
+//
+//       if (!this->tuple || !ref.tuple)
+//       {
+//         return true;
+//       }
+//       if ( cmpPtr )
+//       {
+//         return !(*(TupleCompareBy*)cmpPtr)( this->tuple, ref.tuple );
+//       }
+//       else
+//       {
+//         return !lexSmaller( this->tuple, ref.tuple );
+//       }
+//     }
+//
+//     Tuple* tuple;
+//     int pos;
+//
+//   private:
+//     void* cmpPtr;
+//
+//   };
 
 /*
 9.14 Class SortStream
@@ -3699,14 +3700,14 @@ Argument 0 tuple stream, 1 attribute name X, 2 attribute name Y,
     if(!listutils::isSymbol(maxCatX, INT)){
       return listutils::typeError("fourth argument mut be of type int");
     }
-    
+
     if(!listutils::isSymbol(maxCatY, INT)){
       return listutils::typeError("fifth argument mut be of type int");
     }
 
     ListExpr attrList = nl->Second(nl->Second(stream));
 
-    ListExpr attrTypeX; 
+    ListExpr attrTypeX;
     string attrXname = nl->SymbolValue(attrX);
     int indexX = listutils::findAttribute(attrList, attrXname , attrTypeX);
     if(indexX==0){
@@ -3714,12 +3715,12 @@ Argument 0 tuple stream, 1 attribute name X, 2 attribute name Y,
                                   "of the stream");
     }
     if(!listutils::isSymbol(attrTypeX,REAL)){
-      return listutils::typeError("attribute " + attrXname + 
+      return listutils::typeError("attribute " + attrXname +
                                   " is not of type real");
     }
 
-    
-    ListExpr attrTypeY; 
+
+    ListExpr attrTypeY;
     string attrYname = nl->SymbolValue(attrY);
     int indexY = listutils::findAttribute(attrList, attrYname , attrTypeY);
     if(indexY==0){
@@ -3727,7 +3728,7 @@ Argument 0 tuple stream, 1 attribute name X, 2 attribute name Y,
                                   "of the stream");
     }
     if(!listutils::isSymbol(attrTypeY,REAL)){
-      return listutils::typeError("attribute " + attrYname + 
+      return listutils::typeError("attribute " + attrYname +
                                   " is not of type real");
     }
 

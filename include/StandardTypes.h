@@ -1,8 +1,8 @@
 /*
----- 
+----
 This file is part of SECONDO.
 
-Copyright (C) 2004, University in Hagen, Department of Computer Science, 
+Copyright (C) 2004, University in Hagen, Department of Computer Science,
 Database Systems for New Applications.
 
 SECONDO is free software; you can redistribute it and/or modify
@@ -36,7 +36,7 @@ and avoiding to dereference pointers in the ~Compare~ method improves performanc
 April 2006. M. Spiekermann. A new struct StdTypes was added. It offers static
 methods for retrieving integer or string arguments from a given Word value.
 Moreover, counters for calls of ~Compare~ and ~HashValue~ are implemented for types
-~CcInt~ and ~CcString~. 
+~CcInt~ and ~CcString~.
 
 May 2006. M. Spiekermann. The implementation of ~Compare~ for ~CcInt~ has been
 changed.  Now first the case that both values are IsDefined is handled and
@@ -49,9 +49,9 @@ same since we need 1 for validating $A = B$ and 2 for $A {<,>} B$. Before it was
 1.1 Overview
 
 This file defines four classes which represent the data types provided
-by the ~StandardAlgebra~: 
+by the ~StandardAlgebra~:
 
----- 
+----
      C++       |   SECONDO
      ======================
      CcInt     |   int
@@ -104,22 +104,22 @@ This function removes whitespaces from the start and the end of ~value~.
 class CcInt : public Attribute
 {
  public:
-  
-  inline CcInt()
+
+  inline CcInt():Attribute()
   {
-    intsCreated++; 
+    intsCreated++;
   }
- 
+
   inline CcInt( bool d, int v = 0 ) : Attribute(d),intval(v)
-  { 
-    SetDefined(d); 
-    intsCreated++; 
+  {
+    SetDefined(d);
+    intsCreated++;
   }
- 
+
   inline CcInt( int v, bool d=true ) : Attribute(d),intval(v)
-  { 
-    SetDefined(d); 
-    intsCreated++; 
+  {
+    SetDefined(d);
+    intsCreated++;
   }
 
   inline ~CcInt()
@@ -127,11 +127,11 @@ class CcInt : public Attribute
     intsDeleted++;
   }
 
-  inline void Initialize() 
+  inline void Initialize()
   {
   }
 
-  inline void Finalize() 
+  inline void Finalize()
   {
     intsDeleted++;
   }
@@ -140,49 +140,49 @@ class CcInt : public Attribute
   {
     return sizeof( *this );
   }
-    
+
   inline int GetIntval() const
-  { 
-    return (intval); 
+  {
+    return (intval);
   }
-  
+
   inline int GetValue() const
-  { 
-    return (intval); 
+  {
+    return (intval);
   }
 
   inline void Set( int v )
-  { 
+  {
     SetDefined(true);
-    intval = v; 
+    intval = v;
   }
-  
+
   inline void Set( bool d, int v )
-  { 
-    SetDefined(d); intval = v; 
+  {
+    SetDefined(d); intval = v;
   }
-  
+
   inline size_t HashValue() const
-  { 
+  {
     static long& ctr = Counter::getRef(symbols::CTR_INT_HASH);
     ctr++;
-    return (IsDefined() ? intval : 0); 
+    return (IsDefined() ? intval : 0);
   }
-  
+
   inline void CopyFrom(const Attribute* right)
   {
     const CcInt* r = (const CcInt*)right;
     SetDefined(r->IsDefined());
     intval = r->intval;
   }
-  
+
   inline int Compare(const Attribute* arg) const
   {
     const CcInt* rhs = dynamic_cast<const CcInt*>( arg );
     static long& ctr = Counter::getRef(symbols::CTR_INT_COMPARE);
     ctr++;
 
-    return Attribute::GenericCompare<CcInt>( this, rhs, 
+    return Attribute::GenericCompare<CcInt>( this, rhs,
 		                             IsDefined(), rhs->IsDefined() );
   }
 
@@ -191,7 +191,7 @@ class CcInt : public Attribute
     static long& ctr = Counter::getRef(symbols::CTR_INT_EQUAL);
     ctr++;
 
-    return Attribute::GenericEqual<CcInt>( this, rhs, 
+    return Attribute::GenericEqual<CcInt>( this, rhs,
 		                           IsDefined(), rhs->IsDefined() );
   }
 
@@ -200,11 +200,11 @@ class CcInt : public Attribute
     static long& ctr = Counter::getRef(symbols::CTR_INT_LESS);
     ctr++;
 
-    return Attribute::GenericLess<CcInt>( this, rhs, 
+    return Attribute::GenericLess<CcInt>( this, rhs,
 		                          IsDefined(), rhs->IsDefined() );
   }
 
-  
+
   inline bool Adjacent(const Attribute* arg) const
   {
     static long& ctr = Counter::getRef(symbols::CTR_INT_ADJACENT);
@@ -215,24 +215,24 @@ class CcInt : public Attribute
 
     return( a == b || a == b + 1 || b == a + 1 );
   }
-  
+
   inline CcInt* Clone() const
-  { 
-    return (new CcInt( this->IsDefined(), this->intval )); 
+  {
+    return (new CcInt( this->IsDefined(), this->intval ));
   }
-  
-  inline ostream& Print( ostream& os ) const 
-  { 
+
+  inline ostream& Print( ostream& os ) const
+  {
      if ( IsDefined() )
        return (os << intval);
      else
-       return (os << "UNDEFINED");	      
+       return (os << "UNDEFINED");
   }
 
   inline ostream& operator<<(ostream& os) const
   {
-    return Print(os);	  
-  }	  
+    return Print(os);
+  }
 
   ListExpr CopyToList( ListExpr typeInfo )
   {
@@ -254,7 +254,7 @@ class CcInt : public Attribute
       int algId = nl->IntValue( nl->First( nl->First( typeInfo ) ) ),
           typeId = nl->IntValue( nl->Second( nl->First( typeInfo ) ) );
 
-      Word result = (algMgr->InObj(algId, typeId))( typeInfo, 
+      Word result = (algMgr->InObj(algId, typeId))( typeInfo,
                          instance, errorPos, errorInfo, correct );
       if( correct )
         return result;
@@ -269,7 +269,7 @@ class CcInt : public Attribute
   inline bool operator<(const CcInt& rhs) const
   {
     return intval < rhs.intval;
-  } 
+  }
 
   inline void operator=(const CcInt& rhs)
   {
@@ -286,7 +286,7 @@ class CcInt : public Attribute
        return o.str();
     }
   }
- 
+
 
   virtual bool hasDB3Representation() const {return true;}
   virtual unsigned char getDB3Type() const { return 'N'; }
@@ -295,12 +295,12 @@ class CcInt : public Attribute
   virtual string getDB3String() const {
       if(!IsDefined()){
         return "";
-      } 
+      }
       stringstream s;
       s << intval;
       return s.str();
-  } 
-  
+  }
+
   virtual void ReadFromString(string value){
       trimstring(value);
       if(value.size()==0){
@@ -317,24 +317,24 @@ class CcInt : public Attribute
     return "int";
   }
 
- 
-  inline virtual size_t SerializedSize() const 
+
+  inline virtual size_t SerializedSize() const
   {
     return sizeof(int32_t) + 1;
-  }	  
+  }
 
   inline virtual void Serialize(char* storage, size_t sz, size_t offset) const
   {
     WriteVar<int32_t>(intval, storage, offset);
     WriteVar<bool>(IsDefined(), storage, offset);
-  }	  
+  }
 
-  inline virtual void Rebuild(char* state,  size_t sz ) 
+  inline virtual void Rebuild(char* state,  size_t sz )
   {
-    size_t offset = 0;	  
+    size_t offset = 0;
     ReadVar<int32_t>(intval, state, offset);
     ReadVar<bool>(del.isDefined, state, offset);
-  }	  
+  }
 
 
   inline virtual StorageType GetStorageType() const { return Core; }
@@ -359,33 +359,33 @@ class CcReal : public Attribute
 {
  public:
   inline CcReal()
-  { 
-     realsCreated++; 
+  {
+     realsCreated++;
   }
 
-  inline CcReal( bool d, SEC_STD_REAL v = 0.0 ) : Attribute(d),realval(v) 
-  { 
-    SetDefined(d); 
-    realsCreated++; 
+  inline CcReal( bool d, SEC_STD_REAL v = 0.0 ) : Attribute(d),realval(v)
+  {
+    SetDefined(d);
+    realsCreated++;
   }
 
-  inline CcReal( SEC_STD_REAL v, bool d=true ) : Attribute(d),realval(v) 
-  { 
-    SetDefined(d); 
-    realsCreated++; 
+  inline CcReal( SEC_STD_REAL v, bool d=true ) : Attribute(d),realval(v)
+  {
+    SetDefined(d);
+    realsCreated++;
   }
 
-  inline ~CcReal() 
-  { 
-    realsDeleted++; 
+  inline ~CcReal()
+  {
+    realsDeleted++;
   }
 
-  inline void Initialize() 
+  inline void Initialize()
   {}
 
-  inline void Finalize() 
+  inline void Finalize()
   {
-    realsDeleted++; 
+    realsDeleted++;
   }
 
   inline size_t Sizeof() const
@@ -394,31 +394,31 @@ class CcReal : public Attribute
   }
 
   inline SEC_STD_REAL GetRealval() const
-  { 
+  {
     return realval;
   }
-  
+
   inline SEC_STD_REAL GetValue() const
-  { 
+  {
     return realval;
   }
 
-  
-  inline void Set( SEC_STD_REAL v ) 
-  { 
-    SetDefined(true); 
-    realval = v; 
+
+  inline void Set( SEC_STD_REAL v )
+  {
+    SetDefined(true);
+    realval = v;
   }
 
-  inline void Set( bool d, SEC_STD_REAL v ) 
-  { 
+  inline void Set( bool d, SEC_STD_REAL v )
+  {
     SetDefined(d);
-    realval = v; 
+    realval = v;
   }
 
   inline CcReal* Clone() const
-  { 
-    return (new CcReal(this->IsDefined(), this->realval)); 
+  {
+    return (new CcReal(this->IsDefined(), this->realval));
   }
 
   inline size_t HashValue() const
@@ -448,7 +448,7 @@ class CcReal : public Attribute
     const CcReal* rhs = static_cast<const CcReal*>( arg );
     static long& ctr = Counter::getRef("CcReal::Compare");
     ctr++;
-    return Attribute::GenericCompare<CcReal>( this, rhs, 
+    return Attribute::GenericCompare<CcReal>( this, rhs,
 		                              IsDefined(), rhs->IsDefined() );
   }
 
@@ -462,8 +462,8 @@ class CcReal : public Attribute
     if (diff < FACTOR )
       return 0;
     else
-      return 
-        Attribute::GenericCompare<CcReal>( this, rhs, 
+      return
+        Attribute::GenericCompare<CcReal>( this, rhs,
 			                   IsDefined(), rhs->IsDefined() );
   }
 
@@ -484,11 +484,11 @@ class CcReal : public Attribute
   inline bool operator==(const CcReal& rhs) const
   {
     return realval == rhs.realval;
-  }   
+  }
   inline bool operator<(const CcReal& rhs) const
   {
     return realval < rhs.realval;
-  } 
+  }
 
   virtual string getCsvStr() const{
     if(!IsDefined()){
@@ -499,7 +499,7 @@ class CcReal : public Attribute
        return o.str();
     }
   }
-  
+
 
   virtual bool hasDB3Representation() const {return true;}
   virtual unsigned char getDB3Type() const { return 'N'; }
@@ -508,7 +508,7 @@ class CcReal : public Attribute
   virtual string getDB3String() const {
       if(!IsDefined()){
         return "";
-      } 
+      }
       ostringstream s;
       s.setf(ios::fixed);
       s.setf(ios::showpoint);
@@ -518,7 +518,7 @@ class CcReal : public Attribute
       s << realval;
       s.flush();
       return s.str();
-  } 
+  }
 
   virtual void ReadFromString(string value){
       trimstring(value);
@@ -531,28 +531,28 @@ class CcReal : public Attribute
          Set(true,v);
       }
   }
-  
+
   static const string BasicType(){
     return "real";
   }
 
-  inline virtual size_t SerializedSize() const 
+  inline virtual size_t SerializedSize() const
   {
     return sizeof(SEC_STD_REAL) + 1;
-  }	  
+  }
 
   inline virtual void Serialize(char* storage, size_t sz, size_t offset) const
   {
     WriteVar<SEC_STD_REAL>(realval, storage, offset);
     WriteVar<bool>(IsDefined(), storage, offset);
-  }	  
+  }
 
-  inline virtual void Rebuild(char* state,  size_t sz ) 
+  inline virtual void Rebuild(char* state,  size_t sz )
   {
-    size_t offset = 0;	  
+    size_t offset = 0;
     ReadVar<SEC_STD_REAL>(realval, state, offset);
     ReadVar<bool>(del.isDefined, state, offset);
-  }	  
+  }
 
 
   inline virtual StorageType GetStorageType() const { return Core; }
@@ -572,33 +572,33 @@ class CcBool : public Attribute
 {
  public:
   inline CcBool()
-  { 
-    boolsCreated++; 
+  {
+    boolsCreated++;
   }
 
   inline CcBool( bool d, int v = false ) : Attribute(d),boolval(v)
-  { 
-    SetDefined(d); 
-    boolsCreated++; 
+  {
+    SetDefined(d);
+    boolsCreated++;
   }
 
-  inline ~CcBool() 
-  { 
-    boolsDeleted++; 
+  inline ~CcBool()
+  {
+    boolsDeleted++;
   }
- 
-  inline void Initialize() 
+
+  inline void Initialize()
   {}
 
-  inline void Finalize() 
-  { 
-    boolsDeleted++; 
+  inline void Finalize()
+  {
+    boolsDeleted++;
   }
 
   inline void Set( bool d, bool v )
-  { 
+  {
     SetDefined(d);
-    boolval = v; 
+    boolval = v;
   }
 
   inline size_t Sizeof() const
@@ -607,23 +607,23 @@ class CcBool : public Attribute
   }
 
   inline bool GetBoolval() const
-  { 
-    return boolval; 
+  {
+    return boolval;
   }
-  
+
   inline bool GetValue() const
-  { 
-    return boolval; 
+  {
+    return boolval;
   }
-  
+
   inline CcBool* Clone() const
-  { 
-    return new CcBool(this->IsDefined(), this->boolval); 
+  {
+    return new CcBool(this->IsDefined(), this->boolval);
   }
 
   inline size_t HashValue() const
-  { 
-    return (IsDefined() ? boolval : false); 
+  {
+    return (IsDefined() ? boolval : false);
   }
 
   inline void CopyFrom(const Attribute* right)
@@ -636,7 +636,7 @@ class CcBool : public Attribute
   inline int Compare( const Attribute* arg ) const
   {
     const CcBool* rhs = static_cast<const CcBool*>( arg );
-    return Attribute::GenericCompare<CcBool>( this, rhs, 
+    return Attribute::GenericCompare<CcBool>( this, rhs,
 		                              IsDefined(), rhs->IsDefined() );
   }
 
@@ -654,14 +654,14 @@ class CcBool : public Attribute
   inline bool operator==(const CcBool& rhs) const
   {
     return boolval == rhs.boolval;
-  }   
-  
+  }
+
   inline bool operator<(const CcBool& rhs) const
   {
     return boolval < rhs.boolval;
-  } 
+  }
 
-  
+
   static long boolsCreated;
   static long boolsDeleted;
 
@@ -680,9 +680,9 @@ class CcBool : public Attribute
   virtual string getDB3String() const {
       if(!IsDefined()){
         return "?";
-      } 
+      }
       return boolval?"T":"F";
-  } 
+  }
 
   virtual void ReadFromString(string value){
      string::size_type p = value.find_first_not_of(" \t");
@@ -719,15 +719,15 @@ typedef char STRING_T[MAX_STRINGSIZE+1];
 class CcString : public Attribute
 {
  public:
-  inline CcString() 
-  { 
-    stringsCreated++; 
+  inline CcString()
+  {
+    stringsCreated++;
   }
 
-  inline CcString( bool d, const STRING_T* v ):Attribute(d) 
-  { 
+  inline CcString( bool d, const STRING_T* v ):Attribute(d)
+  {
     Set(d, v);
-    stringsCreated++; 
+    stringsCreated++;
   }
 
   inline CcString( const bool d, const string& v ):Attribute(d)
@@ -736,17 +736,17 @@ class CcString : public Attribute
     stringsCreated++;
   }
 
-  inline ~CcString() 
-  { 
-    stringsDeleted++; 
+  inline ~CcString()
+  {
+    stringsDeleted++;
   }
 
-  inline void Initialize() 
-  {} 
+  inline void Initialize()
+  {}
 
-  inline void Finalize() 
-  { 
-    stringsDeleted++; 
+  inline void Finalize()
+  {
+    stringsDeleted++;
   }
 
   inline size_t Sizeof() const
@@ -755,43 +755,43 @@ class CcString : public Attribute
   }
 
   inline const STRING_T* GetStringval() const
-  { 
+  {
 #ifndef USE_SERIALIZATION
-    return &stringval; 
+    return &stringval;
 #else
     return (STRING_T*)stringval.c_str();
-#endif    
+#endif
   }
 
   inline const string GetValue() const
-  { 
-    return stringval; 
+  {
+    return stringval;
   }
 
   inline CcString* Clone() const
-  { 
-    return (new CcString( this->IsDefined(), this->stringval.c_str() )); 
+  {
+    return (new CcString( this->IsDefined(), this->stringval.c_str() ));
   }
 
-  inline void Set( bool d, const STRING_T* v ) 
-  { 
+  inline void Set( bool d, const STRING_T* v )
+  {
     SetDefined(d);
 #ifndef USE_SERIALIZATION
     strcpy( stringval, *v);
 #else
     stringval = (char*)v;
-#endif    
+#endif
   }
 
-  inline void Set( const bool d, const string& v ) 
-  { 
+  inline void Set( const bool d, const string& v )
+  {
     SetDefined(d);
 #ifndef USE_SERIALIZATION
     memset ( stringval, '\0',     MAX_STRINGSIZE+1);
     strncpy( stringval, v.data(), MAX_STRINGSIZE  );
 #else
     stringval = v;
-#endif    
+#endif
   }
 
   inline size_t HashValue() const
@@ -804,9 +804,9 @@ class CcString : public Attribute
     size_t h = 0;
 #ifndef USE_SERIALIZATION
     const char* s = stringval;
-#else    
+#else
     const char* s = stringval.c_str();
-#endif    
+#endif
     while(*s != 0)
     {
       h = 5 * h + *s;
@@ -822,7 +822,7 @@ class CcString : public Attribute
 #ifndef USE_SERIALIZATION
     strcpy(stringval, r->stringval);
 #else
-    stringval = r->stringval;    
+    stringval = r->stringval;
 #endif
   }
 
@@ -833,7 +833,7 @@ class CcString : public Attribute
     ctr++;
 
     if (IsDefined() && rhs->IsDefined())
-    { 
+    {
 #ifndef USE_SERIALIZATION
       const int cmp = strcmp(stringval, rhs->stringval);
       if (cmp == 0)
@@ -844,26 +844,26 @@ class CcString : public Attribute
       if (stringval == rhs->stringval)
         return 0;
       else
-	return (stringval < rhs->stringval) ? -1 : 1;      
+	return (stringval < rhs->stringval) ? -1 : 1;
 #endif
     }
     else
-    {     
+    {
       // compare only the IsDefined flags
       if( !IsDefined() ) {
         if ( !rhs->IsDefined() )  // case 00
-          return 0;         
+          return 0;
         else          // case 01
           return -1;
       }
-      return 1;       // case 10  
-    }  
+      return 1;       // case 10
+    }
   }
 
   bool Adjacent( const Attribute* arg ) const;
 
-  inline ostream& Print( ostream &os ) const { 
-    return (os << "\"" << stringval << "\""); 
+  inline ostream& Print( ostream &os ) const {
+    return (os << "\"" << stringval << "\"");
   }
 
   static long stringsCreated;
@@ -884,7 +884,7 @@ class CcString : public Attribute
   virtual string getDB3String() const {
       if(!IsDefined()){
         return "";
-      } 
+      }
       return string(stringval);
   }
 
@@ -900,22 +900,22 @@ class CcString : public Attribute
   }
 
 #ifdef USE_SERIALIZATION
-  inline virtual size_t SerializedSize() const 
+  inline virtual size_t SerializedSize() const
   {
     return sizeof(uint8_t) + stringval.size() + 1;
-  }	  
+  }
 
   inline virtual void Serialize(char* storage, size_t sz, size_t offset) const
   {
     WriteVar<uint8_t>(stringval.size(), storage, offset);
     WriteVar<bool>(IsDefined(), storage, offset);
     stringval.copy(&storage[offset], string::npos);
-  }	  
+  }
 
-  inline virtual void Rebuild(char* state,  size_t sz ) 
+  inline virtual void Rebuild(char* state,  size_t sz )
   {
-    size_t offset = 0;	  
-    uint8_t size = 0; 
+    size_t offset = 0;
+    uint8_t size = 0;
     ReadVar<uint8_t>(size, state, offset);
     ReadVar<bool>(del.isDefined, state, offset);
     char* buffer = new char[size+1];
@@ -923,18 +923,18 @@ class CcString : public Attribute
     buffer[size] = '\0';
     stringval.assign(buffer);
 
-  }	
+  }
 
   inline virtual StorageType GetStorageType() const { return Extension; }
-#endif  
+#endif
 
 
  private:
 #ifdef USE_SERIALIZATION
   string   stringval;
-#else  
+#else
   STRING_T stringval;
-#endif  
+#endif
 };
 
 #endif
@@ -943,9 +943,9 @@ class CcString : public Attribute
 class CcString : public Attribute
 {
  public:
-  inline CcString() 
-  { 
-    stringsCreated++; 
+  inline CcString()
+  {
+    stringsCreated++;
   }
 
   void ShowMem() {
@@ -953,13 +953,13 @@ class CcString : public Attribute
     cout << Var2HexStr(del);
     cout << Var2HexStr(stringval);
     cout << Var2HexStr(size);
-  }	  
-  
+  }
+
   inline CcString( bool d, const STRING_T* v ) : Attribute(d)
-  { 
+  {
     Set(d, v);
     //cout << "Cc1" << endl;
-    stringsCreated++; 
+    stringsCreated++;
   }
 
   inline CcString( const bool d, const string& v ) : Attribute(d)
@@ -977,17 +977,17 @@ class CcString : public Attribute
   }
 
 
-  inline ~CcString() 
-  { 
-    stringsDeleted++; 
+  inline ~CcString()
+  {
+    stringsDeleted++;
   }
 
-  inline void Initialize() 
-  {} 
+  inline void Initialize()
+  {}
 
-  inline void Finalize() 
-  { 
-    stringsDeleted++; 
+  inline void Finalize()
+  {
+    stringsDeleted++;
   }
 
 
@@ -997,42 +997,42 @@ class CcString : public Attribute
   }
 
   inline const STRING_T* GetStringval() const
-  { 
-    return &stringval; 
+  {
+    return &stringval;
   }
 
   inline const string GetValue() const
-  { 
-    return stringval; 
+  {
+    return stringval;
   }
 
   inline CcString* Clone() const
-  { 
-    return (new CcString( IsDefined(), &this->stringval )); 
+  {
+    return (new CcString( IsDefined(), &this->stringval ));
   }
 
-  inline void Set( bool d, const STRING_T* v ) 
-  { 
+  inline void Set( bool d, const STRING_T* v )
+  {
     SetDefined( d );
     memset ( stringval, '\0',     MAX_STRINGSIZE+1);
     strcpy( stringval, *v);
 #ifdef USE_SERIALIZATION
     for( size = 0; (*v)[size] != '\0'; size++ );
-#endif  
-    //cerr << "Set 1: stringval = " << stringval << endl;  
-    //cerr << "Set 1: stringval.size = " << size << endl;  
+#endif
+    //cerr << "Set 1: stringval = " << stringval << endl;
+    //cerr << "Set 1: stringval.size = " << size << endl;
   }
 
-  inline void Set( const bool d, const string& v ) 
-  { 
+  inline void Set( const bool d, const string& v )
+  {
     SetDefined( d );
     memset ( stringval, '\0',     MAX_STRINGSIZE+1);
     strncpy( stringval, v.data(), MAX_STRINGSIZE  );
 #ifdef USE_SERIALIZATION
     size = v.size();
-#endif    
-    //cerr << "Set 2: stringval = " << stringval << endl;  
-    //cerr << "Set 2: stringval.size = " << size << endl;  
+#endif
+    //cerr << "Set 2: stringval = " << stringval << endl;
+    //cerr << "Set 2: stringval.size = " << size << endl;
   }
 
   inline size_t HashValue() const
@@ -1065,7 +1065,7 @@ class CcString : public Attribute
     ctr++;
 
     if ( IsDefined() && rhs->IsDefined() )
-    { 
+    {
       const int cmp = strcmp(stringval, rhs->stringval);
       if (cmp == 0)
          return 0;
@@ -1073,22 +1073,22 @@ class CcString : public Attribute
          return (cmp < 0) ? -1 : 1;
     }
     else
-    {     
+    {
       // compare only the defined flags
       if( !IsDefined() ) {
         if ( !rhs->IsDefined() )  // case 00
-          return 0;         
+          return 0;
         else          // case 01
           return -1;
       }
-      return 1;       // case 10  
-    }  
+      return 1;       // case 10
+    }
   }
 
   bool Adjacent( const Attribute* arg ) const;
 
-  inline ostream& Print( ostream &os ) const { 
-    return (os << "\"" << stringval << "\""); 
+  inline ostream& Print( ostream &os ) const {
+    return (os << "\"" << stringval << "\"");
   }
 
   static long stringsCreated;
@@ -1109,7 +1109,7 @@ class CcString : public Attribute
   virtual string getDB3String() const {
       if(!IsDefined()){
         return "";
-      } 
+      }
       return string(stringval);
   }
 
@@ -1125,35 +1125,35 @@ class CcString : public Attribute
   }
 
 #ifdef USE_SERIALIZATION
-  inline virtual size_t SerializedSize() const 
+  inline virtual size_t SerializedSize() const
   {
     return  sizeof(uint8_t) + 1 /* defined */ + size;
-  }	  
+  }
 
   inline virtual void Serialize(char* storage, size_t sz, size_t offset) const
   {
     WriteVar<uint8_t>(size, storage, offset);
     WriteVar<bool>(IsDefined(), storage, offset);
     memcpy(&storage[offset], stringval, size);
-  }	  
+  }
 
-  inline virtual void Rebuild(char* state,  size_t sz ) 
+  inline virtual void Rebuild(char* state,  size_t sz )
   {
-    size_t offset = 0;	  
+    size_t offset = 0;
     ReadVar<uint8_t>(size, state, offset);
     ReadVar<bool>(del.isDefined, state, offset);
     memcpy(stringval, &state[offset], size);
     stringval[size] = '\0';
-  }	
+  }
 
   inline virtual StorageType GetStorageType() const { return Extension; }
-#endif  
+#endif
 
 
  private:
 #ifdef USE_SERIALIZATION
   uint8_t  size;
-#endif  
+#endif
   STRING_T stringval;
 };
 
@@ -1166,13 +1166,13 @@ void ShowStandardTypesStatistics( const bool reset );
 6 Some Functions Prototypes
 
 */
-Word InCcBool( ListExpr typeInfo, ListExpr value, 
+Word InCcBool( ListExpr typeInfo, ListExpr value,
                int errorPos, ListExpr& errorInfo, bool& correct );
 ListExpr OutCcBool( ListExpr typeinfo, Word value );
-Word InCcInt( ListExpr typeInfo, ListExpr value, 
+Word InCcInt( ListExpr typeInfo, ListExpr value,
               int errorPos, ListExpr& errorInfo, bool& correct );
 ListExpr OutCcInt( ListExpr typeinfo, Word value );
-Word InCcReal( ListExpr typeInfo, ListExpr value, 
+Word InCcReal( ListExpr typeInfo, ListExpr value,
                int errorPos, ListExpr& errorInfo, bool& correct );
 ListExpr OutCcReal( ListExpr typeinfo, Word value );
 Word InCcString( ListExpr typeInfo, ListExpr value,
@@ -1182,16 +1182,16 @@ ListExpr OutCcString( ListExpr typeinfo, Word value );
 /*
 Functions which convert a ~Word~ value (argument of an operator)
 into the corresponding C++ type
-   
+
 */
 
 struct StdTypes
 {
-  static int GetInt(const Word& w); 
-  static SEC_STD_REAL GetReal(const Word& w); 
-  static bool GetBool(const Word& w); 
-  static string GetString(const Word& w); 
-  
+  static int GetInt(const Word& w);
+  static SEC_STD_REAL GetReal(const Word& w);
+  static bool GetBool(const Word& w);
+  static string GetString(const Word& w);
+
   static void InitCounters(bool show);
   static void SetCounterValues(bool show);
   static long UpdateBasicOps(bool reset=false);

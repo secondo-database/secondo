@@ -319,7 +319,7 @@ class Range : public Attribute
 3.3.1 Constructors and Destructor
 
 */
-    Range() {}
+    Range():Attribute() {}
 /*
 The simple constructor. This constructor should not be used.
 

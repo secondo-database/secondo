@@ -1864,8 +1864,8 @@ void MGPoint::Distance(MGPoint *&mgp, MReal *&result){
       }
     }
     result->EndBulkLoad();
-    delete p1;
-    delete p2;
+    p1->DeleteIfAllowed();
+    p2->DeleteIfAllowed();
   }
 }
 
@@ -1976,10 +1976,10 @@ void MGPoint::DistanceE(MGPoint* mgp, MReal* result){
       uReal.timeInterval.start = uReal.timeInterval.end;
       pos1++;
       if(pos1 == GetNoComponents()){
-        delete p1_0;
-        delete p1_1;
-        delete p2_0;
-        delete p2_1;
+        p1_0->DeleteIfAllowed();
+        p1_1->DeleteIfAllowed();
+        p2_0->DeleteIfAllowed();
+        p2_1->DeleteIfAllowed();
         break;
       }
       Get(pos1,ugp1);
@@ -1991,10 +1991,10 @@ void MGPoint::DistanceE(MGPoint* mgp, MReal* result){
       assert(gp0.IsDefined());
       ug2->timeInterval.start = uReal.timeInterval.start;
       ug2->p0 = gp0;
-      delete p1_0;
-      delete p1_1;
-      delete p2_0;
-      delete p2_1;
+      p1_0->DeleteIfAllowed();
+      p1_1->DeleteIfAllowed();
+      p2_0->DeleteIfAllowed();
+      p2_1->DeleteIfAllowed();
     }else{ //ugp1->end > ugp2.end
       uReal.timeInterval.end = ug2->timeInterval.end;
       GPoint gp1;
@@ -2042,10 +2042,10 @@ void MGPoint::DistanceE(MGPoint* mgp, MReal* result){
       uReal.timeInterval.start = uReal.timeInterval.end;
       pos2++;
       if(pos2 == mgp->GetNoComponents()){
-        delete p1_0;
-        delete p1_1;
-        delete p2_0;
-        delete p2_1;
+        p1_0->DeleteIfAllowed();
+        p1_1->DeleteIfAllowed();
+        p2_0->DeleteIfAllowed();
+        p2_1->DeleteIfAllowed();
         break;
       }
       mgp->Get(pos2,ugp2);
@@ -2057,14 +2057,14 @@ void MGPoint::DistanceE(MGPoint* mgp, MReal* result){
       assert(gp0.IsDefined());
       ug1->timeInterval.start = uReal.timeInterval.start;
       ug1->p0 = gp0;
-      delete p1_0;
-      delete p1_1;
-      delete p2_0;
-      delete p2_1;
+      p1_0->DeleteIfAllowed();
+      p1_1->DeleteIfAllowed();
+      p2_0->DeleteIfAllowed();
+      p2_1->DeleteIfAllowed();
     }
   }
-  delete ug1;
-  delete ug2;
+  ug1->DeleteIfAllowed();
+  ug2->DeleteIfAllowed();
   NetworkManager::CloseNetwork(pNetwork);
   result->EndBulkLoad();
 }
@@ -2082,7 +2082,7 @@ vector<UReal>& dist)
     ureal->c = 0.0;
     ureal->r = true;
     dist.push_back(*ureal);
-    delete ureal;
+    ureal->DeleteIfAllowed();
     return;
   }
   GPoint* gp1 = new GPoint(true,GetNetworkId(),ug1->p0.GetRouteId(),
@@ -2091,8 +2091,8 @@ vector<UReal>& dist)
   GPoint* gp2 = new GPoint(true,GetNetworkId(),ug2->p0.GetRouteId(),
           (ug2->p0.GetPosition()+ug2->p1.GetPosition())/2,ug2->p0.GetSide());
   Tuple* sec2 = pNetwork->GetSectionOnRoute(gp2);
-  delete gp1;
-  delete gp2;
+  gp1->DeleteIfAllowed();
+  gp2->DeleteIfAllowed();
   double m1 = ((CcReal*)sec1->GetAttribute(SECTION_MEAS1))->GetRealval();
   double m2 = ((CcReal*)sec1->GetAttribute(SECTION_MEAS2))->GetRealval();
   int rid1 = ug1->p0.GetRouteId();
@@ -2132,7 +2132,7 @@ vector<UReal>& dist)
         j2 = t_jun->GetTupleId();
     }
   }
-  delete routeid1;
+  routeid1->DeleteIfAllowed();
   juns.clear();
   CcInt* routeid2 = new CcInt(true,rid2);
   pNetwork->GetJunctionsOnRoute(routeid2,juns);
@@ -2157,7 +2157,7 @@ vector<UReal>& dist)
         j4 = t_jun->GetTupleId();
     }
   }
-  delete routeid2;
+  routeid2->DeleteIfAllowed();
   //cout<<j1<<" "<<j2<<" "<<j3<<" "<<j4<<endl;
   //find network distance from storage
   double l1,l2,l3,l4;
@@ -2716,20 +2716,20 @@ vector<UReal>& dist)
     ureal->c = pow(c,2);
     ureal->r = true;
     dist.push_back(*ureal);
-    delete ureal;
+    ureal->DeleteIfAllowed();
   }
-  delete gl1;
-  delete gl2;
-  delete gl3;
-  delete gl4;
-  delete ep1_0;
-  delete ep1_1;
-  delete ep2_0;
-  delete ep2_1;
-  delete gline1;
-  delete gline2;
-  delete gline3;
-  delete gline4;
+  gl1->DeleteIfAllowed();
+  gl2->DeleteIfAllowed();
+  gl3->DeleteIfAllowed();
+  gl4->DeleteIfAllowed();
+  ep1_0->DeleteIfAllowed();
+  ep1_1->DeleteIfAllowed();
+  ep2_0->DeleteIfAllowed();
+  ep2_1->DeleteIfAllowed();
+  gline1->DeleteIfAllowed();
+  gline2->DeleteIfAllowed();
+  gline3->DeleteIfAllowed();
+  gline4->DeleteIfAllowed();
   sec1->DeleteIfAllowed();
   sec2->DeleteIfAllowed();
 }
@@ -2791,7 +2791,7 @@ void MGPoint::DivideUGPoint(Network* pNetwork)
     u1->timeInterval.rc = false;
     u1->p1 = gp;
     mgp->Add(*u1);
-    delete u1;
+    u1->DeleteIfAllowed();
 
     GPoint* endp2;
     double pos2 = 0.0;
@@ -2810,14 +2810,14 @@ void MGPoint::DivideUGPoint(Network* pNetwork)
     u2->p0 = gp;
     mgp->Add(*u2);
 
-    delete u2;
-    delete endp1;
-    delete endp2;
+    u2->DeleteIfAllowed();
+    endp1->DeleteIfAllowed();
+    endp2->DeleteIfAllowed();
   }
   mgp->EndBulkLoad(true);
 //  *this = *mgp;
   this->CopyFrom(mgp);
-  delete mgp;
+  mgp->DeleteIfAllowed();
 }
 
 
@@ -2986,8 +2986,8 @@ void MGPoint::DistanceN(MGPoint* mgp, MReal* result){
       ug1->p0 = gp0;
     }
   }
-  delete ug1;
-  delete ug2;
+  ug1->DeleteIfAllowed();
+  ug2->DeleteIfAllowed();
   NetworkManager::CloseNetwork(pNetwork);
   result->EndBulkLoad();
 }
@@ -3379,8 +3379,8 @@ void MGPoint::Intersection(MGPoint *&mgp, MGPoint *&res){
             NetworkManager::CloseNetwork(pNetwork);
           }
         }
-        delete resA;
-        delete resB;
+        resA->DeleteIfAllowed();
+        resB->DeleteIfAllowed();
       }
     }
 //   } else {
@@ -4443,7 +4443,7 @@ bool MGPoint::Passes(GPoint *&gp){
   if (!m_traj_Defined){
     GLine *help = new GLine(0);
     Trajectory(help);
-    delete help;
+    help->DeleteIfAllowed();
   }
   if (Includes(m_trajectory, gp)) return true;
     else return false;
@@ -4455,7 +4455,7 @@ bool MGPoint::Passes(GLine *&gl){
   if (!m_traj_Defined){
     GLine *help = new GLine(0);
     Trajectory(help);
-    delete help;
+    help->DeleteIfAllowed();
   }
   DbArray<RouteInterval>* gltra = gl->GetRouteIntervals();
   if (Intersects(m_trajectory, *gltra, true, gl->IsSorted())) return true;
@@ -4587,11 +4587,11 @@ void MGPoint::Add(const UGPoint& u/*, bool setbbox =true*/){
               }
             }
             NetworkManager::CloseNetwork(pNetwork);
-            delete help;
+            help->DeleteIfAllowed();
             return bbox;
           } else {
             NetworkManager::CloseNetwork(pNetwork);
-            delete help;
+            help->DeleteIfAllowed();
             return Rectangle<3> (false, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
           }
         } else {
@@ -4750,7 +4750,7 @@ Word InMGPoint(const ListExpr typeInfo, const ListExpr instance,
        return SetWord( Address( m ) );
     } else {
       correct = false;
-      delete m;
+      m->DeleteIfAllowed();
       return SetWord( Address( 0 ) );
     }
   }
@@ -4771,8 +4771,8 @@ Word InMGPoint(const ListExpr typeInfo, const ListExpr instance,
         errmsg = "InMapping(): Unit " + int2string(unitcounter) + " is undef.";
         errorInfo = nl->Append(errorInfo, nl->StringAtom(errmsg));
         correct = false;
-        delete unit;
-        delete m;
+        unit->DeleteIfAllowed();
+        m->DeleteIfAllowed();
         //if (!bfirst) NetworkManager::CloseNetwork(pNetwork);
         return SetWord( Address(0) );
       }
@@ -4782,7 +4782,7 @@ Word InMGPoint(const ListExpr typeInfo, const ListExpr instance,
                   + int2string(unitcounter) + " is wrong.";
         errorInfo = nl->Append(errorInfo, nl->StringAtom(errmsg));
         m->Destroy();
-        delete m;
+        m->DeleteIfAllowed();
         //if (!bfirst) NetworkManager::CloseNetwork(pNetwork);
         return SetWord( Address(0) );
       }
@@ -4796,7 +4796,7 @@ Word InMGPoint(const ListExpr typeInfo, const ListExpr instance,
         tree = new RITree(unit->p0.GetRouteId(), test1, test2);
       } else
         tree->Insert(unit->p0.GetRouteId(), test1, test2);
-      delete unit;
+        unit->DeleteIfAllowed();
     }
     m->EndBulkLoad(true); // if this succeeds, all is OK
     tree->TreeToDbArray(&(m->m_trajectory));
@@ -4825,7 +4825,7 @@ DbArray<RouteInterval>& MGPoint::GetTrajectory(){
   if (!m_traj_Defined) {
     GLine *help = new GLine(0);
     Trajectory(help);
-    delete help;
+    help->DeleteIfAllowed();
   }
   return m_trajectory;
 }
@@ -5247,7 +5247,7 @@ Word UGPoint::In(const ListExpr typeInfo,
       {
         errmsg = "InUGPoint(): Error in first instant.";
         errorInfo = nl->Append(errorInfo, nl->StringAtom(errmsg));
-        delete start;
+        start->DeleteIfAllowed();
         return SetWord( Address(0) );
       }
 
@@ -5259,16 +5259,16 @@ Word UGPoint::In(const ListExpr typeInfo,
       {
         errmsg = "InUGPoint(): Error in second instant.";
         errorInfo = nl->Append(errorInfo, nl->StringAtom(errmsg));
-        delete start;
-        delete end;
+        start->DeleteIfAllowed();
+        end->DeleteIfAllowed();
         return SetWord( Address(0) );
       }
 
       Interval<Instant> tinterval( *start, *end,
                                    nl->BoolValue( nl->Third( first ) ),
                                    nl->BoolValue( nl->Fourth( first ) ) );
-      delete start;
-      delete end;
+      start->DeleteIfAllowed();
+      end->DeleteIfAllowed();
 
       correct = tinterval.IsValid();
       if (!correct)
@@ -5304,7 +5304,7 @@ Word UGPoint::In(const ListExpr typeInfo,
 
         errmsg = "InUGPoint(): Error in start/end point.";
         errorInfo = nl->Append(errorInfo, nl->StringAtom(errmsg));
-        delete ugpoint;
+        ugpoint->DeleteIfAllowed();
       }
     }
   }
@@ -5328,21 +5328,21 @@ Word UGPoint::In(const ListExpr typeInfo,
 
 Word UGPoint::Create(const ListExpr typeInfo)
 {
-  return (SetWord( new UGPoint() ));
+  return (SetWord( new UGPoint(true) ));
 }
 
 void UGPoint::Delete(const ListExpr typeInfo,
                      Word& w)
 {
-  delete (UGPoint *)w.addr;
-  w.addr = 0;
+  UGPoint *u = (UGPoint *)w.addr;
+  if(u->DeleteIfAllowed()) w.addr = 0;
 }
 
 void UGPoint::Close(const ListExpr typeInfo,
                     Word& w)
 {
-  delete (UGPoint *)w.addr;
-  w.addr = 0;
+  UGPoint *u = (UGPoint *)w.addr;
+  if(u->DeleteIfAllowed()) w.addr = 0;
 }
 
 Word UGPoint::Clone(const ListExpr typeInfo,
@@ -5439,10 +5439,10 @@ void UGPoint::Distance (const UGPoint &ugp, UReal &ur) const {
   dy2 = y21 - y20;   // y-difference final-initial for u2
   dx12 = x10 - x20;  // x-distance at initial instant
   dy12 = y10 - y20;  // y-distance at initial instant
-  delete rp10;
-  delete rp11;
-  delete rp20;
-  delete rp21;
+  rp10->DeleteIfAllowed();
+  rp11->DeleteIfAllowed();
+  rp20->DeleteIfAllowed();
+  rp21->DeleteIfAllowed();
   if ( AlmostEqual(dt, 0) )
   { // almost equal start and end time -> constant distance
     ur.a = 0.0;
@@ -5835,29 +5835,28 @@ MGPSecUnit::MGPSecUnit():Attribute()
 
 MGPSecUnit::MGPSecUnit(bool defined, int secId, int part, Side direct,
                        double sp, Interval<Instant> timeInterval):
+    Attribute(defined),
     m_secId(secId),
     m_part(part),
     m_direct(direct),
     m_speed(sp),
     m_time(timeInterval)
 {
-  del.refs=1;
   SetDefined(defined);
 }
 
-MGPSecUnit::MGPSecUnit( const MGPSecUnit& in_xOther)
+MGPSecUnit::MGPSecUnit( const MGPSecUnit& in_xOther):
+    Attribute(in_xOther.IsDefined())
 {
-  if (in_xOther.IsDefined())
+  SetDefined(in_xOther.IsDefined());
+  if (IsDefined())
   {
-    del.refs=1;
-    SetDefined(in_xOther.IsDefined());
     m_secId = in_xOther.GetSecId();
     m_part = in_xOther.GetPart();
     m_direct = in_xOther.GetDirect();
     m_speed = in_xOther.GetSpeed();
     m_time = in_xOther.GetTimeInterval();
   }
-  else SetDefined(false);
 }
 
 MGPSecUnit::~MGPSecUnit() {}
@@ -6508,7 +6507,7 @@ int OpMgp2mgpsecunits3ValueMap(Word* args, Word& result, int message,
         m->GetMGPSecUnits(li->vmgpsecunit, li->maxLength, li->pNetwork);
         li->pos = 0;
         local.addr = li;
-        delete m;
+        m->DeleteIfAllowed();
         return 0;
       }
       else
@@ -6541,7 +6540,7 @@ int OpMgp2mgpsecunits3ValueMap(Word* args, Word& result, int message,
           li->vmgpsecunit.clear();
           m->GetMGPSecUnits(li->vmgpsecunit, li->maxLength, li->pNetwork);
           li->pos = 0;
-          delete m;
+          m->DeleteIfAllowed();
           result = SetWord (new MGPSecUnit(li->vmgpsecunit[li->pos++]));
           return YIELD;
         }
@@ -6864,7 +6863,7 @@ int OpMPoint2MGPointValueMappingNeu(Word* args,
                 tstart = tpos;
               }
             }
-            delete gl;
+            gl->DeleteIfAllowed();
           }
         }
         if (ri == 0)
@@ -8121,7 +8120,7 @@ int OpTrajectoryValueMapping(Word* args,
   pMGPoint->Trajectory(res);
   result = SetWord(res);
   qp->ChangeResultStorage(in_xSupplier, result);
-  delete pGLine;
+  pGLine->DeleteIfAllowed();
   //(*pGLine) = *res;
   return 0;
 }
@@ -9043,7 +9042,7 @@ int OpMgpsu2tupleValueMap(Word* args, Word& result, int message,
         newTuple->PutAttribute(6, new CcBool(true,m->GetTimeInterval().lc));
         newTuple->PutAttribute(7, new CcBool(true,m->GetTimeInterval().rc));
         result.setAddr(newTuple);
-        delete m;
+        m->DeleteIfAllowed();
         return YIELD;
       }
       else return CANCEL;
