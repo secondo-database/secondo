@@ -40,7 +40,7 @@ plot 'sf020RunTimes.DAT' using 2:xtic(1), '' using 3, '' using 4, '' using 5, ''
 set key off
 set ylabel "Run Times in Seconds"
 set title "Scalefactor 1.0"
-set yrange [ 0.00000 : 360000.0 ] noreverse nowriteback
+set yrange [ 0.00000 : 12000.0] noreverse nowriteback
 plot 'sf100RunTimes.DAT' using 2:xtic(1), '' using 3, '' using 4, '' using 5, '' using 6, '' using 7, '' using 8, '' using 9, '' using 10, '' using 11, '' using 12, '' using 13, '' using 14, '' using 15, '' using 16, '' using 17, '' using 18
 
 unset multiplot
