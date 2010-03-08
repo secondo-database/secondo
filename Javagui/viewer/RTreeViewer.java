@@ -3,6 +3,7 @@ package viewer;
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.*;
+import java.util.*;
 
 import viewer.MenuVector;
 import viewer.SecondoViewer;
@@ -21,19 +22,25 @@ import sj.lang.ListExpr;
  * NodeViewerPanel: Rendering area for the bounding boxes and referenced objects
  * NodeInfoPanel: Detail information on the currently selected tree node
  * 
+ * @author Oliver Feuer
  * @author Benedikt Buer
  * @author Christian Oevermann
- * @since 19.12.2009
- * @version 1.1
+ * @since 20.02.2010
+ * @version 1.2
  */
-public class RTreeViewer extends SecondoViewer implements ActionListener 
+public class RTreeViewer extends SecondoViewer implements ActionListener, ItemListener 
 {
 	// the display panels
 	private NodeTreePanel nodeTreePanel;
 	private NodeInfoPanel nodeInfoPanel;
 	private NodeViewerPanel nodeViewerPanel;
 	// the menu
+	private JMenu xAxis, yAxis, zoom;
 	private MenuVector menuVector;
+	private JMenuItem xySwitch, rootView, nodeView, zoomIn, zoomOut;
+	private JCheckBoxMenuItem tupleBBShow, refShow, childRefShow;
+	private LinkedList<JRadioButtonMenuItem> x, y;
+	private JMenuItem runscript;
 
 	// constructors
 	
@@ -50,14 +57,26 @@ public class RTreeViewer extends SecondoViewer implements ActionListener
 		panel.setBackground(Color.blue);
 		
 		nodeTreePanel = new NodeTreePanel(this);
-		panel.add(nodeTreePanel, BorderLayout.LINE_START);
-		
 		nodeViewerPanel = new NodeViewerPanel(this);
-		panel.add(nodeViewerPanel, BorderLayout.CENTER);
-		
 		nodeInfoPanel = new NodeInfoPanel();
-		panel.add(nodeInfoPanel, BorderLayout.LINE_END);
-		
+
+                JSplitPane splitPaneR = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, 
+                                                      nodeViewerPanel, nodeInfoPanel);
+                splitPaneR.setOneTouchExpandable(true);
+                splitPaneR.setDividerLocation(400);
+
+                JSplitPane splitPaneL = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, 
+                                                       nodeTreePanel, splitPaneR);
+                splitPaneL.setOneTouchExpandable(true);
+                splitPaneL.setDividerLocation(175);
+
+                Dimension minimumSize = new Dimension(50, 50);
+                nodeTreePanel.setMinimumSize(minimumSize);
+                nodeViewerPanel.setMinimumSize(minimumSize);
+                nodeInfoPanel.setMinimumSize(minimumSize);
+
+		panel.add(splitPaneL, BorderLayout.CENTER);
+
 		add(panel, BorderLayout.CENTER);
 			
 		// ad monitors for inter panel communication
@@ -68,11 +87,93 @@ public class RTreeViewer extends SecondoViewer implements ActionListener
 		
 		// create menu entries and add listener
 		menuVector = new MenuVector();
-		JMenu settings = new JMenu("RTree");
+
+		JMenu rTreeMenu = new JMenu("RTree");
+//		rTreeMenu.setMnemonic(KeyEvent.VK_R);
+
+		xAxis = new JMenu("x-Axis");
+//		xAxis.setMnemonic(KeyEvent.VK_X);
+		xAxis.setEnabled(false);
+		rTreeMenu.add(xAxis);
+		x = new LinkedList<JRadioButtonMenuItem>();
+
+		yAxis = new JMenu("y-Axis");
+//		yAxis.setMnemonic(KeyEvent.VK_Y);
+		yAxis.setEnabled(false);
+		rTreeMenu.add(yAxis);
+		y = new LinkedList<JRadioButtonMenuItem>();
+
+		xySwitch = new JMenuItem("x-y-Switch");
+//		xySwitch.setMnemonic(KeyEvent.VK_S);
+		xySwitch.addActionListener(this);
+		xySwitch.setEnabled(false);
+		rTreeMenu.add(xySwitch);
+
+		rTreeMenu.addSeparator();
+
+		zoom = new JMenu("Zoom");
+//		zoom.setMnemonic(KeyEvent.VK_Z);
+		zoom.setEnabled(false);
+		rTreeMenu.add(zoom);
+
+		rootView = new JMenuItem("Root View");
+//		rootView.setMnemonic(KeyEvent.VK_R);
+		rootView.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_R, ActionEvent.ALT_MASK));
+		rootView.addActionListener(this);
+		rootView.setEnabled(false);
+		zoom.add(rootView);
+
+		nodeView = new JMenuItem("Node View");
+//		nodeView.setMnemonic(KeyEvent.VK_N);
+		nodeView.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_N, ActionEvent.ALT_MASK));
+		nodeView.addActionListener(this);
+		nodeView.setEnabled(false);
+		zoom.add(nodeView);
+
+		zoomIn = new JMenuItem("Zoom In");
+//		zoomIn.setMnemonic(KeyEvent.VK_I);
+		zoomIn.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_PLUS, ActionEvent.ALT_MASK));
+		zoomIn.addActionListener(this);
+		zoomIn.setEnabled(false);
+		zoom.add(zoomIn);
+
+		zoomOut = new JMenuItem("Zoom Out");
+//		zoomOut.setMnemonic(KeyEvent.VK_O);
+		zoomOut.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_MINUS, ActionEvent.ALT_MASK));
+		zoomOut.addActionListener(this);
+		zoomOut.setEnabled(false);
+		zoom.add(zoomOut);
+
+		rTreeMenu.addSeparator();
+
+		tupleBBShow = new JCheckBoxMenuItem("Show Key-MBR");
+//		tupleBBShow.setMnemonic(KeyEvent.VK_K);
+		tupleBBShow.addItemListener(this);
+		tupleBBShow.setState(true);
+		tupleBBShow.setEnabled(false);
+		rTreeMenu.add(tupleBBShow);
+
+		refShow = new JCheckBoxMenuItem("Show references");
+//		refShow.setMnemonic(KeyEvent.VK_R);
+		refShow.addItemListener(this);
+		refShow.setEnabled(false);
+		rTreeMenu.add(refShow);
+
+		childRefShow = new JCheckBoxMenuItem("Show child references");
+//		childRefShow.setMnemonic(KeyEvent.VK_C);
+		childRefShow.addItemListener(this);
+		childRefShow.setEnabled(false);
+		rTreeMenu.add(childRefShow);
+
+		rTreeMenu.addSeparator();
+
 		JMenu debug = new JMenu("Debug");
-		debug.add("Run Script").addActionListener(this);
-		settings.add(debug);
-		menuVector.addMenu(settings);
+		runscript = new JMenuItem("Run Script");
+		runscript.addActionListener(this);
+		debug.add(runscript);
+		rTreeMenu.add(debug);
+
+		menuVector.addMenu(rTreeMenu);
 	}
 
 	// public methods
@@ -83,9 +184,146 @@ public class RTreeViewer extends SecondoViewer implements ActionListener
 	 */
 	public void actionPerformed(ActionEvent e)
 	{
-		runScript();
+		if (e.getSource() == xySwitch)
+		{
+			nodeViewerPanel.switchAxis();
+			int xindex=0;
+			for (int i=0; i<x.size(); i++)
+				if (x.get(i).isSelected())
+				{
+					xindex = i;
+					break;
+				}
+			int yindex=0;
+			for (int i=0; i<y.size(); i++)
+				if (y.get(i).isSelected())
+				{
+					yindex = i;
+					break;
+				}
+			x.get(yindex).setSelected(true);
+			y.get(xindex).setSelected(true);
+		}
+		if (e.getSource() == rootView)
+		{
+			nodeViewerPanel.setRootView();
+		}
+		if (e.getSource() == nodeView)
+		{
+			nodeViewerPanel.setNodeView();
+		}
+		if (e.getSource() == zoomIn)
+		{
+			nodeViewerPanel.setZoomIn();
+		}
+		if (e.getSource() == zoomOut)
+		{
+			nodeViewerPanel.setZoomOut();
+		}
+		if (e.getSource() == runscript)
+		{
+			runScript();
+		}
 	}
 	
+	/**
+	 * Handles the ItemEvent. 
+	 * @param e Event detail data
+	 */
+	public void itemStateChanged(ItemEvent e)
+	{
+		if (e.getItemSelectable() == tupleBBShow)
+		{
+			nodeViewerPanel.setTupleShow(tupleBBShow.getState());
+		}
+		else if (e.getItemSelectable() == refShow)
+		{
+			nodeViewerPanel.setShow(refShow.getState());
+		}
+		else if (e.getItemSelectable() == childRefShow)
+		{
+			nodeViewerPanel.setChildShow(childRefShow.getState());
+		}
+		else if (e.getItemSelectable() == childRefShow)
+		{
+			nodeViewerPanel.setChildShow(childRefShow.getState());
+		}
+
+		else {
+			int index = x.indexOf(e.getItemSelectable());
+			if (index>-1)
+			{
+				nodeViewerPanel.setXProjection(index);
+			}
+			index = y.indexOf(e.getItemSelectable());
+			if (index>-1)
+			{
+				nodeViewerPanel.setYProjection(index);
+			}
+		}
+	}
+
+	/**
+	 * Is called by NodeTreePanel if an rtree is set or unset.
+	 * @param dim dimension of RTree to set or zero to reset
+	 */
+	public void setRTreeMenu(int dim)
+	{
+		xAxis.removeAll();
+		yAxis.removeAll();
+		xAxis.setEnabled(dim>0);
+		yAxis.setEnabled(dim>0);
+		xySwitch.setEnabled(dim>0);
+		zoom.setEnabled(dim>0);
+		rootView.setEnabled(dim>0);
+		nodeView.setEnabled(dim>0);
+		zoomIn.setEnabled(dim>0);
+		zoomOut.setEnabled(dim>0);
+		x.clear();
+		y.clear();
+		tupleBBShow.setEnabled(dim>0);
+		if (dim>0)
+		{
+			JRadioButtonMenuItem rb;
+			ButtonGroup xgroup = new ButtonGroup();
+			ButtonGroup ygroup = new ButtonGroup();
+
+			for (int i=0; i < dim; i++)
+			{
+				rb = new JRadioButtonMenuItem("x = x"+i);
+				rb.addItemListener(this);
+				if (i==0) 
+					rb.setSelected(true);
+				x.add(rb);
+				xAxis.add(rb);
+				xgroup.add(rb);
+
+				rb = new JRadioButtonMenuItem("y = x"+i);
+				rb.addItemListener(this);
+				if (i==1) 
+					rb.setSelected(true);
+				y.add(rb);
+				yAxis.add(rb);
+				ygroup.add(rb);
+			}
+		}
+	}
+	
+	/**
+	 * Is called by NodeTreePanel if an attribute is set or unset.
+	 * @param enable enables attribute menu items if true, otherwise disables it
+	 */
+	public void setAttributeMenu(boolean enable)
+	{
+		refShow.setEnabled(enable);
+		childRefShow.setEnabled(enable);
+		if (!enable)
+		{
+			refShow.setState(false);
+			childRefShow.setState(false);
+		}
+	}
+
 	/**
 	 * Is called by Secondo to add an object.
 	 * Currently not needed, as objects are only added explicitly by the viewer.

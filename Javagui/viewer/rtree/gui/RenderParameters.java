@@ -65,7 +65,7 @@ public class RenderParameters {
 		this.nodeBBFillColor = new Color(255, 0, 0, 50);		//red transparent
 
 		this.selectedNodeBBLineColor = new Color(0, 0, 0, 255);		//black
-		this.selectedNodeBBFillColor = new Color(255, 255, 255, 200);	//white
+		this.selectedNodeBBFillColor = new Color(255, 255, 255, 255);	//white
 
 		this.childNodeBBLineColor = new Color(200, 0, 0, 255);		//light red
 		this.childNodeBBFillColor = new Color(200, 0, 0, 50);		//light red transparent
@@ -76,7 +76,7 @@ public class RenderParameters {
 		this.entryTupleBBLineColor = new Color(46, 139, 87, 255);	//green
 		this.entryTupleBBFillColor = new Color(46, 139, 87, 50);	//green transparent
 
-		this.minBBsize = 6; 						// must be divideable by 2
+		this.minBBsize = 5; 						
 
 		this.selectedTupleBBLineColor = new Color(0, 0, 255, 255);	//blue 
 		this.selectedTupleBBFillColor = new Color(0, 0, 255, 50);	//blue transparent

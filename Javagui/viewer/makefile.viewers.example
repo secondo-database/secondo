@@ -16,8 +16,8 @@ VIEWER_CLASSES +=   PictureViewer.class
 VIEWER_CLASSES +=   UpdateViewer.class
 #VIEWER_CLASSES +=   GrappaViewer.class
 #VIEWER_CLASSES +=   SvgViewer.class
-#### RTreeViewer requires Java 2.5:
-#VIEWER_CLASSES +=   RTreeViewer.class
+#### RTreeViewer requires Java 1.5:
+VIEWER_CLASSES +=   RTreeViewer.class
 
 
 VIEWER_DIRS := hoese
@@ -27,6 +27,6 @@ VIEWER_DIRS += relsplit
 VIEWER_DIRS += viewer3d
 VIEWER_DIRS += pictureviewer
 VIEWER_DIRS += update
-#### RTreeViewer requires Java 2.5:
-#VIEWER_DIRS += rtree
+#### RTreeViewer requires Java 1.5:
+VIEWER_DIRS += rtree
 

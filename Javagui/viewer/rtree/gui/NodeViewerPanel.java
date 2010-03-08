@@ -28,6 +28,8 @@ public class NodeViewerPanel extends JPanel implements NodeDisplay, MouseListene
 
 	// the viewer
 	private RTreeViewer viewer;
+	private DrawingPane drawingPane;
+	private JScrollPane scroller;
 	
 	// tree name
 	private String treeName;
@@ -40,12 +42,16 @@ public class NodeViewerPanel extends JPanel implements NodeDisplay, MouseListene
 	private Vector<Node> childNodes;
 	private Node selectedNode = null;
 	private Tuple selectedTuple = null;
+	private int selectedTupleNo = -1;
 	// list of rectangles to display
 	private LinkedList<Rectangle2D.Double> rects = new LinkedList<Rectangle2D.Double>();
 	// list of node ids
 	private LinkedList nodeIds = new LinkedList();
 	private LinkedList<Tuple> tupleList = new LinkedList<Tuple>();
 	private LinkedList<Rectangle2D.Double> tupleBBs = new LinkedList<Rectangle2D.Double>();
+	private LinkedList<Node> fatherNodes = new LinkedList<Node>();
+	private LinkedList<Rectangle2D.Double> fatherNodeBBs = new LinkedList<Rectangle2D.Double>();
+	private Rectangle2D.Double rootMBR = null;
 	// list of referenced items to display
 	private LinkedList<Drawable> items = new LinkedList<Drawable>();
 	// list of node selection monitors
@@ -54,6 +60,10 @@ public class NodeViewerPanel extends JPanel implements NodeDisplay, MouseListene
 	// containers for rendering and projection parameters
 	private RenderParameters renderParams = new RenderParameters();
 	private ProjectionParameters projectionParams = new ProjectionParameters();
+	private Dimension drawingSize = new Dimension();
+	private double viewScale = 1.0;
+	private int drawWidth;
+	private int drawHeight;
 
 	// Status bar
 	private JPanel statusBar;
@@ -63,6 +73,7 @@ public class NodeViewerPanel extends JPanel implements NodeDisplay, MouseListene
 	private boolean displayTupleBBs = true;
 	private boolean displayRefs = false;
 	private boolean displayChildRefs = false;
+	private boolean setNodeToVisible = false;
 	
 	// constructor(s)
 
@@ -74,17 +85,34 @@ public class NodeViewerPanel extends JPanel implements NodeDisplay, MouseListene
 		this.viewer = viewer;
 		
 		// set some layout defaults
+		setLayout(new BorderLayout());
 		setBackground(Color.white);
 		setBorder(BorderFactory.createLineBorder(Color.yellow));
-		setPreferredSize(new Dimension(500, 1000));
-		setLayout(new BorderLayout());
+		setPreferredSize(new Dimension(1000, 500));
 		
+		// create viewer
+		drawingPane = new DrawingPane();
+		drawingPane.setBackground(Color.white);
+
 		// add listener to process mouse click events on rectangles
-		addMouseListener(this);
+		drawingPane.addMouseListener(this);
+
+		scroller = new JScrollPane(drawingPane);
+		add(scroller, BorderLayout.CENTER);
 		
 		// create toolbar and statusbar
 		nodeText = "\n\n Cursor Position: ";
-		createStatusBar();
+
+		// create controls
+		this.statusBar = new JPanel();
+		this.statusBar.setBorder(BorderFactory.createLineBorder(Color.gray));
+		this.statusBar.setPreferredSize(new Dimension(3000, 50));
+		this.statusBar.setLayout(new BorderLayout());
+		this.statusMessage = new JTextArea();
+		this.statusMessage.setBackground(this.statusBar.getBackground());
+		this.statusBar.add(this.statusMessage, BorderLayout.LINE_START);
+
+		add(statusBar, BorderLayout.SOUTH);
 		
 		// create timer to display mouse position
 		timer = new javax.swing.Timer(POLL_TIME, this);
@@ -101,11 +129,39 @@ public class NodeViewerPanel extends JPanel implements NodeDisplay, MouseListene
 	{
 		this.node = n;
 		setNodeText();
+		fatherNodes.clear();
 		if (node != null )
 		{
 			this.viewer.setWaitCursor();
 			this.selectedNode = node;
+			Node parent = node.getParentNode();
+
+			if ((rootMBR==null)&&(parent==null))
+			{
+				rootMBR = node.getMbr().project(this.projectionParams.getProjectionDimX(),
+								this.projectionParams.getProjectionDimY());
+
+				// calculate offsets and scale factor
+				calculateOffsets();
+				calculateScaleFactor();
+
+				viewScale = 1.0;
+				drawWidth = this.getWidth() - 2 * this.projectionParams.getPadding();
+				drawHeight = this.getHeight() - 2 * this.projectionParams.getPadding() 
+								- this.projectionParams.getExtraPaddingTop()
+								- this.projectionParams.getExtraPaddingBottom();
+				drawingSize.setSize(drawWidth, drawHeight);
+				setPreferredSize(drawingSize);
+			}
+
+			while (parent!=null)
+			{
+				fatherNodes.addFirst(parent);
+				parent = parent.getParentNode();
+			}
+
 			this.selectedTuple = null;
+			this.selectedTupleNo = -1;
 		}
 		
 		repaint();
@@ -138,6 +194,7 @@ public class NodeViewerPanel extends JPanel implements NodeDisplay, MouseListene
 			// set new tree attributes
 			this.treeName = name;
 			this.noOfDimensions = noOfDimensions;
+			rootMBR=null;
 
 			// set default projection
 			this.projectionParams.setProjectionDimX(0);
@@ -153,6 +210,10 @@ public class NodeViewerPanel extends JPanel implements NodeDisplay, MouseListene
 			this.projectionParams.setProjectionDimY(1);
 		}
 	}
+
+
+
+	private class DrawingPane extends JPanel {
 	
 	/**
 	 * Renders all bounding boxes.
@@ -177,70 +238,98 @@ public class NodeViewerPanel extends JPanel implements NodeDisplay, MouseListene
 		rects.clear();
 		nodeIds.clear();
 		tupleBBs.clear();
+		fatherNodeBBs.clear();
+
+ 		Graphics2D g2D = (Graphics2D) g;
+
+		for (Node fnode : fatherNodes) 
+		{
+			fatherNodeBBs.add(fnode.getMbr().project(projectionParams.getProjectionDimX(),
+								projectionParams.getProjectionDimY()));
+		}
+
+		int fNodesize = fatherNodeBBs.size();
+		int colNum = 0;
+		Color fNodeColor;
+		for (int i = 0; i < fNodesize ; i++)
+		{
+			fatherNodeBBs.get(i).x = fatherNodeBBs.get(i).x + projectionParams.getOffsetX(); 
+			fatherNodeBBs.get(i).y = fatherNodeBBs.get(i).y + projectionParams.getOffsetY(); 
+			
+			fatherNodeBBs.get(i).x = fatherNodeBBs.get(i).x * projectionParams.getScaleFactor(); 
+			fatherNodeBBs.get(i).y = fatherNodeBBs.get(i).y * projectionParams.getScaleFactor();  
+			fatherNodeBBs.get(i).width = fatherNodeBBs.get(i).width * projectionParams.getScaleFactor();  
+			fatherNodeBBs.get(i).height = fatherNodeBBs.get(i).height * projectionParams.getScaleFactor();  
+
+			if (fNodesize>1)
+				colNum = 50 + (i*150)/(fNodesize-1);
+			else
+				colNum = 50;
+			fNodeColor = new Color(colNum, colNum, colNum, 255);
+			drawRect(fatherNodeBBs.get(i), g2D, renderParams.getSelectedNodeBBLineColor(), fNodeColor);
+		}
 		
-        // add current node's bounding box rectangle and id to lists
-		rects.add(node.getMbr().project(this.projectionParams.getProjectionDimX(),
-				this.projectionParams.getProjectionDimY()));
+	        // add current node's bounding box rectangle and id to lists
+		rects.add(node.getMbr().project(projectionParams.getProjectionDimX(),
+				projectionParams.getProjectionDimY()));
 		nodeIds.add(new Integer(node.getNodeId()));
 		
 		// add all child nodes' bounding box rectangles and node ids
 		childNodes = node.getChildNodes();
 		for (Node child : childNodes) 
 		{
-			rects.add(child.getMbr().project(this.projectionParams.getProjectionDimX(),
-					this.projectionParams.getProjectionDimY()));
+			rects.add(child.getMbr().project(projectionParams.getProjectionDimX(),
+					projectionParams.getProjectionDimY()));
 			nodeIds.add(new Integer(child.getNodeId()));
 		}
 
-		// calculate and apply offsets and scale factor
-		calculateOffsets();
+		// apply offsets and scale factor to rects
 		applyOffsets();
-		
-		calculateScaleFactor();
 		applyScaleFactor();
-
- 		Graphics2D g2D = (Graphics2D) g;
 
 		// draw all nodes' bounding boxes,
 		// using appropriate colors
 		for (int i = 0; i < rects.size(); i++)
 		{
-			if ((Integer)nodeIds.get(i) == this.selectedNode.getNodeId())
+			if ((Integer)nodeIds.get(i) == selectedNode.getNodeId())
 				drawRect(rects.get(i), g2D,
-				this.renderParams.getSelectedNodeBBLineColor(), 
-				this.renderParams.getSelectedNodeBBFillColor());
+				renderParams.getSelectedNodeBBLineColor(), 
+				renderParams.getSelectedNodeBBFillColor());
 			else
 				drawRect(rects.get(i), g2D,
-				this.renderParams.getChildNodeBBLineColor(), 
-				this.renderParams.getChildNodeBBFillColor());
+				renderParams.getChildNodeBBLineColor(), 
+				renderParams.getChildNodeBBFillColor());
 		}
 		
 		// draw all tuples' bounding boxes,
 		// using appropriate colors
 		int selected = -1;
-		if (this.displayTupleBBs)
+		if (displayTupleBBs)
 		{
 			// add all entries' bounding box rectangles
 			tupleList = node.getIndexedTuples();
 			for (Tuple tuple : tupleList) 
 			{
-				tupleBBs.add(tuple.getMbr().project(this.projectionParams.getProjectionDimX(),
-						this.projectionParams.getProjectionDimY()));
+				tupleBBs.add(tuple.getMbr().project(projectionParams.getProjectionDimX(),
+						projectionParams.getProjectionDimY()));
 			}
 
 			for (int i = 0; i < tupleBBs.size(); i++)
 			{
 				if ((selectedTuple!=null)
 				  &&(selectedTuple.getTupleId()==tupleList.get(i).getTupleId()))
+				{
 					selected = i;
+					selectedTupleNo = i;
+				}
 
-				tupleBBs.get(i).x = tupleBBs.get(i).x + this.projectionParams.getOffsetX(); 
-				tupleBBs.get(i).y = tupleBBs.get(i).y + this.projectionParams.getOffsetY(); 
+				tupleBBs.get(i).x = tupleBBs.get(i).x + projectionParams.getOffsetX(); 
+				tupleBBs.get(i).y = tupleBBs.get(i).y + projectionParams.getOffsetY(); 
 				
-				tupleBBs.get(i).x = tupleBBs.get(i).x * this.projectionParams.getScaleFactor(); 
-				tupleBBs.get(i).y = tupleBBs.get(i).y * this.projectionParams.getScaleFactor();  
-				tupleBBs.get(i).width = tupleBBs.get(i).width * this.projectionParams.getScaleFactor();  
-				tupleBBs.get(i).height = tupleBBs.get(i).height * this.projectionParams.getScaleFactor();  
+				tupleBBs.get(i).x = tupleBBs.get(i).x * projectionParams.getScaleFactor(); 
+				tupleBBs.get(i).y = tupleBBs.get(i).y * projectionParams.getScaleFactor();  
+				tupleBBs.get(i).width = tupleBBs.get(i).width * projectionParams.getScaleFactor();  
+				tupleBBs.get(i).height = tupleBBs.get(i).height * projectionParams.getScaleFactor();  
 
 				if (tupleBBs.get(i).width < renderParams.getminBBsize())
 				{
@@ -255,14 +344,14 @@ public class NodeViewerPanel extends JPanel implements NodeDisplay, MouseListene
 
 				if (i!=selected)
 					drawRect(tupleBBs.get(i), g2D,
-						this.renderParams.getEntryTupleBBLineColor(), 
-						this.renderParams.getEntryTupleBBFillColor());
+						renderParams.getEntryTupleBBLineColor(), 
+						renderParams.getEntryTupleBBFillColor());
 			}
 			if (selected>-1)
 			{
 					drawRect(tupleBBs.get(selected), g2D,
-						this.renderParams.getSelectedTupleBBLineColor(), 
-						this.renderParams.getSelectedTupleBBFillColor());
+						renderParams.getSelectedTupleBBLineColor(), 
+						renderParams.getSelectedTupleBBFillColor());
 			}
 		}
 		
@@ -279,43 +368,54 @@ public class NodeViewerPanel extends JPanel implements NodeDisplay, MouseListene
 				selected = i;
 				nStatus = NodeStatus.SELECTED;
 			}
-			items.get(i).setProjectionParameters(this.projectionParams);
-			items.get(i).setRenderParameters(this.renderParams, nStatus);
+			items.get(i).setProjectionParameters(projectionParams);
+			items.get(i).setRenderParameters(renderParams, nStatus);
 			items.get(i).draw(g);
 		}
 		if (selected>-1)
 		{
-			items.get(selected).setProjectionParameters(this.projectionParams);
-			items.get(selected).setRenderParameters(this.renderParams, NodeStatus.SELECTED);
+			items.get(selected).setProjectionParameters(projectionParams);
+			items.get(selected).setRenderParameters(renderParams, NodeStatus.SELECTED);
 			items.get(selected).draw(g);
 		}
 		
-		if (this.displayRefs)
+		if (displayRefs)
 		{
 
 			// draw child node referenced items
 			for (Node child : childNodes) 
 			{
 			
-				if (this.displayChildRefs || child.getNodeId() == this.selectedNode.getNodeId())
+				if (displayChildRefs || child.getNodeId() == selectedNode.getNodeId())
 				{
 					child.setReferenceParameters(node.getReferenceParameters());
 					LinkedList<Drawable> items = child.getIndexedItems();
 					for (int i = 0; i < items.size(); i++)
 					{
-						items.get(i).setProjectionParameters(this.projectionParams);
-						if (child.getNodeId() == this.selectedNode.getNodeId())
-							items.get(i).setRenderParameters(this.renderParams, NodeStatus.SELECTED);
+						items.get(i).setProjectionParameters(projectionParams);
+						if (child.getNodeId() == selectedNode.getNodeId())
+							items.get(i).setRenderParameters(renderParams, NodeStatus.SELECTED);
 						else
-							items.get(i).setRenderParameters(this.renderParams, NodeStatus.CHILD);
+							items.get(i).setRenderParameters(renderParams, NodeStatus.CHILD);
 						items.get(i).draw(g);
 					}
 				}
 			}
 		}
-		this.viewer.setDefaultCursor();
+		viewer.setDefaultCursor();
 
+		if (setNodeToVisible)
+		{
+			Rectangle viewRect = new Rectangle(scroller.getViewport().getViewRect());
+			viewRect.setLocation((int)(rects.get(0).getX()), (int)(rects.get(0).getY()));
+			drawingPane.scrollRectToVisible(viewRect);
+			setNodeToVisible = false;
+		}
 	}
+
+
+	} //end of private class DrawingPane
+
 	
 	/**
 	 * Adds a selection monitor being notified
@@ -334,7 +434,7 @@ public class NodeViewerPanel extends JPanel implements NodeDisplay, MouseListene
 	{
 		if (node!=null)
 		{
-			// find out clicked node
+			// find out clicked child node
 			Node newlySelectedNode = getSelectedNode(e.getX(), e.getY());
 		
 			if (newlySelectedNode != null )
@@ -359,6 +459,13 @@ public class NodeViewerPanel extends JPanel implements NodeDisplay, MouseListene
 
 			if (node.isLeafNode())
 			{
+				// check if right button was clicked
+				if (e.getButton() == e.BUTTON3)
+				{
+					notifyMonitorsNodeSelected(selectedNode);
+					return;
+				}
+
 				// find out clicked tuple
 				Tuple newlySelectedTuple = getSelectedTuple(e.getX(), e.getY());
 		
@@ -373,8 +480,18 @@ public class NodeViewerPanel extends JPanel implements NodeDisplay, MouseListene
 						this.selectedTuple = newlySelectedTuple;
 						notifyMonitorsTupleSelected(selectedTuple);
 						repaint();
+						return;
 					}
 				}
+			}
+
+			// find out clicked father node
+			Node selectedFatherNode = getSelectedFatherNode(e.getX(), e.getY());
+		
+			if (selectedFatherNode != null)
+			{
+				notifyMonitorsNodeSelected(selectedFatherNode);
+				return;
 			}
 		}
 	}
@@ -395,7 +512,7 @@ public class NodeViewerPanel extends JPanel implements NodeDisplay, MouseListene
 			PointerInfo info = MouseInfo.getPointerInfo();
 
 			setPointerPositionStatusMessage(info.getLocation());
-			
+
 			repaint();
 			this.timer.start();
 		}
@@ -409,7 +526,7 @@ public class NodeViewerPanel extends JPanel implements NodeDisplay, MouseListene
 	{
 		this.projectionParams.setProjectionDimX(dim);
 		setNodeText();
-		repaint();
+		setRootView();
 	}
 
 	/**
@@ -419,7 +536,7 @@ public class NodeViewerPanel extends JPanel implements NodeDisplay, MouseListene
 	{
 		this.projectionParams.setProjectionDimY(dim);
 		setNodeText();
-		repaint();
+		setRootView();
 	}
 
 	/**
@@ -433,7 +550,79 @@ public class NodeViewerPanel extends JPanel implements NodeDisplay, MouseListene
 		this.projectionParams.setProjectionDimY(switchProjectionDim);
 
 		setNodeText();
-		repaint();
+		setRootView();
+	}
+
+	/**
+	 *  Sets the viewer scalefactor to show root
+	 */
+	public void setRootView() 
+	{
+		calculateScaleFactor();
+
+		viewScale = 1.0;
+		drawingSize.setSize(drawWidth, drawHeight);
+
+		update();
+	}
+
+	/**
+	 *  Sets the viewer scalefactor show selected node
+	 */
+	public void setNodeView() 
+	{
+		calculateScaleFactor();
+		double scale = this.projectionParams.getScaleFactor();
+
+		Rectangle2D nodeMBR = node.getMbr().project(this.projectionParams.getProjectionDimX(),
+							this.projectionParams.getProjectionDimY());
+
+		double maxX = rootMBR.getWidth()/nodeMBR.getWidth();
+		double maxY = rootMBR.getHeight()/nodeMBR.getHeight();
+		scale *= Math.min(maxX, maxY);
+
+		this.projectionParams.setScaleFactor(scale);
+
+		drawWidth = this.getWidth() - 2 * this.projectionParams.getPadding();
+		drawHeight = this.getHeight() - 2 * this.projectionParams.getPadding() 
+						- this.projectionParams.getExtraPaddingTop()
+						- this.projectionParams.getExtraPaddingBottom();
+		viewScale = Math.min(maxX, maxY);
+		drawingSize.setSize(((int) drawWidth*viewScale), ((int) drawHeight*viewScale));
+
+		setNodeToVisible = true;
+
+		update();
+	}
+
+	/**
+	 *  increments the viewer scalefactor to zoom in
+	 */
+	public void setZoomIn() 
+	{
+		double scale = this.projectionParams.getScaleFactor();
+		scale *= 1.05;
+		this.projectionParams.setScaleFactor(scale);
+
+		viewScale *= 1.05;
+		drawingSize.setSize(((int) drawWidth*viewScale), ((int) drawHeight*viewScale));
+
+		update();
+	}
+
+	/**
+	 *  decrements the viewer scalefactor to zoom out
+	 */
+	public void setZoomOut() 
+	{
+		double scale = this.projectionParams.getScaleFactor();
+		scale *= 1/1.05;
+		this.projectionParams.setScaleFactor(scale);
+
+		viewScale *= 1/1.05;
+		drawingSize.setSize(((int) drawWidth*viewScale), ((int) drawHeight*viewScale));
+
+		update();
 	}
 
 	/**
@@ -471,6 +660,17 @@ public class NodeViewerPanel extends JPanel implements NodeDisplay, MouseListene
 
 
 	// private methods
+
+	/**
+	 * Updates the viewer
+	 */
+	private void update()
+	{
+		drawingPane.setPreferredSize(drawingSize);
+		drawingPane.revalidate();
+		drawingPane.repaint();
+	}
+
 
 	/**
 	 * Creates status message of displayed node.
@@ -515,11 +715,11 @@ public class NodeViewerPanel extends JPanel implements NodeDisplay, MouseListene
 			{
 				// apply scaling and offsets
 				x = ((p.x - location.x - this.projectionParams.getPadding()) 
-						/ this.projectionParams.getScaleFactor()) 
+						/ (this.projectionParams.getScaleFactor())) 
 						- this.projectionParams.getOffsetX();
 				y = ((p.y - location.y - this.projectionParams.getPadding() 
 						- this.projectionParams.getExtraPaddingTop()) 
-						/ this.projectionParams.getScaleFactor()) 
+						/ (this.projectionParams.getScaleFactor())) 
 						- this.projectionParams.getOffsetY();
 
 				posText = " " + dcFormat.format(x) + " / " + dcFormat.format(y);
@@ -529,21 +729,6 @@ public class NodeViewerPanel extends JPanel implements NodeDisplay, MouseListene
 		}
 	}
 
-	/**
-	 * Creates the status bar.
-	 */
-	private void createStatusBar()
-	{
-		// create controls
-		this.statusBar = new JPanel();
-		this.statusBar.setBorder(BorderFactory.createLineBorder(Color.gray));
-		this.statusBar.setPreferredSize(new Dimension(3000, 50));
-		this.statusBar.setLayout(new BorderLayout());
-		this.statusMessage = new JTextArea();
-		this.statusMessage.setBackground(this.statusBar.getBackground());
-		this.statusBar.add(this.statusMessage, BorderLayout.LINE_START);
-		add(statusBar, BorderLayout.SOUTH);
-	}
 
 	/**
 	 * Draws a rectangle with the given colors. 
@@ -564,6 +749,20 @@ public class NodeViewerPanel extends JPanel implements NodeDisplay, MouseListene
 	}
 	
 	/**
+	 * Draws a rectangle with the given colors. 
+	 * @param r Rectangle to draw
+	 * @param g Graphic context
+	 */
+	private void drawRect(Rectangle2D.Double r, Graphics g, 
+							Color fillColor)
+	{	
+		g.setColor(fillColor);
+		g.fillRect((int)r.x + this.projectionParams.getPadding(), 
+				(int)r.y + this.projectionParams.getPadding() + this.projectionParams.getExtraPaddingTop(), 
+				(int)r.width, (int)r.height);
+	}
+	
+	/**
 	 * Calculates x-offset and y-offset from the list of rectangles.
 	 */
 	private void calculateOffsets()
@@ -571,23 +770,9 @@ public class NodeViewerPanel extends JPanel implements NodeDisplay, MouseListene
 		double minX, minY;
 		
 		// set offsets according to first rectangle
-		minX = rects.element().x;
-		minY = rects.element().y;
-		
-		// iterate through all rectangles and modify resulting offsets accordingly
-		for ( Rectangle2D.Double rect : rects)
-		{
-			if ( minX > rect.x)
-			{
-				minX = rect.x;
-			}
-			
-			if ( minY > rect.y) 
-			{
-				minY = rect.y;
-			}
-		}
-		
+		minX = rootMBR.getX();
+		minY = rootMBR.getY();
+
 		this.projectionParams.setOffsetX(-minX);
 		this.projectionParams.setOffsetY(-minY);
 	}
@@ -628,38 +813,31 @@ public class NodeViewerPanel extends JPanel implements NodeDisplay, MouseListene
 		
 		windowWidth = this.getWidth() - 2 * this.projectionParams.getPadding();
 		windowHeight = this.getHeight() - 2 * this.projectionParams.getPadding() 
-			- this.projectionParams.getExtraPaddingTop()
-			- this.projectionParams.getExtraPaddingBottom();
-		maxX = rects.element().x + rects.element().width;
-		maxY = rects.element().y + rects.element().height;
-		
-		for ( Rectangle2D.Double rect : rects)
-		{
-			if ( maxX < rect.x + rect.width)
-			{
-				maxX = rect.x + rect.width;
-			}
-			
-			if ( maxY < rect.y + rect.height) 
-			{
-				maxY = rect.y + rect.height;
-			}
-		}
-		
+						- this.projectionParams.getExtraPaddingTop()
+						- this.projectionParams.getExtraPaddingBottom();
+
+		maxX = rootMBR.getWidth();
+		maxY = rootMBR.getHeight();
+
 		scaleFactorX = windowWidth / maxX;
 		scaleFactorY = windowHeight / maxY;
-		
+
 		this.projectionParams.setScaleFactor(Math.min(scaleFactorX, scaleFactorY));
 	}
 	
 	/**
-	 * Finds out the rectangle which has been clicked onto. 
+	 * Finds out the child rectangle which has been clicked onto. 
 	 * @param x X-Position
 	 * @param y Y-Position
-	 * @returns Selected rectangles' node or null if clicked anywhere else 
+	 * @returns Selected child rectangles' node or null if clicked anywhere else 
 	 */
 	private Node getSelectedNode(int x, int y)
 	{
+		if (node.isLeafNode())
+		{
+			return null;
+		}
+
 		Node retValue = null;
 		Vector<Node> candidates = new Vector<Node>();
 		int selectedIndex = -1;
@@ -721,8 +899,9 @@ public class NodeViewerPanel extends JPanel implements NodeDisplay, MouseListene
 		return retValue;
 	}
 	
+
 	/**
-	 * Finds out the tuple bouding box which has been clicked onto. 
+	 * Finds out the tuple bounding box which has been clicked onto. 
 	 * @param x X-Position
 	 * @param y Y-Position
 	 * @returns selected bounding box of tuple or null if clicked anywhere else 
@@ -732,19 +911,58 @@ public class NodeViewerPanel extends JPanel implements NodeDisplay, MouseListene
 		if (!displayTupleBBs)
 			return null;
 
-		Tuple retValue = null;
-		int selectedIndex = -1;
 		double xPos = (double)(x - this.projectionParams.getPadding());
 		double yPos = (double)(y - this.projectionParams.getPadding() - this.projectionParams.getExtraPaddingTop());
-		
-		for (int i=0; i<tupleBBs.size(); i++)
-			if (tupleBBs.get(i).contains(xPos, yPos))
+		Tuple retValue = null;
+		int selectedIndex = -1;
+		int startTuple = 0;
+
+		if ((selectedTuple!=null)&&(tupleBBs.get(selectedTupleNo).contains(xPos, yPos)))
+			startTuple = selectedTupleNo+1;
+
+		int listSize = tupleBBs.size();
+		for (int i=startTuple; i<2*listSize; i++)
+		{
+			if (tupleBBs.get(i%listSize).contains(xPos, yPos))
+			{
+				selectedIndex = (i%listSize);
+				break;
+			}
+		}
+
+		if (selectedIndex>-1)
+			retValue = tupleList.get(selectedIndex);
+
+		return retValue;
+	}
+	
+	/**
+	 * Finds out the father which has been clicked onto. 
+	 * @param x X-Position
+	 * @param y Y-Position
+	 * @returns selected father node or null if clicked anywhere else 
+	 */
+	private Node getSelectedFatherNode(int x, int y)
+	{
+		if (fatherNodeBBs.size()<1)
+			return null;
+
+		double xPos = (double)(x - this.projectionParams.getPadding());
+		double yPos = (double)(y - this.projectionParams.getPadding() - this.projectionParams.getExtraPaddingTop());
+		Node retValue = null;
+		int selectedIndex = -1;
+
+		for (int i=fatherNodeBBs.size()-1; i>-1; i--)
+		{
+			if (fatherNodeBBs.get(i).contains(xPos, yPos))
 			{
 				selectedIndex = i;
 				break;
 			}
+		}
+
 		if (selectedIndex>-1)
-			retValue = tupleList.get(selectedIndex);
+			retValue = fatherNodes.get(selectedIndex);
 
 		return retValue;
 	}
@@ -804,6 +1022,8 @@ public class NodeViewerPanel extends JPanel implements NodeDisplay, MouseListene
 		this.tupleList.clear();
 		this.tupleBBs.clear();
 		this.items.clear();
+		rootMBR=null;
+		fatherNodes.clear();
 		setNodeText();
 	}
 }

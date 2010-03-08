@@ -35,9 +35,9 @@ public class ProjectionParameters {
 		this.offsetY = 0;
 		this.scaleFactor = 1;
 		this.timeScaleFactor = 1;
-		this.padding = 10;
+		this.padding = 5;
 		this.extraPaddingTop = 0;
-		this.extraPaddingBottom = 50;
+		this.extraPaddingBottom = 0;
 		this.projectionDimX = 0;
 		this.projectionDimY = 1;
 	}

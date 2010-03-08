@@ -160,15 +160,16 @@ public class NodeInfoPanel extends JPanel implements NodeDisplay
 				case 4: return "The total number of dimensions.";
 				case 5: return "";
 				case 6: return "The internal id of the node currently in focus.";  
-				case 7: return "True if the currently focused node is a root node.";  
-				case 8: return "True if the currently focused node is a leaf node.";
-				case 9: return "The number of sons of the currently focused node.";
-				case 10: return "The number of entries of the currently focused leaf node.";
-				case 11: return "The size of the minimal bounding box.";
-				case 12: return "The size of the minimal bounding box area that is not overlapped by at least one child node's bounding box.";
-				case 13: return "The size of the minimal bounding box area where at least two child node's bounding boxes overlap.";
-				case 14: return "The total number of pairwise overlapping son minimal bounding boxes.";
-				case 15: return "The average density of son bounding boxes overlapping any given point from this node's minimal bounding box.";
+				case 7: return "The level of the node in the rtree.";
+				case 8: return "True if the currently focused node is a root node.";  
+				case 9: return "True if the currently focused node is a leaf node.";
+				case 10: return "The number of sons of the currently focused node.";
+				case 11: return "The number of entries of the currently focused leaf node.";
+				case 12: return "The size of the minimal bounding box.";
+				case 13: return "The size of the minimal bounding box area that is not overlapped by at least one child node's bounding box.";
+				case 14: return "The size of the minimal bounding box area where at least two child node's bounding boxes overlap.";
+				case 15: return "The total number of pairwise overlapping son minimal bounding boxes.";
+				case 16: return "The average density of son bounding boxes overlapping any given point from this node's minimal bounding box.";
 				default: return "-";
             	}
             }
@@ -202,7 +203,7 @@ public class NodeInfoPanel extends JPanel implements NodeDisplay
 		
 
 		String[] labels = {"Tree Name", "Tree Height", "No. of Nodes", "No. of Keys", "Dimensions", "",
-				"Node Id", "Is Root Node", "Is Leaf Node", "No. of Sons", "No. of Entries", 
+				"Node Id", "Node Level", "Is Root Node", "Is Leaf Node", "No. of Sons", "No. of Entries", 
 				"MBR Size", "MBR Dead", "MBR Overlap", "MBR Overlap No.", "MBR Density"};
 
 		/**
@@ -239,7 +240,7 @@ public class NodeInfoPanel extends JPanel implements NodeDisplay
 		 */
 		public int getRowCount() 
 		{
-			return 16;
+			return 17;
 		}
 		
 		/**
@@ -295,15 +296,16 @@ public class NodeInfoPanel extends JPanel implements NodeDisplay
 					switch (row) 
 					{
 						case 6: return node.getNodeId();  
-						case 7: return node.isRootNode();  
-						case 8: return node.isLeafNode();
-						case 9: return node.getNoOfSons();
-						case 10: return node.getNoOfEntries();
-						case 11: return dcFormat1.format(node.getMbrSize());
-						case 12: return dcFormat1.format(node.getMbrDead());
-						case 13: return dcFormat1.format(node.getMbrOverlap());
-						case 14: return node.getMbrOverlapNo();
-						case 15: return dcFormat2.format(node.getMbrDensity());
+						case 7: return node.getNodeLevel();  
+						case 8: return node.isRootNode();  
+						case 9: return node.isLeafNode();
+						case 10: return node.getNoOfSons();
+						case 11: return node.getNoOfEntries();
+						case 12: return dcFormat1.format(node.getMbrSize());
+						case 13: return dcFormat1.format(node.getMbrDead());
+						case 14: return dcFormat1.format(node.getMbrOverlap());
+						case 15: return node.getMbrOverlapNo();
+						case 16: return dcFormat2.format(node.getMbrDensity());
 					}
 				}
 			}

@@ -288,7 +288,8 @@ public class NodeTreePanel extends JPanel implements NodeDisplay, TreeSelectionL
 			selectedNode = (DefaultMutableTreeNode)this.selectedNode.getParent();
 		}
 
-		if (node.getNodeId() == ((Node)this.selectedNode.getUserObject()).getNodeId())
+		Node actualNode = (Node)this.selectedNode.getUserObject();
+		if (node.getNodeId() == actualNode.getNodeId())
 		{
 			// walk up the tree because of right click
 			Object[] pathComponents = this.selectedNode.getPath();
@@ -298,12 +299,32 @@ public class NodeTreePanel extends JPanel implements NodeDisplay, TreeSelectionL
 				pathComponentsList.remove(pathComponentsList.size() - 1);
 				tree.setSelectionPath(new TreePath(pathComponentsList.toArray()));
 			}
+			return;
 		}
-		else
+
+		// walk up the tree to search in father nodes
+		Node fnode = actualNode.getParentNode();
+		Object[] pathComponents = this.selectedNode.getPath();
+		LinkedList<Object> pathComponentsList = new LinkedList<Object>(Arrays.asList(pathComponents));
+
+		while ((fnode!=null)&&(pathComponents.length > 1))
+		{
+			pathComponentsList.remove(pathComponentsList.size() - 1);
+			if (node.getNodeId() == fnode.getNodeId())
+			{
+				tree.setSelectionPath(new TreePath(pathComponentsList.toArray()));
+				return;
+			}
+			fnode = fnode.getParentNode();
+		}
+
+		if (!actualNode.isLeafNode())
 		{
 			// walk down the tree
-			Object[] pathComponents = this.selectedNode.getPath();
-			LinkedList<DefaultMutableTreeNode> nodes = new LinkedList<DefaultMutableTreeNode>();
+			pathComponents = this.selectedNode.getPath();
+			pathComponentsList = new LinkedList<Object>(Arrays.asList(pathComponents));
+
+			LinkedList<DefaultMutableTreeNode>nodes = new LinkedList<DefaultMutableTreeNode>();
 			for (int i = 0; i < pathComponents.length; i++)
 				nodes.add((DefaultMutableTreeNode)pathComponents[i]);
 
