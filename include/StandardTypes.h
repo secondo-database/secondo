@@ -183,7 +183,7 @@ class CcInt : public Attribute
     ctr++;
 
     return Attribute::GenericCompare<CcInt>( this, rhs,
-		                             IsDefined(), rhs->IsDefined() );
+                             IsDefined(), rhs->IsDefined() );
   }
 
   inline virtual bool Equal(const CcInt* rhs) const
@@ -192,7 +192,7 @@ class CcInt : public Attribute
     ctr++;
 
     return Attribute::GenericEqual<CcInt>( this, rhs,
-		                           IsDefined(), rhs->IsDefined() );
+                           IsDefined(), rhs->IsDefined() );
   }
 
   inline virtual bool Less(const CcInt* rhs) const
@@ -201,7 +201,7 @@ class CcInt : public Attribute
     ctr++;
 
     return Attribute::GenericLess<CcInt>( this, rhs,
-		                          IsDefined(), rhs->IsDefined() );
+                          IsDefined(), rhs->IsDefined() );
   }
 
 
@@ -449,7 +449,7 @@ class CcReal : public Attribute
     static long& ctr = Counter::getRef("CcReal::Compare");
     ctr++;
     return Attribute::GenericCompare<CcReal>( this, rhs,
-		                              IsDefined(), rhs->IsDefined() );
+                              IsDefined(), rhs->IsDefined() );
   }
 
   inline int CompareAlmost( const Attribute* arg ) const
@@ -464,7 +464,7 @@ class CcReal : public Attribute
     else
       return
         Attribute::GenericCompare<CcReal>( this, rhs,
-			                   IsDefined(), rhs->IsDefined() );
+                   IsDefined(), rhs->IsDefined() );
   }
 
   inline bool Adjacent( const Attribute *arg ) const
@@ -637,7 +637,7 @@ class CcBool : public Attribute
   {
     const CcBool* rhs = static_cast<const CcBool*>( arg );
     return Attribute::GenericCompare<CcBool>( this, rhs,
-		                              IsDefined(), rhs->IsDefined() );
+                              IsDefined(), rhs->IsDefined() );
   }
 
   inline bool Adjacent( const Attribute* arg ) const
@@ -844,7 +844,7 @@ class CcString : public Attribute
       if (stringval == rhs->stringval)
         return 0;
       else
-	return (stringval < rhs->stringval) ? -1 : 1;
+       return (stringval < rhs->stringval) ? -1 : 1;
 #endif
     }
     else
