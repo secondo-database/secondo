@@ -1367,10 +1367,17 @@ string Network::routesRTreeTypeInfo =
 string Network::junctionsTypeInfo =
     "(rel (tuple ((r1id int) (meas1 real) (r2id int) "
     "(meas2 real) (cc int))))";
-string Network::junctionsInternalTypeInfo =
+
+/*string Network::junctionsInternalTypeInfo =
     "(rel (tuple ((r1id int) (meas1 real) (r2id int) "
     "(meas2 real) (cc int) (pos point) (r1rc tid) (r2rc tid) "
+    "(sauprc tid) (sadownrc tid)(sbuprc tid) (sbdownrc tid))))";*/
+string Network::junctionsInternalTypeInfo =
+    "(rel (tuple ((r1id int) (meas1 real) (r2id int) "
+    "(meas2 real) (cc int) (loc point) (r1rc tid) (r2rc tid) "
     "(sauprc tid) (sadownrc tid)(sbuprc tid) (sbdownrc tid))))";
+
+
 string Network::junctionsBTreeTypeInfo =
     "(btree (tuple ((r1id int) (meas1 real) (r2id int) "
     "(meas2 real) (cc int) (pos point) (r1rc tid) (r2rc tid) "
