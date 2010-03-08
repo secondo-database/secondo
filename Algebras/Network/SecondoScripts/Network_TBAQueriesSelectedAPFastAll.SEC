@@ -237,11 +237,11 @@ let Q9TBA =
   QueryPeriods feed
   filter[not(isempty(.Period))]{p}
   symmjoin[.Trip_c present ..Period_p]
-  projectextend [Moid_c, Id_p; Distance: length(.Trip_c atperiods .Period_p)]
+  projectextend [Moid_c, Period_p, Id_p; Distance: length(.Trip_c atperiods .Period_p)]
   sortby [Id_p asc, Moid_c asc, Distance desc]
-  groupby[Id_p, Moid_c; Dist: group feed sum[Distance]]
-  groupby[Id_p; Dista: group feed max[Dist]]
-  project[Id_p, Dista]
+  groupby[Id_p, Period_p, Moid_c; Dist: group feed sum[Distance]]
+  groupby[Id_p, Period_p; Dista: group feed max[Dist]]
+  project[Period_p, Dista]
 consume;
 
 #query now();

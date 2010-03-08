@@ -32,7 +32,7 @@ save Q10dOBA to 'NetworkOBAQ10d.DAT';
 save Q10eOBA to 'NetworkOBAQ10e.DAT';
 save Q10fOBA to 'NetworkOBAQ10f.DAT';
 save Q10gOBA to 'NetworkOBAQ10g.DAT';
-save Q10hOBA to 'NetworkOBAQ10g.DAT';
+save Q10hOBA to 'NetworkOBAQ10h.DAT';
 save Q10iOBA to 'NetworkOBAQ10i.DAT';
 save Q10jOBA to 'NetworkOBAQ10j.DAT';
 save Q10kOBA to 'NetworkOBAQ10k.DAT';
