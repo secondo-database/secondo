@@ -2110,7 +2110,7 @@ The function makes use of four arguments:
         TupleAndRelPos nextTuple(t, tupleCmpBy);
         if( MAX_MEMORY > (size_t)t->GetSize() )
         {
-          nextTuple.tuple->IncReference();
+          nextTuple.ref->IncReference();
           currentRun->push(nextTuple);
           i++; // increment Tuples in memory counter
           MAX_MEMORY -= t->GetSize();
@@ -2126,11 +2126,11 @@ The function makes use of four arguments:
             newRelation = false;
 
             // get first tuple and store it in an relation
-            nextTuple.tuple->IncReference();
+            nextTuple.ref->IncReference();
             currentRun->push(nextTuple);
             minTuple = currentRun->top();
-            minTuple.tuple->DeleteIfAllowed();
-            rel->AppendTuple( minTuple.tuple );
+            minTuple.ref->DeleteIfAllowed();
+            rel->AppendTuple( minTuple.ref );
             lastTuple = minTuple;
             currentRun->pop();
           }
@@ -2141,26 +2141,26 @@ The function makes use of four arguments:
             { // nextTuple is in order
               // Push the next tuple int the heap and append the minimum to
               // the current relation and push
-              nextTuple.tuple->IncReference();
+              nextTuple.ref->IncReference();
               currentRun->push(nextTuple);
               minTuple = currentRun->top();
-              minTuple.tuple->DeleteIfAllowed();
-              rel->AppendTuple( minTuple.tuple );
+              minTuple.ref->DeleteIfAllowed();
+              rel->AppendTuple( minTuple.ref );
               lastTuple = minTuple;
               currentRun->pop();
               m++;
             }
             else
             { // nextTuple is smaller, save it for the next relation
-              nextTuple.tuple->IncReference();
+              nextTuple.ref->IncReference();
               nextRun->push(nextTuple);
               n++;
               if ( !currentRun->empty() )
               {
                 // Append the minimum to the current relation
                 minTuple = currentRun->top();
-                minTuple.tuple->DeleteIfAllowed();
-                rel->AppendTuple( minTuple.tuple );
+                minTuple.ref->DeleteIfAllowed();
+                rel->AppendTuple( minTuple.ref );
                 lastTuple = minTuple;
                 currentRun->pop();
               }
@@ -2182,9 +2182,9 @@ The function makes use of four arguments:
 
             // delete last tuple if saved to relation and
             // not referenced by minTuple
-            if ( copyOfLast.tuple && (copyOfLast.tuple != minTuple.tuple) )
+            if ( copyOfLast.ref && (copyOfLast.ref != minTuple.ref) )
             {
-              copyOfLast.tuple->DeleteIfAllowed();
+              copyOfLast.ref->DeleteIfAllowed();
             }
 
           } // check if nextTuple can be saved in current relation
@@ -2195,26 +2195,26 @@ The function makes use of four arguments:
       ShowPartitionInfo(count,a,n,m,r,rel);
 
       // delete lastTuple and minTuple if allowed
-      if ( lastTuple.tuple )
+      if ( lastTuple.ref )
       {
-        lastTuple.tuple->DeleteIfAllowed();
+        lastTuple.ref->DeleteIfAllowed();
       }
-      if ( (minTuple.tuple != lastTuple.tuple) )
+      if ( (minTuple.ref != lastTuple.ref) )
       {
-        minTuple.tuple->DeleteIfAllowed();
+        minTuple.ref->DeleteIfAllowed();
       }
 
       // the lastRun and NextRun runs in memory having
       // less than MAX_TUPLE elements
       if( !queue[0].empty() )
       {
-        Tuple* t = queue[0].top().tuple;
+        Tuple* t = queue[0].top().ref;
         queue[0].pop();
         mergeTuples.push( TupleAndRelPos(t, tupleCmpBy, -2) );
       }
       if( !queue[1].empty() )
       {
-        Tuple* t = queue[1].top().tuple;
+        Tuple* t = queue[1].top().ref;
         queue[1].pop();
         mergeTuples.push( TupleAndRelPos(t, tupleCmpBy, -1) );
       }
@@ -2245,7 +2245,7 @@ The function makes use of four arguments:
     {
       while( !mergeTuples.empty() )
       {
-        mergeTuples.top().tuple->DeleteIfAllowed();
+        mergeTuples.top().ref->DeleteIfAllowed();
         mergeTuples.pop();
       }
 
@@ -2253,7 +2253,7 @@ The function makes use of four arguments:
       {
         while( !queue[i].empty() )
         {
-          queue[i].top().tuple->DeleteIfAllowed();
+          queue[i].top().ref->DeleteIfAllowed();
           queue[i].pop();
         }
       }
@@ -2281,9 +2281,9 @@ The function makes use of four arguments:
       {
         // Take the first one.
         TupleAndRelPos p = mergeTuples.top();
-        p.tuple->DeleteIfAllowed();
+        p.ref->DeleteIfAllowed();
         mergeTuples.pop();
-        Tuple *result = p.tuple;
+        Tuple *result = p.ref;
         Tuple *t = 0;
 
         if (p.pos > 0)
@@ -2293,7 +2293,7 @@ The function makes use of four arguments:
           int idx = p.pos+2;
           if ( !queue[idx].empty() )
           {
-            t = queue[idx].top().tuple;
+            t = queue[idx].top().ref;
             t->DeleteIfAllowed();
             queue[idx].pop();
           }
@@ -2303,7 +2303,7 @@ The function makes use of four arguments:
 
         if( t != 0 )
         { // run not finished
-          p.tuple = t;
+          p.ref = t;
           t->IncReference();
           mergeTuples.push( p );
         }

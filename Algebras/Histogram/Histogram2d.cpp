@@ -2874,7 +2874,7 @@ Argument 0 Histogram2d, 1 real value
         TupleAndRelPos nextTuple(t, tupleCmpBy);
         if( MAX_MEMORY > (size_t)t->GetSize() )
         {
-          nextTuple.tuple->IncReference();
+          nextTuple.ref->IncReference();
           currentRun->push(nextTuple);
           i++; // increment Tuples in memory counter
           MAX_MEMORY -= t->GetSize();
@@ -2890,11 +2890,11 @@ Argument 0 Histogram2d, 1 real value
             newRelation = false;
 
             // get first tuple and store it in an relation
-            nextTuple.tuple->IncReference();
+            nextTuple.ref->IncReference();
             currentRun->push(nextTuple);
             minTuple = currentRun->top();
-            minTuple.tuple->DeleteIfAllowed();
-            rel->AppendTuple( minTuple.tuple );
+            minTuple.ref->DeleteIfAllowed();
+            rel->AppendTuple( minTuple.ref );
             lastTuple = minTuple;
             currentRun->pop();
           }
@@ -2905,26 +2905,26 @@ Argument 0 Histogram2d, 1 real value
             { // nextTuple is in order
               // Push the next tuple int the heap and append the minimum to
               // the current relation and push
-              nextTuple.tuple->IncReference();
+              nextTuple.ref->IncReference();
               currentRun->push(nextTuple);
               minTuple = currentRun->top();
-              minTuple.tuple->DeleteIfAllowed();
-              rel->AppendTuple( minTuple.tuple );
+              minTuple.ref->DeleteIfAllowed();
+              rel->AppendTuple( minTuple.ref );
               lastTuple = minTuple;
               currentRun->pop();
               m++;
             }
             else
             { // nextTuple is smaller, save it for the next relation
-              nextTuple.tuple->IncReference();
+              nextTuple.ref->IncReference();
               nextRun->push(nextTuple);
               n++;
               if ( !currentRun->empty() )
               {
                 // Append the minimum to the current relation
                 minTuple = currentRun->top();
-                minTuple.tuple->DeleteIfAllowed();
-                rel->AppendTuple( minTuple.tuple );
+                minTuple.ref->DeleteIfAllowed();
+                rel->AppendTuple( minTuple.ref );
                 lastTuple = minTuple;
                 currentRun->pop();
               }
@@ -2946,9 +2946,9 @@ Argument 0 Histogram2d, 1 real value
 
             // delete last tuple if saved to relation and
             // not referenced by minTuple
-            if ( copyOfLast.tuple && (copyOfLast.tuple != minTuple.tuple) )
+            if ( copyOfLast.ref && (copyOfLast.ref != minTuple.ref) )
             {
-              copyOfLast.tuple->DeleteIfAllowed();
+              copyOfLast.ref->DeleteIfAllowed();
             }
 
           } // check if nextTuple can be saved in current relation
@@ -2959,26 +2959,26 @@ Argument 0 Histogram2d, 1 real value
       ShowPartitionInfo(count,a,n,m,r,rel);
 
       // delete lastTuple and minTuple if allowed
-      if ( lastTuple.tuple )
+      if ( lastTuple.ref )
       {
-        lastTuple.tuple->DeleteIfAllowed();
+        lastTuple.ref->DeleteIfAllowed();
       }
-      if ( (minTuple.tuple != lastTuple.tuple) )
+      if ( (minTuple.ref != lastTuple.ref) )
       {
-        minTuple.tuple->DeleteIfAllowed();
+        minTuple.ref->DeleteIfAllowed();
       }
 
       // the lastRun and NextRun runs in memory having
       // less than MAX_TUPLE elements
       if( !queue[0].empty() )
       {
-        Tuple* t = queue[0].top().tuple;
+        Tuple* t = queue[0].top().ref;
         queue[0].pop();
         mergeTuples.push( TupleAndRelPos(t, tupleCmpBy, -2) );
       }
       if( !queue[1].empty() )
       {
-        Tuple* t = queue[1].top().tuple;
+        Tuple* t = queue[1].top().ref;
         queue[1].pop();
         mergeTuples.push( TupleAndRelPos(t, tupleCmpBy, -1) );
       }
@@ -3009,7 +3009,7 @@ Argument 0 Histogram2d, 1 real value
     {
       while( !mergeTuples.empty() )
       {
-        mergeTuples.top().tuple->DeleteIfAllowed();
+        mergeTuples.top().ref->DeleteIfAllowed();
         mergeTuples.pop();
       }
 
@@ -3017,7 +3017,7 @@ Argument 0 Histogram2d, 1 real value
       {
         while( !queue[i].empty() )
         {
-          queue[i].top().tuple->DeleteIfAllowed();
+          queue[i].top().ref->DeleteIfAllowed();
           queue[i].pop();
         }
       }
@@ -3045,9 +3045,9 @@ Argument 0 Histogram2d, 1 real value
       {
         // Take the first one.
         TupleAndRelPos p = mergeTuples.top();
-        //p.tuple->DecReference();
+        //p.ref->DecReference();
         mergeTuples.pop();
-        Tuple *result = p.tuple;
+        Tuple *result = p.ref;
         tuples.push(p);
         Tuple *t = 0;
 
@@ -3058,7 +3058,7 @@ Argument 0 Histogram2d, 1 real value
           int idx = p.pos+2;
           if ( !queue[idx].empty() )
           {
-            t = queue[idx].top().tuple;
+            t = queue[idx].top().ref;
             t->DeleteIfAllowed();
             queue[idx].pop();
           }
@@ -3068,7 +3068,7 @@ Argument 0 Histogram2d, 1 real value
 
         if( t != 0 )
         { // run not finished
-          p.tuple = t;
+          p.ref = t;
           t->IncReference();
           mergeTuples.push( p );
         }
@@ -3177,14 +3177,14 @@ Argument 0 Histogram2d, 1 real value
 
       {
         currentTuple = stream.top();
-        currentTuple.tuple->DeleteIfAllowed();
+        currentTuple.ref->DeleteIfAllowed();
         stream.pop();
         count++; // tuple counter;
-        Tuple* t = static_cast<Tuple*>( currentTuple.tuple );
+        Tuple* t = static_cast<Tuple*>( currentTuple.ref );
         TupleAndRelPos nextTuple(t, tupleCmpBy);
         if( MAX_MEMORY > (size_t)t->GetSize() )
         {
-          nextTuple.tuple->IncReference();
+          nextTuple.ref->IncReference();
           currentRun->push(nextTuple);
           i++; // increment Tuples in memory counter
           MAX_MEMORY -= t->GetSize();
@@ -3200,11 +3200,11 @@ Argument 0 Histogram2d, 1 real value
             newRelation = false;
 
             // get first tuple and store it in an relation
-            nextTuple.tuple->IncReference();
+            nextTuple.ref->IncReference();
             currentRun->push(nextTuple);
             minTuple = currentRun->top();
-            minTuple.tuple->DeleteIfAllowed();
-            rel->AppendTuple( minTuple.tuple );
+            minTuple.ref->DeleteIfAllowed();
+            rel->AppendTuple( minTuple.ref );
             lastTuple = minTuple;
             currentRun->pop();
           }
@@ -3215,26 +3215,26 @@ Argument 0 Histogram2d, 1 real value
             { // nextTuple is in order
               // Push the next tuple int the heap and append the minimum to
               // the current relation and push
-              nextTuple.tuple->IncReference();
+              nextTuple.ref->IncReference();
               currentRun->push(nextTuple);
               minTuple = currentRun->top();
-              minTuple.tuple->DeleteIfAllowed();
-              rel->AppendTuple( minTuple.tuple );
+              minTuple.ref->DeleteIfAllowed();
+              rel->AppendTuple( minTuple.ref );
               lastTuple = minTuple;
               currentRun->pop();
               m++;
             }
             else
             { // nextTuple is smaller, save it for the next relation
-              nextTuple.tuple->IncReference();
+              nextTuple.ref->IncReference();
               nextRun->push(nextTuple);
               n++;
               if ( !currentRun->empty() )
               {
                 // Append the minimum to the current relation
                 minTuple = currentRun->top();
-                minTuple.tuple->DeleteIfAllowed();
-                rel->AppendTuple( minTuple.tuple );
+                minTuple.ref->DeleteIfAllowed();
+                rel->AppendTuple( minTuple.ref );
                 lastTuple = minTuple;
                 currentRun->pop();
               }
@@ -3256,9 +3256,9 @@ Argument 0 Histogram2d, 1 real value
 
             // delete last tuple if saved to relation and
             // not referenced by minTuple
-            if ( copyOfLast.tuple && (copyOfLast.tuple != minTuple.tuple) )
+            if ( copyOfLast.ref && (copyOfLast.ref != minTuple.ref) )
             {
-              copyOfLast.tuple->DeleteIfAllowed();
+              copyOfLast.ref->DeleteIfAllowed();
             }
 
           } // check if nextTuple can be saved in current relation
@@ -3269,26 +3269,26 @@ Argument 0 Histogram2d, 1 real value
       ShowPartitionInfo(count,a,n,m,r,rel);
 
       // delete lastTuple and minTuple if allowed
-      if ( lastTuple.tuple )
+      if ( lastTuple.ref )
       {
-        lastTuple.tuple->DeleteIfAllowed();
+        lastTuple.ref->DeleteIfAllowed();
       }
-      if ( (minTuple.tuple != lastTuple.tuple) )
+      if ( (minTuple.ref != lastTuple.ref) )
       {
-        minTuple.tuple->DeleteIfAllowed();
+        minTuple.ref->DeleteIfAllowed();
       }
 
       // the lastRun and NextRun runs in memory having
       // less than MAX_TUPLE elements
       if( !queue[0].empty() )
       {
-        Tuple* t = queue[0].top().tuple;
+        Tuple* t = queue[0].top().ref;
         queue[0].pop();
         mergeTuples.push( TupleAndRelPos(t, tupleCmpBy, -2) );
       }
       if( !queue[1].empty() )
       {
-        Tuple* t = queue[1].top().tuple;
+        Tuple* t = queue[1].top().ref;
         queue[1].pop();
         mergeTuples.push( TupleAndRelPos(t, tupleCmpBy, -1) );
       }
@@ -3319,7 +3319,7 @@ In this case we need to delete also all tuples stored in memory.
     {
       while( !mergeTuples.empty() )
       {
-        mergeTuples.top().tuple->DeleteIfAllowed();
+        mergeTuples.top().ref->DeleteIfAllowed();
         mergeTuples.pop();
       }
 
@@ -3327,7 +3327,7 @@ In this case we need to delete also all tuples stored in memory.
       {
         while( !queue[i].empty() )
         {
-          queue[i].top().tuple->DeleteIfAllowed();
+          queue[i].top().ref->DeleteIfAllowed();
           queue[i].pop();
         }
       }
@@ -3355,10 +3355,10 @@ In this case we need to delete also all tuples stored in memory.
       {
         // Take the first one.
         TupleAndRelPos p = mergeTuples.top();
-        //p.tuple->DecReference();
+        //p.ref->DecReference();
         mergeTuples.pop();
         tuples.push(p);
-        Tuple *result = p.tuple;
+        Tuple *result = p.ref;
         Tuple *t = 0;
 
         if (p.pos > 0)
@@ -3368,7 +3368,7 @@ In this case we need to delete also all tuples stored in memory.
           int idx = p.pos+2;
           if ( !queue[idx].empty() )
           {
-            t = queue[idx].top().tuple;
+            t = queue[idx].top().ref;
             t->DeleteIfAllowed();
             queue[idx].pop();
           }
@@ -3378,7 +3378,7 @@ In this case we need to delete also all tuples stored in memory.
 
         if( t != 0 )
         { // run not finished
-          p.tuple = t;
+          p.ref = t;
           t->IncReference();
           mergeTuples.push( p );
         }
@@ -3647,7 +3647,7 @@ Argument 0 tuple stream, 1 attribute name X, 2 attribute name Y,
       while (!tuples.empty()) {
         tuplePos = tuples.top();
         tuples.pop();
-        t = tuplePos.tuple;
+        t = tuplePos.ref;
         x = (CcReal*)t->GetAttribute(indexX->GetIntval()-1);
         y = (CcReal*)t->GetAttribute(indexY->GetIntval()-1);
         hist->Insert((HIST_REAL)x->GetRealval(), (HIST_REAL)y->GetRealval());
