@@ -579,6 +579,31 @@ inferPredicate(Premises, [X intersects Y]) :-
 
 */
 
+/*
+The following rule handles expressions like
+---- sometimes(distance(v1:journey, v2:journey) < 3.0)
+----
+
+It will add the predicate
+---- everNearerThan(v1:journey, v2:journey, 3.0)
+----
+
+WARNING: No typechecking is done. Only valid for the following combinations:
+----
+  O1       O2      Dist
+mpoint x mpoint x real
+mpoint x point x real
+point  x mpoint x real
+----
+
+*/
+inferPredicate(Premises, [everNearerThan(O1, O2, Dist)]) :-
+  member(sometimes(distance(O1, O2) < Dist), Premises),
+  number(Dist),
+  O1 \= O2, O1 \= Dist, O2 \= Dist.
+
+
+
 % Section:Start:inferPredicate_2_e
 /*
 Inferring the predicates for spatiotemporal pattern predicate.
@@ -675,6 +700,57 @@ rewriteQueryForRedundancy(Query,Query) :-
   dm(rewrite,['\nREWRITING: Remove redundant predicates\n\tIn:  ',
               Query,'\n\tOut: ',Query,'\n\n']),
   !.
+
+/*
+---- handleAllRedundancies(+PredSetIn, -PredSetOut)
+----
+
+This predicate applies all rules defined by facts ~defineRedundancy/2~ to a setsof predicates.
+The result is again a set of predicates. The result create the closure of this operation, so
+predicates removed by one rule may be added by another rule again!
+
+This ensures, that all necessary predicates are kept within the resulting predicate set.
+
+*/
+
+handleAllRedundancies(PredSetIn,PredSetOut) :-
+  findall(e(Del,Add),handleSingleRedundancy(PredSetIn,Del,Add),ChangeList),
+  splitRedList(ChangeList,DelSet,AddSet),
+  subtract(PredSetIn, DelSet, BufferSet),
+  union(BufferSet, AddSet, PredSetOut).
+
+% auxiliary predicate to handleAllRedundancies/2
+splitRedList([],[],[]).
+splitRedList([e(Del,Add)|L],DelRes,AddRes) :-
+  splitRedList(L,DelL1,AddL1),
+  union(Del,DelL1,DelRes),
+  union(Add,AddL1,AddRes),
+  !.
+
+% auxiliary predicate to handleAllRedundancies/2
+handleSingleRedundancy(PredListIn,In,Out) :-
+  defineRedundancy(In,Out),
+  subset(In, PredListIn).
+handleSingleRedundancy(_,[],[]).
+
+/*
+Each of the following facts defines a set of predicates that should be replace by a subset of itself:
+---- defineRedundancy(AvailList,KeepList)
+----
+
+Used by ~handleAllRedundancies/2~
+
+*/
+defineRedundancy([everNearerThan(O1,O2,D),sometimes(distance(O1, O2) < D)],[everNearerThan(O1,O2,D)]).
+defineRedundancy([everNearerThan(O1,O2,D),sometimes(distance(O2, O1) < D)],[everNearerThan(O1,O2,D)]).
+defineRedundancy([X<=Y, X<Y],[X<Y]).
+defineRedundancy([X>=Y, X>Y],[X>Y]).
+defineRedundancy([X>=Y, X=Y],[X=Y]).
+defineRedundancy([X<=Y, X=Y],[X=Y]).
+defineRedundancy([X<=Y, X#Y],[X<Y]).
+defineRedundancy([X<Y,  X#Y],[X<Y]).
+defineRedundancy([X>=Y, X#Y],[X>Y]).
+defineRedundancy([X>Y,  X#Y],[X>Y]).
 
 
 /*
