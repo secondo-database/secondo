@@ -182,11 +182,11 @@ sqlBerlinMOD_R_query(9,
 sqlBerlinMOD_R_query(10,
   select [v1:licence as querylicence, v2:licence as
           otherlicence,v1:journey atperiods(deftime((
-          distance(v1:journey,v2:journey)<= 3.0) at true)) as pos]
+          distance(v1:journey,v2:journey)< 3.0) at true)) as pos]
   from [datasccar as v1, datasccar as v2, querylicences1 as ll]
   where [v1:licence = ll:licence,
          not(v2:licence = v1:licence),
-         sometimes(distance(v1:journey, v2:journey) <= 3.0)]
+         sometimes(distance(v1:journey, v2:journey) < 3.0)]
 ).
 
 % Query 11:
