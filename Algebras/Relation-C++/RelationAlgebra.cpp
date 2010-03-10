@@ -2136,7 +2136,7 @@ Filter(Word* args, Word& result, int message,
 
       ProgressInfo p1;
       ProgressInfo* pRes;
-      const double uFilter = 0.01;
+      const double uFilter = 1.0;
 
       pRes = (ProgressInfo*) result.addr;
       fli = (FilterLocalInfo*) local.addr;
@@ -2157,8 +2157,9 @@ Filter(Word* args, Word& result, int message,
                         return YIELD;
                   }
 
-          if ( fli->returned >= enoughSuccessesSelection )
-            //stable state assumed now
+          if ( fli->returned >= enoughSuccessesSelection || 
+		       fli->returned >= p1.Card * qp->GetSelectivity(s) )
+            //stable state assumed now - or more returned than cold estimate
           {
             pRes->Card =  p1.Card *
               ( (double) fli->returned / (double) (fli->current));
