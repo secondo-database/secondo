@@ -44,8 +44,9 @@ For more information see the OrderedRelation.h header file.
 
 CompositeKey::CompositeKey(const Tuple* t, const vector<int>& keyElements,
                            const vector<SmiKey::KeyDataType>& keyElemTypes,
-                           const bool append, const TupleId appendix) {
-  defined = false;
+                           const bool append, const TupleId appendix): 
+                           IndexableAttribute(false),data(0) {
+  
   if((!append) xor (appendix<0)) {
     return;
   }
@@ -63,16 +64,15 @@ CompositeKey::CompositeKey(const Tuple* t, const vector<int>& keyElements,
 
 CompositeKey::CompositeKey(const vector<void*>& attributes,
                            const vector<SmiKey::KeyDataType>& attrTypes,
-                           const bool upper) {
-  defined = false;
+                           const bool upper):
+                           IndexableAttribute(false),data(0) {
   if(attributes.size() != attrTypes.size())
     return;
-  
   init(attributes, attrTypes, (upper?upperRange:none));
 }
 
-CompositeKey::CompositeKey(SmiKey& key) {
-  defined = false;
+CompositeKey::CompositeKey(SmiKey& key):
+  IndexableAttribute(false),data(0) {
   kdt = key.GetType();
   if(kdt == SmiKey::Unknown)
     return;
@@ -112,49 +112,91 @@ CompositeKey::CompositeKey(SmiKey& key) {
       return;
     default: assert(false);
   }
-  defined = true;
+  SetDefined(true);
 }
 
-CompositeKey::CompositeKey(SmiRecord& record) {
+CompositeKey::CompositeKey(SmiRecord& record):
+  IndexableAttribute(true),data(0) {
   SmiSize offset = 0;
   init(record, offset);
 }
 
-CompositeKey::CompositeKey(SmiRecord& record, SmiSize& offset) {
+CompositeKey::CompositeKey(SmiRecord& record, SmiSize& offset):
+  IndexableAttribute(true),data(0) {
   init(record, offset);
 }
 
-CompositeKey::CompositeKey(PrefetchingIterator* iter) {
+CompositeKey::CompositeKey(PrefetchingIterator* iter):
+  IndexableAttribute(true),data(0) {
   SmiSize offset = 0;
   init(iter, offset);
 }
 
-CompositeKey::CompositeKey(PrefetchingIterator* iter, SmiSize& offset) {
+CompositeKey::CompositeKey(PrefetchingIterator* iter, SmiSize& offset):
+  IndexableAttribute(true),data(0) {
   init(iter, offset);
 }
 
-CompositeKey::CompositeKey() {
-  defined = false;
+CompositeKey::CompositeKey() :
+  IndexableAttribute(false),data(0){
 }
+
+CompositeKey::CompositeKey(const CompositeKey& src): IndexableAttribute(src),
+  kdt(src.kdt),charsize(src.charsize),data(0){
+   if(src.data){
+     data = malloc(charsize);
+     memcpy(data,src.data,charsize);
+   }
+}
+
+CompositeKey& CompositeKey::operator=(const CompositeKey& src){
+  IndexableAttribute::operator=(src);
+  kdt = src.kdt;
+  charsize = src.charsize;
+  if(src.data){
+    if(data){
+       data = realloc(data,charsize);
+    } else {
+       data = malloc(charsize);
+    }
+    memcpy(data,src.data,charsize);
+  } else {
+    if(data){
+     free(data);
+     data = 0;
+    }
+  } 
+  return *this;
+}
+
+
+
+
 
 void CompositeKey::WriteTo(char* dest) const {
-  if(defined)
+  if(IsDefined())
     memcpy(dest, data, charsize);
 }
 
 void CompositeKey::ReadFrom(const char* src) {
   if(charsize > SMI_MAX_KEYLEN)
     charsize = SMI_MAX_KEYLEN;
-  data = malloc(charsize);
+  if(!data){ 
+     data = malloc(charsize);
+  } else {
+     data = realloc(data, charsize);
+  }
   memcpy(data,src,charsize);
-  defined = true;
+  SetDefined(true);
 }
 
 SmiSize CompositeKey::SizeOfChars() const {
-  if(defined)
+  if(IsDefined())
     return charsize;
   return 0;
 }
+
+
 
 size_t CompositeKey::Sizeof() const {
   return sizeof(this);
@@ -162,9 +204,9 @@ size_t CompositeKey::Sizeof() const {
 
 int CompositeKey::Compare(const Attribute* attr) const {
   const CompositeKey* other = static_cast<const CompositeKey*>(attr);
-  if(!defined && !other->defined) return 0;
-  if(!defined) return -1;
-  if(!other->defined) return 1;
+  if(!IsDefined() && !other->IsDefined()) return 0;
+  if(!IsDefined()) return -1;
+  if(!other->IsDefined()) return 1;
   if(other->charsize == charsize) {
     return memcmp(data,other->data,charsize);
   }
@@ -200,29 +242,29 @@ inline size_t CompositeKey::HashValue() const {
 void CompositeKey::CopyFrom(const Attribute* attr) {
 cout << "Composite::CopyFrom" << endl;
   const CompositeKey* other = (CompositeKey*)attr;
-  if(defined)
+  if(data){
     free(data);
-  defined = other->defined;
-  if(defined) {
+    data = 0;
+  }
+  SetDefined(other->IsDefined());
+  if(IsDefined()) {
     kdt = other->kdt;
     charsize = other->charsize;
     data = malloc(charsize);
     memcpy(data,other->data,charsize);
+  } else {
+    data = 0;
   }
 }
 
-bool CompositeKey::IsDefined() const {
-  return defined;
-}
-
 SmiKey::KeyDataType CompositeKey::GetType() const {
-  if(!defined)
+  if(!IsDefined())
     return SmiKey::Unknown;
   return kdt;
 }
 
 bool CompositeKey::WriteToRecord(SmiRecord& record, SmiSize& offset) const {
-  if(!defined)
+  if(!IsDefined())
     return false;
   
   if(record.Write(&kdt, sizeof(kdt), offset) != sizeof(kdt))
@@ -242,7 +284,7 @@ bool CompositeKey::WriteToRecord(SmiRecord& record, SmiSize& offset) const {
 }
 
 SmiKey CompositeKey::GetSmiKey() const {
-  if(!defined)
+  if(!IsDefined())
     return SmiKey();
   
   long lVal;
@@ -282,9 +324,10 @@ TupleId CompositeKey::GetAppendix() const {
 }
 
 CompositeKey::~CompositeKey() {
-/*  if(defined)
-    free(data);
-  data = 0;*/
+   if(data){
+      free(data);
+      data = 0;
+   }
 }
 
 ListExpr CompositeKey::Out(const ListExpr typeInfo, Word value) {
@@ -313,9 +356,10 @@ bool CompositeKey::Open(SmiRecord& valueRecord, size_t& offset,
                         const ListExpr typeInfo, Word& value) {
 cout << "Composite::Open" << endl;
   CompositeKey* comp = new CompositeKey();
-  valueRecord.Read(&(comp->defined), sizeof(comp->defined), offset);
-  offset += sizeof(comp->defined);
-  if(comp->defined) {
+  bool defined = comp->IsDefined();
+  valueRecord.Read(&(defined), sizeof(defined), offset);
+  offset += sizeof(defined);
+  if(defined) {
     valueRecord.Read(&(comp->kdt), sizeof(comp->kdt), offset);
     offset += sizeof(comp->kdt);
     valueRecord.Read(&(comp->charsize), sizeof(comp->charsize), offset);
@@ -332,9 +376,10 @@ bool CompositeKey::Save(SmiRecord& valueRecord, size_t& offset,
                         const ListExpr typeInfo, Word& value) {
 cout << "Composite::Save" << endl;
   CompositeKey* comp = (CompositeKey*)value.addr;
-  valueRecord.Write(&(comp->defined), sizeof(comp->defined), offset);
-  offset += sizeof(comp->defined);
-  if(comp->defined) {
+  bool defined = comp->IsDefined();
+  valueRecord.Write(&defined, sizeof(defined), offset);
+  offset += sizeof(defined);
+  if(defined) {
     valueRecord.Write(&(comp->kdt), sizeof(comp->kdt), offset);
     offset += sizeof(comp->kdt);
     valueRecord.Write(&(comp->charsize), sizeof(comp->charsize), offset);
@@ -383,7 +428,11 @@ void CompositeKey::init(const vector<void*>& attributes,
                         const Mode mode, const TupleId appendix) {
   
   SmiSize maxSize = SMI_MAX_KEYLEN-1;
-  data = malloc(maxSize);
+  if(data==0){
+     data = malloc(maxSize);
+  } else {
+     data = realloc(data,maxSize);
+  }
   if(mode == appendNumber) {
     maxSize -= sizeof(long);
   }
@@ -427,6 +476,7 @@ void CompositeKey::init(const vector<void*>& attributes,
     }
     memcpy((void*)(((char*)data)+charsize), tmpData, tmpSize);
     free(tmpData);
+    tmpData = 0;
     charsize += tmpSize;
   }
   if(mode == appendNumber) {
@@ -441,11 +491,11 @@ void CompositeKey::init(const vector<void*>& attributes,
   if(charsize != maxSize)
     data = realloc(data, charsize);
   kdt = SmiKey::Composite;
-  defined = true;
+  SetDefined(true);
 }
 
 void CompositeKey::init(SmiRecord& record, SmiSize& offset) {
-  defined = false;
+  SetDefined(false);
   if(record.Read(&kdt, sizeof(kdt), offset)!=sizeof(kdt))
     return;
   offset += sizeof(kdt);
@@ -468,17 +518,22 @@ void CompositeKey::init(SmiRecord& record, SmiSize& offset) {
     default:
       return;
   }
-  data = malloc(charsize);
+  if(!data){
+     data = malloc(charsize);
+  } else {
+     data = realloc(data,charsize);
+  }
   if(record.Read(data, charsize, offset) != charsize) {
     free(data);
+    data = 0;
     return;
   }
   offset += charsize;
-  defined = true;
+  SetDefined( true);
 }
 
 void CompositeKey::init(PrefetchingIterator* iter, SmiSize& offset) {
-  defined = false;
+  SetDefined(false);
   if(iter->ReadCurrentData(&kdt, sizeof(kdt), offset) != sizeof(kdt))
     return;
   offset += sizeof(kdt);
@@ -503,13 +558,18 @@ void CompositeKey::init(PrefetchingIterator* iter, SmiSize& offset) {
     default:
       return;
   }
-  data = malloc(charsize);
+  if(!data){
+     data = malloc(charsize);
+  } else {
+     data = realloc(data,charsize);
+  }
   if(iter->ReadCurrentData(data, charsize, offset) != charsize) {
     free(data);
+    data = 0;
     return;
   }
   offset += charsize;
-  defined = true;
+  SetDefined(true);
 }
 
 

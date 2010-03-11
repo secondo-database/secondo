@@ -64,6 +64,10 @@ class CompositeKey : public IndexableAttribute {
     CompositeKey(PrefetchingIterator*);
     CompositeKey(PrefetchingIterator*, SmiSize& offset);
     CompositeKey();
+    CompositeKey(const CompositeKey& src);
+
+
+    CompositeKey& operator=(const CompositeKey& src);
     
     void WriteTo(char* dest) const;
     
@@ -82,8 +86,6 @@ class CompositeKey : public IndexableAttribute {
     size_t HashValue() const;
     
     void CopyFrom(const Attribute* attr);
-    
-    bool IsDefined() const;
     
     SmiKey::KeyDataType GetType() const;
     
@@ -132,7 +134,6 @@ class CompositeKey : public IndexableAttribute {
     
     void init(PrefetchingIterator* iter, SmiSize& offset);
     
-    bool defined;
     SmiKey::KeyDataType kdt;
     SmiSize charsize;
     void* data;
