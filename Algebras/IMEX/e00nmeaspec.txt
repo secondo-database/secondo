@@ -1,0 +1,4 @@
+operator e00types alias E00TYPES pattern op( _ )
+operator e00import alias E00IMPORT pattern _ op[ _ ]
+operator nmea0183import alias NMEA0183IMPORT pattern _ op[ _ , _ , _ ]
+operator nmea0183types alias NMEA0183TYPES pattern op( _ )

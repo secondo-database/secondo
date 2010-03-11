@@ -1,0 +1,51 @@
+Operator : e00types
+Number   : 1
+Signature: text -> text
+Example  : query length(e00types('test.e00'))
+Result   : 116
+
+Operator : e00types
+Number   : 2
+Signature: string -> text
+Example  : query length(e00types("test.e00"))
+Result   : 116
+
+Operator : e00import
+Number   : 1
+Signature: record x text  -> stream(...)
+Example  : query [const record( CoverageName: string,
+           Line1: record( LineID: int, NumOfCoordinates:int, LineData: line ) )
+           value ()] e00import['test.e00'];
+Result   : ((record(CoverageName string)(Line1(record(LineID int)
+            (NumOfCoordinates int)(LineData line))))
+            ("TEST"(1 4((14.212879 53.864784 14.213489 53.884834)
+          (14.212705 53.893837 14.213489 53.884834)
+  (14.208732 53.902344 14.212705 53.893837)))))
+
+Operator  : nmea0183types
+Number    : 1
+Signature : text -> text
+Example   : query length(nmea0183types('/home/fapra/secondo/bin/nmea.csv'))
+Result    : 122
+
+Operator  : nmea0183import
+Number    : 1
+Signature : record x text x int x int -> record
+Example   : query [const record(RouteGGA:mpoint,GpsQ:mint,NoSat:mint,DrsID:mint,
+            Hdop:mreal, AntAlt:mreal,GeoSep:mreal,AgeGPS:mreal) value ()]
+            nmea0183import['nmea.csv', 1, 1]
+Result    : ((record(RouteGGA mpoint)(GpsQ mint)(NoSat mint)(DrsID mint)
+            (Hdop mreal)(AntAlt mreal)(GeoSep mreal)(AgeGPS mreal))
+            (((("2009-01-01-19:23:19.874" "2009-01-01-19:23:20.874" TRUE FALSE)
+             (5122.589399 728.369624 5122.589942 728.369632)))
+           ((("2009-01-01-19:23:19.874" "2009-01-01-19:23:20.874" TRUE FALSE)1))
+        ((("2009-01-01-19:23:19.874" "2009-01-01-19:23:20.874" TRUE FALSE)6))
+    ((("2009-01-01-19:23:19.874" "2009-01-01-19:23:20.874" TRUE FALSE)0))
+((("2009-01-01-19:23:19.874" "2009-01-01-19:23:20.874" TRUE FALSE)
+(0.0 0.0 1.71 FALSE)))
+((("2009-01-01-19:23:19.874" "2009-01-01-19:23:20.874" TRUE FALSE)
+(0.0 4060.799999999745 105.895 FALSE)))
+((("2009-01-01-19:23:19.874" "2009-01-01-19:23:20.874" TRUE FALSE)
+(0.0 0.0 47.537 FALSE)))
+((("2009-01-01-19:23:19.874" "2009-01-01-19:23:20.874" TRUE FALSE)
+(0.0 0.0 0.0 FALSE)))))

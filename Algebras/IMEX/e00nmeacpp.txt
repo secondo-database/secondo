@@ -1,0 +1,4056 @@
+#include "Record.h"
+
+// enable/disable debug output to standard error
+// #define E00_DEBUG
+#undef E00_DEBUG
+
+
+/*
+ *usage:* - 
+ There are only three steps to use the operators ( e00types / e00import )
+
+[2] query e00types('/home/fapra/secondo/Data/e00/ponet.e00') [e.g.SecondoTTYBDB]
+
+[2] SecondoTTYBDB - i E00TYPES                             [ used in the shell ]
+
+[2] query PONET                                          [e.g. in SecondoTTYBDB]
+
+23 Operator ~e00type~
+
+23.1 Listing of all ~E00-Format-Markers~
+
+An given Coverage in E00-format ist separated inside by different kinds of
+markers. In the followed there are all of them are listed.
+
+  * ARC-File-Format [ startmarker | endmarker ]
+
+    0 EXP | EOS
+
+    1 ARC | -1 followed by 6 zeros
+
+    2 CNT | -1 followed by 6 zeros
+
+    3 LAB | -1         0 0.0000000
+
+    4 LOG | EOL
+
+    5 PAL | -1 followed by 6 zeros
+
+    6 PRJ | EOP
+
+    7 TOL | -1 followed by 6 zeros
+
+    8 TXT | -1 followed by 6 zeros
+
+    9 TX6 | -1 followed by 6 zeros
+
+   10 TX7 | -1 followed by 6 zeros
+
+   11 RXP | JABBERWOCKY
+
+   12 RPL | JABBERWOCKY
+
+   13 MTD | EOD
+
+  * INFO-File-Format
+
+   14 IFO | EOI
+
+   15 .AAT | no endmarker
+
+   16 .ACODE | no endmarker
+
+   17 .BND | no endmarker
+
+   18 .PAT | no endmarker
+
+   19 .PCODE | no endmarker
+
+   20 .TIC | no endmarker
+
+   21 SIN | EOX omitted, because they are allways empty 
+
+
+****************************************/
+  static const string endMark1
+  = "        -1         0         0         0         0         0         0";
+
+  static const string endMark2
+  = "        -1         0 0.0000000";
+
+  static const string endMark3 = "JABBERWOCKY";
+
+  static const size_t nAr = 21;
+
+  // i = 0 => StartMaker; i = 1 => EndMarker
+  static const string  E00Marker[2][nAr] =
+  {
+    // Startmarker
+    { "EXP ",    "ARC ",    "CNT ",    "LAB ",    "LOG ",    "PAL ",    "PRJ ",
+      "TOL ",    "TXT ",    "TX6 ",    "TX7 ",    "RXP ",    "RPL ",    "MTD ",
+      // Start INFO
+      "IFO ",    ".AAT ",   ".ACODE ", ".BND ",   ".PAT ",   ".PCODE ", ".TIC "
+    },
+    // Endmarker
+    { "EOS",     endMark1,  endMark1,  endMark2,  "EOL",     endMark1,  "EOP",
+      endMark1,  endMark1,  endMark1,  endMark1,  endMark3,  endMark3,  "EOD",
+      // Start INFO
+      "EOI",     "",        "",        "",        "",        "",        ""}
+  }; // "SIN", "EOX", omitted, because they are allways empty 
+
+
+/********************************************
+23.2 class for import Data Info
+
+********************************************/
+class e00importInfo {
+/*
+[2] data-elements of the e00-import-operator
+
+*/
+  private:
+    // data-elements
+    string Data;              // for the whole content of the ASCII-file
+    string datParts    [nAr]; // for the sparated parts of E00-file(ARC/LAB/...)
+    size_t infoParts[4][nAr]; // for informations about the parts of E00-file
+                              // [0] => Start-Position
+                              // [1] => End-Position
+                              // [2] => precision
+                              // [3] => number of elements, 
+    bool   existParts  [nAr]; // show the existent of a parts of E00-file
+    vector<Line*> datARCs;    // holds the content of a ARC for PAL building
+    vector<bool> usedInPAL;   // shows the usage of an ARC (Line) in PALs
+    vector<Point*> datLABs;   // holds the content of a LAB for PAL building
+    vector<Point*> datCNTs;   // holds the content of a CNT for PAL building
+    vector<string> datTX7s;   // holds the content of a LX7-Text
+    vector<Point*> pntTX7s;   // holds the content of a LX7-Point
+/*
+[2] constructors and destructor of the e00-import-operator
+
+*/
+  public:
+    e00importInfo()           { Data = ""; };
+    e00importInfo( string s ) { Data = s;  };
+    ~e00importInfo(){
+      datARCs.clear();
+      datLABs.clear();
+      datCNTs.clear();
+      datTX7s.clear();
+      pntTX7s.clear();
+      usedInPAL.clear();
+    };
+
+/*
+[2] methods of the e00-import-operator
+
+*/
+  void         setData(string s) { Data = s;            }
+
+  void      appendCData( char c) { Data.append( 1, c ); }
+
+  void     appendSData(string s) { Data.append( s );    }
+
+  string               getData() { return Data; }
+
+  string   getDataPart(size_t i) { return datParts[i]; }
+
+  size_t findStrInData(string s) {
+    size_t posStr = Data.find( s );
+    return posStr;
+  }
+
+  void setDataPart(string s, size_t i) { datParts[i] = s; }
+
+  void setDataPart() {
+    // Check for Dateimarker
+    size_t posStart = 0;
+    size_t posEnd;
+    size_t posEOI   = findStrInData( E00Marker[1][14], posStart) - 1;;
+    size_t posInfoTMP = string::npos;
+
+    datParts[0] = Data;
+
+    // search E00-format-marker & feedback
+    for (size_t i = 0; i < nAr; i++ ) {
+      posStart = findStrInData( E00Marker[0][i] );                // START
+      posEnd   = posEOI;  // END (EOI)
+      // initialise the information variables
+      infoParts[0][i] = 0;
+      infoParts[1][i] = 0;
+      infoParts[2][i] = 0;
+      infoParts[3][i] = 0;
+      existParts  [i] = false;
+
+      if ( i == 5 ) {
+        // initialize the ARC flags for PAL-Segment
+        for ( size_t v = 0; v < getNumOfElements( 1 ); v++ )
+          usedInPAL.push_back( false );
+      }
+
+      if ( posStart != string::npos ) {  // if there is the searched marker
+        // over 15 there are no END-Markers anymore (INFO-Parts)
+        if ( i < 15 ) {
+          // SIN area hava only two lines
+          // if ( E00Marken[0][i] != "SIN" )
+          posStart = getNewLine ( false, 0, posStart );
+
+          // search for Endposition
+          posEnd = findStrInData( E00Marker[1][i], posStart) - 1;
+          if ( posEnd == string::npos ) {  // if Endmarker is missing
+            cerr << "ImExAlgebra::e00importInfo::setDataPart: Missing "
+                 << "Endposition for " << E00Marker[0][i] << endl;
+          }
+        } else {  // INFO-Parts
+
+          // go back to start of line: from here PONET|.AAT to here |PONET.AAT
+          posStart = getEndOfLastLine(false, 0, posStart) + 1;
+          // search for next nearest INFO-Part => Enposition of this INFO-Marker
+          for ( size_t e = 15; e < nAr; e++ ) {
+            // if not the same indices are i & e
+            if ( i != e) posInfoTMP = findStrInData( E00Marker[0][e], posStart);
+            // find "next" higher position
+            if ( posInfoTMP > posStart && posInfoTMP != string::npos ) {
+              posInfoTMP = getEndOfLastLine( false, 0, posInfoTMP);
+              // if newer poition ist lower use new position
+              if ( posInfoTMP < posEnd ) posEnd = posInfoTMP;
+            }
+          }
+        }
+        // save area in string and collect informations about the area
+        datParts[i] = copyPart( posStart, posEnd );
+
+        infoParts[0][i] = posStart;
+        infoParts[1][i] = posEnd;
+        infoParts[2][i] = getPrecision ( i );
+        infoParts[3][i] = countElements( i );
+        existParts  [i] = true;
+
+        if ( i == 3 )    // i == 3 stands for LAB
+          datLABs.resize( infoParts[3][i] );
+
+        if ( i == 5 ) {  // i == 5 stands for PAL
+          datCNTs.resize( infoParts[3][i] );
+          setUsedARCs();
+        }
+      }
+    }
+  }
+
+/*
+[2] this methode find a string in the data-element
+
+*/
+  size_t findStrInData( string s, size_t p ) { return Data.find( s, p ); }
+
+/*
+[2] this methode copy a part of the data-element into a string and return this
+
+*/
+  string copyPart ( size_t posStart, size_t posEnd ) {
+    return Data.substr( posStart, posEnd - posStart );
+  }
+
+/*
+[2] this methode get the usage of the ARC in any PAL-Segment
+
+*/
+  bool getUsedInPAL( size_t i ) { return usedInPAL[i]; }
+
+
+/*
+[2] this method search for the name of the coverage file
+
+*/
+  string getCoverageName() { 
+    size_t foundStart, foundEnd, length;
+    string firstLineOfE00 = getLine( false, 0, 0 );
+    string fileName;
+
+    foundStart = firstLineOfE00.find_last_of("/\\");
+    foundEnd   = firstLineOfE00.find_last_of(".");
+    length     = foundEnd - foundStart - 1;
+
+    return firstLineOfE00.substr( foundStart+1, length );
+  }
+
+/*
+[2] this method pick up a line from the data-object
+src = from Part or complete; ind = Part-Index; pos = Start-Position
+
+*/
+  string getLine ( bool src, size_t ind, size_t pos  ) {
+    size_t posEnd;
+    string datPart;
+
+    if ( !src ) {
+      if (ind != 0) cerr << "Wrong use of function! Index != 0" << endl;
+      posEnd  = Data.find( '\n', pos );
+
+      return Data.substr( pos, (posEnd - pos) );
+    } else {
+      datPart = datParts[ind];
+      posEnd  = datPart.find( '\n', pos );
+
+      if ( posEnd == string::npos ) posEnd = datPart.length();
+
+      return datPart.substr( pos, (posEnd - pos ) );
+    }
+  }
+
+/*
+[2] this method finds the start-position of the next line
+
+*/
+  size_t getNewLine ( bool src, size_t ind, size_t pos ) {
+    size_t sizeString = 0;
+    if ( !src ) {
+      if (ind != 0) cerr << "Wrong use of function! Index != 0" << endl; 
+      sizeString = Data.size();
+
+      pos = Data.find( '\n', pos );
+      ( pos != 0 ) ? pos++ : pos = string::npos;
+      return pos;
+    } else {
+      sizeString = datParts[ind].size();
+      pos = datParts[ind].find( '\n', pos );
+      ( pos != 0 ) ? pos++ : pos = string::npos;
+      return pos;
+    }
+  }
+
+/*
+[2] this method finds end-position of the predecessor line
+
+*/
+  size_t getEndOfLastLine ( bool src, size_t ind, size_t pos ) {
+    if ( !src ) {
+      if (ind != 0) cerr << "Wrong use of function! Index != 0" << endl; 
+      return Data.rfind( '\n', pos );
+    } else {
+      return datParts[ind].rfind( '\n', pos );
+    }
+  }
+
+/*
+[2] this method finds the start-position of the selected line
+
+*/
+  size_t getStartOfLineNum ( bool src, size_t ind, size_t line ) {
+    size_t linePos = 0;
+
+    if ( !src ) {
+      if (ind != 0) cerr << "Wrong use of function! Index != 0" << endl;
+      for (size_t i = 0; i < line; i++ ) {
+        linePos = Data.find( '\n', linePos ) + 1;
+      }
+    } else {
+      for (size_t i = 0; i < line; i++ ) {
+        linePos = datParts[ind].find( '\n', linePos ) + 1;
+      }
+    }
+    return linePos;
+  }
+
+/*
+[2] this method finds End-position of the current line
+
+*/
+  size_t getEndLine ( bool src, size_t ind, size_t pos ) {
+    if ( !src ) {
+      if (ind != 0) cerr << "Wrong use of function! Index != 0" << endl; 
+      return Data.find( '\n', pos ) - 1;
+    } else {
+      return datParts[ind].find( '\n', pos ) - 1;
+    }
+  }
+
+/*
+[2] this method determine the Number of rows of the current coverage
+
+*/
+  size_t countLines ( bool src, size_t ind ) {
+    size_t cntLines  = 0;
+
+    if ( !src ) {
+      if (ind != 0) cerr << "Wrong use of function! Index != 0" << endl;
+      cntLines = (size_t) count(Data.begin(), Data.end(), '\n');
+    } else {
+      cntLines = (size_t) count(datParts[ind].begin(),
+               datParts[ind].end(), '\n');
+    }
+    return cntLines + 1;  // + 1 for last line
+  }
+
+/*
+[2] this method determine the Number of Elemnets of the current coverage part
+
+*/
+  size_t countElements( size_t mrkInd ) {
+    size_t res = 0;
+
+    switch( mrkInd ) {
+      case 1 : {  // determine the ~Number of ARCs~ of the current coverage
+        size_t posA    = 0;
+        size_t posN    = 0;
+        size_t cntArcs = 0;
+        string line    = "";
+        const size_t lngArcStart = 65;
+ 
+        while ( posA <= posN ) {
+          posA = posN;
+          line = getLine ( true, 1, posA );
+          if ( line.length() > lngArcStart ) cntArcs++;
+          posN = getNewLine( true, 1 , posA ) ;
+        }
+        res = cntArcs;
+        break;
+      }
+      case 3 : {  // determine the ~Number of LABs~ of the current coverage
+        size_t precLAB   = infoParts[2][mrkInd];
+        size_t cntLinLAB = countLines( true, mrkInd );
+
+        res = cntLinLAB / precLAB;
+        break;
+      }
+      case 5 : {  // determine the ~Number of PALs~ of the current coverage
+        size_t posA    = 0;
+        size_t posN    = 0;
+        size_t prec    = infoParts[2][mrkInd];
+        size_t cntPALs = 0;
+        string line    = "";
+
+        const size_t lngPALStart = (prec == 2) ? 66 : 53; // prec.2= 66 | 3= 53;
+
+        while ( posA <= posN ) {
+          posA = posN;
+          line = getLine ( true, mrkInd, posA );
+
+          if (    line.length() ==   lngPALStart
+               || line.length() == ( lngPALStart + 1) ) cntPALs++;
+
+          posN = getNewLine( true, mrkInd , posA );
+        }
+        res = cntPALs;
+        break;
+      }
+      case 10 : {  // determine the ~Number of TX7s~ of the current coverage
+        res = numOfElemsTX7();
+        break;
+      }
+      default: {
+        res = 0;
+      }
+    }
+    return res;
+  }
+
+
+/*
+[2] this method determine the current precision in block
+
+*/
+  size_t getPrecision ( size_t mrkInd ) {
+    string line    = "";
+    size_t pos     = 0;
+    char prec[1];
+    int res        = 0;
+    string mrkName = E00Marker[0][mrkInd];
+    // if Index in Info Part
+    if (mrkInd > 14 ) return res;
+
+    pos  = findStrInData( mrkName, pos);
+    line = getLine ( false, 0, pos );
+    line.copy( prec, 1, mrkName.length() + 1 ) ;
+    res = atoi( &prec[0] );
+
+    return res;
+  }
+
+/*
+[2] this methode search for unused ARCs ind PAL-Segment, the used ARCs don't
+have to set as ARC-Record (minimizing the datavolume at types<->import
+interface)
+
+*/
+  void setUsedARCs() {
+    // search ARCs in all PALs
+    for (  size_t p = 2; p <= getNumOfElements( 5 ); p++  ) {
+      size_t  posB    = 0;
+      size_t  posE    = 0;
+      size_t  posO    = 0;
+      size_t  posN    = 0;
+      size_t  cntPAL  = 0;
+      size_t  precPAL = getPrecisionP( 5 );
+      bool    oK      = true;
+      const size_t lngPALStart = (precPAL == 2) ? 66 : 53; // prec.2 =66 |3 =53;
+      string  line    = "";
+
+      while ( oK && (posO <= posN) ) {
+        posO = posN;
+        line = getLine ( true, 5, posO );   // "5" is the Index for "PAL"
+        if (    line.length() ==   lngPALStart
+             || line.length() == ( lngPALStart + 1) ) cntPAL++;
+        posN = getNewLine( true, 5, posO ); // "5" is the Index for "PAL"
+        if ( cntPAL == p ) { 
+          posB = posO;
+          while ( oK && posO <= posN ) {
+            posO = posN;
+            line = getLine( true, 5, posO );  // "5" is the Index for "PAL"
+            if (    line.length() ==   lngPALStart
+                 || line.length() == ( lngPALStart + 1 )  ) {
+              oK = false;
+              posE = posN - 1;
+            }
+            posN = getNewLine( true, 5, posO );     // "5" is the Index for"PAL"
+          }
+        }
+      }
+
+      string dataPAL = datParts[5].substr( posB, (posE - posB) );
+      char * ptrChar;
+      char * str = new char[dataPAL.size()+1];
+      str[dataPAL.size()] = 0;
+      memcpy(str, dataPAL.c_str(), dataPAL.size());
+
+      ptrChar = strtok (str," \n");
+
+      CcInt* numLines = new CcInt(true, atoi(ptrChar));
+
+      // read out the lines of the PAL for actual Polygon (Region)
+      vector<int> linesPAL = buildPALList( numLines->GetValue(), dataPAL );
+
+      int numARC;
+      for ( size_t n = 0; n < linesPAL.size(); n++ ) {
+        numARC = abs(linesPAL[n]) - 1;
+        if ( numARC > 0 ) usedInPAL[numARC] = true;
+      } 
+    }
+  }
+
+
+/*
+[2] this method generate a LAB fragment record for the output record
+
+*/
+  Record* buildRecordLAB ( size_t ind ) {
+    Record* result = new Record(0);
+    size_t  precLAB= getPrecisionP( 3 );  // 3 = LAB
+    size_t  posB = 0;
+    size_t  posE = 0;
+    size_t  lineB, lineE;
+    const   size_t lngCoord = ( infoParts[2][3] == 2) ? 14 : 21 ;
+
+    (precLAB == 2) ? lineE = ind   * 2 : lineE = ind   * 3 ;
+    (precLAB == 2) ? lineB = lineE - 1 : lineB = lineE - 2 ;
+
+    for (size_t e = 1; e < lineB; e++ ) {
+        posB = getNewLine ( true, 3, posB );
+    }
+
+    for (size_t e = 1; e < lineE; e++ ) {
+        posE = getNewLine ( true, 3, posE );
+    }
+    posE = getEndLine( true, 3, posE );
+
+    string dataLAB = datParts[3].substr( posB, (posE - posB) );
+    dataLAB = removeSign( dataLAB, "\n" );
+
+    CcInt*  val2P = new CcInt(true, atoi(dataLAB.substr( 10, 10 ).c_str()));
+    dataLAB = dataLAB.substr( 20, (dataLAB.length() - 20) );
+
+    double val5P = atof( dataLAB.substr( 0, lngCoord ).c_str() );  // x-Coord
+    dataLAB = dataLAB.substr( lngCoord, (dataLAB.length() - lngCoord) );
+
+    double val6P = atof( dataLAB.substr( 0, lngCoord ).c_str() );  // y-Coord
+    dataLAB = dataLAB.substr( lngCoord, (dataLAB.length() - lngCoord) );
+
+    Point* datPoint = new Point(true, (Coord)val5P, (Coord)val6P);
+
+    result->AppendElement( val2P, INT, "PolygonID" );
+    result->AppendElement( datPoint, POINT, "LabelPoint");
+
+    // additional content from .PAT
+
+    if ( getStatus( 5 ) ) {
+      if ( (size_t)(val2P->GetValue() - 2) <= datLABs.size() ) {
+        datLABs[ val2P->GetValue() - 2 ] = datPoint ;
+        datCNTs[ val2P->GetValue() - 2 ] = buildRecordCNT( ind );
+      }
+    } else {
+      datLABs[ ind-1 ] = datPoint ;
+    }
+    return result;
+  }
+
+/*
+[2] this method generate a CNT fragment record for the output record
+
+*/
+  Point* buildRecordCNT ( size_t ind ) {
+    stringstream srcStr;
+    size_t posPointDat = 0;
+    size_t lenInd;
+    string srcStrCNT;
+    string datCNT;
+    string LineOfCNT = "";
+
+    // buil searchstring e.g. "         1"
+    srcStr << ind;
+    srcStrCNT = srcStr.str();
+    lenInd = 10 - srcStrCNT.length();
+    for (size_t i = 0; i < lenInd; i++) { srcStrCNT = " " + srcStrCNT;  }
+    datCNT = getDataPart( 2 );
+
+    // searche first incidence of searchstring
+    posPointDat = datCNT.find( srcStrCNT, posPointDat );
+
+    LineOfCNT   = getLine( true, 2, posPointDat );
+
+    if (LineOfCNT == "") return new Point(true, 0, 0);
+
+    // if CNT for first PAL (Universal PAL) is searching
+    if (ind == 0 && ((LineOfCNT.length() % 10) != 0 ) ) {
+      return new Point(true, 0, 0);
+    } else {// if not CNT for first PAL (Universal PAL) is searching
+      //if not a indexline searche for incidence of searchstring in an indexline
+      while ( (LineOfCNT.length() % 10) != 0 ) {
+        posPointDat = datCNT.find( srcStrCNT, ++posPointDat );
+
+        if (posPointDat != string::npos) {
+          LineOfCNT = getLine( true, 2, posPointDat );
+        } else {
+          return new Point(true, 0, 0);
+        }
+      }
+      // the polygon was found in indexline, now search for pointdataline
+      posPointDat = datCNT.rfind( '\n',   posPointDat );
+      posPointDat = datCNT.rfind( '\n', --posPointDat );
+      LineOfCNT   = getLine( true, 2, ++posPointDat );
+      // the indexarea have to lines (two lines are possible)
+      if ( (LineOfCNT.length() % 10) == 0 )  {
+        posPointDat = datCNT.rfind( '\n',   posPointDat );
+        posPointDat = datCNT.rfind( '\n', --posPointDat );
+        LineOfCNT   = getLine( true, 2, ++posPointDat );
+      }
+      // if this line is not an pointdataline => error
+      if ( (LineOfCNT.length() % 10) == 0 )  {
+        ErrorReporter::ReportError("E00file not correct: wrong number of CNTs");
+        return new Point(false, 0, 0);
+      }
+    }
+    // set indices for precisions 2 or 3
+    size_t startPos1 = 10;
+    size_t lengthNum;
+    size_t startPos2;
+
+    if (getPrecisionP( 2 ) == 2 ) {
+      lengthNum = 14;
+      startPos2 = 24;
+    } else {
+      lengthNum = 21;
+      startPos2 = 31;
+    }
+
+    char * coordXY     = new char[lengthNum];
+    coordXY[lengthNum] = 0;
+    // read out first value of Point
+    memcpy(coordXY, LineOfCNT.substr(startPos1, lengthNum ).c_str(), lengthNum);
+    double val1P = atof(coordXY);
+    // read out second value of Point
+    memcpy(coordXY, LineOfCNT.substr(startPos2, lengthNum ).c_str(), lengthNum);
+    double val2P =  atof(coordXY);
+#ifdef E00_DEBUG
+  cerr << "ImExAlgebra::e00importVM::buildRecordCNT: val1P / val2P = "
+       << val1P << " / " << val2P << endl;
+#endif
+    return new Point( true, (Coord)val1P, (Coord)val2P );
+  }
+
+
+/*
+[2] this method provides a selected part of an INFO fragment
+(e.g. number of Attrib.)
+=> indInfo   - Index for Info-Fragment (AAT, PAT, BND, ...)
+=> indHeader - Index for selected part (number of Attrib., number of records...)
+
+*/
+  size_t headerINFO( size_t indInfo, size_t indHeader ) {
+    string HeaderLineOfInfo = getLine( true, indInfo, 0 );
+    char* infAttr;
+
+    if ( indInfo < 14 ) {  // only for use with INFO-Frames
+      cerr << "Wrong use of function ImExAlgebra::e00importInfo::headerINFO: "
+      << "Wrong 'indInfo'!" << endl;
+      return 0;
+    }
+
+    switch( indHeader ) {
+      case 1 : {
+        infAttr = new char[2];
+        size_t res = 0;
+        (HeaderLineOfInfo.substr(34, 2) == "XX" ) ? res = 1 : res = 0 ;
+        return res;
+      }
+      case 2 : {  // number of attributes in Info-Part
+        infAttr = new char[4];
+        memcpy(infAttr, HeaderLineOfInfo.substr(34, 4 ).c_str(), 5);
+        break;
+      }
+      case 3 : {
+        infAttr = new char[4];
+        memcpy(infAttr, HeaderLineOfInfo.substr(38, 4 ).c_str(), 5);
+        break;
+      }
+      case 4 : {  // number of data records
+        infAttr = new char[10];
+        memcpy(infAttr, HeaderLineOfInfo.substr(46, 10 ).c_str(), 10);
+        break;
+      }
+      default : {
+        cerr << "Wrong use of function ImExAlgebra::e00importInfo::headerINFO: "
+             << "Wrong 'indHeader'!" << endl;
+        return 0;
+      }
+    }
+    return (size_t) atoi(infAttr);
+  }
+
+/*
+[2] this methode to delete all specified signs in a string and returns it
+
+*/
+  string removeSign(string txt, string strToRmv) {
+    size_t pos = 0;
+    bool   end = false;
+
+    while(!end){
+      pos = txt.find( strToRmv );
+      if( pos != string::npos ){
+        txt.erase(pos,1);
+      }
+      else end = true;
+    }
+    return txt;
+  }
+
+/*
+[2] this method provides the header lines of the selected part of an INFO
+fragment
+
+*/
+  vector<string> readHeaderINFO( size_t indInfo ) {
+    size_t numAttr = headerINFO( indInfo, 2 );
+    vector<string> headerParts;
+    string lineHead;
+
+    for (size_t line = 1; line < (numAttr +1); line++ ) { // + 1 for first line
+      lineHead = getLine(true, indInfo, getStartOfLineNum(true, indInfo, line));
+      headerParts.push_back( lineHead );
+    }
+    return headerParts;
+  }
+
+
+/*
+[2] this method calculate the  length of an attribute filed in the data-frame
+
+*/
+  size_t lenAttr( size_t sVal, size_t tVal) {
+    size_t len = 0;
+
+    switch (tVal) {
+      case 10 : {
+        len = 8;
+        break;
+      }
+      case 20 : {
+        len = sVal;
+        break;
+      }
+      case 30 : {
+        len = sVal;
+        break;
+      }
+      case 40 : {
+        len =  0;
+        break;
+      }
+      case 50 : {
+        len = (sVal==2) ? 6 : 11;
+        break;
+      }
+      case 60 : {
+        len = (sVal==4) ? 14 : 24;
+        break;
+      }
+      default: {
+        len = 0;
+      }
+    }
+    return len;
+  }
+
+/*
+[2] this method compute the type of an attribute filed in the data-frame
+
+*/
+  string attrType( size_t tVal) {
+    string type = "";
+
+    switch (tVal) {
+      case 10 : {
+        type = "text";
+        break;
+      }
+      case 20 : {
+        type = "text";
+        break;
+      }
+      case 30 : {
+        type = "text";
+        break;
+      }
+      case 40 : {
+        type =  "real";
+        break;
+      }
+      case 50 : {
+        type = "int";
+        break;
+      }
+      case 60 : {
+        type = "real";
+        break;
+      }
+      default: {
+        cerr << "Wrong use of function ImExAlgebra::e00importInfo::attrType: "
+             << "Wrong type value!" << endl;
+        return 0;
+      }
+    }
+    return type;
+  }
+
+/*
+[2] this method compute the type of an attribute filed in the data-frame
+
+*/
+  Attribute* attrVal( size_t size, size_t type, size_t pos, string dat) {
+    Attribute* res;
+    size_t len;
+
+    switch (type) {
+      case 10 : {
+        res = new FText(true, dat.substr(pos, 8));
+        break;
+      }
+      case 20 : {
+        res = new FText(true, dat.substr(pos, size));
+        break;
+      }
+      case 30 : {
+        res = new FText(true, dat.substr(pos, size));
+        break;
+      }
+      case 40 : {
+        char * valC = new char[14];
+        valC[14] = 0;
+        memcpy(valC, dat.substr(pos, 14).c_str(), 14);
+        res = new CcReal(true, atof( valC ));
+        break;
+      }
+      case 50 : {
+        len = (size==2) ? 6 : 11;
+        char * valC = new char[len];
+        valC[len] = 0;
+        memcpy(valC, dat.substr(pos, len).c_str(), len);
+        res = new CcInt(true, atoi( valC ));
+        break;
+      }
+      case 60 : {
+        len = (size==4) ? 14 : 24;
+        char * valC = new char[len];
+        valC[len] = 0;
+        memcpy(valC, dat.substr(pos, len).c_str(), len);
+        res = new CcReal(true, atof( valC ));
+        break;
+      }
+      default: {
+        cerr << "Wrong use of function ImExAlgebra::e00importInfo::attrVal: "
+             << "Wrong type value!" << endl;
+        return 0;
+      }
+    }
+    return res;
+  }
+
+/*
+[2] this method generate a AAT fragment record for the output record
+
+*/
+  Record* buildRecordAAT ( size_t ind ) {
+    size_t cntAttr            = headerINFO( 15, 2 );
+    vector<string> headerStr  = readHeaderINFO( 15 );
+    string datAAT             = getDataPart(15);
+    Record* res               = new Record( cntAttr );
+    string namAAT             = "";
+    char*  infAttr            = new char[17];
+    infAttr[16]               = 0;
+    size_t lenDat             = 0;
+    vector<string> attrNameStr;
+    vector<int> attrSizeInt;
+    vector<int> attrTypeInt;
+    string LineOfAAT;
+    size_t posAAT_B;
+    size_t sizeVal;
+    size_t typeVal;
+    Attribute* valAAT;
+
+    if ((size_t)headerStr.size() == cntAttr) {
+      for (size_t i = 0; i < cntAttr; i++) {
+        attrNameStr.push_back( headerStr.at(i).substr(0, 15 ) );
+
+        memcpy(infAttr, headerStr.at(i).substr(16, 3 ).c_str(), 3);
+        sizeVal = atoi(infAttr);
+        attrSizeInt.push_back( sizeVal ) ;
+
+        memcpy(infAttr, headerStr.at(i).substr(34, 3 ).c_str(), 3);
+        typeVal = atoi(infAttr);
+        attrTypeInt.push_back( typeVal );
+
+        lenDat = lenDat + lenAttr(sizeVal, typeVal);
+      }
+    } else {
+      cerr << "ImExAlgebra::e00importInfo::buildRecordAAT: error in AAT Header."
+           << " Diffrent numbers of attributes." << endl;
+    }
+    lenDat = (lenDat >= 80) ? lenDat + 1 : lenDat;
+    ind = (ind * ((int)(lenDat / 80) + (((lenDat % 80) != 0) ? 1 : 0) )) + 1;
+
+    posAAT_B = getStartOfLineNum(true, 15, ( ind + cntAttr));
+
+    LineOfAAT = datParts[15].substr( posAAT_B, lenDat);
+
+    // erase all line-breaks
+    posAAT_B = 0;
+    bool   end = false;
+    while( !end ){
+      posAAT_B = LineOfAAT.find( '\n' );
+      if( posAAT_B != string::npos ){
+        LineOfAAT.erase(posAAT_B,1);
+      }
+      else end = true;
+    }
+
+    posAAT_B = 0;
+    for (size_t i = 0; i < cntAttr; i++) {
+      sizeVal  = attrSizeInt.at(i);
+      typeVal  = attrTypeInt.at(i);
+      namAAT   = attrNameStr.at(i);
+      valAAT   = attrVal( sizeVal, typeVal, posAAT_B, LineOfAAT );
+      posAAT_B = posAAT_B + lenAttr(sizeVal, typeVal);
+
+      res->AppendElement( valAAT, attrType(typeVal), removeSign(namAAT, " ") );
+    }
+    attrNameStr.clear();
+    attrSizeInt.clear();
+    attrTypeInt.clear();
+    headerStr.clear();
+
+    return res;
+  }
+
+
+/*
+[2] this method generate a LOG fragment record for the output record
+
+*/
+  FText* buildRecordLOG () { return new FText(true, getDataPart( 4 )); }
+
+
+/*
+[2] this method generate a PRJ fragment record for the output record
+
+*/
+  FText* buildRecordPRJ () { return new FText(true, getDataPart( 6 )); }
+
+
+/*
+[2] this method generate a TOL fragment record for the output record
+
+*/
+  FText* buildRecordTOL () { return new FText(true, getDataPart( 7 )); }
+
+
+/*
+[2] this method generate a TXT fragment record for the output record
+
+*/
+  FText* buildRecordTXT () { return new FText(true, getDataPart( 8 )); }
+
+
+/*
+[2] this method generate a TX6 fragment record for the output record
+
+*/
+  FText* buildRecordTX6 () { return new FText(true, getDataPart( 9 )); }
+
+/*
+[2] this method search a TX7 fragment and read out the number of elements
+
+*/
+  size_t numOfElemsTX7 () {
+    string datTX7 = getDataPart( 10 );
+    size_t lngPALStart = 80;
+    size_t numElems    = 0;
+    size_t posB        = 0;
+    size_t posTmp      = 0;
+    string LineOfTX7   = "";
+
+    while ( posB != string::npos) {
+      LineOfTX7 = getLine( true, 10, posB );
+
+      if ( LineOfTX7.length() == lngPALStart ) {
+        if ( LineOfTX7.substr( 70, 10 ) == "         0")
+          numElems++;
+      }
+      posTmp = datTX7.find( '\n', posB );
+      posB   = (posTmp != string::npos) ? posTmp + 1 : posTmp;
+    }
+
+    return numElems;
+}
+
+
+/*
+[2] this method readout the TX7 fragment
+
+*/
+  void readTX7 () {
+    string datTX7 = getDataPart( 10 );
+    vector<string> annotations;
+    size_t numChar;
+    size_t numVert1;
+    size_t numVert2;
+    size_t posB = 0;
+    size_t posTmp;
+    size_t lngPALStart = 80;
+    string LineOfTX7 = "";
+    size_t lineAct = 0;
+    double xCoord, yCoord;
+    Point* datPoint;
+    size_t lngVert = ( getPrecisionP(10) == 2 ) ? 14 : 21;
+
+    while ( posB != string::npos) {
+      LineOfTX7 = getLine( true, 10, posB );
+      if (     LineOfTX7.length() == lngPALStart ) {
+        numVert1 = atoi( datTX7.substr( (posB + 20), 10 ).c_str() );
+        numVert2 = atoi( datTX7.substr( (posB + 30), 10 ).c_str() );
+        numChar  = atoi( datTX7.substr( (posB + 60), 10 ).c_str() );
+
+        lineAct = lineAct + 10;
+        posB = getStartOfLineNum ( true, 10, lineAct );
+        LineOfTX7 = getLine(true, 10, posB);
+
+        xCoord = atof( LineOfTX7.substr( 0, lngVert ).c_str() );
+        yCoord = atof( LineOfTX7.substr( lngVert, lngVert ).c_str() );
+        datPoint = new Point(true, (Coord)xCoord, (Coord)yCoord);
+        pntTX7s.push_back( datPoint );
+
+        lineAct = lineAct + numVert1 + numVert2;
+        posB = getStartOfLineNum ( true, 10, lineAct );
+
+        LineOfTX7 = getLine(true, 10, posB);
+
+        datTX7s.push_back( LineOfTX7 );
+
+        bool OK = true;
+        while ( numChar > 80 && OK ) {
+          posB = getStartOfLineNum ( true, 10, ++lineAct );
+          LineOfTX7 = getLine(true, 10, posB);
+          if (    LineOfTX7.length() == lngPALStart 
+               && LineOfTX7.substr( 70, 10 ) == "         0") {
+            OK   = false;
+            lineAct--;
+            posB = posB - 1;
+
+          }
+        }
+      }
+      posTmp =  datTX7.find( '\n', posB );
+      posB   =    (posTmp != string::npos ) ?  posTmp + 1 : posTmp;
+    }
+  }
+
+
+/*
+[2] this method generate a TX7 fragment record for the output record
+
+*/
+  Record* buildRecordTX7 ( size_t ind) {
+    Record* result  = new Record(0);
+
+    result->AppendElement( new FText(true, datTX7s[(ind - 1)] ), "text","Text");
+    result->AppendElement( pntTX7s[(ind - 1)], POINT, "TextPoint");
+
+    return result;
+  }
+
+
+/*
+[2] this method generate a RXP fragment record for the output record
+
+*/
+  FText* buildRecordRXP () { return new FText(true, getDataPart( 11 )); }
+
+
+/*
+[2] this method generate a RPL fragment record for the output record
+
+*/
+  FText* buildRecordRPL () { return new FText(true, getDataPart( 12 )); }
+
+
+/*
+[2] this method generate a MTD fragment record for the output record
+
+*/
+  FText* buildRecordMTD () { return new FText(true, getDataPart( 13 )); }
+
+
+/*
+[2] this method delete all control-characters in a string (n,t,r,f,b)
+
+*/
+  string delControlChar( string str ) {
+    size_t lenStr = str.length();
+    string result = "";
+
+    for ( size_t n = 0; n <= lenStr; n++ ) {
+      if (    str.substr( n, 1) != "\n"  // allways in use in E00-Data
+           && str.substr( n, 1) != "\r"  // in diffrent files in use (baileyeco)
+           && str.substr( n, 1) != "\t"  // never found
+           && str.substr( n, 1) != "\f"  // never found 
+           && str.substr( n, 1) != "\b"  // never found
+         ) {
+        result = result + str.substr( n, 1);
+      }
+    }
+    return result;
+  }
+
+
+/*
+[2] this method generate a .BND fragment record for the output record
+
+*/
+  Rectangle<2>* buildRecordBND () {
+    // Array for the BND-Coordinates
+    string coordBND[4];
+    // get BND-Text
+    string datBND = getDataPart( 17 );  // 17 for BND
+    // set Startposition
+    size_t posB   = 0;
+    // search startposition of BND-Coordinates
+    for (size_t e = 0; e < 5; e++) {
+      posB = getNewLine ( true, 17, posB );
+    }
+    datBND = datBND.substr( posB, (datBND.length() - posB ) );
+
+    string srcStr ( "E" );
+    size_t diff = 4; // add this numer to the found position from "E"
+    posB        = 0;
+    size_t lengthNum;
+    size_t precisionBND;
+    char * coordXY;
+
+    // search for first "E"
+    size_t posE        = datBND.find( srcStr, posB ) + diff;
+    coordBND[0]        = datBND.substr( posB, ( posE - posB ));
+    posB               = posE;
+    lengthNum          = coordBND[0].length();
+    coordXY            = new char[lengthNum];
+    coordXY[lengthNum] = 0;
+    precisionBND       = (lengthNum > 14) ? 3 : 2;
+
+    // search for second "E"
+    posE               = datBND.find( srcStr, posE ) + diff;
+    coordBND[1]        = datBND.substr( posB, ( posE - posB ));
+    posB               = posE;
+
+    // search for third "E"
+    posE               = datBND.find( srcStr, posE ) + diff;
+    coordBND[2]        = datBND.substr( posB, ( posE - posB ));
+    posB               = posE;
+
+    // search for fourth "E"
+    posE               = datBND.find( srcStr, posE ) + diff;
+    coordBND[3]        = datBND.substr( posB, ( posE - posB ));
+
+    // if precision is 3, the lase coordinate is distributed over two lines
+    if ( precisionBND == 3 ) {
+      // delete all control-characters in string
+      coordBND[3] = delControlChar( coordBND[3] );
+    }
+
+    // read out first value of Rectangle
+    double valXMin = atof( coordBND[0].c_str() );
+    // read out second value of Rectangle
+    double valYMin = atof( coordBND[1].c_str() );
+    // read out third value of Rectangle
+    double valXMax = atof( coordBND[2].c_str() );
+    // read out fourth value of Rectangle
+    double valYMax = atof( coordBND[3].c_str() );
+
+//  Rectangle Rep: (<defined> <left> <right> <bottom> <top>)
+    return new Rectangle<2>(true, (Coord)valXMin,
+                                  (Coord)valXMax,
+                                  (Coord)valYMin,
+                                  (Coord)valYMax ); // <2> for 2D-Rectangle
+  }
+
+
+/*
+[2] this method generate a TIC fragment record for the output record
+
+*/
+  FText* buildRecordTIC () { return new FText(true, getDataPart( 20 )); }
+
+
+/*
+[2] this method generate a ARC fragment record for the output record
+
+*/
+  Record* buildRecordARC ( size_t ind ) {
+    Record* result = new Record(0);
+    size_t  posB = 0;
+    size_t  posE = 0;
+    string  line = getLine ( true, 1, posB );
+    const   size_t lngArcStart = 65;
+    const   size_t lngCoord = ( infoParts[2][1] == 2) ? 14 : 21 ;
+
+    // find Start-Position of coordinates of ind ARC (ind = 1 => posB = 0)
+    for (size_t e = 1; e < ind; e++ ) {
+      posB = getNewLine ( true, 1, posB );
+      line = getLine ( true, 1, posB );
+
+      while ( line.length() < lngArcStart ) {
+        posB = getNewLine ( true, 1, posB );
+        line = getLine ( true, 1, posB );
+      }
+    }
+    // find End-Position of coordinates of ind ARC
+    for (size_t e = 1; e <= ind; e++ ) {
+      if (ind == getNumOfElements( 1 )) {  // 1 = ARC
+        posE = getDataPart( 1 ).size();
+      } else {
+        posE = getNewLine ( true, 1, posB );
+        line = getLine ( true, 1, posE );
+
+        while ( line.length() < lngArcStart ) {
+          posE = getNewLine ( true, 1, posE );
+          line = getLine ( true, 1, posE );
+        }
+        posE = posE - 1;
+      }
+    }
+    // read out ARC with the ind
+    string dataARC = datParts[1].substr( posB, (posE - posB) );
+    dataARC = removeSign(dataARC, "\n");
+    dataARC = removeSign(dataARC, "\r");
+
+    CcInt*  val1L = new CcInt(true, atoi(dataARC.substr( 0, 10 ).c_str()));
+    dataARC = dataARC.substr( 60, (dataARC.length() - 60) );
+
+    CcInt*  val7L = new CcInt(true, atoi(dataARC.substr( 0, 10 ).c_str()));
+    size_t cntPointsARC = val7L->GetIntval();  // number of points in ARC
+    dataARC = dataARC.substr( 10, (dataARC.length() - 10) );
+
+    Line* datLineTMP = new Line( cntPointsARC );
+
+    Point p1, p2;
+    HalfSegment hs;
+    double xPoint, yPoint;
+    int edgeno = -1;
+
+    datLineTMP->StartBulkLoad();
+
+    xPoint  = atof( dataARC.substr( 0, lngCoord ).c_str() );
+    dataARC = dataARC.substr( lngCoord, (dataARC.length() - lngCoord) );
+
+    yPoint  = atof( dataARC.substr( 0, lngCoord ).c_str() );
+    dataARC = dataARC.substr( lngCoord, (dataARC.length() - lngCoord) );
+
+    p1.Set( xPoint, yPoint );
+
+    for ( size_t i = 1; i < cntPointsARC; i++ ) {
+      xPoint  = atof( dataARC.substr( 0, lngCoord ).c_str() );
+      dataARC = dataARC.substr( lngCoord, (dataARC.length() - lngCoord) );
+
+      yPoint  = atof( dataARC.substr( 0, lngCoord ).c_str() );
+      dataARC = dataARC.substr( lngCoord, (dataARC.length() - lngCoord) );
+
+      p2.Set( xPoint, yPoint );
+
+      hs.Set( true, p1, p2 );
+
+      hs.attr.edgeno = ++edgeno;
+      hs.attr.faceno  = 0;
+      hs.attr.cycleno = 0;
+      hs.attr.coverageno = 0;
+      hs.attr.insideAbove = false;
+      hs.attr.partnerno = -1;
+      *datLineTMP += hs;
+      hs.SetLeftDomPoint( !hs.IsLeftDomPoint() );
+      *datLineTMP += hs;
+
+      p1 = p2;
+    }
+
+//     datLineTMP->EndBulkLoad();
+
+    result->AppendElement( val1L, INT, "LineID" );
+//     result->AppendElement( val2L, INT, "coverageID" );  // not needed
+//     result->AppendElement( val3L, INT, "fromNode" );  // not needed
+//     result->AppendElement( val4L, INT, "toNode" );  // not needed
+//     result->AppendElement( val5L, INT, "leftPolygon" );  // not needed
+//     result->AppendElement( val6L, INT, "rightPolygon" );  // not needed
+    result->AppendElement( val7L, INT, "NumOfCoordinates" );
+
+    result->AppendElement( datLineTMP, LINE, "LineData");
+
+    // additional content from .AAT - in the moment not used !!!
+//     if ( getStatus( 15 ) ) {                           // 15 = .AAT
+//       Record* valAAT = buildRecordAAT(ind);
+//       delete valAAT;
+//       result->AppendElement( valAAT, "text", "AAT" ); // not stored in result
+//     }
+//     // additional content from .ACODE
+//     if ( Content.getStatus( 16 ) ) {                           // 16 = .ACODE
+//       FText* valACODE = Content.buildRecordACODE(ind);
+//       result->AppendElement( valACODE, "text", "ACODE" );
+//     }
+    // save line for Region-Building
+    datARCs.push_back( datLineTMP );
+
+    return result;
+  }
+
+/*
+[2] this method generate a list of all Lines needed by the Polygon (PAL-List)
+
+*/
+  vector<int> buildPALList ( size_t num, string data ) {
+    vector<int> result;
+    int numOfLine;
+
+    // delete the first line (header)
+    size_t lineLen = data.find('\n') + 1;
+    data = data.substr( lineLen, (data.size() - lineLen) );
+
+    // delete all control characters (t,n,f,b,r)
+    data = delControlChar( data );
+
+    char * ptrChar;
+    char * str = new char[data.size()+1];
+    str[data.size()] = 0;
+    memcpy(str,data.c_str(),data.size());
+
+    ptrChar = strtok (str," ");
+
+    for ( size_t i = 0; i < num; i++ ) {
+      numOfLine = atoi(ptrChar);       //   ^0 ... 0 ... 0 ... 1 ... 119 ... 49
+//       if (i == (num - 1)) {
+//         break;       // end is reached
+//       }
+      ptrChar   = strtok (NULL, " ");  //   0 ... ^0 ... 0 ... 1 ... 119 ... 49
+      ptrChar   = strtok (NULL, " ");  //   0 ... 0 ... ^0 ... 1 ... 119 ... 49
+      ptrChar   = strtok (NULL, " ");  //   0 ... 0 ... 0 ... ^1 ... 119 ... 49
+
+      result.push_back(numOfLine);
+    }
+    return result;
+  }
+
+/*
+[2] this method turn around the content of a line
+
+*/
+  Line* turnLine( Line* lntmp ) {
+    size_t lenLine    = lntmp->Size();         // number of HalfSegments
+    size_t numOfLines = ( lenLine / 2 ) - 1; // number for Lines (not HalfSegm.)
+    Line* result      = new Line( lenLine );
+    const HalfSegment* ptmp;
+
+    result->StartBulkLoad();
+
+    for (size_t l = 0; l < lenLine ; l++) {
+      lntmp->Get( l, ptmp );
+      HalfSegment hs ( *ptmp );
+
+      hs.Set( hs.IsLeftDomPoint(), hs.GetLeftPoint(), hs.GetRightPoint() );
+      hs.attr.edgeno = numOfLines - hs.attr.edgeno;
+
+      *result += hs;
+    }
+//     result->EndBulkLoad(false, false);
+    return result;
+  }
+
+/*
+[2] this method generate a PAL fragment record for the output record
+
+*/
+  Record* buildRecordPAL ( size_t ind ) {
+    Record* result  = new Record(0);
+    size_t  posB    = 0;
+    size_t  posE    = 0;
+    size_t  posO    = 0;
+    size_t  posN    = 0;
+    int     cntPAL  = -1;
+    size_t  precPAL = getPrecisionP( 5 );
+    bool    oK      = true;
+    const   size_t lngPALStart = (precPAL == 2) ? 66 : 53; // prec.2 =66 |3 =53;
+    string  line    = "";
+    const   size_t lngCoord = ( precPAL == 2) ? 14 : 21 ;
+    string  tmpDatPAL;
+
+    while ( oK && (posO <= posN) ) {
+      posO = posN;
+      line = getLine ( true, 5, posO );   // "5" is the Index for "PAL"
+      if (    line.length() ==   lngPALStart
+           || line.length() == ( lngPALStart + 1 )) cntPAL++;
+      posN = getNewLine( true, 5, posO ); // "5" is the Index for "PAL"
+      if ( cntPAL == (int)ind ) { 
+        posB = posO;
+        while ( oK && posO <= posN ) {
+          posO = posN;
+          line = getLine( true, 5, posO );  // "5" is the Index for "PAL"
+          if (    line.length() ==   lngPALStart
+               || line.length() == ( lngPALStart + 1 ) ) {
+            oK = false;
+            posE = posN - 1;
+          }
+          posN = getNewLine( true, 5, posO );     // "5" is the Index for "PAL"
+        }
+      }
+    }
+
+    string dataPAL = datParts[5].substr( posB, (posE - posB) );
+    tmpDatPAL = (precPAL == 2) ? dataPAL.substr( 10, 56 )
+                               : dataPAL.substr( 10, 84 );
+    tmpDatPAL = removeSign(tmpDatPAL, "\n");
+
+    char * ptrChar;
+    char * str = new char[dataPAL.size()+1];
+    str[dataPAL.size()] = 0;
+    memcpy(str,dataPAL.c_str(),dataPAL.size());
+
+    ptrChar = strtok (str," \n");
+
+    CcInt* numLines = new CcInt(true, atoi(ptrChar));
+    ptrChar = strtok (NULL, " \n");
+    double valXMin = atof( tmpDatPAL.substr( 0, lngCoord ).c_str() );
+    tmpDatPAL = tmpDatPAL.substr( lngCoord, (tmpDatPAL.length() - lngCoord) );
+
+    ptrChar = strtok (NULL, " \n");
+    double valYMin = atof( tmpDatPAL.substr( 0, lngCoord ).c_str() );
+    tmpDatPAL = tmpDatPAL.substr( lngCoord, (tmpDatPAL.length() - lngCoord) );
+
+    ptrChar = strtok (NULL, " \n");
+    double valXMax = atof( tmpDatPAL.substr( 0, lngCoord ).c_str() );
+    tmpDatPAL = tmpDatPAL.substr( lngCoord, (tmpDatPAL.length() - lngCoord) );
+
+    ptrChar = strtok (NULL, " \n");
+    double valYMax = atof( tmpDatPAL.substr( 0, lngCoord ).c_str() );
+    tmpDatPAL = tmpDatPAL.substr( lngCoord, (tmpDatPAL.length() - lngCoord) );
+
+    ptrChar = strtok (NULL, " \n");
+
+    Rectangle<2>* boundBox = new Rectangle<2>(true, (Coord)valXMin,
+                                                    (Coord)valXMax,
+                                                    (Coord)valYMin,
+                                                    (Coord)valYMax );
+
+    // read out the lines of the PAL for actual Polygon (Region)
+    vector<int> linesPAL = buildPALList( numLines->GetValue(), dataPAL );
+
+    Region *reg1 = new Region( 0 );
+    reg1->Clear();
+    reg1->SetNoComponents( 0 );
+    reg1->StartBulkLoad();
+
+    int    faceNo     =  0;
+    size_t cycleNo    =  0;
+    int    edgeNo     =  0;
+
+    if ( ind > 0 ) {
+    for (size_t l = 0; l < (size_t)numLines->GetValue(); l++ ) {
+      const HalfSegment *hs;
+      Line* datLine;
+
+      if ( linesPAL[l] != 0 ) {
+//     if ( cycleNo == -1) cycleNo = 0;  // if vector doesn't start with a zero
+
+        datLine = datARCs[abs(linesPAL[l]) - 1];
+
+        if ( linesPAL[l] < 0 ) {  // if line is needed in the other direction
+          datLine = turnLine( datLine );
+        }
+
+        int lenNewLine = datLine->Size();
+        for( int i = 0; i < lenNewLine; i++ ) {
+          datLine->Get( i, hs );
+          HalfSegment auxhs( *hs );
+
+          auxhs.Set( auxhs.IsLeftDomPoint(),
+                     auxhs.GetLeftPoint(),
+                     auxhs.GetRightPoint());
+          auxhs.attr.edgeno  = auxhs.attr.edgeno + edgeNo;
+          auxhs.attr.faceno  = faceNo;
+          auxhs.attr.cycleno = cycleNo;
+          auxhs.attr.coverageno = 0;
+          auxhs.attr.insideAbove = false;
+          auxhs.attr.partnerno = -1;
+          *reg1 += auxhs;
+        }
+//         if (buildHoles) tmp = SetOp(*reg1,*tmp,avlseg::difference_op);
+        reg1->SetNoComponents( reg1->NoComponents() + datLine->NoComponents() );
+        edgeNo = edgeNo + (lenNewLine / 2);
+      } else {  // set new face and edgenumber to zero
+        edgeNo = 0;
+        l = (size_t)numLines->GetValue();
+      }
+    }
+    }
+
+    reg1->EndBulkLoad(true, true, true, true);
+
+//     result->AppendElement( numLines, INT, "NumOfLines" ); // not needed
+    result->AppendElement( boundBox, "rect","BoundingBox" );
+
+    result->AppendElement( reg1, REGION, "PolygonData");
+
+    // additional content from CNT
+    Point* valCNT;
+    if ( getStatus( 2 ) ) {
+      if ( datLABs[ ind-1 ] == NULL ) {
+        valCNT = new Point(true, 0, 0);
+      } else {
+        valCNT = datLABs[ ind-1 ];
+      }
+#ifdef E00_DEBUG
+  cerr << "ImExAlgebra::e00importVM::buildRecordPAL: valCNT = "<< *valCNT<<endl;
+#endif
+      result->AppendElement( valCNT, POINT, "Centroid" );
+//     if ( getStatus( 2 ) ) {                                        // 2 = CNT
+//       Point* valCNT = buildRecordCNT( ind - 1 );
+//       result->AppendElement( valCNT, POINT, "Centroid" );
+    }
+    // additional content from LAB (Label-Point)
+    Point* valLAB;
+    if ( datLABs[ ind-1 ] == NULL ) {
+      valLAB = new Point(true, 0, 0);
+    } else {
+      valLAB = datLABs[ ind-1 ];
+    }
+    result->AppendElement( valLAB, POINT, "LabelPoint" );
+
+//     // additional content from .PAT
+//     if ( getStatus( 15 ) ) {                                    // 18 = .PAT
+//       FText* valPAT = buildRecordPAT(ind);
+//       result->AppendElement( valPAT, "text", "PAT" );
+//     }
+//     // additional content from .PCODE
+//     if ( getStatus( 16 ) ) {                                   // 19 = .PCODE
+//       FText* valPCODE = buildRecordPCODE(ind);
+//       result->AppendElement( valPCODE, "text", "PCODE" );
+//     }
+
+    return result;
+  }
+
+
+/*
+[2] this methods are to get the frame-states
+
+*/
+  bool getStatus ( size_t mrkInd ) {
+    return existParts  [mrkInd];
+  }
+
+
+/*
+[2] this methods are to get the precision of the frame
+
+*/
+  size_t getPrecisionP ( size_t mrkInd ) {
+    return infoParts[2][mrkInd];
+  }
+
+
+/*
+[2] this methods are to get the informations about the frames
+
+*/
+  size_t getNumOfElements ( size_t mrkInd ) {
+    return infoParts[3][mrkInd];
+  }
+
+
+/*
+[2] this methods are to get the Start and End-Positions of some marks
+
+*/
+  size_t getStartPos ( size_t mrkInd ) {
+    return infoParts[0][mrkInd];
+  }
+
+  size_t getEndPos ( size_t mrkInd ) {
+    return infoParts[1][mrkInd];
+  }
+
+}; // end == class for import Data Info
+
+
+/****************************************
+23.3 Type Mapping for ~e00types~
+
+text -> text
+
+****************************************/
+ListExpr e00typesTM(ListExpr args){
+  string err = "{text|string} expected";
+  int listLength = nl->ListLength(args);
+
+  if(listLength!=1){
+    ErrorReporter::ReportError(err);
+    return nl->TypeError();
+  }
+
+  if(    !nl->IsEqual(nl->First(args),symbols::STRING)
+      && !nl->IsEqual(nl->First(args),symbols::TEXT)){
+    ErrorReporter::ReportError(err);
+    return nl->TypeError();
+  }
+
+  return nl->SymbolAtom(symbols::TEXT);
+}
+
+
+/****************************************
+23.4 Value Mapping for ~e00types~
+
+(implemented for text or string)
+
+****************************************/
+template<class textType>
+int e00typesVM(Word* args, Word& result, int message, Word& local, Supplier s) {
+
+  result       = qp->ResultStorage(s);
+  textType* fileName = static_cast<textType*>(args[0].addr);
+  FText*    res      = static_cast<FText*>(result.addr);
+
+  /* Check if Object is defined
+
+  */
+  if( !fileName->IsDefined() ) {
+     res->Set(false,"");
+     return 0;
+  }
+
+  /* get Filename to import and check length, FileOrFolderExists, IsDirectory
+
+  */
+  string strFileName = fileName->GetValue();
+
+  if(   strFileName == ""
+     || !FileSystem::FileOrFolderExists(strFileName)
+     ||  FileSystem::IsDirectory(strFileName)){
+     res->Set(true,"e00type: Cannot open file '" + strFileName + "'!");
+     return 0;
+  }
+
+  /* open filehandle and check if file is able to open
+
+  */
+  ifstream fileHandle;  // apply filehandle
+  fileHandle.open(strFileName.c_str(),ios::binary);
+  if(!fileHandle.good()){
+     res->Set(true, "e00type: Error opening file '" + strFileName + "'!");
+     return 0;
+  }
+
+  /* readl first three signs from file and check for "EXP" 
+
+  */
+  // determine size of file 
+  fileHandle.seekg(0,ios::end);
+  streampos fileend = fileHandle.tellg();
+  fileHandle.seekg(0,ios::beg);
+
+  // declaration of variables to read file character by character
+  char  currChar;
+  bool  ok = true;
+
+  // apply Datanobject
+  e00importInfo Content;
+
+  // Loop to read the file content => until fileend is reached
+  while( ok && (fileHandle.tellg() != fileend)){
+    fileHandle.read(reinterpret_cast<char*>(&currChar),1);
+    ok = (currChar != '\0');
+    if(ok){ // append char to string
+      Content.appendCData(currChar);
+    } else{
+      cerr << "e00type: Encountered NULL at position " << fileHandle.tellg()
+           << "." << endl;
+    }
+  }
+
+  if(!fileHandle.good()){
+    res->Set(true , "e00type: problem in reading file");
+    return 0;
+  }
+  fileHandle.seekg(8,ios::beg);
+
+  if(!fileHandle.good()){
+    res->Set(true , "e00type: problem in reading file");
+    return 0;
+  }
+
+/*
+[2] The methode setDataPart() build parts of elements and evaluate them !!!
+
+*/
+  Content.setDataPart();
+
+  // is the EXP-Frame ok 
+  if ( !Content.getStatus( 0 ) ) {                           // 0 = EXP
+    fileHandle.close();
+    res->Set(true,"e00type: Not a valid E00-Interchange file |missing EXP/EOS");
+    return 0;
+  }
+
+  // are the ARC- and LAB-Frames ok 
+  if ( !Content.getStatus( 1 ) && !Content.getStatus( 3 )) { // 1 = ARC, 3 = LAB
+    fileHandle.close();
+    res->Set(true,"e00type: Not a valid E00-Interchange file "
+      "=> missing both main data-elements: ARC and LAB");
+    return 0;
+  }
+
+
+/*
+[2] Building the output for e00type => e00import
+
+*/
+  stringstream attrList;
+  string nameOfCoverage = Content.getCoverageName();
+  attrList << "CoverageName: string, ";
+  bool addComma = false;
+
+  // build in ARC-Records (Line)
+  if ( Content.getStatus( 1 ) ) {                              // 1 = ARC
+    for(size_t i=1; i <= Content.getNumOfElements( 1 ); i++){  // 1 = ARC
+      if ( Content.getUsedInPAL( i-1 ) == false ) {
+        ( addComma ) ? attrList << ", " : addComma = true;
+        attrList << "Line" << i << ": record(";
+        attrList << " LineID: int";
+//         attrList << ", coverageID: int";    // not needed
+//         attrList << ", fromNode: int";      // not needed
+//         attrList << ", toNode: int";        // not needed
+//         attrList << ", leftPolygon: int";   // not needed
+//         attrList << ", rightPolygon: int";  // not needed
+        attrList << ", NumOfCoordinates:int";
+
+        attrList << ", LineData: line ";
+
+        // sepcial data from Info-Part (.aat and .acode)
+
+        attrList << ")";
+      }
+    }
+  }
+
+  // build in LAB-Records (Point)
+  if ( Content.getStatus( 3 ) && !Content.getStatus( 5 )) {  // 3 = LAB; 5 = PAL
+    if ( Content.getStatus( 1 ) ) attrList << ", ";          // 1 = ARC
+    for(size_t i=1; i<=Content.getNumOfElements( 3 ); i++){  // 3 = LAB
+      if (i != 1) attrList << ", ";
+      attrList << "Label" << i << ": record(";
+      attrList << " PolygonID: int";
+      attrList << ", LabelPoint: point ";
+
+      // sepcial data from Info-Part (.pat)
+
+      attrList << ")";
+    }
+  }
+
+  // if PAL is in use, build in one LabelPoint for universal Polygon (ID:1)
+  if ( Content.getStatus( 5 ) ) {
+    if ( Content.getStatus( 1 ) ) attrList << ", ";
+    attrList << "Label1: record( PolygonID: int" << ", LabelPoint: point )";
+  }
+
+  // build in PAL-Records (Region)
+  if ( Content.getStatus( 5 ) ) {                              // 5 = PAL
+    for(size_t i=1; i < Content.getNumOfElements( 5 ); i++){   // 5 = PAL
+      attrList << ", Polygon" << i << ": record(";
+//       attrList << " NumOfLines: int ";  // not needed
+      attrList << " BoundingBox: rect";
+
+      attrList << ", PolygonData: region";
+
+      // sepcial data from CNT-Part (Polygon Centroid Coordinates)
+      attrList << ", Centroid: point ";
+
+      // special data from LAB-PArt (Label-Point)
+      attrList << ", LabelPoint: point ";
+
+      // sepcial data from Info-Part (.pat and .pcode)
+
+      attrList << ")";
+    }
+  }
+
+  // build in LOG-Record (History)                                4 = LOG
+  if ( Content.getStatus( 4 ) ) { attrList << ", History: text"; } 
+
+  // build in PRJ-Record
+  if ( Content.getStatus( 6 ) ) { attrList << ", PRJ: text"; } // 6 = PRJ
+
+  // build in TOL-Record
+  if ( Content.getStatus( 7 ) ) { attrList << ", TOL: text"; } // 7 = TOL
+
+  // build in TXT-Record
+  if ( Content.getStatus( 8 ) ) { attrList << ", TXT: text"; } // 8 = TXT
+
+  // build in TX6-Record
+  if ( Content.getStatus( 9 ) ) { attrList << ", TX6: text"; } // 9 = TX6
+
+  // build in TX7-Record
+  if ( Content.getStatus( 10 ) ) {                             //10 = TX7
+    for(size_t i=1; i <= Content.getNumOfElements( 10 ); i++){ //10 = TX7
+      attrList << ", Annotation" << i << ": record(";
+      attrList << " Text: text";
+      attrList << ", TextPoint: point ";
+      attrList << ")";
+    }
+  }
+
+  // build in RXP-Record
+  if ( Content.getStatus( 11 ) ) { attrList << ", RXP: text"; } // 11 = RXP
+
+  // build in PPL-Record
+  if ( Content.getStatus( 12 ) ) { attrList << ", RPL: text"; } // 12 = RPL
+
+  // build in MTD-Record                                           13 = MTD
+  if ( Content.getStatus( 13 ) ) { attrList << ", Metadata: text"; }
+
+  // build in .BND-Record                                          17 = .BND
+  if ( Content.getStatus( 17 ) ) { attrList << ", BoundingBox: rect"; }
+
+  // build in .TIC-Record
+  if ( Content.getStatus( 20 ) ) { attrList << ", TIC: text"; } // 20 = .TIC
+
+  attrList.flush();
+
+  // build in End-Frame
+  string val = string("[const record( ") +
+               attrList.str() +
+               string(" ) value ()];");
+
+  res->Set(true, val);
+
+  // build filehandle for test-file to import big E00-files
+  string E00Name = Content.getCoverageName();
+  ofstream exDat( "E00TYPES" );
+
+  // fill file with content
+  exDat << "#================================================" << endl;
+  exDat << "#  Interchangefile for E00-File: " << E00Name << endl;
+  exDat << "#================================================" << endl << endl;
+  exDat << "# How to use: SecondoTTYBDB -i E00TYPES" << endl << endl;
+  exDat << "# create the database if not existent " << endl;
+  exDat << "create database e00;" << endl << endl;
+  exDat << "# open the database to put in the record object" << endl;
+  exDat << "open database e00;" << endl << endl;
+  exDat << "# build empty record for e00import" << endl;
+  exDat << "delete E00TYPES;" << endl;
+  exDat << "let E00TYPES = " << val << endl << endl;
+  exDat << "# build filled record with e00import" << endl;
+  exDat << "delete "<< E00Name << ";" << endl;
+  exDat << "let " << E00Name << " = E00TYPES e00import ['" 
+        << strFileName << "'];" << endl << endl;
+  exDat << "# delete types-record" << endl;
+  exDat << "delete E00TYPES;"<< endl << endl;
+  exDat << "# close database" << endl;
+  exDat << "close database;" << endl << endl;
+
+  exDat << "# How to use result: - start SecondoTTYBDB, open database e00 and "
+        << "e.g. query " << E00Name << endl;
+
+  // close file
+  exDat.close();
+
+  return 0;
+}
+
+
+/****************************************
+23.5 Selection Function for Value-Mapping for ~e00types~
+
+****************************************/
+ValueMapping e00typesValMapSel[] = {e00typesVM<CcString>, e00typesVM<FText>};
+
+
+/****************************************
+23.6 Selection Function for ~e00types~
+
+****************************************/
+int stringORtextE00SelT( ListExpr args )
+{
+  if(nl->IsEqual(nl->First(args),"string")) {
+    return 0;
+  } else if(nl->IsEqual(nl->First(args),"text")){
+    return 1;
+  }
+  assert( false );
+  return -1;
+}
+
+
+/****************************************
+23.7 Specification for ~e00types~
+
+****************************************/
+const string e00typesSpec =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+    "( <text>{text|string} -> text </text--->"
+    "<text>e00types( filename ) </text--->"
+    "<text>Returns an object description of the secondo object stored within\n"
+    "the e00-File specified by the name. Additionally the object description "
+    "is stored in a file named 'E00TYPES'.\nTo use this file type: \n"
+    "\t 'SecondoTTYBDB -i E00TYPES' \n"
+    "on the shell. It will be create a object with the e00-file content \n"
+    "e.g. PONET ( e00-filename in capital letters ). </text--->"
+    "<text>query e00types ('ponet.e00')</text--->"
+    ") )";
+
+
+/****************************************
+23.8 Operator instance for ~e00types~
+
+****************************************/
+Operator e00types( "e00types",
+                    e00typesSpec,
+        2,
+                    e00typesValMapSel,
+                    stringORtextE00SelT,  // text or string are posible
+                    e00typesTM);
+
+
+/****************************************
+24 Operator ~e00import~
+
+Reads a e00.file into a secondo record object.
+If the file contains a NULL, the result is UNDEFINED.
+
+24.1 TypeMapping for ~e00import~ 
+
+---- (rel(tuple(...))) x text -> -> recdord
+----
+
+****************************************/
+ListExpr e00importTM(ListExpr args){
+
+  string err = "string expected";
+  int len = nl->ListLength(args);
+
+  // is the length of argument-list = 2 ?
+  if( len!=2 ){
+    ErrorReporter::ReportError("list of length 2 expected");
+    return nl->TypeError();
+  }
+
+  // is the second element from kind text and the first from type record ?
+  if(     !nl->IsEqual(nl->First(nl->First(args)), "record")
+      || (!nl->IsEqual(nl->Second(args), "text")
+      && !nl->IsEqual(nl->Second(args), "string"))) {
+    ErrorReporter::ReportError("record x {text|string} expected");
+    return nl->TypeError();
+  }
+
+  // e.g. rel (tuple (Coverage: string, LAB1: record((coverageID int)
+  // (polygonID int) (xCoordinate real) (yCoordinate real) (labData point))))
+  ListExpr argListRest  = nl->Rest(nl->First(args));
+  ListExpr argTypeFirst, argListSecLevel;
+
+  //for (size_t i = 0; i < cntArg; i++){
+  while(!nl->IsEmpty(argListRest)){
+
+    // FIRST LEVEL argument have to be an atom or an record
+    if (nl->IsAtom(nl->Second(nl->First(argListRest)))) {
+
+      argTypeFirst = nl->Second(nl->First(argListRest));  // e.g. string
+      // e.g. (ARCs (record (L1 line) (L2 line)))
+      // (POINTSs (record (P1 point) (P2 point))
+      argListRest  = nl->Rest(argListRest);
+
+    } else {  // check SECOND LEVEL for record
+
+      // e.g. (ARCs (record (L1 line) (L2 line)))
+      argListSecLevel = nl->First(argListRest);
+      // e.g. (POINTSs (record (P1 point) (P2 point)))
+      argListRest     = nl->Rest(argListRest);
+
+      // is length of argument-list = 2  in the second level?
+      if( nl->ListLength(argListSecLevel) != 2 ){
+        ErrorReporter::ReportError("2 arguments in second level expected");
+        return nl->TypeError();
+      }
+
+      argTypeFirst = nl->First(nl->Second(argListSecLevel));
+      if(!nl->IsEqual(argTypeFirst,"record")) {
+        ErrorReporter::ReportError("second level argument is not a record");
+        return nl->TypeError();
+      }
+      // e.g. (L1 line) (L2 line)
+      argListSecLevel = nl->Rest(nl->Second(argListSecLevel)); 
+
+      if( nl->IsEmpty(argListSecLevel) ){
+        ErrorReporter::ReportError("no arguments in second level record");
+        return nl->TypeError();
+      }
+
+      while(!nl->IsEmpty(argListSecLevel)){
+        argTypeFirst    = nl->Second(nl->First(argListSecLevel));
+        argListSecLevel = nl->Rest(argListSecLevel);
+        if (nl->AtomType(argTypeFirst)!=SymbolType) {
+          ErrorReporter::ReportError("A type is not from kind SymbolType");
+          return nl->TypeError();
+        }
+      }
+    }
+  }
+  return nl->First(args);;
+}
+
+
+/******************************************************************************
+24.2 Value Mapping for ~e00import~ 
+
+******************************************************************************/
+template<class textType>
+int e00importVM(Word* args, Word& result, int message, Word& local, Supplier s)
+{
+            result   = qp->ResultStorage(s);
+  Record*   res      = static_cast<Record*>(result.addr);
+  textType* fileName = static_cast<textType*>(args[1].addr);
+  if(!fileName->IsDefined()){
+    //res->Set(false,"");
+    return 0;
+  }
+
+  string strFileName  = fileName->GetValue();
+
+  // check if filename is oK
+  if(   strFileName == ""
+     || !FileSystem::FileOrFolderExists(strFileName)
+     ||  FileSystem::IsDirectory(strFileName)
+    ){
+    cerr << "e00import: Cannot open file '" << strFileName << "'!" << endl;
+    //res->Set(false,"");
+    return 0;
+  }
+
+
+/*
+[2] The methode setDataPart() build parts of elements and evaluate them !!!
+
+*/
+  e00importInfo* Content = new e00importInfo();
+
+  // apply filehandle
+  ifstream file;
+  // open filehandle
+  file.open(strFileName.c_str(),ios::binary);
+  if(!file.good()){
+    cerr << "e00import: Error opening file '" << strFileName << "'!" << endl;
+    //res->Set(false,"");
+    return 0;
+  }
+  // read file character by character and check for NULL
+  char      currChar;
+  bool      ok = true;
+
+  // determine size of file 
+  file.seekg(0,ios::end);
+  streampos fileend = file.tellg();
+  file.seekg(0,ios::beg);
+
+  // Loop to read the file content => until fileend is reached
+  while( ok && (file.tellg() != fileend)){
+    file.read(reinterpret_cast<char*>(&currChar),1);
+    ok = ( currChar != '\0' );
+    if(ok){ // append char to string
+      Content->appendCData( currChar );
+    } else{
+      cerr << "e00import: Encountered NULL at position " << file.tellg()
+           << "." << endl;
+    }
+  }
+
+  // readout the parts and evaluate them
+  Content->setDataPart();
+
+  // set coverage name
+  CcString* nameCoverage = new CcString(true, Content->getCoverageName());
+
+  // close filehandle
+  file.close();
+
+  // if file is OK, build the output record
+  if(ok){
+
+    res->AppendElement( nameCoverage, STRING, "CoverageName");
+
+    // build in ARC-Records (Line) & .AAT (Part 15) & .ACODE (Part 16)
+    if ( Content->getStatus( 1 ) ) {                                // 1 = ARC
+      for(size_t i = 1; i <= Content->getNumOfElements( 1 ); i++){  // 1 = ARC
+          stringstream nameRec;
+          nameRec << "Line" << i;
+          Record* recARC = Content->buildRecordARC( i );
+        if ( Content->getUsedInPAL( i-1 ) == false ) {
+          res->AppendElement( recARC, RECORD, nameRec.str());
+        }
+        delete recARC;
+      }
+    }
+
+    // build in LAB-Records (Points) & .PAT (Part 18) & .PCODE (Part 19)
+    if ( Content->getStatus( 3 ) ) {                               // 3 = LAB
+      for(size_t i = 1; i <= Content->getNumOfElements( 3 ); i++){ // 3 = LAB
+        stringstream nameRec;
+        nameRec << "Label" << i;
+        Record* recLAB = Content->buildRecordLAB( i );
+        if ( i == 1 || !Content->getStatus( 5 ) ) {                // 5 = PAL
+          res->AppendElement( recLAB, RECORD, nameRec.str() );
+        }
+        delete recLAB;
+      }
+    }
+
+    // build in PAL-Records (Regions) & CNT (Part 2)
+    // & .PAT (Part 18) & .PCODE (Part 19)
+    if ( Content->getStatus( 5 ) ) {                                // 5 = PAL
+      for(size_t i = 1; i < Content->getNumOfElements( 5 ); i++){   // 5 = PAL
+        stringstream nameRec;
+        nameRec << "Polygon" << i;
+        Record* recPAL = Content->buildRecordPAL( i );
+        res->AppendElement( recPAL, RECORD, nameRec.str() );
+        delete recPAL;
+      }
+    }
+
+    // build in LOG-Record (Coverage History)
+    if ( Content->getStatus( 4 ) ) {                                // 4 = LOG
+      FText* valLOG = Content->buildRecordLOG();
+      res->AppendElement( valLOG, "text", "History" );
+      delete valLOG;
+    }
+
+    // build in PRJ-Record (Projection Parameters)
+    if ( Content->getStatus( 6 ) ) {                                // 6 = PRJ
+      FText* valPRJ = Content->buildRecordPRJ();
+      res->AppendElement( valPRJ, "text", "PRJ" );
+      delete valPRJ;
+    }
+
+    // build in TOL-Record (Projection Parameters)
+    if ( Content->getStatus( 7 ) ) {                                // 7 = TOL
+      FText* valTOL = Content->buildRecordTOL();
+      res->AppendElement( valTOL, "text", "TOL" );
+      delete valTOL;
+    }
+
+    // build in TXT-Record (Annotations)
+    if ( Content->getStatus( 8 ) ) {                                // 8 = TXT
+      FText* valTXT = Content->buildRecordTXT();
+      res->AppendElement( valTXT, "text", "TXT" );
+      delete valTXT;
+    }
+
+    //build in TX6-Record (Annotations)
+    if ( Content->getStatus( 9 ) ) {                                // 9 = TX6
+      FText* valTX6 = Content->buildRecordTX6();
+      res->AppendElement( valTX6, "text", "TX6" );
+        delete valTX6;
+    }
+
+    // build in TX7-Record (Annotations)
+    if ( Content->getStatus( 10 ) ) {                               // 10 = TX7
+      Content->readTX7();
+      for(size_t i = 1; i <= Content->getNumOfElements( 10 ); i++){ // 10 = PAL
+        stringstream nameRec;
+        nameRec << "Annotation" << i;
+        Record* recTX7 = Content->buildRecordTX7( i );
+
+        res->AppendElement( recTX7, RECORD, nameRec.str() );
+        delete recTX7;
+      }
+    }
+
+    // build in RXP-Record (Specific to Region)
+    if ( Content->getStatus( 11 ) ) {                               // 11 = RXP
+      FText* valRXP = Content->buildRecordRXP();
+      res->AppendElement( valRXP, "text", "RXP" );
+      delete valRXP;
+    }
+
+    // build in RPL-Record (Specific to Region)
+    if ( Content->getStatus( 12 ) ) {                               // 12 = RPL
+      FText* valRPL = Content->buildRecordRPL();
+      res->AppendElement( valRPL, "text", "RPL" );
+      delete valRPL;
+    }
+
+    // build in MTD-Record (Metadata)
+    if ( Content->getStatus( 13 ) ) {                               // 13 = MTD
+      FText* valMTD = Content->buildRecordMTD();
+      res->AppendElement( valMTD, "text", "Metadata" );
+      delete valMTD;
+    }
+
+    // build in .BND-Record (Bounding-Box of Coverage)
+    if ( Content->getStatus( 17 ) ) {                               // 17 = BND
+      Rectangle<2>* valBND = Content->buildRecordBND();
+      res->AppendElement( valBND, "rect", "BoundingBox" );
+      delete valBND;
+    }
+
+    // build in .TIC-Record (Bounding-Box of Coverage)
+    if ( Content->getStatus( 20 ) ) {                               // 20 = TIC
+      FText* valTIC = Content->buildRecordTIC();
+      res->AppendElement( valTIC, "text", "TIC" );
+      delete valTIC;
+    }
+  } else {
+    //res->Set(false,"");
+  }
+  delete Content;
+#ifdef E00_DEBUG
+  cerr << "ImExAlgebra::e00importVM: END of VM ! " << endl;
+#endif
+  return 0; /* End of Value-Mapping */
+}
+
+
+/****************************************
+24.3 Selection Function for Value-Mapping for ~e00type~
+
+****************************************/
+ValueMapping e00importValMapSel[] = {e00importVM<CcString>, e00importVM<FText>};
+
+/****************************************
+24.4 Selection Function for ~e00import~
+
+****************************************/
+int stringORtextE00SelI( ListExpr args )
+{
+  if(nl->IsEqual(nl->Second(args),"string")) {
+    return 0;
+  } else if(nl->IsEqual(nl->Second(args),"text")){
+    return 1;
+  }
+  assert( false );
+  return -1;
+}
+
+/*********************************
+24.4 Specification for ~e00import~
+
+*********************************/
+const string e00importSpec  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+    "( <text>text x {text|string} -> record </text--->"
+    "<text>typesinfo e00import[ filename ] </text--->"
+    "<text>Reads text from file Name and uses the typesinfo to builds a \n"
+    "record with the content of the file and the indicated types.\n"
+    "If the file does not exist, contains a NULL character or some error \n"
+    "occurs, the result is UNDEFINED.</text--->"
+    "<text>query e00types('ponet.e00') e00import['ponet.e00'])"
+    " </text--->) )";
+
+/***********************************************
+24.5 Operator Instance for operator ~e00import~
+
+***********************************************/
+Operator e00import ( "e00import",
+                      e00importSpec,
+                      2,
+                      e00importValMapSel,
+                      stringORtextE00SelI,  // text or string are posible
+                      e00importTM);
+
+
+
+
+
+/******************************************************************************
+25 Operator ~nmea0183import~
+
+25.1 TypeMapping for Operator ~nmea0183import~
+
+---- record x text x int x int -> record
+----
+
+******************************************************************************/
+
+ListExpr nmea0183importTM(ListExpr args){
+
+
+  string err = "record x text x int x int expected";
+  int len = nl->ListLength(args);
+  if((len!=4)){
+    ErrorReporter::ReportError(err);
+    return nl->TypeError();
+  }
+
+  if(!nl->IsEqual(nl->First(nl->First(args)),"record") ||
+     !nl->IsEqual(nl->Second(args),"text") ||
+     !nl->IsEqual(nl->Third(args), "int") ||
+     !nl->IsEqual(nl->Fourth(args), "int")){
+    ErrorReporter::ReportError("record x text x int x int expected");
+    return nl->TypeError();
+  }
+
+  return nl->First(args);
+}
+
+/*
+25.2 Specification for Operator ~nmea0183import~
+
+*/
+const string nmea0183importSpec  ="( ( \"Signature\" \"Syntax\" "
+   "\"Meaning\" \"Example\" ) "
+   "( <text>record x text x int x int  "
+   "-> record</text--->"
+   "<text>record nmea0183import('filename',gpsQuality,satsInView) </text--->"
+   "<text>This Operator imports the data of an "
+   "NMEA0183-file and stores it in a record."
+   "</text--->"
+   "<text> not /*test*/ed !!!</text--->"
+   ") )";
+
+
+/*
+25.3 Data-Class for Operator ~nmea0183import~
+
+*/
+class NMEA0183importInfo
+{
+
+  public:
+  ifstream file;
+  vector<string> GGA, VTG, GSA, GST, GSV, RMC;
+  vector<string> gga, gsa, gsv, rmc, vtg;
+
+  // checks if file exists
+  bool checkFile(FText* filename){  
+
+  // Import File
+  string FileName  = filename->GetValue();
+
+  // check if filename is oK
+  if(   FileName == ""
+     || !FileSystem::FileOrFolderExists(FileName)
+     ||  FileSystem::IsDirectory(FileName)){
+    cerr << "Cannot open file '" << FileName << "'!" << endl;
+    return false;
+   }
+    return true;
+  }
+
+   // removes empty lines and spaces
+   string removeSpace(string buf){
+
+    string::size_type pos = 0;
+    bool end = false;
+    while(!end){
+     pos = buf.find(" ");
+     if( pos != string::npos ){
+       buf.erase(pos,1);
+     }
+     else end=true;
+    }
+    return buf;
+   }
+
+  // checks for correct identifiers
+  bool checkIdentifier(string buf){
+
+    string::size_type lastPos = 0;
+    string::size_type pos  = buf.find_first_of(",", lastPos);
+    string ident = buf.substr(lastPos,pos -lastPos);
+    ident = ident.substr(1,2);
+    string identifiers = "AG,AP,CD,CR,CS,CT,CV,CX,DF,EC,EP,ER,GP,HC,"
+       "HE,HN,II,IN,LC,RA,SD,SN,SS,TI,VD,DM,VW,WI,"
+       "YX,ZA,ZC,ZQ,ZV";
+
+    vector<string> identif;
+    identif = splitString(identifiers);
+
+    bool found = false;
+    for(int i=0; i<(int)identif.size(); i++){
+
+       if(ident==identif.at(i)){
+
+    found = true;
+    break;
+  }
+    }
+   return found;
+  }
+
+  // Constructor 
+  NMEA0183importInfo(FText* filename, int gpsQIn, int numbSats ){
+
+
+   if(checkFile(filename)){
+
+   string name = filename->GetValue();
+     file.open(name.c_str());
+      if(!file.good()){
+         cerr<< "Error in opening file!!!" <<endl;
+         return;
+      }
+
+   string buf;
+   string empty = "";
+   bool filtered = true, first = true;
+   while(file.good() && !file.eof()){
+  getline(file,buf);
+  buf = removeSpace(buf);
+
+  if(buf!=empty && buf.length()>6 && buf.at(0)!='\r' && buf.at(0)!='\n'){
+    
+
+
+    //interfaces for diffrent idetifieres
+  if(getIdentifier(buf)=="AAM" && checkIdentifier(buf)){}
+  if(getIdentifier(buf)=="ALM" && checkIdentifier(buf)){}
+  if(getIdentifier(buf)=="APA" && checkIdentifier(buf)){}
+  if(getIdentifier(buf)=="APB" && checkIdentifier(buf)){}
+
+  if(getIdentifier(buf)=="BEC" && checkIdentifier(buf)){}
+  if(getIdentifier(buf)=="BOD" && checkIdentifier(buf)){}
+  if(getIdentifier(buf)=="BWC" && checkIdentifier(buf)){}
+  if(getIdentifier(buf)=="BWR" && checkIdentifier(buf)){}
+  if(getIdentifier(buf)=="BWW" && checkIdentifier(buf)){}
+
+  if(getIdentifier(buf)=="DBK" && checkIdentifier(buf)){}
+  if(getIdentifier(buf)=="DBS" && checkIdentifier(buf)){}
+  if(getIdentifier(buf)=="DBT" && checkIdentifier(buf)){}
+  if(getIdentifier(buf)=="DPT" && checkIdentifier(buf)){}
+
+  if(getIdentifier(buf)=="FSI" && checkIdentifier(buf)){}
+
+  if((getIdentifier(buf)=="GGA") && checkIdentifier(buf)){
+      if(first) first = false;
+      filtered = true;
+      vector<string> filter = splitString(buf);
+
+      int gpsq = 0;
+      string gpsQIndica = filter.at(6);
+      if(gpsQIndica!=""){
+        gpsq = strtol(gpsQIndica.c_str() , NULL, 0); 
+      }
+      string numbOfSats = filter.at(7);
+            int size = numbOfSats.size();
+      int sats = 0;
+            if(numbOfSats!=""){
+      if(numbOfSats.at(0)=='0'){
+              if(size>1){
+          numbOfSats = numbOfSats.at(1);
+              }
+       }
+       sats = strtol(numbOfSats.c_str() , NULL, 0); 
+            }
+
+     // filter bad quality datasets
+     if((gpsq>=gpsQIn) && (sats>=numbSats)){
+         filtered = false;
+         GGA.push_back(buf);
+      }
+  }
+  if(getIdentifier(buf)=="GLC" && checkIdentifier(buf)){}
+  if(getIdentifier(buf)=="GLL" && checkIdentifier(buf)){}
+  if(getIdentifier(buf)=="GSA" && checkIdentifier(buf)){
+    if(!filtered){ GSA.push_back(buf);}
+  }
+  if(getIdentifier(buf)=="GST" && checkIdentifier(buf)){
+    if(!filtered){GST.push_back(buf);}
+  }
+  if(getIdentifier(buf)=="GSV" && checkIdentifier(buf)){
+    if(!filtered){ GSV.push_back(buf);}
+  }
+  if(getIdentifier(buf)=="GTD" && checkIdentifier(buf)){}
+
+  if(getIdentifier(buf)=="HDG" && checkIdentifier(buf)){}
+  if(getIdentifier(buf)=="HDM" && checkIdentifier(buf)){}
+  if(getIdentifier(buf)=="HDT" && checkIdentifier(buf)){}
+  if(getIdentifier(buf)=="HSC" && checkIdentifier(buf)){}
+
+  if(getIdentifier(buf)=="LCD" && checkIdentifier(buf)){}
+
+  if(getIdentifier(buf)=="MSK" && checkIdentifier(buf)){}
+  if(getIdentifier(buf)=="MTW" && checkIdentifier(buf)){}
+  if(getIdentifier(buf)=="MWV" && checkIdentifier(buf)){}
+
+  if(getIdentifier(buf)=="OSD" && checkIdentifier(buf)){}
+
+  if(getIdentifier(buf)=="ROO" && checkIdentifier(buf)){}
+  if(getIdentifier(buf)=="RMA" && checkIdentifier(buf)){}
+  if(getIdentifier(buf)=="RMB" && checkIdentifier(buf)){}
+  if(getIdentifier(buf)=="RMC" && checkIdentifier(buf)){
+    if(!filtered || first){RMC.push_back(buf); first=false;}
+  }
+  if(getIdentifier(buf)=="ROT" && checkIdentifier(buf)){}
+  if(getIdentifier(buf)=="RPM" && checkIdentifier(buf)){}
+  if(getIdentifier(buf)=="RSA" && checkIdentifier(buf)){}
+  if(getIdentifier(buf)=="RSD" && checkIdentifier(buf)){}
+  if(getIdentifier(buf)=="RTE" && checkIdentifier(buf)){}
+
+  if(getIdentifier(buf)=="SFI" && checkIdentifier(buf)){}
+  if(getIdentifier(buf)=="STN" && checkIdentifier(buf)){}
+
+  if(getIdentifier(buf)=="TTM" && checkIdentifier(buf)){}
+
+  if(getIdentifier(buf)=="VBW" && checkIdentifier(buf)){}
+  if(getIdentifier(buf)=="VDR" && checkIdentifier(buf)){}
+  if(getIdentifier(buf)=="VHW" && checkIdentifier(buf)){}
+  if(getIdentifier(buf)=="VLW" && checkIdentifier(buf)){}
+  if(getIdentifier(buf)=="VPW" && checkIdentifier(buf)){}
+  if(getIdentifier(buf)=="VTG"){
+    if(!filtered){VTG.push_back(buf);}
+  }
+  if(getIdentifier(buf)=="VWR" && checkIdentifier(buf)){}
+
+  if(getIdentifier(buf)=="WCV" && checkIdentifier(buf)){}
+  if(getIdentifier(buf)=="WNC" && checkIdentifier(buf)){}
+  if(getIdentifier(buf)=="WPL" && checkIdentifier(buf)){}
+
+  if(getIdentifier(buf)=="XDR" && checkIdentifier(buf)){}
+  if(getIdentifier(buf)=="XTE" && checkIdentifier(buf)){}
+  if(getIdentifier(buf)=="XTR" && checkIdentifier(buf)){}
+
+  if(getIdentifier(buf)=="ZDA" && checkIdentifier(buf)){}
+  if(getIdentifier(buf)=="ZFO" && checkIdentifier(buf)){}
+  if(getIdentifier(buf)=="ZTG" && checkIdentifier(buf)){}
+  }
+
+    }
+  
+   }
+   
+  }
+
+
+   // Deconstructor
+  ~NMEA0183importInfo(){
+     GGA.clear();
+     VTG.clear();
+     GSA.clear();
+     GST.clear();
+     GSV.clear();
+     RMC.clear();
+     gga.clear();
+     gsa.clear();
+     gsv.clear();
+     rmc.clear();
+     vtg.clear();
+
+     file.close();
+     }
+
+
+   // gets the identifier
+   string getIdentifier(string line){
+
+  string::size_type lastPos = 0;
+  string::size_type pos  = line.find_first_of(",", lastPos);
+  string ident = line.substr(lastPos,pos -lastPos);
+  if(ident.length() >=6){
+   ident = ident.substr(3,3);
+  }
+
+  return ident;
+   }
+
+/*
+Counts the substring of a line
+
+*/
+   int getNoSubstr(string line){
+
+  int i=0;
+  string separator = ",";
+  string::size_type pos = 0;
+  bool end = false;
+  while(!end){
+    pos  = line.find_first_of(",", pos);
+    if(pos==string::npos){
+    end=true;
+    }
+    pos = pos+separator.length();
+    i++;
+  }
+
+  return i;
+   }
+
+/*
+Splits a imported line 
+
+*/
+   vector<string> splitString(string line){
+
+   vector<string> splited;
+   string separator = ",";
+   string::size_type lastPos = 0;
+   string::size_type pos=0;
+   bool end = false;
+   int substr = getNoSubstr(line);
+
+   splited.resize(getNoSubstr(line));
+   int i =0;
+
+      while(!end){
+
+          pos  = line.find_first_of(",", lastPos);
+
+         if(pos!=string::npos  || lastPos != string::npos && !end){
+            if(pos==string::npos){
+               pos = line.size();
+               end=true;
+            }
+            string attrstr = line.substr(lastPos,pos -lastPos);
+      splited.at(i)=attrstr;
+      i++;
+            lastPos = pos+separator.length();
+            pos = line.find_first_of(",", lastPos);
+         }
+
+       }
+
+   //remove checksum
+   string str = splited.at(substr-1);
+   int length = str.length();
+   if(length>3){
+     str = str.erase(length-3, 3);
+     splited.at(substr-1) = str;
+   }
+   else 
+     splited.at(substr-1) = " ";
+
+   return splited;
+
+  }
+
+/*
+Gets the date of a imported line
+
+*/
+  string getDate(int i){
+
+   string date = "2009-01-01";
+   if(!RMC.empty()){
+    if((int)RMC.size()>i){
+     rmc = splitString(RMC.at(i));
+     string str = rmc.at(9);
+     if(str!=""){
+     date = "20"+str.substr(4,2)+ "-" + 
+             str.substr(2,2) + "-" + str.substr(0,2);
+      }
+     }
+    }
+    return date;
+  }
+
+/*
+ Creates an mpoint of the imported identifier RMC
+
+*/
+  MPoint* getMPointRMC(){
+
+   vector<UPoint*> upoints;
+  double lat1, lat2, long1, long2;
+  string latitude1, latitude2, longitude1, longitude2;
+
+     for(int i=0; i<(int)RMC.size(); i++){
+  
+  rmc = splitString(RMC.at(i));
+
+  string north = rmc.at(4);
+  if(north!=""){
+  if(north.at(0)=='N'){
+
+  latitude1 = rmc.at(3);
+  lat1 = strtod(latitude1.c_str() , NULL); 
+
+   }
+  else{
+
+  latitude1 = rmc.at(3);
+  lat1 = strtod(latitude1.c_str(),NULL); 
+  lat1 = lat1*(-1);
+   }
+  }else lat1=0.0;
+  
+  string east = rmc.at(6);
+  if(east!=""){
+  if(east.at(0)=='E'){
+
+  longitude1 = rmc.at(5);
+  long1 = strtod(longitude1.c_str() , NULL); 
+   }
+  else{
+  
+  longitude1 = rmc.at(5);
+  long1 = strtod(longitude1.c_str(),NULL); 
+  long1 = long1*(-1);
+   }
+  }else long1 = 0.0;
+
+  string time1 = rmc.at(1);
+  time1.insert(2,":");
+  time1.insert(5,":");
+
+  string str = rmc.at(9);
+  string date1 ="2009-01-01";
+  if(str!=""){
+   date1 = "20"+str.substr(4,2)+ "-" 
+          + str.substr(2,2) + "-" 
+          + str.substr(0,2);
+  } 
+
+  if(i!=((int)RMC.size()-1)){ 
+  
+  rmc = splitString(RMC.at(i+1));
+
+  north = rmc.at(4);
+
+        if(north!=""){
+  if(north.at(0)=='N'){
+
+    latitude2 = rmc.at(3);
+    lat2 = strtod(latitude2.c_str() , NULL); 
+  }
+       
+  else{
+
+  latitude2 = rmc.at(3);
+  lat2 = strtod(latitude2.c_str(),NULL); 
+  lat2 = lat2*(-1);
+   }
+        }else lat2 = 0.0;
+
+  east = rmc.at(6);
+  if(east!=""){
+  if(east.at(0)=='E'){
+
+  longitude2 = rmc.at(5);
+  long2 = strtod(longitude2.c_str() , NULL); 
+  }
+       
+  else{
+
+  longitude2 = rmc.at(5);
+  long2 = strtod(longitude2.c_str(),NULL); 
+  long2 = long2*(-1);
+   }
+  }else long2 = 0.0;
+    
+  string time2 = rmc.at(1);
+  time2.insert(2,":");
+  time2.insert(5,":");
+
+  string str = rmc.at(9);
+  string date2 ="2009-01-01";
+  if(str!=""){
+   date2 = "20"+str.substr(4,2)+ "-" 
+          + str.substr(2,2) + "-" 
+          + str.substr(0,2);
+  }
+  
+  UPoint* up = makeUPoint(date1,date2,time1,time2,lat1,long1,lat2,long2);
+  bool t = up->IsValid();
+  if(t==1)
+   upoints.push_back(up);
+
+  }
+
+      }
+
+  
+  MPoint* mp = makeMPoint(upoints);
+  upoints.clear();
+  
+     return mp;
+ }
+
+/*
+Creates an mpoint of the imported identifier GGA
+
+*/
+   MPoint* getMPointGGA(){
+
+  vector<UPoint*> upoints;
+  double lat1, lat2, long1, long2;
+  string latitude1, latitude2, longitude1, longitude2;
+
+     for(int i=0; i<(int)GGA.size(); i++){
+  
+  gga = splitString(GGA.at(i));
+
+  string north = gga.at(3);
+  if(north!=""){
+  if(north.at(0)=='N'){
+  latitude1 = gga.at(2);
+  lat1 = strtod(latitude1.c_str() , NULL); 
+  }
+  else{
+
+  latitude1 = gga.at(2);
+  lat1 = strtod(latitude1.c_str(),NULL); 
+  lat1 = lat1*(-1);
+   }
+  }else lat1 = 0.0;
+  
+  string east = gga.at(5);
+  if(east!=""){
+  if(east.at(0)=='E'){
+
+  longitude1 = gga.at(4);
+  long1 = strtod(longitude1.c_str() , NULL); 
+  }
+  else{
+  
+  longitude1 = gga.at(4);
+  long1 = strtod(longitude1.c_str(),NULL); 
+  long1 = long1*(-1);
+   }
+  }else long1 = 0.0;
+  
+  string time1 = gga.at(1);
+  time1.insert(2,":");
+  time1.insert(5,":");
+
+  string date1 = getDate(i);
+
+     if(i!=((int)GGA.size()-1)){ 
+  
+  gga = splitString(GGA.at(i+1));
+  north = gga.at(3);
+  if(north!=""){
+  if(north.at(0)=='N'){
+
+    latitude2 = gga.at(2);
+    lat2 = strtod(latitude2.c_str() , NULL); 
+  }
+  else{
+
+  latitude2 = gga.at(2);
+  lat2 = strtod(latitude2.c_str(),NULL); 
+  lat2 = lat2*(-1);
+
+   }
+  }else lat2 = 0.0;
+
+  east = gga.at(5);
+  if(east!=""){
+  if(east.at(0)=='E'){
+
+  longitude2 = gga.at(4);
+  long2 = strtod(longitude2.c_str() , NULL); 
+  
+  }
+  else{
+
+  longitude2 = gga.at(4);
+  long2 = strtod(longitude2.c_str(),NULL); 
+  long2 = long2*(-1);
+   }
+  }else long2 = 0.0;
+    
+  string time2 = gga.at(1);
+  time2.insert(2,":");
+  time2.insert(5,":");
+  
+  string date2 = getDate(i+1);
+
+  UPoint* up = makeUPoint(date1,date2,time1,time2,lat1,long1,lat2,long2);
+  bool t= up->IsValid();
+  if(t==1)
+   upoints.push_back(up);
+  
+  }
+
+      }
+
+  MPoint* mp = makeMPoint(upoints);
+  upoints.clear();
+
+     return mp;
+   }
+
+/*
+Creates a ~upoint~
+
+*/
+   UPoint* makeUPoint(string date1, string date2, string time1, string time2,
+    double val1, double val2, double val3, double val4){
+
+        datetime::DateTime* T1 = new datetime::DateTime(instanttype);
+  T1->ReadFrom(date1+"-"+time1);
+  
+  datetime::DateTime* T2 = new datetime::DateTime(instanttype);
+  T2->ReadFrom(date2+"-"+time2);
+
+  Interval<datetime::DateTime> tinterval( *T1, *T2,true,false );
+
+  UPoint* up = new UPoint(tinterval, val1, val2, val3, val4);
+
+     return up;
+   }
+
+
+/*
+Creates a ~mpoint~
+
+*/
+   MPoint* makeMPoint(vector<UPoint*> vecUP){
+
+    int no = (int)vecUP.size();
+  MPoint* mp = new MPoint(no);
+  for(int i=0; i<no; i++){
+    UPoint* up = vecUP.at(i);
+    mp->Add(*up);
+    delete up;
+  }
+    return mp;
+   }
+
+/*
+Creates an mint of the imported identifier GGA
+
+*/
+   MInt* getMIntGGA(int pos){
+
+     vector<UInt*> uints;
+     for(int i=0; i<(int)GGA.size(); i++){
+
+  gga = splitString(GGA.at(i));
+  string sat1;
+  if(pos==6){
+    sat1 = gga.at(pos);
+  }
+
+  if(pos==7){
+   sat1 = gga.at(pos);
+   int size = sat1.size();
+   if(sat1!=""){
+   if(sat1.at(0)=='0'){
+    if(size>1){
+    sat1 = sat1.at(1);
+     }
+    }
+   }
+  }
+
+  int s1 = strtol(sat1.c_str() , NULL, 0); 
+
+  string time1 = gga.at(1);
+  time1.insert(2,":");
+  time1.insert(5,":");
+
+  string date1 = getDate(i);
+
+  if(i!=((int)GGA.size()-1)){
+    
+  gga = splitString(GGA.at(i+1));
+
+  string time2 = gga.at(1);
+  time2.insert(2,":");
+  time2.insert(5,":");
+  
+  string date2 = getDate(i+1);
+
+  UInt* ui = makeUInt(date1,date2,time1,time2,s1,true,false);
+  bool t = ui->IsValid();
+  if(t==1)
+    uints.push_back(ui);
+  }
+  
+      }
+
+  MInt* mi = makeMInt(uints);
+  uints.clear();
+  
+     return mi;
+   }
+
+/*
+Creates an mint of the imported identifier GSA
+
+*/
+   MInt* getMIntGSA(int pos){
+
+     vector<UInt*> uints;
+     for(int i=0; i<(int)GGA.size(); i++){
+
+  gga = splitString(GGA.at(i));
+      if((int)GSA.size()>i){
+  gsa = splitString(GSA.at(i));
+
+  string time1 = gga.at(1);
+  time1.insert(2,":");
+  time1.insert(5,":");
+
+  string date1 = getDate(i);
+  
+
+  if(i!=((int)GGA.size()-1)){
+    
+  gga = splitString(GGA.at(i+1));
+
+  string time2 = gga.at(1);
+  time2.insert(2,":");
+  time2.insert(5,":");
+
+  string date2 = getDate(i+1);
+
+  string satID = gsa.at(pos);
+  if(satID!=""){
+   if(satID.at(0)=='0'){
+    satID = satID.at(1);
+   }
+  
+  int s1 = strtol(satID.c_str() , NULL, 0); 
+  
+  UInt* ui = makeUInt(date1,date2,time1,time2,s1,true,false);
+  bool t = ui->IsValid();
+  if(t==1)
+   uints.push_back(ui);
+   }
+   else{
+     UInt* ui = makeUInt(date1,date2,time1,time2,-1,true,false);
+     bool t = ui->IsValid();
+     if(t==1)
+     uints.push_back(ui);
+   }
+
+  }
+       }
+      }
+      MInt* mi = makeMInt(uints);
+      uints.clear();
+    return mi;
+   }
+
+/*
+Creates an mint of the imported identifier GSV
+
+*/
+  MInt* getMIntGSV(int pos){
+
+     vector<MInt*> mints;
+     vector<UInt*> uints;
+     for(int i=0; i<(int)GGA.size(); i++){
+
+
+  gsv = splitString(GSV.at(0));
+  string TotNumOfMessages = gsv.at(1);
+  int totMess = strtol(TotNumOfMessages.c_str() , NULL, 0); 
+
+  gga = splitString(GGA.at(i));
+
+  string time1 = gga.at(1);
+  time1.insert(2,":");
+  time1.insert(5,":");
+
+  string date1 = getDate(i);
+
+  for(int j=0; j<totMess; j++){
+
+  int val1 = -1;
+
+  int size = GSV.size();
+        if(size>(i*totMess+j)){
+
+  gsv = splitString(GSV.at(i*totMess+j));
+
+  if((int)gsv.size()>pos){
+  string value1 = gsv.at(pos);
+  if(value1!=""){
+   if(value1.at(0)=='0'){
+     value1.erase(0,1);
+   }
+  }
+        val1 = strtol(value1.c_str() , NULL, 0); 
+
+   }
+  }
+
+        if(i!=((int)GGA.size()-1)){
+
+    gga = splitString(GGA.at(i+1));
+
+    string time2 = gga.at(1);
+    time2.insert(2,":");
+    time2.insert(5,":");
+
+    string date2 = getDate(i+1);
+
+    if(val1>=0){
+      UInt* ui = makeUInt(date1,date2,time1,time2,val1,true,false);
+       bool t = ui->IsValid();
+     if(t==1)
+      uints.push_back(ui);
+
+     }
+  
+        }
+       }
+
+      }
+
+    MInt* mi = makeMInt(uints);
+    uints.clear();
+     return mi;
+  
+  }
+
+/*
+Creates a ~uint~
+
+*/
+   UInt* makeUInt(string date1, string date2, string time1, 
+    string time2, int val, bool flag1, bool flag2){
+
+        datetime::DateTime* T1 = new datetime::DateTime(instanttype);
+        T1->ReadFrom(date1+"-"+time1);
+
+  datetime::DateTime* T2 = new datetime::DateTime(instanttype);
+  T2->ReadFrom(date2+"-"+time2);
+
+  Interval<datetime::DateTime> tinterval( *T1, *T2, flag1, flag2 );
+
+  UInt* ui = new UInt(tinterval, val);
+
+    return ui;
+   }
+
+/*
+Creates a ~mint~
+
+*/
+   MInt* makeMInt(vector<UInt*> vecUI){
+
+    int no = (int)vecUI.size();
+  MInt* mi = new MInt(no);
+  for(int i=0; i<no; i++){
+    UInt* ui = vecUI.at(i);
+    mi->Add(*ui);
+    delete ui;
+  }
+    return mi;
+   }
+
+/*
+Creates an mreal of the imported identifier GGA
+
+*/
+   MReal* getMRealGGA(int pos){
+
+    vector<UReal*> ureals;
+    bool convertAntGeo = false;
+    for(int i=0; i<(int)GGA.size(); i++){
+
+  gga = splitString(GGA.at(i));
+
+  if(pos==9 || pos==11){
+    string unitAnt = gga.at(10);
+    string unitGeo = gga.at(12);
+    if(unitAnt.at(0)!='M' || unitGeo.at(0)!='M'){
+      convertAntGeo = true;
+    }
+  }
+
+  string hd1 = gga.at(pos);
+  if(convertAntGeo){
+    //convert noch implementieren
+    // hd1 in meter umrechnen
+    cout<<"convert1...."<<endl;
+  }
+  double hdop1 = strtod(hd1.c_str() , NULL); 
+
+  string time1 = gga.at(1);
+  time1.insert(2,":");
+  time1.insert(5,":");
+
+  string date1 = getDate(i);
+
+  if(i!=((int)GGA.size()-1)){
+    
+  gga = splitString(GGA.at(i+1));
+
+  if(pos==9 || pos==11){
+    string unitAnt = gga.at(10);
+    string unitGeo = gga.at(12);
+    if(unitAnt.at(0)!='M' || unitGeo.at(0)!='M'){
+      convertAntGeo = true;
+    }
+  }
+
+  string hd2 = gga.at(pos);
+  if(convertAntGeo){
+    //convert noch implementieren
+    // hd2 in meter umrechnen
+    cout<<"convert2...."<<endl;
+  }
+
+  double hdop2 = strtod(hd2.c_str() , NULL); 
+
+  string time2 = gga.at(1);
+  time2.insert(2,":");
+  time2.insert(5,":");
+  
+  string date2 = getDate(i+1);
+
+  UReal* ur = makeUReal(date1,date2,time1,time2,hdop1,hdop2);
+   bool t = ur->IsValid();
+     if(t==1)
+       ureals.push_back(ur);
+  }
+    }
+   
+       MReal* mr = makeMReal(ureals);
+    return mr;
+   }
+
+   string getTime(string str){
+
+    string time = str;  
+    time.insert(2,":");
+    time.insert(5,":");
+    return time;
+   }
+
+
+/*
+Creates an mreal of the imported identifier GSA
+
+*/
+   MReal* getMRealGSA(int pos, vector<string> vec, vector<string> VEC){
+
+    vector<UReal*> ureals;
+
+    for(int i=0; i<(int)GGA.size(); i++){
+
+  gga = splitString(GGA.at(i));
+  if((int)VEC.size()>i){
+  vec = splitString(VEC.at(i));
+
+  string hd1 = vec.at(pos);
+  double hdop1 = strtod(hd1.c_str() , NULL); 
+
+  string time1 = gga.at(1);
+  time1.insert(2,":");
+  time1.insert(5,":");
+
+  string date1 = getDate(i);
+
+  if(i!=((int)GGA.size()-1)){
+    
+  gga = splitString(GGA.at(i+1));
+  if((int)VEC.size()>i+1){
+  vec = splitString(VEC.at(i+1));
+
+  string time2 = gga.at(1);
+  time2.insert(2,":");
+  time2.insert(5,":");
+
+  string date2 = getDate(i+1);
+
+  string hd2 = vec.at(pos);
+  double hdop2 = strtod(hd2.c_str() , NULL); 
+  
+  UReal* ur = makeUReal(date1,date2,time1,time2,hdop1,hdop2);
+   bool t = ur->IsValid();
+     if(t==1)
+      ureals.push_back(ur);
+  }
+       }
+      }
+     }
+     
+     MReal* mr = makeMReal(ureals);
+    return mr;
+   }
+
+
+/*
+Creates an mreal of the imported identifier RMC
+
+*/
+   MReal* getMRealRMC(){
+
+    vector<UReal*> ureals;
+    for(int i=0; i<(int)RMC.size(); i++){
+
+  rmc = splitString(RMC.at(i));
+
+  //convert knots in m/s
+  string speed1 = rmc.at(7);
+  double knots1 = strtod(speed1.c_str() , NULL); 
+
+  double ms1 = knots1 * 0.51444;
+
+  string str = rmc.at(9);
+  string date1 ="2009-01-01";
+  if(str!=""){
+   date1 = "20"+str.substr(4,2)+ "-" 
+          + str.substr(2,2) + "-" 
+          + str.substr(0,2);
+  } 
+
+
+  string time1 = rmc.at(1);
+  time1.insert(2,":");
+  time1.insert(5,":");
+
+  if(i!=((int)RMC.size()-1)){
+    
+  rmc = splitString(RMC.at(i+1));
+
+  string str = rmc.at(9);
+  string date2 ="2009-01-01";
+  if(str!=""){
+   date2 = "20"+str.substr(4,2)+ "-" 
+          + str.substr(2,2) + "-" 
+          + str.substr(0,2);
+  }
+
+  string time2 = rmc.at(1);
+  time2.insert(2,":");
+  time2.insert(5,":");
+
+  //convert knots in m/s
+  string speed2 = rmc.at(7);
+  double knots2 = strtod(speed2.c_str() , NULL); 
+
+  double ms2 = knots2 * 0.51444;
+  
+  UReal* ur = makeUReal(date1,date2,time1,time2,ms1,ms2);
+  bool t = ur->IsValid();
+     if(t==1)
+      ureals.push_back(ur);
+  }
+     }
+    
+        MReal* mr = makeMReal(ureals);
+    return mr;
+
+   }
+
+/*
+Creates an mreal of the imported identifier VTG
+
+*/
+   MReal* getMRealVTG(){
+
+    vector<UReal*> ureals;
+    for(signed int i=0; i<(int)GGA.size(); i++){
+  double kmh1;
+  gga = splitString(GGA.at(i));
+  if((int)VTG.size()>i){
+  vtg = splitString(VTG.at(i));
+
+  string speed1 = vtg.at(7);
+  kmh1 = strtod(speed1.c_str() , NULL); 
+
+  }
+
+  string time1 = gga.at(1);
+  time1.insert(2,":");
+  time1.insert(5,":");
+
+  string date1 = getDate(i);
+
+  if(i!=((int)GGA.size()-1)){
+    
+  gga = splitString(GGA.at(i+1));
+  if((int)VTG.size()>i+1){
+  vtg = splitString(VTG.at(i+1));
+  string speed2 = vtg.at(7);
+  double kmh2 = strtod(speed2.c_str() , NULL); 
+
+  string time2 = gga.at(1);
+  time2.insert(2,":");
+  time2.insert(5,":");
+  
+  string date2 = getDate(i+1);
+
+  UReal* ur = makeUReal(date1,date2,time1,time2,kmh1,kmh2);
+  bool t = ur->IsValid();
+     if(t==1)
+      ureals.push_back(ur);
+   }
+  }
+    }
+   MReal* mr = makeMReal(ureals);
+    return mr;
+
+   }
+
+/*
+Creates a ~mreal~
+
+*/
+   MReal* makeMReal(vector<UReal*> vecUR){
+
+    int no = (int)vecUR.size();
+  MReal* mr = new MReal(no);
+  for(int i=0; i<no; i++){
+    UReal* ur = vecUR.at(i);
+    mr->Add(*ur);
+    delete ur;
+  }
+    return mr;
+   }
+
+
+/*
+Creates a ~ureal~
+
+*/
+   UReal* makeUReal(string date1, string date2, string time1, string time2, 
+      double val1, double val2){
+
+   datetime::DateTime* T1 = new datetime::DateTime(instanttype);
+   T1->ReadFrom(date1+ "-" +time1);
+
+   datetime::DateTime* T2 = new datetime::DateTime(instanttype);
+   T2->ReadFrom(date2+ "-" +time2);
+
+   Interval<datetime::DateTime> tinterval( *T1, *T2,true,false );
+
+   UReal* ur = new UReal(tinterval, val1, val2);
+
+   return ur;
+   }
+
+private:
+  
+
+
+};
+
+/*
+25.4 Value Mapping of Operator ~nmea0183import~
+
+*/
+int nmea0183importVM(Word* args, Word& result,
+               int message, Word& local, Supplier s){
+  ifstream file;
+  FText* fname = static_cast<FText*>(args[1].addr);
+
+  CcInt* gps = static_cast<CcInt*>(args[2].addr);
+  CcInt* sats = static_cast<CcInt*>(args[3].addr);
+  int gpsQ = gps->GetIntval();
+  int numbSats = sats->GetIntval();
+
+  NMEA0183importInfo* info = new NMEA0183importInfo(fname,gpsQ,numbSats);
+
+  result = qp->ResultStorage(s);
+
+  Record* rec = new Record(0);
+
+  if(!info->GGA.empty() && (info->GGA.size()>1)){
+
+  MPoint* route = info->getMPointGGA();
+  MInt* gpsQual = info->getMIntGGA(6);
+  MInt* noSat = info->getMIntGGA(7);
+  MInt* drsID = info->getMIntGGA(14);
+  MReal* hdop = info->getMRealGGA(8);
+  MReal* AntAlt = info->getMRealGGA(9);
+  MReal* GeoSep = info->getMRealGGA(11);
+  MReal* AgeGps = info->getMRealGGA(13);
+
+
+  rec->AppendElement(route,MPOINT,"RouteGGA");
+  rec->AppendElement(gpsQual,MINT,"GpsQual");
+  rec->AppendElement(noSat,MINT,"NoSat");
+  rec->AppendElement(drsID,MINT,"DrsID");
+  rec->AppendElement(hdop,MREAL,"HDOP");
+  rec->AppendElement(AntAlt,MREAL,"AntAlt");
+  rec->AppendElement(GeoSep,MREAL,"GeoSep");
+  rec->AppendElement(AgeGps,MREAL,"AgeGps");
+  }
+
+  if(!info->VTG.empty() && (info->GGA.size()>1)){
+    MReal* speed = info->getMRealVTG();
+    rec->AppendElement(speed,MREAL,"SpeedVTG");
+  }
+
+  if(!info->GSA.empty() && (info->GGA.size()>1)){
+
+   for(int i=3; i<15; i++){
+
+    MInt* satID = info->getMIntGSA(i);
+    char buffer [30];
+    int n=i-2;
+    sprintf (buffer, "SatIDs%d", n);
+    rec->AppendElement(satID,MINT,buffer);
+  } 
+
+  MReal* pdopGsa = info->getMRealGSA(15, info->gsa, info->GSA);
+  MReal* hdopGsa = info->getMRealGSA(16, info->gsa, info->GSA);
+  MReal* vdopGsa = info->getMRealGSA(17, info->gsa, info->GSA);
+  rec->AppendElement(pdopGsa,MREAL,"PDOP");
+  rec->AppendElement(hdopGsa,MREAL,"HDOP");
+  rec->AppendElement(vdopGsa,MREAL,"VDOP");
+
+  }
+
+
+  if(!info->GSV.empty() && (info->GGA.size()>1)){
+
+  MInt* siv = info->getMIntGSV(3);
+  rec->AppendElement(siv,MINT,"SatsInView");
+
+  vector<string> gsv = info->splitString(info->GSV.at(0));
+  int iter = gsv.size()/5;
+  int dist = 4;
+  for(int i=0; i<iter; i++){
+
+  MInt* snumb = info->getMIntGSV(dist*(i+1));
+  MInt* eid = info->getMIntGSV((dist+1)+(dist*i));
+  MInt* azim = info->getMIntGSV((dist+2)+(dist*i));
+
+
+  rec->AppendElement(snumb,MINT,"SatNumber");
+  rec->AppendElement(eid,MINT,"Elevation");
+  rec->AppendElement(azim,MINT,"Azimuth");
+
+  }
+ }
+
+  if(!info->RMC.empty() && (info->RMC.size()>1)){
+  MPoint* route = info->getMPointRMC(); 
+  MReal* speed = info->getMRealRMC();
+  rec->AppendElement(route,MPOINT,"RouteRMC");
+  rec->AppendElement(speed,MREAL,"SpeedRMC");
+  }
+
+
+  result.addr = rec;
+
+  int elem = rec->GetNoElements();
+
+  if(elem==0) 
+   cout<< "No result !!! Not enough data or filtered!"<<endl;
+
+   delete info;
+
+
+   return 0;
+   
+}
+
+
+/*
+25.5 Operator Description for ~nmea0183import~
+
+*/
+Operator nmea0183import( "nmea0183import",
+                    nmea0183importSpec,
+                    nmea0183importVM,
+                    Operator::SimpleSelect,
+                    nmea0183importTM);
+
+
+
+
+
+
+
+
+
+
+
+
+/******************************************************************************
+26 Operator ~nmea0183types~
+
+26.1 TypeMapping for Operator ~nmea0183types~
+
+---- text -> record
+----
+
+******************************************************************************/
+
+
+ListExpr nmea0183typesTM(ListExpr args){
+
+ 
+   string err = "text expected";
+  int len = nl->ListLength(args);
+  if((len!=1)){
+    ErrorReporter::ReportError(err);
+    return nl->TypeError();
+  }
+  if(
+     !nl->IsEqual(nl->First(args),symbols::TEXT) 
+     ){
+    ErrorReporter::ReportError(err);
+    return nl->TypeError();
+  }
+  return nl->SymbolAtom("text");
+
+}
+
+/*
+26.2 Data-Class for operator ~nmea0183types~
+
+*/
+class NMEA0183TypesInfo{
+
+  public:
+
+   string types;
+
+   NMEA0183TypesInfo(){};
+   ~NMEA0183TypesInfo(){};
+
+/*
+Gets the identifier
+
+*/
+  string getIdentifier(string line){
+    string::size_type lastPos = 0;
+    string::size_type pos  = line.find_first_of(",", lastPos);
+    string ident = line.substr(lastPos,pos -lastPos);
+    ident = ident.substr(3,3);
+
+    return ident;
+  }
+
+/*
+Counts the substrings of a line
+
+*/
+  int getNoSubstr(string line){
+
+  int i=0;
+  string separator = ",";
+  string::size_type pos = 0;
+  bool end = false;
+  while(!end){
+    pos  = line.find_first_of(",", pos);
+    if(pos==string::npos){
+     end=true;
+    }
+    pos = pos+separator.length();
+    i++;
+  }
+
+  return i;
+   }
+
+/*
+Splits a imported line 
+
+*/ 
+ vector<string> splitString(string line){
+
+   vector<string> splited;
+   string separator = ",";
+   string::size_type lastPos = 0;
+   string::size_type pos=0;
+   bool end = false;
+   int substr = getNoSubstr(line);
+
+   splited.resize(getNoSubstr(line));
+   int i =0;
+
+      while(!end){
+
+          pos  = line.find_first_of(",", lastPos);
+
+         if(pos!=string::npos  || lastPos != string::npos && !end){
+            if(pos==string::npos){
+               pos = line.size();
+               end=true;
+            }
+            string attrstr = line.substr(lastPos,pos -lastPos);
+      splited.at(i)=attrstr;
+      i++;
+            lastPos = pos+separator.length();
+            pos = line.find_first_of(",", lastPos);
+         }
+
+       }
+
+   //remove checksum
+   string str = splited.at(substr-1);
+   int length = str.length();
+   if(length>3){
+     str = str.erase(length-3, 3);
+     splited.at(substr-1) = str;
+   }
+   else 
+     splited.at(substr-1) = " ";
+   return splited;
+   }
+
+
+  // removes empty lines and spaces
+   string removeSpace(string buf){
+
+    string::size_type pos = 0;
+    bool end = false;
+    while(!end){
+     pos = buf.find(" ");
+     if( pos != string::npos ){
+       buf.erase(pos,1);
+     }
+     else end=true;
+    }
+    return buf;
+   }
+
+/*
+Checks the file to import
+
+*/
+ bool checkFile(FText* filename){ 
+
+   bool output = false;
+
+    string FileName  = filename->GetValue();
+
+  // check if filename is oK
+  if(   FileName == ""
+     || !FileSystem::FileOrFolderExists(FileName)
+     ||  FileSystem::IsDirectory(FileName)){
+    cerr << "Can not open file '" << FileName << "'!" << endl;
+    return false;
+   }
+
+   //open file
+   ifstream file;
+   string name = filename->GetValue();
+     file.open(name.c_str());
+      if(!file.good()){
+         cerr<< "Error in opening file !!!" <<endl;
+         return false;
+      }
+
+    int noGGA=0, noGSA=0, noGSV=0, noRMC=0, noVTG=0;
+    int ggaMP = 0, ggaMI = 0, ggaMR = 0;
+    int gsaMI = 0, gsaMR = 0;
+    int gsvMI = 0;
+    //int rmcMP = 0, rmcMR = 0;
+
+    string buf, messages;
+    bool found = false;
+    int sizeGSV;
+   //count the identifiers
+    while(file.good() && !file.eof()){
+      getline(file,buf);
+
+      if(buf!="" && buf.length()>6 && buf.at(0)!='\r' && buf.at(0)!='\n'){
+
+      //interfaces for nmea datasets
+  //nmea datasets starting with an "A"
+  if(getIdentifier(buf)=="AAM"){}
+  if(getIdentifier(buf)=="ALM"){}
+  if(getIdentifier(buf)=="APA"){}
+  if(getIdentifier(buf)=="APB"){}
+
+  //nmea datasets starting with an "B"
+  if(getIdentifier(buf)=="BEC"){}
+  if(getIdentifier(buf)=="BOD"){}
+  if(getIdentifier(buf)=="BWC"){}
+  if(getIdentifier(buf)=="BWR"){}
+  if(getIdentifier(buf)=="BWW"){}
+
+  //nmea datasets starting with an "D"
+  if(getIdentifier(buf)=="DBK"){}
+  if(getIdentifier(buf)=="DBS"){}
+  if(getIdentifier(buf)=="DBT"){}
+  if(getIdentifier(buf)=="DPT"){}
+
+  //nmea datasets starting with an "F"
+  if(getIdentifier(buf)=="FSI"){}
+
+  //nmea datasets starting with an "G"
+  if(getIdentifier(buf)=="GGA"){ noGGA++; }
+  if(getIdentifier(buf)=="GLC"){}
+  if(getIdentifier(buf)=="GLL"){}
+  if(getIdentifier(buf)=="GSA"){ noGSA++; }
+  if(getIdentifier(buf)=="GST"){}
+  if(getIdentifier(buf)=="GSV" && !found){ 
+    noGSV++; 
+    found = true;
+    vector<string> str = splitString(buf);
+          messages = str.at(1);
+    sizeGSV = str.size();
+  }
+  if(getIdentifier(buf)=="GTD"){}
+
+  //nmea datasets starting with an "H"
+  if(getIdentifier(buf)=="HDG"){}
+  if(getIdentifier(buf)=="HDM"){}
+  if(getIdentifier(buf)=="HDT"){}
+  if(getIdentifier(buf)=="HSC"){}
+
+  //nmea datasets starting with an "L"
+  if(getIdentifier(buf)=="LCD"){}
+
+  //nmea datasets starting with an "M"
+  if(getIdentifier(buf)=="MSK"){}
+  if(getIdentifier(buf)=="MTW"){}
+  if(getIdentifier(buf)=="MWV"){}
+
+  //nmea datasets starting with an "O"
+  if(getIdentifier(buf)=="OSD"){}
+
+  //nmea datasets starting with an "R"
+  if(getIdentifier(buf)=="ROO"){}
+  if(getIdentifier(buf)=="RMA"){}
+  if(getIdentifier(buf)=="RMB"){}
+  if(getIdentifier(buf)=="RMC"){ noRMC++; }
+  if(getIdentifier(buf)=="ROT"){}
+  if(getIdentifier(buf)=="RPM"){}
+  if(getIdentifier(buf)=="RSA"){}
+  if(getIdentifier(buf)=="RSD"){}
+  if(getIdentifier(buf)=="RTE"){}
+
+  //nmea datasets starting with an "S"
+  if(getIdentifier(buf)=="SFI"){}
+  if(getIdentifier(buf)=="STN"){}
+
+  //nmea datasets starting with an "T"
+  if(getIdentifier(buf)=="TTM"){}
+
+  //nmea datasets starting with an "V"
+  if(getIdentifier(buf)=="VBW"){}
+  if(getIdentifier(buf)=="VDR"){}
+  if(getIdentifier(buf)=="VHW"){}
+  if(getIdentifier(buf)=="VLW"){}
+  if(getIdentifier(buf)=="VPW"){}
+  if(getIdentifier(buf)=="VTG"){ noVTG++; }
+  if(getIdentifier(buf)=="VWR"){}
+
+  //nmea datasets starting with an "W"
+  if(getIdentifier(buf)=="WCV"){}
+  if(getIdentifier(buf)=="WNC"){}
+  if(getIdentifier(buf)=="WPL"){}
+
+  //nmea datasets starting with an "X"
+  if(getIdentifier(buf)=="XDR"){}
+  if(getIdentifier(buf)=="XTE"){}
+  if(getIdentifier(buf)=="XTR"){}
+
+  //nmea datasets starting with an "Z"
+  if(getIdentifier(buf)=="ZDA"){}
+  if(getIdentifier(buf)=="ZFO"){}
+  if(getIdentifier(buf)=="ZTG"){}
+      }
+    }
+
+   //build the type list
+    if(noGGA>=2){
+      output = true,
+      ggaMP = 1;
+      ggaMI = ggaMP *3;
+      ggaMR = ggaMP *4;
+
+  types.append("RouteGGA:mpoint,");
+
+  types.append("GpsQ:mint,");
+  types.append("NoSat:mint,");
+  types.append("DrsID:mint,");
+
+  types.append("Hdop:mreal,");
+  types.append("AntAlt:mreal,");
+  types.append("GeoSep:mreal,");
+  types.append("AgeGPS:mreal");
+
+    }
+    if(noVTG>1){
+      types.append(",SpeedVTG:mreal");
+    }
+
+    if(noGSA>1 && noGGA>1){
+      gsaMI = noGSA;
+      gsaMR = noGSA;
+
+      types.append(",");
+      for(int i=0; i<12; i++){
+       char buffer [30];
+         int n=i+1;
+         sprintf (buffer, "SatIDs%d:mint,", n);
+   types.append(buffer);
+      }
+      types.append("PDOP:mreal,");
+      types.append("HDOP:mreal,");
+      types.append("VDOP:mreal");
+    }
+
+    if(noGSV>=1){
+      gsvMI = noGSV;
+
+      types.append(",SatsInView:mint,");
+      int iter = sizeGSV/5;
+      for(int i=0; i<iter-1; i++){
+
+        char buffer [30];
+         int n=i+1;
+         sprintf (buffer, "SatNumb%d:mint,", n);
+   types.append(buffer);
+         sprintf (buffer, "Elevation%d:mint,", n);
+   types.append(buffer);
+         sprintf (buffer, "Azimuth%d:mint,", n);
+   types.append(buffer);
+      }
+      char buffer [30];
+         int n=iter;
+         sprintf (buffer, "SatNumb%d:mint,", n);
+   types.append(buffer);
+         sprintf (buffer, "Elevation%d:mint,", n);
+   types.append(buffer);
+         sprintf (buffer, "Azimuth%d:mint", n);
+   types.append(buffer);
+    }
+
+    if(noRMC>1){
+
+      types.append(",RouteRMC:mpoint,");
+      types.append("SpeedRMC:mreal");
+    } 
+
+    file.close();
+
+   return output;
+ }
+
+};
+
+/*
+26.3 Value Mapping fot operator ~nmea0183types~ 
+
+*/
+int nmea0183typesVM(Word* args, Word& result,
+               int message, Word& local, Supplier s){
+  ifstream file;
+  FText* fname = static_cast<FText*>(args[0].addr);
+
+  NMEA0183TypesInfo* info = new NMEA0183TypesInfo();
+  result = qp->ResultStorage(s);
+
+  FText* res = static_cast<FText*>(result.addr);
+  bool output = info->checkFile(fname);
+  string value;
+  if(output){
+
+  string types = info->types;
+  //vector<string> t = info->splitString(types);
+
+  //string as a record with needed types
+  value = string("[const record(") +
+               types +
+               string(") value ()]");
+
+  res->Set(true, value);
+  }
+  else{
+    string val = "File could not be open or has not enough available data."
+      "The main sentence identifier GGA is missing.";
+    res->Set(true, val);
+
+  }
+
+   // build filehandle for test-file to import big NMEA-files
+
+  string outname = "NMEATYPES";
+  ofstream exDat( outname.c_str() );
+
+  // fill file with content
+  exDat << "#================================================" << endl;
+  exDat << "#  Interchangefile for NMEA-File: NMEATYPES"<< endl;
+  exDat << "#================================================" << endl << endl;
+  exDat << "# How to use: SecondoTYTBDB -i NMEATYPES" << endl << endl;
+  exDat << "# open the database to put in the record object" << endl;
+  exDat << "open database opt;" << endl << endl;
+  exDat << "# build record" << endl;
+  exDat << "let nmeatypes" << " = " << value << endl << endl;
+  exDat << "# close database" << endl;
+  exDat << "close database;" << endl << endl;
+
+  exDat << "# How to use result: - start SecondoTYTBDB"<<endl;
+  exDat << "# open the database opt and e.g. "<<endl;
+  exDat << "# query nmeatypes" << " nmea0183import['filename',GPSQI,SIV]" 
+        << endl << endl;
+  exDat << "# Attention: Please, do not use ~list object~ in second" << endl
+        << "#            => error - SMI_MAX_KEYLEN";
+
+
+  exDat.close();
+
+
+ delete info;
+ return 0;
+}
+
+/*
+26.4 Specification for operator ~nmea0183types~
+
+*/
+const string nmea0183typesSpec  ="( ( \"Signature\" \"Syntax\" "
+   "\"Meaning\" \"Example\" ) "
+   "( <text>text  "
+   "-> text</text--->"
+   "<text>nmea0183types('filename') </text--->"
+   "<text>This Operator checks the data of an"
+   "NMEA0183-file and returns a text which "
+   "represents a record type. The record "
+   "has all the data types that are used for "
+   "building the result record!"
+   "</text--->"
+   ") )";
+
+/*
+26.5 Operator Description for ~nmea0183types~
+
+*/
+
+Operator nmea0183types( "nmea0183types",
+                    nmea0183typesSpec,
+                    nmea0183typesVM,
+                    Operator::SimpleSelect,
+                    nmea0183typesTM);
+
+
+
+
+ AddOperator( &e00types );
+ AddOperator( &e00import );
+ AddOperator( &nmea0183import );
+ AddOperator( &nmea0183types );
