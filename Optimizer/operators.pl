@@ -108,14 +108,18 @@ secOptConstant(bufferSize, 16384000). % 15.625 MB ~ 16 MB
 /*
 1.2.2 Constants for Sampling
 
+The maximum duration of a selectivity query in seconds. The query evaluation will be stopped after this time.
+
 The maximum sample size in bytes. The cardinality of samples will be reduced, such that it hopefully does not get larger than this value.
 
 Minimum and maximun cardinalities for selection and join relation samples
 
 Standard scaling factor for samples.
 
+
 */
 
+secOptConstant(sampleTimeout, 5.0).         % max duration (s) of a sample query
 secOptConstant(sampleScalingFactor, 0.00001).  % scaling factor for samples
 
 secOptConstant(sampleSelMaxDiskSize, 2048).    % maximum KB size for samples
@@ -1324,6 +1328,8 @@ opSignature(tail, stream,[[stream,[tuple,AttrList]],int],
 opSignature(tail, stream, [[stream,T],int,bool],[stream,T],[block]):-isData(T).
 opSignature(tail, stream,[[stream,[tuple,AttrList]],int,bool],
         [stream,[tuple,AttrList]],[block]).
+opSignature(timeout, stream, [StreamType, real], StreamType, []) :-
+  StreamType = [stream,_ElemType].
 opSignature(kinds, stream, [string],[stream,string],[]).
 
 

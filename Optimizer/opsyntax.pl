@@ -165,9 +165,9 @@ Quick Reference:
  # (  _, _, _, ...)     |    (no explicit specification)
  _ #                    |    postfix, 1
  _ # _                  |    (no explicit specification)
- _ # [ _ ]              |    postfixbrackets, _
- _ # [ _, _ ]           |    postfixbrackets, _
- _ # [ _, _, ... ]      |    postfixbrackets, _
+ _ # [ _ ]              |    postfixbrackets1, _
+ _ # [ _, _ ]           |    postfixbrackets1, _
+ _ # [ _, _, ... ]      |    postfixbrackets1, _
  _ _ #                  |    postfix, 2
  _ _ # [ _ ]            |    postfixbrackets2, _
  _ _ # [ _, _ ]         |    postfixbrackets2, _
@@ -439,6 +439,7 @@ secondoOp( thevertex,         prefix, 2).
 secondoOp( themonth,          prefix, 2).
 secondoOp( theperiod,         prefix, 2).
 secondoOp( tie,               postfixbrackets1, 2).
+secondoOp( timeout,           postfixbrackets1, 2).
 secondoOp( today,             prefix, 0).
 secondoOp( toprel,            prefix, 2).
 secondoOp( transformstream,   postfix, 1).
