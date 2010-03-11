@@ -20,7 +20,7 @@ EXCLUDE_ALGEBRA_DIRS := ! -name "GraphViz"
 #
 # Below all 3rd party libraries which are needed by
 # any of the algebra modules must be listed here again.
-# Sorry for the inconvenience but the whole algebra 
+# Sorry for the inconvenience but the whole algebra
 # registration in the system needs to be re-designed in
 # order to be more user/programmer friendly.
 #
@@ -149,7 +149,7 @@ ALGEBRAS     += DateTimeAlgebra
 #ALGEBRA_DIRS += Network
 #ALGEBRAS     += NetworkAlgebra
 
-#ALGEBRA_DIRS += TemporalNet 
+#ALGEBRA_DIRS += TemporalNet
 #ALGEBRAS     += TemporalNetAlgebra
 
 ALGEBRA_DIRS += PlugJoin
@@ -207,11 +207,11 @@ ALGEBRA_DIRS += GSL
 ALGEBRAS     += GSLAlgebra
 ALGEBRA_DEPS += gsl gslcblas
 
-# The chess algebras from student projects 
+# The chess algebras from student projects
 # during practical courses in 07/08 and 08/09
 #
 # You can only activate one of them at the same time!
-# 
+#
 #ALGEBRA_DIRS += Chess
 #ALGEBRAS     += ChessAlgebra
 
@@ -242,7 +242,7 @@ ALGEBRAS     += CollectionAlgebra
 ALGEBRA_DIRS  += Cluster
 ALGEBRAS      += ClusterAlgebra
 
-#ALGEBRA_DIRS  += Constraint 
+#ALGEBRA_DIRS  += Constraint
 #ALGEBRAS      += ConstraintAlgebra
 
 #ALGEBRA_DIRS  += MTree
@@ -251,18 +251,20 @@ ALGEBRAS      += ClusterAlgebra
 #ALGEBRA_DIRS += OldRelation-C++
 #ALGEBRAS     += OldRelationAlgebra
 
-#ALGEBRA_DIRS += OptAux 
+#ALGEBRA_DIRS += OptAux
 #ALGEBRAS     += OptAuxAlgebra
 
-#ALGEBRA_DIRS += UGrid 
+#ALGEBRA_DIRS += UGrid
 #ALGEBRAS     += UGridAlgebra
 
 #ALGEBRA_DIRS += ExtRelation-2
 #ALGEBRAS     += ExtRelation2Algebra
 
+ALGEBRA_DIRS += BTree2
+ALGEBRAS     += BTree2Algebra
 
 # Under Construction: Some bug fixing needed
-#ALGEBRA_DIRS += MONTree 
+#ALGEBRA_DIRS += MONTree
 #ALGEBRAS     += MONTreeAlgebra
 
 #ALGEBRA_DIRS += Traffic
