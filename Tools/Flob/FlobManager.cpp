@@ -225,6 +225,7 @@ bool FlobManager::resize(Flob& flob, const SmiSize& newSize,
 
     if(!isTemp || (fileId != nativeFlobs)){
       // the allocated memory for the slot may be too small now
+      cerr << "Warning resize a persistent Flob" << endl;
       persistentFlobCache->killLastSlot(flob);
     }
 
@@ -566,7 +567,8 @@ bool FlobManager::putData(const Flob& dest,         // destination flob
 
 
   if(!ignoreCache){
-    if(fileId!=nativeFlobs){
+    if(fileId!=nativeFlobs || !id.isTemp){
+      cerr << "Warning maipulate a perisistent Flob" << endl;
       return persistentFlobCache->putData(dest, buffer, targetoffset, length);
     } else {
       return nativeFlobCache->putData(dest, buffer, targetoffset, length);
@@ -615,6 +617,10 @@ Creates a new Flob with a given size which is assigned to a temporal file.
  __TRACE_ENTER__
    SmiRecord rec;
    SmiRecordId recId;
+  
+  if(size > 536870912){ // 512 MB
+    cerr << "Warning try to cretae a very big flob , size = " << size <<endl;
+  }
  
    if(!DestroyedFlobs->isEmpty()){
      result = DestroyedFlobs->pop();

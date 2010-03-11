@@ -428,15 +428,36 @@ removes a slot from cache
 
 */
 bool erase(Flob& flob, const bool saveChanges=false){
-  //assert(check());
-  size_t numFlobs = flob.getSize() / slotSize;
-  for(unsigned int i = 0 ; i<= numFlobs; i++){
-    if(!eraseSlot(flob, i, saveChanges)){
-      //assert(check());
-      return false;
-    }
+
+  if(flob.size > 536870912){ // 512 MB
+    cerr << "Warning try to erase very big flob , size = " << flob.size <<endl;
   }
   //assert(check());
+  if(flob.size/slotSize < tableSize*4 ){
+     size_t numFlobs = flob.getSize() / slotSize;
+     for(unsigned int i = 0 ; i<= numFlobs; i++){
+       if(!eraseSlot(flob, i, saveChanges)){
+         //assert(check());
+         return false;
+       }
+     }
+  } else {
+   // scan the whole cache, because its faster in most cases
+   for(unsigned int i=0;i<tableSize;i++){
+     NativeCacheEntry* e = hashtable[i];
+     while(e){
+        if(e->flobId==flob.id){
+           if(!eraseSlot(flob,e->slotNo, saveChanges)){
+             return false;
+           }  else {
+             e = hashtable[i];
+           }
+        } else {
+           e = e->tableNext;
+        }
+     }
+   } 
+  }
   return true;
 }
 
