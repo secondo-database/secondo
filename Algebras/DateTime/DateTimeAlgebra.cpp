@@ -125,8 +125,8 @@ static int64_t  max_VALUE = numeric_limits<int64_t>::max();
 static string begin_of_time="begin of time";
 static string end_of_time="end of time";
 
-static int64_t MAX_REPRESENTABLE = ((int64_t)2450000L) * MILLISECONDS;
-static int64_t MIN_REPRESENTABLE = ((int64_t)-2450000) * MILLISECONDS;
+static int64_t MAX_REPRESENTABLE = ((int64_t)2450000) * (int64_t)MILLISECONDS;
+static int64_t MIN_REPRESENTABLE = ((int64_t)-2450000) * (int64_t)MILLISECONDS;
 
 
 namespace datetime{
@@ -1400,6 +1400,7 @@ ListExpr DateTime::ToListExpr(const bool typeincluded)const {
   if(type==(instanttype)){
       if( (this->value<MIN_REPRESENTABLE || this->value>MAX_REPRESENTABLE )
          && !IsMinimum() && !IsMaximum()){
+
           value = nl->RealAtom(ToDouble());
       }else{
           value = nl->StringAtom(this->ToString());
