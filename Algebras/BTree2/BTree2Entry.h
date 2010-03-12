@@ -277,7 +277,7 @@ This specialization uses the extended value file.
 
 */
 
-  static int GetValueSizeInRecord(unsigned int maxValuesize) { 
+  static int GetValueSizeInRecord(size_t maxValuesize) { 
      return std::max(maxValuesize,sizeof(SmiRecordId))+sizeof(unsigned char); 
   }
 /*
@@ -462,7 +462,7 @@ This specialization uses the extended value file.
 
 */
 
-  static int GetValueSizeInRecord(unsigned int maxValuesize) { 
+  static int GetValueSizeInRecord(size_t maxValuesize) { 
      return std::max(maxValuesize,sizeof(SmiRecordId))+sizeof(unsigned char); 
   }
   int GetValueSizeInMemory() { return value->Sizeof()+ 

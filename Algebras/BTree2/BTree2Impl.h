@@ -805,7 +805,7 @@ int BTree2Impl<KEYTYPE,VALUETYPE>::GetMinNodeSize()
   int minInternalNodeSize = 
       InternalNode::GetSizeOfEmptyNode() +
       InternalNode::GetEntrySizeInRecord(header.maxKeysize,header.maxValuesize);
-  unsigned int minNodeSize = max(minLeafNodeSize,minInternalNodeSize);
+  size_t minNodeSize = max(minLeafNodeSize,minInternalNodeSize);
  
   return max(minNodeSize,sizeof(headerS));
 }
@@ -1564,10 +1564,10 @@ void BTree2Impl<KEYTYPE,VALUETYPE>::printNodeInfo(NodeId id, int height) {
 template <typename KEYTYPE,typename VALUETYPE>
 void BTree2Impl<KEYTYPE,VALUETYPE>::printNodeInfos() {
   if (dbgPrintTree()) {
-    printf("BTree2File\n");
-    printf("Filename = %s\n", file->GetContext().c_str());
-    printf("Filecontext = %s\n", file->GetContext().c_str());
-    printf("RecordLength = %d\n", file->GetRecordLength());
+    std::cout << "BTree2File" << endl
+              << "Filename = " << file->GetContext().c_str() << endl
+              << "Filecontext = %s" <<  file->GetContext().c_str() << endl
+              << "RecordLength = " <<  file->GetRecordLength() << endl;
 
     printNodeInfo(header.rootNodeId,1);
   }
