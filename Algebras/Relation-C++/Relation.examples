@@ -50,7 +50,7 @@ Result   : 16
 Operator : oconsume
 Number   : 1
 Signature: (stream (tuple X) x (ident1 ... identn) -> (orel (tuple X) (ident1 ... identn))
-Example  : query plz feed oconsume [Ort]
+Example  : query plz feed oconsume [Ort] feed count = plz count
 Result   : TRUE
 
 Operator : count
