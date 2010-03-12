@@ -1398,7 +1398,7 @@ ListExpr DateTime::ToListExpr(const bool typeincluded)const {
   assert(IsDefined() );
   ListExpr value;
   if(type==(instanttype)){
-      if( (value<MIN_REPRESENTABLE || value>MAX_REPRESENTABLE )
+      if( (this->value<MIN_REPRESENTABLE || this->value>MAX_REPRESENTABLE )
          && !IsMinimum() && !IsMaximum()){
           value = nl->RealAtom(ToDouble());
       }else{
