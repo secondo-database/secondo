@@ -63,8 +63,6 @@ level remains. Models are also removed from type constructors.
 #include "ListUtils.h"
 #include "NList.h"
 
-#include "OrderedRelationAlgebra.h"
-
 using namespace std;
 
 extern NestedList* nl;
@@ -209,44 +207,52 @@ ExtractKeyTypeFromTypeInfo( ListExpr typeInfo )
 }
 
 /*
-2.5 Function ~WriteKey~
+2.5 Function ~WriteRecordId~
 
-Writes a ~CompositeKey~ to a ~SmiRecord~.
+Writes a ~SmiRecordId~ to a ~SmiRecord~.
 
 */
-bool WriteKey(SmiRecord& record, const CompositeKey& key) {
-  SmiSize offset = 0;
-  return key.WriteToRecord(record, offset);
+bool WriteRecordId(SmiRecord& record, SmiRecordId id)
+{
+  SmiSize bytesWritten;
+  SmiSize idSize = sizeof(SmiRecordId);
+
+  bytesWritten = record.Write(&id, idSize);
+  return bytesWritten == idSize;
 }
 
 /*
-2.6 Function ~ReadKey~
+2.6 Function ~ReadRecordId~
 
-Reads a ~CompositeKey~ from a ~SmiRecord~ and extracts the RecordId
-from it, if its type is RecNo.
+Reads a ~SmiRecordId~ from a ~SmiRecord~.
 
 */
-bool ReadKey(SmiRecord& record, CompositeKey& key, SmiRecordId& id)
+bool ReadRecordId(SmiRecord& record, SmiRecordId& id)
 {
-  key = CompositeKey(record);
-  if(key.GetType()==SmiKey::RecNo)
-    key.GetSmiKey().GetKey(id);
-  return key.IsDefined();
+  SmiSize bytesRead;
+  SmiRecordId ids[2];
+  SmiSize idSize = sizeof(SmiRecordId);
+
+  bytesRead = record.Read(ids, 2 * idSize);
+  id = ids[0];
+  return bytesRead == idSize;
 }
 
 /*
-2.7 Function ~ReadKey~
+2.7 Function ~ReadRecordId~
 
-Reads a ~CompositeKey~ from a ~PrefetchingIterator~ and extracts the RecordId
-from it, if its type is RecNo.
+Reads a ~SmiRecordId~ from a ~PrefetchingIterator~.
 
 */
-bool ReadKey(PrefetchingIterator* iter, CompositeKey& key, SmiRecordId& id)
+bool ReadRecordId(PrefetchingIterator* iter, SmiRecordId& id)
 {
-  key = CompositeKey(iter);
-  if(key.GetType()==SmiKey::RecNo)
-    key.GetSmiKey().GetKey(id);
-  return key.IsDefined();
+  SmiSize bytesRead;
+  SmiRecordId ids[2];
+  SmiSize idSize = sizeof(SmiRecordId);
+
+  bytesRead = iter->ReadCurrentData(ids, 2 * idSize);
+  id = ids[0];
+  return bytesRead == idSize;
 }
 
 #ifdef BTREE_PREFETCH
@@ -279,7 +285,6 @@ bool BTreeIterator::Next()
 #ifdef BTREE_PREFETCH
   received = fileIter->Next();
 #else
-  SmiRecord record;
   received = fileIter->Next(smiKey, record);
 #endif /* BTREE_PREFETCH */
 
@@ -288,9 +293,12 @@ bool BTreeIterator::Next()
 
 #ifdef BTREE_PREFETCH
     fileIter->CurrentKey(smiKey);
-    return ReadKey(fileIter, tupleKey, id);
+#endif /* BTREE_PREFETCH */
+
+#ifdef BTREE_PREFETCH
+    return ReadRecordId(fileIter, id);
 #else
-    return ReadKey(record, tupleKey, id);
+    return ReadRecordId(record, id);
 #endif /* BTREE_PREFETCH */
   }
   else
@@ -307,11 +315,6 @@ const SmiKey *BTreeIterator::GetKey() const
 SmiRecordId BTreeIterator::GetId() const
 {
   return id;
-}
-
-const CompositeKey& BTreeIterator::GetTupleKey() const
-{
-  return tupleKey;
 }
 
 /*
@@ -420,8 +423,7 @@ bool BTree::Append( const SmiKey& smiKey, SmiRecordId id )
     SmiRecord record;
     if( file->InsertRecord( smiKey, record ) )
     {
-      SmiKey k(id);
-      if( WriteKey(record, CompositeKey(k)) )
+      if( WriteRecordId( record, id ) )
         return true;
       file->DeleteRecord(smiKey);
     }
@@ -429,56 +431,12 @@ bool BTree::Append( const SmiKey& smiKey, SmiRecordId id )
   return false;
 }
 
-bool BTree::Append( const SmiKey& smiKey, const CompositeKey& tupleKey) {
-  if(opened) {
-    assert(file!=0);
-    assert(smiKey.GetType() == GetKeyType());
-    SmiRecord record;
-    if(file->InsertRecord(smiKey,record)) {
-      if(WriteKey(record,tupleKey))
-        return true;
-      file->DeleteRecord(smiKey);
-    }
-  }
-  return false;
-}
-
-bool BTree::Delete( const SmiKey& smiKey, const SmiRecordId recordId )
+bool BTree::Delete( const SmiKey& smiKey, const SmiRecordId id )
 {
   if( opened )
   {
     assert(file != 0);
-    SmiKeyedFileIterator iter;
-    if( file->SelectRecord( smiKey, iter, SmiFile::Update ) )
-    {
-      SmiRecord record;
-      while( iter.Next( record ) )
-      {
-        CompositeKey comp(record);
-        if (comp.GetSmiKey()==SmiKey(recordId)) {
-          return iter.DeleteCurrent();
-        }
-      }
-    }
-  }
-  return false;
-}
-
-bool BTree::Delete( const SmiKey& smiKey, const CompositeKey& tupleKey) {
-  if(opened) {
-    assert(file!=0);
-    SmiKeyedFileIterator iter;
-    if( file->SelectRecord( smiKey, iter, SmiFile::Update ) )
-    {
-      SmiRecord record;
-      while( iter.Next( record ) )
-      {
-        CompositeKey key(record);
-        if(key == tupleKey) {
-          return iter.DeleteCurrent();
-        }
-      }
-    }
+    return file->DeleteRecord( smiKey, false, id );
   }
   return false;
 }
@@ -737,13 +695,8 @@ Word CloneBTree(const ListExpr typeInfo, const Word& w)
   BTreeIterator *iter = btree->SelectAll();
   while( iter->Next())
   {
-    if(nl->ListLength(typeInfo)==4) { //orel-Btree
-      if( !clone->Append( *iter->GetKey(), iter->GetTupleKey() ) )
-        return SetWord( Address( 0 ) );
-    } else {
-      if( !clone->Append( *iter->GetKey(), iter->GetId() ) )
-        return SetWord( Address( 0 ) );
-    }
+    if( !clone->Append( *iter->GetKey(), iter->GetId() ) )
+      return SetWord( Address( 0 ) );
   }
   delete iter;
 
@@ -770,14 +723,12 @@ void DeleteBTree(const ListExpr typeInfo, Word& w)
 bool CheckBTree(ListExpr type, ListExpr& errorInfo)
 {
   if((!nl->IsAtom(type))
-    && ((nl->ListLength(type) == 3) || (nl->ListLength(type) == 4))
+    && (nl->ListLength(type) == 3)
     && nl->Equal(nl->First(type), nl->SymbolAtom("btree")))
   {
     return
       am->CheckKind("TUPLE", nl->Second(type), errorInfo)
-      && am->CheckKind("DATA", nl->Third(type), errorInfo)
-      && (nl->ListLength(type) == 3 || 
-          listutils::isKeyDescription(nl->Second(type), nl->Fourth(type)));
+      && am->CheckKind("DATA", nl->Third(type), errorInfo);
   }
   else
   {
@@ -883,10 +834,8 @@ ListExpr CreateBTreeTypeMap(ListExpr args)
   ListExpr first = nl->First(args);
   ListExpr second = nl->Second(args);
   if(!listutils::isRelDescription(first) &&
-     !listutils::isOrelDescription(first) &&
      !listutils::isTupleStream(first)){
-     return listutils::typeError("first arg is not a rel or an orel or "
-                                  "a tuple stream");
+     return listutils::typeError("first arg is not a rel or a tuple stream");
   }
 
   if(nl->AtomType(second)!=SymbolType){
@@ -919,13 +868,6 @@ ListExpr CreateBTreeTypeMap(ListExpr args)
                               nl->ThreeElemList( nl->SymbolAtom("btree"),
                               tupleDescription,
                               attrType));
-  } else if(listutils::isSymbol(nl->First(first),"orel")) {
-    return nl->ThreeElemList( nl->SymbolAtom("APPEND"),
-                              nl->OneElemList(nl->IntAtom(attrIndex)),
-                              nl->FourElemList( nl->SymbolAtom("btree"),
-                                                nl->Second(first),
-                                                attrType,
-                                                nl->Third(first)));
   } else { // nl->IsEqual(nl->First(first), "stream")
     // Find the attribute with type tid
     string name;
@@ -982,8 +924,6 @@ int CreateBTreeSelect( ListExpr args )
     return 0;
   if( nl->IsEqual(nl->First(nl->First(args)), "stream") )
     return 1;
-  if( nl->IsEqual(nl->First(nl->First(args)), "orel") )
-    return 2;
   return -1;
 }
 
@@ -991,14 +931,13 @@ int CreateBTreeSelect( ListExpr args )
 6.1.3 Value mapping function of operator ~createbtree~
 
 */
-template<bool isOrel> int
+int
 CreateBTreeValueMapping_Rel(Word* args, Word& result, int message,
                             Word& local, Supplier s)
 {
   result = qp->ResultStorage(s);
-cout << "a";
 
-  GenericRelation* relation = (GenericRelation*)args[0].addr;
+  Relation* relation = (Relation*)args[0].addr;
   BTree* btree = (BTree*)result.addr;
   int attrIndex = ((CcInt*)args[2].addr)->GetIntval() - 1;
 
@@ -1019,11 +958,7 @@ cout << "a";
     {
       AttrToKey( (Attribute *)tuple->GetAttribute(attrIndex),
                  key, btree->GetKeyType() );
-      if(isOrel) {
-        btree->Append(key, ((OrderedRelationIterator*)iter)->GetKey());
-      } else {
-        btree->Append( key, iter->GetTupleId() );
-      }
+      btree->Append( key, iter->GetTupleId() );
     }
     tuple->DeleteIfAllowed();
   }
@@ -1080,9 +1015,7 @@ const string CreateBTreeSpec  =
     "( <text>(((rel (tuple (x1 t1)...(xn tn)))) xi)"
     " -> (btree (tuple ((x1 t1)...(xn tn))) ti)\n"
     "((stream (tuple (x1 t1)...(xn tn) (id tid))) xi)"
-    " -> (btree (tuple ((x1 t1)...(xn tn))) ti)\n"
-    "(((orel (tuple (x1 t1)...(xn tn)) (xj1 xj2 xj3))) xi)"
-    " -> (btree (tuple ((x1 t1)...(xn tn))) (xj1 xj2 xj3) ti)</text--->"
+    " -> (btree (tuple ((x1 t1)...(xn tn))) ti)</text--->"
     "<text>_ createbtree [ _ ]</text--->"
     "<text>Creates a btree. The key type ti must "
     "be either string or int or real or to implement the "
@@ -1100,14 +1033,13 @@ const string CreateBTreeSpec  =
 6.1.5 Definition of operator ~createbtree~
 
 */
-ValueMapping createbtreemap[] = { CreateBTreeValueMapping_Rel<false>,
-                                  CreateBTreeValueMapping_Stream,
-                                  CreateBTreeValueMapping_Rel<true>};
+ValueMapping createbtreemap[] = { CreateBTreeValueMapping_Rel,
+                                  CreateBTreeValueMapping_Stream };
 
 Operator createbtree (
           "createbtree",             // name
           CreateBTreeSpec,           // specification
-          3,                         // number of overloaded functions
+          2,                         // number of overloaded functions
           createbtreemap,            // value mapping
           CreateBTreeSelect,         // trivial selection function
           CreateBTreeTypeMap         // type mapping
@@ -1178,8 +1110,7 @@ ListExpr IndexQueryTypeMap(ListExpr args)
     return listutils::typeError("key and btree key are different");
   }
   
-  if(!listutils::isRelDescription(relDescription) &&
-      !listutils::isOrelDescription(relDescription)){
+  if(!listutils::isRelDescription(relDescription)){
     return listutils::typeError("not a relation");
   }
 
@@ -1209,19 +1140,6 @@ ListExpr IndexQueryTypeMap(ListExpr args)
   return resultType;
 }
 
-/*
-6.2.2 Selection function for operators ~range~, ~leftrange~, ~rightrange~ and 
-~exactmatch~
-
-*/
-int IndexQuerySelect( ListExpr args )
-  {
-    if( nl->IsEqual(nl->First(nl->Second(args)), "rel") )
-      return 0;
-    if( nl->IsEqual(nl->First(nl->Second(args)), "orel") )
-      return 1;
-    return -1;
-  }
 
 
 /*
@@ -1238,12 +1156,12 @@ int IndexQuerySelect( ListExpr args )
 
 struct IndexQueryLocalInfo
 {
-  GenericRelation* relation;
+  Relation* relation;
   BTreeIterator* iter;
 };
 
 
-template<int operatorId, bool isOrel>
+template<int operatorId>
 int
 IndexQuery(Word* args, Word& result, int message, Word& local, Supplier s)
 {
@@ -1259,7 +1177,7 @@ IndexQuery(Word* args, Word& result, int message, Word& local, Supplier s)
     case OPEN :
       localInfo = new IndexQueryLocalInfo;
       btree = (BTree*)args[0].addr;
-      localInfo->relation = (GenericRelation*)args[1].addr;
+      localInfo->relation = (Relation*)args[1].addr;
       key = (Attribute*)args[2].addr;
       if(operatorId == RANGE)
       {
@@ -1301,15 +1219,11 @@ IndexQuery(Word* args, Word& result, int message, Word& local, Supplier s)
     case REQUEST :
       localInfo = (IndexQueryLocalInfo*)local.addr;
       assert(localInfo != 0);
+
       if(localInfo->iter->Next())
       {
-        if(isOrel) {
-          tuple = ((OrderedRelation*)localInfo->relation)
-                                  ->GetTuple(localInfo->iter->GetTupleKey());
-        } else {
-          id = localInfo->iter->GetId();
-          tuple = localInfo->relation->GetTuple( id );
-        }
+        id = localInfo->iter->GetId();
+        tuple = localInfo->relation->GetTuple( id );
         if(tuple == 0)
         {
           cerr << "Could not find tuple for the given tuple id. "
@@ -1352,7 +1266,7 @@ class IndexQueryLocalInfo: public ProgressLocalInfo
 
 public:
 
-  GenericRelation* relation;
+  Relation* relation;
   BTreeIterator* iter;
   bool first;
   int completeCalls;
@@ -1362,7 +1276,7 @@ public:
 
 
 
-template<int operatorId, bool isOrel>
+template<int operatorId>
 int
 IndexQuery(Word* args, Word& result, int message, Word& local, Supplier s)
 {
@@ -1393,7 +1307,7 @@ IndexQuery(Word* args, Word& result, int message, Word& local, Supplier s)
         ili->sizesInitialized = false;
         ili->sizesChanged = false;
 
-        ili->relation = (GenericRelation*)args[1].addr;
+        ili->relation = (Relation*)args[1].addr;
         local = SetWord(ili);
       }
 
@@ -1466,13 +1380,8 @@ IndexQuery(Word* args, Word& result, int message, Word& local, Supplier s)
 
       if(ili->iter->Next())
       {
-        if(isOrel) {
-          tuple = ((OrderedRelation*)ili->relation)
-                        ->GetTuple(ili->iter->GetTupleKey());
-        } else {
-          id = ili->iter->GetId();
-          tuple = ili->relation->GetTuple( id );
-        }
+        id = ili->iter->GetId();
+        tuple = ili->relation->GetTuple( id );
         if(tuple == 0)
         {
           cerr << "Could not find tuple for the given tuple id. "
@@ -1608,6 +1517,7 @@ IndexQuery(Word* args, Word& result, int message, Word& local, Supplier s)
 #endif
 
 
+
 /*
 
 6.2.3 Specification of operator ~exactmatch~
@@ -1616,11 +1526,7 @@ IndexQuery(Word* args, Word& result, int message, Word& local, Supplier s)
 const string ExactMatchSpec  =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
   "( <text>((btree (tuple ((x1 t1)...(xn tn)))"
-  " ti)(rel (tuple ((x1 t1)...(xn tn))))) ->"
-  " (stream (tuple ((x1 t1)...(xn tn))))\n"
-  "((btree (tuple ((x1 t1)...(xn tn)))"
-  " ti (xj1 ... xjn))"
-  "(orel (tuple ((x1 t1)...(xn tn)))) (xj1 ... xjn) ->"
+  " ti)(rel (tuple ((x1 t1)...(xn tn)))) ti) ->"
   " (stream (tuple ((x1 t1)...(xn tn))))"
   "</text--->"
   "<text>_ _ exactmatch [ _ ]</text--->"
@@ -1632,22 +1538,16 @@ const string ExactMatchSpec  =
   "is e.g. created with 'let citiesNameInd = "
   "cities createbtree [name]'</text--->"
   ") )";
-
-
-ValueMapping ExactMatchMap[] = { IndexQuery<EXACTMATCH, false>,
-                                 IndexQuery<EXACTMATCH, true> };
-
 /*
 
 6.2.4 Definition of operator ~exactmatch~
 
 */
 Operator exactmatch (
-   "exactmatch",                  // name
+         "exactmatch",                  // name
    ExactMatchSpec,                // specification
-   2,                             // number of overloaded functions
-   ExactMatchMap,                 // value mapping
-   IndexQuerySelect,              // selection function
+   IndexQuery<EXACTMATCH>,        // value mapping
+   Operator::SimpleSelect,        // trivial selection function
    IndexQueryTypeMap<EXACTMATCH>  // type mapping
 );
 
@@ -1670,21 +1570,16 @@ const string RangeSpec  =
   "</text--->"
   "   ) )";
 
-
-ValueMapping RangeMap[] = { IndexQuery<RANGE, false>,
-                            IndexQuery<RANGE, true> };
-
 /*
 
 6.2.6 Definition of operator ~range~
 
 */
 Operator cpprange (
-   "range",                        // name
+         "range",                        // name
    RangeSpec,                      // specification
-   2,                              // number of overloaded functions
-   RangeMap,                       // value mapping
-   IndexQuerySelect,               // selection function
+   IndexQuery<RANGE>,              // value mapping
+   Operator::SimpleSelect,         // trivial selection function
    IndexQueryTypeMap<RANGE>        // type mapping
 );
 
@@ -1710,21 +1605,16 @@ const string LeftRangeSpec  =
   "'let citiesNameInd = cities createbtree [name]'"
   "</text--->"
   ") )";
-
-ValueMapping LeftRangeMap[] = { IndexQuery<LEFTRANGE, false>,
-                                IndexQuery<LEFTRANGE, true> };
-
 /*
 
 6.2.8 Definition of operator ~leftrange~
 
 */
 Operator leftrange (
-   "leftrange",                    // name
+         "leftrange",                    // name
    LeftRangeSpec,                  // specification
-   2,                              // number of overloaded functions
-   LeftRangeMap,                   // value mapping
-   IndexQuerySelect,               // selection function
+   IndexQuery<LEFTRANGE>,          // value mapping
+   Operator::SimpleSelect,         // trivial selection function
    IndexQueryTypeMap<LEFTRANGE>    // type mapping
 );
 
@@ -1753,22 +1643,17 @@ const string RightRangeSpec  =
   "[name]'"
   "</text--->"
   ") )";
-
-ValueMapping RightRangeMap[] = { IndexQuery<RIGHTRANGE, false>,
-                                 IndexQuery<RIGHTRANGE, true> };
-
 /*
 
 6.2.10 Definition of operator ~rightrange~
 
 */
 Operator rightrange (
-   "rightrange",                  // name
-   RightRangeSpec,                // specification
-   2,                             // number of overloaded functions
-   RightRangeMap,                 // value mapping
-   IndexQuerySelect,              // selection function
-   IndexQueryTypeMap<RIGHTRANGE>  // type mapping
+         "rightrange",            // name
+         RightRangeSpec,          // specification
+         IndexQuery<RIGHTRANGE>,              // value mapping
+         Operator::SimpleSelect,         // trivial selection function
+         IndexQueryTypeMap<RIGHTRANGE>        // type mapping
 );
 
 /*
@@ -1832,17 +1717,7 @@ ListExpr IndexQuerySTypeMap(ListExpr args)
   }
 
   /* return result type */
-  if(nl->ListLength(btreeDescription)==4) {
-    return  nl->TwoElemList(
-              nl->SymbolAtom("stream"),
-              nl->TwoElemList(
-                nl->SymbolAtom("tuple"),
-                nl->OneElemList(
-                  nl->TwoElemList(
-                    nl->SymbolAtom("key"),
-                    nl->SymbolAtom("compkey")))));
-                                                                      
-  }
+
   return nl->TwoElemList(
           nl->SymbolAtom("stream"),
           nl->TwoElemList(
@@ -1852,18 +1727,6 @@ ListExpr IndexQuerySTypeMap(ListExpr args)
                 nl->SymbolAtom("id"),
                 nl->SymbolAtom("tid")))));
 
-}
-
-/*
-6.3.2 Selection function for operators ~rangeS~, ~leftrangeS~,
-~rightrangeS~ and ~exactmatchS~
-
-*/
-
-int IndexQuerySSelect( ListExpr args ) {
-  if(nl->ListLength(nl->First(args)) == 4)
-    return 1;
-  return 0;
 }
 
 /*
@@ -1879,7 +1742,7 @@ struct IndexQuerySLocalInfo
   TupleType *resultTupleType;
 };
 
-template<int operatorId, bool isOrel>
+template<int operatorId>
 int
 IndexQueryS(Word* args, Word& result, int message, Word& local, Supplier s)
 {
@@ -1941,13 +1804,9 @@ IndexQueryS(Word* args, Word& result, int message, Word& local, Supplier s)
 
       if(localInfo->iter->Next())
       {
+        id = localInfo->iter->GetId();
         Tuple *tuple = new Tuple( localInfo->resultTupleType );
-        if(isOrel) {
-          tuple->PutAttribute(0, localInfo->iter->GetTupleKey().Clone());
-        } else {
-          id = localInfo->iter->GetId();
-          tuple->PutAttribute(0, new TupleIdentifier(true, id));
-        }
+        tuple->PutAttribute(0, new TupleIdentifier(true, id));
         result = SetWord(tuple);
         return YIELD;
       }
@@ -1969,9 +1828,6 @@ IndexQueryS(Word* args, Word& result, int message, Word& local, Supplier s)
   }
   return 0;
 }
-
-ValueMapping ExactMatchSMap[] = { IndexQueryS<EXACTMATCH, false>,
-                                  IndexQueryS<EXACTMATCH, true> };
 
 /*
 
@@ -1998,17 +1854,12 @@ const string ExactMatchSSpec  =
 
 */
 Operator exactmatchs (
-        "exactmatchS",                   // name
-        ExactMatchSSpec,                 // specification
-        2,                               // number of overloaded functions
-        ExactMatchSMap,                   // value mapping
-        IndexQuerySSelect,                // selection function
-        IndexQuerySTypeMap<EXACTMATCH>   // type mapping
+         "exactmatchS",                   // name
+         ExactMatchSSpec,                 // specification
+         IndexQueryS<EXACTMATCH>,         // value mapping
+         Operator::SimpleSelect,          // trivial selection function
+         IndexQuerySTypeMap<EXACTMATCH>   // type mapping
 );
-
-
-ValueMapping RangeSMap[] = { IndexQueryS<RANGE, false>,
-                             IndexQueryS<RANGE, true> };
 
 /*
 
@@ -2035,12 +1886,11 @@ const string RangeSSpec  =
 
 */
 Operator cppranges (
-    "rangeS",                        // name
-    RangeSSpec,                      // specification
-    2,                               // number of overloaded functions
-    RangeSMap,                       // value mapping
-    IndexQuerySSelect,               // selection function
-    IndexQuerySTypeMap<RANGE>        // type mapping
+         "rangeS",                       // name
+         RangeSSpec,                     // specification
+         IndexQueryS<RANGE>,             // value mapping
+         Operator::SimpleSelect,         // trivial selection function
+         IndexQuerySTypeMap<RANGE>       // type mapping
 );
 
 /*
@@ -2063,21 +1913,17 @@ const string LeftRangeSSpec  =
         "'let citiesNameInd = cities createbtree [name]'"
         "</text--->"
         ") )";
-
-ValueMapping LeftRangeSMap[] = { IndexQueryS<LEFTRANGE, false>,
-                                 IndexQueryS<LEFTRANGE, true> };
 /*
 
 6.3.8 Definition of operator ~leftrangeS~
 
 */
 Operator leftranges (
-   "leftrangeS",                    // name
-   LeftRangeSSpec,                  // specification
-   2,                               // number of overloaded functions
-   LeftRangeSMap,                   // value mapping
-   IndexQuerySSelect,               // selection function
-   IndexQuerySTypeMap<LEFTRANGE>    // type mapping
+         "leftrangeS",                   // name
+         LeftRangeSSpec,                 // specification
+         IndexQueryS<LEFTRANGE>,         // value mapping
+         Operator::SimpleSelect,         // trivial selection function
+         IndexQuerySTypeMap<LEFTRANGE>   // type mapping
 );
 
 /*
@@ -2103,22 +1949,17 @@ const string RightRangeSSpec  =
         "[name]'"
         "</text--->"
         ") )";
-
-ValueMapping RightRangeSMap[] = { IndexQueryS<RIGHTRANGE, false>,
-                                  IndexQueryS<RIGHTRANGE, true> };
-
 /*
 
 6.3.10 Definition of operator ~rightrangeS~
 
 */
 Operator rightranges (
-   "rightrangeS",                  // name
-   RightRangeSSpec,                // specification
-   2,                              // number of overloaded functions
-   RightRangeSMap,                 // value mapping
-   IndexQuerySSelect,              // selection function
-   IndexQuerySTypeMap<RIGHTRANGE>  // type mapping
+         "rightrangeS",                  // name
+         RightRangeSSpec,                // specification
+         IndexQueryS<RIGHTRANGE>,        // value mapping
+         Operator::SimpleSelect,         // trivial selection function
+         IndexQuerySTypeMap<RIGHTRANGE>  // type mapping
 );
 
 
@@ -2161,16 +2002,10 @@ Type mapping ~updatebtree~
 
 
 */
-enum allUpdatesOp { insertBTree, deleteBTree, updateBTree };
 
-string operatorName(allUpdatesOp op) {
-  return (op==insertBTree)?"insertbtree":
-                        ((op==deleteBTree)?"deletebtree":"updatebtree");
-}
-
-template<allUpdatesOp op> ListExpr allUpdatesBTreeTypeMap( ListExpr args)
+ListExpr allUpdatesBTreeTypeMap( const ListExpr& args, string opName )
 {
-  string opName = operatorName(op);
+
   /* Split argument in three parts */
   ListExpr streamDescription = nl->First(args);
   ListExpr btreeDescription = nl->Second(args);
@@ -2178,7 +2013,7 @@ template<allUpdatesOp op> ListExpr allUpdatesBTreeTypeMap( ListExpr args)
 
   
   if(!listutils::isTupleStream(streamDescription)){
-   return listutils::typeError("first argument must be a tuple stream");
+   return listutils::typeError("first arguments must be a tuple stream");
   }
 
   // Proceed to last attribute of stream-tuples
@@ -2191,7 +2026,7 @@ template<allUpdatesOp op> ListExpr allUpdatesBTreeTypeMap( ListExpr args)
   }
 
   if(!listutils::isSymbol(nl->Second(next),"tid")){
-   return listutils::typeError("last attribute must be of type tid");
+   return listutils::typeError("last attribut must be of type tid");
   } 
 
   if(!listutils::isBTreeDescription(btreeDescription)){
@@ -2230,7 +2065,7 @@ template<allUpdatesOp op> ListExpr allUpdatesBTreeTypeMap( ListExpr args)
       rest = nl->Rest(rest);
     }
     if(!nl->Equal(listn, btreeAttrList)){
-      return listutils::typeError("different type in btree and tuple stream");
+      return listutils::typeError("diffent type in btree and tuple stream");
     }
 
     restBTreeAttrs = btreeAttrList;
@@ -2285,70 +2120,20 @@ template<allUpdatesOp op> ListExpr allUpdatesBTreeTypeMap( ListExpr args)
     return listutils::typeError("key attribute type "
                                 "different from indexed type");
   }
-  ListExpr appendix = nl->OneElemList(nl->IntAtom(j));
-  if(nl->ListLength(btreeDescription) == 4) {
-    // Btree is built over ordered Relation. Get indizes and types of
-    // keyAttributes
-    bool first = true;
-    ListExpr indizes, lastIndizes, types, lastTypes;
-    ListExpr rest = nl->Fourth(btreeDescription);
-    while(!nl->IsEmpty(rest)) {
-      ListExpr attrtype;
-      int idx = listutils::findAttribute(btreeAttrList,
-                                         nl->SymbolValue(nl->First(rest)),
-                                         attrtype);
-      if(idx==0)
-        return listutils::typeError("key attribute " +
-                                    nl->SymbolValue(nl->First(rest)) + 
-                                    " not found!");
-      string typeString = nl->SymbolValue(attrtype);
-      int typeNumber;
-      if(typeString == "tid") {
-        typeNumber = SmiKey::RecNo;
-      } else if(typeString == "int") {
-        typeNumber = SmiKey::Integer;
-      } else if(typeString == "real") {
-        typeNumber = SmiKey::Float;
-      } else if(typeString == "string") {
-        typeNumber = SmiKey::String;
-      } else {
-        typeNumber = SmiKey::Composite;
-      }
-      if(first) {
-        first = false;
-        indizes = nl->OneElemList(nl->IntAtom(idx));
-        lastIndizes = indizes;
-        types = nl->OneElemList(nl->IntAtom(typeNumber));
-        lastTypes = types;
-      } else {
-        lastIndizes = nl->Append(lastIndizes, nl->IntAtom(idx));
-        lastTypes = nl->Append(lastTypes, nl->IntAtom(typeNumber));
-      }
-      rest = nl->Rest(rest);
-    }
-    ListExpr last = nl->Append(appendix, indizes);
-    last = nl->Append(last, types);
-    last = nl->Append(last, nl->IntAtom(nl->ListLength(
-                                          nl->Fourth(btreeDescription))));
-    last = nl->Append(last, nl->IntAtom(nl->ListLength(
-                                    nl->Second(nl->Second(btreeDescription)))));
-  }
   ListExpr outList = nl->ThreeElemList(nl->SymbolAtom("APPEND"),
-                                       appendix,
-                                       streamDescription);
+                          nl->OneElemList(nl->IntAtom(j)),streamDescription);
   return outList;
 }
 
 /*
-6.4.1 General selection function of operator ~insertbtree~, ~deletebtree~ and
-~updatebtree~
+6.4.1 TypeMapping of operator ~insertbtree~
 
 */
-int allUpdatesBTreeSelect( ListExpr args) {
-  if(nl->ListLength(nl->Second(args)) == 4) 
-    return 1;
-  return 0;
+ListExpr insertBTreeTypeMap(ListExpr args)
+{
+  return allUpdatesBTreeTypeMap(args, "insertbtree");
 }
+
 
 
 /*
@@ -2356,107 +2141,42 @@ int allUpdatesBTreeSelect( ListExpr args) {
 
 */
 
-template<allUpdatesOp op, bool isOrel> int allUpdatesBTreeValueMap(Word* args,
-                                               Word& result, int message,
-                                               Word& local, Supplier s)
+int insertBTreeValueMap(Word* args, Word& result, int message,
+                        Word& local, Supplier s)
 {
   Word t;
   Tuple* tup;
   BTree* btree;
+  CcInt* indexp;
+  int index;
   Attribute* keyAttr;
-  Attribute* oldKeyAttr;
   Attribute* tidAttr;
   TupleId oldTid;
-  SmiKey key, oldKey;
-  Word val;
-  Supplier son;
-  string type;
-  CompositeKey compKey, oldCompKey;
-  int numOfAttrs;
-  
-  struct LocalTransport {
-    int index;
-    vector<int> keyElements;
-    vector<int> oldKeyElements;
-    vector<SmiKey::KeyDataType> elemTypes;
-  }* localTransport;
+  SmiKey key;
+
+
 
   switch (message)
   {
     case OPEN :
       qp->Open(args[0].addr);
-      localTransport = new LocalTransport();
-      localTransport->index = ((CcInt*)args[3].addr)->GetValue();
-      if(isOrel) {
-        int size = ((CcInt*)args[6].addr)->GetValue();
-        localTransport->keyElements.resize(size);
-        if(op == updateBTree) {
-          localTransport->oldKeyElements.resize(size);
-          numOfAttrs = ((CcInt*)args[7].addr)->GetValue();
-        }
-        localTransport->elemTypes.resize(size);
-        for (int i=0; i<size; i++) {
-          son = qp->GetSupplier(args[4].addr, i);
-          qp->Request(son, val);
-          localTransport->keyElements[i] = ((CcInt*)val.addr)->GetValue()-1;
-          if(op == updateBTree) {
-            localTransport->oldKeyElements[i] = ((CcInt*)val.addr)->GetValue()-1
-                                              + numOfAttrs;
-          }
-          son = qp->GetSupplier(args[5].addr, i);
-          qp->Request(son, val);
-          localTransport->elemTypes[i] = (SmiKey::KeyDataType)
-                                                ((CcInt*)val.addr)->GetValue();
-        }
-      }
-      local = SetWord(localTransport);
+      indexp = ((CcInt*)args[3].addr);
+      local = SetWord(indexp );
       return 0;
 
     case REQUEST :
-      localTransport = (LocalTransport*)local.addr;
+      index = ((CcInt*) local.addr)->GetIntval();
       btree = (BTree*)(args[1].addr);
       assert(btree != 0);
       qp->Request(args[0].addr,t);
       if (qp->Received(args[0].addr))
       {
         tup = (Tuple*)t.addr;
-        keyAttr = tup->GetAttribute(localTransport->index - 1);
-        AttrToKey((Attribute*)keyAttr, key, btree->GetKeyType());
+        keyAttr = tup->GetAttribute(index - 1);
         tidAttr = tup->GetAttribute(tup->GetNoAttributes() - 1);
         oldTid = ((TupleIdentifier*)tidAttr)->GetTid();
-        if(op == updateBTree) {
-          oldKeyAttr = tup->GetAttribute(localTransport->index +
-                                        (tup->GetNoAttributes() - 1)/2
-                                        - 1);
-          AttrToKey((Attribute*)oldKeyAttr, oldKey, btree->GetKeyType());
-        }
-        if(!isOrel) {
-          if(op == insertBTree) {
-            btree->Append(key, oldTid);
-          } else if (op == deleteBTree) {
-            btree->Delete(key, oldTid);
-          } else if (op == updateBTree) {
-            if ((oldKey > key) || (key > oldKey)) {
-              btree->Delete(oldKey, oldTid);
-              btree->Append(key, oldTid);
-            }
-          }
-        } else {
-          compKey = CompositeKey(tup, localTransport->keyElements,
-                                 localTransport->elemTypes, true, oldTid);
-          if(op == insertBTree) {
-            btree->Append(key, compKey);
-          } else if (op == deleteBTree) {
-            btree->Delete(key, compKey);
-          } else if (op == updateBTree) {
-            oldCompKey = CompositeKey(tup, localTransport->oldKeyElements,
-                                      localTransport->elemTypes, true, oldTid);
-            if((key > oldKey) || (oldKey > key) || !(compKey == oldCompKey)) {
-              btree->Delete(oldKey, oldCompKey);
-              btree->Append(key, compKey);
-            }
-          }
-        }
+        AttrToKey((Attribute*)keyAttr, key, btree->GetKeyType());
+        btree->Append(key,oldTid);
         result = SetWord(tup);
         return YIELD;
       }
@@ -2466,31 +2186,10 @@ template<allUpdatesOp op, bool isOrel> int allUpdatesBTreeValueMap(Word* args,
     case CLOSE :
       qp->Close(args[0].addr);
       qp->SetModified(qp->GetSon(s,1));
-      localTransport = (LocalTransport*)local.addr;
-      delete localTransport;
       local = SetWord(Address(0));
       return 0;
   }
   return 0;
-}
-
-/*
-6.4.2 General Mapping of ValueMapping functions
-
-*/
-  /*template<allUpdatesOp op> ValueMapping* allUpdatesBTreeMap() {
-  ValueMapping result[] = { allUpdatesBTreeValueMap<op, false>,
-                            allUpdatesBTreeValueMap<op, true> };
-  return result;
-}
-
-
-  */
-template<allUpdatesOp op> Operator allUpdatesBTreeOperator(string opSpec) {
-  ValueMapping Map[] = {allUpdatesBTreeValueMap<op, false>,
-                        allUpdatesBTreeValueMap<op, true> };
-  return Operator(operatorName(op), opSpec, 2, Map, allUpdatesBTreeSelect,
-                  allUpdatesBTreeTypeMap<op>);
 }
 
 /*
@@ -2510,22 +2209,18 @@ const string insertBTreeSpec  =
   "</text--->"
   ") )";
 
-
 /*
 6.4.4 Definition of operator ~insertbtree~
 
 */
-  /*
 Operator insertbtree (
-         "insertbtree",                       // name
-         insertBTreeSpec,                     // specification
-         2,                                   // number of overloaded functions
-         allUpdatesBTreeMap<insertBTree>(),   // value mapping
-         allUpdatesBTreeSelect,               // trivial selection function
-         allUpdatesBTreeTypeMap<insertBTree>  // type mapping
+         "insertbtree",              // name
+         insertBTreeSpec,            // specification
+         insertBTreeValueMap,                // value mapping
+         Operator::SimpleSelect,          // trivial selection function
+         insertBTreeTypeMap          // type mapping
 );
-  */
-Operator insertbtree = allUpdatesBTreeOperator<insertBTree>(insertBTreeSpec);
+
 
 /*
 6.5 Operator ~deletebtree~
@@ -2535,7 +2230,70 @@ btree. The entry is built from the attribute of the tuple over which the tree
 is built and the tuple-identifier of the deleted tuple which is extracted
 as the last attribute of the tuple of the inputstream.
 
+
+6.5.1 TypeMapping of operator ~deletebtree~
+
 */
+
+ListExpr deleteBTreeTypeMap(ListExpr args)
+{
+  return allUpdatesBTreeTypeMap(args, "deletebtree");
+}
+
+/*
+6.5.2 ValueMapping of operator ~deletebtree~
+
+*/
+
+int deleteBTreeValueMap(Word* args, Word& result, int message,
+                        Word& local, Supplier s)
+{
+  Word t;
+  Tuple* tup;
+  BTree* btree;
+  CcInt* indexp;
+  int index;
+  Attribute* keyAttr;
+  Attribute* tidAttr;
+  TupleId oldTid;
+  SmiKey key;
+
+
+  switch (message)
+  {
+    case OPEN :
+      qp->Open(args[0].addr);
+      indexp = ((CcInt*)args[3].addr);
+      local = SetWord(indexp );
+      return 0;
+
+    case REQUEST :
+      index = ((CcInt*) local.addr)->GetIntval();
+      btree = (BTree*)(args[1].addr);
+      assert(btree != 0);
+      qp->Request(args[0].addr,t);
+      if (qp->Received(args[0].addr))
+      {
+        tup = (Tuple*)t.addr;
+        keyAttr = tup->GetAttribute(index - 1);
+        tidAttr = tup->GetAttribute(tup->GetNoAttributes() - 1);
+        oldTid = ((TupleIdentifier*)tidAttr)->GetTid();
+        AttrToKey((Attribute*)keyAttr, key, btree->GetKeyType());
+        btree->Delete(key,oldTid);
+        result = SetWord(tup);
+        return YIELD;
+      }
+      else
+        return CANCEL;
+
+    case CLOSE :
+      qp->Close(args[0].addr);
+      qp->SetModified(qp->GetSon(s,1));
+      local = SetWord(Address(0));
+      return 0;
+  }
+  return 0;
+}
 
 /*
 6.5.3 Specification of operator ~deletebtree~
@@ -2558,16 +2316,14 @@ const string deleteBTreeSpec  =
 6.5.4 Definition of operator ~deletebtree~
 
 */
-  /*Operator deletebtree (
-         "deletebtree",                       // name
-         deleteBTreeSpec,                     // specification
-         2,                                   // number of overloaded functions
-         allUpdatesBTreeMap<deleteBTree>,     // value mapping
-         allUpdatesBTreeSelect,               // trivial selection function
-         allUpdatesBTreeTypeMap<deleteBTree>  // type mapping
+Operator deletebtree (
+         "deletebtree",              // name
+         deleteBTreeSpec,            // specification
+         deleteBTreeValueMap,        // value mapping
+         Operator::SimpleSelect,     // trivial selection function
+         deleteBTreeTypeMap          // type mapping
 );
-  */
-Operator deletebtree = allUpdatesBTreeOperator<deleteBTree>(deleteBTreeSpec);
+
 
 /*
 6.6 Operator ~updatebtree~
@@ -2577,6 +2333,81 @@ built from the attribute of the tuple over which the tree is built and the
 tuple-identifier of the updated tuple which is extracted as the last attribute
 of the tuple of the inputstream.
 
+6.6.1 TypeMapping of operator ~updatebtree~
+
+*/
+
+ListExpr updateBTreeTypeMap(ListExpr args)
+{
+  return allUpdatesBTreeTypeMap(args, "updatebtree");
+}
+
+/*
+
+6.6.2 ValueMapping of operator ~updatebtree~
+
+*/
+
+int updateBTreeValueMap(Word* args, Word& result, int message,
+                        Word& local, Supplier s)
+{
+  Word t;
+  Tuple* tup;
+  BTree* btree;
+  CcInt* indexp;
+  int index;
+  Attribute* keyAttr;
+  Attribute* oldKeyAttr;
+  Attribute* tidAttr;
+  TupleId oldTid;
+  SmiKey key, oldKey;
+
+
+  switch (message)
+  {
+    case OPEN :
+      qp->Open(args[0].addr);
+      indexp = ((CcInt*)args[3].addr);
+      local = SetWord(indexp );
+      return 0;
+
+    case REQUEST :
+      index = ((CcInt*) local.addr)->GetIntval();
+      btree = (BTree*)(args[1].addr);
+      assert(btree != 0);
+      qp->Request(args[0].addr,t);
+      if (qp->Received(args[0].addr))
+      {
+        tup = (Tuple*)t.addr;
+        keyAttr = tup->GetAttribute(index - 1);
+        oldKeyAttr = tup->GetAttribute((tup->GetNoAttributes()-1)/2+index-1);
+        tidAttr = tup->GetAttribute(tup->GetNoAttributes() - 1);
+        oldTid = ((TupleIdentifier*)tidAttr)->GetTid();
+        AttrToKey((Attribute*)keyAttr, key, btree->GetKeyType());
+        AttrToKey((Attribute*)oldKeyAttr, oldKey, btree->GetKeyType());
+        // Only update if key has changed
+        if ((key > oldKey) || (oldKey > key))
+        {
+          btree->Delete(oldKey,oldTid);
+          btree->Append(key,oldTid);
+        }
+        result = SetWord(tup);
+        return YIELD;
+      }
+      else
+        return CANCEL;
+
+    case CLOSE :
+      qp->Close(args[0].addr);
+      qp->SetModified(qp->GetSon(s,1));
+      local = SetWord(Address(0));
+      return 0;
+  }
+  return 0;
+}
+
+
+/*
 6.6.3 Specification of operator ~updatebtree~
 
 */
@@ -2599,16 +2430,15 @@ const string updateBTreeSpec  =
 6.6.4 Definition of operator ~updatebtree~
 
 */
-  /*Operator updatebtree (
-         "updatebtree",                       // name
-         updateBTreeSpec,                     // specification
-         2,                                   // number of overloaded functions
-         allUpdatesBTreeMap<updateBTree>,     // value mapping
-         allUpdatesBTreeSelect,               // trivial selection function
-         allUpdatesBTreeTypeMap<updateBTree>  // type mapping
+Operator updatebtree (
+         "updatebtree",              // name
+         updateBTreeSpec,            // specification
+         updateBTreeValueMap,        // value mapping
+         Operator::SimpleSelect,     // trivial selection function
+         updateBTreeTypeMap          // type mapping
 );
-  */
-Operator updatebtree = allUpdatesBTreeOperator<updateBTree>(updateBTreeSpec);
+
+
 
 
 /*
@@ -2636,8 +2466,19 @@ value            --> string
 
 ListExpr getFileInfoBtreeTypeMap(ListExpr args)
 {
+  ListExpr btreeDescription = nl->First(args);
+
   if(    (nl->ListLength(args) != 1)
-      || !listutils::isBTreeDescription(nl->First(args))) {
+      || nl->IsAtom(btreeDescription)
+      || (nl->ListLength(btreeDescription) != 3)
+    ) {
+    return NList::typeError("1st argument is not a btree.");
+  }
+  ListExpr btreeSymbol = nl->First(btreeDescription);;
+  if(    !nl->IsAtom(btreeSymbol)
+      || (nl->AtomType(btreeSymbol) != SymbolType)
+      || (nl->SymbolValue(btreeSymbol) != "btree")
+    ){
     return NList::typeError("1st argument is not a btree.");
   }
   return NList(symbols::TEXT).listExpr();
@@ -2744,7 +2585,7 @@ keyrange_vm(Word* args, Word& result, int message, Word& local, Supplier s)
       {
 
         BTree* btree;
-        GenericRelation* relation;
+        Relation* relation;
         Attribute* key;
 
         init_ptr(btree, args[0]);
