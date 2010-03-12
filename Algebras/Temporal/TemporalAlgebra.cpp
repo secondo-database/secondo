@@ -10938,8 +10938,9 @@ int PeriodsBBox(Word* args, Word& result, int message, Word& local,
   else
   {
     double min[3], max[3];
-    Instant minT(true);
-    Instant maxT(true);
+    int64_t zero =0;
+    Instant minT(zero);
+    Instant maxT(zero);
     arg->Minimum(minT);
     arg->Maximum(maxT);
     min[0] = MINDOUBLE; // minX

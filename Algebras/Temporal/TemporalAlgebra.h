@@ -708,7 +708,7 @@ The simple constructor.
 
 */
 
-  Intime(const int i):instant(i),value(i){}
+  Intime(const int i):instant((int64_t)i),value(i){}
 
   Intime( const Instant& _instant, const Alpha& alpha ):
     instant( _instant )
@@ -1295,8 +1295,8 @@ struct ConstTemporalUnit : public StandardTemporalUnit<Alpha>
 */
   ConstTemporalUnit() {}
 
-  ConstTemporalUnit(bool is_defined)
-  { this->del.isDefined = is_defined;}
+  ConstTemporalUnit(bool is_defined):StandardTemporalUnit<Alpha>(is_defined)
+  { }
 
   ConstTemporalUnit( const Interval<Instant>& _interval, const Alpha& a ):
     StandardTemporalUnit<Alpha>( _interval )
@@ -3221,6 +3221,9 @@ bool Interval<Alpha>::IsValid() const
 template <class Alpha>
 Interval<Alpha>& Interval<Alpha>::operator=( const Interval<Alpha>& i )
 {
+  if(!i.IsValid()){
+    cout << "invalid interval : " << i << endl;
+  }
   assert( i.IsValid() );
 
   start.CopyFrom( &i.start );

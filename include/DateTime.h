@@ -61,16 +61,7 @@ namespace datetime {
   // milliseconds of a single day
 #define MILLISECONDS 86400000L
 
-  // defining macros for used integer types.
-  //  on 32-bit systems, pointer, int and long all have 32bit
-  //  on LP64 systems (e.g. linux64), pointers and long have 64bit, while
-  //                  int still has 32 bits. Therefore, we use int instead of
-  //                  long here. One could also use ANSI c99 types like
-  // #include <stdint.h>
-  // #define LONGTYPE int32_t
-  //                  instead.
-#define LONGTYPE int
-#define LDIV_T div_t
+
 /*
 ~The Time Reference Point ~
 
@@ -91,7 +82,6 @@ enum TimeType  {instanttype, durationtype};
 ~some constants for a compact represnetation of flags~
 
 */
-static const unsigned char DEF_POS = 1;
 static const unsigned char INSTANT_POS = 2;
 static const unsigned char DURATION_POS = 4;
 
@@ -131,9 +121,12 @@ This constructor creates a DateTime instance at the specified
 day, milliseconds and TimeType.
 
 */
-     DateTime(const LONGTYPE Day,
-              const LONGTYPE MilliSeconds,
+     DateTime(const int Day,
+              const int MilliSeconds,
               const TimeType type);
+
+     DateTime( const TimeType t, const uint64_t v);
+
 
 /*
 ~Constructor~
@@ -144,6 +137,16 @@ argument.
 */
 
      DateTime(const DateTime& DT);
+
+/*
+~Constructor~
+
+Creates an instant from a given value
+
+*/
+     DateTime(const int64_t v);
+
+
 
 /*
 ~Constructor~
@@ -188,7 +191,7 @@ This function returns the day part of a duration.
 ~GetDay~ is only defined for duration types.
 
 */
-     LONGTYPE GetDay()const;
+     int64_t GetDay()const;
 
 /*
 ~GetAllMilliseconds~
@@ -197,7 +200,7 @@ The function ~GetMilliseconds~ returns the time part of the day.
 The result will be in interval [ 0, 86400000 ].
 
 */
-     LONGTYPE GetAllMilliSeconds()const;
+     int32_t GetAllMilliSeconds()const;
 
 /*
 ~Access Functions~
@@ -207,22 +210,15 @@ In the comment the value range of the result is given.
 All this functions can only applied to instant types.
 
 */
-     int GetGregDay()const;        // [1..31]
-     int GetMonth()const;          // [1..12]
-     LONGTYPE GetYear()const;           //  int / {0}
-     int GetHour()const;           // [0..23]
-     int GetMinute()const;         // [0..59]
-     int GetSecond()const;        // [0..59]
-     int GetMillisecond()const;   // [0..999]
-     int GetWeekday()const;       // [0..6] <=> [Monday .. Sunday]
+     int32_t GetGregDay()const;        // [1..31]
+     int32_t GetMonth()const;          // [1..12]
+     int32_t GetYear()const;           //  int / {0}
+     int32_t GetHour()const;           // [0..23]
+     int32_t GetMinute()const;         // [0..59]
+     int32_t GetSecond()const;        // [0..59]
+     int32_t GetMillisecond()const;   // [0..999]
+     int32_t GetWeekday()const;       // [0..6] <=> [Monday .. Sunday]
 
-/*
-~Destroy~
-
-The familiar ~Destroy~ function included in the most algebras.
-
-*/
-     void Destroy();
 
 /*
 ~Conversion from and into other formats~
@@ -311,15 +307,6 @@ double value.
 */
     double ToDouble() const;
 
-/*
-~ToBigInt~
-
-If this DateTime is a duration, the returned value is the
-duration in milliseconds. Otherwise (an instant type), the returned
-values represents the distance to the NULLDAY in milliseconds.
-
-*/
-    BigInt<8> ToBigInt() const;
 
 /*
 ~CompareTo~
@@ -372,7 +359,7 @@ The allowed signatures for Minus are:\\
 For the ~Mul~ function  the this object must be of type {\tt duration}.
 
 */
-     void Mul(const LONGTYPE factor);
+     void Mul(const int32_t factor);
 
 /*
 ~Mul~
@@ -394,7 +381,7 @@ The result will be of type integer. The remainder is returned
 in the corresponding argument - also as duration type -.
 
 */
-    LONGTYPE Div(DateTime dividend, DateTime& remainder,bool& overflow);
+    int64_t Div(const DateTime& dividend, DateTime& remainder);
 
 
 /*
@@ -406,7 +393,7 @@ while the ~+~ operator creates a new one. The allowed timetypes are the
 same like in the ~Add~ function.
 
 */
-    DateTime operator+(const DateTime T2)const;
+    DateTime operator+(const DateTime& T2)const;
 
 /*
 ~Operator +=~
@@ -434,7 +421,7 @@ This operator computes the difference between two DateTime instances.
 The allowed arguments are the same like in the ~Minus~ function.
 
 */
-    DateTime operator-(const DateTime T2)const;
+    DateTime operator-(const DateTime& T2)const;
 
 /*
 ~Operator /~
@@ -442,7 +429,7 @@ The allowed arguments are the same like in the ~Minus~ function.
 This Operator divides a DateTime by another dateTime
 
 */
-    double operator/(const DateTime T2)const;
+    double operator/(const DateTime& T2)const;
 
 /*
 ~Operator /~
@@ -450,7 +437,7 @@ This Operator divides a DateTime by another dateTime
 This Operator divides a DateTime (durationtype) by a LONGTYPE
 
 */
-    DateTime operator/(const LONGTYPE divisor)const;
+    DateTime operator/(const int32_t divisor)const;
 
 /*
 ~Operator multiply~
@@ -458,19 +445,19 @@ This Operator divides a DateTime (durationtype) by a LONGTYPE
 This Operator multiplies a DateTime by a int and double number
 
 */
-    DateTime operator*(const LONGTYPE factor)const;
+    DateTime operator*(const int32_t factor)const;
     DateTime operator*(const double factor)const;
 
 /*
 ~Operators for Comparisions~
 
 */
-    bool operator==(const DateTime T2)const;
-    bool operator!=(const DateTime T2)const;
-    bool operator<(const DateTime T2)const;
-    bool operator>(const DateTime T2)const;
-    bool operator<=(const DateTime T2)const;
-    bool operator>=(const DateTime T2)const;
+    bool operator==(const DateTime& T2)const;
+    bool operator!=(const DateTime& T2)const;
+    bool operator<(const DateTime& T2)const;
+    bool operator>(const DateTime& T2)const;
+    bool operator<=(const DateTime& T2)const;
+    bool operator>=(const DateTime& T2)const;
 
 
 /*
@@ -516,7 +503,9 @@ This functions checks if the combination of the argument values
 build a valid date.
 
 */
-     bool IsValid(const int year,const int month,const int day)const;
+     bool IsValid(const int32_t year,
+                  const int32_t month,
+                  const int32_t day)const;
 
 /*
 ~Now~
@@ -642,13 +631,12 @@ delta in [0,1].
 
   inline virtual size_t SerializedSize() const
   {
-    return (2 * sizeof(LONGTYPE)) + sizeof(TimeType) + 1;
+    return sizeof(int64_t) + sizeof(TimeType) + 1;
   }
 
   inline virtual void Serialize(char* storage, size_t sz, size_t offset) const
   {
-    WriteVar<LONGTYPE>(day, storage, offset);
-    WriteVar<LONGTYPE>(milliseconds, storage, offset);
+    WriteVar<int64_t>(value, storage, offset);
     WriteVar<bool>(del.isDefined,storage,offset);
     WriteVar<TimeType>(type, storage, offset);
   }
@@ -656,8 +644,7 @@ delta in [0,1].
   inline virtual void Rebuild(char* state,  size_t sz )
   {
     size_t offset = 0;
-    ReadVar<LONGTYPE>(day, state, offset);
-    ReadVar<LONGTYPE>(milliseconds, state, offset);
+    ReadVar<int64_t>(value, state, offset);
     ReadVar<bool>(del.isDefined, state, offset);
     ReadVar<TimeType>(type, state, offset);
   }
@@ -675,14 +662,14 @@ This function returns the type of this DateTime;
 
   private:
     // the data-part of datetime
-    LONGTYPE day;
-    LONGTYPE milliseconds;
     TimeType type;
+    int64_t value;
     // a few functions for internal use
-    LONGTYPE ToJulian(const int year, const int month,const int day) const;
-    void ToGregorian(const LONGTYPE Julian, LONGTYPE  &year,
-                     int &month, int &day) const;
+    int32_t ToJulian(const int year, const int month,const int day) const;
+    void ToGregorian(const int32_t Julian, int32_t  &year,
+                     int32_t &month, int32_t &day) const;
 
+    void ToGregorian(int32_t  &year, int32_t &month, int32_t &day) const;
 };
 
 Word InInstant( const ListExpr typeInfo, const ListExpr instance,

@@ -1425,7 +1425,7 @@ static void MPointInsideLine(const MPoint& mp, const Line& ln, Periods& pResult)
 
     for( int n = 0; n < ln.Size(); n++)
     {
-      Instant t;
+      Instant t(instanttype);
       ln.Get(n, l);
 
       if(TLA_DEBUG){
@@ -2004,7 +2004,7 @@ void MovingPointCompareMM( const MPoint& p1, const MPoint& p2, MBool& result,
       }
     }
     else if(t > 0.0 && t < 1.0){
-      Instant time;
+      Instant time(instanttype);
       time.ReadFrom(t  * (iv.end.ToDouble() - iv.start.ToDouble())
                        + iv.start.ToDouble());
       time.SetType(instanttype);
@@ -2117,7 +2117,7 @@ void MovingPointCompareMS( const MPoint& p1, const Point& p2, MBool& result,
       }
     }
     else if(t > 0.0 && t < 1.0) {
-      Instant time;
+      Instant time(instanttype);
       time.ReadFrom(t  * (iv.end.ToDouble() - iv.start.ToDouble())
                      + iv.start.ToDouble());
       time.SetType(instanttype);
@@ -2319,7 +2319,7 @@ void MovingRegionCompareMS( MRegion *mr, const Region *r, MBool *result,
         if((tpoint > 0.0 && tpoint < 1.0)
          || (tpoint == 0.0 && ur.timeInterval.lc)
          || (tpoint == 1.0 && ur.timeInterval.rc)){
-          Instant t;
+          Instant t(instanttype);
           t.ReadFrom((ur.timeInterval.end.ToDouble()
                     - ur.timeInterval.start.ToDouble()) * tpoint
                     + ur.timeInterval.start.ToDouble());
@@ -2518,7 +2518,7 @@ void MovingRegionCompareMM( MRegion *mr1, MRegion *mr2, MBool *result,
           ts = te;
         if((ts == 0.0 && !iv.lc) || (ts == 1.0 && !iv.rc))
           continue;
-        Instant t;
+        Instant t(instanttype);
         t.ReadFrom((iv.end.ToDouble() - iv.start.ToDouble()) * ts
                   + iv.start.ToDouble());
         t.SetType(instanttype);
@@ -2557,7 +2557,7 @@ void MovingRegionCompareMM( MRegion *mr1, MRegion *mr2, MBool *result,
       Region snapshot2(0);
       if(TLA_DEBUG)
         cout<<"uregions are possibly equal. Create snapshots"<<endl;
-      Instant time;
+      Instant time(instanttype);
       time.ReadFrom(0.1  * (iv.end.ToDouble() - iv.start.ToDouble())
                          + iv.start.ToDouble());
       time.SetType(instanttype);
@@ -3018,7 +3018,7 @@ static void MPointInsidePoints( const MPoint& mp, const Points& ps,
       else if((time  > 0.0 && time < 1.0)
               || (time == 0.0 && up.timeInterval.lc)
               || (time == 1.0 && up.timeInterval.rc)){
-        Instant t;
+        Instant t(instanttype);
         t.ReadFrom((up.timeInterval.end.ToDouble()
                   - up.timeInterval.start.ToDouble()) * time
                   + up.timeInterval.start.ToDouble());
