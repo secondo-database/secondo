@@ -110,12 +110,7 @@ enum SimpleConnector {
   b_ba_a=33554432
 };
 
-string StrSimpleConnectors[]= {"aabb"  , "bbaa"  ,  "aa.bb"  ,  "bb.aa"  ,
-  "abab"  ,  "baba"  ,  "baab"  ,  "abba"  ,  "a.bab"  ,  "a.bba"  ,
-  "baa.b"  ,  "aba.b"  ,  "a.ba.b"  ,  "a.abb"  ,  "a.a.bb"  ,
-  "ba.ab"  ,  "bb.a.a"  ,  "bba.a"  ,  "b.baa"  ,  "b.b.aa"  ,
-  "ab.ba"  ,  "aa.b.b"  ,  "aab.b"  ,  "a.ab.b"  ,  "a.a.b.b"  ,
-  "b.ba.a"  };
+
 
 /*
 4 Classes
@@ -378,7 +373,7 @@ call it before processing every tuple in order to reintialize the CSP.
 
 */
   int Clear();
-}csp;
+};
 
 
 } // namespace STP
