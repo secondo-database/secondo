@@ -167,7 +167,7 @@ This constructor makes nothing and should never be called.
 It is used in a special way in a cast function.
 
 */
-DateTime::DateTime(){}
+DateTime::DateTime():IndexableAttribute(){}
 
 
 
@@ -179,6 +179,7 @@ duration zero, respectively.
 
 */
 DateTime::DateTime(const TimeType type1):
+  IndexableAttribute(true),
   day(0),milliseconds(0),type(type1){
   del.isDefined = true;
  }
@@ -193,6 +194,7 @@ The Value of MilliSeconds has to be greater than or equals to zero.
 DateTime::DateTime(const LONGTYPE Day,
                    const LONGTYPE MilliSeconds,
                    const TimeType Type):
+  IndexableAttribute(true),
   day(Day), milliseconds(MilliSeconds),type(Type)
 {
    assert(MilliSeconds>=0);
@@ -212,6 +214,7 @@ argument.
 
 */
 DateTime::DateTime(const DateTime& DT):
+    IndexableAttribute(DT.IsDefined()),
    day(DT.day), milliseconds(DT.milliseconds),type(DT.type)
    {
    del.isDefined = DT.del.isDefined;
