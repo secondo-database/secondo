@@ -895,7 +895,7 @@ void Point::Intersection(const Point& p, Points& result) const{
   result.SetDefined(true);
   if(AlmostEqual(*this, p)){
     result += *this;
-  } 
+  }
 }
 void Point::Intersection(const Points& ps, Points& result) const{
   ps.Intersection(*this, result);
@@ -920,7 +920,7 @@ void Point::Minus(const Point& p, Points& result) const{
   if(!AlmostEqual(*this, p)){
      result += *this;
   }
- 
+
 }
 void Point::Minus(const Points& ps, Points& result) const{
   result.Clear();
@@ -929,9 +929,9 @@ void Point::Minus(const Points& ps, Points& result) const{
     return;
   }
   result.SetDefined(true);
-  
+
   if(!ps.Contains(*this)){
-    result += *this;   
+    result += *this;
   }
 }
 
@@ -1882,7 +1882,7 @@ void Points::Intersection(const Point& p, Points& result) const{
    result.Clear();
    if(!IsDefined() || ! p.IsDefined()){
      result.SetDefined(false);
-     return;  
+     return;
    }
    if(this->Contains(p)){
       result += p;
@@ -4382,7 +4382,7 @@ void Line::Intersection(const Points& ps, Points& result) const{
      if(this->Contains(p)){
         result += p;
      }
-   } 
+   }
    result.EndBulkLoad(false,false,false);
 }
 
@@ -7415,17 +7415,17 @@ void Region::Intersection(const Points& ps, Points& result) const{
     if(this->Contains(p)){
       result += p;
     }
-  } 
+  }
   result.EndBulkLoad(false,false,false);
 }
 
 void Region::Intersection(const Line& l, Line& result) const{
-  SetOp(l,*this,result,avlseg::intersection_op);  
+  SetOp(l,*this,result,avlseg::intersection_op);
 }
 
 
 void Region::Intersection(const Region& r, Region& result) const{
-  SetOp(*this,r,result,avlseg::intersection_op);  
+  SetOp(*this,r,result,avlseg::intersection_op);
 }
 
 void Region::Union(const Point& p, Region& result) const{
@@ -16064,29 +16064,29 @@ int SpatialSetOpSelect(ListExpr args){
     if(a2==symbols::POINT)  return 0;
     if(a2==symbols::POINTS) return 1;
     if(a2==symbols::LINE)   return 2;
-    if(a2==symbols::REGION) return 3; 
+    if(a2==symbols::REGION) return 3;
     return -1;
   }
   if(a1==symbols::POINTS){
     if(a2==symbols::POINT)  return 4;
     if(a2==symbols::POINTS) return 5;
     if(a2==symbols::LINE)   return 6;
-    if(a2==symbols::REGION) return 7; 
+    if(a2==symbols::REGION) return 7;
     return -1;
   }
   if(a1==symbols::LINE){
     if(a2==symbols::POINT)  return 8;
     if(a2==symbols::POINTS) return 9;
     if(a2==symbols::LINE)   return 10;
-    if(a2==symbols::REGION) return 11; 
+    if(a2==symbols::REGION) return 11;
     return -1;
   }
-  
+
   if(a1==symbols::REGION){
     if(a2==symbols::POINT)  return 12;
     if(a2==symbols::POINTS) return 13;
     if(a2==symbols::LINE)   return 14;
-    if(a2==symbols::REGION) return 15; 
+    if(a2==symbols::REGION) return 15;
     return -1;
   }
   return -1;
@@ -19041,7 +19041,7 @@ ValueMapping spatialintersectionVM[] = {
   SpatialIntersectionGeneric<Point, Points, Points>,
   SpatialIntersectionGeneric<Point, Line, Points>,
   SpatialIntersectionGeneric<Point, Region, Points>,
-  
+
   SpatialIntersectionGeneric<Points, Point, Points>,
   SpatialIntersectionGeneric<Points, Points, Points>,
   SpatialIntersectionGeneric<Points, Line, Points>,
@@ -19064,7 +19064,7 @@ ValueMapping spatialminusVM[] = {
   SpatialMinusGeneric<Point, Points, Points>,
   SpatialMinusGeneric<Point, Line, Points>,
   SpatialMinusGeneric<Point, Region, Points>,
-  
+
   SpatialMinusGeneric<Points, Point, Points>,
   SpatialMinusGeneric<Points, Points, Points>,
   SpatialMinusGeneric<Points, Line, Points>,
@@ -19088,7 +19088,7 @@ ValueMapping spatialunionVM[] = {
   SpatialUnionGeneric<Point, Points, Points>,
   SpatialUnionGeneric<Point, Line, Line>,
   SpatialUnionGeneric<Point, Region, Region>,
-  
+
   SpatialUnionGeneric<Points, Point, Points>,
   SpatialUnionGeneric<Points, Points, Points>,
   SpatialUnionGeneric<Points, Line, Line>,
@@ -19344,7 +19344,7 @@ const string SpatialIntersectionSpec  =
   "( <text>{point x points, line, region } x"
   "   {point, points, line, region} -> T, "
   " where T = points if any point or point type is one of the "
-  " arguments or the argument having the smaller dimension </text--->" 
+  " arguments or the argument having the smaller dimension </text--->"
   "<text>intersection(arg1, arg2)</text--->"
   "<text>intersection of two spatial objects</text--->"
   "<text>query intersection(tiergarten, thecenter) </text--->"
@@ -19355,7 +19355,7 @@ const string SpatialMinusSpec  =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
   "( <text>{point x points, line, region } x"
   "   {point, points, line, region} -> T "
-  " </text--->" 
+  " </text--->"
   "<text>minus(arg1, arg2)</text--->"
   "<text>difference of two spatial objects</text--->"
   "<text>query minus(tiergarten,  thecenter) </text--->"
@@ -19365,10 +19365,10 @@ const string SpatialUnionSpec  =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
   "( <text>{point x points, line, region } x"
   "   {point, points, line, region} -> T "
-  " </text--->" 
-  "<text>union(arg1, arg2)</text--->"
+  " </text--->"
+  "<text>arg1 union arg2</text--->"
   "<text>union of two spatial objects</text--->"
-  "<text>query union(tiergarten,  thecenter) </text--->"
+  "<text>query tiergarten union thecenter </text--->"
   ") )";
 
 const string SpatialSpecCrossings  =
