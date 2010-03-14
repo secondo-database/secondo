@@ -6222,8 +6222,7 @@ Word InConstTemporalUnit( const ListExpr typeInfo,
 {
   string errmsg;
 
-  if( nl->ListLength( instance ) == 2 &&
-      nl->IsAtom( nl->Second( instance ) ) )
+  if( nl->ListLength( instance ) == 2 )
   {
     //1. deal with the time interval
     ListExpr first = nl->First( instance );
