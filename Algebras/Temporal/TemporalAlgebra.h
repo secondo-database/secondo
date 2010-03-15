@@ -5664,10 +5664,10 @@ void Mapping<Unit, Alpha>::DefTime( Periods& r ) const
   for( int i = 0; i < GetNoComponents(); i++ )
   {
     Get( i, unit );
-    result.MergeAdd( unit.timeInterval );
+    result.Add( unit.timeInterval );
   }
   result.EndBulkLoad( false );
-  //result.Merge( r );
+  result.Merge( r );
 }
 
 template <class Unit, class Alpha>
