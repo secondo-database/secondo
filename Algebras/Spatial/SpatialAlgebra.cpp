@@ -2516,17 +2516,17 @@ Word
 InPoints( const ListExpr typeInfo, const ListExpr instance,
        const int errorPos, ListExpr& errorInfo, bool& correct )
 {
-  Points* points = new Points( max(0,nl->ListLength( instance) ) );
-  points->SetDefined( true );
   if(nl->IsEqual(instance,"undef")) {
+      Points* points = new Points(0);
       points->Clear();
       points->SetDefined(false);
       correct=true;
       return SetWord( Address(points) );
   }
-
+  Points* points = new Points( max(0,nl->ListLength( instance) ) );
+  points->SetDefined( true );
   if(nl->AtomType(instance)!=NoAtom) {
-    delete points;
+    points->DeleteIfAllowed();
     correct = false;
     cout << __PRETTY_FUNCTION__ << ": Unexpected Atom!" << endl;
     return SetWord( Address(points) );
@@ -7937,7 +7937,7 @@ void Region::Components( vector<Region*>& components )
     *r += aux;
   }
 
-  delete copy;
+  copy->DeleteIfAllowed();
 
   for( size_t i = 0; i < components.size(); i++ )
     components[i]->EndBulkLoad();
@@ -13946,7 +13946,7 @@ InRegion( const ListExpr typeInfo, const ListExpr instance,
             else
               //To implement the test
             */
-            delete rDir;
+            rDir->DeleteIfAllowed();
             //After the end of the first cycle of the face,
             //all the following cycles are
             //holes, then isCycle is set to false.

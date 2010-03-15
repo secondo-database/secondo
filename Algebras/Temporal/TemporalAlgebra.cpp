@@ -1234,7 +1234,7 @@ int UReal::Abs(vector<UReal>& result) const
     result.push_back(newunit);
   }
 
-  delete eqPeriods;
+  eqPeriods->DeleteIfAllowed();
   return result.size();
 }
 
@@ -1331,7 +1331,7 @@ int UReal::Distance(const UReal& other, vector<UReal>& result) const
                    (opcode == 5 && cmpres >= 0)    );// >=
     newunit = UBool(iv, CcBool(true, compresult));
     res.push_back(newunit);
-    delete eqPeriods;
+    eqPeriods->DeleteIfAllowed();
     return ;
   }
   // case: numEq > 0, at least one instant of equality
@@ -1406,7 +1406,7 @@ int UReal::Distance(const UReal& other, vector<UReal>& result) const
     res.push_back(newunit);
   }
   eqPeriods->Destroy();
-  delete eqPeriods;
+  eqPeriods->DeleteIfAllowed();
   return ;
 }
 
@@ -10770,7 +10770,7 @@ int DelayOperatorValueMapping( ArgVector args, Word& result,
 	MReal* delay= (MReal*) qp->ResultStorage(s).addr;
 	MReal* tmp= pScheduled->DelayOperator(pActual);
 	delay->CopyFrom(tmp);
-	delete tmp;
+	tmp->DeleteIfAllowed();
 	result= SetWord(delay);
 	if(debugme)
 	{
@@ -10798,7 +10798,7 @@ int DistanceTraversedOperatorValueMapping( ArgVector args, Word& result,
 
 	MReal* tmp= p->DistanceTraversed();
 	dist->CopyFrom(tmp);
-	delete tmp;
+	tmp->DeleteIfAllowed();
 	result= SetWord(dist);
 	if(debugme)
 	{

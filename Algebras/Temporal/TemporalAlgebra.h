@@ -414,6 +414,16 @@ Merges a range into ~result~ concatenating adjacent intervals.
 
 */
 
+    void MergeAdd(const Interval<Alpha>& i);
+/*
+
+Adds an interval at the end of that Range. If the last interval and the i can be 
+merged, the last interval is extended by the new one.
+
+*/
+
+
+
     void Clear();
 /*
 Remove all intervals in the range.
@@ -3570,6 +3580,30 @@ void Range<Alpha>::Add( const Interval<Alpha>& interval )
   intervals.Append( interval );
 }
 
+template<class Alpha>
+void Range<Alpha>::MergeAdd(const Interval<Alpha>& interval){
+  assert(IsDefined());
+  assert(interval.IsValid());
+  if(intervals.Size()==0){
+    intervals.Append(interval);
+  } else {
+    Interval<Alpha> last;
+    intervals.Get(intervals.Size()-1, last);
+    if (last.Adjacent(interval)){
+      last.end = interval.end;
+      last.rc = interval.rc; 
+      intervals.Put(intervals.Size()-1, last);
+    }  else {
+      intervals.Append(interval);
+    }
+
+  }
+
+
+}
+
+
+
 template <class Alpha>
 void Range<Alpha>::Clear()
 {
@@ -5630,10 +5664,10 @@ void Mapping<Unit, Alpha>::DefTime( Periods& r ) const
   for( int i = 0; i < GetNoComponents(); i++ )
   {
     Get( i, unit );
-    result.Add( unit.timeInterval );
+    result.MergeAdd( unit.timeInterval );
   }
   result.EndBulkLoad( false );
-  result.Merge( r );
+  //result.Merge( r );
 }
 
 template <class Unit, class Alpha>

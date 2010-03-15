@@ -1385,7 +1385,7 @@ static void MovingRealCompareMS(const MReal& op1, const CcReal& op2, MBool&
   else
     MovingRealCompareMM2(*mop2, op1, result, op);
 
-  delete mop2;
+  mop2->DeleteIfAllowed();
 }
 
 /*
@@ -1837,8 +1837,8 @@ static void MPointInsideLine(const MPoint& mp, const Line& ln, Periods& pResult)
         pResult.CopyFrom(period);
     }
   }
-  delete between;
-  delete period;
+  between->DeleteIfAllowed();
+  period->DeleteIfAllowed();
 }
 
 /*
@@ -2346,8 +2346,8 @@ void MovingRegionCompareMS( MRegion *mr, const Region *r, MBool *result,
             pResult->CopyFrom(period);
           }
         }
-      delete period;
-      delete between;
+      period->DeleteIfAllowed();
+      between->DeleteIfAllowed();
       Interval<Instant> per;
       for(int i = 0; i < pResult->GetNoComponents(); i++){
         Region snapshot(0);
@@ -2397,7 +2397,7 @@ void MovingRegionCompareMS( MRegion *mr, const Region *r, MBool *result,
           if(TLA_DEBUG)
             cout<<"r != snapshot"<<endl;
       }
-      delete pResult;
+      pResult->DeleteIfAllowed();
     }
   }
   result->EndBulkLoad(false);
@@ -2543,8 +2543,8 @@ void MovingRegionCompareMM( MRegion *mr1, MRegion *mr2, MBool *result,
           pResult->CopyFrom(period);
       }
     }
-    delete period;
-    delete between;
+    period->DeleteIfAllowed();
+    between->DeleteIfAllowed();
 
     if(uregionPerhapsEqual){
       /*
@@ -2657,7 +2657,7 @@ void MovingRegionCompareMM( MRegion *mr1, MRegion *mr2, MBool *result,
         if(TLA_DEBUG)
           cout<<"snapshot not equal"<<endl;
     }
-    delete pResult;
+    pResult->DeleteIfAllowed();
     if(!finished){
       uBool.timeInterval = iv;
       uBool.constValue.Set(true, (op == 0) ? false : true);
@@ -3048,8 +3048,8 @@ static void MPointInsidePoints( const MPoint& mp, const Points& ps,
       }
     }
   }
-  delete between;
-  delete period;
+  between->DeleteIfAllowed();
+  period->DeleteIfAllowed();
 }
 
 /*
@@ -3661,7 +3661,7 @@ void copyRegionMPoint(const Region& reg, const MPoint& pt, MRegion& result) {
   result.SetDefined( true );
   MRegion* res = new MRegion(pt, reg);
   result.CopyFrom(res);
-  delete res;
+  res->DeleteIfAllowed();
 }
 
 /*
@@ -3712,11 +3712,11 @@ void copyMRegionMPoint(const MRegion& reg, const MPoint& pt, MRegion& result) {
     Periods* pers = new Periods(0);
     pers->Clear();
     per->Merge(*pers);
-    delete per;
+    per->DeleteIfAllowed();
     result.Clear();
     //restrictMRegion2periods(reg, pers, result);
     //not possible, because it is not implemented yet.
-    delete pers;
+    pers->DeleteIfAllowed();
 }
 
 /*
@@ -4997,7 +4997,7 @@ int MPointPointsInside( Word* args, Word& result, int message,
     CompletePeriods2MPoint(((MPoint*)args[0].addr), pResult, endResult);
   }
 
-  delete pResult;
+  pResult->DeleteIfAllowed();
 
   return 0;
 }
@@ -5027,7 +5027,7 @@ int MPointLineInside( Word* args, Word& result, int message,
     CompletePeriods2MPoint(((MPoint*)args[0].addr), pResult, endResult);
   }
 
-  delete pResult;
+  pResult->DeleteIfAllowed();
 
   return 0;
 }
@@ -5087,7 +5087,7 @@ int PointsMPointIntersection( Word* args, Word& result, int message,
   MPoint* endResult = (MPoint*)result.addr;
   CompletePeriods2MPoint(((MPoint*)args[1].addr), pResult, endResult);
 
-  delete pResult;
+  pResult->DeleteIfAllowed();
 
   return 0;
 }
@@ -5109,7 +5109,7 @@ int LineMPointIntersection( Word* args, Word& result, int message,
   MPoint* endResult = (MPoint*)result.addr;
   CompletePeriods2MPoint(((MPoint*)args[1].addr), pResult, endResult);
 
-  delete pResult;
+  pResult->DeleteIfAllowed();
 
   return 0;
 }
@@ -5194,7 +5194,7 @@ Word& local, Supplier s )
   }
   mop2->EndBulkLoad(false);
   MovingIntersectionMM<Mapping1, Mapping1, Unit1, Unit1>(*mop1,*mop2,*res,op);
-  delete mop2;
+  mop2->DeleteIfAllowed();
 
   return 0;
 }
@@ -5237,7 +5237,7 @@ int TemporalMSRealIntercept( Word* args, Word& result, int message,
   }
   mop2->EndBulkLoad(false);
   MovingRealIntersectionMM( *mop1, *mop2, *res, op);
-  delete mop2;
+  mop2->DeleteIfAllowed();
 
   return 0;
 }
@@ -5485,7 +5485,7 @@ int TemporalSMIntersection( Word* args, Word& result, int message,
   }
   mop1->EndBulkLoad(false);
   MovingIntersectionMM<Mapping1, Mapping1, Unit1, Unit1>(*mop1,*mop2,*res,op);
-  delete mop1;
+  mop1->DeleteIfAllowed();
 
   return 0;
 }
@@ -5533,7 +5533,7 @@ int TemporalSMRealIntercept( Word* args, Word& result, int message,
   }
   mop1->EndBulkLoad(false);
   MovingRealIntersectionMM( *mop1, *mop2, *res, op);
-  delete mop1;
+  mop1->DeleteIfAllowed();
 
   return 0;
 }
@@ -5551,7 +5551,7 @@ int TemporalMMPointIntercept( Word* args, Word& result, int message,
     *((MPoint*)args[1].addr), *mBool, 0);
   MPoint* endResult = (MPoint*)result.addr;
   TransformMBool2MPoint(((MPoint*)args[0].addr), mBool, endResult);
-  delete mBool;
+  mBool->DeleteIfAllowed();
   return 0;
 }
 
@@ -5568,7 +5568,7 @@ int TemporalMSPointIntercept( Word* args, Word& result, int message,
     *((Point*)args[1].addr), *mBool, 0);
   MPoint* endResult = (MPoint*)result.addr;
   TransformMBool2MPoint(((MPoint*)args[0].addr), mBool, endResult);
-  delete mBool;
+  mBool->DeleteIfAllowed();
   return 0;
 }
 
@@ -5585,7 +5585,7 @@ int TemporalSMPointIntercept( Word* args, Word& result, int message,
     *((Point*)args[0].addr), *mBool, 0);
   MPoint* endResult = (MPoint*)result.addr;
   TransformMBool2MPoint(((Point*)args[0].addr), mBool, endResult);
-  delete mBool;
+  mBool->DeleteIfAllowed();
   return 0;
 }
 
@@ -5737,7 +5737,7 @@ int MRealMSDistance( Word* args, Word& result, int message,
   }
   mop2->EndBulkLoad(false);
   MRealDistanceMM( *mop1, *mop2, *res);
-  delete mop2;
+  mop2->DeleteIfAllowed();
 
   return 0;
 }
@@ -5777,7 +5777,7 @@ int MRealSMDistance( Word* args, Word& result, int message,
   }
   mop2->EndBulkLoad(false);
   MRealDistanceMM( *mop1, *mop2, *res );
-  delete mop2;
+  mop2->DeleteIfAllowed();
 
   return 0;
 }
