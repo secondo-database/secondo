@@ -72,6 +72,7 @@ This file contains the implementation import / export operators.
 #include "../../Tools/Flob/DbArray.h"
 #include "Symbols.h"
 #include "FileSystem.h"
+#include "ListUtils.h"
 
 extern NestedList* nl;
 extern QueryProcessor* qp;
@@ -112,8 +113,15 @@ ListExpr csvexportTM(ListExpr args){
        return nl->TypeError();
     }
     if(!am->CheckKind("CSVEXPORTABLE",nl->Second(stream),errorInfo)){
-       ErrorReporter::ReportError("stream element not in kind csvexportable");
-       return nl->TypeError();
+       if(listutils::isTupleStream(stream)){
+          return listutils::typeError("for processing a tuple stream one  "
+                                     "additional parameter is required"
+                                     " at least");
+
+       } else {
+         return listutils::typeError("stream element not in "
+                                     "kind csvexportable");
+       }
     }
     return stream;
   } else { // stream(tuple(...) )
@@ -385,13 +393,13 @@ int csvExportSelect( ListExpr args )
 
 const string CsvExportSpec  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-    "( <text>stream(X) x  string x bool -> stream(X)\n"
-    "stream(tuple(...))) x string x bool x bool "
+    "( <text>stream(X) x  text x bool -> stream(X)\n"
+    "stream(tuple(...))) x text x bool x bool "
     "[x string]-> stream(tuple...)</text--->"
     "<text> stream csvexport [ file , append, "
     "[writenames, [separator]]]</text--->"
     "<text> Exports stream content to a csv file </text--->"
-    "<text>query ten feed exportcsv[\"ten.csv\", "
+    "<text>query ten feed exportcsv['ten.csv', "
     "FALSE,TRUE,\";\"] count</text--->"
     ") )";
 

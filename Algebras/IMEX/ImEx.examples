@@ -3,20 +3,20 @@ Restore : No
 
 Operator : csvexport
 Number   : 1
-Signature: stream(t) x text x bool -> stream[t]
+Signature: stream(CVSEXPORTABLE) x text x bool -> stream[t]
 Example  : query intstream(1,10) csvexport['ten.csv', FALSE] count
 Result   : 10
 
 
 Operator : csvexport
 Number   : 2
-Signature: stream(tuple(...)) x text x bool -> stream[t]
+Signature: stream(tuple(...)) x text x bool  x bool -> stream[t]
 Example  : query intstream(1,10) transformstream csvexport['ten.csv', FALSE, TRUE] count
 Result   : 10
 
 Operator : csvexport
 Number   : 3
-Signature: stream(tuple(...)) x text x bool x string -> stream[t]
+Signature: stream(tuple(...)) x text x bool x x bool x string -> stream[t]
 Example  : query intstream(1,10) transformstream csvexport['ten2.csv', FALSE, TRUE, ";"] count
 Result   : 10
 
