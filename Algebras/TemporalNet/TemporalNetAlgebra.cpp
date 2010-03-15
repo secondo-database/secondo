@@ -3197,6 +3197,7 @@ stamp. Returns -1 if the time stamp is not found.
 
 */
 int MGPoint::Position(const Instant &ins, bool atinst /*=true*/) {
+  if(GetNoComponents() <= 0) return -1;
   int mid = -1;
   int first = 0;
   int last = GetNoComponents() - 1;
@@ -4317,10 +4318,10 @@ void  MGPoint::Simplify(double d, MGPoint* res){
 
     // Duration
     Instant xCurrentStartTime = pCurrentUnit.timeInterval.start;
-    LONGTYPE lCurrentStartTime = xCurrentStartTime.GetAllMilliSeconds();
+    int32_t lCurrentStartTime = xCurrentStartTime.GetAllMilliSeconds();
     Instant xCurrentEndTime = pCurrentUnit.timeInterval.end;
-    LONGTYPE lCurrentEndTime = xCurrentEndTime.GetAllMilliSeconds();
-    LONGTYPE lCurrentDuration = lCurrentEndTime - lCurrentStartTime;
+    int32_t lCurrentEndTime = xCurrentEndTime.GetAllMilliSeconds();
+    int32_t lCurrentDuration = lCurrentEndTime - lCurrentStartTime;
 
     // Distance
     GPoint xCurrentStart = pCurrentUnit.p0;
