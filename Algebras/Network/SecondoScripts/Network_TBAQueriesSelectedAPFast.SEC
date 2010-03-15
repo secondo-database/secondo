@@ -134,7 +134,8 @@ let Q7aTBA =
   Q7ah1TBA feed {a}
   Q7ah1TBA feed
     groupby [Id; FirstTime: group feed min[TimeAtPos]]{b}
-  symmjoin[(.Id_a = ..Id_b) and (.TimeAtPos_a <= ..FirstTime_b)]
+  symmjoin[(.Id_a = ..Id_b)]
+  filter[.TimeAtPos_a <= .FirstTime_b]
   project [Id_a, Licence_X_a]
   sortby [Id_a asc, Licence_X_a asc]
   krdup [Id_a, Licence_X_a]
@@ -325,52 +326,34 @@ consume;
 
 query now();
 
-let Q16h1TBA =
+let Q16bTBA =
   QueryLicences1 feed {l}
-  loopjoin [dataMcar_Licence_btree dataMcar exactmatch[.Licence_l]]
-  project [Licence, Moid] {a}
+  loopjoin [dataMcar_Licence_btree dataMcar exactmatch[.Licence_l]] {a}
   loopjoin[dataMNtrip_Moid_btree dataMNtrip exactmatch[.Moid_a]]
-  project[Licence_a, Trip] {c}
   QueryRegions1Net feed filter[not(isempty(.Region))]{r}
-  symmjoin [.Trip_c passes ..Region_r]
-  projectextend[Licence_a_c, Id_r; Trip: .Trip_c at .Region_r]
+  symmjoin [.Trip passes ..Region_r]
+  projectextend[Licence_a, Id_r; Trip: .Trip at .Region_r]
   QueryPeriods1 feed {p}
   symmjoin [.Trip present ..Period_p]
-  projectextend[Id_r, Id_p, Period_p; Licence: .Licence_a_c, Trip: .Trip atperiods .Period_p]
-  filter [no_components(.Trip) > 0]
-consume;
-
-query now();
-let Q16h2TBA =
+  projectextend[Id_r, Id_p, Period_p; Licence: .Licence_a, Trip: .Trip atperiods .Period_p]
+  filter [no_components(.Trip) > 0]{a}
   QueryLicences2 feed {l}
-  loopjoin [dataMcar_Licence_btree dataMcar exactmatch[.Licence_l]]
-  project [Licence, Moid] {a}
+  loopjoin [dataMcar_Licence_btree dataMcar exactmatch[.Licence_l]]{a}
   loopjoin[dataMNtrip_Moid_btree dataMNtrip exactmatch[.Moid_a]]
-  project[Licence_a, Trip] {c}
   QueryRegions1Net feed filter[not(isempty(.Region))]{r}
-  symmjoin [.Trip_c passes ..Region_r]
-  projectextend[Licence_a_c, Id_r; Trip: .Trip_c at .Region_r]
+  symmjoin [.Trip passes ..Region_r]
+  projectextend[Licence_a, Id_r; Trip: .Trip at .Region_r]
   QueryPeriods1 feed {p}
   symmjoin [.Trip present ..Period_p]
-  projectextend[Id_r, Id_p, Period_p; Licence: .Licence_a_c, Trip: .Trip atperiods .Period_p]
-  filter [no_components(.Trip) > 0]
-consume;
-
-query now();
-let Q16TBA =
-  Q16h1TBA feed {a}
-  Q16h2TBA feed {b}
+  projectextend[Id_r, Id_p, Period_p; Licence: .Licence_a, Trip: .Trip atperiods .Period_p]
+  filter [no_components(.Trip) > 0]{b}
   symmjoin[(.Id_r_a = ..Id_r_b) and (.Id_p_a = ..Id_p_b) and (.Licence_a # ..Licence_b) and
   (isempty(deftime(intersection(.Trip_a,..Trip_b))))]
   project [Id_r_a, Id_p_a, Period_p_a, Licence_a, Licence_b]
   sortby [Id_r_a asc, Id_p_a asc, Licence_a asc, Licence_b asc]
   krdup [Id_r_a, Id_p_a, Licence_a, Licence_b]
-  project[Id_r_a, Period_p_a, Licence_a, Licence_b]
 consume;
 
-query now();
-delete Q16h1TBA;
-delete Q16h2TBA;
 
 #Query 17: Which points from QueryPoints have been visited by a maximum number of different vehicles?
 
