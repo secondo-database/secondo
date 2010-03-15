@@ -753,6 +753,13 @@ Returns a mgpoint representing the intersection of 2 mgpoints
   void Intersection(MGPoint* &mgp, MGPoint *&res);
 
 /*
+Returns true if there exists a intersection of the two mgpoints
+
+*/
+
+  bool Intersects(MGPoint* mgp);
+
+/*
 Returns a mbool telling when the mgpoint was inside the gline.
 
 */

@@ -105,7 +105,7 @@ bool searchUnit(DbArray<RouteInterval> &rint, int low, int high,
 Returns true if the two given sets of ~RouteIntervals~ at least intersect once.
 
 */
-bool Intersects(DbArray<RouteInterval> &riint1,
+bool RIsIntersects(DbArray<RouteInterval> &riint1,
                DbArray<RouteInterval> &riint2,
                bool sortedri1,
                bool sortedri2){
@@ -3394,6 +3394,176 @@ void MGPoint::Intersection(MGPoint *&mgp, MGPoint *&res){
 }
 
 /*
+Returns true if the two mgpoint met at any point of their trips.
+
+*/
+
+bool MGPoint::Intersects(MGPoint *mgp)
+{
+  UGPoint pCurr1, pCurr2;
+  Get(0, pCurr1);
+  mgp->Get(0, pCurr2);
+  //Network *pNetwork = NetworkManager::GetNetwork(pCurr1.p0.GetNetworkId());
+  Network* pNetwork = GetNetwork();
+  if (!pNetwork->IsDefined() || pNetwork == NULL)
+  {
+    cerr << "Network does not exist."<< endl;
+    NetworkManager::CloseNetwork(pNetwork);
+    return false;
+  }
+  else
+  {
+    if (pCurr1.p0.GetNetworkId() != pCurr2.p0.GetNetworkId())
+    {
+      cerr <<"mgpoints belong to different networks." << endl;
+      NetworkManager::CloseNetwork(pNetwork);
+      return false;
+    }
+    else
+    {
+      MGPoint *resA = new MGPoint(0);
+      MGPoint *resB = new MGPoint(0);
+      refinementMovingGPoint (this, mgp, resA, resB);
+      if (resA == NULL || !resA->IsDefined() ||
+          resB == NULL || !resB->IsDefined() ||
+          resA->GetNoComponents() != resB->GetNoComponents ())
+      {
+        NetworkManager::CloseNetwork(pNetwork);
+        resA->DeleteIfAllowed();
+        resB->DeleteIfAllowed();
+        return false;
+      }
+      else
+      {
+        if (resA->GetNoComponents() < 1)
+        {
+          NetworkManager::CloseNetwork(pNetwork);
+          resA->DeleteIfAllowed();
+          resB->DeleteIfAllowed();
+          return false;
+        }
+        else
+        {
+          double interPosition;
+          Instant tinter, tinter2, tlast;
+          for (int i = 0; i < resA->GetNoComponents() ; i++)
+          {
+            resA->Get(i,pCurr1);
+            resB->Get(i,pCurr2);
+            if (pCurr1.p0.GetRouteId() == pCurr2.p0.GetRouteId())
+            {
+              if (pCurr1.p0.GetPosition() == pCurr2.p0.GetPosition() &&
+                  pCurr1.p1.GetPosition() == pCurr2.p1.GetPosition())
+              {
+                NetworkManager::CloseNetwork(pNetwork);
+                resA->DeleteIfAllowed();
+                resB->DeleteIfAllowed();
+                return true;
+              }
+              else
+              {
+                tinter =
+                  (pCurr1.timeInterval.end - pCurr1.timeInterval.start)
+                    * ((pCurr2.p0.GetPosition() - pCurr1.p0.GetPosition())/
+                  (pCurr1.p1.GetPosition() - pCurr1.p0.GetPosition()-
+                     pCurr2.p1.GetPosition() + pCurr2.p0.GetPosition()))+
+                       pCurr1.timeInterval.start;
+                if (pCurr1.timeInterval.start <= tinter &&
+                    tinter <= pCurr1.timeInterval.end)
+                {
+                  interPosition = pCurr1.p0.GetPosition() +
+                      (((pCurr1.p1.GetPosition() - pCurr1.p0.GetPosition())*
+                      (tinter.ToDouble()-pCurr1.timeInterval.start.ToDouble())
+                              / (pCurr1.timeInterval.end.ToDouble() -
+                              pCurr1.timeInterval.start.ToDouble())));
+                  bool ok = true;
+                  if (pCurr1.p0.GetPosition()!= pCurr1.p1.GetPosition())
+                  {
+                    if (fabs(interPosition - pCurr1.p0.GetPosition()) < 0.01)
+                      ok = ok && pCurr1.timeInterval.lc;
+                    if (fabs(interPosition - pCurr1.p1.GetPosition()) < 0.01)
+                      ok = ok && pCurr1.timeInterval.rc;
+                  }
+                  else
+                    if (fabs(interPosition - pCurr1.p0.GetPosition()) < 0.01)
+                      ok = true;
+                    else ok = false;
+                    if(pCurr2.p0.GetPosition() != pCurr2.p1.GetPosition())
+                    {
+                      if (fabs(interPosition - pCurr2.p0.GetPosition()) < 0.01)
+                        ok = ok && pCurr2.timeInterval.lc;
+                      if (fabs(interPosition - pCurr2.p1.GetPosition()) < 0.01)
+                        ok = ok && pCurr2.timeInterval.rc;
+                    }
+                    else
+                      if (fabs(interPosition-pCurr2.p0.GetPosition()) < 0.01)
+                        ok = true;
+                      else ok = false;
+                    if (ok)
+                    {
+                      NetworkManager::CloseNetwork(pNetwork);
+                      resA->DeleteIfAllowed();
+                      resB->DeleteIfAllowed();
+                      return true;
+                    }
+                  }
+                }
+              }
+              else
+              {
+                CcInt *pRid1 = new CcInt(true,pCurr1.p0.GetRouteId());
+                CcInt *pRid2 = new CcInt(true,pCurr2.p0.GetRouteId());
+                double r1meas = numeric_limits<double>::max();
+                double r2meas = numeric_limits<double>::max();
+                pNetwork->GetJunctionMeasForRoutes(pRid1,pRid2,r1meas,r2meas);
+                if ((r1meas != numeric_limits<double>::max() &&
+                   r2meas != numeric_limits<double>::max())&&
+                    (((pCurr1.p0.GetPosition() <= r1meas &&
+                    r1meas <= pCurr1.p1.GetPosition()) ||
+                      (pCurr1.p0.GetPosition() >= r1meas &&
+                       r1meas >= pCurr1.p1.GetPosition())) &&
+                        ((pCurr2.p0.GetPosition() <= r2meas &&
+                        r2meas <= pCurr2.p1.GetPosition()) ||
+                        (pCurr2.p0.GetPosition() >= r2meas &&
+                        r2meas >= pCurr2.p1.GetPosition()))))
+                {
+                  UGPoint pCurr = pCurr1;
+                  tinter = pCurr.TimeAtPos(r1meas);
+                  pCurr = pCurr2;
+                  tinter2 = pCurr.TimeAtPos(r2meas);
+                  if (tinter == tinter2)
+                  {
+                    bool ok = true;
+                    if (fabs(r1meas - pCurr1.p0.GetPosition()) < 0.01)
+                      ok = ok && pCurr1.timeInterval.lc;
+                    if (fabs(r1meas - pCurr1.p1.GetPosition()) < 0.01)
+                      ok = ok && pCurr1.timeInterval.rc;
+                    if (fabs(r2meas - pCurr2.p0.GetPosition()) < 0.01)
+                      ok = ok && pCurr2.timeInterval.lc;
+                    if (fabs(r2meas - pCurr2.p1.GetPosition()) < 0.01)
+                      ok = ok && pCurr2.timeInterval.rc;
+                    if (ok)
+                    {
+                      NetworkManager::CloseNetwork(pNetwork);
+                      resA->DeleteIfAllowed();
+                      resB->DeleteIfAllowed();
+                      return true;
+                    }
+                  }
+                }
+              }// end if else same route
+            }// end for
+          }
+        }
+        resA->DeleteIfAllowed();
+        resB->DeleteIfAllowed();
+      }
+      NetworkManager::CloseNetwork(pNetwork);
+    }
+  return false;
+}
+
+/*
 Checks if ~mgpoint~ is inside a ~gline~. Returns a ~mbool~ which is true for the
 times the ~mgpoint~ is inside the ~gline~ false elsewhere.
 
@@ -4459,7 +4629,7 @@ bool MGPoint::Passes(GLine *&gl){
     help->DeleteIfAllowed();
   }
   DbArray<RouteInterval>* gltra = gl->GetRouteIntervals();
-  if (Intersects(m_trajectory, *gltra, true, gl->IsSorted())) return true;
+  if (RIsIntersects(m_trajectory, *gltra, true, gl->IsSorted())) return true;
   else return false;
 }
 
@@ -4904,9 +5074,55 @@ void MGPoint::Union(MGPoint *mp, MGPoint *res)
           }
           else
           {
-            res->SetDefined(false);
-            i = GetNoComponents();
-            j = mp->GetNoComponents();
+            if (fabs(u1.timeInterval.end.ToDouble() -
+                            u2.timeInterval.start.ToDouble())<= 0.00000002)
+            {
+              res->Add(UGPoint(Interval<Instant> (u1.timeInterval.start,
+                               u2.timeInterval.start,true, false),
+                               u1.p0.GetNetworkId(),
+                               u1.p0.GetRouteId(),
+                               u1.p0.GetSide(),
+                               u1.p0.GetPosition(),
+                               u1.p1.GetPosition()));
+              res->Add(UGPoint(Interval<Instant> (u2.timeInterval.start,
+                               u2.timeInterval.end,true, false),
+                               u2.p0.GetNetworkId(),
+                               u2.p0.GetRouteId(),
+                               u2.p0.GetSide(),
+                               u2.p0.GetPosition(),
+                               u2.p1.GetPosition()));
+              i++;
+              j++;
+            }
+            else
+            {
+              if (fabs(u2.timeInterval.end.ToDouble() -
+                       u1.timeInterval.start.ToDouble()) <= 0.00000002)
+              {
+                res->Add(UGPoint(Interval<Instant> (u2.timeInterval.start,
+                               u1.timeInterval.start,true, false),
+                               u2.p0.GetNetworkId(),
+                               u2.p0.GetRouteId(),
+                               u2.p0.GetSide(),
+                               u2.p0.GetPosition(),
+                               u2.p1.GetPosition()));
+                res->Add(UGPoint(Interval<Instant> (u1.timeInterval.start,
+                               u1.timeInterval.end,true, false),
+                               u1.p0.GetNetworkId(),
+                               u1.p0.GetRouteId(),
+                               u1.p0.GetSide(),
+                               u1.p0.GetPosition(),
+                               u1.p1.GetPosition()));
+                i++;
+                j++;
+              }
+              else
+              {
+                res->SetDefined(false);
+                i = GetNoComponents();
+                j = mp->GetNoComponents();
+              }
+            }
           }
         }
       }
@@ -7715,6 +7931,71 @@ Operator tempnetintersection("intersection",
                 Operator::SimpleSelect,
                 OpIntersectionTypeMapping );
 
+/*
+5.12 Operator ~intersects~
+
+Returns true if a intersection of the two ~MGPoint~ exists.
+
+*/
+
+ListExpr OpIntersectsTypeMapping(ListExpr in_xArgs)
+{
+  ListExpr arg1, arg2;
+  if( nl->ListLength(in_xArgs) == 2 ){
+    arg1 = nl->First(in_xArgs);
+    arg2 = nl->Second(in_xArgs);
+    if (nl->IsAtom(arg1) && nl->AtomType(arg1) == SymbolType &&
+        nl->SymbolValue(arg1) == "mgpoint" && nl->IsAtom(arg2) &&
+        nl->AtomType(arg2) == SymbolType &&
+        nl->SymbolValue(arg2) == "mgpoint"){
+        return (nl->SymbolAtom("bool"));
+    }
+  }
+  return (nl->SymbolAtom( "typeerror" ));
+}
+
+int OpIntersectsValueMapping(Word* args,
+                                   Word& result,
+                                   int message,
+                                   Word& local,
+                                   Supplier in_xSupplier)
+{
+  // Get (empty) return value
+  CcBool* pResult = (CcBool*)qp->ResultStorage(in_xSupplier).addr;
+  result = SetWord( pResult);
+  // Get input values
+  MGPoint* pMGPoint1 = (MGPoint*)args[0].addr;
+  if(pMGPoint1 == NULL || !pMGPoint1->IsDefined() ||
+     pMGPoint1->GetNoComponents() < 1) {
+    cerr << "First mgpoint does not exist." << endl;
+    pResult->SetDefined(false);
+    return 0;
+  }
+  MGPoint* pMGPoint2 = (MGPoint*)args[1].addr;
+  if(pMGPoint2 == NULL || !pMGPoint2->IsDefined() ||
+     pMGPoint2->GetNoComponents() < 1 ) {
+    sendMessages("Second mgpoint does not exist.");
+    pResult->SetDefined(false);
+    return 0;
+  }
+  pResult->Set(true,pMGPoint1->Intersects(pMGPoint2));
+  return 0;
+}
+
+const string OpIntersectsSpec  =
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+  "( <text>mgpoint x mgpoint -> bool" "</text--->"
+  "<text>mgpoint intersects mgpoint</text--->"
+  "<text>Returns true if the mgpoint meet at any point, false"
+  " otherwise.</text--->"
+  "<text>mgpoint intersects mgpoint</text--->"
+  ") )";
+
+Operator tempnetintersects("intersects",
+                OpIntersectsSpec,
+                OpIntersectsValueMapping,
+                Operator::SimpleSelect,
+                OpIntersectsTypeMapping );
 
 /*
 5.13 Operator ~isempty~
@@ -9134,6 +9415,7 @@ class TemporalNetAlgebra : public Algebra
     AddOperator(&tempnetstartunitinst);
     AddOperator(&tempnetendunitinst);
     AddOperator(&tempnetugpoint2mgpoint);
+    AddOperator(&tempnetintersects);
     AddOperator(mgp2mgpsecunitsInfo(), OpMgp2mgpsecunitsValueMap,
                 OpMgp2mgpsecunitsTypeMap);
     AddOperator(mgp2mgpsecunits2Info(), OpMgp2mgpsecunits2ValueMap,

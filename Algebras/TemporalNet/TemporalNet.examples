@@ -237,6 +237,12 @@ Example  : query intersection([const mgpoint value( (("2007-01-01-10:10:00.000" 
 Result   : (mgpoint((("2007-01-01-10:10" "2007-01-01-10:10:01" TRUE FALSE)(1 1 1 0.0 1.0))(("2007-01-01-10:10:01" "2007-01-01-10:10:02" TRUE TRUE)(1 1 1 1.0 15.0))))
 Tolerance: 0.01%
 
+Operator : intersects
+Number   : 1
+Signature: mgpoint x mgpoint -> bool
+Example  : query [const mgpoint value( (("2007-01-01-10:10:00.000" "2007-01-01-10:10:01.000" TRUE FALSE)(1 1 1 0.0 1.0))(("2007-01-01-10:10:01.000" "2007-01-01-10:10:02.000" TRUE TRUE)(1 1 1 1.0 15.0)))] intersects [const mgpoint value( (("2007-01-01-10:10:00.000" "2007-01-01-10:10:01.000" TRUE FALSE)(1 1 1 0.0 1.0))(("2007-01-01-10:10:01.000" "2007-01-01-10:10:02.000" TRUE TRUE)(1 1 1 1.0 15.0)))];
+Result   : TRUE
+
 Operator : deftime
 Number   : 1
 Signature: mgpoint -> periods
