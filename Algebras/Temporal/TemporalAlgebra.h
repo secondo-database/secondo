@@ -3596,10 +3596,7 @@ void Range<Alpha>::MergeAdd(const Interval<Alpha>& interval){
     }  else {
       intervals.Append(interval);
     }
-
   }
-
-
 }
 
 
@@ -5657,17 +5654,12 @@ void Mapping<Unit, Alpha>::DefTime( Periods& r ) const
   }
   assert( IsOrdered() );
 
-  Periods result( GetNoComponents() );
-
   Unit unit;
-  result.StartBulkLoad();
   for( int i = 0; i < GetNoComponents(); i++ )
   {
     Get( i, unit );
-    result.Add( unit.timeInterval );
+    r.MergeAdd( unit.timeInterval );
   }
-  result.EndBulkLoad( false );
-  result.Merge( r );
 }
 
 template <class Unit, class Alpha>
