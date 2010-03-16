@@ -98,6 +98,18 @@ class FlobId{
       return (size_t)(fileId + recordId + offset + t); 
    }
 
+   void destroy(){
+     fileId = 0;
+     recordId = 0;
+     offset = 0;
+   }
+
+   bool isDestroyed() const{
+     return fileId == 0 &&
+            recordId == 0 &&
+            offset == 0;
+   }
+
  private:
    SmiFileId   fileId;  
    SmiRecordId recordId;

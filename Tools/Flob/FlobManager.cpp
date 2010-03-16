@@ -217,6 +217,7 @@ Changes the size of flob.
 bool FlobManager::resize(Flob& flob, const SmiSize& newSize, 
                          const bool ignoreCache/*=false*/){
 
+    assert(!flob.id.isDestroyed());
     FlobId id = flob.id;
     SmiFileId   fileId =  id.fileId;
     SmiRecordId recordId = id.recordId;
@@ -279,6 +280,7 @@ bool FlobManager::getData(
          const bool ignoreCache /* = false*/ ) {  // requested data size
   __TRACE_ENTER__
 
+ assert(!flob.id.isDestroyed());
  if(size==0){
    return true;
  }
@@ -291,7 +293,7 @@ bool FlobManager::getData(
 
 
   if(!ignoreCache){
-    if(fileId!=nativeFlobs){
+    if(fileId!=nativeFlobs || !id.isTemp){
        return persistentFlobCache->getData(flob,dest,offset,size);
     } else {
        return nativeFlobCache->getData(flob, dest, offset, size);
@@ -310,7 +312,7 @@ bool FlobManager::getData(
   bool ok = file->Read(recordId, dest, size, recOffset, actRead);
 
   if(!ok){
-    cerr << " eeror in getting data from flob " << flob << endl;
+    cerr << " error in getting data from flob " << flob << endl;
     cerr << " actSize = " << actRead << endl;
     cerr << "try to read = " << size << endl;
     string err;
@@ -341,6 +343,7 @@ accessed.
 bool FlobManager::destroy(Flob& victim) {
 
  __TRACE_ENTER__
+    assert(!victim.id.isDestroyed());
 
    if(victim.id.fileId == nativeFlobs && victim.id.isTemp){
       nativeFlobCache->erase(victim); // delete from cache
@@ -348,6 +351,7 @@ bool FlobManager::destroy(Flob& victim) {
      // if(DestroyedFlobs->getSize() > 64000){
      //   cerr << "Stack of destroyed flobs reaches a critical size " << endl;
      // }
+      victim.id.destroy();
       return true;
    }
 
@@ -369,6 +373,7 @@ bool FlobManager::destroy(Flob& victim) {
            << "Select Record failed:" << victim << endl;
       assert(false);
      __TRACE_LEAVE__
+     victim.id.destroy();
      return false; 
    }
    
@@ -376,6 +381,7 @@ bool FlobManager::destroy(Flob& victim) {
       // each native flob is exlusive owner of an record
       nativeFlobCache->erase(victim);
       file->DeleteRecord(recordId);
+      victim.id.destroy();
       return true;
    }
 
@@ -386,6 +392,7 @@ bool FlobManager::destroy(Flob& victim) {
       if( offset + size != recordSize){
          std::cout << "cannot destroy flob, because after the flob data are"
                       " available" << std::endl;
+         victim.id.destroy();
          return false;
         
       } else { // truncate record
@@ -396,12 +403,14 @@ bool FlobManager::destroy(Flob& victim) {
      if((recordSize != size) && (id.fileId != nativeFlobs) ){
        std::cout << "cannot destroy flob, because after the flob data are"
                     " available" << std::endl;
+       victim.id.destroy();
        return false;
      } else {
         // record stores only the flob
         file->DeleteRecord(recordId); 
      }
    }
+   victim.id.destroy();
    return true;
   __TRACE_LEAVE__
 }
@@ -558,6 +567,7 @@ bool FlobManager::putData(const Flob& dest,         // destination flob
                           const bool ignoreCache) { // data size
 
  __TRACE_ENTER__
+ assert(!dest.id.isDestroyed());
   FlobId id = dest.id;
   SmiFileId   fileId =  id.fileId;
   SmiRecordId recordId = id.recordId;
@@ -592,6 +602,7 @@ bool FlobManager::putData(const FlobId& id,         // destination flob
                          ) { // data size
 
  __TRACE_ENTER__
+  assert(!id.isDestroyed());
   SmiFileId   fileId =  id.fileId;
   SmiRecordId recordId = id.recordId;
   SmiSize     offset = id.offset;
