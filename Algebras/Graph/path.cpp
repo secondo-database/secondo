@@ -73,18 +73,13 @@ private:
 */
 
 
-Path::Path()
-{
-}
+Path::Path() { }
 
 Path::Path(bool bDefined)
-    : myPath(0), cost(0.0)
-{ SetDefined(bDefined);
-}
+    : Attribute(bDefined), myPath(0), cost(0.0)
+{ }
 
-Path::~Path()
-{
-}
+Path::~Path() { }
 
 
         
