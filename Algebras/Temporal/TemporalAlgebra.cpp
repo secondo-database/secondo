@@ -1405,7 +1405,6 @@ int UReal::Distance(const UReal& other, vector<UReal>& result) const
     newunit = UBool(ivnew, CcBool(true, compresult));
     res.push_back(newunit);
   }
-  eqPeriods->Destroy();
   eqPeriods->DeleteIfAllowed();
   return ;
 }
