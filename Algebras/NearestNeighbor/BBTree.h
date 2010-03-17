@@ -202,8 +202,8 @@ public:
     }
     this->left = left;
     this->right = right;
-    timeType  min(0);
-    timeType  max(0);
+    timeType  min(0.0);
+    timeType  max(0.0);
     toMinimum(min);
     toMaximum(max);
     
