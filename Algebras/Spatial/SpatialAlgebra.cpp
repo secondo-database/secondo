@@ -18659,6 +18659,7 @@ int SpatialCollect_PointsVM(Word* args, Word& result, int message,
         qp->Close(args[0].addr);
         return 0;
      }
+     p->DeleteIfAllowed();
      qp->Request(args[0].addr,elem);
    }
    qp->Close(args[0].addr);

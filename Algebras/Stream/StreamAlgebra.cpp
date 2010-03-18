@@ -228,6 +228,10 @@ int MappingStreamFeed( Word* args, Word& result, int message,
 
   switch( message ){
     case OPEN:{
+      linfo = static_cast<SFeedLocalInfo*>(local.addr);
+      if(linfo){
+        delete linfo;
+      }
       linfo = new SFeedLocalInfo(arg,qp->IsObjectNode(qp->GetSupplierSon(s,0)));
       local.setAddr(linfo);
       return 0;
@@ -2322,6 +2326,11 @@ int Transformstream_S_TS(Word* args, Word& result, int message,
   switch ( message ) {
     case OPEN:{
       qp->Open( args[0].addr );
+      sli = (TransformstreamLocalInfo*) local.addr;
+      if(sli){
+         sli->resultTupleType->DeleteIfAllowed();
+         delete  sli;
+      }
       sli = new TransformstreamLocalInfo;
 
       resultType = GetTupleResultType( s );
@@ -2415,6 +2424,10 @@ int Transformstream_TS_S(Word* args, Word& result, int message,
   switch ( message ){
     case OPEN:{
       qp->Open( args[0].addr );
+      sli = (TransformstreamLocalInfo*) local.addr;
+      if(sli){
+        delete sli;
+      }
       sli = new TransformstreamLocalInfo;
       sli->finished = false;
       sli->progressinitialized = false;
@@ -3573,7 +3586,7 @@ realstreamFun (Word* args, Word& result, int message, Word& local, Supplier s)
         diff = 1;
       }
       if(diff > 0.0) {
-        card = ceil(fabs( (last - first) / diff ) + 1.0);
+        card = (long)(ceil(fabs( (last - first) / diff ) + 1.0));
         cout << __PRETTY_FUNCTION__ << "card = " << card << endl;
       } else {
         card = 1;
