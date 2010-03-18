@@ -790,16 +790,14 @@ static void MovingRealCompareMM2(const MReal& op1, const MReal& op2, MBool&
     Interval<Instant> iv;
     int u1Pos;
     int u2Pos;
-    UReal u1transfer;
-    UReal u2transfer;
     rp.Get(i, iv, u1Pos, u2Pos);
     if (u1Pos == -1 || u2Pos == -1)
       continue;
-    op1.Get(u1Pos, u1transfer);
-    op2.Get(u2Pos, u2transfer);
-    UReal u1 = (UReal) (u1transfer);
-    UReal u2 = (UReal) (u2transfer);
-    if(!(u1transfer.IsDefined() || !u2transfer.IsDefined())) {
+    UReal u1;
+    UReal u2;
+    op1.Get(u1Pos, u1);
+    op2.Get(u2Pos, u2);
+    if(!(u1.IsDefined() || !u2.IsDefined())) {
       cerr << __PRETTY_FUNCTION__
            << " encountered undefined unit within a mapping:" << endl;
 
