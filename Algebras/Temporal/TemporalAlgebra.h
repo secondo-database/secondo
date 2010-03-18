@@ -5129,14 +5129,14 @@ void Mapping<Unit, Alpha>::Get( const int i, Unit &unit ) const
   bool ok = units.Get( i, unit );
   if(!ok){
     cout << "Problem in getting data from " << units << endl;
-    assert(false);
+    assert(ok);
   }
   if ( !unit.IsValid() )
   {
     cout << __FILE__ << "," << __LINE__ << ":" << __PRETTY_FUNCTION__
       << " Get(" << i << ", Unit): Unit is invalid:";
     unit.Print(cout); cout << endl;
-    assert( false );
+    assert( unit.IsValid());
   }
 }
 
