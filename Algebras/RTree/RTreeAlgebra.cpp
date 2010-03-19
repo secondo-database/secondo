@@ -2468,65 +2468,68 @@ template<int TidIndexPos>
       const double uTuple = 0.061;    //milliseconds per tuple
       const double vByte = 0.0000628;  //milliseconds per byte
 
-      if ( !localInfo ) return CANCEL;
-      else
-      {
-        localInfo->sizesChanged = false;
-
-        if ( !localInfo->sizesInitialized )
-        {
-          localInfo->total = localInfo->relation->GetNoTuples();
-          localInfo->Size = 0;
-          localInfo->SizeExt = 0;
+      if( !localInfo || !qp->RequestProgress(args[0].addr, &p1) ) {
+        // ask stream argument
+        return CANCEL;
+      }
+      localInfo->sizesChanged =
+                            (!localInfo->sizesInitialized || p1.sizesChanged);
+      if ( localInfo->sizesChanged ){
+          localInfo->total = p1.Card;
           localInfo->noAttrs =
             nl->ListLength(nl->Second(nl->Second(qp->GetType(s))));
           localInfo->attrSize = new double[localInfo->noAttrs];
           localInfo->attrSizeExt = new double[localInfo->noAttrs];
-          for ( int i = 0;  i < localInfo->noAttrs; i++)
-          {
-            localInfo->attrSize[i] = localInfo->relation->GetTotalSize(i)
+          // ordering of attributes is:
+          //  attributes from first argument (without the one at tidIndex)
+          //  then relation attributes
+          int no_stream_attrs = p1.noAttrs;
+          int no_rel_attrs = localInfo->noAttrs - (no_stream_attrs - 1);
+          // copy first part of stream attrs
+          int j = 0;
+          for (int i = 0;  i < localInfo->tidIndex; i++) {
+            localInfo->attrSize[j]    = p1.attrSize[i];
+            localInfo->Size          += p1.attrSize[i];
+            localInfo->attrSizeExt[j] = p1.attrSizeExt[i];
+            localInfo->SizeExt       += p1.attrSizeExt[i];
+            j++;
+          }
+          // copy second part of stream attrs
+          for (int i = localInfo->tidIndex+1;  i < no_stream_attrs; i++) {
+            localInfo->attrSize[j]    = p1.attrSize[i];
+            localInfo->Size          += p1.attrSize[i];
+            localInfo->attrSizeExt[j] = p1.attrSizeExt[i];
+            localInfo->SizeExt       += p1.attrSizeExt[i];
+            j++;
+          }
+          // copy rel attrs
+          for ( int i = 0;  i < no_rel_attrs; i++) {
+            localInfo->attrSize[j] = localInfo->relation->GetTotalSize(i)
                                   / (localInfo->total + 0.001);
-            localInfo->attrSizeExt[i] = localInfo->relation->GetTotalExtSize(i)
+            localInfo->attrSizeExt[j] = localInfo->relation->GetTotalExtSize(i)
                                   / (localInfo->total + 0.001);
-
-            localInfo->Size += localInfo->attrSize[i];
-            localInfo->SizeExt += localInfo->attrSizeExt[i];
+            localInfo->Size += localInfo->attrSize[j];
+            localInfo->SizeExt += localInfo->attrSizeExt[j];
+            j++;
           }
           localInfo->sizesInitialized = true;
-          localInfo->sizesChanged = true;
-        }
-
-        pRes->CopySizes(localInfo);
-
-
-        if ( qp->RequestProgress(args[0].addr, &p1) )
-        {
-          pRes->Card = p1.Card;
-
-          pRes->Time = p1.Time
-            + p1.Card * (uTuple + vByte * localInfo->SizeExt);
-
-          if ( p1.BTime < 0.1 && pipelinedProgress )   //non-blocking,
-                                                        //use pipelining
-            pRes->Progress = p1.Progress;
-          else
-          {
-            pRes->Progress =
-             ((p1.Progress * p1.Time)
-              + (localInfo->read / p1.Card)
-                   * (uTuple + vByte * localInfo->SizeExt))
-             / pRes->Time;
-          }
-
-          pRes->CopyBlocking(p1);
-          return YIELD;
-
-        }
-        else return CANCEL;
       }
-    }
-
-  }
+      pRes->CopySizes(localInfo);
+      pRes->Card = p1.Card;
+      pRes->Time = p1.Time + p1.Card * (uTuple + vByte * localInfo->SizeExt);
+      if ( p1.BTime < 0.1 && pipelinedProgress ) { //non-blocking,
+                                                   //use pipelining
+        pRes->Progress = p1.Progress;
+      } else {
+        pRes->Progress =   ((p1.Progress * p1.Time)
+                         + (localInfo->read / p1.Card)
+                         * (uTuple + vByte * localInfo->SizeExt))
+                         / pRes->Time;
+      }
+      pRes->CopyBlocking(p1);
+      return YIELD;
+    } // case REQUESTPROGRESS
+  } // switch
   return 0;
 }
 
@@ -5976,8 +5979,6 @@ class RTreeAlgebra : public Algebra
     AddTypeConstructor( &rtree4 );
     AddTypeConstructor( &rtree8 );
 
-#ifndef USE_PROGRESS
-
     AddOperator( &creatertree );
     AddOperator( &bulkloadrtree );
     AddOperator( &windowintersects );
@@ -5998,35 +5999,12 @@ class RTreeAlgebra : public Algebra
     AddOperator( &rtreegetnodesons );
     AddOperator( &rtreegetleafentries );
 
-
-
-#else
-
-    AddOperator( &creatertree );
-    AddOperator( &bulkloadrtree );
-    AddOperator( &windowintersects );
-        windowintersects.EnableProgress();
-    AddOperator( &windowintersectsS );
-        windowintersectsS.EnableProgress();
-    AddOperator( &gettuples );
-        gettuples.EnableProgress();
-    AddOperator( &gettuplesdbl );
-    AddOperator( &gettuples2 );
-    AddOperator( &rtreenodes );
-    AddOperator( &rtreetreeheight );
-    AddOperator( &rtreenoofnodes );
-    AddOperator( &rtreenoofentries );
-    AddOperator( &rtreebbox );
-    AddOperator( &rtreeentries);
-    AddOperator(&getfileinfortree);
-    AddOperator( &updatebulkloadrtree);
-    AddOperator( &rtreegetrootnode );
-    AddOperator( &rtreegetnodeinfo );
-    AddOperator( &rtreegetnodesons );
-    AddOperator( &rtreegetleafentries );
-
+#ifdef USE_PROGRESS
+    windowintersects.EnableProgress();
+    windowintersectsS.EnableProgress();
+    gettuples.EnableProgress();
+    gettuples2.EnableProgress();
 #endif
-
 
   }
   ~RTreeAlgebra() {};
