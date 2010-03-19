@@ -3587,7 +3587,6 @@ realstreamFun (Word* args, Word& result, int message, Word& local, Supplier s)
       }
       if(diff > 0.0) {
         card = (long)(ceil(fabs( (last - first) / diff ) + 1.0));
-        cout << __PRETTY_FUNCTION__ << "card = " << card << endl;
       } else {
         card = 1;
       }
@@ -3710,8 +3709,108 @@ struct realstreamInfo : OperatorInfo
 };
 
 
+/*
+5.41 Operator ~intstream~
 
+*/
 
+// TypeMappingFunction
+ListExpr
+intstreamTypeMap( ListExpr args )
+{
+  NList type(args);
+  if ( type != NList(INT, INT) ) {
+    return NList::typeError("Expecting a list of two integers.");
+  }
+  return NList(STREAM, INT).listExpr();
+}
+
+// ValueMappingFunction
+int
+intstreamValueMap(Word* args, Word& result,
+                    int message, Word& local, Supplier s)
+{
+  // An auxiliary type which keeps the state of this
+  // operation during two requests
+  struct Range {
+    int current;
+    int last;
+
+    Range(CcInt* i1, CcInt* i2) {
+
+      // Do a proper initialization even if one of the
+      // arguments has an undefined value
+      if (i1->IsDefined() && i2->IsDefined())
+      {
+        current = i1->GetIntval();
+        last = i2->GetIntval();
+      }
+      else
+      {
+  // this initialization will create an empty stream
+        current = 1;
+        last = 0;
+      }
+    }
+  };
+
+  Range* range = static_cast<Range*>(local.addr);
+
+  switch( message )
+  {
+    case OPEN: { // initialize the local storage
+
+      CcInt* i1 = static_cast<CcInt*>( args[0].addr );
+      CcInt* i2 = static_cast<CcInt*>( args[1].addr );
+      range = new Range(i1, i2);
+      local.addr = range;
+
+      return 0;
+    }
+    case REQUEST: { // return the next stream element
+
+      if ( range->current <= range->last )
+      {
+        CcInt* elem = new CcInt(true, range->current++);
+        result.addr = elem;
+        return YIELD;
+      }
+      else
+      {
+  // you should always set the result to null
+  // before you return a CANCEL
+        result.addr = 0;
+        return CANCEL;
+      }
+    }
+    case CLOSE: { // free the local storage
+
+      if (range != 0) {
+        delete range;
+        local.addr = 0;
+      }
+
+      return 0;
+    }
+    default: {
+      /* should never happen */
+      return -1;
+    }
+  }
+}
+
+// Specification
+struct intstreamInfo : OperatorInfo
+{
+  intstreamInfo() : OperatorInfo()
+  {
+    name      = INTSTREAM;
+    signature = INT + " x " + INT + " -> stream(int)";
+    syntax    = INTSTREAM + "(_ , _)";
+    meaning   = "Creates a stream of integers containing the numbers "
+                "between the first and the second argument.";
+  }
+};
 
 /*
 6 Type operators
@@ -4615,6 +4714,7 @@ public:
     AddOperator( ensure_Info("ensure"), ensure_vms, ensure_sf, ensure_tm );
     AddOperator( &echo );
     AddOperator( realstreamInfo(), realstreamFun, realstreamTypeMap );
+    AddOperator( intstreamInfo(), intstreamValueMap, intstreamTypeMap );
     AddOperator( &STREAMELEM );
     AddOperator( &STREAMELEM2 );
     AddOperator( &streamtail );
