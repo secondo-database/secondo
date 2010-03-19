@@ -25,8 +25,8 @@ import sj.lang.ListExpr;
  * @author Oliver Feuer
  * @author Benedikt Buer
  * @author Christian Oevermann
- * @since 20.02.2010
- * @version 1.2
+ * @since 08.03.2010
+ * @version 1.3
  */
 public class RTreeViewer extends SecondoViewer implements ActionListener, ItemListener 
 {
@@ -85,26 +85,22 @@ public class RTreeViewer extends SecondoViewer implements ActionListener, ItemLi
 		nodeViewerPanel.addSelectionMonitor(nodeInfoPanel);
 		nodeViewerPanel.addSelectionMonitor(nodeTreePanel);
 		
-		// create menu entries and add listener
+		// create menu entries and add listeners
 		menuVector = new MenuVector();
 
 		JMenu rTreeMenu = new JMenu("RTree");
-//		rTreeMenu.setMnemonic(KeyEvent.VK_R);
 
 		xAxis = new JMenu("x-Axis");
-//		xAxis.setMnemonic(KeyEvent.VK_X);
 		xAxis.setEnabled(false);
 		rTreeMenu.add(xAxis);
 		x = new LinkedList<JRadioButtonMenuItem>();
 
 		yAxis = new JMenu("y-Axis");
-//		yAxis.setMnemonic(KeyEvent.VK_Y);
 		yAxis.setEnabled(false);
 		rTreeMenu.add(yAxis);
 		y = new LinkedList<JRadioButtonMenuItem>();
 
 		xySwitch = new JMenuItem("x-y-Switch");
-//		xySwitch.setMnemonic(KeyEvent.VK_S);
 		xySwitch.addActionListener(this);
 		xySwitch.setEnabled(false);
 		rTreeMenu.add(xySwitch);
@@ -112,33 +108,28 @@ public class RTreeViewer extends SecondoViewer implements ActionListener, ItemLi
 		rTreeMenu.addSeparator();
 
 		zoom = new JMenu("Zoom");
-//		zoom.setMnemonic(KeyEvent.VK_Z);
 		zoom.setEnabled(false);
 		rTreeMenu.add(zoom);
 
 		rootView = new JMenuItem("Root View");
-//		rootView.setMnemonic(KeyEvent.VK_R);
 		rootView.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_R, ActionEvent.ALT_MASK));
 		rootView.addActionListener(this);
 		rootView.setEnabled(false);
 		zoom.add(rootView);
 
 		nodeView = new JMenuItem("Node View");
-//		nodeView.setMnemonic(KeyEvent.VK_N);
 		nodeView.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_N, ActionEvent.ALT_MASK));
 		nodeView.addActionListener(this);
 		nodeView.setEnabled(false);
 		zoom.add(nodeView);
 
 		zoomIn = new JMenuItem("Zoom In");
-//		zoomIn.setMnemonic(KeyEvent.VK_I);
 		zoomIn.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_PLUS, ActionEvent.ALT_MASK));
 		zoomIn.addActionListener(this);
 		zoomIn.setEnabled(false);
 		zoom.add(zoomIn);
 
 		zoomOut = new JMenuItem("Zoom Out");
-//		zoomOut.setMnemonic(KeyEvent.VK_O);
 		zoomOut.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_MINUS, ActionEvent.ALT_MASK));
 		zoomOut.addActionListener(this);
 		zoomOut.setEnabled(false);
@@ -147,20 +138,17 @@ public class RTreeViewer extends SecondoViewer implements ActionListener, ItemLi
 		rTreeMenu.addSeparator();
 
 		tupleBBShow = new JCheckBoxMenuItem("Show Key-MBR");
-//		tupleBBShow.setMnemonic(KeyEvent.VK_K);
 		tupleBBShow.addItemListener(this);
 		tupleBBShow.setState(true);
 		tupleBBShow.setEnabled(false);
 		rTreeMenu.add(tupleBBShow);
 
 		refShow = new JCheckBoxMenuItem("Show references");
-//		refShow.setMnemonic(KeyEvent.VK_R);
 		refShow.addItemListener(this);
 		refShow.setEnabled(false);
 		rTreeMenu.add(refShow);
 
 		childRefShow = new JCheckBoxMenuItem("Show child references");
-//		childRefShow.setMnemonic(KeyEvent.VK_C);
 		childRefShow.addItemListener(this);
 		childRefShow.setEnabled(false);
 		rTreeMenu.add(childRefShow);

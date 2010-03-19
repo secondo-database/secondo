@@ -4,9 +4,10 @@ package viewer.rtree.gui;
  * ProjectionParameters contains detail information on 
  * the current projection and scaling.
  * 
+ * @author Oliver Feuer
  * @author Christian Oevermann
- * @since 25.01.2010
- * @version 1.0
+ * @since 08.03.2010
+ * @version 1.1
  */
 public class ProjectionParameters { 
 	

@@ -9,10 +9,11 @@ import sj.lang.*;
  * projection parameter sets used by the derived classes
  * draw() method.
  * 
+ * @author Oliver Feuer
  * @author Christian Oevermann
  * @author Benedikt Buer
- * @since 25.01.2010
- * @version 1.2
+ * @since 08.03.2010
+ * @version 1.3
  */
 public abstract class TypeBase implements Drawable
 {

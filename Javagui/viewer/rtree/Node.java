@@ -12,8 +12,8 @@ import java.util.*;
  * @author Oliver Feuer
  * @author Benedikt Buer
  * @author Christian Oevermann
- * @since 20.02.2010
- * @version 1.5
+ * @since 08.03.2010
+ * @version 1.6
  */
 public class Node 
 {
@@ -30,17 +30,15 @@ public class Node
 
 	// some attributes
 	BoundingBox mbr;
-	int noOfSons;
-	int noOfEntries;
-	boolean isLeafNode;
-	boolean isRootNode;
-	double mbrSize;
-	double mbrDead;
-	double mbrOverlap;
-	int mbrOverlapNo;
-	double mbrDensity;
-	
-	// object lists loaded on demand
+	int noOfSons = 0;
+	int noOfEntries = 0;
+	boolean isLeafNode = false;
+	boolean isRootNode = false;
+	double mbrSize = 0.0;
+	double mbrDead = 0.0;
+	double mbrOverlap = 0.0;
+	int mbrOverlapNo = 0;
+	double mbrDensity = 0.0;
 	
 	// child nodes
 	Vector<Node> childNodes = new Vector<Node>();
@@ -81,6 +79,11 @@ public class Node
 			this.nodeLevel++;
 			father = father.getParentNode();
 		}
+
+		Interval[] intervals = new Interval[2];
+		intervals[0] = new Interval(0.0, 0.1);
+		intervals[1] = new Interval(0.0, 0.1);
+		mbr = new BoundingBox(intervals);
 	}
 	
 	// public methods
@@ -94,16 +97,6 @@ public class Node
 	}
 	
 	/**
-	 * Reloads all node information.
-	 */
-//AVIOD!!!	public void reloadNode()
-//AVIOD!!!	{
-//AVIOD!!!		loadNodeInfo();
-//AVIOD!!!		loadChildNodes();
-//AVIOD!!!		loadTupleIds();
-//AVIOD!!!	}
-	
-	/**
 	 * Gets the node id.
 	 * @return Node id
 	 */
@@ -114,7 +107,7 @@ public class Node
 	
 	/**
 	 * Gets the node level.
-	 * @return level of Node in the rtree
+	 * @return level of node in the rtree
 	 */
 	public int getNodeLevel()
 	{
@@ -648,7 +641,6 @@ public class Node
 		cmd	+= nodeId;
 		cmd	+= ") consume";
 		
-//System.out.println("Node: "+cmd);
 		SecondoManager secondo = new SecondoManager();
 		return secondo.sendCommand(cmd, "getNodeInfo");
 	}
@@ -665,7 +657,6 @@ public class Node
 		cmd	+= nodeId;
 		cmd	+= ") consume";
 		
-//System.out.println("Node: "+cmd);
 		SecondoManager secondo = new SecondoManager();
 		return secondo.sendCommand(cmd, "getLeafEntries");
 	}
@@ -682,7 +673,6 @@ public class Node
 		cmd	+= nodeId;
 		cmd	+= ") consume";
 
-//System.out.println("Node: "+cmd);
 		SecondoManager secondo = new SecondoManager();
 		return secondo.sendCommand(cmd, "getNodeSons");
 	}

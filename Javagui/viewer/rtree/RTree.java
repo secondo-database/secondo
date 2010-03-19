@@ -7,8 +7,8 @@ import sj.lang.*;
  * @author Oliver Feuer
  * @author Benedikt Buer
  * @author Christian Oevermann
- * @since 20.02.2010
- * @version 1.2
+ * @since 08.03.2010
+ * @version 1.3
  */
 public class RTree {
 
@@ -55,7 +55,6 @@ public class RTree {
 			ListExpr result;
 			int nodeId;
 
-//System.out.println("RTree: query getRootNode(" + name + ")");
 			SecondoManager secondoManager = new SecondoManager();
 			result = secondoManager.sendCommand("query getRootNode(" + name + ")", "Get Root Node");
 			nodeId = result.second().intValue();
@@ -75,7 +74,6 @@ public class RTree {
 		{
 			ListExpr result;
 
-//System.out.println("RTree: query treeheight(" + name + ")");
 			SecondoManager secondoManager = new SecondoManager();
 			result = secondoManager.sendCommand("query treeheight(" + name + ")", "Get Tree Height");
 			treeHeight = result.second().intValue();
@@ -84,13 +82,16 @@ public class RTree {
 		return treeHeight;
 	}
 	
+	/**
+	 * Gets the tree's number of nodes.
+	 * @return number of nodes
+	 */
 	public int getNoNodes()
 	{	
 		if ( !nodesLoaded )
 		{
 			ListExpr result;
 
-//System.out.println("RTree: query no_nodes(" + name + ")");
 			SecondoManager secondoManager = new SecondoManager();
 			result = secondoManager.sendCommand("query no_nodes(" + name + ")", "Get no_nodes");
 			noNodes = result.second().intValue();
@@ -99,13 +100,16 @@ public class RTree {
 		return noNodes;
 	}
 	
+	/**
+	 * Gets the tree's number of key entries.
+	 * @return number of key entries
+	 */
 	public int getNoEntries()
 	{
 		if ( !entriesLoaded )
 		{
 			ListExpr result;
 
-//System.out.println("RTree: query no_entries(" + name + ")");
 			SecondoManager secondoManager = new SecondoManager();
 			result = secondoManager.sendCommand("query no_entries(" + name + ")", "Get no_entries");
 			noEntries = result.second().intValue();

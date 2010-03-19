@@ -55,7 +55,7 @@ public class MPoint extends TypeBase {
 	{
 		for (UPoint up : upoints)
 		{
-			up.draw(g);
+			up.draw(g, projectionParameters, renderParameters, nodeStatus);
 		}
 	}
 }

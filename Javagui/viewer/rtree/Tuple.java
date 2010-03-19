@@ -6,6 +6,7 @@ import viewer.rtree.*;
 import viewer.rtree.datatypes.*;
 import java.util.*;
 import javax.swing.*;
+import javax.swing.tree.*;
 
 /**
  * Tuple represents a tuple referenced by a tree node.
@@ -14,13 +15,14 @@ import javax.swing.*;
  * @author Oliver Feuer
  * @author Benedikt Buer
  * @author Christian Oevermann
- * @since 20.02.2010
- * @version 1.1
+ * @since 08.03.2010
+ * @version 1.2
  */
 public class Tuple 
 {
 	int tupleId;
 	Node fatherLeafNode;
+	DefaultMutableTreeNode treeNode;
 	int nodeId;
 	BoundingBox MBR;
 	ReferenceParameters referenceParams;
@@ -39,6 +41,7 @@ public class Tuple
 		this.tupleId = tupleId;
 		this.fatherLeafNode = node;
 		this.MBR = mbr;
+		this.treeNode = null;
 		this.nodeId = node.getNodeId();
 		this.referenceParams = node.getReferenceParameters();
 	}
@@ -77,6 +80,22 @@ public class Tuple
 	public BoundingBox getMbr()
 	{
 		return this.MBR;
+	}
+
+	/**
+	 * Gets the tuple treeNode.
+	 */
+	public DefaultMutableTreeNode getTupleTreeNode() 
+	{
+		return treeNode;
+	}
+
+	/**
+	 * Sets the tuple treeNode.
+	 */
+	public void setTupleTreeNode(DefaultMutableTreeNode treenode) 
+	{
+		this.treeNode = treenode;
 	}
 
 	/**
@@ -175,7 +194,6 @@ public class Tuple
 		cmd.append("])");
 		cmd.append("] consume");
 		
-//System.out.println("Tuple: GetTuple");
 		SecondoManager secondo = new SecondoManager();
 		this.le = secondo.sendCommand(cmd.toString(), "getTuple");
 		

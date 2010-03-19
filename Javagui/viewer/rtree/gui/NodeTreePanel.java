@@ -20,8 +20,8 @@ import viewer.*;
  * @author Oliver Feuer
  * @author Benedikt Buer
  * @author Christian Oevermann
- * @version 1.8
- * @since 20.02.2010
+ * @version 1.9
+ * @since 08.03.2010
  */
 public class NodeTreePanel extends JPanel implements NodeDisplay, TreeSelectionListener, ActionListener, PopupMenuListener
 {
@@ -121,6 +121,7 @@ public class NodeTreePanel extends JPanel implements NodeDisplay, TreeSelectionL
 			if (selectedNode.isLeaf())
 			{
 				Vector<Node> childNodes = rtreeNode.getChildNodes();
+				// load child nodes if there are any...
 				if (childNodes.size()>0)
 				{
 					for ( Node child : childNodes )
@@ -128,6 +129,7 @@ public class NodeTreePanel extends JPanel implements NodeDisplay, TreeSelectionL
 						addNode(selectedNode, child);
 					}
 				}
+				// ...or load entries if node is a leaf node!
 				else
 				{
 					for ( Tuple tuple : rtreeNode.getIndexedTuples() )
@@ -238,7 +240,7 @@ public class NodeTreePanel extends JPanel implements NodeDisplay, TreeSelectionL
 						{
 							Node rtreeNode = (Node) this.selectedNode.getUserObject();
 							
-							// load child nodes if selected node is currently displayed as a leaf
+							// load child entries if selected node is a leaf
 							if ((selectedNode.isLeaf())&&(rtreeNode.isLeafNode()))
 							{
 								for ( Tuple tuple : rtreeNode.getIndexedTuples() )
@@ -477,7 +479,7 @@ public class NodeTreePanel extends JPanel implements NodeDisplay, TreeSelectionL
 		toolbar.add(this.relationChooser);
 		toolbar.add(this.attributeChooser);
 		add(toolbar, BorderLayout.NORTH);
-}
+	}
 	
 	/**
 	 * Repopulates the rtree chooser combo box with rtree objects from the
@@ -734,6 +736,7 @@ public class NodeTreePanel extends JPanel implements NodeDisplay, TreeSelectionL
 	private void addTuple(DefaultMutableTreeNode parentNode, Tuple tuple) 
 	{
 		DefaultMutableTreeNode treeNode = new DefaultMutableTreeNode(tuple);
+		tuple.setTupleTreeNode(treeNode);
 		this.treeModel.insertNodeInto(treeNode, parentNode, parentNode.getChildCount());
 	}
 	

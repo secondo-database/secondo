@@ -10,8 +10,8 @@ import java.io.ObjectInputStream.GetField;
  * 
  * @author Oliver Feuer
  * @author Christian Oevermann
- * @since 20.02.2010
- * @version 1.1
+ * @since 08.03.2010
+ * @version 1.2
  */
 public class RenderParameters { 
 	
@@ -26,10 +26,6 @@ public class RenderParameters {
 	// child node bounding boxes
 	Color childNodeBBLineColor;
 	Color childNodeBBFillColor;
-	
-	// root and father nodes bounding boxes
-	Color rootNodeBBLineColor;
-	Color fatherNodeBBLineColor;
 	
 	// entry tuple bounding boxes
 	Color entryTupleBBLineColor;
@@ -69,9 +65,6 @@ public class RenderParameters {
 
 		this.childNodeBBLineColor = new Color(200, 0, 0, 255);		//light red
 		this.childNodeBBFillColor = new Color(200, 0, 0, 50);		//light red transparent
-
-		this.rootNodeBBLineColor = new Color(102, 102, 102, 255);	//dark grey
-		this.fatherNodeBBLineColor = new Color(135, 135, 135, 255);	//light grey
 
 		this.entryTupleBBLineColor = new Color(46, 139, 87, 255);	//green
 		this.entryTupleBBFillColor = new Color(46, 139, 87, 50);	//green transparent
@@ -153,23 +146,6 @@ public class RenderParameters {
 		return this.childNodeBBFillColor;
 	}
 	
-	/**
-	 * Gets the root node's bounding box line color.
-	 * @return root node's bounding box line color
-	 */
-	public Color getRootNodeBBLineColor() 
-	{
-		return this.rootNodeBBLineColor;
-	}
-	
-	/**
-	 * Gets the father node's bounding box line color.
-	 * @return father node's bounding box line color
-	 */
-	public Color getFatherNodeBBLineColor() 
-	{
-		return this.fatherNodeBBLineColor;
-	}
 	
 	/**
 	 * Gets the entry tuple's bounding box line color.

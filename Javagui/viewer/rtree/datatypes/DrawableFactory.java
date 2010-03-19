@@ -12,8 +12,8 @@ import viewer.rtree.secondotypes.*;
  * @author Oliver Feuer
  * @author Christian Oevermann
  * @author Benedikt Buer
- * @since 20.02.2010
- * @version 1.2
+ * @since 08.03.2010
+ * @version 1.3
  */
 public class DrawableFactory 
 {
@@ -224,11 +224,8 @@ public class DrawableFactory
 		}
 		cmd.append("] project [");
 		cmd.append(referenceParams.getAttribute());
-//		cmd.append("_x] consume");
 		cmd.append("_x, id] consume");
 		
-//System.out.println("DrawableFactory: GetItemList");
-//System.out.println("     "+cmd.toString());
 		SecondoManager secondo = new SecondoManager();
 		ListExpr itemList = secondo.sendCommand(cmd.toString(), "getItemList");
 		

@@ -12,10 +12,11 @@ import viewer.rtree.gui.RenderParameters;
  * Using this base class, high level objects can consist of either 2 or 3 dimensional points
  * and can easily implement projection.
  * 
+ * @author Oliver Feuer
  * @author Benedikt Buer
  * @author Christian Oevermann
- * @version 1.1
- * @since 23.01.2010
+ * @version 1.2
+ * @since 08.03.2010
  */
 public abstract class Point 
 {

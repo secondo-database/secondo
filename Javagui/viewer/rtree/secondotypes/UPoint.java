@@ -69,10 +69,9 @@ public class UPoint extends TypeBase {
 	
 	// MPoint needs to call this method because it hides the 
 	// UPoint object from the NodeViewerPanel and so the parameters are not set
-	public void draw(Graphics g, ProjectionParameters pp, RenderParameters rp, 
-																NodeStatus status)
+	public void draw(Graphics g, ProjectionParameters pp, RenderParameters rp, NodeStatus status)
 	{
 		Segment temporalSegment = new Segment(start, end);
-		temporalSegment.draw(g, pp, rp, nodeStatus);
+		temporalSegment.draw(g, pp, rp, status);
 	}
 }

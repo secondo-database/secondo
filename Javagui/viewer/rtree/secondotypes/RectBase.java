@@ -15,10 +15,11 @@ import sj.lang.ListExpr;
  * list expression, project them to two dimensions and render the
  * resulting 2-dimensional rectangle.
  * 
+ * @author Oliver Feuer
  * @author Benedikt Buer
  * @author Christian Oevermann
- * @version 1.1
- * @since 20.01.2010
+ * @version 1.2
+ * @since 08.03.2010
  */
 public abstract class RectBase extends TypeBase 
 {
