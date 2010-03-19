@@ -1,5 +1,5 @@
 /*
----- 
+----
 This file is part of SECONDO.
 
 Copyright (C) 2004-2007, University in Hagen, Faculty of Mathematics and
@@ -57,19 +57,19 @@ void ProgressInfo::CopySizes(ProgressLocalInfo* pli) //copy the size fields
 
 
 void ProgressInfo::CopyBlocking(ProgressInfo p)
-				//copy BTime, BProgress 
+				//copy BTime, BProgress
 				//for non blocking unary op.
 {
   BTime = p.BTime;
   BProgress = p.BProgress;
 }
 
-void ProgressInfo::CopyBlocking(ProgressInfo p1, ProgressInfo p2) 
+void ProgressInfo::CopyBlocking(ProgressInfo p1, ProgressInfo p2)
 				//copy BTime, BProgress
 				//for non-blocking binary op. (join)
 {
   BTime = p1.BTime + p2.BTime;
-  BProgress = 
+  BProgress =
     (p1.BProgress * p1.BTime + p2.BProgress * p2.BTime) / BTime;
 }
 
@@ -87,19 +87,14 @@ void ProgressInfo::Copy(ProgressInfo p)		//copy all fields
 
 
 
-ProgressLocalInfo::ProgressLocalInfo()  {
-  read = 0;
-  readFirst = 0;
-  readSecond = 0;
-  returned = 0;
-  state = 0;
-  firstLocalInfo = 0;
-  secondLocalInfo = 0;
-  sizesInitialized = false;
-  sizesChanged = false;
-}
+ProgressLocalInfo::ProgressLocalInfo() :
+    returned(0), read(0), readFirst(0), readSecond(0),
+    total(0), defaultValue(0), state(0), memoryFirst(0), memorySecond(0),
+    firstLocalInfo(0), secondLocalInfo(0), sizesInitialized(false),
+    sizesChanged(false), Size(0.0), SizeExt(0.0), noAttrs(0), attrSize(0),
+    attrSizeExt(0)  {}
 
-ProgressLocalInfo::~ProgressLocalInfo() 
+ProgressLocalInfo::~ProgressLocalInfo()
 {
   if ( sizesInitialized )
   {
@@ -108,7 +103,7 @@ ProgressLocalInfo::~ProgressLocalInfo()
   }
 }
 
-void ProgressLocalInfo::SetJoinSizes( ProgressInfo& p1, ProgressInfo& p2 ) 
+void ProgressLocalInfo::SetJoinSizes( ProgressInfo& p1, ProgressInfo& p2 )
 {
   sizesChanged = false;
 

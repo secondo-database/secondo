@@ -116,9 +116,6 @@ public:
 
 
 
-
-
-
 class ProgressLocalInfo
 {
 
@@ -128,16 +125,16 @@ public:
 
   ~ProgressLocalInfo();
 
-  int returned;        	//current number of tuples returned
-  int read;		//no of tuples read from arg stream
-  int readFirst;	//no of tuples read from first arg stream
-  int readSecond;	//no of tuples read from second argument stream
-  int total;          	//total number of tuples in argument relation
-  int defaultValue;	//default assumption of result size, needed for
-			//some operators
-  int state;		//to keep state info if needed
+  int returned;     //current number of tuples returned
+  int read;         //no of tuples read from arg stream
+  int readFirst;    //no of tuples read from first arg stream
+  int readSecond;   //no of tuples read from second argument stream
+  int total;        //total number of tuples in argument relation
+  int defaultValue; //default assumption of result size, needed for
+                    //some operators
+  int state;        //to keep state info if needed
   int memoryFirst,
-    memorySecond;	//size of buffers for first and second argument
+      memorySecond;	//size of buffers for first and second argument
 
   void* firstLocalInfo;	//pointers to localinfos of first and second arg
   void* secondLocalInfo;
@@ -145,13 +142,12 @@ public:
   bool sizesInitialized;//size fields only defined if sizesInitialized;
                         //initialized means data structures are allocated
                         //and fields are filled
-  bool sizesChanged;    //sizes were recomputed in last call
-  double Size;		//total tuplesize
-  double SizeExt;	//size of root and extension part of tuple
-  int noAttrs;		//no of attributes
-  double *attrSize;	//full size of each attribute
+  bool   sizesChanged;  //sizes were recomputed in last call
+  double Size;		      //total tuplesize
+  double SizeExt;	      //size of root and extension part of tuple
+  int    noAttrs;		    //no of attributes
+  double *attrSize;	    //full size of each attribute
   double *attrSizeExt;	//size of root and ext. part of each attribute
-
 
   void SetJoinSizes( ProgressInfo& p1, ProgressInfo& p2 ) ;
 
@@ -222,11 +218,6 @@ class LocalInfo : public ProgressLocalInfo {
 
     T* ptr;
 };
-
-
-
-
-
 
 
 #endif
