@@ -82,6 +82,7 @@ buffer's content.
 #include "SecondoSMI.h"
 #include "Serialize.h"
 #include "assert.h"
+#include <stdlib.h>
 
 class Flob{
   friend class FlobManager;
