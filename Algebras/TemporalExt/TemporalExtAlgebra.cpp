@@ -3665,7 +3665,7 @@ int MRegionPointPassesExt( Word* args, Word& result, int message,
             URegionEmb,
             UPoint> rp(*m, mp);
 
-        MPoint resMp;
+        MPoint resMp(0);
         IntersectionRPExt( m, mp, resMp, rp, false);
 
         int mpPos = 0;
@@ -3817,7 +3817,7 @@ int MRegionPointsPassesExt( Word* args, Word& result, int message,
                     URegionEmb,
                     UPoint> rp(*m, mp);
 
-            MPoint resMp;
+            MPoint resMp(0);
             IntersectionRPExt( m, mp, resMp, rp, false);
 
             int mpPos = 0;
