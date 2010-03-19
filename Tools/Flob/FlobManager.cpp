@@ -207,6 +207,35 @@ This can be realized by calling the ~dropFile~ function.
  }
 
 
+bool FlobManager::makeControllable(Flob& flob){
+    if(flob.dataPointer){
+      assert(flob.id.isDestroyed());
+      // found an evil flob, create a nice one from it
+      if(!create(flob.size,flob)){
+         return false;
+      }
+      char* dp = flob.dataPointer;
+      flob.dataPointer = 0;
+      if(! putData(flob, dp, 0,flob.size,false)){
+       return false;
+      }  
+      free(dp);
+    }
+    return true;
+}
+
+void FlobManager::createFromBlock(Flob& result, const char* buffer, 
+                                 const SmiSize& size, const bool autodestroy){
+   if(autodestroy){
+     result.id.destroy();    
+   }
+   assert(result.id.isDestroyed());
+   assert(result.dataPointer == 0);
+   result.dataPointer = (char*) malloc(size);
+   memcpy(result.dataPointer, buffer, size);
+}
+
+
      
 /*
 ~resize~
@@ -216,6 +245,10 @@ Changes the size of flob.
 */
 bool FlobManager::resize(Flob& flob, const SmiSize& newSize, 
                          const bool ignoreCache/*=false*/){
+
+    if(flob.dataPointer){
+      makeControllable(flob);
+    }
 
     assert(!flob.id.isDestroyed());
     FlobId id = flob.id;
@@ -280,16 +313,22 @@ bool FlobManager::getData(
          const bool ignoreCache /* = false*/ ) {  // requested data size
   __TRACE_ENTER__
 
- assert(!flob.id.isDestroyed());
+ assert(offset+size <= flob.size);
  if(size==0){
    return true;
  }
+ if(flob.dataPointer){
+   memcpy(dest, flob.dataPointer + offset, size);
+   return true;
+ }
+
+
+ assert(!flob.id.isDestroyed());
 
   FlobId id = flob.id;
   SmiFileId   fileId =  id.fileId;
 
 
-  assert(offset+size <= flob.size);
 
 
   if(!ignoreCache){
@@ -342,7 +381,16 @@ accessed.
 */
 bool FlobManager::destroy(Flob& victim) {
 
- __TRACE_ENTER__
+    __TRACE_ENTER__
+
+    if(victim.dataPointer){
+      assert(victim.id.isDestroyed()); // should not have a valid id
+      free(victim.dataPointer);
+      victim.dataPointer = 0;
+      return true; 
+    }
+
+
     assert(!victim.id.isDestroyed());
 
    if(victim.id.fileId == nativeFlobs && victim.id.isTemp){
@@ -445,10 +493,6 @@ bool FlobManager::saveTo(const Flob& src,   // Flob to save
 
  __TRACE_ENTER__
    assert(fileId != nativeFlobs);
-   if(src.size==0){
-     __TRACE_LEAVE__
-     return false;
-   }
 
    SmiRecordFile* file = getFile(fileId, isTemp);
    return saveTo(src, file, recordId, offset, result);
@@ -490,7 +534,11 @@ bool FlobManager::saveTo(const Flob& src,   // Flob to save
    
    FlobId id(file->GetFileId(), recordId, offset, file->IsTemp());
    result.id = id;
-   result.size = src.size;   
+   result.size = src.size;  
+   if(result.dataPointer){
+     free(result.dataPointer);
+     result.dataPointer = 0;
+   } 
    __TRACE_LEAVE__
    return true;
 }
@@ -549,6 +597,10 @@ Must be changed to support real large Flobs
     FlobId fid(file->GetFileId(), recId,0,file->IsTemp());
     result.id = fid;
     result.size = src.size;
+    if(result.dataPointer){
+      free(result.dataPointer);
+      result.dataPointer = 0;
+    }
     __TRACE_LEAVE__
     return true;
  }
@@ -560,14 +612,18 @@ Puts data into a flob.
 
 */
 
-bool FlobManager::putData(const Flob& dest,         // destination flob
+bool FlobManager::putData(Flob& dest,         // destination flob
                           const char* buffer, // source buffer
                           const SmiSize& targetoffset, // offset within the Flob
                           const SmiSize& length,
                           const bool ignoreCache) { // data size
 
- __TRACE_ENTER__
- assert(!dest.id.isDestroyed());
+  __TRACE_ENTER__
+  if(dest.dataPointer){
+    makeControllable(dest);
+  }  
+
+  assert(!dest.id.isDestroyed());
   FlobId id = dest.id;
   SmiFileId   fileId =  id.fileId;
   SmiRecordId recordId = id.recordId;
@@ -620,6 +676,8 @@ bool FlobManager::putData(const FlobId& id,         // destination flob
 ~create~
 
 Creates a new Flob with a given size which is assigned to a temporal file.
+
+Warning: this function does not change the dataPointer.
 
 
 */
@@ -686,6 +744,10 @@ must exists.
    FlobId fid(fileId, recordId, offset, isTemp);
    result.id = fid;
    result.size = size;
+   if(result.dataPointer){
+     free(result.dataPointer);
+     result.dataPointer = 0;
+   }
    __TRACE_LEAVE__
    return true; 
 }
@@ -729,6 +791,7 @@ return a Flob with persistent storage allocated and defined elsewhere
         FlobId flob_id(fid, rid, offset,isTemp);
         flob.id = flob_id;
         flob.size = size;          
+        flob.dataPointer = 0;
         return  flob;
       };
 

@@ -181,6 +181,7 @@ The class ~SmiRecordFile~ provides the following methods:
         [--------]
         SmiRecordFile        & SelectRecord     & AppendRecord \\
         [tilde]SmiRecordFile & SelectAll        & DeleteRecord \\
+        GetData              &                  &               \\
 
 The class ~SmiKeyedFile~ provides the following methods:
 
@@ -1054,6 +1055,16 @@ provided by the user. Optionally a record ~offset~ can be specified.
 The amount of bytes actually transfered is being returned.
 
 */
+
+  char* GetData(SmiSize& length);
+/*
+Returns the complete content of that record. The caller of that function is responsible
+to free the data pointer.
+
+*/
+
+
+
   SmiSize  Write( const void*   buffer,
                   const SmiSize numberOfBytes,
                   const SmiSize offset = 0 );
@@ -1199,6 +1210,20 @@ operations if the record is only used local.
 Writes data to a specified record.
 
 */
+
+
+  char* GetData(const SmiRecordId recno,
+                SmiSize& length);
+/*
+Retrieves all data from the record selected by the RecordId.
+The caller of that function is responsible for deleting the
+returned data using free. length will return the size of the
+returned data block. If that operation fails, for example because
+the record id does not exist, the return value will be null.
+
+
+*/
+
 
 
   bool SelectAll( SmiRecordFileIterator& iterator,

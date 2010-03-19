@@ -200,6 +200,19 @@ Returns the ~sizeof~ of the attribute class.
    }
 
 
+/*
+Returns the size of uncotrolled flob memory.
+
+*/
+   size_t getUncontrolledFlobSize(){
+      size_t res = 0;
+      for(int i=0;i<NumOfFLOBs();i++){
+         res += GetFLOB(i)->getUncontrolledSize();
+      }
+      return res;
+   }
+
+
     virtual int Compare( const Attribute *rhs ) const = 0;
 
 /*

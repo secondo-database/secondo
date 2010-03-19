@@ -798,13 +798,8 @@ Returns the size of attribute i including its extension part.
 
    // returns the size in memory of attribute i
    inline size_t  GetMemSize(int i) const {
-      size_t attrMemSize = GetRootSize(i);
-      for(int j=0; j< attributes[i]->NumOfFLOBs(); j++){
-          //Flob* tmpFlob = attributes[i]->GetFLOB(j);
-          //SPM? not relevant any more if(tmpFlob->IsInMemory()){
-              attrMemSize += sizeof(Flob);
-          //}
-      }
+      size_t attrMemSize = GetRootSize(i) + 
+                           attributes[i]->getUncontrolledFlobSize();
       return attrMemSize;
    }
 
@@ -1175,7 +1170,6 @@ to ~defAttributes~, otherwise it is dinamically constructed.
 
 */
 
-  bool ReadFrom(SmiRecord& record);
 
   static const size_t MAX_TUPLESIZE = 65535;
   static char tupleData[MAX_TUPLESIZE];
@@ -1189,8 +1183,8 @@ to ~defAttributes~, otherwise it is dinamically constructed.
                              double& extSize,
                              double& size,
                              vector<double>& attrExtSize,
-                             vector<double>& attrSize,
-                             const bool ignoreFlobs );
+                             vector<double>& attrSize
+                           );
 
 
   char* GetSMIBufferData(SmiRecord& r, uint16_t& rootSize);
@@ -1199,6 +1193,9 @@ to ~defAttributes~, otherwise it is dinamically constructed.
   void InitializeAttributes(char* src, uint16_t rootSize);
   void InitializeSomeAttributes( const list<int>& attrList,
                                  char* src, uint16_t rootSize );
+
+  bool ReadFrom(SmiRecord& record);
+
 
 
 /*

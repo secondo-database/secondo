@@ -78,7 +78,7 @@ Puts the data given in buffer into the cache. Afterwards the
 data are also written to disk using the FlobManager.
 
 */
-    bool putData(const Flob& flob,
+    bool putData(Flob& flob,
                  const char* buffer,
                  const SmiSize offset,
                  const SmiSize size);

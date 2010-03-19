@@ -76,6 +76,55 @@ SmiRecord::~SmiRecord()
   delete impl;
 }
 
+char* SmiRecord::GetData(SmiSize& length){
+  if(!initialized){
+    return 0;
+  }
+  Dbt key;
+  Dbt data;
+  data.set_data( 0 );
+  data.set_ulen( 0 );
+  data.set_flags( DB_DBT_MALLOC);
+  data.set_dlen( 0 );
+  data.set_doff( 0 );
+  int rc = 0;
+  if ( impl->useCursor ) {
+    rc = impl->bdbCursor->get( &key, &data, DB_CURRENT );
+    SmiEnvironment::SetBDBError( rc );
+  } else {
+    DbTxn* tid = !smiFile->impl->isTemporaryFile ? 
+                 SmiEnvironment::instance.impl->usrTxn : 0;
+    u_int32_t flags = (writable && !smiFile->impl->isTemporaryFile) ? 
+                       DB_RMW : 0;
+
+    key.set_data( (void*) recordKey.GetAddr() );
+    key.set_size( recordKey.keyLength );
+    if ( writable || !smiFile->impl->isSystemCatalogFile ) {
+      rc = impl->bdbFile->get( tid, &key, &data, flags );
+       SmiEnvironment::SetBDBError( rc );
+    } else {
+        flags = (!smiFile->impl->isTemporaryFile) 
+                   && SmiEnvironment::useTransactions ? DB_DIRTY_READ : 0;
+        rc = impl->bdbFile->get( 0, &key, &data, flags );
+        SmiEnvironment::SetBDBError( rc );
+    }
+  }
+
+  if ( rc == 0 ) {
+    length = data.get_size();
+    return (char*) data.get_data();
+  } else {
+    void* d = data.get_data();
+    if(d){
+      free(d);
+    }
+    return  0;
+  }
+
+}
+
+
+
 SmiSize
 SmiRecord::Read( void* buffer, 
                  const SmiSize numberOfBytes,

@@ -50,7 +50,7 @@ void Tuple::SaveOrel(SmiRecord* record, SmiFileId& lobFileId, double& extSize,
   size += tupleType->GetCoreSize();
   size_t coreSize = 0;
   size_t extensionSize = CalculateBlockSize(coreSize, extSize, size,
-                                            attrExtSize, attrSize, ignoreFlobs);
+                                            attrExtSize, attrSize);
   char* data = WriteToBlock(coreSize, extensionSize, ignoreFlobs);
   bool rc = record->Write(data, sizeof(uint16_t)+coreSize+extensionSize, 0);
   assert(rc==true);

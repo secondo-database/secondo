@@ -258,7 +258,7 @@ updates the data in cache and on disk
 
 */
 bool PersistentFlobCache::putData(
-      const Flob& flob,
+      Flob& flob,
       const char* buffer,
       const SmiSize offset,
       const SmiSize size) {

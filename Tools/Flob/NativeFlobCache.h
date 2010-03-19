@@ -334,7 +334,7 @@ bool putData(
 }
 
 
-bool saveToDisk(const Flob& flob, NativeCacheEntry* e){
+bool saveToDisk(Flob& flob, NativeCacheEntry* e){
     if(e==0 || e->size==0){ // nothing to do
       return true;
     }
@@ -361,7 +361,7 @@ Removes a slot from the cache. If saveChanges is set to true,
 the slot is stored to disk if there are changes.
 
 */
-bool eraseSlot(const Flob& flob, const size_t slotNo, const bool saveChanges){
+bool eraseSlot(Flob& flob, const size_t slotNo, const bool saveChanges){
   //assert(check());
 
   size_t index = (flob.id.hashValue() + slotNo) % tableSize;

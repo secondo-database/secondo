@@ -110,6 +110,11 @@ class FlobId{
             offset == 0;
    }
 
+
+   // support for very  dirty, non explainable things, don't think about any 
+   // meaning of this funtion!
+   SmiSize   getOffset() { return  offset; }
+
  private:
    SmiFileId   fileId;  
    SmiRecordId recordId;

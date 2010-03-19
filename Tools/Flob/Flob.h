@@ -81,6 +81,7 @@ buffer's content.
 #include "FlobManager.h"
 #include "SecondoSMI.h"
 #include "Serialize.h"
+#include "assert.h"
 
 class Flob{
   friend class FlobManager;
@@ -104,7 +105,13 @@ Creates a flat copy of the argument. The underlying data are not
 duplicated.
 
 */
-  inline Flob(const Flob& other) : id(other.id), size( other.size ) {};
+  inline Flob(const Flob& other) : id(other.id), size( other.size ),
+                                   dataPointer(0) {
+     if(other.dataPointer){
+       dataPointer = (char*)(malloc(size));
+       memcpy(dataPointer,other.dataPointer,size);
+     }
+  };
 
 /*
 ~Constructor~
@@ -112,7 +119,7 @@ duplicated.
 This construcvtor create a native flob having a given size.
 
 */
-    inline Flob (SmiSize size_): id(), size( size_ ){
+    inline Flob (SmiSize size_): id(), size( size_ ), dataPointer(0){
       FlobManager::getInstance().create(size_, *this);
     };
 
@@ -126,11 +133,24 @@ Constructs a Flob from a given position.
     inline Flob(const SmiFileId& fileId,
                 const SmiRecordId& recordId,
                 const SmiSize& offset,
-                const bool isTemp) : id(), size( 0 ){
+                const bool isTemp) : id(), size( 0 ), dataPointer(0){
          FlobManager::getInstance().create(fileId, recordId,
                                            offset, isTemp,
                                            size, *this);
     };
+
+/*
+~Constructor~
+
+constructs a flob from a given buffer as a evil flob.
+
+*/
+    inline Flob(const char* buffer, const SmiSize& size):id(),size(size),
+                dataPointer(0){
+       id.destroy();
+       dataPointer = (char*) malloc(size);
+    }
+
 
 /*
 ~Assignment Operator~
@@ -141,6 +161,19 @@ Makes only a flat copy of the source flob.
     inline Flob& operator=(const Flob& src){
       size = src.size;
       id   = src.id;
+      if(src.dataPointer){
+        if(dataPointer){
+          dataPointer = (char*)realloc(dataPointer, size);
+        } else {
+          dataPointer = (char*)malloc(size);
+        }
+        memcpy(dataPointer, src.dataPointer, size);
+      } else{
+        if(dataPointer){
+           free(dataPointer);
+        }
+        dataPointer = 0;
+      }
       return *this;
     };
 
@@ -149,18 +182,22 @@ Makes only a flat copy of the source flob.
 
 */
    inline bool operator==(const Flob& f) const{
+     assert(!dataPointer && !f.dataPointer);
      return (id == f.id);
    }
 
    inline bool operator!=(const Flob& f) const{
+     assert(!dataPointer && !f.dataPointer);
      return id != f.id;
    }
 
    inline bool operator>(const Flob& f) const{
+     assert(!dataPointer && !f.dataPointer);
      return id > f.id;
    }
 
    inline bool operator<(const Flob& f) const{
+     assert(!dataPointer && !f.dataPointer);
      return id < f.id;
    }
 
@@ -169,7 +206,11 @@ Makes only a flat copy of the source flob.
 
 */
    inline size_t hashValue() const{
-     return id.hashValue();
+     if(!dataPointer){
+        return id.hashValue();
+     } else {
+        return 0;
+     }
    }
 
 
@@ -179,7 +220,13 @@ Makes only a flat copy of the source flob.
 Does not destroy the underlying data. Use destroy for it.
 
 */
-    virtual ~Flob() {};
+    virtual ~Flob() {
+      if(dataPointer){
+        free(dataPointer);
+        dataPointer = 0;
+      }
+
+    };
 
 /*
 ~getSize~
@@ -188,6 +235,17 @@ Returns the current size of this Flob.
 
 */
     inline SmiSize getSize() const { return size; }; // Size of the FLOB
+
+
+/*
+~getUncontrolledSize~
+
+Returns the size of the flob not under management of the FlobManager;
+
+*/
+    inline SmiSize getUncontrolledSize() const { return dataPointer?size:0; }
+
+
 
 /*
 ~resize~
@@ -354,6 +412,34 @@ small Flob data within the tuple itself.
     };
 
 
+/*
+~createFromBlock~
+
+Does the evil thing.
+
+*/
+   inline static void createFromBlock(Flob& result, const char* buffer,
+                                      const SmiSize& size, bool autodestroy){
+      return  FlobManager::getInstance().createFromBlock(result,buffer, 
+                                                         size, autodestroy);
+   }
+
+/*
+~getOffset~
+
+Another very evil thing! returns the stored offset of the flob.
+This member should be private to be able to capsulate the internal
+flob representation. This funtion is required for supporting the
+creation of evil flobs.
+
+*/
+   inline const SmiSize getOffset(){
+      return id.getOffset();
+   }
+
+
+
+
 
 /*
 ~destroy~
@@ -386,6 +472,7 @@ This function saves the header information of this Flob into a record.
 */
   virtual size_t serializeHeader(char* buffer,
                                  SmiSize& offset) const{
+     assert(!dataPointer);
      WriteVar<SmiSize>(size, buffer, offset);
      WriteVar<FlobId>(id, buffer, offset);
      return headerSize();
@@ -399,6 +486,7 @@ Restores header information.
 */
   virtual void restoreHeader(char* buffer,
                              SmiSize& offset) {
+    assert(!dataPointer);
     ReadVar<SmiSize>(size, buffer, offset);
     ReadVar<FlobId>(id, buffer, offset);
   }
@@ -475,11 +563,13 @@ Clears both cashes. Its required after closing or opening a database.
   }
 
   private:
-    FlobId id;       // encodes fileid, recordid, offset
-    SmiSize size;    // size of the Flob data segment in Bytes
+    FlobId id;          // encodes fileid, recordid, offset
+    SmiSize size;       // size of the Flob data segment in Bytes
+    char*  dataPointer; // an evil pointer for direct saving data
 
 
-    Flob(const FlobId& _id, const SmiSize& _size): id(_id), size(_size){}
+    Flob(const FlobId& _id, const SmiSize& _size): id(_id), size(_size),
+          dataPointer(0){}
 
 };
 

@@ -141,6 +141,50 @@ SmiRecordFile::SelectRecord( const SmiRecordId recno,
 }
 
 /*
+Returns all data stored in an record specified by its id.
+
+*/
+char* SmiRecordFile::GetData(const SmiRecordId recno,
+                             SmiSize& length){
+
+  int rc = 0;
+  Dbt key;
+  key.set_data( (void*) &recno );
+  key.set_size( sizeof( SmiRecordId ) );
+  
+  // initialize data
+  Dbt data;
+  data.set_data(0);
+  data.set_ulen(0);
+  data.set_flags(DB_DBT_MALLOC);
+  data.set_dlen(0);
+  data.set_doff(0);
+
+  DbTxn* tid = !impl->isTemporaryFile ? 
+                   SmiEnvironment::instance.impl->usrTxn : 0;
+ 
+  if ( !impl->isSystemCatalogFile ) {
+    rc = impl->bdbFile->get( tid, &key, &data, 0 );
+  }
+  else {
+    u_int32_t flags = (!impl->isTemporaryFile) && useTxn ? DB_DIRTY_READ : 0;
+    rc = impl->bdbFile->get( tid , &key, &data, flags );
+  }
+  if(rc){
+    SmiEnvironment::SetBDBError(rc);
+    void* dat = data.get_data();
+    if(dat){
+      free(dat);
+    }
+    return 0;
+  }
+  length = data.get_size();
+  return (char*) data.get_data();
+
+}
+
+
+/*
 Selects an record and reads the data from it.
 
 */

@@ -130,7 +130,7 @@ Puts data into a flob.
 
 */
 
-      bool putData(const Flob& dest,         // destination flob
+      bool putData(Flob& dest,         // destination flob
                          const char* buffer, // source buffer
                          const SmiSize& targetoffset,  // offset within the Flob
                          const SmiSize& length,
@@ -312,8 +312,20 @@ Return the file to a fileid;
 */
    SmiRecordFile* getFile(const SmiFileId& fileId, const bool isTemp);
 
+/*
+~createFromBlock~
+
+does the evil thing.
+
+*/
+ void createFromBlock(Flob& result,const char* buffer, const SmiSize& size,
+                      const bool autodestroy);
+
+ bool makeControllable(Flob& flob);
+
 
 };
+
 
 
 
