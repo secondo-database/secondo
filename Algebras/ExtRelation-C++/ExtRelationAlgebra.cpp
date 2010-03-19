@@ -269,7 +269,7 @@ MakeRandomSubset(vector<int>& result, int subsetSize, int setSize,
   // Using Windows RAND_MAX is very small (about 2^15) therefore we
   // need to limit the drawSize to 3/4 (to avoid long runtimes) of
   // this size.
-  int drawMax = 3*RAND_MAX/4;
+  int drawMax = 3*(RAND_MAX/4);
   const int randMax = RAND_MAX;
   const int intMax = INT_MAX;
   const int newMax = max(randMax, intMax);
@@ -372,7 +372,7 @@ ListExpr SampleTypeMap(ListExpr args)
     ErrorReporter::ReportError("rel x int x real [ x int] expected");
     return nl->TypeError();
   }
-  
+
   ListExpr streamDescription =
           nl->Cons(nl->SymbolAtom("stream"), nl->Rest(rel));
 
@@ -563,14 +563,14 @@ ListExpr CancelTypeMap(ListExpr args)
   string err = " stream(tuple(x)) x (tuple(x) -> bool) expected";
   if(!listutils::isTupleStream(stream) ||
      !listutils::isMap<1>(fun)){
-    return listutils::typeError(err); 
+    return listutils::typeError(err);
   }
 
   if(!listutils::isSymbol(nl->Third(fun),BOOL)){
-    return listutils::typeError(err); 
+    return listutils::typeError(err);
   }
   if(!nl->Equal(nl->Second(stream),nl->Second(fun))){
-    return listutils::typeError(err); 
+    return listutils::typeError(err);
   }
   return stream;
 }
@@ -673,7 +673,7 @@ Type mapping for ~extract~ is
 */
 ListExpr ExtractTypeMap( ListExpr args )
 {
-  
+
   if(nl->ListLength(args)!=2){
    return listutils::typeError("two arguments expected");
   }
@@ -687,7 +687,7 @@ ListExpr ExtractTypeMap( ListExpr args )
     return listutils::typeError(err);
   }
 
-  string attr = nl->SymbolValue(attrname); 
+  string attr = nl->SymbolValue(attrname);
   ListExpr attrList = nl->Second(nl->Second(stream));
   ListExpr attrType;
   int j = listutils::findAttribute(attrList, attr, attrType);
@@ -696,13 +696,13 @@ ListExpr ExtractTypeMap( ListExpr args )
           (nl->First(attrType)) == "arel"){
       ErrorReporter::ReportError("Standard extract is not defined for arel");
       return nl->TypeError();
-    }    
+    }
     else{
       return nl->ThreeElemList(nl->SymbolAtom("APPEND"),
            nl->OneElemList(nl->IntAtom(j)), attrType);
     }
   } else {
-    return listutils::typeError("Attribute name " + attr + 
+    return listutils::typeError("Attribute name " + attr +
                                 " not known in the tuple");
   }
 }
@@ -788,11 +788,11 @@ Type mapping for ~head~ is
 */
 ListExpr HeadTypeMap( ListExpr args )
 {
-  
+
   if(nl->ListLength(args)!=2){
     return listutils::typeError("two arguments expected");
   }
-  
+
   string err = " stream(tuple(...) x int or stream(DATA) x int expected";
 
   ListExpr stream = nl->First(args);
@@ -1029,7 +1029,7 @@ MaxMinTypeMap( ListExpr args )
   string err = "stream(tuple(...)) x attrname expected";
   ListExpr stream = nl->First(args);
   ListExpr attr = nl->Second(args);
-  
+
   if(!listutils::isTupleStream(stream) ||
      nl->AtomType(attr)!=SymbolType){
    return listutils::typeError(err);
@@ -2595,7 +2595,7 @@ static char* sortDescending = "desc";
 
 ListExpr SortByTypeMap( ListExpr args )
 {
-  
+
   if(nl->ListLength(args)!=2){
     return listutils::typeError("two arguments expected");
   }
@@ -2616,7 +2616,7 @@ ListExpr SortByTypeMap( ListExpr args )
   ListExpr sortOrderDescription =
     nl->OneElemList(nl->IntAtom(numberOfSortAttrs));
   ListExpr sortOrderDescriptionLastElement = sortOrderDescription;
-  
+
   ListExpr rest = sortSpecification;
   while(!nl->IsEmpty(rest))
   {
@@ -2632,10 +2632,10 @@ ListExpr SortByTypeMap( ListExpr args )
      return listutils::typeError(err);
     }
     bool isAscending=true;
-    if(length==2) { 
+    if(length==2) {
       if(nl->AtomType(nl->First(attributeSpecification))!=SymbolType){
          return listutils::typeError(err);
-      }  
+      }
       attrname = nl->SymbolValue(nl->First(attributeSpecification));
       ListExpr order = nl->Second(attributeSpecification);
       if(listutils::isSymbol(order, sortAscending)){
@@ -2730,7 +2730,7 @@ IdenticalTypeMap( ListExpr args )
 {
   if(nl->ListLength(args)!=1){
     return listutils::typeError("one argument expected");
-  }  
+  }
   ListExpr arg = nl->First(args);
   if(!listutils::isTupleStream(arg)){
     return listutils::typeError("tuple stream expected");
@@ -3436,7 +3436,7 @@ bool arelTypeEqual (NList& t1, NList& t2)
     {
       firstA = attrA.first().second();
       firstB = attrB.first().second();
-       if (firstA.hasLength(2) && firstB.hasLength(2) && 
+       if (firstA.hasLength(2) && firstB.hasLength(2) &&
            firstA.first().isSymbol() && firstB.first().isSymbol() &&
            firstA.first().str() == "arel" && firstB.first().str() == "arel")
         equal = arelTypeEqual(firstA, firstB);
@@ -3459,7 +3459,7 @@ ListExpr JoinTypeMap (ListExpr args)
   if(expectIntArgument){
     expLength++;
     err += " x int ";
-  }  
+  }
   err += " expected";
   if(nl->ListLength(args)!=expLength){
     return listutils::typeError(err + "(wrong number of args)");
@@ -3488,7 +3488,7 @@ ListExpr JoinTypeMap (ListExpr args)
   if(!listutils::disjointAttrNames(list1,list2)){
     return listutils::typeError("Attribute lists are not disjoint");
   }
-  
+
   ListExpr list = ConcatLists(list1, list2);
   ListExpr outlist = nl->TwoElemList(nl->SymbolAtom("stream"),
       nl->TwoElemList(nl->SymbolAtom("tuple"), list));
@@ -3500,31 +3500,31 @@ ListExpr JoinTypeMap (ListExpr args)
 
   int attrAIndex = listutils::findAttribute(list1, attrAName, attrTypeA);
   if(attrAIndex<1){
-    return listutils::typeError("Attributename " + attrAName + 
+    return listutils::typeError("Attributename " + attrAName +
                                 " not found in the first argument");
   }
 
   int attrBIndex = listutils::findAttribute(list2, attrBName, attrTypeB);
   if(attrBIndex<1){
-    return listutils::typeError("Attributename " + attrBName + 
+    return listutils::typeError("Attributename " + attrBName +
                                 " not found in the second argument");
   }
-  
+
   NList attrA(attrTypeA);
   NList attrB(attrTypeB);
-  if (attrA.hasLength(2) && attrB.hasLength(2) && 
+  if (attrA.hasLength(2) && attrB.hasLength(2) &&
       attrA.first().isSymbol() && attrB.first().isSymbol() &&
       attrA.first().str() == "arel" && attrB.first().str() == "arel")
-  {    
-   if (!arelTypeEqual(attrA, attrB)) 
+  {
+   if (!arelTypeEqual(attrA, attrB))
     return listutils::typeError("different types selected for operation");
   }
   else
-  { 
+  {
     if(!nl->Equal(attrTypeA, attrTypeB)){
-      return listutils::typeError("different types selected for operation");  
+      return listutils::typeError("different types selected for operation");
     }
-  } 
+  }
 
   ListExpr joinAttrDescription =
     nl->TwoElemList(nl->IntAtom(attrAIndex), nl->IntAtom(attrBIndex));
@@ -4161,7 +4161,7 @@ The type mapping function of the loopjoin operation is as follows:
 */
 ListExpr LoopjoinTypeMap(ListExpr args)
 {
-  
+
  if(nl->ListLength(args)!=2){
    return listutils::typeError("two arguments expected");
  }
@@ -4177,26 +4177,26 @@ ListExpr LoopjoinTypeMap(ListExpr args)
  ListExpr mapres = nl->Third(map);
 
  if(!nl->Equal(nl->Second(stream), maparg)){
-   return listutils::typeError( err + 
+   return listutils::typeError( err +
                                " (function argument differs from tuple)");
  }
 
  if(!listutils::isTupleStream(mapres)){
-   return listutils::typeError(err + 
+   return listutils::typeError(err +
                                " (function result is not a tuple stream");
- } 
+ }
 
  ListExpr alist1 = nl->Second(nl->Second(stream));
  ListExpr alist2 = nl->Second(nl->Second(mapres));
 
  if(!listutils::disjointAttrNames(alist1, alist2)){
-   return listutils::typeError(err + 
+   return listutils::typeError(err +
                                " ( name conflict in  tuples");
  }
  ListExpr list = ConcatLists(alist1,alist2);
 
  return nl->TwoElemList(nl->SymbolAtom("stream"),
-                        nl->TwoElemList(nl->SymbolAtom("tuple"), 
+                        nl->TwoElemList(nl->SymbolAtom("tuple"),
                                         list));
 }
 
@@ -4621,14 +4621,14 @@ LoopselectTypeMap(ListExpr args)
  ListExpr mapres = nl->Third(map);
 
  if(!nl->Equal(nl->Second(stream), maparg)){
-   return listutils::typeError( err + 
+   return listutils::typeError( err +
                                " (function argument differs from tuple)");
  }
 
  if(!listutils::isTupleStream(mapres)){
-   return listutils::typeError(err + 
+   return listutils::typeError(err +
                                " (function result is not a tuple stream");
- } 
+ }
 
  return mapres;
 }
@@ -5133,11 +5133,11 @@ ListExpr ExtProjectExtendTypeMap(ListExpr args)
  // check whether all elements of attrlist are attrnames in the
  // first argument
  if(nl->AtomType(attrList)!=NoAtom){
-   return listutils::typeError(err + 
+   return listutils::typeError(err +
                           " second arg is not a list of attribute names");
  }
 
- ListExpr streamattr = nl->Second(nl->Second(stream)); 
+ ListExpr streamattr = nl->Second(nl->Second(stream));
  set<string> names;
  int noAttrs;
  ListExpr numberList;
@@ -5165,9 +5165,9 @@ ListExpr ExtProjectExtendTypeMap(ListExpr args)
        return listutils::typeError(err + "(attr name found twice)");
      }
      names.insert(attrName);
-     int j = listutils::findAttribute(streamattr, attrName, attrType); 
+     int j = listutils::findAttribute(streamattr, attrName, attrType);
      if(j==0){
-       return listutils::typeError(err + "(attr name "+ 
+       return listutils::typeError(err + "(attr name "+
                                    attrName + " not found)");
      }
      if (firstCall) {
@@ -5177,19 +5177,19 @@ ListExpr ExtProjectExtendTypeMap(ListExpr args)
        numberList = nl->OneElemList(nl->IntAtom(j));
        lastNumberList = numberList;
      } else {
-       lastNewAttrList = nl->Append(lastNewAttrList, 
+       lastNewAttrList = nl->Append(lastNewAttrList,
                                     nl->TwoElemList(attr, attrType));
        lastNumberList = nl->Append(lastNumberList, nl->IntAtom(j));
      }
    }
  }
-  
+
  // check the third argument (must be a list of pairs (attrname map))
  // the argument of map must be the tuple type in the stream and the
  // result must be in kind DATA
  if(nl->IsAtom(extList)){
    return listutils::typeError(err + " (wrong extension list)");
- } 
+ }
 
  ListExpr tupletype = nl->Second(stream);
  while(!nl->IsEmpty(extList)){
@@ -5206,17 +5206,17 @@ ListExpr ExtProjectExtendTypeMap(ListExpr args)
    }
    string name = nl->SymbolValue(nameL);
    if(names.find(name)!=names.end()){
-     return listutils::typeError(err + 
+     return listutils::typeError(err +
                               "( conflicting names found " + name+")");
    }
    names.insert(name);
    if(!nl->Equal(tupletype,nl->Second(map))){
     return listutils::typeError(err + "( invalid argument type for map)");
-   } 
+   }
    ListExpr mapres = nl->Third(map);
    if(!listutils::isDATA(mapres)){
-     return listutils::typeError(err + " (map result for " + name 
-                                 + " not in kind DATA)"); 
+     return listutils::typeError(err + " (map result for " + name
+                                 + " not in kind DATA)");
    }
    if(firstCall) {
      firstCall = false;
@@ -5231,7 +5231,7 @@ ListExpr ExtProjectExtendTypeMap(ListExpr args)
  if(nl->IsEmpty(newAttrList)){
    return listutils::typeError(err +  "(resulting tuple would be empty");
  }
- 
+
 
   return nl->ThreeElemList(
                nl->SymbolAtom("APPEND"),
@@ -5621,7 +5621,7 @@ For instance,
 */
 ListExpr ProjectExtendStreamTypeMap(ListExpr args)
 {
- 
+
  if(nl->ListLength(args)!=3){
    return listutils::typeError("three arguments expected");
  }
@@ -5632,20 +5632,20 @@ ListExpr ProjectExtendStreamTypeMap(ListExpr args)
  string err ="stream(tuple(K) x (a1..an) x "
              "(b (tuple(K) -> stream(L))) expected";
 
- if(!listutils::isTupleStream(stream) || 
+ if(!listutils::isTupleStream(stream) ||
     nl->IsAtom(attrList) ||
     nl->ListLength(namedMapL)!=1){
    return listutils::typeError(err);
  }
- 
+
  ListExpr namedMap = nl->First(namedMapL);
  if(nl->ListLength(namedMap)!=2){
-   return listutils::typeError(err + 
+   return listutils::typeError(err +
                         "(third argument must be a pair of name , map)");
  }
 
  // process the projection list
- ListExpr streamattr = nl->Second(nl->Second(stream)); 
+ ListExpr streamattr = nl->Second(nl->Second(stream));
  set<string> names;
  int noAttrs;
  ListExpr numberList;
@@ -5655,7 +5655,7 @@ ListExpr ProjectExtendStreamTypeMap(ListExpr args)
  ListExpr lastNumberList;
  bool firstCall = true;
 
- int attrno = nl->ListLength(attrList);  
+ int attrno = nl->ListLength(attrList);
  if(nl->IsEmpty(attrList)){
    noAttrs = 0;
    numberList = nl->TheEmptyList();
@@ -5674,9 +5674,9 @@ ListExpr ProjectExtendStreamTypeMap(ListExpr args)
        return listutils::typeError(err + "(attr name found twice)");
      }
      names.insert(attrName);
-     int j = listutils::findAttribute(streamattr, attrName, attrType); 
+     int j = listutils::findAttribute(streamattr, attrName, attrType);
      if(j==0){
-       return listutils::typeError(err + "(attr name "+ 
+       return listutils::typeError(err + "(attr name "+
                                    attrName + " not found)");
      }
      if (firstCall) {
@@ -5686,7 +5686,7 @@ ListExpr ProjectExtendStreamTypeMap(ListExpr args)
        numberList = nl->OneElemList(nl->IntAtom(j));
        lastNumberList = numberList;
      } else {
-       lastNewAttrList = nl->Append(lastNewAttrList, 
+       lastNewAttrList = nl->Append(lastNewAttrList,
                                     nl->TwoElemList(attr, attrType));
        lastNumberList = nl->Append(lastNumberList, nl->IntAtom(j));
      }
@@ -5698,7 +5698,7 @@ ListExpr ProjectExtendStreamTypeMap(ListExpr args)
  ListExpr map = nl->Second(namedMap);
  if(nl->AtomType(mapname)!=SymbolType ||
     !listutils::isMap<1>(map)){
-   return listutils::typeError(err + 
+   return listutils::typeError(err +
           "(third argument must be a pair of name and map)");
  }
 
@@ -5707,17 +5707,17 @@ ListExpr ProjectExtendStreamTypeMap(ListExpr args)
  }
  if(!listutils::isDATAStream(nl->Third(map))){
    return listutils::typeError(err + " (result of mpa is not a DATA stream");
- } 
+ }
 
  ListExpr mapData = nl->Second(nl->Third(map));
  if(firstCall){
    newAttrList = nl->OneElemList(nl->TwoElemList(mapname,mapData));
  } else {
-   lastNewAttrList = nl->Append(lastNewAttrList, 
+   lastNewAttrList = nl->Append(lastNewAttrList,
                                 nl->TwoElemList(mapname,mapData));
  }
 
- 
+
  return nl->ThreeElemList( nl->SymbolAtom("APPEND"),
                            nl->TwoElemList( nl->IntAtom( attrno ),
                                              numberList),
@@ -6891,20 +6891,20 @@ ListExpr AggregateTypeMap( ListExpr args )
 
   if(!listutils::isTupleStream(stream)){
     return listutils::typeError("first argument must be a tuple stream");
-  } 
+  }
   if(nl->AtomType(attrNameList)!=SymbolType){
     return listutils::typeError("second argument is not a valid attr name");
   }
   if(!listutils::isMap<2>(map)){
     return listutils::typeError("third argument is not a map");
   }
- 
+
   ListExpr attrType;
   string attrName = nl->SymbolValue(attrNameList);
-  int j = listutils::findAttribute(nl->Second(nl->Second(stream)), 
-                                   attrName, attrType); 
+  int j = listutils::findAttribute(nl->Second(nl->Second(stream)),
+                                   attrName, attrType);
   if(j==0){
-    return listutils::typeError("attrname " + attrName + 
+    return listutils::typeError("attrname " + attrName +
                                 " not known in the tuple");
   }
   if(!nl->Equal(defaultValue,attrType)){
@@ -6925,7 +6925,7 @@ ListExpr AggregateTypeMap( ListExpr args )
   if(!nl->Equal(maparg1, maparg2) ||
      !nl->Equal(maparg1, mapres) ||
      !nl->Equal(attrType,maparg1)){
-     return listutils::typeError(err); 
+     return listutils::typeError(err);
   }
 
   return nl->ThreeElemList(
@@ -7983,12 +7983,12 @@ ListExpr SymmProductExtendTypeMap(ListExpr args)
     }
     if(!nl->Equal(TType1, nl->Second(map)) ||
        !nl->Equal(TType2, nl->Third(map))){
-      return listutils::typeError(err +"( ivalid argument in mapping)");      
+      return listutils::typeError(err +"( ivalid argument in mapping)");
     }
-    lastAttrList = nl->Append(lastAttrList, 
+    lastAttrList = nl->Append(lastAttrList,
                               nl->TwoElemList(nl->First(namedMap),
                                               nl->Fourth(map)));
-  }   
+  }
 
   if(!listutils::isAttrList(newAttrList)){
     return listutils::typeError(err + " ( error in result stream: "
@@ -7997,7 +7997,7 @@ ListExpr SymmProductExtendTypeMap(ListExpr args)
 
   return nl->TwoElemList(nl->SymbolAtom(STREAM),
                          nl->TwoElemList(nl->SymbolAtom(TUPLE),
-                                         newAttrList)); 
+                                         newAttrList));
 
 }
 
@@ -8359,7 +8359,7 @@ ListExpr SymmProductTypeMap(ListExpr args)
   string err = "stream(tuple1) x stream(tuple2) expected";
   if(!listutils::isTupleStream(stream1) ||
      !listutils::isTupleStream(stream2)){
-    return listutils::typeError(err + 
+    return listutils::typeError(err +
                  "(one of the arguments is not a tuple stream)");
   }
   ListExpr newAttrList = ConcatLists(nl->Second(nl->Second(stream1)),
