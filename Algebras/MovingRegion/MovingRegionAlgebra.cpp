@@ -5799,9 +5799,9 @@ URegion::URegion(unsigned int n) :
 }
 
 URegion::URegion(vector<MSegmentData> linelist, const Interval<Instant>& tiv) :
-   SpatialTemporalUnit<Region, 3>(true)
+   SpatialTemporalUnit<Region, 3>(true),
+   segments(0)
 {
-	segments = DbArray<MSegmentData>(0);
 	Interval<Instant> newTiv;
 	newTiv.CopyFrom(tiv);
   	uremb= URegionEmb(newTiv, 0);
@@ -6174,7 +6174,7 @@ void URegion::AddSegment(MSegmentData newSeg)
 	}
 }
 
-URegion::URegion(int i, MRegion& mr) {
+URegion::URegion(int i, MRegion& mr):segments(0) {
 
   assert( mr.IsDefined() );
   assert( i>=0 );
@@ -6186,7 +6186,6 @@ URegion::URegion(int i, MRegion& mr) {
   uremb = OrigURemb;
   uremb.SetSegmentsNum(0);
   uremb.SetStartPos(0);
-  segments = DbArray<MSegmentData>(0);
 
   // copy timeInterval from URegionEmb to URegion
   timeInterval = uremb.timeInterval;
