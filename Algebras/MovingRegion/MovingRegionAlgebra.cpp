@@ -7133,7 +7133,7 @@ merged, ie. one ~URegionEmb~ instance's interval is entirely within one
 interval in ~rp~.
 
 */
-    MPoint resMp;
+    MPoint resMp(0);
     IntersectionRP(mp, resMp, rp, false);
 
     int mpPos = 0;
