@@ -17,17 +17,7 @@
 #along with SECONDO; if not, write to the Free Software
 #Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
-operator thebusnetwork alias THEBUSNETWORK pattern op(_)
-operator busnode alias BUSNODE pattern op(_)
-
-operator busedge alias BUSEDGE pattern op(_)
-
-operator busmove alias BUSMOVE pattern op(_)
-operator find_path_t_1 alias FIND_PATH_T_1 pattern op(_,_,_,_)
-operator find_path_t_2 alias FIND_PATH_T_2 pattern op(_,_,_,_)
-operator find_path_t_3 alias FIND_PATH_T_3 pattern _ _ op[_,_,_,_,_]
-operator find_path_t_4 alias FIND_PATH_T_4 pattern _ op[_,_,_,_]
-operator find_path_t_5 alias FIND_PATH_T_5 pattern _ op[_,_,_,_]
-operator find_path_t_6 alias FIND_PATH_T_6 pattern _ op[_,_,_,_]
-
-operator find_path_bus_tree1 alias FIND_PATH_BUS_TREE1 pattern _ op[_,_,_,_]
+operator checksline alias CHECKSLINE pattern op(_)
+operator modifyboundary alias MODIFYBOUNDARY pattern op(_,_)
+operator segment2region alias SEGMENT2REGION pattern op(_,_)
+operator paveregion alias PAVEREGION pattern op(_,_,_,_)

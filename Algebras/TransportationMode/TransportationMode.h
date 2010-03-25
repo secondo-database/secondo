@@ -26,6 +26,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 [1] Header File of the Transportation Mode Algebra
 
 August, 2009 Jianqiu Xu
+March, 2010 Jianqiu xu
 
 [TOC]
 
@@ -52,4 +53,34 @@ August, 2009 Jianqiu Xu
 #include "NList.h"
 #include "RelationAlgebra.h"
 #include "ListUtils.h"
+#include "NetworkAlgebra.h"
+
+#define GetCloser(a) fabs(floor(a)-a) > fabs(ceil(a)-a)? ceil(a):floor(a)
+
+
+struct MyHalfSegment{
+  MyHalfSegment(){}
+  MyHalfSegment(bool d, const Point& p1, const Point& p2):def(d),
+                from(p1),to(p2){}
+  MyHalfSegment(const MyHalfSegment& mhs):def(mhs.def),
+                from(mhs.from),to(mhs.to){}
+  MyHalfSegment& operator=(const MyHalfSegment& mhs)
+  {
+    def = mhs.def;
+    from = mhs.from;
+    to = mhs.to;
+    return *this;
+  }
+  Point& GetLeftPoint(){return from;}
+  Point& GetRightPoint(){return to;}
+  void Print()
+  {
+    cout<<"from "<<from<<" to "<<to<<endl;
+  }
+  bool def;
+  Point from,to;
+};
+
+
+
 #endif
