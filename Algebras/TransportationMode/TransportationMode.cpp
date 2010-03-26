@@ -41,7 +41,7 @@ queries moving objects with transportation modes.
 */
 
 #include "TransportationMode.h"
-
+#include "Partition.h"
 
 extern NestedList* nl;
 extern QueryProcessor *qp;
@@ -247,16 +247,18 @@ struct LinePartiton{
 
 //    printf("%.8f %.8f\n",a,b);
 //    printf("%d %d\n",x,y);
+
   }
   inline void Modify_Point(Point& p)
   {
-
-//    printf("%.10f %.10f\n",a, b);
-//    x = ((int)(a*1000.0 +0.5))/1000.0;
-//    y = ((int)(b*1000.0 +0.5))/1000.0;
+    double x,y;
+    x = p.GetX();
+    y = p.GetY();
 //    printf("%.10f %.10f\n",x, y);
-
-
+    x = ((int)(x*100.0 +0.5))/100.0;
+    y = ((int)(y*100.0 +0.5))/100.0;
+//    printf("%.10f %.10f\n",x, y);
+    p.Set(x,y);
   }
 
   void AddHalfSegmentResult(MyHalfSegment hs, Line* res, int& edgeno)
@@ -392,36 +394,15 @@ struct LinePartiton{
       mhs = new MyHalfSegment(true,new_end,old_end);
       boundary.push_back(*mhs);
       delete mhs;
-     /////////////for debuging see the result////////////////////////////////
-/*      for(unsigned int i = 0;i < boundary.size();i++){
-        Line* l = new Line(0);
-        l->StartBulkLoad();
-        int edgeno = 0;
 
-        Point p1 = boundary[i].GetLeftPoint();
-        Point p2 = boundary[i].GetRightPoint();
-        HalfSegment* seg = new HalfSegment(true,p1,p2);
-
-        seg->attr.edgeno = edgeno++;
-        *l += *seg;
-        seg->SetLeftDomPoint(!seg->IsLeftDomPoint());
-        *l += *seg;
-
-        l->EndBulkLoad();
-        res_line.push_back(*l);
-        delete l;
-      }*/
-      ///////////////////////////////////////////////////////////////////////
       if(add == false) return;
 
       if(clock_wise){
         for(unsigned int i = 0;i < boundary.size();i++){
           ///////////////outer segments////////////////////////////////
           Point p = boundary[i].GetLeftPoint();
-
           ModifyPoint(p);
 
-          /////////////////////////////////////////////////////////
           if(i == 0){
               outer.push_back(boundary[i].GetLeftPoint());
               outer_half.push_back(boundary[i].GetLeftPoint());
@@ -580,9 +561,7 @@ struct LinePartiton{
           }
         }
 
-
       }else{
-
         for(int i = boundary.size() - 1;i >= 0;i--){
           /////////////////////////////////////////////////////////////
           Point p = boundary[i].GetRightPoint();
@@ -810,18 +789,6 @@ struct LinePartiton{
       cr->SetNoComponents( fcno+1 );
       cr->EndBulkLoad( true, true, true, false );
 
-      //////////////////////////////////////////////////
-/*      for(unsigned int i = 0;i < cr->Size();i++){
-          HalfSegment hs;
-          cr->Get(i,hs);
-          if(hs.IsLeftDomPoint()){
-            Point lp = hs.GetLeftPoint();
-            Point rp = hs.GetRightPoint();
-            printf("%.10f %.10f %.10f %.10f\n",lp.GetX(),lp.GetY(),
-                                               rp.GetX(),rp.GetY());
-          }
-      }*/
-      /////////////////////////////////////////////
       regs.push_back(*cr);
       delete cr;
 
@@ -928,102 +895,182 @@ struct LinePartiton{
     }
   }
 
-  ////////////union the pavement for each junction/////////////////
-  void Getpavement(Network* n, Relation* rel, int attr_pos1, int attr_pos2)
+  void CheckPaveRegion(Region& reg, Region& pave1, Region& pave2,
+                       vector<Region>& paves,int rid, Region* inborder)
   {
-    cout<<"attr1 "<<attr_pos1<<" attr2 "<<attr_pos2<<endl;
+    //cut the intersection region between pavement and road
 
-/*    vector<Region> regions;
-    for(int i = 1;i <= n->GetNoRoutes();i++){
-        cout<<"route "<<i<<endl;
-        CcInt* rid_id = new CcInt(true,i);
-        vector<JunctionSortEntry> juns;
-        n->GetJunctionsOnRoute(rid_id,juns);
+//    cout<<"area1 "<<reg1->Area()<<" area2 "<<reg2->Area()<<endl;
+//    cout<<"size1 "<<reg1->Size()<<" size2 "<<reg2->Size()<<endl;
 
-        //////////get all its intersection routes//////////////////////
-        vector<int> rids;
+//    if((reg1->Size() >= 6 && reg2->Size() < 6) ||
+//       (reg2->Size() >= 6 && reg1->Size() < 6)){
 
-        for(unsigned int j = 0;j < juns.size();j++){
-            CcInt* rid1 =
-                (CcInt*)juns[j].m_pJunction->GetAttribute(JUNCTION_ROUTE1_ID);
-            CcInt* rid2 =
-                (CcInt*)juns[j].m_pJunction->GetAttribute(JUNCTION_ROUTE2_ID);
-            if(rid1->GetIntval() != i) rids.push_back(rid1->GetIntval());
-            if(rid2->GetIntval() != i) rids.push_back(rid2->GetIntval());
-        }
-        Tuple* tup_pave = rel->GetTuple(i);
-        Region* tup_reg = (Region*)tup_pave->GetAttribute(attr_pos);
-        Region* all_reg = new Region(*tup_reg);
-        for(unsigned int j = 0;j < rids.size();j++){
-            cout<<"intersection route "<<rids[j]<<endl;
-            Tuple* tuple = rel->GetTuple(rids[j]);
-            Region* reg = (Region*)tuple->GetAttribute(attr_pos);
-            Region* result = new Region(0);
-            all_reg->Union(*reg,*result);
-            *all_reg = *result;
-            delete result;
-            tuple->DeleteIfAllowed();
-        }
+      Region* comm_reg = new Region(0);
+//      reg.Intersection(*inborder,*comm_reg);
+      MyIntersection(reg,*inborder,*comm_reg);
 
-        regions.push_back(*all_reg);
-        delete all_reg;
-        tup_pave->DeleteIfAllowed();
-        delete rid_id;
-    }*/
-    vector<Region> regions;
-    for(int i = 1;i <= n->GetNoRoutes();i++){
-        Region* temp = new Region(0);
-        regions.push_back(*temp);
-        delete temp;
+      Region* result = new Region(0);
+//      reg.Minus(*comm_reg,*result);
+      MyMinus(reg,*comm_reg,*result);
+
+      paves[rid - 1] = *result;
+      delete result;
+
+      delete comm_reg;
+//    }
+
+  }
+
+
+  void Getpavement(Network* n, Relation* rel1, int attr_pos,
+                  Relation* rel2, int attr_pos1, int attr_pos2)
+  {
+   //cut the pavement for each junction
+    vector<Region> pavements1;
+    vector<Region> pavements2;
+    Relation* routes = n->GetRoutes();
+    vector<double> routes_length;
+    for(int i = 1;i <= rel2->GetNoTuples();i++){
+      Tuple* tuple = rel2->GetTuple(i);
+      Region* reg1 = (Region*)tuple->GetAttribute(attr_pos1);
+      Region* reg2 = (Region*)tuple->GetAttribute(attr_pos2);
+      pavements1.push_back(*reg1);
+      pavements2.push_back(*reg2);
+      tuple->DeleteIfAllowed();
+
+      Tuple* route_tuple = routes->GetTuple(i);
+      CcReal* len = (CcReal*)route_tuple->GetAttribute(ROUTE_LENGTH);
+      double length = len->GetRealval();
+      route_tuple->DeleteIfAllowed();
+      routes_length.push_back(length);
+
     }
 
-      Relation* juns = n->GetJunctions();
-      for(int i = 1;i <= n->GetNoJunctions();i++){
-//        cout<<"jun "<<i<<endl;
-        Tuple* jun_tuple = juns->GetTuple(i);
-        CcInt* rid1 = (CcInt*)jun_tuple->GetAttribute(JUNCTION_ROUTE1_ID);
-        CcInt* rid2 = (CcInt*)jun_tuple->GetAttribute(JUNCTION_ROUTE2_ID);
+//    routes->Delete();
 
-        Tuple* border1 = rel->GetTuple(rid1->GetIntval());
-        Tuple* border2 = rel->GetTuple(rid2->GetIntval());
-        Region* reg1_s = (Region*)border1->GetAttribute(attr_pos1);
-        Region* reg1_l = (Region*)border1->GetAttribute(attr_pos2);
+    Relation* juns = n->GetJunctions();
 
-        Region* reg2_s = (Region*)border2->GetAttribute(attr_pos1);
-        Region* reg2_l = (Region*)border2->GetAttribute(attr_pos2);
+    for(int i = 1;i <= n->GetNoJunctions();i++){
+      Tuple* jun_tuple = juns->GetTuple(i);
+      CcInt* rid1 = (CcInt*)jun_tuple->GetAttribute(JUNCTION_ROUTE1_ID);
+      CcInt* rid2 = (CcInt*)jun_tuple->GetAttribute(JUNCTION_ROUTE2_ID);
+      int id1 = rid1->GetIntval();
+      int id2 = rid2->GetIntval();
 
-        Region* reg_inter_l = new Region(0);
-        reg1_l->Intersection(*reg2_l,*reg_inter_l);
-        Region* reg_inter_s = new Region(0);
-        reg1_s->Intersection(*reg2_s,*reg_inter_s);
+//      cout<<"rid1 "<<id1<<" rid2 "<<id2<<endl;
+//      if(!(id1 == 76 || id2 == 76)) {
+//          jun_tuple->DeleteIfAllowed();
+//          continue;
+//      }
 
-        Region* result = new Region(0);
-        reg_inter_l->Minus(*reg_inter_s,*result);
+      CcReal* meas1 = (CcReal*)jun_tuple->GetAttribute(JUNCTION_ROUTE1_MEAS);
+      CcReal* meas2 = (CcReal*)jun_tuple->GetAttribute(JUNCTION_ROUTE2_MEAS);
 
-//        outer_regions1.push_back(*reg_inter_s);
-//        outer_regions2.push_back(*reg_inter_l);
-        outer_regions_s.push_back(*result);
+      double len1 = meas1->GetRealval();
+      double len2 = meas2->GetRealval();
+      double delta = 0.5;
 
-/*        Region* result_rid1 = new Region(0);
-        regions[rid1->GetIntval() - 1].Union(*result1,*result_rid1);
-        regions[rid1->GetIntval() - 1] = *result_rid1;
-        delete result_rid1;
+      Region rid1_pave1 = pavements1[id1 - 1];
+      Region rid1_pave2 = pavements2[id1 - 1];
 
-        Region* result_rid2 = new Region(0);
-        regions[rid2->GetIntval() - 1].Union(*result1,*result_rid2);
-        regions[rid2->GetIntval() - 1] = *result_rid2;
-        delete result_rid2;*/
+      Region rid2_pave1 = pavements1[id2 - 1];
+      Region rid2_pave2 = pavements2[id2 - 1];
 
-        delete result;
-        delete reg_inter_l;
-        delete reg_inter_s;
-        border1->DeleteIfAllowed();
-        border2->DeleteIfAllowed();
-        jun_tuple->DeleteIfAllowed();
+      Tuple* inborder_tuple1 = rel1->GetTuple(id1);
+      Tuple* inborder_tuple2 = rel1->GetTuple(id2);
+      Region* reg1 = (Region*)inborder_tuple1->GetAttribute(attr_pos);
+      Region* reg2 = (Region*)inborder_tuple2->GetAttribute(attr_pos);
 
-      }
+      CheckPaveRegion(rid1_pave1,rid2_pave1,rid2_pave2,pavements1,id1,reg2);
+      CheckPaveRegion(rid1_pave2,rid2_pave1,rid2_pave2,pavements2,id1,reg2);
+
+      CheckPaveRegion(rid2_pave1,rid1_pave1,rid1_pave2,pavements1,id2,reg1);
+      CheckPaveRegion(rid2_pave2,rid1_pave1,rid1_pave2,pavements2,id2,reg1);
+
+      inborder_tuple1->DeleteIfAllowed();
+      inborder_tuple2->DeleteIfAllowed();
+      jun_tuple->DeleteIfAllowed();
+    }
 
     juns->Delete();
+
+    for(unsigned int i = 0;i < pavements1.size();i++){
+        outer_regions1.push_back(pavements1[i]);
+        outer_regions2.push_back(pavements2[i]);
+    }
+
+  }
+
+
+  void Junpavement(Network* n, Relation* rel, int attr_pos1, int attr_pos2)
+  {
+    //get the pavement for each junction
+    Relation* routes = n->GetRoutes();
+    vector<double> routes_length;
+    for(int i = 1;i <= routes->GetNoTuples();i++){
+
+      Tuple* route_tuple = routes->GetTuple(i);
+      CcReal* len = (CcReal*)route_tuple->GetAttribute(ROUTE_LENGTH);
+      double length = len->GetRealval();
+      route_tuple->DeleteIfAllowed();
+      routes_length.push_back(length);
+
+    }
+
+    Relation* juns = n->GetJunctions();
+
+    for(int i = 1;i <= n->GetNoJunctions();i++){
+      Tuple* jun_tuple = juns->GetTuple(i);
+      CcInt* rid1 = (CcInt*)jun_tuple->GetAttribute(JUNCTION_ROUTE1_ID);
+      CcInt* rid2 = (CcInt*)jun_tuple->GetAttribute(JUNCTION_ROUTE2_ID);
+      int id1 = rid1->GetIntval();
+      int id2 = rid2->GetIntval();
+
+//      cout<<"rid1 "<<id1<<" rid2 "<<id2<<endl;
+
+      CcReal* meas1 = (CcReal*)jun_tuple->GetAttribute(JUNCTION_ROUTE1_MEAS);
+      CcReal* meas2 = (CcReal*)jun_tuple->GetAttribute(JUNCTION_ROUTE2_MEAS);
+
+      double len1 = meas1->GetRealval();
+      double len2 = meas2->GetRealval();
+      double delta = 0.5;
+
+//      cout<<"len1 "<<len1<<" len2 "<<len2<<endl;
+
+      Tuple* inborder_tuple1 = rel->GetTuple(id1);
+      Tuple* inborder_tuple2 = rel->GetTuple(id2);
+      Region* reg1_in = (Region*)inborder_tuple1->GetAttribute(attr_pos1);
+      Region* reg1_out = (Region*)inborder_tuple1->GetAttribute(attr_pos2);
+      Region* reg2_in = (Region*)inborder_tuple2->GetAttribute(attr_pos1);
+      Region* reg2_out = (Region*)inborder_tuple2->GetAttribute(attr_pos2);
+
+      //crossing
+      if(delta < fabs(len1) && fabs(len1-routes_length[id1-1]) > delta &&
+         delta < fabs(len2) && fabs(len2-routes_length[id2-1]) > delta){
+//          cout<<"here"<<endl;
+          Region* reg1 = new Region(0);
+          Region* reg2 = new Region(0);
+          MyIntersection(*reg1_in,*reg2_in,*reg1);
+          MyIntersection(*reg1_out,*reg2_out,*reg2);
+          Region* result = new Region(0);
+          MyMinus(*reg2,*reg1,*result);
+
+          junid1.push_back(id1);
+          junid2.push_back(id2);
+          outer_regions_s.push_back(*result);
+
+          delete result;
+          delete reg1;
+          delete reg2;
+      }
+
+      inborder_tuple1->DeleteIfAllowed();
+      inborder_tuple2->DeleteIfAllowed();
+      jun_tuple->DeleteIfAllowed();
+    }
+
+      juns->Delete();
   }
 };
 
@@ -1061,14 +1108,23 @@ const string OpNetSegment2RegionSpec  =
 const string OpNetPaveRegionSpec  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" "
     "\"Example\" ) "
-    "( <text>network x relation x attr_name->"
+    "( <text>network x rel1 x attr x rel2 x attr1 x attr2->"
     "(stream (tuple( (x1 t1)(x2 t2)...(xn tn)))</text--->"
-    "<text>paveregion(n,rel,attr)</text--->"
-    "<text>get the intersection pavement region for each junction </text--->"
-    "<text>query paveregion(n,allregions_paves,curve) count"
-    "</text--->"
+    "<text>paveregion(n,rel1,attr,rel2,attr1,attr2)</text--->"
+    "<text>cut the intersection region between road and pavement</text--->"
+    "<text>query paveregion(n,allregions_in,inborder,allregions_pave"
+    ",pave1,pave2) count;</text--->"
     ") )";
 
+const string OpNetJunRegionSpec  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+    "\"Example\" ) "
+    "( <text>network x rel x attr1 x attr2->"
+    "(stream (tuple( (x1 t1)(x2 t2)...(xn tn)))</text--->"
+    "<text>junregion(n,rel,attr1,attr2)</text--->"
+    "<text>get the pavement region at junctions</text--->"
+    "<text>query junregion(n,allregions,inborder,outborder) count;</text--->"
+    ") )";
 ////////////////TypeMap function for operators//////////////////////////////
 
 /*
@@ -1189,6 +1245,86 @@ TypeMap fun for operator paveregion
 
 ListExpr OpNetPaveRegionTypeMap ( ListExpr args )
 {
+  if ( nl->ListLength ( args ) != 6 )
+  {
+    return ( nl->SymbolAtom ( "typeerror" ) );
+  }
+  ListExpr param1 = nl->First ( args );
+  ListExpr param2 = nl->Second(args);
+  ListExpr attrName = nl->Third(args);
+  ListExpr param4 = nl->Fourth(args);
+  ListExpr attrName1 = nl->Fifth(args);
+  ListExpr attrName2 = nl->Sixth(args);
+
+  ListExpr attrType;
+  string aname = nl->SymbolValue(attrName);
+  int j1 = listutils::findAttribute(nl->Second(nl->Second(param2)),
+                      aname,attrType);
+
+  if(j1 == 0 || !listutils::isSymbol(attrType,"region")){
+      return listutils::typeError("attr name" + aname + "not found"
+                      "or not of type region");
+  }
+
+  ListExpr attrType1;
+  string aname1 = nl->SymbolValue(attrName1);
+  int j2 = listutils::findAttribute(nl->Second(nl->Second(param4)),
+                      aname1,attrType1);
+
+
+  if(j2 == 0 || !listutils::isSymbol(attrType1,"region")){
+      return listutils::typeError("attr name" + aname1 + "not found"
+                      "or not of type region");
+  }
+
+  ListExpr attrType2;
+  string aname2 = nl->SymbolValue(attrName2);
+  int j3 = listutils::findAttribute(nl->Second(nl->Second(param4)),
+                      aname2,attrType2);
+
+
+  if(j3 == 0 || !listutils::isSymbol(attrType2,"region")){
+      return listutils::typeError("attr name" + aname2 + "not found"
+                      "or not of type region");
+  }
+
+    if (listutils::isRelDescription(param2) &&
+        listutils::isRelDescription(param4) &&
+        nl->IsAtom(param1) && nl->AtomType(param1) == SymbolType &&
+        nl->SymbolValue(param1) == "network"){
+
+    ListExpr result =
+          nl->TwoElemList(
+              nl->SymbolAtom("stream"),
+                nl->TwoElemList(
+
+                  nl->SymbolAtom("tuple"),
+                      nl->ThreeElemList(
+                        nl->TwoElemList(nl->SymbolAtom("oid"),
+                                    nl->SymbolAtom("int")),
+                        nl->TwoElemList(nl->SymbolAtom("pavement1"),
+                                      nl->SymbolAtom("region")),
+                        nl->TwoElemList(nl->SymbolAtom("pavement2"),
+                                      nl->SymbolAtom("region"))
+                  )
+                )
+          );
+
+    return nl->ThreeElemList(nl->SymbolAtom("APPEND"),
+//                         nl->OneElemList(nl->IntAtom(j1)),result);
+     nl->ThreeElemList(nl->IntAtom(j1),nl->IntAtom(j2),nl->IntAtom(j3)),result);
+  }
+  return nl->SymbolAtom ( "typeerror" );
+}
+
+/*
+TypeMap fun for operator junregion
+get the pavement at each junction area
+
+*/
+
+ListExpr OpNetJunRegionTypeMap ( ListExpr args )
+{
   if ( nl->ListLength ( args ) != 4 )
   {
     return ( nl->SymbolAtom ( "typeerror" ) );
@@ -1219,6 +1355,8 @@ ListExpr OpNetPaveRegionTypeMap ( ListExpr args )
                       "or not of type region");
   }
 
+
+
     if (listutils::isRelDescription(param2) &&
         nl->IsAtom(param1) && nl->AtomType(param1) == SymbolType &&
         nl->SymbolValue(param1) == "network"){
@@ -1229,9 +1367,11 @@ ListExpr OpNetPaveRegionTypeMap ( ListExpr args )
                 nl->TwoElemList(
 
                   nl->SymbolAtom("tuple"),
-                      nl->TwoElemList(
-                        nl->TwoElemList(nl->SymbolAtom("oid"),
+                      nl->ThreeElemList(
+                        nl->TwoElemList(nl->SymbolAtom("rid1"),
                                     nl->SymbolAtom("int")),
+                        nl->TwoElemList(nl->SymbolAtom("rid2"),
+                                      nl->SymbolAtom("int")),
                         nl->TwoElemList(nl->SymbolAtom("pavement"),
                                       nl->SymbolAtom("region"))
                   )
@@ -1240,11 +1380,11 @@ ListExpr OpNetPaveRegionTypeMap ( ListExpr args )
 
     return nl->ThreeElemList(nl->SymbolAtom("APPEND"),
 //                         nl->OneElemList(nl->IntAtom(j1)),result);
-                  nl->TwoElemList(nl->IntAtom(j1),nl->IntAtom(j2)),result);
+     nl->TwoElemList(nl->IntAtom(j1),nl->IntAtom(j2)),result);
   }
   return nl->SymbolAtom ( "typeerror" );
 }
-////////////////////////////////////////////////////////////////////////////
+
 /*
 Correct road with dirt data, two segment are very close to each other and the
 angle is relatively small.
@@ -1463,11 +1603,70 @@ int OpNetSegment2Regionmap ( Word* args, Word& result, int message,
 
 /*
 Value Mapping for the paveregion operator
-get the region for pavement
+get the region for pavement at each junction
+cut the dirty area
 
 */
 
 int OpNetPaveRegionmap ( Word* args, Word& result, int message,
+                         Word& local, Supplier in_pSupplier )
+{
+  LinePartiton* l_partition;
+
+  switch(message){
+      case OPEN:{
+        Network* n = (Network*)args[0].addr;
+        Relation* rel1 = (Relation*)args[1].addr;
+        Relation* rel2 = (Relation*)args[3].addr;
+        int attr_pos = ((CcInt*)args[6].addr)->GetIntval() - 1;
+        int attr_pos1 = ((CcInt*)args[7].addr)->GetIntval() - 1;
+        int attr_pos2 = ((CcInt*)args[8].addr)->GetIntval() - 1;
+
+        l_partition = new LinePartiton();
+        l_partition->resulttype =
+            new TupleType(nl->Second(GetTupleResultType(in_pSupplier)));
+
+        l_partition->Getpavement(n,rel1,attr_pos,rel2,attr_pos1,attr_pos2);
+        local.setAddr(l_partition);
+        return 0;
+      }
+      case REQUEST:{
+//          cout<<"request"<<endl;
+          if(local.addr == NULL) return CANCEL;
+          l_partition = (LinePartiton*)local.addr;
+          if(l_partition->count == l_partition->outer_regions1.size())
+                          return CANCEL;
+          Tuple* tuple = new Tuple(l_partition->resulttype);
+          tuple->PutAttribute(0,new CcInt(true,l_partition->count+1));
+          tuple->PutAttribute(1,
+                  new Region(l_partition->outer_regions1[l_partition->count]));
+          tuple->PutAttribute(2,
+                  new Region(l_partition->outer_regions2[l_partition->count]));
+          result.setAddr(tuple);
+          l_partition->count++;
+          return YIELD;
+      }
+      case CLOSE:{
+//          cout<<"close"<<endl;
+          if(local.addr){
+            l_partition = (LinePartiton*)local.addr;
+            l_partition->resulttype->DeleteIfAllowed();
+            delete l_partition;
+            local.setAddr(Address(0));
+          }
+          return 0;
+      }
+  }
+  return 0;
+}
+
+/*
+Value Mapping for the junregion operator
+get the region for pavement at each junction area
+
+*/
+
+int OpNetJunRegionmap ( Word* args, Word& result, int message,
                          Word& local, Supplier in_pSupplier )
 {
   LinePartiton* l_partition;
@@ -1483,7 +1682,7 @@ int OpNetPaveRegionmap ( Word* args, Word& result, int message,
         l_partition->resulttype =
             new TupleType(nl->Second(GetTupleResultType(in_pSupplier)));
 
-        l_partition->Getpavement(n,rel,attr_pos1,attr_pos2);
+        l_partition->Junpavement(n, rel, attr_pos1, attr_pos2);
         local.setAddr(l_partition);
         return 0;
       }
@@ -1494,10 +1693,12 @@ int OpNetPaveRegionmap ( Word* args, Word& result, int message,
           if(l_partition->count == l_partition->outer_regions_s.size())
                           return CANCEL;
           Tuple* tuple = new Tuple(l_partition->resulttype);
-          tuple->PutAttribute(0,new CcInt(true,l_partition->count+1));
+          tuple->PutAttribute(0,
+                new CcInt(true,l_partition->junid1[l_partition->count]));
           tuple->PutAttribute(1,
-                  new Region(l_partition->outer_regions_s[l_partition->count]));
-
+                new CcInt(true,l_partition->junid2[l_partition->count]));
+          tuple->PutAttribute(2,
+                new Region(l_partition->outer_regions_s[l_partition->count]));
           result.setAddr(tuple);
           l_partition->count++;
           return YIELD;
@@ -1548,6 +1749,14 @@ Operator paveregion(
     OpNetPaveRegionTypeMap        // type mapping
 );
 
+Operator junregion(
+    "junregion",               // name
+    OpNetJunRegionSpec,          // specification
+    OpNetJunRegionmap,  // value mapping
+    Operator::SimpleSelect,        // selection function
+    OpNetJunRegionTypeMap        // type mapping
+);
+
 /*
 Main Class for Transportation Mode
 
@@ -1562,6 +1771,8 @@ class TransportationModeAlgebra : public Algebra
     AddOperator(&modifyboundary);
     AddOperator(&segment2region);
     AddOperator(&paveregion);
+    AddOperator(&junregion);
+
   }
   ~TransportationModeAlgebra() {};
  private:
