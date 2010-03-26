@@ -20,4 +20,4 @@
 operator checksline alias CHECKSLINE pattern op(_)
 operator modifyboundary alias MODIFYBOUNDARY pattern op(_,_)
 operator segment2region alias SEGMENT2REGION pattern op(_,_)
-operator paveregion alias PAVEREGION pattern op(_,_,_,_)
+operator paveregion alias PAVEREGION pattern op(_,_,_,_,_,_)

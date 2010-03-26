@@ -24,6 +24,7 @@ Result   : 1
 
 Operator : paveregion
 Number   : 2
-Signature: network x relation x attr x int-> (stream(tuple ((x1 t1) ... (xn tn))))
-Example  : query paveregion(n,allregions,inborder,outborder) count;
+Signature: network x rel1 x attr x rel2 x attr1 x attr2 -> (stream(tuple ((x1 t1) ... (xn tn))))
+Example  : query paveregion(n,allregions_in,inborder,allregions_pave,pave1,pave2) count;
 Result   : 1
+
