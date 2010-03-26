@@ -1810,16 +1810,15 @@ void MGPoint::Trajectory(GLine* res) {
 
 void MGPoint::Deftime(Periods &res){
     res.Clear();
-    Periods per(GetNoComponents());
+    Periods per(0);
     UGPoint unit;
     per.StartBulkLoad();
     for( int i = 0; i < GetNoComponents(); i++ ) {
       Get( i, unit );
       if (unit.IsDefined())
-        per.Add(unit.timeInterval);
+        per.MergeAdd(unit.timeInterval);
     }
     per.EndBulkLoad(false);
-    per.Merge(res);
 }
 
 
