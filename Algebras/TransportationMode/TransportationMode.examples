@@ -28,3 +28,9 @@ Signature: network x rel1 x attr x rel2 x attr1 x attr2 -> (stream(tuple ((x1 t1
 Example  : query paveregion(n,allregions_in,inborder,allregions_pave,pave1,pave2) count;
 Result   : 1
 
+
+Operator : junregion
+Number   : 2
+Signature: network x rel x attr1 x attr2 -> (stream(tuple ((x1 t1) ... (xn tn))))
+Example  : query junregion(n,allregions,inborder,outborder) count;
+Result   : 1
