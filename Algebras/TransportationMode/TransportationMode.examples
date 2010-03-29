@@ -32,5 +32,5 @@ Result   : 1
 Operator : junregion
 Number   : 2
 Signature: network x rel x attr1 x attr2 -> (stream(tuple ((x1 t1) ... (xn tn))))
-Example  : query junregion(n,allregions,inborder,outborder) count;
+Example  : query junregion(n,pave_regions1,pavement1,pavement2,roadwidth) count;
 Result   : 1
