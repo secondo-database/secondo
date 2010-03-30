@@ -1104,7 +1104,7 @@ for the road line around the junction position, it creates the zebra crossing
   void GetZebraCrossing(SimpleLine* subcurve,
                         Region* reg_pave1, Region* reg_pave2,
                         int roadwidth, Line* pave1, double delta_l,
-                        Point p1, bool flag, Region* crossregion)
+                        Point p1, Region* crossregion)
   {
     vector<MyPoint> endpoints1;
     vector<MyPoint> endpoints2;
@@ -1123,24 +1123,43 @@ for the road line around the junction position, it creates the zebra crossing
     Point p2;
     double l;
 
-    if(flag)
-//      l = delta_l/3;
+/*    if(flag)
       l = delta;
     else
-//      l = subcurve->Length() - delta_l/3;
-      l = subcurve->Length() - delta;
+      l = subcurve->Length() - delta;*/
 
-//    cout<<"subcurve length "<<subcurve->Length()<<endl;
-//    cout<<" delta_l "<<delta_l<<endl;
+    //////////////////////////////////////////////////////
+    Point startp, endp;
+    assert(subcurve->AtPosition(0.0, true, startp));
+    assert(subcurve->AtPosition(subcurve->Length(), true, endp));
+    bool flag1;
+    if(startp.Distance(p1) < endp.Distance(p1)){
+      flag1 = true;
+      l = delta;
+    }
+    else{
+      l = subcurve->Length() - delta;
+      flag1 = false;
+    }
+
+//    cout<<"l "<<l<<endl;
+//    cout<<"p1 "<<p1<<" startp "<<startp<<"endp "<<endp<<endl;
+    ///////////////////////////////////////////////////////
 
     bool find = false;
     while(find == false && (0 < l && l < subcurve->Length())){
-      if(flag)
+/*      if(flag)
+        l = l + delta;
+      else
+        l = l - delta;*/
+
+      if(flag1)
         l = l + delta;
       else
         l = l - delta;
 
       assert(subcurve->AtPosition(l,true,p2));
+
 
       if(MyAlmostEqual(p1.GetX(), p2.GetX())){
         double y = p2.GetY();
@@ -1414,7 +1433,7 @@ Extend the line in decreasing direction
 //    cout<<"decrease subcurve1 len"<<subcurve->Length()<<endl;
 
       GetZebraCrossing(subcurve, reg_pave1,
-                   reg_pave2, roadwidth, pave, delta_l, p1, false, crossregion);
+                   reg_pave2, roadwidth, pave, delta_l, p1, crossregion);
       delete subcurve;
       if(pave->Size() > 0 || delta_l >= curve->Length()) break;
 
@@ -1450,7 +1469,7 @@ Extend the line in increasing direction
   //    subcurve1->toLine(*pave1);/////////crossing at junction
 
         GetZebraCrossing(subcurve, reg_pave1,
-                reg_pave2, roadwidth, pave, delta_l, p1, true,crossregion);
+                reg_pave2, roadwidth, pave, delta_l, p1, crossregion);
 
       delete subcurve;
       if(pave->Size() > 0 || delta_l >= route_length) break;
@@ -1519,7 +1538,7 @@ Extend the line in increasing direction
       int id1 = rid1->GetIntval();
       int id2 = rid2->GetIntval();
 
-/*      if(!(id1 == 1 && id2 == 8)){
+/*      if(!(id1 == 7 && id2 == 8)){
           jun_tuple->DeleteIfAllowed();
           continue;
       }*/
@@ -1558,12 +1577,9 @@ Extend the line in increasing direction
                      pave2, input_w1, crossregion1);
       pave1->Union(*pave2,*result1);
 
-//      pave_line1.push_back(*pave1);
-//      pave_line2.push_back(*pave2);
       junid1.push_back(id1);
       pave_line1.push_back(*result1);
       outer_regions1.push_back(*crossregion1);
-//      junid2.push_back(id2);
 
       delete crossregion1;
       delete result1;
@@ -1584,11 +1600,6 @@ Extend the line in increasing direction
       CreatePavement(curve2, reg2_in, reg2_out, len2, pave3,
                      pave4, input_w2, crossregion2);
       pave3->Union(*pave4,*result2);
-
-//      pave_line1.push_back(*pave3);
-//      pave_line2.push_back(*pave4);
-
-//      junid1.push_back(id1);
 
       junid2.push_back(id2);
       pave_line2.push_back(*result2);
@@ -2339,7 +2350,7 @@ struct DecomposeRegion{
   void Decompose()
   {
     int no_faces = reg->NoComponents();
-    cout<<"Decompose() no_faces "<<no_faces<<endl;
+//    cout<<"Decompose() no_faces "<<no_faces<<endl;
     for(int i = 0;i < no_faces;i++){
         Region* temp = new Region(0);
 
