@@ -198,3 +198,4 @@ Number   : 2
 Signature: gline x gline -> gline
 Example  : query [const gline value(1((1 0.0 0.5)))] union [const gline value(1((1 0.2 1.5)))];
 Result   : (gline(1((1 0.0 1.5))))
+

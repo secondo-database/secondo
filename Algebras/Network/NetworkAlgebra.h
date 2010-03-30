@@ -1516,6 +1516,11 @@ isDefined
    m_bDefined = def;
  };
 
+
+  void GetTupleIdSectionOnRouteJun(GPoint* in_xGPoint,vector<TupleId>&);
+  int GetNoJunctions(){return m_pJunctions->GetNoTuples();}
+  int GetNoRoutes(){return m_pRoutes->GetNoTuples();}
+
 private:
 
 

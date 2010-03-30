@@ -54,6 +54,7 @@ October 2008 - Jianqiu Xu
 #include "Algebra.h"
 #include "Messages.h"
 #include "NetworkManager.h"
+#include "ListUtils.h"
 
 extern NestedList* nl;
 extern QueryProcessor* qp;
@@ -3210,6 +3211,16 @@ int Network::GetId()
 Relation *Network::GetRoutes()
 {
   return m_pRoutes;
+/*  ostringstream strRoutesPtr;
+  strRoutesPtr << ( long ) m_pRoutes;
+
+  string querystring = "(consume (feed (" + routesTypeInfo +
+                       " (ptr " + strRoutesPtr.str() + "))))";
+
+  Word resultWord;
+  int QueryExecuted = QueryProcessor::ExecuteQuery ( querystring, resultWord );
+  assert ( QueryExecuted ); // no ASSERT with side effects, please
+  return ( Relation * ) resultWord.addr;*/
 }
 
 
@@ -4183,6 +4194,72 @@ RouteInterval* Network::FindInterval ( Point p1, Point p2 )
   gpp2->DeleteIfAllowed();
   return 0;
 }
+
+
+void Network::GetTupleIdSectionOnRouteJun(GPoint* in_xGPoint,
+vector<TupleId>& res)
+{
+
+  CcInt *ciRouteId = new CcInt ( true, in_xGPoint->GetRouteId() );
+  BTreeIterator* pSectionIter =
+      m_pBTreeSectionsByRoute->ExactMatch ( ciRouteId );
+  delete ciRouteId;
+  Tuple *actSect = 0;
+  TupleId result;
+  while ( pSectionIter->Next() )
+  {
+    result = pSectionIter->GetId();
+    actSect = m_pSections->GetTuple ( pSectionIter->GetId() );
+    if ( actSect != 0 )
+    {
+      double start =
+          ((CcReal*)actSect->GetAttribute(SECTION_MEAS1))->GetRealval();
+      double end =
+          ((CcReal*)actSect->GetAttribute(SECTION_MEAS2))->GetRealval();
+      if(in_xGPoint->GetPosition() >= start&&in_xGPoint->GetPosition() <= end)
+      {
+//        delete pSectionIter;
+//        actSect->DeleteIfAllowed();
+//        return result;
+        res.push_back(result);
+      }
+      else
+      {
+        if ( fabs ( in_xGPoint->GetPosition() - start ) <= 0.01 )
+        {
+//          delete pSectionIter;
+//          actSect->DeleteIfAllowed();
+//          return result;
+          res.push_back(result);
+        }
+        else
+        {
+          if ( fabs ( in_xGPoint->GetPosition() - end ) <= 0.01 )
+          {
+           Tuple *pRoute = GetRoute(((TupleIdentifier* )
+                          actSect->GetAttribute ( SECTION_RRC ))->GetTid() );
+            if ( fabs ( ( ( CcReal* )
+                          pRoute->GetAttribute ( ROUTE_LENGTH ) )->GetRealval()
+                        - end ) <= 0.01 )
+            {
+ //             pRoute->DeleteIfAllowed();
+//              delete pSectionIter;
+//              actSect->DeleteIfAllowed();
+                res.push_back(result);
+//              return result;
+            }
+            pRoute->DeleteIfAllowed();
+          }
+        }
+      }
+//      actSect->DeleteIfAllowed();
+    }
+    actSect->DeleteIfAllowed();
+  }
+  delete pSectionIter;
+
+}
+
 
 /*
 ~Out~-function of type constructor ~network~
@@ -8621,6 +8698,9 @@ Operator networkdistance (
 );
 
 
+
+
+
 /*
 7 Creating the ~NetworkAlgebra~
 
@@ -8663,6 +8743,7 @@ class NetworkAlgebra : public Algebra
       AddOperator ( &networkisempty );
       AddOperator ( &networkunion );
       AddOperator ( &networkdistance );
+
     }
     ~NetworkAlgebra() {delete netList;};
 };
