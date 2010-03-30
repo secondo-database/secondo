@@ -7050,6 +7050,7 @@ void Region::EndBulkLoad( bool sort, bool setCoverageNo,
   if( setPartnerNo )
     SetPartnerNo();
 
+
   if( computeRegion )
     ComputeRegion();
 
@@ -8363,7 +8364,11 @@ ostream& operator<<( ostream& os, const Region& cr )
     for( int i = 0; i < cr.Size(); i++ )
     {
       cr.Get( i, hs );
-      os << " " << hs << endl;
+//      os << " " << hs << endl;
+      Point lp = hs.GetLeftPoint();
+      Point rp = hs.GetRightPoint();
+      printf("(%.10f, %.10f) (%.10f, %.10f)\n",
+            lp.GetX(),lp.GetY(),rp.GetX(),rp.GetY());
     }
   }
   os << ">";
@@ -9276,27 +9281,26 @@ bool Region::GetAdjacentHS( const HalfSegment &hs,
     Get(position,adjacentCHS);
     if (partnernoP == position)
       continue;
-    if ( adjacentPoint==adjacentCHS.GetLeftPoint() )
-    {
-      if (!cycle[position])
-      {
-        newAdjacentPoint = adjacentCHS.GetRightPoint();
-        adjacencyFound = true;
-      }
-    }
-    else
-      if  ( adjacentPoint==adjacentCHS.GetRightPoint() )
-      {
-         if (!cycle[position])
-        {
-          newAdjacentPoint = adjacentCHS.GetLeftPoint();
+
+    if ( adjacentPoint==adjacentCHS.GetLeftPoint() ){
+        if (!cycle[position]){
+          newAdjacentPoint = adjacentCHS.GetRightPoint();
           adjacencyFound = true;
         }
+    }
+    else if  ( adjacentPoint==adjacentCHS.GetRightPoint() ){
+            if (!cycle[position]){
+              newAdjacentPoint = adjacentCHS.GetLeftPoint();
+              adjacencyFound = true;
+            }
       }
       else
         break;
   }
   while (!adjacencyFound);
+
+//  cout<<"adjacencyFound "<<adjacencyFound<<endl;
+
   return adjacencyFound;
 }
 /*
@@ -9311,6 +9315,7 @@ void Region::ComputeCycle( HalfSegment &hs,
                            int &edgeno,
                            bool *cycle )
 {
+
   Point nextPoint = hs.GetLeftPoint(),
             lastPoint = hs.GetRightPoint(),
             previousPoint, *currentCriticalPoint=NULL;
@@ -12435,6 +12440,7 @@ void SetOp(const Region& reg1,
           if(member && member->exactEqualsTo(current)){
               switch(op){
                 case avlseg::union_op :{
+
                    if( (member->con_above==0) || (member->con_below==0)) {
                       HalfSegment hs1 = member->getOwner()==avlseg::both
                                       ?member->convertToHs(true,avlseg::first)
@@ -12448,6 +12454,7 @@ void SetOp(const Region& reg1,
                    break;
                 }
                 case avlseg::intersection_op: {
+
                   if(member->con_above==2 || member->con_below==2){
                       HalfSegment hs1 = member->getOwner()==avlseg::both
                                       ?member->convertToHs(true,avlseg::first)
@@ -12516,6 +12523,7 @@ void SetOp(const Region& reg1,
        } // right endpoint
   }
   result.EndBulkLoad();
+
 
 } // setOP region x region -> region
 
@@ -13784,12 +13792,13 @@ InRegion( const ListExpr typeInfo, const ListExpr instance,
 
           while ( !nl->IsEmpty( CycleNL) )
           {
+//            cout<<"cycle "<<endl;
             currPoint = nl->First( CycleNL );
             CycleNL = nl->Rest( CycleNL );
 
             currvertex = (Point*) InPoint( nl->TheEmptyList(),
                   currPoint, 0, errorInfo, correct ).addr;
-
+//            cout<<"curvertex "<<*currvertex<<endl;
             if (!correct) return SetWord( Address(0) );
 
             if (cyclepoints->Contains(*currvertex))
@@ -13830,17 +13839,21 @@ InRegion( const ListExpr typeInfo, const ListExpr instance,
             if (( correct )&&( cr->InsertOk(*hs) ))
             {
               (*cr) += (*hs);
+//              cout<<"cr+1 "<<*hs<<endl;
               if( hs->IsLeftDomPoint() )
               {
                 (*rDir) += (*hs);
+//                cout<<"rDr+1 "<<*hs<<endl;
                 hs->SetLeftDomPoint( false );
               }
               else
               {
                 hs->SetLeftDomPoint( true );
+//                cout<<"rDr+2 "<<*hs<<endl;
                 (*rDir) += (*hs);
               }
               (*cr) += (*hs);
+//              cout<<"cr+2 "<<*hs<<endl;
               delete hs;
             }
             else
@@ -13878,23 +13891,28 @@ InRegion( const ListExpr typeInfo, const ListExpr instance,
           if (( correct )&&( cr->InsertOk(*hs) ))
           {
             (*cr) += (*hs);
+//             cout<<"cr+3 "<<*hs<<endl;
             if( hs->IsLeftDomPoint() )
             {
               (*rDir) += (*hs);
+//              cout<<"rDr+3 "<<*hs<<endl;
               hs->SetLeftDomPoint( false );
             }
             else
             {
               hs->SetLeftDomPoint( true );
+//              cout<<"rDr+4 "<<*hs<<endl;
               (*rDir) += (*hs);
             }
             (*cr) += (*hs);
+//            cout<<"cr+4 "<<*hs<<endl;
             delete hs;
             rDir->EndBulkLoad(true, false, false, false);
 
 
             //To calculate the inside above attribute
             bool direction = rDir->GetCycleDirection();
+
             int h = cr->Size() - ( rDir->Size() * 2 );
             while ( h < cr->Size())
             {
@@ -19056,9 +19074,9 @@ const string SpatialMinusSpec  =
   "( <text>{point x points, line, region } x"
   "   {point, points, line, region} -> T "
   " </text--->"
-  "<text>minus(arg1, arg2)</text--->"
+  "<text>arg1 minus arg2</text--->"
   "<text>difference of two spatial objects</text--->"
-  "<text>query minus(tiergarten,  thecenter) </text--->"
+  "<text>query tiergarten minus thecenter </text--->"
   ") )";
 
 const string SpatialUnionSpec  =

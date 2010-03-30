@@ -842,7 +842,7 @@ the size of ~U~ and ~m~ is the size of ~V~.
 */
     bool Adjacent( const Region& r ) const;
 /*
-5.4.8 Operation ~intersection~ 
+5.4.8 Operation ~intersection~
 
 */
    void Intersection(const Point& p, Points& result) const;
@@ -850,7 +850,7 @@ the size of ~U~ and ~m~ is the size of ~V~.
    void Intersection( const Line& l, Points& result ) const;
    void Intersection( const Region& r, Points& result ) const;
 /*
-5.4.8 Operation ~minus~ 
+5.4.8 Operation ~minus~
 
 */
     void Minus( const Point& p, Points& result ) const;
@@ -860,7 +860,7 @@ the size of ~U~ and ~m~ is the size of ~V~.
 
 
 /*
-5.4.9 Operation ~union~ 
+5.4.9 Operation ~union~
 
 */
     void Union(const Point& p, Points& result ) const;
@@ -1761,7 +1761,7 @@ This instance must must be in bulkload mode.
     bool Adjacent( const Region& r ) const;
 
 /*
-6.4.4 Operation ~intersection~ 
+6.4.4 Operation ~intersection~
 
 */
     void Intersection(const Point& p, Points& result) const;
@@ -1769,7 +1769,7 @@ This instance must must be in bulkload mode.
     void Intersection( const Line& l, Line& result ) const;
     void Intersection( const Region& l, Line& result ) const;
 /*
-6.4.4 Operation ~minus~ 
+6.4.4 Operation ~minus~
 
 */
     void Minus( const Point& l, Line& result ) const;
@@ -1778,7 +1778,7 @@ This instance must must be in bulkload mode.
     void Minus( const Region& l, Line& result ) const;
 
 /*
-6.4.4 Operation ~union~ 
+6.4.4 Operation ~union~
 
 */
     void Union( const Point& l, Line& result ) const;
@@ -3983,8 +3983,9 @@ inline bool Point::operator==( const Point& p ) const
   if(!IsDefined() || !p.IsDefined()){
     return false;
   }
+
   return AlmostEqual(x, p.x) && AlmostEqual(y, p.y); // changed by TB
-  //  return x == p.x && y == p.y;
+
 }
 
 inline bool Point::operator==(const Points& ps) const{
@@ -4134,7 +4135,7 @@ inline int Points::NumOfFLOBs() const
 inline bool Points::operator==(const Point& p) const{
    if(!IsDefined() && !p.IsDefined()){
      return true;
-   } 
+   }
    if(!IsDefined() || !p.IsDefined()){
      return false;
    }
@@ -5552,17 +5553,17 @@ Region* SetOp(const Region& reg1, const Region& reg2, avlseg::SetOperation op);
 
 
 
-void SetOp(const Line& line, const Region& region, 
+void SetOp(const Line& line, const Region& region,
            Line& result, avlseg::SetOperation op);
 
-void SetOp(const Line& line, const Region& region, 
+void SetOp(const Line& line, const Region& region,
            Region& result, avlseg::SetOperation op);
 
 
-void SetOp(const Line& line1, const Line& line2, 
+void SetOp(const Line& line1, const Line& line2,
            Line& result, avlseg::SetOperation op);
 
-void SetOp(const Region& reg1, const Region& reg2, 
+void SetOp(const Region& reg1, const Region& reg2,
           Region& result, avlseg::SetOperation op);
 /*
 ~Realminize~
