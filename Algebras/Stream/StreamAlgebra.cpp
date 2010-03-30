@@ -2932,16 +2932,35 @@ streamCountFun (Word* args, Word& result, int message, Word& local, Supplier s)
 
 */
 {
+  struct streamCountFunLocalInfo {
+    bool initializedprogress;
+    double *attrSize;
+    double *attrSizeExt;
+
+    streamCountFunLocalInfo(): initializedprogress( false ) {
+      attrSize = new double[1];
+      attrSize[0] = sizeof(CcInt);
+      attrSizeExt = new double[1];
+      attrSizeExt[0] = sizeof(CcInt);
+    }
+
+    ~streamCountFunLocalInfo() {
+      delete[] attrSize;
+      delete[] attrSizeExt;
+    }
+  };
+
   Word elem;
   int count = 0;
-  bool* initializedprogress;
+  streamCountFunLocalInfo* li;
+  li = static_cast<streamCountFunLocalInfo*>(local.addr);
 
   switch(message){
     case OPEN:
     case CLOSE:
     case REQUEST: {
-      initializedprogress = new bool(false);
-      local.addr = initializedprogress;
+      li = new streamCountFunLocalInfo();
+      local.addr = li;
       qp->Open(args[0].addr);
       qp->Request(args[0].addr, elem);
       while ( qp->Received(args[0].addr) ){
@@ -2961,35 +2980,32 @@ streamCountFun (Word* args, Word& result, int message, Word& local, Supplier s)
       }
       ProgressInfo* pRes;
       pRes = (ProgressInfo*) result.addr;
-      initializedprogress = static_cast<bool*>(local.addr);
-      if(!*initializedprogress){
-        pRes->Card = 1 ;                //expected cardinality
-        pRes->Size = sizeof(CcInt);     //expected total size
-        pRes->SizeExt = sizeof(CcInt);  //expected root+ext size (no FLOBs)
-        pRes->noAttrs = 1;              //no of attributes
-        pRes->attrSize = new double[1]; // the complete size
-        pRes->attrSize[0] = sizeof(CcInt);
-        pRes->attrSizeExt = new double[1];  //the root and extension size
-        pRes->attrSizeExt[0] = sizeof(CcInt);
-        pRes->sizesChanged = true;  //sizes have been recomputed
-        *initializedprogress = true;
+      if(!li->initializedprogress){
+        pRes->Card = 1 ;                      //expected cardinality
+        pRes->Size = sizeof(CcInt);           //expected total size
+        pRes->SizeExt = sizeof(CcInt);       //expected root+ext size (no FLOBs)
+        pRes->noAttrs = 1;                    //no of attributes
+        pRes->attrSize = li->attrSize;        // the complete size
+        pRes->attrSizeExt = li->attrSizeExt;  //the root and extension size
+        pRes->sizesChanged = true;            //sizes have been recomputed
+        li->initializedprogress = true;
       }
       ProgressInfo p1;
       if ( qp->RequestProgress(args[0].addr, &p1) ){
-        pRes->BTime = p1.Time;        // this is a blocking operator!
-        pRes->BProgress = p1.Progress; // this is a blocking operator!
+        pRes->BTime = p1.Time;                // this is a blocking operator!
+        pRes->BProgress = p1.Progress;        // this is a blocking operator!
         pRes->Progress = p1.Progress;
         pRes->Time = p1.Time;
         return YIELD;
       } else {
+        result.addr = 0;
         return CANCEL;
       }
       break;
     }
     case CLOSEPROGRESS:{
-        if(local.addr){
-          initializedprogress = static_cast<bool*>(local.addr);
-          delete initializedprogress;
+        if(li){
+          delete li;
           local.addr = 0;
         }
         return 0;
@@ -3712,6 +3728,9 @@ struct realstreamInfo : OperatorInfo
 /*
 5.41 Operator ~intstream~
 
+---- int x int --> stream(int)
+----
+
 */
 
 // TypeMappingFunction
@@ -3735,9 +3754,14 @@ intstreamValueMap(Word* args, Word& result,
   struct Range {
     int current;
     int last;
+    int card;
+    bool initializedprogress;
+    double* attrSize;
+    double* attrSizeExt;
 
-    Range(CcInt* i1, CcInt* i2) {
-
+    Range(CcInt* i1, CcInt* i2):
+        initializedprogress(false), attrSize(0), attrSizeExt(0)
+    {
       // Do a proper initialization even if one of the
       // arguments has an undefined value
       if (i1->IsDefined() && i2->IsDefined())
@@ -3751,6 +3775,16 @@ intstreamValueMap(Word* args, Word& result,
         current = 1;
         last = 0;
       }
+      card = last - current + 1;
+      attrSize    = new double[1];
+      attrSizeExt = new double[1];
+      attrSize[0] = i1->Sizeof();    // core size of a CcInt
+      attrSizeExt[0] = i1->Sizeof(); // ext size of a CcInt is the same
+    }
+
+    ~Range() {
+      delete[] attrSize;
+      delete[] attrSizeExt;
     }
   };
 
@@ -3768,30 +3802,67 @@ intstreamValueMap(Word* args, Word& result,
       return 0;
     }
     case REQUEST: { // return the next stream element
-
-      if ( range->current <= range->last )
-      {
+      if(!range) {
+        return CANCEL;
+      } else if ( range->current <= range->last ) {
         CcInt* elem = new CcInt(true, range->current++);
         result.addr = elem;
         return YIELD;
-      }
-      else
-      {
-  // you should always set the result to null
-  // before you return a CANCEL
+      } else {
         result.addr = 0;
         return CANCEL;
       }
     }
     case CLOSE: { // free the local storage
-
+#ifndef USE_PROGRESS
       if (range != 0) {
         delete range;
         local.addr = 0;
       }
-
+#endif
       return 0;
     }
+
+#ifdef USE_PROGRESS
+    case CLOSEPROGRESS: {
+      if (range != 0) {
+        delete range;
+        local.addr = 0;
+      }
+      return 0;
+    }
+
+    case REQUESTPROGRESS: {
+      ProgressInfo* pRes = (ProgressInfo*) result.addr;
+      if( !range ){
+        result.addr = 0;
+        return CANCEL;
+      }
+      if( range->initializedprogress ){
+        pRes->sizesChanged = false;             //sizes were not recomputed
+      } else {
+        pRes->Size = sizeof(CcInt);             //total tuple size
+                                                //  (including FLOBs)
+        pRes->SizeExt = sizeof(CcInt);          //tuple root and extension part
+        pRes->noAttrs = 1;                      //no of attributes
+        pRes->attrSize = range->attrSize;       // complete size per attr
+        pRes->attrSizeExt = range->attrSizeExt; // root +extension
+                                                // size per attr
+        pRes->sizesChanged = true;              //sizes were recomputed
+        range->initializedprogress = true;
+      }
+      const double feedccint = 0.001;           //milliseconds per CcReal
+      pRes->Card = range->card;                 //expected cardinality
+      pRes->Time = (range->card) * feedccint;   //expected time, [ms]
+      pRes->Progress =   ((double)(range->card
+                       - (range->last - range->current + 1)))
+                       / ((double) range->card);
+      pRes->BTime = 0.00001;                    // blocking time must not be 0
+      pRes->BProgress = 1.0;                    // blocking progress [0,1]
+      return YIELD;
+    }
+#endif
+
     default: {
       /* should never happen */
       return -1;
@@ -3807,8 +3878,9 @@ struct intstreamInfo : OperatorInfo
     name      = INTSTREAM;
     signature = INT + " x " + INT + " -> stream(int)";
     syntax    = INTSTREAM + "(_ , _)";
-    meaning   = "Creates a stream of integers containing the numbers "
-                "between the first and the second argument.";
+    meaning   = "Creates a stream of all integers starting with the first and "
+                "ending with the second argument.";
+    supportsProgress = true;
   }
 };
 
