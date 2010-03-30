@@ -798,6 +798,10 @@ struct LinePartiton{
 
   void ExtendSegment(int attr_pos, int w)
   {
+    if(w < 3){
+      cout<<"road width should be larger than 2"<<endl;
+      return;
+    }
     double min_length = numeric_limits<double>::max();
     double max_length = numeric_limits<double>::min();
 
