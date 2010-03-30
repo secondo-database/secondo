@@ -1121,9 +1121,11 @@ for the road line around the junction position, it creates the zebra crossing
     double l;
 
     if(flag)
-      l = delta_l/3;
+//      l = delta_l/3;
+      l = delta;
     else
-      l = subcurve->Length() - delta_l/3;
+//      l = subcurve->Length() - delta_l/3;
+      l = subcurve->Length() - delta;
 
 //    cout<<"subcurve length "<<subcurve->Length()<<endl;
 //    cout<<" delta_l "<<delta_l<<endl;
@@ -1347,33 +1349,37 @@ for the road line around the junction position, it creates the zebra crossing
       mp1.Set((lp1.GetX() + rp1.GetX())/2, (lp1.GetY() + rp1.GetY())/2);
       mp2.Set((lp2.GetX() + rp2.GetX())/2, (lp2.GetY() + rp2.GetY())/2);
 
+
       if(mp1.Distance(junp) > mp2.Distance(junp)){
           lp1 = hs.GetLeftPoint();
           rp1 = hs.GetRightPoint();
           lp2 = hs1.GetLeftPoint();
           rp2 = hs1.GetRightPoint();
+
       }else{
           lp1 = hs.GetLeftPoint();
           rp1 = hs.GetRightPoint();
           lp2 = hs2.GetLeftPoint();
           rp2 = hs2.GetRightPoint();
+
       }
 
-      if(GetClockwise(lp2, lp1, rp2)){
-          outer_ps.push_back(lp2);
-          outer_ps.push_back(rp2);
-          outer_ps.push_back(rp1);
-          outer_ps.push_back(lp1);
-      }else{
-          outer_ps.push_back(lp1);
-          outer_ps.push_back(rp1);
-          outer_ps.push_back(rp2);
-          outer_ps.push_back(lp2);
+      if((lp2.Inside(*reg_pave1) && rp2.Inside(*reg_pave2)) ||
+              (lp2.Inside(*reg_pave2) && rp2.Inside(*reg_pave1)) ){
+          if(GetClockwise(lp2, lp1, rp2)){
+            outer_ps.push_back(lp2);
+            outer_ps.push_back(rp2);
+            outer_ps.push_back(rp1);
+            outer_ps.push_back(lp1);
+          }else{
+            outer_ps.push_back(lp1);
+            outer_ps.push_back(rp1);
+            outer_ps.push_back(rp2);
+            outer_ps.push_back(lp2);
+          }
+        ComputeRegion(outer_ps, result);
+        *crossregion = result[0];
       }
-
-      ComputeRegion(outer_ps, result);
-      *crossregion = result[0];
-//      cout<<result[0].Area()<<endl;
       ///////////////////////////////////////////////////////////////
     }
 
@@ -1618,7 +1624,7 @@ const string OpNetModifyBoundarySpec  =
     "\"Example\" ) "
     "( <text>rectangle x int -> region</text--->"
     "<text>modifyboundary(rectangle,2)</text--->"
-    "<text>modify the boundary of road network</text--->"
+    "<text>extend the boundary of road network by a small value</text--->"
     "<text>query modifyboundary(bbox(rtreeroad),2)"
     "</text--->"
     ") )";
@@ -1651,10 +1657,20 @@ const string OpNetJunRegionSpec  =
     "( <text>network x rel x attr1 x attr2 x int->"
     "(stream (tuple( (x1 t1)(x2 t2)...(xn tn)))</text--->"
     "<text>junregion(n,rel,attr1,attr2,int)</text--->"
-    "<text>get the pavement region at junctions</text--->"
+    "<text>get the pavement region (zebra crossing) at junctions</text--->"
     "<text>query junregion(n,allregions,inborder,outborder,roadwidth) count;"
     "</text--->"
     ") )";
+
+const string OpNetDecomposeRegionSpec  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+    "\"Example\" ) "
+    "( <text>region->(stream (tuple( (x1 t1)(x2 t2)...(xn tn)))</text--->"
+    "<text>decomposeregion(region)</text--->"
+    "<text>decompose a region by its faces</text--->"
+    "<text>query decomposeregion(partition_regions) count; </text--->"
+    ") )";
+
 ////////////////TypeMap function for operators//////////////////////////////
 
 /*
@@ -1925,6 +1941,42 @@ ListExpr OpNetJunRegionTypeMap ( ListExpr args )
   return nl->SymbolAtom ( "typeerror" );
 }
 
+/*
+TypeMap fun for operator decomposeregion,
+decompose the faces of the input region
+
+*/
+
+ListExpr OpNetDecomposeRegionTypeMap ( ListExpr args )
+{
+  if ( nl->ListLength ( args ) != 1 )
+  {
+    return ( nl->SymbolAtom ( "typeerror" ) );
+  }
+  ListExpr param1 = nl->First ( args );
+
+    if (nl->IsAtom(param1) && nl->AtomType(param1) == SymbolType &&
+        nl->SymbolValue(param1) == "region"){
+
+    ListExpr result =
+          nl->TwoElemList(
+              nl->SymbolAtom("stream"),
+                nl->TwoElemList(
+
+                  nl->SymbolAtom("tuple"),
+                      nl->TwoElemList(
+                        nl->TwoElemList(nl->SymbolAtom("id"),
+                                    nl->SymbolAtom("int")),
+                        nl->TwoElemList(nl->SymbolAtom("covarea"),
+                                      nl->SymbolAtom("region"))
+                  )
+                )
+          );
+
+    return result;
+  }
+  return nl->SymbolAtom ( "typeerror" );
+}
 /*
 Correct road with dirt data, two segment are very close to each other and the
 angle is relatively small.
@@ -2266,6 +2318,102 @@ int OpNetJunRegionmap ( Word* args, Word& result, int message,
   }
   return 0;
 }
+
+
+
+struct DecomposeRegion{
+  Region* reg;
+  TupleType* resulttype;
+  unsigned int count;
+  vector<Region> result;
+  DecomposeRegion()
+  {
+      reg = NULL;
+      resulttype = NULL;
+      count = 0;
+  }
+  DecomposeRegion(Region* r):reg(r),count(0){}
+  void Decompose()
+  {
+    int no_faces = reg->NoComponents();
+    cout<<"Decompose() no_faces "<<no_faces<<endl;
+    for(int i = 0;i < no_faces;i++){
+        Region* temp = new Region(0);
+
+        result.push_back(*temp);
+        delete temp;
+        result[i].StartBulkLoad();
+    }
+    for(int i = 0;i < reg->Size();i++){
+      HalfSegment hs;
+      reg->Get(i,hs);
+      int face = hs.attr.faceno;
+//      cout<<"face "<<face<<endl;
+//      cout<<"hs "<<hs<<endl;
+      result[face] += hs;
+
+    }
+
+    for(int i = 0;i < no_faces;i++){
+        result[i].EndBulkLoad(false,false,false,false);
+//        result[i].EndBulkLoad();
+//        cout<<"Area "<<result[i].Area()<<endl;
+    }
+  }
+
+};
+
+/*
+Value Mapping for the decomposeregion operator
+
+*/
+
+int OpNetDecomposeRegionmap ( Word* args, Word& result, int message,
+                         Word& local, Supplier in_pSupplier )
+{
+  DecomposeRegion* dr;
+
+  switch(message){
+      case OPEN:{
+        Region* r = (Region*)args[0].addr;
+
+        dr= new DecomposeRegion(r);
+        dr->resulttype =
+            new TupleType(nl->Second(GetTupleResultType(in_pSupplier)));
+
+        dr->Decompose();
+        local.setAddr(dr);
+        return 0;
+      }
+      case REQUEST:{
+//          cout<<"request"<<endl;
+          if(local.addr == NULL) return CANCEL;
+          dr = (DecomposeRegion*)local.addr;
+          if(dr->count == dr->result.size()) return CANCEL;
+          Tuple* tuple = new Tuple(dr->resulttype);
+          tuple->PutAttribute(0,
+                new CcInt(true,dr->count + 1));
+          tuple->PutAttribute(1,
+                new Region(dr->result[dr->count]));
+
+          result.setAddr(tuple);
+          dr->count++;
+          return YIELD;
+      }
+      case CLOSE:{
+//          cout<<"close"<<endl;
+          if(local.addr){
+            dr = (DecomposeRegion*)local.addr;
+            dr->resulttype->DeleteIfAllowed();
+            delete dr;
+            local.setAddr(Address(0));
+          }
+          return 0;
+      }
+  }
+  return 0;
+}
+
 ////////////////Operator Constructor///////////////////////////////////////
 Operator checksline(
     "checksline",               // name
@@ -2307,6 +2455,14 @@ Operator junregion(
     OpNetJunRegionTypeMap        // type mapping
 );
 
+Operator decomposeregion(
+    "decomposeregion",               // name
+    OpNetDecomposeRegionSpec,          // specification
+    OpNetDecomposeRegionmap,  // value mapping
+    Operator::SimpleSelect,        // selection function
+    OpNetDecomposeRegionTypeMap        // type mapping
+);
+
 /*
 Main Class for Transportation Mode
 
@@ -2322,6 +2478,7 @@ class TransportationModeAlgebra : public Algebra
     AddOperator(&segment2region);
     AddOperator(&paveregion);
     AddOperator(&junregion);
+    AddOperator(&decomposeregion);
 
   }
   ~TransportationModeAlgebra() {};
