@@ -76,7 +76,7 @@ struct LinePartiton{
   LinePartiton(Relation* in_line):l(in_line),count(0){}
 
   void GetDeviation(Point center, double a, double b,double& x1,
-                   double& x2,int delta)
+                   double& x2, int delta)
   {
     double x0 = center.GetX();
     double y0 = center.GetY();
@@ -967,12 +967,13 @@ struct LinePartiton{
       }*/
 //      cout<<"rid1 "<<id1<<" rid2 "<<id2<<endl;
 
-      CcReal* meas1 = (CcReal*)jun_tuple->GetAttribute(JUNCTION_ROUTE1_MEAS);
-      CcReal* meas2 = (CcReal*)jun_tuple->GetAttribute(JUNCTION_ROUTE2_MEAS);
+//      CcReal* meas1 = (CcReal*)jun_tuple->GetAttribute(JUNCTION_ROUTE1_MEAS);
+//      CcReal* meas2 = (CcReal*)jun_tuple->GetAttribute(JUNCTION_ROUTE2_MEAS);
 
-      double len1 = meas1->GetRealval();
-      double len2 = meas2->GetRealval();
-      double delta = 0.05;
+//      double len1 = meas1->GetRealval();
+//      double len2 = meas2->GetRealval();
+//      double delta = 0.05;
+
 //      printf("len1 %.8f, len %.8f\n", len1, len2);
 //      printf("route1 len %.8f route2 len %.8f\n",routes_length[id1 - 1],
 //          routes_length[id2 - 1]);
@@ -1022,7 +1023,7 @@ struct LinePartiton{
     }
 
   }
-  void CrossHalfSegment(HalfSegment& hs, double delta, bool flag)
+  void CrossHalfSegment(HalfSegment& hs, int delta, bool flag)
   {
 //      cout<<"before hs "<<hs<<endl;
       Point lp = hs.GetLeftPoint();
@@ -1057,12 +1058,14 @@ struct LinePartiton{
           double c1 = lp.GetY() - lp.GetX()*k2;
           double c2 = rp.GetY() - rp.GetX()*k2;
 
-          double x1,x2;
+          double x1 , x2;
+          x1 = 0.0; x2 = 0.0;
           GetDeviation(lp, k2, c1, x1, x2, delta);
           double y1 = x1*k2 + c1;
           double y2 = x2*k2 + c1;
 
           double x3, x4;
+          x3 = 0.0; x4 = 0.0;
           GetDeviation(rp, k2, c2, x3, x4, delta);
           double y3 = x3*k2 + c2;
           double y4 = x4*k2 + c2;
@@ -1086,7 +1089,7 @@ struct LinePartiton{
                     int roadwidth, bool clock)
   {
       newcurve->StartBulkLoad();
-      for(unsigned int i = 0; i < curve->Size();i++){
+      for(int i = 0; i < curve->Size();i++){
           HalfSegment hs;
           curve->Get(i,hs);
           CrossHalfSegment(hs, roadwidth, clock);
@@ -1528,7 +1531,7 @@ Extend the line in increasing direction
 
       double len1 = meas1->GetRealval();
       double len2 = meas2->GetRealval();
-      double delta = 0.05;
+//      double delta = 0.05;
 
 //      cout<<"len1 "<<len1<<" len2 "<<len2<<endl;
 
