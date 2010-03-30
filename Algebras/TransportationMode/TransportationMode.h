@@ -81,6 +81,27 @@ struct MyHalfSegment{
   Point from,to;
 };
 
+struct MyPoint{
+  MyPoint(){}
+  MyPoint(const Point& p, double d):loc(p), dist(d){}
+  MyPoint(const MyPoint& mp):loc(mp.loc),dist(mp.dist){}
+  MyPoint& operator=(const MyPoint& mp)
+  {
+    loc = mp.loc;
+    dist = mp.dist;
+    return *this;
+  }
+  bool operator<(const MyPoint& mp) const
+  {
+    return dist < mp.dist;
+  }
+  void Print()
+  {
+    cout<<"loc "<<loc<<" dist "<<dist<<endl;
+  }
 
+  Point loc;
+  double dist;
+};
 
 #endif
