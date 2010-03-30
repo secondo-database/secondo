@@ -1022,7 +1022,7 @@ struct LinePartiton{
     }
 
   }
-  void CrossHalfSegment(HalfSegment& hs, double delta,bool flag)
+  void CrossHalfSegment(HalfSegment& hs, double delta, bool flag)
   {
 //      cout<<"before hs "<<hs<<endl;
       Point lp = hs.GetLeftPoint();
@@ -1101,15 +1101,16 @@ for the road line around the junction position, it creates the zebra crossing
   void GetZebraCrossing(SimpleLine* subcurve,
                         Region* reg_pave1, Region* reg_pave2,
                         int roadwidth, Line* pave1, double delta_l,
-                        Point& p1, bool flag)
+                        Point p1, bool flag, Region* crossregion)
   {
     vector<MyPoint> endpoints1;
     vector<MyPoint> endpoints2;
-    double delta = 0.5;
+    double delta = 1;
 
     Line* subline1 = new Line(0);
     Line* subline2 = new Line(0);
 
+    Point junp = p1;
 
     GetSubCurve(subcurve, subline1, roadwidth + 1, true);
     GetSubCurve(subcurve, subline2, roadwidth + 1, false);
@@ -1118,25 +1119,21 @@ for the road line around the junction position, it creates the zebra crossing
 
     Point p2;
     double l;
-/*    if(flag)
-      l = delta_l/2;
-    else
-      l = 0.0;*/
-    if(flag)
-      l = delta_l/2;
-    else
-      l = subcurve->Length() - delta_l/2;
 
-    cout<<"subcurve length "<<subcurve->Length()<<endl;
-    cout<<" delta_l "<<delta_l<<endl;
+    if(flag)
+      l = delta_l/3;
+    else
+      l = subcurve->Length() - delta_l/3;
+
+//    cout<<"subcurve length "<<subcurve->Length()<<endl;
+//    cout<<" delta_l "<<delta_l<<endl;
 
     bool find = false;
-    while(find == false){
+    while(find == false && (0 < l && l < subcurve->Length())){
       if(flag)
         l = l + delta;
       else
         l = l - delta;
-      cout<<"l "<<l<<endl;
 
       assert(subcurve->AtPosition(l,true,p2));
 
@@ -1169,7 +1166,7 @@ for the road line around the junction position, it creates the zebra crossing
              (ps1->Inside(*reg_pave2) && ps2->Inside(*reg_pave1)))){
 
 //        if(ps1->Size() > 0 && ps2->Size() > 0){
-          cout<<"1 "<<p2<<endl;
+//          cout<<"1 "<<p2<<endl;
 
           for(int i = 0;i < ps1->Size();i++){
             Point p;
@@ -1226,7 +1223,7 @@ for the road line around the junction position, it creates the zebra crossing
               (ps1->Inside(*reg_pave2) && ps2->Inside(*reg_pave1)))){
 //            if(ps1->Size() > 0 && ps2->Size() > 0){
 
-              cout<<"2 "<<p2<<endl;
+//              cout<<"2 "<<p2<<endl;
 
             for(int i = 0;i < ps1->Size();i++){
               Point p;
@@ -1283,7 +1280,7 @@ for the road line around the junction position, it creates the zebra crossing
              (ps1->Inside(*reg_pave2) && ps2->Inside(*reg_pave1)))){
 
 //        if(ps1->Size() > 0 && ps2->Size() > 0){
-          cout<<"3 "<<p2<<endl;
+//          cout<<"3 "<<p2<<endl;
           for(int i = 0;i < ps1->Size();i++){
             Point p;
             ps1->Get(i,p);
@@ -1335,6 +1332,49 @@ for the road line around the junction position, it creates the zebra crossing
       *pave1 = *pave;
 
       delete pave;
+      //////////////extend it to a region/////////////////////////////
+      HalfSegment hs1 = hs;
+      HalfSegment hs2 = hs;
+      CrossHalfSegment(hs1, 2, true);
+      CrossHalfSegment(hs2, 2, false);
+      vector<Point> outer_ps;
+      vector<Region> result;
+      Point lp1 = hs1.GetLeftPoint();
+      Point rp1 = hs1.GetRightPoint();
+      Point lp2 = hs2.GetLeftPoint();
+      Point rp2 = hs2.GetRightPoint();
+      Point mp1, mp2;
+      mp1.Set((lp1.GetX() + rp1.GetX())/2, (lp1.GetY() + rp1.GetY())/2);
+      mp2.Set((lp2.GetX() + rp2.GetX())/2, (lp2.GetY() + rp2.GetY())/2);
+
+      if(mp1.Distance(junp) > mp2.Distance(junp)){
+          lp1 = hs.GetLeftPoint();
+          rp1 = hs.GetRightPoint();
+          lp2 = hs1.GetLeftPoint();
+          rp2 = hs1.GetRightPoint();
+      }else{
+          lp1 = hs.GetLeftPoint();
+          rp1 = hs.GetRightPoint();
+          lp2 = hs2.GetLeftPoint();
+          rp2 = hs2.GetRightPoint();
+      }
+
+      if(GetClockwise(lp2, lp1, rp2)){
+          outer_ps.push_back(lp2);
+          outer_ps.push_back(rp2);
+          outer_ps.push_back(rp1);
+          outer_ps.push_back(lp1);
+      }else{
+          outer_ps.push_back(lp1);
+          outer_ps.push_back(rp1);
+          outer_ps.push_back(rp2);
+          outer_ps.push_back(lp2);
+      }
+
+      ComputeRegion(outer_ps, result);
+      *crossregion = result[0];
+//      cout<<result[0].Area()<<endl;
+      ///////////////////////////////////////////////////////////////
     }
 
   }
@@ -1344,30 +1384,34 @@ Extend the line in decreasing direction
 
 */
   void Decrease(SimpleLine* curve, Region* reg_pave1,
-                      Region* reg_pave2, double len, Line* pave1,
-                      int roadwidth, bool decrease)
+                      Region* reg_pave2, double len, Line* pave,
+                      int roadwidth, Region* crossregion)
   {
     double l = len;
     double delta_l = 20;
+//    double delta_l = 30;
     Point p1;
     assert(curve->AtPosition(l, true, p1));
 
-    SimpleLine* subcurve = new SimpleLine(0);
-
-    if(l - delta_l > 0.0)
-      curve->SubLine(l - delta_l, l, true, *subcurve);
-    else
-      curve->SubLine(0.0, l, true, *subcurve);
-
+    while(1){
+      SimpleLine* subcurve = new SimpleLine(0);
+      if(l - delta_l > 0.0)
+        curve->SubLine(l - delta_l, l, true, *subcurve);
+      else
+        curve->SubLine(0.0, l, true, *subcurve);
 
 //    subcurve2->toLine(*pave2); ///crossing at junction
 
-    cout<<"decrease subcurve1 len"<<subcurve->Length()<<endl;
+//    cout<<"decrease subcurve1 len"<<subcurve->Length()<<endl;
 
-    GetZebraCrossing(subcurve, reg_pave1,
-                     reg_pave2, roadwidth, pave1, delta_l, p1,decrease);
+      GetZebraCrossing(subcurve, reg_pave1,
+                   reg_pave2, roadwidth, pave, delta_l, p1, false, crossregion);
+      delete subcurve;
+      if(pave->Size() > 0 || delta_l >= curve->Length()) break;
 
-    delete subcurve;
+      delta_l += delta_l;
+
+    }
   }
 
 /*
@@ -1376,43 +1420,61 @@ Extend the line in increasing direction
 */
 
   void Increase(SimpleLine* curve, Region* reg_pave1,
-                      Region* reg_pave2, double len, Line* pave1,
-                      int roadwidth, bool increase)
+                      Region* reg_pave2, double len, Line* pave,
+                      int roadwidth, Region* crossregion)
   {
+
     double route_length = curve->Length();
     double l = len;
     double delta_l = 20;
+//    double delta_l = 30;
     Point p1;
     assert(curve->AtPosition(l, true, p1));
 
-    SimpleLine* subcurve = new SimpleLine(0);
-    if(l + delta_l < route_length)
-      curve->SubLine(l, l+delta_l, true, *subcurve);
-    else
-      curve->SubLine(l, route_length, true, *subcurve);
+    while(1){
+      SimpleLine* subcurve = new SimpleLine(0);
+      if(l + delta_l < route_length)
+        curve->SubLine(l, l+delta_l, true, *subcurve);
+      else
+        curve->SubLine(l, route_length, true, *subcurve);
 
-//    subcurve1->toLine(*pave1);/////////crossing at junction
+  //    subcurve1->toLine(*pave1);/////////crossing at junction
 
-      GetZebraCrossing(subcurve, reg_pave1,
-              reg_pave2, roadwidth, pave1, delta_l, p1, increase);
+        GetZebraCrossing(subcurve, reg_pave1,
+                reg_pave2, roadwidth, pave, delta_l, p1, true,crossregion);
 
-    delete subcurve;
+      delete subcurve;
+      if(pave->Size() > 0 || delta_l >= route_length) break;
+
+      delta_l += delta_l;
+
+    }
+
   }
 
 
   void CreatePavement(SimpleLine* curve, Region* reg_pave1,
                       Region* reg_pave2, double len, Line* pave1,
-                      Line* pave2, int roadwidth)
+                      Line* pave2, int roadwidth, Region* crossregion)
   {
-
+    Region* crossreg1 = new Region(0);
+    Region* crossreg2 = new Region(0);
     if(MyAlmostEqual(curve->Length(), len))
-      Decrease(curve, reg_pave1, reg_pave2, len, pave2, roadwidth, false);//--
-    else if(MyAlmostEqual(len,0.0))
-      Increase(curve, reg_pave1, reg_pave2, len, pave1, roadwidth, true);//++
+      Decrease(curve, reg_pave1, reg_pave2, len, pave2,
+               roadwidth, crossreg2);//--
+    else if(MyAlmostEqual(len, 0.0))
+      Increase(curve, reg_pave1, reg_pave2, len, pave1,
+              roadwidth, crossreg1);//++
     else{
-      Increase(curve, reg_pave1, reg_pave2, len, pave1, roadwidth, true);
-      Decrease(curve, reg_pave1, reg_pave2, len, pave2, roadwidth, false);
+      Increase(curve, reg_pave1, reg_pave2, len, pave1,
+              roadwidth, crossreg1);
+      Decrease(curve, reg_pave1, reg_pave2, len, pave2,
+              roadwidth, crossreg2);
     }
+
+    MyUnion(*crossreg1, *crossreg2, *crossregion);
+    delete crossreg1;
+    delete crossreg2;
 
   }
 
@@ -1448,12 +1510,12 @@ Extend the line in increasing direction
       int id1 = rid1->GetIntval();
       int id2 = rid2->GetIntval();
 
-      if(!(id1 == 1 && id2 == 8)){
+/*      if(!(id1 == 1 && id2 == 8)){
           jun_tuple->DeleteIfAllowed();
           continue;
-      }
+      }*/
 
-      cout<<"rid1 "<<id1<<" rid2 "<<id2<<endl;
+//      cout<<"rid1 "<<id1<<" rid2 "<<id2<<endl;
 
       CcReal* meas1 = (CcReal*)jun_tuple->GetAttribute(JUNCTION_ROUTE1_MEAS);
       CcReal* meas2 = (CcReal*)jun_tuple->GetAttribute(JUNCTION_ROUTE2_MEAS);
@@ -1471,20 +1533,6 @@ Extend the line in increasing direction
       Region* reg2_in = (Region*)inborder_tuple2->GetAttribute(attr_pos1);
       Region* reg2_out = (Region*)inborder_tuple2->GetAttribute(attr_pos2);
 
-/*      Region* reg1 = new Region(0);
-      Region* reg2 = new Region(0);
-      MyIntersection(*reg1_in,*reg2_in,*reg1);
-      MyIntersection(*reg1_out,*reg2_out,*reg2);
-      Region* result = new Region(0);
-      MyMinus(*reg2,*reg1,*result);
-
-//      outer_regions_s.push_back(*result);
-//      outer_regions_s.push_back(*reg2);
-
-      delete result;
-      delete reg1;
-      delete reg2;*/
-
 
       Tuple* route_tuple1 = routes->GetTuple(id1);
       SimpleLine* curve1 = (SimpleLine*)route_tuple1->GetAttribute(ROUTE_CURVE);
@@ -1494,14 +1542,22 @@ Extend the line in increasing direction
 
       Line* pave1 = new Line(0);
       Line* pave2 = new Line(0);
+      Line* result1 = new Line(0);
 
-      CreatePavement(curve1, reg1_in, reg1_out, len1, pave1, pave2, input_w1);
+      Region* crossregion1 = new Region(0);
+      CreatePavement(curve1, reg1_in, reg1_out, len1, pave1,
+                     pave2, input_w1, crossregion1);
+      pave1->Union(*pave2,*result1);
 
-      pave_line1.push_back(*pave1);
-      pave_line2.push_back(*pave2);
+//      pave_line1.push_back(*pave1);
+//      pave_line2.push_back(*pave2);
       junid1.push_back(id1);
-      junid2.push_back(id2);
+      pave_line1.push_back(*result1);
+      outer_regions1.push_back(*crossregion1);
+//      junid2.push_back(id2);
 
+      delete crossregion1;
+      delete result1;
       delete pave1;
       delete pave2;
 
@@ -1513,14 +1569,24 @@ Extend the line in increasing direction
           input_w2 = 2*input_w2;
       Line* pave3 = new Line(0);
       Line* pave4 = new Line(0);
+      Line* result2 = new Line(0);
 
-      CreatePavement(curve2, reg2_in, reg2_out, len2, pave3, pave4, input_w2);
-      pave_line1.push_back(*pave3);
-      pave_line2.push_back(*pave4);
+      Region* crossregion2 = new Region(0);
+      CreatePavement(curve2, reg2_in, reg2_out, len2, pave3,
+                     pave4, input_w2, crossregion2);
+      pave3->Union(*pave4,*result2);
 
-      junid1.push_back(id1);
+//      pave_line1.push_back(*pave3);
+//      pave_line2.push_back(*pave4);
+
+//      junid1.push_back(id1);
+
       junid2.push_back(id2);
+      pave_line2.push_back(*result2);
+      outer_regions2.push_back(*crossregion2);
 
+      delete crossregion2;
+      delete result2;
       delete pave3;
       delete pave4;
 
@@ -1834,7 +1900,8 @@ ListExpr OpNetJunRegionTypeMap ( ListExpr args )
                 nl->TwoElemList(
 
                   nl->SymbolAtom("tuple"),
-                      nl->FourElemList(
+//                      nl->FourElemList(
+                      nl->SixElemList(
                         nl->TwoElemList(nl->SymbolAtom("rid1"),
                                     nl->SymbolAtom("int")),
                         nl->TwoElemList(nl->SymbolAtom("rid2"),
@@ -1842,7 +1909,11 @@ ListExpr OpNetJunRegionTypeMap ( ListExpr args )
                         nl->TwoElemList(nl->SymbolAtom("crosspave1"),
                                       nl->SymbolAtom("line")),
                         nl->TwoElemList(nl->SymbolAtom("crosspave2"),
-                                      nl->SymbolAtom("line"))
+                                      nl->SymbolAtom("line")),
+                        nl->TwoElemList(nl->SymbolAtom("crossreg1"),
+                                      nl->SymbolAtom("region")),
+                        nl->TwoElemList(nl->SymbolAtom("crossreg2"),
+                                      nl->SymbolAtom("region"))
                   )
                 )
           );
@@ -2172,6 +2243,12 @@ int OpNetJunRegionmap ( Word* args, Word& result, int message,
                 new Line(l_partition->pave_line1[l_partition->count]));
           tuple->PutAttribute(3,
                 new Line(l_partition->pave_line2[l_partition->count]));
+          tuple->PutAttribute(4,
+               new Region(l_partition->outer_regions1[l_partition->count]));
+          tuple->PutAttribute(5,
+               new Region(l_partition->outer_regions2[l_partition->count]));
+
+
           result.setAddr(tuple);
           l_partition->count++;
           return YIELD;
