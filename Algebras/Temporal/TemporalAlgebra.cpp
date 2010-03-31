@@ -13957,6 +13957,10 @@ class TemporalAlgebra : public Algebra
     AddOperator(&delayoperator);
     AddOperator(&distancetraversedoperator);
 
+#ifdef USE_PROGRESS
+    temporalunits.EnableProgress();
+#endif
+
   }
   ~TemporalAlgebra() {};
 };

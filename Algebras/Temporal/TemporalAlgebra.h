@@ -88,6 +88,8 @@ The type system of the Temporal Algebra can be seen below.
 #include "NestedList.h"
 //#include "DBArray.h"
 #include "../../Tools/Flob/DbArray.h"
+#include "Progress.h"
+
 
 #include "RectangleAlgebra.h"
 #include "DateTime.h"
@@ -417,7 +419,7 @@ Merges a range into ~result~ concatenating adjacent intervals.
     void MergeAdd(const Interval<Alpha>& i);
 /*
 
-Adds an interval at the end of that Range. If the last interval and the i can be 
+Adds an interval at the end of that Range. If the last interval and the i can be
 merged, the last interval is extended by the new one.
 
 */
@@ -3591,7 +3593,7 @@ void Range<Alpha>::MergeAdd(const Interval<Alpha>& interval){
     intervals.Get(intervals.Size()-1, last);
     if (last.Adjacent(interval)){
       last.end = interval.end;
-      last.rc = interval.rc; 
+      last.rc = interval.rc;
       intervals.Put(intervals.Size()-1, last);
     }  else {
       intervals.Append(interval);
@@ -6883,54 +6885,139 @@ int MappingAt( Word* args, Word& result, int message, Word& local, Supplier s )
 6.15 Value mapping functions of operator ~units~
 
 */
-struct UnitsLocalInfo
+template <class Mapping, class Unit>
+class UnitsLocalInfo
 {
-  Word mWord;     // the address of the moving point/int/real value
-  int unitIndex;  // current item index
+  public:
+    int unitIndex;      // current item index (unit to be processed next)
+    int noUnits;        // no of all units within the mapping m
+    double totalSize;   // attrExtSize of the mapping m (incl. FLOBs)
+    double attrSize;    // attrSize (without FLOBs)
+    double attrSizeExt; // average attrSizeExt (withFlob)
+    bool progressinitialized;
+    double feedunittime;
+    bool sonIsObjectNode;
+
+    UnitsLocalInfo(Mapping *m, Unit *u, const Supplier &s) :
+        unitIndex(0), noUnits(-1), totalSize(0.0), attrSize(0.0),
+        attrSizeExt(0.0), progressinitialized(false), feedunittime(0.0001),
+        sonIsObjectNode(false) {
+      attrSizeExt = ((double)(u->Sizeof()));
+      attrSize = attrSizeExt;
+      if(m->IsDefined()) {
+        noUnits = m->GetNoComponents();
+        if(noUnits > 0) { // compute and add FLOB size
+          for(int f = 0; f < m->NumOfFLOBs(); f++) {
+            totalSize += m->GetFLOB(f)->getSize();
+          }
+          attrSizeExt += ( totalSize / ((double)noUnits) );
+        }
+      } else {
+        unitIndex = -1; // will provoke "CANCEL" on first REQUEST
+      }
+      feedunittime = 0.00042 * attrSizeExt;
+      sonIsObjectNode = qp->IsObjectNode(qp->GetSupplierSon(s,0));
+    }
+
+    ~UnitsLocalInfo() {}
 };
 
 template <class Mapping, class Unit>
 int MappingUnits(Word* args, Word& result, int message, Word& local, Supplier s)
 {
-  Mapping* m;
-  UnitsLocalInfo *localinfo;
+  Mapping* m = static_cast<Mapping*>(args[0].addr);
+  UnitsLocalInfo<Mapping, Unit> *localinfo =
+                      static_cast<UnitsLocalInfo<Mapping, Unit> *>(local.addr);
+  Unit *u = 0;
+
+#ifdef USE_PROGRESS
+  ProgressInfo *pRes = (ProgressInfo*) result.addr;
+  ProgressInfo p1;
+#endif
 
   switch( message )
   {
     case OPEN:
-
-      localinfo = new UnitsLocalInfo;
-      localinfo->mWord = args[0];
-      localinfo->unitIndex = 0;
+      u = new Unit(false);
+      localinfo = new UnitsLocalInfo<Mapping, Unit>(m, u, s);
       local = SetWord(localinfo);
+      delete u; u = 0;
       return 0;
 
     case REQUEST:
 
-      if( local.addr == 0 )
+      if( local.addr == 0 ) {
         return CANCEL;
-      localinfo = (UnitsLocalInfo *) local.addr;
-      m = (Mapping*)localinfo->mWord.addr;
-      if( !m->IsDefined() )
-        return CANCEL;
-      if( (0 <= localinfo->unitIndex)
-          && (localinfo->unitIndex < m->GetNoComponents()) )
-      {
+      } else if( localinfo->unitIndex < localinfo->noUnits ) {
         Unit *unit = new Unit(true);
         m->Get( localinfo->unitIndex++, *unit );
         result = SetWord( unit );
         return YIELD;
+      } else {
+        return CANCEL;
       }
-      return CANCEL;
 
     case CLOSE:
-
+#ifndef USE_PROGRESS
       if( local.addr != 0 )
       {
-        delete (UnitsLocalInfo *)local.addr;
+        delete localinfo;
+        local = SetWord(Address(0));
+      }
+#endif
+      return 0;
+
+#ifdef USE_PROGRESS
+    case REQUESTPROGRESS:
+      if(local.addr == 0) {
+        return CANCEL;
+      }
+      if(    !localinfo->sonIsObjectNode
+          && qp->RequestProgress(args[0].addr, &p1) ) {
+        // the son is a computed result node
+        // just copy everything
+        pRes->CopyBlocking(p1);
+        pRes->Time = p1.Time;
+      } else {
+        // the son is a database object or constant
+        pRes->BTime = 0.00001; // no blocking time
+        pRes->BProgress = 1.0; // non-blocking
+        pRes->Time = 0.00001;  // (almost) zero runtime
+      }
+      if(!localinfo->progressinitialized){
+        pRes->Card = (double) min(0,localinfo->noUnits); // cardinality
+        pRes->Size = localinfo->attrSize;                // total size
+        pRes->SizeExt = localinfo->attrSizeExt;          // size w/o FLOBS
+        pRes->noAttrs = 1;                               //no of attributes
+        pRes->attrSize = &(localinfo->attrSize);
+        pRes->attrSizeExt = &(localinfo->attrSizeExt);
+        localinfo->progressinitialized = true;
+        pRes->sizesChanged = true;  //sizes have been recomputed
+        localinfo->progressinitialized = true;
+      } else {
+        pRes->sizesChanged = false;
+      }
+      if(    (localinfo->noUnits > 0)
+          && (localinfo->unitIndex < localinfo->noUnits) ){
+        pRes->Progress =   ((double)localinfo->unitIndex)
+                         / ((double)localinfo->noUnits);
+        pRes->Time +=   ((double)(localinfo->noUnits - localinfo->unitIndex))
+                      * localinfo->feedunittime;
+      } else {
+        pRes->Progress = 1.0;
+        pRes->Time = 0.00001;
+      }
+      return YIELD;
+
+    case CLOSEPROGRESS:
+      if( local.addr != 0 )
+      {
+        delete localinfo;
         local = SetWord(Address(0));
       }
       return 0;
+#endif
+
   }
   /* should not happen */
   return -1;
