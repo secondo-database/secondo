@@ -9767,7 +9767,7 @@ void CellPart::AssignUPinCell()
 
 }
 
-const string MergertreeSpec  =
+/*const string MergertreeSpec  =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" "
   "\"Example\" \"Comment\" ) "
   "(<text>(rtree1<d> (tuple ((x1 t1)...(xn tn))) ti) x \n"
@@ -9776,6 +9776,19 @@ const string MergertreeSpec  =
   "<text>mergertree (_, _ )</text--->"
   "<text>Merge Two RTrees (stored in the same file) </text--->"
   "<text>query mergertree(rtree_1,rtree_2)</text--->"
+  "<text></text--->"
+  ") )";*/
+
+const string MergertreeSpec  =
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+  "\"Example\" \"Comment\" ) "
+  "(<text>(rtree1<d> (tuple ((x1 t1)...(xn tn))) ti) x \n"
+  "(rtree2<d> (tuple ((x1 t1)...(xn tn))) ti) x "
+  " -> (stream (tuple ((x1 t1)...(xn tn))) ti)</text--->"
+  "<text>mergertree (_, _ )</text--->"
+  "<text>Merge Two RTrees (stored in the same file) and "
+  "outputs the root node tuple</text--->"
+  "<text>query mergertree(rtree_1,rtree_2) consume</text--->"
   "<text></text--->"
   ") )";
 
@@ -9793,6 +9806,67 @@ const string MergeCovSpec  =
   "<text></text--->"
   ") )";
 
+
+
+/*
+TypeMap fun for operator mergertree
+
+*/
+/*ListExpr MergeRTreeTypeMap(ListExpr args)
+{
+
+// check number of parameters
+  if( nl->IsEmpty(args) || nl->ListLength(args) != 2){
+    return listutils::typeError("Expecting exactly 2 arguments.");
+  }
+
+/////////////////////////////////////////////////////////
+  ListExpr firstpara = nl->First(args);
+  if(nl->ListLength(firstpara) != 4){
+    string err = "rtree(tuple(...) rect3 BOOL) expected";
+    ErrorReporter::ReportError(err);
+    return nl->TypeError();
+  }
+
+  if(!listutils::isRTreeDescription(firstpara)){
+    string err = "rtree(tuple(...) rect3 BOOL) expected";
+    ErrorReporter::ReportError(err);
+    return nl->TypeError();
+  }
+
+
+  if(!(nl->IsEqual(nl->First(firstpara),"rtree") ||
+     nl->IsEqual(nl->First(firstpara),"rtree3") ||
+     nl->IsEqual(nl->First(firstpara),"rtree4") ||
+     nl->IsEqual(nl->First(firstpara),"rtree8"))){
+    string err = "rtree(tuple(...) rect3 BOOL) expected";
+    ErrorReporter::ReportError(err);
+    return nl->TypeError();
+  }
+///////////////////////////////////////////////////////////
+
+  ListExpr secondpara = nl->Second(args);
+  if(nl->ListLength(secondpara) != 4){
+    string err = "rtree(tuple(...) rect BOOL) expected";
+    ErrorReporter::ReportError(err);
+    return nl->TypeError();
+  }
+  if(!listutils::isRTreeDescription(secondpara)){
+    string err = "rtree(tuple(...) rect3 BOOL) expected";
+    ErrorReporter::ReportError(err);
+    return nl->TypeError();
+  }
+
+  if(!(nl->IsEqual(nl->First(firstpara),"rtree2") ||
+     nl->IsEqual(nl->First(firstpara),"rtree3") ||
+     nl->IsEqual(nl->First(firstpara),"rtree4") ||
+     nl->IsEqual(nl->First(firstpara),"rtree8"))){
+    string err = "rtree(tuple(...) rect BOOL) expected";
+    ErrorReporter::ReportError(err);
+    return nl->TypeError();
+  }
+    return nl->First(args);
+}*/
 
 /*
 TypeMap fun for operator mergertree
@@ -9851,7 +9925,18 @@ ListExpr MergeRTreeTypeMap(ListExpr args)
     ErrorReporter::ReportError(err);
     return nl->TypeError();
   }
-    return nl->First(args);
+//    return nl->First(args);
+    ListExpr reslist = nl->TwoElemList(
+        nl->SymbolAtom("stream"),
+        nl->TwoElemList(
+          nl->SymbolAtom("tuple"),
+          nl->TwoElemList(
+            nl->TwoElemList(nl->SymbolAtom("nodeId"),nl->SymbolAtom("int")),
+            nl->TwoElemList(nl->SymbolAtom("level"),nl->SymbolAtom("int"))
+          )
+        )
+      );
+    return reslist;
 }
 
 /*
@@ -9929,7 +10014,7 @@ ListExpr MergeCovTypeMap(ListExpr args)
 Merge two input r-trees into one r-tree and record in the same file
 
 */
-int MergeRTreeFun(Word* args, Word& result, int message,Word& local,
+/*int MergeRTreeFun(Word* args, Word& result, int message,Word& local,
 Supplier s)
 {
   R_Tree<3,TupleId>* rtree_in1 = static_cast<R_Tree<3,TupleId>*>(args[0].addr);
@@ -9942,6 +10027,38 @@ Supplier s)
   R_Tree<3, TupleId> *rtree = new R_Tree<3,TupleId>(rtree_in1->FileId(),true);
   rtree->MergeRtree(rtree_in1,rtree_in2);
   result.setAddr(rtree);
+  return 0;
+}*/
+
+int MergeRTreeFun(Word* args, Word& result, int message,Word& local,
+Supplier s)
+{
+  static int flag = 0;
+  switch(message){
+    case OPEN:
+      return 0;
+    case REQUEST:
+      if(flag == 0){
+        R_Tree<3,TupleId>* rtree_in1 =
+                      static_cast<R_Tree<3,TupleId>*>(args[0].addr);
+        rtree_in1->MergeRtree();
+        Tuple* t = new Tuple(nl->Second(GetTupleResultType(s)));
+        t->PutAttribute(0,new CcInt(true,rtree_in1->RootRecordId()));
+        t->PutAttribute(1,new CcInt(true,0));
+        result.setAddr(t);
+        flag = 1;
+        return YIELD;
+      }else{
+          flag = 0;
+          return CANCEL;
+      }
+    case CLOSE:
+
+        qp->SetModified(qp->GetSon(s,0));
+//        qp->SetModified(qp->GetSon(s,1));
+        local.setAddr(Address(0));
+        return 0;
+  }
   return 0;
 }
 

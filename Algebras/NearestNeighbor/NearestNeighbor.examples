@@ -124,7 +124,7 @@ Result   : 0
 Operator : mergertree
 Number  : 1
 Signature: (rtree<d> (tuple ((x1 t1)...(xn tn))) ti false) (rtree<d> (tuple ((x1 t1)...(xn tn))) ti false) -> (rtree<d> (tuple ((x1 t1)...(xn tn))) ti false)
-Example  : query mergertree(UTOrdered_1,UTOrdered_2);
+Example  : query mergertree(UTOrdered_R1,UTOrdered_R2) consume;
 Result   : file
 
 
