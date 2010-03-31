@@ -1641,6 +1641,7 @@ Opens an existing R-tree.
     void CloseFile(){file->Close();}
     void SwitchHeader(R_Tree<dim,LeafInfo>*);
 //    void MergeRtree(R_Tree<dim,LeafInfo>*,R_Tree<dim,LeafInfo>*);
+    int GetShare(){return header.share;}
     void MergeRtree();
     SmiRecordId Record_Path_Id(){return header.path_rec_id;}
 ////////////////////////////////////////////////////////////////////////////
@@ -1912,18 +1913,20 @@ The record file of the R-Tree.
       //new record
       SmiRecordId second_head_id;    //two rtrees on the same file
       SmiRecordId path_rec_id;  //record update path for new coverage
+      int share;
 
       Header() :
         headerRecordId( 0 ), rootRecordId( 0 ),
         minLeafEntries( 0 ), maxLeafEntries( 0 ),
         minInternalEntries( 0 ), maxInternalEntries( 0 ),
-        nodeCount( 0 ), entryCount( 0 ), height( 0 )
+        nodeCount( 0 ), entryCount( 0 ), height( 0 ),
+        second_head_id(0),path_rec_id(0), share(0)
         {}
       Header( SmiRecordId headerRecordId, SmiRecordId rootRecordId = 0,
               int minEntries = 0, int maxEntries = 0,
               int minInternalEntries = 0, int maxInternalEntries = 0,
               int nodeCount = 0, int entryCount = 0,
-              int nodeSize = 0, int height = 0 ) :
+              int nodeSize = 0, int height = 0, int s =0 ) :
         headerRecordId( headerRecordId ),
         rootRecordId( rootRecordId ),
         minLeafEntries( minLeafEntries ),
@@ -1932,7 +1935,7 @@ The record file of the R-Tree.
         maxInternalEntries( maxInternalEntries ),
         nodeCount( nodeCount ),
         entryCount( entryCount ),
-        height( height )
+        height( height ), share(s)
         {}
     } header;
 
@@ -2469,6 +2472,7 @@ nodeIdCounter( 0 )
 template <unsigned dim, class LeafInfo>
 R_Tree<dim, LeafInfo>::~R_Tree()
 {
+  header.share--;
   if( file->IsOpen() )
   {
     if( nodePtr != NULL )
@@ -4150,6 +4154,7 @@ void R_Tree<dim, LeafInfo>::MergeRtree()
       header.nodeCount += tree1_node_count;
       header.rootRecordId = root1_id;
       header.path_rec_id = path_rec_id;
+      header.share = 2;
       WriteHeader();
 
   }else if(temp_head.height == header.height){
@@ -4205,6 +4210,7 @@ void R_Tree<dim, LeafInfo>::MergeRtree()
         header.path_rec_id = path_rec_id;
                /////////////
         path[0] = new_node_rec_id;
+        header.share = 2;
         WriteHeader();
 //    cout<<"header "<<header.headerRecordId<<"root id "<<RootRecordId()<<endl;
 /*        ReadHeader();
@@ -4313,6 +4319,7 @@ void R_Tree<dim, LeafInfo>::MergeRtree()
       header.nodeCount += tree1_node_count;
       header.rootRecordId = adr2;
       header.path_rec_id = path_rec_id;
+      header.share = 2;
 //      cout<<"write path_rec_id "<<header.path_rec_id<<endl;
       WriteHeader();
 
@@ -4734,14 +4741,27 @@ void DeleteRTree( const ListExpr typeInfo, Word& w )
   {
     R_Tree<dim, TwoLayerLeafInfo>* rtree = (R_Tree<dim,
                                             TwoLayerLeafInfo>*)w.addr;
-    rtree->DeleteFile();
-    delete rtree;
+/*    rtree->DeleteFile();
+    delete rtree;*/
+    if(rtree->GetShare() == 1){
+       rtree->CloseFile();
+     }else{
+       rtree->DeleteFile();
+       delete rtree;
+      }
+
   }
   else
   {
     R_Tree<dim, TupleId>* rtree = (R_Tree<dim, TupleId>*)w.addr;
-    rtree->DeleteFile();
-    delete rtree;
+/*    rtree->DeleteFile();
+    delete rtree;*/
+    if(rtree->GetShare() == 1){
+      rtree->CloseFile();
+    }else{
+      rtree->DeleteFile();
+      delete rtree;
+     }
   }
 }
 
