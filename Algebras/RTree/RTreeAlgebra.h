@@ -1641,6 +1641,8 @@ Opens an existing R-tree.
     void CloseFile(){file->Close();}
     void SwitchHeader(R_Tree<dim,LeafInfo>*);
     int GetShare(){return header.share;}
+    void IncreaseShare(){header.share++; WriteHeader();}
+    void DecreaseShare(){header.share--; WriteHeader();}
     void MergeRtree();
     SmiRecordId Record_Path_Id(){return header.path_rec_id;}
 ////////////////////////////////////////////////////////////////////////////
@@ -2288,7 +2290,7 @@ searchBoxSet(),
 searchType( NoSearch ),
 nodeIdCounter( 0 )
 {
-
+//  cout<<"111"<<endl;
   file->Open( fileid );
 
   // initialize overflowflag array
@@ -2305,7 +2307,8 @@ nodeIdCounter( 0 )
           header.minInternalEntries > 0 );
 
   currLevel = 0;
-
+//  cout<<"header share"<<header.share<<endl;
+  if(header.share > 0) header.share++;
 
   nodePtr = GetNode( RootRecordId(),
                      currLevel == Height(),
@@ -2329,7 +2332,7 @@ searchBoxSet(),
 searchType( NoSearch ),
 nodeIdCounter( 0 )
 {
-
+//  cout<<"222"<<endl;
   // initialize overflowflag array
   for( int i = 0; i < MAX_PATH_SIZE; i++ )
   {
@@ -2373,6 +2376,7 @@ bulkMode(false),
 bli(NULL),
 nodeIdCounter( 0 )
 {
+//  cout<<"333"<<endl;
   file->Open(fileid);
   // Calculating maxEntries e minEntries
   int nodeEmptySize = R_TreeNode<dim, LeafInfo>::SizeOfEmptyNode();
@@ -2440,6 +2444,7 @@ bulkMode(false),
 bli(NULL),
 nodeIdCounter( 0 )
 {
+//  cout<<"444"<<endl;
   file->Open( fileid );
 // initialize overflowflag array
   for( int i = 0; i < MAX_PATH_SIZE; i++ )
@@ -2471,6 +2476,7 @@ nodeIdCounter( 0 )
 template <unsigned dim, class LeafInfo>
 R_Tree<dim, LeafInfo>::~R_Tree()
 {
+//  cout<<"~R_Tree()"<<endl;
   header.share--;
   if( file->IsOpen() )
   {
@@ -4848,13 +4854,17 @@ Word CloneRTree( const ListExpr typeInfo, const Word& w )
 template <unsigned dim>
 void DeleteRTree( const ListExpr typeInfo, Word& w )
 {
+
+
   if( nl->BoolValue(nl->Fourth(typeInfo)) == true )
   {
     R_Tree<dim, TwoLayerLeafInfo>* rtree = (R_Tree<dim,
                                             TwoLayerLeafInfo>*)w.addr;
 /*    rtree->DeleteFile();
     delete rtree;*/
-    if(rtree->GetShare() == 1){
+//    cout<<"DeleteRTree1 "<<rtree->GetShare()<<endl;
+    if(rtree->GetShare() > 0){
+       rtree->DecreaseShare();
        rtree->CloseFile();
      }else{
        rtree->DeleteFile();
@@ -4867,7 +4877,9 @@ void DeleteRTree( const ListExpr typeInfo, Word& w )
     R_Tree<dim, TupleId>* rtree = (R_Tree<dim, TupleId>*)w.addr;
 /*    rtree->DeleteFile();
     delete rtree;*/
-    if(rtree->GetShare() == 1){
+//    cout<<"DeleteRTree2 "<<rtree->GetShare()<<endl;
+    if(rtree->GetShare() > 0){
+      rtree->DecreaseShare();
       rtree->CloseFile();
     }else{
       rtree->DeleteFile();
