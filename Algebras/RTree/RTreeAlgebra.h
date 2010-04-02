@@ -1640,7 +1640,6 @@ Opens an existing R-tree.
     void OpenFile(const SmiFileId fileid){file->Open(fileid);}
     void CloseFile(){file->Close();}
     void SwitchHeader(R_Tree<dim,LeafInfo>*);
-//    void MergeRtree(R_Tree<dim,LeafInfo>*,R_Tree<dim,LeafInfo>*);
     int GetShare(){return header.share;}
     void MergeRtree();
     SmiRecordId Record_Path_Id(){return header.path_rec_id;}
@@ -4166,17 +4165,129 @@ void R_Tree<dim, LeafInfo>::MergeRtree()
         int AppendRecord = file->AppendRecord(new_node_rec_id,*new_node_rec);
         assert(AppendRecord);
 
-/*        R_TreeNode<dim,TupleId>* root1 = GetMyNode(root1_id,false,
+        ///////////////////////////////////////////////////////////////
+
+          R_TreeNode<dim,TupleId>* n1 = GetMyNode(e1.pointer,false,
                         MinEntries(0),MaxEntries(0));
-        R_TreeInternalEntry<dim> e1(root1->BoundingBox(),root1_id);
-        delete root1;*/
+          R_TreeNode<dim,TupleId>* n2 = GetMyNode(e2.pointer,false,
+                        MinEntries(0),MaxEntries(0));
+//          cout<<" n1 entry "<<n1->EntryCount()
+//              <<" n2 entry "<<n2->EntryCount()<<endl;
+
+          if(n1->EntryCount() >= MinEntries(0) &&
+             n2->EntryCount() >= MinEntries(0)){
+//            cout<<"11"<<endl;
+            node->Insert(e1);
+            node->UpdateBox(e1.box,e1.pointer);
+            node->Insert(e2);
+            node->UpdateBox(e2.box,e2.pointer);
+            delete n1;
+            delete n2;
+            header.entryCount += 2;
+          }else if((n1->EntryCount() +  n2->EntryCount())
+                      < node->MaxEntries()){
+//              cout<<"222"<<endl;
+              for(int i = 0;i < n2->EntryCount();i++){
+                R_TreeInternalEntry<dim> e =
+                  (R_TreeInternalEntry<dim>&)(*n2)[i];
+                n1->Insert(e);
+                n1->UpdateBox(e.box, e.pointer);
+              }
+              R_TreeInternalEntry<dim> e3(n1->BoundingBox(),e1.pointer);
+              PutNode(e1.pointer, &n1);
+              node->Insert(e3);
+              node->UpdateBox(e3.box,e3.pointer);
+              delete n2;
+              header.entryCount += 1;
+          }else if(n1->EntryCount() > n2->EntryCount()){
+//              cout<<"333"<<endl;
+              int deviation = MinEntries(0) - n2->EntryCount();
+              assert(deviation > 0);
+              assert(n1->EntryCount() - deviation > n1->MinEntries());
+
+              R_TreeNode<dim,TupleId>*  n3 =
+                      new R_TreeNode<dim,LeafInfo>
+                      (false, MinEntries(0),MaxEntries(0));
+
+              for(int i = n1->EntryCount() - deviation;
+                       i < n1->EntryCount();i++){
+                  R_TreeInternalEntry<dim> e =
+                    (R_TreeInternalEntry<dim>&)(*n1)[i];
+                  n3->Insert(e);
+                  n3->UpdateBox(e.box, e.pointer);
+              }
+              //////////////////////////////////////////
+              R_TreeNode<dim,TupleId>*  n4 =
+                      new R_TreeNode<dim,LeafInfo>
+                      (false, MinEntries(0),MaxEntries(0));
+
+              for(int i = 0; i < deviation;i++){
+                 R_TreeInternalEntry<dim> e =
+                    (R_TreeInternalEntry<dim>&)(*n1)[i];
+                  n4->Insert(e);
+                  n4->UpdateBox(e.box, e.pointer);
+              }
+              R_TreeInternalEntry<dim> e3(n4->BoundingBox(),e1.pointer);
+              PutNode(e1.pointer,&n4);
+              node->Insert(e3);
+              node->UpdateBox(e3.box, e3.pointer);
+              /////////////////////////////////////////////
+
+              for(int i = 0;i < n2->EntryCount();i++){
+                R_TreeInternalEntry<dim> e =
+                    (R_TreeInternalEntry<dim>&)(*n2)[i];
+                n3->Insert(e);
+                n3->UpdateBox(e.box, e.pointer);
+              }
+              R_TreeInternalEntry<dim> e4(n3->BoundingBox(),e2.pointer);
+              PutNode(e2.pointer,&n3);
+              node->Insert(e4);
+              node->UpdateBox(e4.box, e4.pointer);
+              delete n1;
+              delete n2;
+              header.entryCount += 2;
+          }else if(n2->EntryCount() > n1->EntryCount()){
+//              cout<<"44"<<endl;
+              int deviation = MinEntries(0) - n1->EntryCount();
+              assert(deviation > 0);
+              assert(n2->EntryCount() - deviation > n2->MinEntries());
+
+              for(int i = 0; i < deviation;i++){
+                R_TreeInternalEntry<dim> e =
+                  (R_TreeInternalEntry<dim>&)(*n2)[i];
+                  n1->Insert(e);
+                  n1->UpdateBox(e.box, e.pointer);
+              }
+
+              R_TreeNode<dim,TupleId>*  n3 =
+                      new R_TreeNode<dim,LeafInfo>
+                      (false, MinEntries(0),MaxEntries(0));
+              for(int i = deviation; i < n2->EntryCount();i++){
+                  R_TreeInternalEntry<dim> e =
+                    (R_TreeInternalEntry<dim>&)(*n2)[i];
+                n3->Insert(e);
+                n3->UpdateBox(e.box, e.pointer);
+              }
+
+              PutNode(e1.pointer,&n1);
+              node->Insert(e1);
+              node->UpdateBox(e1.box,e1.pointer);
+              R_TreeInternalEntry<dim> e3(n3->BoundingBox(),e2.pointer);
+              PutNode(e2.pointer,&n3);
+              node->Insert(e3);
+              node->UpdateBox(e3.box,e3.pointer);
+              header.entryCount += 2;
+          }else assert(false);
+
+        ////////////////////////////////////////////////////////////
 
         //update new node
-        node->Insert(e1);
+/*        node->Insert(e1);
         node->UpdateBox(e1.box,e1.pointer);
         node->Insert(e2);
-        node->UpdateBox(e2.box,e2.pointer);
-//        node->Write(new_node_rec);
+        node->UpdateBox(e2.box,e2.pointer);*/
+
+
         BBox<3> bbox = node->BoundingBox();
         PutNode(*new_node_rec,&node);
 
@@ -4188,11 +4299,11 @@ void R_Tree<dim, LeafInfo>::MergeRtree()
         //////////// record update path ///////////////
         R_TreeNode<dim,TupleId>*  update_path = new
               R_TreeNode<dim,LeafInfo>(false,MinEntries(0),MaxEntries(0));
-        R_TreeInternalEntry<dim> e3(bbox,new_node_rec_id);
+        R_TreeInternalEntry<dim> e3(bbox, new_node_rec_id);
         update_path->Insert(e3);
         SmiRecordId path_rec_id;
         SmiRecord path_rec;
-        AppendRecord = file->AppendRecord(path_rec_id,path_rec);
+        AppendRecord = file->AppendRecord(path_rec_id, path_rec);
         assert(AppendRecord);
         update_path->Write(path_rec);
         delete update_path;
@@ -4201,7 +4312,7 @@ void R_Tree<dim, LeafInfo>::MergeRtree()
 //        cout<<"node count "<<header.nodeCount<<
 //           " entry count "<< header.entryCount<<endl;
         header.nodeCount++;
-        header.entryCount += 2;
+//        header.entryCount += 2;
         header.entryCount += tree1_entry_count;
         header.nodeCount += tree1_node_count;
         header.rootRecordId = new_node_rec_id;
