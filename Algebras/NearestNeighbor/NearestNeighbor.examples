@@ -131,5 +131,11 @@ Result   : file
 Operator : mergecov
 Number  : 1
 Signature: (rtree<d> (tuple ((x1 t1)...(xn tn))) ti false) (rel1 (tuple ((x1 t1)...(xn tn)))) (rel2 (tuple ((x1 t1)...(xn tn)))) (btree1 (tuple ((x1 t1)...(xn tn))) ti) (btree2 (tuple ((x1 t1)...(xn tn))) ti) -> (rel3 (tuple ((x1 t1)...(xn tn))))
-Example  : query mergecov(UTOrdered_12,numbers1,numbers2,bnumbers1,bnumers2);
+Example  : query mergecov(UTOrdered_12,numbers1,numbers2,bnumbers1,bnumers2) count;
+Result   : file
+
+Operator : mergecov2
+Number  : 1
+Signature: (rtree<d> (tuple ((x1 t1)...(xn tn))) ti false) (rel1 (tuple ((x1 t1)...(xn tn))))  (btree1 (tuple ((x1 t1)...(xn tn))) ti) -> (stream (tuple ((x1 t1)...(xn tn))))
+Example  : query mergecov2(UTOrdered_12,numbers1,bnumbers1) count;
 Result   : file

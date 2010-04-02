@@ -5470,8 +5470,12 @@ int knearestFilterFun (Word* args, Word& result, int message,
                 while(btreeiter->Next()){
                   Tuple* tuple = localInfo->hats->GetTuple(btreeiter->GetId());
                   UInt* ut = (UInt*)tuple->GetAttribute(2);//NodeId, RecId, Uint
-                  interv.push_back(ut->timeInterval);
-                  covs.push_back(ut->constValue.GetValue());
+                  //////////////////////////////////////////////
+                  if(ut->constValue.GetValue() > 0){
+                    interv.push_back(ut->timeInterval);
+                    covs.push_back(ut->constValue.GetValue());
+                  }
+                  //////////////////////////////////////////////
                   tuple->DeleteIfAllowed();
                 }
                 delete id;
@@ -9796,17 +9800,29 @@ const string MergeCovSpec  =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" "
   "\"Example\" \"Comment\" ) "
   "(<text>(rtree1<d> (tuple ((x1 t1)...(xn tn))) ti) x \n"
-  "(rtree2<d> (tuple ((x1 t1)...(xn tn))) ti) x "
-  "(rel1 (tuple ((x1 t1)...(xn tn)))) (rel2 (tuple ((x1 t1)...(xn tn)))) x"
-  "(btree (tuple ((x1 t1)...(xn tn))) ti)"
-  " -> (rel3 (tuple ((x1 t1)...(xn tn)))) </text--->"
+  "(rel1 (tuple ((x1 t1)...(xn tn)))) x (rel2 (tuple ((x1 t1)...(xn tn)))) x"
+  "(btree1 (tuple ((x1 t1)...(xn tn)))  ti) x"
+  "(btree2 (tuple ((x1 t1)...(xn tn))) ti)"
+  " -> (stream (tuple ((x1 t1)...(xn tn)))) </text--->"
   "<text>mergecov (_, _,_,_,_ )</text--->"
   "<text>Merge Two Coverage Numbers </text--->"
-  "<text>query mergecov(rtree_1,rtree_2,num1,num2,bnum1) count</text--->"
+  "<text>query mergecov(rtree_1,rel1,rel2,btree1,btree2) count</text--->"
   "<text></text--->"
   ") )";
 
-
+const string MergeCov2Spec  =
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+  "\"Example\" \"Comment\" ) "
+  "(<text>(rtree1<d> (tuple ((x1 t1)...(xn tn))) ti) x \n"
+  "(rel1 (tuple ((x1 t1)...(xn tn)))) x (rel2 (tuple ((x1 t1)...(xn tn)))) x"
+  "(btree1 (tuple ((x1 t1)...(xn tn))) ti) x"
+  "(btree2 (tuple ((x1 t1)...(xn tn))) ti)"
+  " -> (stream (tuple ((x1 t1)...(xn tn)))) </text--->"
+  "<text>mergecov2(_,_,_)</text--->"
+  "<text>Update Coverage Numbers in some nodes in the rtree </text--->"
+  "<text>query mergecov2(rtree_1,rel,btree) count</text--->"
+  "<text></text--->"
+  ") )";
 
 /*
 TypeMap fun for operator mergertree
@@ -9940,7 +9956,7 @@ ListExpr MergeRTreeTypeMap(ListExpr args)
 }
 
 /*
-TypeMap fun for operator mergertree
+TypeMap fun for operator mergecov
 
 */
 ListExpr MergeCovTypeMap(ListExpr args)
@@ -9948,7 +9964,7 @@ ListExpr MergeCovTypeMap(ListExpr args)
 
 // check number of parameters
   if( nl->IsEmpty(args) || nl->ListLength(args) != 5){
-    return listutils::typeError("Expecting exactly 2 arguments.");
+    return listutils::typeError("Expecting exactly 5 arguments.");
   }
 
 /////////////////////////////////////////////////////////
@@ -10010,6 +10026,75 @@ ListExpr MergeCovTypeMap(ListExpr args)
                         nl->SymbolAtom("uint")
                     ))));*/
 }
+
+/*
+TypeMap fun for operator mergecov2
+
+*/
+ListExpr MergeCov2TypeMap(ListExpr args)
+{
+
+// check number of parameters
+  if( nl->IsEmpty(args) || nl->ListLength(args) != 3){
+    return listutils::typeError("Expecting exactly 3 arguments.");
+  }
+
+/////////////////////////////////////////////////////////
+  ListExpr firstpara = nl->First(args);
+  if(nl->ListLength(firstpara) != 4){
+    string err = "rtree(tuple(...) rect3 BOOL) expected";
+    ErrorReporter::ReportError(err);
+    return nl->TypeError();
+  }
+
+  if(!listutils::isRTreeDescription(firstpara)){
+    string err = "rtree(tuple(...) rect3 BOOL) expected";
+    ErrorReporter::ReportError(err);
+    return nl->TypeError();
+  }
+
+
+  if(!(nl->IsEqual(nl->First(firstpara),"rtree") ||
+     nl->IsEqual(nl->First(firstpara),"rtree3") ||
+     nl->IsEqual(nl->First(firstpara),"rtree4") ||
+     nl->IsEqual(nl->First(firstpara),"rtree8"))){
+    string err = "rtree(tuple(...) rect3 BOOL) expected";
+    ErrorReporter::ReportError(err);
+    return nl->TypeError();
+  }
+///////////////////////////////////////////////////////////
+
+  ListExpr second = nl->Second(args);
+  ListExpr third = nl->Third(args);
+  if(!listutils::isRelDescription(second) ||
+     !listutils::isBTreeDescription(third)){
+    string err = "rtree x rel x btree";
+    ErrorReporter::ReportError(err);
+    return nl->TypeError();
+  }
+   ListExpr res = nl->TwoElemList(nl->SymbolAtom("stream"),
+           nl->Second(nl->Second(args)));
+   return res;
+
+/*   return nl->TwoElemList(
+            nl->SymbolAtom("stream"),
+            nl->TwoElemList(
+                nl->SymbolAtom("tuple"),
+                nl->ThreeElemList(
+                    nl->TwoElemList(
+                        nl->SymbolAtom("NodeId"),
+                        nl->SymbolAtom("int")
+                    ),
+                    nl->TwoElemList(
+                        nl->SymbolAtom("RecId"),
+                        nl->SymbolAtom("int")
+                    ),
+                    nl->TwoElemList(
+                        nl->SymbolAtom("Coverage"),
+                        nl->SymbolAtom("uint")
+                    ))));*/
+}
+
 /*
 Merge two input r-trees into one r-tree and record in the same file
 
@@ -10091,6 +10176,15 @@ struct Cov{
     tupletype = new TupleType(tt);
     cov3 = NULL;
   }
+  Cov( R_Tree<3,TupleId>* rt, Relation* r1, BTree* bt1,ListExpr tt)
+      :rtree(rt),cov1(r1),cov2(NULL),btree1(bt1),btree2(NULL)
+  {
+    index3 = 1;
+    third = false;
+    tupletype = new TupleType(tt);
+    cov3 = NULL;
+  }
+
   ~Cov()
   {
     tupletype->DeleteIfAllowed();
@@ -10316,6 +10410,166 @@ struct Cov{
       third = true;
 
   }
+
+  void CalCov2()
+  {
+    int attr_pos = 2;
+    cov3 = new Relation(tupletype,true);
+//    rtree->MergeCov(cov1,cov2,cov3,btree1,btree2);
+    const int dim = 3;
+    SmiRecordId header_path_rec_id = rtree->Record_Path_Id();
+    R_TreeNode<dim,TupleId>* node = rtree->GetMyNode(header_path_rec_id,
+                    false, rtree->MinEntries(0),rtree->MaxEntries(0));
+
+    for(int i = 0;i < node->EntryCount();i++){
+      R_TreeInternalEntry<dim> e =
+            (R_TreeInternalEntry<dim>&)(*node)[i];
+//      cout<<"rec_id "<<e.pointer<<endl;
+      CcInt* id = new CcInt(true,e.pointer);
+      BTreeIterator* iter1 = btree1->ExactMatch(id);
+
+      bool flag1 = false;
+      //get coverage from the first relation
+      //delete them from the relation and create new ones into it
+      int NodeId1;
+
+      while(iter1->Next()){
+        flag1 = true;
+        Tuple* tuple1 = cov1->GetTuple(iter1->GetId());
+        NodeId1 = ((CcInt*)tuple1->GetAttribute(0))->GetIntval();
+//        assert(cov1->DeleteTuple(tuple1));
+        tuple1->DeleteIfAllowed();
+      }
+
+      //calculate the new coverage tuple and insert back to the relation
+      if(flag1){
+        R_TreeNode<dim,TupleId>* n = rtree->GetMyNode(e.pointer,false,
+                        rtree->MinEntries(0),rtree->MaxEntries(0));
+        MInt tmp(0);
+        for(int j = 0;j < n->EntryCount();j++){
+            R_TreeInternalEntry<dim> entry =
+              (R_TreeInternalEntry<dim>&)(*n)[j];
+            CcInt* cur_id = new CcInt(true,entry.pointer);
+            BTreeIterator* iter1_1 = btree1->ExactMatch(cur_id);
+            MInt tmp1(0);
+            while(iter1_1->Next()){
+                Tuple* tuple1 = cov1->GetTuple(iter1_1->GetId());
+//                cout<<"before "<<*tuple1<<endl;
+                UInt* ui = (UInt*)tuple1->GetAttribute(2);
+                tmp1.Add(*ui);
+                tuple1->DeleteIfAllowed();
+            }
+            delete iter1_1;
+            delete cur_id;
+//            tmp1.Print(cout);
+//            tmp2.Print(cout);
+            MInt temp(0);
+            tmp.PlusExtend(&tmp1,temp);
+            tmp.CopyFrom(&temp);
+        }
+//        tmp.Print(cout);
+        MInt result(0);
+        tmp.Hat(result);
+//        result.Print(cout);
+
+    ///////////////////Update the Attribute////////////////////
+      BTreeIterator* iter2 = btree1->ExactMatch(id);
+      while(iter2->Next()){
+        Tuple* tuple1 = cov1->GetTuple(iter2->GetId());
+//        cout<<"before "<<endl;
+        UInt* ui = (UInt*)tuple1->GetAttribute(2);
+        vector<int> xindices;
+        vector<Attribute*> xattrs;
+        xindices.push_back(attr_pos);
+        UInt* newui = new UInt(*ui);
+        newui->constValue.Set(-1);
+        xattrs.push_back(new UInt(*newui));
+        delete newui;
+        cov1->UpdateTuple(tuple1,xindices,xattrs);
+//        cout<<"after "<<*tuple1<<endl;
+      //////////////////////////////////////////////////////////
+        tuple1->DeleteIfAllowed();
+      }
+      delete iter2;
+
+
+        for(int i = 0;i < result.GetNoComponents();i++){
+          UInt ui;
+          result.Get(i,ui);
+          Tuple* resTuple = new Tuple(cov3->GetTupleType());
+          CcInt* ni = new CcInt(true,NodeId1);
+          resTuple->PutAttribute(0,ni);
+          CcInt* ri = new CcInt(true,e.pointer);
+          resTuple->PutAttribute(1,ri);
+          resTuple->PutAttribute(2,new UInt(ui));
+          cov3->AppendTuple(resTuple);
+//          cout<<"newresult "<<*resTuple<<endl;
+          resTuple->DeleteIfAllowed();
+        }
+        delete n;
+      }
+      delete iter1;
+
+
+      //a new node, get its sons from both coverage relation
+      if(flag1 == false){
+        R_TreeNode<dim,TupleId>* n = rtree->GetMyNode(e.pointer,false,
+                        rtree->MinEntries(0),rtree->MaxEntries(0));
+        MInt tmp(0);
+//        assert(n->EntryCount() == 2);/////
+        assert(1 <= n->EntryCount() && n->EntryCount() <= 2);
+        for(int j = 0;j < n->EntryCount();j++){
+            R_TreeInternalEntry<dim> entry =
+              (R_TreeInternalEntry<dim>&)(*n)[j];
+            CcInt* cur_id = new CcInt(true,entry.pointer);
+            BTreeIterator* iter1_1 = btree1->ExactMatch(cur_id);
+            MInt tmp1(0);
+            while(iter1_1->Next()){
+                Tuple* tuple1 = cov1->GetTuple(iter1_1->GetId());
+                UInt* ui = (UInt*)tuple1->GetAttribute(2);
+                tmp1.Add(*ui);
+                tuple1->DeleteIfAllowed();
+            }
+            delete iter1_1;
+
+            delete cur_id;
+//            tmp1.Print(cout);
+//            tmp2.Print(cout);
+            MInt temp(0);
+            tmp.PlusExtend(&tmp1,temp);
+            tmp.CopyFrom(&temp);
+        }
+//        tmp.Print(cout);
+        MInt result(0);
+        tmp.Hat(result);
+//        result.Print(cout);
+        for(int i = 0;i < result.GetNoComponents();i++){
+          UInt ui;
+          result.Get(i,ui);
+          Tuple* resTuple = new Tuple(cov3->GetTupleType());
+          CcInt* ni = new CcInt(true,e.pointer);
+          resTuple->PutAttribute(0,ni);
+          CcInt* ri = new CcInt(true,e.pointer);
+          resTuple->PutAttribute(1,ri);
+          resTuple->PutAttribute(2,new UInt(ui));
+          cov3->AppendTuple(resTuple);
+//          cout<<*resTuple<<endl;
+          resTuple->DeleteIfAllowed();
+        }
+        delete n;
+      }
+
+      delete id;
+
+  }
+
+  delete node;
+
+//    cout<<"cov3 no_of_tuples "<<cov3->GetNoTuples()<<endl;
+    if(cov3->GetNoTuples() > 0)
+      third = true;
+
+  }
 };
 
 /*
@@ -10395,6 +10649,63 @@ Supplier s)
   }
 }
 
+/*
+Merge two input coverage numbers
+
+*/
+
+int MergeCov2Fun(Word* args, Word& result, int message,Word& local,
+Supplier s)
+{
+  switch(message){
+    case OPEN:{
+//      cout<<"Open"<<endl;
+      if(local.addr)
+        delete static_cast<Cov*>(local.addr);
+      ListExpr resultType =
+    SecondoSystem::GetCatalog()->NumericType(qp->GetType(s));
+
+   R_Tree<3,TupleId>* rtree_in = static_cast<R_Tree<3,TupleId>*>(args[0].addr);
+
+      Relation* cov1 = (Relation*)args[1].addr;
+
+      BTree* btree1 = (BTree*)args[2].addr;
+      local.addr =
+        new Cov(rtree_in,cov1,btree1,nl->Second(resultType));
+      Cov* cov = static_cast<Cov*>(local.addr);
+      cov->CalCov2();
+      return 0;
+
+//  R_Tree<3, TupleId> *rtree = new R_Tree<3,TupleId>(rtree_in1->FileId(),true);
+//  rtree->MergeRtree(rtree_in1,rtree_in2);
+
+    }
+    case REQUEST:{
+//      cout<<"request"<<endl;
+      Cov* cov = static_cast<Cov*>(local.addr);
+      if(cov->third){
+          assert(cov->index3 <= cov->cov3->GetNoTuples());
+          Tuple* tuple = cov->cov3->GetTuple(cov->index3);
+          result.addr = tuple;
+          cov->index3++;
+          if(cov->index3 > cov->cov3->GetNoTuples())
+             cov->third = false;
+          return YIELD;
+      }
+
+      return CANCEL;
+    }
+    case CLOSE:{
+      Cov* cov = static_cast<Cov*>(local.addr);
+      if(cov){
+        delete cov;
+        local.setAddr(NULL);
+      }
+      return 0;
+    }
+    default: assert(false);
+  }
+}
 Operator mergertree(
         "mergertree",
         MergertreeSpec,
@@ -10410,6 +10721,14 @@ Operator mergecov(
         MergeCovFun,
         Operator::SimpleSelect,
         MergeCovTypeMap
+);
+
+Operator mergecov2(
+        "mergecov2",
+        MergeCov2Spec,
+        MergeCov2Fun,
+        Operator::SimpleSelect,
+        MergeCov2TypeMap
 );
 
 /*
@@ -10448,6 +10767,7 @@ class NearestNeighborAlgebra : public Algebra
     AddOperator( &isknn);
     AddOperator( &mergertree);
     AddOperator( &mergecov);
+    AddOperator( &mergecov2);
   }
   ~NearestNeighborAlgebra() {};
 };

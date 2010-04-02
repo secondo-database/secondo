@@ -43,3 +43,4 @@ operator isknn alias ISKNN pattern op(_,_,_,_,_)
 
 operator mergertree alias MERGERTREE pattern op(_,_)
 operator mergecov alias MERGECOV pattern op(_,_,_,_,_)
+operator mergecov2 alias MERGECOV2 pattern op(_,_,_)
