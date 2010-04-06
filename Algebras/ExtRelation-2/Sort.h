@@ -51,6 +51,7 @@ and their parameter driven versions ~sort2Param~ and ~sortby2Param~.
 #ifndef SORT_H_
 #define SORT_H_
 
+#include <limits.h>
 #include "RelationAlgebra.h"
 #include "Progress.h"
 #include "TupleQueue.h"

@@ -47,6 +47,8 @@ are necessary for the implementation the hash-join operators
 #ifndef HASHJOIN_H_
 #define HASHJOIN_H_
 
+
+#include <limits.h>
 #include "RelationAlgebra.h"
 #include "RTuple.h"
 #include "Progress.h"
@@ -707,7 +709,7 @@ Statistical information for a partition.
 
 */
 
-typedef struct PartitionHistogramEntry
+struct PartitionHistogramEntry
 {
   PartitionHistogramEntry(size_t value)
   : value(value)
