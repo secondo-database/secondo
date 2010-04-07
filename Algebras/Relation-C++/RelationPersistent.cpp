@@ -460,7 +460,7 @@ char* Tuple::WriteToBlock( size_t coreSize,
         if (!ignoreLobs && (flobsz >= extensionLimit) ) {
             DEBUG_MSG("tmpFlob->saveToFile");
             tmpFlob->saveToFile( lobFileId,false, *tmpFlob );
-        } else { // handle small flobs
+        } else if(flobsz<extensionLimit){ // handle small flobs
           tmpFlob->read(ext, flobsz);
 
           // adjust the Flobs persistent storage 
