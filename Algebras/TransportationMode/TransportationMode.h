@@ -57,7 +57,11 @@ March, 2010 Jianqiu xu
 
 #define GetCloser(a) fabs(floor(a)-a) > fabs(ceil(a)-a)? ceil(a):floor(a)
 
+/*
+for storing line or sline in such a way:
+mhs1.from---mhs1.to---mhs2.from---mhs2.to
 
+*/
 struct MyHalfSegment{
   MyHalfSegment(){}
   MyHalfSegment(bool d, const Point& p1, const Point& p2):def(d),
@@ -81,6 +85,10 @@ struct MyHalfSegment{
   Point from,to;
 };
 
+/*
+a point and a distance value to another point
+
+*/
 struct MyPoint{
   MyPoint(){}
   MyPoint(const Point& p, double d):loc(p), dist(d){}
@@ -102,6 +110,41 @@ struct MyPoint{
 
   Point loc;
   double dist;
+};
+
+/*
+a compressed version of junction
+loc--position, rid1, rid2, and relative position in each route, len1, len2
+
+*/
+struct MyJun{
+  Point loc;
+  int rid1;
+  int rid2;
+  double len1;
+  double len2;
+  MyJun(Point p, int r1, int r2, double l1, double l2):
+       loc(p), rid1(r1), rid2(r2), len1(l1), len2(l2){}
+  MyJun(const MyJun& mj):
+       loc(mj.loc),rid1(mj.rid1),rid2(mj.rid2), len1(mj.len1), len2(mj.len2){}
+  MyJun(){}
+  MyJun& operator=(const MyJun& mj)
+  {
+     loc = mj.loc;
+     rid1 = mj.rid1;
+     rid2 = mj.rid2;
+     len1 = mj.len1;
+     len2 = mj.len2;
+     return *this;
+  }
+  bool operator<(const MyJun& mj) const
+  {
+      return loc < mj.loc;
+  }
+  void Print()
+  {
+    cout<<"loc "<<loc<<" r1 "<<rid1<<" r2 "<<rid2<<endl;
+  }
 };
 
 #endif
