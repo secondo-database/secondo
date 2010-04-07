@@ -244,7 +244,8 @@ Derived functional STL object used to compare two tuple queue entries.
 
     TupleQueueCompare(const SortOrderSpecification& spec, int attributes)
     : spec(spec)
-    , specCmp(new TupleCompareBy(spec))
+    , lexCmp()
+    , specCmp(spec)
     , attributes(attributes)
     {
       state = analyseSpec(spec);
@@ -263,7 +264,7 @@ operator it uses. This is done by method ~analyseSpec~.
 
 */
 
-    ~TupleQueueCompare() {}
+    ~TupleQueueCompare() { }
 /*
 The destructor.
 
@@ -283,7 +284,7 @@ The destructor.
       }
       else
       {
-        return !(*specCmp)(x->GetTuple(), y->GetTuple());
+        return !(specCmp(x->GetTuple(), y->GetTuple()));
       }
     }
 /*
@@ -306,7 +307,7 @@ tuple queue entry ~x~ is smaller than entry ~y~.
       }
       else
       {
-        return!(*specCmp)(x,y);
+        return!(specCmp(x,y));
       }
     }
 /*
@@ -358,7 +359,7 @@ Comparison object for lexicographical comparison.
 
 */
 
-    TupleCompareBy* specCmp;
+    TupleCompareBy specCmp;
 /*
 Comparison object for comparison according to a sort order specification.
 
@@ -425,12 +426,9 @@ object of type ~TupleCompare~.
 
     ~TupleQueue()
     {
-      for (size_t i = 0; i < container.size(); i++)
-      {
-        container[i]->GetTuple()->DeleteIfAllowed();
+      while(Size()>0){
+        Pop();
       }
-      container.clear();
-
       if ( pComparer )
       {
         delete pComparer;
@@ -486,8 +484,10 @@ Inserts the tuple ~t~ into the heap.
     {
       pop_heap (container.begin(),container.end(), *pComparer);
       totalByteSize -= container.back()->GetTuple()->GetSize();
-      container.back()->GetTuple()->DeleteIfAllowed();
+      TupleQueueEntry* victim = container.back();
+      victim->GetTuple()->DeleteIfAllowed();
       container.pop_back();
+      delete victim;
     }
 /*
 Removes the minimum tuple from the heap.

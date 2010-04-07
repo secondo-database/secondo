@@ -635,6 +635,9 @@ HybridHashJoinAlgorithm::HybridHashJoinAlgorithm( Word streamA,
                   << endl << *pmB;
       cmsg.send();
     }
+  } else {
+    delete hashFuncA;
+    delete hashFuncB;
   }
 
   // read first tuple from stream A
