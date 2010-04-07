@@ -53,7 +53,7 @@ struct for partition space
 
 */
 
-struct LinePartiton{
+struct SpacePartition{
   Relation* l;
   TupleType* resulttype;
   unsigned int count;
@@ -65,15 +65,20 @@ struct LinePartiton{
   vector<Region> outer_regions_l;
   vector<Region> outer_regions4;
   vector<Region> outer_regions5;
+
+  vector<Region> outer_fillgap1;
+  vector<Region> outer_fillgap2;
+  vector<Region> outer_fillgap;
+
   vector<Line> pave_line1;
   vector<Line> pave_line2;
-  LinePartiton()
+  SpacePartition()
   {
       l = NULL;
       resulttype = NULL;
       count = 0;
   }
-  LinePartiton(Relation* in_line):l(in_line),count(0){}
+  SpacePartition(Relation* in_line):l(in_line),count(0){}
 
   void GetDeviation(Point center, double a, double b,double& x1,
                    double& x2, int delta)
@@ -148,7 +153,7 @@ struct LinePartiton{
     }
 
   void ModifySegment(MyHalfSegment& mhs,vector<MyHalfSegment>& boundary,
-                     int delta,bool clock_flag)
+                     int delta, bool clock_flag)
   {
 
     Point from = mhs.GetLeftPoint();
@@ -291,37 +296,30 @@ struct LinePartiton{
         *res += hs2;
       }
   }
-  //////outer does not include points from road, but outer_half includes////
-  void ExtendSeg1(vector<MyHalfSegment>& segs,int delta, bool clock_wise,
-                vector<Point>& outer,bool& add, vector<Point>& outer_half)
+
+
+  void Gettheboundary(vector<MyHalfSegment>& segs,
+                      vector<MyHalfSegment>& boundary, int delta,
+                      bool clock_wise)
   {
     const double delta_dist = 0.1;
-//    cout<<"ExtendSeg() "<<endl;
     for(unsigned int i = 0;i < segs.size();i++){
- //     cout<<"start "<<segs[i].GetLeftPoint()<<" to "
- //         <<segs[i].GetRightPoint()<<endl;
-      if(i < segs.size() - 1){
-        Point to1 = segs[i].GetRightPoint();
-        Point from2 = segs[i+1].GetLeftPoint();
-        assert(to1.Distance(from2) < delta_dist);
-      }
+
+      ModifySegment(segs[i], boundary, delta, clock_wise);
+//      if(clock_wise)ModifyPoint(boundary[i].GetLeftPoint());
+//      else ModifyPoint(boundary[i].GetRightPoint());
+
     }
 
-
-    vector<MyHalfSegment> boundary;
-
-    for(unsigned int i = 0;i < segs.size();i++){
-      ModifySegment(segs[i],boundary,delta,clock_wise);
-//      break;
-    }
-//    cout<<"after modify segment "<<endl;
     ////////  connect the new boundary ////////////////////////
     for(unsigned int i = 0;i < boundary.size() - 1; i++){
       Point p1_1 = boundary[i].GetLeftPoint();
       Point p1_2 = boundary[i].GetRightPoint();
       Point p2_1 = boundary[i+1].GetLeftPoint();
       Point p2_2 = boundary[i+1].GetRightPoint();
-//      cout<<p1_2<<p2_1<<endl;
+
+//      cout<<p1_1<<" "<<p1_2<<" "<<p2_1<<" "<<p2_2<<endl;
+
       if(p1_2.Distance(p2_1) < delta_dist) continue;
 
 
@@ -334,6 +332,7 @@ struct LinePartiton{
         double y = a2*x + b2;
         boundary[i].to.Set(x,y);
         boundary[i+1].from.Set(x,y);
+
       }else{
         if(AlmostEqual(p2_1.GetX(),p2_2.GetX())){
 
@@ -354,6 +353,8 @@ struct LinePartiton{
           double b2 = p2_2.GetY() - a2*p2_2.GetX();
 
 //          assert(!AlmostEqual(a1,a2));
+//          cout<<"a1 "<<a1<<" a2 "<<a2<<endl;
+
           if(AlmostEqual(a1,a2)) assert(AlmostEqual(b1,b2));
 
           double x = (b2-b1)/(a1-a2);
@@ -362,10 +363,11 @@ struct LinePartiton{
           Point q1;
           q1.Set(x,y);
           Point q2 = segs[i].GetRightPoint();
+//          cout<<"q1 "<<q1<<" q2 "<<q2<<endl;
           if(q1.Distance(q2) > 5*delta){
-//              assert(false);
-            cout<<"special case"<<endl;
-            add = false;
+
+//            assert(false);
+//            cout<<"special case"<<endl;
           }
           /////////////////////////////////////////////////////
           boundary[i].to.Set(x,y);
@@ -376,6 +378,28 @@ struct LinePartiton{
       }// end if
 
     }//end for
+
+  }
+
+  //////outer does not include points from road, but outer_half includes////
+  void ExtendSeg1(vector<MyHalfSegment>& segs,int delta, bool clock_wise,
+                vector<Point>& outer,vector<Point>& outer_half)
+  {
+    const double delta_dist = 0.1;
+
+    for(unsigned int i = 0;i < segs.size();i++){
+ //     cout<<"start "<<segs[i].GetLeftPoint()<<" to "
+ //         <<segs[i].GetRightPoint()<<endl;
+      if(i < segs.size() - 1){
+        Point to1 = segs[i].GetRightPoint();
+        Point from2 = segs[i+1].GetLeftPoint();
+        assert(to1.Distance(from2) < delta_dist);
+      }
+    }
+
+    vector<MyHalfSegment> boundary;
+    Gettheboundary(segs, boundary, delta, clock_wise);
+
     ///////////////////////add two more segments ///////////////////////
       Point old_start = segs[0].GetLeftPoint();
       Point old_end = segs[segs.size() - 1].GetRightPoint();
@@ -384,7 +408,7 @@ struct LinePartiton{
       Point new_end = boundary[boundary.size() - 1].GetRightPoint();
 
 
-      MyHalfSegment* mhs = new MyHalfSegment(true,old_start,new_start);
+      MyHalfSegment* mhs = new MyHalfSegment(true, old_start, new_start);
       boundary.push_back(*mhs);
       for(int i = boundary.size() - 2; i >= 0;i --)
           boundary[i+1] = boundary[i];
@@ -396,8 +420,6 @@ struct LinePartiton{
       mhs = new MyHalfSegment(true,new_end,old_end);
       boundary.push_back(*mhs);
       delete mhs;
-
-      if(add == false) return;
 
       if(clock_wise){
         for(unsigned int i = 0;i < boundary.size();i++){
@@ -440,7 +462,7 @@ struct LinePartiton{
 
   }
   void ExtendSeg2(vector<MyHalfSegment>& segs,int delta, bool clock_wise,
-                vector<Point>& outer, bool& add)
+                vector<Point>& outer)
   {
     const double delta_dist = 0.1;
 
@@ -456,73 +478,8 @@ struct LinePartiton{
 
 
     vector<MyHalfSegment> boundary;
+    Gettheboundary(segs, boundary, delta, clock_wise);
 
-    for(unsigned int i = 0;i < segs.size();i++){
-      ModifySegment(segs[i],boundary,delta,clock_wise);
-//      break;
-    }
-//    cout<<"after modify segment "<<endl;
-    ////////  connect the new boundary ////////////////////////
-    for(unsigned int i = 0;i < boundary.size() - 1; i++){
-      Point p1_1 = boundary[i].GetLeftPoint();
-      Point p1_2 = boundary[i].GetRightPoint();
-      Point p2_1 = boundary[i+1].GetLeftPoint();
-      Point p2_2 = boundary[i+1].GetRightPoint();
-//      cout<<p1_2<<p2_1<<endl;
-      if(p1_2.Distance(p2_1) < delta_dist) continue;
-
-
-      if(AlmostEqual(p1_1.GetX(),p1_2.GetX())){
-        assert(!AlmostEqual(p2_1.GetX(),p2_2.GetX()));
-        double a2 = (p2_2.GetY()-p2_1.GetY()) /(p2_2.GetX()-p2_1.GetX());
-        double b2 = p2_2.GetY() - a2*p2_2.GetX();
-
-        double x = p1_1.GetX();
-        double y = a2*x + b2;
-        boundary[i].to.Set(x,y);
-        boundary[i+1].from.Set(x,y);
-      }else{
-        if(AlmostEqual(p2_1.GetX(),p2_2.GetX())){
-
-          assert(!AlmostEqual(p1_1.GetX(),p1_2.GetX()));
-          double a1 = (p1_2.GetY()-p1_1.GetY()) /(p1_2.GetX()-p1_1.GetX());
-          double b1 = p1_2.GetY() - a1*p1_2.GetX();
-
-          double x = p2_1.GetX();
-          double y = a1*x + b1;
-          boundary[i].to.Set(x,y);
-          boundary[i+1].from.Set(x,y);
-
-        }else{
-          double a1 = (p1_2.GetY()-p1_1.GetY()) /(p1_2.GetX()-p1_1.GetX());
-          double b1 = p1_2.GetY() - a1*p1_2.GetX();
-
-          double a2 = (p2_2.GetY()-p2_1.GetY()) /(p2_2.GetX()-p2_1.GetX());
-          double b2 = p2_2.GetY() - a2*p2_2.GetX();
-
-//          assert(!AlmostEqual(a1,a2));
-          if(AlmostEqual(a1,a2)) assert(AlmostEqual(b1,b2));
-
-          double x = (b2-b1)/(a1-a2);
-          double y = a1*x + b1;
-          ////////////process speical case///////angle too small////////////
-          Point q1;
-          q1.Set(x,y);
-          Point q2 = segs[i].GetRightPoint();
-          if(q1.Distance(q2) > 5*delta){
-//              assert(false);
-            cout<<"special case"<<endl;
-            add = false;
-          }
-          /////////////////////////////////////////////////////
-          boundary[i].to.Set(x,y);
-          boundary[i+1].from.Set(x,y);
-        }
-//        cout<<boundary[i].to<<" "<<boundary[i+1].from<<endl;
-
-      }// end if
-
-    }//end for
     ///////////////////////add two more segments ///////////////////////
       Point old_start = segs[0].GetLeftPoint();
       Point old_end = segs[segs.size() - 1].GetRightPoint();
@@ -544,7 +501,6 @@ struct LinePartiton{
       boundary.push_back(*mhs);
       delete mhs;
 
-      if(add == false) return;
 
       if(clock_wise){
         for(unsigned int i = 0;i < boundary.size();i++){
@@ -578,6 +534,126 @@ struct LinePartiton{
         }
 
       }
+
+  }
+
+
+  void ExtendHalfSegment1(MyHalfSegment& mhs, int w)
+  {
+    MyHalfSegment copy = mhs;
+    Point lp = copy.GetLeftPoint();
+    Point rp = copy.GetRightPoint();
+    if(MyAlmostEqual(lp.GetX(), rp.GetX())){
+      if(lp.GetY() < rp.GetY()){
+          Point p1, p2;
+          p1.Set(lp.GetX(), lp.GetY() - w);
+          p2 = lp;
+          mhs.from = p1;
+          mhs.to = p2;
+      }else{
+          Point p1, p2;
+          p1.Set(lp.GetX(), lp.GetY() + w);
+          p2 = lp;
+          mhs.from = p1;
+          mhs.to = p2;
+      }
+    }else if(MyAlmostEqual(lp.GetY(), rp.GetY())){
+      if(lp.GetX() < rp.GetX()){
+          Point p1, p2;
+          p1.Set(lp.GetX() - w, lp.GetY());
+          p2 = lp;
+          mhs.from = p1;
+          mhs.to = p2;
+      }else{
+          Point p1, p2;
+          p1.Set(lp.GetX() + w, lp.GetY());
+          p2 = lp;
+          mhs.from = p1;
+          mhs.to = p2;
+      }
+    }else{
+        double a = (lp.GetY() - rp.GetY())/(lp.GetX() - rp.GetX());
+        double b = lp.GetY() - a*lp.GetX();
+        double delta = w*fabs(lp.GetX() - rp.GetX())/lp.Distance(rp);
+
+        if(lp.GetX() < rp.GetX()){
+          Point p1, p2;
+          double x, y;
+          x = lp.GetX() - delta;
+          y = a*x + b;
+          p1.Set(x, y);
+          p2 = lp;
+          mhs.from = p1;
+          mhs.to = p2;
+        }else{
+          Point p1, p2;
+          double x,y;
+          x = lp.GetX() + delta;
+          y = a*x + b;
+          p1.Set(x, y);
+          p2 = lp;
+          mhs.from = p1;
+          mhs.to = p2;
+        }
+    }
+  }
+
+ void ExtendHalfSegment2(MyHalfSegment& mhs, int w)
+  {
+    MyHalfSegment copy = mhs;
+    Point lp = copy.GetLeftPoint();
+    Point rp = copy.GetRightPoint();
+    if(MyAlmostEqual(lp.GetX(), rp.GetX())){
+      if(lp.GetY() < rp.GetY()){
+          Point p1, p2;
+          p2.Set(rp.GetX(), rp.GetY() + w);
+          p1 = rp;
+          mhs.from = p1;
+          mhs.to = p2;
+      }else{
+          Point p1, p2;
+          p2.Set(rp.GetX(), rp.GetY() - w);
+          p1 = rp;
+          mhs.from = p1;
+          mhs.to = p2;
+      }
+    }else if(MyAlmostEqual(lp.GetY(), rp.GetY())){
+      if(lp.GetX() < rp.GetX()){
+          Point p1, p2;
+          p2.Set(rp.GetX() + w, rp.GetY());
+          p1 = rp;
+          mhs.from = p1;
+          mhs.to = p2;
+      }else{
+          Point p1, p2;
+          p2.Set(lp.GetX() - w, lp.GetY());
+          p1 = rp;
+          mhs.from = p1;
+          mhs.to = p2;
+      }
+    }else{
+        double a = (lp.GetY() - rp.GetY())/(lp.GetX() - rp.GetX());
+        double b = lp.GetY() - a*lp.GetX();
+        if(lp.GetX() < rp.GetX()){
+          Point p1, p2;
+          double x, y;
+          x = rp.GetX() + w;
+          y = a*x + b;
+          p2.Set(x, y);
+          p1 = rp;
+          mhs.from = p1;
+          mhs.to = p2;
+        }else{
+          Point p1, p2;
+          double x,y;
+          x = rp.GetX() - w;
+          y = a*x + b;
+          p2.Set(x, y);
+          p1 = rp;
+          mhs.from = p1;
+          mhs.to = p2;
+        }
+    }
 
   }
   /////////from start point to end point ////////////////////////////
@@ -638,10 +714,6 @@ struct LinePartiton{
         continue;
       }
     }
-    ///////////////////////////////////////////////////////////////////////
-/*    cout<<"after"<<endl;
-    for(unsigned i = 0;i < copyline.size();i++)
-      copyline[i].Print();*/
 
   }
   /////////////compute a region from the array of points/////////
@@ -802,7 +874,7 @@ struct LinePartiton{
       cout<<"road width should be larger than 2"<<endl;
       return;
     }
-    double min_length = numeric_limits<double>::max();
+/*    double min_length = numeric_limits<double>::max();
     double max_length = numeric_limits<double>::min();
 
     for(int i = 1;i <= l->GetNoTuples();i++){
@@ -811,20 +883,20 @@ struct LinePartiton{
       if(sline->Length() < min_length) min_length = sline->Length();
       if(sline->Length() > max_length) max_length = sline->Length();
       t->DeleteIfAllowed();
-    }
+    }*/
 
 
     for(int i = 1;i <= l->GetNoTuples();i++){
-//      cout<<"line "<<i<<endl;
       Tuple* t = l->GetTuple(i);
       SimpleLine* sline = (SimpleLine*)t->GetAttribute(attr_pos);
       vector<MyHalfSegment> seq_halfseg; //reorder it from start to end
-      ReorderLine(sline,seq_halfseg);
+      ReorderLine(sline, seq_halfseg);
 
       int delta1;//width of road on each side, depend on the road length
       int delta2;
       //main road-2w, side road--w, pavement -- w/2
-      if(sline->Length() < (min_length+max_length)/2){
+
+/*     if(sline->Length() < (min_length+max_length)/2){
            delta1 = w;
 
            int delta;
@@ -838,8 +910,13 @@ struct LinePartiton{
           int delta;
           delta = w/2;
           if(delta < 2) delta = 2;
-          delta2 = 2*(w + delta);
-      }
+          delta2 = 2*w + delta;
+      }*/
+      delta1 = w;
+      int delta = w/2;
+      if(delta < 2) delta = 2;
+      delta2 = delta1 + delta;
+
       vector<Point> outer_s;
       vector<Point> outer1;
       vector<Point> outer2;
@@ -850,11 +927,10 @@ struct LinePartiton{
       assert(delta1 != delta2);
 
 
-      bool add = true;
 //      cout<<"small1"<<endl;
-      ExtendSeg1(seq_halfseg,delta1,true,outer_s,add,outer1);
+      ExtendSeg1(seq_halfseg, delta1, true, outer_s,outer1);
 //      cout<<"large1"<<endl;
-      ExtendSeg2(seq_halfseg,delta2,true,outer_l,add);
+      ExtendSeg2(seq_halfseg, delta2, true, outer_l);
       /////////////////////////////////////////////////////////////
 
       outer_l.push_back(outer_s[1]);
@@ -872,8 +948,8 @@ struct LinePartiton{
           outer4.push_back(seq_halfseg[j].GetRightPoint());
 
       //////////////////////////////////////////////////////////
-      ExtendSeg1(seq_halfseg,delta1,false,outer_s,add,outer2);
-      ExtendSeg2(seq_halfseg,delta2,false,outer_l,add);
+      ExtendSeg1(seq_halfseg, delta1, false, outer_s, outer2);
+      ExtendSeg2(seq_halfseg, delta2, false,outer_l);
       ////////////////////////////////////////////////////////////
       outer_l.push_back(outer_s[point_count1+1]);
       for(int j = outer_l.size() - 1;j > point_count2;j--)
@@ -889,15 +965,14 @@ struct LinePartiton{
       /////////////////////////////////////////////////////////////
       t->DeleteIfAllowed();
       /////////////get the boundary//////////////////
-      if(add){
-        ComputeRegion(outer_s, outer_regions_s);
-        ComputeRegion(outer1, outer_regions1);
-        ComputeRegion(outer2, outer_regions2);
-        ComputeRegion(outer_l, outer_regions_l);
-        ComputeRegion(outer4, outer_regions4);
-        ComputeRegion(outer5, outer_regions5);
-      }
-      assert(add); //it should be true, dirty data is preprocessed already
+
+      ComputeRegion(outer_s, outer_regions_s);
+      ComputeRegion(outer1, outer_regions1);
+      ComputeRegion(outer2, outer_regions2);
+      ComputeRegion(outer_l, outer_regions_l);
+      ComputeRegion(outer4, outer_regions4);
+      ComputeRegion(outer5, outer_regions5);
+
     }
   }
 
@@ -905,12 +980,6 @@ struct LinePartiton{
                        vector<Region>& paves,int rid, Region* inborder)
   {
     //cut the intersection region between pavement and road
-
-//    cout<<"area1 "<<reg1->Area()<<" area2 "<<reg2->Area()<<endl;
-//    cout<<"size1 "<<reg1->Size()<<" size2 "<<reg2->Size()<<endl;
-
-//    if((reg1->Size() >= 6 && reg2->Size() < 6) ||
-//       (reg2->Size() >= 6 && reg1->Size() < 6)){
 
       Region* comm_reg = new Region(0);
 //      reg.Intersection(*inborder,*comm_reg);
@@ -929,8 +998,10 @@ struct LinePartiton{
   }
 
 
+
+
   void Getpavement(Network* n, Relation* rel1, int attr_pos,
-                  Relation* rel2, int attr_pos1, int attr_pos2)
+                  Relation* rel2, int attr_pos1, int attr_pos2, int w)
   {
    //cut the pavement for each junction
     vector<Region> pavements1;
@@ -953,8 +1024,7 @@ struct LinePartiton{
 
     }
 
-//    routes->Delete();
-
+    //////////////////////////////////////////////////////////////
     Relation* juns = n->GetJunctions();
 
     for(int i = 1;i <= n->GetNoJunctions();i++){
@@ -964,23 +1034,19 @@ struct LinePartiton{
       int id1 = rid1->GetIntval();
       int id2 = rid2->GetIntval();
 
-
+      Point* junp = (Point*)jun_tuple->GetAttribute(JUNCTION_POS);
 /*      if(!(id1 == 1754 || id2 == 1754)) {
           jun_tuple->DeleteIfAllowed();
           continue;
       }*/
 //      cout<<"rid1 "<<id1<<" rid2 "<<id2<<endl;
 
-//      CcReal* meas1 = (CcReal*)jun_tuple->GetAttribute(JUNCTION_ROUTE1_MEAS);
-//      CcReal* meas2 = (CcReal*)jun_tuple->GetAttribute(JUNCTION_ROUTE2_MEAS);
+      CcReal* meas1 = (CcReal*)jun_tuple->GetAttribute(JUNCTION_ROUTE1_MEAS);
+      CcReal* meas2 = (CcReal*)jun_tuple->GetAttribute(JUNCTION_ROUTE2_MEAS);
 
 //      double len1 = meas1->GetRealval();
 //      double len2 = meas2->GetRealval();
-//      double delta = 0.05;
 
-//      printf("len1 %.8f, len %.8f\n", len1, len2);
-//      printf("route1 len %.8f route2 len %.8f\n",routes_length[id1 - 1],
-//          routes_length[id2 - 1]);
 
       Region rid1_pave1 = pavements1[id1 - 1];
       Region rid1_pave2 = pavements2[id1 - 1];
@@ -993,13 +1059,6 @@ struct LinePartiton{
       Region* reg1 = (Region*)inborder_tuple1->GetAttribute(attr_pos);
       Region* reg2 = (Region*)inborder_tuple2->GetAttribute(attr_pos);
 
-/*      if((delta < len1 && (routes_length[id1 - 1] - len1) > delta) &&
-         (delta < len2 && (routes_length[id2 - 1] - len2) > delta)){
-        inborder_tuple1->DeleteIfAllowed();
-        inborder_tuple2->DeleteIfAllowed();
-        jun_tuple->DeleteIfAllowed();
-        continue;
-      }*/
 
 /*      if((len1 < delta|| fabs(len1 - routes_length[id1 - 1]) < delta)
         && (delta < len2 && fabs(len2 - routes_length[id2-1]) > delta)){*/
@@ -1017,9 +1076,34 @@ struct LinePartiton{
       inborder_tuple1->DeleteIfAllowed();
       inborder_tuple2->DeleteIfAllowed();
       jun_tuple->DeleteIfAllowed();
+
     }
 
     juns->Delete();
+
+
+    //////////////fill the hole of pavement/////////////////////
+      /*vector<Region> newpave1;
+      vector<Region> newpave2;
+      for(unsigned int i = 0;i < pavements1.size();i++){
+        Region* reg = new Region(0);
+        newpave1.push_back(*reg);
+        newpave2.push_back(*reg);
+        delete reg;
+      }
+      FillPave(n, pavements1, pavements2, routes_length, newpave1, newpave2);
+      for(unsigned int i = 0;i < pavements1.size();i++){
+        Region* reg1 = new Region(0);
+        MyUnion(pavements1[i], newpave1[i], *reg1);
+        pavements1[i] = *reg1;
+        delete reg1;
+
+        Region* reg2 = new Region(0);
+        MyUnion(pavements2[i], newpave2[i], *reg2);
+        pavements2[i] = *reg2;
+        delete reg2;
+      }*/
+    ////////////////////////////////////////////////////////////
 
     for(unsigned int i = 0;i < pavements1.size();i++){
         outer_regions1.push_back(pavements1[i]);
@@ -1516,8 +1600,8 @@ Extend the line in increasing direction
     //get the pavement for each junction
     Relation* routes = n->GetRoutes();
     vector<double> routes_length;
-    double min_length = numeric_limits<double>::max();
-    double max_length = numeric_limits<double>::min();
+//    double min_length = numeric_limits<double>::max();
+//    double max_length = numeric_limits<double>::min();
 
     for(int i = 1;i <= routes->GetNoTuples();i++){
 
@@ -1525,8 +1609,8 @@ Extend the line in increasing direction
       CcReal* len = (CcReal*)route_tuple->GetAttribute(ROUTE_LENGTH);
       double length = len->GetRealval();
 
-      if(length < min_length) min_length = length;
-      if(length > max_length) max_length = length;
+//      if(length < min_length) min_length = length;
+//      if(length > max_length) max_length = length;
 
       route_tuple->DeleteIfAllowed();
       routes_length.push_back(length);
@@ -1569,8 +1653,8 @@ Extend the line in increasing direction
       Tuple* route_tuple1 = routes->GetTuple(id1);
       SimpleLine* curve1 = (SimpleLine*)route_tuple1->GetAttribute(ROUTE_CURVE);
       int input_w1 = width;
-      if(curve1->Length() > (min_length + max_length) /2)
-          input_w1 = 2*input_w1;
+//      if(curve1->Length() > (min_length + max_length) /2)
+//          input_w1 = 2*input_w1;
 
       Line* pave1 = new Line(0);
       Line* pave2 = new Line(0);
@@ -1594,8 +1678,10 @@ Extend the line in increasing direction
       int input_w2 = width;
       Tuple* route_tuple2 = routes->GetTuple(id2);
       SimpleLine* curve2 = (SimpleLine*)route_tuple2->GetAttribute(ROUTE_CURVE);
-      if(curve2->Length() > (min_length + max_length) /2)
-          input_w2 = 2*input_w2;
+
+//      if(curve2->Length() > (min_length + max_length) /2)
+//          input_w2 = 2*input_w2;
+
       Line* pave3 = new Line(0);
       Line* pave4 = new Line(0);
       Line* result2 = new Line(0);
@@ -1625,6 +1711,129 @@ Extend the line in increasing direction
 
       juns->Delete();
   }
+
+
+
+
+  /*
+   for operator fillgap
+
+  */
+  void FillHoleOfPave(Network* n, Relation* rel,  int attr_pos1,
+                      int attr_pos2, int width)
+  {
+
+    Relation* routes = n->GetRoutes();
+    Relation* juns = n->GetJunctions();
+    vector<double> routes_length;
+    double min_length = numeric_limits<double>::max();
+    double max_length = numeric_limits<double>::min();
+
+
+    for(int i = 1;i <= routes->GetNoTuples();i++){
+      Tuple* route_tuple = routes->GetTuple(i);
+      CcReal* len = (CcReal*)route_tuple->GetAttribute(ROUTE_LENGTH);
+      double length = len->GetRealval();
+      if(length < min_length) min_length = length;
+      if(length > max_length) max_length = length;
+
+      route_tuple->DeleteIfAllowed();
+      routes_length.push_back(length);
+    }
+
+    vector<MyJun> myjuns;
+    for(int i = 1;i <= n->GetNoJunctions();i++){
+      Tuple* jun_tuple = juns->GetTuple(i);
+      CcInt* rid1 = (CcInt*)jun_tuple->GetAttribute(JUNCTION_ROUTE1_ID);
+      CcInt* rid2 = (CcInt*)jun_tuple->GetAttribute(JUNCTION_ROUTE2_ID);
+      int id1 = rid1->GetIntval();
+      int id2 = rid2->GetIntval();
+
+/*      if(!(id2 == 530)){
+        jun_tuple->DeleteIfAllowed();
+        continue;
+      }*/
+
+
+      Point* junp = (Point*)jun_tuple->GetAttribute(JUNCTION_POS);
+//      cout<<"rid1 "<<id1<<" rid2 "<<id2<<endl;
+
+      CcReal* meas1 = (CcReal*)jun_tuple->GetAttribute(JUNCTION_ROUTE1_MEAS);
+      CcReal* meas2 = (CcReal*)jun_tuple->GetAttribute(JUNCTION_ROUTE2_MEAS);
+
+      double len1 = meas1->GetRealval();
+      double len2 = meas2->GetRealval();
+
+        MyJun mj(*junp, id1, id2, len1, len2);
+        myjuns.push_back(mj);
+
+      jun_tuple->DeleteIfAllowed();
+    }
+    juns->Delete();
+
+    sort(myjuns.begin(), myjuns.end());
+
+//    for(unsigned int i = 0;i < myjuns.size();i++)
+//      myjuns[i].Print();
+
+
+    const double delta_dist = 0.1;
+    for(unsigned int i = 0 ;i < myjuns.size();i++){
+        Point loc = myjuns[i].loc;
+        int rid1 = myjuns[i].rid1;
+        int rid2 = myjuns[i].rid2;
+
+//        cout<<"rid1 "<<rid1<<" rid2 "<<rid2<<endl;
+
+//      if(!(rid1 == 1785 && rid2 == 1786))continue;
+
+      if((MyAlmostEqual(myjuns[i].len1, 0.0)||
+          MyAlmostEqual(myjuns[i].len1, routes_length[rid1 - 1])) &&
+          (MyAlmostEqual(myjuns[i].len2, 0.0)||
+          MyAlmostEqual(myjuns[i].len2, routes_length[rid2 - 1]))){
+
+          vector<int> rids;
+
+        int j = i - 1;
+        while(j >= 0 && loc.Distance(myjuns[j].loc) < delta_dist){
+          rids.push_back(myjuns[j].rid1);
+          rids.push_back(myjuns[j].rid2);
+          j--;
+        }
+
+        j = i;
+        while(j < myjuns.size() && loc.Distance(myjuns[j].loc) < delta_dist){
+          rids.push_back(myjuns[j].rid1);
+          rids.push_back(myjuns[j].rid2);
+          j++;
+        }
+
+//        cout<<" rids size "<<rids.size()<<endl;
+//        cout<<"rid1 "<<rid1<<" rid2 "<<rid2<<endl;
+
+        if(rids.size() == 2){
+          NewFillPavement1(rel, routes, rid1, rid2, &loc,
+                        attr_pos1, attr_pos2, rids);
+        }
+
+        if(rids.size() == 6){
+
+          NewFillPavement2(rel, routes, rid1, rid2, &loc,
+                        attr_pos1, attr_pos2, rids);
+
+        }
+
+        if(rids.size() != 2 && rids.size() != 6 && rids.size() != 12){
+//            cout<<" rids size "<<rids.size()<<endl;
+            NewFillPavementDebug(rel, routes, rid1, rid2, &loc,
+                        attr_pos1, attr_pos2, rids);
+        }
+
+        rids.clear();
+      }
+    }
+  }
+
 };
 
 ////////////string for Operator Spec //////////////////////////////////
@@ -1632,9 +1841,9 @@ const string OpNetCheckSlineSpec  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" "
     "\"Example\" ) "
     "( <text>sline-> sline</text--->"
-    "<text>checksline(sline)</text--->"
+    "<text>checksline(sline,int)</text--->"
     "<text>correct dirty route line </text--->"
-    "<text>query routes(n) feed extend[newcurve: checksline(.curve)] count"
+    "<text>query routes(n) feed extend[newcurve: checksline(.curve,2)] count"
     "</text--->"
     ") )";
 const string OpNetModifyBoundarySpec  =
@@ -1661,12 +1870,12 @@ const string OpNetSegment2RegionSpec  =
 const string OpNetPaveRegionSpec  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" "
     "\"Example\" ) "
-    "( <text>network x rel1 x attr x rel2 x attr1 x attr2->"
+    "( <text>network x rel1 x attr x rel2 x attr1 x attr2 x int->"
     "(stream (tuple( (x1 t1)(x2 t2)...(xn tn)))</text--->"
-    "<text>paveregion(n,rel1,attr,rel2,attr1,attr2)</text--->"
+    "<text>paveregion(n,rel1,attr,rel2,attr1,attr2,int)</text--->"
     "<text>cut the intersection region between road and pavement</text--->"
-    "<text>query paveregion(n,allregions_in,inborder,allregions_pave"
-    ",pave1,pave2) count;</text--->"
+    "<text>query paveregion(n,allregions_in,inborder, allregions_pave"
+    ",pave1, pave2, roadwidth) count;</text--->"
     ") )";
 
 const string OpNetJunRegionSpec  =
@@ -1689,6 +1898,16 @@ const string OpNetDecomposeRegionSpec  =
     "<text>query decomposeregion(partition_regions) count; </text--->"
     ") )";
 
+const string OpNetFillPavementSpec  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+    "\"Example\" ) "
+    "( <text>network x rel x attr1 x attr2 x int->"
+    "(stream (tuple( (x1 t1)(x2 t2)...(xn tn)))</text--->"
+    "<text>fillpavement(n,rel,attr1,attr2,int)</text--->"
+    "<text>fill the hole between pavements at junction</text--->"
+    "<text>query fillpavement(n, allregions_pave, pave1, pave2, 2)"
+    "count;</text--->"
+    ") )";
 ////////////////TypeMap function for operators//////////////////////////////
 
 /*
@@ -1698,15 +1917,17 @@ TypeMap fun for operator checksline
 
 ListExpr OpNetCheckSlineTypeMap ( ListExpr args )
 {
-  if ( nl->ListLength ( args ) != 1 )
+  if ( nl->ListLength ( args ) != 2 )
   {
     return ( nl->SymbolAtom ( "typeerror" ) );
   }
-  ListExpr param1 = nl->First ( args );
+  ListExpr param1 = nl->First( args );
+  ListExpr param2 = nl->Second( args );
 
-
-  if (nl->IsAtom(param1) && nl->AtomType(param1) == SymbolType &&
-      nl->SymbolValue(param1) == "sline")
+  if(nl->IsAtom(param1) && nl->AtomType(param1) == SymbolType &&
+      nl->SymbolValue(param1) == "sline" &&
+      nl->IsAtom(param2) && nl->AtomType(param2) == SymbolType &&
+      nl->SymbolValue(param2) == "int")
 
   {
     return nl->SymbolAtom ( "sline" );
@@ -1809,7 +2030,7 @@ TypeMap fun for operator paveregion
 
 ListExpr OpNetPaveRegionTypeMap ( ListExpr args )
 {
-  if ( nl->ListLength ( args ) != 6 )
+  if ( nl->ListLength ( args ) != 7 )
   {
     return ( nl->SymbolAtom ( "typeerror" ) );
   }
@@ -1819,6 +2040,7 @@ ListExpr OpNetPaveRegionTypeMap ( ListExpr args )
   ListExpr param4 = nl->Fourth(args);
   ListExpr attrName1 = nl->Fifth(args);
   ListExpr attrName2 = nl->Sixth(args);
+  ListExpr param7 = nl->Nth(7, args);
 
   ListExpr attrType;
   string aname = nl->SymbolValue(attrName);
@@ -1855,7 +2077,9 @@ ListExpr OpNetPaveRegionTypeMap ( ListExpr args )
     if (listutils::isRelDescription(param2) &&
         listutils::isRelDescription(param4) &&
         nl->IsAtom(param1) && nl->AtomType(param1) == SymbolType &&
-        nl->SymbolValue(param1) == "network"){
+        nl->SymbolValue(param1) == "network" &&
+        nl->IsAtom(param7) && nl->AtomType(param7) == SymbolType &&
+        nl->SymbolValue(param7) == "int"){
 
     ListExpr result =
           nl->TwoElemList(
@@ -1995,6 +2219,83 @@ ListExpr OpNetDecomposeRegionTypeMap ( ListExpr args )
   }
   return nl->SymbolAtom ( "typeerror" );
 }
+
+/*
+TypeMap fun for operator fillpavement
+
+*/
+
+ListExpr OpNetFillPavementTypeMap ( ListExpr args )
+{
+  if ( nl->ListLength ( args ) != 5 )
+  {
+    return ( nl->SymbolAtom ( "typeerror" ) );
+  }
+  ListExpr param1 = nl->First ( args );
+  ListExpr param2 = nl->Second(args);
+  ListExpr attrName1 = nl->Third(args);
+  ListExpr attrName2 = nl->Fourth(args);
+  ListExpr param5 = nl->Fifth(args);
+
+  ListExpr attrType1;
+  string aname1 = nl->SymbolValue(attrName1);
+  int j1 = listutils::findAttribute(nl->Second(nl->Second(param2)),
+                      aname1,attrType1);
+
+
+  if(j1 == 0 || !listutils::isSymbol(attrType1,"region")){
+      return listutils::typeError("attr name" + aname1 + "not found"
+                      "or not of type region");
+  }
+
+  ListExpr attrType2;
+  string aname2 = nl->SymbolValue(attrName2);
+  int j2 = listutils::findAttribute(nl->Second(nl->Second(param2)),
+                      aname2,attrType2);
+
+
+  if(j2 == 0 || !listutils::isSymbol(attrType2,"region")){
+      return listutils::typeError("attr name" + aname2 + "not found"
+                      "or not of type region");
+  }
+
+    if (listutils::isRelDescription(param2) &&
+        nl->IsAtom(param1) && nl->AtomType(param1) == SymbolType &&
+        nl->SymbolValue(param1) == "network" &&
+        nl->IsAtom(param5) && nl->AtomType(param5) == SymbolType &&
+        nl->SymbolValue(param5) == "int"){
+
+    ListExpr result =
+          nl->TwoElemList(
+              nl->SymbolAtom("stream"),
+                nl->TwoElemList(
+
+                  nl->SymbolAtom("tuple"),
+//                      nl->ThreeElemList(
+//                      nl->FiveElemList(
+                      nl->SixElemList(
+                        nl->TwoElemList(nl->SymbolAtom("rid1"),
+                                    nl->SymbolAtom("int")),
+                        nl->TwoElemList(nl->SymbolAtom("rid2"),
+                                      nl->SymbolAtom("int")),
+                        nl->TwoElemList(nl->SymbolAtom("junscurve"),
+                                      nl->SymbolAtom("line")),
+                        nl->TwoElemList(nl->SymbolAtom("junsregion1"),
+                                      nl->SymbolAtom("region")),
+                        nl->TwoElemList(nl->SymbolAtom("junsregion2"),
+                                      nl->SymbolAtom("region")),
+                        nl->TwoElemList(nl->SymbolAtom("junsregion"),
+                                      nl->SymbolAtom("region"))
+                  )
+                )
+          );
+
+    return nl->ThreeElemList(nl->SymbolAtom("APPEND"),
+//                         nl->OneElemList(nl->IntAtom(j1)),result);
+     nl->TwoElemList(nl->IntAtom(j1),nl->IntAtom(j2)),result);
+  }
+  return nl->SymbolAtom ( "typeerror" );
+}
 /*
 Correct road with dirt data, two segment are very close to each other and the
 angle is relatively small.
@@ -2008,17 +2309,21 @@ int OpNetCheckSlinemap ( Word* args, Word& result, int message,
 
   result = qp->ResultStorage(in_pSupplier);
   SimpleLine* input_line = (SimpleLine*)args[0].addr;
+
+  int width =((CcInt*)args[1].addr)->GetIntval();
+
   SimpleLine* res = static_cast<SimpleLine*>(result.addr);
 
   const double delta_dist = 0.1;
   vector<MyHalfSegment> segs;
-  LinePartiton* lp = new LinePartiton();
-  lp->ReorderLine(input_line,segs);
+  SpacePartition* lp = new SpacePartition();
+  lp->ReorderLine(input_line, segs);
   vector<MyHalfSegment> boundary;
-  int delta = 1;
+
+  int delta = width;
   bool clock_wise = true;
   for(unsigned int i = 0;i < segs.size();i++)
-    lp->ModifySegment(segs[i],boundary,delta,clock_wise);
+    lp->ModifySegment(segs[i], boundary, delta, clock_wise);
 
 
   for(unsigned int i = 0;i < boundary.size() - 1; i++){
@@ -2115,7 +2420,7 @@ int OpNetModifyBoundarymap ( Word* args, Word& result, int message,
 
   wide = wide * 2;
 
-  LinePartiton* lp = new LinePartiton();
+  SpacePartition* lp = new SpacePartition();
   vector<Point> ps;
   vector<Region> regions;
   int x, y;
@@ -2156,7 +2461,7 @@ for each road, get the stripe for street plus pavement
 int OpNetSegment2Regionmap ( Word* args, Word& result, int message,
                          Word& local, Supplier in_pSupplier )
 {
-  LinePartiton* l_partition;
+  SpacePartition* l_partition;
 
   switch(message){
       case OPEN:{
@@ -2165,7 +2470,7 @@ int OpNetSegment2Regionmap ( Word* args, Word& result, int message,
         int width = ((CcInt*)args[2].addr)->GetIntval();
         int attr_pos = ((CcInt*)args[3].addr)->GetIntval() - 1;
 
-        l_partition = new LinePartiton(l);
+        l_partition = new SpacePartition(l);
         l_partition->resulttype =
             new TupleType(nl->Second(GetTupleResultType(in_pSupplier)));
 
@@ -2176,7 +2481,7 @@ int OpNetSegment2Regionmap ( Word* args, Word& result, int message,
       case REQUEST:{
 //          cout<<"request"<<endl;
           if(local.addr == NULL) return CANCEL;
-          l_partition = (LinePartiton*)local.addr;
+          l_partition = (SpacePartition*)local.addr;
           if(l_partition->count == l_partition->outer_regions_s.size())
                           return CANCEL;
           Tuple* tuple = new Tuple(l_partition->resulttype);
@@ -2200,7 +2505,7 @@ int OpNetSegment2Regionmap ( Word* args, Word& result, int message,
       case CLOSE:{
 //          cout<<"close"<<endl;
           if(local.addr){
-            l_partition = (LinePartiton*)local.addr;
+            l_partition = (SpacePartition*)local.addr;
             l_partition->resulttype->DeleteIfAllowed();
             delete l_partition;
             local.setAddr(Address(0));
@@ -2221,29 +2526,30 @@ cut the dirty area
 int OpNetPaveRegionmap ( Word* args, Word& result, int message,
                          Word& local, Supplier in_pSupplier )
 {
-  LinePartiton* l_partition;
+  SpacePartition* l_partition;
 
   switch(message){
       case OPEN:{
         Network* n = (Network*)args[0].addr;
         Relation* rel1 = (Relation*)args[1].addr;
         Relation* rel2 = (Relation*)args[3].addr;
-        int attr_pos = ((CcInt*)args[6].addr)->GetIntval() - 1;
-        int attr_pos1 = ((CcInt*)args[7].addr)->GetIntval() - 1;
-        int attr_pos2 = ((CcInt*)args[8].addr)->GetIntval() - 1;
+        int w = ((CcInt*)args[6].addr)->GetIntval();
+        int attr_pos = ((CcInt*)args[7].addr)->GetIntval() - 1;
+        int attr_pos1 = ((CcInt*)args[8].addr)->GetIntval() - 1;
+        int attr_pos2 = ((CcInt*)args[9].addr)->GetIntval() - 1;
 
-        l_partition = new LinePartiton();
+        l_partition = new SpacePartition();
         l_partition->resulttype =
             new TupleType(nl->Second(GetTupleResultType(in_pSupplier)));
 
-        l_partition->Getpavement(n,rel1,attr_pos,rel2,attr_pos1,attr_pos2);
+        l_partition->Getpavement(n,rel1,attr_pos,rel2,attr_pos1,attr_pos2,w);
         local.setAddr(l_partition);
         return 0;
       }
       case REQUEST:{
 //          cout<<"request"<<endl;
           if(local.addr == NULL) return CANCEL;
-          l_partition = (LinePartiton*)local.addr;
+          l_partition = (SpacePartition*)local.addr;
           if(l_partition->count == l_partition->outer_regions1.size())
                           return CANCEL;
           Tuple* tuple = new Tuple(l_partition->resulttype);
@@ -2259,7 +2565,7 @@ int OpNetPaveRegionmap ( Word* args, Word& result, int message,
       case CLOSE:{
 //          cout<<"close"<<endl;
           if(local.addr){
-            l_partition = (LinePartiton*)local.addr;
+            l_partition = (SpacePartition*)local.addr;
             l_partition->resulttype->DeleteIfAllowed();
             delete l_partition;
             local.setAddr(Address(0));
@@ -2279,7 +2585,7 @@ get the region for pavement at each junction area
 int OpNetJunRegionmap ( Word* args, Word& result, int message,
                          Word& local, Supplier in_pSupplier )
 {
-  LinePartiton* l_partition;
+  SpacePartition* l_partition;
 
   switch(message){
       case OPEN:{
@@ -2290,7 +2596,7 @@ int OpNetJunRegionmap ( Word* args, Word& result, int message,
         int attr_pos1 = ((CcInt*)args[5].addr)->GetIntval() - 1;
         int attr_pos2 = ((CcInt*)args[6].addr)->GetIntval() - 1;
 
-        l_partition = new LinePartiton();
+        l_partition = new SpacePartition();
         l_partition->resulttype =
             new TupleType(nl->Second(GetTupleResultType(in_pSupplier)));
 
@@ -2301,7 +2607,7 @@ int OpNetJunRegionmap ( Word* args, Word& result, int message,
       case REQUEST:{
 //          cout<<"request"<<endl;
           if(local.addr == NULL) return CANCEL;
-          l_partition = (LinePartiton*)local.addr;
+          l_partition = (SpacePartition*)local.addr;
           if(l_partition->count == l_partition->pave_line1.size())
                           return CANCEL;
           Tuple* tuple = new Tuple(l_partition->resulttype);
@@ -2326,7 +2632,7 @@ int OpNetJunRegionmap ( Word* args, Word& result, int message,
       case CLOSE:{
 //          cout<<"close"<<endl;
           if(local.addr){
-            l_partition = (LinePartiton*)local.addr;
+            l_partition = (SpacePartition*)local.addr;
             l_partition->resulttype->DeleteIfAllowed();
             delete l_partition;
             local.setAddr(Address(0));
@@ -2432,6 +2738,72 @@ int OpNetDecomposeRegionmap ( Word* args, Word& result, int message,
   return 0;
 }
 
+/*
+Value Mapping for the fillpavement operator
+fill the hole between two pavements at some junction positions
+
+*/
+
+int OpNetFillPavementmap ( Word* args, Word& result, int message,
+                         Word& local, Supplier in_pSupplier )
+{
+  SpacePartition* l_partition;
+
+  switch(message){
+      case OPEN:{
+        Network* n = (Network*)args[0].addr;
+        Relation* rel = (Relation*)args[1].addr;
+        int width = ((CcInt*)args[4].addr)->GetIntval();
+        int attr_pos1 = ((CcInt*)args[5].addr)->GetIntval() - 1;
+        int attr_pos2 = ((CcInt*)args[6].addr)->GetIntval() - 1;
+
+        l_partition = new SpacePartition();
+        l_partition->resulttype =
+            new TupleType(nl->Second(GetTupleResultType(in_pSupplier)));
+
+        l_partition->FillHoleOfPave(n, rel, attr_pos1, attr_pos2, width);
+        local.setAddr(l_partition);
+        return 0;
+      }
+      case REQUEST:{
+//          cout<<"request"<<endl;
+          if(local.addr == NULL) return CANCEL;
+          l_partition = (SpacePartition*)local.addr;
+//          cout<<" count "<<l_partition->count<<endl;
+//          cout<<"pave_line1 size() "<<l_partition->pave_line1.size()<<endl;
+          if(l_partition->count == l_partition->pave_line1.size())
+                          return CANCEL;
+          Tuple* tuple = new Tuple(l_partition->resulttype);
+
+          tuple->PutAttribute(0,
+                new CcInt(true,l_partition->junid1[l_partition->count]));
+          tuple->PutAttribute(1,
+                new CcInt(true,l_partition->junid2[l_partition->count]));
+          tuple->PutAttribute(2,
+                new Line(l_partition->pave_line1[l_partition->count]));
+          tuple->PutAttribute(3,
+                new Region(l_partition->outer_fillgap1[l_partition->count]));
+          tuple->PutAttribute(4,
+                new Region(l_partition->outer_fillgap2[l_partition->count]));
+          tuple->PutAttribute(5,
+                new Region(l_partition->outer_fillgap[l_partition->count]));
+          result.setAddr(tuple);
+          l_partition->count++;
+          return YIELD;
+      }
+      case CLOSE:{
+//          cout<<"close"<<endl;
+          if(local.addr){
+            l_partition = (SpacePartition*)local.addr;
+            l_partition->resulttype->DeleteIfAllowed();
+            delete l_partition;
+            local.setAddr(Address(0));
+          }
+          return 0;
+      }
+  }
+  return 0;
+}
 ////////////////Operator Constructor///////////////////////////////////////
 Operator checksline(
     "checksline",               // name
@@ -2481,6 +2853,14 @@ Operator decomposeregion(
     OpNetDecomposeRegionTypeMap        // type mapping
 );
 
+Operator fillpavement(
+    "fillpavement",               // name
+    OpNetFillPavementSpec,          // specification
+    OpNetFillPavementmap,  // value mapping
+    Operator::SimpleSelect,        // selection function
+    OpNetFillPavementTypeMap        // type mapping
+);
+
 /*
 Main Class for Transportation Mode
 
@@ -2497,6 +2877,7 @@ class TransportationModeAlgebra : public Algebra
     AddOperator(&paveregion);
     AddOperator(&junregion);
     AddOperator(&decomposeregion);
+    AddOperator(&fillpavement);
 
   }
   ~TransportationModeAlgebra() {};
