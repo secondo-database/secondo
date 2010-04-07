@@ -17,9 +17,10 @@
 #along with SECONDO; if not, write to the Free Software
 #Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
-operator checksline alias CHECKSLINE pattern op(_)
+operator checksline alias CHECKSLINE pattern op(_,_)
 operator modifyboundary alias MODIFYBOUNDARY pattern op(_,_)
 operator segment2region alias SEGMENT2REGION pattern op(_,_)
-operator paveregion alias PAVEREGION pattern op(_,_,_,_,_,_)
+operator paveregion alias PAVEREGION pattern op(_,_,_,_,_,_,_)
 operator junregion alias JUNREGION pattern op(_,_,_,_,_)
 operator decomposeregion alias DECOMPOSEREGION pattern op(_)
+operator fillpavement alias FILLPAVEMENT pattern op(_,_,_,_,_)
