@@ -2080,7 +2080,7 @@ check the junction position rids.size() != 2 rids.size() != 6
   }
 /*
 check for the junction where two road intersect
-rids.size() == 2
+rids.size() == 2, used by operator fillgap
 
 */
 
@@ -2221,6 +2221,7 @@ rids.size() == 2
 
 /*
 check for the junction where three roads intersect
+called by operator fillgap
 
 */
 
@@ -2422,6 +2423,286 @@ check for the junction where three roads intersect
     delete r1r2;
 
   }
+/*
+the same function as in NewFillPavement2, but with different input parameters
+called by function FillPave()
+
+*/
+
+ void NewFillPavement3(Relation* routes, int id1, int id2,
+                      Point* junp, vector<Region>& paves1,
+                      vector<Region>& paves2, vector<int> rids,
+                      vector<Region>& newpaves1, vector<Region>& newpaves2)
+  {
+
+    Line* r1r2 = new Line(0);
+    int edgeno = 0;
+    double delta_dist = 0.1;
+    r1r2->StartBulkLoad();
+
+    for(unsigned int i = 0;i < rids.size();i++){
+        Tuple* route_tuple = routes->GetTuple(rids[i]);
+        SimpleLine* route = (SimpleLine*)route_tuple->GetAttribute(ROUTE_CURVE);
+        for(int j = 0;j < route->Size();j++){
+           HalfSegment hs;
+           route->Get(j,hs);
+            if(hs.IsLeftDomPoint()){
+              Point lp = hs.GetLeftPoint();
+              Point rp = hs.GetRightPoint();
+              if(lp.Distance(*junp) < delta_dist ||
+                rp.Distance(*junp) < delta_dist){
+                HalfSegment newhs;
+                newhs.Set(true,lp,rp);
+                newhs.attr.edgeno = edgeno++;
+                *r1r2 += newhs;
+                newhs.SetLeftDomPoint(!newhs.IsLeftDomPoint());
+                *r1r2 += newhs;
+              }
+            }
+        }
+        route_tuple->DeleteIfAllowed();
+    }
+    r1r2->EndBulkLoad();
+
+
+    Region* reg1_pave1 = &paves1[id1 - 1];
+    Region* reg1_pave2 = &paves2[id1 - 1];
+    Region* reg2_pave1 = &paves1[id2 - 1];
+    Region* reg2_pave2 = &paves2[id2 - 1];
+    if(reg1_pave1->Intersects(*reg2_pave1) == false &&
+       SameSide1(reg1_pave1, reg2_pave1, r1r2, junp)){
+//      cout<<"1"<<endl;
+      Region* result = new Region(0);
+
+      assert(reg1_pave1->GetCycleDirection());
+      assert(reg2_pave1->GetCycleDirection());
+
+      MyUnion(newpaves1[id1 - 1], outer_fillgap[outer_fillgap.size() - 1],
+              *result);
+      newpaves1[id1 - 1] = *result;
+      delete result;
+
+    }
+    if(reg1_pave1->Intersects(*reg2_pave2) == false &&
+       SameSide1(reg1_pave1, reg2_pave2, r1r2, junp)){
+//      cout<<"2"<<endl;
+      assert(reg1_pave1->GetCycleDirection());
+      assert(reg2_pave2->GetCycleDirection());
+
+      Region* result = new Region(0);
+      MyUnion(newpaves1[id1 - 1], outer_fillgap[outer_fillgap.size() - 1],
+              *result);
+      newpaves1[id1 - 1] = *result;
+      delete result;
+
+    }
+    if(reg1_pave2->Intersects(*reg2_pave1) == false &&
+       SameSide1(reg1_pave2, reg2_pave1, r1r2, junp)){
+//      cout<<"3"<<endl;
+      assert(reg1_pave2->GetCycleDirection());
+      assert(reg2_pave1->GetCycleDirection());
+
+      Region* result = new Region(0);
+      MyUnion(newpaves2[id1 - 1], outer_fillgap[outer_fillgap.size() - 1],
+              *result);
+      newpaves2[id1 - 1] = *result;
+      delete result;
+
+    }
+    if(reg1_pave2->Intersects(*reg2_pave2) == false &&
+       SameSide1(reg1_pave2, reg2_pave2, r1r2, junp)){
+//      cout<<"4"<<endl;
+      assert(reg1_pave2->GetCycleDirection());
+      assert(reg2_pave2->GetCycleDirection());
+
+      Region* result = new Region(0);
+      MyUnion(newpaves2[id1 - 1], outer_fillgap[outer_fillgap.size() - 1],
+              *result);
+      newpaves2[id1 - 1] = *result;
+      delete result;
+
+    }
+
+    delete r1r2;
+
+  }
+
+/*
+the same function as NewFillPavement2, but with different input parameters
+called by function FillPave()
+
+*/
+
+  void NewFillPavement4(Relation* routes, int id1, int id2,
+                      Point* junp, vector<Region>& paves1,
+                      vector<Region>& paves2, vector<int> rids,
+                      vector<Region>& newpaves1, vector<Region>& newpaves2)
+  {
+
+    Line* r1r2 = new Line(0);
+    int edgeno = 0;
+    double delta_dist = 0.1;
+    r1r2->StartBulkLoad();
+    MyHalfSegment firstseg;
+    MyHalfSegment secondseg;
+    MyHalfSegment thirdseg;
+
+    for(unsigned int i = 0;i < rids.size();i++){
+        Tuple* route_tuple = routes->GetTuple(rids[i]);
+        SimpleLine* route = (SimpleLine*)route_tuple->GetAttribute(ROUTE_CURVE);
+        for(int j = 0;j < route->Size();j++){
+           HalfSegment hs;
+           route->Get(j,hs);
+            if(hs.IsLeftDomPoint()){
+              Point lp = hs.GetLeftPoint();
+              Point rp = hs.GetRightPoint();
+              if(lp.Distance(*junp) < delta_dist ||
+                rp.Distance(*junp) < delta_dist){
+                HalfSegment newhs;
+                newhs.Set(true,lp,rp);
+                newhs.attr.edgeno = edgeno++;
+                *r1r2 += newhs;
+                newhs.SetLeftDomPoint(!newhs.IsLeftDomPoint());
+                *r1r2 += newhs;
+                if(rids[i] != id1 && rids[i] != id2){
+                  if(lp.Distance(*junp) < delta_dist){
+                    thirdseg.def = true;
+                    thirdseg.from = lp;
+                    thirdseg.to = rp;
+                  }else{
+                    thirdseg.def = true;
+                    thirdseg.from = rp;
+                    thirdseg.to = lp;
+                  }
+                }
+                if(rids[i] == id1){
+                  if(lp.Distance(*junp) < delta_dist){
+                    firstseg.def = true;
+                    firstseg.from = lp;
+                    firstseg.to = rp;
+                  }else{
+                    firstseg.def = true;
+                    firstseg.from = rp;
+                    firstseg.to = lp;
+                  }
+                }
+                if(rids[i] == id2){
+                  if(lp.Distance(*junp) < delta_dist){
+                    secondseg.def = true;
+                    secondseg.from = lp;
+                    secondseg.to = rp;
+                  }else{
+                    secondseg.def = true;
+                    secondseg.from = rp;
+                    secondseg.to = lp;
+                  }
+                }
+              }
+            }
+        }
+        route_tuple->DeleteIfAllowed();
+    }
+    r1r2->EndBulkLoad();
+
+    ////////////////////////////////
+    double angle1 = GetAngle(firstseg.from, firstseg.to, thirdseg.to);
+    double angle2 = GetAngle(firstseg.from, firstseg.to, secondseg.to);
+    bool clock1 = GetClockwise(firstseg.from, firstseg.to, thirdseg.to);
+    bool clock2 = GetClockwise(firstseg.from, firstseg.to, secondseg.to);
+    if(clock2){
+      if(clock1){
+        if(angle1 > angle2){
+          delete r1r2;
+          return;
+        }
+      }else{
+        delete r1r2;
+        return;
+      }
+    }else{
+      if(clock1 == false){
+        if(angle1 > angle2){
+          delete r1r2;
+          return;
+        }
+      }else{
+        delete r1r2;
+        return;
+      }
+    }
+    //////////////////////////////
+    vector<Point> ps;
+    vector<Region> smallreg;
+    ps.push_back(firstseg.from);
+    ps.push_back(firstseg.to);
+    ps.push_back(thirdseg.to);
+    ps.push_back(secondseg.to);
+    ComputeRegion(ps, smallreg);
+    //////////////////////////////
+
+
+    Region* reg1_pave1 = &paves1[id1 - 1];
+    Region* reg1_pave2 = &paves2[id1 - 1];
+    Region* reg2_pave1 = &paves1[id2 - 1];
+    Region* reg2_pave2 = &paves2[id2 - 1];
+
+    if(reg1_pave1->Intersects(*reg2_pave1) == false &&
+       SameSide2(reg1_pave1, reg2_pave1, r1r2, junp, thirdseg, smallreg[0])){
+
+        Region* result = new Region(0);
+        assert(reg1_pave1->GetCycleDirection());
+        assert(reg2_pave1->GetCycleDirection());
+
+        MyUnion(newpaves1[id1 - 1], outer_fillgap[outer_fillgap.size() - 1],
+                *result);
+        newpaves1[id1 - 1] = *result;
+        delete result;
+
+    }
+    if(reg1_pave1->Intersects(*reg2_pave2) == false &&
+       SameSide2(reg1_pave1, reg2_pave2, r1r2, junp, thirdseg, smallreg[0])){
+
+      assert(reg1_pave1->GetCycleDirection());
+      assert(reg2_pave2->GetCycleDirection());
+
+      Region* result = new Region(0);
+      MyUnion(newpaves1[id1 - 1], outer_fillgap[outer_fillgap.size() - 1],
+              *result);
+      newpaves1[id1 - 1] = *result;
+      delete result;
+
+    }
+    if(reg1_pave2->Intersects(*reg2_pave1) == false &&
+       SameSide2(reg1_pave2, reg2_pave1, r1r2, junp, thirdseg, smallreg[0])){
+
+      assert(reg1_pave2->GetCycleDirection());
+      assert(reg2_pave1->GetCycleDirection());
+
+      Region* result = new Region(0);
+      MyUnion(newpaves2[id1 - 1], outer_fillgap[outer_fillgap.size() - 1],
+              *result);
+      newpaves2[id1 - 1] = *result;
+      delete result;
+
+    }
+    if(reg1_pave2->Intersects(*reg2_pave2) == false &&
+       SameSide2(reg1_pave2, reg2_pave2, r1r2, junp, thirdseg, smallreg[0])){
+
+      assert(reg1_pave2->GetCycleDirection());
+      assert(reg2_pave2->GetCycleDirection());
+
+      Region* result = new Region(0);
+      MyUnion(newpaves2[id1 - 1], outer_fillgap[outer_fillgap.size() - 1],
+              *result);
+      newpaves2[id1 - 1] = *result;
+      delete result;
+
+    }
+
+    delete r1r2;
+
+  }
+
 
   /*
    for operator fillgap
