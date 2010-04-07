@@ -997,6 +997,93 @@ struct SpacePartition{
 
   }
 
+/*
+fill the gap between two pavements at some junction positions
+
+*/
+  void FillPave(Network* n, vector<Region>& pavements1,
+                vector<Region>& pavements2,
+                vector<double>& routes_length,
+                vector<Region>& paves1, vector<Region>& paves2)
+  {
+
+    Relation* routes = n->GetRoutes();
+    Relation* juns = n->GetJunctions();
+
+
+    vector<MyJun> myjuns;
+    for(int i = 1;i <= n->GetNoJunctions();i++){
+      Tuple* jun_tuple = juns->GetTuple(i);
+      CcInt* rid1 = (CcInt*)jun_tuple->GetAttribute(JUNCTION_ROUTE1_ID);
+      CcInt* rid2 = (CcInt*)jun_tuple->GetAttribute(JUNCTION_ROUTE2_ID);
+      int id1 = rid1->GetIntval();
+      int id2 = rid2->GetIntval();
+
+      Point* junp = (Point*)jun_tuple->GetAttribute(JUNCTION_POS);
+
+      CcReal* meas1 = (CcReal*)jun_tuple->GetAttribute(JUNCTION_ROUTE1_MEAS);
+      CcReal* meas2 = (CcReal*)jun_tuple->GetAttribute(JUNCTION_ROUTE2_MEAS);
+
+      double len1 = meas1->GetRealval();
+      double len2 = meas2->GetRealval();
+
+        MyJun mj(*junp, id1, id2, len1, len2);
+        myjuns.push_back(mj);
+
+      jun_tuple->DeleteIfAllowed();
+    }
+    juns->Delete();
+
+    sort(myjuns.begin(), myjuns.end());
+
+
+    const double delta_dist = 0.1;
+    for(unsigned int i = 0 ;i < myjuns.size();i++){
+        Point loc = myjuns[i].loc;
+        int rid1 = myjuns[i].rid1;
+        int rid2 = myjuns[i].rid2;
+
+//        cout<<"rid1 "<<rid1<<" rid2 "<<rid2<<endl;
+//      if(!(rid1 == 2397 && rid2 == 2398)) continue;
+
+      if((MyAlmostEqual(myjuns[i].len1, 0.0)||
+          MyAlmostEqual(myjuns[i].len1, routes_length[rid1 - 1])) &&
+          (MyAlmostEqual(myjuns[i].len2, 0.0)||
+          MyAlmostEqual(myjuns[i].len2, routes_length[rid2 - 1]))){
+
+          vector<int> rids;
+
+          int j = i - 1;
+          while(j >= 0 && loc.Distance(myjuns[j].loc) < delta_dist){
+            rids.push_back(myjuns[j].rid1);
+            rids.push_back(myjuns[j].rid2);
+            j--;
+          }
+
+          j = i;
+          while(j < myjuns.size() && loc.Distance(myjuns[j].loc) < delta_dist){
+            rids.push_back(myjuns[j].rid1);
+            rids.push_back(myjuns[j].rid2);
+            j++;
+          }
+
+//          cout<<" rids size "<<rids.size()<<endl;
+//        cout<<"rid1 "<<rid1<<" rid2 "<<rid2<<endl;
+
+        if(rids.size() == 2){
+            NewFillPavement3(routes, rid1, rid2, &loc,
+                        pavements1, pavements2, rids, paves1, paves2);
+        }
+        if(rids.size() == 6){
+           NewFillPavement4(routes, rid1, rid2, &loc,
+                        pavements1, pavements2, rids, paves1, paves2);
+        }
+
+        rids.clear();
+      }
+    }
+
+  }
 
 
 
