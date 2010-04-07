@@ -1170,7 +1170,7 @@ fill the gap between two pavements at some junction positions
 
 
     //////////////fill the hole of pavement/////////////////////
-      /*vector<Region> newpave1;
+      vector<Region> newpave1;
       vector<Region> newpave2;
       for(unsigned int i = 0;i < pavements1.size();i++){
         Region* reg = new Region(0);
@@ -1189,7 +1189,7 @@ fill the gap between two pavements at some junction positions
         MyUnion(pavements2[i], newpave2[i], *reg2);
         pavements2[i] = *reg2;
         delete reg2;
-      }*/
+      }
     ////////////////////////////////////////////////////////////
 
     for(unsigned int i = 0;i < pavements1.size();i++){
@@ -1799,7 +1799,167 @@ Extend the line in increasing direction
       juns->Delete();
   }
 
+/*
+Check that the gap should not intersect the two roads
 
+*/
+
+  bool SameSide1(Region* reg1, Region* reg2, Line* r1r2, Point* junp)
+  {
+      vector<MyPoint> mps1;
+      vector<MyPoint> mps2;
+      for(int i = 0;i < reg1->Size();i++){
+          HalfSegment hs;
+          reg1->Get(i,hs);
+          if(hs.IsLeftDomPoint()){
+            Point lp = hs.GetLeftPoint();
+            Point rp = hs.GetRightPoint();
+            MyPoint mp1(lp, lp.Distance(*junp));
+            MyPoint mp2(rp, rp.Distance(*junp));
+            mps1.push_back(mp1);
+            mps1.push_back(mp2);
+          }
+      }
+      for(int i = 0;i < reg2->Size();i++){
+          HalfSegment hs;
+          reg2->Get(i,hs);
+          if(hs.IsLeftDomPoint()){
+            Point lp = hs.GetLeftPoint();
+            Point rp = hs.GetRightPoint();
+            MyPoint mp1(lp, lp.Distance(*junp));
+            MyPoint mp2(rp, rp.Distance(*junp));
+            mps2.push_back(mp1);
+            mps2.push_back(mp2);
+          }
+      }
+      sort(mps1.begin(), mps1.end());
+      sort(mps2.begin(), mps2.end());
+      HalfSegment hs;
+      hs.Set(true, mps1[0].loc, mps2[0].loc);
+      Line* temp =  new Line(0);
+      int edgeno = 0;
+      hs.attr.edgeno = edgeno++;
+      *temp += hs;
+      hs.SetLeftDomPoint(!hs.IsLeftDomPoint());
+      *temp += hs;
+      if(temp->Intersects(*r1r2)){
+        delete temp;
+        return false;
+      }else{
+        delete temp;
+        vector<Point> ps;
+
+        if(GetClockwise(mps2[0].loc, mps1[0].loc, mps2[2].loc)){
+            ps.push_back(mps1[0].loc);
+            ps.push_back(mps2[0].loc);
+            ps.push_back(mps2[2].loc);
+            ps.push_back(mps1[2].loc);
+        }else{
+            ps.push_back(mps2[2].loc);
+            ps.push_back(mps2[0].loc);
+            ps.push_back(mps1[0].loc);
+            ps.push_back(mps1[2].loc);
+        }
+
+        //should be counter clock wise
+//        cout<<mps1[0].loc<<mps2[0].loc<<mps2[2].loc<<mps1[2].loc<<endl;
+
+        vector<Region> gap;
+        ComputeRegion(ps, gap);
+        outer_fillgap.push_back(gap[0]);
+        return true;
+      }
+
+  }
+
+
+  /*
+  build a small region around the three halfsegments
+
+  */
+  bool SameSide2(Region* reg1, Region* reg2, Line* r1r2, Point* junp,
+                 MyHalfSegment thirdseg, Region& smallreg)
+  {
+      vector<MyPoint> mps1;
+      vector<MyPoint> mps2;
+      for(int i = 0;i < reg1->Size();i++){
+          HalfSegment hs;
+          reg1->Get(i,hs);
+          if(hs.IsLeftDomPoint()){
+            Point lp = hs.GetLeftPoint();
+            Point rp = hs.GetRightPoint();
+            MyPoint mp1(lp, lp.Distance(*junp));
+            MyPoint mp2(rp, rp.Distance(*junp));
+            mps1.push_back(mp1);
+            mps1.push_back(mp2);
+          }
+      }
+      for(int i = 0;i < reg2->Size();i++){
+          HalfSegment hs;
+          reg2->Get(i,hs);
+          if(hs.IsLeftDomPoint()){
+            Point lp = hs.GetLeftPoint();
+            Point rp = hs.GetRightPoint();
+            MyPoint mp1(lp, lp.Distance(*junp));
+            MyPoint mp2(rp, rp.Distance(*junp));
+            mps2.push_back(mp1);
+            mps2.push_back(mp2);
+          }
+      }
+      sort(mps1.begin(), mps1.end());
+      sort(mps2.begin(), mps2.end());
+      HalfSegment hs;
+      hs.Set(true, mps1[0].loc, mps2[0].loc);
+      Line* temp =  new Line(0);
+      int edgeno = 0;
+      hs.attr.edgeno = edgeno++;
+      *temp += hs;
+      hs.SetLeftDomPoint(!hs.IsLeftDomPoint());
+      *temp += hs;
+
+      ///////////////////////////////////////////////////////////
+
+
+//      thirdseg.Print();
+//      cout<<mps1[0].loc<<" "<<mps2[0].loc<<endl;
+
+      bool flag = true;
+      if(mps1[0].loc.Inside(smallreg) == false &&
+         mps2[0].loc.Inside(smallreg) == false)
+        flag = true;
+      else
+        flag = false;
+      ///////////////////////////////////////////////////////////
+
+      if(temp->Intersects(*r1r2) || flag == false){
+
+        delete temp;
+        return false;
+      }else{
+        delete temp;
+        vector<Point> ps;
+        //should be counter clock wise, the same as the order of points in pave
+        if(GetClockwise(mps2[0].loc, mps1[0].loc, mps2[2].loc)){
+            ps.push_back(mps1[0].loc);
+            ps.push_back(mps2[0].loc);
+            ps.push_back(mps2[2].loc);
+            ps.push_back(mps1[2].loc);
+        }else{
+            ps.push_back(mps2[2].loc);
+            ps.push_back(mps2[0].loc);
+            ps.push_back(mps1[0].loc);
+            ps.push_back(mps1[2].loc);
+        }
+
+//      cout<<mps1[0].loc<<mps2[0].loc<<mps2[2].loc<<mps1[2].loc<<endl;
+
+        vector<Region> gap;
+        ComputeRegion(ps, gap);
+        outer_fillgap.push_back(gap[0]);
+        return true;
+      }
+
+  }
 
 
   /*
