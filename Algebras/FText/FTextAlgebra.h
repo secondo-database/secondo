@@ -207,19 +207,18 @@ inline void FText::Set( bool newDefined, const char *newString )
           cout << '\n' << "Start Set with *newString='"
                << newString << endl; )
 
+  theText.clean();
   if( newString != NULL )
   {
-    theText.clean();
     SHOW(theText)
-    SmiSize sz = strlen( newString ) + 1; 
-    theText.write( newString, sz);
-    SHOW(theText)
-
-    char buffer[sz];
-    theText.read( buffer, sz);
-
-    SHOW(theText)
-    DEBUG_EXE( cerr << "<" << Array2Str(buffer,sz) << ">" << endl; )
+    SmiSize sz = strlen( newString ) + 1;
+    if(sz>0){
+      assert(newString[sz-1]==0); 
+      theText.write( newString, sz);
+    } else {
+      char d=0;
+      theText.write(&d,1);
+    }
   }
   SetDefined( newDefined );
 
@@ -231,13 +230,7 @@ inline void FText::Set( bool newDefined, const string& newString )
   LOGMSG( "FText:Trace",
           cout << '\n' << "Start Set with newString='"
               << newString << endl; )
-  theText.clean();
-  if(newDefined)
-  {
-    theText.write( newString.c_str(), newString.length() + 1 );
-  }
-  SetDefined( newDefined );
-  LOGMSG( "FText:Trace", cout <<"End Set"<<'\n'; )
+  Set(newDefined,newString.c_str());  
 }
 
 
@@ -249,17 +242,29 @@ inline int FText::TextLength() const
 // SPM: caller is responsible for delete
 inline char *FText::Get() const
 {
+  assert(IsDefined());
   SmiSize sz = theText.getSize();	
+  if(sz==0){
+    char* s = new char[1];
+    s[0] = 0;
+    return s;
+  } 
+
   char* s = new char[sz];
-  theText.read(s, sz);
+  bool ok = theText.read(s, sz);
+  assert(ok);
+  if(s[sz-1] !=0) {
+    cerr << "Warning: last char of a text flob is not 0." << endl;
+    size_t sl = strlen(s);
+    cerr << " sz = " << sz << ", strlen = " << sl << endl;
+    assert(sl <= sz);
+  }
   return s;
 }
 
 inline const string FText::GetValue() const
 {
-  SmiSize sz = theText.getSize();	
-  char* s = new char[sz];
-  theText.read(s, sz);
+  char* s = Get();
   string res(s);
   delete [] s;
   return res;
