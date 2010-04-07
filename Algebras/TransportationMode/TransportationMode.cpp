@@ -1798,6 +1798,25 @@ Extend the line in increasing direction
   }
 
 /*
+Detect whether three points collineation
+
+*/
+
+  inline bool Collineation(Point& p1, Point& p2, Point& p3)
+  {
+      if(MyAlmostEqual(p1.GetX(), p2.GetX())){
+          if(MyAlmostEqual(p2.GetX(), p3.GetX())) return true;
+      }
+      if(MyAlmostEqual(p1.GetY(), p2.GetY())){
+          if(MyAlmostEqual(p2.GetY(), p3.GetY())) return true;
+      }
+      double k1 = (p1.GetY() - p2.GetY())/(p1.GetX() - p2.GetX());
+      double k2 = (p2.GetY() - p3.GetY())/(p2.GetX() - p3.GetX());
+      if(MyAlmostEqual(k1, k2)) return true;
+      return false;
+  }
+
+/*
 Check that the gap should not intersect the two roads
 
 */
@@ -1832,41 +1851,147 @@ Check that the gap should not intersect the two roads
       }
       sort(mps1.begin(), mps1.end());
       sort(mps2.begin(), mps2.end());
-      HalfSegment hs;
-      hs.Set(true, mps1[0].loc, mps2[0].loc);
-      Line* temp =  new Line(0);
-      int edgeno = 0;
-      hs.attr.edgeno = edgeno++;
-      *temp += hs;
-      hs.SetLeftDomPoint(!hs.IsLeftDomPoint());
-      *temp += hs;
-      if(temp->Intersects(*r1r2)){
-        delete temp;
-        return false;
-      }else{
-        delete temp;
-        vector<Point> ps;
 
-        if(GetClockwise(mps2[0].loc, mps1[0].loc, mps2[2].loc)){
-            ps.push_back(mps1[0].loc);
-            ps.push_back(mps2[0].loc);
-            ps.push_back(mps2[2].loc);
-            ps.push_back(mps1[2].loc);
-        }else{
-            ps.push_back(mps2[2].loc);
-            ps.push_back(mps2[0].loc);
-            ps.push_back(mps1[0].loc);
-            ps.push_back(mps1[2].loc);
+
+//      cout<<mps1[0].loc<<mps2[0].loc<<mps1[2].loc<<mps2[2].loc<<endl;
+
+      vector<Point> border1;
+      border1.push_back(mps1[0].loc);
+      border1.push_back(mps1[2].loc);
+      border1.push_back(mps2[2].loc);
+      border1.push_back(mps2[0].loc);
+      vector<Point> border;
+      const double delta_dist = 0.1;
+      for(unsigned int i = 0;i < border1.size();i++){
+        unsigned int j = 0;
+        for(;j < border.size();j++){
+          if(border[j].Distance(border1[i]) < delta_dist) break;
         }
+        if(j == border.size())
+          border.push_back(border1[i]);
+      }
+
+//      for(unsigned int i = 0;i < border.size();i++)
+//        cout<<border[i]<<endl;
+
+
+      if(border.size() < 3) return false; //not a region
+      if(border.size() == 3){
+        unsigned int count = 0;
+        unsigned int index = 0;
+
+        while(count < 3){
+          HalfSegment hs;
+          hs.Set(true, border[index], border[(index + 1)%border.size()]);
+          Line* temp =  new Line(0);
+          int edgeno = 0;
+          hs.attr.edgeno = edgeno++;
+          *temp += hs;
+          hs.SetLeftDomPoint(!hs.IsLeftDomPoint());
+          *temp += hs;
+          if(temp->Intersects(*r1r2)){
+            delete temp;
+            return false;
+          }
+          count++;
+          index++;
+          delete temp;
+        }
+        //three points collineation
+        if(Collineation(border[0], border[1], border[2])) return false;
+
+            vector<Point> ps;
+            if(GetClockwise(border[0], border[1], border[2])){
+                ps.push_back(border[1]);
+                ps.push_back(border[0]);
+                ps.push_back(border[2]);
+            }else{
+                ps.push_back(border[2]);
+                ps.push_back(border[0]);
+                ps.push_back(border[1]);
+            }
 
         //should be counter clock wise
-//        cout<<mps1[0].loc<<mps2[0].loc<<mps2[2].loc<<mps1[2].loc<<endl;
+            vector<Region> gap;
+            ComputeRegion(ps, gap);
+            outer_fillgap.push_back(gap[0]);
+            return true;
 
-        vector<Region> gap;
-        ComputeRegion(ps, gap);
-        outer_fillgap.push_back(gap[0]);
-        return true;
+      }else{ // four points construct a region
+          HalfSegment hs;
+          hs.Set(true, border[0], border[3]);
+          Line* temp =  new Line(0);
+          int edgeno = 0;
+          hs.attr.edgeno = edgeno++;
+          *temp += hs;
+          hs.SetLeftDomPoint(!hs.IsLeftDomPoint());
+          *temp += hs;
+          if(temp->Intersects(*r1r2)){
+            delete temp;
+            return false;
+          }else{
+            delete temp;
+            vector<Point> ps;
+
+            if(GetClockwise(border[3], border[0], border[2])){
+                ps.push_back(border[0]);
+                ps.push_back(border[3]);
+                ps.push_back(border[2]);
+                ps.push_back(border[1]);
+            }else{
+                ps.push_back(border[2]);
+                ps.push_back(border[3]);
+                ps.push_back(border[0]);
+                ps.push_back(border[1]);
+            }
+
+        //should be counter clock wise
+
+            vector<Region> gap;
+            ComputeRegion(ps, gap);
+            outer_fillgap.push_back(gap[0]);
+            return true;
+          }
+
       }
+
+/*      if(!AlmostEqual(mps1[0].loc, mps2[0].loc) &&
+         !AlmostEqual(mps1[0].loc, mps2[0].loc)){
+
+          hs.Set(true, mps1[0].loc, mps2[0].loc);
+          Line* temp =  new Line(0);
+          int edgeno = 0;
+          hs.attr.edgeno = edgeno++;
+          *temp += hs;
+          hs.SetLeftDomPoint(!hs.IsLeftDomPoint());
+          *temp += hs;
+          if(temp->Intersects(*r1r2)){
+            delete temp;
+            return false;
+          }else{
+            delete temp;
+            vector<Point> ps;
+
+            if(GetClockwise(mps2[0].loc, mps1[0].loc, mps2[2].loc)){
+                ps.push_back(mps1[0].loc);
+                ps.push_back(mps2[0].loc);
+                ps.push_back(mps2[2].loc);
+                ps.push_back(mps1[2].loc);
+            }else{
+                ps.push_back(mps2[2].loc);
+                ps.push_back(mps2[0].loc);
+                ps.push_back(mps1[0].loc);
+                ps.push_back(mps1[2].loc);
+            }
+
+        //should be counter clock wise
+
+            vector<Region> gap;
+            ComputeRegion(ps, gap);
+            outer_fillgap.push_back(gap[0]);
+            return true;
+          }
+      }*/
 
   }
 
@@ -1906,7 +2031,126 @@ Check that the gap should not intersect the two roads
       }
       sort(mps1.begin(), mps1.end());
       sort(mps2.begin(), mps2.end());
-      HalfSegment hs;
+
+//      cout<<mps1[0].loc<<mps2[0].loc<<mps1[2].loc<<mps2[2].loc<<endl;
+
+      vector<Point> border1;
+      border1.push_back(mps1[0].loc);
+      border1.push_back(mps1[2].loc);
+      border1.push_back(mps2[2].loc);
+      border1.push_back(mps2[0].loc);
+      vector<Point> border;
+      const double delta_dist = 0.1;
+      for(unsigned int i = 0;i < border1.size();i++){
+        unsigned int j = 0;
+        for(;j < border.size();j++){
+          if(border[j].Distance(border1[i]) < delta_dist) break;
+        }
+        if(j == border.size())
+          border.push_back(border1[i]);
+      }
+
+//      for(unsigned int i = 0;i < border.size();i++)
+//        cout<<border[i]<<endl;
+
+
+      if(border.size() < 3) return false; //not a region
+      if(border.size() == 3){
+//          cout<<"3"<<endl;
+          unsigned int count = 0;
+          unsigned int index = 0;
+
+          while(count < 3){
+            HalfSegment hs;
+            hs.Set(true, border[index], border[(index + 1)%border.size()]);
+            Line* temp =  new Line(0);
+            int edgeno = 0;
+            hs.attr.edgeno = edgeno++;
+            *temp += hs;
+            hs.SetLeftDomPoint(!hs.IsLeftDomPoint());
+            *temp += hs;
+
+            bool flag = true;
+            if(border[index].Inside(smallreg) == false)
+              flag = true;
+            else
+              flag = false;
+
+            if(temp->Intersects(*r1r2) || flag == false){
+              delete temp;
+              return false;
+            }
+            count++;
+            index++;
+            delete temp;
+          }
+          if(Collineation(border[0], border[1], border[2])) return false;
+
+          vector<Point> ps;
+          if(GetClockwise(border[0], border[1], border[2])){
+                ps.push_back(border[1]);
+                ps.push_back(border[0]);
+                ps.push_back(border[2]);
+          }else{
+                ps.push_back(border[2]);
+                ps.push_back(border[0]);
+                ps.push_back(border[1]);
+          }
+
+        //should be counter clock wise
+            vector<Region> gap;
+            ComputeRegion(ps, gap);
+            outer_fillgap.push_back(gap[0]);
+            return true;
+
+      }else{ // four points construct a region
+//          cout<<"4"<<endl;
+          HalfSegment hs;
+          hs.Set(true, border[0], border[3]);
+          Line* temp =  new Line(0);
+          int edgeno = 0;
+          hs.attr.edgeno = edgeno++;
+          *temp += hs;
+          hs.SetLeftDomPoint(!hs.IsLeftDomPoint());
+          *temp += hs;
+
+          bool flag = true;
+          if(border[0].Inside(smallreg) == false &&
+             border[3].Inside(smallreg) == false)
+            flag = true;
+          else
+            flag = false;
+
+          if(temp->Intersects(*r1r2) || flag == false){
+            delete temp;
+            return false;
+          }else{
+            delete temp;
+            vector<Point> ps;
+
+            if(GetClockwise(border[3], border[0], border[2])){
+                ps.push_back(border[0]);
+                ps.push_back(border[3]);
+                ps.push_back(border[2]);
+                ps.push_back(border[1]);
+            }else{
+                ps.push_back(border[2]);
+                ps.push_back(border[3]);
+                ps.push_back(border[0]);
+                ps.push_back(border[1]);
+            }
+
+        //should be counter clock wise
+
+            vector<Region> gap;
+            ComputeRegion(ps, gap);
+            outer_fillgap.push_back(gap[0]);
+            return true;
+          }
+
+      }
+
+/*      HalfSegment hs;
       hs.Set(true, mps1[0].loc, mps2[0].loc);
       Line* temp =  new Line(0);
       int edgeno = 0;
@@ -1916,10 +2160,6 @@ Check that the gap should not intersect the two roads
       *temp += hs;
 
       ///////////////////////////////////////////////////////////
-
-
-//      thirdseg.Print();
-//      cout<<mps1[0].loc<<" "<<mps2[0].loc<<endl;
 
       bool flag = true;
       if(mps1[0].loc.Inside(smallreg) == false &&
@@ -1955,8 +2195,28 @@ Check that the gap should not intersect the two roads
         ComputeRegion(ps, gap);
         outer_fillgap.push_back(gap[0]);
         return true;
-      }
+      }*/
 
+  }
+
+ /*
+  the common area of two regions
+
+ */
+
+  inline bool PavementIntersection(Region* reg1, Region* reg2)
+  {
+    if(reg1->Intersects(*reg2) == false)
+      return false;
+
+    Region* reg = new Region(0);
+    MyIntersection(*reg1, *reg2, *reg);
+    double regarea = reg->Area();
+
+//    cout<<"intersection area "<<regarea<<endl;
+    delete reg;
+    if(MyAlmostEqual(regarea,0.0)) return false;
+    return true;
   }
 
 /*
@@ -2123,7 +2383,11 @@ rids.size() == 2, used by operator fillgap
     Region* reg1_pave2 = (Region*)pave_tuple1->GetAttribute(attr_pos2);
     Region* reg2_pave1 = (Region*)pave_tuple2->GetAttribute(attr_pos1);
     Region* reg2_pave2 = (Region*)pave_tuple2->GetAttribute(attr_pos2);
-    if(reg1_pave1->Intersects(*reg2_pave1) == false &&
+
+
+//    if(reg1_pave1->Intersects(*reg2_pave1) == false &&
+
+     if(PavementIntersection(reg1_pave1, reg2_pave1) == false &&
        SameSide1(reg1_pave1, reg2_pave1, r1r2, junp)){
 
        junid1.push_back(id1);
@@ -2150,7 +2414,8 @@ rids.size() == 2, used by operator fillgap
       delete result1;
 
     }
-    if(reg1_pave1->Intersects(*reg2_pave2) == false &&
+//   if(reg1_pave1->Intersects(*reg2_pave2) == false &&
+     if(PavementIntersection(reg1_pave1, reg2_pave2) == false &&
        SameSide1(reg1_pave1, reg2_pave2, r1r2, junp)){
 
       junid1.push_back(id1);
@@ -2170,7 +2435,8 @@ rids.size() == 2, used by operator fillgap
       delete result1;
 
     }
-    if(reg1_pave2->Intersects(*reg2_pave1) == false &&
+//    if(reg1_pave2->Intersects(*reg2_pave1) == false &&
+      if(PavementIntersection(reg1_pave2, reg2_pave1) == false &&
        SameSide1(reg1_pave2, reg2_pave1, r1r2, junp)){
 
       junid1.push_back(id1);
@@ -2190,7 +2456,8 @@ rids.size() == 2, used by operator fillgap
       delete result1;
 
     }
-    if(reg1_pave2->Intersects(*reg2_pave2) == false &&
+//    if(reg1_pave2->Intersects(*reg2_pave2) == false &&
+      if(PavementIntersection(reg1_pave2, reg2_pave2) == false &&
        SameSide1(reg1_pave2, reg2_pave2, r1r2, junp)){
 
       junid1.push_back(id1);
@@ -2236,6 +2503,7 @@ called by operator fillgap
     MyHalfSegment secondseg;
     MyHalfSegment thirdseg;
 
+    int third_seg = 0;
     for(unsigned int i = 0;i < rids.size();i++){
         Tuple* route_tuple = routes->GetTuple(rids[i]);
         SimpleLine* route = (SimpleLine*)route_tuple->GetAttribute(ROUTE_CURVE);
@@ -2254,14 +2522,17 @@ called by operator fillgap
                 newhs.SetLeftDomPoint(!newhs.IsLeftDomPoint());
                 *r1r2 += newhs;
                 if(rids[i] != id1 && rids[i] != id2){
+                  third_seg++;
                   if(lp.Distance(*junp) < delta_dist){
                     thirdseg.def = true;
                     thirdseg.from = lp;
                     thirdseg.to = rp;
+
                   }else{
                     thirdseg.def = true;
                     thirdseg.from = rp;
                     thirdseg.to = lp;
+
                   }
                 }
                 if(rids[i] == id1){
@@ -2292,6 +2563,10 @@ called by operator fillgap
         route_tuple->DeleteIfAllowed();
     }
     r1r2->EndBulkLoad();
+    if(third_seg > 2){
+        delete r1r2;
+        return;
+    }
 
     ////////////////////////////////
     double angle1 = GetAngle(firstseg.from, firstseg.to, thirdseg.to);
@@ -2335,10 +2610,14 @@ called by operator fillgap
     Region* reg1_pave2 = (Region*)pave_tuple1->GetAttribute(attr_pos2);
     Region* reg2_pave1 = (Region*)pave_tuple2->GetAttribute(attr_pos1);
     Region* reg2_pave2 = (Region*)pave_tuple2->GetAttribute(attr_pos2);
-    if(reg1_pave1->Intersects(*reg2_pave1) == false &&
-       SameSide2(reg1_pave1, reg2_pave1, r1r2, junp, thirdseg, smallreg[0])){
-//       cout<< "1 "<<reg1_pave1->Intersects(*reg2_pave1)<<endl;
 
+//    if(reg1_pave1->Intersects(*reg2_pave1) == false &&
+     if(PavementIntersection(reg1_pave1, reg2_pave2) == false &&
+       SameSide2(reg1_pave1, reg2_pave1, r1r2, junp, thirdseg, smallreg[0])){
+/*       if(third_seg > 2){
+        cout<<"1"<<endl;
+        cout<<"id1 "<<id1<<"id2 "<<id2<<endl;
+       } */
        junid1.push_back(id1);
        junid2.push_back(id2);
        pave_line1.push_back(*r1r2);
@@ -2357,10 +2636,14 @@ called by operator fillgap
       delete result1;
 
     }
-    if(reg1_pave1->Intersects(*reg2_pave2) == false &&
-       SameSide2(reg1_pave1, reg2_pave2, r1r2, junp, thirdseg, smallreg[0])){
 
-//      cout<< "2 "<<reg1_pave1->Intersects(*reg2_pave2)<<endl;
+//    if(reg1_pave1->Intersects(*reg2_pave2) == false &&
+      if(PavementIntersection(reg1_pave1, reg2_pave2) == false &&
+       SameSide2(reg1_pave1, reg2_pave2, r1r2, junp, thirdseg, smallreg[0])){
+//       if(third_seg > 2){
+//         cout<<"2"<<endl;
+//         cout<<"id1 "<<id1<<"id2 "<<id2<<endl;
+//       }
 
       junid1.push_back(id1);
       junid2.push_back(id2);
@@ -2377,11 +2660,15 @@ called by operator fillgap
       delete result1;
 
     }
-    if(reg1_pave2->Intersects(*reg2_pave1) == false &&
+
+//    if(reg1_pave2->Intersects(*reg2_pave1) == false &&
+    if(PavementIntersection(reg1_pave2, reg2_pave1) == false &&
        SameSide2(reg1_pave2, reg2_pave1, r1r2, junp, thirdseg, smallreg[0])){
 
-//      cout<< "3 "<<reg1_pave2->Intersects(*reg2_pave1)<<endl;
-
+//       if(third_seg > 2){
+//         cout<<"3"<<endl;
+//         cout<<"id1 "<<id1<<"id2 "<<id2<<endl;
+//       }
       junid1.push_back(id1);
       junid2.push_back(id2);
       pave_line1.push_back(*r1r2);
@@ -2396,11 +2683,15 @@ called by operator fillgap
       delete result1;
 
     }
-    if(reg1_pave2->Intersects(*reg2_pave2) == false &&
+
+//    if(reg1_pave2->Intersects(*reg2_pave2) == false &&
+     if(PavementIntersection(reg1_pave2, reg2_pave2) == false &&
        SameSide2(reg1_pave2, reg2_pave2, r1r2, junp, thirdseg, smallreg[0])){
 
-//      cout<< "4 "<<reg1_pave2->Intersects(*reg2_pave2)<<endl;
-
+//       if(third_seg > 2){
+//         cout<<"4"<<endl;
+//         cout<<"id1 "<<id1<<"id2 "<<id2<<endl;
+//       }
       junid1.push_back(id1);
       junid2.push_back(id2);
       pave_line1.push_back(*r1r2);
@@ -2467,9 +2758,10 @@ called by function FillPave()
     Region* reg1_pave2 = &paves2[id1 - 1];
     Region* reg2_pave1 = &paves1[id2 - 1];
     Region* reg2_pave2 = &paves2[id2 - 1];
-    if(reg1_pave1->Intersects(*reg2_pave1) == false &&
+//    if(reg1_pave1->Intersects(*reg2_pave1) == false &&
+      if(PavementIntersection(reg1_pave1, reg2_pave1) == false &&
        SameSide1(reg1_pave1, reg2_pave1, r1r2, junp)){
-//      cout<<"1"<<endl;
+
       Region* result = new Region(0);
 
       assert(reg1_pave1->GetCycleDirection());
@@ -2481,9 +2773,10 @@ called by function FillPave()
       delete result;
 
     }
-    if(reg1_pave1->Intersects(*reg2_pave2) == false &&
+//    if(reg1_pave1->Intersects(*reg2_pave2) == false &&
+      if(PavementIntersection(reg1_pave1, reg2_pave2) == false &&
        SameSide1(reg1_pave1, reg2_pave2, r1r2, junp)){
-//      cout<<"2"<<endl;
+
       assert(reg1_pave1->GetCycleDirection());
       assert(reg2_pave2->GetCycleDirection());
 
@@ -2494,9 +2787,10 @@ called by function FillPave()
       delete result;
 
     }
-    if(reg1_pave2->Intersects(*reg2_pave1) == false &&
+//    if(reg1_pave2->Intersects(*reg2_pave1) == false &&
+      if(PavementIntersection(reg1_pave2, reg2_pave1) == false &&
        SameSide1(reg1_pave2, reg2_pave1, r1r2, junp)){
-//      cout<<"3"<<endl;
+
       assert(reg1_pave2->GetCycleDirection());
       assert(reg2_pave1->GetCycleDirection());
 
@@ -2507,9 +2801,10 @@ called by function FillPave()
       delete result;
 
     }
-    if(reg1_pave2->Intersects(*reg2_pave2) == false &&
+//    if(reg1_pave2->Intersects(*reg2_pave2) == false &&
+      if(PavementIntersection(reg1_pave2, reg2_pave2) == false &&
        SameSide1(reg1_pave2, reg2_pave2, r1r2, junp)){
-//      cout<<"4"<<endl;
+
       assert(reg1_pave2->GetCycleDirection());
       assert(reg2_pave2->GetCycleDirection());
 
@@ -2545,6 +2840,7 @@ called by function FillPave()
     MyHalfSegment secondseg;
     MyHalfSegment thirdseg;
 
+    int third_seg = 0;
     for(unsigned int i = 0;i < rids.size();i++){
         Tuple* route_tuple = routes->GetTuple(rids[i]);
         SimpleLine* route = (SimpleLine*)route_tuple->GetAttribute(ROUTE_CURVE);
@@ -2563,6 +2859,7 @@ called by function FillPave()
                 newhs.SetLeftDomPoint(!newhs.IsLeftDomPoint());
                 *r1r2 += newhs;
                 if(rids[i] != id1 && rids[i] != id2){
+                  third_seg++;
                   if(lp.Distance(*junp) < delta_dist){
                     thirdseg.def = true;
                     thirdseg.from = lp;
@@ -2601,6 +2898,10 @@ called by function FillPave()
         route_tuple->DeleteIfAllowed();
     }
     r1r2->EndBulkLoad();
+    if(third_seg > 2){
+        delete r1r2;
+        return;
+    }
 
     ////////////////////////////////
     double angle1 = GetAngle(firstseg.from, firstseg.to, thirdseg.to);
@@ -2644,7 +2945,8 @@ called by function FillPave()
     Region* reg2_pave1 = &paves1[id2 - 1];
     Region* reg2_pave2 = &paves2[id2 - 1];
 
-    if(reg1_pave1->Intersects(*reg2_pave1) == false &&
+//    if(reg1_pave1->Intersects(*reg2_pave1) == false &&
+      if(PavementIntersection(reg1_pave1, reg2_pave2) == false &&
        SameSide2(reg1_pave1, reg2_pave1, r1r2, junp, thirdseg, smallreg[0])){
 
         Region* result = new Region(0);
@@ -2657,7 +2959,8 @@ called by function FillPave()
         delete result;
 
     }
-    if(reg1_pave1->Intersects(*reg2_pave2) == false &&
+//    if(reg1_pave1->Intersects(*reg2_pave2) == false &&
+      if(PavementIntersection(reg1_pave1, reg2_pave2) == false &&
        SameSide2(reg1_pave1, reg2_pave2, r1r2, junp, thirdseg, smallreg[0])){
 
       assert(reg1_pave1->GetCycleDirection());
@@ -2670,7 +2973,8 @@ called by function FillPave()
       delete result;
 
     }
-    if(reg1_pave2->Intersects(*reg2_pave1) == false &&
+//    if(reg1_pave2->Intersects(*reg2_pave1) == false &&
+      if(PavementIntersection(reg1_pave2, reg2_pave1) == false &&
        SameSide2(reg1_pave2, reg2_pave1, r1r2, junp, thirdseg, smallreg[0])){
 
       assert(reg1_pave2->GetCycleDirection());
@@ -2683,7 +2987,8 @@ called by function FillPave()
       delete result;
 
     }
-    if(reg1_pave2->Intersects(*reg2_pave2) == false &&
+//    if(reg1_pave2->Intersects(*reg2_pave2) == false &&
+      if(PavementIntersection(reg1_pave2, reg2_pave2) == false &&
        SameSide2(reg1_pave2, reg2_pave2, r1r2, junp, thirdseg, smallreg[0])){
 
       assert(reg1_pave2->GetCycleDirection());
@@ -2772,7 +3077,7 @@ called by function FillPave()
 
 //        cout<<"rid1 "<<rid1<<" rid2 "<<rid2<<endl;
 
-//      if(!(rid1 == 1785 && rid2 == 1786))continue;
+//      if(!(rid1 == 340 && rid2 == 2728))continue;
 
       if((MyAlmostEqual(myjuns[i].len1, 0.0)||
           MyAlmostEqual(myjuns[i].len1, routes_length[rid1 - 1])) &&
@@ -2811,7 +3116,7 @@ called by function FillPave()
         }
 
         if(rids.size() != 2 && rids.size() != 6 && rids.size() != 12){
-//            cout<<" rids size "<<rids.size()<<endl;
+
             NewFillPavementDebug(rel, routes, rid1, rid2, &loc,
                         attr_pos1, attr_pos2, rids);
         }
