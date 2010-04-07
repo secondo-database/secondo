@@ -1121,15 +1121,16 @@ fill the gap between two pavements at some junction positions
       int id1 = rid1->GetIntval();
       int id2 = rid2->GetIntval();
 
-      Point* junp = (Point*)jun_tuple->GetAttribute(JUNCTION_POS);
+//      Point* junp = (Point*)jun_tuple->GetAttribute(JUNCTION_POS);
+
 /*      if(!(id1 == 1754 || id2 == 1754)) {
           jun_tuple->DeleteIfAllowed();
           continue;
       }*/
 //      cout<<"rid1 "<<id1<<" rid2 "<<id2<<endl;
 
-      CcReal* meas1 = (CcReal*)jun_tuple->GetAttribute(JUNCTION_ROUTE1_MEAS);
-      CcReal* meas2 = (CcReal*)jun_tuple->GetAttribute(JUNCTION_ROUTE2_MEAS);
+//      CcReal* meas1 = (CcReal*)jun_tuple->GetAttribute(JUNCTION_ROUTE1_MEAS);
+//      CcReal* meas2 = (CcReal*)jun_tuple->GetAttribute(JUNCTION_ROUTE2_MEAS);
 
 //      double len1 = meas1->GetRealval();
 //      double len2 = meas2->GetRealval();
@@ -1147,18 +1148,14 @@ fill the gap between two pavements at some junction positions
       Region* reg2 = (Region*)inborder_tuple2->GetAttribute(attr_pos);
 
 
-/*      if((len1 < delta|| fabs(len1 - routes_length[id1 - 1]) < delta)
-        && (delta < len2 && fabs(len2 - routes_length[id2-1]) > delta)){*/
-        CheckPaveRegion(rid1_pave1,rid2_pave1,rid2_pave2,pavements1,id1,reg2);
-        CheckPaveRegion(rid1_pave2,rid2_pave1,rid2_pave2,pavements2,id1,reg2);
-//      }
+      CheckPaveRegion(rid1_pave1,rid2_pave1,rid2_pave2,pavements1,id1,reg2);
+      CheckPaveRegion(rid1_pave2,rid2_pave1,rid2_pave2,pavements2,id1,reg2);
 
 
-/*      if((len2 < delta|| fabs(len2 - routes_length[id2 - 1]) < delta)
-        && (delta < len1 && fabs(len1 - routes_length[id1-1]) > delta)){*/
-        CheckPaveRegion(rid2_pave1,rid1_pave1,rid1_pave2,pavements1,id2,reg1);
-        CheckPaveRegion(rid2_pave2,rid1_pave1,rid1_pave2,pavements2,id2,reg1);
-//      }
+
+      CheckPaveRegion(rid2_pave1,rid1_pave1,rid1_pave2,pavements1,id2,reg1);
+      CheckPaveRegion(rid2_pave2,rid1_pave1,rid1_pave2,pavements2,id2,reg1);
+
 
       inborder_tuple1->DeleteIfAllowed();
       inborder_tuple2->DeleteIfAllowed();
@@ -1789,6 +1786,7 @@ Extend the line in increasing direction
 
 
       route_tuple1->DeleteIfAllowed();
+      route_tuple2->DeleteIfAllowed();
 
       inborder_tuple1->DeleteIfAllowed();
       inborder_tuple2->DeleteIfAllowed();
