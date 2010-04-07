@@ -212,11 +212,13 @@ bool FlobManager::makeControllable(Flob& flob){
       assert(flob.id.isDestroyed());
       // found an evil flob, create a nice one from it
       if(!create(flob.size,flob)){
+         assert(false);
          return false;
       }
       char* dp = flob.dataPointer;
       flob.dataPointer = 0;
       if(! putData(flob, dp, 0,flob.size,false)){
+       assert(false);
        return false;
       }  
       free(dp);
@@ -232,6 +234,7 @@ void FlobManager::createFromBlock(Flob& result, const char* buffer,
    assert(result.id.isDestroyed());
    assert(result.dataPointer == 0);
    result.dataPointer = (char*) malloc(size);
+   result.size = size;
    memcpy(result.dataPointer, buffer, size);
 }
 
