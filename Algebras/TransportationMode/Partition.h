@@ -512,6 +512,10 @@ ostream& operator<<(ostream& o, const MyAVLSegment& s);
 
 };
 
+/*
+a smaller factor compared with original version of AlmostEqual
+
+*/
 inline bool MyAlmostEqual( const double d1, const double d2 )
 {
   const double factor = 0.00001;
