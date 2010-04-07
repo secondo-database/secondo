@@ -679,8 +679,10 @@ cost factors.
 */
 inline bool AlmostEqual( const double d1, const double d2 )
 {
+
   double diff = fabs(d1-d2);
   return ( diff < FACTOR );
+
 //   double i1, i2;
 //   double dd1 = modf( d1, &i1 ),
 //          dd2 = modf( d2, &i2 );
