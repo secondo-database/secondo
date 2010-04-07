@@ -855,7 +855,7 @@ ListExpr TUPLETypeMap(ListExpr args)
     return nl->TypeError();
   }
   ListExpr first = nl->First(args);
-  if(listutils::isTupleStream(first) || 
+  if(listutils::isTupleStream(first) ||
      listutils::isRelDescription(first)){
     return nl->Second(first);
   }
@@ -1047,10 +1047,10 @@ class FeedLocalInfo: public ProgressLocalInfo
 {
 public:
   FeedLocalInfo() : rit(0) {}
-  ~FeedLocalInfo() { 
-     if (rit) { 
-        delete rit; rit = 0; 
-     } 
+  ~FeedLocalInfo() {
+     if (rit) {
+        delete rit; rit = 0;
+     }
   }
 
   GenericRelationIterator* rit;
@@ -1300,16 +1300,16 @@ class FeedProjLocalInfo : public FeedLocalInfo
   public:
     double argTupleSize;
 
-    FeedProjLocalInfo(TupleType* ptr) : 
+    FeedProjLocalInfo(TupleType* ptr) :
       FeedLocalInfo(), argTupleSize(0), tt(ptr)
     {
        returned = 0;
     }
-    ~FeedProjLocalInfo() 
-    { 
+    ~FeedProjLocalInfo()
+    {
        if ( tt->DeleteIfAllowed() ) {
 	 tt = 0;
-       }	 
+       }
     }
 
   private:
@@ -1785,7 +1785,7 @@ const string ConsumeSpec  =
   "<text>query cities feed consume</text--->"
   ") )";
 
-const string OConsumeSpec = 
+const string OConsumeSpec =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" "
   "\"Example\" ) "
   "( <text>(stream (tuple(a1:t1 ... an:tn) x (ai aj ak) -> "
@@ -1872,12 +1872,12 @@ ListExpr AttrTypeMap(ListExpr args)
   ListExpr attrtype;
   int j = listutils::findAttribute(nl->Second(first),name,attrtype);
   if(j==0){
-    ErrorReporter::ReportError("Attr name " + name + 
+    ErrorReporter::ReportError("Attr name " + name +
                                " not found in attribute list");
     return nl->TypeError();
   }
   return nl->ThreeElemList(nl->SymbolAtom("APPEND"),
-                           nl->OneElemList(nl->IntAtom(j)), 
+                           nl->OneElemList(nl->IntAtom(j)),
                            attrtype);
 }
 /*
@@ -1961,8 +1961,8 @@ ListExpr FilterTypeMap(ListExpr args)
   ListExpr map = nl->Second(args);
   if(!listutils::isMap<1>(map)){
      ErrorReporter::ReportError("map expected as the second argument");
-     return nl->TypeError(); 
-  }     
+     return nl->TypeError();
+  }
 
   ListExpr mapres = nl->Third(map);
   if(!nl->IsEqual(mapres,"bool")){
@@ -2277,20 +2277,20 @@ ListExpr reduce_tm(ListExpr args)
     ErrorReporter::ReportError("first arguments must be a tuple stream");
     return nl->TypeError();
   }
-  
+
   if(!listutils::isMap<1>(second)){
     ErrorReporter::ReportError("second argument must be a map");
     return nl->TypeError();
   }
-  
+
   if(!nl->IsEqual(nl->Third(second),"bool")){
     ErrorReporter::ReportError("resulttype of the map (2. arg) must be bool");
     return nl->TypeError();
   }
-  
+
   if(!nl->Equal(nl->Second(first), nl->Second(second))){
     ErrorReporter::ReportError("different typle types in stream and map");
-    return nl->TypeError(); 
+    return nl->TypeError();
   }
 
   if(!nl->IsEqual(third,"int")){
@@ -2463,7 +2463,7 @@ ListExpr ProjectTypeMap(ListExpr args)
     ErrorReporter::ReportError("non empty attribute name list"
                                " expected as second argument");
     return nl->TypeError();
-  } 
+  }
 
   noAttrs = nl->ListLength(second);
   set<string> attrNames;
@@ -2847,7 +2847,7 @@ ListExpr RemoveTypeMap(ListExpr args)
 
   first = nl->First(args);
   second = nl->Second(args);
-   
+
   if(!listutils::isTupleStream(first)){
     ErrorReporter::ReportError("first argument is not a tuple stream");
     return nl->TypeError();
@@ -2878,7 +2878,7 @@ ListExpr RemoveTypeMap(ListExpr args)
       return nl->SymbolAtom("typeerror");
     }
 
-    j = listutils::findAttribute(nl->Second(nl->Second(first)), 
+    j = listutils::findAttribute(nl->Second(nl->Second(first)),
                                  attrname, attrtype);
     if (j)  removeSet.insert(j);
     else
@@ -3012,9 +3012,9 @@ ListExpr ProductTypeMap(ListExpr args)
 
   ListExpr list1 = nl->Second(nl->Second(first));
   ListExpr list2 = nl->Second(nl->Second(second));
- 
+
   ListExpr list = ConcatLists(list1, list2);
-  
+
   if(!listutils::isAttrList(list)){
     ErrorReporter::ReportError("name conflict in concatenated tuples");
     return nl->TypeError();
@@ -3835,7 +3835,7 @@ returns an integer.
 ListExpr
 RootTupleSizeTypeMap(ListExpr args)
 {
- 
+
   if(nl->ListLength(args)!=1){
     ErrorReporter::ReportError("one argument expected");
     return nl->TypeError();
@@ -4191,18 +4191,18 @@ an attribute name identifier and returns an integer.
 ListExpr
 RootAttrSizeTypeMap(ListExpr args)
 {
-  
+
   if(nl->ListLength(args)!=2){
     ErrorReporter::ReportError("two arguments expected");
     return nl->TypeError();
-  } 
+  }
 
   ListExpr first = nl->First(args);
   ListExpr second = nl->Second(args);
 
   if(!listutils::isRelDescription(first) &&
      !listutils::isTupleStream(first)){
-   ErrorReporter::ReportError("rel(tuple(...)) or stream(tuple(...))" 
+   ErrorReporter::ReportError("rel(tuple(...)) or stream(tuple(...))"
                               " x ident expected");
    return nl->TypeError();
   }
@@ -4210,10 +4210,10 @@ RootAttrSizeTypeMap(ListExpr args)
   if(nl->AtomType(second)!=SymbolType){
     ErrorReporter::ReportError("invalid attribut name as second arg");
     return nl->TypeError();
-  } 
+  }
   string attrname = nl->SymbolValue(second);
   ListExpr attrtype;
-  int j = listutils::findAttribute(nl->Second(nl->Second(first)), 
+  int j = listutils::findAttribute(nl->Second(nl->Second(first)),
                                    attrname, attrtype);
   if (!j)
   {
@@ -4340,14 +4340,14 @@ ExtAttrSizeTypeMap(ListExpr args)
   if(nl->ListLength(args)!=2){
     ErrorReporter::ReportError("two arguments expected");
     return nl->TypeError();
-  } 
+  }
 
   ListExpr first = nl->First(args);
   ListExpr second = nl->Second(args);
 
   if(!listutils::isRelDescription(first) &&
      !listutils::isTupleStream(first)){
-   ErrorReporter::ReportError("rel(tuple(...)) or stream(tuple(...))" 
+   ErrorReporter::ReportError("rel(tuple(...)) or stream(tuple(...))"
                               " x ident expected");
    return nl->TypeError();
   }
@@ -4355,10 +4355,10 @@ ExtAttrSizeTypeMap(ListExpr args)
   if(nl->AtomType(second)!=SymbolType){
     ErrorReporter::ReportError("invalid attribut name as second arg");
     return nl->TypeError();
-  } 
+  }
   string attrname = nl->SymbolValue(second);
   ListExpr attrtype;
-  int j = listutils::findAttribute(nl->Second(nl->Second(first)), 
+  int j = listutils::findAttribute(nl->Second(nl->Second(first)),
                                    attrname, attrtype);
   if (!j)
   {
@@ -4486,14 +4486,14 @@ AttrSizeTypeMap(ListExpr args)
   if(nl->ListLength(args)!=2){
     ErrorReporter::ReportError("two arguments expected");
     return nl->TypeError();
-  } 
+  }
 
   ListExpr first = nl->First(args);
   ListExpr second = nl->Second(args);
 
   if(!listutils::isRelDescription(first) &&
      !listutils::isTupleStream(first)){
-   ErrorReporter::ReportError("rel(tuple(...)) or stream(tuple(...))" 
+   ErrorReporter::ReportError("rel(tuple(...)) or stream(tuple(...))"
                               " x ident expected");
    return nl->TypeError();
   }
@@ -4501,10 +4501,10 @@ AttrSizeTypeMap(ListExpr args)
   if(nl->AtomType(second)!=SymbolType){
     ErrorReporter::ReportError("invalid attribut name as second arg");
     return nl->TypeError();
-  } 
+  }
   string attrname = nl->SymbolValue(second);
   ListExpr attrtype;
-  int j = listutils::findAttribute(nl->Second(nl->Second(first)), 
+  int j = listutils::findAttribute(nl->Second(nl->Second(first)),
                                    attrname, attrtype);
   if (!j)
   {
@@ -5121,9 +5121,9 @@ RenameTypeMap( ListExpr args )
       if (nl->IsAtom(type)&&(nl->SymbolValue(type) == "arel"))
           return nl->SymbolAtom("typeerror");
     }
-    tup = nl->Rest(tup); 
+    tup = nl->Rest(tup);
   }
-  
+
   rest = nl->Second(nl->Second(first));
   while (!(nl->IsEmpty(rest)))
   {
@@ -5195,7 +5195,7 @@ ListExpr RenameAttrTypeMap(ListExpr args){
   string errmsg;
   if(!listutils::replaceAttributes(attrList, renameMap, resAttrList, errmsg)){
     return listutils::typeError(errmsg);
-  }  
+  }
   return nl->TwoElemList( nl->SymbolAtom("stream"),
                           nl->TwoElemList(nl->SymbolAtom("tuple"),
                                           resAttrList));
