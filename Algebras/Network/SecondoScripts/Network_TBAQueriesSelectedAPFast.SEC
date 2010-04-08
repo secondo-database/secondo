@@ -27,8 +27,7 @@ query now();
 
 let Q3aTBA =
   QueryLicences1 feed {l}
-  loopsel[dataMcar_Licence_btree dataMcar exactmatch[.Licence_l]
-    project[Licence, Moid] {ll}]
+  loopsel[dataMcar_Licence_btree dataMcar exactmatch[.Licence_l] {ll}]
   loopjoin[dataMNtrip_Moid_btree dataMNtrip exactmatch[.Moid_ll]]
   QueryInstant1 feed {i}
   symmjoin [.Trip present ..Instant_i]
@@ -115,7 +114,6 @@ delete Q6bh1TBA;
 # cars  during the complete observation period?
 
 query now();
-
 let Q7ah1TBA =
   QueryPointsNet feed
   projectextend[Id, Pos; Prect: gpoint2rect(.Pos)]
@@ -224,12 +222,11 @@ let Q10dTBA =
 
 query now();
 
-let Q11aTBA =
+let Q11TBA =
   QueryInstant1 feed {i}
   QueryPoints1Net feed projectextend[Id, Pos; Prect: gpoint2rect(.Pos)]{p}
   product
-  projectextend [Instant_i, Id_p, Pos_p; BBox: box3d(.Prect_p, .Instant_i)]
-  loopsel[fun(t:TUPLE) dataMNtrip_BoxNet_timespace windowintersectsS[attr(t,BBox)]
+  loopsel[fun(t:TUPLE) dataMNtrip_BoxNet_timespace windowintersectsS[box3d(attr(t,Prect_p), attr(t,Instant_i))]
   sort rdup dataMNtrip gettuples
   projectextend [Moid; Id: attr(t,Id_p), Instant: attr(t,Instant_i)]]{a}
   loopjoin[dataMcar_Moid_btree dataMcar exactmatch[.Moid_a]]
@@ -330,25 +327,28 @@ let Q16bTBA =
   QueryLicences1 feed {l}
   loopjoin [dataMcar_Licence_btree dataMcar exactmatch[.Licence_l]] {a}
   loopjoin[dataMNtrip_Moid_btree dataMNtrip exactmatch[.Moid_a]]
+  QueryPeriods1 feed filter[not(isempty(.Period))]{p}
+  symmjoin [.Trip present ..Period_p]
+  projectextend[Id_p, Period_p; Licence: .Licence_a, Trip: .Trip atperiods .Period_p]
+  filter[no_components(.Trip)>0]
   QueryRegions1Net feed filter[not(isempty(.Region))]{r}
   symmjoin [.Trip passes ..Region_r]
-  projectextend[Licence_a, Id_r; Trip: .Trip at .Region_r]
-  QueryPeriods1 feed {p}
-  symmjoin [.Trip present ..Period_p]
-  projectextend[Id_r, Id_p, Period_p; Licence: .Licence_a, Trip: .Trip atperiods .Period_p]
+  projectextend[Licence, Id_p, Period_p, Id_r; Trip: .Trip at .Region_r]
   filter [no_components(.Trip) > 0]{a}
   QueryLicences2 feed {l}
   loopjoin [dataMcar_Licence_btree dataMcar exactmatch[.Licence_l]]{a}
   loopjoin[dataMNtrip_Moid_btree dataMNtrip exactmatch[.Moid_a]]
+  QueryPeriods1 feed filter[not(isempty(.Period))]{p}
+  symmjoin [.Trip present ..Period_p]
+  projectextend[Id_p, Period_p; Licence: .Licence_a, Trip: .Trip atperiods .Period_p]
+  filter[no_components(.Trip)>0]
   QueryRegions1Net feed filter[not(isempty(.Region))]{r}
   symmjoin [.Trip passes ..Region_r]
-  projectextend[Licence_a, Id_r; Trip: .Trip at .Region_r]
-  QueryPeriods1 feed {p}
-  symmjoin [.Trip present ..Period_p]
-  projectextend[Id_r, Id_p, Period_p; Licence: .Licence_a, Trip: .Trip atperiods .Period_p]
+  projectextend[Licence, Id_p, Id_r; Trip: .Trip at .Region_r]
   filter [no_components(.Trip) > 0]{b}
-  symmjoin[(.Id_r_a = ..Id_r_b) and (.Id_p_a = ..Id_p_b) and (.Licence_a # ..Licence_b) and
-  (isempty(deftime(intersection(.Trip_a,..Trip_b))))]
+  symmjoin[(.Id_r_a = ..Id_r_b) and (.Id_p_a = ..Id_p_b)]
+  filter[.Licence_a # .Licence_b]
+  filter [not(.Trip_a intersects .Trip_b)]
   project [Id_r_a, Id_p_a, Period_p_a, Licence_a, Licence_b]
   sortby [Id_r_a asc, Id_p_a asc, Licence_a asc, Licence_b asc]
   krdup [Id_r_a, Id_p_a, Licence_a, Licence_b]

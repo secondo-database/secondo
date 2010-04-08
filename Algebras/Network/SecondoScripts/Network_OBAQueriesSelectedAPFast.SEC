@@ -264,24 +264,27 @@ query now();
 let Q16bOBA =
  QueryLicences1 feed {l}
   loopjoin [dataSNcar_Licence_btree dataSNcar exactmatch [.Licence_l]] {c}
-  QueryRegions1Net feed filter[not(isempty(.Region))] {r}
-  symmjoin[.Trip_c passes ..Region_r]
-  projectextend[Licence_c, Id_r, Region_r; Trip: .Trip_c at .Region_r]
   QueryPeriods1 feed filter[not(isempty(.Period))]{p}
-  symmjoin [.Trip present ..Period_p]
-  projectextend[Id_r, Region_r, Id_p, Period_p; Licence: .Licence_c, Trip: .Trip atperiods .Period_p]
+  symmjoin [.Trip_c present ..Period_p]
+  projectextend[Id_p, Period_p; Licence: .Licence_c, Trip: .Trip_c atperiods .Period_p]
+  filter [no_components(.Trip) > 0]
+  QueryRegions1Net feed filter[not(isempty(.Region))] {r}
+  symmjoin[.Trip passes ..Region_r]
+  projectextend[Licence, Id_r, Region_r, Id_p, Period_p; Trip: .Trip at .Region_r]
   filter [no_components(.Trip) > 0]{a}
   QueryLicences2 feed {l}
   loopjoin [dataSNcar_Licence_btree dataSNcar exactmatch [.Licence_l]] {c}
-  QueryRegions1Net feed filter[not(isempty(.Region))] {r}
-  symmjoin[.Trip_c passes ..Region_r]
-  projectextend[Licence_c, Id_r, Region_r; Trip: .Trip_c at .Region_r]
   QueryPeriods1 feed filter[not(isempty(.Period))]{p}
-  symmjoin [.Trip present ..Period_p]
-  projectextend[Id_r, Region_r, Id_p, Period_p; Licence: .Licence_c, Trip: .Trip atperiods .Period_p]
+  symmjoin [.Trip_c present ..Period_p]
+  projectextend[Id_p, Period_p; Licence: .Licence_c, Trip: .Trip_c atperiods .Period_p]
+  filter [no_components(.Trip) > 0]
+  QueryRegions1Net feed filter[not(isempty(.Region))] {r}
+  symmjoin[.Trip passes ..Region_r]
+  projectextend[Licence, Id_r, Region_r, Id_p, Period_p; Trip: .Trip at .Region_r]
   filter [no_components(.Trip) > 0]{b}
-  symmjoin[(.Licence_a # ..Licence_b) and (.Id_r_a = ..Id_r_b) and (.Id_p_a = ..Id_p_b)]
-  filter[isempty(deftime(intersection(.Trip_a,.Trip_b)))]
+  symmjoin[(.Id_r_a = ..Id_r_b) and (.Id_p_a = ..Id_p_b)]
+  filter [.Licence_a # .Licence_b]
+  filter[not(.Trip_a intersects .Trip_b)]
   project [Id_r_a, Period_p_a, Licence_a, Licence_b]
 consume;
 
