@@ -46,7 +46,7 @@ types and functions implemented by the Relation Algebra module.
 
 #include "NestedRelationAlgebra.h"
 #include "ListUtils.h"
-#include "Progress.h"
+
 /*
 
 3 Implementation of class AttributeRelation
@@ -1395,15 +1395,12 @@ ListExpr feedTypeMap(ListExpr args)
 5.1.2 Value mapping function of operator ~feed~
 
 */
-
-#ifndef USE_PROGRESS
-
 int
 feed(Word* args, Word& result, int message, Word& local, Supplier s)
 {
-  NestedRelation* nr=0;
-  Relation* r=0;
-  GenericRelationIterator* rit=0;
+  NestedRelation* nr;
+  Relation* r;
+  GenericRelationIterator* rit;
   switch (message)
   {
     case OPEN :
@@ -1438,145 +1435,6 @@ feed(Word* args, Word& result, int message, Word& local, Supplier s)
   return 0;
 }
 
-#else
-
-class nFeedLocalInfo: public ProgressLocalInfo
-{
-  public:
-    nFeedLocalInfo() : rit(0) {}
-    ~nFeedLocalInfo() {
-      if (this->rit) {
-        delete this->rit; this->rit = 0;
-      }
-    }
-
-    GenericRelationIterator* rit;
-};
-
-int
-    feed(Word* args, Word& result, int message, Word& local, Supplier s)
-{
-  NestedRelation* nr=0;
-  Relation* r=0;
-  
-  switch (message)
-  {
-    case OPEN :{
-      nr = (NestedRelation*)args[0].addr;
-      r = nr->getPrimary();
-      nFeedLocalInfo* fli = (nFeedLocalInfo*) local.addr;
-      if ( fli ) delete fli;
-
-      fli = new nFeedLocalInfo();
-      fli->returned = 0;
-      fli->total = r->GetNoTuples();
-      fli->rit = r->MakeScan();
-      local.setAddr(fli);
-      return 0;
-    }
-    case REQUEST :{
-      nFeedLocalInfo* fli = (nFeedLocalInfo*) local.addr;
-      if (!fli) return CANCEL;
-      GenericRelationIterator* rit = (GenericRelationIterator*)fli->rit;
-      if (!rit) return CANCEL;
-      Tuple *t;
-      if ((t = rit->GetNextTuple()) != 0)
-      {
-        fli->returned++;
-        result.setAddr(t);
-        return YIELD;
-      }
-      else
-      {
-        return CANCEL;
-      }
-    }
-    case CLOSE :{
-      nFeedLocalInfo* fli = (nFeedLocalInfo*) local.addr;
-      if (!fli) return CANCEL;
-      GenericRelationIterator* rit = (GenericRelationIterator*)fli->rit;
-      if (!rit) return CANCEL;
-      fli->rit=0;
-      delete rit;
-      //delete fli;
-      //local.setAddr(0);
-      return 0;
-    }
-    case CLOSEPROGRESS:{
-      return 0;
-    }
-    case REQUESTPROGRESS:{
-      Supplier sonOfFeed;
-      nr = (NestedRelation*)args[0].addr;
-      r = nr->getPrimary();
-
-      ProgressInfo p1;
-      ProgressInfo *pRes=0;
-      const double uFeed = 0.003838721; //milliseconds per tuple
-
-      pRes = (ProgressInfo*) result.addr;
-      nFeedLocalInfo* fli = (nFeedLocalInfo*) local.addr;
-      sonOfFeed = qp->GetSupplierSon(s, 0);
-      if (!fli) return CANCEL;
-      fli->sizesChanged = false;
-      if ( !fli->sizesInitialized )
-      {
-        fli->noAttrs = nl->ListLength(nl->Second(nl->Second(qp->GetType(s))));
-        fli->attrSize = new double[fli->noAttrs];
-        fli->attrSizeExt = new double[fli->noAttrs];
-        fli->Size =  0;
-        fli->SizeExt =  0;
-
-        for ( int i = 0;  i < fli->noAttrs; i++)
-        {
-          fli->attrSize[i] = r->GetTotalSize(i) / (fli->total + 0.001);
-          fli->attrSizeExt[i] = r->GetTotalExtSize(i) / (fli->total + 0.001);
-
-          fli->Size += fli->attrSize[i];
-          fli->SizeExt += fli->attrSizeExt[i];
-        }
-        fli->sizesInitialized = true;
-        fli->sizesChanged = true;
-      }
-
-      if ( qp->IsObjectNode(sonOfFeed) )
-      { // supplier is an object node
-        pRes->Card = (double) fli->total;
-        pRes->CopySizes(fli);  //copy all sizes
-        if (fli->total)
-          pRes->Time = fli->total * uFeed;
-        else
-          pRes->Time = 0.001;  //any time created must be > 0
-        pRes->Progress = fli->returned * uFeed
-          / pRes->Time;
-        pRes->BTime = 0.001; //time must not be 0
-        pRes->BProgress = 1.0;
-
-        return YIELD;
-      }
-      else //supplier is not an object node
-      {
-        if (!qp->RequestProgress(sonOfFeed, &p1)) return CANCEL;
-        pRes->Card = p1.Card;
-        pRes->CopySizes(p1);
-        pRes->Time = p1.Time + p1.Card * uFeed;
-        pRes->Progress =
-            ((p1.Progress * p1.Time) + fli->returned * uFeed)
-            / pRes->Time;
-        pRes->BTime = p1.Time;
-        pRes->BProgress = p1.Progress;
-        return YIELD;
-      }
-    }
-    return 0;
-  }
-  return 0;
-}
-
-
-#endif
-
-
 /*
 5.1.3 Specification of operator ~feed~
 
@@ -1594,7 +1452,6 @@ struct feedInfo : OperatorInfo {
   }
 };
 
-Operator nfeed(feedInfo(), feed, feedTypeMap);
 /*
 5.2 Operator ~consume~
 
@@ -1660,8 +1517,6 @@ ListExpr consumeTypeMap(ListExpr args)
 5.2.2 Value mapping function of operator ~consume~
 
 */
-
-#ifndef USE_PROGRESS
 int
 consume(Word* args, Word& result, int message,
         Word& local, Supplier s)
@@ -1696,122 +1551,7 @@ consume(Word* args, Word& result, int message,
   qp->Close(args[0].addr);
   return 0;
 }
-#else
-class consumeLocalInfo: public ProgressLocalInfo
-{
-  public:
-    int state;      //0 = working, 1 = finished
-    int numSubTuples;
-    int numSubRels;
-    unsigned int currentSubRel;
-};
 
-int
-    consume(Word* args, Word& result, int message,
-            Word& local, Supplier s)
-{
-  consumeLocalInfo* cli;
-  if ( message <= CLOSE )     //normal evaluation
-  {
-    Word actual;
-    NestedRelation* nrel = (NestedRelation*)(qp->ResultStorage(s).addr);
-    Relation* rel = nrel->getPrimary();
-    cli = (consumeLocalInfo*) local.addr;
-    if ( cli ) delete cli;    //needed if consume used in a loop
-    cli = new consumeLocalInfo();
-    cli->state = 0;
-    cli->read = 0;
-    cli->numSubTuples = 0;
-    cli->numSubRels = 0;
-    cli->currentSubRel = 0;
-    local.setAddr(cli);
-
-    if(rel->GetNoTuples() > 0)
-    {
-      rel->Clear();
-    }
-    vector<SubRelation*>* srels = nrel->getSubRels();
-    cli->numSubRels = srels->size();
-    for (cli->currentSubRel = 0; cli->currentSubRel < srels->size();
-         cli->currentSubRel++)
-    {
-      int numTuples = srels->at(cli->currentSubRel)->rel->GetNoTuples();
-      if(numTuples > 0)
-      {
-        cli->numSubTuples+=numTuples;
-        srels->at(cli->currentSubRel)->rel->Clear();
-      }
-    }
-    qp->Open(args[0].addr);
-    qp->Request(args[0].addr, actual);
-    Tuple* tuple;
-    while (qp->Received(args[0].addr))
-    {
-      tuple = (Tuple*)actual.addr;
-      nrel->AppendTuple(tuple);
-      tuple->DeleteIfAllowed();
-      cli->read++;
-      qp->Request(args[0].addr, actual);
-    }
-    result.setAddr(nrel);
-    qp->Close(args[0].addr);
-    cli->state = 1;
-    return 0;
-  }
-  else if ( message == CLOSEPROGRESS )
-  {
-    cli = (consumeLocalInfo*) local.addr;
-    if ( cli ){
-      local.setAddr(0);
-      delete cli;
-    }
-    return 0;
-  }
-  else if ( message == REQUESTPROGRESS )
-  {
-    ProgressInfo p1;
-    ProgressInfo* pRes;
-    const double uConsume = 0.1160440879;   //millisecs per tuple
-    cli = (consumeLocalInfo*) local.addr;
-    pRes = (ProgressInfo*) result.addr;
-    if ( qp->RequestProgress(args[0].addr, &p1) )
-    {
-      pRes->Card = p1.Card; // cardinality does not change
-      pRes->CopySizes(p1);  // sizes do not change
-      pRes->Time = p1.Time + p1.Card * uConsume;
-      if ( cli == 0 )  // consume not yet active
-      {
-        pRes->Progress = (p1.Progress * p1.Time) / pRes->Time;
-      }
-      else // consume is active
-      {
-        if ( cli->state == 0 ) // consume is working
-        {
-          if ( p1.BTime < 0.1 && pipelinedProgress )   //non-blocking,
-                                                       //use pipelining
-            pRes->Progress = p1.Progress;
-          else
-            pRes->Progress =
-                (p1.Progress * p1.Time + cli->read * uConsume)
-                / pRes->Time;
-        }
-        else // consume is finished
-        {
-          pRes->Progress = 1.0;
-        }
-      }
-      // consume is a blocking operator, all times and progress is blocking
-      pRes->BTime = pRes->Time;
-      pRes->BProgress = pRes->Progress;
-      return YIELD;
-    }
-    else return CANCEL;
-  }
-  return 0;
-}
-
-
-#endif
 /*
 5.2.3 Specification of operator ~consume~
 
@@ -1828,8 +1568,6 @@ struct consumeInfo : OperatorInfo {
   }
 
 };
-
-Operator nconsume(consumeInfo(), consume, consumeTypeMap);
 
 /*
 5.3 Operator ~afeed~ 
@@ -1871,8 +1609,6 @@ ListExpr aFeedTypeMap(ListExpr args)
 5.3.2 Value mapping function of operator ~afeed~
 
 */
-
-#ifndef USE_PROGRESS
 struct AfInfo 
 {
   AfInfo (int i) : index(i){}
@@ -1932,96 +1668,6 @@ aFeed(Word* args, Word& result, int message, Word& local, Supplier s)
   }
   return 0;
 }
-#else
-
-class AfInfo: public ProgressLocalInfo 
-{
-  public:
-    AfInfo (int i) : index(i){}
-    int index;
-};
-
-int
-    aFeed(Word* args, Word& result, int message, Word& local, Supplier s)
-{
-  AfInfo* info;
-  AttributeRelation* arel;
-  Relation* r;
-  Tuple* t;
-  switch (message)
-  {
-    case OPEN :
-      info = new AfInfo(0);
-      local.addr = info;
-      return 0;
-
-    case REQUEST :
-      info = (AfInfo*)local.addr;
-      arel = (AttributeRelation*) args[0].addr;
-      if (!arel->isPartOfNrel() && (int)arel->getRelId() == -1)
-      {
-        delete info;
-        local.setAddr(0);
-        cout << endl << "WARNING: arel is not an attribute "
-            "of a nested relation. Result of operation"
-            " will be empty" << endl << endl;
-        return CANCEL;
-      }
-      r = Relation::GetRelation( arel->getRelId() );
-      TupleId tid;
-      if (info->index < arel->getTupleIds()->Size())
-      {
-        arel->getTupleIds()->Get(info->index, tid);
-        t = r->GetTuple(tid);
-        info->index++;
-        result.setAddr(t);
-        return YIELD;
-      }
-      else
-      {
-        return CANCEL;
-      }
-      return 0;
-
-    case CLOSE :
-      if(local.addr)
-      {
-        info = (AfInfo*)local.addr;
-        delete info;
-        local.addr = 0;
-      }
-      return 0;
-    case CLOSEPROGRESS:
-      return 0;
-    case REQUESTPROGRESS:
-      info = (AfInfo*)local.addr;
-      arel = (AttributeRelation*) args[0].addr;
-      if (!arel) return CANCEL;
-      if (!info) return CANCEL;
-      const double uAFeed = 0.00131864;    //milliseconds per tuple
-      const double vAFeed = 0.0000760091;  //milliseconds per Byte
-
-      ProgressInfo* pRes;
-      pRes = (ProgressInfo*) result.addr;
-
-      pRes->Card = arel->getTupleIds()->Size();
-      pRes->Time = (pRes->Card + 1) * (uAFeed + 0 * vAFeed);
-
-      //any time value created must be > 0; so we add 1
-
-      pRes->Progress = info->index * (uAFeed + 0 * vAFeed)
-        / pRes->Time;
-
-      pRes->BTime = 0.001; //time must not be 0
-      pRes->BProgress = 1.0;
-
-      return YIELD;
-      return 0;
-  }
-  return 0;
-}
-
-#endif
 
 /*
 5.3.3 Specification of operator ~afeed~
@@ -2040,7 +1686,6 @@ struct aFeedInfo : OperatorInfo {
   }
 };
 
-Operator afeed(aFeedInfo(), aFeed, aFeedTypeMap);
 /*
 5.4 Operator ~aconsume~
 
@@ -2363,9 +2008,6 @@ check, if attributes in first argument exist in primary. If not append to subrel
 5.5.2 Auxiliary struct for function ~nest~
 
 */
-
-#ifndef USE_PROGRESS
-
 struct NestInfo
 {
   bool endOfStream;
@@ -2587,284 +2229,6 @@ nestValueMap(Word* args, Word& result, int message,
 return 0;  
 }
 
-#else
-
-class NestInfo: public ProgressLocalInfo
-{
-  public:
-    bool endOfStream;
-    SmiFileId fileId;
-    Tuple* lastTuple;
-    Relation* subrel;
-    int primaryLength;
-    int subrelLength;
-    bool firstCall;
-    TupleType* subTupleType;
-    TupleType* tupleType;
-    AttributeRelation* arel;
-    ListExpr relInfo;
-    ListExpr arelInfo;
-};
-
-/*
-5.5.3 Value mapping function of operator ~nest~
-
-*/
-int
-    nestValueMap(Word* args, Word& result, int message,
-                 Word& local, Supplier s)
-{
-  NestInfo* localinfo;
-  Supplier son;
-  Word elem1, elem2;
-  Tuple* current;
-  int index;
-  Tuple* tuple;
-  Tuple* subtuple;
-  switch (message)
-  {
-    case OPEN :
-    {
-      localinfo = (NestInfo*)local.addr;
-      if (!localinfo)
-      {
-        localinfo = new NestInfo();
-        ListExpr resultType = GetTupleResultType( s );
-        localinfo->relInfo = resultType;
-        localinfo->tupleType = new TupleType(nl->Second(localinfo->relInfo));
-        localinfo->primaryLength = ((CcInt*)args[3].addr)->GetIntval();
-         //search for arel type information
-        NList rest = NList(nl->Second(nl->Second(resultType)));
-        for (int i = 0; i < localinfo->primaryLength; i++)
-          rest.rest();
-        localinfo->arelInfo = rest.first().second().listExpr();
-        localinfo->subTupleType = new TupleType(
-            rest.first().second().second().listExpr());
-        localinfo->subrelLength =  ((CcInt*)args[4].addr)->GetIntval();
-         
-        localinfo->subrel = new Relation(localinfo->subTupleType);
-        localinfo->fileId = localinfo->subrel->GetFileId();
-        local.addr = localinfo;
-      }
-      localinfo->firstCall = true;
-      localinfo->endOfStream = false;
-      qp->Open(args[0].addr);
-      return 0;
-    }
-    case REQUEST :
-    {
-      localinfo = (NestInfo*)local.addr;
-      if (!(localinfo->endOfStream))
-      {
-        bool equal = true;
-        if ((localinfo->firstCall))
-        {
-          qp->Request(args[0].addr, elem1);
-          if (qp->Received(args[0].addr))
-          {
-            localinfo->read=1;
-            current = (Tuple*)elem1.addr;
-            localinfo->lastTuple =(Tuple*)elem1.addr;
-            localinfo->firstCall = false;
-            localinfo->arel = new AttributeRelation(localinfo->fileId,
-                localinfo->arelInfo);
-            tuple = new Tuple( localinfo->tupleType );
-            subtuple = new Tuple (localinfo->subTupleType);
-          }
-          else
-          {
-            return CANCEL;
-          }
-        }
-        else
-        {
-          localinfo->arel = new AttributeRelation(localinfo->fileId,
-              localinfo->arelInfo);
-          current = localinfo->lastTuple;
-          tuple = new Tuple( localinfo->tupleType );
-          subtuple = new Tuple (localinfo->subTupleType);
-        }
-        assert( tuple->GetNoAttributes() == localinfo->primaryLength + 1);
-        assert( subtuple->GetNoAttributes() == localinfo->subrelLength);
-        for (int i = 0; i < localinfo->primaryLength; i++)
-        {
-          son = qp->GetSupplier(args[5].addr, i);
-          qp->Request(son, elem2);
-          index = ((CcInt*)elem2.addr)->GetIntval();
-          tuple->CopyAttribute(index-1, current, i);
-        }
-        for (int i = 0; i < localinfo->subrelLength; i++)
-        {
-          son = qp->GetSupplier(args[6].addr, i);
-          qp->Request(son, elem2);
-          index = ((CcInt*)elem2.addr)->GetIntval();
-          subtuple->CopyAttribute(index-1, current, i);
-        }
-        localinfo->subrel->AppendTuple(subtuple);
-        localinfo->arel->Append(subtuple->GetTupleId());
-        subtuple->DeleteIfAllowed();
-        tuple->PutAttribute(localinfo->primaryLength, localinfo->arel);
-        qp->Request(args[0].addr, elem1);
-        if (qp->Received(args[0].addr))
-        {
-          localinfo->read++;
-          current = (Tuple*)elem1.addr;
-          Attribute* attr1;
-          Attribute* attr2;
-          for (int i = 0; i < localinfo->primaryLength; i++)
-          {
-            son = qp->GetSupplier(args[5].addr, i);
-            qp->Request(son, elem2);
-            index = ((CcInt*)elem2.addr)->GetIntval();
-            attr1 = localinfo->lastTuple->GetAttribute(index - 1);
-            attr2 = current->GetAttribute(index - 1);
-            if (!(attr1->Compare(attr2) == 0))
-            {
-              equal = false;
-              break;
-            }
-          }
-          while(equal)
-          {
-            subtuple = new Tuple (localinfo->subTupleType);
-            for (int i = 0; i < localinfo->subrelLength; i++)
-            {
-              son = qp->GetSupplier(args[6].addr, i);
-              qp->Request(son, elem2);
-              index = ((CcInt*)elem2.addr)->GetIntval();
-              subtuple->CopyAttribute(index-1, current, i);
-            }
-            localinfo->subrel->AppendTuple(subtuple);
-            localinfo->arel->Append(subtuple->GetTupleId());
-            subtuple->DeleteIfAllowed();
-            current->DeleteIfAllowed();
-            current = 0;
-            qp->Request(args[0].addr, elem1);
-            if (qp->Received(args[0].addr))
-            {
-              localinfo->read++;
-              current = (Tuple*)elem1.addr;
-              Attribute* attr1;
-              Attribute* attr2;
-              for (int i = 0; i < localinfo->primaryLength; i++)
-              {
-                son = qp->GetSupplier(args[5].addr, i);
-                qp->Request(son, elem2);
-                index = ((CcInt*)elem2.addr)->GetIntval();
-                attr1 = localinfo->lastTuple->GetAttribute(index - 1);
-                attr2 = current->GetAttribute(index - 1);
-                if (!(attr1->Compare(attr2) == 0))
-                {
-                  equal = false;
-                }
-              }
-            }
-            else
-            {
-              localinfo->endOfStream = true;
-              result.setAddr(tuple);
-              return YIELD;
-            }
-          }
-          localinfo->lastTuple->DeleteIfAllowed();
-          localinfo->lastTuple = current;
-          localinfo->arel->getTupleIds()->TrimToSize();
-          result.setAddr(tuple);
-          return YIELD;
-        }
-        else
-        {
-          localinfo->endOfStream = true;
-          result.setAddr(tuple);
-          return YIELD;
-        }
-      }
-      else
-      {
-        return CANCEL;
-      }
-    }
-    case CLOSE :
-    {
-      if(local.addr)
-      {
-        localinfo = (NestInfo*)local.addr;
-        if (localinfo->lastTuple)
-          localinfo->lastTuple->DeleteIfAllowed();
-      }
-      qp->Close(args[0].addr);
-      return 0;
-    }
-    case CLOSEPROGRESS :
-    {
-      if(local.addr)
-      {
-        localinfo = (NestInfo*)local.addr;
-        localinfo->tupleType->DeleteIfAllowed();
-        localinfo->subTupleType->DeleteIfAllowed();
-        localinfo->subrel->Delete();
-        delete localinfo;
-        local.setAddr(0);
-        return 0;
-      }
-    }
-    case REQUESTPROGRESS :
-    {
-      ProgressInfo p1;
-      ProgressInfo* pRes;
-      const double uNest = 0.024;   //millisecs per tuple
-      const double vNest = 0.0;
-      const double wNest = 0.0;
-
-      localinfo = (NestInfo*) local.addr;
-      pRes = (ProgressInfo*) result.addr;
-
-
-      if ( qp->RequestProgress(args[0].addr, &p1) )
-      {
-        pRes->Card = p1.Card;  // wrong
-        pRes->CopySizes(p1);
-
-        pRes->Time = p1.Time +
-            p1.Card * (uNest + p1.SizeExt * vNest
-            + (p1.Size - p1.SizeExt) * wNest);
-
-        if ( localinfo == 0 )    //not yet working
-        {
-          pRes->Progress = (p1.Progress * p1.Time) / pRes->Time;
-        }
-        else
-        {
-          if ( localinfo->state == 0 )  //working
-          {
-            if ( p1.BTime < 0.1 && pipelinedProgress )   //non-blocking,
-                                                        //use pipelining
-              pRes->Progress = p1.Progress;
-            else
-              pRes->Progress =
-                  (p1.Progress * p1.Time +
-                  localinfo->read *  (uNest + p1.SizeExt * vNest
-                  + (p1.Size - p1.SizeExt) * wNest) )
-                   / pRes->Time;
-          }
-          else       //finished
-          {
-            pRes->Progress = 1.0;
-          }
-        }
-
-        pRes->BTime = pRes->Time;    //completely blocking
-        pRes->BProgress = pRes->Progress;
-
-        return YIELD;      //successful
-      }
-      else return CANCEL;      //no progress available
-    }
-  }
-  return 0;
-}
-
-#endif
 /*
 5.5.4 Specification of operator ~nest~
 
@@ -2991,7 +2355,6 @@ ListExpr unnestTypeMap(ListExpr args)
   return outlist;            
 }
 
-#ifndef USE_PROGRESS
 struct UnnestInfo
 {
   int index;
@@ -3147,207 +2510,6 @@ unnestValueMap(Word* args, Word& result, int message,
   return 0;
 } 
 
-#else
-
-class UnnestInfo: public ProgressLocalInfo
-{
-  public:
-    int index;
-    Tuple* lastTuple;
-    AttributeRelation* arel;
-    TupleType *tupleType;
-};
-int
-    unnestValueMap(Word* args, Word& result, int message,
-                   Word& local, Supplier s)
-{
-  UnnestInfo* info;
-  DbArray<TupleId>* tidArray;
-  Relation* rel;
-  switch (message)
-  {
-    case OPEN :
-    {
-      info = new UnnestInfo;
-      info->index = -1;
-      ListExpr resultType = GetTupleResultType( s );
-      info->tupleType = new TupleType(nl->Second(resultType));
-      local.addr = info;
-      qp->Open(args[0].addr);
-      return 0;
-    }
-    case REQUEST :
-    {
-      Word elem1;
-      TupleId tid;
-      Tuple* current;
-      int arelIndex = (((CcInt*)args[2].addr)->GetIntval()) - 1;
-      int noOfAttrs = ((CcInt*)args[3].addr)->GetIntval();
-      int noAttrArel = ((CcInt*)args[4].addr)->GetIntval();
-      info = (UnnestInfo *)local.addr;
-      if (info->index == -1)
-      {
-        qp->Request(args[0].addr, elem1);
-        if (qp->Received(args[0].addr))
-        {
-          current = (Tuple*)(elem1.addr);
-          Tuple *tuple = new Tuple( info->tupleType );
-          for( int i = 0; i < noOfAttrs; i++)
-          {
-            if (i < arelIndex)
-              tuple->CopyAttribute(i, current, i);
-            else
-              if (i > arelIndex)
-                tuple->CopyAttribute(i, current, i - 1);
-          }
-          info->arel = (AttributeRelation*)(current->GetAttribute(arelIndex));
-          tidArray = info->arel->getTupleIds();
-          tidArray->Get(0, tid);
-          rel = Relation::GetRelation(info->arel->getRelId());
-          Tuple* arelTuple = rel->GetTuple(tid);
-          for (int i = 0; i < noAttrArel; i++)
-            tuple->CopyAttribute(i, arelTuple, i + noOfAttrs - 1);
-          info->lastTuple = current;
-          info->index = 1;
-          result.setAddr(tuple);
-          arelTuple->DeleteIfAllowed();
-          return YIELD;
-        }
-        else
-        {
-          return CANCEL;
-        }
-      }
-      else
-      {
-        info = (UnnestInfo *)local.addr;
-        Tuple *tuple = new Tuple( info->tupleType );
-        tidArray = info->arel->getTupleIds();
-        if (info->index < tidArray->Size())
-        {
-          for( int i = 0; i < noOfAttrs; i++)
-          {
-            if (i < arelIndex)
-              tuple->CopyAttribute(i, info->lastTuple, i);
-            else
-              if (i > arelIndex)
-                tuple->CopyAttribute(i, info->lastTuple, i - 1);
-          }
-          tidArray->Get(info->index, tid);
-          rel = Relation::GetRelation(info->arel->getRelId());
-          Tuple* arelTuple = rel->GetTuple(tid);
-          info->index++;
-          for (int i = 0; i < noAttrArel; i++)
-            tuple->CopyAttribute(i, arelTuple, i + noOfAttrs - 1);
-          result.setAddr(tuple);
-          arelTuple->DeleteIfAllowed();
-          return YIELD;
-        }
-        else
-        {
-          qp->Request(args[0].addr, elem1);
-          if (qp->Received(args[0].addr))
-          {
-            current = (Tuple*)elem1.addr;
-            for( int i = 0; i < noOfAttrs; i++)
-            {
-              if (i < arelIndex)
-                tuple->CopyAttribute(i, current, i);
-              else
-                if (i > arelIndex)
-                  tuple->CopyAttribute(i, current, i - 1);
-            }
-            info->arel = (AttributeRelation*)(current->GetAttribute
-                (arelIndex));
-            tidArray = info->arel->getTupleIds();
-            tidArray->Get(0, tid);
-            rel = Relation::GetRelation(info->arel->getRelId());
-            Tuple* arelTuple = rel->GetTuple(tid);
-            for (int i = 0; i < noAttrArel; i++)
-              tuple->CopyAttribute(i, arelTuple, i + noOfAttrs -1);
-            info->lastTuple->DeleteIfAllowed();
-            info->lastTuple = current;
-            info->index = 1;
-            result.setAddr(tuple);
-            arelTuple->DeleteIfAllowed();
-            return YIELD;
-          }
-          else
-          {
-            tuple->DeleteIfAllowed();
-            info->lastTuple->DeleteIfAllowed();
-            info->lastTuple = 0;
-            return CANCEL;
-          }
-        }
-      }
-    }
-    case CLOSE :
-    {
-      qp->Close(args[0].addr);
-      if(local.addr)
-      {
-        info = (UnnestInfo*)local.addr;
-        if (info->lastTuple)
-          info->lastTuple->DeleteIfAllowed();
-        info->tupleType->DeleteIfAllowed();
-        delete info;
-        local.setAddr(0);
-      }
-      return 0;
-    }
-    case CLOSEPROGRESS:
-    {
-      return 0;
-    }
-    case REQUESTPROGRESS:
-    {
-      ProgressInfo p1;
-      ProgressInfo* pRes;
-      pRes = (ProgressInfo*) result.addr;
-      info = (UnnestInfo *)local.addr;
-      const double uUnnest=0.001;
-      const double vUnnest=0.001;
-      const double wUnnest=0.001;
-
-      if ( qp->RequestProgress(args[0].addr, &p1) )
-      {
-        pRes->Card = p1.Card;
-        pRes->CopySizes(p1);
-
-        pRes->Time = p1.Time +
-            p1.Card * (uUnnest + p1.SizeExt * vUnnest
-            + (p1.Size - p1.SizeExt) * wUnnest);
-
-        if ( info == 0 )    //not yet working
-        {
-          pRes->Progress = (p1.Progress * p1.Time) / pRes->Time;
-        }
-        else
-        {
-          if ( p1.BTime < 0.1 && pipelinedProgress )   //non-blocking,
-                                                      //use pipelining
-            pRes->Progress = p1.Progress;
-          else
-            pRes->Progress =
-                (p1.Progress * p1.Time +
-                info->read *  (uUnnest + p1.SizeExt * vUnnest
-                + (p1.Size - p1.SizeExt) * wUnnest) )
-                / pRes->Time;
-        }
-
-        pRes->BTime = pRes->Time;    //completely blocking
-        pRes->BProgress = pRes->Progress;
-
-        return YIELD;      //successful
-      }
-      else return CANCEL;      //no progress available
-    }
-  }
-  return 0;
-}
-
-#endif
 /*
 5.6.3 Specification of operator ~unnest~
 
@@ -3364,7 +2526,6 @@ struct unnestOperatorInfo : OperatorInfo {
   }
 };
 
-Operator unnest(unnestOperatorInfo(),unnestValueMap, unnestTypeMap);
 /*
 5.7 Operator ~rename~
 
@@ -3541,8 +2702,6 @@ nestedRenameTypeMap( ListExpr args )
 5.7.2 Value mapping function of operator ~rename~
 
 */
-
-#ifndef USE_PROGRESS
 int
 nestedRename(Word* args, Word& result, int message,
        Word& local, Supplier s)
@@ -3576,72 +2735,7 @@ nestedRename(Word* args, Word& result, int message,
   }
   return 0;
 }
-#else
-int
-    nestedRename(Word* args, Word& result, int message,
-                 Word& local, Supplier s)
-{
-  Word t;
-  Tuple* tuple;
-  ProgressLocalInfo* localinfo;
 
-  switch (message)
-  {
-    case OPEN :
-      localinfo = new ProgressLocalInfo();
-      local.setAddr(localinfo);
-      qp->Open(args[0].addr);
-      return 0;
-
-    case REQUEST :
-
-      qp->Request(args[0].addr,t);
-      if (qp->Received(args[0].addr))
-      {
-        localinfo->read++;
-        tuple = (Tuple*)t.addr;
-        result.setAddr(tuple);
-        return YIELD;
-      }
-      else return CANCEL;
-
-    case CLOSE :
-
-      qp->Close(args[0].addr);
-      return 0;
-      
-    case CLOSEPROGRESS:
-      localinfo = (ProgressLocalInfo*)local.addr;
-      if (localinfo) delete localinfo;
-      localinfo=0;
-      return 0;
-      
-    case REQUESTPROGRESS:
-      ProgressInfo p1;
-      ProgressInfo* pRes;
-      const double uRename = 0.01; //stub
-      pRes = (ProgressInfo*) result.addr;
-      localinfo = (ProgressLocalInfo*)local.addr;
-      if (!localinfo) return CANCEL;
-      if ( qp->RequestProgress(args[0].addr, &p1) )
-      {
-        pRes->Card=p1.Card;
-        pRes->CopySizes(p1);
-        pRes->Time = p1.Time +
-            p1.Card * uRename;
-        pRes->Progress =
-            (p1.Progress * p1.Time +
-            localinfo->read * uRename )
-          / pRes->Time;
-        return YIELD;
-      }
-      return CANCEL;
-  }
-  return 0;
-}
-
-
-#endif
 /*
 5.7.3 Definition of operator ~rename~
 
@@ -3659,7 +2753,7 @@ struct nestedRenameInfo : OperatorInfo {
   }
 
 };
-Operator nestedRename(nestedRenameInfo(), nestedRename, nestedRenameTypeMap);
+
 
 /*
 5.8 Operator ~extract~
@@ -3838,23 +2932,18 @@ class NestedRelationAlgebra : public Algebra
     {
       AddTypeConstructor( &attributeRelationTC );
       AddTypeConstructor( &nestedRelationTC );
-      AddOperator (&nfeed);
-      AddOperator (&nconsume);
-      AddOperator (&afeed);
+      AddOperator (feedInfo(), feed, feedTypeMap);
+      AddOperator (consumeInfo(), consume, consumeTypeMap);
+      AddOperator (aFeedInfo(), aFeed, aFeedTypeMap);
       AddOperator (&aconsume);
       AddOperator (&nest);
-      AddOperator (&unnest);
-      AddOperator (&nestedRename);
+      AddOperator (unnestOperatorInfo(), unnestValueMap, unnestTypeMap);
+      AddOperator (nestedRenameInfo(), nestedRename, nestedRenameTypeMap);
       AddOperator (extractInfo(), extractValueMap, extractTypeMap); 
       attributeRelationTC.AssociateKind( "DATA" );
 #ifdef USE_PROGRESS
       nest.EnableProgress();
       aconsume.EnableProgress();
-      nfeed.EnableProgress();
-      nconsume.EnableProgress();
-      afeed.EnableProgress();
-      unnest.EnableProgress();
-      nestedRename.EnableProgress();
 #endif      
     }
     ~NestedRelationAlgebra() {};
