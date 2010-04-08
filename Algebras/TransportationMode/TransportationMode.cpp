@@ -1269,6 +1269,84 @@ fill the gap between two pavements at some junction positions
       }
       newcurve->EndBulkLoad();
   }
+  bool BuildZebraCrossing(vector<MyPoint>& endpoints1,
+                          vector<MyPoint>& endpoints2,
+                          Region* reg_pave1, Region* reg_pave2,
+                          Line* pave1, Region* crossregion, Point& junp)
+  {
+      if(endpoints1.size() > 0 && endpoints2.size() > 0){
+
+         MyPoint lp = endpoints1[0];
+         MyPoint rp = endpoints2[0];
+         Line* pave = new Line(0);
+         pave->StartBulkLoad();
+         HalfSegment hs;
+         hs.Set(true,lp.loc,rp.loc);
+         int edgeno = 0;
+         hs.attr.edgeno = edgeno++;
+         *pave += hs;
+         hs.SetLeftDomPoint(!hs.IsLeftDomPoint());
+         *pave += hs;
+         pave->EndBulkLoad();
+
+       //////////////extend it to a region/////////////////////////////
+         HalfSegment hs1 = hs;
+         HalfSegment hs2 = hs;
+         CrossHalfSegment(hs1, 2, true);
+         CrossHalfSegment(hs2, 2, false);
+         vector<Point> outer_ps;
+         vector<Region> result;
+         Point lp1 = hs1.GetLeftPoint();
+         Point rp1 = hs1.GetRightPoint();
+         Point lp2 = hs2.GetLeftPoint();
+         Point rp2 = hs2.GetRightPoint();
+         Point mp1, mp2;
+         mp1.Set((lp1.GetX() + rp1.GetX())/2, (lp1.GetY() + rp1.GetY())/2);
+         mp2.Set((lp2.GetX() + rp2.GetX())/2, (lp2.GetY() + rp2.GetY())/2);
+
+
+         if(mp1.Distance(junp) > mp2.Distance(junp)){
+             lp1 = hs.GetLeftPoint();
+             rp1 = hs.GetRightPoint();
+             lp2 = hs1.GetLeftPoint();
+             rp2 = hs1.GetRightPoint();
+
+         }else{
+             lp1 = hs.GetLeftPoint();
+             rp1 = hs.GetRightPoint();
+             lp2 = hs2.GetLeftPoint();
+             rp2 = hs2.GetRightPoint();
+
+         }
+
+         if((lp2.Inside(*reg_pave1) && rp2.Inside(*reg_pave2)) ||
+                 (lp2.Inside(*reg_pave2) && rp2.Inside(*reg_pave1)) ){
+             if(GetClockwise(lp2, lp1, rp2)){
+               outer_ps.push_back(lp2);
+               outer_ps.push_back(rp2);
+               outer_ps.push_back(rp1);
+               outer_ps.push_back(lp1);
+             }else{
+               outer_ps.push_back(lp1);
+               outer_ps.push_back(rp1);
+               outer_ps.push_back(rp2);
+               outer_ps.push_back(lp2);
+             }
+            ComputeRegion(outer_ps, result);
+            *crossregion = result[0];
+            *pave1 = *pave;
+            delete pave;
+
+            return true;
+          }
+          delete pave;
+       ///////////////////////////////////////////////////////////////
+      }
+      endpoints1.clear();
+      endpoints2.clear();
+      return false;
+  }
+
 /*
 for the road line around the junction position, it creates the zebra crossing
 
@@ -1380,7 +1458,9 @@ for the road line around the junction position, it creates the zebra crossing
 
           sort(endpoints1.begin(),endpoints1.end());
           sort(endpoints2.begin(),endpoints2.end());
-          find = true;
+//          find = true;
+          find=BuildZebraCrossing(endpoints1, endpoints2,
+                        reg_pave1, reg_pave2, pave1, crossregion, junp);
         }
         p1 = p2;
 
@@ -1436,7 +1516,9 @@ for the road line around the junction position, it creates the zebra crossing
 
             sort(endpoints1.begin(),endpoints1.end());
             sort(endpoints2.begin(),endpoints2.end());
-            find = true;
+//            find = true;
+            find=BuildZebraCrossing(endpoints1, endpoints2,
+                        reg_pave1, reg_pave2, pave1, crossregion, junp);
           }
           p1 = p2;
 
@@ -1493,7 +1575,9 @@ for the road line around the junction position, it creates the zebra crossing
 
           sort(endpoints1.begin(),endpoints1.end());
           sort(endpoints2.begin(),endpoints2.end());
-          find = true;
+//          find = true;
+          find=BuildZebraCrossing(endpoints1, endpoints2,
+                        reg_pave1, reg_pave2, pave1, crossregion, junp);
         }
 
         p1 = p2;
@@ -1510,72 +1594,72 @@ for the road line around the junction position, it creates the zebra crossing
     delete subline2;
 
 
-    if(endpoints1.size() > 0 && endpoints2.size() > 0){
-
-      MyPoint lp = endpoints1[0];
-      MyPoint rp = endpoints2[0];
-      Line* pave = new Line(0);
-      pave->StartBulkLoad();
-      HalfSegment hs;
-      hs.Set(true,lp.loc,rp.loc);
-      int edgeno = 0;
-      hs.attr.edgeno = edgeno++;
-      *pave += hs;
-      hs.SetLeftDomPoint(!hs.IsLeftDomPoint());
-      *pave += hs;
-      pave->EndBulkLoad();
-
-      *pave1 = *pave;
-
-      delete pave;
-      //////////////extend it to a region/////////////////////////////
-      HalfSegment hs1 = hs;
-      HalfSegment hs2 = hs;
-      CrossHalfSegment(hs1, 2, true);
-      CrossHalfSegment(hs2, 2, false);
-      vector<Point> outer_ps;
-      vector<Region> result;
-      Point lp1 = hs1.GetLeftPoint();
-      Point rp1 = hs1.GetRightPoint();
-      Point lp2 = hs2.GetLeftPoint();
-      Point rp2 = hs2.GetRightPoint();
-      Point mp1, mp2;
-      mp1.Set((lp1.GetX() + rp1.GetX())/2, (lp1.GetY() + rp1.GetY())/2);
-      mp2.Set((lp2.GetX() + rp2.GetX())/2, (lp2.GetY() + rp2.GetY())/2);
-
-
-      if(mp1.Distance(junp) > mp2.Distance(junp)){
-          lp1 = hs.GetLeftPoint();
-          rp1 = hs.GetRightPoint();
-          lp2 = hs1.GetLeftPoint();
-          rp2 = hs1.GetRightPoint();
-
-      }else{
-          lp1 = hs.GetLeftPoint();
-          rp1 = hs.GetRightPoint();
-          lp2 = hs2.GetLeftPoint();
-          rp2 = hs2.GetRightPoint();
-
-      }
-
-      if((lp2.Inside(*reg_pave1) && rp2.Inside(*reg_pave2)) ||
-              (lp2.Inside(*reg_pave2) && rp2.Inside(*reg_pave1)) ){
-          if(GetClockwise(lp2, lp1, rp2)){
-            outer_ps.push_back(lp2);
-            outer_ps.push_back(rp2);
-            outer_ps.push_back(rp1);
-            outer_ps.push_back(lp1);
-          }else{
-            outer_ps.push_back(lp1);
-            outer_ps.push_back(rp1);
-            outer_ps.push_back(rp2);
-            outer_ps.push_back(lp2);
-          }
-        ComputeRegion(outer_ps, result);
-        *crossregion = result[0];
-      }
-      ///////////////////////////////////////////////////////////////
-    }
+//     if(endpoints1.size() > 0 && endpoints2.size() > 0){
+//
+//       MyPoint lp = endpoints1[0];
+//       MyPoint rp = endpoints2[0];
+//       Line* pave = new Line(0);
+//       pave->StartBulkLoad();
+//       HalfSegment hs;
+//       hs.Set(true,lp.loc,rp.loc);
+//       int edgeno = 0;
+//       hs.attr.edgeno = edgeno++;
+//       *pave += hs;
+//       hs.SetLeftDomPoint(!hs.IsLeftDomPoint());
+//       *pave += hs;
+//       pave->EndBulkLoad();
+//
+//       *pave1 = *pave;
+//
+//       delete pave;
+//       //////////////extend it to a region/////////////////////////////
+//       HalfSegment hs1 = hs;
+//       HalfSegment hs2 = hs;
+//       CrossHalfSegment(hs1, 2, true);
+//       CrossHalfSegment(hs2, 2, false);
+//       vector<Point> outer_ps;
+//       vector<Region> result;
+//       Point lp1 = hs1.GetLeftPoint();
+//       Point rp1 = hs1.GetRightPoint();
+//       Point lp2 = hs2.GetLeftPoint();
+//       Point rp2 = hs2.GetRightPoint();
+//       Point mp1, mp2;
+//       mp1.Set((lp1.GetX() + rp1.GetX())/2, (lp1.GetY() + rp1.GetY())/2);
+//       mp2.Set((lp2.GetX() + rp2.GetX())/2, (lp2.GetY() + rp2.GetY())/2);
+//
+//
+//       if(mp1.Distance(junp) > mp2.Distance(junp)){
+//           lp1 = hs.GetLeftPoint();
+//           rp1 = hs.GetRightPoint();
+//           lp2 = hs1.GetLeftPoint();
+//           rp2 = hs1.GetRightPoint();
+//
+//       }else{
+//           lp1 = hs.GetLeftPoint();
+//           rp1 = hs.GetRightPoint();
+//           lp2 = hs2.GetLeftPoint();
+//           rp2 = hs2.GetRightPoint();
+//
+//       }
+//
+//       if((lp2.Inside(*reg_pave1) && rp2.Inside(*reg_pave2)) ||
+//               (lp2.Inside(*reg_pave2) && rp2.Inside(*reg_pave1)) ){
+//           if(GetClockwise(lp2, lp1, rp2)){
+//             outer_ps.push_back(lp2);
+//             outer_ps.push_back(rp2);
+//             outer_ps.push_back(rp1);
+//             outer_ps.push_back(lp1);
+//           }else{
+//             outer_ps.push_back(lp1);
+//             outer_ps.push_back(rp1);
+//             outer_ps.push_back(rp2);
+//             outer_ps.push_back(lp2);
+//           }
+//         ComputeRegion(outer_ps, result);
+//         *crossregion = result[0];
+//       }
+//       ///////////////////////////////////////////////////////////////
+//     }
 
   }
 
@@ -2988,7 +3072,7 @@ called by function FillPave()
 
     }
 //    if(reg1_pave2->Intersects(*reg2_pave2) == false &&
-      if(PavementIntersection(reg1_pave2, reg2_pave2) == false &&
+     if(PavementIntersection(reg1_pave2, reg2_pave2) == false &&
        SameSide2(reg1_pave2, reg2_pave2, r1r2, junp, thirdseg, smallreg[0])){
 
       assert(reg1_pave2->GetCycleDirection());
