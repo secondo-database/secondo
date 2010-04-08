@@ -1,0 +1,36 @@
+Determination of cost function for ksmallest
+
+Database berlin. Used relations are plz10, plz10_a, plz10_b
+
+let plz10 = plz feed ten feed product extend[Key: randint[99999]] sortby[Key asc] remove[Key] consume
+let plz10_a = plz feed ten feed product extend[Key: randint[99999], Zahl1: 1, Zahl2: 2, Wort1: .Ort] sortby[Key asc] remove[Key] consume
+let plz10_b = plz feed ten feed product extend[Key: randint[99999], Zahl1: 1, Zahl2: 2, Wort1: .Ort, Zahl3: 3, Zahl4: 4, Wort2: .Ort] sortby[Key asc] remove[Key] consume
+
+Following constants should be calculated:
+
+- ms per tuple
+- ms per byte
+- ms per replacement if tuples are not equal
+- default selectivity is 10%
+- minimum number of returned tuples for the estimate to be stable is 50
+
+1. Constant ukrdup per tuple:
+
+- it is compared elapsed time of the relation plz10_b, which is sorted by Zahl1, Zahl1 and Zahl2, Zahl1 Zahl2 and Zahl3. They all are constans, it means that all of them are duplicates, so the cardinality is always 1. Used queries are: query plz10_b feed krdup[Zahl1] count, query plz10_b feed krdup[Zahl1, Zahl2] count, query plz10_b feed krdup[Zahl1, Zahl2, Zahl3] count
+- calculations show that for each attribute circa 45 seconds and for operator krdup itself 28,33 seconds are needed
+- in our query the attribute size is 5 bytes and there are 412670 tuples
+- so, time per tuple is 28,33/412670 = 0.00006866 
+
+2. Constant vkrdup per byte:
+
+- size of one attribute for all tuples is 5*412670
+- so. time per byte is 45/5*412670 = 0.00002181
+
+3. Constans zkrdup per replacement if tuples are not equal:
+
+- there are two extreme possibilities, first one when all compared tuples are duplicates and the second one when there is no duplicate. The compared attribute is number, which in the first case is a constant and in the second case is a random number without repetition. The list therefore sorted by number. Used queries are: plz10 feed krdup[number] count, plz10_a feed krdup[number] count, plz10_b feed krdup[number] count. 
+- results show that time depends only on tuples, not on bytes. In all three queries the time is circa 50 seconds, no matter how many attributes are there
+- the difference in time between the attribute number as a constant and as a random number is circa 210 seconds
+- so, time per replacement is 210/412670 = 0.00050888
+
+  

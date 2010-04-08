@@ -57,12 +57,14 @@ reference counters. There are reference counters on tuples and also
 on attributes. Some assertions were removed, since the code is
 stable.
 
-June 2006, Corrected a bug caused by improper reference counting of tuples observed in
-operator ~mergesec~.
+June 2006, Corrected a bug caused by improper reference counting of tuples
+observed in operator ~mergesec~.
 
-June 2006, Christian D[ue]ntgen added operators ~symmproduct~ and ~symmproductextend~.
+June 2006, Christian D[ue]ntgen added operators ~symmproduct~ and
+~symmproductextend~.
 
-August 2006, Christian D[ue]ntgen added signature ((stream T) int) -> (stream T) to operator ~head~.
+August 2006, Christian D[ue]ntgen added signature ((stream T) int) -> (stream T)
+to operator ~head~.
 
 January 2007, M. Spiekermann. Reference counting in groupby corrected, since it
 causes a segmentation fault, when the Tuplebuffer needs to be flushed on disk.
@@ -212,7 +214,8 @@ than half of ~subSet~, we simple draw a subset of size
 ~setSize~ - ~subsetSize~ and take the complement of that set as result set.
 
 If the optional parameter ~subsetSize~ is set to ~true~, the optional parameter
-~randSeed~ (defaults to 0) is used as the starting sequence offset for the random
+~randSeed~ (defaults to 0) is used as the starting sequence offset for the
+random
 number generator. Otherwise, the offset is calculated from the current time and
 will differ for each call.
 
@@ -1483,7 +1486,8 @@ struct varInfo : OperatorInfo {
 10.5 Operator ~stats~
 
 This operator calculates several aggregation functions and statistics on a
-stream of tuples containing two mumeric attributes. And returns a single tuple with
+stream of tuples containing two mumeric attributes. And returns a single tuple
+with
 all the results:
 
   * CountX - Number of defined instances for the first attribute X
@@ -1526,8 +1530,8 @@ all the results:
 Type mapping for ~stats~ is
 
 ----  ((stream (tuple ((x1 t1)...(xn tn))) xi xj)  -> stream(tuple(
-             (CountX int) (MinX real) (MaxX real) (SumX real) (AvgX real) (VarX real)
-             (CountY int) (MinY real) (MaxY real) (SumY real) (AvgY real) (VarY real)
+       (CountX int) (MinX real) (MaxX real) (SumX real) (AvgX real) (VarX real)
+       (CountY int) (MinY real) (MaxY real) (SumY real) (AvgY real) (VarY real)
              (Count int) (CountXY int) (CovXY real) (CorrXY real)))
               APPEND ((i ti) (j tj))
 
@@ -2301,6 +2305,8 @@ ListExpr ksmallestTM(ListExpr args){
 
 
 */
+
+#ifndef USE_PROGRESS
 class KSmallestLocalInfo{
  public:
 
@@ -2531,7 +2537,284 @@ int ksmallestVM(Word* args, Word& result,
 
 }
 
+#else
 
+class KSmallestLocalInfo: public ProgressLocalInfo{
+  public:
+
+/*
+~Constructor~
+
+Constructs a localinfo tor given k and the attribute indexes by ~attrnumbers~.
+
+*/
+
+    KSmallestLocalInfo(int ak, vector<int>& attrnumbers,bool Smallest):
+      elems(0),numbers(attrnumbers),pos(0),smallest(Smallest),
+            firstRequest(true){
+              if(ak<0){
+                k = 0;
+              } else {
+                k = ak;
+              }
+            }
+
+
+/*
+            ~Destructor~
+
+            Destroy this instance and calls DeleteIfAllowed for all
+            non processed tuples.
+
+
+*/
+            ~KSmallestLocalInfo(){
+              for(unsigned int i=0;i<elems.size();i++){
+                if(elems[i]){
+                  elems[i]->DeleteIfAllowed();
+                  elems[i] = 0;
+                }
+              }
+            }
+
+            int getK()
+            {
+              return k;
+            }
+
+/*
+            ~nextTuple~
+
+            Returns the next tuple within the buffer, or 0 if no tuple is
+            available.
+
+*/
+            Tuple* nextTuple(Word& stream){
+              if(firstRequest){
+                Word elem;
+                qp->Request(stream.addr,elem);
+                Tuple* tuple;
+                while(qp->Received(stream.addr)){
+                  tuple = static_cast<Tuple*>(elem.addr);
+                  insertTuple(tuple);
+                  qp->Request(stream.addr,elem);
+                  firstRequest = false;
+                }
+              }
+
+              if(pos==0){
+         // sort the elements
+                if(elems.size()< k){
+                  initializeHeap();
+                }
+                for(unsigned int i=elems.size()-1; i>0; i--){
+                  Tuple* top = elems[0];
+                  Tuple* last = elems[i];
+                  elems[0] = last;
+                  elems[i] = top;
+                  sink(0,i);
+                }
+              }
+              if(pos<elems.size()){
+                Tuple* res = elems[pos];
+                elems[pos] = 0;
+                pos++;
+                return res;
+              } else {
+                return 0;
+              }
+            }
+
+  private:
+    vector<Tuple*> elems;
+    vector<int> numbers;
+    unsigned int k;
+    unsigned int pos;
+    bool smallest;
+    bool firstRequest;
+
+
+/*
+~insertTuple~
+    
+Inserts a tuple into the local buffer. If the buffer would be
+overflow (size [>] k) , the maximum element is removed from the buffer.
+
+*/
+    void insertTuple(Tuple* tuple){
+      if(elems.size() < k){
+        elems.push_back(tuple);
+        if(elems.size()==k){
+          initializeHeap();
+        }
+      } else {
+        Tuple* maxTuple = elems[0];
+
+        int cmp = compareTuples(tuple,maxTuple);
+        if(cmp>=0){ // tuple >= maxTuple
+          tuple->DeleteIfAllowed();
+        } else {
+          maxTuple->DeleteIfAllowed();
+          elems[0] = tuple;
+          sink(0,elems.size());
+        }
+      }
+    }
+
+    inline int compareTuples(Tuple* t1, Tuple* t2){
+      return smallest?compareTuplesSmaller(t1,t2): compareTuplesSmaller(t2,t1);
+    }
+
+    int compareTuplesSmaller(Tuple* t1, Tuple* t2){
+      for(unsigned int i=0;i<numbers.size();i++){
+        Attribute* a1 = t1->GetAttribute(numbers[i]);
+        Attribute* a2 = t2->GetAttribute(numbers[i]);
+        int cmp = a1->Compare(a2);
+        if(cmp!=0){
+          return cmp;
+        }
+      }
+      return 0;
+    }
+
+    void initializeHeap(){
+      int s = elems.size()/2;
+      for(int i=s; i>=0; i--){
+        sink(i,elems.size());
+      }
+    }
+
+    void sink(unsigned int i, unsigned int max){
+      unsigned int root = i;
+      unsigned int son1 = ((i+1)*2) - 1;
+      unsigned int son2 = ((i+1)*2+1) - 1;
+      unsigned int swapWith;
+
+      bool done = false;
+      do{
+        swapWith = root;
+        son1 = ((root+1)*2) - 1;
+        son2 = ((root+1)*2+1) - 1;
+        if(son1<max){
+          int cmp = compareTuples(elems[root],elems[son1]);
+          if(cmp<0){
+            swapWith = son1;
+          }
+        }
+        if(son2 < max){
+          int cmp = compareTuples(elems[swapWith],elems[son2]);
+          if(cmp<0){
+            swapWith = son2;
+          }
+        }
+        if(swapWith!=root){
+          Tuple* t1 = elems[root];
+          Tuple* t2 = elems[swapWith];
+          elems[swapWith] = t1;
+          elems[root] = t2;
+        }
+        done = (swapWith == root);
+        root = swapWith;
+
+      }while(!done);
+    }
+};
+
+template<bool smaller>
+    int ksmallestVM(Word* args, Word& result,
+                    int message, Word& local, Supplier s)
+{
+  switch( message )
+  {
+    case OPEN:{
+      qp->Open(args[0].addr);
+      CcInt* cck = static_cast<CcInt*>(args[1].addr);
+      int attrNum = (static_cast<CcInt*>(args[3].addr))->GetIntval();
+      Supplier son;
+      Word elem;
+      vector<int> attrPos;
+      for(int i=0;i<attrNum;i++){
+        son = qp->GetSupplier(args[4].addr,i);
+        qp->Request(son,elem);
+        int anum = (static_cast<CcInt*>(elem.addr))->GetIntval();
+        attrPos.push_back(anum);
+      }
+      int k = cck->IsDefined()?cck->GetIntval():0;
+      KSmallestLocalInfo* linfo = new   KSmallestLocalInfo(k,attrPos,smaller);
+      local.addr = linfo;
+      return 0;
+    }
+    case REQUEST:{
+      KSmallestLocalInfo* linfo;
+      linfo = static_cast<KSmallestLocalInfo*>(local.addr);
+      if(linfo){
+        Tuple* tuple = linfo->nextTuple(args[0]);
+        if(tuple){
+          result.setAddr(tuple);
+          return YIELD;
+        }
+      }
+      return CANCEL;
+
+    }
+    case CLOSE:{
+      qp->Close(args[0].addr);
+      KSmallestLocalInfo* linfo;
+      linfo = static_cast<KSmallestLocalInfo*>(local.addr);
+      if(linfo){
+        delete linfo;
+        local.addr=0;
+      }
+      return 0;
+    }
+
+    case CLOSEPROGRESS: {
+      return 0;
+    }
+    case REQUESTPROGRESS: {
+
+      ProgressInfo p1;
+      ProgressInfo *pRes;
+      KSmallestLocalInfo* linfo;
+      
+      const double uKsmallest = 0.0001287348; //millisecs per tuple
+      const double vKsmallest = 0.0000021203; //millisecs per tuple
+      const double wKsmallest = 0.0000000661; //millisecs per k
+            
+      pRes = (ProgressInfo*) result.addr;
+      linfo = (KSmallestLocalInfo*) local.addr;
+                  
+      if (qp->RequestProgress(args[0].addr, &p1))
+      {
+        pRes->CopySizes(p1);
+        int k = linfo->getK();
+        if (k < p1.Card)
+        {
+          pRes->Card = k;
+        }
+        else
+        {
+          pRes->Card = p1.Card;
+        }
+        pRes->Time = p1.Time + p1.Card *
+            (uKsmallest + p1.SizeExt * vKsmallest + k * wKsmallest);
+        pRes->Progress = (p1.Progress*p1.Time + linfo->read *
+            (uKsmallest + p1.SizeExt * vKsmallest + k * wKsmallest))/pRes->Time;
+        pRes->BTime=pRes->Time;
+        pRes->BProgress=pRes->Progress;
+      
+        return YIELD;
+      }
+      else return CANCEL;
+    }
+
+    default:{
+      return  0;
+    }
+  }
+
+}
+#endif
 const string ksmallestSpec  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
     "( <text>stream(tuple([a1:d1, ... ,an:dn])))"
@@ -4638,6 +4921,9 @@ LoopselectTypeMap(ListExpr args)
 4.1.2 Value mapping function of operator ~loopsel~
 
 */
+
+#ifndef USE_PROGRESS
+
 struct LoopselectLocalInfo
 {
   Word tuplex;
@@ -4754,7 +5040,167 @@ Loopselect(Word* args, Word& result, int message,
 
   return 0;
 }
+#else
 
+struct LoopselectLocalInfo: public ProgressLocalInfo
+{
+  Word tuplex;
+  Word streamy;
+  TupleType *resultTupleType;
+};
+
+int
+    Loopselect(Word* args, Word& result, int message,
+               Word& local, Supplier s)
+{
+  ArgVectorPointer funargs;
+  Word tuplex, tupley, streamy;
+  Tuple* ctuplex;
+  Tuple* ctupley;
+  LoopselectLocalInfo *localinfo;
+  
+  switch ( message )
+  {
+    case OPEN:
+      // open the stream and initiate the variables
+      qp->Open (args[0].addr);
+      qp->Request(args[0].addr, tuplex);
+      if (qp->Received(args[0].addr))
+      {
+        // compute the rely which corresponding to tuplex
+        funargs = qp->Argument(args[1].addr);
+        (*funargs)[0] = tuplex;
+        streamy = args[1];
+        qp->Open(streamy.addr);
+
+        // put the information of tuplex and rely into local
+        localinfo = new LoopselectLocalInfo;
+        ListExpr resultType = GetTupleResultType( s );
+        localinfo->resultTupleType =
+            new TupleType( nl->Second( resultType ) );
+        localinfo->tuplex=tuplex;
+        localinfo->streamy=streamy;
+        localinfo->readFirst=1;   // first tuple read
+        localinfo->returned=0;
+        local.setAddr(localinfo);
+      }
+      else
+      {
+        local.setAddr(0);
+      }
+      return 0;
+
+    case REQUEST:
+      if (local.addr ==0) return CANCEL;
+
+      // restore localinformation from the local variable.
+      localinfo = (LoopselectLocalInfo *) local.addr;
+      tuplex = localinfo->tuplex;
+      ctuplex = (Tuple*)tuplex.addr;
+      streamy = localinfo->streamy;
+      // prepare tuplex and tupley for processing.
+      // if rely is exausted: fetch next tuplex.
+      tupley.setAddr(0);
+      while (tupley.addr==0)
+      {
+        qp->Request(streamy.addr, tupley);
+        if (!(qp->Received(streamy.addr)))
+        {
+          qp->Close(streamy.addr);
+          ((Tuple*)tuplex.addr)->DeleteIfAllowed();
+          qp->Request(args[0].addr, tuplex);
+          if (qp->Received(args[0].addr))
+          {
+            localinfo->readFirst++;         // another tuple read
+            funargs = qp->Argument(args[1].addr);
+            ctuplex = (Tuple*)tuplex.addr;
+            (*funargs)[0] = tuplex;
+            streamy = args[1];
+            qp->Open(streamy.addr);
+            tupley.setAddr(0);
+
+            localinfo->tuplex=tuplex;
+            localinfo->streamy=streamy;
+            local.setAddr(localinfo);
+          }
+          else
+          {
+            localinfo->streamy.setAddr(0);
+            localinfo->tuplex.setAddr(0);
+            return CANCEL;
+          }
+        }
+        else
+        {
+          ctupley = (Tuple*)tupley.addr;
+        }
+      }
+      localinfo->returned++;
+      result = tupley;
+      return YIELD;
+
+    case CLOSE:
+      if( local.addr != 0 )
+      {
+        localinfo=(LoopselectLocalInfo *) local.addr;
+
+        if( localinfo->streamy.addr != 0 )
+          qp->Close( localinfo->streamy.addr );
+
+        if( localinfo->tuplex.addr != 0 )
+          ((Tuple*)localinfo->tuplex.addr)->DeleteIfAllowed();
+
+        if( localinfo->resultTupleType != 0 )
+          localinfo->resultTupleType->DeleteIfAllowed();
+        delete localinfo;
+        local.setAddr(0);
+      }
+      qp->Close(args[0].addr);
+      return 0;
+    case CLOSEPROGRESS:
+      return 0;
+    case REQUESTPROGRESS:
+      localinfo = (LoopselectLocalInfo *) local.addr;
+      if (localinfo)
+      {
+        ProgressInfo p1, p2;
+        ProgressInfo *pRes;
+        pRes = (ProgressInfo*) result.addr;
+        if (qp->RequestProgress(args[0].addr, &p1) &&
+            qp->RequestProgress(args[1].addr, &p2))
+        {
+          if (localinfo->readFirst>1)
+          {
+       // cardinality is estimated from the returned tuples and the read tuples
+            pRes->Card = p1.Card * localinfo->returned / localinfo->readFirst;
+          }
+          else
+          {
+        // default guess is the multiplication of cardinalities
+            pRes->Card = p1.Card * p2.Card;
+          }
+    
+          pRes->CopySizes(p2);  // tuples are axtracted from fun relation
+          // for each tuplex, all matching tupley will be collected,
+          // therefore the time for the query for tupley is multiplied
+          pRes->Time = p1.Time + p1.Card * p2.Time;
+
+          pRes->Progress =
+              (p1.Progress * p1.Time + (double) localinfo->readFirst * p2.Time)
+              / pRes->Time;
+          // progress depends on how many tuplex have been done (with readFirst)
+
+          pRes->CopyBlocking(p1);  //non-blocking operator;
+          return YIELD;
+        }
+
+      }
+      return 0;
+  }
+
+  return 0;
+}
+#endif
 /*
 
 4.1.3 Specification of operator ~loopsel~
@@ -6938,6 +7384,9 @@ ListExpr AggregateTypeMap( ListExpr args )
 2.18.2 Value mapping function of operator ~aggregate~
 
 */
+#ifndef USE_PROGRESS
+
+
 int Aggregate(Word* args, Word& result, int message, Word& local, Supplier s)
 {
   // The argument vector contains the following values:
@@ -6981,7 +7430,91 @@ int Aggregate(Word* args, Word& result, int message, Word& local, Supplier s)
 
   return 0;
 }
+#else
+int Aggregate(Word* args, Word& result, int message, Word& local, Supplier s)
+{
+  // The argument vector contains the following values:
+  // args[0] = stream of tuples
+  // args[1] = attribute name
+  // args[2] = mapping function
+  // args[3] = zero value
+  // args[4] = attribute index added by APPEND
 
+  Word t( Address(0) );
+  ArgVectorPointer vector;
+  ProgressLocalInfo* ali=0;
+  ali = (ProgressLocalInfo*) local.addr;
+  switch ( message )
+  {
+
+    case OPEN :{
+      ali = new ProgressLocalInfo();
+      local.setAddr(ali);
+      qp->Open(args[0].addr);
+//      return 0;
+//    }
+    
+//    case REQUEST :{
+      int index = ((CcInt*)args[4].addr)->GetIntval();
+      result = qp->ResultStorage(s);
+      // Get the initial value
+      Attribute* tmpres = ((Attribute*)args[3].addr)->Clone();
+      qp->Request( args[0].addr, t );
+      Word fctres;
+      while( qp->Received( args[0].addr ) )
+      {
+        vector = qp->Argument(args[2].addr);
+        ((*vector)[0]).setAddr(tmpres);
+        ((*vector)[1]).setAddr(((Tuple*)t.addr)->GetAttribute( index-1 ) );
+        qp->Request(args[2].addr, fctres);
+
+        delete tmpres; //delete intermediate result
+        tmpres = (Attribute*) fctres.addr;
+
+        qp->ReInitResultStorage( args[2].addr );
+
+        ((Tuple*)t.addr)->DeleteIfAllowed();
+        qp->Request( args[0].addr, t );
+        if (ali) ali->read++;
+      }
+      ((Attribute*)result.addr)->CopyFrom( (const Attribute*)tmpres );
+      delete tmpres;
+//    return 0;
+//    }
+//    case CLOSE :{
+      qp->Close(args[0].addr);
+//      return 0;
+    }
+    case CLOSEPROGRESS:{
+      if ( ali )        // if local info structure exists
+      {
+        delete ali;     // remove it
+        local.setAddr(0); // and set adress to 0
+      }
+      return 0;
+    }
+
+    case REQUESTPROGRESS :
+    {
+      ProgressInfo p1;
+      ProgressInfo *pRes;
+      pRes = (ProgressInfo*) result.addr;
+      double uAggregate=0.0121937626;
+      if (qp->RequestProgress(args[0].addr, &p1))
+      {
+        pRes->Card=1;
+        pRes->Time = p1.Time + p1.Card * uAggregate;
+        pRes->Progress = (p1.Progress * p1.Time + ali->read * uAggregate)/
+            pRes->Time;
+        return YIELD;
+      }
+      return 0;
+    }
+  }
+  return 0;
+}
+
+#endif
 /*
 2.18.2 Value mapping function of operator ~aggregateB~
 
@@ -9022,6 +9555,10 @@ class ExtRelationAlgebra : public Algebra
    extrelgroupby.EnableProgress();
    extrelsymmjoin.EnableProgress();
    extrelprojectextend.EnableProgress();
+   ksmallest.EnableProgress();
+   kbiggest.EnableProgress();
+   extrelloopsel.EnableProgress();
+   extrelaggregate.EnableProgress();
 #endif
   }
 
