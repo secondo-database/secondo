@@ -1416,9 +1416,9 @@ Network::Network() :
 
 Network::Network ( SmiRecord& in_xValueRecord,
                    size_t& inout_iOffset,
-                   const ListExpr in_xTypeInfo )/*:
+                   const ListExpr in_xTypeInfo ):
 m_xAdjacencyList(0),
-m_xSubAdjacencyList(0)*/
+m_xSubAdjacencyList(0)
 {
 
   // Read network id
@@ -1533,11 +1533,13 @@ m_xSubAdjacencyList(0)*/
    char* buf = (char*) malloc(bufsize);
    in_xValueRecord.Read(buf, bufsize, inout_iOffset);
    inout_iOffset += bufsize;
+   assert(buf != NULL);
    m_xAdjacencyList.restoreHeader(buf,offset);
    free(buf);
    offset = 0;
    buf = (char*) malloc(bufsize);
    in_xValueRecord.Read(buf, bufsize, inout_iOffset);
+   assert(buf != NULL);
    m_xSubAdjacencyList.restoreHeader(buf,offset);
    inout_iOffset += bufsize;
    free(buf);
