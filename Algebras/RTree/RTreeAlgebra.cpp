@@ -4589,17 +4589,26 @@ and high parameters these two last integer numbers.
 Bulkload an R-tree with an input R-tree so that they map to the same file
 
 */
+template<unsigned dim>
 int UpdateBulkLoadFun(Word* args, Word& result, int message,Word& local,
 Supplier s)
 {
-  const int dim = 3;
+//  const int dim = 3;
   Word wTuple;
-  R_Tree<3,TupleId>* rtree_in1 = static_cast<R_Tree<3,TupleId>*>(args[0].addr);
-  R_Tree<3,TupleId>* rtree_temp = (R_Tree<3,TupleId>*)qp->ResultStorage(s).addr;
+//R_Tree<3,TupleId>* rtree_in1 = static_cast<R_Tree<3,TupleId>*>(args[0].addr);
+//R_Tree<3,TupleId>* rtree_temp = (R_Tree<3,TupleId>*)qp->ResultStorage(s).addr;
+  R_Tree<dim,TupleId>* rtree_in1 =
+                        static_cast<R_Tree<dim,TupleId>*>(args[0].addr);
+  R_Tree<dim,TupleId>* rtree_temp =
+                        (R_Tree<dim,TupleId>*)qp->ResultStorage(s).addr;
+
   rtree_temp->CloseFile();
 
+
+//  R_Tree<dim, TupleId> *rtree =
+//                new R_Tree<3,TupleId>(rtree_in1->FileId(),4000);
   R_Tree<dim, TupleId> *rtree =
-                new R_Tree<3,TupleId>(rtree_in1->FileId(),4000);
+                new R_Tree<dim,TupleId>(rtree_in1->FileId(),4000);
 
   int attrIndex = ((CcInt*)args[3].addr)->GetIntval() - 1,
   tidIndex = ((CcInt*)args[4].addr)->GetIntval() - 1;
@@ -4664,11 +4673,71 @@ Build RTree on new coming units and store it into an existing RTree file
 
 */
 
+ValueMapping VMUpdateBulkLoadFun[]=
+{
+  UpdateBulkLoadFun<2>,
+  UpdateBulkLoadFun<3>,
+  UpdateBulkLoadFun<4>,
+  UpdateBulkLoadFun<8>,
+};
+
+/*
+5.2. Selection Function for Operator ~creatertree\_bulkload<D>~
+
+*/
+int UpdateBulkLoadSelect (ListExpr args)
+{
+//   ListExpr relDescription = nl->First(args),
+//   attrNameLE = nl->Second(args),
+//   tupleDescription = nl->Second(relDescription),
+//   attrList = nl->Second(tupleDescription);
+
+   ListExpr relDescription = nl->Second(args),
+   attrNameLE = nl->Third(args),
+   tupleDescription = nl->Second(relDescription),
+   attrList = nl->Second(tupleDescription);
+
+  string attrName = nl->SymbolValue(attrNameLE);
+  int attrIndex;
+  ListExpr attrType;
+  attrIndex = FindAttribute(attrList, attrName, attrType);
+  AlgebraManager* algMgr = SecondoSystem::GetAlgebraManager();
+  ListExpr errorInfo = nl->OneElemList( nl->SymbolAtom( "ERRORS" ) );
+  int result;
+
+  if ( algMgr->CheckKind("SPATIAL2D", attrType, errorInfo) )
+    result = 0;
+  else if ( algMgr->CheckKind("SPATIAL3D", attrType, errorInfo) )
+    result = 1;
+  else if ( algMgr->CheckKind("SPATIAL4D", attrType, errorInfo) )
+    result = 2;
+  else if ( algMgr->CheckKind("SPATIAL8D", attrType, errorInfo) )
+    result = 3;
+  else
+    return -1; /* should not happen */
+
+  if( nl->SymbolValue(nl->First(relDescription)) == "stream")
+  {
+    ListExpr first,
+    rest = attrList;
+    while (!nl->IsEmpty(rest))
+    {
+      first = nl->First(rest);
+      rest = nl->Rest(rest);
+    }
+     return result;
+  }
+  return -1;
+}
+
 Operator updatebulkloadrtree(
         "updatebulkloadrtree",
         UpdatebulkloadrtreeSpec,
-        UpdateBulkLoadFun,
-        Operator::SimpleSelect,
+//        UpdateBulkLoadFun,
+        4,
+        VMUpdateBulkLoadFun,
+//        Operator::SimpleSelect,
+        UpdateBulkLoadSelect,
         UpdateBulkLoadTypeMap
 );
 
