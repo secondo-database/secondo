@@ -650,138 +650,129 @@ struct SpacePartition{
   SpacePartition();
   SpacePartition(Relation* in_line);
 
-  /*get the intersection value between a circle and a line function*/
+  //get the intersection value between a circle and a line function
   void GetDeviation(Point, double, double, double&, double&, int);
-  /*check the rotation from (p1-p0) to (p2-p0) is clock_wise or not*/
+  //check the rotation from (p1-p0) to (p2-p0) is clock_wise or not
   bool GetClockwise(Point& p0,Point& p1, Point& p2);
-  /*get the angle of the rotation from (p1-p0) to (p2-p0)*/
+  //get the angle of the rotation from (p1-p0) to (p2-p0)
   double GetAngle(Point& p0,Point& p1, Point& p2);
-  /*move the segment by a deviation to the left or right*/
+  //move the segment by a deviation to the left or right
   void TransferSegment(MyHalfSegment&, vector<MyHalfSegment>&, int, bool);
-  /*change the coordinate value of a point, to int value, for example*/
+  //change the coordinate value of a point, to int value, for example
   inline void ModifyPoint(Point& p);
   inline void Modify_Point(Point& p);
-  /*add the segment to line, but change its points coordinate to int value*/
+  //add the segment to line, but change its points coordinate to int value
   void AddHalfSegmentResult(MyHalfSegment hs, Line* res, int& edgeno);
-  /*for the given line stored in segs, get the line after transfer*/
+  //for the given line stored in segs, get the line after transfer
   void Gettheboundary(vector<MyHalfSegment>& segs,
                       vector<MyHalfSegment>& boundary, int delta,
                       bool clock_wise);
-  /*get all the points forming the boundary for road region*/
+  //get all the points forming the boundary for road region
   void ExtendSeg1(vector<MyHalfSegment>& segs,int delta,
                 bool clock_wise,
                 vector<Point>& outer, vector<Point>& outer_half);
- /*get all the points forming the boundary for both road and pavement region*/
+ //get all the points forming the boundary for both road and pavement region
   void ExtendSeg2(vector<MyHalfSegment>& segs,int delta,
                      bool clock_wise, vector<Point>& outer);
-  /*
-   order the segments so that the end point of last one connects to the start
-   point of the next one, the result is stored as vector<MyHalfSegment>
 
-  */
+  // order the segments so that the end point of last one connects to the start
+  // point of the next one, the result is stored as vector<MyHalfSegment>
+
   void ReorderLine(SimpleLine*, vector<MyHalfSegment>&);
-  /*create a region from the given set of ordered points*/
+  //create a region from the given set of ordered points
   void ComputeRegion(vector<Point>& outer_region,vector<Region>& regs);
-  /*extend each road to a region*/
+  //extend each road to a region
   void ExtendRoad(int attr_pos, int w);
-  /*cut the intersection region between pavement and road*/
+  //cut the intersection region between pavement and road
   void ClipPaveRegion(Region& reg, Region& pave1, Region& pave2,
                        vector<Region>& paves,int rid, Region* inborder);
-  /*fill the gap between two pavements at some junction positions*/
+  //fill the gap between two pavements at some junction positions
   void FillPave(Network* n, vector<Region>& pavements1,
                 vector<Region>& pavements2,
                 vector<double>& routes_length,
                 vector<Region>& paves1, vector<Region>& paves2);
-  /*get the pavement beside each road*/
+  //get the pavement beside each road
   void Getpavement(Network* n, Relation* rel1, int attr_pos,
                   Relation* rel2, int attr_pos1, int attr_pos2, int w);
-  /*transfer the halfsegment by a deviation*/
+  //transfer the halfsegment by a deviation
   void TransferHalfSegment(HalfSegment& hs, int delta, bool flag);
-  /*for the given line, get its curve after transfer*/
+  //for the given line, get its curve after transfer
   void GetSubCurve(SimpleLine* curve, Line* newcurve,int roadwidth, bool clock);
 
-  /*build zebra crossing at junction position, called by GetZebraCrossing()*/
+  //build zebra crossing at junction position, called by GetZebraCrossing()
   bool BuildZebraCrossing(vector<MyPoint>& endpoints1,
                           vector<MyPoint>& endpoints2,
                           Region* reg_pave1, Region* reg_pave2,
                           Line* pave1, Region* crossregion, Point& junp);
-  /*
-  for the road line around the junction position, it creates the zebra crossing
-
-  */
+//for the road line around the junction position, it creates the zebra crossing
   void GetZebraCrossing(SimpleLine* subcurve,
                         Region* reg_pave1, Region* reg_pave2,
                         int roadwidth, Line* pave1, double delta_l,
                         Point p1, Region* crossregion);
 
-   /* Extend the line in decreasing direction*/
+   // Extend the line in decreasing direction
   void Decrease(SimpleLine* curve, Region* reg_pave1,
                       Region* reg_pave2, double len, Line* pave,
                       int roadwidth, Region* crossregion);
-  /*Extend the line in increasing direction */
+  //Extend the line in increasing direction
   void Increase(SimpleLine* curve, Region* reg_pave1,
                       Region* reg_pave2, double len, Line* pave,
                       int roadwidth, Region* crossregion);
-  /*create the pavement at each junction position*/
+  //create the pavement at each junction position
   void CreatePavement(SimpleLine* curve, Region* reg_pave1,
                       Region* reg_pave2, double len, Line* pave1,
                       Line* pave2, int roadwidth, Region* crossregion);
   void Junpavement(Network* n, Relation* rel, int attr_pos1,
                   int attr_pos2, int width);
 
-  /*Detect whether three points collineation*/
+  //Detect whether three points collineation
   inline bool Collineation(Point& p1, Point& p2, Point& p3);
-  /*Check that the pavement gap should not intersect the two roads*/
+  //Check that the pavement gap should not intersect the two roads
   bool SameSide1(Region* reg1, Region* reg2, Line* r1r2,Point* junp);
-  /*build a small region around the three halfsegments*/
+  //build a small region around the three halfsegments
   bool SameSide2(Region* reg1, Region* reg2, Line* r1r2,
                   Point* junp, MyHalfSegment thirdseg, Region& smallreg);
 
-  /*the common area of two regions*/
+  //the common area of two regions
   inline bool PavementIntersection(Region* reg1, Region* reg2);
-  /*check the junction position rids.size() != 2 rids.size() != 6*/
+  //check the junction position rids.size() != 2 rids.size() != 6
   void NewFillPavementDebug(Relation* rel, Relation* routes,
                       int id1, int id2,
                       Point* junp, int attr_pos1, int attr_pos2,
                       vector<int> rids);
-  /*
-   check for the junction where two road intersect
-   rids.size() == 2, used by operator fillgap
 
-  */
+  // check for the junction where two road intersect
+  // rids.size() == 2, used by operator fillgap
+
   void NewFillPavement1(Relation* rel, Relation* routes,
                       int id1, int id2,
                       Point* junp, int attr_pos1, int attr_pos2,
                       vector<int> rids);
-  /*
-  check for the junction where three roads intersect
-  called by operator fillgap
 
-  */
+  //check for the junction where three roads intersect
+  //called by operator fillgap
+
   void NewFillPavement2(Relation* rel, Relation* routes,
                       int id1, int id2,
                       Point* junp, int attr_pos1, int attr_pos2,
                       vector<int> rids);
-  /*
-  the same function as in NewFillPavement2, but with different input parameters
-  called by function FillPave()
 
-  */
+  //the same function as in NewFillPavement2, but with different input
+  //parameters called by function FillPave()
+
   void NewFillPavement3(Relation* routes, int id1, int id2,
                       Point* junp, vector<Region>& paves1,
                       vector<Region>& paves2, vector<int> rids,
                       vector<Region>& newpaves1, vector<Region>& newpaves2);
-  /*
-    the same function as NewFillPavement2, but with different input parameters
-    called by function FillPave()
 
-  */
+  //the same function as NewFillPavement2, but with different input parameters
+  //called by function FillPave()
+
   void NewFillPavement4(Relation* routes, int id1, int id2,
                       Point* junp, vector<Region>& paves1,
                       vector<Region>& paves2, vector<int> rids,
                       vector<Region>& newpaves1, vector<Region>& newpaves2);
-  /*for operator fillgap*/
-
+  //for operator fillgap
   void FillHoleOfPave(Network* n, Relation* rel,  int attr_pos1,
                       int attr_pos2, int width)
 
