@@ -2036,3 +2036,90 @@ void SpacePartition::Gettheboundary(vector<MyHalfSegment>& segs,
 
 }
 
+/*
+For the given line, it gets all the points forming its boundary where delta
+defines the deviation of the left or right side line for transfer.
+outer does not include points from road, but outerhalf includes
+It is to create the region for road
+
+*/
+void SpacePartition::ExtendSeg1(vector<MyHalfSegment>& segs,int delta,
+                bool clock_wise,
+                vector<Point>& outer, vector<Point>& outer_half)
+{
+    const double delta_dist = 0.1;
+
+    for(unsigned int i = 0;i < segs.size();i++){
+ //     cout<<"start "<<segs[i].GetLeftPoint()<<" to "
+ //         <<segs[i].GetRightPoint()<<endl;
+      if(i < segs.size() - 1){
+        Point to1 = segs[i].GetRightPoint();
+        Point from2 = segs[i+1].GetLeftPoint();
+        assert(to1.Distance(from2) < delta_dist);
+      }
+    }
+
+    vector<MyHalfSegment> boundary;
+    Gettheboundary(segs, boundary, delta, clock_wise);
+
+    ///////////////////////add two more segments ///////////////////////
+      Point old_start = segs[0].GetLeftPoint();
+      Point old_end = segs[segs.size() - 1].GetRightPoint();
+
+      Point new_start = boundary[0].GetLeftPoint();
+      Point new_end = boundary[boundary.size() - 1].GetRightPoint();
+
+
+      MyHalfSegment* mhs = new MyHalfSegment(true, old_start, new_start);
+      boundary.push_back(*mhs);
+      for(int i = boundary.size() - 2; i >= 0;i --)
+          boundary[i+1] = boundary[i];
+
+      boundary[0] = *mhs;
+      delete mhs;
+
+
+      mhs = new MyHalfSegment(true,new_end,old_end);
+      boundary.push_back(*mhs);
+      delete mhs;
+
+      if(clock_wise){
+        for(unsigned int i = 0;i < boundary.size();i++){
+          ///////////////outer segments////////////////////////////////
+          Point p = boundary[i].GetLeftPoint();
+          ModifyPoint(p);
+
+          if(i == 0){
+              outer.push_back(boundary[i].GetLeftPoint());
+              outer_half.push_back(boundary[i].GetLeftPoint());
+          }
+          else{
+            outer.push_back(p);
+            outer_half.push_back(p);
+          }
+        }
+
+        for(int i = segs.size() - 1; i >= 0; i--)
+          outer_half.push_back(segs[i].GetRightPoint());
+
+      }else{
+        for(unsigned int i = 0; i < segs.size(); i++)
+          outer_half.push_back(segs[i].GetLeftPoint());
+
+        for(int i = boundary.size() - 1;i >= 0;i--){
+          /////////////////////////////////////////////////////////////
+          Point p = boundary[i].GetRightPoint();
+          ModifyPoint(p);
+         /////////////////////////////////////////////////////////////
+          if((unsigned)i == boundary.size() - 1){
+              outer.push_back(boundary[i].GetRightPoint());
+              outer_half.push_back(boundary[i].GetRightPoint());
+          }else{
+              outer.push_back(p);
+              outer_half.push_back(p);
+          }
+        }
+
+      }
+
+}
