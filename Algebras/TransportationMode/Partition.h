@@ -783,7 +783,7 @@ struct SpacePartition{
   /*for operator fillgap*/
 
   void FillHoleOfPave(Network* n, Relation* rel,  int attr_pos1,
-                      int attr_pos2, int width);
+                      int attr_pos2, int width)
 
 };
 #endif
