@@ -1948,3 +1948,91 @@ void SpacePartition::AddHalfSegmentResult(MyHalfSegment hs, Line* res,
       }
 }
 
+
+
+/*
+for the given line stored in segs, it gets its left or right side line after
+transfer by a deviation given by delta
+
+*/
+void SpacePartition::Gettheboundary(vector<MyHalfSegment>& segs,
+                      vector<MyHalfSegment>& boundary, int delta,
+                      bool clock_wise)
+{
+    const double delta_dist = 0.1;
+    for(unsigned int i = 0;i < segs.size();i++){
+
+      TransferSegment(segs[i], boundary, delta, clock_wise);
+
+    }
+
+    ////////  connect the new boundary ////////////////////////
+    for(unsigned int i = 0;i < boundary.size() - 1; i++){
+      Point p1_1 = boundary[i].GetLeftPoint();
+      Point p1_2 = boundary[i].GetRightPoint();
+      Point p2_1 = boundary[i+1].GetLeftPoint();
+      Point p2_2 = boundary[i+1].GetRightPoint();
+
+//      cout<<p1_1<<" "<<p1_2<<" "<<p2_1<<" "<<p2_2<<endl;
+
+      if(p1_2.Distance(p2_1) < delta_dist) continue;
+
+
+      if(AlmostEqual(p1_1.GetX(),p1_2.GetX())){
+        assert(!AlmostEqual(p2_1.GetX(),p2_2.GetX()));
+        double a2 = (p2_2.GetY()-p2_1.GetY()) /(p2_2.GetX()-p2_1.GetX());
+        double b2 = p2_2.GetY() - a2*p2_2.GetX();
+
+        double x = p1_1.GetX();
+        double y = a2*x + b2;
+        boundary[i].to.Set(x,y);
+        boundary[i+1].from.Set(x,y);
+
+      }else{
+        if(AlmostEqual(p2_1.GetX(),p2_2.GetX())){
+
+          assert(!AlmostEqual(p1_1.GetX(),p1_2.GetX()));
+          double a1 = (p1_2.GetY()-p1_1.GetY()) /(p1_2.GetX()-p1_1.GetX());
+          double b1 = p1_2.GetY() - a1*p1_2.GetX();
+
+          double x = p2_1.GetX();
+          double y = a1*x + b1;
+          boundary[i].to.Set(x,y);
+          boundary[i+1].from.Set(x,y);
+
+        }else{
+          double a1 = (p1_2.GetY()-p1_1.GetY()) /(p1_2.GetX()-p1_1.GetX());
+          double b1 = p1_2.GetY() - a1*p1_2.GetX();
+
+          double a2 = (p2_2.GetY()-p2_1.GetY()) /(p2_2.GetX()-p2_1.GetX());
+          double b2 = p2_2.GetY() - a2*p2_2.GetX();
+
+//          assert(!AlmostEqual(a1,a2));
+//          cout<<"a1 "<<a1<<" a2 "<<a2<<endl;
+
+          if(AlmostEqual(a1,a2)) assert(AlmostEqual(b1,b2));
+
+          double x = (b2-b1)/(a1-a2);
+          double y = a1*x + b1;
+          ////////////process speical case angle too small////////////
+          Point q1;
+          q1.Set(x,y);
+          Point q2 = segs[i].GetRightPoint();
+//          cout<<"q1 "<<q1<<" q2 "<<q2<<endl;
+          if(q1.Distance(q2) > 5*delta){
+
+//            assert(false);
+//            cout<<"special case"<<endl;
+          }
+          /////////////////////////////////////////////////////
+          boundary[i].to.Set(x,y);
+          boundary[i+1].from.Set(x,y);
+        }
+//        cout<<boundary[i].to<<" "<<boundary[i+1].from<<endl;
+
+      }// end if
+
+    }//end for
+
+}
+
