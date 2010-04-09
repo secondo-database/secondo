@@ -1714,3 +1714,172 @@ void SpacePartition::GetDeviation(Point center, double a, double b,double& x1,
     x1 = (-B - sqrt(B*B-4*A*C))/(2*A);
     x2 = (-B + sqrt(B*B-4*A*C))/(2*A);
 }
+
+/*
+It checks whether the rotation from segment (p1-p0) to segment (p2-p0) is
+counterclockwise or clockwise
+TRUE--clockwise  false--couterclockwise
+
+*/
+
+bool SpacePartition::GetClockwise(Point& p0,Point& p1, Point& p2)
+{
+    double x0 = p0.GetX();
+    double y0 = p0.GetY();
+    double x1 = p1.GetX();
+    double y1 = p1.GetY();
+    double x2 = p2.GetX();
+    double y2 = p2.GetY();
+    bool result;
+    if(AlmostEqual(x0,x1)){
+        if(y1 >= y0){
+//          if(x2 < x0) result = false;
+          if(x2 < x0 || AlmostEqual(x2,x0)) result = false;
+          else result = true;
+        }else{
+          if(x2 < x0) result = true;
+          else result = false;
+        }
+    }else{
+          double slope = (y1-y0)/(x1-x0);
+
+/*          if(AlmostEqual(y1,y0))
+            slope = 0;
+          else
+            slope = (y1-y0)/(x1-x0);*/
+
+          double intercept = y1-slope*x1;
+          if(x1 < x0){
+            if(y2 < (slope*x2 + intercept)) result = false;
+            else result = true;
+          }else{
+            if(y2 < (slope*x2 + intercept)) result = true;
+            else result = false;
+          }
+    }
+//      if(result) cout<<"clockwise "<<endl;
+//     else cout<<"counterclokwise "<<endl;
+      return result;
+}
+
+/*
+It gets the angle of the rotation from segment (p1-p0) to segment (p2-p0)
+
+*/
+
+double SpacePartition::GetAngle(Point& p0,Point& p1, Point& p2)
+{
+      /////cosne theorem ///
+      double angle; //radian [0-pi]
+      double b = p0.Distance(p1);
+      double c = p0.Distance(p2);
+      double a = p1.Distance(p2);
+      assert(AlmostEqual(b*c,0.0) == false);
+      double value = (b*b+c*c-a*a)/(2*b*c);
+
+      if(AlmostEqual(value,-1.0)) value = -1;
+      if(AlmostEqual(value,1.0)) value = 1;
+      angle = acos(value);
+//      cout<<"angle "<<angle<<" degree "<<angle*180.0/pi<<endl;
+      assert(0.0 <= angle && angle <= 3.1416);
+      return angle;
+}
+
+/*
+Given a halfsegment, transfer it by a deviation (delta) to the left or right
+side (up or down), determined by clockflag.
+Put the transfered halfsegment into structure boundary
+for example, (2, 2)--(3, 2), delta = 1
+it return (2, 1)---(3,1) or (2,3)--(3,3)
+
+*/
+
+void SpacePartition::TransferSegment(MyHalfSegment& mhs,
+                    vector<MyHalfSegment>& boundary, int delta, bool clock_flag)
+{
+
+    Point from = mhs.GetLeftPoint();
+    Point to = mhs.GetRightPoint();
+    Point next_from1;
+    Point next_to1;
+
+    Point p1,p2,p3,p4;
+
+    if(AlmostEqual(from.GetX(),to.GetX())){
+ /*     next_from1.Set(from.GetX() + delta, from.GetY());
+      next_to1.Set(to.GetX() + delta, to.GetY());
+      MyHalfSegment* seg = new MyHalfSegment(true,next_from1,next_to1);
+      boundary.push_back(*seg);
+      delete seg;
+      return;*/
+      p1.Set(from.GetX() - delta,from.GetY());
+      p2.Set(from.GetX() + delta,from.GetY());
+      p3.Set(to.GetX() - delta, to.GetY());
+      p4.Set(to.GetX() + delta, to.GetY());
+    }
+    else if(AlmostEqual(from.GetY(), to.GetY())){
+/*      next_from1.Set(from.GetX(),from.GetY() - delta);
+      next_to1.Set(to.GetX(), to.GetY() - delta);
+      MyHalfSegment* seg = new MyHalfSegment(true,next_from1,next_to1);
+      boundary.push_back(*seg);
+      delete seg;
+      return;*/
+      p1.Set(from.GetX(), from.GetY() - delta);
+      p2.Set(from.GetX(), from.GetY() + delta);
+      p3.Set(to.GetX(), to.GetY() - delta);
+      p4.Set(to.GetX(), to.GetY() + delta);
+    }else{
+
+      double k1 = (from.GetY() - to.GetY())/(from.GetX() - to.GetX());
+
+      double k2 = -1/k1;
+      double b1 = from.GetY() - k2*from.GetX();
+
+      double x1,x2;
+      GetDeviation(from,k2,b1,x1,x2,delta);
+
+      double y1 = x1*k2 + b1;
+      double y2 = x2*k2 + b1;
+
+      double x3,x4;
+      double b2 = to.GetY() - k2*to.GetX();
+      GetDeviation(to,k2,b2,x3,x4,delta);
+
+      double y3 = x3*k2 + b2;
+      double y4 = x4*k2 + b2;
+
+      p1.Set(x1,y1);
+      p2.Set(x2,y2);
+      p3.Set(x3,y3);
+      p4.Set(x4,y4);
+    }
+
+    vector<Point> clock_wise;
+    vector<Point> counterclock_wise;
+    if(GetClockwise(from,to,p1)) clock_wise.push_back(p1);
+    else counterclock_wise.push_back(p1);
+
+    if(GetClockwise(from,to,p2)) clock_wise.push_back(p2);
+    else counterclock_wise.push_back(p2);
+
+    if(GetClockwise(from,to,p3)) clock_wise.push_back(p3);
+      else counterclock_wise.push_back(p3);
+
+    if(GetClockwise(from,to,p4)) clock_wise.push_back(p4);
+      else counterclock_wise.push_back(p4);
+
+    assert(clock_wise.size() == 2 && counterclock_wise.size() == 2);
+    if(clock_flag){
+      next_from1 = clock_wise[0];
+      next_to1 = clock_wise[1];
+    }else{
+      next_from1 = counterclock_wise[0];
+      next_to1 = counterclock_wise[1];
+    }
+
+    MyHalfSegment* seg = new MyHalfSegment(true,next_from1,next_to1);
+    boundary.push_back(*seg);
+    delete seg;
+}
+
+
