@@ -1882,4 +1882,69 @@ void SpacePartition::TransferSegment(MyHalfSegment& mhs,
     delete seg;
 }
 
+/*
+Moidfy the coordinate value of the point, change it into int value or
+reduce the precision to be more practical
+
+*/
+
+inline void SpacePartition::ModifyPoint(Point& p)
+{
+    double a, b;
+    int x, y;
+    a = p.GetX();
+    b = p.GetY();
+
+    x = static_cast<int>(GetCloser(a));
+    y = static_cast<int>(GetCloser(b));
+    p.Set(x,y);
+
+//    printf("%.8f %.8f\n",a,b);
+//    printf("%d %d\n",x,y);
+}
+inline void SpacePartition::Modify_Point(Point& p)
+{
+    double x,y;
+    x = p.GetX();
+    y = p.GetY();
+//    printf("%.10f %.10f\n",x, y);
+    x = ((int)(x*100.0 +0.5))/100.0;
+    y = ((int)(y*100.0 +0.5))/100.0;
+//    printf("%.10f %.10f\n",x, y);
+    p.Set(x,y);
+}
+
+/*
+Add one segment to line, but change the point value to int
+
+*/
+void SpacePartition::AddHalfSegmentResult(MyHalfSegment hs, Line* res,
+                                         int& edgeno)
+{
+      const double delta_dist = 0.1;
+      double a1,b1,a2,b2;
+      int x1,y1,x2,y2;
+      a1 = hs.GetLeftPoint().GetX();
+      b1 = hs.GetLeftPoint().GetY();
+      a2 = hs.GetRightPoint().GetX();
+      b2 = hs.GetRightPoint().GetY();
+
+      x1 = static_cast<int>(GetCloser(a1));
+      y1 = static_cast<int>(GetCloser(b1));
+      x2 = static_cast<int>(GetCloser(a2));
+      y2 = static_cast<int>(GetCloser(b2));
+
+      HalfSegment hs2;
+      Point p1,p2;
+      p1.Set(x1,y1);
+      p2.Set(x2,y2);
+
+      if(p1.Distance(p2) > delta_dist){//////////////final check
+        hs2.Set(true,p1,p2);
+        hs2.attr.edgeno = edgeno++;
+        *res += hs2;
+        hs2.SetLeftDomPoint(!hs2.IsLeftDomPoint());
+        *res += hs2;
+      }
+}
 
