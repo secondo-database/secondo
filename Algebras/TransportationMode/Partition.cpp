@@ -34,11 +34,11 @@ March, 2010 Jianqiu Xu
 This source file essentially contains the necessary implementations for
 partitioning space.
 
-2 Defines and includes
 
 */
 
 #include "Partition.h"
+
 /*
 ~Shift~ Operator for ~ownertype~
 
@@ -55,31 +55,24 @@ ostream& myavlseg::operator<<(ostream& o, const myavlseg::ownertype& owner){
    return o;
 }
 
-
-/*
-3 Implementation of ~MyAVLSegment~
-
-*/
-
-
 /*
 3.1 Constructors
 
 ~Standard Constructor~
 
 */
-  myavlseg::MyAVLSegment::MyAVLSegment(){
-    x1 = 0;
-    x2 = 0;
-    y1 = 0;
-    y2 = 0;
-    owner = none;
-    insideAbove_first = false;
-    insideAbove_second = false;
-    con_below = 0;
-    con_above = 0;
-  }
-
+myavlseg::MyAVLSegment::MyAVLSegment()
+{
+  x1 = 0;
+  x2 = 0;
+  y1 = 0;
+  y2 = 0;
+  owner = none;
+  insideAbove_first = false;
+  insideAbove_second = false;
+  con_below = 0;
+  con_above = 0;
+}
 
 /*
 ~Constructor~
@@ -127,17 +120,18 @@ Create a Segment only consisting of a single point.
 
 */
 
-  myavlseg::MyAVLSegment::MyAVLSegment(const Point& p, ownertype owner){
-      x1 = p.GetX();
-      x2 = x1;
-      y1 = p.GetY();
-      y2 = y1;
-      this->owner = owner;
-      insideAbove_first = false;
-      insideAbove_second = false;
-      con_below = 0;
-      con_above = 0;
-  }
+myavlseg::MyAVLSegment::MyAVLSegment(const Point& p, ownertype owner)
+{
+    x1 = p.GetX();
+    x2 = x1;
+    y1 = p.GetY();
+    y2 = y1;
+    this->owner = owner;
+    insideAbove_first = false;
+    insideAbove_second = false;
+    con_below = 0;
+    con_above = 0;
+}
 
 
 /*
