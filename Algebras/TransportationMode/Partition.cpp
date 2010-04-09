@@ -1677,4 +1677,40 @@ void MySetOp(const Region& reg1,
 
 } // setOP region x region -> region
 
+/*
+The following is the implementation of structure for space partition
 
+*/
+
+/*
+Default constructor function
+
+*/
+SpacePartition::SpacePartition()
+{
+      l = NULL;
+      resulttype = NULL;
+      count = 0;
+}
+
+SpacePartition::SpacePartition(Relation* in_line):l(in_line),count(0){}
+
+/*
+take the input point as the center and delta as the radius
+a line function represented by a and b
+it returns the intersection point (only x value) for the circle and line
+function
+
+*/
+void SpacePartition::GetDeviation(Point center, double a, double b,double& x1,
+                   double& x2, int delta)
+{
+    double x0 = center.GetX();
+    double y0 = center.GetY();
+    double A = 1 + a*a;
+    double B = 2*a*(b-y0)-2*x0;
+//    double C = x0*x0 + (b-y0)*(b-y0) - 1;
+    double C = x0*x0 + (b-y0)*(b-y0) - delta*delta;
+    x1 = (-B - sqrt(B*B-4*A*C))/(2*A);
+    x2 = (-B + sqrt(B*B-4*A*C))/(2*A);
+}
