@@ -368,7 +368,7 @@ bool FlobManager::getData(
   if(actRead!= size&& file == nativeFlobFile){
     return true;
   }
-  assert(actRead == size);
+  //assert(actRead == size);
   
   __TRACE_LEAVE__
   return true;

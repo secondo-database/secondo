@@ -948,7 +948,7 @@ Saves a tuple into a temporary ~tuplefile~.
 
 */
 
-  void Save( TupleFile& tuplefile );
+  void Save( TupleFile& tuplefile ) ;
 
 /*
 Saves a tuple with updated attributes and reuses the old
@@ -1176,7 +1176,9 @@ to ~defAttributes~, otherwise it is dinamically constructed.
 
   char* WriteToBlock( size_t attrSizes,
                       size_t extensionSize,
-                      bool ignoreLOBs = false );
+                      bool ignoreLOBs, 
+                      SmiRecordFile* file,
+                      const SmiFileId& lobFileId) const;
 
 
   size_t CalculateBlockSize( size_t& attrSizes,
@@ -1184,7 +1186,7 @@ to ~defAttributes~, otherwise it is dinamically constructed.
                              double& size,
                              vector<double>& attrExtSize,
                              vector<double>& attrSize
-                           );
+                           ) const;
 
 
   char* GetSMIBufferData(SmiRecord& r, uint16_t& rootSize);

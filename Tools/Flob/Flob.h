@@ -560,7 +560,11 @@ Clears both cashes. Its required after closing or opening a database.
 
 
   ostream& print(ostream& os) const {
-    return os << "[" << id << ", size = " << size << "]";
+    if(!dataPointer){
+       return os << "[" << id << ", size = " << size << "]";
+    } else {
+       return os << "[ data pointer, size = " << size << "]";
+    }
   }
 
   private:

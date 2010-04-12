@@ -44,14 +44,13 @@ void Tuple::SaveOrel(SmiRecord* record, SmiFileId& lobFileId, double& extSize,
                  double& size, vector<double>& attrExtSize,
                  vector<double>& attrSize, bool ignoreFlobs,
                  TupleId tupleId) {
-  this->tupleId = tupleId;
-  this->lobFileId = lobFileId;
   extSize += tupleType->GetCoreSize();
   size += tupleType->GetCoreSize();
   size_t coreSize = 0;
   size_t extensionSize = CalculateBlockSize(coreSize, extSize, size,
                                             attrExtSize, attrSize);
-  char* data = WriteToBlock(coreSize, extensionSize, ignoreFlobs);
+  char* data = WriteToBlock(coreSize, extensionSize, ignoreFlobs, 
+                            tupleFile, lobFileId);
   bool rc = record->Write(data, sizeof(uint16_t)+coreSize+extensionSize, 0);
   assert(rc==true);
   free(data);

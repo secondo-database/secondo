@@ -251,11 +251,10 @@ void Tuple::Save( SmiRecordFile* file,
                          const SmiFileId& fid,
                          double& extSize, double& size,
                          vector<double>& attrExtSize, vector<double>& attrSize,
-                         const bool ignoreLobs /*=false*/)
+                         const bool ignoreLobs /*=false*/) 
 {
   TRACE_ENTER
 
-  // set private members          
   this->tupleFile = file;
   this->lobFileId = fid;
 
@@ -275,7 +274,8 @@ void Tuple::Save( SmiRecordFile* file,
   // create a new record for the tuple
   DEBUG_MSG("Appending tuple record!")
   SmiRecord *tupleRecord = new SmiRecord();
-  bool rc = tupleFile->AppendRecord( tupleId, *tupleRecord );
+//  SmiRecordId tupleId; 
+  bool rc = file->AppendRecord( tupleId, *tupleRecord );
   assert(rc == true);
 
   size_t extensionSize
@@ -283,7 +283,7 @@ void Tuple::Save( SmiRecordFile* file,
                                    size, attrExtSize,
                                    attrSize);
 
-  char* data = WriteToBlock(coreSize, extensionSize, ignoreLobs);
+  char* data = WriteToBlock(coreSize, extensionSize, ignoreLobs, file, fid);
 
   // Write data into the record
   DEBUG_MSG("Writing tuple record!")
@@ -304,7 +304,7 @@ void Tuple::Save( SmiRecordFile* file,
 }
 
 
-void Tuple::Save(TupleFile& tuplefile)
+void Tuple::Save(TupleFile& tuplefile) 
 {
   double extSize = 0;
   double size = 0;
@@ -319,12 +319,12 @@ void Tuple::Save(TupleFile& tuplefile)
   size_t coreSize = 0;
   size_t extensionSize = CalculateBlockSize( coreSize, extSize,
                                              size, attrExtSize,
-                                             attrSize);
+                                             attrSize); 
 
   // Put core and extension part into a single memory block
   // Note: this memory block contains already the block size
   // as uint16_t value
-  char* data = WriteToBlock(coreSize, extensionSize, true);
+  char* data = WriteToBlock(coreSize, extensionSize, true, 0,0);
 
   // Append data to temporary tuple file
   tuplefile.Append(data, coreSize, extensionSize);
@@ -348,7 +348,8 @@ void Tuple::UpdateSave( const vector<int>& changedIndices,
 	      = CalculateBlockSize( attrSizes, extSize,
 				    size, attrExtSize, attrSize);
 
-  char* data = WriteToBlock( attrSizes, extensionSize, false );
+  char* data = WriteToBlock( attrSizes, extensionSize, false, 
+                             tupleFile, lobFileId );
 
   SmiRecord *tupleRecord = new SmiRecord();
   bool ok = tupleFile->SelectRecord( tupleId, *tupleRecord,
@@ -389,7 +390,9 @@ void Tuple::UpdateSave( const vector<int>& changedIndices,
 
 char* Tuple::WriteToBlock( size_t coreSize,
                            size_t extensionSize,
-                           bool ignoreLobs /*=false*/   )
+                           bool ignoreLobs,
+                           SmiRecordFile* tuplefile,
+                           const SmiFileId& lobFileId  ) const
 {
  TRACE_ENTER
   // create a single block able to pick up the roots of the
@@ -403,19 +406,6 @@ char* Tuple::WriteToBlock( size_t coreSize,
   char* data = (char*) malloc( blockSize );
   char* ext  = data + recordSizeLen + coreSize;
 
-          SHOW(recordSizeLen)
-//#undef SHOW
-//#define SHOW(a) {cerr << "  " << #a << " = " << a << endl;} 
-
-          SHOW(coreSize)
-          SHOW(extensionSize)
-//#define SHOW(a) 
-
-          SHOW(dataSize)
-          SHOW(blockSize)
-
-  // write the block size into the memory block
-  
   // current position in the core part    
   SmiSize offset = 0;
   WriteVar<uint16_t>( dataSize, data, offset );
@@ -442,32 +432,35 @@ char* Tuple::WriteToBlock( size_t coreSize,
 
       //Write Flob data and adjust FlobIds if necessary
 
-      SHOW(attributes[i]->NumOfFLOBs() )
-      vector<Flob> destroyableFlobs;
-
+      // vector to remember old flob states
+      vector<Flob> attrFlobs;
       
       for( int j = 0; j < attributes[i]->NumOfFLOBs(); j++) {
-        SHOW((void*)ext)    
 
         Flob *tmpFlob = attributes[i]->GetFLOB(j);
         SmiSize flobsz = tmpFlob->getSize(); 
 
-        SHOW(flobsz)      
-        if(!attributes[i]->IsPinned()){
-          destroyableFlobs.push_back(*tmpFlob);
-        }
+        attrFlobs.push_back(*tmpFlob);
 
         if (!ignoreLobs && (flobsz >= extensionLimit) ) {
             DEBUG_MSG("tmpFlob->saveToFile");
             tmpFlob->saveToFile( lobFileId,false, *tmpFlob );
         } else if(flobsz<extensionLimit){ // handle small flobs
+
+          // write data to extension
           tmpFlob->read(ext, flobsz);
 
-          // adjust the Flobs persistent storage 
-          SmiFileId  fid = tupleFile->GetFileId();      
+          SmiFileId fid(0);
+          bool isTemp = true;
+          if(tupleFile){
+             fid = tupleFile->GetFileId(); 
+             isTemp = tupleFile->IsTemp();
+          }
           Flob newFlob = Flob::createFrom( fid, tupleId, 
-                         extOffset,tupleFile->IsTemp(), flobsz );
-          *tmpFlob = newFlob;
+                         extOffset,isTemp, flobsz );
+
+          // change flob header
+          *tmpFlob = newFlob; 
 
           // update ext offset
           extOffset += flobsz;
@@ -477,13 +470,6 @@ char* Tuple::WriteToBlock( size_t coreSize,
         SHOW(extOffset)
       }
 
-      // destroy flobs
-      vector<Flob>::iterator it;
-      for(it=destroyableFlobs.begin();it!=destroyableFlobs.end(); it++){
-         it->destroyIfNonPersistent();
-      }
-      destroyableFlobs.clear();
-      
       //Write attribute data        
       currentSize = tupleType->GetAttributeType(i).size;
       SHOW(currentSize)
@@ -492,8 +478,15 @@ char* Tuple::WriteToBlock( size_t coreSize,
       attributes[i]->Serialize( data, currentSize, offset );
       offset += currentSize;
 
-    }
-    else if (st == Attribute::Core) {
+      // write back old flob data
+      assert((size_t)attributes[i]->NumOfFLOBs() == attrFlobs.size());
+      for( int j = 0; j < attributes[i]->NumOfFLOBs(); j++) {
+        Flob *tmpFlob = attributes[i]->GetFLOB(j);
+        *tmpFlob = attrFlobs[j];  
+      }
+      attrFlobs.clear();
+
+    } else if (st == Attribute::Core) {
 
       assert( attributes[i]->NumOfFLOBs() == 0 );
       
@@ -546,7 +539,7 @@ size_t Tuple::CalculateBlockSize( size_t& coreSize,
                                   double& size,
                                   vector<double>& attrExtSize,
                                   vector<double>& attrSize
-                                 )
+                                 ) const
 {
 /*
 The size values represent aggregate values for a complete relation!!!
