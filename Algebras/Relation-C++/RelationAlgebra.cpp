@@ -1607,6 +1607,29 @@ template<bool isOrel> ListExpr ConsumeTypeMap(ListExpr args)
   }
 }
 
+
+ListExpr tconsume_tm(ListExpr args)
+{
+
+  if(nl->ListLength(args)!=1){
+    ErrorReporter::ReportError("one argument expected");
+    return nl->TypeError();
+  }
+  if(!listutils::isTupleStream(nl->First(args))){
+    ErrorReporter::ReportError("stream(tuple(...)) expecetd");
+    return nl->TypeError();
+  }
+
+  return nl->Cons(nl->SymbolAtom("trel"), nl->Rest(nl->First(args)));
+}
+
+
+
+
+
+
+
+
 /*
 5.6.2 Value mapping function of operator ~consume~
 
@@ -1796,6 +1819,19 @@ const string OConsumeSpec =
   "<text>query cities feed oconsume [BevT,Name]</text--->"
   ") )";
 
+
+const string TConsumeSpec =
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+  "\"Example\" ) "
+  "( <text> stream(tuple(...)) -> trel(tuple(...))</text--->"
+  "<text>_ tconsume </text--->"
+  "<text> Appends the tuples' values into a tuple buffer."
+         "The result cant be materialized, thus don't "
+  " </text--->"
+  "<text>query cities feed tconsume</text--->"
+  ") )";
+
+
 /*
 
 5.6.4 Definition of operator ~consume~
@@ -1815,6 +1851,15 @@ Operator relalgoconsume (
    Consume,                // value mapping
    Operator::SimpleSelect, // trivial selection function
    ConsumeTypeMap<true>    // type mapping
+);
+
+
+Operator relalgtconsume (
+   "tconsume",              // name
+   TConsumeSpec,            // specification
+   Consume,                // value mapping
+   Operator::SimpleSelect, // trivial selection function
+   tconsume_tm   // type mapping
 );
 
 /*
@@ -4978,90 +5023,6 @@ static int dumpstream_vm( Word* args, Word& result, int message,
 }
 
 
-/*
-5.13 Operator ~tconsume~
-
-This operator maps
-
-----   (stream (tuple y)) x string -> (trel (tuple y))
-----
-
-It append the tuples into the tuple buffer which is returned in the
-create function of ~trel~.
-
-5.12.0 Specification
-
-*/
-
-struct TConsumeInfo : OperatorInfo {
-
-  TConsumeInfo() : OperatorInfo()
-  {
-    name =      "tconsume";
-    signature = "stream(tuple(y)) x string -> trel(tuple(y))";
-    syntax =    "_ tconsume";
-    meaning =   "Appends the tuples' values into a tuple buffer."
-                "The result cant be materialized, thus don't "
-    "use it in let commands.";
-    example =   "plz feed tconsume";
-  }
-
-};
-
-
-/*
-5.12.1 Type mapping
-
-*/
-
-
-ListExpr tconsume_tm(ListExpr args)
-{
-
-  if(nl->ListLength(args)!=1){
-    ErrorReporter::ReportError("one argument expected");
-    return nl->TypeError();
-  }
-  if(!listutils::isTupleStream(nl->First(args))){
-    ErrorReporter::ReportError("stream(tuple(...)) expecetd");
-    return nl->TypeError();
-  }
-
-  return nl->Cons(nl->SymbolAtom("trel"), nl->Rest(nl->First(args)));
-}
-
-/*
-5.12.1 Value mapping
-
-*/
-
-
-int
-tconsume_vm( Word* args, Word& result, int message,
-             Word& local, Supplier s)
-{
-  Word actual;
-
-  GenericRelation* rel = (GenericRelation*)((qp->ResultStorage(s)).addr);
-  if(rel->GetNoTuples() > 0)
-  {
-    rel->Clear();
-  }
-
-  qp->Open(args[0].addr);
-  qp->Request(args[0].addr, actual);
-  while (qp->Received(args[0].addr))
-  {
-    Tuple* tuple = (Tuple*)actual.addr;
-    rel->AppendTuple(tuple);
-    tuple->DeleteIfAllowed();
-    qp->Request(args[0].addr, actual);
-  }
-  result.setAddr(rel);
-
-  qp->Close(args[0].addr);
-  return 0;
-}
 
 /*
 5.12 Operator ~rename~
@@ -5805,11 +5766,12 @@ class RelationAlgebra : public Algebra
     AddOperator(&relalgbuffer2);
     AddOperator(&relalggetfileinfo);
 
+    AddOperator(&relalgtconsume);
+
     // More recent programming interface for registering operators
     AddOperator( SizeCountersInfo(), sizecounters_vm, sizecounters_tm );
     AddOperator( DumpStreamInfo(), dumpstream_vm, dumpstream_tm );
     AddOperator( ReduceInfo(), reduce_vm, reduce_tm );
-    AddOperator( TConsumeInfo(), tconsume_vm, tconsume_tm );
     AddOperator( CountBothInfo(), countboth_vm, countboth_tm );
     AddOperator( FeedProjectInfo(), feedproject_vm, feedproject_tm );
 
@@ -5826,6 +5788,7 @@ Register operators which are able to handle progress messages
     relalgfeed.EnableProgress();
     relalgconsume.EnableProgress();
     relalgoconsume.EnableProgress();
+    relalgtconsume.EnableProgress();
     relalgfilter.EnableProgress();
     relalgproject.EnableProgress();
     relalgremove.EnableProgress();
