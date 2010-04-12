@@ -4764,6 +4764,78 @@ Operator timeout (
 
 
 /*
+6.8 IsOrdered
+
+Signature: stream(DATA) -> bool
+
+Checks whether a stream is sorted.
+
+*/
+
+ListExpr IsOrderedTM(ListExpr args){
+ 
+  if(nl->ListLength(args)!=1){
+    return listutils::typeError("one argument expected");
+  }
+
+  ListExpr arg = nl->First(args);
+  if(!listutils::isDATAStream(arg)){
+    return listutils::typeError("stream of DATA expected");
+  }
+  return nl->SymbolAtom(symbols::BOOL);
+}
+
+
+int IsOrderedVM(Word* args, Word& result, 
+                int message, Word& local, Supplier s){
+
+  qp->Open(args[0].addr);
+  Word elem;
+  qp->Request(args[0].addr,elem);
+  Attribute* attr=0;
+  bool sorted=true;
+  while(qp->Received(args[0].addr) && sorted){
+    Attribute* next = static_cast<Attribute*>(elem.addr);
+    if(attr){
+      int cmp = attr->Compare(next);
+      if(cmp >0){
+        sorted = false;
+      }
+      attr->DeleteIfAllowed();
+      attr = next;
+      next = 0;
+    } else { // first element
+       attr = next;
+    }
+    if(sorted){
+       qp->Request(args[0].addr,elem);
+    }
+  }
+  if(attr){
+    attr->DeleteIfAllowed();
+  }
+  qp->Close(args[0].addr);
+  result = qp->ResultStorage(s);
+  CcBool* res = static_cast<CcBool*>(result.addr);
+  res->Set(true,sorted);
+  return 0;
+}
+
+const string IsOrderedSpec =
+   "(( \"Signature\" \"Syntax\" \"Meaning\" \"Remarks\" )"
+    "( <text>stream(DATA)  -> bool</text--->"
+      "<text>_ isOrdered</text--->"
+      "<text>Checks whether the argument stream is sorted in ascending order"
+      "</text--->"
+      "<text>query intstream(10, 1000) isOrdered </text---> ))";
+
+Operator isOrdered (
+      "isOrdered",
+      IsOrderedSpec,
+      IsOrderedVM,
+      Operator::SimpleSelect,
+      IsOrderedTM );
+/*
 7 Creating the Algebra
 
 */
@@ -4792,6 +4864,7 @@ public:
     AddOperator( &streamtail );
     AddOperator( &kinds);
     AddOperator( &timeout);
+    AddOperator( &isOrdered);
 
 #ifdef USE_PROGRESS
     streamcount.EnableProgress();

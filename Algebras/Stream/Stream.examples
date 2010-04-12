@@ -221,3 +221,12 @@ Number   : 1
 Signature: stream(X) x real -> stream(X)
 Example  : query ten feed timeout[10.0] count
 Result   : 10
+
+
+Operator : isOrdered
+Number   : 1
+Signature: stream(DATA)  -> bool
+Example  : query intstream(10,1000) isOrdered
+Result   : TRUE
+
+
