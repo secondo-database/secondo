@@ -692,14 +692,199 @@ Returns the cache size of the file.
 
 };
 
+/*
+
+1 Declaration of the Storage Management Interface for UrelAlgebra
+
+1.1 Overview
+
+The storage management interface of the UrelAlgebra
+supports basic I/O methods for let urel object to access
+the memory pool file in the Berkely DB environment.
+This is one part of the whole storage management interface
+of the Secondo system.
+
+The interface is composed by two classes,  *SmiUpdateFile*
+and *SmiUpdatePage*. The SmiUpdateFile provides methods
+for accessing the whole file of an urel object. The main methods
+are listed below:
+
+  * Create
+
+  * Open
+
+  * Close
+
+  * AppendNewPage
+
+  * GetPage
+
+  * PutPage
+
+Create is used to create a new memory pool file, and use Open
+method to access an exist memory pool file, then use Close method
+to flush all unsaved data to the disk and release the handle to the file.
+
+AppendNewPage is used to add a new page in this file, and use the
+GetPage method to map an exist page in the disk file to the main memory,
+and lock that part of memory so that different processes can share
+the same page, that's what we call pin that page in the memory.
+When the page is useless, then use PutPage method to flush the data back
+to the disk file, and unpin the page.
+
+The SmiUpdatePage provides access methods to one page in the
+memory pool file. There are two main methods: read and write,
+with which we can read and write any type of data in this page.
+
+1.2 Definition of Class SmiUpdatePage
+
+*/
+
+class SMI_EXPORT SmiUpdatePage
+{
+public:
+  SmiUpdatePage();
+  SmiUpdatePage(const SmiUpdatePage& rhs);
+  ~SmiUpdatePage();
+
+/*
+
+3.1.1 The write method of SmiUpdatePage
+
+Write the data in the ~buffer~ to the page at the ~offset~ place.
+
+*/
+
+  SmiSize  Write(const void* buffer, const SmiSize numberOfBytes,
+      SmiSize offset = 0)
+  {
+    memcpy((char*) pagePt + offset, buffer, numberOfBytes);
+    return numberOfBytes;
+  }
+/*
+
+3.1.2 The read method of SmiUpdatePage
+
+Read the data at the ~offset~ place of the page back to the ~buffer~.
+
+*/
+
+  SmiSize  Read(void* buffer, const SmiSize numberOfBytes,
+      SmiSize offset = 0)
+  {
+    memcpy(buffer, (char*) pagePt + offset, numberOfBytes);
+    return numberOfBytes;
+  }
+
+  template<typename T>
+    inline SmiSize
+    Write(T& buffer)
+    {
+      SmiSize n = Write(&buffer, sizeof(T));
+      return n;
+    }
+  template<typename T>
+    inline SmiSize
+    Read(T& buffer)
+    {
+      SmiSize n = Read(&buffer, sizeof(T));
+      return n;
+    }
+
+  //auxiliary functions
+  void*  GetPageAddr();
+  db_pgno_t  GetPageNo();
+  SmiSize  GetPageSize();
+  bool  isAvailable();
+
+private:
+  db_pgno_t pageNo; //Indicate the page number inside the file
+  SmiSize pageSize;
+  void* pagePt; //The pointer point to the update page
+
+  friend class SmiUpdateFile;
+};
+
+/*
+
+1.3 Definition of Class SmiUpdateFile
+
+The first several pages of the memory pool file is called ~system page~,
+which is used to store some systematic information of the file.
+At present there is only one system page, and only count how many
+processes are sharing this file.The page number of the update file
+is started from 1.
+
+For effective access the memory, the pointers of all pages got from
+the disk file will be kept in a STL map structure, so that we can get the
+memory pointer directly.
+
+*/
+
+struct SmiUpdateSysPage
+{
+  SmiUpdateSysPage() :
+    shareByNum(0)
+  {}
+  int shareByNum; //count the number of processes sharing this file
+};
+
+class SMI_EXPORT SmiUpdateFile : public SmiFile
+{
+public:
+  SmiUpdateFile();
+  ~SmiUpdateFile();
+  SmiUpdateFile(SmiSize _poolPageSize);
+
+  bool  Open(const string& name); //only use in test example
+  bool  Open(const SmiFileId _fID, const SmiSize _pSize,
+      bool isInitialized = true);
+  //used to reopen an exist file
+  bool  Close();
+  bool  Create(const string& context = "Default", uint16_t pageSize = 0);
+  //used to create a new file
+
+  //New methods about getting and putting pages
+  bool AppendNewPage(SmiUpdatePage*& page);
+  bool GetPage(const db_pgno_t pageNo, SmiUpdatePage*& page);
+  bool PutPage(const db_pgno_t pageNo, bool isChanged = true);
+
+  //Auxiliary functions ...
+  SmiSize  GetPoolPageSize();
+  int  GetSysPageNum();
+  bool  GetIniStatus();
+  int  GetExistPageNum();
+
+private:
+  DbMpoolFile *dbMpf; //The pointer to the memory pool file
+
+  SmiSize poolPageSize;
+  // The page size of the memory pool file
+  int sysPageNum;
+  // The number of pages need to record system info
+  int existPageNum;
+  // The numbers of pages exist in the disk file currently
+  bool isInitialized;
+  // Make sure that this file is not empty.
+  map<db_pgno_t, SmiUpdatePage*> gotPages;
+
+  bool  SyncFile();
+  bool  InitializePoolFile();
+  int  GetNumOfShareProcess();
+  int  GetFactPageNum();
+
+  //Get how many processes are sharing this file
+  bool  RegisterInFile();
+  bool  UnRegisterInFile();
+};
 
 
 
 /**************************************************************************
 1.3 Class "SmiEnvironment"[1]
 
-This class handles all aspects of the environment of the storage environment
-including the basics of transactions.
+This class handles all aspects of the environment of the storage
+environment including the basics of transactions.
 
 */
 
