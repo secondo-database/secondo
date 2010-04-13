@@ -83,9 +83,8 @@ SmiUpdateFile::SmiUpdateFile() :
 }
 
 SmiUpdateFile::SmiUpdateFile(SmiSize _ps) :
-	dbMpf(0), poolPageSize((_ps > 0) ? _ps : defaultPageSize),
-	sysPageNum(defaultSysPageNum), existPageNum(0),
-	isInitialized(false)
+  dbMpf(0), poolPageSize((_ps > 0) ? _ps : defaultPageSize),
+  sysPageNum(defaultSysPageNum), existPageNum(0), isInitialized(false)
 {
   opened = false;
 }
@@ -417,12 +416,12 @@ int SmiUpdateFile::GetExistPageNum()
 
 int SmiUpdateFile::GetSysPageNum()
 {
-	return sysPageNum;
+  return sysPageNum;
 }
 
 bool SmiUpdateFile::GetIniStatus()
 {
-	return isInitialized;
+  return isInitialized;
 }
 
 /*
@@ -582,7 +581,7 @@ bool SmiUpdateFile::UnRegisterInFile()
 
 SmiSize SmiUpdateFile::GetPoolPageSize()
 {
-	return poolPageSize;
+  return poolPageSize;
 }
 
 /*
@@ -749,14 +748,14 @@ bool SmiUpdateFile::SyncFile()
 */
 
 SmiUpdatePage::SmiUpdatePage() :
-	pageNo(0), pageSize(0)
+  pageNo(0), pageSize(0)
 {}
 
 SmiUpdatePage::SmiUpdatePage(const SmiUpdatePage &rhs)
 {
-	pageNo = rhs.pageNo;
-	pageSize = rhs.pageSize;
-	pagePt = rhs.pagePt;
+  pageNo = rhs.pageNo;
+  pageSize = rhs.pageSize;
+  pagePt = rhs.pagePt;
 }
 
 SmiUpdatePage::~SmiUpdatePage()
