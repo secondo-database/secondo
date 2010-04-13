@@ -2873,8 +2873,8 @@ Type mapping for ~sortBy~ is
 
 */
 
-static char* sortAscending = "asc";
-static char* sortDescending = "desc";
+static const char* sortAscending = "asc";
+static const char* sortDescending = "desc";
 
 ListExpr SortByTypeMap( ListExpr args )
 {
@@ -7447,7 +7447,9 @@ int Aggregate(Word* args, Word& result, int message, Word& local, Supplier s)
   switch ( message )
   {
 
-    case OPEN :{
+    case OPEN :
+    case REQUEST:
+    case CLOSE: {
       ali = new ProgressLocalInfo();
       local.setAddr(ali);
       qp->Open(args[0].addr);
