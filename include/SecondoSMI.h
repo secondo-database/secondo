@@ -1189,6 +1189,7 @@ Auxiliary function to handle communication with the registrar process
   friend class SmiKeyedFile;
   friend class SmiBtreeFile;
   friend class SmiRecord;
+  friend class SmiUpdateFile;
 };
 
 /**************************************************************************

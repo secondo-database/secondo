@@ -520,6 +520,7 @@ Closes all handles in the handle array which are not in use anymore.
   friend class SmiKeyedFile;
   friend class SmiBtreeFile;
   friend class SmiRecord;
+  friend class SmiUpdateFile;
 };
 
 /**************************************************************************
@@ -564,6 +565,7 @@ catalog files should not be protected by transactions.
   friend class SmiHashFile;
   friend class SmiBtreeFile;
   friend class SmiRecord;
+  friend class SmiUpdateFile;
 };
 
 /**************************************************************************

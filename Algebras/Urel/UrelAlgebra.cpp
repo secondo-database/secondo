@@ -813,7 +813,7 @@ ListExpr Urel1::Out(ListExpr typeInfo, Word value)
 
   timeb _now;
   ftime(&_now);
-  Instant NOW(_now.time);
+  Instant NOW(int64_t(_now.time));
   vector<URel1Tuple> tuples;
   tuples = rel->GetAllTuples(NOW);
 
@@ -897,12 +897,12 @@ struct urel1Info: ConstructorInfo
 {
 	urel1Info()
 	{
-		name = UREL1;
+		name = "urel1";
 		signature = "TUPLE->REL";
-		typeExample = UREL1;
+		typeExample = "urel1";
 		listRep = "(pageSize, rootPageNum, (tuplelist))";
 		valueExample = "(1024, 10, ())";
-		remarks = "";
+		remarks = "let myUrel = [const urel1 value (1024 10 ())];";
 	}
 };
 
@@ -942,9 +942,9 @@ struct urelInsertInfo : OperatorInfo {
 
 	urelInsertInfo()
   {
-    name      = UINSERT;
-    signature = STREAM + " x " + UREL1 + " -> " + INT;
-    syntax    = "_ _" + UINSERT ;
+    name      = "uinsert";
+    signature = STREAM + " x urel1 -> " + INT;
+    syntax    = "_ _ uinsert";
     meaning   = "Insert a stream of tuples into urel1";
   }
 
@@ -967,7 +967,7 @@ ListExpr UInsertTypeMap(ListExpr args)
   CHECK_COND(listutils::isTupleStream(streamList.listExpr()),
       "Expect the first argument is a tuple stream.");
 
-  CHECK_COND(urelList.isSymbol(UREL1),
+  CHECK_COND(urelList.isSymbol("urel1"),
       "Expect the second argument is urel1 type");
 
   NList tuplesList = streamList.second().second();
@@ -1046,9 +1046,9 @@ struct urelFeedInfo : OperatorInfo {
 
 	urelFeedInfo()
   {
-    name      = UFEED;
-    signature = UREL1 + " x Instant" + " -> " + STREAM;
-    syntax    = "_ " + UFEED + " [ _ ] ";
+    name      = "ufeed";
+    signature = "urel1 x Instant -> " + STREAM;
+    syntax    = "_ ufeed [ _ ] ";
     meaning   = "Get all tuples before an instant";
   }
 
@@ -1067,7 +1067,7 @@ ListExpr UFeedTypeMap(ListExpr args)
   NList first = NList(args).first();
   NList second = NList(args).second();
 
-  CHECK_COND(first.isSymbol(UREL1),
+  CHECK_COND(first.isSymbol("urel1"),
       "Expect the first argument is urel1 type.");
 
   CHECK_COND(second.isEqual("instant"),
@@ -1178,9 +1178,9 @@ struct urelUFeedObjectInfo : OperatorInfo
 {
   urelUFeedObjectInfo()
   {
-    name = UFEEDOBJECT;
-    signature = UREL1 + " x Instant x " + INT + " -> " + STREAM;
-    syntax = "_ " + UFEEDOBJECT + " [ _ , _ ] ";
+    name = "ufeedobject";
+    signature = "urel1 x Instant x " + INT + " -> " + STREAM;
+    syntax = "_ ufeedobject [ _ , _ ] ";
     meaning = "Get all tuples before an instant with a same id";
   }
 };
@@ -1200,7 +1200,7 @@ ListExpr UFeedObjectTypeMap(ListExpr args)
   NList second = NList(args).second();
   NList third = NList(args).third();
 
-  CHECK_COND(first.isSymbol(UREL1),
+  CHECK_COND(first.isSymbol("urel1"),
       "Expect the first argument is urel1 type.");
 
   CHECK_COND(second.isEqual("instant"),

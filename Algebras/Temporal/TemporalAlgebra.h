@@ -2284,7 +2284,9 @@ Calculates the spatial length of the unit
 
 
 ostream& operator<<(ostream& o, const UPoint& u);
-
+ListExpr OutUPoint( ListExpr typeInfo, Word value );
+Word InUPoint( const ListExpr typeInfo, const ListExpr instance,
+               const int errorPos, ListExpr& errorInfo, bool& correct );
 /*
 3.9 Mapping
 
