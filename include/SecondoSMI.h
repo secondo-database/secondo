@@ -488,17 +488,15 @@ varying size. Records are identified by record numbers.
 /*
 Is an enumeration of possible access types:
 
-  * *ReadOnly* -- Records are selected for read access only. Operations which change
-the contents or the size of a record are not permitted.
+  * *ReadOnly* -- Records are selected for read access only. Operations
+which change the contents or the size of a record are not permitted.
 
   * *Update* -- Records are selected for read and/or write access.
 
 */
 
-  bool Create( const string& name,
-	       const string& context = "Default", 
-	       uint16_t pageSize = 0,
-         const bool keepId = false );
+  bool Create( const string& name, const string& context = "Default",
+      uint16_t pageSize = 0, const bool keepId = false );
 /*
 Creates a new SmiFile with given name. 
 If the name is an empty string, the name is constructed automatically.
@@ -510,11 +508,10 @@ a new one for this file.
 
 */
 
-  bool Create( const string& context = "Default", 
-	       uint16_t pageSize = 0 );
-
+  bool Create( const string& context = "Default", uint16_t pageSize = 0 );
 
 /*
+
 Creates a new anonymous ~SmiFile~.
 Optionally a ~context~ can be specified. If pageSize equals 0, the size
 configured in SecondoConfig.ini will be used otherwise a system dependent
@@ -531,15 +528,13 @@ pagesize, and fileId.
 */
 
 
-  bool Open( const SmiFileId id,
-             const string& context = "Default" );
+  bool Open( const SmiFileId id, const string& context = "Default" );
 /*
 Opens an existing anonymous ~SmiFile~ using its file identifier ~id~.
 Optionally a ~context~ can be specified.
 
 */
-  bool Open( const string& name,
-             const string& context = "Default" );	     
+  bool Open( const string& name, const string& context = "Default" );
 /*
 Opens an existing named ~SmiFile~ or creates a new named ~SmiFile~ if it does not
 exist. Optionally a ~context~ can be specified.
@@ -668,13 +663,10 @@ class SMI_EXPORT SmiCachedFile : public SmiFile
 {
 
   protected:
-  SmiCachedFile( const bool isTemporary, 
-		 const uint64_t cache_sz = 0 );
+  SmiCachedFile( const bool isTemporary, const uint64_t cache_sz = 0 );
 
   SmiCachedFile( const SmiCachedFile& f );
   ~SmiCachedFile();
-
-
 
   uint64_t GetCacheSize() const;
 /*
@@ -684,7 +676,6 @@ Returns the cache size of the file.
 
   private:
   uint64_t cacheSize; 
-
 
   friend class SmiEnvironment;
   friend class SmiFileIterator;
@@ -1154,7 +1145,7 @@ or if the application runs in single user mode.
 
 */
   static void SetSmiError( const SmiError smiErr,
-                           const string& errMsg, const string& file, int pos );
+      const string& errMsg, const string& file, int pos );
 
   static const string Err2Msg( SmiError code );
 /*
@@ -1162,7 +1153,7 @@ Translate an SMI error code into a message!
 
 */
   static bool CallRegistrar( const string& dbname, 
-		             const string& cmd, string& answer );
+      const string& cmd, string& answer );
 
 /*
 Auxiliary function to handle communication with the registrar process
@@ -1471,17 +1462,15 @@ method ~KeyRange~.
 
 */
 
-
-
 class SmiKeyedFileIterator;  // Forward declaration
 
 class SMI_EXPORT SmiKeyedFile : public SmiCachedFile
 {
  public:
   SmiKeyedFile( const SmiFile::FileType fileType,
-                const SmiKey::KeyDataType keyType,
-                const bool hasUniqueKeys,
-                const bool isTemporary );
+    const SmiKey::KeyDataType keyType,
+    const bool hasUniqueKeys,
+    const bool isTemporary );
 /*
 Creates a ~SmiFile~ handle for keyed access. The keys have to be of the
 specified type ~keyType~. If ~hasUniqueKeys~ is true, then for each key
