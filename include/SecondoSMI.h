@@ -247,6 +247,7 @@ using namespace std;
 #include <utility>
 
 #include <db_cxx.h>
+#include <string.h>
 
 #include "ErrorCodes.h"
 #include "SecondoConfig.h"
