@@ -8431,13 +8431,20 @@ double Angle(const Point &v, const Point &p1,const Point &p2)
   // the angle is 90 degrees.
   //Similar tests are applied when P1P2 is horizontal.
 
-  if (p1.GetX() == p2.GetX()) //the segment is vertical
-    if (v.GetY()==p1.GetY()) return PI/2; //horizontal edge
-    else return 0;
-  if (p1.GetY() == p2.GetY()) //the segment is horizontal
-    if (v.GetY()==p1.GetY()) return 0; //horizontal edge
-    else return PI/2;
-
+  if (p1.GetX() == p2.GetX()){ //the segment is vertical
+    if (v.GetY()==p1.GetY()){
+        return PI/2; //horizontal edge
+    } else {
+        return 0;
+    }
+  }
+  if (p1.GetY() == p2.GetY()){ //the segment is horizontal
+    if (v.GetY()==p1.GetY()){
+      return 0; //horizontal edge
+    } else {
+      return PI/2;
+    }
+  }
   coss = double( ( (v.GetX() - p1.GetX()) * (p2.GetX() - p1.GetX()) ) +
                  ( (v.GetY() - p1.GetY()) * (p2.GetY() - p1.GetY()) ) ) /
                  (VectorSize(v,p1) * VectorSize(p2,p1));
@@ -8958,16 +8965,20 @@ bool Region::GetCycleDirection( const Point &pA,
                                 const Point &pB )
 {
   double m_p_a,m_p_b;
-  if (pA.GetX() == pP.GetX())//A --> P is a vertical segment
-    if (pA.GetY() > pP.GetY() ) //A --> P directed downwards (case 1)
+  if (pA.GetX() == pP.GetX()){//A --> P is a vertical segment
+    if (pA.GetY() > pP.GetY() ) {//A --> P directed downwards (case 1)
       return false; //Counterclockwise
-    else //upwards (case 2)
+    } else {//upwards (case 2)
       return true; // Clockwise
-  if (pB.GetX() == pP.GetX()) //P --> B is a vertical segment
-    if ( pP.GetY() > pB.GetY()) //downwords (case 3)
+    }
+  }
+  if (pB.GetX() == pP.GetX()) {//P --> B is a vertical segment
+    if ( pP.GetY() > pB.GetY()){ //downwords (case 3)
       return false; //Conterclockwise
-    else //upwards
+    } else {//upwards
       return true; //Clockwise
+    }
+  }
 
   //compute the slopes of P-->A and P-->B
   m_p_a = ( pA.GetY() - pP.GetY() ) / ( pA.GetX() - pP.GetX() );
@@ -16748,6 +16759,9 @@ int SpatialMinusGeneric(Word* args, Word& result, int message,
   A1* arg1 = static_cast<A1*>(args[0].addr);
   A2* arg2 = static_cast<A2*>(args[1].addr);
   R* res = static_cast<R*>(result.addr);
+  assert(arg1);
+  assert(arg2);
+  assert(res);
   arg1->Minus(*arg2, *res);
   return 0;
 }
