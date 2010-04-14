@@ -413,7 +413,6 @@ cout << "Composite::SizeOf" << endl;
 }
 
 bool CompositeKey::CheckKind(const ListExpr typeInfo, ListExpr& errorInfo) {
-cout << "Composite::CK" << endl;
   return (nl->IsAtom(typeInfo) &&
           nl->AtomType(typeInfo)==SymbolType &&
           nl->SymbolValue(typeInfo) == "compkey");
