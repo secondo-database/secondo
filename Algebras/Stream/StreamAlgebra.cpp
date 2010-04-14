@@ -260,10 +260,8 @@ int MappingStreamFeed( Word* args, Word& result, int message,
       return 0;
     }
     case REQUESTPROGRESS:{
-      if ( !local.addr ) {
-        return CANCEL;
-      }
       linfo = static_cast<SFeedLocalInfo*>(local.addr);
+      assert(linfo);
       ProgressInfo *pRes;
       pRes = (ProgressInfo*) result.addr;
       ProgressInfo p1;
@@ -278,19 +276,19 @@ int MappingStreamFeed( Word* args, Word& result, int message,
         pRes->BProgress = 1.0; // non-blocking
         pRes->Time = 0.00001;  // (almost) zero runtime
       }
-      if(!linfo->progressinitialized){
-        pRes->Card = 1;    // cardinality
-        pRes->Size = linfo->attrSize[0]; // total size
-        pRes->SizeExt = linfo->attrSizeExt[0]; // size w/o FLOBS
-        pRes->noAttrs = 1;    //no of attributes
-        pRes->attrSize = linfo->attrSize;
-        pRes->attrSizeExt = linfo->attrSizeExt;
-        linfo->progressinitialized = true;
-        pRes->sizesChanged = true;  //sizes have been recomputed
+      if(linfo->progressinitialized){
+        pRes->sizesChanged = false;
         linfo->progressinitialized = true;
       } else {
-        pRes->sizesChanged = false;
+        pRes->sizesChanged = true;
       }
+      pRes->Card = 1;    // cardinality
+      pRes->Size = linfo->attrSize[0]; // total size
+      pRes->SizeExt = linfo->attrSizeExt[0]; // size w/o FLOBS
+      pRes->noAttrs = 1;    //no of attributes
+      pRes->attrSize = linfo->attrSize;
+      pRes->attrSizeExt = linfo->attrSizeExt;
+      pRes->sizesChanged = true;  //sizes have been recomputed
       if(linfo->finished){
         pRes->Progress = 1.0;
         pRes->Time = 0.00001;
@@ -2387,9 +2385,7 @@ int Transformstream_S_TS(Word* args, Word& result, int message,
     }
     case REQUESTPROGRESS:{
       sli = (TransformstreamLocalInfo*) (local.addr);
-      if( !sli ){
-        return CANCEL;
-      }
+      assert(sli);
       ProgressInfo p1;
       ProgressInfo* pRes = (ProgressInfo*) result.addr;
       if( !qp->RequestProgress(args[0].addr, &p1) ){
@@ -2980,16 +2976,14 @@ streamCountFun (Word* args, Word& result, int message, Word& local, Supplier s)
       }
       ProgressInfo* pRes;
       pRes = (ProgressInfo*) result.addr;
-      if(!li->initializedprogress){
-        pRes->Card = 1 ;                      //expected cardinality
-        pRes->Size = sizeof(CcInt);           //expected total size
-        pRes->SizeExt = sizeof(CcInt);       //expected root+ext size (no FLOBs)
-        pRes->noAttrs = 1;                    //no of attributes
-        pRes->attrSize = li->attrSize;        // the complete size
-        pRes->attrSizeExt = li->attrSizeExt;  //the root and extension size
-        pRes->sizesChanged = true;            //sizes have been recomputed
-        li->initializedprogress = true;
-      }
+      pRes->Card = 1 ;                      //expected cardinality
+      pRes->Size = sizeof(CcInt);           //expected total size
+      pRes->SizeExt = sizeof(CcInt);       //expected root+ext size (no FLOBs)
+      pRes->noAttrs = 1;                    //no of attributes
+      pRes->attrSize = li->attrSize;        // the complete size
+      pRes->attrSizeExt = li->attrSizeExt;  //the root and extension size
+      pRes->sizesChanged = true;            //sizes have been recomputed
+      li->initializedprogress = true;
       ProgressInfo p1;
       if ( qp->RequestProgress(args[0].addr, &p1) ){
         pRes->BTime = p1.Time;                // this is a blocking operator!
@@ -3673,19 +3667,20 @@ realstreamFun (Word* args, Word& result, int message, Word& local, Supplier s)
           ProgressInfo* pRes = (ProgressInfo*) result.addr;
           range_d = ((RangeAndDiff*) local.addr);
           if( range_d ){
-            if(!range_d->initializedprogress){
-              pRes->Size = sizeof(CcReal);    //total tuple size
-                                              //  (including FLOBs)
-              pRes->SizeExt = sizeof(CcReal); //tuple root and extension part
-              pRes->noAttrs = 1;              //no of attributes
-              pRes->attrSize = range_d->attrSize; // complete size per attr
-              pRes->attrSizeExt = range_d->attrSizeExt; // root +extension
-                                                        // size per attr
-              pRes->sizesChanged = true;      //sizes were recomputed
+            if(range_d->initializedprogress){
+              pRes->sizesChanged = false;     //sizes were not recomputed
               range_d->initializedprogress = true;
             } else {
-              pRes->sizesChanged = false;     //sizes were not recomputed
+              pRes->sizesChanged = true;     //first call
             }
+ 
+            pRes->Size = sizeof(CcReal);    //total tuple size
+                                              //  (including FLOBs)
+            pRes->SizeExt = sizeof(CcReal); //tuple root and extension part
+            pRes->noAttrs = 1;              //no of attributes
+            pRes->attrSize = range_d->attrSize; // complete size per attr
+            pRes->attrSizeExt = range_d->attrSizeExt; // root +extension
+                                                        // size per attr
             const double feedccreal = 0.001;  //milliseconds per CcReal
             pRes->Card = range_d->card;       //expected cardinality
             pRes->Time = (range_d->card) * feedccreal; //expected time, [ms]
@@ -3796,6 +3791,9 @@ intstreamValueMap(Word* args, Word& result,
 
       CcInt* i1 = static_cast<CcInt*>( args[0].addr );
       CcInt* i2 = static_cast<CcInt*>( args[1].addr );
+      if(range){
+        delete range;
+      } 
       range = new Range(i1, i2);
       local.addr = range;
 
@@ -3834,23 +3832,21 @@ intstreamValueMap(Word* args, Word& result,
 
     case REQUESTPROGRESS: {
       ProgressInfo* pRes = (ProgressInfo*) result.addr;
-      if( !range ){
-        result.addr = 0;
-        return CANCEL;
-      }
-      if( range->initializedprogress ){
-        pRes->sizesChanged = false;             //sizes were not recomputed
-      } else {
-        pRes->Size = sizeof(CcInt);             //total tuple size
-                                                //  (including FLOBs)
-        pRes->SizeExt = sizeof(CcInt);          //tuple root and extension part
-        pRes->noAttrs = 1;                      //no of attributes
-        pRes->attrSize = range->attrSize;       // complete size per attr
-        pRes->attrSizeExt = range->attrSizeExt; // root +extension
-                                                // size per attr
-        pRes->sizesChanged = true;              //sizes were recomputed
+      assert(range); 
+      
+      if( !range->initializedprogress ){
+        pRes->sizesChanged = true;             //first call
         range->initializedprogress = true;
+      } else {
+        pRes->sizesChanged = false;             //sizes were not recomputed
       }
+      pRes->Size = sizeof(CcInt);             //total tuple size
+                                              //  (including FLOBs)
+      pRes->SizeExt = sizeof(CcInt);          //tuple root and extension part
+      pRes->noAttrs = 1;                      //no of attributes
+      pRes->attrSize = range->attrSize;       // complete size per attr
+      pRes->attrSizeExt = range->attrSizeExt; // root +extension
+                                              // size per attr
       const double feedccint = 0.001;           //milliseconds per CcReal
       pRes->Card = range->card;                 //expected cardinality
       pRes->Time = (range->card) * feedccint;   //expected time, [ms]
@@ -3865,6 +3861,7 @@ intstreamValueMap(Word* args, Word& result,
 
     default: {
       /* should never happen */
+      assert(false);
       return -1;
     }
   }
