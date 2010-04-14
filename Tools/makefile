@@ -52,4 +52,5 @@ clean:
 	$(MAKE) -C Utilities clean
 	$(MAKE) -C Jni clean
 	$(MAKE) -C pd clean
+	$(MAKE) -C Flob clean
 
