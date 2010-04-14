@@ -49,7 +49,7 @@ extern QueryProcessor *qp;
 namespace TransportationMode{
 
 ////////////string for Operator Spec //////////////////////////////////
-const string OpNetCheckSlineSpec  =
+const string OpTMCheckSlineSpec  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" "
     "\"Example\" ) "
     "( <text>sline-> sline</text--->"
@@ -58,7 +58,7 @@ const string OpNetCheckSlineSpec  =
     "<text>query routes(n) feed extend[newcurve: checksline(.curve,2)] count"
     "</text--->"
     ") )";
-const string OpNetModifyBoundarySpec  =
+const string OpTMModifyBoundarySpec  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" "
     "\"Example\" ) "
     "( <text>rectangle x int -> region</text--->"
@@ -68,7 +68,7 @@ const string OpNetModifyBoundarySpec  =
     "</text--->"
     ") )";
 
-const string OpNetSegment2RegionSpec  =
+const string OpTMSegment2RegionSpec  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" "
     "\"Example\" ) "
     "( <text>relation x attr_name x int->"
@@ -79,7 +79,7 @@ const string OpNetSegment2RegionSpec  =
     "</text--->"
     ") )";
 
-const string OpNetPaveRegionSpec  =
+const string OpTMPaveRegionSpec  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" "
     "\"Example\" ) "
     "( <text>network x rel1 x attr x rel2 x attr1 x attr2 x int->"
@@ -90,7 +90,7 @@ const string OpNetPaveRegionSpec  =
     ",pave1, pave2, roadwidth) count;</text--->"
     ") )";
 
-const string OpNetJunRegionSpec  =
+const string OpTMJunRegionSpec  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" "
     "\"Example\" ) "
     "( <text>network x rel x attr1 x attr2 x int->"
@@ -101,7 +101,7 @@ const string OpNetJunRegionSpec  =
     "</text--->"
     ") )";
 
-const string OpNetDecomposeRegionSpec  =
+const string OpTMDecomposeRegionSpec  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" "
     "\"Example\" ) "
     "( <text>region->(stream (tuple( (x1 t1)(x2 t2)...(xn tn)))</text--->"
@@ -110,7 +110,7 @@ const string OpNetDecomposeRegionSpec  =
     "<text>query decomposeregion(partition_regions) count; </text--->"
     ") )";
 
-const string OpNetFillPavementSpec  =
+const string OpTMFillPavementSpec  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" "
     "\"Example\" ) "
     "( <text>network x rel x attr1 x attr2 x int->"
@@ -127,7 +127,7 @@ TypeMap fun for operator checksline
 
 */
 
-ListExpr OpNetCheckSlineTypeMap ( ListExpr args )
+ListExpr OpTMCheckSlineTypeMap ( ListExpr args )
 {
   if ( nl->ListLength ( args ) != 2 )
   {
@@ -152,7 +152,7 @@ TypeMap fun for operator boundaryregion
 
 */
 
-ListExpr OpNetModifyBoundaryTypeMap ( ListExpr args )
+ListExpr OpTMModifyBoundaryTypeMap ( ListExpr args )
 {
   if ( nl->ListLength ( args ) != 2 )
   {
@@ -177,7 +177,7 @@ TypeMap fun for operator segment2region
 
 */
 
-ListExpr OpNetSegment2RegionTypeMap ( ListExpr args )
+ListExpr OpTMSegment2RegionTypeMap ( ListExpr args )
 {
   if ( nl->ListLength ( args ) != 3 )
   {
@@ -240,7 +240,7 @@ TypeMap fun for operator paveregion
 
 */
 
-ListExpr OpNetPaveRegionTypeMap ( ListExpr args )
+ListExpr OpTMPaveRegionTypeMap ( ListExpr args )
 {
   if ( nl->ListLength ( args ) != 7 )
   {
@@ -323,7 +323,7 @@ get the pavement at each junction area
 
 */
 
-ListExpr OpNetJunRegionTypeMap ( ListExpr args )
+ListExpr OpTMJunRegionTypeMap ( ListExpr args )
 {
   if ( nl->ListLength ( args ) != 5 )
   {
@@ -401,7 +401,7 @@ decompose the faces of the input region
 
 */
 
-ListExpr OpNetDecomposeRegionTypeMap ( ListExpr args )
+ListExpr OpTMDecomposeRegionTypeMap ( ListExpr args )
 {
   if ( nl->ListLength ( args ) != 1 )
   {
@@ -437,7 +437,7 @@ TypeMap fun for operator fillpavement
 
 */
 
-ListExpr OpNetFillPavementTypeMap ( ListExpr args )
+ListExpr OpTMFillPavementTypeMap ( ListExpr args )
 {
   if ( nl->ListLength ( args ) != 5 )
   {
@@ -514,7 +514,7 @@ angle is relatively small.
 In Berlin road network, there are three, 454,542 and 2324.
 
 */
-int OpNetCheckSlinemap ( Word* args, Word& result, int message,
+int OpTMCheckSlinemap ( Word* args, Word& result, int message,
                          Word& local, Supplier in_pSupplier )
 {
   static int count = 1;
@@ -614,7 +614,7 @@ Value Mapping for the modifyboundary operator
 
 */
 
-int OpNetModifyBoundarymap ( Word* args, Word& result, int message,
+int OpTMModifyBoundarymap ( Word* args, Word& result, int message,
                          Word& local, Supplier in_pSupplier )
 {
 
@@ -670,7 +670,7 @@ for each road, get the stripe for street plus pavement
 
 */
 
-int OpNetSegment2Regionmap ( Word* args, Word& result, int message,
+int OpTMSegment2Regionmap ( Word* args, Word& result, int message,
                          Word& local, Supplier in_pSupplier )
 {
   SpacePartition* l_partition;
@@ -735,7 +735,7 @@ cut the dirty area
 
 */
 
-int OpNetPaveRegionmap ( Word* args, Word& result, int message,
+int OpTMPaveRegionmap ( Word* args, Word& result, int message,
                          Word& local, Supplier in_pSupplier )
 {
   SpacePartition* l_partition;
@@ -794,7 +794,7 @@ get the region for pavement at each junction area
 
 */
 
-int OpNetJunRegionmap ( Word* args, Word& result, int message,
+int OpTMJunRegionmap ( Word* args, Word& result, int message,
                          Word& local, Supplier in_pSupplier )
 {
   SpacePartition* l_partition;
@@ -904,7 +904,7 @@ Value Mapping for the decomposeregion operator
 
 */
 
-int OpNetDecomposeRegionmap ( Word* args, Word& result, int message,
+int OpTMDecomposeRegionmap ( Word* args, Word& result, int message,
                          Word& local, Supplier in_pSupplier )
 {
   DecomposeRegion* dr;
@@ -956,7 +956,7 @@ fill the hole between two pavements at some junction positions
 
 */
 
-int OpNetFillPavementmap ( Word* args, Word& result, int message,
+int OpTMFillPavementmap ( Word* args, Word& result, int message,
                          Word& local, Supplier in_pSupplier )
 {
   SpacePartition* l_partition;
@@ -1019,58 +1019,58 @@ int OpNetFillPavementmap ( Word* args, Word& result, int message,
 ////////////////Operator Constructor///////////////////////////////////////
 Operator checksline(
     "checksline",               // name
-    OpNetCheckSlineSpec,          // specification
-    OpNetCheckSlinemap,  // value mapping
+    OpTMCheckSlineSpec,          // specification
+    OpTMCheckSlinemap,  // value mapping
     Operator::SimpleSelect,        // selection function
-    OpNetCheckSlineTypeMap        // type mapping
+    OpTMCheckSlineTypeMap        // type mapping
 );
 
 Operator modifyboundary (
     "modifyboundary",               // name
-    OpNetModifyBoundarySpec,          // specification
-    OpNetModifyBoundarymap,  // value mapping
+    OpTMModifyBoundarySpec,          // specification
+    OpTMModifyBoundarymap,  // value mapping
     Operator::SimpleSelect,        // selection function
-    OpNetModifyBoundaryTypeMap        // type mapping
+    OpTMModifyBoundaryTypeMap        // type mapping
 );
 
 Operator segment2region(
     "segment2region",               // name
-    OpNetSegment2RegionSpec,          // specification
-    OpNetSegment2Regionmap,  // value mapping
+    OpTMSegment2RegionSpec,          // specification
+    OpTMSegment2Regionmap,  // value mapping
     Operator::SimpleSelect,        // selection function
-    OpNetSegment2RegionTypeMap        // type mapping
+    OpTMSegment2RegionTypeMap        // type mapping
 );
 
 Operator paveregion(
     "paveregion",               // name
-    OpNetPaveRegionSpec,          // specification
-    OpNetPaveRegionmap,  // value mapping
+    OpTMPaveRegionSpec,          // specification
+    OpTMPaveRegionmap,  // value mapping
     Operator::SimpleSelect,        // selection function
-    OpNetPaveRegionTypeMap        // type mapping
+    OpTMPaveRegionTypeMap        // type mapping
 );
 
 Operator junregion(
     "junregion",               // name
-    OpNetJunRegionSpec,          // specification
-    OpNetJunRegionmap,  // value mapping
+    OpTMJunRegionSpec,          // specification
+    OpTMJunRegionmap,  // value mapping
     Operator::SimpleSelect,        // selection function
-    OpNetJunRegionTypeMap        // type mapping
+    OpTMJunRegionTypeMap        // type mapping
 );
 
 Operator decomposeregion(
     "decomposeregion",               // name
-    OpNetDecomposeRegionSpec,          // specification
-    OpNetDecomposeRegionmap,  // value mapping
+    OpTMDecomposeRegionSpec,          // specification
+    OpTMDecomposeRegionmap,  // value mapping
     Operator::SimpleSelect,        // selection function
-    OpNetDecomposeRegionTypeMap        // type mapping
+    OpTMDecomposeRegionTypeMap        // type mapping
 );
 
 Operator fillpavement(
     "fillpavement",               // name
-    OpNetFillPavementSpec,          // specification
-    OpNetFillPavementmap,  // value mapping
+    OpTMFillPavementSpec,          // specification
+    OpTMFillPavementmap,  // value mapping
     Operator::SimpleSelect,        // selection function
-    OpNetFillPavementTypeMap        // type mapping
+    OpTMFillPavementTypeMap        // type mapping
 );
 
 /*
