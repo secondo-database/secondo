@@ -157,13 +157,14 @@ size_t FText::HashValue() const
 
   unsigned long h = 0;
   // Assuming text fits into memory
-  char* s = Get();
+  char* s1 = Get();
+  char*s = s1;
   while(*s != 0)
   {
     h = 5 * h + *s;
     s++;
   }
-  delete[] s;
+  delete[] s1;
   return size_t(h);
 }
 
