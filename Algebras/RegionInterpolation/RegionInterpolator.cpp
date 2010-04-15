@@ -28,9 +28,9 @@ static int interpolateValueMap_1(Word* args,
     Region* reg1 = (Region*) args[0].addr;
     Region* reg2 = (Region*) args[1].addr;
     Periods *range = ((Periods*)args[2].addr);
-    Interval<Instant> inter;    
-    range->Get( 0, inter );
-    assert(inter.IsValid());
+    Interval<Instant> *inter= new Interval<Instant>();    
+    range->Get( 0, *inter );
+    assert(inter->IsValid());
     RegionForInterpolation *reginter1=new RegionForInterpolation(reg1);
     RegionForInterpolation *reginter2=new RegionForInterpolation(reg2);
     vector<double> weigths = vector<double>(COUNTWEIGHT);
@@ -40,8 +40,9 @@ static int interpolateValueMap_1(Word* args,
     weigths[3] = 1.0;            // LinearWeight
     Match *sm=new OptimalMatch(reginter1,reginter2,weigths);
     mLineRep *lines=new mLineRep(sm);    
-    URegion *res= new URegion(lines->getTriangles(), inter);
-    result.addr=res->Clone();       
+    URegion *res= new URegion(lines->getTriangles(),*inter);
+    result.addr=res->Clone();
+    delete inter;
     return 0;
 }
 /*
@@ -59,9 +60,9 @@ static int interpolateValueMap_2(Word* args,
     Region* reg1 = (Region*) args[0].addr;
     Region* reg2 = (Region*) args[1].addr;
     Periods *range = ((Periods*)args[2].addr);
-    Interval<Instant> inter;    
-    range->Get( 0, inter );
-    assert(inter.IsValid());
+    Interval<Instant> *inter= new Interval<Instant>();    
+    range->Get( 0, *inter );
+    assert(inter->IsValid());
     RegionForInterpolation *reginter1=new RegionForInterpolation(reg1);
     RegionForInterpolation *reginter2=new RegionForInterpolation(reg2);
     vector<double> weights = vector<double>(COUNTWEIGHT);
@@ -71,8 +72,9 @@ static int interpolateValueMap_2(Word* args,
     }    
     Match *sm=new OptimalMatch(reginter1,reginter2,weights);
     mLineRep *lines=new mLineRep(sm);    
-    URegion *res= new URegion(lines->getTriangles(), inter);
-    result.addr=res->Clone();       
+    URegion *res= new URegion(lines->getTriangles(),*inter);
+    result.addr=res->Clone();  
+    delete inter;
     return 0;
 }
 
@@ -169,7 +171,7 @@ InitializeRegionInterpolationAlgebra(NestedList *nlRef, QueryProcessor *qpRef)
 {  
   nl = nlRef;
   qp = qpRef;
-  return (new RegionInterpolationAlgebra());
+  return new RegionInterpolationAlgebra;
 }
 
 }

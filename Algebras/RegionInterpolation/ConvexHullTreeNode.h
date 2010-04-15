@@ -60,8 +60,8 @@ functions that are used to return the stored Attributes
 returns the coentroid or the Steiner--Point of the convex hull
  
 */       
-         LineWA *getCenter();
-         LineWA *getSteinerPoint();
+         LineWA getCenter();
+         LineWA getSteinerPoint();
 /*
  
  returns the repesented polygone as a vector of LineWAs
@@ -73,7 +73,7 @@ returns the coentroid or the Steiner--Point of the convex hull
 returns all the children as a vector of ConvexHullTreeNodes
 
 */                      
-         vector<ConvexHullTreeNode*> *getChildren();
+         vector<ConvexHullTreeNode*> getChildren();
 /*
 
 returns the line the given $child$ has in comon with this node as a two elemet vector 

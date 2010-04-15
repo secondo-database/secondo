@@ -76,17 +76,17 @@ ConvexHullTreeNode *Face :: getHole(int index)
 1.1 getHolesAndConcavities()
  
 */    
-vector<ConvexHullTreeNode*> *Face :: getHolesAndConcavities()
+vector<ConvexHullTreeNode*> Face :: getHolesAndConcavities()
 {
-    vector<ConvexHullTreeNode*> *res = new vector<ConvexHullTreeNode*>();
-    
-    for(unsigned int i = 0; i < getCycle()->getChildren()->size(); i++)
+    vector<ConvexHullTreeNode*> res;
+    vector<ConvexHullTreeNode*> cycleChildrean= getCycle()->getChildren(); 
+    for(unsigned int i = 0; i < cycleChildrean.size(); i++)
     {
-      res->push_back(getCycle()->getChildren()->at(i));        
+      res.push_back(cycleChildrean.at(i));        
     }
     for(int i = 0; i < getNrOfHoles(); i++)
     {
-        res->push_back(getHole(i));
+        res.push_back(getHole(i));
     }
     return(res);
 }

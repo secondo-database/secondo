@@ -93,9 +93,9 @@ void mLineRep :: addTrianglesFromFaceFace(Face *face1, Face *face2,
                                  (myMatch->getMatches(face1->getHole(i)));
         if(matchedHole.size() == 0)
         {
-            PointWNL *p3 = new PointWNL(face1->getHole(i)->getCenter(), time2);
-           
-            addTrianglesFromCHTPoint(face1->getHole(i), time1, p3, facenr, i+1);
+          LineWA param1 =face1->getHole(i)->getCenter();
+          PointWNL *p3 = new PointWNL(&param1, time2);
+          addTrianglesFromCHTPoint(face1->getHole(i), time1, p3, facenr, i+1);
         }
         else
         {
@@ -112,9 +112,10 @@ void mLineRep :: addTrianglesFromFaceFace(Face *face1, Face *face2,
                                 (myMatch->getMatches(face2->getHole(i)));
         if(matchedHole.size() == 0)
         {
-            PointWNL *p3 = new PointWNL(face2->getHole(i)->getCenter(), time1);
-            addTrianglesFromCHTPoint(face2->getHole(i), time2, p3, facenr, 
-                                     i + face1->getNrOfHoles() + 1);
+          LineWA param1 =face2->getHole(i)->getCenter();
+          PointWNL *p3 = new PointWNL(&param1, time1);
+          addTrianglesFromCHTPoint(face2->getHole(i), time2, p3, facenr, 
+                                   i + face1->getNrOfHoles() + 1);
         }
     }
 }
@@ -170,20 +171,21 @@ void mLineRep :: addTrianglesFromCHTCHT(ConvexHullTreeNode *cht1,
       PointWNL p4 =PointWNL(line2[1]->getX(),line2[1]->getY(),time2);
       removeTrapezoid(&p1, &p2, &p3, &p4, facenr, cyclenr);
    }
-    for(unsigned int i = 0; i < cht1->getChildren()->size(); i++)
+    vector<ConvexHullTreeNode*> cht1Children = cht1->getChildren();
+    for(unsigned int i = 0; i < cht1Children.size(); i++)
     {
         vector<RegionTreeNode*> matches = 
-                              myMatch->getMatches((cht1->getChildren()->at(i)));
+                              myMatch->getMatches((cht1Children.at(i)));
         if(matches.size() == 0)
         {
-            addTrianglesFromCHTNull(cht1->getChildren()->at(i), 
+            addTrianglesFromCHTNull(cht1Children.at(i), 
                                     time1, facenr, cyclenr);
         }
         else
         {
             if(matches.size() == 1)
             {
-                addTrianglesFromCHTCHT(cht1->getChildren()->at(i), 
+                addTrianglesFromCHTCHT(cht1Children.at(i), 
                    (ConvexHullTreeNode*) matches[0],time1,time2,facenr,cyclenr);
             }
 #ifdef MLR_DEBUG            
@@ -194,13 +196,14 @@ void mLineRep :: addTrianglesFromCHTCHT(ConvexHullTreeNode *cht1,
 #endif            
         }
     }    
-    for(unsigned int i = 0; i < cht2->getChildren()->size(); i++)
+    vector<ConvexHullTreeNode*> cht2Children = cht2->getChildren();
+    for(unsigned int i = 0; i < cht2Children.size(); i++)
     {
         vector<RegionTreeNode*> matches = 
-                                myMatch->getMatches(cht2->getChildren()->at(i));
+                                myMatch->getMatches(cht2Children.at(i));
         if(matches.size() == 0)
         {
-            addTrianglesFromCHTNull(cht2->getChildren()->at(i), 
+            addTrianglesFromCHTNull(cht2Children.at(i), 
                                     time2, facenr, cyclenr);
         }
     }
@@ -215,8 +218,8 @@ void mLineRep :: addTrianglesFromFaceNull(Face *face, int time, int facenr)
 #ifdef MLR_DEBUG  
    cout<<"face<<null"<<time<<endl;
 #endif   
-    PointWNL *p3 = new PointWNL(face->getCycle()->getCenter()->getX(), 
-                         face->getCycle()->getCenter()->getY(), (time + 1) % 2);
+   LineWA param1 =face->getCycle()->getCenter();
+    PointWNL *p3 = new PointWNL(param1.getX(), param1.getY(), (time + 1) % 2);
     addTrianglesFromCHTPoint(face->getCycle(), time, p3, facenr, 0);
     for (int i = 0; i < face->getNrOfHoles(); i++)
     {
@@ -254,10 +257,10 @@ void mLineRep :: addTrianglesFromCHTPoint(ConvexHullTreeNode *chtn, int time,
                           tmp[(i + 1) % tmp.size()].getY(), time);
         addTriangle(p1, p2, p3, facenr, cyclenr);
     }
-    vector<ConvexHullTreeNode*> *children = chtn->getChildren();
-    for(unsigned int i = 0; i < children->size(); i++)
+    vector<ConvexHullTreeNode*> children = chtn->getChildren();
+    for(unsigned int i = 0; i < children.size(); i++)
     {
-        addTrianglesFromCHTPoint(children->at(i), time, p3, facenr, cyclenr);
+        addTrianglesFromCHTPoint(children.at(i), time, p3, facenr, cyclenr);
     }
 }
 /*
@@ -477,20 +480,25 @@ void mLineRep :: rotaring_pane(ConvexHullTreeNode *chtn1,
     cout << s2;
 #endif
     int jj = 0;
+    PointWNL *p1=0, *p2=0, *p3=0;
     for(unsigned int i = 0; i < s1.size(); i++)
     {        
-        jj = findMatchingIndex(&s2, jj, s1[i].getAngle(), true);
-        addTriangle(new PointWNL(&s1[i], time1), 
-                    new PointWNL(&s1[(i + 1 + s1.size()) % s1.size()], time1), 
-                    new PointWNL(&s2[jj], time2), facenr, cyclenr);        
+      jj = findMatchingIndex(&s2, jj, s1[i].getAngle(), true);
+      p1= new PointWNL(&s1[i], time1);
+      p2= new PointWNL(&s1[(i + 1 + s1.size()) % s1.size()], time1);
+      p3= new PointWNL(&s2[jj], time2);
+      addTriangle(p1, p2, p3, facenr, cyclenr);
+      delete p1; delete p2; delete p3;
     } 
     jj = 0;
     for(unsigned int i = 0; i < s2.size(); i++)
     {
       jj = findMatchingIndex(&s1, jj, s2[i].getAngle(), false);
-        addTriangle(new PointWNL(&s2[i], time2), 
-                    new PointWNL(&s2[(i + 1 + s2.size()) % s2.size()], time2), 
-                    new PointWNL(&s1[jj], time1), facenr, cyclenr);
+      p1= new PointWNL(&s2[i], time2);
+      p2= new PointWNL(&s2[(i + 1 + s2.size()) % s2.size()], time2);
+      p3= new PointWNL(&s1[jj], time1);
+      addTriangle(p1, p2, p3, facenr, cyclenr);
+      delete p1; delete p2; delete p3;
     }
 }
 /*
@@ -499,8 +507,7 @@ void mLineRep :: rotaring_pane(ConvexHullTreeNode *chtn1,
 
 */
 int mLineRep :: findMatchingIndex(vector<LineWA> *s,int j, double angle,bool ka)
-{
-    
+{    
     if(AlmostEqual(s->at(0).getAngle(), angle))
     {
       if(ka)
@@ -536,7 +543,7 @@ int mLineRep :: findMatchingIndex(vector<LineWA> *s,int j, double angle,bool ka)
     {   
       //cout<<"Para6"<<endl;    
         return(0);
-    }    
+    }   
     while(
       !(AlmostEqual(s->at(j).getAngle(), angle) || 
       (s->at(j).getAngle() > angle)) ||
@@ -556,7 +563,7 @@ int mLineRep :: findMatchingIndex(vector<LineWA> *s,int j, double angle,bool ka)
     
     if(AlmostEqual(s->at(j).getAngle(),angle) && ka)
     {             
-      cout<<"Para5"<<endl;
+//      cout<<"Para5"<<endl;
         j=(j + 1) % s->size();
         
     }

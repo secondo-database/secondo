@@ -38,8 +38,8 @@ this Methods are not needed here.
             vector<ConvexHullTreeNode*> *targets);
          Face *getBestMatch(Face *source,vector<Face*> *targets);          
          void matchFaces(vector<Face*> *faces1,vector<Face*> *faces2);
-         void matchCHTNs(vector<ConvexHullTreeNode*> *chtn1,
-            vector<ConvexHullTreeNode*> *chtn2);            
+         void matchCHTNs(vector<ConvexHullTreeNode*> &chtn1,
+            vector<ConvexHullTreeNode*> &chtn2);            
    };
 }
 #endif 

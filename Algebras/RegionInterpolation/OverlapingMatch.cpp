@@ -77,28 +77,28 @@ Face *OverlapingMatch :: getBestMatch(Face *source, vector<Face*> *targets)
 1.1 matchCHTNs()
  
 */          
-void OverlapingMatch :: matchCHTNs(vector<ConvexHullTreeNode*> *chtn1, 
-                                    vector<ConvexHullTreeNode*> *chtn2)
+void OverlapingMatch :: matchCHTNs(vector<ConvexHullTreeNode*> &chtn1, 
+                                    vector<ConvexHullTreeNode*> &chtn2)
 {
    vector<ConvexHullTreeNode*> unmatched;
-    for(unsigned int i = 0; i < chtn1->size(); i++)
+    for(unsigned int i = 0; i < chtn1.size(); i++)
     {
-        for(unsigned int j = 0; j < chtn2->size(); j++)
+        for(unsigned int j = 0; j < chtn2.size(); j++)
         {
             
-            double overlap = Utils :: getOverlap(&(chtn1->at(i)->getLines()), 
-                                                  &(chtn2->at(j)->getLines()));
+            double overlap = Utils :: getOverlap(&(chtn1.at(i)->getLines()), 
+                                                  &(chtn2.at(j)->getLines()));
             if(overlap > threshold)
             {
-                addMatch(chtn1->at(i), chtn2->at(j));
-                addMatch(chtn2->at(j), chtn1->at(i));                
+                addMatch(chtn1.at(i), chtn2.at(j));
+                addMatch(chtn2.at(j), chtn1.at(i));                
             }
         }
-        unmatched.push_back(chtn1->at(i));
+        unmatched.push_back(chtn1.at(i));
     }
-    for(unsigned int i = 0; i < chtn2->size(); i++)
+    for(unsigned int i = 0; i < chtn2.size(); i++)
     {
-        unmatched.push_back(chtn2->at(i));
+        unmatched.push_back(chtn2.at(i));
     }     
     while(!unmatched.empty())
     {
@@ -120,7 +120,9 @@ void OverlapingMatch :: matchCHTNs(vector<ConvexHullTreeNode*> *chtn1,
                      }
                   }
                 }
-                matchCHTNs(next->getChildren(), getTargetChildren(next));
+                vector<ConvexHullTreeNode*> param1= next->getChildren();
+                vector<ConvexHullTreeNode*> param2= getTargetChildren(next); 
+                matchCHTNs(param1, param2);
             }
             else
             {
@@ -138,8 +140,11 @@ void OverlapingMatch :: matchCHTNs(vector<ConvexHullTreeNode*> *chtn1,
                      }                                       
                                            
                     }
-                    matchCHTNs(((ConvexHullTreeNode*)matches[0])->getChildren(),
-                                 getTargetChildren(matches[0]));
+                    vector<ConvexHullTreeNode*> param1= 
+                      ((ConvexHullTreeNode*)matches[0])->getChildren();
+                    vector<ConvexHullTreeNode*> param2= 
+                      getTargetChildren(matches[0]);
+                    matchCHTNs(param1, param2);
                 }
                 else
                 {          
@@ -150,9 +155,11 @@ void OverlapingMatch :: matchCHTNs(vector<ConvexHullTreeNode*> *chtn1,
                         unmatched.erase(unmatched.begin() + j);
                         break;
                      }
-                  }                            
-                    matchCHTNs(next->getChildren(), 
-                              ((ConvexHullTreeNode*)matches[0])->getChildren());
+                  }                          
+                  vector<ConvexHullTreeNode*> param1= next->getChildren();
+                  vector<ConvexHullTreeNode*> param2=
+                    ((ConvexHullTreeNode*)matches[0])->getChildren();
+                  matchCHTNs(param1, param2);
                 }
             }
         }
@@ -210,10 +217,12 @@ void OverlapingMatch :: matchFaces(vector<Face*> *faces1, vector<Face*> *faces2)
                      }
                   }                                       
                     dimMatch += 
-                        ((Face*) matches[i])->getCycle()->getChildren()->size();
+                        ((Face*) matches[i])->getCycle()->getChildren().size();
                 }      
-               matchCHTNs(next->getHolesAndConcavities(), 
-                          getTargetChildren(next));
+               vector<ConvexHullTreeNode*> param1= 
+                 next->getHolesAndConcavities();
+               vector<ConvexHullTreeNode*> param2= getTargetChildren(next);
+               matchCHTNs(param1, param2);
            }
             else
             {
@@ -229,9 +238,12 @@ void OverlapingMatch :: matchFaces(vector<Face*> *faces1, vector<Face*> *faces2)
                            break;
                         }
                      }                        
-                    }      
-                    matchCHTNs(((Face*) matches[0])->getHolesAndConcavities(), 
-                               getTargetChildren(matches[0]));
+                    }
+                    vector<ConvexHullTreeNode*> param1= 
+                      ((Face*) matches[0])->getHolesAndConcavities();
+                    vector<ConvexHullTreeNode*> param2=
+                      getTargetChildren(matches[0]);
+                    matchCHTNs(param1, param2);
                 }
                 else
                 {
@@ -243,8 +255,10 @@ void OverlapingMatch :: matchFaces(vector<Face*> *faces1, vector<Face*> *faces2)
                         break;
                      }
                   }     
-                  matchCHTNs(next->getHolesAndConcavities(), 
-                             getTargetChildren(next));
+                  vector<ConvexHullTreeNode*> param1= 
+                    next->getHolesAndConcavities();
+                  vector<ConvexHullTreeNode*> param2= getTargetChildren(next); 
+                  matchCHTNs(param1, param2 );
                 }
             }
         }

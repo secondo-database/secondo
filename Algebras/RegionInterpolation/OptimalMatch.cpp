@@ -83,7 +83,7 @@ OptimalMatch::OptimalMatch(RegionForInterpolation *source,
         best=candidates[0];
         for(unsigned int i=1;i<candidates.size();i++)
         {
-         cout<<candidates[i]<<endl;
+         
             if(candidates[i]->
               getRating(AreaWeight,OverlapWeight,HausdorffWeight,LinearWeight)==
               best->
@@ -98,10 +98,9 @@ OptimalMatch::OptimalMatch(RegionForInterpolation *source,
                   best=candidates[i];
         }
         best->finalize();
+        
         this->name=best->getName();
         this->source=best->getSource();
-        cout<<"BestSource"<<endl;
-        cout<<*best->getSource();
         this->target=best->getTarget();
         this->description=best->getDescription();
         this->Arearating=best->getAreaRating();
@@ -109,6 +108,9 @@ OptimalMatch::OptimalMatch(RegionForInterpolation *source,
         this->linearRating=best->getLinarRating();
         this->Ovelaprating=best->getOverlapRating();
         this->maps=best->getMaps();
+//        for(vector<Match*>::iterator it= candidates.begin(); it!=
+//          candidates.end(); ++it)
+//          delete (*it);
 }     
 /*
  
@@ -140,8 +142,8 @@ void OptimalMatch::matchFaces(vector<Face*> *faces1,vector<Face*> *faces2)
 1.1 matchCHTNs()
 
 */   
-void OptimalMatch::matchCHTNs(vector<ConvexHullTreeNode*> *chtn1,
-                               vector<ConvexHullTreeNode*> *chtn2)
+void OptimalMatch::matchCHTNs(vector<ConvexHullTreeNode*> &chtn1,
+                               vector<ConvexHullTreeNode*> &chtn2)
 {
 }  
 

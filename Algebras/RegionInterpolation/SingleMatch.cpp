@@ -18,7 +18,7 @@ namespace RegionInterpol
 SingleMatch :: SingleMatch(RegionTreeNode *src, RegionTreeNode *target)
 {
    source = src;
-    targets.push_back(target);
+   targets.push_back(target);
 }
 /*
 

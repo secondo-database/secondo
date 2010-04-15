@@ -5,7 +5,8 @@
 */
 
 #ifndef REGION_H_
-#define REGION_H_
+//#define REGION_H_
+#include <set>
 
 namespace RegionInterpol
 {

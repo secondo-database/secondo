@@ -46,8 +46,8 @@ this Methods return the one $target$ that matches $source$ best
 this Methods match a set of faces or ConVexHullTreeNodes to an other set of those 
  
 */          
-         void matchCHTNs(vector<ConvexHullTreeNode*> *chtn1, 
-            vector<ConvexHullTreeNode*> *chtn2);
+         void matchCHTNs(vector<ConvexHullTreeNode*> &chtn1, 
+            vector<ConvexHullTreeNode*> &chtn2);
          void matchFaces(vector<Face*> *faces1, 
             vector<Face*> *faces2);   
       

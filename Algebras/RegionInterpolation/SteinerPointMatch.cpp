@@ -74,27 +74,27 @@ ConvexHullTreeNode *SteinerPointMatch ::getBestMatch(ConvexHullTreeNode *source,
 1.1 matchCHTNs()
  
 */        
-void SteinerPointMatch :: matchCHTNs(vector<ConvexHullTreeNode*> *chtn1, 
-                                      vector<ConvexHullTreeNode*> *chtn2)
+void SteinerPointMatch :: matchCHTNs(vector<ConvexHullTreeNode*> &chtn1, 
+                                      vector<ConvexHullTreeNode*> &chtn2)
 {
     vector<ConvexHullTreeNode*> unmatched;
-    for(unsigned int i = 0; i < chtn1->size(); i++)
+    for(unsigned int i = 0; i < chtn1.size(); i++)
     {
-        for(unsigned int j = 0; j < chtn2->size(); j++)
+        for(unsigned int j = 0; j < chtn2.size(); j++)
         {
             
-            double distance = getDistance(chtn1->at(i), chtn2->at(j));
+            double distance = getDistance(chtn1.at(i), chtn2.at(j));
             if(distance < threshold)
             {
-                addMatch(chtn1->at(i), chtn2->at(j));
-                addMatch(chtn2->at(j), chtn1->at(i));                
+                addMatch(chtn1.at(i), chtn2.at(j));
+                addMatch(chtn2.at(j), chtn1.at(i));                
             }
         }
-        unmatched.push_back(chtn1->at(i));
+        unmatched.push_back(chtn1.at(i));
     }
-    for(unsigned int i = 0; i < chtn2->size(); i++)
+    for(unsigned int i = 0; i < chtn2.size(); i++)
     {
-        unmatched.push_back(chtn2->at(i));
+        unmatched.push_back(chtn2.at(i));
     }    
     while(!unmatched.empty())
     {
@@ -116,7 +116,9 @@ void SteinerPointMatch :: matchCHTNs(vector<ConvexHullTreeNode*> *chtn1,
                      }
                   }
                 }
-                matchCHTNs(next->getChildren() ,getTargetChildren(next));
+                vector<ConvexHullTreeNode*> param1= next->getChildren();
+                vector<ConvexHullTreeNode*> param2= getTargetChildren(next);
+                matchCHTNs(param1, param2);
             }
             else
             {
@@ -134,8 +136,11 @@ void SteinerPointMatch :: matchCHTNs(vector<ConvexHullTreeNode*> *chtn1,
                      }                                       
                                            
                     }
-                    matchCHTNs(((ConvexHullTreeNode*) matches[0])->getChildren()
-                                ,getTargetChildren(matches[0]));
+                    vector<ConvexHullTreeNode*> param1=
+                      ((ConvexHullTreeNode*) matches[0])->getChildren();
+                    vector<ConvexHullTreeNode*> param2=
+                      getTargetChildren(matches[0]);
+                    matchCHTNs(param1, param2);
                 }
                 else
                 {          
@@ -146,9 +151,11 @@ void SteinerPointMatch :: matchCHTNs(vector<ConvexHullTreeNode*> *chtn1,
                         unmatched.erase(unmatched.begin() + j);
                         break;
                      }
-                  }                            
-                    matchCHTNs(next->getChildren(), 
-                             ((ConvexHullTreeNode*) matches[0])->getChildren());
+                  } 
+                  vector<ConvexHullTreeNode*> param1= next->getChildren();
+                  vector<ConvexHullTreeNode*> param2=
+                    ((ConvexHullTreeNode*) matches[0])->getChildren();
+                  matchCHTNs(param1, param2);
                 }
             }
         }
@@ -205,10 +212,13 @@ void SteinerPointMatch :: matchFaces(vector<Face*> *faces1,
                      }
                   }                                       
                     dimMatch += 
-                        ((Face*) matches[i])->getCycle()->getChildren()->size();
-                }      
-               matchCHTNs(next->getHolesAndConcavities(), 
-                          getTargetChildren(next));                 
+                        ((Face*) matches[i])->getCycle()->getChildren().size();
+                }
+                vector<ConvexHullTreeNode*> param1= 
+                  next->getHolesAndConcavities();
+                vector<ConvexHullTreeNode*> param2= 
+                  getTargetChildren(next);
+                matchCHTNs(param1, param2);                 
            }
             else
             {
@@ -225,8 +235,11 @@ void SteinerPointMatch :: matchFaces(vector<Face*> *faces1,
                         }
                      }                        
                     }      
-                    matchCHTNs(((Face*) matches[0])->getHolesAndConcavities(), 
-                                getTargetChildren(matches[0]));
+                    vector<ConvexHullTreeNode*> param1=
+                      ((Face*) matches[0])->getHolesAndConcavities();
+                    vector<ConvexHullTreeNode*> param2=
+                      getTargetChildren(matches[0]);
+                    matchCHTNs(param1, param2);
                 }
                 else
                 {
@@ -238,8 +251,10 @@ void SteinerPointMatch :: matchFaces(vector<Face*> *faces1,
                         break;
                      }
                   }     
-                  matchCHTNs(next->getHolesAndConcavities(), 
-                             getTargetChildren(next));
+                  vector<ConvexHullTreeNode*> param1=
+                    next->getHolesAndConcavities();
+                  vector<ConvexHullTreeNode*> param2= getTargetChildren(next);
+                  matchCHTNs(param1, param2);
                 }
             }
         }
@@ -255,9 +270,9 @@ void SteinerPointMatch :: matchFaces(vector<Face*> *faces1,
 double SteinerPointMatch :: getDistance(ConvexHullTreeNode *chtn1, 
                                          ConvexHullTreeNode *chtn2)
 {
-    LineWA *center1 = chtn1->getSteinerPoint();
-    LineWA *center2 = chtn2->getSteinerPoint();
-    return(sqrt(Utils :: getSquareDistance(center1, center2)));
+    LineWA center1 = chtn1->getSteinerPoint();
+    LineWA center2 = chtn2->getSteinerPoint();
+    return(sqrt(Utils :: getSquareDistance(&center1, &center2)));
 }
 
 }

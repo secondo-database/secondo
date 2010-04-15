@@ -47,6 +47,13 @@ ConvexHullTreeNode :: ConvexHullTreeNode(LineWA linelist[], int linelistlength,
 #ifdef DECHTN        
          cout<<"drehe"<<endl;
 #endif         
+//         LineWA tmp;
+//         for (int i = 0; i < ((int)(linelistlength /2)); ++i)
+//         {
+//           tmp= linelist[i];
+//           linelist[i]= linelist[linelistlength-1-i];
+//           linelist[linelistlength-1-i]= tmp;
+//         }
          LineWA *tmplistrev = new LineWA[linelistlength];
          for (int i = 0; i < linelistlength; i++)
          {
@@ -63,7 +70,8 @@ ConvexHullTreeNode :: ConvexHullTreeNode(LineWA linelist[], int linelistlength,
       tmplist[a] = linelist[a];
    }
    // Find the convex hull 
-   convhull = Utils :: convexHull(tmplist, linelistlength); 
+   convhull = Utils :: convexHull(tmplist, linelistlength);
+//   delete[] tmplist;
    // Find where the first node in linelist is in the convex hull
    // (Or the earliest possible if the first node is not on the hull)
    // This is to preserve the order in the linelist in the ordering of
@@ -158,7 +166,8 @@ ConvexHullTreeNode :: ConvexHullTreeNode(LineWA linelist[], int linelistlength,
 
 ConvexHullTreeNode :: ~ConvexHullTreeNode()
 {
-   myParent = NULL;  
+   myParent = NULL;
+   linelist.clear();
 }
 
 /*
@@ -206,7 +215,7 @@ CHLine ConvexHullTreeNode :: getCHLine(int i)
 1.1 getCenter()
  
 */
-LineWA *ConvexHullTreeNode :: getCenter()
+LineWA ConvexHullTreeNode :: getCenter()
 {
     double resx = 0;
     double resy = 0;
@@ -217,14 +226,15 @@ LineWA *ConvexHullTreeNode :: getCenter()
     }
     resx = resx / (linelist.size());
     resy = resy / (linelist.size());
-    return(new LineWA(resx,resy));
+    LineWA res(resx,resy);
+    return res;
 }
 /*
 
 1.1 getSteinerPoint()
  
 */    
-LineWA *ConvexHullTreeNode :: getSteinerPoint()
+LineWA ConvexHullTreeNode :: getSteinerPoint()
 {
     double resx = 0;
     double resy = 0;
@@ -239,7 +249,8 @@ LineWA *ConvexHullTreeNode :: getSteinerPoint()
         resx += (int)(linelist.at(i).getX() * weight);
         resy += (int)(linelist.at(i).getY() * weight);
     }
-    return(new LineWA(resx, resy));
+    LineWA res(resx, resy);
+    return res;
 }
 /*
 
@@ -287,16 +298,16 @@ vector<LineWA> ConvexHullTreeNode::getOutLine()
 1.1 getChildren()
  
 */       
-vector<ConvexHullTreeNode*> *ConvexHullTreeNode :: getChildren()
+vector<ConvexHullTreeNode*> ConvexHullTreeNode :: getChildren()
 {                
     CHLine line;
-    vector<ConvexHullTreeNode*> *result = new vector<ConvexHullTreeNode*>;
+    vector<ConvexHullTreeNode*> result;
     for (int a = 0; a < this->getNrLines(); a++)
     {
         line = this->getCHLine(a);
         if (line.getChild() != NULL)
         {
-            result->push_back(line.getChild());
+            result.push_back(line.getChild());
         }
     }
     return(result);
@@ -371,12 +382,12 @@ void ConvexHullTreeNode :: setParent(RegionTreeNode *myParent)
 void ConvexHullTreeNode :: setLevel(int lev)
 {
    level = lev;
-    vector<ConvexHullTreeNode*> *children = this->getChildren();
-    for(unsigned int i = 0; i < children->size(); i++)
+    vector<ConvexHullTreeNode*> children = this->getChildren();
+    for(unsigned int i = 0; i < children.size(); i++)
     {
-        children->at(i)->setLevel(lev + 1);
+        children.at(i)->setLevel(lev + 1);
     }
-    delete children;
+    //delete children;
     setDirtyHash();
 }
 /*
@@ -387,12 +398,12 @@ void ConvexHullTreeNode :: setLevel(int lev)
 void ConvexHullTreeNode :: setHole(bool isHole)
 {
     isHole = isHole;
-    vector<ConvexHullTreeNode*> *children = this->getChildren();
-    for(unsigned int i = 0; i < children->size(); i++)
+    vector<ConvexHullTreeNode*> children = this->getChildren();
+    for(unsigned int i = 0; i < children.size(); i++)
     {
-        children->at(i)->setHole(isHole);
+        children.at(i)->setHole(isHole);
     }
-    delete children;;
+    //delete children;;
     setDirtyHash();
 }
 /*

@@ -9,7 +9,7 @@
 
 
 using namespace std;
-#define MLR_DEBUG
+//#define MLR_DEBUG
 namespace RegionInterpol
 {
 /*

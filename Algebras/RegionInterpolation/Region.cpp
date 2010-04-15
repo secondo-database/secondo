@@ -25,50 +25,60 @@ RegionForInterpolation :: RegionForInterpolation(Region *newRegion)
 {
    vector<vector<vector<HalfSegment*> > > tmpvec;
    newRegion->SelectFirst();
+   HalfSegment *tmp;
    while(!newRegion->EndOfHs())
-    {
-      HalfSegment tmp;       
-      newRegion->GetHs(tmp);
+   {
+      tmp= new HalfSegment();       
+      newRegion->GetHs(*tmp);
       newRegion->SelectNext();
-      if(tmp.GetAttr().faceno >= tmpvec.size())
+      if(tmp->GetAttr().faceno >= tmpvec.size())
       {
-         tmpvec.resize(tmp.GetAttr().faceno + 1);          
+         tmpvec.resize(tmp->GetAttr().faceno + 1);          
       }
       
-      if(tmp.GetAttr().cycleno >= tmpvec[tmp.GetAttr().faceno].size())
+      if(tmp->GetAttr().cycleno >= tmpvec[tmp->GetAttr().faceno].size())
       {
-         tmpvec[tmp.GetAttr().faceno].resize((tmp.GetAttr().cycleno + 1));
+         tmpvec[tmp->GetAttr().faceno].resize((tmp->GetAttr().cycleno + 1));
       }           
-      if(tmp.GetAttr().edgeno >= tmpvec[tmp.GetAttr().faceno] 
-         [tmp.GetAttr().cycleno].size())
+      if(tmp->GetAttr().edgeno >= tmpvec[tmp->GetAttr().faceno] 
+         [tmp->GetAttr().cycleno].size())
       {
-         tmpvec[tmp.GetAttr().faceno] [tmp.GetAttr().cycleno].resize(
-            (tmp.GetAttr().edgeno + 1));
+         tmpvec[tmp->GetAttr().faceno] [tmp->GetAttr().cycleno].resize(
+            (tmp->GetAttr().edgeno + 1));
       }           
-      tmpvec[tmp.GetAttr().faceno] [tmp.GetAttr().cycleno] 
-         [tmp.GetAttr().edgeno] = &((HalfSegment) tmp);    
-    }    
+      tmpvec[tmp->GetAttr().faceno] [tmp->GetAttr().cycleno] 
+         [tmp->GetAttr().edgeno] = (HalfSegment*) tmp;
+   }    
     
-    for(unsigned int i = 0; i < tmpvec.size(); i++)
-    {       
-      Face *newFace;
-      for(unsigned int j = 0; j < tmpvec[i].size(); j++)
-      {
-         LineWA linelist[tmpvec[i] [j].size()];
-         for(unsigned int k = 0; k < tmpvec[i] [j].size(); k++)
-         {            
-            HalfSegment tmpHS = HalfSegment(*tmpvec[i] [j] [k]);     
-            if(tmpHS.GetAttr().insideAbove)
-            {
-               linelist[k] = LineWA(tmpHS.GetRightPoint().GetX(), 
-                  tmpHS.GetRightPoint().GetY());                              
-            }
-            else
-            {              
-               linelist[k] = LineWA(tmpHS. GetLeftPoint().GetX(), 
-                  tmpHS.GetLeftPoint().GetY());
-            }           
-         }
+
+   for(unsigned int i = 0; i < tmpvec.size(); i++)
+   {       
+     Face *newFace;
+     for(unsigned int j = 0; j < tmpvec[i].size(); j++)
+     {
+        LineWA linelist[tmpvec[i] [j].size()];
+        linelist[0] = LineWA(tmpvec[i] [j] [0]->GetDomPoint().GetX(), 
+            tmpvec[i] [j] [0]->GetDomPoint().GetY());
+        Point nextP(tmpvec[i] [j] [0]->GetSecPoint());
+        for(unsigned int k = 1; k < tmpvec[i] [j].size(); k++)
+        {            
+           if(nextP == tmpvec[i] [j] [k]->GetDomPoint())     
+           {
+             linelist[k] = LineWA(tmpvec[i] [j] [k]->GetDomPoint().GetX(), 
+                 tmpvec[i] [j] [k]->GetDomPoint().GetY());
+             nextP = tmpvec[i] [j] [k]->GetSecPoint();
+             cerr<<endl;
+             tmpvec[i] [j] [k]->GetDomPoint().Print(cerr);
+           }
+           else
+           {
+             linelist[k] = LineWA(tmpvec[i] [j] [k]->GetSecPoint().GetX(), 
+                 tmpvec[i] [j] [k]->GetSecPoint().GetY());
+             nextP = tmpvec[i] [j] [k]->GetDomPoint();
+             cerr<<endl;
+             tmpvec[i] [j] [k]->GetSecPoint().Print(cerr); 
+           }
+        }
 #ifdef REG_DEBUG        
          cout<<"Cycle "<<j<<" has "<<tmpvec[i][j].size()<<" vertices"<<endl;
 #endif         
@@ -82,11 +92,18 @@ RegionForInterpolation :: RegionForInterpolation(Region *newRegion)
       }
       this->addFace(newFace);
     }    
-   setDirtyHash();    
+   
+//   for(unsigned int i = 0; i < tmpvec.size(); i++)
+//     for(unsigned int j = 0; j < tmpvec[i].size(); j++)
+//        for(unsigned int k = 1; k < tmpvec[i] [j].size(); k++)
+//           delete tmpvec[i] [j] [k];   
+  setDirtyHash();    
 }
 
 RegionForInterpolation :: ~RegionForInterpolation()
 {    
+  for(vector<Face*>::iterator it=Faces.begin(); it!= Faces.end(); ++it)
+    delete (*it);
 }
 
 /*

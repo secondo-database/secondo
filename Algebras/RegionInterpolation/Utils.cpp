@@ -486,7 +486,7 @@ Region* Utils :: convert2Region(vector<CHLine> *l1)
 string Utils :: toString(const int &t)
 {
   std :: ostringstream oss; // create a stream
-  oss << t;       // insert value to stream
+//  oss << t;       // insert value to stream
   return oss.str();   // return as a string
 }
 /*

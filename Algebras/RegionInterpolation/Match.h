@@ -33,8 +33,14 @@ This construtor sets the sourceregion, the targetregion , the name and a short d
          Match(RegionForInterpolation *source, 
             RegionForInterpolation *target, string name, string description);
 
-
-         virtual ~Match(){}
+         ~Match()
+         {
+           delete source;
+           delete target;
+           for(map<int, SingleMatch*>::iterator it= maps.begin(); it!=
+             maps.end(); ++it)
+             delete (*it).second;
+         }
 
 /*
            
@@ -85,7 +91,7 @@ return the table of all $SingleMatches$ in the $Match$
 return the children of the target that is matches with $source$
 
 */             
-         vector<ConvexHullTreeNode*> *getTargetChildren(RegionTreeNode *source);
+         vector<ConvexHullTreeNode*> getTargetChildren(RegionTreeNode *source);
 /*
  
 1.1.1 Set functions
@@ -134,8 +140,8 @@ this Methods match a set of faces or ConVexHullTreeNodes to an other set of thos
 */             
             
          virtual void matchFaces(vector<Face*> *faces1,vector<Face*> *faces2)=0;
-         virtual void matchCHTNs(vector<ConvexHullTreeNode*> *chtn1, 
-            vector<ConvexHullTreeNode*> *chtn2) = 0;
+         virtual void matchCHTNs(vector<ConvexHullTreeNode*> &chtn1, 
+            vector<ConvexHullTreeNode*> &chtn2) = 0;
 /*
   
 1.1.1 Operators

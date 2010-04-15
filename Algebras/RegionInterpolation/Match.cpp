@@ -42,7 +42,18 @@ Match :: Match (RegionForInterpolation *src, RegionForInterpolation *trgt,
       }
     }
     
-    greatestDist = Utils::getMaxDistance(tmp);    
+    greatestDist = Utils::getMaxDistance(tmp);
+    LineWA* del;
+//    for(vector <vector <LineWA*> >::iterator it1= tmp.begin(); it1!= 
+//      tmp.end(); ++it1)
+//    {
+//      for(vector<LineWA*>::iterator it2= (*it1).begin(); it2 != 
+//        (*it1).end(); ++it2)
+//      {
+//        del= (*it2);
+//        delete del;
+//      }
+//    }
 }  
 /*
 
@@ -164,34 +175,34 @@ map<int, SingleMatch*> Match :: getMaps()
 1.1 getTargetChildren()
 
 */
-vector<ConvexHullTreeNode*> *Match :: getTargetChildren(RegionTreeNode *source)
+vector<ConvexHullTreeNode*> Match :: getTargetChildren(RegionTreeNode *source)
 {  
     vector<RegionTreeNode*> tmp = getMatches(source); 
-    vector<ConvexHullTreeNode*> *res = new vector<ConvexHullTreeNode*>;
+    vector<ConvexHullTreeNode*> res;
     for(unsigned int i = 0; i < tmp.size(); i++)
     {
         if(dynamic_cast <Face*> (tmp[i]))
         {
             Face* tmpFace = (Face*) tmp[i];
-            vector <ConvexHullTreeNode*> *tmpCHTN = 
+            vector <ConvexHullTreeNode*> tmpCHTN = 
                                           tmpFace->getCycle()->getChildren();
-            for(unsigned int j = 0; j < tmpCHTN->size(); j++)
+            for(unsigned int j = 0; j < tmpCHTN.size(); j++)
             {
-                res->push_back(tmpCHTN->at(j));
+                res.push_back(tmpCHTN.at(j));
             }
             
             for(int j = 0; j < tmpFace->getNrOfHoles(); j++)
             {
-                res->push_back(tmpFace->getHole(j));
+                res.push_back(tmpFace->getHole(j));
             }
         }
         if(dynamic_cast <ConvexHullTreeNode*> (tmp[i]))
         {
             ConvexHullTreeNode* tmpCHTN = (ConvexHullTreeNode*)tmp[i];
-            vector<ConvexHullTreeNode*> *tmpChildren = tmpCHTN->getChildren();
-            for(unsigned int j = 0 ; j< tmpChildren->size(); j++)
+            vector<ConvexHullTreeNode*> tmpChildren = tmpCHTN->getChildren();
+            for(unsigned int j = 0 ; j< tmpChildren.size(); j++)
             {
-                res->push_back(tmpChildren->at(j));
+                res.push_back(tmpChildren.at(j));
             }
         }
     }
@@ -250,11 +261,11 @@ void Match :: removeMatches(RegionTreeNode *toDelete)
        removeSingleMatch(toDelete);
        if(dynamic_cast <ConvexHullTreeNode*> (toDelete))
        {
-           vector <ConvexHullTreeNode*> *children = ((ConvexHullTreeNode*) 
+           vector <ConvexHullTreeNode*> children = ((ConvexHullTreeNode*) 
                                                     toDelete)->getChildren();
-           for(unsigned int i = 0; i < children->size(); i++)
+           for(unsigned int i = 0; i < children.size(); i++)
            {
-               removeMatches(children->at(i));
+               removeMatches(children.at(i));
            }
        }     
        if(dynamic_cast <Face*> (toDelete))
@@ -456,7 +467,7 @@ void Match :: finalize()
              }
              tmpTar2.push_back(getBestMatch( (ConvexHullTreeNode*) 
                                tmp->getSource(), &tmpTar));
-             matchCHTNs(&tmpSour, &tmpTar2);            
+             matchCHTNs(tmpSour, tmpTar2);            
                iter = maps.begin();                                             
                continue;         
            }                   
@@ -592,16 +603,16 @@ void Match :: rateFace(Face *source, vector<RegionTreeNode*> targets)
     Ovelaprating += sumOverlaps / sourceArea;
     Hausdorffrating += HausdorffTmp / targets.size();
     linearRating += 1.0 / targets.size();
-    vector <ConvexHullTreeNode*> *children = new vector <ConvexHullTreeNode*>; 
+    vector <ConvexHullTreeNode*> children; 
     children = source->getCycle()->getChildren();
 #ifdef DEMATCH    
     cout<<"grF2"<<endl;
 #endif    
-    for(unsigned int i = 0; i<children->size(); i++)
+    for(unsigned int i = 0; i<children.size(); i++)
     {
-        vector <RegionTreeNode*> tmp = getMatches(children->at(i));
+        vector <RegionTreeNode*> tmp = getMatches(children.at(i));
 #ifdef DEMATCH            
-        cout << "CHTN :" << children->at(i)->hashCode() << " hat "
+        cout << "CHTN :" << children.at(i)->hashCode() << " hat "
              << tmp.size() << " Matches" << endl;
 #endif        
         if(tmp.size() == 0)
@@ -614,7 +625,7 @@ void Match :: rateFace(Face *source, vector<RegionTreeNode*> targets)
         }
         else
         {
-         rateCHTN(children->at(i),tmp);            
+         rateCHTN(children.at(i),tmp);            
         }
     }  
 #ifdef DEMATCH      
@@ -687,10 +698,10 @@ void Match::rateCHTN(ConvexHullTreeNode *source,vector<RegionTreeNode*> targets)
     Ovelaprating += sumOverlaps / (sourceArea + targetArea);
     Hausdorffrating += HausdorffTmp / targets.size();
     linearRating += 1.0 / targets.size();    
-    vector<ConvexHullTreeNode*> *children = source->getChildren();
-    for(unsigned int i = 0; i<children->size(); i++)
+    vector<ConvexHullTreeNode*> children = source->getChildren();
+    for(unsigned int i = 0; i<children.size(); i++)
     {
-        vector<RegionTreeNode*> tmp = getMatches(children->at(i));
+        vector<RegionTreeNode*> tmp = getMatches(children.at(i));
         if(tmp.size() == 0)
         {
             Hausdorffrating += Utils :: getDiameter
@@ -702,7 +713,7 @@ void Match::rateCHTN(ConvexHullTreeNode *source,vector<RegionTreeNode*> targets)
         }
         else
         {
-            rateCHTN(children->at(i), tmp);
+            rateCHTN(children.at(i), tmp);
         }
     }
 #ifdef DEMATCH    

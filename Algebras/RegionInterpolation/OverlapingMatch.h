@@ -45,8 +45,8 @@ this Methods match a set of faces or ConVexHullTreeNodes to an other set of thos
 */  
 
          void matchFaces(vector<Face*> *faces1, vector<Face*> *faces2);       
-         void matchCHTNs(vector<ConvexHullTreeNode*> *chtn1, 
-                          vector<ConvexHullTreeNode*> *chtn2);
+         void matchCHTNs(vector<ConvexHullTreeNode*> &chtn1, 
+                          vector<ConvexHullTreeNode*> &chtn2);
       
       private:
 /*

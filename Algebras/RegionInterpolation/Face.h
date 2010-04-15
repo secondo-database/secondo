@@ -76,7 +76,7 @@ returns the cycle or a special hole by the given index
 returns all the Concavities of the cycle and the Holes of this face
 
 */       
-         vector<ConvexHullTreeNode*> *getHolesAndConcavities();
+         vector<ConvexHullTreeNode*> getHolesAndConcavities();
 /*
 
 Is the cached hashcode valid?
