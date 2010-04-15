@@ -2479,8 +2479,11 @@ template<int TidIndexPos>
           localInfo->total = p1.Card;
           localInfo->noAttrs =
             nl->ListLength(nl->Second(nl->Second(qp->GetType(s))));
-          localInfo->attrSize = new double[localInfo->noAttrs];
-          localInfo->attrSizeExt = new double[localInfo->noAttrs];
+
+          if(!localInfo->sizesInitialized){
+             localInfo->attrSize = new double[localInfo->noAttrs];
+             localInfo->attrSizeExt = new double[localInfo->noAttrs];
+          }
           // ordering of attributes is:
           //  attributes from first argument (without the one at tidIndex)
           //  then relation attributes

@@ -6941,6 +6941,9 @@ int MappingUnits(Word* args, Word& result, int message, Word& local, Supplier s)
   {
     case OPEN:
       u = new Unit(false);
+      if(localinfo){
+        delete localinfo;
+      }
       localinfo = new UnitsLocalInfo<Mapping, Unit>(m, u, s);
       local = SetWord(localinfo);
       delete u; u = 0;
