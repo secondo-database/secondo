@@ -646,8 +646,12 @@ Tells whether this node is a leaf node.
 
 */
 
-    R_TreeEntry<dim>& operator[] ( int index ) const
-      { assert( index >= 0 && index <= maxEntries ); return *entries[ index ]; }
+    R_TreeEntry<dim>& operator[] ( int index ) const {
+     assert( index >= 0 );
+     assert(index <= maxEntries );
+     assert(index < count);
+     return *entries[ index ];
+    }
 /*
 Returns entry given by index.
 
@@ -1502,8 +1506,7 @@ void R_TreeNode<dim, LeafInfo>::Read( SmiRecord& record )
   char buffer[Size() + 1];
   memset( buffer, 0, Size() + 1 );
 
-  int RecordRead = record.Read( buffer, Size(), offset );
-  assert( RecordRead );
+  SmiSize readed = record.Read( buffer, Size(), offset );
 
   // Reads leaf, count
   memcpy( &leaf, buffer + offset, sizeof( leaf ) );
@@ -1523,6 +1526,8 @@ void R_TreeNode<dim, LeafInfo>::Read( SmiRecord& record )
 
     entries[ i ]->Read( buffer, offset );
   }
+
+  assert(offset<=(int)readed); // otherwise some entries will be uninitialized
   modified = false;
 }
 

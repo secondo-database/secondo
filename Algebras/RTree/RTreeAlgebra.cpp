@@ -1825,6 +1825,7 @@ int WindowIntersectsSStandard( Word* args, Word& result,
         localInfo->returned = 0;
 
         delete localInfo->searchBox;
+        localInfo->searchBox = 0;
 
         //Do not delete localInfo data structure in CLOSE!
         //To be kept over several
