@@ -2306,6 +2306,16 @@ ListExpr NamedtransformstreamTypemap(ListExpr args){
 
 struct TransformstreamLocalInfo
 {
+  TransformstreamLocalInfo() :
+    finished(false), resultTupleType(0), progressinitialized(false)
+  {}
+
+  ~TransformstreamLocalInfo() {
+    if(resultTupleType) {
+      resultTupleType->DeleteIfAllowed();
+    }
+  }
+
   bool       finished;
   TupleType* resultTupleType;
   bool       progressinitialized;
@@ -2323,19 +2333,18 @@ int Transformstream_S_TS(Word* args, Word& result, int message,
 
   switch ( message ) {
     case OPEN:{
-      qp->Open( args[0].addr );
       sli = (TransformstreamLocalInfo*) local.addr;
       if(sli){
-         sli->resultTupleType->DeleteIfAllowed();
          delete  sli;
+         local.addr = 0;
       }
-      sli = new TransformstreamLocalInfo;
-
+      sli = new TransformstreamLocalInfo();
+      local.setAddr(sli);
       resultType = GetTupleResultType( s );
       sli->resultTupleType = new TupleType( nl->Second( resultType ) );
       sli->finished = false;
       sli->progressinitialized = false;
-      local.setAddr(sli);
+      qp->Open( args[0].addr );
       return 0;
     }
     case REQUEST:{
@@ -2377,7 +2386,6 @@ int Transformstream_S_TS(Word* args, Word& result, int message,
       if (local.addr != 0)
         {
           sli = (TransformstreamLocalInfo*) (local.addr);
-          sli->resultTupleType->DeleteIfAllowed();
           delete sli;
           local.setAddr(0);
         }
@@ -3673,7 +3681,7 @@ realstreamFun (Word* args, Word& result, int message, Word& local, Supplier s)
             } else {
               pRes->sizesChanged = true;     //first call
             }
- 
+
             pRes->Size = sizeof(CcReal);    //total tuple size
                                               //  (including FLOBs)
             pRes->SizeExt = sizeof(CcReal); //tuple root and extension part
@@ -3788,12 +3796,11 @@ intstreamValueMap(Word* args, Word& result,
   switch( message )
   {
     case OPEN: { // initialize the local storage
-
       CcInt* i1 = static_cast<CcInt*>( args[0].addr );
       CcInt* i2 = static_cast<CcInt*>( args[1].addr );
       if(range){
         delete range;
-      } 
+      }
       range = new Range(i1, i2);
       local.addr = range;
 
@@ -3832,8 +3839,8 @@ intstreamValueMap(Word* args, Word& result,
 
     case REQUESTPROGRESS: {
       ProgressInfo* pRes = (ProgressInfo*) result.addr;
-      assert(range); 
-      
+      assert(range);
+
       if( !range->initializedprogress ){
         pRes->sizesChanged = true;             //first call
         range->initializedprogress = true;
@@ -4770,7 +4777,7 @@ Checks whether a stream is sorted.
 */
 
 ListExpr IsOrderedTM(ListExpr args){
- 
+
   if(nl->ListLength(args)!=1){
     return listutils::typeError("one argument expected");
   }
@@ -4783,7 +4790,7 @@ ListExpr IsOrderedTM(ListExpr args){
 }
 
 
-int IsOrderedVM(Word* args, Word& result, 
+int IsOrderedVM(Word* args, Word& result,
                 int message, Word& local, Supplier s){
 
   qp->Open(args[0].addr);
