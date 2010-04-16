@@ -100,12 +100,9 @@ metadata of a tuple attributes.
 
 */
 
-TupleType::TupleType( const ListExpr typeInfo )
+TupleType::TupleType( const ListExpr typeInfo ):
+noAttributes(0), attrTypeArray(0),totalSize(0),refs(1),coreSize(0)
 {
-  attrTypeArray = 0;
-  totalSize = 0;
-  coreSize = 0;
-  refs = 1;
   int i = 0;
   size_t offset = sizeof(uint16_t); 
 

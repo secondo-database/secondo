@@ -190,7 +190,9 @@ struct AttributeType
 {
   friend ostream& operator<<(ostream& o, AttributeType& at);
 
-  AttributeType()
+  AttributeType():
+    algId(0), typeId(0), numOfFlobs(0),size(0),
+    coreSize(0),extStorage(0),offset(0)
     {}
 /*
 This constructor should not be used.
@@ -259,7 +261,10 @@ expression. It sets all member variables, including the total size.
 
     ~TupleType()
     {
-      delete []attrTypeArray;
+      if(attrTypeArray){
+         delete []attrTypeArray;
+         attrTypeArray = 0;
+      }
     }
 /*
 The destructor.
@@ -622,8 +627,10 @@ class Tuple
 {
   public:
 
-    inline Tuple( TupleType* tupleType ) :
-    tupleType( tupleType )
+    inline Tuple( TupleType* _tupleType ) :
+    refs(1), recomputeExtSize(true), recomputeSize(true),
+    tupleExtSize(0), tupleSize(0),noAttributes(0), attributes(0),
+    tupleId(0), tupleType( _tupleType ), lobFileId(0), tupleFile(0)
     {
       tupleType->IncReference();
       Init( tupleType->GetNoAttributes());
@@ -636,8 +643,11 @@ the ~tupleType~ as argument.
 
 */
     inline Tuple( const ListExpr typeInfo ) :
-    tupleType( new TupleType( typeInfo ) )
-    {
+    refs(1), recomputeExtSize(true), recomputeSize(true),
+    tupleExtSize(0), tupleSize(0),noAttributes(0), attributes(0),
+    tupleId(0), tupleType( new TupleType( typeInfo ) ) , 
+    lobFileId(0), tupleFile(0)
+        {
       Init( tupleType->GetNoAttributes());
       DEBUG_MSG("Constructor Tuple(const ListExpr typeInfo) called.")
     }
@@ -892,19 +902,8 @@ Deletes the tuple if it is allowed, i.e., there are no references
     {
       refs++;
     }
-/*
-Increses the reference count of this tuple.
+    
 
-*/
-//    inline void DecReference()
-//    {
-//      if (refs > 0)
-//        refs--;
-//    }
-/*
-Decreses the reference count of this tuple.
-
-*/
     int GetNumOfRefs() const
     {
       return refs;

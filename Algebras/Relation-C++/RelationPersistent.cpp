@@ -232,8 +232,13 @@ This struct contains the private attributes of the class ~Tuple~.
         DEBUG_MSG("attributes[" << i << "] == 0")
       }
     }
+    if(noAttributes > MAX_NUM_OF_ATTR){
+       delete[] attributes;
+    }
+    attributes=0;
     tupleType->DeleteIfAllowed();
     tupleType = 0;
+    // do not delete the tuple file
 
     tuplesDeleted++;
     tuplesInMemory--;
@@ -758,7 +763,6 @@ void Tuple::InitializeAttributes(char* src, uint16_t rootSize)
     if ( attr->GetStorageType() == Attribute::Extension )
     {
       // extension serialization
-      // To do: support for Flob Serialization 
       uint32_t attrExtOffset = 0;
       ReadVar<uint32_t>( attrExtOffset, src, offset );
       SHOW(attrExtOffset)
@@ -766,7 +770,6 @@ void Tuple::InitializeAttributes(char* src, uint16_t rootSize)
                                                             0, algId, typeId);
 
       SHOW(*attributes[i])
-      //extOffset += attrExtOffset;
     }
     else
     {
@@ -782,7 +785,6 @@ void Tuple::InitializeAttributes(char* src, uint16_t rootSize)
 
       offset += readData;
 
-      // Note: No special treatment for Flobs needed!
     }
 
     SHOW(offset)
@@ -792,8 +794,6 @@ void Tuple::InitializeAttributes(char* src, uint16_t rootSize)
 
     // Call the Initialize function for every attribute
     // and initialize the reference counter
-    attributes[i]->Initialize();
-    attributes[i]->InitRefs();
     // create uncontrollable Flobs
     for(int k=0; k< attributes[i]->NumOfFLOBs();k++){
       Flob* flob = attributes[i]->GetFLOB(k);
@@ -802,6 +802,8 @@ void Tuple::InitializeAttributes(char* src, uint16_t rootSize)
                                flob->getSize(), true);
       }
     }
+    attributes[i]->Initialize();
+    attributes[i]->InitRefs();
 
     i++; // next Attribute
   }
@@ -2328,9 +2330,10 @@ Tuple* RelationIterator::GetNextTuple()
 
   Tuple *result = new Tuple( relation.relDesc.tupleType );
 
-  result->Open( &relation.tupleFile,
-                relation.relDesc.lobFileId,
-                iterator );
+  bool openOK = result->Open( &relation.tupleFile,
+                       relation.relDesc.lobFileId,
+                       iterator );
+  assert(openOK); // otherwise the prefetching iterators works wrong
 
   currentTupleId = result->GetTupleId();
   return result;
