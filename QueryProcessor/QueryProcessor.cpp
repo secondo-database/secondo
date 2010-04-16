@@ -3599,9 +3599,7 @@ Then call the operator's value mapping function.
         {
 
 #ifdef USE_PROGRESS
-          if(message==REQUEST){
-            CheckProgress();
-          }
+          CheckProgress();
 #endif
 
                         if ( traceNodes )

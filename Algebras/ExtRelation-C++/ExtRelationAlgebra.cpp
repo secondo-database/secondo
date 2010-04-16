@@ -946,7 +946,9 @@ int Head(Word* args, Word& result, int message, Word& local, Supplier s)
 
       pRes = (ProgressInfo*) result.addr;
 
-      if ( !hli )  return CANCEL;
+      if ( !hli )  {
+         return CANCEL;
+      }
 
       if ( qp->RequestProgress(args[0].addr, &p1) )
       {
@@ -965,9 +967,7 @@ int Head(Word* args, Word& result, int message, Word& local, Supplier s)
 
         pRes->CopyBlocking(p1);
         return YIELD;
-      }
-      else
-      {
+      } else {
         return CANCEL;
       }
 
@@ -2759,16 +2759,24 @@ template<bool smaller>
     }
     case CLOSE:{
       qp->Close(args[0].addr);
+#ifndef USE_PROGRESS
       KSmallestLocalInfo* linfo;
       linfo = static_cast<KSmallestLocalInfo*>(local.addr);
       if(linfo){
         delete linfo;
         local.addr=0;
       }
+#endif
       return 0;
     }
 
     case CLOSEPROGRESS: {
+      KSmallestLocalInfo* linfo;
+      linfo = static_cast<KSmallestLocalInfo*>(local.addr);
+      if(linfo){
+        delete linfo;
+        local.addr=0;
+      }
       return 0;
     }
     case REQUESTPROGRESS: {
@@ -2783,6 +2791,9 @@ template<bool smaller>
             
       pRes = (ProgressInfo*) result.addr;
       linfo = (KSmallestLocalInfo*) local.addr;
+      if(!linfo){
+         return CANCEL;
+      }
                   
       if (qp->RequestProgress(args[0].addr, &p1))
       {
@@ -2804,8 +2815,9 @@ template<bool smaller>
         pRes->BProgress=pRes->Progress;
       
         return YIELD;
+      } else {
+         return CANCEL;
       }
-      else return CANCEL;
     }
 
     default:{
@@ -3270,19 +3282,18 @@ int RdupValueMapping(Word* args, Word& result, int message,
 
   pRes->CopyBlocking(p1);    //non-blocking operator
 
-        if (rli)
-        {
-          if (rli->returned > rli->stableValue)
-          {
+        if (rli) {
+          if (rli->returned > rli->stableValue) {
             pRes->Card =  p1.Card *
               ((double) rli->returned / (double) (rli->read));
 
-            if ( p1.BTime < 0.1 && pipelinedProgress )  //non-blocking,
+            if ( p1.BTime < 0.1 && pipelinedProgress ){  //non-blocking,
                                                         //use pipelining
               pRes->Progress = p1.Progress;
-            else
+            } else {
               pRes->Progress = (p1.Progress * p1.Time
                 + rli->read * uRdup * vRdup) / pRes->Time;
+            }
 
             return YIELD;
           }
@@ -3290,15 +3301,17 @@ int RdupValueMapping(Word* args, Word& result, int message,
 
         pRes->Card = p1.Card * wRdup;
 
-        if ( p1.BTime < 0.1 && pipelinedProgress )      //non-blocking,
+        if ( p1.BTime < 0.1 && pipelinedProgress ){      //non-blocking,
                                                         //use pipelining
           pRes->Progress = p1.Progress;
-        else
+        } else {
           pRes->Progress = (p1.Progress * p1.Time) / pRes->Time;
+        }
 
         return YIELD;
+      } else {
+        return CANCEL;
       }
-      else return CANCEL;
 
   }
   return 0;
@@ -4170,11 +4183,21 @@ class ExtendLocalInfo: public ProgressLocalInfo
 {
 public:
 
-  ExtendLocalInfo() {};
+  ExtendLocalInfo():resultTupleType(0),stableValue(0),
+                    sizesFinal(false), noOldAttrs(0), 
+                    noNewAttrs(0), attrSizeTmp(0), 
+                    attrSizeExtTmp(0) {};
 
   ~ExtendLocalInfo() {
-    delete [] attrSizeTmp;
-    delete [] attrSizeExtTmp;
+    if(resultTupleType){
+      resultTupleType->DeleteIfAllowed();
+    }
+    if(attrSizeTmp){
+       delete [] attrSizeTmp;
+    }
+    if(attrSizeExtTmp){
+       delete [] attrSizeExtTmp;
+    }
   }
 
   TupleType *resultTupleType;
@@ -4202,7 +4225,9 @@ int Extend(Word* args, Word& result, int message, Word& local, Supplier s)
   {
     case OPEN :
 
-      if ( eli ) delete eli;
+      if ( eli ) {
+         delete eli;
+      }
 
       eli = new ExtendLocalInfo;
       eli->resultTupleType = new TupleType(nl->Second(GetTupleResultType(s)));
@@ -4225,7 +4250,9 @@ int Extend(Word* args, Word& result, int message, Word& local, Supplier s)
       return 0;
 
     case REQUEST :
-
+      if(!eli){
+        return CANCEL;
+      }
       qp->Request(args[0].addr,t);
       if (qp->Received(args[0].addr))
       {
@@ -4265,21 +4292,10 @@ int Extend(Word* args, Word& result, int message, Word& local, Supplier s)
 
     case CLOSE :
       qp->Close(args[0].addr);
-      if ( eli ){
-         if(eli->resultTupleType){
-            eli->resultTupleType->DeleteIfAllowed();
-            eli->resultTupleType=0;
-         }
-      }
       return 0;
-
 
     case CLOSEPROGRESS:
       if ( eli ){
-         if(eli->resultTupleType){
-            eli->resultTupleType->DeleteIfAllowed();
-            eli->resultTupleType=0;
-         }
          delete eli;
          local.setAddr(0);
       }
@@ -4295,7 +4311,9 @@ int Extend(Word* args, Word& result, int message, Word& local, Supplier s)
 
       pRes = (ProgressInfo*) result.addr;
 
-      if ( !eli ) return CANCEL;
+      if ( !eli ) {
+         return CANCEL;
+      }
 
       if ( qp->RequestProgress(args[0].addr, &p1) )
       {
@@ -4373,8 +4391,9 @@ int Extend(Word* args, Word& result, int message, Word& local, Supplier s)
         pRes->CopyBlocking(p1);    //non-blocking operator
 
         return YIELD;
+      } else {
+        return CANCEL;
       }
-      else return CANCEL;
   }
   return 0;
 }
@@ -4624,6 +4643,14 @@ int Loopjoin(Word* args, Word& result, int message,
 class LoopjoinLocalInfo: public ProgressLocalInfo
 {
 public:
+  LoopjoinLocalInfo():tuplex(Address(0)),streamy(Address(0)),
+                      resultTupleType(0) {}
+  ~LoopjoinLocalInfo() {
+     if(resultTupleType){
+       resultTupleType->DeleteIfAllowed();
+       resultTupleType=0;
+     }
+  }  
 
   Word tuplex;
   Word streamy;
@@ -4656,7 +4683,9 @@ int Loopjoin(Word* args, Word& result, int message,
   {
     case OPEN:
 
-      if ( lli ) delete lli;
+      if ( lli ) {
+         delete lli;
+      }
 
       lli = new LoopjoinLocalInfo();
       resultType = GetTupleResultType( s );
@@ -4687,8 +4716,12 @@ int Loopjoin(Word* args, Word& result, int message,
       return 0;
 
     case REQUEST:
-
-      if ( lli->tuplex.addr == 0) return CANCEL;
+      if(!lli){
+        return CANCEL;
+      }
+      if ( lli->tuplex.addr == 0) {
+         return CANCEL;
+      }
 
       tuplex=lli->tuplex;
       ctuplex=(Tuple*)tuplex.addr;
@@ -4714,7 +4747,6 @@ int Loopjoin(Word* args, Word& result, int message,
 
             lli->tuplex=tuplex;
             lli->streamy=streamy;
-            local.setAddr(lli);
           }
           else
           {
@@ -4739,14 +4771,6 @@ int Loopjoin(Word* args, Word& result, int message,
 
     case CLOSE:
       qp->Close(args[0].addr);
-      if ( lli )
-      {
-         if( lli->resultTupleType)
-         {
-            lli->resultTupleType->DeleteIfAllowed();
-            lli->resultTupleType = 0;
-         }
-      }
       return 0;
 
     case CLOSEPROGRESS:
@@ -4760,9 +4784,6 @@ int Loopjoin(Word* args, Word& result, int message,
            if( lli->tuplex.addr != 0 )
              ((Tuple*)lli->tuplex.addr)->DeleteIfAllowed();
 
-         }
-         if( lli->resultTupleType){
-            lli->resultTupleType->DeleteIfAllowed();
          }
          delete lli;
          local.setAddr(0);
@@ -4778,7 +4799,9 @@ int Loopjoin(Word* args, Word& result, int message,
 
       pRes = (ProgressInfo*) result.addr;
 
-      if (!lli) return CANCEL;
+      if (!lli) {
+         return CANCEL;
+      }
 
       if (qp->RequestProgress(args[0].addr, &p1)
        && qp->RequestProgress(args[1].addr, &p2))
@@ -4813,8 +4836,9 @@ int Loopjoin(Word* args, Word& result, int message,
         //second argument assumed not to block
 
         return YIELD;
+      } else {
+        return CANCEL;
       }
-      else return CANCEL;
     }
   }
   return 0;
@@ -5044,6 +5068,16 @@ Loopselect(Word* args, Word& result, int message,
 
 struct LoopselectLocalInfo: public ProgressLocalInfo
 {
+  LoopselectLocalInfo(): ::ProgressLocalInfo(),tuplex(Address(0)),
+                         streamy(Address(0)), resultTupleType(0){}
+
+  ~LoopselectLocalInfo(){
+     if(resultTupleType){
+       resultTupleType->DeleteIfAllowed();
+       resultTupleType = 0;
+     }
+  }
+
   Word tuplex;
   Word streamy;
   TupleType *resultTupleType;
@@ -5065,6 +5099,11 @@ int
       // open the stream and initiate the variables
       qp->Open (args[0].addr);
       qp->Request(args[0].addr, tuplex);
+      localinfo = static_cast<LoopselectLocalInfo*>(local.addr);
+      if(localinfo){
+        delete localinfo;
+        localinfo=0;
+      }
       if (qp->Received(args[0].addr))
       {
         // compute the rely which corresponding to tuplex
@@ -5091,7 +5130,9 @@ int
       return 0;
 
     case REQUEST:
-      if (local.addr ==0) return CANCEL;
+      if (local.addr ==0){
+          return CANCEL;
+      }
 
       // restore localinformation from the local variable.
       localinfo = (LoopselectLocalInfo *) local.addr;
@@ -5150,8 +5191,6 @@ int
         if( localinfo->tuplex.addr != 0 )
           ((Tuple*)localinfo->tuplex.addr)->DeleteIfAllowed();
 
-        if( localinfo->resultTupleType != 0 )
-          localinfo->resultTupleType->DeleteIfAllowed();
         delete localinfo;
         local.setAddr(0);
       }
@@ -5194,11 +5233,13 @@ int
           return YIELD;
         }
 
+      } else {
+        return CANCEL;
       }
-      return 0;
+     
   }
 
-  return 0;
+  return -1;
 }
 #endif
 /*
@@ -5783,12 +5824,23 @@ class ProjectExtendLocalInfo: public ProgressLocalInfo
 {
 public:
 
-  ProjectExtendLocalInfo() {};
+  ProjectExtendLocalInfo():
+        resultTupleType(0),stableValue(0), sizesFinal(false), 
+        noOldAttrs(0),noNewAttrs(0),attrSizeTmp(0), attrSizeExtTmp(0) {};
 
   ~ProjectExtendLocalInfo() {
-    resultTupleType->DeleteIfAllowed();
-    delete [] attrSizeTmp;
-    delete [] attrSizeExtTmp;
+    if(resultTupleType){
+       resultTupleType->DeleteIfAllowed();
+       resultTupleType=0;
+    }
+    if(attrSizeTmp){
+       delete [] attrSizeTmp;
+       attrSizeTmp =0;
+    }
+    if(attrSizeExtTmp){
+       delete [] attrSizeExtTmp;
+       attrSizeExtTmp =0;
+    }
   }
 
   TupleType *resultTupleType;
@@ -5816,7 +5868,9 @@ ExtProjectExtendValueMap(Word* args, Word& result, int message,
   {
     case OPEN :
     {
-      if ( eli ) delete eli;
+      if ( eli ) {
+        delete eli;
+      }
 
       eli = new ProjectExtendLocalInfo;
       eli->resultTupleType = new TupleType(nl->Second(GetTupleResultType(s)));
@@ -5841,7 +5895,9 @@ ExtProjectExtendValueMap(Word* args, Word& result, int message,
     }
     case REQUEST :
     {
-
+      if(!eli){
+        return CANCEL;
+      }
       qp->Request(args[0].addr, elem1);
       if (qp->Received(args[0].addr))
       {
@@ -5884,8 +5940,9 @@ ExtProjectExtendValueMap(Word* args, Word& result, int message,
         currTuple->DeleteIfAllowed();
         result.setAddr(resultTuple);
         return YIELD;
+      } else {
+        return CANCEL;
       }
-      else return CANCEL;
     }
     case CLOSE :
     {
@@ -5912,7 +5969,9 @@ ExtProjectExtendValueMap(Word* args, Word& result, int message,
 
       pRes = (ProgressInfo*) result.addr;
 
-      if ( !eli ) return CANCEL;
+      if ( !eli ) {
+        return CANCEL;
+      }
 
       if ( qp->RequestProgress(args[0].addr, &p1) )
       {
@@ -5989,8 +6048,9 @@ ExtProjectExtendValueMap(Word* args, Word& result, int message,
         pRes->CopyBlocking(p1);    //non-blocking operator
 
         return YIELD;
+      } else {
+        return CANCEL;
       }
-      else return CANCEL;
   }
   return 0;
 }
@@ -6946,10 +7006,30 @@ public:
   // initialization
   GroupByLocalInfo() : ProgressLocalInfo(),
     t(0), resultTupleType(0), MAX_MEMORY(0),
-    stableValue(0),
+    stableValue(0),sizesFinal(false),
     noGroupAttrs(0), noAggrAttrs(0),
     attrSizeTmp(0), attrSizeExtTmp(0)
   {}
+
+  ~GroupByLocalInfo(){
+     if(t){
+       t->DeleteIfAllowed();
+       t = 0;
+     } 
+     if(resultTupleType){
+       resultTupleType->DeleteIfAllowed();
+       resultTupleType = 0;
+     }
+     if(attrSizeTmp){
+       delete[] attrSizeTmp;
+       attrSizeTmp=0;
+     }
+     if(attrSizeExtTmp){
+       delete[] attrSizeExtTmp;
+       attrSizeExtTmp = 0;
+     }
+  }
+
 };
 
 int GroupByValueMapping
@@ -6971,9 +7051,7 @@ int GroupByValueMapping
   const int indexOfCountArgument = 3;
   const int startIndexOfExtraArguments = indexOfCountArgument +1;
   int attribIdx = 0;
-  GroupByLocalInfo *gbli;
-
-  gbli = (GroupByLocalInfo *)local.addr;
+  GroupByLocalInfo *gbli = (GroupByLocalInfo *)local.addr;
 
 
   // The argument vector contains the following values:
@@ -7034,21 +7112,19 @@ int GroupByValueMapping
           << " Tuples" << endl;
         cmsg.send();
       }
-      else
-      {
-        gbli->t = 0;
-      }
 
       return 0;
     }
     case REQUEST:
     {
       Counter::getRef("GroupBy:Request")++;
-
-      if(gbli->t == 0)
+      if(!gbli){
         return CANCEL;
-      else
-      {
+      }
+
+      if(gbli->t == 0){
+        return CANCEL;
+      } else {
         tp = new TupleBuffer(gbli->MAX_MEMORY);
         tp->AppendTuple(gbli->t);
       }
@@ -7193,7 +7269,9 @@ int GroupByValueMapping
 
       pRes = (ProgressInfo*) result.addr;
 
-      if ( !gbli ) return CANCEL;
+      if ( !gbli ){
+         return CANCEL;
+      }
 
       if ( qp->RequestProgress(args[0].addr, &p1) )
       {
@@ -7262,8 +7340,9 @@ int GroupByValueMapping
         pRes->CopyBlocking(p1);    //non-blocking operator
 
         return YIELD;
+      } else {
+        return CANCEL;
       }
-      else return CANCEL;
 
   }
   return 0;
@@ -7450,13 +7529,12 @@ int Aggregate(Word* args, Word& result, int message, Word& local, Supplier s)
     case OPEN :
     case REQUEST:
     case CLOSE: {
+      if(ali){
+         delete ali;
+      }
       ali = new ProgressLocalInfo();
       local.setAddr(ali);
       qp->Open(args[0].addr);
-//      return 0;
-//    }
-    
-//    case REQUEST :{
       int index = ((CcInt*)args[4].addr)->GetIntval();
       result = qp->ResultStorage(s);
       // Get the initial value
@@ -7481,11 +7559,8 @@ int Aggregate(Word* args, Word& result, int message, Word& local, Supplier s)
       }
       ((Attribute*)result.addr)->CopyFrom( (const Attribute*)tmpres );
       delete tmpres;
-//    return 0;
-//    }
-//    case CLOSE :{
       qp->Close(args[0].addr);
-//      return 0;
+      return 0;
     }
     case CLOSEPROGRESS:{
       if ( ali )        // if local info structure exists
@@ -7509,11 +7584,12 @@ int Aggregate(Word* args, Word& result, int message, Word& local, Supplier s)
         pRes->Progress = (p1.Progress * p1.Time + ali->read * uAggregate)/
             pRes->Time;
         return YIELD;
+      } else{
+        return CANCEL;
       }
-      return 0;
     }
   }
-  return 0;
+  return -1;
 }
 
 #endif
@@ -8041,6 +8117,38 @@ SymmJoin(Word* args, Word& result, int message, Word& local, Supplier s)
 class SymmJoinLocalInfo: public ProgressLocalInfo
 {
 public:
+
+   SymmJoinLocalInfo(): resultTupleType(0), rightRel(0), 
+       rightIter(0),leftRel(0),leftIter(0),right(false),
+       currTuple(0),rightFinished(false),leftFinished(false) {}
+
+   ~SymmJoinLocalInfo() {
+      if(resultTupleType){
+        resultTupleType->DeleteIfAllowed();
+        resultTupleType =0;
+      }
+      if(currTuple){
+        currTuple->DeleteIfAllowed();
+        currTuple =0;
+      }
+      if(rightRel){
+        delete rightRel;
+        rightRel=0;
+      } 
+      if(rightIter){
+        delete rightIter;
+        rightIter=0;
+      } 
+      if(leftRel){
+        delete leftRel;
+        leftRel=0;
+      } 
+      if(leftIter){
+        delete leftIter;
+        leftIter=0;
+      } 
+   }
+
   TupleType *resultTupleType;
 
   TupleBuffer *rightRel;
@@ -8072,7 +8180,9 @@ SymmJoin(Word* args, Word& result, int message, Word& local, Supplier s)
       cmsg.send();
 
 
-      if ( pli ) delete pli;
+      if ( pli ){
+         delete pli;
+      }
 
       pli = new SymmJoinLocalInfo;
       pli->rightRel = new TupleBuffer( MAX_MEMORY / 2 );
@@ -8100,7 +8210,10 @@ SymmJoin(Word* args, Word& result, int message, Word& local, Supplier s)
 
     case REQUEST :
     {
-      while( 1 )
+      if(!pli){
+        return CANCEL;
+      }
+      while( true )
         // This loop will end in some of the returns.
       {
         if( pli->right )
@@ -8273,9 +8386,15 @@ SymmJoin(Word* args, Word& result, int message, Word& local, Supplier s)
           pli->currTuple->DeleteIfAllowed();
           pli->currTuple=0;
         }
-
-        delete pli->leftIter;
-        delete pli->rightIter;
+        
+        if(pli->leftIter){
+          delete pli->leftIter;
+          pli->leftIter = 0;
+        } 
+        if(pli->rightIter){
+           delete pli->rightIter;
+           pli->rightIter=0;
+        }
         if( pli->resultTupleType != 0 ){
           pli->resultTupleType->DeleteIfAllowed();
           pli->resultTupleType=0;
@@ -8321,7 +8440,9 @@ SymmJoin(Word* args, Word& result, int message, Word& local, Supplier s)
 
       pRes = (ProgressInfo*) result.addr;
 
-      if (!pli) return CANCEL;
+      if (!pli){
+          return CANCEL;
+      }
 
       if (qp->RequestProgress(args[0].addr, &p1)
        && qp->RequestProgress(args[1].addr, &p2))
@@ -8358,9 +8479,7 @@ SymmJoin(Word* args, Word& result, int message, Word& local, Supplier s)
         pRes->CopyBlocking(p1, p2);  //non-blocking oprator
 
         return YIELD;
-      }
-      else
-      {
+      } else {
         return CANCEL;
       }
     }

@@ -1165,8 +1165,9 @@ Feed(Word* args, Word& result, int message, Word& local, Supplier s)
 
       if ( qp->IsObjectNode(sonOfFeed) )
       {
-        if ( !fli ) return CANCEL;
-        else  //an object node, fli defined
+        if ( !fli ) {
+           return CANCEL;
+        } else  //an object node, fli defined
         {
           pRes->Card = (double) fli->total;
           pRes->CopySizes(fli);  //copy all sizes
@@ -1205,8 +1206,9 @@ Feed(Word* args, Word& result, int message, Word& local, Supplier s)
           pRes->BProgress = p1.Progress;
 
           return YIELD;
+        } else {
+          return CANCEL;
         }
-        else return CANCEL;
       }
     }
   }
@@ -1452,8 +1454,9 @@ feedproject_vm(Word* args, Word& result, int message, Word& local, Supplier s)
 
       if ( qp->IsObjectNode(sonOfFeed) )
       {
-        if ( !fli ) return CANCEL;
-        else  //an object node, fli defined
+        if ( !fli ) {
+           return CANCEL;
+        } else  //an object node, fli defined
         {
           pRes->Card = (double) fli->total;
           pRes->CopySizes(fli);  //copy all sizes
@@ -1476,9 +1479,7 @@ feedproject_vm(Word* args, Word& result, int message, Word& local, Supplier s)
 
           return YIELD;
         }
-      }
-      else //not an object node
-      {
+      } else { //not an object node
         if ( qp->RequestProgress(sonOfFeed, &p1) )
         {
           pRes->Card = p1.Card;
@@ -1501,8 +1502,9 @@ feedproject_vm(Word* args, Word& result, int message, Word& local, Supplier s)
           pRes->BProgress = p1.Progress;
 
           return YIELD;
+        } else {
+          return CANCEL;
         }
-        else return CANCEL;
       }
     }
   }
@@ -1774,8 +1776,9 @@ Consume(Word* args, Word& result, int message,
       pRes->BProgress = pRes->Progress;
 
       return YIELD;      //successful
+    } else {
+       return CANCEL;      //no progress available
     }
-    else return CANCEL;      //no progress available
   }
   else if ( message == CLOSEPROGRESS )
   {
@@ -2233,8 +2236,9 @@ Filter(Word* args, Word& result, int message,
           pRes->Progress = (p1.Progress * p1.Time) / pRes->Time;
           pRes->CopyBlocking(p1);
         return YIELD;
+      } else {
+        return CANCEL;
       }
-      else return CANCEL;
   }
   return 0;
 }
@@ -2747,7 +2751,9 @@ Project(Word* args, Word& result, int message,
       pRes = (ProgressInfo*) result.addr;
       pli = (ProjectLocalInfo*) local.addr;
 
-      if ( !pli ) return CANCEL;
+      if ( !pli ) {
+         return CANCEL;
+      }
 
       if ( qp->RequestProgress(args[0].addr, &p1) )
       {
@@ -2799,8 +2805,9 @@ Project(Word* args, Word& result, int message,
   pRes->CopyBlocking(p1);    //non-blocking operator
 
         return YIELD;
+      } else { 
+        return CANCEL;
       }
-      else return CANCEL;
     }
     default : cerr << "unknown message" << endl;
               return 0;
@@ -3415,7 +3422,9 @@ Product(Word* args, Word& result, int message,
 
       pRes = (ProgressInfo*) result.addr;
 
-      if (!pli) return CANCEL;
+      if (!pli) {
+         return CANCEL;
+      }
 
       if (qp->RequestProgress(args[0].addr, &p1)
        && qp->RequestProgress(args[1].addr, &p2))
@@ -3445,9 +3454,7 @@ Product(Word* args, Word& result, int message,
           / pRes->BTime;
 
         return YIELD;
-      }
-      else
-      {
+      } else {
         return CANCEL;
       }
     }
@@ -3638,8 +3645,9 @@ TCountStream(Word* args, Word& result, int message,
     {
       pRes->Copy(p1);
       return YIELD;
+    } else {
+      return CANCEL;
     }
-    else return CANCEL;
   }
   else if ( message == CLOSEPROGRESS )
   {
@@ -3684,8 +3692,9 @@ TCountRel(Word* args, Word& result, int message,
       {
         pRes->Copy(p1);
         return YIELD;
+      } else {
+        return CANCEL;
       }
-      else return CANCEL;
     }
   }
   else if ( message == CLOSEPROGRESS && !qp->IsObjectNode(sonOfCount) )
@@ -5213,8 +5222,9 @@ Rename(Word* args, Word& result, int message,
       {
         pRes->Copy(p1);
         return YIELD;
+      } else {
+        return CANCEL;
       }
-      else return CANCEL;
 
   }
   return 0;
@@ -5478,16 +5488,15 @@ int Buffer(Word* args, Word& result, int message,
       ProgressInfo p1;
       ProgressInfo *pRes;
 
-     if(!bli) return CANCEL;
-
       pRes = (ProgressInfo*) result.addr;
 
       if ( qp->RequestProgress(args[0].addr, &p1) )
       {
         pRes->Copy(p1);
         return YIELD;
+      } else {
+        return CANCEL;
       }
-      else return CANCEL;
 
   }
   return 0;

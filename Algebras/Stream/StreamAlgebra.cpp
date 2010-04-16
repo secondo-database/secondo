@@ -261,11 +261,16 @@ int MappingStreamFeed( Word* args, Word& result, int message,
     }
     case REQUESTPROGRESS:{
       linfo = static_cast<SFeedLocalInfo*>(local.addr);
-      assert(linfo);
+      if(!linfo){
+         return CANCEL;
+      }
       ProgressInfo *pRes;
       pRes = (ProgressInfo*) result.addr;
       ProgressInfo p1;
-      if( !linfo->sonIsObjectNode && qp->RequestProgress(args[0].addr, &p1) ) {
+      if( !linfo->sonIsObjectNode){
+         if(!qp->RequestProgress(args[0].addr, &p1) ) {
+            return CANCEL;
+         }
         // the son is a computed result node
         // just copy everything
         pRes->CopyBlocking(p1);
@@ -2393,7 +2398,9 @@ int Transformstream_S_TS(Word* args, Word& result, int message,
     }
     case REQUESTPROGRESS:{
       sli = (TransformstreamLocalInfo*) (local.addr);
-      assert(sli);
+      if(!sli){
+        return CANCEL;
+      }
       ProgressInfo p1;
       ProgressInfo* pRes = (ProgressInfo*) result.addr;
       if( !qp->RequestProgress(args[0].addr, &p1) ){
@@ -3839,7 +3846,9 @@ intstreamValueMap(Word* args, Word& result,
 
     case REQUESTPROGRESS: {
       ProgressInfo* pRes = (ProgressInfo*) result.addr;
-      assert(range);
+      if(!range){
+         return CANCEL;
+      } 
 
       if( !range->initializedprogress ){
         pRes->sizesChanged = true;             //first call
