@@ -3,11 +3,11 @@
 
 if [ "$1" == "--valgrind" ]; then
   shift
-  runner="valgrind --num-callers=25  $(which SecondoBDB)"
+  runner="valgrind --num-callers=25 --suppressions=vgs.txt --error-limit=no $(which SecondoBDB)"
 else 
 if [ "$1" == "--valgrindlc" ]; then
   shift
-  runner="valgrind --num-callers=25 --leak-check=full $(which SecondoBDB)"
+  runner="valgrind --num-callers=25 --leak-check=full --suppressions=vgs.txt --error-limit=no $(which SecondoBDB)"
 else  
 if [ "$1" == "--profile" ]; then
   shift
