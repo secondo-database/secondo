@@ -7228,26 +7228,6 @@ int GroupByValueMapping
     }
     case CLOSE:
     {
-      if(gbli)
-      {
-        if( gbli->resultTupleType != 0 ){
-          gbli->resultTupleType->DeleteIfAllowed();
-          gbli->resultTupleType=0;
-        }
-        if( gbli->t != 0 )
-        {
-          gbli->t->DeleteIfAllowed();
-          gbli->t = 0;
-        }
-        if(gbli->attrSizeTmp){
-            delete[] gbli->attrSizeTmp;
-            gbli->attrSizeTmp=0;
-        }
-        if(gbli->attrSizeExtTmp){
-          delete[] gbli->attrSizeExtTmp;
-          gbli->attrSizeExtTmp=0;
-        }
-      }
       qp->Close(args[0].addr);
       return 0;
     }
