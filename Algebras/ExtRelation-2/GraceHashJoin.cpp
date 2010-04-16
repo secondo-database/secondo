@@ -836,6 +836,9 @@ Tuple* GraceHashJoinAlgorithm::partitionA()
   }
 
   // start scan of corresponding partition A
+  if(iterA){
+    delete iterA;
+  }
   iterA = pmA->GetPartition(curPartition)->MakeScan();
 
   tupleA.setTuple( iterA->GetNextTuple() );
@@ -886,6 +889,9 @@ Tuple* GraceHashJoinAlgorithm::processPartitions()
         pmB->LoadPartition(curPartition, hashTable, MAX_MEMORY);
 
       // Start scan of corresponding partition A(i)
+      if(iterA){
+        delete iterA;
+      }
       iterA = pmA->GetPartition(curPartition)->MakeScan();
 
       // Read first tuple from A(i)
