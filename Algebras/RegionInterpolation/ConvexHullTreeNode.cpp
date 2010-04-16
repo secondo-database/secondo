@@ -25,8 +25,9 @@ ConvexHullTreeNode :: ConvexHullTreeNode()
    setDirtyHash();
 }
 
-ConvexHullTreeNode :: ConvexHullTreeNode(LineWA linelist[], int linelistlength,
-   RegionTreeNode* myParent, int level=0, bool isHole=false)
+ConvexHullTreeNode :: ConvexHullTreeNode(LineWA linelistParam[], 
+    int linelistlength, RegionTreeNode* myParent, 
+    int level=0, bool isHole=false)
 {  
    ConvexHullTreeNode();
    LineWA *tmplist, *childlist;
@@ -38,7 +39,7 @@ ConvexHullTreeNode :: ConvexHullTreeNode(LineWA linelist[], int linelistlength,
    this->myParent = myParent; 
    if ((level == 0 && !isHole) || (level == 1 && isHole))
    {
-      double area = Utils :: getArea(linelist, linelistlength);
+      double area = Utils :: getArea(linelistParam, linelistlength);
 #ifdef DECHTN     
       cout << area << endl;
 #endif
@@ -50,22 +51,22 @@ ConvexHullTreeNode :: ConvexHullTreeNode(LineWA linelist[], int linelistlength,
          LineWA tmp;
          for (int i = 0; i < ((int)(linelistlength /2)); ++i)
          {
-           tmp= linelist[i];
-           linelist[i]= linelist[linelistlength-1-i];
-           linelist[linelistlength-1-i]= tmp;
+           tmp= linelistParam[i];
+           linelistParam[i]= linelistParam[linelistlength-1-i];
+           linelistParam[linelistlength-1-i]= tmp;
          }
       }
    }
    // Create temporary list so that convexHull() won't change the order of
-   // points in the original linelist.
+   // points in the original linelistParam.
    tmplist = new LineWA[linelistlength];  
    for (int a = 0; a < linelistlength; a++)
    {
-      tmplist[a] = linelist[a];
+      tmplist[a] = linelistParam[a];
    }
+ 
    // Find the convex hull 
    convhull = Utils :: convexHull(tmplist, linelistlength);
-   //delete[] tmplist;
    // Find where the first node in linelist is in the convex hull
    // (Or the earliest possible if the first node is not on the hull)
    // This is to preserve the order in the linelist in the ordering of
@@ -74,21 +75,21 @@ ConvexHullTreeNode :: ConvexHullTreeNode(LineWA linelist[], int linelistlength,
    lastindex = convhull.size();
    for (int a = 0; a < linelistlength; a++)
    {     
-      index1 = Utils :: indexOf(convhull, linelist[a]);
-      index1 = Utils :: indexOf(convhull, linelist[a]);
+      index1 = Utils :: indexOf(convhull, linelistParam[a]);
+      index1 = Utils :: indexOf(convhull, linelistParam[a]);
       if (index1 != -1)
          break;
    }
 #ifdef DECHTN  
    for (int a=0; a<linelistlength; a++)
    {
-      cout<<linelist[a];
+      cout<<linelistParam[a];
    }
    cout<<"const CHTN4"<<endl;
 #endif   
    for (int a = linelistlength - 1; a >= 0; a--)
    {
-      lastindex = Utils :: indexOf(convhull, linelist[a]);
+      lastindex = Utils :: indexOf(convhull, linelistParam[a]);
       if (lastindex != -1)
          break;
    }  
@@ -111,15 +112,14 @@ ConvexHullTreeNode :: ConvexHullTreeNode(LineWA linelist[], int linelistlength,
          insertLine(convhull[a]);
       }
    }
-//for(vector<LineWA*>::iterator it= convhull.begin(); it!= convhull.end();++it)
-//     delete (*it);
+   delete[] tmplist;
    // Check lines in convex hull with lines in line list. Whenever two points
    // which are neighbours in the convex hull are not neighbours in the line
    // list, create a child node from the points between them.
    noiterations = this->getNrLines();
    index1 = 0;
    indexll1 = 0;
-   while ( !(linelist[indexll1].equals(getLine(index1))) )
+   while ( !(linelistParam[indexll1].equals(getLine(index1))) )
    {
       indexll1++;
    }  
@@ -127,7 +127,7 @@ ConvexHullTreeNode :: ConvexHullTreeNode(LineWA linelist[], int linelistlength,
    {
       index2 = index1+1;
       indexll2 = indexll1+1;     
-      while ( !(linelist[indexll2 % linelistlength].
+      while ( !(linelistParam[indexll2 % linelistlength].
          equals(getLine(index2 % noiterations))) )
       {           
          indexll2++;
@@ -144,11 +144,11 @@ ConvexHullTreeNode :: ConvexHullTreeNode(LineWA linelist[], int linelistlength,
          {
             if ((b + indexll1) < linelistlength)
             {
-               childlist[length-b-1] = linelist[b + indexll1];
+               childlist[length-b-1] = linelistParam[b + indexll1];
             } 
             else
             {
-               childlist[length-b-1] = linelist[b+indexll1-linelistlength];
+               childlist[length-b-1] = linelistParam[b+indexll1-linelistlength];
             }
          }
          insertChild(index1, 

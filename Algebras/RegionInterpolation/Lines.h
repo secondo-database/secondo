@@ -93,7 +93,8 @@ $compareTo$ compares to LineWA according to their angle
  
 1.1.1 Operators
 
-*/               
+*/
+//         virtual void operator = (LineWA &arg);
          friend ostream & operator <<(ostream & os,const LineWA line);   
          friend bool operator< (const LineWA &l2, const LineWA &l1);
       private:
@@ -235,6 +236,7 @@ empty constructor
  
 */    
          void setChild(ConvexHullTreeNode* child);
+//         virtual void operator = (CHLine &arg);
          
 /*
  

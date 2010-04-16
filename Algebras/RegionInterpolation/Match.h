@@ -74,6 +74,9 @@ return the source or target region
 */           
          RegionForInterpolation *getSource();
          RegionForInterpolation *getTarget();
+         void setSource(RegionForInterpolation *);
+         void setTarget(RegionForInterpolation *);
+         void nullify();
 /*
 
 return all RegionTreeNodes that are matches to $source$

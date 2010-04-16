@@ -163,6 +163,13 @@ bool operator < (const LineWA &l1,const  LineWA &l2)
   if (l1.angle < l2.angle) return true;
   return false;
 }
+
+//virtual void LineWA::operator = (LineWA &arg)
+//{
+//  x = arg.getX();
+//  y = arg.getY();
+//  angle = arg.getAngle();
+//}
 /*
  
 1 LineDist
@@ -332,6 +339,14 @@ void CHLine :: setChild(ConvexHullTreeNode* child)
 {
    this->child = child;
 }
+
+//virtual void operator = (CHLine &arg)
+//{
+//  setX( arg.getX());
+//  setY = arg.getY();
+//  setAngle = arg.getAngle();
+//  setChild(arg.getChild());
+//}
 /*
 
 1.1 Operators

@@ -45,11 +45,16 @@ RegionForInterpolation :: RegionForInterpolation(Region *newRegion)
       {
          tmpvec[tmp->GetAttr().faceno] [tmp->GetAttr().cycleno].resize(
             (tmp->GetAttr().edgeno + 1));
-      }           
+      }
+      if(tmpvec[tmp->GetAttr().faceno] [tmp->GetAttr().cycleno] 
+         [tmp->GetAttr().edgeno] != NULL) 
+      {
+        delete tmpvec[tmp->GetAttr().faceno] [tmp->GetAttr().cycleno] 
+                     [tmp->GetAttr().edgeno];
+      }
       tmpvec[tmp->GetAttr().faceno] [tmp->GetAttr().cycleno] 
-         [tmp->GetAttr().edgeno] = (HalfSegment*) tmp;
+               [tmp->GetAttr().edgeno] = (HalfSegment*) tmp;
    }    
-    
 
    for(unsigned int i = 0; i < tmpvec.size(); i++)
    {       

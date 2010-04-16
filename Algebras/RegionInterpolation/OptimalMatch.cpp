@@ -112,8 +112,8 @@ OptimalMatch::OptimalMatch(RegionForInterpolation *source,
         this->linearRating=best->getLinarRating();
         this->Ovelaprating=best->getOverlapRating();
         this->maps=best->getMaps();
+        best->nullify();
         for(unsigned int i=1;i<candidates.size(); ++i)
-          if(i!= bestIndex)
             delete candidates[i];
 }     
 /*

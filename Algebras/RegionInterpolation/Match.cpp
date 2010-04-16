@@ -139,7 +139,24 @@ RegionForInterpolation *Match :: getSource()
 RegionForInterpolation *Match :: getTarget()
 {  
     return(target);
-}  
+} 
+
+void Match::setSource(RegionForInterpolation *arg)
+{
+  source= arg;
+}
+void Match::setTarget(RegionForInterpolation *arg)
+{
+  target= arg;
+}
+void Match::nullify()
+{
+  source=0;
+  target=0;
+  for(map<int, SingleMatch*>::iterator it= maps.begin(); it!=
+    maps.end(); ++it)
+    (*it).second=0;
+}
 /*
  
 1.1 getMatches()
@@ -754,6 +771,7 @@ void Match :: removeSingleMatch(RegionTreeNode *toDelete)
    if(toDelete!=NULL)
    {
       int sourceHash = findIndex(toDelete);
+      delete maps.find(sourceHash)->second;
       maps.erase(sourceHash);           
        map<int,SingleMatch*> :: iterator iter = maps.begin();
        while(iter != maps.end())

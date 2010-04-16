@@ -96,6 +96,7 @@ void mLineRep :: addTrianglesFromFaceFace(Face *face1, Face *face2,
           LineWA param1 =face1->getHole(i)->getCenter();
           PointWNL *p3 = new PointWNL(&param1, time2);
           addTrianglesFromCHTPoint(face1->getHole(i), time1, p3, facenr, i+1);
+          delete p3;
         }
         else
         {
@@ -116,6 +117,7 @@ void mLineRep :: addTrianglesFromFaceFace(Face *face1, Face *face2,
           PointWNL *p3 = new PointWNL(&param1, time1);
           addTrianglesFromCHTPoint(face2->getHole(i), time2, p3, facenr, 
                                    i + face1->getNrOfHoles() + 1);
+          delete p3;
         }
     }
 }
@@ -221,6 +223,7 @@ void mLineRep :: addTrianglesFromFaceNull(Face *face, int time, int facenr)
    LineWA param1 =face->getCycle()->getCenter();
     PointWNL *p3 = new PointWNL(param1.getX(), param1.getY(), (time + 1) % 2);
     addTrianglesFromCHTPoint(face->getCycle(), time, p3, facenr, 0);
+    delete p3;
     for (int i = 0; i < face->getNrOfHoles(); i++)
     {
         addTrianglesFromCHTPoint(face->getHole(i), time, p3, facenr, i + 1);
@@ -234,7 +237,9 @@ void mLineRep :: addTrianglesFromFaceNull(Face *face, int time, int facenr)
 void mLineRep :: addTrianglesFromCHTPoint(ConvexHullTreeNode *chtn, int time, 
                              double x, double y, int t, int facenr, int cyclenr)
 {
-    addTrianglesFromCHTPoint(chtn, time, new PointWNL(x, y, t), facenr,cyclenr);
+    PointWNL *p3 = new PointWNL(x, y, t);
+    addTrianglesFromCHTPoint(chtn, time, p3, facenr,cyclenr);
+    delete p3;
 }
 /*
  
@@ -256,6 +261,7 @@ void mLineRep :: addTrianglesFromCHTPoint(ConvexHullTreeNode *chtn, int time,
         p2 = new PointWNL(tmp[(i + 1) % tmp.size()].getX(), 
                           tmp[(i + 1) % tmp.size()].getY(), time);
         addTriangle(p1, p2, p3, facenr, cyclenr);
+        delete p1; delete p2;
     }
     vector<ConvexHullTreeNode*> children = chtn->getChildren();
     for(unsigned int i = 0; i < children.size(); i++)
