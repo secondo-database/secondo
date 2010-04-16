@@ -44,16 +44,16 @@ Match :: Match (RegionForInterpolation *src, RegionForInterpolation *trgt,
     
     greatestDist = Utils::getMaxDistance(tmp);
     LineWA* del;
-//    for(vector <vector <LineWA*> >::iterator it1= tmp.begin(); it1!= 
-//      tmp.end(); ++it1)
-//    {
-//      for(vector<LineWA*>::iterator it2= (*it1).begin(); it2 != 
-//        (*it1).end(); ++it2)
-//      {
-//        del= (*it2);
-//        delete del;
-//      }
-//    }
+    for(vector <vector <LineWA*> >::iterator it1= tmp.begin(); it1!= 
+      tmp.end(); ++it1)
+    {
+      for(vector<LineWA*>::iterator it2= (*it1).begin(); it2 != 
+        (*it1).end(); ++it2)
+      {
+        del= (*it2);
+        delete del;
+      }
+    }
 }  
 /*
 

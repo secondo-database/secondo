@@ -30,6 +30,10 @@ Face ::Face(LineWA linelist[],int linelistlength,RegionForInterpolation* parent)
 
 Face  :: ~Face()
 {
+//  delete Cycle;
+//  for(vector<ConvexHullTreeNode*>::iterator it=Holes.begin(); it!=
+//    Holes.end(); ++it)
+//    delete (*it);
 }
     
 /*

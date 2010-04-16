@@ -47,19 +47,13 @@ ConvexHullTreeNode :: ConvexHullTreeNode(LineWA linelist[], int linelistlength,
 #ifdef DECHTN        
          cout<<"drehe"<<endl;
 #endif         
-//         LineWA tmp;
-//         for (int i = 0; i < ((int)(linelistlength /2)); ++i)
-//         {
-//           tmp= linelist[i];
-//           linelist[i]= linelist[linelistlength-1-i];
-//           linelist[linelistlength-1-i]= tmp;
-//         }
-         LineWA *tmplistrev = new LineWA[linelistlength];
-         for (int i = 0; i < linelistlength; i++)
+         LineWA tmp;
+         for (int i = 0; i < ((int)(linelistlength /2)); ++i)
          {
-            tmplistrev[linelistlength - i - 1] = linelist[i];
-         }        
-         linelist = tmplistrev;
+           tmp= linelist[i];
+           linelist[i]= linelist[linelistlength-1-i];
+           linelist[linelistlength-1-i]= tmp;
+         }
       }
    }
    // Create temporary list so that convexHull() won't change the order of
@@ -71,7 +65,7 @@ ConvexHullTreeNode :: ConvexHullTreeNode(LineWA linelist[], int linelistlength,
    }
    // Find the convex hull 
    convhull = Utils :: convexHull(tmplist, linelistlength);
-//   delete[] tmplist;
+   //delete[] tmplist;
    // Find where the first node in linelist is in the convex hull
    // (Or the earliest possible if the first node is not on the hull)
    // This is to preserve the order in the linelist in the ordering of
@@ -117,6 +111,8 @@ ConvexHullTreeNode :: ConvexHullTreeNode(LineWA linelist[], int linelistlength,
          insertLine(convhull[a]);
       }
    }
+//for(vector<LineWA*>::iterator it= convhull.begin(); it!= convhull.end();++it)
+//     delete (*it);
    // Check lines in convex hull with lines in line list. Whenever two points
    // which are neighbours in the convex hull are not neighbours in the line
    // list, create a child node from the points between them.
@@ -167,7 +163,6 @@ ConvexHullTreeNode :: ConvexHullTreeNode(LineWA linelist[], int linelistlength,
 ConvexHullTreeNode :: ~ConvexHullTreeNode()
 {
    myParent = NULL;
-   linelist.clear();
 }
 
 /*

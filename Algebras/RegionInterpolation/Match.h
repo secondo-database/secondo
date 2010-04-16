@@ -33,7 +33,7 @@ This construtor sets the sourceregion, the targetregion , the name and a short d
          Match(RegionForInterpolation *source, 
             RegionForInterpolation *target, string name, string description);
 
-         ~Match()
+         virtual ~Match()
          {
            delete source;
            delete target;

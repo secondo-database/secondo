@@ -67,16 +67,16 @@ RegionForInterpolation :: RegionForInterpolation(Region *newRegion)
              linelist[k] = LineWA(tmpvec[i] [j] [k]->GetDomPoint().GetX(), 
                  tmpvec[i] [j] [k]->GetDomPoint().GetY());
              nextP = tmpvec[i] [j] [k]->GetSecPoint();
-             cerr<<endl;
-             tmpvec[i] [j] [k]->GetDomPoint().Print(cerr);
+//             cerr<<endl;
+//             tmpvec[i] [j] [k]->GetDomPoint().Print(cerr);
            }
            else
            {
              linelist[k] = LineWA(tmpvec[i] [j] [k]->GetSecPoint().GetX(), 
                  tmpvec[i] [j] [k]->GetSecPoint().GetY());
              nextP = tmpvec[i] [j] [k]->GetDomPoint();
-             cerr<<endl;
-             tmpvec[i] [j] [k]->GetSecPoint().Print(cerr); 
+//             cerr<<endl;
+//             tmpvec[i] [j] [k]->GetSecPoint().Print(cerr); 
            }
         }
 #ifdef REG_DEBUG        
@@ -93,10 +93,10 @@ RegionForInterpolation :: RegionForInterpolation(Region *newRegion)
       this->addFace(newFace);
     }    
    
-//   for(unsigned int i = 0; i < tmpvec.size(); i++)
-//     for(unsigned int j = 0; j < tmpvec[i].size(); j++)
-//        for(unsigned int k = 1; k < tmpvec[i] [j].size(); k++)
-//           delete tmpvec[i] [j] [k];   
+   for(unsigned int i = 0; i < tmpvec.size(); i++)
+     for(unsigned int j = 0; j < tmpvec[i].size(); j++)
+        for(unsigned int k = 0; k < tmpvec[i] [j].size(); k++)
+           delete tmpvec[i] [j] [k];   
   setDirtyHash();    
 }
 
@@ -214,8 +214,8 @@ RegionForInterpolation *RegionForInterpolation :: clone()
     for(int i = 0; i < getNrOfFaces(); i++)
     {
       Face *tmp = getFace(i)->clone();
-        tmp->setParent(res);
-        res->addFace(tmp);
+      tmp->setParent(res);
+      res->addFace(tmp);
     }
     return(res);  
 }

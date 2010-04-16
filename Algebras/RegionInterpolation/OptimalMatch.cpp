@@ -81,6 +81,7 @@ OptimalMatch::OptimalMatch(RegionForInterpolation *source,
         candidates.push_back(new CentroidMatch(source->clone(),
            target->clone(),0.9,false));
         best=candidates[0];
+        unsigned int bestIndex=0;
         for(unsigned int i=1;i<candidates.size();i++)
         {
          
@@ -95,7 +96,10 @@ OptimalMatch::OptimalMatch(RegionForInterpolation *source,
               getRating(AreaWeight,OverlapWeight,HausdorffWeight,LinearWeight) >
               best->
               getRating(AreaWeight,OverlapWeight,HausdorffWeight,LinearWeight))
+            {
                   best=candidates[i];
+                  bestIndex= i;
+            }
         }
         best->finalize();
         
@@ -108,9 +112,9 @@ OptimalMatch::OptimalMatch(RegionForInterpolation *source,
         this->linearRating=best->getLinarRating();
         this->Ovelaprating=best->getOverlapRating();
         this->maps=best->getMaps();
-//        for(vector<Match*>::iterator it= candidates.begin(); it!=
-//          candidates.end(); ++it)
-//          delete (*it);
+        for(unsigned int i=1;i<candidates.size(); ++i)
+          if(i!= bestIndex)
+            delete candidates[i];
 }     
 /*
  
