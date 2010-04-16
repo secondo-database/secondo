@@ -220,7 +220,7 @@ vector<Tuple*> HashTable::GetTuples(int bucket)
     t->IncReference();
     arr.push_back(t);
   }
-
+  delete iter;
   return arr;
 }
 
