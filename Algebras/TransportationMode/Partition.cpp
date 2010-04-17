@@ -1908,8 +1908,8 @@ inline void SpacePartition::Modify_Point(Point& p)
     x = p.GetX();
     y = p.GetY();
 //    printf("%.10f %.10f\n",x, y);
-    x = ((int)(x*100.0 +0.5))/100.0;
-    y = ((int)(y*100.0 +0.5))/100.0;
+    x = ((int)(x*100.0 + 0.5))/100.0;
+    y = ((int)(y*100.0 + 0.5))/100.0;
 //    printf("%.10f %.10f\n",x, y);
     p.Set(x,y);
 }
@@ -2909,7 +2909,7 @@ bool SpacePartition::BuildZebraCrossing(vector<MyPoint>& endpoints1,
 
          }
 
-         if((lp2.Inside(*reg_pave1) && rp2.Inside(*reg_pave2)) ||
+/*         if((lp2.Inside(*reg_pave1) && rp2.Inside(*reg_pave2)) ||
                  (lp2.Inside(*reg_pave2) && rp2.Inside(*reg_pave1)) ){
              if(GetClockwise(lp2, lp1, rp2)){
                outer_ps.push_back(lp2);
@@ -2928,7 +2928,46 @@ bool SpacePartition::BuildZebraCrossing(vector<MyPoint>& endpoints1,
             delete pave;
 
             return true;
+          }*/
+//        ModifyPoint(lp1);
+//        ModifyPoint(rp1);
+//        ModifyPoint(lp2);
+//        ModifyPoint(rp2);
+
+        if((lp2.Inside(*reg_pave1) && rp2.Inside(*reg_pave2)) ||
+                 (lp2.Inside(*reg_pave2) && rp2.Inside(*reg_pave1)) ){
+             if(GetClockwise(lp2, lp1, rp2)){
+               outer_ps.push_back(lp2);
+               outer_ps.push_back(rp2);
+               outer_ps.push_back(rp1);
+               outer_ps.push_back(lp1);
+             }else{
+               outer_ps.push_back(lp1);
+               outer_ps.push_back(rp1);
+               outer_ps.push_back(rp2);
+               outer_ps.push_back(lp2);
+             }
+
+
+            for(unsigned int j = 0;j < outer_ps.size();j++){
+              vector<Point> outer_ps1;
+              int index = (j + 1) % outer_ps.size();
+              for(int i = 0 ; i < outer_ps.size() ;i++){
+                  Point p = outer_ps[index];
+                  outer_ps1.push_back(p);
+                  index = (index + 1) % outer_ps.size();
+              }
+              vector<Region> result1;
+              ComputeRegion(outer_ps1, result1);
+              if(result1[0].GetCycleDirection()){
+                  *crossregion = result1[0];
+                  *pave1 = *pave;
+                  delete pave;
+                  return true;
+              }
+            }
           }
+
           delete pave;
        ///////////////////////////////////////////////////////////////
       }
@@ -3265,7 +3304,8 @@ Create the pavement for each junction position, called by function Junpavement()
 */
 void SpacePartition::CreatePavement(SimpleLine* curve, Region* reg_pave1,
                       Region* reg_pave2, double len, Line* pave1,
-                      Line* pave2, int roadwidth, Region* crossregion)
+                      Line* pave2, int roadwidth, Region* crossregion,
+                      Region* reg_road)
 {
     Region* crossreg1 = new Region(0);
     Region* crossreg2 = new Region(0);
@@ -3282,7 +3322,15 @@ void SpacePartition::CreatePavement(SimpleLine* curve, Region* reg_pave1,
               roadwidth, crossreg2);
     }
 
-    MyUnion(*crossreg1, *crossreg2, *crossregion);
+//    MyUnion(*crossreg1, *crossreg2, *crossregion);
+
+    ///////////////cut the common area by zc and pave////////////////////
+    Region* reg = new Region(0);
+    MyUnion(*crossreg1, *crossreg2, *reg);
+    MyIntersection(*reg, *reg_road, *crossregion);
+    delete reg;
+    /////////////////////////////////////////////////////////////////////
+
     delete crossreg1;
     delete crossreg2;
 
@@ -3293,7 +3341,7 @@ called by operator junregion
 
 */
 void SpacePartition::Junpavement(Network* n, Relation* rel, int attr_pos1,
-                  int attr_pos2, int width)
+                  int attr_pos2, int width, Relation* rel_road, int attr_pos3)
 {
     //get the pavement for each junction
     Relation* routes = n->GetRoutes();
@@ -3324,7 +3372,7 @@ void SpacePartition::Junpavement(Network* n, Relation* rel, int attr_pos1,
       int id1 = rid1->GetIntval();
       int id2 = rid2->GetIntval();
 
-/*      if(!(id1 == 7 && id2 == 8)){
+/*      if(!(id1 == 822 && id2 == 2406)){
           jun_tuple->DeleteIfAllowed();
           continue;
       }*/
@@ -3347,12 +3395,15 @@ void SpacePartition::Junpavement(Network* n, Relation* rel, int attr_pos1,
       Region* reg2_in = (Region*)inborder_tuple2->GetAttribute(attr_pos1);
       Region* reg2_out = (Region*)inborder_tuple2->GetAttribute(attr_pos2);
 
-
+      ///////////get the road region/////////////////////////
+      Tuple* tuple_road1 = rel_road->GetTuple(id1);
+      Region* reg_road1 = (Region*)tuple_road1->GetAttribute(attr_pos3);
+//      cout<<*reg_road1<<endl;
+      ////////////////////////////////////////////////////////
       Tuple* route_tuple1 = routes->GetTuple(id1);
       SimpleLine* curve1 = (SimpleLine*)route_tuple1->GetAttribute(ROUTE_CURVE);
       int input_w1 = width;
-//      if(curve1->Length() > (min_length + max_length) /2)
-//          input_w1 = 2*input_w1;
+
 
       Line* pave1 = new Line(0);
       Line* pave2 = new Line(0);
@@ -3360,7 +3411,7 @@ void SpacePartition::Junpavement(Network* n, Relation* rel, int attr_pos1,
 
       Region* crossregion1 = new Region(0);
       CreatePavement(curve1, reg1_in, reg1_out, len1, pave1,
-                     pave2, input_w1, crossregion1);
+                     pave2, input_w1, crossregion1,reg_road1);
       pave1->Union(*pave2,*result1);
 
       junid1.push_back(id1);
@@ -3371,14 +3422,18 @@ void SpacePartition::Junpavement(Network* n, Relation* rel, int attr_pos1,
       delete result1;
       delete pave1;
       delete pave2;
-
+      tuple_road1->DeleteIfAllowed();
 
       int input_w2 = width;
+
+      /////////////get the road region/////////////////////
+      Tuple* tuple_road2 = rel_road->GetTuple(id2);
+      Region* reg_road2 = (Region*)tuple_road2->GetAttribute(attr_pos3);
+//      cout<<*reg_road2<<endl;
+      ////////////////////////////////////////////////////
       Tuple* route_tuple2 = routes->GetTuple(id2);
       SimpleLine* curve2 = (SimpleLine*)route_tuple2->GetAttribute(ROUTE_CURVE);
 
-//      if(curve2->Length() > (min_length + max_length) /2)
-//          input_w2 = 2*input_w2;
 
       Line* pave3 = new Line(0);
       Line* pave4 = new Line(0);
@@ -3386,7 +3441,7 @@ void SpacePartition::Junpavement(Network* n, Relation* rel, int attr_pos1,
 
       Region* crossregion2 = new Region(0);
       CreatePavement(curve2, reg2_in, reg2_out, len2, pave3,
-                     pave4, input_w2, crossregion2);
+                     pave4, input_w2, crossregion2,reg_road2);
       pave3->Union(*pave4,*result2);
 
       junid2.push_back(id2);
@@ -3397,6 +3452,7 @@ void SpacePartition::Junpavement(Network* n, Relation* rel, int attr_pos1,
       delete result2;
       delete pave3;
       delete pave4;
+      tuple_road2->DeleteIfAllowed();
 
 
       route_tuple1->DeleteIfAllowed();

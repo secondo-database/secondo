@@ -721,9 +721,10 @@ struct SpacePartition{
   //create the pavement at each junction position
   void CreatePavement(SimpleLine* curve, Region* reg_pave1,
                       Region* reg_pave2, double len, Line* pave1,
-                      Line* pave2, int roadwidth, Region* crossregion);
+                      Line* pave2, int roadwidth, Region* crossregion,
+                      Region* reg_road);
   void Junpavement(Network* n, Relation* rel, int attr_pos1,
-                  int attr_pos2, int width);
+                  int attr_pos2, int width, Relation* rel_road,int attr_pos3);
 
   //Detect whether three points collineation
   inline bool Collineation(Point& p1, Point& p2, Point& p3);

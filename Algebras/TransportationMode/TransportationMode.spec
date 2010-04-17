@@ -21,6 +21,7 @@ operator checksline alias CHECKSLINE pattern op(_,_)
 operator modifyboundary alias MODIFYBOUNDARY pattern op(_,_)
 operator segment2region alias SEGMENT2REGION pattern op(_,_)
 operator paveregion alias PAVEREGION pattern op(_,_,_,_,_,_,_)
-operator junregion alias JUNREGION pattern op(_,_,_,_,_)
+operator junregion alias JUNREGION pattern op(_,_,_,_,_,_,_)
 operator decomposeregion alias DECOMPOSEREGION pattern op(_)
 operator fillpavement alias FILLPAVEMENT pattern op(_,_,_,_,_)
+operator myregminus alias MYREGMINUS pattern _ infixop _

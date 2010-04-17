@@ -31,8 +31,8 @@ Result   : 1
 
 Operator : junregion
 Number   : 2
-Signature: network x rel x attr1 x attr2 -> (stream(tuple ((x1 t1) ... (xn tn))))
-Example  : query junregion(n, pave_regions1, pavement1, pavement2, roadwidth) count;
+Signature: network x rel1 x attr1 x attr2 x int x rel2 x attr-> (stream(tuple ((x1 t1) ... (xn tn))))
+Example  : query junregion(n, pave_regions1, pavement1, pavement2, roadwidth,allregions_in,inborder) count;
 Result   : 1
 
 Operator : decomposeregion
@@ -46,3 +46,10 @@ Number   : 2
 Signature: network x rel x attr1 x attr2 x int-> (stream(tuple ((x1 t1) ... (xn tn))))
 Example  : query fillpavement(n, allregions_pave, pave1, pave2, roadwidth) count;
 Result   : 1
+
+
+Operator : myregminus
+Number   : 2
+Signature: region x region-> region
+Example  : query area(partition_regions myregminus partition_regions);
+Result   : 0

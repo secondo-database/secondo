@@ -120,6 +120,16 @@ const string OpTMFillPavementSpec  =
     "<text>query fillpavement(n, allregions_pave, pave1, pave2, 2)"
     "count;</text--->"
     ") )";
+
+const string OpTMMyRegMinusSpec  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+    "\"Example\" ) "
+    "( <text>region x region-> region</text--->"
+    "<text>region myregminus region</text--->"
+    "<text>minus the first region by the second region</text--->"
+    "<text>query area(partition_regions myregminus partition_regions);"
+    "</text--->"
+    ") )";
 ////////////////TypeMap function for operators//////////////////////////////
 
 /*
@@ -325,7 +335,7 @@ get the pavement at each junction area
 
 ListExpr OpTMJunRegionTypeMap ( ListExpr args )
 {
-  if ( nl->ListLength ( args ) != 5 )
+  if ( nl->ListLength ( args ) != 7 )
   {
     return ( nl->SymbolAtom ( "typeerror" ) );
   }
@@ -334,6 +344,8 @@ ListExpr OpTMJunRegionTypeMap ( ListExpr args )
   ListExpr attrName1 = nl->Third(args);
   ListExpr attrName2 = nl->Fourth(args);
   ListExpr param5 = nl->Fifth(args);
+  ListExpr param6 = nl->Sixth(args);
+  ListExpr attrName3 = nl->Nth(7, args);
 
   ListExpr attrType1;
   string aname1 = nl->SymbolValue(attrName1);
@@ -356,9 +368,19 @@ ListExpr OpTMJunRegionTypeMap ( ListExpr args )
                       "or not of type region");
   }
 
+  ListExpr attrType3;
+  string aname3 = nl->SymbolValue(attrName3);
+  int j3 = listutils::findAttribute(nl->Second(nl->Second(param6)),
+                      aname3,attrType3);
 
+
+  if(j3 == 0 || !listutils::isSymbol(attrType3,"region")){
+      return listutils::typeError("attr name" + aname3 + "not found"
+                      "or not of type region");
+  }
 
     if (listutils::isRelDescription(param2) &&
+        listutils::isRelDescription(param6) &&
         nl->IsAtom(param1) && nl->AtomType(param1) == SymbolType &&
         nl->SymbolValue(param1) == "network" &&
         nl->IsAtom(param5) && nl->AtomType(param5) == SymbolType &&
@@ -389,8 +411,9 @@ ListExpr OpTMJunRegionTypeMap ( ListExpr args )
           );
 
     return nl->ThreeElemList(nl->SymbolAtom("APPEND"),
-//                         nl->OneElemList(nl->IntAtom(j1)),result);
-     nl->TwoElemList(nl->IntAtom(j1),nl->IntAtom(j2)),result);
+
+//     nl->TwoElemList(nl->IntAtom(j1),nl->IntAtom(j2)),result);
+     nl->ThreeElemList(nl->IntAtom(j1),nl->IntAtom(j2),nl->IntAtom(j3)),result);
   }
   return nl->SymbolAtom ( "typeerror" );
 }
@@ -508,6 +531,30 @@ ListExpr OpTMFillPavementTypeMap ( ListExpr args )
   }
   return nl->SymbolAtom ( "typeerror" );
 }
+
+/*
+typemap fun for myregminus
+
+*/
+ListExpr OpTMMyRegMinusTypeMap ( ListExpr args )
+{
+  if ( nl->ListLength ( args ) != 2 )
+  {
+    return ( nl->SymbolAtom ( "typeerror" ) );
+  }
+  ListExpr param1 = nl->First ( args );
+  ListExpr param2 = nl->Second(args);
+
+    if (nl->IsAtom(param1) && nl->AtomType(param1) == SymbolType &&
+        nl->SymbolValue(param1) == "region" &&
+        nl->IsAtom(param2) && nl->AtomType(param2) == SymbolType &&
+        nl->SymbolValue(param2) == "region"){
+
+    return nl->SymbolAtom(symbols::REGION);
+  }
+  return nl->SymbolAtom ( "typeerror" );
+}
+
 /*
 Correct road with dirt data, two segment are very close to each other and the
 angle is relatively small.
@@ -802,17 +849,22 @@ int OpTMJunRegionmap ( Word* args, Word& result, int message,
   switch(message){
       case OPEN:{
         Network* n = (Network*)args[0].addr;
-        Relation* rel = (Relation*)args[1].addr;
+        Relation* rel1 = (Relation*)args[1].addr;
         int width = ((CcInt*)args[4].addr)->GetIntval();
 
-        int attr_pos1 = ((CcInt*)args[5].addr)->GetIntval() - 1;
-        int attr_pos2 = ((CcInt*)args[6].addr)->GetIntval() - 1;
+        int attr_pos1 = ((CcInt*)args[7].addr)->GetIntval() - 1;
+        int attr_pos2 = ((CcInt*)args[8].addr)->GetIntval() - 1;
+
+        int attr_pos3 = ((CcInt*)args[9].addr)->GetIntval() - 1;
+
+        Relation* rel2 = (Relation*)args[5].addr;
 
         l_partition = new SpacePartition();
         l_partition->resulttype =
             new TupleType(nl->Second(GetTupleResultType(in_pSupplier)));
 
-        l_partition->Junpavement(n, rel, attr_pos1, attr_pos2, width);
+        l_partition->Junpavement(n, rel1, attr_pos1, attr_pos2, width,
+                                rel2, attr_pos3);
         local.setAddr(l_partition);
         return 0;
       }
@@ -1016,6 +1068,23 @@ int OpTMFillPavementmap ( Word* args, Word& result, int message,
   }
   return 0;
 }
+
+/*
+Value Mapping for the myregminus operator
+use the first region minusing the second
+
+*/
+
+int OpTMMyRegMinusmap ( Word* args, Word& result, int message,
+                         Word& local, Supplier in_pSupplier )
+{
+  result = qp->ResultStorage(in_pSupplier);
+  Region* reg1 = (Region*)args[0].addr;
+  Region* reg2 = (Region*)args[1].addr;
+  Region* res = (Region*)(result.addr);
+  MyMinus(*reg1, *reg2, *res);
+  return 0;
+}
 ////////////////Operator Constructor///////////////////////////////////////
 Operator checksline(
     "checksline",               // name
@@ -1073,6 +1142,14 @@ Operator fillpavement(
     OpTMFillPavementTypeMap        // type mapping
 );
 
+Operator myregminus(
+    "myregminus",               // name
+    OpTMMyRegMinusSpec,          // specification
+    OpTMMyRegMinusmap,  // value mapping
+    Operator::SimpleSelect,        // selection function
+    OpTMMyRegMinusTypeMap        // type mapping
+);
+
 /*
 Main Class for Transportation Mode
 
@@ -1090,6 +1167,7 @@ class TransportationModeAlgebra : public Algebra
     AddOperator(&junregion);
     AddOperator(&decomposeregion);
     AddOperator(&fillpavement);
+    AddOperator(&myregminus);
 
   }
   ~TransportationModeAlgebra() {};
