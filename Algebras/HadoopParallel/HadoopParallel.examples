@@ -1,0 +1,14 @@
+Database: opt
+Restore : No
+
+Operator: doubleexport
+Number: 1
+Signature: ((stream (tuple((a1 t1) ... (ai ti) ... (an tm)))) (stream (tuple((b1 p1) ... (bj tj) ... (bm tm)))) ai bj)-> ((stream (tuple (key:text) (value:text))))
+Example: query plz feed head[5] {p} Orte feed head[3] {o} doubleexport[Ort_p, Ort_o] count
+Result: 8
+
+Operator: parahashjoin
+Number: 1
+Signature: ( (stream (tuple((key:int) (value:text)))) text text ) -> stream(tuple(...))
+Example: query mixedRel feed rel1 rel2 parahashjoin count;
+Result: 8
