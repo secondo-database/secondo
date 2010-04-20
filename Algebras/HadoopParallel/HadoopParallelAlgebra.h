@@ -20,44 +20,45 @@ along with SECONDO; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 ----
 
-//paragraph [1] Title: [{\Large \bf] [}]
-//paragraph [10] Footnote: [{\footnote{] [}}]
-//[TOC] [\tableofcontents]
-//[newpage] [\newpage]
-
-[1] Implementation of HadoopParallelAlgebra
+[1] Definition of Auxiliary Classes in HadoopParallelAlgebra
 
 April 2010 Jiamin Lu
 
-[TOC]
-
 [newpage]
 
-1 Abstract
+1 Auxiliary Classes in HadoopParallelAlgebra
 
-This algebra implements all relevant operators about combining Hadoop and Secondo
-together to execute some parallel work. The new operators include:
+This file claims all relevant classes and methods that is
+used in HadoopParallelAlgebra. Includes follow classes:
 
-  * ~doubleexport~.
+  * ~deLocalInfo~. Assists ~doubleexport~ operator.
 
-  * ~paraJoin~.
+  * ~phjLocalInfo~. Assists ~parahashjoin~ operator.
 
-1 Includes,  Globals
+And includes one method:
+
+  * ~renameList~. Assists ~parahashjoin~ operator
 
 */
 #ifndef HADOOPPARALLELALGEBRA_H_
 #define HADOOPPARALLELALGEBRA_H_
 
+/*
+1.1 deLocalInfo Class
+
+Assists ~doubleexport~ operator.
+First traverse tuples from streamA to the end, then traverse streamB.
+
+*/
 class deLocalInfo
 {
 private:
 
   Word streamA;
   Word streamB;
-  bool isAEnd;          //Check out whether streamA is exhausted
+  bool isAEnd;
+  //Check out whether gets to the end of streamA.
 
-  // the indexes of the attributes which will
-  // be merged and the result type
   int attrIndexA;
   int attrIndexB;
 
@@ -76,8 +77,26 @@ public:
   Tuple* nextResultTuple();
 };
 
+/*
+1.2 renameList Method
+
+Assists ~parahashjoin~ operator.
+Append an ~appendName~ after each attribute name of ~oldTupleList~,
+to avoid the situation that joined relations have a same attribute name.
+
+*/
 ListExpr renameList(ListExpr oldTupleList, string appendName);
 
+/*
+1.3 phjLocalInfo Class
+
+Assists ~parahashjoin~ operator.
+~getNewProducts~ collects tuples in each buckets,
+and make products if the tuples come from different sources.
+Put the product results in the TupleBuffer ~joinedTuples~.
+
+
+*/
 class phjLocalInfo
 {
 private:
@@ -90,12 +109,8 @@ private:
 
   bool getNewProducts();
 
-  //For debug
-  int count;
-
 public:
-  //phjLocalInfo(Word _streamA, Supplier s);
-  phjLocalInfo(Word _streamA, Supplier s);
+  phjLocalInfo(Word _stream, Supplier s);
 
   Word nextJoinTuple();
 };
