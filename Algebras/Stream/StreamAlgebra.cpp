@@ -268,7 +268,7 @@ int MappingStreamFeed( Word* args, Word& result, int message,
       pRes = (ProgressInfo*) result.addr;
       ProgressInfo p1;
       if( !linfo->sonIsObjectNode){
-         if(!qp->RequestProgress(args[0].addr, &p1) ) {
+         if(!qp->RequestProgress(qp->GetSupplierSon(s,0), &p1) ) {
             return CANCEL;
          }
         // the son is a computed result node
