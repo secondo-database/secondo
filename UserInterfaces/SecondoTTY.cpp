@@ -746,7 +746,7 @@ Duplicates are not allowed in this array and the last entry has to
 be NULL.
 
 */
-char* keywords[] = { "abort", "algebra", "algebras", "begin", "commit",
+const char* keywords[] = { "abort", "algebra", "algebras", "begin", "commit",
                      "close", "constructors", "consume","count", "create",
                      "database", "databases", "DEBUG", "delete",
                      "extend", "feed", "filter", "from",  "let", "list",
@@ -765,7 +765,7 @@ This fucntion returns a clone of the argument string;
 
 */
 char *
-dupstr (char* s)
+dupstr (const char* s)
 {
   char *r;
   r =(char*) malloc (strlen (s) + 1);
@@ -799,7 +799,7 @@ to the avaiable keywords.
 char* command_generator(const char* text, int state)
 {
    static int index,len;
-   char* name;
+   const char* name;
    if(!state){
       index=0;
       len = strlen(text);
@@ -832,6 +832,7 @@ int SecondoTTYMode(const TTYParameter& tp)
 {
   SecondoTTY* appPointer = new SecondoTTY( tp );
 #ifdef READLINE
+  string historyFile;
   rl_initialize();
   rl_readline_name = "secondo";
   rl_attempted_completion_function = secondo_completion;
@@ -859,8 +860,8 @@ int SecondoTTYMode(const TTYParameter& tp)
       query = "";
     } 
     hist_file.close();
-    out_history.open(HISTORY_FILE, ios::out );
-    out_history.seekg(0,ios::end);
+    historyFile = FileSystem::GetCurrentFolder();
+    FileSystem::AppendItem(historyFile, HISTORY_FILE);
   } else {
     out_history.open(HISTORY_FILE, ios::out);
   }
@@ -869,6 +870,8 @@ int SecondoTTYMode(const TTYParameter& tp)
   delete appPointer;
 #ifdef READLINE
   /* save the last xxx enties in the history to a file */
+  out_history.open(historyFile.c_str(), ios::out );
+  out_history.seekg(0,ios::end);
   if(out_history){
      int start_history = history_length-HISTORY_FILE_ENTRIES;
      if(start_history <0) start_history=0;
