@@ -8163,7 +8163,6 @@ SymmJoin(Word* args, Word& result, int message, Word& local, Supplier s)
       if ( pli ){
          delete pli;
       }
-
       pli = new SymmJoinLocalInfo;
       pli->rightRel = new TupleBuffer( MAX_MEMORY / 2 );
       pli->rightIter = 0;
@@ -8176,15 +8175,14 @@ SymmJoin(Word* args, Word& result, int message, Word& local, Supplier s)
 
       ListExpr resultType = GetTupleResultType( s );
       pli->resultTupleType = new TupleType( nl->Second( resultType ) );
+      pli->readFirst = 0;
+      pli->readSecond = 0;
+      pli->returned = 0;
+      local.setAddr(pli);
 
       qp->Open(args[0].addr);
       qp->Open(args[1].addr);
 
-      pli->readFirst = 0;
-      pli->readSecond = 0;
-      pli->returned = 0;
-
-      local.setAddr(pli);
       return 0;
     }
 
