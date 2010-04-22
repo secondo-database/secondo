@@ -82,7 +82,7 @@ class ProgressView
 
   ~ProgressView()
   {        
-    if (DETPROT & 2) { ofs << endl; ofs.close(); }
+    if (PROGTYPEPROG && (DETPROT & 2)) { ofs << endl; ofs.close(); }
   }
 
   void
@@ -131,7 +131,7 @@ class ProgressView
             NList(NList((int) ((pointCounter * 100.0) / PROGRESS_NORM)),
             NList(100)));
         msg->Send(msgList);
-	  }
+	    }
 
       if (DETPROT & 2)
       {
