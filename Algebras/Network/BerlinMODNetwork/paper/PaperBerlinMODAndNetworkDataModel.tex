@@ -31,14 +31,13 @@
 In the past several data models for the representation of histories of  spatio-temporal data
 objects have been developed. Among others we can categorize these data models
 into data models for objects moving freely in the two dimensional space and data
-models for network constrained moving objects. We selected two representants,
+models for network constrained moving objects. In this paper we select two representatives,
 one for each data model category, which are both implemented in the \secondo{} DBMS,
-and compared their capabilities with the \bmodb{}. In this paper we present our
-translation from the \bmodb{} into the network constrained data model and show
-that the network constrained data model outperforms the data model of free movement
-in the two dimensional space by orders of magnitudes.
-
-%The very good results of the network data model in this comparsion encourages us
+and compare their capabilities with the \bmodb{}. We describe the translation
+from the \bmodb{} into the network constrained data model and show
+that in our experiments the network constrained data model outperforms the data
+model of free movement in the two dimensional space by orders of magnitudes.
+%The very good results of the network data model in this comparison encourages us
 %to propose a extension of the \bmodb{} with a additional query set BerlinMOD/Net.
 %This new query set covers the specialised challenges for network constrained
 %data models and enables us to use the \bmodb{} to compare the capabilities of
@@ -50,51 +49,57 @@ spatio-temporal data objects have been developed. Among others we can categorize
 them into data models for objects moving freely in two dimensional space and
 data models for network constrained moving objects. For both categories
 several different data models have been presented like
-\cite{335426,chenzaniolosqlst} for spatio-temporal data objects moving freely in
+\cite{chenzaniolosqlst,335426} for spatio-temporal data objects moving freely in
 two dimensional space and \cite{1146465,956692,VazWolfNetMod} for
 spatio-temporal data objects that are constrained by given networks,
 to name just a few. Objects which are restricted to use existing networks, like
-cars to road networks, can be represented as moving point object in both data
+cars are restricted to use road networks, can be represented as moving point object
+in both data
 models, while objects, which are not restricted by a given network, like people,
-can be represented as moving point object only in the data models of free movement
-in space. So, why do we spend time in developing network data models, if the network
-constrained moving objects can be represented elsewhere in the data model of free
-movement in the space?
+can be represented as moving point object only in a data models of free movement
+in space.
 
-We decided to compare the capablities of the both different data models. For our
-experiments we choosed one example data model as representative for
-each of the both categories. Spatio-temporal objects moving freely in the two
-dimensional space are represented by the data model presented in \cite{335426}.
-And network constrained data models are represented by the network data model
-presented in \cite{1146465}. We choosed this two representatives, because both
-data models are available in the \secondo{} DBMS and use the same temporal
-representation. So we can exclude that the use of different DBMS or temporal
-representations bias the results of our comparision.
+But if everything can be represented by a data model of free movement
+space why do we spend time on network data models? Now, our experiments
+presented in this paper show that the network data model outperforms the data model of
+free movement in two dimensional space significantly. The network data model uses
+less than 60\% of the storage space of the data model of free movement in space, mostly caused
+by the fact that the number of units for the moving point objects in the network
+data model is less than 50\% of the number of units in the data model of free
+movement in two dimensional space. The total run time of the \bmodb{} for the
+network data model is less than 50\% of the total run time of the data model of
+free movement in two dimensional space. We think that this results show that
+it is useful to develop specialised data models for specialised data structures
+like network data models for network constrained moving objects to save storage
+space and reduce query run times.
 
-As we use \secondo{} it seems to be a logical next step to use the \bmodb{}
-\cite{BerlinMODVLDB} to compare the capabilities of the
+For this paper we choosed two representatives one for each data model category.
+Both representatives are available in the \secondo{} DBMS and use the same
+temporal representation. So we can exclude that different DBMS or temporal
+representation issues bias the results of our data model comparison.
+
+The network constrained data model is represented by
+the network data model presented in \cite{1146465} and the data model of free
+movement in two dimensional space is represented by the data model presented in
+\cite{335426}.
+
+For us it seems logical to use the \bmodb{} \cite{BerlinMODVLDB} which is also
+available in the \secondo{} DBMS to compare the capabilities of the
 both data models. The \bmodb{} is best to our knowledge the first benchmark for
-complete spatio-temporal database systems and it is also available in the \secondo{}
-DBMS. Furthermore the \bmodb{} data model is the data model of freely movement
-in two dimensional space that we use for our comparison. So we only have to
-transform the \bmodb{} spatial and spatio-temporal data types once into our
-network data model representation. This avoids sources of errors in transformation
-and makes it more easy to control the query results for correctness. Furthermore
-the data generated by the \bmodb{} data generator is restricted to the streets of the
-German capital Berlin, such that it can be translated into a network data model
-environment.
+complete spatio-temporal database systems and it is developed in the \secondo{}
+DBMS. Furthermore the data generated by the \bmodb{} data generator is restricted
+to the streets of the German capital Berlin, such that it can be translated into
+a network constrained environment. And not at last the data model used in the
+\bmodb{} is the data model of free movement in two dimensional space that we use
+for our comparison. So we only have to translate the spatial and spatio-temporal
+data types of the \bmodb{} once into our network data model representation.
+This simplifies the control of the query results and avoids errors caused by
+translation errors.
 
-In this paper we describe the transformation of the \bmodb{} benchmark data and
-queries into network data model representation. And show that the network data
-model outperforms the data model of free movement in space significantly in our
-experiments. The network data model uses less than 60\% of the storage space of
-the data model of free movement in space, mostly caused by the fact that the number
-of units for the moving point objects in the network data model is less than 50\% of
-the number of units in the data model of free movement in space. The total run times
-for the \bmodb{} of the network data model is less than 50\% of the total run time
-of the data model of free movement in space. We think that this results show that
-it is useful to develope specialised data models for network constrained moving objects
-to save storage space and reduce query run times.
+The translation of the spatial and spatio-temporal data types of the \bmodb{} data
+into the network data model representation described in this paper can be seen as
+example for the usage of the \bmodb{} with other compatible data representations or
+DBMS.
 
 %The very good results of the network data model encourages us to propose the extension
 %of the \bmodb{} by a query set BerlinMOD/Net. The new query set covers the specialised
@@ -106,28 +111,28 @@ to save storage space and reduce query run times.
 The rest of the paper is organised as follows: In section \ref{sec:relWork} we give a
 short reminder of the underlying \secondo{} DBMS (\ref{sec:secondo}), the \bmodb{}
 (\ref{sec:bmodb}) and the two data models (\ref{sec:bmodbdatamod}
-and \ref{sec:netdatamod}) we choosed as representatives for our comparision.
+and \ref{sec:netdatamod}) we choose as representatives for our comparison.
 The translation of the \bmodb{} data and query set in the network data model
-representation is described in section (\ref{sec:Translation}). The resulting
+representation is described in section \ref{sec:Translation}. The resulting
 experimental benchmark setup is described in section \ref{sec:scenario} followed
-by the results of our experiments in section (\ref{sec:results}).
+by the results of our experiments in section \ref{sec:results}.
 %At least we present our proposed extension of the \bmodb{} for network data models in
 %section \ref{sec:newqueries}.
 We conclude our work in section \ref{sec:summary}.
 \section{Related Work}
 \label{sec:relWork}
 In the past other data models for free movement in the space
-\cite{335426,chenzaniolosqlst} and for network constrained movement have been
+\cite{chenzaniolosqlst,335426} and for network constrained movement have been
 presented \cite{1146465,956692,VazWolfNetMod}. As well there are some more
 benchmarks \cite{COSTBenchmark, QueriesTheodoridis} and database systems for
-spatial and spatio-temporal datatypes \cite{HERMES,1054151}. But best to our
+spatial and spatio-temporal data types \cite{1054151,HERMES}. But best to our
 knowledge they don't actually provide a combination of different implemented
 and supported data models together with a existing benchmark feasible for moving
 objects in space and network constrained moving objects like the actual
 \secondo{} DBMS. So it is self-evident for us to use the \secondo{} DBMS in
 combination with the provided data models and the \bmodb{} to compare the
 capabilities of the network constrained data model and the data model of free
-movement in spache provided with the \secondo{} DBMS.
+movement in two dimensional space provided with the \secondo{} DBMS.
 
 In the next subsections we give short reminders of the \secondo{} database system
 (\ref{sec:secondo}), the \bmodb{} (\ref{sec:bmodb}), and the both data models
@@ -143,12 +148,12 @@ this data types. The user may define additional viewers for the graphical user
 interface or write additional optimization rules or cost functions to extend the
 the optimizer. Since \secondo{} version 2.9 the user may publish his extensions
 as \secondo{} plugin such that other users can use this plugin to extend their own
-\secondo{} system to use the functionalities or repeat the published experiments.
+\secondo{} system to use the new provided functionalities or repeat the published experiments.
 \secondo{} is free available in the web \cite{secondoweb} and comes with a number
 of already implemented spatial and spatio-temporal data types
 and operations including the spatio-temporal data model of free movement in the
 two dimensional space \ref{sec:bmodbdatamod} and the network data model
-\ref{sec:netdatamod} used in our work. Furthermore the \bmodb{} described in
+\ref{sec:netdatamod} used in this paper. Furthermore the \bmodb{} described in
 \ref{sec:bmodb} has been developed in the \secondo{} DBMS. For our experiments
 we used the \secondo{} version \secver{}.
 \subsection{BerlinMOD Benchmark}
@@ -159,19 +164,19 @@ The \bmodb{} is available in the web \cite{berlinmodweb} and provides a well def
 data-set and queries for the experimental evaluation of the capabilities of
 spatial and spatio-temporal database systems dealing with histories of moving
 objects. The \bmodb{} emphasises the development of complete systems
-and simplifies experimental repeatability pointing out the weakness and the potencies
+and simplifies experimental repeatability pointing out the weakness and the potency's
 of the benchmarked systems.
 
 The data-sets of the \bmodb{} are created using the street map of the German
-captial Berlin \cite{bbike} and statistical data about the regions of Berlin
+capital Berlin \cite{bbike} and statistical data about the regions of Berlin
 \cite{bevberlin,berlinstadtatlas} as input relations.
 The created moving objects represent cars driving in the streets of Berlin,
 simulating the behaviour of people living and working in Berlin.
 Every moving object has a home node and a work node. Every weekday each car will
 do a trip from the home node to work the work node in the morning and vice versa
-in the late afternoon. Besides this randomly choosen cars will make additional
-trips in the evening and up to six times at the weekend to randomly choosen
-targets in Berlin. The \bmodb{} uses the data model of free movement in two
+in the late afternoon. Beside this randomly chosen cars will make additional
+trips in the evening and up to six times at the weekend to randomly chosen
+targets in Berlin and back home. The \bmodb{} uses the data model of free movement in two
 dimensional space described in section \ref{sec:bmodbdatamod}. Because the \bmodb{}
 generates all data sets restricted to the street map of Berlin the \bmodb{} can
 also be used for network constrained data models, if the spatial and spatio-temporal
@@ -179,15 +184,15 @@ data types are translated into a corresponding network data model, like we did
 for our experiments.
 
 The number of observed cars and the duration of the observation period can be
-influenced by the user setting the $SCALEFACTOR$ to different values in the data
-generation script of the \bmodb{}. For example at $SCALEFACTOR$ 1.0 the data generator
+influenced by the user setting the $scalefactor$ to different values in the data
+generation script of the \bmodb{}. For example at $scalefactor$ 1.0 the data generator
 creates 2000 moving point objects observed for 28 days. Each of them sending a
 GPS-signal every 2 seconds. This simulated signals are simplified such that time
 intervals when a car doesn't move or moves in the same direction at the same
-speed are merged into one moving unit. This means that, if a car stays in front
-of the work node for 8 hours there will be only one entry in the cars
-history of movement with a time interval of 8 hours instead of 14.400 entries
-one for each GPS interval.
+speed are merged into one single time interval. For example: If a car parks in front
+of the work node for 8 hours there will be only one entry in the history of the
+cars movement with a time interval of 8 hours instead of 14.400 entries
+one for each GPS time interval.
 
 The \bmodb{} provides two different approaches to store the histories of moving
 objects. On the one hand the object-based approach (OBA) and on the other hand
@@ -200,19 +205,22 @@ the object $journey$, the $licence$, the $type$, and the $model$ of the object.
 
 In the TBA we have two relations $dataMcar$ and $dataMtrip$. $dataMcar$ contains
 the static data for each object like $licence$, $type$, and $model$ together with
-an object identifier $moid$. $dataMtrip$ contains for each $moid$ several tuples
+an object identifier $moid$. $dataMtrip$ contains for each $moid$ several tuple
 each of them containing all units of a single trip of the moving object or a
 single unit for a longer stop. For example each time the car drives from home node
 to work node is a single trip and each time the car parks in front of the office
 is also a single trip.
 
-Besides the moving objects the \bmodb{} provides several data sets each of them
+Beside the moving point objects the \bmodb{} provides several data sets each of them
 containing 100 pseudo randomly generated data objects which are used in the
 benchmark queries. Table \ref{tab:queryobjects} gives an overview of this query
-objects.
+objects. The \bmodb{} deals also with subsets from this query object sets consisting
+of the first or second 10 query objects of a query object set. They are labeled
+by the name of the query object set followed by a 1 for the first 10 or a 2 for
+the second 10 query objects of the query object set.
 
 \begin{table}[H]
-  \begin{tabularx}{|l|X|}
+  \begin{tabularx}{1.0\textwidth}{|l|X|}
     \hline
     \textbf{Name of Data Set}&\textbf{Tuple Content}\\
     \hline
@@ -239,17 +247,17 @@ In this paper we will focus on the range queries, which are the main aspect of t
 The query set BerlinMOD/R includes 17 queries selected of the set of possible
 combinations of the 5 aspects:
 \begin{itemize}
-  \item object identity (known / unknown),
-  \item dimension (standard / spatial / temporal / spatio-temporal),
-  \item query interval (point / range / unbounded),
-  \item condition type (single object / object relations),
-  \item aggregation (with or without aggregation).
+  \item known or unknown object identity,
+  \item standard, spatial, temporal, or spatio-temporal dimension,
+  \item point, range, or unbounded query interval,
+  \item single object or object relations condition type,
+  \item with or without aggregation.
 \end{itemize}
 We will present the 17 queries in more detail in section \ref{sec:queries}
-together with our network data model translation of this queries.
-\subsection{Data Model of Free Movement in 2D space}
+together with our network data model algorithms for this queries.
+\subsection{Data Model of Free Movement in two dimensional space}
 \label{sec:bmodbdatamod}
-The data model used by the \bmodb{} is the same data model of freely moving in
+The data model used by the \bmodb{} is the same data model of free movement in
 two dimensional space presented in \cite{594784,335426,352963}. Spatial
 positions are assumed to be located into a two dimensional space. A single spatial
 position is represented by the data type \dt{point}. A \dt{point} consists of a pair of
@@ -257,7 +265,7 @@ position is represented by the data type \dt{point}. A \dt{point} consists of a 
 
 Streets are represented by \dt{line} values. A \dt{line} value consists of a set
 of $half segments$ representing the geometry of the line in the two dimensional space.
-Each $half segment$ consists of two \dt{point} values and a boolean value telling
+Each $half segment$ consists of two \dt{point} values and a Boolean flag telling us
 if the left or the right point is the dominating point of the $half segment$.
 
 Regions are represented by the data type \dt{region}. A \dt{region} consists of
@@ -270,14 +278,15 @@ lifted to become time dependent \dt{moving} values. For all data types \dt{$\alp
 the constructor \dt{moving} creates a new data type \dt{moving}(\dt{$\alpha$})
 (short form \dt{m$\alpha$}).
 
-A car may be represented by a \dt{mpoint}. A \dt{mpoint} is a \dt{point} object changing
-its value within time. Therefore a \dt{mpoint} consist of a set of units called
+A car may be represented by a \dt{moving}(\dt{point}) short \dt{mpoint}.
+A \dt{mpoint} consist of a set of units called
 \dt{unit}(\dt{point}) (short form \dt{upoint}). Each \dt{upoint} consists of a time
 interval and two \dt{point} values. The first \dt{point} value represents the
 position of the \dt{mpoint} at the start of the time interval and the second
 \dt{point} value represents the position of the \dt{mpoint} at the end of the
-time interval. It is assumed that the point moves on the straight line between
-this two points with constant speed, which is defined by the ratio from the
+time interval. It is assumed that the object represented by the \dt{mpoint}
+moves on the straight line between this two points with constant speed within the
+given time interval. The velocity of the object is given by the ratio from the
 distance of the two points and the length of the time interval of the unit.
 All units of a \dt{mpoint} must have disjoint time intervals, because a car
 cannot be at two different positions at the same time.
@@ -295,7 +304,7 @@ table \ref{tab:bmodbdatatypes}.
 \begin{table}[H]
 \begin{center}
 \begin{scriptsize}
-\begin{tabularx}{\textwidth}{|l|X|}
+\begin{tabularx}{1.0\textwidth}{|l|X|}
 \hline
 \textbf{Data Type} & \textbf{Description} \\
 \hline
@@ -325,22 +334,23 @@ of time representing the \dt{real} value at each time instant.\\
 \label{sec:netdatamod}
 The central idea of the network data model presented in \cite{1146465} is that
 every movement is constrained by a given network and every position can be described
-relative to this network. This make the data type \dt{network} to the central
+relative to this network. The data type \dt{network} is the central
 data type in the network data model. All other data types of the network data model
 are related to a given \dt{network} object by the unique network identifier that
 is part of each \dt{network} object.
 
-The \dt{network} object contains all spatial informations of the represented network
-in three main relations, two sub relations and some indexes to support faster
-access to the relations.
+The \dt{network} object contains all spatial information of the represented network.
+The \dt{network} consists of three main relations ($routes$, $junctions$, and $sections$),
+two arrays providing fast access to adjacent network sections,
+and some B-Tree and R-Tree indexes to supporting faster access to the main relations.
 
-The relation $routes$ contains the attributes of the
-streets like $id$, $route curve$, $route length$, and two boolean flags. The first
+The relation $routes$ of the \dt{network} contains the attributes of the
+streets like $id$, $route curve$, $route length$, and two Boolean flags. The first
 flag indicates if the route starts at the lexicographically smaller end point or not.
 The second flag indicates if the lanes of the street are separated like on German
 Highways or not.
 
-The $junctions$ relation contains all attributes of the street
+The $junctions$ relation of the \dt{network} contains all attributes of the street
 crossings like the two route identifiers of the first and second street meeting at the
 crossing, the distance of the crossing from the start of the first respectively
 second street, tuple identifiers of the both streets in the routes relation,
@@ -353,7 +363,7 @@ attributes of the street parts between two crossings or a crossing and
 the end of the street. This are the route identifier of the street the section
 belongs to, the tuple identifier of this street in the routes relation, the start
 position and end position of the section on the street, the section curve, and
-again two boolean flags with the same meaning as in the routes relation.
+again two Boolean flags with the same meaning as in the routes relation.
 
 Furthermore there are two arrays in the \dt{network} object providing a fast
 access from each section to their adjacent sections with respect to the driving
@@ -368,13 +378,13 @@ The data type \dt{gpoint} represents single positions in a given network. Beside
 network identifier a \dt{gpoint} consists of a route identifier, a distance from
 the start of the route to the position of the \dt{gpoint} and a $side$ value
 ({$up$, $down$, $none$) telling us if the position is reachable from the $up$
-or the $down$ side of the route in case of seperated lanes. For simple
+or the $down$ side of the route in case of separated lanes. For simple
 streets or positions which are reachable from both sides of the route the side
 value is always $none$.
 
 Parts of the network, regardless if they represent paths or regions, are given as
 \dt{gline} values. Besides the network identifier a \dt{gline} consists of a set
-of $route interval$s, and two boolean flags. The boolean flags tell us if the
+of $route interval$s, and two Boolean flags. The Boolean flags tell us if the
 \dt{gline} is defined and if the set of $route interval$s is sorted.
 
 Each $route interval$ consists of a route identifier identifying the route
@@ -389,20 +399,20 @@ conditions are fullfilled:
 	\item the $route interval$s are stored in ascending order of their route identifiers
 	\item if two disjoint $route interval$s have the same route identifier the
 $route interval$ with the smaller start position is stored first
-	\item for all $route interval$s the $startPosition \le endPosition$
+	\item for all $route interval$s the $start position \le end position$
 \end{itemize}
 Many algorithms take profit from sorted \dt{gline} values. For example: If $n$
-is the number of the route intervals in the \dt{gline} the
-decision, if a \dt{gpoint} is inside a \dt{gline} needs O($n$) time for unsorted
+is the number of the route intervals in a \dt{gline} the
+decision, if a \dt{gpoint} is inside the \dt{gline} needs O($n$) time for unsorted
 and O($\log n$) time for sorted \dt{gline} values,
 
 Unfortunately not all \dt{gline} values can be stored sorted. If a \dt{gline}
 value represents a path between two \dt{gpoint} in the network, we need the
 route intervals exactly in the sequence they are used in the path. This will
-nearly never be a sorted set like defined before. We solved this dilemma by
-introducing the boolean sorted flag. Every algorithm which can take profit from
-a sorted \dt{gline} checks this flag and uses the corresponding code. We store \dt{gline}
-values sorted whenever this is possible to support faster query execution.
+nearly never be a sorted set like defined before.  We store \dt{gline}
+values sorted whenever this is possible to support faster query execution, and
+introduced a Boolean sorted flag. Every algorithm which deals with \dt{gline} values
+checks this flag and uses the corresponding code.
 
 Mostly similar to the \dt{mpoint} of the other data model there is a
 \dt{mgpoint} in the network data model. A \dt{mgpoint} consists of a set of
@@ -419,15 +429,15 @@ of the \dt{mgpoint} with four additional attributes to support faster query exec
 	\item The total driven distance
 	\item A sorted set of $route interval$s representing the positions ever
 traversed by the \dt{mgpoint}
-	\item A boolean defined flag for the set of route intervals
+	\item A Boolean defined flag for the set of $route intervals$
 	\item A spatio-temporal minimum bounding box
 \end{enumerate}
-The sorted set of $route interval$s was introduced, because it makes it much
-faster to decide if a \dt{mgpoint} ever passed a given network position or not.
-Instead of a linear check of all $m$ \dt{ugpoint}s of a \dt{mgpoint} we can
-perform a binary scan on the much lower number $r$ of the passed $route interval$s.
-This reduces the time complexity from O($m$) to O($\log r$) for all \op{passes}
-operations. Logically the set of $route interval$s should be a sorted \dt{gline}
+The sorted set of $route interval$s was introduced, because analogous to sorted
+\dt{gline} values it makes it much faster to decide if a \dt{mgpoint} ever passed
+a given network position or not. Instead of a linear check of all $m$ \dt{ugpoint}s
+of a \dt{mgpoint} we can perform a binary scan on the much lower number $r$ of the passed $route interval$s.
+This reduces the time complexity from O($m$) to O($\log r$) for the \op{passes}
+operation. Logically the set of $route interval$s should be a sorted \dt{gline}
 value but the \secondo{} DBMS restricts us to use a sorted set of $route interval$s
 instead.
 
@@ -439,33 +449,33 @@ lead uphill in serpentine. A spatial bounding box only computed from the spatial
 start and end position may not enclose all spatial positions of the car within
 the unit. Therefore we have always to examine the spatial dimensions of the
 $route interval$ passed within a unit to compute the units bounding box. This
-needs a access to the route courve in the $routes$ relation of the corresponding
+needs a access to the route curve in the $routes$ relation of the corresponding
 \dt{network} object. If $r$ is the number of routes
 of the network and $h$ the number of $half segments$ belonging to the $route interval$
 passed in a unit we need O($h + \log r$) time to
 compute the bounding box for a single unit. The bounding box of the \dt{mgpoint}
 is the union of the bounding boxes of its $m$ units. So the computation of the
 spatio-temporal respectively spatial bounding box of a \dt{mgpoint} needs
-O($m(h + \log r)$) time. This very expensive bounding box computation is only done
+O($m(h + \log r)$) time. This very expensive computation is only done
 on demand or if we can get the bounding box for free. For example we can copy
 the bounding box of a \dt{mpoint} at the translation time into a \dt{mgpoint}
 without big computational costs. The bounding box attribute is not maintained. If
 the \dt{mgpoint} value changes the bounding box attribute is set to be undefined
-until its recomputation is necessary.
+until recomputing is necessary.
 \section{Translation of BerlinMOD into Network Data Model}
 \label{sec:Translation}
-First of all we describe the creation of the \dt{network} object from the $streets$
-value of the \bmodb{} in section \ref{sec:createNetwork}. Then we describe how
-to use this new created \dt{network} value as reference for the translation of
-all spatial and spatio-temporal data objects of the \bmodb{} into the network data
-model representation in section \ref{sec:translateSTdata}.
+In this section we describe the creation of the \dt{network} object from the $streets$
+value of the \bmodb{} in section \ref{sec:createNetwork}. Followed by the
+description how to use this new created \dt{network} value as reference for the
+translation of all spatial and spatio-temporal data type objects of the \bmodb{}
+into the network data model representation in section \ref{sec:translateSTdata}.
 In section \ref{sec:createIndex} we describe the indexes we build on the network
-data model representation to support faster query execution.
-In section \ref{sec:queries} we describe the executable \secondo{} queries for the
-network data model representation of the \bmodb{}.
+data model representation to support faster query execution. We close this part
+with section \ref{sec:queries} were we describe the executable \secondo{} queries
+for the network data model representation of the \bmodb{}.
 
 Executable \secondo{} scripts for the network and index creation, object translation,
-and the executable benchmark queries can be downloaded from our website
+and the network benchmark queries can be downloaded from our website
 \cite{berlinmodweb}.
 \subsection{Create Network Object}
 \label{sec:createNetwork}
@@ -479,10 +489,10 @@ Now we can use $r$ and $j$ as input relations for the operator \op{thenetwork}
 to create our \dt{network} object $net$ representing the streets of Berlin in
 the network data model representation of the \bmodb{}.
 
-The network creation algorithm first copies all tuples of $r$ to the
+The network creation algorithm first copies all tuple of $r$ to the
 $routes$ relation of $net$ and creates the B-Tree index of the route
 identifiers and the R-Tree index of the route curves of the $routes$ relation of
-$net$. Then all tuples of $j$ are copied to the $junctions$ relation
+$net$. Then all tuple of $j$ are copied to the $junctions$ relation
 of $net$ and the tuple identifiers for the both routes connected
 by this junction are added to the junctions entry. After that we build two B-Trees
 indexing the route identifiers of the first respectively second route in the
@@ -502,45 +512,45 @@ $routes$ relation of $net$ and create the indexes of the
 $routes$ relation. The creation of the $junctions$ relation and the build
 of the B-Trees indexes takes O($|j| \log |j|$) time.
 O($|r||j|$) time is needed to fill the $sections$ relation and
-O($|j|$) time to fill the $adjacency lists$ of $net$. Alltogether
+O($|j|$) time to fill the $adjacency lists$ of $net$. Altogether
 the complete algorithm needs:
 O($|r| \log |r|+|j| \log |j| + |r||j|$)
- time to create the $net$ from the two input relations $r$ and $j$.
+time to create the $net$ from the two input relations $r$ and $j$.
 \subsection{Translate Spatial and Spatio-Temporal Data Types}
 \label{sec:translateSTdata}
 In this section we describe the translation of the spatial and spatio-temporal
-data types of the \bmodb{} data set into network respectivels network-temporal
-objects. All translations are done relative to the \dt{network} object $net$ created
-before (see  \ref{sec:createNetwork}).
-The input for all algorithms is a spatial respectively
-spatio-temporal \bmodb{} data object and the \dt{network} object $net$.
-All Network translation algorithms return a undefined object if the input data
-object is not constrained by $net$.
-
+data types of the \bmodb{} data set into network respectively network-temporal
+objects. All translations are done relative to the \dt{network} object $net$ that
+we described in section \ref{sec:createNetwork}.
+All algorithms in this section get a spatial respectively spatio-temporal \bmodb{}
+data type object and the \dt{network} object $net$ as input they return the
+corresponding network data model object respectively an undefined network data model
+object if the input data object is not constrained by $net$.
 \subsubsection{Translate \dt{point} into \dt{gpoint}}
-We start the explanation of our translation algorithms with the \op{point2gpoint}
-operation, because \op{point2gpoint} is used by the other translation algorithms.
-The algorithm translates a \dt{point} value $p$ into a corresponding
-\dt{gpoint} value $gp$. It uses the R-Tree index of the
-$routes$ relation of $net$ to select the route closest to $p$ and computes the
-position of $p$ on this route curve. The $side$ value of $gp$ is always set
-to $none$. Because the \bmodb{} does not differntiate between the sides of a
-road. If $r$ is the number of routes in the $routes$ relation
+The \op{point2gpoint} operation translates a \dt{point} value $p$ into a corresponding
+\dt{gpoint} value $gp$ if possible. This operation is also included in the other translation
+operations. The algorithm uses the R-Tree index of the
+$routes$ relation of $net$ to select the route curve closest to $p$ and computes the
+position of $p$ on this route curve. In case of the \bmodb{} the $side$ value of
+$gp$ is always set to $none$, because the \bmodb{} does not differentiate between
+the different sides of a street.
+
+If $r$ is the number of routes in the $routes$ relation
 and $k$ is the number of possible candidate routes the worst case complexity
 of the algorithm is O($\log{r} + k$).
 
 This should be all to translate the \dt{point} values of the $QueryPoints$
 relation of the \bmodb{} into network query positions. But there is a problem with
 the network data model representation of junctions. In the network data model
-contrary to the data model of freely moving in space junctions have more than one
-\dt{gpoint} representation, because they are related to two or more routes. Hence
-if a junction position is given related to route $a$ we won't detect the
-junction as passed if a \dt{mgpoint} object passes the junction on route $b$
-in all cases, because the definition of \op{passes} in the network data model is
-slightly different from the \op{passes} operation in the \bmodb{} data model.
-Unfortunately all query points of the \bmodb{} are junctions. As work around we
-added a operator \op{polygpoints}, which returns for every input \dt{gpoint}
-value $gp$ a stream of \dt{gpoint} values. If $gp$ represents a junction
+contrary to the data model of free movement in the two dimensional space each junction
+has more than one \dt{gpoint} representation, because each junction is related to
+two or more routes. Hence if a junction position is given related to route $a$
+we won't detect the junction as passed if a \dt{mgpoint} object passes the junction
+on route $b$ in all cases, because the definition of \op{passes} in the network
+data model is slightly different from the \op{passes} operation in the \bmodb{} data model.
+Unfortunately all query points of the \bmodb{} are junctions. To make the results
+comparable we added a operator \op{polygpoints}, which returns for every input
+\dt{gpoint} value $gp$ a stream of \dt{gpoint} values. If $gp$ represents a junction
 we return all \dt{gpoint} values representing the same junction in $net$,
 otherwise we return only $gp$ in the stream. So we got 221 query \dt{gpoint}
 values in $QueryPointsNet$ for the 100 query \dt{point} values in
@@ -548,7 +558,6 @@ $QueryPoints$ and 22 \dt{gpoint} values in $QueryPoints1Net$ for the
 10 \dt{point} values of $QueryPoints1$ of the \bmodb{}. This means we have
 always to compute the results for the doubled number of query points in our network
 data model than in the data model of free movement in space.
-
 \subsubsection{Translate \dt{mpoint} into \dt{mgpoint}}
 The second operation \op{mpoint2mgpoint} translates a \dt{mpoint} value $s$
 into a \dt{mgpoint} value $t$. The main idea of the algorithm is to use the
@@ -558,10 +567,10 @@ algorithm to find a route in the network containing the $start$ and
 the $end point$ of this unit. We initialize the first unit of $t$ with
 the computed network values. Then we read the next unit of $s$ and try to find
 the $end point$ of the new unit on the same route the last unit of $s$ was
-found. If the $end point$ is found on the same route we check the direction and
-speed of the point in the unit. If they are equal to the actual unit we extend
+found. If the $end point$ is found on the same route we check the moving direction
+on the route and speed of the point in the unit. If they are equal to the actual unit we extend
 the actual unit of $t$ to enclose the value of the actual unit of $s$. If the
-speed or the moving direction changes we write the actual unit to $t$ and initialize
+speed or the moving direction on the route changes we write the actual unit to $t$ and initialize
 a new unit for $t$ with the network values of the actual unit from $s$.
 If the $end point$ can't be found on the same route than the last unit from
 $s$ we write the actual unit of $t$ and start a search on the route curves
@@ -577,7 +586,6 @@ route. And O($a$) if the end point is on another route and $a$ is the maximum
 number of adjacent sections. So we get a worst case time complexity of
 O(O(\op{point2gpoint}) + $ma$) for the translation of a \dt{mpoint} $s$ into a
 \dt{mgpoint} $t$.
-
 \subsubsection{Translate \dt{region} into \dt{gline}}
 The translation of the \dt{region} values in the $QueryRegions$ relation of the
 \bmodb{} into \dt{gline} values of our network data model is done in several steps.
@@ -609,11 +617,13 @@ $dataSNcar$, $dataMcar$, and $dataMNtrip$. This indexes are similar to the index
 created in the \bmodb{} for $dataSCcar$, $dataMCcar$, and $dataMCtrip$, because
 the relations $dataSNcar$, $dataMcar$ and $dataMNtrip$ contain the network
 data model representation of the $dataScar$, $dataMcar$ and $dataMtrip$ relation
-of the \bmodb{}, such that we don't explain them in more detail.
+of the \bmodb{}. We don't explain them in more detail.
   \item An R-Tree index of the spatio-temporal bounding boxes of the \dt{mgpoint}
 attributes in the $dataMNtrip$ and the $dataSNcar$ relation. Different from the
 data model that uses the spatio-temporal units for the spatio-temporal indexes we
-used only the big bounding boxes of the whole trips.
+used only the big bounding boxes of the whole trips instead of much more small bounding
+boxes for each single unit like it is done in the data model of free movement in
+two dimensional space.
  \item For every unit of each \dt{mgpoint} we build a three dimensional $netbox$
 and for every $route interval$ of every \dt{mgpoint}s trajectory a two dimensional
 $netbox$. This $netboxes$ are used to create R-Trees indexing the network and
@@ -622,7 +632,7 @@ is a degenerated three dimensional rectangle. The coordinates are defined to be
 $x_1 = x_2 = route identifier$ as \dt{real} value (The equality of $x_1$ and
 $x_2$ makes the degeneration.), $y_1 = \min (star position, end position)$,
 $y_2 = \max (start position, end position)$,
-and, $z_1 = starttime$ as \dt{real} value and $z_2 = endtime$} as \dt{real} value.
+and, $z_1 = start time$ as \dt{real} value and $z_2 = end time$ as \dt{real} value.
 The network bounding boxes are defined to be degenerated two dimensional rectangles
 with x,y-coordinates analogous to the temporal-network boxes.
 \end{itemize}
@@ -630,166 +640,195 @@ with x,y-coordinates analogous to the temporal-network boxes.
 \label{sec:queries}
 We developed executable \secondo{} queries for each of the 17 BerlinMOD/R queries
 for the object based approach (OBA) and the trip based approach (TBA) using our
-network indexes to support faster query execution. The optimization has to be
-done manually because the \secondo{} optimizer is not able to optimize SQL-queries
-on network data model objects yet. In our experiments we tried many different query
-formulations for each query to get optimal queries delivering the correct result
-in a minimum of time. The limited space does not allow us to show all our
-executable \secondo{} network queries in detail but the \secondo{} scripts with
-the complete network data model query sets can be downloaded from our webpage.
-In the following we describe only the algorithms of a few queries in detail.
+network indexes to support faster query execution. The \secondo{} optimizer is not
+able to optimize SQL-queries on network data model objects yet, so we tested in
+our experiments many different query formulations for each query to get optimal
+queries delivering the correct result in a minimum of time.
+
+The limited space does not allow us to show all our executable \secondo{} queries
+for the network data model in detail, but they can be downloaded as \secondo{} scripts
+from our web page. At this place we give only a short overview over the \bmodb{} queries
+and their network data model algorithms.
 
 Every time we need a licence in the result or have a query licence number we need
-a additional step in the TBA. Because we have to join the $dataMNtrip$ and $dataMNcar$
+a additional step in the TBA. Because we have to join the $dataMNtrip$ and $dataMcar$
 relation using the $moid$ attribute and the corresponding B-Tree indexes.
-We will not repeat this step at every single query description.
+We will not repeat this step at every single TBA query description.
 
-Query 1 and 2 work only on standard attributes. They are formulated analogous to
-the original queries of the \bmodb{} only the relation names and the used B-Trees
-are changed to match the network data model.
+Query 1 asks for the models of the cars with licence plate numbers from $QueryLicences$,
+and query 2 for the number of vehicles that are ``passenger'' cars. Both queries
+deal only with standard attributes so we only changed the relation names and the
+B-Tree indexes to match the network data model representation.
 
-Query 3 uses the licence B-Tree to select the ten cars with licences from
-$QueryLicences1$ from $dataSNcar$ then the positions of this cars are computed
-for each of the ten time instants from $QueryInstants1$.
+Query 3 searches for the positions of the ten cars from $QueryLicence1$ at the
+ten time instants from $QueryInstants1$. We use the licence B-Tree to select the
+ten cars and computes the positions of these ten cars for each of the ten time
+instants from $QueryInstants1$ if the time instant is inside the definition time
+of the trip.
 
-In Query 4 we produce a two dimensional $netbox$ for each \dt{gpoint} value in
-$QueryPointsNet$ and use our specialized netbox R-Tree of the \dt{mgpoint}
-$route interval$s to select the passing vehicles.
+In Query 4 asks for the licence numbers of the cars that passed the points
+from $QueryPointsNet$. We create a $netbox$ for each \dt{gpoint} in $QueryPointNet$
+and use our specialised $netbox$ R-Tree of the \dt{mgpoint} $route intervals$s to
+select the vehicles passing the given query points.
 
-The queries 5, 6, and 10 retranslate intermediate results into spatial
-respectively spatio-temporal objects of the \bmodb{} data model to compute the
-Euclidean Distance between this objects. This is done because Euclidean Distances
-are not very useful in network environments. In Networks all objects are restricted
-to use network paths. Therefore in networks regulary the Network Distance between
-objects is computed. To make the results comparable we retranslate the intermediate
-results of our network data model into spatial and spatio-temporal data types
-and use the existing spatial and spatio-temporal Euclidean Distance Functions of
-the \bmodb{} data model for the distance computation in the queries 5, 6, and 10.
+The queries 5, 6, and 10 deal with Euclidean Distance values, which are not very
+useful in network environments. In networks everything is constrained by the
+network and regularly the network distances are computed instead of Euclidean
+Distances. We decided to retranslate intermediate results
+into spatial respectively spatio-temporal objects and use the existing
+Euclidean Distance operation to compute the distances between this objects to make
+the results comparable.
 
-Query 5 selects the cars with $licences$ from $QueryLicence1$ respectively
-$QueryLicences2$  using the B-Tree over the $Licence$ attribute of $dataSNcar$
-and creates a \dt{line} value from the list of $route interval$s passed by
-every car. Then the Euclidean Distance between this \dt{line} values is computed
-for each pair of licences one from $QueryLicences1$ and one  from $QueryLicences2$.
-In the TBA we need a aggregation step building the union of the several
-\dt{mgpoint} belonging to each candidate car. This is done with the $route intervals$
-returned as trajectory of the \dt{mgpoint} values because it takes much less
-time to build the union of the $route intervals$ than of the units of the
-\dt{mgpoint} values or the $half segment$s in the \dt{line} values covering the
-same network part.
+Query 5 asks for the minimum distance between places where vehicles with
+licences from $QueryLicence1$ and $QueryLicence2$ have been. We select the cars
+with licence plate numbers from $QueryLicence1$ respectively $QueryLicences2$ using the
+B-Tree over the $Licence$ attribute of $dataSNcar$ relation. In the TBA the
+resulting trajectories for each car are aggregated into one single trajectory
+for each car. In both approaches we create a \dt{line} value for each resulting
+(aggregated) trajectory value of the \dt{mgpoint}s and compute the Euclidean Distance
+between this \dt{line} values for each pair of licences one from $QueryLicences1$ and one
+from $QueryLicences2$.
 
-Query 6 uses the \op{filter} operation to select the ''trucks`` from $dataSNcar$
-relation, respectively $dataMcar$ relation in the TBA. Then the spatio-temporal
-bounding box of each trip is computed and the spatial dimensions of this box are
-extended by 5m in every spatial direction. After that the \dt{mgpoint} values are
-retranslated into \dt{mpoint} values. In a second step each result of the first
-step is joined with all other results of the first step where the extended bounding
-boxes intersect, the licences are different and the \dt{mpoint} values have sometimes
-a distance lower than 10m. The licence pairs of trucks fullfilling this predicate
-are returned. In the TBA there might be duplicate licence pairs which we have to
-be removed before we return the result.
+Query 6 asks for the pairs of licences from ``trucks`` that have been as close as
+10m or less to each other. We filter $dataSNcar$ relation, respectively $dataMcar$
+relation to select the ''trucks`` and compute the spatio-temporal bounding box
+of each trip of a ''truck``. We extend the spatial dimensions of the bounding boxes
+by 5m in each spatial direction and retranslate the \dt{mgpoint} values into \dt{mpoint}
+values in a first step. In a second step we compute the \op{symmjoin} of the results from
+step one with itself using the intersection of the bounding boxes as join criteria.
+We filter the result to include all licence pairs of ''trucks`` that had sometimes
+a distance lower than 10m. In the TBA we additionally remove the duplicate licence
+pairs from the result.
 
-The first part of the first step of query 7 is almost equal to the selection of cars
-passing a query point in query 4. The intermediate result is filtered to remove all
-``not passenger'' cars and for every remaining trip the time the trip reaches first
-the query position is computed for every query position and every candidate trip. In
-a second step the resulting time instants are grouped by the $id$ of the query
-positions and the minimum time stamp of each group is computed. This minimum time
-stamp is for every query position the first time it was reached by a car. In the
-last step the licences of the cars reaching the query positions at this
-first time instant are computed by a join of the results of the first two steps by
-query position id and the equality of the time stamps.
+Query 7 asks for the licence plate numbers of the ''passenger`` cars that reached
+the points from $QueryPoints$ first of all ''passenger`` cars during the
+observation period. The first step to solve query 7 in the network data model is
+equal to query 4. In a filter step we remove all ''not passenger`` cars from the
+first intermediate result. We compute for each remaining candidate trip the times
+the trip reaches first the query positions. We group the resulting time instants
+by the identifiers of the query positions and compute the minimum time stamp of
+each group, which is in fact the first time the query position was reached by a
+car. In a last step the licences of the ''passenger`` cars reaching the query
+positions at this first time instant are computed using the specialised
+network-temporal index of the network data model.
 
-In query 8 we just select the candidate cars with the licence B-Tree and compute for
-every car the length of the trip at the query periods in the OBA. In the TBA we have
-to aggregate over all the distances driven in the single trips by a car within a
-query period.
+Query 8 computes the overall travelled distances of the vehicles from $QueryLicence1$
+within the periods from $QueryPeriods1$. We select the candidate cars using the
+licence B-Tree, restrict the trips to the query periods and return the lengths of the
+trips in the OBA. In the TBA we have to sum up the length of the different
+trips driven by a single car within each query period.
 
-For query 9 we compute the length of every trip in every query period, and select the
-maximum driven distance for every period. In the TBA again we have to do a
-aggregation of the distances driven from the same car in the same period.
+Query 9 asks for the longest distance travelled by a single vehicle during each
+of the periods from $QueryPeriods1$. We restrict all trips to the periods, compute
+the driven distances and select the maximum length for each query periods value.
+Again we have to do a additional aggregation of the distances driven from the same
+car in the same period in the TBA.
 
-For query 10 in OBA we first retranslate every \dt{mgpoint} value of $dataSNCar$ into
-a \dt{mpoint} value and extend the spatial bounding box of each of this
-trips by 1.5 m in every direction. Second we select the ten candidate trips given by
-$QueryLicences1$, retranslate them and extend their spatial bounding boxes. Than we
-join all trips from the first and the second step where the
-extended bounding boxes intersect. We filter the pairs that have different licences
-and are sometimes nearer than 3m. For this pairs we compute the position of the
-\dt{mgpoint} at the times the distance between the both \dt{mpoint} has been smaller
-than 3 m. We return the licence pairs and the positions when they have been closer
-than 3 m to each other. In TBA we select the trips given by $QueryLicences1$ from
-$dataMNtrip$ retranslate them into \dt{mpoint} values. Then we use the
-spatio-temporal index of $dataMNtrip$ to select for each of the ten cars the cars
-of $dataMNtrip$ which bounding boxes intersect the extended spatio-temporal bounding
-boxes of the first selected candidate trips. For every pair of candidate trips we
-retranslate the second trip into free movement and use the Euclidean Distance
-function for \dt{mpoint} values to determine the deftimes when the both \dt{mgpoint}
-had a distance lower than 3m. At least we restrict the trips on this times and
+Query 10 asks when and where vehicles with licences from $QueryLicence1$ meet which
+other vehicles (distance less than 3m). In the OBA we first retranslate every
+\dt{mgpoint} value of $dataSNCar$ into a \dt{mpoint} value and extend the spatial
+bounding box of each of this trips by 1.5 m in every spatial direction. After that we
+select the ten candidate trips given by $QueryLicences1$, retranslate them and
+extend their spatial bounding boxes in the same way. We join all trips from the
+first two steps where the extended bounding boxes intersect and filter the
+candidate pairs that have different licences and their distance is sometimes
+less than 3m to each other. We compute the position of the \dt{mgpoint} at the
+times the distance between the remaining candidate pairs of \dt{mpoint} was less
+than 3 m and return the licence pairs and the network positions of the first car
+when it has been closer than 3 m to the other one.
+
+In the TBA we select the trips given by $QueryLicences1$ from
+$dataMNtrip$, retranslate them into \dt{mpoint} values, and extend their spatio-temporal
+bounding boxes by 3m in each spatial direction. After that we use the spatio-temporal
+index of $dataMNtrip$ to select for each trip of the ten cars, the cars
+of $dataMNtrip$ which spatio-temporal bounding boxes intersect the extended spatio-temporal
+bounding boxes built before. For every pair of candidate trips we
+retranslate the second trip and use the Euclidean Distance function for \dt{mpoint}
+values to determine the times when the both \dt{mgpoint} had a distance less than 3m.
+At last we restrict the trip of the query \dt{mgpoint} to this times and
 aggregate the resulting trips into one single trip for each licence pair.
 
-In our experiments we tried out several indexes to support faster query execution of
-especially of query 10 including the MON-Tree \cite{MONTree}. But at the end this
-simple form shows the best complete run time performance of all indexes.
+In our experiments we tried out several indexes to support a faster query execution
+of query 10 including the MON-Tree presented in \cite{MONTree}. The MON-Tree showed
+very good CPU times but never the less the total run time was very high. In the end
+the simple form described above showed the best complete run time performance of all
+indexes.
 
-In query 11 we build a network-temporal query box from the product of $QueryInstant$
-and $QueryPoints1Net$ relation. And use the network-temporal index on $dataSNcar$
-(respectively $dataMNtrip$) to select the resulting trips.
+Query 11 asks for the vehicles that passed a point from $QueryPoints1Net$ at one of the
+time instants from $QueryInstants1$. We build a network-temporal query box from the
+$QueryInstant1$ and $QueryPoints1Net$ relation and use the network-temporal index
+on $dataSNcar$, respectively $dataMNtrip$, to select the resulting trips.
 
-The first step of query 12 is identical with query 11. In a second step a product of
-the result of the first step with itself is computed and checked for vehicles which
-have been at the same query point at the same query time instant.
+Query 12 asks for the vehicles that met at a point from $QueryPoints1Net$ at an time
+instant from $QueryInstants1$. The first step of query 12 is identical with query 11.
+In a second step the Cartesian Product of the result of the first step with itself
+is computed and filtered for vehicles which have been at the same query point
+at the same query time instant.
 
-Query 13 first computes uses the trajectory value of the \dt{mgpoint} to select the
-trips passing a given region. Restricts the trips to the times they pass the region
-and tests the resulting trips for their existenz in a given time interval. In TBA
-possible duplicate licence pairs have to be removed and the resulting $moids$ must
-be mapped to the licences of the cars to generate the result.
+Query 13 asks for the vehicles which travelled within one of the regions from
+$QueryRegions1Net$ during the periods from $QueryPeriods1$. We restrict the trips
+to the query regions and check if the restricted trips are defined within the query
+periods. In TBA possible duplicate licence pairs have to be removed and the
+resulting $moid$s must be mapped to the licences of the cars to generate the result
+using the B-Tree $moid$ index of $dataMcar$.
 
-Query 14 and 15 build sets of three dimensional network boxes of the query parameters
-and use the three dimensional network box tree to select the candidate trips. The
-resulting candidate trips are filtered to be sure they realy fullfill the query
-constraints.
+Query 14 asks for the vehicles that have been in one of the regions from $QueryRegions1Net$
+at a time instant from $QueryInstants1$. We build temporal-netboxes from the query
+objects to select candidate trips using the temporal-network position index. We refine the
+result filtering the candidate trips really full filling the query predicates.
 
-Query 16 selects the candidate trips using the licence B-Tree, filters them to be
-\op{present} within the query periods and restricts them to the times of the
-query periods. The restricted trips are filtered with the \op{passes} operation
-and restricted to the times they were inside the query region. This is done one time
-for $QueryLicences1$ and one time for $QueryLicences2$. The both results are joined
-to get the trips of different cars which where at the same period in the same region
-without meeting each other there and then in a third step. Again in the TBA we have
+Query 15 asks for the vehicles passing a point from $QueryPoints1Net$ during a period
+from $QueryPeriods1$. Analogous to query 14 we build temporal-netboxes of the
+of the query parameters to select the candidate trips using the temporal-network
+position index and refine the result filtering the candidates really full filling
+the query constraints.
+
+Query 16 asks for the licence pairs one from $QueryLicence1$ and one from $QueryLicence2$
+of vehicles, which were both present in a region from $QueryRegions1Net$ within a period
+from $QueryPeriods1$, but did not meet there and then. We select the candidate trips
+using the licence B-Tree of $dataSNcar$ relation and restrict the resulting trips to be
+\op{present} during the query periods and \op{inside} the query region. This is done
+one time for the licences from $QueryLicences1$ and one time for the licences from
+$QueryLicences2$. The both intermediate results are joined and filtered to get the
+trips of different cars which where at the same period in the same region
+without meeting each other there and then. In the TBA we have
 to do a additional selection from trips with the $moids$ belonging to the cars
-selected before by the licences and to remove duplicates of licence pairs in the
-same period.
+selected before by the licences and remove duplicates of licence pairs from the
+same period and region.
 
-Query 17 again uses the methods from query 4 to find the trips passing a given query
-point. The passing cars are grouped by the passed query points and the number of
-cars per query point is computed. In a second step the point with the maximum number
-of hits is selected and his id and the number of passing cars is returned. In the
-TBA we have to remove the duplicate cars from the result before computing the hits.
-\section{Experiments}
-\subsection{Setup}
+Query 17 asks for the points from $QueryPointsNet$ that have been visited by a
+maximum number of different vehicles. In a first step we use almost the query
+algorithm from query 4 to select the trips passing a given query
+point. After that we group the cars passing query points by the ids of the
+query points and count the number of cars passing this query point. In a last
+step the point(s) with the maximum number of passing cars is(are) selected.
+In the TBA we have to remove duplicate vehicles from the result list before we
+count the number of passing cars.
+\section{Experimental Setup}
 \label{sec:scenario}
-For our experiments we used a Standard PC with a AMD Phenom II X4 Quad Core 2.95 GHz CPU,
-8 GB main memory, and 2 TB HDD. We used the Linux openSUSE 11.2 operating system and
-installed \secondo{} DBMS version \secver{} and the \bmodb{} version provided in the web.
+For our experiments we used a standard personal computer with an AMD Phenom II X4
+Quad Core 2.95 GHz CPU, 8 GB main memory, and 2 TB hard disk. We installed the
+Linux openSUSE 11.2 as operating system, \secondo{} DBMS version \secver{}, and
+the \bmodb{} version provided in the web.
 
-We used the data generating script of the \bmodb{} with $SCALEFACTOR$ values
-0.05, 0.2, and 1.0 to generate three data sets in three different database directories.
-We used the script ``BerlinMOD\_CreateObjects.SEC'' to create the indexes used by
-the data model of free movement in the space. And used our new script
-``Network_CreateObjects.SEC'' to create the network data model representation of
-the three databases. The script uses the operations and indexes we desribed in
-section \ref{sec:Translation} of this paper.
+We generated three databases with different amounts of data using the data generation
+script of the \bmodb{} with the $SCALEFACTOR$ 0.05, 0.2, and 1.0. The following
+steps are done with all three databases. We first created the \bmodb{} data and indexes
+using the script ``BerlinMOD\_CreateObjects.SEC'' for the data model of free movement
+in two dimensional space. The network data model representation of the databases
+was generated by the the script ``Network\_CreateObjects.SEC'' that uses the algorithms
+and builds the indexes described in section \ref{sec:Translation}.
 
 Table \ref{tab:dbstat} shows the created data amounts for the different $SCALEFACTOR$
-values. As you can see the network data model needs less than 40\% of the storage
-space from the \bmodb{} data model. The main cause is that the same trip is represented
-by less than 50\% of the units in the network data model compared to the data
-model of free movement in the two dimensional space. We expect this effect to be much
-higher if the cars make long distance trips between different towns than in this
-experiments, because cars in towns change more often the street and velocity than
-cars on long distance trips.
+values in the both data models. As you can see the network data model needs less
+than 40\% of the storage space of the \bmodb{} data model. The main cause is that
+the same trip is represented by less than 50\% of the units in the network data model
+compared to the data model of free movement in two dimensional space. This is a very
+good result and we expect this effect to increase if the cars make long distance
+trips instead of moving in a single town like they do in the benchmark. In towns
+cars more often change the street or the velocity than cars that do long distance
+trips and so the compact route representation in the network data model should become
+more effect than in the town.
 \begin{table}[H]
 \begin{center}
 \begin{scriptsize}
@@ -806,7 +845,7 @@ Data Generation&\multicolumn{2}{c|}{164.761s}&\multicolumn{2}{c|}{587.299s}&\mul
 &BMODB&Network&BMODB&Network&BMODB&Network\\
 \hline
 Data Translation
-and Index Build&301.72s&535.65s&1,362.72s&2,190.45s&7419.130&11,144.13s\\
+and Index Build&301.72s&535.65s&1,362.72s&2,190.45s&7,419.13s&11,144.13s\\
 \hline
 Number of Units&2,646,026&1,260,888&11,296,682&5,346,971&52,140,685&24,697,709\\
 \hline
@@ -820,46 +859,35 @@ Indexes&1.48 GB&0.42 GB&6.16 GB&1.86 GB&30.30 GB&8.89 GB\\
 \label{tab:dbstat}
 \end{center}
 \end{table}
-The long creation time for the network data model representation is
+The long creation time of the network data model representation is
 caused by the expensive mapping of spatial and spatio-temporal positions into
-network positions. The Indexes are build faster in the network representation
-because they are much smaller than in the \bmodb{} data representation.
+network positions. The indexes them self are build faster in the network representation
+than in the \bmodb{} representation because they have less entries and are smaller.
 
-After the data creation we started the benchmark queries for
-the object based (OBA) and the trip based approach (TBA) of the \bmodb{} on this
-databases and saved the results for each database. Than we formulated executable
-\secondo{} queries for each BerlinMOD/R query using the network data model
-representation, like described in section \ref{sec:queries} of this paper, and
-executed them on the network version of the \bmodb{} database.
-
-We found some isolated missmatches in some query results, when we compared the
-results of our network queries with the results of the \bmodb{}
-queries to ensure that all results are correct. We detected that the source
-data of the street map is not well defined in all places. See figure
-\ref{fig:routefailure}) for two examples. We corrected the source file
-``streets.data`` delivered by \bmodb{} at the detected places and restarted the
-building of the databases and our experiments from the scratch.
-\begin{figure}
+We found some isolated mismatches in some query results as we compared the results
+of the \bmodb{} queries and the network data model queries for the object based (OBA)
+and the trip based approach (TBA). We detected that the source data of the street
+map of the \bmodb{} is not well defined in all places.
+Figure \ref{fig:routefailure} shows two examples for the street map failures. Using
+a very high zoom factor you can see that single streets consist of more than one
+line. We corrected the source file ``streets.data`` of the \bmodb{} at the places
+where we detected the errors and restarted the building of the databases and our
+experiments from the scratch. With the corrected street map all results match
+each other in the different data models and approaches.
+\begin{figure}[H]
 \begin{center}
    \includegraphics[scale=1.0]{routefailure.eps}
    \caption{Example Failures in Street Map}
    \label{fig:routefailure}
    \end{center}
 \end{figure}
-
-The \secondo{} optimizer does not work for the network data model yet, such that
-we had to optimize the network queries by ourself. We figured out the fastest
-query verions delievering correct results for each \bmodb{} query.
-
-\subsection{Results}
+\section{Experimental Results}
 \label{sec:results}
-We repeated the \bmodb{} several times for both data models and measured the
-run times. Figure \ref{fig:compruntimes} compares the average run times in seconds
-for the different scalefactors and data models. As you can see the total run time
-of all queries in the network data model is around 50\% less than the total query
-run time of the \bmodb{} data model at each scalefactor. Its a fact that the
-network data model outperforms the data model of free movement in the two
-dimensional space significantly in the queries with the longest run times.
+We repeated the \bmodb{} query execution several times for both data models and
+approaches. The tables in figure \ref{fig:compruntimes} compare the average run times
+query run times in seconds for the different scale factors, data models, and approaches.
+As you can see the total run time of all queries in the network data model is around
+50\% less than the total query run time of the \bmodb{} data model at each scalefactor.
 \begin{figure}[h]
   \begin{minipage}{0.5\linewidth}
     \begin{tiny}
@@ -1011,62 +1039,146 @@ dimensional space significantly in the queries with the longest run times.
   \begin{minipage}{0.5\textwidth}
       \includegraphics[width=1.0\linewidth]{compruntimesall.eps}
   \end{minipage}
- \caption{Compare Run Times}
+ \caption{Compare Query Run Times in Seconds}
  \label{fig:compruntimes}
 \end{figure}
+For the queries 1 and 2 the query run times are almost the same for all data models
+and approaches at the different scale factors. This is what we expected because
+the both queries deal only with standard attributes and standard indexes, which
+are not influenced by the different data models.
 
-This can be explained by the effects of the new attributes trajectory and length
-of the \dt{mgpoint} and the much lower number of units for a \dt{mgpoint} value
-compared with the number of units of the corresponding \dt{mpoint} value.
-In the data model of free movement in the two dimensional space every
-unit must be checked to decide if a \dt{mpoint} passed a given position.
-In the network data model we can do a binary check of the much
-lower number of sorted $route intervals$ in the trajectory of the \dt{mgpoint}.
-This effect is enhanced by a specialised network position index on this
-$route intervals$ of all \dt{mgpoint} values, which is also much smaller than
-the corresponding spatial index of the \dt{mpoint} values.
-This effect becomes bigger as the number of cars and units grows, especially if the
-observed cars drive several times the same route, like they do in the \bmodb{}
-for the work trips. This effect can be seen if you compare the run times of the
-queries 4, 6, 13, 15, and 16 at the different scalefactors.
+For query 3 the run times for all data models and approaches are very small. But
+we can see a development of the ratio of the run times between the different
+data amounts, data models and approaches. Although the query algorithms for both
+data models and approaches is almost the same, the run time ratio for the different
+data amounts is different. For the small databases (scalefactor 0.05 and 0.2)
+the network database model outperforms in the OBA the data model of free movement
+in two dimensional space, while for scalefactor 1.0 and all TBA queries the data
+model of free movement in space outperforms the network data model. We think that
+two different effects take place. On the one hand the number of units in the network
+data model is less than the number of units in the data model of free movement in space,
+such that the unit which contains the query time instant can be found faster.
+On the other hand a \dt{gpoint} value has more internal elements (3 \dt{int}, 1 \dt{real},
+and 1 \dt{bool}) than a \dt{point} value (2 \dt{real}, and 1 \dt{bool}), such
+that result computing and copying is a little more expensive in the network data model.
+The advantage of the smaller number of units in a binary search is smaller if
+the number of units becomes bigger and the disadvantage of bigger results becomes
+greater, that explains the different run time ratios for query 3.
 
-The queries 8 and 9 take profit from the new length attribute of the \dt{mgpoint}
-the attribute takes very small storage space compared with the trip data of a
-\dt{mgpoint} but reduces the computation time of driven distances from O($n$) to
-O(1) if $n$ is the number of units of the \dt{mgpoint}. The advantage can be seen
-very good if you compare the different run times of query 9. While the data model
-of the \bmodb{} has to add the length of each unit of the $n$ \dt{mpoint}, which
-takes O(n) time, the network data model returns the driven distance in O(1) time.
-The advantage is bigger for bigger scalefactors.
+In query 4 the network data model outperforms the data model of free movement in space
+significantly at all scale factors (>2 min OBA, >6 min TBA at scalefactor 1.0).
+The network data model index used in query 4
+is much smaller (OBA 24 MB, TBA 160 MB, at scalefactor 1.0) than the
+spatial unit index of the \bmodb{} (OBA 3.7 GB, TBA 3.7 GB at scalefactor 1.0)
+and more precise, such that we don't need a additional refinement step after the
+index usage in the network data model, like we do in the data model of free movement
+in two dimensional space.
 
-Interesting is also the comparision of the run times of query 10. In the object
-based approach (OBA) the network data model outperforms the data model of free
-movement in two dimensional space at all three scalefactors, although we do a
-retranslation of the \dt{mgpoint} values into \dt{mpoint} values to use the
-existing Euclidean Distance operation for \dt{mpoint} values. In
-the trip based approach (TBA) the data model of free movement outperforms the network
-data model at the two smaller scalfactors, while at scalefactor 1.0 the network
-data model outperforms the \bmodb{} data model.
+We expected the network data model to be slower than the data model of free
+movement in two dimensional space, because we retranslate intermediate results
+from the network data model representation into the \bmodb{} data model representation.
+For the OBA this is correct. We need a little more time in the network data model
+than in the data model of free movement in two dimensional space. But in TBA the
+network data model outperforms the data model of free movement in two dimensional
+space. This is due by the fact that a \dt{gline} value has less $route intervals$
+than a \dt{line} value representing the same part of a curve has $half segments$,
+such that the union of two or more \dt{gline} values in the aggregate step of query 5 in
+TBA can be computed much faster than the union of two or more \dt{line} values.
 
-Only the queries 7, 11, and 14 show a bad performance in the network data model
-compared to the \bmodb{} data model. The queries 7 and 14 use a common central
-functionality to decide if a position given by a \dt{gpoint} is inside a given set of
-$route intervals$ or not. This function seems to be the problem of our current
-network data model implementation in \secondo{}. All other functions used by the queries
-7 and 14 are also used in other queries which have a significantly better
-performance.
+The network data model outperforms the data model of free movement in space again
+significantly at query 6 for
+all data amounts and approaches, although we retranslate
+intermediate results and use the distance function of the data model of free movement
+in two dimensional space. In the network data model we reduce the number of candidate
+pairs for the distance computation by pre selecting intersecting extended bounding boxes
+and use the operation \op{notEverNearerThan} in OBA and TBA, while in the \bmodb{}
+in the OBA no filtering is used and the computation is done by
+\op{minimum}(\op{distance}($mp1$,$mp2$)$\leq$10.0), and in the TBA the operation
+\op{spatialjoin} is used instead of bounding box intersection. While the operation
+\op{distance} has always a run time from O($n$) the operation \op{everNearerThan}
+stops computation immediately if the distance between two units is less than the
+query value to reduce computation time. And the operation \op{spatialjoin} of the
+\secondo{} DBMS seems to have a big weakness in implementation. Otherwise the
+difference in the TBA query run times could not be so big (> 17 min OBA, > 80 min TBA,
+at scalefactor 1.0).
 
-The bad performance of query 11 is not so simple to explain. Query 12 extends query 11,
-such that we expected the runtime of query 12 to be longer than the the runtime
-of query 11. But the experimental results are contrary. In our experiments we
-detected that the run time of a query are influenced by cache effects depending
-on the environment of the single query. Such that depending of the query in a
-sequence of queries the run time for the single query changes. While query 11 is not
-supported by cache effects in combinatino with query 10, query 12 is supported by
-cache effects from query 11. The run time differences are not so big compared to
-the total run time of all queries that the very good total result would be
-significantly changed by a little longer run time of query 12.
+After the very good results from query 4 we did not expect query 7 to have such
+results in the run times comparison. In fact at scalefactor 1.0 the data model of free movement
+in two dimensional space outperforms the network data model significantly in both
+approaches and at all scale factors in TBA, while at the smaller scale factors in
+OBA the network data model outperforms the the data model of free movement in
+two dimensional space. We think there are two main causes on the one hand we
+have to do the expensive operation \dt{at} for \dt{mgpoint} for the double number
+of query \dt{gpoint} compared with the data model of free movement in space and
+on the other hand the test points out a weakness of the network data model
+implementation of the operation \op{at} for \dt{mgpoint}. But in the end network
+data model looses at scalefactor 1.0 less than 45 seconds in the OBA respectively less
+than 120 seconds in TBA, what is not much compared with the advantages in the
+other benchmark queries.
 
+Query 8 is a very fast query in both data models, although the query run time of
+the network data model is more than 50\% less than the query run time of the
+data model of free movement in two dimensional space. Which is caused by the
+$length$ attribute of the \dt{mgpoint} and the smaller number of units of a
+\dt{mgpoint} compared with the corresponding \dt{mpoint}.
+
+For query 9 the network data model outperforms the data model of free movement
+in space by orders of magnitudes the advantages named in the analysis of query 8's
+run time results become a much higher impact when the number of examined trips
+becomes bigger. At scalefactor 1.0 this saves more than 10 min time in the OBA and
+more than 50 min time in the TBA.
+
+The ratio of the run times of query 10 changes between the data amounts and the
+both data models. In the OBA and at scalefactor 1.0 in the TBA the network data
+model outperforms the data model of free movement in two dimensional space at
+all scale factors, while in the TBA at the two small databases the data model of
+free movement in two dimensional space outperforms the network data model significantly.
+Before our experiments we expected that the \bmodb{} would outperform the network
+data model in all cases, because of the expensive retranslation of intermediate
+results. So why is the network data model faster (>20 min in OBA and >3 min in TBA
+at scalefactor 1.0) than the data model of free movement in two dimensional space?
+In the OBA we use bounding boxes for a preselect of candidate trips that step is not
+performed in the \bmodb{}. In the TBA the results are only better for the big data
+amounts we think this is due to the fact that the number of units in \dt{mgpoint}
+values is always smaller than in \dt{mpoint} values such that the final aggregation
+of the different trips of the same cars can be done faster in the network data model
+than in the data model of free movement in two dimensional space.
+
+Query 11 is identically with the first part of query 12 so it is surprising that
+the run time of query 11 at scalefactor 1.0 is longer than the run time of query 12,
+which does additional computations. In our experiments with the different queries
+we have seen that there exist numerous cache effects depending on the sequence of
+the queries. So we think that query 12 takes profit cache effects resulting from
+query 11 running immediately before query 12. Another weakness of the network
+data model pointed out by the run times of query 11 and query 14 is that our
+network-temporal position index has bad run times for query $netbox$ objects constrained
+from a single \dt{gpoint} and a single time instant. Which becomes more worse
+with a higher number of indexed units. As you can see at query 15 this does not
+hold for query $netboxes$ constrained from a single \dt{gpoint} and a time interval.
+We have to spend some more work to figure out the problem and develop a better
+network-temporal position index to improve our network data model system.
+
+In our experiments we also tested the MON-Tree \cite{1046970} as network-temporal
+index but the elapsed run time performance was not good, although the CPU run times
+was very well.
+
+The bad performance of the network-temporal position index is also shown by query 13.
+The network data model outperforms the data model of free movement in two dimensional
+space significantly, but we don't use any index in the executable network data model
+queries, while the \bmodb{} uses its spatio-temporal index to preselect candidate
+trips. The same holds for query 17.
+
+The network data model version of query 16 takes profit from the smaller number
+of units in the network data model and outperforms the data model of free movement
+in two dimensional space.
+
+Although we detected in our experiments some points of weakness in the network-temporal
+position indexing, the network data model outperforms the data model of free movement in
+two dimensional space by orders of magnitudes. The weakness of the network data model
+almost occurs in queries with short run times, while the advantages of the network
+data model take place in the queries with long run times, such that the weakness of
+the network-temporal position index is covered by the advantages of the network
+data model.
 %\begin{figure}[H]
 %\begin{center}
 %   \includegraphics[width=1.0\textwidth]{compqueryruntimes.eps}
@@ -1074,29 +1186,31 @@ significantly changed by a little longer run time of query 12.
 %   \label{fig:compqueryruntimesall}
 %\end{center}
 %\end{figure}
-
 %\section{New BerlinMOD Queries}
 %\label{sec:newqueries}
 \section{Summary and Future Work}
 \label{sec:summary}
 We presented our translation of the \bmodb{} into the network data model and
 compared the capabilities of the both data models, with very good results for the
-network data model. Our experiments showed that the network data model outperforms
-the data model of free movement in the two dimesional space by orders of magnitudes
-with respect to storage space and query run times.
+network data model. Our experiments show that the network data model outperforms
+the data model of free movement in the two dimensional space by orders of magnitudes
+with respect to storage space and query run times. This is manly caused by the much
+lower number of units for a \dt{mgpoint} value compared with the number of units
+of the corresponding \dt{mpoint}, which also results in smaller indexes for the
+network data model objects. The \bmodb{} of the network data model pointed out
+that we should spend time in the improvement of the network-temporal position index
+and the \op{at} operation for \dt{mgpoint} and \dt{gpoint} values.
 
 The good results of the network data model encourages us to work on a extension
-of the \bmodb{} to enable us to compare the capabilities of different spatio-temporal
-network data models with respect to the special challenges of network data models,
-like shortest path and fastest path computation. Which will be presented in near
-future.
+of the \bmodb{}, which should enable us to compare the capabilities of different
+spatio-temporal network data models with respect to the special challenges of
+network data models, like shortest path and fastest path computation.
 
-Other directions of our actual work is data mining and aggregation in our network
-data model to examine traffic flow, and detect and represent traffic jams.
+Another direction of our actual work is traffic flow estimation and traffic jam
+representation in the network data model.
 
 Other interesting themes for future work on the network data models is the efficient
-computation of network distances especially between moving network objects.
-
+computation of dynamic network distances between moving network objects.
 \bibliography{BerlinMODAndNetworkDataModel}{}
 \bibliographystyle{plain}
 \end{document}
