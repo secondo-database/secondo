@@ -759,6 +759,10 @@ each node, and returns the result in ~result~. The ~message~ is "OPEN"[4],
 
   struct ValueInfo
   {
+    ValueInfo(): isConstant(false), isList(false),
+                algId(-1), typeId(-1), typeInfo(0),
+                value(Address(0))
+    { }
     bool isConstant;
     bool isList;
     int  algId;
