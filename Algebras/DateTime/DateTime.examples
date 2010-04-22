@@ -150,7 +150,7 @@ Operator : maxDuration
 Number   : 1
 Signature:  -> duration
 Example  : query maxDuration()
-Result   : (duration (2147483647 86399999))
+Result   : (duration (2147483647 0))
 
 
 Operator : maxInstant
