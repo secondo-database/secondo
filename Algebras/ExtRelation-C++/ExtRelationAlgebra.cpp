@@ -3152,43 +3152,43 @@ int RdupValueMapping(Word* args, Word& result, int message,
 
 struct RdupLocalInfo
 {
+  RdupLocalInfo(): localTuple(0),read(0),returned(0),stableValue(50),cmp1(){}
+  ~RdupLocalInfo(){
+    if(localTuple){
+      localTuple->DeleteIfAllowed();
+      localTuple=0;
+    }
+  }
   Tuple* localTuple;
   int read, returned, stableValue;
+  LexicographicalTupleCmpAlmost cmp1;
 };
 
 
 int RdupValueMapping(Word* args, Word& result, int message,
                      Word& local, Supplier s)
 {
-  Word tuple;
-  LexicographicalTupleCmpAlmost cmp1;
 
-  Tuple* currentTuple;
-  RdupLocalInfo* rli;
-
-  rli = (RdupLocalInfo*) local.addr;
-
-
-  Tuple* lastOutputTuple;
+  RdupLocalInfo* rli = (RdupLocalInfo*) local.addr;
 
   switch(message)
   {
-    case OPEN:
+    case OPEN: {
 
-      if ( rli ) delete rli;
-
-      rli = new RdupLocalInfo;
-      rli->read = 0;
-      rli->returned = 0;
-      rli->stableValue = 50;
-      rli->localTuple = 0;
+      if ( rli ) {
+         delete rli;
+      }
+      rli = new RdupLocalInfo();
       local.setAddr(rli);
-
       qp->Open(args[0].addr);
-
       return 0;
-
-    case REQUEST:
+    } case REQUEST: {
+      if(!rli){
+         return CANCEL;
+      }
+      Tuple* currentTuple;
+      Tuple* lastOutputTuple;
+      Word tuple;
 
       while(true)
       {
@@ -3199,13 +3199,12 @@ int RdupValueMapping(Word* args, Word& result, int message,
 
           rli->read++;
           if(rli->localTuple != 0)
-
           {
             // there is a last tuple
 
             currentTuple = (Tuple*)tuple.addr;
             lastOutputTuple = rli->localTuple;
-            if(cmp1(currentTuple, lastOutputTuple)!=0)
+            if(rli->cmp1(currentTuple, lastOutputTuple)!=0)
             {
               // tuples are not equal. Return the tuple
               // stored in local info and store the current one
@@ -3248,25 +3247,20 @@ int RdupValueMapping(Word* args, Word& result, int message,
           return CANCEL;
         }
       }
-    case CLOSE:
+    } case CLOSE: { 
       qp->Close(args[0].addr);
       return 0;
 
-    case CLOSEPROGRESS:
+    } case CLOSEPROGRESS: {
       if ( rli )
       {
-        if (rli->localTuple != 0 )
-        {
-          rli->localTuple->DeleteIfAllowed();
-          rli->localTuple = 0;
-        }
         delete rli;
         local.setAddr(0);
       }
       return 0;
 
 
-    case REQUESTPROGRESS:
+    } case REQUESTPROGRESS: {
       ProgressInfo p1;
       ProgressInfo* pRes;
       const double uRdup = 0.01;  // time per tuple
@@ -3280,7 +3274,7 @@ int RdupValueMapping(Word* args, Word& result, int message,
         pRes->CopySizes(p1);
         pRes->Time = p1.Time + p1.Card * uRdup * vRdup;
 
-  pRes->CopyBlocking(p1);    //non-blocking operator
+        pRes->CopyBlocking(p1);    //non-blocking operator
 
         if (rli) {
           if (rli->returned > rli->stableValue) {
@@ -3312,7 +3306,7 @@ int RdupValueMapping(Word* args, Word& result, int message,
       } else {
         return CANCEL;
       }
-
+    }
   }
   return 0;
 }
