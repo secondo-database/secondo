@@ -5808,193 +5808,193 @@ URegion::URegion(vector<MSegmentData> linelist, const Interval<Instant>& tiv) :
    SpatialTemporalUnit<Region, 3>(true),
    segments(0)
 {
-	Interval<Instant> newTiv;
-	newTiv.CopyFrom(tiv);
-  	uremb= URegionEmb(newTiv, 0);
-  	timeInterval = newTiv;
-//  	for(unsigned int i = 0; i < linelist.size(); i++)
-//  	{
-//  		MSegmentData newSeg = MSegmentData(linelist[i]);
-//  		cout<<i<<"  :"<<linelist[i].ToString()<<endl;
-////  		AddSegment(linelist[i]);
-//  	}
-//  	assert(false);
-	while(linelist.size() > 0)
-	{
-		int index = getLeftLower(linelist);
-		MSegmentData first = linelist[index];
+  Interval<Instant> newTiv;
+  newTiv.CopyFrom(tiv);
+    uremb= URegionEmb(newTiv, 0);
+    timeInterval = newTiv;
+//    for(unsigned int i = 0; i < linelist.size(); i++)
+//    {
+//      MSegmentData newSeg = MSegmentData(linelist[i]);
+//      cout<<i<<"  :"<<linelist[i].ToString()<<endl;
+////      AddSegment(linelist[i]);
+//    }
+//    assert(false);
+  while(linelist.size() > 0)
+  {
+    int index = getLeftLower(linelist);
+    MSegmentData first = linelist[index];
 #ifdef MR_DEBUG
-		cout<<index<<endl;
-		cout<<first.ToString()<<endl;
+    cout<<index<<endl;
+    cout<<first.ToString()<<endl;
 #endif
-		int counter = 1;
-		AddSegment(MSegmentData(linelist[index].GetFaceNo(),
-		   linelist[index].GetCycleNo(), counter, true,
-		   linelist[index].GetInitialStartX(),
-		   linelist[index].GetInitialStartY(),
-		   linelist[index].GetInitialEndX(),
-		   linelist[index].GetInitialEndY(),
-		   linelist[index].GetFinalStartX(),
-		   linelist[index].GetFinalStartY(),
-		   linelist[index].GetFinalEndX(),
-		   linelist[index].GetFinalEndY()));
-		linelist.erase(linelist.begin() + index);
-		index = findNextToRight(linelist, first);
-		MSegmentData next = linelist[index];
-		AddSegment(next);
+    int counter = 1;
+    AddSegment(MSegmentData(linelist[index].GetFaceNo(),
+       linelist[index].GetCycleNo(), counter, true,
+       linelist[index].GetInitialStartX(),
+       linelist[index].GetInitialStartY(),
+       linelist[index].GetInitialEndX(),
+       linelist[index].GetInitialEndY(),
+       linelist[index].GetFinalStartX(),
+       linelist[index].GetFinalStartY(),
+       linelist[index].GetFinalEndX(),
+       linelist[index].GetFinalEndY()));
+    linelist.erase(linelist.begin() + index);
+    index = findNextToRight(linelist, first);
+    MSegmentData next = linelist[index];
+    AddSegment(next);
 #ifdef MR_DEBUG
-		cout<<"Next: "<<next.ToString()<<endl;
+    cout<<"Next: "<<next.ToString()<<endl;
 #endif
-		counter = 2;
-		while(1 == 1)
-		{
-			MSegmentData nextins;
-			if(matchesLeft(next, linelist[index]) || counter == 1)
-			{
+    counter = 2;
+    while(1 == 1)
+    {
+      MSegmentData nextins;
+      if(matchesLeft(next, linelist[index]) || counter == 1)
+      {
                nextins = MSegmentData(linelist[index].GetFaceNo(),
-				   linelist[index].GetCycleNo(), counter, true,
-				   linelist[index].GetInitialStartX(),
-				   linelist[index].GetInitialStartY(),
-				   linelist[index].GetInitialEndX(),
-				   linelist[index].GetInitialEndY(),
-				   linelist[index].GetFinalStartX(),
-				   linelist[index].GetFinalStartY(),
-				   linelist[index].GetFinalEndX(),
-				   linelist[index].GetFinalEndY());
-			}
-			else
-			{
+           linelist[index].GetCycleNo(), counter, true,
+           linelist[index].GetInitialStartX(),
+           linelist[index].GetInitialStartY(),
+           linelist[index].GetInitialEndX(),
+           linelist[index].GetInitialEndY(),
+           linelist[index].GetFinalStartX(),
+           linelist[index].GetFinalStartY(),
+           linelist[index].GetFinalEndX(),
+           linelist[index].GetFinalEndY());
+      }
+      else
+      {
                nextins = MSegmentData(linelist[index].GetFaceNo(),
-				   linelist[index].GetCycleNo(), counter, false,
-				   linelist[index].GetInitialEndX(),
-				   linelist[index].GetInitialEndY(),
-				   linelist[index].GetInitialStartX(),
-				   linelist[index].GetInitialStartY(),
-				   linelist[index].GetFinalEndX(),
-				   linelist[index].GetFinalEndY(),
-				   linelist[index].GetFinalStartX(),
-				   linelist[index].GetFinalStartY());
-			}
-			next=linelist[index];
-			AddSegment(nextins);
-			linelist.erase(linelist.begin() + index);
-			index=findNext(linelist, next);
+           linelist[index].GetCycleNo(), counter, false,
+           linelist[index].GetInitialEndX(),
+           linelist[index].GetInitialEndY(),
+           linelist[index].GetInitialStartX(),
+           linelist[index].GetInitialStartY(),
+           linelist[index].GetFinalEndX(),
+           linelist[index].GetFinalEndY(),
+           linelist[index].GetFinalStartX(),
+           linelist[index].GetFinalStartY());
+      }
+      next=linelist[index];
+      AddSegment(nextins);
+      linelist.erase(linelist.begin() + index);
+      index=findNext(linelist, next);
 #ifdef MR_DEBUG
-			cout<<index<<endl;
-						cout<<nextins.ToString()<<endl;
+      cout<<index<<endl;
+            cout<<nextins.ToString()<<endl;
 #endif
-			if(matches(first, next) && counter > 2)
-			{
+      if(matches(first, next) && counter > 2)
+      {
 #ifdef MR_DEBUG
-				cout<<" true"<<endl;
-				cout<<first.ToString()<<endl;
-				cout<<next.ToString()<<endl;
+        cout<<" true"<<endl;
+        cout<<first.ToString()<<endl;
+        cout<<next.ToString()<<endl;
 #endif
-				break;
-			}
-			else
-			{
+        break;
+      }
+      else
+      {
 #ifdef MR_DEBUG
-				cout<<" false"<<endl;
+        cout<<" false"<<endl;
 #endif
-			}
-			if(index == -1)
-			{
+      }
+      if(index == -1)
+      {
 #ifdef MR_DEBUG
                for(unsigned int i = 0; i < linelist.size(); i++)
-  				{
+          {
                    cout<<i<<"  :"<<linelist[i].ToString()<<endl;
-  				}
-  				cout<<"gesucht: "<<next.ToString()<<endl;
+          }
+          cout<<"gesucht: "<<next.ToString()<<endl;
 #endif
-  				linelist.erase(linelist.begin()+index);
-  				break;
-			}
-			counter++;
-		}
-	}
-  	SetDefined(true);
+          linelist.erase(linelist.begin()+index);
+          break;
+      }
+      counter++;
+    }
+  }
+    SetDefined(true);
 }
 
 int URegion :: getLeftLower(const vector<MSegmentData> &linelist)
 {
-	int res = 0;
-	for(unsigned int i = 1; i < linelist.size(); i++)
-	{
-		Point leftIs = Point(true, linelist[res]. GetInitialStartX(),
-		   linelist[res].GetInitialStartY());
-		Point leftIe = Point(true, linelist[res].GetInitialEndX(),
-		   linelist[res].GetInitialEndY());
-		Point leftFs = Point(true, linelist[res].GetFinalStartX(),
-		   linelist[res].GetFinalStartY());
-		Point leftFe = Point(true, linelist[res].GetFinalEndX(),
-		   linelist[res].GetFinalEndY());
-		Point llIs = Point(true, linelist[i].GetInitialStartX(),
-		   linelist[i].GetInitialStartY());
-		Point llIe = Point(true, linelist[i].GetInitialEndX(),
-		   linelist[i].GetInitialEndY());
-		Point llFs = Point(true, linelist[i].GetFinalStartX(),
-		   linelist[i].GetFinalStartY());
-		Point llFe = Point(true, linelist[i].GetFinalEndX(),
-		   linelist[i].GetFinalEndY());
+  int res = 0;
+  for(unsigned int i = 1; i < linelist.size(); i++)
+  {
+    Point leftIs = Point(true, linelist[res]. GetInitialStartX(),
+       linelist[res].GetInitialStartY());
+    Point leftIe = Point(true, linelist[res].GetInitialEndX(),
+       linelist[res].GetInitialEndY());
+    Point leftFs = Point(true, linelist[res].GetFinalStartX(),
+       linelist[res].GetFinalStartY());
+    Point leftFe = Point(true, linelist[res].GetFinalEndX(),
+       linelist[res].GetFinalEndY());
+    Point llIs = Point(true, linelist[i].GetInitialStartX(),
+       linelist[i].GetInitialStartY());
+    Point llIe = Point(true, linelist[i].GetInitialEndX(),
+       linelist[i].GetInitialEndY());
+    Point llFs = Point(true, linelist[i].GetFinalStartX(),
+       linelist[i].GetFinalStartY());
+    Point llFe = Point(true, linelist[i].GetFinalEndX(),
+       linelist[i].GetFinalEndY());
         if(leftIs.GetX()>llIs.GetX() || (AlmostEqual(leftIs.GetX(),llIs.GetX()&&
-		   leftIs.GetY() > llIs.GetY())))
-		{
-			res = i;
-			continue;
-		}
-		if(AlmostEqual(leftIs, llIs))
-		{
-			if((leftIe.GetY() > llIe.GetY()) ||
-			   ((AlmostEqual(leftIe.GetY(), llIe.GetY())) &&
-			   (leftIe.GetX() > llIe.GetX())))
-			{
-				res = i;
-				continue;
-			}
-			if(AlmostEqual(leftIe, llIe))
-			{
-				if(leftFs > llFs)
-				{
-					res = i;
-					continue;
-				}
-				if(AlmostEqual(leftFs, llFs))
-				{
-					if((leftFe.GetY() > llFe.GetY()) ||
+       leftIs.GetY() > llIs.GetY())))
+    {
+      res = i;
+      continue;
+    }
+    if(AlmostEqual(leftIs, llIs))
+    {
+      if((leftIe.GetY() > llIe.GetY()) ||
+         ((AlmostEqual(leftIe.GetY(), llIe.GetY())) &&
+         (leftIe.GetX() > llIe.GetX())))
+      {
+        res = i;
+        continue;
+      }
+      if(AlmostEqual(leftIe, llIe))
+      {
+        if(leftFs > llFs)
+        {
+          res = i;
+          continue;
+        }
+        if(AlmostEqual(leftFs, llFs))
+        {
+          if((leftFe.GetY() > llFe.GetY()) ||
                        ((AlmostEqual(leftFe.GetY(), llFe.GetY())) &&
-					   (leftFe.GetX() > llFe.GetX())))
-					{
-						res = i;
-						continue;
-					}
-				}
-			}
-		}
-	}
-	return(res);
+             (leftFe.GetX() > llFe.GetX())))
+          {
+            res = i;
+            continue;
+          }
+        }
+      }
+    }
+  }
+  return(res);
 }
 
 int URegion :: findNext(const vector<MSegmentData> &linelist,
    const MSegmentData dms)
 {
-	for(unsigned int i = 0; i < linelist.size(); i++)
-	{
-		if(matches(linelist[i], dms))
-			return(i);
-	}
-	return(-1);
+  for(unsigned int i = 0; i < linelist.size(); i++)
+  {
+    if(matches(linelist[i], dms))
+      return(i);
+  }
+  return(-1);
 }
 
 int URegion :: findNextToRight(const vector<MSegmentData> &linelist,
    const MSegmentData dms)
 {
-	for(unsigned int i = 0; i < linelist.size(); i++)
-	{
-		if(matchesToRight(dms, linelist[i]))
-			return(i);
-	}
-	return(-1);
+  for(unsigned int i = 0; i < linelist.size(); i++)
+  {
+    if(matchesToRight(dms, linelist[i]))
+      return(i);
+  }
+  return(-1);
 }
 
 bool URegion :: matches(const MSegmentData &dms1, const MSegmentData &dms2)
@@ -6134,17 +6134,17 @@ void URegion :: AddURegion(URegion *newRegion)
 
 void URegion::AddSegment(MSegmentData newSeg)
 {
-	uremb.PutSegment(&segments, segments.Size(), newSeg, true);
-	if (uremb.BoundingBox().IsDefined())
-	{
+  uremb.PutSegment(&segments, segments.Size(), newSeg, true);
+  if (uremb.BoundingBox().IsDefined())
+  {
         double min[3] =
            { uremb.BoundingBox().MinD(0),
-           	 uremb.BoundingBox().MinD(1),
-           	 uremb.BoundingBox().MinD(2) };
+              uremb.BoundingBox().MinD(1),
+              uremb.BoundingBox().MinD(2) };
         double max[3] =
            { uremb.BoundingBox().MaxD(0),
-           	 uremb.BoundingBox().MaxD(1),
-           	 uremb.BoundingBox().MaxD(2) };
+              uremb.BoundingBox().MaxD(1),
+              uremb.BoundingBox().MaxD(2) };
         if (newSeg.GetInitialStartX() < min[0])
             min[0] = newSeg.GetInitialStartX();
         if (newSeg.GetFinalStartX() < min[0])
@@ -6177,7 +6177,7 @@ void URegion::AddSegment(MSegmentData newSeg)
               ? newSeg.GetInitialStartY() : newSeg.GetFinalStartY(),
               uremb.timeInterval.end.ToDouble() };
         uremb.SetBBox(Rectangle<3>(true, min, max));
-	}
+  }
 }
 
 URegion::URegion(int i, MRegion& mr):segments(0) {
