@@ -303,7 +303,7 @@ QueryProcessor::QueryProcessor( NestedList* newNestedList,
     traceMode( false ), traceNodes( false )
 {
   values.resize( MAXVALUES );
-  argVectors.resize( MAXFUNCTIONS );
+  argVectors.resize( MAXFUNCTIONS,0 );
 
   // It would be nice if the query processor could manage the
   // memory allocated during processing a query. Operators which
@@ -320,6 +320,15 @@ QueryProcessor::~QueryProcessor()
     delete progressView;
     progressView = 0;
   }
+  // delete remaining argvectors
+  for(unsigned int i = 0; i< argVectors.size(); i++){
+    if(argVectors[i]){
+       delete argVectors[i];
+       argVectors[i] = 0;
+    }
+  }
+
+
 }
 
 void
@@ -340,7 +349,7 @@ QueryProcessor::AllocateArgVectors( int idx )
   if ( idx >= size )
   {
     size = idx + MAXFUNCTIONS;
-    argVectors.resize( size );
+    argVectors.resize( size,0 );
   }
 }
 
@@ -2654,6 +2663,9 @@ QueryProcessor::SubtreeX( const ListExpr expr )
   AllocateArgVectors( functionno );
   for ( int i = 0; i < functionno; i++)
   {
+    if(argVectors[i]){
+      delete argVectors[i];
+    }
     argVectors[i] = (ArgVectorPointer) new ArgVector;
     for ( int j = 0; j < MAXARG; j++ )
     {
@@ -3263,7 +3275,9 @@ Deletes an operator tree object.
         } /* for */
         if ( tree->u.op.isFun )
         {
-          delete tree->u.op.funArgs;
+          //delete tree->u.op.funArgs; // deleted by queryprocessor destructor 
+          // u.op.funArgs = 0;
+          ; 
         }
         if ( (tree->u.op.resultAlgId != 0) &&
              ( (tree->u.op.isFun && destroyRootValue) ||
