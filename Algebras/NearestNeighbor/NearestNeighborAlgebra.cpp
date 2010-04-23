@@ -71,6 +71,7 @@ in a R-Tree. A new datatype is not given but there are some operators:
 #include "TBTree.h"
 #include "ListUtils.h"
 #include "CoverInterval.h"
+#include "AlmostEqual.h"
 
 
 using namespace tbtree;
@@ -2111,8 +2112,8 @@ bool intersects( MReal* m1, MReal* m2, Instant &start, Instant& result,
         r2 = -1;  //there is only one result
       }
       if( r1 > r2 ){ swap( r1, r2 );}
-      if( abs(r1 - r2) < 0.000000001
-        && (u1.a==0 && u2.a!=0 || u2.a==0 && u1.a!=0))
+      if( (abs(r1 - r2) < 0.000000001)
+        && ( (u1.a==0 && u2.a!=0) || (u2.a==0 && u1.a!=0) ))
       {
         //straight line intersects curve in one point, only boundary point
         r1 = -1;

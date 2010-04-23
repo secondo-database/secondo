@@ -7,8 +7,8 @@
 
 [1] Picture Algebra: Class Definitions
 
-Dezember 2004 Christian Bohnbuck, Uwe Hartmann, Marion Langen and Holger 
-M[ue]nx during Prof. G[ue]ting's practical course 
+Dezember 2004 Christian Bohnbuck, Uwe Hartmann, Marion Langen and Holger
+M[ue]nx during Prof. G[ue]ting's practical course
 'Extensible Database Systems' at Fernuniversit[ae]t Hagen.
 
 December 2005, Victor Almeida deleted the deprecated algebra levels
@@ -22,7 +22,7 @@ level remains. Models are also removed from type constructors.
 See the documentation of ~PictureAlgebra.h~ for a general introduction to
 the Picture algebra.
 
-This module contains all code related to creating 
+This module contains all code related to creating
 the Picture algebra itself. Code relating to the implementation of
 SECONDO types ~picture~ and ~histogram~ are located in other modules.
 
@@ -56,24 +56,24 @@ enum Picture2ScalarTypeMapReturnType { P2STM_INT, P2STM_BOOL, P2STM_STRING };
 
 template<Picture2ScalarTypeMapReturnType returnType>
 static ListExpr Picture2ScalarTypeMap(ListExpr args) {
-    if (PA_DEBUG) 
-        cerr << "Picture2ScalarTypeMap() called with returnType=" 
+    if (PA_DEBUG)
+        cerr << "Picture2ScalarTypeMap() called with returnType="
              << returnType
              << endl;
 
-    if (PA_DEBUG) 
-        cerr << "Picture2ScalarTypeMap() nl->ListLength(args)=" 
+    if (PA_DEBUG)
+        cerr << "Picture2ScalarTypeMap() nl->ListLength(args)="
              << nl->ListLength(args)
              << endl;
-    if (PA_DEBUG) 
-        cerr << "Picture2ScalarTypeMap() nl->First(args)=" 
+    if (PA_DEBUG)
+        cerr << "Picture2ScalarTypeMap() nl->First(args)="
              << nl->First(args)
              << endl;
 
     if (nl->ListLength(args) == 1) {
         if (nl->IsEqual(nl->First(args), "picture")) {
             if (PA_DEBUG) cerr << "Picture2ScalarTypeMap() #1" << endl;
-    
+
             if (returnType == P2STM_INT)
                 return nl->SymbolAtom("int");
             else if (returnType == P2STM_BOOL)
@@ -82,13 +82,13 @@ static ListExpr Picture2ScalarTypeMap(ListExpr args) {
                 return nl->SymbolAtom("string");
         } else {
             if (PA_DEBUG) cerr << "Picture2ScalarTypeMap() #2" << endl;
-    
+
             string lexpr;
             nl->WriteToString(lexpr, nl->First(args));
             ErrorReporter::ReportError(
                 "expected 'picture' argument but received '"+lexpr+"'");
         }
-    } else 
+    } else
         ErrorReporter::ReportError(
             "expected only one argument but received "
             +nl->ListLength(args));
@@ -261,7 +261,7 @@ static const string pictureExportSpec =
 5 External declarations
 
 Numerous functions and the type constructors are implemented in other modules
-for better structure. As these are used in this module only, we do not 
+for better structure. As these are used in this module only, we do not
 provide these declarations in PictureAlgebra.h but directly in this section.
 
 Each of the following sub-sections contain the declarations for one module.
@@ -585,7 +585,7 @@ class PictureAlgebra: public Algebra {
 public:
     PictureAlgebra() : Algebra() {
         if (PA_DEBUG) cerr << "initializing PictureAlgebra" << endl;
-        initPicture(); 
+        initPicture();
         AddTypeConstructor(picture);
         initHistogram();
         AddTypeConstructor(histogram);
@@ -615,11 +615,11 @@ public:
     ~PictureAlgebra() {}
 };
 
-extern "C" 
+extern "C"
 Algebra* InitializePictureAlgebra(NestedList* nlPar, QueryProcessor *qpPar) {
     nl = nlPar;
     qp = qpPar;
-    cerr << "sizeof(Histogram) = " << sizeof(Histogram) << endl;
-    cerr << "sizeof(Picture) = " << sizeof(Picture) << endl;
+//     cerr << "sizeof(Histogram) = " << sizeof(Histogram) << endl;
+//     cerr << "sizeof(Picture) = " << sizeof(Picture) << endl;
     return new PictureAlgebra();
 }

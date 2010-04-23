@@ -242,6 +242,7 @@ definitions of our four classes: ~CcInt~, ~CcReal~, ~CcBool~, ~CcString~.
 #include "RelationAlgebra.h"
 #include "GenOps.h"
 #include "ListUtils.h"
+#include "AlmostEqual.h"
 
 extern NestedList* nl;
 extern QueryProcessor *qp;
@@ -506,7 +507,7 @@ InCcReal( ListExpr typeInfo, ListExpr value,
   if(listutils::isSymbol(value,"undef")){ // undefined
     correct=true;
     return SetWord(new CcReal(false,0.0));
-  } 
+  }
   if(listutils::isNumeric(value)){
     correct=true;
     return SetWord(new CcReal(true, listutils::getNumValue(value)));
@@ -821,7 +822,7 @@ InCcString( ListExpr typeInfo, ListExpr value,
     correct = true;
     string s = nl->StringValue( value );
     CcString* cs = new CcString( true, (STRING_T*)s.c_str() );
-    //cs->ShowMem(); 
+    //cs->ShowMem();
     return SetWord( cs );
   }
   else if ( nl->IsAtom( value ) && nl->AtomType( value ) == SymbolType
@@ -1345,7 +1346,7 @@ ListExpr ifthenelse2Type(ListExpr args)
 
     if (nl->Equal(arg2, arg3) && listutils::isSymbol(arg1,"bool"))
     {
-      if ( IsRelDescription(arg2) || IsRelDescription(arg2, true) )	    
+      if ( IsRelDescription(arg2) || IsRelDescription(arg2, true) )
         return arg2;
     }
   }
@@ -3062,18 +3063,18 @@ ifthenelse2Fun(Word* args, Word& result, int message, Word& local, Supplier s)
 
     qp->DeleteResultStorage(s);
 
-    if ( qp->IsOperatorNode(qp->GetSon(s, index)) 
-	   && !qp->IsFunctionNode(qp->GetSon(s, index)) ) 
+    if ( qp->IsOperatorNode(qp->GetSon(s, index))
+	   && !qp->IsFunctionNode(qp->GetSon(s, index)) )
     {
-      qp->ChangeResultStorage(s, res);    
+      qp->ChangeResultStorage(s, res);
       qp->ReInitResultStorage(qp->GetSon(s,index));
-    } 
-    else 
+    }
+    else
     {
       Relation* r = static_cast<Relation*>( res.addr );
-      qp->ChangeResultStorage(s, SetWord(r->Clone()) );      
-    } 	    
-    result = qp->ResultStorage(s); 
+      qp->ChangeResultStorage(s, SetWord(r->Clone()) );
+    }
+    result = qp->ResultStorage(s);
     return 0;
 }
 
@@ -3164,12 +3165,12 @@ CcSqrt( Word* args, Word& result, int message, Word& local, Supplier s )
 }
 
 /*
-4.22 Value mapping function of operator ~length~ 
+4.22 Value mapping function of operator ~length~
 
 */
 
 int
-CcLengthvaluemap( Word* args, Word& result, int message, 
+CcLengthvaluemap( Word* args, Word& result, int message,
                   Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );

@@ -134,6 +134,7 @@ This file contains the implementation of the stream operators.
 #include "NList.h"
 #include "ListUtils.h"
 #include "Progress.h"
+#include "AlmostEqual.h"
 
 extern NestedList* nl;
 extern QueryProcessor* qp;
@@ -3848,7 +3849,7 @@ intstreamValueMap(Word* args, Word& result,
       ProgressInfo* pRes = (ProgressInfo*) result.addr;
       if(!range){
          return CANCEL;
-      } 
+      }
 
       if( !range->initializedprogress ){
         pRes->sizesChanged = true;             //first call

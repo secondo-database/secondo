@@ -91,7 +91,7 @@ OK  +                                     uT --> (stream uT)
       at:     For T in {bool, int, string, point, region*}
 OK  +       uT x       T --> (stream uT)     as intersection: uT x T
 OK       ureal x    real --> (stream ureal)  as intersection: ureal  x real
-OK  +   upoint x  region --> (stream upoint) as intersection: upoint x uregion
+OK  +   upoint x  region --> (stream upoint) as intersection: upoint x region
 
       distance:  T in {int, point}
 OK  -           uT x    uT --> ureal
@@ -6126,6 +6126,97 @@ int temporalUnitIntersection_upoint_uregion( Word* args, Word& result,
   return 0;
 }
 
+// For signatures
+//     (upoint  region) -> (stream upoint) (with <0>)
+//     (region  upoint) -> (stream upoint) (with <1>)
+
+struct TUIntersectionUPointRegionLocalInfo
+{
+  TUIntersectionUPointRegionLocalInfo() :
+      finished(true), NoOfResults(0), NoOfResultsDelivered(0)
+  { results.clear(); }
+
+  ~TUIntersectionUPointRegionLocalInfo() {}
+
+  bool finished;
+  int  NoOfResults;
+  int  NoOfResultsDelivered;
+  vector<UPoint> results;
+};
+
+template<int uargindex>
+int temporalUnitIntersection_upoint_region( Word* args, Word& result,
+                                            int message,
+                                            Word& local, Supplier s )
+{
+  TUIntersectionUPointRegionLocalInfo *sli =
+    static_cast<TUIntersectionUPointRegionLocalInfo*>(local.addr);
+  Word    a0, a1;
+  UPoint  *u = 0;
+  Region  *r = 0;
+  UPoint cu;
+
+  switch( message )
+    {
+    case OPEN:
+
+      if(sli){
+        delete sli;
+      }
+      sli = new TUIntersectionUPointRegionLocalInfo;
+      local.setAddr(sli);
+
+      // initialize arguments, such that a0 always contains the upoint
+      //                       and a1 the uregion/region
+      if (uargindex == 0) {
+        a0 = args[0]; a1 = args[1];
+      } else if (uargindex == 1) {
+        a0 = args[1]; a1 = args[0];
+      } else {
+        cerr << __PRETTY_FUNCTION__ << ": WRONG uargindex!" << endl;
+        return -1;
+      }
+      u = static_cast<UPoint*>(a0.addr);
+      r = static_cast<Region*>(a1.addr);
+      // test for definedness
+      if ( u->IsDefined() && r->IsDefined() ){
+        if(u->AtRegion(r, sli->results)) {
+          sli->NoOfResults = sli->results.size();
+          sli->finished = (sli->NoOfResults <= 0);
+        } else {
+          cerr << __PRETTY_FUNCTION__ << ": INFO: UPoint::AtRegion failed!"
+               << endl;
+        }
+      }
+      return 0;
+
+    case REQUEST:
+
+      if(    !sli
+          || sli->finished
+          || (sli->NoOfResultsDelivered >= sli->NoOfResults)
+        ){
+        sli->finished = true;
+        return CANCEL;
+      } else {
+        result.setAddr(sli->results[sli->NoOfResultsDelivered].Clone());
+        sli->NoOfResultsDelivered++;
+        return YIELD;
+      }
+
+    case CLOSE:
+
+      if (sli) {
+        delete sli;
+        local.setAddr(0);
+      }
+      return 0;
+    } // end switch
+
+  cerr << __PRETTY_FUNCTION__ << ": Received UNKNOWN COMMAND" << endl;
+  return 0;
+}
+
 template<int uargindex>
 int temporalUnitIntersection_uregion_region( Word* args, Word& result,
                                              int message,
@@ -6196,8 +6287,8 @@ ValueMapping temporalunitintersectionmap[] =
     temporalUnitIntersection_upoint_uregion<0, true>,
     temporalUnitIntersection_upoint_uregion<1, true>,
 
-    temporalUnitIntersection_upoint_uregion<0, false>,
-    temporalUnitIntersection_upoint_uregion<1, false>// 20
+    temporalUnitIntersection_upoint_region<0>,
+    temporalUnitIntersection_upoint_region<1>        // 20
   };
 
 int temporalunitIntersectionSelect( ListExpr args )
@@ -6431,7 +6522,7 @@ ValueMapping temporalunitatmap[] = {
   temporalUnitIntersection_upoint_point<0>,                   //3
   temporalUnitIntersection_CU_C< UString, CcString, 0 >,      //4
   temporalUnitIntersection_uregion_region<0>,                 //5
-  temporalUnitIntersection_upoint_uregion<0, false>,         //6
+  temporalUnitIntersection_upoint_region<0>,                  //6
   AtUpR};                                                     //7
 
 /*
@@ -9073,222 +9164,6 @@ template<int opcode>
   }
   return -1;
 }
-        /*
-template<int opcode>
-int TU_VM_ComparePredicateValue_UReal(Word* args, Word& result,
-                                      int message, Word& local, Supplier s)
-{
-  UReal *u1  = (UReal*) args[0].addr;
-  UReal *u2  = (UReal*) args[1].addr;
-  UReal un1(true), un2(true);
-  UBool cu;
-  UBool newunit(true);
-  TUCompareValueLocalInfo *localinfo;
-  Interval<Instant>
-     iv(DateTime(0,0,instanttype), DateTime(0,0,instanttype), false, false),
-     ivnew(DateTime(0,0,instanttype), DateTime(0,0,instanttype), false, false);
-  Interval<Instant> actIntv;
-  Instant
-     start(instanttype),
-     end(instanttype),
-     testInst(instanttype);
-  Periods *eqPeriods;
-  int i, numEq, cmpres;
-  bool compresult, lc;
-  CcReal fccr1(true, 0.0), fccr2(true,0.0);
-
-  switch (message)
-  {
-    case OPEN:
-      localinfo = new TUCompareValueLocalInfo;
-      local.setAddr(localinfo);
-      localinfo->finished = true;
-      localinfo->NoOfResults = 0;
-      localinfo->NoOfResultsDelivered = 0;
-      localinfo->intersectionBool = new MBool(5);
-      localinfo->intersectionBool->Clear();
-
-      if ( !u1->IsDefined() ||
-           !u2->IsDefined() ||
-           !u1->timeInterval.Intersects(u2->timeInterval) )
-      { // no result
-//      cout << "TU_VM_ComparePredicateValue_UReal: No Result." << endl;
-        return 0;
-      }
-      // common deftime --> some result exists
-      u1->timeInterval.Intersection(u2->timeInterval, iv);
-      u1->AtInterval(iv, un1);
-      u2->AtInterval(iv, un2);
-//    cout << "  un1="; un1.Print(cout) ; cout << endl;
-//    cout << "  un2="; un2.Print(cout) ; cout << endl;
-      if ( un1.r == un2.r &&
-           AlmostEqual(un1.a, un2.a) &&
-           AlmostEqual(un1.b, un2.b) &&
-           AlmostEqual(un1.c, un2.c)
-         )
-      { // equal ureals return single unit: TRUE for =, <=, >=; FALSE otherwise
-//      cout << "TU_VM_ComparePredicateValue_UReal: Total Equality" << endl;
-        compresult = (opcode == 0 || opcode == 4 || opcode == 5);
-        newunit = UBool(iv, CcBool(true, compresult));
-        localinfo->intersectionBool->StartBulkLoad();
-        localinfo->intersectionBool->Add(newunit);
-        localinfo->intersectionBool->EndBulkLoad();
-        localinfo->NoOfResults++;
-        localinfo->finished = false;
-        return 0;
-      }
-      eqPeriods = new Periods(4);
-      un1.PeriodsAtEqual(un2, *eqPeriods); // only intervals of length
-      numEq = eqPeriods->GetNoComponents();// 1 instant herein (start==end)
-//    cout << "  numEq=" << numEq << endl;
-      if ( numEq == 0 )
-      { // special case: no equality -> only one result unit
-//      cout << "TU_VM_ComparePredicateValue_UReal: Single Result." << endl;
-        testInst = TU_GetMidwayInstant(iv.start, iv.end);
-        un1.TemporalFunction(testInst, fccr1, false);
-        un2.TemporalFunction(testInst, fccr2, false);
-        cmpres = fccr1.Compare( &fccr2 );
-        compresult = ( (opcode == 0 && cmpres == 0) ||   // ==
-                       (opcode == 1 && cmpres != 0) ||   // #
-                       (opcode == 2 && cmpres  < 0) ||   // <
-                       (opcode == 3 && cmpres  > 0) ||   // >
-                       (opcode == 4 && cmpres <= 0) ||   // <=
-                       (opcode == 5 && cmpres >= 0)    );// >=
-        newunit = UBool(iv, CcBool(true, compresult));
-        localinfo->intersectionBool->StartBulkLoad();
-        localinfo->intersectionBool->Add(newunit);
-        localinfo->intersectionBool->EndBulkLoad();
-        localinfo->NoOfResults++;
-        localinfo->finished = false;
-        delete eqPeriods;
-        return 0;
-      }
-      // case: numEq > 0, at least one instant of equality
-      // iterate the Periods and create result units
-      // UBool::MergeAdd() will merge units with common value
-      // for <= and >=
-//    cout << "TU_VM_ComparePredicateValue_UReal: Multiple Results." << endl;
-      localinfo->intersectionBool->StartBulkLoad();
-      start = iv.start;   // the ending instant for the next interval
-      lc = iv.lc;
-      i = 0;              // counter for instants of equality
-      eqPeriods->Get(i, actIntv);
-      // handle special case: first equality in first instant
-      if (start == actIntv.start)
-      {
-//      cout << "TU_VM_ComparePredicateValue_UReal: Handling start...";
-        if (iv.lc)
-        {
-//        cout << " required." << endl;
-          un1.TemporalFunction(un1.timeInterval.start, fccr1, false);
-          un2.TemporalFunction(un2.timeInterval.start, fccr2, false);
-          cmpres = fccr1.Compare( &fccr2 );
-          compresult = ( (opcode == 0 && cmpres == 0) ||
-                         (opcode == 1 && cmpres != 0) ||
-                         (opcode == 2 && cmpres  < 0) ||
-                         (opcode == 3 && cmpres  > 0) ||
-                         (opcode == 4 && cmpres <= 0) ||
-                         (opcode == 5 && cmpres >= 0)    );
-          ivnew = Interval<Instant>(start, start, true, true);
-          newunit = UBool(ivnew, CcBool(true, compresult));
-          localinfo->intersectionBool->Add(newunit);
-//        cout << "TU_VM_ComparePredicateValue_UReal: Added initial"
-//             << i << endl;
-          lc = false;
-        } // else: equal instant not in interval!
-//      else
-//        cout << " not required." << endl;
-        i++;
-      }
-      while ( i < numEq )
-      {
-//      cout << "TU_VM_ComparePredicateValue_UReal: Pass i=" << i << endl;
-        eqPeriods->Get(i, actIntv);
-//      if(actIntv.start != actIntv.end)
-//      {
-//        cout << "Something's wrong with actIntv!" << endl;
-//      }
-        end = actIntv.start;
-//      cout << "  start=" << start.ToString()
-//           << "  end="   << end.ToString()   << endl;
-        ivnew = Interval<Instant>(start, end, lc, false);
-        testInst = TU_GetMidwayInstant(start, end);
-        un1.TemporalFunction(testInst, fccr1, false);
-        un2.TemporalFunction(testInst, fccr2, false);
-        cmpres = fccr1.Compare( &fccr2 );
-        compresult = ( (opcode == 0 && cmpres == 0) ||
-                       (opcode == 1 && cmpres != 0) ||
-                       (opcode == 2 && cmpres  < 0) ||
-                       (opcode == 3 && cmpres  > 0) ||
-                       (opcode == 4 && cmpres <= 0) ||
-                       (opcode == 5 && cmpres >= 0)    );
-        newunit = UBool(ivnew, CcBool(true, compresult));
-        localinfo->intersectionBool->MergeAdd(newunit);
-//      cout << "TU_VM_ComparePredicateValue_UReal: Added regular" << i << endl;
-        if ( !(end == iv.end) || iv.rc )
-        {
-//        cout << "TU_VM_ComparePredicateValue_UReal: rc==true" << endl;
-          ivnew = Interval<Instant>(end, end, true, true);
-          compresult = (opcode == 0 || opcode == 4 || opcode == 5);
-          newunit = UBool(ivnew, CcBool(true, compresult));
-          localinfo->intersectionBool->MergeAdd(newunit);
-        }
-        start = end;
-        i++;
-        lc = false;
-      }
-      if ( start < iv.end )
-      { // handle teq[numEq-1] < iv.end
-        ivnew = Interval<Instant>(start, iv.end, false, iv.rc);
-        testInst = TU_GetMidwayInstant(start, iv.end);
-        un1.TemporalFunction(testInst, fccr1, false);
-        un2.TemporalFunction(testInst, fccr2, false);
-        cmpres = fccr1.Compare( &fccr2 );
-        compresult = ( (opcode == 0 && cmpres == 0) ||
-                       (opcode == 1 && cmpres != 0) ||
-                       (opcode == 2 && cmpres  < 0) ||
-                       (opcode == 3 && cmpres  > 0) ||
-                       (opcode == 4 && cmpres <= 0) ||
-                       (opcode == 5 && cmpres >= 0)    );
-        newunit = UBool(ivnew, CcBool(true, compresult));
-        localinfo->intersectionBool->MergeAdd(newunit);
-//      cout << "TU_VM_ComparePredicateValue_UReal: Added final res"
-//           << i << endl;
-      }
-      localinfo->intersectionBool->EndBulkLoad(true);
-      localinfo->NoOfResults = localinfo->intersectionBool->GetNoComponents();
-      localinfo->finished = ( localinfo->NoOfResults <= 0 );
-      delete eqPeriods;
-      return 0;
-
-    case REQUEST:
-      if (local.addr == 0)
-        return CANCEL;
-      localinfo = (TUCompareValueLocalInfo*) local.addr;
-      if (localinfo->finished)
-        return CANCEL;
-      if (localinfo->NoOfResultsDelivered >= localinfo->NoOfResults)
-      {
-        localinfo->finished = true;
-        return CANCEL;
-      }
-      localinfo->intersectionBool->Get(localinfo->NoOfResultsDelivered, cu);
-      result.setAddr( cu.Clone() );
-      localinfo->NoOfResultsDelivered++;
-      return YIELD;
-
-    case CLOSE:
-      if( local.addr != 0 )
-      {
-        localinfo = (TUCompareValueLocalInfo*) local.addr;
-        delete localinfo->intersectionBool;
-        delete localinfo;
-        local.setAddr(0);
-      }
-  }
-  return -1;
-}
-      */
 
 template<int opcode, int unit_arg>
     int TU_VM_ComparePredicateValue_UReal_CcReal(Word* args, Word& result,

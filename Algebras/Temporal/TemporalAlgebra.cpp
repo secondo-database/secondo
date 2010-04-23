@@ -87,6 +87,7 @@ file.
 #include <string>
 #include <stack>
 #include <vector>
+#include <algorithm>
 #include "NestedList.h"
 #include "QueryProcessor.h"
 #include "Algebra.h"
@@ -97,6 +98,8 @@ file.
 #include <math.h>
 #include "MMRTree.h"
 #include <time.h>
+#include "AlmostEqual.h"
+
 
 extern NestedList* nl;
 extern QueryProcessor* qp;
@@ -152,11 +155,15 @@ ostream& operator<<(ostream& o, const Interval<alpha>& u){
 }
 
 ostream& operator<<(ostream& o, const UPoint& u){
+   ios_base::fmtflags oldOptions = o.flags();
+   o.setf(ios_base::fixed,ios_base::floatfield);
+   o.precision(8);
    if(!u.IsDefined()){
        o << "Undefined";
    } else {
        o << "UPoint[" << u.timeInterval << ", " << u.p0 << ", " << u.p1 << "]";
    }
+   o.flags(oldOptions);
    return o;
 }
 
@@ -1545,16 +1552,17 @@ bool UPoint::At( const Point& p, TemporalUnit<Point>& result ) const
 VTA - In the same way as ~Passes~, I could use the Spatial Algebra here.
 
 */
+
   assert( IsDefined() );
   assert( p.IsDefined() );
-
-  UPoint *pResult = (UPoint*)&result;
+  UPoint *pResult = static_cast<UPoint*>(&result);
 
   if( AlmostEqual( p0, p1 ) )
   {
     if( AlmostEqual( p, p0 ) )
     {
       *pResult = *this;
+      pResult->SetDefined(true);
       return true;
     }
   }
@@ -1566,6 +1574,7 @@ VTA - In the same way as ~Passes~, I could use the Spatial Algebra here.
        timeInterval.start, true, true );
       UPoint unit( interval, p, p );
       *pResult = unit;
+      pResult->SetDefined(true);
       return true;
     }
   }
@@ -1577,6 +1586,7 @@ VTA - In the same way as ~Passes~, I could use the Spatial Algebra here.
        timeInterval.end, true, true );
       UPoint unit( interval, p, p );
       *pResult = unit;
+      pResult->SetDefined(true);
       return true;
     }
   }
@@ -1593,6 +1603,7 @@ VTA - In the same way as ~Passes~, I could use the Spatial Algebra here.
       Interval<Instant> interval( t, t, true, true );
       UPoint unit( interval, p, p );
       *pResult = unit;
+      pResult->SetDefined(true);
       return true;
     }
   }
@@ -1609,6 +1620,7 @@ VTA - In the same way as ~Passes~, I could use the Spatial Algebra here.
       Interval<Instant> interval( t, t, true, true );
       UPoint unit( interval, p, p );
       *pResult = unit;
+      pResult->SetDefined(true);
       return true;
     }
   }
@@ -1627,9 +1639,11 @@ VTA - In the same way as ~Passes~, I could use the Spatial Algebra here.
       Interval<Instant> interval( t, t, true, true );
       UPoint unit( interval, p, p );
       *pResult = unit;
+      pResult->SetDefined(true);
       return true;
     }
   }
+  pResult->SetDefined(false);
   return false;
 }
 
@@ -2223,6 +2237,114 @@ void UPoint::Translate(const double xdiff, const double ydiff,
 }
 
 
+bool UPoint::AtRegion(const Region *r, vector<UPoint> &result) const {
+
+  result.clear();
+  if(!IsDefined() || !r->IsDefined() ) {
+    return false;
+  }
+  if(r->IsEmpty()) {
+    return true;
+  }
+  if(!r->BoundingBox().Intersects(BoundingBoxSpatial())) { // total MBR-check
+    return true;
+  }
+  if(AlmostEqual(p0,p1)){
+    // this unit is static
+    if( r->Contains(p0) ){   // this unit is completely within the region
+      result.push_back(*this);
+    }
+    return true;
+  }
+  // create a halfsegment hs using Trajectory() and compute intersection
+  vector<UPoint> tmpresult(0);
+  UPoint ures(false);
+  Instant t_left, t_right, t_start, t_end;
+
+  // handle linear intersections
+  Line segs(true);
+  HalfSegment hs;                      // buffer for the halfsegment
+  Line traj(true);                     // buffer for trajectory
+  UTrajectory(traj);                   // get trajectory (may be empty)
+  r->Intersection(traj, segs);         // compute linear intersections
+  if(!segs.IsDefined()){
+    cerr << __PRETTY_FUNCTION__
+         << " WARNING: r->Intersection(traj, segs) is UNDEF for traj="
+         << traj << "." <<endl;
+  } else {
+    for(int i=0; i<segs.Size(); i++){    // for each halfsegment hs in segs
+    //    compute instants t_left, t_right from segment's start and endpoint
+      segs.Get(i,hs);
+      if(hs.IsLeftDomPoint()){ // only use left dominating points
+        UPoint tmpUnit(*this);         // UPoint::At() will use lc, rc strictly
+        tmpUnit.timeInterval.lc=true;  // Make a left- and rightclosed copy
+        tmpUnit.timeInterval.rc=true;  // by bypass this problem...
+        tmpUnit.At( hs.GetLeftPoint(), ures );
+        if(!ures.IsDefined()){
+          cerr << __PRETTY_FUNCTION__
+            <<" WARNING: (1) undef linear intersection unit for hs=" <<hs<<endl;
+          continue;
+        }
+        t_left  = ures.timeInterval.start;
+        tmpUnit.At( hs.GetRightPoint(), ures );
+        if(!ures.IsDefined()){
+          cerr << __PRETTY_FUNCTION__
+            <<" WARNING: (2) undef linear intersection unit for hs=" <<hs<<endl;
+        } else {
+          t_right = ures.timeInterval.start;
+          //  create a UPoint
+          Point p_start (true), p_end(true);
+          if(t_left<t_right) {
+            t_start = t_left;
+            t_end   = t_right;
+            p_start = hs.GetLeftPoint();
+            p_end   = hs.GetRightPoint();
+          } else {
+            t_start = t_right;
+            t_end   = t_left;
+            p_start = hs.GetRightPoint();
+            p_end   = hs.GetLeftPoint();
+          }
+          Interval<Instant> interval(t_start,t_end,true,true);
+          ures = UPoint(interval,p_start,p_end);
+          tmpresult.push_back(ures); //    add the UPoint to tmpresult
+        } // else
+      } // is LeftDomPoint
+    }// for each halfsegment hs in segs
+  }
+  // handle point intersections
+  Points points(true);
+  r->TouchPoints(traj, points); // compute point intersections
+  if(!points.IsDefined()){
+    cerr << __PRETTY_FUNCTION__
+         << " WARNING: r->TouchPoints(traj, points) is UNDEF for traj="
+        << traj << "." << endl;
+  } else {
+    Point p(true);                       // buffer for the point
+    int nosegres = tmpresult.size();     // no of linear results
+    for(int i=0; i<points.Size(); i++){  // for each point p in points
+      points.Get(i,p);
+      bool found = false;
+      int j = 0;
+      while(j<nosegres && !found){
+        found = AlmostEqual(tmpresult[j].p0,p)||AlmostEqual(tmpresult[j].p1,p);
+        j++;
+      }
+      if(!found) { // p is not already contained by segs --> keep it!
+        At( p, ures ); // compute UPoint from position
+        if(!ures.IsDefined()){
+          cerr << __PRETTY_FUNCTION__
+              << " WARNING: undef point intersection unit for p=" << p << endl;
+        } else {
+          tmpresult.push_back(ures); //    add the UPoint to tmpresult
+        }
+      }
+    } // for each point p in points
+  }
+  // adapt closedness within tmpresult and copy tmpresult to result
+  return
+    ConsolidateUnitVector<UPoint,Point>(this->timeInterval,tmpresult,result);
+}
 
 
 /*
@@ -2623,7 +2745,7 @@ void MInt::MergeAddFillUp(const UInt& unit, const int fillValue){
        if(lastValue == newValue){
           lastUnit.timeInterval.end = unit.timeInterval.end;
           lastUnit.timeInterval.rc = unit.timeInterval.rc;
-          units.Put(size-1,&lastUnit);
+          units.Put(size-1,lastUnit);
        } else {
           // don't allow overlapping intervals
           assert(!(lastUnit.timeInterval.rc && unit.timeInterval.lc));
@@ -2633,7 +2755,7 @@ void MInt::MergeAddFillUp(const UInt& unit, const int fillValue){
           } else { // gap in time
              if(lastValue==fillValue){
                 lastUnit.timeInterval.rc = true;
-                units.Put(size-1, &lastUnit);
+                units.Put(size-1, lastUnit);
                 units.Append(&unit);
              } else if(newValue==fillValue){
                 UInt copy(unit);
@@ -2657,11 +2779,11 @@ void MInt::MergeAddFillUp(const UInt& unit, const int fillValue){
         if(fillValue==newValue){ // merge three units
           lastUnit.timeInterval.end = unit.timeInterval.end;
           lastUnit.timeInterval.rc =  unit.timeInterval.rc;
-          units.Put(size-1,&lastUnit);
+          units.Put(size-1,lastUnit);
         } else {
           lastUnit.timeInterval.end = unit.timeInterval.start;
           lastUnit.timeInterval.rc = !unit.timeInterval.lc;
-          units.Put(size-1, &lastUnit);
+          units.Put(size-1, lastUnit);
           units.Append(unit);
         }
       }  else { // lastUnit and fillUnit cannot be merged
@@ -3804,6 +3926,17 @@ Rectangle<3u> MPoint::BoundingBox() const
 {
   return bbox;
 }
+
+// return the spatial bounding box (2D: X/Y)
+const Rectangle<2> MPoint::BoundingBoxSpatial() const {
+  Rectangle<2u> result(false,0.0,0.0,0.0,0.0);
+  if(!IsDefined()){
+    return result;
+  } else {
+    result = bbox.Project2D(0,1); // project to X/Y
+    return result;
+  }
+};
 
 void MPoint::Trajectory( Line& line ) const
 {
@@ -6075,6 +6208,39 @@ otherwise, the result is undefined
     return dist;
   }
 }
+
+void MPoint::AtRegion(const Region *r, MPoint &result) const {
+  result.Clear();
+  if(!IsDefined() || !r->IsDefined()){
+    result.SetDefined(false);
+    return;
+  }
+  result.SetDefined(true);
+  if(IsEmpty() || r->IsEmpty()) {
+    return;
+  }
+  // check for intersection of total MBRs
+  Rectangle<2u> rMBR = r->BoundingBox();
+  if(!rMBR.Intersects(BoundingBoxSpatial())) {
+    return;
+  }
+  // iterate through all units
+  UPoint uPoint;
+  vector<UPoint> uResultVector(0);
+  for( int i = 1; i < GetNoComponents(); i++ ){
+    Get( i, uPoint );
+    if(!uPoint.AtRegion(r, uResultVector)) {
+      cerr << __PRETTY_FUNCTION__ << " WARNING: no result for UPoint (" << i
+           << "): uPoint = " << uPoint << endl;
+      continue;
+    }
+    for(unsigned int j=0; j<uResultVector.size(); j++) {
+      result.MergeAdd(uResultVector[j]);
+    }
+  }
+  return;
+}
+
 /*
 4 Type Constructors
 

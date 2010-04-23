@@ -212,7 +212,8 @@ Return:
 
 */
 
-bool timeIntervalOfRealInUReal2(double value, const UReal* ur, double& t_value)
+bool timeIntervalOfRealInUReal2(const double &value, const UReal* ur,
+                                double& t_value)
 {
   Periods times(2);
   Interval<Instant> invinst;
@@ -228,7 +229,8 @@ bool timeIntervalOfRealInUReal2(double value, const UReal* ur, double& t_value)
   return false;
 }
 
-bool timeIntervalOfRealInUReal( double value, UReal ur, double& t_value )
+bool timeIntervalOfRealInUReal( const double &value, const UReal &ur,
+                                double& t_value )
 {
     double unit_min, unit_max, ts, te;
     bool lh, rh;
@@ -1482,7 +1484,8 @@ void MRealExt::At( CcReal val, MReal &result ) const
         ((URealExt*)(&utemp))->SetUnitMin( unit_min );
         ((URealExt*)(&utemp))->SetUnitMax( unit_max );
         double t_value;
-        if(timeIntervalOfRealInUReal(value, &utemp, t_value))
+// ORIGINAL:        if(timeIntervalOfRealInUReal(value, &utemp, t_value))
+        if(timeIntervalOfRealInUReal(value, utemp, t_value))
         {
             uresult.a = utemp.a;
             uresult.b = utemp.b;

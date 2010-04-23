@@ -383,6 +383,20 @@ changes the ~this~ object and returns it.
         return accu;
       }
 
+/*
+Projection operator: Returns a 2D-Rectangle created by a projection of this
+Rectangle to arbirary dimensions.
+
+*/
+    Rectangle<2u> Project2D(int dX, int dY) const {
+      assert(dX >= 0);
+      assert((unsigned)dX < dim);
+      assert(dY >= 0);
+      assert((unsigned)dY < dim);
+      return
+          Rectangle<2u>(this->IsDefined(),MinD(dX),MaxD(dX),MinD(dY),MaxD(dY));
+    }
+
   private:
 
     inline bool Proper() const;

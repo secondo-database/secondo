@@ -615,7 +615,7 @@ private:
       for(unsigned int i=0;i<instances.size();i++){
          Attribute* attr = instances[i]->Clone();
          string::size_type pos  = line.find_first_of(separator, lastPos);
-         if(pos!=string::npos  || lastPos != string::npos && !end){
+         if( (pos!=string::npos)  || ( (lastPos != string::npos) && !end)){
             if(pos==string::npos){
                pos = line.size();
                end=true;
@@ -2234,7 +2234,7 @@ int getUnusedExtension(const DbArray<HalfSegment>& segs,
       double dpx = dp.GetX();
       bool done = false;
       int pos2=pos-1;
-      while(pos2>=0 & !done){
+      while(pos2>=0 && !done){
         if(used[pos2]){
           pos2--;
         } else {
@@ -2930,7 +2930,7 @@ private:
     unsigned char code;
     file.read(reinterpret_cast<char*>(&code),1);
     file.seekg(4,ios::beg);
-    if(!file.good() || (code!=3) && (code!=0x83)){
+    if( !file.good() || ( (code!=3) && (code!=0x83) ) ){
        cerr << "invalid code" << endl;
        file.close();
        return false;

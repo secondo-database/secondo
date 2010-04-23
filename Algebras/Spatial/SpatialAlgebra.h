@@ -62,6 +62,7 @@ shows examples of these spatial data types.
 #include "WinUnix.h"
 #include "AvlTree.h"
 #include "Symbols.h"
+#include "AlmostEqual.h"
 
 
 typedef double Coord;

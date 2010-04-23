@@ -25,7 +25,7 @@
 include ./makefile.env
 
 # The code of the tools below should be indipendent
-# of any other Secondo-realted code such as the query processor,
+# of any other Secondo-related code such as the query processor,
 # storage manager, nested lists, etc. It should be useable for
 # any other kind of program.
 
@@ -42,17 +42,18 @@ LIB_SDBUTILS_BASENAMES:=\
 	Tools/Utilities/Base64 \
 	Tools/Utilities/PolySolver \
 	Tools/Utilities/Environment \
-        Tools/Utilities/Crypt \
-        Tools/Utilities/blowfish \
-        Tools/Utilities/md5 \
-        Tools/Utilities/Trace \
-        Tools/Flob/FlobManager \
-        Tools/Flob/PersistentFlobCache 
+	Tools/Utilities/Crypt \
+	Tools/Utilities/blowfish \
+	Tools/Utilities/md5 \
+	Tools/Utilities/Trace \
+	Tools/Flob/FlobManager \
+	Tools/Flob/PersistentFlobCache \
+	Tools/Utilities/AlmostEqual
 
 # The following libraries have interdependencies to Nested lists
-# and Berkeley-DB thus they are only usable in the framework of 
+# and Berkeley-DB thus they are only usable in the framework of
 # the Secondo applications. For example the Nestedlist module uses
-# SMI-Records for implementing a persistent representation. 
+# SMI-Records for implementing a persistent representation.
 
 #libSDBNL
 LIB_SDBNL_BASENAMES:=\

@@ -83,6 +83,7 @@ using namespace std;
 #include "Progress.h"
 #include "FTextAlgebra.h"
 #include "ListUtils.h"
+#include "AlmostEqual.h"
 
 extern NestedList* nl;
 extern QueryProcessor* qp;

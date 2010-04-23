@@ -142,6 +142,7 @@ using namespace std;
 #include "DbVersion.h"
 
 #include "ProgressView.h"
+#include "AlmostEqual.h"
 
 extern bool USE_AUTO_BUFFER;
 
@@ -227,7 +228,7 @@ bool
 SecondoInterface::Initialize( const string& user, const string& pswd,
                               const string& host, const string& port,
                               string& parmFile, string& errorMsg,
-                              const bool multiUser 
+                              const bool multiUser
                               )
 {
   bool ok = false;
@@ -241,9 +242,9 @@ SecondoInterface::Initialize( const string& user, const string& pswd,
   cout << version.str() << endl;
 
   stringstream dbversion;
-  dbversion  << "Berkeley DB version: " 
-             << DB_VERSION_MAJOR 
-             << "." 
+  dbversion  << "Berkeley DB version: "
+             << DB_VERSION_MAJOR
+             << "."
              << DB_VERSION_MINOR;
   cout << dbversion.str() << endl  << endl;
 
@@ -394,8 +395,8 @@ SecondoInterface::Initialize( const string& user, const string& pswd,
         native_flobcache_avgSize > native_flobcache_slotSize ){
       cout << "conflicting values for native flob cache found";
     } else {
-       Flob::SetNativeCache(native_flobcache_maxSize, 
-                            native_flobcache_slotSize, 
+       Flob::SetNativeCache(native_flobcache_maxSize,
+                            native_flobcache_slotSize,
                             native_flobcache_avgSize);
     }
 
@@ -416,8 +417,8 @@ SecondoInterface::Initialize( const string& user, const string& pswd,
         persistent_flobcache_avgSize > persistent_flobcache_slotSize ){
       cout << "conflicting values for persistent flob cache found";
     } else {
-       Flob::SetPersistentCache(persistent_flobcache_maxSize, 
-                            persistent_flobcache_slotSize, 
+       Flob::SetPersistentCache(persistent_flobcache_maxSize,
+                            persistent_flobcache_slotSize,
                             persistent_flobcache_avgSize);
     }
 
@@ -448,6 +449,9 @@ SecondoInterface::Initialize( const string& user, const string& pswd,
     al = SecondoSystem::GetAppNestedList();
     ok = SecondoSystem::StartUp();
   }
+
+  // Print type sizes and check requirements for AlmostEqual implementations:
+  ok = (ok && AlmostEqual_CheckTypeSizes());
 
   if(ok){
     // set the maximum memory which may be allocated by operators
@@ -501,7 +505,7 @@ SecondoInterface::Initialize( const string& user, const string& pswd,
     ctlg.Initialize(typeInfoRel);
     ctlg.Initialize(operatorInfoRel);
   } else {
-    errorMsg += "Problem in SecondoSystem::StartUp()\n"; 
+    errorMsg += "Problem in SecondoSystem::StartUp()\n";
   }
 
   initialized = ok;
@@ -525,10 +529,10 @@ SecondoInterface::Terminate()
   if ( initialized )
   {
 
-    if (traceHandles) {	  
+    if (traceHandles) {
       cmsg.info() << "Terminating the secondo interface instance ..." << endl;
       cmsg.send();
-    }  
+    }
     // --- Abort open transaction, if there is an open transaction
     if ( activeTransaction )
     {
@@ -537,10 +541,10 @@ SecondoInterface::Terminate()
     }
 
     if ( derivedObjPtr != 0 ) { // The destructor closes a relation object
-      if (traceHandles) {	    
+      if (traceHandles) {
         cmsg.info() << "Closing system tables ..." << endl;
         cmsg.send();
-      }	
+      }
       delete derivedObjPtr;
       derivedObjPtr = 0;
     }
@@ -1610,7 +1614,7 @@ SecondoInterface::Command_Query( const ListExpr list,
 
        if (printQueryAnalysis)
        {
-	 cmsg.info() << padStr("OutObject ...",20) 
+	 cmsg.info() << padStr("OutObject ...",20)
 	             << outObj.diffTimes() << endl;
 	 cmsg.send();
        }
@@ -1652,9 +1656,9 @@ SecondoInterface::Command_Query( const ListExpr list,
     }
 
   } catch (SI_Error err) {
-    
+
     errorCode = err;
-  }  
+  }
 
   qp.Destroy( tree, true );
   SmiEnvironment::SetFlag_NOSYNC(true);
@@ -1797,10 +1801,10 @@ SecondoInterface::Command_Let( const ListExpr list, string& errorMessage  )
           qp.Destroy( tree, true );
 	}
       } catch (SI_Error err) {
-        
-	 errorCode = err;     
+
+	 errorCode = err;
          qp.Destroy( tree, true );
-      }	      
+      }
     }
     FinishCommand( errorCode, errorMessage );
   }
@@ -1850,11 +1854,11 @@ SecondoInterface::Command_Update( const ListExpr list, string& errorMessage )
       if ( ctlg.IsSystemObject(objName) ) {
 	throw ERR_IDENT_RESERVED;
       }
-      
+
       if ( derivedObjPtr && derivedObjPtr->isDerived(objName) ) {
 	throw ERR_UPDATE_FOR_DERIVED_OBJ_UNSUPPORTED;
       }
-      
+
       if ( !ctlg.IsObjectName( objName ) ) {
 	// identifier not a known object name
 	throw ERR_IDENT_UNKNOWN_OBJ;
@@ -1863,7 +1867,7 @@ SecondoInterface::Command_Update( const ListExpr list, string& errorMessage )
       qp.Construct( valueExpr, correct, evaluable, defined,
                     isFunction, tree, resultType );
 
-      
+
       ListExpr typeExpr = ctlg.GetObjectTypeExpr( objName );
       if ( !nl.Equal( typeExpr, resultType ) ) {
 	// types of object and expression do not agree
@@ -1901,10 +1905,10 @@ SecondoInterface::Command_Update( const ListExpr list, string& errorMessage )
       }
 
       } catch (SI_Error err) {
-        
-	 errorCode = err;     
+
+	 errorCode = err;
          qp.Destroy( tree, true );
-      }	      
+      }
       FinishCommand( errorCode, errorMessage );
     }
   }

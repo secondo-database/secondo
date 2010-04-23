@@ -75,6 +75,7 @@ using namespace std;
 #include "StandardTypes.h"
 #include "BTreeAlgebra.h"
 #include "TemporalAlgebra.h"
+#include "AlmostEqual.h"
 
 extern NestedList* nl;
 extern QueryProcessor* qp;

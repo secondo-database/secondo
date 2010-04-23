@@ -64,6 +64,7 @@ using namespace std;
 #include "SpatialAlgebra.h"
 #include "SecondoConfig.h"
 #include "AvlTree.h"
+#include "AlmostEqual.h"
 
 #include <vector>
 #include <queue>
@@ -845,10 +846,14 @@ A value of type ~point~ represents a point in the Euclidean plane or is undefine
 */
 ostream& operator<<( ostream& o, const Point& p )
 {
+  ios_base::fmtflags oldOptions = o.flags();
+  o.setf(ios_base::fixed,ios_base::floatfield);
+  o.precision(8);
   if( p.IsDefined() )
     o << "(" << p.GetX() << ", " << p.GetY() << ")";
   else
     o << "undef";
+  o.flags(oldOptions);
   return o;
 }
 
@@ -13838,6 +13843,15 @@ InRegion( const ListExpr typeInfo, const ListExpr instance,
             HalfSegment * hs = (HalfSegment*)InHalfSegment
                       ( nl->TheEmptyList(), flagedSeg,
                        0, errorInfo, correct ).addr;
+            if(!correct){
+              if(hs){
+                cerr << __PRETTY_FUNCTION__ << ": Creation of left dominating "
+                     << "half segment (1) failed!" << endl;
+                delete hs;
+              }
+              cr->DeleteIfAllowed();
+              return SetWord( Address(0) );
+            }
             hs->attr.faceno=fcno;
             hs->attr.cycleno=ccno;
             hs->attr.edgeno=edno;
@@ -13889,6 +13903,15 @@ InRegion( const ListExpr typeInfo, const ListExpr instance,
           HalfSegment * hs = (HalfSegment*)InHalfSegment
                   ( nl->TheEmptyList(), flagedSeg,
                     0, errorInfo, correct ).addr;
+          if(!correct){
+            if(hs){
+                cerr << __PRETTY_FUNCTION__ << ": Creation of "
+                     << "half segment (2) failed!" << endl;
+                delete hs;
+            }
+            cr->DeleteIfAllowed();
+            return SetWord( Address(0) );
+          }
           hs->attr.faceno=fcno;
           hs->attr.cycleno=ccno;
           hs->attr.edgeno=edno;

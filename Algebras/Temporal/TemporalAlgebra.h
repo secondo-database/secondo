@@ -93,6 +93,7 @@ The type system of the Temporal Algebra can be seen below.
 
 #include "RectangleAlgebra.h"
 #include "DateTime.h"
+#include "AlmostEqual.h"
 
 extern NestedList* nl;
 extern QueryProcessor* qp;
@@ -126,8 +127,10 @@ left-closed and right-closed (or left-right-closed), respectively.
 
 */
 template <class Alpha>
-struct Interval
+class Interval
 {
+
+  public:
 /*
 3.2.1 Constructors
 
@@ -233,6 +236,20 @@ Returns ~true~ if this interval contains the value ~a~ and ~false~ otherwise.
   bool Intersects( const Interval<Alpha>& i ) const;
 /*
 Returns ~true~ if this interval intersects with the interval ~i~ and ~false~ otherwise.
+
+*/
+
+  bool StartsBefore( const Interval<Alpha>& i ) const;
+
+/*
+Returns ~true~ iff this interval starts earlier than interval ~i~
+
+*/
+
+  bool EndsAfter( const Interval<Alpha>& i ) const;
+
+/*
+Returns ~true~ iff this interval ends after interval ~i~
 
 */
 
@@ -712,8 +729,10 @@ value.
 
 */
 template <class Alpha>
-struct Intime: public Attribute
+class Intime: public Attribute
 {
+  public:
+
   Intime() {}
 /*
 The simple constructor.
@@ -858,7 +877,7 @@ The TemporalUnit does not yet contain a ~defined~ flag!
 
 */
 template <class Alpha>
-struct TemporalUnit
+class TemporalUnit
 {
 
   public:
@@ -965,6 +984,19 @@ Returns ~true~ if this temporal unit intersects with the temporal unit ~i~ and ~
 
 */
 
+
+  bool StartsBefore( const TemporalUnit<Alpha>& i ) const;
+/*
+Returns ~true~ if this temporal unit starts before the temporal unit ~i~ and ~false~ otherwise.
+
+*/
+
+  bool EndsAfter( const TemporalUnit<Alpha>& i ) const;
+/*
+Returns ~true~ if this temporal unit ends after the temporal unit ~i~ and ~false~ otherwise.
+
+*/
+
   bool Before( const TemporalUnit<Alpha>& i ) const;
 /*
 Returns ~true~ if this temporal unit is before the temporal unit ~i~ and ~false~ otherwise.
@@ -975,6 +1007,17 @@ Returns ~true~ if this temporal unit is before the temporal unit ~i~ and ~false~
   bool After( const Instant& a ) const;
 /*
 Returns ~true~ if this temporal unit is before/after the value ~a~ and ~false~ otherwise.
+
+*/
+
+ inline bool IsInstantUnit() const {
+  assert(IsValid());
+  return(    timeInterval.lc
+          && timeInterval.rc
+          && (timeInterval.start == timeInterval.end) );
+}
+/*
+Returns ~true~ iff this unit's timeInterval is a single instant.
 
 */
 
@@ -1022,15 +1065,36 @@ This can be used to create sub-units for refinement partitions.
 
 */
 
-  virtual bool EqualValue( const TemporalUnit<Alpha>& i )
+  virtual bool EqualValue( const TemporalUnit<Alpha>& i ) const
   {
     return false;
   }
+
 
 /*
 Returns ~true~ if the value of this temporal unit is equal to the
 value of the temporal unit ~i~ and ~false~ if they are different.
 Equality is computed with respect to temporal evolution.
+
+*/
+
+  virtual bool Merge( const TemporalUnit<Alpha>& i )
+  {
+    return false;
+  }
+
+/*
+Tries to merge the other unit into this unit. Returns ~true~ iff this was
+successful (and this unit was modified).
+
+If the units cannot be merged, the result is ~false~ and this unit remains
+unchanged.
+
+Merge might work, if the definition time is disjunct or overlapping, but does
+not have a temporal gap.
+
+It will fail, if the temporal functions cannot be unified with each other, or
+if the unified function is not representable as a single unit.
 
 */
 
@@ -1299,8 +1363,9 @@ This class inherits a defined flag!
 
 */
 template <class Alpha>
-struct ConstTemporalUnit : public StandardTemporalUnit<Alpha>
+class ConstTemporalUnit : public StandardTemporalUnit<Alpha>
 {
+  public:
 /*
 3.6.1 Constructors, Destructor
 
@@ -1424,13 +1489,54 @@ is undefined, or the Instant is not within the unit's timeInterval.
     }
   }
 
-  virtual bool EqualValue( const ConstTemporalUnit<Alpha>& i )
+  virtual bool EqualValue( const ConstTemporalUnit<Alpha>& i ) const
   {
     return this->IsDefined() && (constValue.Compare( &i.constValue ) == 0);
   }
 /*
 Returns ~true~ if the value of this temporal unit is defined and equal to the
 value of the temporal unit ~i~ and ~false~ if they are different.
+
+*/
+
+  virtual bool Merge( const ConstTemporalUnit<Alpha>& i ) {
+    if(!this->IsDefined() && !i.IsDefined()) { // mergeable, but nothing to do
+      return true;
+    } else if(!this->IsDefined() || !i.IsDefined()) { // not mergable
+      return false;
+    } else if(    !this->timeInterval.Adjacent(i.timeInterval)
+               && !this->timeInterval.Intersects(i.timeInterval) ){
+      return false; // have a gap in between --> not mergeable
+    } else if(!this->EqualValue(i)) { // temporal functions are NOT equal
+      return false;
+    }
+    // merge the units (i.e. their timeIntervals)
+    ConstTemporalUnit<Alpha> res(false);
+    if(StartsBefore(i)){
+      res.timeInterval.start = this->timeInterval.start;
+      res.timeInterval.lc    = this->timeInterval.lc;
+    } else {
+      res.timeInterval.start = i.timeInterval.start;
+      res.timeInterval.lc    = i.timeInterval.lc;
+    }
+    if(EndsAfter(i)){
+      res.timeInterval.end   = this->timeInterval.end;
+      res.timeInterval.rc    = this->timeInterval.rc;
+    } else {
+      res.timeInterval.end   = i.timeInterval.end;
+      res.timeInterval.rc    = i.timeInterval.rc;
+    }
+    res.constValue = this->constValue;
+    if(res.IsDefined() && res.IsValid()){ // invalid result -- do nothing!
+      *this = res;
+      return true;
+    } else {
+      return false;
+    }
+  }
+/*
+Merges unit ~i~ into this unit if possible and return ~true~. Otherwise do
+not modify this unit and return ~false~.
 
 */
 
@@ -1539,8 +1645,9 @@ for the temporal unit of real numbers.
 Inherits a denined flag.
 
 */
-struct UReal : public StandardTemporalUnit<CcReal>
+class UReal : public StandardTemporalUnit<CcReal>
 {
+  public:
 /*
 3.7.1 Constructors and Destructor
 
@@ -1649,7 +1756,7 @@ Returns ~true~ if this temporal unit is different to the temporal unit ~i~ and ~
   virtual void AtInterval( const Interval<Instant>& i,
                            TemporalUnit<CcReal>& result ) const;
 
-  virtual bool EqualValue( const UReal& i )
+  virtual bool EqualValue( const UReal& i ) const
   {
     if( !this->IsDefined() && !i.IsDefined() ) {
       return true;
@@ -1660,7 +1767,7 @@ Returns ~true~ if this temporal unit is different to the temporal unit ~i~ and ~
     double offset = i.timeInterval.start.ToDouble()
     - timeInterval.start.ToDouble();
 
-    return (!IsDefined() && !i.IsDefined()) ||
+    return
       (AlmostEqual( a, i.a ) &&
        AlmostEqual( 2 * a * offset + b, i.b ) &&
        AlmostEqual( a * pow(offset, 2) + b * offset + c, i.c )
@@ -1975,12 +2082,14 @@ This class will be used in the ~upoint~ type constructor, i.e., the type constru
 for the temporal unit of point values.
 
 */
-struct UPoint : public SpatialTemporalUnit<Point, 3>
+class UPoint : public SpatialTemporalUnit<Point, 3>
 {
 /*
 3.8.1 Constructors and Destructor
 
 */
+  public:
+
   UPoint() {};
 
   UPoint(bool is_defined):
@@ -2088,11 +2197,108 @@ Returns ~true~ if this temporal unit is different to the temporal unit ~i~ and ~
   void USpeed( UReal& result ) const;
   void UVelocity( UPoint& result ) const;
   void Intersection(const UPoint &other, UPoint &result) const;
-  virtual bool EqualValue( const UPoint& i )
-  {
-  return   AlmostEqual( p0, i.p0 ) &&
-           AlmostEqual( p1, i.p1 );
+
+/*
+~EqualValue~ returns true iff both units describe parts if the same linear
+temporal function.
+
+*/
+  virtual bool EqualValue( const UPoint& i ) const {
+    if( !IsDefined() && !i.IsDefined() ){
+      // both undefined
+//       cout << "\t" << __PRETTY_FUNCTION__ << " SUCCEEDED: both undefined."
+//            << endl;
+      return true;
+    } else if( !IsDefined() || !i.IsDefined() ){
+      // one of *this and i undefined
+//       cout << "\t" << __PRETTY_FUNCTION__ << " FAILED: one undefined."
+//            << endl;
+      return false;
+    } // else: both are defined
+    Point v(false);
+    TemporalFunction(i.timeInterval.start, v, true);
+    if( !v.IsDefined() || !AlmostEqual(i.p0,v) ){
+//       cout << "\t" << __PRETTY_FUNCTION__ << " FAILED: start1 unmatched."
+//            << endl;
+      return false;
+    }
+    TemporalFunction(i.timeInterval.end, v, true);
+    if( !v.IsDefined() || !AlmostEqual(i.p1,v) ){
+//       cout << "\t" << __PRETTY_FUNCTION__ << " FAILED: end1 unmatched."
+//            << endl;
+//       cout << "\t" << __PRETTY_FUNCTION__ << " i.p1 = " << i.p1 << endl;
+//       cout << "\t" << __PRETTY_FUNCTION__ << " v    = " << v    << endl;
+      return false;
+    }
+    TemporalFunction(timeInterval.start, v, true);
+    if( !v.IsDefined() || !AlmostEqual(p0,v) ){
+//       cout << "\t" << __PRETTY_FUNCTION__ << " FAILED: start2 unmatched."
+//            << endl;
+      return false;
+    }
+    TemporalFunction(timeInterval.end, v, true);
+    if( !v.IsDefined() || !AlmostEqual(p1,v) ){
+//       cout << "\t" << __PRETTY_FUNCTION__ << " FAILED: end2 unmatched."
+//            << endl;
+      return false;
+    }
+//       cout << "\t" << __PRETTY_FUNCTION__
+//            << " SUCCEEDED: all points matched." << endl;
+    return true;
   }
+
+  virtual bool Merge( const UPoint& i ) {
+    // check for gap in definition time
+    if(!IsDefined() && !i.IsDefined()) { // mergeable, but nothing to do
+//       cout << __PRETTY_FUNCTION__ << " SUCCEEDED: both undefined." << endl;
+      return true;
+    } else if(!IsDefined() || !i.IsDefined()) { // not mergable
+//       cout << __PRETTY_FUNCTION__ << " FAILED: one undefined." << endl;
+      return false;
+    } else if(    !this->timeInterval.Adjacent(i.timeInterval)
+               && !this->timeInterval.Intersects(i.timeInterval) ){
+//       cout << __PRETTY_FUNCTION__ << " FAILED: found definition gap."
+//            << endl;
+      return false; // have a gap in between --> not mergeable
+    } else if(!EqualValue(i)) { // temporal functions are NOT equal
+//       cout << __PRETTY_FUNCTION__ << " FAILED: functions not equal." << endl;
+      return false;
+    }
+    // merge the units (i.e. their timeIntervals)
+    UPoint res(false);
+    if(StartsBefore(i)){
+      res.timeInterval.start = this->timeInterval.start;
+      res.timeInterval.lc    = this->timeInterval.lc;
+      res.p0                 = this->p0;
+    } else {
+      res.timeInterval.start = i.timeInterval.start;
+      res.timeInterval.lc    = i.timeInterval.lc;
+      res.p0                 = i.p0;
+    }
+    if(EndsAfter(i)){
+      res.timeInterval.end   = this->timeInterval.end;
+      res.timeInterval.rc    = this->timeInterval.rc;
+      res.p1                 = this->p1;
+    } else {
+      res.timeInterval.end   = i.timeInterval.end;
+      res.timeInterval.rc    = i.timeInterval.rc;
+      res.p1                 = i.p1;
+    }
+    if(res.IsDefined() && res.IsValid()){ // invalid result -- do nothing!
+//       cout << __PRETTY_FUNCTION__ << " SUCCEEDED: created result unit."
+//            << endl;
+      *this = res;
+      return true;
+    } else {
+//       cout << __PRETTY_FUNCTION__ << " FAILED: result invalid." << endl;
+      return false;
+    }
+  }
+/*
+Merges UPoint ~i~ into this unit if possible and return ~true~. Otherwise do
+not modify this unit and return ~false~.
+
+*/
 
   void Translate(const double x, const double y,
                  const DateTime& duration);
@@ -2261,11 +2467,12 @@ Calculates the distance between 2 upoints as a real value.
 
 */
 
- virtual bool IsEmpty() const{
+  virtual bool IsEmpty() const{
     return !IsDefined();
  }
 
   void Length( CcReal& result ) const;
+
 /*
 Calculates the spatial length of the unit
 
@@ -2274,6 +2481,19 @@ Calculates the spatial length of the unit
 *Result*: the distance of the unit's initial and final value
 
 */
+
+  bool AtRegion(const Region *r, vector<UPoint> &result) const;
+
+/*
+Calculates the intersection of the UPoint and Region r.
+
+*Precondition*: none
+
+*Result*: The ~result~ is a vector of UPoints, sorted ascendingly by their starting instants.
+The boolean return value is ~false~, iff either the UPoint or the Region is UNDEFINED.
+
+*/
+
 
 /*
 3.8.4 Attributes
@@ -3134,6 +3354,9 @@ Returns the MPoint's minimum bounding rectangle
   // return the stored bbox
   Rectangle<3> BoundingBox() const;
 
+  // return the spatial bounding box (2D: X/Y)
+  const Rectangle<2> BoundingBoxSpatial() const;
+
   // recompute bbox, if necessary
   void RestoreBoundingBox(const bool force = false);
 
@@ -3148,6 +3371,7 @@ Returns the MPoint's minimum bounding rectangle
 
 /*
 3.10.5.11 ~Delay Operator~
+
 Considering this MPoint instance as the schedule, and a given MPoint as the
 actual movement, the goal is to compute the continuous delay between the two
 MPoints (i.e. How many seconds is the actual movement delayed from the
@@ -3157,6 +3381,14 @@ schedule).
     MReal* DelayOperator(const MPoint *actual);
     MReal* DistanceTraversed(double* ) const;
     MReal* DistanceTraversed( ) const;
+
+/*
+3.10.5.11 ~at region~ operators
+
+This operator returns a copy of the mpoint's restriction to a given region
+
+*/
+    void AtRegion(const Region *reg, MPoint &result) const;
 
 
 private:
@@ -3368,6 +3600,23 @@ bool Interval<Alpha>::Intersects( const Interval<Alpha>& i ) const
                 (end.Compare( &i.end ) == 0 && !(rc && i.rc)) ) )
           );
 }
+
+template <class Alpha>
+bool Interval<Alpha>::StartsBefore( const Interval<Alpha>& i ) const
+{
+  assert( IsValid() && i.IsValid() );
+
+  return ( start < i.start || ( (start == i.start) && lc && !i.lc ));
+}
+
+template <class Alpha>
+bool Interval<Alpha>::EndsAfter( const Interval<Alpha>& i ) const
+{
+  assert( IsValid() && i.IsValid() );
+
+  return ( end > i.end || ( (end == i.end) && rc && !i.rc ));
+}
+
 
 template <class Alpha>
 bool Interval<Alpha>::Before( const Interval<Alpha>& i ) const
@@ -5010,6 +5259,22 @@ bool TemporalUnit<Alpha>::Intersects( const TemporalUnit<Alpha>& i ) const
   assert( IsValid() && i.IsValid() );
 
   return ( timeInterval.Intersects(i.timeInterval) );
+}
+
+template <class Alpha>
+bool TemporalUnit<Alpha>::StartsBefore( const TemporalUnit<Alpha>& i ) const
+{
+  assert( IsValid() && i.IsValid() );
+
+  return ( timeInterval.StartsBefore(i.timeInterval) );
+}
+
+template <class Alpha>
+bool TemporalUnit<Alpha>::EndsAfter( const TemporalUnit<Alpha>& i ) const
+{
+  assert( IsValid() && i.IsValid() );
+
+  return ( timeInterval.EndsAfter(i.timeInterval) );
 }
 
 template <class Alpha>
@@ -7435,5 +7700,252 @@ RefinementPartition<Mapping1, Mapping2, Unit1,
 
  }
 
+
+template<class Unittype>
+class CComparator_before{ // create a strict ordering function
+    public:
+      bool operator() (const Unittype &i, const Unittype &j) {
+        return i.StartsBefore(j);
+      }
+};
+
+
+/*
+The following template function consolidates a vector of units:
+As a preliminary step, the argument vector will be sorted by starting
+instant and leftclosedness. Then, all undefined or invalid units are removed.
+
+It restricts remaining units to the Interval ~intv~ and arranges them in such a
+way, that consecutive units do not overlap temporally.
+
+The elements in the result of this function can be consecutively added to any ~Mapping<UnitType,AlphaType>~
+
+The return value is ~false~, iff the units pairwisely overlap in more than a
+single instant.
+
+*Precondition*: Units may not intersect despite in single points, where they
+must have the same temporal value.
+
+*Precondition*: The class parameter ~UnitType~ must be a class inheriting from ~Attribute~ AND ~TemporalUnit<AlphaType>~.
+
+*Precondition*: The class parameter ~AlphaType~ must be a class inheriting from ~Attribute~.
+
+*/
+template<class UnitType, class AlphaType>
+bool ConsolidateUnitVector(
+                      const Interval<Instant> &intv,
+                      vector<UnitType> &arg,
+                      vector<UnitType> &result) {
+  assert( intv.IsValid() );
+  result.clear();
+
+  // sort tmpresult by starting time (and leftclosedness)
+  CComparator_before<UnitType> my_comparator_before;
+  sort(arg.begin(), arg.end(), my_comparator_before);
+
+  // do the consolidation
+  UnitType lastUnit(false), currUnit(false);
+  for(unsigned int i=0; i<arg.size(); i++) {
+//     cout << "======================================================" << endl;
+//     cout << "Iteration " << i << ":" << endl;
+//     cout << "\tintv     = " << intv << endl;
+//     cout << "\tlastUnit = " << lastUnit << endl;
+//     cout << "\tcurrUnit = " << arg[i] << endl;
+    UnitType u_full = arg[i];
+    if( !u_full.IsDefined() || !u_full.IsValid() ) { // drop invalid units
+//       cout << "\tcurrUnit is UNDEF or invalid. --> CONTINUE."
+//            << arg[i] << endl;
+      continue;
+    }
+    u_full.AtInterval( intv, currUnit ); // restrict to intv
+//     cout << "\tRestricting currUnit to intv:" << endl;
+//     cout << "\tcurrUnit := " << currUnit << endl;
+    if(!currUnit.IsDefined() || !currUnit.IsValid() ) { // drop invaild result
+//       cout << "\tcurrUnit is UNDEF or invalid. --> CONTINUE."
+//            << arg[i] << endl;
+      continue;
+    }
+    if(!lastUnit.IsDefined()) { // nothing to match with, keep currUnit
+//       cout << "\tlastUnit is UNDEF. --> lastUnit := currUnit." << endl;
+      lastUnit = currUnit;
+      continue;
+    }
+    if(lastUnit.timeInterval  == currUnit.timeInterval) {
+      // identical timeIntervals
+      if(lastUnit != currUnit) {
+      cerr << __PRETTY_FUNCTION__
+           << "WARNING: same interval, but different values" << endl;
+      result.clear();
+      return false;
+      } else { // same units --> drop currUnit
+//         cout << "\tlastUnit and currUnit have same time Interval. "
+//              << "--> CONTINUE." << endl;
+        continue;
+      }
+    }
+    if(lastUnit.timeInterval.Inside(currUnit.timeInterval)){
+      // lastUnit contained by currUnit
+      lastUnit = currUnit; // drop lastUnit
+//       cout << "\tlastUnit inside currUnit. --> lastUnit := currUnit."
+//            << endl;
+      continue;
+    }
+    if(currUnit.timeInterval.Inside(lastUnit.timeInterval)){
+      // lastUnit contains currUnit
+//       cout << "\tlastUnit contains currUnit. --> CONTINUE." << endl;
+      continue; // drop currUnit
+    }
+    if(lastUnit.timeInterval.end == currUnit.timeInterval.start) {
+//       cout << "\tlastUnit and currUnit have common endpoint..." << endl;
+      // lastUnit and currUnit share a common boundary point at least
+      //             (but are not identical - that has been handled above)
+      // handle all the closedness and point/interval combinations
+      if(lastUnit.timeInterval.rc){
+        if(currUnit.timeInterval.lc){
+          // rc - lc: ...a][a...
+          AlphaType lastVal, currVal;
+          lastUnit.TemporalFunction(lastUnit.timeInterval.end,  lastVal, true);
+          currUnit.TemporalFunction(currUnit.timeInterval.start,currVal, true);
+          if( lastVal.CompareAlmost(static_cast<Attribute*>(&currVal)) != 0) {
+            cerr << __PRETTY_FUNCTION__ << " ERROR: Two units share an endpoint"
+                 << ", but have different temporal values at that instant: "
+                 << endl << "\tlastUnit = " << lastUnit << ", lastVal = " ;
+            lastVal.Print(cerr);
+            cerr << endl << "\tcurrUnit = " << currUnit << ", currVal = " ;
+            lastVal.Print(cerr);
+            cerr << endl;
+            result.clear();
+            return false;
+          }
+          if(lastUnit.IsInstantUnit()){
+            if(currUnit.IsInstantUnit()){
+              // [aa][aa]: Drop lastUnit, keep currUnit
+              // should already be dealt with
+              lastUnit = currUnit;
+//               cout << "\tCase: [aa][aa]. ---> lastUnit = currUnit." << endl;
+              continue;
+            } else {
+              // [aa] [a---: Drop lastUnit, keep currUnit
+              lastUnit = currUnit;
+//               cout << "\tCase: [aa] [a---. ---> lastUnit = currUnit."
+//                    << endl;
+              continue;
+            }
+          } else {
+            if(currUnit.IsInstantUnit()){
+              // ---a] [aa]: drop currUnit, keep lastUnit
+//               cout << "\tCase: ---a] [aa]. ---> CONTINUE." << endl;
+              continue;
+            } else {
+              // ---a] [a---: append rightopen lastUnit. Keep currUnit
+              // one could also try to merge the units and keep the merged unit
+              if(!lastUnit.Merge(currUnit)) {
+                lastUnit.timeInterval.rc = false;
+                result.push_back(lastUnit);
+//                 cout << "\tCase: ---a] [a---. ---> Cannot merge units. "
+//                      << "Change and append lastUnit to the result. lastUnit "
+//                      << ":= currUnit" << endl;
+//                 cout << "\t\tappending: " << lastUnit << endl;
+                lastUnit = currUnit;
+                continue;
+              } else {
+//                 cout << "\tCase: ---a] [a---. ---> Merged units. lastUnit "
+//                      << ":= " << lastUnit << endl;
+                continue;
+              }
+            }
+          }
+        } else {
+          // rc - lo: ...]]...
+          if(lastUnit.IsInstantUnit()){
+            // [aa] ]a---: modify currUnit and keep it
+//             cout << "\tCase: [aa] ]a---. ---> merge lastUnit with currUnit:"
+//                  << endl;
+            currUnit.timeInterval.lc = true;
+            lastUnit = currUnit;
+//             cout << "\t\tmerged unit: " << lastUnit << endl;
+            continue;
+          } else {
+            // ---a] ]a---: No problem.
+            result.push_back(lastUnit);
+//             cout << "\tCase: ---a] ]a---. ---> Append lastUnit:" << endl;
+//             cout << "\t\tAppended: " << lastUnit << endl;
+            lastUnit = currUnit;
+            continue;
+          }
+        }
+      } else { // lastUnit has rightopen interval
+        if(currUnit.timeInterval.rc){
+          // ro - lc: ...a[[a...:
+          if(currUnit.IsInstantUnit()){
+            // ..a[ [aa]: Merge currUnit into lastUnit. Keep modified lastUnit
+            AlphaType lastVal, currVal;
+            lastUnit.TemporalFunction(lastUnit.timeInterval.end,  lastVal,true);
+            currUnit.TemporalFunction(currUnit.timeInterval.start,currVal,true);
+            if( lastVal.CompareAlmost(static_cast<Attribute*>(&currVal)) == 0 ){
+              // units can be merged: Merge both into lastUnit, drop currUnit
+              lastUnit.timeInterval.rc = true;
+//               cout << "\tCase: ..a[ [aa]. ---> merge lastUnit with currUnit:"
+//                    << endl;
+//               cout << "\t\tmerged unit: " << lastUnit << endl;
+              continue;
+            } else {
+              // units cannot be merged: Output lastUnit, keep currUnit
+              result.push_back(lastUnit);
+//               cout << "\tCase: ..a[ [aa]. ---> cannot merge lastUnit with "
+//                    << "currUnit:" << endl;
+//               cout << "\t\tAppended: " << lastUnit << endl;
+              lastUnit = currUnit;
+              continue;
+            }
+          } else {
+            // ...a[ [a---: No problem: Output lastUnit, keep currUnit.
+            result.push_back(lastUnit);
+//             cout << "\tCase: ...a[ [a---" << endl;
+//             cout << "\t\tAppended: " << lastUnit << endl;
+            lastUnit = currUnit;
+            continue;
+          }
+        } else {
+          // ro - lo: ...a[]a...: No problem: Output lastUnit, keep currUnit.
+            result.push_back(lastUnit);
+//             cout << "\tCase: ...a[]a..." << endl;
+//             cout << "\t\tAppended: " << lastUnit << endl;
+            lastUnit = currUnit;
+            continue;
+        }
+      }
+    }
+    if(!currUnit.timeInterval.Intersects(lastUnit.timeInterval)){
+      // lastUnit and lastUnit do NOT overlap at all
+//       cout << "\tCase: lastUnit and currUnit do not overlap and have no "
+//            <<common endpoint." << endl;
+//       cout << "\t\tAppended: " << lastUnit << endl;
+      result.push_back(lastUnit);
+      lastUnit = currUnit;
+      continue;
+    } else {
+      // lastUnit and currUnit overlap, but have not a single common boundary
+      // point. This shoulöd be a misstake! There is no way to merge the units:
+      cerr << __PRETTY_FUNCTION__ << " ERROR: Two units overlap, but in more "
+          << "than a single point:" << endl << "\tlastUnit = " << lastUnit
+          << endl << "\tcurrUnit = " << currUnit << endl;
+      result.clear();
+      return false;
+    }
+  }
+  // possibly insert remaining lastUnit:
+//   cout << "========================================================" << endl;
+//   cout << "Aftermath:" << endl;
+//   cout << "\tintv     = " << intv << endl;
+//   cout << "\tlastUnit = " << lastUnit << endl;
+  if(lastUnit.IsDefined()) {
+    cout << "\t\tAppended: " << lastUnit << endl;
+    result.push_back(lastUnit);
+  }
+//   cout << "========================================================" << endl;
+//   cout << "Finished." << endl;
+  return true;
+}
 
 #endif // _TEMPORAL_ALGEBRA_H_

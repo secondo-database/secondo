@@ -179,7 +179,7 @@ duration zero, respectively.
 
 */
 DateTime::DateTime(const TimeType type1):
- IndexableAttribute(true), type(type1), value(0){ } 
+ IndexableAttribute(true), type(type1), value(0){ }
 
 /*
 ~A Constructor ~
@@ -333,7 +333,7 @@ bool DateTime::IsMinimum()const {
   if(!IsDefined()){
      return false;
   }
-  return value == min_VALUE; 
+  return value == min_VALUE;
 }
 
 /*
@@ -362,7 +362,7 @@ int64_t DateTime::GetDay()const{
    if((value<0) && (value%MILLISECONDS!=0)){
        d--;
    }
-   return d; 
+   return d;
 }
 
 /*
@@ -377,7 +377,7 @@ int32_t DateTime::GetAllMilliSeconds()const{
    if(value<0 && ms!=0){
       ms += MILLISECONDS;
    }
-   return ms; 
+   return ms;
 }
 
 /*
@@ -803,7 +803,7 @@ bool DateTime::ReadFrom(const string Time){
     day = ToJulian(year,month,day);
     int64_t milliseconds = ((hour*60+minute)*60+seconds)*1000+mseconds;
 
-    value = ((int64_t)day)*MILLISECONDS + milliseconds; 
+    value = ((int64_t)day)*MILLISECONDS + milliseconds;
 
     SetDefined(true);
     return true;
@@ -1263,7 +1263,7 @@ void DateTime::Minus(const DateTime* P2) {
       return;
    }
    value -= P2->value;
-   
+
 
 }
 
@@ -1304,7 +1304,7 @@ DateTime DateTime::operator/(const int32_t divisor)const{
   assert(divisor != 0);
   int64_t v = value / divisor;
   DateTime res(durationtype,v);
-  return res; 
+  return res;
 }
 
 /*
@@ -1937,42 +1937,44 @@ ListExpr MinMaxDurationTM(ListExpr args){
 }
 
 ListExpr CreateDurationTM(ListExpr args){
-  if(nl->ListLength(args)==1)
-    if ( nl->IsEqual(nl->First(args),"real") )
+  if(nl->ListLength(args)==1){
+    if ( nl->IsEqual(nl->First(args),"real") ) {
       return nl->SymbolAtom("duration");
-    else{
-          ErrorReporter::ReportError("one real value expected\n");
-          return nl->SymbolAtom("typeerror");
-        }
+    } else {
+      ErrorReporter::ReportError("one real value expected\n");
+      return nl->SymbolAtom("typeerror");
+    }
+  }
   if(nl->ListLength(args)==2){
     if(nl->IsEqual(nl->First(args),"int") &&
-       nl->IsEqual(nl->Second(args),"int"))
+       nl->IsEqual(nl->Second(args),"int")) {
       return nl->SymbolAtom("duration");
-    else{
+    } else {
           ErrorReporter::ReportError("two int values expected\n");
           return nl->SymbolAtom("typeerror");
-        }
+    }
   }
   ErrorReporter::ReportError("One or two arguments required\n");
   return nl->SymbolAtom("typeerror");
 }
 
 ListExpr CreateInstantTM(ListExpr args){
-  if(nl->ListLength(args)==1)
-    if ( nl->IsEqual(nl->First(args),"real") )
+  if(nl->ListLength(args)==1){
+    if ( nl->IsEqual(nl->First(args),"real") ) {
       return nl->SymbolAtom("instant");
-    else{
-          ErrorReporter::ReportError("one real value expected\n");
-          return nl->SymbolAtom("typeerror");
-        }
+    } else {
+      ErrorReporter::ReportError("one real value expected\n");
+      return nl->SymbolAtom("typeerror");
+    }
+  }
   if(nl->ListLength(args)==2){
     if(nl->IsEqual(nl->First(args),"int") &&
-       nl->IsEqual(nl->Second(args),"int"))
+       nl->IsEqual(nl->Second(args),"int")) {
       return nl->SymbolAtom("instant");
-    else{
-          ErrorReporter::ReportError("two int values expected\n");
-          return nl->SymbolAtom("typeerror");
-        }
+    } else {
+      ErrorReporter::ReportError("two int values expected\n");
+      return nl->SymbolAtom("typeerror");
+    }
   }
   ErrorReporter::ReportError("One or two arguments required\n");
   return nl->SymbolAtom("typeerror");
@@ -1980,25 +1982,27 @@ ListExpr CreateInstantTM(ListExpr args){
 
 
 ListExpr Duration2RealTM(ListExpr args){
-  if(nl->ListLength(args)==1)
-    if ( nl->IsEqual(nl->First(args),"duration") )
+  if(nl->ListLength(args)==1){
+    if ( nl->IsEqual(nl->First(args),"duration") ) {
       return nl->SymbolAtom("real");
-    else{
-          ErrorReporter::ReportError("one duration value expected\n");
-          return nl->SymbolAtom("typeerror");
-        }
+    } else {
+      ErrorReporter::ReportError("one duration value expected\n");
+      return nl->SymbolAtom("typeerror");
+    }
+  }
   ErrorReporter::ReportError("One argument required\n");
   return nl->SymbolAtom("typeerror");
 }
 
 ListExpr Instant2RealTM(ListExpr args){
-  if(nl->ListLength(args)==1)
-    if ( nl->IsEqual(nl->First(args),"instant") )
+  if(nl->ListLength(args)==1){
+    if ( nl->IsEqual(nl->First(args),"instant") ) {
       return nl->SymbolAtom("real");
-    else{
-          ErrorReporter::ReportError("one instant value expected\n");
-          return nl->SymbolAtom("typeerror");
-        }
+    } else {
+      ErrorReporter::ReportError("one instant value expected\n");
+      return nl->SymbolAtom("typeerror");
+    }
+  }
   ErrorReporter::ReportError("One argument required\n");
   return nl->SymbolAtom("typeerror");
 }

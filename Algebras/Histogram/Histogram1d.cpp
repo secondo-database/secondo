@@ -53,6 +53,7 @@ and comment the second one. To switch off test output, uncomment the line
 #include "ListUtils.h"
 #include <limits>
 #include "../ExtRelation-C++/Tupleorder.h"
+#include "AlmostEqual.h"
 
 using namespace symbols;
 

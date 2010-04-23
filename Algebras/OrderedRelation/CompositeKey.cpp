@@ -44,21 +44,21 @@ For more information see the OrderedRelation.h header file.
 
 CompositeKey::CompositeKey(const Tuple* t, const vector<int>& keyElements,
                            const vector<SmiKey::KeyDataType>& keyElemTypes,
-                           const bool append, const TupleId appendix): 
+                           const bool append, const TupleId appendix):
                            IndexableAttribute(false),data(0) {
-  
+
   if((!append) xor (appendix<0)) {
     return;
   }
-  
+
   if(keyElements.size() != keyElemTypes.size())
     return;
-  
+
   vector<void*> attributes(keyElements.size());
   for(SmiSize i=0; i<keyElements.size(); i++) {
     attributes[i] = t->GetAttribute(keyElements[i]);
   }
-  
+
   init(attributes, keyElemTypes, (append?appendNumber:none), appendix);
 }
 
@@ -76,7 +76,7 @@ CompositeKey::CompositeKey(SmiKey& key):
   kdt = key.GetType();
   if(kdt == SmiKey::Unknown)
     return;
-  
+
   long lVal;
   double dVal;
   string sVal;
@@ -165,7 +165,7 @@ CompositeKey& CompositeKey::operator=(const CompositeKey& src){
      free(data);
      data = 0;
     }
-  } 
+  }
   return *this;
 }
 
@@ -181,7 +181,7 @@ void CompositeKey::WriteTo(char* dest) const {
 void CompositeKey::ReadFrom(const char* src) {
   if(charsize > SMI_MAX_KEYLEN)
     charsize = SMI_MAX_KEYLEN;
-  if(!data){ 
+  if(!data){
      data = malloc(charsize);
   } else {
      data = realloc(data, charsize);
@@ -266,17 +266,17 @@ SmiKey::KeyDataType CompositeKey::GetType() const {
 bool CompositeKey::WriteToRecord(SmiRecord& record, SmiSize& offset) const {
   if(!IsDefined())
     return false;
-  
+
   if(record.Write(&kdt, sizeof(kdt), offset) != sizeof(kdt))
     return false;
   offset += sizeof(kdt);
-  
+
   if((kdt == SmiKey::Composite) || (kdt == SmiKey::String)) {
     if(record.Write(&charsize, sizeof(charsize), offset) != sizeof(charsize))
       return false;
     offset += sizeof(charsize);
   }
-  
+
   if(record.Write(data, charsize, offset) != charsize)
     return false;
   offset += charsize;
@@ -286,7 +286,7 @@ bool CompositeKey::WriteToRecord(SmiRecord& record, SmiSize& offset) const {
 SmiKey CompositeKey::GetSmiKey() const {
   if(!IsDefined())
     return SmiKey();
-  
+
   long lVal;
   double dVal;
   string sVal;
@@ -336,25 +336,25 @@ ListExpr CompositeKey::Out(const ListExpr typeInfo, Word value) {
 
 Word CompositeKey::In(const ListExpr typeInfo, const ListExpr value,
                 const int errorPos, ListExpr& errorInfo, bool& correct) {
-cout << "Composite::IN" << endl;
+// cout << "Composite::IN" << endl;
   correct = false;
   return SetWord((void*)0);
 }
 
 Word CompositeKey::Create(const ListExpr typeInfo) {
-cout << "Composite::Create" << endl;
+// cout << "Composite::Create" << endl;
   return SetWord(new CompositeKey());
 }
 
 void CompositeKey::Delete(const ListExpr typeInfo, Word& value) {
-cout << "Composite::Delete" << endl;
+// cout << "Composite::Delete" << endl;
   delete (CompositeKey*)(value.addr);
   value.addr = 0;
 }
 
 bool CompositeKey::Open(SmiRecord& valueRecord, size_t& offset,
                         const ListExpr typeInfo, Word& value) {
-cout << "Composite::Open" << endl;
+// cout << "Composite::Open" << endl;
   CompositeKey* comp = new CompositeKey();
   bool defined = comp->IsDefined();
   valueRecord.Read(&(defined), sizeof(defined), offset);
@@ -374,7 +374,7 @@ cout << "Composite::Open" << endl;
 
 bool CompositeKey::Save(SmiRecord& valueRecord, size_t& offset,
                         const ListExpr typeInfo, Word& value) {
-cout << "Composite::Save" << endl;
+// cout << "Composite::Save" << endl;
   CompositeKey* comp = (CompositeKey*)value.addr;
   bool defined = comp->IsDefined();
   valueRecord.Write(&defined, sizeof(defined), offset);
@@ -392,23 +392,23 @@ cout << "Composite::Save" << endl;
 }
 
 void CompositeKey::Close(const ListExpr typeInfo, Word& value) {
-cout << "Composite::Close" << endl;
+// cout << "Composite::Close" << endl;
   delete (CompositeKey*)(value.addr);
   value.addr = 0;
 }
 
 Word CompositeKey::Clone(const ListExpr typeInfo, const Word& value) {
-cout << "Composite::Clone" << endl;
+// cout << "Composite::Clone" << endl;
   return SetWord(((CompositeKey*)(value.addr))->Clone());
 }
 
 void* CompositeKey::Cast(void* addr) {
-cout << "Composite::Cast" << endl;
+// cout << "Composite::Cast" << endl;
   return new (addr) CompositeKey;
 }
 
 int CompositeKey::SizeOf() {
-cout << "Composite::SizeOf" << endl;
+// cout << "Composite::SizeOf" << endl;
   return sizeof(CompositeKey);
 }
 
@@ -425,7 +425,7 @@ const bool CompositeKey::operator==(const CompositeKey& other) const {
 void CompositeKey::init(const vector<void*>& attributes,
                         const vector<SmiKey::KeyDataType>& attrTypes,
                         const Mode mode, const TupleId appendix) {
-  
+
   SmiSize maxSize = SMI_MAX_KEYLEN-1;
   if(data==0){
      data = malloc(maxSize);
@@ -435,7 +435,7 @@ void CompositeKey::init(const vector<void*>& attributes,
   if(mode == appendNumber) {
     maxSize -= sizeof(long);
   }
-    
+
   charsize = 0;
   long lVal;
   double dVal;

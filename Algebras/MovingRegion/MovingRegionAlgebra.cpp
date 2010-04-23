@@ -8546,7 +8546,8 @@ static int InsideValueMap(Word* args,
     return 0;
 }
 
-static int AtValueMap_MPoint(Word* args,
+// old implementation creates a MRegion:
+static int AtValueMap_MPointOld(Word* args,
                              Word& result,
                              int message,
                              Word& local,
@@ -8583,6 +8584,35 @@ static int AtValueMap_MPoint(Word* args,
         ((MPoint*) result.addr)->SetDefined(false);
     }
 
+    return 0;
+}
+
+// new implementation calls specialized member of class MPoint:
+static int AtValueMap_MPoint(Word* args,
+                             Word& result,
+                             int message,
+                             Word& local,
+                             Supplier s) {
+    if (MRA_DEBUG) cerr << __PRETTY_FUNCTION__ << "(...) called" << endl;
+
+    result = qp->ResultStorage(s);
+    MPoint* res = static_cast<MPoint*>(result.addr);
+    res->Clear();
+    try {
+        MPoint* mp = static_cast<MPoint*>(args[0].addr);
+        Region* r  = static_cast<Region*>(args[1].addr);
+        mp->AtRegion(r, *res);
+    } catch (invalid_argument& e) {
+        cerr << "-----------------------------------------------------------"
+             << endl
+             << "An error occured during the at operation:"
+             << endl
+             << e.what()
+             << endl
+             << "-----------------------------------------------------------"
+             << endl;
+        res->SetDefined(false);
+    }
     return 0;
 }
 

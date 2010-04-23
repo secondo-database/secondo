@@ -59,9 +59,9 @@ derived attribute class must implement.
 #include "AlgebraManager.h"
 #include "../Tools/Flob/Flob.h"
 #include "WinUnix.h"
+#include "AlmostEqual.h"
 #include <limits>
 
-const double FACTOR = 0.00000001; // Precision factor, used within AlmostEqual
 
 Attribute* Attribute::Create(char* state,
                               size_t& offset, const ListExpr typeInfo ) {

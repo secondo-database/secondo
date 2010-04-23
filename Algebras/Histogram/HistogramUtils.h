@@ -54,6 +54,7 @@ to both histogram1d and histogram2d.
 #define HISTOGRAMUTILS_H_
 
 #include "HistogramBase.h"
+#include "AlmostEqual.h"
 
 namespace hgr
 {

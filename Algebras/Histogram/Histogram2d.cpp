@@ -38,6 +38,7 @@ December 2007, S.H[oe]cher,M.H[oe]ger,A.Belz,B.Poneleit
 #include "ListUtils.h"
 #include <limits>
 #include "../Algebras/ExtRelation-C++/Tupleorder.h"
+#include "AlmostEqual.h"
 
 using namespace symbols;
 using namespace std;
