@@ -96,21 +96,41 @@ ProgressLocalInfo::ProgressLocalInfo() :
 
 ProgressLocalInfo::~ProgressLocalInfo()
 {
-  if ( sizesInitialized )
-  {
+  if(attrSize){
     delete [] attrSize;
+    attrSize = 0;
+  }
+  if(attrSizeExt){
     delete [] attrSizeExt;
+    attrSizeExt = 0;
   }
 }
 
 void ProgressLocalInfo::SetJoinSizes( ProgressInfo& p1, ProgressInfo& p2 )
 {
   sizesChanged = false;
+  if(sizesInitialized && (noAttrs != p1.noAttrs + p2.noAttrs)){
+     sizesInitialized = false;
+  }
 
   if ( !sizesInitialized )
   {
+    if(attrSize){
+      delete [] attrSize;
+      attrSize = 0;
+    }
+    if(attrSizeExt){
+      delete [] attrSizeExt;
+      attrSizeExt = 0;
+    }
     noAttrs = p1.noAttrs + p2.noAttrs;
+    if(attrSize){
+      delete [] attrSize;
+    }
     attrSize = new double[noAttrs];
+    if(attrSizeExt){
+       delete [] attrSizeExt;
+    }
     attrSizeExt = new double[noAttrs];
   }
 
