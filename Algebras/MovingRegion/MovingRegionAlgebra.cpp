@@ -4637,10 +4637,16 @@ sufficient context to understand this method.
                << " WARNING: Probably uninitialized values!" << endl;
         }
 // debug::end
-        if (ip1t < iv.start.ToDouble() || ip1t > iv.end.ToDouble())
+        if(ip1present){
+          if(ip1t < iv.start.ToDouble() || ip1t > iv.end.ToDouble()){
             ip1present = false;
-        if (ip2t < iv.start.ToDouble() || ip2t > iv.end.ToDouble())
+          }
+        }
+        if(ip2present) {
+          if(ip2t < iv.start.ToDouble() || ip2t > iv.end.ToDouble()) {
             ip2present = false;
+          }
+        }
 
         if (MRA_DEBUG) {
             cerr << "URegionEmb::RIF() ip1present=" << ip1present
