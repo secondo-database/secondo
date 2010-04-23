@@ -299,5 +299,5 @@ private:
   friend class ConstructorFunctions<Urel1> ;
 };
 
-#endif URELALGE_H
+#endif //URELALGE_H
 

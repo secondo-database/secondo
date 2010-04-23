@@ -198,4 +198,4 @@ private:
   friend class Urel1;
 };
 
-#endif PAGEHASH_H
+#endif //PAGEHASH_H

@@ -1097,6 +1097,7 @@ int UFeedValueMap(Word* args, Word& result,
   ListExpr resultType;
   TupleType *resultTupleType = 0;
   uFeedLocalInfo *localInfo = 0;
+  URel1Tuple* urt;
 
   switch (message)
     {
@@ -1133,7 +1134,7 @@ int UFeedValueMap(Word* args, Word& result,
         return CANCEL;
       }
 
-    URel1Tuple* urt = urel->GetNextTuple(*itm);
+    urt = urel->GetNextTuple(*itm);
     if (urt != 0)
       {
         newTuple->PutAttribute(0, new CcInt(true, urt->GetID()));
@@ -1238,6 +1239,8 @@ int UFeedObjectValueMap(Word* args, Word& result,
   TupleType *resultTupleType;
   uFeedLocalInfo *localInfo = 0;
   Oid_t oID;
+  PageNo_t firstPageNo;
+  URel1Tuple* urt;
 
   switch (message)
     {
@@ -1245,7 +1248,7 @@ int UFeedObjectValueMap(Word* args, Word& result,
     urel = (Urel1*) args[0].addr;
     oID = ((CcInt*) args[2].addr)->GetIntval();
 
-    PageNo_t firstPageNo = urel->GetLatestPageNo(oID);
+    firstPageNo = urel->GetLatestPageNo(oID);
 
     localInfo = new uFeedLocalInfo;
 
@@ -1280,7 +1283,7 @@ int UFeedObjectValueMap(Word* args, Word& result,
         return CANCEL;
       }
 
-    URel1Tuple* urt = urel->GetNextTuple(*itm, oID);
+    urt = urel->GetNextTuple(*itm, oID);
     if (urt != 0)
       {
         newTuple->PutAttribute(0, new CcInt(true, urt->GetID()));
