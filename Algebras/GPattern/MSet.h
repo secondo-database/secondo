@@ -23,7 +23,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //paragraph [1] Title: [{\Large \bf \begin {center}] [\end {center}}]
 //[TOC] [\tableofcontents]
 
-[1] Header File of the Spatiotemporal Pattern Algebra
+[1] Header File of the MSet data type
 
 Jan, 2010 Mahmoud Sakr
 
@@ -31,10 +31,34 @@ Jan, 2010 Mahmoud Sakr
 
 1 Overview
 
+The MSet SECONDO type is a moving constant, where every unit is a time interval 
+and an IntSet. The type is not generalized to represent moving sets of any 
+types. This is to make the implementation as efficient as possible for 
+processing the group patterns.
+
+The MSet type has the problem of the nested DBArrays. This is because each unit
+(uset) contains a set (represented as a DBArray), and the MSet contains a 
+DBArray of usets. To solve the problem, we store two parallel DBArrays arrays 
+in the MSet class: (1) the \emph{data} array concatenates the sets of all the 
+usets in order, and (2) the \emph{units} array, which is inherited from the 
+Mapping class. The \emph{units} DBArray stores USetRef rather than USet. A 
+USetRef object has to indexes that point to a range (start and end positions) 
+in the \emph{data} DBArray. This range is the set elements that corresponds to 
+the unit. We also declare the \emph{USet} class, that can be casted to 
+\emph{USetRef} and visa versa, so that one could still use the temporal algebra
+operators for the MSet and USet types.
+
+Besides the SECONDO type, this file declares the InMemMSet. This is an in 
+memory representation for the MSet. In this representation, no DBArrays are 
+used, rather the data structures are nested in the memory. Basically we use the 
+data structures in the standard template library. One can cast the InMemMSet 
+and the InMemUSet into MSet, and USet and visa versa. We use the in memory 
+classes during the processing of the \emph{gpattern} operator to achive 
+efficiency. The stategy is to load the data from disk using the MSet and USet 
+classes, cast them to the in memory classes, do the required processing, cast 
+the results back so that they can be handled by SECONDO in further processing.        
 
 2 Defines and includes
-
-let set1= ten feed extend[srt: randint(50)] sortby[srt asc] intstream2set[no]
 
 */
 
@@ -66,70 +90,122 @@ public:
 
 namespace mset{
 
-const double day2min= 1440;
-class IntSet: public Attribute {
- public:
-   IntSet():points(0) {} // this constructor is reserved for the cast function.
-   IntSet(int numElem);
-   IntSet(bool def);
-   IntSet(const IntSet& arg);
-   ~IntSet();
+/*
+For efficiency, we cast the datetime objects into double and process the 
+doubles instead. Since this casting yields the value of the instant in days, we 
+define the following constant to convert the days to minutes so that to avoid 
+numerical problems of very small fractions
 
-   //IntSet functions
-   void Union(IntSet& op2, IntSet& res);
-   int IntersectionCount(const IntSet& arg) const;
-   bool IsSubset(const IntSet& rhs) const;
-   bool operator==(const IntSet& rhs) const;
-   bool operator<(const IntSet& rhs) const;
-   IntSet* Intersection(const IntSet& arg) const;
-   void Intersection2(const IntSet& arg);
-   void Insert(const int elem);
-   void Delete(const int elem);
-   int Count()const;
-   void Clear();
-   int BinSearch(int elem);
-   int operator[](int index) const;
-   
-   
-   //members required for the Attribute interface
-   size_t HashValue() const; 
-   void CopyFrom(const Attribute* right);
-   int Compare( const Attribute* rhs ) const;
-   ostream& Print( ostream &os ) const; 
-   size_t Sizeof() const;
-   bool Adjacent(const Attribute*) const ;
-   Attribute* Clone() const ;
-  
-   //members required for SECONDO types 
-   static Word     In( const ListExpr typeInfo, const ListExpr instance,
-                         const int errorPos, ListExpr& errorInfo,
-                         bool& correct );
-   static ListExpr Out( ListExpr typeInfo, Word value );
-   static Word     Create( const ListExpr typeInfo );
-   static void     Delete( const ListExpr typeInfo, Word& w );
-   static void     Close( const ListExpr typeInfo, Word& w );
-   static Word     Clone( const ListExpr typeInfo, const Word& w );
-   static void*    Cast(void* addr);
-   static bool     KindCheck( ListExpr type, ListExpr& errorInfo );
-   static int      SizeOfObj();
-   static ListExpr Property(); 
-   DbArray<int> points;
+*/
+const double day2min= 1440;
+
+/*
+3 Classes
+
+3.1 The IntSet Class
+
+*/
+class IntSet: public Attribute {
+public:
+/*
+This constructor is reserved for the SECONDO cast function.
+
+*/  
+  IntSet():points(0) {} 
+/*
+Constructors and the destructor
+
+*/
+ 
+  IntSet(int numElem);
+  IntSet(bool def);
+  IntSet(const IntSet& arg);
+  ~IntSet();
+
+/*
+Set operations and predicates
+
+*/
+  void Union(IntSet& op2, IntSet& res);
+  int IntersectionCount(const IntSet& arg) const;
+  bool IsSubset(const IntSet& rhs) const;
+  bool operator==(const IntSet& rhs) const;
+  bool operator<(const IntSet& rhs) const;
+  IntSet* Intersection(const IntSet& arg) const;
+  void Intersection2(const IntSet& arg);
+  void Insert(const int elem);
+  void Delete(const int elem);
+  int Count()const;
+  void Clear();
+  int BinSearch(int elem);
+  int operator[](int index) const;
+
+/*
+members required for the Attribute interface
+
+*/
+  size_t HashValue() const; 
+  void CopyFrom(const Attribute* right);
+  int Compare( const Attribute* rhs ) const;
+  ostream& Print( ostream &os ) const; 
+  size_t Sizeof() const;
+  bool Adjacent(const Attribute*) const ;
+  Attribute* Clone() const ;
+
+/*
+members required for SECONDO types
+
+*/ 
+  static Word     In( const ListExpr typeInfo, const ListExpr instance,
+      const int errorPos, ListExpr& errorInfo, bool& correct );
+  static ListExpr Out( ListExpr typeInfo, Word value );
+  static Word     Create( const ListExpr typeInfo );
+  static void     Delete( const ListExpr typeInfo, Word& w );
+  static void     Close( const ListExpr typeInfo, Word& w );
+  static Word     Clone( const ListExpr typeInfo, const Word& w );
+  static void*    Cast(void* addr);
+  static bool     KindCheck( ListExpr type, ListExpr& errorInfo );
+  static int      SizeOfObj();
+  static ListExpr Property(); 
+
+/*
+Data members
+
+*/  
+  DbArray<int> points;
 };
 
+/*
+3.2 The USet Class
+
+*/
 typedef ConstTemporalUnit< IntSet > USet;
+
+/*
+3.3 The USetRef Class
+
+*/
 
 class USetRef
 {
 public:
+/*
+Constructors and the destructor
+
+*/
   USetRef(){}
   USetRef(bool def):isdefined(def){}
   ~USetRef(){}
   USetRef(const int s, const int e, const Interval<Instant> &i)
-  :timeInterval(i), start(s), end(e), isdefined(true) {}
+    :timeInterval(i), start(s), end(e), isdefined(true) {}
   USetRef(const int s, const int e, const Interval<Instant> &i, const bool def)
-  :timeInterval(i), start(s), end(e), isdefined(def) {}
+    :timeInterval(i), start(s), end(e), isdefined(def) {}
+  
+/*
+Calss member functions
+
+*/  
   void GetUnit(const DbArray<int>& data, USet& res) const;
-  Interval<Instant> timeInterval;
   
   void GetSet(const DbArray<int>& data, set<int>& res) const;
   
@@ -156,20 +232,19 @@ public:
     int cmp = this->timeInterval.CompareTo(ctu->timeInterval);
     return cmp;
   }
-
+  
   size_t HashValue() const
   {
     if(!this->IsDefined()){
       return 0;
     }
     return static_cast<size_t>(   this->timeInterval.start.HashValue()
-                                ^ this->timeInterval.end.HashValue()   ) ;
+        ^ this->timeInterval.end.HashValue()   ) ;
   }
   
   bool Before( const USetRef& i ) const
   {
     assert( IsValid() && i.IsValid() );
-
     return ( timeInterval.Before(i.timeInterval) );
   }
   
@@ -177,23 +252,10 @@ public:
   { 
     return (this->start< this->end && timeInterval.IsValid());
   }
-
+  
   bool IsDefined() const {return isdefined;}
   
   void SetDefined(bool def) {isdefined= def;}
-  
-  ostream& Print( ostream &os ) const
-  {
-    return os << "[" << this->start << "," << this->end<< "[" ; 
-  }
-  
-  ostream& Print(DbArray<int> data, ostream &os ) const
-  {
-    USet tmp(0);
-    GetUnit(data, tmp);
-    tmp.Print(os);
-    return os; 
-  }
   
   void AtInterval( const Interval<Instant>& i,  USetRef& result ) const
   {
@@ -207,9 +269,33 @@ public:
     }
   }
   
+  ostream& Print( ostream &os ) const
+  {
+    return os << "[" << this->start << "," << this->end<< "[" ; 
+  }
+
+/*
+For meaningfull printout, one would like to see the elements of the set. This 
+function therefore accepts the \emph{data} array in its arguements.
+
+*/
+  ostream& Print(DbArray<int> data, ostream &os ) const
+  {
+    USet tmp(0);
+    GetUnit(data, tmp);
+    tmp.Print(os);
+    return os; 
+  }
+
+/*
+Data Members
+
+*/
+
   int start;
   int end;
   bool isdefined;
+  Interval<Instant> timeInterval;
 };
 
 
