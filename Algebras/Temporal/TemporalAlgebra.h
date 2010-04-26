@@ -7940,7 +7940,7 @@ bool ConsolidateUnitVector(
 //   cout << "\tintv     = " << intv << endl;
 //   cout << "\tlastUnit = " << lastUnit << endl;
   if(lastUnit.IsDefined()) {
-    cout << "\t\tAppended: " << lastUnit << endl;
+//    cout << "\t\tAppended: " << lastUnit << endl;
     result.push_back(lastUnit);
   }
 //   cout << "========================================================" << endl;
