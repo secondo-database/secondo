@@ -7037,7 +7037,7 @@ Word InUReal( const ListExpr typeInfo, const ListExpr instance,
 */
 Word CreateUReal( const ListExpr typeInfo )
 {
-  return (SetWord( new UReal() ));
+  return (SetWord( new UReal(false) ));
 }
 
 /*
@@ -7290,7 +7290,7 @@ Word InUPoint( const ListExpr typeInfo, const ListExpr instance,
 */
 Word CreateUPoint( const ListExpr typeInfo )
 {
-  return (SetWord( new UPoint() ));
+  return (SetWord( new UPoint(false) ));
 }
 
 /*
