@@ -100,6 +100,8 @@ file.
 #include <time.h>
 #include "AlmostEqual.h"
 
+#include "RefinementStream.h"
+
 
 extern NestedList* nl;
 extern QueryProcessor* qp;
@@ -2694,7 +2696,7 @@ void  MInt::PlusExtend(const MInt* arg2, MInt& result) const
 
   UInt uInt(true);
 
-  RefinementPartition<MInt, MInt, UInt, UInt> rp(*this, *arg2);
+  RefinementStream<MInt, MInt, UInt, UInt> rp(this, arg2);
   result.StartBulkLoad();
   Interval<Instant> iv;
   int u1Pos;
@@ -2702,8 +2704,9 @@ void  MInt::PlusExtend(const MInt* arg2, MInt& result) const
   UInt u1;
   UInt u2;
 
-  for(unsigned int i = 0; i < rp.Size(); i++){
-    rp.Get(i, iv, u1Pos, u2Pos);
+
+  while(rp.hasNext()){
+    rp.getNext(iv, u1Pos, u2Pos);
     if(u1Pos!=-1 || u2Pos!=-1){
       uInt.timeInterval = iv;
       if(u1Pos == -1 ){
@@ -2720,8 +2723,10 @@ void  MInt::PlusExtend(const MInt* arg2, MInt& result) const
       }
       result.MergeAdd(uInt);
     }
+
   }
   result.EndBulkLoad(false);
+
 }
 
 void MInt::MergeAddFillUp(const UInt& unit, const int fillValue){
