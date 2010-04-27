@@ -43,6 +43,7 @@ inclusion of header files concerning Secondo.
 #include "MovingRegionAlgebra.h"
 #include "DateTime.h"
 #include "TemporalExtAlgebra.h"
+#include "RefinementStream.h"
 
 extern NestedList* nl;
 extern QueryProcessor *qp;
@@ -466,7 +467,7 @@ Parameters:
     mp: a MPoint (by reference)
     res: a MPoint for result (by reference)
     rp: a reference to an object
-      RefinementPartition<MRegion, MPoint, URegionEmb, UPoint>
+      RefinementStream<MRegion, MPoint, URegionEmb, UPoint>
     merge: a boolean
 
 Return: nothing
@@ -477,7 +478,7 @@ void IntersectionRPExt(
     MRegion* mreg,
     MPoint& mp,
     MPoint& res,
-    RefinementPartition<
+    RefinementStream<
         MRegion,
         MPoint,
         URegionEmb,
@@ -495,12 +496,12 @@ during this interval and we can skip if. Otherwise, we check if the region
 and point unit, both restricted to this interval, intersect.
 
 */
-  for (unsigned int i = 0; i < rp.Size(); i++) {
+  while(rp.hasNext()){
     Interval<Instant> iv;
     int urPos;
     int upPos;
 
-    rp.Get(i, iv, urPos, upPos);
+    rp.getNext( iv, urPos, upPos);
 
     if (urPos == -1 || upPos == -1) continue;
 
@@ -3662,14 +3663,14 @@ int MRegionPointPassesExt( Word* args, Word& result, int message,
 
         bool result = false;
 
-        RefinementPartition<
+        RefinementStream<
             MRegion,
             MPoint,
             URegionEmb,
-            UPoint> rp(*m, mp);
+            UPoint> rs(m, &mp);
 
         MPoint resMp(0);
-        IntersectionRPExt( m, mp, resMp, rp, false);
+        IntersectionRPExt( m, mp, resMp, rs ,false);
 
         int mpPos = 0;
 
@@ -3690,19 +3691,15 @@ int MRegionPointPassesExt( Word* args, Word& result, int message,
                      << "  p1.y: " << uptemp2.p1.GetY() << endl;
             }
         }
-
-        for (unsigned int rpPos = 0; rpPos < rp.Size(); rpPos++)
+        rs.reset(); // second run
+        while(rs.hasNext()) 
         {
-            if (0)
-                cerr << "MRegion::Inside() rpPos=" << rpPos
-                        << " mpPos=" << mpPos
-                        << endl;
 
             Interval<Instant> iv;
             int urPos;
             int upPos;
 
-            rp.Get(rpPos, iv, urPos, upPos);
+            rs.getNext( iv, urPos, upPos);
 
             if (upPos < 0) continue;
 
@@ -3814,14 +3811,14 @@ int MRegionPointsPassesExt( Word* args, Word& result, int message,
                         << endl;
             }
 
-            RefinementPartition<
+            RefinementStream<
                     MRegion,
                     MPoint,
                     URegionEmb,
-                    UPoint> rp(*m, mp);
+                    UPoint> rs(m, &mp);
 
             MPoint resMp(0);
-            IntersectionRPExt( m, mp, resMp, rp, false);
+            IntersectionRPExt( m, mp, resMp, rs, false);
 
             int mpPos = 0;
 
@@ -3843,18 +3840,14 @@ int MRegionPointsPassesExt( Word* args, Word& result, int message,
                 }
             }
 
-            for (unsigned int rpPos = 0; rpPos < rp.Size(); rpPos++)
-            {
-                if (0)
-                    cerr << "MRegion::Inside() rpPos=" << rpPos
-                            << " mpPos=" << mpPos
-                            << endl;
+            rs.reset();
+            while(rs.hasNext()) {
 
                 Interval<Instant> iv;
                 int urPos;
                 int upPos;
 
-                rp.Get(rpPos, iv, urPos, upPos);
+                rs.getNext( iv, urPos, upPos);
 
                 if (upPos < 0) continue;
 
@@ -4745,24 +4738,20 @@ int ConcatSValueMap(Word* args, Word& result,
 static bool EverNearerThan(MPoint* arg0, MPoint* arg1, double dist){
   assert( arg0->IsDefined() );
   assert( arg1->IsDefined() );
-  RefinementPartition<MPoint, MPoint, UPoint, UPoint> rp(*arg0, *arg1);
-  unsigned int size = rp.Size();
-  unsigned int pos = 0;
-  while(pos < size){
-    Interval<Instant> iv;
-    int u1Pos;
-    int u2Pos;
-    UPoint u1transfer;
-    UPoint u2transfer;
-    rp.Get(pos, iv, u1Pos, u2Pos);
-    pos++;
+
+  RefinementStream<MPoint, MPoint, UPoint, UPoint> rs(arg0, arg1);
+  Interval<Instant> iv;
+  int u1Pos;
+  int u2Pos;
+  UPoint u1;
+  UPoint u2;
+  while(rs.hasNext()){
+    rs.getNext( iv, u1Pos, u2Pos);
     if (u1Pos == -1 || u2Pos == -1){
       continue;
     }
-    arg0->Get(u1Pos, u1transfer);
-    arg1->Get(u2Pos, u2transfer);
-    UPoint u1(u1transfer);
-    UPoint u2(u2transfer);
+    arg0->Get(u1Pos, u1);
+    arg1->Get(u2Pos, u2);
     if(u1.IsDefined() && u2.IsDefined())
     { // do not need to test for overlapping deftimes anymore...
       UReal uReal(true);
