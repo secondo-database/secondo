@@ -99,6 +99,28 @@ be __false__, otherwise __true__.
                int& pos1,
                int& pos2);
 
+
+/*
+1.5 ~finished1~
+
+Returns true if all units of object 1 was processed.
+
+*/
+
+   bool finished1() const{
+     return pos1<0;
+   }
+
+/*
+1.6 ~finished2~
+
+Returns true if all units of object 2 was processed.
+
+*/
+
+  bool finished2() const{
+     return pos2<0;
+  }
 private:
 
   const Mapping1*  m1;
