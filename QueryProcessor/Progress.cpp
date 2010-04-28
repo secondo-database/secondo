@@ -25,15 +25,13 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "Progress.h"
 
 
-ProgressInfo::ProgressInfo()
-{
-  sizesChanged = false;
-  BTime = 0.001;	//default assumes non-blocking operator,
-  BProgress = 1.0;	//time value must be > 0
-}
+ProgressInfo::ProgressInfo():
+  Card(0), Size(0), SizeExt(0), noAttrs(0), attrSize(0), attrSizeExt(0),
+  sizesChanged(false), Time(0), Progress(0), BTime(0.001), BProgress(1.0) 
+ { }
 
 
-void ProgressInfo::CopySizes(ProgressInfo p)	//copy the size fields
+void ProgressInfo::CopySizes(const ProgressInfo& p)
   {
     Size = p.Size;
     SizeExt = p.SizeExt;
@@ -44,7 +42,7 @@ void ProgressInfo::CopySizes(ProgressInfo p)	//copy the size fields
   }
 
 
-void ProgressInfo::CopySizes(ProgressLocalInfo* pli) //copy the size fields
+void ProgressInfo::CopySizes(const ProgressLocalInfo* pli)
 {
   Size = pli->Size;
   SizeExt = pli->SizeExt;
@@ -56,17 +54,18 @@ void ProgressInfo::CopySizes(ProgressLocalInfo* pli) //copy the size fields
 
 
 
-void ProgressInfo::CopyBlocking(ProgressInfo p)
-				//copy BTime, BProgress
-				//for non blocking unary op.
+void ProgressInfo::CopyBlocking(const ProgressInfo& p)
+   //copy BTime, BProgress
+   //for non blocking unary op.
 {
   BTime = p.BTime;
   BProgress = p.BProgress;
 }
 
-void ProgressInfo::CopyBlocking(ProgressInfo p1, ProgressInfo p2)
-				//copy BTime, BProgress
-				//for non-blocking binary op. (join)
+void ProgressInfo::CopyBlocking(const ProgressInfo& p1, 
+                                const ProgressInfo& p2)
+        //copy BTime, BProgress
+        //for non-blocking binary op. (join)
 {
   BTime = p1.BTime + p2.BTime;
   BProgress =
@@ -74,7 +73,7 @@ void ProgressInfo::CopyBlocking(ProgressInfo p1, ProgressInfo p2)
 }
 
 
-void ProgressInfo::Copy(ProgressInfo p)		//copy all fields
+void ProgressInfo::Copy(const ProgressInfo& p)    //copy all fields
   {
     Card = p.Card;
     CopySizes(p);

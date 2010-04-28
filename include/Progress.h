@@ -77,39 +77,40 @@ public:
 
   ProgressInfo();
 
-  double Card;		//expected cardinality
-  double Size;		//expected total tuple size (including FLOBs)
-  double SizeExt;	//expected size of tuple root and extension part
-    			//   (no FLOBs)
-  int noAttrs;		//no of attributes
-  double *attrSize;	// array: for each attribute, the complete size
+  double Card;    //expected cardinality
+  double Size;    //expected total tuple size (including FLOBs)
+  double SizeExt;  //expected size of tuple root and extension part
+          //   (no FLOBs)
+  int noAttrs;    //no of attributes
+  double *attrSize;  // array: for each attribute, the complete size
                     // stream sources should allocate the memory only once
                     // and delete it in CLOSEPROGRESS. Other operators
                     // should just copy the pointer and pass it on, unless they
                     // have impact on the size table. Then they should work
                     // like a stream source operator.
-  double *attrSizeExt;	// for each attribute, the root and extension size
+  double *attrSizeExt;  // for each attribute, the root and extension size
                         // also see ~attrSize~
-  bool sizesChanged;	//true if sizes have been recomputed in this request
+  bool sizesChanged;  //true if sizes have been recomputed in this request
 
-  double Time;		//expected time, in millisecond
-  double Progress;	//a number between 0 and 1
+  double Time;    //expected time, in millisecond
+  double Progress;  //a number between 0 and 1
 
-  double BTime;		//expected time, in millisecond of blocking ops
-  double BProgress;	//a number between 0 and 1
+  double BTime;    //expected time, in millisecond of blocking ops
+  double BProgress;  //a number between 0 and 1
 
 
-  void CopySizes(ProgressInfo p);	//copy the size fields
+  void CopySizes(const ProgressInfo& p);  //copy the size fields
 
-  void CopySizes(ProgressLocalInfo* pli);  //copy the size fields
+  void CopySizes(const ProgressLocalInfo* pli);  //copy the size fields
 
-  void CopyBlocking(ProgressInfo p);	//copy BTime, BProgress
-					//for non blocking unary op.
+  void CopyBlocking(const ProgressInfo& p);  //copy BTime, BProgress
+          //for non blocking unary op.
 
-  void CopyBlocking(ProgressInfo p1,ProgressInfo p2); //copy BTime, BProgress
-					//for non-blocking binary op. (join)
+  void CopyBlocking(const ProgressInfo& p1,
+                    const ProgressInfo& p2); //copy BTime, BProgress
+          //for non-blocking binary op. (join)
 
-  void Copy(ProgressInfo p);		//copy all fields
+  void Copy(const ProgressInfo& p);    //copy all fields
 
 };
 
@@ -134,25 +135,25 @@ public:
                     //some operators
   int state;        //to keep state info if needed
   int memoryFirst,
-      memorySecond;	//size of buffers for first and second argument
+      memorySecond;  //size of buffers for first and second argument
 
-  void* firstLocalInfo;	//pointers to localinfos of first and second arg
+  void* firstLocalInfo;  //pointers to localinfos of first and second arg
   void* secondLocalInfo;
 
   bool sizesInitialized;//size fields only defined if sizesInitialized;
                         //initialized means data structures are allocated
                         //and fields are filled
   bool   sizesChanged;  //sizes were recomputed in last call
-  double Size;		      //total tuplesize
-  double SizeExt;	      //size of root and extension part of tuple
-  int    noAttrs;		    //no of attributes
-  double *attrSize;	    //full size of each attribute
-  double *attrSizeExt;	//size of root and ext. part of each attribute
+  double Size;          //total tuplesize
+  double SizeExt;        //size of root and extension part of tuple
+  int    noAttrs;        //no of attributes
+  double *attrSize;      //full size of each attribute
+  double *attrSizeExt;  //size of root and ext. part of each attribute
 
   void SetJoinSizes( ProgressInfo& p1, ProgressInfo& p2 ) ;
 
-			//set the sizes for a join of first and second argument
-			//only done when sizes are initialized or have changed
+      //set the sizes for a join of first and second argument
+      //only done when sizes are initialized or have changed
 };
 
 
@@ -194,12 +195,12 @@ pointer to some class ~T~.
 In operator implementations you may define the local.addr pointer
 like this:
 
-----	local.addr = new LocalInfo<SortByLocalInfo>;
+----  local.addr = new LocalInfo<SortByLocalInfo>;
 ----
 
 Moreover, the ~SortByLocalInfo~ class must inherit from class ~ProgressWrapper~
 
-----	SortByLocalInfo : protected ProgressWrapper { ... }
+----  SortByLocalInfo : protected ProgressWrapper { ... }
 ----
 
 Refer to the ~sortby~ operator for implementation details.
