@@ -2095,30 +2095,22 @@ class UPoint : public SpatialTemporalUnit<Point, 3>
   UPoint(bool is_defined):
     SpatialTemporalUnit<Point, 3>(is_defined)
   {
-    del.refs=1;
-    del.SetDelete();
-    del.isDefined = is_defined;
-  };
-
+  }; 
   UPoint( const Interval<Instant>& _interval,
           const double x0, const double y0,
           const double x1, const double y1 ):
     SpatialTemporalUnit<Point, 3>( _interval ),
     p0( true, x0, y0 ),
     p1( true, x1, y1 )
-    { del.refs=1;
-      del.SetDelete();
-      del.isDefined = true;
-    }
+    { }
 
   UPoint( const Interval<Instant>& _interval,
           const Point& _p0, const Point& _p1 ):
     SpatialTemporalUnit<Point, 3>( _interval ),
     p0( _p0 ),
     p1( _p1 )
-    { del.refs=1;
-      del.SetDelete();
-      del.isDefined = p0.IsDefined() && p1.IsDefined();
+    { 
+      SetDefined(p0.IsDefined() && p1.IsDefined());
     }
 
   UPoint(const UPoint& source):
