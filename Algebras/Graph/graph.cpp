@@ -57,10 +57,9 @@ Graph::Graph() { }
 
 
 Graph::Graph(const bool Defined) : Attribute(Defined),vertices(0), adjlist(0){
-   SetDefined(Defined);
-   
-   if (IsDefined())
-     Clear();
+  if(IsDefined()){
+    Clear();
+  }
 }
 
 
