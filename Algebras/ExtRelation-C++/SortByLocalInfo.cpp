@@ -343,6 +343,7 @@ In this case we need to delete also all tuples stored in memory.
       ProgressWrapper(p),
       stream( stream ),
       currentIndex( 0 ),
+      tupleCount(0),
       lexiTupleCmp( lexicographic ?
                     (LexicographicalTupleSmaller*)tupleCmp :
                     0 ),
@@ -360,7 +361,7 @@ In this case we need to delete also all tuples stored in memory.
         Heap* nextRun = &queue[1];
 
         Word wTuple(Address(0));
-        size_t  c = 0, i = 0, a = 0, n = 0, m = 0, r = 0; // counter variables
+        size_t  i = 0, a = 0, n = 0, m = 0, r = 0; // counter variables
         bool newRelation = true;
 
 
@@ -377,7 +378,7 @@ In this case we need to delete also all tuples stored in memory.
         while(qp->Received(stream.addr)) // consume the stream completely
         {
           progress->read++;
-          c++; // tuple counter;
+          tupleCount++; // tuple counter;
           Tuple *t = static_cast<Tuple*>( wTuple.addr );
           TupleAndRelPos nextTuple(t, tupleCmpBy);
           if( MAX_MEMORY > (size_t)t->GetExtSize() )
@@ -444,7 +445,7 @@ In this case we need to delete also all tuples stored in memory.
                   TupleQueue *helpRun = currentRun;
                   currentRun = nextRun;
                   nextRun = helpRun;
-                  ShowPartitionInfo(c,a,n,m,r,rel);
+                  ShowPartitionInfo(tupleCount,a,n,m,r,rel);
                   i=n;
                   a=0;
                   n=0;
@@ -464,7 +465,7 @@ In this case we need to delete also all tuples stored in memory.
 
           qp->Request(stream.addr, wTuple);
         }
-        ShowPartitionInfo(c,a,n,m,r,rel);
+        ShowPartitionInfo(tupleCount,a,n,m,r,rel);
 
         // delete lastTuple and minTuple if allowed
         /*##if ( lastTuple.tuple )

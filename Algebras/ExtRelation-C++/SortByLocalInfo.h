@@ -81,11 +81,15 @@ class SortByLocalInfo : protected ProgressWrapper
 		void *tupleCmp, ProgressLocalInfo* p);
 		~SortByLocalInfo();
     Tuple* NextResultTuple();		
+    size_t TupleCount(){
+      return tupleCount;
+    }
 	private:
 		void ShowPartitionInfo( int c, int a, int n,
 		            int m, int r, GenericRelation* rel );
     Word stream;
     size_t currentIndex;
+    size_t tupleCount;
 
     // tuple information
     LexicographicalTupleSmaller *lexiTupleCmp;
