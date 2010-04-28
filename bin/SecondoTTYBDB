@@ -1,13 +1,15 @@
 #!/bin/bash
 #
 
+VALGRIND_STD_OPTIONS=" --num-callers=25 --suppressions=vgs.txt --error-limit=no --track-origins=yes "
+
 if [ "$1" == "--valgrind" ]; then
   shift
-  runner="valgrind --num-callers=25 --suppressions=vgs.txt --error-limit=no $(which SecondoBDB)"
+  runner="valgrind $VALGRIND_STD_OPTIONS  $(which SecondoBDB)"
 else 
 if [ "$1" == "--valgrindlc" ]; then
   shift
-  runner="valgrind --num-callers=25 --leak-check=full --suppressions=vgs.txt --error-limit=no $(which SecondoBDB)"
+  runner="$VALGRIND_STD_OPTIONS --leak-check=full $(which SecondoBDB)"
 else  
 if [ "$1" == "--profile" ]; then
   shift
