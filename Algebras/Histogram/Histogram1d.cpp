@@ -1091,7 +1091,7 @@ The algorithm is taken from
   int NoComponentsFun(Word* args, Word& result, int message, Word& local,
       Supplier s)
   {
-    Histogram1d* h1 = static_cast<Histogram1d*>(args[0].addr);
+    const Histogram1d* h1 = static_cast<Histogram1d*>(args[0].addr);
     result = qp->ResultStorage(s);
     CcInt* i = static_cast<CcInt*>(result.addr);
 
@@ -1171,8 +1171,8 @@ The algorithm is taken from
   int binrange_minFun( Word* args, Word& result,
       int message, Word& local, Supplier s )
   {
-    Histogram1d *hg = static_cast<Histogram1d*>(args[0].addr);
-    CcInt* binNumber = static_cast<CcInt*>(args[1].addr);
+    const Histogram1d *hg = static_cast<Histogram1d*>(args[0].addr);
+    const CcInt* binNumber = static_cast<CcInt*>(args[1].addr);
 
     result = qp->ResultStorage(s);
     CcReal *r = (CcReal*)result.addr;
@@ -1204,8 +1204,8 @@ The algorithm is taken from
   int binrange_maxFun( Word* args, Word& result,
       int message, Word& local, Supplier s )
   {
-    Histogram1d *hg = static_cast<Histogram1d*>(args[0].addr);
-    CcInt *binNumber = static_cast<CcInt*>(args[1].addr );
+    const Histogram1d *hg = static_cast<Histogram1d*>(args[0].addr);
+    const CcInt *binNumber = static_cast<CcInt*>(args[1].addr );
 
     result = qp->ResultStorage(s);
     CcReal *r = (CcReal*)result.addr;
@@ -1338,10 +1338,14 @@ The function makes use of four arguments:
     HIST_REAL val;
     CcReal* attrVal;
 
-    Histogram1d* hist = (Histogram1d*)args[2].addr;
-    CcInt* index = (CcInt*)args[3].addr;
+    const Histogram1d* hist = (Histogram1d*)args[2].addr;
+    const CcInt* index = (CcInt*)args[3].addr;
 
     Tuple* currentTuple;
+    result = qp->ResultStorage(s);
+    Histogram1d* res = (Histogram1d*)result.addr;
+    res->Clear();
+    res->CopyFrom(hist);
 
     qp->Open(args[0].addr);
     qp->Request(args[0].addr, elem);
@@ -1355,13 +1359,13 @@ The function makes use of four arguments:
 
 
       // catch empty (== undefined) histograms
-      if (hist->IsDefined())
+      if (res->IsDefined())
       {
-        bin = hist->FindBin(val);
+        bin = res->FindBin(val);
 
         // increment bin, if it was found
         if (bin.IsDefined())
-          hist->Insert(bin.GetIntval());
+          res->Insert(bin.GetIntval());
 
         currentTuple->DeleteIfAllowed();// consume the stream objects
         qp->Request(args[0].addr, elem);
@@ -1369,10 +1373,6 @@ The function makes use of four arguments:
     }
 
     // return filled histogram1d
-    result = qp->ResultStorage(s);
-    Histogram1d* res = (Histogram1d*)result.addr;
-    res->Clear();
-    res->CopyFrom(hist);
 
     qp->Close(args[0].addr);
 
@@ -1630,9 +1630,9 @@ The function makes use of four arguments:
   int Shrink1dFun(Word* args, Word& result, int message, Word& local,
       Supplier s)
   {
-    Histogram1d* hist = (Histogram1d*)args[0].addr;
-    CcReal* lo = (CcReal*)args[1].addr;
-    CcReal* hi = (CcReal*)args[2].addr;
+    const Histogram1d* hist = (Histogram1d*)args[0].addr;
+    const CcReal* lo = (CcReal*)args[1].addr;
+    const CcReal* hi = (CcReal*)args[2].addr;
 
     result = qp->ResultStorage(s);
     Histogram1d* res = (Histogram1d*)result.addr;
@@ -1759,8 +1759,8 @@ The function makes use of four arguments:
   int Getcount1dFun(Word* args, Word& result, int message, Word& local,
       Supplier s)
   {
-    Histogram1d* h = static_cast<Histogram1d*>(args[0].addr);
-    CcInt* binIndex = static_cast<CcInt*>(args[1].addr);
+    const Histogram1d* h = static_cast<Histogram1d*>(args[0].addr);
+    const CcInt* binIndex = static_cast<CcInt*>(args[1].addr);
     result = qp->ResultStorage(s);
     CcReal* res = static_cast<CcReal*>(result.addr );
 
@@ -1800,8 +1800,8 @@ The function makes use of four arguments:
   int Insert1dFun(Word* args, Word& result, int message, Word& local,
       Supplier s)
   {
-    Histogram1d* h = (Histogram1d*)args[0].addr;
-    CcReal* x = (CcReal*)args[1].addr;
+    const Histogram1d* h = (Histogram1d*)args[0].addr;
+    const CcReal* x = (CcReal*)args[1].addr;
 
     // return histogram1d
     result = qp->ResultStorage(s);
@@ -1822,7 +1822,7 @@ The function makes use of four arguments:
     {
       if (incValSupplied)
       {
-        CcReal* incVal = (CcReal*)args[2].addr;
+        const CcReal* incVal = (CcReal*)args[2].addr;
 
         if (!incVal->IsDefined())
         {
@@ -1883,8 +1883,8 @@ The function makes use of four arguments:
   int FindBinFun(Word* args, Word& result, int message, Word& local,
       Supplier s)
   {
-    Histogram1d* hist = (Histogram1d*)args[0].addr;
-    CcReal* value = (CcReal*)args[1].addr;
+    const Histogram1d* hist = (Histogram1d*)args[0].addr;
+    const CcReal* value = (CcReal*)args[1].addr;
 
     CcInt bin;
 
@@ -1907,7 +1907,7 @@ The function makes use of four arguments:
   int FindMinMaxBinFun1d(Word* args, Word& result, int message, Word& local,
       Supplier s)
   {
-    Histogram1d* h = static_cast<Histogram1d*>(args[0].addr);
+    const Histogram1d* h = static_cast<Histogram1d*>(args[0].addr);
     MinMaxBuffer* buffer;
     CcInt index;
     HIST_REAL value;
@@ -1983,7 +1983,7 @@ The function makes use of four arguments:
 
   int MeanFun(Word* args, Word& result, int message, Word& local, Supplier s)
   {
-    Histogram1d* h = static_cast<Histogram1d*>(args[0].addr );
+    const Histogram1d* h = static_cast<Histogram1d*>(args[0].addr );
 
     result = qp->ResultStorage(s);
 
@@ -2011,7 +2011,6 @@ The function makes use of four arguments:
     return list.typeError(errMsg);
   }
 
-  static LexicographicalTupleSmaller lexSmaller;
 
 //   class TupleAndRelPos
 //   {
@@ -2372,8 +2371,8 @@ The function makes use of four arguments:
     result = qp->ResultStorage(s);
     Histogram1d* hist = (Histogram1d*) result.addr;
     hist->Clear();
-    CcInt* index = (CcInt*)args[3].addr;
-    CcInt* maxCategories = (CcInt*)args[2].addr;
+    const CcInt* index = (CcInt*)args[3].addr;
+    const CcInt* maxCategories = (CcInt*)args[2].addr;
 
     qp->Open(args[0].addr);
 
@@ -2540,7 +2539,7 @@ The function makes use of four arguments:
   int VarianceFun(Word* args, Word& result, int message, Word& local,
       Supplier s)
   {
-    Histogram1d* h = static_cast<Histogram1d*>(args[0].addr );
+    const Histogram1d* h = static_cast<Histogram1d*>(args[0].addr );
 
     result = qp->ResultStorage(s);
 

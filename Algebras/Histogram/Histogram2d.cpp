@@ -892,7 +892,7 @@ Returns true if a correspondig container (bin) exists, false if not.
 Projection of the bin array index to 2d coordinates
 
 */
-  pair<CcInt, CcInt> Histogram2d::GetBinCoords(const int index)
+  pair<CcInt, CcInt> Histogram2d::GetBinCoords(const int index) const
   {
     if (IsEmpty() || index < 0 || index >= GetNoBin())
       return pair<CcInt, CcInt>(CcInt(false, -1), CcInt(false, -1));
@@ -1563,7 +1563,7 @@ pages 80-83, Aarhus, Denmark, June 2002.
   int BinsXFun(Word* args, Word& result, int message, Word& local,
       Supplier s)
   {
-    Histogram2d* h1 = static_cast<Histogram2d*>(args[0].addr );
+    const Histogram2d* h1 = static_cast<Histogram2d*>(args[0].addr );
     result = qp->ResultStorage(s);
     CcInt* i = static_cast<CcInt*>(result.addr);
 
@@ -1580,7 +1580,7 @@ pages 80-83, Aarhus, Denmark, June 2002.
   int BinsYFun(Word* args, Word& result, int message, Word& local,
       Supplier s)
   {
-    Histogram2d* h1 = static_cast<Histogram2d*>(args[0].addr );
+    const Histogram2d* h1 = static_cast<Histogram2d*>(args[0].addr );
     result = qp->ResultStorage(s);
     CcInt* i = static_cast<CcInt*>(result.addr);
 
@@ -1618,8 +1618,8 @@ pages 80-83, Aarhus, Denmark, June 2002.
   int binrange_minXFun( Word* args, Word& result,
       int message, Word& local, Supplier s )
   {
-    Histogram2d *hg = static_cast<Histogram2d*>(args[0].addr);
-    CcInt* binNumber = static_cast<CcInt*>(args[1].addr);
+    const Histogram2d *hg = static_cast<Histogram2d*>(args[0].addr);
+    const CcInt* binNumber = static_cast<CcInt*>(args[1].addr);
     // cerr << "binNumber: " << binNumber->GetIntval( ) << endl;
     result = qp->ResultStorage(s);
     CcReal *r = (CcReal*)result.addr;
@@ -1651,8 +1651,8 @@ pages 80-83, Aarhus, Denmark, June 2002.
   int binrange_maxXFun( Word* args, Word& result,
       int message, Word& local, Supplier s )
   {
-    Histogram2d *hg = static_cast<Histogram2d*>(args[0].addr);
-    CcInt* binNumber = static_cast<CcInt*>(args[1].addr);
+    const Histogram2d *hg = static_cast<Histogram2d*>(args[0].addr);
+    const CcInt* binNumber = static_cast<CcInt*>(args[1].addr);
     // cerr << "binNumber: " << binNumber->GetIntval( ) << endl;
     result = qp->ResultStorage(s);
     CcReal *r = (CcReal*)result.addr;
@@ -1684,8 +1684,8 @@ pages 80-83, Aarhus, Denmark, June 2002.
   int binrange_minYFun( Word* args, Word& result,
       int message, Word& local, Supplier s )
   {
-    Histogram2d *hg = static_cast<Histogram2d*>(args[0].addr);
-    CcInt* binNumber = static_cast<CcInt*>(args[1].addr);
+    const Histogram2d *hg = static_cast<Histogram2d*>(args[0].addr);
+    const CcInt* binNumber = static_cast<CcInt*>(args[1].addr);
     // cerr << "binNumber: " << binNumber->GetIntval( ) << endl;
     result = qp->ResultStorage(s);
     CcReal *r = (CcReal*)result.addr;
@@ -1717,8 +1717,8 @@ pages 80-83, Aarhus, Denmark, June 2002.
   int binrange_maxYFun(Word* args, Word& result, int message, Word& local,
       Supplier s)
   {
-    Histogram2d *hg = static_cast<Histogram2d*>(args[0].addr);
-    CcInt* binNumber = static_cast<CcInt*>(args[1].addr);
+    const Histogram2d *hg = static_cast<Histogram2d*>(args[0].addr);
+    const CcInt* binNumber = static_cast<CcInt*>(args[1].addr);
     // cerr << "binNumber: " << binNumber->GetIntval( ) << endl;
     result = qp->ResultStorage(s);
     CcReal *r = (CcReal*)result.addr;
@@ -1815,9 +1815,9 @@ Argument 0 tuple stream, 1 attribute name X, 2 attribute name Y,
     CcReal* attrValX;
     CcReal* attrValY;
 
-    Histogram2d* hist = (Histogram2d*)args[3].addr;
-    CcInt* indexX = (CcInt*)args[4].addr;
-    CcInt* indexY = (CcInt*)args[5].addr;
+    const Histogram2d* hist = (Histogram2d*)args[3].addr;
+    const CcInt* indexX = (CcInt*)args[4].addr;
+    const CcInt* indexY = (CcInt*)args[5].addr;
 
     //cout << "indexX " << indexX->GetIntval() << endl;
     //cout << "indexY " << indexY->GetIntval() << endl;
@@ -1826,6 +1826,10 @@ Argument 0 tuple stream, 1 attribute name X, 2 attribute name Y,
 
     qp->Open(args[0].addr);
     qp->Request(args[0].addr, elem);
+    result = qp->ResultStorage(s);
+    Histogram2d* res = (Histogram2d*)result.addr;
+    res->Clear();
+    res->CopyFrom(hist);
 
     while (qp->Received(args[0].addr) )
     {
@@ -1840,14 +1844,14 @@ Argument 0 tuple stream, 1 attribute name X, 2 attribute name Y,
       valY = attrValY->GetRealval();
 
       // catch empty (== undefined) histograms
-      if (hist->IsDefined())
+      if (res->IsDefined())
       {
 
-        bin = hist->FindBin(valX, valY);
+        bin = res->FindBin(valX, valY);
 
         // Increment bin, if it was found
         if (bin.IsDefined())
-          hist->Insert(bin.GetIntval());
+          res->Insert(bin.GetIntval());
       }
 
       currentTuple->DeleteIfAllowed();// consume the stream objects
@@ -1855,10 +1859,6 @@ Argument 0 tuple stream, 1 attribute name X, 2 attribute name Y,
     }
 
     // return filled histogram2d
-    result = qp->ResultStorage(s);
-    Histogram2d* res = (Histogram2d*)result.addr;
-    res->Clear();
-    res->CopyFrom(hist);
 
     qp->Close(args[0].addr);
 
@@ -2289,11 +2289,11 @@ Argument 0 histogram, 1 lower bound X, 2 upper bound X,
   int Shrink2dFun(Word* args, Word& result, int message, Word& local,
       Supplier s)
   {
-    Histogram2d* hist = (Histogram2d*)args[0].addr;
-    CcReal* loX = (CcReal*)args[1].addr;
-    CcReal* hiX = (CcReal*)args[2].addr;
-    CcReal* loY = (CcReal*)args[3].addr;
-    CcReal* hiY = (CcReal*)args[4].addr;
+    const Histogram2d* hist = (const Histogram2d*)args[0].addr;
+    const CcReal* loX = (const CcReal*)args[1].addr;
+    const CcReal* hiX = (const CcReal*)args[2].addr;
+    const CcReal* loY = (const CcReal*)args[3].addr;
+    const CcReal* hiY = (const CcReal*)args[4].addr;
 
     result = qp->ResultStorage(s);
     Histogram2d* res = (Histogram2d*)result.addr;
@@ -2475,9 +2475,9 @@ the file ~HistogramAlgebra.cpp~.
   int Getcount2dFun(Word* args, Word& result, int message, Word& local,
       Supplier s)
   {
-    Histogram2d* h = static_cast<Histogram2d*>(args[0].addr);
-    CcInt* binIndexX = static_cast<CcInt*>(args[1].addr);
-    CcInt* binIndexY = static_cast<CcInt*>(args[2].addr);
+    const Histogram2d* h = static_cast<const Histogram2d*>(args[0].addr);
+    const CcInt* binIndexX = static_cast<const CcInt*>(args[1].addr);
+    const CcInt* binIndexY = static_cast<const CcInt*>(args[2].addr);
     result = qp->ResultStorage(s);
     CcReal* res = static_cast<CcReal*>(result.addr );
 
@@ -2522,9 +2522,9 @@ Argument 0 Histogram2d, 1 X real value, 2 Y real value, 3 incVal
   int Insert2dFun(Word* args, Word& result, int message, Word& local,
       Supplier s)
   {
-    Histogram2d* h = (Histogram2d*)args[0].addr;
-    CcReal* x = (CcReal*)args[1].addr;
-    CcReal* y = (CcReal*)args[2].addr;
+    const Histogram2d* h = (const Histogram2d*)args[0].addr;
+    const CcReal* x = (const CcReal*)args[1].addr;
+    const CcReal* y = (const CcReal*)args[2].addr;
 
     // return histogram2d
     result = qp->ResultStorage(s);
@@ -2543,7 +2543,7 @@ Argument 0 Histogram2d, 1 X real value, 2 Y real value, 3 incVal
 
     if (bin.IsDefined()) {
       if (incValSupplied) {
-        CcReal* incVal = (CcReal*)args[3].addr;
+        const CcReal* incVal = (const CcReal*)args[3].addr;
 
         if (!incVal->IsDefined()){
           hist->SetDefined(false);
@@ -2611,8 +2611,8 @@ Argument 0 Histogram2d, 1 real value
   int FindBin2dFun(Word* args, Word& result, int message, Word& local,
       Supplier s)
   {
-    Histogram2d* hist = (Histogram2d*)args[0].addr;
-    CcReal* value = (CcReal*)args[1].addr;
+    const Histogram2d* hist = (const Histogram2d*)args[0].addr;
+    const CcReal* value = (const CcReal*)args[1].addr;
 
     CcInt bin;
 
@@ -2641,7 +2641,7 @@ Argument 0 Histogram2d, 1 real value
   int FindMinMaxBinFun2d(Word* args, Word& result, int message, Word& local,
       Supplier s)
   {
-    Histogram2d* h = static_cast<Histogram2d*>(args[0].addr);
+    const Histogram2d* h = static_cast<const Histogram2d*>(args[0].addr);
     MinMaxBuffer* buffer;
     CcInt index;
     HIST_REAL value;
@@ -2727,7 +2727,7 @@ Argument 0 Histogram2d, 1 real value
 */
   int MeanXFun(Word* args, Word& result, int message, Word& local, Supplier s)
   {
-    Histogram2d* h = static_cast<Histogram2d*>(args[0].addr );
+    const Histogram2d* h = static_cast<const Histogram2d*>(args[0].addr );
 
     result = qp->ResultStorage(s);
 
@@ -2757,7 +2757,7 @@ Argument 0 Histogram2d, 1 real value
 
   int MeanYFun(Word* args, Word& result, int message, Word& local, Supplier s)
    {
-     Histogram2d* h = static_cast<Histogram2d*>(args[0].addr );
+     const Histogram2d* h = static_cast<const Histogram2d*>(args[0].addr );
 
      result = qp->ResultStorage(s);
 
@@ -2768,7 +2768,6 @@ Argument 0 Histogram2d, 1 real value
      return 0;
    }
 
-  static LexicographicalTupleSmaller lexSmaller;
 
 /*
 9.13 Class TupleAndRelPos
@@ -3455,10 +3454,10 @@ Argument 0 tuple stream, 1 attribute name X, 2 attribute name Y,
     result = qp->ResultStorage(s);
     Histogram2d* hist = (Histogram2d*) result.addr;
     hist->Clear();
-    CcInt* indexX = (CcInt*)args[5].addr;
-    CcInt* indexY = (CcInt*)args[6].addr;
-    CcInt* maxCategoriesX = (CcInt*)args[3].addr;
-    CcInt* maxCategoriesY = (CcInt*)args[4].addr;
+    const CcInt* indexX = (const CcInt*)args[5].addr;
+    const CcInt* indexY = (const CcInt*)args[6].addr;
+    const CcInt* maxCategoriesX = (const CcInt*)args[3].addr;
+    const CcInt* maxCategoriesY = (const CcInt*)args[4].addr;
 
     qp->Open(args[0].addr);
 
@@ -3748,7 +3747,7 @@ Argument 0 tuple stream, 1 attribute name X, 2 attribute name Y,
   int VarianceXFun(Word* args, Word& result, int message, Word& local,
       Supplier s)
   {
-    Histogram2d* h = static_cast<Histogram2d*>(args[0].addr );
+    const Histogram2d* h = static_cast<const Histogram2d*>(args[0].addr );
 
     result = qp->ResultStorage(s);
 
@@ -3762,7 +3761,7 @@ Argument 0 tuple stream, 1 attribute name X, 2 attribute name Y,
   int VarianceYFun(Word* args, Word& result, int message, Word& local,
       Supplier s)
   {
-    Histogram2d* h = static_cast<Histogram2d*>(args[0].addr );
+    const Histogram2d* h = static_cast<const Histogram2d*>(args[0].addr );
 
     result = qp->ResultStorage(s);
 
@@ -3776,7 +3775,7 @@ Argument 0 tuple stream, 1 attribute name X, 2 attribute name Y,
   int CovarianceFun(Word* args, Word& result, int message, Word& local,
       Supplier s)
   {
-    Histogram2d* h = static_cast<Histogram2d*>(args[0].addr );
+    const Histogram2d* h = static_cast<const Histogram2d*>(args[0].addr );
 
     result = qp->ResultStorage(s);
 

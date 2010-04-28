@@ -47,16 +47,14 @@ namespace hgr
   }
 
   BaseHistogram::BaseHistogram(bool _defined, size_t size) :
+    Attribute(_defined),
     bin(size)
-  {
-    SetDefined(_defined);
-  }
+  { }
 
   BaseHistogram::BaseHistogram(const BaseHistogram& rhs) :
+    Attribute(rhs.IsDefined()),
     bin(rhs.bin.Size())
   {
-    SetDefined(rhs.IsDefined());
-
     for (int j = 0; j < rhs.GetNoBin(); j++)
       bin.Append( rhs.GetBin(j) );
   }

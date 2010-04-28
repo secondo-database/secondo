@@ -166,7 +166,7 @@ takes the index number of a bin and returns the X and Y coordinates of that
 bin.
 
 */
-      pair<CcInt, CcInt> GetBinCoords(const int index);
+      pair<CcInt, CcInt> GetBinCoords(const int index) const;
 
 /*
 3.1.8 NoBinsX(), NoBinsY()
