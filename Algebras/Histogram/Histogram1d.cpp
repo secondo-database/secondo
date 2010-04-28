@@ -1487,6 +1487,7 @@ The function makes use of four arguments:
     if ( !((CcInt*)args[2].addr)->IsDefined() )
     {
       resultHg->SetDefined(false);
+      delete buffer;
       return 0;
     }
 
@@ -1499,6 +1500,7 @@ The function makes use of four arguments:
       cout << "Error in operator create_histogram1d_equiwidth: "
       << "The last argument must be greater than zero." << endl;
       resultHg->SetDefined(false);
+      delete buffer;
       return 0;
     }
 
@@ -1561,6 +1563,7 @@ The function makes use of four arguments:
       cout << "Error in operator create_histogram1d_equiwidth: "
       << "The stream contains no valid elements." << endl;
       resultHg->SetDefined(false);
+      delete buffer;
       return 0;
     }
 
@@ -1573,7 +1576,7 @@ The function makes use of four arguments:
 
       // and fill in all values:
       resultHg->AppendBin(buffer->GetNoTuples());
-
+      delete buffer;
       return 0;
     }
 
@@ -1610,10 +1613,7 @@ The function makes use of four arguments:
     {
       attrPtr = (CcReal*)(tuplePtr->GetAttribute(attrIndex));
       resultHg->Insert(attrPtr->GetRealval());
-
-      //tuplePtr->DecReference();
-      // tuplePtr->DeleteIfAllowed(); // will be deleted
-                                      // when  the bufer is destroyed
+      tuplePtr->DeleteIfAllowed();
     }
 
     delete it;

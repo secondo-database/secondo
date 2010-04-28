@@ -2090,6 +2090,7 @@ Argument 0 tuple stream, 1 attribute name X, 2 attribute name Y,
         !((CcInt*)args[4].addr)->IsDefined() )
     {
       resultHg->SetDefined(false);
+      delete buffer;
       return 0;
     }
 
@@ -2102,6 +2103,7 @@ Argument 0 tuple stream, 1 attribute name X, 2 attribute name Y,
       cout << "Error in operator create_histogram2d_equiwidth: "
       << "The fourth argument must be greater than zero." << endl;
       resultHg->SetDefined(false);
+      delete buffer;
       return 0;
     }
 
@@ -2110,6 +2112,7 @@ Argument 0 tuple stream, 1 attribute name X, 2 attribute name Y,
       cout << "Error in operator create_histogram2d_equiwidth: "
       << "The fifth argument must be greater than zero." << endl;
       resultHg->SetDefined(false);
+      delete buffer;
       return 0;
     }
 
@@ -2189,6 +2192,7 @@ Argument 0 tuple stream, 1 attribute name X, 2 attribute name Y,
       cout << "Error in operator create_histogram2d_equiwidth: "
       << "The stream contains no valid elements." << endl;
       resultHg->SetDefined(false);
+      delete buffer;
       return 0;
     }
 
@@ -2267,7 +2271,7 @@ Argument 0 tuple stream, 1 attribute name X, 2 attribute name Y,
 
       resultHg->Insert(attrXValue, attrYValue);
 
-      //tuplePtr->DecReference();
+      tuplePtr->DeleteIfAllowed();
     }
 
     delete it;
