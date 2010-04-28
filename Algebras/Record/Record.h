@@ -55,8 +55,8 @@ For detailed information refer to ~Record.cpp~.
 
 #include "Attribute.h"
 #include "Symbols.h"
-#include "DBArray.h"
-#include "FLOB.h"
+#include "../../Tools/Flob/DbArray.h"
+#include "../../Tools/Flob/Flob.h"
 
 
 using namespace std;
@@ -177,7 +177,7 @@ be implemented for this data type because a record owns FLOB.
 
 */
     virtual int      NumOfFLOBs() const;
-    virtual FLOB*    GetFLOB(const int i);
+    virtual Flob*    GetFLOB(const int i);
     virtual ostream& Print(ostream& os) const;
 
 /*
@@ -237,14 +237,6 @@ Private data type ~ElemInfo~ to hold element infos
       size_t extDataOffset;
     };
 
-/*
-Utility methods ~CopyFlob~ and ~CopyElemInfos~ to copy FLOBs and
-ElementInfo-Arrays
-
-*/
-    static void CopyFlob(FLOB& dest, const FLOB& src);
-    static void CopyElemInfos(DBArray<ElemInfo>& dest,
-                              const DBArray<ElemInfo>& src);
 
 /*
 ~IsRecordTypeList~ checks if the given type list is a record type list.
@@ -274,9 +266,9 @@ ElementInfo-Arrays
 */
     size_t            hashValue;
     int               noElements;
-    DBArray<ElemInfo> elemInfoArray;
-    FLOB              elemData;
-    FLOB              elemExtData;
+    DbArray<ElemInfo> elemInfoArray;
+    Flob              elemData;
+    Flob              elemExtData;
 };
 
 #endif // __RECORD_H__

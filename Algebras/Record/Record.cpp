@@ -237,24 +237,7 @@ Destroys the Record and cleans up the memory of ~elemInfoArray~,
 ~elemData~, ~elemExtData~.
 
 */
-Record::~Record()
-{
-#ifdef RECORD_DEBUG
-  cerr << "Record::~Record(): " << *this << endl;
-#endif
-
-  // clean and destroy the element info DBArray
-  this->elemInfoArray.Clear();
-  this->elemInfoArray.Destroy();
-
-  // clean and destroy the element data FLOB
-  this->elemData.Clean();
-  this->elemData.Destroy();
-
-  // clean and destroy the element external data FLOB
-  this->elemExtData.Clean();
-  this->elemExtData.Destroy();
-}
+Record::~Record() { }
 
 /*
 6.1 Public record method area
@@ -314,7 +297,7 @@ Record::GetElement(int pos) const
   assert(pos < this->elemInfoArray.Size());
 
   // get element info by position
-  const ElemInfo* elemInfo;
+  ElemInfo elemInfo;
   this->elemInfoArray.Get(pos, elemInfo);
 
 #ifdef RECORD_DEBUG
@@ -325,7 +308,7 @@ Record::GetElement(int pos) const
   Attribute * elem = NULL;
 
   // check if requested element does exist
-  if (elemInfo->hasData) {
+  if (elemInfo.hasData) {
 
 #ifdef RECORD_DEBUG
     cerr << ", algebraId=" << elemInfo->algebraId
@@ -333,11 +316,11 @@ Record::GetElement(int pos) const
 #endif
 
     // create type info list for the requested element
-    ListExpr typeInfo = nl->TwoElemList(nl->IntAtom(elemInfo->algebraId),
-                                        nl->IntAtom(elemInfo->typeId));
+    ListExpr typeInfo = nl->TwoElemList(nl->IntAtom(elemInfo.algebraId),
+                                        nl->IntAtom(elemInfo.typeId));
 
     // create requested element
-    Word w = ((am->CreateObj(elemInfo->algebraId, elemInfo->typeId))(typeInfo));
+    Word w = ((am->CreateObj(elemInfo.algebraId, elemInfo.typeId))(typeInfo));
 
 #ifdef RECORD_DEBUG
     cerr << ", elemAddr=" << w.addr << endl;
@@ -349,21 +332,17 @@ Record::GetElement(int pos) const
     cerr << "Record::GetElement: pos=" << pos
          << ", elemData.size=" << this->elemData.Size()
          << ", elemExtData.size=" << this->elemExtData.Size()
-         << ", elemInfo.dataOffset=" << elemInfo->dataOffset
-         << ", elemInfo.extDataOffset=" << elemInfo->extDataOffset
+         << ", elemInfo.dataOffset=" << elemInfo.dataOffset
+         << ", elemInfo.extDataOffset=" << elemInfo.extDataOffset
          << endl;
 #endif
 
-    // retrieve stored data for requested element
-    // get pointer to element data
-    const char * elemPtr = NULL;
-    this->elemData.Get(elemInfo->dataOffset, &elemPtr, false);
-    // copy element data to element object
-    memcpy(elem, elemPtr, elem->Sizeof());
+    // get element content 
+    this->elemData.read((char*)elem, sizeof(*elem),elemInfo.dataOffset);
 
     // assign retrieved data to element
-    elem = static_cast<Attribute*> ((am->Cast(elemInfo->algebraId,
-                                              elemInfo->typeId))((void*) elem));
+    elem = static_cast<Attribute*> ((am->Cast(elemInfo.algebraId,
+                                              elemInfo.typeId))((void*) elem));
 
 #ifdef RECORD_DEBUG
     cerr << "Record::GetElement: pos=" << pos
@@ -373,13 +352,12 @@ Record::GetElement(int pos) const
 #endif
 
     // assign external data offset
-    size_t offset = elemInfo->extDataOffset;
+    size_t offset = elemInfo.extDataOffset;
 
     // iterate through all flobs of this element
     for (int i = 0; i < elem->NumOfFLOBs(); i++) {
       // get current flob
-      FLOB* flob = elem->GetFLOB(i);
-      size_t flobSize = flob->Size();
+      Flob* flob = elem->GetFLOB(i);
 
 #ifdef RECORD_DEBUG
       cerr << "Record::GetElement: pos=" << pos
@@ -388,15 +366,16 @@ Record::GetElement(int pos) const
 #endif
 
       // retrieve stored data for current flob
-      const char * data;
-      this->elemExtData.Get(offset, &data, false);
+      char* buffer = new char[flob->getSize()]; 
+      this->elemExtData.read(buffer, flob->getSize(), offset);
 
       // assign retrieved data to target flob
-      flob->Clean();
-      flob->Put(0, flobSize, data);
+      flob->clean();
+      flob->write(buffer,  flob->getSize(), 0);
+      delete[] buffer;
 
       // update external data offset
-      offset += flobSize;
+      offset += flob->getSize();
     }
   }
 
@@ -423,14 +402,14 @@ Record::GetElementName(int pos) const
   assert(pos < this->elemInfoArray.Size());
 
   // get element info by position
-  const ElemInfo * elemInfo;
+  ElemInfo  elemInfo;
   this->elemInfoArray.Get(pos, elemInfo);
 
 #ifdef RECORD_DEBUG
-  cerr << ": elemName=" << elemInfo->elemName << endl;
+  cerr << ": elemName=" << elemInfo.elemName << endl;
 #endif
 
-  return elemInfo->elemName;
+  return elemInfo.elemName;
 }
 
 /*
@@ -452,14 +431,14 @@ Record::GetElementTypeName(int pos) const
   assert(pos < this->elemInfoArray.Size());
 
   // get element info by position
-  const ElemInfo * elemInfo;
+  ElemInfo  elemInfo;
   this->elemInfoArray.Get(pos, elemInfo);
 
 #ifdef RECORD_DEBUG
-  cerr << ": typeName=" << elemInfo->typeName << endl;
+  cerr << ": typeName=" << elemInfo.typeName << endl;
 #endif
 
-  return elemInfo->typeName;
+  return elemInfo.typeName;
 }
 
 /*
@@ -532,7 +511,7 @@ Record::SetElement(int pos, Attribute* elem,
     int size = this->elemInfoArray.Size();
 
     // resize array
-    this->elemInfoArray.Resize(pos + 1);
+    this->elemInfoArray.resize(pos + 1);
 
     // padding the array with empty element info objects to fill the gap
     for (; size < (this->elemInfoArray.Size() - 1); size++) {
@@ -555,8 +534,8 @@ Record::SetElement(int pos, Attribute* elem,
 
   // mark element as available and assign remaining offset values
   elemInfo.hasData = true;
-  elemInfo.dataOffset = this->elemData.Size();
-  elemInfo.extDataOffset = this->elemExtData.Size();
+  elemInfo.dataOffset = this->elemData.getSize();
+  elemInfo.extDataOffset = this->elemExtData.getSize();
 
 #ifdef RECORD_DEBUG
   cerr << "Record::SetElement: pos=" <<  pos
@@ -569,7 +548,7 @@ Record::SetElement(int pos, Attribute* elem,
 #endif
 
   // store element
-  this->elemData.Put(elemInfo.dataOffset, elem->Sizeof(), elem);
+  this->elemData.write((char*) elem, sizeof(*elem), elemInfo.dataOffset);
 
 #ifdef RECORD_DEBUG
   cerr << "Record::SetElement: pos=" << pos
@@ -584,13 +563,13 @@ Record::SetElement(int pos, Attribute* elem,
   // iterate througth all flobs of this element
   for (int i = 0; i < elem->NumOfFLOBs(); i++) {
     // get current flob
-    FLOB* flob = elem->GetFLOB(i);
+    Flob* flob = elem->GetFLOB(i);
 
     // get current flob size
-    size_t size = flob->Size();
+    size_t size = flob->getSize();
 
     // resize elem external data flob to the required size
-    this->elemExtData.Resize(offset + size);
+    this->elemExtData.resize(offset + size);
 
 #ifdef RECORD_DEBUG
     cerr << "Record::SetElement: pos=" << pos
@@ -600,10 +579,10 @@ Record::SetElement(int pos, Attribute* elem,
 #endif
 
     // get data from current flob and store it
-    const char* data;
-    flob->Get(0, &data, false);
-    this->elemExtData.Put(offset, size, data);
-
+    char* buffer = new char[size];
+    flob->read(buffer, size, 0);
+    this->elemExtData.write(buffer, size, offset);
+    delete[] buffer;
     // update offset
     offset += size;
   }
@@ -761,9 +740,8 @@ Record::Clone() const
   // copy all values from this to clone
   clone->hashValue = this->hashValue;
   clone->noElements = this->noElements;
-  CopyElemInfos(clone->elemInfoArray, this->elemInfoArray);
-  CopyFlob(clone->elemData, this->elemData);
-  CopyFlob(clone->elemExtData, this->elemExtData);
+  clone->elemInfoArray.copyFrom(elemInfoArray);
+  clone->elemData.copyFrom(elemData);
 
   return clone;
 }
@@ -805,9 +783,9 @@ Record::CopyFrom(const Attribute* attr)
     // copy all values from given record to this
     this->hashValue = record->hashValue;
     this->noElements = record->noElements;
-    CopyElemInfos(this->elemInfoArray, record->elemInfoArray);
-    CopyFlob(this->elemData, record->elemData);
-    CopyFlob(this->elemExtData, record->elemExtData);
+    elemInfoArray.copyFrom(record->elemInfoArray);
+    elemData.copyFrom(record->elemData);
+    elemExtData.copyFrom(record->elemExtData);
   }
 
   return;
@@ -854,7 +832,7 @@ Record::NumOfFLOBs() const
         2 = ~elemExData~
 
 */
-FLOB*
+Flob*
 Record::GetFLOB(const int i)
 {
 #ifdef RECORD_DEBUG
@@ -890,12 +868,12 @@ Record::Print(ostream& os) const
 
   for (int pos = 0; pos < this->noElements; pos++) {
     // get element info by position
-    const ElemInfo * elemInfo;
+    ElemInfo  elemInfo;
     this->elemInfoArray.Get(pos, elemInfo);
     // print record element
     os << ", elem" << (pos + 1)
-       << "=(" << elemInfo->typeName
-       << " " << elemInfo->elemName
+       << "=(" << elemInfo.typeName
+       << " " << elemInfo.elemName
        << ")";
   }
 
@@ -1662,57 +1640,6 @@ This area includes all private record methods as there are:
 */
 
 /*
-~CopyFlob~ private method to do copy a FLOB that is belonging to
-the record. This is needed in ~Clone~ and ~CopyFrom~ (see above).
-
-*/
-void
-Record::CopyFlob(FLOB& dest, const FLOB& src)
-{
-  size_t size = src.Size();
-
-  // set destination to 0
-  dest.Clean();
-
-  if(size >= 0) {
-    // resize destination
-    dest.Resize(size);
-
-    // copy data to destination
-    const char* data;
-    src.Get(0, &data, false);
-    dest.Put(0, size, data);
-  }
-
-  return;
-}
-
-/*
-~CopyElemInfos~ private method to copy the element information
-that is belonging to a record element stored in the DBArray ~elemInfo~.
-This is needed in ~Clone~ and ~CopyFrom~ (see above).
-
-*/
-void
-Record::CopyElemInfos(DBArray<ElemInfo>& dest,
-                      const DBArray<ElemInfo>& src)
-{
-  int size = src.Size();
-
-  // set destination to 0
-  dest.Clear();
-
-  // copy data to destination
-  for(int i = 0; i < size; i++) {
-    const ElemInfo* elemInfo;
-    src.Get(i, elemInfo);
-    dest.Append(*elemInfo);
-  }
-
-  return;
-}
-
-/*
 ~GetElementValueList~ returns a proper ~ListExpr~ for the element
 at the given record position.
 This is needed in ~Out~ (see above).
@@ -1726,18 +1653,18 @@ Record::GetElementValueList(int pos) const
   assert(pos < this->elemInfoArray.Size());
 
   // get element info by position
-  const ElemInfo* elemInfo;
+  ElemInfo elemInfo;
   this->elemInfoArray.Get(pos, elemInfo);
 
   // get element by position
   Attribute* elem = this->GetElement(pos);
 
   // create type info list for the element
-  ListExpr subtypeInfo = nl->TwoElemList(nl->IntAtom(elemInfo->algebraId),
-                                         nl->IntAtom(elemInfo->typeId));
+  ListExpr subtypeInfo = nl->TwoElemList(nl->IntAtom(elemInfo.algebraId),
+                                         nl->IntAtom(elemInfo.typeId));
 
   // return list expression for the requested element
-  return (am->OutObj(elemInfo->algebraId, elemInfo->typeId))
+  return (am->OutObj(elemInfo.algebraId, elemInfo.typeId))
            (subtypeInfo, SetWord(elem));
 }
 
