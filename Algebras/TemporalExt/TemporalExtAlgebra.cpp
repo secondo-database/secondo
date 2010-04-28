@@ -4745,20 +4745,20 @@ static bool EverNearerThan(MPoint* arg0, MPoint* arg1, double dist){
   int u2Pos;
   UPoint u1;
   UPoint u2;
+  UReal uReal(true);
+  bool correct = false;
   while(rs.hasNext()){
     rs.getNext( iv, u1Pos, u2Pos);
-    if (u1Pos == -1 || u2Pos == -1){
-      continue;
-    }
-    arg0->Get(u1Pos, u1);
-    arg1->Get(u2Pos, u2);
-    if(u1.IsDefined() && u2.IsDefined())
-    { // do not need to test for overlapping deftimes anymore...
-      UReal uReal(true);
-      bool correct = false;
-      u1.Distance( u2, uReal );
-      if(uReal.Min(correct) < dist && correct)
-        return true;
+    if ((u1Pos) >=0 && (u2Pos>=0)){
+      arg0->Get(u1Pos, u1);
+      arg1->Get(u2Pos, u2);
+      if(u1.IsDefined() && u2.IsDefined()) {
+        correct = false;
+        u1.Distance( u2, uReal );
+        if(uReal.Min(correct) < dist && correct){
+          return true;
+        }
+      }
     }
   }
   return false;
