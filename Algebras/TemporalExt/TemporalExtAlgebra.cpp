@@ -4747,7 +4747,7 @@ static bool EverNearerThan(MPoint* arg0, MPoint* arg1, double dist){
   UPoint u2;
   UReal uReal(true);
   bool correct = false;
-  while(rs.hasNext()){
+  while(rs.hasNext() && !rs.finished1() && !rs.finished2()){
     rs.getNext( iv, u1Pos, u2Pos);
     if ((u1Pos) >=0 && (u2Pos>=0)){
       arg0->Get(u1Pos, u1);
