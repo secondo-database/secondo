@@ -107,7 +107,7 @@ Result   : 1266
 Operator : entries
 Number   : 1
 Signature: rtree<D> (tuple ((x1 t1)...(xn tn))) ti false) -> stream(tuple((nodeId int) (MBR rect<D>) (Tid tupleid)))
-Example  : query entries(strassen_geoData_rtree) filter[.Nodeid = 2] tconsume count;
+Example  : query entries(strassen_geoData_rtree) filter[.Nodeid = getRootNode(strassen_geoData_rtree)] tconsume count;
 Result   : 3212
 
 Operator : getFileInfo
@@ -120,8 +120,8 @@ Result   : TRUE
 Operator : getRootNode
 Number   : 1
 Signature: rtree<D> -> int
-Example  : query getRootNode(strassen_geoData_rtree)
-Result   : 2
+Example  : query getRootNode(strassen_geoData_rtree) > 0
+Result   : TRUE
 
 Operator : getNodeInfo
 Number   : 1
@@ -145,5 +145,6 @@ Result   : 49
 Operator : updatebulkloadrtree
 Number  : 1
 Signature: (rtree<d> (tuple ((x1 t1)...(xn tn))) ti false) stream (tuple (x1 t1)...(xn tn) (id tid))) xi) -> (rtree<d> (tuple ((x1 t1)...(xn tn))) ti false), (id tid)(low int)(high int))) xi) -> (rtree<d> (tuple ((x1 t1)...(xn tn))) ti true) (id tid)(low int)(high int))) xi) -> (rtree<d> (tuple ((x1 t1)...(xn tn))) ti true)
-Example  : let strassen_geoData_rtree1 = strassen_geoData_rtree strassen feed extend[TID : tupleid(.)] sortby[geoData asc] updatebulkloadrtree[geoData];
-Result   : file_platform
+Example  : query strassen_geoData_rtree strassen feed extend[TID : tupleid(.)] sortby[geoData asc] updatebulkloadrtree[geoData];
+Result   : crashes
+Remark   : After that query the berkeley db is in a unnormal state
