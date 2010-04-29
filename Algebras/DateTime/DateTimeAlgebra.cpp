@@ -1327,7 +1327,7 @@ you do.
 
 */
 void DateTime::Mul(const double factor){
-   value = (int64_t)(value*factor);
+   value = (int64_t)(value*factor + 0.5);
 }
 
 /*
