@@ -2264,11 +2264,13 @@ bool UPoint::AtRegion(const Region *r, vector<UPoint> &result) const {
   Instant t_left, t_right, t_start, t_end;
 
   // handle linear intersections
-  Line segs(true);
+  Line segs1(true);
   HalfSegment hs;                      // buffer for the halfsegment
   Line traj(true);                     // buffer for trajectory
   UTrajectory(traj);                   // get trajectory (may be empty)
-  r->Intersection(traj, segs);         // compute linear intersections
+  r->Intersection(traj, segs1);         // compute linear intersections
+  Line segs(segs1.Size());
+  segs1.Simplify(segs, FACTOR);
   if(!segs.IsDefined()){
     cerr << __PRETTY_FUNCTION__
          << " WARNING: r->Intersection(traj, segs) is UNDEF for traj="
