@@ -53,7 +53,6 @@ using namespace std;
 #include <cmath>
 #include "stdarg.h"
 #include "Attribute.h"
-#include "Attribute.h"
 #include "Messages.h"
 
 #include <stdio.h>
@@ -531,10 +530,17 @@ inline bool Rectangle<dim>::Contains( const Rectangle<dim>& r ) const
 {
   assert( (this->del.isDefined) && r.IsDefined() );
 
-  for( unsigned i = 0; i < dim; i++ )
-    if( min[i] > r.min[i] || max[i] < r.max[i] )
-      return false;
+  for( unsigned i = 0; i < dim; i++ ){
 
+    /*if( min[i] > r.min[i] || max[i] < r.max[i] ){ //original one
+      return false;
+    }*/
+    if( min[i] > r.min[i] || max[i] < r.max[i] ){
+        if(min[i] > r.min[i] && !::AlmostEqual(min[i],r.min[i])) return false;
+        if(max[i] < r.max[i] && !::AlmostEqual(max[i],r.max[i])) return false;
+    }
+
+  }
   return true;
 }
 
