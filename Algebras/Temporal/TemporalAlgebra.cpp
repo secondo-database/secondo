@@ -1548,105 +1548,97 @@ bool UPoint::Passes( const Rectangle<2> &rect  ) const
   return false;
 }
 
-bool UPoint::At( const Point& p, TemporalUnit<Point>& result ) const
-{
-/*
-VTA - In the same way as ~Passes~, I could use the Spatial Algebra here.
+bool UPoint::At( const Point& p, TemporalUnit<Point>& res ) const {
 
-*/
+  assert(p.IsDefined());
+  assert(this->IsDefined());
 
-  assert( IsDefined() );
-  assert( p.IsDefined() );
-  UPoint *pResult = static_cast<UPoint*>(&result);
+  UPoint* result = static_cast<UPoint*>(&res);
+  *result = *this;
 
-  if( AlmostEqual( p0, p1 ) )
-  {
-    if( AlmostEqual( p, p0 ) )
-    {
-      *pResult = *this;
-      pResult->SetDefined(true);
+  // special case: static unit
+  if(AlmostEqual(p0,p1)){
+     if(AlmostEqual(p,p0)){
+        return true;
+     } else {
+        result->SetDefined(false);
+        return false;
+     }
+  }
+  // special case p on p0
+  if(AlmostEqual(p0,p)){
+    if(!timeInterval.lc){
+       result->SetDefined(false);
+      return false;
+    } else {
+       result->p1 = result->p0;
+       result->timeInterval.rc = true;
+       result->timeInterval.end = timeInterval.start;
+       return true;
+    }
+  }
+  // special case p on p1
+  if(AlmostEqual(p,p1)){
+    if(!timeInterval.rc){
+      result->SetDefined(false);
+      return false;
+    } else {
+      result->p0 = result->p1;
+      result->timeInterval.lc = true;
+      result->timeInterval.start = timeInterval.end;
       return true;
     }
   }
-  else if( AlmostEqual( p, p0 ) )
-  {
-    if( timeInterval.lc )
-    {
-      Interval<Instant> interval( timeInterval.start,
-       timeInterval.start, true, true );
-      UPoint unit( interval, p, p );
-      *pResult = unit;
-      pResult->SetDefined(true);
-      return true;
-    }
-  }
-  else if( AlmostEqual( p, p1 ) )
-  {
-    if( timeInterval.rc )
-    {
-      Interval<Instant> interval( timeInterval.end,
-       timeInterval.end, true, true );
-      UPoint unit( interval, p, p );
-      *pResult = unit;
-      pResult->SetDefined(true);
-      return true;
-    }
-  }
-  else if( AlmostEqual( p0.GetX(), p1.GetX() ) &&
-           AlmostEqual( p0.GetX(), p.GetX() ) )
-    // If the segment is vertical
-  {
-    if( ( p0.GetY() <= p.GetY() && p1.GetY() >= p.GetY() ) ||
-        ( p0.GetY() >= p.GetY() && p1.GetY() <= p.GetY() ) )
-    {
-      Instant t( timeInterval.start +
-                   ( ( timeInterval.end - timeInterval.start ) *
-                   ( ( p.GetY() - p0.GetY() ) / ( p1.GetY() - p0.GetY() ) ) ) );
-      Interval<Instant> interval( t, t, true, true );
-      UPoint unit( interval, p, p );
-      *pResult = unit;
-      pResult->SetDefined(true);
-      return true;
-    }
-  }
-  else if( AlmostEqual( p0.GetY(), p1.GetY() ) &&
-      AlmostEqual( p0.GetY(), p.GetY() ) )
-    // If the segment is horizontal
-  {
-    if( ( p0.GetX() <= p.GetX() && p1.GetX() >= p.GetX() ) ||
-        ( p0.GetX() >= p.GetX() && p1.GetX() <= p.GetX() ) )
-    {
-      Instant t( timeInterval.start +
-                   ( ( timeInterval.end - timeInterval.start ) *
-                   ( ( p.GetX() - p0.GetX() ) / ( p1.GetX() - p0.GetX() ) ) ) );
-      Interval<Instant> interval( t, t, true, true );
-      UPoint unit( interval, p, p );
-      *pResult = unit;
-      pResult->SetDefined(true);
-      return true;
-    }
-  }
-  else
-  {
-    double k1 = ( p.GetX() - p0.GetX() ) / ( p.GetY() - p0.GetY() ),
-           k2 = ( p1.GetX() - p0.GetX() ) / ( p1.GetY() - p0.GetY() );
 
-    if( AlmostEqual( k1, k2 ) &&
-        ( ( p0.GetX() <= p.GetX() && p1.GetX() >= p.GetX() ) ||
-          ( p0.GetX() >= p.GetX() && p1.GetX() <= p.GetX() ) ) )
-    {
-      Instant t( timeInterval.start +
-                   ( ( timeInterval.end - timeInterval.start ) *
-                   ( ( p.GetX() - p0.GetX() ) / ( p1.GetX() - p0.GetX() ) ) ) );
-      Interval<Instant> interval( t, t, true, true );
-      UPoint unit( interval, p, p );
-      *pResult = unit;
-      pResult->SetDefined(true);
-      return true;
+  
+
+  double d_x = p1.GetX() - p0.GetX();
+  double d_y = p1.GetY() - p0.GetY();
+  double delta;
+  bool useX;
+  if(fabs(d_x)> fabs(d_y)){
+     delta = (p.GetX()-p0.GetX() ) / d_x;
+     useX = true;
+  } else {
+     delta = (p.GetY()-p0.GetY() ) / d_y;
+     useX = false;
+  }
+  
+  if( (delta<0) || (delta>1)){
+    result->SetDefined(false);
+    return false;
+  }
+
+  if(useX){ // check y-value
+    double y = p0.GetY() + delta*d_y;
+    if(!AlmostEqual(y,p.GetY())){
+       result->SetDefined(false);
+       return false;
+    }
+  } else { // check x-value
+    double x = p0.GetX() + delta*d_x;
+    if(!AlmostEqual(x,p.GetX())){
+       result->SetDefined(false);
+       return false;
     }
   }
-  pResult->SetDefined(false);
-  return false;
+
+
+  Instant time = timeInterval.start + 
+                 (timeInterval.end-timeInterval.start)*delta;
+
+  //double timeD = timeInterval.start.ToDouble() + 
+  //               (timeInterval.end-timeInterval.start).ToDouble()*delta;
+  //DateTime time(instanttype);
+  //time.ReadFrom(timeD);
+
+  result->p0 = p;
+  result->p1 = p;
+  result->timeInterval.lc = true;
+  result->timeInterval.rc = true;
+  result->timeInterval.start = time;
+  result->timeInterval.end = time;
+  return true;
 }
 
 
@@ -2271,6 +2263,8 @@ bool UPoint::AtRegion(const Region *r, vector<UPoint> &result) const {
   r->Intersection(traj, segs1);         // compute linear intersections
   Line segs(segs1.Size());
   segs1.Simplify(segs, FACTOR);
+
+
   if(!segs.IsDefined()){
     cerr << __PRETTY_FUNCTION__
          << " WARNING: r->Intersection(traj, segs) is UNDEF for traj="
@@ -2284,6 +2278,7 @@ bool UPoint::AtRegion(const Region *r, vector<UPoint> &result) const {
         tmpUnit.timeInterval.lc=true;  // Make a left- and rightclosed copy
         tmpUnit.timeInterval.rc=true;  // by bypass this problem...
         tmpUnit.At( hs.GetLeftPoint(), ures );
+
         if(!ures.IsDefined()){
           cerr << __PRETTY_FUNCTION__
             <<" WARNING: (1) undef linear intersection unit for hs=" <<hs<<endl;
