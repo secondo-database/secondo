@@ -9,7 +9,7 @@ if [ "$1" == "--valgrind" ]; then
 else 
 if [ "$1" == "--valgrindlc" ]; then
   shift
-  runner="$VALGRIND_STD_OPTIONS --leak-check=full $(which SecondoBDB)"
+  runner="valgrind $VALGRIND_STD_OPTIONS --leak-check=full $(which SecondoBDB)"
 else  
 if [ "$1" == "--profile" ]; then
   shift
