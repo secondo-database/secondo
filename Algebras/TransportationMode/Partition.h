@@ -518,19 +518,72 @@ a smaller factor compared with original version of AlmostEqual
 */
 inline bool MyAlmostEqual( const double d1, const double d2 )
 {
-  const double factor = 0.00001;
+//  const double factor = 0.00001;
+  const double factor = 0.000001;
+
   double diff = fabs(d1-d2);
   return diff< factor;
 }
 
+/*
+Moidfy the coordinate value of the point, change it into int value or
+reduce the precision to be more practical
+
+*/
+#define GetCloser(a) fabs(floor(a)-a) > fabs(ceil(a)-a)? ceil(a):floor(a)
+
+inline void ModifyPoint(Point& p)
+{
+    double a, b;
+    int x, y;
+    a = p.GetX();
+    b = p.GetY();
+
+    x = static_cast<int>(GetCloser(a));
+    y = static_cast<int>(GetCloser(b));
+    p.Set(x,y);
+
+
+/*    double x, y;
+    x = p.GetX();
+    y = p.GetY();
+    x = ((int)(x*10000.0 + 0.5))/10000.0;
+    y = ((int)(y*10000.0 + 0.5))/10000.0;
+    p.Set(x,y);*/
+
+
+}
+inline void Modify_Point(Point& p)
+{
+    double x,y;
+    x = p.GetX();
+    y = p.GetY();
+//    printf("%.10f %.10f\n",x, y);
+    x = ((int)(x*1000.0 + 0.5))/1000.0;
+    y = ((int)(y*1000.0 + 0.5))/1000.0;
+
+//    printf("%.10f %.10f\n",x, y);
+
+    p.Set(x,y);
+}
 
 void MySetOp(const Region& reg1, const Region& reg2,Region& result,
            myavlseg::SetOperation op);
+void MySetOp(const Line& line, const Region& region, Line& result,
+           myavlseg::SetOperation op);
+void MySetOp(const Line& line1, const Line& line2, Line& result,
+             myavlseg::SetOperation op);
+
 void MyMinus(const Region& reg1, const Region& reg2, Region& result);
 void MyIntersection(const Region& reg1, const Region& reg2, Region& result);
-void MyUnion(const Region& reg1, const Region& reg2, Region& result);
+void MyIntersection(const Line& line, const Region& reg, Line& result);
+void MyIntersection(const Line& l1, const Line& l2, Line& result);
 
-#define GetCloser(a) fabs(floor(a)-a) > fabs(ceil(a)-a)? ceil(a):floor(a)
+void MyUnion(const Region& reg1, const Region& reg2, Region& result);
+bool MyRegIntersects(const Region* reg1, const Region* reg2);
+bool MyHSIntersects(const HalfSegment* hs1, const HalfSegment* hs2);
+
+
 
 /*
 for storing line or sline in such a way:
@@ -554,7 +607,9 @@ struct MyHalfSegment{
   Point& GetRightPoint(){return to;}
   void Print()
   {
-    cout<<"from "<<from<<" to "<<to<<endl;
+ //   cout<<"from "<<from<<" to "<<to<<endl;
+    printf("(%.8f %.8f) (%.8f %.8f)\n", from.GetX(), from.GetY(),
+                                        to.GetX(), to.GetY());
   }
   bool def;
   Point from,to;
@@ -622,6 +677,23 @@ struct MyJun{
   }
 };
 
+struct Region_Oid{
+  int oid;
+  Region reg;
+  Region_Oid(){}
+  Region_Oid(int id, Region& r):oid(id),reg(r){}
+  Region_Oid(const Region_Oid& ro):oid(ro.oid), reg(ro.reg){}
+  Region_Oid& operator=(const Region_Oid& ro)
+  {
+     oid = ro.oid;
+     reg = ro.reg;
+     return *this;
+  }
+  void Print()
+  {
+    cout<<"id "<<oid<<" reg "<<reg<<endl;
+  }
+};
 /*
 struct for partition space
 
@@ -658,9 +730,8 @@ struct SpacePartition{
   double GetAngle(Point& p0,Point& p1, Point& p2);
   //move the segment by a deviation to the left or right
   void TransferSegment(MyHalfSegment&, vector<MyHalfSegment>&, int, bool);
-  //change the coordinate value of a point, to int value, for example
-  inline void ModifyPoint(Point& p);
-  inline void Modify_Point(Point& p);
+
+
   //add the segment to line, but change its points coordinate to int value
   void AddHalfSegmentResult(MyHalfSegment hs, Line* res, int& edgeno);
   //for the given line stored in segs, get the line after transfer
@@ -679,12 +750,15 @@ struct SpacePartition{
   // point of the next one, the result is stored as vector<MyHalfSegment>
 
   void ReorderLine(SimpleLine*, vector<MyHalfSegment>&);
+  void NewReorderLine(SimpleLine*, vector<MyHalfSegment>&);
   //create a region from the given set of ordered points
   void ComputeRegion(vector<Point>& outer_region,vector<Region>& regs);
   //extend each road to a region
   void ExtendRoad(int attr_pos, int w);
+  //remove triangle area after cutting
+  void FilterDirtyRegion(vector<Region>& regs, Region* reg);
   //cut the intersection region between pavement and road
-  void ClipPaveRegion(Region& reg, Region& pave1, Region& pave2,
+  void ClipPaveRegion(Region& reg,
                        vector<Region>& paves,int rid, Region* inborder);
   //fill the gap between two pavements at some junction positions
   void FillPave(Network* n, vector<Region>& pavements1,
@@ -694,6 +768,13 @@ struct SpacePartition{
   //get the pavement beside each road
   void Getpavement(Network* n, Relation* rel1, int attr_pos,
                   Relation* rel2, int attr_pos1, int attr_pos2, int w);
+  //get the closest point in hs to p and return the point and distance
+  double GetClosestPoint1(HalfSegment& hs, Point& p, Point& cp);
+
+  void GetCommonLine(Region* reg, Line* line, Line* res);
+
+  void CutCommonPave(Region* reg1, Region* reg2);
+  void GetSubLine(SimpleLine* sl, Point& p1, Point& p2, Line* res, double);
   //transfer the halfsegment by a deviation
   void TransferHalfSegment(HalfSegment& hs, int delta, bool flag);
   //for the given line, get its curve after transfer
@@ -723,6 +804,19 @@ struct SpacePartition{
                       Region* reg_pave2, double len, Line* pave1,
                       Line* pave2, int roadwidth, Region* crossregion,
                       Region* reg_road);
+  //cut the common pavements of two roads at the junction position
+  void DecomposePave(Region* reg1, Region* reg2, vector<Region>& result);
+  void GetCommPave1(vector<Region_Oid>& pave1,
+                    vector<Region_Oid>& pave2, int,int);
+  void GetCommPave2(Region* reg, int, vector<Region_Oid>& pave2);
+  void DecomposePavement1(Network* n, Relation* rel,
+                        int attr_pos1, int attr_pos2, int attr_pos3);
+  void DecomposePavement2(int start_oid, Relation* rel,
+                        int attr_pos1, int attr_pos2);
+  void GetPavementNode1(Network*, Relation*, BTree*,int,int,int);
+  void GetPavementNode2(Relation*, Relation*, BTree*, int, int, int);
+
+  ///////////cut the commone area between pavements and road regions///
   void Junpavement(Network* n, Relation* rel, int attr_pos1,
                   int attr_pos2, int width, Relation* rel_road,int attr_pos3);
 
@@ -773,6 +867,11 @@ struct SpacePartition{
                       Point* junp, vector<Region>& paves1,
                       vector<Region>& paves2, vector<int> rids,
                       vector<Region>& newpaves1, vector<Region>& newpaves2);
+  void NewFillPavement5(Relation* routes, int id1, int id2,
+                      Point* junp, vector<Region>& paves1,
+                      vector<Region>& paves2, vector<int> rids,
+                      vector<Region>& newpaves1, vector<Region>& newpaves2);
+
   //for operator fillgap
   void FillHoleOfPave(Network* n, Relation* rel,  int attr_pos1,
                       int attr_pos2, int width);

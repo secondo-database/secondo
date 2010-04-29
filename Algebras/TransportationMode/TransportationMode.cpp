@@ -130,6 +130,54 @@ const string OpTMMyRegMinusSpec  =
     "<text>query area(partition_regions myregminus partition_regions);"
     "</text--->"
     ") )";
+
+const string OpTMGetPave1Spec  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+    "\"Example\" ) "
+    "( <text>network x rel x attr1 x attr2 x attr3->"
+    "(stream (tuple( (x1 t1)(x2 t2)...(xn tn))) </text--->"
+    "<text>getpave1(network, rel, attr1, attr2, attr3)</text--->"
+    "<text>decompose the pavements of one road into a set of subregions"
+    "</text--->"
+    "<text>query getpave1(n, pave_regions1, oid, pavement1,pavement2);"
+    "</text--->"
+    ") )";
+
+const string OpTMGetPaveNode1Spec  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+    "\"Example\" ) "
+    "( <text>network x rel x btree x attr1 x attr2 x attr3->"
+    "(stream (tuple( (x1 t1)(x2 t2)...(xn tn))) </text--->"
+    "<text>getpavenode1(network, rel, btree, attr1, attr2 , attr3)</text--->"
+    "<text>get the commone area of two pavements</text--->"
+    "<text>query getpavenode1(n, subpaves, btree_pave,oid, rid ,pavement);"
+    "</text--->"
+    ") )";
+
+
+const string OpTMGetPave2Spec  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+    "\"Example\" ) "
+    "( <text>int x rel x attr1 x attr2->"
+    "(stream (tuple( (x1 t1)(x2 t2)...(xn tn))) </text--->"
+    "<text>getpave2(int, rel, attr1, attr2)</text--->"
+    "<text>decompose the zebra crossings into a set of subregions"
+    "</text--->"
+    "<text>query getpave2(subpaves count, pave_regions2, rid, crossreg) count;"
+    "</text--->"
+    ") )";
+
+
+const string OpTMGetPaveNode2Spec  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+    "\"Example\" ) "
+    "( <text>rel1 x rel2 x btree x attr1 x attr2 x attr3->"
+    "(stream (tuple( (x1 t1)(x2 t2)...(xn tn))) </text--->"
+    "<text>getpavenode2(rel1, rel2, btree, attr1, attr2, attr3)</text--->"
+    "<text>get the commone area between zc and pave</text--->"
+    "<text>query getpavenode2(subpaves2, subpaves,"
+    "btree_pave, oid, rid , pavement) count; </text--->"
+    ") )";
 ////////////////TypeMap function for operators//////////////////////////////
 
 /*
@@ -310,7 +358,7 @@ ListExpr OpTMPaveRegionTypeMap ( ListExpr args )
 
                   nl->SymbolAtom("tuple"),
                       nl->ThreeElemList(
-                        nl->TwoElemList(nl->SymbolAtom("oid"),
+                        nl->TwoElemList(nl->SymbolAtom("rid"),
                                     nl->SymbolAtom("int")),
                         nl->TwoElemList(nl->SymbolAtom("pavement1"),
                                       nl->SymbolAtom("region")),
@@ -392,8 +440,8 @@ ListExpr OpTMJunRegionTypeMap ( ListExpr args )
                 nl->TwoElemList(
 
                   nl->SymbolAtom("tuple"),
-//                      nl->FourElemList(
-                      nl->SixElemList(
+
+/*                      nl->SixElemList(
                         nl->TwoElemList(nl->SymbolAtom("rid1"),
                                     nl->SymbolAtom("int")),
                         nl->TwoElemList(nl->SymbolAtom("rid2"),
@@ -405,7 +453,13 @@ ListExpr OpTMJunRegionTypeMap ( ListExpr args )
                         nl->TwoElemList(nl->SymbolAtom("crossreg1"),
                                       nl->SymbolAtom("region")),
                         nl->TwoElemList(nl->SymbolAtom("crossreg2"),
+                                      nl->SymbolAtom("region"))*/
+                      nl->TwoElemList(
+                        nl->TwoElemList(nl->SymbolAtom("rid"),
+                                    nl->SymbolAtom("int")),
+                        nl->TwoElemList(nl->SymbolAtom("crossreg"),
                                       nl->SymbolAtom("region"))
+
                   )
                 )
           );
@@ -554,6 +608,320 @@ ListExpr OpTMMyRegMinusTypeMap ( ListExpr args )
   }
   return nl->SymbolAtom ( "typeerror" );
 }
+
+/*
+TypeMap fun for operator getpave1
+decompose the pavement of one road into a set of subregions
+
+*/
+
+ListExpr OpTMGetPave1TypeMap ( ListExpr args )
+{
+  if ( nl->ListLength ( args ) != 5 )
+  {
+    return ( nl->SymbolAtom ( "typeerror" ) );
+  }
+  ListExpr param1 = nl->First ( args );
+  ListExpr param2 = nl->Second(args);
+  ListExpr attrName1 = nl->Third(args);
+  ListExpr attrName2 = nl->Fourth(args);
+  ListExpr attrName3 = nl->Fifth(args);
+
+
+  ListExpr attrType1;
+  string aname1 = nl->SymbolValue(attrName1);
+  int j1 = listutils::findAttribute(nl->Second(nl->Second(param2)),
+                      aname1,attrType1);
+
+  if(j1 == 0 || !listutils::isSymbol(attrType1,"int")){
+      return listutils::typeError("attr name" + aname1 + "not found"
+                      "or not of type region");
+  }
+
+  ListExpr attrType2;
+  string aname2 = nl->SymbolValue(attrName2);
+  int j2 = listutils::findAttribute(nl->Second(nl->Second(param2)),
+                      aname2,attrType2);
+
+  if(j2 == 0 || !listutils::isSymbol(attrType2,"region")){
+      return listutils::typeError("attr name" + aname2 + "not found"
+                      "or not of type region");
+  }
+
+  ListExpr attrType3;
+  string aname3 = nl->SymbolValue(attrName3);
+  int j3 = listutils::findAttribute(nl->Second(nl->Second(param2)),
+                      aname3,attrType3);
+
+
+  if(j3 == 0 || !listutils::isSymbol(attrType3,"region")){
+      return listutils::typeError("attr name" + aname3 + "not found"
+                      "or not of type region");
+  }
+
+
+    if (listutils::isRelDescription(param2) &&
+        nl->IsAtom(param1) && nl->AtomType(param1) == SymbolType &&
+        nl->SymbolValue(param1) == "network"){
+
+    ListExpr result =
+          nl->TwoElemList(
+              nl->SymbolAtom("stream"),
+                nl->TwoElemList(
+
+                  nl->SymbolAtom("tuple"),
+                      nl->ThreeElemList(
+                        nl->TwoElemList(nl->SymbolAtom("oid"),
+                                    nl->SymbolAtom("int")),
+                        nl->TwoElemList(nl->SymbolAtom("rid"),
+                                    nl->SymbolAtom("int")),
+                        nl->TwoElemList(nl->SymbolAtom("pavement"),
+                                      nl->SymbolAtom("region"))
+                  )
+                )
+          );
+
+    return nl->ThreeElemList(nl->SymbolAtom("APPEND"),
+//     nl->TwoElemList(nl->IntAtom(j1),nl->IntAtom(j2)),result);
+    nl->ThreeElemList(nl->IntAtom(j1),nl->IntAtom(j2),nl->IntAtom(j3)),result);
+
+  }
+  return nl->SymbolAtom ( "typeerror" );
+}
+
+/*
+TypeMap fun for operator getpavenode1
+get the common area(line) of two pavements
+
+*/
+
+ListExpr OpTMGetPaveNode1TypeMap ( ListExpr args )
+{
+  if ( nl->ListLength ( args ) != 6 )
+  {
+    return ( nl->SymbolAtom ( "typeerror" ) );
+  }
+  ListExpr param1 = nl->First ( args );
+  ListExpr param2 = nl->Second(args);
+  ListExpr param3 = nl->Third(args);
+  ListExpr attrName1 = nl->Fourth(args);
+  ListExpr attrName2 = nl->Fifth(args);
+  ListExpr attrName3 = nl->Sixth(args);
+
+
+  ListExpr attrType1;
+  string aname1 = nl->SymbolValue(attrName1);
+  int j1 = listutils::findAttribute(nl->Second(nl->Second(param2)),
+                      aname1,attrType1);
+
+  if(j1 == 0 || !listutils::isSymbol(attrType1,"int")){
+      return listutils::typeError("attr name" + aname1 + "not found"
+                      "or not of type region");
+  }
+
+  ListExpr attrType2;
+  string aname2 = nl->SymbolValue(attrName2);
+  int j2 = listutils::findAttribute(nl->Second(nl->Second(param2)),
+                      aname2,attrType2);
+
+
+  if(j2 == 0 || !listutils::isSymbol(attrType2,"int")){
+      return listutils::typeError("attr name" + aname2 + "not found"
+                      "or not of type region");
+  }
+
+  ListExpr attrType3;
+  string aname3 = nl->SymbolValue(attrName3);
+  int j3 = listutils::findAttribute(nl->Second(nl->Second(param2)),
+                      aname3,attrType3);
+
+
+  if(j3 == 0 || !listutils::isSymbol(attrType3,"region")){
+      return listutils::typeError("attr name" + aname3 + "not found"
+                      "or not of type region");
+  }
+
+
+    if (listutils::isRelDescription(param2) &&
+        nl->IsAtom(param1) && nl->AtomType(param1) == SymbolType &&
+        nl->SymbolValue(param1) == "network" &&
+        listutils::isBTreeDescription(param3)){
+
+    ListExpr result =
+          nl->TwoElemList(
+              nl->SymbolAtom("stream"),
+                nl->TwoElemList(
+
+                  nl->SymbolAtom("tuple"),
+                      nl->ThreeElemList(
+                        nl->TwoElemList(nl->SymbolAtom("oid1"),
+                                    nl->SymbolAtom("int")),
+                        nl->TwoElemList(nl->SymbolAtom("oid2"),
+                                    nl->SymbolAtom("int")),
+                        nl->TwoElemList(nl->SymbolAtom("node"),
+                                      nl->SymbolAtom("line"))
+                  )
+                )
+          );
+
+    return nl->ThreeElemList(nl->SymbolAtom("APPEND"),
+//     nl->TwoElemList(nl->IntAtom(j1),nl->IntAtom(j2)),result);
+    nl->ThreeElemList(nl->IntAtom(j1),nl->IntAtom(j2),nl->IntAtom(j3)),result);
+
+  }
+  return nl->SymbolAtom ( "typeerror" );
+}
+/*
+TypeMap fun for operator getpave2
+decompose the zebra crossing into a set of subregions
+
+*/
+
+ListExpr OpTMGetPave2TypeMap ( ListExpr args )
+{
+  if ( nl->ListLength ( args ) != 4 )
+  {
+    return ( nl->SymbolAtom ( "typeerror" ) );
+  }
+  ListExpr param1 = nl->First ( args );
+  ListExpr param2 = nl->Second(args);
+  ListExpr attrName1 = nl->Third(args);
+  ListExpr attrName2 = nl->Fourth(args);
+
+
+  ListExpr attrType1;
+  string aname1 = nl->SymbolValue(attrName1);
+  int j1 = listutils::findAttribute(nl->Second(nl->Second(param2)),
+                      aname1,attrType1);
+
+  if(j1 == 0 || !listutils::isSymbol(attrType1,"int")){
+      return listutils::typeError("attr name" + aname1 + "not found"
+                      "or not of type region");
+  }
+
+  ListExpr attrType2;
+  string aname2 = nl->SymbolValue(attrName2);
+  int j2 = listutils::findAttribute(nl->Second(nl->Second(param2)),
+                      aname2,attrType2);
+
+
+  if(j2 == 0 || !listutils::isSymbol(attrType2,"region")){
+      return listutils::typeError("attr name" + aname2 + "not found"
+                      "or not of type region");
+  }
+
+
+    if (listutils::isRelDescription(param2) &&
+        nl->IsAtom(param1) && nl->AtomType(param1) == SymbolType &&
+        nl->SymbolValue(param1) == "int"){
+
+    ListExpr result =
+          nl->TwoElemList(
+              nl->SymbolAtom("stream"),
+                nl->TwoElemList(
+
+                  nl->SymbolAtom("tuple"),
+                      nl->ThreeElemList(
+                        nl->TwoElemList(nl->SymbolAtom("oid"),
+                                    nl->SymbolAtom("int")),
+                        nl->TwoElemList(nl->SymbolAtom("rid"),
+                                    nl->SymbolAtom("int")),
+                        nl->TwoElemList(nl->SymbolAtom("pavement"),
+                                      nl->SymbolAtom("region"))
+                  )
+                )
+          );
+
+    return nl->ThreeElemList(nl->SymbolAtom("APPEND"),
+     nl->TwoElemList(nl->IntAtom(j1),nl->IntAtom(j2)),result);
+
+  }
+  return nl->SymbolAtom ( "typeerror" );
+}
+
+/*
+TypeMap fun for operator getpavenode2
+get the common area(line) of two pavements
+
+*/
+
+ListExpr OpTMGetPaveNode2TypeMap ( ListExpr args )
+{
+  if ( nl->ListLength ( args ) != 6 )
+  {
+    return ( nl->SymbolAtom ( "typeerror" ) );
+  }
+//  ListExpr param1 = nl->First ( args );
+  ListExpr param2 = nl->First(args);
+  ListExpr param3 = nl->Second(args);
+  ListExpr param4 = nl->Third(args);
+  ListExpr attrName1 = nl->Fourth(args);
+  ListExpr attrName2 = nl->Fifth(args);
+  ListExpr attrName3 = nl->Sixth(args);
+
+
+  ListExpr attrType1;
+  string aname1 = nl->SymbolValue(attrName1);
+  int j1 = listutils::findAttribute(nl->Second(nl->Second(param2)),
+                      aname1,attrType1);
+
+  if(j1 == 0 || !listutils::isSymbol(attrType1,"int")){
+      return listutils::typeError("attr name" + aname1 + "not found"
+                      "or not of type region");
+  }
+
+  ListExpr attrType2;
+  string aname2 = nl->SymbolValue(attrName2);
+  int j2 = listutils::findAttribute(nl->Second(nl->Second(param2)),
+                      aname2,attrType2);
+
+
+  if(j2 == 0 || !listutils::isSymbol(attrType2,"int")){
+      return listutils::typeError("attr name" + aname2 + "not found"
+                      "or not of type region");
+  }
+
+  ListExpr attrType3;
+  string aname3 = nl->SymbolValue(attrName3);
+  int j3 = listutils::findAttribute(nl->Second(nl->Second(param2)),
+                      aname3,attrType3);
+
+
+  if(j3 == 0 || !listutils::isSymbol(attrType3,"region")){
+      return listutils::typeError("attr name" + aname3 + "not found"
+                      "or not of type region");
+  }
+
+
+    if (listutils::isRelDescription(param2) &&
+        listutils::isRelDescription(param3) &&
+        listutils::isBTreeDescription(param4)){
+
+    ListExpr result =
+          nl->TwoElemList(
+              nl->SymbolAtom("stream"),
+                nl->TwoElemList(
+
+                  nl->SymbolAtom("tuple"),
+                      nl->ThreeElemList(
+                        nl->TwoElemList(nl->SymbolAtom("oid1"),
+                                    nl->SymbolAtom("int")),
+                        nl->TwoElemList(nl->SymbolAtom("oid2"),
+                                    nl->SymbolAtom("int")),
+                        nl->TwoElemList(nl->SymbolAtom("node"),
+                                      nl->SymbolAtom("line"))
+                  )
+                )
+          );
+
+    return nl->ThreeElemList(nl->SymbolAtom("APPEND"),
+//     nl->TwoElemList(nl->IntAtom(j1),nl->IntAtom(j2)),result);
+    nl->ThreeElemList(nl->IntAtom(j1),nl->IntAtom(j2),nl->IntAtom(j3)),result);
+
+  }
+  return nl->SymbolAtom ( "typeerror" );
+}
+
 
 /*
 Correct road with dirt data, two segment are very close to each other and the
@@ -872,12 +1240,12 @@ int OpTMJunRegionmap ( Word* args, Word& result, int message,
 //          cout<<"request"<<endl;
           if(local.addr == NULL) return CANCEL;
           l_partition = (SpacePartition*)local.addr;
-          if(l_partition->count == l_partition->pave_line1.size())
+          if(l_partition->count == l_partition->junid1.size())
                           return CANCEL;
           Tuple* tuple = new Tuple(l_partition->resulttype);
           tuple->PutAttribute(0,
                 new CcInt(true,l_partition->junid1[l_partition->count]));
-          tuple->PutAttribute(1,
+/*          tuple->PutAttribute(1,
                 new CcInt(true,l_partition->junid2[l_partition->count]));
           tuple->PutAttribute(2,
                 new Line(l_partition->pave_line1[l_partition->count]));
@@ -886,7 +1254,10 @@ int OpTMJunRegionmap ( Word* args, Word& result, int message,
           tuple->PutAttribute(4,
                new Region(l_partition->outer_regions1[l_partition->count]));
           tuple->PutAttribute(5,
-               new Region(l_partition->outer_regions2[l_partition->count]));
+               new Region(l_partition->outer_regions2[l_partition->count]));*/
+
+          tuple->PutAttribute(1,
+               new Region(l_partition->outer_regions1[l_partition->count]));
 
 
           result.setAddr(tuple);
@@ -1085,6 +1456,258 @@ int OpTMMyRegMinusmap ( Word* args, Word& result, int message,
   MyMinus(*reg1, *reg2, *res);
   return 0;
 }
+
+
+/*
+Value Mapping for the getpave1 operator
+decompose the pavement of one road into a set of subregions
+
+*/
+
+int OpTMGetPave1map ( Word* args, Word& result, int message,
+                         Word& local, Supplier in_pSupplier )
+{
+  SpacePartition* l_partition;
+
+  switch(message){
+      case OPEN:{
+        Network* n = (Network*)args[0].addr;
+        Relation* rel = (Relation*)args[1].addr;
+
+
+        int attr_pos1 = ((CcInt*)args[5].addr)->GetIntval() - 1;
+        int attr_pos2 = ((CcInt*)args[6].addr)->GetIntval() - 1;
+        int attr_pos3 = ((CcInt*)args[7].addr)->GetIntval() - 1;
+
+
+        l_partition = new SpacePartition();
+        l_partition->resulttype =
+            new TupleType(nl->Second(GetTupleResultType(in_pSupplier)));
+
+        l_partition->DecomposePavement1(n, rel, attr_pos1, attr_pos2,
+                                        attr_pos3);
+        local.setAddr(l_partition);
+        return 0;
+      }
+      case REQUEST:{
+//          cout<<"request"<<endl;
+          if(local.addr == NULL) return CANCEL;
+          l_partition = (SpacePartition*)local.addr;
+          if(l_partition->count == l_partition->junid1.size())
+                          return CANCEL;
+          Tuple* tuple = new Tuple(l_partition->resulttype);
+          tuple->PutAttribute(0,
+                new CcInt(true,l_partition->junid1[l_partition->count]));
+          tuple->PutAttribute(1,
+                new CcInt(true,l_partition->junid2[l_partition->count]));
+          tuple->PutAttribute(2,
+               new Region(l_partition->outer_regions1[l_partition->count]));
+
+          result.setAddr(tuple);
+          l_partition->count++;
+          return YIELD;
+      }
+      case CLOSE:{
+//          cout<<"close"<<endl;
+          if(local.addr){
+            l_partition = (SpacePartition*)local.addr;
+            l_partition->resulttype->DeleteIfAllowed();
+            delete l_partition;
+            local.setAddr(Address(0));
+          }
+          return 0;
+      }
+  }
+  return 0;
+}
+
+
+/*
+Value Mapping for the getpavenode1 operator
+get the commone area of two intersection pavements
+
+*/
+
+int OpTMGetPaveNode1map ( Word* args, Word& result, int message,
+                         Word& local, Supplier in_pSupplier )
+{
+  SpacePartition* l_partition;
+
+  switch(message){
+      case OPEN:{
+        Network* n = (Network*)args[0].addr;
+        Relation* rel = (Relation*)args[1].addr;
+        BTree* btree = (BTree*)args[2].addr;
+
+        int attr_pos1 = ((CcInt*)args[6].addr)->GetIntval() - 1;
+        int attr_pos2 = ((CcInt*)args[7].addr)->GetIntval() - 1;
+        int attr_pos3 = ((CcInt*)args[8].addr)->GetIntval() - 1;
+
+        l_partition = new SpacePartition();
+        l_partition->resulttype =
+            new TupleType(nl->Second(GetTupleResultType(in_pSupplier)));
+
+        l_partition->GetPavementNode1(n, rel, btree,
+                                    attr_pos1, attr_pos2, attr_pos3);
+        local.setAddr(l_partition);
+        return 0;
+      }
+      case REQUEST:{
+//          cout<<"request"<<endl;
+          if(local.addr == NULL) return CANCEL;
+          l_partition = (SpacePartition*)local.addr;
+          if(l_partition->count == l_partition->junid1.size())
+                          return CANCEL;
+          Tuple* tuple = new Tuple(l_partition->resulttype);
+          tuple->PutAttribute(0,
+                new CcInt(true,l_partition->junid1[l_partition->count]));
+          tuple->PutAttribute(1,
+                new CcInt(true,l_partition->junid2[l_partition->count]));
+          tuple->PutAttribute(2,
+               new Line(l_partition->pave_line1[l_partition->count]));
+
+          result.setAddr(tuple);
+          l_partition->count++;
+          return YIELD;
+      }
+      case CLOSE:{
+//          cout<<"close"<<endl;
+          if(local.addr){
+            l_partition = (SpacePartition*)local.addr;
+            l_partition->resulttype->DeleteIfAllowed();
+            delete l_partition;
+            local.setAddr(Address(0));
+          }
+          return 0;
+      }
+  }
+  return 0;
+}
+
+
+/*
+Value Mapping for the getpave2 operator
+decompose the zebra crossings into a set of subregions
+
+*/
+
+int OpTMGetPave2map ( Word* args, Word& result, int message,
+                         Word& local, Supplier in_pSupplier )
+{
+  SpacePartition* l_partition;
+
+  switch(message){
+      case OPEN:{
+        int start_oid = ((CcInt*)args[0].addr)->GetIntval();
+        Relation* rel = (Relation*)args[1].addr;
+
+        int attr_pos1 = ((CcInt*)args[4].addr)->GetIntval() - 1;
+        int attr_pos2 = ((CcInt*)args[5].addr)->GetIntval() - 1;
+
+
+        l_partition = new SpacePartition();
+        l_partition->resulttype =
+            new TupleType(nl->Second(GetTupleResultType(in_pSupplier)));
+
+        l_partition->DecomposePavement2(start_oid, rel, attr_pos1, attr_pos2);
+        local.setAddr(l_partition);
+        return 0;
+      }
+      case REQUEST:{
+//          cout<<"request"<<endl;
+          if(local.addr == NULL) return CANCEL;
+          l_partition = (SpacePartition*)local.addr;
+          if(l_partition->count == l_partition->junid1.size())
+                          return CANCEL;
+          Tuple* tuple = new Tuple(l_partition->resulttype);
+          tuple->PutAttribute(0,
+                new CcInt(true,l_partition->junid1[l_partition->count]));
+          tuple->PutAttribute(1,
+                new CcInt(true,l_partition->junid2[l_partition->count]));
+          tuple->PutAttribute(2,
+               new Region(l_partition->outer_regions1[l_partition->count]));
+
+          result.setAddr(tuple);
+          l_partition->count++;
+          return YIELD;
+      }
+      case CLOSE:{
+//          cout<<"close"<<endl;
+          if(local.addr){
+            l_partition = (SpacePartition*)local.addr;
+            l_partition->resulttype->DeleteIfAllowed();
+            delete l_partition;
+            local.setAddr(Address(0));
+          }
+          return 0;
+      }
+  }
+  return 0;
+}
+
+
+/*
+Value Mapping for the getpavenode2 operator
+get the commone area of two intersection pavements
+
+*/
+
+int OpTMGetPaveNode2map ( Word* args, Word& result, int message,
+                         Word& local, Supplier in_pSupplier )
+{
+  SpacePartition* l_partition;
+
+  switch(message){
+      case OPEN:{
+
+        Relation* rel1 = (Relation*)args[0].addr;
+        Relation* rel2 = (Relation*)args[1].addr;
+        BTree* btree = (BTree*)args[2].addr;
+
+        int attr_pos1 = ((CcInt*)args[6].addr)->GetIntval() - 1;
+        int attr_pos2 = ((CcInt*)args[7].addr)->GetIntval() - 1;
+        int attr_pos3 = ((CcInt*)args[8].addr)->GetIntval() - 1;
+
+        l_partition = new SpacePartition();
+        l_partition->resulttype =
+            new TupleType(nl->Second(GetTupleResultType(in_pSupplier)));
+
+        l_partition->GetPavementNode2(rel1, rel2, btree,
+                                    attr_pos1, attr_pos2, attr_pos3);
+        local.setAddr(l_partition);
+        return 0;
+      }
+      case REQUEST:{
+//          cout<<"request"<<endl;
+          if(local.addr == NULL) return CANCEL;
+          l_partition = (SpacePartition*)local.addr;
+          if(l_partition->count == l_partition->junid1.size())
+                          return CANCEL;
+          Tuple* tuple = new Tuple(l_partition->resulttype);
+          tuple->PutAttribute(0,
+                new CcInt(true,l_partition->junid1[l_partition->count]));
+          tuple->PutAttribute(1,
+                new CcInt(true,l_partition->junid2[l_partition->count]));
+          tuple->PutAttribute(2,
+               new Line(l_partition->pave_line1[l_partition->count]));
+
+          result.setAddr(tuple);
+          l_partition->count++;
+          return YIELD;
+      }
+      case CLOSE:{
+//          cout<<"close"<<endl;
+          if(local.addr){
+            l_partition = (SpacePartition*)local.addr;
+            l_partition->resulttype->DeleteIfAllowed();
+            delete l_partition;
+            local.setAddr(Address(0));
+          }
+          return 0;
+      }
+  }
+  return 0;
+}
 ////////////////Operator Constructor///////////////////////////////////////
 Operator checksline(
     "checksline",               // name
@@ -1150,6 +1773,41 @@ Operator myregminus(
     OpTMMyRegMinusTypeMap        // type mapping
 );
 
+
+Operator getpave1(
+    "getpave1",               // name
+    OpTMGetPave1Spec,          // specification
+    OpTMGetPave1map,  // value mapping
+    Operator::SimpleSelect,        // selection function
+    OpTMGetPave1TypeMap        // type mapping
+);
+
+
+Operator getpavenode1(
+    "getpavenode1",               // name
+    OpTMGetPaveNode1Spec,          // specification
+    OpTMGetPaveNode1map,  // value mapping
+    Operator::SimpleSelect,        // selection function
+    OpTMGetPaveNode1TypeMap        // type mapping
+);
+
+
+Operator getpave2(
+    "getpave2",               // name
+    OpTMGetPave2Spec,          // specification
+    OpTMGetPave2map,  // value mapping
+    Operator::SimpleSelect,        // selection function
+    OpTMGetPave2TypeMap        // type mapping
+);
+
+Operator getpavenode2(
+    "getpavenode2",               // name
+    OpTMGetPaveNode2Spec,          // specification
+    OpTMGetPaveNode2map,  // value mapping
+    Operator::SimpleSelect,        // selection function
+    OpTMGetPaveNode2TypeMap        // type mapping
+);
+
 /*
 Main Class for Transportation Mode
 
@@ -1168,7 +1826,11 @@ class TransportationModeAlgebra : public Algebra
     AddOperator(&decomposeregion);
     AddOperator(&fillpavement);
     AddOperator(&myregminus);
-
+    //////////operators for build the graph model on pavement////////////
+    AddOperator(&getpave1);
+    AddOperator(&getpavenode1);
+    AddOperator(&getpave2);
+    AddOperator(&getpavenode2);
   }
   ~TransportationModeAlgebra() {};
  private:

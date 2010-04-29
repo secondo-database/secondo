@@ -25,3 +25,7 @@ operator junregion alias JUNREGION pattern op(_,_,_,_,_,_,_)
 operator decomposeregion alias DECOMPOSEREGION pattern op(_)
 operator fillpavement alias FILLPAVEMENT pattern op(_,_,_,_,_)
 operator myregminus alias MYREGMINUS pattern _ infixop _
+operator getpave1 alias GETPAVE1 pattern op(_,_,_,_,_)
+operator getpavenode1 alias GETPAVENODE1 pattern op(_,_,_,_,_,_)
+operator getpave2 alias GETPAVE2 pattern op(_,_,_,_)
+operator getpavenode2 alias GETPAVENODE2 pattern op(_,_,_,_,_,_)
