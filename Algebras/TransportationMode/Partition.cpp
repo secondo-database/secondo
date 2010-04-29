@@ -87,7 +87,9 @@ As owner only __first__ and __second__ are the allowed values.
      y1 = hs.GetLeftPoint().GetY();
      x2 = hs.GetRightPoint().GetX();
      y2 = hs.GetRightPoint().GetY();
-     if( (MyAlmostEqual(x1,x2) && (y2<y2) ) || (x2<x2) ){// swap the entries
+
+//     if( (MyAlmostEqual(x1,x2) && (y2<y2) ) || (x2<x2) ){// swap the entries
+     if( (MyAlmostEqual(x1,x2) && (y2< y1) ) || (x2<x1) ){// swap the entries
         double tmp = x1;
         x1 = x2;
         x2 = tmp;
@@ -1387,21 +1389,40 @@ void MysplitNeighbours(avltree::AVLTree<myavlseg::MyAVLSegment>& sss,
     }
   } // intersecting neighbours
 }
+
+/*
+The first region minuses the seccond region and store the result as the third
+
+*/
 void MyMinus(const Region& reg1, const Region& reg2, Region& result)
 {
   MySetOp(reg1,reg2,result,myavlseg::difference_op);
 }
+
+/*
+The first region intersects the seccond region and store the result as the third
+
+*/
 
 void MyIntersection(const Region& reg1, const Region& reg2, Region& result)
 {
   MySetOp(reg1,reg2,result,myavlseg::intersection_op);
 }
 
+/*
+The first region unions the seccond region and store the result as the third
+
+*/
+
 void MyUnion(const Region& reg1, const Region& reg2, Region& result)
 {
   MySetOp(reg1,reg2,result,myavlseg::union_op);
 }
 
+/*
+Intersection, union and minus between two regions
+
+*/
 void MySetOp(const Region& reg1,
            const Region& reg2,
            Region& result,
@@ -1501,15 +1522,20 @@ void MySetOp(const Region& reg1,
 
        myavlseg::MyAVLSegment current(nextHs,owner);
        member = sss.getMember(current,leftN,rightN);
-       if(leftN){
+
+//       cout<<"current "<<current <<"owner "<<owner<<endl;
+
+//       sss.Print(cout);
+
+        if(leftN){
           tmpL = *leftN;
           leftN = &tmpL;
-       }
-       if(rightN){
+        }
+        if(rightN){
           tmpR = *rightN;
           rightN = &tmpR;
-       }
-       if(nextHs.IsLeftDomPoint()){
+        }
+        if(nextHs.IsLeftDomPoint()){
           if(member){ // overlapping segment found
             if((member->getOwner()==myavlseg::both) ||
                (member->getOwner()==owner)){
@@ -1531,6 +1557,7 @@ void MySetOp(const Region& reg1,
             sss.remove(*member);
             if(parts & myavlseg::LEFT){
               if(!left1.isPoint()){
+//                cout<<"left1 "<<left1<<endl;
                 sss.insert(left1);
                 myinsertEvents(left1,false,true,q1,q2);
               }
@@ -1543,6 +1570,7 @@ void MySetOp(const Region& reg1,
                common1.con_above--;
             }
             if(!common1.isPoint()){
+//              cout<<"comm1 "<<common1<<endl;
               sss.insert(common1);
               myinsertEvents(common1,false,true,q1,q2);
             }
@@ -1551,18 +1579,29 @@ void MySetOp(const Region& reg1,
             }
           } else { // there is no overlapping segment
             // try to split segments if required
-            MysplitByNeighbour(sss,current,leftN,q1,q2);
-            MysplitByNeighbour(sss,current,rightN,q1,q2);
 
+              MysplitByNeighbour(sss, current, leftN, q1, q2);
+              MysplitByNeighbour(sss, current, rightN,q1, q2);
+
+
+//              cout<<"current "<<current<<endl;
             // update coverage numbers
             bool iac = current.getOwner()== myavlseg::first
                             ?current.getInsideAbove_first()
                             :current.getInsideAbove_second();
 
-            iac = current.getOwner()== myavlseg::first
-                                           ?current.getInsideAbove_first()
-                                           :current.getInsideAbove_second();
 
+
+/*            iac = current.getOwner()== myavlseg::first
+                                           ?current.getInsideAbove_first()
+                                           :current.getInsideAbove_second();*/
+
+
+
+            if(leftN){
+//              cout<<"leftN "<<leftN->con_below<<" "<<leftN->con_above<<endl;
+//              cout<<*leftN<<endl;
+            }
             if(leftN && current.extends(*leftN)){
               current.con_below = leftN->con_below;
               current.con_above = leftN->con_above;
@@ -1582,12 +1621,13 @@ void MySetOp(const Region& reg1,
             }
             // insert element
             if(!current.isPoint()){
+//              cout<<"current2 "<<current<<endl;
               sss.insert(current);
               myinsertEvents(current,false,true,q1,q2);
             }
           }
-       } else {  // nextHs.IsRightDomPoint
-          if(member && member->exactEqualsTo(current)){
+        } else{  // nextHs.IsRightDomPoint
+            if(member && member->exactEqualsTo(current)){
               switch(op){
                 case myavlseg::union_op :{
 
@@ -1615,6 +1655,7 @@ void MySetOp(const Region& reg1,
                       hs1.SetLeftDomPoint(false);
                       result += hs1;
                       edgeno++;
+
                   }
                   break;
                 }
@@ -1670,12 +1711,566 @@ void MySetOp(const Region& reg1,
               sss.remove(*member);
               MysplitNeighbours(sss,leftN,rightN,q1,q2);
           } // current found in sss
-       } // right endpoint
+        } // right endpoint
   }
-  result.EndBulkLoad();
 
+    if(result.Size() > 0 && result.Size() < 6){////its not a region
+        result.Clear();
+        result.EndBulkLoad(false, false, false, false);
+    }
+    else{
+        result.EndBulkLoad();
+
+    ////////////////////////////////
+/*        Region* reg = new Region(0);
+        reg->StartBulkLoad();
+        int edgeno = 0;
+        for(int i = 0;i < result.Size();i++){
+          HalfSegment hs1;
+          result.Get(i, hs1);
+          if(!hs1.IsLeftDomPoint()) continue;
+          HalfSegment hs2(hs1);
+          Point lp = hs1.GetLeftPoint();
+          Point rp = hs1.GetRightPoint();
+          ModifyPoint(lp);
+          ModifyPoint(rp);
+          hs2.Set(true, lp, rp);
+          hs2.attr.edgeno = edgeno++;
+          *reg += hs2;
+          hs2.SetLeftDomPoint(!hs2.IsLeftDomPoint());
+          *reg += hs2;
+        }
+        reg->SetNoComponents(result.NoComponents());
+        reg->EndBulkLoad();
+        result.Clear();
+        result = *reg;
+        delete reg; */
+    ///////////////////////////////
+    }
 
 } // setOP region x region -> region
+
+
+void MyIntersection(const Line& line, const Region& reg, Line& result)
+{
+  MySetOp(line, reg, result, myavlseg::intersection_op);
+}
+
+/*
+Intersection, union and minus between a line and a region
+
+*/
+
+void MySetOp(const Line& line,
+           const Region& region,
+           Line& result,
+           myavlseg::SetOperation op){
+
+  assert(op==myavlseg::intersection_op || op == myavlseg::difference_op);
+
+  result.Clear();
+  if(!line.IsDefined() || !region.IsDefined()){
+       result.SetDefined(false);
+       return;
+   }
+   result.SetDefined(true);
+   if(line.Size()==0){ // empty line -> empty result
+       switch(op){
+         case myavlseg::intersection_op : return; // empty region
+         case myavlseg::difference_op : return; // empty region
+         default : assert(false);
+       }
+   }
+   if(region.Size()==0){
+      switch(op){
+         case myavlseg::intersection_op: return;
+         case myavlseg::difference_op: result = line;
+                             return;
+         default : assert(false);
+      }
+   }
+
+  priority_queue<HalfSegment,  vector<HalfSegment>, greater<HalfSegment> > q1;
+  priority_queue<HalfSegment,  vector<HalfSegment>, greater<HalfSegment> > q2;
+  avltree::AVLTree<myavlseg::MyAVLSegment> sss;
+  myavlseg::ownertype owner;
+  int pos1 = 0;
+  int pos2 = 0;
+  int size1= line.Size();
+  HalfSegment nextHs;
+  int src = 0;
+
+  const myavlseg::MyAVLSegment* member=0;
+  const myavlseg::MyAVLSegment* leftN = 0;
+  const myavlseg::MyAVLSegment* rightN = 0;
+
+  myavlseg::MyAVLSegment left1,right1,common1,
+             left2,right2;
+
+  int edgeno =0;
+  myavlseg::MyAVLSegment tmpL,tmpR;
+  bool done = false;
+
+  result.StartBulkLoad();
+  // perform a planesweeo
+  while( ((owner=myselectNext(line,pos1,
+                            region,pos2,
+                            q1,q2,nextHs,src))!= myavlseg::none)
+         && ! done){
+     myavlseg::MyAVLSegment current(nextHs,owner);
+     member = sss.getMember(current,leftN,rightN);
+     if(leftN){
+        tmpL = *leftN;
+        leftN = &tmpL;
+     }
+     if(rightN){
+        tmpR = *rightN;
+        rightN = &tmpR;
+     }
+     if(nextHs.IsLeftDomPoint()){
+        if(member){ // there is an overlapping segment in sss
+           if(member->getOwner()==owner ||
+              member->getOwner()==myavlseg::both     ){
+              if(current.ininterior(member->getX2(),member->getY2())){
+                 current.splitAt(member->getX2(),member->getY2(),left1,right1);
+                 myinsertEvents(right1,true,true,q1,q2);
+              }
+           } else { // member and source come from difference sources
+             int parts = member->split(current,left1,common1,right1);
+             sss.remove(*member);
+             member = &common1;
+             if(parts & myavlseg::LEFT){
+                if(!left1.isPoint()){
+                  sss.insert(left1);
+                  myinsertEvents(left1,false,true,q1,q2);
+                }
+             }
+             assert(parts & myavlseg::COMMON);
+             if(owner==myavlseg::second) {  // the region
+               if(current.getInsideAbove()){
+                  common1.con_above++;
+               } else {
+                  common1.con_above--;
+               }
+             } // for a line is nothing to do
+             if(!common1.isPoint()){
+               sss.insert(common1);
+               myinsertEvents(common1,false,true,q1,q2);
+             }
+             if(parts & myavlseg::RIGHT){
+                 myinsertEvents(right1,true,true,q1,q2);
+             }
+           }
+        } else { // no overlapping segment in sss found
+          MysplitByNeighbour(sss,current,leftN,q1,q2);
+          MysplitByNeighbour(sss,current,rightN,q1,q2);
+          // update coverage numbers
+          if(owner==myavlseg::second){ // the region
+            bool iac = current.getInsideAbove();
+            if(leftN && current.extends(*leftN)){
+              current.con_below = leftN->con_below;
+              current.con_above = leftN->con_above;
+            }else{
+              if(leftN && leftN->isVertical()){
+                 current.con_below = leftN->con_below;
+              } else if(leftN){
+                 current.con_below = leftN->con_above;
+              } else {
+                 current.con_below = 0;
+              }
+              if(iac){
+                 current.con_above = current.con_below+1;
+              } else {
+                 current.con_above = current.con_below-1;
+              }
+            }
+          } else { // the line
+            if(leftN){
+               if(leftN->isVertical()){
+                  current.con_below = leftN->con_below;
+               } else {
+                  current.con_below = leftN->con_above;
+               }
+            }
+            current.con_above = current.con_below;
+          }
+          // insert element
+          if(!current.isPoint()){
+            sss.insert(current);
+            myinsertEvents(current,false,true,q1,q2);
+          }
+        }
+     } else { // nextHs.IsRightDomPoint()
+       if(member && member->exactEqualsTo(current)){
+
+          switch(op){
+              case myavlseg::intersection_op: {
+                if( (member->getOwner()==myavlseg::both) ||
+                  (member->getOwner()==myavlseg::first && member->con_above>0)){
+                    HalfSegment hs1 = member->convertToHs(true,myavlseg::first);
+                    hs1.attr.edgeno = edgeno;
+                    result += hs1;
+                    hs1.SetLeftDomPoint(false);
+                    result += hs1;
+                    edgeno++;
+                }
+                break;
+              }
+              case myavlseg::difference_op: {
+                if( (member->getOwner()==myavlseg::first) &&
+                    (member->con_above==0)){
+                    HalfSegment hs1 = member->convertToHs(true,myavlseg::first);
+                    hs1.attr.edgeno = edgeno;
+                    result += hs1;
+                    hs1.SetLeftDomPoint(false);
+                    result += hs1;
+                    edgeno++;
+                }
+                break;
+              }
+              default : assert(false);
+          }
+          sss.remove(*member);
+          MysplitNeighbours(sss,leftN,rightN,q1,q2);
+       }
+       if(pos1>=size1 && q1.empty()){ // line is processed
+          done = true;
+       }
+     }
+  }
+  result.EndBulkLoad();
+} // setOP(line x region -> line)
+
+void MyIntersection(const Line& l1, const Line& l2, Line& result)
+{
+  MySetOp(l1, l2, result, myavlseg::intersection_op);
+}
+
+/*
+Intersection, union and minus between two lines
+
+*/
+void MySetOp(const Line& line1,
+           const Line& line2,
+           Line& result,
+           myavlseg::SetOperation op){
+
+   result.Clear();
+   if(!line1.IsDefined() || !line2.IsDefined()){
+       result.SetDefined(false);
+       return;
+   }
+   result.SetDefined(true);
+   if(line1.Size()==0){
+       switch(op){
+         case myavlseg::union_op : result = line2;
+                         return;
+         case myavlseg::intersection_op : return; // empty line
+         case myavlseg::difference_op : return; // empty line
+         default : assert(false);
+       }
+   }
+   if(line2.Size()==0){
+      switch(op){
+         case myavlseg::union_op: result = line1;
+                        return;
+         case myavlseg::intersection_op: return;
+         case myavlseg::difference_op: result = line1;
+                             return;
+         default : assert(false);
+      }
+   }
+
+  priority_queue<HalfSegment,  vector<HalfSegment>, greater<HalfSegment> > q1;
+  priority_queue<HalfSegment,  vector<HalfSegment>, greater<HalfSegment> > q2;
+  avltree::AVLTree<myavlseg::MyAVLSegment> sss;
+  myavlseg::ownertype owner;
+  int pos1 = 0;
+  int pos2 = 0;
+  HalfSegment nextHs;
+  int src = 0;
+
+  const myavlseg::MyAVLSegment* member=0;
+  const myavlseg::MyAVLSegment* leftN = 0;
+  const myavlseg::MyAVLSegment* rightN = 0;
+
+  myavlseg::MyAVLSegment left1,right1,common1,
+             left2,right2;
+
+  int edgeno =0;
+  myavlseg::MyAVLSegment tmpL,tmpR;
+
+  result.StartBulkLoad();
+  while( (owner=myselectNext(line1,pos1,
+                           line2,pos2,
+                           q1,q2,nextHs,src))!= myavlseg::none){
+       myavlseg::MyAVLSegment current(nextHs,owner);
+       member = sss.getMember(current,leftN,rightN);
+       if(leftN){
+         tmpL = *leftN;
+         leftN = &tmpL;
+       }
+       if(rightN){
+         tmpR = *rightN;
+         rightN = &tmpR;
+       }
+       if(nextHs.IsLeftDomPoint()){
+          if(member){ // found an overlapping segment
+             if(member->getOwner()==current.getOwner() ||
+                member->getOwner()== myavlseg::both){ // same source
+                 double xm = member->getX2();
+                 double xc = current.getX2();
+                 if(!AlmostEqual(xm,xc) && (xm<xc)){ // current extends member
+                    current.splitAt(xm,member->getY2(),left1,right1);
+                    myinsertEvents(right1,true,true,q1,q2);
+                 }
+             }  else { // member and current come from different sources
+                 int parts = member->split(current,left1,common1,right1);
+                 sss.remove(*member);
+                 member = &common1;
+                 if(parts & myavlseg::LEFT){
+                     if(!left1.isPoint()){
+                       sss.insert(left1);
+                       myinsertEvents(left1,false,true,q1,q2);
+                     }
+                 }
+                 assert(parts & myavlseg::COMMON);
+                 if(!common1.isPoint()){
+                   sss.insert(common1);
+                   myinsertEvents(common1,false,true,q1,q2);
+                 }
+                 if(parts & myavlseg::RIGHT){
+                    myinsertEvents(right1,true,true,q1,q2);
+                 }
+             }
+          } else { // no overlapping segment found
+            MysplitByNeighbour(sss,current,leftN,q1,q2);
+            MysplitByNeighbour(sss,current,rightN,q1,q2);
+            if(!current.isPoint()){
+              sss.insert(current);
+              myinsertEvents(current,false,true,q1,q2);
+            }
+          }
+       } else { // nextHS rightDomPoint
+         if(member && member->exactEqualsTo(current)){
+             // insert the segments into the result
+             switch(op){
+                case myavlseg::union_op : {
+                  HalfSegment hs1 = member->convertToHs(true,myavlseg::first);
+                     hs1.attr.edgeno = edgeno;
+                     result += hs1;
+                     hs1.SetLeftDomPoint(false);
+                     result += hs1;
+                     edgeno++;
+                     break;
+                } case myavlseg::intersection_op : {
+                     if(member->getOwner()== myavlseg::both){
+                        HalfSegment hs1 =
+                           member->convertToHs(true, myavlseg::first);
+                        hs1.attr.edgeno = edgeno;
+                        result += hs1;
+                        hs1.SetLeftDomPoint(false);
+                        result += hs1;
+                        edgeno++;
+                      }
+                      break;
+                } case myavlseg::difference_op :{
+                      if(member->getOwner()== myavlseg::first){
+                        HalfSegment hs1 =
+                            member->convertToHs(true, myavlseg::first);
+                        hs1.attr.edgeno = edgeno;
+                        result += hs1;
+                        hs1.SetLeftDomPoint(false);
+                        result += hs1;
+                        edgeno++;
+                      }
+                      break;
+                } default : {
+                      assert(false);
+                }
+             }
+             sss.remove(*member);
+             MysplitNeighbours(sss,leftN,rightN,q1,q2);
+         }
+       }
+  }
+  result.EndBulkLoad(true,false);
+} // setop line x line -> line
+
+/*
+correct version of detecting the intersects of two halfsegments
+
+*/
+bool MyHSIntersects(const HalfSegment* hs1, const HalfSegment* hs2)
+{
+  double k, a, K, A;
+
+  if( !hs1->BoundingBox().Intersects( hs2->BoundingBox() ) )
+    return false;
+
+  Coord xl = hs1->GetLeftPoint().GetX(),
+        yl = hs1->GetLeftPoint().GetY(),
+        xr = hs1->GetRightPoint().GetX(),
+        yr = hs1->GetRightPoint().GetY(),
+        Xl = hs2->GetLeftPoint().GetX(),
+        Yl = hs2->GetLeftPoint().GetY(),
+        Xr = hs2->GetRightPoint().GetX(),
+        Yr = hs2->GetRightPoint().GetY();
+
+  if( AlmostEqual( xl, xr ) &&
+      AlmostEqual( Xl, Xr ) )
+    // both segments are vertical
+  {
+    if( AlmostEqual( xl, Xl ) &&
+        ( AlmostEqual( yl, Yl ) || AlmostEqual( yl, Yr ) ||
+          AlmostEqual( yr, Yl ) || AlmostEqual( yr, Yr ) ||
+          ( yl > Yl && yl < Yr ) || ( yr > Yl && yr < Yr ) ||
+          ( Yl > yl && Yl < yr ) || ( Yr > yl && Yr < yr ) ) )
+      return true;
+    return false;
+  }
+
+  if( !AlmostEqual( xl, xr ) )
+    // this segment is not vertical
+  {
+    k = (yr - yl) / (xr - xl);
+    a = yl - k * xl;
+  }
+
+
+  if( !AlmostEqual( Xl, Xr ) )
+    // hs is not vertical
+  {
+    K = (Yr - Yl) / (Xr - Xl);
+    A = Yl - K * Xl;
+  }
+
+  if( AlmostEqual( Xl, Xr ) )
+    //only hs is vertical
+  {
+    Coord y0 = k * Xl + a;
+
+    if( ( Xl > xl || AlmostEqual( Xl, xl ) ) &&
+        ( Xl < xr || AlmostEqual( Xl, xr ) ) )
+    {
+      if( ( ( y0 > Yl || AlmostEqual( y0, Yl ) ) &&
+            ( y0 < Yr || AlmostEqual( y0, Yr ) ) ) ||
+          ( ( y0 > Yr || AlmostEqual( y0, Yr ) ) &&
+            ( y0 < Yl || AlmostEqual( y0, Yl ) ) ) )
+        // (Xl, y0) is the intersection point
+        return true;
+    }
+    return false;
+  }
+
+  if( AlmostEqual( xl, xr ) )
+    // only this segment is vertical
+  {
+    Coord Y0 = K * xl + A;
+
+    if( ( xl > Xl || AlmostEqual( xl, Xl ) ) &&
+        ( xl < Xr || AlmostEqual( xl, Xr ) ) )
+    {
+      if( ( ( Y0 > yl || AlmostEqual( Y0, yl ) ) &&
+            ( Y0 < yr || AlmostEqual( Y0, yr ) ) ) ||
+          ( ( Y0 > yr || AlmostEqual( Y0, yr ) ) &&
+            ( Y0 < yl || AlmostEqual( Y0, yl ) ) ) )
+        // (xl, Y0) is the intersection point
+        return true;
+    }
+    return false;
+  }
+
+  // both segments are non-vertical
+
+  if( AlmostEqual( k, K ) )
+    // both segments have the same inclination
+  {
+  /*the original halfsegment::intersects function has a small bug, see
+        if( AlmostEqual( A, a ) &&
+        ( ( xl > Xl || AlmostEqual( xl, Xl ) ) &&
+          ( xl < Xr || AlmostEqual( xl, Xr ) ) ) ||
+        ( ( Xl > xl || AlmostEqual( xl, Xl ) ) &&
+          ( Xl < xr || AlmostEqual( xr, Xl ) ) ) ){
+      return true;
+      }
+    it should be
+    if( AlmostEqual( A, a ) &&
+        (( ( xl > Xl || AlmostEqual( xl, Xl ) ) &&
+          ( xl < Xr || AlmostEqual( xl, Xr ) ) ) ||
+        ( ( Xl > xl || AlmostEqual( xl, Xl ) ) &&
+          ( Xl < xr || AlmostEqual( xr, Xl ) ) )) ){
+      return true;
+     }*/
+
+    if( AlmostEqual( A, a ) &&
+        (( ( xl > Xl || AlmostEqual( xl, Xl ) ) &&
+          ( xl < Xr || AlmostEqual( xl, Xr ) ) ) ||
+        ( ( Xl > xl || AlmostEqual( xl, Xl ) ) &&
+          ( Xl < xr || AlmostEqual( xr, Xl ) ) )) )
+      // the segments are in the same straight line
+      return true;
+  }
+  else
+  {
+    Coord x0 = (A - a) / (k - K);
+    // y0 = x0 * k + a;
+
+    if( ( x0 > xl || AlmostEqual( x0, xl ) ) &&
+        ( x0 < xr || AlmostEqual( x0, xr ) ) &&
+        ( x0 > Xl || AlmostEqual( x0, Xl ) ) &&
+        ( x0 < Xr || AlmostEqual( x0, Xr ) ) )
+      // the segments intersect at (x0, y0)
+      return true;
+
+  }
+  return false;
+
+}
+
+/*
+detect whether two regions intersect, by the correct intersection function
+between two halfsegments
+
+*/
+
+bool MyRegIntersects(const Region* reg1, const Region* reg2)
+{
+
+  assert( reg1->IsDefined() );
+  assert( reg2->IsDefined() );
+  if( reg1->IsEmpty() || reg2->IsEmpty() )
+    return false;
+
+  if( !reg1->BoundingBox().Intersects( reg2->BoundingBox() ) )
+    return false;
+
+  assert( reg1->IsOrdered() );
+  assert( reg2->IsOrdered() );
+  if( reg1->Inside( *reg2 ) || reg2->Inside( *reg1 ) )
+    return true;
+
+  HalfSegment hs1, hs2;
+  for( int i = 0; i < reg1->Size(); i++ )
+  {
+    reg1->Get( i, hs1 );
+    if( hs1.IsLeftDomPoint() )
+    {
+      for( int j = 0; j < reg2->Size(); j++ )
+      {
+        reg2->Get( j, hs2 );
+        if( hs2.IsLeftDomPoint() &&
+            MyHSIntersects(&hs1, &hs2))
+          return true;
+      }
+    }
+  }
+
+  return false;
+
+
+}
+
 
 /*
 The following is the implementation of structure for space partition
@@ -1882,37 +2477,6 @@ void SpacePartition::TransferSegment(MyHalfSegment& mhs,
     delete seg;
 }
 
-/*
-Moidfy the coordinate value of the point, change it into int value or
-reduce the precision to be more practical
-
-*/
-
-inline void SpacePartition::ModifyPoint(Point& p)
-{
-    double a, b;
-    int x, y;
-    a = p.GetX();
-    b = p.GetY();
-
-    x = static_cast<int>(GetCloser(a));
-    y = static_cast<int>(GetCloser(b));
-    p.Set(x,y);
-
-//    printf("%.8f %.8f\n",a,b);
-//    printf("%d %d\n",x,y);
-}
-inline void SpacePartition::Modify_Point(Point& p)
-{
-    double x,y;
-    x = p.GetX();
-    y = p.GetY();
-//    printf("%.10f %.10f\n",x, y);
-    x = ((int)(x*100.0 + 0.5))/100.0;
-    y = ((int)(y*100.0 + 0.5))/100.0;
-//    printf("%.10f %.10f\n",x, y);
-    p.Set(x,y);
-}
 
 /*
 Add one segment to line, but change the point value to int
@@ -2231,25 +2795,101 @@ void SpacePartition::ReorderLine(SimpleLine* sline,
       }
     }
     ////////////////reorder /////////////////////////////////////
-/*    cout<<"before"<<endl;
-    for(unsigned i = 0;i < copyline.size();i++)
+    /*for(unsigned i = 0;i < copyline.size();i++)
       copyline[i].Print();*/
 
     const double delta_dist = 0.1;
     unsigned int count = 0;
     int index = 0;
     while(count < copyline.size()){
+
       if(copyline[index].def == false){
         index = (index + 1) % copyline.size();
         continue;
       }
+
       Point from = copyline[index].GetLeftPoint();
       Point to = copyline[index].GetRightPoint();
+
+      //cout<<"from "<<from<<" to "<<to<<endl;
+
 
       if(from.Distance(sp) > delta_dist && to.Distance(sp) > delta_dist){
         index = (index + 1) % copyline.size();
         continue;
       }
+
+      if(from.Distance(sp) < delta_dist){
+        sp = to;
+        count++;
+        copyline[index].def = false;
+        index = (index + 1) % copyline.size();
+        MyHalfSegment* mhs = new MyHalfSegment(true,from,to);
+        seq_halfseg.push_back(*mhs);
+        delete mhs;
+        continue;
+      }
+      if(to.Distance(sp) < delta_dist){
+        sp = from;
+        count++;
+        copyline[index].def = false;
+        index = (index + 1) % copyline.size();
+        MyHalfSegment* mhs = new MyHalfSegment(true,to,from);
+        seq_halfseg.push_back(*mhs);
+        delete mhs;
+        continue;
+      }
+    }
+
+}
+
+/*
+for the given line, order it in such a way that segi.to = seg{i+1}.from
+store the result in vector<MyHalfSegment>, with higher precision
+
+*/
+void SpacePartition::NewReorderLine(SimpleLine* sline,
+                                 vector<MyHalfSegment>& seq_halfseg)
+{
+    Point sp;
+    assert(sline->AtPosition(0.0,true,sp));
+    vector<MyHalfSegment> copyline;
+    for(int i = 0;i < sline->Size();i++){
+      HalfSegment hs;
+      sline->Get(i,hs);
+      if(hs.IsLeftDomPoint()){
+        Point lp = hs.GetLeftPoint();
+        Point rp = hs.GetRightPoint();
+        MyHalfSegment* mhs = new MyHalfSegment(true,lp,rp);
+        copyline.push_back(*mhs);
+        delete mhs;
+      }
+    }
+    ////////////////reorder /////////////////////////////////////
+    /*for(unsigned i = 0;i < copyline.size();i++)
+      copyline[i].Print();*/
+
+    const double delta_dist = 0.001;
+    unsigned int count = 0;
+    int index = 0;
+    while(count < copyline.size()){
+
+      if(copyline[index].def == false){
+        index = (index + 1) % copyline.size();
+        continue;
+      }
+
+      Point from = copyline[index].GetLeftPoint();
+      Point to = copyline[index].GetRightPoint();
+
+      //cout<<"from "<<from<<" to "<<to<<endl;
+
+
+      if(from.Distance(sp) > delta_dist && to.Distance(sp) > delta_dist){
+        index = (index + 1) % copyline.size();
+        continue;
+      }
+
       if(from.Distance(sp) < delta_dist){
         sp = to;
         count++;
@@ -2548,8 +3188,8 @@ void SpacePartition::ExtendRoad(int attr_pos, int w)
 cut the intersection region between pavement and road, especailly at junction
 
 */
-void SpacePartition::ClipPaveRegion(Region& reg, Region& pave1, Region& pave2,
-                       vector<Region>& paves,int rid, Region* inborder)
+void SpacePartition::ClipPaveRegion(Region& reg,
+                     vector<Region>& paves,int rid, Region* inborder)
   {
 
       Region* comm_reg = new Region(0);
@@ -2558,6 +3198,8 @@ void SpacePartition::ClipPaveRegion(Region& reg, Region& pave1, Region& pave2,
 
       Region* result = new Region(0);
 //      reg.Minus(*comm_reg,*result);
+//      cout<<"reg "<<reg<<endl;
+//      cout<<"*comm_reg "<<*comm_reg<<endl;
       MyMinus(reg,*comm_reg,*result);
 
       paves[rid - 1] = *result;
@@ -2607,6 +3249,7 @@ void SpacePartition::FillPave(Network* n, vector<Region>& pavements1,
 
     sort(myjuns.begin(), myjuns.end());
 
+    bool global_flag = false;
 
     const double delta_dist = 0.1;
     for(unsigned int i = 0 ;i < myjuns.size();i++){
@@ -2624,18 +3267,18 @@ void SpacePartition::FillPave(Network* n, vector<Region>& pavements1,
 
           vector<int> rids;
 
-          int j = i - 1;
-          while(j >= 0 && loc.Distance(myjuns[j].loc) < delta_dist){
-            rids.push_back(myjuns[j].rid1);
-            rids.push_back(myjuns[j].rid2);
-            j--;
+          int j1 = i - 1;
+          while(j1 >= 0 && loc.Distance(myjuns[j1].loc) < delta_dist){
+            rids.push_back(myjuns[j1].rid1);
+            rids.push_back(myjuns[j1].rid2);
+            j1--;
           }
 
-          j = i;
-          while(j < myjuns.size() && loc.Distance(myjuns[j].loc) < delta_dist){
-            rids.push_back(myjuns[j].rid1);
-            rids.push_back(myjuns[j].rid2);
-            j++;
+          unsigned int j2 = i;
+          while(j2 < myjuns.size() && loc.Distance(myjuns[j2].loc)< delta_dist){
+            rids.push_back(myjuns[j2].rid1);
+            rids.push_back(myjuns[j2].rid2);
+            j2++;
           }
 
 //          cout<<" rids size "<<rids.size()<<endl;
@@ -2650,10 +3293,867 @@ void SpacePartition::FillPave(Network* n, vector<Region>& pavements1,
                         pavements1, pavements2, rids, paves1, paves2);
         }
 
+        ////////a special case for junction rid 2549--2550 ///////////////////
+        //////////////////for Berlin Network ////////////////////////////////
+        /////////////not so good, but it does not have to check every case////
+        if(rids.size() == 12 && global_flag == false){
+            bool flag1 = false;
+            bool flag2 = false;
+            for(unsigned int k1 = 0;k1 < rids.size();k1++){
+                if(rids[k1] == 2549) flag1 = true;
+                if(rids[k1] == 2550) flag2 = true;
+            }
+            if(flag1 && flag2){
+/*                for(unsigned int k1= 0; k1 < rids.size();k1++)
+                    cout<<rids[k1]<<endl;*/
+
+                rids.clear();
+                rid1 = 2549;
+                rid2 = 2550;
+                rids.push_back(rid1);
+                rids.push_back(rid2);
+                NewFillPavement5(routes, rid1, rid2, &loc,
+                        pavements1, pavements2, rids, paves1, paves2);
+//                cout<<"come here"<<endl;
+                global_flag = true;
+            }
+        }
+        ////////////////////////////////////////////////////////////////
         rids.clear();
       }
     }
 
+}
+
+/*
+Decompose the pavement on one side of the road into a set of subregions
+
+*/
+void SpacePartition::DecomposePave(Region* reg1, Region* reg2,
+                     vector<Region>& result)
+{
+    vector<Region> result1;
+    int no_faces = reg1->NoComponents();
+    for(int i = 0;i < no_faces;i++){
+        Region* temp = new Region(0);
+
+        result1.push_back(*temp);
+        delete temp;
+        result1[i].StartBulkLoad();
+    }
+    for(int i = 0;i < reg1->Size();i++){
+      HalfSegment hs;
+      reg1->Get(i,hs);
+      int face = hs.attr.faceno;
+      result1[face] += hs;
+    }
+
+    for(int i = 0;i < no_faces;i++){
+        result1[i].EndBulkLoad(false,false,false,false);
+        if(result1[i].Size() >= 6)
+          result.push_back(result1[i]);
+    }
+
+
+    vector<Region> result2;
+    no_faces = reg2->NoComponents();
+    for(int i = 0;i < no_faces;i++){
+        Region* temp = new Region(0);
+
+        result2.push_back(*temp);
+        delete temp;
+        result2[i].StartBulkLoad();
+    }
+    for(int i = 0;i < reg2->Size();i++){
+      HalfSegment hs;
+      reg2->Get(i,hs);
+      int face = hs.attr.faceno;
+      result2[face] += hs;
+    }
+    for(int i = 0;i < no_faces;i++){
+        result2[i].EndBulkLoad(false,false,false,false);
+        if(result2[i].Size() >= 6)
+          result.push_back(result2[i]);
+    }
+
+}
+
+/*
+Cut the commone area between two pavements
+
+*/
+void SpacePartition::CutCommonPave(Region* reg1, Region* reg2)
+{
+    if(MyRegIntersects(reg1, reg2)){
+        Region* comm = new Region(0);
+        MyIntersection(*reg1, *reg2, *comm);
+        if(comm->Size() > 0){ //common area is a region
+            Region* temp = new Region(0);
+            cout<<"reg1 "<<*reg1<<endl;
+            cout<<"comm "<<*comm<<endl;
+            MyMinus(*reg1, *comm, *temp);
+            *reg1 = *temp;
+            delete temp;
+            cout<<"reg1 "<<*reg1<<endl;
+        }
+        delete comm;
+    }
+}
+
+/*
+Decompose the pavement of one road into a set of subregions
+
+*/
+
+void SpacePartition::DecomposePavement1(Network* n, Relation* rel,
+                                 int attr_pos1, int attr_pos2, int attr_pos3)
+{
+    vector<Region> paves1;
+    vector<Region> paves2;
+    vector<bool> route_flag;
+    for(int i = 1;i <=  rel->GetNoTuples();i++){
+      Tuple* pave_tuple = rel->GetTuple(i);
+      Region* reg1 = (Region*)pave_tuple->GetAttribute(attr_pos2);
+      Region* reg2 = (Region*)pave_tuple->GetAttribute(attr_pos3);
+      paves1.push_back(*reg1);
+      paves2.push_back(*reg2);
+      pave_tuple->DeleteIfAllowed();
+      route_flag.push_back(false);
+    }
+
+
+    vector<Region> pavements1;
+    vector<Region> pavements2;
+
+    int oid = 1;//object identifier
+
+    assert(paves1.size() == paves2.size());
+    for(int i = 1;i <=  rel->GetNoTuples();i++){
+      Tuple* pave_tuple = rel->GetTuple(i);
+      int rid = ((CcInt*)pave_tuple->GetAttribute(attr_pos1))->GetIntval();
+
+/*      if(!(rid == 1306 || rid == 1626)){
+          pave_tuple->DeleteIfAllowed();
+          continue;
+      }*/
+
+      DecomposePave(&paves1[rid - 1], &paves2[rid - 1], pavements1);
+      for(unsigned int j = 0;j < pavements1.size();j++){
+          junid1.push_back(oid);
+          junid2.push_back(rid);
+          outer_regions1.push_back(pavements1[j]);
+          oid++;
+      }
+      pave_tuple->DeleteIfAllowed();
+      pavements1.clear();
+    }
+}
+
+/*
+Decompose the zebra crossings into a set of subregions
+
+*/
+
+void SpacePartition::DecomposePavement2(int start_oid, Relation* rel,
+                                 int attr_pos1, int attr_pos2)
+{
+    cout<<"start_oid "<<start_oid<<endl;
+    int oid = start_oid + 1;//object identifier
+    vector<Region> zc_regs;
+    for(int i = 1;i <= rel->GetNoTuples();i++){
+      Tuple* zc_tuple = rel->GetTuple(i);
+      int rid = ((CcInt*)zc_tuple->GetAttribute(attr_pos1))->GetIntval();
+      Region* zc_reg = (Region*)zc_tuple->GetAttribute(attr_pos2);
+      Region* temp = new Region(0);
+//      cout<<"rid "<<rid<<endl;
+      DecomposePave(zc_reg, temp, zc_regs);
+//      assert(zc_regs.size() > 0);
+//      cout<<zc_regs.size()<<endl;
+      for(unsigned int j = 0;j < zc_regs.size();j++){
+          junid1.push_back(oid);
+          junid2.push_back(rid);
+          outer_regions1.push_back(zc_regs[j]);
+          oid++;
+      }
+      delete temp;
+      zc_regs.clear();
+      zc_tuple->DeleteIfAllowed();
+    }
+}
+
+/*
+get the closest point in hs to p, and return it in cp
+it also returns the distance between hs and p
+
+*/
+double SpacePartition::GetClosestPoint1(HalfSegment& hs, Point& p, Point& cp)
+{
+
+  assert( p.IsDefined() );
+  Coord xl = hs.GetLeftPoint().GetX(),
+        yl = hs.GetLeftPoint().GetY(),
+        xr = hs.GetRightPoint().GetX(),
+        yr = hs.GetRightPoint().GetY(),
+        X = p.GetX(),
+        Y = p.GetY();
+
+  double result, auxresult;
+
+  if( xl == xr || yl == yr ){
+    if( xl == xr){ //hs is vertical
+      if( (yl <= Y && Y <= yr) || (yr <= Y && Y <= yl) ){
+        result = fabs( X - xl );
+        cp.Set(xl, Y); //store the cloest point
+      }
+      else{
+        result = p.Distance(hs.GetLeftPoint());
+        auxresult = p.Distance(hs.GetRightPoint());
+        if( result > auxresult ){
+          result = auxresult;
+          cp = hs.GetRightPoint(); //store the closest point
+        }else{
+          cp = hs.GetLeftPoint();  //store the closest point
+        }
+      }
+    }else{         //hs is horizontal line: (yl==yr)
+      if( xl <= X && X <= xr ){
+        result = fabs( Y - yl );
+        cp.Set(X,yl);//store the closest point
+      }else{
+        result = p.Distance(hs.GetLeftPoint());
+        auxresult = p.Distance(hs.GetRightPoint());
+        if( result > auxresult ){
+          result = auxresult;
+          cp = hs.GetRightPoint();//store the closest point
+        }else{
+          cp = hs.GetLeftPoint();//store the closest point
+        }
+      }
+    }
+  }else
+  {
+    double k = (yr - yl) / (xr - xl),
+           a = yl - k * xl,
+           xx = (k * (Y - a) + X) / (k * k + 1),
+           yy = k * xx + a;
+    Coord XX = xx,
+          YY = yy;
+    Point PP( true, XX, YY );
+    if( xl <= XX && XX <= xr ){
+      result = p.Distance( PP );
+      cp = PP; //store the closest point
+    }
+    else
+    {
+      result = p.Distance( hs.GetLeftPoint() );
+      auxresult = p.Distance( hs.GetRightPoint());
+      if( result > auxresult ){
+        result = auxresult;
+        cp = hs.GetRightPoint();
+      }else{
+        cp = hs.GetLeftPoint();
+      }
+    }
+  }
+  return result;
+
+}
+
+void SpacePartition::GetSubLine(SimpleLine* sl, Point& p1,
+                                Point& p2, Line* res, double len)
+{
+    cout<<"boundary length "<<sl->Length()<<endl;
+    vector<MyHalfSegment> mhs;
+    NewReorderLine(sl, mhs);
+
+    printf("p1 (%.8f,%.8f)  p2 (%.8f, %.8f)\n", p1.GetX(), p1.GetY(),
+                                                p2.GetX(), p2.GetY());
+    const double delta_dist = 0.1;
+
+/*    for(unsigned int i = 0;i < mhs.size();i++)
+      mhs[i].Print();*/
+
+    int pos1, pos2;
+    pos1 = pos2 = -1;
+    MyPoint mp1, mp2;
+    bool f1, f2;
+    f1 = false;
+    f2 = false;
+    for(unsigned int i = 0;i < mhs.size();i++){
+        HalfSegment hs;
+        hs.Set(true, mhs[i].from, mhs[i].to);
+
+        Point cp1, cp2;
+//        mhs[i].Print();
+//        printf("dist1 %.8f dist2 %.8f\n",GetClosestPoint1(hs, p1, cp1),
+//                                         GetClosestPoint1(hs, p2, cp2));
+        double dist1 = GetClosestPoint1(hs, p1, cp1);
+        double dist2 = GetClosestPoint1(hs, p2, cp2);
+        if(dist1 < delta_dist){
+            if(f1 == false){
+              mp1.loc = cp1;
+              mp1.dist = dist1;
+              f1 = true;
+              pos1 = i;
+            }else{
+              if(dist1 < mp1.dist){
+                mp1.loc = cp1;
+                mp1.dist = dist1;
+                pos1 = i;
+              }
+            }
+        }
+        if(dist2 < delta_dist){
+            if(f2 == false){
+              mp2.loc = cp2;
+              mp2.dist = dist2;
+              f2 = true;
+              pos2 = i;
+            }else{
+              if(dist2 < mp2.dist){
+                mp2.loc = cp2;
+                mp2.dist = dist2;
+                pos2 = i;
+              }
+            }
+        }
+
+    }
+//    cout<<"pos1 "<<pos1<<" pos2 "<<pos2<<endl;
+    assert(pos1 != -1 && pos2 != -1);
+    int index1, index2;
+    if(pos1 < pos2){
+      index1 = pos1;
+      index2 = pos2;
+    }else{
+      index1 = pos2;
+      index2 = pos1;
+      Point p;
+      p = p1;
+      p1 = p2;
+      p2 = p;
+    }
+//    cout<<"index1 "<<index1<<" index2 "<<index2<<endl;
+    assert(index1 <= index2);
+
+
+    int edgeno1 = 0;
+    int edgeno2 = 0;
+    Line* l1 = new Line(0);
+    Line* l2 = new Line(0);
+    l1->StartBulkLoad();
+    l2->StartBulkLoad();
+    if(index1 != index2){
+        for(int i = 0;i < index1;i++){
+          HalfSegment hs;
+          hs.Set(true, mhs[i].from, mhs[i].to);
+          hs.attr.edgeno = edgeno1++;
+          *l1 += hs;
+          hs.SetLeftDomPoint(!hs.IsLeftDomPoint());
+          *l1 += hs;
+        }
+        if(p1.Distance(mhs[index1].from) < delta_dist){
+//          cout<<"l2 1"<<endl;
+          HalfSegment hs;
+          hs.Set(true, mhs[index1].from, mhs[index1].to);
+          hs.attr.edgeno = edgeno2++;
+          *l2 += hs;
+          hs.SetLeftDomPoint(!hs.IsLeftDomPoint());
+          *l2 += hs;
+        }else if(p1.Distance(mhs[index1].to) < delta_dist){
+          HalfSegment hs;
+          hs.Set(true, mhs[index1].from, mhs[index1].to);
+          hs.attr.edgeno = edgeno1++;
+          *l1 += hs;
+          hs.SetLeftDomPoint(!hs.IsLeftDomPoint());
+          *l1 += hs;
+        }else{
+          HalfSegment hs1;
+          hs1.Set(true, mhs[index1].from, p1);
+          hs1.attr.edgeno = edgeno1++;
+          *l1 += hs1;
+          hs1.SetLeftDomPoint(!hs1.IsLeftDomPoint());
+          *l1 += hs1;
+
+//          cout<<"l2 2"<<endl;
+          HalfSegment hs2;
+          hs2.Set(true, p1, mhs[index1].to);
+          hs2.attr.edgeno = edgeno2++;
+          *l2 += hs2;
+          hs2.SetLeftDomPoint(!hs2.IsLeftDomPoint());
+          *l2 += hs2;
+      }
+
+
+        for(int i = index1 + 1; i < index2;i++){
+//          cout<<"l2 3"<<endl;
+          HalfSegment hs;
+          hs.Set(true, mhs[i].from, mhs[i].to);
+          hs.attr.edgeno = edgeno2++;
+          *l2 += hs;
+          hs.SetLeftDomPoint(!hs.IsLeftDomPoint());
+          *l2 += hs;
+        }
+
+
+        if(p2.Distance(mhs[index2].from) < delta_dist){
+          HalfSegment hs;
+          hs.Set(true, mhs[index2].from, mhs[index2].to);
+          hs.attr.edgeno = edgeno1++;
+          *l1 += hs;
+          hs.SetLeftDomPoint(!hs.IsLeftDomPoint());
+          *l1 += hs;
+        }else if(p2.Distance(mhs[index2].to) < delta_dist){
+//          cout<<"l2 4"<<endl;
+          HalfSegment hs;
+          hs.Set(true, mhs[index2].from, mhs[index2].to);
+          hs.attr.edgeno = edgeno2++;
+          *l2 += hs;
+          hs.SetLeftDomPoint(!hs.IsLeftDomPoint());
+          *l2 += hs;
+        }else{
+//          cout<<"l2 5"<<endl;
+          HalfSegment hs1;
+          hs1.Set(true, mhs[index2].from, p2);
+          hs1.attr.edgeno = edgeno2++;
+          *l2 += hs1;
+          hs1.SetLeftDomPoint(!hs1.IsLeftDomPoint());
+          *l2 += hs1;
+
+          HalfSegment hs2;
+          hs2.Set(true, p2, mhs[index2].to);
+          hs2.attr.edgeno = edgeno1++;
+          *l1 += hs2;
+          hs2.SetLeftDomPoint(!hs2.IsLeftDomPoint());
+          *l1 += hs2;
+        }
+
+
+      for(unsigned int i = index2 + 1;i < mhs.size();i++){
+          HalfSegment hs;
+          hs.Set(true, mhs[i].from, mhs[i].to);
+          hs.attr.edgeno = edgeno1++;
+          *l1 += hs;
+          hs.SetLeftDomPoint(!hs.IsLeftDomPoint());
+          *l1 += hs;
+      }
+    }else{
+
+        for(int i = 0;i < index1;i++){
+          HalfSegment hs;
+          hs.Set(true, mhs[i].from, mhs[i].to);
+          hs.attr.edgeno = edgeno1++;
+          *l1 += hs;
+          hs.SetLeftDomPoint(!hs.IsLeftDomPoint());
+          *l1 += hs;
+        }
+//          cout<<"l2 6"<<endl;
+        HalfSegment hs;
+        hs.Set(true, p1, p2);
+        hs.attr.edgeno = edgeno2++;
+        *l2 += hs;
+        hs.SetLeftDomPoint(!hs.IsLeftDomPoint());
+        *l2 += hs;
+
+
+        for(unsigned int i = index2 + 1;i < mhs.size();i++){
+          HalfSegment hs;
+          hs.Set(true, mhs[i].from, mhs[i].to);
+          hs.attr.edgeno = edgeno1++;
+          *l1 += hs;
+          hs.SetLeftDomPoint(!hs.IsLeftDomPoint());
+          *l1 += hs;
+        }
+    }
+
+
+
+
+    l1->EndBulkLoad();
+    l2->EndBulkLoad();
+
+    cout<<"len "<<len<<endl;
+    cout<<"l1 length "<<l1->Length()<<endl;
+    cout<<"l2 length "<<l2->Length()<<endl;
+    assert(fabs(len - l1->Length() < delta_dist) ||
+           fabs(len - l2->Length() < delta_dist));
+    double d1 = fabs(len - l1->Length());
+    double d2 = fabs(len - l2->Length());
+    if(d1 < d2) *res = *l1;
+    else *res = *l2;
+
+
+    delete l1;
+    delete l2;
+}
+
+/*
+find the matching line in reg by input line
+
+*/
+void SpacePartition::GetCommonLine(Region* reg, Line* line, Line* res)
+{
+
+  Line* boundary = new Line(0);
+  reg->Boundary(boundary);
+  SimpleLine* sboundary = new SimpleLine(0);
+  sboundary->fromLine(*boundary);
+
+
+  Line* result = new Line(0);
+  for(int i = 0;i < line->Size();i++){
+      HalfSegment hs1;
+      line->Get(i, hs1);
+      if(!hs1.IsLeftDomPoint()) continue;
+
+      Point sp, ep;
+      sp = hs1.GetLeftPoint();
+      ep = hs1.GetRightPoint();
+
+      vector<MyPoint> mps1;
+      vector<MyPoint> mps2;
+
+      for(int j = 0;j < sboundary->Size();j++){
+        HalfSegment hs2;
+        sboundary->Get(j, hs2);
+        if(hs2.IsLeftDomPoint()){
+          Point cp1, cp2;
+  //      printf("dist1 %.8f\n",GetClosestPoint1(hs, sp, cp1));
+
+          double dist1 = GetClosestPoint1(hs2, sp, cp1);
+          double dist2 = GetClosestPoint1(hs2, ep, cp2);
+          MyPoint* mp1 = new MyPoint(cp1, dist1);
+          MyPoint* mp2 = new MyPoint(cp2, dist2);
+          mps1.push_back(*mp1);
+          mps2.push_back(*mp2);
+          delete mp1;
+          delete mp2;
+        }
+      }
+      sort(mps1.begin(), mps1.end());
+      sort(mps2.begin(), mps2.end());
+  //  mps1[0].Print();
+  //  mps2[0].Print();
+
+      Line* subline = new Line(0);
+      GetSubLine(sboundary, mps1[0].loc, mps2[0].loc, subline, hs1.Length());
+      Line* temp = new Line(0);
+      result->Union(*subline, *temp);
+      *result = *temp;
+      delete temp;
+      delete subline;
+  }
+  cout<<"comm line length "<<line->Length()<<endl;
+  cout<<"result length "<<result->Length()<<endl;
+  const double delta_dist = 0.1;
+  assert(fabs(line->Length() - result->Length()) < delta_dist);
+
+
+  *res = *result;
+
+  delete result;
+  delete boundary;
+  delete sboundary;
+}
+
+/*
+calculate the common border line of two pavements
+
+*/
+void SpacePartition::GetCommPave1(vector<Region_Oid>& pave1,
+                                 vector<Region_Oid>& pave2, int rid1, int rid2)
+{
+//  const double delta_dist = 0.1;
+  for(unsigned int i = 0;i < pave1.size();i++){
+      for(unsigned int j = 0;j < pave2.size();j++){
+
+          if(pave1[i].reg.Inside(pave2[j].reg)){
+              continue;
+          }
+          if(pave2[j].reg.Inside(pave1[i].reg)){
+              continue;
+          }
+
+          if(MyRegIntersects(&pave1[i].reg, &pave2[j].reg)){
+//            cout<<"rid1 "<<rid1<<" oid "<<pave1[i].oid<<endl;
+//            cout<<"rid2 "<<rid2<<" oid "<<pave2[j].oid<<endl;
+
+            Region* comm = new Region(0);
+            MyIntersection(pave1[i].reg, pave2[j].reg, *comm);
+
+//            pave1[i].reg.Intersection(pave2[j].reg, *comm);
+
+            if(comm->Size() == 0){ //the commone part is a line
+
+              Line* boundary1 = new Line(0);
+              pave1[i].reg.Boundary(boundary1);
+              Line* result = new Line(0);
+//              pave2[j].reg.Intersection(*boundary1, *result);
+
+              MyIntersection(*boundary1, pave2[j].reg, *result);
+
+              if(result->Size() == 0){
+                  cout<<comm->Area()<<endl;
+                  cout<<"rid1 "<<rid1<<" rid2 "<<rid2<<endl;
+                  cout<<"should not here1"<<endl;
+              }
+              if(result->Size() > 0){
+                  Line* l1 = new Line(0);
+                  Line* l2 = new Line(0);
+                  junid1.push_back(pave1[i].oid);
+                  junid2.push_back(pave2[j].oid);
+                  pave_line1.push_back(*result);
+
+//                  GetCommonLine(&pave1[i].reg, result, l1);
+//                  GetCommonLine(&pave2[j].reg, result, l2);
+
+                  delete l1;
+                  delete l2;
+              }
+              delete result;
+              delete boundary1;
+            }else{    //a commone area
+
+              Line* boundary1 = new Line(0);
+              comm->Boundary(boundary1);
+              Region* cut_pave1 = new Region(0);
+              MyMinus(pave1[i].reg, *comm, *cut_pave1);
+//              pave1[i].reg.Minus(*comm, *cut_pave1);
+
+              Line* result = new Line(0);
+//              cut_pave1->Intersection(*boundary1, *result);
+              MyIntersection(*boundary1, *cut_pave1, *result);
+
+              if(result->Size() == 0){
+                  cout<<comm->Area()<<endl;
+                  cout<<"rid1 "<<rid1<<" rid2 "<<rid2<<endl;
+                  cout<<"should not here2"<<endl;
+              }
+              if(result->Size() > 0){
+                  Line* l1 = new Line(0);
+                  Line* l2 = new Line(0);
+
+                  junid1.push_back(pave1[i].oid);
+                  junid2.push_back(pave2[j].oid);
+                  pave_line1.push_back(*result);
+
+//                  GetCommonLine(&pave1[i].reg,result, l1);
+//                  GetCommonLine(&pave2[j].reg,result, l2);
+
+
+                  delete l1;
+                  delete l2;
+              }
+              delete result;
+              delete cut_pave1;
+              delete boundary1;
+            }
+            delete comm;
+        }
+      }
+  }
+
+}
+
+/*
+get the commone line between two pavements (node in the graph model)
+
+*/
+void SpacePartition::GetPavementNode1(Network* n, Relation* rel,
+                                    BTree* btree_pave,
+                                    int attr1, int attr2, int attr3)
+{
+
+    Relation* juns = n->GetJunctions();
+
+    vector<Region_Oid> regs1;
+    vector<Region_Oid> regs2;
+
+    for(int i = 1;i <= n->GetNoJunctions();i++){
+//    for(int i = 1;i <= 2000;i++){
+      Tuple* jun_tuple = juns->GetTuple(i);
+      CcInt* rid1 = (CcInt*)jun_tuple->GetAttribute(JUNCTION_ROUTE1_ID);
+      CcInt* rid2 = (CcInt*)jun_tuple->GetAttribute(JUNCTION_ROUTE2_ID);
+      int id1 = rid1->GetIntval();
+      int id2 = rid2->GetIntval();
+
+/*      if(!(id1 == 3 && id2 == 6)){
+          jun_tuple->DeleteIfAllowed();
+          continue;
+      }*/
+
+//      cout<<"rid1 "<<id1<<" rid2 "<<id2<<endl;
+
+      BTreeIterator* btreeiter1 = btree_pave->ExactMatch(rid1);
+      while(btreeiter1->Next()){
+        Tuple* pave_tup = rel->GetTuple(btreeiter1->GetId());
+        int oid = ((CcInt*)pave_tup->GetAttribute(attr1))->GetIntval();
+        Region* pave = (Region*)pave_tup->GetAttribute(attr3);
+        Region_Oid* ro = new Region_Oid(oid, *pave);
+        regs1.push_back(*ro);
+        delete ro;
+        pave_tup->DeleteIfAllowed();
+      }
+      delete btreeiter1;
+
+      BTreeIterator* btreeiter2 = btree_pave->ExactMatch(rid2);
+      while(btreeiter2->Next()){
+        Tuple* pave_tup = rel->GetTuple(btreeiter2->GetId());
+        int oid = ((CcInt*)pave_tup->GetAttribute(attr1))->GetIntval();
+        Region* pave = (Region*)pave_tup->GetAttribute(attr3);
+        Region_Oid* ro = new Region_Oid(oid, *pave);
+        regs2.push_back(*ro);
+        delete ro;
+        pave_tup->DeleteIfAllowed();
+      }
+      delete btreeiter2;
+//      cout<<regs1.size()<<" "<<regs2.size()<<endl;
+
+      GetCommPave1(regs1, regs2, id1, id2);
+
+      regs1.clear();
+      regs2.clear();
+      jun_tuple->DeleteIfAllowed();
+
+
+    }
+
+    juns->Delete();
+
+}
+
+/*
+get the common border line between zebra crossing and the pavement
+
+*/
+void SpacePartition::GetCommPave2(Region* reg, int oid,
+                                  vector<Region_Oid>& pave2)
+{
+    for(unsigned int i = 0;i < pave2.size();i++){
+        if(MyRegIntersects(reg, &pave2[i].reg)){
+
+          Region* comm = new Region(0);
+          MyIntersection(*reg, pave2[i].reg, *comm);
+//          cout<<comm->Size()<<endl;
+          assert(comm->Size() > 0);
+
+          Region* temp = new Region(0);
+          MyMinus(*reg, *comm, *temp);
+
+          Line* boundary = new Line(0);
+          comm->Boundary(boundary);
+          Line* result = new Line(0);
+//          pave2[i].reg.Intersection(*boundary, *result);
+          MyIntersection(*boundary, *temp, *result);
+
+          if(result->Size() == 0){
+            cout<<"zc oid1 "<<oid<<endl;
+            cout<<"pave oid2 "<<pave2[i].oid<<endl;
+          }
+          if(result->Size() > 0){
+              junid1.push_back(oid);
+              junid2.push_back(pave2[i].oid);
+              pave_line1.push_back(*result);
+          }
+          delete result;
+          delete boundary;
+          delete comm;
+          delete temp;
+        }
+    }
+
+}
+
+/*
+get the commone line between zc and pavement (node in the graph model)
+
+*/
+void SpacePartition::GetPavementNode2(Relation* rel1,
+                                    Relation* rel2, BTree* btree_pave,
+                                    int attr1, int attr2, int attr3)
+{
+  vector<Region_Oid> reg_pave;
+  for(int i = 1;i <= rel1->GetNoTuples();i++){
+    Tuple* zc_tuple = rel1->GetTuple(i);
+    CcInt* zc_oid = (CcInt*)zc_tuple->GetAttribute(attr1);
+    CcInt* rid = (CcInt*)zc_tuple->GetAttribute(attr2);
+    Region* reg = (Region*)zc_tuple->GetAttribute(attr3);
+
+
+/*    if(!(rid->GetIntval() == 476)){
+        zc_tuple->DeleteIfAllowed();
+        continue;
+    }*/
+
+//    cout<<"rid "<<rid->GetIntval()<<endl;
+//    assert(reg->GetCycleDirection());
+
+    BTreeIterator* btreeiter = btree_pave->ExactMatch(rid);
+    while(btreeiter->Next()){
+        Tuple* pave_tuple = rel2->GetTuple(btreeiter->GetId());
+        int oid = ((CcInt*)pave_tuple->GetAttribute(attr1))->GetIntval();
+        Region* pave = (Region*)pave_tuple->GetAttribute(attr3);
+        Region_Oid* ro = new Region_Oid(oid, *pave);
+        reg_pave.push_back(*ro);
+        delete ro;
+        pave_tuple->DeleteIfAllowed();
+    }
+    delete btreeiter;
+
+
+    GetCommPave2(reg, zc_oid->GetIntval(),reg_pave);
+    reg_pave.clear();
+    zc_tuple->DeleteIfAllowed();
+  }
+
+}
+/*
+remove triangle area after cutting
+
+*/
+
+void SpacePartition::FilterDirtyRegion(vector<Region>& regs, Region* reg)
+{
+  vector<Region> subregions;
+  int no_faces = reg->NoComponents();
+  for(int i = 0;i < no_faces;i++){
+        Region* temp = new Region(0);
+        subregions.push_back(*temp);
+        delete temp;
+        subregions[i].StartBulkLoad();
+  }
+  for(int i = 0;i < reg->Size();i++){
+      HalfSegment hs;
+      reg->Get(i,hs);
+      int face = hs.attr.faceno;
+      subregions[face] += hs;
+
+  }
+
+  for(int i = 0;i < no_faces;i++)
+      subregions[i].EndBulkLoad(false,false,false,false);
+
+  Region* result = new Region(*reg);
+//  result->StartBulkLoad();
+
+  for(unsigned int i = 0;i < subregions.size();i++){
+      if(subregions[i].Size() <= 6){ //filter small triangle  area
+        Region* temp = new Region(0);
+        result->Minus(subregions[i], *temp);
+        *result = *temp;
+        delete temp;
+      }
+      if(subregions[i].Area() < 3){ //filter very small area
+        Region* temp = new Region(0);
+        result->Minus(subregions[i], *temp);
+        *result = *temp;
+        delete temp;
+      }
+  }
+//  result->SetNoComponents(count);
+//  result->EndBulkLoad(false, false, false, false);
+  regs.push_back(*result);
+  delete result;
 }
 
 /*
@@ -2721,14 +4221,12 @@ void SpacePartition::Getpavement(Network* n, Relation* rel1, int attr_pos,
       Region* reg2 = (Region*)inborder_tuple2->GetAttribute(attr_pos);
 
 
-      ClipPaveRegion(rid1_pave1,rid2_pave1,rid2_pave2,pavements1,id1,reg2);
-      ClipPaveRegion(rid1_pave2,rid2_pave1,rid2_pave2,pavements2,id1,reg2);
+      ClipPaveRegion(rid1_pave1,pavements1,id1,reg2);
+      ClipPaveRegion(rid1_pave2,pavements2,id1,reg2);
 
 
-
-      ClipPaveRegion(rid2_pave1,rid1_pave1,rid1_pave2,pavements1,id2,reg1);
-      ClipPaveRegion(rid2_pave2,rid1_pave1,rid1_pave2,pavements2,id2,reg1);
-
+      ClipPaveRegion(rid2_pave1,pavements1,id2,reg1);
+      ClipPaveRegion(rid2_pave2,pavements2,id2,reg1);
 
       inborder_tuple1->DeleteIfAllowed();
       inborder_tuple2->DeleteIfAllowed();
@@ -2760,11 +4258,13 @@ void SpacePartition::Getpavement(Network* n, Relation* rel1, int attr_pos,
         pavements2[i] = *reg2;
         delete reg2;
       }
-    ////////////////////////////////////////////////////////////
 
+    /////////////////////////////////////////////////////////////
     for(unsigned int i = 0;i < pavements1.size();i++){
-        outer_regions1.push_back(pavements1[i]);
-        outer_regions2.push_back(pavements2[i]);
+//        outer_regions1.push_back(pavements1[i]);
+//        outer_regions2.push_back(pavements2[i]);
+        FilterDirtyRegion(outer_regions1, &pavements1[i]);
+        FilterDirtyRegion(outer_regions2, &pavements2[i]);
     }
 }
 
@@ -2929,10 +4429,8 @@ bool SpacePartition::BuildZebraCrossing(vector<MyPoint>& endpoints1,
 
             return true;
           }*/
-//        ModifyPoint(lp1);
-//        ModifyPoint(rp1);
-//        ModifyPoint(lp2);
-//        ModifyPoint(rp2);
+
+//        cout<<"lp2 "<<lp2<<" rp2 "<<rp2<<endl;
 
         if((lp2.Inside(*reg_pave1) && rp2.Inside(*reg_pave2)) ||
                  (lp2.Inside(*reg_pave2) && rp2.Inside(*reg_pave1)) ){
@@ -2948,11 +4446,11 @@ bool SpacePartition::BuildZebraCrossing(vector<MyPoint>& endpoints1,
                outer_ps.push_back(lp2);
              }
 
-
+            //////order points in counter clock-wise /////////////////
             for(unsigned int j = 0;j < outer_ps.size();j++){
               vector<Point> outer_ps1;
               int index = (j + 1) % outer_ps.size();
-              for(int i = 0 ; i < outer_ps.size() ;i++){
+              for(unsigned int i = 0 ; i < outer_ps.size() ;i++){
                   Point p = outer_ps[index];
                   outer_ps1.push_back(p);
                   index = (index + 1) % outer_ps.size();
@@ -3219,7 +4717,6 @@ void SpacePartition::GetZebraCrossing(SimpleLine* subcurve,
 
     }
 
-
     delete subline1;
     delete subline2;
 
@@ -3322,13 +4819,36 @@ void SpacePartition::CreatePavement(SimpleLine* curve, Region* reg_pave1,
               roadwidth, crossreg2);
     }
 
-//    MyUnion(*crossreg1, *crossreg2, *crossregion);
+    MyUnion(*crossreg1, *crossreg2, *crossregion);
 
     ///////////////cut the common area by zc and pave////////////////////
-    Region* reg = new Region(0);
+/*    Region* reg = new Region(0);
     MyUnion(*crossreg1, *crossreg2, *reg);
-    MyIntersection(*reg, *reg_road, *crossregion);
-    delete reg;
+    MyIntersection(*reg, *reg_road, *crossregion);*/
+
+
+    /////////////////////////////////////////////////////////////////////
+/*    Region* reg = new Region(0);
+    MyUnion(*crossreg1, *crossreg2, *reg);
+    Region* reg_pave12 = new Region(0);
+    MyUnion(*reg_pave1, *reg_pave2, *reg_pave12);
+    Region* comm = new Region(0);
+
+
+
+//    MyIntersection(*reg_pave12, *reg, *comm);
+//    MyMinus(*reg, *comm, *crossregion);
+//    cout<<*reg_pave12<<endl;
+//    cout<<*reg<<endl;
+
+
+//    MyIntersection(*reg_pave1, *crossreg1, *comm);
+    reg_pave12->Intersection(*reg, *comm);
+    MyMinus(*reg, *comm, *crossregion);
+
+    delete comm;
+    delete reg_pave12;
+    delete reg;*/
     /////////////////////////////////////////////////////////////////////
 
     delete crossreg1;
@@ -3363,6 +4883,15 @@ void SpacePartition::Junpavement(Network* n, Relation* rel, int attr_pos1,
 
     }
 
+    vector<Region> reg_roads;
+    for(int i = 1;i <= rel_road->GetNoTuples();i++){
+      Tuple* tuple_road = rel_road->GetTuple(i);
+      Region* reg_road = (Region*)tuple_road->GetAttribute(attr_pos3);
+      reg_roads.push_back(*reg_road);
+      tuple_road->DeleteIfAllowed();
+    }
+
+
     Relation* juns = n->GetJunctions();
 
     for(int i = 1;i <= n->GetNoJunctions();i++){
@@ -3372,19 +4901,19 @@ void SpacePartition::Junpavement(Network* n, Relation* rel, int attr_pos1,
       int id1 = rid1->GetIntval();
       int id2 = rid2->GetIntval();
 
-/*      if(!(id1 == 822 && id2 == 2406)){
+/*      if(!(id1 == 38 && id2 == 476)){
           jun_tuple->DeleteIfAllowed();
           continue;
       }*/
 
-//      cout<<"rid1 "<<id1<<" rid2 "<<id2<<endl;
+ //     cout<<"rid1 "<<id1<<" rid2 "<<id2<<endl;
 
       CcReal* meas1 = (CcReal*)jun_tuple->GetAttribute(JUNCTION_ROUTE1_MEAS);
       CcReal* meas2 = (CcReal*)jun_tuple->GetAttribute(JUNCTION_ROUTE2_MEAS);
 
       double len1 = meas1->GetRealval();
       double len2 = meas2->GetRealval();
-//      double delta = 0.05;
+      double delta = 0.05;
 
 //      cout<<"len1 "<<len1<<" len2 "<<len2<<endl;
 
@@ -3395,10 +4924,32 @@ void SpacePartition::Junpavement(Network* n, Relation* rel, int attr_pos1,
       Region* reg2_in = (Region*)inborder_tuple2->GetAttribute(attr_pos1);
       Region* reg2_out = (Region*)inborder_tuple2->GetAttribute(attr_pos2);
 
-      ///////////get the road region/////////////////////////
-      Tuple* tuple_road1 = rel_road->GetTuple(id1);
+      ///////////get the road region/////road 1043-1045///////////////
+/*      Tuple* tuple_road1 = rel_road->GetTuple(id1);
       Region* reg_road1 = (Region*)tuple_road1->GetAttribute(attr_pos3);
-//      cout<<*reg_road1<<endl;
+      Tuple* tuple_road2 = rel_road->GetTuple(id2);
+      Region* reg_road2 = (Region*)tuple_road2->GetAttribute(attr_pos3);
+      Region* reg_road12 = new Region(0);*/
+
+      Region* reg_road1 = &reg_roads[id1 - 1];
+      Region* reg_road2 = &reg_roads[id2 - 1];
+      Region* reg_road12 = new Region(0);
+
+      if( (MyAlmostEqual(len1,0.0) ||
+           MyAlmostEqual(len1,routes_length[id1 - 1])) &&
+          (len2 > delta && (routes_length[id2 - 1] - len2) > delta)){
+        MyUnion(*reg_road1, *reg_road2, *reg_road12);
+        reg_road1 = reg_road12;
+        reg_road2 = reg_road12;
+      }
+      if( (MyAlmostEqual(len2, 0.0) ||
+           MyAlmostEqual(len2, routes_length[id2 - 1]))&&
+          (len1 > delta && (routes_length[id1 - 1] - len1) > delta)){
+        MyUnion(*reg_road1, *reg_road2, *reg_road12);
+        reg_road1 = reg_road12;
+        reg_road2 = reg_road12;
+      }
+
       ////////////////////////////////////////////////////////
       Tuple* route_tuple1 = routes->GetTuple(id1);
       SimpleLine* curve1 = (SimpleLine*)route_tuple1->GetAttribute(ROUTE_CURVE);
@@ -3412,24 +4963,22 @@ void SpacePartition::Junpavement(Network* n, Relation* rel, int attr_pos1,
       Region* crossregion1 = new Region(0);
       CreatePavement(curve1, reg1_in, reg1_out, len1, pave1,
                      pave2, input_w1, crossregion1,reg_road1);
-      pave1->Union(*pave2,*result1);
+//      pave1->Union(*pave2,*result1);
 
       junid1.push_back(id1);
-      pave_line1.push_back(*result1);
+//      pave_line1.push_back(*result1);
       outer_regions1.push_back(*crossregion1);
 
       delete crossregion1;
       delete result1;
       delete pave1;
       delete pave2;
-      tuple_road1->DeleteIfAllowed();
+
 
       int input_w2 = width;
 
       /////////////get the road region/////////////////////
-      Tuple* tuple_road2 = rel_road->GetTuple(id2);
-      Region* reg_road2 = (Region*)tuple_road2->GetAttribute(attr_pos3);
-//      cout<<*reg_road2<<endl;
+
       ////////////////////////////////////////////////////
       Tuple* route_tuple2 = routes->GetTuple(id2);
       SimpleLine* curve2 = (SimpleLine*)route_tuple2->GetAttribute(ROUTE_CURVE);
@@ -3442,17 +4991,24 @@ void SpacePartition::Junpavement(Network* n, Relation* rel, int attr_pos1,
       Region* crossregion2 = new Region(0);
       CreatePavement(curve2, reg2_in, reg2_out, len2, pave3,
                      pave4, input_w2, crossregion2,reg_road2);
-      pave3->Union(*pave4,*result2);
+//      pave3->Union(*pave4,*result2);
 
-      junid2.push_back(id2);
+/*      junid2.push_back(id2);
       pave_line2.push_back(*result2);
-      outer_regions2.push_back(*crossregion2);
+      outer_regions2.push_back(*crossregion2);*/
+
+      junid1.push_back(id2);
+      outer_regions1.push_back(*crossregion2);
 
       delete crossregion2;
       delete result2;
       delete pave3;
       delete pave4;
-      tuple_road2->DeleteIfAllowed();
+
+
+      delete reg_road12;
+//      tuple_road1->DeleteIfAllowed();
+//      tuple_road2->DeleteIfAllowed();
 
 
       route_tuple1->DeleteIfAllowed();
@@ -3587,6 +5143,8 @@ bool SpacePartition::SameSide1(Region* reg1, Region* reg2, Line* r1r2,
             ComputeRegion(ps, gap);
             outer_fillgap.push_back(gap[0]);
             return true;
+            ////////////////////////////////////////////
+
 
       }else{ // four points construct a region
           HalfSegment hs;
@@ -3604,6 +5162,7 @@ bool SpacePartition::SameSide1(Region* reg1, Region* reg2, Line* r1r2,
             delete temp;
             vector<Point> ps;
 
+//            cout<<border[3]<< border[0]<< border[2]<<endl;
             if(GetClockwise(border[3], border[0], border[2])){
                 ps.push_back(border[0]);
                 ps.push_back(border[3]);
@@ -3616,12 +5175,56 @@ bool SpacePartition::SameSide1(Region* reg1, Region* reg2, Line* r1r2,
                 ps.push_back(border[1]);
             }
 
-        //should be counter clock wise
+
+/*            for(unsigned int i = 0;i < ps.size();i++)
+                cout<<ps[i]<<endl; */
+            unsigned int i = 0;
+            for(;i < ps.size();i++){
+                unsigned int index1 = i;
+                unsigned int index2 = (i + 1)%ps.size();
+                unsigned int index3 = (i + 2)%ps.size();
+                ////////////the special case that three points collineartion///
+                if(Collineation(ps[index1], ps[index2], ps[index3]))continue;
+                if(GetClockwise(ps[index2], ps[index1], ps[index3]))break;
+
+                vector<Point> temp_ps;
+                for(int j = ps.size() - 1;j >= 0;j--)
+                  temp_ps.push_back(ps[j]);
+                ps.clear();
+                for(unsigned int j = 0;j < temp_ps.size();j++)
+                  ps.push_back(temp_ps[j]);
+                break;
+            }
+            assert( i < ps.size());
+
+           //should be counter clock wise
 
             vector<Region> gap;
             ComputeRegion(ps, gap);
             outer_fillgap.push_back(gap[0]);
             return true;
+
+            /////////////////////////////////////////////////
+/*            cout<<"four points"<<endl;
+            for(unsigned int j = 0;j < ps.size();j++){
+              vector<Point> ps1;
+              int index = (j + 1) % ps.size();
+              for(int i = 0 ; i < ps.size() ;i++){
+                  Point p = ps[index];
+                  ps1.push_back(p);
+                  index = (index + 1) % ps.size();
+              }
+              vector<Region> result1;
+              ComputeRegion(ps1, result1);
+
+
+              if(result1[0].GetCycleDirection()){
+                  outer_fillgap.push_back(result1[0]);
+                  return true;
+              }
+            }
+            assert(false);*/
+            //////////////////////////////////////////////////
           }
       }
 }
@@ -3770,6 +5373,25 @@ bool SpacePartition::SameSide2(Region* reg1, Region* reg2, Line* r1r2,
                 ps.push_back(border[0]);
                 ps.push_back(border[1]);
             }
+
+            unsigned int i = 0;
+            for(;i < ps.size();i++){
+                unsigned int index1 = i;
+                unsigned int index2 = (i + 1)%ps.size();
+                unsigned int index3 = (i + 2)%ps.size();
+                ////////////the special case that three points collineartion///
+                if(Collineation(ps[index1], ps[index2], ps[index3]))continue;
+                if(GetClockwise(ps[index2], ps[index1], ps[index3]))break;
+
+                vector<Point> temp_ps;
+                for(int j = ps.size() - 1;j >= 0;j--)
+                  temp_ps.push_back(ps[j]);
+                ps.clear();
+                for(unsigned int j = 0;j < temp_ps.size();j++)
+                  ps.push_back(temp_ps[j]);
+                break;
+            }
+            assert( i < ps.size());
 
         //should be counter clock wise
 
@@ -4599,6 +6221,69 @@ void SpacePartition::NewFillPavement4(Relation* routes, int id1, int id2,
 }
 
 /*
+a special function for junction- rid 2549 and 2550
+
+*/
+
+void SpacePartition::NewFillPavement5(Relation* routes, int id1, int id2,
+                      Point* junp, vector<Region>& paves1,
+                      vector<Region>& paves2, vector<int> rids,
+                      vector<Region>& newpaves1, vector<Region>& newpaves2)
+{
+
+    Line* r1r2 = new Line(0);
+    int edgeno = 0;
+    double delta_dist = 0.1;
+    r1r2->StartBulkLoad();
+
+    for(unsigned int i = 0;i < rids.size();i++){
+        Tuple* route_tuple = routes->GetTuple(rids[i]);
+        SimpleLine* route = (SimpleLine*)route_tuple->GetAttribute(ROUTE_CURVE);
+        for(int j = 0;j < route->Size();j++){
+           HalfSegment hs;
+           route->Get(j,hs);
+            if(hs.IsLeftDomPoint()){
+              Point lp = hs.GetLeftPoint();
+              Point rp = hs.GetRightPoint();
+              if(lp.Distance(*junp) < delta_dist ||
+                rp.Distance(*junp) < delta_dist){
+                HalfSegment newhs;
+                newhs.Set(true,lp,rp);
+                newhs.attr.edgeno = edgeno++;
+                *r1r2 += newhs;
+                newhs.SetLeftDomPoint(!newhs.IsLeftDomPoint());
+                *r1r2 += newhs;
+              }
+            }
+        }
+        route_tuple->DeleteIfAllowed();
+    }
+    r1r2->EndBulkLoad();
+
+
+    Region* reg1_pave1 = &paves1[id1 - 1];
+    Region* reg2_pave1 = &paves1[id2 - 1];
+
+
+    if(PavementIntersection(reg1_pave1, reg2_pave1) == false &&
+       SameSide1(reg1_pave1, reg2_pave1, r1r2, junp)){
+
+      Region* result = new Region(0);
+
+      assert(reg1_pave1->GetCycleDirection());
+      assert(reg2_pave1->GetCycleDirection());
+
+      MyUnion(newpaves1[id1 - 1], outer_fillgap[outer_fillgap.size() - 1],
+              *result);
+      newpaves1[id1 - 1] = *result;
+      delete result;
+
+    }
+    delete r1r2;
+}
+
+
+/*
 for operator fillgap
 
 */
@@ -4633,7 +6318,7 @@ void SpacePartition::FillHoleOfPave(Network* n, Relation* rel,  int attr_pos1,
       int id1 = rid1->GetIntval();
       int id2 = rid2->GetIntval();
 
-/*      if(!(id2 == 530)){
+/*      if(!(id1 == 2549 && id2 == 2550)){
         jun_tuple->DeleteIfAllowed();
         continue;
       }*/
@@ -4669,7 +6354,6 @@ void SpacePartition::FillHoleOfPave(Network* n, Relation* rel,  int attr_pos1,
 
 //        cout<<"rid1 "<<rid1<<" rid2 "<<rid2<<endl;
 
-//      if(!(rid1 == 340 && rid2 == 2728))continue;
 
       if((MyAlmostEqual(myjuns[i].len1, 0.0)||
           MyAlmostEqual(myjuns[i].len1, routes_length[rid1 - 1])) &&
@@ -4678,18 +6362,18 @@ void SpacePartition::FillHoleOfPave(Network* n, Relation* rel,  int attr_pos1,
 
           vector<int> rids;
 
-        int j = i - 1;
-        while(j >= 0 && loc.Distance(myjuns[j].loc) < delta_dist){
-          rids.push_back(myjuns[j].rid1);
-          rids.push_back(myjuns[j].rid2);
-          j--;
+        int j1 = i - 1;
+        while(j1 >= 0 && loc.Distance(myjuns[j1].loc) < delta_dist){
+          rids.push_back(myjuns[j1].rid1);
+          rids.push_back(myjuns[j1].rid2);
+          j1--;
         }
 
-        j = i;
-        while(j < myjuns.size() && loc.Distance(myjuns[j].loc) < delta_dist){
-          rids.push_back(myjuns[j].rid1);
-          rids.push_back(myjuns[j].rid2);
-          j++;
+        unsigned int j2 = i;
+        while(j2 < myjuns.size() && loc.Distance(myjuns[j2].loc) < delta_dist){
+          rids.push_back(myjuns[j2].rid1);
+          rids.push_back(myjuns[j2].rid2);
+          j2++;
         }
 
 //        cout<<" rids size "<<rids.size()<<endl;
