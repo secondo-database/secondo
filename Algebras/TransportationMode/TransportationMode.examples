@@ -79,3 +79,10 @@ Number   : 2
 Signature: rel1 x rel2 x btree x attr1 x attr2 x attr3-> (stream(tuple ((x1 t1) ... (xn tn))))
 Example  : query getpavenode2(subpaves2, subpaves, btree_pave, oid, rid, pavement) count;
 Result   : 1
+
+
+Operator : triangulation
+Number   : 2
+Signature: region -> (stream(tuple ((x1 t1) ... (xn tn))))
+Example  : query triangulation(r1) count;
+Result   : 1

@@ -773,7 +773,7 @@ struct SpacePartition{
 
   void GetCommonLine(Region* reg, Line* line, Line* res);
 
-  void CutCommonPave(Region* reg1, Region* reg2);
+
   void GetSubLine(SimpleLine* sl, Point& p1, Point& p2, Line* res, double);
   //transfer the halfsegment by a deviation
   void TransferHalfSegment(HalfSegment& hs, int delta, bool flag);
@@ -876,6 +876,27 @@ struct SpacePartition{
   void FillHoleOfPave(Network* n, Relation* rel,  int attr_pos1,
                       int attr_pos2, int width);
 
+};
+
+///////////////////////graph model for walk planning///////////////////////
+
+static const float EPSILON=0.0000000001f;
+
+struct CompTriangle{
+  Region* reg;
+  vector<Region> triangles;
+  unsigned int count;
+  CompTriangle();
+  CompTriangle(Region* r);
+  ~CompTriangle();
+  void Triangulation();
+  bool InsideTriangle(float Ax, float Ay,
+                      float Bx, float By,
+                      float Cx, float Cy,
+                      float Px, float Py);
+  bool Snip(const vector<Point>& contour,int u,int v,int w,int n,int *V);
+  float Area(const vector<Point>& contour);
+  bool GetTriangles(const vector<Point>& contour,vector<Point>& result);
 };
 
 #endif

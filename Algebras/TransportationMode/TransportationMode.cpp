@@ -178,6 +178,16 @@ const string OpTMGetPaveNode2Spec  =
     "<text>query getpavenode2(subpaves2, subpaves,"
     "btree_pave, oid, rid , pavement) count; </text--->"
     ") )";
+
+const string OpTMTriangulateSpec  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+    "\"Example\" ) "
+    "( <text>region ->(stream (tuple( (x1 t1)(x2 t2)...(xn tn))) </text--->"
+    "<text>triangulate(region)</text--->"
+    "<text>decompose a polygon into a set of triangles</text--->"
+    "<text>query triangulation(pave_regions) count; </text--->"
+    ") )";
+
 ////////////////TypeMap function for operators//////////////////////////////
 
 /*
@@ -922,6 +932,26 @@ ListExpr OpTMGetPaveNode2TypeMap ( ListExpr args )
   return nl->SymbolAtom ( "typeerror" );
 }
 
+/*
+TypeMap fun for operator triangulate
+decomplse a polygon into a set of triangles
+
+*/
+
+ListExpr OpTMTriangulateTypeMap ( ListExpr args )
+{
+  if ( nl->ListLength ( args ) != 1 )
+  {
+    return ( nl->SymbolAtom ( "typeerror" ) );
+  }
+
+  if (nl->IsEqual(nl->First(args), "region")){
+    return nl->TwoElemList(nl->SymbolAtom("stream"),
+                           nl->SymbolAtom("region"));
+  }
+  return nl->SymbolAtom ( "typeerror" );
+}
+/////////////////////////////////////////////////////////////////////////
 
 /*
 Correct road with dirt data, two segment are very close to each other and the
@@ -1708,6 +1738,48 @@ int OpTMGetPaveNode2map ( Word* args, Word& result, int message,
   }
   return 0;
 }
+
+/*
+Value Mapping for the triangulate operator
+decompose a polygon into a set of triangles
+
+*/
+
+
+int OpTMTriangulatemap ( Word* args, Word& result, int message,
+                         Word& local, Supplier in_pSupplier )
+{
+  CompTriangle* ct;
+
+  switch(message){
+      case OPEN:{
+        Region* reg = (Region*)args[0].addr;
+        ct = new CompTriangle(reg);
+        ct->Triangulation();
+        local.setAddr(ct);
+        return 0;
+      }
+      case REQUEST:{
+          if(local.addr == NULL) return CANCEL;
+          ct = (CompTriangle*)local.addr;
+          if(ct->count == ct->triangles.size())
+                          return CANCEL;
+          result.setAddr(&(ct->triangles[ct->count]));
+          ct->count++;
+          return YIELD;
+      }
+      case CLOSE:{
+
+          if(local.addr){
+            ct = (CompTriangle*)local.addr;
+            delete ct;
+            local.setAddr(Address(0));
+          }
+          return 0;
+      }
+  }
+  return 0;
+}
 ////////////////Operator Constructor///////////////////////////////////////
 Operator checksline(
     "checksline",               // name
@@ -1808,6 +1880,14 @@ Operator getpavenode2(
     OpTMGetPaveNode2TypeMap        // type mapping
 );
 
+Operator triangulation(
+    "triangulation",               // name
+    OpTMTriangulateSpec,          // specification
+    OpTMTriangulatemap,  // value mapping
+    Operator::SimpleSelect,        // selection function
+    OpTMTriangulateTypeMap        // type mapping
+);
+
 /*
 Main Class for Transportation Mode
 
@@ -1831,6 +1911,7 @@ class TransportationModeAlgebra : public Algebra
     AddOperator(&getpavenode1);
     AddOperator(&getpave2);
     AddOperator(&getpavenode2);
+    AddOperator(&triangulation);
   }
   ~TransportationModeAlgebra() {};
  private:
