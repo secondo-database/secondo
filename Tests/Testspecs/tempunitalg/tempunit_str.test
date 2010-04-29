@@ -189,7 +189,7 @@ query point2d(deftime(zug5));
 
 #tolerance_real 0.001
 #testcase queryrect2d
-#yields @$(SECONDO_BUILD_DIR)/Tests/Testspecs/tempunitalg/tempunit_str_queryrect2d_res_$(SECONDO_PLATFORM)
+#yields (rect (-106751991167.3006 1417.273611111111 1417.273611111111 106751991167.3006))
 query queryrect2d([const instant value "2003-11-20-06:34"]);
 
 #tolerance_real 0.001
