@@ -371,12 +371,9 @@ ListExpr paraHashJoinTypeMap(ListExpr args)
     "Expect input as stream(tuple) x rel(tuple) x rel(tuple)");
 
   ListExpr streamTupleList = nl->Second(nl->Second(stream));
-  CHECK_COND(
-     listutils::isSymbol(
-         nl->Second(nl->First(streamTupleList)), INT)
-  && listutils::isSymbol(
-      nl->Second(nl->Second(streamTupleList)),TEXT),
-    "Expect input stream as (stream(tuple((key:int)(value:text))))");
+  CHECK_COND(nl->ListLength(streamTupleList) == 1
+  && listutils::isSymbol(nl->Second(nl->First(streamTupleList)),TEXT),
+  "Expect input stream as (stream(tuple((value text))))");
 
   ListExpr rAtupNList =
       renameList(nl->Second(nl->Second(relA)), "1");
@@ -457,7 +454,13 @@ phjLocalInfo::phjLocalInfo(Word _stream, Supplier s)
   mixStream = _stream;
 
   ListExpr resultType = GetTupleResultType(s);
-  resultTupleInfo = nl->OneElemList(nl->Second(resultType));
+  resultTupleType = new TupleType(nl->Second(resultType));
+  aTypeInfo =
+      SecondoSystem::GetCatalog()->NumericType( nl->OneElemList(
+      nl->Second(qp->GetSupplierTypeExpr(qp->GetSon(s,1)))));
+  bTypeInfo =
+      SecondoSystem::GetCatalog()->NumericType( nl->OneElemList(
+      nl->Second(qp->GetSupplierTypeExpr(qp->GetSon(s,2)))));
 
   joinedTuples = 0;
   getNewProducts();
@@ -506,6 +509,9 @@ bool phjLocalInfo::getNewProducts()
 
   TupleBuffer *tbA = 0;
   TupleBuffer *tbB = 0;
+  Tuple *tupleA = 0, *tupleB = 0;
+  string tupStr;
+  ListExpr tupList, valList;
   long MaxMem = qp->MemoryAvailableForOperator();
 
   //  Traverse the stream, until there is no more tuples exists,
@@ -523,17 +529,25 @@ bool phjLocalInfo::getNewProducts()
     {
       Tuple* currentTuple =
           static_cast<Tuple*> (currentTupleWord.addr);
-      CcInt* SI =
-          static_cast<CcInt*> (currentTuple->GetAttribute(0));
-
-      switch (SI->GetIntval())
+      tupStr = ((FText*) (currentTuple->GetAttribute(0)))->GetValue();
+      nl->ReadFromString("(" + tupStr + ")", tupList);
+      int SI = NList(tupList).first().intval();
+      valList = nl->Second(tupList);
+      int errorPos;
+      ListExpr errorInfo;
+      bool correct;
+      switch (SI)
       {
       case 1:{
-        tbA->AppendTuple(currentTuple);
+        tupleA = Tuple::In(aTypeInfo, valList, errorPos,
+            errorInfo, correct);
+        tbA->AppendTuple(tupleA);
         break;
       }
       case 2:{
-        tbB->AppendTuple(currentTuple);
+        tupleB = Tuple::In(bTypeInfo, valList, errorPos,
+            errorInfo, correct);
+        tbB->AppendTuple(tupleB);
         break;
       }
       case 0:{
@@ -574,7 +588,6 @@ bool phjLocalInfo::getNewProducts()
         delete joinedTuples;
       joinedTuples = new TupleBuffer(MaxMem);
 
-      Tuple *tupleA, *tupleB;
       for (int i = 0; i < tbA->GetNoTuples(); i++)
       {
         for (int j = 0; j < tbB->GetNoTuples(); j++)
@@ -582,20 +595,8 @@ bool phjLocalInfo::getNewProducts()
           tupleA = tbA->GetTuple(i);
           tupleB = tbB->GetTuple(j);
 
-          string tupAStr, tupBStr;
-          tupAStr = ((FText*) (tupleA->GetAttribute(1)))->GetValue();
-          tupBStr = ((FText*) (tupleB->GetAttribute(1)))->GetValue();
-          string resultTupleStr =
-              "(" + tupAStr + " " + tupBStr + ")";
-          ListExpr resultTupleNL;
-          nl->ReadFromString(resultTupleStr, resultTupleNL);
-
-          int errorPos;
-          ListExpr errorInfo;
-          bool correct;
-          Tuple *resultTuple = Tuple::In(
-              resultTupleInfo, resultTupleNL,
-              errorPos, errorInfo, correct);
+          Tuple *resultTuple = new Tuple(resultTupleType);
+          Concat(tupleA, tupleB,resultTuple);
           joinedTuples->AppendTuple(resultTuple);
         }
       }
@@ -772,7 +773,7 @@ ListExpr paraJoinTypeMap( ListExpr args )
     && listutils::isRelDescription(relBList),
     "Expect (stream(tuple((value text))))"
           "x(rel(tuple(T1))) x (rel(tuple(T2)))"
-          "x((name1 (map t r)) ... (namen (map t r)))");
+          "x((map t r)))");
 
   ListExpr attrList = nl->Second(nl->Second(streamList));
   CHECK_COND(nl->ListLength(attrList) == 1
@@ -871,7 +872,7 @@ int paraJoinValueMap(Word* args, Word& result,
       return CANCEL;
     localInfo = (pjLocalInfo*) local.addr;
 
-    //delete localInfo;
+    delete localInfo;
     qp->Close(args[0].addr);
     return 0;
   }
@@ -879,6 +880,165 @@ int paraJoinValueMap(Word* args, Word& result,
 
   return 0;
 }
+
+/*
+Load the tuples from the input tuple stream,
+and fill the tuples within a same bucket into the tupleBuffers,
+if there is only one kind of tuple in that bucket,
+then move to the next bucket directly.
+
+*/
+void pjLocalInfo::loadTuples()
+{
+  if (endOfStream)
+  {
+    cerr << "The input mixed stream is exhausted." << endl;
+    return;
+  }
+
+  Word cTupleWord(Address(0));
+  bool isInBucket;
+  Tuple *cTuple = 0;
+  Tuple *tupleA = 0, *tupleB = 0;
+  string tupStr;
+  ListExpr tupList, valList;
+
+  if(tbA != 0)
+    delete tbA;
+  tbA = 0;
+  if(tbB != 0)
+    delete tbB;
+  tbB = 0;
+
+  while (!endOfStream)
+  {
+    tbA = new TupleBuffer(maxMem / 2);
+    tbB = new TupleBuffer(maxMem / 2);
+    isBufferFilled = false;
+    isInBucket = true;
+
+    qp->Request(mixedStream.addr, cTupleWord);
+    while (isInBucket && qp->Received(mixedStream.addr))
+    {
+      cTuple = static_cast<Tuple*> (cTupleWord.addr);
+      tupStr = ((FText*) (cTuple->GetAttribute(0)))->GetValue();
+      nl->ReadFromString("(" + tupStr + ")", tupList);
+      int SI = NList(tupList).first().intval();
+      valList = nl->Second(tupList);
+      int errorPos;
+      ListExpr errorInfo;
+      bool correct;
+      switch (SI)
+      {
+      case 1:
+      {
+        tupleA = Tuple::In(aTypeInfo, valList, errorPos,
+            errorInfo, correct);
+        tbA->AppendTuple(tupleA);
+        break;
+      }
+      case 2:
+      {
+        tupleB = Tuple::In(bTypeInfo, valList, errorPos,
+            errorInfo, correct);
+        tbB->AppendTuple(tupleB);
+        break;
+      }
+      case 0:
+      {
+        isInBucket = false;
+        break;
+      }
+      default:
+      {
+        //should never be here
+        cerr << "Exist tuples with error SI value" << endl;
+        assert(false);
+      }
+      }
+
+      if (isInBucket)
+        qp->Request(mixedStream.addr, cTupleWord);
+    }
+
+    int numOfA = tbA->GetNoTuples();
+    int numOfB = tbB->GetNoTuples();
+
+    if (numOfA == 0 && numOfB == 0)
+    {
+      delete tbA;
+      delete tbB;
+      tbA = tbB = 0;
+      endOfStream = true;
+      break;
+    }
+    else if (numOfA == 0 || numOfB == 0)
+    {
+      delete tbA;
+      delete tbB;
+      tbA = tbB = 0;
+    }
+    else
+    {
+      tpIndex_A = tpIndex_B = 0;
+      isBufferFilled = true;
+      break;
+    }
+  }
+
+}
+
+/*
+Take one tuple from tupleBuffer A or B.
+When the operator in the parameter function need one tuple
+from the input stream, it gets the tuple from the
+filled tuple buffer actually. When both tuple buffers are exhausted,
+then continue scan the input stream until the input stream is
+exhausted too.
+
+*/
+Word pjLocalInfo::getNextInputTuple(tupleBufferType tbt)
+{
+  Tuple* tuple = 0;
+
+  if(tbt == tupBufferA){
+    if (tpIndex_A >= 0 && tpIndex_A < tbA->GetNoTuples())
+      tuple = tbA->GetTuple(tpIndex_A++);
+  }
+  else{
+    if (tpIndex_B >= 0 && tpIndex_B < tbB->GetNoTuples())
+      tuple = tbB->GetTuple(tpIndex_B++);
+  }
+
+  return SetWord(tuple);
+}
+
+Word pjLocalInfo::getNextTuple()
+{
+  Word funResult(Address(0));
+
+  while (!endOfStream)
+  {
+    qp->Request(JNfun, funResult);
+    if (funResult.addr){
+      return funResult;
+    }
+    else if (endOfStream) {
+      qp->Close(JNfun);
+      return SetWord(Address(0));
+    }
+    else {
+      // No more result in current bucket, move to the next
+      qp->Close(JNfun);
+      loadTuples();
+      if (isBufferFilled)
+        qp->Open(JNfun);
+      continue;
+    }
+  }
+  return SetWord(Address(0));
+}
+
 
 /*
 3 Class ~HadoopParallelAlgebra~
