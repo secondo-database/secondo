@@ -4,17 +4,17 @@ Restore  : NO
 Operator : oleftrange
 Number   : 1
 Signature: (orel (tuple (a1:t1,a2:t2,...,an:tn)) (ai1 ai2 ... ain)) x (ti1 ti2) -> (stream (tuple X))
-Example  : query Orte feed oconsume[BevT] oleftrange[100] count
+Example  : query (Orte feed oconsume[BevT] oleftrange[100] count) = (Orte feed filter[.BevT <= 100] count)
 Result   : TRUE
 
 Operator : orightrange
 Number   : 1
 Signature: (orel (tuple (a1:t1,a2:t2,...,an:tn)) (ai1 ai2 ... ain)) x (ti1 ti2) -> (stream (tuple X))
-Example  : query Orte feed oconsume[BevT] orightrange[1000] count
+Example  : query (Orte feed oconsume[BevT] orightrange[1000] count) = (Orte feed filter[.BevT >= 1000] count)
 Result   : TRUE
 
 Operator : orange
 Number   : 1
 Signature: (orel (tuple (a1:t1,a2:t2,...,an:tn)) (ai1 ai2 ... ain)) x (ti1 ti2) -> (stream (tuple X))
-Example  : query Orte feed oconsume[BevT] orange[500;800] count
+Example  : query (Orte feed oconsume[BevT] orange[500;800] count) = (Orte feed filter[.BevT>= 500] filter[.BevT <= 800] count)
 Result   : TRUE
