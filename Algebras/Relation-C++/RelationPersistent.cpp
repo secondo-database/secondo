@@ -633,13 +633,14 @@ The core size has already be added in the calling function!
 
 bool Tuple::Open( SmiRecordFile* tuplefile,
                   SmiFileId lobfileId,
-                  SmiRecordId rid )
+                  SmiRecordId rid,
+                  const bool dontReportError )
 {
   tupleId = rid;
   this->tupleFile = tuplefile;
   this->lobFileId = lobfileId;
   SmiSize size;
-  char* data = tupleFile->GetData(rid, size);
+  char* data = tupleFile->GetData(rid, size, dontReportError);
   if(!data){
     return false;
   }
@@ -669,11 +670,12 @@ bool Tuple::ReadFrom(SmiRecord& record){
 
 bool Tuple::Open( SmiRecordFile* tuplefile,
                   SmiFileId lobfileId,
-                  SmiRecord* record ) {
+                  SmiRecord* record, 
+                  const bool dontReportError ) {
   SmiKey key;
   key = record->GetKey();
   key.GetKey( tupleId );
-  return Open(tuplefile, lobFileId, tupleId);
+  return Open(tuplefile, lobFileId, tupleId, dontReportError);
 }
 
 
@@ -1573,7 +1575,8 @@ void TupleBuffer::AppendTuple( Tuple *t )
   }
 }
 
-Tuple *TupleBuffer::GetTuple( const TupleId& id ) const
+Tuple *TupleBuffer::GetTuple( const TupleId& id,
+                              const bool dontReportError ) const
 {
   if( inMemory )
   {
@@ -1583,7 +1586,7 @@ Tuple *TupleBuffer::GetTuple( const TupleId& id ) const
   }
   else
   {
-    return diskBuffer->GetTuple( id+1 );
+    return diskBuffer->GetTuple( id+1, dontReportError );
   }
 }
 
@@ -2101,10 +2104,11 @@ void Relation::Clear()
   }
 }
 
-Tuple *Relation::GetTuple( const TupleId& id ) const
+Tuple *Relation::GetTuple( const TupleId& id,
+                           const bool dontReportError ) const
 {
   Tuple *result = new Tuple( relDesc.tupleType );
-  if( result->Open( &tupleFile, relDesc.lobFileId, id ) )
+  if( result->Open( &tupleFile, relDesc.lobFileId, id, dontReportError ) )
     return result;
 
   delete result;

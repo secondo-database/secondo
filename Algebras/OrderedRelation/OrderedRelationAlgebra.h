@@ -148,11 +148,13 @@ class OrderedRelation : public GenericRelation {
     
     virtual void AppendTuple(Tuple* t);
     
-    virtual Tuple* GetTuple(const TupleId& id) const;
+    virtual Tuple* GetTuple(const TupleId& id,
+                            const bool dontReportError) const;
     
     virtual Tuple* GetTuple( const TupleId& id,
                      const int attrIndex,
-                     const vector< pair<int, int> >& intervals ) const;
+                     const vector< pair<int, int> >& intervals,
+                     const bool dontReportError ) const;
 
     virtual Tuple* GetTuple(const CompositeKey& key) const;
     

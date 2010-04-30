@@ -964,7 +964,8 @@ Building S.Part of outerRelation.
                                 hdr.outerRelPart, hdr.outerRelInfo);
 
           Tuple* innerTuple =
-            ((TupleBuffer*)hdr.innerRelation)->GetTuple(foundEntry.pointer);
+            ((TupleBuffer*)hdr.innerRelation)->GetTuple(foundEntry.pointer, 
+                                                        false);
 
 
 
@@ -1022,11 +1023,13 @@ Building S.Part of outerRelation.
                                 hdr.outerRelPart, hdr.outerRelInfo);
 
           Tuple* innerTuple =
-            ((TupleBuffer*)hdr.innerRelation)->GetTuple(foundEntry.pointer);
+            ((TupleBuffer*)hdr.innerRelation)->GetTuple(foundEntry.pointer,
+                                                        false);
           Tuple* resultTuple = new Tuple( resultTupleType );
 
           outerTuple =
-            ((TupleBuffer*)hdr.outerRelation)->GetTuple(hdr.outerActualTupleId);
+            ((TupleBuffer*)hdr.outerRelation)->GetTuple(hdr.outerActualTupleId,
+                                                       false);
           Concat(outerTuple, innerTuple, resultTuple);
 
           outerTuple->DeleteIfAllowed();
@@ -1802,9 +1805,9 @@ Tuple*  SpatialJoinLocalInfo<dim>::newResultTupleFromEntries (
                                                R_TreeEntryPnJ<dim>& foundEntry)
 {
   Tuple* innerTuple =
-    ((TupleBuffer*)hdr.innerRelation)->GetTuple(foundEntry.pointer);
+    ((TupleBuffer*)hdr.innerRelation)->GetTuple(foundEntry.pointer, false);
   Tuple* outerTuple =
-    ((TupleBuffer*)hdr.outerRelation)->GetTuple(outerEntry.pointer);
+    ((TupleBuffer*)hdr.outerRelation)->GetTuple(outerEntry.pointer, false);
   Tuple* resultTuple = new Tuple (resultTupleType);
   Concat (outerTuple, innerTuple, resultTuple);
 

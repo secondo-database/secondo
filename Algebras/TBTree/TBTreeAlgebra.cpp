@@ -1229,7 +1229,7 @@ class WindowintersectsSLocalInfo{
           const Entry<3, TBLeafInfo>* e = node->getEntry(pos);
           pos++;
           if(rect.Intersects(e->getBox())){
-             Tuple* res = rel->GetTuple(e->getInfo().getTupleId());
+             Tuple* res = rel->GetTuple(e->getInfo().getTupleId(), false);
              return res;
           }
        }

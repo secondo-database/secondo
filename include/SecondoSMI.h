@@ -1391,7 +1391,8 @@ Writes data to a specified record.
 
 
   char* GetData(const SmiRecordId recno,
-                SmiSize& length);
+                SmiSize& length, 
+                const bool dontReportError);
 /*
 Retrieves all data from the record selected by the RecordId.
 The caller of that function is responsible for deleting the

@@ -986,7 +986,8 @@ Opens a tuple from ~tuplefile~(~rid~) and ~lobfile~.
 
 */
   bool Open( SmiRecordFile *tuplefile, SmiFileId lobfileId,
-             SmiRecordId rid );
+             SmiRecordId rid,
+             const bool dontReportError );
 
 /*
 Opens a tuple from ~tuplefile~ and ~lobfile~ reading from
@@ -994,7 +995,8 @@ Opens a tuple from ~tuplefile~ and ~lobfile~ reading from
 
 */
   bool Open( SmiRecordFile *tuplefile, SmiFileId lobfileId,
-             SmiRecord *record );
+             SmiRecord *record,
+             const bool dontReportError );
 
 /*
 Opens a tuple from ~tuplefile~ and ~lobfile~ reading the
@@ -1830,7 +1832,8 @@ The function that clears the set.
 The function to append a tuple into the set.
 
 */
-    virtual Tuple *GetTuple( const TupleId& id ) const = 0;
+    virtual Tuple *GetTuple( const TupleId& id, 
+                             const bool dontReportError) const = 0;
 /*
 The function that retrieves a tuple given its ~id~.
 
@@ -1838,8 +1841,8 @@ The function that retrieves a tuple given its ~id~.
     virtual
     Tuple *GetTuple( const TupleId& id,
                      const int attrIndex,
-                     const vector< pair<int, int> >& intervals )
-      const = 0;
+                     const vector< pair<int, int> >& intervals,
+                     const bool dontReportError ) const = 0;
 /*
 The function is similar to the last one, but instead of only
 retrieving the tuple, it restricts the first FLOB (or DBArray)
@@ -1967,11 +1970,13 @@ The destructor. Deletes (if allowed) all tuples.
 
 */
 
-    virtual Tuple* GetTuple( const TupleId& tupleId ) const;
+    virtual Tuple* GetTuple( const TupleId& tupleId,
+                             const bool dontReportError ) const;
 
     virtual Tuple *GetTuple( const TupleId& id,
                      const int attrIndex,
-                     const vector< pair<int, int> >& intervals ) const;
+                     const vector< pair<int, int> >& intervals,
+                     const bool dontReportError ) const;
 
     virtual void   Clear();
     virtual int    GetNoTuples() const;
@@ -2378,11 +2383,13 @@ Returns the tuple type of the tuples of the relation.
 
 */
 
-    virtual Tuple* GetTuple( const TupleId& tupleId ) const;
+    virtual Tuple* GetTuple( const TupleId& tupleId,
+                             const bool dontReportError ) const;
 
     virtual Tuple *GetTuple( const TupleId& id,
                      const int attrIndex,
-                     const vector< pair<int, int> >& intervals ) const;
+                     const vector< pair<int, int> >& intervals,
+                     const bool dontReportError ) const;
 
     virtual void   Clear();
     virtual int    GetNoTuples() const;

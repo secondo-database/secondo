@@ -515,7 +515,8 @@ cout << "AppendTuple_Orel" << endl;
 }
 
 
-Tuple* OrderedRelation::GetTuple(const TupleId& id) const {
+Tuple* OrderedRelation::GetTuple(const TupleId& id,
+                                 const bool dontReportError) const {
 #ifdef DEBUG_OREL
 cout << "GetTuple_Orel" << endl;
 #endif
@@ -524,8 +525,9 @@ cout << "GetTuple_Orel" << endl;
 
 
 Tuple* OrderedRelation::GetTuple(const TupleId& id, const int attrIndex,
-                const vector<pair<int, int> >& intervals) const {
-  return GetTuple(id);
+                const vector<pair<int, int> >& intervals,
+                const bool dontReportError) const {
+  return GetTuple(id, dontReportError);
 }
 
 

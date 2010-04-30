@@ -145,8 +145,12 @@ Returns all data stored in an record specified by its id.
 
 */
 char* SmiRecordFile::GetData(const SmiRecordId recno,
-                             SmiSize& length){
+                             SmiSize& length,
+                             const bool dontReportError){
 
+  if((recno==0) && dontReportError){
+    return 0;
+  }
   int rc = 0;
   Dbt key;
   key.set_data( (void*) &recno );
@@ -171,7 +175,9 @@ char* SmiRecordFile::GetData(const SmiRecordId recno,
     rc = impl->bdbFile->get( tid , &key, &data, flags );
   }
   if(rc){
-    SmiEnvironment::SetBDBError(rc);
+    if(!dontReportError){
+       SmiEnvironment::SetBDBError(rc);
+    }
     void* dat = data.get_data();
     if(dat){
       free(dat);

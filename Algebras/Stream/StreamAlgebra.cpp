@@ -4243,7 +4243,7 @@ class TailLocalInfo
         returnedResults++;
 //         DEBUGMESSAGE(" Getting tuple " << returnedResults << "/" << n);
         finished = translationTable.empty();
-        return buffer.GetTuple( Id );
+        return buffer.GetTuple( Id , false);
       };
 
       int n;

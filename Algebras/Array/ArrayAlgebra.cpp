@@ -875,8 +875,6 @@ getFun ( Word* args, Word& result, int message, Word& local, Supplier s )
 
     Word clonedElement;
 
-    int algebraId = array->getElemAlgId();
-    int typeId = array->getElemTypeId();
 
     ListExpr resultType = qp->GetType(s);
 

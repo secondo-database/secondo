@@ -430,10 +430,11 @@ ListExpr Tuple::Out( ListExpr typeInfo )
 */
 Tuple *Relation::GetTuple( const TupleId& id,
                            const int attrIndex,
-                           const vector< pair<int, int> >& intervals ) const
+                           const vector< pair<int, int> >& intervals,
+                           const bool dontReportError ) const
 {
   Tuple *t = 0;
-  if( (t = GetTuple( id )) != 0 )
+  if( (t = GetTuple( id, dontReportError )) != 0 )
     t->GetAttribute( attrIndex )->Restrict( intervals );
   return t;
 }
@@ -544,10 +545,11 @@ ListExpr Relation::Out( ListExpr typeInfo, GenericRelationIterator* rit )
 */
 Tuple *TupleBuffer::GetTuple( const TupleId& id,
                               const int attrIndex,
-                              const vector< pair<int, int> >& intervals ) const
+                              const vector< pair<int, int> >& intervals,
+                              const bool dontReportError ) const
 {
   Tuple *t = 0;
-  if( (t = GetTuple( id )) != 0 )
+  if( (t = GetTuple( id, dontReportError )) != 0 )
     t->GetAttribute( attrIndex )->Restrict( intervals );
   return t;
 }

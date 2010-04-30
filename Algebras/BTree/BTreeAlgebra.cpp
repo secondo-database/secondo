@@ -1381,7 +1381,7 @@ IndexQuery(Word* args, Word& result, int message, Word& local, Supplier s)
       if(ili->iter->Next())
       {
         id = ili->iter->GetId();
-        tuple = ili->relation->GetTuple( id );
+        tuple = ili->relation->GetTuple( id , false);
         if(tuple == 0)
         {
           cerr << "Could not find tuple for the given tuple id. "

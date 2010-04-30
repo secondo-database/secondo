@@ -1514,8 +1514,9 @@ SecondoInterface::constructErrMsg(int& errorCode, string& errorMessage)
   // Check if there were SMI errors
   if ( SmiEnvironment::GetNumOfErrors() != 0) {
 
-    if (errorCode == 0)
+    if (errorCode == 0){
       errorCode = ERR_SYSTEM_ERROR;
+    }
     string err;
     SmiEnvironment::GetLastErrorCode(err);
     errorMessage += err + "\n";

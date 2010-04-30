@@ -1232,7 +1232,7 @@ int WindowIntersects( Word* args, Word& result,
           localInfo->first = false;
           if( localInfo->rtree->First( *localInfo->searchBox, e ) )
           {
-            Tuple *tuple = localInfo->relation->GetTuple(e.info);
+            Tuple *tuple = localInfo->relation->GetTuple(e.info,false);
             result.setAddr(tuple);
             localInfo->returned++;
             return YIELD;
@@ -1244,7 +1244,7 @@ int WindowIntersects( Word* args, Word& result,
         {
           if( localInfo->rtree->Next( e ) )
           {
-            Tuple *tuple = localInfo->relation->GetTuple(e.info);
+            Tuple *tuple = localInfo->relation->GetTuple(e.info, false);
             result.setAddr(tuple);
             localInfo->returned++;
             return YIELD;
@@ -2408,7 +2408,7 @@ template<int TidIndexPos>
         Tuple* resultTuple = new Tuple( localInfo->resultTupleType );
         Tuple* relTuple = localInfo->relation->
             GetTuple(((TupleIdentifier *)sTuple->
-            GetAttribute(localInfo->tidIndex))->GetTid());
+            GetAttribute(localInfo->tidIndex))->GetTid(),true);
 
         if(!relTuple){
           NList msg_list(NList("simple") ,
@@ -2477,7 +2477,7 @@ template<int TidIndexPos>
       localInfo->sizesChanged =
                             (!localInfo->sizesInitialized || p1.sizesChanged);
       if ( localInfo->sizesChanged ){
-          localInfo->total = p1.Card;
+          localInfo->total = (int) p1.Card;
           localInfo->noAttrs =
             nl->ListLength(nl->Second(nl->Second(qp->GetType(s))));
 
@@ -2904,7 +2904,7 @@ int GetTuplesDbl( Word* args, Word& result, int message,
                   GetTuple( ((TupleIdentifier *)localInfo->lastTuple->
                               GetAttribute(localInfo->tidIndex))->GetTid(),
                             localInfo->attrIndex,
-                            localInfo->intervals );
+                            localInfo->intervals, false );
           localInfo->intervals.clear();
           localInfo->intervals.push_back( make_pair(
             ((CcInt*)sTuple->GetAttribute( localInfo->tidIndex+1 ))->
@@ -2940,7 +2940,7 @@ int GetTuplesDbl( Word* args, Word& result, int message,
                   GetTuple(((TupleIdentifier *)localInfo->lastTuple->
                   GetAttribute(localInfo->tidIndex))->GetTid(),
                 localInfo->attrIndex,
-                localInfo->intervals );
+                localInfo->intervals, false );
 
         // Copy the attributes from the stream tuple
         int j = 0;

@@ -3250,7 +3250,7 @@ int deleteByIdValueMap(Word* args, Word& result, int message,
         assert(relation != 0);
         tid = (TupleIdentifier*)(args[1].addr);
         resultTuple = new Tuple( resultTupleType );
-        deleteTuple = relation->GetTuple(tid->GetTid());
+        deleteTuple = relation->GetTuple(tid->GetTid(), true);
         if (deleteTuple == 0)
         {
            resultTupleType->DeleteIfAllowed();
@@ -3495,7 +3495,7 @@ int updateByIdValueMap(Word* args, Word& result, int message,
         assert(relation != 0);
         tid = (TupleIdentifier*)(args[1].addr);
         resultTuple = new Tuple( resultTupleType );
-        updateTuple = relation->GetTuple(tid->GetTid());
+        updateTuple = relation->GetTuple(tid->GetTid(), true);
         if (updateTuple == 0)
         {
            resultTupleType->DeleteIfAllowed();
