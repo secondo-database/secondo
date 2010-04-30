@@ -81,12 +81,11 @@ void DistDataAttribute::set(
         bool defined, const char* data, size_t size,
         DistDataId distdataId)
 {
-    m_defined = defined;
+    SetDefined(defined);
     if(defined)
     {
-        m_data.Clean();
-        m_data.Resize(size);
-        m_data.Put(0, size, data);
+        m_data.resize(size);
+        m_data.write(data,size,0);
         m_distdataId = distdataId;
     }
 }
@@ -98,12 +97,11 @@ Method ~DistDataAttribute::set~ (using "DistData"[4] objects):
 void DistDataAttribute::set(
         bool defined, DistData* data, DistDataId distdataId)
 {
-    m_defined = defined;
+    SetDefined(defined);
     if(defined)
     {
-        m_data.Clean();
-        m_data.Resize(data->size());
-        m_data.Put(0, data->size(), data->value());
+        m_data.resize(data->size());
+        m_data.write((const char*)data->value(), data->size(),0);
         m_distdataId = distdataId;
     }
 }
@@ -117,12 +115,10 @@ void DistDataAttribute::CopyFrom(const Attribute* rhs)
     const DistDataAttribute* ddAttr =
             static_cast<const DistDataAttribute*>(rhs);
 
+    SetDefined(ddAttr->IsDefined());
     if(ddAttr->IsDefined())
     {
-        m_data.Clean();
-        m_data.Resize(ddAttr->size());
-        m_data.Put(0, ddAttr->size(), ddAttr->value());
-        m_defined = true;
+        m_data.copyFrom(ddAttr->m_data);
         m_distdataId = ddAttr->distdataId();
     }
 }

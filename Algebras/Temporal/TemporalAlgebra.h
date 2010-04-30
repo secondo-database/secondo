@@ -6768,7 +6768,7 @@ Word InMapping( const ListExpr typeInfo, const ListExpr instance,
     delete unit;
   }
 
-  m->EndBulkLoad( true, true ); // if this succeeds, all is OK
+  m->EndBulkLoad( true ); // if this succeeds, all is OK
 
   return SetWord( m );
 }

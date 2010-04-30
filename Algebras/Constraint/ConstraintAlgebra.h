@@ -648,7 +648,7 @@ Assignment operator redefinition.
 
 */
     void GetSymbolicTuples( const int i,
-      SymbolicTuple const*& symbolicTuple) const;
+      SymbolicTuple& symbolicTuple) const;
 /*
 Retrieves the symbolic tuple at a position ~i~ in the set of symbolic tuples.
 
@@ -664,7 +664,7 @@ Returns the size of the set of symbolic tuples.
 
 */
     void GetLinConstraints( const int i,
-      LinearConstraint const*& linearConstraint) const;
+      LinearConstraint& linearConstraint) const;
 /*
 Retrieves the linear constraint at a position ~i~ in the set of linear constraints.
 
@@ -723,7 +723,7 @@ as an attribute.
 
 */
     int NumOfFLOBs() const;
-    FLOB* GetFLOB(const int);
+    Flob* GetFLOB(const int);
     int Compare(const Attribute* arg) const;
     bool Adjacent(const Attribute* arg) const;
     SymbolicRelation* Clone() const;
@@ -743,12 +743,12 @@ Returns the minimum bounding box of the point set descibed by the symbolic relat
 
 
   private:
-    DBArray<LinearConstraint> linConstraints;
+    DbArray<LinearConstraint> linConstraints;
 /*
 The persistent array of linear constraints.
 
 */
-    DBArray<SymbolicTuple> symbolicTuples;
+    DbArray<SymbolicTuple> symbolicTuples;
 /*
 The persistent array of symbolic tuples.
 

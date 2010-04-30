@@ -348,15 +348,14 @@ public:
 Default constructor (should not be used, except for the cast method).
 
 */
-    inline DistDataAttribute()
-    {}
+    inline DistDataAttribute() {}
 
 /*
 Constructor (creates an undefined distdata object)
 
 */
     inline DistDataAttribute(size_t size)
-    : m_data(0), m_defined(false)
+    : Attribute(false), m_data(0)
     {}
 
 /*
@@ -364,12 +363,13 @@ Default copy constructor.
 
 */
     DistDataAttribute(const DistDataAttribute& ddAttr)
-    : m_data(ddAttr.m_data.Size()),
-      m_defined(ddAttr.m_defined),
+    : Attribute(ddAttr.IsDefined()),
+      m_data(ddAttr.m_data.getSize()),
       m_distdataId(ddAttr.m_distdataId)
     {
-        if(IsDefined())
-            m_data.Put(0, ddAttr.size(), ddAttr.value());
+        if(IsDefined()){
+            m_data.copyFrom(ddAttr.m_data);
+        }
     }
 
 /*
@@ -407,39 +407,24 @@ Returns id of the assigned distance function.
     inline DistDataId distdataId() const
     { return m_distdataId; }
 
-/*
-Returns a reference to the data representation.
-
-*/
-    inline const char *value() const
-    {
-        const char *data;
-        m_data.Get(0, &data);
-        return data;
-    }
 
 /*
 Returns the size of the data object in bytes.
 
 */
     inline size_t size() const
-    { return m_data.Size(); }
+    { return m_data.getSize(); }
 
 /*
 Removes the disc representation of the data FLOB.
 
 */
     inline void deleteFLOB()
-    { m_data.Destroy(); }
+    { m_data.destroy(); }
 
 /////////////////////////////////////////////////////////////////////
 // virtual methods from the Attribute class:
 /////////////////////////////////////////////////////////////////////
-    inline virtual bool IsDefined() const
-    { return m_defined; }
-
-    inline virtual void SetDefined(bool defined)
-    { m_defined = defined; }
 
     inline virtual size_t Sizeof() const
     { return sizeof(*this); }
@@ -453,7 +438,7 @@ Removes the disc representation of the data FLOB.
     inline virtual int NumOfFLOBs() const
     { return 1; }
 
-    inline virtual FLOB *GetFLOB(const int i)
+    inline virtual Flob *GetFlob(const int i)
     { return &m_data; }
 
     inline virtual int Compare(const Attribute *rhs) const
@@ -464,9 +449,12 @@ Removes the disc representation of the data FLOB.
 
     virtual void CopyFrom(const Attribute *rhs);
 
+    virtual char* getData(){
+         return m_data.getData();
+    }
+
 private:
-    FLOB m_data; // contains the data array
-    bool m_defined; // true, if the attribute is defined
+    Flob m_data; // contains the data array
     DistDataId m_distdataId;
 }; // class DistDataAttribute
 

@@ -392,8 +392,9 @@ int createmtreeDDRel_VM(
             }
 
             // insert attribute into mtree
-            DistData *data =
-                    new DistData(attr->size(), attr->value());
+            char* tdata = attr->getData();
+            DistData *data = new DistData(attr->size(), tdata);
+            delete[] tdata;
             mtree->insert(data, tuple->GetTupleId());
         }
         tuple->DeleteIfAllowed();
@@ -520,8 +521,9 @@ int createmtreeDDStream_VM(
             }
 
             // insert attribute into mtree
-            DistData *data =
-                    new DistData(attr->size(), attr->value());
+            char* flobData = attr->getData();
+            DistData *data = new DistData(attr->size(), flobData);
+            delete[] flobData;
             mtree->insert(data, tuple->GetTupleId());
         }
         tuple->DeleteIfAllowed();
@@ -631,7 +633,7 @@ int rangesearch_VM(
       TupleId tid = info->next();
       if(tid)
       {
-        Tuple *tuple = info->relation->GetTuple(tid);
+        Tuple *tuple = info->relation->GetTuple(tid, false);
         result = SetWord(tuple);
         return YIELD;
       }
@@ -687,8 +689,9 @@ int rangesearchDD_VM(
         cmsg.send();
         return CANCEL;
       }
-
-      DistData *data = new DistData(attr->size(), attr->value());
+      char* flobData = attr->getData();
+      DistData *data = new DistData(attr->size(), flobData);
+      delete[] flobData;
       mtree->rangeSearch(data, searchRad, info->results);
       info->initResultIterator();
 
@@ -705,7 +708,7 @@ int rangesearchDD_VM(
       TupleId tid = info->next();
       if(tid)
       {
-        Tuple *tuple = info->relation->GetTuple(tid);
+        Tuple *tuple = info->relation->GetTuple(tid, false);
         result = SetWord(tuple);
         return YIELD;
       }
@@ -776,7 +779,7 @@ int nnsearch_VM(
       TupleId tid = info->next();
       if(tid)
       {
-        Tuple *tuple = info->relation->GetTuple(tid);
+        Tuple *tuple = info->relation->GetTuple(tid, false);
         result = SetWord(tuple);
         return YIELD;
       }
@@ -831,8 +834,9 @@ int nnsearchDD_VM(
         cmsg.send();
         return CANCEL;
       }
-
-      DistData *data = new DistData(attr->size(), attr->value());
+      char* flobdata = attr->getData();
+      DistData *data = new DistData(attr->size(), flobdata);
+      delete[] flobdata;
       mtree->nnSearch(data, nncount, info->results);
       info->initResultIterator();
 
@@ -849,7 +853,7 @@ int nnsearchDD_VM(
       TupleId tid = info->next();
       if(tid)
       {
-        Tuple *tuple = info->relation->GetTuple(tid);
+        Tuple *tuple = info->relation->GetTuple(tid, false);
         result = SetWord(tuple);
         return YIELD;
       }

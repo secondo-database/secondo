@@ -63,7 +63,7 @@ Constructor (creates an undefined hyper point - the parameter is only needed to 
 
 */
     inline HPointAttr(size_t size)
-        : m_coords(0), m_defined(false)
+        : Attribute(false), m_coords(0)
     {}
 
 /*
@@ -71,26 +71,27 @@ Constructor (initialises the hyper point with the given values)
 
 */
     inline HPointAttr(int dim, GTA_SPATIAL_DOM *coords)
-        : m_dim(dim),
-          m_coords(vectorlen()),
-          m_defined(true)
-    { m_coords.Put(0, vectorlen(), coords); }
+        : Attribute(true),
+          m_dim(dim),
+          m_coords(vectorlen())
+    { m_coords.write((char*) coords, vectorlen(), 0);
+
+     }
 
 /*
 Default copy constructor.
 
 */
     HPointAttr(const HPointAttr &p)
-        : m_dim(p.m_dim),
-          m_coords(p.m_coords.Size()),
-          m_defined(p.m_defined)
+        : Attribute(p.IsDefined()),
+          m_dim(p.m_dim),
+          m_coords(p.m_coords.getSize())
     {
         if(IsDefined())
         {
-            const char *buffer;
-            p.m_coords.Get(0, &buffer);
-            m_coords.Put(0, p.m_coords.Size(), buffer);
+           m_coords.copyFrom(p.m_coords);
         }
+
     }
 
 /*
@@ -106,13 +107,12 @@ Sets the attribute values to the given values.
 */
     void set(bool defined, unsigned dim, GTA_SPATIAL_DOM *coords)
     {
-        m_defined = defined;
-        if(m_defined)
+        SetDefined(defined);
+        if(defined)
         {
             m_dim = dim;
-            m_coords.Clean();
-            m_coords.Resize(vectorlen());
-            m_coords.Put(0, m_coords.Size(), coords);
+            m_coords.resize(vectorlen());
+            m_coords.write((char*)coords, m_coords.getSize(), 0);
         }
     }
 
@@ -122,13 +122,12 @@ Sets the attribute values to the given values.
 */
     void set(bool defined, HPoint *p)
     {
-        m_defined = defined;
-        if(m_defined)
+        SetDefined(defined);
+        if(defined)
         {
             m_dim = p->dim();
-            m_coords.Clean();
-            m_coords.Resize(vectorlen());
-            m_coords.Put(0, m_coords.Size(), p->coords());
+            m_coords.resize(vectorlen());
+            m_coords.write((char*)p->coords(), m_coords.getSize(), 0);
         }
     }
 
@@ -144,7 +143,7 @@ Removes the disc representation of the coordinate vector FLOB.
 
 */
     inline void deleteFLOB()
-    { m_coords.Destroy(); }
+    { m_coords.destroy(); }
 
 /*
 Returns a new "HPoint"[4] object which represents "this"[4].
@@ -152,22 +151,19 @@ Returns a new "HPoint"[4] object which represents "this"[4].
 */
     inline HPoint *hpoint() const
     {
-        const char *buffer;
-        m_coords.Get(0, &buffer);
+        char * buffer= new char[m_dim];
+        m_coords.read(buffer, m_dim, 0);
         const GTA_SPATIAL_DOM *coords =
                 reinterpret_cast<const GTA_SPATIAL_DOM*>(buffer);
-        return new HPoint(m_dim, coords);
+        HPoint* res = new HPoint(m_dim, coords);
+        delete [] buffer;
+        return res;
     }
 
 /********************************************************************
 Implementation of virtual methods from the Attribute class:
 
 ********************************************************************/
-    inline virtual bool IsDefined() const
-    { return m_defined; }
-
-    inline virtual void SetDefined(bool defined)
-    { m_defined = defined; }
 
     inline virtual size_t Sizeof() const
     { return sizeof(*this); }
@@ -181,7 +177,7 @@ Implementation of virtual methods from the Attribute class:
     inline virtual int NumOfFLOBs() const
     { return 1; }
 
-    inline virtual FLOB *GetFLOB(const int i)
+    inline virtual Flob *GetFLOB(const int i)
     { return &m_coords; }
 
     inline virtual int Compare(const Attribute *rhs) const
@@ -194,16 +190,11 @@ Implementation of virtual methods from the Attribute class:
     {
         const HPointAttr *p = static_cast<const HPointAttr*>(rhs);
 
-        m_defined = p->IsDefined();
+        SetDefined( p->IsDefined());
         if(IsDefined())
         {
             m_dim = p->m_dim;
-            const char *buffer;
-
-            m_coords.Clean();
-            m_coords.Resize(vectorlen());
-            p->m_coords.Get(0, &buffer);
-            m_coords.Put(0, p->m_coords.Size(), buffer);
+            m_coords.copyFrom(p->m_coords);
         }
     }
 
@@ -216,8 +207,7 @@ Returns the size of the coordinate vector in bytes.
     { return m_dim * sizeof(GTA_SPATIAL_DOM); }
 
     int m_dim;      // dimension of the hyper point
-    FLOB m_coords;  // coordinate vector
-    bool m_defined; // true, if the attribute is defined
+    Flob m_coords;  // coordinate vector
 
 }; // class HPointAttr
 
@@ -243,7 +233,7 @@ Constructor (creates an undefined hyper rectangle - the parameter is only needed
 
 */
     inline HRectAttr(size_t size)
-        : m_lbVect(0), m_ubVect(0), m_defined(false)
+        : Attribute(false),  m_lbVect(0), m_ubVect(0)
     {}
 
 /*
@@ -252,13 +242,13 @@ Constructor (initialises the hyper rectangle with the given values)
 */
     inline HRectAttr(int dim, GTA_SPATIAL_DOM *lb,
                               GTA_SPATIAL_DOM *ub)
-        : m_dim(dim),
+        : Attribute(true),
+          m_dim(dim),
           m_lbVect(vectorlen()),
-          m_ubVect(vectorlen()),
-          m_defined(true)
+          m_ubVect(vectorlen())
     {
-        m_lbVect.Put(0, vectorlen(), lb);
-        m_ubVect.Put(0, vectorlen(), ub);
+        m_lbVect.write((char*)lb, vectorlen(), 0);
+        m_ubVect.write((char*)ub,vectorlen(), 0);
     }
 
 /*
@@ -266,20 +256,16 @@ Default copy constructor.
 
 */
     HRectAttr(const HRectAttr &r)
-        : m_dim(r.m_dim),
-          m_lbVect(r.m_lbVect.Size()),
-          m_ubVect(r.m_ubVect.Size()),
-          m_defined(r.m_defined)
+        : Attribute(r.IsDefined()),
+          m_dim(r.m_dim),
+          m_lbVect(r.m_lbVect.getSize()),
+          m_ubVect(r.m_ubVect.getSize())
     {
         if(IsDefined())
         {
-            const char *buffer;
-
-            r.m_lbVect.Get(0, &buffer);
-            m_lbVect.Put(0, r.m_lbVect.Size(), buffer);
-
-            r.m_ubVect.Get(0, &buffer);
-            m_ubVect.Put(0, r.m_ubVect.Size(), buffer);
+            m_lbVect.copyFrom(r.m_lbVect);
+            m_ubVect.copyFrom(r.m_ubVect);
+           
         }
     }
 
@@ -298,18 +284,15 @@ Sets the attribute values to the given values.
             bool defined, unsigned dim,
             GTA_SPATIAL_DOM *lb, GTA_SPATIAL_DOM *ub)
     {
-        m_defined = defined;
-        if(m_defined)
+        SetDefined(defined);
+        if(defined)
         {
             m_dim = dim;
+            m_lbVect.resize(vectorlen());
+            m_lbVect.write((char*)lb, m_lbVect.getSize(), 0);
 
-            m_lbVect.Clean();
-            m_lbVect.Resize(vectorlen());
-            m_lbVect.Put(0, m_lbVect.Size(), lb);
-
-            m_ubVect.Clean();
-            m_ubVect.Resize(vectorlen());
-            m_ubVect.Put(0, m_ubVect.Size(), ub);
+            m_ubVect.resize(vectorlen());
+            m_ubVect.write((char*)ub,m_ubVect.getSize(), 0);
         }
     }
 
@@ -319,20 +302,18 @@ Sets the attribute values to the given values.
 */
     void set(bool defined, HRect *r)
     {
-        m_defined = defined;
-        if(m_defined)
+        SetDefined( defined);
+        if(defined)
         {
             m_dim = r->dim();
 
             // set  lower bounds vector
-            m_lbVect.Clean();
-            m_lbVect.Resize(vectorlen());
-            m_lbVect.Put(0, m_lbVect.Size(), r->lb());
+            m_lbVect.resize(vectorlen());
+            m_lbVect.write((char*)r->lb(), m_lbVect.getSize(), 0);
 
             // set upper bounds vector
-            m_ubVect.Clean();
-            m_ubVect.Resize(vectorlen());
-            m_ubVect.Put(0, m_ubVect.Size(), r->ub());
+            m_ubVect.resize(vectorlen());
+            m_ubVect.write((char*)r->ub(), m_ubVect.getSize(), 0);
         }
     }
 
@@ -348,7 +329,7 @@ Removes the disc representation of the FLOBs.
 
 */
     inline void deleteFLOB()
-    { m_lbVect.Destroy(); m_ubVect.Destroy(); }
+    { m_lbVect.destroy(); m_ubVect.destroy(); }
 
 /*
 Returns a new "HRect"[4] object which represents "this"[4].
@@ -356,25 +337,25 @@ Returns a new "HRect"[4] object which represents "this"[4].
 */
     inline HRect *hrect() const
     {
-        const char *buffer;
-        m_lbVect.Get(0, &buffer);
-        const GTA_SPATIAL_DOM *lb =
-                reinterpret_cast<const GTA_SPATIAL_DOM*>(buffer);
-        m_ubVect.Get(0, &buffer);
-        const GTA_SPATIAL_DOM *ub =
-                reinterpret_cast<const GTA_SPATIAL_DOM*>(buffer);
-        return new HRect(m_dim, lb, ub);
+        char*  buffer1 = new char[m_dim];
+        m_lbVect.read(buffer1, m_dim, 0);;
+
+        char* buffer2 = new char[m_dim];
+        m_ubVect.read(buffer2, m_dim, 0);
+         
+        GTA_SPATIAL_DOM *lb = reinterpret_cast< GTA_SPATIAL_DOM*>(buffer1);
+        GTA_SPATIAL_DOM *ub = reinterpret_cast< GTA_SPATIAL_DOM*>(buffer2);
+
+        HRect* res =  new HRect(m_dim, lb, ub);
+        delete[] buffer1;
+        delete[] buffer2;
+        return res;
     }
 
 /********************************************************************
 Implementation of virtual methods from the Attribute class:
 
 ********************************************************************/
-    inline virtual bool IsDefined() const
-    { return m_defined; }
-
-    inline virtual void SetDefined(bool defined)
-    { m_defined = defined; }
 
     inline virtual size_t Sizeof() const
     { return sizeof(*this); }
@@ -388,7 +369,7 @@ Implementation of virtual methods from the Attribute class:
     inline virtual int NumOfFLOBs() const
     { return 2; }
 
-    inline virtual FLOB* GetFLOB(const int i)
+    inline virtual Flob* GetFLOB(const int i)
     {
         if (i == 1)
             return &m_lbVect;
@@ -406,23 +387,12 @@ Implementation of virtual methods from the Attribute class:
     {
         const HRectAttr *r = static_cast<const HRectAttr*>(rhs);
 
-        m_defined = r->IsDefined();
+        SetDefined(r->IsDefined());
         if(IsDefined())
         {
             m_dim = r->m_dim;
-            const char *buffer;
-
-            // copy lower bounds vector
-            m_lbVect.Clean();
-            m_lbVect.Resize(vectorlen());
-            r->m_lbVect.Get(0, &buffer);
-            m_lbVect.Put(0, r->m_lbVect.Size(), buffer);
-
-            // copy upper bounds vector
-            m_ubVect.Clean();
-            m_ubVect.Resize(vectorlen());
-            r->m_ubVect.Get(0, &buffer);
-            m_ubVect.Put(0, r->m_ubVect.Size(), buffer);
+            m_lbVect.copyFrom(r->m_lbVect);
+            m_ubVect.copyFrom(r->m_ubVect);
         }
     }
 
@@ -435,9 +405,8 @@ Returns the size of the coordinate vector in bytes.
     { return m_dim * sizeof(GTA_SPATIAL_DOM); }
 
     int m_dim;      // dimension of the hyper rectangle
-    FLOB m_lbVect;  // lower bounds vector
-    FLOB m_ubVect;  // upper bounds vector
-    bool m_defined; // true, if the attribute is defined
+    Flob m_lbVect;  // lower bounds vector
+    Flob m_ubVect;  // upper bounds vector
 }; // class HRectAttr
 
 

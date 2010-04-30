@@ -267,6 +267,7 @@ void LinearConstraint::PrintOut() const
 
 SymbolicRelation::SymbolicRelation(const int nConstraints,
       const int nTuple) :
+      StandardSpatialAttribute<2>(false),
       linConstraints(nConstraints),
       symbolicTuples(nTuple),
       mbbox(false)
@@ -275,6 +276,7 @@ SymbolicRelation::SymbolicRelation(const int nConstraints,
 }
 
 SymbolicRelation::SymbolicRelation(const SymbolicRelation& symRel):
+  StandardSpatialAttribute<2>(false),
   linConstraints(symRel.LinConstraintsSize()),
   symbolicTuples(symRel.SymbolicTuplesSize()),
   mbbox(symRel.BoundingBox())
@@ -283,16 +285,16 @@ SymbolicRelation::SymbolicRelation(const SymbolicRelation& symRel):
   int i;
   for(i = 0; i < symRel.LinConstraintsSize(); i++ )
   {
-    const LinearConstraint *linC;
+    LinearConstraint linC;
     symRel.GetLinConstraints( i, linC );
-    this->linConstraints.Put( i, *linC );
+    this->linConstraints.Put( i, linC );
   }
   // copy the DBArray symbolicTuples:
   for(i = 0; i < symRel.SymbolicTuplesSize(); i++ )
   {
-    const SymbolicTuple *iPair;
+    SymbolicTuple iPair;
     symRel.GetSymbolicTuples( i, iPair );
-    this->symbolicTuples.Put( i, *iPair );
+    this->symbolicTuples.Put( i, iPair );
   }
 }
 
@@ -306,29 +308,29 @@ SymbolicRelation& SymbolicRelation::operator=(
   const SymbolicRelation& symRel )
 {
   int i;
-  this->linConstraints.Clear();
+  this->linConstraints.clean();
   if(symRel.LinConstraintsSize()>0)
   {
-    this->linConstraints.Resize(symRel.LinConstraintsSize());
+    this->linConstraints.resize(symRel.LinConstraintsSize());
   }
   // copy the DBArray linConstraints:
   for(i = 0; i < symRel.LinConstraintsSize(); i++ )
   {
-    const LinearConstraint *linC;
+    LinearConstraint linC;
     symRel.GetLinConstraints( i, linC );
-    this->linConstraints.Put( i, *linC );
+    this->linConstraints.Put( i, linC );
   }
   // copy the DBArray symbolicTuples:
-  this->symbolicTuples.Clear();
+  this->symbolicTuples.clean();
   if(symRel.SymbolicTuplesSize()>0)
   {
-    this->symbolicTuples.Resize(symRel.SymbolicTuplesSize());
+    this->symbolicTuples.resize(symRel.SymbolicTuplesSize());
   }
   for(i = 0; i < symRel.SymbolicTuplesSize(); i++ )
   {
-    const SymbolicTuple *iPair;
+    SymbolicTuple iPair;
     symRel.GetSymbolicTuples( i, iPair );
-    this->symbolicTuples.Put( i, *iPair );
+    this->symbolicTuples.Put( i, iPair );
   }
   // copy the minimum bounding box:
   this->mbbox = symRel.BoundingBox();
@@ -336,13 +338,13 @@ SymbolicRelation& SymbolicRelation::operator=(
 }
 
 void SymbolicRelation::GetSymbolicTuples(const int i,
-                          SymbolicTuple const*& symbolicTuple) const
+                          SymbolicTuple& symbolicTuple) const
 {
   this->symbolicTuples.Get(i, symbolicTuple);
 }
 
 void SymbolicRelation::GetLinConstraints(const int i,
-                    LinearConstraint const*& linearConstraint) const
+                    LinearConstraint& linearConstraint) const
 {
   this->linConstraints.Get(i, linearConstraint);
 }
@@ -387,20 +389,20 @@ void SymbolicRelation::AppendSymbolicRelation(
   const int iOffset = this->LinConstraintsSize();
   for(i = 0; i < otherSymRel.LinConstraintsSize(); i++)
   {
-    const LinearConstraint *linC;
+    LinearConstraint linC;
     otherSymRel.GetLinConstraints(i, linC);
-    this->linConstraints.Append(*linC);
+    this->linConstraints.Append(linC);
   }
 
   // append and update the tuple into the symbolicTuples-DBArray:
   for(i = 0; i < otherSymRel.SymbolicTuplesSize(); i++)
   {
-    const SymbolicTuple *iPair;
+    SymbolicTuple iPair;
     otherSymRel.GetSymbolicTuples(i, iPair);
     SymbolicTuple tuplePositionInArray;
-    tuplePositionInArray = *iPair;
-    tuplePositionInArray.startIndex = iPair->startIndex + iOffset;
-    tuplePositionInArray.endIndex = iPair->endIndex + iOffset;
+    tuplePositionInArray = iPair;
+    tuplePositionInArray.startIndex = iPair.startIndex + iOffset;
+    tuplePositionInArray.endIndex = iPair.endIndex + iOffset;
     this->symbolicTuples.Append(tuplePositionInArray);
   }
   // compute the new MBB:
@@ -432,43 +434,43 @@ void SymbolicRelation::JoinSymbolicRelation(
      !otherSymRel.BoundingBox().IsDefined() ||
      !this->BoundingBox().Intersects(otherSymRel.BoundingBox()))
   {
-    this->linConstraints.Clear();
-    this->symbolicTuples.Clear();
+    this->linConstraints.clean();
+    this->symbolicTuples.clean();
     this->mbbox = Rectangle<2>(false);
   }
   else
   {
     for(i = 0; i < this->LinConstraintsSize(); i++)
     {
-      const LinearConstraint *linC;
+       LinearConstraint linC;
       this->GetLinConstraints(i, linC);
-      vlinConstraintsOld.push_back(*linC);
+      vlinConstraintsOld.push_back(linC);
     }
 
     for(i = 0; i < this->SymbolicTuplesSize(); i++)
     {
-      const SymbolicTuple *symTuple;
+      SymbolicTuple symTuple;
       this->GetSymbolicTuples(i, symTuple);
-      vSymbolicTuplesOld.push_back(*symTuple);
+      vSymbolicTuplesOld.push_back(symTuple);
     }
-    this->linConstraints.Clear();
-    this->symbolicTuples.Clear();
+    this->linConstraints.clean();
+    this->symbolicTuples.clean();
 
     for(i = 0; i < (int)vSymbolicTuplesOld.size(); i++)
     {
       for(j = 0; j < otherSymRel.SymbolicTuplesSize(); j++)
       {
-        const SymbolicTuple *symTuple;
+        SymbolicTuple symTuple;
         otherSymRel.GetSymbolicTuples(j, symTuple);
         if(vSymbolicTuplesOld[i].mbbox.IsDefined() &&
-           symTuple->mbbox.IsDefined() &&
+           symTuple.mbbox.IsDefined() &&
            vSymbolicTuplesOld[i].BoundingBox().Intersects(
-              symTuple->BoundingBox()))
+              symTuple.BoundingBox()))
         {
           k1 = vSymbolicTuplesOld[i].startIndex;
           k2 = vSymbolicTuplesOld[i].endIndex+1;
-          k3 = symTuple->startIndex;
-          k4 = symTuple->endIndex+1;
+          k3 = symTuple.startIndex;
+          k4 = symTuple.endIndex+1;
           vector<LinearConstraint> vlinConstraints2Add;
           for(k=k1; k < k2; k++)
           {
@@ -476,9 +478,9 @@ void SymbolicRelation::JoinSymbolicRelation(
           }
           for(k=k3; k < k4; k++)
           {
-            const LinearConstraint *linC;
+            LinearConstraint linC;
             otherSymRel.GetLinConstraints(k, linC);
-            vlinConstraints2Add.push_back(*linC);
+            vlinConstraints2Add.push_back(linC);
           }
           AddSymbolicTuple(vlinConstraints2Add);
         }
@@ -497,48 +499,48 @@ bool SymbolicRelation::OverlapsSymbolicRelation(
      otherSymRel.BoundingBox().IsDefined() &&
      this->BoundingBox().Intersects(otherSymRel.BoundingBox()))
   {
-	const LinearConstraint *linC;
+	   LinearConstraint linC;
     for(i = 0; i < this->SymbolicTuplesSize(); i++)
     {
       for(j = 0; j < otherSymRel.SymbolicTuplesSize(); j++)
       {
-        const SymbolicTuple *symTuple1, *symTuple2;
+        SymbolicTuple symTuple1, symTuple2;
         this->GetSymbolicTuples(i, symTuple1);
         otherSymRel.GetSymbolicTuples(j, symTuple2);
-        if(symTuple1->BoundingBox().IsDefined() &&
-           symTuple2->BoundingBox().IsDefined() &&
-           symTuple1->BoundingBox().Intersects(
-              symTuple2->BoundingBox()))
+        if(symTuple1.BoundingBox().IsDefined() &&
+           symTuple2.BoundingBox().IsDefined() &&
+           symTuple1.BoundingBox().Intersects(
+              symTuple2.BoundingBox()))
         {
 		  vector<LinearConstraint> vCEQ;
           vector<LinearConstraint> vNEQ;
 		  vector<Point2D> vConvexPolygon;
-          k1 = symTuple1->startIndex;
-          k2 = symTuple1->endIndex+1;
-          k3 = symTuple2->startIndex;
-          k4 = symTuple2->endIndex+1;
+          k1 = symTuple1.startIndex;
+          k2 = symTuple1.endIndex+1;
+          k3 = symTuple2.startIndex;
+          k4 = symTuple2.endIndex+1;
           for(k=k1; k < k2; k++)
           {
 		  	this->GetLinConstraints(k, linC);
-            if(linC->Get_Op()==OP_EQ)
+            if(linC.Get_Op()==OP_EQ)
             {
-              vCEQ.push_back(*linC);
+              vCEQ.push_back(linC);
             }
             else // OP_LEQ
             {
-              vNEQ.push_back(*linC);
+              vNEQ.push_back(linC);
             }
           }
           for(k=k3; k < k4; k++)
           {
             otherSymRel.GetLinConstraints(k, linC);
-            if(linC->Get_Op()==OP_EQ)
+            if(linC.Get_Op()==OP_EQ)
             {
-              vCEQ.push_back(*linC);
+              vCEQ.push_back(linC);
             }
             else // OP_LEQ
             {
-              vNEQ.push_back(*linC);
+              vNEQ.push_back(linC);
             }
           }
           if(vCEQ.size() > 0)
@@ -577,12 +579,12 @@ void SymbolicRelation::ProjectToAxis(const bool blnXAxis,
   vector<SymbolicTuple> vSymbolicTuplesOld;
   for(i = 0; i < this->SymbolicTuplesSize(); i++)
     {
-    const SymbolicTuple *symTuple;
+     SymbolicTuple symTuple;
     this->GetSymbolicTuples(i, symTuple);
-    vSymbolicTuplesOld.push_back(*symTuple);
+    vSymbolicTuplesOld.push_back(symTuple);
   }
-  this->linConstraints.Clear();
-  this->symbolicTuples.Clear();
+  this->linConstraints.clean();
+  this->symbolicTuples.clean();
   for(i = 0; i < (int)vSymbolicTuplesOld.size(); i++ )
   {
     vector<LinearConstraint> vLinConstraints2Add;
@@ -633,7 +635,7 @@ void SymbolicRelation::Normalize()
     vector<LinearConstraint> vNEQ;
     vector<LinearConstraint> vLinConstraints;
     vector<Point2D> vConvexPolygon;
-    const SymbolicTuple *iGetSymTuple;
+    SymbolicTuple iGetSymTuple;
     this->GetSymbolicTuples( i, iGetSymTuple );
     SymbolicTuple iSymTuple;
 
@@ -657,43 +659,43 @@ void SymbolicRelation::Normalize()
     //  <=> (there exist at least one constraint with the form
     //      NOT 0x+0y+0 OP 0 AND
     //      NOT 0x+0y+<negative value> <= 0)
-    linConIndex=iGetSymTuple->startIndex;
+    linConIndex=iGetSymTuple.startIndex;
     do
     {
-      const LinearConstraint *linC;
+      LinearConstraint linC;
       this->GetLinConstraints(linConIndex, linC);
-      if(!(AlmostEqual(linC->Get_a1(),0) &&
-           AlmostEqual(linC->Get_a2(),0) &&
-           AlmostEqual(linC->Get_b(),0)) &&
-         !(AlmostEqual(linC->Get_a1(),0) &&
-           AlmostEqual(linC->Get_a2(),0) &&
-           linC->Get_b()<=0 && linC->Get_Op()==OP_LEQ))
+      if(!(AlmostEqual(linC.Get_a1(),0) &&
+           AlmostEqual(linC.Get_a2(),0) &&
+           AlmostEqual(linC.Get_b(),0)) &&
+         !(AlmostEqual(linC.Get_a1(),0) &&
+           AlmostEqual(linC.Get_a2(),0) &&
+           linC.Get_b()<=0 && linC.Get_Op()==OP_LEQ))
       {
         IsRealSubSet = true;
       }
       linConIndex++;
     }
-    while(!IsRealSubSet && linConIndex<=iGetSymTuple->endIndex);
+    while(!IsRealSubSet && linConIndex<=iGetSymTuple.endIndex);
 
-    for(linConIndex=iGetSymTuple->startIndex;
-        linConIndex<=iGetSymTuple->endIndex; linConIndex++)
+    for(linConIndex=iGetSymTuple.startIndex;
+        linConIndex<=iGetSymTuple.endIndex; linConIndex++)
     {
-      const LinearConstraint *linC;
+      LinearConstraint linC;
       this->GetLinConstraints(linConIndex, linC);
-      if(!AlmostEqual(linC->Get_a1(),0) ||
-         !AlmostEqual(linC->Get_a2(),0) ||
-         !AlmostEqual(linC->Get_b(),0))
+      if(!AlmostEqual(linC.Get_a1(),0) ||
+         !AlmostEqual(linC.Get_a2(),0) ||
+         !AlmostEqual(linC.Get_b(),0))
       {
         // if at minimum one of the coefficients is not equal 0
         // (otherwise we can ignore this linear constraint representing R^2
         // because there is an other constraint which intersects R^2)
-        if(linC->Get_Op()==OP_EQ)
+        if(linC.Get_Op()==OP_EQ)
         {
-          vCEQ.push_back(*linC);
+          vCEQ.push_back(linC);
         }
         else // OP_LEQ
         {
-          vNEQ.push_back(*linC);
+          vNEQ.push_back(linC);
         }
       }
     }
@@ -775,19 +777,19 @@ void SymbolicRelation::Normalize()
     }
   }
 
-  this->linConstraints.Clear();
-  this->symbolicTuples.Clear();
+  this->linConstraints.clean();
+  this->symbolicTuples.clean();
 
   if(!blnRelIsEmptySet)
   {
     // Now all lineare Constraints will be saved:
-    this->linConstraints.Resize(vLinConstraints2Save.size());
+    this->linConstraints.resize(vLinConstraints2Save.size());
     for(i = 0; i < (int)vLinConstraints2Save.size(); i++)
     {
       this->linConstraints.Append(vLinConstraints2Save[i]);
     }
     // Now all tuples will be saved:
-    this->symbolicTuples.Resize(vSymbolicTuples2Save.size());
+    this->symbolicTuples.resize(vSymbolicTuples2Save.size());
     for(i = 0; i < (int)vSymbolicTuples2Save.size(); i++)
     {
       this->symbolicTuples.Append(vSymbolicTuples2Save[i]);
@@ -802,7 +804,7 @@ int SymbolicRelation::NumOfFLOBs() const
   return 2;
 }
 
-FLOB* SymbolicRelation::GetFLOB(const int i)
+Flob* SymbolicRelation::GetFLOB(const int i)
 {
   assert( i >= 0 && i < NumOfFLOBs() );
   if(i==0)
@@ -850,11 +852,11 @@ size_t SymbolicRelation::HashValue() const
     double a1, a2, b;
     for(int i = 0; ((i < LinConstraintsSize())&&(i<5)); i++ )
     {
-      const LinearConstraint *linC;
+      LinearConstraint linC;
       GetLinConstraints( i, linC );
-      a1 = linC->Get_a1();
-      a2 = linC->Get_a2();
-      b = linC->Get_b();
+      a1 = linC.Get_a1();
+      a2 = linC.Get_a2();
+      b = linC.Get_b();
       h=h+(unsigned long)(5*a1+5*a2+b); // Hash-Funktion
     }
     return size_t(h);
@@ -937,7 +939,7 @@ void TriangulateRegion(const Region* reg,
     // how many faces?
     regionOriginal->LogicSort();
     region2convert->LogicSort();
-    const HalfSegment *hs, *hsnext;
+    HalfSegment hs, hsnext;
     int currFace, currFace2convert, currCycle, currEdge;
     Point outputP, leftoverP;
     currFace = -1;
@@ -956,9 +958,9 @@ void TriangulateRegion(const Region* reg,
       {
         region2convert->Get( i+1, hsnext );
       }
-      if(currFace != hs->attr.faceno || currCycle != hs->attr.cycleno)
+      if(currFace != hs.attr.faceno || currCycle != hs.attr.cycleno)
       {
-        if(currCycle != hs->attr.cycleno || currFace != hs->attr.faceno)
+        if(currCycle != hs.attr.cycleno || currFace != hs.attr.faceno)
         {
           // new cycle:
           if(vPointsOfCycle.size() > 0)
@@ -966,9 +968,9 @@ void TriangulateRegion(const Region* reg,
             vFace2convert.push_back(vPointsOfCycle);
           }
           vPointsOfCycle.clear();
-          currCycle = hs->attr.cycleno;
+          currCycle = hs.attr.cycleno;
         }
-        if(currFace != hs->attr.faceno)
+        if(currFace != hs.attr.faceno)
         {
           // new face:
           if(vFace2convert.size() > 0)
@@ -976,19 +978,19 @@ void TriangulateRegion(const Region* reg,
             bln2Convert = true;
             currFace2convert = currFace;
           }
-          currFace = hs->attr.faceno;
+          currFace = hs.attr.faceno;
         }
-        if ((hs->GetLeftPoint() == hsnext->GetLeftPoint()) ||
-              ((hs->GetLeftPoint() == hsnext->GetRightPoint())))
+        if ((hs.GetLeftPoint() == hsnext.GetLeftPoint()) ||
+              ((hs.GetLeftPoint() == hsnext.GetRightPoint())))
         {
-          outputP = hs->GetRightPoint();
-          leftoverP = hs->GetLeftPoint();
+          outputP = hs.GetRightPoint();
+          leftoverP = hs.GetLeftPoint();
         }
-        else if ((hs->GetRightPoint() == hsnext->GetLeftPoint()) ||
-                   ((hs->GetRightPoint() == hsnext->GetRightPoint())))
+        else if ((hs.GetRightPoint() == hsnext.GetLeftPoint()) ||
+                   ((hs.GetRightPoint() == hsnext.GetRightPoint())))
         {
-          outputP = hs->GetLeftPoint();
-          leftoverP = hs->GetRightPoint();
+          outputP = hs.GetLeftPoint();
+          leftoverP = hs.GetRightPoint();
         }
         else
         {
@@ -998,13 +1000,13 @@ void TriangulateRegion(const Region* reg,
       else // same face, same cycle:
       {
         outputP=leftoverP;
-        if (hs->GetLeftPoint() == leftoverP)
+        if (hs.GetLeftPoint() == leftoverP)
         {
-          leftoverP = hs->GetRightPoint();
+          leftoverP = hs.GetRightPoint();
         }
-        else if (hs->GetRightPoint() == leftoverP)
+        else if (hs.GetRightPoint() == leftoverP)
         {
-          leftoverP = hs->GetLeftPoint();
+          leftoverP = hs.GetLeftPoint();
         }
         else
         {
@@ -1034,16 +1036,16 @@ void TriangulateRegion(const Region* reg,
         {
           Region* directionCycle = new Region(0);
           directionCycle->StartBulkLoad();
-          const HalfSegment *hsCopy;
+          HalfSegment hsCopy;
           int anzahlHalfsegmente = 0;
           for(int k=0; k<regionOriginal->Size(); k++)
           {
             regionOriginal->Get(k, hsCopy);
-            if(hsCopy->attr.faceno==currFace2convert &&
-               hsCopy->attr.cycleno==iCycle)
+            if(hsCopy.attr.faceno==currFace2convert &&
+               hsCopy.attr.cycleno==iCycle)
             {
-              HalfSegment hs(*hsCopy);
-              AttrType attr=hsCopy->GetAttr();
+              HalfSegment hs(hsCopy);
+              AttrType attr=hsCopy.GetAttr();
               attr.faceno = 0;
               attr.cycleno = 0;
               hs.SetAttr(attr);
@@ -3492,8 +3494,8 @@ A value of type ~constraint~ represents a 2-dimensional (possibly infinite) poin
 ListExpr OutConstraint( ListExpr typeInfo, Word value )
 {
   SymbolicRelation* symRel = (SymbolicRelation*)value.addr;
-  const SymbolicTuple* pSymRelIP;
-  const LinearConstraint* pLinConstraint;
+  SymbolicTuple pSymRelIP;
+  LinearConstraint pLinConstraint;
   ListExpr result;
   ListExpr tempRes;
   ListExpr lastCon;
@@ -3508,29 +3510,29 @@ ListExpr OutConstraint( ListExpr typeInfo, Word value )
     for(int i = 0; i < symRel->SymbolicTuplesSize(); i++)
     {
       symRel->GetSymbolicTuples(i, pSymRelIP);
-      for(int j = pSymRelIP->startIndex; j <= pSymRelIP->endIndex; j++)
+      for(int j = pSymRelIP.startIndex; j <= pSymRelIP.endIndex; j++)
       {
         symRel->GetLinConstraints(j, pLinConstraint);
-        double a1 = pLinConstraint->Get_a1();
-        double a2 = pLinConstraint->Get_a2();
-        double b = pLinConstraint->Get_b();
-        string Op = pLinConstraint->Get_Op();
+        double a1 = pLinConstraint.Get_a1();
+        double a2 = pLinConstraint.Get_a2();
+        double b = pLinConstraint.Get_b();
+        string Op = pLinConstraint.Get_Op();
         if(i==0)
         {
-          if(j==pSymRelIP->startIndex)
+          if(j==pSymRelIP.startIndex)
           {
             // first conjunction, first disjunction
             tempRes = nl->OneElemList(nl->FourElemList(nl->RealAtom(a1),
               nl->RealAtom(a2), nl->RealAtom(b), nl->SymbolAtom(Op)));
             lastCon = tempRes;
           }
-          if(j>pSymRelIP->startIndex)
+          if(j>pSymRelIP.startIndex)
           {
             // further conjunctions of the first disjunction
             lastCon = nl->Append(lastCon, nl->FourElemList(nl->RealAtom(a1),
               nl->RealAtom(a2), nl->RealAtom(b), nl->SymbolAtom(Op)));
           }
-          if(j==pSymRelIP->endIndex)
+          if(j==pSymRelIP.endIndex)
           {
             // last conjunction of the first disjunction
             result = nl->OneElemList(tempRes);
@@ -3539,7 +3541,7 @@ ListExpr OutConstraint( ListExpr typeInfo, Word value )
         }
         else // => i>0
         {
-          if(j==pSymRelIP->startIndex)
+          if(j==pSymRelIP.startIndex)
           {
             // first conjunction
             tempRes = nl->OneElemList(
@@ -3547,13 +3549,13 @@ ListExpr OutConstraint( ListExpr typeInfo, Word value )
                 nl->RealAtom(a2), nl->RealAtom(b), nl->SymbolAtom(Op)));
             lastCon = tempRes;
           }
-          if(j>pSymRelIP->startIndex)
+          if(j>pSymRelIP.startIndex)
           {
             lastCon = nl->Append(lastCon, nl->FourElemList(
               nl->RealAtom(a1), nl->RealAtom(a2),
               nl->RealAtom(b), nl->SymbolAtom(Op)));
           }
-          if(j==pSymRelIP->endIndex)
+          if(j==pSymRelIP.endIndex)
           {
             // last conjunction
             lastDis = nl->Append(lastDis, tempRes);
@@ -4651,14 +4653,14 @@ int points2constraintValueMap( Word* args, Word& result, int message,
     bool blnExistPointsOutWORLD = false;
     for(int i=0; i < points2convert->Size(); i++)
     {
-      const Point *point2convert;
+      Point point2convert;
       points2convert->Get(i, point2convert);
-      if(point2convert->Inside(WORLD))
+      if(point2convert.Inside(WORLD))
       {
         // if point is defined and inside the WORLD: convert it
         Point2D p2Convert = Point2D(
-          (double)point2convert->GetX(),
-          (double)point2convert->GetY());
+          (double)point2convert.GetX(),
+          (double)point2convert.GetY());
         vector<Point2D> vPoints;
         vPoints.push_back(p2Convert);
         vector<LinearConstraint> vLinConstraints;
@@ -4715,12 +4717,12 @@ int line2constraintValueMap( Word* args, Word& result, int message,
     // now the (if it is neccessary: clipped) line will be converted:
     for(i=0; i < line2convert->Size(); i++)
     {
-      const HalfSegment *hs;
+      HalfSegment hs;
       line2convert->Get(i, hs);
-      if(hs->IsLeftDomPoint())
+      if(hs.IsLeftDomPoint())
       {
-        Point lp = hs->GetLeftPoint();
-        Point rp = hs->GetRightPoint();
+        Point lp = hs.GetLeftPoint();
+        Point rp = hs.GetRightPoint();
         Point2D lp2Convert = Point2D(
           (double)lp.GetX(),
           (double)lp.GetY());
@@ -4891,18 +4893,18 @@ int constraint2pointValueMap( Word* args, Word& result, int message,
   }
   else
   {
-    const LinearConstraint *linC1, *linC2;
+    LinearConstraint linC1, linC2;
     int noPoints = 0;
     for(i=0; i < symRel->SymbolicTuplesSize(); i++)
     {
-      const SymbolicTuple *symTuple;
+      SymbolicTuple symTuple;
       symRel->GetSymbolicTuples(i, symTuple);
-      if(symTuple->endIndex-symTuple->startIndex==1)
+      if(symTuple.endIndex-symTuple.startIndex==1)
       {
       // symTuple contains 2 lin. Constraints
-        symRel->GetLinConstraints(symTuple->startIndex, linC1);
-        symRel->GetLinConstraints(symTuple->startIndex+1, linC2);
-        if(linC1->Get_Op()==OP_EQ && linC2->Get_Op()==OP_EQ)
+        symRel->GetLinConstraints(symTuple.startIndex, linC1);
+        symRel->GetLinConstraints(symTuple.startIndex+1, linC2);
+        if(linC1.Get_Op()==OP_EQ && linC2.Get_Op()==OP_EQ)
         {
           noPoints++;
         }
@@ -4911,8 +4913,8 @@ int constraint2pointValueMap( Word* args, Word& result, int message,
     if(noPoints == 1)
     {
       // convert:
-      pointResult = new Point( true, (Coord)(-linC1->Get_b()),
-        (Coord)(-linC2->Get_b()));
+      pointResult = new Point( true, (Coord)(-linC1.Get_b()),
+        (Coord)(-linC2.Get_b()));
     }
     else
     {
@@ -4946,22 +4948,22 @@ int constraint2pointsValueMap( Word* args, Word& result, int message,
   result = qp->ResultStorage( s );
   SymbolicRelation* symRel = (SymbolicRelation*)args[0].addr;
   Points* pointsResult = new Points(0);
-  const LinearConstraint *linC1, *linC2;
+  LinearConstraint linC1, linC2;
 
   pointsResult->StartBulkLoad();
   for(i=0; i < symRel->SymbolicTuplesSize(); i++)
   {
-    const SymbolicTuple *symTuple;
+    SymbolicTuple symTuple;
     symRel->GetSymbolicTuples(i, symTuple);
-    if(symTuple->endIndex-symTuple->startIndex==1)
+    if(symTuple.endIndex-symTuple.startIndex==1)
     {
     // symTuple contains 2 lin. Constraints
-      symRel->GetLinConstraints(symTuple->startIndex, linC1);
-      symRel->GetLinConstraints(symTuple->startIndex+1, linC2);
-      if(linC1->Get_Op()==OP_EQ && linC2->Get_Op()==OP_EQ)
+      symRel->GetLinConstraints(symTuple.startIndex, linC1);
+      symRel->GetLinConstraints(symTuple.startIndex+1, linC2);
+      if(linC1.Get_Op()==OP_EQ && linC2.Get_Op()==OP_EQ)
       {
-        Point* p = new Point( true, (Coord)(-linC1->Get_b()),
-            (Coord)(-linC2->Get_b()));
+        Point* p = new Point( true, (Coord)(-linC1.Get_b()),
+            (Coord)(-linC2.Get_b()));
         (*pointsResult) += (*p);
         delete p;
       }
@@ -4981,29 +4983,29 @@ int constraint2lineValueMap( Word* args, Word& result, int message,
            Word& local, Supplier s )
 {
   int i;
-  result = qp->ResultStorage( s );
+  //result = qp->ResultStorage( s );
   SymbolicRelation* symRel = (SymbolicRelation*)args[0].addr;
   Line* lineResult = new Line(0);
-  const LinearConstraint *linC1, *linC2, *linC3;
+  LinearConstraint linC1, linC2, linC3;
 
   lineResult->StartBulkLoad();
   int edgeno = 0;
   for(i=0; i < symRel->SymbolicTuplesSize(); i++)
   {
-    const SymbolicTuple *symTuple;
+    SymbolicTuple symTuple;
     symRel->GetSymbolicTuples(i, symTuple);
-    if(symTuple->endIndex-symTuple->startIndex==2)
+    if(symTuple.endIndex-symTuple.startIndex==2)
     {
     // symTuple contains 3 lin. Constraints
-      symRel->GetLinConstraints(symTuple->startIndex, linC1);
-      symRel->GetLinConstraints(symTuple->startIndex+1, linC2);
-      symRel->GetLinConstraints(symTuple->startIndex+2, linC3);
-      if(linC1->Get_Op()==OP_EQ &&
-         linC2->Get_Op()==OP_LEQ &&
-         linC3->Get_Op()==OP_LEQ)
+      symRel->GetLinConstraints(symTuple.startIndex, linC1);
+      symRel->GetLinConstraints(symTuple.startIndex+1, linC2);
+      symRel->GetLinConstraints(symTuple.startIndex+2, linC3);
+      if(linC1.Get_Op()==OP_EQ &&
+         linC2.Get_Op()==OP_LEQ &&
+         linC3.Get_Op()==OP_LEQ)
       {
-        Point2D pFrom2D = GetIntersectionPoint(*linC1, *linC2);
-        Point2D pTo2D = GetIntersectionPoint(*linC1, *linC3);
+        Point2D pFrom2D = GetIntersectionPoint(linC1, linC2);
+        Point2D pTo2D = GetIntersectionPoint(linC1, linC3);
         Point pFrom(true, (Coord)pFrom2D.x, (Coord)pFrom2D.y);
         Point pTo(true, (Coord)pTo2D.x, (Coord)pTo2D.y);
         HalfSegment hs(true, pFrom, pTo);
@@ -5075,47 +5077,47 @@ int constraint2regionValueMap( Word* args, Word& result, int message,
       for(int iSymTuple = 0;
           iSymTuple < sr->SymbolicTuplesSize(); iSymTuple++)
       {
-        const SymbolicTuple* symTuple;
+        SymbolicTuple symTuple;
         sr->GetSymbolicTuples(iSymTuple, symTuple);
-        if(symTuple->endIndex-symTuple->startIndex >= 2)
+        if(symTuple.endIndex-symTuple.startIndex >= 2)
         {
           // if more than 2
-          const LinearConstraint* linConstraint1;
-          const LinearConstraint* linConstraint2;
-          const LinearConstraint* linConstraint3;
-          sr->GetLinConstraints(symTuple->startIndex,
+          LinearConstraint linConstraint1;
+          LinearConstraint linConstraint2;
+          LinearConstraint linConstraint3;
+          sr->GetLinConstraints(symTuple.startIndex,
                         linConstraint1);
-          sr->GetLinConstraints(symTuple->startIndex+1,
+          sr->GetLinConstraints(symTuple.startIndex+1,
                         linConstraint2);
-          sr->GetLinConstraints(symTuple->startIndex+2,
+          sr->GetLinConstraints(symTuple.startIndex+2,
                         linConstraint3);
-          if(linConstraint1->Get_Op()==OP_LEQ &&
-               linConstraint2->Get_Op()==OP_LEQ &&
-               linConstraint3->Get_Op()==OP_LEQ)
+          if(linConstraint1.Get_Op()==OP_LEQ &&
+               linConstraint2.Get_Op()==OP_LEQ &&
+               linConstraint3.Get_Op()==OP_LEQ)
           {
             ListExpr regionNL, resultNL, lastNL;
             Point2D startPoint2D, fromPoint2D, toPoint2D;
 
-            for(int iLinC = symTuple->startIndex;
-                iLinC <= symTuple->endIndex; iLinC++)
+            for(int iLinC = symTuple.startIndex;
+                iLinC <= symTuple.endIndex; iLinC++)
             {
-              if(iLinC==symTuple->startIndex)
+              if(iLinC==symTuple.startIndex)
               {
-                const LinearConstraint* firstLinConstraint;
-                const LinearConstraint* secondLinConstraint;
-                const LinearConstraint* lastLinConstraint;
-                sr->GetLinConstraints(symTuple->startIndex,
+                LinearConstraint firstLinConstraint;
+                LinearConstraint secondLinConstraint;
+                LinearConstraint lastLinConstraint;
+                sr->GetLinConstraints(symTuple.startIndex,
                   firstLinConstraint);
-                sr->GetLinConstraints(symTuple->startIndex+1,
+                sr->GetLinConstraints(symTuple.startIndex+1,
                   secondLinConstraint);
-                sr->GetLinConstraints(symTuple->endIndex,
+                sr->GetLinConstraints(symTuple.endIndex,
                   lastLinConstraint);
                 fromPoint2D = GetIntersectionPoint(
-                  *lastLinConstraint,
-                  *firstLinConstraint);
+                  lastLinConstraint,
+                  firstLinConstraint);
                 startPoint2D = fromPoint2D;
                 toPoint2D = GetIntersectionPoint(
-                  *firstLinConstraint, *secondLinConstraint);
+                  firstLinConstraint, secondLinConstraint);
                 resultNL = nl->OneElemList(
                   nl->TwoElemList(
                   nl->RealAtom(fromPoint2D.x),
@@ -5124,15 +5126,15 @@ int constraint2regionValueMap( Word* args, Word& result, int message,
               }
               else //if(iLinC <= symTuple->endIndex)
               {
-                const LinearConstraint* currLinConstraint;
-                const LinearConstraint* nextLinConstraint;
+                LinearConstraint currLinConstraint;
+                LinearConstraint nextLinConstraint;
                 sr->GetLinConstraints(iLinC,
                 currLinConstraint);
                 sr->GetLinConstraints(iLinC+1,
                 nextLinConstraint);
                 toPoint2D = GetIntersectionPoint(
-                *currLinConstraint,
-                *nextLinConstraint);
+                currLinConstraint,
+                nextLinConstraint);
                 lastNL = nl->Append(lastNL,
                  nl->TwoElemList(
                   nl->RealAtom(fromPoint2D.x),

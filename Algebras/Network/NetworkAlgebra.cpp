@@ -1947,7 +1947,7 @@ JUNCTION_ROUTE1_ID );
     pNewJunction->PutAttribute ( JUNCTION_ROUTE1_RC, pR1RC );
 
     // Calculate and store the exakt location of the junction.
-    Tuple* pRoute = m_pRoutes->GetTuple ( pRoutesIter->GetId() );
+    Tuple* pRoute = m_pRoutes->GetTuple ( pRoutesIter->GetId(), false );
     assert ( pRoute != 0 );
     SimpleLine* pLine = ( SimpleLine* ) pRoute->GetAttribute ( ROUTE_CURVE );
     assert ( pLine != 0 );
@@ -2643,7 +2643,8 @@ void Network::FillAdjacencyLists()
        )
     {
       int iHigh = m_xSubAdjacencyList.Size()-1;
-      Tuple *pSect = m_pSections->GetTuple ( xLastPair.m_iFirstSectionTid );
+      Tuple *pSect = m_pSections->GetTuple ( xLastPair.m_iFirstSectionTid, 
+                                             false );
       int iSectId =
         ( ( CcInt* ) pSect->GetAttribute ( SECTION_SID ) )->GetIntval();
       pSect->DeleteIfAllowed();
@@ -3122,7 +3123,7 @@ void Network::FindSP ( TupleId j1,TupleId j2,double& length,GLine* res )
   res->SetNetworkId ( GetId() );
   for ( int i = 1; i <= alldistance->GetNoTuples();i++ )
   {
-    Tuple* tuple = alldistance->GetTuple ( i );
+    Tuple* tuple = alldistance->GetTuple ( i, false );
     TupleId jun1 = ( ( CcInt* ) tuple->GetAttribute ( 0 ) )->GetIntval();
     TupleId jun2 = ( ( CcInt* ) tuple->GetAttribute ( 1 ) )->GetIntval();
     if ( ( jun1 == j1 && jun2 == j2 ) ||
@@ -3156,8 +3157,8 @@ void Network::FillDistanceStorage()
   {
     for ( int j = i+1; j <= m_pJunctions->GetNoTuples();j++ )
     {
-      Tuple* jun1 = m_pJunctions->GetTuple ( i );
-      Tuple* jun2 = m_pJunctions->GetTuple ( j );
+      Tuple* jun1 = m_pJunctions->GetTuple ( i, false );
+      Tuple* jun2 = m_pJunctions->GetTuple ( j , false);
       int rid1 = ( ( CcInt* ) jun1->GetAttribute ( JUNCTION_ROUTE1_ID )
 )->GetIntval();
       int rid2 = ( ( CcInt* ) jun2->GetAttribute ( JUNCTION_ROUTE1_ID )
@@ -3250,7 +3251,8 @@ void Network::GetJunctionsOnRoute ( CcInt* in_pRouteId,
   while ( pJunctionsIt->Next() )
   {
     // Get next junction
-    Tuple* pCurrentJunction = m_pJunctions->GetTuple ( pJunctionsIt->GetId() );
+    Tuple* pCurrentJunction = m_pJunctions->GetTuple ( pJunctionsIt->GetId(),
+                                                       false );
     inout_xJunctions.push_back ( JunctionSortEntry ( true, pCurrentJunction ) );
   }
   delete pJunctionsIt;
@@ -3259,7 +3261,8 @@ void Network::GetJunctionsOnRoute ( CcInt* in_pRouteId,
   pJunctionsIt = m_pBTreeJunctionsByRoute2->ExactMatch ( in_pRouteId );
   while ( pJunctionsIt->Next() )
   {
-    Tuple* pCurrentJunction = m_pJunctions->GetTuple ( pJunctionsIt->GetId() );
+    Tuple* pCurrentJunction = m_pJunctions->GetTuple ( pJunctionsIt->GetId(),
+                                                       false );
     inout_xJunctions.push_back ( JunctionSortEntry ( false, pCurrentJunction )
 );
   }
@@ -3272,7 +3275,7 @@ void Network::GetJunctionsOnRoute ( CcInt* in_pRouteId,
 
 Tuple* Network::GetSection ( TupleId n )
 {
-  return m_pSections->GetTuple ( n );
+  return m_pSections->GetTuple ( n, false );
 }
 
 
@@ -3288,7 +3291,7 @@ TupleId Network::GetTupleIdSectionOnRoute ( GPoint* in_xGPoint )
   {
     result = pSectionIter->GetId();
     actSect =
-        m_pSections->GetTuple ( pSectionIter->GetId() );
+        m_pSections->GetTuple ( pSectionIter->GetId(), false );
     if ( actSect != 0 )
     {
       double start =
@@ -3443,7 +3446,7 @@ Tuple* Network::GetRoute ( int in_RouteId )
   pRouteId->DeleteIfAllowed();
   Tuple *pRoute = 0;
   if ( pRoutesIter->Next() )
-    pRoute = m_pRoutes->GetTuple ( pRoutesIter->GetId() );
+    pRoute = m_pRoutes->GetTuple ( pRoutesIter->GetId() , false);
   assert ( pRoute != 0 );
   delete pRoutesIter;
   return pRoute;
@@ -3452,7 +3455,7 @@ Tuple* Network::GetRoute ( int in_RouteId )
 
 Tuple* Network::GetRoute ( TupleId in_routeTID )
 {
-  return m_pRoutes->GetTuple ( in_routeTID );
+  return m_pRoutes->GetTuple ( in_routeTID, false );
 }
 
 void Network::GetSectionsOfRouteInterval ( const RouteInterval *ri,
@@ -3471,7 +3474,7 @@ void Network::GetSectionsOfRouteInterval ( const RouteInterval *ri,
   while ( pSectionIter->Next() )
   {
     actSectTID = pSectionIter->GetId();
-    actSect = m_pSections->GetTuple ( actSectTID );
+    actSect = m_pSections->GetTuple ( actSectTID, false );
     assert ( actSect != 0 );
     double start =
         ( ( CcReal* ) actSect->GetAttribute ( SECTION_MEAS1 ) )->GetRealval();
@@ -3526,7 +3529,7 @@ void Network::GetSectionsOfRoutInterval ( const RouteInterval *ri,
   while ( pSectionIter->Next() )
   {
     actSectTID = pSectionIter->GetId();
-    actSect = m_pSections->GetTuple ( actSectTID );
+    actSect = m_pSections->GetTuple ( actSectTID, false );
     assert ( actSect != 0 );
     double start =
         ( ( CcReal* ) actSect->GetAttribute ( SECTION_MEAS1 ) )->GetRealval();
@@ -3566,7 +3569,7 @@ void Network::GetPointOnRoute ( const GPoint* in_pGPoint, Point*& res )
   pRouteId->DeleteIfAllowed();
   Tuple *pRoute = 0;
   if ( pRoutesIter->Next() )
-    pRoute = m_pRoutes->GetTuple ( pRoutesIter->GetId() );
+    pRoute = m_pRoutes->GetTuple ( pRoutesIter->GetId(), false );
   assert ( pRoute != 0 );
   SimpleLine* pLine = ( SimpleLine* ) pRoute->GetAttribute ( ROUTE_CURVE );
   assert ( pLine != 0 );
@@ -3678,7 +3681,8 @@ bool Network::ShorterConnection ( Tuple *route, double &start,
     while ( j < pAdjSect1.size() )
     {
       DirectedSection actSection = pAdjSect1[j];
-      Tuple *pCurrSect = m_pSections->GetTuple ( actSection.GetSectionTid() );
+      Tuple *pCurrSect = m_pSections->GetTuple ( actSection.GetSectionTid(),
+                                                 false );
       ridt = ( ( CcInt* ) pCurrSect->GetAttribute ( SECTION_RID )
 )->GetIntval();
       pCurrSect->DeleteIfAllowed();
@@ -3706,7 +3710,8 @@ bool Network::ShorterConnection ( Tuple *route, double &start,
     while ( j < pAdjSect2.size() )
     {
       DirectedSection actSection = pAdjSect2[j];
-      Tuple *pCurrSect = m_pSections->GetTuple ( actSection.GetSectionTid() );
+      Tuple *pCurrSect = m_pSections->GetTuple ( actSection.GetSectionTid(),
+                                                 false );
       ridt = ( ( CcInt* ) pCurrSect->GetAttribute ( SECTION_RID )
 )->GetIntval();
       pCurrSect->DeleteIfAllowed();
@@ -3766,7 +3771,8 @@ bool Network::ShorterConnection2 ( Tuple *route, double &start,
     while ( j < pAdjSect1.size() )
     {
       DirectedSection actSection = pAdjSect1[j];
-      Tuple *pCurrSect = m_pSections->GetTuple ( actSection.GetSectionTid() );
+      Tuple *pCurrSect = m_pSections->GetTuple ( actSection.GetSectionTid(),
+                                                 false );
       ridt = ( ( CcInt* ) pCurrSect->GetAttribute ( SECTION_RID )
 )->GetIntval();
       pCurrSect->DeleteIfAllowed();
@@ -3793,7 +3799,8 @@ bool Network::ShorterConnection2 ( Tuple *route, double &start,
     while ( j < pAdjSect2.size() )
     {
       DirectedSection actSection = pAdjSect2[j];
-      Tuple *pCurrSect = m_pSections->GetTuple ( actSection.GetSectionTid() );
+      Tuple *pCurrSect = m_pSections->GetTuple ( actSection.GetSectionTid(),
+                                                 false );
       ridt = ( ( CcInt* ) pCurrSect->GetAttribute ( SECTION_RID )
 )->GetIntval();
       pCurrSect->DeleteIfAllowed();
@@ -3949,7 +3956,8 @@ RouteInterval* Network::Find ( Point p1, Point p2 )
     while ( j < pAdjSect1.size() )
     {
       DirectedSection actSection = pAdjSect1[j];
-      pCurrSect = m_pSections->GetTuple ( actSection.GetSectionTid() );
+      pCurrSect = m_pSections->GetTuple ( actSection.GetSectionTid(),
+                                          false );
       rid = ( ( CcInt* ) pCurrSect->GetAttribute ( SECTION_RID ) )->GetIntval();
       pCurrSect->DeleteIfAllowed();
       pRoute = GetRoute ( rid );
@@ -3986,7 +3994,8 @@ RouteInterval* Network::Find ( Point p1, Point p2 )
     while ( j < pAdjSect2.size() )
     {
       DirectedSection actSection = pAdjSect2[j];
-      pCurrSect = m_pSections->GetTuple ( actSection.GetSectionTid() );
+      pCurrSect = m_pSections->GetTuple ( actSection.GetSectionTid(), 
+                                          false );
       rid = ( ( CcInt* ) pCurrSect->GetAttribute ( SECTION_RID ) )->GetIntval();
       pCurrSect->DeleteIfAllowed();
       pRoute = GetRoute ( rid );
@@ -4124,7 +4133,7 @@ RouteInterval* Network::FindInterval ( Point p1, Point p2 )
     while ( j < pAdjSect1.size() )
     {
       DirectedSection actSection = pAdjSect1[j];
-      pCurrSect = m_pSections->GetTuple ( actSection.GetSectionTid() );
+      pCurrSect = m_pSections->GetTuple ( actSection.GetSectionTid(), false );
       rid = ( ( CcInt* ) pCurrSect->GetAttribute ( SECTION_RID ) )->GetIntval();
       pCurrSect->DeleteIfAllowed();
       pRoute = GetRoute ( rid );
@@ -4160,7 +4169,7 @@ RouteInterval* Network::FindInterval ( Point p1, Point p2 )
     while ( j < pAdjSect2.size() )
     {
       DirectedSection actSection = pAdjSect2[j];
-      pCurrSect = m_pSections->GetTuple ( actSection.GetSectionTid() );
+      pCurrSect = m_pSections->GetTuple ( actSection.GetSectionTid(), false );
       rid = ( ( CcInt* ) pCurrSect->GetAttribute ( SECTION_RID ) )->GetIntval();
       pCurrSect->DeleteIfAllowed();
       pRoute = GetRoute ( rid );
@@ -4211,7 +4220,7 @@ vector<TupleId>& res)
   while ( pSectionIter->Next() )
   {
     result = pSectionIter->GetId();
-    actSect = m_pSections->GetTuple ( pSectionIter->GetId() );
+    actSect = m_pSections->GetTuple ( pSectionIter->GetId(), false );
     if ( actSect != 0 )
     {
       double start =
@@ -4665,7 +4674,7 @@ GPoint* Network::GetNetworkPosOfPoint ( Point p )
   Tuple *pCurrRoute = 0;
   if ( m_pRTreeRoutes->First ( bbox, res ) )
   {
-    pCurrRoute = m_pRoutes->GetTuple ( res.info );
+    pCurrRoute = m_pRoutes->GetTuple ( res.info, false );
     // pCurrRoute->PutAttribute(0, new TupleIdentifier(true, res.info));
   }
   else
@@ -4689,7 +4698,7 @@ ROUTE_CURVE );
     pCurrRoute->DeleteIfAllowed();
     while ( m_pRTreeRoutes->Next ( res ) )
     {
-      pCurrRoute = m_pRoutes->GetTuple ( res.info );
+      pCurrRoute = m_pRoutes->GetTuple ( res.info, false );
       pRouteCurve = ( SimpleLine* ) pCurrRoute->GetAttribute ( ROUTE_CURVE );
       if ( chkPoint ( pRouteCurve, p, true, dpos, difference ) )
       {
@@ -4710,7 +4719,7 @@ ROUTE_CURVE );
 
     */
     if ( m_pRTreeRoutes->First ( bbox, res ) )
-      pCurrRoute = m_pRoutes->GetTuple ( res.info );
+      pCurrRoute = m_pRoutes->GetTuple ( res.info, false );
     pRouteCurve = ( SimpleLine* ) pCurrRoute->GetAttribute ( ROUTE_CURVE );
     if ( chkPoint03 ( pRouteCurve, p, true, dpos, difference ) )
     {
@@ -4727,7 +4736,7 @@ ROUTE_CURVE );
       pCurrRoute->DeleteIfAllowed();
       while ( m_pRTreeRoutes->Next ( res ) )
       {
-        pCurrRoute = m_pRoutes->GetTuple ( res.info );
+        pCurrRoute = m_pRoutes->GetTuple ( res.info , false);
         pRouteCurve = ( SimpleLine* ) pCurrRoute->GetAttribute ( ROUTE_CURVE );
         if ( chkPoint03 ( pRouteCurve, p, true, dpos, difference ) )
         {
@@ -4744,7 +4753,7 @@ ROUTE_CURVE );
     }
 
     if ( m_pRTreeRoutes->First ( bbox, res ) )
-      pCurrRoute = m_pRoutes->GetTuple ( res.info );
+      pCurrRoute = m_pRoutes->GetTuple ( res.info, false );
     pRouteCurve = ( SimpleLine* ) pCurrRoute->GetAttribute ( ROUTE_CURVE );
     if ( lastchkPoint03 ( pRouteCurve, p, true, dpos, difference ) )
     {
@@ -4761,7 +4770,7 @@ ROUTE_CURVE );
       pCurrRoute->DeleteIfAllowed();
       while ( m_pRTreeRoutes->Next ( res ) )
       {
-        pCurrRoute = m_pRoutes->GetTuple ( res.info );
+        pCurrRoute = m_pRoutes->GetTuple ( res.info, false );
         pRouteCurve = ( SimpleLine* ) pCurrRoute->GetAttribute ( ROUTE_CURVE );
         if ( lastchkPoint03 ( pRouteCurve, p, true, dpos, difference ) )
         {
@@ -4815,7 +4824,8 @@ void Network::GetJunctionMeasForRoutes ( CcInt *pRoute1Id, CcInt *pRoute2Id,
   found = false;
   while ( !found && pJunctionsIt->Next() )
   {
-    Tuple *pCurrJuncTuple = m_pJunctions->GetTuple ( pJunctionsIt->GetId() );
+    Tuple *pCurrJuncTuple = m_pJunctions->GetTuple ( pJunctionsIt->GetId(),
+                                                     false );
     pCurrJuncR2id = ( CcInt* ) pCurrJuncTuple->GetAttribute ( JUNCTION_ROUTE2_ID
 );
     iCurrJuncTupleR2id = pCurrJuncR2id->GetIntval();
@@ -4866,8 +4876,8 @@ void Network::GetLineValueOfRouteInterval ( const RouteInterval *in_ri,
   BTreeIterator *pRoutesIter = m_pBTreeRoutes->ExactMatch ( pRouteId );
   pRouteId->DeleteIfAllowed();
   Tuple *pRoute = 0;
-  if ( pRoutesIter->Next() ) pRoute = m_pRoutes->GetTuple ( pRoutesIter->GetId()
-);
+  if ( pRoutesIter->Next() ) pRoute = m_pRoutes->GetTuple ( 
+                                pRoutesIter->GetId(), false);
   assert ( pRoute != 0 );
   SimpleLine* pLine = ( SimpleLine* ) pRoute->GetAttribute ( ROUTE_CURVE );
   assert ( pLine != 0 );

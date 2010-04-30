@@ -52,7 +52,7 @@ The type system of the HierarchicalGeo Algebra can be seen below.
 #include "TemporalAlgebra.h"
 #include "SpatialAlgebra.h"
 #include "MovingRegionAlgebra.h"
-#include "DBArray.h"
+#include "../../Tools/Flob/DbArray.h"
 #include "RectangleAlgebra.h"
 #include "DateTime.h"
 
@@ -224,16 +224,12 @@ The simple constructor. This constructor should not be used.
       UPoint(false),
       Uncertain(is_defined)
   {
-    del.refs=1;
-    del.isDelete=true;
   }
   
   CUPoint( const double epsilon ):
       UPoint(false),
       Uncertain(epsilon)
   {
-    del.refs=1;
-    del.isDelete=true;
   }
 /*
 The simple constructor, only defining the epsilon-value. 
@@ -244,8 +240,6 @@ The simple constructor, only defining the epsilon-value.
     UPoint( source ),
     Uncertain( 0.0 ) 
   {
-    del.refs=1;
-    del.isDelete=true;
   }
 /*
 A constructor to create an uncertain unit point from a unit point.
@@ -255,8 +249,6 @@ A constructor to create an uncertain unit point from a unit point.
     UPoint( source ),
     Uncertain( epsilon ) 
   {
-    del.refs=1;
-    del.isDelete=true;
   }
   
 /*
@@ -269,8 +261,6 @@ and unit point. This constructor should only be used to create test-data!
     UPoint( interval, p0, p1 ),
     Uncertain (epsilon)
     {
-      del.refs=1;
-      del.isDelete=true;
     }
 
   CUPoint( const double epsilon, const Interval<Instant>& interval,
@@ -279,8 +269,6 @@ and unit point. This constructor should only be used to create test-data!
     UPoint( interval, x0, y0, x1, y1 ),
     Uncertain (epsilon)
     {
-      del.refs=1;
-      del.isDelete=true;
     }
   
   
@@ -288,8 +276,6 @@ and unit point. This constructor should only be used to create test-data!
     UPoint(source), 
     Uncertain(source)
   {
-    del.refs=1;
-    del.isDelete=true;
   }
 /*
 The copy-constructor.
@@ -599,8 +585,6 @@ The simple constructor. This constructor should not be used.
       Uncertain( true )    
   {
     epsilon = 0.0;
-    del.refs=1;
-    del.isDelete=true;
     bbox = Rectangle<3>(false, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
   }
 /*
@@ -748,6 +732,7 @@ The simple constructor. This constructor should not be used.
 */
   
   HierarchicalEntity( const HierarchicalEntity<Alpha>& entity): 
+      Attribute(true),
       value(),
       generalizedby( entity.GetGeneralizedby() ),
       layer( entity.GetLayer() ),
@@ -756,8 +741,6 @@ The simple constructor. This constructor should not be used.
       originend( entity.GetOriginend() )
   {
     value.CopyFrom( &entity.value );
-    del.refs=1;
-    del.isDelete=true;
   }
 /*
 The copy-constructor.
@@ -766,6 +749,7 @@ The copy-constructor.
   
   HierarchicalEntity( const Alpha& alpha, const int l, const int idx,
                       const int start, const int end ):
+    Attribute(true),
     value(),
     generalizedby( -1 ),
     layer( l ),
@@ -774,8 +758,6 @@ The copy-constructor.
     originend( end )
   {
     value.CopyFrom( &alpha );
-    del.refs=1;
-    del.isDelete=true;
   }
 /*
 The creation of a HierarchicalEntity, setting the typically allready known
@@ -784,6 +766,7 @@ attributes.
 */
   HierarchicalEntity( const Alpha& alpha, const int genby, const int l,
                       const int idx, const int start, const int end ):
+    Attribute(true),
     value(),
     generalizedby( genby ),
     layer( l ),
@@ -792,8 +775,6 @@ attributes.
     originend( end )
   {
     value.CopyFrom( &alpha );
-    del.refs=1;
-    del.isDelete=true;
   }
 /*
 A constructor which sets all attributes (usually unsed by the in-function).
@@ -1055,24 +1036,22 @@ The simple constructor. This constructor should not be used.
 
 */
   HCMPoint( const int n ):
+    Attribute(true),
     layer0epsilon( -1 ), layer1epsilon( -1 ), layer2epsilon( -1 ),
     layer3epsilon( -1 ), layer4epsilon( -1 ),
     layer0( 0 ), layer1( 0 ), layer2( 0 ), layer3( 0 ), layer4( n ),
     canDestroy( false ), epsilon( -1 ), factor( -1 )
   {
-    del.refs=1;
-    del.isDelete=true;
     bbox = Rectangle<3>(false, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
   }
   
   HCMPoint( const int n, const double e, const double f ):
+    Attribute(true),
     layer0epsilon( -1 ), layer1epsilon( -1 ), layer2epsilon( -1 ),
     layer3epsilon( -1 ), layer4epsilon( -1 ),
     layer0( 0 ), layer1( 0 ), layer2( 0 ), layer3( 0 ), layer4( n ),
     canDestroy( false ), epsilon( e ), factor( f )
   {
-    del.refs=1;
-    del.isDelete=true;
     bbox = Rectangle<3>(false, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
   }
 /*
@@ -1182,9 +1161,9 @@ for destroying. The destructor will perform the real destroying.
     return factor;
   }
   
-  inline void Get( const int layer, const int i, HCUPoint const*& hcup ) const;
+  inline void Get( const int layer, const int i, HCUPoint& hcup ) const;
   
-  inline void Get( const int layer, const int i, CUPoint const*& cup ) const;
+  inline void Get( const int layer, const int i, CUPoint& cup ) const;
    
   inline void Put( const int layer, const int i, HCUPoint& hcup);
   
@@ -1310,7 +1289,7 @@ This recursive Function determines, by a pre-order run through the hierarchical
 
 
 */     
-  void Get( const int i, const HCUPoint*& hcup ) const;
+  void Get( const int i, HCUPoint& hcup ) const;
   
   
   void GetCMPoint( const double epsilon, CMPoint& result );
@@ -1385,7 +1364,7 @@ are true:
     return 5;
   }
   
-  inline FLOB* GetFLOB( const int i);
+  inline Flob* GetFLOB( const int i);
 
 /*
 3.7.3.7 ~BoundingBox~
@@ -1412,7 +1391,7 @@ Returns the HCMPoint's minimum bounding rectangle
 5 variables of type double, to store the uncertainty-value of each layer.
 
 */     
-    DBArray<HCUPoint> layer0, layer1, layer2, layer3, layer4;
+    DbArray<HCUPoint> layer0, layer1, layer2, layer3, layer4;
 /*
 5 DBArrays to store the entities depending on their epsilon-value.
 
@@ -1459,10 +1438,7 @@ The simple constructor. This constructor should not be used.
 */
   HMPoint( const int n ):
     HCMPoint( 0 ), certainlayer( n )
-  {
-    del.refs=1;
-    del.isDelete=true;
-  }
+  { }
 /*
 A constructor, initializing space for ~n~ entities in the bottom layer.
 
@@ -1470,8 +1446,6 @@ A constructor, initializing space for ~n~ entities in the bottom layer.
   HMPoint( const double e, const double f, const MPoint& m ):
     HCMPoint( 0, e, f ), certainlayer( m.GetNoComponents() )
   {
-    del.refs=1;
-    del.isDelete=true;
   }
 /*
 This constructor creates a new HMPoint from the given MPoint-object. The units 
@@ -1498,7 +1472,7 @@ The destructor.
   void clear()
   {
     HCMPoint::Clear();
-    certainlayer.Clear();
+    certainlayer.clean();
   }
 
 /*
@@ -1517,13 +1491,13 @@ right function GetNoComponents.
     return noComponents;
   }
   
-  void Get( const int layer, const int i, HCUPoint const*& hcup ) const;
+  void Get( const int layer, const int i, HCUPoint& hcup ) const;
   
-  void Get( const int layer, const int i, CUPoint const*& cup ) const;
+  void Get( const int layer, const int i, CUPoint& cup ) const;
   
   //void Get( const int layer, const int i, UPoint const*& up ) const;
   
-  void Get( const int i, HCUPoint const*& ntt ) const;
+  void Get( const int i, HCUPoint& ntt ) const;
   
   void GetCMPoint( const double epsilon, CMPoint& result );
   
@@ -1598,13 +1572,13 @@ right function GetNoComponents.
   }
   
   
-  inline FLOB* GetFLOB( const int i);
+  inline Flob* GetFLOB( const int i);
   
 /*
 3.8.4 Attributes
 
 */
-  DBArray<HCUPoint> certainlayer;
+  DbArray<HCUPoint> certainlayer;
 /*
 The DBArray ~certainlayer~ stores only HCUPoint-objects with an epsilon-value 
 of 0.

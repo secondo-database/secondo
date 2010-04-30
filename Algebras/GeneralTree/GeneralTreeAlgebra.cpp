@@ -433,7 +433,9 @@ ListExpr OutDistData(ListExpr type_Info, Word value)
             static_cast<DistDataAttribute*>(value.addr);
     Base64 b64;
     string b64string;
-    b64.encode(ddAttr->value(), ddAttr->size(), b64string);
+    char * data = ddAttr->getData();
+    b64.encode(data, ddAttr->size(), b64string);
+    delete[] data;
     DistDataInfo info = DistDataReg::
             getInfo(ddAttr->distdataId());
 
@@ -777,8 +779,12 @@ gdistanceDD_VM(Word* args, Word& result,
     }
 
     double dist;
-    DistData dd1(ddAttr1->size(), ddAttr1->value());
-    DistData dd2(ddAttr2->size(), ddAttr2->value());
+    char * data = ddAttr1->getData();
+    DistData dd1(ddAttr1->size(), data);
+    delete [] data;
+    data = ddAttr2->getData();
+    DistData dd2(ddAttr2->size(),data);
+    delete[] data;
     info.dist(&dd1, &dd2, dist);
     resultValue->Set(true, dist);
 
