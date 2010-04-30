@@ -156,9 +156,9 @@ ListExpr doubleExportTypeMap(ListExpr args)
     "Expect equal key types.");
 
   ListExpr attrList = nl->TwoElemList(
-      nl->TwoElemList(nl->StringAtom("key",false),
+      nl->TwoElemList(nl->StringAtom("keyT",false),
           nl->SymbolAtom(STRING)),
-      nl->TwoElemList(nl->StringAtom("value",false),
+      nl->TwoElemList(nl->StringAtom("valueT",false),
           nl->SymbolAtom(TEXT)));
   NList AttrList(attrList, nl);
   NList tupleStreamList = NList(NList().tupleStreamOf(AttrList));
@@ -542,7 +542,7 @@ bool phjLocalInfo::getNewProducts()
       }
       default:{
         //should never be here
-        cerr << "Exist tuples with error key value" << endl;
+        cerr << "Exist tuples with error SI value" << endl;
         assert(false);
       }
       }
@@ -610,6 +610,277 @@ bool phjLocalInfo::getNewProducts()
 }
 
 /*
+4. Type Operator ~TUPSTREAM~
+
+This type operator extract the type of the element from a rel type
+given as the first argument,
+and forwards this type encapsulated in a stream type.
+
+----
+    ( (rel(T1)) ... ) -> stream(T1)
+----
+
+4.1 Specification of Operator ~TUPSTREAM~
+
+*/
+
+struct TUPSTREAMInfo : OperatorInfo
+{
+  TUPSTREAMInfo()
+  {
+    name = "TUPSTREAM";
+    signature =
+        "( (rel(T1)) ... ) -> stream(T1)";
+    syntax = "type operator";
+    meaning = "Extract the tuple of a relation "
+        "from the first argument, and forward it as a stream";
+  }
+};
+
+ListExpr TUPSTREAMType( ListExpr args)
+{
+  ListExpr first;
+  CHECK_COND(nl->ListLength(args) >= 1,
+      "Expect one argument at least");
+  first = nl->First(args);
+  CHECK_COND(listutils::isRelDescription(first),
+      "rel(tuple(...)) expected");
+  return nl->TwoElemList(nl->SymbolAtom(STREAM), nl->Second(first));
+}
+
+
+/*
+4. Type Operator ~TUPSTREAM2~
+
+This type operator extract the type of the element from a rel type
+given as the second argument,
+and forwards this type encapsulated in a stream type.
+
+----
+    ( T1 (rel(T2)) ... ) -> stream(T2)
+----
+
+4.1 Specification of Operator ~TUPSTREAM2~
+
+*/
+
+struct TUPSTREAM2Info : OperatorInfo
+{
+  TUPSTREAM2Info()
+  {
+    name = "TUPSTREAM2";
+    signature =
+        "( T1 (rel(T2)) ... ) -> stream(T2)";
+    syntax = "type operator";
+    meaning = "Extract the tuple of a relation "
+        "from the second argument, and forward it as a stream";
+  }
+};
+
+ListExpr TUPSTREAM2Type( ListExpr args)
+{
+  ListExpr second;
+  CHECK_COND(nl->ListLength(args) >= 2,
+      "Expect two argument at least");
+  second = nl->Second(args);
+  CHECK_COND(listutils::isRelDescription(second),
+      "rel(tuple(...)) expected");
+  return nl->TwoElemList(nl->SymbolAtom(STREAM), nl->Second(second));
+}
+
+
+/*
+4. Type Operator ~TUPSTREAM3~
+
+This type operator extract the type of the element from a rel type
+given as the third argument,
+and forwards this type encapsulated in a stream type.
+
+----
+    ( T1 T2 (rel(T3)) ... ) -> stream(T3)
+----
+
+4.1 Specification of Operator ~TUPSTREAM3~
+
+*/
+
+struct TUPSTREAM3Info : OperatorInfo
+{
+  TUPSTREAM3Info()
+  {
+    name = "TUPSTREAM3";
+    signature =
+        "( T1 T2 (rel(T3)) ... ) -> stream(T3)";
+    syntax = "type operator";
+    meaning = "Extract the tuple of a relation "
+        "from the third argument, and forward it as a stream";
+  }
+};
+
+ListExpr TUPSTREAM3Type( ListExpr args)
+{
+  ListExpr third;
+  CHECK_COND(nl->ListLength(args) >= 1,
+      "Expect one argument at least");
+  third = nl->Third(args);
+  CHECK_COND(listutils::isRelDescription(third),
+      "rel(tuple(...)) expected");
+  return nl->TwoElemList(nl->SymbolAtom(STREAM), nl->Second(third));
+}
+
+/*
+5 Operator ~parajoin~
+
+
+
+----
+    (  (stream(tuple((value text))))
+     x (rel(tuple(T1))) x (rel(tuple(T2)))
+     x (map t r)  )
+     -> stream(tuple(T1 T2))
+----
+
+
+*/
+
+struct paraJoinInfo : OperatorInfo
+{
+  paraJoinInfo()
+  {
+    name = "parajoin";
+    signature = "( (stream(tuple((key int)(value text))))"
+                 "x(rel(tuple(T1))) x (rel(tuple(T2)))"
+                 "x(map t r) )"
+                 " -> stream(tuple(T1 T2))";
+    syntax = "_ _ _ parajoin [funlist]";
+    meaning = "join mixed tuples from two relations";
+  }
+};
+
+ListExpr paraJoinTypeMap( ListExpr args )
+{
+  CHECK_COND(nl->ListLength(args) == 4,
+    "Expect four arguments");
+
+  ListExpr streamList = nl->First(args);
+  ListExpr relAList = nl->Second(args);
+  ListExpr relBList = nl->Third(args);
+  ListExpr namedMap = nl->Fourth(args);
+
+  CHECK_COND(listutils::isTupleStream(streamList)
+    && listutils::isRelDescription(relAList)
+    && listutils::isRelDescription(relBList),
+    "Expect (stream(tuple((value text))))"
+          "x(rel(tuple(T1))) x (rel(tuple(T2)))"
+          "x((name1 (map t r)) ... (namen (map t r)))");
+
+  ListExpr attrList = nl->Second(nl->Second(streamList));
+  CHECK_COND(nl->ListLength(attrList) == 1
+    && listutils::isSymbol(nl->Second(nl->First(attrList)),TEXT),
+    "Expect input stream as (stream(tuple((value text))))");
+
+  //The map indicates the join method for tuples in the same bucket
+  CHECK_COND(listutils::isMap<2>(namedMap),
+      "Expect two arguments in the map.");
+
+  ListExpr rAtupNList =
+        renameList(nl->Second(nl->Second(relAList)), "1");
+  ListExpr rBtupNList =
+        renameList(nl->Second(nl->Second(relBList)), "2");
+  ListExpr resultAttrList = ConcatLists(rAtupNList, rBtupNList);
+  ListExpr resultList = nl->TwoElemList(nl->SymbolAtom("stream"),
+        nl->TwoElemList(nl->SymbolAtom("tuple"), resultAttrList));
+
+  return resultList;
+}
+
+int paraJoinValueMap(Word* args, Word& result,
+                int message, Word& local, Supplier s)
+{
+
+  pjLocalInfo *localInfo;
+  ListExpr aTupleTypeList, bTupleTypeList;
+
+  switch (message)
+  {
+  case OPEN:{
+    qp->Open(args[0].addr);
+
+    aTupleTypeList =
+        SecondoSystem::GetCatalog()->NumericType( nl->OneElemList(
+        nl->Second(qp->GetSupplierTypeExpr(qp->GetSon(s,1)))));
+    bTupleTypeList =
+        SecondoSystem::GetCatalog()->NumericType( nl->OneElemList(
+        nl->Second(qp->GetSupplierTypeExpr(qp->GetSon(s,2)))));
+
+    localInfo = new pjLocalInfo(args[0], args[3].addr, s,
+        aTupleTypeList, bTupleTypeList);
+
+    local.setAddr(localInfo);
+    return 0;
+  }
+  case REQUEST:{
+
+    // ask the fun to get the result tuple.
+    if (local.addr == 0)
+      return CANCEL;
+    localInfo = (pjLocalInfo*) local.addr;
+
+    result = localInfo->getNextTuple();
+    if (result.addr)
+      return YIELD;
+    else
+      return CANCEL;
+  }
+  case (1*FUNMSG)+OPEN:{
+    return 0;
+  }
+  case (2*FUNMSG)+OPEN:{
+    return 0;
+  }
+  case (1*FUNMSG)+REQUEST:{
+    if (local.addr == 0)
+      return CANCEL;
+    localInfo = (pjLocalInfo*) local.addr;
+
+    result = localInfo->getNextInputTuple(tupBufferA);
+    if ( result.addr != 0)
+      return YIELD;
+    else
+      return CANCEL;
+  }
+  case (2*FUNMSG)+REQUEST:{
+    if (local.addr == 0)
+      return CANCEL;
+    localInfo = (pjLocalInfo*) local.addr;
+
+    result = localInfo->getNextInputTuple(tupBufferB);
+    if ( result.addr != 0)
+      return YIELD;
+    else
+      return CANCEL;
+  }
+  case (1*FUNMSG)+CLOSE:{
+    return 0;
+  }
+  case (2*FUNMSG)+CLOSE:{
+    return 0;
+  }
+  case CLOSE:{
+    if (local.addr == 0)
+      return CANCEL;
+    localInfo = (pjLocalInfo*) local.addr;
+
+    //delete localInfo;
+    qp->Close(args[0].addr);
+    return 0;
+  }
+  }
+
+  return 0;
+}
+
+/*
 3 Class ~HadoopParallelAlgebra~
 
 A new subclass ~HadoopParallelAlgebra~ of class ~Algebra~ is declared.
@@ -633,6 +904,15 @@ public:
         doubleExportValueMap, doubleExportTypeMap);
     AddOperator(paraHashJoinInfo(),
         paraHashJoinValueMap, paraHashJoinTypeMap);
+
+    AddOperator(paraJoinInfo(),
+        paraJoinValueMap, paraJoinTypeMap);
+
+
+    AddOperator(TUPSTREAMInfo(), 0, TUPSTREAMType);
+    AddOperator(TUPSTREAM2Info(), 0, TUPSTREAM2Type);
+    AddOperator(TUPSTREAM3Info(), 0, TUPSTREAM3Type);
+
   }
   ~HadoopParallelAlgebra()
   {

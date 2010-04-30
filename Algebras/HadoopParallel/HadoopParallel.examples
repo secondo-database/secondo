@@ -12,3 +12,27 @@ Number: 1
 Signature: ( (stream (tuple((key:int) (value:text)))) text text ) -> stream(tuple(...))
 Example: query mixedRel feed rel1 rel2 parahashjoin count;
 Result: 8
+
+Operator: TUPSTREAM
+Number: 1
+Signature: ( (rel(T1)) ... ) -> stream(T1)
+Example: query mixedRel feed rel1 rel2 parajoin[. {p} .. {o} product] count;
+Result: 5171
+
+Operator: TUPSTREAM2
+Number: 1
+Signature: ( (rel(T1)) ... ) -> stream(T1)
+Example: query mixedRel feed rel1 rel2 parajoin[. {p} .. {o} product] count;
+Result: 5171
+
+Operator: TUPSTREAM3
+Number: 1
+Signature: ( (rel(T1)) ... ) -> stream(T1)
+Example: query mixedRel feed rel1 rel2 parajoin[. {p} .. {o} product] count;
+Result: 5171
+
+Operator: parajoin
+Number: 1
+Signature: (  (stream(tuple((key string)(value text)))) x (rel(tuple(T1))) x (rel(tuple(T2))) x ((name1 (map t r)) ... (namen (map t r)))  ) -> int
+Example: query mixedRel feed rel1 rel2 parajoin[. {p} .. {o} product] count;
+Result: 5171
