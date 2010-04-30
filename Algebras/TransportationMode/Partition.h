@@ -750,7 +750,6 @@ struct SpacePartition{
   // point of the next one, the result is stored as vector<MyHalfSegment>
 
   void ReorderLine(SimpleLine*, vector<MyHalfSegment>&);
-  void NewReorderLine(SimpleLine*, vector<MyHalfSegment>&);
   //create a region from the given set of ordered points
   void ComputeRegion(vector<Point>& outer_region,vector<Region>& regs);
   //extend each road to a region

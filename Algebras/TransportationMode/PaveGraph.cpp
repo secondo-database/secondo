@@ -41,6 +41,7 @@ creating the graph model for walk planning.
 Decompose the pavement on one side of the road into a set of subregions
 
 */
+
 void SpacePartition::DecomposePave(Region* reg1, Region* reg2,
                      vector<Region>& result)
 {
@@ -413,9 +414,6 @@ void SpacePartition::GetCommPave1(vector<Region_Oid>& pave1,
                   junid2.push_back(pave2[j].oid);
                   pave_line1.push_back(*result);
 
-//                  GetCommonLine(&pave1[i].reg, result, l1);
-//                  GetCommonLine(&pave2[j].reg, result, l2);
-
                   delete l1;
                   delete l2;
               }
@@ -445,10 +443,6 @@ void SpacePartition::GetCommPave1(vector<Region_Oid>& pave1,
                   junid1.push_back(pave1[i].oid);
                   junid2.push_back(pave2[j].oid);
                   pave_line1.push_back(*result);
-
-//                  GetCommonLine(&pave1[i].reg,result, l1);
-//                  GetCommonLine(&pave2[j].reg,result, l2);
-
 
                   delete l1;
                   delete l2;
@@ -581,7 +575,7 @@ void SpacePartition::GetSubLine(SimpleLine* sl, Point& p1,
 {
     cout<<"boundary length "<<sl->Length()<<endl;
     vector<MyHalfSegment> mhs;
-    NewReorderLine(sl, mhs);
+    ReorderLine(sl, mhs);
 
     printf("p1 (%.8f,%.8f)  p2 (%.8f, %.8f)\n", p1.GetX(), p1.GetY(),
                                                 p2.GetX(), p2.GetY());
@@ -910,7 +904,7 @@ bool CompTriangle::GetTriangles(const vector<Point>& contour,
   int *V = new int[n];
 
   /* we want a counter-clockwise polygon in V */
-  cout<<"Area "<<Area(contour)<<endl;
+//  cout<<"Area "<<Area(contour)<<endl;
 
   if ( 0.0f < Area(contour) )
     for (int v=0; v<n; v++) V[v] = v;
@@ -958,7 +952,7 @@ bool CompTriangle::GetTriangles(const vector<Point>& contour,
     }
   }
 
-  delete V;
+  delete []V;
 
   return true;
 }
@@ -979,26 +973,35 @@ void CompTriangle::Triangulation()
   }
   Line* boundary = new Line(0);
   reg->Boundary(boundary);
+//  cout<<"boundary "<<*boundary<<endl;
   SimpleLine* sboundary = new SimpleLine(0);
   sboundary->fromLine(*boundary);
+//  cout<<"sboundary size "<<sboundary->Size()<<endl;
   vector<MyHalfSegment> mhs;
   //get all the points of the region
   SpacePartition* sp = new SpacePartition();
-  sp->ReorderLine(sboundary, mhs);
+  if(sboundary->Size() > 0)
+    sp->ReorderLine(sboundary, mhs);
+  else{
+    cout<<"can't covert the boundary to a sline"<<endl;
+    delete boundary;
+    delete sboundary;
+    return;
+  }
   delete boundary;
   delete sboundary;
 
 /*  for(unsigned int i = 0;i < mhs.size();i++)
-    mhs[i].Print();*/
+        mhs[i].Print();*/
+
   vector<Point> ps;
   for(unsigned int i = 0;i < mhs.size();i++)
     ps.push_back(mhs[i].from);
 
 
-  for(unsigned int i = 0;i < ps.size();i++){
+/*  for(unsigned int i = 0;i < ps.size();i++){
     printf("%.8f %.8f\n",ps[i].GetX(), ps[i].GetY());
-
-  }
+  }*/
 
   vector<Point> result;
   GetTriangles(ps, result);
@@ -1010,16 +1013,20 @@ void CompTriangle::Triangulation()
      Point p1 = result[i*3+0];
      Point p2 = result[i*3+1];
      Point p3 = result[i*3+2];
-    printf("Triangle %d => (%0.0f,%0.0f) (%0.0f,%0.0f) (%0.0f,%0.0f)\n", i + 1,
+/*     printf("Triangle %d => (%.5f,%.5f) (%.5f,%.5f) (%.5f,%.5f)\n", i + 1,
           p1.GetX(), p1.GetY(),
           p2.GetX(), p2.GetY(),
-          p3.GetX(), p3.GetY());
+          p3.GetX(), p3.GetY());*/
 
     vector<Point> reg_ps;
+
     reg_ps.push_back(p1);
     reg_ps.push_back(p2);
     reg_ps.push_back(p3);
-    assert(sp->GetClockwise(p2, p1, p3));
+
+    sp->ComputeRegion(reg_ps, triangles);
   }
+
   delete sp;
+
 }

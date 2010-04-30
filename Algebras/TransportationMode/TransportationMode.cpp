@@ -1344,6 +1344,7 @@ struct DecomposeRegion{
     }
 
     for(int i = 0;i < no_faces;i++){
+        result[i].SetNoComponents(1);
         result[i].EndBulkLoad(false,false,false,false);
 //        result[i].EndBulkLoad();
 //        cout<<"Area "<<result[i].Area()<<endl;
@@ -1750,7 +1751,6 @@ int OpTMTriangulatemap ( Word* args, Word& result, int message,
                          Word& local, Supplier in_pSupplier )
 {
   CompTriangle* ct;
-
   switch(message){
       case OPEN:{
         Region* reg = (Region*)args[0].addr;
@@ -1764,7 +1764,8 @@ int OpTMTriangulatemap ( Word* args, Word& result, int message,
           ct = (CompTriangle*)local.addr;
           if(ct->count == ct->triangles.size())
                           return CANCEL;
-          result.setAddr(&(ct->triangles[ct->count]));
+          Region* reg = new Region(ct->triangles[ct->count]);
+          result.setAddr(reg);
           ct->count++;
           return YIELD;
       }

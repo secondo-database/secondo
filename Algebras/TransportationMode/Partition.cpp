@@ -2774,7 +2774,7 @@ void SpacePartition::ExtendSeg2(vector<MyHalfSegment>& segs,int delta,
 
 /*
 for the given line, order it in such a way that segi.to = seg{i+1}.from
-store the result in vector<MyHalfSegment>
+store the result in vector<MyHalfSegment>, with higher precision
 
 */
 void SpacePartition::ReorderLine(SimpleLine* sline,
@@ -2798,118 +2798,66 @@ void SpacePartition::ReorderLine(SimpleLine* sline,
     /*for(unsigned i = 0;i < copyline.size();i++)
       copyline[i].Print();*/
 
-    const double delta_dist = 0.1;
+    const double delta_dist = 0.00001;
     unsigned int count = 0;
-    int index = 0;
+
     while(count < copyline.size()){
 
-      if(copyline[index].def == false){
-        index = (index + 1) % copyline.size();
-        continue;
+      vector<int> pos;
+      vector<double> dist;
+      for(unsigned int index = 0;index < copyline.size();index++){
+        if(copyline[index].def == false)continue;
+        Point lp = copyline[index].GetLeftPoint();
+        Point rp = copyline[index].GetRightPoint();
+        double d1 = lp.Distance(sp);
+        double d2 = rp.Distance(sp);
+        if(d1 > delta_dist && d2 > delta_dist)
+            continue;
+
+        if(d1 < delta_dist){
+            pos.push_back(index);
+            dist.push_back(d1);
+        }
+        if(d2 < delta_dist){
+            pos.push_back(index);
+            dist.push_back(d2);
+        }
       }
-
-      Point from = copyline[index].GetLeftPoint();
-      Point to = copyline[index].GetRightPoint();
-
-      //cout<<"from "<<from<<" to "<<to<<endl;
-
-
-      if(from.Distance(sp) > delta_dist && to.Distance(sp) > delta_dist){
-        index = (index + 1) % copyline.size();
-        continue;
+      assert(pos.size() > 0 && dist.size() > 0);
+      double threshold_dist = numeric_limits<double>::max();
+      int pos_index = -1;
+      for(unsigned int i = 0;i < dist.size();i++){
+          if(dist[i] < threshold_dist){
+              pos_index = i;
+              threshold_dist = dist[i];
+          }
       }
+      assert(pos_index != -1);
+      int find_pos = pos[pos_index];
+      Point from = copyline[find_pos].GetLeftPoint();
+      Point to = copyline[find_pos].GetRightPoint();
+      double dist1 = from.Distance(sp);
+      double dist2 = to.Distance(sp);
+      assert(dist1 < delta_dist || dist2 < delta_dist);
 
-      if(from.Distance(sp) < delta_dist){
+      if(dist1 < dist2){
         sp = to;
         count++;
-        copyline[index].def = false;
-        index = (index + 1) % copyline.size();
+        copyline[find_pos].def = false;
         MyHalfSegment* mhs = new MyHalfSegment(true,from,to);
         seq_halfseg.push_back(*mhs);
         delete mhs;
         continue;
-      }
-      if(to.Distance(sp) < delta_dist){
+      }else{
         sp = from;
         count++;
-        copyline[index].def = false;
-        index = (index + 1) % copyline.size();
+        copyline[find_pos].def = false;
         MyHalfSegment* mhs = new MyHalfSegment(true,to,from);
         seq_halfseg.push_back(*mhs);
         delete mhs;
         continue;
       }
-    }
-
-}
-
-/*
-for the given line, order it in such a way that segi.to = seg{i+1}.from
-store the result in vector<MyHalfSegment>, with higher precision
-
-*/
-void SpacePartition::NewReorderLine(SimpleLine* sline,
-                                 vector<MyHalfSegment>& seq_halfseg)
-{
-    Point sp;
-    assert(sline->AtPosition(0.0,true,sp));
-    vector<MyHalfSegment> copyline;
-    for(int i = 0;i < sline->Size();i++){
-      HalfSegment hs;
-      sline->Get(i,hs);
-      if(hs.IsLeftDomPoint()){
-        Point lp = hs.GetLeftPoint();
-        Point rp = hs.GetRightPoint();
-        MyHalfSegment* mhs = new MyHalfSegment(true,lp,rp);
-        copyline.push_back(*mhs);
-        delete mhs;
-      }
-    }
-    ////////////////reorder /////////////////////////////////////
-    /*for(unsigned i = 0;i < copyline.size();i++)
-      copyline[i].Print();*/
-
-    const double delta_dist = 0.001;
-    unsigned int count = 0;
-    int index = 0;
-    while(count < copyline.size()){
-
-      if(copyline[index].def == false){
-        index = (index + 1) % copyline.size();
-        continue;
-      }
-
-      Point from = copyline[index].GetLeftPoint();
-      Point to = copyline[index].GetRightPoint();
-
-      //cout<<"from "<<from<<" to "<<to<<endl;
-
-
-      if(from.Distance(sp) > delta_dist && to.Distance(sp) > delta_dist){
-        index = (index + 1) % copyline.size();
-        continue;
-      }
-
-      if(from.Distance(sp) < delta_dist){
-        sp = to;
-        count++;
-        copyline[index].def = false;
-        index = (index + 1) % copyline.size();
-        MyHalfSegment* mhs = new MyHalfSegment(true,from,to);
-        seq_halfseg.push_back(*mhs);
-        delete mhs;
-        continue;
-      }
-      if(to.Distance(sp) < delta_dist){
-        sp = from;
-        count++;
-        copyline[index].def = false;
-        index = (index + 1) % copyline.size();
-        MyHalfSegment* mhs = new MyHalfSegment(true,to,from);
-        seq_halfseg.push_back(*mhs);
-        delete mhs;
-        continue;
-      }
+      assert(false);
     }
 
 }
@@ -3082,17 +3030,6 @@ void SpacePartition::ExtendRoad(int attr_pos, int w)
       cout<<"road width should be larger than 2"<<endl;
       return;
     }
-/*    double min_length = numeric_limits<double>::max();
-    double max_length = numeric_limits<double>::min();
-
-    for(int i = 1;i <= l->GetNoTuples();i++){
-      Tuple* t = l->GetTuple(i);
-      SimpleLine* sline = (SimpleLine*)t->GetAttribute(attr_pos);
-      if(sline->Length() < min_length) min_length = sline->Length();
-      if(sline->Length() > max_length) max_length = sline->Length();
-      t->DeleteIfAllowed();
-    }*/
-
 
     for(int i = 1;i <= l->GetNoTuples();i++){
       Tuple* t = l->GetTuple(i);
@@ -3102,24 +3039,8 @@ void SpacePartition::ExtendRoad(int attr_pos, int w)
 
       int delta1;//width of road on each side, depend on the road length
       int delta2;
-      //main road-2w, side road--w, pavement -- w/2
 
-/*     if(sline->Length() < (min_length+max_length)/2){
-           delta1 = w;
 
-           int delta;
-           delta = w/2;
-           if(delta < 2) delta = 2;
-           delta2 = w + delta;
-      }
-      else{
-          delta1 = 2*w;
-
-          int delta;
-          delta = w/2;
-          if(delta < 2) delta = 2;
-          delta2 = 2*w + delta;
-      }*/
       delta1 = w;
       int delta = w/2;
       if(delta < 2) delta = 2;
@@ -3198,8 +3119,7 @@ void SpacePartition::ClipPaveRegion(Region& reg,
 
       Region* result = new Region(0);
 //      reg.Minus(*comm_reg,*result);
-//      cout<<"reg "<<reg<<endl;
-//      cout<<"*comm_reg "<<*comm_reg<<endl;
+
       MyMinus(reg,*comm_reg,*result);
 
       paves[rid - 1] = *result;
@@ -3585,6 +3505,7 @@ bool SpacePartition::BuildZebraCrossing(vector<MyPoint>& endpoints1,
                           Region* reg_pave1, Region* reg_pave2,
                           Line* pave1, Region* crossregion, Point& junp)
 {
+
       if(endpoints1.size() > 0 && endpoints2.size() > 0){
 
          MyPoint lp = endpoints1[0];
@@ -3707,7 +3628,7 @@ void SpacePartition::GetZebraCrossing(SimpleLine* subcurve,
 {
     vector<MyPoint> endpoints1;
     vector<MyPoint> endpoints2;
-    double delta = 1;
+    double delta = 1.0;
 
     Line* subline1 = new Line(0);
     Line* subline2 = new Line(0);
@@ -3740,22 +3661,23 @@ void SpacePartition::GetZebraCrossing(SimpleLine* subcurve,
       l = subcurve->Length() - delta;
       flag1 = false;
     }
-
+//    cout<<"flag1 "<<flag1<<endl;
+//    cout<<"subcurve length "<<subcurve->Length()<<endl;
 //    cout<<"l "<<l<<endl;
 //    cout<<"p1 "<<p1<<" startp "<<startp<<"endp "<<endp<<endl;
     ///////////////////////////////////////////////////////
 
     bool find = false;
-    while(find == false && (0 < l && l < subcurve->Length())){
-/*      if(flag)
-        l = l + delta;
-      else
-        l = l - delta;*/
+    while(find == false){
 
-      if(flag1)
+      if(flag1){
         l = l + delta;
-      else
+        if(l > subcurve->Length() || AlmostEqual(l, subcurve->Length())) break;
+      }
+      else{
         l = l - delta;
+        if(l < 0.0 || AlmostEqual(l, 0.0)) break;
+      }
 
       assert(subcurve->AtPosition(l,true,p2));
 
@@ -3953,21 +3875,15 @@ void SpacePartition::Decrease(SimpleLine* curve, Region* reg_pave1,
                       int roadwidth, Region* crossregion)
 {
     double l = len;
-    double delta_l = 20;
-//    double delta_l = 30;
+    double delta_l = 20.0;
     Point p1;
     assert(curve->AtPosition(l, true, p1));
-
     while(1){
       SimpleLine* subcurve = new SimpleLine(0);
       if(l - delta_l > 0.0)
         curve->SubLine(l - delta_l, l, true, *subcurve);
       else
         curve->SubLine(0.0, l, true, *subcurve);
-
-//    subcurve2->toLine(*pave2); ///crossing at junction
-
-//    cout<<"decrease subcurve1 len"<<subcurve->Length()<<endl;
 
       GetZebraCrossing(subcurve, reg_pave1,
                    reg_pave2, roadwidth, pave, delta_l, p1, crossregion);
@@ -3990,10 +3906,10 @@ void SpacePartition::Increase(SimpleLine* curve, Region* reg_pave1,
 
     double route_length = curve->Length();
     double l = len;
-    double delta_l = 20;
-//    double delta_l = 30;
+    double delta_l = 20.0;
     Point p1;
     assert(curve->AtPosition(l, true, p1));
+//    cout<<"increase p1 "<<p1<<endl;
 
     while(1){
       SimpleLine* subcurve = new SimpleLine(0);
@@ -4002,7 +3918,7 @@ void SpacePartition::Increase(SimpleLine* curve, Region* reg_pave1,
       else
         curve->SubLine(l, route_length, true, *subcurve);
 
-  //    subcurve1->toLine(*pave1);/////////crossing at junction
+//        cout<<*subcurve<<endl;
 
         GetZebraCrossing(subcurve, reg_pave1,
                 reg_pave2, roadwidth, pave, delta_l, p1, crossregion);
@@ -4013,7 +3929,7 @@ void SpacePartition::Increase(SimpleLine* curve, Region* reg_pave1,
       delta_l += delta_l;
 
     }
-
+//    cout<<"increase "<<*crossregion<<endl;
 }
 
 /*
@@ -4039,7 +3955,8 @@ void SpacePartition::CreatePavement(SimpleLine* curve, Region* reg_pave1,
       Decrease(curve, reg_pave1, reg_pave2, len, pave2,
               roadwidth, crossreg2);
     }
-
+//    cout<<"*crossreg1 "<<*crossreg1<<endl;
+//    cout<<"*crossreg2 "<<*crossreg2<<endl;
     MyUnion(*crossreg1, *crossreg2, *crossregion);
 
     ///////////////cut the common area by zc and pave////////////////////
@@ -4122,7 +4039,7 @@ void SpacePartition::Junpavement(Network* n, Relation* rel, int attr_pos1,
       int id1 = rid1->GetIntval();
       int id2 = rid2->GetIntval();
 
-/*      if(!(id1 == 38 && id2 == 476)){
+/*      if(!(id1 == 1930 && id2 == 1944)){
           jun_tuple->DeleteIfAllowed();
           continue;
       }*/
