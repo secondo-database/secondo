@@ -393,6 +393,24 @@ in parameter ~result~. The data is stored in a new record with offset zero.
 
 
 /*
+~getData~
+
+Returns the stored data as a char array. The caller is responsible
+to delete the result using delete[]. If an error occurs, the result
+will be null.
+
+*/
+    inline char* getData(){
+         char*res = new char[size];
+         if(!read(res,size,0)){
+             delete[] res;
+             res = 0;
+         }
+         return res;
+    }
+
+
+/*
 ~createFrom~
 
 Creates a Flob referencing a given (FileId/RecordId/Offset). The data is
