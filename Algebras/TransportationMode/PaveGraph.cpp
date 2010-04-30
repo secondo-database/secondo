@@ -1030,3 +1030,78 @@ void CompTriangle::Triangulation()
   delete sp;
 
 }
+
+/*
+if the polygon is convex, returns true, otherwise (concave) returns false
+
+*/
+bool CompTriangle::PolygonConvex()
+{
+  if(reg->NoComponents() == 0){
+      cout<<"error: this is not a region"<<endl;
+      return false;
+  }
+  if(reg->NoComponents() > 1){
+      cout<<"error: there is hole inside or several subregions"<<endl;
+      return false;
+  }
+
+  Line* boundary = new Line(0);
+  reg->Boundary(boundary);
+//  cout<<"boundary "<<*boundary<<endl;
+  SimpleLine* sboundary = new SimpleLine(0);
+  sboundary->fromLine(*boundary);
+//  cout<<"sboundary size "<<sboundary->Size()<<endl;
+  vector<MyHalfSegment> mhs;
+  //get all the points of the region
+  SpacePartition* sp = new SpacePartition();
+  if(sboundary->Size() > 0)
+    sp->ReorderLine(sboundary, mhs);
+  else{
+    cout<<"can't covert the boundary to a sline"<<endl;
+    delete boundary;
+    delete sboundary;
+    return false;
+  }
+  delete boundary;
+  delete sboundary;
+
+/*  for(unsigned int i = 0;i < mhs.size();i++)
+        mhs[i].Print();*/
+
+  vector<Point> ps;
+  for(unsigned int i = 0;i < mhs.size();i++)
+    ps.push_back(mhs[i].from);
+  ///////////////      convex/concave        /////////////////////////////
+   int n = ps.size();
+   int i,j,k;
+   int flag = 0;
+   double z;
+
+   if (ps.size() < 3){
+      cout<<"less than 3 points, it is not a region"<<endl;
+      return false;
+   }
+   for (i=0;i<n;i++) {
+      j = (i + 1) % n;
+      k = (i + 2) % n;
+//      z  = (p[j].x - p[i].x) * (p[k].y - p[j].y);
+//      z -= (p[j].y - p[i].y) * (p[k].x - p[j].x);
+      z  = (ps[j].GetX() - ps[i].GetX()) * (ps[k].GetY() - ps[j].GetY());
+      z -= (ps[j].GetY() - ps[i].GetY()) * (ps[k].GetX() - ps[j].GetX());
+
+      if (z < 0)
+         flag |= 1;
+      else if (z > 0)
+         flag |= 2;
+      if (flag == 3)
+         return false;
+   }
+   if (flag != 0)
+      return true;
+   else
+      return false;
+
+  /////////////////////////////////////////////////////////////////////////
+
+}

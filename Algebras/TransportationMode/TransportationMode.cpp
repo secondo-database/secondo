@@ -185,9 +185,16 @@ const string OpTMTriangulateSpec  =
     "( <text>region ->(stream (tuple( (x1 t1)(x2 t2)...(xn tn))) </text--->"
     "<text>triangulate(region)</text--->"
     "<text>decompose a polygon into a set of triangles</text--->"
-    "<text>query triangulation(pave_regions) count; </text--->"
+    "<text>query triangulation(r1) count; </text--->"
     ") )";
-
+const string OpTMConvexSpec  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+    "\"Example\" ) "
+    "( <text>region -> bool </text--->"
+    "<text>convex(region)</text--->"
+    "<text>detect whether a polygon is convex or concave</text--->"
+    "<text>query convex(r1); </text--->"
+    ") )";
 ////////////////TypeMap function for operators//////////////////////////////
 
 /*
@@ -948,6 +955,25 @@ ListExpr OpTMTriangulateTypeMap ( ListExpr args )
   if (nl->IsEqual(nl->First(args), "region")){
     return nl->TwoElemList(nl->SymbolAtom("stream"),
                            nl->SymbolAtom("region"));
+  }
+  return nl->SymbolAtom ( "typeerror" );
+}
+
+/*
+TypeMap fun for operator convex
+detect whether a polygon is convex or concave
+
+*/
+
+ListExpr OpTMConvexTypeMap ( ListExpr args )
+{
+  if ( nl->ListLength ( args ) != 1 )
+  {
+    return ( nl->SymbolAtom ( "typeerror" ) );
+  }
+
+  if (nl->IsEqual(nl->First(args), "region")){
+    return nl->SymbolAtom("bool");
   }
   return nl->SymbolAtom ( "typeerror" );
 }
@@ -1781,6 +1807,26 @@ int OpTMTriangulatemap ( Word* args, Word& result, int message,
   }
   return 0;
 }
+
+
+/*
+Value Mapping for the convex operator
+detect whether a polygon is convex or concave
+
+*/
+
+
+int OpTMConvexmap ( Word* args, Word& result, int message,
+                         Word& local, Supplier in_pSupplier )
+{
+  Region* reg = (Region*)args[0].addr;
+  CompTriangle* ct = new CompTriangle(reg);
+  result = qp->ResultStorage(in_pSupplier);
+  CcBool* res = static_cast<CcBool*>(result.addr);
+  res->Set(true, ct->PolygonConvex());
+  delete ct;
+  return 0;
+}
 ////////////////Operator Constructor///////////////////////////////////////
 Operator checksline(
     "checksline",               // name
@@ -1889,6 +1935,14 @@ Operator triangulation(
     OpTMTriangulateTypeMap        // type mapping
 );
 
+Operator convex(
+    "convex",               // name
+    OpTMConvexSpec,          // specification
+    OpTMConvexmap,  // value mapping
+    Operator::SimpleSelect,        // selection function
+    OpTMConvexTypeMap        // type mapping
+);
+
 /*
 Main Class for Transportation Mode
 
@@ -1913,6 +1967,7 @@ class TransportationModeAlgebra : public Algebra
     AddOperator(&getpave2);
     AddOperator(&getpavenode2);
     AddOperator(&triangulation);
+    AddOperator(&convex);
   }
   ~TransportationModeAlgebra() {};
  private:

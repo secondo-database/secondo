@@ -86,3 +86,9 @@ Number   : 2
 Signature: region -> (stream(tuple ((x1 t1) ... (xn tn))))
 Example  : query triangulation(r1) count;
 Result   : 1
+
+Operator : convex
+Number   : 2
+Signature: region -> bool
+Example  : query convex(r1);
+Result   : TRUE

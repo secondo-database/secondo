@@ -896,6 +896,7 @@ struct CompTriangle{
   bool Snip(const vector<Point>& contour,int u,int v,int w,int n,int *V);
   float Area(const vector<Point>& contour);
   bool GetTriangles(const vector<Point>& contour,vector<Point>& result);
+  bool PolygonConvex();
 };
 
 #endif
