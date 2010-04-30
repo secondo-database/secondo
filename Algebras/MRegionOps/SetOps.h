@@ -336,7 +336,7 @@ Note that the interval of the parameter ~uRegion~ might be changed!
 
     SourceUnit(const bool isUnitA, 
                URegionEmb* const uRegion,
-               const DBArray<MSegmentData>* const array,
+               const DbArray<MSegmentData>* const array,
                const bool isEmpty,
                SourceUnitPair* const parent);
 
@@ -655,7 +655,7 @@ A pointer to the corresponding ~DBArray<MSegmentData>~.
 
 */   
 
-    const DBArray<MSegmentData>* const array;
+    const DbArray<MSegmentData>* const array;
 
 /*
 1.1.1 partner
@@ -964,10 +964,10 @@ kind of set operation.
 */
 
     SourceUnitPair(URegionEmb* const unitA, 
-                   const DBArray<MSegmentData>* const aArray,
+                   const DbArray<MSegmentData>* const aArray,
                    const bool aIsEmpty,
                    URegionEmb* const unitB, 
-                   const DBArray<MSegmentData>* const bArray,
+                   const DbArray<MSegmentData>* const bArray,
                    const bool bIsEmpty,
                    const SetOp operation,
                    MRegion* const resultMRegion);
@@ -1899,7 +1899,7 @@ Converts this ~ResultUnit~ to a ~URegionEmb~.
 
 */ 
     
-    URegionEmb* ConvertToURegionEmb(DBArray<MSegmentData>* segments) const;
+    URegionEmb* ConvertToURegionEmb(DbArray<MSegmentData>* segments) const;
 
 /*
 1.1.1 IsEmpty
@@ -1930,7 +1930,7 @@ private:
 */    
     
     void AddMSegmentData(URegionEmb* uregion,
-                         DBArray<MSegmentData>* segments, 
+                         DbArray<MSegmentData>* segments, 
                          MSegmentData& dms) const;
     
     static bool Less(const MSegment& ms1, const MSegment& ms2) {

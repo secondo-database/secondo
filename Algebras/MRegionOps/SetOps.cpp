@@ -101,7 +101,7 @@ void SetOperator::Operate(const SetOp op) {
     
 #endif
     
-    Interval<Instant>* interval;
+    Interval<Instant> interval;
     int aPos;
     int bPos;
    
@@ -111,20 +111,20 @@ void SetOperator::Operate(const SetOp op) {
     MRegion* tempA;
     MRegion* tempB;
     
-    const URegionEmb* unitA;
-    const URegionEmb* unitB;
+    URegionEmb unitA;
+    URegionEmb unitB;
     
-    const URegionEmb* unitARestrict;
-    const URegionEmb* unitBRestrict;
+    URegionEmb unitARestrict;
+    URegionEmb unitBRestrict;
     URegionEmb* unitARestrictCopy;
     URegionEmb* unitBRestrictCopy;
-    const DBArray<MSegmentData>* aArray;
-    const DBArray<MSegmentData>* bArray;
+    const DbArray<MSegmentData>* aArray;
+    const DbArray<MSegmentData>* bArray;
     
     SourceUnitPair* so;
     
     res->Clear();
-    ((DBArray<MSegmentData>*)res->GetFLOB(1))->Clear();
+    ((DbArray<MSegmentData>*)res->GetFLOB(1))->clean();
     res->StartBulkLoad();
     
     for (unsigned int i = 0; i < rp.Size(); i++) {
@@ -134,7 +134,7 @@ void SetOperator::Operate(const SetOp op) {
         rp.Get(i, interval, aPos, bPos);
         
         Periods intervalAsPeriod(1);
-        intervalAsPeriod.Add(*interval);
+        intervalAsPeriod.Add(interval);
         
         aIsEmpty = (aPos == -1);
         bIsEmpty = (bPos == -1);
@@ -164,10 +164,10 @@ void SetOperator::Operate(const SetOp op) {
             tempA->Get(0, unitARestrict);
             aArray = tempA->GetMSegmentData();
             
-            unitARestrictCopy = new URegionEmb(unitARestrict->timeInterval,
-                                    unitARestrict->GetStartPos());
-            unitARestrictCopy->SetSegmentsNum(unitARestrict->GetSegmentsNum());
-            unitARestrictCopy->SetBBox(unitARestrict->BoundingBox());
+            unitARestrictCopy = new URegionEmb(unitARestrict.timeInterval,
+                                    unitARestrict.GetStartPos());
+            unitARestrictCopy->SetSegmentsNum(unitARestrict.GetSegmentsNum());
+            unitARestrictCopy->SetBBox(unitARestrict.BoundingBox());
         }
         
         if (!bIsEmpty) {
@@ -178,10 +178,10 @@ void SetOperator::Operate(const SetOp op) {
             tempB->Get(0, unitBRestrict);
             bArray = tempB->GetMSegmentData();
             
-            unitBRestrictCopy = new URegionEmb(unitBRestrict->timeInterval,
-                    unitBRestrict->GetStartPos());
-            unitBRestrictCopy->SetSegmentsNum(unitBRestrict->GetSegmentsNum());
-            unitBRestrictCopy->SetBBox(unitBRestrict->BoundingBox());
+            unitBRestrictCopy = new URegionEmb(unitBRestrict.timeInterval,
+                    unitBRestrict.GetStartPos());
+            unitBRestrictCopy->SetSegmentsNum(unitBRestrict.GetSegmentsNum());
+            unitBRestrictCopy->SetBBox(unitBRestrict.BoundingBox());
         }
  
         so = new SourceUnitPair(unitARestrictCopy, aArray, aIsEmpty,
@@ -220,7 +220,7 @@ void SetOperator::Operate(const SetOp op) {
 
 SourceUnit::SourceUnit(const bool _isUnitA, 
              URegionEmb* const _uRegion,
-             const DBArray<MSegmentData>* _array, 
+             const DbArray<MSegmentData>* _array, 
              const bool _isEmpty,
              SourceUnitPair* const _parent) :
                  
@@ -310,12 +310,12 @@ void SourceUnit::ComputeBoundingRect() {
 
 void SourceUnit::CreatePFaces() {
 
-    const MSegmentData* segment;
+    MSegmentData segment;
     
     for (int i = 0; i < uRegion->GetSegmentsNum(); i++) {
         
         uRegion->GetSegment(array, i, segment);
-        PFace* pFace = new PFace(this, segment);
+        PFace* pFace = new PFace(this, &segment);
         pFaces.push_back(pFace);
 
 #ifdef OPTIMIZE_BY_BOUNDING_RECT
@@ -547,18 +547,18 @@ void SourceUnit::AddToMRegion(MRegion* const target) const {
     if (IsEmpty())
         return;
     
-    DBArray<MSegmentData>* targetArray = 
-        (DBArray<MSegmentData>*)target->GetFLOB(1);
+    DbArray<MSegmentData>* targetArray = 
+        (DbArray<MSegmentData>*)target->GetFLOB(1);
     const int segmentsStartPos = targetArray->Size();
     
     URegionEmb targetUnit(GetOriginalTimeInterval(), segmentsStartPos);
     
-    const MSegmentData* segment;
+    MSegmentData segment;
         
     for (int i = 0; i < uRegion->GetSegmentsNum(); i++) {
 
         uRegion->GetSegment(array, i, segment);
-        targetUnit.PutSegment(targetArray, i, *segment, true);
+        targetUnit.PutSegment(targetArray, i, segment, true);
     }
     
     target->Add(targetUnit);
@@ -1031,8 +1031,8 @@ void ResultUnitFactory::ConstructResultUnitAsURegionEmb() {
 #endif
     
     const Interval<Instant> interval = resultUnit->GetInterval();
-    DBArray<MSegmentData>* array = 
-        (DBArray<MSegmentData>*)resMRegion->GetFLOB(1);
+    DbArray<MSegmentData>* array = 
+        (DbArray<MSegmentData>*)resMRegion->GetFLOB(1);
     
     URegionEmb* ure = resultUnit->ConvertToURegionEmb(array);
     //cout << NList(resultUnit->ConvertToListExpr()) << endl;
@@ -1089,10 +1089,10 @@ void ResultUnitFactory::AddToOverallStatistic() const {
 */
 
 SourceUnitPair::SourceUnitPair(URegionEmb* const _unitA,
-                               const DBArray<MSegmentData>* const _aArray, 
+                               const DbArray<MSegmentData>* const _aArray, 
                                const bool _aIsEmpty,
                                URegionEmb* const _unitB,
-                               const DBArray<MSegmentData>* const _bArray,
+                               const DbArray<MSegmentData>* const _bArray,
                                const bool _bIsEmpty,
                                const SetOp _operation,
                                MRegion* const _resultMRegion) :
@@ -1590,9 +1590,9 @@ void ResultUnit::EndBulkLoad(bool merge) {
     // Region::EndBulkLoad procedure:
     for (unsigned int i = 0; i < msegments.size(); i++) {
 
-        const HalfSegment* hs;
+        HalfSegment hs;
         r.Get(i, hs);
-        msegments[i].CopyIndicesFrom(hs);
+        msegments[i].CopyIndicesFrom(&hs);
     }
 
     // Sort msegments by faceno, cycleno and segmentno:
@@ -1690,7 +1690,7 @@ const ListExpr ResultUnit::ConvertToListExpr() const {
 }
     
     URegionEmb* 
-    ResultUnit::ConvertToURegionEmb(DBArray<MSegmentData>* segments) const {
+    ResultUnit::ConvertToURegionEmb(DbArray<MSegmentData>* segments) const {
         
 #ifdef PRINT_STATISTIC
         
@@ -1778,9 +1778,9 @@ inside above and inside below segments, we can ignore the entire list.
         
         for (int i = 0; i < uregion->GetSegmentsNum(); i++) {
 
-            const MSegmentData *auxDms;
+            MSegmentData auxDms;
             uregion->GetSegment(segments, i, auxDms);
-            MSegmentData dms( *auxDms);
+            MSegmentData dms( auxDms);
 
             if (!dms.GetPointInitial() && dms.GetDegeneratedInitialNext() < 0)
                 nonTrivialInitial = true;
@@ -1792,7 +1792,7 @@ inside above and inside below segments, we can ignore the entire list.
 
                 if (dms.GetDegeneratedInitialNext() >= 0) {
 
-                    const MSegmentData *auxDegenDms;
+                    MSegmentData auxDegenDms;
                     MSegmentData degenDms;
                     unsigned int numInsideAbove = 0;
                     unsigned int numNotInsideAbove = 0;
@@ -1801,7 +1801,7 @@ inside above and inside below segments, we can ignore the entire list.
                             = degenDms.GetDegeneratedInitialNext()) {
 
                         uregion->GetSegment(segments, j-1, auxDegenDms);
-                        degenDms = *auxDegenDms;
+                        degenDms = auxDegenDms;
 
                         if (degenDms.GetInsideAbove())
                             numInsideAbove++;
@@ -1852,7 +1852,7 @@ inside above and inside below segments, we can ignore the entire list.
 
                 if (dms.GetDegeneratedFinalNext() >= 0) {
 
-                    const MSegmentData *auxDegenDms;
+                    MSegmentData auxDegenDms;
                     MSegmentData degenDms;
                     unsigned int numInsideAbove = 0;
                     unsigned int numNotInsideAbove = 0;
@@ -1862,7 +1862,7 @@ inside above and inside below segments, we can ignore the entire list.
 
                         //cout << segments->Size()-1 << " " << j-1 << endl;
                         uregion->GetSegment(segments, j-1, auxDegenDms);
-                        degenDms = *auxDegenDms;
+                        degenDms = auxDegenDms;
 
                         if (degenDms.GetInsideAbove())
                             numInsideAbove++;
@@ -2009,7 +2009,7 @@ string ResultUnit::GetVRMLDesc() const {
 }
 
 void ResultUnit::AddMSegmentData(URegionEmb* uregion,
-                                 DBArray<MSegmentData>* segments, 
+                                 DbArray<MSegmentData>* segments, 
                                  MSegmentData& dms) const {
         
 /*
@@ -2022,10 +2022,10 @@ For each of the already existing segments:
         
                 for (int i = segmentsNum - 1; i >= 0; i--) {
 
-                    const MSegmentData *auxExistingDms;
+                    MSegmentData auxExistingDms;
 
                     segments->Get(segmentsStartPos + i, auxExistingDms);
-                    MSegmentData existingDms( *auxExistingDms );
+                    MSegmentData existingDms( auxExistingDms );
 
 /*
 Check whether the current segment degenerates with this segment in the
@@ -2109,7 +2109,7 @@ Same for the final instant.
                     }
                 }
         
-        segments->Resize(segmentsStartPos + segmentsNum + 1);
+        segments->resize(segmentsStartPos + segmentsNum + 1);
         segments->Put(segmentsStartPos + segmentsNum, dms);
         uregion->SetSegmentsNum(segmentsNum + 1);
     }
