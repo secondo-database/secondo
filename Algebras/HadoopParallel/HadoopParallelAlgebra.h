@@ -191,5 +191,18 @@ public:
   Word getNextTuple();
 };
 
+/*
+1.5 a0tLocalInfo
+
+
+*/
+struct a0tLocalInfo
+{
+  string key;
+  TupleType *resultTupleType;
+  Tuple *moreTuple;
+  bool needInsert;
+};
+
 
 #endif /* HADOOPPARALLELALGEBRA_H_ */

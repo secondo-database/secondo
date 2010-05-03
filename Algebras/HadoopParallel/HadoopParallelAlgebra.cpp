@@ -530,7 +530,7 @@ bool phjLocalInfo::getNewProducts()
       Tuple* currentTuple =
           static_cast<Tuple*> (currentTupleWord.addr);
       tupStr = ((FText*) (currentTuple->GetAttribute(0)))->GetValue();
-      nl->ReadFromString("(" + tupStr + ")", tupList);
+      nl->ReadFromString(tupStr, tupList);
       int SI = NList(tupList).first().intval();
       valList = nl->Second(tupList);
       int errorPos;
@@ -766,7 +766,7 @@ ListExpr paraJoinTypeMap( ListExpr args )
   ListExpr streamList = nl->First(args);
   ListExpr relAList = nl->Second(args);
   ListExpr relBList = nl->Third(args);
-  ListExpr namedMap = nl->Fourth(args);
+  ListExpr mapNL = nl->Fourth(args);
 
   CHECK_COND(listutils::isTupleStream(streamList)
     && listutils::isRelDescription(relAList)
@@ -780,17 +780,21 @@ ListExpr paraJoinTypeMap( ListExpr args )
     && listutils::isSymbol(nl->Second(nl->First(attrList)),TEXT),
     "Expect input stream as (stream(tuple((value text))))");
 
-  //The map indicates the join method for tuples in the same bucket
-  CHECK_COND(listutils::isMap<2>(namedMap),
-      "Expect two arguments in the map.");
+  //The map indicates the join method for tuples within same bucket
+  CHECK_COND(listutils::isMap<2>(mapNL),
+      "Expect binary function as the fourth argument.");
 
-  ListExpr rAtupNList =
-        renameList(nl->Second(nl->Second(relAList)), "1");
-  ListExpr rBtupNList =
-        renameList(nl->Second(nl->Second(relBList)), "2");
-  ListExpr resultAttrList = ConcatLists(rAtupNList, rBtupNList);
-  ListExpr resultList = nl->TwoElemList(nl->SymbolAtom("stream"),
-        nl->TwoElemList(nl->SymbolAtom("tuple"), resultAttrList));
+  CHECK_COND(
+       listutils::isTupleStream(nl->Second(mapNL))
+    && listutils::isTupleStream(nl->Third(mapNL))
+    && listutils::isTupleStream(nl->Fourth(mapNL)),
+    "Expect (map (stream(T1)) (stream(T2)) (stream(T1 T2)))"
+  );
+
+  ListExpr resultList = nl->TwoElemList(
+      nl->SymbolAtom("stream"),
+        nl->TwoElemList(nl->SymbolAtom("tuple"),
+            nl->Second(nl->Second(nl->Fourth(mapNL)))));
 
   return resultList;
 }
@@ -922,7 +926,7 @@ void pjLocalInfo::loadTuples()
     {
       cTuple = static_cast<Tuple*> (cTupleWord.addr);
       tupStr = ((FText*) (cTuple->GetAttribute(0)))->GetValue();
-      nl->ReadFromString("(" + tupStr + ")", tupList);
+      nl->ReadFromString(tupStr, tupList);
       int SI = NList(tupList).first().intval();
       valList = nl->Second(tupList);
       int errorPos;
@@ -1039,6 +1043,150 @@ Word pjLocalInfo::getNextTuple()
   return SetWord(Address(0));
 }
 
+/*
+6 Operator ~add0Tuple~
+
+This operator need to be used after a ~sortby~ operator,
+which sort the tuples by there keys, then this ~add0Tuple~
+extract the valueT part and add a new tuple which valueT starts
+with 0 when the keyT changes.
+
+*/
+
+struct add0TupleInfo : OperatorInfo
+{
+  add0TupleInfo()
+  {
+    name = "add0Tuple";
+    signature =
+        "(  (stream(tuple((keyT string)(valueT text))))"
+        "-> stream(tuple((valueT text)))  )";
+    syntax = "_ add0Tuple";
+    meaning = "Separate tuples by inserting 0 tuples";
+  }
+};
+
+/*
+6.1 Type Mapping of Operator ~add0Tuple~
+
+----
+    (stream(tuple((keyT string)(valueT text))))
+      -> stream(tuple((valueT text)))
+----
+
+*/
+ListExpr add0TupleTypeMap(ListExpr args)
+{
+  CHECK_COND(nl->ListLength(args) == 1, "Expect 1 argument");
+  ListExpr streamNL = nl->First(args);
+  cout << "streamNL is: " << nl->ToString(streamNL) << endl;
+  CHECK_COND(listutils::isTupleStream(streamNL),
+      "Expect a stream of tuple.");
+  ListExpr tupleList = nl->Second(nl->Second(streamNL));
+  CHECK_COND(nl->ListLength(tupleList) == 2
+    && listutils::isSymbol(nl->Second(nl->First(tupleList)), STRING)
+    && listutils::isSymbol(nl->Second(nl->Second(tupleList)), TEXT),
+    "Expect stream(tuple((string)(text)))");
+
+  return nl->TwoElemList(nl->SymbolAtom(STREAM),
+      nl->TwoElemList(nl->SymbolAtom(TUPLE),
+          nl->OneElemList(nl->Second(tupleList))));
+
+}
+
+
+/*
+6.2 Value Mapping of Operator ~add0Tuple~
+
+
+*/
+int add0TupleValueMap(Word* args, Word& result,
+                      int message, Word& local, Supplier s)
+{
+  a0tLocalInfo *localInfo;
+  Word cTupleWord;
+  Tuple *oldTuple, *newTuple, *sepTuple;
+
+  switch (message)
+  {
+  case OPEN:{
+    qp->Open(args[0].addr);
+
+    localInfo = new a0tLocalInfo();
+
+    ListExpr resultTupleNL = GetTupleResultType(s);
+    localInfo->resultTupleType =
+        new TupleType(nl->Second(resultTupleNL));
+    localInfo->key = "";
+    localInfo->moreTuple = 0;
+    localInfo->needInsert = false;
+
+    local.setAddr(localInfo);
+    return 0;
+  }
+  case REQUEST:{
+    if (local.addr == 0)
+      return CANCEL;
+    localInfo = (a0tLocalInfo*)local.addr;
+
+    if(localInfo->needInsert)
+    {
+      //insert the separate tuple
+      result.setAddr(localInfo->moreTuple);
+      localInfo->needInsert = false;
+      return YIELD;
+    }
+    else
+    {
+      qp->Request(args[0].addr, cTupleWord);
+      if (qp->Received(args[0].addr))
+      {
+        oldTuple = (Tuple*)cTupleWord.addr;
+        string key =
+            ((CcString*)(oldTuple->GetAttribute(0)))->GetValue();
+        string value =
+            ((FText*)(oldTuple->GetAttribute(1)))->GetValue();
+
+        newTuple = new Tuple(localInfo->resultTupleType);
+        newTuple->PutAttribute(0, new FText(true, value));
+
+        if ("" == localInfo->key)
+          localInfo->key = key;
+
+        if (key == localInfo->key)
+        {
+          result.setAddr(newTuple);
+          return YIELD;
+        }
+        else
+        {
+          localInfo->moreTuple = newTuple;
+          localInfo->needInsert = true;
+          sepTuple = new Tuple(localInfo->resultTupleType);
+          sepTuple->PutAttribute(0, new FText(true, "(0 ())"));
+          localInfo->key = key;
+          result.setAddr(sepTuple);
+          return YIELD;
+        }
+        oldTuple->DeleteIfAllowed();
+      }
+      else
+        return CANCEL;
+    }
+  }
+  case CLOSE:{
+    if (local.addr == 0)
+      return CANCEL;
+    localInfo = (a0tLocalInfo*)local.addr;
+    delete localInfo;
+    local.setAddr(0);
+    qp->Close(args[0].addr);
+    return 0;
+  }
+  }
+  return 0;
+}
+
 
 /*
 3 Class ~HadoopParallelAlgebra~
@@ -1067,6 +1215,9 @@ public:
 
     AddOperator(paraJoinInfo(),
         paraJoinValueMap, paraJoinTypeMap);
+
+    AddOperator(add0TupleInfo(),
+        add0TupleValueMap, add0TupleTypeMap);
 
 
     AddOperator(TUPSTREAMInfo(), 0, TUPSTREAMType);

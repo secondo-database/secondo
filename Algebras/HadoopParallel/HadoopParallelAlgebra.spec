@@ -20,3 +20,4 @@
 operator doubleexport alias DOUBLEEXPORT pattern _ _ op[_,_]
 operator parahashjoin alias PARAHASHJOIN pattern _ _ _ op
 operator parajoin alias PARAJOIN pattern _ _ _ op[fun] implicit parameters stream1, stream2 types TUPSTREAM2, TUPSTREAM3 
+operator add0Tuple alias ADD0TUPLE pattern _ op
