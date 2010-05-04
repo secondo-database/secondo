@@ -411,7 +411,7 @@ RangeQuery(Word* args, Word& result, int message, Word& local, Supplier s)
             id = static_cast<TupleIdentifier*>(*(localInfo->iter))->GetTid();
             if (id == 0)
               return CANCEL;
-            tuple = localInfo->relation->GetTuple( id );
+            tuple = localInfo->relation->GetTuple( id, false );
             if(tuple == 0)
             {
               cerr << "Could not find tuple for the given tuple id. "
