@@ -845,7 +845,7 @@ int distanceScanFun (Word* args, Word& result, int message,
       TupleId tid;
       if ( localInfo->rtree->NextDistanceScan( localInfo->position, tid ) )
       {
-          Tuple *tuple = localInfo->relation->GetTuple(tid);
+          Tuple *tuple = localInfo->relation->GetTuple(tid, false);
           result = SetWord(tuple);
           ++localInfo->noFound;
           return YIELD;
@@ -1088,7 +1088,7 @@ public:
      dsqueue.pop();
      // now we have a tuple
      returned++;
-     Tuple* res = rel->GetTuple(top->getTupleId());
+     Tuple* res = rel->GetTuple(top->getTupleId(), false);
      delete top;
      return res;
    }
@@ -1182,7 +1182,7 @@ class DS3Entry{
             const DistFun& df):
        isTuple(true), node(0), tupleId(id), level(level1){
 
-       Tuple* tuple = relation->GetTuple(id);
+       Tuple* tuple = relation->GetTuple(id,false);
        const IndexedType* obj =
              static_cast<IndexedType*>(tuple->GetAttribute(attrpos));
        distance = df(*qo,*obj);
@@ -1386,7 +1386,7 @@ public:
      dsqueue.pop();
      // now we have a tuple
      returned++;
-     Tuple* res = rel->GetTuple(top->getTupleId());
+     Tuple* res = rel->GetTuple(top->getTupleId(), false);
      delete top;
      return res;
    }
@@ -1498,7 +1498,7 @@ class DS4Entry{
             const Instant& instant):
        isTuple(true), node(0), tupleId(id), level(level1){
 
-       Tuple* tuple = relation->GetTuple(id);
+       Tuple* tuple = relation->GetTuple(id, false);
        const UPoint* obj =
              static_cast<UPoint*>(tuple->GetAttribute(attrpos));
        distance = computeDistance(obj, qo, instant);
@@ -1744,7 +1744,7 @@ public:
      dsqueue.pop();
      // now we have a tuple
      returned++;
-     Tuple* res = rel->GetTuple(top->getTupleId());
+     Tuple* res = rel->GetTuple(top->getTupleId(), false);
      delete top;
      return res;
    }
@@ -4082,7 +4082,7 @@ int newcoverage(R_Tree<3, TupleId>* rtree, Instant &tEnd,
   CcInt* id = new CcInt(true,nodeid);
   BTreeIterator* btreeiter = btree->ExactMatch(id);
   while(btreeiter->Next()){
-      Tuple* tuple = rel->GetTuple(btreeiter->GetId());
+      Tuple* tuple = rel->GetTuple(btreeiter->GetId(), false);
       UInt* ut = (UInt*)tuple->GetAttribute(2);//NodeId, RecId, Uint
       if(ut->timeInterval.Contains(tEnd))
         result += ut->constValue.GetValue();
@@ -4291,7 +4291,7 @@ int oldknearestFilterFun (Word* args, Word& result, int message,
       if ( localInfo->mapit != localInfo->resultMap.end() )
       {
           TupleId tid = localInfo->mapit->second;
-          Tuple *tuple = localInfo->relation->GetTuple(tid);
+          Tuple *tuple = localInfo->relation->GetTuple(tid, false);
           result = SetWord(tuple);
           ++localInfo->mapit;
           return YIELD;
@@ -5469,7 +5469,8 @@ int knearestFilterFun (Word* args, Word& result, int message,
                 CcInt* id = new CcInt(true,f.nodeid);
                 BTreeIterator* btreeiter = localInfo->btreehats->ExactMatch(id);
                 while(btreeiter->Next()){
-                  Tuple* tuple = localInfo->hats->GetTuple(btreeiter->GetId());
+                  Tuple* tuple = localInfo->hats->GetTuple(btreeiter->GetId()
+                                                           , false);
                   UInt* ut = (UInt*)tuple->GetAttribute(2);//NodeId, RecId, Uint
                   //////////////////////////////////////////////
                   if(ut->constValue.GetValue() > 0){
@@ -5577,7 +5578,7 @@ int knearestFilterFun (Word* args, Word& result, int message,
       if ( localInfo->mapit != localInfo->resultMap.end() )
       {
           TupleId tid = localInfo->mapit->second;
-          Tuple *tuple = localInfo->relation->GetTuple(tid);
+          Tuple *tuple = localInfo->relation->GetTuple(tid, false);
 //split units
           const MPoint *mp = (MPoint*)args[5].addr;//5 th parameter
           UPoint up1, up2;
@@ -5865,7 +5866,7 @@ void Mqkfilter(MQKnearest* mqk,vector<TupleId>& datanode,BBox<2> query)
       CcInt* id = new CcInt(true,array2[i].nodeid);
       BTreeIterator* iter = mqk->btreecov->ExactMatch(id);
       assert(iter->Next() != false);
-      Tuple* tuple = mqk->cov->GetTuple(iter->GetId());
+      Tuple* tuple = mqk->cov->GetTuple(iter->GetId(), false);
       int val = ((CcInt*)tuple->GetAttribute(1))->GetIntval();
       delete id;
       tuple->DeleteIfAllowed();
@@ -5890,7 +5891,7 @@ void Mqkfilter(MQKnearest* mqk,vector<TupleId>& datanode,BBox<2> query)
       CcInt* id = new CcInt(true,candidate[i].nodeid);
       BTreeIterator* iter = mqk->btreecov->ExactMatch(id);
       assert(iter->Next() != false);
-      Tuple* tuple = mqk->cov->GetTuple(iter->GetId());
+      Tuple* tuple = mqk->cov->GetTuple(iter->GetId(), false);
       int val = ((CcInt*)tuple->GetAttribute(1))->GetIntval();
       delete id;
       tuple->DeleteIfAllowed();
@@ -5915,7 +5916,7 @@ void Mqkfilter(MQKnearest* mqk,vector<TupleId>& datanode,BBox<2> query)
     for(int j = 0;j < node->EntryCount();j++){
       R_TreeLeafEntry<2,TupleId> e =
         (R_TreeLeafEntry<2,TupleId>&)(*node)[j];
-      Tuple* tuple = mqk->datapoints->GetTuple(e.info);
+      Tuple* tuple = mqk->datapoints->GetTuple(e.info, false);
       Point* p = (Point*)tuple->GetAttribute(0);
       mqk->data.push_back(*p);
       tuple->DeleteIfAllowed();
@@ -5984,7 +5985,7 @@ vector<Point>& ps,BBox<2> box) //ps--query objects, box -- query box
     CcInt* id = new CcInt(true,candidate[i].nodeid);
     BTreeIterator* iter = mqk->btreeleafcov->ExactMatch(id);
     assert(iter->Next() != false);
-    Tuple* tuple = mqk->leafcov->GetTuple(iter->GetId());
+    Tuple* tuple = mqk->leafcov->GetTuple(iter->GetId(), false);
     int val = ((CcInt*)tuple->GetAttribute(candidate[i].quad))->GetIntval();
     delete id;
     tuple->DeleteIfAllowed();
@@ -6020,7 +6021,7 @@ vector<Point>& ps,BBox<2> box) //ps--query objects, box -- query box
     for(int j = 0;j < node->EntryCount();j++){//open leaf node
        R_TreeLeafEntry<2,TupleId> e =
         (R_TreeLeafEntry<2,TupleId>&)(*node)[j];
-      Tuple* tuple = mqk->datapoints->GetTuple(e.info);
+      Tuple* tuple = mqk->datapoints->GetTuple(e.info, false);
       Point* p = (Point*)tuple->GetAttribute(0);
       double x = p->GetX();
       double y = p->GetY();
@@ -6197,14 +6198,14 @@ void Mqknearest(MQKnearest* mqk)
   int start = 0;
   double min[2];
   double max[2];
-  Tuple* tuple = mqk->querypoints->GetTuple(1);
+  Tuple* tuple = mqk->querypoints->GetTuple(1, false);
   Point* p = (Point*)tuple->GetAttribute(0);
   min[0] = max[0] = p->GetX();
   min[1] = max[1] = p->GetY();
   tuple->DeleteIfAllowed();
   for(;start < blocksize &&
       (start+mqk->index) <= mqk->querypoints->GetNoTuples(); start++){
-    Tuple* tuple = mqk->querypoints->GetTuple(start+mqk->index);
+    Tuple* tuple = mqk->querypoints->GetTuple(start+mqk->index, false);
     Point* p = (Point*)tuple->GetAttribute(0);
     double xx = p->GetX();
     double yy = p->GetY();
@@ -6446,7 +6447,7 @@ int covleafnodeFun(Word* args, Word& result, int message,
       R_TreeNode<2,TupleId>* node = NULL;
       int nodeid = 0;
       while(localInfo->covtid <= localInfo->cov->GetNoTuples()){
-        Tuple* tuple = localInfo->cov->GetTuple(localInfo->covtid);
+        Tuple* tuple = localInfo->cov->GetTuple(localInfo->covtid, false);
         assert(tuple != NULL);
         localInfo->covtid++;
         nodeid = ((CcInt*)tuple->GetAttribute(0))->GetIntval();
@@ -6473,7 +6474,7 @@ int covleafnodeFun(Word* args, Word& result, int message,
       for(int i = 0;i < node->EntryCount();i++){
         R_TreeLeafEntry<2,TupleId> e = (R_TreeLeafEntry<2,TupleId>&)(*node)[i];
         TupleId info = e.info;
-        Tuple* tuple = localInfo->data->GetTuple(info);
+        Tuple* tuple = localInfo->data->GetTuple(info, false);
         Point* p = (Point*)tuple->GetAttribute(0);
         tuple->DeleteIfAllowed();
         double x = p->GetX();
@@ -8121,7 +8122,7 @@ void TBKnearestLocalInfo::ChinaknnFun(MPoint* mp)
                   //for each unit in mp
                 UPoint up;
                 TupleId tid = entry->getInfo().getTupleId();
-                Tuple* tuple = this->relation->GetTuple(tid);
+                Tuple* tuple = this->relation->GetTuple(tid, false);
                 UPoint* data = (UPoint*)tuple->GetAttribute(attrpos);
 
                 for(int j = 0;j < mp->GetNoComponents();j++){
@@ -8305,7 +8306,7 @@ void TBKnearestLocalInfo::GreeceknnFunBF(MPoint* mp,int level,hpelem& elem)
                   //for each unit in mp
                 UPoint up;
                 TupleId tid = entry.info;
-                Tuple* tuple = this->relation->GetTuple(tid);
+                Tuple* tuple = this->relation->GetTuple(tid, false);
                 UPoint* data = (UPoint*)tuple->GetAttribute(attrpos);
 
                 for(int j = 0;j < mp->GetNoComponents();j++){
@@ -8453,7 +8454,7 @@ void TBKnearestLocalInfo::GreeceknnFunDF(MPoint* mp,int level,hpelem& elem)
             //for each unit in mp
             UPoint up;
             TupleId tid = e.info;
-            Tuple* tuple = relation->GetTuple(tid);
+            Tuple* tuple = relation->GetTuple(tid, false);
             UPoint* data = (UPoint*)tuple->GetAttribute(attrpos);
 
             for(int j = 0;j < mp->GetNoComponents();j++){
@@ -8648,7 +8649,7 @@ int Greeceknearest(Word* args, Word& result, int message,
           return CANCEL;
         if(localInfo->counter < localInfo->result.size()){
             TupleId tid = localInfo->result[localInfo->counter].tid;
-            Tuple* tuple = localInfo->relation->GetTuple(tid);
+            Tuple* tuple = localInfo->relation->GetTuple(tid, false);
             UPoint* up = (UPoint*)tuple->GetAttribute(localInfo->attrpos);
             Point p0;
             Point p1;
@@ -8748,7 +8749,7 @@ int ChinaknearestFun (Word* args, Word& result, int message,
           return CANCEL;
         if(localInfo->counter < localInfo->result.size()){
             TupleId tid = localInfo->result[localInfo->counter].tid;
-            Tuple* tuple = localInfo->relation->GetTuple(tid);
+            Tuple* tuple = localInfo->relation->GetTuple(tid, false);
             UPoint* up = (UPoint*)tuple->GetAttribute(localInfo->attrpos);
             Point p0;
             Point p1;
@@ -10217,7 +10218,7 @@ struct Cov{
 
       while(iter1->Next()){
         flag1 = true;
-        Tuple* tuple1 = cov1->GetTuple(iter1->GetId());
+        Tuple* tuple1 = cov1->GetTuple(iter1->GetId(), false);
         NodeId1 = ((CcInt*)tuple1->GetAttribute(0))->GetIntval();
 //        assert(cov1->DeleteTuple(tuple1));
         tuple1->DeleteIfAllowed();
@@ -10235,7 +10236,7 @@ struct Cov{
             BTreeIterator* iter1_1 = btree1->ExactMatch(cur_id);
             MInt tmp1(0);
             while(iter1_1->Next()){
-                Tuple* tuple1 = cov1->GetTuple(iter1_1->GetId());
+                Tuple* tuple1 = cov1->GetTuple(iter1_1->GetId(), false);
                 UInt* ui = (UInt*)tuple1->GetAttribute(2);
                 tmp1.Add(*ui);
                 tuple1->DeleteIfAllowed();
@@ -10244,7 +10245,7 @@ struct Cov{
             BTreeIterator* iter2_2 = btree2->ExactMatch(cur_id);
             MInt tmp2(0);
             while(iter2_2->Next()){
-                Tuple* tuple2 = cov2->GetTuple(iter2_2->GetId());
+                Tuple* tuple2 = cov2->GetTuple(iter2_2->GetId(), false);
                 UInt* ui = (UInt*)tuple2->GetAttribute(2);
                 tmp2.Add(*ui);
                 tuple2->DeleteIfAllowed();
@@ -10284,7 +10285,7 @@ struct Cov{
       //get coverage from the second relation
       while(iter2->Next()){
         flag2 = true;
-        Tuple* tuple2 = cov2->GetTuple(iter2->GetId());
+        Tuple* tuple2 = cov2->GetTuple(iter2->GetId(), false);
         NodeId2 = ((CcInt*)tuple2->GetAttribute(0))->GetIntval();
 //        assert(cov2->DeleteTuple(tuple2));
         tuple2->DeleteIfAllowed();
@@ -10302,7 +10303,7 @@ struct Cov{
               BTreeIterator* iter1_1 = btree1->ExactMatch(cur_id);
               MInt tmp1(0);
               while(iter1_1->Next()){
-                Tuple* tuple1 = cov1->GetTuple(iter1_1->GetId());
+                Tuple* tuple1 = cov1->GetTuple(iter1_1->GetId(), false);
                 UInt* ui = (UInt*)tuple1->GetAttribute(2);
                 tmp1.Add(*ui);
                 tuple1->DeleteIfAllowed();
@@ -10311,7 +10312,7 @@ struct Cov{
               BTreeIterator* iter2_2 = btree2->ExactMatch(cur_id);
               MInt tmp2(0);
               while(iter2_2->Next()){
-                Tuple* tuple2 = cov2->GetTuple(iter2_2->GetId());
+                Tuple* tuple2 = cov2->GetTuple(iter2_2->GetId(), false);
                 UInt* ui = (UInt*)tuple2->GetAttribute(2);
                 tmp2.Add(*ui);
                 tuple2->DeleteIfAllowed();
@@ -10356,7 +10357,7 @@ struct Cov{
             BTreeIterator* iter1_1 = btree1->ExactMatch(cur_id);
             MInt tmp1(0);
             while(iter1_1->Next()){
-                Tuple* tuple1 = cov1->GetTuple(iter1_1->GetId());
+                Tuple* tuple1 = cov1->GetTuple(iter1_1->GetId(), false);
                 UInt* ui = (UInt*)tuple1->GetAttribute(2);
                 tmp1.Add(*ui);
                 tuple1->DeleteIfAllowed();
@@ -10365,7 +10366,7 @@ struct Cov{
             BTreeIterator* iter2_2 = btree2->ExactMatch(cur_id);
             MInt tmp2(0);
             while(iter2_2->Next()){
-                Tuple* tuple2 = cov2->GetTuple(iter2_2->GetId());
+                Tuple* tuple2 = cov2->GetTuple(iter2_2->GetId(), false);
                 UInt* ui = (UInt*)tuple2->GetAttribute(2);
                 tmp2.Add(*ui);
                 tuple2->DeleteIfAllowed();
@@ -10436,7 +10437,7 @@ struct Cov{
 
       while(iter1->Next()){
         flag1 = true;
-        Tuple* tuple1 = cov1->GetTuple(iter1->GetId());
+        Tuple* tuple1 = cov1->GetTuple(iter1->GetId(), false);
         NodeId1 = ((CcInt*)tuple1->GetAttribute(0))->GetIntval();
 //        assert(cov1->DeleteTuple(tuple1));
         tuple1->DeleteIfAllowed();
@@ -10454,7 +10455,7 @@ struct Cov{
             BTreeIterator* iter1_1 = btree1->ExactMatch(cur_id);
             MInt tmp1(0);
             while(iter1_1->Next()){
-                Tuple* tuple1 = cov1->GetTuple(iter1_1->GetId());
+                Tuple* tuple1 = cov1->GetTuple(iter1_1->GetId(), false);
 //                cout<<"before "<<*tuple1<<endl;
                 UInt* ui = (UInt*)tuple1->GetAttribute(2);
                 tmp1.Add(*ui);
@@ -10476,7 +10477,7 @@ struct Cov{
     ///////////////////Update the Attribute////////////////////
       BTreeIterator* iter2 = btree1->ExactMatch(id);
       while(iter2->Next()){
-        Tuple* tuple1 = cov1->GetTuple(iter2->GetId());
+        Tuple* tuple1 = cov1->GetTuple(iter2->GetId(), false);
 //        cout<<"before "<<endl;
         UInt* ui = (UInt*)tuple1->GetAttribute(2);
         vector<int> xindices;
@@ -10526,7 +10527,7 @@ struct Cov{
             BTreeIterator* iter1_1 = btree1->ExactMatch(cur_id);
             MInt tmp1(0);
             while(iter1_1->Next()){
-                Tuple* tuple1 = cov1->GetTuple(iter1_1->GetId());
+                Tuple* tuple1 = cov1->GetTuple(iter1_1->GetId(), false);
                 UInt* ui = (UInt*)tuple1->GetAttribute(2);
                 tmp1.Add(*ui);
                 tuple1->DeleteIfAllowed();
@@ -10610,7 +10611,7 @@ Supplier s)
       Cov* cov = static_cast<Cov*>(local.addr);
       if(cov->first){ //copy the first coverage number rel
           assert(cov->index1 <= cov->cov1->GetNoTuples());
-          Tuple* tuple = cov->cov1->GetTuple(cov->index1);
+          Tuple* tuple = cov->cov1->GetTuple(cov->index1, false);
           result.addr = tuple;
           cov->index1++;
           if(cov->index1 > cov->cov1->GetNoTuples())
@@ -10619,7 +10620,7 @@ Supplier s)
       }
       if(cov->second){
           assert(cov->index2 <= cov->cov2->GetNoTuples());
-          Tuple* tuple = cov->cov2->GetTuple(cov->index2);
+          Tuple* tuple = cov->cov2->GetTuple(cov->index2, false);
           result.addr = tuple;
           cov->index2++;
           if(cov->index2 > cov->cov2->GetNoTuples())
@@ -10628,7 +10629,7 @@ Supplier s)
       }
       if(cov->third){
           assert(cov->index3 <= cov->cov3->GetNoTuples());
-          Tuple* tuple = cov->cov3->GetTuple(cov->index3);
+          Tuple* tuple = cov->cov3->GetTuple(cov->index3, false);
           result.addr = tuple;
           cov->index3++;
           if(cov->index3 > cov->cov3->GetNoTuples())
@@ -10686,7 +10687,7 @@ Supplier s)
       Cov* cov = static_cast<Cov*>(local.addr);
       if(cov->third){
           assert(cov->index3 <= cov->cov3->GetNoTuples());
-          Tuple* tuple = cov->cov3->GetTuple(cov->index3);
+          Tuple* tuple = cov->cov3->GetTuple(cov->index3, false);
           result.addr = tuple;
           cov->index3++;
           if(cov->index3 > cov->cov3->GetNoTuples())
