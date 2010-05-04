@@ -311,20 +311,23 @@ At the same time, since the keys that Hadoop uses to partition
 tuples into different hash buckets are useless in reduce functions,
 they will be abandoned, and only the value parts of the tuples outputed
 from ~doubleexport~ operation will be sent into Secondo following
-the schema: (SI:int, tupleVal:text).
-The ~SI~ is the key field, and the ~tupleVal~ is the value field here.
+the schema: ((SI + tupleVal) :text).
+The ~SI~ is the key field, the ~tupleVal~ is the complete value
+of the source tuple. And we encapsulate these two value into one
+text value.
+
 If we only simply send this kind of tuples back to Secondo,
 the tuples with different join attributes will be mixed again,
 though they have already been grouped automatically by Hadoop.
 For avoiding this, in reduce functions,
-we send a special tuples as separate tuples(~ST~)
-to divide tuples within different hash buckets.
+we send a special tuples as separate tuples(~ST~) which ~SI~ value is
+0 to separate different hash buckets.
 
 After above procedure, ~parahashjoin~ can easily get tuples
 inside one hash bucket with the help of ~ST~.
 For each hash bucket, ~parahashjoin~ use the key field ~SI~ to
 distinguish tuples from different source relations.
-And since all tuples inside have a same join attribute value already,
+Then since all tuples inside have a same join attribute value already,
 a simple Cartesian product is caculated for these distinguished tuples.
 
 3.1 Specification of Operator ~parahashjoin~
@@ -732,15 +735,46 @@ ListExpr TUPSTREAM3Type( ListExpr args)
 /*
 5 Operator ~parajoin~
 
+Operator ~parahashjoin~ can only execute ~product~ operation for the
+tuples belong to different source relation but inside
+a same hash bucket.
+However, for some specific join operations like spatial operation,
+tuples inside one bucket don't means they have an exactly same
+join attribute value, and so does the Cartesian product can't be
+executed directly for these tuples.
 
+Therefore, we need to create the operator ~parajoin~ that can process
+the tuples inside one hash bucket but with different join operations.
+Similar with ~parahashjoin~, ~parajoin~ accept the stream mixed with
+tuples following two different schemes. These tuples are
+partitioned into different buckets according to their join
+attribute values, and use separate tuples(~ST~) to separate these
+buckets. At the same time, each tuple contains a ~SI~ value to
+indicate which source relations it comes from or dose it a separate tuple.
+With the ~SI~ values, the operator can get all tuples in one bucket,
+and distinguish them into two tuple buffers.
 
+The difference of ~parajoin~ between ~parahashjoin~ is that it can
+accept any kind of join operator as its parameter function,
+and use this function to execute different join operations for the
+tuples inside one hash bucket.
+The type of operators can be accepted in ~parajoin~ should be like:
+
+---- stream(T1) x stream(T2) -> stream(T3)
 ----
-    (  (stream(tuple((value text))))
-     x (rel(tuple(T1))) x (rel(tuple(T2)))
-     x (map t r)  )
-     -> stream(tuple(T1 T2))
-----
 
+The main problem here is that
+the function should accept two streams as input, and output
+a stream, which doesn't like normal functions which only can
+accept DATA object and output DATA or stream.
+But thanks to the PartittionedStream algebra, it modify the kernel of
+Secondo, and make this kind of function be possible.
+
+For making the functions be possible to accept two streams as input,
+we can store the supplier of this operator at the tail two positions
+of this function's argument list. Then the query processor knows that
+these two inputs are streams, and will use specific messages to drive
+the function work.
 
 */
 
@@ -751,12 +785,24 @@ struct paraJoinInfo : OperatorInfo
     name = "parajoin";
     signature = "( (stream(tuple((key int)(value text))))"
                  "x(rel(tuple(T1))) x (rel(tuple(T2)))"
-                 "x(map t r) )"
+                 "x(map (stream(T1)) (stream(T2)) (stream(T1 T2))) )"
                  " -> stream(tuple(T1 T2))";
     syntax = "_ _ _ parajoin [funlist]";
     meaning = "join mixed tuples from two relations";
   }
 };
+
+/*
+5.1 Type Mapping of Operator ~parajoin~
+
+----
+    (  (stream(tuple((value text))))
+     x (rel(tuple(T1))) x (rel(tuple(T2)))
+     x ((map (stream(T1)) (stream(T2)) (stream(T1 T2))))  )
+     -> stream(tuple(T1 T2))
+----
+
+*/
 
 ListExpr paraJoinTypeMap( ListExpr args )
 {
@@ -773,7 +819,7 @@ ListExpr paraJoinTypeMap( ListExpr args )
     && listutils::isRelDescription(relBList),
     "Expect (stream(tuple((value text))))"
           "x(rel(tuple(T1))) x (rel(tuple(T2)))"
-          "x((map t r)))");
+          "x((map (stream(T1)) (stream(T2)) (stream(T1 T2))))");
 
   ListExpr attrList = nl->Second(nl->Second(streamList));
   CHECK_COND(nl->ListLength(attrList) == 1
@@ -799,6 +845,16 @@ ListExpr paraJoinTypeMap( ListExpr args )
   return resultList;
 }
 
+
+/*
+5.2 Value Mapping of Operator ~parajoin~
+
+Here the message like ~(1[*]FUNMSG)+OPEN~ means the function
+needs to open its first stream, and ~(1[*]FUNMSG)+REQUEST~ means
+the function needs to request its first stream, and so do other
+similar messages.
+
+*/
 int paraJoinValueMap(Word* args, Word& result,
                 int message, Word& local, Supplier s)
 {
@@ -825,7 +881,6 @@ int paraJoinValueMap(Word* args, Word& result,
     return 0;
   }
   case REQUEST:{
-
     // ask the fun to get the result tuple.
     if (local.addr == 0)
       return CANCEL;
@@ -886,9 +941,12 @@ int paraJoinValueMap(Word* args, Word& result,
 }
 
 /*
-Load the tuples from the input tuple stream,
-and fill the tuples within a same bucket into the tupleBuffers,
-if there is only one kind of tuple in that bucket,
+3.3 Auxiliary Functions of Operator ~parajoin~
+
+Load one bucket tuples from the input tuple stream,
+and fill them into two different tupleBuffers according to the
+~SI~ value it contains.
+If the tuples in that bucket all come from one source relation,
 then move to the next bucket directly.
 
 */
@@ -1017,6 +1075,13 @@ Word pjLocalInfo::getNextInputTuple(tupleBufferType tbt)
   return SetWord(tuple);
 }
 
+/*
+While the input stream is not exhausted,
+keep asking the function to get one result.
+If the function's output stream is exhausted,
+then load the tuples of one bucket from the input stream.
+
+*/
 Word pjLocalInfo::getNextTuple()
 {
   Word funResult(Address(0));
@@ -1032,7 +1097,7 @@ Word pjLocalInfo::getNextTuple()
       return SetWord(Address(0));
     }
     else {
-      // No more result in current bucket, move to the next
+      // No more result in current bucket, load the next bucket
       qp->Close(JNfun);
       loadTuples();
       if (isBufferFilled)
@@ -1046,10 +1111,22 @@ Word pjLocalInfo::getNextTuple()
 /*
 6 Operator ~add0Tuple~
 
-This operator need to be used after a ~sortby~ operator,
-which sort the tuples by there keys, then this ~add0Tuple~
-extract the valueT part and add a new tuple which valueT starts
-with 0 when the keyT changes.
+The tuples outputed from ~doubleexport~ can't be used directly by
+~parahashjoin~ or ~parajoin~, because the MapReduce job is needed
+to sort these tuples according to their join attribute values,
+and add those ~ST~ tuples to partition those tuples into different
+buckets.
+
+For simulating this proceduce in Secondo, we create this operator
+called ~add0Tuple~.
+This operator must get the outputs from ~doubleexport~, and be used
+after a ~sortby~ operator which sort the tuples by their keys.
+Then this operator can scan the whole stream, and add the ~ST~ tuples
+when the keys values change.
+
+At the same time, this operator also abandon the keyT field of
+the input stream, only extract the valueT field to the next operator,
+like ~parahashjoin~ or ~parajoin~.
 
 */
 

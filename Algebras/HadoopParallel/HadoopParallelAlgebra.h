@@ -123,6 +123,7 @@ public:
 /*
 1.4 pjLocalInfo Class
 
+Assists ~parajoin~ operator.
 
 */
 typedef enum { tupBufferA, tupBufferB } tupleBufferType;
@@ -194,6 +195,7 @@ public:
 /*
 1.5 a0tLocalInfo
 
+Assists ~add0Tuple~ operator.
 
 */
 struct a0tLocalInfo
