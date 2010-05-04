@@ -117,14 +117,16 @@ createRecordTM(ListExpr args) {
         elemname = nl->SymbolValue(nl->First(elem));
 
         // check name convention for element names
-        char * c = new char[elemname.size() + 1];
-        strcpy(c, elemname.c_str());
-        if ( isupper(*c) == 0 )
+        char * copy = new char[elemname.size() + 1];
+        strcpy(copy, elemname.c_str());
+        if ( isupper(*copy) == 0 )
         {
           ErrorReporter::ReportError("element name has to start with a capital "
                                      "letter: " + elemname);
+          delete[] copy;
           return nl->TypeError();
         }
+        delete[] copy;
 
         // check if name is a typename.
         if (SecondoSystem::GetCatalog()->IsTypeName(elemname))
@@ -310,34 +312,17 @@ attrVM(Word* args, Word& result, int message, Word& local, Supplier s)
 {
   Record* recordptr;
   Attribute* element;
-  int index, noElements;
-
-#ifdef RECORD_DEBUG
-  cerr<<endl<<"RecordAlgebra::attrVM start."<<endl;
-#endif
+  int index;
 
   recordptr = (Record*)args[0].addr;
   index = ((CcInt*)args[2].addr)->GetIntval();
-  noElements = recordptr->GetNoElements();
+  assert(1<=index);
+  assert(index <= recordptr->GetNoElements());
 
-#ifdef RECORD_DEBUG
-  cerr<<"RecordAlgebra::attrVM NoElements = "<<noElements;
-    cerr<<", Index = "<<index<<endl;
-#endif
-
-  if( 1 <= index && index <= noElements ) {
-    element = recordptr->GetElement(index - 1);
-      result.setAddr(element);
-  } else {
-    result = qp->ResultStorage(s);
-    element = static_cast<Attribute*>( result.addr );
-    element->SetDefined(false);
-  }
-
-#ifdef RECORD_DEBUG
-  cerr<<"RecordAlgebra::attrVM end."<<endl<<endl;
-#endif
-
+  element = recordptr->GetElement(index - 1);
+  result = qp->ResultStorage(s);
+  (static_cast<Attribute*>(result.addr))->CopyFrom(element);
+  element->DeleteIfAllowed();
   return 0;
 }
 

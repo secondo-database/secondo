@@ -216,7 +216,8 @@ constant hash value HASHINIT = 17 for a given number of elements.
 
 */
 Record::Record(int initSize)
-  : hashValue(HASH_INIT)
+  : Attribute(true)
+  , hashValue(HASH_INIT)
   , noElements(0)
   , elemInfoArray(initSize)
   , elemData(0)
@@ -288,68 +289,26 @@ attribute as well.
 Attribute*
 Record::GetElement(int pos) const
 {
-#ifdef RECORD_DEBUG
-  cerr << "Record::GetElement(" << pos << ")" << endl;
-#endif
 
-  // check preconditionsend
   assert(pos >=0);
   assert(pos < this->elemInfoArray.Size());
 
   // get element info by position
   ElemInfo elemInfo;
-  this->elemInfoArray.Get(pos, elemInfo);
+  elemInfoArray.Get(pos, elemInfo);
 
-#ifdef RECORD_DEBUG
-  cerr << "Record::GetElement: pos=" << pos
-       << ", hasData=" << elemInfo->hasData;
-#endif
-
-  Attribute * elem = NULL;
-
-  // check if requested element does exist
-  if (elemInfo.hasData) {
-
-#ifdef RECORD_DEBUG
-    cerr << ", algebraId=" << elemInfo->algebraId
-         << ", typeId=" << elemInfo->typeId;
-#endif
-
-    // create type info list for the requested element
-    ListExpr typeInfo = nl->TwoElemList(nl->IntAtom(elemInfo.algebraId),
-                                        nl->IntAtom(elemInfo.typeId));
-
+  if(!elemInfo.hasData){
+     return 0;
+  } else {
     // create requested element
-    Word w = ((am->CreateObj(elemInfo.algebraId, elemInfo.typeId))(typeInfo));
+    Attribute* elem = static_cast<Attribute*> 
+            ((am->CreateObj(elemInfo.algebraId, elemInfo.typeId))(0).addr);
 
-#ifdef RECORD_DEBUG
-    cerr << ", elemAddr=" << w.addr << endl;
-#endif
-
-    elem = static_cast<Attribute*>(w.addr);
-
-#ifdef RECORD_DEBUG
-    cerr << "Record::GetElement: pos=" << pos
-         << ", elemData.size=" << this->elemData.Size()
-         << ", elemExtData.size=" << this->elemExtData.Size()
-         << ", elemInfo.dataOffset=" << elemInfo.dataOffset
-         << ", elemInfo.extDataOffset=" << elemInfo.extDataOffset
-         << endl;
-#endif
-
-    // get element content 
-    this->elemData.read((char*)elem, sizeof(*elem),elemInfo.dataOffset);
+    this->elemData.read((char*)elem, elem->Sizeof(),elemInfo.dataOffset);
 
     // assign retrieved data to element
-    elem = static_cast<Attribute*> ((am->Cast(elemInfo.algebraId,
-                                              elemInfo.typeId))((void*) elem));
-
-#ifdef RECORD_DEBUG
-    cerr << "Record::GetElement: pos=" << pos
-         << ", elemType="
-         << (elem == NULL ? "" : typeid(*elem).name())
-         << ", elem->Sizeof()=" << elem->Sizeof() << endl;
-#endif
+    elem = static_cast<Attribute*>(
+         (am->Cast(elemInfo.algebraId, elemInfo.typeId))((void*) elem));
 
     // assign external data offset
     size_t offset = elemInfo.extDataOffset;
@@ -358,13 +317,6 @@ Record::GetElement(int pos) const
     for (int i = 0; i < elem->NumOfFLOBs(); i++) {
       // get current flob
       Flob* flob = elem->GetFLOB(i);
-
-#ifdef RECORD_DEBUG
-      cerr << "Record::GetElement: pos=" << pos
-           << ", FLOB[" << i << "], offset=" << offset
-           << ", flobSize=" << flobSize << endl;
-#endif
-
       // retrieve stored data for current flob
       char* buffer = new char[flob->getSize()]; 
       this->elemExtData.read(buffer, flob->getSize(), offset);
@@ -373,14 +325,11 @@ Record::GetElement(int pos) const
       flob->clean();
       flob->write(buffer,  flob->getSize(), 0);
       delete[] buffer;
-
       // update external data offset
       offset += flob->getSize();
     }
+    return elem;
   }
-
-  // return element
-  return elem;
 }
 
 /*
@@ -548,7 +497,7 @@ Record::SetElement(int pos, Attribute* elem,
 #endif
 
   // store element
-  this->elemData.write((char*) elem, sizeof(*elem), elemInfo.dataOffset);
+  this->elemData.write((char*) elem, elem->Sizeof(), elemInfo.dataOffset);
 
 #ifdef RECORD_DEBUG
   cerr << "Record::SetElement: pos=" << pos
@@ -1154,21 +1103,9 @@ Record::In(const ListExpr typeInfo, const ListExpr instance,
       SecondoCatalog* sc = SecondoSystem::GetCatalog();
       elemTypeName = sc->GetTypeName(elemAlgebraId, elemTypeId);
 
-#ifdef RECORD_DEBUG
-      cerr << "Record::In: elemName=" << elemName
-           << ", elemAlgebraId=" << elemAlgebraId
-           << ", elemTypeId=" << elemTypeId
-           << ", elemTypeName=" << elemTypeName
-           << ", curValue=" << nl->ToString(curValue)
-           << endl;
-#endif
 
       // the element name has to start with a capital letter
       if (isupper(elemName[0]) == 0) {
-#ifdef RECORD_DEBUG
-        cerr << "Record::In: element name has to start with a "
-             << "capital letter: " << elemName << endl;
-#endif
         cmsg.inFunError("Record::In: element name has to start with a "
                         "capital letter: " + elemName);
         return w;
@@ -1200,12 +1137,6 @@ Record::In(const ListExpr typeInfo, const ListExpr instance,
 
       // check of existing object elem
       if (elem == NULL) {
-#ifdef RECORD_DEBUG
-        cerr << "Record::In: In function of type " << elemTypeName <<
-                " for element " << elemName <<
-                " has delivered a NULL pointer for value " <<
-                nl->ToString(curValue) << endl;
-#endif
         cmsg.inFunError("Record::In: In function of type "
                         + elemTypeName
                         +" for element "
@@ -1217,22 +1148,17 @@ Record::In(const ListExpr typeInfo, const ListExpr instance,
 
       // append the read attribute to the record and check the result
       if (record->AppendElement(elem, elemTypeName, elemName) == false) {
-#ifdef RECORD_DEBUG
-        cerr << "Record::In: Cannot append element " << elemName <<
-                " of type " << elemTypeName <<
-                " to the record. "<< endl;
-#endif
         cmsg.inFunError("Record::In: Cannot append element "
                         + elemName
                         + " of type "
                         + elemTypeName);
+        elem->DeleteIfAllowed();
         return w;
       }
+      elem->DeleteIfAllowed();
+      elem=0;
     } // End of: iterate synchrone through the type and value list elements
 
-#ifdef RECORD_DEBUG
-    cerr << "Record::In: " << *record << endl;
-#endif
 
     // set the created record as return value
     w = SetWord(record);
@@ -1664,8 +1590,10 @@ Record::GetElementValueList(int pos) const
                                          nl->IntAtom(elemInfo.typeId));
 
   // return list expression for the requested element
-  return (am->OutObj(elemInfo.algebraId, elemInfo.typeId))
+  ListExpr res =  (am->OutObj(elemInfo.algebraId, elemInfo.typeId))
            (subtypeInfo, SetWord(elem));
+  delete elem;
+  return res;
 }
 
 /*

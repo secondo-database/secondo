@@ -1,5 +1,5 @@
 Database : recordtest
-Restore  : YES
+Restore  : NO
 
 Operator : createRecord
 Number   : 1
