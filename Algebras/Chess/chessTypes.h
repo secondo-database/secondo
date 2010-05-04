@@ -204,8 +204,6 @@ public:
   int Compare( const Attribute* arg ) const;
   int ComparePieceValues( const Attribute* arg ) const;
   bool Adjacent( const Attribute *arg ) const;
-  bool IsDefined() const;
-  void SetDefined( bool defined );
   size_t Sizeof() const;
   size_t HashValue() const;
   void CopyFrom( const Attribute* arg );
@@ -233,7 +231,6 @@ public:
 
 private:
   friend class Position;
-  bool defined;
 
   char material[ 14 ];
   /*
@@ -265,8 +262,6 @@ public:
 
   int Compare( const Attribute* arg ) const;
   bool Adjacent( const Attribute *arg ) const;
-  bool IsDefined() const;
-  void SetDefined( bool defined );
   size_t Sizeof() const;
   size_t HashValue() const;
   void CopyFrom( const Attribute* arg );
@@ -336,7 +331,6 @@ public:
 
 private:
   friend class Chessgame;
-  bool defined;
   int moveNumber;
   char agentID;
   char capturedID;
@@ -361,8 +355,6 @@ public:
   int Compare( const Attribute* arg ) const;
   int ComparePieceValues( const Attribute* arg ) const;
   bool Adjacent( const Attribute *arg ) const;
-  bool IsDefined() const;
-  void SetDefined( bool defined );
   size_t Sizeof() const;
   size_t HashValue() const;
   void CopyFrom( const Attribute* arg );
@@ -450,7 +442,6 @@ private:
   char gamefield[ 64 ];
   char material[ 12 ];
   int moveNumber;
-  bool defined;
 };
 
 /*
@@ -468,8 +459,6 @@ public:
 
   int Compare( const Attribute* arg ) const;
   bool Adjacent( const Attribute *arg ) const;
-  bool IsDefined() const;
-  void SetDefined( bool defined );
   size_t Sizeof() const;
   size_t HashValue() const;
   void CopyFrom( const Attribute* arg );
@@ -478,7 +467,7 @@ public:
   void ReadFrom( const char *src );
   SmiSize SizeOfChars() const;
   int NumOfFLOBs() const;
-  FLOB *GetFLOB( const int i );
+  Flob *GetFLOB( const int i );
 
   /*
   in the following functions moveNumber starts counting from 1
@@ -511,13 +500,13 @@ public:
 
   */
 
-  void GetMove( Move * result, int moveNumber );
+  void GetMove( Move&  result, int moveNumber );
   /*
   returns the halfmove moveNumber in result
 
   */
 
-  Move* GetMove( int moveNumber );
+  Move GetMove( int moveNumber );
   /*
   returns the halfmove moveNumber
 
@@ -559,7 +548,7 @@ public:
 
   */
 
-  const MetainfoEntry* GetMetainfoEntry( int i ) const;
+  MetainfoEntry GetMetainfoEntry( int i ) const;
   /*
   retunrns the MetainfoEntry object number i, where 0-8 are the metainfos which
   are stored in seperate datafields (see below) - for i > 8 the (i-9)th entry
@@ -581,32 +570,32 @@ public:
 
   */
 
-  const MoveData* GetMoveData( int i ) const;
+  MoveData GetMoveData( int i ) const;
   /*
   returns object i from movedata (= movedata for halfmove (i+1))
 
   */
 
 private:
-  const Position* GetPositionData( int i ) const;
+  Position GetPositionData( int i ) const;
   /*
   returns object i from positions DBArray
 
   */
 
-  DBArray<MetainfoEntry> metainfo;
+  DbArray<MetainfoEntry> metainfo;
   /*
   stores the metainfos, which are not stored directly
 
   */
 
-  DBArray<MoveData> moves;
+  DbArray<MoveData> moves;
   /*
   stores the moves of the actual game
 
   */
 
-  DBArray<Position> positions;
+  DbArray<Position> positions;
   /*
   stores positions of actual game - only positions after every
   POS_STORE_INTERVALL halfmoves will be stored
@@ -626,7 +615,6 @@ private:
   char Date[ 11 ];
   char ECO[ 7 ];
   char Result[ 49 ];
-  bool defined;
   /*
   Metainfo numbering:
   0 : White
@@ -900,20 +888,6 @@ inline int Chessgame::GetMetainfoCount() const
 
 inline int Chessgame::GetMovesCount() const
   { return moves.Size(); }
-
-inline const MoveData* Chessgame::GetMoveData( int i ) const
-{
-  const MoveData * movedata;
-  moves.Get( i, movedata );
-  return movedata;
-}
-
-inline const Position* Chessgame::GetPositionData( int i ) const
-{
-  const Position * pos;
-  positions.Get( i, pos );
-  return pos;
-}
 
 /*
 4.4 Struct MoveData

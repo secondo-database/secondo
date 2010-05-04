@@ -73,7 +73,8 @@ Material::~Material() {}
 Material::Material( char wPawn, char wKnight, char wRook,
                     char wBishop, char wQueen, char wKing,
                     char bPawn, char bKnight, char bRook,
-                    char bBishop, char bQueen, char bKing )
+                    char bBishop, char bQueen, char bKing ):
+IndexableAttribute(true)
 {
   material[ WHITE_PAWN ] = wPawn;
   material[ WHITE_KNIGHT ] = wKnight;
@@ -87,7 +88,6 @@ Material::Material( char wPawn, char wKnight, char wRook,
   material[ BLACK_BISHOP ] = bBishop;
   material[ BLACK_QUEEN ] = bQueen;
   material[ BLACK_KING ] = bKing;
-  SetDefined( true );
 
   // calculate white material
   char sum = 0;
@@ -102,7 +102,8 @@ Material::Material( char wPawn, char wKnight, char wRook,
   material[ BLACK_MATERIAL ] = sum;
 }
 
-Material::Material( char const *mat )
+Material::Material( char const *mat ):
+IndexableAttribute(true)
 {
   for ( int i = WHITE_PAWN; i <= BLACK_KING; i++ )
     material[ i ] = mat[ i ];
@@ -124,11 +125,11 @@ Material::Material( char const *mat )
 int Material::Compare( const Attribute* arg ) const
 {
   const Material * mat = ( Material* ) arg;
-  if ( !defined && !mat->defined )
+  if ( !IsDefined() && !mat->IsDefined() )
     return 0;
-  if ( !defined && mat->defined )
+  if ( !IsDefined() && mat->IsDefined() )
     return -1;
-  if ( defined && !mat->defined )
+  if ( IsDefined() && !mat->IsDefined() )
     return 1;
 
   // both objects defined, compare material positions
@@ -191,11 +192,11 @@ int Material::Compare( const Attribute* arg ) const
 int Material::ComparePieceValues( const Attribute* arg ) const
 {
   const Material* mat = ( Material* ) arg;
-  if ( !defined && !mat->defined )
+  if ( !IsDefined() && !mat->IsDefined() )
     return 0;
-  if ( !defined && mat->defined )
+  if ( !IsDefined() && mat->IsDefined() )
     return -1;
-  if ( defined && !mat->defined )
+  if ( IsDefined() && !mat->IsDefined() )
     return 1;
 
   if (PieceValue() < mat->PieceValue())
@@ -212,16 +213,6 @@ bool Material::Adjacent( const Attribute *arg ) const
 {
   //TODO ?
   return false;
-}
-
-bool Material::IsDefined() const
-{
-  return defined;
-}
-
-void Material::SetDefined( bool defined )
-{
-  this->defined = defined;
 }
 
 size_t Material::Sizeof() const
@@ -248,7 +239,7 @@ size_t Material::HashValue() const
 void Material::CopyFrom( const Attribute* arg )
 {
   const Material* mat2 = (Material*) arg;
-  defined = mat2->defined;
+  SetDefined( mat2->IsDefined());
   for ( int i=0; i<14; i++ )
   {
     material[ i ] = mat2->material[ i ];
@@ -262,14 +253,14 @@ Material* Material::Clone() const
 
 void Material::WriteTo( char *dest ) const
 {
-  *dest++ = defined ? '1' : '0';
+  *dest++ = IsDefined() ? '1' : '0';
   for (int i=0; i < 14; i++)
     *dest++ = material[ i ];
 }
 
 void Material::ReadFrom( const char *src )
 {
-  defined = (*src++ == '1') ? true : false;
+  SetDefined( (*src++ == '1') ? true : false);
   for (int i=0; i < 14; i++)
     material[ i ] = *src++;
 }
@@ -363,7 +354,8 @@ Move::Move( int moveNumber,
             string agent, string captured,
             string startFile, char startRow,
             string endFile, char endRow,
-            bool check )
+            bool check ):
+IndexableAttribute(true)
 {
   char agentID = EncodeAgent( agent );
   char capturedID = EncodeAgent( captured );
@@ -385,7 +377,8 @@ Move::Move( int moveNumber,
             char agentID, char capturedID,
             char startFile, char startRow,
             char endFile, char endRow,
-            bool check )
+            bool check ):
+IndexableAttribute(true)
 {
   CheckBounds( startFile, startRow );
   CheckBounds( endFile, endRow );
@@ -416,11 +409,11 @@ start field to the same end field.
 int Move::Compare( const Attribute* arg ) const
 {
   const Move * move = ( Move* ) arg;
-  if ( !defined && !move->defined )
+  if ( !IsDefined() && !move->IsDefined() )
     return 0;
-  if ( !defined && move->defined )
+  if ( !IsDefined() && move->IsDefined() )
     return -1;
-  if ( defined && !move->defined )
+  if ( IsDefined() && !move->IsDefined() )
     return 1;
 
   // both objects defined
@@ -467,15 +460,6 @@ bool Move::Adjacent( const Attribute *arg ) const
   return false;
 }
 
-bool Move::IsDefined() const
-{
-  return defined;
-}
-
-void Move::SetDefined( bool defined )
-{
-  this->defined = defined;
-}
 
 size_t Move::Sizeof() const
 {
@@ -484,7 +468,7 @@ size_t Move::Sizeof() const
 
 size_t Move::HashValue() const
 {
-  if (defined) {
+  if (IsDefined()) {
       return moveNumber + check +
                  agentID + capturedID +
                  startFile + startRow +
@@ -497,7 +481,7 @@ size_t Move::HashValue() const
 void Move::CopyFrom( const Attribute* arg )
 {
   const Move* move2 = (Move*) arg;
-  defined = move2->defined;
+  SetDefined(move2->IsDefined());
   moveNumber = move2->moveNumber;
   agentID = move2->agentID;
   capturedID = move2->capturedID;
@@ -515,7 +499,7 @@ Move* Move::Clone() const
 
 void Move::WriteTo( char *dest ) const
 {
-  *dest++ = defined ? '1' : '0';
+  *dest++ = IsDefined() ? '1' : '0';
   *dest++ = startFile;
   *dest++ = startRow;
   *dest++ = endFile;
@@ -531,7 +515,7 @@ void Move::WriteTo( char *dest ) const
 
 void Move::ReadFrom( const char *src )
 {
-  defined = (*src++ == '1') ? true : false;
+  SetDefined((*src++ == '1') ? true : false);
   startFile = *src++;
   startRow = *src++;
   endFile = *src++;
@@ -556,7 +540,8 @@ SmiSize Move::SizeOfChars() const
 Position::Position() {}
 Position::~Position() {}
 
-Position::Position( int moveNumber )
+Position::Position( int moveNumber ):
+IndexableAttribute(true)
 {
   this->moveNumber = moveNumber;
   for ( int i = 0; i < 64; i++ )
@@ -565,7 +550,7 @@ Position::Position( int moveNumber )
   for ( int i = WHITE_PAWN; i <= BLACK_KING; i++ )
     material[ i ] = 0;
 
-  defined = true;
+  SetDefined(true);
 }
 
 /*
@@ -583,11 +568,11 @@ does not have a piece on that field then p1 < p2 yields.
 int Position::Compare( const Attribute* arg ) const
 {
   const Position* pos = ( Position* ) arg;
-  if ( !defined && !pos->defined )
+  if ( !IsDefined() && !pos->IsDefined() )
     return 0;
-  if ( !defined && pos->defined )
+  if ( !IsDefined() && pos->IsDefined() )
     return -1;
-  if ( defined && !pos->defined )
+  if ( IsDefined() && !pos->IsDefined() )
     return 1;
 
   // both objects defined, compare material positions
@@ -662,11 +647,11 @@ int Position::Compare( const Attribute* arg ) const
 int Position::ComparePieceValues( const Attribute* arg ) const
 {
   const Position* pos = ( Position* ) arg;
-  if ( !defined && !pos->defined )
+  if ( !IsDefined() && !pos->IsDefined() )
     return 0;
-  if ( !defined && pos->defined )
+  if ( !IsDefined() && pos->IsDefined() )
     return -1;
-  if ( defined && !pos->defined )
+  if ( IsDefined() && !pos->IsDefined() )
     return 1;
 
   Material localMat ;
@@ -691,16 +676,6 @@ bool Position::Adjacent( const Attribute *arg ) const
   return false;
 }
 
-bool Position::IsDefined() const
-{
-  return defined;
-}
-
-void Position::SetDefined( bool defined )
-{
-  this->defined = defined;
-}
-
 size_t Position::Sizeof() const
 {
   return sizeof( Position );
@@ -709,7 +684,7 @@ size_t Position::Sizeof() const
 size_t Position::HashValue() const
 {
     size_t retval = 0;
-    if (defined) {
+    if (IsDefined()) {
         for(int i = 0; i < 64; i++){
             retval += gamefield[ i ];
         }
@@ -720,7 +695,7 @@ size_t Position::HashValue() const
 void Position::CopyFrom( const Attribute* arg )
 {
   const Position* pos2 = (Position*) arg;
-  defined = pos2->defined;
+  SetDefined(pos2->IsDefined());
   moveNumber = pos2->moveNumber;
   for ( int i=0; i<12; i++ )
   {
@@ -739,7 +714,7 @@ Position* Position::Clone() const
 
 void Position::WriteTo( char *dest ) const
 {
-  *dest++ = defined ? '1' : '0';
+  *dest++ = IsDefined() ? '1' : '0';
 
   for (int i=0; i < 64; i++)
     *dest++ = gamefield[ i ];
@@ -754,7 +729,7 @@ void Position::WriteTo( char *dest ) const
 
 void Position::ReadFrom( const char *src )
 {
-  defined = (*src++ == '1') ? true : false;
+  SetDefined((*src++ == '1') ? true : false);
 
   for (int i=0; i < 64; i++)
     gamefield[ i ] = *src++;
@@ -867,18 +842,18 @@ int Position::AddAgent( string agentStr, char file, char row )
     {
       gamefield[ ( int ) pos ] = EncodeAgent( agentStr );
       material[ ( int ) EncodeAgent( agentStr ) ] ++;
-      defined = true;
+      SetDefined(true);
       return 0;
     }
     else
     {
-      defined = false;
+      SetDefined(false);
       return -2;
     }
   }
   else
   {
-    defined = false;
+    SetDefined(false);
     return -1;
   }
 }
@@ -999,6 +974,7 @@ Chessgame::Chessgame() {}
 Chessgame::~Chessgame() {}
 
 Chessgame::Chessgame( int metainfoCnt, int movesCnt ) :
+    IndexableAttribute(true),
     metainfo( metainfoCnt ), moves( movesCnt ), positions( 0 )
 {
   White[ 0 ] = '\0';
@@ -1010,17 +986,16 @@ Chessgame::Chessgame( int metainfoCnt, int movesCnt ) :
   Date[ 0 ] = '\0';
   ECO[ 0 ] = '\0';
   Result[ 0 ] = '\0';
-  defined = true;
 }
 
 int Chessgame::Compare( const Attribute* arg ) const
 {
   const Chessgame * game= ( Chessgame* ) arg;
-  if ( !defined && !game->defined )
+  if ( !IsDefined() && !game->IsDefined() )
     return 0;
-  if ( !defined && game->defined )
+  if ( !IsDefined()&& game->IsDefined())
     return -1;
-  if ( defined && !game->defined )
+  if ( IsDefined()&& !game->IsDefined() )
     return 1;
 
   // both objects defined, compare metainfos
@@ -1079,16 +1054,16 @@ int Chessgame::Compare( const Attribute* arg ) const
   // equal entrys must be on the same position
   for (int i = 0; i < metainfo.Size(); i++)
   {
-    const MetainfoEntry *m1 = GetMetainfoEntry( i );
-    const MetainfoEntry *m2 = game->GetMetainfoEntry( i );
+    MetainfoEntry m1 = GetMetainfoEntry( i );
+    MetainfoEntry m2 = game->GetMetainfoEntry( i );
 
     // compare key
-    cmp = strcmp( m1->key, m2->key );
+    cmp = strcmp( m1.key, m2.key );
     if (cmp != 0)
       return cmp;
 
     // compare value
-    cmp = strcmp( m1->value, m2->value );
+    cmp = strcmp( m1.value, m2.value );
     if (cmp != 0)
       return cmp;
   }
@@ -1101,21 +1076,21 @@ int Chessgame::Compare( const Attribute* arg ) const
 
   for (int i = 0; i < moves.Size(); i++)
   {
-    const MoveData *m1 = GetMoveData( i );
-    const MoveData *m2 = GetMoveData( i );
+    MoveData m1 = GetMoveData( i );
+    MoveData m2 = GetMoveData( i );
 
     // compare start-position
-    cmp = ( m1->GetStartPos() - m2->GetStartPos() );
+    cmp = ( m1.GetStartPos() - m2.GetStartPos() );
     if (cmp != 0)
       return cmp;
 
     // compare end-position
-    cmp = ( m1->GetEndPos() - m2->GetEndPos() );
+    cmp = ( m1.GetEndPos() - m2.GetEndPos() );
     if (cmp != 0)
       return cmp;
 
     // compare new agent
-    cmp = ( m1->GetNewAgentID() - m2->GetNewAgentID() );
+    cmp = ( m1.GetNewAgentID() - m2.GetNewAgentID() );
     if (cmp != 0)
       return cmp;
   }
@@ -1129,16 +1104,6 @@ bool Chessgame::Adjacent( const Attribute *arg ) const
   return false;
 }
 
-bool Chessgame::IsDefined() const
-{
-  return defined;
-}
-
-void Chessgame::SetDefined( bool defined )
-{
-  this->defined = defined;
-}
-
 size_t Chessgame::Sizeof() const
 {
   return sizeof( Chessgame );
@@ -1147,14 +1112,14 @@ size_t Chessgame::Sizeof() const
 size_t Chessgame::HashValue() const
 {
     size_t retval = 0;
-    const MoveData* movedata = new MoveData();
+    MoveData movedata;
     for(int i = 0; i < moves.Size(); i++){
         moves.Get(i, movedata);
-        retval += movedata->IsCheck() +
-                            movedata->GetStartFile() +
-                            movedata->GetStartRow() +
-                            movedata->GetEndFile() +
-                            movedata->GetEndRow();
+        retval += movedata.IsCheck() +
+                            movedata.GetStartFile() +
+                            movedata.GetStartRow() +
+                            movedata.GetEndFile() +
+                            movedata.GetEndRow();
         retval %= 0x8000000;
     }
     return retval;
@@ -1163,7 +1128,7 @@ size_t Chessgame::HashValue() const
 void Chessgame::CopyFrom( const Attribute* arg )
 {
   const Chessgame* game2 = (Chessgame*) arg;
-  defined = game2->defined;
+  SetDefined(game2->IsDefined());
   strcpy( White, game2->White );
   strcpy( Black, game2->Black );
   strcpy( WhiteElo, game2->WhiteElo );
@@ -1174,35 +1139,36 @@ void Chessgame::CopyFrom( const Attribute* arg )
   strcpy( ECO, game2->ECO );
   strcpy( Result, game2->Result );
 
-  metainfo.Clear();
+  metainfo.clean();
   for ( int i = 0; i < game2->metainfo.Size(); i++ )
   {
-    MetainfoEntry* newentry = new MetainfoEntry();
-    const MetainfoEntry* entry = game2->GetMetainfoEntry( i + 9 );
+    MetainfoEntry newentry;
+    MetainfoEntry entry = game2->GetMetainfoEntry( i + 9 );
     //   added 9 because 9 metainfo fields are stored seperate datafields
-    strcpy( newentry->key, entry->key );
-    strcpy( newentry->value, entry->value );
-    metainfo.Append( *newentry );
+    strcpy( newentry.key, entry.key );
+    strcpy( newentry.value, entry.value );
+    metainfo.Append( newentry );
   }
 
-  moves.Clear();
+  moves.clean();
   for ( int i = 0; i < game2->moves.Size(); i++ )
   {
-    MoveData* newmove = new MoveData();
-    const MoveData* move = game2->GetMoveData( i );
-    newmove->startpos = move->startpos;
-    newmove->endpos = move->endpos;
-    newmove->newag = move->newag;
-    newmove->data = move->data;
-    moves.Append( *newmove );
+    MoveData newmove;
+    MoveData move = game2->GetMoveData( i );
+    newmove.startpos = move.startpos;
+    newmove.endpos = move.endpos;
+    newmove.newag = move.newag;
+    newmove.data = move.data;
+    moves.Append( newmove );
   }
 
-  positions.Clear();
+  positions.clean();
   for ( int i = 0; i < game2->positions.Size(); i++ )
   {
-    Position* newpos = new Position();
-    newpos->CopyFrom( game2->GetPositionData( i ) );
-    positions.Append( *newpos );
+    Position newpos;
+    Position oldpos = game2->GetPositionData(i);
+    newpos.CopyFrom( &oldpos );
+    positions.Append( newpos );
   }
 }
 
@@ -1221,21 +1187,21 @@ Chessgame* Chessgame::Clone() const
   strcpy( chessgame->Result, Result );
 
   for ( int i = 0; i < metainfo.Size(); i++ )
-    chessgame->metainfo.Append( *this->GetMetainfoEntry( i + 9 ) );
+    chessgame->metainfo.Append( this->GetMetainfoEntry( i + 9 ) );
   // added 9 because 9 metainfo fields are stored seperate datafields
 
   for ( int i = 0; i < moves.Size(); i++ )
-    chessgame->moves.Append( *this->GetMoveData( i ) );
+    chessgame->moves.Append( this->GetMoveData( i ) );
 
   for ( int i = 0; i < positions.Size(); i++ )
-    chessgame->positions.Append( *this->GetPositionData( i ) );
+    chessgame->positions.Append( this->GetPositionData( i ) );
 
   return chessgame;
 }
 
 void Chessgame::WriteTo( char *dest ) const
 {
-  *dest++ = defined ? '1' : '0';
+  *dest++ = IsDefined() ? '1' : '0';
   strncpy(dest, &White[0], 49);
   strncpy(dest, &Black[0], 49);
   strncpy(dest, &WhiteElo[0], 6);
@@ -1248,20 +1214,20 @@ void Chessgame::WriteTo( char *dest ) const
 
   for (int i = 0; i < metainfo.Size(); i++)
   {
-    const MetainfoEntry * entry;
+    MetainfoEntry  entry;
     metainfo.Get( i , entry );
-    strncpy( dest, entry->key, 13 );
-    strncpy( dest, entry->value, 49 );
+    strncpy( dest, entry.key, 13 );
+    strncpy( dest, entry.value, 49 );
   }
 
   for (int i = 0; i < moves.Size(); i++)
   {
-    const MoveData * move;
+    MoveData  move;
     moves.Get( i , move );
-    *dest++ = move->GetStartFile();
-    *dest++ = move->GetStartRow();
-    *dest++ = move->GetEndFile();
-    *dest++ = move->GetEndRow();
+    *dest++ = move.GetStartFile();
+    *dest++ = move.GetStartRow();
+    *dest++ = move.GetEndFile();
+    *dest++ = move.GetEndRow();
     const string pgn = this->GetPGN(i + 1);
     strncpy(dest, pgn.c_str(), 10);
   }
@@ -1269,7 +1235,7 @@ void Chessgame::WriteTo( char *dest ) const
 
 void Chessgame::ReadFrom( const char *src )
 {
-  defined = (*src++ == '1') ? true : false;
+  SetDefined((*src++ == '1') ? true : false);
   strncpy(&White[0], src, 49);
   strncpy(&Black[0], src, 49);
   strncpy(&WhiteElo[0], src, 6);
@@ -1280,7 +1246,7 @@ void Chessgame::ReadFrom( const char *src )
   strncpy(&ECO[0], src, 7);
   strncpy(&Result[0], src, 49);
 
-  metainfo.Clear();
+  metainfo.clean();
   for (int i = 0; i < metainfo.Size(); i++)
   {
     MetainfoEntry * entry = new MetainfoEntry();
@@ -1289,8 +1255,8 @@ void Chessgame::ReadFrom( const char *src )
     metainfo.Append( *entry );
   }
 
-  positions.Clear();
-  moves.Clear();
+  positions.clean();
+  moves.clean();
   for (int i = 0; i < moves.Size(); i++)
   {
     char startfile = *src++;
@@ -1313,7 +1279,7 @@ int Chessgame::NumOfFLOBs() const
   return 3;
 }
 
-FLOB * Chessgame::GetFLOB( const int i )
+Flob * Chessgame::GetFLOB( const int i )
 {
   switch ( i )
   {
@@ -1589,14 +1555,14 @@ int Chessgame::AddMove( char startfile, char startrow,
   return true;
 }
 
-void Chessgame::GetMove( Move * result, int moveNumber )
+void Chessgame::GetMove( Move&  result, int moveNumber )
 {
   if ( moveNumber < 1 )
     moveNumber = 1;
   else if ( moveNumber > moves.Size() + 1 )
     moveNumber = moves.Size() + 1;
 
-  const MoveData * move;
+  MoveData  move;
   moves.Get( moveNumber - 1, move );
 
   Position* curpos = new Position();
@@ -1604,13 +1570,13 @@ void Chessgame::GetMove( Move * result, int moveNumber )
 
   // get captured id
   char captured;
-  if ( !move->EnPassant() )
+  if ( !move.EnPassant() )
   {
-    captured = curpos->gamefield [ (int)move->GetEndPos() ];
+    captured = curpos->gamefield [ (int)move.GetEndPos() ];
   }
   else
   {
-    char agentID = curpos->gamefield [ (int)move->GetStartPos() ];
+    char agentID = curpos->gamefield [ (int)move.GetStartPos() ];
     if ( agentID <= WHITE_KING )
       captured = BLACK_PAWN;
     else
@@ -1618,15 +1584,15 @@ void Chessgame::GetMove( Move * result, int moveNumber )
   }
 
   // write data to result
-  result->moveNumber = moveNumber;
-  result->capturedID = ( captured );
-  result->agentID = curpos->gamefield [ (int)move->GetStartPos() ];
-  result->startFile = ( move->GetStartFile() );
-  result->startRow = ( move->GetStartRow() );
-  result->endFile = ( move->GetEndFile() );
-  result->endRow = ( move->GetEndRow() );
-  result->check = ( move->IsCheck() );
-  result->defined = ( true );
+  result.moveNumber = moveNumber;
+  result.capturedID = ( captured );
+  result.agentID = curpos->gamefield [ (int)move.GetStartPos() ];
+  result.startFile = ( move.GetStartFile() );
+  result.startRow = ( move.GetStartRow() );
+  result.endFile = ( move.GetEndFile() );
+  result.endRow = ( move.GetEndRow() );
+  result.check = ( move.IsCheck() );
+  result.SetDefined( true );
 
   // test of Move::WriteTo() and Move::ReadTo()
   /*
@@ -1645,9 +1611,9 @@ void Chessgame::GetMove( Move * result, int moveNumber )
   */
 }
 
-Move* Chessgame::GetMove( int moveNumber )
+Move Chessgame::GetMove( int moveNumber )
 {
-  Move * result = new Move();
+  Move  result;
   GetMove( result, moveNumber );
   return result;
 }
@@ -1669,28 +1635,28 @@ void Chessgame::GetPosition( Position* result, int moveNumber,
   }
   else
   {
-    const Position * pos = GetPositionData( posnum - 1 );
+    Position  pos = GetPositionData( posnum - 1 );
     for ( int i = 0; i < 64; i++ )
-      result->gamefield[ i ] = pos->gamefield[ i ];
-    curmove = pos->moveNumber;
+      result->gamefield[ i ] = pos.gamefield[ i ];
+    curmove = pos.moveNumber;
 
     if ( getMaterial )
       for ( int i = 0; i < 12; i++ )
-        result->material[ i ] = pos->material[ i ];
+        result->material[ i ] = pos.material[ i ];
   }
 
   // calculate moves
   while ( curmove < moveNumber )
   {
-    const MoveData * currentMove = GetMoveData( curmove++ );
+    MoveData  currentMove = GetMoveData( curmove++ );
     result->MakeMove(
-      currentMove->GetStartPos(),
-      currentMove->GetEndPos(),
-      currentMove->GetNewAgentID(),
-      currentMove->GetCastling() );
+      currentMove.GetStartPos(),
+      currentMove.GetEndPos(),
+      currentMove.GetNewAgentID(),
+      currentMove.GetCastling() );
   }
 
-  result->defined = defined;
+  result->SetDefined(IsDefined());
 
   // test of Position::WriteTo() and Position::ReadTo()
   /*
@@ -1736,37 +1702,37 @@ const string Chessgame::GetPGN( int moveNumber ) const
   GetPosition( curpos, moveNumber - 1 );
 
 
-  const MoveData * move;
+  MoveData  move;
   moves.Get( moveNumber - 1, move );
 
-  int startpos = move->GetStartPos();
-  int endpos = move->GetEndPos();
+  int startpos = move.GetStartPos();
+  int endpos = move.GetEndPos();
 
-  if ( move->GetCastling() )
+  if ( move.GetCastling() )
   {
-    if ( move->GetCastling() == QUEENSIDE_CASTLING )
+    if ( move.GetCastling() == QUEENSIDE_CASTLING )
       result = "O-O-O";
     else
       result = "O-O";
   }
   else
   {
-    if ( move->OutputAgent() )
+    if ( move.OutputAgent() )
     {
       string agstr = DecodeAgentShort( curpos->gamefield[ startpos ] );
       agstr[ 0 ] = toupper( agstr[ 0 ] );
       result += agstr;
     }
 
-    if ( move->OutputFile() )
+    if ( move.OutputFile() )
     {
-      result += move->GetStartFile();
+      result += move.GetStartFile();
     }
 
-    if ( move->OutputRow() )
+    if ( move.OutputRow() )
     {
       ostringstream row;
-      row << ( int ) ( move->GetStartRow() );
+      row << ( int ) ( move.GetStartRow() );
       result += row.str();
     }
 
@@ -1776,22 +1742,22 @@ const string Chessgame::GetPGN( int moveNumber ) const
     }
 
     // append endfile and endrow
-    result += move->GetEndFile();
+    result += move.GetEndFile();
     ostringstream row;
-    row << ( int ) ( move->GetEndRow() );
+    row << ( int ) ( move.GetEndRow() );
     result += row.str();
 
     if ( DecodeAgentShort( curpos->gamefield[ startpos ] ) !=  
-         move->GetNewAgent() )
+         move.GetNewAgent() )
     {
       result += '=';
-      string agstr = move->GetNewAgent();
+      string agstr = move.GetNewAgent();
       agstr[ 0 ] = toupper( agstr[ 0 ] );
       result += agstr;
     }
   }
 
-  if ( move->IsCheck() )
+  if ( move.IsCheck() )
     result += '+';
 
   return result;
@@ -1959,9 +1925,9 @@ void Chessgame::GetMetainfoValue( string key, STRING_T* result )
   // search mi_key and copy value to result STRING, if found
   if ( metainfo.Find( mi_key, &MetainfoEntryCmp, pos ) )
   {
-    const MetainfoEntry * entry;
+    MetainfoEntry  entry;
     metainfo.Get( pos , entry );
-    strcpy( *result, ( entry->value ) );
+    strcpy( *result, ( entry.value ) );
   }
   else
   {
@@ -1970,87 +1936,87 @@ void Chessgame::GetMetainfoValue( string key, STRING_T* result )
   }
 }
 
-const MetainfoEntry* Chessgame::GetMetainfoEntry( int i ) const
+MetainfoEntry Chessgame::GetMetainfoEntry( int i ) const
 {
   int len;
   string key, value;
 
   if ( i > GetMetainfoCount() )
   {
-    MetainfoEntry * entry;
+    MetainfoEntry  entry;
     key = "undef";
     value = "undef";
-    len = key.copy( entry->key, 12, 0 );
-    entry->key[ len ] = '\0';
-    len = value.copy( entry->value, 48, 0 );
-    entry->value[ len ] = '\0';
+    len = key.copy( entry.key, 12, 0 );
+    entry.key[ len ] = '\0';
+    len = value.copy( entry.value, 48, 0 );
+    entry.value[ len ] = '\0';
     return entry;
   }
   else if ( i < 9 )
   {
-    MetainfoEntry * entry = new MetainfoEntry();
+    MetainfoEntry  entry;
     switch ( i )
     {
     case 0:
       key = "White";
-      len = key.copy( entry->key, 12, 0 );
-      entry->key[ len ] = '\0';
-      strcpy ( entry->value, White );
+      len = key.copy( entry.key, 12, 0 );
+      entry.key[ len ] = '\0';
+      strcpy ( entry.value, White );
       break;
     case 1:
       key = "Black";
-      len = key.copy( entry->key, 12, 0 );
-      entry->key[ len ] = '\0';
-      strcpy ( entry->value, Black );
+      len = key.copy( entry.key, 12, 0 );
+      entry.key[ len ] = '\0';
+      strcpy ( entry.value, Black );
       break;
     case 2:
       key = "WhiteElo";
-      len = key.copy( entry->key, 12, 0 );
-      entry->key[ len ] = '\0';
-      strcpy ( entry->value, WhiteElo );
+      len = key.copy( entry.key, 12, 0 );
+      entry.key[ len ] = '\0';
+      strcpy ( entry.value, WhiteElo );
       break;
     case 3:
       key = "BlackElo";
-      len = key.copy( entry->key, 12, 0 );
-      entry->key[ len ] = '\0';
-      strcpy ( entry->value, BlackElo );
+      len = key.copy( entry.key, 12, 0 );
+      entry.key[ len ] = '\0';
+      strcpy ( entry.value, BlackElo );
       break;
     case 4:
       key = "Event";
-      len = key.copy( entry->key, 12, 0 );
-      entry->key[ len ] = '\0';
-      strcpy ( entry->value, Event );
+      len = key.copy( entry.key, 12, 0 );
+      entry.key[ len ] = '\0';
+      strcpy ( entry.value, Event );
       break;
     case 5:
       key = "Site";
-      len = key.copy( entry->key, 12, 0 );
-      entry->key[ len ] = '\0';
-      strcpy ( entry->value, Site );
+      len = key.copy( entry.key, 12, 0 );
+      entry.key[ len ] = '\0';
+      strcpy ( entry.value, Site );
       break;
     case 6:
       key = "Date";
-      len = key.copy( entry->key, 12, 0 );
-      entry->key[ len ] = '\0';
-      strcpy ( entry->value, Date );
+      len = key.copy( entry.key, 12, 0 );
+      entry.key[ len ] = '\0';
+      strcpy ( entry.value, Date );
       break;
     case 7:
       key = "ECO";
-      len = key.copy( entry->key, 12, 0 );
-      entry->key[ len ] = '\0';
-      strcpy ( entry->value, ECO );
+      len = key.copy( entry.key, 12, 0 );
+      entry.key[ len ] = '\0';
+      strcpy ( entry.value, ECO );
       break;
     case 8:
       key = "Result";
-      len = key.copy( entry->key, 12, 0 );
-      entry->key[ len ] = '\0';
-      strcpy ( entry->value, Result );
+      len = key.copy( entry.key, 12, 0 );
+      entry.key[ len ] = '\0';
+      strcpy ( entry.value, Result );
       break;
     }
     return entry;
   }
   else
   {
-    const MetainfoEntry * entry;
+    MetainfoEntry  entry;
     metainfo.Get( i - 9, entry );
     return entry;
   }

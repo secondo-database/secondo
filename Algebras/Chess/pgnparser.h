@@ -73,8 +73,6 @@ parseMove( char &startFile, int &startRow,
            Position* position )
 {
   char agent = ' ';
-  char captured = ' ';
-  char promotion = ' ';
   int distance = 0;
   
   bool captures = false;

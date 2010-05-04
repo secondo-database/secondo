@@ -690,7 +690,7 @@ OutChessgame( ListExpr typeInfo, Word value )
       bool firstListEntry = true;
       for ( int i = ( ( game->GetMetainfoCount() ) - 1 ); i >= 0; i-- )
       {
-        const MetainfoEntry* metainfo = game->GetMetainfoEntry( i );
+        MetainfoEntry metainfo = game->GetMetainfoEntry( i );
 
         /* do not print EventDate and ECO if respective values are empty. Date,
            Event, White, Black, Site, Round and Result (STR-Tags) will always be
@@ -698,8 +698,8 @@ OutChessgame( ListExpr typeInfo, Word value )
            All other tags will only be printed, if they are contained in the
            respective pgn file
         */
-        string key ( metainfo->key );
-        if ( ( metainfo->value[ 0 ] != '\0' ) ||
+        string key ( metainfo.key );
+        if ( ( metainfo.value[ 0 ] != '\0' ) ||
              ( ( key != "EventDate" ) &&
                ( key != "ECO" ) )
            )
@@ -707,16 +707,16 @@ OutChessgame( ListExpr typeInfo, Word value )
           if ( firstListEntry )
           {
             metainfoList = nl->Cons( nl->TwoElemList(
-                                       nl->StringAtom( metainfo->key ),
-                                       nl->StringAtom( metainfo->value )
+                                       nl->StringAtom( metainfo.key ),
+                                       nl->StringAtom( metainfo.value )
                                      ), nl->TheEmptyList() );
             firstListEntry = false;
           }
           else
           {
             metainfoList = nl->Cons( nl->TwoElemList(
-                                       nl->StringAtom( metainfo->key ),
-                                       nl->StringAtom( metainfo->value )
+                                       nl->StringAtom( metainfo.key ),
+                                       nl->StringAtom( metainfo.value )
                                      ), metainfoList );
           }
         }
@@ -732,19 +732,19 @@ OutChessgame( ListExpr typeInfo, Word value )
       for ( int i = ( game->GetMovesCount() ); i > 0; i-- )
       {
         ListExpr movelist;
-        Move* move = new Move();
+        Move move;
         game->GetMove( move, i );
 
         // build movelist
         movelist = nl->Cons( nl->StringAtom( game->GetPGN( i ) ), 
                              nl->TheEmptyList() );
-        movelist = nl->Cons( nl->BoolAtom( move->IsCheck() ), movelist );
-        movelist = nl->Cons( nl->IntAtom( move->GetEndRow() ), movelist );
-        movelist = nl->Cons( nl->StringAtom( move->GetEndFile() ), movelist );
-        movelist = nl->Cons( nl->IntAtom( move->GetStartRow() ), movelist );
-        movelist = nl->Cons( nl->StringAtom( move->GetStartFile() ), movelist);
-        movelist = nl->Cons( nl->StringAtom( move->GetCaptured() ), movelist );
-        movelist = nl->Cons( nl->StringAtom( move->GetAgent() ), movelist );
+        movelist = nl->Cons( nl->BoolAtom( move.IsCheck() ), movelist );
+        movelist = nl->Cons( nl->IntAtom( move.GetEndRow() ), movelist );
+        movelist = nl->Cons( nl->StringAtom( move.GetEndFile() ), movelist );
+        movelist = nl->Cons( nl->IntAtom( move.GetStartRow() ), movelist );
+        movelist = nl->Cons( nl->StringAtom( move.GetStartFile() ), movelist);
+        movelist = nl->Cons( nl->StringAtom( move.GetCaptured() ), movelist );
+        movelist = nl->Cons( nl->StringAtom( move.GetAgent() ), movelist );
 
         if ( firstListEntry )
         {
@@ -1687,7 +1687,7 @@ int getmoveValueMap( Word * args, Word & result,
        || ( moveNumber->GetValue() > game->GetMovesCount() ) )
     ( ( Move* ) result.addr ) ->SetDefined( false );
   else
-    game->GetMove( ( Move* ) result.addr, moveNumber->GetValue() );
+    game->GetMove( (* ( Move* ) result.addr), moveNumber->GetValue() );
   return 0;
 }
 
@@ -1777,7 +1777,10 @@ int movesValueMap( Word * args, Word & result,
     localinfo = ( Localinfo* ) local.addr;
     if ( localinfo->cntr <= ( localinfo->game->GetMovesCount() ) )
     {
-      result.addr = ( localinfo->game->GetMove( localinfo->cntr++ ) );
+      Move m = localinfo->game->GetMove( localinfo->cntr++ );
+      Move* res = new Move(m);
+      
+      result.addr = res;
       return YIELD;
     }
     else
@@ -1930,7 +1933,10 @@ int movingpointsValueMap( Word * args, Word & result,
     */
     for ( i = 1;i <= game->GetMovesCount();i++ )
     {
-      mcps->realizeMove( game->GetMove( i ), game->GetMoveData( i-1 ) );
+      Move m1;
+      game->GetMove(m1,i);
+      MoveData m2 = game->GetMoveData(i-1);
+      mcps->realizeMove( &m1, &m2 );
     }
     mcps->closeMPoints();
 
