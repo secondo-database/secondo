@@ -1009,7 +1009,6 @@ private:
   jobject obj;
   Flob objectData;
   bool canDelete;
-  bool Defined;
   void RestoreFLOBFromJavaObject();
   void SyncBboxData();
   
@@ -1023,8 +1022,6 @@ public:
   // Inherited methods of Attribute 
   int Compare(const Attribute *attr) const;
   Attribute *Clone() const;
-  bool IsDefined() const;
-  void SetDefined(bool Defined);
   void CopyFrom(const Attribute* right);
   void Destroy();
   jobject GetObject() const {
@@ -1108,26 +1105,6 @@ Attribute *CcPoints::Clone() const {
 
 */
 
-bool CcPoints::IsDefined() const {
-  if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
-  return true;
-}
-
-/* 
- Inherited method of Attribute 
-
-*/
-
-void CcPoints::SetDefined(bool Defined) {
-  if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
-  this->Defined = Defined;
-}
-
-/* 
- Inherited method of Attribute 
-
-*/
-
 void CcPoints::CopyFrom(const Attribute* right) {
   if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   const CcPoints *P = (const CcPoints *)right;
@@ -1168,7 +1145,7 @@ Flob *CcPoints::GetFLOB(const int i){
 void CcPoints::Initialize() {
   if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   obj = 0;
-  Defined = true;
+  SetDefined(true);
 }
 
 
@@ -1177,7 +1154,9 @@ void CcPoints::Initialize() {
 
 */
 
-CcPoints::CcPoints(size_t size):objectData(size),canDelete(false) {
+CcPoints::CcPoints(size_t size):Attribute(true),
+                                objectData(size),canDelete(false)
+  {
   if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   SetDefined(true);
   obj = env->NewObject(clsPoints,midPointsConst);
@@ -1191,7 +1170,8 @@ CcPoints::CcPoints(size_t size):objectData(size),canDelete(false) {
 
 */
  
-CcPoints::CcPoints(const ListExpr &le, bool isList):objectData(1) {
+CcPoints::CcPoints(const ListExpr &le, bool isList): 
+  Attribute(true),objectData(1) {
   if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   obj = Convert_CToJava_Points(le);
   canDelete = false;
@@ -1206,7 +1186,7 @@ CcPoints::CcPoints(const ListExpr &le, bool isList):objectData(1) {
 
 */
 
-CcPoints::CcPoints(const jobject jobj):objectData(1) {
+CcPoints::CcPoints(const jobject jobj):Attribute(true),objectData(1) {
   if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   canDelete = false;
   obj = jobj;
@@ -1233,7 +1213,7 @@ CcPoints::CcPoints() {
 
 bool CcPoints::GetNL(ListExpr& le) {
   if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
-  if (!Defined) {
+  if (!IsDefined()) {
     le = nl->TheEmptyList();
     return true;
   }
@@ -1574,7 +1554,6 @@ private:
   jobject obj;
   Flob objectData;
   bool canDelete;
-  bool Defined;
   void RestoreFLOBFromJavaObject();
   void SyncBboxData();
 
@@ -1588,8 +1567,6 @@ public:
   // Inherited methods of Attribute 
   int Compare(const Attribute *attr) const;
   Attribute *Clone() const;
-  bool IsDefined() const;
-  void SetDefined(bool Defined);
   void CopyFrom(const Attribute* right);
   void Destroy();
   jobject GetObject() const {
@@ -1670,26 +1647,6 @@ Attribute *CcLines::Clone() const {
 
 */
 
-bool CcLines::IsDefined() const {
-  if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
-  return true;
-}
-
-/* 
- Inherited method of Attribute 
-
-*/
-
-/* 
- Inherited method of Attribute 
-
-*/
-
-void CcLines::SetDefined(bool Defined) {
-  if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
-  this->Defined = Defined;
-}
-
 /* 
  Inherited method of Attribute 
 
@@ -1735,7 +1692,7 @@ Flob *CcLines::GetFLOB(const int i) {
 void CcLines::Initialize() {
   if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   obj = 0;
-  Defined = true;
+  SetDefined(true);
 }
 
 /*
@@ -1743,7 +1700,8 @@ void CcLines::Initialize() {
 
 */
 
-CcLines::CcLines(size_t size):objectData(size),canDelete(false) {
+CcLines::CcLines(size_t size):Attribute(true),
+     objectData(size),canDelete(false) {
   if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   SetDefined(true);
   obj = env->NewObject(clsLines,midLinesConst);
@@ -1757,7 +1715,8 @@ CcLines::CcLines(size_t size):objectData(size),canDelete(false) {
 
 */
 
-CcLines::CcLines(const ListExpr &le, bool isList):objectData(1) {
+CcLines::CcLines(const ListExpr &le, bool isList): Attribute(true),
+                                                   objectData(1) {
   if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   obj = Convert_CToJava_Lines(le);
   canDelete = false;
@@ -1772,7 +1731,7 @@ CcLines::CcLines(const ListExpr &le, bool isList):objectData(1) {
 
 */
  
-CcLines::CcLines(const jobject jobj) : objectData(1) {
+CcLines::CcLines(const jobject jobj) : Attribute(true),objectData(1) {
   if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   canDelete = false;
   obj = jobj;
@@ -1798,7 +1757,7 @@ CcLines::CcLines() {
 
 bool CcLines::GetNL(ListExpr& le) {
   if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
-  if (!Defined) {
+  if (!IsDefined()) {
     le = nl->TheEmptyList();
     return true;
   }
@@ -2137,7 +2096,6 @@ private:
   jobject obj;
   Flob objectData;
   bool canDelete;
-  bool Defined;
   void RestoreFLOBFromJavaObject();
   void SyncBboxData();
 
@@ -2151,8 +2109,6 @@ public:
   // Inherited methods of Attribute 
   int Compare(const Attribute *attr) const;
   Attribute *Clone() const;
-  bool IsDefined() const;
-  void SetDefined(bool Defined);
   void CopyFrom(const Attribute* right);
   void Destroy();
   jobject GetObject() const {
@@ -2233,26 +2189,6 @@ Attribute *CcRegions::Clone() const {
 
 */
 
-bool CcRegions::IsDefined() const {
-  if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
-  return true;
-}
-
-/* 
- Inherited method of Attribute 
-
-*/
-
-void CcRegions::SetDefined(bool Defined) {
-  if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
-  this->Defined = Defined;
-}
-
-/* 
- Inherited method of Attribute 
-
-*/
-
 void CcRegions::CopyFrom(const Attribute* right) { 
   if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   const CcRegions *R = (const CcRegions *)right;
@@ -2293,7 +2229,7 @@ Flob *CcRegions::GetFLOB(const int i){
 void CcRegions::Initialize() {
   if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   obj = 0;
-  Defined=true;
+  SetDefined(true);
 }
 
 /*
@@ -2301,7 +2237,8 @@ void CcRegions::Initialize() {
 
 */
 
-CcRegions::CcRegions(size_t size):objectData(size),canDelete(false) {
+CcRegions::CcRegions(size_t size):Attribute(true),
+                                  objectData(size),canDelete(false) {
   if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   SetDefined(true);
   obj = env->NewObject(clsRegions, midRegionsConstVoid);
@@ -2315,7 +2252,8 @@ CcRegions::CcRegions(size_t size):objectData(size),canDelete(false) {
 
 */
 
-CcRegions::CcRegions(const ListExpr &le, bool isList):objectData(1) {
+CcRegions::CcRegions(const ListExpr &le, bool isList):Attribute(true),
+                                                      objectData(1) {
   if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   obj = Convert_CToJava_Regions(le);
   canDelete = false;
@@ -2330,7 +2268,7 @@ CcRegions::CcRegions(const ListExpr &le, bool isList):objectData(1) {
 
 */
 
-CcRegions::CcRegions(const jobject jobj):objectData(1) {
+CcRegions::CcRegions(const jobject jobj):Attribute(true),objectData(1) {
   if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   canDelete = false;
   obj = jobj;
@@ -2356,7 +2294,7 @@ CcRegions::CcRegions() {
 
 bool CcRegions::GetNL(ListExpr& le) {
   if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
-  if (!Defined) {
+  if (!IsDefined()) {
     le = nl->TheEmptyList();
     return true;
   }
