@@ -170,9 +170,11 @@ void AttributeRelation::CopyTuplesToRel(Relation* r)
   for (int i = 0; i < tupleIds.Size(); i++)  
     {
       tupleIds.Get(i, tid);  
-      t = temp->GetTuple(tid);
-      r->AppendTuple(t);
-      t->DeleteIfAllowed();
+      t = temp->GetTuple(tid,false);
+      if(t){
+        r->AppendTuple(t);
+        t->DeleteIfAllowed();
+      }
     }
 }
 
@@ -184,9 +186,11 @@ void AttributeRelation::CopyTuplesToNrel(NestedRelation* nrel)
   for (int i = 0; i < tupleIds.Size(); i++)  
     {
       tupleIds.Get(i, tid);  
-      t = temp->GetTuple(tid);
-      nrel->AppendTuple(t);
-      t->DeleteIfAllowed();
+      t = temp->GetTuple(tid, false);
+      if(t){
+        nrel->AppendTuple(t);
+        t->DeleteIfAllowed();
+      }
     }
 }
 
@@ -228,8 +232,8 @@ int AttributeRelation::Compare(const Attribute* attr) const
   {
     tupleIds.Get(i, tid1);
     arelTids->Get(i, tid2);
-    t2 = rel2->GetTuple(tid2);
-    t1 = rel1->GetTuple(tid1);
+    t2 = rel2->GetTuple(tid2,false);
+    t1 = rel1->GetTuple(tid1,false);
     
     for (int j = 0; j < tt->GetNoAttributes(); j++)
     {
@@ -297,7 +301,7 @@ size_t AttributeRelation::HashValue() const
   if (tupleIds.Size() > 0)
   {
     tupleIds.Get(0, tid1);
-    t1 = rel1->GetTuple(tid1);
+    t1 = rel1->GetTuple(tid1,false);
     for (int j = 0; j < tt->GetNoAttributes(); j++)
     {
       a1 = (Attribute*)t1->GetAttribute(j);
@@ -462,7 +466,7 @@ ListExpr AttributeRelation::Out( ListExpr typeInfo, Word value )
     for (int i = 0; i < tids->Size(); i++)  
     {
       tids->Get(i, tid);  
-      t = rel->GetTuple(tid);
+      t = rel->GetTuple(tid, false);
       tlist = t->Out(tupleTypeInfo);
       lastElem = nl->Append(lastElem, tlist);
       t->DeleteIfAllowed();
@@ -974,7 +978,7 @@ AttributeRelation* NestedRelation::storeSubRel(AttributeRelation* a, int& i)
       Tuple* t = 0;
       Tuple* newTuple;
       tids->Get(i1, tid);  
-      t = relOld->GetTuple(tid);
+      t = relOld->GetTuple(tid, false);
       newTuple = new Tuple(t->GetTupleType());
       for (int i2 = 0; i2 < t->GetTupleType()->GetNoAttributes(); 
            i2++)
@@ -1646,7 +1650,7 @@ aFeed(Word* args, Word& result, int message, Word& local, Supplier s)
       if (info->index < arel->getTupleIds()->Size())
       { 
         arel->getTupleIds()->Get(info->index, tid); 
-        t = r->GetTuple(tid);
+        t = r->GetTuple(tid, false);
         info->index++;
         result.setAddr(t);
         return YIELD;
@@ -2414,7 +2418,7 @@ unnestValueMap(Word* args, Word& result, int message,
           tidArray = info->arel->getTupleIds();
           tidArray->Get(0, tid);
           rel = Relation::GetRelation(info->arel->getRelId());
-          Tuple* arelTuple = rel->GetTuple(tid);
+          Tuple* arelTuple = rel->GetTuple(tid, false);
           for (int i = 0; i < noAttrArel; i++)
             tuple->CopyAttribute(i, arelTuple, i + noOfAttrs - 1);       
           info->lastTuple = current;
@@ -2445,7 +2449,7 @@ unnestValueMap(Word* args, Word& result, int message,
           }
           tidArray->Get(info->index, tid);
           rel = Relation::GetRelation(info->arel->getRelId());
-          Tuple* arelTuple = rel->GetTuple(tid);           
+          Tuple* arelTuple = rel->GetTuple(tid, false);
           info->index++;
           for (int i = 0; i < noAttrArel; i++)
             tuple->CopyAttribute(i, arelTuple, i + noOfAttrs - 1);       
@@ -2472,7 +2476,7 @@ unnestValueMap(Word* args, Word& result, int message,
             tidArray = info->arel->getTupleIds();
             tidArray->Get(0, tid);
             rel = Relation::GetRelation(info->arel->getRelId());
-            Tuple* arelTuple = rel->GetTuple(tid);   
+            Tuple* arelTuple = rel->GetTuple(tid, false);   
             for (int i = 0; i < noAttrArel; i++)
               tuple->CopyAttribute(i, arelTuple, i + noOfAttrs -1);       
             info->lastTuple->DeleteIfAllowed();
