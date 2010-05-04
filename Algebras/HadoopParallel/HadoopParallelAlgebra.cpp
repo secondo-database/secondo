@@ -595,8 +595,8 @@ bool phjLocalInfo::getNewProducts()
       {
         for (int j = 0; j < tbB->GetNoTuples(); j++)
         {
-          tupleA = tbA->GetTuple(i);
-          tupleB = tbB->GetTuple(j);
+          tupleA = tbA->GetTuple(i,false);
+          tupleB = tbB->GetTuple(j, false);
 
           Tuple *resultTuple = new Tuple(resultTupleType);
           Concat(tupleA, tupleB,resultTuple);
@@ -1065,11 +1065,11 @@ Word pjLocalInfo::getNextInputTuple(tupleBufferType tbt)
 
   if(tbt == tupBufferA){
     if (tpIndex_A >= 0 && tpIndex_A < tbA->GetNoTuples())
-      tuple = tbA->GetTuple(tpIndex_A++);
+      tuple = tbA->GetTuple(tpIndex_A++, false);
   }
   else{
     if (tpIndex_B >= 0 && tpIndex_B < tbB->GetNoTuples())
-      tuple = tbB->GetTuple(tpIndex_B++);
+      tuple = tbB->GetTuple(tpIndex_B++, false);
   }
 
   return SetWord(tuple);
