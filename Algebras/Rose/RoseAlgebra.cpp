@@ -1007,7 +1007,7 @@ java methods.
 class CcPoints: public Attribute {
 private:
   jobject obj;
-  FLOB objectData;
+  Flob objectData;
   bool canDelete;
   bool Defined;
   void RestoreFLOBFromJavaObject();
@@ -1032,7 +1032,7 @@ public:
     return obj; }
   bool Adjacent(const Attribute *arg) const;
   int NumOfFLOBs() const;
-  FLOB *GetFLOB(const int i);
+  Flob *GetFLOB(const int i);
   void Initialize();
   void Finalize() {
     if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
@@ -1098,7 +1098,7 @@ int CcPoints::Compare(const Attribute *attr) const {
 
 Attribute *CcPoints::Clone() const {
   if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
-  CcPoints* res = new CcPoints((size_t)objectData.Size());
+  CcPoints* res = new CcPoints((size_t)objectData.getSize());
   res->CopyFrom(this);
   return res;
 }
@@ -1131,10 +1131,7 @@ void CcPoints::SetDefined(bool Defined) {
 void CcPoints::CopyFrom(const Attribute* right) {
   if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   const CcPoints *P = (const CcPoints *)right;
-  objectData.Resize(P->objectData.Size());
-  const char *data;
-  P->objectData.Get(0,&data);
-  objectData.Put(0,P->objectData.Size(),data);
+  objectData.copyFrom(P->objectData);
   BboxTopLeftX = P->BboxTopLeftX;
   BboxTopLeftY = P->BboxTopLeftY;
   BboxBottomRightX = P->BboxBottomRightX;
@@ -1162,7 +1159,7 @@ int CcPoints::NumOfFLOBs() const {
   return 1;
 }
 
-FLOB *CcPoints::GetFLOB(const int i){
+Flob *CcPoints::GetFLOB(const int i){
   if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
    assert(i==0);
    return &objectData;
@@ -1289,8 +1286,8 @@ void CcPoints::RestoreFLOBFromJavaObject(){
   
   int size = env->GetArrayLength(jbytes);
   char *bytes = (char*) env->GetByteArrayElements(jbytes,0);
-  objectData.Resize(size);
-  objectData.Put(0,size,bytes);
+  objectData.resize(size);
+  objectData.write(bytes, size ,0);
   env->ReleaseByteArrayElements(jbytes,(jbyte*)bytes,JNI_ABORT);
   env->DeleteLocalRef(jbytes);
   jbytes = 0;
@@ -1309,9 +1306,8 @@ void CcPoints::RestoreJavaObjectFromFLOB(){
   if(&objectData == 0){
     return;
   }
-  int size = objectData.Size();
-  const char *bytes;
-  objectData.Get(0,&bytes);
+  int size = objectData.getSize();
+  char *bytes  = objectData.getData();
   // copy the data into a java-array
   jbyteArray jbytes = env->NewByteArray(size);
   env->SetByteArrayRegion(jbytes,0,size,(jbyte*)bytes);
@@ -1325,6 +1321,7 @@ void CcPoints::RestoreJavaObjectFromFLOB(){
   env->ReleaseByteArrayElements(jbytes,elems,JNI_ABORT);
   bytes = NULL;
   env->DeleteLocalRef(jbytes);
+  delete[] bytes;
 }
 
 
@@ -1575,7 +1572,7 @@ java methods.
 class CcLines: public Attribute {
 private:
   jobject obj;
-  FLOB objectData;
+  Flob objectData;
   bool canDelete;
   bool Defined;
   void RestoreFLOBFromJavaObject();
@@ -1600,7 +1597,7 @@ public:
     return obj; }
   bool Adjacent(const Attribute *arg) const;
   int NumOfFLOBs() const;
-  FLOB *GetFLOB(const int i);
+  Flob *GetFLOB(const int i);
   void Initialize();
   void Finalize() {
     if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
@@ -1663,7 +1660,7 @@ int CcLines::Compare(const Attribute *attr) const {
 
 Attribute *CcLines::Clone() const {
   if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
-  CcLines* res = new CcLines((size_t)objectData.Size());
+  CcLines* res = new CcLines((size_t)objectData.getSize());
   res->CopyFrom(this);
   return res;
 }
@@ -1701,10 +1698,7 @@ void CcLines::SetDefined(bool Defined) {
 void CcLines::CopyFrom(const Attribute* right) {
   if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   const CcLines *L = (const CcLines *)right;
-  objectData.Resize(L->objectData.Size());
-  const char *data;
-  L->objectData.Get(0,&data);
-  objectData.Put(0,L->objectData.Size(),data);
+  objectData.copyFrom(L->objectData);
   BboxTopLeftX = L->BboxTopLeftX;
   BboxTopLeftY = L->BboxTopLeftY;
   BboxBottomRightX = L->BboxBottomRightX;
@@ -1732,7 +1726,7 @@ int CcLines::NumOfFLOBs() const {
   return 1;
 }
 
-FLOB *CcLines::GetFLOB(const int i) {
+Flob *CcLines::GetFLOB(const int i) {
   if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   assert(i==0);
   return &objectData;
@@ -1856,8 +1850,8 @@ void CcLines::RestoreFLOBFromJavaObject(){
   int size = env->GetArrayLength(jbytes);
 
   char *bytes = (char*) env->GetByteArrayElements(jbytes,0);
-  objectData.Resize(size);
-  objectData.Put(0,size,bytes);
+  objectData.resize(size);
+  objectData.write(bytes, size,0);
   env->ReleaseByteArrayElements(jbytes,(jbyte*)bytes,JNI_ABORT);
   env->DeleteLocalRef(jbytes);
   jbytes = 0;
@@ -1875,10 +1869,9 @@ void CcLines::RestoreJavaObjectFromFLOB(){
   if(&objectData == 0){
     return;
   }
-  int size = objectData.Size();
+  int size = objectData.getSize();
 
-  const char *bytes;
-  objectData.Get(0,&bytes);
+  char *bytes = objectData.getData();
   // copy the data into a java-array
   jbyteArray jbytes = env->NewByteArray(size);
   env->SetByteArrayRegion(jbytes,0,size,(jbyte*)bytes);
@@ -1891,6 +1884,7 @@ void CcLines::RestoreJavaObjectFromFLOB(){
   env->ReleaseByteArrayElements(jbytes,elems,JNI_ABORT);
   env->DeleteLocalRef(jbytes);
   jbytes = 0;
+  delete[] bytes;
 }
 
 
@@ -2141,7 +2135,7 @@ java methods.
 class CcRegions: public Attribute {
 private:
   jobject obj;
-  FLOB objectData;
+  Flob objectData;
   bool canDelete;
   bool Defined;
   void RestoreFLOBFromJavaObject();
@@ -2166,7 +2160,7 @@ public:
     return obj; }
   bool Adjacent(const Attribute *arg) const;
   int NumOfFLOBs() const;
-  FLOB *GetFLOB(const int i);
+  Flob *GetFLOB(const int i);
   void Initialize();
   void Finalize() {
     if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
@@ -2229,7 +2223,7 @@ int CcRegions::Compare(const Attribute *attr) const {
 
 Attribute *CcRegions::Clone() const {
   if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
-  CcRegions* res = new CcRegions((size_t)objectData.Size());
+  CcRegions* res = new CcRegions((size_t)objectData.getSize());
   res->CopyFrom(this);
   return res;
 }
@@ -2262,10 +2256,7 @@ void CcRegions::SetDefined(bool Defined) {
 void CcRegions::CopyFrom(const Attribute* right) { 
   if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   const CcRegions *R = (const CcRegions *)right;
-  objectData.Resize(R->objectData.Size());
-  const char *data;
-  R->objectData.Get(0,&data);
-  objectData.Put(0,R->objectData.Size(),data);
+  objectData.copyFrom(R->objectData);
   BboxTopLeftX = R->BboxTopLeftX;
   BboxTopLeftY = R->BboxTopLeftY;
   BboxBottomRightX = R->BboxBottomRightX;
@@ -2293,7 +2284,7 @@ int CcRegions::NumOfFLOBs() const {
   return 1;
 }
 
-FLOB *CcRegions::GetFLOB(const int i){
+Flob *CcRegions::GetFLOB(const int i){
   if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   assert(i==0);
   return &objectData;
@@ -2416,8 +2407,8 @@ void CcRegions::RestoreFLOBFromJavaObject(){
   
   int size = env->GetArrayLength(jbytes);
   char *bytes = (char*) env->GetByteArrayElements(jbytes,0);
-  objectData.Resize(size);
-  objectData.Put(0,size,bytes);
+  objectData.resize(size);
+  objectData.write(bytes,size,0);
   env->ReleaseByteArrayElements(jbytes,(jbyte*)bytes,JNI_ABORT);
   env->DeleteLocalRef(jbytes);
   jbytes = 0;
@@ -2436,9 +2427,8 @@ void CcRegions::RestoreJavaObjectFromFLOB(){
   if(&objectData == 0){
     return;
   }
-  int size = objectData.Size();
-  const char *bytes;
-  objectData.Get(0,&bytes);
+  int size = objectData.getSize();
+  char *bytes = objectData.getData();
   // copy the data into a java-array
   jbyteArray jbytes = env->NewByteArray(size);
   env->SetByteArrayRegion(jbytes,0,size,(jbyte*)bytes);
@@ -2452,6 +2442,7 @@ void CcRegions::RestoreJavaObjectFromFLOB(){
   env->ReleaseByteArrayElements(jbytes,elems,JNI_ABORT);
   env->DeleteLocalRef(jbytes);
   jbytes = 0;
+  delete[] bytes;
   }
 
 void CcRegions::Print() const {
