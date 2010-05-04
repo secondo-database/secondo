@@ -243,6 +243,7 @@ This first constructor creates a new polygon.
 
 */
 Polygon::Polygon( const int n, const int *X, const int *Y ) :
+  Attribute(true),
   vertices( n ),
   state( partial )
 {
@@ -263,8 +264,8 @@ Polygon::Polygon( const int n, const int *X, const int *Y ) :
 
 */
 Polygon::Polygon(const Polygon& src):
+  Attribute(src.IsDefined()),
   vertices(src.vertices.Size()),state(src.state){
-  this->del.isDefined = src.del.isDefined;
   vertices.copyFrom(src.vertices);
 }
 
@@ -279,7 +280,6 @@ Polygon::~Polygon()
 
 Polygon& Polygon::operator=(const Polygon& src){
   this->state = src.state;
-  this->del.isDefined = src.del.isDefined;
   vertices.copyFrom(src.vertices);
   return *this;
 }
