@@ -1087,7 +1087,7 @@ int MON_WindowTimeIntersects( Word* args, Word& result,
                                          localInfo->searchTimeInterval,
                                          e ) )
           {
-            Tuple *tuple = localInfo->relation->GetTuple(e.info);
+            Tuple *tuple = localInfo->relation->GetTuple(e.info, false);
             result.setAddr(tuple);
             return YIELD;
           }
@@ -1098,7 +1098,7 @@ int MON_WindowTimeIntersects( Word* args, Word& result,
         {
           if( localInfo->montree->Next( e ) )
           {
-            Tuple *tuple = localInfo->relation->GetTuple(e.info);
+            Tuple *tuple = localInfo->relation->GetTuple(e.info, false);
             result.setAddr(tuple);
             return YIELD;
           }
