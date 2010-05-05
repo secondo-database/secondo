@@ -101,7 +101,7 @@ Providing function ~yyerror~
 */
 
 void
-yyerror( char* s )
+yyerror(const char* s )
 {
   cmsg.error() 
     << "Nested-List Parser: " << endl << "  " << s

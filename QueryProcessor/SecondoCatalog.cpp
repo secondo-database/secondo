@@ -1223,7 +1223,7 @@ Precondition: dbState = dbOpen.
     SmiRecordId valueRecId;
     {
       SmiRecord oRec;
-      if( ok = objCatalogFile.SelectRecord( SmiKey( objectName ), oRec ) )
+      if( (ok = objCatalogFile.SelectRecord( SmiKey( objectName ), oRec )) )
       {
         oRec.Read( &valueRecId, sizeof( SmiRecordId ), CE_OBJS_VALUE_RECID );
       }

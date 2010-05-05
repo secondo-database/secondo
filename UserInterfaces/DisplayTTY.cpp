@@ -894,7 +894,7 @@ double DisplayTTY::GetNumeric(ListExpr value, bool &err)
   }
   if(nl->AtomType(value)==NoAtom){
     int len = nl->ListLength(value);
-    if(len!=5 & len!=6){
+    if(len!=5 && len!=6){
       err=true;
       return 0;
     }

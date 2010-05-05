@@ -395,7 +395,7 @@ Checks for a valid relation description.
       ListExpr attrType;
       int attrIndex = findAttribute(nl->Second(tupleList),
                                     nl->SymbolValue(elem), attrType);
-      if (attrIndex = 0 ||
+      if (attrIndex == 0 ||
           ( !isSymbol(attrType,"string") &&
             !isSymbol(attrType,"int") &&
             !isSymbol(attrType,"real") &&

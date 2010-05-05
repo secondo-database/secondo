@@ -70,7 +70,7 @@ ListExpr parseNL_list;
 extern int yylex();
 #define YYSTYPE ListExpr
 
-extern void yyerror(char* s);
+extern void yyerror(const char* s);
 
 %}
 

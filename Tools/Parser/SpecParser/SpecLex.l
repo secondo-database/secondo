@@ -32,6 +32,7 @@ March 2002 Ulrich Telle Port to C++, using ~flex~ and ~bison~ instead of ~lex~ a
 
 
 #define YY_NO_UNPUT
+
 %}
 
 letter         [a-zA-Z]
@@ -44,6 +45,7 @@ space          [   \n]+
 autobuffer     "!!"
 
 %option yylineno
+%option nounput
 
 %%
 

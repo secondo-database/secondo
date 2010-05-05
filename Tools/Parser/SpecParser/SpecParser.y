@@ -985,7 +985,7 @@ int main(int argc, char** argv) {
        ifile = fopen(argv[1], "r");
        if (ifile == NULL) {
           fprintf(stderr,"ERROR: cannot open file %s\n",argv[1]);
-          fprintf(stderr,argv[1]);
+          fprintf(stderr,"%s",argv[1]);
           fprintf(stderr,"\n");
           return -1;
         }
