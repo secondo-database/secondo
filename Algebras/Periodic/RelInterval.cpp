@@ -39,12 +39,12 @@ This constructor creates a defined single instant with length 0.
 [3] O(1)
 
 */
-RelInterval::RelInterval(int dummy){
+RelInterval::RelInterval(int dummy):
+  Attribute(true){
     __TRACE__
    length = DateTime(durationtype);
    ChangeLeftClosed(true);
    ChangeRightClosed(true);
-   ChangeDefined(true);
    ChangeCanDelete(false);
 }
 
@@ -58,7 +58,8 @@ the values can leads to a invalid state of this RelInterval.
 
 */
 RelInterval::RelInterval(const DateTime* length, const bool leftClosed,
-                         const bool rightClosed){
+                         const bool rightClosed):
+  Attribute(true){
     __TRACE__
  DateTime Zero= DateTime(durationtype);
   int comp=length->CompareTo(&Zero);
@@ -688,13 +689,6 @@ Flob* RelInterval::GetFLOB(const int i){
 bool RelInterval::Adjacent(const Attribute*)const{
    return false;
 }
-bool RelInterval::IsDefined() const{ 
-   return GetDefined();
-}
-void RelInterval::SetDefined(bool defined){ 
-   this->ChangeDefined(defined);
-}
-
 /* 
 ~Changing flags ~
 

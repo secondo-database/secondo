@@ -149,9 +149,7 @@ class PBBox: public Attribute {
     int Compare(const Attribute* arg)const;
     bool Adjacent(const Attribute*) const;
     size_t Sizeof() const;
-    bool IsDefined() const;
     bool IsEmpty() const;
-    void SetDefined( const bool defined );
     void SetEmpty(const bool empty );
     size_t HashValue() const;
     void CopyFrom(const Attribute* arg);
@@ -200,7 +198,6 @@ This variable describes the state (consisting of defined and empty)
 in the following way:
 
 [tabstart]{lllll}
-  defined [colsep] 0 [colsep] 0 [colsep] 1 [colsep] 1  [rowsep]
   empty   [colsep] 0 [colsep] 1 [colsep] 0 [colsep] 1  [rowsep]
   state   [colsep] 0 [colsep] 1 [colsep] 2 [colsep] 3  
 [tabend]
@@ -330,8 +327,6 @@ an algebra type.
 
 */
     bool Adjacent(const Attribute*)const;
-    bool IsDefined() const;
-    void SetDefined(bool defined);
     size_t HashValue() const;
     void CopyFrom(const Attribute* arg);
     size_t Sizeof() const;
@@ -486,7 +481,7 @@ interval at the right end as well as the left end at the same time.
 ~state~
 
 The ~state~ variable describes a set of flags, in particular
-leftClosed, rightClosed, defined, and canDelete.
+leftClosed, rightClosed,  and canDelete.
 
 
 
@@ -539,8 +534,6 @@ class PInterval : public Attribute{
     int CompareTo(const PInterval* D2)const;
     int Compare(const Attribute* arg) const;
     bool Adjacent(const Attribute*) const{return false;}
-    bool IsDefined() const;
-    void SetDefined( bool defined);
     size_t HashValue()const;
     size_t Sizeof() const;
     void CopyFrom(const Attribute* arg);
@@ -1277,8 +1270,6 @@ class PMSimple : public Attribute {
      PMSimple<T,Unit>* Clone() const;
 
      size_t Sizeof()const;
-     bool IsDefined() const;
-     void SetDefined( bool defined );
      size_t HashValue() const;
      void CopyFrom(const Attribute* arg);
      ListExpr ToListExpr(const ListExpr typeInfo)const;
@@ -1347,7 +1338,6 @@ class PMSimple : public Attribute {
      DbArray<CompositeMove> compositeMoves;
      DbArray<CSubMove> compositeSubMoves;
      DbArray<PeriodicMove> periodicMoves;
-     bool defined;
      bool canDelete;
      RelInterval interval;
      DateTime startTime;
@@ -1462,7 +1452,7 @@ class PMReal: public  PMSimple<double,MovingRealUnit> {
 */  
   void min(CcReal& result) const{
     result.SetDefined(false);
-    if(!defined){
+    if(!IsDefined()){
        return;
     }
     MovingRealUnit unit;
@@ -1480,7 +1470,7 @@ class PMReal: public  PMSimple<double,MovingRealUnit> {
 
   void max(CcReal& result){
     result.SetDefined(false);
-    if(!defined){
+    if(!IsDefined()){
        return;
     }
     MovingRealUnit unit;
@@ -1573,8 +1563,6 @@ class PMPoint : public Attribute {
      bool Adjacent(const Attribute*)const;
      PMPoint* Clone() const;
      size_t Sizeof()const;
-     bool IsDefined() const;
-     void SetDefined( bool defined );
      size_t HashValue() const;
      void CopyFrom(const Attribute* arg);
      ListExpr ToListExpr(const bool typeincluded)const;
@@ -1648,7 +1636,6 @@ class PMPoint : public Attribute {
      DbArray<SpatialCompositeMove> compositeMoves;
      DbArray<CSubMove> compositeSubMoves;
      DbArray<SpatialPeriodicMove> periodicMoves;
-     bool defined;
      bool canDelete;
      RelInterval interval;
      DateTime startTime;
@@ -1719,8 +1706,6 @@ class PMPoints : public Attribute {
      bool Adjacent(const Attribute*)const;
      PMPoints* Clone() const;
      size_t Sizeof()const;
-     bool IsDefined() const;
-     void SetDefined( bool defined );
      size_t HashValue() const;
      void CopyFrom(const Attribute* arg);
      ListExpr ToListExpr(const bool typeincluded)const;
@@ -1760,7 +1745,6 @@ class PMPoints : public Attribute {
      DbArray<SpatialCompositeMove> compositeMoves;
      DbArray<CSubMove> compositeSubMoves;
      DbArray<SpatialPeriodicMove> periodicMoves;
-     bool defined;
      bool canDelete;
      RelInterval interval;
      DateTime startTime;

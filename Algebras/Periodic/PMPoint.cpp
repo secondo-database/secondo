@@ -53,11 +53,11 @@ constructor which must be nothing.
 
 */
 PMPoint::PMPoint(int dummy):
+   Attribute(false),
    linearMoves(0),
    compositeMoves(0),
    compositeSubMoves(0),
    periodicMoves(0),
-   defined(false),
    canDelete(false),
    interval(0),
    startTime(instanttype),
@@ -68,7 +68,8 @@ PMPoint::PMPoint(int dummy):
 ~Copy Constructor~
 
 */
-PMPoint::PMPoint(const PMPoint& source){
+PMPoint::PMPoint(const PMPoint& source):
+ Attribute(source.IsDefined()){
    Equalize(&source);
 }
 
@@ -121,7 +122,7 @@ void PMPoint::Equalize(const PMPoint* P2){
   compositeMoves.copyFrom(P2->compositeMoves);
   compositeSubMoves.copyFrom(P2->compositeSubMoves);
   periodicMoves.copyFrom(P2->periodicMoves);
-  defined = P2->defined;
+  SetDefined(P2->IsDefined());
   interval.Equalize(&(P2->interval));
   startTime.Equalize(&(P2->startTime));
   bbox.Equalize(&(P2->bbox));
@@ -151,7 +152,7 @@ size_t PMPoint::NumberOfUnits()const{
 }
 
 size_t PMPoint::NumberOfFlatUnits()const{
-    if(!defined){
+    if(!IsDefined()){
          return 0;
     }
     size_t res = NumberOfFlatNodes(submove);
@@ -310,39 +311,6 @@ size_t PMPoint::Sizeof() const{
   return sizeof(PMPoint);
 }
 
-/*
-~IsDefined~
-
-This Function returns the defined state of a periodic moving point.
-
-[3] O(1)
-
-*/
-bool PMPoint::IsDefined() const{
-    __TRACE__
- return defined;
-}
-
-/*
-~SetDefined~
-
-Here the defined state of this point is set. If the argument has the
-value __false__, the content of this will be lost. If the parameter
-holds the value __true__, the call of this function has no effect.
-
-[3] O(1)
-
-*/
-void PMPoint::SetDefined(const bool defined){
-    __TRACE__
- if(defined) return;
-  this->defined = false;
-  linearMoves.clean();
-  compositeMoves.clean();
-  compositeSubMoves.clean();
-  periodicMoves.clean();
-  bbox.SetUndefined();
-}
 
 /*
 ~HashValue~
@@ -393,7 +361,7 @@ ListExpr PMPoint::ToListExpr(const bool typeincluded)const{
     __TRACE__
   ListExpr timelist = startTime.ToListExpr(false);
   ListExpr SubMoveList;
-  if(defined)
+  if(IsDefined())
      SubMoveList = GetSubMoveList(&submove);
   else
      SubMoveList = ::nl->SymbolAtom("undefined");
@@ -588,7 +556,7 @@ bool PMPoint::ReadFrom(const ListExpr value, const ListExpr typeInfo){
          SetDefined(false);
          return false;
      }
-     defined=true;
+     SetDefined(true);
      // read out the interval and the bounding box from the 
      // created linear move
      LinearPointMove LM;
@@ -610,7 +578,7 @@ bool PMPoint::ReadFrom(const ListExpr value, const ListExpr typeInfo){
         SetDefined(false);
         return false;
      }
-     defined = true;
+     SetDefined(true);
      // get interval and bounding box from this move
      SpatialCompositeMove CM;
      compositeMoves.Get(0,CM);
@@ -629,7 +597,7 @@ bool PMPoint::ReadFrom(const ListExpr value, const ListExpr typeInfo){
         SetDefined(false);
         return false;
      }
-     defined = true;
+     SetDefined(true);
      // get interval as well as bounding box
      SpatialPeriodicMove PM;
      periodicMoves.Get(0,PM);
@@ -1507,7 +1475,7 @@ void PMPoint::Breakpoints(const DateTime* duration,
                           Points& res)const{
   __TRACE__
   res.Clear();
-  if(!defined || !duration->IsDefined()){
+  if(!IsDefined() || !duration->IsDefined()){
       res.SetDefined(false);
       return;
   }
@@ -1732,7 +1700,7 @@ TemporalAlgebra to represent this periodic moving point.
 */
 int PMPoint::NumberOfExpandedUnits()const{
     __TRACE__
-  if(!defined)
+  if(!IsDefined())
       return 0;
    if(IsEmpty())
       return 0;
@@ -1798,7 +1766,7 @@ void PMPoint::ReadFrom(const MPoint& P, const bool twostep/* = true*/){
 
   // standard-init
 
-  defined = true;
+  SetDefined(true);
   canDelete = false;
   bbox.SetEmpty();
   linearMoves.clean();
@@ -1957,10 +1925,10 @@ void PMPoint::ReadFrom(const MPoint& P, const bool twostep/* = true*/){
   periodicMoves.clean();
 
   if(listlength==0){
-     defined=false;
+     SetDefined(false);
      canDelete=false;
    }else{
-     defined = true;
+     SetDefined(true);
      canDelete = false;
      // set all array to the required sizes
      if(differentMoves>0)
@@ -2000,7 +1968,7 @@ void PMPoint::ReadFrom(const MPoint& P, const bool twostep/* = true*/){
      else
        assert(false);
 
-     defined=true;
+     SetDefined(true);
    } // moves exist
  
    L->Destroy();
@@ -2260,7 +2228,7 @@ periodic moving real;
 */
 bool PMPoint::DistanceTo(const double x, const double y, PMReal& result)const {
    // spcial case: this pmpoint is not defined
-   if(!defined){
+   if(!IsDefined()){
      result.SetDefined(false);
      return true; 
    }
@@ -2340,7 +2308,7 @@ This function computes the  speed of this PMPoint.
 */
 void PMPoint::SpeedAndDirection(bool isSpeed, PMReal& result)const {
    // special case: this pmpoint is not defined
-   if(!defined){
+   if(!IsDefined()){
      result.SetDefined(false);
      return; 
    }
@@ -2420,7 +2388,7 @@ void PMPoint::SpeedAndDirection(bool isSpeed, PMReal& result)const {
 
 */
 void PMPoint::CorrectDurationSums(){
-   if(IsEmpty() || !defined){  // nothing to do
+   if(IsEmpty() || !IsDefined()){  // nothing to do
       return;
    }
    int cmsize = compositeMoves.Size();
@@ -2518,7 +2486,7 @@ This instance has to be defined.
 
 */
 double PMPoint::Length()const{
-  assert(defined);
+  assert(IsDefined());
   return Length(submove);    
 }
 

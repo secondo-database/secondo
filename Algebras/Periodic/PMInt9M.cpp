@@ -87,7 +87,7 @@ bool PMInt9M::CreateFrom( const DbArray<LinearInt9MMove>& linearMoves,
                  const SubMove                         submove) {
    __TRACE__
 
-   defined =true;
+   SetDefined(true);
    this->startTime.Equalize(&startTime);
    canDelete=false;
    this->submove.Equalize(&submove);

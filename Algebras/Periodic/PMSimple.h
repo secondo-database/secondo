@@ -30,11 +30,11 @@ PMSimple<T, Unit>::PMSimple(){}
 
 template <class T, class Unit>
 PMSimple<T, Unit>::PMSimple(int dummy): 
+   Attribute(false),
    linearMoves(1),
    compositeMoves(1),
    compositeSubMoves(1),
    periodicMoves(1),
-   defined(false),
    canDelete(false),
    interval(1),
    startTime(instanttype){
@@ -42,7 +42,8 @@ PMSimple<T, Unit>::PMSimple(int dummy):
 }
 
 template <class T, class Unit>
-PMSimple<T,Unit>::PMSimple(const PMSimple<T,Unit>& source){
+PMSimple<T,Unit>::PMSimple(const PMSimple<T,Unit>& source):
+ Attribute(source.IsDefined()){
   Equalize(&source);
 } 
 
@@ -221,33 +222,6 @@ size_t PMSimple<T, Unit>::Sizeof()const{
 
 
 /*
-~IsDefined~
-
-Returns the value of the __defined__ flag.
-
-*/
-template <class T, class Unit>
-bool PMSimple<T, Unit>::IsDefined() const{
-   return defined;
-}
-
-
-/*
-~SetDefined~
-
-Sets the __defined__ flag to the given value. You can always set a
-PMSimple to be undefined. If this flag is set to true but the 
-state of this PMSimple is not correct, the results will be 
-inpredictable. 
-
-*/
-template <class T, class Unit>
-void PMSimple<T, Unit>::SetDefined( bool defined ){
-    this->defined = defined;
-}
-
-
-/*
 ~HashValue~
 
 This functions computes a HashValue for this PMSimple from the sizes of
@@ -373,7 +347,7 @@ bool PMSimple<T, Unit>::ReadFrom(const ListExpr value,
          SetDefined(false);
          return false;
      }
-     defined=true;
+     SetDefined(true);
 
      Unit LM;
      linearMoves.Get(0,LM);
@@ -392,7 +366,7 @@ bool PMSimple<T, Unit>::ReadFrom(const ListExpr value,
         SetDefined(false);
         return false;
      }
-     defined = true;
+     SetDefined(true);
      CompositeMove CM;
      compositeMoves.Get(0,CM);
      interval.Equalize(&(CM.interval));
@@ -409,7 +383,7 @@ bool PMSimple<T, Unit>::ReadFrom(const ListExpr value,
         SetDefined(false);
         return false;
      }
-     defined = true;
+     SetDefined(true);
      PeriodicMove PM;
      periodicMoves.Get(0,PM);
      interval.Equalize(&(PM.interval));
@@ -539,7 +513,7 @@ This function computes the first defined value of this moving constant.
 template <class T, class Unit>
 bool PMSimple<T, Unit>::Initial(T& result) const{
     __TRACE__
-  if(!defined || IsEmpty()){
+  if(!IsDefined() || IsEmpty()){
     return false;
   }
   Unit lm;
@@ -559,7 +533,7 @@ If none exists, NULL is returned.
 template <class T, class Unit>
 bool PMSimple<T, Unit>::Final(T& res)const{
     __TRACE__
- if(!defined){
+ if(!IsDefined()){
     return false;
  }
  if(IsEmpty()){
@@ -1930,7 +1904,7 @@ done.
 */
 template <class T, class Unit>
 void PMSimple<T, Unit>::CorrectDurationSums(){
-   if(IsEmpty() || !defined){  // nothing to do
+   if(IsEmpty() || !IsDefined()){  // nothing to do
       return;
    }
    int cmsize = compositeMoves.Size();

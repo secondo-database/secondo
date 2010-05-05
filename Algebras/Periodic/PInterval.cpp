@@ -36,7 +36,8 @@ PInterval::PInterval(){}
 [3] O(1)
 
 */
-PInterval::PInterval(int dummy){
+PInterval::PInterval(int dummy):
+Attribute(true){
    __TRACE__
   relinterval=RelInterval(dummy);
    startTime = DateTime(instanttype);
@@ -48,7 +49,8 @@ PInterval::PInterval(int dummy){
 [3] O(1)
 
 */
-PInterval::PInterval(const DateTime startTime, const RelInterval relinterval){
+PInterval::PInterval(const DateTime startTime, const RelInterval relinterval):
+ Attribute(true){
    __TRACE__
   (this->startTime).Equalize(&startTime);
    (this->relinterval).Equalize(&relinterval);
@@ -212,28 +214,6 @@ int PInterval::Compare(const Attribute* arg)const{
   return CompareTo( (PInterval*) arg);
 }
 
-/*
-~IsDefined~
-
-[3] O(1)
-
-*/
-bool PInterval::IsDefined() const{
-   __TRACE__
-  return startTime.IsDefined() && relinterval.IsDefined();
-}
-
-/*
-~SetDefined~
-
-[3] O(1)
-
-*/
-void PInterval::SetDefined(bool defined){
-   __TRACE__
-   startTime.SetDefined(defined);
-    relinterval.SetDefined(defined);
-}
 
 /*
 ~HashValue~
@@ -547,7 +527,6 @@ Functions providing attribute functionality
 
 */
 void PInterval::Destroy(){
-     startTime.Destroy();
      relinterval.Destroy();
 }
 int PInterval::NumOfFLOBs()const{

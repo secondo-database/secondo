@@ -34,7 +34,7 @@ This constructor creates an empty  box.
 [3] O(1)
 
 */
-PBBox::PBBox(int dummy){
+PBBox::PBBox(int dummy): Attribute(false){
    __TRACE__
    state = 1;
 }
@@ -48,7 +48,8 @@ containing only the point (x,y).
 [3] O(1)
 
 */
-PBBox::PBBox(const double x, const double y){
+PBBox::PBBox(const double x, const double y):
+  Attribute(true){
    __TRACE__
   SetDefined(true);
   SetEmpty(false);
@@ -66,7 +67,8 @@ given rectangle.
 
 */
 PBBox::PBBox(const double minX, const double minY, 
-             const double maxX, const double maxY){
+             const double maxX, const double maxY):
+  Attribute(true){
    __TRACE__
   this->minX = minX<maxX?minX:maxX;
   this->maxX = minX<maxX?maxX:minX;
@@ -81,7 +83,8 @@ PBBox::PBBox(const double minX, const double minY,
 ~Copy Constructor ~
 
 */
-PBBox::PBBox(const PBBox& source){
+PBBox::PBBox(const PBBox& source):
+Attribute(source.IsDefined()){
   Equalize(&source);
 }
 
@@ -139,19 +142,6 @@ size_t PBBox::Sizeof()const{
 }
 
 /*
-~IsDefined~
-
-This function returns true if this PBBox is in a defined state.
-
-[3] O(1)
-
-*/
-bool PBBox::IsDefined() const{
-    __TRACE__
- return (state&2)>0;
-}
-
-/*
 ~IsEmpty~
 
 This function returns whether this bounding box don't contains
@@ -165,23 +155,6 @@ bool PBBox::IsEmpty() const{
   return (state&1)>0;
 }
 
-
-/*
-~SetDefined~
-
-The ~SetDefined~ function sets the defined state of this bounding box.
-
-[3] O(1)
-
-*/
-void PBBox::SetDefined( bool defined ){
-    __TRACE__
-    if(defined){
-      state = state | 2 ;
-    } else{
-      state = state & ~2;
-    }
-}
 
 /*
 ~HashValue~

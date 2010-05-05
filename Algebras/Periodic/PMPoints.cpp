@@ -34,12 +34,12 @@ The argument is ignored.
 
 */
 PMPoints::PMPoints(int dummy):
+   Attribute(false),
    linearMoves(0),
    thePoints(0),
    compositeMoves(0),
    compositeSubMoves(0),
    periodicMoves(0),
-   defined(false),
    canDelete(false),
    interval(0),
    startTime(instanttype),
@@ -94,7 +94,7 @@ void PMPoints::Equalize(const PMPoints* P2){
  compositeMoves.copyFrom(P2->compositeMoves);
  compositeSubMoves.copyFrom(P2->compositeSubMoves);
  periodicMoves.copyFrom(P2->periodicMoves);
- defined = P2->defined;
+ SetDefined(P2->IsDefined());
  interval.Equalize(&(P2->interval));
  startTime.Equalize(&(P2->startTime));
  bbox.Equalize(&(P2->bbox));
@@ -193,19 +193,6 @@ size_t PMPoints::Sizeof()const{
 }
 
 /*
-~IsDefined~
-
-This Function returns the defined state of a periodic moving point.
-
-[3] O(1)
-
-*/
-bool PMPoints::IsDefined() const{
-    __TRACE__
- return defined;
-}
-
-/*
 ~IsEmpty~
 
 Checks whether this pmpoints value has no content at all times.
@@ -216,26 +203,6 @@ bool PMPoints::IsEmpty() const{
 }
 
 
-/*
-~SetDefined~
-
-Here the defined state of this points is set. If the argument has the
-value __false__, the content of this will be lost. If the parameter
-holds the value __true__, the call of this function has no effect.
-
-[3] O(1)
-
-*/
-void PMPoints::SetDefined(const bool defined){
-    __TRACE__
- if(defined) return;
-  this->defined = false;
-  linearMoves.clean();
-  compositeMoves.clean();
-  compositeSubMoves.clean();
-  periodicMoves.clean();
-  bbox.SetUndefined();
-}
 
 /*
 ~HashValue~
@@ -281,7 +248,7 @@ is a complete list in format (type value)
 ListExpr PMPoints::ToListExpr(const bool typeincluded)const{
     __TRACE__
    ListExpr value;
-   if(!defined)
+   if(!IsDefined())
       value = ::nl->BoolAtom(false);
    else{   
       ListExpr timelist = startTime.ToListExpr(false);
@@ -484,7 +451,7 @@ if(::nl->ListLength(value)!=2){
          SetDefined(false);
          res = false;
      }else {
-   defined=true;
+   SetDefined(true);
    LinearPointsMove LM;
    linearMoves.Get(0,LM);
    interval.Equalize(&(LM.interval));
@@ -502,7 +469,7 @@ if(::nl->ListLength(value)!=2){
         SetDefined(false);
         res = false;
      } else {
-   defined = true;
+   SetDefined(true);
    SpatialCompositeMove CM;
    compositeMoves.Get(0,CM);
    interval.Equalize(&(CM.interval));
@@ -520,7 +487,7 @@ if(::nl->ListLength(value)!=2){
         SetDefined(false);
         res = false;
      } else {
-   defined = true;
+   SetDefined(true);
    SpatialPeriodicMove PM;
    periodicMoves.Get(0,PM);
    interval.Equalize(&(PM.interval));
@@ -946,7 +913,7 @@ void PMPoints::Breakpoints(const DateTime* duration,
                            const bool inclusive,
                            Points& res) const{
    res.Clear();
-   if(!defined || !duration->IsDefined()){
+   if(!IsDefined() || !duration->IsDefined()){
        res.SetDefined(false);
        return;
    }
@@ -1086,7 +1053,8 @@ void PMPoints::At(const DateTime* instant, Points& res)const{
 
 PMPoints::PMPoints(){}
 
-PMPoints::PMPoints(const PMPoints& source){
+PMPoints::PMPoints(const PMPoints& source):
+ Attribute(source.IsDefined()){
    Equalize(&source);
 }
 
@@ -1096,7 +1064,7 @@ PMPoints& PMPoints::operator=(const PMPoints& source){
 }
 
 void PMPoints::Initial(Points& res)const{
-  if(!defined){
+  if(!IsDefined()){
     res.SetDefined(false);
     return;
   }
@@ -1106,7 +1074,7 @@ void PMPoints::Initial(Points& res)const{
 }
 
 bool PMPoints::Final(Points& res)const{
-   if(!defined){
+   if(!IsDefined()){
       res.SetDefined(false);
       return false;
    }
@@ -1130,7 +1098,7 @@ void PMPoints::Translate(const DateTime* duration, PMPoints& res)const{
 
 */
 void PMPoints::CorrectDurationSums(){
-   if(IsEmpty() || !defined){  // nothing to do
+   if(IsEmpty() || !IsDefined()){  // nothing to do
       return;
    }
    int cmsize = compositeMoves.Size();
@@ -1188,13 +1156,13 @@ void PMPoints::GetLength(SubMove sm, DateTime& result){
 ostream& operator<< (ostream &os, class PMPoints &P){
    __TRACE__
  os << " <<<< PMPoints >>>>" << endl;
-  if(!P.defined){
+  if(!P.IsDefined()){
      os << "undefined" << endl;
      return os;
   }   
   os << "starttime: " << P.startTime.ToString() << endl;
   os << P.submove << endl;
-  os << "defined :" << P.defined << endl;
+  os << "defined :" << P.IsDefined() << endl;
   // the contents of the contained arrays
   // the linear moves
   os << "linear Moves " << P.linearMoves.Size() << endl;
