@@ -150,6 +150,7 @@ constructs a flob from a given buffer as a evil flob.
                 dataPointer(0){
        id.destroy();
        dataPointer = (char*) malloc(size);
+       memcpy(dataPointer, buffer, size);
     }
 
 
@@ -479,6 +480,25 @@ Destroys a the flob if the flob is a native one.
 */
    bool destroyIfNonPersistent(){
      return FlobManager::getInstance().destroyIfNonPersistent(*this);
+   }
+
+
+/*
+~kill~
+
+Kills the Flob without giving up any ressources. 
+This function must be used very carefully to avoid
+memory leaks. The important thing is that the dataPointer
+is set to 0. Thus, this function can be used if a flob is
+read from disk.
+
+
+*/
+
+   void kill(){
+     id.destroy();
+     size = 0;
+     dataPointer = 0;
    }
 
 
