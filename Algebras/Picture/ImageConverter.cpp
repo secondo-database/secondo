@@ -78,227 +78,229 @@ typedef struct
 
 typedef struct
 {
-  unsigned short  id;
-  int    fsize;
-  unsigned short  dummy1,
-      dummy2;
-  int    offset;
-  int    header_size;
-  int    width;
-  int    height;
-  unsigned short  planes;
-  unsigned short  bpp;
-  int    compression;
-  int    image_size;
-  int    biXPels;
-  int    biYPels;
-  int    ColorUsed;
-  int    imp_Colors;
-} BMP_header;
+    unsigned short  id;
+    int    fsize;
+    unsigned short  dummy1,
+        dummy2;
+    int    offset;
+    int    header_size;
+    int    width;
+    int    height;
+    unsigned short  planes;
+    unsigned short  bpp;
+    int    compression;
+    int    image_size;
+    int    biXPels;
+    int    biYPels;
+    int    ColorUsed;
+    int    imp_Colors;
+  } BMP_header;
 
-#pragma pack()
+  #pragma pack()
 
-/*
+  /*
 
-3 Implementation of class ~ImageConverter~
+  3 Implementation of class ~ImageConverter~
 
-See the documentation of ~ImageConverter.h~ for details on the behaviour
-of the methods implemented here.
+  See the documentation of ~ImageConverter.h~ for details on the behaviour
+  of the methods implemented here.
 
-*/
+  */
 
-CImageConverter::CImageConverter(ImageType Type, 
-                                 unsigned char *PictureBuffer, 
-                                 unsigned long PictureSize)
-{
-  bool rval = false;
-
-  m_pucImageBuffer  = 0;
-  m_ulImageSize    = 0;
-  m_eType        = Type;
-
-  // load the given type
-  switch (Type)
+  CImageConverter::CImageConverter(ImageType Type, 
+                                   unsigned char *PictureBuffer, 
+                                   unsigned long PictureSize)
   {
-    case IMAGE_JPEG :
-      rval = LoadJPG(PictureBuffer, PictureSize);
-      break;
-    case IMAGE_TGA  :
-      rval = LoadTGA(PictureBuffer, PictureSize);
-      break;
-    case IMAGE_BMP  :
-      rval = LoadBMP(PictureBuffer, PictureSize);
-      break;
-    case IMAGE_PCX  :
-      rval = LoadPCX(PictureBuffer, PictureSize);
-      break;
+    bool rval = false;
+
+    m_pucImageBuffer  = 0;
+    m_ulImageSize    = 0;
+    m_eType        = Type;
+
+    // load the given type
+    switch (Type)
+    {
+      case IMAGE_JPEG :
+        rval = LoadJPG(PictureBuffer, PictureSize);
+        break;
+      case IMAGE_TGA  :
+        rval = LoadTGA(PictureBuffer, PictureSize);
+        break;
+      case IMAGE_BMP  :
+        rval = LoadBMP(PictureBuffer, PictureSize);
+        break;
+      case IMAGE_PCX  :
+        rval = LoadPCX(PictureBuffer, PictureSize);
+        break;
+    }
+
+    m_bDefined = rval;
   }
 
-  m_bDefined = rval;
-}
-
-CImageConverter::~CImageConverter(void)
-{
-  if (m_pucImageBuffer != 0)
+  CImageConverter::~CImageConverter(void)
   {
-    delete m_pucImageBuffer;
-    m_pucImageBuffer = 0;
-  }
-}
-
-unsigned char *CImageConverter::GetJpegData(unsigned long &Size)
-{
-  Size = 0;
-
-  struct jpeg_compress_struct cinfo;
-  struct jpeg_error_mgr jerr;
-  JSAMPROW row_pointer[1];  /* pointer to JSAMPLE row[s] */
-  int row_stride;    /* physical row width in image buffer */
-  unsigned char *jpg_buffer = 0;
-  unsigned long jpg_buffer_size = 0;
-
-  cinfo.err = jpeg_std_error(&jerr);
-
-  jpeg_create_compress(&cinfo);
-
-  jpeg_mem_dest(&cinfo, &jpg_buffer, &jpg_buffer_size);
-
-  cinfo.image_width = m_ulWidth;   /* image width and height, in pixels */
-  cinfo.image_height = m_ulHeight;
-  cinfo.input_components = RGB_BYTES;    /* # of color components per pixel */
-  cinfo.in_color_space = JCS_RGB;   /* colorspace of input image */
-
-  jpeg_set_defaults(&cinfo);
-
-  //jpeg_set_quality(&cinfo, quality, TRUE /* limit to baseline-JPEG values */);
-
-
-  jpeg_start_compress(&cinfo, TRUE);
-
-  row_stride = m_ulWidth * RGB_BYTES;  /* JSAMPLEs per row in image_buffer */
-
-  while (cinfo.next_scanline < cinfo.image_height) {
-  row_pointer[0] = & m_pucImageBuffer[cinfo.next_scanline * row_stride];
-  (void) jpeg_write_scanlines(&cinfo, row_pointer, 1);
+    if (m_pucImageBuffer != 0)
+    {
+      delete m_pucImageBuffer;
+      m_pucImageBuffer = 0;
+    }
   }
 
-  jpeg_finish_compress(&cinfo);
-
-  Size = jpg_buffer_size;
-
-  jpeg_destroy_compress(&cinfo);
-
-  return jpg_buffer;
-}
-
-unsigned char *CImageConverter::GetImageData(unsigned long& size)
-{
-  size = m_ulImageSize;
-
-  return m_pucImageBuffer;
-}
-
-
-void CImageConverter::ConvertToTrueColor(BPP bpp, unsigned char *Buffer,
-                        unsigned long BufferSize, unsigned char *Palette)
-{
-  m_ulImageSize    = m_ulWidth * m_ulHeight * RGB_BYTES;
-  m_pucImageBuffer  = new unsigned char[m_ulImageSize];
-
-  // convert the graphic data to 24 bit rgb buffer
-  switch (bpp)
+  unsigned char *CImageConverter::GetJpegData(unsigned long &Size)
   {
-    case BPP_8 :
-      {
-        unsigned long len    = m_ulWidth*m_ulHeight;
-        unsigned long src_pos  = 0;
-        unsigned long dest_pos  = 0;
-        
-        // read palette
-        for (unsigned long i=0; i<len; i++)
-        {
-          src_pos = Buffer[i] * 3;
+    Size = 0;
 
-          m_pucImageBuffer[dest_pos++] = Palette[src_pos+2];  // red
-          m_pucImageBuffer[dest_pos++] = Palette[src_pos+1];  // green
-          m_pucImageBuffer[dest_pos++] = Palette[src_pos];  // blue
-        }
-      }
-      break;
-    case BPP_16 :
-      {
-        unsigned short *buffer = (unsigned short*)Buffer;
-        unsigned long size = BufferSize / 2;
-        unsigned long pos = 0;
-        unsigned char r,g,b;
+    struct jpeg_compress_struct cinfo;
+    struct jpeg_error_mgr jerr;
+    JSAMPROW row_pointer[1];  /* pointer to JSAMPLE row[s] */
+    int row_stride;    /* physical row width in image buffer */
+    unsigned char *jpg_buffer = 0;
+    unsigned long jpg_buffer_size = 0;
 
-        // convert from 16 to 24 bit
-        for (unsigned long i = 0; i<size; ++i)
-        {
-          b = (buffer[i]&0x001f)<<3;
-          g = (buffer[i]&0x03e0)>>2;
-          r = (buffer[i]&0x7c00)>>7;
+    cinfo.err = jpeg_std_error(&jerr);
 
-          m_pucImageBuffer[pos++] = r;
-          m_pucImageBuffer[pos++] = g;
-          m_pucImageBuffer[pos++] = b;
-        }
-      }
-      break;
-    case BPP_24 :
-      {
-        unsigned char blue;
+    jpeg_create_compress(&cinfo);
 
-        // copy buffer
-        memcpy(m_pucImageBuffer, Buffer, m_ulImageSize);
-        // change red and blue
-        for (unsigned long y = 0; y < m_ulImageSize; y += 3)
-        {
-          blue          = m_pucImageBuffer[y];
-          m_pucImageBuffer[y]    = m_pucImageBuffer[y + 2];
-          m_pucImageBuffer[y+2]  = blue;
-        }
-      }
-      break;
+    jpeg_mem_dest(&cinfo, &jpg_buffer, &jpg_buffer_size);
+
+    cinfo.image_width = m_ulWidth;   /* image width and height, in pixels */
+    cinfo.image_height = m_ulHeight;
+    cinfo.input_components = RGB_BYTES;    /* # of color components per pixel */
+    cinfo.in_color_space = JCS_RGB;   /* colorspace of input image */
+
+    jpeg_set_defaults(&cinfo);
+
+    //jpeg_set_quality(&cinfo, quality, 
+    //                  TRUE /* limit to baseline-JPEG values */);
+
+
+    jpeg_start_compress(&cinfo, TRUE);
+
+    row_stride = m_ulWidth * RGB_BYTES;  /* JSAMPLEs per row in image_buffer */
+
+    while (cinfo.next_scanline < cinfo.image_height) {
+    row_pointer[0] = & m_pucImageBuffer[cinfo.next_scanline * row_stride];
+    (void) jpeg_write_scanlines(&cinfo, row_pointer, 1);
+    }
+
+    jpeg_finish_compress(&cinfo);
+
+    Size = jpg_buffer_size;
+
+    jpeg_destroy_compress(&cinfo);
+
+    return jpg_buffer;
   }
-}
 
-bool CImageConverter::LoadJPG(unsigned char *PictureBuffer, 
-                              unsigned long PictureSize)
-{
-  JPEGPicture  *pic = new JPEGPicture(PictureBuffer, PictureSize);
+  unsigned char *CImageConverter::GetImageData(unsigned long& size)
+  {
+    size = m_ulImageSize;
 
-  m_ulWidth  = pic->GetWidth();
-  m_ulHeight  = pic->GetHeight();
+    return m_pucImageBuffer;
+  }
 
-  unsigned char *buffer = pic->GetImageData(m_ulImageSize);
 
-  m_pucImageBuffer  = new unsigned char[m_ulImageSize];
-  memcpy(m_pucImageBuffer, buffer, m_ulImageSize);
+  void CImageConverter::ConvertToTrueColor(BPP bpp, unsigned char *Buffer,
+                          unsigned long BufferSize, unsigned char *Palette)
+  {
+    m_ulImageSize    = m_ulWidth * m_ulHeight * RGB_BYTES;
+    m_pucImageBuffer  = new unsigned char[m_ulImageSize];
 
-  delete pic;
+    // convert the graphic data to 24 bit rgb buffer
+    switch (bpp)
+    {
+      case BPP_8 :
+        {
+          unsigned long len    = m_ulWidth*m_ulHeight;
+          unsigned long src_pos  = 0;
+          unsigned long dest_pos  = 0;
+          
+          // read palette
+          for (unsigned long i=0; i<len; i++)
+          {
+            src_pos = Buffer[i] * 3;
 
-  return true;
-}
+            m_pucImageBuffer[dest_pos++] = Palette[src_pos+2];  // red
+            m_pucImageBuffer[dest_pos++] = Palette[src_pos+1];  // green
+            m_pucImageBuffer[dest_pos++] = Palette[src_pos];  // blue
+          }
+        }
+        break;
+      case BPP_16 :
+        {
+          unsigned short *buffer = (unsigned short*)Buffer;
+          unsigned long size = BufferSize / 2;
+          unsigned long pos = 0;
+          unsigned char r,g,b;
 
-bool CImageConverter::LoadBMP(unsigned char *PictureBuffer, 
-                              unsigned long PictureSize)
-{
-  bool      compressed;
-  int        lang;
-  unsigned long  y,size;
-  unsigned char  *dest_buffer, *ptr;
-#define        cachesize  1024
-  int        len;
-  BMP_header    bmp;
-  unsigned char  *src_buffer = PictureBuffer;
-  unsigned char  colordepth;
-  unsigned char  bytes;
+          // convert from 16 to 24 bit
+          for (unsigned long i = 0; i<size; ++i)
+          {
+            b = (buffer[i]&0x001f)<<3;
+            g = (buffer[i]&0x03e0)>>2;
+            r = (buffer[i]&0x7c00)>>7;
 
-  memcpy(&bmp, src_buffer, sizeof(bmp));
-  src_buffer += sizeof(bmp);
+            m_pucImageBuffer[pos++] = r;
+            m_pucImageBuffer[pos++] = g;
+            m_pucImageBuffer[pos++] = b;
+          }
+        }
+        break;
+      case BPP_24 :
+        {
+          unsigned char blue;
 
-  if (bmp.id != 'MB') // ID: BM
+          // copy buffer
+          memcpy(m_pucImageBuffer, Buffer, m_ulImageSize);
+          // change red and blue
+          for (unsigned long y = 0; y < m_ulImageSize; y += 3)
+          {
+            blue          = m_pucImageBuffer[y];
+            m_pucImageBuffer[y]    = m_pucImageBuffer[y + 2];
+            m_pucImageBuffer[y+2]  = blue;
+          }
+        }
+        break;
+    }
+  }
+
+  bool CImageConverter::LoadJPG(unsigned char *PictureBuffer, 
+                                unsigned long PictureSize)
+  {
+    JPEGPicture  *pic = new JPEGPicture(PictureBuffer, PictureSize);
+
+    m_ulWidth  = pic->GetWidth();
+    m_ulHeight  = pic->GetHeight();
+
+    unsigned char *buffer = pic->GetImageData(m_ulImageSize);
+
+    m_pucImageBuffer  = new unsigned char[m_ulImageSize];
+    memcpy(m_pucImageBuffer, buffer, m_ulImageSize);
+
+    delete pic;
+
+    return true;
+  }
+
+  bool CImageConverter::LoadBMP(unsigned char *PictureBuffer, 
+                                unsigned long PictureSize)
+  {
+    bool      compressed;
+    int        lang;
+    unsigned long  y,size;
+    unsigned char  *dest_buffer, *ptr;
+  #define        cachesize  1024
+    int        len;
+    BMP_header    bmp;
+    unsigned char  *src_buffer = PictureBuffer;
+    unsigned char  colordepth;
+    unsigned char  bytes;
+
+    memcpy(&bmp, src_buffer, sizeof(bmp));
+    src_buffer += sizeof(bmp);
+
+    
+    if (bmp.id != 'M'*256 + 'B') // ID: BM
   {
     return false;
   }

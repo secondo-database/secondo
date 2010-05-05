@@ -62,11 +62,6 @@ typedef long TupleId;
 class TupleIdentifier: public Attribute
 {
  public:
-  inline TupleIdentifier() {};
-/*
-This constructor should not be used.
-
-*/
   TupleIdentifier( bool DEFINED, TupleId TID = 0 );
   TupleIdentifier(const TupleIdentifier& source);
   ~TupleIdentifier();
@@ -112,8 +107,20 @@ This constructor should not be used.
 
   bool Adjacent(const Attribute *arg) const;
 
+  static void* Cast(void* addr){
+    return new (addr) TupleIdentifier();
+  }
+
+
  private:
-  long tid;
+  TupleId tid;
+  
+
+  inline TupleIdentifier() {};
+  /*
+   This constructor should not be used.
+
+  */
 };
 
 

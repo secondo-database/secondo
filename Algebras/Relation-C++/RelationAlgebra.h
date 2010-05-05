@@ -153,21 +153,12 @@ Attribute.h), ~AttributeType~, and ~RelationDescriptor~.
 #include "Attribute.h"
 #include "NestedList.h"
 #include "Counter.h"
+#include "TupleIdentifier.h"
 
 #define MAX_NUM_OF_ATTR 10
 
 extern AlgebraManager* am;
 
-/*
-3 Type Constructor ~tuple~
-
-3.1 ~TupleId~
-
-This class implements the unique identification for tuples inside a
-relation.
-
-*/
-typedef long TupleId;
 
 /*
 3.2 Class ~Attribute~

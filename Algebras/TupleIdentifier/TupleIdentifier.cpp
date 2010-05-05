@@ -198,14 +198,6 @@ CheckTupleIdentifier( ListExpr type, ListExpr& errorInfo )
 }
 
 /*
-2.10 ~Cast~-Function
-
-*/
-void* CastTupleIdentifier( void* addr )
-{
-  return new (addr) TupleIdentifier;
-}
-/*
 2.6 Creation of the Type Constructor Instance
 
 */
@@ -223,7 +215,7 @@ TypeConstructor tupleIdentifier
    //object creation and deletion
  0, 0, CloseTupleIdentifier, CloneTupleIdentifier,
    //object open,save,close,clone
- CastTupleIdentifier,
+ TupleIdentifier::Cast,
    //cast function
  SizeOfTupleIdentifier,
    //sizeof function

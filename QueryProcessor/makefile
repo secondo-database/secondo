@@ -32,7 +32,7 @@ LIBOBJECTS=\
 .PHONY: all
 all: $(OBJECTS) $(LIBOBJECTS)
 
-CCFLAGS= $(PICFLAG) $(DEFAULTCCFLAGS) -I../Algebras/Relation-C++
+CCFLAGS= $(PICFLAG) $(DEFAULTCCFLAGS) -I../Algebras/Relation-C++ -I../Algebras/TupleIdentifier
 
 $(LIBDIR)/%.$(OBJEXT): %.$(OBJEXT)
 	$(CP) $< $@ 

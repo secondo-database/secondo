@@ -8547,6 +8547,7 @@ static int InsideValueMap(Word* args,
 }
 
 // old implementation creates a MRegion:
+  /*
 static int AtValueMap_MPointOld(Word* args,
                              Word& result,
                              int message,
@@ -8586,6 +8587,7 @@ static int AtValueMap_MPointOld(Word* args,
 
     return 0;
 }
+  */
 
 // new implementation calls specialized member of class MPoint:
 static int AtValueMap_MPoint(Word* args,
