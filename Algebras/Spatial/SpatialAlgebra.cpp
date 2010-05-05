@@ -3028,9 +3028,9 @@ bool HalfSegment::Intersects( const HalfSegment& hs ) const
   if( AlmostEqual( k, K ) )
     // both segments have the same inclination
   {
-    if( AlmostEqual( A, a ) &&
-        ( ( xl > Xl || AlmostEqual( xl, Xl ) ) &&
-          ( xl < Xr || AlmostEqual( xl, Xr ) ) ) ||
+    if( ( AlmostEqual( A, a ) &&
+        (( ( xl > Xl || AlmostEqual( xl, Xl ) ) &&
+          ( xl < Xr || AlmostEqual( xl, Xr ) ) ))) ||
         ( ( Xl > xl || AlmostEqual( xl, Xl ) ) &&
           ( Xl < xr || AlmostEqual( xr, Xl ) ) ) )
       // the segments are in the same straight line
@@ -3529,10 +3529,10 @@ bool HalfSegment::Contains( const Point& p ) const
     // same x-position. In this case we just have to check
     // whether the point is inside the y-interval
   {
-    if( ( y > yl || AlmostEqual( y, yl ) ) &&
-        ( y < yr || AlmostEqual( y, yr ) ) ||
-        ( y < yl || AlmostEqual( y, yl ) ) &&
-        ( y > yr || AlmostEqual( y, yr ) ) )
+    if( (( y > yl || AlmostEqual( y, yl ) ) &&
+        ( y < yr || AlmostEqual( y, yr ) )) ||
+        (( y < yl || AlmostEqual( y, yl ) ) &&
+        ( y > yr || AlmostEqual( y, yr ) ) ))
       // Here we check both possibilities because we do not
       // know wheter yl < yr, given that we used the
       // AlmostEqual function in the previous condition

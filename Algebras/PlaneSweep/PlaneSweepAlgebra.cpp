@@ -3681,8 +3681,8 @@ void MakeRealm::PerformPlaneSweep(PQueue& pq, Segment segs[],
       //else cout << " PQNOTEmpty ";
       //else cout <<  "insertedCurrentSegment is false " << endl;
       if ( ((sweepline != event.GetX()) || (vlist.Size() > 1)) ||
-                      ( (pq.isEmpty()) && (vlist.Size() == 1) ) 
-                          && insertedCurrentSegment  )  { // new sweepline
+                     ( ( (pq.isEmpty()) && (vlist.Size() == 1) ) 
+                          && insertedCurrentSegment ) )  { // new sweepline
          oldsweep = sweepline;
          // handle all vertical HalfSegments at old sweepline
          if ( !vlist.IsEmpty() ) {

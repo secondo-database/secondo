@@ -931,7 +931,7 @@ void R_TreeNodePnJ<dim>::Split( R_TreeNodePnJ<dim>& n1,
              splitPoint <= MaxEntries()-MinEntries();
              splitPoint++, pstat++ )
           if( pstat->overlap < minOverlap ||
-              pstat->overlap == minOverlap && pstat->area < minArea )
+              (pstat->overlap == minOverlap && pstat->area < minArea ))
           {
             minOverlap = pstat->overlap;
             minArea = pstat->area;
@@ -1721,7 +1721,7 @@ void R_TreePnJ<dim>::LocateBestNode( const R_TreeEntryPnJ<dim>& entry,
           overlap = overlapAfter - overlapBefore;
 
           if( overlap < bestoverlap ||
-              overlap == bestoverlap && enlargement < bestEnlargement )
+              (overlap == bestoverlap && enlargement < bestEnlargement) )
           {
             bestoverlap = overlap;
             bestEnlargement = enlargement;
@@ -2207,21 +2207,19 @@ bool R_TreePnJ<dim>::Next (R_TreeEntryPnJ<dim>& result,
 
     currEntry++;
 
-    if ( currEntry < nodePtr->EntryCount() )
-    {
-      if ( (*nodePtr) [currEntry ].box.Intersects ( searchBox ) )
-        if ( nodePtr->IsLeaf() || currLevel == reportLevel )
-        { // Found an appropriate entry
-            result = (*nodePtr) [ currEntry ];
-            retcode = true;
-            break;
-        }
-        else
-        {  //Go down the tree
+    if ( currEntry < nodePtr->EntryCount() ) {
+      if ( (*nodePtr) [currEntry ].box.Intersects ( searchBox ) ){
+        if ( nodePtr->IsLeaf() || currLevel == reportLevel ) { 
+          // Found an appropriate entry
+          result = (*nodePtr) [ currEntry ];
+          retcode = true;
+          break;
+        } else {  //Go down the tree
           DownLevel ( currEntry );
           currEntry = -1;
         }
       }
+    }
 
     }
   }  // while

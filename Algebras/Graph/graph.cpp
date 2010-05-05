@@ -1274,16 +1274,17 @@ bool Graph::PartOf(const Graph* part) const {
             delta = (delta + 1) / 2;
             if ((*partEdges) [i].GetSource() < 
                 (*bigEdges)[searchPos].GetSource() || 
-                (*partEdges) [i].GetSource() == 
-                (*bigEdges)[searchPos].GetSource() && 
-                (*partEdges) [i].GetTarget() < 
-                (*bigEdges)[searchPos].GetTarget() || 
-                (*partEdges) [i].GetSource() == 
-                (*bigEdges)[searchPos].GetSource() && 
-                (*partEdges) [i].GetTarget()== 
-                (*bigEdges)[searchPos].GetTarget() && 
-                (*partEdges) [i].GetCost() < 
-                (*bigEdges)[searchPos].GetCost())
+                ((*partEdges) [i].GetSource() == 
+                 (*bigEdges)[searchPos].GetSource() && 
+                 (*partEdges) [i].GetTarget() < 
+                 (*bigEdges)[searchPos].GetTarget()) || 
+                ((*partEdges) [i].GetSource() == 
+                 (*bigEdges)[searchPos].GetSource() && 
+                 (*partEdges) [i].GetTarget()== 
+                 (*bigEdges)[searchPos].GetTarget() && 
+                 (*partEdges) [i].GetCost() < 
+                 (*bigEdges)[searchPos].GetCost())
+                )
                 searchPos -= delta;
             else
                 searchPos += delta;

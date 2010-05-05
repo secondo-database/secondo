@@ -1180,7 +1180,7 @@ bool GetInt9M(Region const* const reg, Points const* const ps, Int9M& res,
        } else { // there is nothing under cp
          SetEI(res,useCluster,cluster,done);
        }
-       done = done || res.GetII() && res.GetBI() && res.GetEI();
+       done = done || (res.GetII() && res.GetBI() && res.GetEI());
     } else {  // the next element comes from the region
       avlseg::AVLSegment current(CH,avlseg::first);
 

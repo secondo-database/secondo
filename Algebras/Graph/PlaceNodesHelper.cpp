@@ -493,7 +493,7 @@ void PlaceNodesHelper::GetCandidates(Point const & pnt1, float fRadius1,
         double dY1 = dBaseY + dDeltaX * dHeight;
         double dX2 = dBaseX + dDeltaY * dHeight;
         double dY2 = dBaseY - dDeltaX * dHeight;
-        if (dX1 > dX2 || dX1 == dX2 && dY1 > dY2)
+        if (dX1 > dX2 || (dX1 == dX2 && dY1 > dY2))
         {
             pntOut1.Set(dX1, dY1);
             pntOut2.Set(dX2, dY2);

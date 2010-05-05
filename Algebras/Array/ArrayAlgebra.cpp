@@ -184,7 +184,7 @@ genericClone( int algebraId, int typeId, ListExpr typeInfo, Word object )
 
     ListExpr objectLE;
 
-    int errorPos;
+    int errorPos=0;
     ListExpr errorInfo;
     bool correct;
 

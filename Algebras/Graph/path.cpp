@@ -58,7 +58,7 @@ public:
     bool operator<(EdgeDirection const & edge) const
     {
         return m_nSource < edge.GetSource() || 
-            m_nSource == edge.GetSource() && m_nTarget < edge.GetTarget();
+            (m_nSource == edge.GetSource() && m_nTarget < edge.GetTarget());
     }
 
 private:
