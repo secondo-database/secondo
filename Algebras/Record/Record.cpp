@@ -304,7 +304,22 @@ Record::GetElement(int pos) const
     Attribute* elem = static_cast<Attribute*> 
             ((am->CreateObj(elemInfo.algebraId, elemInfo.typeId))(0).addr);
 
+
+    // save the flob states
+    vector<Flob> savedFlobs;
+    for(int i=0;i<elem->NumOfFLOBs();i++){
+      savedFlobs.push_back(*elem->GetFLOB(i));
+    }
+
     this->elemData.read((char*)elem, elem->Sizeof(),elemInfo.dataOffset);
+
+    // restore the flob states
+    for(int i=0;i<elem->NumOfFLOBs();i++){
+      int size = elem->GetFLOB(i)->getSize();
+      elem->GetFLOB(i)->kill();
+      *(elem->GetFLOB(i)) = savedFlobs[i];
+      elem->GetFLOB(i)->resize(size);
+    }
 
     // assign retrieved data to element
     elem = static_cast<Attribute*>(
@@ -313,21 +328,20 @@ Record::GetElement(int pos) const
     // assign external data offset
     size_t offset = elemInfo.extDataOffset;
 
-    // iterate through all flobs of this element
+    // restore flob data 
     for (int i = 0; i < elem->NumOfFLOBs(); i++) {
-      // get current flob
       Flob* flob = elem->GetFLOB(i);
-      // retrieve stored data for current flob
       char* buffer = new char[flob->getSize()]; 
-      this->elemExtData.read(buffer, flob->getSize(), offset);
+      bool ok = elemExtData.read(buffer, flob->getSize(), offset);
+      assert(ok);
 
       // assign retrieved data to target flob
-      flob->clean();
       flob->write(buffer,  flob->getSize(), 0);
       delete[] buffer;
       // update external data offset
       offset += flob->getSize();
     }
+
     return elem;
   }
 }
