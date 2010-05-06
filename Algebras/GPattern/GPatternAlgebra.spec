@@ -32,6 +32,6 @@ operator union2 alias UNION2 pattern _ infixop _
 operator cardinality alias CARDINALITY pattern _op
 operator intstream2set alias INTSTREAM2SET pattern _op[_]
 operator mset2mregion alias MSET2MREGION pattern op(_,_,_)
-operator mset2mpoints alias MSET2MPOINTS pattern op(_,_)
+operator mset2mpoints alias MSET2MPOINTS pattern op(_,_,_)
 operator convexhull2 alias CONVEXHULL2 pattern op(_,_)
 

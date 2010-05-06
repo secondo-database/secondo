@@ -50,6 +50,9 @@ JAN, 2010 Mahmoud Sakr
 #include "STPatternAlgebra.h"
 #include "SpatialAlgebra.h"
 #include "MSet.h"
+#include <boost_1_42_0/boost/graph/graph_traits.hpp>
+#include <boost_1_42_0/boost/graph/adjacency_list.hpp>
+#include <boost_1_42_0/boost/graph/dijkstra_shortest_paths.hpp>
 #include <map>
 using namespace datetime;
 using namespace mset;
@@ -90,75 +93,133 @@ class GPatternHelper
 {
 public:
 
-  GPatternHelper():stream(0)
-  {
+  GPatternHelper(){}
+  ~GPatternHelper() {}
 
-  }
-  ~GPatternHelper()
+  static void ComputeAddSubGraphs(InMemMSet& accumlator, 
+      list<InMemUSet>::iterator begin, list<InMemUSet>::iterator end,
+      bool isCommutative,
+      unsigned int n,  double d, quantifier q, string subGraphType,
+      vector<InMemMSet>* resStream)
   {
-    Clear(); 
-  }
-
-  void Clear()
-  {
-//    for(unsigned int i=0; i<stream.size(); ++i)
-//      delete stream[i];
-    stream.clear();
-  }
-
-  ostream& Print( ostream &os ) 
-  {
-    if ( stream.size() == 0) return (os << "Empty result");
+    bool debugme= false;
+//    assert(acc.GetNoComponents() > 0 );
+//    assert(d > 0);
+//    assert(((*t2).endtime - (*t1).starttime) > d);
+//    
+//    // create a typedef for the Graph type
+//    typedef adjacency_list<vecS, vecS, bidirectionalS> Graph;
+//
+//    // Make convenient labels for the vertices
+//    enum { A, B, C, D, E, N };
+//    const int num_vertices = N;
+//    const char* name = "ABCDE";
+//
+//    // writing out the edges in the graph
+//    typedef std::pair<int, int> Edge;
+//    Edge edge_array[] = 
+//    { Edge(A,B), Edge(A,D), Edge(C,A), Edge(D,C),
+//        Edge(C,E), Edge(B,D), Edge(D,E) };
+//    const int num_edges = sizeof(edge_array)/sizeof(edge_array[0]);
+//
+//    // declare a graph object
+//    Graph g(num_vertices);
+//
+//    // add the edges to the graph object
+//    for (int i = 0; i < num_edges; ++i)
+//      add_edge(edge_array[i].first, edge_array[i].second, g);
     
-    os << "\nResult size:" + stream.size();
-    os << "\nMembers: " ;
-    for(vector<InMemMSet>::iterator i=stream.begin() ;i != stream.end(); ++i)
-    {
-      (*i).Print(os); 
-      os<<"\n";
-    }
-    os << "\n";
-    return os;
+    
   }
   
-  void ComputeGPatternResultStream(InMemMSet& accumlator,int n, double d,
-      quantifier q)
+  
+  static void ComputeAddSubSets(InMemMSet& acc,
+      list<InMemUSet>::iterator t1, list<InMemUSet>::iterator t2,
+      unsigned int n,  double d, vector<InMemMSet>* result)
   {
-    bool debugme=false;
-    Clear();
-    accumlator.HighPassCardinalityFilter(n);
+    bool debugme= false;
+    assert(acc.GetNoComponents() > 0 );
+    assert(d > 0);
+    assert(((*t2).endtime - (*t1).starttime) > d);
+    
     if(debugme)
-    { cerr<<"\n***********GPattern Input *******\n"; accumlator.Print(cerr);}
-
-    list<InMemUSet>::iterator t1, t2, tnext;
-    t1= accumlator.units.begin();
-    tnext= GetNextPariod(accumlator, t1);
-    while( t1 != accumlator.units.end())
     {
-      t2= tnext;
-      --t2;
-      if( ((*t2).endtime - (*t1).starttime) >= d)
+      cerr<<"\nComputeResultStreamPart Called: n= "<< n <<"---------------\n";
+      for(list<InMemUSet>::iterator t= t1; t!=t2; ++t)
+        (*t).Print(cerr);
+      (*t2).Print(cerr);
+      cerr<<"End of input -----------------------";
+    }
+    multimap< set<int>, DoubleInterval> res;
+   
+    list<InMemUSet>::iterator unitIterator1=t1, unitIterator2=t2;
+    double startInstant= (*t1).starttime, curInstant=0,
+      endInstant= (*t2).endtime;
+    bool lc= (*t1).lc, rc=false; 
+    list<InMemUSet>::iterator curUnit;
+    InMemUSet candidates;  
+    curUnit= unitIterator1;
+    while( endInstant - startInstant >= d)
+    {
+      unitIterator2= unitIterator1;
+      curInstant= (*curUnit).endtime;
+      rc= (*curUnit).rc;
+      candidates.CopyFrom(*curUnit);
+      while( candidates.Count() >= n && 
+          curInstant - startInstant < d && unitIterator2 != t2)
       {
-        vector<InMemMSet> streamPart;
-        ComputeResultStreamPart(accumlator, n, d, q, t1, t2, streamPart);
-        for(vector<InMemMSet>::iterator j= streamPart.begin(); 
-          j!= streamPart.end(); ++j)
-          stream.push_back(*j);
+        curUnit = ++unitIterator2;
+        curInstant= (*curUnit).endtime;
+        rc= (*curUnit).rc;
+        candidates.Intersection((*curUnit).constValue);
       }
-      t1= tnext;
-      tnext= GetNextPariod(accumlator, t1);
+      if(candidates.Count() >= n && curInstant - startInstant >= d)
+        AddAllSubSetsToVector(candidates, startInstant, curInstant, 
+            lc, rc, n, res);
+
+      while( curInstant < endInstant && candidates.Count() >=n &&
+          unitIterator2 != t2)
+      {
+        curUnit= ++unitIterator2;
+        curInstant= (*curUnit).endtime;
+        rc= (*curUnit).rc;
+        candidates.Intersection( (*curUnit).constValue);
+        if(candidates.Count() >= n )
+          AddAllSubSetsToVector(candidates, startInstant, curInstant, 
+              lc, rc, n, res);
+      }
+      candidates.Clear();
+      if(unitIterator1 != t2)
+      {
+        curUnit= ++unitIterator1;
+        startInstant = (*curUnit).starttime;
+        lc= (*curUnit).lc;
+      }
+      else
+        break;
+    }
+    //result.reserve(res.size());
+    multimap< set<int>, DoubleInterval>::iterator i;
+    for(i= res.begin(); i != res.end(); ++i)
+    {
+      InMemMSet mset;
+      InMemUSet uset( (*i).first, (*i).second.start, (*i).second.end, 
+          (*i).second.lc, (*i).second.rc);
+      mset.units.push_back(uset);
+      if(debugme)
+      {
+        cerr<<"Adding  \n"; mset.Print(cerr); 
+      }
+      result->push_back(mset);
     }
     if(debugme)
-    { 
-      cerr<<"\n***********GPattern result *******\nNumber of results ="
-          << stream.size()<<endl; 
-      Print(cerr);
+    {
+      cerr<<result->size(); 
     }
   }
-  vector<InMemMSet>::iterator it;
-  vector<InMemMSet> stream;
+  
 private:
-  void GenerateAllCombinations(InMemUSet& cand, int select, 
+  static void GenerateAllCombinations(InMemUSet& cand, int select, 
       vector< set<int> > & res)
   {
     int *a = new int[select];
@@ -191,114 +252,10 @@ private:
     }
     delete[] a;
   }
-  void ComputeResultStreamPart(InMemMSet& acc,unsigned int n, 
-      double d, quantifier q, 
-      list<InMemUSet>::iterator t1, list<InMemUSet>::iterator t2, 
-      vector<InMemMSet>& result)
-      {
-    bool debugme= false;
-    assert(acc.GetNoComponents() > 0 );
-    assert(d > 0);
-    assert(((*t2).endtime - (*t1).starttime) > d);
-    
-    if(debugme)
-    {
-      cerr<<"\nComputeResultStreamPart Called: n= "<< n <<"---------------\n";
-      for(list<InMemUSet>::iterator t= t1; t!=t2; ++t)
-        (*t).Print(cerr);
-      (*t2).Print(cerr);
-      cerr<<"End of input -----------------------";
-    }
-    multimap< set<int>, DoubleInterval> res;
-   
-    list<InMemUSet>::iterator unitIterator1=t1, unitIterator2=t2;
-    double startInstant= (*t1).starttime, curInstant=0,
-    endInstant= (*t2).endtime;
-    bool lc= (*t1).lc, rc=false; 
-    list<InMemUSet>::iterator curUnit;
-    InMemUSet candidates;  
-    curUnit= unitIterator1;
-    while( endInstant - startInstant >= d)
-    {
-      unitIterator2= unitIterator1;
-      curInstant= (*curUnit).endtime;
-      rc= (*curUnit).rc;
-      candidates.CopyFrom(*curUnit);
-      while( candidates.Count() >= n && 
-          curInstant - startInstant < d && unitIterator2 != t2)
-      {
-        curUnit = ++unitIterator2;
-        curInstant= (*curUnit).endtime;
-        rc= (*curUnit).rc;
-        candidates.Intersection((*curUnit).constValue);
-      }
-      if(candidates.Count() >= n && curInstant - startInstant >= d)
-        AddAllSubSetsToVector(candidates, startInstant, curInstant, 
-            lc, rc, n, q, res);
-
-      while( curInstant < endInstant && candidates.Count() >=n &&
-          unitIterator2 != t2)
-      {
-        curUnit= ++unitIterator2;
-        curInstant= (*curUnit).endtime;
-        rc= (*curUnit).rc;
-        candidates.Intersection( (*curUnit).constValue);
-        if(candidates.Count() >= n )
-          AddAllSubSetsToVector(candidates, startInstant, curInstant, 
-              lc, rc, n, q, res);
-      }
-      candidates.Clear();
-      if(unitIterator1 != t2)
-      {
-        curUnit= ++unitIterator1;
-        startInstant = (*curUnit).starttime;
-        lc= (*curUnit).lc;
-      }
-      else
-        break;
-    }
-    result.reserve(res.size());
-    multimap< set<int>, DoubleInterval>::iterator i;
-    for(i= res.begin(); i != res.end(); ++i)
-    {
-      InMemMSet mset;
-      InMemUSet uset( (*i).first, (*i).second.start, (*i).second.end, 
-          (*i).second.lc, (*i).second.rc);
-      mset.units.push_back(uset);
-      if(debugme)
-      {
-        cerr<<"Adding  \n"; mset.Print(cerr); 
-      }
-      result.push_back(mset);
-    }
-    if(debugme)
-    {
-      cerr<<result.size(); 
-    }
-  }
-  
-  list<InMemUSet>::iterator GetNextPariod(InMemMSet& accumlator, 
-      list<InMemUSet>::iterator t1)
-  {
-    bool debugme=false;
-    list<InMemUSet>::iterator t2=t1;
-    if(t2 == accumlator.units.end())
-      return t2;
-    double lastinstant= (*t1).endtime;
-    if(debugme) (*t1).Print(cerr);
-    while(++t2 != accumlator.units.end())
-    {
-      if(debugme) (*t2).Print(cerr);
-      if((*t2).starttime != lastinstant)
-        break;
-      lastinstant= (*t2).endtime;
-    }
-    return t2;
-  }
-  
-  void AddAllSubSetsToVector(InMemUSet& candidates, double startInstant, 
+      
+  static void AddAllSubSetsToVector(InMemUSet& candidates, double startInstant, 
       double curInstant, bool lc, bool rc, 
-      int n, quantifier q, multimap< set<int>, DoubleInterval>& res)
+      int n, multimap< set<int>, DoubleInterval>& res)
   {
     bool debugme= false; 
     bool changed=false;
@@ -309,17 +266,9 @@ private:
       <<"  "<<curInstant<<"  "<<lc<<"  "<<rc;
       candidates.Print(cerr);
     }
-    if(q == GPattern::exactly)
-    {
-      GenerateAllCombinations(candidates, n, sets);
-      changed = (sets.size() != 0);
-    }
-    else if (q== GPattern::atleast)
-    {
-      for(unsigned int i= n; i<= candidates.Count(); ++i)
-        GenerateAllCombinations(candidates, i, sets);
-      changed = (sets.size() != 0);
-    }
+    
+    GenerateAllCombinations(candidates, n, sets);
+    changed = (sets.size() != 0);
     
     if(changed)
     {
@@ -365,7 +314,7 @@ public:
 The list of supported assignments
 
 */  
-  vector< vector< pair< Interval<CcReal>, set<int> > > > SA;
+  vector< vector< pair< Interval<CcReal>, MSet* > > > SA;
   vector<Supplier> Agenda;
     
 /*
@@ -375,6 +324,7 @@ position in the Agenda, SA and ConstraintGeraph.
 */
   map<string, int> VarAliasMap;
   vector< vector< vector<Supplier> > >ConstraintGraph;
+  vector<MSet*> ToDelete;
 /*
 The total number of variables in the CSP.
  
@@ -399,6 +349,14 @@ A list of the variable that have been consumed so far.
     nullInterval(CcReal(true,0.0),CcReal(true,0.0), true,true)
     {}
     
+    ~GPatternSolver()
+    {
+      for(vector<MSet*>::iterator it= 
+        ToDelete.begin(); it != ToDelete.end(); ++it)
+      {
+        (*it)->DeleteIfAllowed(true);
+      }
+    }
 /* 
 The AddVariable function.
 Input: the alias of the lifted predicate and a pointer to the its node in the 
@@ -487,7 +445,7 @@ fulfilled.
 Output: whether the partial assignment is consistent.
    
 */  
-  bool IsSupported(vector< pair<Interval<CcReal>, set<int> > >& sa, int index);
+  bool IsSupported(vector< pair<Interval<CcReal>, MSet* > >& sa, int index);
 
 /*
 The CheckConstraint helper function. It checks whether an STVector is fulfilled 
