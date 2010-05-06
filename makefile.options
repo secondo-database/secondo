@@ -58,7 +58,7 @@ DEFAULTCCFLAGS += $(DEBUG) $(OPTIMIZE) $(TEMPLATEFLAGS) -I. -I$(INCLUDEDIR)
 
 
 # Show all warnings
-DEFAULTCCFLAGS += -Wall  
+DEFAULTCCFLAGS += -Wall -Werror 
 # -pedantic -Wunreachable-code -Wunknown-pragmas -Wshadow -Wformat=2 -Wundef  -Wbad-function-cast -Wcast-qual  -Wsign-compare -fbounds-check -fstack-check -fcheck-new 
 
 # Define some macros which define optional behaviour in some
