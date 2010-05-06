@@ -127,6 +127,7 @@ Set operations and predicates
 
 */
   void Union(IntSet& op2, IntSet& res);
+  void Union(IntSet& op2);
   int IntersectionCount(const IntSet& arg) const;
   bool IsSubset(const IntSet& rhs) const;
   bool operator==(const IntSet& rhs) const;
@@ -333,7 +334,7 @@ void USetRef::GetSet(const DbArray<int>& data, set<int>& res) const
 class MSet : public  Mapping< USetRef, IntSet > 
 {
 public:
-  MSet(){}
+  MSet():Mapping<USetRef, IntSet>(){}
   MSet(const int n):
     Mapping<USetRef, IntSet>(n), data(n){}
   ~MSet() { }
@@ -486,10 +487,18 @@ public:
     tmp.ReadFrom(endtime/day2min);
     os<< "\t"; tmp.Print(os);
     os << "\t"<< lc << "\t" << rc <<")  {";
-    for(it=constValue.begin(); it != constValue.end(); ++it)
+//    for(it=constValue.begin(); it != constValue.end(); ++it)
+//    {
+//      os<<(*it);
+//      os << ",";
+//    }
+    it= constValue.begin();
+    int b = *(constValue.begin()), e= *(--(constValue.end()));
+    for(int beg= b; beg <= e; ++beg)
     {
-      os<<(*it);
-      os << ",";
+      if(beg == *it) {os<<(*it)<<"\t"; ++it;}
+      else os<<"e\t";
+      
     }
     os << "}" << endl;
     return os;
@@ -541,6 +550,12 @@ public:
       units.push_back(tmp);
     }
   }
+  InMemMSet(InMemMSet& arg, list<InMemUSet>::iterator begin,
+        list<InMemUSet>::iterator end)
+  {
+    CopyFrom(arg, begin, end);  
+  }
+  
   ~InMemMSet()
   {
     Clear();
@@ -556,11 +571,21 @@ public:
   {
     return units.size();
   }
+  
   void CopyFrom(InMemMSet& arg)
   {
     Clear();
     for(arg.it= arg.units.begin(); arg.it != arg.units.end(); ++arg.it)
       units.push_back(*arg.it);
+  }
+  
+  void CopyFrom(InMemMSet& arg, list<InMemUSet>::iterator begin,
+      list<InMemUSet>::iterator end)
+  {
+    Clear();
+    for(arg.it= begin; arg.it != end; ++arg.it)
+      units.push_back(*arg.it);
+    units.push_back(*end);
   }
 
   void ReadFrom(MBool& mbool, int key)
@@ -581,8 +606,33 @@ public:
   
   void WriteToMSet(MSet& res)
   {
+    if(units.begin() == units.end())
+    {
+      res.SetDefined(false);
+      return;
+    }
+    
+    res.Clear();
     res.SetDefined(true);
     for(it=units.begin(); it != units.end(); ++it)
+    {
+      USet uset(true);
+      (*it).WriteToUSet(uset);
+      res.MergeAdd(uset);
+    }
+  }
+  
+  void WriteToMSet(MSet& res, list<InMemUSet>::iterator begin, 
+      list<InMemUSet>::iterator end)
+  {
+    if(begin == units.end())
+    {
+      res.SetDefined(false);
+      return;
+    }
+    res.Clear();
+    res.SetDefined(true);
+    for(it=begin; it != end; ++it)
     {
       USet uset(true);
       (*it).WriteToUSet(uset);
@@ -599,7 +649,7 @@ public:
     os << "(InMemMSet: defined, contains " << units.size() << " units: ";
     for(it=units.begin(); it != units.end(); ++it)
     {
-      os << "\n\t";
+      //os << "\n\t";
       (*it).Print(os);
     }
     os << "\n)" << endl;
@@ -848,17 +898,434 @@ public:
     this->CopyFrom(result);
   }
 
-  void HighPassCardinalityFilter(unsigned int n)
+  bool RemoveSmallUnits(const unsigned int n)
   {
-    
-    for(it= units.end(); it!= units.begin(); --it)
+    bool debugme= false;
+    bool changed=false;
+    if(units.size()==0) return false;
+    it= units.end();
+    --it;
+    while(it!= units.begin())
     {
+      if(debugme) {cerr<<endl<< (*it).Count() ; (*it).Print(cerr);}
       if((*it).Count() < n)
+      {
         units.erase(it);
+        changed= true;
+      }
+      --it;
     }
     if((*units.begin()).Count() < n)
+    {
         units.erase(units.begin());
+        changed = true;
+    }
+    return changed;
   }
+  
+  bool RemoveShortPariods(const double d)
+  {
+    bool changed=false;
+    if(units.size()==0) return false;
+    
+    list<InMemUSet>::iterator begin=units.begin(), end= units.begin(), tmp;
+    while(begin != units.end())
+    {
+      end = GetPeriodEndUnit(begin);
+      if(((*end).endtime - (*begin).starttime) < d)
+      {
+        tmp= end; ++tmp;
+        begin= units.erase(begin, tmp);
+        changed= true;
+      }
+    }
+    return changed;
+  }
+  typedef pair<double, list<InMemUSet>::iterator > inst;
+  ostream& Print( map<int, inst> elems, ostream &os )
+  {
+    map<int, inst>::iterator elemsIt= elems.begin();
+    while(elemsIt != elems.end())
+    {
+      os<<(*elemsIt).first<<" ";
+      (*(*elemsIt).second.second).Print(os);
+      os<<endl;
+      ++elemsIt;
+    }
+    return os;
+    
+  }
+  bool RemoveShortElemParts(const double d)
+  {
+    bool debugme= false;
+    
+    //handling special cases
+    if(units.size()==0) return false;
+    if(units.size()==1)
+    {
+      if( ( (*units.begin()).endtime - (*units.begin()).starttime) < d)
+      { 
+        units.clear(); return true;
+      }
+      else
+        return false;
+    }
+       
+    list<InMemUSet>::iterator cur= units.begin() , prev, end, tmp;
+//    typedef pair<double, list<InMemUSet>::iterator > inst;
+    map<int, inst> elems;
+    map<int, inst>::iterator elemsIt;
+    bool changed=false, firstIteration= true;
+//    if(debugme)
+//      Print(cerr);
+    
+    
+    while(cur != units.end())
+    {
+      end = GetPeriodEndUnit(cur);
+      if(debugme)
+      {
+        (*cur).Print(cerr);
+        (*end).Print(cerr);
+      }
+/*
+IF the period length is less than d, remove all units within the period
+
+*/      
+      if(((*end).endtime - (*cur).starttime) < d)
+      {
+        ++end;
+        cur= units.erase(cur, end);
+        changed= true;
+      }
+/*
+ELSE remove short parts of elements as follows:
+ 1. Initialize a hashtable [mset element, its deftime]
+ 2. Update the deftime of every element while iterating ovet the units
+ 3. After each iteration, elements are not updated must have deftime > d, 
+    otherwise their observed part is removed from the MSet 
+
+*/
+      else
+      {
+        elems.clear();
+        bool firstIteration= true;
+        ++end;
+        while(cur != end)
+        {
+          if(firstIteration)
+          {
+            for(set<int>::iterator elem= (*cur).constValue.begin(); elem !=
+              (*cur).constValue.end(); ++elem)
+            {
+              if(debugme)
+              {
+                cerr<<endl;
+                cerr<<*elem<< " "; (*cur).Print(cerr);
+              }
+
+              inst lt((*cur).starttime, cur);
+              elems.insert(pair<int, inst>(*elem, lt));
+            }
+            firstIteration= false;
+            prev= cur; ++cur;
+            continue;
+          }
+
+          if(debugme)
+          {
+            Print(elems,cerr);
+            (*prev).Print(cerr);
+            (*cur).Print(cerr);
+          }
+          vector<int> diff(0);
+          vector<int>::iterator diffEnd, diffIt;
+
+          //Finalize the elements that do not appear anymore in the cur unit
+          diffEnd= 
+            set_difference((*prev).constValue.begin(), 
+                (*prev).constValue.end(), (*cur).constValue.begin(), 
+                (*cur).constValue.end(), diff.begin());
+
+          diffIt = diff.begin();
+          while(diffIt != diffEnd)
+          {
+            int elemToRemove= *diffIt;
+            elemsIt= elems.find(elemToRemove);
+            assert(elemsIt != elems.end());
+            if( ((*prev).endtime - (*elemsIt).second.first) < d )
+            {
+              list<InMemUSet>::iterator unitToChange= (*elemsIt).second.second;
+              for(; unitToChange != cur; ++unitToChange)
+                (*unitToChange).constValue.erase(elemToRemove);
+              changed = true;
+            }
+            elems.erase(elemsIt);
+            ++diffIt;
+          }
+          
+          vector<int> diff2(0);
+          vector<int>::iterator diff2End, diff2It;
+          //Add the new elements that starts to appear in the cur unit
+          diff2End= 
+            set_difference((*cur).constValue.begin(), (*cur).constValue.end(), 
+                (*prev).constValue.begin(), (*prev).constValue.end(), 
+                diff2.begin());
+
+          diff2It = diff2.begin();
+          while(diff2It != diff2End)          {
+            inst lt((*cur).starttime, cur);
+            elems.insert(pair<int, inst>(*diff2It, lt));
+            ++diff2It;
+          }
+          prev= cur; ++cur;
+        }
+        for(elemsIt= elems.begin(); elemsIt != elems.end(); ++elemsIt)
+        {
+
+          if(debugme)
+          {
+            cerr<<(*elemsIt).first;
+            cerr<<endl<<((*prev).endtime - (*elemsIt).second.first);
+          }
+          if( ((*prev).endtime - (*elemsIt).second.first) < d )
+          {
+            list<InMemUSet>::iterator unitToChange= (*elemsIt).second.second;
+            for(; unitToChange != cur; ++unitToChange)
+              (*unitToChange).constValue.erase( (*elemsIt).first);
+            changed = true;
+          }
+        }
+        cur= end;
+      }
+    }
+    return changed;
+  }
+  
+  
+  
+//  bool RemoveShortElemParts(const double d)
+//  {
+//    bool debugme= false;
+//    
+//    //handling special cases
+//    if(units.size()==0) return false;
+//    if(units.size()==1)
+//    {
+//      if((units[0].endtime - units[0].starttime) < d)
+//      { 
+//        units.clear(); return true;
+//      }
+//      else
+//        return false;
+//    }
+//    
+//    
+//    
+//    list<InMemUSet>::iterator begin=units.begin(),cur=units.begin(), end, tmp;
+//    typedef pair<double, list<InMemUSet>::iterator > inst;
+//    typedef pair< inst , inst> lifetime;
+//    map<int, lifetime> elems;
+//    map<int, lifetime>::iterator elemsIt;
+//    bool changed=false;
+//    if(debugme)
+//      Print(cerr);
+//    while(begin != units.end())
+//    {
+//      end = GetPeriodEndUnit(begin);
+//      if(debugme)
+//      {
+//        (*begin).Print(cerr);
+//        (*end).Print(cerr);
+//      }
+///*
+//IF the period length is less than d, remove all units within the period
+//
+//*/      
+//      if(((*end).endtime - (*begin).starttime) < d)
+//      {
+//        tmp= end; ++tmp;
+//        begin= units.erase(begin, tmp);
+//        changed= true;
+//      }
+///*
+//ELSE remove short parts of elements as follows:
+// 1. Initialize a hashtable [mset element, its deftime]
+// 2. Update the deftime of every element while iterating ovet the units
+// 3. After each iteration, elements are not updated must have deftime > d, 
+//    otherwise their observed part is removed from the MSet 
+//*/
+//      else
+//      {
+//        cur= begin;
+//        list<InMemUSet>::iterator periodend= end;
+//        for(set<int>::iterator elem= (*begin).constValue.begin(); elem !=
+//          (*begin).constValue.end(); ++elem)
+//        {
+//          if(debugme)
+//          {
+//            cerr<<endl;
+//            cerr<<*elem<< " ";
+//          }
+//            
+//          lifetime lt(inst((*begin).starttime, begin), 
+//              inst((*begin).endtime, begin));
+//          elems.insert(pair<int, lifetime>(*elem, lt));
+//        }
+//        ++periodend;
+//        ++cur;
+//
+//        while(cur != periodend)
+//        {
+//          for(set<int>::iterator elem= (*cur).constValue.begin(); elem !=
+//                    (*cur).constValue.end(); ++elem)
+//          {
+//            if(debugme)
+//              cerr<<endl<<*elem<<endl;
+//            elemsIt = elems.find(*elem);
+//            if(elemsIt != elems.end())
+//            {
+//              (*elemsIt).second.second.first = (*cur).endtime;
+//              (*elemsIt).second.second.second = cur;
+//            }
+//            else
+//            {
+//              lifetime lt(inst((*cur).starttime, cur), 
+//                inst((*cur).endtime, cur));
+//              elems.insert(pair<int, lifetime>(*elem, lt));
+//              if(debugme)
+//              {
+//                cerr<<endl;
+//                cerr<<*elem<< " ";
+//              }
+//                
+//            }
+//          }
+//          
+//          double curtime= (*cur).endtime;
+//          elemsIt= elems.end();
+//          --elemsIt;
+//          for(; elemsIt != elems.begin(); --elemsIt)
+//          {
+//            if(debugme)
+//              cerr<<endl<<(*elemsIt).first;
+//              
+//            lifetime elemLifeTime= (*elemsIt).second;
+//            if(( elemLifeTime.second.first != curtime) &&
+//                elemLifeTime.second.first - elemLifeTime.first.first < d)
+//            {
+//              for(it= elemLifeTime.second.second; it!= 
+//                elemLifeTime.first.second; --it)
+//                  (*it).constValue.erase( (*elemsIt).first );
+//           (*elemLifeTime.first.second).constValue.erase( (*elemsIt).first);
+//              elems.erase(elemsIt);
+//              changed=true;
+//            }
+//          }
+//
+//          lifetime elemLifeTime= (*elems.begin()).second;
+//          if(( elemLifeTime.second.first != curtime) &&
+//              elemLifeTime.second.first - elemLifeTime.first.first < d)
+//          {
+//            for(it= elemLifeTime.second.second; it!= 
+//              elemLifeTime.first.second; --it)
+//              (*it).constValue.erase( (*elems.begin()).first );
+//            (*elemLifeTime.first.second).constValue.erase(
+//                (*elems.begin()).first);
+//            elems.erase(elems.begin());
+//            changed=true;
+//          }
+//          ++cur;
+//        }
+//        begin = end;
+//        ++begin;
+//      }
+//      if(elems.size()==0) return changed;
+//      
+//      elemsIt= elems.end();
+//      --elemsIt;
+//      for(; elemsIt != elems.begin(); --elemsIt)
+//      {
+//        if(debugme)
+//          cerr<<endl<<(*elemsIt).first;
+//
+//        lifetime elemLifeTime= (*elemsIt).second;
+//        if(elemLifeTime.second.first - elemLifeTime.first.first < d)
+//        {
+//          for(it= elemLifeTime.second.second; it!= 
+//            elemLifeTime.first.second; --it)
+//            (*it).constValue.erase( (*elemsIt).first );
+//          (*elemLifeTime.first.second).constValue.erase( (*elemsIt).first);
+//          elems.erase(elemsIt);
+//          changed=true;
+//        }
+//      }
+//      lifetime elemLifeTime= (*elems.begin()).second;
+//      if(elemLifeTime.second.first - elemLifeTime.first.first < d)
+//      {
+//        for(it= elemLifeTime.second.second; it!= 
+//          elemLifeTime.first.second; --it)
+//          (*it).constValue.erase( (*elems.begin()).first );
+//        (*elemLifeTime.first.second).constValue.erase(
+//            (*elems.begin()).first);
+//        elems.erase(elems.begin());
+//        changed=true;
+//      }
+//    }
+//    
+//    return changed;
+//  }
+  
+  list<InMemUSet>::iterator GetPeriodEndUnit(list<InMemUSet>::iterator begin)
+  {
+    bool debugme= false;
+    if(begin == units.end())
+      return begin;
+ 
+    if(debugme)
+      (*begin).Print(cerr);
+    
+    list<InMemUSet>::iterator end=begin;   
+    double totalLength= (*begin).endtime - (*begin).starttime, curLength=0;
+    ++end;
+    while(end != units.end())
+    {
+      curLength = (*end).endtime - (*end).starttime;
+      totalLength += curLength;
+      if(totalLength  !=  ((*end).endtime - (*begin).starttime))
+        break;
+      ++end;
+    }
+    --end;
+    return end;
+  } 
+
+  list<InMemUSet>::iterator GetPeriodStartUnit(list<InMemUSet>::iterator end)
+  {
+    bool debugme=false;
+    if(end == units.begin())
+      return end;
+ 
+    list<InMemUSet>::iterator begin= end;   
+    double totalLength= (*end).endtime - (*end).starttime, curLength=0;
+    --begin;
+    while(begin != units.begin())
+    {
+      curLength = (*begin).endtime - (*begin).starttime;
+      totalLength += curLength;
+      if(totalLength  !=  ((*end).endtime - (*begin).starttime))
+      {
+        ++begin;
+        return begin;
+      }
+      --begin;
+    }
+    curLength = (*begin).endtime - (*begin).starttime;
+    totalLength += curLength;
+    if(totalLength  !=  ((*end).endtime - (*begin).starttime))
+      ++begin;
+    return begin;
+  } 
   
   bool GetNextTrueUnit(MBool& mbool, int& pos, UBool& unit)
   {
@@ -1207,6 +1674,17 @@ void IntSet::Union(IntSet& rhs, IntSet& res)
   res.CopyFrom(this);
   for(int i=0; i<rhs.Count(); ++i)
     res.Insert(rhs[i]);
+}
+
+void IntSet::Union(IntSet& rhs)
+{
+  if(!(this->IsDefined() && rhs.IsDefined()))
+  {
+    SetDefined(false);
+    return;
+  }
+  for(int i=0; i<rhs.Count(); ++i)
+    Insert(rhs[i]);
 }
 
 void IntSet::Clear()
@@ -2198,6 +2676,7 @@ void MSet::MBool2MSet(MBool& mb, int elem)
 
 void MSet::MergeAdd( const USet& unit )
 {
+  bool debugme= false;
   assert( IsDefined() );
   USetRef lastunitref;
   USet lastunit(true);
@@ -2214,6 +2693,11 @@ void MSet::MergeAdd( const USet& unit )
   {
     units.Get( size - 1, lastunitref );
     lastunitref.GetUnit(this->data, lastunit);
+    if(debugme)
+    {
+      unit.Print(cerr);
+      lastunit.Print(cerr);
+    }
     if (lastunit.EqualValue(unit) &&
         (lastunitref.timeInterval.end == unit.timeInterval.start) &&
         (lastunitref.timeInterval.rc || unit.timeInterval.lc)) 

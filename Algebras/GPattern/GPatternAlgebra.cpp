@@ -37,6 +37,7 @@ JAN, 2010 Mahmoud Sakr
 
 #include "GPatternAlgebra.h"
 using namespace mset;
+using namespace boost;
 namespace GPattern{
 
 /*
@@ -146,20 +147,24 @@ ostream& GPatternSolver::Print(ostream &os)
   Instant tmp(instanttype);
   for(unsigned int i=0; i< SA.size(); i++)
   {
+    os<< "Tuple number:" << i;
     for(unsigned int j=0; j<SA[i].size(); j++)
     {
-      tmp.ReadFrom(SA[i][j].first.start.GetRealval());
-      tmp.Print(os);
-      os<< "\t ";
-      tmp.ReadFrom(SA[i][j].first.end.GetRealval());
-      tmp.Print(os);
-      os<<"\t{";
-      for(set<int>::iterator itr= SA[i][j].second.begin(); 
-        itr!= SA[i][j].second.end(); ++itr)
-      {
-        os<< *itr << ", ";
-      }
-      os<<"} |";
+      if(Agenda[j] !=0) continue;
+      os<< "Attribute number:" << j;
+      SA[i][j].second->Print(os);
+//      tmp.ReadFrom(SA[i][j].first.start.GetRealval());
+//      tmp.Print(os);
+//      os<< "\t ";
+//      tmp.ReadFrom(SA[i][j].first.end.GetRealval());
+//      tmp.Print(os);
+//      os<<"\t{";
+//      for(set<int>::iterator itr= SA[i][j].second.begin(); 
+//        itr!= SA[i][j].second.end(); ++itr)
+//      {
+//        os<< *itr << ", ";
+//      }
+//      os<<"} |";
     }
     os<<endl;
   }
@@ -194,12 +199,19 @@ void GPatternSolver::IntervalInstant2IntervalCcReal(
   
 }
 
+/*
+Extend
+
+*/
+
 bool GPatternSolver::Extend(int varIndex)
 {
   bool debugme= false;
-  vector< pair< Interval<CcReal>, set<int> > > sa(count);
+  vector< pair< Interval<CcReal>, MSet* > > sa(count);
   qp->Open(Agenda[varIndex]);
   Interval<CcReal> deftime;
+  Interval<Instant> period;
+  Periods periods(0);
   set<int> val;
   USetRef unit;
   Word Value;
@@ -212,28 +224,39 @@ bool GPatternSolver::Extend(int varIndex)
     qp->Request(Agenda[varIndex], Value);
     while(qp->Received(Agenda[varIndex]))
     {
-      if(debugme) static_cast<MSet*>(Value.addr)->Print(cerr);
-      static_cast<MSet*>(Value.addr)->Get(0, unit);
-      IntervalInstant2IntervalCcReal(unit.timeInterval, deftime);
-      unit.GetSet(static_cast<MSet*>(Value.addr)->data, val);
-      sa[varIndex].first= deftime;
-      sa[varIndex].second= val;
-      SA.push_back(sa);
+      MSet* res = static_cast<MSet*>(Value.addr)->Clone();
+      ToDelete.push_back(res);
+      if(res->IsDefined())
+      {
+        if(debugme) res->Print(cerr);
+        res->DefTime(periods);
+        periods.Get(0, period);
+        IntervalInstant2IntervalCcReal(period, deftime);
+        sa[varIndex].first= deftime;
+        sa[varIndex].second= res;
+        SA.push_back(sa);
+      }
       qp->Request(Agenda[varIndex], Value);
     }
     qp->Close(Agenda[varIndex]); 
   }
   else
   {
-    vector< pair< Interval<CcReal>, set<int> > > stream;
-    pair< Interval<CcReal>, set<int> > elem;
+    vector< pair< Interval<CcReal>, MSet* > > stream;
+    pair< Interval<CcReal>, MSet* > elem;
     qp->Request(Agenda[varIndex], Value);
     while(qp->Received(Agenda[varIndex]))
     {
-      static_cast<MSet*>(Value.addr)->Get(0, unit);
-      IntervalInstant2IntervalCcReal(unit.timeInterval, elem.first); 
-      unit.GetSet(static_cast<MSet*>(Value.addr)->data, elem.second);
-      stream.push_back(elem);
+      MSet* res = static_cast<MSet*>(Value.addr)->Clone() ;
+      ToDelete.push_back(res);
+      if(res->IsDefined())
+      {
+        res->DefTime(periods);
+        periods.Get(0, period);
+        IntervalInstant2IntervalCcReal(period, elem.first);
+        elem.second= res;
+        stream.push_back(elem);
+      }
       qp->Request(Agenda[varIndex], Value);
     }
     // SA has already entries 
@@ -247,7 +270,7 @@ bool GPatternSolver::Extend(int varIndex)
         sa[varIndex]= stream[j];
         if(IsSupported(sa, varIndex))
           SA.push_back(sa);
-      }
+      } 
       SA.erase(SA.begin());
     }
   }
@@ -256,7 +279,7 @@ bool GPatternSolver::Extend(int varIndex)
 }
 
 bool GPatternSolver::IsSupported(
-    vector< pair<Interval<CcReal>, set<int> > >& sa, int index)
+    vector< pair<Interval<CcReal>, MSet* > >& sa, int index)
 {
   bool supported=false; 
   for(unsigned int i=0; i<assignedVars.size()-1; i++)
@@ -285,6 +308,11 @@ bool GPatternSolver::IsSupported(
   }
   return supported;
 }
+
+/*
+CheckCopnstraint
+
+*/
 
 bool GPatternSolver::CheckConstraint(Interval<CcReal>& p1, 
     Interval<CcReal>& p2, vector<Supplier> constraint)
@@ -351,34 +379,33 @@ bool GPatternSolver::Solve()
 
 void GPatternSolver::WriteTuple(Tuple* tuple)
 {
-  vector< pair< Interval<CcReal>, set<int> > > sa= SA[iterator];
+  vector< pair< Interval<CcReal>, MSet* > > sa= SA[iterator];
   USet uset(true);
   Instant instant(instanttype);
   MSet mset(0);
   for(unsigned int i=0; i<sa.size(); ++i)
   {
-    MSet* mset= new MSet(0);
-    uset.constValue.Clear();
-    instant.ReadFrom(sa[i].first.start.GetValue());
-    uset.timeInterval.start= instant;
-    instant.ReadFrom(sa[i].first.end.GetValue());
-    uset.timeInterval.end= instant;
-    uset.timeInterval.lc= sa[i].first.lc;
-    uset.timeInterval.rc= sa[i].first.rc;
-    for(set<int>::iterator it=sa[i].second.begin(); 
-       it != sa[i].second.end(); ++it)
-      uset.constValue.Insert(*it);
-    uset.SetDefined(true);
-    uset.constValue.SetDefined(true);
-    assert(uset.IsValid());
-    mset->Add(uset);
-    tuple->PutAttribute(i, mset);
+//    MSet* mset= new MSet(0);
+//    uset.constValue.Clear();
+//    instant.ReadFrom(sa[i].first.start.GetValue());
+//    uset.timeInterval.start= instant;
+//    instant.ReadFrom(sa[i].first.end.GetValue());
+//    uset.timeInterval.end= instant;
+//    uset.timeInterval.lc= sa[i].first.lc;
+//    uset.timeInterval.rc= sa[i].first.rc;
+//    for(set<int>::iterator it=sa[i].second.begin(); 
+//       it != sa[i].second.end(); ++it)
+//      uset.constValue.Insert(*it);
+//    uset.SetDefined(true);
+//    uset.constValue.SetDefined(true);
+//    assert(uset.IsValid());
+//    mset->Add(uset);
+    tuple->PutAttribute(i, sa[i].second->Clone());
   }
 }
 
 /*
 4 Algebra Types and Operators 
-
 
 */
 
@@ -537,6 +564,10 @@ ListExpr GPatternTM(ListExpr args)
   return result;
 }
 
+/*
+Type map ReportPattern
+
+*/
 
 ListExpr ReportPatternTM(ListExpr args)
 {
@@ -713,6 +744,11 @@ ListExpr CardinalityMSetTM(ListExpr args)
   return result;
 }
 
+/*
+TConstraint
+
+*/
+
 ListExpr TConstraintTM(ListExpr args)
 {
   bool debugme= false;
@@ -853,7 +889,6 @@ ListExpr MSet2MRegionTM(ListExpr args)
   return nl->SymbolAtom("movingregion");
 }
 
-
 ListExpr ConvexHullTM(ListExpr args)
 {
   string msg= nl->ToString(args);
@@ -882,8 +917,8 @@ ListExpr ConvexHullTM(ListExpr args)
 ListExpr MSet2MPointsTM(ListExpr args)
 {
   string msg= nl->ToString(args);
-  CHECK_COND( nl->ListLength(args) == 2 ,
-      "Operator mset2mpoints expects 2 arguments.\nBut got: " + msg + ".");
+  CHECK_COND( nl->ListLength(args) == 3 ,
+      "Operator mset2mpoints expects 3 arguments.\nBut got: " + msg + ".");
   
   msg= nl->ToString(nl->First(args));
   CHECK_COND( listutils::isTupleStream(nl->First(args)) ,
@@ -894,6 +929,12 @@ ListExpr MSet2MPointsTM(ListExpr args)
   CHECK_COND( nl->IsAtom(nl->Second(args)) && 
       nl->SymbolValue(nl->Second(args)) == "mset",
       "Operator mset2mpoints expects an mset as second argument."
+      "\nBut got: " + msg + ".");
+
+  msg= nl->ToString(nl->Third(args));
+  CHECK_COND( nl->IsAtom(nl->Third(args)) && 
+      nl->SymbolValue(nl->Third(args)) == "bool",
+      "Operator mset2mpoints expects a bool as third argument."
       "\nBut got: " + msg + ".");
     
   ListExpr tuple1 = nl->Second(nl->Second(nl->First(args)));
@@ -929,6 +970,10 @@ ListExpr MSet2MPointsTM(ListExpr args)
 //  return nl->SymbolAtom("instant");
 //}
 
+/*
+Value map ReportPattern
+
+*/
 
 int 
 ReportPatternVM(Word* args, Word& result,int message, Word& local, Supplier s)
@@ -1064,33 +1109,59 @@ int GPatternVM
     qp->Close(GPSolver.TheStream);
 
     qp->Request(args[2].addr, value);
-    Instant d( *static_cast<Instant*>(value.addr));
+    Instant di( *static_cast<Instant*>(value.addr));
+    double d= di.ToDouble()* day2min;
     qp->Request(args[3].addr, value);
     int n= static_cast<CcInt*>(value.addr)->GetIntval();
     string qts= nl->ToString(qp->GetType(args[4].addr));
+    GPattern::quantifier q= (qts=="exactly")? 
+        GPattern::exactly : GPattern::atleast;
     if(debugme)
       cerr<< qts;
-    GPatternHelper* result= new GPatternHelper();
-    result->ComputeGPatternResultStream(accumlator, n, d.ToDouble()* day2min, 
-        (qts=="exactly")? GPattern::exactly : GPattern::atleast);
-    result->it= result->stream.begin();
-    local = SetWord(result);
+    
+    bool changed= true;
+    while(changed && accumlator.GetNoComponents() > 0)
+    {
+      accumlator.RemoveSmallUnits(n);
+      changed= accumlator.RemoveShortElemParts(d);
+      
+    }
     if(debugme)
-      result->Print(cerr);
-      //ms.DeleteIfAllowed();
-      //accumlator.DeleteIfAllowed();
+      accumlator.Print(cerr);
+    vector<InMemMSet>* resStream = new vector<InMemMSet>();
+    list<InMemUSet>::iterator begin= accumlator.units.begin(), end;
+    while(begin != accumlator.units.end())
+    {
+      end= accumlator.GetPeriodEndUnit(begin);
+      if(debugme)
+      {
+        (*begin).Print(cerr);
+        (*end).Print(cerr);
+      }
+      if(q == GPattern::atleast)
+      {
+        InMemMSet* mset= new InMemMSet(accumlator, begin, end);
+        resStream->push_back(*mset);
+        if(debugme)
+          mset->Print(cerr);
+      }
+      else
+        GPatternHelper::ComputeAddSubSets(accumlator, begin, end, 
+            n, d, resStream);
 
+      begin= ++end;
+    }
+    local= SetWord(resStream);
     return 0;
   }
   case REQUEST: { // return the next stream element
-    GPatternHelper* resStream= static_cast<GPatternHelper*> (local.addr); 
-    if ( resStream->it != resStream->stream.end())
+    vector<InMemMSet>* resStream= static_cast<vector<InMemMSet>* >(local.addr); 
+    if ( resStream->size() != 0)
     {
-      result = qp->ResultStorage( s );
-      MSet* res= static_cast<MSet*> (result.addr);
-      res->Clear();
-      (*resStream->it).WriteToMSet(*res);
-      ++resStream->it;
+      MSet* res= new MSet(0);
+      (*resStream->begin()).WriteToMSet(*res);
+      resStream->erase(resStream->begin());
+      result= SetWord(res);
       return YIELD;
     }
     else
@@ -1102,8 +1173,8 @@ int GPatternVM
     }
   }
   case CLOSE: { // free the local storage
-    GPatternHelper* resStream= static_cast<GPatternHelper*> (local.addr);
-    resStream->Clear();
+    vector<InMemMSet>* resStream= static_cast<vector<InMemMSet>* >(local.addr);
+    resStream->clear();
     delete resStream;
     local.addr = 0;
   }
@@ -1112,13 +1183,142 @@ int GPatternVM
   }
   return 0;
 }
+/*
+Value map CrossPattern
+
+*/
 
 int CrossPatternVM 
 (Word* args, Word& result, int message, Word& local, Supplier s)
 {
-  cerr<< "\nThe operator crosspattern is a facked operator. It may only be "
-      "called within the reportpattern operator.";
-  assert(0); //this function should never be invoked.
+//  bool debugme= false;
+//  typedef std::pair<int, int> EdgeKey;
+//  switch( message )
+//  {
+//  case OPEN: // Iterate over all tuple and compute the stream(mset) result 
+//  { 
+//    Word t, value;
+//    vector<Tuple*> tups;
+//    unsigned int row=0, col=0, cnt=0;
+//    EdgeKey key;
+//    MBool* mbool;
+//    map<EdgeKey, int> EdgeKey2int;
+//    map<int, EdgeKey> int2EdgeKey;
+//    CcInt* idrow, idcol;
+//    ArgVectorPointer funargs;
+//    InMemMSet accumlator;
+//    funargs = qp->Argument(s);
+//    qp->Request(args[2].addr, value); // isCommutativeLiftedPredicate
+//    bool isCommutativeLiftedPred= 
+//      static_cast<CcBool*>(value.addr)->GetBoolval();
+//      qp->Open(GPSolver.TheStream);
+//      qp->Request(GPSolver.TheStream, t);
+//      while (qp->Received(GPSolver.TheStream))
+//      {
+//        tups.push_back = static_cast<Tuple*>(t.addr);
+//        row= tups.size() - 1;
+//        for(col= tups.begin(); col < row; ++col)
+//        {
+//          SetCurRow(tups[row]);
+//          SetCurCol(tupe[col]);
+//          qp->Request(args[1].addr, value);  // The lifted predicate
+//          mbool = static_cast<MBool*>(value.addr);
+//          mapkey.first= row ; mapkey.second= col;
+//          //matrix[mapkey] = mbool;
+//          if(mbool->IsDefined())
+//          {
+//            int2EdgeKey[cnt]= mapkey;
+//            EdgeKey2int[key]= cnt;
+//            accumlator.Union(*mbool, cnt);
+//            ++cnt;
+//          }
+//          if(!isCommutativeLiftedPred)
+//          {
+//            SetCurRow(tups[col]);
+//            SetCurCol(tupe[row]);
+//            qp->Request(args[1].addr, value); // The lifted predicate
+//            mbool = static_cast<MBool*>(value.addr);
+//            mapkey.first= col ; mapkey.second= row;
+//            //matrix[mapkey] = mbool;
+//            if(mbool->IsDefined())
+//            {
+//              int2EdgeKey[cnt]= mapkey;
+//              EdgeKey2int[key]= cnt;
+//              accumlator.Union(*mbool, cnt);
+//              ++cnt;
+//            }          
+//          }
+//        }
+//        qp->Request(GPSolver.TheStream, t);
+//      }
+//      if(debugme)
+//        accumlator.Print(cerr);
+//      qp->Close(GPSolver.TheStream);
+//      qp->Request(args[3].addr, value); // the minduration
+//      Instant di( *static_cast<Instant*>(value.addr));
+//      double d= di.ToDouble()* day2min;
+//      qp->Request(args[4].addr, value); // min group count
+//      int n= static_cast<CcInt*>(value.addr)->GetIntval();
+//      string qts= nl->ToString(qp->GetType(args[5].addr)); // quantifier
+//      GPattern::quantifier q= (qts=="exactly")? 
+//          GPattern::exactly : GPattern::atleast;
+//      string subGraphType= nl->ToString(qp->GetType(args[6].addr)); 
+//
+//      bool changed= true;
+//      while(changed && accumlator.GetNoComponents() > 0)
+//      {
+//        accumlator.RemoveShortElemParts(d);
+//        changed= accumlator.RemoveSmallUnits(n);
+//      }
+//
+//      if(debugme)
+//        accumlator.Print(cerr);
+//      vector<InMemMSet>* resStream = new vector<InMemMSet>();
+//      list<InMemUSet>::iterator begin= accumlator.units.begin(), end;
+//      while(begin != accumlator.units.end())
+//      {
+//        end= accumlator.GetPeriodEndUnit(begin);
+//        if(debugme)
+//        {
+//          (*begin).Print(cerr);
+//          (*end).Print(cerr);
+//        }
+//        GPatternHelper::ComputeAddSubGraphs(accumlator, begin, end, 
+//            n, d, q, subGraphType, resStream);
+//
+//        begin= ++end;
+//      }
+//      local= SetWord(resStream);
+//      return 0;
+//  }
+//  case REQUEST: { // return the next stream element
+//  vector<InMemMSet>* resStream= static_cast<vector<InMemMSet>* >(local.addr); 
+//    if ( resStream->size() != 0)
+//    {
+//      result = qp->ResultStorage( s );
+//      MSet* res= static_cast<MSet*> (result.addr);
+//      res->Clear();
+//      (*resStream->begin()).WriteToMSet(*res);
+//      resStream->erase(resStream->begin());
+//      return YIELD;
+//    }
+//    else
+//    {
+//      // you should always set the result to null
+//      // before you return a CANCEL
+//      result.addr = 0;
+//      return CANCEL;
+//    }
+//  }
+//  case CLOSE: { // free the local storage
+//  vector<InMemMSet>* resStream= static_cast<vector<InMemMSet>* >(local.addr);
+//    resStream->clear();
+//    delete resStream;
+//    local.addr = 0;
+//  }
+//
+//  return 0;
+//  }
   return 0;
 }
 
@@ -1224,6 +1424,28 @@ MPointsSample(Instant& curTime, vector<MPoint*>& sourceMPoints, Points& res,
   for(unsigned int i=0; i<sourceMPoints.size(); ++i)
   {
     sourceMPoints[i]->AtInstant(curTime, pointIntime);
+//    if(checkDefined)
+      assert(pointIntime.IsDefined());
+    if(debugme)
+      pointIntime.Print(cerr);
+    res += pointIntime.value;
+  }
+}
+
+void 
+MPointsSample(Instant& curTime, set<int>& idset, 
+    map<int, MPoint*>& sourceMPoints, Points& res, bool checkDefined)
+{
+  bool debugme=false;
+  if(debugme)
+    curTime.Print(cerr);
+  res.Clear();
+  Point curPoint(0, 0);
+  Intime<Point> pointIntime(curTime, curPoint);
+  set<int>::iterator id= idset.begin();
+  for(; id != idset.end(); ++id)
+  {
+    sourceMPoints[*id]->AtInstant(curTime, pointIntime);
     if(checkDefined)
       assert(pointIntime.IsDefined());
     if(debugme)
@@ -1233,7 +1455,7 @@ MPointsSample(Instant& curTime, vector<MPoint*>& sourceMPoints, Points& res,
 }
 
 
-void AppendMRegionPart(vector<MPoint*>& sourceMPoints, 
+void AppendMRegionPart(set<int>& idset, map<int, MPoint*>& sourceMPoints, 
     Interval<Instant>& unitBoundary,
     Instant& samplingDuration,
     MRegion& res)
@@ -1250,33 +1472,31 @@ void AppendMRegionPart(vector<MPoint*>& sourceMPoints,
       unitInterval(curTime, unitBoundary.end, unitBoundary.lc, false);
     
     Points ps(0);
-    
     Region* reg1=new Region(0), *reg2=new Region(0), *regswap;
     RegionForInterpolation *reginter1, *reginter2, *reginterswap;
     Match *sm;
     mLineRep *lines;
     URegion *resUnit;
+    bool firstIteration= true;
     
-    MPointsSample(curTime, sourceMPoints, ps, true);
+    MPointsSample(curTime, idset, sourceMPoints, ps, true);
     GrahamScan::convexHull(&ps,reg1);
     reginter1=new RegionInterpol::RegionForInterpolation(reg1);
     curTime+= samplingDuration;
     while(curTime < unitBoundary.end)
     {
-      MPointsSample(curTime, sourceMPoints, ps, true);
+      if(!firstIteration)
+        unitInterval.lc= true;
+      firstIteration= false;
+      MPointsSample(curTime, idset, sourceMPoints, ps, true);
       GrahamScan::convexHull(&ps, reg2);
       unitInterval.end= curTime;
       reginter2=new RegionInterpol::RegionForInterpolation(reg2);
-      if(debugme)
-      {
-        reg1->Print(cerr);
-        reg2->Print(cerr);
-        cerr<<endl<<"RegionForInter1 faces count "<<reginter1->getNrOfFaces();
-        cerr<<endl<<"RegionForInter2 faces count "<<reginter2->getNrOfFaces();
-      }
       sm=new OptimalMatch(reginter1, reginter2, weigths);
       lines=new mLineRep(sm);    
       resUnit= new URegion(lines->getTriangles(), unitInterval);
+      if(debugme)
+        unitInterval.Print(cerr);
       res.AddURegion(*resUnit);
 /*
 Copying the right part of this URegion to the left part of the next URegion
@@ -1308,30 +1528,29 @@ Adding the last instant in the unit
       Instant milli(0, 1, durationtype);
       endI -= milli;
     } 
-    MPointsSample(endI, sourceMPoints, ps, false);
+    MPointsSample(endI, idset, sourceMPoints, ps, false);
     unitInterval.rc= unitBoundary.rc;
     GrahamScan::convexHull(&ps, reg2);
-    unitInterval.end= curTime;
+    unitInterval.end= unitBoundary.end;
     reginter2=new RegionInterpol::RegionForInterpolation(reg2);
-    if(debugme)
-    {
-      cerr<<endl<<"RegionForInter1 faces count "<<reginter1->getNrOfFaces();
-      cerr<<endl<<"RegionForInter2 faces count "<<reginter2->getNrOfFaces();
-    }
     sm=new OptimalMatch(reginter1, reginter2, weigths);
     lines=new mLineRep(sm);    
     resUnit= new URegion(lines->getTriangles(), unitInterval);
+    if(debugme)
+      unitInterval.Print(cerr);
     res.AddURegion(*resUnit);
-    if(debugme) res.Print(cerr);
     delete resUnit;
     delete lines;
     delete reg1;
     delete reg2;
     delete reginter1;
     delete reginter2;
-    if(debugme) res.Print(cerr);
 }
 
+/*
+Value map MSet2MRegion
+
+*/
 
 int 
 MSet2MRegionVM(Word* args, Word& result, int message, Word& local, Supplier s)
@@ -1369,121 +1588,246 @@ MSet2MRegionVM(Word* args, Word& result, int message, Word& local, Supplier s)
     usetref.GetUnit(mset->data, uset);
     if(uset.constValue.Count()!= 0)
     {
+      for(int k=0; k< uset.constValue.Count(); ++k)
+        idset.insert(uset.constValue[k]);
+    }
+  }
+  
+  map<int, MPoint*> mpoints;
+  vector<Tuple*> tuplesToDelete(0);
+  qp->Open(arg0);
+  qp->Request(arg0, Value);
+  while(qp->Received(arg0) &&  (mpoints.size() < idset.size()))
+  {
+    Tuple* tuple= static_cast<Tuple*>(Value.addr);
+    int id= dynamic_cast<CcInt*>(tuple->GetAttribute(0))->GetIntval();
+    setIt= idset.find(id);
+    if(setIt != idset.end())
+    {
+      MPoint* elem=dynamic_cast<MPoint*>(
+          dynamic_cast<MPoint*>(tuple->GetAttribute(1)));
+      mpoints[id]= elem;
+      tuplesToDelete.push_back(tuple);
+    }
+    else
+      tuple->DeleteIfAllowed();
+      
+    qp->Request(arg0, Value);
+  }
+  qp->Close(arg0);  
+  if(mpoints.size() != idset.size())
+  {
+    res->SetDefined(false);
+    cerr<<"mset2mregion: not all ids in the mset are "
+    "found in the mpoint stream\n";
+    for(unsigned int k=0; k<tuplesToDelete.size(); ++k)
+      tuplesToDelete[k]->DeleteIfAllowed();
+    return 0;
+  }
+  
+  for(int i=0; i<mset->GetNoComponents(); ++i)
+  {
+    mset->Get(i, usetref);
+    usetref.GetUnit(mset->data, uset);
+    if(uset.constValue.Count()!= 0)
+    {
       idset.clear();
       for(int k=0; k< uset.constValue.Count(); ++k)
         idset.insert(uset.constValue[k]);
-      vector<MPoint*> mpoints(0);
-      qp->Open(arg0);
-      qp->Request(arg0, Value);
-      while(qp->Received(arg0))
-      {
-        Tuple* tuple= static_cast<Tuple*>(Value.addr);
-        int id= dynamic_cast<CcInt*>(tuple->GetAttribute(0))->GetIntval();
-        setIt= idset.find(id);
-        if(setIt != idset.end())
-        {
-          MPoint* elem=dynamic_cast<MPoint*>( 
-            dynamic_cast<MPoint*>(tuple->GetAttribute(1))->Clone());
-          mpoints.push_back(elem);
-        }
-        tuple->DeleteIfAllowed();
-        qp->Request(arg0, Value);
-      }
-      if(mpoints.size() != idset.size())
-      {
-        res->SetDefined(false);
-        cerr<<"mset2mregion: not all ids in the mset are "
-        "found in the mpoint stream\n";
-        return 0;
-      }
-      qp->Close(arg0);
-      AppendMRegionPart(mpoints, usetref.timeInterval, *d , *res);
-      for(unsigned int k=0; k<mpoints.size(); ++k)
-        delete mpoints[k];
+      AppendMRegionPart(idset, mpoints, usetref.timeInterval, *d , *res);
     }
   }
+  for(unsigned int k=0; k<tuplesToDelete.size(); ++k)
+    tuplesToDelete[k]->DeleteIfAllowed();
   return 0;
 }
 
+//int 
+//MSet2MRegionVM(Word* args, Word& result, int message, Word& local, Supplier s)
+//{
+//  bool debugme=false;
+//  result = qp->ResultStorage(s);
+//  MRegion* res = static_cast<MRegion*>( result.addr);
+//  res->Clear();
+//  Word Value;
+//  Supplier arg0= qp->GetSon(s,0);
+//  Supplier arg1= qp->GetSon(s,1);
+//  Supplier arg2= qp->GetSon(s,2);
+//  
+//  qp->Request(arg1, Value);
+//  MSet* mset= static_cast<MSet*>(Value.addr);
+//  if(debugme)
+//    mset->Print(cerr);
+//
+//  
+//  if(!mset->IsDefined() || mset->GetNoComponents()==0)
+//  {
+//    res->SetDefined(false);
+//    return 0;
+//  }
+//  
+//  qp->Request(arg2, Value);
+//  Instant* d= static_cast<Instant*>(Value.addr);
+//  USetRef usetref;
+//  USet uset(true);
+//  set<int> idset;
+//  set<int>::iterator setIt;
+//  for(int i=0; i<mset->GetNoComponents(); ++i)
+//  {
+//    mset->Get(i, usetref);
+//    usetref.GetUnit(mset->data, uset);
+//    if(uset.constValue.Count()!= 0)
+//    {
+//      idset.clear();
+//      for(int k=0; k< uset.constValue.Count(); ++k)
+//        idset.insert(uset.constValue[k]);
+//      vector<MPoint*> mpoints(0);
+//      qp->Open(arg0);
+//      qp->Request(arg0, Value);
+//      while(qp->Received(arg0))
+//      {
+//        Tuple* tuple= static_cast<Tuple*>(Value.addr);
+//        int id= dynamic_cast<CcInt*>(tuple->GetAttribute(0))->GetIntval();
+//        setIt= idset.find(id);
+//        if(setIt != idset.end())
+//        {
+//          MPoint* elem=dynamic_cast<MPoint*>( 
+//            dynamic_cast<MPoint*>(tuple->GetAttribute(1))->Clone());
+//          mpoints.push_back(elem);
+//        }
+//        tuple->DeleteIfAllowed();
+//        qp->Request(arg0, Value);
+//      }
+//      if(mpoints.size() != idset.size())
+//      {
+//        res->SetDefined(false);
+//        cerr<<"mset2mregion: not all ids in the mset are "
+//        "found in the mpoint stream\n";
+//        return 0;
+//      }
+//      qp->Close(arg0);
+//      AppendMRegionPart(mpoints, usetref.timeInterval, *d , *res);
+//      for(unsigned int k=0; k<mpoints.size(); ++k)
+//        delete mpoints[k];
+//    }
+//  }
+//  return 0;
+//}
+
+/*
+Value map MSet2MPoints
+
+*/
 
 int 
 MSet2MPointsVM(Word* args, Word& result, int message, Word& local, Supplier s)
 {
 
-  bool debugme=false;
+  bool debugme=true;
 
   switch( message )
   {
-  case OPEN: { // initialize the local storage
-    pair<int, int>* iterator= new pair<int, int>(0,0);
-    local=SetWord(iterator);
+  case OPEN: { // initialize the local storag
+    map<int, Periods*>* msetElems= new map<int, Periods*>();      
+    Word Value;
+    Supplier arg1= qp->GetSon(s,1);
+    qp->Request(arg1, Value);
+    MSet* mset= static_cast<MSet*>(Value.addr);
+    int nocomponents= mset->GetNoComponents();
+    if(!mset->IsDefined() || nocomponents==0)
+    {
+      local=SetWord(msetElems);
+      return 0;
+    }
+    Supplier arg2= qp->GetSon(s,2);
+    qp->Request(arg2, Value);    
+    bool restrictMPoints= static_cast<CcBool*>(Value.addr)->GetBoolval();  
+    
+    int nounitcomponents=0, idFromMSet=0;
+    map<int, Periods*>::iterator msetElemsIt;
+    
+    USetRef usetref;
+    USet uset(true);
+    for(int i=0; i< nocomponents; ++i)
+    {
+      mset->Get(i, usetref);
+      usetref.GetUnit(mset->data, uset);
+      nounitcomponents= uset.constValue.Count();
+      for(int e= 0; e<nounitcomponents; ++e)
+      {
+        idFromMSet= uset.constValue[e];
+        msetElemsIt= msetElems->find(idFromMSet);
+        if(msetElemsIt == msetElems->end())
+        {
+          Periods* periods= new Periods(1);
+          periods->Add(uset.timeInterval);
+          (*msetElems)[idFromMSet]= periods;
+        }
+        else
+        {
+          if(!restrictMPoints)
+            continue;        
+          (*msetElemsIt).second->MergeAdd(uset.timeInterval);
+        }
+      }
+    }    
+    local=SetWord(msetElems);
     qp->Open( args[0].addr );
     return 0;
   }
   case REQUEST: { // return the next stream element
-    
-    result = qp->ResultStorage(s);     
-    Word Value;
-    Supplier arg1= qp->GetSon(s,1);
-    qp->Request(arg1, Value);
-    if(debugme)
-    { 
-      qp->ListOfTree(arg1, cerr);
-      cerr<<"-------------\n";
-    }
-    qp->Request(arg1, Value);
-    MSet* mset= static_cast<MSet*>(Value.addr);
-
-    if(!mset->IsDefined() || mset->GetNoComponents()==0)
+    map<int, Periods*>* msetElems= static_cast<map<int, Periods*>*>(local.addr);
+    if(msetElems->size() == 0)
     {
       result.addr = 0;
       return CANCEL;
     }
-
-    USetRef usetref;
-    USet uset(true);
-    pair<int,int>* iterator= static_cast< pair<int,int>* >(local.addr);
-
-    while( iterator->first < mset->GetNoComponents())
+    //result = qp->ResultStorage(s);
+    Word Value;
+    map<int, Periods*>::iterator msetElemsIt; 
+    Supplier arg2= qp->GetSon(s,2);
+    qp->Request(arg2, Value);  
+    bool restrictMPoints= static_cast<CcBool*>(Value.addr)->GetBoolval();  
+    
+    qp->Request(args[0].addr, Value);
+    while(qp->Received(args[0].addr))
     {
-      mset->Get(iterator->first, usetref);
-      usetref.GetUnit(mset->data, uset);
-      while(iterator->second < uset.constValue.Count())
+      Tuple* tuple= static_cast<Tuple*>(Value.addr);
+      int idFromTuple= 
+        dynamic_cast<CcInt*>(tuple->GetAttribute(0))->GetIntval();
+      msetElemsIt= msetElems->find(idFromTuple);
+      if(msetElemsIt != msetElems->end())
       {
-        int idFromMSet= uset.constValue[iterator->second];
-        ++iterator->second;
-        qp->Open(args[0].addr);
-        qp->Request(args[0].addr, Value);
-        while(qp->Received(args[0].addr))
+        MPoint* res= new MPoint(0);
+        if(restrictMPoints)
         {
-          Tuple* tuple= static_cast<Tuple*>(Value.addr);
-          int idFromTuple= 
-            dynamic_cast<CcInt*>(tuple->GetAttribute(0))->GetIntval();
-            if(idFromMSet == idFromTuple)
-            {
-              MPoint* elem=dynamic_cast<MPoint*>( 
-                  dynamic_cast<MPoint*>(tuple->GetAttribute(1))->Clone());
-              qp->Close(args[0].addr);
-              result=SetWord(elem);
-              return YIELD;
-            }
-            tuple->DeleteIfAllowed();
-            qp->Request(args[0].addr, Value);
+          MPoint* tmp = dynamic_cast<MPoint*>(tuple->GetAttribute(1));
+          tmp->AtPeriods(*((*msetElemsIt).second), *res);
         }
-        cerr<<"mset2mpoints: not all ids in the mset are "
-        "found in the mpoint stream\n";
-        result.addr = 0;
-        return CANCEL;
+        else
+        {
+          MPoint* tmp = dynamic_cast<MPoint*>(tuple->GetAttribute(1));
+          res->CopyFrom(tmp);
+        }
+        msetElems->erase(msetElemsIt);
+        tuple->DeleteIfAllowed();
+        result= SetWord(res);
+        return YIELD;
       }
-      ++iterator->first;
-      iterator->second=0;
+      tuple->DeleteIfAllowed();
+      qp->Request(args[0].addr, Value);
     }
-    result.addr = 0;
-    return CANCEL;
+    cerr<<"operator mset2mpoints: some mset elements are not found in "
+        "the stream";
+    return FAILURE;
   }
   case CLOSE: { // free the local storage
 
-    delete static_cast< pair<int,int>* >(local.addr);
+    map<int, Periods*>* msetElems= static_cast<map<int, Periods*>*>(local.addr);
+    map<int, Periods*>::iterator msetElemsIt= msetElems->begin();
+    for(; msetElemsIt != msetElems->end(); ++msetElemsIt)
+      delete (*msetElemsIt).second;
+    delete msetElems;
     result.addr=0;  
     return 0;
   }
@@ -1556,6 +1900,12 @@ ConvexHullVM(Word* args, Word& result, int message, Word& local, Supplier s)
 //  ((Instant*)result.addr)->CopyFrom(&res);
 //  return 0;
 //}
+
+/*
+Operator properties
+
+*/
+
 const string RowColSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
   "\"Example\" ) "
   "( <text>tuple(x) X namedFunlist X constraintList X bool -> bool</text--->"
