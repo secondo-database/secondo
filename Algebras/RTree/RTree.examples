@@ -132,14 +132,14 @@ Result   : 1
 Operator : getNodeSons
 Number   : 1
 Signature: rtree<D> (tuple ((x1 t1)...(xn tn))) ti false) x int -> stream(tuple((NodeId int) (SonId int) (SonMBR rect<D>)))
-Example  : query getNodeSons(strassen_geoData_rtree, 2) count
-Result   : 54
+Example  : query (getNodeSons(strassen_geoData_rtree, 2) count) > 1
+Result   : TRUE
 
 Operator : getLeafEntries
 Number   : 1
 Signature: rtree<D> (tuple ((x1 t1)...(xn tn))) ti false) x int -> stream(tuple((NodeId int) (TupleID tid) (EntryMBR rect<D>)))
-Example  : query getLeafEntries(strassen_geoData_rtree, 3) count
-Result   : 49
+Example  : query (getLeafEntries(strassen_geoData_rtree, 3) count) > 20
+Result   : TRUE
 
 
 Operator : updatebulkloadrtree
