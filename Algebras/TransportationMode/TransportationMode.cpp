@@ -182,11 +182,12 @@ const string OpTMGetPaveNode2Spec  =
 const string OpTMTriangulateSpec  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" "
     "\"Example\" ) "
-    "( <text>region ->(stream (tuple( (x1 t1)(x2 t2)...(xn tn))) </text--->"
+    "( <text>region ->(stream ( (x1 t1)(x2 t2)...(xn tn)) </text--->"
     "<text>triangulate(region)</text--->"
     "<text>decompose a polygon into a set of triangles</text--->"
     "<text>query triangulation(r1) count; </text--->"
     ") )";
+
 const string OpTMConvexSpec  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" "
     "\"Example\" ) "
@@ -194,6 +195,17 @@ const string OpTMConvexSpec  =
     "<text>convex(region)</text--->"
     "<text>detect whether a polygon is convex or concave</text--->"
     "<text>query convex(r1); </text--->"
+    ") )";
+
+const string OpTMGeospathSpec  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+    "\"Example\" ) "
+    "( <text>point x point x region -> "
+    " (stream (tuple( (x1 t1)(x2 t2)...(xn tn)))</text--->"
+    "<text>geospath(point, point, region)</text--->"
+    "<text>return the geometric shortest path for two points indie a polygon"
+    "</text--->"
+    "<text>query geospath(p1, p2, r1); </text--->"
     ") )";
 ////////////////TypeMap function for operators//////////////////////////////
 
@@ -977,6 +989,55 @@ ListExpr OpTMConvexTypeMap ( ListExpr args )
   }
   return nl->SymbolAtom ( "typeerror" );
 }
+
+
+/*
+TypeMap fun for operator geospath
+return the geometric shortest path for two points
+
+*/
+
+ListExpr OpTMGeospathTypeMap ( ListExpr args )
+{
+  if ( nl->ListLength ( args ) != 3 )
+  {
+    return ( nl->SymbolAtom ( "typeerror" ) );
+  }
+
+  if (nl->IsEqual(nl->First(args), "point") &&
+//      nl->IsEqual(nl->Second(args), "point") &&
+      (nl->IsEqual(nl->Second(args), "point")||
+       nl->IsEqual(nl->Second(args), "line") )&&
+      nl->IsEqual(nl->Third(args), "region")){
+
+
+    ListExpr result =
+          nl->TwoElemList(
+              nl->SymbolAtom("stream"),
+                nl->TwoElemList(
+
+                  nl->SymbolAtom("tuple"),
+                      nl->TwoElemList(
+                        nl->TwoElemList(nl->SymbolAtom("spath"),
+                                    nl->SymbolAtom("line")),
+                        nl->TwoElemList(nl->SymbolAtom("channel"),
+                                      nl->SymbolAtom("region"))
+                  )
+                )
+          );
+    return result;
+  }
+  return nl->SymbolAtom ( "typeerror" );
+}
+//////////////////////////////////////////////////////////////////////////
+static int GeoSpathSelect(ListExpr args)
+{
+  string t = nl->SymbolValue(nl->Second(args));
+  if(t == "point") return 0;
+  if(t == "line") return 1;
+  return -1;
+}
+
 /////////////////////////////////////////////////////////////////////////
 
 /*
@@ -1827,6 +1888,110 @@ int OpTMConvexmap ( Word* args, Word& result, int message,
   delete ct;
   return 0;
 }
+
+
+/*
+Value Mapping for geospath  operator
+return the geometric shortest path for two points inside a polgyon
+
+*/
+
+
+int OpTMGeospathmap_p ( Word* args, Word& result, int message,
+                         Word& local, Supplier in_pSupplier )
+{
+
+  CompTriangle* ct;
+  switch(message){
+      case OPEN:{
+        Point* p1 = (Point*)args[0].addr;
+        Point* p2 = (Point*)args[1].addr;
+        Region* reg = (Region*)args[2].addr;
+        ct = new CompTriangle(reg);
+        ct->resulttype =
+            new TupleType(nl->Second(GetTupleResultType(in_pSupplier)));
+        ct->GeoShortestPath(p1, p2);
+        local.setAddr(ct);
+        return 0;
+      }
+      case REQUEST:{
+          if(local.addr == NULL) return CANCEL;
+          ct = (CompTriangle*)local.addr;
+          if(ct->count == ct->sleeve.size())
+                          return CANCEL;
+
+          Tuple* tuple = new Tuple(ct->resulttype);
+          tuple->PutAttribute(0,new Line(*(ct->path)));
+          tuple->PutAttribute(1,new Region(ct->sleeve[ct->count]));
+          result.setAddr(tuple);
+          ct->count++;
+          return YIELD;
+      }
+      case CLOSE:{
+
+          if(local.addr){
+            ct = (CompTriangle*)local.addr;
+            delete ct;
+            local.setAddr(Address(0));
+          }
+          return 0;
+      }
+  }
+  return 0;
+
+}
+
+/*
+Value Mapping for geospath  operator
+return the geometric shortest path for one point and a line where
+both are inside the polgyon
+
+*/
+
+int OpTMGeospathmap_l ( Word* args, Word& result, int message,
+                         Word& local, Supplier in_pSupplier )
+{
+
+  CompTriangle* ct;
+  switch(message){
+      case OPEN:{
+        Point* p = (Point*)args[0].addr;
+        Line* sl = (Line*)args[1].addr;
+        Region* reg = (Region*)args[2].addr;
+        ct = new CompTriangle(reg);
+        ct->resulttype =
+            new TupleType(nl->Second(GetTupleResultType(in_pSupplier)));
+        ct->GeoShortestPath(p, sl);
+        local.setAddr(ct);
+        return 0;
+      }
+      case REQUEST:{
+          if(local.addr == NULL) return CANCEL;
+          ct = (CompTriangle*)local.addr;
+          if(ct->count == ct->sleeve.size())
+                          return CANCEL;
+
+          Tuple* tuple = new Tuple(ct->resulttype);
+          tuple->PutAttribute(0,new Line(*(ct->path)));
+          tuple->PutAttribute(1,new Region(ct->sleeve[ct->count]));
+          result.setAddr(tuple);
+          ct->count++;
+          return YIELD;
+      }
+      case CLOSE:{
+
+          if(local.addr){
+            ct = (CompTriangle*)local.addr;
+            delete ct;
+            local.setAddr(Address(0));
+          }
+          return 0;
+      }
+  }
+  return 0;
+
+}
+
 ////////////////Operator Constructor///////////////////////////////////////
 Operator checksline(
     "checksline",               // name
@@ -1943,6 +2108,29 @@ Operator convex(
     OpTMConvexTypeMap        // type mapping
 );
 
+/*Operator geospath(
+    "geospath",               // name
+    OpTMGeospathSpec,          // specification
+    OpTMGeospathmap,  // value mapping
+    Operator::SimpleSelect,        // selection function
+    OpTMGeospathTypeMap        // type mapping
+);*/
+
+ValueMapping TMGeospathMap[]={
+OpTMGeospathmap_p,
+OpTMGeospathmap_l,
+};
+
+Operator geospath(
+    "geospath",               // name
+    OpTMGeospathSpec,          // specification
+    2,
+    TMGeospathMap,  // value mapping
+    GeoSpathSelect,        // selection function
+    OpTMGeospathTypeMap        // type mapping
+);
+
+
 /*
 Main Class for Transportation Mode
 
@@ -1968,6 +2156,7 @@ class TransportationModeAlgebra : public Algebra
     AddOperator(&getpavenode2);
     AddOperator(&triangulation);
     AddOperator(&convex);
+    AddOperator(&geospath);
   }
   ~TransportationModeAlgebra() {};
  private:

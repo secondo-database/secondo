@@ -768,7 +768,7 @@ struct SpacePartition{
   void Getpavement(Network* n, Relation* rel1, int attr_pos,
                   Relation* rel2, int attr_pos1, int attr_pos2, int w);
   //get the closest point in hs to p and return the point and distance
-  double GetClosestPoint1(HalfSegment& hs, Point& p, Point& cp);
+  double GetClosestPoint(HalfSegment& hs, Point& p, Point& cp);
 
   void GetCommonLine(Region* reg, Line* line, Line* res);
 
@@ -884,7 +884,10 @@ static const float EPSILON=0.0000000001f;
 struct CompTriangle{
   Region* reg;
   vector<Region> triangles;
+  vector<Region> sleeve;
   unsigned int count;
+  Line* path;
+  TupleType* resulttype;
   CompTriangle();
   CompTriangle(Region* r);
   ~CompTriangle();
@@ -895,8 +898,29 @@ struct CompTriangle{
                       float Px, float Py);
   bool Snip(const vector<Point>& contour,int u,int v,int w,int n,int *V);
   float Area(const vector<Point>& contour);
+
   bool GetTriangles(const vector<Point>& contour,vector<Point>& result);
+  //detect whether a polygon is a convex or concave
   bool PolygonConvex();
+  //compute the shortest path between two points inside a polgyon
+  void GeoShortestPath(Point*, Point*);
+  //compute the shortest path between a point and a line inside a polgyon
+  void GeoShortestPath(Point*, Line*);
+  //compute the channel/sleeve between two points
+  void GetChannel(Point*, Point*);
+  //compute the channel/sleeve between a point and a line segment
+  void GetChannel(Point*, HalfSegment*, vector<Region>&);
+
+  void PtoSegSPath(Point*, HalfSegment*, vector<Region>&, Line*);
+  //find adjacenct triangles
+  void FindAdj(unsigned int, vector<bool>&, vector<int>&);
+
+  void ConstructConvexChannel1(list<MyPoint>&, list<MyPoint>&, Point&,
+                              vector<Point>&, bool);
+  void ConstructConvexChannel2(list<MyPoint>, list<MyPoint>, Point&,
+                              vector<Point>&, bool);
+  void SelectPointOnSeg(list<MyPoint>, list<MyPoint>, HalfSegment*,
+                        Point&, Point&);
 };
 
 #endif

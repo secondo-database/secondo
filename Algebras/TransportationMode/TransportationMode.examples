@@ -83,7 +83,7 @@ Result   : 1
 
 Operator : triangulation
 Number   : 2
-Signature: region -> (stream(tuple ((x1 t1) ... (xn tn))))
+Signature: region -> (stream(((x1 t1) ... (xn tn)))
 Example  : query triangulation(r1) count;
 Result   : 1
 
@@ -92,3 +92,10 @@ Number   : 2
 Signature: region -> bool
 Example  : query convex(r1);
 Result   : TRUE
+
+
+Operator : geospath
+Number   : 2
+Signature: point x point x region -> (stream(tuple ((x1 t1) ... (xn tn))))
+Example  : query size(geospath(p1, p2, r1)) count;
+Result   : 2

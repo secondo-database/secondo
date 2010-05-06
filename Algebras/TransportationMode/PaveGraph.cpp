@@ -98,7 +98,7 @@ get the closest point in hs to p, and return it in cp
 it also returns the distance between hs and p
 
 */
-double SpacePartition::GetClosestPoint1(HalfSegment& hs, Point& p, Point& cp)
+double SpacePartition::GetClosestPoint(HalfSegment& hs, Point& p, Point& cp)
 {
 
   assert( p.IsDefined() );
@@ -115,7 +115,7 @@ double SpacePartition::GetClosestPoint1(HalfSegment& hs, Point& p, Point& cp)
     if( xl == xr){ //hs is vertical
       if( (yl <= Y && Y <= yr) || (yr <= Y && Y <= yl) ){
         result = fabs( X - xl );
-        cp.Set(xl, Y); //store the cloest point
+        cp.Set(xl, Y); //store the closest point
       }
       else{
         result = p.Distance(hs.GetLeftPoint());
@@ -281,7 +281,7 @@ void SpacePartition::GetPavementNode1(Network* n, Relation* rel,
           continue;
       }*/
 
-//      cout<<"rid1 "<<id1<<" rid2 "<<id2<<endl;
+      cout<<"rid1 "<<id1<<" rid2 "<<id2<<endl;
 
       BTreeIterator* btreeiter1 = btree_pave->ExactMatch(rid1);
       while(btreeiter1->Next()){
@@ -408,14 +408,20 @@ void SpacePartition::GetCommPave1(vector<Region_Oid>& pave1,
                   cout<<"should not here1"<<endl;
               }
               if(result->Size() > 0){
-                  Line* l1 = new Line(0);
-                  Line* l2 = new Line(0);
                   junid1.push_back(pave1[i].oid);
                   junid2.push_back(pave2[j].oid);
                   pave_line1.push_back(*result);
 
+                //////////////////////////////////////
+                  Line* l1 = new Line(0);
+                  Line* l2 = new Line(0);
+                  GetCommonLine(&pave1[i].reg, result, l1);
+                  GetCommonLine(&pave2[j].reg, result, l2);
+                  assert(result->Inside(pave1[i].reg));
+                  assert(result->Inside(pave2[j].reg));
                   delete l1;
                   delete l2;
+                ///////////////////////////////////////
               }
               delete result;
               delete boundary1;
@@ -431,21 +437,29 @@ void SpacePartition::GetCommPave1(vector<Region_Oid>& pave1,
 //              cut_pave1->Intersection(*boundary1, *result);
               MyIntersection(*boundary1, *cut_pave1, *result);
 
+
               if(result->Size() == 0){
                   cout<<comm->Area()<<endl;
                   cout<<"rid1 "<<rid1<<" rid2 "<<rid2<<endl;
                   cout<<"should not here2"<<endl;
               }
               if(result->Size() > 0){
-                  Line* l1 = new Line(0);
-                  Line* l2 = new Line(0);
-
                   junid1.push_back(pave1[i].oid);
                   junid2.push_back(pave2[j].oid);
                   pave_line1.push_back(*result);
 
+              /////////////////////////////////////////////////////
+                  Line* l1 = new Line(0);
+                  Line* l2 = new Line(0);
+//                  GetCommonLine(&pave1[i].reg, result, l1);
+                  GetCommonLine(cut_pave1, result, l1);
+                  GetCommonLine(&pave2[j].reg, result, l2);
+                  assert(l1->Inside(pave1[i].reg));
+                  assert(l2->Inside(pave2[j].reg));
                   delete l1;
                   delete l2;
+              /////////////////////////////////////////////////////
+
               }
               delete result;
               delete cut_pave1;
@@ -506,7 +520,7 @@ find the matching line in reg by input line
 */
 void SpacePartition::GetCommonLine(Region* reg, Line* line, Line* res)
 {
-
+  cout<<"GetCommonLine() "<<endl;
   Line* boundary = new Line(0);
   reg->Boundary(boundary);
   SimpleLine* sboundary = new SimpleLine(0);
@@ -531,10 +545,10 @@ void SpacePartition::GetCommonLine(Region* reg, Line* line, Line* res)
         sboundary->Get(j, hs2);
         if(hs2.IsLeftDomPoint()){
           Point cp1, cp2;
-  //      printf("dist1 %.8f\n",GetClosestPoint1(hs, sp, cp1));
+  //      printf("dist1 %.8f\n",GetClosestPoint(hs, sp, cp1));
 
-          double dist1 = GetClosestPoint1(hs2, sp, cp1);
-          double dist2 = GetClosestPoint1(hs2, ep, cp2);
+          double dist1 = GetClosestPoint(hs2, sp, cp1);
+          double dist2 = GetClosestPoint(hs2, ep, cp2);
           MyPoint* mp1 = new MyPoint(cp1, dist1);
           MyPoint* mp2 = new MyPoint(cp2, dist2);
           mps1.push_back(*mp1);
@@ -548,11 +562,16 @@ void SpacePartition::GetCommonLine(Region* reg, Line* line, Line* res)
   //  mps1[0].Print();
   //  mps2[0].Print();
 
+      cout<<"hs1 length "<<hs1.Length()<<endl;
+      cout<<"original "<<hs1<<endl;
       Line* subline = new Line(0);
       GetSubLine(sboundary, mps1[0].loc, mps2[0].loc, subline, hs1.Length());
+      cout<<"subline length "<<subline->Length()<<endl;
+      cout<<"matching "<<*subline<<endl;
       Line* temp = new Line(0);
       result->Union(*subline, *temp);
       *result = *temp;
+
       delete temp;
       delete subline;
   }
@@ -573,12 +592,13 @@ void SpacePartition::GetCommonLine(Region* reg, Line* line, Line* res)
 void SpacePartition::GetSubLine(SimpleLine* sl, Point& p1,
                                 Point& p2, Line* res, double len)
 {
-    cout<<"boundary length "<<sl->Length()<<endl;
+//    cout<<"boundary length "<<sl->Length()<<endl;
     vector<MyHalfSegment> mhs;
     ReorderLine(sl, mhs);
 
     printf("p1 (%.8f,%.8f)  p2 (%.8f, %.8f)\n", p1.GetX(), p1.GetY(),
                                                 p2.GetX(), p2.GetY());
+//    printf("p1-p2 dist %.8f\n",p1.Distance(p2));
     const double delta_dist = 0.1;
 
 /*    for(unsigned int i = 0;i < mhs.size();i++)
@@ -596,10 +616,10 @@ void SpacePartition::GetSubLine(SimpleLine* sl, Point& p1,
 
         Point cp1, cp2;
 //        mhs[i].Print();
-//        printf("dist1 %.8f dist2 %.8f\n",GetClosestPoint1(hs, p1, cp1),
-//                                         GetClosestPoint1(hs, p2, cp2));
-        double dist1 = GetClosestPoint1(hs, p1, cp1);
-        double dist2 = GetClosestPoint1(hs, p2, cp2);
+//        printf("dist1 %.8f dist2 %.8f\n",GetClosestPoint(hs, p1, cp1),
+//                                         GetClosestPoint(hs, p2, cp2));
+        double dist1 = GetClosestPoint(hs, p1, cp1);
+        double dist2 = GetClosestPoint(hs, p2, cp2);
         if(dist1 < delta_dist){
             if(f1 == false){
               mp1.loc = cp1;
@@ -783,7 +803,7 @@ void SpacePartition::GetSubLine(SimpleLine* sl, Point& p1,
     l1->EndBulkLoad();
     l2->EndBulkLoad();
 
-    cout<<"len "<<len<<endl;
+//    cout<<"len "<<len<<endl;
     cout<<"l1 length "<<l1->Length()<<endl;
     cout<<"l2 length "<<l2->Length()<<endl;
     assert(fabs(len - l1->Length() < delta_dist) ||
@@ -806,18 +826,22 @@ doing triangulation for a polygon
 CompTriangle::CompTriangle()
 {
   count = 0;
+  path = NULL;
+  resulttype = NULL;
 }
-CompTriangle::CompTriangle(Region* r):reg(r),count(0)
+CompTriangle::CompTriangle(Region* r):reg(r),count(0),
+path(NULL),resulttype(NULL)
 {
 
 }
 
 CompTriangle:: ~CompTriangle()
 {
-
+  if(path != NULL) delete path;
+  if(resulttype != NULL) delete resulttype;
 }
 /*
-Compute the area
+Compute the area of a polygon
 
 */
 
@@ -892,6 +916,11 @@ bool CompTriangle::Snip(const vector<Point>& contour,int u,int v,int w,
 
   return true;
 }
+
+/*
+decompose a polygon into a set of triangles
+
+*/
 
 bool CompTriangle::GetTriangles(const vector<Point>& contour,
                                 vector<Point>& result)
@@ -1104,4 +1133,1108 @@ bool CompTriangle::PolygonConvex()
 
   /////////////////////////////////////////////////////////////////////////
 
+}
+/*
+structure for shortest path searching in a polygon
+the graph is build the decomposed triangles.
+it finds the path with minimum number of triangles connecting the start point
+and the end point
+
+*/
+
+struct SPath_elem{
+  int prev_index;
+  int cur_index;
+  unsigned int tri_index;
+  unsigned int weight;
+  SPath_elem(){}
+  SPath_elem(int p, int c, int t, int w):prev_index(p), cur_index(c),
+                   tri_index(t),weight(w){}
+  SPath_elem(const SPath_elem& se):prev_index(se.prev_index),
+                       cur_index(se.cur_index), tri_index(se.tri_index),
+                       weight(se.weight){}
+  SPath_elem& operator=(const SPath_elem& se)
+  {
+    prev_index = se.prev_index;
+    cur_index = se.cur_index;
+    tri_index = se.tri_index;
+    weight = se.weight;
+    return *this;
+  }
+  bool operator<(const SPath_elem& se) const
+  {
+    return weight > se.weight;
+  }
+
+  void Print()
+  {
+    cout<<"prev "<<prev_index<<" cur "<<cur_index
+        <<"tri_index" <<tri_index<<"weight "<<weight<<endl;
+  }
+};
+/*
+get a sequence of triangles where the shoretest path should pass through
+
+*/
+void CompTriangle::FindAdj(unsigned int index, vector<bool>& flag,
+                           vector<int>& adj_list)
+{
+  vector<HalfSegment> cur_triangle;
+  for(int i = 0;i < triangles[index].Size();i++){
+    HalfSegment hs;
+    triangles[index].Get(i, hs);
+    if(!hs.IsLeftDomPoint())continue;
+    cur_triangle.push_back(hs);
+  }
+  assert(cur_triangle.size() == 3);
+
+  const double delta_dist = 0.00001;
+  for(unsigned int i = 0;i < triangles.size();i++){
+    if(flag[i] == true) continue;
+    ///////////////////get the edges////////////////////////
+    vector<HalfSegment> triangle;
+    for(int j = 0;j < triangles[i].Size();j++){
+      HalfSegment hs;
+      triangles[i].Get(j, hs);
+      if(!hs.IsLeftDomPoint())continue;
+      triangle.push_back(hs);
+    }
+    assert(triangle.size() == 3);
+    ////////////////////////////////////////////////////////////
+    for(unsigned int k1 = 0;k1 < cur_triangle.size();k1++){
+        Point p1 = cur_triangle[k1].GetLeftPoint();
+        Point p2 = cur_triangle[k1].GetRightPoint();
+        unsigned int k2 = 0;
+      for(;k2 < triangle.size();k2++){
+        Point p3 = triangle[k2].GetLeftPoint();
+        Point p4 = triangle[k2].GetRightPoint();
+        if(p1.Distance(p3) < delta_dist && p2.Distance(p4) < delta_dist){
+          adj_list.push_back(i);
+          flag[i] = true;
+          break;
+        }
+        if(p1.Distance(p4) < delta_dist && p2.Distance(p3) < delta_dist){
+          adj_list.push_back(i);
+          flag[i] = true;
+          break;
+        }
+      }
+      if(k2 != triangle.size())break;
+    }
+
+  }
+
+}
+
+/*
+get a sequence of triangles from the start point to the end point
+
+*/
+void CompTriangle::GetChannel(Point* start, Point* end)
+{
+  ////////// find the start triangle /////////////////////////
+  int index1 = -1;
+  int index2 = -1;
+  for(unsigned int i = 0;i < triangles.size();i++){
+      if(start->Inside(triangles[i])){
+        index1 = i;
+        break;
+      }
+  }
+  ////////// find the end triangle /////////////////////////
+  for(unsigned int i = 0;i < triangles.size();i++){
+      if(end->Inside(triangles[i])){
+        index2 = i;
+        break;
+      }
+  }
+  assert(index1 != -1 && index2 != -1);
+  cout<<"index1 "<<index1<<" index2 "<<index2<<endl;
+  vector<bool> triangle_flag;
+  for(unsigned int i = 0;i < triangles.size();i++)
+    triangle_flag.push_back(false);
+
+  triangle_flag[index1] = true;
+
+  ////////////////shortest path algorithm///////////////////////
+  priority_queue<SPath_elem> path_queue;
+  vector<SPath_elem> expand_path;
+
+  path_queue.push(SPath_elem(-1, 0, index1, 1));
+  expand_path.push_back(SPath_elem(-1,0, index1, 1));
+  bool find = false;
+  SPath_elem dest;//////////destination
+  while(path_queue.empty() == false){
+    SPath_elem top = path_queue.top();
+    path_queue.pop();
+//    top.Print();
+    if(top.tri_index == index2){
+       cout<<"find the path"<<endl;
+       find = true;
+       dest = top;
+       break;
+    }
+    ////////find its adjacecy element, and push them into queue and path//////
+    vector<int> adj_list;
+    FindAdj(top.tri_index, triangle_flag, adj_list);
+//    cout<<"adjcency_list size "<<adj_list.size()<<endl;
+//    cout<<"expand_path_size "<<expand_path.size()<<endl;
+    int pos_expand_path = top.cur_index;
+    for(unsigned int i = 0;i < adj_list.size();i++){
+      int expand_path_size = expand_path.size();
+      path_queue.push(SPath_elem(pos_expand_path, expand_path_size,
+                                adj_list[i], top.weight+1));
+      expand_path.push_back(SPath_elem(pos_expand_path, expand_path_size,
+                            adj_list[i], top.weight+1));
+    }
+  }
+  ///////////////construct the path/////////////////////////////
+  if(find){
+    vector<int> path_record;
+    while(dest.prev_index != -1){
+//      sleeve.push_back(triangles[dest.tri_index]);
+      path_record.push_back(dest.tri_index);
+      dest = expand_path[dest.prev_index];
+    }
+//    sleeve.push_back(triangles[dest.tri_index]);
+    path_record.push_back(dest.tri_index);
+
+    for(int i = path_record.size() - 1;i >= 0;i--)
+      sleeve.push_back(triangles[path_record[i]]);
+  }
+
+}
+
+/*
+build the channel/funnel
+
+*/
+void CompTriangle::ConstructConvexChannel1(list<MyPoint>& funnel_front,
+                              list<MyPoint>& funnel_back,
+                              Point& newvertex,
+                              vector<Point>& path, bool front_back)
+{
+  cout<<"ConstructConvexChannel1 "<<endl;
+  const double delta_dist = 0.00001;
+  //push newvertex into funnel_back
+  if(front_back){ //front = newvertex, check funnel_back first,
+//    cout<<"front "<<"push into back "<<endl;
+    //case1   case2 check another list
+    MyPoint mp1;
+    MyPoint mp2 = funnel_back.back();
+    while(funnel_back.empty() == false){
+        MyPoint elem = funnel_back.back();
+        elem.Print();
+        HalfSegment hs;
+        hs.Set(true, elem.loc, newvertex);
+        if(reg->Contains(hs)){
+          funnel_back.pop_back();
+          mp1 = elem;
+        }else break;
+    }
+    if(funnel_back.empty()){//case 1
+//      cout<<"funnel_back empty"<<endl;
+      funnel_back.push_back(mp1);
+      funnel_back.push_back(MyPoint(newvertex,
+                            newvertex.Distance(mp1.loc) + mp1.dist));
+    }else{
+      if(mp1.loc.Distance(mp2.loc) < delta_dist){ //case2
+        double l1 = newvertex.Distance(mp2.loc) + mp2.dist;
+
+        //////////////////////////////
+        list<MyPoint>::iterator iter = funnel_front.begin();
+        for(;iter != funnel_front.end();iter++){
+          Point p = iter->loc;
+          HalfSegment hs;
+          hs.Set(true, p, newvertex);
+          if(reg->Contains(hs))break;
+        }
+        double l2 = newvertex.Distance(iter->loc) + iter->dist;
+        ///////////////////////////////
+//        cout<<"l1 "<<l1<<" l2 "<<l2<<endl;
+        if(l1 < l2 || AlmostEqual(l1, l2)){
+          funnel_back.push_back(mp2);
+          funnel_back.push_back(MyPoint(newvertex,l1));
+        }else{
+            while(funnel_front.empty() == false){
+              MyPoint elem = funnel_front.front();
+              elem.Print();
+              HalfSegment hs;
+              hs.Set(true, elem.loc, newvertex);
+              if(reg->Contains(hs))break;
+              funnel_front.pop_front();
+              if(path[path.size() - 1].Distance(elem.loc) > delta_dist)
+                  path.push_back(elem.loc);
+            }
+            assert(funnel_front.empty() == false);
+            MyPoint top = funnel_front.front();
+            path.push_back(top.loc);
+
+
+            //update funnel_back
+            funnel_back.clear();
+            funnel_back.push_back(top);
+            funnel_back.push_back(MyPoint(newvertex,
+                       newvertex.Distance(top.loc) + top.dist));
+        }
+      }else{//case 1,find a point in funnel_back directly connected to newvertex
+        funnel_back.push_back(mp1);
+        funnel_back.push_back(MyPoint(newvertex,
+                            newvertex.Distance(mp1.loc) + mp1.dist));
+      }
+    }
+  //push newvertex into funnel_front
+  }else{ //back = newvertex, check funnel funnel_front first
+//  cout<<"back "<<"push into front "<<endl;
+ //case1   case2 check another list
+    MyPoint mp1;
+    MyPoint mp2 = funnel_front.back();
+    while(funnel_front.empty() == false){
+        MyPoint elem = funnel_front.back();
+        elem.Print();
+        HalfSegment hs;
+        hs.Set(true, elem.loc, newvertex);
+        if(reg->Contains(hs)){
+          funnel_front.pop_back();
+          mp1 = elem;
+        }else break;
+    }
+    if(funnel_front.empty()){//case 1
+//      cout<<"funnel_front empty"<<endl;
+      funnel_front.push_back(mp1);
+      funnel_front.push_back(MyPoint(newvertex,
+                            newvertex.Distance(mp1.loc) + mp1.dist));
+    }else{
+      if(mp1.loc.Distance(mp2.loc) < delta_dist){ //case2
+        double l1 = newvertex.Distance(mp2.loc) + mp2.dist;
+        ////////////////////////////////////////////////
+        list<MyPoint>::iterator iter = funnel_back.begin();
+        for(;iter != funnel_back.end();iter++){
+          Point p = iter->loc;
+          HalfSegment hs;
+          hs.Set(true, p, newvertex);
+          if(reg->Contains(hs))break;
+        }
+        double l2 = newvertex.Distance(iter->loc) + iter->dist;
+        /////////////////////////////////////////////////
+
+//        cout<<"l1 "<<l1<<" l2 "<<l2<<endl;
+        if(l1 < l2 || AlmostEqual(l1, l2)){
+          funnel_front.push_back(mp2);
+          funnel_front.push_back(MyPoint(newvertex,l1));
+        }
+        else{
+            while(funnel_back.empty() == false){
+              MyPoint elem = funnel_back.front();
+              HalfSegment hs;
+              hs.Set(true, elem.loc, newvertex);
+              if(reg->Contains(hs))break;
+              funnel_back.pop_front();
+              if(path[path.size() - 1].Distance(elem.loc) > delta_dist)
+                  path.push_back(elem.loc);
+            }
+            assert(funnel_back.empty() == false);
+            MyPoint top = funnel_back.front();
+            path.push_back(top.loc);
+
+
+            //update funnel_front
+            funnel_front.clear();
+            funnel_front.push_back(top);
+            funnel_front.push_back(MyPoint(newvertex,
+                       newvertex.Distance(top.loc) + top.dist));
+        }
+      }else{//case 1,find a point in funnel_back directly connected to newvertex
+        funnel_front.push_back(mp1);
+        funnel_front.push_back(MyPoint(newvertex,
+                            newvertex.Distance(mp1.loc) + mp1.dist));
+      }
+    }
+
+  }
+
+/*  list<MyPoint>::iterator iter = funnel_front.begin();
+  cout<<"front ";
+  for(;iter != funnel_front.end();iter++){
+        Point p = iter->loc;
+        cout<<p<<" ";
+  }
+  cout<<endl<<"back ";
+  iter = funnel_back.begin();
+  for(;iter != funnel_back.end();iter++){
+        Point p = iter->loc;
+        cout<<p<<" ";
+  }
+  cout<<endl;
+  cout<<"points in path "<<endl;
+  for(unsigned int i = 0;i < path.size();i++)
+      cout<<path[i]<<" ";
+  cout<<endl;*/
+
+}
+
+/*
+complete the final shortest path
+
+*/
+
+void CompTriangle::ConstructConvexChannel2(list<MyPoint> funnel_front,
+                              list<MyPoint> funnel_back,
+                              Point& newvertex,
+                              vector<Point>& path, bool front_back)
+{
+  cout<<"ConstructConvexChannel2 "<<endl;
+  const double delta_dist = 0.00001;
+  //push newvertex into funnel_back
+  if(front_back){ //front = newvertex, check funnel_back first,
+//    cout<<"front "<<"push into back "<<endl;
+    //case1   case2 check another list
+
+    MyPoint mp1 = funnel_back.back();
+    MyPoint mp2 = funnel_back.front();
+    while(funnel_back.empty() == false){
+        MyPoint elem = funnel_back.back();
+//        elem.Print();
+        HalfSegment hs;
+        hs.Set(true, elem.loc, newvertex);
+        if(reg->Contains(hs)){
+          funnel_back.pop_back();
+          mp1 = elem;
+        }else break;
+    }
+
+      double l1 = newvertex.Distance(mp1.loc) + mp1.dist;
+        ////////////////////////////////////////////////
+        list<MyPoint>::iterator iter = funnel_front.begin();
+        for(;iter != funnel_front.end();iter++){
+          Point p = iter->loc;
+          HalfSegment hs;
+          hs.Set(true, p, newvertex);
+          if(reg->Contains(hs))break;
+        }
+        double l2 = newvertex.Distance(iter->loc) + iter->dist;
+        /////////////////////////////////////////////////
+
+//      cout<<"l1 "<<l1<<" l2 "<<l2<<endl;
+      if(l1 < l2 || AlmostEqual(l1, l2)){
+
+        if(funnel_back.empty() == false)
+          funnel_back.pop_front();
+
+        while(funnel_back.empty() == false){
+          MyPoint elem = funnel_back.front();
+          path.push_back(elem.loc);
+          funnel_back.pop_front();
+        }
+        if(mp1.loc.Distance(mp2.loc) > delta_dist)
+          path.push_back(mp1.loc);
+      }else{
+          MyPoint top = funnel_front.front();
+
+          if(funnel_front.empty() == false)
+            funnel_front.pop_front();
+
+          HalfSegment hs;
+          hs.Set(true, top.loc, newvertex);
+          if(reg->Contains(hs)) return;
+
+          while(funnel_front.empty() == false){
+            MyPoint elem = funnel_front.front();
+            path.push_back(elem.loc);
+            ////////////////////////////////////////
+            HalfSegment hs;
+            hs.Set(true, elem.loc, newvertex);
+            if(reg->Contains(hs))break;
+            ///////////////////////////////////////
+            funnel_front.pop_front();
+          }
+      }
+    //push newvertex into funnel_front
+  }else{ //back = newvertex, check funnel funnel_front first
+//  cout<<"back "<<"push into front "<<endl;
+ //case1   case2 check another list
+
+    MyPoint mp1 = funnel_front.back();
+    MyPoint mp2 = funnel_front.front();
+    while(funnel_front.empty() == false){
+        MyPoint elem = funnel_front.back();
+//        elem.Print();
+        HalfSegment hs;
+        hs.Set(true, elem.loc, newvertex);
+        if(reg->Contains(hs)){
+          funnel_front.pop_back();
+          mp1 = elem;
+        }else break;
+    }
+
+        double l1 = newvertex.Distance(mp1.loc) + mp1.dist;
+        /////////////////////////////////////////////
+        list<MyPoint>::iterator iter = funnel_back.begin();
+        for(;iter != funnel_back.end();iter++){
+          Point p = iter->loc;
+          HalfSegment hs;
+          hs.Set(true, p, newvertex);
+          if(reg->Contains(hs))break;
+        }
+        double l2 = newvertex.Distance(iter->loc) + iter->dist;
+        ////////////////////////////////////////////
+
+//        cout<<"l1 "<<l1<<" l2 "<<l2<<endl;
+        if(l1 < l2 || AlmostEqual(l1, l2)){
+            if(funnel_front.empty() == false)
+                funnel_front.pop_front();
+            while(funnel_front.empty() == false){
+              MyPoint elem = funnel_front.front();
+              path.push_back(elem.loc);
+              funnel_front.pop_front();
+            }
+            if(mp1.loc.Distance(mp2.loc) > delta_dist)
+                path.push_back(mp1.loc);
+        }
+        else{
+            MyPoint top = funnel_back.front();
+            if(funnel_back.empty() == false){
+                funnel_back.pop_front();
+            }
+
+            HalfSegment hs;
+            hs.Set(true, top.loc, newvertex);
+            if(reg->Contains(hs)) return;
+
+            while(funnel_back.empty() == false){
+              MyPoint elem = funnel_back.front();
+              path.push_back(elem.loc);
+              /////////////////////////////
+              HalfSegment hs;
+              hs.Set(true, elem.loc, newvertex);
+              if(reg->Contains(hs))break;
+              //////////////////////////////
+              funnel_back.pop_front();
+            }
+        }
+  }
+
+}
+
+/*
+geometrical shortest path in a polygon
+Apply the Funnel Algorithm, front point---->point
+
+*/
+void CompTriangle::GeoShortestPath(Point* start, Point* end)
+{
+    cout<<"GeoShortestPath point to point"<<endl;
+    if(start->Inside(*reg) == false || end->Inside(*reg) == false){
+      cout<<"points are not inside the polygon"<<endl;
+      return;
+    }
+    if(AlmostEqual(start->GetX(), end->GetX()) &&
+       AlmostEqual(start->GetY(), end->GetY())){
+        cout<<"two points are equal"<<endl;
+        return;
+    }
+
+    if(PolygonConvex()){ //convex, just use euclidean distance
+      cout<<"a convex polygon"<<endl;
+      int edgeno = 0;
+      path = new Line(0);
+      path->StartBulkLoad();
+      HalfSegment hs;
+      hs.Set(true, *start, *end);
+      hs.attr.edgeno = edgeno++;
+      *path += hs;
+      hs.SetLeftDomPoint(!hs.IsLeftDomPoint());
+      *path += hs;
+      path->EndBulkLoad();
+      sleeve.push_back(*reg);
+      return;
+    }
+
+    Triangulation();//get a set of triangles
+
+    ///////////////  find the channel /////////////////////////////
+
+    GetChannel(start, end);
+    /////////////////get a sequence of diagonals////////////////////////
+    vector<HalfSegment> diagonals;
+    const double delta_dist = 0.00001;
+//    cout<<"channel size "<<sleeve.size()<<endl;
+    for(unsigned int i = 0;i < sleeve.size() - 1;i++){
+        vector<HalfSegment> cur_triangle;
+        for(int j = 0;j < sleeve[i].Size();j++){
+          HalfSegment hs;
+          sleeve[i].Get(j, hs);
+            if(!hs.IsLeftDomPoint())continue;
+          cur_triangle.push_back(hs);
+        }
+
+        vector<HalfSegment> next_triangle;
+        for(int j = 0;j < sleeve[i + 1].Size();j++){
+          HalfSegment hs;
+          sleeve[i + 1].Get(j, hs);
+            if(!hs.IsLeftDomPoint())continue;
+          next_triangle.push_back(hs);
+        }
+        for(unsigned int k1 = 0;k1 < cur_triangle.size();k1++){
+            Point p1 = cur_triangle[k1].GetLeftPoint();
+            Point p2 = cur_triangle[k1].GetRightPoint();
+
+            unsigned int k2 = 0;
+            for(;k2 < next_triangle.size();k2++){
+              Point p3 = next_triangle[k2].GetLeftPoint();
+              Point p4 = next_triangle[k2].GetRightPoint();
+
+              if(p1.Distance(p3) < delta_dist && p2.Distance(p4) < delta_dist){
+                HalfSegment hs;
+                hs.Set(true,p1, p2);
+                diagonals.push_back(hs);
+                break;
+              }
+              if(p1.Distance(p4) < delta_dist && p2.Distance(p3) < delta_dist){
+                HalfSegment hs;
+                hs.Set(true,p1, p2);
+                diagonals.push_back(hs);
+                break;
+              }
+            }
+            if(k2 != next_triangle.size())break;
+        }
+    }
+//    cout<<"diagnoals size "<<diagonals.size()<<endl;
+
+    list<MyPoint> funnel_front;
+    list<MyPoint> funnel_back;
+    Point apex = *start;
+    vector<Point> shortest_path;
+
+    shortest_path.push_back(apex);
+    funnel_front.push_back(MyPoint(apex, 0.0));
+    funnel_back.push_back(MyPoint(apex, 0.0));
+
+    bool funnel_front_flag = true;
+
+    for(unsigned int i = 0;i < diagonals.size();i++){
+      Point lp = diagonals[i].GetLeftPoint();
+      Point rp = diagonals[i].GetRightPoint();
+      if(i == 0){
+        funnel_front.push_back(MyPoint(lp, lp.Distance(apex)));
+        funnel_back.push_back(MyPoint(rp, rp.Distance(apex)));
+        continue;
+      }
+      Point last_lp = diagonals[i - 1].GetLeftPoint();
+      Point last_rp = diagonals[i - 1].GetRightPoint();
+      Point newvertex;
+      if(lp.Distance(last_lp) < delta_dist ||
+         lp.Distance(last_rp) < delta_dist){
+          newvertex = rp;
+
+//          cout<<"newvertex rp" <<newvertex<<endl;
+          MyPoint front = funnel_front.back();
+          MyPoint back = funnel_back.back();
+
+
+          if(front.loc.Distance(lp) < delta_dist){
+            ConstructConvexChannel1(funnel_front, funnel_back,
+                                 newvertex, shortest_path, true);
+            funnel_front_flag = true;
+          }else if(back.loc.Distance(lp) < delta_dist){
+            ConstructConvexChannel1(funnel_front, funnel_back,
+                                 newvertex, shortest_path, false);
+            funnel_front_flag = false;
+          }else assert(false);
+      }
+      else if(rp.Distance(last_lp) < delta_dist ||
+              rp.Distance(last_rp) < delta_dist){
+              newvertex = lp;
+
+//          cout<<"newvertex lp" <<newvertex<<endl;
+          MyPoint front = funnel_front.back();
+          MyPoint back = funnel_back.back();
+
+
+          if(front.loc.Distance(rp) < delta_dist){
+            ConstructConvexChannel1(funnel_front, funnel_back,
+                                 newvertex, shortest_path, true);
+            funnel_front_flag = true;
+          }else if(back.loc.Distance(rp) < delta_dist){
+            ConstructConvexChannel1(funnel_front, funnel_back,
+                                 newvertex, shortest_path, false);
+            funnel_front_flag = false;
+          }else assert(false);
+      }
+      else assert(false);
+    }
+
+/*    for(unsigned int i = 0;i < shortest_path.size();i++)
+            cout<<"point in path "<<shortest_path[i]<<endl;*/
+
+    ////////////////// last point //////////////////////////////
+    ConstructConvexChannel2(funnel_front, funnel_back,
+                                 *end, shortest_path, funnel_front_flag);
+    shortest_path.push_back(*end);
+    ////////////////////////////////////////////////////////////
+//    cout<<"shortest path segments size "<<shortest_path.size()<<endl;
+    path = new Line(0);
+    path->StartBulkLoad();
+    int edgeno = 0;
+    for(unsigned int i = 0;i < shortest_path.size() - 1;i++){
+//      cout<<"point1 "<<shortest_path[i]<<endl;
+//      cout<<"point2 "<<shortest_path[i + 1]<<endl;
+      HalfSegment hs;
+      Point p1 = shortest_path[i];
+      Point p2 = shortest_path[i + 1];
+      hs.Set(true, p1, p2);
+      hs.attr.edgeno = edgeno++;
+      *path += hs;
+      hs.SetLeftDomPoint(!hs.IsLeftDomPoint());
+      *path += hs;
+    }
+    path->EndBulkLoad();
+}
+
+/*
+retrieve the channel/sleeve from a point to a line segment
+
+*/
+void CompTriangle::GetChannel(Point* start, HalfSegment* end,
+                             vector<Region>& temp_sleeve)
+{
+////////// find the start triangle /////////////////////////
+  int index1 = -1;
+  int index2 = -1;
+  for(unsigned int i = 0;i < triangles.size();i++){
+      if(start->Inside(triangles[i])){
+        index1 = i;
+        break;
+      }
+  }
+  ////////// find the end triangle /////////////////////////
+  for(unsigned int i = 0;i < triangles.size();i++){
+      if(triangles[i].Contains(*end)){
+        index2 = i;
+        break;
+      }
+  }
+  assert(index1 != -1 && index2 != -1);
+//  cout<<"index1 "<<index1<<" index2 "<<index2<<endl;
+
+      vector<bool> triangle_flag;
+      for(unsigned int i = 0;i < triangles.size();i++)
+        triangle_flag.push_back(false);
+
+      triangle_flag[index1] = true;
+
+      ////////////////shortest path algorithm///////////////////////
+      priority_queue<SPath_elem> path_queue;
+      vector<SPath_elem> expand_path;
+
+      path_queue.push(SPath_elem(-1, 0, index1, 1));
+      expand_path.push_back(SPath_elem(-1,0, index1, 1));
+      bool find = false;
+      SPath_elem dest;//////////destination
+      while(path_queue.empty() == false){
+        SPath_elem top = path_queue.top();
+        path_queue.pop();
+    //    top.Print();
+        if(top.tri_index == index2){
+          cout<<"find the path"<<endl;
+          find = true;
+          dest = top;
+          break;
+        }
+      ////////find its adjacecy element, and push them into queue and path//////
+        vector<int> adj_list;
+        FindAdj(top.tri_index, triangle_flag, adj_list);
+    //    cout<<"adjcency_list size "<<adj_list.size()<<endl;
+    //    cout<<"expand_path_size "<<expand_path.size()<<endl;
+        int pos_expand_path = top.cur_index;
+        for(unsigned int i = 0;i < adj_list.size();i++){
+          int expand_path_size = expand_path.size();
+          path_queue.push(SPath_elem(pos_expand_path, expand_path_size,
+                                adj_list[i], top.weight+1));
+          expand_path.push_back(SPath_elem(pos_expand_path, expand_path_size,
+                            adj_list[i], top.weight+1));
+        }
+      }
+  ///////////////construct the path/////////////////////////////
+      if(find){
+        vector<int> path_record;
+        while(dest.prev_index != -1){
+            path_record.push_back(dest.tri_index);
+            dest = expand_path[dest.prev_index];
+        }
+        path_record.push_back(dest.tri_index);
+        for(int i = path_record.size() - 1;i >= 0;i--)
+          temp_sleeve.push_back(triangles[path_record[i]]);
+
+      }
+
+}
+
+/*
+select the point on segment to compute the shortest path.
+it goes through the funnel to check the vertex stored and try to find
+sucn an segment which is contained by the polygon and it consists of
+the vertex and the closest point to the vertex in the input segement.
+
+*/
+void CompTriangle::SelectPointOnSeg(list<MyPoint> funnel_front,
+                        list<MyPoint> funnel_back, HalfSegment* end,
+                        Point& vertex, Point& cp)
+
+{
+  SpacePartition* sp = new SpacePartition();
+  const double delta_dist = 0.00001;
+  MyPoint elem_front = funnel_front.back();
+  MyPoint elem_back = funnel_back.back();
+  if(elem_front.loc.Distance(vertex) < delta_dist){
+    sp->GetClosestPoint(*end, elem_front.loc, cp);
+    funnel_front.pop_back();
+    while(funnel_front.empty() == false){
+        MyPoint elem = funnel_front.back();
+        Point p;
+        sp->GetClosestPoint(*end, elem.loc, p);
+        HalfSegment hs;
+        hs.Set(true, elem.loc, p);
+        if(reg->Contains(hs) == false)break;
+        cp = p;
+        funnel_front.pop_back();
+    }
+  }else if(elem_back.loc.Distance(vertex) < delta_dist){
+    sp->GetClosestPoint(*end, elem_back.loc, cp);
+    funnel_back.pop_back();
+    while(funnel_back.empty() == false){
+        MyPoint elem = funnel_back.back();
+        Point p;
+        sp->GetClosestPoint(*end, elem.loc, p);
+        HalfSegment hs;
+        hs.Set(true, elem.loc, p);
+        if(reg->Contains(hs) == false)break;
+        cp = p;
+        funnel_back.pop_back();
+    }
+  }else assert(false);
+
+  delete sp;
+}
+
+/*
+compute the shortest path from start point to the end segment
+
+*/
+void CompTriangle::PtoSegSPath(Point* start, HalfSegment* end,
+                              vector<Region>& temp_sleeve, Line* res_line)
+{
+
+  /////////////////get the channel////////////////////////////
+  vector<HalfSegment> diagonals;
+  const double delta_dist = 0.00001;
+
+    for(unsigned int i = 0;i < temp_sleeve.size() - 1;i++){
+        vector<HalfSegment> cur_triangle;
+        for(int j = 0;j < temp_sleeve[i].Size();j++){
+          HalfSegment hs;
+          temp_sleeve[i].Get(j, hs);
+            if(!hs.IsLeftDomPoint())continue;
+          cur_triangle.push_back(hs);
+        }
+
+        vector<HalfSegment> next_triangle;
+        for(int j = 0;j < temp_sleeve[i + 1].Size();j++){
+          HalfSegment hs;
+          temp_sleeve[i + 1].Get(j, hs);
+            if(!hs.IsLeftDomPoint())continue;
+          next_triangle.push_back(hs);
+        }
+        for(unsigned int k1 = 0;k1 < cur_triangle.size();k1++){
+            Point p1 = cur_triangle[k1].GetLeftPoint();
+            Point p2 = cur_triangle[k1].GetRightPoint();
+
+            unsigned int k2 = 0;
+            for(;k2 < next_triangle.size();k2++){
+              Point p3 = next_triangle[k2].GetLeftPoint();
+              Point p4 = next_triangle[k2].GetRightPoint();
+
+              if(p1.Distance(p3) < delta_dist && p2.Distance(p4) < delta_dist){
+                HalfSegment hs;
+                hs.Set(true,p1, p2);
+                diagonals.push_back(hs);
+                break;
+              }
+              if(p1.Distance(p4) < delta_dist && p2.Distance(p3) < delta_dist){
+                HalfSegment hs;
+                hs.Set(true,p1, p2);
+                diagonals.push_back(hs);
+                break;
+              }
+            }
+            if(k2 != next_triangle.size())break;
+        }
+    }
+//    cout<<"diagnoals size "<<diagonals.size()<<endl;
+
+ ///////////////////////////////////////////////////////////////
+
+    list<MyPoint> funnel_front;
+    list<MyPoint> funnel_back;
+    Point apex = *start;
+    vector<Point> shortest_path;
+
+    shortest_path.push_back(apex);
+    funnel_front.push_back(MyPoint(apex, 0.0));
+    funnel_back.push_back(MyPoint(apex, 0.0));
+
+    bool funnel_front_flag = true;
+    Point newvertex;
+    Point newvertex_pair;
+    for(unsigned int i = 0;i < diagonals.size();i++){
+      Point lp = diagonals[i].GetLeftPoint();
+      Point rp = diagonals[i].GetRightPoint();
+      if(i == 0){
+        funnel_front.push_back(MyPoint(lp, lp.Distance(apex)));
+        funnel_back.push_back(MyPoint(rp, rp.Distance(apex)));
+        continue;
+      }
+      Point last_lp = diagonals[i - 1].GetLeftPoint();
+      Point last_rp = diagonals[i - 1].GetRightPoint();
+
+      if(lp.Distance(last_lp) < delta_dist ||
+         lp.Distance(last_rp) < delta_dist){
+          newvertex = rp;
+          newvertex_pair = lp;
+
+//          cout<<"newvertex rp" <<newvertex<<endl;
+          MyPoint front = funnel_front.back();
+          MyPoint back = funnel_back.back();
+
+          if(front.loc.Distance(lp) < delta_dist){
+            ConstructConvexChannel1(funnel_front, funnel_back,
+                                 newvertex, shortest_path, true);
+            funnel_front_flag = true;
+          }else if(back.loc.Distance(lp) < delta_dist){
+            ConstructConvexChannel1(funnel_front, funnel_back,
+                                 newvertex, shortest_path, false);
+            funnel_front_flag = false;
+          }else assert(false);
+      }
+      else if(rp.Distance(last_lp) < delta_dist ||
+              rp.Distance(last_rp) < delta_dist){
+              newvertex = lp;
+              newvertex_pair = rp;
+
+//          cout<<"newvertex lp" <<newvertex<<endl;
+          MyPoint front = funnel_front.back();
+          MyPoint back = funnel_back.back();
+
+
+          if(front.loc.Distance(rp) < delta_dist){
+            ConstructConvexChannel1(funnel_front, funnel_back,
+                                 newvertex, shortest_path, true);
+            funnel_front_flag = true;
+          }else if(back.loc.Distance(rp) < delta_dist){
+            ConstructConvexChannel1(funnel_front, funnel_back,
+                                 newvertex, shortest_path, false);
+            funnel_front_flag = false;
+          }else assert(false);
+      }
+      else assert(false);
+    }
+  //////////////////////////////////////////////////////////////
+//  cout<<"end halfsegment "<<*end<<endl;
+  vector<Point> shortest_path_another;
+  for(unsigned int i = 0;i < shortest_path.size();i++)
+      shortest_path_another.push_back(shortest_path[i]);
+
+//  cout<<"newvertex "<<newvertex<<" cp1 "<<cp1<<endl;
+  ////////////////////////////////////////////
+  list<MyPoint> copy_funnel_front;
+  list<MyPoint> copy_funnel_back;
+  list<MyPoint>::iterator iter;
+  for(iter = funnel_front.begin(); iter != funnel_front.end();iter++)
+    copy_funnel_front.push_back(*iter);
+  for(iter = funnel_back.begin(); iter != funnel_back.end();iter++)
+    copy_funnel_back.push_back(*iter);
+
+  Point cp1, cp2;
+
+  //////////////////////////////////////////////////////////////////
+
+  SelectPointOnSeg(funnel_front, funnel_back, end, newvertex, cp1);
+
+  if(newvertex.Distance(cp1) > delta_dist){
+    ConstructConvexChannel2(funnel_front, funnel_back,
+                                 cp1, shortest_path, funnel_front_flag);
+    shortest_path.push_back(cp1);
+  }else{
+    MyPoint top_front = funnel_front.back();
+    MyPoint top_back = funnel_back.back();
+    if(top_front.loc.Distance(cp1) < delta_dist){
+      while(funnel_front.size() > 1){
+        MyPoint elem = funnel_front.back();
+        funnel_front.pop_back();
+        shortest_path.push_back(elem.loc);
+      }
+    }else if(top_back.loc.Distance(cp1) < delta_dist){
+      while(funnel_back.size() > 1){
+        MyPoint elem = funnel_back.back();
+        funnel_back.pop_back();
+        shortest_path.push_back(elem.loc);
+      }
+    }else assert(false);
+  }
+  ///////////////////////////////////////////////////////////////////////
+//  cout<<"path1 size "<<shortest_path.size()<<endl;
+
+  SelectPointOnSeg(funnel_front, funnel_back, end, newvertex_pair, cp2);
+
+//  cout<<"newvertex_pair "<<newvertex_pair<<" cp2 "<<cp2<<endl;
+  if(newvertex_pair.Distance(cp2) > delta_dist){
+    ConstructConvexChannel2(copy_funnel_front, copy_funnel_back,
+                                 cp2, shortest_path_another,
+                                 !funnel_front_flag);
+    shortest_path_another.push_back(cp2);
+  }else{
+      MyPoint top_front = copy_funnel_front.back();
+      MyPoint top_back = copy_funnel_back.back();
+      if(top_front.loc.Distance(cp2) < delta_dist){
+        while(copy_funnel_front.size() > 1){
+          MyPoint elem = copy_funnel_front.back();
+          copy_funnel_front.pop_back();
+          shortest_path_another.push_back(elem.loc);
+        }
+      }else if(top_back.loc.Distance(cp2) < delta_dist){
+          while(copy_funnel_back.size() > 1){
+            MyPoint elem = copy_funnel_back.back();
+            copy_funnel_back.pop_back();
+            shortest_path_another.push_back(elem.loc);
+          }
+      }else assert(false);
+  }
+
+//  cout<<"path2 size "<<shortest_path_another.size()<<endl;
+
+  //////////////////////////////////////////////////////////////
+  Line* l1 = new Line(0);
+
+  l1->StartBulkLoad();
+
+
+  int edgeno1 = 0;
+  for(unsigned int i = 0;i < shortest_path.size() - 1;i++){
+      HalfSegment hs;
+      Point p1 = shortest_path[i];
+      Point p2 = shortest_path[i + 1];
+      hs.Set(true, p1, p2);
+      hs.attr.edgeno = edgeno1++;
+      *l1 += hs;
+      hs.SetLeftDomPoint(!hs.IsLeftDomPoint());
+      *l1 += hs;
+  }
+  l1->EndBulkLoad();
+
+  Line* l2 = new Line(0);
+  l2->StartBulkLoad();
+  int edgeno2 = 0;
+  for(unsigned int i = 0;i < shortest_path_another.size() - 1;i++){
+      HalfSegment hs;
+      Point p1 = shortest_path_another[i];
+      Point p2 = shortest_path_another[i + 1];
+      hs.Set(true, p1, p2);
+      hs.attr.edgeno = edgeno2++;
+      *l2 += hs;
+      hs.SetLeftDomPoint(!hs.IsLeftDomPoint());
+      *l2 += hs;
+  }
+  l2->EndBulkLoad();
+  if(l1->Length() < l2->Length())
+    *res_line = *l1;
+  else
+    *res_line = *l2;
+
+  delete l1;
+  delete l2;
+}
+
+/*
+geometrical shortest path in a polygon
+Apply the Funnel Algorithm, find the shortest path from a point to a line
+
+*/
+void CompTriangle::GeoShortestPath(Point* start, Line* end)
+{
+  cout<<"GeoShortestPath point to sline"<<endl;
+
+  if(start->Inside(*reg) == false || end->Intersects(*reg) == false){
+      cout<<"point is not inside the polygon"<<endl;
+      cout<<"or line does not intersect the region"<<endl;
+      return;
+  }
+  if(PolygonConvex()){ //convex, just use euclidean distance
+      cout<<"a convex polygon"<<endl;
+      double dist = numeric_limits<float>::max();
+      SpacePartition* sp = new SpacePartition();
+      Point end_point;
+      for(int i = 0;i < end->Size();i++){
+        HalfSegment hs;
+        end->Get(i, hs);
+        if(!hs.IsLeftDomPoint()) continue;
+        Point cp;
+        sp->GetClosestPoint(hs, *start, cp);
+        assert(cp.IsDefined());
+        double d = start->Distance(cp);
+        if(d < dist){
+          end_point = cp;
+          dist = d;
+        }
+      }
+      int edgeno = 0;
+      path = new Line(0);
+      path->StartBulkLoad();
+      HalfSegment hs;
+      hs.Set(true, *start, end_point);
+      hs.attr.edgeno = edgeno++;
+      *path += hs;
+      hs.SetLeftDomPoint(!hs.IsLeftDomPoint());
+      *path += hs;
+      path->EndBulkLoad();
+      sleeve.push_back(*reg);
+      delete sp;
+      return;
+  }
+  ////////////////concave polgyon////////////////////////////////////////
+  Line* reg_boundary = new Line(0);
+  reg->Boundary(reg_boundary);
+  if(end->Inside(*reg_boundary) == false){
+    cout<<"the end line should be covered by the border of the polygon"<<endl;
+    delete reg_boundary;
+    assert(false);
+  }
+  ///////////////////////////////////////////////////////////////////////
+  Triangulation();//get a set of triangles
+  vector<Line*> temp_sp; //store all possible shortest path
+  double shortest_path_len = numeric_limits<float>::max();
+  path = new Line(0);
+  for(int i = 0;i < end->Size();i++){
+    HalfSegment hs;
+    end->Get(i, hs);
+    if(!hs.IsLeftDomPoint()) continue;
+//    cout<<"i "<<i<<"hs "<<hs<<endl;
+    Line* l = new Line(0);
+    temp_sp.push_back(l);
+
+    vector<Region> temp_sleeve;
+    GetChannel(start, &hs, temp_sleeve);
+    PtoSegSPath(start, &hs, temp_sleeve, l);
+
+    if(l->Length() < shortest_path_len){
+      shortest_path_len = l->Length();
+      sleeve.clear();
+      for(unsigned int j = 0;j < temp_sleeve.size();j++)
+        sleeve.push_back(temp_sleeve[j]);
+      *path = *l;
+    }
+  }
+
+  for(unsigned int i = 0;i < temp_sp.size();i++)
+    delete temp_sp[i];
 }
