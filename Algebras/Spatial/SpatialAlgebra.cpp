@@ -10152,7 +10152,7 @@ As owner only __first__ and __second__ are the allowed values.
      y1 = hs.GetLeftPoint().GetY();
      x2 = hs.GetRightPoint().GetX();
      y2 = hs.GetRightPoint().GetY();
-     if( (AlmostEqual(x1,x2) && (y2<y2) ) || (x2<x2) ){// swap the entries
+     if( (AlmostEqual(x1,x2) && (y2<y1) ) || (x2<x1) ){// swap the entries
         double tmp = x1;
         x1 = x2;
         x2 = tmp;
