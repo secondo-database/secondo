@@ -42,6 +42,7 @@ ConstraintAlgebra Constraint
 PointSequenceAlgebra PointSequence
 ConstraintAlgebra Constraint
 ExtRelationAlgebraB ExtRelation-2
+BTree2Algebra BTree2
 
 
 # Java algebras - not longer supported
