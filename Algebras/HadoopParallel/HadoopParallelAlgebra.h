@@ -76,6 +76,11 @@ public:
               Word _streamB, Word wAttrIndexB,
               Supplier s);
 
+  ~deLocalInfo()
+  {
+    delete resultTupleType;
+  }
+
   Tuple* nextResultTuple();
 };
 
@@ -116,6 +121,13 @@ private:
 public:
   phjLocalInfo(Word _stream, Supplier s);
 
+  ~phjLocalInfo()
+  {
+    delete resultTupleType;
+    if (joinedTuples != 0)
+      delete joinedTuples;
+  }
+
   Word nextJoinTuple();
 };
 
@@ -139,7 +151,9 @@ private:
   ListExpr bTypeInfo;
 
   TupleBuffer *tbA;
+  GenericRelationIterator *itrA;
   TupleBuffer *tbB;
+  GenericRelationIterator *itrB;
   int tpIndex_A, tpIndex_B;
   const int maxMem;
   bool endOfStream;
@@ -154,12 +168,14 @@ private:
 public:
   pjLocalInfo(Word inputStream, Supplier fun, Supplier s,
       ListExpr ttA, ListExpr ttB,
-      int mem = 1024 * 1024) :
+      int mem) :
     mixedStream(inputStream),
     aTypeInfo(ttA),
     bTypeInfo(ttB),
     tbA(0),
+    itrA(0),
     tbB(0),
+    itrB(0),
     tpIndex_A(-1),
     tpIndex_B(-1),
     maxMem(mem),

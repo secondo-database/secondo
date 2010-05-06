@@ -152,8 +152,10 @@ ListExpr doubleExportTypeMap(ListExpr args)
   CHECK_COND(attrBIndex > 0,
     "Attributename " + attrBName
     + " not found in the second argument");
-  CHECK_COND(nl->Equal(attrTypeA, attrTypeB),
-    "Expect equal key types.");
+  CHECK_COND( listutils::isDATA(attrTypeA)
+      && listutils::isDATA(attrTypeB)
+      && nl->Equal(attrTypeA, attrTypeB),
+    "Expect equal and DATA kind key types.");
 
   ListExpr attrList = nl->TwoElemList(
       nl->TwoElemList(nl->StringAtom("keyT",false),
@@ -269,8 +271,10 @@ Word deLocalInfo::makeTuple(Word stream, int index,
     //Get a tuple from the stream;
     oldTuple = static_cast<Tuple*>(result.addr);
     string key =
-        ((CcString*)(oldTuple->GetAttribute(index)))->GetValue();
+        ((Attribute*)(oldTuple->GetAttribute(index)))->getCsvStr();
+        //((CcString*)(oldTuple->GetAttribute(index)))->GetValue();
     ListExpr oldTupleNL = oldTuple->Out(typeInfo);
+    oldTuple->DeleteIfAllowed();
 
     ListExpr valueNL = nl->TwoElemList(nl->IntAtom(si),oldTupleNL);
     string valueStr = nl->ToString(valueNL);
@@ -400,7 +404,6 @@ ListExpr renameList(ListExpr oldTupleList, string appendName)
   ListExpr rest = oldTupleList;
   while(!nl->IsEmpty(rest)){
     ListExpr tuple = nl->First(rest);
-    cout << nl->ToString(tuple) << endl;
     string attrname = nl->SymbolValue(nl->First(tuple));
     attrname.append("_" + appendName);
 
@@ -482,14 +485,18 @@ Word phjLocalInfo::nextJoinTuple()
   {
     return SetWord(tuple);
   }
-  else if(getNewProducts())
-  {
-    tuple = tupleIterator->GetNextTuple();
-    return SetWord(tuple);
-  }
   else
   {
-    return SetWord(Address(0));
+    delete tupleIterator;
+    if (getNewProducts())
+    {
+      tuple = tupleIterator->GetNextTuple();
+      return SetWord(tuple);
+    }
+    else
+    {
+      return SetWord(Address(0));
+    }
   }
 }
 
@@ -512,6 +519,7 @@ bool phjLocalInfo::getNewProducts()
 
   TupleBuffer *tbA = 0;
   TupleBuffer *tbB = 0;
+  GenericRelationIterator *iteratorA = 0, *iteratorB = 0;
   Tuple *tupleA = 0, *tupleB = 0;
   string tupStr;
   ListExpr tupList, valList;
@@ -523,7 +531,6 @@ bool phjLocalInfo::getNewProducts()
   {
     tbA = new TupleBuffer(MaxMem);
     tbB = new TupleBuffer(MaxMem);
-
     //  Collect tuples in one bucket.
     Word currentTupleWord(Address(0));
     bool isInBucket = true;
@@ -533,9 +540,11 @@ bool phjLocalInfo::getNewProducts()
       Tuple* currentTuple =
           static_cast<Tuple*> (currentTupleWord.addr);
       tupStr = ((FText*) (currentTuple->GetAttribute(0)))->GetValue();
+      currentTuple->DeleteIfAllowed();
       nl->ReadFromString(tupStr, tupList);
       int SI = NList(tupList).first().intval();
       valList = nl->Second(tupList);
+
       int errorPos;
       ListExpr errorInfo;
       bool correct;
@@ -545,12 +554,14 @@ bool phjLocalInfo::getNewProducts()
         tupleA = Tuple::In(aTypeInfo, valList, errorPos,
             errorInfo, correct);
         tbA->AppendTuple(tupleA);
+        tupleA->DeleteIfAllowed();
         break;
       }
       case 2:{
         tupleB = Tuple::In(bTypeInfo, valList, errorPos,
             errorInfo, correct);
         tbB->AppendTuple(tupleB);
+        tupleB->DeleteIfAllowed();
         break;
       }
       case 0:{
@@ -570,15 +581,17 @@ bool phjLocalInfo::getNewProducts()
         break;
     }
 
+    int countA = tbA->GetNoTuples();
+    int countB = tbB->GetNoTuples();
 
-    if(tbA->GetNoTuples() == 0 && tbB->GetNoTuples() == 0)
+    if(countA == 0 && countB == 0)
     {
       // No more data exists
       delete tbA;
       delete tbB;
       return false;
     }
-    else if(tbA->GetNoTuples() == 0 || tbB->GetNoTuples() == 0)
+    else if(countA == 0 || countB == 0)
     {
       // All tuples come from one source relation
       delete tbA;
@@ -591,18 +604,29 @@ bool phjLocalInfo::getNewProducts()
         delete joinedTuples;
       joinedTuples = new TupleBuffer(MaxMem);
 
-      for (int i = 0; i < tbA->GetNoTuples(); i++)
+      int i = 0, j = 0;
+      iteratorA = tbA->MakeScan();
+      tupleA = iteratorA->GetNextTuple();
+      while(tupleA && i++ < countA)
       {
-        for (int j = 0; j < tbB->GetNoTuples(); j++)
+        j = 0;
+        iteratorB = tbB->MakeScan();
+        tupleB = iteratorB->GetNextTuple();
+        while(tupleB && j++ < countB)
         {
-          tupleA = tbA->GetTuple(i,false);
-          tupleB = tbB->GetTuple(j, false);
-
           Tuple *resultTuple = new Tuple(resultTupleType);
           Concat(tupleA, tupleB,resultTuple);
+          tupleB->DeleteIfAllowed();
           joinedTuples->AppendTuple(resultTuple);
+          resultTuple->DeleteIfAllowed();
+          tupleB = iteratorB->GetNextTuple();
         }
+        delete iteratorB;
+        tupleA->DeleteIfAllowed();
+        tupleA = iteratorA->GetNextTuple();
       }
+      delete iteratorA;
+
       delete tbA;
       delete tbB;
 
@@ -875,7 +899,8 @@ int paraJoinValueMap(Word* args, Word& result,
         nl->Second(qp->GetSupplierTypeExpr(qp->GetSon(s,2)))));
 
     localInfo = new pjLocalInfo(args[0], args[3].addr, s,
-        aTupleTypeList, bTupleTypeList);
+        aTupleTypeList, bTupleTypeList,
+        qp->MemoryAvailableForOperator());
 
     local.setAddr(localInfo);
     return 0;
@@ -968,6 +993,13 @@ void pjLocalInfo::loadTuples()
   if(tbA != 0)
     delete tbA;
   tbA = 0;
+  if (itrA != 0)
+    delete itrA;
+  itrA = 0;
+
+  if (itrB != 0)
+    delete itrB;
+  itrB = 0;
   if(tbB != 0)
     delete tbB;
   tbB = 0;
@@ -984,6 +1016,7 @@ void pjLocalInfo::loadTuples()
     {
       cTuple = static_cast<Tuple*> (cTupleWord.addr);
       tupStr = ((FText*) (cTuple->GetAttribute(0)))->GetValue();
+      cTuple->DeleteIfAllowed();
       nl->ReadFromString(tupStr, tupList);
       int SI = NList(tupList).first().intval();
       valList = nl->Second(tupList);
@@ -997,6 +1030,7 @@ void pjLocalInfo::loadTuples()
         tupleA = Tuple::In(aTypeInfo, valList, errorPos,
             errorInfo, correct);
         tbA->AppendTuple(tupleA);
+        tupleA->DeleteIfAllowed();
         break;
       }
       case 2:
@@ -1004,6 +1038,7 @@ void pjLocalInfo::loadTuples()
         tupleB = Tuple::In(bTypeInfo, valList, errorPos,
             errorInfo, correct);
         tbB->AppendTuple(tupleB);
+        tupleB->DeleteIfAllowed();
         break;
       }
       case 0:
@@ -1044,6 +1079,8 @@ void pjLocalInfo::loadTuples()
     {
       tpIndex_A = tpIndex_B = 0;
       isBufferFilled = true;
+      itrA = tbA->MakeScan();
+      itrB = tbB->MakeScan();
       break;
     }
   }
@@ -1064,12 +1101,14 @@ Word pjLocalInfo::getNextInputTuple(tupleBufferType tbt)
   Tuple* tuple = 0;
 
   if(tbt == tupBufferA){
-    if (tpIndex_A >= 0 && tpIndex_A < tbA->GetNoTuples())
-      tuple = tbA->GetTuple(tpIndex_A++, false);
+    /*if (tpIndex_A >= 0 && tpIndex_A < tbA->GetNoTuples())
+      tuple = tbA->GetTuple(tpIndex_A++, false);*/
+    tuple = itrA->GetNextTuple();
   }
   else{
-    if (tpIndex_B >= 0 && tpIndex_B < tbB->GetNoTuples())
-      tuple = tbB->GetTuple(tpIndex_B++, false);
+    /*if (tpIndex_B >= 0 && tpIndex_B < tbB->GetNoTuples())
+      tuple = tbB->GetTuple(tpIndex_B++, false);*/
+    tuple = itrB->GetNextTuple();
   }
 
   return SetWord(tuple);
@@ -1156,7 +1195,6 @@ ListExpr add0TupleTypeMap(ListExpr args)
 {
   CHECK_COND(nl->ListLength(args) == 1, "Expect 1 argument");
   ListExpr streamNL = nl->First(args);
-  cout << "streamNL is: " << nl->ToString(streamNL) << endl;
   CHECK_COND(listutils::isTupleStream(streamNL),
       "Expect a stream of tuple.");
   ListExpr tupleList = nl->Second(nl->Second(streamNL));
@@ -1209,7 +1247,11 @@ int add0TupleValueMap(Word* args, Word& result,
     if(localInfo->needInsert)
     {
       //insert the separate tuple
-      result.setAddr(localInfo->moreTuple);
+      newTuple = localInfo->moreTuple->Clone();
+      result.setAddr(newTuple);
+
+      delete localInfo->moreTuple;
+      localInfo->moreTuple = 0;
       localInfo->needInsert = false;
       return YIELD;
     }
@@ -1223,6 +1265,7 @@ int add0TupleValueMap(Word* args, Word& result,
             ((CcString*)(oldTuple->GetAttribute(0)))->GetValue();
         string value =
             ((FText*)(oldTuple->GetAttribute(1)))->GetValue();
+        oldTuple->DeleteIfAllowed();
 
         newTuple = new Tuple(localInfo->resultTupleType);
         newTuple->PutAttribute(0, new FText(true, value));
@@ -1245,7 +1288,6 @@ int add0TupleValueMap(Word* args, Word& result,
           result.setAddr(sepTuple);
           return YIELD;
         }
-        oldTuple->DeleteIfAllowed();
       }
       else
         return CANCEL;
