@@ -9,9 +9,14 @@
 ###                                        ###
 
 # Research in progress
-RoseAlgebra Rose
 RemoteStreamAlgebra RemoteStream
 PartitionedStreamAlgebra PartitionedStream
+FlockAlgebra Flock
+DistributedAlgebra Distributed
+GPatternAlgebra GPattern
+HadoopParallelAlgebra HadoopParallel
+MAttiaTestAlgebra MAttiaTest
+TransportationModeAlgebra TransportationMode
 
 
 # Plugins
@@ -31,13 +36,14 @@ PeriodicAlgebra Periodic
 HierarchicalGeoAlgebra HierarchicalGeo
 WebAlgebra Web
 ChessAlgebra Chess
+OrderedRealationAlgebra OrderedRelation
 RasterAlgebra Raster
 RasterSpatialAlgebra RasterSpatial
 MRegionOpsAlgebra MRegionOps
 OptAuxAlgebra OptAux
-NearestNeighborAlgebra NearestNeighbor
 RegionInterpolationAlgebra RegionInterpolation
 UGridAlgebra UGrid
+URelAlgebra URel
 ConstraintAlgebra Constraint
 PointSequenceAlgebra PointSequence
 ConstraintAlgebra Constraint
@@ -48,6 +54,9 @@ BTree2Algebra BTree2
 # Java algebras - not longer supported
 JBBoxAlgebra JBBox
 FuzzyAlgebra Fuzzy
+RoseAlgebra Rose
+
+# old stuff
 OldRelationAlgebra OldRelation-C++
 
 
