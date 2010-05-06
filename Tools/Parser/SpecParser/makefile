@@ -52,4 +52,4 @@ include $(DEP_FILES)
 endif
 
 clean:
-	$(RM) $(GENFILES) $(DEP_FILES) $(OBJECTS)
+	$(RM) $(GENFILES) $(DEP_FILES) $(OBJECTS) SpecParser.tab.o
