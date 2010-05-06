@@ -24,6 +24,7 @@ static int interpolateValueMap_1(Word* args,
                         Word& local,
                         Supplier s) 
 {                         
+   try{
     result = qp->ResultStorage(s);
     Region* reg1 = (Region*) args[0].addr;
     Region* reg2 = (Region*) args[1].addr;
@@ -44,6 +45,10 @@ static int interpolateValueMap_1(Word* args,
     result.addr=res->Clone();
     delete inter;
     return 0;
+  } catch(const std::exception& e){
+     cerr << e.what() << endl;
+     return 0;
+  }
 }
 /*
 

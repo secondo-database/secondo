@@ -31,16 +31,16 @@ RegionForInterpolation :: RegionForInterpolation(Region *newRegion)
       tmp= new HalfSegment();       
       newRegion->GetHs(*tmp);
       newRegion->SelectNext();
-      if(tmp->GetAttr().faceno >= tmpvec.size())
+      if(tmp->GetAttr().faceno >= (int)tmpvec.size())
       {
          tmpvec.resize(tmp->GetAttr().faceno + 1);          
       }
       
-      if(tmp->GetAttr().cycleno >= tmpvec[tmp->GetAttr().faceno].size())
+      if(tmp->GetAttr().cycleno >= (int)tmpvec[tmp->GetAttr().faceno].size())
       {
          tmpvec[tmp->GetAttr().faceno].resize((tmp->GetAttr().cycleno + 1));
       }           
-      if(tmp->GetAttr().edgeno >= tmpvec[tmp->GetAttr().faceno] 
+      if(tmp->GetAttr().edgeno >= (int) tmpvec[tmp->GetAttr().faceno] 
          [tmp->GetAttr().cycleno].size())
       {
          tmpvec[tmp->GetAttr().faceno] [tmp->GetAttr().cycleno].resize(

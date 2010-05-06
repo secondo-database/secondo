@@ -43,8 +43,9 @@ ConvexHullTreeNode *OverlapingMatch :: getBestMatch(ConvexHullTreeNode *source,
     ConvexHullTreeNode* bestMatch;
     for(unsigned int i = 0; i < targets->size(); i++)
     {
-        double overlap = Utils :: getOverlap(&(source->getLines()), 
-                                              &(targets->at(i)->getLines()));
+        vector<CHLine> l1 = source->getLines();
+        vector<CHLine> l2 = targets->at(i)->getLines();
+        double overlap = Utils :: getOverlap(&l1, &l2);
         if(overlap > best)
         {
             bestMatch = targets->at(i);
@@ -60,8 +61,9 @@ Face *OverlapingMatch :: getBestMatch(Face *source, vector<Face*> *targets)
     Face* bestMatch;
     for(unsigned int i = 0; i < targets->size(); i++)
     {
-        double overlap = Utils :: getOverlap(&(source->getCycle()->getLines()), 
-                                     &(targets->at(i)->getCycle()->getLines()));
+        vector<CHLine> l1 = source->getCycle()->getLines();
+        vector<CHLine> l2 = targets->at(i)->getCycle()->getLines();
+        double overlap = Utils :: getOverlap(&l1, &l2);
         if(overlap > best)
         {
             bestMatch = targets->at(i);
@@ -85,9 +87,9 @@ void OverlapingMatch :: matchCHTNs(vector<ConvexHullTreeNode*> &chtn1,
     {
         for(unsigned int j = 0; j < chtn2.size(); j++)
         {
-            
-            double overlap = Utils :: getOverlap(&(chtn1.at(i)->getLines()), 
-                                                  &(chtn2.at(j)->getLines()));
+            vector<CHLine> l1 = chtn1.at(i)->getLines(); 
+            vector<CHLine> l2 = chtn2.at(j)->getLines();
+            double overlap = Utils :: getOverlap(&l1, &l2);
             if(overlap > threshold)
             {
                 addMatch(chtn1.at(i), chtn2.at(j));
@@ -177,10 +179,9 @@ void OverlapingMatch :: matchFaces(vector<Face*> *faces1, vector<Face*> *faces2)
     {
         for(unsigned int j = 0; j < faces2->size(); j++)
         {
-            
-            double overlap = Utils :: getOverlap( 
-                                      &(faces1->at(i)->getCycle()->getLines()), 
-                                      &(faces2->at(j)->getCycle()->getLines()));
+            vector<CHLine> l1 = faces1->at(i)->getCycle()->getLines();
+            vector<CHLine> l2 = faces2->at(j)->getCycle()->getLines(); 
+            double overlap = Utils :: getOverlap( &l1,&l2);
             if(overlap > threshold)
             {
                 addMatch(faces1->at(i), faces2->at(j));
