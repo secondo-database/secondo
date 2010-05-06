@@ -739,7 +739,7 @@ int rangesearchHPoint_VM(
       TupleId tid = li->next();
       if(tid)
       {
-        Tuple *tuple = li->relation->GetTuple(tid);
+        Tuple *tuple = li->relation->GetTuple(tid, false);
         result = SetWord(tuple);
         return YIELD;
       }
@@ -834,7 +834,7 @@ int rangesearch_VM(
       TupleId tid = li->next();
       if(tid)
       {
-        Tuple *tuple = li->relation->GetTuple(tid);
+        Tuple *tuple = li->relation->GetTuple(tid, false);
         result = SetWord(tuple);
         return YIELD;
       }
@@ -905,7 +905,7 @@ int nnsearchHPoint_VM(
       TupleId tid = li->next();
       if(tid)
       {
-        Tuple *tuple = li->relation->GetTuple(tid);
+        Tuple *tuple = li->relation->GetTuple(tid, false);
         result = SetWord(tuple);
         return YIELD;
       }
@@ -994,7 +994,7 @@ int nnsearch_VM(
       TupleId tid = li->next();
       if(tid)
       {
-        Tuple *tuple = li->relation->GetTuple(tid);
+        Tuple *tuple = li->relation->GetTuple(tid, false);
         result = SetWord(tuple);
         return YIELD;
       }
@@ -1073,7 +1073,7 @@ int nnscanHPoint_VM(
       TupleId tid = li->xtree->nnscan_next();
       if(tid)
       {
-        Tuple *tuple = li->relation->GetTuple(tid);
+        Tuple *tuple = li->relation->GetTuple(tid, false);
         result = SetWord(tuple);
         return YIELD;
       }
@@ -1154,7 +1154,7 @@ int nnscan_VM(
       TupleId tid = li->xtree->nnscan_next();
       if(tid)
       {
-        Tuple *tuple = li->relation->GetTuple(tid);
+        Tuple *tuple = li->relation->GetTuple(tid, false);
         result = SetWord(tuple);
         return YIELD;
       }
@@ -1228,7 +1228,7 @@ int windowintersects_VM(
       TupleId tid = li->next();
       if(tid)
       {
-        Tuple *tuple = li->relation->GetTuple(tid);
+        Tuple *tuple = li->relation->GetTuple(tid, false);
         result = SetWord(tuple);
         return YIELD;
       }
