@@ -3028,13 +3028,21 @@ bool HalfSegment::Intersects( const HalfSegment& hs ) const
   if( AlmostEqual( k, K ) )
     // both segments have the same inclination
   {
-    if( ( AlmostEqual( A, a ) &&
+/*    if( ( AlmostEqual( A, a ) &&
         (( ( xl > Xl || AlmostEqual( xl, Xl ) ) &&
           ( xl < Xr || AlmostEqual( xl, Xr ) ) ))) ||
         ( ( Xl > xl || AlmostEqual( xl, Xl ) ) &&
           ( Xl < xr || AlmostEqual( xr, Xl ) ) ) )
       // the segments are in the same straight line
+      return true;*/
+    if( AlmostEqual( A, a ) &&
+        (( ( xl > Xl || AlmostEqual( xl, Xl ) ) &&
+          ( xl < Xr || AlmostEqual( xl, Xr ) ) ) ||
+        ( ( Xl > xl || AlmostEqual( xl, Xl ) ) &&
+          ( Xl < xr || AlmostEqual( xr, Xl ) ) ) ))
+      // the segments are in the same straight line
       return true;
+
   }
   else
   {
