@@ -179,8 +179,8 @@ ALGEBRAS     += TopRelAlgebra
 ALGEBRA_DIRS += TopOps
 ALGEBRAS     += TopOpsAlgebra
 
-#ALGEBRA_DIRS += PartitionedStream
-#ALGEBRAS     += PartitionedStreamAlgebra
+ALGEBRA_DIRS += PartitionedStream
+ALGEBRAS     += PartitionedStreamAlgebra
 
 ALGEBRA_DIRS += Array
 ALGEBRAS     += ArrayAlgebra
