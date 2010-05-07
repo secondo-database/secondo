@@ -270,8 +270,8 @@ ALGEBRAS      += ClusterAlgebra
 #ALGEBRA_DIRS += Traffic
 #ALGEBRAS     += TrafficAlgebra
 
-#ALGEBRA_DIRS += Record
-#ALGEBRAS     += RecordAlgebra
+ALGEBRA_DIRS += Record
+ALGEBRAS     += RecordAlgebra
 
 # JNI Algebras - Java code will be called from C++ code.
 
