@@ -290,11 +290,11 @@ query is_refinement(histcoarse1d, histcoarse1d);
 query is_refinement(histcoarse1d, histfine1d);
 
 #testcase h1dIsRefinementFalse2Testcase
-#yields (bool FALSE)
+#yields (bool undef)
 query is_refinement(realstream(1.0, -1.0, 100.0) set_histogram1d, histfine1d);
 
 #testcase h1dIsRefinementFalse3Testcase
-#yields (bool FALSE)
+#yields (bool undef)
 query is_refinement(histfine1d, realstream(1.0, -1.0, 100.0) set_histogram1d);
 
 #testcase h1dIsRefinementErrorTestcase
@@ -322,19 +322,19 @@ query is_refinement(histcoarse2d, histcoarse2d);
 query is_refinement(histcoarse2d, histfine2d);
 
 #testcase h2dIsRefinementFalse2Testcase
-#yields (bool FALSE)
+#yields (bool undef)
 query is_refinement(realstream(1.0, -1.0, 100.0) realstream(-23.0, 350.0, 12.0) set_histogram2d, histfine2d);
 
 #testcase h2dIsRefinementFalse3Testcase
-#yields (bool FALSE)
+#yields (bool undef)
 query is_refinement(histfine2d, realstream(1.0, -1.0, 100.0) realstream(-23.0, 350.0, 12.0) set_histogram2d);
 
 #testcase h2dIsRefinementFalse4Testcase
-#yields (bool FALSE)
+#yields (bool undef)
 query is_refinement(realstream(-23.0, 350.0, 12.0)realstream(1.0, -1.0, 100.0) set_histogram2d, histfine2d);
 
 #testcase h2dIsRefinementFalse5Testcase
-#yields (bool FALSE)
+#yields (bool undef)
 query is_refinement(histfine2d, realstream(-23.0, 350.0, 12.0) realstream(1.0, -1.0, 100.0) set_histogram2d);
 
 #testcase h2dIsRefinementErrorTestcase
