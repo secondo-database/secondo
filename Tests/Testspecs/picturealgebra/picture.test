@@ -1,6 +1,6 @@
-delete database pictest;
-create database pictest;
-open database pictest;
+delete database picturetest;
+create database picturetest;
+open database picturetest;
 
 # 
 # create test pictures
