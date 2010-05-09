@@ -1,0 +1,35 @@
+Operator : setiCreate
+Number   : 1
+Signature: rect -> seti
+Example  : let mySeti = setiCreate( [const rect value (2.0 10.0 2.0 10.0)] )
+Result   : (seti ((2.0 10.0 2.0 10.0)("undefined" "undefined")))
+
+Operator : setiInsertUnit
+Number   : 1
+Signature: seti x uploadunit -> bool
+Example  : query setiInsertUnit( mySeti, [const uploadunit value (9 "2010-10-12" (8.2 1.6))] )
+Result   : true
+
+Operator : setiInsertStream
+Number   : 1
+Signature: ((stream (tuple([a1:d1, ..., ai:int,..., an:dn]))) x seti x ai) -> bool
+Example  : query myUploadRel feed setiInsertStream[ mySeti, upload ]
+Result   : true
+
+Operator : setiIntersectsWindow
+Number   : 1
+Signature: seti x rect x  instant x instant -> stream (tuple (MovObjId int))
+Example  : query setiIntersectsWindow( mySeti, myRect, instant("2004-11-30-12:32"), instant("2011-08-30-12:32") ) count
+Result   : 10
+
+Operator : setiInsideWindow
+Number   : 1
+Signature: seti x rect x  instant x instant -> stream (tuple (MovObjId int))
+Example  : query setiInsideWindow( mySeti, myRect, instant("2004-11-30-12:32"), instant("2011-08-30-12:32") ) count
+Result   : 8
+
+Operator : setiCurrentUpload
+Number   : 1
+Signature: seti x int  -> int
+Example  : query setiCurrentUpload ( mySeti, 5 )
+Result   : (5 "2006-10-25-09:32" (2.1 2.2)))
