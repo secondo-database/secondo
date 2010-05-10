@@ -257,11 +257,11 @@ ALGEBRAS      += ClusterAlgebra
 #ALGEBRA_DIRS += UGrid
 #ALGEBRAS     += UGridAlgebra
 
-#ALGEBRA_DIRS += ExtRelation-2
-#ALGEBRAS     += ExtRelation2Algebra
+ALGEBRA_DIRS += ExtRelation-2
+ALGEBRAS     += ExtRelation2Algebra
 
-#ALGEBRA_DIRS += BTree2
-#ALGEBRAS     += BTree2Algebra
+ALGEBRA_DIRS += BTree2
+ALGEBRAS     += BTree2Algebra
 
 # Under Construction: Some bug fixing needed
 #ALGEBRA_DIRS += MONTree
