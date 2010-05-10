@@ -300,7 +300,7 @@ void getKeyrangeValuesUnique (keytype key, double& less, double& equal,
   double avgLeafEntries = (double)btree->GetLeafEntryCount()
                              / btree->GetLeafNodeCount();
   BTreeNode<keytype, valuetype>* leafNode;
-  BTreeNode<keytype, NodeId>* internalNode;
+  InternalNodeClass<keytype>* internalNode;
   int treeheight = btree->GetTreeHeight();
   int index;
   vector <NodeId> path;
@@ -360,7 +360,7 @@ void getKeyrangeValuesMultiple (keytype key, double& less, double& equal,
   double avgLeafEntries = (double)btree->GetLeafEntryCount()
                              / btree->GetLeafNodeCount();
   BTreeNode<keytype, valuetype>* leafNode;
-  BTreeNode<keytype, NodeId>* internalNode;
+  InternalNodeClass<keytype>* internalNode;
   int treeheight = btree->GetTreeHeight();
   int index;
   vector <NodeId> path;

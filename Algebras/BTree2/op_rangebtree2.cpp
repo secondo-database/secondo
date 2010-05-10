@@ -267,6 +267,16 @@ description is given with the type mapping function.
 
 struct RangeQueryLocalInfo
 {
+  RangeQueryLocalInfo(): iter(), iterStopMarker(), relation(0),
+                         ttype(0), nextOK(false){}
+
+  ~RangeQueryLocalInfo(){
+    if(ttype){
+       ttype->DeleteIfAllowed();
+    }
+    ttype=0;
+    relation=0;
+  }
   BTree2Iterator iter;
   BTree2Iterator iterStopMarker;
   Relation* relation;
@@ -294,6 +304,10 @@ RangeQuery(Word* args, Word& result, int message, Word& local, Supplier s)
   {
     case OPEN :
       // local information structure for range operations
+      localInfo = (RangeQueryLocalInfo*)local.addr;
+      if(localInfo){
+          delete localInfo;
+      }
       localInfo = new RangeQueryLocalInfo;
       btree2 = (BTree2*)args[0].addr;
 
@@ -439,7 +453,6 @@ RangeQuery(Word* args, Word& result, int message, Word& local, Supplier s)
       if(local.addr)
       {
         localInfo = (RangeQueryLocalInfo*)local.addr;
-        localInfo->ttype->DeleteIfAllowed();
         delete localInfo;
         local = SetWord(Address(0));
       }

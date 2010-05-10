@@ -233,23 +233,19 @@ insertbtree::ValueMapping1(Word* args, Word& result, int message,
     case REQUEST :
     {       
       qp->Request(args[0].addr, elem);
-      while (qp->Received(args[0].addr))
+      if (qp->Received(args[0].addr))
       {
         info = (vmInfo*)local.addr;
         tuple = (Tuple*)elem.addr;
         key = tuple->GetAttribute(info->keyIndex);
         value = tuple->GetAttribute(info->valueIndex);
         if (((TupleIdentifier*)value)->GetTid() == 0){
+          tuple->DeleteIfAllowed(); 
           return CANCEL;
         }
         res = info->btree->AppendGeneric(key, value); 
-        if (res){
-          result.setAddr(tuple);
-          return YIELD;
-        }
-        else{
-          qp->Request(args[0].addr, elem);
-        } 
+        result.setAddr(tuple);
+        return YIELD;
       }
       return CANCEL;
     } 
@@ -299,7 +295,7 @@ insertbtree::ValueMapping2(Word* args, Word& result, int message,
     case REQUEST :
     {       
       qp->Request(args[0].addr, elem);
-      while (qp->Received(args[0].addr))
+      if (qp->Received(args[0].addr))
       {
         info = (vmInfo*)local.addr;
         tuple = (Tuple*)elem.addr;
@@ -312,13 +308,8 @@ insertbtree::ValueMapping2(Word* args, Word& result, int message,
           value = tuple->GetAttribute(info->valueIndex);
           res = info->btree->AppendGeneric(key, value);
         }
-        if (res){
-          result.setAddr(tuple);
-          return YIELD;
-        }
-        else{
-          qp->Request(args[0].addr, elem);
-        } 
+        result.setAddr(tuple);
+        return YIELD;
       }
       return CANCEL;
     } 

@@ -223,7 +223,7 @@ deletebtree::ValueMapping1(Word* args, Word& result, int message,
     case REQUEST :
     {       
       qp->Request(args[0].addr, elem);
-      while (qp->Received(args[0].addr))
+      if (qp->Received(args[0].addr))
       {
         info = (vmInfo*)local.addr;
         tuple = (Tuple*)elem.addr;
@@ -235,13 +235,8 @@ deletebtree::ValueMapping1(Word* args, Word& result, int message,
           value = tuple->GetAttribute(info->valueIndex);
           res = info->btree->DeleteGeneric(key, value);
         }
-        if (res){
-          result.setAddr(tuple);
-          return YIELD;
-        }
-        else{
-          qp->Request(args[0].addr, elem);
-        } 
+        result.setAddr(tuple);
+        return YIELD;
       }
       return CANCEL;
     } 
@@ -287,7 +282,7 @@ deletebtree::ValueMapping2(Word* args, Word& result, int message,
     case REQUEST :
     {       
       qp->Request(args[0].addr, elem);
-      while (qp->Received(args[0].addr))
+      if (qp->Received(args[0].addr))
       {
         info = (vmInfo*)local.addr;
         tuple = (Tuple*)elem.addr;
@@ -299,13 +294,8 @@ deletebtree::ValueMapping2(Word* args, Word& result, int message,
           value = tuple->GetAttribute(info->valueIndex);
           res = info->btree->DeleteGeneric(key, value);
         }
-        if (res){
-          result.setAddr(tuple);
-          return YIELD;
-        }
-        else{
-          qp->Request(args[0].addr, elem);
-        }
+        result.setAddr(tuple);
+        return YIELD;
       }
       return CANCEL;
     } 

@@ -64,11 +64,21 @@ namespace BTree2Algebra {
 2 Class ~BTreeCache~
 
 */
+template<typename KEYTYPE>
+class InternalNodeClass: public BTreeNode<KEYTYPE, NodeId>{
+
+  public:
+     InternalNodeClass(const bool internal, NodeId nid, BTree2* parent):
+     BTreeNode<KEYTYPE,NodeId>(internal, nid, parent) {}
+
+};
+
+
 
 template <typename KEYTYPE,typename VALUETYPE>
 class BTree2Cache {
   private:
-    typedef BTreeNode<KEYTYPE, NodeId> InternalNode;
+    typedef InternalNodeClass<KEYTYPE> InternalNode;
     typedef BTreeNode<KEYTYPE, VALUETYPE> LeafNode;
 
     static const bool operationRelatedHitCounting = false;
@@ -293,7 +303,7 @@ private:
       size_t memoryUsage;
       int historyListCount;
       union {
-        BTreeNode<KEYTYPE,NodeId>* internalNode;
+        InternalNode* internalNode;
         BTreeNode<KEYTYPE,VALUETYPE>* leafNode;
       };
      };
@@ -731,7 +741,7 @@ BTreeNode<KEYTYPE,VALUETYPE>*
 }
 
 template <typename KEYTYPE,typename VALUETYPE> 
-BTreeNode<KEYTYPE,NodeId>* 
+InternalNodeClass<KEYTYPE>* 
         BTree2Cache<KEYTYPE,VALUETYPE>::fetchInternalNode(const NodeId nodeId) {
   btree->IncNodesVisitedCounter();
 
@@ -764,8 +774,8 @@ BTreeNode<KEYTYPE,NodeId>*
 
   // Not found: fetch from disc
   
-  BTreeNode<KEYTYPE,NodeId>* n = 
-                  new BTreeNode<KEYTYPE,NodeId>(true, nodeId, btree);
+  InternalNodeClass<KEYTYPE>* n = 
+                  new InternalNodeClass<KEYTYPE>(true, nodeId, btree);
 
   n->Read(btree->GetBTreeFile(), nodeId);
 

@@ -527,6 +527,7 @@ bool BTree2::GetFileStats( FileEnum fe, SmiStatResultType &result )
                 "BTree2IndexFile - Cache Parameter"));
       result.push_back(pair<string,string>("FileId",fileid.str()));
       f->Close();
+      delete f;
       return true;
   }
   return false;

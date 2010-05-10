@@ -51,7 +51,7 @@ using namespace std;
 extern NestedList* nl;
 extern QueryProcessor *qp;
 
-typedef long TupleId;
+typedef SmiRecordId TupleId;
 
 /*
 2 Type Constructor ~tid~
@@ -114,7 +114,7 @@ class TupleIdentifier: public Attribute
 
  private:
   TupleId tid;
-  
+
 
   inline TupleIdentifier() {};
   /*

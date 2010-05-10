@@ -50,7 +50,7 @@ namespace BTree2Algebra {
 template <typename KEYTYPE,typename VALUETYPE>
 class BTree2Impl : public BTree2 {
   public:
-    typedef BTreeNode<KEYTYPE, NodeId> InternalNode;
+    typedef InternalNodeClass<KEYTYPE> InternalNode;
     typedef BTreeNode<KEYTYPE, VALUETYPE> LeafNode;
 
     BTree2Impl(const string& keytype, const string& valuetype);
@@ -452,7 +452,7 @@ so the caller must free resources with a call to cache.dispose.
 
 */
 
-    BTreeNode<KEYTYPE,NodeId>* createInternalNode();
+    InternalNode* createInternalNode();
 /*
 Creates an empty internal node. It is also moved into the cache,
 so the caller must free resources with a call to cache.dispose.
@@ -892,7 +892,7 @@ template <typename KEYTYPE,typename VALUETYPE>
 Attribute* BTree2Impl<KEYTYPE,VALUETYPE>::GetEntryKeyInternal(NodeId nodeId,
                                                            int entryNumber) {
 
-  BTreeNode<KEYTYPE,NodeId>* n = cache.fetchInternalNode(nodeId);
+  InternalNodeClass<KEYTYPE>* n = cache.fetchInternalNode(nodeId);
   if (entryNumber >= n->GetCount()) {
     cache.dispose(n);
     return 0;
@@ -927,7 +927,7 @@ template <typename KEYTYPE,typename VALUETYPE>
 NodeId BTree2Impl<KEYTYPE,VALUETYPE>::GetEntryValueInternal(NodeId nodeId,
                                                           int entryNumber) {
 
-  BTreeNode<KEYTYPE,NodeId>* n = cache.fetchInternalNode(nodeId);
+  InternalNodeClass<KEYTYPE>* n = cache.fetchInternalNode(nodeId);
 
   if (entryNumber > n->GetCount()) {
     cache.dispose(n);
@@ -954,7 +954,7 @@ int BTree2Impl<KEYTYPE,VALUETYPE>::GetNodeEntryCount(NodeId nodeId)
 {
   if (ProbeIsInternal(nodeId))
   {
-    BTreeNode<KEYTYPE,NodeId>* n = cache.fetchInternalNode(nodeId); 
+    InternalNodeClass<KEYTYPE>* n = cache.fetchInternalNode(nodeId); 
     cache.dispose(n);
     return n->GetCount();
   }
@@ -986,7 +986,7 @@ template <typename KEYTYPE,typename VALUETYPE>
 NodeId BTree2Impl<KEYTYPE,VALUETYPE>::FindLeftmostLeafNodeId(
                                                     const KEYTYPE& key, 
                                                     vector<NodeId>& path) {
-  BTreeNode<KEYTYPE,NodeId>* n;
+  InternalNodeClass<KEYTYPE>* n;
   path.resize(header.treeHeight+1);
   NodeId currentId = header.rootNodeId;
   path[0] = currentId;
@@ -1008,7 +1008,7 @@ template <typename KEYTYPE,typename VALUETYPE>
 NodeId BTree2Impl<KEYTYPE,VALUETYPE>::FindRightmostLeafNodeId(
                                                     const KEYTYPE& key,
                                                     vector<NodeId>& path) {
-  BTreeNode<KEYTYPE,NodeId>* n;
+  InternalNodeClass<KEYTYPE>* n;
   path.resize(header.treeHeight+1);
   NodeId currentId = header.rootNodeId;
   path[0] = currentId;
@@ -1081,7 +1081,7 @@ bool BTree2Impl<KEYTYPE,VALUETYPE>::FindLeafNodeId(const KEYTYPE& key,
 
 template <typename KEYTYPE,typename VALUETYPE> 
 BTree2Iterator BTree2Impl<KEYTYPE,VALUETYPE>::begin() {
-  BTreeNode<KEYTYPE,NodeId>* n;
+  InternalNodeClass<KEYTYPE>* n;
 
   NodeId currentId = header.rootNodeId;
   
@@ -1281,7 +1281,7 @@ void BTree2Impl<KEYTYPE,VALUETYPE>::findRangeBoundary(Attribute* key,
     NodeId currentId1 = header.rootNodeId;
     NodeId currentId2 = header.rootNodeId;
 
-    BTreeNode<KEYTYPE,NodeId>* ni;
+    InternalNodeClass<KEYTYPE>* ni;
     int index = 0;
     int h = 0;
     // find internal node, where currentId(key) is different from
@@ -1530,7 +1530,7 @@ bool BTree2Impl<KEYTYPE,VALUETYPE>::Update(const KEYTYPE& key,
 template <typename KEYTYPE,typename VALUETYPE>
 void BTree2Impl<KEYTYPE,VALUETYPE>::printNodeInfo(NodeId id, int height) {
   if (ProbeIsInternal(id)) {
-    BTreeNode<KEYTYPE,NodeId>* n = cache.fetchInternalNode(id);
+    InternalNodeClass<KEYTYPE>* n = cache.fetchInternalNode(id);
     printf("Node %d ", n->GetNodeId());
     printf("(#=%d) h=%d ", n->GetCount(), height);
     vector<NodeId> subs;
@@ -1705,7 +1705,7 @@ BTreeNode<KEYTYPE,VALUETYPE>*
 }
 
 template <typename KEYTYPE,typename VALUETYPE> 
-BTreeNode<KEYTYPE,NodeId>* 
+InternalNodeClass<KEYTYPE>* 
    BTree2Impl<KEYTYPE,VALUETYPE>::fetchInternalNode(int pos, 
                                               InternalNode* parent) {
   NodeId i = parent->GetChildNodeByIndex(pos);
@@ -1737,7 +1737,7 @@ BTreeNode<KEYTYPE,VALUETYPE>* BTree2Impl<KEYTYPE,VALUETYPE>::createLeafNode() {
 }
 
 template <typename KEYTYPE,typename VALUETYPE>
-BTreeNode<KEYTYPE,NodeId>* BTree2Impl<KEYTYPE,VALUETYPE>::createInternalNode(){
+InternalNodeClass<KEYTYPE>* BTree2Impl<KEYTYPE,VALUETYPE>::createInternalNode(){
   SmiRecord record;
   SmiRecordId recno;
 
@@ -2150,9 +2150,9 @@ bool BTree2Impl<KEYTYPE,VALUETYPE>::RemoveNodeByMerging(int entry,
 }
 
 template <typename KEYTYPE,typename VALUETYPE> 
-BTreeNode<KEYTYPE,NodeId>*
-  BTree2Impl<KEYTYPE,VALUETYPE>::SingleSplit(InternalNode* m,
-                                             InternalNode* parent) {
+InternalNodeClass<KEYTYPE>*
+  BTree2Impl<KEYTYPE,VALUETYPE>::SingleSplit(InternalNodeClass<KEYTYPE>* m,
+                                        InternalNodeClass<KEYTYPE>* parent){
   int e = (m->GetCount()/2);   // select splitting entry
   InternalNode* m2 = createInternalNode();
   m2->SetChildNodeIsLeaf(m->ChildNodeIsLeaf());
@@ -2217,7 +2217,7 @@ BTreeNode<KEYTYPE,VALUETYPE>*
   nnew->SetLeftPointer(n->GetNodeId());
 
   if (header.rootNodeId == n->GetNodeId()) {  // if leaf is root node
-    InternalNode* pnode = createInternalNode(); // new root node
+    InternalNodeClass<KEYTYPE>* pnode = createInternalNode(); // new root node
     header.rootNodeId = pnode->GetNodeId();
     BTreeEntry<KEYTYPE,VALUETYPE> const& ent = n->GetEntry(e);
     pnode->InsertLeftmost(ent.GetKey(), n->GetNodeId());
