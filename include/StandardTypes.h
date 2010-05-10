@@ -969,7 +969,7 @@ class CcString : public Attribute
     stringsCreated++;
   }
 
-  inline CcString( const string& v)
+  inline CcString( const string& v) : Attribute(true)
   {
     Set(true, v);
     //cout << "Cc3" << endl;
