@@ -1,8 +1,8 @@
 /*
----- 
+----
 This file is part of SECONDO.
 
-Copyright (C) 2008, University in Hagen, Department of Computer Science, 
+Copyright (C) 2008, University in Hagen, Department of Computer Science,
 Database Systems for New Applications.
 
 SECONDO is free software; you can redistribute it and/or modify
@@ -34,10 +34,10 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 #include "Algebra.h"
 #include "NestedList.h"
-#include "NList.h" 
+#include "NList.h"
 #include "LogMsg.h"
 #include "QueryProcessor.h"
-#include "ConstructorTemplates.h" 
+#include "ConstructorTemplates.h"
 #include "StandardTypes.h"
 #include "RelationAlgebra.h"
 
@@ -49,9 +49,9 @@ algebra, too, and "NestedList.h" is needed for this purpose. The result of an
 operation is passed directly to the query processor. An instance of
 "QueryProcessor" serves for this. Secondo provides some standard data types, e.g.
 "CcInt", "CcReal", "CcString", "CcBool", which is needed as the result type of the
-implemented operations. To use them "StandardTypes.h" needs to be included. 
-   
-*/  
+implemented operations. To use them "StandardTypes.h" needs to be included.
+
+*/
 
 extern NestedList* nl;
 extern QueryProcessor *qp;
@@ -81,8 +81,8 @@ using namespace std;
 /*
 The implementation of the algebra is embedded into
 a namespace ~prt~ in order to avoid name conflicts with other modules.
-   
-*/   
+
+*/
 
 namespace optaux {
 
@@ -110,8 +110,8 @@ long, long or similiar. For safety reasons the maximum count is limited to
 template <class INDEX_TYPE, class RESULT_TYPE>
 class GeneralPredcountsLocalData {
 
-  private: 
-    RESULT_TYPE counter; 
+  private:
+    RESULT_TYPE counter;
 
     inline static unsigned short highestBit(unsigned int value)
     {
@@ -125,16 +125,16 @@ class GeneralPredcountsLocalData {
   public:
 
    GeneralPredcountsLocalData() :
-     counter(0),      
+     counter(0),
      resultTupleType(0),
-     predicateCombinations(0),   
-     resultCounters(0) 
+     predicateCombinations(0),
+     resultCounters(0)
    {}
 
-   ~GeneralPredcountsLocalData() 
+   ~GeneralPredcountsLocalData()
    {
-     resultTupleType->DeleteIfAllowed(); // produced tuples may have still 
-                                    // references to it;        
+     resultTupleType->DeleteIfAllowed(); // produced tuples may have still
+                                    // references to it;
      delete [] resultCounters;
    }
 
@@ -142,59 +142,59 @@ class GeneralPredcountsLocalData {
    INDEX_TYPE   predicateCombinations;
    RESULT_TYPE* resultCounters;
 
-   inline static size_t maxPredicateCount() 
-   { 
+   inline static size_t maxPredicateCount()
+   {
       // the maximum count are equal to the count of bits of INDEX_TYPE
-      // for savety reasons (usage of int instead of unsigned int anywhere) 
-      // decrement by 1 the memory to be allocated for the counter array 
+      // for savety reasons (usage of int instead of unsigned int anywhere)
+      // decrement by 1 the memory to be allocated for the counter array
       // is the product of 2\^maxPredicateCount * 2\^sizeof(RESULT_TYPE)
       // this value must not greater than 2\^32 (2\^64 at 64 bit libs)
       // that's why reduce maxPredicateCount by ld(2\^sizeof(RESULT_TYPE))
-      return (32/*Bit*/ - highestBit(sizeof(RESULT_TYPE)*8-1) - 1); 
+      return (32/*Bit*/ - highestBit(sizeof(RESULT_TYPE)*8-1) - 1);
    }
 
-   bool allocate(size_t predCount) 
+   bool allocate(size_t predCount)
    {
      // calculate the limitations of operator predcounts and check them
-     if ( predCount > maxPredicateCount() ) 
+     if ( predCount > maxPredicateCount() )
      {
-        cerr << "ERROR: Anzahl der Praedikate (=" << predCount << 
-               ") ist zu hoch fuer predcounts - max. " << 
+        cerr << "ERROR: Anzahl der Praedikate (=" << predCount <<
+               ") ist zu hoch fuer predcounts - max. " <<
                maxPredicateCount() << endl;
         return false;
-     }    
+     }
      predicateCombinations = 1 << predCount; // =2\^predCount
      try {
        resultCounters = new RESULT_TYPE[predicateCombinations];
      } catch (bad_alloc &e) {
-       cerr << "ERROR: konnte Speicher " << 
+       cerr << "ERROR: konnte Speicher " <<
                 (sizeof(RESULT_TYPE) * predicateCombinations) <<
-                " nicht allokieren (predicateCount=" << predCount << 
+                " nicht allokieren (predicateCount=" << predCount <<
                 " combinations=" << predicateCombinations << ")" << endl;
         return false;
-     } 
+     }
 
      for(INDEX_TYPE i=0; i<predicateCombinations; i++) {
-        resultCounters[i] = 0;       
-     }        
+        resultCounters[i] = 0;
+     }
 
      return true;
-   }  
+   }
 
-   
+
    inline bool checkOverFlow()
    {
 
-     const RESULT_TYPE ctrMax = 
-        ((((RESULT_TYPE) 1) << sizeof(RESULT_TYPE)*8-1 ) - 1); 
+     const RESULT_TYPE ctrMax =
+        ((((RESULT_TYPE) 1) << ( sizeof(RESULT_TYPE)*8 - 1 ) ) - 1) ;
 
      counter++;
 
      if ( counter > ctrMax ) {
-            cerr << "ERROR: es koennen nur max. " << ctrMax << 
+            cerr << "ERROR: es koennen nur max. " << ctrMax <<
                " Zeilen des Eingabestromes sicher verarbeitet werden, " <<
                "dannach besteht die Gefahr eines Ueberlaufes" << endl;
-       return false;       
+       return false;
      }
 
      return true;
@@ -202,12 +202,12 @@ class GeneralPredcountsLocalData {
 
 };
 
-typedef GeneralPredcountsLocalData<unsigned int, unsigned int> 
+typedef GeneralPredcountsLocalData<unsigned int, unsigned int>
    PredcountsLocalData;
 
 
 /*
- 
+
 The structure PredcountsLocalData is used to structure local data supplied by
 parameter local of value mapping function. The element resultTupleType contains
 the type of tuple to be returned by value mapping function. The element
@@ -227,12 +227,12 @@ manipulating list expressions.
 
 5.2.1 The ~predcounts~ operator
 
-The predcounts operator have to be called with two or more parameters. 
-The type of the first parameter have to be a stream of tuples. 
-(see Relational Algebras for details of tuples) 
+The predcounts operator have to be called with two or more parameters.
+The type of the first parameter have to be a stream of tuples.
+(see Relational Algebras for details of tuples)
 The type of the other parameters have to be the default datatype bool of Secondo.
 
-The parameter two and later have to be named. This name is only necessary 
+The parameter two and later have to be named. This name is only necessary
 for the parser not for the predicate itself.
 
 An example for calling the operator is shown in file "OptAlg.example".
@@ -250,7 +250,7 @@ void WriteIntToString(string *p_str, unsigned int value) {
    (*p_str) += buffer;
 }
 
-/* 
+/*
 The value mapping function now checks count and types of the parameters.
 
 */
@@ -258,9 +258,9 @@ The value mapping function now checks count and types of the parameters.
 ListExpr predcounts_tm(ListExpr args)
 {
    ListExpr resultType;
-   ListExpr predicateAlias, mapping, 
-      streamDeclaration, predicateDeclaration, 
-      rest, predicateDeclarations, 
+   ListExpr predicateAlias, mapping,
+      streamDeclaration, predicateDeclaration,
+      rest, predicateDeclarations,
       streamTupleDeclaration, mappingInputType;
    string argstr, argstr2;
    int maxPredicateCount;
@@ -269,7 +269,7 @@ ListExpr predcounts_tm(ListExpr args)
    //by the count of bit of INDEX\_TYPE
    maxPredicateCount = PredcountsLocalData::maxPredicateCount();
 
-   // we expect an input stream and 
+   // we expect an input stream and
    // at least one additional parameter
    CHECK_COND(nl->ListLength(args) == 2,
       "Operator predcounts expects a list of length two.");
@@ -280,20 +280,20 @@ ListExpr predcounts_tm(ListExpr args)
    // check type of input stream
    nl->WriteToString(argstr, streamDeclaration);
    CHECK_COND(nl->ListLength(streamDeclaration) == 2  &&
-      (TypeOfRelAlgSymbol(nl->First(streamDeclaration)) 
+      (TypeOfRelAlgSymbol(nl->First(streamDeclaration))
          == stream) &&
-      (nl->ListLength(nl->Second(streamDeclaration)) 
+      (nl->ListLength(nl->Second(streamDeclaration))
          == 2) &&
       (TypeOfRelAlgSymbol(nl->First(
          nl->Second(streamDeclaration))) == tuple) &&
-      (nl->ListLength(nl->Second(streamDeclaration)) 
+      (nl->ListLength(nl->Second(streamDeclaration))
          == 2) &&
       (IsTupleDescription(nl->Second(
          nl->Second(streamDeclaration)))),
-      "Operator predcounts expects as " 
+      "Operator predcounts expects as "
       "first argument a list with structure "
       "(stream (tuple ((a1 t1)...(an tn))))\n"
-      "Operator predcounts gets as first argument '" + 
+      "Operator predcounts gets as first argument '" +
       argstr + "'." );
 
    streamTupleDeclaration = nl->Second(streamDeclaration);
@@ -301,7 +301,7 @@ ListExpr predcounts_tm(ListExpr args)
    // check predicate list - it should be a not empty list
    CHECK_COND(!(nl->IsAtom(predicateDeclarations)) &&
       (nl->ListLength(predicateDeclarations) > 0),
-      "Operator predcounts: Second argument list may" 
+      "Operator predcounts: Second argument list may"
       " not be empty or an atom" );
 
    // if there are more then maxPredicateCount predicate declarations
@@ -316,7 +316,7 @@ ListExpr predcounts_tm(ListExpr args)
    // check predicate list - check the list more detailed
    rest = predicateDeclarations;
    while ( !(nl->IsEmpty(rest)) ) {
-     
+
       predicateDeclaration = nl->First(rest);
       rest = nl->Rest(rest);
 
@@ -325,7 +325,7 @@ ListExpr predcounts_tm(ListExpr args)
       nl->WriteToString(argstr, predicateAlias);
       CHECK_COND( (nl->IsAtom(predicateAlias)) &&
          (nl->AtomType(predicateAlias) == SymbolType),
-         "Operator predcounts: predicate alias '" + 
+         "Operator predcounts: predicate alias '" +
          argstr +
          "' is not an atom or not of " +
          "type SymbolType" );
@@ -335,11 +335,11 @@ ListExpr predcounts_tm(ListExpr args)
       mappingInputType = nl->Second(mapping);
       nl->WriteToString(argstr, mapping);
       CHECK_COND( (nl->ListLength(mapping) == 3) &&
-         (TypeOfRelAlgSymbol(nl->First(mapping)) 
+         (TypeOfRelAlgSymbol(nl->First(mapping))
             == ccmap) &&
-         (TypeOfRelAlgSymbol(nl->Third(mapping)) 
+         (TypeOfRelAlgSymbol(nl->Third(mapping))
             == ccbool),
-         "Operator predcounts expects a mapping " 
+         "Operator predcounts expects a mapping "
          "function with list structure"
          " (<attrname> (map (tuple ( (a1 t1)...(an tn) )) bool) )\n. Operator"
          " predcounts gets a list '" + argstr + "'.\n" );
@@ -351,11 +351,11 @@ ListExpr predcounts_tm(ListExpr args)
          "Operator predcounts: Tuple type in first argument '" + argstr +
          "' is different from the argument tuple type '" + argstr2 +
          "' in the mapping function" );
-   
+
    }
 
 /*
- 
+
 The type of the result of the operator precounts is always the same.
 Consequently this type could be contructed statically at the end of the type
 mapping function.
@@ -388,7 +388,7 @@ At the OPEN phase the function allocates temporary memory, reads the input
 stream completly, counts up and stores the counters for predicate combinations,
 deletes the tuples of input stream and construct the type of the result tuples.
 At the REQUEST phase it returns the result tuples (pattern, count) step by
-step. At the CLOSE phase it deallocates temporary memory. 
+step. At the CLOSE phase it deallocates temporary memory.
 
 */
 
@@ -401,7 +401,7 @@ int predcounts_vm(Word* args, Word& result, int message,
 
   switch (message)
   {
-      case OPEN : { 
+      case OPEN : {
 
       // local==0 means: there was an error occured in OPEN phase
       local = SetWord(Address(0));
@@ -430,7 +430,7 @@ int predcounts_vm(Word* args, Word& result, int message,
 
       // construct type of result tuples
       try {
-        tempData->resultTupleType = 
+        tempData->resultTupleType =
           new TupleType( nl->Second( GetTupleResultType(s) ));
       } catch (bad_alloc&) {
         cerr << "ERROR: konnte Speicher " <<
@@ -441,15 +441,15 @@ int predcounts_vm(Word* args, Word& result, int message,
           // replace 1 by the code of critical errors
       }
 
-      // allocate memory to store structures for handling 
+      // allocate memory to store structures for handling
       // mapping functions itself and their parameters
       Supplier *funStructure = 0;
       try {
         funStructure = new Supplier[predicateCount];
       } catch (bad_alloc&) {
-         cerr << "ERROR: konnte Speicher " << 
-            (predicateCount*sizeof(Supplier)) << 
-            " Bytes nicht allokieren (predicateCount=" << predicateCount << 
+         cerr << "ERROR: konnte Speicher " <<
+            (predicateCount*sizeof(Supplier)) <<
+            " Bytes nicht allokieren (predicateCount=" << predicateCount <<
             " sizeof(Supplier)=" << sizeof(Supplier) << ")" << endl;
          return 1; // if return codes will be evaluated
           // replace 1 by the code of critical errors
@@ -458,22 +458,22 @@ int predcounts_vm(Word* args, Word& result, int message,
       try {
         funArguments = new ArgVectorPointer[predicateCount];
       } catch (bad_alloc&) {
-         cerr << "ERROR: konnte Speicher " << 
-            (predicateCount*sizeof(ArgVectorPointer)) << 
-            " Bytes nicht allokieren (predicateCount=" << predicateCount << 
-            " sizeof(ArgVectorPointer)=" << sizeof(ArgVectorPointer) << 
+         cerr << "ERROR: konnte Speicher " <<
+            (predicateCount*sizeof(ArgVectorPointer)) <<
+            " Bytes nicht allokieren (predicateCount=" << predicateCount <<
+            " sizeof(ArgVectorPointer)=" << sizeof(ArgVectorPointer) <<
             ")" << endl;
          return 1; // if return codes will be evaluated
           // replace 1 by the code of critical errors
       }
 
-      // initialize array which stores structures for 
+      // initialize array which stores structures for
       // handling mapping functions itself and their parameters
-      for (int predicateNumber=0; predicateNumber<predicateCount; 
+      for (int predicateNumber=0; predicateNumber<predicateCount;
          predicateNumber++) {
          Supplier predicate = qp->GetSupplier(predicateList, predicateNumber);
          funStructure[predicateNumber] = qp->GetSupplier(predicate, 1);
-         funArguments[predicateNumber] = 
+         funArguments[predicateNumber] =
          qp->Argument(funStructure[predicateNumber]);
       }
 
@@ -492,7 +492,7 @@ int predcounts_vm(Word* args, Word& result, int message,
               // warning here - SKIPping increasing the counter and
               // continue with the next tuple of input stream.
               // In that case the result of predcounts is
-              // no longer exactly, but this way could be 
+              // no longer exactly, but this way could be
               // more useful than aborting the query.
 
          // some local variables
@@ -510,7 +510,7 @@ int predcounts_vm(Word* args, Word& result, int message,
             qp->Request( funStructure[predNumber], funResult);
             if (((Attribute*)funResult.addr)->IsDefined()) {
                if (((CcBool*)funResult.addr)->GetBoolval()) {
-                  // if the predicate is true for the tuple, 
+                  // if the predicate is true for the tuple,
                   // set the corresponding bit
                   resultIndex = (1 << predNumber) | resultIndex;
                }
@@ -561,8 +561,8 @@ int predcounts_vm(Word* args, Word& result, int message,
       try {
         newTuple = new Tuple( tempData->resultTupleType );
       } catch (bad_alloc&) {
-         cerr << "ERROR: konnte Speicher " << 
-            sizeof(Tuple) << " Bytes nicht allokieren" << 
+         cerr << "ERROR: konnte Speicher " <<
+            sizeof(Tuple) << " Bytes nicht allokieren" <<
             endl;
          return 1; // if return codes will be evaluated
           // replace 1 by the code of critical errors
@@ -572,9 +572,9 @@ int predcounts_vm(Word* args, Word& result, int message,
       // put values into new tuple
       CcInt* attr = 0;
       try {
-        attr = new CcInt(true, tempData->predicateCombinations); 
+        attr = new CcInt(true, tempData->predicateCombinations);
       } catch (bad_alloc&) {
-         cerr << "ERROR: konnte Speicher " << sizeof(CcInt) 
+         cerr << "ERROR: konnte Speicher " << sizeof(CcInt)
            << " Bytes nicht allokieren" << endl;
          return 1; // if return codes will be evaluated
           // replace 1 by the code of critical errors
@@ -584,10 +584,10 @@ int predcounts_vm(Word* args, Word& result, int message,
 
       attr = 0;
       try {
-        attr = new CcInt(true, 
-          (tempData->resultCounters)[tempData->predicateCombinations]); 
+        attr = new CcInt(true,
+          (tempData->resultCounters)[tempData->predicateCombinations]);
       } catch (bad_alloc&) {
-         cerr << "ERROR: konnte Speicher " << sizeof(CcInt) 
+         cerr << "ERROR: konnte Speicher " << sizeof(CcInt)
            << " Bytes nicht allokieren" << endl;
          return 1; // if return codes will be evaluated
           // replace 1 by the code of critical errors
@@ -597,26 +597,26 @@ int predcounts_vm(Word* args, Word& result, int message,
 
       // return the tuple
       result = SetWord(newTuple);
-      return YIELD; 
+      return YIELD;
    }
 
    case CLOSE: {
 
       if (tempData) {
-        delete tempData;         
+        delete tempData;
       }
       local = SetWord(Address(0));
       return 0;
    }
 
-   default: {   
-     
+   default: {
+
      // this point should never be reached, if so return an error
      cerr << "ERROR: this point should never be reached" << endl;
      return 1; // if return codes will be evaluated
        // replace 1 by the code of critical errors
-   }  
-   } // end of switch       
+   }
+   } // end of switch
 }
 
 /*
@@ -646,7 +646,7 @@ struct predcountsInfo : OperatorInfo {
 
   }
 
-}; // Don't forget the semicolon here. Otherwise the compiler 
+}; // Don't forget the semicolon here. Otherwise the compiler
    // returns strange error messages
 
 
@@ -663,13 +663,13 @@ class OptAuxAlgebra : public Algebra
   OptAuxAlgebra() : Algebra()
   {
 
-/*   
+/*
 5.3 Registration of Operators
 
 */
 
     AddOperator( predcountsInfo(), predcounts_vm, predcounts_tm );
-    
+
   }
   ~OptAuxAlgebra() {};
 };
@@ -690,9 +690,9 @@ and to the query processor.
 The function has a C interface to make it possible to load the algebra
 dynamically at runtime (if it is built as a dynamic link library). The name
 of the initialization function defines the name of the algebra module. By
-convention it must start with "Initialize<AlgebraName>". 
+convention it must start with "Initialize<AlgebraName>".
 
-To link the algebra together with the system you must create an 
+To link the algebra together with the system you must create an
 entry in the file "makefile.algebra" and to define an algebra ID in the
 file "Algebras/Management/AlgebraList.i.cfg".
 
@@ -702,12 +702,12 @@ file "Algebras/Management/AlgebraList.i.cfg".
 
 extern "C"
 Algebra*
-InitializeOptAuxAlgebra( NestedList* nlRef, 
+InitializeOptAuxAlgebra( NestedList* nlRef,
                          QueryProcessor* qpRef )
 {
   nl = nlRef;
   qp = qpRef;
-  // The C++ scope-operator :: must be used to qualify the full name 
-  return new optaux::OptAuxAlgebra; 
+  // The C++ scope-operator :: must be used to qualify the full name
+  return new optaux::OptAuxAlgebra;
 }
 
