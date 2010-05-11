@@ -49,8 +49,13 @@ using namespace std;
 #include "SocketIO.h"
 #include "RelationAlgebra.h"
 #include "../FText/FTextAlgebra.h"
+#include "ListUtils.h"
+#include "Symbols.h"
+#include "../HadoopParallel/HadoopParallelAlgebra.h"
 #include <string>
 #include <iostream>   //for testing
+
+#include "Base64.h"   //for binary transport
 
 extern NestedList* nl;
 extern QueryProcessor *qp;
@@ -75,6 +80,13 @@ The ~receive~ operator expetcs a hostname and a port, and produces a stream:
 
   * hostname port [->] stream(tuple)      receive
 
+If the hostname start with "ip\_", means this is an IP address.
+Besides, since the symbol type can't include "." character,
+use "\_" to replace.
+For example, to receive data from ip: 192.168.0.1
+through prot ~1032~ we write
+
+  query receive(ip\_192\_168\_0\_1, p1032) consume
 
 2.1 Type Mapping Function
 
@@ -116,7 +128,7 @@ TSendTypeMap(ListExpr args)
     "Operator send expects as second argument a "
     "symbol atom (port number p9999)." );
 
-  string port = nl->SymbolValue(second).substr(1, 4),
+  string port = nl->SymbolValue(second).substr(1),
          streamType = nl->ToString(first),
          tupleType = nl->ToString(nl->Second(first));
 
@@ -148,6 +160,8 @@ TReceiveTypeMap(ListExpr args)
 {
   ListExpr first, second;
 
+  cout << "Input: " << nl->ToString(args) << endl;
+
   CHECK_COND(nl->ListLength(args) == 2,
     "Operator receive expects a list of length two.");
 
@@ -164,8 +178,15 @@ TReceiveTypeMap(ListExpr args)
     "atom (port number, p.e. p9999)." );
 
   string host = nl->SymbolValue(first),
-         port = nl->SymbolValue(second).substr(1, 4),
+         port = nl->SymbolValue(second).substr(1),
          streamTypeStr;
+
+  string ipPrefix = "ip_";
+  if (!host.compare(0, ipPrefix.size(), ipPrefix))
+  {
+    host = host.substr(ipPrefix.size());
+    host = replaceAll(host, "_", ".");
+  }
 
   cout << "Host: " << host << ":" << port << endl;
 
@@ -215,7 +236,8 @@ TSendStream(Word* args, Word& result, int message, Word& local, Supplier s)
   {
     ListExpr tuple = ((Tuple*)elem.addr)->Out(tupleType);
 
-    ss << nl->ToString(tuple) << endl;
+    string valueStr = binEncode(tuple);
+    ss << valueStr << endl;
 
     ((Tuple*)elem.addr)->DeleteIfAllowed();
     qp->Request(args[0].addr, elem);
@@ -285,14 +307,15 @@ TReceiveStream(Word* args, Word& result, int message, Word& local, Supplier s)
 
       remoteStreamInfo = ((RemoteStreamInfo*) local.addr);
 
-      getline(remoteStreamInfo->ss, line );
+      getline(remoteStreamInfo->ss, line);
       if ( line != "<Disconnect/>" )
       {
         ListExpr tupleList, errorInfo;
         int errorPos;
         bool correct;
 
-        nl->ReadFromString(line, tupleList);
+        //Decode the binary string to nestedList directly
+        tupleList = binDecode(line);
 
         Tuple *tuple = Tuple::In( remoteStreamInfo->tupleType, tupleList,
                                   errorPos, errorInfo, correct );
