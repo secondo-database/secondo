@@ -62,6 +62,7 @@ but includes tuples of different schemes.
 #include "HadoopParallelAlgebra.h"
 #include "FTextAlgebra.h"
 #include "Symbols.h"
+#include "Base64.h"
 
 using namespace symbols;
 using namespace std;
@@ -272,12 +273,13 @@ Word deLocalInfo::makeTuple(Word stream, int index,
     oldTuple = static_cast<Tuple*>(result.addr);
     string key =
         ((Attribute*)(oldTuple->GetAttribute(index)))->getCsvStr();
-        //((CcString*)(oldTuple->GetAttribute(index)))->GetValue();
     ListExpr oldTupleNL = oldTuple->Out(typeInfo);
     oldTuple->DeleteIfAllowed();
 
     ListExpr valueNL = nl->TwoElemList(nl->IntAtom(si),oldTupleNL);
-    string valueStr = nl->ToString(valueNL);
+
+    // -- Use binary form to replace the valueStr;
+    string valueStr = binEncode(valueNL);
 
     newTuple = new Tuple(resultTupleType);
     newTuple->PutAttribute(0,new CcString(key));
@@ -289,7 +291,27 @@ Word deLocalInfo::makeTuple(Word stream, int index,
   return result;
 }
 
+string binEncode(ListExpr nestList)
+{
+  stringstream iss, oss;
+  nl->WriteBinaryTo(nestList, iss);
+  Base64 b64;
+  b64.encodeStream(iss, oss);
+  string valueStr = oss.str();
+  valueStr = replaceAll(valueStr, "\n", "");
+  return valueStr;
+}
 
+ListExpr binDecode(string binStr)
+{
+  Base64 b64;
+  stringstream iss, oss;
+  ListExpr nestList;
+  iss << binStr;
+  b64.decodeStream(iss, oss);
+  nl->ReadBinaryFrom(oss, nestList);
+  return nestList;
+}
 
 /*
 3 Operator ~parahashjoin~
@@ -541,7 +563,10 @@ bool phjLocalInfo::getNewProducts()
           static_cast<Tuple*> (currentTupleWord.addr);
       tupStr = ((FText*) (currentTuple->GetAttribute(0)))->GetValue();
       currentTuple->DeleteIfAllowed();
-      nl->ReadFromString(tupStr, tupList);
+
+      //nl->ReadFromString(tupStr, tupList);
+      tupList = binDecode(tupStr);
+
       int SI = NList(tupList).first().intval();
       valList = nl->Second(tupList);
 
@@ -1017,7 +1042,10 @@ void pjLocalInfo::loadTuples()
       cTuple = static_cast<Tuple*> (cTupleWord.addr);
       tupStr = ((FText*) (cTuple->GetAttribute(0)))->GetValue();
       cTuple->DeleteIfAllowed();
-      nl->ReadFromString(tupStr, tupList);
+
+      //nl->ReadFromString(tupStr, tupList);
+      tupList = binDecode(tupStr);
+
       int SI = NList(tupList).first().intval();
       valList = nl->Second(tupList);
       int errorPos;
@@ -1101,13 +1129,9 @@ Word pjLocalInfo::getNextInputTuple(tupleBufferType tbt)
   Tuple* tuple = 0;
 
   if(tbt == tupBufferA){
-    /*if (tpIndex_A >= 0 && tpIndex_A < tbA->GetNoTuples())
-      tuple = tbA->GetTuple(tpIndex_A++, false);*/
     tuple = itrA->GetNextTuple();
   }
   else{
-    /*if (tpIndex_B >= 0 && tpIndex_B < tbB->GetNoTuples())
-      tuple = tbB->GetTuple(tpIndex_B++, false);*/
     tuple = itrB->GetNextTuple();
   }
 
@@ -1227,14 +1251,19 @@ int add0TupleValueMap(Word* args, Word& result,
   case OPEN:{
     qp->Open(args[0].addr);
 
-    localInfo = new a0tLocalInfo();
+    //Get the binary form of the separate tuple;
+    Base64 b64;
+    ListExpr sepTupleNL;
+    nl->ReadFromString("(0 ())", sepTupleNL);
 
+    localInfo = new a0tLocalInfo();
     ListExpr resultTupleNL = GetTupleResultType(s);
     localInfo->resultTupleType =
         new TupleType(nl->Second(resultTupleNL));
     localInfo->key = "";
     localInfo->moreTuple = 0;
     localInfo->needInsert = false;
+    localInfo->binValueStr = binEncode(sepTupleNL);
 
     local.setAddr(localInfo);
     return 0;
@@ -1280,10 +1309,13 @@ int add0TupleValueMap(Word* args, Word& result,
         }
         else
         {
+
           localInfo->moreTuple = newTuple;
           localInfo->needInsert = true;
           sepTuple = new Tuple(localInfo->resultTupleType);
-          sepTuple->PutAttribute(0, new FText(true, "(0 ())"));
+          sepTuple->PutAttribute(
+              0, new FText(true, localInfo->binValueStr));
+
           localInfo->key = key;
           result.setAddr(sepTuple);
           return YIELD;

@@ -95,6 +95,24 @@ to avoid the situation that joined relations have a same attribute name.
 ListExpr renameList(ListExpr oldTupleList, string appendName);
 
 /*
+1.3 binEncode Method
+
+Assist ~doubleexport~, ~add0Tuple~ operator.
+Transform a nestedList into a transportable Base 64 binary string
+
+*/
+string binEncode(ListExpr nestList);
+
+/*
+1.4 binDecode Method
+
+Assist ~parahashjoin~, ~parajoin~ opertor.
+To decode a Base 64 binary string back to nestedList efficiently.
+
+*/
+ListExpr binDecode(string binStr);
+
+/*
 1.3 phjLocalInfo Class
 
 Assists ~parahashjoin~ operator.
@@ -217,6 +235,7 @@ Assists ~add0Tuple~ operator.
 struct a0tLocalInfo
 {
   string key;
+  string binValueStr;
   TupleType *resultTupleType;
   Tuple *moreTuple;
   bool needInsert;
