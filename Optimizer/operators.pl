@@ -108,7 +108,7 @@ secOptConstant(bufferSize, 16384000). % 15.625 MB ~ 16 MB
 /*
 1.2.2 Constants for Sampling
 
-The maximum duration of a selectivity query in seconds. The query evaluation will be stopped after this time.
+The maximum duration of a selectivity query or a bbox size query in seconds. The query evaluation will be stopped after this time.
 
 The maximum sample size in bytes. The cardinality of samples will be reduced, such that it hopefully does not get larger than this value.
 
@@ -119,7 +119,7 @@ Standard scaling factor for samples.
 
 */
 
-secOptConstant(sampleTimeout, 5.0).         % max duration (s) of a sample query
+secOptConstant(sampleTimeout, 10.0).        % max duration (s) of a sample query
 secOptConstant(sampleScalingFactor, 0.00001).  % scaling factor for samples
 
 secOptConstant(sampleSelMaxDiskSize, 2048).    % maximum KB size for samples

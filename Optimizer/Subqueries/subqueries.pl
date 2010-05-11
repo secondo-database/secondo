@@ -761,7 +761,7 @@ transformNestedPredicate(Attrs, Attrs2, Rels, Rels2, Pred, Pred2) :-
   restrict(Attrs, Rels, Attrs2),
 	makeList(Rels, RelsList),
 	makeList(CanRels, CanRelsList),
-	retainSetSemantics(RelsList, Attr, Op, CanAttr, 
+	retainSetSemantics(RelsList, Attr, Op, CanAttr,
 			CanRelsList, CanPreds, CanRels2, PredList),
   append(RelsList, CanRels2, Rels2),
 %  subqueryToJoinOp(Op, NewOp),
@@ -785,7 +785,7 @@ transformNestedPredicate(Attrs, Attrs2, Rels, Rels2, Pred, JoinPredicate) :-
   restrict(Attrs, Rels, Attrs2),
   makeList(Rels, RelsList),
   makeList(CanRels, CanRelsList),
-	retainSetSemantics(RelsList, Attr, Op, 
+	retainSetSemantics(RelsList, Attr, Op,
                      CanAttr, CanRelsList, [], CanRels2, JoinPredicate),
   append(RelsList, CanRels2, Rels2).
 %  subqueryToJoinOp(Op, NewOp),
@@ -917,23 +917,23 @@ containing no duplicates.
 */
 
 % remove duplicates of inner relations, only for operator ~IN~
-retainSetSemantics(OuterRels, Attr, in, SelectAttr, 
+retainSetSemantics(OuterRels, Attr, in, SelectAttr,
                    InnerRels, InnerPreds, [TempRel], PredList) :-
-  joinPred(InnerRels, OuterRels, InnerPreds, JoinPreds, 
+  joinPred(InnerRels, OuterRels, InnerPreds, JoinPreds,
             SimpleInnerPreds, _, OuterAttrs),
   write('\nJoinPreds: '), write(JoinPreds), nl,
-	( ( findall(Alias, 
+	( ( findall(Alias,
 	  ( member(A, OuterAttrs), A =.. [:, Alias, _] ), AliasList),
 		setof(A, member(A, AliasList), AL2) )
-		; AL2 = [] ),	
-% convert aliased attributes to internal ~_~ syntax for all 
+		; AL2 = [] ),
+% convert aliased attributes to internal ~_~ syntax for all
 % inner attributes in JoinPreds
-  ( ( findall(Pred2, ( 
+  ( ( findall(Pred2, (
 		member(Pred, JoinPreds), member(Al, AL2),
-		aliasExternal(Pred, Pred2, dummy as Al), 
-% only consider aliases which are used in JoinPreds		
+		aliasExternal(Pred, Pred2, dummy as Al),
+% only consider aliases which are used in JoinPreds
 		aliasExternal(Pred, TPred2, dummy as $$), Pred2 \= TPred2 ),
-		JoinPreds2 ), setof(JP, member(JP, JoinPreds2), JPList) ) 
+		JoinPreds2 ), setof(JP, member(JP, JoinPreds2), JPList) )
 		; JPList = JoinPreds ),
 	write('JoinPreds2: '), write(JPList), nl,
 	append(InnerRels, OuterRels, Rels),
@@ -943,22 +943,22 @@ retainSetSemantics(OuterRels, Attr, in, SelectAttr,
 	),
 	setof(Attrs, outerAttrs(InnerRels, Attrs), L),
 	flatten(L, L2),
-	( member(SelectAttr, L2) 
+	( member(SelectAttr, L2)
 		-> AttrList = L2
 		;	append([SelectAttr], L2, AttrList)
 	),
-% convert aliased attribute in the new join predicate also	
+% convert aliased attribute in the new join predicate also
 	aliasInternal(CanAttr2, SelectAttr),
   JoinPredicate =.. [=, Attr, CanAttr2],
-  append([JoinPredicate], JPList, PredList),	
+  append([JoinPredicate], JPList, PredList),
 	flatten(SimpleInnerPreds, SIPreds),
 %	write('\nSimpleInnerPreds: '), write(SIPreds), nl,
 	tempRel1(AttrList, SIPreds, InnerRels, TempRel).
 %	write('\nTempRel: '), write(TempRel), nl.
-	
-	
 
-									 
+
+
+
 % all other operators
 retainSetSemantics(_, _, _, _,
                    Rels, Preds, Rels, Preds).
@@ -1005,7 +1005,7 @@ joinPred(_, OuterRels, Pred, [], [], OuterPreds, []) :-
   Pred =.. [_ | Args],
   areAttributesOf(Args, OuterRels),
   makeList(Pred, OuterPreds).
-	
+
 joinPred(InnerRels, OuterRels, Pred, [], [Pred], [], []) :-
   makeList(InnerRels, IRelsList),
   append(IRelsList, OuterRels, Rels),
@@ -1015,7 +1015,7 @@ joinPred(InnerRels, OuterRels, Pred, [], [Pred], [], []) :-
   callLookup(select * from Rels where Pred, _),
   setof(Attrs, outerAttrs(OuterRels, Attrs), L),
 	flatten(L, []).
-	
+
 joinPred(InnerRels, OuterRels, Pred, [Pred], [], [], OuterAttrs) :-
   makeList(InnerRels, IRelsList),
   append(IRelsList, OuterRels, Rels),
@@ -2475,6 +2475,14 @@ Apply renaming to a subquery in a selectivity query.
 
 */
 
+/*
+Transforming Selection Predicates
+
+---- transformQuery(+Rel, +Pred, +QueryIn, -QueryOut)
+----
+
+*/
+
 % no transformation, if subquery handling is deactivated
 transformQuery(_, _, Query, Query) :-
   not(optimizerOption(subqueries)).
@@ -2483,16 +2491,24 @@ transformQuery(_, _, Query, Query) :-
 transformQuery(_, Pred, Query, Query2) :-
   optimizerOption(subqueries),
   assert(selectivityQuery(Pred)),
-	isSubqueryPred1(Pred),
+  isSubqueryPred1(Pred),
 %  streamRel(Rel),
   transformPlan(Query, Query2).
 
 % no transformation for simple predicates
 transformQuery(_, _, Query, Query).
 
+% report error
 transformQuery(_, _, Q, _) :-
   not(optimizerOption(subqueries)),
   throw(error_Internal(subqueries_transformQuery(Q)::notImplemented::_)).
+
+/*
+Transforming Join Predicates
+
+---- transformQuery(+Rel1, +Rel2, +Pred, +QueryIn, JoinSize, -QueryOut)
+----
+*/
 
 % case loopsel for nested selection predicates
 transformQuery(_, _, _, count(loopsel(Query, Fun)), JoinSize,
@@ -2505,6 +2521,21 @@ transformQuery(_, _, _, count(filter(counter(loopjoin(Q, Fun), C), P)),
     count(filter(counter(loopjoin(head(Q, JoinSize), Fun), C), P))) :-
   not(optimizerOption(subqueries)).
 
+% XRIS: case symmjoin for nested non-bbox selection predicates
+transformQuery(_, _, _,
+    count(timeout(symmjoin(Query1,Query2,Pred),T), JoinSize,
+    count(timeout(symmjoin(head(Query1,JoinSize),Query2,Pred),T)) :-
+  not(optimizerOption(subqueries)).
+
+% XRIS: case symmjoin for nested bbox selection predicates
+transformQuery(_, _, _,
+    count(timeout(filter(counter(
+      symmjoin(Query1,Query2,P1),C1),P2),T)), JoinSize,
+    count(timeout(filter(counter(
+      symmjoin(head(Query1,JoinSize),Query2,P1),C1),P2),T))) :-
+  not(optimizerOption(subqueries)).
+
+% error: No more cases for not(optimizerOption(subqueries))
 transformQuery(_, _, _, Q, JS, _) :-
   not(optimizerOption(subqueries)),
   throw(error_Internal(subqueries_transformQuery(Q, JS)::notImplemented::_)).
@@ -2514,12 +2545,25 @@ transformQuery(_, _, Pred, count(loopsel(Query, Fun)), JoinSize,
     count(loopsel(head(Query, JoinSize), Fun))) :-
   not(isSubqueryPred1(Pred)).
 
+% XRIS: case symmjoin for nested non-bbox selection predicates
+transformQuery(_, _, Pred, count(timeout(symmjoin(Q1,Q2,P),TO), JoinSize,
+    count(timeout(symmjoin(head(Q1,JoinSize),Q2,P),TO)) :-
+  not(isSubqueryPred1(Pred)).
+
+% XRIS: case symmjoin for nested bbox selection predicates
+transformQuery(_, _, Pred,
+    count(timeout(filter(counter(symmjoin(Q1,Q2,P2),C1),P1),TO)), JoinSize,
+    count(timeout(filter(counter(
+      symmjoin(head(Q1,JoinSize),Q2,P2),C1),P1),TO))) :-
+  not(isSubqueryPred1(Pred)).
+
 % case loopjoin for nested join predicates
 transformQuery(_, _, Pred, count(filter(counter(loopjoin(Q, Fun), C), P)),
     JoinSize,
     count(filter(counter(loopjoin(head(Q, JoinSize), Fun), C), P))) :-
   not(isSubqueryPred1(Pred)).
 
+% report error
 transformQuery(_, _, _, Q, JS, _) :-
   not(optimizerOption(subqueries)),
   throw(error_Internal(subqueries_transformQuery(Q, JS)::notImplemented::_)).
