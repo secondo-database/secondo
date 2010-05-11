@@ -172,7 +172,7 @@ Tolerance for ~leaf skipping~ in bulkload mechanism.
 The tolerance specifies, which multiple of the average distance
 of bounding boxes is acceptable within a single node.
 
-Value must be >0.
+Value must be >0.0.
 
 */
 
@@ -1825,7 +1825,6 @@ Data structures used during bulk loading will be initialized.
 */
 
     void InsertBulkLoad(const R_TreeEntry<dim>& entry);
-    void MyInsertBulkLoad(const R_TreeEntry<dim>& entry);
 
 /*
 Insert an entry in the bulk loading mode. The R-tree will be
@@ -2089,9 +2088,6 @@ Private InsertBulkLoad method. Additionally gets the TreeNode to insert into.
 
 */
     void InsertBulkLoad(R_TreeNode<dim, LeafInfo> *node,
-                        const R_TreeEntry<dim>& entry);
-
-    void MyInsertBulkLoad(R_TreeNode<dim, LeafInfo> *node,
                         const R_TreeEntry<dim>& entry);
 
     bool bulkMode;
@@ -3498,11 +3494,11 @@ bool R_Tree<dim, LeafInfo>::InitializeBulkLoad(const bool &leafSkipping)
 template <unsigned dim, class LeafInfo>
 void R_Tree<dim, LeafInfo>::InsertBulkLoad(const R_TreeEntry<dim>& entry)
 {
-  if( bli->node[0] != NULL )
-  assert(bulkMode == true);
+  if( bli->node[0] != NULL ) {
+    assert(bulkMode == true);
+  }
   bli->currentLevel = 0;
-  if( bli->node[0] == NULL )
-  {
+  if( bli->node[0] == NULL ) { // create a fresh leaf node
     bli->node[0] = new R_TreeNode<dim,LeafInfo>(true,
                                                 header.minLeafEntries,
                                                 header.maxLeafEntries);
@@ -3520,14 +3516,16 @@ void R_Tree<dim, LeafInfo>::InsertBulkLoad(R_TreeNode<dim, LeafInfo> *node,
   assert( bulkMode == true );
   assert( node != NULL );
 
-  if( !bli->levelLastBox[bli->currentLevel].IsDefined() )
-  { // initialize when called for the first time
+  if( !bli->levelLastBox[bli->currentLevel].IsDefined() ) {
+    // initialize when called for the first time
     bli->levelLastBox[bli->currentLevel] = entry.box;
   }
-  double dist    = entry.box.Distance(bli->levelLastBox[bli->currentLevel]);
+  // trace the distance to the last entry inserted into this node:
+  double dist = entry.box.Distance(bli->levelLastBox[bli->currentLevel]);
   bli->levelEntryCounter[bli->currentLevel]++;
   bli->levelDistanceSum[bli->currentLevel] += dist;
   bli->levelLastBox[bli->currentLevel] = entry.box;
+  // update average distance of all entries on this level
   double avgDist =   bli->levelDistanceSum[bli->currentLevel]
                    / (MAX(bli->levelEntryCounter[bli->currentLevel],2) - 1);
 
@@ -3551,27 +3549,25 @@ void R_Tree<dim, LeafInfo>::InsertBulkLoad(R_TreeNode<dim, LeafInfo> *node,
                                BULKLOAD_INITIAL_SEQ_LENGTH)
        )
     )
-  {
+  { // insert the entry into this (already existing) node
 //     cout << "  --> Inserting here!" << endl;
-
     bli->node[bli->currentLevel]->Insert(entry);
     return;
   } // else: node is already full (or distance to large)...
 
 //   cout << "  --> Passing upwards..." << endl;
   //  Write node[currentLevel] to disk
+  // Request SMI for a fresh record (and its Id):
   assert(file->IsOpen());
   SmiRecordId recId;
   SmiRecord rec;
   bool RecordAppended = file->AppendRecord(recId, rec);
   assert(RecordAppended);
-  // Possible signature for write are:
+  // write the current node into the fresh record
   bli->node[bli->currentLevel]->Write(file, recId);
-  //bli->node[bli->currentLevel]->Write(*rec);
 
-  // if no father exists, create one
-  if( bli->node[bli->currentLevel+1] == NULL )
-  {
+  // if no father node exists, create one
+  if( bli->node[bli->currentLevel+1] == NULL ) {
     assert (bli->currentHeight == bli->currentLevel);
     bli->currentHeight++; // increase height reached
     bli->node[bli->currentLevel+1] =
@@ -3595,15 +3591,12 @@ void R_Tree<dim, LeafInfo>::InsertBulkLoad(R_TreeNode<dim, LeafInfo> *node,
   bli->currentLevel--; // change back to original level
   delete bli->node[bli->currentLevel];
   bli->node[bli->currentLevel] = NULL;
-  if(bli->currentLevel == 0)
-  { // create a leaf node
+  if(bli->currentLevel == 0) { // create a leaf node
     bli->node[bli->currentLevel] =
         new R_TreeNode<dim,LeafInfo>(true,
                                      header.minLeafEntries,
                                      header.maxLeafEntries);
-  }
-  else
-  { // create an internal node
+  } else { // create an internal node
     bli->node[bli->currentLevel] =
         new R_TreeNode<dim,LeafInfo>(false,
                                      header.minInternalEntries,
@@ -3612,143 +3605,10 @@ void R_Tree<dim, LeafInfo>::InsertBulkLoad(R_TreeNode<dim, LeafInfo> *node,
   bli->nodeCount++;
 
   // finally, insert the original entry passed as argument
-
   bli->node[bli->currentLevel]->Insert(entry);
   return;
 };
 
-/*
-InsertBulkLoad R-tree
-The difference between previous method is :
-Instead of back reversing calling when new entring comes, now it reverses
-when the node is full. That means we do reverse group node when the last entry
-is entered in the node.
-Before, it does it when the node is already full, and new entry comes making it
-overflow
-I did this because a magic number:
-
-1 let UTOrdered = UnitTrains feed extend[Mintime: minimum(deftime(.UTrip))]
-sortby[Mintime asc] consume;
-2 query UTOrdered feed sortby[UTrip asc] addid filter[tid2int(.TID) > 40000] bulkloadrtree[UTrip] (crashes for previous version)
-
-Jianqiu 2009.11.27
-
-*/
-
-template <unsigned dim, class LeafInfo>
-void R_Tree<dim, LeafInfo>::MyInsertBulkLoad(const R_TreeEntry<dim>& entry)
-{
-  if( bli->node[0] != NULL )
-  assert(bulkMode == true);
-  bli->currentLevel = 0;
-  if( bli->node[0] == NULL )
-  {
-    bli->node[0] = new R_TreeNode<dim,LeafInfo>(true,
-                                                header.minLeafEntries,
-                                                header.maxLeafEntries);
-    bli->nodeCount++;
-  }
-  MyInsertBulkLoad(bli->node[0], entry);
-  bli->entryCount++;
-  return;
-}
-
-/*
-New implementation of InsertBulkLoad()
-
-*/
-
-template <unsigned dim, class LeafInfo>
-void R_Tree<dim, LeafInfo>::MyInsertBulkLoad(R_TreeNode<dim, LeafInfo> *node,
-                                           const R_TreeEntry<dim>& entry)
-{
-  assert( bulkMode == true );
-  assert( node != NULL );
-
-  if( !bli->levelLastBox[bli->currentLevel].IsDefined() )
-  { // initialize when called for the first time
-    bli->levelLastBox[bli->currentLevel] = entry.box;
-  }
-  double dist    = entry.box.Distance(bli->levelLastBox[bli->currentLevel]);
-  bli->levelEntryCounter[bli->currentLevel]++;
-  bli->levelDistanceSum[bli->currentLevel] += dist;
-  bli->levelLastBox[bli->currentLevel] = entry.box;
-  double avgDist =   bli->levelDistanceSum[bli->currentLevel]
-                   / (MAX(bli->levelEntryCounter[bli->currentLevel],2) - 1);
-
-//   cout << "Level = " << bli->currentLevel << endl
-//       << "  dist = " << dist
-//       << "  avgDist = " << avgDist
-//       << "  #Entries =" << bli->node[bli->currentLevel]->EntryCount()
-//       << "/" << bli->node[bli->currentLevel]->MaxEntries()
-//       << endl;
-
-  if(  ( bli->node[bli->currentLevel]->EntryCount() <
-         bli->node[bli->currentLevel]->MaxEntries()         // fits into node
-       )
-       &&
-       (    !bli->skipLeaf                                  // standard case
-         || (   dist <= (avgDist * BULKLOAD_TOLERANCE) )    // distance OK
-         || (   bli->node[bli->currentLevel]->EntryCount() <=
-                bli->node[bli->currentLevel]->MinEntries() *
-                              BULKLOAD_MIN_ENTRIES_FACTOR ) // too few entries
-         || ( bli->levelEntryCounter[bli->currentLevel] <=
-                               BULKLOAD_INITIAL_SEQ_LENGTH)
-       )
-    )
-  {
-//     cout << "  --> Inserting here!" << endl;
-
-    bli->node[bli->currentLevel]->Insert(entry);
-/////////////////////////////////////////////////////////////////
-    if(bli->node[bli->currentLevel]->EntryCount() ==
-          bli->node[bli->currentLevel]->MaxEntries()){
-      assert(file->IsOpen());
-      SmiRecordId recId;
-      SmiRecord rec;
-      bool RecordAppended = file->AppendRecord(recId, rec);
-      assert(RecordAppended);
-    // Possible signature for write are:
-      bli->node[bli->currentLevel]->Write(file, recId);
-      if( bli->node[bli->currentLevel+1] == NULL ){
-        assert (bli->currentHeight == bli->currentLevel);
-        bli->currentHeight++; // increase height reached
-        bli->node[bli->currentLevel+1] =
-          new R_TreeNode<dim,LeafInfo>(false,
-                                     header.minInternalEntries,
-                                     header.maxInternalEntries);
-        bli->nodeCount++;
-      }
-      bli->currentLevel++;
-      // Insert son into father (by recursive call)
-      MyInsertBulkLoad(
-          bli->node[bli->currentLevel],
-          R_TreeInternalEntry<dim>(
-              bli->node[bli->currentLevel-1]->BoundingBox(),
-              recId ) );
-      // delete node and create a new node instead
-      bli->currentLevel--; // change back to original level
-      delete bli->node[bli->currentLevel];
-      bli->node[bli->currentLevel] = NULL;
-      if(bli->currentLevel == 0){ // create a leaf node
-          bli->node[bli->currentLevel] =
-          new R_TreeNode<dim,LeafInfo>(true,
-                                     header.minLeafEntries,
-                                     header.maxLeafEntries);
-      }else{ // create an internal node
-        bli->node[bli->currentLevel] =
-        new R_TreeNode<dim,LeafInfo>(false,
-                                     header.minInternalEntries,
-                                     header.maxInternalEntries);
-      }
-      bli->nodeCount++;
-    }
-////////////////////////////////////////////////////////////////////
-    return;
-  }
-  cout<<"should not come here"<<endl;
-  assert(false);
-}
 
 /*
 Merge two rtrees which are stored in the same file
@@ -4582,65 +4442,48 @@ void R_Tree<dim, LeafInfo>::Clone(R_Tree<dim,LeafInfo>* rtree_in)
 template <unsigned dim, class LeafInfo>
 bool R_Tree<dim, LeafInfo>::FinalizeBulkLoad()
 {
-  if ( bulkMode != true )
-  {
+  if ( bulkMode != true ) {
     return false;
   }
-  // write all nodes to disk and delete them
-  bool finished = (bli->node[0]->EntryCount() == 0);
-  SmiRecordId rootId;
+  // write all nodes to disk and delete them from memory
 
-
-  for(int i=0; i < MAX_PATH_SIZE; i++)
-  {
-    if( !finished )
-    { // need to write the node
-      assert( bli->node[i] != NULL );
-      assert( i <= bli->currentHeight );
+  // the array bli->node[i] contains all nodes, that need to be flushed outputs
+  // onto disk. This is done bottom-up (starting at the leaf-level): Each node
+  // is written to disk and then inserted into the node one level above.
+  // During insertion, ancestor nodes may be changed, written to disk or being
+  // replaced by other nodes.
+  bool finished = false;
+  for(int i=0; i < MAX_PATH_SIZE; i++) { // level == 0 means the leaf level
+    if(    !finished
+        && i <= bli->currentHeight
+        && bli->node[i] != NULL) { // need to write the node
+      // request SMI for a fresh record
       assert(file->IsOpen());
       SmiRecordId recId;
       SmiRecord rec;
       int RecordAppended = file->AppendRecord(recId, rec);
       assert(RecordAppended);
+      // write current node to that record
       bli->node[i]->Write(rec);
-      rootId = recId;
 
-      if( i < bli->currentHeight )
-      { // insert node into father
+      if( i < bli->currentHeight ) { // Insert a non-root node into its father
         assert( i+1 <= bli->currentHeight );
         assert( bli->node[i+1] != NULL );
-        if(i == 0)
-        {// leaf level
+        if(i == 0) {// leaf level
           assert( bli->node[i]->IsLeaf() == true );
-// Original implementation:
-//
-//           R_TreeLeafEntry<dim, LeafInfo> entry( bli->node[i]->BoundingBox(),
-//                                                 recId );
-//
-// This is strange. If it's a leafnode, we also need a pair
-// (Rectange<dim>, LeafInfo) to create an *internal* entry within the father.
-// It worked, because both, 'TupleId' and 'SniRecordId' are defined as 'long'.
-// Correctly, it should be:
-          R_TreeInternalEntry<dim> entry( bli->node[i]->BoundingBox(),
-                                          recId );
-          int EntryInserted = bli->node[i+1]->Insert(entry);
-
-          assert( EntryInserted );
-        }
-        else
-        { // inner level
+        } else { // inner level
           assert( bli->node[i]->IsLeaf() == false );
-          R_TreeInternalEntry<dim> entry( bli->node[i]->BoundingBox(),
-                                          recId );
-          int EntryInserted = bli->node[i+1]->Insert(entry);
-          assert( EntryInserted );
+          // create an entry for this node to insert into the father
         }
-      }
-      else
-      {// ( i == bli->currentHeight): change the root
+        // create an entry for this node to insert into the father
+        R_TreeInternalEntry<dim> entry( bli->node[i]->BoundingBox(),
+                                        recId );
+        bli->currentLevel = i+1;
+        InsertBulkLoad(bli->node[i+1],entry);
+      } else {// ( i == bli->currentHeight): replace the root node
         assert( i == bli->currentHeight );
 
-        // Verify, that rtree is empty:
+        // Verify, that the current rtree is empty:
         assert( NodeCount() == 1 );
         assert( EntryCount() == 0 );
         SmiRecordId newRootId =  recId;
@@ -4648,14 +4491,14 @@ bool R_Tree<dim, LeafInfo>::FinalizeBulkLoad()
         // Remove old root node from the tree
         file->DeleteRecord( RootRecordId() );
         delete nodePtr;
-        nodePtr = NULL;
-        currLevel   = 0;
-        currEntry   = -1;
-        reportLevel = -1;
-        searchBox   = false;
+        nodePtr      = NULL;
+        currLevel    = 0;
+        currEntry    = -1;
+        reportLevel  = -1;
+        searchBox    = false;
         searchType   = NoSearch;
 
-        // Set new root to topmost node
+        // Set new root to topmost node from bulkloading
         header.nodeCount    = bli->nodeCount;
         header.entryCount   = bli->entryCount;
         header.height       = bli->currentHeight;
@@ -4666,12 +4509,12 @@ bool R_Tree<dim, LeafInfo>::FinalizeBulkLoad()
         finished = true;
       }
     }
-    if( bli->node[i] != NULL )
-    {
+    // ALWAYS: delete the current node from memory
+    if( bli->node[i] != NULL ) {
       delete bli->node[i];
       bli->node[i] = NULL;
     }
-  }
+  } // end for
   delete bli;
   bli = NULL;
 

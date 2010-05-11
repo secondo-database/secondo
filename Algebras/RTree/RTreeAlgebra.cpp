@@ -4652,7 +4652,6 @@ Supplier s)
               e( box,
                  ((TupleIdentifier *)tuple->
                      GetAttribute(tidIndex))->GetTid() );
-//        rtree->MyInsertBulkLoad(e);
         rtree->InsertBulkLoad(e);
     }
     tuple->DeleteIfAllowed();
