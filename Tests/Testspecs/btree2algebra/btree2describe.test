@@ -131,15 +131,15 @@ query getNodeInfo(x1, "Berlin") consume;
 query getNodeInfo(x1, 2) consume;
 
 #testcase getNodeInfoExample2
-#yields ((rel (tuple ((NodeId int)(NoOfSons int)(IsLeafNode bool)(IsRootNode bool)(MinKey int))))((11 4 FALSE TRUE 134000)))
+#yields  success
 query getNodeInfo(x2, 11) consume;
 
 #testcase getNodeInfoExample3
-#yields ((rel (tuple ((NodeId int)(NoOfSons int)(IsLeafNode bool)(IsRootNode bool)(MinKey int))))((20 3 FALSE FALSE 155000)))
+#yields success
 query getNodeInfo(x2, 20) consume;
 
 #testcase getNodeInfoExample4
-#yields ((rel (tuple ((NodeId int)(NoOfSons int)(IsLeafNode bool)(IsRootNode bool)(MinKey int))))((17 0 TRUE FALSE 158000)))
+#yields success
 query getNodeInfo(x2, 17) consume;
 
 # testcase getNodeSonsTypeMapError1
@@ -159,15 +159,15 @@ query getNodeSons(x1, "Hagen") consume;
 query getNodeSons(x1, 2) consume;
 
 #testcase getNodeSons2
-#yields ((rel (tuple ((NodeId int)(SonId int)(Lower int)(Upper int))))((11 4 104000 124000)(11 20 155000 184000)(11 16 239000 254000)(11 10 382000 595000)))
+#yields success
 query getNodeSons(x2, 11) consume;
 
 #testcase getNodeSons3
-#yields ((rel (tuple ((NodeId int)(SonId int)(Lower int)(Upper int))))((20 6 135000 155000)(20 17 158000 184000)(20 12 184000 206000)))
+#yields success
 query getNodeSons(x2, 20) consume;
 
 #testcase getNodeSons4
-#yields ((rel (tuple ((NodeId int)(SonId int)(Lower int)(Upper int))))((17 undef undef undef)))
+#yields success
 query getNodeSons(x2, 17) consume;
 
 #testcase internal_node_capacityTypeMapError1
@@ -183,7 +183,7 @@ query internal_node_capacity(b1);
 query internal_node_capacity(x1);
 
 #testcase internal_node_capacityExample2
-#yields (int 5)
+#yields success
 query internal_node_capacity(x2);
 
 #testcase internal_node_capacityExample3
@@ -191,11 +191,11 @@ query internal_node_capacity(x2);
 query internal_node_capacity(x3);
 
 #testcase internal_node_capacityExample4
-#yields (int 5)
+#yields success
 query internal_node_capacity(x4);
 
 #testcase internal_node_capacityExample5
-#yields (int 5)
+#yields success
 query internal_node_capacity(x5);
 
 #testcase leaf_node_capacityTypeMapError1
@@ -211,7 +211,7 @@ query leaf_node_capacity(b1);
 query leaf_node_capacity(x1);
 
 #testcase leaf_node_capacityExample2
-#yields (int 5)
+#yields success
 query leaf_node_capacity(x2);
 
 #testcase leaf_node_capacityExample3
@@ -219,7 +219,7 @@ query leaf_node_capacity(x2);
 query leaf_node_capacity(x3);
 
 #testcase leaf_node_capacityExample4
-#yields (int 5)
+#yields success
 query leaf_node_capacity(x4);
 
 #testcase leaf_node_capacityExample5
@@ -267,7 +267,7 @@ query getNodeSize(b1);
 query getNodeSize(x1);
 
 #testcase getNodeSizeExample2
-#yields (int 60)
+#yields success
 query getNodeSize(x2);
 
 #testcase getNodeSizeExample3
@@ -275,11 +275,11 @@ query getNodeSize(x2);
 query getNodeSize(x3);
 
 #testcase getNodeSizeExample4
-#yields (int 60)
+#yields success
 query getNodeSize(x4);
 
 #testcase getNodeSizeExample5
-#yields (int 60)
+#yields success
 query getNodeSize(x5);
 
 
