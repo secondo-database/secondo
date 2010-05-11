@@ -1160,7 +1160,7 @@ void XTree::nnscan_init(HPoint *p)
 
     nnscan_ref = p;
     nnscan_queue.clear();
-    nnscan_queue.push_back(NNScanEntry(header.root, 0));      
+    nnscan_queue.push_back(NNScanEntry(true,header.root, 0));      
 };
 
 /*
@@ -1185,7 +1185,8 @@ TupleId XTree::nnscan_next()
                 for(it = curNode->begin(); it != curNode->end(); ++it)
                 {
                     double dist = (*it)->dist(nnscan_ref);
-                    nnscan_queue.push_back(NNScanEntry((*it)->tid(), dist));
+                    nnscan_queue.push_back(NNScanEntry(false,
+                                                       (*it)->tid(), dist));
                     push_heap(
                             nnscan_queue.begin(),
                             nnscan_queue.end(),
@@ -1200,7 +1201,8 @@ TupleId XTree::nnscan_next()
                 {
                     double dist = SpatialDistfuns::minDist(
                                                      nnscan_ref, (*it)->bbox());
-                    nnscan_queue.push_back(NNScanEntry((*it)->chield(), dist));
+                    nnscan_queue.push_back(NNScanEntry(true,
+                                                       (*it)->chield(), dist));
                     push_heap(
                             nnscan_queue.begin(),
                             nnscan_queue.end(),

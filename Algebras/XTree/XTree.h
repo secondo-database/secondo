@@ -134,12 +134,14 @@ struct NNScanEntry
     };
     double dist;
 
-    NNScanEntry(TupleId _tid, double _dist)
-    : isNodeId(false), tid(_tid), dist(_dist)
-    {}
+ //    NNScanEntry(TupleId _tid, double _dist)
+ //    : isNodeId(false), tid(_tid), dist(_dist)
+ //    {}
 
-    NNScanEntry(SmiRecordId _nodeId, double _dist)
-    : isNodeId(true), nodeId(_nodeId), dist(_dist)
+    NNScanEntry(const bool _isNodeId,
+                const SmiRecordId _nodeId, 
+                const double _dist)
+    : isNodeId(_isNodeId), nodeId(_nodeId), dist(_dist)
     {}
 
     bool operator > (const NNScanEntry& op2) const
