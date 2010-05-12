@@ -2,5 +2,5 @@
 #
 # Startup script for running SECONDOTTY in optimizer mode
 
-../bin/SecondoBDB -pl -L 256M -G 256M $* pl -g true
+../bin/SecondoBDB -pl -L256M -G128M $* pl -g true
 
