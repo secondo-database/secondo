@@ -279,6 +279,7 @@ Example 17 is too complex for the interesting Orders extension (even with 64M st
 ----
 */
 
+  /*
 sqlQuery( 17,
   select count(*)
   from [staedte, plz as p1, plz2 as p2, plz3 as p3]
@@ -294,6 +295,7 @@ sqlQuery( 17,
     p3:ort contains "burg",
     p3:ort starts "M"]
   ).
+  */
 
 
 sqlQuery( 18,
