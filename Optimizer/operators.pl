@@ -1328,7 +1328,7 @@ opSignature(tail, stream,[[stream,[tuple,AttrList]],int],
 opSignature(tail, stream, [[stream,T],int,bool],[stream,T],[block]):-isData(T).
 opSignature(tail, stream,[[stream,[tuple,AttrList]],int,bool],
         [stream,[tuple,AttrList]],[block]).
-opSignature(timeout, stream, [StreamType, real], StreamType, []) :-
+opSignature(timeout, stream, [[stream,_ElemType], real], StreamType, []) :-
   StreamType = [stream,_ElemType].
 opSignature(kinds, stream, [string],[stream,string],[]).
 
@@ -2597,6 +2597,13 @@ isBBoxPredicate(Term) :-
   ),
   opSignature(Op, _, _ArgsTypeList,bool,Flags),
   memberchk(bbox(_Dim),Flags),
+  % avoidind non-bbox operators with inactive ~determinePredSig~ option:
+  (   optimizerOption(determinePredSig)
+    ; not( ( opSignature(Op, _, _ArgsTypeList1,bool,Flags1),
+             not(memberchk(bbox(_Dim1),Flags1))
+           )
+         )
+  ),
   dm(gettypetree,['INFO:\tOperator name matching used to determine ',
               'isBBoxPredicate(',Op,').\n']),
   !.
