@@ -2515,19 +2515,40 @@ transformQuery(_, _, _, count(loopsel(Query, Fun)), JoinSize,
     count(loopsel(head(Query, JoinSize), Fun))) :-
   not(optimizerOption(subqueries)).
 
+transformQuery(_, _, _, count(timeout(loopsel(Query, Fun), T)), JoinSize,
+    count(timeout(loopsel(head(Query, JoinSize), Fun), T))) :-
+  not(optimizerOption(subqueries)).
+
 % case loopjoin for nested join predicates
 transformQuery(_, _, _, count(filter(counter(loopjoin(Q, Fun), C), P)),
     JoinSize,
     count(filter(counter(loopjoin(head(Q, JoinSize), Fun), C), P))) :-
   not(optimizerOption(subqueries)).
 
+transformQuery(_,_,_,count(timeout(filter(counter(loopjoin(Q, Fun), C), P), T)),
+    JoinSize,
+    count(timeout(filter(counter(loopjoin(head(Q,JoinSize),Fun), C), P), T))) :-
+  not(optimizerOption(subqueries)).
+
 % XRIS: case symmjoin for nested non-bbox selection predicates
 transformQuery(_, _, _,
-    count(timeout(symmjoin(Query1,Query2,Pred),T), JoinSize,
-    count(timeout(symmjoin(head(Query1,JoinSize),Query2,Pred),T)) :-
+    count(symmjoin(Query1,Query2,Pred)), JoinSize,
+    count(symmjoin(head(Query1,JoinSize),Query2,Pred))) :-
+  not(optimizerOption(subqueries)).
+
+transformQuery(_, _, _,
+    count(timeout(symmjoin(Query1,Query2,Pred),T)), JoinSize,
+    count(timeout(symmjoin(head(Query1,JoinSize),Query2,Pred),T))) :-
   not(optimizerOption(subqueries)).
 
 % XRIS: case symmjoin for nested bbox selection predicates
+transformQuery(_, _, _,
+    count(filter(counter(
+      symmjoin(Query1,Query2,P1),C1),P2)), JoinSize,
+    count(filter(counter(
+      symmjoin(head(Query1,JoinSize),Query2,P1),C1),P2))) :-
+  not(optimizerOption(subqueries)).
+
 transformQuery(_, _, _,
     count(timeout(filter(counter(
       symmjoin(Query1,Query2,P1),C1),P2),T)), JoinSize,
@@ -2545,12 +2566,26 @@ transformQuery(_, _, Pred, count(loopsel(Query, Fun)), JoinSize,
     count(loopsel(head(Query, JoinSize), Fun))) :-
   not(isSubqueryPred1(Pred)).
 
+transformQuery(_, _, Pred, count(timeout(loopsel(Query, Fun),T)), JoinSize,
+    count(timeout(loopsel(head(Query, JoinSize), Fun),T))) :-
+  not(isSubqueryPred1(Pred)).
+
 % XRIS: case symmjoin for nested non-bbox selection predicates
-transformQuery(_, _, Pred, count(timeout(symmjoin(Q1,Q2,P),TO), JoinSize,
-    count(timeout(symmjoin(head(Q1,JoinSize),Q2,P),TO)) :-
+transformQuery(_, _, Pred, count(symmjoin(Q1,Q2,P)), JoinSize,
+    count(symmjoin(head(Q1,JoinSize),Q2,P))) :-
+  not(isSubqueryPred1(Pred)).
+
+transformQuery(_, _, Pred, count(timeout(symmjoin(Q1,Q2,P),TO)), JoinSize,
+    count(timeout(symmjoin(head(Q1,JoinSize),Q2,P),TO))) :-
   not(isSubqueryPred1(Pred)).
 
 % XRIS: case symmjoin for nested bbox selection predicates
+transformQuery(_, _, Pred,
+    count(filter(counter(symmjoin(Q1,Q2,P2),C1),P1)), JoinSize,
+    count(filter(counter(
+      symmjoin(head(Q1,JoinSize),Q2,P2),C1),P1))) :-
+  not(isSubqueryPred1(Pred)).
+
 transformQuery(_, _, Pred,
     count(timeout(filter(counter(symmjoin(Q1,Q2,P2),C1),P1),TO)), JoinSize,
     count(timeout(filter(counter(
@@ -2561,6 +2596,11 @@ transformQuery(_, _, Pred,
 transformQuery(_, _, Pred, count(filter(counter(loopjoin(Q, Fun), C), P)),
     JoinSize,
     count(filter(counter(loopjoin(head(Q, JoinSize), Fun), C), P))) :-
+  not(isSubqueryPred1(Pred)).
+
+transformQuery(_,_,Pred,count(timeout(filter(counter(loopjoin(Q, Fun),C),P),T)),
+    JoinSize,
+    count(timeout(filter(counter(loopjoin(head(Q, JoinSize), Fun), C), P),T))):-
   not(isSubqueryPred1(Pred)).
 
 % report error
