@@ -2920,7 +2920,7 @@ arguments (no expressions).
 */
 
 join(arg(N), Arg2, pr(Pred, _, _)) => filter(loopjoin(Arg2S, RTSpExpr),Pred) :-
-  write_list(['Call is:',join(arg(N), Arg2, pr(Pred, _, _)) => filter(loopjoin(Arg2S, RTSpExpr),Pred),'\n']),
+  dm(translation,['Call is:',join(arg(N), Arg2, pr(Pred, _, _)) => filter(loopjoin(Arg2S, RTSpExpr),Pred),'\n']),
   Pred =.. [Op, X, Y],
   isBBoxPredicate(Op),
   isOfFirst(Attr1, X, Y),     % determine attribute from the first relation
@@ -2955,9 +2955,9 @@ rtSpExpr(IndexName, arg(N), Expr) =>
 
 join(arg(N), Arg2, pr(Pred, _, _))
   => filter(loopjoin(Arg2S, RTSpTmpExpr),Pred) :-
-  write_list(['Call is:',join(arg(N), Arg2, pr(Pred, _, _)) => filter(loopjoin(Arg2S, RTSpTmpExpr),Pred),'\n']),
+  dm(translation,['Call is:',join(arg(N), Arg2, pr(Pred, _, _)) => filter(loopjoin(Arg2S, RTSpTmpExpr),Pred),'\n']),
   fetchAttributeList(Pred,L),
-  write_list(['L = ', L , '\n']),
+  dm(translation,['L = ', L , '\n']),
   L = [A,B,C],
   isOfFirst(Attr1,A,B,C),
   areNotOfFirst(Attr2,Attr3,A,B,C),

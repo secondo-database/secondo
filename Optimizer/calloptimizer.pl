@@ -719,6 +719,7 @@ optDebugLevel(subqueryUnnesting).
 optDebugLevel(subqueryDebug).
 optDebugLevel(temprels).
 optDebugLevel(selectivity).      % Details on selectivity queries
+optDebugLevel(translation).      % Details on translation rule matching
 
 /*
 3.3 Switching between optimization module options
