@@ -640,7 +640,6 @@ selectivityQueryJoin(Pred,Rel1,Rel2,QueryTime1, BBoxResCard1,
          bboxSizeQueryJoin(Arg02,Rel1,Rel2,Arg2Tree,_)
        )
     ;  ( isBBoxPredicate(OP),
-         write_list(['Operator ',OP,' is a isBBoxPredicate.\n']),
          Dim = std
        )
   ),
@@ -690,13 +689,10 @@ selectivityQueryJoin(Pred,Rel1,Rel2,QueryTime1, BBoxResCard1,
                                 Pred3), 3), Pred2), value_expr(real,Timeout)))
        )
   ),
-  nl, write('(1a): '), writeln(Query), nl,
   transformQuery(Rel1, Rel2, Pred, Query, JoinSize, Query2),
-  nl, write('(1b): '), writeln(Query2), nl,
   plan_to_atom(Query2, QueryAtom1),
   atom_concat('query ', QueryAtom1, QueryAtom),
   dm(selectivity,['\nSelectivity query : ', QueryAtom, '\n']),
-  nl, write('(1c): '), writeln(QueryAtom), nl,
   getTime(
     ( secondo(QueryAtom, ResultList)
       -> (true)
@@ -815,7 +811,6 @@ selectivityQueryJoin(Pred, Rel1, Rel2, QueryTime1, noBBox,
   plan_to_atom(Query2, QueryAtom1),
   atom_concat('query ', QueryAtom1, QueryAtom),
   dm(selectivity,['\nSelectivity query : ', QueryAtom, '\n']),
-  nl, write('(2): '), writeln(QueryAtom), nl,
   getTime(
     ( secondo(QueryAtom, ResultList)
       -> (true)
@@ -875,7 +870,6 @@ selectivityQueryJoin(Pred, Rel1, Rel2, QueryTime, BBox, ResCard, InputCard) :-
   concat_atom(['Selectivity query failed for: \'',PredT,
                '\'. Unknown reason.'],'',ErrMsg),
   write_list(['\nERROR:\t',ErrMsg]), nl,
-  nl, write('(3): '), writeln('Something failed!'), nl,
   throw(error_Internal(statistics_selectivityQueryJoin(Pred, Rel1, Rel2,
         QueryTime, BBox, ResCard, InputCard)::selectivityQueryFailed)), fail.
 
