@@ -1142,3 +1142,525 @@ static int add_segment(int segnum)
   seg[segnum].is_inserted = TRUE;
   return 0;
 }
+
+/*
+Update the roots stored for each of the endpoints of the segment.
+  This is done to speed up the location-query for the endpoint when
+  the segment is inserted into the trapezoidation subsequently
+
+*/
+static int find_new_roots(int segnum)
+{
+  segment_t *s = &seg[segnum];
+
+  if (s->is_inserted)
+    return 0;
+
+  s->root0 = locate_endpoint(&s->v0, &s->v1, s->root0);
+  s->root0 = tr[s->root0].sink;
+
+  s->root1 = locate_endpoint(&s->v1, &s->v0, s->root1);
+  s->root1 = tr[s->root1].sink;
+  return 0;
+}
+
+
+
+/*
+Main routine to perform trapezoidation
+
+*/
+int construct_trapezoids(int nseg)
+
+{
+  register int i;
+  int root, h;
+
+  /* Add the first segment and get the query structure and trapezoid */
+  /* list initialised */
+
+  root = init_query_structure(choose_segment());
+
+  for (i = 1; i <= nseg; i++)
+    seg[i].root0 = seg[i].root1 = root;
+
+  for (h = 1; h <= math_logstar_n(nseg); h++)
+    {
+      for (i = math_N(nseg, h -1) + 1; i <= math_N(nseg, h); i++)
+    add_segment(choose_segment());
+
+      /* Find a new root for each of the segment endpoints */
+      for (i = 1; i <= nseg; i++)
+    find_new_roots(i);
+    }
+
+  for (i = math_N(nseg, math_logstar_n(nseg)) + 1; i <= nseg; i++)
+    add_segment(choose_segment());
+
+  return 0;
+}
+
+/*
+Function returns TRUE if the trapezoid lies inside the polygon
+
+*/
+static int inside_polygon(trap_t *t)
+
+{
+  int rseg = t->rseg;
+
+  if (t->state == ST_INVALID)
+    return 0;
+
+  if ((t->lseg <= 0) || (t->rseg <= 0))
+    return 0;
+
+  if (((t->u0 <= 0) && (t->u1 <= 0)) ||
+      ((t->d0 <= 0) && (t->d1 <= 0))) /* triangle */
+    return (_greater_than(&seg[rseg].v1, &seg[rseg].v0));
+
+  return 0;
+}
+
+/*
+ return a new mon structure from the table
+
+*/
+static int newmon()
+{
+  return ++mon_idx;
+}
+
+
+/*
+return a new chain element from the table
+
+*/
+static int new_chain_element()
+{
+  return ++chain_idx;
+}
+
+static double get_angle(point_t *vp0, point_t *vpnext, point_t *vp1)
+
+{
+  point_t v0, v1;
+
+  v0.x = vpnext->x - vp0->x;
+  v0.y = vpnext->y - vp0->y;
+
+  v1.x = vp1->x - vp0->x;
+  v1.y = vp1->y - vp0->y;
+
+  if (CROSS_SINE(v0, v1) >= 0)  /* sine is positive */
+    return DOT(v0, v1)/LENGTH(v0)/LENGTH(v1);
+  else
+    return (-1.0 * DOT(v0, v1)/LENGTH(v0)/LENGTH(v1) - 2);
+}
+
+/*
+  (v0, v1) is the new diagonal to be added to the polygon. Find which
+  chain to use and return the positions of v0 and v1 in p and q
+
+*/
+static int get_vertex_positions(int v0, int v1, int *ip, int *iq)
+
+{
+  vertexchain_t *vp0, *vp1;
+  register int i;
+  double angle, temp;
+  int tp, tq;
+
+  vp0 = &vert[v0];
+  vp1 = &vert[v1];
+
+  /* p is identified as follows. Scan from (v0, v1) rightwards till */
+  /* you hit the first segment starting from v0. That chain is the */
+  /* chain of our interest */
+
+  angle = -4.0;
+  for (i = 0; i < 4; i++)
+    {
+      if (vp0->vnext[i] <= 0)
+    continue;
+      if ((temp = get_angle(&vp0->pt, &(vert[vp0->vnext[i]].pt),
+                &vp1->pt)) > angle)
+    {
+      angle = temp;
+      tp = i;
+    }
+    }
+
+  *ip = tp;
+
+  /* Do similar actions for q */
+
+  angle = -4.0;
+  for (i = 0; i < 4; i++)
+    {
+      if (vp1->vnext[i] <= 0)
+    continue;
+      if ((temp = get_angle(&vp1->pt, &(vert[vp1->vnext[i]].pt),
+                &vp0->pt)) > angle)
+    {
+      angle = temp;
+      tq = i;
+    }
+    }
+
+  *iq = tq;
+
+  return 0;
+}
+
+
+
+/*
+  v0 and v1 are specified in anti-clockwise order with respect to
+  the current monotone polygon mcur. Split the current polygon into
+  two polygons using the diagonal (v0, v1)
+
+*/
+static int make_new_monotone_poly(int mcur, int v0, int v1)
+
+{
+  int p, q, ip, iq;
+  int mnew = newmon();
+  int i, j, nf0, nf1;
+  vertexchain_t *vp0, *vp1;
+
+  vp0 = &vert[v0];
+  vp1 = &vert[v1];
+
+  get_vertex_positions(v0, v1, &ip, &iq);
+
+  p = vp0->vpos[ip];
+  q = vp1->vpos[iq];
+
+  /* At this stage, we have got the positions of v0 and v1 in the */
+  /* desired chain. Now modify the linked lists */
+
+  i = new_chain_element();  /* for the new list */
+  j = new_chain_element();
+
+  mchain[i].vnum = v0;
+  mchain[j].vnum = v1;
+
+  mchain[i].next = mchain[p].next;
+  mchain[mchain[p].next].prev = i;
+  mchain[i].prev = j;
+  mchain[j].next = i;
+  mchain[j].prev = mchain[q].prev;
+  mchain[mchain[q].prev].next = j;
+
+  mchain[p].next = q;
+  mchain[q].prev = p;
+
+  nf0 = vp0->nextfree;
+  nf1 = vp1->nextfree;
+
+  vp0->vnext[ip] = v1;
+
+  vp0->vpos[nf0] = i;
+  vp0->vnext[nf0] = mchain[mchain[i].next].vnum;
+  vp1->vpos[nf1] = j;
+  vp1->vnext[nf1] = v0;
+
+  vp0->nextfree++;
+  vp1->nextfree++;
+
+#ifdef DEBUG
+  fprintf(stderr, "make_poly: mcur = %d, (v0, v1) = (%d, %d)\n",
+      mcur, v0, v1);
+  fprintf(stderr, "next posns = (p, q) = (%d, %d)\n", p, q);
+#endif
+
+  mon[mcur] = p;
+  mon[mnew] = i;
+  return mnew;
+}
+
+/*
+recursively visit all the trapezoids
+
+*/
+static int traverse_polygon(int mcur, int trnum, int from, int dir)
+
+{
+  trap_t *t = &tr[trnum];
+//  int howsplit, mnew;
+  int mnew;
+//  int v0, v1, v0next, v1next;
+  int v0, v1;
+//  int retval, tmp;
+  int retval;
+  int do_switch = FALSE;
+
+  if ((trnum <= 0) || visited[trnum])
+    return 0;
+
+  visited[trnum] = TRUE;
+
+  /* We have much more information available here.
+   rseg: goes upwards
+   lseg: goes downwards
+
+   Initially assume that dir = TR_FROM_DN (from the left)
+   Switch v0 and v1 if necessary afterwards
+
+
+   special cases for triangles with cusps at the opposite ends.
+   take care of this first */
+  if ((t->u0 <= 0) && (t->u1 <= 0))
+    {
+      if ((t->d0 > 0) && (t->d1 > 0)) /* downward opening triangle */
+    {
+      v0 = tr[t->d1].lseg;
+      v1 = t->lseg;
+      if (from == t->d1)
+        {
+          do_switch = TRUE;
+          mnew = make_new_monotone_poly(mcur, v1, v0);
+          traverse_polygon(mcur, t->d1, trnum, TR_FROM_UP);
+          traverse_polygon(mnew, t->d0, trnum, TR_FROM_UP);
+        }
+      else
+        {
+          mnew = make_new_monotone_poly(mcur, v0, v1);
+          traverse_polygon(mcur, t->d0, trnum, TR_FROM_UP);
+          traverse_polygon(mnew, t->d1, trnum, TR_FROM_UP);
+        }
+    }
+      else
+    {
+      retval = SP_NOSPLIT;  /* Just traverse all neighbours */
+      traverse_polygon(mcur, t->u0, trnum, TR_FROM_DN);
+      traverse_polygon(mcur, t->u1, trnum, TR_FROM_DN);
+      traverse_polygon(mcur, t->d0, trnum, TR_FROM_UP);
+      traverse_polygon(mcur, t->d1, trnum, TR_FROM_UP);
+    }
+    }
+
+  else if ((t->d0 <= 0) && (t->d1 <= 0))
+    {
+      if ((t->u0 > 0) && (t->u1 > 0)) /* upward opening triangle */
+    {
+      v0 = t->rseg;
+      v1 = tr[t->u0].rseg;
+      if (from == t->u1)
+        {
+          do_switch = TRUE;
+          mnew = make_new_monotone_poly(mcur, v1, v0);
+          traverse_polygon(mcur, t->u1, trnum, TR_FROM_DN);
+          traverse_polygon(mnew, t->u0, trnum, TR_FROM_DN);
+        }
+      else
+        {
+          mnew = make_new_monotone_poly(mcur, v0, v1);
+          traverse_polygon(mcur, t->u0, trnum, TR_FROM_DN);
+          traverse_polygon(mnew, t->u1, trnum, TR_FROM_DN);
+        }
+    }
+      else
+    {
+      retval = SP_NOSPLIT;  /* Just traverse all neighbours */
+      traverse_polygon(mcur, t->u0, trnum, TR_FROM_DN);
+      traverse_polygon(mcur, t->u1, trnum, TR_FROM_DN);
+      traverse_polygon(mcur, t->d0, trnum, TR_FROM_UP);
+      traverse_polygon(mcur, t->d1, trnum, TR_FROM_UP);
+    }
+    }
+
+  else if ((t->u0 > 0) && (t->u1 > 0))
+    {
+      if ((t->d0 > 0) && (t->d1 > 0)) /* downward + upward cusps */
+    {
+      v0 = tr[t->d1].lseg;
+      v1 = tr[t->u0].rseg;
+      retval = SP_2UP_2DN;
+      if (((dir == TR_FROM_DN) && (t->d1 == from)) ||
+          ((dir == TR_FROM_UP) && (t->u1 == from)))
+        {
+          do_switch = TRUE;
+          mnew = make_new_monotone_poly(mcur, v1, v0);
+          traverse_polygon(mcur, t->u1, trnum, TR_FROM_DN);
+          traverse_polygon(mcur, t->d1, trnum, TR_FROM_UP);
+          traverse_polygon(mnew, t->u0, trnum, TR_FROM_DN);
+          traverse_polygon(mnew, t->d0, trnum, TR_FROM_UP);
+        }
+      else
+        {
+          mnew = make_new_monotone_poly(mcur, v0, v1);
+          traverse_polygon(mcur, t->u0, trnum, TR_FROM_DN);
+          traverse_polygon(mcur, t->d0, trnum, TR_FROM_UP);
+          traverse_polygon(mnew, t->u1, trnum, TR_FROM_DN);
+          traverse_polygon(mnew, t->d1, trnum, TR_FROM_UP);
+        }
+    }
+      else          /* only downward cusp */
+    {
+      if (_equal_to(&t->lo, &seg[t->lseg].v1))
+        {
+          v0 = tr[t->u0].rseg;
+          v1 = seg[t->lseg].next;
+
+          retval = SP_2UP_LEFT;
+          if ((dir == TR_FROM_UP) && (t->u0 == from))
+        {
+          do_switch = TRUE;
+          mnew = make_new_monotone_poly(mcur, v1, v0);
+          traverse_polygon(mcur, t->u0, trnum, TR_FROM_DN);
+          traverse_polygon(mnew, t->d0, trnum, TR_FROM_UP);
+          traverse_polygon(mnew, t->u1, trnum, TR_FROM_DN);
+          traverse_polygon(mnew, t->d1, trnum, TR_FROM_UP);
+        }
+          else
+        {
+          mnew = make_new_monotone_poly(mcur, v0, v1);
+          traverse_polygon(mcur, t->u1, trnum, TR_FROM_DN);
+          traverse_polygon(mcur, t->d0, trnum, TR_FROM_UP);
+          traverse_polygon(mcur, t->d1, trnum, TR_FROM_UP);
+          traverse_polygon(mnew, t->u0, trnum, TR_FROM_DN);
+        }
+        }
+      else
+        {
+          v0 = t->rseg;
+          v1 = tr[t->u0].rseg;
+          retval = SP_2UP_RIGHT;
+          if ((dir == TR_FROM_UP) && (t->u1 == from))
+        {
+          do_switch = TRUE;
+          mnew = make_new_monotone_poly(mcur, v1, v0);
+          traverse_polygon(mcur, t->u1, trnum, TR_FROM_DN);
+          traverse_polygon(mnew, t->d1, trnum, TR_FROM_UP);
+          traverse_polygon(mnew, t->d0, trnum, TR_FROM_UP);
+          traverse_polygon(mnew, t->u0, trnum, TR_FROM_DN);
+        }
+          else
+        {
+          mnew = make_new_monotone_poly(mcur, v0, v1);
+          traverse_polygon(mcur, t->u0, trnum, TR_FROM_DN);
+          traverse_polygon(mcur, t->d0, trnum, TR_FROM_UP);
+          traverse_polygon(mcur, t->d1, trnum, TR_FROM_UP);
+          traverse_polygon(mnew, t->u1, trnum, TR_FROM_DN);
+        }
+        }
+    }
+    }
+  else if ((t->u0 > 0) || (t->u1 > 0)) /* no downward cusp */
+    {
+      if ((t->d0 > 0) && (t->d1 > 0)) /* only upward cusp */
+    {
+      if (_equal_to(&t->hi, &seg[t->lseg].v0))
+        {
+          v0 = tr[t->d1].lseg;
+          v1 = t->lseg;
+          retval = SP_2DN_LEFT;
+          if (!((dir == TR_FROM_DN) && (t->d0 == from)))
+        {
+          do_switch = TRUE;
+          mnew = make_new_monotone_poly(mcur, v1, v0);
+          traverse_polygon(mcur, t->u1, trnum, TR_FROM_DN);
+          traverse_polygon(mcur, t->d1, trnum, TR_FROM_UP);
+          traverse_polygon(mcur, t->u0, trnum, TR_FROM_DN);
+          traverse_polygon(mnew, t->d0, trnum, TR_FROM_UP);
+        }
+          else
+        {
+          mnew = make_new_monotone_poly(mcur, v0, v1);
+          traverse_polygon(mcur, t->d0, trnum, TR_FROM_UP);
+          traverse_polygon(mnew, t->u0, trnum, TR_FROM_DN);
+          traverse_polygon(mnew, t->u1, trnum, TR_FROM_DN);
+          traverse_polygon(mnew, t->d1, trnum, TR_FROM_UP);
+        }
+        }
+      else
+        {
+          v0 = tr[t->d1].lseg;
+          v1 = seg[t->rseg].next;
+
+          retval = SP_2DN_RIGHT;
+          if ((dir == TR_FROM_DN) && (t->d1 == from))
+        {
+          do_switch = TRUE;
+          mnew = make_new_monotone_poly(mcur, v1, v0);
+          traverse_polygon(mcur, t->d1, trnum, TR_FROM_UP);
+          traverse_polygon(mnew, t->u1, trnum, TR_FROM_DN);
+          traverse_polygon(mnew, t->u0, trnum, TR_FROM_DN);
+          traverse_polygon(mnew, t->d0, trnum, TR_FROM_UP);
+        }
+          else
+        {
+          mnew = make_new_monotone_poly(mcur, v0, v1);
+          traverse_polygon(mcur, t->u0, trnum, TR_FROM_DN);
+          traverse_polygon(mcur, t->d0, trnum, TR_FROM_UP);
+          traverse_polygon(mcur, t->u1, trnum, TR_FROM_DN);
+          traverse_polygon(mnew, t->d1, trnum, TR_FROM_UP);
+        }
+        }
+    }
+      else          /* no cusp */
+    {
+      if (_equal_to(&t->hi, &seg[t->lseg].v0) &&
+          _equal_to(&t->lo, &seg[t->rseg].v0))
+        {
+          v0 = t->rseg;
+          v1 = t->lseg;
+          retval = SP_SIMPLE_LRDN;
+          if (dir == TR_FROM_UP)
+        {
+          do_switch = TRUE;
+          mnew = make_new_monotone_poly(mcur, v1, v0);
+          traverse_polygon(mcur, t->u0, trnum, TR_FROM_DN);
+          traverse_polygon(mcur, t->u1, trnum, TR_FROM_DN);
+          traverse_polygon(mnew, t->d1, trnum, TR_FROM_UP);
+          traverse_polygon(mnew, t->d0, trnum, TR_FROM_UP);
+        }
+          else
+        {
+          mnew = make_new_monotone_poly(mcur, v0, v1);
+          traverse_polygon(mcur, t->d1, trnum, TR_FROM_UP);
+          traverse_polygon(mcur, t->d0, trnum, TR_FROM_UP);
+          traverse_polygon(mnew, t->u0, trnum, TR_FROM_DN);
+          traverse_polygon(mnew, t->u1, trnum, TR_FROM_DN);
+        }
+        }
+      else if (_equal_to(&t->hi, &seg[t->rseg].v1) &&
+           _equal_to(&t->lo, &seg[t->lseg].v1))
+        {
+          v0 = seg[t->rseg].next;
+          v1 = seg[t->lseg].next;
+
+          retval = SP_SIMPLE_LRUP;
+          if (dir == TR_FROM_UP)
+        {
+          do_switch = TRUE;
+          mnew = make_new_monotone_poly(mcur, v1, v0);
+          traverse_polygon(mcur, t->u0, trnum, TR_FROM_DN);
+          traverse_polygon(mcur, t->u1, trnum, TR_FROM_DN);
+          traverse_polygon(mnew, t->d1, trnum, TR_FROM_UP);
+          traverse_polygon(mnew, t->d0, trnum, TR_FROM_UP);
+        }
+          else
+        {
+          mnew = make_new_monotone_poly(mcur, v0, v1);
+          traverse_polygon(mcur, t->d1, trnum, TR_FROM_UP);
+          traverse_polygon(mcur, t->d0, trnum, TR_FROM_UP);
+          traverse_polygon(mnew, t->u0, trnum, TR_FROM_DN);
+          traverse_polygon(mnew, t->u1, trnum, TR_FROM_DN);
+        }
+        }
+      else          /* no split possible */
+        {
+          retval = SP_NOSPLIT;
+          traverse_polygon(mcur, t->u0, trnum, TR_FROM_DN);
+          traverse_polygon(mcur, t->d0, trnum, TR_FROM_UP);
+          traverse_polygon(mcur, t->u1, trnum, TR_FROM_DN);
+          traverse_polygon(mcur, t->d1, trnum, TR_FROM_UP);
+        }
+    }
+    }
+
+  return retval;
+}
