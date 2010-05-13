@@ -207,6 +207,8 @@ const string OpTMGeospathSpec  =
     "</text--->"
     "<text>query geospath(p1, p2, r1); </text--->"
     ") )";
+
+
 ////////////////TypeMap function for operators//////////////////////////////
 
 /*
@@ -1029,6 +1031,7 @@ ListExpr OpTMGeospathTypeMap ( ListExpr args )
   }
   return nl->SymbolAtom ( "typeerror" );
 }
+
 //////////////////////////////////////////////////////////////////////////
 static int GeoSpathSelect(ListExpr args)
 {
@@ -1842,7 +1845,8 @@ int OpTMTriangulatemap ( Word* args, Word& result, int message,
       case OPEN:{
         Region* reg = (Region*)args[0].addr;
         ct = new CompTriangle(reg);
-        ct->Triangulation();
+//        ct->Triangulation();
+        ct->NewTriangulation();
         local.setAddr(ct);
         return 0;
       }
@@ -1992,6 +1996,7 @@ int OpTMGeospathmap_l ( Word* args, Word& result, int message,
 
 }
 
+
 ////////////////Operator Constructor///////////////////////////////////////
 Operator checksline(
     "checksline",               // name
@@ -2130,7 +2135,6 @@ Operator geospath(
     OpTMGeospathTypeMap        // type mapping
 );
 
-
 /*
 Main Class for Transportation Mode
 
@@ -2157,6 +2161,7 @@ class TransportationModeAlgebra : public Algebra
     AddOperator(&triangulation);
     AddOperator(&convex);
     AddOperator(&geospath);
+
   }
   ~TransportationModeAlgebra() {};
  private:

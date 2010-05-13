@@ -559,8 +559,8 @@ inline void Modify_Point(Point& p)
     x = p.GetX();
     y = p.GetY();
 //    printf("%.10f %.10f\n",x, y);
-    x = ((int)(x*1000.0 + 0.5))/1000.0;
-    y = ((int)(y*1000.0 + 0.5))/1000.0;
+    x = ((int)(x*100.0 + 0.5))/100.0;
+    y = ((int)(y*100.0 + 0.5))/100.0;
 
 //    printf("%.10f %.10f\n",x, y);
 
@@ -769,11 +769,8 @@ struct SpacePartition{
                   Relation* rel2, int attr_pos1, int attr_pos2, int w);
   //get the closest point in hs to p and return the point and distance
   double GetClosestPoint(HalfSegment& hs, Point& p, Point& cp);
+  double GetClosestPoint_New(HalfSegment& hs, Point& p, Point& cp);
 
-  void GetCommonLine(Region* reg, Line* line, Line* res);
-
-
-  void GetSubLine(SimpleLine* sl, Point& p1, Point& p2, Line* res, double);
   //transfer the halfsegment by a deviation
   void TransferHalfSegment(HalfSegment& hs, int delta, bool flag);
   //for the given line, get its curve after transfer
@@ -783,26 +780,29 @@ struct SpacePartition{
   bool BuildZebraCrossing(vector<MyPoint>& endpoints1,
                           vector<MyPoint>& endpoints2,
                           Region* reg_pave1, Region* reg_pave2,
-                          Line* pave1, Region* crossregion, Point& junp);
+                          Line* pave1, Region* crossregion,
+                          Point& junp, Region* last_zc);
 //for the road line around the junction position, it creates the zebra crossing
   void GetZebraCrossing(SimpleLine* subcurve,
                         Region* reg_pave1, Region* reg_pave2,
                         int roadwidth, Line* pave1, double delta_l,
-                        Point p1, Region* crossregion);
+                        Point p1, Region* crossregion, Region* last_zc);
+
 
    // Extend the line in decreasing direction
   void Decrease(SimpleLine* curve, Region* reg_pave1,
                       Region* reg_pave2, double len, Line* pave,
-                      int roadwidth, Region* crossregion);
+                      int roadwidth, Region* crossregion, Region* last_zc);
   //Extend the line in increasing direction
   void Increase(SimpleLine* curve, Region* reg_pave1,
                       Region* reg_pave2, double len, Line* pave,
-                      int roadwidth, Region* crossregion);
+                      int roadwidth, Region* crossregion, Region* last_zc);
   //create the pavement at each junction position
   void CreatePavement(SimpleLine* curve, Region* reg_pave1,
                       Region* reg_pave2, double len, Line* pave1,
-                      Line* pave2, int roadwidth, Region* crossregion,
-                      Region* reg_road);
+                      Line* pave2, int roadwidth, Region* crossregion1,
+                      Region* crossregion2, Region* last_zc);
+
   //cut the common pavements of two roads at the junction position
   void DecomposePave(Region* reg1, Region* reg2, vector<Region>& result);
   void GetCommPave1(vector<Region_Oid>& pave1,
@@ -812,7 +812,7 @@ struct SpacePartition{
                         int attr_pos1, int attr_pos2, int attr_pos3);
   void DecomposePavement2(int start_oid, Relation* rel,
                         int attr_pos1, int attr_pos2);
-  void GetPavementNode1(Network*, Relation*, BTree*,int,int,int);
+  void GetPavementNode1(Network*, Relation*, BTree*, int, int, int);
   void GetPavementNode2(Relation*, Relation*, BTree*, int, int, int);
 
   ///////////cut the commone area between pavements and road regions///
@@ -892,6 +892,7 @@ struct CompTriangle{
   CompTriangle(Region* r);
   ~CompTriangle();
   void Triangulation();
+  void NewTriangulation();
   bool InsideTriangle(float Ax, float Ay,
                       float Bx, float By,
                       float Cx, float Cy,
@@ -901,6 +902,7 @@ struct CompTriangle{
 
   bool GetTriangles(const vector<Point>& contour,vector<Point>& result);
   //detect whether a polygon is a convex or concave
+  bool IsConvex(vector<Point>);
   bool PolygonConvex();
   //compute the shortest path between two points inside a polgyon
   void GeoShortestPath(Point*, Point*);
@@ -921,6 +923,7 @@ struct CompTriangle{
                               vector<Point>&, bool);
   void SelectPointOnSeg(list<MyPoint>, list<MyPoint>, HalfSegment*,
                         Point&, Point&);
+
 };
 
 #endif
