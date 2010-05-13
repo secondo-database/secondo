@@ -1943,3 +1943,81 @@ Input specified as contours.
   this routine
 
 */
+
+
+
+
+
+
+int triangulate_polygon(int ncontours, int cntr[], vector<double> vertices_x,
+vector<double> vertices_y, int (*triangles)[3])
+
+{
+//  cout<<"ncontours "<<ncontours<<endl;
+
+  register int i;
+  int nmonpoly, ccount, npoints, genus;
+  int n;
+
+  memset((void *)seg, 0, sizeof(seg));
+  ccount = 0;
+  i = 1;
+  assert(vertices_x.size() < SEGSIZE);
+
+  while (ccount < ncontours)
+    {
+      int j;
+      int first, last;
+
+      npoints = cntr[ccount];
+
+//      cout<<"npoints "<<npoints<<endl;
+
+
+      first = i;
+      last = first + npoints - 1;
+      for (j = 0; j < npoints; j++, i++)
+    {
+//      seg[i].v0.x = vertices[i][0];
+//      seg[i].v0.y = vertices[i][1];
+
+      seg[i].v0.x = vertices_x[i];
+      seg[i].v0.y = vertices_y[i];
+//      cout<<"x "<<seg[i].v0.x<<endl;
+//      cout<<"y "<<seg[i].v0.y<<endl;
+
+      if (i == last)
+        {
+          seg[i].next = first;
+          seg[i].prev = i-1;
+          seg[i-1].v1 = seg[i].v0;
+        }
+      else if (i == first)
+        {
+          seg[i].next = i+1;
+          seg[i].prev = last;
+          seg[last].v1 = seg[i].v0;
+        }
+      else
+        {
+          seg[i].prev = i-1;
+          seg[i].next = i+1;
+          seg[i-1].v1 = seg[i].v0;
+        }
+
+      seg[i].is_inserted = FALSE;
+    }
+
+      ccount++;
+    }
+
+  genus = ncontours - 1;
+  n = i-1;
+
+  initialise(n);
+  construct_trapezoids(n);
+  nmonpoly = monotonate_trapezoids(n);
+  int no_tri = triangulate_monotone_polygons(n, nmonpoly, triangles);
+
+  return no_tri;
+}
