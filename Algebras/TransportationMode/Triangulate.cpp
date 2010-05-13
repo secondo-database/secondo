@@ -1919,3 +1919,27 @@ int triangulate_monotone_polygons(int nvert, int nmonpoly, int op[][3])
 #endif
   return op_idx;
 }
+
+/*
+Input specified as contours.
+  Outer contour must be anti-clockwise.
+  All inner contours must be clockwise.
+
+  Every contour is specified by giving all its points in order. No
+  point shoud be repeated. i.e. if the outer contour is a square,
+  only the four distinct endpoints shopudl be specified in order.
+
+  ncontours: contours
+  cntr: An array describing the number of points in each
+    contour. Thus, cntr[i] = points in the i'th contour.
+  vertices: Input array of vertices. Vertices for each contour
+            immediately follow those for previous one. Array location
+            vertices[0] must NOT be used (i.e. i/p starts from
+            vertices[1] instead. The output triangles are
+        specified  w.r.t. the indices of these vertices.
+  triangles: Output array to hold triangles.
+
+  Enough space must be allocated for all the arrays before calling
+  this routine
+
+*/
