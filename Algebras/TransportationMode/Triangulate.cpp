@@ -1664,3 +1664,258 @@ static int traverse_polygon(int mcur, int trnum, int from, int dir)
 
   return retval;
 }
+
+
+/*
+ Main routine to get monotone polygons from the trapezoidation of
+  the polygon.
+
+*/
+
+int monotonate_trapezoids(int n)
+
+{
+  register int i;
+  int tr_start;
+
+  memset((void *)vert, 0, sizeof(vert));
+  memset((void *)visited, 0, sizeof(visited));
+  memset((void *)mchain, 0, sizeof(mchain));
+  memset((void *)mon, 0, sizeof(mon));
+
+  /* First locate a trapezoid which lies inside the polygon */
+  /* and which is triangular */
+  for (i = 0; i < TRSIZE; i++)
+    if (inside_polygon(&tr[i]))
+      break;
+  tr_start = i;
+
+  /* Initialise the mon data-structure and start spanning all the */
+  /* trapezoids within the polygon */
+
+#if 0
+  for (i = 1; i <= n; i++)
+    {
+      mchain[i].prev = i - 1;
+      mchain[i].next = i + 1;
+      mchain[i].vnum = i;
+      vert[i].pt = seg[i].v0;
+      vert[i].vnext[0] = i + 1; /* next vertex */
+      vert[i].vpos[0] = i;  /* locn. of next vertex */
+      vert[i].nextfree = 1;
+    }
+  mchain[1].prev = n;
+  mchain[n].next = 1;
+  vert[n].vnext[0] = 1;
+  vert[n].vpos[0] = n;
+  chain_idx = n;
+  mon_idx = 0;
+  mon[0] = 1;           /* position of any vertex in the first */
+                /* chain  */
+
+#else
+
+  for (i = 1; i <= n; i++)
+    {
+      mchain[i].prev = seg[i].prev;
+      mchain[i].next = seg[i].next;
+      mchain[i].vnum = i;
+      vert[i].pt = seg[i].v0;
+      vert[i].vnext[0] = seg[i].next; /* next vertex */
+      vert[i].vpos[0] = i;  /* locn. of next vertex */
+      vert[i].nextfree = 1;
+    }
+
+  chain_idx = n;
+  mon_idx = 0;
+  mon[0] = 1;           /* position of any vertex in the first */
+                /* chain  */
+
+#endif
+
+  /* traverse the polygon */
+  if (tr[tr_start].u0 > 0)
+    traverse_polygon(0, tr_start, tr[tr_start].u0, TR_FROM_UP);
+  else if (tr[tr_start].d0 > 0)
+    traverse_polygon(0, tr_start, tr[tr_start].d0, TR_FROM_DN);
+
+  /* return the number of polygons created */
+  return newmon();
+}
+
+/*
+  A greedy corner-cutting algorithm to triangulate a y-monotone
+  polygon in O(n) time.
+  Joseph O-Rourke, Computational Geometry in C.
+
+*/
+static int triangulate_single_polygon(int nvert, int posmax,
+                                      int side, int op[][3])
+{
+  register int v;
+  int rc[SEGSIZE], ri = 0;  /* reflex chain */
+  int endv, tmp, vpos;
+
+  if (side == TRI_RHS)      /* RHS segment is a single segment */
+    {
+      rc[0] = mchain[posmax].vnum;
+      tmp = mchain[posmax].next;
+      rc[1] = mchain[tmp].vnum;
+      ri = 1;
+
+      vpos = mchain[tmp].next;
+      v = mchain[vpos].vnum;
+
+      if ((endv = mchain[mchain[posmax].prev].vnum) == 0)
+    endv = nvert;
+    }
+  else              /* LHS is a single segment */
+    {
+      tmp = mchain[posmax].next;
+      rc[0] = mchain[tmp].vnum;
+      tmp = mchain[tmp].next;
+      rc[1] = mchain[tmp].vnum;
+      ri = 1;
+
+      vpos = mchain[tmp].next;
+      v = mchain[vpos].vnum;
+
+      endv = mchain[posmax].vnum;
+    }
+
+  while ((v != endv) || (ri > 1))
+    {
+      if (ri > 0)       /* reflex chain is non-empty */
+    {
+      if (CROSS(vert[v].pt, vert[rc[ri - 1]].pt,
+            vert[rc[ri]].pt) > 0)
+        {           /* convex corner: cut if off */
+          op[op_idx][0] = rc[ri - 1];
+          op[op_idx][1] = rc[ri];
+          op[op_idx][2] = v;
+          op_idx++;
+          ri--;
+        }
+      else      /* non-convex */
+        {       /* add v to the chain */
+          ri++;
+          rc[ri] = v;
+          vpos = mchain[vpos].next;
+          v = mchain[vpos].vnum;
+        }
+    }
+      else          /* reflex-chain empty: add v to the */
+    {           /* reflex chain and advance it  */
+      rc[++ri] = v;
+      vpos = mchain[vpos].next;
+      v = mchain[vpos].vnum;
+    }
+    } /* end-while */
+
+  /* reached the bottom vertex. Add in the triangle formed */
+  op[op_idx][0] = rc[ri - 1];
+  op[op_idx][1] = rc[ri];
+  op[op_idx][2] = v;
+  op_idx++;
+  ri--;
+
+  return 0;
+}
+
+
+
+/*
+ For each monotone polygon, find the ymax and ymin (to determine the
+ two y-monotone chains) and pass on this monotone polygon for greedy
+ triangulation.
+ Take care not to triangulate duplicate monotone polygons
+
+*/
+
+int triangulate_monotone_polygons(int nvert, int nmonpoly, int op[][3])
+
+{
+  register int i;
+  point_t ymax, ymin;
+  int p, vfirst, posmax, posmin, v;
+  int vcount, processed;
+
+#ifdef DEBUG
+  for (i = 0; i < nmonpoly; i++)
+    {
+      fprintf(stderr, "\n\nPolygon %d: ", i);
+      vfirst = mchain[mon[i]].vnum;
+      p = mchain[mon[i]].next;
+      fprintf (stderr, "%d ", mchain[mon[i]].vnum);
+      while (mchain[p].vnum != vfirst)
+    {
+      fprintf(stderr, "%d ", mchain[p].vnum);
+      p = mchain[p].next;
+    }
+    }
+  fprintf(stderr, "\n");
+#endif
+
+  op_idx = 0;
+  for (i = 0; i < nmonpoly; i++)
+    {
+      vcount = 1;
+      processed = FALSE;
+      vfirst = mchain[mon[i]].vnum;
+      ymax = ymin = vert[vfirst].pt;
+      posmax = posmin = mon[i];
+      mchain[mon[i]].marked = TRUE;
+      p = mchain[mon[i]].next;
+      while ((v = mchain[p].vnum) != vfirst)
+    {
+     if (mchain[p].marked)
+       {
+         processed = TRUE;
+         break;     /* break from while */
+       }
+     else
+       mchain[p].marked = TRUE;
+
+      if (_greater_than(&vert[v].pt, &ymax))
+        {
+          ymax = vert[v].pt;
+          posmax = p;
+        }
+      if (_less_than(&vert[v].pt, &ymin))
+        {
+          ymin = vert[v].pt;
+          posmin = p;
+        }
+      p = mchain[p].next;
+      vcount++;
+       }
+
+      if (processed)        /* Go to next polygon */
+    continue;
+
+      if (vcount == 3)      /* already a triangle */
+    {
+      op[op_idx][0] = mchain[p].vnum;
+      op[op_idx][1] = mchain[mchain[p].next].vnum;
+      op[op_idx][2] = mchain[mchain[p].prev].vnum;
+      op_idx++;
+    }
+      else          /* triangulate the polygon */
+    {
+      v = mchain[mchain[posmax].next].vnum;
+      if (_equal_to(&vert[v].pt, &ymin))
+        {           /* LHS is a single line */
+          triangulate_single_polygon(nvert, posmax, TRI_LHS, op);
+        }
+      else
+        triangulate_single_polygon(nvert, posmax, TRI_RHS, op);
+    }
+    }
+
+#ifdef DEBUG
+  for (i = 0; i < op_idx; i++)
+    fprintf(stderr, "tri #%d: (%d, %d, %d)\n", i, op[i][0], op[i][1],
+       op[i][2]);
+#endif
+  return op_idx;
+}
