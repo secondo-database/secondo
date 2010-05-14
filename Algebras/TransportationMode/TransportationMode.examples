@@ -48,36 +48,29 @@ Example  : query fillpavement(n, allregions_pave, pave1, pave2, roadwidth) count
 Result   : 1
 
 
-Operator : myregminus
-Number   : 2
-Signature: region x region-> region
-Example  : query area(partition_regions myregminus partition_regions);
-Result   : 0
-
-
-Operator : getpave1
-Number   : 2
-Signature: network x rel x attr1 x attr2 x attr3-> (stream(tuple ((x1 t1) ... (xn tn))))
-Example  : query getpave1(n, pave_regions1, oid, pavement1, pavement2) count;
-Result   : 1
-
 Operator : getpavenode1
 Number   : 2
-Signature: network x rel x btree x attr1 x attr2 x attr3-> (stream(tuple ((x1 t1) ... (xn tn))))
-Example  : query getpavenode1(n, subpaves, btree_pave, oid, rid, pavement) count;
+Signature: network x rel x attr1 x attr2 x attr3-> (stream(tuple ((x1 t1) ... (xn tn))))
+Example  : query getpavenode1(n, pave_regions1, oid, pavement1, pavement2) count;
 Result   : 1
 
-Operator : getpave2
+Operator : getpaveedge1
 Number   : 2
-Signature: int x rel x attr1 x attr2 -> (stream(tuple ((x1 t1) ... (xn tn))))
-Example  : query getpave2(subpaves1 count, pave_regions2, rid, crossreg) count;
+Signature: network x rel x btree x attr1 x attr2 x attr3-> (stream(tuple ((x1 t1) ... (xn tn))))
+Example  : query getpaveedge1(n, subpaves, btree_pave, oid, rid, pavement) count;
 Result   : 1
-
 
 Operator : getpavenode2
 Number   : 2
+Signature: int x rel x attr1 x attr2 -> (stream(tuple ((x1 t1) ... (xn tn))))
+Example  : query getpavenode2(subpaves1 count, pave_regions2, rid, crossreg) count;
+Result   : 1
+
+
+Operator : getpaveedge2
+Number   : 2
 Signature: rel1 x rel2 x btree x attr1 x attr2 x attr3-> (stream(tuple ((x1 t1) ... (xn tn))))
-Example  : query getpavenode2(subpaves2, subpaves, btree_pave, oid, rid, pavement) count;
+Example  : query getpaveedge2(subpaves2, subpaves, btree_pave, oid, rid, pavement) count;
 Result   : 1
 
 
@@ -99,3 +92,28 @@ Number   : 2
 Signature: point x point x region -> (stream(tuple ((x1 t1) ... (xn tn))))
 Example  : query size(geospath(p1, p2, r1)) count;
 Result   : 2
+
+
+Operator : createdualgraph
+Number   : 2
+Signature: int x rel x rel -> dualgraph
+Example  : query createdualgraph(1, edge_rel, node_rel);
+Result   : file_platform
+
+Operator : nodedualgraph
+Number   : 2
+Signature: dualgraph -> rel
+Example  : query nodedualgraph(dg1) count;
+Result   : 77
+
+Operator : walk_sp
+Number   : 2
+Signature: dualgraph x rel x rel -> line
+Example  : query walk_sp(dg1, query_loc1, query_loc2);
+Result   : file_platform
+
+Operator : generate_wp
+Number   : 2
+Signature: rel x int  -> (stream(tuple ((x1 t1) ... (xn tn))))
+Example  : query generate_wp(graph_node, 5) count;
+Result   : 5

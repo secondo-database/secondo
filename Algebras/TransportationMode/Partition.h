@@ -60,6 +60,7 @@ March, 2010 Jianqiu xu
 #include <queue>
 #include "Attribute.h"
 #include "../../Tools/Flob/DbArray.h"
+#include "../../Tools/Flob/Flob.h"
 #include "WinUnix.h"
 #include "AvlTree.h"
 #include "Symbols.h"
@@ -812,8 +813,8 @@ struct SpacePartition{
                         int attr_pos1, int attr_pos2, int attr_pos3);
   void DecomposePavement2(int start_oid, Relation* rel,
                         int attr_pos1, int attr_pos2);
-  void GetPavementNode1(Network*, Relation*, BTree*, int, int, int);
-  void GetPavementNode2(Relation*, Relation*, BTree*, int, int, int);
+  void GetPavementEdge1(Network*, Relation*, BTree*, int, int, int);
+  void GetPavementEdge2(Relation*, Relation*, BTree*, int, int, int);
 
   ///////////cut the commone area between pavements and road regions///
   void Junpavement(Network* n, Relation* rel, int attr_pos1,
@@ -923,7 +924,85 @@ struct CompTriangle{
                               vector<Point>&, bool);
   void SelectPointOnSeg(list<MyPoint>, list<MyPoint>, HalfSegment*,
                         Point&, Point&);
-
 };
 
+struct ListEntry{
+  ListEntry(){} //do not initialize the members
+  ListEntry(int l, int h):low(l),high(h){}
+  ListEntry(const ListEntry& le):low(le.low), high(le.high){}
+  int low, high;
+};
+
+class DualGraph{
+public:
+    static string NodeTypeInfo;
+    static string EdgeTypeInfo;
+    static string QueryTypeInfo;
+    /*schema for edge and node*/
+    enum DGNodeTypeInfo{OID = 0, RID, PAVEMENT};
+    enum DGEdgeTypeInfo{OIDFIRST = 0, OIDSECOND};
+    enum DGQueryTypeInfo{QOID = 0, QLOC};
+
+    ////////////constructor and deconstructor///////////////////////
+    ~DualGraph();
+    DualGraph();
+    DualGraph(SmiRecord&, size_t&, const ListExpr);
+    DualGraph(ListExpr in_xValue,int in_iErrorPos,ListExpr& inout_xErrorInfo,
+             bool& inout_bCorrect);
+    void Load(int, Relation*,Relation*);
+    ///////////////function for typeconstructor////////////////////////
+    static ListExpr DualGraphProp();
+    static ListExpr OutDualGraph(ListExpr typeInfo, Word value);
+    ListExpr Out(ListExpr typeInfo);
+    static Word InDualGraph(ListExpr in_xTypeInfo, ListExpr in_xValue,
+                            int in_iErrorPos, ListExpr& inout_xErrorInfo,
+                            bool& inout_bCorrect);
+    static Word CreateDualGraph(const ListExpr typeInfo);
+    static void CloseDualGraph(const ListExpr typeInfo, Word& w);
+    static Word CloneDualGraph(const ListExpr typeInfo, const Word& w);
+    static void DeleteDualGraph(const ListExpr typeInfo, Word& w);
+    static bool CheckDualGraph(ListExpr type, ListExpr& errorInfo);
+    static void* CastDualGraph(void* addr);
+    static bool SaveDualGraph(SmiRecord& valueRecord, size_t& offset,
+                           const ListExpr typeInfo, Word& value);
+    bool Save(SmiRecord& in_xValueRecord,size_t& inout_iOffset,
+              const ListExpr in_xTypeInfo);
+
+    static bool OpenDualGraph(SmiRecord& valueRecord, size_t& offset,
+                           const ListExpr typeInfo, Word& value);
+    static DualGraph* Open(SmiRecord& valueRecord,size_t& offset,
+                          const ListExpr typeInfo);
+    static int SizeOfDualGraph();
+    void Destroy();
+    //////////////////////////////////////////////////////////////////
+    Relation* GetEdgeRel(){return edge_rel;}
+    Relation* GetNodeRel(){return node_rel;}
+    inline int No_Of_Node(){return node_rel->GetNoTuples();}
+    void FindAdj(int node_id, vector<bool>& flag, vector<int>& adj_list);
+    void WalkShortestPath(int,int,Point,Point,Line*, vector<Region>&);
+private:
+    unsigned int dg_id;
+    Relation* node_rel;
+    Relation* edge_rel;
+
+    DbArray<int> adj_list;
+    DbArray<ListEntry> entry_adj_list;
+};
+
+struct Walk_SP{
+  const DualGraph* dg;
+  const Relation* rel1;
+  const Relation* rel2;
+  unsigned int count;
+  TupleType* resulttype;
+  Line* walk_sp;
+  vector<Region> walkregs;
+  vector<int> oids;
+  vector<Point> q_loc;
+  Walk_SP();
+  ~Walk_SP();
+  Walk_SP(const DualGraph* g, const Relation* r1, const Relation* r2);
+  void WalkShortestPath();
+  void GenerateData(int no_p);
+};
 #endif

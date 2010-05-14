@@ -360,22 +360,6 @@ void SpacePartition::DecomposePavement1(Network* n, Relation* rel,
       pavements1.clear();
     }
     ////////////check inside above//////////////////////////////
-/*    cout<<"check inside above "<<endl;
-    Region* reg = new Region(0);
-
-    for(unsigned int i = 0;i < outer_regions1.size();i++){
-      cout<<"oid "<<i+1<<endl;
-      CompTriangle* ct = new CompTriangle(&outer_regions1[i]);
-      ct->CheckInsideAbove();
-      delete ct;
-
-      Region* temp = new Region(0);
-      outer_regions1[i].Union(*reg,*temp);
-      *reg = *temp;
-      delete temp;
-    }
-    delete reg;*/
-    //////////////////////////////////////////////////////
 }
 
 
@@ -400,12 +384,33 @@ void SpacePartition::DecomposePavement2(int start_oid, Relation* rel,
       DecomposePave(zc_reg, temp, zc_regs);
 //      assert(zc_regs.size() > 0);
 //      cout<<zc_regs.size()<<endl;
-      for(unsigned int j = 0;j < zc_regs.size();j++){
+/*      for(unsigned int j = 0;j < zc_regs.size();j++){
           junid1.push_back(oid);
           junid2.push_back(rid);
           outer_regions1.push_back(zc_regs[j]);
           oid++;
+      }*/
+
+     //filter two zebra crossings are closer to each other
+      const double delta_dist = 4.0;
+      vector<Region> zc_regs_filter;
+      for(unsigned int j1 = 0;j1 < zc_regs.size();j1++){
+          unsigned int j2 = 0;
+          for(;j2 < zc_regs_filter.size();j2++){
+            if(zc_regs_filter[j2].Distance(zc_regs[j1]) < delta_dist)
+              break;
+          }
+          if(j2 == zc_regs_filter.size())
+            zc_regs_filter.push_back(zc_regs[j2]);
       }
+
+      for(unsigned int j = 0;j < zc_regs_filter.size();j++){
+          junid1.push_back(oid);
+          junid2.push_back(rid);
+          outer_regions1.push_back(zc_regs_filter[j]);
+          oid++;
+      }
+
       delete temp;
       zc_regs.clear();
       zc_tuple->DeleteIfAllowed();
@@ -416,7 +421,7 @@ void SpacePartition::DecomposePavement2(int start_oid, Relation* rel,
 get the commone line between two pavements (node in the graph model)
 
 */
-void SpacePartition::GetPavementNode1(Network* n, Relation* rel,
+void SpacePartition::GetPavementEdge1(Network* n, Relation* rel,
                                     BTree* btree_pave,
                                     int attr1, int attr2, int attr3)
 {
@@ -485,7 +490,7 @@ void SpacePartition::GetPavementNode1(Network* n, Relation* rel,
 get the commone line between zc and pavement (node in the graph model)
 
 */
-void SpacePartition::GetPavementNode2(Relation* rel1,
+void SpacePartition::GetPavementEdge2(Relation* rel1,
                                     Relation* rel2, BTree* btree_pave,
                                     int attr1, int attr2, int attr3)
 {
@@ -504,10 +509,10 @@ void SpacePartition::GetPavementNode2(Relation* rel1,
         continue;
     }*/
 
-    cout<<"oid "<<zc_oid->GetIntval()<<"rid "<<rid->GetIntval()<<endl;
+//    cout<<"oid "<<zc_oid->GetIntval()<<"rid "<<rid->GetIntval()<<endl;
 //    assert(reg->GetCycleDirection());
 
-/*    BTreeIterator* btreeiter = btree_pave->ExactMatch(rid);
+    BTreeIterator* btreeiter = btree_pave->ExactMatch(rid);
     while(btreeiter->Next()){
         Tuple* pave_tuple = rel2->GetTuple(btreeiter->GetId(), false);
         int oid = ((CcInt*)pave_tuple->GetAttribute(attr1))->GetIntval();
@@ -517,14 +522,11 @@ void SpacePartition::GetPavementNode2(Relation* rel1,
         delete ro;
         pave_tuple->DeleteIfAllowed();
     }
-    delete btreeiter;*/
+    delete btreeiter;
 
 
-//    GetCommPave2(reg, zc_oid->GetIntval(),reg_pave);
-    Region* temp = new Region(0);
-    reg->Union(*pave_reg, *temp);
-    *pave_reg = *temp;
-    delete temp;
+    GetCommPave2(reg, zc_oid->GetIntval(),reg_pave);
+
 
     reg_pave.clear();
     zc_tuple->DeleteIfAllowed();
@@ -534,7 +536,7 @@ void SpacePartition::GetPavementNode2(Relation* rel1,
 }
 
 /*
-calculate the common border line of two pavements
+detect whether two pavements intersect, (pave1, pave2)
 
 */
 void SpacePartition::GetCommPave1(vector<Region_Oid>& pave1,
@@ -554,14 +556,6 @@ void SpacePartition::GetCommPave1(vector<Region_Oid>& pave1,
           }
       //////////////////////////////////////////////////////////////
           if(MyRegIntersects(&pave1[i].reg, &pave2[j].reg)){
-
-/*              cout<<"oid1 "<<pave1[i].oid<<" oid2 "<<pave2[j].oid<<endl;
-              Region* reg = new Region(0);
-              pave1[i].reg.Union(pave2[j].reg, *reg);
-              CompTriangle* ct = new CompTriangle(reg);
-              ct->NewTriangulation();
-              cout<<"decompose triangles "<<ct->triangles.size()<<endl;
-              delete reg;*/
 
             vector<Point> common_ps;
             for(int index1 = 0; index1 < pave1[i].reg.Size();index1++){
@@ -584,35 +578,13 @@ void SpacePartition::GetCommPave1(vector<Region_Oid>& pave1,
                     }
                 }
             }
+//            cout<<"oid1 "<<pave1[i].oid<<" oid2 "<<pave2[j].oid<<endl;
             assert(common_ps.size() > 1);
-
-/*            if(common_ps.size() > 1){
+            if(common_ps.size() > 1){
                 junid1.push_back(pave1[i].oid);
                 junid2.push_back(pave2[j].oid);
-
-                Line* l1 = new Line(0);
-                pave_line1.push_back(*l1);
-                delete l1;
-                if(common_ps.size() > 4){
-                  cout<<"oid1 "<<pave1[i].oid<<" oid2 "<<pave2[j].oid<<endl;
-                  cout<<"common_ps size "<<common_ps.size()<<endl;
-                }
-
-            }*/
-//            cout<<"common_ps size "<<common_ps.size()<<endl;
-              if(common_ps.size() == 1){
-                cout<<"oid1 "<<pave1[i].oid<<" oid2 "<<pave2[j].oid<<endl;
-                junid1.push_back(pave1[i].oid);
-                junid2.push_back(pave2[j].oid);
-
-                Line* l1 = new Line(0);
-                pave_line1.push_back(*l1);
-                delete l1;
-
-              }
-
+            }
           }
-
       /////////////////////////////////////////////////////////////
       }
   }
@@ -620,44 +592,14 @@ void SpacePartition::GetCommPave1(vector<Region_Oid>& pave1,
 }
 
 /*
-get the common border line between zebra crossing and the pavement
+detect whether the zebra crossing intersects the pavement
 
 */
 void SpacePartition::GetCommPave2(Region* reg, int oid,
                                   vector<Region_Oid>& pave2)
 {
     for(unsigned int i = 0;i < pave2.size();i++){
-        if(!(oid == 33512 && pave2[i].oid == 12947)) continue;
         if(MyRegIntersects(reg, &pave2[i].reg)){
-
-/*          Region* comm = new Region(0);
-          MyIntersection(*reg, pave2[i].reg, *comm);
-//          cout<<comm->Size()<<endl;
-          assert(comm->Size() > 0);
-
-          Region* temp = new Region(0);
-          MyMinus(*reg, *comm, *temp);
-
-          Line* boundary = new Line(0);
-          comm->Boundary(boundary);
-          Line* result = new Line(0);
-//          pave2[i].reg.Intersection(*boundary, *result);
-          MyIntersection(*boundary, *temp, *result);
-
-          if(result->Size() == 0){
-            cout<<"zc oid1 "<<oid<<endl;
-            cout<<"pave oid2 "<<pave2[i].oid<<endl;
-          }
-          if(result->Size() > 0){
-              junid1.push_back(oid);
-              junid2.push_back(pave2[i].oid);
-              pave_line1.push_back(*result);
-          }
-          delete result;
-          delete boundary;
-          delete comm;
-          delete temp;*/
-
           Line* boundary = new Line(0);
           pave2[i].reg.Boundary(boundary);
           Line* result = new Line(0);
@@ -666,23 +608,19 @@ void SpacePartition::GetCommPave2(Region* reg, int oid,
             cout<<"zc oid1 "<<oid<<endl;
             cout<<"pave oid2 "<<pave2[i].oid<<endl;
           }
+          assert(result->Size() > 0);
           if(result->Size() > 0){
-              cout<<"result size"<<result->Size()<<endl;
               junid1.push_back(oid);
               junid2.push_back(pave2[i].oid);
-              pave_line1.push_back(*result);
-              cout<<"result "<<*result<<endl;
           }
-
           delete result;
           delete boundary;
         }
     }
-
 }
 
 /*
-doing triangulation for a polygon
+doing triangulation for a polygon with and without hole
 
 */
 
@@ -1063,9 +1001,10 @@ and the end point
 */
 
 struct SPath_elem{
-  int prev_index;
-  int cur_index;
-  unsigned int tri_index;
+  int prev_index;//previous in expansion list
+  int cur_index; //current entry  in expansion list
+//  unsigned int tri_index; //object id
+  int tri_index; //object id
   unsigned int weight;
   SPath_elem(){}
   SPath_elem(int p, int c, int t, int w):prev_index(p), cur_index(c),
@@ -2424,3 +2363,653 @@ any startpoint and endpoint?  As far as I know, an exhaustive search is
 required.  However, the search can be optimized a bit so that it doesn’t take
 as long as testing every possible path.*/
 
+string DualGraph::NodeTypeInfo =
+  "(rel(tuple((oid int)(rid int)(pavement region))))";
+string DualGraph::EdgeTypeInfo =
+  "(rel(tuple((oid1 int)(oid2 int))))";
+string DualGraph::QueryTypeInfo =
+  "(rel(tuple((oid int)(loc point))))";
+
+ListExpr DualGraph::DualGraphProp()
+{
+    cout<<"DualGraphProp()"<<endl;
+    ListExpr examplelist = nl->TextAtom();
+    nl->AppendText(examplelist,
+               "createdualgraph(<id>,<edge-relation>,<node-relation>)");
+    return nl->TwoElemList(
+             nl->TwoElemList(nl->StringAtom("Creation"),
+                              nl->StringAtom("Example Creation")),
+             nl->TwoElemList(examplelist,
+                   nl->StringAtom("let dg=createdualgraph(id,e-rel,n-rel)")));
+}
+
+
+ListExpr DualGraph::OutDualGraph(ListExpr typeInfo, Word value)
+{
+  cout<<"OutDualGraph()"<<endl;
+  DualGraph* dg = (DualGraph*)value.addr;
+  return dg->Out(typeInfo);
+}
+
+ListExpr DualGraph::Out(ListExpr typeInfo)
+{
+  cout<<"Out()"<<endl;
+  ListExpr xNode = nl->TheEmptyList();
+  ListExpr xLast = nl->TheEmptyList();
+  ListExpr xNext = nl->TheEmptyList();
+
+  bool bFirst = true;
+  for(int i = 1;i <= node_rel->GetNoTuples();i++){
+      Tuple* node_tuple = node_rel->GetTuple(i, false);
+      CcInt* oid = (CcInt*)node_tuple->GetAttribute(OID);
+      CcInt* rid = (CcInt*)node_tuple->GetAttribute(RID);
+      Region* reg = (Region*)node_tuple->GetAttribute(PAVEMENT);
+
+      ListExpr xRegion = OutRegion(nl->TheEmptyList(),SetWord(reg));
+      xNext = nl->FourElemList(nl->IntAtom(dg_id),
+                               nl->IntAtom(oid->GetIntval()),
+                               nl->IntAtom(rid->GetIntval()),
+                               xRegion);
+      if(bFirst){
+        xNode = nl->OneElemList(xNext);
+        xLast = xNode;
+        bFirst = false;
+      }else
+          xLast = nl->Append(xLast,xNext);
+      node_tuple->DeleteIfAllowed();
+  }
+
+  return nl->TwoElemList(nl->IntAtom(dg_id),xNode);
+}
+
+Word DualGraph::InDualGraph(ListExpr in_xTypeInfo, ListExpr in_xValue,
+                            int in_iErrorPos, ListExpr& inout_xErrorInfo,
+                            bool& inout_bCorrect)
+{
+  cout<<"InDualGraph()"<<endl;
+  DualGraph* dg = new DualGraph(in_xValue, in_iErrorPos, inout_xErrorInfo,
+                                inout_bCorrect);
+  if(inout_bCorrect) return SetWord(dg);
+  else{
+    delete dg;
+    return SetWord(Address(0));
+  }
+}
+
+Word DualGraph::CreateDualGraph(const ListExpr typeInfo)
+{
+  cout<<"CreateDualGraph()"<<endl;
+  return SetWord(new DualGraph());
+
+}
+
+void DualGraph::CloseDualGraph(const ListExpr typeInfo, Word& w)
+{
+  cout<<"CloseDualGraph()"<<endl;
+  delete static_cast<DualGraph*> (w.addr);
+  w.addr = NULL;
+}
+
+Word DualGraph::CloneDualGraph(const ListExpr typeInfo, const Word& w)
+{
+  cout<<"CloneDualGraph()"<<endl;
+  return SetWord(Address(0));
+}
+
+void DualGraph::DeleteDualGraph(const ListExpr typeInfo, Word& w)
+{
+  cout<<"DeleteDualGraph()"<<endl;
+  DualGraph* dg = (DualGraph*)w.addr;
+//  dg->Destroy();
+  delete dg;
+  w.addr = NULL;
+}
+
+bool DualGraph::CheckDualGraph(ListExpr type, ListExpr& errorInfo)
+{
+  cout<<"CheckDualGraph()"<<endl;
+  return nl->IsEqual(type, "dualgraph");
+}
+
+void* DualGraph::CastDualGraph(void* addr)
+{
+  cout<<"CastDualGraph()"<<endl;
+  return 0;
+}
+
+bool DualGraph::SaveDualGraph(SmiRecord& valueRecord, size_t& offset,
+                           const ListExpr typeInfo, Word& value)
+{
+  cout<<"SaveDualGraph()"<<endl;
+  DualGraph* dg = (DualGraph*)value.addr;
+  bool result = dg->Save(valueRecord, offset, typeInfo);
+
+  return result;
+}
+
+bool DualGraph::Save(SmiRecord& in_xValueRecord,size_t& inout_iOffset,
+const ListExpr in_xTypeInfo)
+{
+  cout<<"Save()"<<endl;
+  /********************Save graph id ****************************/
+  in_xValueRecord.Write(&dg_id,sizeof(int),inout_iOffset);
+  inout_iOffset += sizeof(int);
+
+
+  ListExpr xType;
+  ListExpr xNumericType;
+  /************************save node****************************/
+  nl->ReadFromString(NodeTypeInfo,xType);
+  xNumericType = SecondoSystem::GetCatalog()->NumericType(xType);
+  if(!node_rel->Save(in_xValueRecord,inout_iOffset,xNumericType))
+      return false;
+
+  /************************save edge****************************/
+  nl->ReadFromString(EdgeTypeInfo,xType);
+  xNumericType = SecondoSystem::GetCatalog()->NumericType(xType);
+  if(!edge_rel->Save(in_xValueRecord,inout_iOffset,xNumericType))
+      return false;
+
+
+   SecondoCatalog *ctlg = SecondoSystem::GetCatalog();
+   SmiRecordFile *rf = ctlg->GetFlobFile();
+   adj_list.saveToFile(rf, adj_list);
+   SmiSize offset = 0;
+   size_t bufsize = adj_list.headerSize()+ 2*sizeof(int);
+   char* buf = (char*) malloc(bufsize);
+   adj_list.serializeHeader(buf,offset);
+   assert(offset==bufsize);
+   in_xValueRecord.Write(buf, bufsize, inout_iOffset);
+   inout_iOffset += bufsize;
+   free(buf);
+
+   entry_adj_list.saveToFile(rf, entry_adj_list);
+   offset = 0;
+   buf = (char*) malloc(bufsize);
+   entry_adj_list.serializeHeader(buf,offset);
+   assert(offset==bufsize);
+   in_xValueRecord.Write(buf,bufsize, inout_iOffset);
+   free(buf);
+   inout_iOffset += bufsize;
+
+  return true;
+}
+
+bool DualGraph::OpenDualGraph(SmiRecord& valueRecord, size_t& offset,
+                           const ListExpr typeInfo, Word& value)
+{
+  cout<<"OpenDualGraph()"<<endl;
+  value.addr = DualGraph::Open(valueRecord, offset, typeInfo);
+  bool result = (value.addr != NULL);
+
+  return result;
+}
+
+DualGraph* DualGraph::Open(SmiRecord& valueRecord,size_t& offset,
+                          const ListExpr typeInfo)
+{
+  cout<<"Open()"<<endl;
+  return new DualGraph(valueRecord,offset,typeInfo);
+}
+
+int DualGraph::SizeOfDualGraph()
+{
+  cout<<"SizeOfDualGraph()"<<endl;
+  return 0;
+}
+
+
+DualGraph::DualGraph():dg_id(0),
+node_rel(NULL),
+edge_rel(NULL),
+adj_list(0),
+entry_adj_list(0)
+{
+
+}
+
+DualGraph::DualGraph(SmiRecord& in_xValueRecord,size_t& inout_iOffset,
+const ListExpr in_xTypeInfo):
+dg_id(0), node_rel(NULL), edge_rel(NULL),
+adj_list(0), entry_adj_list(0)
+{
+   /***********************Read graph id********************************/
+  in_xValueRecord.Read(&dg_id,sizeof(int),inout_iOffset);
+  inout_iOffset += sizeof(int);
+
+
+  ListExpr xType;
+  ListExpr xNumericType;
+  /***********************Open relation for node*********************/
+  nl->ReadFromString(NodeTypeInfo,xType);
+  xNumericType = SecondoSystem::GetCatalog()->NumericType(xType);
+  node_rel = Relation::Open(in_xValueRecord, inout_iOffset, xNumericType);
+  if(!node_rel) {
+    return;
+  }
+  /***********************Open relation for edge*********************/
+  nl->ReadFromString(EdgeTypeInfo,xType);
+  xNumericType = SecondoSystem::GetCatalog()->NumericType(xType);
+  edge_rel = Relation::Open(in_xValueRecord, inout_iOffset, xNumericType);
+  if(!edge_rel) {
+    node_rel->Delete();
+    return;
+  }
+
+  ////////////////////adjaency list////////////////////////////////
+   size_t bufsize = sizeof(FlobId) + sizeof(SmiSize) + 2*sizeof(int);
+   SmiSize offset = 0;
+   char* buf = (char*) malloc(bufsize);
+   in_xValueRecord.Read(buf, bufsize, inout_iOffset);
+   inout_iOffset += bufsize;
+   assert(buf != NULL);
+   adj_list.restoreHeader(buf,offset);
+   free(buf);
+   offset = 0;
+   buf = (char*) malloc(bufsize);
+   in_xValueRecord.Read(buf, bufsize, inout_iOffset);
+   assert(buf != NULL);
+   entry_adj_list.restoreHeader(buf,offset);
+   inout_iOffset += bufsize;
+   free(buf);
+  //////////////////test adjacency list///////////////////////////////////
+/*  for(int i = 0;i < entry_adj_list.Size();i++){
+      cout<<"i "<<i + 1<<endl;
+      ListEntry list_entry;
+      entry_adj_list.Get(i, list_entry);
+      int low = list_entry.low;
+      int high = list_entry.high;
+      int j = low;
+      cout<<"adjaency list low"<<low<<"high "<<high<<endl;
+      while(j < high){
+        int oid;
+        adj_list.Get(j, oid);
+        cout<<"oid "<<oid<<" ";
+        j++;
+      }
+      cout<<endl;
+  }*/
+
+  ///////////////////////////////////////////////////////////////////////
+}
+void DualGraph::Destroy()
+{
+  cout<<"Destroy()"<<endl;
+  if(node_rel != NULL){
+      node_rel->Delete();
+      node_rel = NULL;
+  }
+  if(edge_rel != NULL){
+    edge_rel->Delete();
+    edge_rel = NULL;
+  }
+
+}
+
+DualGraph::DualGraph(ListExpr in_xValue,int in_iErrorPos,
+                     ListExpr& inout_xErrorInfo,
+                     bool& inout_bCorrect):dg_id(0),
+node_rel(NULL),
+edge_rel(NULL),
+adj_list(0),
+entry_adj_list(0)
+{
+
+
+}
+DualGraph::~DualGraph()
+{
+
+    cout<<"~DualGraph()"<<endl;
+    if(node_rel != NULL)
+      node_rel->Close();
+
+    if(edge_rel != NULL)
+      edge_rel->Close();
+
+//    adj_list.clean();
+//    entry_adj_list.clean();
+
+}
+/*
+let dg1 = createdualgraph(1, graph_node, graph_edge);
+delete dg1;
+close database;
+quit; //very important, otherwise, it can't create it again
+
+start Secondo
+let dg1 = createdualgraph(1, graph_node, graph_edge);
+
+*/
+
+void DualGraph::Load(int id, Relation* r1, Relation* r2)
+{
+  cout<<"Load()"<<endl;
+  dg_id = id;
+  //////////////////node relation////////////////////
+
+  ostringstream xNodePtrStream;
+  xNodePtrStream<<(long)r1;
+  string strQuery = "(consume(sort(feed(" + NodeTypeInfo +
+                "(ptr " + xNodePtrStream.str() + ")))))";
+  Word xResult;
+  int QueryExecuted = QueryProcessor::ExecuteQuery(strQuery, xResult);
+  assert(QueryExecuted);
+  node_rel = (Relation*)xResult.addr;
+
+  /////////////////edge relation/////////////////////
+  ostringstream xEdgePtrStream;
+  xEdgePtrStream<<(long)r2;
+  strQuery = "(consume(sort(feed(" + EdgeTypeInfo +
+                "(ptr " + xEdgePtrStream.str() + ")))))";
+  QueryExecuted = QueryProcessor::ExecuteQuery(strQuery, xResult);
+  assert(QueryExecuted);
+  edge_rel = (Relation*)xResult.addr;
+
+  ////////////adjacency list ////////////////////////////////
+  ListExpr xTypeInfoEdge;
+  nl->ReadFromString(EdgeTypeInfo,xTypeInfoEdge);
+  ListExpr xNumType =
+                SecondoSystem::GetCatalog()->NumericType(xTypeInfoEdge);
+  Relation* temp_edge1 = new Relation(xNumType,true);
+  Relation* temp_edge2 = new Relation(xNumType,true);
+  for(int i = 1;i <= r2->GetNoTuples();i++){
+    Tuple* t = r2->GetTuple(i, false);
+    temp_edge1->AppendTuple(t);
+    temp_edge2->AppendTuple(t);
+    t->DeleteIfAllowed();
+  }
+  ostringstream xNodeOidPtrStream1;
+  xNodeOidPtrStream1 << (long)edge_rel;
+  strQuery = "(createbtree (" + EdgeTypeInfo +
+             "(ptr " + xNodeOidPtrStream1.str() + "))" + "oid1)";
+  QueryExecuted = QueryProcessor::ExecuteQuery(strQuery,xResult);
+  assert(QueryExecuted);
+  BTree* btree_node_oid1 = (BTree*)xResult.addr;
+
+
+  ostringstream xNodeOidPtrStream2;
+  xNodeOidPtrStream2 << (long)edge_rel;
+  strQuery = "(createbtree (" + EdgeTypeInfo +
+             "(ptr " + xNodeOidPtrStream2.str() + "))" + "oid2)";
+  QueryExecuted = QueryProcessor::ExecuteQuery(strQuery, xResult);
+  assert(QueryExecuted);
+  BTree* btree_node_oid2 = (BTree*)xResult.addr;
+  delete temp_edge1;
+  delete temp_edge2;
+
+
+//  cout<<"b-tree on edge is finished....."<<endl;
+
+  for(int i = 1;i <= node_rel->GetNoTuples();i++){
+    CcInt* nodeid = new CcInt(true, i);
+    BTreeIterator* btree_iter1 = btree_node_oid1->ExactMatch(nodeid);
+    int start = adj_list.Size();
+//    cout<<"start "<<start<<endl;
+    while(btree_iter1->Next()){
+      Tuple* edge_tuple = edge_rel->GetTuple(btree_iter1->GetId(), false);
+      int oid = ((CcInt*)edge_tuple->GetAttribute(OIDSECOND))->GetIntval();
+      adj_list.Append(oid);
+      edge_tuple->DeleteIfAllowed();
+    }
+    delete btree_iter1;
+
+    BTreeIterator* btree_iter2 = btree_node_oid2->ExactMatch(nodeid);
+    while(btree_iter2->Next()){
+      Tuple* edge_tuple = edge_rel->GetTuple(btree_iter2->GetId(), false);
+      int oid = ((CcInt*)edge_tuple->GetAttribute(OIDFIRST))->GetIntval();
+      adj_list.Append(oid);
+      edge_tuple->DeleteIfAllowed();
+    }
+    delete btree_iter2;
+    int end = adj_list.Size();
+    entry_adj_list.Append(ListEntry(start, end));
+//    cout<<"end "<<end<<endl;
+    delete nodeid;
+  }
+
+  delete btree_node_oid1;
+  delete btree_node_oid2;
+
+/*  for(int i = 0;i < entry_adj_list.Size();i++){
+      cout<<"i "<<i + 1<<endl;
+      ListEntry list_entry;
+      entry_adj_list.Get(i, list_entry);
+      int low = list_entry.low;
+      int high = list_entry.high;
+      int j = low;
+      cout<<"adjaency list low"<<low<<"high "<<high<<endl;
+      while(j < high){
+        int oid;
+        adj_list.Get(j, oid);
+        cout<<"oid "<<oid<<" ";
+        j++;
+      }
+      cout<<endl;
+  }*/
+}
+
+/*
+Given a nodeid, find all its adjacecny nodes
+
+*/
+void DualGraph::FindAdj(int node_id, vector<bool>& flag, vector<int>& list)
+{
+
+  ListEntry list_entry;
+  entry_adj_list.Get(node_id - 1, list_entry);
+  int low = list_entry.low;
+  int high = list_entry.high;
+  int j = low;
+  while(j < high){
+      int oid;
+      adj_list.Get(j, oid);
+      j++;
+      if(flag[oid - 1] == false){
+        list.push_back(oid);
+        flag[oid - 1] = true;
+      }
+  }
+
+}
+/*
+Computing the shortest path of two points inside polgyon representing pavement
+
+*/
+
+void DualGraph::WalkShortestPath(int oid1, int oid2, Point loc1, Point loc2,
+                                 Line* walk_sp, vector<Region>& walkregs)
+{
+  ////////////////point must be located inside the polygon//////////
+  Tuple* tuple1 = node_rel->GetTuple(oid1, false);
+  Region* reg1 = (Region*)tuple1->GetAttribute(PAVEMENT);
+  BBox<2> bbox1 = reg1->BoundingBox();
+  double xmin1 = bbox1.MinD(0);
+  double ymin1 = bbox1.MinD(1);
+  loc1.Set(loc1.GetX() + xmin1, loc1.GetY() + ymin1);
+  cout<<"loc1 "<<loc1<<endl;
+  if(loc1.Inside(*reg1) == false){
+    tuple1->DeleteIfAllowed();
+    cout<<"point1 is not inside the polygon"<<endl;
+    return;
+  }
+  Tuple* tuple2 = node_rel->GetTuple(oid2, false);
+  Region* reg2 = (Region*)tuple1->GetAttribute(PAVEMENT);
+  BBox<2> bbox2 = reg2->BoundingBox();
+  double xmin2 = bbox2.MinD(0);
+  double ymin2 = bbox2.MinD(1);
+  loc2.Set(loc2.GetX() + xmin2, loc2.GetY() + ymin2);
+  cout<<"loc2 "<<loc2<<endl;
+  if(loc2.Inside(*reg2) == false){
+    tuple1->DeleteIfAllowed();
+    tuple2->DeleteIfAllowed();
+    cout<<"point2 is not inside the polygon"<<endl;
+    return;
+  }
+  tuple1->DeleteIfAllowed();
+  tuple2->DeleteIfAllowed();
+  ///////////////////////////////////////////////////
+
+  int no_node_graph = node_rel->GetNoTuples();
+  vector<bool> mark_oid;
+  for(int i = 1;i <= no_node_graph;i++){
+    mark_oid.push_back(false);
+  }
+
+  priority_queue<SPath_elem> path_queue;
+  vector<SPath_elem> expand_path;
+
+  path_queue.push(SPath_elem(-1, 0, oid1, 1));
+  expand_path.push_back(SPath_elem(-1,0, oid1, 1));
+  mark_oid[oid1 - 1] = true;
+
+  bool find = false;
+  SPath_elem dest;//////////destination
+  if(oid1 != oid2){
+    while(path_queue.empty() == false){
+      SPath_elem top = path_queue.top();
+      path_queue.pop();
+  //    top.Print();
+      if(top.tri_index == oid2){
+         cout<<"find the path"<<endl;
+         find = true;
+        dest = top;
+        break;
+      }
+      //////find its adjacecy element, and push them into queue and path//////
+      vector<int> adj_list;
+      FindAdj(top.tri_index, mark_oid, adj_list);
+
+      int pos_expand_path = top.cur_index;
+      for(unsigned int i = 0;i < adj_list.size();i++){
+        int expand_path_size = expand_path.size();
+        path_queue.push(SPath_elem(pos_expand_path, expand_path_size,
+                                adj_list[i], top.weight + 1));
+        expand_path.push_back(SPath_elem(pos_expand_path, expand_path_size,
+                            adj_list[i], top.weight + 1));
+      }
+    }
+  }else{
+    find = true;
+    dest = SPath_elem(-1, 0, oid1, 1);
+  }
+
+  ///////////////construct the path/////////////////////////////
+  if(find){
+    vector<int> path_record;
+    while(dest.prev_index != -1){
+      path_record.push_back(dest.tri_index);
+      dest = expand_path[dest.prev_index];
+    }
+    path_record.push_back(dest.tri_index);
+
+    for(int i = path_record.size() - 1;i >= 0;i--){
+//      cout<<path_record[i]<<endl;
+      Tuple* t = node_rel->GetTuple(path_record[i], false);
+      Region* reg = (Region*)t->GetAttribute(PAVEMENT);
+      walkregs.push_back(*reg);
+      t->DeleteIfAllowed();
+    }
+  }
+
+
+}
+
+
+Walk_SP::Walk_SP()
+{
+  dg = NULL;
+  rel1 = NULL;
+  rel2 = NULL;
+  count = 0;
+  walk_sp = NULL;
+  resulttype = NULL;
+}
+Walk_SP::Walk_SP(const DualGraph* g, const Relation* r1,
+const Relation* r2):dg(g), rel1(r1), rel2(r2), count(0),
+resulttype(NULL), walk_sp(NULL)
+{
+
+}
+
+Walk_SP:: ~Walk_SP()
+{
+  if(walk_sp != NULL) delete walk_sp;
+  if(resulttype != NULL) delete resulttype;
+}
+
+void Walk_SP::WalkShortestPath()
+{
+  cout<<"WalkShortestPath"<<endl;
+  if(rel1->GetNoTuples() != 1 || rel2->GetNoTuples() != 1){
+    cout<<"input query relation is not correct"<<endl;
+    return;
+  }
+  Tuple* t1 = rel1->GetTuple(1, false);
+  int oid1 = ((CcInt*)t1->GetAttribute(DualGraph::QOID))->GetIntval();
+  Point* loc1 = new Point(*((Point*)t1->GetAttribute(DualGraph::QLOC)));
+  Tuple* t2 = rel2->GetTuple(1, false);
+  int oid2 = ((CcInt*)t2->GetAttribute(DualGraph::QOID))->GetIntval();
+  Point* loc2 = new Point(*((Point*)t2->GetAttribute(DualGraph::QLOC)));
+//  cout<<"pave1 "<<oid1<<" pave2 "<<oid2<<endl;
+  int no_node_graph = const_cast<DualGraph*>(dg)->No_Of_Node();
+  if(oid1 < 1 || oid1 > no_node_graph){
+    cout<<"pave loc1 does not exist"<<endl;
+    return;
+  }
+  if(oid2 < 1 || oid2 > no_node_graph){
+    cout<<"pave loc2 does not exist"<<endl;
+    return;
+  }
+
+  /////////////////////searching path/////////////////////////////
+  walk_sp = new Line(0);
+  (const_cast<DualGraph*>(dg))->WalkShortestPath(oid1, oid2,
+                                *loc1, *loc2, walk_sp, walkregs);
+
+  delete loc1;
+  delete loc2;
+  t1->DeleteIfAllowed();
+  t2->DeleteIfAllowed();
+}
+
+/*
+Randomly generates points inside pavement polygon
+
+*/
+
+void Walk_SP::GenerateData(int no_p)
+{
+  int count = 0;
+  int no_node_graph = rel1->GetNoTuples();
+  struct timeval tval;
+  struct timezone tzone;
+
+  gettimeofday(&tval, &tzone);
+  srand48(tval.tv_sec);
+
+  for (int i = 1; i <= no_p; i++){
+      int  m = lrand48() % no_node_graph + 1;
+//      cout<<"m "<<m<<endl;
+      Tuple* tuple = rel1->GetTuple(m, false);
+      Region* reg = (Region*)tuple->GetAttribute(DualGraph::PAVEMENT);
+      BBox<2> bbox = reg->BoundingBox();
+      int xx = (int)(bbox.MaxD(0) - bbox.MinD(0));
+      int yy = (int)(bbox.MaxD(1) - bbox.MinD(1));
+      Point p;
+      bool inside = false;
+      while(inside == false){
+        int x = mrand48()% xx;
+        int y = mrand48()% yy;
+//        printf("x %d, y %d\n", x, y);
+        Coord x_cord = x + bbox.MinD(0);
+        Coord y_cord = y + bbox.MinD(1);
+        p.Set(x_cord, y_cord);
+        inside = p.Inside(*reg);
+      }
+      oids.push_back(m);
+      q_loc.push_back(p);
+      tuple->DeleteIfAllowed();
+  }
+
+}

@@ -46,6 +46,7 @@ queries moving objects with transportation modes.
 extern NestedList* nl;
 extern QueryProcessor *qp;
 
+
 namespace TransportationMode{
 
 ////////////string for Operator Spec //////////////////////////////////
@@ -121,49 +122,26 @@ const string OpTMFillPavementSpec  =
     "count;</text--->"
     ") )";
 
-const string OpTMMyRegMinusSpec  =
-    "( ( \"Signature\" \"Syntax\" \"Meaning\" "
-    "\"Example\" ) "
-    "( <text>region x region-> region</text--->"
-    "<text>region myregminus region</text--->"
-    "<text>minus the first region by the second region</text--->"
-    "<text>query area(partition_regions myregminus partition_regions);"
-    "</text--->"
-    ") )";
-
-const string OpTMGetPave1Spec  =
+const string OpTMGetPaveNode1Spec  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" "
     "\"Example\" ) "
     "( <text>network x rel x attr1 x attr2 x attr3->"
     "(stream (tuple( (x1 t1)(x2 t2)...(xn tn))) </text--->"
-    "<text>getpave1(network, rel, attr1, attr2, attr3)</text--->"
+    "<text>getpavenode1(network, rel, attr1, attr2, attr3)</text--->"
     "<text>decompose the pavements of one road into a set of subregions"
     "</text--->"
-    "<text>query getpave1(n, pave_regions1, oid, pavement1,pavement2);"
+    "<text>query getpavenode1(n, pave_regions1, oid, pavement1,pavement2);"
     "</text--->"
     ") )";
 
-const string OpTMGetPaveNode1Spec  =
+const string OpTMGetPaveEdge1Spec  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" "
     "\"Example\" ) "
     "( <text>network x rel x btree x attr1 x attr2 x attr3->"
     "(stream (tuple( (x1 t1)(x2 t2)...(xn tn))) </text--->"
-    "<text>getpavenode1(network, rel, btree, attr1, attr2 , attr3)</text--->"
+    "<text>getpaveedge1(network, rel, btree, attr1, attr2 , attr3)</text--->"
     "<text>get the commone area of two pavements</text--->"
-    "<text>query getpavenode1(n, subpaves, btree_pave,oid, rid ,pavement);"
-    "</text--->"
-    ") )";
-
-
-const string OpTMGetPave2Spec  =
-    "( ( \"Signature\" \"Syntax\" \"Meaning\" "
-    "\"Example\" ) "
-    "( <text>int x rel x attr1 x attr2->"
-    "(stream (tuple( (x1 t1)(x2 t2)...(xn tn))) </text--->"
-    "<text>getpave2(int, rel, attr1, attr2)</text--->"
-    "<text>decompose the zebra crossings into a set of subregions"
-    "</text--->"
-    "<text>query getpave2(subpaves count, pave_regions2, rid, crossreg) count;"
+    "<text>query getpaveedge1(n, subpaves, btree_pave,oid, rid ,pavement);"
     "</text--->"
     ") )";
 
@@ -171,11 +149,24 @@ const string OpTMGetPave2Spec  =
 const string OpTMGetPaveNode2Spec  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" "
     "\"Example\" ) "
+    "( <text>int x rel x attr1 x attr2->"
+    "(stream (tuple( (x1 t1)(x2 t2)...(xn tn))) </text--->"
+    "<text>getpavenode2(int, rel, attr1, attr2)</text--->"
+    "<text>decompose the zebra crossings into a set of subregions"
+    "</text--->"
+    "<text>query getpavenode2(subpaves count, pave_regions2, rid, crossreg)"
+    " count; </text--->"
+    ") )";
+
+
+const string OpTMGetPaveEdge2Spec  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+    "\"Example\" ) "
     "( <text>rel1 x rel2 x btree x attr1 x attr2 x attr3->"
     "(stream (tuple( (x1 t1)(x2 t2)...(xn tn))) </text--->"
-    "<text>getpavenode2(rel1, rel2, btree, attr1, attr2, attr3)</text--->"
+    "<text>getpaveedge2(rel1, rel2, btree, attr1, attr2, attr3)</text--->"
     "<text>get the commone area between zc and pave</text--->"
-    "<text>query getpavenode2(subpaves2, subpaves,"
+    "<text>query getpaveedge2(subpaves2, subpaves,"
     "btree_pave, oid, rid , pavement) count; </text--->"
     ") )";
 
@@ -208,7 +199,41 @@ const string OpTMGeospathSpec  =
     "<text>query geospath(p1, p2, r1); </text--->"
     ") )";
 
+const string OpTMCreateDGSpec  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+    "\"Example\" ) "
+    "( <text>int x rel x rel -> dualgraph</text--->"
+    "<text>createdualgraph(int, rel, rel)</text--->"
+    "<text>create a dual by the input edge and node relation</text--->"
+    "<text>query createdualgraph(1, edge-rel, node-rel); </text--->"
+    ") )";
 
+const string OpTMNodeDGSpec  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+    "\"Example\" ) "
+    "( <text>dualgraph -> rel</text--->"
+    "<text>nodedualgraph(dualgraph)</text--->"
+    "<text>get the node relation of the graph</text--->"
+    "<text>query nodedualgraph(dg1) count; </text--->"
+    ") )";
+
+const string OpTMWalkSPSpec  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+    "\"Example\" ) "
+    "( <text>dualgraph x rel x rel-> line</text--->"
+    "<text>walk_sp(dualgraph, rel, rel)</text--->"
+    "<text>get the shortest path for pedestrian</text--->"
+    "<text>query walk_sp(dg1, query_loc1, query_loc2); </text--->"
+    ") )";
+
+const string OpTMGenerateWPSpec  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+    "\"Example\" ) "
+    "( <text>rel x int-> (stream (tuple( (x1 t1)(x2 t2)...(xn tn)))</text--->"
+    "<text>generate_wp(rel, int)</text--->"
+    "<text>generate random points inside the polygon</text--->"
+    "<text>query generate_wp(graph_node,5); </text--->"
+    ") )";
 ////////////////TypeMap function for operators//////////////////////////////
 
 /*
@@ -617,28 +642,6 @@ ListExpr OpTMFillPavementTypeMap ( ListExpr args )
   return nl->SymbolAtom ( "typeerror" );
 }
 
-/*
-typemap fun for myregminus
-
-*/
-ListExpr OpTMMyRegMinusTypeMap ( ListExpr args )
-{
-  if ( nl->ListLength ( args ) != 2 )
-  {
-    return ( nl->SymbolAtom ( "typeerror" ) );
-  }
-  ListExpr param1 = nl->First ( args );
-  ListExpr param2 = nl->Second(args);
-
-    if (nl->IsAtom(param1) && nl->AtomType(param1) == SymbolType &&
-        nl->SymbolValue(param1) == "region" &&
-        nl->IsAtom(param2) && nl->AtomType(param2) == SymbolType &&
-        nl->SymbolValue(param2) == "region"){
-
-    return nl->SymbolAtom(symbols::REGION);
-  }
-  return nl->SymbolAtom ( "typeerror" );
-}
 
 /*
 TypeMap fun for operator getpave1
@@ -646,7 +649,7 @@ decompose the pavement of one road into a set of subregions
 
 */
 
-ListExpr OpTMGetPave1TypeMap ( ListExpr args )
+ListExpr OpTMGetPaveNode1TypeMap ( ListExpr args )
 {
   if ( nl->ListLength ( args ) != 5 )
   {
@@ -726,7 +729,7 @@ get the common area(line) of two pavements
 
 */
 
-ListExpr OpTMGetPaveNode1TypeMap ( ListExpr args )
+ListExpr OpTMGetPaveEdge1TypeMap ( ListExpr args )
 {
   if ( nl->ListLength ( args ) != 6 )
   {
@@ -784,13 +787,11 @@ ListExpr OpTMGetPaveNode1TypeMap ( ListExpr args )
                 nl->TwoElemList(
 
                   nl->SymbolAtom("tuple"),
-                      nl->ThreeElemList(
+                      nl->TwoElemList(
                         nl->TwoElemList(nl->SymbolAtom("oid1"),
                                     nl->SymbolAtom("int")),
                         nl->TwoElemList(nl->SymbolAtom("oid2"),
-                                    nl->SymbolAtom("int")),
-                        nl->TwoElemList(nl->SymbolAtom("node"),
-                                      nl->SymbolAtom("line"))
+                                    nl->SymbolAtom("int"))
                   )
                 )
           );
@@ -803,12 +804,12 @@ ListExpr OpTMGetPaveNode1TypeMap ( ListExpr args )
   return nl->SymbolAtom ( "typeerror" );
 }
 /*
-TypeMap fun for operator getpave2
+TypeMap fun for operator getpavenode2
 decompose the zebra crossing into a set of subregions
 
 */
 
-ListExpr OpTMGetPave2TypeMap ( ListExpr args )
+ListExpr OpTMGetPaveNode2TypeMap ( ListExpr args )
 {
   if ( nl->ListLength ( args ) != 4 )
   {
@@ -876,7 +877,7 @@ get the common area(line) of two pavements
 
 */
 
-ListExpr OpTMGetPaveNode2TypeMap ( ListExpr args )
+ListExpr OpTMGetPaveEdge2TypeMap ( ListExpr args )
 {
   if ( nl->ListLength ( args ) != 6 )
   {
@@ -934,13 +935,11 @@ ListExpr OpTMGetPaveNode2TypeMap ( ListExpr args )
                 nl->TwoElemList(
 
                   nl->SymbolAtom("tuple"),
-                      nl->ThreeElemList(
+                      nl->TwoElemList(
                         nl->TwoElemList(nl->SymbolAtom("oid1"),
                                     nl->SymbolAtom("int")),
                         nl->TwoElemList(nl->SymbolAtom("oid2"),
-                                    nl->SymbolAtom("int")),
-                        nl->TwoElemList(nl->SymbolAtom("node"),
-                                      nl->SymbolAtom("line"))
+                                    nl->SymbolAtom("int"))
                   )
                 )
           );
@@ -1032,6 +1031,141 @@ ListExpr OpTMGeospathTypeMap ( ListExpr args )
   return nl->SymbolAtom ( "typeerror" );
 }
 
+
+/*
+TypeMap fun for operator createdualgraph
+
+*/
+
+ListExpr OpTMCreateDGTypeMap ( ListExpr args )
+{
+  if ( nl->ListLength ( args ) != 3 )
+  {
+    return ( nl->SymbolAtom ( "typeerror" ) );
+  }
+  ListExpr xIdDesc = nl->First(args);
+  ListExpr xEdgeDesc = nl->Second(args);
+  ListExpr xNodeDesc = nl->Third(args);
+  if(!nl->IsEqual(xIdDesc, "int")) return nl->SymbolAtom ( "typeerror" );
+  if(!IsRelDescription(xEdgeDesc) || !IsRelDescription(xNodeDesc))
+      return nl->SymbolAtom ( "typeerror" );
+
+  ListExpr xType;
+  nl->ReadFromString(DualGraph::EdgeTypeInfo, xType);
+  if(!CompareSchemas(xNodeDesc, xType))return nl->SymbolAtom ( "typeerror" );
+
+  nl->ReadFromString(DualGraph::NodeTypeInfo, xType);
+  if(!CompareSchemas(xEdgeDesc, xType))return nl->SymbolAtom ( "typeerror" );
+
+  return nl->SymbolAtom ( "dualgraph" );
+}
+
+/*
+TypeMap fun for operator nodedualgraph
+
+*/
+
+ListExpr OpTMNodeDGTypeMap ( ListExpr args )
+{
+  if ( nl->ListLength ( args ) != 1 )
+  {
+    return ( nl->SymbolAtom ( "typeerror" ) );
+  }
+  ListExpr arg1 = nl->First(args);
+
+  if(nl->IsAtom(arg1) && nl->AtomType(arg1) == SymbolType &&
+     nl->SymbolValue(arg1) == "dualgraph"){
+      ListExpr xType;
+      nl->ReadFromString(DualGraph::NodeTypeInfo, xType);
+      return xType;
+  }
+
+  return nl->SymbolAtom ( "typeerror" );
+}
+
+/*
+TypeMap fun for operator walksp
+
+*/
+
+ListExpr OpTMWalkSPTypeMap ( ListExpr args )
+{
+  if ( nl->ListLength ( args ) != 3 )
+  {
+    return ( nl->SymbolAtom ( "typeerror" ) );
+  }
+  ListExpr arg1 = nl->First(args);
+  ListExpr arg2 = nl->Second(args);
+  ListExpr arg3 = nl->Third(args);
+
+  ListExpr xType;
+  nl->ReadFromString(DualGraph::QueryTypeInfo, xType);
+  if(!CompareSchemas(arg2, xType))return nl->SymbolAtom ( "typeerror" );
+
+  if(!CompareSchemas(arg3, xType))return nl->SymbolAtom ( "typeerror" );
+
+  if(nl->IsAtom(arg1) && nl->AtomType(arg1) == SymbolType &&
+     nl->SymbolValue(arg1) == "dualgraph" ){
+
+       ListExpr result =
+          nl->TwoElemList(
+              nl->SymbolAtom("stream"),
+                nl->TwoElemList(
+
+                  nl->SymbolAtom("tuple"),
+                      nl->OneElemList(
+                        nl->TwoElemList(nl->SymbolAtom("walkreg"),
+                                    nl->SymbolAtom("region"))
+                  )
+                )
+          );
+    return result;
+  }
+
+  return nl->SymbolAtom ( "typeerror" );
+}
+
+/*
+TypeMap fun for operator generatewp
+
+*/
+
+ListExpr OpTMGenerateWPTypeMap ( ListExpr args )
+{
+  if ( nl->ListLength ( args ) != 2 )
+  {
+    return ( nl->SymbolAtom ( "typeerror" ) );
+  }
+  ListExpr arg1 = nl->First(args);
+  ListExpr arg2 = nl->Second(args);
+
+
+  ListExpr xType;
+  nl->ReadFromString(DualGraph::NodeTypeInfo, xType);
+  if(!CompareSchemas(arg1, xType))return nl->SymbolAtom ( "typeerror" );
+
+  if(nl->IsAtom(arg2) && nl->AtomType(arg2) == SymbolType &&
+     nl->SymbolValue(arg2) == "int" ){
+
+       ListExpr result =
+          nl->TwoElemList(
+              nl->SymbolAtom("stream"),
+                nl->TwoElemList(
+
+                  nl->SymbolAtom("tuple"),
+                      nl->TwoElemList(
+                        nl->TwoElemList(nl->SymbolAtom("oid"),
+                                    nl->SymbolAtom("int")),
+                        nl->TwoElemList(nl->SymbolAtom("loc"),
+                                    nl->SymbolAtom("point"))
+                  )
+                )
+          );
+    return result;
+  }
+
+  return nl->SymbolAtom ( "typeerror" );
+}
 //////////////////////////////////////////////////////////////////////////
 static int GeoSpathSelect(ListExpr args)
 {
@@ -1561,31 +1695,14 @@ int OpTMFillPavementmap ( Word* args, Word& result, int message,
   return 0;
 }
 
-/*
-Value Mapping for the myregminus operator
-use the first region minusing the second
-
-*/
-
-int OpTMMyRegMinusmap ( Word* args, Word& result, int message,
-                         Word& local, Supplier in_pSupplier )
-{
-  result = qp->ResultStorage(in_pSupplier);
-  Region* reg1 = (Region*)args[0].addr;
-  Region* reg2 = (Region*)args[1].addr;
-  Region* res = (Region*)(result.addr);
-  MyMinus(*reg1, *reg2, *res);
-  return 0;
-}
-
 
 /*
-Value Mapping for the getpave1 operator
+Value Mapping for the getpavenode1 operator
 decompose the pavement of one road into a set of subregions
 
 */
 
-int OpTMGetPave1map ( Word* args, Word& result, int message,
+int OpTMGetPaveNode1map ( Word* args, Word& result, int message,
                          Word& local, Supplier in_pSupplier )
 {
   SpacePartition* l_partition;
@@ -1644,12 +1761,12 @@ int OpTMGetPave1map ( Word* args, Word& result, int message,
 
 
 /*
-Value Mapping for the getpavenode1 operator
+Value Mapping for the getpaveedge1 operator
 get the commone area of two intersection pavements
 
 */
 
-int OpTMGetPaveNode1map ( Word* args, Word& result, int message,
+int OpTMGetPaveEdge1map ( Word* args, Word& result, int message,
                          Word& local, Supplier in_pSupplier )
 {
   SpacePartition* l_partition;
@@ -1668,7 +1785,7 @@ int OpTMGetPaveNode1map ( Word* args, Word& result, int message,
         l_partition->resulttype =
             new TupleType(nl->Second(GetTupleResultType(in_pSupplier)));
 
-        l_partition->GetPavementNode1(n, rel, btree,
+        l_partition->GetPavementEdge1(n, rel, btree,
                                     attr_pos1, attr_pos2, attr_pos3);
         local.setAddr(l_partition);
         return 0;
@@ -1684,8 +1801,6 @@ int OpTMGetPaveNode1map ( Word* args, Word& result, int message,
                 new CcInt(true,l_partition->junid1[l_partition->count]));
           tuple->PutAttribute(1,
                 new CcInt(true,l_partition->junid2[l_partition->count]));
-          tuple->PutAttribute(2,
-               new Line(l_partition->pave_line1[l_partition->count]));
 
           result.setAddr(tuple);
           l_partition->count++;
@@ -1707,12 +1822,12 @@ int OpTMGetPaveNode1map ( Word* args, Word& result, int message,
 
 
 /*
-Value Mapping for the getpave2 operator
+Value Mapping for the getpavenode2 operator
 decompose the zebra crossings into a set of subregions
 
 */
 
-int OpTMGetPave2map ( Word* args, Word& result, int message,
+int OpTMGetPaveNode2map ( Word* args, Word& result, int message,
                          Word& local, Supplier in_pSupplier )
 {
   SpacePartition* l_partition;
@@ -1768,12 +1883,12 @@ int OpTMGetPave2map ( Word* args, Word& result, int message,
 
 
 /*
-Value Mapping for the getpavenode2 operator
+Value Mapping for the getpaveedge2 operator
 get the commone area of two intersection pavements
 
 */
 
-int OpTMGetPaveNode2map ( Word* args, Word& result, int message,
+int OpTMGetPaveEdge2map ( Word* args, Word& result, int message,
                          Word& local, Supplier in_pSupplier )
 {
   SpacePartition* l_partition;
@@ -1793,7 +1908,7 @@ int OpTMGetPaveNode2map ( Word* args, Word& result, int message,
         l_partition->resulttype =
             new TupleType(nl->Second(GetTupleResultType(in_pSupplier)));
 
-        l_partition->GetPavementNode2(rel1, rel2, btree,
+        l_partition->GetPavementEdge2(rel1, rel2, btree,
                                     attr_pos1, attr_pos2, attr_pos3);
         local.setAddr(l_partition);
         return 0;
@@ -1809,8 +1924,6 @@ int OpTMGetPaveNode2map ( Word* args, Word& result, int message,
                 new CcInt(true,l_partition->junid1[l_partition->count]));
           tuple->PutAttribute(1,
                 new CcInt(true,l_partition->junid2[l_partition->count]));
-          tuple->PutAttribute(2,
-               new Line(l_partition->pave_line1[l_partition->count]));
 
           result.setAddr(tuple);
           l_partition->count++;
@@ -1997,6 +2110,141 @@ int OpTMGeospathmap_l ( Word* args, Word& result, int message,
 }
 
 
+/*
+Value Mapping for  createdualgraph  operator
+
+*/
+
+int OpTMCreateDGValueMap ( Word* args, Word& result, int message,
+                         Word& local, Supplier in_pSupplier )
+{
+  DualGraph* dg = (DualGraph*)qp->ResultStorage(in_pSupplier).addr;
+  int dg_id = ((CcInt*)args[0].addr)->GetIntval();
+  Relation* edge_rel = (Relation*)args[1].addr;
+  Relation* node_rel = (Relation*)args[2].addr;
+  dg->Load(dg_id, edge_rel, node_rel);
+  result = SetWord(dg);
+  return 0;
+}
+
+/*
+Value Mapping for  nodedualgraph  operator
+
+*/
+
+int OpTMNodeDGValueMap ( Word* args, Word& result, int message,
+                         Word& local, Supplier in_pSupplier )
+{
+  DualGraph* dg = (DualGraph*)args[0].addr;
+  Relation* node_rel = dg->GetNodeRel();
+  result = SetWord(node_rel->Clone());
+  Relation* resultSt = (Relation*)qp->ResultStorage(in_pSupplier).addr;
+  resultSt->Close();
+  qp->ChangeResultStorage(in_pSupplier, result);
+  return 0;
+}
+
+
+/*
+Value Mapping for walksp  operator
+return the shortest path for pedestrian
+
+*/
+
+int OpTMWalkSPValueMap ( Word* args, Word& result, int message,
+                         Word& local, Supplier in_pSupplier )
+{
+
+  Walk_SP* wsp;
+  switch(message){
+      case OPEN:{
+        DualGraph* dg = (DualGraph*)args[0].addr;
+        Relation* r1 = (Relation*)args[1].addr;
+        Relation* r2 = (Relation*)args[2].addr;
+        wsp = new Walk_SP(dg, r1, r2);
+        wsp->resulttype =
+            new TupleType(nl->Second(GetTupleResultType(in_pSupplier)));
+        wsp->WalkShortestPath();
+        local.setAddr(wsp);
+        return 0;
+      }
+      case REQUEST:{
+          if(local.addr == NULL) return CANCEL;
+          wsp = (Walk_SP*)local.addr;
+          if(wsp->count == wsp->walkregs.size())
+                          return CANCEL;
+
+          Tuple* tuple = new Tuple(wsp->resulttype);
+          tuple->PutAttribute(0,new Region(wsp->walkregs[wsp->count]));
+          result.setAddr(tuple);
+          wsp->count++;
+          return YIELD;
+      }
+      case CLOSE:{
+
+          if(local.addr){
+            wsp = (Walk_SP*)local.addr;
+            delete wsp;
+            local.setAddr(Address(0));
+          }
+          return 0;
+      }
+  }
+  return 0;
+
+}
+
+
+/*
+Value Mapping for generatewp  operator
+generate random points insidy pavement polgyon
+
+*/
+
+int OpTMGenerateWPValueMap ( Word* args, Word& result, int message,
+                         Word& local, Supplier in_pSupplier )
+{
+
+  Walk_SP* wsp;
+  switch(message){
+      case OPEN:{
+
+        Relation* r = (Relation*)args[0].addr;
+        int no_p = ((CcInt*)args[1].addr)->GetIntval();
+        wsp = new Walk_SP(NULL, r, NULL);
+        wsp->resulttype =
+            new TupleType(nl->Second(GetTupleResultType(in_pSupplier)));
+        wsp->GenerateData(no_p);
+        local.setAddr(wsp);
+        return 0;
+      }
+      case REQUEST:{
+          if(local.addr == NULL) return CANCEL;
+          wsp = (Walk_SP*)local.addr;
+          if(wsp->count == wsp->oids.size())
+                          return CANCEL;
+
+          Tuple* tuple = new Tuple(wsp->resulttype);
+          tuple->PutAttribute(0,new CcInt(true, wsp->oids[wsp->count]));
+          tuple->PutAttribute(1, new Point(wsp->q_loc[wsp->count]));
+          result.setAddr(tuple);
+          wsp->count++;
+          return YIELD;
+      }
+      case CLOSE:{
+
+          if(local.addr){
+            wsp = (Walk_SP*)local.addr;
+            delete wsp;
+            local.setAddr(Address(0));
+          }
+          return 0;
+      }
+  }
+  return 0;
+
+}
+
 ////////////////Operator Constructor///////////////////////////////////////
 Operator checksline(
     "checksline",               // name
@@ -2054,24 +2302,6 @@ Operator fillpavement(
     OpTMFillPavementTypeMap        // type mapping
 );
 
-Operator myregminus(
-    "myregminus",               // name
-    OpTMMyRegMinusSpec,          // specification
-    OpTMMyRegMinusmap,  // value mapping
-    Operator::SimpleSelect,        // selection function
-    OpTMMyRegMinusTypeMap        // type mapping
-);
-
-
-Operator getpave1(
-    "getpave1",               // name
-    OpTMGetPave1Spec,          // specification
-    OpTMGetPave1map,  // value mapping
-    Operator::SimpleSelect,        // selection function
-    OpTMGetPave1TypeMap        // type mapping
-);
-
-
 Operator getpavenode1(
     "getpavenode1",               // name
     OpTMGetPaveNode1Spec,          // specification
@@ -2081,13 +2311,14 @@ Operator getpavenode1(
 );
 
 
-Operator getpave2(
-    "getpave2",               // name
-    OpTMGetPave2Spec,          // specification
-    OpTMGetPave2map,  // value mapping
+Operator getpaveedge1(
+    "getpaveedge1",               // name
+    OpTMGetPaveEdge1Spec,          // specification
+    OpTMGetPaveEdge1map,  // value mapping
     Operator::SimpleSelect,        // selection function
-    OpTMGetPave2TypeMap        // type mapping
+    OpTMGetPaveEdge1TypeMap        // type mapping
 );
+
 
 Operator getpavenode2(
     "getpavenode2",               // name
@@ -2095,6 +2326,14 @@ Operator getpavenode2(
     OpTMGetPaveNode2map,  // value mapping
     Operator::SimpleSelect,        // selection function
     OpTMGetPaveNode2TypeMap        // type mapping
+);
+
+Operator getpaveedge2(
+    "getpaveedge2",               // name
+    OpTMGetPaveEdge2Spec,          // specification
+    OpTMGetPaveEdge2map,  // value mapping
+    Operator::SimpleSelect,        // selection function
+    OpTMGetPaveEdge2TypeMap        // type mapping
 );
 
 Operator triangulation(
@@ -2135,6 +2374,48 @@ Operator geospath(
     OpTMGeospathTypeMap        // type mapping
 );
 
+TypeConstructor dualgraph("dualgraph", DualGraph::DualGraphProp,
+      DualGraph::OutDualGraph, DualGraph::InDualGraph,
+      0, 0,
+      DualGraph::CreateDualGraph, DualGraph::DeleteDualGraph,
+      DualGraph::OpenDualGraph, DualGraph::SaveDualGraph,
+      DualGraph::CloseDualGraph, DualGraph::CloneDualGraph,
+      DualGraph::CastDualGraph, DualGraph::SizeOfDualGraph,
+      DualGraph::CheckDualGraph
+);
+
+Operator createdualgraph(
+    "createdualgraph",
+    OpTMCreateDGSpec,
+    OpTMCreateDGValueMap,
+    Operator::SimpleSelect,
+    OpTMCreateDGTypeMap
+);
+
+Operator nodedualgraph(
+    "nodedualgraph",
+    OpTMNodeDGSpec,
+    OpTMNodeDGValueMap,
+    Operator::SimpleSelect,
+    OpTMNodeDGTypeMap
+);
+
+Operator walk_sp(
+    "walk_sp",
+    OpTMWalkSPSpec,
+    OpTMWalkSPValueMap,
+    Operator::SimpleSelect,
+    OpTMWalkSPTypeMap
+);
+
+Operator generate_wp(
+    "generate_wp",
+    OpTMGenerateWPSpec,
+    OpTMGenerateWPValueMap,
+    Operator::SimpleSelect,
+    OpTMGenerateWPTypeMap
+);
+
 /*
 Main Class for Transportation Mode
 
@@ -2144,6 +2425,8 @@ class TransportationModeAlgebra : public Algebra
  public:
   TransportationModeAlgebra() : Algebra()
   {
+    AddTypeConstructor(&dualgraph);
+    dualgraph.AssociateKind("DUALGRAPH");
     ////operators for partition regions////
     AddOperator(&checksline);
     AddOperator(&modifyboundary);
@@ -2152,16 +2435,19 @@ class TransportationModeAlgebra : public Algebra
     AddOperator(&junregion);
     AddOperator(&decomposeregion);
     AddOperator(&fillpavement);
-    AddOperator(&myregminus);
+
     //////////operators for build the graph model on pavement////////////
-    AddOperator(&getpave1);
     AddOperator(&getpavenode1);
-    AddOperator(&getpave2);
+    AddOperator(&getpaveedge1);
     AddOperator(&getpavenode2);
+    AddOperator(&getpaveedge2);
     AddOperator(&triangulation);
     AddOperator(&convex);
     AddOperator(&geospath);
-
+    AddOperator(&createdualgraph);
+    AddOperator(&nodedualgraph);
+    AddOperator(&walk_sp);
+    AddOperator(&generate_wp);
   }
   ~TransportationModeAlgebra() {};
  private:
