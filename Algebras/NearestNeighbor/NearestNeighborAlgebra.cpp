@@ -6605,7 +6605,8 @@ element in Nearestlist, store nodeid, tid, mindist,maxdist, time interval
 
 struct hpelem{
   myureal movdist;
-  TupleId tid;
+//  TupleId tid;
+  long tid;
   myupoint dataup;
   double mind,maxd;
   long nodeid;

@@ -715,7 +715,8 @@ class SegEntry {
     double mindist, maxdist;
     int coverage;
     long nodeid;
-    TupleId tpid;
+//    TupleId tpid;
+    long tpid;
     char direction;//new entry
     SegEntry():
       start(), end(),
