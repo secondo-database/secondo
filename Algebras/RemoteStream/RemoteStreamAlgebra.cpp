@@ -51,7 +51,6 @@ using namespace std;
 #include "../FText/FTextAlgebra.h"
 #include "ListUtils.h"
 #include "Symbols.h"
-#include "../HadoopParallel/HadoopParallelAlgebra.h"
 #include <string>
 #include <iostream>   //for testing
 
@@ -170,8 +169,6 @@ TReceiveTypeMap(ListExpr args)
     "Operator receive expects as first argument a symbol "
     "atom (host name, p.e. localhost)." );
 
-  // by now accepts only hostnames without dots in the name.
-
   second = nl->Second(args);
   CHECK_COND( nl->IsAtom(second) && nl->AtomType(second) == SymbolType,
     "Operator send expects as second argument a symbol "
@@ -181,6 +178,7 @@ TReceiveTypeMap(ListExpr args)
          port = nl->SymbolValue(second).substr(1),
          streamTypeStr;
 
+  //Accept ip address
   string ipPrefix = "ip_";
   if (!host.compare(0, ipPrefix.size(), ipPrefix))
   {
@@ -218,25 +216,18 @@ int
 TSendStream(Word* args, Word& result, int message, Word& local, Supplier s)
 {
   Word elem;
-  int count = 0;
-  string tupleTypeStr = ((FText*) args[2].addr)->Get();
   SocketDescriptor sd = ((CcInt*) args[3].addr)->GetIntval();
   Socket *client = Socket::CreateClient( sd );
   iostream& ss = client->GetSocketStream();
   ListExpr argList, tupleType;
-
-  nl->ReadFromString(tupleTypeStr, argList);
-
-  tupleType = SecondoSystem::GetCatalog()->NumericType( nl->TwoElemList(argList,
-                nl->IntAtom(nl->ListLength(nl->Second(argList)))) );
+  int count = 0;
 
   qp->Open(args[0].addr);
   qp->Request(args[0].addr, elem);
   while ( qp->Received(args[0].addr) )
   {
-    ListExpr tuple = ((Tuple*)elem.addr)->Out(tupleType);
 
-    string valueStr = binEncode(tuple);
+    string valueStr = ((Tuple*)elem.addr)->WriteToBinStr();
     ss << valueStr << endl;
 
     ((Tuple*)elem.addr)->DeleteIfAllowed();
@@ -263,9 +254,10 @@ TReceiveStream(Word* args, Word& result, int message, Word& local, Supplier s)
   {
     Socket *client;
     iostream& ss;
-    ListExpr tupleType;
+    TupleType* tupleType;
 
-    inline RemoteStreamInfo( Socket *client, iostream& ss, ListExpr tupleType ):
+    inline RemoteStreamInfo(
+        Socket *client, iostream& ss, TupleType* tupleType ):
       client( client ), ss( ss ), tupleType( tupleType ) {}
 
     inline ~RemoteStreamInfo()
@@ -280,45 +272,31 @@ TReceiveStream(Word* args, Word& result, int message, Word& local, Supplier s)
     case OPEN:
     {
       // Getting tuple type
-      string tupleTypeStr = ((FText *) args[2].addr)->Get();
-      ListExpr tupleTypeList, tupleType;
+      TupleType* tupleType;
 
-      nl->ReadFromString(tupleTypeStr, tupleTypeList);
-
-      tupleType = SecondoSystem::GetCatalog()->
-                    NumericType( nl->TwoElemList(tupleTypeList,
-                      nl->IntAtom(nl->ListLength(nl->Second(tupleTypeList)))) );
-
+      ListExpr resultType = GetTupleResultType(s);
+      tupleType = new TupleType(nl->Second(resultType));
       // Getting socket descriptor
       SocketDescriptor sd = ((CcInt*) args[3].addr)->GetIntval();
       Socket *client = Socket::CreateClient( sd );
       iostream& ss = client->GetSocketStream();
 
       remoteStreamInfo = new RemoteStreamInfo( client, ss, tupleType );
-
       local.addr = remoteStreamInfo;
-
       return 0;
     }
 
     case REQUEST:
     {
       string line;
-
       remoteStreamInfo = ((RemoteStreamInfo*) local.addr);
 
       getline(remoteStreamInfo->ss, line);
       if ( line != "<Disconnect/>" )
       {
-        ListExpr tupleList, errorInfo;
-        int errorPos;
-        bool correct;
-
         //Decode the binary string to nestedList directly
-        tupleList = binDecode(line);
-
-        Tuple *tuple = Tuple::In( remoteStreamInfo->tupleType, tupleList,
-                                  errorPos, errorInfo, correct );
+        Tuple *tuple = new Tuple(remoteStreamInfo->tupleType);
+        tuple->ReadFromBinStr(line);
 
         result = SetWord( tuple );
         return YIELD;
