@@ -124,6 +124,8 @@ storing tuples and LOBs respectively.
 #include "Serialize.h"
 #include "FileSystem.h"
 
+#include "Base64.h"
+
 using namespace std;
 using namespace symbols;
 
@@ -1029,7 +1031,104 @@ void Tuple::UpdateAttributes( const vector<int>& changedIndices,
   recomputeSize = true;
 }
 
+/*
+For transporting complete tuples between different Secondo system
+without change, transfer the tuple value into a transportable
+string follow Base 64. Then the cost of the ~Out~ function
+can be avoided.
 
+In the contrast, construct a tuple object by reading this string,
+can avoid the ~In~ function cost.
+
+*/
+string Tuple::WriteToBinStr()
+{
+  double extSize = 0;
+  double size = 0;
+  vector<double> attrExtSize(tupleType->GetNoAttributes());
+  vector<double> attrSize(tupleType->GetNoAttributes());
+
+  // Calculate the size of the small FLOB data which will be
+  // saved together with the tuple attributes and save the LOBs
+  // in the lobFile.
+  extSize += tupleType->GetCoreSize();
+  size += tupleType->GetCoreSize();
+  size_t coreSize = 0;
+  size_t extensionSize = CalculateBlockSize( coreSize, extSize,
+                                             size, attrExtSize,
+                                             attrSize);
+
+  // Put core and extension part into a single memory block
+  // Note: this memory block contains already the block size
+  // as uint16_t value
+  char* data = WriteToBlock(coreSize, extensionSize, true, 0,0);
+
+  // Encode the tuple data into base 64 code string
+  Base64 b64;
+  string binStr;
+  const uint16_t dataSize = coreSize + extensionSize;
+  const size_t blockSize = dataSize + sizeof(dataSize);
+  b64.encode(data, blockSize, binStr);
+
+  free(data);
+  return replaceAll(binStr, "\n", "");
+}
+
+bool Tuple::ReadFromBinStr(string binStr)
+{
+  Base64 b64;
+  int sizeDecoded = b64.sizeDecoded(binStr.size());
+  char bytes[sizeDecoded];
+  int result = b64.decode( binStr, bytes );
+  assert( result <= sizeDecoded );
+
+  if( !bytes )
+    return false;
+
+  // the first two bytes in data contain the rootsize
+  uint16_t rz;
+  memcpy(&rz, bytes, sizeof(rz));
+  InitializeAttributes(bytes,rz);
+  return true;
+}
+
+/*
+Only put a tuple into a binary buffer, without coding.
+
+*/
+char* Tuple::WriteToBin(uint16_t &bufSize)
+{
+  double extSize = 0;
+  double size = 0;
+  vector<double> attrExtSize(tupleType->GetNoAttributes());
+  vector<double> attrSize(tupleType->GetNoAttributes());
+
+  // Calculate the size of the small FLOB data which will be
+  // saved together with the tuple attributes and save the LOBs
+  // in the lobFile.
+  extSize += tupleType->GetCoreSize();
+  size += tupleType->GetCoreSize();
+  size_t coreSize = 0;
+  size_t extensionSize = CalculateBlockSize( coreSize, extSize,
+                                             size, attrExtSize,
+                                             attrSize);
+
+  // Put core and extension part into a single memory block
+  // Note: this memory block contains already the block size
+  // as uint16_t value
+  bufSize = coreSize + extensionSize + sizeof(bufSize);
+  return WriteToBlock(coreSize, extensionSize, true, 0,0);
+}
+
+bool Tuple::ReadFromBin(char* buf)
+{
+  assert(buf);
+
+  uint16_t rz;
+  memcpy(&rz, buf, sizeof(rz));
+  InitializeAttributes(buf,rz);
+  return true;
+}
 
 TupleFileIterator::TupleFileIterator(TupleFile& f)
 : tupleFile(f)

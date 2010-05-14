@@ -1009,6 +1009,28 @@ current record of ~iter~.
 */
   bool Open( TupleFileIterator *iter );
 
+/*
+Transform the tuple value to a transportable Base 64 code string
+
+*/
+
+  string WriteToBinStr();
+
+
+/*
+Read a tuple value from a Base 64 code string
+
+*/
+  bool ReadFromBinStr(string binStr);
+
+/*
+Write(Read) a tuple to(from) a memory buffer.
+
+*/
+  char* WriteToBin(uint16_t &bufSize);
+  bool ReadFromBin(char* buf);
+
+
   static SmiSize extensionLimit;
 /*
 Defines the maximum size used to store Flob data inside
