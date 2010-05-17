@@ -103,7 +103,7 @@ main( const int argc, char* argv[] )
   
   return SecondoTTYMode(tp);
 
-  } catch (exception e) {
+  } catch (exception& e) {
     cerr << e.what() << endl;
   }	  
 }
