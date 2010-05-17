@@ -11944,7 +11944,7 @@ DbArray<HalfSegment>* Split(const DbArray<HalfSegment>& segments){
 
   DbArray<HalfSegment>* res = new DbArray<HalfSegment>(0);
 
-  if(segments.Size()==0){ // no halfsegments, nothing to split
+  if(segments.Size()<2){ // no intersecting halfsegments
     res->TrimToSize();
     return res;
   }
