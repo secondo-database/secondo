@@ -412,137 +412,9 @@ char* Tuple::WriteToBlock( size_t coreSize,
 
   char* data = (char*) malloc( blockSize );
 
-//  WriteToBlock(data, coreSize, extensionSize,
-//      ignoreLobs, tuplefile, lobFileId);
+  WriteToBlock(data, coreSize, extensionSize,
+      ignoreLobs, tuplefile, lobFileId);
 
-  {
-  char* ext  = data + recordSizeLen + coreSize;
-
-  // current position in the core part
-  SmiSize offset = 0;
-  WriteVar<uint16_t>( dataSize, data, offset );
-
-  // current position in the extension
-  SmiSize extOffset = offset + coreSize;
-  //const SmiSize extStartPos = extOffset;
-
-     SHOW(offset)
-     SHOW(extOffset)
-
-  uint32_t currentSize = 0;
-  uint32_t currentExtSize = 0;
-
-  // collect all attributes into the memory block
-
-  for( int i = 0; i < noAttributes; i++)
-  {
-    SHOW(attributes[i]->IsDefined())
-
-    Attribute::StorageType st =  attributes[i]->GetStorageType();
-
-    if (st == Attribute::Default) {
-
-      //Write Flob data and adjust FlobIds if necessary
-
-      // vector to remember old flob states
-      vector<Flob> attrFlobs;
-      
-      for( int j = 0; j < attributes[i]->NumOfFLOBs(); j++) {
-
-        Flob *tmpFlob = attributes[i]->GetFLOB(j);
-        SmiSize flobsz = tmpFlob->getSize(); 
-
-        attrFlobs.push_back(*tmpFlob);
-
-        if (!ignoreLobs && (flobsz >= extensionLimit) ) {
-            DEBUG_MSG("tmpFlob->saveToFile");
-            tmpFlob->saveToFile( lobFileId,false, *tmpFlob );
-        } else if(flobsz<extensionLimit){ // handle small flobs
-
-          // write data to extension
-          tmpFlob->read(ext, flobsz);
-
-          SmiFileId fid(0);
-          bool isTemp = true;
-          if(tupleFile){
-             fid = tupleFile->GetFileId(); 
-             isTemp = tupleFile->IsTemp();
-          }
-          Flob newFlob = Flob::createFrom( fid, tupleId, 
-                         extOffset,isTemp, flobsz );
-
-          // change flob header
-          *tmpFlob = newFlob; 
-
-          // update ext offset
-          extOffset += flobsz;
-          ext += flobsz;
-        }       
-
-        SHOW(extOffset)
-      }
-
-      //Write attribute data        
-      currentSize = tupleType->GetAttributeType(i).size;
-      SHOW(currentSize)
-       
-      DEBUG_MSG( Array2HexStr( (char*)attributes[i], currentSize) )
-      attributes[i]->Serialize( data, currentSize, offset );
-      offset += currentSize;
-
-      // write back old flob data
-      assert((size_t)attributes[i]->NumOfFLOBs() == attrFlobs.size());
-      for( int j = 0; j < attributes[i]->NumOfFLOBs(); j++) {
-        Flob *tmpFlob = attributes[i]->GetFLOB(j);
-        *tmpFlob = attrFlobs[j];  
-      }
-      attrFlobs.clear();
-
-    } else if (st == Attribute::Core) {
-
-      assert( attributes[i]->NumOfFLOBs() == 0 );
-      
-      currentSize = attributes[i]->SerializedSize();
-      attributes[i]->Serialize( data, currentSize, offset );
-      offset += currentSize;
-
-    }
-    else if ( st == Attribute::Extension ) {
-
-
-      assert( attributes[i]->NumOfFLOBs() == 0 );
-
-      currentSize = sizeof(uint32_t);
-
-      WriteVar<uint32_t>( extOffset, data, offset );
-      SHOW(extOffset)
-
-      currentExtSize = attributes[i]->SerializedSize();
-      attributes[i]->Serialize(ext, currentExtSize, 0);
-      DEBUG_MSG( Array2HexStr(ext, currentExtSize) )
-
-      extOffset += currentExtSize;
-      ext += currentExtSize;
-    }
-    else {
-      cerr << "ERROR: unknown storage type for attribute No "
-           << i << endl;
-      assert(false);
-    }
-
-     SHOW(currentSize)
-     SHOW(currentExtSize)
-
-     SHOW(offset)
-     SHOW(extOffset)
-
-   }
-
-  SHOW((void*)data)
-  DEBUG_MSG( Array2HexStr(data, blockSize) )
-
-  TRACE_LEAVE
-  }
   return data;
 }
 
@@ -565,16 +437,12 @@ The memory must be allocated before write the buffer into it.
 
   const uint16_t dataSize = coreSize + extensionSize;
 
-  const size_t recordSizeLen = sizeof(dataSize);
-  const size_t blockSize = dataSize + recordSizeLen;
-
   char* data = buf;
   char* ext = data + sizeof(dataSize) + coreSize;
 
   // current position in the core part
   SmiSize offset = 0;
-  WriteVar<uint16_t>( blockSize, data, offset );
-//WriteVar<uint16_t>( dataSize, data, offset );
+  WriteVar<uint16_t>( dataSize, data, offset );
 
   // current position in the extension
   SmiSize extOffset = offset + coreSize;
@@ -1270,6 +1138,10 @@ Put the tuple into an allocated memory buffer.
 void Tuple::WriteToBin(char* buf,
                        size_t coreSize, size_t extensionSize)
 {
+  uint16_t bufSize;
+  if ((0 == coreSize) && (0 == extensionSize))
+    bufSize = GetBlockSize(coreSize, extensionSize);
+
   WriteToBlock(buf, coreSize, extensionSize, true, 0, 0);
 }
 
@@ -1300,7 +1172,7 @@ uint16_t Tuple::ReadFromBin(char* buf)
 
   uint16_t rz;
   memcpy(&rz, buf, sizeof(rz));
-  //cout << "root size is: " << rz << endl;
+  rz += sizeof(rz);
   InitializeAttributes(buf,rz);
   return rz;
 }

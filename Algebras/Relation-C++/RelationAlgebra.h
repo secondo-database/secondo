@@ -1010,12 +1010,11 @@ current record of ~iter~.
   bool Open( TupleFileIterator *iter );
 
 /*
-Transform the tuple value to a transportable Base 64 code string
+Transform the tuple value to a Base 64 code string
 
 */
 
   string WriteToBinStr();
-
 
 /*
 Read a tuple value from a Base 64 code string
@@ -1024,12 +1023,29 @@ Read a tuple value from a Base 64 code string
   bool ReadFromBinStr(string binStr);
 
 /*
-Write(Read) a tuple to(from) a memory buffer.
+Create Write a memory buffer and put the tuple into it as binary form,
+then return the ~bufSize~ to indicate the size of the buffer.
 
 */
   char* WriteToBin(uint16_t& bufSize);
-  void WriteToBin(char* buf, size_t coreSize, size_t extensionSize);
+
+/*
+Write a tuple to an allocated memory buffer.
+
+*/
+  void WriteToBin(char* buf,
+      size_t coreSize = 0, size_t extensionSize = 0);
+
+/*
+Read a tuple from memory buffer of binary form.
+
+*/
   uint16_t ReadFromBin(char* buf);
+
+/*
+Return the size of the memory buffer for putting the tuple into.
+
+*/
   uint16_t GetBlockSize(size_t& coreSize,
                       size_t& extensionSize) const;
 
