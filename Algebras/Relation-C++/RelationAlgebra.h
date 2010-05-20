@@ -153,7 +153,7 @@ Attribute.h), ~AttributeType~, and ~RelationDescriptor~.
 #include "Attribute.h"
 #include "NestedList.h"
 #include "Counter.h"
-#include "TupleIdentifier.h"
+#include "../TupleIdentifier/TupleIdentifier.h"
 
 #define MAX_NUM_OF_ATTR 10
 
@@ -776,7 +776,7 @@ part, i.e. the small FLOBs.
 
         if( tmpFlob->getSize() < extensionLimit ) {
           attrExtSize += tmpFlob->getSize();
-	}  
+        }
       }
 
       if (tupleType->GetAttributeType(i).extStorage) {
@@ -1027,9 +1027,11 @@ Read a tuple value from a Base 64 code string
 Write(Read) a tuple to(from) a memory buffer.
 
 */
-  char* WriteToBin(uint16_t &bufSize);
-  bool ReadFromBin(char* buf);
-
+  char* WriteToBin(uint16_t& bufSize);
+  void WriteToBin(char* buf, size_t coreSize, size_t extensionSize);
+  uint16_t ReadFromBin(char* buf);
+  uint16_t GetBlockSize(size_t& coreSize,
+                      size_t& extensionSize) const;
 
   static SmiSize extensionLimit;
 /*
@@ -1194,6 +1196,13 @@ to ~defAttributes~, otherwise it is dinamically constructed.
                       SmiRecordFile* file,
                       const SmiFileId& lobFileId) const;
 
+  void WriteToBlock( char* buf,
+                     /*size_t bufSize,*/
+                     size_t coreSize,
+                     size_t extensionSize,
+                     bool ignoreLOBs,
+                     SmiRecordFile* file,
+                     const SmiFileId& lobFileId) const;
 
   size_t CalculateBlockSize( size_t& attrSizes,
                              double& extSize,
