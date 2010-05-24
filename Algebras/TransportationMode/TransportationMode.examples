@@ -70,7 +70,7 @@ Result   : 1
 Operator : getpaveedge2
 Number   : 2
 Signature: rel1 x rel2 x btree x attr1 x attr2 x attr3-> (stream(tuple ((x1 t1) ... (xn tn))))
-Example  : query getpaveedge2(subpaves2, subpaves, btree_pave, oid, rid, pavement) count;
+Example  : query getpaveedge2(subpaves2, subpaves1, btree_pave, oid, rid, pavement) count;
 Result   : 1
 
 
@@ -117,3 +117,39 @@ Number   : 2
 Signature: rel x int  -> (stream(tuple ((x1 t1) ... (xn tn))))
 Example  : query generate_wp(graph_node, 5) count;
 Result   : 5
+
+Operator : vgedge
+Number   : 2
+Signature: rel x attr1 x attr2 x dualgraph x region  -> (stream(tuple ((x1 t1) ... (xn tn))))
+Example  : query vgedge(vg_node,nodeid, elem, dg1, node_reg) count;
+Result   : 5
+
+Operator : zval
+Number   : 2
+Signature: point  -> int
+Example  : query zval([const point value (0 0)]);
+Result   : 0
+
+Operator : zcurve
+Number   : 2
+Signature: rel x attr  -> (stream(tuple ((x1 t1) ... (xn tn))))
+Example  : query no_components(zcurve(vg_node,elem));
+Result   : 2
+
+Operator : regvertex
+Number   : 2
+Signature: reg -> (stream(tuple ((x1 t1) ... (xn tn))))
+Example  : query regvertex(node_reg) count;
+Result   : 441
+
+Operator : triangulation_new
+Number   : 2
+Signature: region -> (stream(((x1 t1) ... (xn tn)))
+Example  : query triangulation_new(r1) count;
+Result   : 1
+
+Operator : get_dg_edge
+Number   : 2
+Signature: rel1 x rel2 -> (stream(((x1 t1) ... (xn tn)))
+Example  : query get_dg_edge(tri_reg_new_sort,regnodes) count;
+Result   : 1

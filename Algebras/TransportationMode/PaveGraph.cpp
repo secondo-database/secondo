@@ -38,6 +38,7 @@ creating the graph model for walk planning.
 */
 #include "Partition.h"
 #include "Triangulate.h"
+#include "PaveGraph.h"
 
 /*
 Decompose the pavement on one side of the road into a set of subregions
@@ -391,7 +392,7 @@ void SpacePartition::DecomposePavement2(int start_oid, Relation* rel,
           oid++;
       }*/
 
-     //filter two zebra crossings are closer to each other
+     //filter two zebra crossings are too close to each other
       const double delta_dist = 4.0;
       vector<Region> zc_regs_filter;
       for(unsigned int j1 = 0;j1 < zc_regs.size();j1++){
@@ -402,6 +403,7 @@ void SpacePartition::DecomposePavement2(int start_oid, Relation* rel,
           }
           if(j2 == zc_regs_filter.size())
             zc_regs_filter.push_back(zc_regs[j2]);
+//          zc_regs_filter.push_back(zc_regs[j1]);
       }
 
       for(unsigned int j = 0;j < zc_regs_filter.size();j++){
@@ -495,7 +497,7 @@ void SpacePartition::GetPavementEdge2(Relation* rel1,
                                     int attr1, int attr2, int attr3)
 {
   vector<Region_Oid> reg_pave;
-  Region* pave_reg = new Region(0);
+
   for(int i = 1;i <= rel1->GetNoTuples();i++){
 
     Tuple* zc_tuple = rel1->GetTuple(i, false);
@@ -510,7 +512,6 @@ void SpacePartition::GetPavementEdge2(Relation* rel1,
     }*/
 
 //    cout<<"oid "<<zc_oid->GetIntval()<<"rid "<<rid->GetIntval()<<endl;
-//    assert(reg->GetCycleDirection());
 
     BTreeIterator* btreeiter = btree_pave->ExactMatch(rid);
     while(btreeiter->Next()){
@@ -532,7 +533,6 @@ void SpacePartition::GetPavementEdge2(Relation* rel1,
     zc_tuple->DeleteIfAllowed();
   }
 
-  delete pave_reg;
 }
 
 /*
@@ -583,6 +583,9 @@ void SpacePartition::GetCommPave1(vector<Region_Oid>& pave1,
             if(common_ps.size() > 1){
                 junid1.push_back(pave1[i].oid);
                 junid2.push_back(pave2[j].oid);
+                Line* l = new Line(0);
+                pave_line1.push_back(*l);
+                delete l;
             }
           }
       /////////////////////////////////////////////////////////////
@@ -612,6 +615,9 @@ void SpacePartition::GetCommPave2(Region* reg, int oid,
           if(result->Size() > 0){
               junid1.push_back(oid);
               junid2.push_back(pave2[i].oid);
+              Line* l = new Line(0);
+              pave_line1.push_back(*l);
+              delete l;
           }
           delete result;
           delete boundary;
@@ -664,6 +670,7 @@ float CompTriangle::Area(const vector<Point>& contour)
 /*
   InsideTriangle decides if a point P is Inside of the triangle
   defined by A, B, C.
+  If P equals to A, B or C, it returns true
 
 */
 bool CompTriangle::InsideTriangle(float Ax, float Ay,
@@ -859,7 +866,7 @@ void CompTriangle::Triangulation()
   }*/
 
   vector<Point> result;
-  GetTriangles(ps, result);
+  assert(GetTriangles(ps, result));
 
   unsigned int tcount = result.size()/3;
 
@@ -999,24 +1006,36 @@ it finds the path with minimum number of triangles connecting the start point
 and the end point
 
 */
-
-struct SPath_elem{
+struct Path_elem{
   int prev_index;//previous in expansion list
   int cur_index; //current entry  in expansion list
-//  unsigned int tri_index; //object id
   int tri_index; //object id
+  Path_elem(){}
+  Path_elem(int p, int c, int t):prev_index(p), cur_index(c),
+                   tri_index(t){}
+  Path_elem(const Path_elem& pe):prev_index(pe.prev_index),
+                  cur_index(pe.cur_index), tri_index(pe.tri_index){}
+  Path_elem& operator=(const Path_elem& pe)
+  {
+//    cout<<"Path_elem ="<<endl;
+    prev_index = pe.prev_index;
+    cur_index = pe.cur_index;
+    tri_index = pe.tri_index;
+    return *this;
+  }
+
+};
+
+struct SPath_elem:public Path_elem{
   unsigned int weight;
   SPath_elem(){}
-  SPath_elem(int p, int c, int t, int w):prev_index(p), cur_index(c),
-                   tri_index(t),weight(w){}
-  SPath_elem(const SPath_elem& se):prev_index(se.prev_index),
-                       cur_index(se.cur_index), tri_index(se.tri_index),
+  SPath_elem(int p, int c, int t, int w):Path_elem(p, c, t), weight(w){}
+  SPath_elem(const SPath_elem& se):Path_elem(se),
                        weight(se.weight){}
   SPath_elem& operator=(const SPath_elem& se)
   {
-    prev_index = se.prev_index;
-    cur_index = se.cur_index;
-    tri_index = se.tri_index;
+//    cout<<"SPath_elem ="<<endl;
+    Path_elem::operator=(se);
     weight = se.weight;
     return *this;
   }
@@ -1031,6 +1050,8 @@ struct SPath_elem{
         <<"tri_index" <<tri_index<<"weight "<<weight<<endl;
   }
 };
+
+
 /*
 get a sequence of triangles where the shoretest path should pass through
 
@@ -1173,7 +1194,7 @@ void CompTriangle::ConstructConvexChannel1(list<MyPoint>& funnel_front,
                               Point& newvertex,
                               vector<Point>& path, bool front_back)
 {
-  cout<<"ConstructConvexChannel1 "<<endl;
+//  cout<<"ConstructConvexChannel1 "<<endl;
   const double delta_dist = 0.00001;
   //push newvertex into funnel_back
   if(front_back){ //front = newvertex, check funnel_back first,
@@ -1183,7 +1204,7 @@ void CompTriangle::ConstructConvexChannel1(list<MyPoint>& funnel_front,
     MyPoint mp2 = funnel_back.back();
     while(funnel_back.empty() == false){
         MyPoint elem = funnel_back.back();
-        elem.Print();
+//        elem.Print();
         HalfSegment hs;
         hs.Set(true, elem.loc, newvertex);
         if(reg->Contains(hs)){
@@ -1217,7 +1238,7 @@ void CompTriangle::ConstructConvexChannel1(list<MyPoint>& funnel_front,
         }else{
             while(funnel_front.empty() == false){
               MyPoint elem = funnel_front.front();
-              elem.Print();
+//              elem.Print();
               HalfSegment hs;
               hs.Set(true, elem.loc, newvertex);
               if(reg->Contains(hs))break;
@@ -1250,7 +1271,7 @@ void CompTriangle::ConstructConvexChannel1(list<MyPoint>& funnel_front,
     MyPoint mp2 = funnel_front.back();
     while(funnel_front.empty() == false){
         MyPoint elem = funnel_front.back();
-        elem.Print();
+//        elem.Print();
         HalfSegment hs;
         hs.Set(true, elem.loc, newvertex);
         if(reg->Contains(hs)){
@@ -1342,7 +1363,7 @@ void CompTriangle::ConstructConvexChannel2(list<MyPoint> funnel_front,
                               Point& newvertex,
                               vector<Point>& path, bool front_back)
 {
-  cout<<"ConstructConvexChannel2 "<<endl;
+//  cout<<"ConstructConvexChannel2 "<<endl;
   const double delta_dist = 0.00001;
   //push newvertex into funnel_back
   if(front_back){ //front = newvertex, check funnel_back first,
@@ -1355,6 +1376,13 @@ void CompTriangle::ConstructConvexChannel2(list<MyPoint> funnel_front,
         MyPoint elem = funnel_back.back();
 //        elem.Print();
         HalfSegment hs;
+
+        if(elem.loc.Distance(newvertex) < delta_dist){
+            funnel_back.pop_back();
+            mp1 = elem;
+            continue;
+        }
+
         hs.Set(true, elem.loc, newvertex);
         if(reg->Contains(hs)){
           funnel_back.pop_back();
@@ -1368,6 +1396,9 @@ void CompTriangle::ConstructConvexChannel2(list<MyPoint> funnel_front,
         for(;iter != funnel_front.end();iter++){
           Point p = iter->loc;
           HalfSegment hs;
+
+          if(p.Distance(newvertex) < delta_dist) break;
+
           hs.Set(true, p, newvertex);
           if(reg->Contains(hs))break;
         }
@@ -1394,6 +1425,9 @@ void CompTriangle::ConstructConvexChannel2(list<MyPoint> funnel_front,
             funnel_front.pop_front();
 
           HalfSegment hs;
+
+          if(top.loc.Distance(newvertex) < delta_dist) return;
+
           hs.Set(true, top.loc, newvertex);
           if(reg->Contains(hs)) return;
 
@@ -1402,6 +1436,9 @@ void CompTriangle::ConstructConvexChannel2(list<MyPoint> funnel_front,
             path.push_back(elem.loc);
             ////////////////////////////////////////
             HalfSegment hs;
+
+            if(elem.loc.Distance(newvertex) < delta_dist) break;
+
             hs.Set(true, elem.loc, newvertex);
             if(reg->Contains(hs))break;
             ///////////////////////////////////////
@@ -1419,6 +1456,13 @@ void CompTriangle::ConstructConvexChannel2(list<MyPoint> funnel_front,
         MyPoint elem = funnel_front.back();
 //        elem.Print();
         HalfSegment hs;
+
+        if(elem.loc.Distance(newvertex) < delta_dist){
+          funnel_front.pop_back();
+          mp1 = elem;
+          continue;
+        }
+
         hs.Set(true, elem.loc, newvertex);
         if(reg->Contains(hs)){
           funnel_front.pop_back();
@@ -1432,6 +1476,11 @@ void CompTriangle::ConstructConvexChannel2(list<MyPoint> funnel_front,
         for(;iter != funnel_back.end();iter++){
           Point p = iter->loc;
           HalfSegment hs;
+
+          if(p.Distance(newvertex) < delta_dist){
+            break;
+          }
+
           hs.Set(true, p, newvertex);
           if(reg->Contains(hs))break;
         }
@@ -1457,6 +1506,9 @@ void CompTriangle::ConstructConvexChannel2(list<MyPoint> funnel_front,
             }
 
             HalfSegment hs;
+
+            if(top.loc.Distance(newvertex) < delta_dist)return;
+
             hs.Set(true, top.loc, newvertex);
             if(reg->Contains(hs)) return;
 
@@ -1465,6 +1517,8 @@ void CompTriangle::ConstructConvexChannel2(list<MyPoint> funnel_front,
               path.push_back(elem.loc);
               /////////////////////////////
               HalfSegment hs;
+              if(elem.loc.Distance(newvertex) < delta_dist)break;
+
               hs.Set(true, elem.loc, newvertex);
               if(reg->Contains(hs))break;
               //////////////////////////////
@@ -1510,8 +1564,12 @@ void CompTriangle::GeoShortestPath(Point* start, Point* end)
       return;
     }
 
-    Triangulation();//get a set of triangles
-
+//    Triangulation();//get a set of triangles, does not support hole
+    NewTriangulation();
+    if(triangles.size() < 3){
+      cout<<"triangulation is not correct"<<endl;
+      return;
+    }
     ///////////////  find the channel /////////////////////////////
 
     GetChannel(start, end);
@@ -2070,7 +2128,8 @@ void CompTriangle::GeoShortestPath(Point* start, Line* end)
     assert(false);
   }
   ///////////////////////////////////////////////////////////////////////
-  Triangulation();//get a set of triangles
+//  Triangulation();//get a set of triangles
+  NewTriangulation();//get a set of triangles
   vector<Line*> temp_sp; //store all possible shortest path
   double shortest_path_len = numeric_limits<float>::max();
   path = new Line(0);
@@ -2125,26 +2184,11 @@ clockwise otherwise if it is negative then the polygon vertices are ordered
 clockwise.*/
 
 /*
-Decompose a polygon with and without holes into a set of triangles
-Using the implementation by Atul Narkhede and Dinesh Manocha
+calculate the number of cycles in a region
 
 */
-
-void CompTriangle::NewTriangulation()
+unsigned int CompTriangle::NoOfCycles()
 {
-
-  if(reg->NoComponents() == 0){
-      cout<<"this is not a region"<<endl;
-      return;
-  }
-
-  if(reg->NoComponents() > 1){
-      cout<<"can't handle region with more than one face"<<endl;
-      return;
-  }
-
-
-  ////////////////////get the number of cycles////////////////////
   vector<int> no_cycles(reg->Size(), -1);
 
   for(int i = 0;i < reg->Size();i++){
@@ -2161,21 +2205,17 @@ void CompTriangle::NewTriangulation()
     else
       break;
   }
-  if(no_cyc == 1){
-    Triangulation();
-    return;
-  }
+  return no_cyc;
+}
+/*
+Initialize the point list
 
-  //the first is the outer cycle
-  cout<<"polgyon with "<<no_cyc - 1<<" holes inside "<<endl;
+*/
 
-
-  const int ncontours = no_cyc;
-  int no_p_contour[ncontours];
-
-  vector<double> ps_contour_x;
-  vector<double> ps_contour_y;
-
+void CompTriangle::PolygonContourPoint(unsigned int no_cyc, int no_p_contour[],
+                           vector<double>& ps_contour_x,
+                           vector<double>& ps_contour_y)
+{
   ps_contour_x.push_back(0.0);
   ps_contour_y.push_back(0.0);
 
@@ -2246,69 +2286,50 @@ void CompTriangle::NewTriangulation()
   }
   delete sp;
 
+}
 
-/*  int i = 0;
-  for(;i < no_cycles.size();i++){
-    SimpleLine* sl = new SimpleLine(0);
-    sl->StartBulkLoad();
-    int edgeno = 0;
-    for(int j = 0;j < reg->Size();j++){
-      HalfSegment hs1;
-      reg->Get(j, hs1);
-      if(!hs1.IsLeftDomPoint() || hs1.attr.cycleno != i) continue;
-//      cout<<"cycle no "<<hs1.attr.cycleno<<endl;
-      HalfSegment hs2;
-      hs2.Set(true, hs1.GetLeftPoint(), hs1.GetRightPoint());
-      hs2.attr.edgeno = edgeno++;
-      *sl += hs2;
-      hs2.SetLeftDomPoint(!hs2.IsLeftDomPoint());
-      *sl += hs2;
-    }
-    sl->EndBulkLoad();
-    vector<MyHalfSegment> mhs;
-    SpacePartition* sp = new SpacePartition();
-    sp->ReorderLine(sl, mhs);
+/*
+Decompose a polygon with and without holes into a set of triangles
+Using the implementation by Atul Narkhede and Dinesh Manocha
 
-    vector<Point> ps;
-    for(unsigned int j = 0;j < mhs.size();j++)
-        ps.push_back(mhs[j].from);
+*/
 
-    bool clock;
-    if(0.0f < Area(ps)){//points counter-clockwise order
-      clock = false;
-    }else{// points clockwise
-      clock = true;
-    }
-    no_p_contour[i] = ps.size();
-    if(i == 0){//outer contour, counter_clockwise
-        if(clock == false){
-            for(unsigned int index = 0;index < ps.size();index++){
-                ps_contour_x.push_back(ps[index].GetX());
-                ps_contour_y.push_back(ps[index].GetY());
-            }
-        }else{
-            for(unsigned int index = 0;index < ps.size();index++){
-                ps_contour_x.push_back(ps[ps.size() - 1 - index].GetX());
-                ps_contour_y.push_back(ps[ps.size() - 1 - index].GetY());
-            }
-        }
-    }else{//hole points, should be clockwise
-        if(clock == false){
-            for(unsigned int index = 0;index < ps.size();index++){
-                ps_contour_x.push_back(ps[ps.size() -1 - index].GetX());
-                ps_contour_y.push_back(ps[ps.size() -1 - index].GetY());
-            }
-        }else{
-            for(unsigned int index = 0;index < ps.size();index++){
-                ps_contour_x.push_back(ps[index].GetX());
-                ps_contour_y.push_back(ps[index].GetY());
-            }
-        }
-    }
+void CompTriangle::NewTriangulation()
+{
 
-    delete sp;
-    delete sl;
+  if(reg->NoComponents() == 0){
+      cout<<"this is not a region"<<endl;
+      return;
+  }
+
+  if(reg->NoComponents() > 1){
+      cout<<"can't handle region with more than one face"<<endl;
+      return;
+  }
+
+
+  ////////////////////get the number of cycles////////////////////
+  unsigned int no_cyc = NoOfCycles();
+
+/*  if(no_cyc == 1){
+    Triangulation();
+    return;
   }*/
+
+  //the first is the outer cycle
+  cout<<"polgyon with "<<no_cyc - 1<<" holes inside "<<endl;
+
+
+  const int ncontours = no_cyc;
+  int no_p_contour[ncontours];
+
+  vector<double> ps_contour_x;
+  vector<double> ps_contour_y;
+
+  PolygonContourPoint(no_cyc, no_p_contour, ps_contour_x, ps_contour_y);
+
+/*  for(unsigned int i = 0;i < no_cyc;i++)
+    cout<<no_p_contour[i]<<endl;*/
 
 
   cout<<"finish creating contour for the polgyon"<<endl;
@@ -2356,23 +2377,66 @@ void CompTriangle::NewTriangulation()
   ////////////////////////////////////////////////////////////////////
 
 }
-
-
-/*How can we find the shortest path for any polygon (with or without holes) and
-any startpoint and endpoint?  As far as I know, an exhaustive search is
-required.  However, the search can be optimized a bit so that it doesn’t take
-as long as testing every possible path.*/
-
-string DualGraph::NodeTypeInfo =
-  "(rel(tuple((oid int)(rid int)(pavement region))))";
-string DualGraph::EdgeTypeInfo =
-  "(rel(tuple((oid1 int)(oid2 int))))";
-string DualGraph::QueryTypeInfo =
-  "(rel(tuple((oid int)(loc point))))";
-
-ListExpr DualGraph::DualGraphProp()
+/*********************implementation of basgraph********************/
+BaseGraph::BaseGraph():dg_id(0),
+node_rel(NULL),
+edge_rel(NULL),
+adj_list(0),
+entry_adj_list(0)
 {
-    cout<<"DualGraphProp()"<<endl;
+  cout<<"BaseGraph::BaseGraph()"<<endl;
+}
+
+BaseGraph::BaseGraph(ListExpr in_xValue,int in_iErrorPos,
+                     ListExpr& inout_xErrorInfo,
+                     bool& inout_bCorrect):dg_id(0),
+node_rel(NULL),
+edge_rel(NULL),
+adj_list(0),
+entry_adj_list(0)
+{
+  cout<<"BaseGraph::BaseGraph(ListExpr)"<<endl;
+}
+
+BaseGraph::BaseGraph(SmiRecord& in_xValueRecord,size_t& inout_iOffset,
+const ListExpr in_xTypeInfo):
+dg_id(0), node_rel(NULL), edge_rel(NULL),
+adj_list(0), entry_adj_list(0)
+{
+  cout<<"BaseGraph::BaseGraph(SmiRecord)"<<endl;
+}
+
+BaseGraph::~BaseGraph()
+{
+    cout<<"~BaseGraph()"<<endl;
+    if(node_rel != NULL)
+      node_rel->Close();
+
+    if(edge_rel != NULL)
+      edge_rel->Close();
+
+//    adj_list.clean();
+//    entry_adj_list.clean();
+
+}
+
+void BaseGraph::Destroy()
+{
+  cout<<"Destroy()"<<endl;
+  if(node_rel != NULL){
+      node_rel->Delete();
+      node_rel = NULL;
+  }
+  if(edge_rel != NULL){
+    edge_rel->Delete();
+    edge_rel = NULL;
+  }
+
+}
+
+ListExpr BaseGraph::BaseGraphProp()
+{
+    cout<<"BaseGraphProp()"<<endl;
     ListExpr examplelist = nl->TextAtom();
     nl->AppendText(examplelist,
                "createdualgraph(<id>,<edge-relation>,<node-relation>)");
@@ -2382,6 +2446,82 @@ ListExpr DualGraph::DualGraphProp()
              nl->TwoElemList(examplelist,
                    nl->StringAtom("let dg=createdualgraph(id,e-rel,n-rel)")));
 }
+
+void* BaseGraph::CastBaseGraph(void* addr)
+{
+  cout<<"CastBaseGraph()"<<endl;
+  return 0;
+}
+
+Word BaseGraph::CloneBaseGraph(const ListExpr typeInfo, const Word& w)
+{
+  cout<<"CloneBaseGraph()"<<endl;
+  return SetWord(Address(0));
+}
+
+int BaseGraph::SizeOfBaseGraph()
+{
+  cout<<"SizeOfBaseGraph()"<<endl;
+  return 0;
+}
+
+/*
+Given a nodeid, find all its adjacecny nodes
+
+*/
+void BaseGraph::FindAdj(int node_id, vector<bool>& flag, vector<int>& list)
+{
+
+  ListEntry list_entry;
+  entry_adj_list.Get(node_id - 1, list_entry);
+  int low = list_entry.low;
+  int high = list_entry.high;
+  int j = low;
+  while(j < high){
+      int oid;
+      adj_list.Get(j, oid);
+      j++;
+      if(flag[oid - 1] == false){
+        list.push_back(oid);
+        flag[oid - 1] = true;
+      }
+  }
+
+}
+
+void BaseGraph::FindAdj(int node_id, vector<int>& list)
+{
+
+  ListEntry list_entry;
+  entry_adj_list.Get(node_id - 1, list_entry);
+  int low = list_entry.low;
+  int high = list_entry.high;
+  int j = low;
+  while(j < high){
+      int oid;
+      adj_list.Get(j, oid);
+      j++;
+      list.push_back(oid);
+  }
+
+}
+/*How can we find the shortest path for any polygon (with or without holes) and
+any startpoint and endpoint?  As far as I know, an exhaustive search is
+required.  However, the search can be optimized a bit so that it doesn’t take
+as long as testing every possible path.*/
+
+/*build a visibility graph, connect the start and end point to the graph*/
+
+string DualGraph::NodeTypeInfo =
+  "(rel(tuple((oid int)(rid int)(pavement region))))";
+string DualGraph::EdgeTypeInfo =
+  "(rel(tuple((oid1 int)(oid2 int)(commarea line))))";
+string DualGraph::QueryTypeInfo =
+  "(rel(tuple((oid int)(loc point))))";
+string DualGraph::TriangleTypeInfo1 =
+  "(rel(tuple((v1 int)(v2 int)(v3 int)(centroid point)(oid int))))";
+string DualGraph::TriangleTypeInfo2 =
+  "(rel(tuple((cycleno int)(vertex point))))";
 
 
 ListExpr DualGraph::OutDualGraph(ListExpr typeInfo, Word value)
@@ -2450,11 +2590,7 @@ void DualGraph::CloseDualGraph(const ListExpr typeInfo, Word& w)
   w.addr = NULL;
 }
 
-Word DualGraph::CloneDualGraph(const ListExpr typeInfo, const Word& w)
-{
-  cout<<"CloneDualGraph()"<<endl;
-  return SetWord(Address(0));
-}
+
 
 void DualGraph::DeleteDualGraph(const ListExpr typeInfo, Word& w)
 {
@@ -2471,11 +2607,7 @@ bool DualGraph::CheckDualGraph(ListExpr type, ListExpr& errorInfo)
   return nl->IsEqual(type, "dualgraph");
 }
 
-void* DualGraph::CastDualGraph(void* addr)
-{
-  cout<<"CastDualGraph()"<<endl;
-  return 0;
-}
+
 
 bool DualGraph::SaveDualGraph(SmiRecord& valueRecord, size_t& offset,
                            const ListExpr typeInfo, Word& value)
@@ -2552,27 +2684,29 @@ DualGraph* DualGraph::Open(SmiRecord& valueRecord,size_t& offset,
   return new DualGraph(valueRecord,offset,typeInfo);
 }
 
-int DualGraph::SizeOfDualGraph()
+DualGraph::~DualGraph()
 {
-  cout<<"SizeOfDualGraph()"<<endl;
-  return 0;
+  cout<<"~DualGraph()"<<endl;
 }
 
-
-DualGraph::DualGraph():dg_id(0),
-node_rel(NULL),
-edge_rel(NULL),
-adj_list(0),
-entry_adj_list(0)
+DualGraph::DualGraph()
 {
+  cout<<"DualGraph::DualGraph()"<<endl;
+}
+
+DualGraph::DualGraph(ListExpr in_xValue,int in_iErrorPos,
+                     ListExpr& inout_xErrorInfo,
+                     bool& inout_bCorrect)
+
+{
+  cout<<"DualGraph::DualGraph(ListExpr)"<<endl;
 
 }
 
 DualGraph::DualGraph(SmiRecord& in_xValueRecord,size_t& inout_iOffset,
-const ListExpr in_xTypeInfo):
-dg_id(0), node_rel(NULL), edge_rel(NULL),
-adj_list(0), entry_adj_list(0)
+const ListExpr in_xTypeInfo)
 {
+   cout<<"DualGraph::DualGraph(SmiRecord)"<<endl;
    /***********************Read graph id********************************/
   in_xValueRecord.Read(&dg_id,sizeof(int),inout_iOffset);
   inout_iOffset += sizeof(int);
@@ -2612,65 +2746,11 @@ adj_list(0), entry_adj_list(0)
    entry_adj_list.restoreHeader(buf,offset);
    inout_iOffset += bufsize;
    free(buf);
-  //////////////////test adjacency list///////////////////////////////////
-/*  for(int i = 0;i < entry_adj_list.Size();i++){
-      cout<<"i "<<i + 1<<endl;
-      ListEntry list_entry;
-      entry_adj_list.Get(i, list_entry);
-      int low = list_entry.low;
-      int high = list_entry.high;
-      int j = low;
-      cout<<"adjaency list low"<<low<<"high "<<high<<endl;
-      while(j < high){
-        int oid;
-        adj_list.Get(j, oid);
-        cout<<"oid "<<oid<<" ";
-        j++;
-      }
-      cout<<endl;
-  }*/
-
-  ///////////////////////////////////////////////////////////////////////
-}
-void DualGraph::Destroy()
-{
-  cout<<"Destroy()"<<endl;
-  if(node_rel != NULL){
-      node_rel->Delete();
-      node_rel = NULL;
-  }
-  if(edge_rel != NULL){
-    edge_rel->Delete();
-    edge_rel = NULL;
-  }
 
 }
 
-DualGraph::DualGraph(ListExpr in_xValue,int in_iErrorPos,
-                     ListExpr& inout_xErrorInfo,
-                     bool& inout_bCorrect):dg_id(0),
-node_rel(NULL),
-edge_rel(NULL),
-adj_list(0),
-entry_adj_list(0)
-{
 
 
-}
-DualGraph::~DualGraph()
-{
-
-    cout<<"~DualGraph()"<<endl;
-    if(node_rel != NULL)
-      node_rel->Close();
-
-    if(edge_rel != NULL)
-      edge_rel->Close();
-
-//    adj_list.clean();
-//    entry_adj_list.clean();
-
-}
 /*
 let dg1 = createdualgraph(1, graph_node, graph_edge);
 delete dg1;
@@ -2684,7 +2764,7 @@ let dg1 = createdualgraph(1, graph_node, graph_edge);
 
 void DualGraph::Load(int id, Relation* r1, Relation* r2)
 {
-  cout<<"Load()"<<endl;
+//  cout<<"Load()"<<endl;
   dg_id = id;
   //////////////////node relation////////////////////
 
@@ -2707,18 +2787,7 @@ void DualGraph::Load(int id, Relation* r1, Relation* r2)
   edge_rel = (Relation*)xResult.addr;
 
   ////////////adjacency list ////////////////////////////////
-  ListExpr xTypeInfoEdge;
-  nl->ReadFromString(EdgeTypeInfo,xTypeInfoEdge);
-  ListExpr xNumType =
-                SecondoSystem::GetCatalog()->NumericType(xTypeInfoEdge);
-  Relation* temp_edge1 = new Relation(xNumType,true);
-  Relation* temp_edge2 = new Relation(xNumType,true);
-  for(int i = 1;i <= r2->GetNoTuples();i++){
-    Tuple* t = r2->GetTuple(i, false);
-    temp_edge1->AppendTuple(t);
-    temp_edge2->AppendTuple(t);
-    t->DeleteIfAllowed();
-  }
+
   ostringstream xNodeOidPtrStream1;
   xNodeOidPtrStream1 << (long)edge_rel;
   strQuery = "(createbtree (" + EdgeTypeInfo +
@@ -2735,8 +2804,6 @@ void DualGraph::Load(int id, Relation* r1, Relation* r2)
   QueryExecuted = QueryProcessor::ExecuteQuery(strQuery, xResult);
   assert(QueryExecuted);
   BTree* btree_node_oid2 = (BTree*)xResult.addr;
-  delete temp_edge1;
-  delete temp_edge2;
 
 
 //  cout<<"b-tree on edge is finished....."<<endl;
@@ -2789,29 +2856,7 @@ void DualGraph::Load(int id, Relation* r1, Relation* r2)
   }*/
 }
 
-/*
-Given a nodeid, find all its adjacecny nodes
 
-*/
-void DualGraph::FindAdj(int node_id, vector<bool>& flag, vector<int>& list)
-{
-
-  ListEntry list_entry;
-  entry_adj_list.Get(node_id - 1, list_entry);
-  int low = list_entry.low;
-  int high = list_entry.high;
-  int j = low;
-  while(j < high){
-      int oid;
-      adj_list.Get(j, oid);
-      j++;
-      if(flag[oid - 1] == false){
-        list.push_back(oid);
-        flag[oid - 1] = true;
-      }
-  }
-
-}
 /*
 Computing the shortest path of two points inside polgyon representing pavement
 
@@ -2823,23 +2868,15 @@ void DualGraph::WalkShortestPath(int oid1, int oid2, Point loc1, Point loc2,
   ////////////////point must be located inside the polygon//////////
   Tuple* tuple1 = node_rel->GetTuple(oid1, false);
   Region* reg1 = (Region*)tuple1->GetAttribute(PAVEMENT);
-  BBox<2> bbox1 = reg1->BoundingBox();
-  double xmin1 = bbox1.MinD(0);
-  double ymin1 = bbox1.MinD(1);
-  loc1.Set(loc1.GetX() + xmin1, loc1.GetY() + ymin1);
-  cout<<"loc1 "<<loc1<<endl;
+
   if(loc1.Inside(*reg1) == false){
     tuple1->DeleteIfAllowed();
     cout<<"point1 is not inside the polygon"<<endl;
     return;
   }
   Tuple* tuple2 = node_rel->GetTuple(oid2, false);
-  Region* reg2 = (Region*)tuple1->GetAttribute(PAVEMENT);
-  BBox<2> bbox2 = reg2->BoundingBox();
-  double xmin2 = bbox2.MinD(0);
-  double ymin2 = bbox2.MinD(1);
-  loc2.Set(loc2.GetX() + xmin2, loc2.GetY() + ymin2);
-  cout<<"loc2 "<<loc2<<endl;
+  Region* reg2 = (Region*)tuple2->GetAttribute(PAVEMENT);
+
   if(loc2.Inside(*reg2) == false){
     tuple1->DeleteIfAllowed();
     tuple2->DeleteIfAllowed();
@@ -2895,6 +2932,7 @@ void DualGraph::WalkShortestPath(int oid1, int oid2, Point loc1, Point loc2,
   }
 
   ///////////////construct the path/////////////////////////////
+  //////walkregs stores the path consisting of a sequence of regions/triangles
   if(find){
     vector<int> path_record;
     while(dest.prev_index != -1){
@@ -2903,15 +2941,16 @@ void DualGraph::WalkShortestPath(int oid1, int oid2, Point loc1, Point loc2,
     }
     path_record.push_back(dest.tri_index);
 
+
     for(int i = path_record.size() - 1;i >= 0;i--){
 //      cout<<path_record[i]<<endl;
       Tuple* t = node_rel->GetTuple(path_record[i], false);
       Region* reg = (Region*)t->GetAttribute(PAVEMENT);
       walkregs.push_back(*reg);
+
       t->DeleteIfAllowed();
     }
   }
-
 
 }
 
@@ -2951,7 +2990,8 @@ void Walk_SP::WalkShortestPath()
   Tuple* t2 = rel2->GetTuple(1, false);
   int oid2 = ((CcInt*)t2->GetAttribute(DualGraph::QOID))->GetIntval();
   Point* loc2 = new Point(*((Point*)t2->GetAttribute(DualGraph::QLOC)));
-//  cout<<"pave1 "<<oid1<<" pave2 "<<oid2<<endl;
+  cout<<"pave1 "<<oid1<<" pave2 "<<oid2<<endl;
+  cout<<"loc1 "<<*loc1<<" loc2 "<<*loc2<<endl;
   int no_node_graph = const_cast<DualGraph*>(dg)->No_Of_Node();
   if(oid1 < 1 || oid1 > no_node_graph){
     cout<<"pave loc1 does not exist"<<endl;
@@ -2980,7 +3020,6 @@ Randomly generates points inside pavement polygon
 
 void Walk_SP::GenerateData(int no_p)
 {
-  int count = 0;
   int no_node_graph = rel1->GetNoTuples();
   struct timeval tval;
   struct timezone tzone;
@@ -2994,16 +3033,19 @@ void Walk_SP::GenerateData(int no_p)
       Tuple* tuple = rel1->GetTuple(m, false);
       Region* reg = (Region*)tuple->GetAttribute(DualGraph::PAVEMENT);
       BBox<2> bbox = reg->BoundingBox();
-      int xx = (int)(bbox.MaxD(0) - bbox.MinD(0));
-      int yy = (int)(bbox.MaxD(1) - bbox.MinD(1));
+      int xx = (int)(bbox.MaxD(0) - bbox.MinD(0)) + 1;
+      int yy = (int)(bbox.MaxD(1) - bbox.MinD(1)) + 1;
+//      cout<<"xx "<<xx<<" yy "<<yy<<endl;
       Point p;
       bool inside = false;
       while(inside == false){
-        int x = mrand48()% xx;
-        int y = mrand48()% yy;
+        int x = mrand48()% (xx*100);
+        int y = mrand48()% (yy*100);
 //        printf("x %d, y %d\n", x, y);
-        Coord x_cord = x + bbox.MinD(0);
-        Coord y_cord = y + bbox.MinD(1);
+        double coord_x = x/100.0;
+        double coord_y = y/100.0;
+        Coord x_cord = coord_x + bbox.MinD(0);
+        Coord y_cord = coord_y + bbox.MinD(1);
         p.Set(x_cord, y_cord);
         inside = p.Inside(*reg);
       }
@@ -3011,5 +3053,408 @@ void Walk_SP::GenerateData(int no_p)
       q_loc.push_back(p);
       tuple->DeleteIfAllowed();
   }
+}
+
+
+VGraph::VGraph()
+{
+  dg = NULL;
+  rel = NULL;
+  count = 0;
+
+  resulttype = NULL;
+}
+VGraph::VGraph(DualGraph* g, Relation* r):dg(g),
+rel(r), count(0), resulttype(NULL)
+{
+
+}
+
+VGraph:: ~VGraph()
+{
+  if(resulttype != NULL) delete resulttype;
+}
+
+/*
+create the edge relation for the visibility graph
+
+*/
+void VGraph::GetVGEdge(int attr_pos1, int attr_pos2, Region* all_reg)
+{
+
+
+}
+
+/*
+create a relation for the vertices of the region with the cycleno
+
+*/
+void RegVertex::CreateVertex()
+{
+/*   //naive method to compute the cycle of a region
+      vector<int> cycle;
+      for(int i = 0;i < reg->Size();i++){
+        HalfSegment hs;
+        reg->Get(i, hs);
+        if(!hs.IsLeftDomPoint())continue;
+        int cycle_no = hs.attr.cycleno;
+        unsigned int j = 0;
+        for(;j < cycle.size();j++)
+          if(cycle[j] == cycle_no) break;
+        if(j == cycle.size()) cycle.push_back(cycle_no);
+      }
+      cout<<"polgyon with "<<cycle.size()<<" cycles inside "<<endl;*/
+      CompTriangle* ct = new CompTriangle(reg);
+      unsigned int no_cyc = ct->NoOfCycles();
+      assert(no_cyc > 0);
+
+      const int ncontours = no_cyc;
+      int no_p_contour[ncontours];
+
+      vector<double> ps_contour_x;
+      vector<double> ps_contour_y;
+
+      vector<SimpleLine*> sl_contour;
+
+      for(unsigned int i = 0;i < no_cyc;i++){
+          SimpleLine* sl = new SimpleLine(0);
+          sl->StartBulkLoad();
+          sl_contour.push_back(sl);
+      }
+      vector<int> edgenos(no_cyc, 0);
+      for(int j = 0;j < reg->Size();j++){
+        HalfSegment hs1;
+        reg->Get(j, hs1);
+        if(!hs1.IsLeftDomPoint()) continue;
+        HalfSegment hs2;
+        hs2.Set(true, hs1.GetLeftPoint(), hs1.GetRightPoint());
+
+        hs2.attr.edgeno = edgenos[hs1.attr.cycleno]++;
+        *sl_contour[hs1.attr.cycleno] += hs2;
+        hs2.SetLeftDomPoint(!hs2.IsLeftDomPoint());
+        *sl_contour[hs1.attr.cycleno] += hs2;
+      }
+
+      SpacePartition* sp = new SpacePartition();
+
+      for(unsigned int i = 0;i < no_cyc;i++){
+        sl_contour[i]->EndBulkLoad();
+        vector<MyHalfSegment> mhs;
+        sp->ReorderLine(sl_contour[i], mhs);
+        vector<Point> ps;
+        for(unsigned int j = 0;j < mhs.size();j++)
+          ps.push_back(mhs[j].from);
+
+        bool clock;
+        if(0.0f < ct->Area(ps)){//points counter-clockwise order
+          clock = false;
+        }else{// points clockwise
+          clock = true;
+        }
+        no_p_contour[i] = ps.size();
+        if(i == 0){//outer contour, counter_clockwise
+          if(clock == false){
+              for(unsigned int index = 0;index < ps.size();index++){
+//                  ps_contour_x.push_back(ps[index].GetX());
+//                  ps_contour_y.push_back(ps[index].GetY());
+                    regnodes.push_back(ps[index]);
+                    cycleno.push_back(i);
+
+              }
+          }else{
+              for(unsigned int index = 0;index < ps.size();index++){
+//                  ps_contour_x.push_back(ps[ps.size() - 1 - index].GetX());
+//                  ps_contour_y.push_back(ps[ps.size() - 1 - index].GetY());
+                    regnodes.push_back(ps[ps.size() - 1 - index]);
+                    cycleno.push_back(i);
+              }
+          }
+        }else{//hole points, should be clockwise
+          if(clock == false){
+              for(unsigned int index = 0;index < ps.size();index++){
+//                ps_contour_x.push_back(ps[ps.size() -1 - index].GetX());
+//                ps_contour_y.push_back(ps[ps.size() -1 - index].GetY());
+                  regnodes.push_back(ps[ps.size() - 1 - index]);
+                  cycleno.push_back(i);
+              }
+          }else{
+              for(unsigned int index = 0;index < ps.size();index++){
+//                ps_contour_x.push_back(ps[index].GetX());
+//                ps_contour_y.push_back(ps[index].GetY());
+                  regnodes.push_back(ps[index]);
+                  cycleno.push_back(i);
+              }
+          }
+        }
+
+        delete sl_contour[i];
+      }
+      delete ct;
+      delete sp;
+}
+
+/*
+for each triangle, it returns the number of each point and the centroid
+
+*/
+void RegVertex::TriangulationNew()
+{
+      CompTriangle* ct = new CompTriangle(reg);
+      unsigned int no_cyc = ct->NoOfCycles();
+      assert(no_cyc > 0);
+
+      const int ncontours = no_cyc;
+      int no_p_contour[ncontours];
+
+      vector<double> ps_contour_x;//start from 1
+      vector<double> ps_contour_y;//start from 1
+
+      ct->PolygonContourPoint(no_cyc, no_p_contour, ps_contour_x, ps_contour_y);
+      int result_trig[SEGSIZE][3];
+      int (*res_triangles)[3] = &result_trig[0];
+
+      int no_triangle;
+      no_triangle = triangulate_polygon(no_cyc, no_p_contour,
+                ps_contour_x, ps_contour_y, res_triangles);
+
+      cout<<"no_triangle "<<no_triangle<<endl;
+
+      assert(0 < no_triangle && no_triangle < SEGSIZE);
+      for (int i = 0; i < no_triangle; i++){
+          Coord x, y;
+
+          x = ps_contour_x[res_triangles[i][0]];
+          y = ps_contour_y[res_triangles[i][0]];
+
+          x += ps_contour_x[res_triangles[i][1]];
+          y += ps_contour_y[res_triangles[i][1]];
+
+          x += ps_contour_x[res_triangles[i][2]];
+          y += ps_contour_y[res_triangles[i][2]];
+          v1_list.push_back(res_triangles[i][0]);
+          v2_list.push_back(res_triangles[i][1]);
+          v3_list.push_back(res_triangles[i][2]);
+          //calculate the centroid point
+          Point p;
+          p.Set(x/3.0, y/3.0);
+          regnodes.push_back(p);
+      }
+
+      delete ct;
+}
+/*
+For each triangle, it sets the number of neighbors it has already.
+If the numbers of two vertices are consecutive and they belong to the same
+cycle, then the edge connecting them is the boundary. Thus, there is no triangle
+adjacent to it by this edge. So we increase the number of neighbor. As for a
+triangle, the maximum neighbor it can have is 3 (three edges).
+
+*/
+
+void SetNeighbor(Triangle& tri, vector<int>& no_points_cycles,
+                 vector<int>& index_contour)
+{
+  //v1 and v2 are consecutive boundary points
+  if(tri.c1 == tri.c2){
+    if(fabs(tri.v1 - tri.v2) == 1){
+      tri.neighbor_no++;
+    }
+
+    else if(tri.v1 == index_contour[tri.c1] && //first
+          tri.v2 == index_contour[tri.c1] + no_points_cycles[tri.c2] - 1)//last
+      tri.neighbor_no++;
+
+    else if(tri.v2 == index_contour[tri.c1] &&
+            tri.v1 == index_contour[tri.c1] + no_points_cycles[tri.c1] - 1)
+      tri.neighbor_no++;
+  }
+  //v1 and v3 are consecutive boundary points
+  if(tri.c1 == tri.c3){
+      if(fabs(tri.v1 - tri.v3) == 1){
+        tri.neighbor_no++;
+      }
+
+      else if(tri.v1 == index_contour[tri.c1] &&
+              tri.v3 == index_contour[tri.c3] + no_points_cycles[tri.c3] - 1){
+        tri.neighbor_no++;
+      }
+
+      else if(tri.v3 == index_contour[tri.c3] &&
+              tri.v1 == index_contour[tri.c1] + no_points_cycles[tri.c1] - 1)
+        tri.neighbor_no++;
+  }
+  //v2 and v3 are consecutive boundary points
+  if(tri.c2 == tri.c3){
+      if(fabs(tri.v2 - tri.v3) == 1)
+        tri.neighbor_no++;
+
+      else if(tri.v2 == index_contour[tri.c2] &&
+              tri.v3 == index_contour[tri.c3] + no_points_cycles[tri.c3] - 1)
+        tri.neighbor_no++;
+
+      else if(tri.v3 == index_contour[tri.c3] &&
+              tri.v2 == index_contour[tri.c2] + no_points_cycles[tri.c2] - 1){
+        tri.neighbor_no++;
+      }
+  }
+}
+
+/*
+get the dual graph edge relation. if two triangles have the same edge, an edge
+in dual graph is created. Each node corresponds to a triangle.
+
+*/
+void RegVertex::GetDGEdge()
+{
+  //the number it stores is the number of points inside
+  //cycleno->number of points
+  vector<int> no_points_cycles(rel2->GetNoTuples(), 0);
+
+  vector<int> vertex_cycleno; //vertex -> cycleno
+  vector<Point>  vertex_point;
+  //relation (cycleno int)(vertex point)
+  for(int i = 1;i <= rel2->GetNoTuples();i++){
+    Tuple* t = rel2->GetTuple(i, false);
+    int cycleno = ((CcInt*)t->GetAttribute(DualGraph::CYCLENO))->GetIntval();
+    Point* p = (Point*)t->GetAttribute(DualGraph::VERTEX);
+    vertex_cycleno.push_back(cycleno);
+    vertex_point.push_back(*p);
+    t->DeleteIfAllowed();
+    no_points_cycles[cycleno]++;
+  }
+
+  vector<int> index_contour;
+  unsigned int no_cyc = 0;
+  for(unsigned int i = 0;i < no_points_cycles.size();i++){
+//    cout<<"no_cyc "<<i<<" points "<<no_points_cycles[i]<<endl;
+    if(i == 0) index_contour.push_back(1);
+    else index_contour.push_back(index_contour[index_contour.size() - 1] +
+                                 no_points_cycles[i - 1]);
+
+//    cout<<"start index "<<index_contour[index_contour.size() - 1]<<endl;
+    if(no_points_cycles[i] > 0) no_cyc++;
+    else
+      break;
+  }
+
+//  cout<<"no of cycles "<<no_cyc<<endl;
+
+  TriNode* head = new TriNode();
+  TriNode* trinode;
+  for(int i = 1;i <= rel1->GetNoTuples();i++){
+      Tuple* t = rel1->GetTuple(i, false);
+      int v1 = ((CcInt*)t->GetAttribute(DualGraph::V1))->GetIntval();
+      int v2 = ((CcInt*)t->GetAttribute(DualGraph::V2))->GetIntval();
+      int v3 = ((CcInt*)t->GetAttribute(DualGraph::V3))->GetIntval();
+      int oid = ((CcInt*)t->GetAttribute(DualGraph::TOID))->GetIntval();
+      int c1 = vertex_cycleno[v1 - 1];
+      int c2 = vertex_cycleno[v2 - 1];
+      int c3 = vertex_cycleno[v3 - 1];
+
+/*      if(!(oid == 93 || oid == 94 || oid == 95)){
+        t->DeleteIfAllowed();
+        continue;
+      }*/
+
+      Triangle tri(oid, v1, v2, v3, c1, c2, c3);
+      SetNeighbor(tri, no_points_cycles, index_contour);
+
+//      cout<<"new elem ";
+//      tri.Print();
+
+      trinode = new TriNode(tri,NULL);
+      ////////////////traverse the list //////////////////////////////
+      if(i == 1){
+        head->next = trinode;
+        t->DeleteIfAllowed();
+        continue;
+      }
+      TriNode* prev = head;
+      TriNode* cur = prev->next;
+      bool insert = true;
+      while(cur != NULL && insert){
+//          cout<<" cur elem in list ";
+//          cur->tri.Print();
+
+          int sharetype = trinode->tri.ShareEdge(cur->tri);
+//          cout<<"sharetype "<<sharetype<<endl;
+          if(sharetype > 0){ //find a common edge
+//            cout<<"oid1 "<<trinode->tri.oid<<"oid2 "<<cur->tri.oid<<endl;
+
+            ////////////adjacent list///////////////////////////////
+            v1_list.push_back(trinode->tri.oid);
+            v2_list.push_back(cur->tri.oid);
+            HalfSegment hs;
+            Point p1, p2;
+            switch(sharetype){
+              case 1:
+                    p1 = vertex_point[tri.v1 - 1];
+                    p2 = vertex_point[tri.v2 - 1];
+                    break;
+              case 2:
+                    p1 = vertex_point[tri.v1 - 1];
+                    p2 = vertex_point[tri.v3 - 1];
+                    break;
+              case 3:
+                    p1 = vertex_point[tri.v2 - 1];
+                    p2 = vertex_point[tri.v3 - 1];
+                    break;
+              default:
+                    assert(false);
+            }
+            hs.Set(true, p1, p2);
+            Line* l = new Line(0);
+            l->StartBulkLoad();
+            hs.attr.edgeno = 0;
+            *l += hs;
+            hs.SetLeftDomPoint(!hs.IsLeftDomPoint());
+            *l += hs;
+            l->EndBulkLoad();
+            line.push_back(*l);
+            delete l;
+            //////////////////////////////////////////////////////
+            //trinode
+            trinode->tri.neighbor_no++;
+            if(trinode->tri.neighbor_no == 3){
+//              cout<<"do not insert new"<<endl;
+              insert = false;
+              delete trinode;
+            }
+
+            //cur
+            cur->tri.neighbor_no++;
+            if(cur->tri.neighbor_no == 3){//find all neighbors
+//              cout<<"delete cur "<<endl;
+              TriNode* temp = cur;
+              prev->next = cur->next;
+              cur = cur->next;
+              delete temp;
+            }else{
+                 prev = cur;
+                 cur = cur->next;
+            }
+          }else{
+                prev = cur;
+                cur = cur->next;
+          }
+      }
+      if(insert){
+        prev->next = trinode;
+      }
+      ///////////////////////////////////////////////////////////////
+      t->DeleteIfAllowed();
+  }
+  //for debuging, detect whether there are some elements not processed
+  if(head->next){
+      cout<<"it should not come here. ";
+      cout<<"there are some elements not processed in the list"<<endl;
+      TriNode* temp = head->next;
+      while(temp){
+        temp->tri.Print();
+        temp = temp->next;
+      }
+      assert(false);
+  }
+  delete head;
 
 }

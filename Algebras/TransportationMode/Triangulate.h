@@ -44,6 +44,7 @@ May, 2010 Jianqiu xu
 #include <math.h>
 #include <iostream>
 #include <assert.h>
+#include <string.h>
 
 using namespace std;
 

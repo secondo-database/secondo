@@ -42,6 +42,8 @@ queries moving objects with transportation modes.
 
 #include "TransportationMode.h"
 #include "Partition.h"
+#include "PaveGraph.h"
+#include "Triangulate.h"
 
 extern NestedList* nl;
 extern QueryProcessor *qp;
@@ -204,7 +206,7 @@ const string OpTMCreateDGSpec  =
     "\"Example\" ) "
     "( <text>int x rel x rel -> dualgraph</text--->"
     "<text>createdualgraph(int, rel, rel)</text--->"
-    "<text>create a dual by the input edge and node relation</text--->"
+    "<text>create a dual graph by the input edge and node relation</text--->"
     "<text>query createdualgraph(1, edge-rel, node-rel); </text--->"
     ") )";
 
@@ -233,6 +235,64 @@ const string OpTMGenerateWPSpec  =
     "<text>generate_wp(rel, int)</text--->"
     "<text>generate random points inside the polygon</text--->"
     "<text>query generate_wp(graph_node,5); </text--->"
+    ") )";
+
+const string OpTMVGEdgeSpec  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+    "\"Example\" ) "
+    "( <text>rel x attr1 x attr2 x dualgraph x region-> "
+    "(stream (tuple( (x1 t1)(x2 t2)...(xn tn)))</text--->"
+    "<text>vgedge(rel, attr, attr,dg, region)</text--->"
+    "<text>get the edge relation for the visibility graph</text--->"
+    "<text>query vgedge(vg_node,nodeid,elem,dg,node_reg); </text--->"
+    ") )";
+
+const string OpTMZvalSpec  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+    "\"Example\" ) "
+    "( <text>point -> int</text--->"
+    "<text>zval(point)</text--->"
+    "<text>calculate the z-order value of a point</text--->"
+    "<text>query zval(p1); </text--->"
+    ") )";
+
+const string OpTMZcurveSpec  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+    "\"Example\" ) "
+    "( <text>rel x attr ->"
+    "(stream (tuple( (x1 t1)(x2 t2)...(xn tn)))</text--->"
+    "<text>zcurve(rel, attr)</text--->"
+    "<text>calculate the curve of the given points sortby z-order</text--->"
+    "<text>query zcurve(vg_node,elem); </text--->"
+    ") )";
+
+const string OpTMRegVertexSpec  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+    "\"Example\" ) "
+    "( <text>reg ->"
+    "(stream (tuple( (x1 t1)(x2 t2)...(xn tn)))</text--->"
+    "<text>regvertex(region)</text--->"
+    "<text>return the vertex of the region as well as the cycleno</text--->"
+    "<text>query regvertex(node_reg); </text--->"
+    ") )";
+
+const string OpTMTriangulationNewSpec  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+    "\"Example\" ) "
+    "( <text>reg ->"
+    "(stream (tuple( (x1 t1)(x2 t2)...(xn tn)))</text--->"
+    "<text>triangulation_new(region)</text--->"
+    "<text>decompose the region into a set of triangles where each is"
+    "represented by the three points</text--->"
+    "<text>query triangulation_new(r1) count; </text--->"
+    ") )";
+const string OpTMGetDGEdgeSpec  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+    "\"Example\" ) "
+    "( <text>rel1 x rel2 ->(stream (tuple( (x1 t1)(x2 t2)...(xn tn)))</text--->"
+    "<text>get_dg_edge(rel,rel)</text--->"
+    "<text>get the edge relation for the dual graph on the triangles</text--->"
+    "<text>query get_dg_edge(rel1,rel2) count; </text--->"
     ") )";
 ////////////////TypeMap function for operators//////////////////////////////
 
@@ -787,11 +847,13 @@ ListExpr OpTMGetPaveEdge1TypeMap ( ListExpr args )
                 nl->TwoElemList(
 
                   nl->SymbolAtom("tuple"),
-                      nl->TwoElemList(
+                      nl->ThreeElemList(
                         nl->TwoElemList(nl->SymbolAtom("oid1"),
                                     nl->SymbolAtom("int")),
                         nl->TwoElemList(nl->SymbolAtom("oid2"),
-                                    nl->SymbolAtom("int"))
+                                    nl->SymbolAtom("int")),
+                        nl->TwoElemList(nl->SymbolAtom("commarea"),
+                                    nl->SymbolAtom("line"))
                   )
                 )
           );
@@ -925,6 +987,7 @@ ListExpr OpTMGetPaveEdge2TypeMap ( ListExpr args )
   }
 
 
+
     if (listutils::isRelDescription(param2) &&
         listutils::isRelDescription(param3) &&
         listutils::isBTreeDescription(param4)){
@@ -935,11 +998,13 @@ ListExpr OpTMGetPaveEdge2TypeMap ( ListExpr args )
                 nl->TwoElemList(
 
                   nl->SymbolAtom("tuple"),
-                      nl->TwoElemList(
+                      nl->ThreeElemList(
                         nl->TwoElemList(nl->SymbolAtom("oid1"),
                                     nl->SymbolAtom("int")),
                         nl->TwoElemList(nl->SymbolAtom("oid2"),
-                                    nl->SymbolAtom("int"))
+                                    nl->SymbolAtom("int")),
+                        nl->TwoElemList(nl->SymbolAtom("commarea"),
+                                    nl->SymbolAtom("line"))
                   )
                 )
           );
@@ -1051,10 +1116,10 @@ ListExpr OpTMCreateDGTypeMap ( ListExpr args )
       return nl->SymbolAtom ( "typeerror" );
 
   ListExpr xType;
-  nl->ReadFromString(DualGraph::EdgeTypeInfo, xType);
+  nl->ReadFromString(DualGraph::NodeTypeInfo, xType);
   if(!CompareSchemas(xNodeDesc, xType))return nl->SymbolAtom ( "typeerror" );
 
-  nl->ReadFromString(DualGraph::NodeTypeInfo, xType);
+  nl->ReadFromString(DualGraph::EdgeTypeInfo, xType);
   if(!CompareSchemas(xEdgeDesc, xType))return nl->SymbolAtom ( "typeerror" );
 
   return nl->SymbolAtom ( "dualgraph" );
@@ -1113,9 +1178,11 @@ ListExpr OpTMWalkSPTypeMap ( ListExpr args )
                 nl->TwoElemList(
 
                   nl->SymbolAtom("tuple"),
-                      nl->OneElemList(
+                      nl->TwoElemList(
                         nl->TwoElemList(nl->SymbolAtom("walkreg"),
-                                    nl->SymbolAtom("region"))
+                                    nl->SymbolAtom("region")),
+                        nl->TwoElemList(nl->SymbolAtom("walkpath"),
+                                    nl->SymbolAtom("line"))
                   )
                 )
           );
@@ -1165,6 +1232,260 @@ ListExpr OpTMGenerateWPTypeMap ( ListExpr args )
   }
 
   return nl->SymbolAtom ( "typeerror" );
+}
+
+/*
+TypeMap fun for operator vgedge
+
+*/
+
+ListExpr OpTMVGEdgeTypeMap ( ListExpr args )
+{
+  if ( nl->ListLength ( args ) != 5 )
+  {
+    return  nl->SymbolAtom ( "typeerror" );
+  }
+  ListExpr arg1 = nl->First(args);
+  ListExpr attrName1 = nl->Second(args);
+  ListExpr attrName2 = nl->Third(args);
+  ListExpr arg3 = nl->Fourth(args);
+  ListExpr arg4 = nl->Fifth(args);
+
+  if (!(listutils::isRelDescription(arg1)))
+    return nl->SymbolAtom ( "typeerror" );
+
+  ListExpr attrType1;
+  string aname1 = nl->SymbolValue(attrName1);
+  int j1 = listutils::findAttribute(nl->Second(nl->Second(arg1)),
+                      aname1, attrType1);
+
+  if(j1 == 0 || !listutils::isSymbol(attrType1,"int")){
+      return listutils::typeError("attr name" + aname1 + "not found"
+                      "or not of type int");
+  }
+
+  ListExpr attrType2;
+  string aname2 = nl->SymbolValue(attrName2);
+  int j2 = listutils::findAttribute(nl->Second(nl->Second(arg1)),
+                      aname2, attrType2);
+
+  if(j2 == 0 || !listutils::isSymbol(attrType2,"point")){
+      return listutils::typeError("attr name" + aname2 + "not found"
+                      "or not of type point");
+  }
+
+
+  if(nl->IsAtom(arg3) && nl->AtomType(arg3) == SymbolType &&
+     nl->SymbolValue(arg3) == "dualgraph" &&
+     nl->IsAtom(arg4) && nl->AtomType(arg4) == SymbolType &&
+     nl->SymbolValue(arg4) == "region"){
+
+       ListExpr result =
+          nl->TwoElemList(
+              nl->SymbolAtom("stream"),
+                nl->TwoElemList(
+
+                  nl->SymbolAtom("tuple"),
+                      nl->FourElemList(
+                        nl->TwoElemList(nl->SymbolAtom("nodeid1"),
+                                    nl->SymbolAtom("int")),
+                        nl->TwoElemList(nl->SymbolAtom("loc1"),
+                                    nl->SymbolAtom("point")),
+                        nl->TwoElemList(nl->SymbolAtom("nodeid2"),
+                                    nl->SymbolAtom("int")),
+                        nl->TwoElemList(nl->SymbolAtom("loc2"),
+                                    nl->SymbolAtom("point"))
+//                        nl->TwoElemList(nl->SymbolAtom("vline"),
+//                                    nl->SymbolAtom("line"))
+                  )
+                )
+          );
+
+      return nl->ThreeElemList(nl->SymbolAtom("APPEND"),
+             nl->TwoElemList(nl->IntAtom(j1),nl->IntAtom(j2)),result);
+  }
+
+  return nl->SymbolAtom ( "typeerror" );
+}
+
+/*
+TypeMap fun for operator zval
+
+*/
+
+ListExpr OpTMZvalTypeMap ( ListExpr args )
+{
+  if ( nl->ListLength ( args ) != 1 )
+  {
+    return  nl->SymbolAtom ( "typeerror" );
+  }
+  ListExpr arg1 = nl->First(args);
+
+  if(nl->IsAtom(arg1) && nl->AtomType(arg1) == SymbolType &&
+     nl->SymbolValue(arg1) == "point"){
+      return  nl->SymbolAtom ( "int" );
+  }
+
+  return nl->SymbolAtom ( "typeerror" );
+}
+
+
+/*
+TypeMap fun for operator zcurve
+
+*/
+
+ListExpr OpTMZcurveTypeMap ( ListExpr args )
+{
+  if ( nl->ListLength ( args ) != 2 )
+  {
+    return  nl->SymbolAtom ( "typeerror" );
+  }
+  ListExpr arg1 = nl->First(args);
+  ListExpr attrName1 = nl->Second(args);
+
+  if (!(listutils::isRelDescription(arg1)))
+    return nl->SymbolAtom ( "typeerror" );
+
+  ListExpr attrType1;
+  string aname1 = nl->SymbolValue(attrName1);
+  int j1 = listutils::findAttribute(nl->Second(nl->Second(arg1)),
+                      aname1, attrType1);
+
+  if(j1 == 0 || !listutils::isSymbol(attrType1,"point")){
+      return listutils::typeError("attr name" + aname1 + "not found"
+                      "or not of type point");
+  }
+
+  ListExpr result =   nl->TwoElemList(
+              nl->SymbolAtom("stream"),
+                nl->TwoElemList(
+                  nl->SymbolAtom("tuple"),
+                      nl->OneElemList(
+                        nl->TwoElemList(nl->SymbolAtom("curve"),
+                                    nl->SymbolAtom("line"))
+                  )
+                )
+          );
+  return nl->ThreeElemList(nl->SymbolAtom("APPEND"),
+             nl->OneElemList(nl->IntAtom(j1)),result);
+
+}
+
+/*
+TypeMap fun for operator regvertex
+
+*/
+
+ListExpr OpTMRegVertexTypeMap ( ListExpr args )
+{
+  if ( nl->ListLength ( args ) != 1 )
+  {
+    return  nl->SymbolAtom ( "typeerror" );
+  }
+  ListExpr arg1 = nl->First(args);
+
+  if(nl->IsAtom(arg1) && nl->AtomType(arg1) == SymbolType &&
+     nl->SymbolValue(arg1) == "region"){
+      ListExpr result =   nl->TwoElemList(
+              nl->SymbolAtom("stream"),
+                nl->TwoElemList(
+                  nl->SymbolAtom("tuple"),
+                      nl->TwoElemList(
+                        nl->TwoElemList(nl->SymbolAtom("cycleno"),
+                                    nl->SymbolAtom("int")),
+                        nl->TwoElemList(nl->SymbolAtom("vertex"),
+                                    nl->SymbolAtom("point"))
+                  )
+                )
+          );
+      return result;
+  }
+  return  nl->SymbolAtom ( "typeerror" );
+
+}
+
+/*
+TypeMap fun for operator triangulationnew
+
+*/
+
+ListExpr OpTMTriangulationNewTypeMap ( ListExpr args )
+{
+  if ( nl->ListLength ( args ) != 1 )
+  {
+    return  nl->SymbolAtom ( "typeerror" );
+  }
+  ListExpr arg1 = nl->First(args);
+
+  if(nl->IsAtom(arg1) && nl->AtomType(arg1) == SymbolType &&
+     nl->SymbolValue(arg1) == "region"){
+      ListExpr result =   nl->TwoElemList(
+              nl->SymbolAtom("stream"),
+                nl->TwoElemList(
+                  nl->SymbolAtom("tuple"),
+                      nl->FourElemList(
+                        nl->TwoElemList(nl->SymbolAtom("v1"),
+                                    nl->SymbolAtom("int")),
+                        nl->TwoElemList(nl->SymbolAtom("v2"),
+                                    nl->SymbolAtom("int")),
+                        nl->TwoElemList(nl->SymbolAtom("v3"),
+                                    nl->SymbolAtom("int")),
+                        nl->TwoElemList(nl->SymbolAtom("centroid"),
+                                    nl->SymbolAtom("point"))
+                  )
+                )
+          );
+      return result;
+  }
+  return  nl->SymbolAtom ( "typeerror" );
+
+}
+
+/*
+TypeMap fun for operator getdgedge
+
+*/
+
+ListExpr OpTMGetDgEdgeTypeMap ( ListExpr args )
+{
+  if ( nl->ListLength ( args ) != 2 )
+  {
+    return  nl->SymbolAtom ( "typeerror" );
+  }
+  ListExpr arg1 = nl->First(args);
+  ListExpr arg2 = nl->Second(args);
+
+  if (!(listutils::isRelDescription(arg1)))
+    return nl->SymbolAtom ( "typeerror" );
+  if (!(listutils::isRelDescription(arg2)))
+    return nl->SymbolAtom ( "typeerror" );
+
+  ListExpr xType1;
+  nl->ReadFromString(DualGraph::TriangleTypeInfo1, xType1);
+  if(!CompareSchemas(arg1, xType1))return nl->SymbolAtom ( "typeerror" );
+
+  ListExpr xType2;
+  nl->ReadFromString(DualGraph::TriangleTypeInfo2, xType2);
+  if(!CompareSchemas(arg2, xType2))return nl->SymbolAtom ( "typeerror" );
+
+
+  ListExpr result =   nl->TwoElemList(
+             nl->SymbolAtom("stream"),
+               nl->TwoElemList(
+                 nl->SymbolAtom("tuple"),
+                     nl->ThreeElemList(
+                       nl->TwoElemList(nl->SymbolAtom("oid1"),
+                                   nl->SymbolAtom("int")),
+                       nl->TwoElemList(nl->SymbolAtom("oid2"),
+                                    nl->SymbolAtom("int")),
+                       nl->TwoElemList(nl->SymbolAtom("commarea"),
+                                    nl->SymbolAtom("line"))
+                  )
+                )
+          );
+  return result;
+
 }
 //////////////////////////////////////////////////////////////////////////
 static int GeoSpathSelect(ListExpr args)
@@ -1801,7 +2122,8 @@ int OpTMGetPaveEdge1map ( Word* args, Word& result, int message,
                 new CcInt(true,l_partition->junid1[l_partition->count]));
           tuple->PutAttribute(1,
                 new CcInt(true,l_partition->junid2[l_partition->count]));
-
+          tuple->PutAttribute(2,
+                new Line(l_partition->pave_line1[l_partition->count]));
           result.setAddr(tuple);
           l_partition->count++;
           return YIELD;
@@ -1895,7 +2217,6 @@ int OpTMGetPaveEdge2map ( Word* args, Word& result, int message,
 
   switch(message){
       case OPEN:{
-
         Relation* rel1 = (Relation*)args[0].addr;
         Relation* rel2 = (Relation*)args[1].addr;
         BTree* btree = (BTree*)args[2].addr;
@@ -1924,7 +2245,8 @@ int OpTMGetPaveEdge2map ( Word* args, Word& result, int message,
                 new CcInt(true,l_partition->junid1[l_partition->count]));
           tuple->PutAttribute(1,
                 new CcInt(true,l_partition->junid2[l_partition->count]));
-
+          tuple->PutAttribute(2,
+                new Line(l_partition->pave_line1[l_partition->count]));
           result.setAddr(tuple);
           l_partition->count++;
           return YIELD;
@@ -2120,9 +2442,9 @@ int OpTMCreateDGValueMap ( Word* args, Word& result, int message,
 {
   DualGraph* dg = (DualGraph*)qp->ResultStorage(in_pSupplier).addr;
   int dg_id = ((CcInt*)args[0].addr)->GetIntval();
-  Relation* edge_rel = (Relation*)args[1].addr;
-  Relation* node_rel = (Relation*)args[2].addr;
-  dg->Load(dg_id, edge_rel, node_rel);
+  Relation* node_rel = (Relation*)args[1].addr;
+  Relation* edge_rel = (Relation*)args[2].addr;
+  dg->Load(dg_id, node_rel, edge_rel);
   result = SetWord(dg);
   return 0;
 }
@@ -2175,7 +2497,8 @@ int OpTMWalkSPValueMap ( Word* args, Word& result, int message,
                           return CANCEL;
 
           Tuple* tuple = new Tuple(wsp->resulttype);
-          tuple->PutAttribute(0,new Region(wsp->walkregs[wsp->count]));
+          tuple->PutAttribute(0, new Region(wsp->walkregs[wsp->count]));
+          tuple->PutAttribute(1, new Line(*wsp->walk_sp));
           result.setAddr(tuple);
           wsp->count++;
           return YIELD;
@@ -2245,6 +2568,312 @@ int OpTMGenerateWPValueMap ( Word* args, Word& result, int message,
 
 }
 
+/*
+Value Mapping for vgedge  operator
+get the visibility graph edge
+
+*/
+
+int OpTMVGEdgeValueMap ( Word* args, Word& result, int message,
+                         Word& local, Supplier in_pSupplier )
+{
+
+  VGraph* vg;
+  switch(message){
+      case OPEN:{
+
+        Relation* r = (Relation*)args[0].addr;
+        int attr_pos1 = ((CcInt*)args[5].addr)->GetIntval() - 1;
+        int attr_pos2 = ((CcInt*)args[6].addr)->GetIntval() - 1;
+        DualGraph* dg = (DualGraph*)args[3].addr;
+        Region* reg = (Region*)args[4].addr;
+        vg = new VGraph(dg, r);
+        vg->resulttype =
+            new TupleType(nl->Second(GetTupleResultType(in_pSupplier)));
+        vg->GetVGEdge(attr_pos1, attr_pos2, reg);
+        local.setAddr(vg);
+        return 0;
+      }
+      case REQUEST:{
+          if(local.addr == NULL) return CANCEL;
+          vg = (VGraph*)local.addr;
+          if(vg->count == vg->oids1.size())
+                          return CANCEL;
+
+          Tuple* tuple = new Tuple(vg->resulttype);
+          tuple->PutAttribute(0,new CcInt(true, vg->oids1[vg->count]));
+          tuple->PutAttribute(1, new Point(vg->vpp[vg->count].p1));
+          tuple->PutAttribute(2,new CcInt(true, vg->oids2[vg->count]));
+          tuple->PutAttribute(3, new Point(vg->vpp[vg->count].p2));
+//          tuple->PutAttribute(4, new Line(vg->line[vg->count]));
+          result.setAddr(tuple);
+          vg->count++;
+          return YIELD;
+      }
+      case CLOSE:{
+          if(local.addr){
+            vg = (VGraph*)local.addr;
+            delete vg;
+            local.setAddr(Address(0));
+          }
+          return 0;
+      }
+  }
+  return 0;
+
+}
+
+/*
+Value Mapping for zval  operator
+get the z-order value of a point
+
+*/
+
+int OpTMZvalValueMap ( Word* args, Word& result, int message,
+                         Word& local, Supplier in_pSupplier )
+{
+
+  result = qp->ResultStorage(in_pSupplier);
+  Point* p = (Point*)args[0].addr;
+  assert(p->IsDefined());
+  ((CcInt*)result.addr)->Set(true, ZValue(*p));
+  return 0;
+
+}
+
+/*
+Value Mapping for zcurve  operator
+calculate the curve of points sorted by z-order
+
+*/
+struct ZCurve{
+  Relation* rel;
+  unsigned int count;
+  TupleType* resulttype;
+  vector<Line> curve;
+  ZCurve(){}
+  ~ZCurve()
+  {
+      if(resulttype != NULL) delete resulttype;
+  }
+  ZCurve(Relation* r):rel(r), count(0), resulttype(NULL){}
+  void BuildCurve(int attr_pos)
+  {
+    for(int i = 1;i < rel->GetNoTuples();i++){
+      Tuple* t1 = rel->GetTuple(i, false);
+      Point* p1 = (Point*)t1->GetAttribute(attr_pos);
+      Tuple* t2 = rel->GetTuple(i + 1, false);
+      Point* p2 = (Point*)t2->GetAttribute(attr_pos);
+      Line* l = new Line(0);
+      l->StartBulkLoad();
+      HalfSegment hs;
+      hs.Set(true, *p1, *p2);
+      hs.attr.edgeno = 0;
+      *l += hs;
+      hs.SetLeftDomPoint(!hs.IsLeftDomPoint());
+      *l += hs;
+      l->EndBulkLoad();
+      curve.push_back(*l);
+      delete l;
+      t1->DeleteIfAllowed();
+      t2->DeleteIfAllowed();
+    }
+  }
+};
+
+/*
+create a curve for the points sorted by z-order
+
+*/
+
+int OpTMZcurveValueMap ( Word* args, Word& result, int message,
+                         Word& local, Supplier in_pSupplier )
+{
+  ZCurve* zc;
+  switch(message){
+      case OPEN:{
+
+        Relation* r = (Relation*)args[0].addr;
+        int attr_pos = ((CcInt*)args[2].addr)->GetIntval() - 1;
+
+        zc = new ZCurve(r);
+        zc->resulttype =
+            new TupleType(nl->Second(GetTupleResultType(in_pSupplier)));
+        zc->BuildCurve(attr_pos);
+        local.setAddr(zc);
+        return 0;
+      }
+      case REQUEST:{
+          if(local.addr == NULL) return CANCEL;
+          zc = (ZCurve*)local.addr;
+          if(zc->count == zc->curve.size())
+                          return CANCEL;
+
+          Tuple* tuple = new Tuple(zc->resulttype);
+          tuple->PutAttribute(0, new Line(zc->curve[zc->count]));
+          result.setAddr(tuple);
+          zc->count++;
+          return YIELD;
+      }
+      case CLOSE:{
+          if(local.addr){
+            zc = (ZCurve*)local.addr;
+            delete zc;
+            local.setAddr(Address(0));
+          }
+          return 0;
+      }
+  }
+  return 0;
+
+}
+
+
+
+/*
+return all the vertices of a region and the cycle no. (vertex, cycleo)
+
+*/
+int OpTMRegVertexValueMap ( Word* args, Word& result, int message,
+                         Word& local, Supplier in_pSupplier )
+{
+  RegVertex* rv;
+  switch(message){
+      case OPEN:{
+
+        Region* r = (Region*)args[0].addr;
+        rv = new RegVertex(r);
+        rv->resulttype =
+            new TupleType(nl->Second(GetTupleResultType(in_pSupplier)));
+        rv->CreateVertex();
+        local.setAddr(rv);
+        return 0;
+      }
+      case REQUEST:{
+          if(local.addr == NULL) return CANCEL;
+          rv = (RegVertex*)local.addr;
+          if(rv->count == rv->cycleno.size())
+                          return CANCEL;
+
+          Tuple* tuple = new Tuple(rv->resulttype);
+          tuple->PutAttribute(0, new CcInt(true, rv->cycleno[rv->count]));
+          tuple->PutAttribute(1, new Point(rv->regnodes[rv->count]));
+          result.setAddr(tuple);
+          rv->count++;
+          return YIELD;
+      }
+      case CLOSE:{
+          if(local.addr){
+            rv = (RegVertex*)local.addr;
+            delete rv;
+            local.setAddr(Address(0));
+          }
+          return 0;
+      }
+  }
+  return 0;
+
+}
+
+/*
+decompose a region into a set of triangles where each is represented by the
+three points. We number all vertices of a polygon. It works together with
+operator regvertex.
+
+*/
+
+int OpTMTriangulationNewValueMap ( Word* args, Word& result, int message,
+                         Word& local, Supplier in_pSupplier )
+{
+  RegVertex* rv;
+  switch(message){
+      case OPEN:{
+
+        Region* r = (Region*)args[0].addr;
+        rv = new RegVertex(r);
+        rv->resulttype =
+            new TupleType(nl->Second(GetTupleResultType(in_pSupplier)));
+        rv->TriangulationNew();
+        local.setAddr(rv);
+        return 0;
+      }
+      case REQUEST:{
+          if(local.addr == NULL) return CANCEL;
+          rv = (RegVertex*)local.addr;
+          if(rv->count == rv->v1_list.size())
+                          return CANCEL;
+
+          Tuple* tuple = new Tuple(rv->resulttype);
+          tuple->PutAttribute(0, new CcInt(true, rv->v1_list[rv->count]));
+          tuple->PutAttribute(1, new CcInt(true, rv->v2_list[rv->count]));
+          tuple->PutAttribute(2, new CcInt(true, rv->v3_list[rv->count]));
+          tuple->PutAttribute(3, new Point(rv->regnodes[rv->count]));
+          result.setAddr(tuple);
+          rv->count++;
+          return YIELD;
+      }
+      case CLOSE:{
+          if(local.addr){
+            rv = (RegVertex*)local.addr;
+            delete rv;
+            local.setAddr(Address(0));
+          }
+          return 0;
+      }
+  }
+  return 0;
+
+}
+
+/*
+get the edge relation for the dual graph. it is based on the triangles by
+decomposing a polygon. if two triangles are adjacent (sharing a common edge),
+an edge is created.
+
+*/
+
+int OpTMGetDGEdgeValueMap ( Word* args, Word& result, int message,
+                         Word& local, Supplier in_pSupplier )
+{
+  RegVertex* rv;
+  switch(message){
+      case OPEN:{
+
+        Relation* r1 = (Relation*)args[0].addr;
+        Relation* r2 = (Relation*)args[1].addr;
+        rv = new RegVertex(r1,r2);
+        rv->resulttype =
+            new TupleType(nl->Second(GetTupleResultType(in_pSupplier)));
+        rv->GetDGEdge();
+        local.setAddr(rv);
+        return 0;
+      }
+      case REQUEST:{
+          if(local.addr == NULL) return CANCEL;
+          rv = (RegVertex*)local.addr;
+          if(rv->count == rv->v1_list.size())
+                          return CANCEL;
+
+          Tuple* tuple = new Tuple(rv->resulttype);
+          tuple->PutAttribute(0, new CcInt(true, rv->v1_list[rv->count]));
+          tuple->PutAttribute(1, new CcInt(true, rv->v2_list[rv->count]));
+          tuple->PutAttribute(2, new Line(rv->line[rv->count]));
+          result.setAddr(tuple);
+          rv->count++;
+          return YIELD;
+      }
+      case CLOSE:{
+          if(local.addr){
+            rv = (RegVertex*)local.addr;
+            delete rv;
+            local.setAddr(Address(0));
+          }
+          return 0;
+      }
+  }
+  return 0;
+
+}
 ////////////////Operator Constructor///////////////////////////////////////
 Operator checksline(
     "checksline",               // name
@@ -2374,13 +3003,13 @@ Operator geospath(
     OpTMGeospathTypeMap        // type mapping
 );
 
-TypeConstructor dualgraph("dualgraph", DualGraph::DualGraphProp,
+TypeConstructor dualgraph("dualgraph", DualGraph::BaseGraphProp,
       DualGraph::OutDualGraph, DualGraph::InDualGraph,
       0, 0,
       DualGraph::CreateDualGraph, DualGraph::DeleteDualGraph,
       DualGraph::OpenDualGraph, DualGraph::SaveDualGraph,
-      DualGraph::CloseDualGraph, DualGraph::CloneDualGraph,
-      DualGraph::CastDualGraph, DualGraph::SizeOfDualGraph,
+      DualGraph::CloseDualGraph, DualGraph::CloneBaseGraph,
+      DualGraph::CastBaseGraph, DualGraph::SizeOfBaseGraph,
       DualGraph::CheckDualGraph
 );
 
@@ -2416,6 +3045,58 @@ Operator generate_wp(
     OpTMGenerateWPTypeMap
 );
 
+Operator vgedge(
+    "vgedge",
+    OpTMVGEdgeSpec,
+    OpTMVGEdgeValueMap,
+    Operator::SimpleSelect,
+    OpTMVGEdgeTypeMap
+);
+
+
+Operator zval(
+    "zval",
+    OpTMZvalSpec,
+    OpTMZvalValueMap,
+    Operator::SimpleSelect,
+    OpTMZvalTypeMap
+);
+
+
+Operator zcurve(
+    "zcurve",
+    OpTMZcurveSpec,
+    OpTMZcurveValueMap,
+    Operator::SimpleSelect,
+    OpTMZcurveTypeMap
+);
+
+
+Operator regvertex(
+    "regvertex",
+    OpTMRegVertexSpec,
+    OpTMRegVertexValueMap,
+    Operator::SimpleSelect,
+    OpTMRegVertexTypeMap
+);
+
+Operator triangulation_new(
+    "triangulation_new",
+    OpTMTriangulationNewSpec,
+    OpTMTriangulationNewValueMap,
+    Operator::SimpleSelect,
+    OpTMTriangulationNewTypeMap
+);
+
+Operator get_dg_edge(
+    "get_dg_edge",
+    OpTMGetDGEdgeSpec,
+    OpTMGetDGEdgeValueMap,
+    Operator::SimpleSelect,
+    OpTMGetDgEdgeTypeMap
+);
+
+
 /*
 Main Class for Transportation Mode
 
@@ -2448,6 +3129,14 @@ class TransportationModeAlgebra : public Algebra
     AddOperator(&nodedualgraph);
     AddOperator(&walk_sp);
     AddOperator(&generate_wp);
+    ///////////////////visibility graph///////////////////////////////
+    AddOperator(&vgedge);
+    ///////////////////dual graph/////////////////////////////////////
+    AddOperator(&zval);
+    AddOperator(&zcurve);
+    AddOperator(&regvertex);
+    AddOperator(&triangulation_new);
+    AddOperator(&get_dg_edge);
   }
   ~TransportationModeAlgebra() {};
  private:
