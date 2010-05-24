@@ -17,9 +17,10 @@
 #along with SECONDO; if not, write to the Free Software
 #Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
-operator setiCreate alias SETICREATE pattern op ( _ )
-operator setiInsertUnit alias SETIINSERTUNIT pattern op ( _, _ )
-operator setiInsertStream alias SETIINSERTSTREAM pattern _ op [ _, _ ]
-operator setiIntersectsWindow alias SETIINTERSECTSWINDOW pattern op (_ ,_ ,_ ,_)
-operator setiInsideWindow alias SETIINSIDEWINDOW pattern op ( _, _, _, _ )
-operator setiCurrentUpload alias SETIICURRENTUPLOAD pattern op ( _, _ )
+operator createSETI alias CREATESETI pattern op ( _, _ )
+operator insertUpload alias INSERTUPLOAD pattern op ( _, _ )
+operator insertStream alias INSERTSTREAM pattern _ op [ _, _ ]
+operator intersectsWindow alias INTERSECTSWINDOW pattern op ( _ ,_ ,_ ,_ )
+operator insideWindow alias INSIDEWINDOW pattern op ( _, _, _, _ )
+operator getTrajectory alias GETTRAJECTORY pattern op ( _, _ )
+operator currentUpload alias CURRENTUPLOAD pattern op ( _, _ )

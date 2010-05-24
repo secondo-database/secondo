@@ -2,7 +2,7 @@
 ----
 This file is part of SECONDO.
 
-Copyright (C) 2004-2008, University in Hagen, Faculty of Mathematics and
+Copyright (C) 2004-2010, University in Hagen, Faculty of Mathematics and
 Computer Science, Database Systems for New Applications.
 
 SECONDO is free software; you can redistribute it and/or modify
@@ -37,14 +37,16 @@ this Algebra.
 
 SETI-Algebra offers the following methods:
 
-- setiCreate            -> Creates a new SETI object.
-- setiInsertUnit        -> Inserts a single UploadUnit into SETI.
-- setiInsertStream      -> Inserts a stream of UploadUnits into SETI.
-- setiIntersectsWindow  -> Returns all moving objects (Id) which trajectory
-                           intersects the search window.
-- setiInsideWindow      -> Returns all moving objects (Id) which trajectory
-                           is inside the search window.
-- setiCurrentUpload     -> Returns the current UploadUnit.
+- createSETI        -> Creates a new SETI object.
+- insertUpload      -> Inserts a single upload into SETI.
+- insertStream      -> Inserts a stream of uploads into SETI.
+- intersectsWindow  -> Returns all trajectory segments which
+                       intersect the search window.
+- insideWindow      -> Returns all trajectory segments
+                       inside the search window.
+- getTrajectory     -> Returns all trajectory segments wich belongs
+                       to the stated moving object.
+- currentUpload     -> Returns the current upload.
 
 ******************************************************************************/
 
@@ -57,14 +59,14 @@ SETI-Algebra offers the following methods:
 
 ******************************************************************************/
 
-const int    maxTrjSeg = 70;      // Max number of trajectory segments in page
-const int    splits    = 2;       // Number of SETI grid partitions for one dim
-const int    pageSize  = 4096;    // Alternatively: WinUnix::getPageSize()
-const int    flBuckets = 50;      // Number of hash buckets in frontline
-const double tol       = 0.00001; // Tolerance for floating points
-bool         intersects[4];       // Indicates an intersection of cell border
-                                  // (left,right,bottom,top) and trajectory seg
-
+const int     pageSize    = 4096;    // Alternatively: WinUnix::getPageSize()
+const int     maxSplits   = 64;      // Number of max splits for one dim
+const int     flBuckets   = 100;     // Number of hash buckets in frontline
+const int     updateCycle = 10000;   // Update cycle for SmiUpdateFile
+const int     maxTrjSeg   = 70;      // Max number of trj segments in page
+const double  tol         = 0.00001; // Tolerance for floating points
+bool         intersects[4];          // Indicates an intersection of cell ...
+                                     // ... border and history unit
 
 /******************************************************************************
 
@@ -123,7 +125,7 @@ The SETICell structure contains all information  of a cell in a SETI grid.
 
 struct SETICell
 {
-  int         numSegments;      // Number of segments in cell
+  int         numEntries;       // Number of segments in cell
   SETIArea    area;             // Cell area (partition)
   SmiFileId   rtreeFileID;      // RTree file id
   db_pgno_t   currentPage;      // Number of current cell page
@@ -145,43 +147,70 @@ struct SETIHeader
   { 
     fileID       = (SmiFileId)0;
     headerPageNo = (db_pgno_t)0;
-    for(int i = 0; i < flBuckets; i++) { flPageNo[i] = (db_pgno_t)0; }
-    cellsPageNo  = (db_pgno_t)0;
+    flPageNo     = (db_pgno_t)0;
+    cellPageNo   = (db_pgno_t)0;
     area         = SETIArea(0,0,0,0);
-    numCells     = splits*splits;
-    numEntries   = 0;
-    numFlEntries = 0;
-    tiv.start    = DateTime(0,0,instanttype);
-    tiv.end      = DateTime(0,0,instanttype);
-    tiv.lc       = false;
-    tiv.rc       = false;    
-  }
-  
-  SETIHeader(SETIArea AREA)
-  { 
-    fileID       = (SmiFileId)0;
-    headerPageNo = (db_pgno_t)0;
-    for(int i = 0; i < flBuckets; i++) { flPageNo[i] = (db_pgno_t)0; }
-    cellsPageNo  = (db_pgno_t)0;
-    area         = AREA;
-    numCells     = splits*splits;
+    splits       = 0;
+    numCells     = 0;
     numEntries   = 0;
     numFlEntries = 0;
     tiv.start    = DateTime(0,0,instanttype);
     tiv.end      = DateTime(0,0,instanttype);
     tiv.lc       = false;
     tiv.rc       = false;
+    rtree0FileID = (SmiFileId)0;
+    rtree0Ptr    = (R_Tree<2,TupleId>*)0;
+    rtree1FileID = (SmiFileId)0;
+    rtree1Ptr    = (R_Tree<2,TupleId>*)0;
+    rtree2FileID = (SmiFileId)0;
+    rtree2Ptr    = (R_Tree<2,TupleId>*)0;
+    rtree3FileID = (SmiFileId)0;
+    rtree3Ptr    = (R_Tree<2,TupleId>*)0;
   }
   
-  SmiFileId         fileID;              // SETI file id
-  db_pgno_t         headerPageNo;        // Header page number
-  db_pgno_t         flPageNo[flBuckets]; // Front-line page number
-  db_pgno_t         cellsPageNo;         // Cells page number
-  SETIArea          area;                // SETI area
-  int               numCells;            // Number of cells
-  int               numEntries;          // Number of TrjSegments/UploadUnits
-  int               numFlEntries;        // Number of front-line entries
-  Interval<Instant> tiv;                 // SETI time interval
+  SETIHeader(SETIArea AREA, int SPLITS)
+  { 
+    fileID       = (SmiFileId)0;
+    headerPageNo = (db_pgno_t)0;
+    flPageNo     = (db_pgno_t)0;
+    cellPageNo   = (db_pgno_t)0;
+    area         = AREA;
+    splits       = SPLITS;
+    numCells     = SPLITS*SPLITS;
+    numEntries   = 0;
+    numFlEntries = 0;
+    tiv.start    = DateTime(0,0,instanttype);
+    tiv.end      = DateTime(0,0,instanttype);
+    tiv.lc       = false;
+    tiv.rc       = false;
+    rtree0FileID = (SmiFileId)0;
+    rtree0Ptr    = (R_Tree<2,TupleId>*)0;
+    rtree1FileID = (SmiFileId)0;
+    rtree1Ptr    = (R_Tree<2,TupleId>*)0;
+    rtree2FileID = (SmiFileId)0;
+    rtree2Ptr    = (R_Tree<2,TupleId>*)0;
+    rtree3FileID = (SmiFileId)0;
+    rtree3Ptr    = (R_Tree<2,TupleId>*)0;
+  }
+  
+  SmiFileId          fileID;       // SETI file id
+  db_pgno_t          headerPageNo; // Header page number
+  db_pgno_t          flPageNo;     // Front-line page number
+  db_pgno_t          cellPageNo;   // Number of first cell page
+  SETIArea           area;         // SETI area
+  int                splits;       // Number of SETI partitions for one dim
+  int                numCells;     // Number of cells
+  int                numEntries;   // Number of TrjSegments/UploadUnits
+  int                numFlEntries; // Number of front-line entries
+  Interval<Instant>  tiv;          // SETI time interval
+  SmiFileId          rtree0FileID; // RTree0 file id
+  R_Tree<2,TupleId>* rtree0Ptr;    // RTree0 pointer
+  SmiFileId          rtree1FileID; // RTree1 file id
+  R_Tree<2,TupleId>* rtree1Ptr;    // RTree1 pointer
+  SmiFileId          rtree2FileID; // RTree2 file id
+  R_Tree<2,TupleId>* rtree2Ptr;    // RTree2 pointer
+  SmiFileId          rtree3FileID; // RTree3 file id
+  R_Tree<2,TupleId>* rtree3Ptr;    // RTree3 pointer
 };
 
 /******************************************************************************
@@ -200,7 +229,7 @@ class SETI
 {
   public:
     // Basic constructor
-    SETI(SETIArea AREA);
+    SETI(SETIArea AREA, int SPLITS);
     // Query constructor
     SETI(SmiFileId FILEID);
     // Destructor
@@ -226,9 +255,11 @@ class SETI
     // Writes header information into file
     void UpdateHeader();
     // Writes front-line information into file
-    void UpdateFLine(int BUCKET);
+    void UpdateFLine();
     // Writes cell information into file
     void UpdateCells();
+    // Writes all SETI data into file
+    bool UpdateSETI();
     // Returns the SETI file id
     SmiUpdateFile* GetUpdateFile();
     // Returns the pointer to the SETI header
@@ -244,12 +275,12 @@ class SETI
     map<int,UploadUnit> frontline[flBuckets];
     
   private:
-    // Reads header, frontline and cells information
+    // Reads SETI header, frontline and cell information
     void ReadSETI();
     
-    SmiUpdateFile*  suf;                   // SmiUpdateFile
-    SETIHeader*     header;                // SETI header
-    SETICell*       cells[splits][splits]; // SETI cells
+    SmiUpdateFile*  suf;                         // SmiUpdateFile
+    SETIHeader*     header;                      // SETI header
+    SETICell*       cells[maxSplits][maxSplits]; // SETI cells
 };
 
 #endif

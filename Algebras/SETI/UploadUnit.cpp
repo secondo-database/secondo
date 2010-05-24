@@ -111,7 +111,7 @@ Word UploadUnit::In( const ListExpr typeInfo, const ListExpr instance,
                                           errorPos, errorInfo, ok ).addr);
     if ( !ok )
     {
-      cmsg.inFunError("The time stamp must be a instant-format string!");
+      cmsg.inFunError("The time stamp must be an instant-format string!");
       return result;
     }
   }
