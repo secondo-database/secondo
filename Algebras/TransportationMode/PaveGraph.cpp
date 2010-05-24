@@ -2868,16 +2868,20 @@ void DualGraph::WalkShortestPath(int oid1, int oid2, Point loc1, Point loc2,
   ////////////////point must be located inside the polygon//////////
   Tuple* tuple1 = node_rel->GetTuple(oid1, false);
   Region* reg1 = (Region*)tuple1->GetAttribute(PAVEMENT);
-
-  if(loc1.Inside(*reg1) == false){
+  BBox<2> bbox1 = reg1->BoundingBox();
+  Point start_loc;
+  start_loc.Set(loc1.GetX() + bbox1.MinD(0), loc1.GetY() + bbox1.MinD(1));
+  if(start_loc.Inside(*reg1) == false){
     tuple1->DeleteIfAllowed();
     cout<<"point1 is not inside the polygon"<<endl;
     return;
   }
   Tuple* tuple2 = node_rel->GetTuple(oid2, false);
   Region* reg2 = (Region*)tuple2->GetAttribute(PAVEMENT);
-
-  if(loc2.Inside(*reg2) == false){
+  BBox<2> bbox2 = reg2->BoundingBox();
+  Point end_loc;
+  end_loc.Set(loc2.GetX() + bbox2.MinD(0), loc2.GetY() + bbox2.MinD(1));
+  if(end_loc.Inside(*reg2) == false){
     tuple1->DeleteIfAllowed();
     tuple2->DeleteIfAllowed();
     cout<<"point2 is not inside the polygon"<<endl;
@@ -3015,6 +3019,8 @@ void Walk_SP::WalkShortestPath()
 
 /*
 Randomly generates points inside pavement polygon
+1) randomly selects a polygon/polygon
+2) randomly generates a number between [xmin,xmax], and [ymin,ymax]
 
 */
 
@@ -3048,6 +3054,7 @@ void Walk_SP::GenerateData(int no_p)
         Coord y_cord = coord_y + bbox.MinD(1);
         p.Set(x_cord, y_cord);
         inside = p.Inside(*reg);
+        p.Set(coord_x, coord_y); //set back to relative position
       }
       oids.push_back(m);
       q_loc.push_back(p);

@@ -3131,6 +3131,7 @@ class TransportationModeAlgebra : public Algebra
     AddOperator(&generate_wp);
     ///////////////////visibility graph///////////////////////////////
     AddOperator(&vgedge);
+//    AddOperator(&getvnode);
     ///////////////////dual graph/////////////////////////////////////
     AddOperator(&zval);
     AddOperator(&zcurve);
