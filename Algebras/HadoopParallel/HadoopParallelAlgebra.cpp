@@ -517,15 +517,16 @@ Word phjLocalInfo::nextJoinTuple()
 {
   Tuple *tuple;
 
-  if ((tupleIterator != 0)
-      && ((tuple = tupleIterator->GetNextTuple()) != 0))
-  {
-    return SetWord(tuple);
-  }
-
   if (tupleIterator != 0)
-    delete tupleIterator;
-  tupleIterator = 0;
+  {
+    if ((tuple = tupleIterator->GetNextTuple()) != 0)
+      return SetWord(tuple);
+    else
+    {
+      delete tupleIterator;
+      tupleIterator = 0;
+    }
+  }
 
   if ((tupleIterator = getNewProducts()) != 0)
   {
@@ -534,31 +535,6 @@ Word phjLocalInfo::nextJoinTuple()
   }
 
   return SetWord(Address(0));
-
-/*  if (tupleIterator == 0)
-  {
-    cout << "no more results" << endl;
-    return SetWord(Address(0));
-  }
-
-  if ((tuple = tupleIterator->GetNextTuple()) != 0)
-  {
-    return SetWord(tuple);
-  }
-  else
-  {
-    delete tupleIterator;
-    tupleIterator = 0;
-    if (getNewProducts())
-    {
-      tuple = tupleIterator->GetNextTuple();
-      return SetWord(tuple);
-    }
-    else
-    {
-      return SetWord(Address(0));
-    }
-  }*/
 }
 
 
@@ -584,7 +560,6 @@ GenericRelationIterator* phjLocalInfo::getNewProducts()
   GenericRelationIterator *iteratorA = 0, *iteratorB = 0;
   Tuple *tupleA = 0, *tupleB = 0;
   string tupStr, sTupStr;
-  //ListExpr tupList, valList;
   long MaxMem = qp->MemoryAvailableForOperator();
 
   //  Traverse the stream, until there is no more tuples exists,
@@ -605,7 +580,6 @@ GenericRelationIterator* phjLocalInfo::getNewProducts()
       tupStr = ((FText*) (currentTuple->GetAttribute(0)))->GetValue();
       currentTuple->DeleteIfAllowed();
 
-      //TODO --JIAMIN It's better to use regular expression
       int SI = atoi(tupStr.substr(1,1).c_str());
       sTupStr = tupStr.substr(4, tupStr.size() - 6);
 
@@ -1057,14 +1031,13 @@ void pjLocalInfo::loadTuples()
   Tuple *cTuple = 0;
   Tuple *tupleA = 0, *tupleB = 0;
   string tupStr, sTupStr;
-//  ListExpr tupList, valList;
 
-  if(tbA != 0)
-    delete tbA;
-  tbA = 0;
   if (itrA != 0)
     delete itrA;
   itrA = 0;
+  if(tbA != 0)
+    delete tbA;
+  tbA = 0;
 
   if (itrB != 0)
     delete itrB;
@@ -1087,7 +1060,6 @@ void pjLocalInfo::loadTuples()
       tupStr = ((FText*) (cTuple->GetAttribute(0)))->GetValue();
       cTuple->DeleteIfAllowed();
 
-      //TODO --JIAMIN It's better to use regular expression
       int SI = atoi(tupStr.substr(1,1).c_str());
       sTupStr = tupStr.substr(4, tupStr.size() - 6);
 
