@@ -31,6 +31,15 @@ ifneq ($(PWD),$(BUILDDIR))
     tree and enter the command setvar )
 endif
 
+BASH := "$(shell which bash)"
+
+ifeq ($(BASH),"")
+  $(error bash not found. If you are using mingw -windows platform-, \
+    enter the following code\
+    "cd /bin; ln sh.exe bash.exe; cd ~" )
+endif
+
+
 
 # check if java compiler is working
 include ./Javagui/makefile.inc
