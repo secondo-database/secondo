@@ -130,20 +130,36 @@ private:
   ListExpr aTypeInfo;
   ListExpr bTypeInfo;
   TupleType *resultTupleType;
+  TupleType *tupleTypeA, *tupleTypeB;
 
   TupleBuffer *joinedTuples;
   GenericRelationIterator *tupleIterator;
 
-  bool getNewProducts();
+//  bool getNewProducts();
+  GenericRelationIterator* getNewProducts();
 
 public:
-  phjLocalInfo(Word _stream, Supplier s);
+  phjLocalInfo(Word _stream, Supplier s, ListExpr ttA, ListExpr ttB);
 
   ~phjLocalInfo()
   {
-    delete resultTupleType;
     if (joinedTuples != 0)
       delete joinedTuples;
+    joinedTuples = 0;
+
+    if (resultTupleType != 0)
+      resultTupleType->DeleteIfAllowed();
+    resultTupleType = 0;
+    if (tupleTypeA != 0)
+      tupleTypeA->DeleteIfAllowed();
+    tupleTypeA = 0;
+    if (tupleTypeB != 0)
+      tupleTypeB->DeleteIfAllowed();
+    tupleTypeB = 0;
+
+    if (tupleIterator != 0)
+      delete tupleIterator;
+    tupleIterator = 0;
   }
 
   Word nextJoinTuple();
@@ -163,10 +179,10 @@ class pjLocalInfo
 private:
 
   Word mixedStream;
-  //StreamOpAddr joinFun;
   Supplier JNfun;
   ListExpr aTypeInfo;
   ListExpr bTypeInfo;
+  TupleType *tupleTypeA, *tupleTypeB;
 
   TupleBuffer *tbA;
   GenericRelationIterator *itrA;
@@ -206,6 +222,9 @@ public:
     qp->SetupStreamArg(JNfun, 2, s);
 
     qp->Open(JNfun);
+
+    tupleTypeA = new TupleType(ttA);
+    tupleTypeB = new TupleType(ttB);
   }
 
   ~pjLocalInfo()
@@ -217,6 +236,13 @@ public:
     if (tbB != 0)
       delete tbB;
     tbB = 0;
+
+    if (tupleTypeA != 0)
+      tupleTypeA->DeleteIfAllowed();
+    tupleTypeA = 0;
+    if (tupleTypeB != 0)
+      tupleTypeB->DeleteIfAllowed();
+    tupleTypeB = 0;
   }
 
   // Get the next tuple from tupleBuffer A or tuppleBuffer B.
@@ -235,10 +261,29 @@ Assists ~add0Tuple~ operator.
 struct a0tLocalInfo
 {
   string key;
-  string binValueStr;
   TupleType *resultTupleType;
   Tuple *moreTuple;
   bool needInsert;
+  string sepTupleStr;
+
+  inline a0tLocalInfo(ListExpr rtNL):
+      key(""), moreTuple(0),
+      needInsert(false)
+  {
+    resultTupleType = new TupleType(nl->Second(rtNL));
+  }
+
+  inline ~a0tLocalInfo()
+  {
+    if (resultTupleType != 0)
+      resultTupleType->DeleteIfAllowed();
+    resultTupleType = 0;
+
+    if ( moreTuple != 0)
+      moreTuple->DeleteIfAllowed();
+    moreTuple = 0;
+
+  }
 };
 
 

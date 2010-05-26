@@ -63,6 +63,7 @@ but includes tuples of different schemes.
 #include "FTextAlgebra.h"
 #include "Symbols.h"
 #include "Base64.h"
+#include "regex.h"
 
 using namespace symbols;
 using namespace std;
@@ -82,9 +83,12 @@ and the value field contains two elements,
 one is the complete original tuple as ~tupleVal~
 and the other one is an integer number ~SI~(source indicator: 1 or 2)
 that is used to denote which source relation the ~tupleVal~ comes from.
+At the same time, we use Base 64 code to represent the tuple value,
+not the nestedList style, because invoking the Tuple class's ~Out~
+function is very expensive.
 
 Since the result relation follows the (key, value) style,
-the MapReduce model can read the tuples inside this relation,
+the MapReduce module can read the tuples inside this relation,
 and group the tuples come from different
 source relations but with a same key value
 together into one reduce function.
@@ -259,11 +263,11 @@ Tuple* deLocalInfo::nextResultTuple()
 }
 
 Word deLocalInfo::makeTuple(Word stream, int index,
-                            ListExpr typeInfo, int si)
+                            ListExpr typeInfo, int SI)
 {
   bool yield = false;
   Word result(Address(0));
-  Tuple* oldTuple, *newTuple;
+  Tuple *oldTuple, *newTuple;
 
   qp->Request(stream.addr, result);
   yield = qp->Received(stream.addr);
@@ -271,19 +275,20 @@ Word deLocalInfo::makeTuple(Word stream, int index,
   if (yield){
     //Get a tuple from the stream;
     oldTuple = static_cast<Tuple*>(result.addr);
+
+    string binStr = oldTuple->WriteToBinStr();
+
     string key =
         ((Attribute*)(oldTuple->GetAttribute(index)))->getCsvStr();
-    ListExpr oldTupleNL = oldTuple->Out(typeInfo);
+    string tupStr = oldTuple->WriteToBinStr();
+    stringstream vs;
+    vs << "(" << SI << " '" << tupStr << "')";
     oldTuple->DeleteIfAllowed();
 
-    ListExpr valueNL = nl->TwoElemList(nl->IntAtom(si),oldTupleNL);
-
     // -- Use binary form to replace the valueStr;
-    string valueStr = binEncode(valueNL);
-
     newTuple = new Tuple(resultTupleType);
     newTuple->PutAttribute(0,new CcString(key));
-    newTuple->PutAttribute(1,new FText(true,valueStr));
+    newTuple->PutAttribute(1,new FText(true, vs.str()));
 
     result.setAddr(newTuple);
   }
@@ -339,18 +344,18 @@ they will be abandoned, and only the value parts of the tuples outputed
 from ~doubleexport~ operation will be sent into Secondo following
 the schema: ((SI + tupleVal) :text).
 The ~SI~ is the key field, the ~tupleVal~ is the complete value
-of the source tuple. And we encapsulate these two value into one
-text value.
+of the source tuple in Base 64 code.
+And we encapsulate these two value into one text value.
 
 If we only simply send this kind of tuples back to Secondo,
 the tuples with different join attributes will be mixed again,
 though they have already been grouped automatically by Hadoop.
 For avoiding this, in reduce functions,
-we send a special tuples as separate tuples(~ST~) which ~SI~ value is
-0 to separate different hash buckets.
+we send ~OTuple~s whose ~SI~ value is 0 to
+separate different hash buckets.
 
 After above procedure, ~parahashjoin~ can easily get tuples
-inside one hash bucket with the help of ~ST~.
+inside one hash bucket with the help of ~OTuple~.
 For each hash bucket, ~parahashjoin~ use the key field ~SI~ to
 distinguish tuples from different source relations.
 Then since all tuples inside have a same join attribute value already,
@@ -447,13 +452,22 @@ int paraHashJoinValueMap(Word* args, Word& result,
 {
 
   phjLocalInfo *localInfo;
+  ListExpr aTupleTypeList, bTupleTypeList;
 
   switch (message)
   {
   case OPEN:
     qp->Open(args[0].addr);
 
-    localInfo = new phjLocalInfo(args[0], s);
+    aTupleTypeList =
+        SecondoSystem::GetCatalog()->NumericType(
+        nl->Second(qp->GetSupplierTypeExpr(qp->GetSon(s,1))));
+    bTupleTypeList =
+        SecondoSystem::GetCatalog()->NumericType(
+        nl->Second(qp->GetSupplierTypeExpr(qp->GetSon(s,2))));
+
+    localInfo = new phjLocalInfo(args[0], s,
+        aTupleTypeList, bTupleTypeList);
     local = SetWord(localInfo);
     return 0;
   case REQUEST:
@@ -477,21 +491,20 @@ int paraHashJoinValueMap(Word* args, Word& result,
 
 */
 
-phjLocalInfo::phjLocalInfo(Word _stream, Supplier s)
+phjLocalInfo::phjLocalInfo(Word _stream, Supplier s,
+    ListExpr ttA, ListExpr ttB)
 {
   mixStream = _stream;
 
   ListExpr resultType = GetTupleResultType(s);
   resultTupleType = new TupleType(nl->Second(resultType));
-  aTypeInfo =
-      SecondoSystem::GetCatalog()->NumericType( nl->OneElemList(
-      nl->Second(qp->GetSupplierTypeExpr(qp->GetSon(s,1)))));
-  bTypeInfo =
-      SecondoSystem::GetCatalog()->NumericType( nl->OneElemList(
-      nl->Second(qp->GetSupplierTypeExpr(qp->GetSon(s,2)))));
+
+  tupleTypeA = new TupleType(ttA);
+  tupleTypeB = new TupleType(ttB);
 
   joinedTuples = 0;
-  getNewProducts();
+  tupleIterator = 0;
+  //getNewProducts();
 }
 
 /*
@@ -503,6 +516,31 @@ then invoke ~getNewProducts~ to get new results.
 Word phjLocalInfo::nextJoinTuple()
 {
   Tuple *tuple;
+
+  if ((tupleIterator != 0)
+      && ((tuple = tupleIterator->GetNextTuple()) != 0))
+  {
+    return SetWord(tuple);
+  }
+
+  if (tupleIterator != 0)
+    delete tupleIterator;
+  tupleIterator = 0;
+
+  if ((tupleIterator = getNewProducts()) != 0)
+  {
+    tuple = tupleIterator->GetNextTuple();
+    return SetWord(tuple);
+  }
+
+  return SetWord(Address(0));
+
+/*  if (tupleIterator == 0)
+  {
+    cout << "no more results" << endl;
+    return SetWord(Address(0));
+  }
+
   if ((tuple = tupleIterator->GetNextTuple()) != 0)
   {
     return SetWord(tuple);
@@ -510,6 +548,7 @@ Word phjLocalInfo::nextJoinTuple()
   else
   {
     delete tupleIterator;
+    tupleIterator = 0;
     if (getNewProducts())
     {
       tuple = tupleIterator->GetNextTuple();
@@ -519,7 +558,7 @@ Word phjLocalInfo::nextJoinTuple()
     {
       return SetWord(Address(0));
     }
-  }
+  }*/
 }
 
 
@@ -536,15 +575,16 @@ Or else, make the products, and put the result tuples into the ~joinedTuples~.
 
 */
 
-bool phjLocalInfo::getNewProducts()
+//bool phjLocalInfo::getNewProducts()
+GenericRelationIterator* phjLocalInfo::getNewProducts()
 {
 
   TupleBuffer *tbA = 0;
   TupleBuffer *tbB = 0;
   GenericRelationIterator *iteratorA = 0, *iteratorB = 0;
   Tuple *tupleA = 0, *tupleB = 0;
-  string tupStr;
-  ListExpr tupList, valList;
+  string tupStr, sTupStr;
+  //ListExpr tupList, valList;
   long MaxMem = qp->MemoryAvailableForOperator();
 
   //  Traverse the stream, until there is no more tuples exists,
@@ -557,6 +597,7 @@ bool phjLocalInfo::getNewProducts()
     Word currentTupleWord(Address(0));
     bool isInBucket = true;
     qp->Request(mixStream.addr, currentTupleWord);
+
     while(qp->Received(mixStream.addr))
     {
       Tuple* currentTuple =
@@ -564,27 +605,22 @@ bool phjLocalInfo::getNewProducts()
       tupStr = ((FText*) (currentTuple->GetAttribute(0)))->GetValue();
       currentTuple->DeleteIfAllowed();
 
-      //nl->ReadFromString(tupStr, tupList);
-      tupList = binDecode(tupStr);
+      //TODO --JIAMIN It's better to use regular expression
+      int SI = atoi(tupStr.substr(1,1).c_str());
+      sTupStr = tupStr.substr(4, tupStr.size() - 6);
 
-      int SI = NList(tupList).first().intval();
-      valList = nl->Second(tupList);
-
-      int errorPos;
-      ListExpr errorInfo;
-      bool correct;
       switch (SI)
       {
       case 1:{
-        tupleA = Tuple::In(aTypeInfo, valList, errorPos,
-            errorInfo, correct);
+        tupleA = new Tuple(tupleTypeA);
+        tupleA->ReadFromBinStr(sTupStr);
         tbA->AppendTuple(tupleA);
         tupleA->DeleteIfAllowed();
         break;
       }
       case 2:{
-        tupleB = Tuple::In(bTypeInfo, valList, errorPos,
-            errorInfo, correct);
+        tupleB = new Tuple(tupleTypeB);
+        tupleB->ReadFromBinStr(sTupStr);
         tbB->AppendTuple(tupleB);
         tupleB->DeleteIfAllowed();
         break;
@@ -642,6 +678,7 @@ bool phjLocalInfo::getNewProducts()
           Tuple *resultTuple = new Tuple(resultTupleType);
           Concat(tupleA, tupleB,resultTuple);
           tupleB->DeleteIfAllowed();
+
           joinedTuples->AppendTuple(resultTuple);
           resultTuple->DeleteIfAllowed();
           tupleB = iteratorB->GetNextTuple();
@@ -655,11 +692,13 @@ bool phjLocalInfo::getNewProducts()
       delete tbA;
       delete tbB;
 
-      tupleIterator = joinedTuples->MakeScan();
-      return true;
+      //tupleIterator = joinedTuples->MakeScan();
+      return joinedTuples->MakeScan();
+      //return true;
     }
   }
-  return false;
+//  return false;
+  return 0;
 }
 
 /*
@@ -792,14 +831,19 @@ tuples inside one bucket don't means they have an exactly same
 join attribute value, and so does the Cartesian product can't be
 executed directly for these tuples.
 
+At the same time, ~parahashjoin~ is inefficient for some big join
+operations, since we store all result tuples into a temporal
+tupleBuffer which will visit the disk if the amount of the
+result tuples is too large.
+
 Therefore, we need to create the operator ~parajoin~ that can process
 the tuples inside one hash bucket but with different join operations.
 Similar with ~parahashjoin~, ~parajoin~ accept the stream mixed with
 tuples following two different schemes. These tuples are
 partitioned into different buckets according to their join
-attribute values, and use separate tuples(~ST~) to separate these
+attribute values, and use ~0Tuple~s to separate these
 buckets. At the same time, each tuple contains a ~SI~ value to
-indicate which source relations it comes from or dose it a separate tuple.
+indicate which source relations it comes from or dose it a ~OTuple~.
 With the ~SI~ values, the operator can get all tuples in one bucket,
 and distinguish them into two tuple buffers.
 
@@ -917,11 +961,11 @@ int paraJoinValueMap(Word* args, Word& result,
     qp->Open(args[0].addr);
 
     aTupleTypeList =
-        SecondoSystem::GetCatalog()->NumericType( nl->OneElemList(
-        nl->Second(qp->GetSupplierTypeExpr(qp->GetSon(s,1)))));
+        SecondoSystem::GetCatalog()->NumericType(
+        nl->Second(qp->GetSupplierTypeExpr(qp->GetSon(s,1))));
     bTupleTypeList =
-        SecondoSystem::GetCatalog()->NumericType( nl->OneElemList(
-        nl->Second(qp->GetSupplierTypeExpr(qp->GetSon(s,2)))));
+        SecondoSystem::GetCatalog()->NumericType(
+        nl->Second(qp->GetSupplierTypeExpr(qp->GetSon(s,2))));
 
     localInfo = new pjLocalInfo(args[0], args[3].addr, s,
         aTupleTypeList, bTupleTypeList,
@@ -1012,8 +1056,8 @@ void pjLocalInfo::loadTuples()
   bool isInBucket;
   Tuple *cTuple = 0;
   Tuple *tupleA = 0, *tupleB = 0;
-  string tupStr;
-  ListExpr tupList, valList;
+  string tupStr, sTupStr;
+//  ListExpr tupList, valList;
 
   if(tbA != 0)
     delete tbA;
@@ -1031,8 +1075,8 @@ void pjLocalInfo::loadTuples()
 
   while (!endOfStream)
   {
-    tbA = new TupleBuffer(maxMem / 2);
-    tbB = new TupleBuffer(maxMem / 2);
+    tbA = new TupleBuffer(maxMem /*/ 2*/);
+    tbB = new TupleBuffer(maxMem /*/ 2*/);
     isBufferFilled = false;
     isInBucket = true;
 
@@ -1043,28 +1087,24 @@ void pjLocalInfo::loadTuples()
       tupStr = ((FText*) (cTuple->GetAttribute(0)))->GetValue();
       cTuple->DeleteIfAllowed();
 
-      //nl->ReadFromString(tupStr, tupList);
-      tupList = binDecode(tupStr);
+      //TODO --JIAMIN It's better to use regular expression
+      int SI = atoi(tupStr.substr(1,1).c_str());
+      sTupStr = tupStr.substr(4, tupStr.size() - 6);
 
-      int SI = NList(tupList).first().intval();
-      valList = nl->Second(tupList);
-      int errorPos;
-      ListExpr errorInfo;
-      bool correct;
       switch (SI)
       {
       case 1:
       {
-        tupleA = Tuple::In(aTypeInfo, valList, errorPos,
-            errorInfo, correct);
+        tupleA = new Tuple(tupleTypeA);
+        tupleA->ReadFromBinStr(sTupStr);
         tbA->AppendTuple(tupleA);
         tupleA->DeleteIfAllowed();
         break;
       }
       case 2:
       {
-        tupleB = Tuple::In(bTypeInfo, valList, errorPos,
-            errorInfo, correct);
+        tupleB = new Tuple(tupleTypeB);
+        tupleB->ReadFromBinStr(sTupStr);
         tbB->AppendTuple(tupleB);
         tupleB->DeleteIfAllowed();
         break;
@@ -1177,7 +1217,7 @@ Word pjLocalInfo::getNextTuple()
 The tuples outputed from ~doubleexport~ can't be used directly by
 ~parahashjoin~ or ~parajoin~, because the MapReduce job is needed
 to sort these tuples according to their join attribute values,
-and add those ~ST~ tuples to partition those tuples into different
+and add those ~0Tuple~s to partition those tuples into different
 buckets.
 
 For simulating this proceduce in Secondo, we create this operator
@@ -1251,19 +1291,8 @@ int add0TupleValueMap(Word* args, Word& result,
   case OPEN:{
     qp->Open(args[0].addr);
 
-    //Get the binary form of the separate tuple;
-    Base64 b64;
-    ListExpr sepTupleNL;
-    nl->ReadFromString("(0 ())", sepTupleNL);
-
-    localInfo = new a0tLocalInfo();
     ListExpr resultTupleNL = GetTupleResultType(s);
-    localInfo->resultTupleType =
-        new TupleType(nl->Second(resultTupleNL));
-    localInfo->key = "";
-    localInfo->moreTuple = 0;
-    localInfo->needInsert = false;
-    localInfo->binValueStr = binEncode(sepTupleNL);
+    localInfo = new a0tLocalInfo(resultTupleNL);
 
     local.setAddr(localInfo);
     return 0;
@@ -1279,7 +1308,7 @@ int add0TupleValueMap(Word* args, Word& result,
       newTuple = localInfo->moreTuple->Clone();
       result.setAddr(newTuple);
 
-      delete localInfo->moreTuple;
+      localInfo->moreTuple->DeleteIfAllowed();
       localInfo->moreTuple = 0;
       localInfo->needInsert = false;
       return YIELD;
@@ -1309,14 +1338,13 @@ int add0TupleValueMap(Word* args, Word& result,
         }
         else
         {
-
           localInfo->moreTuple = newTuple;
           localInfo->needInsert = true;
-          sepTuple = new Tuple(localInfo->resultTupleType);
-          sepTuple->PutAttribute(
-              0, new FText(true, localInfo->binValueStr));
-
           localInfo->key = key;
+
+          sepTuple = new Tuple(localInfo->resultTupleType);
+          sepTuple->PutAttribute(0, new FText(true, "(0 '')"));
+
           result.setAddr(sepTuple);
           return YIELD;
         }
