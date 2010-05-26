@@ -1,8 +1,8 @@
 Operator : createSETI
 Number   : 1
-Signature: rect -> seti
+Signature: rect x int -> seti
 Example  : let mySETI = createSETI( [const rect value (2.0 10.0 2.0 10.0)], 4096 )
-Result   : (seti ((2.0 10.0 2.0 10.0)("undefined" "undefined")))
+Result   : file_platform
 
 Operator : insertUpload
 Number   : 1
@@ -12,19 +12,19 @@ Result   : true
 
 Operator : insertUploadStream
 Number   : 1
-Signature: ((stream (tuple([a1:d1, ..., ai:int,..., an:dn]))) x seti x ai) -> bool
+Signature: ((stream (tuple([a1:d1, ..., ai:uploadunit,..., an:dn]))) x seti x ai) -> bool
 Example  : query myUploadRel feed insertUploadStream[ mySETI, upload ]
 Result   : true
 
 Operator : intersectsWindow
 Number   : 1
-Signature: seti x rect x  string x string -> stream (tuple (MovObjId int))
+Signature: seti x rect x  string x string -> stream (tuple (MovObjId int)(TrjSeg upoint))
 Example  : query intersectsWindow( mySETI, myRect, "2004-11-30-12:32", "2011-08-30-12:32" ) count
 Result   : 10
 
 Operator : insideWindow
 Number   : 1
-Signature: seti x rect x  string x string -> stream (tuple (MovObjId int))
+Signature: seti x rect x  string x string -> stream (tuple (MovObjId int)(TrjSeg upoint))
 Example  : query insideWindow( mySETI, myRect, "2004-11-30-12:32", "2011-08-30-12:32" ) count
 Result   : 8
 

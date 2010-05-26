@@ -1660,7 +1660,7 @@ struct InsertStreamInfo : OperatorInfo {
   InsertStreamInfo()
   {
     name      = "insertStream";
-    signature = "((stream (tuple([a1:d1, ..., ai:int, "
+    signature = "((stream (tuple([a1:d1, ..., ai:uploadunit, "
                 "..., an:dn]))) x seti x ai) -> bool";
     syntax    = "_ insertStream[ _, _ ]";
     meaning   = "SETI insert upload stream operator.";
