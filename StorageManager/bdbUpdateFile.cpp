@@ -724,14 +724,14 @@ bool SmiUpdateFile::SyncFile()
 
   //put all got pages back, and write data to the disk file
   map<db_pgno_t, SmiUpdatePage*>::iterator iter;
-  for (iter = gotPages.begin(); iter != gotPages.end(); iter++)
+  for (iter = gotPages.begin(); iter != gotPages.end(); /*iter++*/)
     {
       //Put all got pages back ...
       SmiUpdatePage *page = iter->second;
       rc = dbMpf->put(page->pagePt, DB_MPOOL_DIRTY);
       SmiEnvironment::SetBDBError(rc);
       delete iter->second;
-      gotPages.erase(iter);
+      gotPages.erase(iter++);
       ctr++;
     }
 
