@@ -34,9 +34,7 @@ endif
 BASH := "$(shell which bash)"
 
 ifeq ($(BASH),"")
-  $(error bash not found. If you are using mingw -windows platform-, \
-    enter the following code\
-    "cd /bin; ln sh.exe bash.exe; cd ~" )
+  $(error bash not found. If you are using mingw -windows platform-, enter the following code: cd /bin\; ln sh.exe bash.exe\; cd ~ )
 endif
 
 
