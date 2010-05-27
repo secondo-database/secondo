@@ -52,6 +52,9 @@ ALGEBRAS     += RelationAlgebra
 ALGEBRA_DIRS += ExtRelation-C++
 ALGEBRAS     += ExtRelationAlgebra
 
+ALGEBRA_DIRS += ExtRelation-2
+ALGEBRAS     += ExtRelation2Algebra
+
 ALGEBRA_DIRS += OrderedRelation
 ALGEBRAS     += OrderedRelationAlgebra
 
@@ -257,8 +260,6 @@ ALGEBRAS      += ClusterAlgebra
 #ALGEBRA_DIRS += UGrid
 #ALGEBRAS     += UGridAlgebra
 
-ALGEBRA_DIRS += ExtRelation-2
-ALGEBRAS     += ExtRelation2Algebra
 
 ALGEBRA_DIRS += BTree2
 ALGEBRAS     += BTree2Algebra

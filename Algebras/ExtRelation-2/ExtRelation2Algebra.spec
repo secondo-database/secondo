@@ -18,17 +18,17 @@
 #Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 
-operator sort2 alias SORT2 pattern _ op
-operator sortby2 alias SORTBY2 pattern _ op [list]
-operator sortmergejoin2 alias SORTMERGEJOIN2 pattern _ _ op [_, _] 
+operator sort alias SORT pattern _ op
+operator sortby alias SORTBY pattern _ op [list]
+operator sortmergejoin alias SORTMERGEJOIN pattern _ _ op [_, _] 
 operator gracehashjoin alias GRACEHASHJOIN pattern _ _ op [_, _, _]
 operator hybridhashjoin alias HYBRIDHASHJOIN pattern _ _ op [_, _, _]
 
-operator sortmergejoin2Param alias SORTMERGEJOIN2PARAM pattern _ _ op [_, _, _] 
+operator sortmergejoinParam alias SORTMERGEJOINPARAM pattern _ _ op [_, _, _] 
 operator gracehashjoinParam alias GRACEHASHJOINPARAM pattern _ _ op [_, _, _, _, _, _]
 operator hybridhashjoinParam alias HYBRIDHASHJOINPARAM pattern _ _ op [_, _, _, _, _, _]
-operator sort2Param alias SORT2PARAM pattern _ op[_, _, _]
-operator sortby2Param alias SORTBY2PARAM pattern _ op[list; _, _, _]
+operator sortParam alias SORTPARAM pattern _ op[_, _, _]
+operator sortbyParam alias SORTBYPARAM pattern _ op[list; _, _, _]
 operator heapstl alias HEAPSTL pattern _ op
 operator heapstd alias HEAPSTD pattern _ op
 operator heapbup alias HEAPBUP pattern _ op

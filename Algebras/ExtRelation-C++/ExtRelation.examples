@@ -4,7 +4,7 @@ Restore  : NO
 Operator : GROUP
 Number   : 1
 Signature: ((stream x)) -> (rel x)
-Example  : query Orte feed sortby[BevT asc] groupby[BevT; Cnt: fun(g: GROUP) g count] filter[.Cnt > 10] consume
+Example  : query Orte feed sortby_old[BevT asc] groupby[BevT; Cnt: fun(g: GROUP) g count] filter[.Cnt > 10] consume
 Result   : file
 
 
@@ -72,7 +72,7 @@ Result   : 26
 Operator : groupby
 Number   : 1
 Signature: ((stream (tuple (a1:d1 ... an:dn))) (ai1 ... aik) ((bj1 (fun (rel (tuple (a1:d1 ... an:dn))) (_))) ... (bjl (fun (rel (tuple (a1:d1 ... an:dn))) (_))))) -> (stream (tuple (ai1:di1 ... aik:dik bj1 ... bjl)))
-Example  : query Orte feed sortby[BevT asc] groupby[BevT; Cnt: group count] filter[.Cnt > 10] consume
+Example  : query Orte feed sortby_old[BevT asc] groupby[BevT; Cnt: group count] filter[.Cnt > 10] consume
 Result   : file
 
 
@@ -120,7 +120,7 @@ Result   : 990
 Operator : mergejoin
 Number   : 1
 Signature: ((stream (tuple ((x1 t1) ... (xn tn)))) (stream (tuple ((y1 d1) ... (ym dm)))) xi yj) -> (stream (tuple ((x1 t1) ... (xn tn) (y1 d1) ... (ym dm))))
-Example  : query Orte feed sortby[Ort asc] {o} plz feed sortby[Ort asc] {p} mergejoin[Ort_o, Ort_p] count
+Example  : query Orte feed sortby_old[Ort asc] {o} plz feed sortby_old[Ort asc] {p} mergejoin[Ort_o, Ort_p] count
 Result   : 10052
 
 
@@ -134,7 +134,7 @@ Result   : 10
 Operator : mergeunion
 Number   : 1
 Signature: ((stream (tuple ((x1 t1) ... (xn tn))))stream (tuple ((x1 t1) ... (xn tn))))) -> (stream (tuple ((x1 t1) ... (xn tn))))
-Example  : query plz_Ort plz exactmatch["Hamburg"] sort plz_PLZ plz range[15000, 21000] sort mergeunion count
+Example  : query plz_Ort plz exactmatch["Hamburg"] sort_old plz_PLZ plz range[15000, 21000] sort_old mergeunion count
 Result   : 4253
 
 
@@ -161,7 +161,7 @@ Result   : file
 Operator : rdup
 Number   : 1
 Signature: ((stream (tuple([a1:d1, ... ,an:dn])))) -> (stream (tuple([a1:d1, ... ,an:dn])))
-Example  : query Orte feed project[BevT] sort rdup count
+Example  : query Orte feed project[BevT] sort_old rdup count
 Result   : 161
 
 
@@ -179,24 +179,24 @@ Example  : query plz sample[500, 0.0001, 3] count
 Result   : 500
 
 
-Operator : sort
+Operator : sort_old
 Number   : 1
 Signature: ((stream (tuple([a1:d1, ... ,an:dn])))) -> (stream (tuple([a1:d1, ... ,an:dn])))
-Example  : query Staedte feed sort consume
+Example  : query Staedte feed sort_old consume
 Result   : file
 
 
-Operator : sortby
+Operator : sortby_old
 Number   : 1
 Signature: ((stream (tuple([a1:d1, ... ,an:dn]))) ((xi1 asc/desc) ... (xij asc/desc))) -> (stream (tuple([a1:d1, ... ,an:dn])))
-Example  : query Staedte feed sortby[Bev desc] head[3] consume
+Example  : query Staedte feed sortby_old[Bev desc] head[3] consume
 Result   : file
 
 
-Operator : sortmergejoin
+Operator : sortmergejoin_old
 Number   : 1
 Signature: ((stream (tuple ((x1 t1) ... (xn tn)))) (stream (tuple ((y1 d1) ... (ym dm)))) xi yj) -> (stream (tuple ((x1 t1) ... (xn tn) (y1 d1) ... (ym dm))))
-Example  : query Orte feed {o} plz feed {p} sortmergejoin[Ort_o, Ort_p] count
+Example  : query Orte feed {o} plz feed {p} sortmergejoin_old[Ort_o, Ort_p] count
 Result   : 10052
 
 Operator : smouterjoin
@@ -249,7 +249,7 @@ Result   : file
 Operator : krdup
 Number   : 1
 Signature: stream(tuple((a1 t1)(a2 t2)...(an tn))) x ai1 x ai2 x ... -> stream(tuple((a1 t1)...(an tn)))
-Example  : query plz feed sortby[Ort] krdup[Ort] count
+Example  : query plz feed sortby_old[Ort] krdup[Ort] count
 Result   : 16788
 
 
@@ -306,13 +306,13 @@ Result   : ((rel (tuple ((CountX int) (MinX real) (MaxX real) (SumX real) (AvgX 
 Operator : ksmallest
 Number   : 1
 Signature: stream(tuple((a1 t1)...(an tn)(id int))) x int x a_k_1 x ... a_k_m -> stream(tuple(...))
-Example  : query (plz feed sortby[Ort] head [10] project[Ort]) (plz feed ksmallest[10;Ort] project[Ort]) mergediff count
+Example  : query (plz feed sortby_old[Ort] head [10] project[Ort]) (plz feed ksmallest[10;Ort] project[Ort]) mergediff count
 Result   : (int 0)
 
 Operator : kbiggest
 Number   : 1
 Signature: stream(tuple((a1 t1)...(an tn)(id int))) x int x a_k_1 x ... a_k_m -> stream(tuple(...))
-Example  : query (plz feed sortby[Ort desc] head [10] project[Ort]) (plz feed kbiggest[10;Ort] project[Ort]) mergediff count
+Example  : query (plz feed sortby_old[Ort desc] head [10] project[Ort]) (plz feed kbiggest[10;Ort] project[Ort]) mergediff count
 Result   : (int 0)
 
 Operator : printrefs 

@@ -2999,7 +2999,7 @@ const string SortBySpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
 
 */
 Operator extrelsortby (
-         "sortby",               // name
+         "sortby_old",               // name
          SortBySpec,             // specification
          sortby_vm<false>,       // value mapping
          Operator::SimpleSelect, // trivial selection function
@@ -3053,7 +3053,7 @@ const string SortSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
 
 */
 Operator extrelsort (
-         "sort",             // name
+         "sort_old",             // name
          SortSpec,           // specification
          sortby_vm<true>,               // value mapping
          Operator::SimpleSelect,          // trivial selection function
@@ -3912,7 +3912,7 @@ const string SortMergeJoinSpec  = "( ( \"Signature\" \"Syntax\" "
 
 */
 Operator extrelsortmergejoin(
-         "sortmergejoin",            // name
+         "sortmergejoin_old",            // name
          SortMergeJoinSpec,          // specification
          mergejoin_vm<false>,        // value mapping
          Operator::SimpleSelect,     // trivial selection function

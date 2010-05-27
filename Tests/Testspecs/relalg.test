@@ -252,25 +252,25 @@ query Staedte feed head[1] groupby[SName; SName2: group feed extract[SName]] pro
 
 #testcase GroupBy1
 #yields ((rel (tuple ((DeptNr int) (anz int))))((1 2) (2 4) (3 4)))
-query Employee feed sortby[DeptNr asc] groupby[DeptNr; anz : group feed count] consume;
+query Employee feed sortby_old[DeptNr asc] groupby[DeptNr; anz : group feed count] consume;
 
 #testcase GroupBy2
 #yields ((rel (tuple ((DeptNr int) (anz int))))((1 2) (2 4) (3 4)))
-query Employee feed sortby[DeptNr asc] groupby[DeptNr; anz : group count] consume;
+query Employee feed sortby_old[DeptNr asc] groupby[DeptNr; anz : group count] consume;
 
 #testcase GroupBy3
 #yields ((rel (tuple ((DeptNr int) (anz int))))())
-query Employee feed head[0] sortby[DeptNr asc] groupby[DeptNr; anz : group feed count] consume;
+query Employee feed head[0] sortby_old[DeptNr asc] groupby[DeptNr; anz : group feed count] consume;
 
 #testcase HashJoin1
 #yields ((rel(tuple((EName string)(EmpNr int)(DeptNr int)\
     (Leader_A string)(DeptNr_A int))))\
     (("Bush" 11 1 "Bush" 1)("Callahan" 1 2 "Myers" 2)("Jones" 14 2 "Myers" 2)))
-query Employee feed Dept feed rename[A] hashjoin[DeptNr, DeptNr_A, 17] sort head[3] consume;
+query Employee feed Dept feed rename[A] hashjoin[DeptNr, DeptNr_A, 17] sort_old head[3] consume;
 
 #testcase HashJoin2
 #yields ((rel(tuple((no int)(no_A int))))((1 1)(6 6)(7 7)(9 9)))
-query duplicates feed ten feed rename[A] hashjoin[no, no_A, 23] sort rdup consume
+query duplicates feed ten feed rename[A] hashjoin[no, no_A, 23] sort_old rdup consume
 
 #testcase HashJoin3
 #yields (int 0)
@@ -289,11 +289,11 @@ query Employee feed head[0] Dept feed head[0] rename[A] hashjoin[DeptNr, DeptNr_
 #yields ((rel(tuple((EName string)(EmpNr int)(DeptNr int)\
     (Leader_A string)(DeptNr_A int))))\
     (("Bush" 11 1 "Bush" 1)("Callahan" 1 2 "Myers" 2)("Jones" 14 2 "Myers" 2)))
-query Employee feed Dept feed rename[A] sortmergejoin[DeptNr, DeptNr_A] sort head[3] consume;
+query Employee feed Dept feed rename[A] sortmergejoin_old[DeptNr, DeptNr_A] sort_old head[3] consume;
 
 #testcase MergeJoin2
 #yields ((rel(tuple((no int)(no_A int))))((1 1)(6 6)(7 7)(9 9)))
-query duplicates feed ten feed rename[A] mergejoin[no, no_A] sort rdup consume
+query duplicates feed ten feed rename[A] mergejoin[no, no_A] sort_old rdup consume
 
 #testcase MergeJoin3
 #yields (int 0)
@@ -301,27 +301,27 @@ query duplicates feed head[0] ten feed head[0] rename[A] mergejoin[no, no_A] cou
 
 #testcase MergeJoin4
 #yields (int 0)
-query duplicates feed ten feed head[0] rename[A] mergejoin[no, no_A] sort rdup count
+query duplicates feed ten feed head[0] rename[A] mergejoin[no, no_A] sort_old rdup count
 
 #testcase MergeJoin5
 #yields (int 0)
-query duplicates feed head[0] ten feed rename[A] mergejoin[no, no_A] sort rdup count
+query duplicates feed head[0] ten feed rename[A] mergejoin[no, no_A] sort_old rdup count
 
 #testcase SortMergeJoin1
 #yields (int 0)
-query Employee feed head[0] Dept feed rename[A] sortmergejoin[DeptNr, DeptNr_A] count;
+query Employee feed head[0] Dept feed rename[A] sortmergejoin_old[DeptNr, DeptNr_A] count;
 
 #testcase SortMergeJoin2
 #yields (int 0)
-query Employee feed Dept feed head[0] rename[A] sortmergejoin[DeptNr, DeptNr_A] count;
+query Employee feed Dept feed head[0] rename[A] sortmergejoin_old[DeptNr, DeptNr_A] count;
 
 #testcase SortMergeJoin3
 #yields (int 0)
-query Employee feed head[0] Dept feed head[0] rename[A] sortmergejoin[DeptNr, DeptNr_A] count;
+query Employee feed head[0] Dept feed head[0] rename[A] sortmergejoin_old[DeptNr, DeptNr_A] count;
 
 #testcase SortMergeJoin
 #yields (int 10)
-query Employee feed Dept feed rename[A] sortmergejoin[DeptNr, DeptNr_A] count;
+query Employee feed Dept feed rename[A] sortmergejoin_old[DeptNr, DeptNr_A] count;
 
 
 #testcase Max1
@@ -370,27 +370,27 @@ query ten feed twenty feed head[0] rename[A] product count
 
 #testcase Sort1
 #yields (int 200)
-query ten feed twenty feed rename[A] product sort count
+query ten feed twenty feed rename[A] product sort_old count
 
 #testcase Sort2
 #yields (int 0)
-query ten feed head[0] twenty feed rename[A] product sort count
+query ten feed head[0] twenty feed rename[A] product sort_old count
 
 #testcase Rdup1
 #yields (int 20)
-query twenty feed ten feed concat sort rdup count
+query twenty feed ten feed concat sort_old rdup count
 
 #testcase Rdup2
 #yields (int 0)
-query twenty feed ten feed concat sort head[0] rdup count
+query twenty feed ten feed concat sort_old head[0] rdup count
 
 #testcase Project1
 #yields (int 20)
-query ten feed twenty feed rename[A] product project[no_A] sort rdup count
+query ten feed twenty feed rename[A] product project[no_A] sort_old rdup count
 
 #testcase Project2
 #yields (int 0)
-query ten feed head[0] twenty feed rename[A] product project[no_A] sort rdup count
+query ten feed head[0] twenty feed rename[A] product project[no_A] sort_old rdup count
 
 #testcase Diff1
 #yields (int 10)
@@ -398,7 +398,7 @@ query twenty feed odd feed mergediff count
 
 #testcase Diff2
 #yields (int 100)
-query twenty feed odd feed rename[A] product sort ten feed odd feed rename[A] product sort mergediff count
+query twenty feed odd feed rename[A] product sort_old ten feed odd feed rename[A] product sort_old mergediff count
 
 #testcase Diff3
 #yields (int 20)
@@ -414,7 +414,7 @@ query twenty feed odd feed mergesec count
 
 #testcase Sec2
 #yields (int 100)
-query twenty feed odd feed rename[A] product sort ten feed odd feed rename[A] product sort mergesec count
+query twenty feed odd feed rename[A] product sort_old ten feed odd feed rename[A] product sort_old mergesec count
 
 #testcase Sec3
 #yields (int 0)
@@ -430,7 +430,7 @@ query twenty feed odd feed mergeunion count
 
 #testcase Union2
 #yields (int 200)
-query twenty feed odd feed rename[A] product sort ten feed odd feed rename[A] product sort mergeunion count
+query twenty feed odd feed rename[A] product sort_old ten feed odd feed rename[A] product sort_old mergeunion count
 
 #testcase Union3
 #yields (int 10)
@@ -541,7 +541,7 @@ query abs(Staedte tuplesize - (Staedte attrsize[SName] + Staedte attrsize[Bev] +
 
 #testcase intstream1
 #yields (bool TRUE)
-query intstream(1, 4000000) use[fun(i:int) randint(i)] transformstream sort count = 4000000;
+query intstream(1, 4000000) use[fun(i:int) randint(i)] transformstream sort_old count = 4000000;
 
 
 

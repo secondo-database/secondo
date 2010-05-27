@@ -31,7 +31,7 @@ operator concat alias CONCAT pattern _ _ op
 operator cancel alias CANCEL pattern _ op [ fun ] implicit parameter tuple type TUPLE
 operator rdup alias RDUP pattern _ op
 operator krdup alias KRDUP pattern _ op [ list ]
-operator sort alias SORT pattern _ op
+operator sort_old alias SORTOLD pattern _ op
 operator extend alias EXTEND pattern _ op [ funlist ] implicit parameter tuple type TUPLE
 operator projectextend alias PROJECTEXTEND pattern _ op [ list ; funlist ] implicit parameter tuple type TUPLE
 operator extendstream alias EXTENDSTREAM pattern _ op [funlist] implicit parameter tuple type TUPLE
@@ -42,9 +42,9 @@ operator mergesec alias MERGESEC pattern _ _ op
 operator mergediff alias MERGEDIFF pattern _ _ op
 operator mergeunion alias MERGEUNION pattern _ _ op
 
-operator sortby alias SORTBY pattern _ op [list]
+operator sortby_old alias SORTBYOLD pattern _ op [list]
 operator mergejoin alias MERGEJOIN pattern _ _ op [_, _] !!
-operator sortmergejoin alias SORTMERGEJOIN pattern _ _ op [_, _] !!
+operator sortmergejoin_old alias SORTMERGEJOINOLD pattern _ _ op [_, _] !!
 operator smouterjoin alias SMOUTERJOIN pattern _ _ op [_, _] !!
 operator hashjoin alias HASHJOIN pattern _ _ op [_, _, _] !!
 

@@ -90,19 +90,19 @@ namespace extrel2
 {
 
 /*
-3.1 Operator ~sort2~
+3.1 Operator ~sort~
 
 This operator sorts a stream of tuples lexicographically.
 
-3.1.1 Type mapping function of Operator ~sort2~
+3.1.1 Type mapping function of Operator ~sort~
 
-Type mapping for ~sort2~ is
+Type mapping for ~sort~ is
 
 ----  (stream (tuple ((x1 t1)...(xn tn))))  -> ((stream (tuple ((x1 t1)...(xn tn))))
               APPEND (n i1 true i2 true ... in true))
 ----
 
-The type mapping function for operator ~sort2~ determines the attribute
+The type mapping function for operator ~sort~ determines the attribute
 indices of all attributes and generates a sort order specification, where
 each attribute is sorted in ascending order. The number of sort attributes,
 the attribute indices and a boolean flag is appended to the argument list
@@ -126,7 +126,7 @@ ListExpr SortTypeMap( ListExpr args )
   if ( !type.first().checkStreamTuple(attr) )
   {
     return NList::typeError(
-        "Operator sort2: first argument is not a tuple stream!"
+        "Operator sort: first argument is not a tuple stream!"
         "Operator received: " + type.first().convertToString() );
   }
 
@@ -134,7 +134,7 @@ ListExpr SortTypeMap( ListExpr args )
   if ( !IsTupleDescription(attr.listExpr()) )
   {
     return NList::typeError(
-        "Operator sort2: first argument does not contain a tuple description!"
+        "Operator sort: first argument does not contain a tuple description!"
         "Operator received: " + attr.convertToString() );
   }
 
@@ -160,7 +160,7 @@ ListExpr SortTypeMap( ListExpr args )
 }
 
 /*
-3.1.2 Value mapping function of operator ~sort2~
+3.1.2 Value mapping function of operator ~sort~
 
 The argument vector ~args~ contains in the first slot ~args[0]~ the
 stream and in ~args[2]~ the number of sort attributes. ~args[3]~
@@ -175,7 +175,7 @@ int SortValueMap( Word* args, Word& result,
                    int message, Word& local, Supplier s );
 
 /*
-3.1.3 Specification of operator ~sort2~
+3.1.3 Specification of operator ~sort~
 
 */
 const string SortSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
@@ -183,18 +183,18 @@ const string SortSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
                          "( <text>((stream (tuple([a1:d1, ... ,an:dn]"
                          ")))) -> (stream (tuple([a1:d1, ... ,an:dn])))"
                          "</text--->"
-                         "<text>_ sort2</text--->"
+                         "<text>_ sort</text--->"
                          "<text>Sorts an input stream lexicographically."
                          "</text--->"
-                         "<text>query cities feed sort2 consume</text--->"
+                         "<text>query cities feed sort consume</text--->"
                          ") )";
 
 /*
-3.1.4 Definition of operator ~sort2~
+3.1.4 Definition of operator ~sort~
 
 */
 Operator extrelsort (
-         "sort2",                 // name
+         "sort",                 // name
          SortSpec,                // specification
          SortValueMap<1, false>,  // value mapping - first argument
                                   // of sort order spec is 1
@@ -203,15 +203,15 @@ Operator extrelsort (
 );
 
 /*
-3.2 Operator ~sortby2~
+3.2 Operator ~sortby~
 
 This operator sorts a stream of tuples by a given list of attributes.
 For each attribute it can be specified whether the list should be sorted
 in ascending (asc) or descending (desc) order with regard to that attribute.
 
-3.2.1 Type mapping function of operator ~sortby2~
+3.2.1 Type mapping function of operator ~sortby~
 
-Type mapping for ~sortby2~ is
+Type mapping for ~sortby~ is
 
 ---- ((stream (tuple ((x1 t1)...(xn tn)))) ((xi1 asc/desc) ... (xij asc/desc)))
              -> ((stream (tuple ((x1 t1)...(xn tn))))
@@ -234,7 +234,7 @@ ListExpr SortByTypeMap( ListExpr args )
   if ( !type.hasLength(2) )
   {
     return NList::typeError(
-        "Operator sortby2 expects a list of "
+        "Operator sortby expects a list of "
         "length two.");
   }
 
@@ -246,7 +246,7 @@ ListExpr SortByTypeMap( ListExpr args )
   if ( !streamDesc.checkStreamTuple(attr) )
   {
     return NList::typeError(
-        "Operator sortby2: first argument is not a tuple stream!"
+        "Operator sortby: first argument is not a tuple stream!"
         "Operator received: " + streamDesc.convertToString() );
   }
 
@@ -254,7 +254,7 @@ ListExpr SortByTypeMap( ListExpr args )
   if ( !IsTupleDescription(attr.listExpr()) )
   {
     return NList::typeError(
-        "Operator sortby2: first argument does not "
+        "Operator sortby: first argument does not "
         "contain a tuple description!"
         "Operator received: " + attr.convertToString() );
   }
@@ -265,7 +265,7 @@ ListExpr SortByTypeMap( ListExpr args )
   if ( numberOfSortAttrs <= 0 )
   {
     return NList::typeError(
-        "Operator sortby2: sort order specification "
+        "Operator sortby: sort order specification "
         "list may not be empty!");
   }
 
@@ -287,7 +287,7 @@ ListExpr SortByTypeMap( ListExpr args )
     if ( !(attrElem.isAtom() || attrElem.length() == 2) )
     {
       return NList::typeError(
-          "Operator sortby2 expects as second argument "
+          "Operator sortby expects as second argument "
           "a list of (attrname [asc, desc])|attrname.");
     }
 
@@ -303,9 +303,9 @@ ListExpr SortByTypeMap( ListExpr args )
              attrElem.second().isSymbol() ) )
       {
         return NList::typeError(
-            "Operator sortby2 expects as second argument a list"
+            "Operator sortby expects as second argument a list"
             " of (attrname [asc, desc])|attrname .\n"
-            "Operator sortby2 gets a list '"
+            "Operator sortby gets a list '"
             + attrDesc.convertToString() + "'.");
       }
       attrName = attrElem.first().str();
@@ -316,9 +316,9 @@ ListExpr SortByTypeMap( ListExpr args )
       if ( !(attrElem.isSymbol()) )
       {
         return NList::typeError(
-            "Operator sortby2 expects as second argument a list"
+            "Operator sortby expects as second argument a list"
             " of (attrname [asc, desc])|attrname .\n"
-            "Operator sortby2 gets a list '"
+            "Operator sortby gets a list '"
             + attrDesc.convertToString() + "'.");
       }
       attrName = attrElem.str();
@@ -339,7 +339,7 @@ ListExpr SortByTypeMap( ListExpr args )
                  attrElem.second().str() == "desc" ) )
          {
            return NList::typeError(
-               "Operator sortby2 sorting criteria must "
+               "Operator sortby sorting criteria must "
                "be asc or desc, not '"
                + attrElem.second().convertToString() + "'!");
          }
@@ -352,7 +352,7 @@ ListExpr SortByTypeMap( ListExpr args )
     else
     {
       return NList::typeError(
-          "Operator sortby2: attribute name '" + attrName +
+          "Operator sortby: attribute name '" + attrName +
           "' is not known.\nKnown Attribute(s): "
           + attr.convertToString());
     }
@@ -362,7 +362,7 @@ ListExpr SortByTypeMap( ListExpr args )
 }
 /*
 
-3.2.2 Specification of operator ~sortby2~
+3.2.2 Specification of operator ~sortby~
 
 */
 const string SortBySpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
@@ -370,22 +370,22 @@ const string SortBySpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
                            "( <text>((stream (tuple([a1:d1, ... ,an:dn])))"
                            " ((xi1 asc/desc) ... (xij [asc/desc]))) -> "
                            "(stream (tuple([a1:d1, ... ,an:dn])))</text--->"
-                           "<text>_ sortby2 [list]</text--->"
+                           "<text>_ sortby [list]</text--->"
                            "<text>Sorts an input stream according to a list "
                            "of attributes ai1 ... aij. For each attribute one "
                            "may specify the sorting order (asc/desc). If no "
                            "order is specified, ascending is assumed."
                            "</text--->"
-                           "<text>query employee feed sortby2[DeptNo asc] "
+                           "<text>query employee feed sortby[DeptNo asc] "
                            "consume</text--->"
                               ") )";
 
 /*
-3.2.3 Definition of operator ~sortby2~
+3.2.3 Definition of operator ~sortby~
 
 */
 Operator extrelsortby (
-         "sortby2",               // name
+         "sortby",               // name
          SortBySpec,              // specification
          SortValueMap<2, false>,  // value mapping - first argument
                                   // of sort order spec is 2
@@ -395,11 +395,11 @@ Operator extrelsortby (
 
 
 /*
-3.3 Operator ~sortmergejoin2~
+3.3 Operator ~sortmergejoin~
 
 This operator sorts two input streams and computes their equijoin.
 
-3.3.1 Type mapping function of operator ~sortmergejoin2~
+3.3.1 Type mapping function of operator ~sortmergejoin~
 
 The type mapping function determines the attribute indices of the given
 join attributes ~xi~ and ~yi~ and appends them to the argument list
@@ -407,7 +407,7 @@ of the value mapping function. This type mapping function is also used
 by the ~hybridhashjoin~, ~hybridhashjoinParam~, ~gracehashjoin~ and
 ~gracehashjoinParam~ operator.
 
-Type mapping for ~sortmergejoin2~, ~hybridhashjoin~, ~hybridhashjoinParam~,
+Type mapping for ~sortmergejoin~, ~hybridhashjoin~, ~hybridhashjoinParam~,
 ~gracehashjoin~ and ~gracehashjoinParam~ is
 
 ----  ((stream (tuple ((x1 t1) ... (xn tn))))
@@ -426,8 +426,8 @@ ListExpr JoinTypeMap( ListExpr args )
 
   const char* op[] = { "hybridhashjoin",
                        "hybridhashjoinParam",
-                       "sortmergejoin2",
-                       "sortmergejoin2Param",
+                       "sortmergejoin",
+                       "sortmergejoinParam",
                        "gracehashjoin",
                        "gracehashjoinParam" };
 
@@ -636,10 +636,10 @@ template ListExpr
 JoinTypeMap<5>(ListExpr args);
 
 /*
-3.3.2 Value mapping function of operator ~sortmergejoin2~
+3.3.2 Value mapping function of operator ~sortmergejoin~
 
-This value mapping function is used by both operators ~sortmergejoin2~ and
-~sortmergejoin2Param~. According to the value of the template parameter
+This value mapping function is used by both operators ~sortmergejoin~ and
+~sortmergejoinParam~. According to the value of the template parameter
 ~param~ the argument vector ~args~ contains the following values. If ~param~
 is set to false ~args~ contains.
 
@@ -678,7 +678,7 @@ int SortMergeJoinValueMap( Word* args, Word& result,
                              int message, Word& local, Supplier s);
 
 /*
-3.3.3 Specification of operator ~sortmergejoin2~
+3.3.3 Specification of operator ~sortmergejoin~
 
 */
 const string SortMergeJoinSpec  = "( ( \"Signature\" \"Syntax\" "
@@ -688,21 +688,21 @@ const string SortMergeJoinSpec  = "( ( \"Signature\" \"Syntax\" "
                                    " (ym dm)))) xi yj) -> (stream (tuple "
                                    "((x1 t1) ... (xn tn) (y1 d1) ... (ym dm)"
                                    ")))</text--->"
-                                   "<text>_ _ sortmergejoin2 [ _ , _ ]"
+                                   "<text>_ _ sortmergejoin [ _ , _ ]"
                                    "</text--->"
                                    "<text>Computes the equijoin of two "
-                                   "streams using the new sort2 operator "
+                                   "streams using the new sort operator "
                                    "implementation.</text--->"
                                    "<text>query duplicates feed ten feed "
-                                   "sortmergejoin2[no, nr] consume</text--->"
+                                   "sortmergejoin[no, nr] consume</text--->"
                                    ") )";
 
 /*
-3.3.4 Definition of operator ~sortmergejoin2~
+3.3.4 Definition of operator ~sortmergejoin~
 
 */
-Operator extrelsortmergejoin2 (
-         "sortmergejoin2",              // name
+Operator extrelsortmergejoin (
+         "sortmergejoin",              // name
          SortMergeJoinSpec,             // specification
          SortMergeJoinValueMap<false>,  // value mapping
          Operator::SimpleSelect,        // trivial selection function
@@ -1200,19 +1200,19 @@ Operator tuplebuffer2(
 );
 
 /*
-4.8 Operator ~sort2Param~
+4.8 Operator ~sortParam~
 
 This operator is used to simplify the testing of the new
-~sort2~ operator implementation. The operator takes three additional
+~sort~ operator implementation. The operator takes three additional
 parameters, the second argument specifies the used operators main
 memory in bytes, the third argument the maximum fan-in of a merge
 phase respectively the maximum number of temporary open tuple
 files and the fourth argument specifies the size of the
 I/O buffer for read/write operations on disc.
 
-4.8.1 Type mapping function of Operator ~sort2Param~
+4.8.1 Type mapping function of Operator ~sortParam~
 
-Type mapping for operator ~sort2Param~ is
+Type mapping for operator ~sortParam~ is
 
 ----  ((stream (tuple ((x1 t1)...(xn tn)))) int int int)  ->
       (stream (tuple ((x1 t1)...(xn tn))) int int int
@@ -1220,7 +1220,7 @@ Type mapping for operator ~sort2Param~ is
 ----
 
 */
-ListExpr Sort2ParamTypeMap(ListExpr args)
+ListExpr SortParamTypeMap(ListExpr args)
 {
   NList type(args);
 
@@ -1228,7 +1228,7 @@ ListExpr Sort2ParamTypeMap(ListExpr args)
   if ( !type.hasLength(4) )
   {
     return NList::typeError(
-        "Operator sort2Param expects a list of length four.");
+        "Operator sortParam expects a list of length four.");
   }
 
   // check if first argument is a tuple stream
@@ -1236,7 +1236,7 @@ ListExpr Sort2ParamTypeMap(ListExpr args)
   if ( !type.first().checkStreamTuple(attr) )
   {
     return NList::typeError(
-        "Operator sort2Param: first argument is not a tuple stream!"
+        "Operator sortParam: first argument is not a tuple stream!"
         "Operator received: " + type.first().convertToString() );
   }
 
@@ -1244,7 +1244,7 @@ ListExpr Sort2ParamTypeMap(ListExpr args)
   if ( !IsTupleDescription(attr.listExpr()) )
   {
     return NList::typeError(
-        "Operator sort2Param: first argument does not "
+        "Operator sortParam: first argument does not "
         "contain a tuple description!"
         "Operator received: " + attr.convertToString() );
   }
@@ -1272,7 +1272,7 @@ ListExpr Sort2ParamTypeMap(ListExpr args)
   if ( type.second() != INT )
   {
     return NList::typeError(
-        "Operator sort2Param: second argument (operator memory) "
+        "Operator sortParam: second argument (operator memory) "
         "must be an integer!"
         "Operator received: " + type.second().convertToString() );
   }
@@ -1281,7 +1281,7 @@ ListExpr Sort2ParamTypeMap(ListExpr args)
   if ( type.third() != INT )
   {
     return NList::typeError(
-        "Operator sort2Param: third argument (maximum fan-in merge-phase)"
+        "Operator sortParam: third argument (maximum fan-in merge-phase)"
         " must be an integer!"
         "Operator received: " + type.third().convertToString() );
   }
@@ -1290,7 +1290,7 @@ ListExpr Sort2ParamTypeMap(ListExpr args)
   if ( type.fourth() != INT )
   {
     return NList::typeError(
-        "Operator sort2Param: fourth argument ('I/O buffer size') "
+        "Operator sortParam: fourth argument ('I/O buffer size') "
         "must be an integer!"
         "Operator received: " + type.fourth().convertToString() );
   }
@@ -1299,25 +1299,25 @@ ListExpr Sort2ParamTypeMap(ListExpr args)
 }
 
 /*
-4.8.2 Value mapping function of operator ~sort2Param~
+4.8.2 Value mapping function of operator ~sortParam~
 
-The value mapping function used is identical to that of operator ~sort2~.
+The value mapping function used is identical to that of operator ~sort~.
 
 
-4.8.3 Specification of operator ~sort2Param~
+4.8.3 Specification of operator ~sortParam~
 
 */
 
-const string Sort2ParamSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+const string SortParamSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
                             "\"Example\" ) "
                             "( <text>((stream (tuple([a1:d1, ... ,an:dn]"
                             "))) int int int) -> "
                             "(stream (tuple([a1:d1, ... ,an:dn])))"
                             "</text--->"
-                            "<text>_ sort2Param[_, _, _]</text--->"
+                            "<text>_ sortParam[_, _, _]</text--->"
                             "<text>This operator is used to simplify the "
                             "testing of "
-                            "the new sort2 operator implementation. The "
+                            "the new sort operator implementation. The "
                             "operator takes three additional parameters. "
                             "The first one specifies the usable main "
                             "memory in bytes. The second one the maximum "
@@ -1330,35 +1330,35 @@ const string Sort2ParamSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
                             "The maximum size of the I/O buffer is 16384 "
                             "Bytes. If these limits are exceeded default "
                             "values will be used instead.</text--->"
-                            "<text>query plz feed sort2Param[16386,50,4096]"
+                            "<text>query plz feed sortParam[16386,50,4096]"
                             " consume</text--->) )";
 
 /*
-4.8.4 Definition of operator ~sort2Param~
+4.8.4 Definition of operator ~sortParam~
 
 */
-Operator extrelsort2Param(
-         "sort2Param",             // name
-         Sort2ParamSpec,           // specification
+Operator extrelsortParam(
+         "sortParam",             // name
+         SortParamSpec,           // specification
          SortValueMap<4, true>,   // value mapping
          Operator::SimpleSelect,  // trivial selection function
-         Sort2ParamTypeMap         // type mapping
+         SortParamTypeMap         // type mapping
 );
 
 /*
-4.9 Operator ~sortby2Param~
+4.9 Operator ~sortbyParam~
 
 This operator is used to simplify the testing of the new
-~sortby2~ operator implementation. The operator takes three additional
+~sortby~ operator implementation. The operator takes three additional
 parameters, the first one specifies the useable main memory
 memory in Bytes, the second one the maximum fan-in of a merge
 phase respectively the maximum number of temporary open tuple
 files and the third one specifies the I/O buffer size in bytes
 for read/write operations on disc.
 
-4.9.1 Type mapping function of Operator ~sortby2Param~
+4.9.1 Type mapping function of Operator ~sortbyParam~
 
-Type mapping for ~sortby2Param~ is
+Type mapping for ~sortbyParam~ is
 
 ----  ((stream (tuple ((x1 t1)...(xn tn))))
                       ((xi1 asc/desc) ... (xij asc/desc)) int int int)
@@ -1368,7 +1368,7 @@ Type mapping for ~sortby2Param~ is
 
 */
 
-ListExpr SortBy2ParamTypeMap( ListExpr args )
+ListExpr SortByParamTypeMap( ListExpr args )
 {
   NList type(args);
 
@@ -1376,7 +1376,7 @@ ListExpr SortBy2ParamTypeMap( ListExpr args )
   if ( !type.hasLength(5) )
   {
     return NList::typeError(
-        "Operator sortby2Param expects a list of "
+        "Operator sortbyParam expects a list of "
         "length five.");
   }
 
@@ -1388,7 +1388,7 @@ ListExpr SortBy2ParamTypeMap( ListExpr args )
   if ( !streamDesc.checkStreamTuple(attr) )
   {
     return NList::typeError(
-        "Operator sortby2Param: first argument is not a tuple stream!"
+        "Operator sortbyParam: first argument is not a tuple stream!"
         "Operator received: " + streamDesc.convertToString() );
   }
 
@@ -1396,7 +1396,7 @@ ListExpr SortBy2ParamTypeMap( ListExpr args )
   if ( !IsTupleDescription(attr.listExpr()) )
   {
     return NList::typeError(
-        "Operator sortby2Param: first argument does not "
+        "Operator sortbyParam: first argument does not "
         "contain a tuple description!"
         "Operator received: " + attr.convertToString() );
   }
@@ -1407,7 +1407,7 @@ ListExpr SortBy2ParamTypeMap( ListExpr args )
   if ( numberOfSortAttrs <= 0 )
   {
     return NList::typeError(
-        "Operator sortby2Param: sort order specification "
+        "Operator sortbyParam: sort order specification "
         "list may not be empty!");
   }
 
@@ -1429,7 +1429,7 @@ ListExpr SortBy2ParamTypeMap( ListExpr args )
     if ( !(attrElem.isAtom() || attrElem.length() == 2) )
     {
       return NList::typeError(
-          "Operator sortby2Param expects as second argument "
+          "Operator sortbyParam expects as second argument "
           "a list of (attrname [asc, desc])|attrname.");
     }
 
@@ -1445,9 +1445,9 @@ ListExpr SortBy2ParamTypeMap( ListExpr args )
              attrElem.second().isSymbol() ) )
       {
         return NList::typeError(
-            "Operator sortby2Param expects as second argument a list"
+            "Operator sortbyParam expects as second argument a list"
             " of (attrname [asc, desc])|attrname .\n"
-            "Operator sortby2with gets a list '"
+            "Operator sortbywith gets a list '"
             + attrDesc.convertToString() + "'.");
       }
       attrName = attrElem.first().str();
@@ -1458,9 +1458,9 @@ ListExpr SortBy2ParamTypeMap( ListExpr args )
       if ( !(attrElem.isSymbol()) )
       {
         return NList::typeError(
-            "Operator sortby2Param expects as second argument a list"
+            "Operator sortbyParam expects as second argument a list"
             " of (attrname [asc, desc])|attrname .\n"
-            "Operator sortby2with gets a list '"
+            "Operator sortbywith gets a list '"
             + attrDesc.convertToString() + "'.");
       }
       attrName = attrElem.str();
@@ -1482,7 +1482,7 @@ ListExpr SortBy2ParamTypeMap( ListExpr args )
                  attrElem.second().str() == "desc" ) )
          {
            return NList::typeError(
-               "Operator sortby2Param sorting criteria must "
+               "Operator sortbyParam sorting criteria must "
                "be asc or desc, not '"
                + attrElem.second().str() + "'!");
          }
@@ -1495,7 +1495,7 @@ ListExpr SortBy2ParamTypeMap( ListExpr args )
     else
     {
       return NList::typeError(
-          "Operator sortby2Param: attribute name '" + attrName +
+          "Operator sortbyParam: attribute name '" + attrName +
           "' is not known.\nKnown Attribute(s): "
           + streamDesc.second().second().convertToString());
     }
@@ -1505,7 +1505,7 @@ ListExpr SortBy2ParamTypeMap( ListExpr args )
   if ( type.third() != INT )
   {
     return NList::typeError(
-        "Operator sortby2Param: third argument (operator memory) "
+        "Operator sortbyParam: third argument (operator memory) "
         "must be an integer!"
         "Operator received: " + type.third().convertToString() );
   }
@@ -1514,7 +1514,7 @@ ListExpr SortBy2ParamTypeMap( ListExpr args )
   if ( type.fourth() != INT )
   {
     return NList::typeError(
-        "Operator sortby2Param: fourth argument (maximum fan-in merge-phase) "
+        "Operator sortbyParam: fourth argument (maximum fan-in merge-phase) "
         "must be an integer!"
         "Operator received: " + type.fourth().convertToString() );
   }
@@ -1523,7 +1523,7 @@ ListExpr SortBy2ParamTypeMap( ListExpr args )
   if ( type.fifth() != INT )
   {
     return NList::typeError(
-        "Operator sortby2Param: fifth argument ('I/O buffer size') "
+        "Operator sortbyParam: fifth argument ('I/O buffer size') "
         "must be an integer!"
         "Operator received: " + type.fifth().convertToString() );
   }
@@ -1532,27 +1532,27 @@ ListExpr SortBy2ParamTypeMap( ListExpr args )
 }
 
 /*
-4.9.2 Value mapping function of operator ~sortby2Param~
+4.9.2 Value mapping function of operator ~sortbyParam~
 
 */
 
-int SortBy2ParamValueMap( Word* args, Word& result,
+int SortByParamValueMap( Word* args, Word& result,
                            int message, Word& local, Supplier s );
 
 /*
-4.9.3 Specification of operator ~sortby2Param~
+4.9.3 Specification of operator ~sortbyParam~
 
 */
 
-const string SortBy2ParamSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+const string SortByParamSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
                             "\"Example\" ) "
                             "( <text>((stream (tuple([a1:d1, ... ,an:dn]"
                             "))) int int) -> "
                             "(stream (tuple([a1:d1, ... ,an:dn])))"
                             "</text--->"
-                            "<text>_ sortby2Param[list; _, _, _]</text--->"
+                            "<text>_ sortbyParam[list; _, _, _]</text--->"
                             "<text>This operator is used to simplify the "
-                            "testing of the new sortby2 operator "
+                            "testing of the new sortby operator "
                             "implementation. "
                             "The operator takes three additional parameters, "
                             "the first one specifies the usable main "
@@ -1566,21 +1566,21 @@ const string SortBy2ParamSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
                             "The maximum size of the I/O buffer is 16384 "
                             "Bytes. If these limits are exceeded default "
                             "values will be used instead.</text--->"
-                            "<text>query plz feed sortby2Param"
+                            "<text>query plz feed sortbyParam"
                             "[Ort asc,PLZ asc;16386,50,4096] "
                             "consume</text--->) )";
 
 /*
-4.9.4 Definition of operator ~sortby2Param~
+4.9.4 Definition of operator ~sortbyParam~
 
 */
 
-Operator extrelsortby2Param(
-         "sortby2Param",          // name
-         SortBy2ParamSpec,        // specification
+Operator extrelsortbyParam(
+         "sortbyParam",          // name
+         SortByParamSpec,        // specification
          SortValueMap<5, true>,   // value mapping
          Operator::SimpleSelect,  // trivial selection function
-         SortBy2ParamTypeMap      // type mapping
+         SortByParamTypeMap      // type mapping
 );
 
 /*
@@ -1698,46 +1698,46 @@ Operator extrelgracehashjoinParam(
 );
 
 /*
-4.12 Operator ~sortmergejoin2Param~
+4.12 Operator ~sortmergejoinParam~
 
 This operator computes the equijoin of two streams. This is
-a parameter-driven version of the ~sortmergejoin2~
+a parameter-driven version of the ~sortmergejoin~
 operator. As an additional parameter the main memory size
 for the operator may be specified in bytes.
 
-4.12.1 Specification of operator ~sortmergejoin2Param~
+4.12.1 Specification of operator ~sortmergejoinParam~
 
 */
-const string SortMergeJoin2ParamSpec  = "( ( \"Signature\" \"Syntax\" "
+const string SortMergeJoinParamSpec  = "( ( \"Signature\" \"Syntax\" "
                                    "\"Meaning\" \"Example\" ) "
                                    "( <text>((stream (tuple ((x1 t1) ... "
                                    "(xn tn)))) (stream (tuple ((y1 d1) ..."
                                    " (ym dm)))) xi yj) -> (stream (tuple "
                                    "((x1 t1) ... (xn tn) (y1 d1) ... (ym dm)"
                                    ")))</text--->"
-                                   "<text>_ _ sortmergejoin2Param [ _ , _ , _ ]"
+                                   "<text>_ _ sortmergejoinParam [ _ , _ , _ ]"
                                    "</text--->"
                                    "<text>Computes the equijoin of two "
-                                   "streams using the new sort2 operator "
+                                   "streams using the new sort operator "
                                    "implementation. "
                                    "This is the parameter-driven version "
-                                   "of the sortmergjoin2 operator. This "
+                                   "of the sortmergjoin operator. This "
                                    "operator provides an additional "
                                    "attribute mem which specifies the "
                                    "usable main memory of the operator in "
                                    "bytes.</text--->"
                                    "<text>query duplicates feed ten feed "
-                                   "sortmergejoin2[no, nr, 16*1024*1024] "
+                                   "sortmergejoin[no, nr, 16*1024*1024] "
                                    "consume</text--->"
                                    ") )";
 
 /*
-4.12.2 Definition of operator ~sortmergejoin2Param~
+4.12.2 Definition of operator ~sortmergejoinParam~
 
 */
-Operator extrelsortmergejoin2Param (
-         "sortmergejoin2Param",       // name
-         SortMergeJoin2ParamSpec,     // specification
+Operator extrelsortmergejoinParam (
+         "sortmergejoinParam",       // name
+         SortMergeJoinParamSpec,     // specification
          SortMergeJoinValueMap<true>, // value mapping
          Operator::SimpleSelect,      // trivial selection function
          JoinTypeMap<3>               // type mapping
@@ -1766,10 +1766,10 @@ class ExtRelation2Algebra : public Algebra
    ExtRelation2Algebra() : Algebra()
   {
     AddOperator(&extrel2::extrelsort);
-    AddOperator(&extrel2::extrelsort2Param);
+    AddOperator(&extrel2::extrelsortParam);
 
     AddOperator(&extrel2::extrelsortby);
-    AddOperator(&extrel2::extrelsortby2Param);
+    AddOperator(&extrel2::extrelsortbyParam);
 
     AddOperator(&extrel2::extrelhybridhashjoin);
     AddOperator(&extrel2::extrelhybridhashjoinParam);
@@ -1777,8 +1777,8 @@ class ExtRelation2Algebra : public Algebra
     AddOperator(&extrel2::extrelgracehashjoin);
     AddOperator(&extrel2::extrelgracehashjoinParam);
 
-    AddOperator(&extrel2::extrelsortmergejoin2);
-    AddOperator(&extrel2::extrelsortmergejoin2Param);
+    AddOperator(&extrel2::extrelsortmergejoin);
+    AddOperator(&extrel2::extrelsortmergejoinParam);
 
     AddOperator(&extrel2::tuplefiletest);
     AddOperator(&extrel2::tuplebuffer);
@@ -1787,10 +1787,10 @@ class ExtRelation2Algebra : public Algebra
 #ifdef USE_PROGRESS
 // support for progress queries
    extrel2::extrelsort.EnableProgress();
-   extrel2::extrelsort2Param.EnableProgress();
+   extrel2::extrelsortParam.EnableProgress();
 
    extrel2::extrelsortby.EnableProgress();
-   extrel2::extrelsortby2Param.EnableProgress();
+   extrel2::extrelsortbyParam.EnableProgress();
 
    extrel2::extrelhybridhashjoin.EnableProgress();
    extrel2::extrelhybridhashjoinParam.EnableProgress();
@@ -1798,8 +1798,8 @@ class ExtRelation2Algebra : public Algebra
    extrel2::extrelgracehashjoin.EnableProgress();
    extrel2::extrelgracehashjoinParam.EnableProgress();
 
-   extrel2::extrelsortmergejoin2.EnableProgress();
-   extrel2::extrelsortmergejoin2Param.EnableProgress();
+   extrel2::extrelsortmergejoin.EnableProgress();
+   extrel2::extrelsortmergejoinParam.EnableProgress();
 #endif
   }
 

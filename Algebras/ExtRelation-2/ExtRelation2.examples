@@ -1,28 +1,28 @@
 Database : berlintest
 Restore  : NO
 
-Operator : sort2
+Operator : sort
 Number   : 1
 Signature: ((stream (tuple([a1:d1, ... ,an:dn])))) -> (stream (tuple([a1:d1, ... ,an:dn])))
-Example  : query Staedte feed sort2 count
+Example  : query Staedte feed sort count
 Result   : 58
 
-Operator : sortby2
+Operator : sortby
 Number   : 1
 Signature: ((stream (tuple([a1:d1, ... ,an:dn]))) ((xi1 asc/desc) ... (xij asc/desc))) -> (stream (tuple([a1:d1, ... ,an:dn])))
-Example  : query Staedte feed sortby2[Bev desc] head[3] count
+Example  : query Staedte feed sortby[Bev desc] head[3] count
 Result   : 3
 
-Operator : sortmergejoin2
+Operator : sortmergejoin
 Number   : 1
 Signature: ((stream (tuple ((x1 t1) ... (xn tn)))) (stream (tuple ((y1 d1) ... (ym dm)))) xi yj) -> (stream (tuple ((x1 t1) ... (xn tn) (y1 d1) ... (ym dm))))
 Example  : query Orte feed {o} plz feed {p} sortmergejoin[Ort_o, Ort_p] count
 Result   : 10052
 
-Operator : sortmergejoin2Param
+Operator : sortmergejoinParam
 Number   : 1
 Signature: ((stream (tuple ((x1 t1) ... (xn tn)))) (stream (tuple ((y1 d1) ... (ym dm)))) xi yj) -> (stream (tuple ((x1 t1) ... (xn tn) (y1 d1) ... (ym dm))))
-Example  : query Orte feed {o} plz feed {p} sortmergejoin2Param[Ort_o, Ort_p, 16*1024*1024] count
+Example  : query Orte feed {o} plz feed {p} sortmergejoinParam[Ort_o, Ort_p, 16*1024*1024] count
 Result   : 10052
 
 Operator : gracehashjoin
@@ -49,16 +49,16 @@ Signature: ((stream (tuple ((x1 t1) ... (xn tn)))) (stream (tuple ((y1 d1) ... (
 Example  : query Orte feed {o} plz feed {p} hybridhashjoinParam[Ort_o, Ort_p, 1000, 50, 16*1024*1024, 4096] count
 Result   : 10052
 
-Operator : sort2Param
+Operator : sortParam
 Number   : 1
 Signature: ((stream (tuple([a1:d1, ... ,an:dn]))) int int int) -> (stream (tuple([a1:d1, ... ,an:dn])))
-Example  : query Staedte feed sort2Param[16384,50,4096] count
+Example  : query Staedte feed sortParam[16384,50,4096] count
 Result   : 58
 
-Operator : sortby2Param
+Operator : sortbyParam
 Number   : 1
 Signature: ((stream (tuple([a1:d1, ... ,an:dn]))) ((xi1 asc/desc) ... (xij asc/desc)) int int int) -> (stream (tuple([a1:d1, ... ,an:dn])))
-Example  : query Staedte feed sortby2Param[Bev desc;16384,50,4096] head[3] count
+Example  : query Staedte feed sortbyParam[Bev desc;16384,50,4096] head[3] count
 Result   : 3
 
 
