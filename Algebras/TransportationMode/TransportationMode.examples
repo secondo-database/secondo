@@ -153,3 +153,21 @@ Number   : 2
 Signature: rel1 x rel2 -> (stream(((x1 t1) ... (xn tn)))
 Example  : query get_dg_edge(tri_reg_new_sort,regnodes) count;
 Result   : 1
+
+Operator : getvnode
+Number   : 2
+Signature: dualgraph x rel1 x rel2 -> (stream(((x1 t1) ... (xn tn)))
+Example  : query getvnode(dg1, query_loc1, tri_reg_new_sort,vgnodes) count;
+Result   : 1
+
+Operator : myinside
+Number   : 2
+Signature: line x region -> bool
+Example  : query l2 myinside r2;
+Result   : TRUE
+
+Operator : getadjnode
+Number   : 2
+Signature: dualgraph x int -> (stream(((x1 t1) ... (xn tn)))
+Example  : query getadjnode(dg1,1) count;
+Result   : 3

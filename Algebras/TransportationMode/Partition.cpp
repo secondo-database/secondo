@@ -2268,7 +2268,95 @@ bool MyRegIntersects(const Region* reg1, const Region* reg2)
 
   return false;
 
+}
 
+/*
+It checks wheter the region contains the halfsegment.
+for the intersection point which is not the endpoint of the halfsegment, it
+should also check the middle point.
+
+*/
+bool RegContainHS(Region* r, HalfSegment hs)
+{
+  BBox<2> bbox = r->BoundingBox();
+
+  if( !hs.GetLeftPoint().Inside(bbox) ||
+      !hs.GetRightPoint().Inside(bbox) )
+    return false;
+
+  if( !r->Contains(hs.GetLeftPoint()) ||
+      !r->Contains(hs.GetRightPoint()) )
+    return false;
+
+  HalfSegment auxhs;
+  bool checkMidPoint = false;
+
+  vector<Point> intersection_points;
+
+  //now we know that both endpoints of hs is inside region
+  for( int i = 0; i < r->Size(); i++ ){
+    r->Get(i, auxhs);
+    if( auxhs.IsLeftDomPoint() ){
+      if( hs.Crosses(auxhs) )
+        return false;
+      else if( hs.Inside(auxhs) )
+       //hs is part of the border
+        return true;
+      else if( hs.Intersects(auxhs)){
+              if(auxhs.Contains(hs.GetLeftPoint()) ||
+                  auxhs.Contains(hs.GetRightPoint()))
+                    checkMidPoint = true;
+              else{ //the intersection point that is not the endpoint
+                  Point temp_p;
+                  assert(hs.Intersection(auxhs,temp_p));
+                  intersection_points.push_back(temp_p);
+              }
+      }
+    }
+  }
+
+  if( checkMidPoint )
+  {
+    Point midp( true,
+                ( hs.GetLeftPoint().GetX() + hs.GetRightPoint().GetX() ) / 2,
+                ( hs.GetLeftPoint().GetY() + hs.GetRightPoint().GetY() ) / 2 );
+    if( !r->Contains( midp ) )
+      return false;
+  }
+  for(unsigned int i = 0;i < intersection_points.size();i++){
+      //cout<<intersection_points.size()<<endl;
+      Point p = intersection_points[i];
+      double x1 = (hs.GetLeftPoint().GetX() + p.GetX())/2;
+      double y1 = (hs.GetLeftPoint().GetY() + p.GetY())/2;
+      double x2 = (hs.GetRightPoint().GetX() + p.GetX())/2;
+      double y2 = (hs.GetRightPoint().GetY() + p.GetY())/2;
+      Point midp1(true, x1, y1);
+      Point midp2(true, x2, y2);
+      if(!r->Contains(midp1)) return false;
+      if(!r->Contains(midp2)) return false;
+  }
+  return true;
+}
+
+/*
+it checks whether a line is inside a region
+
+*/
+bool MyInside(Line* l, Region* r)
+{
+  if(l->IsEmpty()) return false;
+  if(r->IsEmpty()) return false;
+  if(!r->BoundingBox().Contains(l->BoundingBox()))
+    return false;
+  assert(l->IsOrdered());
+  assert(r->IsOrdered());
+  for(int i = 0;i < l->Size();i++){
+    HalfSegment hs;
+    l->Get(i, hs);
+    if(!hs.IsLeftDomPoint()) continue;
+    if(!RegContainHS(r, hs)) return false;
+  }
+  return true;
 }
 
 

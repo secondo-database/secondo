@@ -583,8 +583,8 @@ void MyIntersection(const Line& l1, const Line& l2, Line& result);
 void MyUnion(const Region& reg1, const Region& reg2, Region& result);
 bool MyRegIntersects(const Region* reg1, const Region* reg2);
 bool MyHSIntersects(const HalfSegment* hs1, const HalfSegment* hs2);
-
-
+bool MyInside(Line*,Region*);
+bool RegContainHS(Region* r, HalfSegment hs);
 
 /*
 for storing line or sline in such a way:

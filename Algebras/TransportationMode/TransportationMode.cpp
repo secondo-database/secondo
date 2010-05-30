@@ -294,6 +294,34 @@ const string OpTMGetDGEdgeSpec  =
     "<text>get the edge relation for the dual graph on the triangles</text--->"
     "<text>query get_dg_edge(rel1,rel2) count; </text--->"
     ") )";
+const string OpTMGetVNodeSpec  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+    "\"Example\" ) "
+    "( <text>dualgraph x rel1 x rel2 x rel3->"
+    "(stream (tuple( (x1 t1)(x2 t2)...(xn tn)))</text--->"
+    "<text>getvnode(dualgraph, rel1, rel2, rel3, rect)</text--->"
+    "<text>for a given point, it finds all its visible nodes</text--->"
+    "<text>query getvnode(dg1, query_loc1, tri_reg_new_sort, vgnodes) count; "
+    "</text--->) )";
+
+const string OpTMMyInsideSpec  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+    "\"Example\" ) "
+    "( <text>line x region -> bool</text--->"
+    "<text>line myinside region</text--->"
+    "<text>checks whether a line is completely inside a region</text--->"
+    "<text>query l2 myinside r2; </text--->"
+    ") )";
+
+const string OpTMGetAdjNodeSpec  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+    "\"Example\" ) "
+    "( <text>dualgraph x int"
+    "(stream (tuple( (x1 t1)(x2 t2)...(xn tn)))</text--->"
+    "<text>getadjnode(dualgraph,int)</text--->"
+    "<text>for a given node, find its adjacent nodes</text--->"
+    "<text>query getadjnode(dg1,1); </text--->"
+    ") )";
 ////////////////TypeMap function for operators//////////////////////////////
 
 /*
@@ -1220,10 +1248,12 @@ ListExpr OpTMGenerateWPTypeMap ( ListExpr args )
                 nl->TwoElemList(
 
                   nl->SymbolAtom("tuple"),
-                      nl->TwoElemList(
+                      nl->ThreeElemList(
                         nl->TwoElemList(nl->SymbolAtom("oid"),
                                     nl->SymbolAtom("int")),
-                        nl->TwoElemList(nl->SymbolAtom("loc"),
+                        nl->TwoElemList(nl->SymbolAtom("loc1"),
+                                    nl->SymbolAtom("point")),
+                        nl->TwoElemList(nl->SymbolAtom("loc2"),
                                     nl->SymbolAtom("point"))
                   )
                 )
@@ -1485,7 +1515,118 @@ ListExpr OpTMGetDgEdgeTypeMap ( ListExpr args )
                 )
           );
   return result;
+}
 
+/*
+TypeMap fun for operator getvnode
+
+*/
+
+ListExpr OpTMGetVNodeTypeMap ( ListExpr args )
+{
+  if ( nl->ListLength ( args ) != 4 )
+  {
+    return  nl->SymbolAtom ( "typeerror" );
+  }
+  ListExpr arg1 = nl->First(args);
+  ListExpr arg2 = nl->Second(args);
+  ListExpr arg3 = nl->Third(args);
+  ListExpr arg4 = nl->Fourth(args);
+
+
+  ListExpr xType1;
+  nl->ReadFromString(DualGraph::QueryTypeInfo, xType1);
+  if(!CompareSchemas(arg2, xType1))return nl->SymbolAtom ( "typeerror" );
+
+  ListExpr xType2;
+  nl->ReadFromString(DualGraph::TriangleTypeInfo3, xType2);
+  if(!CompareSchemas(arg3, xType2))return nl->SymbolAtom ( "typeerror" );
+
+  ListExpr xType3;
+  nl->ReadFromString(VisualGraph::NodeTypeInfo, xType3);
+  if(!CompareSchemas(arg4, xType3))return nl->SymbolAtom ( "typeerror" );
+
+  if(nl->IsAtom(arg1) && nl->AtomType(arg1) == SymbolType &&
+     nl->SymbolValue(arg1) == "dualgraph"){
+
+    ListExpr result = nl->TwoElemList(
+             nl->SymbolAtom("stream"),
+               nl->TwoElemList(
+                 nl->SymbolAtom("tuple"),
+                     nl->ThreeElemList(
+                       nl->TwoElemList(nl->SymbolAtom("oid"),
+                                   nl->SymbolAtom("int")),
+                       nl->TwoElemList(nl->SymbolAtom("loc"),
+                                    nl->SymbolAtom("point")),
+                       nl->TwoElemList(nl->SymbolAtom("connection"),
+                                    nl->SymbolAtom("line"))
+                  )
+                )
+          );
+    return result;
+  }
+  return  nl->SymbolAtom ( "typeerror" );
+}
+
+/*
+TypeMap fun for operator myinside
+
+*/
+
+ListExpr OpTMMyInsideTypeMap ( ListExpr args )
+{
+  if ( nl->ListLength ( args ) != 2 )
+  {
+    return  nl->SymbolAtom ( "typeerror" );
+  }
+  ListExpr arg1 = nl->First(args);
+  ListExpr arg2 = nl->Second(args);
+
+
+  if(nl->IsAtom(arg1) && nl->AtomType(arg1) == SymbolType &&
+     nl->SymbolValue(arg1) == "line" &&
+     nl->IsAtom(arg2) && nl->AtomType(arg2) == SymbolType &&
+     nl->SymbolValue(arg2) == "region"){
+    return  nl->SymbolAtom ( "bool" );
+  }
+  return  nl->SymbolAtom ( "typeerror" );
+}
+
+/*
+TypeMap fun for operator getadjnode
+
+*/
+
+ListExpr OpTMGetAdjNodeTypeMap ( ListExpr args )
+{
+  if ( nl->ListLength ( args ) != 2 )
+  {
+    return  nl->SymbolAtom ( "typeerror" );
+  }
+  ListExpr arg1 = nl->First(args);
+  ListExpr arg2 = nl->Second(args);
+
+
+  if(nl->IsAtom(arg1) && nl->AtomType(arg1) == SymbolType &&
+     nl->SymbolValue(arg1) == "dualgraph" &&
+     nl->IsAtom(arg2) && nl->AtomType(arg2) == SymbolType &&
+     nl->SymbolValue(arg2) == "int"){
+
+      ListExpr result = nl->TwoElemList(
+             nl->SymbolAtom("stream"),
+               nl->TwoElemList(
+                 nl->SymbolAtom("tuple"),
+                     nl->TwoElemList(
+                       nl->TwoElemList(nl->SymbolAtom("oid"),
+                                   nl->SymbolAtom("int")),
+                       nl->TwoElemList(nl->SymbolAtom("pavement"),
+                                    nl->SymbolAtom("region"))
+                  )
+                )
+          );
+    return result;
+  }
+  return  nl->SymbolAtom ( "typeerror" );
 }
 //////////////////////////////////////////////////////////////////////////
 static int GeoSpathSelect(ListExpr args)
@@ -2549,7 +2690,8 @@ int OpTMGenerateWPValueMap ( Word* args, Word& result, int message,
 
           Tuple* tuple = new Tuple(wsp->resulttype);
           tuple->PutAttribute(0,new CcInt(true, wsp->oids[wsp->count]));
-          tuple->PutAttribute(1, new Point(wsp->q_loc[wsp->count]));
+          tuple->PutAttribute(1, new Point(wsp->q_loc1[wsp->count]));
+          tuple->PutAttribute(2, new Point(wsp->q_loc2[wsp->count]));
           result.setAddr(tuple);
           wsp->count++;
           return YIELD;
@@ -2587,7 +2729,7 @@ int OpTMVGEdgeValueMap ( Word* args, Word& result, int message,
         int attr_pos2 = ((CcInt*)args[6].addr)->GetIntval() - 1;
         DualGraph* dg = (DualGraph*)args[3].addr;
         Region* reg = (Region*)args[4].addr;
-        vg = new VGraph(dg, r);
+        vg = new VGraph(dg, r, NULL, NULL);
         vg->resulttype =
             new TupleType(nl->Second(GetTupleResultType(in_pSupplier)));
         vg->GetVGEdge(attr_pos1, attr_pos2, reg);
@@ -2874,6 +3016,125 @@ int OpTMGetDGEdgeValueMap ( Word* args, Word& result, int message,
   return 0;
 
 }
+
+/*
+find all visible nodes for a given point
+
+*/
+
+int OpTMGetVNodeValueMap ( Word* args, Word& result, int message,
+                         Word& local, Supplier in_pSupplier )
+{
+  VGraph* vg;
+  switch(message){
+      case OPEN:{
+
+        DualGraph* dg = (DualGraph*)args[0].addr;
+        Relation* r1 = (Relation*)args[1].addr;
+        Relation* r2 = (Relation*)args[2].addr;
+        Relation* r3 = (Relation*)args[3].addr;
+
+        vg = new VGraph(dg, r1, r2, r3);
+        vg->resulttype =
+            new TupleType(nl->Second(GetTupleResultType(in_pSupplier)));
+        vg->GetVNode();
+        local.setAddr(vg);
+        return 0;
+      }
+      case REQUEST:{
+          if(local.addr == NULL) return CANCEL;
+          vg = (VGraph*)local.addr;
+          if(vg->count == vg->oids1.size())
+                          return CANCEL;
+
+          Tuple* tuple = new Tuple(vg->resulttype);
+          tuple->PutAttribute(0, new CcInt(true, vg->oids1[vg->count]));
+          tuple->PutAttribute(1, new Point(vg->p_list[vg->count]));
+          tuple->PutAttribute(2, new Line(vg->line[vg->count]));
+          result.setAddr(tuple);
+          vg->count++;
+          return YIELD;
+      }
+      case CLOSE:{
+          if(local.addr){
+            vg = (VGraph*)local.addr;
+            delete vg;
+            local.setAddr(Address(0));
+          }
+          return 0;
+      }
+  }
+  return 0;
+
+}
+
+/*
+operator myinside, it checks whether a line is completely inside a region
+
+*/
+
+int OpTMMyInsideValueMap ( Word* args, Word& result, int message,
+                         Word& local, Supplier in_pSupplier )
+{
+  result = qp->ResultStorage(in_pSupplier);
+  Line* line = (Line*)args[0].addr;
+  Region* reg = (Region*)args[1].addr;
+  if(line->IsDefined() && reg->IsDefined()){
+    ((CcBool*)result.addr)->Set(true, MyInside(line, reg));
+  }else
+    ((CcBool*)result.addr)->SetDefined(false);
+
+  return 0;
+}
+
+/*
+for a given node, find all its adjacent nodes
+
+*/
+
+int OpTMGetAdjNodeValueMap ( Word* args, Word& result, int message,
+                         Word& local, Supplier in_pSupplier )
+{
+
+  VGraph* vg;
+  switch(message){
+      case OPEN:{
+
+        DualGraph* dg = (DualGraph*)args[0].addr;
+        int oid = ((CcInt*)args[1].addr)->GetIntval();
+
+        vg = new VGraph(dg, NULL, NULL, NULL);
+        vg->resulttype =
+            new TupleType(nl->Second(GetTupleResultType(in_pSupplier)));
+        vg->GetAdjNode(oid);
+        local.setAddr(vg);
+        return 0;
+      }
+      case REQUEST:{
+          if(local.addr == NULL) return CANCEL;
+          vg = (VGraph*)local.addr;
+          if(vg->count == vg->oids1.size())
+                          return CANCEL;
+
+          Tuple* tuple = new Tuple(vg->resulttype);
+          tuple->PutAttribute(0, new CcInt(true, vg->oids1[vg->count]));
+          tuple->PutAttribute(1, new Region(vg->regs[vg->count]));
+          result.setAddr(tuple);
+          vg->count++;
+          return YIELD;
+      }
+      case CLOSE:{
+          if(local.addr){
+            vg = (VGraph*)local.addr;
+            delete vg;
+            local.setAddr(Address(0));
+          }
+          return 0;
+      }
+  }
+  return 0;
+
+}
 ////////////////Operator Constructor///////////////////////////////////////
 Operator checksline(
     "checksline",               // name
@@ -3096,6 +3357,29 @@ Operator get_dg_edge(
     OpTMGetDgEdgeTypeMap
 );
 
+Operator getvnode(
+    "getvnode",
+    OpTMGetVNodeSpec,
+    OpTMGetVNodeValueMap,
+    Operator::SimpleSelect,
+    OpTMGetVNodeTypeMap
+);
+
+Operator myinside(
+    "myinside",
+    OpTMMyInsideSpec,
+    OpTMMyInsideValueMap,
+    Operator::SimpleSelect,
+    OpTMMyInsideTypeMap
+);
+
+Operator getadjnode(
+    "getadjnode",
+    OpTMGetAdjNodeSpec,
+    OpTMGetAdjNodeValueMap,
+    Operator::SimpleSelect,
+    OpTMGetAdjNodeTypeMap
+);
 
 /*
 Main Class for Transportation Mode
@@ -3131,13 +3415,16 @@ class TransportationModeAlgebra : public Algebra
     AddOperator(&generate_wp);
     ///////////////////visibility graph///////////////////////////////
     AddOperator(&vgedge);
-//    AddOperator(&getvnode);
+    AddOperator(&getvnode);
+    AddOperator(&myinside);
+
     ///////////////////dual graph/////////////////////////////////////
     AddOperator(&zval);
     AddOperator(&zcurve);
     AddOperator(&regvertex);
     AddOperator(&triangulation_new);
     AddOperator(&get_dg_edge);
+    AddOperator(&getadjnode);
   }
   ~TransportationModeAlgebra() {};
  private:

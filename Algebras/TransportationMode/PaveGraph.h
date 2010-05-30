@@ -85,7 +85,7 @@ struct CompTriangle{
   void PolygonContourPoint(unsigned int no_cyc, int no_p_contour[],
                            vector<double>&, vector<double>&);
   void NewTriangulation();
-  bool InsideTriangle(float Ax, float Ay,
+  inline bool InsideTriangle(float Ax, float Ay,
                       float Bx, float By,
                       float Cx, float Cy,
                       float Px, float Py);
@@ -158,13 +158,14 @@ public:
     /*schema for edge and node*/
     enum DGNodeTypeInfo{OID = 0, RID, PAVEMENT};
     enum DGEdgeTypeInfo{OIDFIRST = 0, OIDSECOND, COMMAREA};
-    enum DGQueryTypeInfo{QOID = 0, QLOC};
+    enum DGQueryTypeInfo{QOID = 0, QLOC1, QLOC2}; //relative, absolute position
 
     /////////////for triangle ///////////////////////
     static string TriangleTypeInfo1;
     static string TriangleTypeInfo2;
+    static string TriangleTypeInfo3;
     enum Tri1TypeInfo{V1 = 0, V2,V3,CENTROID,TOID};
-    enum Trie2TypeInfo{CYCLENO = 0, VERTEX};
+    enum Tri2TypeInfo{CYCLENO = 0, VERTEX};
     ////////////constructor and deconstructor///////////////////////
     ~DualGraph();
     DualGraph();
@@ -198,6 +199,15 @@ public:
 
 };
 
+class VisualGraph: public BaseGraph{
+public:
+  static string NodeTypeInfo;
+  static string EdgeTypeInfo;
+  enum VGNodeTypeInfo{OID = 0, LOC};
+  enum VGEdgeTypeInfo{OIDFIRST = 0,OIDSECOND};
+
+};
+
 struct Walk_SP{
   const DualGraph* dg;
   const Relation* rel1;
@@ -207,7 +217,8 @@ struct Walk_SP{
   Line* walk_sp;
   vector<Region> walkregs;
   vector<int> oids;
-  vector<Point> q_loc;
+  vector<Point> q_loc1;
+  vector<Point> q_loc2;
   Walk_SP();
   ~Walk_SP();
   Walk_SP(const DualGraph* g, const Relation* r1, const Relation* r2);
@@ -229,20 +240,72 @@ struct PairPoint{
   }
 };
 
+struct Clamp{
+  Point apex;
+  Point foot1;
+  Point foot2;
+  double angle;
+  Clamp(){}
+  Clamp(Point& p1, Point& p2, Point& p3):apex(p1),foot1(p2),foot2(p3)
+  {
+
+      double b = apex.Distance(foot1);
+      double c = apex.Distance(foot2);
+      double a = foot1.Distance(foot2);
+      assert(AlmostEqual(b*c,0.0) == false);
+      double value = (b*b+c*c-a*a)/(2*b*c);
+
+      if(AlmostEqual(value,-1.0)) value = -1;
+      if(AlmostEqual(value,1.0)) value = 1;
+      angle = acos(value);
+//      cout<<"angle "<<angle<<" degree "<<angle*180.0/pi<<endl;
+      assert(0.0 <= angle && angle <= 3.1416);
+  }
+
+  Clamp(const Clamp& clamp):apex(clamp.apex),
+                            foot1(clamp.foot1),foot2(clamp.foot2),
+                            angle(clamp.angle){}
+  Clamp& operator=(const Clamp& clamp)
+  {
+    apex = clamp.apex;
+    foot1 = clamp.foot1;
+    foot2 = clamp.foot2;
+    angle = clamp.angle;
+    return *this;
+  }
+  void Print()
+  {
+    cout<<"apex "<<apex<<" foot1 "<<foot1<<" foot2 "<<foot2<<endl;
+  }
+};
+
 struct VGraph{
   DualGraph* dg;
-  Relation* rel;
+  Relation* rel1;
+  Relation* rel2;
+  Relation* rel3;
   unsigned int count;
   TupleType* resulttype;
   vector<int> oids1;
   vector<PairPoint> vpp;
   vector<int> oids2;
-
+  vector<Point> p_list;
   vector<Line> line;
+  vector<Region> regs;
   VGraph();
   ~VGraph();
-  VGraph(DualGraph* g, Relation* r);
+  VGraph(DualGraph* g, Relation* r1, Relation* r2, Relation* r3);
   void GetVGEdge(int attr_pos1, int attr_pos2, Region*);
+  void GetVNode();
+  void GetAdjNode(int oid);
+  void GetVisibleNode(int tri_id, Point* query_p);
+  bool CheckVisibility1(Clamp& clamp, Point& checkp, int vp);
+  bool CheckVisibility2(Clamp& clamp, Point& checkp1, Point& checkp2);
+  void DFTraverse(int id, Clamp& clamp, int pre_id, int type,
+                  vector<int> reg_id_list);
+  bool PathContainHS(vector<int> tri_list, HalfSegment hs);
+  bool GetIntersectionPoint(Point& p1,Point& p2,Clamp& clamp, Point& ip,bool);
+
 };
 
 /*
@@ -285,6 +348,8 @@ struct Triangle{
   int c1, c2, c3;
   int neighbor_no;//maximum 3
   Triangle(){}
+  Triangle(int n1, int n2, int n3):oid(0),v1(n1),v2(n2),v3(n3),
+                                   c1(0),c2(0),c3(0),neighbor_no(0){}
   Triangle(int id, int n1, int n2, int n3, int cyc1, int cyc2, int cyc3):
   oid(id),v1(n1),v2(n2),v3(n3),c1(cyc1),c2(cyc2),c3(cyc3),neighbor_no(0)
   {

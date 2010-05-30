@@ -673,7 +673,7 @@ float CompTriangle::Area(const vector<Point>& contour)
   If P equals to A, B or C, it returns true
 
 */
-bool CompTriangle::InsideTriangle(float Ax, float Ay,
+inline bool CompTriangle::InsideTriangle(float Ax, float Ay,
                       float Bx, float By,
                       float Cx, float Cy,
                       float Px, float Py)
@@ -2517,12 +2517,13 @@ string DualGraph::NodeTypeInfo =
 string DualGraph::EdgeTypeInfo =
   "(rel(tuple((oid1 int)(oid2 int)(commarea line))))";
 string DualGraph::QueryTypeInfo =
-  "(rel(tuple((oid int)(loc point))))";
+  "(rel(tuple((oid int)(loc1 point)(loc2 point))))";
 string DualGraph::TriangleTypeInfo1 =
   "(rel(tuple((v1 int)(v2 int)(v3 int)(centroid point)(oid int))))";
 string DualGraph::TriangleTypeInfo2 =
   "(rel(tuple((cycleno int)(vertex point))))";
-
+string DualGraph::TriangleTypeInfo3 =
+  "(rel(tuple((v1 int)(v2 int)(v3 int)(centroid point))))";
 
 ListExpr DualGraph::OutDualGraph(ListExpr typeInfo, Word value)
 {
@@ -2868,20 +2869,16 @@ void DualGraph::WalkShortestPath(int oid1, int oid2, Point loc1, Point loc2,
   ////////////////point must be located inside the polygon//////////
   Tuple* tuple1 = node_rel->GetTuple(oid1, false);
   Region* reg1 = (Region*)tuple1->GetAttribute(PAVEMENT);
-  BBox<2> bbox1 = reg1->BoundingBox();
-  Point start_loc;
-  start_loc.Set(loc1.GetX() + bbox1.MinD(0), loc1.GetY() + bbox1.MinD(1));
-  if(start_loc.Inside(*reg1) == false){
+
+  if(loc1.Inside(*reg1) == false){
     tuple1->DeleteIfAllowed();
     cout<<"point1 is not inside the polygon"<<endl;
     return;
   }
   Tuple* tuple2 = node_rel->GetTuple(oid2, false);
   Region* reg2 = (Region*)tuple2->GetAttribute(PAVEMENT);
-  BBox<2> bbox2 = reg2->BoundingBox();
-  Point end_loc;
-  end_loc.Set(loc2.GetX() + bbox2.MinD(0), loc2.GetY() + bbox2.MinD(1));
-  if(end_loc.Inside(*reg2) == false){
+
+  if(loc2.Inside(*reg2) == false){
     tuple1->DeleteIfAllowed();
     tuple2->DeleteIfAllowed();
     cout<<"point2 is not inside the polygon"<<endl;
@@ -2990,10 +2987,10 @@ void Walk_SP::WalkShortestPath()
   }
   Tuple* t1 = rel1->GetTuple(1, false);
   int oid1 = ((CcInt*)t1->GetAttribute(DualGraph::QOID))->GetIntval();
-  Point* loc1 = new Point(*((Point*)t1->GetAttribute(DualGraph::QLOC)));
+  Point* loc1 = new Point(*((Point*)t1->GetAttribute(DualGraph::QLOC2)));
   Tuple* t2 = rel2->GetTuple(1, false);
   int oid2 = ((CcInt*)t2->GetAttribute(DualGraph::QOID))->GetIntval();
-  Point* loc2 = new Point(*((Point*)t2->GetAttribute(DualGraph::QLOC)));
+  Point* loc2 = new Point(*((Point*)t2->GetAttribute(DualGraph::QLOC2)));
   cout<<"pave1 "<<oid1<<" pave2 "<<oid2<<endl;
   cout<<"loc1 "<<*loc1<<" loc2 "<<*loc2<<endl;
   int no_node_graph = const_cast<DualGraph*>(dg)->No_Of_Node();
@@ -3042,7 +3039,8 @@ void Walk_SP::GenerateData(int no_p)
       int xx = (int)(bbox.MaxD(0) - bbox.MinD(0)) + 1;
       int yy = (int)(bbox.MaxD(1) - bbox.MinD(1)) + 1;
 //      cout<<"xx "<<xx<<" yy "<<yy<<endl;
-      Point p;
+      Point p1;
+      Point p2;
       bool inside = false;
       while(inside == false){
         int x = mrand48()% (xx*100);
@@ -3052,27 +3050,35 @@ void Walk_SP::GenerateData(int no_p)
         double coord_y = y/100.0;
         Coord x_cord = coord_x + bbox.MinD(0);
         Coord y_cord = coord_y + bbox.MinD(1);
-        p.Set(x_cord, y_cord);
-        inside = p.Inside(*reg);
-        p.Set(coord_x, coord_y); //set back to relative position
+        p2.Set(x_cord, y_cord);
+        inside = p2.Inside(*reg);
+        p1.Set(coord_x, coord_y); //set back to relative position
       }
       oids.push_back(m);
-      q_loc.push_back(p);
+      q_loc1.push_back(p1);
+      q_loc2.push_back(p2);
       tuple->DeleteIfAllowed();
   }
 }
 
 
+string VisualGraph::NodeTypeInfo =
+  "(rel(tuple((oid int)(loc point))))";
+string VisualGraph::EdgeTypeInfo =
+  "(rel(tuple((oid1 int)(oid2 int))))";
+
+
 VGraph::VGraph()
 {
   dg = NULL;
-  rel = NULL;
+  rel1 = NULL;
+  rel2 = NULL;
+  rel3 = NULL;
   count = 0;
-
   resulttype = NULL;
 }
-VGraph::VGraph(DualGraph* g, Relation* r):dg(g),
-rel(r), count(0), resulttype(NULL)
+VGraph::VGraph(DualGraph* g, Relation* r1, Relation* r2, Relation* r3):dg(g),
+rel1(r1), rel2(r2), rel3(r3), count(0), resulttype(NULL)
 {
 
 }
@@ -3081,7 +3087,26 @@ VGraph:: ~VGraph()
 {
   if(resulttype != NULL) delete resulttype;
 }
+/*
+get all adjacent nodes for a given node
 
+*/
+
+void VGraph::GetAdjNode(int oid)
+{
+    vector<int> adj_list;
+    dg->FindAdj(oid, adj_list);
+    for(unsigned int i = 0;i < adj_list.size();i++){
+
+      Tuple* node_tuple = dg->GetNodeRel()->GetTuple(adj_list[i], false);
+      CcInt* tri_id = (CcInt*)node_tuple->GetAttribute(DualGraph::OID);
+      Region* reg = (Region*)node_tuple->GetAttribute(DualGraph::PAVEMENT);
+      oids1.push_back(tri_id->GetIntval());
+      regs.push_back(*reg);
+      node_tuple->DeleteIfAllowed();
+
+    }
+}
 /*
 create the edge relation for the visibility graph
 
@@ -3091,6 +3116,694 @@ void VGraph::GetVGEdge(int attr_pos1, int attr_pos2, Region* all_reg)
 
 
 }
+
+/*
+it checks whether vertex (vp) is inside the clamp structure constructed by
+vertex and two points endp1, endp2
+
+*/
+bool VGraph::CheckVisibility1(Clamp& clamp, Point& checkp, int vp)
+{
+    cout<<"CheckVisibility1()"<<endl;
+    clamp.Print();
+    cout<<"checkp " <<checkp<<endl;
+
+    bool visibility;
+    SpacePartition* sp = new SpacePartition();
+
+    double angle1 = sp->GetAngle(clamp.apex, clamp.foot1, checkp);
+    double angle2 = sp->GetAngle(clamp.apex, checkp, clamp.foot2);
+
+    if(AlmostEqual(angle1, 0.0)){
+        double d1 = clamp.apex.Distance(checkp);
+        double d2 = clamp.apex.Distance(clamp.foot1);
+        assert(d1 > d2);
+        delete sp;
+        return false;
+    }
+    if(AlmostEqual(angle2, 0.0)){
+        double d1 = clamp.apex.Distance(checkp);
+        double d2 = clamp.apex.Distance(clamp.foot2);
+        assert(d1 > d2);
+        delete sp;
+        return false;
+    }
+
+    if(AlmostEqual(clamp.angle, angle1 + angle2))
+      visibility = true;
+    else
+      visibility = false;
+
+    delete sp;
+    return visibility;
+}
+/*
+Get the intersection point between halfsegment (p1,p2) and
+radial p3->p4, store the results in ip
+if it has, returns true, otherwise returns false
+
+*/
+
+bool VGraph::GetIntersectionPoint(Point& p1, Point& p2,
+                                 Clamp& clamp, Point& ip, bool flag)
+{
+  Point p3;
+  Point p4;
+  if(flag){
+      p3 = clamp.apex;
+      p4 = clamp.foot1;
+  }else{
+      p3 = clamp.apex;
+      p4 = clamp.foot2;
+  }
+
+  Coord x, y;
+  //get the intersection point
+  if(AlmostEqual(p1.GetX(), p2.GetX())){
+    if(AlmostEqual(p3.GetX(), p4.GetX())) return false; //parallel
+
+    double a = (p3.GetY() - p4.GetY())/(p3.GetX() - p4.GetX());
+    double b = p3.GetY() - a*p3.GetX();
+    x = p1.GetX();
+    y = a*x + b;
+  }else if(AlmostEqual(p1.GetY(), p2.GetY())){
+    if(AlmostEqual(p3.GetY(), p4.GetY())) return false; //parallel
+    if(AlmostEqual(p3.GetX(), p4.GetX())){
+      x = p3.GetX();
+      y = p1.GetY();
+    }else{
+      double a = (p3.GetY() - p4.GetY())/(p3.GetX() - p4.GetX());
+      double b = p3.GetY() - a*p3.GetX();
+      y = p1.GetY();
+      x = (y - b)/a;
+    }
+  }else{
+      double a1 = (p1.GetY() - p2.GetY())/(p1.GetX() - p2.GetX());
+      double b1 = p1.GetY() - a1*p1.GetX();
+
+      double a2 = (p3.GetY() - p4.GetY())/(p3.GetX() - p4.GetX());
+      double b2 = p3.GetY() - a2*p3.GetX();
+
+      if(AlmostEqual(a1, a2)) return false;//parallel
+      x = (b2-b1)/(a1-a2);
+      y = a1*x + b1;
+  }
+  ip.Set(x, y);
+  //check whether it is available
+  HalfSegment hs;
+  hs.Set(true,p1,p2);
+  if(hs.Contains(ip)){
+    if(AlmostEqual(p3.GetX(), p4.GetX())){
+        if(p3.GetY() < p4.GetY()){
+            if(AlmostEqual(y, p3.GetY()) || y > p3.GetY()) return true;
+              else
+                return false;
+        }else{
+            if(AlmostEqual(y, p3.GetY()) || y < p3.GetY()) return true;
+              else
+                return false;
+        }
+    }else{
+        if(p3.GetX() < p4.GetX()){
+          if(x > p3.GetX() || AlmostEqual(x, p3.GetX())) return true;
+          else
+            return false;
+        }else{
+          if(x < p3.GetX() || AlmostEqual(x, p3.GetX())) return true;
+          else
+            return false;
+        }
+    }
+  }else
+    return false;
+}
+
+/*
+it checks whether the segment(checkp1, checkp2) is inside the clamp structure
+Different from CheckVisibility1, now if checkp is on the line (apex,foot1) or
+(apex, foot2), it might also return false
+
+*/
+
+bool VGraph::CheckVisibility2(Clamp& clamp, Point& checkp1, Point& checkp2)
+{
+    cout<<"CheckVisibility2()"<<endl;
+    //checkp1 is outside clamp
+    //it checks whether seg(checkp1,checkp2) is outside clamp
+    bool visibility;
+    //get the intersection point between seg and clamp
+    vector<Point> intersection_points;
+
+    Point p1;
+    if(GetIntersectionPoint(checkp1, checkp2, clamp, p1, true))
+        intersection_points.push_back(p1);
+    Point p2;
+    if(GetIntersectionPoint(checkp1, checkp2, clamp, p2, false))
+        intersection_points.push_back(p2);
+
+    //the number of intersection point
+    //0  return false
+    //1  if intersection point is not checkp2, return true, otherwise false
+    //2  return true
+    if(intersection_points.size() == 0) visibility = false;
+    if(intersection_points.size() == 2) visibility = true;
+    if(intersection_points.size() == 1){
+        if(!AlmostEqual(checkp2, intersection_points[0])) visibility = true;
+        else
+          visibility = false;
+        assert(!AlmostEqual(checkp1, intersection_points[0]));
+    }
+
+    return visibility;
+}
+
+struct HSNode{
+  HalfSegment hs;
+  HSNode* next;
+  HSNode(){next=NULL;}
+  HSNode(HalfSegment& seg,HSNode* pointer):hs(seg),next(pointer){}
+};
+
+/*
+check whether the halfsegment is inside the triangle region
+
+1) it can't use the method that first union all triangles and
+region.contain(line). because it doesn't work for some very small triangles
+(edges are very close to each other). it reports redundant segments.
+2) it can't use the method that it compares the length of the intersection
+line between (hs and all triangle regions). because if the point is very close
+to the triangle edge. it can't create a segment (the length is very small)
+
+*/
+bool VGraph::PathContainHS(vector<int> tri_list, HalfSegment hs)
+{
+  cout<<"PathContainHS() "<<"HS "<<hs<<endl;
+  double len1 = hs.Length();
+  Line* l = new Line(0);
+  l->StartBulkLoad();
+  hs.attr.edgeno = 0;
+  *l += hs;
+  hs.SetLeftDomPoint(!hs.IsLeftDomPoint());
+  *l += hs;
+  l->EndBulkLoad();
+  double len2 = 0.0;
+  for(unsigned int i = 0;i < tri_list.size();i++){
+    cout<<"tri id "<<tri_list[i]<<endl;
+    Tuple* tri = dg->GetNodeRel()->GetTuple(tri_list[i], false);
+    Region* reg = (Region*)tri->GetAttribute(DualGraph::PAVEMENT);
+    Line* inter_l = new Line(0);
+    l->Intersection(*reg,*inter_l);//it has numeric problem
+    if(inter_l->Size() > 0){
+      cout<<"inter_l length "<<inter_l->Length()<<endl;
+      len2 += inter_l->Length();
+    }
+    delete inter_l;
+    tri->DeleteIfAllowed();
+  }
+  delete l;
+  cout<<"len1 "<<len1<<" len2 "<<len2<<endl;
+  if(AlmostEqual(len1, len2)) return true;
+  return false;
+
+/*  HSNode* head = new HSNode();
+  HSNode* prev = head;
+  HSNode* cur = prev->next;
+
+
+  Tuple* tri = dg->GetNodeRel()->GetTuple(tri_list[0], false);
+  Region* reg = (Region*)tri->GetAttribute(DualGraph::PAVEMENT);
+  for(int i = 0;i < reg->Size();i++){
+      HalfSegment hs;
+      reg->Get(i, hs);
+      if(!hs.IsLeftDomPoint()) continue;
+      HSNode* hsnode = new HSNode(hs,NULL);
+      cur = hsnode;
+      prev->next = cur;
+      prev = cur;
+      cur = cur->next;
+  }
+  tri->DeleteIfAllowed();
+
+
+  for(unsigned int i = 1;i < tri_list.size();i++){
+    tri = dg->GetNodeRel()->GetTuple(tri_list[i], false);
+    reg = (Region*)tri->GetAttribute(DualGraph::PAVEMENT);
+    for(int j = 0;j < reg->Size();j++){
+      HalfSegment hs;
+      reg->Get(j, hs);
+      if(!hs.IsLeftDomPoint())continue;
+      prev = head;
+      cur = prev->next;
+      Point lp1 = hs.GetLeftPoint();
+      Point rp1 = hs.GetRightPoint();
+      bool insert = true;
+      while(cur != NULL && insert){//to find all block segments
+        Point lp2 = cur->hs.GetLeftPoint();
+        Point rp2 = cur->hs.GetRightPoint();
+        if((AlmostEqual(lp1,lp2) && AlmostEqual(rp1, rp2))||
+           (AlmostEqual(lp1,rp2) && AlmostEqual(rp1, lp2))){ //delete it
+          HSNode* temp = cur;
+          cur = cur->next;
+          prev->next = cur;
+          delete temp;
+          insert = false;
+        }else{
+          prev = cur;
+          cur = cur->next;
+        }
+      }
+      if(insert){ //insert the halfsegment
+          assert(cur == NULL);
+          HSNode* node = new HSNode(hs, NULL);
+          cur = node;
+          prev->next = cur;
+      }
+    }
+    tri->DeleteIfAllowed();
+  }
+
+  bool cross = false;
+  prev = head;
+  cur = prev->next;
+
+  while(cur != NULL){
+      cout<<"cur hs "<<cur->hs<<endl;
+      if(cross == false)
+        cross = cur->hs.Crosses(hs);
+      cout<<"cross "<<cur->hs.Crosses(hs)<<endl;
+      HSNode* node = prev;
+      prev = cur;
+      cur = cur->next;
+      delete node;
+  }
+
+  return !cross; */
+}
+
+/*
+Depth first searching on the dual graph to find all visible vertices
+
+*/
+void VGraph::DFTraverse(int tri_id, Clamp& clamp, int pre_id, int type1,
+                        vector<int> reg_id_list)
+{
+    cout<<"DFTraverse()"<<endl;
+    cout<<"tri_id "<<tri_id<<" pre_id "<<pre_id<<" type "<<type1<<endl;
+    clamp.Print();
+    vector<int> adj_list;
+    dg->FindAdj(tri_id, adj_list);
+
+    //get the vertex
+    Tuple* tri_tuple = rel2->GetTuple(tri_id, false);
+    int v1 =((CcInt*)tri_tuple->GetAttribute(DualGraph::V1))->GetIntval();
+    int v2 =((CcInt*)tri_tuple->GetAttribute(DualGraph::V2))->GetIntval();
+    int v3 =((CcInt*)tri_tuple->GetAttribute(DualGraph::V3))->GetIntval();
+    tri_tuple->DeleteIfAllowed();
+    Triangle tri1(v1, v2, v3);
+    cout<<"adj_list size "<<adj_list.size()<<endl;
+    for(unsigned int i = 0;i < adj_list.size();i++){
+      cout<<" adj_list DF "<<adj_list[i]<<" i "<<i<<endl;
+      if(adj_list[i] == pre_id) continue;
+      tri_tuple = rel2->GetTuple(adj_list[i], false);
+      int ver1 =((CcInt*)tri_tuple->GetAttribute(DualGraph::V1))->GetIntval();
+      int ver2 =((CcInt*)tri_tuple->GetAttribute(DualGraph::V2))->GetIntval();
+      int ver3 =((CcInt*)tri_tuple->GetAttribute(DualGraph::V3))->GetIntval();
+      tri_tuple->DeleteIfAllowed();
+      ///////////////////////////////////////////////////////////////////////
+      Tuple* loc_tuple1 = rel3->GetTuple(ver1, false);
+      Point* p1 = (Point*)loc_tuple1->GetAttribute(VisualGraph::LOC);
+      Point foot1(*p1);
+      loc_tuple1->DeleteIfAllowed();
+      Tuple* loc_tuple2 = rel3->GetTuple(ver2, false);
+      Point* p2 = (Point*)loc_tuple2->GetAttribute(VisualGraph::LOC);
+      Point foot2(*p2);
+      loc_tuple2->DeleteIfAllowed();
+      Tuple* loc_tuple3 = rel3->GetTuple(ver3, false);
+      Point* p3 = (Point*)loc_tuple3->GetAttribute(VisualGraph::LOC);
+      Point foot3(*p3);
+      loc_tuple3->DeleteIfAllowed();
+      ///////////////////////////////////////////////////////////////////////
+      Triangle tri2(ver1, ver2, ver3);
+      int sharetype1 = tri2.ShareEdge(tri1);
+      int sharetype2 = tri1.ShareEdge(tri2);
+      cout<<"sharetype1 "<<sharetype1<<" sharetype2 "<<sharetype2<<endl;
+      if(type1 != 4){
+        if(sharetype2 != type1) continue;
+      }
+      ///////////////////////////////////////////////////////////////////////
+      cout<<"triangle path ";
+      for(unsigned int j = 0;j < reg_id_list.size();j++){
+        cout<<reg_id_list[j]<<" ";
+      }
+      cout<<endl;
+      //////////////////////////////////////////////////////////////////////
+      bool visibility;
+      switch(sharetype1){
+        case 1:
+                cout<<"case1"<<endl;
+                reg_id_list.push_back(adj_list[i]);
+                visibility = CheckVisibility1(clamp, foot3, ver3);
+                if(visibility){
+                  cout<<"visibility"<<endl;
+                  HalfSegment hs;
+                  hs.Set(true, clamp.apex, foot3);
+                  if(PathContainHS(reg_id_list, hs)){//split the clamp into 2
+                      cout<<"Contain"<<endl;
+                      oids1.push_back(ver3);
+                      p_list.push_back(foot3);
+                      Point ip;
+
+                      Clamp clamp1(clamp.apex, foot3, clamp.foot1);
+                      if(GetIntersectionPoint(foot3,foot1,clamp1,ip,false))
+                        DFTraverse(adj_list[i], clamp1, tri_id, 2, reg_id_list);
+                      if(GetIntersectionPoint(foot3,foot2,clamp1,ip,false))
+                        DFTraverse(adj_list[i], clamp1, tri_id, 3, reg_id_list);
+
+                      Clamp clamp2(clamp.apex, foot3, clamp.foot2);
+                      if(GetIntersectionPoint(foot3,foot1,clamp2,ip,false))
+                        DFTraverse(adj_list[i], clamp2, tri_id, 2, reg_id_list);
+                      if(GetIntersectionPoint(foot3,foot2,clamp2,ip,false))
+                        DFTraverse(adj_list[i], clamp2, tri_id, 3, reg_id_list);
+
+                  }else{
+                      DFTraverse(adj_list[i], clamp, tri_id, 4,reg_id_list);//4
+                  }
+                }else{
+                      if(CheckVisibility2(clamp, foot3, foot1)){
+                        DFTraverse(adj_list[i], clamp, tri_id, 2, reg_id_list);
+                      }
+                      if(CheckVisibility2(clamp, foot3, foot2)){
+                        DFTraverse(adj_list[i], clamp, tri_id, 3, reg_id_list);
+                      }
+                }
+              break;
+        case 2:
+                cout<<"case2"<<endl;
+                reg_id_list.push_back(adj_list[i]);
+                visibility = CheckVisibility1(clamp, foot2, ver2);
+                if(visibility){
+                    cout<<"visibility"<<endl;
+                    HalfSegment hs;
+                    hs.Set(true, clamp.apex, foot2);
+
+                    if(PathContainHS(reg_id_list, hs)){//split the clamp into 2
+                        cout<<"Contain"<<endl;
+                        oids1.push_back(ver2);
+                        p_list.push_back(foot2);
+                        Point ip;
+
+                        Clamp clamp1(clamp.apex, foot2, clamp.foot1);
+                        if(GetIntersectionPoint(foot2,foot1,clamp1,ip,false))
+                        DFTraverse(adj_list[i], clamp1, tri_id, 1, reg_id_list);
+                        if(GetIntersectionPoint(foot2,foot3,clamp1,ip,false))
+                        DFTraverse(adj_list[i], clamp1, tri_id, 3, reg_id_list);
+
+
+                        Clamp clamp2(clamp.apex, foot2, clamp.foot2);
+                        if(GetIntersectionPoint(foot2,foot1,clamp2,ip,false))
+                        DFTraverse(adj_list[i], clamp2, tri_id, 1, reg_id_list);
+                        if(GetIntersectionPoint(foot2,foot3,clamp2,ip,false))
+                        DFTraverse(adj_list[i], clamp2, tri_id, 3, reg_id_list);
+
+                    }else{
+                        DFTraverse(adj_list[i], clamp, tri_id, 4, reg_id_list);
+                    }
+                }else{
+                    if(CheckVisibility2(clamp, foot2, foot1)){
+                        DFTraverse(adj_list[i], clamp, tri_id, 1, reg_id_list);
+                    }
+
+                    if(CheckVisibility2(clamp, foot2, foot3)){
+                        DFTraverse(adj_list[i], clamp, tri_id, 3, reg_id_list);
+                    }
+                }
+              break;
+        case 3:
+                cout<<"case3"<<endl;
+                reg_id_list.push_back(adj_list[i]);
+                visibility = CheckVisibility1(clamp, foot1, ver1);
+
+                if(visibility){
+                    cout<<"visibility"<<endl;
+                    HalfSegment hs;
+                    hs.Set(true, clamp.apex, foot1);
+
+                    if(PathContainHS(reg_id_list, hs)){//split the clamp into 2
+                      cout<<"Contain"<<endl;
+                      oids1.push_back(ver1);
+                      p_list.push_back(foot1);
+                      Point ip;
+                      Clamp clamp1(clamp.apex, foot1, clamp.foot2);
+                      if(GetIntersectionPoint(foot1,foot2,clamp1,ip,false))
+                      DFTraverse(adj_list[i], clamp1, tri_id, 1, reg_id_list);
+                      if(GetIntersectionPoint(foot1,foot3,clamp1,ip,false))
+                      DFTraverse(adj_list[i], clamp1, tri_id, 2, reg_id_list);
+
+
+                      Clamp clamp2(clamp.apex, foot1, clamp.foot1);
+                      if(GetIntersectionPoint(foot1,foot2,clamp2,ip,false))
+                        DFTraverse(adj_list[i], clamp2, tri_id, 1, reg_id_list);
+                      if(GetIntersectionPoint(foot1,foot3,clamp2,ip,false))
+                        DFTraverse(adj_list[i], clamp2, tri_id, 2, reg_id_list);
+                    }else{
+                      DFTraverse(adj_list[i], clamp, tri_id, 4, reg_id_list);
+                    }
+                }else{
+
+                  if(CheckVisibility2(clamp, foot1, foot2)){
+                      DFTraverse(adj_list[i], clamp, tri_id, 1, reg_id_list);
+                  }
+
+                  if(CheckVisibility2(clamp, foot1, foot3)){
+                      DFTraverse(adj_list[i], clamp, tri_id, 2, reg_id_list);
+                  }
+
+                }
+              break;
+        default: assert(false);
+      }
+      cout<<"out of switch"<<endl;
+    }
+    cout<<"finish loop"<<endl;
+
+}
+
+/*
+find all visible nodes for query_p
+
+*/
+
+
+void VGraph::GetVisibleNode(int tri_id, Point* query_p)
+{
+
+  cout<<"GetVisibleNode() "<<"tri_id "<<tri_id<<endl;
+
+  vector<int> reg_id_list;
+  reg_id_list.push_back(tri_id);
+
+
+  vector<int> adj_list;
+  dg->FindAdj(tri_id, adj_list);
+  assert(oids1.size() == 3);
+  int v1 = oids1[0];
+  int v2 = oids1[1];
+  int v3 = oids1[2];
+  Triangle tri1(v1, v2, v3);
+  for(unsigned int i = 0;i < adj_list.size();i++){
+    cout<<"adj_list GVN "<<adj_list[i]<<endl;
+    Tuple* tri_tuple = rel2->GetTuple(adj_list[i], false);
+    int ver1 =((CcInt*)tri_tuple->GetAttribute(DualGraph::V1))->GetIntval();
+    int ver2 =((CcInt*)tri_tuple->GetAttribute(DualGraph::V2))->GetIntval();
+    int ver3 =((CcInt*)tri_tuple->GetAttribute(DualGraph::V3))->GetIntval();
+    tri_tuple->DeleteIfAllowed();
+
+    ///////////////////////////////////////////////////////////////////////
+    Tuple* loc_tuple1 = rel3->GetTuple(ver1, false);
+    Point* p1 = (Point*)loc_tuple1->GetAttribute(VisualGraph::LOC);
+    Point foot1(*p1);
+    loc_tuple1->DeleteIfAllowed();
+    Tuple* loc_tuple2 = rel3->GetTuple(ver2, false);
+    Point* p2 = (Point*)loc_tuple2->GetAttribute(VisualGraph::LOC);
+    Point foot2(*p2);
+    loc_tuple2->DeleteIfAllowed();
+    Tuple* loc_tuple3 = rel3->GetTuple(ver3, false);
+    Point* p3 = (Point*)loc_tuple3->GetAttribute(VisualGraph::LOC);
+    Point foot3(*p3);
+    loc_tuple3->DeleteIfAllowed();
+    ///////////////////////////////////////////////////////////////////////
+    Triangle tri2(ver1, ver2, ver3);
+    int sharetype = tri2.ShareEdge(tri1);
+    Clamp clamp12(*query_p, foot1, foot2);
+    Clamp clamp13(*query_p, foot1, foot3);
+    Clamp clamp23(*query_p, foot2, foot3);
+
+    //DFTraverse(adj_list[i], clamp1, tri_id,0);
+    //1. triangle to be expanded 2. clamp 3. previous triangle
+    //4. edge can't be expanded
+    bool visibility;
+    switch(sharetype){
+      case 1:
+
+                cout<<"case1"<<endl;
+                reg_id_list.push_back(adj_list[i]);
+                visibility = CheckVisibility1(clamp12, foot3, ver3);
+                if(visibility){
+                    cout<<"visibility"<<endl;
+                    HalfSegment hs;
+                    hs.Set(true, clamp12.apex, foot3);
+
+                    if(PathContainHS(reg_id_list,hs)){//split the clamp into 2
+                        cout<<"Contain"<<endl;
+                         //insert the point into the result;
+                        oids1.push_back(ver3);
+                        p_list.push_back(foot3);
+                        //split the clamp
+                        Clamp clamp1(*query_p, clamp12.foot1, foot3);
+                        DFTraverse(adj_list[i], clamp1, tri_id, 2, reg_id_list);
+                        Clamp clamp2(*query_p, foot3, clamp12.foot2);
+                        DFTraverse(adj_list[i], clamp2, tri_id, 3, reg_id_list);
+                    }else{
+                        DFTraverse(adj_list[i], clamp12, tri_id, 4,reg_id_list);
+                    }
+                }else{
+                      if(CheckVisibility2(clamp12, foot3, foot1)){
+                        DFTraverse(adj_list[i], clamp12, tri_id, 2,reg_id_list);
+                      }
+
+                      if(CheckVisibility2(clamp12, foot3, foot2)){
+                        DFTraverse(adj_list[i], clamp12, tri_id, 3,reg_id_list);
+                      }
+                }
+              break;
+      case 2:
+                cout<<"case2"<<endl;
+                reg_id_list.push_back(adj_list[i]);
+                visibility = CheckVisibility1(clamp13, foot2, ver2);
+                if(visibility){
+                    cout<<"visibility"<<endl;
+                    HalfSegment hs;
+                    hs.Set(true, clamp13.apex, foot2);
+
+                   if(PathContainHS(reg_id_list, hs)){//split the clamp into 2
+                      cout<<"Contain"<<endl;
+                      oids1.push_back(ver2);
+                      p_list.push_back(foot2);
+                      Clamp clamp1(*query_p, clamp13.foot1, foot2);
+                      DFTraverse(adj_list[i], clamp1, tri_id,  1, reg_id_list);
+                      Clamp clamp2(*query_p, foot2, clamp13.foot2);
+                      DFTraverse(adj_list[i], clamp2, tri_id,  3, reg_id_list);
+                   }else{
+                      DFTraverse(adj_list[i], clamp13, tri_id, 4, reg_id_list);
+                    }
+                }else{
+
+                  if(CheckVisibility2(clamp13, foot2, foot1)){
+                    DFTraverse(adj_list[i], clamp13, tri_id, 1, reg_id_list);
+                  }
+
+                  if(CheckVisibility2(clamp13, foot2, foot3)){
+                    DFTraverse(adj_list[i], clamp13, tri_id, 3, reg_id_list);
+                  }
+
+                }
+              break;
+      case 3:
+                cout<<"case3"<<endl;
+                reg_id_list.push_back(adj_list[i]);
+                visibility = CheckVisibility1(clamp23, foot1, ver1);
+                if(visibility){
+                    cout<<"visibility"<<endl;
+                    HalfSegment hs;
+                    hs.Set(true, clamp23.apex, foot1);
+
+                    if(PathContainHS(reg_id_list, hs)){//split the clamp into 2
+                      cout<<"Contain"<<endl;
+                      oids1.push_back(ver1);
+                      p_list.push_back(foot1);
+                      Clamp clamp1(*query_p, clamp23.foot2, foot1);
+                      DFTraverse(adj_list[i], clamp1, tri_id,  1, reg_id_list);
+                      Clamp clamp2(*query_p, foot1, clamp23.foot1);
+                      DFTraverse(adj_list[i], clamp2, tri_id,  2, reg_id_list);
+                    }else{
+                      DFTraverse(adj_list[i], clamp23, tri_id, 4, reg_id_list);
+                    }
+                }else{
+                  if(CheckVisibility2(clamp23, foot1, foot2)){
+                      DFTraverse(adj_list[i], clamp23, tri_id, 1, reg_id_list);
+                  }
+
+                  if(CheckVisibility2(clamp23, foot1, foot3)){
+                      DFTraverse(adj_list[i], clamp23, tri_id, 2, reg_id_list);
+                  }
+                }
+                break;
+      default: assert(false);
+    }
+  }
+
+}
+
+/*
+for a given point, find all its visible nodes
+connect the point to the dual graph node
+rel1--query location relation
+rel2--triangle relation v1 int v2 int v3 int
+rel3--vertex relation (oid int) (loc point)
+
+*/
+void VGraph::GetVNode()
+{
+  if(rel1->GetNoTuples() < 1){
+    cout<<"query relation is empty"<<endl;
+    return;
+  }
+  Tuple* query_tuple = rel1->GetTuple(1, false);
+  int query_oid =
+          ((CcInt*)query_tuple->GetAttribute(DualGraph::QOID))->GetIntval();
+  Point* query_p =
+          new Point(*((Point*)query_tuple->GetAttribute(DualGraph::QLOC2)));
+  query_tuple->DeleteIfAllowed();
+  cout<<"query oid "<<query_oid<<endl;
+
+  /////////three vertices of the triangle////////////////////////
+  Tuple* tri_tuple1 = rel2->GetTuple(query_oid, false);
+  int v1 =((CcInt*)tri_tuple1->GetAttribute(DualGraph::V1))->GetIntval();
+  int v2 =((CcInt*)tri_tuple1->GetAttribute(DualGraph::V2))->GetIntval();
+  int v3 =((CcInt*)tri_tuple1->GetAttribute(DualGraph::V3))->GetIntval();
+//  cout<<v1<<" "<<v2<<" "<<v3<<endl;
+  tri_tuple1->DeleteIfAllowed();
+  oids1.push_back(v1);
+  oids1.push_back(v2);
+  oids1.push_back(v3);
+
+
+  for(unsigned int i = 0;i < oids1.size();i++){
+    Tuple* loc_tuple = rel3->GetTuple(oids1[i], false);
+    Point* p = (Point*)loc_tuple->GetAttribute(VisualGraph::LOC);
+    p_list.push_back(*p);
+    loc_tuple->DeleteIfAllowed();
+  }
+  ////////////searching in the dual graph to find all visible vertices/////////
+  GetVisibleNode(query_oid, query_p);
+
+  /////////connect the start and end point to the visible graph /////////////
+  for(unsigned int i = 0;i < p_list.size();i++){
+      Line* l =  new Line(0);
+      l->StartBulkLoad();
+      HalfSegment hs;
+      hs.Set(true, p_list[i], *query_p);
+      hs.attr.edgeno = 0;
+      *l += hs;
+      hs.SetLeftDomPoint(!hs.IsLeftDomPoint());
+      *l += hs;
+      l->EndBulkLoad();
+      line.push_back(*l);
+      delete l;
+  }
+  delete query_p;
+}
+
 
 /*
 create a relation for the vertices of the region with the cycleno
@@ -3309,6 +4022,9 @@ void SetNeighbor(Triangle& tri, vector<int>& no_points_cycles,
 /*
 get the dual graph edge relation. if two triangles have the same edge, an edge
 in dual graph is created. Each node corresponds to a triangle.
+1. number the vertex. order them by z-order
+2. use a list
+3. find the neighbor by the number of vertex instead of intersection detecting
 
 */
 void RegVertex::GetDGEdge()
@@ -3465,3 +4181,4 @@ void RegVertex::GetDGEdge()
   delete head;
 
 }
+

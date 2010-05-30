@@ -41,3 +41,6 @@ operator zcurve alias ZCURVE pattern op(_,_)
 operator regvertex alias REGVERTEX pattern op(_)
 operator triangulation_new  alias TRIANGULATION_NEW pattern op(_)
 operator get_dg_edge alias GET_DG_EDGE pattern op(_,_)
+operator getvnode alias GETVNODE pattern op(_,_,_,_)
+operator myinside alias MYINSIDE pattern _ infixop _
+operator getadjnode alias GETADJNODE pattern op(_,_)
