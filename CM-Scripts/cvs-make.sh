@@ -47,7 +47,7 @@ opt_logRoot="/var/tmp/cvs-make"
 
 opt_waitMax=900
 opt_tarFile="none"
-opt_tarMail="spieker@bassi"
+opt_tarMail="spieker@bassi behr@bassi jandt@bassi"
 
 opt_runTests="yes"
 opt_mkStable="yes"
@@ -56,8 +56,8 @@ opt_earlyExit="no"
 # options for automatic mails  
 LU_SENDMAIL="true"
 LU_SENDMAIL_FROM="spieker@bassi"
-failedBuild_DefaultRecipients="spieker@bassi behr@bassi duentgen@bassi"
-newTarFile_MailRecipients="spieker@bassi"
+failedBuild_DefaultRecipients="spieker@bassi behr@bassi duentgen@bassi jandt@bassi"
+newTarFile_MailRecipients="spieker@bassi jandt@bassi"
 
 LU_LOG_SCREEN="true"
 
@@ -523,6 +523,7 @@ checkCmd "cvs -Q checkout -d $opt_coDir -P $opt_coModule"
 else
 cd $opt_rootDir/$opt_coDir
 checkCmd "tar -xzf $opt_tarFile"
+checkCmd "rm $opt_tarFile"
 fi	
 
 if [ "$opt_earlyExit" == "yes" ]; then

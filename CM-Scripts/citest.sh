@@ -12,6 +12,60 @@
 # a subdirectory CVS will be created. All files passed by the cvs client
 # for a commit are copied (creating subdirectories if necessary). 
 
+# compare directories or names with
+# 
+
+function metaUser {
+return 0
+#  if [ "$1" = "duentgen" ]; then
+#    return 0	  
+#  fi
+#  if [ "$1" = "spieker" ]; then
+#    return 0	  
+#  fi
+#  if [ "$1" = "behr" ]; then
+#    return 0	  
+#  fi
+#  return 1  
+}
+
+
+function checkPath {
+
+  if [ "$1" == "$2" ]; then
+    echo -e "\n ERROR: check in forbidden!"
+    echo -e "\n Reason: complex re-design and re-implementation task of FLOBs."
+    echo -e "\n Closed file or path: $1 \n"
+    exit 1
+  fi
+}
+
+#echo "Args = $*"
+#echo "CVS_USER = $CVS_USER"
+argPath=$1
+shift
+argFiles=$*
+cvsh="/home/cvsroot/secondo"
+
+# check special file names for
+# unprivileged users
+metaUser "$CVS_USER"
+if [ $? -ne 0 ]; then
+
+echo -e "\n\n *** Sorry, but committing files to CVS is currently not allowed for user $CVS_USER! *** \n\n"
+#checkPath $argPath $cvsh/Algebras/Relation-C++
+#checkPath $argPath $cvsh/StorageManager
+#
+#for f in $argFiles; do
+#  checkPath $f FLOB.h
+#  checkPath $f FLOBCache.h
+#  checkPath $f Attribute.h
+#  checkPath $f Tuple.h
+#  checkPath $f DBArray.h
+#done
+
+fi
+
 prefix="/home/spieker/cvs-snapshot"
 
 pdDir="$prefix/Tools/pd"
@@ -38,7 +92,7 @@ for f in $files; do
   echo -e "  $f\n"
 done
 
-checksize.sh 51200000 $files
+checksize.sh 712000 $files
 rc=$?
 if [ $rc -ne 0 ]; then
   exit $rc;
