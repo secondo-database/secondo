@@ -546,7 +546,6 @@ The ~y~ coordinate.
 
 */
 ostream& operator<<( ostream& o, const Point& p );
-ostream& operator<<( ostream& o, const Point& p );
 
 // for finding insert position and sorting the DBArray:
 int PointCompare( const void *a, const void *b );
