@@ -102,6 +102,16 @@ const double day2min= 1440;
 /*
 3 Classes
 
+*/
+
+class IntSet;
+class USerRef;
+class MSet;
+class CompressedInMemUSet;
+class CompressedInMemMSet;
+class InMemUSet;
+class InMemMSet;
+/*
 3.1 The IntSet Class
 
 */
@@ -198,9 +208,9 @@ Constructors and the destructor
   USetRef(bool def):isdefined(def){}
   ~USetRef(){}
   USetRef(const int s, const int e, const Interval<Instant> &i)
-    :timeInterval(i), start(s), end(e), isdefined(true) {}
+    :start(s), end(e), isdefined(true),timeInterval(i) {}
   USetRef(const int s, const int e, const Interval<Instant> &i, const bool def)
-    :timeInterval(i), start(s), end(e), isdefined(def) {}
+    :start(s), end(e), isdefined(def), timeInterval(i) {}
   
 /*
 Calss member functions
@@ -348,6 +358,8 @@ public:
   void LiftedUnion2(MSet& arg);
   void LiftedCount(MInt& res);
   void MBool2MSet(MBool& mb, int elem);
+  bool operator ==(MSet& rhs);
+  bool operator !=(MSet& rhs);
   void Clear();
   void AtPeriods( const Periods& periods, MSet& result ) const;
   inline MSet* Clone() const;
@@ -483,10 +495,12 @@ public:
     }
     Instant tmp(instanttype);
     tmp.ReadFrom(starttime/day2min);
-    os<< "("; tmp.Print(os);
+    char c= (lc)? '[' : '(';
+    os<< c ; tmp.Print(os);
     tmp.ReadFrom(endtime/day2min);
     os<< "\t"; tmp.Print(os);
-    os << "\t"<< lc << "\t" << rc <<")  {";
+    c= (rc)? ']' : ')';
+    os << c <<  " {";
 //    for(it=constValue.begin(); it != constValue.end(); ++it)
 //    {
 //      os<<(*it);
@@ -975,7 +989,7 @@ public:
 //    typedef pair<double, list<InMemUSet>::iterator > inst;
     map<int, inst> elems;
     map<int, inst>::iterator elemsIt;
-    bool changed=false, firstIteration= true;
+    bool changed=false;
 //    if(debugme)
 //      Print(cerr);
     
@@ -987,6 +1001,12 @@ public:
       {
         (*cur).Print(cerr);
         (*end).Print(cerr);
+      }
+      if(debugme)
+      {
+        MSet tmp1(0);
+        WriteToMSet(tmp1);
+        tmp1.Print(cerr);
       }
 /*
 IF the period length is less than d, remove all units within the period
@@ -1598,6 +1618,980 @@ ELSE remove short parts of elements as follows:
 };
 
 
+class CompressedInMemUSet
+{
+public:
+ 
+  CompressedInMemUSet():count(0){}
+  void Erase(int victim)
+  {
+    it= added.find(victim);
+    if(it != added.end())
+      added.erase(it);
+    else
+      removed.insert(victim);
+  }
+  void Insert(int elem)
+  {
+    it= removed.find(elem);
+    if(it != removed.end())
+      removed.erase(it);
+    else
+      added.insert(elem);
+  }
+  ostream& Print( ostream &os ) 
+  {
+    char l= (lc)? '[' : '(';
+    char r= (rc)? ']' : ')';
+    Instant i1(instanttype), i2(instanttype);
+    i1.ReadFrom(starttime/day2min);
+    i2.ReadFrom(endtime/day2min); 
+    os<< endl<< l<< i1<< "\t"<< i2<< r<< "\tCount= "<< count;
+    return os;
+  }
+  
+  double starttime, endtime;
+  bool lc, rc;
+  set<int> added;
+  set<int> removed;
+  set<int>::iterator it;
+  unsigned int count;
+};
+
+class CompressedInMemMSet
+{
+private:
+  enum EventType{openstart=0, closedstart=1, openend=2, closedend=3};
+  struct Event
+  {
+    Event(int _obj, EventType _type): obj(_obj), type(_type){}
+    int obj;
+    EventType type;
+  };
+//  struct EventInstant
+//  {
+//    EventInstant(double _t, byte _side): t(_t), side(_side) {}
+//    double t;  // time instant
+//  byte side; //-1 for approach from right, 0 for at, 1 for approach from left
+//  };
+//  struct classcomp {
+//    bool operator() (const EventInstant& lhs, const EventInstant& rhs) const
+//    {return  (lhs.t < rhs.t) || ((lhs.t < rhs.t) && (lhs.side < rhs.side)) ;}
+//  };
+
+public:
+  
+  CompressedInMemMSet(){}
+  CompressedInMemMSet(CompressedInMemMSet& arg, 
+      list<CompressedInMemUSet>::iterator begin,
+      list<CompressedInMemUSet>::iterator end)
+      {
+        CopyFrom(arg, begin, end);
+      }
+  
+  int GetNoComponents()
+  {
+    return units.size();
+  }
+  void CopyFrom(CompressedInMemMSet& arg, 
+      list<CompressedInMemUSet>::iterator begin,
+      list<CompressedInMemUSet>::iterator end)
+  {
+    bool debugme= false;
+    Clear();
+    set<int> accumlator;
+    for(arg.it= arg.units.begin(); arg.it != begin; ++arg.it)
+    {
+      accumlator.insert((*arg.it).added.begin(), (*arg.it).added.end());
+      for(set<int>::iterator i= (*arg.it).removed.begin();
+        i!=(*arg.it).removed.end(); ++i)
+      {
+        int cnt= accumlator.erase(*i);
+        assert(cnt > 0);
+      }
+    }
+    
+    if(debugme)
+    {
+      int tmp= accumlator.size();
+      cerr << endl<<tmp;
+    }
+    
+    CompressedInMemUSet first= *begin;
+    first.added.insert(accumlator.begin(), accumlator.end());
+    units.push_back(first);
+    arg.it= begin;
+    ++arg.it;
+    for(; arg.it != end; ++arg.it)
+      units.push_back(*arg.it);
+    units.push_back(*end);
+  }
+  void Clear()
+  {
+    buffer.clear();
+    units.clear();
+  }
+  void GetSet(list<CompressedInMemUSet>::iterator index, set<int>& res)
+  {
+    res.clear();
+    if(index == units.end()) return;
+    list<CompressedInMemUSet>::iterator i= units.begin();
+    for(; i!= index; ++i)
+    {
+      res.insert( (*i).added.begin(), (*i).added.end() );
+      for(set<int>::iterator elem= (*i).removed.begin(); 
+        elem != (*i).removed.end(); ++elem)
+        res.erase(*elem);
+    }
+    res.insert( (*index).added.begin(), (*index).added.end() );
+    for(set<int>::iterator elem= (*index).removed.begin(); 
+      elem != (*index).removed.end(); ++elem)
+      res.erase(*elem);
+  }
+  void WriteToMSet(MSet& res)
+  {
+    set<int> constValue;
+    if(units.begin() == units.end())
+    {
+      res.SetDefined(false);
+      return;
+    }
+    
+    res.Clear();
+    res.SetDefined(true);
+    for(it=units.begin(); it != units.end(); ++it)
+    {
+      USet uset(true);
+      if((*it).added.size() != 0)
+        constValue.insert((*it).added.begin(), (*it).added.end());
+      if((*it).removed.size() != 0)
+      {
+        for((*it).it= (*it).removed.begin(); 
+          (*it).it != (*it).removed.end(); ++(*it).it)
+          constValue.erase(*(*it).it);
+      }
+      WriteUSet(constValue, *it, uset);
+      res.MergeAdd(uset);
+    }
+  }
+  
+  void WriteUSet(set<int>& val, CompressedInMemUSet& source, USet& res)
+  {
+    res.constValue.Clear();
+    res.timeInterval.start.ReadFrom(source.starttime/day2min);
+    res.timeInterval.start.SetType(instanttype);
+    res.timeInterval.end.ReadFrom(source.endtime/day2min);
+    res.timeInterval.end.SetType(instanttype);
+    res.timeInterval.lc= source.lc;
+    res.timeInterval.rc= source.rc;
+    for(set<int>::iterator i= val.begin(); i != val.end(); ++i)
+      res.constValue.Insert(*i);
+    res.SetDefined(true);
+    res.constValue.SetDefined(true);
+    assert(res.IsValid());
+  }
+  
+  void WriteToMSet(MSet& res, list<CompressedInMemUSet>::iterator begin, 
+      list<CompressedInMemUSet>::iterator end)
+  {
+    if(begin == units.end())
+    {
+      res.SetDefined(false);
+      return;
+    }
+    res.Clear();
+    res.SetDefined(true);
+    set<int> constValue;
+    for(it=units.begin(); it != begin; ++it)
+    {
+      if((*it).added.size() != 0)
+        constValue.insert((*it).added.begin(), (*it).added.end());
+      if((*it).removed.size() != 0)
+      {
+        for((*it).it= (*it).removed.begin(); 
+          (*it).it != (*it).removed.end(); ++(*it).it)
+          constValue.erase(*(*it).it);
+      }
+    }
+    for(it=begin; it != end; ++it)
+    {
+      USet uset(true);
+      if((*it).added.size() != 0)
+        constValue.insert((*it).added.begin(), (*it).added.end());
+      if((*it).removed.size() != 0)
+      {
+        for((*it).it= (*it).removed.begin(); 
+          (*it).it != (*it).removed.end(); ++(*it).it)
+          constValue.erase(*(*it).it);
+      }
+      WriteUSet(constValue, *it, uset);
+      res.MergeAdd(uset);
+    }
+  }
+  
+  void WriteToInMemMSet(InMemMSet& res, 
+      list<CompressedInMemUSet>::iterator begin, 
+      list<CompressedInMemUSet>::iterator end)
+  {
+    if(begin == units.end())
+    {
+      res.Clear();
+      return;
+    }
+    res.Clear();
+    set<int> constValue;
+    for(it=units.begin(); it != begin; ++it)
+    {
+      if((*it).added.size() != 0)
+        constValue.insert((*it).added.begin(), (*it).added.end());
+      if((*it).removed.size() != 0)
+      {
+        for((*it).it= (*it).removed.begin(); 
+          (*it).it != (*it).removed.end(); ++(*it).it)
+          constValue.erase(*(*it).it);
+      }
+    }
+    for(it=begin; it != end; ++it)
+    {
+      if((*it).added.size() != 0)
+        constValue.insert((*it).added.begin(), (*it).added.end());
+      if((*it).removed.size() != 0)
+      {
+        for((*it).it= (*it).removed.begin(); 
+          (*it).it != (*it).removed.end(); ++(*it).it)
+          constValue.erase(*(*it).it);
+      }
+      InMemUSet uset(constValue, (*it).starttime, 
+                (*it).endtime, (*it).lc, (*it).rc);
+      res.units.push_back(uset);
+    }
+  }
+  
+  void WriteToInMemMSet(InMemMSet& res)
+  {
+     
+    list<CompressedInMemUSet>::iterator begin = units.begin(); 
+    list<CompressedInMemUSet>::iterator end = units.end();
+    if(begin == units.end())
+    {
+      res.Clear();
+      return;
+    }
+    res.Clear();
+    set<int> constValue;
+    
+    for(it=begin; it != end; ++it)
+    {
+      if((*it).added.size() != 0)
+        constValue.insert((*it).added.begin(), (*it).added.end());
+      if((*it).removed.size() != 0)
+      {
+        for((*it).it= (*it).removed.begin(); 
+          (*it).it != (*it).removed.end(); ++(*it).it)
+          constValue.erase(*(*it).it);
+      }
+      InMemUSet uset(constValue, (*it).starttime, 
+                (*it).endtime, (*it).lc, (*it).rc);
+      res.units.push_back(uset);
+    }
+  }
+  
+  ostream& Print( ostream &os ) 
+  {
+    if( units.size() == 0 )
+    {
+      return os << "(InMemMSet: undefined)";
+    }
+    os << "(InMemMSet: defined, contains " << units.size() << " units: ";
+    
+    set<int> constValue;
+    for(it=units.begin(); it != units.end(); ++it)
+    {
+      if((*it).added.size() != 0)
+        constValue.insert((*it).added.begin(), (*it).added.end());
+      if((*it).removed.size() != 0)
+      {
+        for((*it).it= (*it).removed.begin(); 
+          (*it).it != (*it).removed.end(); ++(*it).it)
+          constValue.erase(*(*it).it);
+      }
+      os<< "\n Set cardinality = "<< constValue.size()<<" {";
+      for(set<int>::iterator k= constValue.begin(); k != constValue.end();++k)
+        os<< *k<< ", ";
+      os<<"}";
+    }
+    os << "\n)" << endl;
+    return os;
+  }
+  list<CompressedInMemUSet>::iterator 
+    EraseUnit(list<CompressedInMemUSet>::iterator pos)
+  {
+    bool debugme= false;
+    if(pos == units.end())
+      return pos;
+    list<CompressedInMemUSet>::iterator next= pos;
+    ++next;
+    if(next == units.end())
+    {
+      next= units.erase(pos);
+      return next;
+    }
+    
+    if(debugme)
+    {
+      (*pos).Print(cerr);
+      cerr<<endl;
+      (*next).Print(cerr);
+    }
+    vector<int> common((*pos).added.size() + (*pos).removed.size()); 
+    vector<int>::iterator last;
+    last= set_intersection((*pos).added.begin(), (*pos).added.end(),
+        (*next).removed.begin(), (*next).removed.end(),
+        common.begin());
+    for(vector<int>::iterator i= common.begin(); i< last; ++i)
+    {
+      (*next).removed.erase(*i);
+      (*pos).added.erase(*i);
+    }
+    (*next).added.insert((*pos).added.begin(), (*pos).added.end());
+    
+    last= set_intersection((*pos).removed.begin(), (*pos).removed.end(),
+        (*next).added.begin(), (*next).added.end(),
+        common.begin());
+    for(vector<int>::iterator i= common.begin(); i< last; ++i)
+    {
+      (*next).added.erase(*i);
+      (*pos).removed.erase(*i);
+    } 
+    
+    (*next).removed.insert((*pos).removed.begin(), (*pos).removed.end());
+
+    if(debugme)
+    {
+      (*pos).Print(cerr);
+      cerr<<endl;
+      (*next).Print(cerr);
+    }
+    next= units.erase(pos);
+    return next;
+  }
+  
+  list<CompressedInMemUSet>::iterator 
+    EraseUnits(list<CompressedInMemUSet>::iterator start, 
+        list<CompressedInMemUSet>::iterator end)
+  {
+    if(start== units.end()) return start;
+    list<CompressedInMemUSet>::iterator pos= end;
+    --pos;
+    while(pos != start)
+    {
+      pos= EraseUnit(pos);
+      --pos;
+    }
+    pos= EraseUnit(pos);
+    return pos;
+  }
+  
+  bool RemoveSmallUnits(const unsigned int n)
+  {
+    bool debugme= false;
+    bool changed=false;
+    if(units.size()==0) return false;
+    list<CompressedInMemUSet>::iterator i= units.end();
+    --i;
+    while(i!= units.begin())
+    {
+      if(debugme) {cerr<<endl<< (*i).count;}
+      if((*i).count < n)
+      {
+        i= EraseUnit(i);
+        changed= true;
+      }
+      --i;
+      if(debugme)
+      {
+        MSet tmp1(0);
+        WriteToMSet(tmp1);
+        tmp1.Print(cerr);
+      }
+    }
+    if((*units.begin()).count < n)
+    {
+        EraseUnit(units.begin());
+        changed = true;
+    }
+    return changed;
+  }
+  
+
+  typedef pair<double, list<CompressedInMemUSet>::iterator > inst;
+  ostream& Print( map<int, inst> elems, ostream &os )
+  {
+    map<int, inst>::iterator elemsIt= elems.begin();
+    while(elemsIt != elems.end())
+    {
+      os<<(*elemsIt).first<<" ";
+      os<< "\n Set cardinality = "<< (*(*elemsIt).second.second).count<<" {";
+//   for(set<int>::iterator k= (*(*elemsIt).second.second).constValue.begin(); 
+//        k != (*(*elemsIt).second.second).constValue.end();++k)
+//        os<< *k<< ", ";
+//      os<<"}";
+//      os<<endl;
+      ++elemsIt;
+    }
+    return os;
+    
+  }
+  bool RemoveShortElemParts(const double d)
+  {
+    bool debugme= false;
+    
+    //handling special cases
+    if(units.size()==0) return false;
+    if(units.size()==1)
+    {
+      if( ( (*units.begin()).endtime - (*units.begin()).starttime) < d)
+      { 
+        units.clear(); return true;
+      }
+      else
+        return false;
+    }
+    
+    list<CompressedInMemUSet>::iterator cur= units.begin() , prev, end, tmp;
+//    typedef pair<double, list<InMemUSet>::iterator > inst;
+    map<int, inst> elems;
+    map<int, inst>::iterator elemsIt;
+    bool changed=false;
+   
+    
+    while(cur != units.end())
+    {
+      end = GetPeriodEndUnit(cur);
+      if(debugme)
+      {
+        MSet tmp(0);
+        WriteToMSet(tmp);
+        tmp.Print(cerr);
+        cerr<<"\nCur:  "; (*cur).Print(cerr);
+        cerr<<"\nEnd:  "; (*end).Print(cerr);
+      }
+
+
+/*
+IF the period length is less than d, remove all units within the period
+
+*/      
+      if(((*end).endtime - (*cur).starttime) < d)
+      {
+        ++end;
+        cur= EraseUnits(cur, end);
+        changed= true;
+        if(debugme)
+        {
+          MSet tmp(0);
+          WriteToMSet(tmp);
+          tmp.Print(cerr);
+        }   continue;
+      }
+/*
+ELSE remove short parts of elements as follows:
+ 1. Initialize a hashtable [mset element, its deftime]
+ 2. Update the deftime of every element while iterating ovet the units
+ 3. After each iteration, elements are not updated must have deftime > d, 
+    otherwise their observed part is removed from the MSet 
+
+*/
+      else
+      {
+        elems.clear();
+        //assert( (*cur).removed.size() == 0);
+        set<int> initialIdSet;
+        GetSet(cur, initialIdSet);
+        for(set<int>::iterator elem= initialIdSet.begin(); elem !=
+          initialIdSet.end(); ++elem)
+        {
+          if(debugme)
+            cerr<<endl<<*elem;
+
+          inst lt((*cur).starttime, cur);
+          elems.insert(pair<int, inst>(*elem, lt));
+        }
+        if(debugme)
+          Print(elems, cerr);
+        prev= cur; ++cur;        
+        ++end;
+        while(cur != end)
+        {
+          if(debugme)
+          {cerr<<"\nCur:  "; (*cur).Print(cerr);}
+          set<int>::iterator diffIt= (*cur).removed.begin();
+          while(diffIt != (*cur).removed.end())
+          {
+            int elemToRemove= *diffIt;
+            if(debugme)
+              cerr<< elemToRemove;
+            elemsIt= elems.find(elemToRemove);
+            assert(elemsIt != elems.end());
+            if( ((*cur).starttime - (*elemsIt).second.first) < d )
+            {
+              list<CompressedInMemUSet>::iterator unitToChange= 
+                (*elemsIt).second.second;
+              (*unitToChange).Erase(elemToRemove);
+              while(unitToChange != cur)
+              {
+                --((*unitToChange).count);
+                ++unitToChange;
+              }
+              (*cur).removed.erase(diffIt);
+              changed = true;
+            }
+            elems.erase(elemsIt);
+            ++diffIt;
+          }
+          if(debugme)
+            Print(elems, cerr);
+          
+          
+          //Add the new elements that starts to appear in the cur unit
+          diffIt= (*cur).added.begin();
+          while(diffIt != (*cur).added.end())          
+          {
+            if(debugme)
+              cerr<<endl<<*diffIt;
+            inst lt((*cur).starttime, cur);
+            elems.insert(pair<int, inst>(*diffIt, lt));
+            ++diffIt;
+          }
+          prev= cur; ++cur;
+          if(debugme)
+          {
+            Print(elems, cerr);
+            MSet tmp(0);
+            WriteToMSet(tmp);
+            tmp.Print(cerr);
+          }
+        }
+        for(elemsIt= elems.begin(); elemsIt != elems.end(); ++elemsIt)
+        {
+          if(debugme)
+          {
+            cerr<<(*elemsIt).first;
+            cerr<<endl<<((*prev).endtime - (*elemsIt).second.first);
+          }
+          if( ((*prev).endtime - (*elemsIt).second.first) < d )
+          {
+            list<CompressedInMemUSet>::iterator unitToChange= 
+              (*elemsIt).second.second;
+            //Erase from the current period
+            (*unitToChange).Erase((*elemsIt).first); 
+            while(unitToChange != cur)
+            {
+              --((*unitToChange).count);
+              ++unitToChange;
+            }
+            if(end != units.end())
+              //insert again in the following period
+              (*end).Insert((*elemsIt).first);      
+            changed = true;
+          }
+        }
+      }
+      cur=end;
+    }
+    return changed;
+  }
+  
+  list<CompressedInMemUSet>::iterator GetPeriodEndUnit(
+      list<CompressedInMemUSet>::iterator begin)
+  {
+    bool debugme= false;
+    if(begin == units.end())
+      return begin;
+ 
+    if(debugme)
+    {
+      cerr<< "\n Set cardinality = "<< (*begin).count<<" {";
+//      for(set<int>::iterator k= (*begin).constValue.begin(); 
+//        k != (*begin).constValue.end();++k)
+//        cerr<< *k<< ", ";
+      cerr<<"}";
+    }
+    
+    list<CompressedInMemUSet>::iterator end=begin;   
+    double totalLength= (*begin).endtime - (*begin).starttime, curLength=0;
+    ++end;
+    while(end != units.end())
+    {
+      curLength = (*end).endtime - (*end).starttime;
+      totalLength += curLength;
+      if(totalLength  !=  ((*end).endtime - (*begin).starttime))
+        break;
+      ++end;
+    }
+    --end;
+    return end;
+  } 
+  
+  bool GetNextTrueUnit(MBool& mbool, int& pos, UBool& unit)
+  {
+    while(pos < mbool.GetNoComponents())
+    {
+      mbool.Get(pos, unit);
+      if(unit.constValue.GetValue())
+        return true;
+      else
+        ++pos;
+    }
+    return false;
+  }
+  
+  void Buffer (MBool& arg, int key)
+  {
+    bool debugme=false;
+
+    if(arg.GetNoComponents()==0)
+      return; 
+
+    UBool ubool;
+    int cur=0;
+    double starttime, endtime;
+    bool lc, rc;
+    while(GetNextTrueUnit(arg, cur, ubool))
+    {
+      assert(ubool.IsValid());
+      starttime= ubool.timeInterval.start.ToDouble() * day2min;
+      endtime= ubool.timeInterval.end.ToDouble() * day2min;
+      lc= ubool.timeInterval.lc;
+      rc= ubool.timeInterval.rc;
+      Event entrance(key,  (lc)? closedstart: openstart);
+      Event theleave(key, (rc)? closedend: openend);
+      buffer.insert(pair<double, Event>(starttime, entrance));
+      buffer.insert(pair<double, Event>(endtime, theleave));
+      ++cur;
+    }
+  }
+  void ClassifyEvents(pair< multimap<double, Event>::iterator, 
+      multimap<double, Event>::iterator >& events, 
+      map<EventType, vector<multimap<double, Event>::iterator> >& eventClasses)
+  {
+    eventClasses.clear();
+    if(events.first == events.second) return;
+    for(multimap<double, Event>::iterator k= events.first; 
+      k != events.second; ++k)
+    {
+      if((*k).second.type == openstart)
+        eventClasses[openstart].push_back(k);
+      else if((*k).second.type == closedstart)
+        eventClasses[closedstart].push_back(k);
+      else if((*k).second.type == openend)
+        eventClasses[openend].push_back(k);
+      else if((*k).second.type == closedend)
+        eventClasses[closedend].push_back(k);
+      else
+        assert(0);
+    }
+  }
+  
+  void AddUnit(double starttime, double endtime, bool lc, bool rc, 
+      set<int>& elemsToAdd, set<int>& elemsToRemove, int elemsCount)
+  {
+    bool debugme= false;
+    if(elemsCount == 0) return;
+    CompressedInMemUSet unit;
+    unit.starttime= starttime; unit.endtime= endtime;
+    unit.lc= lc; unit.rc= rc; 
+    unit.added= elemsToAdd; unit.removed= elemsToRemove;
+    unit.count= elemsCount;
+    units.push_back(unit);
+    if(debugme)
+    {
+      char l= (unit.lc)? '[' : '(', r = (unit.rc)? ']' : ')';
+      Instant i1(instanttype),i2(instanttype);
+      i1.ReadFrom(unit.starttime/day2min);
+      i2.ReadFrom(unit.endtime/day2min);
+      cerr<<"\nAdding unit "<< l ; i1.Print(cerr); cerr<<", ";
+      i2.Print(cerr); cerr<<r<< "  count="<< unit.count;
+    }
+  }
+  
+//  void ConstructPeriodFromBuffer(
+//      multimap<EventInstant, Event, classcomp>::iterator periodStart,
+//      multimap<EventInstant, Event, classcomp>::iterator periodEnd)
+//  {
+//    initialSet.clear();
+//    units.clear();
+//    if(periodStart == periodEnd) return;
+//
+//    multimap<EventInstant, Event, classcomp>::iterator cur=periodStart;
+//    pair< EventInstant, Event, classcomp>::iterator, 
+//    multimap<EventInstant, Event, classcomp>::iterator > events;
+//    //map<EventType, vector<multimap<double, Event>::iterator> > eventClasses;
+//    //vector<multimap<double, Event>::iterator >::iterator i;
+//    EventInstant starttime, curtime, i;
+//    set<int> elemsToAdd, elemsToRemove;
+//
+//    starttime= (*cur).first;
+//    events = buffer.equal_range(starttime);
+//    assert(events.first != events.second);
+//    if(!starttime.side == 0)  //closed start 
+//    {
+//      elemsToAdd.clear();
+//      for(i= events.first; i!= events.second; ++i)
+//        elemsToAdd.insert( (*i).second.obj);
+//      elemsToRemove.clear();
+//      ++cur;
+//      starttime= (*cur).first;
+//      if(!starttime.side == 1)  //closed start 
+//      {
+//        //create a unit [starttime, starttime]
+//        AddUnit(starttime, starttime, true, true, elemsToAdd, elemsToRemove);
+//
+//        //open a unit (starttime,...
+//        elemsToAdd.clear();
+//        for(i= eventClasses[openstart].begin(); i!= 
+//          eventClasses[openstart].end(); ++i)
+//          elemsToAdd.insert((*(*i)).second.obj);
+//        lc= false;
+//      }
+//      else
+//      {
+//        //open a unit [starttime, ...
+//        lc= true;
+//      }
+//    }
+//    else
+//    {
+//      //open a unit (starttime, ...
+//      elemsToAdd.clear();
+//      for(i= eventClasses[openstart].begin(); i!= 
+//        eventClasses[openstart].end(); ++i)
+//        elemsToAdd.insert((*(*i)).second.obj);
+//      elemsToRemove.clear();
+//      lc=false;
+//    }
+//
+//    ++cur;
+//    while(cur != periodEnd)
+//    {
+//      curtime= (*cur).first;
+//      events = buffer.equal_range(curtime);
+//      assert(events.first != events.second);
+//      ClassifyEvents(events, eventClasses);
+//      if(eventClasses[closedend].empty() && eventClasses[openstart].empty())
+//      {
+//        //close unit ..., curtime)
+//        AddUnit(starttime, curtime, lc, false, elemsToAdd, elemsToRemove);
+//        //open unit [curtime, ...
+//        starttime= curtime;
+//        elemsToAdd.clear();
+//        elemsToRemove.clear();
+//        for(i= eventClasses[closedstart].begin(); i!= 
+//          eventClasses[closedstart].end(); ++i)
+//          elemsToAdd.insert((*(*i)).second.obj);
+//        for(i= eventClasses[openend].begin(); i!= 
+//          eventClasses[openend].end(); ++i)
+//          elemsToRemove.insert((*(*i)).second.obj);
+//        lc=true;
+//      }
+//      else 
+//   if (eventClasses[openend].empty() && eventClasses[closedstart].empty())
+//        {
+//          //close unit ..., curtime]
+//          AddUnit(starttime, curtime, lc, true, elemsToAdd, elemsToRemove);
+//          //open unit (curtime, ...
+//          starttime= curtime;
+//          elemsToAdd.clear();
+//          elemsToRemove.clear();
+//          for(i= eventClasses[openstart].begin(); i!= 
+//            eventClasses[openstart].end(); ++i)
+//            elemsToAdd.insert((*(*i)).second.obj);
+//          for(i= eventClasses[closedend].begin(); i!= 
+//            eventClasses[closedend].end(); ++i)
+//            elemsToRemove.insert((*(*i)).second.obj);
+//          lc=false;
+//        }
+//        else  //a mix
+//        {
+//          //close a unit ..., curtime)
+//          AddUnit(starttime, curtime, lc, false, elemsToAdd, elemsToRemove);
+//          //create a unit [curtime, curtime]
+//          elemsToAdd.clear();
+//          elemsToRemove.clear();
+//          for(i= eventClasses[closedstart].begin(); i!= 
+//            eventClasses[closedstart].end(); ++i)
+//            elemsToAdd.insert((*(*i)).second.obj);
+//          for(i= eventClasses[openend].begin(); i!= 
+//            eventClasses[openend].end(); ++i)
+//            elemsToRemove.insert((*(*i)).second.obj);
+//          AddUnit(starttime, curtime, lc, false, elemsToAdd, elemsToRemove);
+//          //open a unit (curtime, ...
+//          starttime= curtime;
+//          elemsToAdd.clear();
+//          elemsToRemove.clear();
+//          for(i= eventClasses[openstart].begin(); i!= 
+//            eventClasses[openstart].end(); ++i)
+//            elemsToAdd.insert((*(*i)).second.obj);
+//          for(i= eventClasses[closedend].begin(); i!= 
+//            eventClasses[closedend].end(); ++i)
+//            elemsToRemove.insert((*(*i)).second.obj);
+//          lc=false;
+//        }
+//      ++cur;
+//    }
+//  }
+//  
+  void ConstructPeriodFromBuffer(multimap<double, Event>::iterator periodStart,
+      multimap<double, Event>::iterator periodEnd)
+  {
+    units.clear();
+    if(periodStart == periodEnd) return;
+    
+    multimap<double, Event>::iterator cur=periodStart;
+    pair< multimap<double, Event>::iterator, 
+      multimap<double, Event>::iterator > events;
+    map<EventType, vector<multimap<double, Event>::iterator> > eventClasses;
+    vector<multimap<double, Event>::iterator >::iterator i;
+    double starttime; bool lc;
+    double curtime;
+    set<int> elemsToAdd, elemsToRemove;
+    int curElemsCount=0;
+    
+    starttime= (*cur).first;
+    events = buffer.equal_range(starttime);
+    assert(events.first != events.second);
+    ClassifyEvents(events, eventClasses);
+    assert(eventClasses[openend].empty() && eventClasses[closedend].empty());
+    if(!eventClasses[closedstart].empty())
+    {
+      elemsToAdd.clear();
+      for(i= eventClasses[closedstart].begin(); i!= 
+        eventClasses[closedstart].end(); ++i)
+        elemsToAdd.insert( (*(*i)).second.obj);
+      elemsToRemove.clear();
+      if(!eventClasses[openstart].empty())
+      {
+        //create a unit [starttime, starttime]
+        AddUnit(starttime, starttime, true, true, elemsToAdd, 
+            elemsToRemove, curElemsCount);
+        
+        //open a unit (starttime,...
+        elemsToAdd.clear();
+        for(i= eventClasses[openstart].begin(); i!= 
+          eventClasses[openstart].end(); ++i)
+          elemsToAdd.insert((*(*i)).second.obj);
+        lc= false;
+      }
+      else
+      {
+        //open a unit [starttime, ...
+        lc= true;
+      }
+      curElemsCount+= elemsToAdd.size();
+    }
+    else
+    {
+      //open a unit (starttime, ...
+      elemsToAdd.clear();
+      for(i= eventClasses[openstart].begin(); i!= 
+        eventClasses[openstart].end(); ++i)
+        elemsToAdd.insert((*(*i)).second.obj);
+      elemsToRemove.clear();
+      lc=false;
+      curElemsCount+= elemsToAdd.size();
+    }
+    for(multimap<double,Event>::iterator k=events.first; k!= events.second;++k) 
+      ++cur;
+    while(cur != periodEnd)
+    {
+      curtime= (*cur).first;
+      events = buffer.equal_range(curtime);
+      assert(events.first != events.second);
+      ClassifyEvents(events, eventClasses);
+      if(eventClasses[closedend].empty() && eventClasses[openstart].empty())
+      {
+        //close unit ..., curtime)
+        AddUnit(starttime, curtime, lc, false, elemsToAdd, 
+            elemsToRemove, curElemsCount);
+        //open unit [curtime, ...
+        starttime= curtime;
+        elemsToAdd.clear();
+        elemsToRemove.clear();
+        for(i= eventClasses[closedstart].begin(); i!= 
+          eventClasses[closedstart].end(); ++i)
+          elemsToAdd.insert((*(*i)).second.obj);
+        for(i= eventClasses[openend].begin(); i!= 
+          eventClasses[openend].end(); ++i)
+          elemsToRemove.insert((*(*i)).second.obj);
+        lc=true;
+        curElemsCount+= elemsToAdd.size() - elemsToRemove.size();
+      }
+      else 
+      if (eventClasses[openend].empty() && eventClasses[closedstart].empty())
+      {
+        //close unit ..., curtime]
+        AddUnit(starttime, curtime, lc, true, elemsToAdd, 
+            elemsToRemove, curElemsCount);
+        //open unit (curtime, ...
+        starttime= curtime;
+        elemsToAdd.clear();
+        elemsToRemove.clear();
+        for(i= eventClasses[openstart].begin(); i!= 
+          eventClasses[openstart].end(); ++i)
+          elemsToAdd.insert((*(*i)).second.obj);
+        for(i= eventClasses[closedend].begin(); i!= 
+          eventClasses[closedend].end(); ++i)
+          elemsToRemove.insert((*(*i)).second.obj);
+        lc=false;
+        curElemsCount+= elemsToAdd.size() - elemsToRemove.size();
+      }
+      else  //a mix
+      {
+        //close a unit ..., curtime)
+        AddUnit(starttime, curtime, lc, false, elemsToAdd, 
+            elemsToRemove, curElemsCount);
+        //create a unit [curtime, curtime]
+        elemsToAdd.clear();
+        elemsToRemove.clear();
+        for(i= eventClasses[closedstart].begin(); i!= 
+          eventClasses[closedstart].end(); ++i)
+          elemsToAdd.insert((*(*i)).second.obj);
+        for(i= eventClasses[openend].begin(); i!= 
+          eventClasses[openend].end(); ++i)
+          elemsToRemove.insert((*(*i)).second.obj);
+        curElemsCount+= elemsToAdd.size() - elemsToRemove.size();
+        AddUnit(curtime, curtime, true, true, elemsToAdd, 
+            elemsToRemove, curElemsCount);
+        //open a unit (curtime, ...
+        starttime= curtime;
+        elemsToAdd.clear();
+        elemsToRemove.clear();
+        for(i= eventClasses[openstart].begin(); i!= 
+          eventClasses[openstart].end(); ++i)
+          elemsToAdd.insert((*(*i)).second.obj);
+        for(i= eventClasses[closedend].begin(); i!= 
+          eventClasses[closedend].end(); ++i)
+          elemsToRemove.insert((*(*i)).second.obj);
+        lc=false;
+        curElemsCount+= elemsToAdd.size() - elemsToRemove.size();
+      }
+      for(map<double,Event>::iterator k= events.first; k!= events.second; ++k) 
+         ++cur;
+    }
+  }
+  
+  
+  void ConstructFromBuffer()
+  {   
+    ConstructPeriodFromBuffer(buffer.begin(), buffer.end());
+  }
+  
+  multimap<double, Event> buffer;
+  list<CompressedInMemUSet> units;
+  list<CompressedInMemUSet>::iterator it;
+};
+
+
 void IntSet::Insert(int elem)
 {
   int curElem, tmp;
@@ -2120,7 +3114,7 @@ ostream& MSet::Print( ostream &os ) const
   {
     USetRef unit;
     Get( i , unit );
-    os << "\n\t";
+    os << "\n\t"; 
     unit.Print(data, os);
   }
   os << "\n)" << endl;
@@ -2323,6 +3317,29 @@ void MSet::DeleteMSet( const ListExpr typeInfo, Word& w )
   delete static_cast<MSet *>(w.addr);
   w.addr = 0;
 }
+
+bool MSet::operator ==(MSet& rhs)
+{
+  return ! (*this != rhs);
+}
+bool MSet::operator !=(MSet& rhs)
+{
+  if( !this->IsDefined() || !rhs.IsDefined()) return true;
+  if(this->GetNoComponents() != rhs.GetNoComponents()) return true;
+  USetRef ref1(true), ref2(true);
+  USet unit1(true), unit2(true);
+  for(int i=0; i< this->GetNoComponents(); ++i)
+  {
+    this->Get(i, ref1);
+    rhs.Get(i, ref2);
+    ref1.GetUnit(this->data, unit1);
+    ref2.GetUnit(rhs.data, unit2);
+    if(unit1.Compare(&unit2) != 0)
+      return true;
+  }
+  return false;
+}
+
 
 void MSet::CloseMSet( const ListExpr typeInfo, Word& w )
 {
