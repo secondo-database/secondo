@@ -50,9 +50,6 @@ JAN, 2010 Mahmoud Sakr
 #include "STPatternAlgebra.h"
 #include "SpatialAlgebra.h"
 #include "MSet.h"
-#include <boost_1_42_0/boost/graph/graph_traits.hpp>
-#include <boost_1_42_0/boost/graph/adjacency_list.hpp>
-#include <boost_1_42_0/boost/graph/dijkstra_shortest_paths.hpp>
 #include <map>
 using namespace datetime;
 using namespace mset;
