@@ -133,6 +133,10 @@ extern NestedList *nl;
 extern QueryProcessor *qp;
 extern AlgebraManager *am;
 
+
+static Base64 B64;
+
+
 /*
 Output funtions
 
@@ -291,7 +295,7 @@ void Tuple::Save( SmiRecordFile* file,
                                    attrSize);
 
   char* data = WriteToBlock(coreSize, extensionSize, ignoreLobs, file, fid);
-
+        
   // Write data into the record
   DEBUG_MSG("Writing tuple record!")
   SHOW(coreSize)
@@ -313,6 +317,7 @@ void Tuple::Save( SmiRecordFile* file,
 
 void Tuple::Save(TupleFile& tuplefile) 
 {
+  PinAttributes();
   double extSize = 0;
   double size = 0;
   vector<double> attrExtSize(tupleType->GetNoAttributes());
@@ -332,6 +337,7 @@ void Tuple::Save(TupleFile& tuplefile)
   // Note: this memory block contains already the block size
   // as uint16_t value
   char* data = WriteToBlock(coreSize, extensionSize, true, 0,0);
+
 
   // Append data to temporary tuple file
   tuplefile.Append(data, coreSize, extensionSize);
@@ -409,6 +415,7 @@ char* Tuple::WriteToBlock( size_t coreSize,
 
   const size_t recordSizeLen = sizeof(dataSize);
   const size_t blockSize = dataSize + recordSizeLen;
+
 
   char* data = (char*) malloc( blockSize );
 
@@ -492,7 +499,7 @@ The memory must be allocated before write the buffer into it.
              isTemp = tupleFile->IsTemp();
           }
           Flob newFlob = Flob::createFrom( fid, tupleId,
-                         extOffset,isTemp, flobsz );
+                         extOffset, isTemp, flobsz );
 
           // change flob header
           *tmpFlob = newFlob;
@@ -670,9 +677,7 @@ bool Tuple::Open( SmiRecordFile* tuplefile,
     return false;
   }
   // the first two bytes in data contain the rootsize
-  uint16_t rz;
-  memcpy(&rz, data, sizeof(rz)); 
-  InitializeAttributes(data,rz);
+  InitializeAttributes(data);
   free(data);
   return true;
 }
@@ -684,10 +689,7 @@ bool Tuple::ReadFrom(SmiRecord& record){
   if(!data){
     return false;
   }
-  // the first two bytes in data contain the rootsize
-  uint16_t rz;
-  memcpy(&rz, data, sizeof(rz)); 
-  InitializeAttributes(data,rz);
+  InitializeAttributes(data);
   free(data);
   return true;
 }
@@ -715,7 +717,7 @@ bool Tuple::Open(TupleFileIterator *iter)
     if (data)
     {
       assert(rootSize < MAX_TUPLESIZE);
-      InitializeAttributes(data, rootSize);
+      InitializeAttributes(data);
       free(data);
       return true;
     }
@@ -765,19 +767,16 @@ char* Tuple::GetSMIBufferData(PrefetchingIterator* iter, uint16_t& rootSize)
 
 
 
-void Tuple::InitializeAttributes(char* src, uint16_t rootSize)
+void Tuple::InitializeAttributes(char* src)
 {
   TRACE_ENTER
 
-  size_t offset = sizeof(rootSize);
-  //uint32_t extOffset = 0; //offset + tupleType->GetCoreSize();
-  int i = 0;
+  size_t offset = sizeof(uint16_t); // stored datasize
 
-  SHOW(rootSize)
   SHOW(offset)
 
-  while( i < noAttributes )
-  {
+  for(int i=0;i<noAttributes;i++){
+    
     int algId = tupleType->GetAttributeType(i).algId;
     int typeId = tupleType->GetAttributeType(i).typeId;
     int sz = tupleType->GetAttributeType(i).size;
@@ -819,31 +818,28 @@ void Tuple::InitializeAttributes(char* src, uint16_t rootSize)
 
 
 
-    // Call the Initialize function for every attribute
-    // and initialize the reference counter
     // create uncontrollable Flobs
     for(int k=0; k< attributes[i]->NumOfFLOBs();k++){
       Flob* flob = attributes[i]->GetFLOB(k);
       if(flob->getSize() < extensionLimit){
-         Flob::createFromBlock(*flob,src+ flob->getOffset(), 
+         Flob::createFromBlock(*flob, src + flob->getOffset(), 
                                flob->getSize(), true);
       }
     }
+    // Call the Initialize function for every attribute
+    // and initialize the reference counter
     attributes[i]->Initialize();
     attributes[i]->InitRefs();
-
-    i++; // next Attribute
-  }
+  } // end for
 
   TRACE_LEAVE
 
 }
 
 void Tuple::InitializeSomeAttributes( const list<int>& aIds,
-                                      char* src, uint16_t rootSize )
+                                      char* src )
 {
   TRACE_ENTER
-  SHOW(rootSize)
 
   list<int>::const_iterator iter = aIds.begin();
   for( ; iter != aIds.end(); iter++ )
@@ -919,7 +915,7 @@ bool Tuple::Open( SmiRecordFile *tuplefile,
   char* data = GetSMIBufferData(iter, rootSize);
 
   if (data) {
-    InitializeAttributes(data, rootSize);
+    InitializeAttributes(data);
     free ( data );
     return true;
   }
@@ -948,7 +944,7 @@ bool Tuple::OpenPartial( TupleType* newtype, const list<int>& attrIdList,
   char* data = GetSMIBufferData(iter, rootSize);
 
   if (data) {
-    InitializeSomeAttributes(attrIdList, data, rootSize);
+    InitializeSomeAttributes(attrIdList, data);
     ChangeTupleType(newtype, attrIdList);
     free ( data );
     return true;
@@ -1108,10 +1104,7 @@ bool Tuple::ReadFromBinStr(string binStr)
   if( !bytes )
     return false;
 
-  // the first two bytes in data contain the rootsize
-  uint16_t rz;
-  memcpy(&rz, bytes, sizeof(rz));
-  InitializeAttributes(bytes,rz);
+  InitializeAttributes(bytes);
   return true;
 }
 
@@ -1173,7 +1166,7 @@ uint16_t Tuple::ReadFromBin(char* buf)
   uint16_t rz;
   memcpy(&rz, buf, sizeof(rz));
   rz += sizeof(rz);
-  InitializeAttributes(buf,rz);
+  InitializeAttributes(buf);
   return rz;
 }
 
@@ -1284,10 +1277,11 @@ char* TupleFileIterator::readData(size_t& size)
     char* data = (char*)malloc(size);
 
     // Store block size in memory block
-    *((uint16_t*)data) = blockSize;
+    memcpy(data,&blockSize,sizeof(blockSize));
 
     // Read tuple data into memory block
     rc = fread(data + sizeof(blockSize), 1, blockSize, tupleFile.stream);
+
 
     if ( rc < blockSize )
     {
@@ -1462,7 +1456,7 @@ void TupleFile::Append(char *data, size_t core, size_t ext)
 
   uint16_t size = core + ext;
 
-  // append data block to file
+
   size_t rc = fwrite(data, 1, sizeof(size) + size, stream);
 
   // check the number of written
@@ -1475,6 +1469,8 @@ void TupleFile::Append(char *data, size_t core, size_t ext)
          << rc << ") bytes were written" "!\n" << endl;
     return;
   }
+
+  fflush(stream);
 
   tupleCount++;
   totalSize += size;

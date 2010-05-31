@@ -79,7 +79,7 @@ bool Tuple::OpenOrel(SmiFileId lobfileId,
   char* data = GetSMIBufferData(iter, rootSize);
   
   if (data) {
-    InitializeAttributes(data, rootSize);
+    InitializeAttributes(data);
     free ( data );
     return true;
   }
@@ -107,7 +107,7 @@ bool Tuple::OpenPartialOrel( TupleType* newtype, const list<int>& attrIdList,
   char* data = GetSMIBufferData(iter, rootSize);
 
   if (data) {
-   InitializeSomeAttributes(attrIdList, data, rootSize);
+   InitializeSomeAttributes(attrIdList, data);
    ChangeTupleType(newtype, attrIdList);
    free ( data );
    return true;

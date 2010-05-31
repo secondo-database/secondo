@@ -1056,6 +1056,17 @@ a tuple
 
 */
 
+
+  ostream& Print(ostream& out){
+    out << "Tuple: (" << endl;
+    for(int i = 0; i < noAttributes; i++) {
+       GetAttribute(i)->Print(out);
+       cout << endl;
+    }
+    out << "       )" << endl;
+    return out;
+  }
+
   private:
 
     static long tuplesCreated;
@@ -1231,9 +1242,9 @@ to ~defAttributes~, otherwise it is dinamically constructed.
   char* GetSMIBufferData(SmiRecord& r, uint16_t& rootSize);
   char* GetSMIBufferData(PrefetchingIterator* iter, uint16_t& rootSize);
 
-  void InitializeAttributes(char* src, uint16_t rootSize);
+  void InitializeAttributes(char* src);
   void InitializeSomeAttributes( const list<int>& attrList,
-                                 char* src, uint16_t rootSize );
+                                 char* src);
 
   bool ReadFrom(SmiRecord& record);
 
