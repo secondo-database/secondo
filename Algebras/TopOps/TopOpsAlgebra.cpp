@@ -77,6 +77,7 @@ intersection2, difference2, commonborder2) are implemented.
 #include "AvlTree.h"
 #include "TopRel.h"
 #include "StandardTypes.h"
+#include "AVLSegment.h"
 
 
 
@@ -660,7 +661,9 @@ bool GetInt9M(Line const* const line,
    // prefilter unsuccessful -> scan the halfsegments
 
    avltree::AVLTree<avlseg::AVLSegment> sss;
-   priority_queue<HalfSegment, vector<HalfSegment>, greater<HalfSegment> > q;
+   priority_queue<avlseg::ExtendedHalfSegment, 
+                  vector<avlseg::ExtendedHalfSegment>, 
+                  greater<avlseg::ExtendedHalfSegment> > q;
 
 
    bool done = false;
@@ -669,7 +672,7 @@ bool GetInt9M(Line const* const line,
 
    int posPoint = pointdone1?1:0;
 
-   HalfSegment resHs;
+   avlseg::ExtendedHalfSegment resHs;
    Point resPoi;
    Point lastDomPoint;
    int lastDomPointCount = 0;
@@ -781,8 +784,8 @@ bool GetInt9M(Line const* const line,
                 // current is an extension of member
                 current.splitAt(member->getX2(), member->getY2(),left1,right1);
                 // create events for the remaining parts
-                q.push(right1.convertToHs(true,avlseg::first));
-                q.push(right1.convertToHs(false,avlseg::first));
+                q.push(right1.convertToExtendedHs(true,avlseg::first));
+                q.push(right1.convertToExtendedHs(false,avlseg::first));
               }
            } else { // there is no overlapping segment
              splitByNeighbour(sss,current,leftN,q,q);
@@ -908,12 +911,14 @@ bool GetInt9M(Region const* const reg, Point const* const p, Int9M& res,
    int size = reg->Size();
    double x = p->GetX();
   
-   HalfSegment hs;
+   avlseg::ExtendedHalfSegment hs;
 
    int number = 0;
 
    for(int i=0;i<size;i++){
-     reg->Get(i,hs);
+     HalfSegment hs1;
+     reg->Get(i,hs1);
+     hs = hs1;
      if(hs.IsLeftDomPoint()){
         if(hs.Contains(*p)){
            res.SetBI(true); //point on boundary
@@ -973,13 +978,13 @@ value will be ~none~.
 */
 
 avlseg::ownertype selectNext(const Region*  reg,
-                     priority_queue<HalfSegment,  
-                                    vector<HalfSegment>, 
-                                    greater<HalfSegment> >& q1,
+                     priority_queue<avlseg::ExtendedHalfSegment,  
+                                    vector<avlseg::ExtendedHalfSegment>, 
+                                    greater<avlseg::ExtendedHalfSegment> >& q1,
                      int& pos1,
                      Points const* const p,
                      int& pos2,
-                     HalfSegment& resultHS,
+                     avlseg::ExtendedHalfSegment& resultHS,
                      Point& resultPoint){
 
   assert(pos1>=0);
@@ -988,15 +993,17 @@ avlseg::ownertype selectNext(const Region*  reg,
   int sizereg = reg->Size();
   int sizepoint = p->Size();
 
-  const HalfSegment* rhs=0;
-  const HalfSegment* qhs = 0;
-  HalfSegment qhsc;
-  const HalfSegment* minhs=0;
+  const avlseg::ExtendedHalfSegment* rhs=0;
+  const avlseg::ExtendedHalfSegment* qhs = 0;
+  avlseg::ExtendedHalfSegment qhsc;
+  const avlseg::ExtendedHalfSegment* minhs=0;
   const Point* cp=0;
 
-  HalfSegment rhs1;
+  avlseg::ExtendedHalfSegment rhs1;
   if(pos1<sizereg){
-     reg->Get(pos1,rhs1);
+     HalfSegment hstmp;
+     reg->Get(pos1, hstmp);
+     rhs1 = hstmp;
      rhs = &rhs1;
   } 
   if(!q1.empty()){
@@ -1143,7 +1150,9 @@ bool GetInt9M(Region const* const reg, Points const* const ps, Int9M& res,
   }
 
   // queue for splitted segments of the region
-  priority_queue<HalfSegment, vector<HalfSegment>, greater<HalfSegment> > q1;
+  priority_queue<avlseg::ExtendedHalfSegment, 
+                 vector<avlseg::ExtendedHalfSegment>, 
+                 greater<avlseg::ExtendedHalfSegment> > q1;
   avltree::AVLTree<avlseg::AVLSegment> sss;
 
   avlseg::ownertype owner;
@@ -1151,7 +1160,7 @@ bool GetInt9M(Region const* const reg, Points const* const ps, Int9M& res,
   int pos1 =0; 
   int pos2 =0;
   Point CP;
-  HalfSegment CH;
+  avlseg::ExtendedHalfSegment CH;
   avlseg::AVLSegment tmpL,tmpR;
 
   while (!done && 
@@ -1339,8 +1348,12 @@ bool GetInt9M(Region const* const reg1, Region const* const reg2, Int9M& res,
 
   avltree::AVLTree<avlseg::AVLSegment> sss;            // sweep state structure
   // dynamic parts of the sweep event structure
-  priority_queue<HalfSegment,  vector<HalfSegment>, greater<HalfSegment> > q1;
-  priority_queue<HalfSegment,  vector<HalfSegment>, greater<HalfSegment> > q2;
+  priority_queue<avlseg::ExtendedHalfSegment,  
+                 vector<avlseg::ExtendedHalfSegment>, 
+                 greater<avlseg::ExtendedHalfSegment> > q1;
+  priority_queue<avlseg::ExtendedHalfSegment,  
+                 vector<avlseg::ExtendedHalfSegment>, 
+                 greater<avlseg::ExtendedHalfSegment> > q2;
 
   int pos1=0; // current position in the halfsegment array of reg1
   int pos2=0; // current position in the halfsegment array of reg2
@@ -1348,7 +1361,7 @@ bool GetInt9M(Region const* const reg1, Region const* const reg2, Int9M& res,
   int size2 = reg2->Size();
 
   bool done = false;
-  HalfSegment nextSeg;
+  avlseg::ExtendedHalfSegment nextSeg;
 
   const avlseg::AVLSegment* member=0; // current member stored in the tree
   const avlseg::AVLSegment* leftN=0;  // the left neightboor of member
@@ -1894,15 +1907,19 @@ bool GetInt9M(Line const* const line1,
  avltree::AVLTree<avlseg::AVLSegment> sss;
  // initialize priority queues for remaining parts of splitted
  // segments
- priority_queue<HalfSegment,  vector<HalfSegment>, greater<HalfSegment> > q1;
- priority_queue<HalfSegment,  vector<HalfSegment>, greater<HalfSegment> > q2;
+ priority_queue<avlseg::ExtendedHalfSegment,  
+                vector<avlseg::ExtendedHalfSegment>, 
+                 greater<avlseg::ExtendedHalfSegment> > q1;
+ priority_queue<avlseg::ExtendedHalfSegment,  
+                vector<avlseg::ExtendedHalfSegment>, 
+                greater<avlseg::ExtendedHalfSegment> > q2;
 
  int pos1=0;
  int pos2=0;
  int size1 = line1->Size();
  int size2 = line2->Size();
  
- HalfSegment nextHs;
+ avlseg::ExtendedHalfSegment nextHs;
 
  avlseg::ownertype owner;
 
@@ -2253,15 +2270,19 @@ bool GetInt9M(Line   const* const line,
  avltree::AVLTree<avlseg::AVLSegment> sss;
  // initialize priority queues for remaining parts of splitted
  // segments
- priority_queue<HalfSegment,  vector<HalfSegment>, greater<HalfSegment> > q1;
- priority_queue<HalfSegment,  vector<HalfSegment>, greater<HalfSegment> > q2;
+ priority_queue<avlseg::ExtendedHalfSegment,  
+                vector<avlseg::ExtendedHalfSegment>,  
+                greater<avlseg::ExtendedHalfSegment> > q1;
+ priority_queue<avlseg::ExtendedHalfSegment,  
+                vector<avlseg::ExtendedHalfSegment>, 
+                greater<avlseg::ExtendedHalfSegment> > q2;
 
  int pos1=0;
  int pos2=0;
 
  bool done = false;
 
- HalfSegment nextHs;
+ avlseg::ExtendedHalfSegment nextHs;
 
  avlseg::ownertype owner;
 
