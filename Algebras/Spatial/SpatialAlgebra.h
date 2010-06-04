@@ -63,9 +63,12 @@ shows examples of these spatial data types.
 #include "AvlTree.h"
 #include "Symbols.h"
 #include "AlmostEqual.h"
+#include "AVLSegment.h"
+
+#include "HalfSegment.h"
+#include "Coord.h"
 
 
-typedef double Coord;
 /*
 Coordinates are represented by real numbers.
 
@@ -101,8 +104,6 @@ Forward declarations.
 // const double FACTOR = 0.00000001; // moved to Attribute.h
 
 inline double ApplyFactor( const double d );
-inline bool AlmostEqual( const Point& p1,
-                         const Point& p2 );
 inline bool AlmostEqual( const HalfSegment& hs1,
                          const HalfSegment& hs2 );
 
@@ -127,425 +128,6 @@ int PointHalfSegmentCompare( const void *a, const void *b );
 int PointHalfSegmentCompareAlmost( const void *a, const void *b );
 int LRSCompare( const void *a, const void *b );
 
-
-/*
-4 Struct Point
-
-This class implements the memory representation of the ~point~ type
-constructor. A point represents a point in the Euclidean plane or is
-undefined. The figure \cite{fig:spatialdatatypes.eps} shows an example
-of a point data type.
-
-*/
-class Point: public StandardSpatialAttribute<2>
-{
-  public:
-/*
-4.1. Constructors and Destructor
-
-*/
-    inline Point() {};
-/*
-This constructor should not be used.
-
-There are two ways of constructing a point:
-
-*/
-    inline Point( const bool d,
-                  const Coord& x = Coord(),
-                  const Coord& y = Coord() );
-/*
-The first one receives a boolean value ~d~ indicating if the point is defined
-and two coordinate ~x~ and ~y~ values.
-
-*/
-    inline Point( const Point& p );
-/*
-The second one receives a point ~p~ as argument and creates a point that is a
-copy of ~p~.
-
-*/
-    inline ~Point()
-    {}
-/*
-The destructor.
-
-4.2 Member functions
-
-*/
-    inline const Coord& GetX() const
-    {
-      return x;
-    }
-/*
-Returns the ~x~-coordinate.
-
-*/
-    inline const Coord& GetY() const
-    {
-      return y;
-    }
-/*
-Returns the ~y~-coordinate.
-
-*/
-    inline const Rectangle<2> BoundingBox() const;
-/*
-Returns the point bounding box which is also a point.
-
-*/
-    inline void Set( const Coord& x, const Coord& y );
-/*
-Sets the value of the point object.
-
-*/
-    inline Point& operator=( const Point& p );
-    inline bool operator<=( const Point& p ) const;
-    inline bool operator<( const Point& p ) const;
-    inline bool operator>=( const Point& p ) const;
-    inline bool operator>( const Point& p ) const;
-    inline Point operator+( const Point& p ) const;
-    inline Point operator-( const Point& p ) const;
-    inline Point operator*( const double d ) const;
-/*
-Operators redefinition.
-
-4.3 Operations
-
-4.3.1 Operation ~scale~
-
-*Precondition:* ~u.IsDefined()~
-
-*Semantics:* $factor * u$
-
-*Complexity:* $O(1)$
-
-*/
-    inline void Scale( const Coord& factor )
-    {
-      assert( IsDefined() );
-      this->x *= factor;
-      this->y *= factor;
-    }
-/*
-4.3.1 Operation $=$ (~equal~)
-
-*Precondition:* ~u.IsDefined() $\&\&$ v.IsDefined()~
-
-*Semantics:* $u = v$
-
-*Complexity:* $O(1)$
-
-*/
-    inline bool operator==( const Point& p ) const;
-
-    inline bool operator==( const Points& p) const;
-
-/*
-4.3.2 Operation $\neq$ (~not equal~)
-
-*Precondition:* ~u.IsDefined() $\&\&$ v.IsDefined()~
-
-*Semantics:* $u \neq v$
-
-*Complexity:* $O(1)$Algebras/RTree/RTree.examples
-
-*/
-    inline bool operator!=( const Point& p ) const;
-/*
-4.3.7 Operation ~inside~ (with ~points~)
-
-*Precondition:* ~u.IsDefined() $\&\&$ V.IsOrdered()~
-
-*Semantics:* $u \in V$
-
-*Complexity:* $O(log(n))$, where ~n~ is the size of the point set ~V~
-
-*/
-    bool Inside( const Points& ps ) const;
-/*
-4.3.8 Operation ~inside~ (with ~rectangle~)
-
-*Precondition:* ~u.IsDefined()~
-
-*Semantics:* $u \in V$
-
-*Complexity:* $O(1)$
-
-*/
-    bool Inside( const Rectangle<2>& r ) const;
-/*
-6.4.4 Operation ~inside~ (with ~line~)
-
-*Precondition:* ~u.IsDefined() and V.IsOrdered()~
-
-*Semantics:* $u \in V$
-
-*Complexity:* $O(n)$, where ~n~ is the size of ~V~.
-
-*/
-    bool Inside( const Line& l ) const;
-/*
-6.4.4 Operation ~inside~ (with ~region~)
-
-*Precondition:* ~u.IsDefined() and V.IsOrdered()~
-
-*Semantics:* $u \in V$
-
-*Complexity:* $O(log(n))$, where ~n~ is the size of ~V~.
-
-*/
-    bool Inside( const Region& r ) const;
-/*
-4.3.13 Operation ~distance~ (with ~point~)
-
-*Precondition:* ~u.IsDefined()~ and ~v.IsDefined()~
-
-*Semantics:* $dist(u,v) = \sqrt{(u.x - v.x)^2 + (u.y - v.y)^2}$
-
-*Complexity:* $O(1)$
-
-*/
-    double Distance( const Point& p ) const;
-/*
-4.3.13 Operation ~distance~ (with ~points~)
-
-*Precondition:* ~u.IsDefined()~ and ~V.IsOrdered()~
-
-*Semantics:* $\min\{ dist(u, v) | v \in V \}$
-
-*Complexity:* $O(n)$, where ~n~ is the size of ~V~
-
-*/
-    double Distance( const Points& ps ) const;
-/*
-4.3.13 Operation ~distance~ (with ~rect2~)
-
-*Precondition:* ~u.IsDefined()~ and ~V.IsOrdered()~
-
-*/
-    double Distance( const Rectangle<2>& r ) const;
-/*
-4.3.13 Operation ~direction~
-
-*Precondition:* ~u.IsDefined()~ and ~v.IsDefined()~
-
-*Semantics:* returns the angle of the line from ~u~ to ~v~, measured in degrees.
-
-*Complexity:* $O(1)$
-
-*/
-    double Direction( const Point& p ) const;
-
-
-/*
-4.3.15 Operation ~translate~
-
-This function moves the position of this Point object instance.
-
-*/
-
-    inline void Translate(const Coord& x, const Coord& y);
-
-/*
-4.3.15 Operation ~rotate~
-
-This function rotates this point around the point defined by (x,y)
-with a degree of alpha. The result is stored in res.
-
-*/
-
-   inline void Rotate(const Coord& x, const Coord& y, const double alpha,
-                      Point& res) const;
-
-
-/*
-4.3.16 Intersection with different other spatial types
-
-*/
-   void Intersection(const Point& p, Points& result) const;
-   void Intersection(const Points& ps, Points& result) const;
-   void Intersection(const Line& l, Points& result) const;
-   void Intersection(const Region& r, Points& result) const;
-
-
-/*
-4.3.16 Minus with different other spatial types
-
-*/
-   void Minus(const Point& p, Points& result) const;
-   void Minus(const Points& ps, Points& result) const;
-   void Minus(const Line& l, Points& result) const;
-   void Minus(const Region& r, Points& result) const;
-
-
-/*
-4.3.16 Union with different other spatial types
-
-*/
-   void Union(const Point& p, Points& result) const;
-   void Union(const Points& ps, Points& result) const;
-   void Union(const Line& l, Line& result) const;
-   void Union(const Region& r, Region& result) const;
-
-
-
-
-/*
-4.3.15 Operation ~add~
-
-*Precondition:* ~p1.IsDefined(), p2.IsDefined()~
-
-*Semantics:*  ~(p1.x + p2.x, p1.y + p2.y)~
-
-*Complexity:* $O(1)$
-
-*/
-    inline Point Add( const Point& p ) const;
-
-    inline bool IsEmpty()const{
-      return !IsDefined();
-    }
-
-/*
-4.4 Functions needed to import the the ~point~ data type to tuple
-
-There are totally 8 functions which are defined as virtual functions. They need
-to be defined here in order for the Point data type to be used in Tuple definition
-as an attribute.
-
-*/
-    inline size_t Sizeof() const;
-
-    inline size_t HashValue() const
-    {
-      if( !IsDefined() )
-        return 0;
-      return (size_t)(5*x + y);
-    }
-
-    inline void CopyFrom( const Attribute* right )
-    {
-      const Point* p = (const Point*)right;
-      SetDefined( p->IsDefined() );
-      if( IsDefined() )
-        Set( p->x, p->y );
-    }
-
-    inline int Compare( const Attribute *arg ) const
-    { // CD: Implementation following guidelines from Attribute.h:
-      const Point* p = (const Point*)arg;
-      if( !IsDefined() && !p->IsDefined() )
-        return 0;
-      if( !IsDefined() )
-        return -1;
-      if( !p->IsDefined() )
-        return 1;
-      if( *this > *p )
-        return 1;
-      if( *this < *p )
-        return -1;
-      return 0;
-    }
-
-    inline int CompareAlmost( const Attribute *arg ) const
-    {
-      const Point* p = (const Point*)arg;
-      if( !IsDefined() && !p->IsDefined() )
-        return 0;
-      if( !IsDefined() )
-        return -1;
-      if( !p->IsDefined() )
-        return 1;
-      if( AlmostEqual( *this, *p ) )
-        return 0;
-      if( *this > *p )
-        return 1;
-      if( *this < *p )
-        return -1;
-      return 0;
-    }
-
-    inline bool Adjacent( const Attribute *arg ) const
-    {
-      return false;
-    }
-
-    virtual inline Point* Clone() const
-    {
-      return new Point( *this );
-    }
-
-    ostream& Print( ostream &os ) const;
-
-    virtual uint32_t getshpType() const{
-       return 1; // Point Type
-    }
-
-    virtual bool hasBox(){
-       return IsDefined();
-    }
-
-    virtual double getMinX() const{
-      return x;
-    }
-    virtual double getMaxX() const{
-      return x;
-    }
-    virtual double getMinY() const{
-      return y;
-    }
-    virtual double getMaxY() const{
-      return y;
-    }
-
-    virtual void writeShape(ostream& o, uint32_t RecNo) const{
-
-       // first, write the record header
-       WinUnix::writeBigEndian(o,RecNo);
-
-       if(!IsDefined()){
-         uint32_t length = 2;
-         WinUnix::writeBigEndian(o,length);
-         uint32_t type = 0;
-         WinUnix::writeLittleEndian(o,type);
-       } else {
-         uint32_t length = 10;
-         WinUnix::writeBigEndian(o,length);
-         uint32_t type = 1;
-         WinUnix::writeLittleEndian(o,type);
-         WinUnix::writeLittle64(o,x);
-         WinUnix::writeLittle64(o,y);
-       }
-    }
-
-    static const string BasicType(){
-       return symbols::POINT;
-    }
-
-
-  protected:
-/*
-4.5 Attributes
-
-*/
-    Coord x;
-/*
-The ~x~ coordinate.
-
-*/
-    Coord y;
-/*
-The ~y~ coordinate.
-
-*/
-};
-
-/*
-4.6 Auxiliary functions
-
-*/
-ostream& operator<<( ostream& o, const Point& p );
 
 // for finding insert position and sorting the DBArray:
 int PointCompare( const void *a, const void *b );
@@ -1097,375 +679,7 @@ According to ROSE algebra, the carrier set of points should contain a pos pointe
 */
 ostream& operator<<( ostream& o, const Points& ps );
 
-/*
-6 Struct ~AttrType~
 
-The following type definition indicates the structure of the ~attr~ value associated with
-half segments. This attribute is utilized only when we are handling regions. In line values
-this attibute is ignored.
-
-*/
-struct AttrType
-{
-  inline AttrType() { }
-
-  inline AttrType( int dummy ) :
-    faceno(-999999),
-    cycleno(-999999),
-    edgeno(-999999),
-    coverageno(-999999),
-    insideAbove(false),
-    partnerno(-999999){ }
-
-/*
-The simple constructor.
-
-*/
-  inline AttrType( const AttrType& at ):
-  faceno( at.faceno ),
-  cycleno( at.cycleno ),
-  edgeno( at.edgeno ),
-  coverageno( at.coverageno ),
-  insideAbove( at.insideAbove ),
-  partnerno( at.partnerno )
-  {}
-/*
-The copy constructor.
-
-*/
-  inline AttrType& operator=( const AttrType& at )
-  {
-    faceno = at.faceno;
-    cycleno = at.cycleno;
-    edgeno = at.edgeno;
-    coverageno = at.coverageno;
-    insideAbove = at.insideAbove;
-    partnerno = at.partnerno;
-    return *this;
-  }
-/*
-Redefinition of the assignement operator.
-
-6.1 Attributes
-
-*/
-  int faceno;
-/*
-The face identifier
-
-*/
-  int cycleno;
-/*
-The cycle identifier
-
-*/
-  int edgeno;
-/*
-The edge (segment) identifier
-
-*/
-  int coverageno;
-/*
-Used for fast spatial scan of the inside[_]pr algorithm
-
-*/
-  bool insideAbove;
-/*
-Indicates whether the region's area is above or left of its segment
-
-*/
-  int partnerno;
-/*
-Stores the position of the partner half segment in half segment ordered array
-
-*/
-};
-
-/*
-7 Class ~HalfSegment~
-
-This class implements the memory representation of  ~halfsegment~. Although ~halfsegment~
-is not an independent type constructor, it is the basic construction unit of the ~line~ and the ~region~
-type constructors.
-
-A ~halfsegment~ value is composed of a pair of points and a flag indicating the dominating
-point. The left point is always smaller than the right one.
-
-*/
-class HalfSegment
-{
-  public:
-
-/*
-5.1 Constructors and Destructor
-
-A half segment is composed by two points which are called ~left point~ (~lp~) and ~right point~ (~rp~),
-$lp < rp$, and a flag ~ldp~ (~left dominating point~) which tells whether the left point is the dominating
-point.
-
-*/
-    inline HalfSegment() {}
-/*
-This constructor should not be used.
-
-*/
-    inline HalfSegment( bool ldp, const Point& lp, const Point& rp );
-/*
-Creates a half segment receiving all attributes as arguments. The order between the left
-and right points is not important. If ~lp~ is bigger than ~rp~ their values are changed.
-
-*/
-    inline HalfSegment( const HalfSegment& hs );
-/*
-Creates a half segment copying the values from ~hs~.
-
-*/
-    inline ~HalfSegment() {}
-/*
-The destructor.
-
-5.2 Member Functions
-
-*/
-    inline const Point& GetLeftPoint() const;
-/*
-Returns the left point of the half segment.
-
-*/
-    inline const Point& GetRightPoint() const;
-/*
-Returns the right point of the half segment.
-
-*/
-    inline const Point& GetDomPoint() const;
-/*
-Returns the dominating point of the half segment.
-
-*/
-    inline const Point& GetSecPoint() const;
-/*
-Returns the secondary point of the half segment.
-
-*/
-    inline bool IsLeftDomPoint() const;
-/*
-Returns the boolean flag which indicates whether the dominating point is on the left side.
-
-*/
-    inline const Rectangle<2> BoundingBox() const;
-/*
-Returns the bounding box of the half segment.
-
-*/
-    inline const AttrType& GetAttr() const;
-/*
-Returns the "attr" value associated with a half segment. The "attr" value is useful when we
-process region values.
-
-*/
-    inline double Length() const;
-/*
-Returns the length of the half segmtent, i.e., the distance between the left point to the
-right point.
-
-*/
-    inline Point AtPosition( double pos ) const;
-/*
-Returns the point at relative position ~pos~.
-
-*/
-    inline double AtPoint( const Point& p ) const;
-/*
-Returns the relative position of the point ~p~.
-
-*/
-    inline bool SubHalfSegment( double pos1, double pos2,
-                                HalfSegment& result ) const;
-/*
-Returns the sub half segment trimmed by ~pos1~ and ~pos2~.
-
-*/
-    void Set( bool ldp, const Point& lp, const Point& rp );
-/*
-Sets the value of a half segment. The parameters ~lp~ and ~rp~ can ignore the order, and the
-function will compare the parameter points and put the smaller one to ~lp~ and larger one to ~rp~.
-
-*/
-    void Translate( const Coord& x, const Coord& y );
-
-/*
-Translates the half segment by adding the coordinates ~x~ and ~y~ (which can be negative) to both
-~lp~ and ~rp~ points.
-
-*/
-
-    inline void Scale( const Coord& f )
-    {
-      lp.Scale( f );
-      rp.Scale( f );
-    }
-/*
-Scales the half segment given a factor ~f~.
-
-*/
-    inline void SetAttr( AttrType& attr );
-/*
-Sets the value of the "attr" attribute of a half segment.
-
-*/
-    inline void SetLeftDomPoint( bool ldp );
-/*
-Sets the value of the dominating point flag of a half segment.
-
-*/
-
-    inline bool IsVertical()const;
-
-
-    HalfSegment& operator=( const HalfSegment& hs );
-    bool operator==( const HalfSegment& hs ) const;
-    bool operator!=( const HalfSegment& hs ) const;
-    bool operator<(const HalfSegment& hs) const;
-    bool operator<=(const HalfSegment& hs) const;
-    bool operator>(const HalfSegment& hs) const;
-    bool operator>=(const HalfSegment& hs) const;
-/*
-Operator redefinitions.
-
-*/
-    int Compare( const HalfSegment& hs ) const;
-/*
-This function make comparison between two halfsegments. The rule of the comparison is specified
-in the ROSE Algebra paper. That is:  the half sgenments will be ordered according to the following values:
-dominating points -\verb+>+  LDP flages  -\verb+>+ directions (rotations).
-
-*/
-    bool Intersects( const HalfSegment& hs ) const;
-/*
-Decides whether two half segments intersect with each other with any kind of intersection.
-
-*/
-    bool InnerIntersects( const HalfSegment& hs ) const;
-/*
-Decides whether two half segments intersect in the following manner: a point of the first segment and an
-innerpoint of the second segment are the same.
-
-*/
-    bool Crosses( const HalfSegment& hs ) const;
-/*
-Computes whether two half segments intersect in their mid-points. Endpoints are not considered in
-computing the results.
-
-*/
-    bool Intersection( const HalfSegment& hs, Point& p ) const;
-/*
-This function computes whether two half segments cross each other and returns the crossing point ~p~.
-
-*/
-    bool Intersection( const HalfSegment& hs1, HalfSegment& hs2 ) const;
-/*
-This function computes whether two half segments intersect each other and returns the resulting
-halfsegment ~hs~.
-
-*/
-   void CohenSutherlandLineClipping( const Rectangle<2> &window,
-                                     double &x0, double &y0,
-                                     double &x1, double &y1,
-                                     bool &accept) const;
-/*
-Implements the Cohen and Sutherland algorithm for clipping a segment to a clipping window.
-
-*/
-   void WindowClippingIn( const Rectangle<2> &window,
-                          HalfSegment &hs,
-                          bool &inside,
-                          bool &isIntersectionPoint,
-                          Point &intersectionPoint) const;
-/*
-Computes the part of the segment that is inside the rectangle ~window~, if
-it exists. The ~inside~ parameter is set to true if there is a partion of the segment
-inside the window. The ~isIntersectionPoint~ parameter is set to true if the intersection
-part of the segment is a point instead of a segment, and if so, ~intersectionPoint~
-receives the intersection point.
-
-*/
-    bool Inside( const HalfSegment& hs ) const ;
-/*
-Computes whether the half segment is inside the one in ~hs~.
-
-*/
-    bool Contains( const Point& p ) const;
-/*
-Computes whether the point ~p~ is contained in the half segment.
-Uses the ~AlmostEqual~ function.
-
-*/
-    bool RayAbove( const Point& p, double &abovey0 ) const;
-/*
-
-Decides whether a half segment is above a point. This is useful when we want to decide
-whether a point is inside a region.
-
-*/
-    bool RayDown(const Point& p, double &yIntersection) const;
-
-
-    double Distance( const Point& p ) const;
-/*
-Computes the distance from the half segment to the point ~p~.
-
-*/
-    double Distance( const HalfSegment& hs ) const;
-/*
-Computes the minimum distance from two half segments.
-
-*/
-
-    double Distance(const Rectangle<2>& rect) const;
-    double MaxDistance(const Rectangle<2>& rect) const;
-    int LogicCompare( const HalfSegment& hs ) const;
-/*
-Compares two half segments according to their attribute values (~attr~).
-
-*/
-    bool innerInter( const HalfSegment& chs,  Point& resp,
-                     HalfSegment& rchs, bool& first, bool& second ) const;
-/*
-Used in the Plane Sweep Algebra
-
-*/
-
-  private:
-
-/*
-5.13 Attributes
-
-*/
-    bool ldp;
-/*
-Indicates which is the dominating point: the left or the right point.
-
-*/
-    Point lp;
-    Point rp;
-/*
-These two attributes give the left and right point of the half segment.
-
-*/
-  public:
-
-    AttrType attr;
-/*
-This ~attribute~ property is useful if we process region values in the way indicated in the ROSE
-paper.
-
-*/
-};
-/*
-5.14 Overloaded output operator
-
-*/
-ostream& operator<<( ostream& o, const HalfSegment& hs );
 
 /*
 6 Struct LRS
@@ -3307,7 +2521,7 @@ as an attribute.
         if(!defined){
           Clear();
         }
-	      Attribute::SetDefined( defined );
+        Attribute::SetDefined( defined );
     }
 
     inline size_t Sizeof() const
@@ -5024,453 +4238,6 @@ private:
 
 
 
-/*
-5 Auxiliary structures for plane sweep algorithms
-
-5.1 Definition of ~ownertype~
-
-This enumeration is used to indicate the source of an ~AVLSegment~.
-
-*/
-namespace avlseg{
-
-enum ownertype{none, first, second, both};
-
-enum SetOperation{union_op, intersection_op, difference_op};
-
-ostream& operator<<(ostream& o, const ownertype& owner);
-
-
-const int LEFT      = 1;
-const int RIGHT     = 2;
-const int COMMON = 4;
-
-/*
-3.2 The Class ~AVLSegment~
-
-This class is used for inserting into an avl tree during a plane sweep.
-
-
-*/
-
-class AVLSegment{
-
-public:
-
-/*
-3.1.1 Constructors
-
-~Standard Constructor~
-
-*/
-  AVLSegment();
-
-
-/*
-~Constructor~
-
-This constructor creates a new segment from the given HalfSegment.
-As owner only __first__ and __second__ are the allowed values.
-
-*/
-
-  AVLSegment(const HalfSegment& hs, ownertype owner);
-
-
-/*
-~Constructor~
-
-Create a Segment only consisting of a single point.
-
-*/
-
-  AVLSegment(const Point& p, ownertype owner);
-
-
-/*
-~Copy Constructor~
-
-*/
-   AVLSegment(const AVLSegment& src);
-
-
-/*
-3.2.1 Destructor
-
-*/
-   ~AVLSegment() {}
-
-
-/*
-3.3.1 Operators
-
-*/
-
-  AVLSegment& operator=(const AVLSegment& src);
-
-  bool operator==(const AVLSegment& s) const;
-
-  bool operator<(const AVLSegment& s) const;
-
-  bool operator>(const AVLSegment& s) const;
-
-/*
-3.3.1 Further Needful Functions
-
-~Print~
-
-This function writes this segment to __out__.
-
-*/
-  void Print(ostream& out)const;
-
-/*
-
-~Equalize~
-
-The value of this segment is taken from the argument.
-
-*/
-
-  void Equalize( const AVLSegment& src);
-
-
-/*
-3.5.1 Geometric Functions
-
-~crosses~
-
-Checks whether this segment and __s__ have an intersection point of their
-interiors.
-
-*/
- bool crosses(const AVLSegment& s) const;
-
-/*
-~crosses~
-
-This function checks whether the interiors of the related
-segments are crossing. If this function returns true,
-the parameters ~x~ and ~y~ are set to the intersection point.
-
-*/
- bool crosses(const AVLSegment& s,double& x, double& y) const;
-
-/*
-~extends~
-
-This function returns true, iff this segment is an extension of
-the argument, i.e. if the right point of ~s~ is the left point of ~this~
-and the slopes are equal.
-
-*/
-  bool extends(const AVLSegment& s) const;
-
-
-/*
-~exactEqualsTo~
-
-This function checks if s has the same geometry like this segment, i.e.
-if both endpoints are equal.
-
-*/
-bool exactEqualsTo(const AVLSegment& s)const;
-
-/*
-~isVertical~
-
-Checks whether this segment is vertical.
-
-*/
-
- bool isVertical() const;
-
-
-/*
-~isPoint~
-
-Checks if this segment consists only of a single point.
-
-*/
-  bool isPoint() const;
-
-/*
-~length~
-
-Returns the length of this segment.
-
-*/
-  double length();
-
-/*
-~InnerDisjoint~
-
-This function checks whether this segment and s have at most a
-common endpoint.
-
-*/
-
-  bool innerDisjoint(const AVLSegment& s)const;
-
-/*
-~Intersects~
-
-This function checks whether this segment and ~s~ have at least a
-common point.
-
-*/
-
-  bool intersects(const AVLSegment& s)const;
-
-
-/*
-~overlaps~
-
-Checks whether this segment and ~s~ have a common segment.
-
-*/
-   bool overlaps(const AVLSegment& s) const;
-
-/*
-~ininterior~
-
-This function checks whether the point defined by (x,y) is
-part of the interior of this segment.
-
-*/
-   bool ininterior(const double x,const  double y)const;
-
-
-/*
-~contains~
-
-Checks whether the point defined by (x,y) is located anywhere on this
-segment.
-
-*/
-   bool contains(const double x,const  double y)const;
-
-
-/*
-3.6.1 Comparison
-
-Compares this with s. The x intervals must overlap.
-
-*/
-
- int compareTo(const AVLSegment& s) const;
-
-/*
-~SetOwner~
-
-This function changes the owner of this segment.
-
-*/
-  void setOwner(ownertype o);
-
-
-/*
-3.7.1 Some ~Get~ Functions
-
-~getInsideAbove~
-
-Returns the insideAbove value for such segments for which this value is unique,
-e.g. for segments having owner __first__ or __second__.
-
-*/
-  bool getInsideAbove() const;
-
-
-  inline double getX1() const { return x1; }
-
-  inline double getX2() const { return x2; }
-
-  inline double getY1() const { return y1; }
-
-  inline double getY2() const { return y2; }
-
-  inline ownertype getOwner() const { return owner; }
-
-  inline bool getInsideAbove_first() const { return insideAbove_first; }
-
-  inline bool getInsideAbove_second() const { return insideAbove_second; }
-
-
-/*
-3.8.1 Split Functions
-
-~split~
-
-This function splits two overlapping segments.
-Preconditions:
-
-1) this segment and ~s~ have to overlap.
-
-2) the owner of this and ~s~ must be different
-
-~left~, ~common~ and ~right~ will contain the
-explicitely left part, a common part, and
-an explecitely right part. The left and/or right part
-my be empty. The existence can be checked using the return
-value of this function. Let ret the return value. It holds:
-
-  __ret | LEFT__: the left part exists
-
-  __ret | COMMON__: the common part exist (always true)
-
-  __ret | RIGHT__: the right part exists
-
-
-The constants LEFT, COMMON, and RIGHT have been defined
-earlier.
-
-*/
-
-  int split(const AVLSegment& s, AVLSegment& left, AVLSegment& common,
-            AVLSegment& right, const bool checkOwner = true) const;
-
-
-/*
-~splitAt~
-
-This function divides a segment into two parts at the point
-provided by (x, y). The point must be on the interior of this segment.
-
-*/
-
-  void splitAt(const double x, const double y,
-               AVLSegment& left,
-               AVLSegment& right)const;
-
-
-/*
-~splitCross~
-
-Splits two crossing segments into the 4 corresponding parts.
-Both segments have to cross each other.
-
-*/
-void splitCross(const AVLSegment& s, AVLSegment& left1, AVLSegment& right1,
-                AVLSegment& left2, AVLSegment& right2) const;
-
-
-/*
-3.9.1 Converting Functions
-
-~ConvertToHs~
-
-This functions creates a ~HalfSegment~ from this segment.
-The owner must be __first__ or __second__.
-
-*/
-HalfSegment convertToHs(bool lpd, ownertype owner = both )const;
-
-
-/*
-3.10.1 Public Data Members
-
-These members are not used in this class. So the user of
-this class can change them without any problems within this
-class itself.
-
-*/
- int con_below;  // should be used as a coverage number
- int con_above;  // should be used as a coverage number
-
-
-/*
-3.11.1 Private Part
-
-Here the data members as well as some auxiliary functions are
-collected.
-
-*/
-
-
-private:
-  /* data members  */
-  double x1,y1,x2,y2; // the geometry of this segment
-  bool insideAbove_first;
-  bool insideAbove_second;
-  ownertype owner;    // who is the owner of this segment
-
-
-/*
-~pointequal~
-
-This function checks if the points defined by (x1, y1) and
-(x2,y2) are equals using the ~AlmostEqual~ function.
-
-*/
-  static bool pointEqual(const double x1, const double y1,
-                         const double x2, const double y2);
-
-
-/*
-~pointSmaller~
-
-This function checks if the point defined by (x1, y1) is
-smaller than the point defined by (x2, y2).
-
-*/
-
- static bool pointSmaller(const double x1, const double y1,
-                          const double x2, const double y2);
-
-/*
-~comparePoints~
-
-*/
-  static int comparePoints(const double x1,const  double y1,
-                            const double x2,const double y2);
-
-/*
-~compareSlopes~
-
-compares the slopes of __this__ and __s__. The slope of a vertical
-segment is greater than all other slopes.
-
-*/
-   int compareSlopes(const AVLSegment& s) const;
-
-
-/*
-~XOverlaps~
-
-Checks whether the x interval of this segment overlaps the
-x interval of ~s~.
-
-*/
-
-  bool xOverlaps(const AVLSegment& s) const;
-
-
-/*
-~XContains~
-
-Checks if the x coordinate provided by the parameter __x__ is contained
-in the x interval of this segment;
-
-*/
-  bool xContains(const double x) const;
-
-
-/*
-~GetY~
-
-Computes the y value for the specified  __x__.
-__x__ must be contained in the x-interval of this segment.
-If the segment is vertical, the minimum y value of this
-segment is returned.
-
-*/
-  double getY(const double x) const;
-};
-
-ostream& operator<<(ostream& o, const AVLSegment& s);
-
-}
-
 
 /*
 ~insertEvents~
@@ -5485,12 +4252,12 @@ should be inserted.
 void insertEvents(const avlseg::AVLSegment& seg,
                   const bool createLeft,
                   const bool createRight,
-                  priority_queue<HalfSegment,
-                                 vector<HalfSegment>,
-                                 greater<HalfSegment> >& q1,
-                  priority_queue<HalfSegment,
-                                 vector<HalfSegment>,
-                                 greater<HalfSegment> >& q2);
+                  priority_queue<avlseg::ExtendedHalfSegment,
+                                 vector<avlseg::ExtendedHalfSegment>,
+                                 greater<avlseg::ExtendedHalfSegment> >& q1,
+                  priority_queue<avlseg::ExtendedHalfSegment,
+                                 vector<avlseg::ExtendedHalfSegment>,
+                                 greater<avlseg::ExtendedHalfSegment> >& q2);
 
 /*
 ~splitByNeighbour~
@@ -5506,12 +4273,12 @@ are inserted into the corresponding queues depending on the woner of ~current~ a
 bool splitByNeighbour(avltree::AVLTree<avlseg::AVLSegment>& sss,
                       avlseg::AVLSegment& current,
                       avlseg::AVLSegment const*& neighbour,
-                      priority_queue<HalfSegment,
-                                     vector<HalfSegment>,
-                                     greater<HalfSegment> >& q1,
-                      priority_queue<HalfSegment,
-                                     vector<HalfSegment>,
-                                     greater<HalfSegment> >& q2);
+                      priority_queue<avlseg::ExtendedHalfSegment,
+                                vector<avlseg::ExtendedHalfSegment>,
+                                greater<avlseg::ExtendedHalfSegment> >& q1,
+                      priority_queue<avlseg::ExtendedHalfSegment,
+                                vector<avlseg::ExtendedHalfSegment>,
+                                greater<avlseg::ExtendedHalfSegment> >& q2);
 
 /*
 ~splitByNeighbours~
@@ -5524,12 +4291,12 @@ inserted into the queues.
 void splitNeighbours(avltree::AVLTree<avlseg::AVLSegment>& sss,
                      avlseg::AVLSegment const*& leftN,
                      avlseg::AVLSegment const*& rightN,
-                     priority_queue<HalfSegment,
-                                    vector<HalfSegment>,
-                                    greater<HalfSegment> >& q1,
-                     priority_queue<HalfSegment,
-                                    vector<HalfSegment>,
-                                    greater<HalfSegment> >& q2);
+                     priority_queue<avlseg::ExtendedHalfSegment,
+                                    vector<avlseg::ExtendedHalfSegment>,
+                                    greater<avlseg::ExtendedHalfSegment> >& q1,
+                     priority_queue<avlseg::ExtendedHalfSegment,
+                                    vector<avlseg::ExtendedHalfSegment>,
+                                    greater<avlseg::ExtendedHalfSegment> >& q2);
 
 /*
 ~SetOp~
@@ -5606,13 +4373,13 @@ avlseg::ownertype selectNext(const Region& reg1,
                      int& pos1,
                      const Region& reg2,
                      int& pos2,
-                     priority_queue<HalfSegment,
-                                    vector<HalfSegment>,
-                                    greater<HalfSegment> >& q1,
-                     priority_queue<HalfSegment,
-                                    vector<HalfSegment>,
-                                    greater<HalfSegment> >& q2,
-                     HalfSegment& result,
+                     priority_queue<avlseg::ExtendedHalfSegment,
+                                    vector<avlseg::ExtendedHalfSegment>,
+                                    greater<avlseg::ExtendedHalfSegment> >& q1,
+                     priority_queue<avlseg::ExtendedHalfSegment,
+                                    vector<avlseg::ExtendedHalfSegment>,
+                                    greater<avlseg::ExtendedHalfSegment> >& q2,
+                     avlseg::ExtendedHalfSegment& result,
                      int& src // for debugging only
                     );
 
@@ -5634,13 +4401,13 @@ avlseg::ownertype selectNext(const Line& line1,
                      int& pos1,
                      const Line& line2,
                      int& pos2,
-                     priority_queue<HalfSegment,
-                                    vector<HalfSegment>,
-                                    greater<HalfSegment> >& q1,
-                     priority_queue<HalfSegment,
-                                    vector<HalfSegment>,
-                                    greater<HalfSegment> >& q2,
-                     HalfSegment& result,
+                     priority_queue<avlseg::ExtendedHalfSegment,
+                                    vector<avlseg::ExtendedHalfSegment>,
+                                    greater<avlseg::ExtendedHalfSegment> >& q1,
+                     priority_queue<avlseg::ExtendedHalfSegment,
+                                    vector<avlseg::ExtendedHalfSegment>,
+                                    greater<avlseg::ExtendedHalfSegment> >& q2,
+                     avlseg::ExtendedHalfSegment& result,
                      int& src
                     );
 
@@ -5648,38 +4415,39 @@ avlseg::ownertype selectNext(const Line& line,
                      int& pos1,
                      const Region& region,
                      int& pos2,
-                     priority_queue<HalfSegment,
-                                    vector<HalfSegment>,
-                                    greater<HalfSegment> >& q1,
-                     priority_queue<HalfSegment,
-                                    vector<HalfSegment>,
-                                    greater<HalfSegment> >& q2,
-                     HalfSegment& result,
+                     priority_queue<avlseg::ExtendedHalfSegment,
+                                    vector<avlseg::ExtendedHalfSegment>,
+                                    greater<avlseg::ExtendedHalfSegment> >& q1,
+                     priority_queue<avlseg::ExtendedHalfSegment,
+                                    vector<avlseg::ExtendedHalfSegment>,
+                                    greater<avlseg::ExtendedHalfSegment> >& q2,
+                     avlseg::ExtendedHalfSegment& result,
                      int& src
                     );
 
 avlseg::ownertype selectNext( const Line&  line,
-                      priority_queue<HalfSegment,
-                                     vector<HalfSegment>,
-                                     greater<HalfSegment> >& q,
+                      priority_queue<avlseg::ExtendedHalfSegment,
+                                     vector<avlseg::ExtendedHalfSegment>,
+                                     greater<avlseg::ExtendedHalfSegment> >& q,
                       int& posLine,
                       const Points&  point,
                       int& posPoint,
-                      HalfSegment& resHs,
+                      avlseg::ExtendedHalfSegment& resHs,
                       Point& resPoint);
 
 avlseg::ownertype selectNext( const Line& line,
-                      priority_queue<HalfSegment,
-                                     vector<HalfSegment>,
-                                     greater<HalfSegment> >& q,
+                      priority_queue<avlseg::ExtendedHalfSegment,
+                                     vector<avlseg::ExtendedHalfSegment>,
+                                     greater<avlseg::ExtendedHalfSegment> >& q,
                       int& posLine,
                       const Point& point,
                       int& posPoint, // >0: point already used
-                      HalfSegment& resHs,
+                      avlseg::ExtendedHalfSegment& resHs,
                       Point& resPoint);
 
 void Realminize2(const Line& src, Line& result);
 
+void CommonBorder( const Region& reg1, const Region& reg2, Line& result);
 
 struct P3D;
 
