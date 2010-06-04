@@ -113,26 +113,72 @@ TSendTypeMap(ListExpr args)
   ListExpr first, second;
   string argstr;
 
-  CHECK_COND(nl->ListLength(args) == 2,
-    "Operator send expects a list of length two.");
+  int len = nl->ListLength(args);
+  if (len != 2 && len != 3)
+  {
+    ErrorReporter::ReportError(
+        "Operator send expect a list of two or three arguments");
+    return nl->TypeError();
+  }
 
   first = nl->First(args);
-
   nl->WriteToString(argstr, first);
-  CHECK_COND( nl->ListLength(first) == 2 &&
-          nl->ListLength(nl->Second(first)) == 2 &&
-          TypeOfRelAlgSymbol(nl->First(first)) == stream  &&
-          TypeOfRelAlgSymbol(nl->First(nl->Second(first))) == tuple ,
-    "Operator send expects a list with structure "
-    "((stream (tuple ((a1 t1)...(an tn)))) port)\n"
-    "Operator count gets a list with structure '" + argstr + "'.");
+  if(! listutils::isTupleStream(first))
+  {
+    ErrorReporter::ReportError(
+        "Operator send expects a list with structure "
+        "((stream (tuple ((a1 t1)...(an tn)))) port)\n"
+        "Operator count gets a list with structure '"
+        + argstr + "'.");
+    return nl->TypeError();
+  }
 
   second = nl->Second(args);
+  if (! listutils::isSymbol(second))
+  {
+    ErrorReporter::ReportError(
+        "Operator send expects as second argument a "
+        "symbol atom (port number p9999)." );
+    return nl->TypeError();
+  }
 
-  CHECK_COND( nl->IsAtom(second)
-      && nl->AtomType(second) == SymbolType,
-    "Operator send expects as second argument a "
-    "symbol atom (port number p9999)." );
+  int index = 0;
+  string AppendAttrType = "";
+  ListExpr attrType = nl->Empty();
+  if (len == 3)
+  {
+    //Check the third argument should be an attribute name;
+    ListExpr third;
+    third = nl->Third(args);
+    if (! listutils::isSymbol(third))
+    {
+      ErrorReporter::ReportError(
+          "Operator send expects the key attribute name be a "
+          "symbol atom." );
+      return nl->TypeError();
+    }
+
+    string name = nl->SymbolValue(third);
+    index = listutils::findAttribute(
+        nl->Second(nl->Second(first)), name, attrType);
+    if (index == 0)
+    {
+      ErrorReporter::ReportError(
+          "Attrbute name " + name + " not found in attribute list." );
+      return nl->TypeError();
+    }
+
+    if (! listutils::isSymbol(attrType))
+    {
+      ErrorReporter::ReportError(
+          "Attrbute name " + name + " should be SymbolType" );
+      return nl->TypeError();
+    }
+
+    stringstream ss;
+    ss << "APPEND " << nl->ToString(attrType);
+    AppendAttrType = ss.str();
+  }
 
   string port = nl->SymbolValue(second).substr(1),
          streamType = nl->ToString(first),
@@ -148,17 +194,20 @@ TSendTypeMap(ListExpr args)
   CHECK_COND( client && client->IsOk(),
       "Unable to connect with client" );
 
-  client->GetSocketStream() << streamType << endl;
+  client->GetSocketStream() << streamType << AppendAttrType << endl;
 
   // Warning - the client pointer is not being deleted.
 
   gate->Close();
   delete gate;
 
+  int sd = client->GetDescriptor();
+
   return nl->ThreeElemList(
            nl->SymbolAtom("APPEND"),
-           nl->TwoElemList(nl->TextAtom(tupleType),
-                           nl->IntAtom(client->GetDescriptor())),
+           nl->ThreeElemList(nl->IntAtom(index),
+                             nl->StringAtom(nl->ToString(attrType)),
+                             nl->IntAtom(sd)),
            nl->SymbolAtom("int"));
 }
 
@@ -203,6 +252,24 @@ TReceiveTypeMap(ListExpr args)
 
   getline( client->GetSocketStream(), streamTypeStr );
 
+  string keyTypeName = "";
+  string::size_type loc = streamTypeStr.find("APPEND",0);
+  if (loc != string::npos)
+  {
+    keyTypeName = streamTypeStr.substr(loc + 7);
+    streamTypeStr = streamTypeStr.substr(0, loc);
+
+    if ((keyTypeName != "")
+        && (keyTypeName != "int")
+        && (keyTypeName != "string")
+        && (keyTypeName != "bool")
+        && (keyTypeName != "real"))
+    {
+      ErrorReporter::ReportError("Error key attribute type");
+      return nl->SymbolAtom("typeerror");
+    }
+  }
+
   ListExpr streamType;
   nl->ReadFromString(streamTypeStr, streamType);
 
@@ -211,7 +278,7 @@ TReceiveTypeMap(ListExpr args)
   return nl->ThreeElemList(
            nl->SymbolAtom("APPEND"),
            nl->TwoElemList(
-               nl->TextAtom(nl->ToString(nl->Second(streamType))),
+               nl->StringAtom(keyTypeName),
                nl->IntAtom(client->GetDescriptor())),
            streamType);
 }
@@ -220,8 +287,8 @@ TReceiveTypeMap(ListExpr args)
 /*
 3 Value Mapping Function
 
-Though the class Socket defined inside Secondo uses iostream
-to transform data makes the communication very easy,
+Though the class Socket defined inside Secondo offers an iostream
+object to transform data, and makes the communication very easy,
 this method needs the sender to
 invoke Tuple class's ~Out~ function to transfer all tuples
 into nestedLists, then the receiver can use the ~In~ function
@@ -266,6 +333,13 @@ then transform these binary data back into tuples
 and put them into a tuple buffer,
 The next socket package will be received when the tuple buffer is empty.
 
+At the same time, by connecting RemoteStreamAlgebra with Hadoop system,
+we enhance the operators by putting an indicated key attribute
+value before each tuple while sending them,
+so the Java program in Hadoop can read
+the key attribute values, and partition the tuples' binary form
+without reading the tuple themselves.
+
 */
 
 static const size_t MAX_TUPLESIZE = 65535; //Copy from class Tuple
@@ -276,8 +350,8 @@ const size_t SOCKTUP_SIZE = SOCKET_SIZE - SOCKET_METASIZE;
 void sendSocket(Socket* client, char* buf,
                   int* sock_ID, int sock_Num)
 {
-  //Set sock_ID and sock_Num
   TRACE_ENTER
+  //Set sock_ID and sock_Num
   memcpy(buf, sock_ID, sizeof(int));
   memcpy(buf + sizeof(int), &sock_Num, sizeof(sock_Num));
 
@@ -292,7 +366,7 @@ void sendSocket(Socket* client, char* buf,
     int replySockID = 0;
     do
     {
-      if(!client->Read(buf, SOCKET_SIZE))
+      if(!client->Read(buf, sizeof(int)))
       {
         string errMsg = client->GetErrorText();
         cerr << "Sender read socket failed: " << errMsg << endl;
@@ -300,21 +374,22 @@ void sendSocket(Socket* client, char* buf,
       }
       memcpy(&replySockID, buf, sizeof(replySockID));
     }while(replySockID != (*sock_ID+1));
-    //  return until the package is received
+    // return until the package is received
   }
 
   (*sock_ID)++;
   TRACE_LEAVE
 }
 
-void receiveSocket(Socket* client, char* buf,
-                    int* sock_ID, int& sock_Num)
+int receiveSocket(Socket* client, char* buf,
+                    int* sock_ID)
 {
   //Read one socket, remove the socket info,
   //and put tuple value to allocated buffer
   char sockBuffer[SOCKET_SIZE];
   const int expectSockID = (*sock_ID);
   int get_SockID = expectSockID - 1;
+  int sockNum = -1;
 
   while(true)
   {
@@ -326,27 +401,26 @@ void receiveSocket(Socket* client, char* buf,
     {
       string errMsg = client->GetErrorText();
       cerr << "Receiver read socket failed: " << errMsg << endl;
-      return;
+      return sockNum;
     }
 
     memcpy(&get_SockID, sockBuffer, sizeof(get_SockID));
-
     if (get_SockID == expectSockID)
     {
       //Read the sock\_Num of this socket
-      memcpy(&sock_Num, sockBuffer + sizeof(int), sizeof(int));
+      memcpy(&sockNum, sockBuffer + sizeof(int), sizeof(int));
       //Read tuple value to allocated buffer
       memcpy(buf, sockBuffer + SOCKET_METASIZE, SOCKTUP_SIZE);
 
       //Return the successive signal
       (*sock_ID)++;
       memcpy(sockBuffer, sock_ID, sizeof(int));
-      if(!client->Write(sockBuffer,SOCKET_SIZE))
+      if(!client->Write(sockBuffer,sizeof(int)))
       {
         string errMsg = client->GetErrorText();
         cerr << "Receiver write socket failed: " << errMsg << endl;
       }
-      return;
+      return sockNum;
     }
   }
 }
@@ -376,9 +450,75 @@ TSendStream(Word* args, Word& result,
     int message, Word& local, Supplier s)
 {
   Word elem;
-  SocketDescriptor sd = ((CcInt*) args[3].addr)->GetIntval();
+  SocketDescriptor sd;
+  bool haveKey = false;
+  int keyIndex = 0;
+  string keyTypeName;
+  size_t keySize = 0;
+  if (qp->GetNoSons(s) == 6)
+  {
+    haveKey = true;
+    keyIndex = ((CcInt*)args[3].addr)->GetIntval() - 1;
+    keyTypeName =
+        (string)(char*)((CcString*)args[4].addr)->GetStringval();
+
+    if ("int" == keyTypeName)
+      keySize = sizeof(int);
+    else if ("string" == keyTypeName)
+      keySize = 0; //The size depends on the value
+    else if ("bool" == keyTypeName)
+      keySize = sizeof(bool);
+    else if ("real" == keyTypeName)
+      keySize = sizeof(double);
+    else
+    {
+      cerr << "ERROR: unknown storage type for attribute No "
+          << keyIndex << endl;
+      assert(false);
+    }
+
+/*
+Since the RemoteStreamAlgebra need contact with Java program,
+so the key attribute value type can only be one of the four
+basic data types: int, real, bool and string.
+If the communication happens between two Secondo system,
+then the key attribute value type can be any kind.
+The method of getting the binary size of different Secondo data type
+is shown below:
+
+*/
+      //Get the storageType of the key attribute
+//    Attribute::StorageType st;
+//    ListExpr streamTupleTypeNL =
+//        SecondoSystem::GetCatalog()->NumericType(
+//        nl->Second(qp->GetSupplierTypeExpr(qp->GetSon(s, 0))));
+//    TupleType* streamTupleType = new TupleType(streamTupleTypeNL);
+//    int algId = streamTupleType->GetAttributeType(keyIndex).algId;
+//    int typeId = streamTupleType->GetAttributeType(keyIndex).typeId;
+//    st = static_cast<Attribute*>(
+//            am->CreateObj(algId, typeId)(0).addr)->GetStorageType();
+//
+//    if (Attribute::Default == st)
+//    {
+//      keySize = sizeof(keySize)
+//          + streamTupleType->GetAttributeType(keyIndex).size;
+//    }
+//    else if ((Attribute::Core != st) && (Attribute::Extension != st))
+//    {
+//      cerr << "ERROR: unknown storage type for attribute No "
+//          << keyIndex << endl;
+//      assert(false);
+//    }
+
+    sd = ((CcInt*) args[5].addr)->GetIntval();
+  }
+  else
+  {
+    sd = ((CcInt*) args[4].addr)->GetIntval();
+  }
   Socket *client = Socket::CreateClient( sd );
   int count = 0;
+  int wcount = 0;
 
   char tupleBlock[MAX_TUPLESIZE];
   memset(tupleBlock, 0, sizeof(tupleBlock));
@@ -388,13 +528,15 @@ TSendStream(Word* args, Word& result,
 
   int sock_ID = -1;    //used to synchronize the sockets,
   int tup_Num = 0;     //amount of tuples inside buffer
-  uint16_t tupleSize;
+
 
   qp->Open(args[0].addr);
   qp->Request(args[0].addr, elem);
   bool haveNext = false;
   while ( ( haveNext = qp->Received(args[0].addr)) || (tup_Num > 0))
   {
+    uint16_t tupleSize;
+
     if ( haveNext )
     {
       Tuple *tuple = (Tuple*)elem.addr;
@@ -404,7 +546,14 @@ TSendStream(Word* args, Word& result,
       tupleSize = tuple->GetBlockSize(coreSize, extensionSize);
       assert(tupleSize < MAX_TUPLESIZE);
 
-      if (tupleSize >= tbSize)
+      if(haveKey && ("string" == keyTypeName))
+      {
+        keySize =
+            ((string)(char*)((CcString*)tuple
+                ->GetAttribute(keyIndex))->GetStringval()).size() + 1;
+      }
+
+      if (tupleSize + keySize + sizeof(keySize) >= tbSize)
       {
         //No more space for this tuple, send the buffer
         sendTupleBlock(client, tupleBlock, &sock_ID, offset);
@@ -417,11 +566,54 @@ TSendStream(Word* args, Word& result,
         tup_Num = 0;
       }
 
+      //Write the key Value before the tuple value
+      if (haveKey)
+      {
+        if ("int" == keyTypeName)
+        {
+          //keySize = sizeof(int);
+          memcpy(tupleBlock + offset, &keySize, sizeof(keySize));
+          offset += sizeof(keySize);
+          int keyValue =
+              ((CcInt*)tuple->GetAttribute(keyIndex))->GetIntval();
+          memcpy(tupleBlock + offset, &keyValue, keySize);
+        }
+        else if ("string" == keyTypeName)
+        {
+          memcpy(tupleBlock + offset, &keySize, sizeof(keySize));
+          offset += sizeof(keySize);
+          memcpy(tupleBlock + offset,
+              (char*)((CcString*)tuple->GetAttribute(keyIndex))
+              ->GetStringval(), keySize);
+        }
+        else if ("bool" == keyTypeName)
+        {
+          //keySize = sizeof(bool);
+          memcpy(tupleBlock + offset, &keySize, sizeof(keySize));
+          offset += sizeof(keySize);
+          bool keyValue =
+              ((CcBool*)tuple->GetAttribute(keyIndex))->GetBoolval();
+          memcpy(tupleBlock + offset, &keyValue, keySize);
+        }
+        else if ("real" == keyTypeName)
+        {
+          //keySize = sizeof(double);
+          memcpy(tupleBlock + offset, &keySize, sizeof(keySize));
+          offset += sizeof(keySize);
+          double keyValue =
+              ((CcReal*)tuple->GetAttribute(keyIndex))->GetRealval();
+          memcpy(tupleBlock + offset, &keyValue, keySize);
+        }
+        offset += keySize;
+        tbSize -= (sizeof(keySize) + keySize);
+      }
+
       // Write the tuple into the buffer
       tuple->WriteToBin(tupleBlock + offset, coreSize, extensionSize);
       tup_Num++;
       offset += tupleSize;
       tbSize -= tupleSize;
+      wcount++;
 
       tuple->DeleteIfAllowed();
       qp->Request(args[0].addr, elem);
@@ -433,9 +625,9 @@ TSendStream(Word* args, Word& result,
       tup_Num = 0;
     }
   }
-  tup_Num = -1;
+  //tup_Num = -1;
 
-  sendSocket(client, tupleBlock, &sock_ID, tup_Num);
+  sendSocket(client, tupleBlock, &sock_ID, -1);
 
   result = qp->ResultStorage(s);
   ((CcInt*) result.addr)->Set(true, count);
@@ -455,16 +647,19 @@ TReceiveStream(Word* args, Word& result,
   {
     Socket *client;
     int sock_ID;
-    iostream& ss;
+    string keyTypeName;
+    bool haveKey;
     TupleType* tupleType;
     TupleBuffer *tupleBuffer;
     GenericRelationIterator *iterator;
 
-
     inline RemoteStreamInfo(
-        Socket *client, iostream& ss, TupleType* tupleType ):
-      client( client ), sock_ID(-1), ss( ss ),
-      tupleType( tupleType ), tupleBuffer(0), iterator(0) {}
+        Socket *client, string ktn, TupleType* tupleType ):
+      client( client ), sock_ID(-1), keyTypeName(ktn),
+      tupleType( tupleType ), tupleBuffer(0), iterator(0)
+    {
+      haveKey = keyTypeName.size() > 0 ? true : false;
+    }
 
     inline ~RemoteStreamInfo()
     {
@@ -486,8 +681,21 @@ TReceiveStream(Word* args, Word& result,
       Tuple* tuple = 0;
       while(offset < curPos)
       {
+        if (haveKey)
+        {
+          //Ignore the part contains the key value;
+          size_t keySize = 0;
+          memcpy(&keySize, buf + offset, sizeof(keySize));
+          offset += sizeof(keySize);
+          //Since in Secondo,
+          //it's unnecessary to read the key value out,
+          //skip this data directly.
+          offset += keySize;
+        }
+
         uint16_t tupleSize = 0;
         memcpy(&tupleSize, buf + offset, sizeof(tupleSize));
+
         if (tupleSize > 0)
         {
           tuple = new Tuple(tupleType);
@@ -519,12 +727,15 @@ TReceiveStream(Word* args, Word& result,
 
       ListExpr resultType = GetTupleResultType(s);
       tupleType = new TupleType(nl->Second(resultType));
+
+      string keyTypeName =
+          (string)(char*)((CcString*)args[2].addr)->GetStringval();
+
       SocketDescriptor sd = ((CcInt*) args[3].addr)->GetIntval();
       Socket *client = Socket::CreateClient( sd );
-      iostream& ss = client->GetSocketStream();
 
       remoteStreamInfo =
-          new RemoteStreamInfo( client, ss, tupleType );
+          new RemoteStreamInfo( client, keyTypeName, tupleType );
       local.addr = remoteStreamInfo;
       TRACE_LEAVE
       return 0;
@@ -556,48 +767,37 @@ TReceiveStream(Word* args, Word& result,
       }
 
       char tupleBlock[MAX_TUPLESIZE];
+      memset(tupleBlock, 0, sizeof(tupleBlock));
       Socket* client = remoteStreamInfo->client;
       int* sock_ID = &(remoteStreamInfo->sock_ID);
       int sock_Num = -1;
-      receiveSocket(client, tupleBlock, sock_ID, sock_Num);
 
-      if(sock_Num > 0)
+      size_t offset = 0;
+      while( (sock_Num =
+          receiveSocket(client, tupleBlock + offset, sock_ID)) > 1)
       {
-        //continue read the sockets until sock_Num == 1
-        size_t offset = SOCKTUP_SIZE;
-        while(sock_Num > 1)
-        {
-          receiveSocket(client, tupleBlock + offset,
-              sock_ID, sock_Num);
+        offset += SOCKTUP_SIZE;
+      }
 
-          offset += SOCKTUP_SIZE;
-        }
-
+      if (sock_Num > 0)
+      {
+        offset += SOCKTUP_SIZE;
         //Load the tuples from the buffer
         tuple = remoteStreamInfo->LoadTuples(tupleBlock, offset);
+        if (tuple)
+        {
+          result.setAddr(tuple);
+          TRACE_LEAVE
+          return YIELD;
+        }
       }
-      else
-      {
-        //close the client
-        client->Close();
-        delete client;
-        remoteStreamInfo->client = 0;
+      //close the client
+      client->Close();
+      delete client;
+      remoteStreamInfo->client = 0;
 
-        TRACE_LEAVE
-        return CANCEL;
-      }
-
-      if (tuple)
-      {
-        result.setAddr(tuple);
-        TRACE_LEAVE
-        return YIELD;
-      }
-      else
-      {
-        TRACE_LEAVE
-        return CANCEL;
-      }
+      TRACE_LEAVE
+      return CANCEL;
     }
 
     case CLOSE:
@@ -621,7 +821,7 @@ const string sendSpec  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" "
     "\"Example\" ) "
     "( <text>(stream (tuple x)) int -> int</text--->"
-    "<text>send [ _ ]</text--->"
+    "<text>send [ _ , _ ]</text--->"
     "<text>Listen to a port and send the tuples of "
     "a stream to a client.</text--->"
     "<text>query Rel feed send[p1032]</text--->"
