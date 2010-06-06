@@ -108,20 +108,20 @@ Result   : 77
 
 Operator : walk_sp
 Number   : 2
-Signature: dualgraph x rel x rel -> line
-Example  : query walk_sp(dg1, query_loc1, query_loc2);
+Signature: dualgraph x visualgraph x rel1 x rel2 x rel3 x rel4 x btree -> line
+Example  : query walk_sp(dg1, vg1, query_loc1, query_loc2, tri_reg_new, vertex_tri, btr_vid);
 Result   : file_platform
 
-Operator : generate_wp
+Operator : generate_wp1
 Number   : 2
 Signature: rel x int  -> (stream(tuple ((x1 t1) ... (xn tn))))
-Example  : query generate_wp(graph_node, 5) count;
+Example  : query generate_wp1(graph_node, 5) count;
 Result   : 5
 
-Operator : vgedge
+Operator : generate_wp2
 Number   : 2
-Signature: rel x attr1 x attr2 x dualgraph x region  -> (stream(tuple ((x1 t1) ... (xn tn))))
-Example  : query vgedge(vg_node,nodeid, elem, dg1, node_reg) count;
+Signature: rel x int  -> (stream(tuple ((x1 t1) ... (xn tn))))
+Example  : query generate_wp2(graph_node, 5) count;
 Result   : 5
 
 Operator : zval
@@ -156,8 +156,14 @@ Result   : 1
 
 Operator : getvnode
 Number   : 2
-Signature: dualgraph x rel1 x rel2 -> (stream(((x1 t1) ... (xn tn)))
-Example  : query getvnode(dg1, query_loc1, tri_reg_new_sort,vgnodes) count;
+Signature: dualgraph x rel1 x rel2 x rel3 x btree-> (stream(((x1 t1) ... (xn tn)))
+Example  : query getvnode(dg1, query_loc1, tri_reg_new, vgnodes, vertex_tri, btr_vid) count;
+Result   : 1
+
+Operator : getvgedge
+Number   : 2
+Signature: dualgraph x rel1 x rel2 x rel3 x btree-> (stream(((x1 t1) ... (xn tn)))
+Example  : query getvnode(dg1, vgnodes, tri_reg_new_sort, vgnodes, vertex_tri, btr_vid) count;
 Result   : 1
 
 Operator : myinside
@@ -166,8 +172,26 @@ Signature: line x region -> bool
 Example  : query l2 myinside r2;
 Result   : TRUE
 
-Operator : getadjnode
+Operator : getadjnode_dg
 Number   : 2
 Signature: dualgraph x int -> (stream(((x1 t1) ... (xn tn)))
-Example  : query getadjnode(dg1,1) count;
+Example  : query getadjnode_dg(dg1,1) count;
 Result   : 3
+
+Operator : getadjnode_vg
+Number   : 2
+Signature: visualgraph x int -> (stream(((x1 t1) ... (xn tn)))
+Example  : query getadjnode_vg(vg1,1) count;
+Result   : 3
+
+Operator : decomposetri
+Number   : 2
+Signature: rel -> (stream(((x1 t1) ... (xn tn)))
+Example  : query getadjnode(tri_reg_new_sort) count;
+Result   : 10
+
+Operator : createvgraph
+Number   : 2
+Signature: int x rel x rel -> dualgraph
+Example  : query createvgraph(1, edge_rel, node_rel);
+Result   : file_platform

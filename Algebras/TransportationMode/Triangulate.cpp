@@ -90,7 +90,7 @@ int generate_random_ordering(int n)
 
   choose_idx = 1;
   gettimeofday(&tval, &tzone);
-  srand48(tval.tv_sec);
+//  srand48(tval.tv_sec);
 
   for (i = 0; i <= n; i++)
     st[i] = i;

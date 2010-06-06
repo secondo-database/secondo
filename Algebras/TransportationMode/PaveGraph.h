@@ -98,12 +98,9 @@ struct CompTriangle{
   bool PolygonConvex();
   //compute the shortest path between two points inside a polgyon
   void GeoShortestPath(Point*, Point*);
-  //compute the shortest path between a point and a line inside a polgyon
-  void GeoShortestPath(Point*, Line*);
+
   //compute the channel/sleeve between two points
   void GetChannel(Point*, Point*);
-  //compute the channel/sleeve between a point and a line segment
-  void GetChannel(Point*, HalfSegment*, vector<Region>&);
 
   void PtoSegSPath(Point*, HalfSegment*, vector<Region>&, Line*);
   //find adjacenct triangles
@@ -141,8 +138,7 @@ public:
     inline int No_Of_Node(){return node_rel->GetNoTuples();}
     void FindAdj(int node_id, vector<bool>& flag, vector<int>& adj_list);
     void FindAdj(int node_id, vector<int>& adj_list);
-
-    unsigned int dg_id;
+    unsigned int g_id;
     Relation* node_rel;
     Relation* edge_rel;
 
@@ -154,18 +150,22 @@ class DualGraph:public BaseGraph{
 public:
     static string NodeTypeInfo;
     static string EdgeTypeInfo;
-    static string QueryTypeInfo;
+
     /*schema for edge and node*/
     enum DGNodeTypeInfo{OID = 0, RID, PAVEMENT};
     enum DGEdgeTypeInfo{OIDFIRST = 0, OIDSECOND, COMMAREA};
-    enum DGQueryTypeInfo{QOID = 0, QLOC1, QLOC2}; //relative, absolute position
+
 
     /////////////for triangle ///////////////////////
     static string TriangleTypeInfo1;
     static string TriangleTypeInfo2;
     static string TriangleTypeInfo3;
+    static string TriangleTypeInfo4;
     enum Tri1TypeInfo{V1 = 0, V2,V3,CENTROID,TOID};
     enum Tri2TypeInfo{CYCLENO = 0, VERTEX};
+    //(vid,triid)
+    //for each vertex, which triangle it belongs to
+    enum Tri4TypeInfo{VID = 0, TRIID};
     ////////////constructor and deconstructor///////////////////////
     ~DualGraph();
     DualGraph();
@@ -195,7 +195,7 @@ public:
     static DualGraph* Open(SmiRecord& valueRecord,size_t& offset,
                           const ListExpr typeInfo);
     //////////////////////////////////////////////////////////////////
-    void WalkShortestPath(int,int,Point,Point,Line*, vector<Region>&);
+
 
 };
 
@@ -203,43 +203,70 @@ class VisualGraph: public BaseGraph{
 public:
   static string NodeTypeInfo;
   static string EdgeTypeInfo;
+  static string QueryTypeInfo;
   enum VGNodeTypeInfo{OID = 0, LOC};
-  enum VGEdgeTypeInfo{OIDFIRST = 0,OIDSECOND};
-
+  enum VGEdgeTypeInfo{OIDFIRST = 0,OIDSECOND, CONNECTION};
+  enum VGQueryTypeInfo{QOID = 0, QLOC1, QLOC2}; //relative, absolute position
+  //////////////////////////////////////////////////////////////
+  ~VisualGraph();
+  VisualGraph();
+  VisualGraph(ListExpr in_xValue,int in_iErrorPos,
+                     ListExpr& inout_xErrorInfo,
+                     bool& inout_bCorrect);
+  VisualGraph(SmiRecord&, size_t&, const ListExpr);
+  //////////////////////////////////////////////////////////////
+  void Load(int, Relation*,Relation*);
+  static ListExpr OutVisualGraph(ListExpr typeInfo, Word value);
+  ListExpr Out(ListExpr typeInfo);
+  static bool CheckVisualGraph(ListExpr type, ListExpr& errorInfo);
+  static void CloseVisualGraph(const ListExpr typeInfo, Word& w);
+  static void DeleteVisualGraph(const ListExpr typeInfo, Word& w);
+  static Word CreateVisualGraph(const ListExpr typeInfo);
+  static Word InVisualGraph(ListExpr in_xTypeInfo,
+                            ListExpr in_xValue,
+                            int in_iErrorPos, ListExpr& inout_xErrorInfo,
+                            bool& inout_bCorrect);
+  static bool OpenVisualGraph(SmiRecord& valueRecord, size_t& offset,
+                           const ListExpr typeInfo, Word& value);
+  static VisualGraph* Open(SmiRecord& valueRecord,size_t& offset,
+                          const ListExpr typeInfo);
+  static bool SaveVisualGraph(SmiRecord& valueRecord, size_t& offset,
+                           const ListExpr typeInfo, Word& value);
+  bool Save(SmiRecord& in_xValueRecord,size_t& inout_iOffset,
+              const ListExpr in_xTypeInfo);
 };
 
 struct Walk_SP{
-  const DualGraph* dg;
-  const Relation* rel1;
-  const Relation* rel2;
+  DualGraph* dg;
+  VisualGraph* vg;
+  Relation* rel1; //query relation1
+  Relation* rel2; //query relation2
   unsigned int count;
   TupleType* resulttype;
-  Line* walk_sp;
-  vector<Region> walkregs;
   vector<int> oids;
+
+  vector<int> oids1;
+  vector<int> oids2;
+  vector<Line> path;
+
   vector<Point> q_loc1;
   vector<Point> q_loc2;
+  Relation* rel3; //triangle relation (v1 int)(v2 int)(v3 int)(centroid point)
+  Relation* rel4; //vertex relation (vid int)(triid int)
+  BTree* btree;
+
   Walk_SP();
   ~Walk_SP();
-  Walk_SP(const DualGraph* g, const Relation* r1, const Relation* r2);
+  Walk_SP(DualGraph* g1, VisualGraph* g2, Relation* r1, Relation* r2);
   void WalkShortestPath();
-  void GenerateData(int no_p);
+  void GenerateData1(int no_p);
+  void GenerateData2(int no_p);
 };
 
-struct PairPoint{
-  Point p1;
-  Point p2;
-  PairPoint(){}
-  PairPoint(Point& q1, Point& q2):p1(q1),p2(q2){}
-  PairPoint(const PairPoint& pp):p1(pp.p1),p2(pp.p2){}
-  PairPoint& operator=(const PairPoint& pp)
-  {
-    p1 = pp.p1;
-    p2 = pp.p2;
-    return *this;
-  }
-};
+/*
+clamp structure for pruning triangles searching
 
+*/
 struct Clamp{
   Point apex;
   Point foot1;
@@ -248,7 +275,6 @@ struct Clamp{
   Clamp(){}
   Clamp(Point& p1, Point& p2, Point& p3):apex(p1),foot1(p2),foot2(p3)
   {
-
       double b = apex.Distance(foot1);
       double c = apex.Distance(foot2);
       double a = foot1.Distance(foot2);
@@ -275,37 +301,55 @@ struct Clamp{
   }
   void Print()
   {
-    cout<<"apex "<<apex<<" foot1 "<<foot1<<" foot2 "<<foot2<<endl;
+    cout<<"apex "<<apex<<" foot1 "<<foot1<<" foot2 "
+        <<foot2<<"angle "<<angle<<endl;
   }
 };
 
+struct Triangle;
+
 struct VGraph{
   DualGraph* dg;
-  Relation* rel1;
-  Relation* rel2;
-  Relation* rel3;
+  Relation* rel1;//query relation
+  Relation* rel2;//triangle relation (v1 int)(v2 int)(v3 int)(centroid point)
+  Relation* rel3;//visibility graph node relation
+  Relation* rel4;//vertex relation (vid int)(triid int)
+  BTree* btree;
   unsigned int count;
   TupleType* resulttype;
   vector<int> oids1;
-  vector<PairPoint> vpp;
+
   vector<int> oids2;
+  vector<int> oids3;
   vector<Point> p_list;
   vector<Line> line;
   vector<Region> regs;
+  VisualGraph* vg;
+
   VGraph();
   ~VGraph();
   VGraph(DualGraph* g, Relation* r1, Relation* r2, Relation* r3);
-  void GetVGEdge(int attr_pos1, int attr_pos2, Region*);
+  VGraph(VisualGraph* g);
   void GetVNode();
-  void GetAdjNode(int oid);
-  void GetVisibleNode(int tri_id, Point* query_p);
+  void GetAdjNodeDG(int oid);
+  void GetAdjNodeVG(int oid);
+  void GetVisibleNode1(int tri_id, Point* query_p);
+  void GetVisibleNode2(int tri_id, Point* query_p, int type);
   bool CheckVisibility1(Clamp& clamp, Point& checkp, int vp);
   bool CheckVisibility2(Clamp& clamp, Point& checkp1, Point& checkp2);
   void DFTraverse(int id, Clamp& clamp, int pre_id, int type,
                   vector<int> reg_id_list);
   bool PathContainHS(vector<int> tri_list, HalfSegment hs);
   bool GetIntersectionPoint(Point& p1,Point& p2,Clamp& clamp, Point& ip,bool);
-
+  bool GetVNode_QV(int tri_id, Point* query_p,int,int,int);
+  void DecomposeTriangle();
+  void FindTriContainVertex(int vid, int tri_id, Point* query_p);
+  bool Collineation(Point& p1, Point& p2, Point& p3);
+  void GetVNodeOnVertex(int vid, Point* query_p);
+  void GetVGEdge();
+  bool MyCross(const HalfSegment& hs1, const HalfSegment& hs2);
+  ////////////////////for walk shortest algorithm/////////////////////////
+  void GetVisibilityNode(int tri_id, Point query_p);
 };
 
 /*
@@ -425,5 +469,19 @@ inline long ZValue(Point& p)
       b.set(2*j+1,val);
   }
   return b.to_ulong();
+}
+
+inline void Modify_Point_3(Point& p)
+{
+    double x,y;
+    x = p.GetX();
+    y = p.GetY();
+//    printf("%.10f %.10f\n",x, y);
+    x = ((int)(x*1000.0 + 0.5))/1000.0;
+    y = ((int)(y*1000.0 + 0.5))/1000.0;
+
+//    printf("%.10f %.10f\n",x, y);
+
+    p.Set(x,y);
 }
 #endif
