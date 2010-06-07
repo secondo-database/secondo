@@ -1668,7 +1668,9 @@ avlseg::ownertype selectNext( const Line& line,
 
    int src = 0;
    if(posLine < size){
-      line.Get(posLine,hsl);
+      HalfSegment hsl_transfer;
+      line.Get(posLine,hsl_transfer);
+      hsl = hsl_transfer;
       hs1exists = true;
    }
    if(!q.empty()){
@@ -1748,7 +1750,9 @@ avlseg::ownertype selectNext(const Line& line,
    avlseg::ExtendedHalfSegment hstmp;
    int src = 0;
    if(posLine < sizeL){
-      line.Get(posLine,hsl);
+      HalfSegment hsl_transfer;
+      line.Get(posLine,hsl_transfer);
+      hsl = hsl_transfer;
       hslexists = true;
    }
    if(!q.empty()){
