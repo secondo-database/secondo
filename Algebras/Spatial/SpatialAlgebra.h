@@ -4369,6 +4369,10 @@ line, region.
 
 */
 bool IsSpatialType(ListExpr type);
+
+
+
+
 avlseg::ownertype selectNext(const Region& reg1,
                      int& pos1,
                      const Region& reg2,
