@@ -1456,40 +1456,43 @@ SmiEnvironment::EraseDatabase( const string& dbname )
       if ( LockDatabase( database ) )
       {
         DbEnv* dbenv = instance.impl->bdbEnv;
-	SmiEnvironment::Implementation::DeleteDatabase( database );
-	string oldHome = FileSystem::GetCurrentFolder();
-	FileSystem::SetCurrentFolder( instance.impl->bdbHome );
-	FilenameList fnl;
-	if ( FileSystem::FileSearch( database, fnl, 0, 3 ) )
-	{
-	  vector<string>::const_iterator iter = fnl.begin();
-	  while ( iter != fnl.end() )
-	  {
-	    Db*    dbp   = new Db( dbenv, DB_CXX_NO_EXCEPTIONS );
-	    string fileName(*iter);
-	    cout << "Removing " << fileName << endl;
-	    int rc = dbp->remove( fileName.c_str(), 0, 0 );
-	    ok = ok && (rc == 0);
-	    SetBDBError( rc );
-	    delete dbp;
-	    iter++;
-	}
-	ok = ok && FileSystem::EraseFolder( database );
-        FileSystem::SetCurrentFolder( oldHome );
+        SmiEnvironment::Implementation::DeleteDatabase( database );
+        string oldHome = FileSystem::GetCurrentFolder();
+        FileSystem::SetCurrentFolder( instance.impl->bdbHome );
+        FilenameList fnl;
+        if ( FileSystem::FileSearch( database, fnl, 0, 3 ) )
+        {
+          vector<string>::const_iterator iter = fnl.begin();
+          while ( iter != fnl.end() )
+          {
+            Db*    dbp   = new Db( dbenv, DB_CXX_NO_EXCEPTIONS );
+            string fileName(*iter);
+            cout << "Removing " << fileName << endl;
+            int rc = dbp->remove( fileName.c_str(), 0, 0 );
+            ok = ok && (rc == 0);
+            SetBDBError( rc );
+            delete dbp;
+            iter++;
+          }
+          ok = ok && FileSystem::EraseFolder( database );
         }
+        else
+          cerr<<"\nWarning: database " << database 
+              << ": database folder not found.\n";
+        FileSystem::SetCurrentFolder( oldHome );
         ok = ok && UnlockDatabase( database );
         if ( !ok ) {
           SetError( E_SMI_DB_ERASE );
-	}  
+        }  
       }
       else
       {
         SetError( E_SMI_DB_NOTLOCKED );
-	ok = false;
+        ok = false;
       }
     }
     else {
-     // database does not exist. Nothing to erase!
+      // database does not exist. Nothing to erase!
     } 
   }
   else

@@ -365,7 +365,11 @@ FileSystem::FileSearch( const string& folder,
 
   // Save the current folder and change to folder where the search starts.
   string oldFolder = GetCurrentFolder();
-  SetCurrentFolder( folder );
+  if(!SetCurrentFolder( folder ))
+  {
+    SetCurrentFolder(oldFolder);
+    return false;
+  }
 
   // Get absolute pathname of the current folder.
   string absoluteFolder = GetCurrentFolder();
