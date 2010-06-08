@@ -9,51 +9,50 @@
 ###                                        ###
 
 # Research in progress
-RemoteStreamAlgebra RemoteStream
-PartitionedStreamAlgebra PartitionedStream
+DistributedAlgebra DistributedAlgebra
 FlockAlgebra Flock
-DistributedAlgebra Distributed
 GPatternAlgebra GPattern
 HadoopParallelAlgebra HadoopParallel
 MAttiaTestAlgebra MAttiaTest
+PartitionedStreamAlgebra PartitionedStream
+RemoteStreamAlgebra RemoteStream
+TrafficAlgebra Traffic
 TransportationModeAlgebra TransportationMode
 
 
 # Plugins
-MTreeAlgebra MTree
-XTreeAlgebra XTree
 GeneralTreeAlgebra GeneralTree
-TBTreeAlgebra TBTree
 MONTreeAlgebra MONTree
-
+MTreeAlgebra MTree
 NearestNeighborAlgebra NearestNeighbor
-STPatternAlgebra STPattern
-
 PeriodicAlgebra Periodic
+STPatternAlgebra STPattern
+TBTreeAlgebra TBTree
+XTreeAlgebra XTree
+
 
 
 # Student's algebras
-HierarchicalGeoAlgebra HierarchicalGeo
-WebAlgebra Web
 ChessAlgebra Chess
-OrderedRealationAlgebra OrderedRelation
-RasterAlgebra Raster
-RasterSpatialAlgebra RasterSpatial
+ConstraintAlgebra Constraint
+HierarchicalGeoAlgebra HierarchicalGeo
 MRegionOpsAlgebra MRegionOps
 OptAuxAlgebra OptAux
+OrderedRelationAlgebra OrderedRelation
+PointSequenceAlgebra PointSequence
+RasterAlgebra Raster
+RasterSpatialAlgebra RasterSpatial
+RecordAlgebra Record
 RegionInterpolationAlgebra RegionInterpolation
+SpatialJoinAlgebra SpatialJoin
 UGridAlgebra UGrid
 URelAlgebra URel
-ConstraintAlgebra Constraint
-PointSequenceAlgebra PointSequence
-ConstraintAlgebra Constraint
-ExtRelationAlgebraB ExtRelation-2
-BTree2Algebra BTree2
+WebAlgebra Web
 
 
 # Java algebras - not longer supported
-JBBoxAlgebra JBBox
 FuzzyAlgebra Fuzzy
+JBBoxAlgebra JBBox
 RoseAlgebra Rose
 
 # old stuff
