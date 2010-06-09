@@ -175,6 +175,23 @@ The usual Print function
      return out << (*this) << endl;
    }
 
+/*
+~PrintAsLine~
+
+Prints out this segments as a nested list reprenting a line.
+
+
+*/
+
+  ostream& PrintAsLine(ostream& out) const{
+     Point P1 = GetDomPoint();
+     Point P2 = GetSecPoint();
+     out << "(line ((" << P1.GetX() << " " << P1.GetY() << " " 
+         << P2.GetX() << " "  << P2.GetY() << ")))";
+     return out;
+  }
+
+
 
 
 /*

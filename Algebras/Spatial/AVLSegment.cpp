@@ -47,7 +47,7 @@ ostream& avlseg::operator<<(ostream& o, const avlseg::ownertype& owner){
    return o;
 }
 
-ostream& operator<<(ostream& o, const avlseg::ExtendedHalfSegment hs) {
+ostream& operator<<(ostream& o, const avlseg::ExtendedHalfSegment& hs) {
   return hs.Print(o);
 }
 
@@ -95,6 +95,7 @@ As owner only __first__ and __second__ are the allowed values.
   avlseg::AVLSegment::AVLSegment(const avlseg::ExtendedHalfSegment& hs, 
                                  ownertype owner){
 
+
      assert(hs.isInitialized());
 
      x1 = hs.GetLeftPoint().GetX();
@@ -129,10 +130,10 @@ As owner only __first__ and __second__ are the allowed values.
      }
      con_below = 0;
      con_above = 0;
-     originX1 = x1;
-     originX2 = x2;
-     originY1 = y1;
-     originY2 = y2;
+     originX1 = hs.getOriginX1();
+     originX2 = hs.getOriginX2();
+     originY1 = hs.getOriginY1();
+     originY2 = hs.getOriginY2();
 
      assert(CheckPoints());
   }
@@ -211,7 +212,8 @@ Create a Segment only consisting of a single point.
   }
 
   bool avlseg::AVLSegment::operator<(const avlseg::AVLSegment& s) const{
-     return compareTo(s)<0;
+     int res = compareTo(s);
+     return res<0;
   }
 
   bool avlseg::AVLSegment::operator>(const avlseg::AVLSegment& s) const{
@@ -1229,6 +1231,7 @@ void insertEvents(const avlseg::AVLSegment& seg,
                   priority_queue<avlseg::ExtendedHalfSegment,
                                  vector<avlseg::ExtendedHalfSegment>,
                                  greater<avlseg::ExtendedHalfSegment> >& q2){
+
    if(seg.isPoint()){
      return;
    }
@@ -1293,6 +1296,14 @@ bool splitByNeighbour(avltree::AVLTree<avlseg::AVLSegment>& sss,
           neighbour->splitAt(current.getX1(),current.getY1(),left1,right1);
           sss.remove(*neighbour);
           if(!left1.isPoint()){
+            // debug::start
+            const avlseg::AVLSegment* x = sss.getMember(left1);
+            if(x){
+               cerr << "we have a problem " << __LINE__ << endl;
+               cerr << " left1 = " << left1 << endl;
+               cerr << " *x = " << *x << endl;
+            }
+            // debug::end
             neighbour = sss.insert2(left1);
             insertEvents(left1,false,true,q1,q2);
           }
@@ -1302,6 +1313,14 @@ bool splitByNeighbour(avltree::AVLTree<avlseg::AVLSegment>& sss,
           neighbour->splitAt(current.getX2(),current.getY2(),left1,right1);
           sss.remove(*neighbour);
           if(!left1.isPoint()){
+            // debug::start
+            const avlseg::AVLSegment* x = sss.getMember(left1);
+            if(x){
+               cerr << "we have a problem " << __LINE__ << endl;
+               cerr << " left1 = " << left1 << endl;
+               cerr << " *x = " << *x << endl;
+            }
+            // debug::end
             neighbour = sss.insert2(left1);
             insertEvents(left1,false,true,q1,q2);
           }
@@ -1491,7 +1510,6 @@ avlseg::ownertype selectNext(const T1& v1,
                      avlseg::ExtendedHalfSegment& result,
                      int& src = 0
                     ){
-
 
   const avlseg::ExtendedHalfSegment* values[4];
   HalfSegment hs0hs, hs2hs;
@@ -2521,12 +2539,15 @@ void SetOp(const Region& reg1,
 
   result.StartBulkLoad();
 
+
   while( (owner=selectNext(reg1,pos1,
                            reg2,pos2,
                            q1,q2,nextHs,src))!=avlseg::none){
 
+
        avlseg::AVLSegment current(nextHs,owner);
        avlseg::AVLSegment currentCopy(current);
+
 
        member = sss.getMember(current,leftN,rightN);
 
@@ -2583,9 +2604,11 @@ void SetOp(const Region& reg1,
                insertEvents(right1,true,true,q1,q2);
             }
           } else { // there is no overlapping segment
+
             // try to split segments if required
             splitByNeighbour(sss,current,leftN,q1,q2);
             splitByNeighbour(sss,current,rightN,q1,q2);
+
 
             // update coverage numbers
             bool iac = current.getOwner()==avlseg::first
@@ -2614,6 +2637,7 @@ void SetOp(const Region& reg1,
               }
             }
             // insert element if it was changed 
+            
             if(!current.isPoint()){
               sss.insert(current);
               if(!current.exactEqualsTo(currentCopy)){
@@ -2707,6 +2731,9 @@ void SetOp(const Region& reg1,
           } // current found in sss
        } // right endpoint
   }
+
+
+
   result.EndBulkLoad();
 
 

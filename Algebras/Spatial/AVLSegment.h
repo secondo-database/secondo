@@ -595,10 +595,11 @@ segment is returned.
 };
 
 ostream& operator<<(ostream& o, const AVLSegment& s);
-ostream& operator<<(ostream& o, const ExtendedHalfSegment& hs);
 
 }
 
+
+ostream& operator<<(ostream& o, const avlseg::ExtendedHalfSegment& hs);
 
 #endif
 
