@@ -566,7 +566,7 @@ bool SETI::Open( SmiRecord& valueRecord, size_t& offset,
 {
   SmiFileId fileID;
   db_pgno_t headerPageNo;
-  
+
   bool ok = true;
   ok = ok && valueRecord.Read( &fileID, sizeof(SmiFileId), offset );
   offset += sizeof(SmiFileId);
@@ -1237,7 +1237,6 @@ struct CreateInfo : OperatorInfo {
     meaning   = "SETI construction operator. The second argument (partitions)"
                 "must be 1, 4, 16, 256 or 4096, otherwise it will be set a "
                 "default value.";
-    example   = "let mySETI = createSETI( myRect, 4096 )";
   }
 };
 
@@ -1380,13 +1379,13 @@ bool InsertHandle(SETI* SETIPTR, UploadUnit* UNITPTR)
           assert( PageSelected );
           page->Read(&pageTiv, sizeof(Interval<Instant> ), sizeof(int)); 
           
-          Rectangle<2> box = Rectangle<2>(true, pageTiv.start.ToDouble(), 
-                                          pageTiv.end.ToDouble(), -1.0, 1.0);
+          Rectangle<2> box = Rectangle<2>(true, -1.0, pageTiv.start.ToDouble(), 
+                                                -1.0, pageTiv.end.ToDouble());
           R_TreeLeafEntry<2,TupleId> e(box,cellPtr->currentPage);
           cellPtr->rtreePtr->Insert(e);
           
           // Put current page back to disk
-          suf->PutPage(cellPtr->currentPage, true);
+          //suf->PutPage(cellPtr->currentPage, true);
 
           // Reset cell data
           cellPtr->numEntries = 0;
@@ -1549,7 +1548,6 @@ struct InsertUploadInfo : OperatorInfo {
     signature = "seti x uploadunit -> bool";
     syntax    = "insertUpload( _, _)";
     meaning   = "SETI insert upload operator.";
-    example   = "query insertUpload(mySETI, myUploadUnit)";
   }
 };
 
@@ -1664,7 +1662,6 @@ struct InsertStreamInfo : OperatorInfo {
                 "..., an:dn]))) x seti x ai) -> bool";
     syntax    = "_ insertStream[ _, _ ]";
     meaning   = "SETI insert upload stream operator.";
-    example   = "query myRel feed insertStream[mySETI, upload]";
   }
 };
 
@@ -1716,8 +1713,8 @@ set<TrjSeg*> FindTrjSegments( SETI* SETIPTR, SETIArea AREA,
   int bottom = ComputeLine(hPtr->area.y1,hPtr->area.y2,hPtr->splits,AREA.y1);
   int top    = ComputeLine(hPtr->area.y1,hPtr->area.y2,hPtr->splits,AREA.y2);
 
-  Rectangle<2> searchBox = Rectangle<2>(true,TIME1.ToDouble(),TIME2.ToDouble(),
-                                        -1.0, 1.0 );
+  Rectangle<2> searchBox = Rectangle<2>(true, -1.0, TIME1.ToDouble(),
+                                              -1.0, TIME2.ToDouble());
   for (int i = bottom; i <= top; i++)
   {
     for (int j = left; j <= right; j++)
@@ -1997,8 +1994,6 @@ struct IntersectsWinInfo : OperatorInfo {
     syntax    =  "intersectsWindow ( _, _, _, _ )";
     meaning   =  "Returns all trajectory segments which"
                  "intersect the search window.";
-    example   =  "query intersectsWindow ( mySETI, myRect, "
-                 "\"2004-11-30-12:32\" , \"2011-09-25-09:32\" ) count";
   }
 };
 
@@ -2195,8 +2190,6 @@ struct InsideWinInfo : OperatorInfo {
                  "stream (tuple (MovObjId int)(TrjSeg upoint))";
     syntax    =  "insideWindow ( _, _, _, _ )";
     meaning   =  "Returns all trajectory segments inside the search window.";
-    example   =  "query insideWindow ( mySETI, myRect, "
-                 "\"2004-11-30-12:32\" , \"2011-09-25-09:32\" ) count";
   }
 };
 
@@ -2353,7 +2346,6 @@ struct GetTrajectoryInfo : OperatorInfo {
     syntax    =  "getTrajectory ( _, _ )";
     meaning   =  "Returns all trajectory segments which belongs"
                  "to the stated moving object id.";
-    example   =  "query getTrajectory ( mySETI, 5 ) count";
   }
 };
 
@@ -2423,7 +2415,6 @@ struct CurrentUploadInfo : OperatorInfo {
     signature =  "seti x int -> uploadunit";
     syntax    =  "currentUpload ( _, _ )";
     meaning   =  "Returns the current UploadUnit.";
-    example   =  "query currentUpload ( mySETI, 5 )";
   }
 };
 
