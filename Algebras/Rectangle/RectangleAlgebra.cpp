@@ -49,9 +49,12 @@ using namespace std;
 #include "StandardTypes.h"
 #include "RelationAlgebra.h"
 #include "ListUtils.h"
+#include "Symbols.h"
 
 extern NestedList* nl;
 extern QueryProcessor* qp;
+
+using namespace symbols;
 
 /*
 3 Type Constructor ~rect~
@@ -821,6 +824,46 @@ RectangleTypeMapBool2( ListExpr args )
   return (nl->SymbolAtom( "typeerror" ));
 }
 
+/*
+4.1.9 Type mapping function ~cellNumberTM~
+
+rect x real x real x real x real x int -> stream(int)
+
+*/
+ListExpr
+cellNumberTM( ListExpr args )
+{
+  if (nl->ListLength(args) != 6 ){
+    ErrorReporter::ReportError("Expect 6 arguments");
+    return (nl->SymbolAtom("typeerror"));
+  }
+
+  ListExpr tRect, tX0, tY0, tXw, tYw, tNx;
+  tRect = nl->First(args);
+  tX0 = nl->Second(args);
+  tY0 = nl->Third(args);
+  tXw = nl->Fourth(args);
+  tYw = nl->Fifth(args);
+  tNx = nl->Sixth(args);
+
+  if (  (nl->IsEqual(tRect, "rect"))
+      &&(listutils::isSymbol(tX0, REAL))
+      &&(listutils::isSymbol(tY0, REAL))
+      &&(listutils::isSymbol(tXw, REAL))
+      &&(listutils::isSymbol(tYw, REAL))
+      &&(listutils::isSymbol(tNx, INT))
+  )
+  {
+    return NList(STREAM, INT).listExpr();
+  }
+  else
+  {
+    ErrorReporter::ReportError(
+        "Expect (rect, real, real, real, real, int)");
+    return (nl->SymbolAtom("typeerror"));
+  }
+
+}
 
 /*
 4.2 Selection functions
@@ -1535,6 +1578,133 @@ int RectangleBboxIntersects( Word* args, Word& result, int message,
 }
 
 /*
+4.4.13 Value mapping functions of operator ~cellnumber~
+
+Build a cell grid located in first quadrant,
+and return the number of cells that the rectangle object covers.
+
+*/
+int
+cellNumberVM(Word* args, Word& result,
+                    int message, Word& local, Supplier s)
+{
+struct CellGrid{
+
+  CellGrid(double _x0, double _y0, double _xw, double _yw, int _nx):
+    nx(_nx), x0(_x0), y0(_y0),
+    xWidth(_xw), yWidth(_yw),
+    cx(0), cy(0),
+    initialized(false), finished(false)
+  {}
+
+  //Get the bound box of the rectangle in the grid
+  void setBoundBox(double lbx, double lby, double rtx, double rty)
+  {
+    //set the LBX, LBY, RTX, RTY;
+    LBX = floor((lbx - x0) / xWidth);
+    LBY = floor((lby - y0) / yWidth);
+    RTX = floor((rtx - x0) / xWidth);
+    RTY = floor((rty - y0) / yWidth);
+
+    cx = LBX;
+    cy = LBY;
+
+    initialized = true;
+  }
+
+  int getNextCellNum()
+    {
+      if (!initialized){
+        cerr <<
+            "The grid for cellnumber operator doesn't initialized."
+            << endl;
+        return 0;
+      }
+      else
+      {
+        int cellNum = cx + cy * nx + 1;
+
+        if (cx < RTX)
+          cx++;
+        else if (cy < RTY)
+        {
+          cx = LBX;
+          cy++;
+        }
+        else
+        {
+          finished = true;
+        }
+
+        return cellNum;
+      }
+    }
+
+  int nx;
+  double x0, y0, xWidth, yWidth;
+  int LBX, LBY, RTX, RTY;
+  int cx, cy; //Current cell coordinate number
+  bool initialized;
+  bool finished;
+};
+
+  CellGrid* grid = static_cast<CellGrid*>(local.addr);
+
+  switch (message) {
+  case OPEN: {
+    if(grid){
+      delete grid;
+    }
+
+    Rectangle<2> *rect = (Rectangle<2> *)args[0].addr;
+    double x0 = ((CcReal *)args[1].addr)->GetValue();
+    double y0 = ((CcReal *)args[2].addr)->GetValue();
+    double xw = ((CcReal *)args[3].addr)->GetValue();
+    double yw = ((CcReal *)args[4].addr)->GetValue();
+    int nx = ((CcInt *)args[5].addr)->GetValue();
+    grid = new CellGrid(x0, y0, xw, yw, nx);
+    if(!rect->IsDefined())
+    {
+      cerr << "Uninitialized rectangle is used" << endl;
+    }
+    grid->setBoundBox(rect->MinD(0), rect->MinD(1),
+                      rect->MaxD(0), rect->MaxD(1));
+
+    local.addr = grid;
+    return 0;
+  }
+  case REQUEST: {
+    if (!grid){
+      return CANCEL;
+    }else{
+      if (grid->initialized && !grid->finished){
+        int nextCellNum = grid->getNextCellNum();
+        CcInt* res = new CcInt(true, nextCellNum);
+        result.addr = res;
+        return YIELD;
+      }else {
+        result.addr = 0;
+        return CANCEL;
+      }
+    }
+  }
+  case CLOSE: {
+    if (grid != 0){
+      delete grid;
+      local.addr = 0;
+    }
+    return 0;
+  }
+  default: {
+    /* should never happen */
+    assert(false);
+    return -1;
+  }
+  }
+}
+
+
+/*
 4.5 Definition of operators
 
 Definition of operators is done in a way similar to definition of
@@ -2066,6 +2236,19 @@ Operator rectanglebboxintersects( "bboxintersects",
                               RectangleBinarySelect1,
                               RectangleTypeMapBool2 );
 
+struct cellnumber_Info : OperatorInfo {
+
+  cellnumber_Info() : OperatorInfo()
+  {
+    name =      "cellnumber";
+    signature = "rect x real x real x real x real x int -> stream(int)";
+    syntax =    "cellnumber(_, _, _, _, _, _)";
+    meaning =   "Return numbers of cells while a rectangle is partitioned "
+                "on a finite grid space";
+  }
+
+};
+
 /*
 5 Creating the Algebra
 
@@ -2108,6 +2291,7 @@ class RectangleAlgebra : public Algebra
     AddOperator( &rectanglesize );
     AddOperator( &scalerect);
     AddOperator( &rectanglebboxintersects );
+    AddOperator(cellnumber_Info(), cellNumberVM, cellNumberTM);
   }
   ~RectangleAlgebra() {};
 };

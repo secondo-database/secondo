@@ -188,4 +188,9 @@ Signature: (rect<D1> x rect<D2>) -> bool
 Example  : query [const rect value (0.0 1.0 0.0 1.0)] bboxintersects [const rect3 value (0.5 2.0 0.5 2.0 1.0 1.0)]
 Result   : TRUE
 
+Operator : cellnumber
+Number   : 1
+Signature: (rect<dim> x real x real x real x real x int) -> stream(int)
+Example  : query cellnumber(rectangle2(0.0, 2.0, 0.0, 2.0), 0.0, 0.0, 1.0, 1.0, 5) count
+Result   : 9
 
