@@ -191,6 +191,6 @@ Result   : TRUE
 Operator : cellnumber
 Number   : 1
 Signature: (rect<dim> x real x real x real x real x int) -> stream(int)
-Example  : query cellnumber(rectangle2(0.0, 2.0, 0.0, 2.0), 0.0, 0.0, 1.0, 1.0, 5) count
-Result   : 9
+Example  : query cellnumber(rectangle2(0.3, 2.5, 1.3, 2.5), 0.0, 0.0, 1.0, 1.0, 5) count
+Result   : 6
 

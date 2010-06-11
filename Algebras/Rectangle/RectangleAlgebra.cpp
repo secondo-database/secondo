@@ -1603,8 +1603,27 @@ struct CellGrid{
     //set the LBX, LBY, RTX, RTY;
     LBX = floor((lbx - x0) / xWidth);
     LBY = floor((lby - y0) / yWidth);
+
+
+    // A rectangle's top edge belongs to the blower cell,
+    // and its right edge belongs to the lefter cell
+    // when the rectangle's top-right point is located in
+    // cells' boundary.
     RTX = floor((rtx - x0) / xWidth);
-    RTY = floor((rty - y0) / yWidth);
+    if (fabs(rtx - x0) == RTX)
+      RTX--;
+    RTY = int((rty - y0) / yWidth);
+    if (fabs(rty - y0) == RTY)
+      RTY--;
+
+    //  The cell grid is located in the first quadrant.
+    //  If the rectangle is located in other quadrants,
+    //  then an empty int stream will be returned.
+    if(LBX < 0 || LBY < 0)
+    {
+      cerr << "Error: The rectangle is outside the first quadrant\n";
+      finished = true;
+    }
 
     cx = LBX;
     cy = LBY;
@@ -1613,32 +1632,32 @@ struct CellGrid{
   }
 
   int getNextCellNum()
+  {
+    int cellNum = -1;
+    if (!initialized)
     {
-      if (!initialized){
-        cerr <<
-            "The grid for cellnumber operator doesn't initialized."
-            << endl;
-        return 0;
+      cerr << "The grid for cellnumber operator doesn't initialized." << endl;
+      cellNum = -1;
+    }
+    else if (!finished)
+    {
+      cellNum = cx + cy * nx + 1;
+
+      if (cx < RTX)
+        cx++;
+      else if (cy < RTY)
+      {
+        cx = LBX;
+        cy++;
       }
       else
       {
-        int cellNum = cx + cy * nx + 1;
-
-        if (cx < RTX)
-          cx++;
-        else if (cy < RTY)
-        {
-          cx = LBX;
-          cy++;
-        }
-        else
-        {
-          finished = true;
-        }
-
-        return cellNum;
+        finished = true;
       }
+
     }
+    return cellNum;
+  }
 
   int nx;
   double x0, y0, xWidth, yWidth;
@@ -1677,12 +1696,15 @@ struct CellGrid{
     if (!grid){
       return CANCEL;
     }else{
-      if (grid->initialized && !grid->finished){
-        int nextCellNum = grid->getNextCellNum();
+      int nextCellNum = grid->getNextCellNum();
+      if (nextCellNum > 0)
+      {
         CcInt* res = new CcInt(true, nextCellNum);
         result.addr = res;
         return YIELD;
-      }else {
+      }
+      else
+      {
         result.addr = 0;
         return CANCEL;
       }
