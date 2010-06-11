@@ -1048,8 +1048,8 @@ void pjLocalInfo::loadTuples()
 
   while (!endOfStream)
   {
-    tbA = new TupleBuffer(maxMem /*/ 2*/);
-    tbB = new TupleBuffer(maxMem /*/ 2*/);
+    tbA = new TupleBuffer(maxMem);
+    tbB = new TupleBuffer(maxMem);
     isBufferFilled = false;
     isInBucket = true;
 
@@ -1140,10 +1140,10 @@ Word pjLocalInfo::getNextInputTuple(tupleBufferType tbt)
 {
   Tuple* tuple = 0;
 
-  if(tbt == tupBufferA){
+  if(itrA && tbt == tupBufferA){
     tuple = itrA->GetNextTuple();
   }
-  else{
+  else if (itrB){
     tuple = itrB->GetNextTuple();
   }
 
