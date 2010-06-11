@@ -2814,7 +2814,7 @@ int OpTMGenerateWP1ValueMap ( Word* args, Word& result, int message,
 
 /*
 Value Mapping for generatewp2  operator
-generate random points insidy pavement polgyon
+generate random vertices of a polygon
 
 */
 
@@ -2832,6 +2832,57 @@ int OpTMGenerateWP2ValueMap ( Word* args, Word& result, int message,
         wsp->resulttype =
             new TupleType(nl->Second(GetTupleResultType(in_pSupplier)));
         wsp->GenerateData2(no_p);
+        local.setAddr(wsp);
+        return 0;
+      }
+      case REQUEST:{
+          if(local.addr == NULL) return CANCEL;
+          wsp = (Walk_SP*)local.addr;
+          if(wsp->count == wsp->oids.size())
+                          return CANCEL;
+
+          Tuple* tuple = new Tuple(wsp->resulttype);
+          tuple->PutAttribute(0,new CcInt(true, wsp->oids[wsp->count]));
+          tuple->PutAttribute(1, new Point(wsp->q_loc1[wsp->count]));
+          tuple->PutAttribute(2, new Point(wsp->q_loc2[wsp->count]));
+          result.setAddr(tuple);
+          wsp->count++;
+          return YIELD;
+      }
+      case CLOSE:{
+
+          if(local.addr){
+            wsp = (Walk_SP*)local.addr;
+            delete wsp;
+            local.setAddr(Address(0));
+          }
+          return 0;
+      }
+  }
+  return 0;
+
+}
+/*
+Value Mapping for generatewp3  operator
+generate random points inside polygon (internal point. not on the
+polygon edge)
+
+*/
+
+int OpTMGenerateWP3ValueMap ( Word* args, Word& result, int message,
+                         Word& local, Supplier in_pSupplier )
+{
+
+  Walk_SP* wsp;
+  switch(message){
+      case OPEN:{
+
+        Relation* r = (Relation*)args[0].addr;
+        int no_p = ((CcInt*)args[1].addr)->GetIntval();
+        wsp = new Walk_SP(NULL, NULL, r, NULL);
+        wsp->resulttype =
+            new TupleType(nl->Second(GetTupleResultType(in_pSupplier)));
+        wsp->GenerateData3(no_p);
         local.setAddr(wsp);
         return 0;
       }
@@ -3582,6 +3633,15 @@ Operator generate_wp2(
     OpTMGenerateWPTypeMap
 );
 
+
+Operator generate_wp3(
+    "generate_wp3",
+    OpTMGenerateWPSpec,
+    OpTMGenerateWP3ValueMap,
+    Operator::SimpleSelect,
+    OpTMGenerateWPTypeMap
+);
+
 Operator zval(
     "zval",
     OpTMZvalSpec,
@@ -3715,6 +3775,7 @@ class TransportationModeAlgebra : public Algebra
     AddOperator(&nodedualgraph);
     AddOperator(&generate_wp1);
     AddOperator(&generate_wp2);
+    AddOperator(&generate_wp3);
     ///////////////////visibility graph///////////////////////////////
     AddOperator(&getvnode);
     AddOperator(&myinside);

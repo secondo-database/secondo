@@ -4089,7 +4089,7 @@ void SpacePartition::Junpavement(Network* n, Relation* rel, int attr_pos1,
     //get the pavement for each junction
     Relation* routes = n->GetRoutes();
     vector<Region> zc_reg;
-    for(unsigned int i = 0;i < routes->GetNoTuples();i++){
+    for(int i = 0;i < routes->GetNoTuples();i++){
         Region* reg = new Region(0);
         zc_reg.push_back(*reg);
         delete reg;

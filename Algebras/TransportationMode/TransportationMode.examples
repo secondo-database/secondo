@@ -124,6 +124,12 @@ Signature: rel x int  -> (stream(tuple ((x1 t1) ... (xn tn))))
 Example  : query generate_wp2(graph_node, 5) count;
 Result   : 5
 
+Operator : generate_wp3
+Number   : 2
+Signature: rel x int  -> (stream(tuple ((x1 t1) ... (xn tn))))
+Example  : query generate_wp3(graph_node, 5) count;
+Result   : 5
+
 Operator : zval
 Number   : 2
 Signature: point  -> int

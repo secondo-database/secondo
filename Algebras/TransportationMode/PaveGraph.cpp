@@ -1154,7 +1154,7 @@ void CompTriangle::GetChannel(Point* start, Point* end)
        dest = top;
        break;
     }
-    ////////find its adjacecy element, and push them into queue and path//////
+   ////////find its adjacecy element, and push them into queue and path//////
     vector<int> adj_list;
     FindAdj(top.tri_index, triangle_flag, adj_list);
 //    cout<<"adjcency_list size "<<adj_list.size()<<endl;
@@ -1165,10 +1165,10 @@ void CompTriangle::GetChannel(Point* start, Point* end)
       path_queue.push(SPath_elem(pos_expand_path, expand_path_size,
                                 adj_list[i], top.weight+1));
       expand_path.push_back(SPath_elem(pos_expand_path, expand_path_size,
-                            adj_list[i], top.weight+1));
+                                adj_list[i], top.weight+1));
     }
   }
-  ///////////////construct the path/////////////////////////////
+  ///////////////construct the path/////////////////////////////////
   if(find){
     vector<int> path_record;
     while(dest.prev_index != -1){
@@ -2523,7 +2523,7 @@ DualGraph* DualGraph::Open(SmiRecord& valueRecord,size_t& offset,
 
 DualGraph::~DualGraph()
 {
-  cout<<"~DualGraph()"<<endl;
+//  cout<<"~DualGraph()"<<endl;
 }
 
 DualGraph::DualGraph()
@@ -2694,8 +2694,6 @@ void DualGraph::Load(int id, Relation* r1, Relation* r2)
 }
 
 
-
-
 Walk_SP::Walk_SP()
 {
   dg = NULL;
@@ -2757,11 +2755,13 @@ struct WPath_elem:public Path_elem{
 
 /*
 using visiblity graph to find the shortest path
+first connects the start and end point to the VG, and then applies A star
+algorithm
 
 */
 void Walk_SP::WalkShortestPath()
 {
-  cout<<"WalkShortestPath"<<endl;
+//  cout<<"WalkShortestPath"<<endl;
   if(rel1->GetNoTuples() != 1 || rel2->GetNoTuples() != 1){
     cout<<"input query relation is not correct"<<endl;
     return;
@@ -2776,8 +2776,8 @@ void Walk_SP::WalkShortestPath()
   Point* p2 = (Point*)t2->GetAttribute(VisualGraph::QLOC2);
   Point loc2(*p2);
 
-  cout<<"tri_id1 "<<oid1<<" tri_id2 "<<oid2<<endl;
-  cout<<"loc1 "<<loc1<<" loc2 "<<loc2<<endl;
+//  cout<<"tri_id1 "<<oid1<<" tri_id2 "<<oid2<<endl;
+//  cout<<"loc1 "<<loc1<<" loc2 "<<loc2<<endl;
   int no_node_graph = dg->No_Of_Node();
   if(oid1 < 1 || oid1 > no_node_graph){
     cout<<"loc1 does not exist"<<endl;
@@ -2832,9 +2832,9 @@ void Walk_SP::WalkShortestPath()
     path_queue.push(WPath_elem(-1, 0, -1, w,  loc1,0.0));//start location
     expand_path.push_back(WPath_elem(-1, 0, -1, w, loc1,0.0));//start location
     int prev_index = 0;
-    cout<<"vnode id ";
+//    cout<<"vnode id ";
     for(unsigned int i = 0;i < vg1->oids1.size();i++){
-      cout<<vg1->oids1[i]<<" ";
+//      cout<<vg1->oids1[i]<<" ";
       int expand_path_size = expand_path.size();
       double d = loc1.Distance(vg1->p_list[i]);
       w = d + vg1->p_list[i].Distance(loc2);
@@ -2844,7 +2844,7 @@ void Walk_SP::WalkShortestPath()
                       vg1->oids1[i], w, vg1->p_list[i], d));
     }
   }
-  cout<<endl;
+//  cout<<endl;
   delete vg1;
   ////////////////find all visibility nodes to the end node/////////
   VGraph* vg2 = new VGraph(dg, NULL, rel3, vg->GetNodeRel());
@@ -2855,8 +2855,9 @@ void Walk_SP::WalkShortestPath()
   assert(vg2->oids1.size() == vg2->p_list.size());
   //if the end node equals to triangle vertex.
   //it can be connected by adjacency list
+  //we don't conenct it to the visibility graph
   if(vg2->oids1.size() == 1){
-      cout<<"end point id "<<vg2->oids1[0]<<endl;
+//      cout<<"end point id "<<vg2->oids1[0]<<endl;
   }
   Points* neighbor_end = new Points(0);
   neighbor_end->StartBulkLoad();
@@ -2869,7 +2870,6 @@ void Walk_SP::WalkShortestPath()
     }
     neighbor_end->EndBulkLoad();
   }
-
 
   /////////////////////searching path///////////////////////////////////
   bool find = false;
@@ -2919,7 +2919,7 @@ void Walk_SP::WalkShortestPath()
 
         ////////////check visibility points to the end point////////////
         if(neighbor_end->Size() > 0){
-            const double delta_dist = 0.1;//in theory, it should be 0
+            const double delta_dist = 0.1;//in theory, it should be 0.0
             if(top.loc.Distance(neighbor_end->BoundingBox()) < delta_dist){
               for(unsigned int i = 0;i < vg2->oids1.size();i++){
                 if(top.tri_index == vg2->oids1[i]){
@@ -2944,6 +2944,7 @@ void Walk_SP::WalkShortestPath()
   delete neighbor_end;
   delete vg2;
   /////////////construct path///////////////////////////////////////////
+  double len = 0.0;
   if(find){
     while(dest.prev_index != -1){
       Point p1 = dest.loc;
@@ -2962,12 +2963,15 @@ void Walk_SP::WalkShortestPath()
       *l += hs;
       l->EndBulkLoad();
       path.push_back(*l);
+      len += l->Length();
       delete l;
       oids1.push_back(oid1);
       oids2.push_back(oid2);
       /////////////////////////////////////////////////////
     }
   }
+
+  printf("Euclidean length: %.4f Walk length: %.4f\n",loc1.Distance(loc2),len);
 }
 
 /*
@@ -3078,6 +3082,87 @@ void Walk_SP::GenerateData2(int no_p)
   }
 }
 
+/*
+Randomly generates points inside pavement polygon
+1) randomly selects a polygon/polygon
+2) randomly generates a vertex of the triangle
+3) the vertex is the internal point of a triangle. not on the edge
+
+*/
+
+void Walk_SP::GenerateData3(int no_p)
+{
+  int no_node_graph = rel1->GetNoTuples();
+  struct timeval tval;
+  struct timezone tzone;
+
+  gettimeofday(&tval, &tzone);
+  srand48(tval.tv_sec);
+
+ for (int i = 1; i <= no_p;){
+      int  m = lrand48() % no_node_graph + 1;
+      Tuple* tuple = rel1->GetTuple(m, false);
+      Region* reg = (Region*)tuple->GetAttribute(DualGraph::PAVEMENT);
+
+      if(reg->Area() < 0.5){ //too small area, not useful for a human
+          tuple->DeleteIfAllowed();
+          continue;
+      }
+      BBox<2> bbox = reg->BoundingBox();
+      int xx = (int)(bbox.MaxD(0) - bbox.MinD(0)) + 1;
+      int yy = (int)(bbox.MaxD(1) - bbox.MinD(1)) + 1;
+
+      Point p1;
+      Point p2;
+      bool inside = false;
+      int count = 1;
+      vector<HalfSegment> segs;
+      for(int j = 0;j < reg->Size();j++){
+          HalfSegment hs;
+          reg->Get(j,hs);
+          if(!hs.IsLeftDomPoint())continue;
+          segs.push_back(hs);
+      }
+
+      while(inside == false && count <= 100){
+        //signed long integers, uniformly distributed over
+        //the interval [-2(31), 2(31)]
+//        int x = mrand48()% (xx*100);
+//        int y = mrand48()% (yy*100);
+
+        //non-negative, long integers, uniformly distributed over
+        //the interval [0, 2(31)]
+        int x = lrand48()% (xx*100);
+        int y = lrand48()% (yy*100);
+
+        double coord_x = x/100.0;
+        double coord_y = y/100.0;
+
+        Coord x_cord = coord_x + bbox.MinD(0);
+        Coord y_cord = coord_y + bbox.MinD(1);
+        p2.Set(x_cord, y_cord);
+        p1.Set(coord_x, coord_y); //set back to relative position
+        //lower the precision
+        Modify_Point_3(p1);
+        Modify_Point_3(p2);
+        inside = p2.Inside(*reg);
+        for(unsigned int k = 0;k < segs.size();k++){
+            if(segs[k].Contains(p2)){
+              inside = false;
+              break;
+            }
+        }
+        count++;
+      }
+      if(inside){
+        oids.push_back(m);
+        q_loc1.push_back(p1);
+        q_loc2.push_back(p2);
+        i++;
+      }
+      tuple->DeleteIfAllowed();
+  }
+}
 VGraph::VGraph()
 {
   dg = NULL;
@@ -3707,8 +3792,7 @@ bool VGraph::PathContainHS(vector<int> tri_list, HalfSegment hs)
 Depth first searching on the dual graph to find all visible vertices
 
 */
-void VGraph::DFTraverse(int tri_id, Clamp& clamp, int pre_id, int type1,
-                        vector<int> reg_id_list)
+void VGraph::DFTraverse(int tri_id, Clamp& clamp, int pre_id, int type1)
 {
 //    cout<<"DFTraverse()"<<endl;
 //    cout<<"tri_id "<<tri_id<<" pre_id "<<pre_id<<" type "<<type1<<endl;
@@ -3754,18 +3838,12 @@ void VGraph::DFTraverse(int tri_id, Clamp& clamp, int pre_id, int type1,
       if(type1 != 4){
         if(sharetype2 != type1) continue;
       }
-      ///////////////////////////////////////////////////////////////////////
-//      cout<<"triangle path ";
-//      for(unsigned int j = 0;j < reg_id_list.size();j++){
-//        cout<<reg_id_list[j]<<" ";
-//      }
-//      cout<<endl;
-      //////////////////////////////////////////////////////////////////////
+
       bool visibility;
       switch(sharetype1){
         case 1:
 //                cout<<"case1"<<endl;
-                reg_id_list.push_back(adj_list[i]);
+
                 visibility = CheckVisibility1(clamp, foot3, ver3);
                 if(visibility){
 //                  cout<<"visibility"<<endl;
@@ -3779,15 +3857,15 @@ void VGraph::DFTraverse(int tri_id, Clamp& clamp, int pre_id, int type1,
 
                   Clamp clamp1(clamp.apex, foot3, clamp.foot1);
                   if(GetIntersectionPoint(foot3,foot1,clamp1,ip,false))
-                      DFTraverse(adj_list[i], clamp1, tri_id, 2, reg_id_list);
+                      DFTraverse(adj_list[i], clamp1, tri_id, 2);
                   if(GetIntersectionPoint(foot3,foot2,clamp1,ip,false))
-                      DFTraverse(adj_list[i], clamp1, tri_id, 3, reg_id_list);
+                      DFTraverse(adj_list[i], clamp1, tri_id, 3);
 
                   Clamp clamp2(clamp.apex, foot3, clamp.foot2);
                   if(GetIntersectionPoint(foot3,foot1,clamp2,ip,false))
-                      DFTraverse(adj_list[i], clamp2, tri_id, 2, reg_id_list);
+                      DFTraverse(adj_list[i], clamp2, tri_id, 2);
                   if(GetIntersectionPoint(foot3,foot2,clamp2,ip,false))
-                      DFTraverse(adj_list[i], clamp2, tri_id, 3, reg_id_list);
+                      DFTraverse(adj_list[i], clamp2, tri_id, 3);
 
                 }else{
 //                      bool flag1 = CheckVisibility2(clamp, foot3, foot1);
@@ -3795,16 +3873,15 @@ void VGraph::DFTraverse(int tri_id, Clamp& clamp, int pre_id, int type1,
 //                      cout<<"flag1 "<<flag1<<" flag2 "<<flag2<<endl;
 
                       if(CheckVisibility2(clamp, foot3, foot1)){
-                        DFTraverse(adj_list[i], clamp, tri_id, 2, reg_id_list);
+                        DFTraverse(adj_list[i], clamp, tri_id, 2);
                       }
                       if(CheckVisibility2(clamp, foot3, foot2)){
-                        DFTraverse(adj_list[i], clamp, tri_id, 3, reg_id_list);
+                        DFTraverse(adj_list[i], clamp, tri_id, 3);
                       }
                 }
               break;
         case 2:
 //                cout<<"case2"<<endl;
-                reg_id_list.push_back(adj_list[i]);
                 visibility = CheckVisibility1(clamp, foot2, ver2);
                 if(visibility){
 //                    cout<<"visibility"<<endl;
@@ -3817,29 +3894,28 @@ void VGraph::DFTraverse(int tri_id, Clamp& clamp, int pre_id, int type1,
 
                     Clamp clamp1(clamp.apex, foot2, clamp.foot1);
                     if(GetIntersectionPoint(foot2,foot1,clamp1,ip,false))
-                        DFTraverse(adj_list[i], clamp1, tri_id, 1, reg_id_list);
+                        DFTraverse(adj_list[i], clamp1, tri_id, 1);
                     if(GetIntersectionPoint(foot2,foot3,clamp1,ip,false))
-                        DFTraverse(adj_list[i], clamp1, tri_id, 3, reg_id_list);
+                        DFTraverse(adj_list[i], clamp1, tri_id, 3);
 
                     Clamp clamp2(clamp.apex, foot2, clamp.foot2);
                     if(GetIntersectionPoint(foot2,foot1,clamp2,ip,false))
-                        DFTraverse(adj_list[i], clamp2, tri_id, 1, reg_id_list);
+                        DFTraverse(adj_list[i], clamp2, tri_id, 1);
                     if(GetIntersectionPoint(foot2,foot3,clamp2,ip,false))
-                        DFTraverse(adj_list[i], clamp2, tri_id, 3, reg_id_list);
+                        DFTraverse(adj_list[i], clamp2, tri_id, 3);
 
                 }else{
                     if(CheckVisibility2(clamp, foot2, foot1)){
-                        DFTraverse(adj_list[i], clamp, tri_id, 1, reg_id_list);
+                        DFTraverse(adj_list[i], clamp, tri_id, 1);
                     }
 
                     if(CheckVisibility2(clamp, foot2, foot3)){
-                        DFTraverse(adj_list[i], clamp, tri_id, 3, reg_id_list);
+                        DFTraverse(adj_list[i], clamp, tri_id, 3);
                     }
                 }
               break;
         case 3:
 //                cout<<"case3"<<endl;
-                reg_id_list.push_back(adj_list[i]);
                 visibility = CheckVisibility1(clamp, foot1, ver1);
 
                 if(visibility){
@@ -3854,24 +3930,24 @@ void VGraph::DFTraverse(int tri_id, Clamp& clamp, int pre_id, int type1,
                     Point ip;
                     Clamp clamp1(clamp.apex, foot1, clamp.foot2);
                     if(GetIntersectionPoint(foot1,foot2,clamp1,ip,false))
-                      DFTraverse(adj_list[i], clamp1, tri_id, 1, reg_id_list);
+                      DFTraverse(adj_list[i], clamp1, tri_id, 1);
                     if(GetIntersectionPoint(foot1,foot3,clamp1,ip,false))
-                      DFTraverse(adj_list[i], clamp1, tri_id, 2, reg_id_list);
+                      DFTraverse(adj_list[i], clamp1, tri_id, 2);
 
                     Clamp clamp2(clamp.apex, foot1, clamp.foot1);
                     if(GetIntersectionPoint(foot1,foot2,clamp2,ip,false))
-                        DFTraverse(adj_list[i], clamp2, tri_id, 1, reg_id_list);
+                        DFTraverse(adj_list[i], clamp2, tri_id, 1);
                     if(GetIntersectionPoint(foot1,foot3,clamp2,ip,false))
-                        DFTraverse(adj_list[i], clamp2, tri_id, 2, reg_id_list);
+                        DFTraverse(adj_list[i], clamp2, tri_id, 2);
 
                 }else{
 
                   if(CheckVisibility2(clamp, foot1, foot2)){
-                      DFTraverse(adj_list[i], clamp, tri_id, 1, reg_id_list);
+                      DFTraverse(adj_list[i], clamp, tri_id, 1);
                   }
 
                   if(CheckVisibility2(clamp, foot1, foot3)){
-                      DFTraverse(adj_list[i], clamp, tri_id, 2, reg_id_list);
+                      DFTraverse(adj_list[i], clamp, tri_id, 2);
                   }
 
                 }
@@ -3916,9 +3992,6 @@ void VGraph::FindTriContainVertex(int vid, int tri_id, Point* query_p)
 {
     cout<<"FindTriContainVertex() "<<endl;
     cout<<"vid "<<vid<<"tri_id "<<tri_id<<endl;
-
-    vector<int> reg_id_list;
-    reg_id_list.push_back(tri_id);
 
     CcInt* vertex_id = new CcInt(true, vid);
     BTreeIterator* btreeiter = btree->ExactMatch(vertex_id);
@@ -3969,9 +4042,9 @@ void VGraph::FindTriContainVertex(int vid, int tri_id, Point* query_p)
 
               }
             }
-            reg_id_list.push_back(triangle_id);
+
             Clamp clamp(*query_p, foot2, foot3);
-            DFTraverse(triangle_id, clamp, tri_id, 3, reg_id_list);
+            DFTraverse(triangle_id, clamp, tri_id, 3);
 
         }else if(v2 == vid){
             vid_list.push_back(v1);
@@ -3991,9 +4064,9 @@ void VGraph::FindTriContainVertex(int vid, int tri_id, Point* query_p)
 
               }
             }
-            reg_id_list.push_back(triangle_id);
+
             Clamp clamp(*query_p, foot1, foot3);
-            DFTraverse(triangle_id, clamp, tri_id, 2, reg_id_list);
+            DFTraverse(triangle_id, clamp, tri_id, 2);
 
         }else if(v3 == vid){
             vid_list.push_back(v1);
@@ -4013,9 +4086,9 @@ void VGraph::FindTriContainVertex(int vid, int tri_id, Point* query_p)
 
               }
             }
-            reg_id_list.push_back(triangle_id);
+
             Clamp clamp(*query_p, foot1, foot2);
-            DFTraverse(triangle_id, clamp, tri_id, 1, reg_id_list);
+            DFTraverse(triangle_id, clamp, tri_id, 1);
         }else assert(false);
         tri_tuple->DeleteIfAllowed();
       }
@@ -4035,8 +4108,6 @@ void VGraph::GetVisibleNode2(int tri_id, Point* query_p, int type)
 
 //  cout<<"GetVisibleNode2() "<<"query tri_id "<<tri_id<<endl;
 
-  vector<int> reg_id_list;
-  reg_id_list.push_back(tri_id);
   const double pi = 3.14159;
   const double delta = 0.0001;
 
@@ -4115,7 +4186,7 @@ void VGraph::GetVisibleNode2(int tri_id, Point* query_p, int type)
     switch(sharetype1){
       case 1:
 //                cout<<"case1"<<endl;
-                reg_id_list.push_back(adj_list[i]);
+
                 if(fabs(clamp.angle - pi) < delta )
                   visibility = true;
                 else
@@ -4130,22 +4201,21 @@ void VGraph::GetVisibleNode2(int tri_id, Point* query_p, int type)
                     p_list.push_back(foot3);
                     //split the clamp
                     Clamp clamp1(*query_p, clamp.foot1, foot3);
-                    DFTraverse(adj_list[i], clamp1, tri_id, 2, reg_id_list);
+                    DFTraverse(adj_list[i], clamp1, tri_id, 2);
                     Clamp clamp2(*query_p, foot3, clamp.foot2);
-                    DFTraverse(adj_list[i], clamp2, tri_id, 3, reg_id_list);
+                    DFTraverse(adj_list[i], clamp2, tri_id, 3);
                 }else{
                       if(CheckVisibility2(clamp, foot3, foot1)){
-                        DFTraverse(adj_list[i], clamp, tri_id, 2,reg_id_list);
+                        DFTraverse(adj_list[i], clamp, tri_id, 2);
                       }
 
                       if(CheckVisibility2(clamp, foot3, foot2)){
-                        DFTraverse(adj_list[i], clamp, tri_id, 3,reg_id_list);
+                        DFTraverse(adj_list[i], clamp, tri_id, 3);
                       }
                 }
               break;
       case 2:
 //                cout<<"case2"<<endl;
-                reg_id_list.push_back(adj_list[i]);
                 if(fabs(clamp.angle - pi) < delta)
                   visibility = true;
                 else
@@ -4159,25 +4229,24 @@ void VGraph::GetVisibleNode2(int tri_id, Point* query_p, int type)
                     oids1.push_back(ver2);
                     p_list.push_back(foot2);
                     Clamp clamp1(*query_p, clamp.foot1, foot2);
-                    DFTraverse(adj_list[i], clamp1, tri_id,  1, reg_id_list);
+                    DFTraverse(adj_list[i], clamp1, tri_id,  1);
                     Clamp clamp2(*query_p, foot2, clamp.foot2);
-                    DFTraverse(adj_list[i], clamp2, tri_id,  3, reg_id_list);
+                    DFTraverse(adj_list[i], clamp2, tri_id,  3);
 
                 }else{
 
                   if(CheckVisibility2(clamp, foot2, foot1)){
-                    DFTraverse(adj_list[i], clamp, tri_id, 1, reg_id_list);
+                    DFTraverse(adj_list[i], clamp, tri_id, 1);
                   }
 
                   if(CheckVisibility2(clamp, foot2, foot3)){
-                    DFTraverse(adj_list[i], clamp, tri_id, 3, reg_id_list);
+                    DFTraverse(adj_list[i], clamp, tri_id, 3);
                   }
 
                 }
               break;
       case 3:
 //                cout<<"case3"<<endl;
-                reg_id_list.push_back(adj_list[i]);
                 if(fabs(clamp.angle - pi) < delta)
                   visibility = true;
                 else
@@ -4191,17 +4260,17 @@ void VGraph::GetVisibleNode2(int tri_id, Point* query_p, int type)
                     oids1.push_back(ver1);
                     p_list.push_back(foot1);
                     Clamp clamp1(*query_p, clamp.foot2, foot1);
-                    DFTraverse(adj_list[i], clamp1, tri_id,  2, reg_id_list);
+                    DFTraverse(adj_list[i], clamp1, tri_id,  2);
                     Clamp clamp2(*query_p, foot1, clamp.foot1);
-                    DFTraverse(adj_list[i], clamp2, tri_id,  1, reg_id_list);
+                    DFTraverse(adj_list[i], clamp2, tri_id,  1);
 
                 }else{
                   if(CheckVisibility2(clamp, foot1, foot2)){
-                      DFTraverse(adj_list[i], clamp, tri_id, 1, reg_id_list);
+                      DFTraverse(adj_list[i], clamp, tri_id, 1);
                   }
 
                   if(CheckVisibility2(clamp, foot1, foot3)){
-                      DFTraverse(adj_list[i], clamp, tri_id, 2, reg_id_list);
+                      DFTraverse(adj_list[i], clamp, tri_id, 2);
                   }
                 }
                 break;
@@ -4294,8 +4363,6 @@ void VGraph::GetVisibleNode1(int tri_id, Point* query_p)
 
 //  cout<<"GetVisibleNode1() "<<"query tri_id "<<tri_id<<endl;
 
-  vector<int> reg_id_list;
-  reg_id_list.push_back(tri_id);
   const double pi = 3.14159;
   const double delta = 0.0001;
 
@@ -4347,7 +4414,6 @@ void VGraph::GetVisibleNode1(int tri_id, Point* query_p)
       case 1:
 
 //                cout<<"case1"<<endl;
-                reg_id_list.push_back(adj_list[i]);
                 if(fabs(clamp12.angle - pi) < delta )
                   visibility = true;
                 else
@@ -4363,23 +4429,22 @@ void VGraph::GetVisibleNode1(int tri_id, Point* query_p)
                     p_list.push_back(foot3);
                     //split the clamp
                     Clamp clamp1(*query_p, clamp12.foot1, foot3);
-                    DFTraverse(adj_list[i], clamp1, tri_id, 2, reg_id_list);
+                    DFTraverse(adj_list[i], clamp1, tri_id, 2);
                     Clamp clamp2(*query_p, foot3, clamp12.foot2);
-                    DFTraverse(adj_list[i], clamp2, tri_id, 3, reg_id_list);
+                    DFTraverse(adj_list[i], clamp2, tri_id, 3);
 
                 }else{
                       if(CheckVisibility2(clamp12, foot3, foot1)){
-                        DFTraverse(adj_list[i], clamp12, tri_id, 2,reg_id_list);
+                        DFTraverse(adj_list[i], clamp12, tri_id, 2);
                       }
 
                       if(CheckVisibility2(clamp12, foot3, foot2)){
-                        DFTraverse(adj_list[i], clamp12, tri_id, 3,reg_id_list);
+                        DFTraverse(adj_list[i], clamp12, tri_id, 3);
                       }
                 }
               break;
       case 2:
 //                cout<<"case2"<<endl;
-                reg_id_list.push_back(adj_list[i]);
                 if(fabs(clamp13.angle - pi) < delta)
                   visibility = true;
                 else
@@ -4393,25 +4458,24 @@ void VGraph::GetVisibleNode1(int tri_id, Point* query_p)
                     oids1.push_back(ver2);
                     p_list.push_back(foot2);
                     Clamp clamp1(*query_p, clamp13.foot1, foot2);
-                    DFTraverse(adj_list[i], clamp1, tri_id,  1, reg_id_list);
+                    DFTraverse(adj_list[i], clamp1, tri_id,  1);
                     Clamp clamp2(*query_p, foot2, clamp13.foot2);
-                    DFTraverse(adj_list[i], clamp2, tri_id,  3, reg_id_list);
+                    DFTraverse(adj_list[i], clamp2, tri_id,  3);
 
                 }else{
 
                   if(CheckVisibility2(clamp13, foot2, foot1)){
-                    DFTraverse(adj_list[i], clamp13, tri_id, 1, reg_id_list);
+                    DFTraverse(adj_list[i], clamp13, tri_id, 1);
                   }
 
                   if(CheckVisibility2(clamp13, foot2, foot3)){
-                    DFTraverse(adj_list[i], clamp13, tri_id, 3, reg_id_list);
+                    DFTraverse(adj_list[i], clamp13, tri_id, 3);
                   }
 
                 }
               break;
       case 3:
 //                cout<<"case3"<<endl;
-                reg_id_list.push_back(adj_list[i]);
                 if(fabs(clamp23.angle - pi) < delta)
                   visibility = true;
                 else
@@ -4424,17 +4488,17 @@ void VGraph::GetVisibleNode1(int tri_id, Point* query_p)
                     oids1.push_back(ver1);
                     p_list.push_back(foot1);
                     Clamp clamp1(*query_p, clamp23.foot2, foot1);
-                    DFTraverse(adj_list[i], clamp1, tri_id,  2, reg_id_list);
+                    DFTraverse(adj_list[i], clamp1, tri_id,  2);
                     Clamp clamp2(*query_p, foot1, clamp23.foot1);
-                    DFTraverse(adj_list[i], clamp2, tri_id,  1, reg_id_list);
+                    DFTraverse(adj_list[i], clamp2, tri_id,  1);
 
                 }else{
                   if(CheckVisibility2(clamp23, foot1, foot2)){
-                      DFTraverse(adj_list[i], clamp23, tri_id, 1, reg_id_list);
+                      DFTraverse(adj_list[i], clamp23, tri_id, 1);
                   }
 
                   if(CheckVisibility2(clamp23, foot1, foot3)){
-                      DFTraverse(adj_list[i], clamp23, tri_id, 2, reg_id_list);
+                      DFTraverse(adj_list[i], clamp23, tri_id, 2);
                   }
                 }
                 break;
@@ -4963,7 +5027,7 @@ string VisualGraph::QueryTypeInfo =
 
 VisualGraph::~VisualGraph()
 {
-  cout<<"~VisualGraph()"<<endl;
+//  cout<<"~VisualGraph()"<<endl;
 }
 
 VisualGraph::VisualGraph()
@@ -5129,7 +5193,7 @@ bool VisualGraph::CheckVisualGraph(ListExpr type, ListExpr& errorInfo)
 
 void VisualGraph::CloseVisualGraph(const ListExpr typeInfo, Word& w)
 {
-  cout<<"CloseVisualGraph()"<<endl;
+//  cout<<"CloseVisualGraph()"<<endl;
   delete static_cast<VisualGraph*> (w.addr);
   w.addr = NULL;
 }

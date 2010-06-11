@@ -261,6 +261,7 @@ struct Walk_SP{
   void WalkShortestPath();
   void GenerateData1(int no_p);
   void GenerateData2(int no_p);
+  void GenerateData3(int no_p);
 };
 
 /*
@@ -337,8 +338,7 @@ struct VGraph{
   void GetVisibleNode2(int tri_id, Point* query_p, int type);
   bool CheckVisibility1(Clamp& clamp, Point& checkp, int vp);
   bool CheckVisibility2(Clamp& clamp, Point& checkp1, Point& checkp2);
-  void DFTraverse(int id, Clamp& clamp, int pre_id, int type,
-                  vector<int> reg_id_list);
+  void DFTraverse(int id, Clamp& clamp, int pre_id, int type);
   bool PathContainHS(vector<int> tri_list, HalfSegment hs);
   bool GetIntersectionPoint(Point& p1,Point& p2,Clamp& clamp, Point& ip,bool);
   bool GetVNode_QV(int tri_id, Point* query_p,int,int,int);
