@@ -1,8 +1,8 @@
 /*
----- 
+----
 This file is part of SECONDO.
 
-Copyright (C) 2004, University in Hagen, Department of Computer Science, 
+Copyright (C) 2004, University in Hagen, Department of Computer Science,
 Database Systems for New Applications.
 
 SECONDO is free software; you can redistribute it and/or modify
@@ -48,7 +48,7 @@ Edge::Edge()
 }
 
 Edge::Edge(int nSource, int nTarget, float fCost) :
-  Attribute(true), 
+  Attribute(true),
   source(nSource), target(nTarget), cost(fCost)
 {
   SetDefined(true);
@@ -57,12 +57,12 @@ Edge::Edge(int nSource, int nTarget, float fCost) :
 
 Edge::~Edge()
 {
-  
+
 }
 
 
-Edge* Edge::Clone()const 
-{ 
+Edge* Edge::Clone()const
+{
   Edge* pRet;
   if (IsDefined())
   {
@@ -73,7 +73,7 @@ Edge* Edge::Clone()const
     pRet = new Edge;
     pRet->SetDefined(false);
   }
-  return pRet; 
+  return pRet;
 }
 
 size_t Edge::Sizeof() const
@@ -124,15 +124,16 @@ int Edge::Compare(const Attribute* pAttr) const
 
 
 bool Edge::Adjacent(const Attribute*) const
-{  
+{
   return false;
 }
 
 size_t Edge::HashValue() const
 {
   size_t nRet = 0;
-  if (IsDefined())
-    nRet = source + target + *reinterpret_cast<size_t const *>(&cost);
+  if (IsDefined()) {
+    nRet = source + target;
+  }
   return nRet;
 }
 
@@ -175,13 +176,13 @@ ListExpr OutEdge( ListExpr typeInfo, Word value )
 
 Word InEdge( const ListExpr typeInfo, const ListExpr instance,
           const int errorPos, ListExpr& errorInfo, bool& correct )
-{  
+{
   if (nl->ListLength(instance) == 3)
   {
     ListExpr first = nl->First(instance);
     ListExpr second = nl->Second(instance);
     ListExpr third = nl->Third(instance);
-    
+
     if (nl->IsAtom(first) && nl->AtomType(first) == IntType &&
       nl->IsAtom(second) && nl->AtomType(second) == IntType &&
       nl->IsAtom(third) && nl->AtomType(third) == RealType)
@@ -190,7 +191,7 @@ Word InEdge( const ListExpr typeInfo, const ListExpr instance,
       if (fCost >= 0.0)
       {
         correct = true;
-        return SetWord(new Edge(nl->IntValue(first), 
+        return SetWord(new Edge(nl->IntValue(first),
           nl->IntValue(second), fCost));
       }
       else
@@ -203,7 +204,7 @@ Word InEdge( const ListExpr typeInfo, const ListExpr instance,
       correct = false;
     }
   }
-  else if (nl->AtomType(instance) == SymbolType && 
+  else if (nl->AtomType(instance) == SymbolType &&
     nl->SymbolValue(instance) == "undef")
   {
     correct = true;
@@ -211,13 +212,13 @@ Word InEdge( const ListExpr typeInfo, const ListExpr instance,
     pEdge->SetDefined(false);
     return SetWord(pEdge);
   }
-  
+
   correct = false;
   return SetWord(Address(0));
 }
 
 ListExpr EdgeProperty()
-{  
+{
   return (nl->TwoElemList(
       nl->FiveElemList(nl->StringAtom("Signature"),
         nl->StringAtom("Example Type List"),
@@ -233,7 +234,7 @@ ListExpr EdgeProperty()
 
 Word
 CreateEdge( const ListExpr typeInfo )
-{  
+{
     return SetWord(new Vertex(0, 0, 1.0));
 }
 
@@ -246,7 +247,7 @@ DeleteEdge( const ListExpr typeInfo, Word& w )
 
 void
 CloseEdge( const ListExpr typeInfo, Word& w )
-{  
+{
   DeleteEdge(typeInfo, w);
 }
 
@@ -258,30 +259,30 @@ CloneEdge( const ListExpr typeInfo, const Word& w )
 
 int
 SizeofEdge()
-{  
+{
   return sizeof(Edge);
 }
 
 
 bool
 CheckEdge( ListExpr type, ListExpr& errorInfo )
-{  
+{
   return (nl->IsEqual(type, "edge"));
 }
 
 
-bool OpenEdge( SmiRecord& valueRecord, 
+bool OpenEdge( SmiRecord& valueRecord,
   size_t& offset, const ListExpr typeInfo, Word& value )
 {
   value = SetWord(Attribute::Open(valueRecord, offset, typeInfo));
-  return true; 
+  return true;
 }
 
 
-bool SaveEdge( SmiRecord& valueRecord, 
+bool SaveEdge( SmiRecord& valueRecord,
   size_t& offset, const ListExpr typeInfo, Word& value )
 {
-  Attribute::Save(valueRecord, offset, typeInfo, 
+  Attribute::Save(valueRecord, offset, typeInfo,
     static_cast<Attribute*>(value.addr));
   return true;
 }
@@ -299,13 +300,13 @@ TypeConstructor edgeCon(
     SizeofEdge,             //sizeof function
   CheckEdge);             //kind checking function
 
-  
+
 /*
 4 operators
 
 */
-  
-  
+
+
 ListExpr EdgeIntTypeMap(ListExpr args)
 {
   if (nl->ListLength(args) == 1)
@@ -361,7 +362,7 @@ int graphsource(Word* args, Word& result, int message, Word& local, Supplier s)
   result = qp->ResultStorage(s);
   CcInt* pRet = static_cast<CcInt *>(result.addr);
   pRet->Set(true, pEdge->GetSource());
-  
+
   return 0;
 }
 
@@ -372,7 +373,7 @@ int graphtarget(Word* args, Word& result, int message, Word& local, Supplier s)
   result = qp->ResultStorage(s);
   CcInt* pRet = static_cast<CcInt *>(result.addr);
   pRet->Set(true, pEdge->GetTarget());
-  
+
   return 0;
 }
 
@@ -382,27 +383,27 @@ int graphcost(Word* args, Word& result, int message, Word& local, Supplier s)
   result = qp->ResultStorage(s);
   CcReal* pRet = static_cast<CcReal *>(result.addr);
   pRet->Set(true, pEdge->GetCost());
-  
+
   return 0;
 }
 
-string const sourceSpec = 
+string const sourceSpec =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
    "( <text>edge -> int</text--->"
    "<text>source ( _ )</text--->"
    "<text>the source vertex of the edge</text--->"
    "<text>source(e1)</text---> ) )";
 
- 
-string const targetSpec = 
+
+string const targetSpec =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
   "( <text>edge -> int</text--->"
   "<text>target ( _ )</text--->"
   "<text>the target vertex of the edge</text--->"
   "<text>target(e1)</text---> ) )";
 
- 
-string const costSpec = 
+
+string const costSpec =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
   "( <text>edge -> real</text--->"
   "<text>cost ( _ )</text--->"
@@ -417,7 +418,7 @@ string const costSpec =
 returns the key of the source vertex
 
 */
-Operator graph_source("source", sourceSpec, graphsource, 
+Operator graph_source("source", sourceSpec, graphsource,
   Operator::SimpleSelect, EdgeIntTypeMap);
 
 /*
@@ -426,7 +427,7 @@ Operator graph_source("source", sourceSpec, graphsource,
 returns the key of the target vertex
 
 */
-Operator graph_target("target", targetSpec, graphtarget, 
+Operator graph_target("target", targetSpec, graphtarget,
   Operator::SimpleSelect, EdgeIntTypeMap);
 
 /*
@@ -435,6 +436,6 @@ Operator graph_target("target", targetSpec, graphtarget,
 returns the cost of the edge
 
 */
-Operator graph_cost("cost", costSpec, graphcost, 
+Operator graph_cost("cost", costSpec, graphcost,
   Operator::SimpleSelect, EdgeRealTypeMap);
 

@@ -1,8 +1,8 @@
 /*
----- 
+----
 This file is part of SECONDO.
 
-Copyright (C) 2004, University in Hagen, Department of Computer Science, 
+Copyright (C) 2004, University in Hagen, Department of Computer Science,
 Database Systems for New Applications.
 
 SECONDO is free software; you can redistribute it and/or modify
@@ -49,15 +49,15 @@ this local class is needed to check for parallel edges in a path
 class EdgeDirection
 {
 public:
-    explicit EdgeDirection(int nSource, int nTarget) 
+    explicit EdgeDirection(int nSource, int nTarget)
         : m_nSource(nSource), m_nTarget(nTarget){}
-    
+
     int GetSource() const{return m_nSource;}
     int GetTarget() const{return m_nTarget;}
-    
+
     bool operator<(EdgeDirection const & edge) const
     {
-        return m_nSource < edge.GetSource() || 
+        return m_nSource < edge.GetSource() ||
             (m_nSource == edge.GetSource() && m_nTarget < edge.GetTarget());
     }
 
@@ -82,21 +82,21 @@ Path::Path(bool bDefined)
 Path::~Path() { }
 
 
-        
-float Path::GetCost() const 
-{ 
-    if (!IsDefined() || (myPath.Size() == 0)) 
-        return -1.0f; 
 
-    pathStruct s; 
-    
-    myPath.Get(myPath.Size()-1,s); 
-    return cost-s.cost; 
+float Path::GetCost() const
+{
+    if (!IsDefined() || (myPath.Size() == 0))
+        return -1.0f;
+
+    pathStruct s;
+
+    myPath.Get(myPath.Size()-1,s);
+    return cost-s.cost;
 };
 
 
-Path* Path::Clone() const 
-{ 
+Path* Path::Clone() const
+{
     Path* p = new Path(IsDefined());
     for (int i = 0; i < GetNoPathStructs(); ++i)
     {
@@ -123,7 +123,7 @@ costs and positions.
 void Path::EqualWay(const Path* p, CcBool& result) const{
   if(!IsDefined() || !p->IsDefined()){
       result.SetDefined(false);
-      return; 
+      return;
   }
   int mysize = this->GetNoPathStructs();
   int psize = p->GetNoPathStructs();
@@ -139,16 +139,16 @@ void Path::EqualWay(const Path* p, CcBool& result) const{
      if(mps.key != pps.key){
         result.Set(true,false);
         return;
-     }  
+     }
   }
   result.Set(true,true);
 }
 
 int Path::Compare(const Attribute* arg) const
-{ 
+{
     Path const * p = dynamic_cast<Path const *>(arg);
     if(!IsDefined() || !p->IsDefined()){
-      return -1; 
+      return -1;
     }
     // first criterion is the length of the path
     int mlength = myPath.Size();
@@ -205,15 +205,13 @@ bool Path::Adjacent(const Attribute*) const
 size_t Path::HashValue() const
 {
     size_t nRet = 0;
-    if (IsDefined())
-    {
-        int nCount = GetNoPathStructs();
-        for (int i = 0; i < nCount; ++i)
-        {
-            pathStruct p = GetPathStruct(i);
-            nRet += p.key;
-            nRet += *(reinterpret_cast<size_t const *>(&p.cost));
-        }
+    if (IsDefined()) {
+      nRet += GetNoPathStructs();
+      int nCount = GetNoPathStructs();
+      for (int i = 0; (i < nCount) && (i <= 5); ++i){
+        pathStruct p = GetPathStruct(i);
+        nRet += p.key;
+      }
     }
     return 0;
 }
@@ -228,13 +226,13 @@ void Path::CopyFrom(const Attribute* arg)
         Append(pArg->GetPathStruct(i));
     }
         cost = pArg->cost;
-        SetDefined(pArg->IsDefined()); 
+        SetDefined(pArg->IsDefined());
 }
 
 
 int Path::NumOfFLOBs() const
 {
-    return 1;    
+    return 1;
 }
 
 Flob* Path::GetFLOB(const int i)
@@ -249,7 +247,7 @@ pathStruct Path::GetPathStruct(int nIndex) const
     {
         myPath.Get(nIndex, pRet);
     }
-    
+
     return pRet;
 }
 
@@ -266,7 +264,7 @@ vector<Edge>* Path::GetEdges() const
     float cost;
 
     if (myPath.Size() < 2)
-        return vEdges; 
+        return vEdges;
     pStruct = GetPathStruct(0);
     source = pStruct.key;
     cost = pStruct.cost;
@@ -314,7 +312,7 @@ void* CastPath (void* addr)
 }
 
 ListExpr OutPath( ListExpr typeInfo, Word value )
-{      
+{
     Path const * pPath = static_cast<Path const *>(value.addr);
     if (pPath->IsDefined())
     {
@@ -325,14 +323,14 @@ ListExpr OutPath( ListExpr typeInfo, Word value )
         }
         else
         {
-            
+
             pathStruct pStruct = pPath->GetPathStruct(0);
             ListExpr result;
             if (pStruct.pos.IsDefined())
             {
                 result = nl->OneElemList(nl->TwoElemList(
                     nl->IntAtom(pStruct.key), nl->TwoElemList(
-                    nl->RealAtom(pStruct.pos.GetX()), 
+                    nl->RealAtom(pStruct.pos.GetX()),
                     nl->RealAtom(pStruct.pos.GetY()))));
             }
             else
@@ -340,7 +338,7 @@ ListExpr OutPath( ListExpr typeInfo, Word value )
                 result = nl->OneElemList(nl->TwoElemList(
                     nl->IntAtom(pStruct.key), nl->SymbolAtom("undef")));
             }
-            
+
             ListExpr last = result;
             for (int i = 1; i < nCount; ++i)
             {
@@ -350,7 +348,7 @@ ListExpr OutPath( ListExpr typeInfo, Word value )
                 {
                     last = nl->Append(last, nl->TwoElemList(
                         nl->IntAtom(pStruct.key), nl->TwoElemList(
-                        nl->RealAtom(pStruct.pos.GetX()), 
+                        nl->RealAtom(pStruct.pos.GetX()),
                         nl->RealAtom(pStruct.pos.GetY()))));
                 }
                 else
@@ -359,7 +357,7 @@ ListExpr OutPath( ListExpr typeInfo, Word value )
                         nl->IntAtom(pStruct.key), nl->SymbolAtom("undef")));
                 }
             }
-            
+
             return result;
         }
     }
@@ -367,15 +365,15 @@ ListExpr OutPath( ListExpr typeInfo, Word value )
     {
         return nl->SymbolAtom("undef");
     }
-    
+
 }
 
 Word InPath( const ListExpr typeInfo, const ListExpr instance,
           const int errorPos, ListExpr& errorInfo, bool& correct )
-{    
+{
     Path* pPath = new Path(true);
     correct = true;
-    if (nl->IsAtom(instance) && nl->AtomType(instance) == SymbolType && 
+    if (nl->IsAtom(instance) && nl->AtomType(instance) == SymbolType &&
         nl->SymbolValue(instance) == "undef")
     {
         pPath->SetDefined(false);
@@ -384,11 +382,11 @@ Word InPath( const ListExpr typeInfo, const ListExpr instance,
     {
         map<EdgeDirection, float> mapUsedEdges;
         map<int, Point> mapUsedVertices;
-        
+
         pathStruct ps;
         ListExpr first = nl->First(instance);
         ListExpr rest = nl->Rest(instance);
-        
+
         if (nl->ListLength(first) == 2)
         {
             ListExpr First = nl->First(first);
@@ -400,12 +398,12 @@ Word InPath( const ListExpr typeInfo, const ListExpr instance,
                 {
                     First = nl->First(Second);
                     Second = nl->Second(Second);
-                    if (nl->IsAtom(First) 
-                        && nl->AtomType(First) == RealType && 
-                        nl->IsAtom(Second) && 
+                    if (nl->IsAtom(First)
+                        && nl->AtomType(First) == RealType &&
+                        nl->IsAtom(Second) &&
                         nl->AtomType(Second) == RealType)
                     {
-                        ps.pos = Point(true, nl->RealValue(First), 
+                        ps.pos = Point(true, nl->RealValue(First),
                             nl->RealValue(Second));
                     }
                     else
@@ -413,8 +411,8 @@ Word InPath( const ListExpr typeInfo, const ListExpr instance,
                         correct = false;
                     }
                 }
-                else if (nl->IsAtom(Second) && 
-                    nl->AtomType(Second) == SymbolType && 
+                else if (nl->IsAtom(Second) &&
+                    nl->AtomType(Second) == SymbolType &&
                     nl->SymbolValue(Second) == "undef")
                 {
                     ps.pos = Point(false);
@@ -433,15 +431,15 @@ Word InPath( const ListExpr typeInfo, const ListExpr instance,
         {
             correct = false;
         }
-        
+
         mapUsedVertices.insert(pair<int, Point>(ps.key, ps.pos));
-        
+
         while (!nl->IsEmpty(rest) && correct)
         {
             first = nl->First(rest);
             rest = nl->Rest(rest);
-            
-            if (nl->IsAtom(first) && nl->AtomType(first) == RealType && 
+
+            if (nl->IsAtom(first) && nl->AtomType(first) == RealType &&
                 !nl->IsEmpty(rest))
             {
                 ps.cost = nl->RealValue(first);
@@ -451,13 +449,13 @@ Word InPath( const ListExpr typeInfo, const ListExpr instance,
             {
                 correct = false;
             }
-            
+
             if (ps.cost < 0.0)
             {
                 cout << "Negative costs are not allowed!" << endl;
                 correct = false;
             }
-            
+
             if (correct)
             {
                 first = nl->First(rest);
@@ -471,7 +469,7 @@ Word InPath( const ListExpr typeInfo, const ListExpr instance,
                         int nLastKey = ps.key;
                         ps.key = nl->IntValue(First);
                         EdgeDirection edge(nLastKey, ps.key);
-                        map<EdgeDirection, float>::const_iterator itEdge = 
+                        map<EdgeDirection, float>::const_iterator itEdge =
                             mapUsedEdges.find(edge);
                         if (itEdge == mapUsedEdges.end())
                         {
@@ -483,17 +481,17 @@ Word InPath( const ListExpr typeInfo, const ListExpr instance,
                             cout << "Parallel borders are not allowed" << endl;
                             correct = false;
                         }
-                        
+
                         if (nl->ListLength(Second) == 2)
                         {
                             First = nl->First(Second);
                             Second = nl->Second(Second);
-                            if (nl->IsAtom(First) && 
-                                nl->AtomType(First) == RealType && 
-                                nl->IsAtom(Second) && 
+                            if (nl->IsAtom(First) &&
+                                nl->AtomType(First) == RealType &&
+                                nl->IsAtom(Second) &&
                                 nl->AtomType(Second) == RealType)
                             {
-                                ps.pos = Point(true, nl->RealValue(First), 
+                                ps.pos = Point(true, nl->RealValue(First),
                                     nl->RealValue(Second));
                             }
                             else
@@ -501,8 +499,8 @@ Word InPath( const ListExpr typeInfo, const ListExpr instance,
                                 correct = false;
                             }
                         }
-                        else if (nl->IsAtom(Second) && 
-                            nl->AtomType(Second) == SymbolType && 
+                        else if (nl->IsAtom(Second) &&
+                            nl->AtomType(Second) == SymbolType &&
                             nl->SymbolValue(Second) == "undef")
                         {
                             ps.pos = Point(false);
@@ -511,10 +509,10 @@ Word InPath( const ListExpr typeInfo, const ListExpr instance,
                         {
                             correct = false;
                         }
-                        
+
                         if (correct)
                         {
-                            map<int, Point>::const_iterator itVertex = 
+                            map<int, Point>::const_iterator itVertex =
                                 mapUsedVertices.find(ps.key);
                             if (itVertex == mapUsedVertices.end())
                             {
@@ -541,8 +539,8 @@ Word InPath( const ListExpr typeInfo, const ListExpr instance,
                                 }
                                 if (!correct)
                                 {
-                                    cout << "Vertex " << ps.key << 
-                                        " mustn't have different positions!" 
+                                    cout << "Vertex " << ps.key <<
+                                        " mustn't have different positions!"
                                         << endl;
                                 }
                             }
@@ -559,12 +557,12 @@ Word InPath( const ListExpr typeInfo, const ListExpr instance,
                 }
             }
         }
-        
+
         //Append the last vertex with cost 0.0
         ps.cost = 0.0;
         pPath->Append(ps);
     }
-    
+
     if (!correct)
     {
         delete pPath;
@@ -590,7 +588,7 @@ ListExpr PathProperty()
 }
 
 Word CreatePath( const ListExpr typeInfo )
-{    
+{
     return SetWord(new Path(true));
 }
 
@@ -607,7 +605,7 @@ void ClosePath( const ListExpr typeInfo, Word& w )
 {
     static_cast<Path *>(w.addr)->DeleteIfAllowed();
     w.addr = 0;
-    
+
 }
 
 Word ClonePath( const ListExpr typeInfo, const Word& w )
@@ -626,7 +624,7 @@ bool CheckPath( ListExpr type, ListExpr& errorInfo )
     return (nl->IsEqual(type, "path"));
 }
 
-bool OpenPath(SmiRecord& valueRecord, size_t& offset, 
+bool OpenPath(SmiRecord& valueRecord, size_t& offset,
     const ListExpr typeInfo, Word& value)
 {
     value.setAddr(Attribute::Open(valueRecord, offset, typeInfo));
@@ -634,10 +632,10 @@ bool OpenPath(SmiRecord& valueRecord, size_t& offset,
 }
 
 
-bool SavePath( SmiRecord& valueRecord, size_t& offset, 
+bool SavePath( SmiRecord& valueRecord, size_t& offset,
     const ListExpr typeInfo, Word& value)
 {
-    Attribute::Save(valueRecord, offset, typeInfo, 
+    Attribute::Save(valueRecord, offset, typeInfo,
         static_cast<Attribute*>(value.addr));
     return true;
 }
