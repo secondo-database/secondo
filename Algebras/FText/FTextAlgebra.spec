@@ -44,6 +44,7 @@ operator isDBObject alias ISDBOBJECT pattern op( _ )
 
 operator substr alias SUBSTR pattern op(_, _, _)
 operator isempty alias ISEMPTY pattern op( _ )
+operator trim alias TRIM pattern op( _ )
 operator + alias PLUS pattern _ infixop  _
 operator = alias EQ pattern _ infixop _
 operator # alias NE pattern _ infixop _

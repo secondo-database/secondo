@@ -81,6 +81,7 @@ October 2008, Christian D[ue]ntgen added operators ~sendtextUDP~ and
 #include "SecondoSMI.h"
 #include "SocketIO.h"
 #include "Crypt.h"
+#include "ListUtils.h"
 #include "blowfish.h"
 #include "md5.h"
 #include <math.h>
@@ -839,6 +840,24 @@ ListExpr FTextTypeMapTextBool( ListExpr args )
     return NList(symbols::BOOL).listExpr();
   }
   return NList::typeError("Expected single text argument.");
+}
+
+/*
+
+Type Mapping for signature ~text [->] text~
+
+*/
+ListExpr FTextTypeMapTextText( ListExpr args )
+{
+  if(nl->ListLength(args)!=1){
+    return listutils::typeError("single text expected");
+  }
+  ListExpr arg = nl->First(args);
+  if(!listutils::isSymbol(arg,symbols::TEXT)){
+    return listutils::typeError("text expected");
+  }
+  return nl->SymbolAtom(symbols::TEXT);
+
 }
 
 /*
@@ -2570,6 +2589,32 @@ int FTextValMapIsEmpty( Word* args, Word& result, int message,
   CRes->Set( true, ( !Ctxt->IsDefined() || Ctxt->TextLength() == 0) );
   return 0;
 }
+
+/*
+4.30 Operator ~trim~
+
+Removes whitespaces from a text at the start and the end of the text.
+
+
+*/
+int FTextValMapTrim( Word* args, Word& result, int message,
+                     Word& local, Supplier s )
+{
+  result = qp->ResultStorage( s );
+  FText* res = static_cast<FText*>(result.addr);
+  FText* src = static_cast<FText*>(args[0].addr);
+  if(!src->IsDefined()){
+     res->SetDefined(false);
+  } else {
+    string str = src->GetValue();
+    string drop = " \t\n\r";
+    str = str.erase(str.find_last_not_of(drop)+1);
+    str = str.erase(0,str.find_first_not_of(drop));
+    res->Set(true,str);
+  }
+  return 0;
+}
+
 
 
 /*
@@ -4324,6 +4369,15 @@ const string FTextisemptySpec =
     "<text>query isempty('')</text--->"
     ") )";
 
+const string FTexttrimSpec =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
+    "( <text> text -> text </text--->"
+    "<text>trim( t )</text--->"
+    "<text>Removes whitespaces at the start and and end of"
+    " the argument</text--->"
+    "<text>query trim('  hello  you    ')</text--->"
+    ") )";
+
 const string FTextplusSpec =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
     "( <text> {text | string} x text -> text \n"
@@ -4732,6 +4786,15 @@ Operator ftextisempty
     FTextTypeMapTextBool
     );
 
+Operator ftexttrim
+    (
+    "trim",
+    FTexttrimSpec,
+    FTextValMapTrim,
+    Operator::SimpleSelect,
+    FTextTypeMapTextText
+    );
+
 Operator ftextplus
     (
     "+",
@@ -5019,6 +5082,7 @@ public:
     AddOperator( &ftextsubtext );
     AddOperator( &ftextfind );
     AddOperator( &ftextisempty );
+    AddOperator( &ftexttrim );
     AddOperator( &ftextplus );
     AddOperator( &ftextless );
     AddOperator( &ftextlesseq );

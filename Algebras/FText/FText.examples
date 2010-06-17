@@ -194,6 +194,13 @@ Signature: text -> bool
 Example  : query isempty('')
 Result   : TRUE
 
+
+Operator : trim
+Number   : 1
+Signature: text -> text
+Example  : query trim('   hello you   ')
+Result   : 'hello you'
+
 Operator : +
 Number   : 1
 Signature: text x text -> text
