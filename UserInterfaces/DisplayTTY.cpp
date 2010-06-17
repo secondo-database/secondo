@@ -325,7 +325,8 @@ cout << errMsg << endl;
      //cout << blanks << s << ": ";
       string printstr = blanks + s + ": ";
       printstr += entries.first().str();
-      cout << wordWrap(0, maxNameLen+2, LINELENGTH, printstr) << endl;
+      cout << wordWrap((size_t)0, (size_t)(maxNameLen+2), 
+                       (size_t)LINELENGTH, printstr) << endl;
       labels.rest();
       entries.rest();
     }
@@ -843,8 +844,9 @@ struct DisplayText : DisplayFunction {
     {
       string printstr="";
       nl->Text2String(value, printstr);
-      cout << wordWrap(0, DisplayTTY::maxIndent, LINELENGTH - 
-                       DisplayTTY::maxIndent, printstr);
+      cout << wordWrap((size_t)0,  (size_t)DisplayTTY::maxIndent, 
+                       (size_t)(LINELENGTH - DisplayTTY::maxIndent),
+                       printstr);
     }
   }
 };

@@ -473,6 +473,73 @@ string hexStr(const string& s)
 
 
 
+class StringTokenizer{
+  public:
+     StringTokenizer(const string& _src, 
+                     const string& _delim) : 
+        src(_src), delim(_delim),
+        pos(0) {}
+
+     bool hasMoreTokens(){
+       return pos < src.length();
+     }
+
+     string nextToken(char& delimiter){
+        size_t nextpos = src.find_first_of(delim,pos);
+        if(nextpos==string::npos){
+           nextpos = src.length();
+        }
+        string res = src.substr(pos,(nextpos-pos)+1);
+        assert(res.size()>0);
+        delimiter = res.at(res.size()-1);
+        pos = nextpos + 1;
+        return res;
+     }
+  private:
+     string src;
+     string delim;
+     size_t pos;  
+};
+
+
+class StringSplitter{
+ public:
+     StringSplitter(const string& _src, const size_t _length):
+         src(_src),length(_length), length2(_length), pos(0) {
+       assert(_length>0);
+     }
+     
+     StringSplitter(const string& _src, const size_t _length1, 
+                    const size_t _length2):
+         src(_src), length(_length1), length2(_length2), pos(0){
+         if(length==0){
+            length=_length2;
+         }
+         assert(length>0);
+         assert(_length2>0);
+     }
+
+     bool hasMoreTokens(){
+       return pos < src.length();
+     }
+
+     string nextToken(){
+        string res = src.substr(pos,length);
+        pos += (length + 1);
+        length = length2;
+        return res;
+     }
+
+  private:
+     string src;
+     size_t length;
+     size_t length2;
+     size_t pos;  
+
+};
+
+
+
 /*
 A simple word wrapping algorithm which tries to fold a given
 string after one of the allowed wrap chars (see below). Optionally
@@ -481,139 +548,76 @@ Examples can be found in file "Tests/tcharutils.cpp".
 
 
 */
-
 string
-wordWrap( const int indent1, const int indent2,
-          const int textwidth, const string& s )
-{
-  const bool trace = false;
-  static const string wrapChars1(",.:!?;)]}-+*><=\t\n");
-  static const string wrapChars = wrapChars1 + " ";
-  string indent1Str = "";
-  string indent2Str = string(indent2,' ');
-  string& indentStr = indent1Str;
+wordWrap( const size_t indent1, const size_t indent2,
+          const size_t textwidth, const string& s ){
 
-  //string text = removeNewLines(s);
-  string text = expandTabs(s,4);
+  string indentstr = "";
+  size_t indent = indent1;
+  string indent2str(indent2,' ');
+  static const string delim(" ,.:!?;)]}-+*><=\t\n");
 
-  // usable width for the first line
-  size_t len = textwidth - indent1;
-  int lines = 1;
+  string res = "";
 
-  string result="";
-  size_t end = text.size();
-  size_t p1 = 0;
-  size_t lastbreak = 0;
 
-  while ( p1 < end )
-  {
-    if (trace)
-      cout << "text[" << p1 << "]='" << text.substr(p1,20) << "...'" << endl;
+  char curDelim;
+  string line = "";
 
-    if (lines > 1) {
-      len = textwidth - indent2;
-      indentStr = indent2Str;
-      // do a line break
-      result += "\n";
-    }
+  StringTokenizer st(s, delim); 
 
-    string substr="";
-    // search a suitable wrap position
-    bool found = false;
-    bool newLine = true;
-    size_t p2 = end;
-    size_t endPos = min(p1+len, end);
+  while(st.hasMoreTokens()){ // process all tokens in s
 
-    while ( !found /*&& (endPos >= (p1+(2*len/3)))*/ )
-    {
-      // check for a predefined linebreak
-      p2 = text.find_first_of('\n', p1);
-      if ( p2 <= endPos )
-      {
-        newLine = true;
-        break;
+    string token = st.nextToken(curDelim);
+    token = expandTabs(token,4); 
+
+    if(line.size() + token.size() <= textwidth-indent){
+      // token fits in current line
+      line += token;
+      if(curDelim == '\n' || curDelim == '\r'){
+         res += line;
+         line = indent2str;
+         indent = indent2; 
       }
+    } else {
+      // remainder of line too short for token
 
-      if ( (end - p1) <= len) // check if last line
-      {
-        newLine = true;
-        p2 = end;
-        break;
-      }
-
-      newLine = false;
-      p2 = text.find_last_of(wrapChars, endPos);
-
-      bool lastOk = (end-p2) >= len/3;
-      // dont wrap if the next char is also a wrap char
-      if (lastOk && wrapChars.find(text[p2+1]) == string::npos)
-      {
-        found = true;
-      }
-      else
-      {
-        endPos = p2-1;
-      }
+      if(token.size() <= textwidth-indent2){
+        // token fits into a single line
+        // insert a line break
+        res += line;
+        res += "\n";
+        indent = indent2;
+       
+        line = token;
+        if(curDelim == '\n' || curDelim == '\r'){
+           res += line;
+           line = indent2str;
+           indent = indent2; 
+        }
+      } else { // token longer as a single line -> split it
+        StringSplitter ss(token, textwidth-indent, textwidth-indent2);
+        string tokenpart;
+        while(ss.hasMoreTokens()){
+          tokenpart = ss.nextToken();
+          res += line;
+          res += "\n";
+          line = indent2str + tokenpart;
+        }
+        indent = indent2;
+        if(curDelim == '\n' || curDelim == '\r'){
+           res += line;
+           line = indent2;
+        }
+      }   
     }
-
-    if (trace) {
-      cout << "p1: " << p1 << endl;
-      cout << "endPos: " << endPos << endl;
-      cout << "p2: " << p2 << endl;
-    }
-
-    if ( !newLine &&
-         ( (p2 == string::npos) || ((p2-p1+1) < 2*len/3) || (p2 <= p1) ))
-    {
-      if (trace)
-        cout << "force break" << endl;
-
-      // There is no suitable wrap char in the next len
-      // chars, hence we need to force a wrap. We split after
-      // the first non-wrapChar below 4/5 of the textwidth
-
-      size_t cutLen = 4*len/5;
-      endPos = p1+len;
-      p2=endPos;
-      while ( (p2 >= p1+cutLen) )
-      {
-        p2 = text.find_last_not_of(wrapChars, endPos);
-        endPos = p2-1;
-      }
-      if (p2 == string::npos)
-        p2 = p1+cutLen;
-      substr = text.substr(p1,p2-p1);
-      lastbreak = p2;
-    }
-    else
-    {
-      if (trace)
-        cout << "soft break" << endl;
-
-      assert( p2 <= (p1+len) );
-      assert( p2 >= p1 );
-      substr = text.substr(p1,p2-p1);
-      lastbreak = p2;
-    }
-    if (trace) {
-      cout << "text[" << lastbreak << "]='"
-           << text[lastbreak] << "'" << endl;
-    }
-    lines++;
-
-    //
-    if ( isspace(text[lastbreak]) ) {
-      lastbreak++;
-    }
-    p1 = lastbreak;
-    result += indentStr + substr;
-    if (trace) {
-      cout << "substr: " << substr << endl;
-      cout << "lastbreak: " << lastbreak << endl;
-    }
+  } // for all tokens
+  if(line.length() > indent){
+     res += line; // append last line to res
   }
-  return result;
+  return res;
 }
+
+
 
 /*
 Some more convenient signatures which call wordWrap with apropriate

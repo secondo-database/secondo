@@ -189,8 +189,8 @@ Examples can be found in file "Tests/tcharutils.cpp".
 */
 
 string
-wordWrap( const int indent1, const int indent2, 
-          const int textwidth, const string& s );
+wordWrap( const size_t indent1, const size_t indent2, 
+          const size_t textwidth, const string& s );
 
 /*
 Some more convenient signatures which call wordWrap with apropriate
