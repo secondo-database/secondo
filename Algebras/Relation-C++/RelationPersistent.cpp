@@ -748,8 +748,10 @@ char* Tuple::GetSMIBufferData(PrefetchingIterator* iter, uint16_t& rootSize)
 
   // read all attributes
   assert(rootSize < MAX_TUPLESIZE);
-  char* data = (char*) malloc ( sizeof(rootSize) + rootSize );
+  uint16_t wholesize = sizeof(rootSize) + rootSize;
+  char* data = (char*) malloc ( wholesize );
   char* ptr = data + sizeof(rootSize);
+  memcpy(data,&rootSize,sizeof(rootSize));
 
   uint16_t k = (uint16_t)iter->ReadCurrentData( ptr,
                                        rootSize,
@@ -772,6 +774,9 @@ void Tuple::InitializeAttributes(char* src)
   TRACE_ENTER
 
   size_t offset = sizeof(uint16_t); // stored datasize
+  uint16_t wholesize; 
+  memcpy(&wholesize, src, sizeof(uint16_t));  // read datasize
+  wholesize += sizeof(wholesize);
 
   SHOW(offset)
 
@@ -799,15 +804,21 @@ void Tuple::InitializeAttributes(char* src)
     }
     else
     {
-      // default serialization
+      // serialization within root block 
       attributes[i] = Attribute::Create( attr, &src[offset], sz, algId, typeId);
 
       int serialSize = attributes[i]->SerializedSize();
       int readData = (serialSize > 0) ? serialSize : sz;
-
-      SHOW(attributes[i]->NumOfFLOBs())
-      SHOW(readData)
-      DEBUG_MSG( Array2HexStr(src, readData, offset) );
+      
+      /*
+        //debug
+       if(offset+readData >wholesize + sizeof(uint16_t)){
+         cout << "try to read " << sz << " bytes at offset  "
+              << offset << " within a block of size " << wholesize 
+              << endl;
+         assert(false);
+      }
+      */
 
       offset += readData;
 
