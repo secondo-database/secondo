@@ -52,6 +52,7 @@ ostream& operator<<(ostream& o, const avlseg::ExtendedHalfSegment& hs) {
 }
 
 
+
 bool PointOnSegment(double x, double y, 
                     double x1, double y1,
                     double x2, double y2){
@@ -61,6 +62,58 @@ bool PointOnSegment(double x, double y,
    double len2 = sqrt((x2-x)*(x2-x) + (y2-y)*(y2-y));
    return AlmostEqual(len, len1+len2);
 }
+
+/*
+ checks whether the dominating points within the halfsegments are sorted 
+ correctly.
+
+*/
+bool checkOrder(const DbArray<HalfSegment>& segs, bool exact){
+  if(segs.Size() < 2){
+    return true;
+  }
+  Point p1(false);
+  Point p2(false);
+  HalfSegment hs1;
+  HalfSegment hs2;
+
+  segs.Get(0,hs1);
+  p1 = hs1.GetDomPoint();
+
+  for(int i=1;i<segs.Size();i++){
+     segs.Get(i,hs2);
+     p2 = hs2.GetDomPoint();
+      
+     double x1 = p1.GetX();
+     double y1 = p1.GetY();
+     double x2 = p2.GetX();
+     double y2 = p2.GetY();
+     if(exact){
+        if(x2<x1){
+          return false;
+        }
+        if( (x1==x2) && (y2<y1)){
+          return false;
+        }
+
+     } else {
+       if(AlmostEqual(x1,x2)){
+         if(!AlmostEqual(y1,y2) && (y2<y1)){
+            return false;
+         }
+       } else {
+         if(x2<x1){
+            return false;
+         }
+       }
+     }
+     p1 = p2;
+     
+  }
+  return true;  
+}
+
+
 
 
 
@@ -460,6 +513,10 @@ common endpoint.
 */
 
   bool avlseg::AVLSegment::innerDisjoint(const avlseg::AVLSegment& s)const{
+      if(!xOverlaps(s) || !yOverlaps(s)){ // bounding box check
+         return true;
+      }
+  
       if(pointEqual(x1,y1,s.x2,s.y2)){ // common endpoint
         return true;
       }
@@ -472,7 +529,16 @@ common endpoint.
       if(compareSlopes(s)==0){ // parallel or disjoint lines
          return true;
       }
-      if(ininterior(s.x1,s.y1)){
+      
+      if(pointEqual(x1,y1,s.x1,s.y1)){ // common left end point
+         return true;
+      }
+      if(pointEqual(x2,y2,s.x2,s.y2)){ // common right end point
+         return true;
+      }
+      
+      // endpoints within interior of the other segment
+      if(ininterior(s.x1,s.y1)){ 
          return false;
       }
       if(ininterior(s.x2,s.y2)){
@@ -484,9 +550,73 @@ common endpoint.
       if(s.ininterior(x2,y2)){
         return false;
       }
+      // check for crosses
       if(crosses(s)){
          return false;
       }
+      return true;
+
+  }
+  
+
+  bool avlseg::AVLSegment::printInnerDisjoint(const avlseg::AVLSegment& s)const{
+     cout << "Check for inner disjoint" << endl;
+      if(!xOverlaps(s) || !yOverlaps(s)){ // bounding box check
+         cout << "intersection free by bounding box check" << endl;
+         return true;
+      }
+  
+      if(pointEqual(x1,y1,s.x2,s.y2)){ // common endpoina
+        cout << "disjoint, because this extends s" << endl;
+        return true;
+      }
+      if(pointEqual(s.x1,s.y1,x2,y2)){ // common endpoint
+        cout << "disjoint because s extends this " << endl;
+        return true;
+      }
+      if(overlaps(s)){ // a common line
+         cout << "common part" << endl;
+         return false;
+      }
+      if(compareSlopes(s)==0){ // parallel or disjoint lines
+         cout << "parallel or disjoint lines" << endl;
+         return true;
+      }
+      
+      if(pointEqual(x1,y1,s.x1,s.y1)){ // common left end point
+         cout << "disjoint because common left endpoint"
+              << " and different slopes" << endl;
+         return true;
+      }
+      if(pointEqual(x2,y2,s.x2,s.y2)){ // common right end point
+         cout << "disjoint because common right endpoint and different slopes"
+              << endl;
+         return true;
+      }
+      
+      // endpoints within interior of the other segment
+      if(ininterior(s.x1,s.y1)){ 
+         cout << "this contains the left endpoint of s " << endl;
+         return false;
+      }
+      if(ininterior(s.x2,s.y2)){
+         cout << "this contains the right endpoint of s " << endl;
+         return false;
+      }
+      if(s.ininterior(x1,y1)){
+         cout << " s contains the left endpoint ofd this " << endl;
+        return false;
+      }
+      if(s.ininterior(x2,y2)){
+        cout << "s contains the right end point of this " << endl;
+        return false;
+      }
+      // check for crosses
+      if(crosses(s)){
+         cout << " this crosses s " << endl;
+         return false;
+      }
+      cout << "disjoint because no other case is found" << endl;
       return true;
 
   }
@@ -499,42 +629,48 @@ common point.
 */
 
   bool avlseg::AVLSegment::intersects(const avlseg::AVLSegment& s)const{
+      if(!xOverlaps(s) || !yOverlaps(s)){ // bounding box check
+         return true;
+      }
+
       if(pointEqual(x1,y1,s.x2,s.y2)){ // common endpoint
         return true;
       }
       if(pointEqual(s.x1,s.y1,x2,y2)){ // common endpoint
         return true;
       }
-      if(overlaps(s)){ // a common line
+      if(pointEqual(x1,y1,s.x1,s.y1)){ // common endpoint
+        return true;
+      }
+      if(pointEqual(s.x2,s.y2,x2,y2)){ // common endpoint
+        return true;
+      }
+
+      if(overlaps(s)){ // a common line segment
          return true;
       }
+
       if(compareSlopes(s)==0){ // parallel or disjoint lines
          return false;
       }
-
-      if(isVertical()){
-        double x = originX1; // compute y for s
-        double y =  s.originY1 + ((x-s.originX1)/(s.originX2-s.originX1))*
-                                       (s.originY2 - s.originY1);
-        return  ( (contains(x,y) && s.contains(x,y) ) );
-
+      if(ininterior(s.x1,s.y1)){ 
+         return true;
       }
-      if(s.isVertical()){
-         double x = s.originX1;
-         double y = originY1 + ((x-originX1)/(originX2-originX1))*
-                                   (originY2-originY1);
-         return ((contains(x,y) && s.contains(x,y)));
+      if(ininterior(s.x2,s.y2)){
+         return true;
       }
+      if(s.ininterior(x1,y1)){
+        return true;
+      }
+      if(s.ininterior(x2,y2)){
+        return true;
+      }
+      // check for crosses
+      if(crosses(s)){
+         return true;
+      }
+      return false;
 
-      // both segments are non vertical
-      double m1 = (originY2-originY1)/(originX2-originX1);
-      double m2 = (s.originY2-s.originY1)/(s.originX2-s.originX1);
-      double c1 = y1 - m1*x1;
-      double c2 = s.originY1 - m2*s.originX1;
-      double x = (c2-c1) / (m1-m2);  // x coordinate of the intersection point
-      double y = originY1 + ((x-originX1)/(originX2-originX1))*
-                                 (originY2-originY1);
-      return ( (contains(x,y) && s.contains(x,y) ) );
   }
 
 /*
@@ -1196,6 +1332,12 @@ segment is returned.
      if(isVertical()){
         return y1;
      }
+     if(AlmostEqual(x,x1)){
+        return y1;
+     }
+     if(AlmostEqual(x,x2)){
+        return y2;
+     }
      double d = (x-originX1)/(originX2-originX1);
      return originY1 + d*(originY2-originY1);
   }
@@ -1409,9 +1551,11 @@ void splitNeighbours(avltree::AVLTree<avlseg::AVLSegment>& sss,
                      priority_queue<avlseg::ExtendedHalfSegment,
                                     vector<avlseg::ExtendedHalfSegment>,
                                     greater<avlseg::ExtendedHalfSegment> >& q2){
+
   if(leftN && rightN && !leftN->innerDisjoint(*rightN)){
     avlseg::AVLSegment left1, right1, left2, right2;
     if(leftN->ininterior(rightN->getX2(),rightN->getY2())){
+       // right endpoint of rightN in interior of leftN
        leftN->splitAt(rightN->getX2(),rightN->getY2(),left1,right1);
        sss.remove(*leftN);
        if(!left1.isPoint()){
@@ -1420,6 +1564,7 @@ void splitNeighbours(avltree::AVLTree<avlseg::AVLSegment>& sss,
        }
        insertEvents(right1,true,true,q1,q2);
     } else if(rightN->ininterior(leftN->getX2(),leftN->getY2())){
+       // right endpoint of leftN in interior of rightN
        rightN->splitAt(leftN->getX2(),leftN->getY2(),left1,right1);
        sss.remove(*rightN);
        if(!left1.isPoint()){
@@ -1428,6 +1573,7 @@ void splitNeighbours(avltree::AVLTree<avlseg::AVLSegment>& sss,
        }
        insertEvents(right1,true,true,q1,q2);
     } else if (rightN->crosses(*leftN)){
+       // leftN and rightN are crossing
          leftN->splitCross(*rightN,left1,right1,left2,right2);
          sss.remove(*leftN);
          sss.remove(*rightN);
@@ -1441,6 +1587,24 @@ void splitNeighbours(avltree::AVLTree<avlseg::AVLSegment>& sss,
          insertEvents(left2,false,true,q1,q2);
          insertEvents(right1,true,true,q1,q2);
          insertEvents(right2,true,true,q1,q2);
+    } else if(leftN->ininterior(rightN->getX1(), rightN->getY1())){
+       cerr << __LINE__ << "Warning found an element to split too late" << endl;
+       sss.remove(*leftN);
+       leftN->splitAt(rightN->getX1(), rightN->getX2(), left1, right1);
+       if(!left1.isPoint()){
+         leftN = sss.insert2(left1);
+         insertEvents(left1, false,true,q1,q2);
+       }
+       insertEvents(right1, true,true,q1,q2); 
+    } else if(rightN->ininterior(leftN->getX1(), leftN->getY1())){
+       cerr << __LINE__ << "Warning found an element to split too late" << endl;
+       sss.remove(*rightN);
+       rightN->splitAt(leftN->getX1(), leftN->getY1(), left1, right1);
+       if(!left1.isPoint()){
+          rightN = sss.insert2(right1);
+          insertEvents(left1, false, true, q1,q2);
+       }
+       insertEvents(right1, true,true,q1,q2);
     } else { // forgotten case or overlapping segments (rounding errors)
        if(leftN->overlaps(*rightN)){
          cerr << "Overlapping neighbours found" << endl;
@@ -1474,6 +1638,55 @@ void splitNeighbours(avltree::AVLTree<avlseg::AVLSegment>& sss,
          }
 
        } else {
+          cout.precision(16);
+          cout << "Found to segments which are in no  valid relation " << endl;
+          cout << " leftN  = " << (*leftN) << endl;
+          cout << " rightN = " << (*rightN) << endl;
+
+          cout << "leftN.isVertical  : " << leftN->isVertical() << endl;
+          cout << "rightN.isVertical : " << rightN->isVertical() << endl;
+
+          cout << "leftN.innerDisjoint(rightN) : " 
+               << leftN->innerDisjoint(*rightN) << endl;
+          cout << "rightN.innerDisjoint(leftN) : " 
+               << rightN->innerDisjoint(*leftN) << endl;
+          
+          cout << "leftN.intersects(rightN) : " 
+               << leftN->intersects(*rightN) << endl;
+          cout << "rightN.intersects(leftN) : " 
+               << rightN->intersects(*leftN) << endl;
+
+
+          cout << "leftN.overlaps(rightN) : " 
+               << leftN->overlaps(*rightN) << endl;
+          cout << "rightN.overlaps(leftN) : " 
+               << rightN->overlaps(*leftN) << endl;
+          
+          
+          cout << "leftN.compareTo(rightN) : " 
+               << leftN->compareTo(*rightN) << endl;
+          cout << "rightN.compareTo(leftN) : " 
+               << rightN->compareTo(*leftN) << endl;
+          
+
+          cout << "leftN.compareSlopes(rightN) : " 
+               << leftN->compareSlopes(*rightN) << endl;
+          cout << "rightN.compareSlopes(leftN) : " 
+               << rightN->compareSlopes(*leftN) << endl;
+          
+ 
+          cout << "leftN.xOverlaps(rightN) : " 
+               << leftN->xOverlaps(*rightN) << endl;
+          cout << "rightN.xOverlaps(leftN) : " 
+               << rightN->xOverlaps(*leftN) << endl;
+          
+          cout << "leftN.yOverlaps(rightN) : " 
+               << leftN->yOverlaps(*rightN) << endl;
+          cout << "rightN.yOverlaps(leftN) : " 
+               << rightN->yOverlaps(*leftN) << endl;
+
+          leftN->printInnerDisjoint(*rightN);
+
           assert(false);
        }
     }
@@ -2000,6 +2213,7 @@ avlseg::ownertype selectNext(const DbArray<HalfSegment>& src, int& pos,
 
 DbArray<HalfSegment>* Realminize(const DbArray<HalfSegment>& segments){
 
+
   DbArray<HalfSegment>* res = new DbArray<HalfSegment>(segments.Size());
 
   if(segments.Size()==0){ // no halfsegments, nothing to realminize
@@ -2010,6 +2224,7 @@ DbArray<HalfSegment>* Realminize(const DbArray<HalfSegment>& segments){
   priority_queue<avlseg::ExtendedHalfSegment,
                  vector<avlseg::ExtendedHalfSegment>, 
                  greater<avlseg::ExtendedHalfSegment> > q1;
+  // dummy queue
   priority_queue<avlseg::ExtendedHalfSegment,  
                  vector<avlseg::ExtendedHalfSegment>, 
                  greater<avlseg::ExtendedHalfSegment> > q2;
@@ -2026,7 +2241,9 @@ DbArray<HalfSegment>* Realminize(const DbArray<HalfSegment>& segments){
 
   int edgeno = 0;
   avlseg::AVLSegment tmpL,tmpR,tmpM;
+
   while(selectNext(segments,pos,q1,nextHS)!=avlseg::none) {
+
       avlseg::AVLSegment current(nextHS,avlseg::first);
       member = sss.getMember(current,leftN,rightN);
       if(leftN){

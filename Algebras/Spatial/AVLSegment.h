@@ -22,6 +22,8 @@ namespace avlseg{
 
 class ExtendedHalfSegment: public HalfSegment{
   public:
+    ExtendedHalfSegment(){initialized=false;}
+    
     ExtendedHalfSegment(const ExtendedHalfSegment& ehs):
       HalfSegment(ehs),
       originX1(ehs.originX1),
@@ -64,7 +66,8 @@ class ExtendedHalfSegment: public HalfSegment{
     }
 
 
-    void setOrigin(double x1, double y1, double x2, double y2){
+    void setOrigin(const double x1, const double y1, 
+                   const double x2, const double y2){
        originX1 = x1;
        originX2 = x2;
        originY1 = y1;
@@ -99,7 +102,7 @@ the usual Print function.
 
   }
 
-    ExtendedHalfSegment(){initialized=false;}
+
   private:
 
     double originX1;
@@ -152,7 +155,7 @@ As owner only __first__ and __second__ are the allowed values.
 
 */
 
-  AVLSegment(const ExtendedHalfSegment& hs, ownertype owner);
+  AVLSegment(const ExtendedHalfSegment& hs, const ownertype owner);
 
 
 /*
@@ -162,7 +165,7 @@ Create a Segment only consisting of a single point.
 
 */
 
-  AVLSegment(const Point& p, ownertype owner);
+  AVLSegment(const Point& p, const ownertype owner);
 
 
 /*
@@ -214,16 +217,6 @@ located on the segment defined by (orinigX1, originY1) and
 */
   bool CheckPoints() const;
 
-
-/*
-
-~Equalize~
-
-The value of this segment is taken from the argument.
-
-*/
-
-  void Equalize( const AVLSegment& src);
 
 
 /*
@@ -315,6 +308,7 @@ common endpoint.
 */
 
   bool innerDisjoint(const AVLSegment& s)const;
+  bool printInnerDisjoint(const AVLSegment& s)const;
 
 /*
 ~Intersects~
@@ -370,7 +364,7 @@ Compares this with s. The x intervals must overlap.
 This function changes the owner of this segment.
 
 */
-  void setOwner(ownertype o);
+  void setOwner(const ownertype o);
 
 
 /*
@@ -467,7 +461,8 @@ This functions creates a ~HalfSegment~ from this segment.
 The owner must be __first__ or __second__.
 
 */
-ExtendedHalfSegment convertToExtendedHs(bool lpd, ownertype owner = both )const;
+ExtendedHalfSegment convertToExtendedHs(const bool lpd, 
+                             const ownertype owner = both )const;
 
 
 /*
@@ -500,6 +495,7 @@ private:
   double  originX1, originX2, originY1, originY2; 
                      // this segments comes from 
 
+public: // for debugging only
 
 /*
 ~pointequal~
@@ -558,6 +554,8 @@ Checks whether the x interval of this segment overlaps the
 x interval of ~s~.
 
 */
+
+public: // for debugging only
 
   bool xOverlaps(const AVLSegment& s) const;
 
