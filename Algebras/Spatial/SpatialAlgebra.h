@@ -1350,6 +1350,10 @@ as an attribute.
       return symbols::LINE;
    }
 
+   const DbArray<HalfSegment>& GetArray() const{
+     return line;
+   }
+
  protected:
    inline Line() {} // This constructor should only be used
                     // within the Cast function.
