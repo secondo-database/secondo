@@ -5102,7 +5102,8 @@ void RegVertex::DFTraverse(R_Tree<2,TupleId>* rtree,
 
 /*
 for each triangl, it searches all its neighbors by traversing the RTree
-it creates the edge relation for dual graph
+it creates the edge relation for dual graph.
+depth-first is a little faster than breadth-first
 
 */
 void RegVertex::GetDGEdgeRTree(R_Tree<2,TupleId>* rtree)
