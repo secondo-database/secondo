@@ -2154,7 +2154,7 @@ void CompTriangle::NewTriangulation()
   }*/
 
   //the first is the outer cycle
-  cout<<"polgyon with "<<no_cyc - 1<<" holes inside "<<endl;
+//  cout<<"polgyon with "<<no_cyc - 1<<" holes inside "<<endl;
 
 
   const int ncontours = no_cyc;
@@ -2169,7 +2169,7 @@ void CompTriangle::NewTriangulation()
     cout<<no_p_contour[i]<<endl;*/
 
 
-  cout<<"finish creating contour for the polgyon"<<endl;
+//  cout<<"finish creating contour for the polgyon"<<endl;
 //  cout<<"no vertices "<<ps_contour_x.size()<<endl;
 
   ///call the algorithm implemented by Atul Narkhede and Dinesh Manocha ///////
@@ -2180,7 +2180,7 @@ void CompTriangle::NewTriangulation()
   no_triangle = triangulate_polygon(no_cyc, no_p_contour,
                 ps_contour_x, ps_contour_y, res_triangles);
 
-  cout<<"no_triangle "<<no_triangle<<endl;
+//  cout<<"no_triangle "<<no_triangle<<endl;
 
   assert(0 < no_triangle && no_triangle < SEGSIZE);
 
@@ -2273,7 +2273,7 @@ void BaseGraph::Destroy()
 
 ListExpr BaseGraph::BaseGraphProp()
 {
-    cout<<"BaseGraphProp()"<<endl;
+//    cout<<"BaseGraphProp()"<<endl;
     ListExpr examplelist = nl->TextAtom();
     nl->AppendText(examplelist,
                "createdualgraph(<id>,<edge-relation>,<node-relation>)");
@@ -2372,7 +2372,7 @@ ListExpr DualGraph::OutDualGraph(ListExpr typeInfo, Word value)
 
 ListExpr DualGraph::Out(ListExpr typeInfo)
 {
-  cout<<"Out()"<<endl;
+//  cout<<"Out()"<<endl;
   ListExpr xNode = nl->TheEmptyList();
   ListExpr xLast = nl->TheEmptyList();
   ListExpr xNext = nl->TheEmptyList();
@@ -2459,7 +2459,7 @@ bool DualGraph::SaveDualGraph(SmiRecord& valueRecord, size_t& offset,
 bool DualGraph::Save(SmiRecord& in_xValueRecord,size_t& inout_iOffset,
 const ListExpr in_xTypeInfo)
 {
-  cout<<"Save()"<<endl;
+//  cout<<"Save()"<<endl;
   /********************Save graph id ****************************/
   in_xValueRecord.Write(&g_id,sizeof(int),inout_iOffset);
   inout_iOffset += sizeof(int);
@@ -2528,7 +2528,7 @@ DualGraph::~DualGraph()
 
 DualGraph::DualGraph()
 {
-  cout<<"DualGraph::DualGraph()"<<endl;
+//  cout<<"DualGraph::DualGraph()"<<endl;
 }
 
 DualGraph::DualGraph(ListExpr in_xValue,int in_iErrorPos,
@@ -2536,7 +2536,7 @@ DualGraph::DualGraph(ListExpr in_xValue,int in_iErrorPos,
                      bool& inout_bCorrect)
 
 {
-  cout<<"DualGraph::DualGraph(ListExpr)"<<endl;
+//  cout<<"DualGraph::DualGraph(ListExpr)"<<endl;
 
 }
 
@@ -3331,20 +3331,15 @@ create the edge relation for the visibility graph
 void VGraph::GetVGEdge()
 {
   for(int i = 1;i <= rel1->GetNoTuples();i++){
-//    for(int i = 1;i <= 1500;i++){
+//    for(int i = 1;i <= 5000;i++){
 //      if(i != 1465) continue;
 //      cout<<"i "<<i<<endl;
 
       Tuple* vertex_tuple = rel1->GetTuple(i, false);
       int vid =
           ((CcInt*)vertex_tuple->GetAttribute(VisualGraph::OID))->GetIntval();
-      Point* loc = (Point*)vertex_tuple->GetAttribute(VisualGraph::LOC);
-      GetVNodeOnVertex(vid, loc);
-      vertex_tuple->DeleteIfAllowed();
-
-      Tuple* loc_tuple1 = rel3->GetTuple(vid, false);
-      Point* p1 = (Point*)loc_tuple1->GetAttribute(VisualGraph::LOC);
-
+      Point* p1 = (Point*)vertex_tuple->GetAttribute(VisualGraph::LOC);
+      GetVNodeOnVertex(vid, p1);
       for(unsigned int j = 0;j < oids1.size();j++){
           oids2.push_back(vid);
           oids3.push_back(oids1[j]);
@@ -3365,7 +3360,7 @@ void VGraph::GetVGEdge()
           delete l;
           loc_tuple2->DeleteIfAllowed();
       }
-      loc_tuple1->DeleteIfAllowed();
+      vertex_tuple->DeleteIfAllowed();
       oids1.clear();
   }
 
@@ -3714,8 +3709,6 @@ bool VGraph::PathContainHS(vector<int> tri_list, HalfSegment hs)
   HSNode* head = new HSNode();
   HSNode* prev = head;
   HSNode* cur = prev->next;
-
-
 
   Tuple* tri = dg->GetNodeRel()->GetTuple(tri_list[0], false);
   Region* reg = (Region*)tri->GetAttribute(DualGraph::PAVEMENT);
@@ -4694,6 +4687,7 @@ void RegVertex::CreateVertex()
       for(unsigned int i = 0;i < no_cyc;i++){
         sl_contour[i]->EndBulkLoad();
         vector<MyHalfSegment> mhs;
+
         sp->ReorderLine(sl_contour[i], mhs);
         vector<Point> ps;
         for(unsigned int j = 0;j < mhs.size();j++)
@@ -4771,7 +4765,7 @@ void RegVertex::TriangulationNew()
       no_triangle = triangulate_polygon(no_cyc, no_p_contour,
                 ps_contour_x, ps_contour_y, res_triangles);
 
-      cout<<"no_triangle "<<no_triangle<<endl;
+//      cout<<"no_triangle "<<no_triangle<<endl;
 
       assert(0 < no_triangle && no_triangle < SEGSIZE);
       for (int i = 0; i < no_triangle; i++){
@@ -5016,7 +5010,147 @@ void RegVertex::GetDGEdge()
 
 }
 
+/*
+two triangles sharing the same edge
 
+*/
+void RegVertex::ShareEdge(Region* reg1, Region* reg2, int oid1,
+                int oid2, vector<vector<int> >& adj_node)
+{
+  for(int i = 0;i < reg1->Size();i++){
+      HalfSegment hs1;
+      reg1->Get(i, hs1);
+     for(int j = 0;j < reg2->Size();j++){
+        HalfSegment hs2;
+        reg2->Get(j, hs2);
+        if((AlmostEqual(hs1.GetLeftPoint(),  hs2.GetLeftPoint())&&
+            AlmostEqual(hs1.GetRightPoint(), hs2.GetRightPoint())) ||
+           (AlmostEqual(hs1.GetRightPoint(), hs2.GetLeftPoint()) &&
+            AlmostEqual(hs1.GetLeftPoint(),  hs2.GetRightPoint()))){
+            if(adj_node[oid2 - 1].size() == 0){
+              Line* l =  new Line(0);
+              l->StartBulkLoad();
+              hs1.attr.edgeno = 0;
+              *l += hs1;
+              hs1.SetLeftDomPoint(!hs1.IsLeftDomPoint());
+              *l += hs1;
+              l->EndBulkLoad();
+              line.push_back(*l);
+              delete l;
+              v1_list.push_back(oid1);
+              v2_list.push_back(oid2);
+              adj_node[oid1 - 1].push_back(oid2);
+            }else{
+              unsigned int index = 0;
+              for(;index < adj_node[oid2 - 1].size();index++){
+                if(adj_node[oid2 - 1][index] == oid1)break;
+              }
+              if(index == adj_node[oid2 - 1].size()){
+                Line* l =  new Line(0);
+                l->StartBulkLoad();
+                hs1.attr.edgeno = 0;
+                *l += hs1;
+                hs1.SetLeftDomPoint(!hs1.IsLeftDomPoint());
+                *l += hs1;
+                l->EndBulkLoad();
+                line.push_back(*l);
+                delete l;
+                v1_list.push_back(oid1);
+                v2_list.push_back(oid2);
+                adj_node[oid1 - 1].push_back(oid2);
+              }
+            }
+            return;
+        }
+    }
+  }
+
+}
+
+/*
+Using depth first method to travese the R-tree to find all neighbors for the
+triangle (oid,reg)
+
+*/
+void RegVertex::DFTraverse(R_Tree<2,TupleId>* rtree,
+                           SmiRecordId adr,int oid, Region* reg,
+                           vector<vector<int> >& adj_node)
+{
+  R_TreeNode<2,TupleId>* node = rtree->GetMyNode(adr,false,
+                  rtree->MinEntries(0), rtree->MaxEntries(0));
+  for(int j = 0;j < node->EntryCount();j++){
+      if(node->IsLeaf()){
+              R_TreeLeafEntry<2,TupleId> e =
+                 (R_TreeLeafEntry<2,TupleId>&)(*node)[j];
+              Tuple* dg_tuple2 = rel1->GetTuple(e.info,false);
+              Region* candi_reg =
+                     (Region*)dg_tuple2->GetAttribute(DualGraph::PAVEMENT);
+              if(oid != e.info){
+                  ShareEdge(reg, candi_reg, oid,e.info, adj_node);
+              }
+              dg_tuple2->DeleteIfAllowed();
+      }else{
+            R_TreeInternalEntry<2> e =
+                (R_TreeInternalEntry<2>&)(*node)[j];
+            if(reg->Intersects(e.box)){
+              DFTraverse(rtree, e.pointer, oid, reg, adj_node);
+            }
+      }
+  }
+  delete node;
+}
+
+/*
+for each triangl, it searches all its neighbors by traversing the RTree
+it creates the edge relation for dual graph
+
+*/
+void RegVertex::GetDGEdgeRTree(R_Tree<2,TupleId>* rtree)
+{
+  SmiRecordId adr = rtree->RootRecordId();
+
+  vector<vector<int> > adj_node(rel1->GetNoTuples());
+  for(int i = 1;i <= rel1->GetNoTuples();i++){
+//  for(int i = 1;i <= 1;i++){
+      Tuple* dg_tuple1 = rel1->GetTuple(i, false);
+      int oid = ((CcInt*)dg_tuple1->GetAttribute(DualGraph::OID))->GetIntval();
+      Region* reg =
+             (Region*)dg_tuple1->GetAttribute(DualGraph::PAVEMENT);
+      ///////////////////travers RTree//////////////////////////////////
+/*      queue<SmiRecordId> record_list;
+      record_list.push(adr);
+      while(record_list.empty() == false){ // width first method
+          SmiRecordId node_recid = record_list.front();
+          record_list.pop();
+          R_TreeNode<2,TupleId>* node = rtree->GetMyNode(node_recid,false,
+                          rtree->MinEntries(0), rtree->MaxEntries(0));
+          for(int j = 0;j < node->EntryCount();j++){
+            if(node->IsLeaf()){
+              R_TreeLeafEntry<2,TupleId> e =
+                 (R_TreeLeafEntry<2,TupleId>&)(*node)[j];
+              Tuple* dg_tuple2 = rel1->GetTuple(e.info,false);
+              Region* candi_reg =
+                     (Region*)dg_tuple2->GetAttribute(DualGraph::PAVEMENT);
+              if(oid != e.info){
+//                  cout<<"find neighbor "<<oid<<" "<<e.info<<endl;
+                  ShareEdge(reg, candi_reg,oid,e.info, adj_node);
+              }
+              dg_tuple2->DeleteIfAllowed();
+            }else{
+              R_TreeInternalEntry<2> e =
+                  (R_TreeInternalEntry<2>&)(*node)[j];
+              if(reg->Intersects(e.box))
+                  record_list.push(e.pointer);
+            }
+          }
+        delete node;
+      }*/
+      /////////////////depth first method////////////////////////////////////
+      DFTraverse(rtree, adr, oid, reg, adj_node);
+      //////////////////////////////////////////////////////////////////////
+      dg_tuple1->DeleteIfAllowed();
+  }
+}
 
 string VisualGraph::NodeTypeInfo =
   "(rel(tuple((oid int)(loc point))))";
@@ -5032,14 +5166,14 @@ VisualGraph::~VisualGraph()
 
 VisualGraph::VisualGraph()
 {
-  cout<<"VisualGraph::VisualGraph()"<<endl;
+//  cout<<"VisualGraph::VisualGraph()"<<endl;
 }
 
 VisualGraph::VisualGraph(ListExpr in_xValue,int in_iErrorPos,
                      ListExpr& inout_xErrorInfo,
                      bool& inout_bCorrect)
 {
-  cout<<"VisualGraph::VisualGraph(ListExpr)"<<endl;
+//  cout<<"VisualGraph::VisualGraph(ListExpr)"<<endl;
 }
 
 VisualGraph::VisualGraph(SmiRecord& in_xValueRecord,size_t& inout_iOffset,
@@ -5090,7 +5224,7 @@ const ListExpr in_xTypeInfo)
 
 void VisualGraph::Load(int id, Relation* r1, Relation* r2)
 {
-  cout<<"VisualGraph::Load()"<<endl;
+//  cout<<"VisualGraph::Load()"<<endl;
   g_id = id;
   //////////////////node relation////////////////////
 
@@ -5150,14 +5284,14 @@ void VisualGraph::Load(int id, Relation* r1, Relation* r2)
 
 ListExpr VisualGraph::OutVisualGraph(ListExpr typeInfo, Word value)
 {
-  cout<<"OutVisualGraph()"<<endl;
+//  cout<<"OutVisualGraph()"<<endl;
   VisualGraph* vg = (VisualGraph*)value.addr;
   return vg->Out(typeInfo);
 }
 
 ListExpr VisualGraph::Out(ListExpr typeInfo)
 {
-  cout<<"Out()"<<endl;
+//  cout<<"Out()"<<endl;
   ListExpr xNode = nl->TheEmptyList();
   ListExpr xLast = nl->TheEmptyList();
   ListExpr xNext = nl->TheEmptyList();
@@ -5187,7 +5321,7 @@ ListExpr VisualGraph::Out(ListExpr typeInfo)
 
 bool VisualGraph::CheckVisualGraph(ListExpr type, ListExpr& errorInfo)
 {
-  cout<<"CheckVisualGraph()"<<endl;
+//  cout<<"CheckVisualGraph()"<<endl;
   return nl->IsEqual(type, "visualgraph");
 }
 
@@ -5200,7 +5334,7 @@ void VisualGraph::CloseVisualGraph(const ListExpr typeInfo, Word& w)
 
 void VisualGraph::DeleteVisualGraph(const ListExpr typeInfo, Word& w)
 {
-  cout<<"DeleteVisualGraph()"<<endl;
+//  cout<<"DeleteVisualGraph()"<<endl;
   VisualGraph* vg = (VisualGraph*)w.addr;
   delete vg;
   w.addr = NULL;
@@ -5208,7 +5342,7 @@ void VisualGraph::DeleteVisualGraph(const ListExpr typeInfo, Word& w)
 
 Word VisualGraph::CreateVisualGraph(const ListExpr typeInfo)
 {
-  cout<<"CreateVisualGraph()"<<endl;
+//  cout<<"CreateVisualGraph()"<<endl;
   return SetWord(new VisualGraph());
 }
 
@@ -5217,7 +5351,7 @@ Word VisualGraph::InVisualGraph(ListExpr in_xTypeInfo,
                             int in_iErrorPos, ListExpr& inout_xErrorInfo,
                             bool& inout_bCorrect)
 {
-  cout<<"InVisualGraph()"<<endl;
+//  cout<<"InVisualGraph()"<<endl;
   VisualGraph* vg = new VisualGraph(in_xValue, in_iErrorPos, inout_xErrorInfo,
                                 inout_bCorrect);
   if(inout_bCorrect) return SetWord(vg);
@@ -5259,7 +5393,7 @@ bool VisualGraph::Save(SmiRecord& in_xValueRecord,size_t& inout_iOffset,
               const ListExpr in_xTypeInfo)
 {
 
-  cout<<"Save()"<<endl;
+//  cout<<"Save()"<<endl;
   /********************Save graph id ****************************/
   in_xValueRecord.Write(&g_id,sizeof(int),inout_iOffset);
   inout_iOffset += sizeof(int);
@@ -5305,4 +5439,583 @@ bool VisualGraph::Save(SmiRecord& in_xValueRecord,size_t& inout_iOffset,
 
 }
 
+/*
+checks whether the region halfsegment self intersects
 
+*/
+bool Hole::NoSelfIntersects(Region* r)
+{
+    for(int i = 0;i < r->Size();i++){
+        HalfSegment hs1;
+        r->Get(i, hs1);
+        if(!hs1.IsLeftDomPoint())continue;
+        for(int j = 0;j < r->Size();j++){
+          HalfSegment hs2;
+          r->Get(j, hs2);
+          if(!hs2.IsLeftDomPoint() || i == j)continue;
+          Point ip;
+          if(hs1.Intersection(hs2, ip)){
+              if(!AlmostEqual(ip, hs1.GetLeftPoint()) &&
+                 !AlmostEqual(ip, hs1.GetRightPoint()) &&
+                 !AlmostEqual(ip, hs2.GetLeftPoint()) &&
+                 !AlmostEqual(ip, hs2.GetRightPoint()))
+                  return false;
+          }
+        }
+    }
+    return true;
+}
+
+/*
+from the input data file, it creates a lot of contours
+collect regions from original data, where each tuple is a halfsegment
+
+*/
+bool RegionCom(const Region& r1, const Region& r2)
+{
+  return r1.Area() > r2.Area();
+}
+
+void Hole::GetContour()
+{
+    Coord x1, y1, x2, y2;
+    int index = 0;
+    MHSNode* head = new MHSNode(MyHalfSegment(),NULL);
+
+    Points* ps = new Points(0);
+    ps->StartBulkLoad();
+
+    while( !in.eof()){
+      in>>index;
+      if(!in.good())
+          break;
+      in>>x1;
+      if(!in.good())
+          break;
+      in>>y1;
+      if(!in.good())
+          break;
+      in>>x2;
+      if(!in.good())
+          break;
+      in>>y2;
+      if(!in.good())
+        break;
+//      printf("%.12f %.12f %.12f %.12f\n",x1,y1,x2,y2);
+      Point p1(true,x1,y1);
+      Point p2(true,x2,y2);
+      MyHalfSegment hs(true,p1,p2);
+      if(AlmostEqual(p1,p2)) continue;
+//      if(index > 10000)break;
+
+      MHSNode* node = new MHSNode(hs,NULL);
+      node->next = head->next;
+      head->next = node;
+
+      *ps += p1;
+      *ps += p2;
+    }
+    ps->EndBulkLoad();
+
+    BBox<2> bbox;
+    double min[2];
+    double max[2];
+    const double delta = 5.0;
+
+    min[0] = ps->BoundingBox().MinD(0) - delta;
+    min[1] = ps->BoundingBox().MinD(1) - delta;
+    max[0] = ps->BoundingBox().MaxD(0) + delta;
+    max[1] = ps->BoundingBox().MaxD(1) + delta;
+    bbox.Set(true, min, max);
+
+    Region* outer_contour = new Region(bbox);
+//    GrahamScan::convexHull(ps,outer_contour);
+    regs.push_back(*outer_contour);//the first is the outer contour
+    delete outer_contour;
+
+
+  ////////////////////////////////////////////////
+    while(head->next != NULL){
+        list<MyHalfSegment> contours;
+        MHSNode* prev = head;
+        MHSNode* cur = head->next;
+        contours.push_back(cur->mhs);
+
+        prev->next = cur->next;
+        MHSNode* temp = cur;
+        delete temp;
+        MyHalfSegment front = contours.front();
+        MyHalfSegment back = contours.back();
+
+        while(1){
+          cur = head->next;
+          prev = head;
+          while(cur != NULL){
+            if(AlmostEqual(front.from, cur->mhs.to)){
+                contours.push_front(cur->mhs);
+                prev->next = cur->next;
+                delete cur;
+                break;
+            }
+            if(AlmostEqual(front.from, cur->mhs.from)){
+                cur->mhs.Exchange();
+                contours.push_front(cur->mhs);
+                prev->next = cur->next;
+                delete cur;
+                break;
+            }
+            if(AlmostEqual(back.to, cur->mhs.from)){
+                contours.push_back(cur->mhs);
+                prev->next = cur->next;
+                delete cur;
+                break;
+            }
+            if(AlmostEqual(back.to, cur->mhs.to)){
+                cur->mhs.Exchange();
+                contours.push_back(cur->mhs);
+                prev->next = cur->next;
+                delete cur;
+                break;
+            }
+            prev = cur;
+            cur = cur->next;
+          }
+          front = contours.front();
+          back = contours.back();
+//          cout<<"front ";front.Print();
+//          cout<<"back "; back.Print();
+          if(AlmostEqual(front.from, back.to) && contours.size() > 2){
+//              cout<<"cycle found "<<contours.size()<<endl;
+              vector<Point> ps;
+              while(contours.empty() == false){
+                  MyHalfSegment top = contours.front();
+                  contours.pop_front();
+                  ps.push_back(top.from);
+              }
+              SpacePartition* sp = new SpacePartition();
+              CompTriangle* ct = new CompTriangle();
+              vector<Region> regions;
+              if(ct->Area(ps) > 0){
+                sp->ComputeRegion(ps,regions);
+                regs1.push_back(regions[0]);
+                regs2.push_back(regions[0]);
+              }else{
+                vector<Point> temp_ps;
+                for(int i = ps.size() - 1;i >= 0;i--)
+                  temp_ps.push_back(ps[i]);
+                sp->ComputeRegion(temp_ps,regions);
+                regs1.push_back(regions[0]);
+                regs2.push_back(regions[0]);
+              }
+              delete ct;
+              delete sp;
+              contours.clear();
+              break;
+          }
+          if(cur == NULL){
+              contours.clear();
+              break;
+          }
+        }
+    }
+    sort(regs1.begin(),regs1.end(), RegionCom);
+    sort(regs2.begin(),regs2.end(), RegionCom);
+
+    for(unsigned int i = 0;i < regs1.size();i++){
+        unsigned int j = 0;
+//        cout<<regs1[i].Area()<<endl;
+        for(;j < regs2.size();j++){
+          if(i == j) continue;
+/*          if(regs1[i].Inside(regs2[j]) ||
+             regs1[i].Intersects(regs2[j]) ||
+             regs2[j].Inside(regs1[i])) break;*/
+          if(regs1[i].Intersects(regs2[j])) break;
+
+        }
+        //no self-intersection segments are allowed
+        if(j == regs2.size() &&
+           NoSelfIntersects(&regs1[i]))regs.push_back(regs1[i]);
+    }
+    delete head;
+    delete ps;
+}
+
+/*
+create no_reg regions(cycles)
+
+*/
+void Hole::GetContour(int no_reg)
+{
+    vector<Point> contour;
+    vector<Region> regions;
+    SpacePartition* sp = new SpacePartition();
+    //////////////////the outer contour/////////////////////////////////
+    contour.push_back(Point(true,0.0,0.0));
+    contour.push_back(Point(true,100000.0,0.0));
+    contour.push_back(Point(true,100000.0,100000.0));
+    contour.push_back(Point(true,0.0,100000.0));
+    sp->ComputeRegion(contour,regions);
+    regs.push_back(regions[0]);
+    ////////////////////////////////////////////////////////
+    struct timeval tval;
+    struct timezone tzone;
+
+    gettimeofday(&tval, &tzone);
+    srand48(tval.tv_sec);
+    while(no_reg > 1){
+      int  px = lrand48() % 98700 + 600;
+      int  py = lrand48() % 98700 + 600;
+
+      int radius = lrand48() % 496 + 5;//5-500 10-1000
+      contour.clear();
+      regions.clear();
+      contour.push_back(Point(true, px - radius, py - radius));
+      contour.push_back(Point(true, px + radius, py - radius));
+      contour.push_back(Point(true, px + radius, py + radius));
+      contour.push_back(Point(true, px - radius, py + radius));
+      sp->ComputeRegion(contour,regions);
+      unsigned int i = 1;
+      for(;i < regs.size();i++){
+        if(regs[i].Intersects(regions[0]))break;
+      }
+      if(i == regs.size()){
+          ///create convex hull
+          Points* outer_ps = new Points(0);
+          int outer_ps_no =  lrand48() % 191 + 10;///10-200
+//          int outer_ps_no =  radius;///10-200
+          double xmin = px - radius;
+          double ymin = py - radius;
+          outer_ps->StartBulkLoad();
+          vector<Point> temp_ps;
+          while(outer_ps_no > 0){
+            int x =  lrand48() %(2*radius*100);
+            int y =  lrand48() %(2*radius*100);
+            double coord_x = x/100.0 + xmin;
+            double coord_y = y/100.0 + ymin;
+            Point newp(true,coord_x,coord_y);
+
+            if(newp.Inside(regions[0])){
+              outer_ps_no--;
+              *outer_ps += newp;
+              temp_ps.push_back(newp);
+            }
+          }
+          outer_ps->EndBulkLoad();
+
+          if(no_reg % 3 == 0){
+            Region* newregion = new Region(0);
+            GrahamScan::convexHull(outer_ps,newregion);
+            regs.push_back(*newregion);
+            delete newregion;
+          }
+          else if(no_reg % 3 == 1){
+            Region* newregion = new Region(0);
+            DiscoverContour(outer_ps,newregion);
+            regs.push_back(*newregion);
+            delete newregion;
+          }
+          else{
+            Region* newregion = new Region(outer_ps->BoundingBox());
+            regs.push_back(*newregion);
+            delete newregion;
+          }
+          delete outer_ps;
+          /////////////////////////////////////////////////
+//          regs.push_back(regions[0]);
+          no_reg--;
+      }
+    }
+
+    delete sp;
+}
+
+void Hole::SpacePartitioning(vector<Point> ps, vector<HalfSegment>& hs_segs,
+                         Point sf, Point sl)
+{
+//    cout<<"sf "<<sf<<" sl "<<sl<<endl;
+/*    for(unsigned int i = 0;i < ps.size();i++)
+        cout<<ps[i]<<endl; */
+
+    if(ps.size() == 0){
+        HalfSegment hs;
+        hs.Set(true, sf, sl);
+        hs_segs.push_back(hs);
+    }else{
+        Point mid_p1 = ps[0];
+        Point mid_p2(true, (sf.GetX()+sl.GetX())/2,(sf.GetY()+sl.GetY())/2);
+
+        if(AlmostEqual(mid_p1.GetX(), mid_p2.GetX())){
+          //it seldomly happens
+          if(AlmostEqual(sf.GetX(), sl.GetX())) assert(false);
+          vector<Point> ls;
+          vector<Point> rs;
+          for(unsigned int i = 0;i < ps.size();i++){
+            if(AlmostEqual(ps[i], mid_p1) ||
+               AlmostEqual(ps[i], mid_p1)) continue;
+            if(ps[i].GetX() < mid_p1.GetX() ||
+               AlmostEqual(ps[i].GetX(), mid_p1.GetX()))
+                ls.push_back(ps[i]);
+            else
+                rs.push_back(ps[i]);
+          }
+
+          if(sf.GetX() < mid_p1.GetX()){
+//              cout<<"1 "<<"left "<<endl;
+              SpacePartitioning(ls, hs_segs, sf, mid_p1);
+//              cout<<"1 "<<"right "<<endl;
+              SpacePartitioning(rs, hs_segs, mid_p1, sl);
+          }else{
+//              cout<<"1 "<<"left "<<endl;
+              SpacePartitioning(ls, hs_segs, sl, mid_p1);
+//              cout<<"1 "<<"right "<<endl;
+              SpacePartitioning(rs, hs_segs, mid_p1, sf);
+          }
+
+        }else if(AlmostEqual(mid_p1.GetY(), mid_p2.GetY())){
+            //it seldomly happens
+            if(AlmostEqual(sf.GetY(), sl.GetY())) assert(false);
+            vector<Point> ls;
+            vector<Point> rs;
+            for(unsigned int i = 0;i < ps.size();i++){
+              if(AlmostEqual(ps[i], mid_p1) ||
+                 AlmostEqual(ps[i], mid_p1)) continue;
+              if(ps[i].GetY() < mid_p1.GetY() ||
+                 AlmostEqual(ps[i].GetY(), mid_p1.GetY()))
+                ls.push_back(ps[i]);
+              else
+                rs.push_back(ps[i]);
+            }
+            if(sf.GetY() < mid_p1.GetY()){
+//                cout<<"2 "<<"left "<<endl;
+                SpacePartitioning(ls, hs_segs, sf, mid_p1);
+//                cout<<"2 "<<"right "<<endl;
+                SpacePartitioning(rs, hs_segs, mid_p1, sl);
+            }else{
+//                cout<<"2 "<<"left "<<endl;
+                SpacePartitioning(ls, hs_segs, sl, mid_p1);
+//                cout<<"2 "<<"right "<<endl;
+                SpacePartitioning(rs, hs_segs, mid_p1, sf);
+            }
+        }else{
+            vector<Point> ls;
+            vector<Point> rs;
+            double a = (mid_p1.GetY() - mid_p2.GetY())/
+                       (mid_p1.GetX() - mid_p2.GetX());
+            double b = mid_p1.GetY() - a*mid_p1.GetX();
+            for(unsigned int i = 0;i < ps.size();i++){
+              if(AlmostEqual(ps[i], mid_p1) ||
+                 AlmostEqual(ps[i], mid_p1)) continue;
+              if(ps[i].GetY() < (a*ps[i].GetX() + b)||
+                AlmostEqual(ps[i].GetY(), (a*ps[i].GetX() + b)))
+                ls.push_back(ps[i]);
+              else
+                rs.push_back(ps[i]);
+            }
+            if(sf.GetY() < a*sf.GetX() + b){
+//              cout<<"3 "<<"left "<<endl;
+              SpacePartitioning(ls, hs_segs, sf, mid_p1);
+//              cout<<"3 "<<"right "<<endl;
+              SpacePartitioning(rs, hs_segs, mid_p1, sl);
+            }else{
+//              cout<<"3 "<<"left "<<endl;
+              SpacePartitioning(ls, hs_segs, sl, mid_p1);
+//              cout<<"3 "<<"right "<<endl;
+              SpacePartitioning(rs, hs_segs, mid_p1, sf);
+            }
+          }
+    }
+}
+
+/*
+create a polygon by SpacePartitioning method
+
+*/
+
+void Hole::SpacePartitioning(Points* gen_ps, vector<HalfSegment>& hs_segs)
+{
+  vector<Point> ps1;
+  for(int i = 0;i < gen_ps->Size();i++){
+      Point temp_p;
+      gen_ps->Get(i, temp_p);
+      ps1.push_back(temp_p);
+  }
+
+  Point sf = ps1[0];
+  Point sl = ps1[1];
+//cout<<"sf "<<sf<<" sl "<<sl<<endl;
+/*  for(unsigned int i = 0;i < ps1.size();i++)
+    cout<<"ps1 "<<ps1[i]<<endl; */
+
+  if(AlmostEqual(sf.GetX(), sl.GetX())){
+      vector<Point> ls;
+      vector<Point> rs;
+      for(unsigned int i = 0;i < ps1.size();i++){
+        if(AlmostEqual(ps1[i], sf) || AlmostEqual(ps1[i],sl)) continue;
+        if(ps1[i].GetX() < sf.GetX() || AlmostEqual(ps1[i].GetX(), sf.GetX()))
+            ls.push_back(ps1[i]);
+        else
+            rs.push_back(ps1[i]);
+      }
+//      cout<<"1 "<<"left "<<endl;
+      SpacePartitioning(ls, hs_segs, sf, sl);
+//      cout<<"1 "<<"right "<<endl;
+      SpacePartitioning(rs, hs_segs, sf, sl);
+  }else if(AlmostEqual(sf.GetY(), sl.GetY())){
+      vector<Point> ls;
+      vector<Point> rs;
+      for(unsigned int i = 0;i < ps1.size();i++){
+        if(AlmostEqual(ps1[i], sf) || AlmostEqual(ps1[i],sl)) continue;
+        if(ps1[i].GetY() < sf.GetY() || AlmostEqual(ps1[i].GetY(), sf.GetY()))
+            ls.push_back(ps1[i]);
+        else
+            rs.push_back(ps1[i]);
+      }
+//      cout<<"2 "<<"left "<<endl;
+      SpacePartitioning(ls, hs_segs, sf, sl);
+//      cout<<"2 "<<"right "<<endl;
+      SpacePartitioning(rs, hs_segs, sf, sl);
+  }else{
+      vector<Point> ls;
+      vector<Point> rs;
+      double a = (sf.GetY() - sl.GetY())/(sf.GetX() - sl.GetX());
+      double b = sf.GetY() - a*sf.GetX();
+      for(unsigned int i = 0;i < ps1.size();i++){
+        if(AlmostEqual(ps1[i], sf) || AlmostEqual(ps1[i],sl)) continue;
+        if(ps1[i].GetY() < (a*ps1[i].GetX() + b)||
+           AlmostEqual(ps1[i].GetY(), (a*ps1[i].GetX() + b)))
+            ls.push_back(ps1[i]);
+        else
+            rs.push_back(ps1[i]);
+      }
+//      cout<<"3 "<<"left "<<endl;
+      SpacePartitioning(ls, hs_segs, sf, sl);
+//      cout<<"3 "<<"right "<<endl;
+      SpacePartitioning(rs, hs_segs, sf, sl);
+  }
+
+}
+void Hole::GetPolygon(int no_ps)
+{
+    struct timeval tval;
+    struct timezone tzone;
+
+    gettimeofday(&tval, &tzone);
+    srand48(tval.tv_sec);
+    vector<Point> ps1;
+    if(no_ps < 3){
+       cout<<"at least three points"<<endl;
+       return;
+    }
+    Points* gen_ps = new Points(0);
+    gen_ps->StartBulkLoad();
+    while(no_ps > 0){
+        int x =  lrand48() %100000;
+        int y =  lrand48() %100000;
+        double coord_x = x/100.0;
+        double coord_y = y/100.0;
+        Point p(true,coord_x, coord_y);
+        *gen_ps += p;
+        no_ps--;
+    }
+    gen_ps->EndBulkLoad();
+    Region* reg = new Region(0);
+    DiscoverContour(gen_ps, reg);//store the polygon in regs
+    regs.push_back(*reg);
+    delete reg;
+    delete gen_ps;
+}
+
+/*
+using the space partitining method to create randomly polygon by a given set
+of vertices
+
+*/
+void Hole::DiscoverContour(Points* gen_ps, Region* r)
+{
+  vector<HalfSegment> hs_segs;
+  SpacePartitioning(gen_ps, hs_segs);
+  MHSNode* head = new MHSNode(MyHalfSegment(),NULL);
+  for(unsigned int i = 0;i < hs_segs.size();i++){
+       MHSNode* node = new MHSNode(
+              MyHalfSegment(true,hs_segs[i].GetLeftPoint(),
+                                 hs_segs[i].GetRightPoint()),NULL);
+        node->next = head->next;
+        head->next = node;
+  }
+  DiscoverContour(head, r);
+  delete head;
+}
+/*
+given a set of segments, it discovers whether a cycle exists. if yes, a region
+is returned
+
+*/
+void Hole::DiscoverContour(MHSNode* head, Region* r)
+{
+    list<MyHalfSegment> contours;
+    MHSNode* prev = head;
+    MHSNode* cur = head->next;
+    contours.push_back(cur->mhs);
+
+    prev->next = cur->next;
+    MHSNode* temp = cur;
+    delete temp;
+    MyHalfSegment front = contours.front();
+    MyHalfSegment back = contours.back();
+
+    while(1){
+        cur = head->next;
+        prev = head;
+        while(cur != NULL){
+          if(AlmostEqual(front.from, cur->mhs.to)){
+              contours.push_front(cur->mhs);
+              prev->next = cur->next;
+              delete cur;
+              break;
+          }
+          if(AlmostEqual(front.from, cur->mhs.from)){
+              cur->mhs.Exchange();
+              contours.push_front(cur->mhs);
+              prev->next = cur->next;
+              delete cur;
+              break;
+          }
+          if(AlmostEqual(back.to, cur->mhs.from)){
+              contours.push_back(cur->mhs);
+              prev->next = cur->next;
+              delete cur;
+              break;
+          }
+          if(AlmostEqual(back.to, cur->mhs.to)){
+              cur->mhs.Exchange();
+              contours.push_back(cur->mhs);
+              prev->next = cur->next;
+              delete cur;
+              break;
+          }
+          prev = cur;
+          cur = cur->next;
+        }
+        front = contours.front();
+        back = contours.back();
+        if(AlmostEqual(front.from, back.to) && contours.size() > 2){
+            vector<Point> ps;
+            while(contours.empty() == false){
+                MyHalfSegment top = contours.front();
+                contours.pop_front();
+                ps.push_back(top.from);
+            }
+            SpacePartition* sp = new SpacePartition();
+            vector<Region> regions;
+            sp->ComputeRegion(ps,regions);
+            *r = regions[0];
+            delete sp;
+            contours.clear();
+            break;
+        }
+        if(cur == NULL){
+            contours.clear();
+            break;
+        }
+    }
+}

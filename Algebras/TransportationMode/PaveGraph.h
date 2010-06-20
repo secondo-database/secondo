@@ -384,6 +384,11 @@ struct RegVertex{
   void CreateVertex();
   void TriangulationNew();
   void GetDGEdge();
+  void GetDGEdgeRTree(R_Tree<2,TupleId>*);
+  void ShareEdge(Region* reg1, Region* reg2, int, int,vector<vector<int> >&);
+  void DFTraverse(R_Tree<2,TupleId>* rtree, SmiRecordId adr,
+                  int oid, Region* reg,
+                  vector<vector<int> >& adj_node);
 };
 
 struct Triangle{
@@ -484,4 +489,31 @@ inline void Modify_Point_3(Point& p)
 
     p.Set(x,y);
 }
+
+struct MHSNode{
+  MyHalfSegment mhs;
+  MHSNode* next;
+  MHSNode(MyHalfSegment hs, MHSNode* pointer):mhs(hs),next(pointer){}
+};
+
+struct Hole{
+  Hole(char* input):in(input){count = 0;resulttype=NULL;}
+  Hole(){count=0;resulttype = NULL;}
+  ~Hole(){if(resulttype != NULL) delete resulttype;}
+  ifstream in;
+  unsigned int count;
+  TupleType* resulttype;
+  vector<Region> regs1;
+  vector<Region> regs2;
+  vector<Region> regs;
+  void GetContour();
+  void GetContour(int no_reg);
+  void GetPolygon(int no_ps);//create a polygon
+  void SpacePartitioning(Points* gen_ps, vector<HalfSegment>& hs_segs);
+  void SpacePartitioning(vector<Point> ps, vector<HalfSegment>& hs_segs,
+                         Point sf, Point sl);
+  void DiscoverContour(MHSNode* head, Region* r);
+  void DiscoverContour(Points* ps, Region* r);
+  bool NoSelfIntersects(Region* r);
+};
 #endif

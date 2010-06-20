@@ -160,6 +160,12 @@ Signature: rel1 x rel2 -> (stream(((x1 t1) ... (xn tn)))
 Example  : query get_dg_edge(tri_reg_new_sort,regnodes) count;
 Result   : 1
 
+Operator : smcdgte
+Number   : 2
+Signature: rel x rtree -> (stream(((x1 t1) ... (xn tn)))
+Example  : query smcdgte(dg_node, rtree_dg) count;
+Result   : 1
+
 Operator : getvnode
 Number   : 2
 Signature: dualgraph x rel1 x rel2 x rel3 x btree-> (stream(((x1 t1) ... (xn tn)))
@@ -169,7 +175,7 @@ Result   : 1
 Operator : getvgedge
 Number   : 2
 Signature: dualgraph x rel1 x rel2 x rel3 x btree-> (stream(((x1 t1) ... (xn tn)))
-Example  : query getvnode(dg1, vgnodes, tri_reg_new_sort, vgnodes, vertex_tri, btr_vid) count;
+Example  : query getvnode(dg1, vgnodes, tri_reg_new_sort, vertex_tri, btr_vid) count;
 Result   : 1
 
 Operator : myinside
@@ -200,4 +206,17 @@ Operator : createvgraph
 Number   : 2
 Signature: int x rel x rel -> dualgraph
 Example  : query createvgraph(1, edge_rel, node_rel);
+Result   : file_platform
+
+Operator : getcontour
+Number   : 2
+Signature: text -> (stream(((x1 t1) ... (xn tn)))
+Example  : query getcontour('pppoly') count;
+Result   : 2014
+
+
+Operator : getpolygon
+Number   : 2
+Signature: rel x attr -> region
+Example  : query getpolygon(allcontours,hole);
 Result   : file_platform

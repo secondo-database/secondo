@@ -1944,11 +1944,6 @@ Input specified as contours.
 
 */
 
-
-
-
-
-
 int triangulate_polygon(int ncontours, int cntr[], vector<double> vertices_x,
 vector<double> vertices_y, int (*triangles)[3])
 

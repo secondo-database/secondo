@@ -54,5 +54,6 @@ March, 2010 Jianqiu xu
 #include "RelationAlgebra.h"
 #include "ListUtils.h"
 #include "NetworkAlgebra.h"
-
+#include "FTextAlgebra.h"
+#include <fstream>
 #endif

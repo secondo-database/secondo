@@ -286,6 +286,14 @@ const string OpTMGetDGEdgeSpec  =
     "<text>get the edge relation for the dual graph on the triangles</text--->"
     "<text>query get_dg_edge(rel1,rel2) count; </text--->"
     ") )";
+const string OpTMSMCDGTESpec  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+    "\"Example\" ) "
+    "( <text>rel x rtree ->(stream (tuple( (x1 t1)(x2 t2)...(xn tn)))</text--->"
+    "<text>smcdgte(rel, rtree)</text--->"
+    "<text>get the edge relation for the dual graph on the triangles</text--->"
+    "<text>query smcdgte(dg_node, rtree_dg) count; </text--->"
+    ") )";
 const string OpTMGetVNodeSpec  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" "
     "\"Example\" ) "
@@ -299,11 +307,11 @@ const string OpTMGetVNodeSpec  =
 const string OpTMGetVGEdgeSpec  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" "
     "\"Example\" ) "
-    "( <text>dualgraph x rel1 x rel2 x rel3 x rel4 x btree->"
+    "( <text>dualgraph x rel1 x rel2 x rel3 x btree->"
     "(stream (tuple( (x1 t1)(x2 t2)...(xn tn)))</text--->"
-    "<text>getvgedge(dualgraph, rel1, rel2, rel3, rel4, btree)</text--->"
+    "<text>getvgedge(dualgraph, rel1, rel2, rel3, btree)</text--->"
     "<text>get the edge relation for the visibility graph</text--->"
-    "<text>query getvgedge(dg1, vgnodes, tri_reg_new_sort, vgnodes,"
+    "<text>query getvgedge(dg1, vgnodes, tri_reg_new_sort,"
     "vertex_tri, btr_vid) count;</text--->) )";
 
 const string OpTMMyInsideSpec  =
@@ -354,6 +362,22 @@ const string OpTMGetAdjNodeVGSpec  =
     "<text>query getadjnode_vg(vg1,1); </text--->"
     ") )";
 
+const string OpTMGetContourSpec  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+    "\"Example\" ) "
+    "( <text>text -> (stream (tuple( (x1 t1)(x2 t2)...(xn tn)))</text--->"
+    "<text>getcontour(text)</text--->"
+    "<text>create regions from the data file</text--->"
+    "<text>query getcontour(pppoly) count; </text--->"
+    ") )";
+const string OpTMGetPolygonSpec  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+    "\"Example\" ) "
+    "( <text>rel x attr -> region</text--->"
+    "<text>getpolygon(rel,attr)</text--->"
+    "<text>create one region by the input relation with contours</text--->"
+    "<text>query getpolygon(allcontours,hole); </text--->"
+    ") )";
 ////////////////TypeMap function for operators//////////////////////////////
 
 /*
@@ -1501,6 +1525,47 @@ ListExpr OpTMGetDgEdgeTypeMap ( ListExpr args )
 }
 
 /*
+TypeMap fun for operator smcdgte
+
+*/
+
+ListExpr OpTMSMCDGTETypeMap ( ListExpr args )
+{
+  if ( nl->ListLength ( args ) != 2 )
+  {
+    return  nl->SymbolAtom ( "typeerror" );
+  }
+  ListExpr arg1 = nl->First(args);
+  ListExpr arg2 = nl->Second(args);
+
+  if (!(listutils::isRelDescription(arg1)))
+    return nl->SymbolAtom ( "typeerror" );
+  if (!(listutils::isRTreeDescription(arg2)))
+    return nl->SymbolAtom ( "typeerror" );
+
+  ListExpr xType1;
+  nl->ReadFromString(DualGraph::NodeTypeInfo, xType1);
+  if(!CompareSchemas(arg1, xType1))return nl->SymbolAtom ( "typeerror" );
+
+
+  ListExpr result =   nl->TwoElemList(
+             nl->SymbolAtom("stream"),
+               nl->TwoElemList(
+                 nl->SymbolAtom("tuple"),
+                     nl->ThreeElemList(
+                       nl->TwoElemList(nl->SymbolAtom("oid1"),
+                                   nl->SymbolAtom("int")),
+                       nl->TwoElemList(nl->SymbolAtom("oid2"),
+                                    nl->SymbolAtom("int")),
+                       nl->TwoElemList(nl->SymbolAtom("commarea"),
+                                    nl->SymbolAtom("line"))
+                  )
+                )
+          );
+  return result;
+}
+
+/*
 TypeMap fun for operator getvnode
 
 */
@@ -1567,16 +1632,16 @@ TypeMap fun for operator getvgedge
 
 ListExpr OpTMGetVGEdgeTypeMap ( ListExpr args )
 {
-  if ( nl->ListLength ( args ) != 6 )
+  if ( nl->ListLength ( args ) != 5 )
   {
     return  nl->SymbolAtom ( "typeerror" );
   }
   ListExpr arg1 = nl->First(args);
   ListExpr arg2 = nl->Second(args);
   ListExpr arg3 = nl->Third(args);
-  ListExpr arg4 = nl->Fourth(args);
-  ListExpr arg5 = nl->Fifth(args);
-  ListExpr arg6 = nl->Sixth(args);
+//  ListExpr arg4 = nl->Fourth(args);
+  ListExpr arg5 = nl->Fourth(args);
+  ListExpr arg6 = nl->Fifth(args);
 
   ListExpr xType1;
   nl->ReadFromString(VisualGraph::NodeTypeInfo, xType1);
@@ -1586,9 +1651,6 @@ ListExpr OpTMGetVGEdgeTypeMap ( ListExpr args )
   nl->ReadFromString(DualGraph::TriangleTypeInfo3, xType2);
   if(!CompareSchemas(arg3, xType2))return nl->SymbolAtom ( "typeerror" );
 
-  ListExpr xType3;
-  nl->ReadFromString(VisualGraph::NodeTypeInfo, xType3);
-  if(!CompareSchemas(arg4, xType3))return nl->SymbolAtom ( "typeerror" );
 
   ListExpr xType4;
   nl->ReadFromString(DualGraph::TriangleTypeInfo4, xType4);
@@ -1782,6 +1844,76 @@ ListExpr OpTMGetAdjNodeVGTypeMap ( ListExpr args )
   return  nl->SymbolAtom ( "typeerror" );
 }
 
+/*
+TypeMap fun for operator getcontour
+
+*/
+
+ListExpr OpTMGetContourTypeMap ( ListExpr args )
+{
+  if ( nl->ListLength ( args ) != 1 )
+  {
+    return  nl->SymbolAtom ( "typeerror" );
+  }
+  if(nl->IsEqual(nl->First(args),"text") ||
+     nl->IsEqual(nl->First(args),"int") ||
+     nl->IsEqual(nl->First(args),"real")){
+
+      ListExpr result = nl->TwoElemList(
+             nl->SymbolAtom("stream"),
+               nl->TwoElemList(
+                 nl->SymbolAtom("tuple"),
+                     nl->TwoElemList(
+                       nl->TwoElemList(nl->SymbolAtom("oid"),
+                                   nl->SymbolAtom("int")),
+                      nl->TwoElemList(nl->SymbolAtom("hole"),
+                                    nl->SymbolAtom("region"))
+                  )
+                )
+          );
+    return result;
+  }
+  return  nl->SymbolAtom ( "typeerror" );
+}
+
+/*
+TypeMap fun for operator getpolygon
+
+*/
+
+ListExpr OpTMGetPolygonTypeMap ( ListExpr args )
+{
+  if ( nl->ListLength ( args ) != 2 )
+  {
+    return  nl->SymbolAtom ( "typeerror" );
+  }
+  ListExpr arg1 = nl->First(args);
+  ListExpr attrName1 = nl->Second(args);
+
+  if (!(listutils::isRelDescription(arg1)))
+    return nl->SymbolAtom ( "typeerror" );
+
+  ListExpr attrType1;
+  string aname1 = nl->SymbolValue(attrName1);
+  int j1 = listutils::findAttribute(nl->Second(nl->Second(arg1)),
+                      aname1, attrType1);
+
+  if(j1 == 0 || !listutils::isSymbol(attrType1,"region")){
+      return listutils::typeError("attr name" + aname1 + "not found"
+                      "or not of type point");
+  }
+  ListExpr result = nl->SymbolAtom ( "region" );
+  return nl->ThreeElemList(nl->SymbolAtom("APPEND"),
+             nl->OneElemList(nl->IntAtom(j1)),result);
+
+}
+int GetContourSelect(ListExpr args)
+{
+    if(nl->IsEqual(nl->First(args),"text"))return 0;
+    if(nl->IsEqual(nl->First(args),"int")) return 1;
+    if(nl->IsEqual(nl->First(args),"real")) return 1;
+    return -1;
+}
 //////////////////////////////////////////////////////////////////////////
 
 /*
@@ -2566,7 +2698,6 @@ int OpTMTriangulatemap ( Word* args, Word& result, int message,
       case OPEN:{
         Region* reg = (Region*)args[0].addr;
         ct = new CompTriangle(reg);
-//        ct->Triangulation();
         ct->NewTriangulation();
         local.setAddr(ct);
         return 0;
@@ -3166,6 +3297,56 @@ int OpTMGetDGEdgeValueMap ( Word* args, Word& result, int message,
 
 }
 
+
+/*
+get the edge relation for the dual graph. it is based on the triangles by
+decomposing a polygon. if two triangles are adjacent (sharing a common edge),
+an edge is created. using R-tree to find neighbors
+
+*/
+
+int OpTMSMCDGTEValueMap ( Word* args, Word& result, int message,
+                         Word& local, Supplier in_pSupplier )
+{
+  RegVertex* rv;
+  switch(message){
+      case OPEN:{
+
+        Relation* r = (Relation*)args[0].addr;
+        R_Tree<2,TupleId>* rtree = (R_Tree<2,TupleId>*)args[1].addr;
+        rv = new RegVertex(r, NULL);
+        rv->resulttype =
+            new TupleType(nl->Second(GetTupleResultType(in_pSupplier)));
+        rv->GetDGEdgeRTree(rtree);
+        local.setAddr(rv);
+        return 0;
+      }
+      case REQUEST:{
+          if(local.addr == NULL) return CANCEL;
+          rv = (RegVertex*)local.addr;
+          if(rv->count == rv->v1_list.size())
+                          return CANCEL;
+
+          Tuple* tuple = new Tuple(rv->resulttype);
+          tuple->PutAttribute(0, new CcInt(true, rv->v1_list[rv->count]));
+          tuple->PutAttribute(1, new CcInt(true, rv->v2_list[rv->count]));
+          tuple->PutAttribute(2, new Line(rv->line[rv->count]));
+          result.setAddr(tuple);
+          rv->count++;
+          return YIELD;
+      }
+      case CLOSE:{
+          if(local.addr){
+            rv = (RegVertex*)local.addr;
+            delete rv;
+            local.setAddr(Address(0));
+          }
+          return 0;
+      }
+  }
+  return 0;
+
+}
 /*
 find all visible nodes for a given point
 
@@ -3236,13 +3417,13 @@ int OpTMGetVGEdgeValueMap ( Word* args, Word& result, int message,
         DualGraph* dg = (DualGraph*)args[0].addr;
         Relation* r1 = (Relation*)args[1].addr;
         Relation* r2 = (Relation*)args[2].addr;
-        Relation* r3 = (Relation*)args[3].addr;
 
-        vg = new VGraph(dg, r1, r2, r3);
+
+        vg = new VGraph(dg, r1, r2, r1);
         vg->resulttype =
             new TupleType(nl->Second(GetTupleResultType(in_pSupplier)));
-        vg->rel4 = (Relation*)args[4].addr;
-        vg->btree = (BTree*)args[5].addr;
+        vg->rel4 = (Relation*)args[3].addr;
+        vg->btree = (BTree*)args[4].addr;
 
         vg->GetVGEdge();
         local.setAddr(vg);
@@ -3455,6 +3636,187 @@ int OpTMCreateVGValueMap ( Word* args, Word& result, int message,
   Relation* edge_rel = (Relation*)args[2].addr;
   vg->Load(vg_id, node_rel, edge_rel);
   result = SetWord(vg);
+  return 0;
+}
+
+/*
+for operator getcontour
+from the data file, it collects a set of regions
+
+*/
+int OpTMGetContourValueMapFile ( Word* args, Word& result, int message,
+                         Word& local, Supplier in_pSupplier )
+{
+
+  Hole* hole;
+  switch(message){
+      case OPEN:{
+
+        FText* arg = static_cast<FText*>(args[0].addr);
+        hole = new Hole(arg->Get());
+        hole->resulttype =
+            new TupleType(nl->Second(GetTupleResultType(in_pSupplier)));
+        hole->GetContour();
+        local.setAddr(hole);
+        return 0;
+      }
+      case REQUEST:{
+          if(local.addr == NULL) return CANCEL;
+          hole = (Hole*)local.addr;
+          if(hole->count == hole->regs.size())
+                          return CANCEL;
+
+          Tuple* tuple = new Tuple(hole->resulttype);
+          tuple->PutAttribute(0, new CcInt(true, hole->count+1));
+          tuple->PutAttribute(1, new Region(hole->regs[hole->count]));
+          result.setAddr(tuple);
+          hole->count++;
+          return YIELD;
+      }
+      case CLOSE:{
+          if(local.addr){
+            hole = (Hole*)local.addr;
+            delete hole;
+            local.setAddr(Address(0));
+          }
+          return 0;
+      }
+  }
+  return 0;
+
+}
+
+/*
+for operator getcontour
+it randomly creates a set of regions
+
+*/
+int OpTMGetContourValueMapInt ( Word* args, Word& result, int message,
+                         Word& local, Supplier in_pSupplier )
+{
+
+  Hole* hole;
+  switch(message){
+      case OPEN:{
+        int no_reg = ((CcInt*)(args[0].addr))->GetIntval();
+        hole = new Hole();
+        hole->resulttype =
+            new TupleType(nl->Second(GetTupleResultType(in_pSupplier)));
+        hole->GetContour(no_reg); //no_reg polygons
+        local.setAddr(hole);
+        return 0;
+      }
+      case REQUEST:{
+          if(local.addr == NULL) return CANCEL;
+          hole = (Hole*)local.addr;
+          if(hole->count == hole->regs.size())
+                          return CANCEL;
+
+          Tuple* tuple = new Tuple(hole->resulttype);
+          tuple->PutAttribute(0, new CcInt(true, hole->count+1));
+          tuple->PutAttribute(1, new Region(hole->regs[hole->count]));
+          result.setAddr(tuple);
+          hole->count++;
+          return YIELD;
+      }
+      case CLOSE:{
+          if(local.addr){
+            hole = (Hole*)local.addr;
+            delete hole;
+            local.setAddr(Address(0));
+          }
+          return 0;
+      }
+  }
+  return 0;
+
+}
+
+/*
+generates a polygon with the given number of vertices
+
+*/
+int OpTMGetContourValueMapReal ( Word* args, Word& result, int message,
+                         Word& local, Supplier in_pSupplier )
+{
+
+  Hole* hole;
+  switch(message){
+      case OPEN:{
+        int no_reg = ((CcInt*)(args[0].addr))->GetIntval();
+        hole = new Hole();
+        hole->resulttype =
+            new TupleType(nl->Second(GetTupleResultType(in_pSupplier)));
+        hole->GetPolygon(no_reg); //one polygon with no_reg vertices
+        local.setAddr(hole);
+        return 0;
+      }
+      case REQUEST:{
+          if(local.addr == NULL) return CANCEL;
+          hole = (Hole*)local.addr;
+          if(hole->count == hole->regs.size())
+                          return CANCEL;
+
+          Tuple* tuple = new Tuple(hole->resulttype);
+          tuple->PutAttribute(0, new CcInt(true, hole->count+1));
+          tuple->PutAttribute(1, new Region(hole->regs[hole->count]));
+          result.setAddr(tuple);
+          hole->count++;
+          return YIELD;
+      }
+      case CLOSE:{
+          if(local.addr){
+            hole = (Hole*)local.addr;
+            delete hole;
+            local.setAddr(Address(0));
+          }
+          return 0;
+      }
+  }
+  return 0;
+
+}
+
+/*
+generates a region with a lot of holes inside
+the first input contour is set as the outer contour
+
+*/
+int OpTMGetPolygonValueMap(Word* args, Word& result, int message,
+                         Word& local, Supplier in_pSupplier)
+{
+  result = qp->ResultStorage(in_pSupplier);
+  Region* reg = (Region*)result.addr;
+  reg->Clear();
+  reg->StartBulkLoad();
+
+  Relation* r = (Relation*)args[0].addr;
+  int pos = ((CcInt*)args[2].addr)->GetIntval() - 1;
+  int edgeno = 0;
+  for(int i = 1;i <= r->GetNoTuples();i++){
+      Tuple* reg_tuple = r->GetTuple(i, false);
+      Region* contour = (Region*)reg_tuple->GetAttribute(pos);
+      for(int j = 0;j < contour->Size();j++){
+          HalfSegment hs;
+          contour->Get(j, hs);
+          if(i == 1){
+            *reg += hs;
+          }else{
+            HalfSegment temp_hs(hs);
+            temp_hs.attr.cycleno = i - 1;
+            temp_hs.attr.insideAbove = !hs.attr.insideAbove;
+            temp_hs.attr.edgeno = edgeno + hs.attr.edgeno;
+            *reg += temp_hs;
+//            cout<<"hs edgeno "<<temp_hs.attr.edgeno<<endl;
+          }
+      }
+      edgeno += contour->Size()/2;
+//      cout<<"edgeno "<<edgeno<<endl;
+      reg_tuple->DeleteIfAllowed();
+
+  }
+  reg->SetNoComponents(1);
+  reg->EndBulkLoad(true, true, true, false);
   return 0;
 }
 ////////////////Operator Constructor///////////////////////////////////////
@@ -3684,6 +4046,14 @@ Operator get_dg_edge(
     OpTMGetDgEdgeTypeMap
 );
 
+Operator smcdgte(
+    "smcdgte",
+    OpTMSMCDGTESpec,
+    OpTMSMCDGTEValueMap,
+    Operator::SimpleSelect,
+    OpTMSMCDGTETypeMap
+);
+
 Operator getvnode(
     "getvnode",
     OpTMGetVNodeSpec,
@@ -3740,6 +4110,29 @@ Operator getadjnode_vg(
     Operator::SimpleSelect,
     OpTMGetAdjNodeVGTypeMap
 );
+ValueMapping getcontourVM[]=
+{
+  OpTMGetContourValueMapFile,
+  OpTMGetContourValueMapInt,
+  OpTMGetContourValueMapReal
+};
+
+Operator getcontour(
+    "getcontour",
+    OpTMGetContourSpec,
+    3,
+    getcontourVM,
+    GetContourSelect,
+    OpTMGetContourTypeMap
+);
+
+Operator getpolygon(
+    "getpolygon",
+    OpTMGetPolygonSpec,
+    OpTMGetPolygonValueMap,
+    Operator::SimpleSelect,
+    OpTMGetPolygonTypeMap
+);
 
 /*
 Main Class for Transportation Mode
@@ -3773,9 +4166,6 @@ class TransportationModeAlgebra : public Algebra
     AddOperator(&geospath);
     AddOperator(&createdualgraph);
     AddOperator(&nodedualgraph);
-    AddOperator(&generate_wp1);
-    AddOperator(&generate_wp2);
-    AddOperator(&generate_wp3);
     ///////////////////visibility graph///////////////////////////////
     AddOperator(&getvnode);
     AddOperator(&myinside);
@@ -3791,6 +4181,13 @@ class TransportationModeAlgebra : public Algebra
     AddOperator(&triangulation_new);
     AddOperator(&get_dg_edge);
     AddOperator(&getadjnode_dg);
+    AddOperator(&smcdgte);
+    ////////////////////data process///////////////////////////////////
+    AddOperator(&generate_wp1);
+    AddOperator(&generate_wp2);
+    AddOperator(&generate_wp3);
+    AddOperator(&getcontour);
+    AddOperator(&getpolygon);
   }
   ~TransportationModeAlgebra() {};
  private:

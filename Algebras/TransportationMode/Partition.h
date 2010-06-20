@@ -612,6 +612,12 @@ struct MyHalfSegment{
     printf("(%.8f %.8f) (%.8f %.8f)\n", from.GetX(), from.GetY(),
                                         to.GetX(), to.GetY());
   }
+  void Exchange()
+  {
+      Point temp = from;
+      from = to;
+      to = temp;
+  }
   bool def;
   Point from,to;
 };
