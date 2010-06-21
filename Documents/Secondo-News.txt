@@ -1,10 +1,48 @@
-
+﻿
 
                      ***** SECONDO NEWS *****
 
  This file is a replacement of the secondo-news mailing list. Please add here
  interesting information which should be kept for future SECONDO users.
  Just add new messages directly below this text with a new header.
+
+2010-06-21 Preparations for release of Secondo 3.0
+===============================================================================
+Several changes have been done in the last 6 monthes.
+
+ * The Flob concept has been totally re-implemented to avoid the nasty errors 
+   created by the old Flob-Cache.
+
+ * For spatial and spatiotemporal datatypes with set semantics, we now 
+   differentiate between EMPTY and UNDEFINED values.
+
+ * Several changes have been done to make the SMI code compatible with 
+   different versions of 3rd party software, namely BerkeleyDB, thus increasing
+   compatibility with different platforms.
+
+ * Many bugfixes regarding system stability: Memory holes have been fixed,
+   some operator implementations corrected.
+
+ * New support structure "TupleFile": This type can be used by algorithms 
+   that need to materialize data. Data is stored in flat files rather than 
+   in temporal relations. Also, only data not fitting into the main memory 
+   buffer gets materialized on harddisc. Should be used as an replacement for 
+   the "TupleBuffer".
+
+ * Changed implementations/ New algebra: The ExtRelation-2Algebra provides 
+   external Algorithms for sorting and different join algorithms. Also,
+   sorting is now done by a paramerizable multi-stage mergesort, with restricted
+   amount of main memory. The new algorithms uses TupleFiles instead of the old 
+   TupleBuffer.
+   Most according original algorithms from the ExtRelationAlgebra have been 
+   replaced by the operators from this new algebra.
+
+ * New operators in the RTreeAlgebra allow for query-based inspection of the 
+   tree structures.
+
+ * New modules: The BTree2Algebra provides parametrizable BTrees. The 
+   RTreeViewer allows for visualized online-exploration of Rtree objects.
+
 
 2009-03-02 Changes in the SpatialAlgebra
 ===============================================================================
