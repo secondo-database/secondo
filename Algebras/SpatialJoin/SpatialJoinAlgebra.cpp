@@ -127,7 +127,7 @@ ListExpr spatjoinTypeMap(ListExpr args)
 {
   char* errmsg = "Incorrect input for operator spatjoin.";
   string relDescStrS, relDescStrR;
-
+  cout << "entering spatjoinTypeMap" << endl;
   CHECK_COND(!nl->IsEmpty(args),
    "Operator spatjoin expects a list of length four.");
   CHECK_COND(!nl->IsAtom(args), errmsg);
@@ -325,7 +325,7 @@ adjusting this typemapping-method at this point.
 
 int
 spatjoinSelection (ListExpr args)
-{
+{ cout << "entering spatjoinSelection" << endl;
   /* find out type of key; similar to typemapping function */
   /* Split argument in four parts */
   ListExpr relDescriptionS = nl->First(args);      //outerRelation
@@ -431,10 +431,10 @@ class SpatJoinLocalInfo : public ProgressLocalInfo
 
     while(iterPart != Partitions.end() )
     {
-      (*iterPart).RelationA->Clear();
-	  (*iterPart).RelationB->Clear();
-      delete (*iterPart).RelationA;
-	  delete (*iterPart).RelationB;
+      (**iterPart).RelationA->Clear();
+	  (**iterPart).RelationB->Clear();
+      delete (**iterPart).RelationA;
+	  delete (**iterPart).RelationB;
       iterPart++;
     }
 	Partitions.clear();
@@ -450,15 +450,15 @@ class SpatJoinLocalInfo : public ProgressLocalInfo
 	typeIterPartitions iterPart = Partitions.begin();
 	while(iterPart != Partitions.end() )
     {
-      if ((*iterPart).PartitionBoundBox.Intersects(box))
+      if ((**iterPart).PartitionBoundBox.Intersects(box))
 	  {
 	    if (insertInA) 
-		{(*iterPart).RelationA.insert(insertTuple);}
+		{(**iterPart).RelationA->AppendTuple(insertTuple);}
 		else
-		{(*iterPart).RelationB.insert(insertTuple);}
-		(*iterPart).fitInMemory = 
-		( maxMemory < (((*iterPart).RelationA->GetTotalSize())
-		          + ((*iterPart).RelationB->GetTotalSize())) );
+		{(**iterPart).RelationB->AppendTuple(insertTuple);}
+		(**iterPart).fitInMemory = 
+		( maxMemory < (((**iterPart).RelationA->GetTotalSize())
+		          + ((**iterPart).RelationB->GetTotalSize())) );
 	  }
       iterPart++;
     }
@@ -552,16 +552,16 @@ class SpatJoinLocalInfo : public ProgressLocalInfo
 	Max[0] = tempTBB.MaxD (0);
 	Max[1] = tempTBB.MaxD (1);
 	
-	TotalBoundingBox = new Rectangle<2>(true, min, max);
+	TotalBoundingBox = new BBox<2>(true, Min, Max);
 	
-	delete tempTBB;
+	
 	//initialize the Partitions with the BoundingBoxes 
 	//as part of the TotalBoundingBox.
 	//The boundingBoxes of the partitons at the border 
 	//get +-DOUBLE_MAX as frontier.
-	for(int i = 1; i <= nPartitions; i++)
+	for(size_t i = 1; i <= nPartitions; i++)
     {
-	  for(int j = 1; i <= nPartitions; j++)
+	  for(size_t j = 1; i <= nPartitions; j++)
       {
 	     double *min, *max;
 		 min[0]= TotalBoundingBox.MinD (0) + 
@@ -582,12 +582,12 @@ class SpatJoinLocalInfo : public ProgressLocalInfo
 		 if (j == 1) min[0] = - DOUBLE_MAX;
 		 if (j == nPartitions ) max[0] = DOUBLE_MAX;
 		 
-		 Partitions[((i*j)-1)].PartitionBoundBox 
+		 Partitions[((i*j)-1)]->PartitionBoundBox 
 		                 = new Rectangle<2>(true, min, max);
-		 Partitions[((i*j)-1)].RelationA = new *TupleBuffer;
-		 Partitions[((i*j)-1)].RelationB = new *TupleBuffer;
-         Partitions[((i*j)-1)].fitInMemory = true;
-         Partitions[((i*j)-1)].isEmpty = true;
+		 Partitions[((i*j)-1)]->RelationA = new TupleBuffer;
+		 Partitions[((i*j)-1)]->RelationB = new TupleBuffer;
+         Partitions[((i*j)-1)]->fitInMemory = true;
+         Partitions[((i*j)-1)]->isEmpty = true;
 
 	  }
 	}
@@ -608,8 +608,8 @@ class SpatJoinLocalInfo : public ProgressLocalInfo
       InsertTupleInPartition (true, ta); // true for insert in PartitionA
 	  InsertTupleInPartition (false, tb);//false for insert in PartitionB
 
-	  *ta = iterTempBufferA->GetNextTuple();
-	  *tb = iterTempBufferB->GetNextTuple();
+	  ta = iterTempBufferA->GetNextTuple();
+	  tb = iterTempBufferB->GetNextTuple();
       }
 	
 	// and now insert the rest of the StreamA and StreamB
@@ -654,7 +654,7 @@ class SpatJoinLocalInfo : public ProgressLocalInfo
 
 */
   public:
-    bool PartitionFilled;
+    
     SpatJoinLocalInfo(Word StreamAWord,
                          Word attrIndexAWord,
                          Word StreamBWord,
@@ -662,18 +662,14 @@ class SpatJoinLocalInfo : public ProgressLocalInfo
 						 Supplier s, 
 						 ProgressLocalInfo* p);
 
-
+    bool PartitionFilled;
+	
     Tuple* NextResultTuple ();
 /*
 Returns the next result tuple
 
 */
-	SpatJoinLocalInfo *ptr;
 
-/*
-The tuple type of result tuples.
-
-*/
 
     ~SpatJoinLocalInfo()
 /*
@@ -681,11 +677,6 @@ The destructor
 
 */
     {
-#ifdef PART_JOIN_VERBOSE_MODE
-      cout << "__________________________________________________" << endl;
-      cout << endl << "Partitions built in query : "  << endl;
-      cout << "__________________________________________________" << endl;
-#endif
 
     ClearPartitions();
 	
@@ -768,19 +759,19 @@ Tuple* SpatJoinLocalInfo<dim>::NextResultTuple ()
   }
   else
   {
-    while(iterPartions != Partitions.end() )
+    while(iterPartitions != Partitions.end() )
     {
-	  if ( !((*iterPartitions).isempty) )
+	  if ( !((**iterPartitions).isEmpty) )
 	  {
 	   
-		iterRelationA = (*iterPartitions).RelationA->MakeScan();
-	    iterRelationB = (*iterPartitions).RelationB->MakeScan();
+		iterRelationA = (**iterPartitions).RelationA->MakeScan();
+	    iterRelationB = (**iterPartitions).RelationB->MakeScan();
 	
 	    Tuple *ta = iterRelationA->GetNextTuple();
 	    Tuple *tb = iterRelationB->GetNextTuple(); 
 		
-		//bucketA.resize(iterRelationA->GetNoTuples());
-		//bucketB.resize(iterRelationB->GetNoTuples());
+		bucketA.resize((**iterPartitions).RelationA->GetNoTuples());
+		bucketB.resize((**iterPartitions).RelationB->GetNoTuples());
 		bucketA.clear();
 		bucketB.clear();
 
@@ -790,32 +781,36 @@ Tuple* SpatJoinLocalInfo<dim>::NextResultTuple ()
         {
 	      if ( ta != 0 )
 		  {
-		    bucketA.insert( ta );
+		    bucketA.push_back( ta );
 		  }
 		  if ( tb != 0 )
 		  {
-		    bucketA.insert( tb);
+		    bucketB.push_back( tb);
 		  }
 
-	    *ta = iterTempBufferA->GetNextTuple();
-	    *tb = iterTempBufferB->GetNextTuple();
+	    ta = iterRelationA->GetNextTuple();
+	    tb = iterRelationB->GetNextTuple();
         }
 
 		// sort vector
-		sort (bucketA.begin(), bucketA.end(), compareTuples);
-		sort (bucketB.begin(), bucketB.end(), compareTuples);
+		sort (bucketA.begin(), bucketA.end()); //compareTuples
+		sort (bucketB.begin(), bucketB.end());
 		
 		//sequentieller Durchlauf und nach
 		//überlappenden Rechtecken suchen
 		iterBucketA = bucketA.begin();
 		iterBucketB = bucketB.begin();
 		
-		BBox<dim> BoundBoxA = (*iterBucketA)->BoundingBox();
-		BBox<dim> BoundBoxB = (*iterBucketB)->BoundingBox();
-
-
-
+		BBox<dim> BoundBoxA = 
+		   ((StandardSpatialAttribute<dim>*)(*iterBucketA)
+		       ->GetAttribute(attrIndexA))->BoundingBox();
+			   
+		BBox<dim> BoundBoxB = 
+		   ((StandardSpatialAttribute<dim>*)(*iterBucketB)
+		       ->GetAttribute(attrIndexB))->BoundingBox();
+			   
 		bool stepBucketA = ( BoundBoxA.MinD (0) < BoundBoxB.MinD (0) );
+		
 		if ( (iterBucketA == bucketA.end())
 		      && (iterBucketB == bucketB.end()) )
 		{
@@ -841,7 +836,10 @@ Tuple* SpatJoinLocalInfo<dim>::NextResultTuple ()
 		      return resultTuple;
 		    }
 	        iterBucketA++;
-		    BoundBoxA = (*iterBucketA)->BoundingBox();
+		    BoundBoxA =  
+			     ((StandardSpatialAttribute<dim>*)(*iterBucketA)
+			          ->GetAttribute(attrIndexA))->BoundingBox();
+						   
 		    stepBucketA = ( BoundBoxA.MinD (0) < BoundBoxB.MinD (0) );
 	      }
      
@@ -855,14 +853,17 @@ Tuple* SpatJoinLocalInfo<dim>::NextResultTuple ()
 		      return resultTuple;
 		    }
 			iterBucketB++;
-			BoundBoxB = (*iterBucketB)->BoundingBox();
+			BoundBoxB =  
+			     ((StandardSpatialAttribute<dim>*)(*iterBucketB)
+			          ->GetAttribute(attrIndexB))->BoundingBox();
+					  
 			stepBucketA =(BoundBoxA.MinD(0) < BoundBoxB.MinD(0));
 		    
 	      }
 		  
 		}
       }
-	  iterPartions++;
+	  iterPartitions++;
 	}
     return 0;
   }
@@ -874,23 +875,24 @@ Tuple* SpatJoinLocalInfo<dim>::NextResultTuple ()
 3.5 Value mapping function of operator ~spatjoin~
 
 */
-double minimum(double a, double b) {return (a < b ? a : b);}
+double Minimum(double a, double b) {return (a < b ? a : b);}
 template<int D>
 int
 spatjoinValueMapping(Word* args, Word& result, int message, 
                          Word& local, Supplier s)
 {
-  SpatJoinLocalInfo<D> *li;
-  li = static_cast<SpatJoinLocalInfo<D>*>( local.addr );
+  typedef LocalInfo< SpatJoinLocalInfo<D> >  LocalType;
+  LocalType *li;
+  li = static_cast<LocalType*>( local.addr );
   SpatJoinLocalInfo<D> *partLocalInfo;
-
+  
   switch (message)
   {
     case OPEN:
     {
       if ( li ) delete li;
 
-      li = new SpatJoinLocalInfo<D>();
+      li = new LocalType();
       li->memorySecond = 12582912;	 //default, reset by constructor below
       local.addr = li;
 
@@ -919,10 +921,10 @@ spatjoinValueMapping(Word* args, Word& result, int message,
       attrIndexAWord = args[4];  //APPENDED - Value no 1
       attrIndexBWord = args[5]; //APPENDED - Value no 2
 	  
-	  li->ptr = new SpatJoinLocalInfo<D>(StreamBWord, 
-                                         attrIndexBWord,
-                                         StreamAWord, 
+	  li->ptr = new SpatJoinLocalInfo<D>(StreamAWord, 
                                          attrIndexAWord,
+                                         StreamBWord, 
+                                         attrIndexBWord,
 									s, li);
       }
 
@@ -942,11 +944,11 @@ spatjoinValueMapping(Word* args, Word& result, int message,
 	
     case CLOSEPROGRESS:
 	{
-      qp->CloseProgress(args[0].addr);
-      qp->CloseProgress(args[1].addr);
-
-      if ( li ) delete li;
-
+      if (li)
+      {
+        delete li;
+        local.addr = 0;
+      }
       return 0;
 	}
 	
@@ -990,7 +992,7 @@ spatjoinValueMapping(Word* args, Word& result, int message,
 	    pRes->Progress = (p1.Progress * p1.Time + p2.Progress * p2.Time
 	    + li->readFirst * uSpatJoin
 	    + li->readSecond * uSpatJoin
-	    + minimum(li->returned, pRes->Card) * wSpatJoin)
+	    + Minimum(li->returned, pRes->Card) * wSpatJoin)
             / pRes->Time;
 /*
 	    pRes->BTime = 
@@ -1065,7 +1067,7 @@ const string spatjoinSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\""
 Operator spatjoin (
          "spatjoin",             // name
          spatjoinSpec,           // specification
-         3,                         // number of overloaded functions
+         3,                      // number of overloaded functions
          spatjoinMap,            // value mapping
          spatjoinSelection,      // trivial selection function
          spatjoinTypeMap         // type mapping
