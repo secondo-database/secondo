@@ -166,13 +166,6 @@ As owner only __first__ and __second__ are the allowed values.
         tmp = y1;
         y1 = y2;
         y2 = tmp;
-        // swap origins
-        tmp = originX1;
-        originX1 = originX2;
-        originX2 = tmp;
-        tmp = originY1;
-        originY1 = originY2;
-        originY2 = tmp;    
      }
      this->owner = owner;
      switch(owner){
@@ -190,7 +183,12 @@ As owner only __first__ and __second__ are the allowed values.
      }
      con_below = 0;
      con_above = 0;
-     //assert(CheckPoints());
+     originX1 = hs.getOriginX1();
+     originX2 = hs.getOriginX2();
+     originY1 = hs.getOriginY1();
+     originY2 = hs.getOriginY2();
+
+     assert(CheckPoints());
   }
 
 /*
@@ -214,7 +212,7 @@ Create a Segment only consisting of a single point.
       originX2 = x2;
       originY1 = y1;
       originY2 = y2;
-      //assert(CheckPoints());
+      assert(CheckPoints());
   }
 
 
@@ -233,7 +231,7 @@ Create a Segment only consisting of a single point.
     originY1(src.originY1), originY2(src.originY2)
    {
 
-     //assert(CheckPoints());
+     assert(CheckPoints());
    }
 
 
@@ -258,7 +256,7 @@ Create a Segment only consisting of a single point.
      originX2 = src.originX2;
      originY1 = src.originY1;
      originY2 = src.originY2;
-     //assert(CheckPoints());
+     assert(CheckPoints());
      return *this;
   }
 
@@ -307,14 +305,10 @@ located on the segment defined by (orinigX1, originY1) and
 
     if(!PointOnSegment(x1,y1,originX1,originY1, originX2, originY2)){
       cerr << "Left Point not on OriginSegment" << endl;
-      cerr.precision(16);
-      cerr << (*this) << endl;
       return false;
     }
     if(!PointOnSegment(x2,y2,originX1,originY1, originX2, originY2)){
       cerr << "right Point not on original segment" << endl;
-      cerr.precision(16);
-      cerr << (*this) << endl;
       return false;
     }
     double d1 = (x1-originX1)*(x1-originX1) + (y1-originY1)*(y1-originY1);
@@ -322,20 +316,13 @@ located on the segment defined by (orinigX1, originY1) and
     if(d2<d1){
       cerr << "distance from left origin point to left "
               "point greater than to right point" << endl;
-      cerr << "Segment : " << (*this) << endl;
-      cerr << "d(p_1,origin1) = " << d1 << endl;
-      cerr << "d(p_2,origin1)  = " << d2 << endl;
       return  false;
     }
     d1 = (x1-originX2)*(x1-originX2) + (y1-originY2)*(y1-originY2);
     d2 = (x2-originX2)*(x2-originX2) + (y2-originY2)*(y2-originY2);
-    if(!AlmostEqual(d1,d2) && (d1<d2)){
+    if(d1<d2){
       cerr << "distance from right origin point to right"
               " point greater than to left point" << endl;
-      cerr << "Segment : " << (*this) << endl;
-      cerr << "d(p_1,origin2) = " << d1 << endl;
-      cerr << "d(p_2,origin2)  = " << d2 << endl;
-       
       return  false;
     }
 
@@ -377,7 +364,11 @@ that the point is located within the bounding box of this segment
        return false; // endpoint 2
     }
 
-    return xContains(x) && yContains(y);
+    bool xcontains = ( AlmostEqual(x1,x) || AlmostEqual(x2,x) || 
+                       ((x1<=x) && (x<=x2)));
+    bool ycontains = ( AlmostEqual(y1,y) || AlmostEqual(y2,y) || 
+                       ((y1<=y) && (y<=y2)) || ((y2<=y)&&(y<=y1)));
+    return xcontains && ycontains; 
   }
 
 
@@ -404,13 +395,14 @@ the parameters ~x~ and ~y~ are set to the intersection point.
     if(overlaps(s)){ // a common line
        return false;
     }
-    if(compareSlopes(s)==0){ // parallel or disjoint segments
+    if(compareSlopes(s)==0){ // parallel or disjoint lines
        return false;
     }
 
     if(isVertical()){
         x = x1; // compute y for s
-        y = s.getY(x);
+        y =  s.originY1 + ((x-s.originX1)/(s.originX2-s.originX1))*
+                              (s.originY2 - s.originY1);
         roundPoint(x,y); 
         bool res = innerBoxContains(x,y) && s.innerBoxContains(x,y);
         return res;
@@ -418,12 +410,14 @@ the parameters ~x~ and ~y~ are set to the intersection point.
 
     if(s.isVertical()){
        x = s.x1;
-       y = this->getY(x);
+       y = originY1 + ((x-originX1)/(originX2-originX1))*(originY2-originY1);
        roundPoint(x,y);
        bool res = innerBoxContains(x,y) && s.innerBoxContains(x,y);
        return res;
     }
 
+    // avoid problems with rounding errors during computation of
+    // the intersection point
     if(pointEqual(x1,y1,s.x1,s.y1)){
       return false;
     }
@@ -446,7 +440,7 @@ the parameters ~x~ and ~y~ are set to the intersection point.
     double xs = (c2-c1) / (m1-m2);  // x coordinate of the intersection point
 
     x = xs;
-    y = this->getY(x); 
+    y = originY1 + ((x-originX1)/(originX2-originX1))*(originY2-originY1);
     roundPoint(x,y);
     bool res = innerBoxContains(x,y) && s.innerBoxContains(x,y);
     return res;
@@ -714,9 +708,6 @@ part of the interior of this segment.
      if(isPoint()){ // a point has no interior
        return false;
      }
-     if(!PointOnSegment(x,y,originX1,originY1,originX2,originY2)){
-         return false;
-     }
 
      if(pointEqual(x,y,x1,y1) || pointEqual(x,y,x2,y2)){ // an endpoint
         return false;
@@ -728,7 +719,6 @@ part of the interior of this segment.
      if(!AlmostEqual(x,x2) && x > x2){ // (X,Y) right of this
         return false;
      }
-
      if(isVertical()){
        return ((y>y1) && (y<y2)) || 
               ((y<y1) && (y>y2)) ;
@@ -1011,8 +1001,8 @@ earlier.
     if(cmp==0){ // common right endpoint
         common.originX2 = common.x2;
         common.originY2 = common.y2;
-        //assert(left.CheckPoints());
-        //assert(common.CheckPoints());
+        assert(left.CheckPoints());
+        assert(common.CheckPoints());
         return result;
     }
 
@@ -1047,9 +1037,9 @@ earlier.
     }
     common.originX2 = right.originX2;
     common.originY2 = right.originY2; 
-    //assert(left.CheckPoints());
-    //assert(common.CheckPoints());
-    //assert(right.CheckPoints());
+    assert(left.CheckPoints());
+    assert(common.CheckPoints());
+    assert(right.CheckPoints());
     return result;
   }
 
@@ -1064,10 +1054,6 @@ provided by (x, y). The point must be on the interior of this segment.
   void avlseg::AVLSegment::splitAt(const double x, const double y,
                avlseg::AVLSegment& left,
                avlseg::AVLSegment& right)const{
-
-     //assert(PointOnSegment(x,y,originX1,originY1,originX2,originY2));
-     //assert(xContains(x));
-     //assert(yContains(y));
 
      left.x1=x1;
      left.y1=y1;
@@ -1099,53 +1085,8 @@ provided by (x, y). The point must be on the interior of this segment.
      right.originY1 = originY1;
      right.originY2 = originY2;
     
-     //assert(left.CheckPoints());
-     //assert(right.CheckPoints()); 
-
-  }
-
-
-/*
-~splitAtRight~
-
-Splits a segment at the given Point and 'returns' the right part.
-
-
-*/
-  
-  void avlseg::AVLSegment::splitAtRight(const double x, const double y,
-               avlseg::AVLSegment& right)const{
-
-     //assert(PointOnSegment(x,y,originX1,originY1,originX2,originY2));
-     if(!xContains(x)){
-         if(x < x1){
-           right = *this;
-         } else { // x > x2, use the endpoint as result
-           right = *this;
-           right.x1 = x2;
-           right.x2 = x2;
-           right.y1 = y2;
-           right.y2 = y2;
-         }
-         return;
-     }    
-
-     right.x1=x;
-     right.y1=y;
-     right.x2 = x2;
-     right.y2 = y2;
-     right.owner = owner;
-     right.insideAbove_first = insideAbove_first;
-     right.insideAbove_second = insideAbove_second;
-     right.con_below = con_below;
-     right.con_above = con_above;
-     
-     right.originX1 = originX1;
-     right.originX2 = originX2;
-     right.originY1 = originY1;
-     right.originY2 = originY2;
-    
-     //assert(right.CheckPoints()); 
+     assert(left.CheckPoints());
+     assert(right.CheckPoints()); 
 
   }
 
@@ -1164,26 +1105,13 @@ void avlseg::AVLSegment::splitCross(const avlseg::AVLSegment& s,
 
     double x,y;
     bool cross = crosses(s,x,y);
-    //assert(cross);
-    if(!PointOnSegment(x,y,originX1,originY1,originX2,originY2)){
-        cout << "crosses computes a point outside the original segment" << endl;
-        cout << "Point =(" << x << ", " << y << ")" << endl;
-        cout << "this = " << *this << endl;
-        assert(false);
-    }
-    if(!PointOnSegment(x,y,s.originX1,s.originY1,s.originX2,s.originY2)){
-        cout << "crosses computes a point outside the original segment" << endl;
-        cout << "Point =(" << x << ", " << y << ")" << endl;
-        cout << "s = " << s << endl;
-        assert(false);
-    }
-
+    assert(cross);
     splitAt(x, y, left1, right1);
     s.splitAt(x, y, left2, right2);
-    //assert(left1.CheckPoints());
-    //assert(right1.CheckPoints());
-    //assert(left2.CheckPoints());
-    //assert(right2.CheckPoints());
+    assert(left1.CheckPoints());
+    assert(right1.CheckPoints());
+    assert(left2.CheckPoints());
+    assert(right2.CheckPoints());
 }
 
 /*
@@ -1274,9 +1202,8 @@ segment is greater than all other slopes.
 */
    int avlseg::AVLSegment::compareSlopes(const avlseg::AVLSegment& s) const{
       assert(!isPoint() && !s.isPoint());
-
-      bool v1 = isVertical();
-      bool v2 = s.isVertical();
+      bool v1 = AlmostEqual(x1,x2);
+      bool v2 = AlmostEqual(s.x1,s.x2);
       if(v1 && v2){ // both segments are vertical
         return 0;
       }
@@ -1380,18 +1307,6 @@ in the x interval of this segment;
       return false;
     }
     return true;
-  }
-
-/*
-~yContains~
-
-Checks if the y coordinate provided by the parameter __y__ is contained
-in the y interval of this segment;
-
-*/
-  bool avlseg::AVLSegment::yContains(const double y) const{
-     return ( AlmostEqual(y1,y) || AlmostEqual(y2,y) ||
-              ((y1<=y) && (y<=y2)) || ((y2<=y)&&(y<=y1)));
   }
 
 /*
@@ -1675,7 +1590,7 @@ void splitNeighbours(avltree::AVLTree<avlseg::AVLSegment>& sss,
     } else if(leftN->ininterior(rightN->getX1(), rightN->getY1())){
        cerr << __LINE__ << "Warning found an element to split too late" << endl;
        sss.remove(*leftN);
-       leftN->splitAt(rightN->getX1(), rightN->getY1(), left1, right1);
+       leftN->splitAt(rightN->getX1(), rightN->getX2(), left1, right1);
        if(!left1.isPoint()){
          leftN = sss.insert2(left1);
          insertEvents(left1, false,true,q1,q2);
@@ -2222,7 +2137,7 @@ void Realminize2(const Line& src, Line& result){
             double xm = member->getX2();
             double xc = current.getX2();
             if(!AlmostEqual(xm,xc) && (xm<xc)){ // current extends member
-               current.splitAtRight(xm,member->getY2(),right1);
+               current.splitAt(xm,member->getY2(),left1,right1);
                insertEvents(right1,true,true,q,q);
             }
          } else { // no overlapping segment found
@@ -2299,19 +2214,6 @@ avlseg::ownertype selectNext(const DbArray<HalfSegment>& src, int& pos,
 DbArray<HalfSegment>* Realminize(const DbArray<HalfSegment>& segments){
 
 
-  /*
-   cout << __PRETTY_FUNCTION__ << " Called " << endl;
-
-  if(!checkOrder(segments, false)){
-    cout << "Halfsegments are not ordered (fuzzy) " << endl;
-    assert(false);
-  }
-
-  if(!checkOrder(segments, true)){
-    cout << "Halfsegments are not ordered (exact) " << endl;
-  }
-  */
-
   DbArray<HalfSegment>* res = new DbArray<HalfSegment>(segments.Size());
 
   if(segments.Size()==0){ // no halfsegments, nothing to realminize
@@ -2358,19 +2260,16 @@ DbArray<HalfSegment>* Realminize(const DbArray<HalfSegment>& segments){
       }
       if(nextHS.IsLeftDomPoint()){
          if(member){ // overlapping segment found in sss
-         
-
-
-            double x2m = member->getX2();
-            double x2c = current.getX2();
-            if(!AlmostEqual(x2m,x2c) && (x2m<x2c)){ // current extends member
-               current.splitAtRight(x2m,member->getY2(),right1);
+            double xm = member->getX2();
+            double xc = current.getX2();
+            if(!AlmostEqual(xm,xc) && (xm<xc)){ // current extends member
+               current.splitAt(xm,member->getY2(),left1,right1);
                insertEvents(right1,true,true,q1,q2);
-            } else if(AlmostEqual(x2m,x2c) && current.isVertical()){
-               double y2m = member->getY2();
-               double y2c = current.getY2();
-               if(!AlmostEqual(y2m,y2c) && (y2m < y2c)){
-                  current.splitAtRight(x2c,y2c,right1);
+            } else if(AlmostEqual(xm,xc) && current.isVertical()){
+               double ym = member->getY2();
+               double yc = current.getY2();
+               if(!AlmostEqual(ym,yc) && (ym < yc)){
+                  current.splitAt(xc,yc,left1,right1);
                   insertEvents(right1,true,true,q1,q2);
                }
             }
@@ -2558,7 +2457,7 @@ bool hasOverlaps(const DbArray<HalfSegment>& segments,
             double xm = member->getX2();
             double xc = current.getX2();
             if(!AlmostEqual(xm,xc) && (xm<xc)){ // current extends member
-               current.splitAtRight(xm,member->getY2(),right1);
+               current.splitAt(xm,member->getY2(),left1,right1);
                insertEvents(right1,true,true,q,q);
             }
          } else { // no overlapping segment found
@@ -2667,7 +2566,7 @@ void SetOp(const Line& line1,
                  double xm = member->getX2();
                  double xc = current.getX2();
                  if(!AlmostEqual(xm,xc) && (xm<xc)){ // current extends member
-                    current.splitAtRight(xm,member->getY2(),right1);
+                    current.splitAt(xm,member->getY2(),left1,right1);
                     insertEvents(right1,true,true,q1,q2);
                  }
              }  else { // member and current come from different sources
@@ -3171,7 +3070,7 @@ void SetOp(const Line& line,
            if(member->getOwner()==owner ||
               member->getOwner()==avlseg::both     ){
               if(current.ininterior(member->getX2(),member->getY2())){
-                 current.splitAtRight(member->getX2(),member->getY2(),right1);
+                 current.splitAt(member->getX2(),member->getY2(),left1,right1);
                  insertEvents(right1,true,true,q1,q2);
               }
            } else { // member and source come from difference sources
