@@ -440,6 +440,8 @@ provided by (x, y). The point must be on the interior of this segment.
                AVLSegment& left,
                AVLSegment& right)const;
 
+  void splitAtRight(const double x, const double y,
+                    AVLSegment& right)const;
 
 /*
 ~splitCross~
@@ -578,6 +580,15 @@ in the x interval of this segment;
 
 */
   bool xContains(const double x) const;
+
+/*
+~yContains~
+
+Checks if the y coordinate provided by the parameter __y__ is contained
+in the y interval of this segment;
+
+*/
+  bool yContains(const double y) const;
 
 
 /*
