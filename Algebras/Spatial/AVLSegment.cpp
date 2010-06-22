@@ -2299,7 +2299,8 @@ avlseg::ownertype selectNext(const DbArray<HalfSegment>& src, int& pos,
 DbArray<HalfSegment>* Realminize(const DbArray<HalfSegment>& segments){
 
 
-  cout << __PRETTY_FUNCTION__ << " Called " << endl;
+  /*
+   cout << __PRETTY_FUNCTION__ << " Called " << endl;
 
   if(!checkOrder(segments, false)){
     cout << "Halfsegments are not ordered (fuzzy) " << endl;
@@ -2309,7 +2310,7 @@ DbArray<HalfSegment>* Realminize(const DbArray<HalfSegment>& segments){
   if(!checkOrder(segments, true)){
     cout << "Halfsegments are not ordered (exact) " << endl;
   }
-
+  */
 
   DbArray<HalfSegment>* res = new DbArray<HalfSegment>(segments.Size());
 
