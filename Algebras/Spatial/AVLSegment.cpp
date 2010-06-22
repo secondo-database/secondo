@@ -1590,7 +1590,7 @@ void splitNeighbours(avltree::AVLTree<avlseg::AVLSegment>& sss,
     } else if(leftN->ininterior(rightN->getX1(), rightN->getY1())){
        cerr << __LINE__ << "Warning found an element to split too late" << endl;
        sss.remove(*leftN);
-       leftN->splitAt(rightN->getX1(), rightN->getX2(), left1, right1);
+       leftN->splitAt(rightN->getX1(), rightN->getY1(), left1, right1);
        if(!left1.isPoint()){
          leftN = sss.insert2(left1);
          insertEvents(left1, false,true,q1,q2);
