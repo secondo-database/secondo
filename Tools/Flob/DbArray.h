@@ -1,8 +1,8 @@
 /*
----- 
+----
 This file is part of SECONDO.
 
-Copyright (C) 2004, University in Hagen, Department of Computer Science, 
+Copyright (C) 2004, University in Hagen, Department of Computer Science,
 Database Systems for New Applications.
 
 SECONDO is free software; you can redistribute it and/or modify
@@ -48,10 +48,14 @@ August 2002 RHG
 
 April 2003 Victor Almeida chaged the implementation to not use templates.
 
+June 2010 Christian Duentgen: The Flob interface and implementation has been
+changed entirely by Thomas Behr. As a consequence, the functions Put() and Get()
+now expect the target buffer to be provided (and deleted) by the caller.
+
 1.1 Overview
 
 This module offers a generic persistent array implemented on top of the
-FLOB interface.
+~Flob~ interface.
 
 1.2 Interface methods
 
@@ -59,15 +63,22 @@ This module offers the following methods:
 
 [23]    Creation/Removal        & Access        & Inquiries     \\
         [--------]
-        DBArray                 & Get           & NoComponents  \\
-        [tilde]DBArray          & Put             & Id                  \\
-        MarkDelete                  &                 &                           \\
+        DbArray                 & Get           & NoComponents  \\
+        [tilde]DbArray          & Put           & Id            \\
+        Destroy                 & resize        & GetFlobSize   \\
+                                & Append        & GetUsedSize   \\
+                                & clean         & GetElemSize   \\
+                                & Find          & GetCapacity   \\
+                                & Sort          &               \\
+                                & Restrict      &               \\
+                                & copyTo        &               \\
+                                & copyFrom      &               \\
 
 Operations have to follow the protocol shown below:
 
                 Figure 1: Protocol [Protocol.eps]
 
-1.3 Class ~DBArray~
+1.3 Class ~DBArray~SetPersistentCache
 
 An instance of the class is a handle to a persistent array of fixed size.
 
@@ -101,7 +112,8 @@ Does nothing. Should only be used within Cast functions.
 /*
 ~Constructor~
 
-Creates a DbArray with a given capacity.
+Creates a DbArray with a given capacity. Use this instead of the standard
+constructor to create a new ~DbArray~!
 
 */
    inline DbArray( int n ):
@@ -119,7 +131,7 @@ Creates a DbArray with a given capacity.
 /*
 ~Resize~
 
-Changes the capacity of an DbArray. 
+Changes the capacity of the DbArray.
 
 */
 
@@ -212,8 +224,8 @@ bool Put( int index, const DbArrayElement& elem ) {
 /*
 ~Get~
 
-Returns the element stored at position __index__ 
-within the array. 
+Returns the element stored at position __index__
+within the array.
 
 */
  inline bool Get( int index, DbArrayElement* elem ) const{
@@ -348,7 +360,7 @@ bool Find( const void *key,
 Restricts the DBArray to the interval set of indices passed as argument.
 
 */
-virtual bool Restrict( const vector< pair<int, int> >& intervals, 
+virtual bool Restrict( const vector< pair<int, int> >& intervals,
                        DbArray<DbArrayElement>& result ) const{
   // compute the result size
   unsigned int newSize = 0;
@@ -359,7 +371,7 @@ virtual bool Restrict( const vector< pair<int, int> >& intervals,
       newSize += ( ( it->second - it->first ) + 1 ) * sizeof( DbArrayElement );
   }
   assert( newSize <= Flob::getSize() );
-  DbArray<DbArrayElement> res(newSize/sizeof(DbArrayElement));  
+  DbArray<DbArrayElement> res(newSize/sizeof(DbArrayElement));
   if( newSize == 0 ){
     result = res;
     return true;
@@ -367,17 +379,17 @@ virtual bool Restrict( const vector< pair<int, int> >& intervals,
     char *buffer = (char*)malloc( newSize );
     size_t offset = 0;
     DbArrayElement e;
-    // copy value into the temporarly buffer    
+    // copy value into the temporarly buffer
     for( vector< pair<int, int> >::const_iterator it = intervals.begin();
          it < intervals.end();
-         it++ ) {    
+         it++ ) {
       for( int j = it->first; j <= it->second; j++ ) {
          if(!Get( j, &e )){
             return false;
          }
          memcpy( buffer + offset, &e, sizeof( DbArrayElement ) );
          offset += sizeof( DbArrayElement );
-      }  
+      }
     }
     res.nElements = newSize / sizeof( DbArrayElement );
     res.maxElements = nElements;
@@ -392,28 +404,28 @@ virtual bool Restrict( const vector< pair<int, int> >& intervals,
     return bres;
   }
 }
-    
+
 /*
 ~GetFlobSize~
 
 Returns the capacity of the underlying Flob.
 
-*/    
+*/
 
- 
+
 size_t GetFlobSize() const {
       return Flob::getSize();
-}       
+}
 
 /*
 ~GetUsedSize~
 
-Returns the size occupied by elements.
+Returns the total size occupied by the managed elements.
 
 */
 size_t GetUsedSize() const {
   return nElements * sizeof(DbArrayElement);
-}       
+}
 
 /*
 ~GetElemSize~
@@ -423,7 +435,7 @@ Returns the size of a single element.
 */
 size_t GetElemSize() const {
   return sizeof(DbArrayElement);
-}       
+}
 
 /*
 ~GetCapacity~
@@ -433,29 +445,29 @@ Returns the capacity of the array.
 */
 size_t GetCapacity() const {
   return maxElements;
-}       
+}
 
 /*
 ~SaveHeader~
 
-Saves  header information (this) to a record.
+Saves header information (this) to a record.
 
 */
 virtual size_t serializeHeader( char* buffer, SmiSize& offset) const {
    // first save the flob
    SmiSize sz = Flob::serializeHeader(buffer, offset);
    // append nElements and maxElements
-   WriteVar<int>(nElements, buffer, offset);   
+   WriteVar<int>(nElements, buffer, offset);
    WriteVar<int>(maxElements, buffer, offset);
    sz += 2*sizeof(int);
    return sz;
-}       
+}
 
-virtual void restoreHeader(char* buffer, 
+virtual void restoreHeader(char* buffer,
                     SmiSize& offset)
 {
    Flob::restoreHeader(buffer, offset);
-   ReadVar<int>(nElements, buffer, offset);    
+   ReadVar<int>(nElements, buffer, offset);
    ReadVar<int>(maxElements, buffer, offset);
 }
 
@@ -472,16 +484,16 @@ virtual void restoreHeader(char* buffer,
       dest.nElements = nElements;
       dest.maxElements = maxElements;
       return res;
-   } 
+   }
 
    bool copyFrom(const Flob& src){
-     DbArray<DbArrayElement> const* dbsrc = 
+     DbArray<DbArrayElement> const* dbsrc =
                 static_cast<DbArray<DbArrayElement> const* >(&src);
      return copyFrom(*dbsrc);
    }
 
    bool copyTo(Flob& dest) const{
-     DbArray<DbArrayElement>* dbdest = 
+     DbArray<DbArrayElement>* dbdest =
                       static_cast<DbArray<DbArrayElement>* >(&dest);
      return copyTo(*dbdest);
    }
@@ -490,12 +502,13 @@ virtual void restoreHeader(char* buffer,
 
     int nElements;
 /*
-Store the number of elements inserted in the array.
+Stores the number of elements currently managed (contained) by the array.
 
 */
     int maxElements;
 /*
-Store the total number of elements that can be added to the array.
+Stores the total number of elements that can currently could be managed by
+this array (without resizing it).
 
 */
 };

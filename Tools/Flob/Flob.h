@@ -51,21 +51,23 @@ must be used to dynamic data structures within a Flob data segement.
 
 2 Implementation
 
-The class ~Flob~ provides a handle on large objects. The user can use the classe's
-member functions to create new Flobs, to restore Flobs from persistent staorage,
+The class ~Flob~ provides a handle on large objects. The user can use the class'
+member functions to create new Flobs, to restore Flobs from persistent storage,
 and to to read or modify the contained data. However, the actual work for all
 these functions is done by the friend class ~FlobManager~, whose member functions
-are called.
+are called. The ~FlobManager~ also deals with caching the Flob data to fasten
+acceess.
 
-Flob objects (instances of this class) have a compact memeory representation and
-can be made persistent using any of Secondo's persistence mechanisms. This of
-course only stores the handle to the object data. The actual object data is
-maintained in some files provided and managed by the singleton instance of class
-FlobManager.
+Flob objects (instances of this class) can be used as members of Secondo data
+type classes and attribute type classes, since they have a compact memory
+representation and thus can be made persistent using any of Secondo's persistency
+mechanisms. This of course only stores the handle to the object data. The actual
+object data is maintained in some files provided and managed by a singleton
+instance of class ~FlobManager~.
 
-The user may read and change Flob data in buffers. Managing that buffers is up
-to the user. To read a Flob's object data, the read() function is called. It
-copies the requested data to a buffer provided by the user.
+The user may read Flob data into buffers and modify it there. Managing that
+buffers is up to the user. To read a Flob's object data, the read() function is
+called. It copies the requested data to a buffer provided by the user.
 If changes to the Flob object data shall be made, the user must call the write()
 member function, which will overwrite the Flob object data with the provided
 buffer's content.
@@ -103,7 +105,7 @@ This constructor should only be used within Cast functions.
 ~Copy Constructor~
 
 Creates a flat copy of the argument. The underlying data are not
-duplicated.
+duplicated (only the handle is copied).
 
 */
   inline Flob(const Flob& other) : id(other.id), size( other.size ),
@@ -117,7 +119,8 @@ duplicated.
 /*
 ~Constructor~
 
-This construcvtor create a native flob having a given size.
+This constructor creates a native flob having a given size. The data of a native
+Flob is kept within a special file controlled by the ~FlobManager~.
 
 */
     inline Flob (SmiSize size_): id(), size( size_ ), dataPointer(0){
@@ -143,7 +146,8 @@ Constructs a Flob from a given position.
 /*
 ~Constructor~
 
-constructs a flob from a given buffer as a evil flob.
+Constructs a flob from a given buffer as an ~evil Flob~ (having a buffer
+not under management of the FlobManager).
 
 */
     inline Flob(const char* buffer, const SmiSize& size):id(),size(size),
@@ -157,7 +161,7 @@ constructs a flob from a given buffer as a evil flob.
 /*
 ~Assignment Operator~
 
-Makes only a flat copy of the source flob.
+Makes only a flat copy of the source flob (only the handle is copied).
 
 */
     inline Flob& operator=(const Flob& src){
@@ -219,7 +223,8 @@ Makes only a flat copy of the source flob.
 /*
 ~Destructor~
 
-Does not destroy the underlying data. Use destroy for it.
+Does not destroy the underlying persistent data. Use ~destroy~ to destroy the
+persistent Flob data.
 
 */
     virtual ~Flob() {
@@ -233,16 +238,16 @@ Does not destroy the underlying data. Use destroy for it.
 /*
 ~getSize~
 
-Returns the current size of this Flob.
+Returns the current data size of the data referenced by this Flob.
 
 */
-    inline SmiSize getSize() const { return size; }; // Size of the FLOB
+    inline SmiSize getSize() const { return size; }; // Size of the Flob
 
 
 /*
 ~getUncontrolledSize~
 
-Returns the size of the flob not under management of the FlobManager;
+Returns the size of the flob data not under management of the FlobManager;
 
 */
     inline SmiSize getUncontrolledSize() const { return dataPointer?size:0; }
@@ -252,10 +257,10 @@ Returns the size of the flob not under management of the FlobManager;
 /*
 ~resize~
 
-Changes the size of a flob to the given one.
+Changes the size of a flob to the given value.
 
 */
-    virtual bool resize(const SmiSize& newsize) { 
+    virtual bool resize(const SmiSize& newsize) {
        return FlobManager::getInstance().resize(*this,newsize);
      }
 
@@ -263,7 +268,7 @@ Changes the size of a flob to the given one.
 /*
 ~clean~
 
-Cleans the flob. actually only the size is set to be zero.
+Cleans the flob. Actually, only the size is set to be zero.
 
 */
     virtual bool clean(){ return resize(0); }
@@ -271,8 +276,8 @@ Cleans the flob. actually only the size is set to be zero.
 /*
 ~read~
 
-Reads a part of the data from this Flob. The ~buffer~ must be provided and disposed
-by the caller of the funtion.
+Reads a part of the persistent data referenced by this Flob. The ~buffer~ must
+be provided and disposed by the caller of the funtion.
 
 */
     inline bool read(char* buffer,
@@ -284,7 +289,8 @@ by the caller of the funtion.
 /*
 ~write~
 
-Puts data providen in ~buffer~ into the Flob at the specified position.
+Puts data provided in ~buffer~ into the persistent Flob storage using the
+specified position.
 
 */
     inline bool write(const char* buffer,
@@ -300,7 +306,8 @@ Puts data providen in ~buffer~ into the Flob at the specified position.
 /*
 ~copyFrom~
 
-Copies the content of src to this flob.
+Copies the persistent flob data referenced by an other Flob ~src~ to the storage
+belonging to this Flob.
 
 */
     virtual bool copyFrom(const Flob& src){
@@ -313,7 +320,8 @@ Copies the content of src to this flob.
 /*
 ~copyTo~
 
-Copies the content of this flob to ~dest~.
+Copies the content referenced by this flob to another Flob's (~dest~) persistent
+storage.
 
 */
     virtual bool copyTo(Flob& dest) const {
@@ -329,7 +337,8 @@ Copies the content of this flob to ~dest~.
 
 Save Flob data to a specified file/record/offset.
 Returns a Flob having a FlobId encoding the file/record/offset
-of the persistent Flob data
+of the persistent Flob data.
+
 Can e.g. be used to copy the flob data from the (temporary) native LOB
 file to some persistent LOB file, like a relation LOB file or the
 database LOB file. It can also be used to write the LOB data into a
@@ -351,7 +360,8 @@ tuple file. In this case, we speak of a FAKED LOB (or FLOB).
 
 Save Flob data to a specified file/record/offset.
 Returns a Flob having a FlobId encoding the file/record/offset
-of the persistent Flob data
+of the persistent Flob data.
+
 Can e.g. be used to copy the flob data from the (temporary) native LOB
 file to some persistent LOB file, like a relation LOB file or the
 database LOB file. It can also be used to write the LOB data into a
@@ -362,7 +372,7 @@ tuple file. In this case, we speak of a FAKED LOB (or FLOB).
                           const SmiRecordId rid,
                           const SmiSize offset,
                           Flob& result) const{
-      return FlobManager::getInstance().saveTo(*this, file, rid, 
+      return FlobManager::getInstance().saveTo(*this, file, rid,
                                                offset, result);
     };
 
@@ -397,7 +407,7 @@ in parameter ~result~. The data is stored in a new record with offset zero.
 ~getData~
 
 Returns the stored data as a char array. The caller is responsible
-to delete the result using delete[]. If an error occurs, the result
+for deleting the result using delete[]. If an error occurs, the result
 will be null.
 
 */
@@ -417,7 +427,7 @@ will be null.
 Creates a Flob referencing a given (FileId/RecordId/Offset). The data is
 expected to be already at the specified location.
 
-For example class tuple uses this to correct the FlobId when persistently storing
+For example, class tuple uses this to correct the FlobId when persistently storing
 small Flob data within the tuple itself.
 
 */
@@ -427,7 +437,7 @@ small Flob data within the tuple itself.
                                    const SmiSize& offset,
                                    const bool isTemp,
                                    const SmiSize& size    ) {
-      return  FlobManager::getInstance().createFrom(fid, rid, offset, 
+      return  FlobManager::getInstance().createFrom(fid, rid, offset,
                                                     isTemp,size);
     };
 
@@ -440,7 +450,7 @@ Does the evil thing.
 */
    inline static void createFromBlock(Flob& result, const char* buffer,
                                       const SmiSize& size, bool autodestroy){
-      return  FlobManager::getInstance().createFromBlock(result,buffer, 
+      return  FlobManager::getInstance().createFromBlock(result,buffer,
                                                          size, autodestroy);
    }
 
@@ -464,7 +474,7 @@ creation of evil flobs.
 /*
 ~destroy~
 
-Destroys this;
+Destroys the referenced persistent data referenced by ~this~ Flob:
 
 */
   bool destroy(){
@@ -475,7 +485,7 @@ Destroys this;
 /*
 ~destroyIfNonPersistent~
 
-Destroys a the flob if the flob is a native one.
+Destroys ~this~ Flob if the Flob is a native one.
 
 */
    bool destroyIfNonPersistent(){
@@ -486,10 +496,10 @@ Destroys a the flob if the flob is a native one.
 /*
 ~kill~
 
-Kills the Flob without giving up any ressources. 
+Kills the Flob without giving up any ressources.
 This function must be used very carefully to avoid
 memory leaks. The important thing is that the dataPointer
-is set to 0. Thus, this function can be used if a flob is
+is set to 0. Thus, this function can be used if a Flob is
 read from disk.
 
 
@@ -544,8 +554,8 @@ Returns the amount of data required to save header information.
 /*
 ~destroyManager~
 
-This function destroys the FlobManager. It should (and must) only called
-at the end of a secondo session. After calling that function Flob access
+This function destroys the ~FlobManager~. It should (and must) only be called
+at the end of a Secondo session. After calling the function, Flob access
 is not longer possible.
 
 */
@@ -557,7 +567,7 @@ is not longer possible.
 /*
 ~dropFile~
 
-Gives up the control of the FlobManager over the specific file.
+Gives up the FlobManager's control over the specific file.
 
 */
   inline static bool dropFile(const SmiFileId& id, const bool isTemp){
@@ -575,28 +585,36 @@ Gives up the control of the FlobManager over the specific file.
 /*
 ~clearCaches~
 
-Clears both cashes. Its required after closing or opening a database.
+Clears both (native and persistent) cashes. This is required after opening or
+closing a database.
 
-*/  
+*/
   inline static void clearCaches(){
     FlobManager::getInstance().clearCaches();
   }
 
 /*
- SetNativeCache
+Set parameters for the Native Flob Cache.
 
 */
-   static void SetNativeCache(size_t maxSize, 
+   static void SetNativeCache(size_t maxSize,
                               size_t slotSize, size_t avgSize){
      FlobManager::SetNativeCache(maxSize, slotSize, avgSize);
    }
 
-   static void SetPersistentCache(size_t maxSize, 
+/*
+Set parameters for the Persistent Flob Cache.
+
+*/
+   static void SetPersistentCache(size_t maxSize,
                               size_t slotSize, size_t avgSize){
      FlobManager::SetPersistentCache(maxSize, slotSize, avgSize);
    }
 
+/*
+Print function to print debug info about the Flob to an ostream.
 
+*/
   ostream& print(ostream& os) const {
     if(!dataPointer){
        return os << "[" << id << ", size = " << size << "]";
@@ -615,6 +633,11 @@ Clears both cashes. Its required after closing or opening a database.
           dataPointer(0){}
 
 };
+
+/*
+Shift operator to ease printing debug info to an ostream.
+
+*/
 
 ostream& operator<<(ostream& os, const Flob& f);
 
