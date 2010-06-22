@@ -2045,7 +2045,7 @@ void UPoint::UTrajectory( Line& line ) const
           hs.SetLeftDomPoint( !hs.IsLeftDomPoint() );
           line += hs;
         }
-  line.EndBulkLoad();
+  line.EndBulkLoad(true,false); // avoid realminize
 }
 
 void UPoint::Length( CcReal& result ) const
