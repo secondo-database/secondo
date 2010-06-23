@@ -59,6 +59,9 @@ operator collect_line alias COLLECTLINE pattern _ op [ _ ]
 operator collect_sline alias COLLECTSLINE pattern _ op [ _ ]
 operator collect_points alias COLLECTPOINTS pattern _ op [ _ ]
 operator makepoint alias MAKEPOINT pattern op ( _  )
+operator thefloor alias THEFLOOR pattern op(_,_)
+operator getheight alias GETHEIGHT pattern op(_)
+operator getregion alias GETREGION pattern op(_)
 
 
 

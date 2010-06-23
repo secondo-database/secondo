@@ -4510,5 +4510,82 @@ private:
   double rho;
 };
 
+/*
+for 3D data for indoor application
+
+*/
+class Floor3D:public StandardSpatialAttribute<2>
+{
+public:
+    Floor3D(){}
+    Floor3D(const float h):
+    StandardSpatialAttribute<2>(true),floor_height(h), reg(0)
+    {
+//      cout<<"Constructor1()"<<endl;
+    }
+    Floor3D(const float h, Region& r):
+    StandardSpatialAttribute<2>(r.IsDefined()),floor_height(h), reg(r)
+    {
+//      cout<<"Constructor2()"<<endl;
+    }
+    Floor3D(const Floor3D& fl):
+    StandardSpatialAttribute<2>(fl.IsDefined()),
+    floor_height(fl.GetHeight()),reg(*(fl.GetRegion()))
+    {
+//      cout<<"Constructor3()"<<endl;
+    }
+    ~Floor3D()
+    {
+//      reg.Destroy();
+//      reg.DeleteIfAllowed(false);
+    }
+    void SetValue(const float h, Region* r)
+    {
+      floor_height = h;
+      reg = *r;
+      SetDefined(true);
+    }
+    Floor3D(SmiRecord& valueRecord, size_t& offset,
+                 const ListExpr typeInfo);
+    bool Save(SmiRecord& valueRecord, size_t& offset,
+                 const ListExpr typeInfo);
+    inline int Size() const {return reg.Size();}
+    inline float GetHeight() const {return floor_height;}
+    inline bool IsEmpty() const{return !IsDefined() || Size() == 0;}
+    inline size_t Sizeof() const{return sizeof(*this);}
+    inline bool Adjacent(const Attribute* arg)const{return false;}
+    int Compare(const Attribute* arg)const
+    {
+      return 0;
+    }
+    void CopyFrom(const Attribute* right)
+    {
+      *this = *(const Floor3D*)right;
+    }
+    const Rectangle<2> BoundingBox() const
+    {
+      return reg.BoundingBox();
+    }
+    double Distance(const Rectangle<2>& r)const
+    {
+      return reg.BoundingBox().Distance(r);
+    }
+    Floor3D* Clone() const {return new Floor3D(*this);}
+    size_t HashValue() const
+    {
+      return reg.HashValue();
+    }
+    const Region* GetRegion() const
+    {
+       const Region* p_to_r = &reg;
+       if(reg.IsDefined()) return p_to_r;
+       else return NULL;
+    }
+    float GetHeight() {return floor_height;}
+    static void* Cast(void* addr){return new (addr)Floor3D();}
+private:
+    float floor_height;
+    Region reg;
+};
 
 #endif // __SPATIAL_ALGEBRA_H__
