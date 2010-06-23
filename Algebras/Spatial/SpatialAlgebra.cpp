@@ -7290,7 +7290,7 @@ bool Region::Contains( const HalfSegment& hs ) const
   bool checkMidPoint = false;
 
   //now we know that both endpoints of hs is inside region
-  for( int i = 0; i < Size(); i++ )
+  /*for( int i = 0; i < Size(); i++ )
   {
     Get(i, auxhs);
     if( auxhs.IsLeftDomPoint() )
@@ -7314,7 +7314,53 @@ bool Region::Contains( const HalfSegment& hs ) const
                 ( hs.GetLeftPoint().GetY() + hs.GetRightPoint().GetY() ) / 2 );
     if( !Contains( midp ) )
       return false;
+  }*/
+
+  vector<Point> intersection_points;
+
+  //now we know that both endpoints of hs is inside region
+  for( int i = 0; i < Size(); i++ ){
+    Get(i, auxhs);
+    if( auxhs.IsLeftDomPoint() ){
+      if( hs.Crosses(auxhs) )
+        return false;
+      else if( hs.Inside(auxhs) )
+       //hs is part of the border
+        return true;
+      else if( hs.Intersects(auxhs)){
+              if(auxhs.Contains(hs.GetLeftPoint()) ||
+                  auxhs.Contains(hs.GetRightPoint()))
+                    checkMidPoint = true;
+              else{ //the intersection point that is not the endpoint
+                  Point temp_p;
+                  assert(hs.Intersection(auxhs,temp_p));
+                  intersection_points.push_back(temp_p);
+              }
+      }
+    }
   }
+
+  if( checkMidPoint )
+  {
+    Point midp( true,
+                ( hs.GetLeftPoint().GetX() + hs.GetRightPoint().GetX() ) / 2,
+                ( hs.GetLeftPoint().GetY() + hs.GetRightPoint().GetY() ) / 2 );
+    if( !Contains( midp ) )
+      return false;
+  }
+  for(unsigned int i = 0;i < intersection_points.size();i++){
+      //cout<<intersection_points.size()<<endl;
+      Point p = intersection_points[i];
+      double x1 = (hs.GetLeftPoint().GetX() + p.GetX())/2;
+      double y1 = (hs.GetLeftPoint().GetY() + p.GetY())/2;
+      double x2 = (hs.GetRightPoint().GetX() + p.GetX())/2;
+      double y2 = (hs.GetRightPoint().GetY() + p.GetY())/2;
+      Point midp1(true, x1, y1);
+      Point midp2(true, x2, y2);
+      if(!Contains(midp1)) return false;
+      if(!Contains(midp2)) return false;
+  }
+
   return true;
 }
 
