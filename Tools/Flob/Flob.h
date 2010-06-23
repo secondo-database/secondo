@@ -146,8 +146,8 @@ Constructs a Flob from a given position.
 /*
 ~Constructor~
 
-Constructs a flob from a given buffer as an ~evil Flob~ (having a buffer
-not under management of the FlobManager).
+Constructs a flob from a given buffer as an ~evil Flob~ (having a fixed main
+memory buffer not under management of the FlobManager).
 
 */
     inline Flob(const char* buffer, const SmiSize& size):id(),size(size),
@@ -445,7 +445,10 @@ small Flob data within the tuple itself.
 /*
 ~createFromBlock~
 
-Does the evil thing.
+Does the evil thing. Loads a Flob's content from a file into a fixed main
+memory buffer.
+This is used to speed-up processing for small Flobs, and is only applied to
+non-native Flobs.
 
 */
    inline static void createFromBlock(Flob& result, const char* buffer,

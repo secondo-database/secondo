@@ -21,6 +21,41 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 ----
 
+//paragraph [10] Title: [{\Large \bf \begin {center}] [\end {center}}]
+//[ae] [\"a]
+//[ue] [\"u]
+//[oe] [\"o]
+
+[10] Header File of Module PersistentFlobCache
+
+June 2010, C. D[ue]ntgen: Added comments
+
+1  Overview
+
+The ~PersistentFlobCache~ is responsible for accelerating the access to data
+referenced by non-native Flobs. Non-native Flobs are Flobs, whose persistent
+data content is resident within some file different from the native Flob file
+
+To enhance read/ write access to the according data, it is cached.
+
+The FlobCache's view of a Flob is a sequence of fixed size memory slices.
+Each slice can be kept separately within the cache, which consists of a limited
+number of fixed size memory buffers (slices), that are organized in an open
+hashtable containing instances of class ~CacheEntry~.
+
+As a secondary organisation, a LRU-priority list linking the cache entries is used,
+since LRU-policy is used to replace data if necessary.
+If cached Flob data is modified, it is marked as ~changed~. Whenever changed
+Flob data is removed from the Cache, it is written to disk. Unchanged Flob data
+does not need to be written back to disk.
+
+The functionality is the same as for the slot-based ~NativeFlobCache~ with one
+difference:
+
+If data is changed, it is immediately written to disk. This is to prevent
+inconsistent data in case of a system crash.
+
+
 */
 
 
@@ -38,7 +73,7 @@ class PersistentFlobCache{
 Creates a new Cache with given maximum size and given slotsize.
 The maximumSize must be greater than the slotsize.
 
-*/    
+*/
     PersistentFlobCache(size_t _maxSize, size_t _slotSize, size_t _avgSize);
 /*
 1.2 Destructor
@@ -60,15 +95,15 @@ Removes all entries from the cache.
 /*
 1.4 getData
 
-Copies the content of the Flob __flob__ from offset __offset__ 
-and size __size__ into a provided buffer __buffer__. If the 
-requested data are not cached, the FlobManager is used to 
-access the data. 
+Copies the content of the Flob __flob__ from offset __offset__
+and size __size__ into a provided buffer __buffer__. If the
+requested data are not cached, the FlobManager is used to
+access the data.
 
 */
-    bool getData(const Flob& flob, 
-                 char* buffer, 
-                 const SmiSize offset, 
+    bool getData(const Flob& flob,
+                 char* buffer,
+                 const SmiSize offset,
                  const SmiSize size) ;
 
 /*
@@ -107,7 +142,7 @@ Removes the last slot of a flob. required for resizing flobs.
 
 Retrieves data from a slot. If the slot is not available in cache,
 the slot is created possible replacing other slots. The data are
-get from the cache. 
+get from the cache.
 
 flob         : the flob containing the data
 slotno       : the slot number of the flob
@@ -118,23 +153,23 @@ buffer       : the target
 
 */
 
-   bool getDataFromSlot(const Flob& flob,          
-                        const size_t slotNo,      
-                        const size_t slotOffset,   
-                        size_t& bufferOffset, 
-                        const size_t size, 
+   bool getDataFromSlot(const Flob& flob,
+                        const size_t slotNo,
+                        const size_t slotOffset,
+                        size_t& bufferOffset,
+                        const size_t size,
                         char* buffer);
 /*
 1.8 putDataToFlobSlot
 
 contrary to getDataFromFlobSlot
 
-*/   
-   bool putDataToFlobSlot(const Flob& flob,          
-                        const size_t slotNo,      
-                        const size_t slotOffset,   
-                        size_t& bufferOffset, 
-                        const size_t size, 
+*/
+   bool putDataToFlobSlot(const Flob& flob,
+                        const size_t slotNo,
+                        const size_t slotOffset,
+                        size_t& bufferOffset,
+                        const size_t size,
                         const char* buffer);
 
 /*
@@ -148,7 +183,7 @@ returns the requested data stored in a given flob
                 size_t& bufferOffset,
                 const size_t size,
                 char* buffer);
-   
+
 
    void putData(CacheEntry* entry,
                 const size_t slotOffset,
@@ -159,14 +194,14 @@ returns the requested data stored in a given flob
 /*
 1.10 createEntry
 
-creates a new CacheEntry and fills the data part using the 
+creates a new CacheEntry and fills the data part using the
 FlobManager. The entry is not inserted in the cache structure.
 
 */
-   CacheEntry* createEntry(const Flob& flob, const size_t slotNo, 
+   CacheEntry* createEntry(const Flob& flob, const size_t slotNo,
                            const bool readData=true) const;
 
-  
+
 
 /*
 1.11 reduce
@@ -174,8 +209,8 @@ FlobManager. The entry is not inserted in the cache structure.
 removes Entry from the cache structure until the maximum size is not
 longer overcomed.
 
-*/ 
-   void reduce(); 
+*/
+   void reduce();
 
 
 /*
@@ -206,5 +241,5 @@ checks the internal structure.
 */
   bool check();
 
-  
+
 };
