@@ -1089,6 +1089,41 @@ provided by (x, y). The point must be on the interior of this segment.
      assert(right.CheckPoints()); 
 
   }
+  
+
+  void avlseg::AVLSegment::splitAtRight(const double x, const double y,
+               avlseg::AVLSegment& right)const{
+     if(AlmostEqual(x,x1) && AlmostEqual(y,y1)){
+        right = *this;
+        return;
+     }
+     if(AlmostEqual(x,x2) && AlmostEqual(y,y2)){ 
+        // return only the right endpoint
+        right = *this;
+        right.x1 = x2;
+        right.y1 = y2;
+        return;
+     }
+     if(!AlmostEqual(x,x1) && (x < x1)){
+        right = *this;
+        return;
+     } 
+
+     right.x1=x;
+     right.y1=y;
+     right.x2 = x2;
+     right.y2 = y2;
+     right.owner = owner;
+     right.insideAbove_first = insideAbove_first;
+     right.insideAbove_second = insideAbove_second;
+     right.con_below = con_below;
+     right.con_above = con_above;
+     right.originX1 = originX1;
+     right.originX2 = originX2;
+     right.originY1 = originY1;
+     right.originY2 = originY2;
+     assert(right.CheckPoints()); 
+  }
 
 /*
 ~splitCross~
@@ -2263,13 +2298,28 @@ DbArray<HalfSegment>* Realminize(const DbArray<HalfSegment>& segments){
             double xm = member->getX2();
             double xc = current.getX2();
             if(!AlmostEqual(xm,xc) && (xm<xc)){ // current extends member
-               current.splitAt(xm,member->getY2(),left1,right1);
-               insertEvents(right1,true,true,q1,q2);
+               // possibly rounding errors
+               if( xm < current.getX1()){
+                  // create halfsegments and remove member
+                  HalfSegment hs1 = current.convertToExtendedHs(true);
+                  HalfSegment hs2 = current.convertToExtendedHs(false);
+                  hs1.attr.edgeno = edgeno;
+                  hs2.attr.edgeno = edgeno;
+                  res->Append(hs1);
+                  res->Append(hs2);
+                  splitNeighbours(sss,leftN,rightN,q1,q2);
+                  edgeno++;
+                  sss.remove(*member);
+                  insertEvents(current,true,true,q1,q2);
+               } else {
+                 current.splitAtRight(xm,member->getY2(),right1);
+                 insertEvents(right1,true,true,q1,q2);
+               }
             } else if(AlmostEqual(xm,xc) && current.isVertical()){
                double ym = member->getY2();
                double yc = current.getY2();
                if(!AlmostEqual(ym,yc) && (ym < yc)){
-                  current.splitAt(xc,yc,left1,right1);
+                  current.splitAtRight(xc,yc,right1);
                   insertEvents(right1,true,true,q1,q2);
                }
             }
@@ -2457,7 +2507,7 @@ bool hasOverlaps(const DbArray<HalfSegment>& segments,
             double xm = member->getX2();
             double xc = current.getX2();
             if(!AlmostEqual(xm,xc) && (xm<xc)){ // current extends member
-               current.splitAt(xm,member->getY2(),left1,right1);
+               current.splitAtRight(xm,member->getY2(),right1);
                insertEvents(right1,true,true,q,q);
             }
          } else { // no overlapping segment found
@@ -2566,7 +2616,7 @@ void SetOp(const Line& line1,
                  double xm = member->getX2();
                  double xc = current.getX2();
                  if(!AlmostEqual(xm,xc) && (xm<xc)){ // current extends member
-                    current.splitAt(xm,member->getY2(),left1,right1);
+                    current.splitAtRight(xm,member->getY2(),right1);
                     insertEvents(right1,true,true,q1,q2);
                  }
              }  else { // member and current come from different sources
@@ -3070,7 +3120,7 @@ void SetOp(const Line& line,
            if(member->getOwner()==owner ||
               member->getOwner()==avlseg::both     ){
               if(current.ininterior(member->getX2(),member->getY2())){
-                 current.splitAt(member->getX2(),member->getY2(),left1,right1);
+                 current.splitAtRight(member->getX2(),member->getY2(),right1);
                  insertEvents(right1,true,true,q1,q2);
               }
            } else { // member and source come from difference sources
