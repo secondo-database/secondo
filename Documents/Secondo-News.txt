@@ -43,6 +43,10 @@ Several changes have been done in the last 6 monthes.
  * New modules: The BTree2Algebra provides parametrizable BTrees. The 
    RTreeViewer allows for visualized online-exploration of Rtree objects.
 
+ * Optimizer: Exception handling was extended so that now most errors can be
+   caught and reported to the user.
+   Scripts for executing the BerlinMOD/R benchmark from the optimizer have 
+   been added to the Optimizer directory.
 
 2009-03-02 Changes in the SpatialAlgebra
 ===============================================================================
