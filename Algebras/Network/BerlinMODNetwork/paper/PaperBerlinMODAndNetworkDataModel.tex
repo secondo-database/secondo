@@ -1,5 +1,6 @@
 \documentclass[a4paper]{article}
 \usepackage[left=3cm, right=3cm]{geometry}
+\usepackage[utf8x]{inputenc}
 \usepackage{hyperref}
 \usepackage{cite}
 \usepackage{amssymb}
@@ -78,7 +79,8 @@ and are available in \secondo{} DBMS
 So we can exclude that different DBMS or temporal
 representation issues bias the results of our data model comparison with the
 \bmodb{}\cite{BerlinMODVLDBDuentgen}.
-The DMFS we use is the data model presented in \cite{DataModelDataStructureGueting}
+The DMFS we use is the data model presented in
+\cite{RepresentingMovingObjectsGueting,DataModelDataStructureGueting}
 (SPACE for short).
 And the NCDM we use is the data model presented in \cite{NetworkGueting} (NET for short).
 Our implementation of NET is described first in this paper (Section \ref{sec:implNDM}
@@ -100,12 +102,12 @@ seen as an example for the usage of the \bmodb{} with other compatible data
 representations or DBMS.
 
 The rest of the paper is organised as follows: Related Work is presented in Section
-\ref{sec:relWork}. In the sections \ref{sec:secondo} - \ref{sec:bmodb} we give
-short reviews of the underlying \secondo{} DBMS (Section \ref{sec:secondo}), the two data
-models (SPACE Section \ref{sec:bmodbdatamod} and NET Section \ref{sec:netdatamod})
-we choose for our comparison, and the \bmodb{} (Section \ref{sec:bmodb}).
-In Section \ref{sec:implNDM} we give some information about our NET implementation,
-the used operations and indexes.
+\ref{sec:relWork}, including short reviews of the underlying \secondo{} DBMS
+(Section \ref{sec:secondo}), the two data models (SPACE Section \ref{sec:bmodbdatamod}
+and NET Section \ref{sec:netdatamod}) we chosed for our comparison, and the
+\bmodb{} (Section \ref{sec:bmodb}).
+In Section \ref{sec:implNDM} we give some informations about our implementation
+of NET, the used operations and indexes.
 The translation of the \bmodb{} data and query set into the NET representation
 is described in Section \ref{sec:Translation}. The resulting experimental benchmark
 setup is described in Section \ref{sec:scenario} followed by the results of our
@@ -114,91 +116,117 @@ experiments in Section \ref{sec:results}. We conclude our work in Section \ref{s
 \label{sec:relWork}
 In the past many different spatio-temporal data models have been presented. Many
 of them support only discrete spatio-temporal changes
-\cite{sqlstchen,Ramadrachan,Langran1,Langran2,HunterWilliamson}
+\cite{sqlstchen,HunterWilliamson,Langran2,Langran1,Ramadrachan}
 or deal only with current and future positions of continuously moving objects
-\cite{MOSTWolfson}. In this paper we will focus on spatio-temporal data models
-for complete histories of continuously moving objects.
+\cite{MOSTWolfson}. Reviews of several different spatio-temporal data models are
+given in \cite{ReviewSTDMPelekis}. In this paper we will focus on spatio-temporal
+data models for complete histories of continuously moving objects. These can be
+categorized into data models for objects moving freely in two dimensional space
+(DMFS) and data models for network constrained moving objects (NCDM).
+
+We will start with a few DMFS. \cite{MOLRaQSu} proposes the basic ideas of an
+DMFS based on differential geometry and the linear constraints approach of modeling
+spatial and spatio-temporal data. Spatial and spatio-temporal objects
+are defined by linear constraints, and the queries use formulas from differential
+geometry. The paper proposes only an incomplete abstract model without any usability.
+
+\cite{STAUPelekis} and \cite{RepresentingMovingObjectsGueting,DataModelDataStructureGueting}
+use both the idea of time sliced representation of moving objects first presented
+in \cite{RepresentingMovingObjectsGueting}. \cite{DataModelDataStructureGueting}
+supports only linear interpolation of movement, whereas \cite{STAUPelekis} also
+supports arc interpolation. \cite{STAUPelekis} uses only one spatial
+object containing all spatial geometries and one moving object for the
+representation of the different moving object data types, whereas
+\cite{RepresentingMovingObjectsGueting,DataModelDataStructureGueting} uses different
+spatial and moving objects for the representation of the different
+data types. Therefore \cite{STAUPelekis} provides only a single operator that
+distinguishes between the different topological relationships via a parameter,
+whereas \cite{RepresentingMovingObjectsGueting,DataModelDataStructureGueting}
+uses different operations to estimate topological relationships. Alltogether
+\cite{STAUPelekis} offers a more flexible object oriented design than
+\cite{RepresentingMovingObjectsGueting,DataModelDataStructureGueting}.
+
+The spatio-temporal framework proposed by
+\cite{DataModelDataStructureGueting,RepresentingMovingObjectsGueting} is extended
+by \cite{NetworkGueting} to be also usable in network constrained environments.
+Similar to the most other NCDM in this section \cite{NetworkGueting} depends on
+a fixed network representation. That means that the old network informations are lost when a
+update of the network data structure occurs. Only \cite{DynamicTransportNetworkDing}
+can handle such updates without loss of information.
+
+\cite{NetworkVazirgiannis} proposes an edge based NCDM. With an relation holding
+the edges and their attributes. The edge relation represents a undirected graph.
+Moving objects are assumed to drive always on the path with the lowest cost
+(distance or travel-time) from the source to the target point from a given
+starting time. The trajectory is computed by this assumptation using the length
+and speed attributes of the graph edges within the shortest / fastest path computation.
+These assumptions will not always hold in real world environments. Such that the
+moving object representation does not suffice real world requirements.
+
+\cite{NetworkJensen} uses also an edge based network representation. The paper
+proposes a combination of an 2D geometrical edge representation with an directed
+graph representation of the network. Where as the 2D geometrical representation
+handles the spatial information the connectivity information is mostly embedded
+in the directed graph representation. The both representations are connected by
+transition policies. Moving objects are represented by sets of 5 tuples. Each
+5 tuple contains an edge identifier, the position of moving point on the edge
+in terms of weight and length, the speed and direction of the movement, and
+the time instant of this information.
+
+Different from all other NCDM in this section \cite{DynamicTransportNetworkDing}
+proposes a dynamic transportation network model. This means that the attributes
+of the network parts are modelled by time depending dynamic attributes, such that
+changes in the network environment can be handled without loss of information.
+Similar to \cite{NetworkGueting} the idea of the network model bases
+on routes and junctions. The authors propose a two-layer network representation
+data structure, which combines the advantages of dynamic edge based
+\cite{DynNetworkModEdgeGueting} and route based \cite{DynNetworkModRouteGueting}
+NCDM approach. The route based environment reduces the update intervals and
+used storage space for moving objects, whereas the edge-based envirionment supports
+a more detailed view on the traffic conditions of the different edges belonging
+to the same route. Moving objects are represented by a set of pairs of
+motion vectors together with a boolean flag telling if the motion vector contains
+actual or historical information. Each motion vector consists, in parts
+similar to \cite{NetworkJensen}, of a time stamp, a network position, and a speed vector.
 
 To the best of our knowledge only a few of these data models have been completely
 implemented into different database management systems:
 \begin{enumerate}
-  \item HERMES \cite{HERMESMDCPelekis, HERMESPelekis} is implemented as data
-cartridge for the commercial Oracle\textregistered ORDBMS \cite{Oracle}. The
-used data model is the DMFS STAU \cite{STAUPelekis}.
-  \item The Dynamic Transportation Network \cite{DynamicTransportNetworkDing} is
-a NCDM implemented in the open source database project PostgreSQL \cite{PostgreSQL}.
-  \item In the freely available \secondo{} DBMS \cite{SecondoPlatformPrototypingGueting}
-two spatio-temporal data models have been implemented.
-\cite{RepresentingMovingObjectsGueting,DataModelDataStructureGueting}
-as DMFS and \cite{NetworkGueting} as NCDM.
+  \item \cite{STAUPelekis} is implemented as data cartridge \cite{HERMESMDCPelekis,
+HERMESPelekis} for the commercial Oracle\textregistered ORDBMS \cite{ORACLE}.
+  \item \cite{DynamicTransportNetworkDing} is implemented as extension of the
+open source database project PostgreSQL \cite{PostgreSQL}.
+  \item \cite{RepresentingMovingObjectsGueting,DataModelDataStructureGueting}
+and \cite{NetworkGueting} are implemented in the freely available extensible
+\secondo{} DBMS \cite{SecondoPlatformPrototypingGueting}.
 \end{enumerate}
 
-Because \secondo{} provides a data model for each of our catgories we use \secondo{}
-and the provided data models. Although the data model of HERMES provides more
-capabilities than SPACE.
-Both data models use the basic idea of a sliced representation for moving objects
-introduced by \cite{RepresentingMovingObjectsGueting,DataModelDataStructureGueting}.
-The implementation of the sliced representation in SPACE supports only linear
-interpolation, whereas HERMES arc interpolation is also supported. Both data
-models support time varying geometries, which change their positions and / or
-extent in space and time dimension. HERMES supports discret and continuous
-changes, whereas SPACE only supports continuously moving objects. HERMES uses
-one spatial object for different spatial geometries, whereas SPACE
-uses different spatial objects for the different spatial geometries.
-The same holds for operations on topological relationships. SPACE
-uses different operations, whereas HERMES only provides a single operator which
-distinguishes between the different topological relationships via a ``mask'' parameter.
+Although \cite{STAUPelekis} for the DMFS and \cite{DynamicTransportNetworkDing} for
+the NCDM provide greater flexibility we decided to use
+\cite{RepresentingMovingObjectsGueting,DataModelDataStructureGueting}
+and \cite{NetworkGueting} in our experiments, because both are available in the
+freely available \secondo{} DBMS. And not at least \secondo{} is the DBMS with
+which the \bmodb{} \cite{BerlinMODVLDBDuentgen} was developed.
 
-Although HERMES provides a greater flexibility we decided to use SPACE in our
-experiments, because the \secondo{} DBMS provides besides
-the SPACE data model a NCDM \cite{NetworkGueting} (see Section \ref{sec:netdatamod}),
-and with the \bmodb{} \cite{BMODBVLDBDuentgen} (see \ref{sec:bmodb})
-to the best of our knowledge the first benchmark for complete spatio-temporal
-database systems.
+Other benchmarks for spatio-temporal databases provide only well defined
+query sets \cite{QueriesTheordoridis} and a database description without data.
+Or they come with well defined data generation, workload sets and experiments but
+only to evaluate the capabilities of indexes for current and near future positions
+\cite{COSTBenchmarkJensen}. Or they focus on time-evolving regional data and associated
+index methods like \cite{BenchmarkTzouramanis}.
 
+The \bmodb{} is to the best of our knowledge the only benchmark testing the capabilities
+of complete spatio-temporal database systems. Coming with well defined data and
+query sets feasible for moving objects in space and network constrained moving objects.
 
-
-
-Other existing benchmarks \cite{COSTBenchmarkJensen,QueriesTheodoridis}
-
-
-like \cite{RepresentingMovingObjectsGueting,DataModelDataStructureGueting,STAUPelekis,HERMESMDCPelekis}
-and data models dealing with network constrained moving objects (NCDM) like \cite{NetworkGueting,NetworkJensen,NetworkVazirgiannis,DynamicTransportationNetworkDing}.
-
-and \cite{NetworkGueting} as NCDM. Therefore we describe these data models
-in the sections \ref{sec:bmodbdatamod} - \ref{sec:netdatamod} in more detail.
-
-
-\cite{RepresentingMovingObjectsGueting,DataModelDataStructureGueting,NetworkGueting,NetworkJensen,NetworkVazirgiannis,DynamicTransportationNetworkDing},As mentioned before we can categorize spatio-temporal data models into
-data models dealing with current and future positions of moving objects,
-data models dealing with complete histories of moving objects, and data models
-dealing with past, current and future positions of moving objects. We will focus
-on data models dealing with complete histories of moving objects, like \cite{STAUPelekis,HERMESMDCPelekis,RepresentingMovingObjectsGueting,DataModelDataStructureGueting,NetworkGueting,NetworkJensen,NetworkVazirgiannis,DynamicTransportationNetworkDing}, to name just a few.
-
-
-DMFS\cite{STAUPelekis,HERMESPelekis,RepresentingMovingObjectsGueting,DataModelDataStructureGueting,sqlstchen}
-
-
-NCDM\cite{NetworkGueting,NetworkJensen,NetworkVazirgiannis,DynamicTransportationNetworkDing}.
-
-
-
-Also, there are some more
-benchmarks \cite{COSTBenchmarkJensen,QueriesTheodoridis} and database systems for
-spatio-temporal data types \cite{SecondoPlatformPrototypingGueting,HERMESPelekis}. But to the best of our
-knowledge they do not provide a combination of different implemented
-and supported data models together with an existing benchmark feasible for moving
-objects in space and network constrained moving objects like the current \secondo{} DBMS.
-So it is natural for us to use the \secondo{} DBMS in combination with the provided
-data models and the \bmodb{} to compare the capabilities of the two data models.
-
-In the next sections we give short reviews of the \secondo{} database system
+In the next sequel we give short reviews of the \secondo{} database system
 (Section \ref{sec:secondo}), the both data models (Section \ref{sec:bmodbdatamod},
 Section \ref{sec:netdatamod}) we used in our experiments, and the \bmodb{}
 (Section \ref{sec:bmodb}).
-\section{\secondo{} DBMS}
+\subsection{\secondo{} DBMS}
 \label{sec:secondo}
-The extensible \secondo{} DBMS presented in \cite{SecondoEnvironmentDieker,SecondoPlatformPrototypingGueting} provides a
+The extensible \secondo{} DBMS presented in
+\cite{SecondoEnvironmentDieker,SecondoPlatformPrototypingGueting} provides a
 platform for implementing various kinds of data models. It provides a clean
 interface between the data model independent system frame and the content of the
 single data models. Hence \secondo{} can be easily extended by the user
@@ -206,33 +234,61 @@ implementing algebra modules to introduce new data types and operations on
 these data types. The user may define additional viewers for the graphical user
 interface or write additional optimization rules or cost functions to extend the
 the optimizer. Since \secondo{} version 2.9 the users may publish their extensions
-as a \secondo{} plugin such that other users can use this plugin to extend their own
+as a \secondo{} plugin such that other users can use these plugins to extend their own
 \secondo{} system. They may use the newly provided functionalities or repeat the
 published experiments. \secondo{} is freely available on the web \cite{secondoweb}.
 It comes with a number of already implemented spatial and spatio-temporal data types
-and operations including the DMFS (Section \ref{sec:bmodbdatamod}) and the NDM
+and operations including the DMFS (Section \ref{sec:bmodbdatamod}) and the NCDM
 (Section \ref{sec:netdatamod}) used in this paper. Furthermore, the \bmodb{}
 described in Section \ref{sec:bmodb} has been developed in the \secondo{} DBMS.
 For our experiments we used the \secondo{} version \secver{}.
-\section{Data Model of Free Movement in Two Dimensional Space(SPACE)}
+\subsection{Data Model of Free Movement in Two Dimensional Space}
 \label{sec:bmodbdatamod}
-The data model used by the \bmodb{} is the DMFS presented in \cite{STDTModelingQueryingMOinDErwig,DataModelDataStructureGueting,RepresentingMovingObjectsGueting}.
-Spatial positions are assumed to be located in a two dimensional space.
+\cite{STDTModelingQueryingMOinDErwig} presents the basic idea of the new
+spatio-temporal data model that we will use as DMFS in our experiments. Besides
+the general idea it discusses related work and the advantages of having abstract
+and discrete data models. Abstract data models allow us to make definitions
+in terms of infinite sets, without worrying whether finite representations exist.
+They are useful as conceptual model, but they cannot be implemented, because computers
+can only use finite sets. Data structures and algorithms have to work with finite
+representations of the data types. Therefore we also need a discrete algebra
+representation. The abstract definition of our data model has been published in
+\cite{RepresentingMovingObjectsGueting}, whereas an associated discrete data
+model was presented in \cite{DataModelDataStructureGueting}.
 
-A single spatial
-position is represented by the data type \dt{point}. A \dt{point} consists of a pair of
-\dt{real} values interpreted as x,y-coordinates in the assumed two dimensional plane.
+The type system in \cite{RepresentingMovingObjectsGueting} is defined using the
+techniques presented in \cite{SecondOrderSignatureGueting}. The basic idea of
+\cite{RepresentingMovingObjectsGueting} is to define type constructors
+that create new data types if they are applied to an data type of a given set of
+basic data types.
+Basic data types are the standard data types like integer, real, string and Boolean (BASE);
+the spatial data types point, points, line, and region (SPATIAL);
+and the temporal type instant (TIME).
 
-Streets are represented by \dt{line} values. A \dt{line} value consists of a set
-of \dt{HalfSegment}s representing the geometry of the line in the two dimensional space.
-Each \dt{HalfSegment} consists of two \dt{point} values and a Boolean flag telling us
-if the left or the right point is the dominating point of the \dt{HalfSegment}.
+The data types of BASE are defined as usual. The SPATIAL data types are defined
+by different carrier sets in the abstract and the disrete level.
 
-Regions are represented by the data type \dt{region}. A \dt{region} consists of
-a set of \dt{HalfSegment}s defining the outer border of the region in
-the two dimensional space. If a region contains wholes the inner border is also
-formed by the \dt{HalfSegment}s.
+In the abstract data model the carrier set of a point is $\mathbb{R}^2 \cup \{ \perp \}$.
+In the discret data model the carrier set of a point is $\{ real \times real \} \cup \{ \perp \}$,
+whereas the two $real$ values are interpreted as x,y-coordinates of a point in the
+two dimensional plane.
 
+In the abstract data model line and region are subsets of the set of point that
+fullfill several conditions. In the discret data model a \dt{line} is a linear
+approximation of the curve of the line by a finite set of line segments in the plane.
+Regions are represented by a set of segments representing a linear approximation
+of the region borders by polygons in the discrete data model.
+
+
+The two most important type constructors are $moving$ and $range$. $Moving$
+maps each type $\alpha$ from BASE and SPATIAL into an time dependend spatio-temporal
+moving data type $moving$($\alpha$) (TEMPORAL), whereas $range$ is applicable to
+BASE and TEMPORAL type $\beta$ and produces range data types $range$($\beta$).
+
+
+
+In the abstract data model a time instant is a point in time or undefined, whereas
+the carrier set for instant is $\mathbb{R} \cup \{ \perp \}$.
 In \secondo{} all these spatial data types and many standard data types can be
 ''lifted'' to become time dependent \dt{moving} values. For all data types \dt{$\alpha$}
 the constructor \dt{moving} creates a new data type \dt{moving}(\dt{$\alpha$})
@@ -290,7 +346,7 @@ of time representing the \dt{real} value at each time instant.\\
 \label{tab:bmodbdatatypes}
 \end{center}
 \end{table}
-\section{Network Data Model(NET)}
+\subsection{Network Data Model(NET)}
 \label{sec:netdatamod}
 The central idea of the NDM presented in \cite{NetworkGueting} is that
 every movement is constrained by a given network and every position can be described
@@ -422,7 +478,7 @@ the bounding box of an \dt{mpoint} at the translation time into an \dt{mgpoint}
 without big computational costs. The bounding box attribute is not maintained. If
 the \dt{mgpoint} value changes, the bounding box attribute is set to be undefined
 until recomputing is necessary.
-\section{BerlinMOD Benchmark}
+\subsection{BerlinMOD Benchmark}
 \label{sec:bmodb}
 The \bmodb{} was presented in \cite{BerlinMODVLDB} and the
 provided scripts for the data generator are implemented as \secondo{} DBMS operations.

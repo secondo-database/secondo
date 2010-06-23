@@ -9,10 +9,6 @@
 # Last Change Dec. 2004, T.Behr
 #
 
-
-
-
-
 FILES = PaperBerlinMODAndNetworkDataModel
 
 DEPFILES = makefile

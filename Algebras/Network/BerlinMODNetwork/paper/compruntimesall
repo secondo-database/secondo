@@ -1,5 +1,5 @@
 set terminal postscript default
-set terminal postscript eps monochrome size 7,5
+set terminal postscript eps monochrome size 6,6
 set output 'compruntimesall.eps'
 reset
 set bar 1.000000
