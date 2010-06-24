@@ -505,12 +505,12 @@ ListExpr insertSaveRelTypeMap( ListExpr args )
                         nl->TwoElemList(
                           nl->SymbolAtom("TID"),
                           nl->SymbolAtom("tid")));
-  
+
   if(!nl->Equal(listn, nl->Second(nl->Second(third)))){
     return listutils::typeError("tuple type of the third argument must equal "
               "to the tuple type of the first arguments with an additional "
               "tid as last attribute");
-        
+
   }
   outList = nl->TwoElemList(nl->SymbolAtom("stream"),
             nl->TwoElemList(nl->SymbolAtom("tuple"),listn));
@@ -998,7 +998,7 @@ ListExpr deleteSaveRelTypeMap( ListExpr& args, string opName )
     return listutils::typeError("second argument has to be of type rel "
                                 "or orel");
   }
-  
+
   if(!listutils::isRelDescription(third)){
     return listutils::typeError("third argument must be a relation");
   }
@@ -1021,7 +1021,7 @@ ListExpr deleteSaveRelTypeMap( ListExpr& args, string opName )
                          nl->TwoElemList(
                            nl->SymbolAtom("TID"),
                            nl->SymbolAtom("tid")));
-  
+
   if(!nl->Equal(listn,nl->Second(nl->Second(third)))){
     return listutils::typeError("attribute list of the third argument "
             "must be equal to the attribute list of the first element "
@@ -1412,7 +1412,7 @@ ListExpr insertTupleTypeMap(ListExpr args)
 
   first = nl->First(args);
   second = nl->Second(args);
-  
+
   if(!listutils::isRelDescription(first) &&
     !listutils::isOrelDescription(first)){
     return listutils::typeError("rel or orel as first arg expected");
@@ -1423,8 +1423,8 @@ ListExpr insertTupleTypeMap(ListExpr args)
   }
   if(nl->ListLength(nl->Second(nl->Second(first)))!=nl->ListLength(second)){
     return listutils::typeError("different lengths in tuple and update");
-  } 
- 
+  }
+
   rest = nl->Second(nl->Second(first));
   rest2 = second;
   while (!(nl->IsEmpty(rest)))
@@ -1495,7 +1495,7 @@ int insertTupleRelValueMap(Word* args, Word& result, int message,
         relation = (GenericRelation*)(args[0].addr);
         assert(relation != 0);
         resultTuple = new Tuple( resultTupleType );
-        
+
         rest = nl->Second(nl->Second(resultType));
         insertType = nl->OneElemList(nl->First(rest));
         last = insertType;
@@ -1506,7 +1506,7 @@ int insertTupleRelValueMap(Word* args, Word& result, int message,
         }
         insertType = nl->TwoElemList(nl->SymbolAtom("tuple"),
                                      insertType);
-        
+
         insertTupleType = new TupleType( insertType );
         insertTuple = new Tuple( insertTupleType );
         supplier = args[1].addr;
@@ -1659,7 +1659,7 @@ ListExpr insertTupleSaveTypeMap(ListExpr args)
     return listutils::typeError("second argument must be a relation having "
               " the same attributes as the first relation and an additional "
               " tid attribute ");
-                                 
+
   }
   outList = nl->TwoElemList(nl->SymbolAtom("stream"),
             nl->TwoElemList(nl->SymbolAtom("tuple"),listn));
@@ -1709,7 +1709,7 @@ int insertTupleSaveRelValueMap(Word* args, Word& result,
         auxRelation = (Relation*)(args[1].addr);
         assert(auxRelation != 0);
         resultTuple = new Tuple( resultTupleType );
-        
+
         rest = nl->Second(nl->Second(resultType));
         insertType = nl->OneElemList(nl->First(rest));
         last = insertType;
@@ -1720,7 +1720,7 @@ int insertTupleSaveRelValueMap(Word* args, Word& result,
         }
         insertType = nl->TwoElemList(nl->SymbolAtom("tuple"),
                                      insertType);
-        
+
         insertTupleType = new TupleType( insertType );
         insertTuple = new Tuple( insertTupleType );
         supplier = args[2].addr;
@@ -1835,13 +1835,13 @@ ListExpr updateTypeMap( ListExpr& args, string opName )
   if(!listutils::isTupleStream(first)){
     return listutils::typeError("tuple stream expected");
   }
-  
+
   if(!listutils::isRelDescription(second) &&
     !listutils::isOrelDescription(second)){
     return listutils::typeError("second argument must be a relation");
   }
 
-  if(!nl->Equal(nl->Second(nl->Second(first)), 
+  if(!nl->Equal(nl->Second(nl->Second(first)),
                 nl->Second(nl->Second(second)))){
     return listutils::typeError("tuple types of first and second arg  differ");
   }
@@ -1871,7 +1871,7 @@ ListExpr updateTypeMap( ListExpr& args, string opName )
     // Is the name of the attribute that shall be computed by the
     // function a valid name
     if(!listutils::isSymbol(first2)){
-      return listutils::typeError("not a valid attribute name:" + 
+      return listutils::typeError("not a valid attribute name:" +
                                   nl->ToString(first2));
     }
     nl->WriteToString(argstr, first2);
@@ -2606,14 +2606,14 @@ int UpdateDirectSave(Word* args, Word& result, int message,
 
         // copy new attribute values into auxTuple
         Tuple *auxTuple = new Tuple( auxRelation->GetTupleType() );
-	cout << "tup:" << *tup << endl;
-	cout << "new:" << *newTuple << endl;
+// 	cout << "tup:" << *tup << endl;
+// 	cout << "new:" << *newTuple << endl;
 
         for (int i=0; i< auxTuple->GetNoAttributes() - 1; i++){
             auxTuple->CopyAttribute( i, newTuple, i);
         }
 	auxTuple->PutAttribute(auxTuple->GetNoAttributes()-1, tidAttr->Copy());
-	cout << "aux:" << *auxTuple << endl;
+// 	cout << "aux:" << *auxTuple << endl;
 
         auxRelation->AppendTuple(auxTuple);
         auxTuple->DeleteIfAllowed();
@@ -2731,15 +2731,15 @@ int UpdateSearchSave(Word* args, Word& result, int message,
   {
 
     LocalTransport(size_t bucks = 997 ):
-    buckets(bucks),	
+    buckets(bucks),
     updatedTuples( new Bucket() ),
     hashTable( new vector<Bucket*>(buckets) ),
     resultTupleType( 0 )
     {
-      vector<Bucket*>::iterator i = hashTable->begin();	    
+      vector<Bucket*>::iterator i = hashTable->begin();
       for (; i != hashTable->end(); i++) {
         *i = new Bucket();
-      }	
+      }
     }
 
     ~LocalTransport()
@@ -2752,7 +2752,7 @@ int UpdateSearchSave(Word* args, Word& result, int message,
       }
       delete updatedTuples;
 
-      vector<Bucket*>::iterator i = hashTable->begin();	    
+      vector<Bucket*>::iterator i = hashTable->begin();
       for (; i != hashTable->end(); i++)
       {
         for( Bucket::iterator j = (*i)->begin();
@@ -2768,22 +2768,22 @@ int UpdateSearchSave(Word* args, Word& result, int message,
       resultTupleType->DeleteIfAllowed();
     }
 
-    inline Bucket* getBucket(size_t hashvalue) 
+    inline Bucket* getBucket(size_t hashvalue)
     {
       return (*hashTable)[hashvalue % buckets];
-    }	    
+    }
 
-    inline void newUpdate(Tuple* t) 
+    inline void newUpdate(Tuple* t)
     {
       t->IncReference();
       updatedTuples->push_back(t);
-    }	    
+    }
 
     inline Tuple* lastUpdate()
-    {	    
+    {
       if ( updatedTuples->empty() ) {
         return 0;
-      }       
+      }
 
       Tuple* t = updatedTuples->back();
       t->DeleteIfAllowed();
@@ -2794,12 +2794,12 @@ int UpdateSearchSave(Word* args, Word& result, int message,
 
     private: size_t buckets;
 
-    public:	     
+    public:
     Bucket* updatedTuples;
     vector<Bucket*>* hashTable;
     TupleType* resultTupleType;
   };
- 
+
   LocalTransport* localTransport;
   size_t hashValue ;
   bool tupleFound;
@@ -2863,7 +2863,7 @@ int UpdateSearchSave(Word* args, Word& result, int message,
         qp->Request(args[0].addr,t);
         if (qp->Received(args[0].addr))
         {
-	  // process a tuple of the input stream	
+	  // process a tuple of the input stream
           tup = (Tuple*)t.addr;
           hashValue = 0;
           for( int i = 0; i < tup->GetNoAttributes(); i++ )
@@ -2875,7 +2875,7 @@ int UpdateSearchSave(Word* args, Word& result, int message,
             full.push_back(pair<int,bool> (i+1,false));
           TupleCompareBy compare(full);
 
-          // look up the hash table for the correct bucket 
+          // look up the hash table for the correct bucket
           nextBucket =
             localTransport->getBucket(hashValue);
 
@@ -2965,12 +2965,12 @@ int UpdateSearchSave(Word* args, Word& result, int message,
         else {
 	  // if (qp->Received(args[0].addr))
           return CANCEL;
-	}  
+	}
       }// while ( !tupleFound );
       return YIELD;
 
     } // case REQUEST
-   	
+
     case CLOSE :
 
       qp->Close(args[0].addr);
@@ -3359,7 +3359,7 @@ ListExpr updateByIdTypeMap(ListExpr args)
   }
 
   if(nl->ListLength(third<1)){
-   return listutils::typeError("non-empty function list expected " 
+   return listutils::typeError("non-empty function list expected "
                                "as third arg");
   }
   rest = third;
@@ -3383,7 +3383,7 @@ ListExpr updateByIdTypeMap(ListExpr args)
     }
 
     if(!listutils::isSymbol(first2)){
-      return listutils::typeError("invalid attribute name " + 
+      return listutils::typeError("invalid attribute name " +
                                   nl->ToString(first2));
     }
     nl->WriteToString(argstr, first2);
@@ -3391,7 +3391,7 @@ ListExpr updateByIdTypeMap(ListExpr args)
                               argstr, attrType);
     if(attrIndex==0){
       return listutils::typeError("attribute " + argstr + " not known");
-    } 
+    }
     if(!nl->Equal(attrType,nl->Third(second2))){
       return listutils::typeError("attribute type and result type"
                                   " of the function differ");
@@ -3629,7 +3629,7 @@ Type mapping ~updatertree~ on a rtree
 
 ListExpr allUpdatesRTreeTypeMap( ListExpr& args, string opName )
 {
-  
+
 
    ListExpr rest,next,listn,lastlistn,restRTreeAttrs,
            oldAttribute,outList;
@@ -3658,7 +3658,7 @@ ListExpr allUpdatesRTreeTypeMap( ListExpr& args, string opName )
   }
   if(!listutils::isSymbol(nl->Second(next),"tid")){
     return listutils::typeError("last attribute in the tuple must be a tid");
-  }  
+  }
 
   if(!listutils::isRTreeDescription(rtreeDescription)){
     return listutils::typeError("second argument is not an rtree");
@@ -3670,7 +3670,7 @@ ListExpr allUpdatesRTreeTypeMap( ListExpr& args, string opName )
   ListExpr rtreeTupleDescription = nl->Second(rtreeDescription);
   ListExpr rtreeKeyType = nl->Third(rtreeDescription);
   ListExpr rtreeType = nl->Fourth(rtreeDescription);
-  
+
   ListExpr rtreeAttrList = nl->Second(rtreeTupleDescription);
 
   /* handle rtree type constructor */
@@ -3699,7 +3699,7 @@ ListExpr allUpdatesRTreeTypeMap( ListExpr& args, string opName )
     return listutils::typeError("at least two attributes"
                                 " required in tuple stream");
   }
-  
+
   //Test if stream-tupledescription fits to btree-tupledescription
   listn = nl->OneElemList(nl->First(rest));
   lastlistn = listn;
@@ -3715,7 +3715,7 @@ ListExpr allUpdatesRTreeTypeMap( ListExpr& args, string opName )
       lastlistn = nl->Append(lastlistn,nl->First(rest));
       rest = nl->Rest(rest);
     }
-    
+
     if(!nl->Equal(listn,rtreeAttrList)){
       return listutils::typeError("tuple descriprions differ");
     }
@@ -3753,7 +3753,7 @@ ListExpr allUpdatesRTreeTypeMap( ListExpr& args, string opName )
       rest = nl->Rest(rest);
     }
     if(!nl->Equal(listn,rtreeAttrList)){
-      return listutils::typeError( 
+      return listutils::typeError(
                         " tupledescription of the stream without the"
                         "last attribute has to be the same as the "
                         "tupledescription of the rtree");
@@ -3773,7 +3773,7 @@ ListExpr allUpdatesRTreeTypeMap( ListExpr& args, string opName )
   if(!nl->Equal(attrType,rtreeKeyType)){
     return listutils::typeError("attribute type in rtree and relation differ");
   }
-  
+
   // Check if indexed attribute has a spatial-type
   if( !listutils::isKind(attrType,"SPATIAL2D") &&
       !listutils::isKind(attrType,"SPATIAL3D") &&

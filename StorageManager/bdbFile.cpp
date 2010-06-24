@@ -164,12 +164,12 @@ SmiFile::Implementation::CheckDbHandles() {
 
 
 SmiFile::SmiFile( const bool isTemporary /* = false */)
-  : opened( false ), 
-    fileContext( "" ), 
-    fileName( "" ), 
+  : opened( false ),
+    fileContext( "" ),
+    fileName( "" ),
     fileId( 0 ),
-    fixedRecordLength( 0 ), 
-    uniqueKeys( true ), 
+    fixedRecordLength( 0 ),
+    uniqueKeys( true ),
     keyDataType( SmiKey::Unknown )
 {
   trace = RTFlag::isActive("SMI:traceHandles") ? true : false;
@@ -185,13 +185,13 @@ SmiFile::SmiFile( const bool isTemporary /* = false */)
 }
 
 
-SmiFile::SmiFile( const SmiFile& f) 
-  : opened( f.opened ), 
-    fileContext( f.fileContext ), 
-    fileName( f.fileName ), 
+SmiFile::SmiFile( const SmiFile& f)
+  : opened( f.opened ),
+    fileContext( f.fileContext ),
+    fileName( f.fileName ),
     fileId( f.fileId ),
-    fixedRecordLength( f.fixedRecordLength ), 
-    uniqueKeys( f.uniqueKeys ), 
+    fixedRecordLength( f.fixedRecordLength ),
+    uniqueKeys( f.uniqueKeys ),
     keyDataType( f.keyDataType )
 {
   trace = RTFlag::isActive("SMI:traceHandles") ? true : false;
@@ -200,7 +200,7 @@ SmiFile::SmiFile( const SmiFile& f)
   // SPM: What should we do here deep copy or copy by
   // reference?
   impl = f.impl;
-  
+
   /*
   if ( !isTemporary )
   {
@@ -250,7 +250,7 @@ SmiFile::CheckName( const string& name )
 
 bool
 SmiFile::Create( const string& name,
-		 const string& context /* = "Default" */, 
+		 const string& context /* = "Default" */,
 		 const uint16_t ps /* = 0 */,
      const bool keepId /*=false*/ )
 {
@@ -272,7 +272,7 @@ SmiFile::Create( const string& name,
         bdbName = SmiEnvironment::
 	             Implementation::ConstructFileName( fileId,
                                                         impl->isTemporaryFile );
-      }	
+      }
 
       impl->bdbName = bdbName;
       fileName = bdbName;
@@ -324,20 +324,20 @@ SmiFile::Create( const string& name,
       u_int32_t pagesize = 0;
       if (ps > 0) {
         pagesize = ps;
-      } else {	  
+      } else {
         pagesize = SmiProfile::GetParameter( context, "PageSize", 0,
                                              SmiEnvironment::configFile );
-      } 	
+      }
 
       if ( pagesize > 0 )
       {
           rc = impl->bdbFile->set_pagesize( pagesize );
           SmiEnvironment::SetBDBError(rc);
 
-          cout << "Setting page size for SmiFile to "
-               << pagesize << " !" << endl;
+//           cout << "Setting page size for SmiFile to "
+//                << pagesize << " !" << endl;
       }
-     
+
 
       // --- Open Berkeley DB file
 
@@ -346,7 +346,7 @@ SmiFile::Create( const string& name,
       DbTxn* tid = !impl->isTemporaryFile ?
                     SmiEnvironment::instance.impl->usrTxn : 0;
       if(tid){
-        commitFlag=0;    
+        commitFlag=0;
       }
       u_int32_t flags = (!impl->isTemporaryFile) ?
                            DB_CREATE | dirtyFlag | commitFlag : DB_CREATE;
@@ -386,7 +386,7 @@ SmiFile::Create( const string& name,
 
 
 bool
-SmiFile::Create( const string& context /* = "Default" */, 
+SmiFile::Create( const string& context /* = "Default" */,
 		 const uint16_t ps /* = 0 */ )
 {
   return Create("", context, ps);
@@ -442,12 +442,12 @@ SmiFile::Open( const string& name, const string& context /* = "Default" */ )
 {
   if(opened){
     cerr << "try to open an open  file: " << (*this) << endl;
-    return true; 
-  }  
+    return true;
+  }
   static long& ctr = Counter::getRef("SmiFile::Open");
   int rc = 0;
   bool existing = false;
-  //impl->CheckDbHandles(); // allocating dbhandles moved 
+  //impl->CheckDbHandles(); // allocating dbhandles moved
 
   if ( impl->isTemporaryFile )
   {
@@ -460,7 +460,7 @@ SmiFile::Open( const string& name, const string& context /* = "Default" */ )
     string newName = context + '.' + name;
 
     if ( SmiEnvironment::Implementation::LookUpCatalog( newName, entry ) )
-    {	    
+    {
       // --- File found in permanent file catalog
       fileId = entry.fileId;
       existing = true;
@@ -497,11 +497,11 @@ SmiFile::Open( const string& name, const string& context /* = "Default" */ )
       DbTxn* tid = !impl->isTemporaryFile ?
                     SmiEnvironment::instance.impl->usrTxn : 0;
       if(tid){
-        commitFlag=0;    
+        commitFlag=0;
       }
       u_int32_t openFlags = DB_CREATE | dirtyFlag | commitFlag;
 
-      int alreadyExisting = 
+      int alreadyExisting =
           SmiEnvironment::Implementation::FindOpen(fileName,openFlags);
       if(alreadyExisting>=0){
          DbHandleIndex old = impl->bdbHandle;
@@ -509,7 +509,7 @@ SmiFile::Open( const string& name, const string& context /* = "Default" */ )
              SmiEnvironment::Implementation::SetUnUsed(old);
          }
          impl->bdbHandle = alreadyExisting;
-         impl->bdbFile = 
+         impl->bdbFile =
                SmiEnvironment::Implementation::GetDbHandle(impl->bdbHandle);
          SmiEnvironment::Implementation::SetUsed(impl->bdbHandle);
          opened = true;
@@ -647,8 +647,8 @@ SmiFile::Open( const SmiFileId fileid, const string& context /* = "Default" */ )
     }
     else if ( SmiEnvironment::Implementation::LookUpCatalog( fileid, entry ) )
     {
-      // SPM: should never work!	    
-      assert(false);	    
+      // SPM: should never work!
+      assert(false);
       // --- File found in permanent file catalog
       char* point = strchr( entry.fileName, '.' );
       *point = '\0';
@@ -657,7 +657,7 @@ SmiFile::Open( const SmiFileId fileid, const string& context /* = "Default" */ )
     }
     else
     {
-      //cerr << "INFO: fileId not found in fileCatalog" << endl; 
+      //cerr << "INFO: fileId not found in fileCatalog" << endl;
       fileContext = context;
       fileName    = "";
     }
@@ -676,12 +676,12 @@ SmiFile::Open( const SmiFileId fileid, const string& context /* = "Default" */ )
       DbTxn* tid = !impl->isTemporaryFile ?
                     SmiEnvironment::instance.impl->usrTxn : 0;
       if(tid){
-        commitFlag=0;    
+        commitFlag=0;
       }
       u_int32_t flags = (!impl->isTemporaryFile) ?
                             dirtyFlag | commitFlag : 0;
 
-      int alreadyExist = 
+      int alreadyExist =
           SmiEnvironment::Implementation::FindOpen(bdbName,flags);
       if(alreadyExist>=0){
 
@@ -694,14 +694,14 @@ SmiFile::Open( const SmiFileId fileid, const string& context /* = "Default" */ )
              SmiEnvironment::Implementation::SetUnUsed(old);
          }
          impl->bdbHandle = alreadyExist;
-         impl->bdbFile = 
+         impl->bdbFile =
                SmiEnvironment::Implementation::GetDbHandle(impl->bdbHandle);
          SmiEnvironment::Implementation::SetUsed(impl->bdbHandle);
          opened = true;
          impl->isSystemCatalogFile = (fileContext == "SecondoCatalog");
 	 fileId = fileid;
          return true;
-      } 
+      }
       impl->CheckDbHandles();
       // --- Find out the appropriate Berkeley DB file type
       // --- and set required flags or options if necessary
@@ -764,7 +764,7 @@ SmiFile::Open( const SmiFileId fileid, const string& context /* = "Default" */ )
       fileId = fileid;
       if (trace) {
         cerr << "opening by id =" << fileid << ", "<< *this << endl;
-      }	
+      }
       SmiEnvironment::SetBDBError( rc );
       if ( rc == 0 )
       {
@@ -776,7 +776,7 @@ SmiFile::Open( const SmiFileId fileid, const string& context /* = "Default" */ )
     else
     {
       rc = (fileid == 0) ? E_SMI_FILE_NOFILEID : E_SMI_FILE_BADCONTEXT;
-  
+
       SmiEnvironment::SetError( rc );
     }
   }
@@ -923,11 +923,11 @@ SmiFile::GetFileId()
   return (fileId);
 }
 
-uint16_t 
+uint16_t
 SmiFile::GetPageSize() const
 {
   u_int32_t pageSize;
-  int rc = impl->bdbFile->get_pagesize( &pageSize ); 
+  int rc = impl->bdbFile->get_pagesize( &pageSize );
   SmiEnvironment::SetError(rc);
   return pageSize;
 }
@@ -986,7 +986,7 @@ SmiStatResultType
       DB_QUEUE_STAT *sRS = 0;
       // set flags according to ~mode~
       // call bdb stats method
-#if DB_VERSION_REQUIRED(4,3) 
+#if DB_VERSION_REQUIRED(4,3)
       DbTxn* tid = !impl->isTemporaryFile ?
                     SmiEnvironment::instance.impl->usrTxn : 0;
       getStatReturnValue = impl->bdbFile->stat(tid, &sRS, flags);
@@ -1550,7 +1550,7 @@ bool PrefetchingIteratorImpl::NewPrefetch()
 
         if(!isBTreeIterator)
           recordNumber = *((db_recno_t*)keyBuffer);
-        
+
         return true;
       }
     }

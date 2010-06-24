@@ -138,11 +138,11 @@ template<int N>
   ListExpr arg1, args2;
   std::ostringstream oss;
   oss << N;
-  cout << "sim_realN2bool_TM<" << N << "> called." << endl;
+//   cout << "sim_realN2bool_TM<" << N << "> called." << endl;
   if ( nl->ListLength( args ) == N ){
     args2 = args;
     for(int i=0; i<N; i++){
-      cout << "\targs[" << i << "] " << endl;
+//       cout << "\targs[" << i << "] " << endl;
       arg1 = nl->First( args2 );
       args2 = nl->Rest( args );
       if ( !(nl->AtomType( arg1 ) == SymbolType) ||

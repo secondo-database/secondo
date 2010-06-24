@@ -2,7 +2,7 @@
 ----
 This file is part of SECONDO.
 
-Copyright (C) 2004-2008, University in Hagen, Faculty of Mathematics and 
+Copyright (C) 2004-2008, University in Hagen, Faculty of Mathematics and
 Computer Science, Database Systems for New Applications.
 
 SECONDO is free software; you can redistribute it and/or modify
@@ -142,11 +142,11 @@ SmiEnvironment::Implementation::~Implementation()
     int rc = bdbEnv->close( 0 );
     SetBDBError(rc);
   }
- 
-  if (bdbEnv) { 
+
+  if (bdbEnv) {
     delete bdbEnv;
     bdbEnv = 0;
-  }  
+  }
 }
 
 DbHandleIndex
@@ -157,7 +157,7 @@ SmiEnvironment::Implementation::AllocateDbHandle()
   DbHandleIndex idx = instance.impl->firstFreeDbHandle;
 
   if (traceHandles)
-    cerr << "Allocate: firstFree idx = " << idx << endl;	  
+    cerr << "Allocate: firstFree idx = " << idx << endl;
 
   if ( idx == 0 )
   {
@@ -175,7 +175,7 @@ SmiEnvironment::Implementation::AllocateDbHandle()
   else
   {
     // --- Reuse free handle entry
-    instance.impl->firstFreeDbHandle = 
+    instance.impl->firstFreeDbHandle =
           instance.impl->dbHandles[idx].getNextFree();
   }
 
@@ -185,12 +185,12 @@ SmiEnvironment::Implementation::AllocateDbHandle()
   instance.impl->dbHandles[idx].setNextFree(0);
 
   if (traceHandles)
-    cerr << "Allocate: returned idx = " << idx << endl;	 
+    cerr << "Allocate: returned idx = " << idx << endl;
 
   return (idx);
 }
 
-int SmiEnvironment::Implementation::FindOpen(const string& fileName, 
+int SmiEnvironment::Implementation::FindOpen(const string& fileName,
                                              const u_int32_t flags){
    for(unsigned int i=0;i<instance.impl->dbHandles.size();i++){
        if(instance.impl->dbHandles[i].canBeUsedFor(fileName,flags)){
@@ -200,7 +200,7 @@ int SmiEnvironment::Implementation::FindOpen(const string& fileName,
    return -1;
 
 }
- 
+
 
 void SmiEnvironment::Implementation::SetUnUsed(DbHandleIndex idx )
 {
@@ -281,7 +281,7 @@ SmiEnvironment::Implementation::GetFileId( const bool isTemporary )
     //SPM: This implementation will  be sufficient for
     //a multi user mode since the file name will also
     //contain the process id
- 
+
     if ( RTFlag::isActive("SMI:LogFileCreation") )
     {
 //       // build a two elem list (simple count)
@@ -327,7 +327,7 @@ SmiEnvironment::Implementation::GetFileId( const bool isTemporary )
 
     if ( rc == 0 )
     {
-      u_int32_t rwFlag = useTransactions ? DB_RMW : 0;	    
+      u_int32_t rwFlag = useTransactions ? DB_RMW : 0;
       rc = dbseq->get( tid, &key, &data, rwFlag );
       if ( rc == DB_NOTFOUND  || rc == DB_KEYEMPTY )
       {
@@ -459,11 +459,11 @@ bool
 SmiEnvironment::Implementation::LookUpCatalog( const string& fileName,
                                                SmiCatalogEntry& entry )
 {
-  cout << "Lookup: key = <" << fileName << ">" << endl;
+//   cout << "Lookup: key = <" << fileName << ">" << endl;
   Dbt key( (void*) fileName.c_str(), fileName.length() );
   bool rc = LookUpCatalog(key, entry);
-  cout << "rc = " << rc << endl;
-  cout << "fileId = " << entry.fileId << endl;
+//   cout << "rc = " << rc << endl;
+//   cout << "fileId = " << entry.fileId << endl;
   return rc;
 }
 
@@ -477,7 +477,7 @@ SmiEnvironment::Implementation::LookUpCatalog( const string& fileName,
 bool
 SmiEnvironment::Implementation::LookUpCatalog( const SmiFileId fileId,
                                                SmiCatalogEntry& entry )
-{	
+{
   Dbt key( (void*) &fileId, sizeof(SmiFileId) );
   return LookUpCatalog(key, entry);
 }
@@ -491,8 +491,8 @@ SmiEnvironment::Implementation::InsertIntoCatalog(
     SetError( E_SMI_DB_NOTOPEN );
     return (false);
   }
-  cout << "Insert: fileId = " << entry.fileId << endl; 
-  cout << "Insert: fileName = <" << entry.fileName << ">" << endl; 
+//   cout << "Insert: fileId = " << entry.fileId << endl;
+//   cout << "Insert: fileName = <" << entry.fileName << ">" << endl;
 
   int    rc = 0;
   Db*    dbctl = instance.impl->bdbCatalog;
@@ -589,12 +589,12 @@ SmiEnvironment::Implementation::UpdateCatalog( bool onCommit )
     {
       if ( it->second.updateOnCommit )
       {
-        ok = InsertIntoCatalog( it->second.entry, tid );	
+        ok = InsertIntoCatalog( it->second.entry, tid );
       }
       else
       {
-        cerr << "SMI: Deleting " 
-	     << it->first.c_str() << " from file Catalog" << endl;     
+        cerr << "SMI: Deleting "
+	     << it->first.c_str() << " from file Catalog" << endl;
         ok = DeleteFromCatalog( it->second.entry, tid );
       }
     }
@@ -623,17 +623,17 @@ SmiEnvironment::Implementation::UpdateCatalog( bool onCommit )
           SmiCatalogEntry x;
           const string n(it->second.entry.fileName);
 	  LookUpCatalog(n, x);
-          cout << "Lookup string " << endl;	  
-          cout << "x.fileId = " << x.fileId << endl;	  
+          cout << "Lookup string " << endl;
+          cout << "x.fileId = " << x.fileId << endl;
           cout << "x.fileName = <" << x.fileName << ">" << endl;
 
-          SmiCatalogEntry y;		
+          SmiCatalogEntry y;
 	  LookUpCatalog(it->second.entry.fileId, y);
-          cout << "Lookup fileId " << endl;	  
-          cout << "x.fileId = " << x.fileId << endl;	  
-          cout << "y.fileId = " << y.fileId << endl;	  
+          cout << "Lookup fileId " << endl;
+          cout << "x.fileId = " << x.fileId << endl;
+          cout << "y.fileId = " << y.fileId << endl;
           cout << "y.fileName = <" << y.fileName << ">" << endl;
-        		
+
       }
     } */
     instance.impl->bdbFilesToCatalog.clear();
@@ -677,7 +677,7 @@ SmiEnvironment::Implementation::EraseFiles( bool onCommit )
       if ( onCommit && entry.dropOnCommit )
       {
 	Db* dbp = new Db( dbenv, DB_CXX_NO_EXCEPTIONS );
-	
+
 	string file = ConstructFileName( entry.fileId );
 	cerr << "Erasing file " << file << endl;
 	cerr << "onCommit:" << onCommit << endl;
@@ -689,9 +689,9 @@ SmiEnvironment::Implementation::EraseFiles( bool onCommit )
       }
 
     } else {
-     //cerr << "Warning: File id = " 
-     //     << entry.fileId << " already removed!" << endl; 
-    }	    
+     //cerr << "Warning: File id = "
+     //     << entry.fileId << " already removed!" << endl;
+    }
     instance.impl->bdbFilesToDrop.pop();
   }
   return (rc == 0);
@@ -848,13 +848,13 @@ SmiEnvironment::Implementation::DeleteDatabase( const string& dbname )
 
 SmiEnvironment::SmiEnvironment()
 {
-  //cerr << "*** Constructor SmiEnvironment ***" << endl; 	
+  //cerr << "*** Constructor SmiEnvironment ***" << endl;
   impl = new Implementation();
 }
 
 SmiEnvironment::~SmiEnvironment()
 {
-  //cerr << "*** Destructor SmiEnvironment ***" << endl; 	
+  //cerr << "*** Destructor SmiEnvironment ***" << endl;
   delete impl;
   impl = 0;
 }
@@ -968,7 +968,7 @@ SmiEnvironment::DeleteTmpEnvironment()
 
   static bool traceHandles =
 	        RTFlag::isActive("SMI:traceHandles") ? true : false;
-  
+
   DbEnv* dbtmp  = instance.impl->tmpEnv;
   int rc = dbtmp->close( 0 );
   SetBDBError( rc );
@@ -978,13 +978,13 @@ SmiEnvironment::DeleteTmpEnvironment()
 
 
   if (traceHandles) {
-    cerr << "Removing temporary Berkeley-DB environment " 
+    cerr << "Removing temporary Berkeley-DB environment "
          << "tmpHome = " << tmpHome << endl
          << "bdbHome = " << bdbHome << endl;
-  }  
+  }
 
   string tmpDir("");
-  FileSystem::AppendItem(bdbHome, tmpHome); 
+  FileSystem::AppendItem(bdbHome, tmpHome);
   FileSystem::EraseFolder( bdbHome );
 
   delete dbtmp;
@@ -1219,7 +1219,7 @@ Transactions, logging and locking are enabled.
 
     rc = dbenv->get_timeout(&microSeconds, DB_SET_TXN_TIMEOUT);
     cout << "TXN  timeout: " << microSeconds << " microseconds" << endl;
-  }  
+  }
 
   // --- Create temporary Berkeley DB environment
 
@@ -1255,7 +1255,7 @@ SmiEnvironment::ShutDown()
   // --- Current database should be already closed
   assert(!dbOpened);
 
-  // destroy files which have been allocated by the FlobManager 
+  // destroy files which have been allocated by the FlobManager
   Flob::destroyManager();
 
   DeleteTmpEnvironment();
@@ -1271,23 +1271,23 @@ SmiEnvironment::ShutDown()
   }
 
   instance.impl->CloseDbHandles();
-  
+
   if (traceHandles)
-    cerr << "Closing Berkeley-DB environment " 
-	 << instance.impl->bdbHome << endl; 
+    cerr << "Closing Berkeley-DB environment "
+	 << instance.impl->bdbHome << endl;
 
   rc = dbenv->close( 0 );
   SetBDBError( rc );
   instance.impl->envClosed = true;
   smiStarted = false;
 
-  // --- Check if new errors arised 
+  // --- Check if new errors arised
 
   bool ok = ( errs == GetNumOfErrors() );
 
-  if (!ok) throw 
+  if (!ok) throw
     SecondoException( "SMI Problems while closing "
-		      "the Berkeley-DB environment! " 
+		      "the Berkeley-DB environment! "
                       "Check the involved code parts of this session. "
 		      "All SMI files must be closed properly."   );
 
@@ -1383,7 +1383,7 @@ SmiEnvironment::OpenDatabase( const string& dbname )
 bool
 SmiEnvironment::CloseDatabase()
 {
-  //cerr << "Function CloseDatabase" << endl; 
+  //cerr << "Function CloseDatabase" << endl;
   if ( !dbOpened )
   {
     SetError( E_SMI_DB_NOTOPEN );
@@ -1396,16 +1396,16 @@ SmiEnvironment::CloseDatabase()
   Db*    dbidx = instance.impl->bdbCatalogIndex;
 
   // --- Implicitly commit/abort transaction
-  if (instance.impl->txnStarted) 
+  if (instance.impl->txnStarted)
   {
     CommitTransaction();
-  } 
-  else 
+  }
+  else
   {
     SmiEnvironment::Implementation::UpdateCatalog(true);
     SmiEnvironment::Implementation::CloseDbHandles();
     //SmiEnvironment::Implementation::EraseFiles( rc == 0 );
-  }  
+  }
 
   // --- Close Berkeley DB sequences
 
@@ -1477,13 +1477,13 @@ SmiEnvironment::EraseDatabase( const string& dbname )
           ok = ok && FileSystem::EraseFolder( database );
         }
         else
-          cerr<<"\nWarning: database " << database 
+          cerr<<"\nWarning: database " << database
               << ": database folder not found.\n";
         FileSystem::SetCurrentFolder( oldHome );
         ok = ok && UnlockDatabase( database );
         if ( !ok ) {
           SetError( E_SMI_DB_ERASE );
-        }  
+        }
       }
       else
       {
@@ -1493,7 +1493,7 @@ SmiEnvironment::EraseDatabase( const string& dbname )
     }
     else {
       // database does not exist. Nothing to erase!
-    } 
+    }
   }
   else
   {
@@ -1536,7 +1536,7 @@ SmiEnvironment::UpdateCatalog() {
 
     SmiEnvironment::Implementation::UpdateCatalog( true );
     SmiEnvironment::Implementation::CloseDbHandles();
-} 
+}
 
 
 bool
@@ -1782,10 +1782,10 @@ SmiEnvironment::GetCacheStatistics(CacheInfo& ci, vector<FileInfo*>& fi)
 
        string ml(tmp1);
 
-       FileInfo* fstat = new FileInfo(0, 
-                                      ml, 
+       FileInfo* fstat = new FileInfo(0,
+                                      ml,
                                       fs.st_pagesize,
-                                      fs.st_cache_hit, 
+                                      fs.st_cache_hit,
                                       fs.st_cache_miss,
                                       fs.st_page_create,
                                       fs.st_page_in,
