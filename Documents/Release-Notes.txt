@@ -1,16 +1,66 @@
+2007-06-24 Notes on Release 3.0
+===============================================================================
 
-2007-09-17 Notes on Release 2.5 
+Secondo has been improved significantly since version 2.9. Mayor points are the
+improved compatibility with different platforms, increased stability, and
+increased performance.
+
+Although we did our best to improve general system stability, there are still
+some problems with numeric stability, especially in the spatial and
+spatiotemporal algebras.
+
+Changes in detail:
+
+ * The Flob concept has been totally re-implemented to avoid the nasty errors
+   created by the old Flob-Cache.
+
+ * Several changes have been done to make the SMI code compatible with
+   different versions of 3rd party software, namely BerkeleyDB, thus increasing
+   compatibility with different platforms.
+
+ * Many bugfixes regarding system stability: Memory holes have been fixed,
+   some operator implementations corrected.
+
+ * For spatial and spatiotemporal datatypes with set semantics, we now
+   differentiate between EMPTY and UNDEFINED values.
+
+ * New support structure "TupleFile": This type can be used by algorithms
+   that need to materialize data. Data is stored in flat files rather than
+   in temporal relations. Also, only data not fitting into the main memory
+   buffer gets materialized on harddisc. Should be used as an replacement for
+   the "TupleBuffer".
+
+ * Changed implementations/ New algebra: The ExtRelation-2Algebra provides
+   external Algorithms for sorting and different join algorithms. Also,
+   sorting is now done by a paramerizable multi-stage mergesort, with restricted
+   amount of main memory. The new algorithms use TupleFiles instead of
+   TupleBuffers.
+   Most according original algorithms from the ExtRelationAlgebra have been
+   replaced by the operators from this new algebra.
+
+ * New operators in the RTreeAlgebra allow for query-based inspection of the
+   tree structures.
+
+ * New modules: The BTree2Algebra provides parametrizable BTrees. The
+   RTreeViewer allows for visualized online-exploration of Rtree objects.
+
+ * Optimizer: Exception handling was extended so that now most errors can be
+   caught and reported to the user.
+   Scripts for executing the BerlinMOD/R benchmark from the optimizer have
+   been added to the Optimizer directory.
+
+2007-09-17 Notes on Release 2.5
 ===============================================================================
 
 If you plan to set up an SDK using "openSuSe 10.2" you can use the system's gcc
-(e.g. installsdk -s) which reports the version 
+(e.g. installsdk -s) which reports the version
 
   gcc (GCC) 4.1.2 20061115 (prerelease) (SUSE Linux).
 
 Please refer to the Installation-Guide for detailed explanations. Moreover, if
 you have a 64 bit linux system you need
 
- * Berkeley-DB 4.3.29 (older versions don't compile and 
+ * Berkeley-DB 4.3.29 (older versions don't compile and
    for higher versions our code is not ready)
 
  * A 64 bit Java-Installation of JDK 1.5
@@ -28,13 +78,13 @@ New features:
 
  * Bug fixes for operators in various algebra modules.
 
- * The source code is now sufficient for linux 64 bit systems. 
-   Windows 64 bit has not been tested, and we don't plan to do so 
+ * The source code is now sufficient for linux 64 bit systems.
+   Windows 64 bit has not been tested, and we don't plan to do so
    in the near future.
 
  * Optionally, query progress estimation can be enabled.
 
- * A new algebra for representing graphs has been added. 
+ * A new algebra for representing graphs has been added.
 
 
 Best Regards
@@ -42,17 +92,17 @@ Best Regards
 M. Spiekermann
 
 
-2007-03-21 Notes on Release 2.4 
+2007-03-21 Notes on Release 2.4
 ===============================================================================
 
 The release deployed at March 14 runs into compiler errors. As work around you
-need to delete two files, please execute the commands below: 
+need to delete two files, please execute the commands below:
 
   cd Javagui/tools
   rm *Disturber*
 
 If you plan to set up an SDK using "openSuSe 10.2" you can use the system's gcc
-(e.g. installsdk -s) which reports the version 
+(e.g. installsdk -s) which reports the version
 
   gcc (GCC) 4.1.2 20061115 (prerelease) (SUSE Linux).
 
@@ -68,9 +118,9 @@ New features:
  * The example queries for operators are now working on database berlintest.
    They are collected in a system table called SEC2OPERATORINFO. This may
    help you to find "running" examples and to learn more quickly about the
-   capabilities of the implemented algebra modules.  
+   capabilities of the implemented algebra modules.
 
- * Implementation of a quick regression test called "Selftest". It runs all 
+ * Implementation of a quick regression test called "Selftest". It runs all
    examples on berlintest and compares them with result sets. We decided to
    put the database and the results into the source tree. This blowed up the
    archive's size but gives all users the chance to test whether their own
