@@ -1,0 +1,23 @@
+Database : berlintest
+Restore  : NO
+
+Operator : thefloor
+Number   : 1
+Signature: float x region -> floor3d
+Example  : query getheight(thefloor(3.0, [const region value ((((1 1)(5 1)(5 5)(1 5))))]));
+Result   : 3.0
+
+
+Operator : getheight
+Number   : 1
+Signature: floor3d -> float
+Example  : query getheight(thefloor(3.0, [const region value ((((1 1)(5 1)(5 5)(1 5))))]));
+Result   : 3.0
+
+
+Operator : getregion
+Number   : 1
+Signature: float -> region
+Example  : query area(getregion(thefloor(3.0, [const region value ((((1 1)(5 1)(5 5)(1 5))))])));
+Result   : 16
+
