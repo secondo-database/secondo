@@ -37,12 +37,10 @@ ChessAlgebra Chess
 ConstraintAlgebra Constraint
 HierarchicalGeoAlgebra HierarchicalGeo
 MRegionOpsAlgebra MRegionOps
-OptAuxAlgebra OptAux
 OrderedRelationAlgebra OrderedRelation
 PointSequenceAlgebra PointSequence
 RasterAlgebra Raster
 RasterSpatialAlgebra RasterSpatial
-RecordAlgebra Record
 RegionInterpolationAlgebra RegionInterpolation
 SpatialJoinAlgebra SpatialJoin
 UGridAlgebra UGrid
@@ -66,9 +64,12 @@ OldRelationAlgebra OldRelation-C++
 Optimizer/Entropy
 Optimizer/Correlations
 Data/Databases/spatial
+Data/Objects/Brasil
 Data/Objects/Distrikte
+Data/Objects/KreisLaender
 Javagui/viewer/hoese/algebras/periodic
 Algebras/RegionInterpolation/Tex
+
 
 # chessalgebra
 Tests/Testspecs/chessalgebra
@@ -94,8 +95,6 @@ CM-Scripts/cvspass.pl
 CM-Scripts/mkpublic.sh
 CM-Scripts/public-version.pd
 
-Data/Objects/KreisLaender
-
 Algebras/Relation-C++/Measurements-feed-project-consume.sxc
 Algebras/Relation-C++/Measurements-feed-project-consume.xls
 
@@ -111,10 +110,10 @@ Javagui/tools/MovingPointBuilder.java
 Javagui/tools/PeriodExtractor.java
 Javagui/tools/PeriodicPointBuilder.java
 
+StorageManager/bdbUpdateFile.cpp
 
 
-
-# Viewers of the practical course developed 
+# Viewers of the practical course developed
 # in the winter term 2006/2007
 
 Documents/JavaWrapper.pdf
