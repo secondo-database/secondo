@@ -283,8 +283,8 @@ Result   : FALSE
 Operator : get_cache_size
 Number   : 1
 Signature: (btree2 Tk Td u) -> int
-Example  : query get_cache_size (Staedte_SName_btree2)
-Result   : 16777216
+Example  : query isdefined(get_cache_size (Staedte_SName_btree2))
+Result   : TRUE
 
 Operator : pin_nodes
 Number   : 1
