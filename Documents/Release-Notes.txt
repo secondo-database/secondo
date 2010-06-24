@@ -18,6 +18,9 @@ Changes in detail:
    different versions of 3rd party software, namely BerkeleyDB, thus increasing
    compatibility with different platforms.
 
+ * On some platforms, newer library versions miss to include certain header
+   files. These are now included explicitly.
+
  * Many bugfixes regarding system stability: Memory holes have been fixed,
    some operator implementations corrected.
 
