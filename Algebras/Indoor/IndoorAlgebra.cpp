@@ -32,13 +32,6 @@ June, 2010  Jianqiu Xu
 
 1 Overview
 
-This implementation file essentially contains the implementation of the classes ~Point~,
-~Points~, ~Line~, and ~Region~ used in the Spatial Algebra. These classes
-respectively correspond to the memory representation for the type constructors
-~point~, ~points~, ~line~, and ~region~.
-
-For more detailed information see SpatialAlgebra.h.
-
 2 Defines and Includes
 
 */
@@ -93,7 +86,7 @@ ListExpr Floor3DProperty()
           nl->TwoElemList(nl->StringAtom("Creation"),
                           nl->StringAtom("Example Creation")),
           nl->TwoElemList(examplelist,
-                         nl->StringAtom("let room1=thefloor(0, r)"))
+                         nl->StringAtom("(let room1=thefloor(0, r))"))
 
       );
 }
@@ -860,7 +853,7 @@ void ClosePoint3D(const ListExpr typeInfo, Word& w)
 
 Word ClonePoint3D(const ListExpr typeInfo, const Word& w)
 {
-//  cout<<"CloneFloor3D()"<<endl;
+  cout<<"ClonePoint3D()"<<endl;
   Point3D* p3d = new Point3D(*(Point3D*)w.addr);
   return SetWord(p3d);
 }
@@ -1073,24 +1066,341 @@ TypeConstructor floor3d(
      0, 0,
      CreateFloor3D, DeleteFloor3D,
      OpenFloor3D, SaveFloor3D,
-     CloseFloor3D, ClonePoint3D,
-     CastPoint3D,
+     CloseFloor3D, CloneFloor3D,
+     Floor3D::Cast,
      SizeOfFloor3D,
      CheckFloor3D
 );
-
 
 TypeConstructor point3d(
     "point3d", Point3DProperty,
      OutPoint3D, InPoint3D,
      0, 0,
      CreatePoint3D, DeletePoint3D,
-     OpenPoint3D, SavePoint3D,
-     ClosePoint3D, CloneFloor3D,
-     Floor3D::Cast,
+//     OpenPoint3D, SavePoint3D,
+     OpenAttribute<Point3D>, SaveAttribute<Point3D>,
+     ClosePoint3D, ClonePoint3D,
+     CastPoint3D,
      SizeOfPoint3D,
      CheckPoint3D
 );
+
+
+
+/*
+5.2 List Representation
+
+The list representation of a point is
+
+----  (x y)
+----
+
+5.3 ~Out~-function
+
+*/
+ListExpr OutLine3D( ListExpr typeInfo, Word value )
+{
+  Line3D* points = (Line3D*)(value.addr);
+  if(!points->IsDefined()){
+    return nl->SymbolAtom("undef");
+  }
+
+  if( points->IsEmpty() )
+    return nl->TheEmptyList();
+
+//  Point p;
+  Point3D p;
+  assert( points->Get( 0, p ) );
+/*  ListExpr result =
+    nl->OneElemList( OutPoint( nl->TheEmptyList(), SetWord( (void*)&p ) ) );*/
+ ListExpr result =
+    nl->OneElemList( OutPoint3D( nl->TheEmptyList(), SetWord( (void*)&p ) ) );
+  ListExpr last = result;
+
+  for( int i = 1; i < points->Size(); i++ )
+  {
+    assert( points->Get( i, p ) );
+/*    last = nl->Append( last,
+                       OutPoint( nl->TheEmptyList(), SetWord( (void*)&p ) ) );*/
+    last = nl->Append( last,
+                       OutPoint3D( nl->TheEmptyList(), SetWord( (void*)&p)));
+  }
+  return result;
+}
+
+/*
+5.4 ~In~-function
+
+*/
+Word InLine3D( const ListExpr typeInfo, const ListExpr instance,
+       const int errorPos, ListExpr& errorInfo, bool& correct )
+{
+  if(nl->IsEqual(instance,"undef")) {
+      Points* points = new Points(0);
+      points->Clear();
+      points->SetDefined(false);
+      correct=true;
+      return SetWord( Address(points) );
+  }
+  Line3D* points = new Line3D( max(0,nl->ListLength( instance) ) );
+  points->SetDefined( true );
+  if(nl->AtomType(instance)!=NoAtom) {
+    points->DeleteIfAllowed();
+    correct = false;
+    cout << __PRETTY_FUNCTION__ << ": Unexpected Atom!" << endl;
+    return SetWord( Address(points) );
+  }
+
+  ListExpr rest = instance;
+  points->StartBulkLoad();
+  while( !nl->IsEmpty( rest ) ) {
+    ListExpr first = nl->First( rest );
+    rest = nl->Rest( rest );
+
+/*    Point *p = (Point*)InPoint( nl->TheEmptyList(),
+                                first, 0, errorInfo, correct ).addr;*/
+    Point3D *p = (Point3D*)InPoint3D( nl->TheEmptyList(),
+                                first, 0, errorInfo, correct ).addr;
+
+    if( correct && p->IsDefined() ) {
+      (*points) += (*p);
+      delete p;
+    } else {
+      if(p) {
+        delete p;
+      }
+      cout << __PRETTY_FUNCTION__ << ": Incorrect or undefined point!" << endl;
+      points->DeleteIfAllowed();
+      correct = false;
+      return SetWord( Address(0) );
+    }
+
+  }
+  points->EndBulkLoad();
+
+  if( points->IsValid() ) {
+    correct = true;
+    return SetWord( points );
+  }
+  points->DeleteIfAllowed();
+  correct = false;
+  cout << __PRETTY_FUNCTION__ << ": Invalid points value!" << endl;
+  return SetWord( Address(0) );
+}
+
+/*
+5.5 ~Create~-function
+
+*/
+Word CreateLine3D( const ListExpr typeInfo )
+{
+  return SetWord( new Line3D( 0 ) );
+}
+
+/*
+5.6 ~Delete~-function
+
+*/
+void DeleteLine3D( const ListExpr typeInfo, Word& w )
+{
+  Line3D *ps = (Line3D *)w.addr;
+  ps->Destroy();
+  ps->DeleteIfAllowed(false);
+  w.addr = 0;
+}
+
+/*
+5.7 ~Close~-function
+
+*/
+void CloseLine3D( const ListExpr typeInfo, Word& w )
+{
+  ((Line3D *)w.addr)->DeleteIfAllowed();
+  w.addr = 0;
+}
+
+/*
+5.8 ~Clone~-function
+
+*/
+Word CloneLine3D( const ListExpr typeInfo, const Word& w )
+{
+  return SetWord( new Line3D( *((Line3D *)w.addr) ) );
+}
+
+/*
+7.8 ~Open~-function
+
+*/
+bool OpenLine3D( SmiRecord& valueRecord, size_t& offset,
+            const ListExpr typeInfo, Word& value )
+{
+  Line3D *ps = (Line3D*)Attribute::Open( valueRecord, offset, typeInfo );
+  value = SetWord( ps );
+  return true;
+}
+
+/*
+7.8 ~Save~-function
+
+*/
+bool SaveLine3D( SmiRecord& valueRecord, size_t& offset,
+            const ListExpr typeInfo, Word& value )
+{
+  Line3D *ps = (Line3D*)value.addr;
+  Attribute::Save( valueRecord, offset, typeInfo, ps );
+  return true;
+}
+
+/*
+5.8 ~SizeOf~-function
+
+*/
+int SizeOfLine3D()
+{
+  return sizeof(Line3D);
+}
+
+
+ListExpr Line3DProperty()
+{
+  return (nl->TwoElemList(
+            nl->FourElemList(nl->StringAtom("Signature"),
+                       nl->StringAtom("Example Type List"),
+           nl->StringAtom("List Rep"),
+           nl->StringAtom("Example List")),
+            nl->FourElemList(nl->StringAtom("-> DATA"),
+                       nl->StringAtom("points"),
+           nl->StringAtom("(<point>*) where point is (<x><y>)"),
+           nl->StringAtom("( (10 1)(4 5) )"))));
+}
+
+
+bool CheckLine3D( ListExpr type, ListExpr& errorInfo )
+{
+  return (nl->IsEqual( type, "line3d" ));
+}
+
+
+void* CastLine3D(void* addr)
+{
+  return (new (addr) Line3D());
+}
+
+double Line3D::Distance( const Rectangle<3>& r ) const
+{
+  return 0.0;
+}
+
+void Line3D::StartBulkLoad()
+{
+
+}
+
+void Line3D::EndBulkLoad( bool sort, bool remDup, bool trim )
+{
+  if( !IsDefined() ) {
+    Clear();
+    SetDefined( false );
+  }
+
+  if( sort ){
+    Sort();
+  }
+
+  if( remDup ){
+    RemoveDuplicates();
+  }
+  if(trim){
+    points.TrimToSize();
+  }
+}
+
+/*Line3D& Line3D::operator+=( const Point& p )
+{
+  if(!IsDefined()){
+    return *this;
+  }
+  points.Append(p);
+  return *this;
+}*/
+
+Line3D& Line3D::operator+=( const Point3D& p )
+{
+  if(!IsDefined()){
+    return *this;
+  }
+  points.Append(p);
+  return *this;
+}
+
+void Line3D::RemoveDuplicates()
+{
+
+}
+
+void Line3D::Sort(const bool exact /*= true*/)
+{
+
+}
+
+void Line3D::Clear()
+{
+  points.clean();
+}
+
+bool Line3D::IsValid() const
+{
+  return true;
+}
+
+size_t Line3D::HashValue() const
+{
+  return (size_t)0.0;
+}
+
+void Line3D::CopyFrom( const Attribute* right )
+{
+  const Line3D *ps = (const Line3D*)right;
+  assert( ps->IsOrdered() );
+  *this = *ps;
+}
+
+int Line3D::Compare( const Attribute* arg ) const
+{
+  return 0;
+}
+
+int Line3D::CompareAlmost( const Attribute* arg ) const
+{
+  return 0;
+}
+
+bool Line3D::Adjacent( const Attribute* arg ) const
+{
+  return 0;
+}
+
+
+Line3D& Line3D::operator=( const Line3D& ps )
+{
+  assert( ps.IsOrdered() );
+  points.copyFrom(ps.points);
+  SetDefined(ps.IsDefined());
+  return *this;
+}
+
+TypeConstructor line3d(
+        "line3d",                     //name
+        Line3DProperty,               //property function describing signature
+        OutLine3D,      InLine3D,     //Out and In functions
+        0,              0,            //SaveTo and RestoreFrom List functions
+        CreateLine3D,   DeleteLine3D, //object creation and deletion
+        OpenLine3D,     SaveLine3D,   // object open and save
+        CloseLine3D,    CloneLine3D,  //object close and clone
+        CastLine3D,                   //cast function
+        SizeOfLine3D,                 //sizeof function
+        CheckLine3D );
 
 /*
 11 Creating the Algebra
@@ -1104,9 +1414,11 @@ class IndoorAlgebra : public Algebra
   {
     AddTypeConstructor( &floor3d);
     AddTypeConstructor( &point3d);
+    AddTypeConstructor( &line3d);
 
     floor3d.AssociateKind("DATA");
     point3d.AssociateKind("DATA");
+    line3d.AssociateKind("DATA");
 
     //operators for new data type floor3d
     AddOperator(&thefloor);
