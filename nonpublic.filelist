@@ -37,7 +37,6 @@ ChessAlgebra Chess
 ConstraintAlgebra Constraint
 HierarchicalGeoAlgebra HierarchicalGeo
 MRegionOpsAlgebra MRegionOps
-OrderedRelationAlgebra OrderedRelation
 PointSequenceAlgebra PointSequence
 RasterAlgebra Raster
 RasterSpatialAlgebra RasterSpatial
