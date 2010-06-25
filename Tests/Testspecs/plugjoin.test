@@ -1,6 +1,6 @@
 #This file is part of SECONDO.
 #
-#Copyright (C) 2004, University in Hagen, Department of Computer Science, 
+#Copyright (C) 2004, University in Hagen, Department of Computer Science,
 #Database Systems for New Applications.
 #
 #SECONDO is free software; you can redistribute it and/or modify
@@ -22,42 +22,42 @@
 # (Runner can be found in directory UserInterfaces)
 
 #setup
-open database germany;
+open database berlintest;
 
 #testcase test1
-#yields (int 674)
-query Autobahn feed Fluss feed spatialjoin[AVerlauf, FVerlauf] count;
+#yields (int 2366)
+query strassen feed {a} WStrassen feed {w} spatialjoin[geoData_a, geoData_w] count;
 
 #testcase test2
 #yields (bool TRUE)
-query Autobahn feed loopjoin[fun(t:TUPLE) Fluss feed filter[bbox(.FVerlauf) intersects bbox(attr(t, AVerlauf))]] count =
-      Autobahn feed Fluss feed spatialjoin[AVerlauf, FVerlauf] count;
+query strassen feed {a}  loopjoin[fun(t:TUPLE) WStrassen feed {w} filter[bbox(.geoData_w) intersects bbox(attr(t, geoData_a))]] count =
+      strassen feed {a}  WStrassen feed {w} spatialjoin[geoData_a, geoData_w] count;
 
 #testcase test3
-#yields (int 235)
-query Autobahn feed loopjoin[fun(t:TUPLE) Fluss feed filter[.FVerlauf intersects attr(t, AVerlauf)]] count;
+#yields (int 198)
+query strassen feed {a} loopjoin[fun(t:TUPLE) WStrassen feed {w} filter[.geoData_w intersects attr(t, geoData_a)]] count;
 
 #testcase test4
 #yields (bool TRUE)
-query Autobahn feed loopjoin[fun(t:TUPLE) Fluss feed filter[.FVerlauf intersects attr(t, AVerlauf)]] count =
-      Autobahn feed Fluss feed spatialjoin[AVerlauf, FVerlauf] filter[.AVerlauf intersects .FVerlauf] count;
+query strassen feed {a} loopjoin[fun(t:TUPLE) WStrassen feed {w} filter[.geoData_w intersects attr(t, geoData_a)]] count =
+      strassen feed {a} WStrassen feed {w} spatialjoin[geoData_a, geoData_w] filter[.geoData_a intersects .geoData_w] count;
 
 #testcase test7
-#yields (int 3303)
-query Kreis feed {X} loopjoin[fun(t: TUPLE) Kreis feed filter[bbox(.Gebiet) intersects bbox(attr(t, Gebiet_X))]] count;
+#yields (int 244)
+query Flaechen feed {X} loopjoin[fun(t: TUPLE) Flaechen feed filter[bbox(.geoData) intersects bbox(attr(t, geoData_X))]] count;
 
 #testcase test7
 #yields (bool TRUE)
-query Kreis feed {X} loopjoin[fun(t: TUPLE) Kreis feed filter[bbox(.Gebiet) intersects bbox(attr(t, Gebiet_X))]] count =
-      Kreis feed {X} Kreis feed spatialjoin[Gebiet_X, Gebiet] count;
+query Flaechen feed {X} loopjoin[fun(t: TUPLE) Flaechen feed filter[bbox(.geoData) intersects bbox(attr(t, geoData_X))]] count =
+      Flaechen feed {X} Flaechen feed spatialjoin[geoData_X, geoData] count;
 
 #testcase test17
 #yields (bool TRUE)
-query (Kreis feed {X} filter[.Gebiet_X intersects magdeburg]
-       Kreis feed spatialjoin[Gebiet_X, Gebiet] filter[.Gebiet_X intersects .Gebiet] count) =
-      (Kreis feed {X} filter[.Gebiet_X intersects magdeburg]
-       loopjoin[fun(t: TUPLE) Kreis feed filter[bbox(.Gebiet) intersects bbox(attr(t, Gebiet_X))]
-         filter[.Gebiet intersects attr(t, Gebiet_X)]] count);
+query (Flaechen feed {X} filter[.geoData_X intersects zoogarten]
+       Flaechen feed spatialjoin[geoData_X, geoData] filter[.geoData_X intersects .geoData] count) =
+      (Flaechen feed {X} filter[.geoData_X intersects zoogarten]
+       loopjoin[fun(t: TUPLE) Flaechen feed filter[bbox(.geoData) intersects bbox(attr(t, geoData_X))]
+         filter[.geoData intersects attr(t, geoData_X)]] count);
 
 #teardown
 close database;

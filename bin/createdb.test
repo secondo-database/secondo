@@ -1,6 +1,6 @@
 #This file is part of SECONDO.
 #
-#Copyright (C) 2004, University in Hagen, Department of Computer Science, 
+#Copyright (C) 2004, University in Hagen, Department of Computer Science,
 #Database Systems for New Applications.
 #
 #SECONDO is free software; you can redistribute it and/or modify
@@ -25,7 +25,7 @@
 ### overnight don't check in with modified path information.
 ###
 
-#setup createdb 
+#setup createdb
 
 #testcase opt1
 #yields success
@@ -33,25 +33,13 @@ create database opt;
 
 #test case opt2
 #yields success
-restore database opt from '$(SECONDO_BUILD_DIR)/bin/opt'; 
+restore database opt from '$(SECONDO_BUILD_DIR)/bin/opt';
 
 #test case opt3
 #yields success
 close database;
 
-#testcase germany1
-#yields success
-create database germany;
-
-#testcase germany2
-#yields success
-restore database germany from '$(HOME)/secondo-data/Databases/germany';
-
-#test case germany3 
-#yields success
-close database;
-
-#testcase berlintest1  
+#testcase berlintest1
 #yields success
 create database berlintest;
 
@@ -59,7 +47,7 @@ create database berlintest;
 #yields success
 restore database berlintest from berlintest;
 
-#test case berlintest3 
+#test case berlintest3
 #yields success
 close database;
 
