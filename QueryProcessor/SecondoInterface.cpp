@@ -935,6 +935,7 @@ separate functions which should be named Command\_<name>.
           case ERR_NO_ERROR:
           case ERR_DATABASE_OPEN:
           case ERR_IDENT_UNKNOWN_DB_NAME:
+          case ERR_PROBLEM_IN_READING_FILE:
           {
             break;
           }
@@ -943,14 +944,13 @@ separate functions which should be named Command\_<name>.
             resultList = errorList;
           }
           case ERR_DB_NAME_NEQ_IDENT:
-          case ERR_PROBLEM_IN_READING_FILE:
           case ERR_IN_LIST_STRUCTURE_IN_FILE:
 
           default:
           {
-            cmsg.info()
+            cmsg.info() 
               << "Error during restore detected. Trying to create "
-	      << "derived objects ..." << endl;
+	            << "derived objects ..." << endl;
             cmsg.send();
 
             delete derivedObjPtr;
