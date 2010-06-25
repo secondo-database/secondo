@@ -1270,9 +1270,9 @@ ListExpr Line3DProperty()
            nl->StringAtom("List Rep"),
            nl->StringAtom("Example List")),
             nl->FourElemList(nl->StringAtom("-> DATA"),
-                       nl->StringAtom("points"),
-           nl->StringAtom("(<point>*) where point is (<x><y>)"),
-           nl->StringAtom("( (10 1)(4 5) )"))));
+                       nl->StringAtom("line3d"),
+           nl->StringAtom("(<point3d>*) where point3d is (<x><y><z>)"),
+           nl->StringAtom("( (10 1 2)(4 5 3) )"))));
 }
 
 
