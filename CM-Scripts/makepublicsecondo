@@ -28,7 +28,7 @@ if [ -f "secpub.tar" ] ; then
   exit 1
 fi
 
-cat publicsecondo_filelist | sed "s/.*/tar -rf secpub.tar &/g" | sh
+cat publicsecondo_filelist | sed "s/.*/tar -rf secpub.tar \"&\"/g" | sh
 
 echo "tar archive created"
 
