@@ -13,7 +13,8 @@ DistributedAlgebra DistributedAlgebra
 FlockAlgebra Flock
 GPatternAlgebra GPattern
 HadoopParallelAlgebra HadoopParallel
-MAttiaTestAlgebra MAttiaTest
+IndoorAlgebra Indoor
+MAttiaTestsAlgebra MAttiaTests
 PartitionedStreamAlgebra PartitionedStream
 RemoteStreamAlgebra RemoteStream
 TrafficAlgebra Traffic
@@ -37,13 +38,16 @@ ChessAlgebra Chess
 ConstraintAlgebra Constraint
 HierarchicalGeoAlgebra HierarchicalGeo
 MRegionOpsAlgebra MRegionOps
+Network2Algebra Network2
 PointSequenceAlgebra PointSequence
 RasterAlgebra Raster
 RasterSpatialAlgebra RasterSpatial
 RegionInterpolationAlgebra RegionInterpolation
+SETIAlgebra SETI
 SpatialJoinAlgebra SpatialJoin
+TemporalNet2Algebra TemporalNet2
 UGridAlgebra UGrid
-URelAlgebra URel
+UrelAlgebra Urel
 WebAlgebra Web
 
 
