@@ -227,10 +227,10 @@ computing the results.
 This function computes whether two half segments cross each other and returns the crossing point ~p~.
 
 */
-    bool Intersection( const HalfSegment& hs1, HalfSegment& hs2 ) const;
+    bool Intersection( const HalfSegment& hs, HalfSegment& reshs ) const;
 /*
 This function computes whether two half segments intersect each other and returns the resulting
-halfsegment ~hs~.
+halfsegment as ~reshs~.
 
 */
    void CohenSutherlandLineClipping( const Rectangle<2> &window,
