@@ -1449,40 +1449,43 @@ static bool Check(AvlNode<contenttype>const* const root,
 /*
 2.1 CheckCmp
 
-This function helps to implement the ~Check~ function.
 
 
 */
 static bool CheckCmp(AvlNode<contenttype>const* const root,
-                     contenttype content,
+                     contenttype& content,
                      bool smaller, ostream& out){
 
   if(!root){
     return true;
   }
-  if(!CheckCmp(root->left,content,smaller,out)){
-      return false;
-  }
-  if(!CheckCmp(root->right,content,smaller,out)){
-      return false;
-  }
+  // check the sons
   if(smaller){
-    if(root->content < content){
-      return true;
-    } else {
-      out << root->content << " should be smaller than " << content;
-      return false;
+    if(! (root->content < content)){
+        cout << root->content << endl <<" is located in the left subtree of " 
+             << endl
+             << content << " but it's not smaller" << endl;
+        return false;
     }
   } else {
-    if((root->content < content) || (root->content==content)){
-      out << root->content << " should be greater than " << content;
-      return false;
-    } else {
-      return true;
+    if(! (content < root->content)){
+        cout << root->content << endl <<" is located in the right subtree of " 
+             << endl
+             << content << " but it's not greater" << endl;
+        return false;
     }
-
-
   }
+
+ // check the subtrees
+ if(!CheckCmp(root->left, content, smaller, out)){
+    return false;
+  }
+ if(!CheckCmp(root->right, content, smaller, out)){
+    return false;
+  }
+  // do the check for the root node
+  return  CheckCmp(root->left,root->content,true,out) &&
+          CheckCmp(root->right,root->content,false,out); 
 
 
 }
