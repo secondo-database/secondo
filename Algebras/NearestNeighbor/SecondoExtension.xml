@@ -4,8 +4,8 @@
      <Name> NearestNeighborAlgebra </Name>
      <Dependencies>
         <SecondoVersion> 
-          <Major> 2 </Major>
-          <Minor> 8 </Minor>
+          <Major> 3 </Major>
+          <Minor> 0 </Minor>
         </SecondoVersion>
         <Algebra> TemporalAlgebra </Algebra>
         <Algebra> RTreeAlgebra </Algebra> 
