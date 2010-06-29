@@ -4,8 +4,8 @@
      <Name> TBTreeAlgebra </Name>
      <Dependencies>
         <SecondoVersion> 
-          <Major> 2 </Major>
-          <Minor> 9 </Minor>
+          <Major> 3 </Major>
+          <Minor> 0 </Minor>
         </SecondoVersion>
         <Algebra> TupleIdentifierAlgebra </Algebra>
         <Algebra> RectangleAlgebra </Algebra>
