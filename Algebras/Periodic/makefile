@@ -43,7 +43,7 @@ $(LIBOBJ): $(OBJECTS)
 
 # generic rule for cleaning all generated files
 .PHONY: clean
-clean: cleanpdf
+clean: cleanpdf cleanplugin
 	$(clean-algebra)
 
 
@@ -77,6 +77,32 @@ cleanpdf:
 	rm -f PeriodicAlgebra.pd
 	make -C Figures clean
 
+
+.PHONY: plugin
+plugin:
+	rm -rf algebra
+	mkdir algebra
+	cp *.txt *.h *.cpp makefile *.spec *.examples algebra
+	rm -rf displayClasses
+	mkdir displayClasses
+	cp ../../Javagui/viewer/hoese/algebras/periodic/*.java displayClasses
+	cp ../../Javagui/viewer/hoese/algebras/periodic/makefile displayClasses
+	cp ../../Javagui/viewer/hoese/algebras/Dsplpmpoint.java displayClasses
+	cp ../../Javagui/viewer/hoese/algebras/Dsplpmpoints.java displayClasses
+	cp ../../Javagui/viewer/hoese/algebras/Dsplpmreal.java displayClasses
+	cp ../../Javagui/viewer/hoese/algebras/Dsplpmrect.java displayClasses
+	cp ../../Javagui/viewer/hoese/algebras/Dsplpmregion.java displayClasses
+	cp copyright.txt displayClasses
+	rm -f Periodic.zip
+	zip -r Periodic.zip  algebra displayClasses SecondoExtension.xml 
+	rm -rf algebra
+	rm -rf displayClasses	
+
+.PHONY: cleanplugin
+cleanplugin:
+	rm -rf algebra
+	rm -rf displayClasses
+	rm -f Periodic.zip
 
 
 
