@@ -91,10 +91,39 @@ endif
 
 # remove all generated stuff
 .PHONY: clean
-clean:
+clean: cleanplugin
 	$(RM) $(DEP_FILES) $(OBJECTS) $(LIBOBJ) $(DOCU)
 
 
 
 docu:
 	cat $(DOCU_FILES) > $(DOCU)
+
+
+.PHONY: plugin
+plugin:
+	rm -rf genTree
+	rm -rf mTree
+	rm -rf xTree
+	mkdir genTree
+	mkdir mTree
+	mkdir xTree
+	mkdir genTree/Figures
+	mkdir genTree/GTree
+	cp Figures/*eps genTree/Figures
+	cp GTree/*.h GTree/*.cpp genTree/GTree
+	cp *.h *.cpp *.examples *.spec *.pd *pdf makefile genTree
+	cp ../MTree/*.h ../MTree/*.cpp ../MTree/*.txt ../MTree/makefile ../MTree/*.spec ../MTree/*examples ../MTree/*.pdf ../MTree/MT1   ../MTree/*docu mTree
+	cp ../XTree/*.h ../XTree/*.cpp  ../XTree/makefile ../XTree/*.spec ../XTree/*examples ../XTree/*.pdf ../XTree/XT1  ../XTree/*docu xTree
+	cp copyright.txt genTree
+	cp copyright.txt mTree
+	cp copyright.txt xTree
+	rm -f GenTree.zip
+	zip -r GenTree.zip genTree xTree mTree SecondoExtension.xml 
+	rm -rf genTree mTree xTree
+
+.PHONY: cleanplugin
+cleanplugin:
+	rm -rf genTree mTree xTree GenTree.zip
+
+
