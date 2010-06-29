@@ -44,6 +44,7 @@ This headerfile contains the "PictureFuns"[4] class, which implements all functi
 #include "HPointReg.h"
 #include "PictureAlgebra.h"
 #include "JPEGPicture.h"
+#include <limits>
 
 namespace gta
 {
