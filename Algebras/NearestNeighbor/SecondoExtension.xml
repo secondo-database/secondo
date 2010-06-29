@@ -21,8 +21,8 @@
         <file> makefile </file>
         <file> NearestNeighborAlgebra.cpp </file>
         <file> NearestNeighborAlgebra.h </file>
-	<file> BBTree.h </file>
-	<file> CoverInterval.h </file>
+        <file> BBTree.h </file>
+        <file> CoverInterval.h </file>
         <file location="../../bin"> nntest </file>
      </SourceCode>
      <SpecFile> NearestNeighborAlgebra.spec </SpecFile>

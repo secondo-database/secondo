@@ -49,6 +49,7 @@ clean:
 
 PLUGIN_FILES = BBTree.h copyright.txt makefile NearestNeighborAlgebra.cpp NearestNeighborAlgebra.h 
 PLUGIN_FILES += NearestNeighborAlgebra.spec NearestNeighbor.examples SecondoExtension.xml
+PLUGIN_FILES += CoverInterval.h 
 PLUGIN_FILES += ../../bin/nntest
 
 .PHONY: plugin
