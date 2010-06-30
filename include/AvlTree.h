@@ -5,6 +5,8 @@ This file contains the implementation of a standard AVL tree.
 Additionally some specialized functions are provided.
 
 
+//[_] [\_]
+
 */
 
 
@@ -13,11 +15,12 @@ Additionally some specialized functions are provided.
 #ifndef AVLTREE_H
 #define AVLTREE_H
 
-  /*
+   /* 
 #define __AVL_TRACE__ cout << __FILE__ << "@" << __LINE__ << ":" << \
         __PRETTY_FUNCTION__ << endl;
-  */
-//#define __AVL_TRACE__ cout << __FUNCTION__ << endl;
+  
+   */
+  //#define __AVL_TRACE__ cout << __FUNCTION__ << endl;
 
 #define __AVL_TRACE__
 
@@ -26,6 +29,14 @@ Additionally some specialized functions are provided.
 #include <stack>
 
 using namespace std;
+
+template<typename arg, typename result>
+class unary_functor{
+  public:
+    virtual result operator()(const arg& a) const = 0;
+};
+
+
 
 namespace avltree{
 
@@ -385,6 +396,45 @@ bool remove(const contenttype& x){
 }
 
 /*
+2.3 remove[_]smallest
+
+Removes the smallest object stored in the tree fulfilling the
+given predicate. The return value indicates whether such an 
+entry is found within the tree. The runtime of this operation
+is linearly to the count of entries within the tree.
+
+*/
+bool remove_smallest(const unary_functor<contenttype, bool>& pred){
+  __AVL_TRACE__
+  bool found = false;
+  root = remove_smallest(root,pred,found);
+  if(root!=NULL){
+     root->updateHeight();
+  }
+  return found;
+}
+
+/*
+2.4 removeAll
+
+Calls removes smallest until no object fulfills the given condition.
+The return values is the number of deleted entries.
+
+*/
+unsigned int removeAll(const unary_functor<contenttype, bool>& pred){
+   unsigned int count = 0;
+   while(remove_smallest(pred)) { 
+     count++; 
+   }
+   return count;
+}
+
+
+
+
+
+
+/*
 2.1 removeN
 
 Deletes __x__ from the tree. __left__ and __right__ are set to the 
@@ -574,10 +624,12 @@ class iterator{
   public:
 
     iterator(const iterator& it){
+       __AVL_TRACE__
        this->thestack = it.thestack;
     }
 
     iterator& operator=(const iterator& it){
+       __AVL_TRACE__
        this->thestack = it.thestack;
        return *this; 
     }
@@ -589,6 +641,7 @@ The ~Get~ function returns the value currently under this iterator.
 
 */
      contenttype const* Get() const{
+        __AVL_TRACE__
         if(thestack.empty()){
           return 0;
         } else {
@@ -605,31 +658,22 @@ otherwise   __true__.
 
 */
    bool Next(){
+     __AVL_TRACE__
      if(thestack.empty()){
         return false;
      }
      const AvlNode<contenttype>* elem = thestack.top();
      const AvlNode<contenttype>* son;
      if( (son = elem->getRightSon())){
+        thestack.pop(); // the current node is processed
         thestack.push(son);
         while((son = son->getLeftSon())){
           thestack.push(son);
         }
         return true;
      } else { // there is no right son
-        // go up until the stack is empty or the entry is
-        // greater than the current element
-        contenttype content = elem->content;
         thestack.pop();
-        while(!thestack.empty()){
-           const AvlNode<contenttype>* father = thestack.top();
-           if(father->content > content){
-              return true;
-           } else {
-              thestack.pop();
-           }
-        }
-        return false;
+        return !thestack.empty();
      }
    }
 
@@ -641,6 +685,7 @@ is set to the smallest entry in the tree.
 
 */
   iterator(const AvlNode<contenttype>* root){
+     __AVL_TRACE__
      const AvlNode<contenttype>* son = root;
      while(son){
        thestack.push(son);
@@ -656,6 +701,7 @@ entry within the tree which is equals to or greater than min.
 
 */
   iterator(const AvlNode<contenttype>* root, const contenttype min){
+     __AVL_TRACE__
      if(root){
         tail(root,min);
      }
@@ -669,6 +715,7 @@ in the tree.
 
 */
   iterator& operator++(int){
+     __AVL_TRACE__
       Next();
       return *this;
   }
@@ -682,6 +729,7 @@ is returned.
 
 */  
   const contenttype* operator*(){
+     __AVL_TRACE__
      return Get();
   } 
 
@@ -694,6 +742,7 @@ further elements exist.
 
 */
   bool hasNext(){
+     __AVL_TRACE__
     int size = thestack.size();
     if(size==0){ // no elements
       return false;
@@ -735,6 +784,7 @@ any elements, i.e. whether Get or [*] would return NULL.
 */
  const AvlNode<contenttype>* tail(const AvlNode<contenttype>* root, 
                                   const contenttype& min){
+    __AVL_TRACE_
    assert(root);
    thestack.push(root);
    if(root->content==min){
@@ -1116,6 +1166,9 @@ static AvlNode<contenttype>* remove(AvlNode<contenttype>* root,
    } else if(x>value){
        root->right = remove(root->right,x,found);
        root->updateHeight();
+       if(root->left==NULL){
+         return root;
+       }
        if(abs(root->balance())>1){ // we have to rotate
           int LB = root->left->balance();
           if(LB>=0){
@@ -1164,6 +1217,104 @@ static AvlNode<contenttype>* remove(AvlNode<contenttype>* root,
        }
   }
 }
+
+
+static AvlNode<contenttype>* remove_smallest(AvlNode<contenttype>* root,
+                 const unary_functor<contenttype, bool>& pred, 
+                 bool& found){
+   __AVL_TRACE__
+   if(root==NULL || found){ // no tree or already removed
+      found = false;
+      return NULL;
+   }
+   // try to delete in the left subtree
+   root->left = remove_smallest(root->left,pred,found);
+   if(found) { // found the the subtree
+      root->updateHeight();
+      if(root->right==NULL){ // because we have deleted  
+                            // in the left part, we cannot 
+                           // get any unbalanced subtree when right is null
+         return root; 
+      }
+      if(abs(root->balance())>1){ // we have to rotate
+          // we know that the height of the left son is smaller than before
+          int RB = root->right->balance();
+          if(RB<=0){ // rotation is sufficient
+             return rotateLeft(root);
+          } else{
+             return rotateRightLeft(root);
+          }
+      } else{ // balance of root is ok
+        return root;
+      }
+      assert(false);
+   } 
+       // not found, try this node
+   found = pred(root->content);
+   if(found){
+      if(root->isLeaf()){
+        delete root; // free the memory
+        return NULL; // delete a single leaf
+      } 
+      if(root->left==NULL){
+        AvlNode<contenttype>* res = root->right;
+        root->cut();
+        delete root;
+        return res;
+      }
+      if(root->right==NULL){
+        AvlNode<contenttype>* res = root->left;
+        root->cut();
+        delete root;
+        return res;
+      }
+      AvlNode<contenttype>*  minimum(0);
+      root->right=deletemin(root->right,minimum);
+      minimum->left = root->left;
+      minimum->right = root->right;
+      root->cut();
+      delete root;
+      root = minimum;
+      root->updateHeight();
+      if(abs(root->balance())>1){ // we have to rotate
+        int LB = root->left->balance();
+        if(LB>=0){
+           return rotateRight(root);
+        } else{
+           return rotateLeftRight(root);
+        }
+      } else{ // root is balanced
+       return root;
+     }
+     assert(false);
+   }
+
+   root->right = remove_smallest(root->right,pred,found);
+   if(found){
+     root->updateHeight();
+     if(root->left==NULL){  
+        return root; 
+     }
+     if(abs(root->balance())>1){ // we have to rotate
+        int LB = root->left->balance();
+        if(LB>=0){
+           return rotateRight(root);
+        } else{
+           return rotateLeftRight(root);
+        }
+     } else {  // root is balanced
+       return root;
+     }
+     assert(false);
+   }
+   // predicate could not be evaluated to true in the subtree 
+   // represented by root
+   // keep tree unchanged
+   assert(!found);
+   return root; 
+}
+
+
 
 
 /*
@@ -1453,7 +1604,7 @@ static bool Check(AvlNode<contenttype>const* const root,
 
 */
 static bool CheckCmp(AvlNode<contenttype>const* const root,
-                     contenttype& content,
+                     const contenttype& content,
                      bool smaller, ostream& out){
 
   if(!root){
@@ -1462,14 +1613,14 @@ static bool CheckCmp(AvlNode<contenttype>const* const root,
   // check the sons
   if(smaller){
     if(! (root->content < content)){
-        cout << root->content << endl <<" is located in the left subtree of " 
+        cout << root->content << endl <<" is located in the left subtree of "
              << endl
              << content << " but it's not smaller" << endl;
         return false;
     }
   } else {
     if(! (content < root->content)){
-        cout << root->content << endl <<" is located in the right subtree of " 
+        cout << root->content << endl <<" is located in the right subtree of "
              << endl
              << content << " but it's not greater" << endl;
         return false;
@@ -1485,13 +1636,9 @@ static bool CheckCmp(AvlNode<contenttype>const* const root,
   }
   // do the check for the root node
   return  CheckCmp(root->left,root->content,true,out) &&
-          CheckCmp(root->right,root->content,false,out); 
-
+          CheckCmp(root->right,root->content,false,out);
 
 }
-                  
-
-
 
 /*
 2.1 GetNearestSmallerOrEqual
