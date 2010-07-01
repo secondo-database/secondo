@@ -784,7 +784,7 @@ any elements, i.e. whether Get or [*] would return NULL.
 */
  const AvlNode<contenttype>* tail(const AvlNode<contenttype>* root, 
                                   const contenttype& min){
-    __AVL_TRACE_
+    __AVL_TRACE__
    assert(root);
    thestack.push(root);
    if(root->content==min){
