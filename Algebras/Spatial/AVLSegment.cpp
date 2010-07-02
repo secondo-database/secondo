@@ -29,6 +29,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 #include "SpatialAlgebra.h"
 #include "AVLSegment.h"
+#include <functional>
 
 
 /*
@@ -120,7 +121,14 @@ bool checkOrder(const DbArray<HalfSegment>& segs, bool exact){
 /*
 3 Implementation of ~AVLSegment~
 
+3.0 static variables
+
 */
+
+  bool avlseg::AVLSegment::x_error = false;
+  double avlseg::AVLSegment::error_value = 0.0;
+
+
 
 
 /*
@@ -134,7 +142,8 @@ bool checkOrder(const DbArray<HalfSegment>& segs, bool exact){
    con_below(0), con_above(0),x1(0),x2(0),y1(0),y2(0),
    insideAbove_first(false),
    insideAbove_second(false),owner(none),
-   originX1(0),originX2(0),originY1(0),originY2(0){ }
+   originX1(0),originX2(0),originY1(0),originY2(0)
+   { }
 
 
 /*
@@ -187,8 +196,9 @@ As owner only __first__ and __second__ are the allowed values.
      originX2 = hs.getOriginX2();
      originY1 = hs.getOriginY1();
      originY2 = hs.getOriginY2();
+     
 
-     assert(CheckPoints());
+  //   assert(CheckPoints());
   }
 
 /*
@@ -212,7 +222,7 @@ Create a Segment only consisting of a single point.
       originX2 = x2;
       originY1 = y1;
       originY2 = y2;
-      assert(CheckPoints());
+    //  assert(CheckPoints());
   }
 
 
@@ -231,7 +241,7 @@ Create a Segment only consisting of a single point.
     originY1(src.originY1), originY2(src.originY2)
    {
 
-     assert(CheckPoints());
+     // assert(CheckPoints());
    }
 
 
@@ -256,7 +266,7 @@ Create a Segment only consisting of a single point.
      originX2 = src.originX2;
      originY1 = src.originY1;
      originY2 = src.originY2;
-     assert(CheckPoints());
+     // assert(CheckPoints());
      return *this;
   }
 
@@ -304,12 +314,26 @@ located on the segment defined by (orinigX1, originY1) and
   bool avlseg::AVLSegment::CheckPoints() const{
 
     if(!PointOnSegment(x1,y1,originX1,originY1, originX2, originY2)){
-      cerr << "Left Point not on OriginSegment" << endl;
-      return false;
+      HalfSegment hs(true, Point(originX1,originY1),Point(originX2,originY2));
+      double dist = hs.Distance(Point(x1,y1));
+      if(!AlmostEqual(dist,0.0)){ // rounding errors?
+        cerr.precision(16);
+        cerr << "Left Point not on OriginSegment" << endl;
+        cerr << "this = " << (*this) << endl;
+        cerr << "distance = " << dist << endl;
+        return false;
+      }
     }
     if(!PointOnSegment(x2,y2,originX1,originY1, originX2, originY2)){
-      cerr << "right Point not on original segment" << endl;
-      return false;
+      HalfSegment hs(true, Point(originX1,originY1),Point(originX2,originY2));
+      double dist = hs.Distance(Point(x2,y2));
+      if(!AlmostEqual(dist,0.0)){ // rounding errors?
+        cerr.precision(16);
+        cerr << "right Point not on OriginSegment" << endl;
+        cerr << "this = " << (*this) << endl;
+        cerr << "distance = " << dist << endl;
+        return false;
+      }
     }
     double d1 = (x1-originX1)*(x1-originX1) + (y1-originY1)*(y1-originY1);
     double d2 = (x2-originX1)*(x2-originX1) + (y2-originY1)*(y2-originY1);
@@ -694,6 +718,13 @@ Checks whether this segment and ~s~ have a common segment.
       if(pointEqual(x2,y2,s.x1,s.y1)){
          return false;
       }
+      if(!xOverlaps(s)) {
+         return false;
+      }
+      if(!yOverlaps(s)){
+        return false;
+      }
+
       return contains(s.x1,s.y1) || contains(s.x2,s.y2);
    }
 
@@ -757,11 +788,13 @@ Compares this with s. The x intervals must overlap.
 
  int avlseg::AVLSegment::compareTo(const avlseg::AVLSegment& s) const{
 
-    if(!xOverlaps(s)){
+    if(!xOverlaps(s) && !avlseg::AVLSegment::x_error){
       cerr << "Warning: compare AVLSegments with disjoint x intervals" << endl;
       cerr << "This may be a problem of roundig errors!" << endl;
       cerr << "*this = " << *this << endl;
       cerr << " s    = " << s << endl;
+      x_error  = true;
+      error_value = max(x1,s.x1);
     }
 
     if(isPoint()){
@@ -1001,8 +1034,8 @@ earlier.
     if(cmp==0){ // common right endpoint
         common.originX2 = common.x2;
         common.originY2 = common.y2;
-        assert(left.CheckPoints());
-        assert(common.CheckPoints());
+      //  assert(left.CheckPoints());
+      //  assert(common.CheckPoints());
         return result;
     }
 
@@ -1037,9 +1070,9 @@ earlier.
     }
     common.originX2 = right.originX2;
     common.originY2 = right.originY2; 
-    assert(left.CheckPoints());
-    assert(common.CheckPoints());
-    assert(right.CheckPoints());
+   // assert(left.CheckPoints());
+   // assert(common.CheckPoints());
+   // assert(right.CheckPoints());
     return result;
   }
 
@@ -1085,8 +1118,8 @@ provided by (x, y). The point must be on the interior of this segment.
      right.originY1 = originY1;
      right.originY2 = originY2;
     
-     assert(left.CheckPoints());
-     assert(right.CheckPoints()); 
+     //assert(left.CheckPoints());
+     //assert(right.CheckPoints()); 
 
   }
   
@@ -1122,7 +1155,7 @@ provided by (x, y). The point must be on the interior of this segment.
      right.originX2 = originX2;
      right.originY1 = originY1;
      right.originY2 = originY2;
-     assert(right.CheckPoints()); 
+     //assert(right.CheckPoints()); 
   }
 
 /*
@@ -1143,10 +1176,10 @@ void avlseg::AVLSegment::splitCross(const avlseg::AVLSegment& s,
     assert(cross);
     splitAt(x, y, left1, right1);
     s.splitAt(x, y, left2, right2);
-    assert(left1.CheckPoints());
-    assert(right1.CheckPoints());
-    assert(left2.CheckPoints());
-    assert(right2.CheckPoints());
+    //assert(left1.CheckPoints());
+    //assert(right1.CheckPoints());
+    //assert(left2.CheckPoints());
+    //assert(right2.CheckPoints());
 }
 
 /*
@@ -1636,7 +1669,7 @@ void splitNeighbours(avltree::AVLTree<avlseg::AVLSegment>& sss,
        sss.remove(*rightN);
        rightN->splitAt(leftN->getX1(), leftN->getY1(), left1, right1);
        if(!left1.isPoint()){
-          rightN = sss.insert2(right1);
+          rightN = sss.insert2(left1);
           insertEvents(left1, false, true, q1,q2);
        }
        insertEvents(right1, true,true,q1,q2);
@@ -2243,7 +2276,25 @@ avlseg::ownertype selectNext(const DbArray<HalfSegment>& src, int& pos,
 }
 
 
+class XRemover: public unary_functor<avlseg::AVLSegment, bool>{
+  public:
+    XRemover(): value(0.0) {}
+    XRemover(const XRemover& src): value(src.value) {}
+    XRemover& operator=(const XRemover& src){
+      value = src.value;
+      return *this;
+    }
+    void setX(double x){
+       value = x; 
+    }
+    bool operator()(const avlseg::AVLSegment& s) const{
+       double x2 = s.getX2();
+       return !AlmostEqual(value,x2) && x2 < value;
+    }
 
+  private:
+    double value;
+};
 
 
 DbArray<HalfSegment>* Realminize(const DbArray<HalfSegment>& segments){
@@ -2277,6 +2328,8 @@ DbArray<HalfSegment>* Realminize(const DbArray<HalfSegment>& segments){
   int edgeno = 0;
   avlseg::AVLSegment tmpL,tmpR,tmpM;
 
+  XRemover xRemover;
+
   while(selectNext(segments,pos,q1,nextHS)!=avlseg::none) {
 
       avlseg::AVLSegment current(nextHS,avlseg::first);
@@ -2294,7 +2347,8 @@ DbArray<HalfSegment>* Realminize(const DbArray<HalfSegment>& segments){
          member = &tmpM;
       }
       if(nextHS.IsLeftDomPoint()){
-         if(member){ // overlapping segment found in sss
+         if(member && member->overlaps(current)){ 
+            // overlapping segment found in sss
             double xm = member->getX2();
             double xc = current.getX2();
             if(!AlmostEqual(xm,xc) && (xm<xc)){ // current extends member
@@ -2346,7 +2400,70 @@ DbArray<HalfSegment>* Realminize(const DbArray<HalfSegment>& segments){
              edgeno++;
              sss.remove(*member);
           }
-      }
+    }
+
+    if(avlseg::AVLSegment::isError()){
+       cerr << "error during comparision detected" << endl;
+       avltree::AVLTree<avlseg::AVLSegment>::iterator it = sss.begin();
+       double val = avlseg::AVLSegment::getErrorValue();
+       vector<const avlseg::AVLSegment*> evilsegments;
+       cout << "start iterating" << endl; 
+       unsigned int size = sss.Size();
+       cout << "The tree has " << size << " entries" << endl;
+       unsigned int b=0;
+       while(!it.onEnd()){
+          b++;
+          const avlseg::AVLSegment* seg = it.Get();
+          double x2 = seg->getX2();
+          if(!AlmostEqual(x2,val) && x2 < val){
+              evilsegments.push_back(seg);
+          }
+          it++;
+          assert(b<=size);
+       }
+       if(evilsegments.size() > 0){ 
+          cout << "recognized " << evilsegments.size() 
+               << " evil segments" << endl;
+          cout << "error_value = " << val << endl;
+          unsigned int count = 0;
+          for(unsigned int i=0; i< evilsegments.size();i++){
+            const avlseg::AVLSegment* seg = evilsegments[i];
+            HalfSegment hs1 = seg->convertToExtendedHs(true);
+            HalfSegment hs2 = seg->convertToExtendedHs(false);
+            hs1.attr.edgeno = edgeno;
+            hs2.attr.edgeno = edgeno;
+            res->Append(hs1);
+            res->Append(hs2);
+            bool ok = sss.remove(*seg);
+            edgeno++;
+            evilsegments[i] = 0;
+            if(!ok){
+              count++;
+            }           
+          }
+          if(count != 0){
+            cout << "some (" << count 
+                 << " of the evil segments was not found, scan the tree"
+                 << " to remove them" << endl;
+            xRemover.setX(val);
+            cout << "Start removeAll" << endl;
+            unsigned int count2 = sss.removeAll(xRemover);
+            if(count != count2){
+              cout << count 
+                   << " elements should be remove, but only " << count2 
+                   << " was found " << endl;
+            }
+          }
+          cout << "segments removed" << endl;
+       } else {
+          cout << "evil segment already processed" << endl;
+       }
+       avlseg::AVLSegment::clearError();
+
+    }
+  }
+  if(sss.Size()!=0){
+    cout << " After planesweep, the status structure is not empty ! " << endl;
   }
   res->Sort(HalfSegmentCompare);
   res->TrimToSize();

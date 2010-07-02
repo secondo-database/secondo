@@ -479,6 +479,16 @@ class itself.
  int con_above;  // should be used as a coverage number
 
 
+
+ static bool isError(){ return x_error; }
+
+ static double getErrorValue() { return error_value; }
+  
+ static void clearError(){
+   x_error = false;
+ }
+
+
 /*
 3.11.1 Private Part
 
@@ -486,6 +496,8 @@ Here the data members as well as some auxiliary functions are
 collected.
 
 */
+
+ 
 
 
 private:
@@ -496,6 +508,9 @@ private:
   ownertype owner;    // who is the owner of this segment
   double  originX1, originX2, originY1, originY2; 
                      // this segments comes from 
+
+  static bool x_error; 
+  static double error_value;
 
 public: // for debugging only
 
