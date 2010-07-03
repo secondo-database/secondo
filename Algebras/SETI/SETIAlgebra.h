@@ -26,7 +26,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 [1] Declaration of SETIAlgebra
 
-May 2010, Daniel Brockmann
+July 2010, Daniel Brockmann
 
 1 Overview
 
@@ -127,8 +127,8 @@ struct SETICell
 {
   int         numEntries;       // Number of segments in cell
   SETIArea    area;             // Cell area (partition)
-  SmiFileId   rtreeFileID;      // RTree file id
   db_pgno_t   currentPage;      // Number of current cell page
+  SmiRecordId rtreeRecID;       // RTree header record id
   R_Tree<2,TupleId>* rtreePtr;  // RTree pointer
   Interval<Instant> tiv;        // Cell time interval
 };
@@ -146,6 +146,7 @@ struct SETIHeader
   SETIHeader()
   { 
     fileID       = (SmiFileId)0;
+    rtreeFileID  = (SmiFileId)0;
     headerPageNo = (db_pgno_t)0;
     flPageNo     = (db_pgno_t)0;
     cellPageNo   = (db_pgno_t)0;
@@ -158,19 +159,12 @@ struct SETIHeader
     tiv.end      = DateTime(0,0,instanttype);
     tiv.lc       = false;
     tiv.rc       = false;
-    rtree0FileID = (SmiFileId)0;
-    rtree0Ptr    = (R_Tree<2,TupleId>*)0;
-    rtree1FileID = (SmiFileId)0;
-    rtree1Ptr    = (R_Tree<2,TupleId>*)0;
-    rtree2FileID = (SmiFileId)0;
-    rtree2Ptr    = (R_Tree<2,TupleId>*)0;
-    rtree3FileID = (SmiFileId)0;
-    rtree3Ptr    = (R_Tree<2,TupleId>*)0;
   }
   
   SETIHeader(SETIArea AREA, int SPLITS)
   { 
     fileID       = (SmiFileId)0;
+    rtreeFileID  = (SmiFileId)0;
     headerPageNo = (db_pgno_t)0;
     flPageNo     = (db_pgno_t)0;
     cellPageNo   = (db_pgno_t)0;
@@ -183,17 +177,10 @@ struct SETIHeader
     tiv.end      = DateTime(0,0,instanttype);
     tiv.lc       = false;
     tiv.rc       = false;
-    rtree0FileID = (SmiFileId)0;
-    rtree0Ptr    = (R_Tree<2,TupleId>*)0;
-    rtree1FileID = (SmiFileId)0;
-    rtree1Ptr    = (R_Tree<2,TupleId>*)0;
-    rtree2FileID = (SmiFileId)0;
-    rtree2Ptr    = (R_Tree<2,TupleId>*)0;
-    rtree3FileID = (SmiFileId)0;
-    rtree3Ptr    = (R_Tree<2,TupleId>*)0;
   }
   
   SmiFileId          fileID;       // SETI file id
+  SmiFileId          rtreeFileID;  // RTree file id
   db_pgno_t          headerPageNo; // Header page number
   db_pgno_t          flPageNo;     // Front-line page number
   db_pgno_t          cellPageNo;   // Number of first cell page
@@ -203,14 +190,6 @@ struct SETIHeader
   int                numEntries;   // Number of TrjSegments/UploadUnits
   int                numFlEntries; // Number of front-line entries
   Interval<Instant>  tiv;          // SETI time interval
-  SmiFileId          rtree0FileID; // RTree0 file id
-  R_Tree<2,TupleId>* rtree0Ptr;    // RTree0 pointer
-  SmiFileId          rtree1FileID; // RTree1 file id
-  R_Tree<2,TupleId>* rtree1Ptr;    // RTree1 pointer
-  SmiFileId          rtree2FileID; // RTree2 file id
-  R_Tree<2,TupleId>* rtree2Ptr;    // RTree2 pointer
-  SmiFileId          rtree3FileID; // RTree3 file id
-  R_Tree<2,TupleId>* rtree3Ptr;    // RTree3 pointer
 };
 
 /******************************************************************************
@@ -279,6 +258,7 @@ class SETI
     void ReadSETI();
     
     SmiUpdateFile*  suf;                         // SmiUpdateFile
+    SmiRecordFile*  rtreeFile;                   // File for RTrees
     SETIHeader*     header;                      // SETI header
     SETICell*       cells[maxSplits][maxSplits]; // SETI cells
 };
