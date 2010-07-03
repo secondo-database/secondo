@@ -26,7 +26,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 [1] Implementation of SETIAlgebra
 
-May 2010, Daniel Brockmann
+July 2010, Daniel Brockmann
 
 1 Overview
 
@@ -206,7 +206,7 @@ bool ComputeIntersection( double Ax, double Ay,
 
 ******************************************************************************/
 
-SETI::SETI(SETIArea AREA, int SPLITS) : suf(0)
+SETI::SETI(SETIArea AREA, int SPLITS) : suf(0), rtreeFile(0)
 {   
   // Create SETI Header
   header = new SETIHeader(ModifyArea(AREA), SPLITS);
@@ -215,6 +215,11 @@ SETI::SETI(SETIArea AREA, int SPLITS) : suf(0)
   suf = new SmiUpdateFile(pageSize);
   suf->Create();
   header->fileID = suf->GetFileId();
+
+   // Create RTree file
+  rtreeFile = new SmiRecordFile(true,pageSize);
+  rtreeFile->Create();
+  header->rtreeFileID = rtreeFile->GetFileId();
   
   // Create header page
   SmiUpdatePage* headerPage;
@@ -263,19 +268,6 @@ SETI::SETI(SETIArea AREA, int SPLITS) : suf(0)
   assert( PageSelected );
   cellPage->Write(&nextPageNo, sizeof(db_pgno_t), 0);
   cellPage->Write(&numEntries, sizeof(int), sizeof(db_pgno_t));
-
-  // Create new RTrees
-  header->rtree0Ptr = new R_Tree<2,TupleId>(4000);
-  header->rtree0FileID = header->rtree0Ptr->FileId();
-  if ( header->splits > 1 )
-  {
-    header->rtree1Ptr = new R_Tree<2,TupleId>(4000);
-    header->rtree1FileID = header->rtree1Ptr->FileId();
-    header->rtree2Ptr = new R_Tree<2,TupleId>(4000);
-    header->rtree2FileID = header->rtree2Ptr->FileId();
-    header->rtree3Ptr = new R_Tree<2,TupleId>(4000);
-    header->rtree3FileID = header->rtree3Ptr->FileId();
-  }
   
   // Calculate x/y cell length
   double areaLenX = abs(AREA.x2 - AREA.x1); 
@@ -304,36 +296,16 @@ SETI::SETI(SETIArea AREA, int SPLITS) : suf(0)
       cells[j][i]->tiv.lc = false;
       cells[j][i]->tiv.rc = false;
       
-      // Assign rtree to cell
-      int rtreeBorder = (header->splits / 2) - 1;
-      if (rtreeBorder < 0) rtreeBorder = 0;
-      
-      if ((j <= rtreeBorder) && (i <= rtreeBorder))
-      {
-        // Left bottom rtree
-        cells[j][i]->rtreePtr = header->rtree0Ptr;
-        cells[j][i]->rtreeFileID = header->rtree0FileID;
-      }
-      if ((j > rtreeBorder) && (i <= rtreeBorder))
-      {
-        // Right bottom rtree
-        cells[j][i]->rtreePtr = header->rtree1Ptr;
-        cells[j][i]->rtreeFileID = header->rtree1FileID;
-      }
-      if ((j <= rtreeBorder) && (i > rtreeBorder))
-      {
-        // Left top rtree
-        cells[j][i]->rtreePtr = header->rtree2Ptr;
-        cells[j][i]->rtreeFileID = header->rtree2FileID;
-      }
-       if ((j > rtreeBorder) && (i > rtreeBorder))
-      {
-        // Right top rtree
-        cells[j][i]->rtreePtr = header->rtree3Ptr;
-        cells[j][i]->rtreeFileID = header->rtree3FileID;
-      }
+      // Create RTree for cell
+      cells[j][i]->rtreePtr = new R_Tree<2,TupleId>(rtreeFile);
+      cells[j][i]->rtreeRecID = cells[j][i]->rtreePtr->HeaderRecordId();
+   ofstream myfile;
+   myfile.open("daniel.txt",ios::app);
+   myfile << "create " << cells[j][i]->rtreePtr->HeaderRecordId() << endl;
+   myfile.close();
     }
   }
+
   // Write header and cell page into SmiUpdateFile
   UpdateHeader();
   UpdateCells();
@@ -371,17 +343,9 @@ SETI::~SETI()
   {
     for (int j = 0; j < header->splits; j++)
     {
+      delete cells[j][i]->rtreePtr;
       delete cells[j][i];
     }
-  }
-
-  // Delete rtree objects
-  delete header->rtree0Ptr;
-  if ( header->splits > 1 )
-  {
-    delete header->rtree1Ptr;
-    delete header->rtree2Ptr;
-    delete header->rtree3Ptr;
   }
 
   // Delete header
@@ -393,9 +357,11 @@ SETI::~SETI()
     frontline[i].clear();
   }
 
-  // Delete file object
+  // Delete file objects
   if(suf->IsOpen()) suf->Close();
   delete suf;
+  if(rtreeFile->IsOpen()) rtreeFile->Close();
+  delete rtreeFile;
 }
 
 /******************************************************************************
@@ -542,15 +508,8 @@ Word SETI::Create( const ListExpr typeInfo )
 void SETI::Delete( const ListExpr typeInfo, Word& w )
 { 
   SETI* setiPtr = static_cast<SETI*>(w.addr);
-  
-  // Delete RTree files
-  setiPtr->header->rtree0Ptr->DeleteFile();
-  if ( setiPtr->header->splits > 1 )
-  {
-    setiPtr->header->rtree1Ptr->DeleteFile();
-    setiPtr->header->rtree2Ptr->DeleteFile();
-    setiPtr->header->rtree3Ptr->DeleteFile();
-  }
+  setiPtr->rtreeFile->Close();
+  if(setiPtr->rtreeFile->IsOpen()) setiPtr->rtreeFile->Drop();
   delete setiPtr;
   w.addr = 0;
 }
@@ -612,7 +571,18 @@ bool SETI::Save( SmiRecord& valueRecord, size_t& offset,
 void SETI::Close( const ListExpr typeInfo, Word& w )
 {
   SETI* setiPtr = static_cast<SETI*>(w.addr);
+
+   ofstream myfile;
+   myfile.open("daniel.txt",ios::app);
+   myfile << "close 0" << endl;
+   myfile.close();
+
   delete setiPtr;
+
+   myfile.open("daniel.txt",ios::app);
+   myfile << "close 1" << endl;
+   myfile.close();
+
   w.addr = 0;
 }
 
@@ -699,6 +669,8 @@ void SETI::ReadSETI()
   assert( PageSelected );
  
   size_t offset = 0;
+  headerPage->Read(&header->rtreeFileID, sizeof(SmiFileId), offset);
+  offset += sizeof(SmiFileId);
   headerPage->Read(&header->flPageNo, sizeof(db_pgno_t), offset);
   offset += sizeof(db_pgno_t);
   headerPage->Read(&header->cellPageNo, sizeof(db_pgno_t), offset);
@@ -715,23 +687,6 @@ void SETI::ReadSETI()
   offset += sizeof(int);
   headerPage->Read(&header->tiv, sizeof(Interval<Instant>), offset);
   offset += sizeof(Interval<Instant>);
-  headerPage->Read(&header->rtree0FileID, sizeof(SmiFileId), offset);
-  offset += sizeof(SmiFileId);
-  headerPage->Read(&header->rtree1FileID, sizeof(SmiFileId), offset);
-  offset += sizeof(SmiFileId);
-  headerPage->Read(&header->rtree2FileID, sizeof(SmiFileId), offset);
-  offset += sizeof(SmiFileId);
-  headerPage->Read(&header->rtree3FileID, sizeof(SmiFileId), offset);
-  offset += sizeof(SmiFileId);
-
-  // Create new RTrees with existing RTree file 
-  header->rtree0Ptr = new R_Tree<2,TupleId>(header->rtree0FileID);
-  if ( header->splits > 1 )
-  {
-    header->rtree1Ptr = new R_Tree<2,TupleId>(header->rtree1FileID);
-    header->rtree2Ptr = new R_Tree<2,TupleId>(header->rtree2FileID);
-    header->rtree3Ptr = new R_Tree<2,TupleId>(header->rtree3FileID);
-  }
   
   // Read frontline -----------------------------------------------------------
 
@@ -780,6 +735,10 @@ void SETI::ReadSETI()
   double tivStart;
   double tivEnd;
   int    numEntries;
+
+  // Open RTree file
+  rtreeFile = new SmiRecordFile(pageSize);
+  rtreeFile->Open(header->rtreeFileID);
  
   do
   {  
@@ -797,8 +756,8 @@ void SETI::ReadSETI()
       offset += sizeof(int);
       cellPage->Read(&cellPtr->area, sizeof(SETIArea), offset);
       offset += sizeof(SETIArea);
-      cellPage->Read(&cellPtr->rtreeFileID, sizeof(SmiFileId), offset);
-      offset += sizeof(SmiFileId);
+      cellPage->Read(&cellPtr->rtreeRecID, sizeof(SmiRecordId), offset);
+      offset += sizeof(SmiRecordId);
       cellPage->Read(&cellPtr->currentPage, sizeof(db_pgno_t), offset);
       offset += sizeof(db_pgno_t);
       cellPage->Read(&tivStart, sizeof(double), offset);
@@ -814,30 +773,14 @@ void SETI::ReadSETI()
       cellPtr->tiv.end = DateTime(0,0,instanttype);
       cellPtr->tiv.end.ReadFrom(tivEnd);
 
-      // Assign rtree to cell
-      int rtreeBorder = (header->splits / 2) - 1;
-      if (rtreeBorder < 0) rtreeBorder = 0;
+       ofstream myfile;
+   myfile.open("daniel.txt",ios::app);
+   myfile << "read " << cellPtr->rtreeRecID << endl;
+   myfile.close();
 
-      if (((j-1) <= rtreeBorder) && ((i-1) <= rtreeBorder)) 
-      {
-        // Left bottom rtree
-        cellPtr->rtreePtr = header->rtree0Ptr;
-      }
-      if (((j-1) > rtreeBorder) && ((i-1) <= rtreeBorder))
-      {
-        // Right bottom rtree
-        cellPtr->rtreePtr = header->rtree1Ptr;
-      }
-      if (((j-1) <= rtreeBorder) && ((i-1) > rtreeBorder))
-      {
-        // Left top rtree
-        cellPtr->rtreePtr = header->rtree2Ptr;
-      }
-       if (((j-1) > rtreeBorder) && ((i-1) > rtreeBorder))
-      {
-        // Right top rtree
-        cellPtr->rtreePtr = header->rtree3Ptr;
-      }
+      // Create new RTree with existing RTree file/header 
+      cellPtr->rtreePtr = new R_Tree<2,TupleId>( rtreeFile,
+                                                 cellPtr->rtreeRecID );
  
       if ((j % header->splits) == 0) { j = 0; i++; }
       j++;
@@ -861,6 +804,8 @@ void SETI::UpdateHeader()
   assert( PageSelected );
   
   size_t offset = 0;
+  headerPage->Write(&header->rtreeFileID, sizeof(SmiFileId), offset);
+  offset += sizeof(SmiFileId);
   headerPage->Write(&header->flPageNo, sizeof(db_pgno_t), offset);
   offset += sizeof(db_pgno_t);
   headerPage->Write(&header->cellPageNo, sizeof(db_pgno_t), offset);
@@ -877,14 +822,6 @@ void SETI::UpdateHeader()
   offset += sizeof(int);
   headerPage->Write(&header->tiv, sizeof(Interval<Instant>), offset);
   offset += sizeof(Interval<Instant>);
-  headerPage->Write(&header->rtree0FileID, sizeof(SmiFileId), offset);
-  offset += sizeof(SmiFileId);
-  headerPage->Write(&header->rtree1FileID, sizeof(SmiFileId), offset);
-  offset += sizeof(SmiFileId);
-  headerPage->Write(&header->rtree2FileID, sizeof(SmiFileId), offset);
-  offset += sizeof(SmiFileId);
-  headerPage->Write(&header->rtree3FileID, sizeof(SmiFileId), offset);
-  offset += sizeof(SmiFileId);
 }
 
 /******************************************************************************
@@ -983,8 +920,8 @@ void SETI::UpdateCells()
       offset += sizeof(int);
       cellPage->Write(&cellPtr->area, sizeof(SETIArea), offset);
       offset += sizeof(SETIArea);
-      cellPage->Write(&cellPtr->rtreeFileID, sizeof(SmiFileId), offset);
-      offset += sizeof(SmiFileId);
+      cellPage->Write(&cellPtr->rtreeRecID, sizeof(SmiRecordId), offset);
+      offset += sizeof(SmiRecordId);
       cellPage->Write(&cellPtr->currentPage, sizeof(db_pgno_t), offset);
       offset += sizeof(db_pgno_t);
       cellPage->Write(&tivStart, sizeof(double), offset);
@@ -1057,7 +994,6 @@ bool SETI::UpdateSETI()
     return true;
   }
 }
-
 
 /******************************************************************************
 
@@ -1306,7 +1242,7 @@ the insertStream operator make use of this method.
 
 ******************************************************************************/
 
-bool InsertHandle(SETI* SETIPTR, UploadUnit* UNITPTR)
+int InsertHandle(SETI* SETIPTR, UploadUnit* UNITPTR)
 {
   SmiUpdateFile* suf  = SETIPTR->GetUpdateFile();
   SETIHeader*    hPtr = SETIPTR->GetHeader();
@@ -1315,22 +1251,18 @@ bool InsertHandle(SETI* SETIPTR, UploadUnit* UNITPTR)
   if (hPtr->area.x1 < hPtr->area.x2)
   {
     if (UNITPTR->GetPos().x < hPtr->area.x1+tol ||
-        UNITPTR->GetPos().x > hPtr->area.x2-tol )
-       return false;
+        UNITPTR->GetPos().x > hPtr->area.x2-tol ) return 2;
   }
   else if (UNITPTR->GetPos().x < hPtr->area.x2+tol ||
-           UNITPTR->GetPos().x > hPtr->area.x1-tol )
-       return false;
+           UNITPTR->GetPos().x > hPtr->area.x1-tol ) return 2;
   
   if (hPtr->area.y1 < hPtr->area.y2)
   {
     if (UNITPTR->GetPos().y < hPtr->area.y1+tol ||
-        UNITPTR->GetPos().y > hPtr->area.y2-tol ) 
-    return false;
+        UNITPTR->GetPos().y > hPtr->area.y2-tol ) return 2;
   }
   else if (UNITPTR->GetPos().y < hPtr->area.y2+tol ||
-           UNITPTR->GetPos().y > hPtr->area.y1-tol )
-    return false;
+           UNITPTR->GetPos().y > hPtr->area.y1-tol ) return 2;
 
   // Find entry in the frontline
   int moID  = UNITPTR->GetID();
@@ -1355,6 +1287,9 @@ bool InsertHandle(SETI* SETIPTR, UploadUnit* UNITPTR)
     segTiv.end   = UNITPTR->GetTime();
     segTiv.lc    = true;
     segTiv.rc    = true;
+
+    // Check if the current upload is younger than the last upload
+    if(segTiv.start >= segTiv.end) return 3;
     
     // Replace UploadUnit in frontline
     SETIPTR->frontline[moID%flBuckets][moID] = *UNITPTR;
@@ -1486,15 +1421,45 @@ bool InsertHandle(SETI* SETIPTR, UploadUnit* UNITPTR)
 
   if ((hPtr->numEntries % updateCycle) == 0)
   {
-    // Update SETI file
-    if(!SETIPTR->UpdateSETI()) return false;
+    // Update file
+    if(!SETIPTR->UpdateSETI()) return 1;
   }
-  return true;
+  return 0;
 }
 
 /******************************************************************************
 
-6.3 insertUpload - Type mapping method
+6.3 GenerateErrorMsg-method
+
+Generates error messages. The insertUpload and the insertStream operator make
+use of this method.
+
+******************************************************************************/
+
+void GenerateErrorMsg(bool error[3])
+{
+  static MessageCenter* msg = MessageCenter::GetInstance();
+
+  if (error[0])
+  {
+    NList msgList( NList("simple"),NList("Could not access update file!") );
+    msg->Send(msgList);
+  }
+  if (error[1])
+  {
+    NList msgList( NList("simple"),NList("Upload(s) is/are out of area!") );
+    msg->Send(msgList);
+  }
+  if (error[2])
+  {
+    NList msgList( NList("simple"),NList("Upload(s) is/are out of date!") );
+    msg->Send(msgList);
+  }
+}
+
+/******************************************************************************
+
+6.4 insertUpload - Type mapping method
 
 ******************************************************************************/
 
@@ -1512,32 +1477,49 @@ ListExpr InsertUploadTM(ListExpr args)
 
 /******************************************************************************
 
-6.4 insertUpload - Value mapping method
+6.5 insertUpload - Value mapping method
 
 ******************************************************************************/
 
 int InsertUploadVM(Word* args, Word& result, int message,
                   Word& local, Supplier s)
-{
-  result = qp->ResultStorage(s);
-  CcBool* b = static_cast<CcBool*>(result.addr);
-  
+{  
   SETI*       setiPtr = static_cast<SETI*>(args[0].addr);
   UploadUnit* unitPtr = static_cast<UploadUnit*>(args[1].addr);
+  
+  bool error[3];
+  for (int i = 0; i < 3; i++) error[i] = false;
 
   // Insert UploadUnit
-  bool res = InsertHandle(setiPtr, unitPtr);
+  int res = InsertHandle(setiPtr, unitPtr);
 
-  // Update SETI file
-  if(res) res = setiPtr->UpdateSETI();
+  // Memorize error
+  if (res == 1) error[0] = true;
+  if (res == 2) error[1] = true;
+  if (res == 3) error[2] = true;
+  
+  // Update file
+  if(!setiPtr->UpdateSETI()) error[0] = true;
 
-  b->Set(true,res);
+  // Print error messages
+  GenerateErrorMsg(error);
+
+  // Set result
+  result = qp->ResultStorage(s);
+  if(error[0] || error[1] || error[2])
+  {
+    static_cast<CcBool*>( result.addr )->Set(true, false);
+  }
+  else
+  {
+    static_cast<CcBool*>( result.addr )->Set(true, true);
+  }
   return 0;
 }
 
 /******************************************************************************
 
-6.5 insertUpload - Specification of operator
+6.6 insertUpload - Specification of operator
 
 ******************************************************************************/
 
@@ -1621,30 +1603,49 @@ int InsertStreamVM(Word* args, Word& result, int message,
   Word currentTupleWord(Address(0));
   int attributeIndex = static_cast<CcInt*>( args[3].addr )->GetIntval() - 1;
   SETI*      setiPtr = static_cast<SETI*>(args[1].addr);
-  bool       res = true;
+
+  bool error[3];
+  for (int i = 0; i < 3; i++) error[i] = false;         
 
   qp->Open(args[0].addr);
   qp->Request(args[0].addr, currentTupleWord);
   
-  while(qp->Received(args[0].addr) && (res == true))
+  while(qp->Received(args[0].addr))
   {
     Tuple* currentTuple = static_cast<Tuple*>( currentTupleWord.addr );
     UploadUnit* currentAttr = 
     static_cast<UploadUnit*>(currentTuple->GetAttribute(attributeIndex));
     if( currentAttr->IsDefined() )
     {
-      res = InsertHandle(setiPtr, currentAttr);
+      // Insert upload
+      int res = InsertHandle(setiPtr, currentAttr);
+
+      // Memorize error
+      if (res == 1) error[0] = true;
+      if (res == 2) error[1] = true;
+      if (res == 3) error[2] = true;
     }
     currentTuple->DeleteIfAllowed();
     qp->Request(args[0].addr, currentTupleWord);
   }
-
-  // Update SETI file
-  if(res) res = setiPtr->UpdateSETI();
-
   qp->Close(args[0].addr);
+  
+  // Update file
+  if(!setiPtr->UpdateSETI()) error[0] = true;
+
+  // Print error messages
+  GenerateErrorMsg(error);
+
+  // Set result
   result = qp->ResultStorage(s);
-  static_cast<CcBool*>( result.addr )->Set(true, res);
+  if(error[0] || error[1] || error[2])
+  {
+    static_cast<CcBool*>( result.addr )->Set(true, false);
+  }
+  else
+  {
+    static_cast<CcBool*>( result.addr )->Set(true, true);
+  }
   return 0;
 }
 
@@ -2420,7 +2421,201 @@ struct CurrentUploadInfo : OperatorInfo {
 
 /******************************************************************************
 
-12 Type constructor of class UploadUnit
+12 ConvertMP2UUTM operator
+
+Converts a stream of mpoints/moids into a stream of uploadunits.
+
+12.1 convertMP2UUTM - Type mapping method
+
+******************************************************************************/
+
+ListExpr ConvertMP2UUTM(ListExpr args)
+{  
+  NList type(args);
+  if ( !type.hasLength(4) )
+  {
+   return listutils::typeError("Expecting four arguments.");
+  }
+  
+  NList first = type.first();
+  if ( !first.hasLength(2)  ||
+       !first.first().isSymbol(STREAM) ||
+       !first.second().hasLength(2) ||
+       !first.second().first().isSymbol(TUPLE) ||
+       !IsTupleDescription( first.second().second().listExpr() ))
+  {
+    return listutils::typeError("Error in first argument!");
+  }
+
+  if ( !nl->IsEqual(nl->Second(args), "int") )
+  {
+    return NList::typeError( "int for second argument expected!" );
+  }
+  
+  NList third = type.third();
+  if ( !third.isSymbol() ) 
+  {
+    return NList::typeError( "Attribute name for third argument expected!" );
+  }
+
+  NList fourth = type.fourth();
+  if ( !fourth.isSymbol() ) 
+  {
+    return NList::typeError( "Attribute name for fourth argument expected!" );
+  }
+  
+  string attrname1 = type.third().str();
+  ListExpr attrtype1 = nl->Empty();
+  int j = FindAttribute(first.second().second().listExpr(),attrname1,attrtype1);
+
+  string attrname2 = type.fourth().str();
+  ListExpr attrtype2 = nl->Empty();
+  int k = FindAttribute(first.second().second().listExpr(),attrname2,attrtype2);
+  
+  if ( j != 0 )
+  {
+    if ( nl->SymbolValue(attrtype1) != "int" )
+    {
+      return NList::typeError("First attribute type is not of type int.");
+    }
+  }
+  else
+  {
+    return NList::typeError("Unknown attribute name '" + attrname1 + "' !");
+  }
+
+  if ( k != 0 )
+  {
+    if ( nl->SymbolValue(attrtype2) != "mpoint" )
+    {
+      return NList::typeError("Second attribute type is not of type mpoint.");
+    }
+   
+  }
+  else
+  {
+    return NList::typeError("Unknown attribute name '" + attrname2 + "' !");
+  }
+
+  // Create output list
+  ListExpr tupleList = nl->OneElemList(
+                       nl->TwoElemList(nl->SymbolAtom("Upload"),
+                                       nl->SymbolAtom("uploadunit")));
+  ListExpr outputstream = nl->TwoElemList(nl->SymbolAtom("stream"),
+                          nl->TwoElemList(nl->SymbolAtom("tuple"),tupleList));
+
+  return NList( NList(APPEND), nl->TwoElemList(nl->IntAtom(j), nl->IntAtom(k)),
+                outputstream ).listExpr();
+}
+
+/******************************************************************************
+
+12.2 convertMP2UUVM - Value mapping method
+
+******************************************************************************/
+
+int ConvertMP2UUVM(Word* args, Word& result, int message,
+                  Word& local, Supplier s)
+{
+  struct Iterator
+  {
+    Iterator()
+    {
+      it  = 0;
+      cnt = 0;
+    }
+    int it;
+    int cnt;
+    Word currentTupleWord;
+  };
+
+  Iterator* iterator = static_cast<Iterator*>(local.addr);
+
+  switch( message )
+  {
+    case OPEN: 
+    {
+      iterator = new Iterator();
+      local.addr = iterator;
+      qp->Open(args[0].addr);
+    }
+    case REQUEST: 
+    {
+      int numUploads = static_cast<CcInt*>( args[1].addr )->GetIntval();
+      int attr1 = static_cast<CcInt*>( args[4].addr )->GetIntval() - 1;
+      int attr2 = static_cast<CcInt*>( args[5].addr )->GetIntval() - 1;
+    
+      bool received = true; 
+
+      if (iterator->it == 0)
+      {
+         qp->Request( args[0].addr, iterator->currentTupleWord );
+         received = qp->Received(args[0].addr);
+      }
+
+      if ( received && iterator->cnt <= numUploads )
+      {
+        Tuple* currentTuple = static_cast<Tuple*>
+                              ( iterator->currentTupleWord.addr );
+        int moID = static_cast<CcInt*>(currentTuple->GetAttribute(attr1))
+                                       ->GetIntval();
+        MPoint* mp = static_cast<MPoint*>(currentTuple->GetAttribute(attr2));
+
+        UPoint up;
+        mp->Get(iterator->it,up);
+        UnitPos pos( up.p1.GetX(), up.p1.GetY() );
+        UploadUnit* uu = new UploadUnit(moID, up.timeInterval.end, pos );
+        TupleType* tupType =new TupleType(nl->Second(GetTupleResultType(s)));
+        Tuple* tup = new Tuple( tupType );
+        tup->PutAttribute( 0, ( Attribute* ) uu );
+        result.addr = tup;
+        iterator->it++;
+        iterator->cnt++;
+
+        if (iterator->it == mp->GetNoComponents()) iterator->it = 0;
+        
+        return YIELD;
+      }
+      else
+      {
+        delete iterator;
+        local.addr  = 0;
+        result.addr = 0;
+        return CANCEL;
+      }
+    }
+    case CLOSE: 
+    {
+      return 0;
+    }
+    default: 
+    {
+      return -1;
+    }
+  }
+}
+
+/******************************************************************************
+
+12.3 convertMP2UU - Specification of operator
+
+******************************************************************************/
+
+struct ConvertMP2UUInfo : OperatorInfo {
+  ConvertMP2UUInfo()
+  {
+    name      = "convertMP2UU";
+    signature = "((stream (tuple([a1:d1, ..., ai:int, "
+                "..., aj:mpoint, ..., an:dn]))) x int x ai x aj)"
+                " -> stream (tuple (Upload uploadunit))";
+    syntax    = "_ convertMP2UU [ _, _, _ ]";
+    meaning   = "Converts mpoints into upload units.";
+  }
+};
+
+/******************************************************************************
+
+13 Type constructor of class UploadUnit
 
 ******************************************************************************/
 
@@ -2438,7 +2633,7 @@ TypeConstructor UploadUnitTC(
 
 /******************************************************************************
 
-13 Declaration of SETIAlgebra
+14 Declaration of SETIAlgebra
 
 ******************************************************************************/
 
@@ -2458,13 +2653,14 @@ class SETIAlgebra : public Algebra
       AddOperator( InsideWinInfo(),     InsideWinVM,     InsideWinTM );
       AddOperator( CurrentUploadInfo(), CurrentUploadVM, CurrentUploadTM );
       AddOperator( GetTrajectoryInfo(), GetTrajectoryVM, GetTrajectoryTM );
+      AddOperator( ConvertMP2UUInfo(),  ConvertMP2UUVM,  ConvertMP2UUTM );
     }
     ~SETIAlgebra() {};
 };
 
 /******************************************************************************
 
-14 Initialization of SETIAlgebra
+15 Initialization of SETIAlgebra
 
 ******************************************************************************/
 
