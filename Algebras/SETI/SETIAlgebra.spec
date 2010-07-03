@@ -24,3 +24,4 @@ operator intersectsWindow alias INTERSECTSWINDOW pattern op ( _ ,_ ,_ ,_ )
 operator insideWindow alias INSIDEWINDOW pattern op ( _, _, _, _ )
 operator getTrajectory alias GETTRAJECTORY pattern op ( _, _ )
 operator currentUpload alias CURRENTUPLOAD pattern op ( _, _ )
+operator convertMP2UU alias CONVERTMP2UU pattern _ op [ _, _, _ ]

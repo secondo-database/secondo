@@ -42,3 +42,9 @@ Number   : 1
 Signature: seti x int -> uploadunit
 Example  : query currentUpload( mySETI, 5 )
 Result   : (5 "2006-10-25-09:32" (2.1 2.2)))
+
+Operator : convertMP2UU
+Number   : 1
+Signature: ((stream (tuple([a1:d1, ..., ai:int, ..., aj:mpoint, ..., an:dn]))) x int x ai x aj) -> stream (tuple (Upload uploadunit))
+Example  : query dataMtrip feed convertMP2UU[ 1000, Moid, Trip ] count
+Result   : 10
