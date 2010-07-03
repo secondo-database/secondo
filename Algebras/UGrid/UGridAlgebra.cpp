@@ -26,7 +26,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 [1] Declaration of UGridAlgebra
 
-June 2010, Daniel Brockmann
+July 2010, Daniel Brockmann
 
 1 Overview
 
@@ -204,9 +204,9 @@ Creates an UGridBox which constists of a page number and a 3D-rectangle.
 
 UGridBox* CreateUGridBox( UGridCell* CELLPTR, UGridNode* NODEPTR )
 {
-  UGridBox* ugridBox;
+  UGridBox* ugridBox = (UGridBox*)0;
   
-  if (CELLPTR != 0)
+  if ( CELLPTR != 0 )
   { 
     Rectangle<3>* box = (Rectangle<3>*)0;
                   box = new Rectangle<3>(true, 
@@ -226,14 +226,14 @@ UGridBox* CreateUGridBox( UGridCell* CELLPTR, UGridNode* NODEPTR )
     CELLPTR->numEntries = 0;
 
   }
-  else
+  else if ( NODEPTR != 0 )
   { 
     Rectangle<3>* box = (Rectangle<3>*)0;
                   box = new Rectangle<3>(true, 
                                     NODEPTR->pos1.x-tol, NODEPTR->pos2.x+tol,
                                     NODEPTR->pos1.y-tol, NODEPTR->pos2.y+tol, 
                                     NODEPTR->tiv.start.ToDouble(),
-                                    NODEPTR->tiv.end.ToDouble() );
+                                    NODEPTR->tiv.end.ToDouble());
 
     ugridBox = new UGridBox(NODEPTR->currentPage, false, *box);
 
@@ -550,8 +550,7 @@ Word UGrid::In( ListExpr typeInfo, ListExpr instance, int errorPos,
   if (!(numPartitions == 4096 ||
         numPartitions ==  256 ||
         numPartitions ==   16 ||
-        numPartitions ==    4 ||
-        numPartitions ==    1))
+        numPartitions ==    4))
   {
     // Wrong number of partitions -> create default UGrid
     result.addr = new UGrid(ModifyArea(area), 4);
@@ -890,34 +889,38 @@ void UGrid::InsertUGridBox( UGridNode* NODE, UGridBox* BOX )
         
         // Insert boxes from all four sons(cells)
         for (int i = 0; i < 4; i++)
-        {  
+        { 
+          // Current page of cell is not empty
           if (i == 0) box =CreateUGridBox(NODE->leftBottomCell, (UGridNode*)0);
           if (i == 1) box =CreateUGridBox(NODE->rightBottomCell,(UGridNode*)0);
           if (i == 2) box =CreateUGridBox(NODE->leftTopCell,    (UGridNode*)0);
           if (i == 3) box =CreateUGridBox(NODE->rightTopCell,   (UGridNode*)0);
-        
-          ModifyUGridNode( NODE, box );
           
-          double minD0(box->box.MinD(0)); double maxD0(box->box.MaxD(0));
-          double minD1(box->box.MinD(1)); double maxD1(box->box.MaxD(1));
-          double minD2(box->box.MinD(2)); double maxD2(box->box.MaxD(2));
-
-          currentPage->Write(&box->pageID, sizeof(db_pgno_t), offset);
-          offset +=  sizeof(db_pgno_t);
-          currentPage->Write(&box->huPageID, sizeof(bool), offset);
-          offset +=  sizeof(bool);
-          currentPage->Write(&minD0, sizeof(double), offset);
-          offset +=  sizeof(double);
-          currentPage->Write(&maxD0, sizeof(double), offset);
-          offset +=  sizeof(double);
-          currentPage->Write(&minD1, sizeof(double), offset);
-          offset +=  sizeof(double);
-          currentPage->Write(&maxD1, sizeof(double), offset);
-          offset +=  sizeof(double);
-          currentPage->Write(&minD2, sizeof(double), offset);
-          offset +=  sizeof(double);
-          currentPage->Write(&maxD2, sizeof(double), offset);
-          offset +=  sizeof(double);
+          if (box != 0)
+          {
+            ModifyUGridNode( NODE, box );
+            
+            double minD0(box->box.MinD(0)); double maxD0(box->box.MaxD(0));
+            double minD1(box->box.MinD(1)); double maxD1(box->box.MaxD(1));
+            double minD2(box->box.MinD(2)); double maxD2(box->box.MaxD(2));
+            
+            currentPage->Write(&box->pageID, sizeof(db_pgno_t), offset);
+            offset +=  sizeof(db_pgno_t);
+            currentPage->Write(&box->huPageID, sizeof(bool), offset);
+            offset +=  sizeof(bool);
+            currentPage->Write(&minD0, sizeof(double), offset);
+            offset +=  sizeof(double);
+            currentPage->Write(&maxD0, sizeof(double), offset);
+            offset +=  sizeof(double);
+            currentPage->Write(&minD1, sizeof(double), offset);
+            offset +=  sizeof(double);
+            currentPage->Write(&maxD1, sizeof(double), offset);
+            offset +=  sizeof(double);
+            currentPage->Write(&minD2, sizeof(double), offset);
+            offset +=  sizeof(double);
+            currentPage->Write(&maxD2, sizeof(double), offset);
+            offset +=  sizeof(double);
+          }
         }
       }
       
@@ -925,21 +928,23 @@ void UGrid::InsertUGridBox( UGridNode* NODE, UGridBox* BOX )
       {
         // Create page box
         UGridBox*  box = CreateUGridBox( (UGridCell*)0, NODE );
-
-        // Reset number of node entries
-        NODE->numEntries = 0;
-        
-        // Put current node page back to file
-        //suf->PutPage(NODE->currentPage, true);
-        
-        // Insert box from son node into father node page
-        InsertUGridBox( NODE->fatherNode, box );
-      
-        // Create new node page
-        SmiUpdatePage* currentPage;
-        int AppendedPage = suf->AppendNewPage(currentPage);
-        assert( AppendedPage );
-        NODE->currentPage = currentPage->GetPageNo();
+        if (box != 0)
+        {
+          // Reset number of node entries
+          NODE->numEntries = 0;
+          
+          // Put current node page back to file
+          //suf->PutPage(NODE->currentPage, true);
+          
+          // Insert box from son node into father node page
+          InsertUGridBox( NODE->fatherNode, box );
+          
+          // Create new node page
+          SmiUpdatePage* currentPage;
+          int AppendedPage = suf->AppendNewPage(currentPage);
+          assert( AppendedPage );
+          NODE->currentPage = currentPage->GetPageNo();
+        }
       }
       else
       {
@@ -1487,9 +1492,11 @@ void UGrid::UpdateUGridTree( UGridNode* NODE, int SQUARES,
   header->selectedNodePage->Write(&tivStart, sizeof(double), offset);
   offset +=  sizeof(double);
   header->selectedNodePage->Write(&tivEnd, sizeof(double), offset);
+  offset +=  sizeof(double);
   header->selectedNodePage->Write(&NODE->tiv.lc, sizeof(bool), offset);
   offset +=  sizeof(bool);
   header->selectedNodePage->Write(&NODE->tiv.rc, sizeof(bool), offset);
+  offset +=  sizeof(bool);
    
   if (SQUARES > 4)
   {
@@ -1544,6 +1551,7 @@ void UGrid::UpdateUGridTree( UGridNode* NODE, int SQUARES,
       cellPage->Write(&cellPtr->tiv.lc, sizeof(bool), offset);
       offset +=  sizeof(bool);
       cellPage->Write(&cellPtr->tiv.rc, sizeof(bool), offset);
+      offset +=  sizeof(bool);
     }
   }
    
@@ -1949,7 +1957,7 @@ the insertStream operator make use of this method.
 
 ******************************************************************************/
 
-bool InsertHandle(UGrid* UGRIDPTR, UploadUnit* UNITPTR)
+int InsertHandle(UGrid* UGRIDPTR, UploadUnit* UNITPTR)
 {   
   SmiUpdateFile* suf  = UGRIDPTR->GetUpdateFile();
   UGridHeader*    hPtr = UGRIDPTR->GetHeader();
@@ -1958,28 +1966,24 @@ bool InsertHandle(UGrid* UGRIDPTR, UploadUnit* UNITPTR)
   if (hPtr->area.x1 < hPtr->area.x2)
   {
     if (UNITPTR->GetPos().x < hPtr->area.x1+tol ||
-        UNITPTR->GetPos().x > hPtr->area.x2-tol )
-       return false;
+        UNITPTR->GetPos().x > hPtr->area.x2-tol ) return 2;
   }
   else if (UNITPTR->GetPos().x < hPtr->area.x2+tol ||
-           UNITPTR->GetPos().x > hPtr->area.x1-tol )
-       return false;
+           UNITPTR->GetPos().x > hPtr->area.x1-tol ) return 2;
   
   if (hPtr->area.y1 < hPtr->area.y2)
   {
     if (UNITPTR->GetPos().y < hPtr->area.y1+tol ||
-        UNITPTR->GetPos().y > hPtr->area.y2-tol ) 
-    return false;
+        UNITPTR->GetPos().y > hPtr->area.y2-tol ) return 2;
   }
   else if (UNITPTR->GetPos().y < hPtr->area.y2+tol ||
-           UNITPTR->GetPos().y > hPtr->area.y1-tol )
-    return false;
+           UNITPTR->GetPos().y > hPtr->area.y1-tol ) return 2;
 
   // Find entry in the frontline
   int moID  = UNITPTR->GetID();
   map<int,UploadUnit>::iterator it;
-  
   it = UGRIDPTR->frontline[moID%flBuckets].find(moID);
+
   if ( it == UGRIDPTR->frontline[moID%flBuckets].end() )
   {
     // No entry found -> Place UploadUnit in front line
@@ -1987,7 +1991,7 @@ bool InsertHandle(UGrid* UGRIDPTR, UploadUnit* UNITPTR)
     hPtr->numFlEntries++;
   }
   else
-  {   
+  {
     // Entry found
     if(!suf->IsOpen()) suf->Open(hPtr->fileID, pageSize);
     HistoryUnit* hu;
@@ -1998,11 +2002,13 @@ bool InsertHandle(UGrid* UGRIDPTR, UploadUnit* UNITPTR)
     huTiv.end   = UNITPTR->GetTime();
     huTiv.lc    = true;
     huTiv.rc    = true;
-    
+
+    // Check if the current upload is younger than the last upload
+    if(huTiv.start >= huTiv.end) return 3;
+
     // Replace UploadUnit in frontline
     UGRIDPTR->frontline[moID%flBuckets][moID] = *UNITPTR;
-    
-    // Insert history unit
+ 
     do 
     {       
       // Find cell
@@ -2013,12 +2019,12 @@ bool InsertHandle(UGrid* UGRIDPTR, UploadUnit* UNITPTR)
       SmiUpdatePage* page;
       if ((cellPtr->numEntries % maxHistoryUnits) == 0)
       {
-        if(cellPtr->currentPage != 0)
-        {
-          // Insert UGridBox into UGrid-tree
-          UGridBox* box = CreateUGridBox( cellPtr, (UGridNode*)0 );         
-          UGRIDPTR->InsertUGridBox( cellPtr->fatherNode, box );
-
+          if(cellPtr->currentPage != 0)
+          {
+            // Insert UGridBox into UGrid-tree
+          UGridBox* box = CreateUGridBox( cellPtr, (UGridNode*)0 );
+          if (box != 0) UGRIDPTR->InsertUGridBox( cellPtr->fatherNode, box );
+      
           // Put current page back to disk
           //suf->PutPage(cellPtr->currentPage, true);
         }
@@ -2029,7 +2035,7 @@ bool InsertHandle(UGrid* UGRIDPTR, UploadUnit* UNITPTR)
       }
       int PageSelected = suf->GetPage(cellPtr->currentPage, page);
       assert( PageSelected );
-
+      
       // Create/split new history unit
       hu = ComputeHistoryUnit( hPtr->area, hPtr->splits, pos1, pos2, huTiv );
       hu->moID  = moID;
@@ -2052,14 +2058,14 @@ bool InsertHandle(UGrid* UGRIDPTR, UploadUnit* UNITPTR)
          cellPtr->pos2.y = hu->pos1.y;
       if ((!cellPtr->tiv.rc) || (cellPtr->pos2.y < hu->pos2.y))
          cellPtr->pos2.y = hu->pos2.y;
-
+      
       // Check/modify UGrid time interval
       if ((!hPtr->tiv.lc) || (hPtr->tiv.start > huTiv.start))
       {
         hPtr->tiv.start = huTiv.start;
         hPtr->tiv.lc = true;
       }
-      
+    
       if ((!hPtr->tiv.rc) || (hPtr->tiv.end < huTiv.end))
       {
         hPtr->tiv.end = huTiv.end;
@@ -2086,17 +2092,17 @@ bool InsertHandle(UGrid* UGRIDPTR, UploadUnit* UNITPTR)
         page->Write(&pageEntries, sizeof(int), 0);
         page->Write(&huTiv,sizeof(Interval<Instant>), sizeof(int));
       }
-
+      
       // Check/modify page time interval
       Interval<Instant> pageTiv;
       page->Read(&pageTiv, sizeof(Interval<Instant> ), sizeof(int));
       if (huTiv.start < pageTiv.start) pageTiv.start = huTiv.start;
       if (huTiv.end > pageTiv.end) pageTiv.end = huTiv.end;
-    
+      
       // Read number of entries in page
       int pageEntries;
       page->Read( &pageEntries, sizeof(int), 0 );
-     
+      
       // Write HistoryUnit in page
       size_t offset =  sizeof(int) + sizeof(Interval<Instant>) + 
                       + ((pageEntries)*(sizeof(HistoryUnit)));
@@ -2133,15 +2139,45 @@ bool InsertHandle(UGrid* UGRIDPTR, UploadUnit* UNITPTR)
   
   if ((hPtr->numEntries % updateCycle) == 0)
   {
-    // Update UGrid file
-    if(!UGRIDPTR->UpdateUGrid()) return false;
+    // Update file
+    if(!UGRIDPTR->UpdateUGrid()) return 1;
   }
-  return true;
+  return 0;
 }
 
 /******************************************************************************
 
-6.3 insertUpload - Type mapping method
+6.3 GenerateErrorMsg-method
+
+Generates error messages. The insertUpload and the insertStream operator make
+use of this method.
+
+******************************************************************************/
+
+void GenerateErrorMsg(bool error[3])
+{
+  static MessageCenter* msg = MessageCenter::GetInstance();
+
+  if (error[0])
+  {
+    NList msgList( NList("simple"),NList("Could not access update file!") );
+    msg->Send(msgList);
+  }
+  if (error[1])
+  {
+    NList msgList( NList("simple"),NList("Upload(s) is/are out of area!") );
+    msg->Send(msgList);
+  }
+  if (error[2])
+  {
+    NList msgList( NList("simple"),NList("Upload(s) is/are out of date!") );
+    msg->Send(msgList);
+  }
+}
+
+/******************************************************************************
+
+6.4 insertUpload - Type mapping method
 
 ******************************************************************************/
 
@@ -2159,32 +2195,48 @@ ListExpr InsertUploadTM(ListExpr args)
 
 /******************************************************************************
 
-6.4 insertUpload - Value mapping method
+6.5 insertUpload - Value mapping method
 
 ******************************************************************************/
 
 int InsertUploadVM(Word* args, Word& result, int message, Word& local,
                  Supplier s)
-{
-  result = qp->ResultStorage(s);
-  CcBool* b = static_cast<CcBool*>(result.addr);
-  
+{  
   UGrid*       ugridPtr = static_cast<UGrid*>(args[0].addr);
   UploadUnit* unitPtr = static_cast<UploadUnit*>(args[1].addr);
+  bool error[3];
+  for (int i = 0; i < 3; i++) error[i] = false;
 
   // Insert UploadUnit
-  bool res = InsertHandle(ugridPtr, unitPtr);
+  int res = InsertHandle(ugridPtr, unitPtr);
+
+  // Memorize error
+  if (res == 1) error[0] = true;
+  if (res == 2) error[1] = true;
+  if (res == 3) error[2] = true;
   
-  // Update UGrid file
-  if(res) res = ugridPtr->UpdateUGrid();
-  
-  b->Set(true,res);
+  // Update file
+  if(!ugridPtr->UpdateUGrid()) error[0] = true;
+
+  // Print error messages
+  GenerateErrorMsg(error);
+
+  // Set result
+  result = qp->ResultStorage(s);
+  if(error[0] || error[1] || error[2])
+  {
+    static_cast<CcBool*>( result.addr )->Set(true, false);
+  }
+  else
+  {
+    static_cast<CcBool*>( result.addr )->Set(true, true);
+  }
   return 0;
 }
 
 /******************************************************************************
 
-6.5 insertUpload - Specification of operator
+6.6 insertUpload - Specification of operator
 
 ******************************************************************************/
 
@@ -2268,31 +2320,49 @@ int InsertStreamVM(Word* args, Word& result, int message,
   Word currentTupleWord(Address(0));
   int attributeIndex = static_cast<CcInt*>( args[3].addr )->GetIntval() - 1;
   UGrid*    ugridPtr = static_cast<UGrid*>(args[1].addr);
-  bool           res = true;
+
+  bool error[3];
+  for (int i = 0; i < 3; i++) error[i] = false;         
 
   qp->Open(args[0].addr);
   qp->Request(args[0].addr, currentTupleWord);
   
-  while(qp->Received(args[0].addr) && (res == true))
+  while(qp->Received(args[0].addr))
   {
     Tuple* currentTuple = static_cast<Tuple*>( currentTupleWord.addr );
     UploadUnit* currentAttr = 
-      static_cast<UploadUnit*>(currentTuple->GetAttribute(attributeIndex));
+    static_cast<UploadUnit*>(currentTuple->GetAttribute(attributeIndex));
     if( currentAttr->IsDefined() )
     {
-      res = InsertHandle(ugridPtr, currentAttr);
+      // Insert upload
+      int res = InsertHandle(ugridPtr, currentAttr);
+
+      // Memorize error
+      if (res == 1) error[0] = true;
+      if (res == 2) error[1] = true;
+      if (res == 3) error[2] = true;
     }
     currentTuple->DeleteIfAllowed();
     qp->Request(args[0].addr, currentTupleWord);
   }
-  
-  // Update UGrid file
-  if(res) res = ugridPtr->UpdateUGrid();
-  
   qp->Close(args[0].addr);
-  result = qp->ResultStorage(s);
-  static_cast<CcBool*>( result.addr )->Set(true, res);
+  
+  // Update file
+  if(!ugridPtr->UpdateUGrid()) error[0] = true;
 
+  // Print error messages
+  GenerateErrorMsg(error);
+
+  // Set result
+  result = qp->ResultStorage(s);
+  if(error[0] || error[1] || error[2])
+  {
+    static_cast<CcBool*>( result.addr )->Set(true, false);
+  }
+  else
+  {
+    static_cast<CcBool*>( result.addr )->Set(true, true);
+  }
   return 0;
 }
 

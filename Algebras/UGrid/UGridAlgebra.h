@@ -26,7 +26,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 [1] Declaration of UGridAlgebra
 
-June 2010, Daniel Brockmann
+July 2010, Daniel Brockmann
 
 1 Overview
 
