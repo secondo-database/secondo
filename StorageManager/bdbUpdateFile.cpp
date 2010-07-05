@@ -54,6 +54,7 @@ using namespace std;
 #include "CharTransform.h"
 #include "Counter.h"
 #include "WinUnix.h"
+#include "DbVersion.h"
 
 //Some default variables
 const int defaultPageSize = 1024;
@@ -483,10 +484,19 @@ int SmiUpdateFile::GetNumOfShareProcess()
       void* sysPagePointer;
       int rc = 0;
 
+#if DB_VERSION_REQUIRED(4,6)
+		  DbTxn* tid = 0;
+      rc = dbMpf->get(&pageno, tid, 0, &sysPagePointer);
+#else
       rc = dbMpf->get(&pageno, 0, &sysPagePointer);
+#endif
       SmiEnvironment::SetBDBError(rc);
       memcpy(&sysPage, sysPagePointer, sizeof(SmiUpdateSysPage));
+#if DB_VERSION_REQUIRED(4,6)
+      rc = dbMpf->put(sysPagePointer, DB_PRIORITY_DEFAULT, 0);
+#else
       rc = dbMpf->put(sysPagePointer, 0);
+#endif
       SmiEnvironment::SetBDBError(rc);
 
       return sysPage.shareByNum;
@@ -515,13 +525,22 @@ bool SmiUpdateFile::RegisterInFile()
     {
       SmiUpdateSysPage sysPage;
 
+#if DB_VERSION_REQUIRED(4,6)
+		  DbTxn* tid = 0;
+      rc = dbMpf->get(&pageno, tid, 0, &pagePointer);
+#else
       rc = dbMpf->get(&pageno, 0, &pagePointer);
+#endif
 
       SmiEnvironment::SetBDBError(rc);
       memcpy(&sysPage, pagePointer, sizeof(SmiUpdateSysPage));
       sysPage.shareByNum++;
       memcpy(pagePointer, &sysPage, sizeof(SmiUpdateSysPage));
+#if DB_VERSION_REQUIRED(4,6)
+      rc = dbMpf->put(pagePointer, DB_PRIORITY_DEFAULT, DB_MPOOL_DIRTY);
+#else
       rc = dbMpf->put(pagePointer, DB_MPOOL_DIRTY);
+#endif
       SmiEnvironment::SetBDBError(rc);
     }
 
@@ -544,10 +563,19 @@ int SmiUpdateFile::GetFactPageNum()
       int rc = 0;
 
       //Get exist page numbers inside this file
+#if DB_VERSION_REQUIRED(4,6)
+		  DbTxn* tid = 0;
+      rc = dbMpf->get(&pageno, tid, DB_MPOOL_LAST, &pagePointer);
+#else
       rc = dbMpf->get(&pageno, DB_MPOOL_LAST, &pagePointer);
+#endif
       SmiEnvironment::SetBDBError(rc);
       factPageNum = pageno + 1;
+#if DB_VERSION_REQUIRED(4,6)
+      rc = dbMpf->put(pagePointer, DB_PRIORITY_DEFAULT, 0);
+#else
       rc = dbMpf->put(pagePointer, DB_MPOOL_CLEAN);
+#endif
       SmiEnvironment::SetBDBError(rc);
     }
 
@@ -565,12 +593,21 @@ bool SmiUpdateFile::UnRegisterInFile()
       void* sysPagePointer;
       int rc = 0;
 
+#if DB_VERSION_REQUIRED(4,6)
+		  DbTxn* tid = 0;
+      rc = dbMpf->get(&pageno, tid, 0, &sysPagePointer);
+#else
       rc = dbMpf->get(&pageno, 0, &sysPagePointer);
+#endif
       SmiEnvironment::SetBDBError(rc);
       memcpy(&sysPage, sysPagePointer, sizeof(SmiUpdateSysPage));
       sysPage.shareByNum--;
       memcpy(sysPagePointer, &sysPage, sizeof(SmiUpdateSysPage));
+#if DB_VERSION_REQUIRED(4,6)
+      rc = dbMpf->put(sysPagePointer, DB_PRIORITY_DEFAULT, 0);
+#else
       rc = dbMpf->put(sysPagePointer, DB_MPOOL_DIRTY);
+#endif
       SmiEnvironment::SetBDBError(rc);
 
       return (rc == 0);
@@ -602,7 +639,12 @@ bool SmiUpdateFile::AppendNewPage(SmiUpdatePage*& page)
     db_pgno_t realPageNo;
     void *pgPt;
 
-    rc = dbMpf->get(&realPageNo, DB_MPOOL_NEW, &pgPt);
+#if DB_VERSION_REQUIRED(4,6)
+		  DbTxn* tid = 0;
+      rc = dbMpf->get(&realPageNo,tid, DB_MPOOL_NEW, &pgPt);
+#else
+      rc = dbMpf->get(&realPageNo, DB_MPOOL_NEW, &pgPt);
+#endif
     SmiEnvironment::SetBDBError(rc);
     ctr++;
 
@@ -650,7 +692,12 @@ bool SmiUpdateFile::GetPage(const db_pgno_t pageNo, SmiUpdatePage*& page)
       page->pageSize = poolPageSize;
       db_pgno_t realPageNo = pageNo + sysPageNum - 1;
 
+#if DB_VERSION_REQUIRED(4,6)
+		  DbTxn* tid = 0;
+      rc = dbMpf->get(&realPageNo, tid, 0, &pagePointer);
+#else
       rc = dbMpf->get(&realPageNo, 0, &pagePointer);
+#endif
       SmiEnvironment::SetBDBError(rc);
       page->pagePt = pagePointer;
 
@@ -689,10 +736,19 @@ bool SmiUpdateFile::PutPage(const db_pgno_t pageNo,
   if (iter != gotPages.end())
     {
       SmiUpdatePage *page = iter->second;
-      if (isChanged)
+      if (isChanged){
+#if DB_VERSION_REQUIRED(4,6)
+        rc = dbMpf->put(page->pagePt, DB_PRIORITY_DEFAULT,0 );
+#else
         rc = dbMpf->put(page->pagePt, DB_MPOOL_DIRTY);
-      else
+#endif
+      } else {
+#if DB_VERSION_REQUIRED(4,6)
+        rc = dbMpf->put(page->pagePt, DB_PRIORITY_DEFAULT, 0);
+#else
         rc = dbMpf->put(page->pagePt, DB_MPOOL_CLEAN);
+#endif
+      }
       SmiEnvironment::SetBDBError(rc);
       ctr++;
 
@@ -728,7 +784,11 @@ bool SmiUpdateFile::SyncFile()
     {
       //Put all got pages back ...
       SmiUpdatePage *page = iter->second;
+#if DB_VERSION_REQUIRED(4,6)
+      rc = dbMpf->put(page->pagePt, DB_PRIORITY_DEFAULT, 0);
+#else
       rc = dbMpf->put(page->pagePt, DB_MPOOL_DIRTY);
+#endif
       SmiEnvironment::SetBDBError(rc);
       delete iter->second;
       gotPages.erase(iter++);
