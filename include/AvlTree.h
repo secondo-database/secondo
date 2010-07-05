@@ -195,6 +195,10 @@ bool isLeaf()const{
    return left==NULL && right==NULL;
 }
 
+const contenttype* getContent() const{
+   return &content;
+}
+
 private:
 /*
 1.2 Data Members
@@ -646,7 +650,7 @@ The ~Get~ function returns the value currently under this iterator.
           return 0;
         } else {
           const AvlNode<contenttype>* elem = thestack.top();
-          return &(elem->content);
+          return (elem->getContent());
         }
      }
 /*
