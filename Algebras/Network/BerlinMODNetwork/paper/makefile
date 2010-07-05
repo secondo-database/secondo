@@ -11,7 +11,7 @@
 
 FILES = PaperBerlinMODAndNetworkDataModel
 
-DEPFILES = makefile
+DEPFILES = compruntimesall.eps
 
 TARGETFILES = $(addsuffix .pdf,$(FILES)) $(addsuffix .ps,$(FILES))
 
@@ -31,8 +31,13 @@ all: $(TARGETFILES)
 	latex $< 
 	bibtex $(subst .tex,,$<); echo""
 	latex $< 
+	bibtex $(subst .tex,,$<); echo""
+	latex $< 
 	latex $< 
 	latex $<
+
+%.eps: %.gpl
+	gnuplot $<
 
 .PHONY:clean
 clean:

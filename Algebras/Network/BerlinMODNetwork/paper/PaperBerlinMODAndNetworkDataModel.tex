@@ -4,16 +4,18 @@
 \usepackage{hyperref}
 \usepackage{cite}
 \usepackage{amssymb}
+\usepackage{amsmath}
 \usepackage{url}
 \usepackage{float}
 \usepackage{longtable}
 \usepackage{array}
 \usepackage{algorithmic}
-\usepackage[boxed]{algorithm}
+\usepackage[ruled]{algorithm}
 \usepackage{color}
 \usepackage{graphicx}
 \usepackage{tabularx}
 \usepackage{caption,subcaption}
+\usepackage{todonotes}
 \pagestyle{headings}
 \newcommand{\secondo}{\textsc{Secondo}}
 \newcommand{\bmodb} {BerlinMOD Benchmark}
@@ -21,7 +23,6 @@
 \newcommand{\dt}[1]{\textsl{\underline{#1}}}
 \newcommand{\true}{\textsl{TRUE}}
 \newcommand{\false}{\textsl{FALSE}}
-\newcommand{\secver}{2.9.x}
 %opening
 \title{Network Data Model and BerlinMOD Benchmark}
 \author{Simone Jandt}
@@ -35,56 +36,49 @@ into data models for objects moving freely in the two dimensional space and data
 models for network constrained moving objects. In this paper we select two representatives,
 one for each data model category, which are both implemented in the \secondo{} DBMS,
 and compare their capabilities with the \bmodb{}. We describe our implementation
-of the used network constrained data model, and the translation
-from the \bmodb{} into the network constrained data model and show
+of the used network constrained data model, the translation
+from the \bmodb{} into the network constrained data model, and show
 that in our experiments the network constrained data model outperforms the data
 model of free movement in the two dimensional space by orders of magnitude.
 \end{abstract}
+\listoftodos
 \section{Introduction}
 In the past, several data models for the representation of
 spatio-temporal data objects have been developed. We can categorize them into
-data models for objects moving freely in two dimensional space and data models
-for network constrained objects. For both categories several diffferent data models
-have been presented like
+data models for objects moving freely in two dimensional space (DMFS) and data models
+for network constrained moving objects (NCDM). For both categories several different
+data models have been presented like
 \cite{DataModelDataStructureGueting,RepresentingMovingObjectsGueting,STAUPelekis,HERMESMDCPelekis}
-for spatio-temporal data objects moving freely in two dimensional space (DMFS) and
-\cite{DynamicTransportNetworkDing,NetworkGueting,NetworkJensen,NetworkVazirgiannis}
-for spatio-temporal data objects that are constrained by given networks (NCDM),
-to name just a few. Objects which are restricted to use existing networks,
+for DMFS and \cite{DynamicTransportNetworkDing,NetworkGueting,NetworkJensen,NetworkVazirgiannis}
+for NCDM, to name just a few. Objects which are restricted to use existing networks,
 like cars are restricted to use road networks, can be represented as moving point
 objects in both data models, whereas objects, which are not restricted by a given
 network, like people, can be represented as moving point objects only in DMFS.
 
-Why do we spend time on NCDM,if everything can be represented by
-a DMFS? Now, it is natural to give positions related to the street
+Why do we spend time on NCDM, if everything can be represented by DMFS?
+Now, it is natural to give positions related to the street
 network instead of x,y-coordinates. NCDM are expected to use less storage space,
-because geographical informations about street curves are stored only once in
+because geographical information's about street curves are stored only once in
 the network, whereas in DMFS each street curve is stored in each moving point
-object using this street. NCDM can support query processing with spezialized indexes,
-because of the knowledge of the underlying network. And it is much easier to
+object using this street. NCDM can support query processing with specialized indexes
+using their knowledge of the underlying network. It is much easier to
 formulate queries about the relationships between moving objects and the network
-in the NCDM. And last but not least the results of our experiments show that
-our network data model outperforms our data model of free movement in two dimensional
-space by orders of magnitude. The network constrained data model uses less than
-60\% of the storage space and less than 50\% of the total query run time of the
-data model of free movement in space we used in our experiments.
-We think that these results show that it is useful
-to develop specialised data models for specialized data structures like NCDM for
-newtork constrained moving objects to save storage space and reduce query run times.
+in the NCDM. And not at last, the results of our experiments show that
+our network constrained data model outperforms our data model of free movement in
+two dimensional space by orders of magnitude. The network constrained data model
+uses less than 60\% of the storage space and less than 50\% of the total query
+run time of the data model of free movement in space, which we used in our experiments.
+We think that these results show that it is useful to develop specialized data
+models for specialized data structures like NCDM for
+network constrained moving objects to save storage space and reduce query run times.
 
-For our benchmark experiments, presented in this paper, we chosed two data models
+For our benchmark experiments, presented in this paper, we chose two data models
 one for each data model category. Both data models use the same temporal representation
-and are available in \secondo{} DBMS
-\cite{SecondoEnvironmentDieker,SecondoPlatformPrototypingGueting}.
-So we can exclude that different DBMS or temporal
-representation issues bias the results of our data model comparison with the
-\bmodb{}\cite{BerlinMODVLDBDuentgen}.
-The DMFS we use is the data model presented in
-\cite{RepresentingMovingObjectsGueting,DataModelDataStructureGueting}
-(SPACE for short).
-And the NCDM we use is the data model presented in \cite{NetworkGueting} (NET for short).
-Our implementation of NET is described first in this paper (Section \ref{sec:implNDM}
-and provides some further concepts which were only sketched in \cite{NetworkGueting}.
+and are available in \secondo{} DBMS \cite{SecondoEnvironmentDieker,SecondoPlatformPrototypingGueting}.
+So we can exclude that different DBMS or temporal representation issues bias the
+results of our data model comparison with the \bmodb{}\cite{BerlinMODVLDBDuentgen}.
+The DMFS we use is the data model presented in \cite{RepresentingMovingObjectsGueting,DataModelDataStructureGueting}
+(SPACE). And the NCDM we use is the data model presented in \cite{NetworkGueting} (NET).
 
 We used the \bmodb{} \cite{BerlinMODVLDBDuentgen} to compare the capabilities of
 the two data models, because the \bmodb{} is to the best of our knowledge the
@@ -92,21 +86,25 @@ first benchmark for complete spatio-temporal database systems.
 It is developed and available in \secondo{} DBMS. And the data generated by the
 \bmodb{} data generator are restricted to the streets of the German capital Berlin,
 such that they can be translated into a network constrained environment.
-And last but not least, the data model used in the \bmodb{} is SPACE that we use
+And not at last, the data model used in the \bmodb{} is SPACE that we use
 for our comparison. So we only have to translate the spatial and spatio-temporal
 data types of the \bmodb{} once into our NET representation. This simplifies the
 control of the query results and avoids errors caused by translation.
 The translation of the spatial and spatio-temporal data types of the \bmodb{} data
-into the NET representation described in this paper \ref{sec:Translation} can be
+into the NET representation described in Section \ref{sec:Translation} can be
 seen as an example for the usage of the \bmodb{} with other compatible data
 representations or DBMS.
 
-The rest of the paper is organised as follows: Related Work is presented in Section
+Besides the comparsion of the both data models, we describe in this paper the
+first real implementation of NET (see Section \ref{sec:implNDM}) providing some
+further concepts which were only sketched in \cite{NetworkGueting}.
+
+The rest of the paper is organised as follows: We present some related work in Section
 \ref{sec:relWork}, including short reviews of the underlying \secondo{} DBMS
-(Section \ref{sec:secondo}), the two data models (SPACE Section \ref{sec:bmodbdatamod}
-and NET Section \ref{sec:netdatamod}) we chosed for our comparison, and the
+(Section \ref{sec:secondo}), the two data models (SPACE Section \ref{sec:bmodbdatamod},
+NET Section \ref{sec:netdatamod}) we chose for our comparison, and the
 \bmodb{} (Section \ref{sec:bmodb}).
-In Section \ref{sec:implNDM} we give some informations about our implementation
+In Section \ref{sec:implNDM} we give some information's about our implementation
 of NET, the used operations and indexes.
 The translation of the \bmodb{} data and query set into the NET representation
 is described in Section \ref{sec:Translation}. The resulting experimental benchmark
@@ -115,113 +113,136 @@ experiments in Section \ref{sec:results}. We conclude our work in Section \ref{s
 \section{Related Work}
 \label{sec:relWork}
 In the past many different spatio-temporal data models have been presented. Many
-of them support only discrete spatio-temporal changes
+of them support only discrete spatio-temporal changes like
 \cite{sqlstchen,HunterWilliamson,Langran2,Langran1,Ramadrachan}
-or deal only with current and future positions of continuously moving objects
-\cite{MOSTWolfson}. Reviews of several different spatio-temporal data models are
-given in \cite{ReviewSTDMPelekis}. In this paper we will focus on spatio-temporal
-data models for complete histories of continuously moving objects. These can be
-categorized into data models for objects moving freely in two dimensional space
-(DMFS) and data models for network constrained moving objects (NCDM).
+or deal only with current and future positions of continuously moving objects like
+\cite{MOSTWolfson}. More detailed reviews of these and other spatio-temporal
+data models beyond the scope of our paper can be found in \cite{ReviewSTDMPelekis}.
 
-We will start with a few DMFS. \cite{MOLRaQSu} proposes the basic ideas of an
-DMFS based on differential geometry and the linear constraints approach of modeling
-spatial and spatio-temporal data. Spatial and spatio-temporal objects
-are defined by linear constraints, and the queries use formulas from differential
-geometry. The paper proposes only an incomplete abstract model without any usability.
+In this paper we will focus on spatio-temporal data models for complete histories
+of continuously moving objects. These can be categorized into data models for
+objects moving freely in two dimensional space (DMFS) and data models for network
+constrained moving objects (NCDM).
 
-\cite{STAUPelekis} and \cite{RepresentingMovingObjectsGueting,DataModelDataStructureGueting}
-use both the idea of time sliced representation of moving objects first presented
-in \cite{RepresentingMovingObjectsGueting}. \cite{DataModelDataStructureGueting}
-supports only linear interpolation of movement, whereas \cite{STAUPelekis} also
-supports arc interpolation. \cite{STAUPelekis} uses only one spatial
-object containing all spatial geometries and one moving object for the
-representation of the different moving object data types, whereas
-\cite{RepresentingMovingObjectsGueting,DataModelDataStructureGueting} uses different
-spatial and moving objects for the representation of the different
-data types. Therefore \cite{STAUPelekis} provides only a single operator that
-distinguishes between the different topological relationships via a parameter,
-whereas \cite{RepresentingMovingObjectsGueting,DataModelDataStructureGueting}
-uses different operations to estimate topological relationships. Alltogether
-\cite{STAUPelekis} offers a more flexible object oriented design than
-\cite{RepresentingMovingObjectsGueting,DataModelDataStructureGueting}.
+\cite{MOLRaQSu} proposes an incomplete abstract DMFS. Basic idea is that
+spatio-temporal data types can be modeled by linear constraints and queries are
+formulated using formulas from differential geometry.
 
-The spatio-temporal framework proposed by
-\cite{DataModelDataStructureGueting,RepresentingMovingObjectsGueting} is extended
-by \cite{NetworkGueting} to be also usable in network constrained environments.
-Similar to the most other NCDM in this section \cite{NetworkGueting} depends on
-a fixed network representation. That means that the old network informations are lost when a
-update of the network data structure occurs. Only \cite{DynamicTransportNetworkDing}
-can handle such updates without loss of information.
+\cite{RepresentingMovingObjectsGueting} proposes an abstract DMFS including the
+idea of an time sliced representation for moving objects. This basic idea of
+time sliced representation is used by the DMFS \cite{STAUPelekis} and
+\cite{DataModelDataStructureGueting}. The last one is used in our experiments
+and therefore reviewed in more detail in Section \ref{sec:bmodbdatamod}.
+The main difference between the both data models is that
+\cite{DataModelDataStructureGueting} supports only linear interpolation of movement,
+whereas \cite{STAUPelekis} also supports arc interpolation of movement.
+\cite{STAUPelekis} uses only one spatial object
+containing all spatial geometries for the representation of spatial objects and
+one moving object for the representation of the different moving object data types,
+whereas \cite{DataModelDataStructureGueting} uses different spatial and moving
+objects for the representation of the different spatial and moving data types.
+According to this \cite{STAUPelekis} provides only a single operator that distinguishes
+between the different topological relationships via a parameter, whereas
+\cite{DataModelDataStructureGueting} uses different operations to estimate
+topological relationships. Overall, \cite{STAUPelekis} offers a more flexible
+object oriented design than \cite{DataModelDataStructureGueting}.
 
-\cite{NetworkVazirgiannis} proposes an edge based NCDM. With an relation holding
-the edges and their attributes. The edge relation represents a undirected graph.
-Moving objects are assumed to drive always on the path with the lowest cost
-(distance or travel-time) from the source to the target point from a given
-starting time. The trajectory is computed by this assumptation using the length
-and speed attributes of the graph edges within the shortest / fastest path computation.
-These assumptions will not always hold in real world environments. Such that the
-moving object representation does not suffice real world requirements.
+The spatio-temporal framework of \cite{RepresentingMovingObjectsGueting} used by
+\cite{DataModelDataStructureGueting} has been used for the definition of a
+NCDM in \cite{NetworkGueting}.
+
+The most NCDM use edge based graph representations for the representation of the
+underlying network data only a small number of NCDM uses route oriented data models
+or combine route and edge based data models.
+.
+\cite{NetworkVazirgiannis} proposes an edge based NCDM. The edges and their attributes
+are stored in a relation representing the network as an undirected graph. Moving
+objects are assumed to drive always on the path with the lowest cost,
+in terms of distance or travel-time. They are defined by the source point, the
+target point, and the starting time instant of the trip. The trajectory is
+computed by this assumption using the length and speed attributes of the graph
+edges within the shortest respectively fastest path computation.
+The advantage of this definition is the reduced storage space for the representation
+of moving point objects. The drawback is the high computational effort for query
+evaluation on moving objects.
 
 \cite{NetworkJensen} uses also an edge based network representation. The paper
-proposes a combination of an 2D geometrical edge representation with an directed
-graph representation of the network. Where as the 2D geometrical representation
-handles the spatial information the connectivity information is mostly embedded
-in the directed graph representation. The both representations are connected by
-transition policies. Moving objects are represented by sets of 5 tuples. Each
-5 tuple contains an edge identifier, the position of moving point on the edge
+proposes a combination of an two dimensional geometrical edge representation with
+an directed graph representation of the same network. The both representations
+are connected by transition policies. The two dimensional
+geometrical representation handles the spatial information's, whereas the connectivity
+information is mostly embedded in the directed graph representation.
+Moving objects are represented by sets of five tuples. Each five tuple contains
+an edge identifier, the position of the moving point on the edge
 in terms of weight and length, the speed and direction of the movement, and
 the time instant of this information.
 
-Different from all other NCDM in this section \cite{DynamicTransportNetworkDing}
-proposes a dynamic transportation network model. This means that the attributes
-of the network parts are modelled by time depending dynamic attributes, such that
-changes in the network environment can be handled without loss of information.
-Similar to \cite{NetworkGueting} the idea of the network model bases
-on routes and junctions. The authors propose a two-layer network representation
-data structure, which combines the advantages of dynamic edge based
-\cite{DynNetworkModEdgeGueting} and route based \cite{DynNetworkModRouteGueting}
-NCDM approach. The route based environment reduces the update intervals and
-used storage space for moving objects, whereas the edge-based envirionment supports
+Another two-layer network representation is proposed by \cite{DynamicTransportNetworkDing}.
+The authors of \cite{DynamicTransportNetworkDing} combine the advantages of the
+dynamic edge-based \cite{DynNetworkModEdgeGueting} and the dynamic route-based
+\cite{DynNetworkModRouteGueting} NCDM approaches. The route-based environment
+reduces the update intervals and used storage space for the database representation
+of moving point objects, whereas the edge-based environment supports
 a more detailed view on the traffic conditions of the different edges belonging
-to the same route. Moving objects are represented by a set of pairs of
-motion vectors together with a boolean flag telling if the motion vector contains
-actual or historical information. Each motion vector consists, in parts
-similar to \cite{NetworkJensen}, of a time stamp, a network position, and a speed vector.
+to the same route. Moving objects are represented by a set of pairs. The pairs
+consist of an motion vector and an Boolean flag. The Boolean flag tells if the
+motion vector contains current or historical information. Each motion vector
+consists, in parts similar to \cite{NetworkJensen}, of a time stamp, a network
+position, and a speed vector. Similar to \cite{NetworkGueting} the network
+position bases on routes and junctions and not on edges. Different from all
+other NCDM in this section \cite{DynamicTransportNetworkDing}
+uses time depending dynamic attributes in the representation of the network parts.
+Therefore, changes in the network environment can be handled without loss of
+information in this NCDM.
 
-To the best of our knowledge only a few of these data models have been completely
-implemented into different database management systems:
-\begin{enumerate}
-  \item \cite{STAUPelekis} is implemented as data cartridge \cite{HERMESMDCPelekis,
-HERMESPelekis} for the commercial Oracle\textregistered ORDBMS \cite{ORACLE}.
-  \item \cite{DynamicTransportNetworkDing} is implemented as extension of the
-open source database project PostgreSQL \cite{PostgreSQL}.
-  \item \cite{RepresentingMovingObjectsGueting,DataModelDataStructureGueting}
+To the best of our knowledge only a few of the proposed data models have been
+implemented into database management systems: \cite{STAUPelekis} is implemented
+as data cartridge \cite{HERMESMDCPelekis, HERMESPelekis} for the commercial
+Oracle\textregistered object-relational DBMS \cite{oracle};
+\cite{DynamicTransportNetworkDing} is implemented as extension of the open source
+database project PostgreSQL \cite{PostgreSQL}; \cite{DataModelDataStructureGueting}
 and \cite{NetworkGueting} are implemented in the freely available extensible
 \secondo{} DBMS \cite{SecondoPlatformPrototypingGueting}.
-\end{enumerate}
 
 Although \cite{STAUPelekis} for the DMFS and \cite{DynamicTransportNetworkDing} for
 the NCDM provide greater flexibility we decided to use
-\cite{RepresentingMovingObjectsGueting,DataModelDataStructureGueting}
-and \cite{NetworkGueting} in our experiments, because both are available in the
-freely available \secondo{} DBMS. And not at least \secondo{} is the DBMS with
-which the \bmodb{} \cite{BerlinMODVLDBDuentgen} was developed.
+\cite{DataModelDataStructureGueting} and \cite{NetworkGueting} in our
+experiments, because both data models are available in the same DBMS, which is
+also the DBMS in which the \bmodb{} \cite{BerlinMODVLDBDuentgen} has bee developed.
 
-Other benchmarks for spatio-temporal databases provide only well defined
-query sets \cite{QueriesTheordoridis} and a database description without data.
+The \bmodb{} \cite{BerlinMODVLDBDuentgen} is to the best of our knowledge the only
+benchmark testing the capabilities of complete spatio-temporal database systems.
+Coming with a well defined data set, and two query sets feasible for DMFS and NCDM.
+Other benchmarks for spatio-temporal databases systems provide only well defined
+query sets and a database description without any data set like \cite{QueriesTheodoridis}.
 Or they come with well defined data generation, workload sets and experiments but
-only to evaluate the capabilities of indexes for current and near future positions
+evaluate only the capabilties of indexes for current and near future positions like
 \cite{COSTBenchmarkJensen}. Or they focus on time-evolving regional data and associated
 index methods like \cite{BenchmarkTzouramanis}.
 
-The \bmodb{} is to the best of our knowledge the only benchmark testing the capabilities
-of complete spatio-temporal database systems. Coming with well defined data and
-query sets feasible for moving objects in space and network constrained moving objects.
+The focus on index benchmarking in the most benchmarks is dued by the fact that
+indexes have a great influence on query run times. Therefore, many spatio-temporal
+indexes have been developed in the last ten years. An survey about existing spatio-temporal
+indexes can be found in the two parted work \cite{STAMSurvey1} and \cite{STAMSurvey2}.
+The most presented spatio-temporal indexes base on the R-Tree \cite{RTreeGuttmann}
+and its variants. The R-Trees are used stand alone or in hierarchical combinations.
+B-Trees \cite{BTreeBayer} and their variants are also used within spatio-temporal
+indexes. \secondo{} comes with implementations of R-Tree, B-Tree, and MON-Tree
+\cite{MONTreeAlmeidaGeoinformatica} in Section \ref{sec:implNDM} we give a detailed
+description how we used these indexes in our experiments.
 
-In the next sequel we give short reviews of the \secondo{} database system
-(Section \ref{sec:secondo}), the both data models (Section \ref{sec:bmodbdatamod},
-Section \ref{sec:netdatamod}) we used in our experiments, and the \bmodb{}
+The \bmodb{} comes with his own data generator. Like mentioned before other
+benchmarks like \cite{QueriesTheodoridis} define only database descriptions.
+The users have to generate their own corresponding data.
+
+Therefore, several data generators have been developed. Some of them generate
+only unconstrained moving point objects like \cite{OportoSaglio}, or support
+only short-term observations like \cite{BrinkhoffsDataGenerator}, or are
+unavailable respectively require additional software like \cite{STACTS}.
+
+In the sequel we give short reviews of the \secondo{} DBMS
+(Section \ref{sec:secondo}), the both data models we used in our experiments
+(Section \ref{sec:bmodbdatamod} and Section \ref{sec:netdatamod}), and the \bmodb{}
 (Section \ref{sec:bmodb}).
 \subsection{\secondo{} DBMS}
 \label{sec:secondo}
@@ -238,249 +259,250 @@ as a \secondo{} plugin such that other users can use these plugins to extend the
 \secondo{} system. They may use the newly provided functionalities or repeat the
 published experiments. \secondo{} is freely available on the web \cite{secondoweb}.
 It comes with a number of already implemented spatial and spatio-temporal data types
-and operations including the DMFS (Section \ref{sec:bmodbdatamod}) and the NCDM
-(Section \ref{sec:netdatamod}) used in this paper. Furthermore, the \bmodb{}
+and operations including SPACE (Section \ref{sec:bmodbdatamod}) and NET
+(Section \ref{sec:netdatamod}). Furthermore, the \bmodb{}
 described in Section \ref{sec:bmodb} has been developed in the \secondo{} DBMS.
-For our experiments we used the \secondo{} version \secver{}.
-\subsection{Data Model of Free Movement in Two Dimensional Space}
+For our experiments we used the \secondo{} version 3.0.
+\subsection{Data Model of \bmodb{} (SPACE)}
 \label{sec:bmodbdatamod}
-\cite{STDTModelingQueryingMOinDErwig} presents the basic idea of the new
-spatio-temporal data model that we will use as DMFS in our experiments. Besides
-the general idea it discusses related work and the advantages of having abstract
-and discrete data models. Abstract data models allow us to make definitions
-in terms of infinite sets, without worrying whether finite representations exist.
-They are useful as conceptual model, but they cannot be implemented, because computers
-can only use finite sets. Data structures and algorithms have to work with finite
-representations of the data types. Therefore we also need a discrete algebra
-representation. The abstract definition of our data model has been published in
-\cite{RepresentingMovingObjectsGueting}, whereas an associated discrete data
-model was presented in \cite{DataModelDataStructureGueting}.
+\cite{STDTModelingQueryingMOinDErwig} presents the basic idea of the DMFS that
+is used by the \bmodb{}. The abstract data model for SPACE was pubished in
+\cite{RepresentingMovingObjectsGueting} and the discrete data model in
+\cite{DataModelDataStructureGueting}. Abstract data models are useful as conceptual
+models, but they cannot be implemented, because computers can only use finite sets.
+In the sequel description we will mainly focus on the discrete data model.
 
 The type system in \cite{RepresentingMovingObjectsGueting} is defined using the
 techniques presented in \cite{SecondOrderSignatureGueting}. The basic idea of
 \cite{RepresentingMovingObjectsGueting} is to define type constructors
 that create new data types if they are applied to an data type of a given set of
 basic data types.
-Basic data types are the standard data types like integer, real, string and Boolean (BASE);
+
+Basic data types are the standard data types integer, real, string and boolean (BASE);
 the spatial data types point, points, line, and region (SPATIAL);
 and the temporal type instant (TIME).
 
-The data types of BASE are defined as usual. The SPATIAL data types are defined
-by different carrier sets in the abstract and the disrete level.
+The carrier sets for all data types in the discrete data model contain $\perp$,
+representing an undefined value. This is not mentioned any more in the sequel.
 
-In the abstract data model the carrier set of a point is $\mathbb{R}^2 \cup \{ \perp \}$.
-In the discret data model the carrier set of a point is $\{ real \times real \} \cup \{ \perp \}$,
-whereas the two $real$ values are interpreted as x,y-coordinates of a point in the
-two dimensional plane.
+The carrier sets for the BASE data types in the discrete data model are defined
+by the corresponding programming language data types \dt{int}, \dt{real}, \dt{bool},
+and \dt{string}. The carrier set of a value of the data type \dt{point} is
+\dt{real} $\times$ \dt{real}. The two \dt{real} values represent the x,y-coordinates
+of the \dt{point} value in the two dimensional plane. The data type \dt{points}
+consists of a disjoint set of \dt{point} values. The carrier set for the data type \dt{line}
+consists of a finite set of disjoint line segments representing the linear
+approximation of the line curve in the two dimensional plane. Semanticaly an
+\dt{line} value is the union of the points of all its line segments. A region
+is the union of all points covered by the region. The carrier set \dt{region}
+is defined to be a finite set of line segments building a polygon representing
+the linear approximation of the outer and, if the region contains wholes, inner
+borders of the region. The borders are defined to belong to the region.
 
-In the abstract data model line and region are subsets of the set of point that
-fullfill several conditions. In the discret data model a \dt{line} is a linear
-approximation of the curve of the line by a finite set of line segments in the plane.
-Regions are represented by a set of segments representing a linear approximation
-of the region borders by polygons in the discrete data model.
+The carrier set for the TIME data type is given by \dt{real} in the discrete data model.
+That means each time \dt{instant} is represented by a corresponding \dt{real} value.
 
+The type constructor \dt{range} converts BASE and TIME data types $\alpha$ into
+a type whoes values are finite sets of intervals over $\alpha$. Range types are
+used to represent collections of time intervals, or the values taken by a moving
+real. Intervals are represented by their start and end point and two flags indicating
+if the start respectively end point is part of the interval or not.
 
-The two most important type constructors are $moving$ and $range$. $Moving$
-maps each type $\alpha$ from BASE and SPATIAL into an time dependend spatio-temporal
-moving data type $moving$($\alpha$) (TEMPORAL), whereas $range$ is applicable to
-BASE and TEMPORAL type $\beta$ and produces range data types $range$($\beta$).
+The other important type constructor of the abstract data model is \dt{moving}.
+In the abstract data model\dt{moving} maps each data type $\alpha$ from BASE and
+SPATIAL into an time dependend spatio-temporal moving data type \dt{moving}($\alpha$)
+(\dt{m$\alpha$} for short) of kind TEMPORAL. The discrete data model introduces some
+additional type constructors to implement the moving type constructor of the
+abstract data model. A detailed description of the type constructors is skiped
+due to place limitations. We explain the realisation of \dt{moving} at the example
+of a \dt{moving}(\dt{point}) (short \dt{mpoint}) object. An \dt{mpoint} value may represent
+a car, which changes its position in the plain within time.
 
+An \dt{mpoint} consists of a set of so called \dt{unit}(\dt{point}) values
+(\dt{upoint} for short).
+Each \dt{upoint} consists of a time interval and two \dt{point} values. The first
+\dt{point} value represents the position of the \dt{upoint} at the start of the
+time interval and the second \dt{point} value represents the position of the
+\dt{upoint} at the end of the time interval. It is assumed that the object represented
+by the \dt{upoint} moves on the straight line between these two points with constant
+speed within the given time interval. The velocity of the object is given by the
+ratio from the distance of the two points and the length of the time interval of
+the \dt{upoint}.
 
-
-In the abstract data model a time instant is a point in time or undefined, whereas
-the carrier set for instant is $\mathbb{R} \cup \{ \perp \}$.
-In \secondo{} all these spatial data types and many standard data types can be
-''lifted'' to become time dependent \dt{moving} values. For all data types \dt{$\alpha$}
-the constructor \dt{moving} creates a new data type \dt{moving}(\dt{$\alpha$})
-(short form \dt{m$\alpha$}).
-
-A car may be represented by a \dt{moving}(\dt{point}), short \dt{mpoint}.
-An \dt{mpoint} consists of a set of units called
-\dt{unit}(\dt{point}) (short form \dt{upoint}). Each \dt{upoint} consists of a time
-interval and two \dt{point} values. The first \dt{point} value represents the
-position of the \dt{mpoint} at the start of the time interval and the second
-\dt{point} value represents the position of the \dt{mpoint} at the end of the
-time interval. It is assumed that the object represented by the \dt{mpoint}
-moves on the straight line between these two points with constant speed within the
-given time interval. The velocity of the object is given by the ratio from the
-distance of the two points and the length of the time interval of the unit.
-All units of an \dt{mpoint} must have disjoint time intervals, because a car
-cannot be at two different positions at the same time.
-The units are sorted by ascending time intervals.
+All \dt{upoint} values of an \dt{mpoint} must have disjoint time intervals,
+because a car cannot be at two different positions at the same time.
+The set of \dt{upoint} values is sorted by ascending time intervals.
 
 This spatio-temporal data model of \dt{moving} allows us to compute the position
 of an \dt{mpoint} at every time instant within its definition time.
 We can also compute the time instant the point passed a
 given position assuming the \dt{mpoint} ever passes this position. The position of a
-\dt{point} at a given time instant is represented by an \dt{intime}(\dt{point})
-(short form \dt{ipoint}). An \dt{ipoint} consists of a time instant and a \dt{point} value.
+\dt{point} at a given time instant is represented by an \dt{intime(point)}
+(short form \dt{ipoint}). An \dt{ipoint} consists of an time instant and an \dt{point}
+value and represents the position of the \dt{mpoint} value at the given time instant.
 
-Some other data types of \secondo{} which are used in the \bmodb{} are shown in
-Table \ref{tab:bmodbdatatypes}.
-\begin{table}[H]
-\begin{center}
-\begin{scriptsize}
-\begin{tabularx}{1.0\textwidth}{|l|X|}
-\hline
-\textbf{Data Type} & \textbf{Description} \\
-\hline
-\dt{bool} & Usual boolean data type\\
-\hline
-\dt{int} & Usual integer number\\
-\hline
-\dt{real} & Usual real number\\
-\hline
-\dt{instant} & A point in time\\
-\hline
-\dt{periods} & A set of disjoint and not connected time interval\\
-\hline
-\dt{mbool} & A time dependent boolean value, which is constant \true{} or \false{}
-within each \dt{ubool} \\
-\hline
-\dt{mreal} & Time dependent real number. Each unit is defined by a function
-of time representing the \dt{real} value at each time instant.\\
-\hline
-\end{tabularx}
-\end{scriptsize}
-\caption{Other Data Types of \bmodb{}}
-\label{tab:bmodbdatatypes}
-\end{center}
-\end{table}
+Other data types of \secondo{} which are used in the \bmodb{} are \dt{mbool},
+\dt{mreal}, and \dt{periods}. A \dt{mbool} value consists of a set of \dt{ubool}
+values. Each \dt{ubool} value is is constant \true{} or \false{} for the given
+time interval. A \dt{mreal} value consists of a set of \dt{ureal} values. Each
+\dt{ureal} value is defined by a function of time representing the \dt{real}
+value at each time instant. A \dt{periods} value is a set of disjoint an not
+connected time intervals.
 \subsection{Network Data Model(NET)}
 \label{sec:netdatamod}
 The central idea of the NDM presented in \cite{NetworkGueting} is that
 every movement is constrained by a given network and every position can be described
-relative to this network. The data type \dt{network} is the central
-data type in the NDM. All other data types of the NDM
-are related to a given \dt{network} object by the unique network identifier that
-is part of each \dt{network} object.
+relative to this network. Contrary to the most other NCDM NET models the network
+in terms of routes, corresponding to roads or highways in real life. Positions
+are given by a route identifier and the distance from the start of the route.
+This is a more natural representation of network positions as the directed graph
+representation of networks, where junctions are vertexes and the pieces between
+junctions are represented by edges, which is used in the most NCDM. We have names
+for roads not for junctions or pieces between junctions.
 
-The \dt{network} object contains all spatial information of the represented network.
-The \dt{network} consists of three main relations ($routes$, $junctions$, and $sections$),
-two arrays providing fast access to adjacent network sections,
-and some B-Tree and R-Tree indexes to supporting faster access to the main relations.
+The routes based network representation has also the advantage that the
+representation of moving objects that move over several sections of the same route
+with constant speed becomes much smaller, because we only have to store new
+information if the moving object changes the road or the speed. Not every time
+it passes a junction like in the other NCDM.
 
-The relation $routes$ of the \dt{network} contains the attributes of the
-streets like $id$, $route curve$, $route length$, and two Boolean flags. The first
-flag indicates if the route starts at the lexicographically smaller end point or not.
-The second flag indicates if the lanes of the street are separated like on German
-Highways or not.
+In NET the data type \dt{network} is modeled by two main components. One is the set of
+routes (streets) and the other one the set of junctions (crossings). The domain
+of routes is defined as
+\[
+\begin{split}
+Route = \{(id,\ l,\ c,\ kind,\ start)\ &|\ id \in \dt{int},\ l \in \dt{real},
+\ c \in \dt{line},\\
+&\ kind \in \{simple,\ dual\},\ start \in \{smaller,\ larger\}\},
+\end{split}
+\]
+where $id$ is a distinct route idenitfier, $l$ is the length of the route, $c$ is the
+route curve as \dt{line} value (see Section \ref{sec:bmodbdatamod}), $kind$
+indicates if the lanes of the route are separated, and $start$ indicates how
+the route curve is embedded into space.
 
-The $junctions$ relation of the \dt{network} contains all attributes of the street
-crossings like the two route identifiers of the first and second street meeting at the
-crossing, the distance of the crossing from the start of the first respectively
-second street, tuple identifiers of the both streets in the routes relation,
-tuple identifiers of the sections connected by this junction in the sections relation,
-and a connectivity code telling us which lanes of the two streets are connected
-by the crossing.
+If $R$ is a set of distinct routes, the domain of junctions in $R$ is defined as
+\[
+  \begin{split}
+    Junction(R)=\{(rm_1,\ rm_2,\ cc)\ &|\ rm_1,\ rm_2 \in RMeas(R),\\
+&rm_1 = (r_1,\ d_1),\ rm_2 = (r_2, d_2),\\
+&r_1 \neq r_2, cc \in \dt{int}\}.
+  \end{split}
+\]
+Where the set of possible positions in $R\ RMeas(R)$ is defined as
+\[
+  \begin{split}
+    RMeas(R) = \{(rid, d)\ &|\ rid \in \dt{int},\ d \in \dt{real},\\
+&\exists (rid,\ l,\ c,\ k,\ s) \in R \wedge 0 \leq d \leq l\},
+  \end{split}
+\]
+and $d$ is the distance from the start of the route.
+The connectivity code $cc$ encodes which lanes of the roads are connected
+by the junction\footnote{See \cite{NetworkGueting} for detailed explanations.}.
 
-The $sections$ relation of the \dt{network} object contains the
-attributes of the street parts between two crossings or a crossing and
-the end of the street. These are the route identifier of the street the section
-belongs to, the tuple identifier of this street in the routes relation, the start
-position and end position of the section on the street, the section curve, and
-again two Boolean flags with the same meaning as in the routes relation.
+A network $N$ is a pair $(R,\ J)$, where $R$ is a finite set of distinct routes
+and $J$ is a finite set of junctions in $R$. The carrier set for network
+positions $Loc(N)$ is equal to the set of route locations and defined as
+\[
+  \begin{split}
+    RLoc(R)=\{(rid,\ d,\ side)\ &|\ (rid,\ d) \in RMeas(R),\\
+&side \in \{up,\ down,\ none\}\}.
+  \end{split}
+\]
+The $side$ value indicates for $dual$ routes if a position can be reached
+from the $up$ or the $down$ side of the route. For routes with $kind = simple$ the
+$side$ value is always $none$.
 
-Furthermore there are two arrays in the \dt{network} object providing a fast
+A single network position in a network $N_i$ of a set of networks $N=\{N_1,\ldots,N_k\}$
+is represented by the data type \dt{gpoint}. The carrier set of \dt{gpoint} is defined as
+\[\{(i,\ gp)\ |\ 1 \leq i \leq k \wedge gp \in RLoc(R) \cup \{ \perp \}\},\]
+where $\perp$ again represents a undefined value.
+
+A $route\ interval$ in $N$ is a pair of network positions on the same route. It
+is represented by a quadruple $(rid,\ d_1,\ d_2,\ side)$, with
+$(rid,\ d_1,\ side),\ (rid,\ d_2,\ side) \in Loc(N)$
+and $d_1 \leq d_2$. Semantically
+a $route interval$ represents all route locations $(rid,\ d,\ side)$ with
+$d_1 \leq d \leq d_2$. A finite set of disjoint $route\ intervals$ of a network
+$N$ is called region of $N$. The set of all possible regions in a network $N$ is
+denoted as $Reg(N)$.
+
+A region within an network $N_i$ is represented by the data type \dt{gline}.
+The carrier set of \dt{gline} is defined as
+\[\{(i,\ gl)\ |\ 1 \leq i \leq k \wedge gl \in Reg(N_i) \}\].
+The set of $route intervals$ defining a network region may be empty.
+
+The type systesm of \cite{RepresentingMovingObjectsGueting} is extended by
+\cite{NetworkGueting} to contain a new kind GRAPH consisting of the data types
+\dt{gpoint} and \dt{gline}. The type constructors \dt{moving} is also extended
+to be feasible for data types of kind GRAPH. Therefore the data type
+\dt{moving}(\dt{gpoint}) (\dt{mgpoint} for short) is defined similar to the
+\dt{mpoint} explained in detail in Section \ref{sec:bmodbdatamod}. The units of
+a \dt{mgpoint} consist of \dt{ugpoint} values and single positions can be given
+by \dt{igpoint} values.
+
+The paper provides numerous operations on the network and the network data types.
+We give reviews of the operations that were used in our experiments later in this
+paper (see sections \ref{sec:implNDM} - \ref{sec:Translation}).
+
+\cite{NetworkGueting} proposes also implementational issues for NET in
+\secondo{}. The implementation of the data type \dt{network} consists of three
+relations called $routes$, $junctions$, and $sections$, and a persistent adjacency
+list data structure supporting trip and path computations.
+
+The three relations have the following schemas:
+\begin{ttfamily}
+\begin{itemize}
+  \item [] routes (id:int; length: real; curve: line; kind: bool; start: bool)
+  \item [] junctions (r1id: int; r1rc: int; pos1: real; r2id: int; r2rc: int;\\
+pos2: real; cc: int; pos: point)
+  \item [] sections (rid: int; rrc: int; pos1: real; pos2: real; dual: bool;\\
+length: real; curve: line)
+\end{itemize}
+\end{ttfamily}
+As you can see, the $routes$ relation is equivalent to the domain of routes $Route$.
+The tuple of the $junctions$ relation is somewhat different from $Junctions(R)$.
+The record identifiers $r1rc$ and $r2rc$ support faster access to the corresponding
+tuples in the $routes$ relation and the \dt{point} value $pos$ supports the connection
+to the two dimensional plane.
+
+The $sections$ relation is derived from the other two relations. The meaning of
+the $rrc$ value is similar to the meaning of $r1rc$ in the $junctions$ relation.
+The entries of the $sections$ relation correspond to the edges of a network graph.
+They are used internally to support operations like \op{shortestpath}. The adjacency
+list data structure consists of two arrays and provides a fast
 access from each section to their adjacent sections with respect to the driving
 direction. Two sections are adjacent if their lanes are connected by a junction.
 
-We created four B-Tree indexes for the route identifier attributes in the $routes$,
-$junctions$ and $sections$ relation, and an R-Tree index over the curve attribute
-of the $routes$ relation to support faster execution of operations dealing with
-the relations of the \dt{network} object.
-
-The data type \dt{gpoint} represents single positions in a given network. Besides the
-network identifier a \dt{gpoint} consists of a route identifier, a distance from
-the start of the route to the position of the \dt{gpoint} and a $side$ value
-({$up$, $down$, $none$) telling us if the position is reachable from the $up$
-or the $down$ side of the route in case of separated lanes. For simple
-streets or positions which are reachable from both sides of the route, the side
-value is always $none$.
-
-Parts of the network, regardless if they represent paths or regions, are given as
-\dt{gline} values. Besides the network identifier, a \dt{gline} consists of a set
-of \dt{RouteInterval}s, and two Boolean flags. The Boolean flags tell us if the
-\dt{gline} is defined and if the set of \dt{RouteInterval}s is sorted.
-
-Each \dt{RouteInterval} consists of a route identifier identifying the route that
-the route interval belongs to, and the start and the end position of the
-route interval on this route
-\footnote{In the original paper the \dt{RouteInterval} includes a $side$ value
-analogous to the \dt{gpoint}. But this parameter is not yet part of the implementation.}.
-We call a \label{sec:sortedgline} set of \dt{RouteInterval}s sorted if the following
-conditions are fullfilled:
+For the data types \dt{gpoint} and \dt{gline} \cite{NetworkGueting} proposes
+the following implementations:
+\begin{ttfamily}
 \begin{itemize}
-   \item all \dt{RouteInterval}s are disjoint
-   \item the \dt{RouteInterval}s are stored in ascending order of their route identifiers
-   \item if two disjoint \dt{RouteInterval}s have the same route identifier, the
-\dt{RouteInterval} with the smaller start position is stored first
-   \item for all \dt{RouteInterval}s, the $start$ $position \le end$ $position$
+  \item [] gpoint: record \{nid: int; rid: int; pos: real; side: \{up, down, none\};\}
+  \item [] gline: record\{nid: int; rints: DBArray of record \{ rid: int;\\
+pos1: real; pos2: real; side: \{up, down, none\};\}
 \end{itemize}
-Many algorithms take profit from sorted \dt{gline} values. For example: If $n$
-is the number of the route intervals in a \dt{gline}, the
-decision, if a \dt{gpoint} is inside the \dt{gline} needs O($n$) time for unsorted
-and O($\log n$) time for sorted \dt{gline} values.
+\end{ttfamily}
+For the data type \dt{mgpoint} the implementation consists of a set of \dt{ugpoint}.
+The set is stored in a DBArray in ascending order of the time intervals of the
+\dt{ugpoint}. Each \dt{ugpoint} is defined as:
+\begin{ttfamily}
+\begin{itemize}
+  \item [] ugpoint: record \{nid: int; rid: int; pos1: real; pos2: real;\\
+side: \{up, down, none\}; t1: Instant; t2: Instant;\}
+\end{itemize}
+\end{ttfamily}
+The \dt{ugpoint} is expected to move from $pos1$ to $pos2$ with constant speed on
+route $rid$ in the given network $nid$ within the time interval defined by $t1$
+and $t2$. Every time a \dt{mgpoint} changes the speed or changes the route a new
+\dt{ugpoint} is written.
 
-Unfortunately not all \dt{gline} values can be stored sorted. If a \dt{gline}
-value represents a path between two \dt{gpoint} in the network, we need the
-route intervals exactly in the sequence they are used in the path. This will
-nearly never be a sorted set like defined before.  We store \dt{gline}
-values sorted whenever this is possible to support faster query execution, and
-introduced a Boolean sorted flag. Every algorithm which deals with \dt{gline} values
-checks this flag and uses the corresponding code.
-
-Mostly similar to the \dt{mpoint} of the other data model there is an
-\dt{mgpoint} in the NDM. An \dt{mgpoint} consists of a set of
-\dt{ugpoint} with disjoint time intervals. Each \dt{ugpoint} consists of a time
-interval and two \dt{gpoint} values. Every time the \dt{mgpoint} changes the route
-or the speed, a new \dt{ugpoint} is written. Each \dt{ugpoint} is assumed to follow
-the same route from the start to the end position at the same speed. So accordingly
-to the \dt{mpoint} we can compute the network position of the \dt{mgpoint} at every
-time instant within the definition time of the \dt{mgpoint} as \dt{intime}(\dt{gpoint}).
-
-In deviation from the original NDM we extended the implementation
-of the \dt{mgpoint} with four additional attributes to support faster query execution:
-\begin{enumerate}
-   \item The total driven distance
-   \item A sorted set of \dt{RouteInterval}s representing the positions ever
-traversed by the \dt{mgpoint}
-   \item A Boolean defined flag for the set of \dt{RouteInterval}s
-   \item A spatio-temporal minimum bounding box
-\end{enumerate}
-The sorted set of \dt{RouteInterval}s was introduced, because analogous to sorted
-\dt{gline} values it makes it much faster to decide whether an \dt{mgpoint} ever passed
-a given network position or not. Instead of a linear check of all $m$ \dt{ugpoint}s
-of an \dt{mgpoint} we can perform a binary scan on the much smaller number $r$ of
-the passed \dt{RouteInterval}s.
-This reduces the time complexity from O($m$) to O($\log r$) for the \op{passes}
-operation.
-
-The spatio-temporal minimum bounding box was introduced as an parameter to the
-\dt{mgpoint} because the computation of this value is very expensive in the
-NDM. Although each unit of an \dt{mgpoint} stays on the same route
-at the same speed it may follow different spatial directions. For example, a route may
-lead uphill in serpentine. A spatial bounding box only computed from the spatial
-start and end position may not enclose all spatial positions of the car within
-the unit. Therefore we always have to examine the spatial dimensions of the
-\dt{RouteInterval} passed within a unit to compute the units bounding box. This
-needs an access to the route curve in the $routes$ relation of the corresponding
-\dt{network} object. If $r$ is the number of routes
-of the network and $h$ the number of \dt{HalfSegment}s belonging to the \dt{RouteInterval}
-passed in a unit, we need O($h + \log r$) time to
-compute the bounding box for a single unit. The bounding box of the \dt{mgpoint}
-is the union of the bounding boxes of its $m$ units. So the computation of the
-spatio-temporal respectively spatial bounding box of an \dt{mgpoint} needs
-O($H + m \log r)$) time, with $H = \sum_{i=1}^m {h_i}$ if $h_i$ is the number of the
-$half$ $segments$ for unit $i$, $1 \leq i \leq m$ of the \dt{mgpoint}. This very expensive computation is only done
-on demand or if we can get the bounding box for free. For example we can copy
-the bounding box of an \dt{mpoint} at the translation time into an \dt{mgpoint}
-without big computational costs. The bounding box attribute is not maintained. If
-the \dt{mgpoint} value changes, the bounding box attribute is set to be undefined
-until recomputing is necessary.
+We extended this implementation proposed by \cite{NetworkGueting} within our
+experiments to support faster query execution. Our changes will be described in
+detail in Section \ref{sec:implNDM}.
 \subsection{BerlinMOD Benchmark}
 \label{sec:bmodb}
-The \bmodb{} was presented in \cite{BerlinMODVLDB} and the
+The \bmodb{} was presented in \cite{BerlinMODVLDBDuentgen} and the
 provided scripts for the data generator are implemented as \secondo{} DBMS operations.
 The \bmodb{} is available on the web \cite{berlinmodweb} and provides a well defined
 data-set and queries for the experimental evaluation of the capabilities of
@@ -528,7 +550,7 @@ the object $journey$, the $licence$, the $type$, and the $model$ of the object.
 In the TBA, we have two relations $dataMcar$ and $dataMtrip$. $dataMcar$ contains
 the static data for each object like $licence$, $type$, and $model$ together with
 an object identifier $moid$. $dataMtrip$ contains for each $moid$ several tuples,
-each of them containing all units of a single trip of the moving object, or a
+each of them containing either all units of a single trip of the moving object, or a
 single unit for a longer stop. For example, each time the car drives from home node
 to work node is a single trip, and each time the car is parked in front of the office
 is also a single trip.
@@ -575,10 +597,252 @@ combinations of the 5 aspects:
   \item single object or object relationships condition type,
   \item with or without aggregation.
 \end{itemize}
-We will present the 17 queries in more detail in Section \ref{sec:queries}
-together with our NDM algorithms for these queries.
+We will present the 17 queries in more detail in Section \ref{sec:queries}\todo[caption={check reference}]{Check reference when paper finished. Parts of querie explanations might be moved to the appendix.} together with our NDM algorithms for these queries.
 \section{Implementation Issues}
 \label{sec:implNDM}
+We started a description of the implementation of NET in \secondo{} in Section
+\ref{sec:netdatamod} with the description of the implementation proposed in
+\cite{NetworkGueting}. In the meantime this implementation has been changed and
+extended in some points to support faster query execution.
+
+In the sequel we describe the current implementation of the NET data types in
+Section \ref{sec:implNetDataTyp}, new data types for network position indexes
+are presented in Section \ref{sec:implNetIndex}, and the implementation of
+operations used by the \bmodb{} in Section \ref{sec:implNetOperations}.
+
+\subsection{Data Type Implementation}
+\label{sec:implNetDataTyp}
+First of all the \dt{network} object itself has been changed. The $junctions$
+relation has been extended by four additional record identifiers, one for each
+section connected within this junction. Four B-Tree indexes for the route
+identifier attributes in the $routes$, $junctions$, and $sections$ relations
+haven been integrated. An R-Tree has been integrated indexing the curve attribute
+of the $routes$ relation. All this has been done to support faster access to
+spatial routes data in query evaluation.
+
+The $side$ value of the $route\ intervals$ is not yet part of the implementation.
+
+\label{sec:sortedgline}
+The record of \dt{gline} was extended by an attribute $length$ of
+\dt{real}, storing the length of the \dt{gline}, and an sorted flag, indicating
+if the $route\ intervals$ in the DBArray are stored sorted or not. We call a
+set of $route\ intervals$ sorted if it fullfills the following conditions:
+\begin{itemize}
+   \item all $route\ intervals$ are disjoint
+   \item the $route\ intervals$ are stored in ascending order of their route identifiers
+   \item if two disjoint $route\ intervals$ have the same route identifier, the
+$route\ interval$ with the smaller start position is stored first
+   \item for all $route\ intervals$, $start\ position \le end\ position$
+\end{itemize}
+We introduced this definition and sorted flag, because many algorithms take profit
+from sorted \dt{gline} values. For example: If $n$ is the number of the
+$route\ intervals$ in a \dt{gline}, the decision, if a \dt{gpoint} is inside
+the \dt{gline} needs O($n$) time for unsorted and O($\log n$) time for sorted
+\dt{gline} values.
+
+Unfortunately not all \dt{gline} values can be stored sorted. If a \dt{gline}
+value represents a path between two \dt{gpoint} in the network, we need the
+route intervals exactly in the sequence they are used in the path. This will
+nearly never be a sorted set like defined before.  We store \dt{gline}
+values sorted whenever this is possible to support faster query execution.
+Every algorithm which deals with \dt{gline} values checks this flag and uses
+the corresponding code.
+
+Sorting $route\ intervals$ takes time, when a \dt{gline} value is created. But
+we think that this time is well invested, because the sorted \dt{gline} is computed
+once, but supports many times in different algorithms a faster execution.
+
+The implementation of the \dt{ugpoint} has been changed to:
+\begin{ttfamily}
+\begin{itemize}
+  \item [] ugpoint: record \{gp1: gpoint; gp2: gpoint; ti : Interval;\}
+\end{itemize}
+\end{ttfamily}
+Where $ti$ is a time interval consisting of two time instants $t1$ and $t2$ and
+two Boolean flags, indicating if $t1$ respectively $t2$ is part of the time interval
+or not.
+
+At the same time the implementation of \dt{mgpoint} has been extended to:
+\begin{ttfamily}
+\begin{itemize}
+  \item [] mgpoint: record \{units: DBArray of ugpoint; drivenDist: real;\\
+trajectory: DBArray of sorted route intervals; trajDefined: bool;\\
+mbr: rectangle3D\}
+\end{itemize}
+\end{ttfamily}
+The DBArray of \dt{ugpoint} is consistent with the data model of \cite{NetworkGueting}.
+The $drivenDist$ is the total length of all \dt{ugpoint} in the \dt{mgpoint}.
+The DBArray of $route\ intervals$ represents all network positions ever traversed
+by the \dt{mgpoint}. The flag indicates if the $trajectory$ is well defined,
+because this attribute is not maintenanced in every operation changing \dt{mgpoint}
+values. And the minimum spatio-temporal bounding box $mbr$ can be used for a preselection
+in spatio-temporal queries.
+
+Why this extensions?
+Now, analogous to sorted \dt{gline} values the $trajectory$ value makes it much
+faster to decide whether an \dt{mgpoint} ever passed a given network position or
+not. Instead of a linear check of all $m$ units of an \dt{mgpoint} we can perform
+a binary scan on the much smaller number $r$ of the passed $route\ intervals$.
+This reduces the time complexity from O($m$) to O($\log r$) for the operations
+like \op{passes}.
+
+The spatio-temporal minimum bounding box was introduced as an attribute to the
+\dt{mgpoint} because the computation of this value is very expensive in the
+NDM. Although each unit of an \dt{mgpoint} stays on the same route
+at the same speed it may follow different spatial directions. For example, a
+route may lead uphill in serpentine. A spatial bounding box only computed from
+the spatial start and end position may not enclose all spatial positions of the
+car within the unit. Therefore we always have to examine the spatial dimensions
+of the $route\ interval$ passed within a unit to compute the units bounding box
+using algorithm \ref{alg:unitbbox}.
+\begin{algorithm}[H]
+  \caption{\op{Berechnung Unit Bounding Box}}
+  \label{alg:unitbbox}
+  \begin{algorithmic}[1]
+    \STATE Use B-Tree index of $routes$ relation to get route curve
+    \STATE Extract subline of unit from route curve
+    \STATE Compute bounding box of subline
+    \STATE Add third dimension from unit time interval
+  \end{algorithmic}
+\end{algorithm}
+If the number of routes in the $routes$ relation is $r$ the first step has a
+time complexity of O($\log r$) time. If the route curve $r_i$ consists of $h_i$
+line segments the time complexity of step 2 and 3 is O($h_i$) in the worst case.
+Step 4 is done in O(1) time. Together we get a time complexity of
+O($\log {r} + h_i$) to compute the bounding box of a single unit.
+
+To compute the $mbr$ this computation must be done for each of the $m$ units of
+the \dt{mgpoint} value. That takes O($m \log {r} + \sum_{i=1}^{m}{h_i}$) time.
+
+If the $trajectory$ is defined we can reduce the time complexity of $mbr$
+computation. The spatial extend of the $mbr$ can be computed
+using the $t\ route intervals$ of the $trajectory$ similar to the $m$ units of
+the \dt{mgpoint}. The third dimension will be added using the start and the end
+time instant of the \dt{mgpoint} value. This algorithm has a time complexity of
+O($t \log {r} + \sum_{i=1}^{t}{h_i}$), with $t \ll m$ in nearly all cases.
+
+But the computation is still expensive. So the $mbr$ is only computed on demand
+or if we can get it for free. For example we can copy
+the bounding box of an \dt{mpoint} at the translation time into an \dt{mgpoint}
+in O(1) time.
+Analogous to the $trajectory$ the $mbr$ is not maintained. If
+the \dt{mgpoint} value changes, the $mbr$ is set to be undefined until recomputing
+is necessary.
+
+\subsection{Indexes in Network Environment}
+\label{sec:implNetIndex}
+Spatial and spatio-temporal bounding boxes are used to support for spatial
+and spatio-temporal indexing of spatial respectively spatio-temporal positions.
+Because of the special problems with spatio-temporal bounding boxes in network
+environments (see Section \ref{sec:implNetDataTyp}) we use only for the trip
+based approach a spatio-temporal bounding box tree $dataMNtrip\_SpatioTemp$ and
+this tree only indexes spatio-temporal bounding boxes for complete \dt{mgpoint}
+values. The advantages of more detailed indexes have been outperfomred within
+our experimental evaluation of the network implementation for the \bmodb{}.
+
+We introduced Network Bounding Boxes (NBB) and Network Temporal Bounding Boxes
+(NTBB) in our implementation to support indexing in terms of network positions
+with R-Trees instead of spatial indexing.
+
+Let \dt{ugpoint} and $route\ interval$ be defined like in \ref{sec:netdatamod}.
+The NBB of a $route interval$ is defined as $(rid,\ rid,\ pos1,\ pos2)$,
+which can be seen as an degenerated two dimensional rectangle.
+The NTBB of a \dt{ugpoint} value is defined as $(rid,\ rid,\ pos1,\ pos2,\ t1,\ t2)$,
+which analogous can be seen as an degenerated three dimensional rectangle.
+
+We use these NBB and NTBB to create Network Position Indexes (NPI) and
+Temporal Network Position Indexes (TNPI) indexing the network positions of
+the \dt{mgpoint} values of the \bmodb{}. An NPI is an R-Tree build from the NBB
+of the $route intervals$ of the $trajectory$ attributes of the \dt{mgpoint} values.
+An TNPI is an R-Tree build from the NTBB of the \dt{ugpoint} values of the
+\dt{mgpoint} values.
+\subsection{Network Operations used in \bmodb{}}
+\label{sec:implNetOperations}
+In the sequel we give an overview of the operations on network objects used in
+the network version of the \bmodb{}. The signatures of the simple operators are
+shown in Table \ref{tab:simplenetoperations} together with a short explanation and
+their time complexity.
+
+We use $m$ (respectively $m_1,\ m_2$) as the number of units of the \dt{mgpoint} value
+(resp. first, second \dt{mgpoint} value),
+$r$ (resp. $r_1$, $r_2$) as the number of $route\ intervals$ of the \dt{gline} value
+or the $trajectory$ attribute of an \dt{mgpoint} value (resp. of the first, second
+argument), $R$ as the number of routes in the network, and $p$ as the number of
+time intervals in a \dt{periods} value.
+
+\begin{table}[H]
+  \caption{Simple Operations on Network Data Types}
+  \label{tab:simplenetoperations}
+  %\begin{scriptsize}
+  \begin{center}
+  \begin{tabularx}{1.0\textwidth}{|l|l|X|l|}
+  \hline
+  \textbf{Name}& \textbf{Signature}& \textbf{Explanation}& \textbf{Complexity}\\
+  \hline
+\op{val}&\dt{igpoint} $\rightarrow$ \dt{gpoint}& Returns the \dt{gpoint} of the
+\dt{igpoint} value&O(1)\\
+  \hline
+\op{inst}&\dt{igpoint} $\rightarrow$ \dt{instant}& Returns the time instant of the
+\dt{igpoint} value &O(1)\\
+  \hline
+  \op{initial}&\dt{mgpoint} $\rightarrow$ \dt{igpoint}& Returns the first position
+and the start time of the \dt{mgpoint} value& O(1)\\
+  \hline
+  \op{atinstant}&\dt{mgpoint} $\times$ \dt{instant} $\rightarrow$ \dt{igpoint}&
+Returns the network position of the \dt{mgpoint} value at the given time instant& O($\log m$)\\
+  \hline
+  \op{length}&\dt{mgpoint} $\rightarrow$ \dt{real}& Returns the $length$ of the argument.&O(1)\\
+  \hline
+\op{isempty}&\dt{gline} $\rightarrow$ \dt{bool}& Returns \true{} if the \dt{gline}
+has no $route\ intervals$ & O(1)\\
+  \hline
+\op{no\_components}&\dt{mgpoint} $\rightarrow$ \dt{real}& Returns the number of
+units of the \dt{mgpoint} &O(1)\\
+  \hline
+\op{trajectory}&\dt{mgpoint} $\rightarrow$ \dt{gline}& Returns the $trajectory$
+of the \dt{mgpoint} value as \dt{gline}&O($r$)\\
+  \hline
+  \op{units}&\dt{mgpoint} $\rightarrow$ \dt{stream}(\dt{ugpoint})& Returns a stream
+of the \dt{ugpoint} values of the \dt{mgpoint} value& O($m$)\\
+  \hline
+  \op{routes}& \dt{network} $\rightarrow$ \dt{relation} & Returns the $routes$
+relation fo the \dt{network} object & O($R$)\\
+  \hline
+\op{gpoint2rect}& \dt{gpoint} $\rightarrow$ \dt{rectangle} & Returns a $netbox$
+for the \dt{gpoint} value & O(1)\\
+  \hline
+\op{routeintervals}&\dt{gline} $\rightarrow$ \dt{stream}(\dt{rectangle})& Returns
+the $netbox$ for each $route\ interval$ of the \dt{gline} value& O($r$)\\
+  \hline
+  \op{unitbox}& \dt{ugpoint} $\rightarrow$ \dt{rectangle3D} & Returns the $netbox$
+of the \dt{ugpoint} & O(1)\\
+  \hline
+  \end{tabularx}
+  \end{center}
+  %\end{scriptsize}
+\end{table}
+
+The operations used to construct the network object, and to translate spatial and
+spatio-temporal values into network values are described in Section \ref{sec:Translation}
+in more detail.
+
+For the Euclidean Distance computation we use the operations \op{gline2line} and
+\dt{mgpoint2mpoint}, which compute spatial respectively spatio-temporal values
+from the network values.
+
+
+\op{mgpbbox}
+\op{atperiods}
+\op{present} \dt{Periods}
+\op{inside} \dt{gline}
+\op{passes} \dt{gline}
+\op{at} \dt{gpoint} \dt{gline}
+\op{intersects}
+\op{union} \dt{gline} \dt{mgpoint}
+
+
+
+\todo{benchmark operations implementation}
 \section{Translation of BerlinMOD into Network Data Model}
 \label{sec:Translation}
 In this section we describe the creation of the \dt{network} object from the $streets$
@@ -593,6 +857,7 @@ for the NDM representation of the \bmodb{}.
 
 Executable \secondo{} scripts for the network and index creation, object translation,
 and the network benchmark queries can be downloaded from our web site \cite{NetworkWeb}.
+\todo{Create corresponding website!}
 \subsection{Create Network Object}
 \label{sec:createNetwork}
 The \dt{network} object $net$ is created by extracting the $routes$ data from
@@ -601,6 +866,8 @@ The extracted data $r$ is used to compute the crossings of the
 routes of Berlin $j$. The data source lacks information about the connectivity
 of the street crossings, such that we use the maximum value for the connectivity
 code of each crossing as default value in this step.
+\todo[caption={connectivity code}]{Explanation of connectivity code
+and lack of information.}
 Now we can use $r$ and $j$ as input relations for the operator \op{thenetwork}
 to create our \dt{network} object $net$ representing the streets of Berlin in
 the NDM representation of the \bmodb{}.
@@ -621,6 +888,7 @@ junction in the $junctions$ relation. After that the B-Tree index for the
 route identifiers in the $sections$ relation is created and the adjacency
 lists of $net$ are filled with the adjacent section pairs defined by the
 $junctions$ relation.
+\todo[caption={algorithm and complexity}]{More detailed algorithm to explain complexity.}
 
 If $|r|$ is the number of routes and $|j|$ is the number of junctions,
 the algorithm needs O($|r| \log |r|$) time to copy $r$ to the
@@ -655,6 +923,7 @@ the different sides of a street.
 If $r$ is the number of routes in the $routes$ relation
 and $k$ is the number of routes, which route curve bounding boxes contain p,
 the worst case complexity of the algorithm is O($\log{r} + k$).
+\todo[caption={candiadate routes}]{Complexity correct? What are candidate routes?}
 
 This should be all to translate the \dt{point} values of the $QueryPoints$
 relation of the \bmodb{} into network query positions. But there is a problem with
@@ -675,6 +944,7 @@ $QueryPoints$ and 22 \dt{gpoint} values in $QueryPoints1Net$ for the
 to compute the results for the double number of query points in our NDM relativ
 to the DMFS.
 \subsubsection{Translate \dt{mpoint} into \dt{mgpoint}}
+\todo{Write algorithm more formal.}
 The second operation \op{mpoint2mgpoint} translates an \dt{mpoint} value $s$
 into an \dt{mgpoint} value $t$. The main idea of the algorithm is to use the
 continuous movement of $s$ to reduce computation time. We initialize the
@@ -702,6 +972,7 @@ For each of the next $m$ units of $s$, the time complexity is O(1) if $s$ does n
 change the route. And it is O($a$) if the end point is on another route and $a$ is the maximum
 number of adjacent sections. So we get a worst case time complexity of
 O($\log r + k + ma$) for the translation of an \dt{mpoint} $s$ into an \dt{mgpoint} $t$.
+\todo{check complexity}
 \subsubsection{Translate \dt{region} into \dt{gline}}
 The translation of the \dt{region} values in the $QueryRegions$ relation of the
 \bmodb{} into \dt{gline} values of our NDM is done in several steps.
@@ -710,7 +981,7 @@ Then we compute for each \dt{region} of the $QueryRegions$ the intersection with
 this big \dt{line} object. At last we translate the resulting \dt{line} objects
 of the intersection, each representing one \dt{region} of the $QueryRegions$
 relation, into sorted \dt{gline} values using the \op{line2gline} operation.
-
+\todo[caption={why}]{Why this expensive solution instead of using a own less expensive operator?}
 The algorithm of the \op{line2gline} operation takes each \dt{HalfSegment} of a
 \dt{line} value and computes a corresponding network \dt{RouteInterval} by
 searching a common $route curve$ for the $start$ and the $end point$ of the
@@ -722,9 +993,18 @@ we get a time complexity of O($h$O(\op{point2gpoint})$+ h \log r + r$) for the
 whole algorithm. Whereby the summand $h \log r + r$ is caused by the compressing
 and sorting of the resulting \dt{gline} but as mentioned before
 in \ref{sec:sortedgline} we think this time is well invested, because it is needed
-once and the sorted \dt{gline} value is used many times.
+once and the sorted \dt{gline} value is used many times. \todo[caption={algorithm complexity}]{algorithm formal and
+check of complexities.}
 \subsection{Create Indexes on Network Data Model}
 \label{sec:createIndex}
+
+We created an NPI ($dataSNcar\_TrajBoxNet$) and an NTPI ($dataSNcar\_BoxNet\_timespace$)
+for the object based approach of the \bmodb{}. And analogous $dataMNtrip\_TrajBoxNet$
+and $dataMNtrip\_BoxNet\_timespace$ for the trip based approach of the \bmodb{}.
+We use these trees in query processing to support a faster selection of
+\dt{mgpoint} objects that passed given network positions or network regions at /
+within a given time (TNPI) or without temporal restrictions (NPI).
+
 For the use with the \bmodb{} we created the following indexes on the network
 data model representation of the \bmodb{} data sets:
 \begin{itemize}
@@ -738,7 +1018,7 @@ of the \bmodb{}, respectively. We don't explain them in more detail.
 attributes in the $dataMNtrip$ and the $dataSNcar$ relation. Different from the
 data model that uses the spatio-temporal units for the spatio-temporal indexes, we
 used only the big bounding boxes of the whole trips instead of the much smaller
-bounding boxes for each single unit as it is done in the DMFS.
+bounding boxes for each single unit as it is done in the DMFS.\todo{Why?}
  \item For every unit of each \dt{mgpoint} we build a temporal-network bounding box
 and for every \dt{RouteInterval} of every \dt{mgpoint}s trajectory a network bounding box.
 These network bounding boxes ($netboxes$ for short) are used to create R-Trees
@@ -754,6 +1034,7 @@ with x,y-coordinates analogous to the temporal-network boxes.
 \end{itemize}
 \subsection{Translate Benchmark Queries}
 \label{sec:queries}
+\todo[caption={queries appendix}]{Really senseful this way? Move formal queries to Appendix.}
 We developed executable \secondo{} queries for each of the 17 BerlinMOD/R queries
 for the OBA and the TBA using our network indexes to support faster query execution.
 The \secondo{} optimizer is not able to optimize SQL-queries on NDM objects yet, so we tested in
@@ -809,7 +1090,7 @@ Query 6 asks for the pairs of licences from ``trucks'' that have been as close a
 relation to select the ``trucks'' and compute the spatio-temporal bounding box
 of each trip of a ``truck''. We extend the spatial dimensions of the bounding boxes
 by 5m in each spatial direction and retranslate the \dt{mgpoint} values into \dt{mpoint}
-values in a first step. In a second step, we compute the join of the results from
+values in a first step. In a second step, we compute join the results from
 step one with itself using the intersection of the bounding boxes as join criteria.
 We filter the result to include all licence pairs of ``trucks'' that had sometimes
 a distance lower than 10m. In the TBA, we additionally remove the duplicate licence
@@ -921,10 +1202,12 @@ In the TBA we have to remove duplicate vehicles from the result list before we
 count the number of passing cars.
 \section{Experimental Setup}
 \label{sec:scenario}
+\todo[caption={NET SPACE}]{Controll this and next section for right use of NET and SPACE instaed of old abbreviations.}
 For our experiments we used a standard personal computer with an AMD Phenom II X4
 Quad Core 2.95 GHz CPU, 8 GB main memory, and 2 TB hard disk. We installed the
-Linux openSUSE 11.2 as operating system, \secondo{} DBMS version \secver{}, and
+Linux openSUSE 11.2 as operating system, \secondo{} DBMS version 3.0, and
 the \bmodb{} version provided in the web.
+\todo[caption={Website}]{Provide scripts in web and add link to scripts!}
 
 We generated three databases with different amounts of data using the data generation
 script of the \bmodb{} with the $scalefactor$ 0.05, 0.2, and 1.0. The following
@@ -1209,7 +1492,7 @@ stops computation immediately if the distance between two units is less than the
 query value to reduce computation time. And the operation \op{spatialjoin} of the
 \secondo{} DBMS seems to have a big weakness in implementation. Otherwise the
 difference in the TBA query run times could not be so big ($>$ 17 min OBA, $>$
-80 min TBA, at scale factor 1.0).
+80 min TBA, at scale factor 1.0).\todo{check analysis for correctness.}
 
 After the very good results from query 4 we did not expect query 7 to have such
 results in the run times comparison. In fact at scalefactor 1.0 the DMFS outperforms
