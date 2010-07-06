@@ -1571,7 +1571,7 @@ SmiEnvironment::CommitTransaction()
     )
 
     SmiEnvironment::Implementation::CloseDbHandles();
-    SmiEnvironment::Implementation::EraseFiles( rc == 0 );
+    SmiEnvironment::Implementation::EraseFiles( rc == 0, rc != 0 );
 
     LOGMSG( "SMI:DbHandles",
       cerr << "Time for CloseDbHandles(): " << closeTime.diffTimes() << endl;
@@ -1609,7 +1609,7 @@ SmiEnvironment::AbortTransaction()
       SetBDBError( rc );
     }
     SmiEnvironment::Implementation::CloseDbHandles();
-    SmiEnvironment::Implementation::EraseFiles( false );
+    SmiEnvironment::Implementation::EraseFiles( false, true );
 
     instance.impl->txnStarted = false;
     instance.impl->txnMustAbort = false;
