@@ -393,7 +393,8 @@ entries collected during the transaction. The flag ~onCommit~ tells the function
 whether the transaction is committed ("true"[4]) or aborted ("false"[4]).
 
 */
-  static bool EraseFiles( bool onCommit );
+  static bool EraseFiles( bool onCommit,
+                          const bool dontReportError = false );
 /*
 Erases all files on completion of a transaction for which drop requests were
 collected during the transaction. The flag ~onCommit~ tells the function

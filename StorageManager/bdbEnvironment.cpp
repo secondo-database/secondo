@@ -651,7 +651,8 @@ SmiEnvironment::Implementation::UpdateCatalog( bool onCommit )
 }
 
 bool
-SmiEnvironment::Implementation::EraseFiles( bool onCommit )
+SmiEnvironment::Implementation::EraseFiles( bool onCommit,
+                                            const bool dontReportError )
 {
   if ( !dbOpened )
   {
@@ -683,7 +684,9 @@ SmiEnvironment::Implementation::EraseFiles( bool onCommit )
 	cerr << "onCommit:" << onCommit << endl;
 	cerr << "entry:" << entry.dropOnCommit << endl;
 	rc = dbp->remove( file.c_str(), 0, 0 );
-	SetBDBError(rc);
+  if(rc!=0 && !dontReportError){
+    SetBDBError(rc);
+  }
 	removed[entry.fileId] = true;
 	delete dbp;
       }
