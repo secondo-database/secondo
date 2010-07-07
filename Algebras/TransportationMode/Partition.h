@@ -622,6 +622,39 @@ struct MyHalfSegment{
   Point from,to;
 };
 
+struct MySegDist:public MyHalfSegment{
+  double dist;
+  MySegDist(){dist=0.0;}
+  MySegDist(bool def, const Point& p1, const Point& p2, double d):
+            MyHalfSegment(def,p1,p2),dist(d){}
+  MySegDist(const MySegDist& msd):MyHalfSegment(msd),dist(msd.dist){}
+  MySegDist& operator=(const MySegDist& msd)
+  {
+      MyHalfSegment::operator=(msd);
+      dist = msd.dist;
+      return *this;
+  }
+  bool operator<(const MySegDist& msd) const
+  {
+//    cout<<"from1 "<<from<<" to1 "<<to<<endl;
+//    cout<<"from2 "<<msd.from<<" to2 "<<msd.to<<endl;
+    bool result = dist < msd.dist;
+//    cout<<"< "<<result<<endl;
+    return result;
+  }
+
+  bool operator==(const MySegDist& msd) const
+  {
+//    cout<<" == "<<endl;
+    if(AlmostEqual(from, msd.from) && AlmostEqual(to, msd.to) &&
+       AlmostEqual(dist, msd.dist)) return true;
+    if(AlmostEqual(to, msd.from) && AlmostEqual(from, msd.to) &&
+       AlmostEqual(dist, msd.dist)) return true;
+    return false;
+  }
+};
+ostream& operator<<(ostream& o, const MySegDist& seg);
+
 /*
 a point and a distance value to another point
 
@@ -883,5 +916,7 @@ struct SpacePartition{
                       int attr_pos2, int width);
 
 };
+
+#define MYPI 3.1415927
 
 #endif

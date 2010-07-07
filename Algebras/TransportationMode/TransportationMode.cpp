@@ -378,6 +378,33 @@ const string OpTMGetPolygonSpec  =
     "<text>create one region by the input relation with contours</text--->"
     "<text>query getpolygon(allcontours,hole); </text--->"
     ") )";
+
+const string OpTMGetAllPointsSpec  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+    "\"Example\" ) "
+    "( <text>region -> (stream (tuple( (x1 t1)(x2 t2)...(xn tn)))</text--->"
+    "<text>getallpoints(region)</text--->"
+    "<text>get all vertices of a polygon with its two neighbors</text--->"
+    "<text>query getallpoints(node_reg); </text--->"
+    ") )";
+
+const string OpTMRotationSweepSpec  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+    "\"Example\" ) "
+    "( <text>rel1 x rel2 x bbox x rel3 x attr ->"
+    "(stream (tuple( (x1 t1)(x2 t2)...(xn tn)))</text--->"
+    "<text>rotationsweep(rel,rel,rectangle<2>,rel,attr)</text--->"
+    "<text>search visible points for the given point</text--->"
+    "<text>query rotationsweep(query_loc,allpoints,bbox,holes,hole); </text--->"
+    ") )";
+const string OpTMGetHoleSpec  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+    "\"Example\" ) "
+    "( <text>region -> (stream (tuple( (x1 t1)(x2 t2)...(xn tn)))</text--->"
+    "<text>gethole(r)</text--->"
+    "<text>get all holes of a region</text--->"
+    "<text>query gethole(node_reg) count; </text--->"
+    ") )";
 ////////////////TypeMap function for operators//////////////////////////////
 
 /*
@@ -1906,6 +1933,137 @@ ListExpr OpTMGetPolygonTypeMap ( ListExpr args )
   return nl->ThreeElemList(nl->SymbolAtom("APPEND"),
              nl->OneElemList(nl->IntAtom(j1)),result);
 
+}
+
+/*
+TypeMap fun for operator getallpoints
+
+*/
+
+ListExpr OpTMGetAllPointsTypeMap ( ListExpr args )
+{
+  if ( nl->ListLength ( args ) != 1 )
+  {
+    return  nl->SymbolAtom ( "typeerror" );
+  }
+  ListExpr arg1 = nl->First(args);
+
+
+  if(nl->IsEqual(arg1, "region")){
+    ListExpr result = nl->TwoElemList(
+             nl->SymbolAtom("stream"),
+               nl->TwoElemList(
+                 nl->SymbolAtom("tuple"),
+                     nl->FourElemList(
+                       nl->TwoElemList(nl->SymbolAtom("v"),
+                                   nl->SymbolAtom("point")),
+                      nl->TwoElemList(nl->SymbolAtom("neighbor1"),
+                                    nl->SymbolAtom("point")),
+                      nl->TwoElemList(nl->SymbolAtom("neighbor2"),
+                                    nl->SymbolAtom("point")),
+                      nl->TwoElemList(nl->SymbolAtom("regid"),
+                                    nl->SymbolAtom("int"))
+                  )
+                )
+          );
+    return result;
+  }else
+    return nl->SymbolAtom ( "typeerror" );
+
+}
+
+
+/*
+TypeMap fun for operator rotationsweep
+
+*/
+
+ListExpr OpTMRotationSweepTypeMap ( ListExpr args )
+{
+  if ( nl->ListLength ( args ) != 5 )
+  {
+    return  nl->SymbolAtom ( "typeerror" );
+  }
+  ListExpr arg1 = nl->First(args);
+  ListExpr arg2 = nl->Second(args);
+  ListExpr arg3 = nl->Third(args);
+  ListExpr arg4 = nl->Fourth(args);
+  ListExpr arg5 = nl->Fifth(args);
+
+  ListExpr xType1;
+  nl->ReadFromString(VisualGraph::QueryTypeInfo, xType1);
+  if(!CompareSchemas(arg1, xType1))return nl->SymbolAtom ( "typeerror" );
+
+  ListExpr xType2;
+  nl->ReadFromString(CompTriangle::AllPointsInfo, xType2);
+  if(!CompareSchemas(arg2, xType2))return nl->SymbolAtom ( "typeerror" );
+
+
+
+  ListExpr attrType1;
+  string aname1 = nl->SymbolValue(arg5);
+  int j1 = listutils::findAttribute(nl->Second(nl->Second(arg4)),
+                      aname1, attrType1);
+
+  if(j1 == 0 || !listutils::isSymbol(attrType1,"region")){
+      return listutils::typeError("attr name" + aname1 + "not found"
+                      "or not of type point");
+  }
+
+
+  if(nl->IsEqual(arg3, "rect")){
+    ListExpr result = nl->TwoElemList(
+             nl->SymbolAtom("stream"),
+               nl->TwoElemList(
+                 nl->SymbolAtom("tuple"),
+                     nl->TwoElemList(
+                       nl->TwoElemList(nl->SymbolAtom("loc"),
+                                    nl->SymbolAtom("point")),
+                       nl->TwoElemList(nl->SymbolAtom("connection"),
+                                    nl->SymbolAtom("line"))
+//                        nl->TwoElemList(nl->SymbolAtom("angle"),
+//                                    nl->SymbolAtom("real"))
+                  )
+                )
+          );
+//    return result;
+
+  return nl->ThreeElemList(nl->SymbolAtom("APPEND"),
+             nl->OneElemList(nl->IntAtom(j1)),result);
+
+  }else
+    return nl->SymbolAtom ( "typeerror" );
+
+}
+
+/*
+TypeMap fun for operator gethole
+
+*/
+
+ListExpr OpTMGetHoleTypeMap ( ListExpr args )
+{
+  if ( nl->ListLength ( args ) != 1 )
+  {
+    return  nl->SymbolAtom ( "typeerror" );
+  }
+  if(nl->IsEqual(nl->First(args),"region")){
+
+      ListExpr result = nl->TwoElemList(
+             nl->SymbolAtom("stream"),
+               nl->TwoElemList(
+                 nl->SymbolAtom("tuple"),
+                     nl->TwoElemList(
+                       nl->TwoElemList(nl->SymbolAtom("oid"),
+                                   nl->SymbolAtom("int")),
+                      nl->TwoElemList(nl->SymbolAtom("hole"),
+                                    nl->SymbolAtom("region"))
+                  )
+                )
+          );
+    return result;
+  }
+  return  nl->SymbolAtom ( "typeerror" );
 }
 int GetContourSelect(ListExpr args)
 {
@@ -3698,7 +3856,7 @@ int OpTMGetContourValueMapInt ( Word* args, Word& result, int message,
   Hole* hole;
   switch(message){
       case OPEN:{
-        int no_reg = ((CcInt*)(args[0].addr))->GetIntval();
+        unsigned int no_reg = ((CcInt*)(args[0].addr))->GetIntval();
         hole = new Hole();
         hole->resulttype =
             new TupleType(nl->Second(GetTupleResultType(in_pSupplier)));
@@ -3709,8 +3867,7 @@ int OpTMGetContourValueMapInt ( Word* args, Word& result, int message,
       case REQUEST:{
           if(local.addr == NULL) return CANCEL;
           hole = (Hole*)local.addr;
-          if(hole->count == hole->regs.size())
-                          return CANCEL;
+          if(hole->count == hole->regs.size()) return CANCEL;
 
           Tuple* tuple = new Tuple(hole->resulttype);
           tuple->PutAttribute(0, new CcInt(true, hole->count+1));
@@ -3819,6 +3976,155 @@ int OpTMGetPolygonValueMap(Word* args, Word& result, int message,
   reg->EndBulkLoad(true, true, true, false);
   return 0;
 }
+
+/*
+get all vertices of a polygon together with its two neighbors
+
+*/
+int OpTMGetAllPointsValueMap( Word* args, Word& result, int message,
+                         Word& local, Supplier in_pSupplier )
+{
+
+  CompTriangle* ct;
+  switch(message){
+      case OPEN:{
+        Region* reg = (Region*)args[0].addr;
+        ct = new CompTriangle(reg);
+        ct->resulttype =
+            new TupleType(nl->Second(GetTupleResultType(in_pSupplier)));
+        ct->GetAllPoints(); //one polygon with no_reg vertices
+        local.setAddr(ct);
+        return 0;
+      }
+      case REQUEST:{
+          if(local.addr == NULL) return CANCEL;
+          ct = (CompTriangle*)local.addr;
+          if(ct->count == ct->plist1.size())
+                          return CANCEL;
+
+          Tuple* tuple = new Tuple(ct->resulttype);
+          tuple->PutAttribute(0, new Point(ct->plist1[ct->count]));
+          tuple->PutAttribute(1, new Point(ct->plist2[ct->count]));
+          tuple->PutAttribute(2, new Point(ct->plist3[ct->count]));
+          tuple->PutAttribute(3, new CcInt(true, ct->reg_id[ct->count]));
+          result.setAddr(tuple);
+          ct->count++;
+          return YIELD;
+      }
+      case CLOSE:{
+          if(local.addr){
+            ct = (CompTriangle*)local.addr;
+            delete ct;
+            local.setAddr(Address(0));
+          }
+          return 0;
+      }
+  }
+  return 0;
+
+}
+
+/*
+rotational plane sweep to get all visible points
+
+*/
+int OpTMRotationSweepValueMap( Word* args, Word& result, int message,
+                         Word& local, Supplier in_pSupplier )
+{
+
+  CompTriangle* ct;
+  switch(message){
+      case OPEN:{
+        Relation* r1 = (Relation*)args[0].addr;
+        Relation* r2 = (Relation*)args[1].addr;
+        Rectangle<2>* rect = (Rectangle<2>*)args[2].addr;
+        Relation* r3 = (Relation*)args[3].addr;
+        int attr_pos = ((CcInt*)args[5].addr)->GetIntval() - 1;
+
+        ct = new CompTriangle();
+        ct->resulttype =
+            new TupleType(nl->Second(GetTupleResultType(in_pSupplier)));
+        //one polygon with no_reg vertices
+        ct->GetVPoints(r1, r2, rect, r3, attr_pos);
+        local.setAddr(ct);
+        return 0;
+      }
+      case REQUEST:{
+          if(local.addr == NULL) return CANCEL;
+          ct = (CompTriangle*)local.addr;
+          if(ct->count == ct->plist1.size())
+                          return CANCEL;
+
+          Tuple* tuple = new Tuple(ct->resulttype);
+          tuple->PutAttribute(0, new Point(ct->plist1[ct->count]));
+          tuple->PutAttribute(1, new Line(ct->connection[ct->count]));
+//          tuple->PutAttribute(2, new CcReal(true,ct->angles[ct->count]));
+          result.setAddr(tuple);
+          ct->count++;
+          return YIELD;
+      }
+      case CLOSE:{
+          if(local.addr){
+            ct = (CompTriangle*)local.addr;
+            delete ct;
+            local.setAddr(Address(0));
+          }
+          return 0;
+      }
+  }
+  return 0;
+
+}
+
+
+/*
+collect all holes of a region and each is represented a region.
+change the inside above attribute
+
+*/
+int OpTMGetHoleValueMap ( Word* args, Word& result, int message,
+                         Word& local, Supplier in_pSupplier )
+{
+
+  Hole* hole;
+  switch(message){
+      case OPEN:{
+        Region* reg = (Region*)args[0].addr;
+        hole = new Hole();
+        hole->resulttype =
+            new TupleType(nl->Second(GetTupleResultType(in_pSupplier)));
+        hole->GetHole(reg);
+        local.setAddr(hole);
+        return 0;
+      }
+      case REQUEST:{
+          if(local.addr == NULL) return CANCEL;
+          hole = (Hole*)local.addr;
+          if(hole->count == hole->regs.size())
+                          return CANCEL;
+
+          Tuple* tuple = new Tuple(hole->resulttype);
+          tuple->PutAttribute(0, new CcInt(true, hole->count+1));
+          tuple->PutAttribute(1, new Region(hole->regs[hole->count]));
+          result.setAddr(tuple);
+          hole->count++;
+          return YIELD;
+      }
+      case CLOSE:{
+          if(local.addr){
+            hole = (Hole*)local.addr;
+            delete hole;
+            local.setAddr(Address(0));
+          }
+          return 0;
+      }
+  }
+  return 0;
+
+}
+
+
+
 ////////////////Operator Constructor///////////////////////////////////////
 Operator checksline(
     "checksline",               // name
@@ -4134,6 +4440,30 @@ Operator getpolygon(
     OpTMGetPolygonTypeMap
 );
 
+Operator getallpoints(
+    "getallpoints",
+    OpTMGetAllPointsSpec,
+    OpTMGetAllPointsValueMap,
+    Operator::SimpleSelect,
+    OpTMGetAllPointsTypeMap
+);
+
+Operator rotationsweep(
+    "rotationsweep",
+    OpTMRotationSweepSpec,
+    OpTMRotationSweepValueMap,
+    Operator::SimpleSelect,
+    OpTMRotationSweepTypeMap
+);
+
+Operator gethole(
+    "gethole",
+    OpTMGetHoleSpec,
+    OpTMGetHoleValueMap,
+    Operator::SimpleSelect,
+    OpTMGetHoleTypeMap
+);
+
 /*
 Main Class for Transportation Mode
 
@@ -4188,6 +4518,10 @@ class TransportationModeAlgebra : public Algebra
     AddOperator(&generate_wp3);
     AddOperator(&getcontour);
     AddOperator(&getpolygon);
+    ///////////////rotational plane sweep algorithm////////////////////
+    AddOperator(&getallpoints);
+    AddOperator(&rotationsweep);
+    AddOperator(&gethole);
   }
   ~TransportationModeAlgebra() {};
  private:

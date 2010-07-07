@@ -70,10 +70,14 @@ May, 2010 Jianqiu xu
 
 static const float EPSILON=0.0000000001f;
 
+struct RPoint;
 struct CompTriangle{
   Region* reg;
   vector<Region> triangles;
   vector<Region> sleeve;
+  vector<Point> plist1;
+  vector<Point> plist2;
+  vector<Point> plist3;
   unsigned int count;
   Line* path;
   TupleType* resulttype;
@@ -112,6 +116,28 @@ struct CompTriangle{
                               vector<Point>&, bool);
   void SelectPointOnSeg(list<MyPoint>, list<MyPoint>, HalfSegment*,
                         Point&, Point&);
+  //////////////////for rotational plane sweep ///////////////////////
+  static string AllPointsInfo;
+  enum AllPointsTypeInfo{V=0, NEIGHBOR1, NEIGHBOR2, REGID};
+  void GetAllPoints();
+  void GetVPoints(Relation* r1, Relation* r2, Rectangle<2>* bbox,
+                  Relation* r3, int attr_pos);
+/*  void ProcessNeighbor(multiset<MySegDist>&, RPoint&, Point&,
+                      Point&, Point&, SpacePartition*, ofstream& );*/
+  void ProcessNeighbor(multiset<MySegDist>&, RPoint&, Point&,
+                      Point&, Point&, SpacePartition*);
+  void InitializeAVL( multiset<MySegDist>& sss,
+                                      Point& query_p, Point& hp,
+                                      Point& p, Point& neighbor,
+                                      SpacePartition* sp);
+  void InitializeQueue(priority_queue<RPoint>& allps,
+                                   Point& query_p, Point& hp, Point& p,
+                                   SpacePartition* sp, Point* q1,
+                                   Point* q2, int id);
+  void PrintAVLTree(multiset<MySegDist>& sss, ofstream&);
+  vector<Line> connection;
+  vector<int> reg_id;
+//  vector<float> angles;
 };
 
 struct ListEntry{
@@ -507,7 +533,7 @@ struct Hole{
   vector<Region> regs2;
   vector<Region> regs;
   void GetContour();
-  void GetContour(int no_reg);
+  void GetContour(unsigned int no_reg);
   void GetPolygon(int no_ps);//create a polygon
   void SpacePartitioning(Points* gen_ps, vector<HalfSegment>& hs_segs);
   void SpacePartitioning(vector<Point> ps, vector<HalfSegment>& hs_segs,
@@ -515,5 +541,6 @@ struct Hole{
   void DiscoverContour(MHSNode* head, Region* r);
   void DiscoverContour(Points* ps, Region* r);
   bool NoSelfIntersects(Region* r);
+  void GetHole(Region* r);
 };
 #endif

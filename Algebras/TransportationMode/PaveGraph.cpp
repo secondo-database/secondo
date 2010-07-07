@@ -2214,6 +2214,583 @@ void CompTriangle::NewTriangulation()
   ////////////////////////////////////////////////////////////////////
 
 }
+
+/*
+collect all vertices of a polygon together with its two neighbors
+the two halfsegments
+One big region with a lot of holes inside. it collects the vertices of all
+these holes
+
+*/
+void CompTriangle::GetAllPoints()
+{
+  if(reg->NoComponents() == 0){
+      cout<<"this is not a region"<<endl;
+      return;
+  }
+
+  ////////////////////get the number of cycles, exclude outer contour//////////
+  unsigned int no_cyc = NoOfCycles() - 1;
+
+//  cout<<"polgyon with "<<no_cyc<<" holes inside "<<endl;
+
+  vector<double> ps_contour_x;
+  vector<double> ps_contour_y;
+
+
+  ps_contour_x.push_back(0.0);
+  ps_contour_y.push_back(0.0);
+
+  vector<SimpleLine*> sl_contour;
+
+  for(unsigned int i = 0;i < no_cyc;i++){
+      SimpleLine* sl = new SimpleLine(0);
+      sl->StartBulkLoad();
+      sl_contour.push_back(sl);
+  }
+  vector<int> edgenos(no_cyc, 0);
+  for(int j = 0;j < reg->Size();j++){
+    HalfSegment hs1;
+    reg->Get(j, hs1);
+    if(!hs1.IsLeftDomPoint() || hs1.attr.cycleno == 0) continue;
+    HalfSegment hs2;
+    hs2.Set(true, hs1.GetLeftPoint(), hs1.GetRightPoint());
+    int cycle_no = hs1.attr.cycleno - 1;
+
+    hs2.attr.edgeno = edgenos[cycle_no]++;
+    *sl_contour[cycle_no] += hs2;
+    hs2.SetLeftDomPoint(!hs2.IsLeftDomPoint());
+    *sl_contour[cycle_no] += hs2;
+  }
+//  cout<<"get all boundary line"<<endl;
+  SpacePartition* sp = new SpacePartition();
+  for(unsigned int i = 0;i < no_cyc;i++){
+      sl_contour[i]->EndBulkLoad();
+      vector<MyHalfSegment> mhs;
+      sp->ReorderLine(sl_contour[i], mhs);
+      for(unsigned int j = 0;j < mhs.size();j++){
+        plist1.push_back(mhs[j].from);
+        reg_id.push_back(i + 1);//cycle_no id, start from 1;
+        if(j == 0){
+          plist2.push_back(mhs[j + 1].from);
+          plist3.push_back(mhs[mhs.size() - 1].from);
+        }else if(j == mhs.size() - 1){
+          plist2.push_back(mhs[j - 1].from);
+          plist3.push_back(mhs[0].from);
+        }else{
+          plist2.push_back(mhs[j - 1].from);
+          plist3.push_back(mhs[j + 1].from);
+        }
+      }
+  }
+  delete sp;
+//  cout<<plist1.size()<<" "<<plist2.size()<<" "<<plist3.size()<<endl;
+}
+
+/*
+get all visible point for the given query point
+using rotational plane sweep algorithm, developed by
+M.Sharir and A.Schorr.
+On Shortest Paths in Polyhedral Spaces, SIAM, Journal of Computing,15(1),1986
+
+*/
+string CompTriangle::AllPointsInfo =
+"(rel(tuple((v point)(neighbor1 point)(neighbor2 point)(regid int))))";
+
+/* structure for rotational plane sweep */
+struct RPoint{
+  Point p;
+  double angle;
+  Point n1, n2;
+  double dist;
+  int regid;
+  RPoint(){}
+  RPoint(Point& q, double a, double d, int id):p(q),angle(a),dist(d),regid(id){}
+  RPoint(const RPoint& rp):p(rp.p),angle(rp.angle),
+                           n1(rp.n1), n2(rp.n2), dist(rp.dist),regid(rp.regid){}
+  RPoint& operator=(const RPoint& rp)
+  {
+    p = rp.p;
+    angle = rp.angle;
+    n1 = rp.n1;
+    n2 = rp.n2;
+    dist = rp.dist;
+    regid = rp.regid;
+    return *this;
+  }
+  void SetNeighbor(Point& p1, Point& p2)
+  {
+    n1 = p1;
+    n2 = p2;
+  }
+  bool operator<(const RPoint& rp) const
+  {
+    if(AlmostEqual(angle,rp.angle)){
+        return dist > rp.dist;
+    }else
+      return angle > rp.angle;
+  }
+  void Print()
+  {
+//    cout<<" n1 "<<n1<<" n2 "<<n2<<endl;
+//    cout<<"p "<<p<<" angle "<<angle<<"dist "<<dist<<endl;
+    cout<<"p "<<p<<"angle "<<angle<<endl;
+  }
+
+};
+ostream& operator<<(ostream& o, const RPoint& rp)
+{
+  o<<setprecision(12);
+  o<<"p "<<rp.p<<"angle "<<rp.angle<<" dist "<<rp.dist<<endl;
+  return o;
+}
+
+ostream& operator<<(ostream& o, const MySegDist& seg)
+{
+  o<<"from "<<seg.from<<" to "<<seg.to<<" dist "<<seg.dist<<endl;
+  return o;
+}
+
+/*
+Initialize the event queue, points are sorted by the angle in counter-clockwise
+
+*/
+void CompTriangle::InitializeQueue(priority_queue<RPoint>& allps,
+                                   Point& query_p, Point& hp, Point& p,
+                                   SpacePartition* sp, Point* q1,
+                                   Point* q2, int reg_id)
+{
+    double angle = sp->GetAngle(query_p, hp, p);
+    double dist = query_p.Distance(p);
+    if(sp->GetClockwise(query_p, hp, p)){// clockwise
+        angle = 2*MYPI - angle;
+    }
+    RPoint rp(p, angle, dist, reg_id);
+    rp.SetNeighbor(*q1, *q2);
+    allps.push(rp);
+}
+
+
+/*
+insert segments that intersect the original sweep line into AVLTree
+
+*/
+void CompTriangle::InitializeAVL( multiset<MySegDist>& sss,
+                                      Point& query_p, Point& hp,
+                                      Point& p, Point& neighbor,
+                                      SpacePartition* sp)
+{
+    HalfSegment hs1;
+    hs1.Set(true, query_p, hp);
+    HalfSegment hs2;
+    hs2.Set(true, p, neighbor);
+    Point ip;
+    /////////////////do not insert such segment//////////////////////////////
+    ///////as it needs more work to determin counter-clockwise or clockwise//
+    ///////we collect the two endpoints as visible and determine the region
+    ///face locates on which side of the segment
+    if(hs2.Contains(query_p))return;
+
+    if(hs1.Intersection(hs2, ip)){
+        double angle1 = sp->GetAngle(query_p, hp, p);
+        double angle2 = sp->GetAngle(query_p, hp, neighbor);
+        if(sp->GetClockwise(query_p, hp, p))
+          angle1 = 2*MYPI-angle1;
+        if(sp->GetClockwise(query_p, hp, neighbor))
+          angle2 = 2*MYPI-angle2;
+        if(AlmostEqual(angle1, angle2)){
+            double d1 = query_p.Distance(p);
+            double d2 = query_p.Distance(neighbor);
+            if(d1 < d2){
+              MySegDist myseg(true, p, neighbor, d1);
+      //          if(!(*(sss.find(myseg)) == myseg))
+              sss.insert(myseg);
+            }
+        }else{
+          double dist = hs2.Distance(query_p);
+          MySegDist myseg(true, p, neighbor, dist);
+//          if(!(*(sss.find(myseg)) == myseg))
+          sss.insert(myseg);
+        }
+    }
+}
+
+void CompTriangle::PrintAVLTree(multiset<MySegDist>& sss, ofstream& outfile)
+{
+  outfile<<"AVLTree"<<endl;
+  multiset<MySegDist>::iterator start;
+  multiset<MySegDist>::iterator end = sss.end();
+  for(start = sss.begin();start != end; start++)
+    outfile<<*start<<endl;
+}
+
+/*
+process the neighbor point of current point from queue,i.e.,
+whether it inserts or deletes the segment
+
+*/
+/*void CompTriangle::ProcessNeighbor(multiset<MySegDist>& sss,
+                            RPoint& rp, Point& query_p,
+                            Point& neighbor, Point& hp,
+                            SpacePartition* sp, ofstream& outfile)*/
+void CompTriangle::ProcessNeighbor(multiset<MySegDist>& sss,
+                            RPoint& rp, Point& query_p,
+                            Point& neighbor, Point& hp,
+                            SpacePartition* sp)
+{
+    HalfSegment hs;
+    hs.Set(true, rp.p, neighbor);
+//    outfile<<"rp.p "<<rp.p<<"neighbor "<<neighbor<<endl;
+
+    /////////////////do not insert such segment//////////////////////////////
+    ///////as it needs more work to determin counter-clockwise or clockwise//
+    ///////we collect the two endpoints as visible and determine the region
+    ///face locates on which side of the segment
+    if(hs.Contains(query_p))return;
+
+    double angle = sp->GetAngle(query_p, hp, neighbor);
+    if(sp->GetClockwise(query_p, hp, neighbor))
+      angle = 2*MYPI - angle;
+
+    if(AlmostEqual(angle, rp.angle)){
+//        outfile<<"on the same line as query_p "<<endl;
+        double d1 = rp.dist;
+        double d2 = query_p.Distance(neighbor);
+        assert(!AlmostEqual(d1, d2));
+        if(d1 < d2){ //insert
+            double dist = hs.Distance(query_p);
+            MySegDist myseg(true, rp.p, neighbor, dist);
+//            outfile<<"insert1 "<<myseg<<endl;
+//            if(!(*(sss.find(myseg)) == myseg))
+                sss.insert(myseg);
+        }else{
+            double dist = hs.Distance(query_p);
+            MySegDist myseg(true, rp.p, neighbor, dist);
+//            outfile<<"remove1 "<<myseg<<endl;
+            //erase the element
+            multiset<MySegDist>::iterator iter = sss.find(myseg);
+            assert(iter != sss.end());
+            while(iter != sss.end()){
+               if(*iter == myseg){
+                  sss.erase(iter);
+                  break;
+                }else
+                iter++;
+            }
+        }
+      return;
+    }
+
+    if(sp->GetClockwise(query_p, rp.p, neighbor) == false){
+        double dist = hs.Distance(query_p);
+        MySegDist myseg(true, rp.p, neighbor, dist);
+//        outfile<<"insert2 "<<myseg<<endl;
+//        if(!(*(sss.find(myseg)) == myseg))
+            sss.insert(myseg);
+    }else{
+//        outfile<<"clockwise"<<endl;
+        double dist = hs.Distance(query_p);
+        MySegDist myseg(true, rp.p, neighbor, dist);
+//        outfile<<"remove2 "<<myseg<<endl;
+        //erase the element
+        multiset<MySegDist>::iterator iter = sss.find(myseg);
+        assert(iter != sss.end());
+        while(iter != sss.end()){
+            if(*iter == myseg){
+                sss.erase(iter);
+                break;
+            }else
+            iter++;
+        }
+    }
+
+}
+/*
+using rotational plane sweep algorithm to find visible points.
+the query point should not locate on the outer contour boundary
+Micha Sharir and Amir Schorr
+On Shortest Paths in Polyhedral Spaces, SIAM Journal on Computing. 1986
+
+*/
+
+void CompTriangle::GetVPoints(Relation* rel1, Relation* rel2,
+                              Rectangle<2>* bbox, Relation* rel3, int attr_pos)
+{
+//  cout<<"attr_pos "<<attr_pos<<endl;
+//  ofstream outfile("tmrecord");
+
+  if(rel1->GetNoTuples() < 1){
+    cout<<"query relation is empty"<<endl;
+    return;
+  }
+  Tuple* query_tuple = rel1->GetTuple(1, false);
+  Point* query_p =
+          new Point(*((Point*)query_tuple->GetAttribute(VisualGraph::QLOC2)));
+  query_tuple->DeleteIfAllowed();
+//  outfile<<"query point "<<*query_p<<endl;
+  Coord xmax = bbox->MaxD(0) + 1.0;
+
+
+  Point hp;
+  hp.Set(xmax, query_p->GetY());
+  HalfSegment hs1;
+  hs1.Set(true, *query_p, hp);
+//  cout<<"horizonal p "<<hp<<endl;
+
+  ///////////// sort all points by counter clockwise order//////////////////
+  priority_queue<RPoint> allps;
+  multiset<MySegDist> sss;
+
+  vector<Point> neighbors;
+
+  //one segment contains query_p
+  //it represents query_p equals to the endpoint(=2) or not(=3)
+  int no_contain = 0;
+
+  int hole_id = 0; //record whether the query point locates on the hole boundary
+  SpacePartition* sp = new SpacePartition();
+  for(int i = 1;i <= rel2->GetNoTuples();i++){
+      Tuple* p_tuple = rel2->GetTuple(i, false);
+      Point* p = (Point*)p_tuple->GetAttribute(CompTriangle::V);
+      if(AlmostEqual(*query_p, *p)){//equal points are ignored
+        p_tuple->DeleteIfAllowed();
+        continue;
+      }
+      Point* q1 = (Point*)p_tuple->GetAttribute(CompTriangle::NEIGHBOR1);
+//      outfile<<"vertex "<<*p<<endl;
+//      outfile<<sp->GetAngle(*query_p, hp, *p)<<endl;
+      Point* q2 = (Point*)p_tuple->GetAttribute(CompTriangle::NEIGHBOR2);
+      int reg_id =
+          ((CcInt*)p_tuple->GetAttribute(CompTriangle::REGID))->GetIntval();
+
+      HalfSegment hs1;
+      hs1.Set(true, *p, *q1);
+      HalfSegment hs2;
+      hs2.Set(true, *p, *q2);
+      if(no_contain < 2 && hs1.Contains(*query_p)){
+/*        cout<<"segment contains query points "<<endl;
+        cout<<"current it is not supported"<<endl;
+        p_tuple->DeleteIfAllowed();
+        return;*/
+//        cout<<"hs1 "<<hs1<<"q1 "<<*q1<<endl;
+        hole_id = reg_id;
+
+        if(AlmostEqual(*query_p, hs1.GetLeftPoint()))
+          neighbors.push_back(hs1.GetRightPoint());
+        else if(AlmostEqual(*query_p, hs1.GetRightPoint()))
+          neighbors.push_back(hs1.GetLeftPoint());
+        else{
+          neighbors.push_back(hs1.GetLeftPoint());
+          neighbors.push_back(hs1.GetRightPoint());
+          no_contain = 2;
+        }
+        no_contain++;
+      }
+      if(no_contain < 2 && hs2.Contains(*query_p)){
+//        cout<<"hs2 "<<hs2<<"q2 "<<*q2<<endl;
+        hole_id = reg_id;
+
+        if(AlmostEqual(*query_p, hs2.GetLeftPoint()))
+          neighbors.push_back(hs2.GetRightPoint());
+        else if(AlmostEqual(*query_p, hs2.GetRightPoint()))
+          neighbors.push_back(hs2.GetLeftPoint());
+        else{
+          neighbors.push_back(hs2.GetLeftPoint());
+          neighbors.push_back(hs2.GetRightPoint());
+          no_contain = 2;
+        }
+        no_contain++;
+      }
+
+      InitializeAVL(sss,*query_p, hp, *p, *q1, sp);
+      InitializeAVL(sss,*query_p, hp, *p, *q2, sp);
+      InitializeQueue(allps,*query_p, hp, *p, sp, q1, q2, reg_id);
+
+      p_tuple->DeleteIfAllowed();
+  }
+  delete sp;
+
+//  PrintAVLTree(sss, outfile);
+  double last_angle = -1.0;
+
+  double angle1 = -1.0;
+  double angle2 = -1.0;
+  bool face_direction; //false counter-clockwise, true clockwise
+
+  //determint the region face on which side of the segment
+  if(hole_id != 0){
+//    cout<<neighbors.size()<<endl;
+    assert(neighbors.size() == 2);
+//    cout<<neighbors[0]<<" "<<neighbors[1]<<endl;
+    assert(!AlmostEqual(neighbors[0], neighbors[1]));
+    Tuple* reg_tuple = rel3->GetTuple(hole_id, false);
+    Region* r = (Region*)reg_tuple->GetAttribute(attr_pos);
+
+    Line* boundary = new Line(0);
+    r->Boundary(boundary);
+    SimpleLine* sboundary = new SimpleLine(0);
+    sboundary->fromLine(*boundary);
+    vector<MyHalfSegment> mhs;
+    //get all the points of the region
+    SpacePartition* sp = new SpacePartition();
+    if(sboundary->Size() > 0)
+      sp->ReorderLine(sboundary, mhs);
+    else{
+      cout<<"can't covert the boundary to a sline, maybe there is a hole"<<endl;
+      delete boundary;
+      delete sboundary;
+      return;
+    }
+    delete boundary;
+    delete sboundary;
+
+    vector<Point> ps;
+    for(unsigned int i = 0;i < mhs.size();i++)
+      ps.push_back(mhs[i].from);
+
+    angle1 = sp->GetAngle(*query_p, hp, neighbors[0]);
+    angle2 = sp->GetAngle(*query_p, hp, neighbors[1]);
+    if(sp->GetClockwise(*query_p, hp, neighbors[0]))
+      angle1 = 2*MYPI - angle1;
+    if(sp->GetClockwise(*query_p, hp, neighbors[1]))
+      angle2 = 2*MYPI - angle2;
+
+    if(angle1 > angle2){
+      Point temp = neighbors[0];
+      neighbors[0] = neighbors[1];
+      neighbors[1] = temp;
+      double temp_angle = angle1;
+      angle1 = angle2;
+      angle2 = temp_angle;
+    }
+
+    if(0.0 < Area(ps)) face_direction = false;//counter-clockwise
+    else face_direction = true;
+    //query_p locates in one segment but not equal to endpoint
+    if(no_contain > 2){
+      int index1 = -1;
+      int index2 = -1;
+      for(unsigned int i = 0;i < ps.size();i++){
+          if(AlmostEqual(ps[i], neighbors[0])) index1 = i;
+          if(AlmostEqual(ps[i], neighbors[1])) index2 = i;
+      }
+      if(index1 < index2){
+         face_direction = !face_direction;
+      }
+    }else if(no_contain == 2){//query_p equals to one endpoint of a segment
+      int index1 = -1;
+      int index2 = -1;
+      for(unsigned int i = 0;i < ps.size();i++){
+        if(AlmostEqual(ps[i], neighbors[0])) index1 = i;
+        if(AlmostEqual(ps[i], *query_p)) index2 = i;
+      }
+      if(index1 < index2){
+         face_direction = !face_direction;
+      }
+    }else assert(false);
+//  outfile<<"direction "<<face_direction<<"1 "<<angle1<<"2 "<<angle2<<endl;
+    reg_tuple->DeleteIfAllowed();
+  }
+
+
+  while(allps.empty() == false){
+      RPoint top = allps.top();
+      allps.pop();
+//      PrintAVLTree(sss, outfile);
+//      outfile<<top<<endl;
+      if(sss.empty()){
+//          outfile<<"avltree is emtpy find visible point1"<<endl;
+          plist1.push_back(top.p);
+          Line* l = new Line(0);
+          l->StartBulkLoad();
+          HalfSegment hs;
+          hs.Set(true, *query_p, top.p);
+          hs.attr.edgeno = 0;
+          *l += hs;
+          hs.SetLeftDomPoint(!hs.IsLeftDomPoint());
+          *l += hs;
+          l->EndBulkLoad();
+          connection.push_back(*l);
+          delete l;
+          last_angle = top.angle;
+/*          ProcessNeighbor(sss, top, *query_p,
+                            top.n1, hp, sp, outfile);
+          ProcessNeighbor(sss, top, *query_p,
+                            top.n2, hp, sp, outfile);*/
+          ProcessNeighbor(sss, top, *query_p,
+                            top.n1, hp, sp);
+          ProcessNeighbor(sss, top, *query_p,
+                            top.n2, hp, sp);
+          continue;
+      }
+      ////////////// visibility checking  ///////////////////////////
+      if(!AlmostEqual(top.angle, last_angle)){
+          multiset<MySegDist>::iterator start = sss.begin();
+          double d = query_p->Distance(top.p);
+          double mindist = start->dist;
+          bool visible = true;
+//          outfile<<"d "<<d<<" mindist "<<mindist<<endl;
+
+          if(top.regid == hole_id){//filter some points on the boundary
+              if(face_direction == false){
+                  if(angle1 < top.angle && top.angle < angle2)visible = false;
+              }else{
+                  if(top.angle < angle1 || top.angle > angle2)visible = false;
+            }
+          }
+
+          if(visible){
+              if(d < mindist || AlmostEqual(d, mindist)){
+//                outfile<<"find visible point2"<<endl;
+              }else{
+                  HalfSegment test_hs;
+                  test_hs.Set(true, *query_p, top.p);
+                  while(start->dist < d && start != sss.end()){
+                    HalfSegment cur_hs;
+                    cur_hs.Set(true, start->from, start->to);
+                    Point ip;
+                    if(test_hs.Intersection(cur_hs, ip)){
+//                    outfile<<"test_hs "<<test_hs<<"cur_hs "<<cur_hs<<endl;
+  //                  outfile<<ip<<endl;
+                      if(!AlmostEqual(ip, top.p)){
+                        visible = false;
+                        break;
+                      }
+                    }
+                    start++;
+                  }
+              }
+          }
+
+          if(visible){
+//              outfile<<"find visible point4"<<endl;
+              plist1.push_back(top.p);
+              Line* l = new Line(0);
+              l->StartBulkLoad();
+              HalfSegment hs;
+              hs.Set(true, *query_p, top.p);
+              hs.attr.edgeno = 0;
+              *l += hs;
+              hs.SetLeftDomPoint(!hs.IsLeftDomPoint());
+              *l += hs;
+              l->EndBulkLoad();
+              connection.push_back(*l);
+              delete l;
+          }
+      }
+//      ProcessNeighbor(sss, top, *query_p,top.n1, hp, sp, outfile);
+//      ProcessNeighbor(sss, top, *query_p,top.n2, hp, sp, outfile);
+      ProcessNeighbor(sss, top, *query_p,top.n1, hp, sp);
+      ProcessNeighbor(sss, top, *query_p,top.n2, hp, sp);
+      //////////////////////////////////////////////////////////////////
+      last_angle = top.angle;
+      //////////////////////////////////////////////////////////////
+  }
+
+  delete query_p;
+
+}
+
 /*********************implementation of basgraph********************/
 BaseGraph::BaseGraph():g_id(0),
 node_rel(NULL),
@@ -5466,6 +6043,61 @@ bool Hole::NoSelfIntersects(Region* r)
     }
     return true;
 }
+/*
+collect the holes of a region
+
+*/
+void Hole::GetHole(Region* r)
+{
+  CompTriangle* ct = new CompTriangle(r);
+  unsigned int no_cyc = ct->NoOfCycles() - 1;//ignore the first cycle
+  delete ct;
+
+//  cout<<"holes "<<no_cyc<<endl;
+
+  vector<int> edgeno;
+  vector<int> partnerno;
+  for(unsigned int i = 0;i < no_cyc;i++){
+      Region* new_reg = new Region(0);
+      new_reg->StartBulkLoad();
+      new_reg->EndBulkLoad();
+      regs.push_back(*new_reg);
+      delete new_reg;
+      edgeno.push_back(0);
+      partnerno.push_back(0);
+  }
+//  cout<<"here "<<r->Size()<<endl;
+  for(unsigned int i = 0;i < no_cyc;i++){
+      regs[i].StartBulkLoad();
+  }
+
+  for(int i = 0;i < r->Size();i++){
+//      cout<<"i1 "<<i<<endl;
+      HalfSegment hs;
+      r->Get(i, hs);
+      if(hs.attr.cycleno == 0 || !hs.IsLeftDomPoint()) continue;
+      HalfSegment temp_hs;
+      temp_hs.Set(true, hs.GetLeftPoint(), hs.GetRightPoint());
+      temp_hs.SetLeftDomPoint(hs.IsLeftDomPoint());
+      temp_hs.attr.faceno = 0;
+      int cycle_no = hs.attr.cycleno - 1;
+//      cout<<"cycle_no "<<cycle_no<<endl;
+      temp_hs.attr.cycleno = 0;
+      temp_hs.attr.edgeno = edgeno[cycle_no]++;
+      temp_hs.attr.partnerno = partnerno[cycle_no]++;
+      temp_hs.attr.insideAbove = !temp_hs.attr.insideAbove;
+      regs[cycle_no] += hs;
+      hs.SetLeftDomPoint(!hs.IsLeftDomPoint());
+      regs[cycle_no] += hs;
+//      cout<<hs<<endl;
+  }
+  for(unsigned int i = 0;i < no_cyc;i++){
+//      cout<<"i "<<i<<endl;
+      regs[i].SetNoComponents(1);
+      regs[i].EndBulkLoad(true, false, false, false);
+  }
+
+}
 
 /*
 from the input data file, it creates a lot of contours
@@ -5645,7 +6277,7 @@ void Hole::GetContour()
 create no_reg regions(cycles)
 
 */
-void Hole::GetContour(int no_reg)
+void Hole::GetContour(unsigned int no_reg)
 {
     vector<Point> contour;
     vector<Region> regions;
@@ -5660,6 +6292,8 @@ void Hole::GetContour(int no_reg)
     ////////////////////////////////////////////////////////
     struct timeval tval;
     struct timezone tzone;
+
+    unsigned int reg_count = no_reg;
 
     gettimeofday(&tval, &tzone);
     srand48(tval.tv_sec);
@@ -5726,8 +6360,8 @@ void Hole::GetContour(int no_reg)
           no_reg--;
       }
     }
-
     delete sp;
+    assert(reg_count == regs.size());
 }
 
 void Hole::SpacePartitioning(vector<Point> ps, vector<HalfSegment>& hs_segs,

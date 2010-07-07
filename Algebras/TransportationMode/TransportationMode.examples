@@ -220,3 +220,21 @@ Number   : 2
 Signature: rel x attr -> region
 Example  : query getpolygon(allcontours,hole);
 Result   : file_platform
+
+Operator : getallpoints
+Number   : 2
+Signature: region -> (stream(((x1 t1) ... (xn tn))))
+Example  : query getallpoints(node_reg) count;
+Result   : 432
+
+Operator : rotationsweep
+Number   : 2
+Signature: rel x rel x rect x rel x attr -> (stream(((x1 t1) ... (xn tn))))
+Example  : query rotationsweep(query_loc1, allpoints, rect, allholes, hole) count;
+Result   : 4
+
+Operator : gethole
+Number   : 2
+Signature: region -> (stream(((x1 t1) ... (xn tn))))
+Example  : query gethole(node_reg) count;
+Result   : 2

@@ -2402,6 +2402,7 @@ void SpacePartition::GetDeviation(Point center, double a, double b,double& x1,
 It checks whether the rotation from segment (p1-p0) to segment (p2-p0) is
 counterclockwise or clockwise
 TRUE--clockwise  false--couterclockwise
+we define if three points are collinear, it is counter-clockwise
 
 */
 
