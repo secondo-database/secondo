@@ -124,8 +124,10 @@ struct CompTriangle{
                   Relation* r3, int attr_pos);
 /*  void ProcessNeighbor(multiset<MySegDist>&, RPoint&, Point&,
                       Point&, Point&, SpacePartition*, ofstream& );*/
+
   void ProcessNeighbor(multiset<MySegDist>&, RPoint&, Point&,
                       Point&, Point&, SpacePartition*);
+
   void InitializeAVL( multiset<MySegDist>& sss,
                                       Point& query_p, Point& hp,
                                       Point& p, Point& neighbor,

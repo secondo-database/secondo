@@ -2230,7 +2230,7 @@ void CompTriangle::GetAllPoints()
   }
 
   ////////////////////get the number of cycles, exclude outer contour//////////
-  unsigned int no_cyc = NoOfCycles() - 1;
+  unsigned int no_cyc = NoOfCycles();
 
 //  cout<<"polgyon with "<<no_cyc<<" holes inside "<<endl;
 
@@ -2252,10 +2252,11 @@ void CompTriangle::GetAllPoints()
   for(int j = 0;j < reg->Size();j++){
     HalfSegment hs1;
     reg->Get(j, hs1);
-    if(!hs1.IsLeftDomPoint() || hs1.attr.cycleno == 0) continue;
+//    if(!hs1.IsLeftDomPoint() || hs1.attr.cycleno == 0) continue;
+    if(!hs1.IsLeftDomPoint()) continue;
     HalfSegment hs2;
     hs2.Set(true, hs1.GetLeftPoint(), hs1.GetRightPoint());
-    int cycle_no = hs1.attr.cycleno - 1;
+    int cycle_no = hs1.attr.cycleno;
 
     hs2.attr.edgeno = edgenos[cycle_no]++;
     *sl_contour[cycle_no] += hs2;
@@ -2433,6 +2434,7 @@ whether it inserts or deletes the segment
                             RPoint& rp, Point& query_p,
                             Point& neighbor, Point& hp,
                             SpacePartition* sp, ofstream& outfile)*/
+
 void CompTriangle::ProcessNeighbor(multiset<MySegDist>& sss,
                             RPoint& rp, Point& query_p,
                             Point& neighbor, Point& hp,
@@ -2529,7 +2531,6 @@ void CompTriangle::GetVPoints(Relation* rel1, Relation* rel2,
   query_tuple->DeleteIfAllowed();
 //  outfile<<"query point "<<*query_p<<endl;
   Coord xmax = bbox->MaxD(0) + 1.0;
-
 
   Point hp;
   hp.Set(xmax, query_p->GetY());
@@ -2664,6 +2665,9 @@ void CompTriangle::GetVPoints(Relation* rel1, Relation* rel2,
       angle2 = temp_angle;
     }
 
+    //combine with index1 and index2
+    //the point with smaller angle and larger angle
+    //from smaller angle to larger angle, whether it is counter clockwisr or not
     if(0.0 < Area(ps)) face_direction = false;//counter-clockwise
     else face_direction = true;
     //query_p locates in one segment but not equal to endpoint
@@ -2674,8 +2678,14 @@ void CompTriangle::GetVPoints(Relation* rel1, Relation* rel2,
           if(AlmostEqual(ps[i], neighbors[0])) index1 = i;
           if(AlmostEqual(ps[i], neighbors[1])) index2 = i;
       }
-      if(index1 < index2){
-         face_direction = !face_direction;
+      if(hole_id == 1){
+        if(index1 > index2){
+          face_direction = !face_direction;
+        }
+      }else{
+        if(index1 < index2){
+          face_direction = !face_direction;
+        }
       }
     }else if(no_contain == 2){//query_p equals to one endpoint of a segment
       int index1 = -1;
@@ -2684,34 +2694,53 @@ void CompTriangle::GetVPoints(Relation* rel1, Relation* rel2,
         if(AlmostEqual(ps[i], neighbors[0])) index1 = i;
         if(AlmostEqual(ps[i], *query_p)) index2 = i;
       }
-      if(index1 < index2){
-         face_direction = !face_direction;
+      if(hole_id == 1){
+        if(index1 > index2){
+          face_direction = !face_direction;
+        }
+      }else{
+        if(index1 < index2){
+          face_direction = !face_direction;
+        }
       }
     }else assert(false);
-//  outfile<<"direction "<<face_direction<<"1 "<<angle1<<"2 "<<angle2<<endl;
+//    outfile<<"direction "<<face_direction<<" 1 "<<angle1<<" 2 "<<angle2<<endl;
     reg_tuple->DeleteIfAllowed();
   }
 
+  Tuple* reg_tuple = rel3->GetTuple(1, false);
+  Region* outer_region = (Region*)reg_tuple->GetAttribute(attr_pos);
 
   while(allps.empty() == false){
       RPoint top = allps.top();
       allps.pop();
+      ////////////////debug/////////////////
 //      PrintAVLTree(sss, outfile);
-//      outfile<<top<<endl;
+//      outfile<<top<<" "<<top.regid<<endl;
+      //////////////////////////////////////
       if(sss.empty()){
 //          outfile<<"avltree is emtpy find visible point1"<<endl;
-          plist1.push_back(top.p);
-          Line* l = new Line(0);
-          l->StartBulkLoad();
-          HalfSegment hs;
-          hs.Set(true, *query_p, top.p);
-          hs.attr.edgeno = 0;
-          *l += hs;
-          hs.SetLeftDomPoint(!hs.IsLeftDomPoint());
-          *l += hs;
-          l->EndBulkLoad();
-          connection.push_back(*l);
-          delete l;
+          bool visible = true;
+          if(top.regid == 1){//outer boundary
+              HalfSegment hs;
+              hs.Set(true, *query_p, top.p);
+              if(RegContainHS(outer_region, hs) == false)
+                visible = false;
+          }
+          if(visible){
+            plist1.push_back(top.p);
+            Line* l = new Line(0);
+            l->StartBulkLoad();
+            HalfSegment hs;
+            hs.Set(true, *query_p, top.p);
+            hs.attr.edgeno = 0;
+            *l += hs;
+            hs.SetLeftDomPoint(!hs.IsLeftDomPoint());
+            *l += hs;
+            l->EndBulkLoad();
+            connection.push_back(*l);
+            delete l;
+          }
           last_angle = top.angle;
 /*          ProcessNeighbor(sss, top, *query_p,
                             top.n1, hp, sp, outfile);
@@ -2733,10 +2762,10 @@ void CompTriangle::GetVPoints(Relation* rel1, Relation* rel2,
 
           if(top.regid == hole_id){//filter some points on the boundary
               if(face_direction == false){
-                  if(angle1 < top.angle && top.angle < angle2)visible = false;
+                 if(angle1 < top.angle && top.angle < angle2)visible = false;
               }else{
-                  if(top.angle < angle1 || top.angle > angle2)visible = false;
-            }
+                 if(top.angle < angle1 || top.angle > angle2)visible = false;
+              }
           }
 
           if(visible){
@@ -2753,6 +2782,8 @@ void CompTriangle::GetVPoints(Relation* rel1, Relation* rel2,
 //                    outfile<<"test_hs "<<test_hs<<"cur_hs "<<cur_hs<<endl;
   //                  outfile<<ip<<endl;
                       if(!AlmostEqual(ip, top.p)){
+//                        outfile<<"visible false"<<endl;
+//                        outfile<<"test_hs "<<test_hs<<"cur_hs "<<cur_hs<<endl;
                         visible = false;
                         break;
                       }
@@ -2760,6 +2791,13 @@ void CompTriangle::GetVPoints(Relation* rel1, Relation* rel2,
                     start++;
                   }
               }
+          }
+
+          if(visible && top.regid == 1){//outer boundary
+              HalfSegment hs;
+              hs.Set(true, *query_p, top.p);
+              if(RegContainHS(outer_region, hs) == false)
+                visible = false;
           }
 
           if(visible){
@@ -2787,6 +2825,7 @@ void CompTriangle::GetVPoints(Relation* rel1, Relation* rel2,
       //////////////////////////////////////////////////////////////
   }
 
+  reg_tuple->DeleteIfAllowed();
   delete query_p;
 
 }
@@ -6050,7 +6089,7 @@ collect the holes of a region
 void Hole::GetHole(Region* r)
 {
   CompTriangle* ct = new CompTriangle(r);
-  unsigned int no_cyc = ct->NoOfCycles() - 1;//ignore the first cycle
+  unsigned int no_cyc = ct->NoOfCycles();//ignore the first cycle
   delete ct;
 
 //  cout<<"holes "<<no_cyc<<endl;
@@ -6075,12 +6114,12 @@ void Hole::GetHole(Region* r)
 //      cout<<"i1 "<<i<<endl;
       HalfSegment hs;
       r->Get(i, hs);
-      if(hs.attr.cycleno == 0 || !hs.IsLeftDomPoint()) continue;
+      if(!hs.IsLeftDomPoint()) continue;
       HalfSegment temp_hs;
       temp_hs.Set(true, hs.GetLeftPoint(), hs.GetRightPoint());
       temp_hs.SetLeftDomPoint(hs.IsLeftDomPoint());
       temp_hs.attr.faceno = 0;
-      int cycle_no = hs.attr.cycleno - 1;
+      int cycle_no = hs.attr.cycleno;
 //      cout<<"cycle_no "<<cycle_no<<endl;
       temp_hs.attr.cycleno = 0;
       temp_hs.attr.edgeno = edgeno[cycle_no]++;
