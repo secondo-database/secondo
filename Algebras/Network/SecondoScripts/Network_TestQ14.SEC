@@ -1,0 +1,95 @@
+open database berlinmod;
+
+let Q14OBATest2 =
+dataSNcar feed
+QueryRegions1Net feed filter[not(isempty(.Region))]
+symmjoin[.Trip passes ..Region] {R}
+QueryInstant1 feed 
+product
+projectextend[Licence_R, Id_R, Region_R, Instant; PosX: (val(.Trip_R atinstant .Instant))]
+projectextendstream[Licence_R, Id_R, Region_R, Instant; Pos: polygpoints(.PosX,B_NETWORK)]
+filter[.Pos inside .Region_R]
+project[Id_R, Instant, Licence_R]
+sortby [Id_R asc, Instant asc, Licence_R asc]
+krdup[Id_R, Instant, Licence_R]
+consume;
+
+
+let Q14OBA =
+  QueryRegions1Net feed filter[not(isempty(.Region))]
+  projectextendstream[Id, Region; Rrect:  routeintervals(.Region)] {r}
+  QueryInstant1 feed {i}
+  product
+  loopsel[fun(t:TUPLE) dataSNcar_BoxNet_timespace windowintersectsS[box3d(attr(t,Rrect_r), attr(t,Instant_i))]
+  sort rdup dataSNcar gettuples
+    filter[(val(.Trip atinstant (attr(t,Instant_i)))) inside (attr(t,Region_r))]
+  projectextend [Licence;Instant: attr(t,Instant_i), Id: attr(t,Id_r)]]
+  sortby [Id asc, Instant asc, Licence asc]
+  krdup[Id, Instant, Licence]
+consume;
+
+let Q14OBATest1 =
+dataSNcar feed  
+QueryInstant1 feed 
+product
+projectextend[Licence, Instant; PosX: val(.Trip atinstant .Instant)]
+projectextendstream[Licence, Instant; Pos: polygpoints(.PosX,B_NETWORK)]
+QueryRegions1Net feed filter[not(isempty(.Region))]
+symmjoin[.Pos inside ..Region]
+project[Id, Instant, Licence]
+sortby [Id asc, Instant asc, Licence asc]
+krdup[Id, Instant, Licence]
+consume;
+
+
+let Q14TBATest2 =
+dataMNtrip feed
+QueryRegions1Net feed filter[not(isempty(.Region))]
+symmjoin[.Trip passes ..Region] {R}
+QueryInstant1 feed 
+symmjoin[.Trip_R present ..Instant]
+projectextend[Moid_R, Id_R, Region_R, Instant; PosX: val(.Trip_R atinstant .Instant)]
+projectextendstream[Moid_R, Id_R, Region_R, Instant; Pos: polygpoints(.PosX,B_NETWORK)]
+filter[.Pos inside .Region_R]
+project[Id_R, Instant, Moid_R]
+sortby [Id_R asc, Instant asc, Moid_R asc]
+krdup[Id_R, Instant, Moid_R]
+loopjoin[dataMcar_Moid_btree dataMcar exactmatch [.Moid_R]]
+project[Id_R, Instant, Licence]
+consume;
+
+
+let Q14TBA =
+  QueryRegions1Net feed filter[not(isempty(.Region))] projectextendstream[Id, Region; Brect: routeintervals(.Region)]{r}
+  QueryInstant1 feed {i}
+  product
+  projectextend[Id_r, Region_r, Instant_i; Box: box3d(.Brect_r, .Instant_i)]
+  loopsel[fun(t:TUPLE) dataMNtrip_BoxNet_timespace windowintersectsS[attr(t,Box)]
+  sort rdup dataMNtrip gettuples
+  filter[(val(.Trip atinstant (attr(t,Instant_i)))) inside (attr(t,Region_r))]
+  projectextend [Moid;Instant: attr(t,Instant_i), Id: attr(t,Id_r)]]{a}
+  loopjoin[dataMcar_Moid_btree dataMcar exactmatch [.Moid_a]]
+  projectextend[Licence; Id: .Id_a, Instant: .Instant_a]
+  sortby [Id asc, Instant asc, Licence asc]
+  krdup[Id, Instant, Licence]
+consume;
+
+let Q14TBATest1 =
+dataMNtrip feed
+QueryInstant1 feed 
+symmjoin[.Trip present ..Instant]
+projectextend[Moid, Instant; PosX: val(.Trip atinstant .Instant)]
+projectextendstream[Moid, Instant; Pos: polygpoints(.PosX,B_NETWORK)]
+QueryRegions1Net feed filter[not(isempty(.Region))]
+symmjoin[.Pos inside ..Region]
+project[Id, Instant, Moid]
+sortby [Id asc, Instant asc, Moid asc]
+krdup[Id, Instant, Moid] {a}
+loopjoin[dataMcar_Moid_btree dataMcar exactmatch [.Moid_a]]
+project[Id_a, Instant_a, Licence]
+consume;
+
+
+close database;
+quit;
+
