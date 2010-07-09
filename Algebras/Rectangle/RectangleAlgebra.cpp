@@ -2375,12 +2375,12 @@ struct gridintersects_Info : OperatorInfo {
 
   gridintersects_Info() : OperatorInfo()
   {
-	name = "gridintersects";
-	signature = "real x real x real x real x int x "
-	    "rectangle x rectangle x int -> bool";
-	syntax = "op (_, _, _, _, _, _, _, _)";
-	meaning = "Return whether the current cell is "
-	    "the common smallest cell of these two rectangles";
+    name = "gridintersects";
+    signature = "real x real x real x real x int x "
+        "rectangle x rectangle x int -> bool";
+    syntax = "op (_, _, _, _, _, _, _, _)";
+    meaning = "Return whether the current cell is "
+        "the common smallest cell of these two rectangles";
   }
 };
 
