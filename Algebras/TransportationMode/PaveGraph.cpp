@@ -2672,39 +2672,52 @@ void CompTriangle::GetVPoints(Relation* rel1, Relation* rel2,
     else face_direction = true;
     //query_p locates in one segment but not equal to endpoint
     if(no_contain > 2){
-      int index1 = -1;
-      int index2 = -1;
+      unsigned int index1 = ps.size();
+      unsigned int index2 = ps.size();
       for(unsigned int i = 0;i < ps.size();i++){
           if(AlmostEqual(ps[i], neighbors[0])) index1 = i;
           if(AlmostEqual(ps[i], neighbors[1])) index2 = i;
       }
+      assert(index1 != ps.size() && index2 != ps.size());
       if(hole_id == 1){
-        if(index1 > index2){
+        if(index1 == index2 + 1){
+          face_direction = !face_direction;
+        }else if(index == 0 && index2 == ps.size() - 1){
           face_direction = !face_direction;
         }
       }else{
-        if(index1 < index2){
+        if(index1  + 1 == index2){
+          face_direction = !face_direction;
+        }else if(index1 == ps.size() - 1 && index2 == 0){
           face_direction = !face_direction;
         }
       }
     }else if(no_contain == 2){//query_p equals to one endpoint of a segment
-      int index1 = -1;
-      int index2 = -1;
+      unsigned int index1 = ps.size();
+      unsigned int index2 = ps.size();
       for(unsigned int i = 0;i < ps.size();i++){
         if(AlmostEqual(ps[i], neighbors[0])) index1 = i;
         if(AlmostEqual(ps[i], *query_p)) index2 = i;
       }
+      assert(index1 != ps.size() && index2 != ps.size());
+//      outfile<<"index1 "<<index1<<" index2 "<<index2<<endl;
+//      outfile<<"face direction "<<face_direction<<endl;
       if(hole_id == 1){
-        if(index1 > index2){
+        if(index1 == index2 + 1){
+          face_direction = !face_direction;
+        }else if(index1 == 0 && index2 == ps.size() - 1){
           face_direction = !face_direction;
         }
       }else{
-        if(index1 < index2){
+        if(index1 + 1 == index2){
+          face_direction = !face_direction;
+        }else if(index1 == ps.size() - 1 && index2 == 0){
           face_direction = !face_direction;
         }
       }
     }else assert(false);
 //    outfile<<"direction "<<face_direction<<" 1 "<<angle1<<" 2 "<<angle2<<endl;
+//    outfile<<"hole_id "<<hole_id<<endl;
     reg_tuple->DeleteIfAllowed();
   }
 
