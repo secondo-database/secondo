@@ -2365,8 +2365,8 @@ struct cellnumber_Info : OperatorInfo {
     name =      "cellnumber";
     signature = "rect x real x real x real x real x int -> stream(int)";
     syntax =    "cellnumber(_, _, _, _, _, _)";
-    meaning =   "Return numbers of cells while a rectangle is partitioned "
-                "on a finite grid space";
+    meaning =   "Return numbers of cells while a rectangle is "
+        "partitioned on a finite grid space";
   }
 
 };
