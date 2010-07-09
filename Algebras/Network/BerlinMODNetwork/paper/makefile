@@ -15,7 +15,7 @@ DEPFILES = compruntimesall.eps
 
 TARGETFILES = $(addsuffix .pdf,$(FILES)) $(addsuffix .ps,$(FILES))
 
-DELETESUFFIXES = pdf blg bbl dvi ps log aux
+DELETESUFFIXES = pdf blg bbl dvi ps log aux out tdo
 
 
 .PHONY:all

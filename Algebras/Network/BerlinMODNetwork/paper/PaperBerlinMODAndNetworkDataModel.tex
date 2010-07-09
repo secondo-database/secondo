@@ -1,13 +1,13 @@
 \documentclass[a4paper]{article}
-\usepackage[left=3cm, right=3cm]{geometry}
+%\usepackage[left=3cm, right=3cm]{geometry}
 \usepackage[utf8x]{inputenc}
+\usepackage{float}
+\usepackage{longtable}
 \usepackage{hyperref}
 \usepackage{cite}
 \usepackage{amssymb}
 \usepackage{amsmath}
 \usepackage{url}
-\usepackage{float}
-\usepackage{longtable}
 \usepackage{array}
 \usepackage{algorithmic}
 \usepackage[ruled]{algorithm}
@@ -16,6 +16,7 @@
 \usepackage{tabularx}
 \usepackage{caption}
 \usepackage{todonotes}
+\usepackage{rotating}
 \pagestyle{headings}
 \newcommand{\secondo}{\textsc{Secondo}}
 \newcommand{\bmodb} {BerlinMOD Benchmark}
@@ -47,13 +48,13 @@ model of free movement in the two dimensional space by orders of magnitude.
 \section{Introduction}
 In the past, several data models for the representation of
 spatio-temporal data objects have been developed. We can categorize them into
-data models for objects moving freely in two dimensional space (DMFS) and data 
+data models for objects moving freely in two dimensional space (DMFS) and data
 models
 for network constrained moving objects (NCDM). For both categories several different
 data models have been presented like
 \cite{DataModelDataStructureGueting,RepresentingMovingObjectsGueting,STAUPelekis
 ,HERMESMDCPelekis}
-for DMFS and 
+for DMFS and
 \cite{DynamicTransportNetworkDing,NetworkGueting,NetworkJensen,
 NetworkVazirgiannis}
 for NCDM, to name just a few. Objects which are restricted to use existing networks,
@@ -73,20 +74,20 @@ in the NCDM. And not at last, the results of our experiments show that
 our network constrained data model outperforms our data model of free movement in
 two dimensional space by orders of magnitude. The network constrained data model
 uses less than 60\% of the storage space and less than 50\% of the total query
-run time of the data model of free movement in space, which we used in our 
+run time of the data model of free movement in space, which we used in our
 experiments.
 We think that these results show that it is useful to develop specialized data
 models for specialized data structures like NCDM for
 network constrained moving objects to save storage space and reduce query run times.
 
 For our benchmark experiments, presented in this paper, we chose two data models
-one for each data model category. Both data models use the same temporal 
+one for each data model category. Both data models use the same temporal
 representation
-and are available in \secondo{} DBMS 
+and are available in \secondo{} DBMS
 \cite{SecondoEnvironmentDieker,SecondoPlatformPrototypingGueting}.
 So we can exclude that different DBMS or temporal representation issues bias the
 results of our data model comparison with the \bmodb{}\cite{BerlinMODVLDBDuentgen}.
-The DMFS we use is the data model presented in 
+The DMFS we use is the data model presented in
 \cite{RepresentingMovingObjectsGueting,DataModelDataStructureGueting}
 (SPACE). And the NCDM we use is the data model presented in
 \cite{NetworkGueting} (NET).
@@ -110,10 +111,10 @@ Besides the comparsion of the both data models, we describe in this paper the
 first real implementation of NET (see Section \ref{sec:implNDM}) providing some
 further concepts which were only sketched in \cite{NetworkGueting}.
 
-The rest of the paper is organised as follows: We present some related work in 
+The rest of the paper is organised as follows: We present some related work in
 Section
 \ref{sec:relWork}, including short reviews of the underlying \secondo{} DBMS
-(Section \ref{sec:secondo}), the two data models (SPACE Section 
+(Section \ref{sec:secondo}), the two data models (SPACE Section
 \ref{sec:bmodbdatamod},
 NET Section \ref{sec:netdatamod}) we chose for our comparison, and the
 \bmodb{} (Section \ref{sec:bmodb}).
@@ -122,7 +123,7 @@ of NET, the used operations and indexes.
 The translation of the \bmodb{} data and query set into the NET representation
 is described in Section \ref{sec:Translation}. The resulting experimental benchmark
 setup is described in Section \ref{sec:scenario} followed by the results of our
-experiments in Section \ref{sec:results}. We conclude our work in Section 
+experiments in Section \ref{sec:results}. We conclude our work in Section
 \ref{sec:summary}.
 \section{Related Work}
 \label{sec:relWork}
@@ -155,7 +156,7 @@ containing all spatial geometries for the representation of spatial objects and
 one moving object for the representation of the different moving object data types,
 whereas \cite{DataModelDataStructureGueting} uses different spatial and moving
 objects for the representation of the different spatial and moving data types.
-According to this \cite{STAUPelekis} provides only a single operator that 
+According to this \cite{STAUPelekis} provides only a single operator that
 distinguishes
 between the different topological relationships via a parameter, whereas
 \cite{DataModelDataStructureGueting} uses different operations to estimate
@@ -170,7 +171,7 @@ The most NCDM use edge based graph representations for the representation of the
 underlying network data only a small number of NCDM uses route oriented data models
 or combine route and edge based data models.
 
-\cite{NetworkVazirgiannis} proposes an edge based NCDM. The edges and their 
+\cite{NetworkVazirgiannis} proposes an edge based NCDM. The edges and their
 attributes
 are stored in a relation representing the network as an undirected graph. Moving
 objects are assumed to drive always on the path with the lowest cost,
@@ -186,7 +187,7 @@ evaluation on moving objects.
 proposes a combination of an two dimensional geometrical edge representation with
 an directed graph representation of the same network. The both representations
 are connected by transition policies. The two dimensional
-geometrical representation handles the spatial information's, whereas the 
+geometrical representation handles the spatial information's, whereas the
 connectivity
 information is mostly embedded in the directed graph representation.
 Moving objects are represented by sets of five tuples. Each five tuple contains
@@ -194,7 +195,7 @@ an edge identifier, the position of the moving point on the edge
 in terms of weight and length, the speed and direction of the movement, and
 the time instant of this information.
 
-Another two-layer network representation is proposed by 
+Another two-layer network representation is proposed by
 \cite{DynamicTransportNetworkDing}.
 The authors of \cite{DynamicTransportNetworkDing} combine the advantages of the
 dynamic edge-based \cite{DynNetworkModEdgeGueting} and the dynamic route-based
@@ -232,19 +233,19 @@ The \bmodb{} \cite{BerlinMODVLDBDuentgen} is to the best of our knowledge the on
 benchmark testing the capabilities of complete spatio-temporal database systems.
 Coming with a well defined data set, and two query sets feasible for DMFS and NCDM.
 Other benchmarks for spatio-temporal databases systems provide only well defined
-query sets and a database description without any data set like 
+query sets and a database description without any data set like
 \cite{QueriesTheodoridis}.
 Or they come with well defined data generation, workload sets and experiments but
 evaluate only the capabilties of indexes for current and near future positions like
-\cite{COSTBenchmarkJensen}. Or they focus on time-evolving regional data and 
+\cite{COSTBenchmarkJensen}. Or they focus on time-evolving regional data and
 associated
 index methods like \cite{BenchmarkTzouramanis}.
 
 The focus on index benchmarking in the most benchmarks is dued by the fact that
 indexes have a great influence on query run times. Therefore, many spatio-temporal
-indexes have been developed in the last ten years. An survey about existing 
+indexes have been developed in the last ten years. An survey about existing
 spatio-temporal
-indexes can be found in the two parted work \cite{STAMSurvey1} and 
+indexes can be found in the two parted work \cite{STAMSurvey1} and
 \cite{STAMSurvey2}.
 The most presented spatio-temporal indexes base on the R-Tree \cite{RTreeGuttmann}
 and its variants. The R-Trees are used stand alone or in hierarchical combinations.
@@ -301,7 +302,7 @@ techniques presented in \cite{SecondOrderSignatureGueting}. The basic idea of
 that create new data types if they are applied to an data type of a given set of
 basic data types.
 
-Basic data types are the standard data types integer, real, string and boolean 
+Basic data types are the standard data types integer, real, string and boolean
 (BASE);
 the spatial data types point, points, line, and region (SPATIAL);
 and the temporal type instant (TIME).
@@ -332,13 +333,13 @@ value.
 The type constructor \dt{range} converts BASE and TIME data types $\alpha$ into
 a type whoes values are finite sets of intervals over $\alpha$. Range types are
 used to represent collections of time intervals, or the values taken by a moving
-real. Intervals are represented by their start and end point and two flags 
+real. Intervals are represented by their start and end point and two flags
 indicating
 if the start respectively end point is part of the interval or not.
 
 The other important type constructor of the abstract data model is \dt{moving}.
 In the abstract data model\dt{moving} maps each data type $\alpha$ from BASE and
-SPATIAL into an time dependend spatio-temporal moving data type 
+SPATIAL into an time dependend spatio-temporal moving data type
 \dt{moving}($\alpha$)
 (\dt{m$\alpha$} for short) of kind TEMPORAL. The discrete data model introduces some
 additional type constructors to implement the moving type constructor of the
@@ -352,7 +353,7 @@ An \dt{mpoint} consists of a set of so called \dt{unit}(\dt{point}) values
 Each \dt{upoint} consists of a time interval and two \dt{point} values. The first
 \dt{point} value represents the position of the \dt{upoint} at the start of the
 time interval and the second \dt{point} value represents the position of the
-\dt{upoint} at the end of the time interval. It is assumed that the object 
+\dt{upoint} at the end of the time interval. It is assumed that the object
 represented
 by the \dt{upoint} moves on the straight line between these two points with constant
 speed within the given time interval. The velocity of the object is given by the
@@ -368,9 +369,9 @@ of an \dt{mpoint} at every time instant within its definition time.
 We can also compute the time instant the point passed a
 given position assuming the \dt{mpoint} ever passes this position. The position of a
 \dt{point} at a given time instant is represented by an \dt{intime(point)}
-(short form \dt{ipoint}). An \dt{ipoint} consists of an time instant and an 
+(short form \dt{ipoint}). An \dt{ipoint} consists of an time instant and an
 \dt{point}
-value and represents the position of the \dt{mpoint} value at the given time 
+value and represents the position of the \dt{mpoint} value at the given time
 instant.
 
 Other data types of \secondo{} which are used in the \bmodb{} are \dt{mbool},
@@ -405,7 +406,8 @@ domain of routes is defined as
 \begin{split}
 Route = \{(id,\ l,\ c,\ kind,\ start)\ &|\ id \in \dt{int},\ l \in \dt{real},
 \ c \in \dt{line},\\
-&\ kind \in \{simple,\ dual\},\ start \in \{smaller,\ larger\}\},
+&\ kind \in \{simple,\ dual\},\\
+&\ start \in \{smaller,\ larger\}\},
 \end{split}
 \]
 where $id$ is a distinct route idenitfier, $l$ is the length of the route, $c$
@@ -445,15 +447,13 @@ The $side$ value indicates for $dual$ routes if a position can be reached
 from the $up$ or the $down$ side of the route. For routes with $kind = simple$ the
 $side$ value is always $none$.
 
-A single network position in a network $N_i$ of a set of networks 
-$N=\{N_1,\ldots,N_k\}$
-is represented by the data type \dt{gpoint}. The carrier set of \dt{gpoint} is 
-defined as
+Let $N=\{N_1,\ldots,N_k\}$ be a set of networks. A single network position in a
+network $N_i$ is represented by the data type \dt{gpoint}. The carrier set of
+\dt{gpoint} is defined as
 \[\{(i,\ gp)\ |\ 1 \leq i \leq k \wedge gp \in RLoc(R) \cup \{ \perp \}\},\]
 where $\perp$ again represents a undefined value.
 
-A $route\ interval$ in $N$ is a pair of network positions on the same route. It
-is represented by a quadruple $(rid,\ d_1,\ d_2,\ side)$, with
+A $route\ interval$ in $N_i$ is a pair of network positions on the same route. The $route\ interval$ is represented by a quadruple $(rid,\ d_1,\ d_2,\ side)$, with
 $(rid,\ d_1,\ side),\ (rid,\ d_2,\ side) \in Loc(N)$
 and $d_1 \leq d_2$. Semantically
 a $route interval$ represents all route locations $(rid,\ d,\ side)$ with
@@ -487,17 +487,18 @@ list data structure supporting trip and path computations.
 The three relations have the following schemas:
 \begin{ttfamily}
 \begin{itemize}
-  \item [] routes (id:int; length: real; curve: line; kind: bool; start: bool)
-  \item [] junctions (r1id: int; r1rc: int; pos1: real; r2id: int; r2rc: int;\\
-pos2: real; cc: int; pos: point)
-  \item [] sections (rid: int; rrc: int; pos1: real; pos2: real; dual: bool;\\
-length: real; curve: line)
+  \item [] routes (id:int; length: real; curve: line; kind: bool;\\
+ start: bool)
+  \item [] junctions (r1id: int; r1rc: int; pos1: real; r2id: int;\\
+r2rc: int; pos2: real; cc: int; pos: point)
+  \item [] sections (rid: int; rrc: int; pos1: real; pos2: real;\\
+dual: bool; length: real; curve: line)
 \end{itemize}
 \end{ttfamily}
 As you can see, the $routes$ relation is equivalent to the domain of routes $Route$.
 The tuple of the $junctions$ relation is somewhat different from $Junctions(R)$.
 The record identifiers $r1rc$ and $r2rc$ support faster access to the corresponding
-tuples in the $routes$ relation and the \dt{point} value $pos$ supports the 
+tuples in the $routes$ relation and the \dt{point} value $pos$ supports the
 connection
 to the two dimensional plane.
 
@@ -513,10 +514,11 @@ For the data types \dt{gpoint} and \dt{gline} \cite{NetworkGueting} proposes
 the following implementations:
 \begin{ttfamily}
 \begin{itemize}
-  \item [] gpoint: record \{nid: int; rid: int; pos: real; side: \{up,
-down, none\};\}
-  \item [] gline: record\{nid: int; rints: DBArray of record \{ rid: int;\\
-pos1: real; pos2: real; side: \{up, down, none\};\}
+  \item [] gpoint: record \{nid: int; rid: int; pos: real;\\
+side: \{up, down, none\};\}
+  \item [] gline: record\{nid: int; rints: DBArray of record \{\\
+rid: int; pos1: real; pos2: real;\\
+side: \{up, down, none\};\}
 \end{itemize}
 \end{ttfamily}
 For the data type \dt{mgpoint} the implementation consists of a set of \dt{ugpoint}.
@@ -524,13 +526,14 @@ The set is stored in a DBArray in ascending order of the time intervals of the
 \dt{ugpoint}. Each \dt{ugpoint} is defined as:
 \begin{ttfamily}
 \begin{itemize}
-  \item [] ugpoint: record \{nid: int; rid: int; pos1: real; pos2: real;\\
-side: \{up, down, none\}; t1: Instant; t2: Instant;\}
+  \item [] ugpoint: record \{nid: int; rid: int; pos1: real;\\
+pos2: real; side: \{up, down, none\};\\
+t1: Instant; t2: Instant;\}
 \end{itemize}
 \end{ttfamily}
-The \dt{ugpoint} is expected to move from $pos1$ to $pos2$ with constant speed on
-route $rid$ in the given network $nid$ within the time interval defined by $t1$
-and $t2$. Every time a \dt{mgpoint} changes the speed or changes the route a new
+The \dt{ugpoint} is expected to move from $pos_1$ to $pos_2$ with constant speed on
+route $rid$ in the given network $nid$ within the time interval defined by $t_1$
+and $t_2$. Every time a \dt{mgpoint} changes the speed or changes the route a new
 \dt{ugpoint} is written.
 
 We extended this implementation proposed by \cite{NetworkGueting} within our
@@ -539,7 +542,7 @@ detail in Section \ref{sec:implNDM}.
 \subsection{BerlinMOD Benchmark}
 \label{sec:bmodb}
 The \bmodb{} was presented in \cite{BerlinMODVLDBDuentgen} and the
-provided scripts for the data generator are implemented as \secondo{} DBMS 
+provided scripts for the data generator are implemented as \secondo{} DBMS
 operations.
 The \bmodb{} is available on the web \cite{berlinmodweb} and provides a well defined
 data-set and queries for the experimental evaluation of the capabilities of
@@ -566,7 +569,7 @@ NDM, like we did for our experiments.
 
 The number of observed cars and the duration of the observation period can be
 influenced by the user setting the $scalefactor$ to different values in the data
-generation script of the \bmodb{}. For example at $scalefactor$ 1.0 the data 
+generation script of the \bmodb{}. For example at $scalefactor$ 1.0 the data
 generator creates 2000 moving point objects observed for 28 days, each of them
 sending a GPS-signal every 2 seconds. These simulated signals are simplified
 such that time intervals when a car does not move or moves in the same direction
@@ -589,10 +592,10 @@ the static data for each object like $licence$, $type$, and $model$ together wit
 an object identifier $moid$. $dataMtrip$ contains for each $moid$ several tuples,
 each of them containing either all units of a single trip of the moving object, or a
 single unit for a longer stop. For example, each time the car drives from home node
-to work node is a single trip, and each time the car is parked in front of the 
+to work node is a single trip, and each time the car is parked in front of the
 office is also a single trip.
 
-Besides the moving point objects, the \bmodb{} provides several data sets, each 
+Besides the moving point objects, the \bmodb{} provides several data sets, each
 of them containing 100 pseudo randomly generated data objects, which are used in
 the benchmark queries. Table \ref{tab:queryobjects} gives an overview of these
 query objects. The \bmodb{} deals also with subsets from these query object
@@ -638,7 +641,7 @@ We will present the 17 queries in more detail in Section
 \ref{sec:queries}\todo[caption={check reference}]{Check reference when paper
 finished. Parts of query explanations might be moved to the appendix.}
 together with our NDM algorithms for these queries.
-\section{Implementation Issues}
+\section{Implementation of NET}
 \label{sec:implNDM}
 We started a description of the implementation of NET in \secondo{} in Section
 \ref{sec:netdatamod} with the description of the implementation proposed in
@@ -670,15 +673,15 @@ set of $route\ intervals$ sorted if it fullfills the following conditions:
 \begin{itemize}
    \item all $route\ intervals$ are disjoint
    \item the $route\ intervals$ are stored in ascending order of their route identifiers
-   \item if two disjoint $route\ intervals$ have the same route identifier, the
-$route\ interval$ with the smaller start position is stored first
+   \item if two $route\ intervals$ have the same route identifier, the
+$route\ interval$ with the smaller start position is stored first if the
+$route\ intervals$ are disjoint
    \item for all $route\ intervals$, $start\ position \le end\ position$
 \end{itemize}
 We introduced this definition and sorted flag, because many algorithms take profit
-from sorted \dt{gline} values. For example: If $n$ is the number of the
-$route\ intervals$ in a \dt{gline}, the decision, if a \dt{gpoint} is inside
-the \dt{gline} needs O($n$) time for unsorted and O($\log n$) time for sorted
-\dt{gline} values.
+from sorted \dt{gline} values. Let $r$ be the number of $route\ intervals$ in a
+\dt{gline}, the decision, if a \dt{gpoint} is inside the \dt{gline} needs O($r$)
+time for unsorted and O($\log r$) time for sorted \dt{gline} values.
 
 Unfortunately not all \dt{gline} values can be stored sorted. If a \dt{gline}
 value represents a path between two \dt{gpoint} in the network, we need the
@@ -688,17 +691,23 @@ values sorted whenever this is possible to support faster query execution.
 Every algorithm which deals with \dt{gline} values checks this flag and uses
 the corresponding code.
 
-Sorting $route\ intervals$ takes time, when a \dt{gline} value is created. But
-we think that this time is well invested, because the sorted \dt{gline} is computed
-once, but supports many times in different algorithms a faster execution.
+For sorting and compressing $route\ intervals$ we introduced a binary tree
+data structure called $RITree$. This $RITree$ sorts and compresses the inserted
+$route\ intervals$. If $r_i$ is the number of inserted $route\ intervals$ and
+$r_{res}$ the number of resulting $route\ intervals$ sorting and compressing takes
+O($r_i \log r_{res}$) time. The sorted $route\ intervals$ are returned in
+O($r_{res}$) time. We think that this time is well invested, because the sorted
+\dt{gline} is computed once, but many different algorithms can be executed faster
+for sorted \dt{gline} values.
 
 The implementation of the \dt{ugpoint} has been changed to:
 \begin{ttfamily}
 \begin{itemize}
-  \item [] ugpoint: record \{gp1: gpoint; gp2: gpoint; ti : Interval;\}
+  \item [] ugpoint: record \{gp1: gpoint; gp2: gpoint;\\
+ti : Interval;\}
 \end{itemize}
 \end{ttfamily}
-Where $ti$ is a time interval consisting of two time instants $t_1$ and $t_2$
+Where $t_i$ is a time interval consisting of two time instants $t_1$ and $t_2$
 and
 two Boolean flags, indicating if $t_1$ respectively $t_2$ is part of the time
 interval
@@ -707,18 +716,19 @@ or not.
 At the same time the implementation of \dt{mgpoint} has been extended to:
 \begin{ttfamily}
 \begin{itemize}
-  \item [] mgpoint: record \{units: DBArray of ugpoint; drivenDist: real;\\
-trajectory: DBArray of sorted route intervals; trajDefined: bool;\\
-mbr: rectangle3D\}
+  \item [] mgpoint: record \{units: DBArray of ugpoint;\\
+drivenDist: real; trajDefined: bool; mbr: rectangle3D\\
+trajectory: DBArray of sorted $route\ intervals$;\}
 \end{itemize}
 \end{ttfamily}
-The DBArray of \dt{ugpoint} is consistent with the data model of \cite{NetworkGueting}.
+The DBArray of \dt{ugpoint} is consistent with the data model of
+\cite{NetworkGueting}.
 The $drivenDist$ is the total length of all \dt{ugpoint} in the \dt{mgpoint}.
 The DBArray of $route\ intervals$ represents all network positions ever traversed
 by the \dt{mgpoint}. The flag indicates if the $trajectory$ is well defined,
-because this attribute is not maintenanced in every operation changing \dt{mgpoint}
-values. And the minimum spatio-temporal bounding box $mbr$ can be used for a preselection
-in spatio-temporal queries.
+because this attribute is not maintenanced in every operation changing
+\dt{mgpoint} values. And the minimum spatio-temporal bounding box $mbr$ can be
+used for a preselection in spatio-temporal queries.
 
 Why this extensions?
 Now, analogous to sorted \dt{gline} values the $trajectory$ value makes it much
@@ -741,27 +751,27 @@ using algorithm \ref{alg:unitbbox}.
   \caption{\op{Berechnung Unit Bounding Box}}
   \label{alg:unitbbox}
   \begin{algorithmic}[1]
-    \STATE Use B-Tree index of $routes$ relation to get route curve
+    \STATE Get route curve usint B-Tree index of $routes$ relation
     \STATE Extract subline of unit from route curve
     \STATE Compute bounding box of subline
     \STATE Add third dimension from unit time interval
   \end{algorithmic}
 \end{algorithm}
-If the number of routes in the $routes$ relation is $r$ the first step has a
-time complexity of O($\log r$) time. If the route curve $r_i$ consists of $h_i$
-line segments the time complexity of step 2 and 3 is O($h_i$) in the worst case.
+If the number of routes in the $routes$ relation is $R$ the first step has a
+time complexity of O($\log R$) time. If the route curve $r_i$ consists of $l_i$
+line segments the time complexity of step 2 and 3 is O($l_i$) in the worst case.
 Step 4 is done in O(1) time. Together we get a time complexity of
-O($\log {r} + h_i$) to compute the bounding box of a single unit.
+O($\log {R} + l_i$) to compute the bounding box of a single unit.
 
 To compute the $mbr$ this computation must be done for each of the $m$ units of
-the \dt{mgpoint} value. That takes O($m \log {r} + \sum_{i=1}^{m}{h_i}$) time.
+the \dt{mgpoint} value. That takes O($m \log {R} + \sum_{i=1}^{m}{l_i}$) time.
 
-If the $trajectory$ is defined we can reduce the time complexity of $mbr$
-computation. The spatial extend of the $mbr$ can be computed
-using the $t\ route intervals$ of the $trajectory$ similar to the $m$ units of
-the \dt{mgpoint}. The third dimension will be added using the start and the end
-time instant of the \dt{mgpoint} value. This algorithm has a time complexity of
-O($t \log {r} + \sum_{i=1}^{t}{h_i}$), with $t \ll m$ in nearly all cases.
+The time complexity can be reduced if the $trajectory$ is defined. We can use
+the $r$ $route\ intervals$ of the $trajectory$ similar to the $m$ units of
+the \dt{mgpoint} to compute the spatial bounding box. The third dimension can be
+added using the start and the end time instant of the \dt{mgpoint} value. This a
+algorithm has a time complexity of O($r \log {R} + \sum_{i=1}^{r}{l_i}$), with
+$r \ll m$ in nearly all cases.
 
 But the computation is still expensive. So the $mbr$ is only computed on demand
 or if we can get it for free. For example we can copy
@@ -782,43 +792,67 @@ this tree only indexes spatio-temporal bounding boxes for complete \dt{mgpoint}
 values. The advantages of more detailed indexes have been outperfomred within
 our experimental evaluation of the network implementation for the \bmodb{}.
 
-We introduced Network Bounding Boxes (NBB) and Network Temporal Bounding Boxes
-(NTBB) in our implementation to support indexing in terms of network positions
+We introduced Network Bounding Boxes (NBB) and Temporal Network Bounding Boxes
+(TNBB) in our implementation to support indexing in terms of network positions
 with R-Trees instead of spatial indexing.
 
 Let \dt{ugpoint} and $route\ interval$ be defined like in \ref{sec:netdatamod}.
 The NBB of a $route interval$ is defined as $(rid,\ rid,\ pos1,\ pos2)$,
 which can be seen as an degenerated two dimensional rectangle.
-The NTBB of a \dt{ugpoint} value is defined as $(rid,\ rid,\ pos1,\ pos2,\ t1,\ t2)$,
+The TNBB of a \dt{ugpoint} value is defined as
+$(rid,\ rid,\ pos1,\ pos2,\ t1,\ t2)$,
 which analogous can be seen as an degenerated three dimensional rectangle.
 
-We use these NBB and NTBB to create Network Position Indexes (NPI) and
+We use these NBB and TNBB to create Network Position Indexes (NPI) and
 Temporal Network Position Indexes (TNPI) indexing the network positions of
-the \dt{mgpoint} values of the \bmodb{}. An NPI is an R-Tree build from the NBB
-of the $route intervals$ of the $trajectory$ attributes of the \dt{mgpoint} values.
-An TNPI is an R-Tree build from the NTBB of the \dt{ugpoint} values of the
+the \dt{mgpoint} values of the \bmodb{}.
+
+An NPI is an R-Tree build from the NBB
+of the $route intervals$ of the $trajectory$ attributes of the \dt{mgpoint}
+values.
+
+An TNPI is an R-Tree build from the TNBB of the \dt{ugpoint} values of the
 \dt{mgpoint} values.
 \subsection{Network Operations used in \bmodb{}}
 \label{sec:implNetOperations}
-In the sequel we give an overview of the operations on network objects used in
-the network version of the \bmodb{}. The signatures of the simple operators are
-shown in Table \ref{tab:simplenetoperations} together with a short explanation and
-their time complexity.
+The operations used to construct the network object (\op{thenetwork}), and to
+translate spatial and spatio-temporal values into network values are described in
+Section \ref{sec:Translation}. In this section we give an overview of the
+operations on network objects used in the benchmark queries of the \bmodb{}.
 
-We use $m$ (respectively $m_1,\ m_2$) as the number of units of the
-\dt{mgpoint} value (resp. first, second \dt{mgpoint} value),
-$r$ (resp. $r_1$, $r_2$) as the number of $route\ intervals$ of the \dt{gline}
-value or the $trajectory$ attribute of an \dt{mgpoint} value (resp. of the
-first, second argument), $R$ as the number of routes in the network, and $p$ as
-the number of time intervals in a \dt{periods} value.
-\begin{table}
+Table \ref{tab:simplenetoperations} gives an overview of the simple benchmark
+operations. The more complex operations are described in the sequel.
+\begin{sidewaystable}
   \caption{Simple Operations on Network Data Types}
   \label{tab:simplenetoperations}
   %\begin{scriptsize}
   \begin{center}
-  \begin{tabularx}{1.0\textwidth}{|l|l|X|l|}
+  \begin{tabularx}{1.0\textwidth}{|l|l|X|X|}
   \hline
   \textbf{Name}& \textbf{Signature}& \textbf{Explanation}& \textbf{Complexity}\\
+  \hline
+\op{routes}& \dt{network} $\rightarrow$ \dt{relation} & Returns the $routes$
+relation fo the \dt{network} object & O($R$)\\
+  \hline
+\op{no\_components}&\dt{mgpoint} $\rightarrow$ \dt{real}& Returns the number of
+units of the \dt{mgpoint} &O(1)\\
+  \hline
+\op{length}&\dt{mgpoint} $\rightarrow$ \dt{real}& Returns the $length$ of the
+argument.&O(1)\\
+  \hline
+\op{trajectory}&\dt{mgpoint} $\rightarrow$ \dt{gline}& Returns the $trajectory$
+of the \dt{mgpoint} value as \dt{gline}&O($r$), if trajectory is defined, O($m \log r + r$) otherwise\\
+  \hline
+\op{units}&\dt{mgpoint} $\rightarrow$ \dt{stream}(\dt{ugpoint})& Returns a
+stream
+of the \dt{ugpoint} values of the \dt{mgpoint} value& O($m$)\\
+  \hline
+\op{initial}&\dt{mgpoint} $\rightarrow$ \dt{igpoint}& Returns the first position
+and the start time of the \dt{mgpoint} value& O(1)\\
+  \hline
+\op{atinstant}&\dt{mgpoint} $\times$ \dt{instant} $\rightarrow$ \dt{igpoint}&
+Returns the network position of the \dt{mgpoint} value at the given time instant&
+O($\log m$)\\
   \hline
 \op{val}&\dt{igpoint} $\rightarrow$ \dt{gpoint}& Returns the \dt{gpoint} of the
 \dt{igpoint} value&O(1)\\
@@ -826,61 +860,46 @@ the number of time intervals in a \dt{periods} value.
 \op{inst}&\dt{igpoint} $\rightarrow$ \dt{instant}& Returns the time instant of the
 \dt{igpoint} value &O(1)\\
   \hline
-  \op{initial}&\dt{mgpoint} $\rightarrow$ \dt{igpoint}& Returns the first position
-and the start time of the \dt{mgpoint} value& O(1)\\
-  \hline
-  \op{atinstant}&\dt{mgpoint} $\times$ \dt{instant} $\rightarrow$ \dt{igpoint}&
-Returns the network position of the \dt{mgpoint} value at the given time instant& O($\log m$)\\
-  \hline
-  \op{length}&\dt{mgpoint} $\rightarrow$ \dt{real}& Returns the $length$ of the argument.&O(1)\\
-  \hline
 \op{isempty}&\dt{gline} $\rightarrow$ \dt{bool}& Returns \true{} if the \dt{gline}
 has no $route\ intervals$ & O(1)\\
-  \hline
-\op{no\_components}&\dt{mgpoint} $\rightarrow$ \dt{real}& Returns the number of
-units of the \dt{mgpoint} &O(1)\\
-  \hline
-\op{trajectory}&\dt{mgpoint} $\rightarrow$ \dt{gline}& Returns the $trajectory$
-of the \dt{mgpoint} value as \dt{gline}&O($r$)\\
-  \hline
-  \op{units}&\dt{mgpoint} $\rightarrow$ \dt{stream}(\dt{ugpoint})& Returns a stream
-of the \dt{ugpoint} values of the \dt{mgpoint} value& O($m$)\\
-  \hline
-  \op{routes}& \dt{network} $\rightarrow$ \dt{relation} & Returns the $routes$
-relation fo the \dt{network} object & O($R$)\\
-  \hline
-\op{gpoint2rect}& \dt{gpoint} $\rightarrow$ \dt{rectangle} & Returns a $netbox$
-for the \dt{gpoint} value & O(1)\\
   \hline
 \op{routeintervals}&\dt{gline} $\rightarrow$ \dt{stream}(\dt{rectangle})& Returns
 the $netbox$ for each $route\ interval$ of the \dt{gline} value& O($r$)\\
   \hline
-  \op{unitbox}& \dt{ugpoint} $\rightarrow$ \dt{rectangle3D} & Returns the $netbox$
+\op{gpoint2rect}& \dt{gpoint} $\rightarrow$ \dt{rectangle} & Returns a $netbox$
+for the \dt{gpoint} value & O(1)\\
+\hline
+\op{unitbox}& \dt{ugpoint} $\rightarrow$ \dt{rectangle3D} & Returns the $netbox$
 of the \dt{ugpoint} & O(1)\\
   \hline
   \end{tabularx}
   \end{center}
   %\end{scriptsize}
-\end{table}
+\end{sidewaystable}
 
-The operations \op{thenetwork}, \op{mpoint2mgpoint}, \op{line2gline}.
-\op{point2gpoint}, and \op{polygpoints} which are used to construct the network
-object, and to translate spatial and spatio-temporal values into network values
-are described in Section  \ref{sec:Translation} in more detail.
+We use $m$ as the number of units of the \dt{mgpoint} value,
+$r$ (resp. $r_1$, $r_2$) as the number of $route\ intervals$ of the \dt{gline}
+value or the $trajectory$ attribute of an \dt{mgpoint} value (resp. of the
+first, second argument), $R$ as the number of routes in the network object, $l_i$
+the number of line segments of a route curve $r_i$,
+and $p$ as the number of time intervals in a \dt{periods} value.
 
 For the Euclidean Distance computation we retranslate our network values into
 spatial (\op{gline2line}) respectively spatio-temporal (\op{mgpoint2mpoint})
-values.
-
+values. In the original paper this operations are called \op{in\_space}.
+\begin{tabbing}
+xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\=xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\kill
+\dt{gline} $\rightarrow$ \dt{line} \> \op{gline2line}($gline$) \\
+\dt{mgpoint} $\rightarrow$ \dt{mpoint} \> \op{mgpoint2mpoint}($mgpoint$)\\
+\end{tabbing}
 The operation \op{gline2line} uses the Algorithm \ref{alg:gline2line} to
-translate a \dt{gline} value into an \dt{line} value. 
-\begin{algorithm}
+translate a \dt{gline} value into an \dt{line} value.
+\begin{algorithm}[H]
   \caption{\op{gline2line}($gl$)}
   \label{alg:gline2line}
   \begin{algorithmic}[1]
     \FOR {each $route\ interval$ of $gl$}
-      \STATE Use B-Tree index of $routes$ relation to get route curve of the
-$route\ interval$
+      \STATE Get route curve of $route\ interval$ using B-Tree index of $routes$ relation
       \STATE Perform binary search on line segments of route curve to find the
       start position of the $route\ interval$
       \STATE Copy line segments to result until end pos of $route\ interval$ is
@@ -891,17 +910,24 @@ reached.
 \end{algorithm}
 The loop from line 1 to
 line 5 is repeated $r$ times. The B-Tree search in line 2 take O($\log{R}$)
-time. The binary search in line 3 takes O($\log l_i$) time if the number of line
-segments of route curve $Rr_i$ is $l_i$. The copy operation in line 4 takes
+time. The binary search in line 3 takes O($\log l_i$) tim. The copy operation in line 4 takes
 O($l_i$) time in the worst case. The return of the result has a worst case
 time complexity of O($\sum_{i=1}^{r}{l_i}$). For the whole algorithm we
 get
-\[O(r \log{R} + \sum_{i=1}^{r}{\log{l_i}} + 2\sum_{i=1}^{r}{l_i}) 
+\[O(r \log{R} + \sum_{i=1}^{r}{\log{l_i}} + 2\sum_{i=1}^{r}{l_i})
 = O(r \log{R} + \sum_{i=1}^{r}{l_i})\].
 
 The operation \op{mgpoint2mpoint} is described by Algorithm
-\ref{alg:mgpoint2mpoint}. 
-\begin{algorithm}
+\ref{alg:mgpoint2mpoint}. The loop from line 3 to line 28 is repeated $m$ times. The statements from
+line 5 to line 8 take O($\log R + l_i$) every time they are executed. But they
+are only executed at the first run of the loop and if the car changes the route.
+We have three different cases for the computing of the $mpoint$ units. The
+simple cases from line 10-11 and line 13-16 have a time complexity of O(1).
+The third case has a worst case complexity from O($l_i$). The last line 29 has a time
+complexity of O($m_{res}$) if $m_{res}$ is the number of units of the resulting
+\dt{mpoint} value. In the worst case we get a time complexity of
+\[O(m \log {R} + \sum_{i=1}^{m}{l_i} + m_{res}).\]
+\begin{algorithm}[H]
   \caption{\op{mgpoint2mpoint}($mgp$)}
   \label{alg:mgpoint2mpoint}
   \begin{algorithmic}[1]
@@ -910,14 +936,14 @@ The operation \op{mgpoint2mpoint} is described by Algorithm
     \FOR{each unit $curUGP$ of $mgp$}
       \IF{not (rid from $curUGP$ == $actRID$)}
         \STATE $actRID$ = rid from $curUGP$
-        \STATE $rc$ = route curve of $actRID$ 
+        \STATE $rc$ = route curve of $actRID$
         \COMMENT{$rc$ determined using B-Tree Index of $routes$ relation}
         \STATE Perform binary search on the line segments of $rc$ to find
         line segment $l$ with start position of $curUGP$
         \STATE $upstart$ = x,y-coordinates of start position
       \ENDIF
       \IF{end position == start position}
-        \STATE add unit $upstart,\ upstart$ to $mpoint$ 
+        \STATE add unit $upstart,\ upstart$ to $mpoint$
       \ELSE
         \IF{end position is on $l$}
           \STATE $upend$ = x,y-coordinates of end position
@@ -927,7 +953,7 @@ The operation \op{mgpoint2mpoint} is described by Algorithm
           \STATE Follow $rc$ in moving direction of $curUGP$
           \WHILE{not(end position is on $l$)}
             \STATE add unit from $upstart$ to $segment\ end\ position$ to
-$mpoint$ 
+$mpoint$
             \STATE $upstart$ = $segment\ end\ position$
             \STATE $l$ = next segment in moving direction
           \ENDWHILE
@@ -939,218 +965,597 @@ $mpoint$
     \RETURN $mpoint$
   \end{algorithmic}
 \end{algorithm}
-The for-loop from line 3 to line 28 is repeated $m$ times. The statements from
-line 5 to line 8 take O($\log R + l_i$) every time they are executed. But they
-are only executed at the first run of the loop and if the car changes the route.
-We have three different cases for the computing of the $mpoint$ units. The
-simple cases from line 10-11 and line 13-16 have a time complexity of O(1).
-The third case has a worst case complexity from O($l_i$) if $l_i$ is the number
-of line segments of the current route curve. The last line 29 has a time
-complexity of O($m_p$) im $m_p$ is the number of units of the resulting
-\dt{mpoint} value. In the worst case we get a time complexity of O($m \log {R}
-+ \sum_{i=1}^{m}{l_i})
 
-\op{mgpbbox}
-\op{atperiods}
-\op{present} \dt{Periods}
-\op{inside} \dt{gline}
-\op{passes} \dt{gline}
-\op{at} \dt{gpoint} \dt{gline}
-\op{intersects}
-\op{union} \dt{gline} \dt{mgpoint}
+In the trip based approach (TBA) the result values of the different trips must be
+aggregated to an single result value. Therefore the operation \op{union} was
+introduced. \op{union} gets two \dt{gline} values or two \dt{mgpoint} values as
+input and mixes them up to a single sorted \dt{gline} or a single \dt{mgpoint}
+value.
+\begin{tabbing}
+xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\=xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\kill
+\dt{gline} $\times$ \dt{gline} $\rightarrow$ \dt{gline} \> $gline1$ \op{union} $gline2$ \\
+\dt{mgpoint} $\times$ \dt{mgpoint} $\rightarrow$ \dt{mgpoint} \> $mgpoint1$ \op{union} $mgpoint2$\\
+\end{tabbing}
+\begin{algorithm}[H]
+  \caption{\op{union}($gl_1$, $gl_2$)}
+  \label{alg:uniongline}
+  \begin{algorithmic}
+    \IF{$gl_1$ is sorted AND $gl_2$ is sorted}
+      \STATE Perform parallel scan of $gl_1$ and $gl_2$
+      \IF{Current $route\ intervals$ do not intersect}
+         \STATE Add smaller $route\ interval$ to result
+         \STATE Continue Scan with next $route\ interval$
+      \ELSE
+          \STATE Merge $route\ intervals$ into one
+          \IF{Next $route\ intervals$ intersect the merged one}
+            \STATE merge them too
+          \ENDIF
+          \STATE Add merged $route\ interval$ to result
+          \STATE Continue Scan
+      \ENDIF
+    \ELSE
+      \FOR{Each $route\  interval$ of $gl_1$ and $gl_2$}
+        \STATE Insert $route\ interval$ into $RITree$
+      \ENDFOR
+      \STATE Copy sorted $route\ intervals$ from $RITree$ to resulting \dt{gline}
+    \ENDIF
+    \RETURN resulting \dt{gline}
+  \end{algorithmic}
+\end{algorithm}
+The Algorithm \ref{alg:uniongline} distinguishes between two cases.
+If both \dt{gline} values are sorted the algorithm has a time complexity of
+O($r_1 + r_2$) and if one or both \dt{gline} are not sorted it has a time
+complexity of O($(r_1 + r_2) \log r_{res} + r_{res}$), if $r_{res}$ is the
+number of $route\ intervals$ of the resulting \dt{gline}. The additional
+time results from sorting and compressing the resulting $route\ intervals$. As
+explained before (see Section \ref{sec:implNetDataTyp}) we think that this time
+is well invested, because several algorithms take profit from sorted \dt{gline}
+values.
 
+The computation of the union of two \dt{mgpoint} values works almost similar to
+the \op{union} operation for two sorted \dt{gline}. We perform a parallel scan
+through the \dt{mgpoint} values and add the units in the sequel of their time
+intervals to the resulting \dt{mgpoint} value. If two units have overlapping time
+intervals and the positions of the \dt{ugpoint}s within the overlapping time
+interval are not the same the resulting \dt{mgpoint} is not defined, otherwise
+one unit is added to the result for the overlapping time interval. The time
+complexity of the \op{union} operation is O($m_1 + m_2$).
+\begin{tabbing}
+xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\=xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\kill
+\dt{mgpoint} $\rightarrow$ \dt{rect3} \> \op{mgpbbox}($mgpoint$)\\
+\end{tabbing}
+The operation \op{mgpbbox} returns the spatio-temporal bounding box of an
+\dt{mgpoint} value. As explained before (see Section \ref{sec:implNetDataTyp})
+the $mbr$ value is not maintained such that the operation \op{mgpbbox} knows
+three different cases:
+\begin{enumerate}
+  \item If the $mbr$ is defined it can be returned in O(1) time.
+  \item The $mbr$ is not defined but the $trajectory$ can be used to compute the
+$mbr$ the time complexity is O($r \log {R} + \sum_{i=1}^{r}{l_i}$)
+  \item If the $mbr$ and $trajectory$ are not defined the time complexity will be
+O($m \log {R} + \sum_{i=1}^{m}{l_i}$)
+\end{enumerate}
+\begin{tabbing}
+xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\=xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\kill
+\dt{mgpoint} $\times$ \dt{periods} $\rightarrow$ \dt{mgpoint} \> $mgpoint$ \op{atperiods} $periods$\\
+\end{tabbing}
+The operation \op{atperiods} restricts a \dt{mgpoint} value to the given
+periods. The operation performs a binary scan of the units of the \dt{mgpoint}
+to find the unit including the start time instant of the periods value,
+respectively the last unit with an time interval smaller than the start time
+instant of the periods value in O($\log m$) time. From that position the $k_i$
+units, which have time intervals that intersect with the periods value are
+copied to the result in O($k_i$) time\footnote{The first and last time
+interval might be splitted at the start (resp. end) time instant of the periods
+value.}. The total time complexity of the operation is O($\log {m} + k_i$)
+\begin{tabbing}
+xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\=xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\kill
+\dt{mgpoint} $\times$ \dt{periods} $\rightarrow$ \dt{bool} \> $mgpoint$ \op{present} $periods$\\
+\end{tabbing}
+The operation \op{present} returns \true{} if the \dt{mgpoint} value is
+defined at least at one time inside the given \dt{Periods} value, \false{}
+otherwise. The algorithm works almost similar to the \op{atperiods} operation, but
+the scan of the \dt{mgpoint} units is stopped immediately if a intersecting unit
+is found. The worst case time complexity for the operation is O($\log {m} + k_i$).
+\begin{tabbing}
+xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\=xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\kill
+\dt{gpoint} $\times$ \dt{gline} $\rightarrow$ \dt{bool} \> $gpoint$ \op{inside} $gline$\\
+\dt{mgpoint} $\times$ \dt{gline} $\rightarrow$ \dt{mbool} \> $mgpoint$ \op{inside} $gline$\\
+\end{tabbing}
+The operation \op{inside} returns \true{} if a \dt{gpoint} is inside a \dt{gline},
+\false{} otherwise. For sorted \dt{gline} values the algorithm performs a binary
+scan of the $route\ intervals$ to find a $route\ interval$ including the
+\dt{gpoint} in O($\log r$) time. For unsorted \dt{gline} values a linear scan of
+the $route\ intervals$ is performed in O($r$) time to find an $route\ interval$
+including the \dt{gpoint}.
+\begin{tabbing}
+xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\=xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\kill
+\dt{mgpoint} $\times$ \dt{gpoint} $\rightarrow$ \dt{bool} \> $mgpoint$ \op{passes} $gpoint$\\
+\dt{mgpoint} $\times$ \dt{gline} $\rightarrow$ \dt{bool} \> $mgpoint$ \op{passes} $gline$\\
+\end{tabbing}
+The operation \op{passes} returns \true{} if a \dt{mgpoint} value passes a
+given \dt{gpoint} or \dt{gline} value. The algorithm uses the $trajectory$ of the \dt{mgpoint} value.
 
+For an \dt{gpoint} value a binary scan of the $trajectory$ is performed to find a
+$route\ interval$ that includes the \dt{gpoint}. The time complexity of this operation is O($\log r$).
 
-\todo{benchmark operations implementation}
+For an \dt{gline} value two cases are distinguished. If the \dt{gline} value is
+sorted a parallel scan of the set of
+$route\ intervals$ and the $trajectory$ is performed and immediately aborted if
+two intersecting $route\ intervals$ have been found. In this case the worst case
+time complexity is O($r_1 + r_2$). If the \dt{gline} value is not sorted a linear
+scan of the set of $route\ intervals$ of the \dt{gline} is performed and for
+every $route\ interval$ a binary scan of the $trajectory$ is performed to find
+a intersecting $route\ interval$. In this case the worst case time complexity
+is O($r_2 \log {r_1}$).
+\begin{tabbing}
+xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\=xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\kill
+\dt{mgpoint} $\times$ \dt{gpoint} $\rightarrow$ \dt{mgpoint} \> $mgpoint$ \op{at} $gpoint$\\
+\dt{mgpoint} $\times$ \dt{gline} $\rightarrow$ \dt{mgpoint} \> $mgpoint$ \op{at} $gline$\\
+\end{tabbing}
+The operation \op{at} restricts a \dt{mgpoint} to the times and places it was
+at a given \dt{gpoint} or moved inside a given \dt{gline}.
+
+For \dt{gpoint} values
+the operation \op{at} performs a linear scan of all units of the \dt{mgponit}
+value. Every time a \dt{ugpoint} passes the \dt{gpoint} the time instant of
+passing is computed and the resulting unit is added to the resulting \dt{mgpoint}.
+The computation of the result has a time complexity of O($m$).
+
+For \dt{gline} values the algorithm (see Algorithm \ref{alg:at}) distinguishes two
+cases. For sorted \dt{gline} values the loop from line 2 to 7 is executed in
+O($m \log r$) time.
+\begin{algorithm}[H]
+  \caption{$mgpoint$ \op{at} $gline$}
+  \label{alg:at}
+  \begin{algorithmic}[1]
+    \IF{$gline$ is sorted}
+      \FOR{Each unit of $mgpoint$}
+        \STATE Perform binary scan after unit in set of $route\ intervals$ of
+ $gline$
+        \IF{unit intersects $route\ interval$}
+          \STATE Add resulting unit to result
+        \ENDIF
+      \ENDFOR
+    \ELSE
+      \FOR {Each unit of $mgpoint$}
+        \FOR {Each $route\ interval$ of $gline$}
+          \IF{unit intersects $route\ interval$}
+            \STATE Compute intersection and add it to result
+          \ENDIF
+        \ENDFOR
+      \ENDFOR
+    \ENDIF
+    \RETURN result
+  \end{algorithmic}
+\end{algorithm}
+For unsorted \dt{gline} values line 9 to 14 are executed, which needs O($mr$)
+time. The result is returned in O($m_{res}$) time in both cases. In case
+of sorted \dt{gline} values the total run time is O($m \log {r} + m_{res}$)
+and in case of unsorted \dt{gline} values O($mr + m_{res}$).
+\begin{tabbing}
+xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\=xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\kill
+\dt{gline} $\times$ \dt{gline} $\rightarrow$ \dt{bool} \> \op{intersects}($gline1$, $gline2$)\\
+\end{tabbing}
+The operation \op{intersects} returns \true{} if two \dt{gline} values
+intersect, \false{} otherwise.
+\begin{algorithm}[H]
+  \caption{\op{intersects}($gl_1$,$gl_2$)}
+  \label{alg:intersectsgline}
+  \begin{algorithmic}[1]
+     \IF{Both \dt{gline} values are sorted}
+       \STATE Perform a parallel scan of the $route\ intervals$ of the both \dt{gline} values
+       \IF{$route\ intervals$ intersect}
+          \RETURN \TRUE
+       \ENDIF
+     \ELSE
+       \IF{Both \dt{gline} not sorted}
+         \FOR{Each $route\ interval$ of $gl_1$}
+           \FOR {Each $route\ interval$ of $gl_2$}
+              \IF{$route\ intervals$ intersect}
+                \RETURN \TRUE
+              \ENDIF
+           \ENDFOR
+         \ENDFOR
+       \ELSE
+          \FOR{Each $route\ interval$ of the unsorted \dt{gline} value}
+            \STATE Perform a binary search on the sorted \dt{gline} value
+            \IF{Intersecting $route\ interval$ is found}
+              \RETURN \TRUE
+            \ENDIF
+          \ENDFOR
+       \ENDIF
+     \ENDIF
+     \RETURN \false{}
+  \end{algorithmic}
+\end{algorithm}
+The Algorithm \ref{alg:intersectsgline} differentiates three cases:
+\begin{enumerate}
+\item If both \dt{gline} values are sorted (see lines 2 to 5) the time complexity
+is O($r_1 + r_2)$)
+\item If both \dt{gline} values are not sorted (see lines 8 to 14) the time
+complexity is O($r_1r_2$)
+\item If only one \dt{gline} value is sorted (see lines 16 - 21) the time
+complexity is O($r_1 \log r_2$) respectively O($r_2 \log r_1$), depending on
+which of the both \dt{gline} values is sorted.
+\end{enumerate}
 \section{Translation of BerlinMOD into Network Data Model}
 \label{sec:Translation}
-In this section we describe the creation of the \dt{network} object from the $streets$
-value of the \bmodb{} in Section \ref{sec:createNetwork}. In Section
+In this section we describe the creation of the \dt{network} object from the
+$streets$ value of the \bmodb{} in Section \ref{sec:createNetwork}. In Section
 \ref{sec:translateSTdata} we describe how to use this new created \dt{network}
-value as a reference for the translation of all spatial and spatio-temporal data
-type objects of the \bmodb{} into the NDM representation.
-In Section \ref{sec:createIndex} we describe the indexes we build on the NDM
-representation to support faster query execution. We close this part
-with Section \ref{sec:queries} were we describe the executable \secondo{} queries
-for the NDM representation of the \bmodb{}.
+object in the translation of all spatial and spatio-temporal data objects of the
+\bmodb{} into the NET representation.
+In Section \ref{sec:createIndex} we describe the indexes we build on the database
+use in the NET representation of the \bmodb{} to support faster query execution.
+We close this section with Section \ref{sec:queries} a description of our
+executable \secondo{} queries for the NET representation of the \bmodb{}.
 
-Executable \secondo{} scripts for the network and index creation, object translation,
-and the network benchmark queries can be downloaded from our web site \cite{NetworkWeb}.
+Executable \secondo{} scripts for the network and index creation, object
+translation, and the network benchmark queries can be downloaded from our web
+site \cite{NetworkWeb}.
 \todo{Create corresponding website!}
 \subsection{Create Network Object}
 \label{sec:createNetwork}
-The \dt{network} object $net$ is created by extracting the $routes$ data from
-the $streets$ object that is created by the BerlinMOD Data Generator.
-The extracted data $r$ is used to compute the crossings of the
-routes of Berlin $j$. The data source lacks information about the connectivity
+Before we can use the operator \op{thenetwork} to construct the network object
+$net$ for the NET version of the \bmodb{} we have to build the input relations
+for \op{thenetwork} from the data generated by the \bmodb{}.
+
+We use the $streets$ object created by the BerlinMOD Data Generator to construct
+our input relation $B\_ROUTES$ for the $routes$ relation of $net$. We extract the
+routes geometries from the streets relation and add to each route curve a
+automatic generated integer number as route identifier. We add fields for the
+length of each route curve and and two Boolean values indicating if the route is
+dual and start at the smaller end point. If the $streets$ object contains $R$
+routes and a route curve of a route $r_i$ has $l_i$ line segments this will take
+\[O(R + \sum_{i=1}^{R}{l_i}) = O(\sum_{i=1}^{R}{l_i})\]
+time.
+
+In a next step we use $B\_Routes$ to compute the crossings of the street network
+of Berlin. Therefore we join all route of $B_Routes$ with intersecting spatial
+bounding boxes and filter the routes that really intersect. For this pairs of
+routes we compute the positions of the junctions on the route curves and fill
+the resulting data in $B\_Junctions$ relation. The relation $B\_Junctions$ has the
+attributes: $r1id$, $r1meas$, $r2id$, $r2meas$, and $cc$. The last one is the
+connectivity code that should tell which lanes of the two routes are connected
+by the junction. But the data source lacks information about the connectivity
 of the street crossings, such that we use the maximum value for the connectivity
-code of each crossing as default value in this step.
-\todo[caption={connectivity code}]{Explanation of connectivity code
-and lack of information.}
-Now we can use $r$ and $j$ as input relations for the operator \op{thenetwork}
-to create our \dt{network} object $net$ representing the streets of Berlin in
-the NDM representation of the \bmodb{}.
+code of each crossing as default value in this step. This step has a time
+complexity of O($R^2$) in the worst case.
 
-The network creation algorithm first copies all tuples of $r$ to the
-$routes$ relation of $net$ and creates the B-Tree index on the route
-identifiers and the R-Tree index on the route curves of the $routes$ relation of
-$net$. Then all tuples of $j$ are copied to the $junctions$ relation
-of $net$ and the tuple identifiers for the both routes connected
-by this junction are added to the junctions entry. After that we build two B-Trees
-indexing the route identifiers of the first respectively second route in the
-$junctions$ relation. Next for every route of the $routes$ relation all junctions
-on this route are taken from the $junctions$ relation to compute the up and
-down sections for each of this junctions on the route. The up and down
-sections are inserted into the $sections$ relation of $net$ and the
-tuple identifiers of the sections are added to the entry of the corresponding
-junction in the $junctions$ relation. After that the B-Tree index for the
-route identifiers in the $sections$ relation is created and the adjacency
-lists of $net$ are filled with the adjacent section pairs defined by the
-$junctions$ relation.
-\todo[caption={algorithm and complexity}]{More detailed algorithm to explain complexity.}
+Now we can use $B\_Routes$ and $B\_Junctions$ as input relations for our network
+constructor \op{thenetwork} to create our \dt{network} object $net$ representing
+the streets of Berlin in the NET representation of the \bmodb{}. The attributes
+of the $net$ object have been explained in Section \ref{sec:implNetDataTyp}.
 
-If $|r|$ is the number of routes and $|j|$ is the number of junctions,
-the algorithm needs O($|r| \log |r|$) time to copy $r$ to the
-$routes$ relation of $net$ and create the indexes of the
-$routes$ relation. The creation of the $junctions$ relation and the build
-of the B-Tree indexes takes O($|j| \log |j|$) time.
-O($|r|J$)\footnote{$J = \sum_{i=1}^{|r|}{j_i}$, where $j_i$ is the number of
-junction on route $i$, with $i \leq 1 \leq |r|$} time is needed to fill the
-$sections$ relation and O($|j|$) time to fill the $adjacency lists$ of $net$.
-Altogether the complete algorithm needs:
-O($|r| \log |r|+|j| \log |j| + |r|J$) time to create the $net$ from the two input
-relations $r$ and $j$.
+Algorithm \ref{alg:thenetwork} describes how $net$ is created from the two input
+relations.
+\begin{algorithm}[H]
+\caption{\op{thenetwork}($nid,\ B\_Routes,\ B\_Junctions$)}
+\label{alg:thenetwork}
+\begin{algorithmic}[1]
+\REQUIRE An unifique integer $nid \geq 0$, $B\_Routes$ and $B\_Junctions$ relation
+as described.
+\STATE Create Network empty network object $net$ with id $nid$
+\STATE Copy $B\_Routes$ to $routes$ relation of $net$
+\STATE Construct B-Tree indexing route identifiers in $routes$ relation
+\STATE Construct R-Tree indexing route curves in $routes$ relation
+\STATE Copy $B\_Junctions$ to $junctions$ relation of $net$ and add route tuple identifiers from routes relation
+\STATE Construct B-Trees indexing the first / second route identifiers in the $junctions$ relation
+\FOR {Each tuple in $routes$ relation}
+  \FOR {Each junction on this route}
+    \STATE Compute the $up$ and $down$ sections
+    \STATE Add the sections to the $sections$ relation
+    \STATE Add the section identifiers to the $junctions$ relation
+  \ENDFOR
+\ENDFOR
+\STATE Construct B-Tree indexing route identifiers in the $sections$ relation
+\FOR {Each junction in $junctions$ relation}
+  \STATE Find pairs of adjacent sections and fill adjacency list
+\ENDFOR
+\end{algorithmic}
+\end{algorithm}
+Let $J$ be the number of entries in $B\_Junctions$. and $j_i$ the number of
+junctions on route $r_i$ from the $routes$ relation. The number of entries in the
+sections relation of $net$ will be $\sum_{i=1}^{R}({j_i + 1}) = R + \sum_{i=1}^{R}{j_i}$,
+
+The time complexities of the single steps of Algorithm \ref{alg:thenetwork} are:
+\begin{itemize}
+  \item[] line 1: O(1)
+  \item[] line 2: O($R$)
+  \item[] line 3 and 4: O($R \log R$)
+  \item[] line 5: O($J$)
+  \item[] line 6: O($J \log J$)
+  \item[] line 7 - 13: O($\sum_{i=1}^{R}{j_i}$)
+  \item[] line 14: O($(R + \sum_{i=1}^{R}{j_i}) \log ({R + \sum_{i=1}^{R}{j_i}})$)
+  \item[] line 15 - 17: O($J$)
+\end{itemize}
+For all steps together we get a time complexity of
+\begin{align*}
+&O(1 + R + R \log R + J + J \log J + R + \sum_{i=1}^{R}{j_i} + (R + \sum_{i=1}^{R}{j_i}) \log (R + \sum_{i=1}^{R}{j_i}) + J)\\
+&= O((R + \sum_{i=1}^{R}{j_i}) \log (R  + \sum_{i=1}^{R}{j_i})),
+\end{align*}
+because $R,\ J \leq R + \sum_{i=1}^{R}{j_i}$.
 \subsection{Translate Spatial and Spatio-Temporal Data Types}
 \label{sec:translateSTdata}
 In this section we describe the translation of the spatial and spatio-temporal
-data types of the \bmodb{} data set into network respectively network-temporal
-objects. All translations are done relative to the \dt{network} object $net$ that
-we described in Section \ref{sec:createNetwork}.
-All algorithms in this section get a spatial respectively spatio-temporal \bmodb{}
-data type object and the \dt{network} object $net$ as input. They return the
-corresponding NDM object respectively an undefined NDM object if the input data
-object is not constrained by $net$.
-\subsubsection{Translate \dt{point} into \dt{gpoint}}
-The \op{point2gpoint} operation translates a \dt{point} value $p$ into a corresponding
-\dt{gpoint} value $gp$ if possible. This operation is also included in the other translation
-operations. The algorithm uses the R-Tree index of the
-$routes$ relation of $net$ to select the route curve closest to $p$ and computes the
-position of $p$ on this route curve. In case of the \bmodb{} the $side$ value of
-$gp$ is always set to $none$, because the \bmodb{} does not differentiate between
-the different sides of a street.
+data types of the \bmodb{} data set into network constrained
+objects. In the original paper this operations are all called \op{in\_network}.
+All translations are done relative to the \dt{network} object $net$ of the
+previous section.
 
-If $r$ is the number of routes in the $routes$ relation
-and $k$ is the number of routes, which route curve bounding boxes contain p,
-the worst case complexity of the algorithm is O($\log{r} + k$).
-\todo[caption={candiadate routes}]{Complexity correct? What are candidate routes?}
+All algorithms in this section get a spatial respectively spatio-temporal \bmodb{}
+data type object and the corresponding \dt{network} object $net$ as input.
+They return the corresponding data type from the network data model NET,
+respectively an undefined NET object if the input data object is not constrained
+by $net$.
+\subsubsection{Translate \dt{point} into \dt{gpoint}}
+\begin{tabbing}
+xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\=xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\kill
+\dt{network} $\times$ \dt{point} $\rightarrow$ \dt{gpoint} \> \op{point2gpoint}($net$, $point$)\\
+\end{tabbing}
+The \op{point2gpoint} operation translates a \dt{point} value $p$ into a
+corresponding \dt{gpoint} value $gp$ if possible. Variants of this operation are
+also included in the other translation operations. The operations in line 1 to 2 of
+Algorithm \ref{alg:point2gpoint} need O(1) time.
+\begin{algorithm}[H]
+  \caption{\op{point2gpoint}($p$)}
+  \label{alg:point2gpoint}
+  \begin{algorithmic}[1]
+    \STATE $bbox$ = spatial bounding box of $p$
+    \STATE $bbox$ = extend bbox by 1.0 in every direction
+    \STATE Select set of $candidate\ routes$ using $bbox$ and R-Tree of $routes$ relation
+    \STATE $found$ = \false{}
+    \WHILE {not $found$ AND not isEmpty(candidateRoutes)}
+      \IF {Distance of point from route = 0}
+        \STATE found = true
+        \STATE Compute position of point on route
+      \ENDIF
+    \ENDWHILE
+    \RETURN corresponding \dt{gpoint} value
+  \end{algorithmic}
+\end{algorithm}
+$Candidate\ routes$ are routes, which spatial minimum bounding boxes intersect
+with the spatial bounding box of the \dt{point} value.
+The selection of $candidate\ routes$ from the R-tree needs O($\log R + c$) time
+if $c$ is the number of $candidate\ routes$ for $p$.
+The assignment in line 4 takes O(1) time.
+In the worst case the loop from line 5 to line 10 is called $c$ times.
+The computation in lines 6 to 8 takes in the worst case O($l_i$) time, because
+we have to find the line segment to which $p$ is connected. The result
+is returned in O(1) time. We get a worst time complexity of
+\[O(\log R + c + \sum_{i=1}^{c}{l_i} + 1) = O(\log R + \sum_{i=1}^{c}{l_i})\]
+for the operation \op{point2gpoint}. Let this time complexity be called $o_{P2G}$ in operations using \op{point2gpoint} operation.
+
+In case of the \bmodb{} the $side$ value of $gp$ is always set to $none$,
+because the \bmodb{} does not differentiate between the different sides of a street.
 
 This should be all to translate the \dt{point} values of the $QueryPoints$
 relation of the \bmodb{} into network query positions. But there is a problem with
-the NDM representation of junctions. In the NDM, contrary to the DMFS, each junction
+the NET representation of junctions. In the NET, contrary to SPACE, each junction
 has more than one \dt{gpoint} representation, because each junction is related to
 two or more routes. Hence if a junction position is given related to route $a$
 we won't detect the junction as passed if an \dt{mgpoint} object passes the junction
 on route $b$ in all cases, because the definition of \op{passes} in the network
-data model is slightly different from the \op{passes} operation in the \bmodb{} data model.
-Unfortunately all query points of the \bmodb{} are junctions. To make the results
-comparable, we added an operator \op{polygpoints}, which returns for every input
-\dt{gpoint} value $gp$ a stream of \dt{gpoint} values. If $gp$ represents a junction
+data model is slightly different from the \op{passes} operation in the \bmodb{}
+data model. Unfortunately all query points of the \bmodb{} are junctions. To make
+the results comparable, we added an operator \op{polygpoints}, which returns for
+every input \dt{gpoint} value $gp$ a stream of \dt{gpoint} values.
+\begin{tabbing}
+xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\=xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\kill
+\dt{gpoint} $\rightarrow$ \dt{stream}(\dt{gpoint}) \> \op{polygpoints}($gpoint$)\\
+\end{tabbing}
+If $gp$ represents a junction
 we return all \dt{gpoint} values representing the same junction in $net$,
-otherwise we return only $gp$ in the stream. So we got 221 query \dt{gpoint}
-values in $QueryPointsNet$ for the 100 query \dt{point} values in
-$QueryPoints$ and 22 \dt{gpoint} values in $QueryPoints1Net$ for the
-10 \dt{point} values of $QueryPoints1$ of the \bmodb{}. This means we always have
-to compute the results for the double number of query points in our NDM relativ
-to the DMFS.
-\subsubsection{Translate \dt{mpoint} into \dt{mgpoint}}
-\todo{Write algorithm more formal.}
-The second operation \op{mpoint2mgpoint} translates an \dt{mpoint} value $s$
-into an \dt{mgpoint} value $t$. The main idea of the algorithm is to use the
-continuous movement of $s$ to reduce computation time. We initialize the
-algorithm by reading the first unit of $s$ and use the \op{point2gpoint}
-algorithm to find a route in the network containing the $start$ and
-the $end point$ of this unit. We initialize the first unit of $t$ with
-the computed network values. Then we read the next unit of $s$ and try to find
-the $end point$ of the new unit on the same route the last unit of $s$ was
-found. If the $end point$ is found on the same route we check the moving direction
-on the route and speed of the point in the unit. If they are equal to the actual unit we extend
-the actual unit of $t$ to enclose the value of the actual unit of $s$. If the
-speed or the moving direction on the route changes we write the actual unit to $t$ and initialize
-a new unit for $t$ with the network values of the actual unit from $s$.
-If the $end point$ can't be found on the same route as the last unit from
-$s$, we write the actual unit of $t$ and start a search on the route curves
-of the adjacent sections to find the route curve that contains the $start$
-and the $end point$ of the actual unit of $s$. We initialize a new unit
-for $t$ with the estimated network values for the actual unit of $s$ and
-continue with the next unit of $s$. At last we add the actual network unit
-to $t$.
+otherwise we return only $gp$ in the stream. The Algorithm \ref{alg:polygpoints}
+describes the \op{point2gpoint} in detail.
+\begin{algorithm}
+  \caption{\op{polygpoints}($gp$)}
+  \label{alg:polygpoints}
+  \begin{algorithmic}[1]
+    \STATE Copy $gp$ to output stream
+    \STATE Use B-Tree on $junctions$ relation to Get junctions on route $gp.rid$
+    \IF{$gp$ is junction}
+      \FOR{Each $gpoint$ representing the same junction}
+        \STATE Copy $gpoint$ into output stream
+      \ENDFOR
+    \ENDIF
+  \end{algorithmic}
+\end{algorithm}
+The worst case time complexity of the \op{point2gpoint} operation is
+O($\log J + j_i$) if $j_i$ is the number of junctions on route $i$.
 
-The time complexity to find the start values for the first unit is the time complexity
-from \op{point2gpoint} O($\log r + k$).
-For each of the next $m$ units of $s$, the time complexity is O(1) if $s$ does not
-change the route. And it is O($a$) if the end point is on another route and $a$ is the maximum
-number of adjacent sections. So we get a worst case time complexity of
-O($\log r + k + ma$) for the translation of an \dt{mpoint} $s$ into an \dt{mgpoint} $t$.
-\todo{check complexity}
+In the end we got 221 query \dt{gpoint} values in $QueryPointsNet$ for the 100
+query \dt{point} values in $QueryPoints$ and 22 \dt{gpoint} values in
+$QueryPoints1Net$ for the 10 \dt{point} values of $QueryPoints1$ of the \bmodb{}.
+This means we always have to compute the results for the double number of query
+points in our NET representation of the \bmodb{} relativ to SPACE.
+\subsubsection{Translate \dt{mpoint} into \dt{mgpoint}}
+The second operation \op{mpoint2mgpoint} translates an \dt{mpoint} value $mp$
+into an \dt{mgpoint} value $mgp$.
+\begin{algorithm}[H]
+  \caption{\op{mpoint2mgpoint}($mp$,$net$)}
+  \label{alg:mpoint2mgpoint}
+  \begin{algorithmic}[1]
+    \STATE Initialize empty $mgp$
+    \STATE $upoint$ = first unit of $mp$
+    \STATE Initialize $ugp$ = $net$ values of $upoint$
+    \COMMENT{Uses variant of \op{point2gpoint} for two point on same route}
+    \FOR {Each $upoint$ of $mp$}
+      \IF {Endpoint of $upoint$ is on same route than $ugpoint$}
+        \IF {Direction and speed stay the same}
+          \STATE Extend $ugpoint$ to include $upoint$
+        \ELSE
+          \STATE Add $ugpoint$ to $mgp$
+          \STATE Add $route\ interval$ of $ugpoint$ to $RITree$ for $trajectory$
+          \STATE $ugpoint$ = $net$ values of $upoint$
+        \ENDIF
+      \ELSE
+        \STATE Add $ugpoint$ to $mgp$
+        \STATE Add $route\ interval$ of $ugpoint$ to $RITree$ for $trajectory$
+        \STATE Search $upoint$ on adjacent sections route curves
+        \STATE Change current route curve to route curve where the $upoint$ has been found
+        \STATE $ugpoint$ = $net$ values of $upoint$
+      \ENDIF
+    \ENDFOR
+    \STATE Add $ugpoint$ to $mgpoint$
+    \STATE Add $route\ interval$ of $ugpoint$ to $RITree$ for $trajectory$
+    \STATE Build $trajectory$ from $RITree$
+    \STATE Copy bounding box of $mp$ to $mgp$
+    \RETURN $mgp$
+  \end{algorithmic}
+\end{algorithm}
+The main idea of the algorithm (see \ref{alg:mpoint2mgpoint}) is to use the
+continuous movement of $mp$ to reduce
+computation time. We need the complete \op{point2gpoint} operation only for the
+first unit of the \dt{mpoint} value. After that we can use the found route curve
+for computing the network position until the car changes the route. And if the
+car changes the route it can only drive on routes which are adjacent to the last
+used section, such that we only have to check the route curves of the adjacent
+sections instead of searching in the R-Tree for a route curve containing the
+current position.
+
+Let $l_{xi},\ 1 \leq x \leq 2$ the number of line segments of route curve $r_i$,
+and $s_i$ the number of route curves of adjacent sections of a section $i$
+\footnote{Each section has one route curve but two adjacent sections of a section may have the same route curve.}.
+The steps of the Algorithm \ref{alg:mpoint2mgpoint} of the \op{mpoint2mgpoint}
+operation have the following time complexities:
+\begin{itemize}
+  \item[] line 1 + 2: O(1)
+  \item[] line 3: O($o_{P2G}$)
+  \item[] line 4 - 20: Loop will be called $m_{in}$ times and knows three cases
+  \begin{itemize}
+    \item[] line 5: O($l_{1i}$)
+    \begin{enumerate}
+      \item: 6 + 7: O(1)
+      \item line 9 - 11: O($\log r + l_{1i}$)
+      \begin{itemize}
+        \item[] line 9: O(1)
+        \item[] line 10: O($\log r$)
+        \item[] line 11: O($l_{1i}$)
+      \end{itemize}
+      \item line 14 - 18: O($\log r + \sum_{i=1}^{s_i}{l_{2i}} + l_{1i}$)
+      \begin{itemize}
+        \item[] line 14: O(1)
+        \item[] line 15: O($\log r$)
+        \item[] line 16: O($\sum_{i=1}^{s_i}{l_{2i}}$)
+        \item[] line 17: O(1)
+        \item[] line 18: O($l_{1i}$)
+      \end{itemize}
+    \end{enumerate}
+  \end{itemize}
+  \item[] line 21: O(1)
+  \item[] line 22: O($\log r$)
+  \item[] line 23: O($r$)
+  \item[] line 24: O($m_{res}$)
+\end{itemize}
+The worst case time complexity for the whole algorithm is
+\begin{align*}
+&O(o_{P2G} + m_{in}(l_{1i} + \log r + \sum_{i=1}^{s_i}{l_{2i}} + l_{1i}) + r + \log r + m_{res})\\
+&= O(o_{P2G}+ m_{in}\log r + m_{in}\sum_{i=1}^{s_i}{max(l_{1i},\ l_{2i})} + m_{res})
+\end{align*}
 \subsubsection{Translate \dt{region} into \dt{gline}}
 The translation of the \dt{region} values in the $QueryRegions$ relation of the
-\bmodb{} into \dt{gline} values of our NDM is done in several steps.
-First of all we build a single big \dt{line} object containing all network streets.
-Then we compute for each \dt{region} of the $QueryRegions$ the intersection with
-this big \dt{line} object. At last we translate the resulting \dt{line} objects
-of the intersection, each representing one \dt{region} of the $QueryRegions$
-relation, into sorted \dt{gline} values using the \op{line2gline} operation.
-\todo[caption={why}]{Why this expensive solution instead of using a own less expensive operator?}
-The algorithm of the \op{line2gline} operation takes each \dt{HalfSegment} of a
-\dt{line} value and computes a corresponding network \dt{RouteInterval} by
-searching a common $route curve$ for the $start$ and the $end point$ of the
-\dt{HalfSegment} using the \op{point2gpoint} operation. The computed
-\dt{RouteInterval}s are sorted, merged and compressed before the resulting
-\dt{gline} value is returned. If the number of \dt{HalfSegment}s of a \dt{line}
-value is $h$ and the number of resulting compressed \dt{RouteInterval}s is $r$
-we get a time complexity of O($h$O(\op{point2gpoint})$+ h \log r + r$) for the
-whole algorithm. Whereby the summand $h \log r + r$ is caused by the compressing
-and sorting of the resulting \dt{gline} but as mentioned before
-in \ref{sec:sortedgline} we think this time is well invested, because it is needed
-once and the sorted \dt{gline} value is used many times. \todo[caption={algorithm complexity}]{algorithm formal and
-check of complexities.}
-\subsection{Create Indexes on Network Data Model}
+\bmodb{} into sorted \dt{gline} values of NET is described in Algorithm
+\ref{alg:region2gline}.
+\begin{algorithm}[H]
+  \caption{Translate \dt{region} values into sorted \dt{gline} values}
+  \label{alg:region2gline}
+  \begin{algorithmic}[1]
+     \STATE Build single line object $rl$ from the route curves of $routes$ relation
+     \FOR {Each $region$ of $QueryRegions$}
+        \STATE $lreg$ = intersection of $region$ and $rl$
+        \STATE $netRegion$ = \op{line2gline}($lreg$)
+     \ENDFOR
+  \end{algorithmic}
+\end{algorithm}
+The step in line 1 has a time complexity of O($\sum_{i=1}^{R}{l_i}$). The loop is
+called for each entry in $QueryRegions$. In case of \bmodb{} this will be 100 times.
+The intersection of an \dt{region} value with a \dt{line} value is computed by
+a planesweep algorithm using an AVL-Tree for the segments. Therefore line 3 has a time
+complexity of O($\sum_{i=1}^{R}{l_i} \log \sum_{i=1}^{R}{l_i}$). The operation
+\op{line2gline} in line 4 uses Algorithm \ref{alg:line2gline} and has therefore
+a time complexity of
+\[O(l_{1i} o_{P2G} + l_{1i} \log r + r)\]
+\begin{algorithm}
+  \caption{\op{line2gline}($l$, $net$)}
+  \label{alg:line2gline}
+  \begin{algorithmic}[1]
+    \FOR{Each line segment $l_i$ of $l$}
+      \STATE Use variant of \op{point2gpoint} to find $route\ curve$ including $l_i$
+      \STATE Insert corresponding $route\ interval$ into $RITree$
+    \ENDFOR
+    \RETURN sorted and compressed \dt{gline} value from $RITree$
+  \end{algorithmic}
+\end{algorithm}
+For the whole translation operation we get a worst case time complexity of
+\begin{align*}
+& O(\sum_{i=1}^{R}{l_i} + (\sum_{i=1}^{R}l_i) \log (\sum_{i=1}^{R}{l_i}) + l_{1i} o_{P2G}+ l_{1i} \log r + r)\\
+& = O((\sum_{i=1}^{R}{l_1i}) \log (\sum_{i=1}^{R}{l_1i}) + l_{1i} o_{P2G}).
+\end{align*}
+The algorithm is very expensive, because it depends on existing \secondo{} operations.
+This is acceptable for the current use with the \bmodb{},
+because the 100 regions are fixed and only translated once in the data generation
+step. It is planned to implement a own efficient translation operation for region
+values for latter use cases.
+\subsection{Created Indexes for NET Representation}
 \label{sec:createIndex}
+For the use with the \bmodb{} we created the indexes of Table \ref{tab:NETIndexes} on the NET representation of the \bmodb{} data sets.
+\begin{table}[H]
+  \caption{Indexes on NET Representation of \bmodb{}}
+  \label{tab:NETIndexes}
+  \begin{tabularx}{\textwidth}{|l|X|}
+    \hline
+    \textbf{Name of Index}& \textbf{Explanation}\\
+    \hline
+    $dataSNcar\_licence\_btree$& B-Tree on $licences$ in $dataSNcar$ relation.\\
+    \hline
+    $dataMcar\_licence\_btree$& B-Tree on $licences$ in $dataMcar$ relation.\\
+    \hline
+    $dataMcar\_Moid\_btree$& B-Tree on $moid$ in $dataMcar$ relation.\\
+    \hline
+    $dataMNtrip\_Moid\_btree$& B-Tree on $moid$ in $dataMNtrip$ relation.\\
+    \hline
+    $dataSNcar\_BoxNet\_timespace$ & TNPI on $trip$ in $dataSNcar$ \\
+    \hline
+    $dataMNtrip\_BoxNet\_timespace$ & TNPI on $trip$ in $dataMNtrip$\\
+    \hline
+    $dataSNcar\_TrajBoxNet$ & NPI on $trip$ in $dataSNcar$\\
+    \hline
+    $dataMNtrip\_TrajBoxNet$ & NPI on $trip$ in $dataMNtrip$\\
+    \hline
+    $dataSNcar\_SpatioTemp$ & R-Tree on the spatio-temporal bounding box of $trip$ in $dataSNcar$\\
+    \hline
+    $dataMNtrip\_SpatioTemp$ & R-Tree on the spatio-temporal bounding box of $trip$ in $dataMNtrip$\\
+    \hline
+  \end{tabularx}
+\end{table}
 
-We created an NPI ($dataSNcar\_TrajBoxNet$) and an NTPI ($dataSNcar\_BoxNet\_timespace$)
-for the object based approach of the \bmodb{}. And analogous $dataMNtrip\_TrajBoxNet$
-and $dataMNtrip\_BoxNet\_timespace$ for the trip based approach of the \bmodb{}.
-We use these trees in query processing to support a faster selection of
-\dt{mgpoint} objects that passed given network positions or network regions at /
-within a given time (TNPI) or without temporal restrictions (NPI).
+The B-Tree indexes for the $licences$ and $moid$ attributes of the relations
+$dataSNcar$, $dataMcar$, and $dataMNtrip$ are similar to the indexes
+created in the \bmodb{} for $dataSCcar$, $dataMCcar$, and $dataMCtrip$,
+respectively. We don't explain them in more detail.
 
-For the use with the \bmodb{} we created the following indexes on the network
-data model representation of the \bmodb{} data sets:
-\begin{itemize}
-  \item B-Tree indexes for the $licences$ and $moid$ attributes of the relations
-$dataSNcar$, $dataMcar$, and $dataMNtrip$. These indexes are similar to the indexes
-created in the \bmodb{} for $dataSCcar$, $dataMCcar$, and $dataMCtrip$, because
-the relations $dataSNcar$, $dataMcar$ and $dataMNtrip$ contain the network
-data model representation of the $dataScar$, $dataMcar$ and $dataMtrip$ relation
-of the \bmodb{}, respectively. We don't explain them in more detail.
-  \item An R-Tree index of the spatio-temporal bounding boxes of the \dt{mgpoint}
-attributes in the $dataMNtrip$ and the $dataSNcar$ relation. Different from the
-data model that uses the spatio-temporal units for the spatio-temporal indexes, we
-used only the big bounding boxes of the whole trips instead of the much smaller
-bounding boxes for each single unit as it is done in the DMFS.\todo{Why?}
- \item For every unit of each \dt{mgpoint} we build a temporal-network bounding box
-and for every \dt{RouteInterval} of every \dt{mgpoint}s trajectory a network bounding box.
-These network bounding boxes ($netboxes$ for short) are used to create R-Trees
-indexing the network and temporal-network positions of the \dt{mgpoint}s.
-A temporal-network bounding box
-is a degenerated three dimensional rectangle. The coordinates are defined to be
-$x_1 = x_2 = route identifier$ as a \dt{real} value (The equality of $x_1$ and
-$x_2$ makes the degeneration.), $y_1 = \min (start position, end position)$,
-$y_2 = \max (start position, end position)$,
-and, $z_1 = start time$ as a \dt{real} value and $z_2 = end time$ as a \dt{real} value.
-The network bounding box is defined to be a degenerated two dimensional rectangle
-with x,y-coordinates analogous to the temporal-network boxes.
-\end{itemize}
+The Network Position Index (NPI) and the Temporal Network Position Index (TNPI)
+are new constructions. They are used in query processing to support a faster
+selection of \dt{mgpoint} values that passed given network positions or network
+regions at / within a given time (TNPI) or without temporal restrictions (NPI).
+Detailed explanations of the trees and their construction can be found in
+Section \ref{sec:implNetIndex}.
+
+The R-Tree indexes of the spatio-temporal bounding boxes of the $trip$ attributes
+in $dataMNtrip$ and t$dataSNcar$ relation are different from the
+R-Trees of spatio-temporal bounding boxes used in the \bmodb{}.
+In the NET representation only the big bounding boxes of the whole trips inserted
+in the indexes, whereas in SPACE  representation the much smaller bounding boxes
+for each single unit are inserted. This is done because the computation of the
+small bounding boxes in NET representation is very expensive (see Section
+\ref{sec:implNetDataTyp}). It takes several hours to build the spatio-temporal
+unit bounding box indexes for the \dt{mgpoint}  values at the smallest scalefactor.
+For bigger scalefactors we stopped the attempt of computation after several days,
+because we think that the results of the current used indexes are not so bad that
+the additional build time is well invested. We don't expect a great improvement
+of query run times.
 \subsection{Translate Benchmark Queries}
 \label{sec:queries}
 \todo[caption={queries appendix}]{Really senseful this way? Move formal queries to Appendix.}
@@ -1708,4 +2113,179 @@ Another interesting topic for future work on the NDMs is the efficient
 computation of dynamic network distances between moving network objects.
 \bibliography{BerlinMODAndNetworkDataModel}{}
 \bibliographystyle{plain}
+\appendix
+\section{Executable \secondo{} Queries}
+In the sequel we present our executable \secondo{} queries for the NET representation
+of the \bmodb{}. The name of the query result object indicates the number of
+the query, and it is a query for the object based approach (OBA), or for the
+trip based approach (TBA).
+\begin{scriptsize}
+\begin{tabbing}
+xxx\=xxx\=xxx\=xxx\=xxx\=xxx\=xxx\=xxx\=xxx\=xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\kill
+\op{let} Q1OBA =\\
+\>QueryLicences \op{feed} \{l\}\\
+\>\>\op{loopjoin} [dataSNcar\_Licence\_btree dataSNcar \op{exactmatch} [.Licence\_l]]\\
+\>\>\>\op{project} [Licence, Model]\\
+\op{consume};\\
+\\
+\op{let} Q1TBA =\\
+\>QueryLicences \op{feed} \{l\}\\
+\>\>\op{loopjoin} [dataMcar\_Licence\_btree dataMcar \op{exactmatch}[.Licence\_l]]\\
+\>\>\op{project} [Licence, Model]\\
+\op{consume};\\
+\\
+\op{let} Q2OBA = dataSNcar \op{feed filter} [.Type = 'passenger'] \op{count};\\
+\\
+\op{let} Q2TBA = dataMcar \op{feed filter} [.Type = 'passenger'] \op{count};\\
+\\
+\op{let} Q3OBA =\\
+\>QueryLicences1 \op{feed} \{l\}\\
+\>\>\op{loopjoin} [dataSNcar\_Licence\_btree dataSNcar exactmatch [.Licence\_l]]\\
+\>\>\op{project} [Licence, Trip]\\
+\>QueryInstant1 \op{feed} \{i\}\\
+\>\op{product}\\
+\>\op{projectextend}[Licence, Instant\_i; Pos: \op{val}(.Trip \op{atinstant} .Instant\_i)]\\
+\op{consume};\\
+\\
+\op{let} Q3TBA =\\
+\>QueryLicences1 \op{feed} \{l\}\\
+\>\>\op{loopsel}[dataMcar\_Licence\_btree dataMcar \op{exactmatch}[.Licence\_l] \{ll\}]\\
+\>\>\>\op{loopjoin}[dataMNtrip\_Moid\_btree dataMNtrip \op{exactmatch}[.Moid\_ll]]\\
+\>QueryInstant1 \op{feed} \{i\}\\
+\>\op{symmjoin} [.Trip \op{present} ..Instant\_i]\\
+\>\>\op{projectextend}[Instant\_i, Licence\_ll; Pos: \op{val}(.Trip \op{atinstant} .Instant\_i)]\\
+\op{consume};\\
+\\
+\op{let} Q4OBA =\\
+\> QueryPointsNet \op{feed projectextend}[Id, Pos; Prect: \op{gpoint2rect}(.Pos)]\\
+\>\op{loopjoin}[dataSNcar\_TrajBoxNet \op{windowintersectsS}[.Prect]\\
+\>\>\>\op{sort rdup} dataSNcar \op{gettuples}]\\
+\>\op{project} [Id, Licence]\\
+\>\op{sortby} [Id \op{asc}, Licence \op{asc}]\\
+\>\op{krdup} [Id, Licence]\\
+\op{consume};\\
+\\
+\op{let}Q4TBA =\\
+\>QueryPointsNet \op{feed projectextend}[Id; Elem: \op{gpoint2rect}(.Pos)]\\
+\>\op{loopjoin}[dataMNtrip\_TrajBoxNet \op{windowintersectsS}[.Elem]\\
+\>\>\>\op{sort rdup} dataMNtrip \op{gettuples}]\\
+\>\op{project} [Moid, Id]\\
+\>\op{loopsel}[\op{fun}(t:TUPLE) dataMcar\_Moid\_btree dataMcar \op{exactmatch}[attr(t, Moid)]\\
+\>\>\op{projectextend}[Licence; Id: attr(t,Id)]]\\
+\>\op{sortby} [Id \op{asc}, Licence \op{asc}]\\
+\>\op{krdup}[Id, Licence]\\
+\op{consume};\\
+\\
+\op{let} Q5OBA = \\
+\>QueryLicences1 \op{feed} \{l1\}\\
+\>\>\op{loopsel}[dataSNcar\_Licence\_btree dataSNcar \op{exactmatch} [.Licence\_l1]\\
+\>\>\>\op{projectextend}[Licence; TrajLine: \op{gline2line}(\op{trajectory}(.Trip))]]\{c1\}\\
+\>QueryLicences2 \op{feed} \{l2\}\\
+\>\>\op{loopsel}[dataSNcar\_Licence\_btree dataSNcar \op{exactmatch} [.Licence\_l2]\\
+\>\>\>\op{projectextend}[Licence; TrajLine: \op{gline2line}(\op{trajectory}(.Trip))]]\{c2\}\\
+\>\op{product}\\
+\>\op{projectextend} [Licence\_c1, Licence\_c2; Distance: \op{distance}(.TrajLine\_c1, .TrajLine\_c2)]\\
+\op{consume};\\
+\\
+\op{let} Q5TBA =\\
+\>QueryLicences1 \op{feed project}[Licence] \{LL1\}\\
+\>\>\op{loopsel}[\op{fun} (t:TUPLE) dataMcar\_Licence\_btree dataMcar \op{exactmatch}[attr(t,Licence\_LL1)] \{CAR\}\\
+\>\>\>\op{loopsel}[dataMNtrip\_Moid\_btree dataMNtrip exactmatch[.Moid\_CAR]]\\
+\>\>\>\op{projectextend}[;Traj: \op{trajectory}(.Trip)]\\
+\>\>\>\op{aggregateB}[Traj; \op{fun} (L1: gline, L2: gline) L1 \op{union} L2; [const gline value ()]]\\
+\>\>\>\op{feed namedtransformstream}[Traxj]\\
+\>\>\>\op{extend}[Licence: attr(t,Licence\_LL1)]]\\
+\>\>\op{projectextend}[Licence; Trax: \op{gline2line}(.Traxj)]\{c1\}\\
+\>QueryLicences2 \op{feed} \op{project}[Licence] \{LL2\}\\
+\>\>\op{loopsel}[\op{fun} (s:TUPLE) dataMcar\_Licence\_btree dataMcar \op{exactmatch}[attr(s,Licence\_LL2)] \{CAR\}\\
+\>\>\>\op{loopsel}[dataMNtrip\_Moid\_btree dataMNtrip \op{exactmatch}[.Moid\_CAR]]\\
+\>\>\>\op{projectextend}[;Traj: \op{trajectory}(.Trip)]\\
+\>\>\>\op{aggregateB}[Traj; \op{fun} (L3: gline, L4: gline) L3 \op{union} L4; [const gline value ()]]\\
+\>\>\>\op{feed namedtransformstream}[Traxj]\\
+\>\>\>\op{extend}[Licence: attr(s,Licence\_LL2)]]\\
+\>\>\op{projectextend}[Licence; Trax: \op{gline2line}(.Traxj)]\{c2\}\\
+\>\op{product}\\
+\>\op{projectextend}[Licence\_c1, Licence\_c2; Distance: \op{distance}(.Trax\_c1, .Trax\_c2)]\\
+\op{consume};\\
+\\
+\op{let} Q6hOBA =\\
+\>dataSNcar \op{feed filter} [.Type = 'truck']\\
+\>\op{projectextend} [Licence; ptrip: \op{mgpoint2mpoint}(.Trip), BBox: \op{mgpbbox}(.Trip)]\\
+\>\op{projectextend} [Licence, ptrip; Box: \op{rectangle3}(\op{minD}(.BBox,1) - 5.0, \op{maxD}(.BBox,1) + 5.0,\\
+\>\>\>\>\op{minD}(.BBox,2) - 5.0, \op{maxD}(.BBox,2) + 5.0,\op{minD}(.BBox,3), \op{maxD}(.BBox,3))]\\
+\op{consume};\\
+\op{let} Q6OBA =\\
+\>Q6hOBA \op{feed} \{a\}\\
+\>Q6hOBA \op{feed} \{b\}\\
+\>\op{symmjoin}[(.Box\_a \op{intersects} ..Box\_b) \op{and} (.Licence\_a < ..Licence\_b) \op{and}\\
+\>\>\>\>(\op{everNearerThan}(.ptrip\_a, ..ptrip\_b, 10.0))]\\
+\>\op{project} [Licence\_a, Licence\_b]\\
+\>\op{sortby} [Licence\_a \op{asc}, Licence\_b \op{asc}]\\
+\>\op{krdup} [Licence\_a, Licence\_b]\\
+\op{consume};\\
+\op{delete} Q6hOBA;\\
+\\
+\op{let} Q6hTBA =\\
+\>dataMcar \op{feed filter} [.Type = ''truck''] \op{project} [Licence, Moid] \{c\}\\
+\>\op{loopjoin}[dataMNtrip\_Moid\_btree dataMNtrip \op{exactmatch}[.Moid\_c]]\\
+\>\op{projectextend} [;Licence: .Licence\_c, BBox: \op{mgpbbox}(.Trip), ptrip: \op{mgpoint2mpoint}(.Trip)]\\
+\>\op{projectextend} [Licence, ptrip; Box: \op{rectangle3}((\op{minD}(.BBox,1) - 5.0), (\op{maxD}(.BBox,1) + 5.0),\\
+\>\>\>\>(\op{minD}(.BBox,2) - 5.0), (\op{maxD}(.BBox,2) + 5.0), \op{minD}(.BBox,3), \op{maxD}(.BBox,3))]\\
+\op{consume};\\
+\op{let} Q6TBA =\\
+\>Q6hTBA \op{feed} \{c1\}\\
+\>Q6hTBA \op{feed} \{c2\}\\
+\>\op{symmjoin}[(.Box\_c1 \op{intersects} ..Box\_c2) \op{and} (.Licence\_c1 < ..Licence\_c2)]\\
+\>\op{filter} [\op{everNearerThan}(.ptrip\_c1, .ptrip\_c2, 10.0)]\\
+\>\op{project} [Licence\_c1, Licence\_c2]\\
+\>\op{sortby} [Licence\_c1 \op{asc}, Licence\_c2 \op{asc}]\\
+\>\op{krdup} [Licence\_c1, Licence\_c2]\\
+\op{consume};\\
+\op{delete} Q6hTBA;\\
+\\
+\op{let} Q7OBA =\\
+\>QueryPointsNet \op{feed projectextend}[Id, Pos; Prect: \op{gpoint2rect}(.Pos)] \{a\}\\
+\>QueryPointsNet \op{feed projectextend}[Id, Pos; Prect: \op{gpoint2rect}(.Pos)]\\
+\>\>\op{loopsel}[\op{fun} (t:TUPLE) dataSNcar\_TrajBoxNet \op{windowintersectsS}[attr(t,Prect)]\\
+\>\>\>\>\op{sort rdup} dataSNcar \op{gettuples}\\
+\>\>\>\op{filter}[.Type = "passenger"]\\
+\>\>\>\op{projectextend}[; Id: attr(t,Id) , Instant: \op{inst}(\op{initial}(.Trip \op{at} attr(t,Pos)))]]\\
+\>\>\>\op{filter}[\op{not}(\op{isempty}(.Instant))]\\
+\>\>\>\op{sortby}[Id \op{asc}, Instant \op{asc}]\\
+\>\>\>\op{groupby}[Id; FirstTime: \op{group feed min}[Instant]]\{b\}\\
+\>\op{symmjoin}[.Id\_a = ..Id\_b]\\
+\>\op{projectextend}[Id\_a, FirstTime\_b, Pos\_a; MBR: \op{box3d}(.Prect\_a, .FirstTime\_b)]\\
+\>\op{loopjoin}[dataSNcar\_BoxNet\_timespace \op{windowintersectsS}[.MBR]\\
+\>\>\>\>\op{sort rdup} dataSNcar \op{gettuples}]\\
+\>\op{filter}[.Type = "passenger"]\\
+\>\op{projectextend}[Licence, FirstTime\_b, Id\_a; Instant: \op{inst}(\op{initial}(.Trip \op{at} .Pos\_a))]\\
+\>\op{filter}[\op{not}(\op{isempty}(.Instant))]\\
+\>\op{filter}[.Instant <= .FirstTime\_b]\\
+\>\op{project}[Id\_a, Licence]\\
+\op{consume};\\
+\\
+\op{let} Q7hTBA =\\
+\>QueryPointsNet \op{feed projectextend}[Id, Pos; Prect: \op{gpoint2rect}(.Pos)]\\
+\>\op{loopsel}[\op{fun} (t:TUPLE) dataMNtrip\_TrajBoxNet \op{windowintersectsS}[attr(t,Prect)]\\
+\>\>\>\>\op{sort rdup} dataMNtrip \op{gettuples}\\
+\>\>\op{loopjoin}[dataMcar\_Moid\_btree dataMcar \op{exactmatch} [.Moid]\\
+\>\>\>\op{filter}[.Type = "passenger"]\\
+\>\>\>\op{project}[Licence] \{X\}]\\
+\>\>\op{projectextend}[ Licence\_X;TimeAtPos: \op{inst}(\op{initial}(.Trip \op{at} attr(t,Pos))), Id: attr(t, Id)]]\\
+\>\op{sortby} [Id \op{asc}, TimeAtPos \op{asc}]\\
+\op{consume};\\
+\op{let} Q7TBA =\\
+\>Q7hTBA \op{feed} \{a\}\\
+\>Q7hTBA \op{feed groupby} [Id; FirstTime: \op{group feed min}[TimeAtPos]]\{b\}\\
+\>\op{symmjoin}[(.Id\_a = ..Id\_b)]\\
+\>\op{filter}[.TimeAtPos\_a <= .FirstTime\_b]\\
+\>\op{project} [Id\_a, Licence\_X\_a]\\
+\>\op{sortby} [Id\_a \op{asc}, Licence\_X\_a \op{asc}]\\
+\>\op{krdup} [Id\_a, Licence\_X\_a]\\
+\op{consume};\\
+\op{delete} Q7hTBA;\\
+\\
+
+\end{tabbing}
+\end{scriptsize}
 \end{document}
