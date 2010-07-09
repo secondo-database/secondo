@@ -965,8 +965,8 @@ $mpoint$
     \RETURN $mpoint$
   \end{algorithmic}
 \end{algorithm}
-
-In the trip based approach (TBA) the result values of the different trips must be
+In the trip based approach (TBA) the result values of the different trips must
+be
 aggregated to an single result value. Therefore the operation \op{union} was
 introduced. \op{union} gets two \dt{gline} values or two \dt{mgpoint} values as
 input and mixes them up to a single sorted \dt{gline} or a single \dt{mgpoint}
@@ -2125,7 +2125,7 @@ xxx\=xxx\=xxx\=xxx\=xxx\=xxx\=xxx\=xxx\=xxx\=xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\kill
 \op{let} Q1OBA =\\
 \>QueryLicences \op{feed} \{l\}\\
 \>\>\op{loopjoin} [dataSNcar\_Licence\_btree dataSNcar \op{exactmatch} [.Licence\_l]]\\
-\>\>\>\op{project} [Licence, Model]\\
+\>\>\op{project} [Licence, Model]\\
 \op{consume};\\
 \\
 \op{let} Q1TBA =\\
@@ -2150,10 +2150,12 @@ xxx\=xxx\=xxx\=xxx\=xxx\=xxx\=xxx\=xxx\=xxx\=xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\kill
 \op{let} Q3TBA =\\
 \>QueryLicences1 \op{feed} \{l\}\\
 \>\>\op{loopsel}[dataMcar\_Licence\_btree dataMcar \op{exactmatch}[.Licence\_l] \{ll\}]\\
-\>\>\>\op{loopjoin}[dataMNtrip\_Moid\_btree dataMNtrip \op{exactmatch}[.Moid\_ll]]\\
+\>\>\op{loopjoin}[dataMNtrip\_Moid\_btree dataMNtrip
+\op{exactmatch}[.Moid\_ll]]\\
 \>QueryInstant1 \op{feed} \{i\}\\
 \>\op{symmjoin} [.Trip \op{present} ..Instant\_i]\\
-\>\>\op{projectextend}[Instant\_i, Licence\_ll; Pos: \op{val}(.Trip \op{atinstant} .Instant\_i)]\\
+\>\op{projectextend}[Instant\_i, Licence\_ll; Pos: \op{val}(.Trip
+\op{atinstant} .Instant\_i)]\\
 \op{consume};\\
 \\
 \op{let} Q4OBA =\\
@@ -2217,7 +2219,8 @@ xxx\=xxx\=xxx\=xxx\=xxx\=xxx\=xxx\=xxx\=xxx\=xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\kill
 \op{let} Q6OBA =\\
 \>Q6hOBA \op{feed} \{a\}\\
 \>Q6hOBA \op{feed} \{b\}\\
-\>\op{symmjoin}[(.Box\_a \op{intersects} ..Box\_b) \op{and} (.Licence\_a < ..Licence\_b) \op{and}\\
+\>\op{symmjoin}[(.Box\_a \op{intersects} ..Box\_b) \op{and} (.Licence\_a $<$
+..Licence\_b) \op{and}\\
 \>\>\>\>(\op{everNearerThan}(.ptrip\_a, ..ptrip\_b, 10.0))]\\
 \>\op{project} [Licence\_a, Licence\_b]\\
 \>\op{sortby} [Licence\_a \op{asc}, Licence\_b \op{asc}]\\
@@ -2226,7 +2229,8 @@ xxx\=xxx\=xxx\=xxx\=xxx\=xxx\=xxx\=xxx\=xxx\=xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\kill
 \op{delete} Q6hOBA;\\
 \\
 \op{let} Q6hTBA =\\
-\>dataMcar \op{feed filter} [.Type = ''truck''] \op{project} [Licence, Moid] \{c\}\\
+\>dataMcar \op{feed filter} [.Type = 'truck'] \op{project} [Licence, Moid]
+\{c\}\\
 \>\op{loopjoin}[dataMNtrip\_Moid\_btree dataMNtrip \op{exactmatch}[.Moid\_c]]\\
 \>\op{projectextend} [;Licence: .Licence\_c, BBox: \op{mgpbbox}(.Trip), ptrip: \op{mgpoint2mpoint}(.Trip)]\\
 \>\op{projectextend} [Licence, ptrip; Box: \op{rectangle3}((\op{minD}(.BBox,1) - 5.0), (\op{maxD}(.BBox,1) + 5.0),\\
@@ -2248,7 +2252,7 @@ xxx\=xxx\=xxx\=xxx\=xxx\=xxx\=xxx\=xxx\=xxx\=xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\kill
 \>QueryPointsNet \op{feed projectextend}[Id, Pos; Prect: \op{gpoint2rect}(.Pos)]\\
 \>\>\op{loopsel}[\op{fun} (t:TUPLE) dataSNcar\_TrajBoxNet \op{windowintersectsS}[attr(t,Prect)]\\
 \>\>\>\>\op{sort rdup} dataSNcar \op{gettuples}\\
-\>\>\>\op{filter}[.Type = "passenger"]\\
+\>\>\>\op{filter}[.Type = 'passenger']\\
 \>\>\>\op{projectextend}[; Id: attr(t,Id) , Instant: \op{inst}(\op{initial}(.Trip \op{at} attr(t,Pos)))]]\\
 \>\>\>\op{filter}[\op{not}(\op{isempty}(.Instant))]\\
 \>\>\>\op{sortby}[Id \op{asc}, Instant \op{asc}]\\
@@ -2257,10 +2261,10 @@ xxx\=xxx\=xxx\=xxx\=xxx\=xxx\=xxx\=xxx\=xxx\=xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\kill
 \>\op{projectextend}[Id\_a, FirstTime\_b, Pos\_a; MBR: \op{box3d}(.Prect\_a, .FirstTime\_b)]\\
 \>\op{loopjoin}[dataSNcar\_BoxNet\_timespace \op{windowintersectsS}[.MBR]\\
 \>\>\>\>\op{sort rdup} dataSNcar \op{gettuples}]\\
-\>\op{filter}[.Type = "passenger"]\\
+\>\op{filter}[.Type = 'passenger']\\
 \>\op{projectextend}[Licence, FirstTime\_b, Id\_a; Instant: \op{inst}(\op{initial}(.Trip \op{at} .Pos\_a))]\\
 \>\op{filter}[\op{not}(\op{isempty}(.Instant))]\\
-\>\op{filter}[.Instant <= .FirstTime\_b]\\
+\>\op{filter}[.Instant $\leq$ .FirstTime\_b]\\
 \>\op{project}[Id\_a, Licence]\\
 \op{consume};\\
 \\
@@ -2269,7 +2273,7 @@ xxx\=xxx\=xxx\=xxx\=xxx\=xxx\=xxx\=xxx\=xxx\=xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\kill
 \>\op{loopsel}[\op{fun} (t:TUPLE) dataMNtrip\_TrajBoxNet \op{windowintersectsS}[attr(t,Prect)]\\
 \>\>\>\>\op{sort rdup} dataMNtrip \op{gettuples}\\
 \>\>\op{loopjoin}[dataMcar\_Moid\_btree dataMcar \op{exactmatch} [.Moid]\\
-\>\>\>\op{filter}[.Type = "passenger"]\\
+\>\>\>\op{filter}[.Type = 'passenger']\\
 \>\>\>\op{project}[Licence] \{X\}]\\
 \>\>\op{projectextend}[ Licence\_X;TimeAtPos: \op{inst}(\op{initial}(.Trip \op{at} attr(t,Pos))), Id: attr(t, Id)]]\\
 \>\op{sortby} [Id \op{asc}, TimeAtPos \op{asc}]\\
@@ -2278,14 +2282,417 @@ xxx\=xxx\=xxx\=xxx\=xxx\=xxx\=xxx\=xxx\=xxx\=xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\kill
 \>Q7hTBA \op{feed} \{a\}\\
 \>Q7hTBA \op{feed groupby} [Id; FirstTime: \op{group feed min}[TimeAtPos]]\{b\}\\
 \>\op{symmjoin}[(.Id\_a = ..Id\_b)]\\
-\>\op{filter}[.TimeAtPos\_a <= .FirstTime\_b]\\
+\>\op{filter}[.TimeAtPos\_a $\leq$ .FirstTime\_b]\\
 \>\op{project} [Id\_a, Licence\_X\_a]\\
 \>\op{sortby} [Id\_a \op{asc}, Licence\_X\_a \op{asc}]\\
 \>\op{krdup} [Id\_a, Licence\_X\_a]\\
 \op{consume};\\
 \op{delete} Q7hTBA;\\
 \\
-
+\op{let} Q8OBA =\\
+\>QueryLicences1 \op{feed} \{l\}\\
+\>\>\op{loopsel} [dataSNcar\_Licence\_btree dataSNcar \op{exactmatch}
+[.Licence\_l]]\\
+\>QueryPeriods1 \op{feed filter}[\op{not}(\op{isempty}(.Period))] \{p\}\\
+\>\op{product}\\
+\>\op{projectextend} [Licence, Period\_p; Distance: \op{length}(.Trip
+\op{atperiods} .Period\_p)]\\
+\op{consume};\\
+\\
+\op{let} Q8TBA =\\
+\>QueryLicences1 \op{feed} \{l\}\\
+\>\>\op{loopjoin}[dataMcar\_Licence\_btree dataMcar
+\op{exactmatch}[.Licence\_l]]\\
+\>\>\op{project}[Licence, Moid]\\
+\>\>\op{loopsel}[\op{fun} (t:TUPLE) dataMNtrip\_Moid\_btree dataMNtrip
+\op{exactmatch}[attr(t, Moid)]\\
+\>\>\>\op{projectextend}[Trip; Licence: attr(t,Licence)]]\\
+\>QueryPeriods1 \op{feed}\\
+\>\op{symmjoin} [.Trip \op{present} ..Period]\\
+\>\op{projectextend} [Licence, Period, Id; Distance: \op{length}(.Trip
+\op{atperiods} .Period)]\\
+\>\op{sortby} [Id \op{asc}, Licence \op{asc}, Distance \op{desc}]\\
+\>\op{groupby}[Id, Period, Licence; Dist: \op{group feed sum}[Distance]]\\
+\>\op{project}[Licence, Period, Dist]\\
+\op{consume};\\
+\\
+\op{let} Q9OBA =\\
+\>dataSNcar \op{feed} \{c\}\\
+\>QueryPeriods \op{feed filter}[\op{not}(\op{isempty}(.Period))]\{p\}\\
+\>\op{product}\\
+\>\op{projectextend} [Id\_p, Period\_p, Licence\_c; Dist: \op{length}(.Trip\_c
+\op{atperiods} .Period\_p)]\\
+\>\op{sortby} [Id\_p \op{asc}, Period\_p \op{asc}, Dist \op{desc}]\\
+\>\op{groupby} [Id\_p, Period\_p; Distance: \op{group feed max}[Dist]]\\
+\>\op{project} [Id\_p, Period\_p, Distance]\\
+\>\op{sortby} [Id\_p \op{asc}]\\
+\>\op{project} [Period\_p, Distance]\\
+\op{consume};\\
+\\
+\op{let} Q9TBA =\\
+\>dataMNtrip \op{feed} \{c\}\\
+\>QueryPeriods \op{feed filter}[\op{not}(\op{isempty}(.Period))]\{p\}\\
+\>\op{symmjoin}[.Trip\_c \op{present} ..Period\_p]\\
+\>\op{projectextend} [Moid\_c, Period\_p, Id\_p; Distance: \op{length}(.Trip\_c
+\op{atperiods} .Period\_p)]\\
+\>\op{sortby} [Id\_p \op{asc}, Moid\_c \op{asc}, Distance \op{desc}]\\
+\>\op{groupby} [Id\_p, Period\_p, Moid\_c; Dist: \op{group feed
+sum}[Distance]]\\
+\>\op{groupby}[Id\_p, Period\_p; Dista: \op{group feed max}[Dist]]\\
+\>\op{project}[Period\_p, Dista]\\
+\op{consume};\\
+\\
+\op{let} Q10OBA =\\
+\>dataSNcar \op{feed}\\
+\>\>\op{projectextend}[Licence; TripA: \op{mgpoint2mpoint}(.Trip), BBox:
+\op{mgpbbox}(.Trip)]\\
+\>\>\op{projectextend}[Licence, TripA; Box: \op{rectangle2}((\op{minD}(.BBox,1)
+- 1.5), (\op{maxD}(.BBox,1) + 1.5),\\
+\>\>\>\>(\op{minD}(.BBox,2) - 1.5), (\op{maxD}(.BBox,2) + 1.5))]\{c1\}\\
+\>QueryLicences1 \op{feed}\\
+\>\>\op{loopsel}[dataSNcar\_Licence\_btree dataSNcar
+\op{exactmatch}[.Licence]]\\
+\>\>\op{projectextend}[Licence, Trip;  BBox: \op{mgpbbox}(.Trip)]\\
+\>\>\op{projectextend}[Licence, Trip; TripA: \op{mgpoint2mpoint}(.Trip), Box:
+\op{rectangle2}(\op{minD}(.BBox,1) - 1.5),\\
+\>\>\>\>(\op{maxD}(.BBox,1) + 1.5), (\op{minD}(.BBox,2) - 1.5),
+(\op{maxD}(.BBox,2) + 1.5))] \{c2\}\\
+\>\op{symmjoin}[.Box\_c1 \op{intersects} ..Box\_c2]\\
+\>\op{filter} [.Licence\_c1 $\neq$ .Licence\_c2]\\
+\>\op{filter} [\op{everNearerThan}(.TripA\_c1, .TripA\_c2, 3.0)]\\
+\>\op{projectextend} [Licence\_c1, Licence\_c2; \\
+\>\>\>\>Pos: .Trip\_c2 \op{atperiods deftime}((\op{distance}(.TripA\_c1,
+.TripA\_c2) $<$ 3.0) \op{at} \true{}]\\
+\>\op{filter} [\op{not}(\op{isempty}(.Pos))]\\
+\>\op{project} [Licence\_c2, Licence\_c1, Pos]\\
+\>\op{sortby} [Licence\_c2 \op{asc}, Licence\_c1 \op{asc}]\\
+\op{consume};\\
+\\
+\op{let} Q10TBA =\\
+\>QueryLicences1 \op{feed project}[Licence] \{V1\}\\
+\>\op{loopsel}[\op{fun} (t:TUPLE) dataMcar\_Licence\_btree dataMcar
+\op{exactmatch}[attr(t,Licence\_V1)]\\
+\>\>\op{project}[Moid]\\
+\>\>\op{loopjoin}[dataMNtrip\_Moid\_btree dataMNtrip
+\op{exactmatch}[.Moid] \op{remove}[Moid]] \{V3\}\\
+\>\>\op{extend}[t3bbx: \op{mgpbbox}(.Trip\_V3)]\\
+\>\>\op{extend}[ptripA: \op{mgpoint2mpoint}(.Trip\_V3)]\\
+\>\>\op{loopjoin}[\op{fun} (u:TUPLE) dataMNtrip\_SpatioTemp
+\op{windowintersectsS}[\op{rectangle3}(\\
+\>\>\>\>\op{minD}(attr(u,t3bbx),1) - 3.0, \op{maxD}(attr(u,t3bbx),1) + 3.0,\\
+\>\>\>\>\op{minD}(attr(u,t3bbx),2) - 3.0, \op{maxD}(attr(u,t3bbx),2) + 3.0,\\
+\>\>\>\>\op{minD}(attr(u,t3bbx),3), \op{maxD}(attr(u,t3bbx),3))]\\
+\>\>\>\op{sort rdup} dataMNtrip \op{gettuples}\\
+\>\>\>\op{filter} [.Moid $\neq$ attr(u, Moid\_V3)]\\
+\>\>\>\op{projectextend} [Moid; ptripB: \op{mgpoint2mpoint}(.Trip)]\\
+\>\>\>\op{filter} [\op{everNearerThan}(attr(u, ptripA), .ptripB, 3.0)]\\
+\>\>\>\op{projectextend}[Moid; Times: \op{deftime}((\op{distance}(attr(u,
+ptripA), .ptripB) $<$ 3.0) \op{at} \true{})]\\
+\>\>\>\op{filter}[\op{not}(\op{isempty}(.Times))]\\
+\>\>\>\op{loopjoin}[dataMcar\_Moid\_btree dataMcar
+\op{exactmatch}[.Moid] \op{project}[Licence]]]\\
+\>\>\op{projectextend}[Times, Trip\_V3; QueryLicence: attr(t,Licence\_V1),
+OtherLicence: .Licence]\\
+\>\>\op{projectextend}[QueryLicence, OtherLicence; Pos: .Trip\_V3
+\op{atperiods} .Times]\\
+\>\>\op{filter}[\op{not}(\op{isempty}(.Pos))]]\\
+\>\op{sortby}[QueryLicence \op{asc}, OtherLicence \op{asc}]\\
+\>\op{groupby}[QueryLicence, OtherLicence; AllPos: \op{group feed}\\
+\>\>\>\op{aggregateB}[Pos; \op{fun} (M1:mgpoint, M2:mgpoint) M1 \op{union} M2;
+[const mgpoint value()]]]\\
+\>\op{project}[QueryLicence, OtherLicence, AllPos]\\
+\op{consume};\\
+\\
+\op{let} Q11bOBA =\\
+\>QueryInstant1 \op{feed} \{i\}\\
+\>QueryPoints1Net \op{feed projectextend}[Id, Pos; Prect:
+\op{gpoint2rect}(.Pos)]\{p\}\\
+\>\op{product}\\
+\>\op{projectextend}[Id\_p, Instant\_i; Box: \op{box3d}(.Prect\_p,
+.Instant\_i)]\\
+\>\op{loopsel}[\op{fun}(t:TUPLE) dataSNcar\_BoxNet\_timespace
+\op{windowintersectsS}[attr(t,Box)]\\
+\>\>\op{sort rdup} dataSNcar \op{gettuples}\\
+\>\>\op{projectextend} [Licence; Id: attr(t,Id\_p), Instant\_i:
+attr(t,Instant\_i)]]\\
+\op{consume};\\
+\\
+\op{let} Q11TBA =\\
+\>QueryInstant1 \op{feed} \{i\}\\
+\>QueryPoints1Net \op{feed projectextend}[Id, Pos; Prect:
+\op{gpoint2rect}(.Pos)]\{p\}\\
+\>\op{product}\\
+\>\op{loopsel}[\op{fun} (t:TUPLE) dataMNtrip\_BoxNet\_timespace
+\op{windowintersectsS}[\\
+\>\>\>\op{box3d}(attr(t,Prect\_p), attr(t,Instant\_i))]\\
+\>\>\op{sort rdup} dataMNtrip \op{gettuples}\\
+\>\>\op{projectextend}[Moid; Id: attr(t,Id\_p), Instant:
+attr(t,Instant\_i)]]\{a\}\\
+\>\op{loopjoin}[dataMcar\_Moid\_btree dataMcar \op{exactmatch}[.Moid\_a]]\\
+\>\op{project}[Id\_a, Instant\_a, Licence]\\
+\>\op{sortby} [Id\_a \op{asc}, Instant\_a \op{asc}, Licence \op{asc}]\\
+\>\op{krdup} [Id\_a, Instant\_a, Licence]\\
+\op{consume};\\
+\\
+\op{let} Q12hOBA =\\
+\>QueryInstant1 \op{feed} \{i\}\\
+\>QueryPoints1Net \op{feed projectextend}[Id, Pos; Prect:
+\op{gpoint2rect}(.Pos)]\{p\}\\
+\>\op{product}\\
+\>\op{loopsel}[ \op{fun} (t:TUPLE) dataSNcar\_BoxNet\_timespace
+windowintersectsS[\\
+\>\>\>\op{box3d}(attr(t,Prect\_p), attr(t,Instant\_i))]\\
+\>\>\op{sort rdup} dataSNcar \op{gettuples}\\
+\>\>\op{projectextend} [Licence; Id\_p: attr(t,Id\_p), Pos\_p: attr(t,Pos\_p),
+Instant\_i: attr(t,Instant\_i)]]\\
+\>\op{sortby} [Id\_p \op{asc}, Instant\_i \op{asc}, Licence \op{asc}]\\
+\op{consume};\\
+\op{let} Q12OBA =\\
+\>Q12hOBA \op{feed} \{c1\}\\
+\>Q12hOBA \op{feed} \{c2\}\\
+\>\op{symmjoin} [(.Licence\_c1 $<$ ..Licence\_c2) \op{and} (.Id\_p\_c1 =
+..Id\_p\_c2) \op{and} (.Instant\_i\_c1 = ..Instant\_i\_c2)]\\
+\>\op{project} [Id\_p\_c1, Pos\_p\_c1, Instant\_i\_c1, Licence\_c1,
+Licence\_c2]\\
+\>\op{sortby} [Id\_p\_c1 \op{asc}, Instant\_i\_c1 \op{asc}, Licence\_c2
+\op{asc}]\\
+\op{consume};\\
+\op{delete} Q12hOBA;\\
+\\
+\op{let} Q12hTBA =\\
+\>QueryPoints1Net \op{feed projectextend}[Id, Pos; Prect:
+\op{gpoint2rect}(.Pos)]\{p\}\\
+\>QueryInstant1 \op{feed} \{i\}\\
+\>\op{product}\\
+\>\op{projectextend} [Id\_p, Pos\_p, Instant\_i; Box: \op{box3d}(.Prect\_p,
+.Instant\_i)]\\
+\>\op{loopsel}[\op{fun} (t:TUPLE) dataMNtrip\_BoxNet\_timespace
+\op{windowintersectsS}[attr(t,Box)]\\
+\>\>\op{sort rdup} dataMNtrip \op{gettuples}\\
+\>\>\op{projectextend}[Moid; Id: attr(t,Id\_p), Instant:
+attr(t,Instant\_i)]]\{a\}\\
+\>\op{loopjoin}[dataMcar\_Moid\_btree dataMcar \op{exactmatch}[.Moid\_a]]\\
+\>\op{projectextend}[Moid, Licence; Id: .Id\_a, Instant: .Instant\_a]\\
+\op{consume};\\
+\op{let} Q12TBA =\\
+\>Q12hTBA \op{feed} \{A\}\\
+\>Q12hTBA \op{feed} \{B\}\\
+\>\op{symmjoin} [(.Id\_A = ..Id\_B) \op{and} (.Instant\_A = ..Instant\_B) \op
+{and} (.Moid\_A $<$ ..Moid\_B)]\\
+\>\op{project} [Id\_A, Instant\_A, Licence\_A, Licence\_B]\\
+\>\op{sortby} [Id\_A \op{asc}, Instant\_A \op{asc}, Licence\_B \op{asc}]\\
+\op{consume};\\
+\op{delete} Q12hTBA;\\
+\\
+\op{let} Q13OBA =\\
+\>dataSNcar \op{feed} \{c\}\\
+\>QueryRegions1Net \op{feed filter}[\op{not}(\op{isempty}(.Region))] \{r\}\\
+\>\op{symmjoin}[.Trip\_c \op{passes} ..Region\_r]\\
+\>\op{projectextend}[Licence\_c, Id\_r, Region\_r; Trip: .Trip\_c \op{at}
+.Region\_r]\\
+\>QueryPeriods1 \op{feed filter}[\op{not}(\op{isempty}(.Period))]\{p\}\\
+\>\op{symmjoin} [.Trip \op{present} ..Period\_p]\\
+\>\op{projectextend}[Id\_r, Period\_p; Licence: .Licence\_c, Trip: .Trip
+\op{atperiods} .Period\_p]\\
+\>\op{filter} [\op{no\_components}(.Trip) $>$ 0]\\
+\>\op{project} [Id\_r, Period\_p, Licence]\\
+\>\op{sortby} [Id\_r \op{asc}, Period\_p \op{asc}, Licence \op{asc}]\\
+\op{consume};\\
+\\
+\op{let} Q13TBA =\\
+\>dataMNtrip \op{feed} \{c\}\\
+\>QueryRegions1Net \op{feed filter}[\op{not}(\op{isempty}(.Region))] \{r\}\\
+\>\op{symmjoin}[.Trip\_c \op{passes} ..Region\_r]\\
+\>\op{projectextend}[Moid\_c, Id\_r; Trip: .Trip\_c \op{at} .Region\_r]\\
+\>QueryPeriods1 \op{feed filter}[\op{not}(\op{isempty}(.Period))]\{p\}\\
+\>\op{symmjoin}[.Trip \op{present} ..Period\_p]\\
+\>\op{loopjoin} [dataMcar\_Moid\_btree dataMcar exactmatch[.Moid\_c]]\\
+\>\op{project}[Licence, Id\_r, Period\_p]\\
+\>\op{sortby} [Id\_r \op{asc}, Period\_p \op{asc}, Licence \op{asc}]\\
+\>\op{krdup} [Id\_r, Period\_p, Licence]\\
+\op{consume};\\
+\\
+\op{let} Q14OBA =\\
+\>QueryRegions1Net \op{feed filter}[\op{not}(\op{isempty}(.Region))]\\
+\>\op{projectextendstream}[Id, Region; Rrect:  \op{routeintervals}(.Region)]
+\{r\}\\
+\>QueryInstant1 \op{feed} \{i\}\\
+\>{product}\\
+\>\op{projectextend}[Id\_R, Region\_r, Instant\_i; Box:
+\op{box3d}(attr(t,Rrect\_r), attr(t,Instant\_i))]\\
+\>\op{loopsel}[\op{fun} (t:TUPLE) dataSNcar\_BoxNet\_timespace
+\op{windowintersectsS}[attr(t,Box)]\\
+\>\>\op{sort rdup} dataSNcar \op{gettuples}\\
+\>\>\op{filter}[(\op{val}(.Trip \op{atinstant} (attr(t,Instant\_i))))
+\op{inside} (attr(t,Region\_r))]\\
+\>\>\op{projectextend} [Licence;Instant: attr(t,Instant\_i), Id:
+attr(t,Id\_r)]]\\
+\>\op{sortby} [Id \op{asc}, Instant \op{asc}, Licence \op{asc}]\\
+\>\op{krdup}[Id, Instant, Licence]\\
+\op{consume};\\
+\\
+\op{let} Q14TBA =\\
+\>QueryRegions1Net \op{feed filter}[\op{not}(\op{isempty}(.Region))]\\
+\>\>\op{projectextendstream}[Id, Region; Brect:
+\op{routeintervals}(.Region)]\{r\}\\
+\>QueryInstant1 \op{feed} \{i\}\\
+\>\op{product}\\
+\>\op{projectextend}[Id\_r, Region\_r, Instant\_i; Box: \op{box3d}(.Brect\_r,
+.Instant\_i)]\\
+\>\op{loopsel}[ \op{fun} (t:TUPLE) dataMNtrip\_BoxNet\_timespace
+\op{windowintersectsS}[attr(t,Box)]\\
+\>\>\op{sort rdup} dataMNtrip \op{gettuples}\\
+\>\>\op{filter}[(\op{val}(.Trip \op{atinstant} (attr(t,Instant\_i))))
+\op{inside} (attr(t,Region\_r))]\\
+\>\>\op{projectextend}[Moid;Instant: attr(t,Instant\_i), Id:
+attr(t,Id\_r)]]\{a\}\\
+\>\op{loopjoin}[dataMcar\_Moid\_btree dataMcar exactmatch [.Moid\_a]]\\
+\>\op{projectextend}[Licence; Id: .Id\_a, Instant: .Instant\_a]\\
+\>\op{sortby} [Id \op{asc}, Instant \op{asc}, Licence \op{asc}]\\
+\>\op{krdup}[Id, Instant, Licence]\\
+\op{consume};\\
+\\
+\op{let} Q15OBA =\\
+\>QueryPoints1Net \op{feed projectextend}[Id, Pos; Prect:
+\op{gpoint2rect}(.Pos)] \{p\}\\
+\>QueryPeriods1 \op{feed filter}[\op{not}(\op{isempty}(.Period))] \{t\}\\
+\>\op{product}\\
+\>\op{projectextend}[Id\_p, Pos\_p, Period\_t; Box: \op{box3d}(.Prect\_p,
+.Period\_t)]\\
+\>\op{loopsel} [\op{fun}(t:TUPLE) dataSNcar\_BoxNet\_timespace
+\op{windowintersectsS}[attr(t, Box)]\\
+\>\>\op{sort rdup} dataSNcar \op{gettuples}\\
+\>\>\op{filter}[(.Trip \op{atperiods} (attr(t,Period\_t))) \op{passes}
+(attr(t,Pos\_p))]\\
+\>\>\op{projectextend}[; Id: attr(t,Id\_p), Period: attr(t,Period\_t), Licence:
+.Licence]]\\
+\>\op{sortby} [Id \op{asc}, Period \op{asc}, Licence \op{asc}]\\
+\>\op{krdup} [Id, Period, Licence]\\
+\op{consume};\\
+\\
+\op{let} Q15TBA =\\
+\>QueryPoints1Net \op{feed projectextend} [Id, Pos; Prect:
+\op{gpoint2rect}(.Pos)] \{p\}\\
+\>QueryPeriods1 \op{feed filter}[\op{not}(\op{isempty}(.Period))]\{t\}\\
+\>\op{product}\\
+\>\op{loopsel}[\op{fun} (t:TUPLE) dataMNtrip\_BoxNet\_timespace
+\op{windowintersectsS}[\\
+\>\>\>\op{box3d}(attr(t,Prect\_p), attr(t,Period\_t))]\\
+\>\>\op{sort rdup} dataMNtrip \op{gettuples}\\
+\>\>\op{filter}[(.Trip \op{atperiods} (attr(t,Period\_t))) \op{passes}
+(attr(t,Pos\_p))]\\
+\>\>\op{projectextend} [Moid;Period: attr(t,Period\_t), Id:
+attr(t,Id\_p)]]\{a\}\\
+\>\op{loopjoin}[dataMcar\_Moid\_btree dataMcar \op{exactmatch} [.Moid\_a]]\\
+\>\op{projectextend} [Licence; Id: .Id\_a, Period: .Period\_a]\\
+\>\op{sortby} [Id \op{asc}, Period \op{asc}, Licence \op{asc}]\\
+\>\op{krdup}[Id, Period, Licence]\\
+\>\op{project}[Licence, Id, Period]\\
+\op{consume};\\
+\\
+\op{let} Q16OBA =\\
+\>QueryLicences1 \op{feed} \{l\}\\
+\>\>\>\op{loopjoin} [dataSNcar\_Licence\_btree dataSNcar \op{exactmatch}
+[.Licence\_l]] \{c\}\\
+\>\>QueryPeriods1 \{op{feed filter}[\op{not}(\op{isempty}(.Period))]\{p\}\\
+\>\>\op{symmjoin}[.Trip\_c \op{present} ..Period\_p]\\
+\>\>\>\op{projectextend}[Id\_p, Period\_p; Licence: .Licence\_c, Trip: .Trip\_c
+\op{atperiods} .Period\_p]\\
+\>\>\>\op{filter} [\op{no\_components}(.Trip) $>$ 0]\\
+\>\>QueryRegions1Net \op{feed filter}[\op{not}(\op{isempty}(.Region))] \{r\}\\
+\>\>\op{symmjoin}[.Trip \op{passes} ..Region\_r]\\
+\>\>\op{projectextend}[Licence, Id\_r, Region\_r, Id\_p, Period\_p; Trip: .Trip
+\op{at} .Region\_r]\\
+\>\>\op{filter}[\op{no\_components}(.Trip) $>$ 0]\{a\}\\
+\>QueryLicences2 \op{feed} \{l\}\\
+\>\>\>\op{loopjoin} [dataSNcar\_Licence\_btree dataSNcar \op{exactmatch}
+[.Licence\_l]] \{c\}\\
+\>\>QueryPeriods1 \op{feed filter}[\op{not}(\op{isempty}(.Period))]\{p\}\\
+\>\>\op{symmjoin} [.Trip\_c \op{present} ..Period\_p]\\
+\>\>\>\op{projectextend}[Id\_p, Period\_p; Licence: .Licence\_c, Trip: .Trip\_c
+\op{atperiods} .Period\_p]\\
+\>\>\>\op{filter} [\op{no\_components}(.Trip) $>$ 0]\\
+\>\>QueryRegions1Net \op{feed filter}[\op{not}(\op{isempty}(.Region))]\{r\}\\
+\>\>\op{symmjoin}[.Trip \op{passes} ..Region\_r]\\
+\>\>\op{projectextend} [Licence, Id\_r, Region\_r, Id\_p, Period\_p; Trip: .Trip
+\op{at} .Region\_r]\\
+\>\>\op{filter} [\op{no\_components}(.Trip) $>$ 0]\{b\}\\
+\>\op{symmjoin}[(.Id\_r\_a = ..Id\_r\_b) \op{and} (.Id\_p\_a = ..Id\_p\_b)]\\
+\>\op{filter} [.Licence\_a $\neq$ .Licence\_b]\\
+\>\op{filter} [\op{not}(.Trip\_a \op{intersects} .Trip\_b)]\\
+\>\op{project} [Id\_r\_a, Period\_p\_a, Licence\_a, Licence\_b]\\
+\op{consume};\\
+\\
+\op{let} Q16TBA =\\
+\>QueryLicences1 \op{feed} \{l\}\\
+\>\>\>\op{loopjoin} [dataMcar\_Licence\_btree dataMcar
+\op{exactmatch}[.Licence\_l]] \{a\}\\
+\>\>\>\op{loopjoin}[dataMNtrip\_Moid\_btree dataMNtrip
+\op{exactmatch}[.Moid\_a]]\\
+\>\>QueryPeriods1 \op{feed filter}[\op{not}(\op{isempty}(.Period))]\{p\}\\
+\>\>\op{symmjoin} [.Trip \op{present} ..Period\_p]\\
+\>\>\>\op{projectextend}[Id\_p, Period\_p; Licence: .Licence\_a, Trip: .Trip
+\op{atperiods} .Period\_p]\\
+\>\>\>\op{filter}[\op{no\_components}(.Trip) $>$ 0]\\
+\>\>QueryRegions1Net \op{feed filter}[\op{not}(\op{isempty}(.Region))]\{r\}\\
+\>\>\op{symmjoin} [.Trip \op{passes} ..Region\_r]\\
+\>\>\>\op{projectextend}[Licence, Id\_p, Period\_p, Id\_r; Trip: .Trip \op{at}
+.Region\_r]\\
+\>\>\>\op{filter} [\op{no\_components} (.Trip) $>$ 0]\{a\}\\
+\>QueryLicences2 \op{feed} \{l\}\\
+\>\>\>\op{loopjoin} [dataMcar\_Licence\_btree dataMcar
+\op{exactmatch}[.Licence\_l]]\{a\}\\
+\>\>\>\op{loopjoin}[dataMNtrip\_Moid\_btree dataMNtrip
+\op{exactmatch}[.Moid\_a]]\\
+\>\>QueryPeriods1 \op{feed filter}[\op{not}(\op{isempty}(.Period))]\{p\}\\
+\>\>\op{symmjoin} [.Trip \op{present} ..Period\_p]\\
+\>\>\>\op{projectextend}[Id\_p, Period\_p; Licence: .Licence\_a, Trip: .Trip
+\op{atperiods} .Period\_p]\\
+\>\>\>\op{filter}[\op{no\_components}(.Trip) $>$ 0]\\
+\>\>QueryRegions1Net \op{feed filter}[\op{not}(\op{isempty}(.Region))]\{r\}\\
+\>\>\op{symmjoin} [.Trip \op{passes} ..Region\_r]\\
+\>\>\>\op{projectextend}[Licence, Id\_p, Id\_r; Trip: .Trip \op{at}
+.Region\_r]\\
+\>\>\>\op{filter} [\op{no\_components} (.Trip) $>$ 0]\{b\}\\
+\>\op{symmjoin}[(.Id\_r\_a = ..Id\_r\_b) \op{and} (.Id\_p\_a = ..Id\_p\_b)]\\
+\>\op{filter}[.Licence\_a $\neq$ .Licence\_b]\\
+\>\op{filter} [\op{not}(.Trip\_a \op{intersects} .Trip\_b)]\\
+\>\op{project} [Id\_r\_a, Id\_p\_a, Period\_p\_a, Licence\_a, Licence\_b]\\
+\>\op{sortby} [Id\_r\_a \op{asc}, Id\_p\_a \op{asc}, Licence\_a \op{asc},
+Licence\_b \op{asc}]\\
+\>\op{krdup} [Id\_r\_a, Id\_p\_a, Licence\_a, Licence\_b]\\
+\op{consume};\\
+\\
+\op{let} Q17hOBA =\\
+\>dataSNcar \op{feed} \{c\}\\
+\>QueryPointsNet \op{feed} \{p\}\\
+\>\op{symmjoin} [.Trip\_c \op{passes} ..Pos\_p]\\
+\>\op{project} [Id\_p, Licence\_c]\\
+\>\op{sortby} [Id\_p, Licence\_c]\\
+\>\op{krdup} [Id\_p, Licence\_c]\\
+\>\op{groupby}[Id\_p; Hits: \op{group feed count}]\\
+\op{consume};\\
+\op{let} Q17OBA =\\
+\>Q17hOBA \op{feed filter} [.Hits = (Q17hOBA \op{feed max}[Hits])]\\
+\>\op{project} [Id\_p, Hits]\\
+\op{consume};\\
+\op{delete} Q17hOBA;\\
+\\
+\op{let} Q17hTBA =\\
+\>QueryPointsNet \op{feed projectextend}[Id; Elem: \op{gpoint2rect}(.Pos)]\\
+\>\op{loopsel}[\op{fun} (t:TUPLE) dataMNtrip\_TrajBoxNet
+\op{windowintersectsS}[attr(t,Elem)]\\
+\>\>\op{sort rdup} dataMNtrip \op{gettuples}\\
+\>\>\op{projectextend} [Moid; Id\_p: attr(t,Id)]]\\
+\>\op{sortby} [Id\_p \op{asc}, Moid \op{asc}]\\
+\>\op{krdup}[Id\_p, Moid]\\
+\>\op{groupby}[Id\_p; Hits: \op{group feed count}]\\
+\op{consume};\\
+\op{let} Q17TBA =\\
+\>Q17hTBA \op{feed filter} [.Hits = (Q17hTBA \op{feed max}[Hits])]\\
+\>\op{project} [Id\_p, Hits]\\
+\op{consume};\\
+\op{delete} Q17hTBA;\\
 \end{tabbing}
 \end{scriptsize}
 \end{document}
