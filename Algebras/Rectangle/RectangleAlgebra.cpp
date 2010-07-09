@@ -866,6 +866,50 @@ cellNumberTM( ListExpr args )
 }
 
 /*
+4.1.20 Type mapping function ~gridIntersectsTM~
+
+ real x real x real x real x int x rect x rect x int -> boolean
+
+*/
+ListExpr
+gridIntersectsTM( ListExpr args )
+{
+  if (nl->ListLength(args) != 8 ){
+    ErrorReporter::ReportError("Expect 8 arguments");
+    return (nl->SymbolAtom("typeerror"));
+  }
+
+  ListExpr rectA, rectB, x0, y0, xW, yW, nX, cn;
+  x0 = nl->First(args);
+  y0 = nl->Second(args);
+  xW = nl->Third(args);
+  yW = nl->Fourth(args);
+  nX = nl->Fifth(args);
+  rectA = nl->Sixth(args);
+  rectB = nl->Nth(7, args);
+  cn = nl->Nth(8, args);
+
+  if ( (nl->IsEqual(rectA, "rect"))
+    && (nl->IsEqual(rectB, "rect"))
+    && (listutils::isSymbol(x0, REAL))
+    && (listutils::isSymbol(y0, REAL))
+    && (listutils::isSymbol(xW, REAL))
+    && (listutils::isSymbol(yW, REAL))
+    && (listutils::isSymbol(nX, INT))
+    && (listutils::isSymbol(cn, INT)) )
+  {
+    return NList(BOOL).listExpr();
+  }
+  else
+  {
+    ErrorReporter::ReportError(
+        "Expect (rect , real , real , real , real , int , int , rect)");
+    return (nl->SymbolAtom("typeerror"));
+  }
+
+}
+
+/*
 4.2 Selection functions
 
 A selection function is quite similar to a type mapping function. The only
@@ -1685,6 +1729,7 @@ struct CellGrid{
     if(!rect->IsDefined())
     {
       cerr << "Uninitialized rectangle is used" << endl;
+      return CANCEL;
     }
     grid->setBoundBox(rect->MinD(0), rect->MinD(1),
                       rect->MaxD(0), rect->MaxD(1));
@@ -1725,7 +1770,62 @@ struct CellGrid{
   }
 }
 
+/*
+4.4.13 Value mapping functions of operator ~gridIntersects~
 
+The inputs are:
+(x0, y0, xW, yW, nx, rectA, rectB, cellno).
+Divide the first quadrant space of point(x0, y0) into grids,
+cell width is ~xW~ and cell height is ~yW~, every line has ~nx~ cells.
+
+Then return whether the serial number of the ~common smallest cell~ of
+two rectangles ~rectA~ and ~rectB~ is ~cellno~.
+
+*/
+int
+gridIntersectsVM(Word* args, Word& result,
+                    int message, Word& local, Supplier s)
+{
+
+  double x0 = ((CcReal *)args[0].addr)->GetValue();
+  double y0 = ((CcReal *)args[1].addr)->GetValue();
+  double xw = ((CcReal *)args[2].addr)->GetValue();
+  double yw = ((CcReal *)args[3].addr)->GetValue();
+  int nx = ((CcInt *)args[4].addr)->GetValue();
+  Rectangle<2> *rectA = (Rectangle<2> *)args[5].addr;
+  Rectangle<2> *rectB = (Rectangle<2> *)args[6].addr;
+  int cellno = ((CcInt *)args[7].addr)->GetValue();
+
+
+  if (!rectA->IsDefined() || !rectB->IsDefined())
+  {
+    ErrorReporter::ReportError("RectangleAlgebra::gridIntersects: "
+        "Uninitialized rectangle is used");
+    return 0;
+  }
+
+  CcBool* res;
+  if (!rectA->Intersects(*rectB))
+  {
+    res = new CcBool(true, false);
+    result.addr = res;
+  }
+  else
+  {
+    Rectangle<2> interRect = rectA->Intersection(*rectB);
+    int LBX = floor((interRect.MinD(0) - x0) / xw);
+    int LBY = floor((interRect.MinD(1) - y0) / yw);
+    int cscNo = LBX + LBY*nx + 1;
+
+    if (cellno != cscNo)
+      res = new CcBool(true, false);
+    else
+      res = new CcBool(true, true);
+
+    result.addr = res;
+  }
+  return 0;
+}
 /*
 4.5 Definition of operators
 
@@ -2271,6 +2371,19 @@ struct cellnumber_Info : OperatorInfo {
 
 };
 
+struct gridintersects_Info : OperatorInfo {
+
+  gridintersects_Info() : OperatorInfo()
+  {
+	name = "gridintersects";
+	signature = "real x real x real x real x int x "
+	    "rectangle x rectangle x int -> bool";
+	syntax = "op (_, _, _, _, _, _, _, _)";
+	meaning = "Return whether the current cell is "
+	    "the common smallest cell of these two rectangles";
+  }
+};
+
 /*
 5 Creating the Algebra
 
@@ -2314,6 +2427,7 @@ class RectangleAlgebra : public Algebra
     AddOperator( &scalerect);
     AddOperator( &rectanglebboxintersects );
     AddOperator(cellnumber_Info(), cellNumberVM, cellNumberTM);
+    AddOperator(gridintersects_Info(), gridIntersectsVM, gridIntersectsTM);
   }
   ~RectangleAlgebra() {};
 };

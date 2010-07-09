@@ -194,3 +194,9 @@ Signature: (rect<dim> x real x real x real x real x int) -> stream(int)
 Example  : query cellnumber(rectangle2(0.3, 2.5, 1.3, 2.5), 0.0, 0.0, 1.0, 1.0, 5) count
 Result   : 6
 
+Operator : gridintersects
+Number   : 1
+Signature: (real x real x real x real x int x rect<dim> x rect<dim> x int) -> bool
+Example  : query gridintersects(0.0, 0.0, 1.0, 1.0, 5, [const rect value (0.5 3.5 0.5 3.5)], [const rect value (2.5 4.5 2.5 4.5)], 13) 
+Result   : TRUE
+
