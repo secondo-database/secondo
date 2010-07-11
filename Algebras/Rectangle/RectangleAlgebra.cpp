@@ -1786,16 +1786,11 @@ int
 gridIntersectsVM(Word* args, Word& result,
                     int message, Word& local, Supplier s)
 {
-
-  double x0 = ((CcReal *)args[0].addr)->GetValue();
-  double y0 = ((CcReal *)args[1].addr)->GetValue();
-  double xw = ((CcReal *)args[2].addr)->GetValue();
-  double yw = ((CcReal *)args[3].addr)->GetValue();
-  int nx = ((CcInt *)args[4].addr)->GetValue();
+  result = qp->ResultStorage( s );
+  CcBool* res = static_cast<CcBool*>(result.addr);
+   
   Rectangle<2> *rectA = (Rectangle<2> *)args[5].addr;
   Rectangle<2> *rectB = (Rectangle<2> *)args[6].addr;
-  int cellno = ((CcInt *)args[7].addr)->GetValue();
-
 
   if (!rectA->IsDefined() || !rectB->IsDefined())
   {
@@ -1804,25 +1799,30 @@ gridIntersectsVM(Word* args, Word& result,
     return 0;
   }
 
-  CcBool* res;
   if (!rectA->Intersects(*rectB))
   {
-    res = new CcBool(true, false);
-    result.addr = res;
+    res->Set( true, false );
   }
   else
   {
-    Rectangle<2> interRect = rectA->Intersection(*rectB);
-    int LBX = floor((interRect.MinD(0) - x0) / xw);
-    int LBY = floor((interRect.MinD(1) - y0) / yw);
+  
+    double x0 = ((CcReal *)args[0].addr)->GetValue();
+    double y0 = ((CcReal *)args[1].addr)->GetValue();
+    double xw = ((CcReal *)args[2].addr)->GetValue();
+    double yw = ((CcReal *)args[3].addr)->GetValue();
+    int nx = ((CcInt *)args[4].addr)->GetValue();
+	int cellno = ((CcInt *)args[7].addr)->GetValue();
+	
+	double interx = max(rectA->MinD(0), rectB->MinD(0));
+	double intery = max(rectA->MinD(1), rectB->MinD(1));
+	
+	//Rectangle<2> interRect = rectA->Intersection(*rectB);
+    int LBX = floor((interx - x0) / xw);
+    int LBY = floor((intery - y0) / yw);
     int cscNo = LBX + LBY*nx + 1;
+	
+	res->Set( true, (cellno == cscNo) );
 
-    if (cellno != cscNo)
-      res = new CcBool(true, false);
-    else
-      res = new CcBool(true, true);
-
-    result.addr = res;
   }
   return 0;
 }
