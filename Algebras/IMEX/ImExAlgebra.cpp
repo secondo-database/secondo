@@ -74,6 +74,10 @@ This file contains the implementation import / export operators.
 #include "FileSystem.h"
 #include "ListUtils.h"
 
+#include "version.h"
+#include "DbVersion.h"
+
+
 extern NestedList* nl;
 extern QueryProcessor* qp;
 extern AlgebraManager* am;
@@ -4403,10 +4407,11 @@ int fromCSVtextSelect(ListExpr args){
 }
 
 /*
-19.5 Operator Instance for operator ~fromCSVtext~
+19.4 Operator instance
 
 */
-Operator fromCSVtext ( "fromCSVtext",
+
+Operator fromCSVtext( "fromCSVtext",
                    fromCSVtextSpec,
                    2,
                    fromCSVtextvaluemap,
@@ -4414,7 +4419,299 @@ Operator fromCSVtext ( "fromCSVtext",
                    CSVIMPORTABLE_textORstring2CSVIMPORATABLETM);
 
 /*
-20 Creating the Algebra
+20 Operator ~getPID~
+
+20.1 Type Mapping for ~getPID~
+
+---- getPID:    --> int
+----
+
+*/
+ListExpr getPIDTM(ListExpr args){
+  if( nl->ListLength(args)==0 ){
+     return nl->SymbolAtom("int");
+  }
+  ErrorReporter::ReportError("No argument expected");
+  return nl->TypeError();
+}
+
+/*
+20.2 Value Mapping
+
+*/
+
+int getPIDVM(Word* args, Word& result,
+            int message, Word& local, Supplier s){
+
+  result = qp->ResultStorage(s);
+  CcInt* res = static_cast<CcInt*>(result.addr);
+  res->Set(true, WinUnix::getpid());
+  return 0;
+}
+
+/*
+20.3 Specification
+
+*/
+
+const string getPIDSpec  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+    "( <text> -> int</text--->"
+    "<text>getPID( ) </text--->"
+    "<text>Returns the process identifier of the running Secondo kernel "
+    "process. The result is always defined.</text--->"
+    "<text>query getPID()</text--->"
+    ") )";
+
+/*
+20.4 Operator instance
+
+*/
+
+Operator getPID( "getPID",
+                   getPIDSpec,
+                   getPIDVM,
+                   Operator::SimpleSelect,
+                   getPIDTM);
+
+/*
+21 Operator ~getSecondoVersion~
+
+21.1 Type Mapping for ~getSecondoVersion~
+
+---- getSecondoVersion:    --> string
+----
+
+*/
+ListExpr getSecondoVersionTM(ListExpr args){
+  if( nl->ListLength(args)==0 ){
+     return nl->SymbolAtom("string");
+  }
+  ErrorReporter::ReportError("No argument expected");
+  return nl->TypeError();
+}
+
+/*
+21.2 Value Mapping
+
+*/
+
+int getSecondoVersionVM(Word* args, Word& result,
+            int message, Word& local, Supplier s){
+
+  result = qp->ResultStorage(s);
+  CcString* res = static_cast<CcString*>(result.addr);
+  ostringstream os;
+  os.precision(47);
+  os << SECONDO_VERSION_MAJOR << "."
+     << SECONDO_VERSION_MINOR << "."
+     << SECONDO_VERSION_REVISION;
+  res->Set( true, os.str() );
+  return 0;
+}
+
+/*
+21.3 Specification
+
+*/
+
+const string getSecondoVersionSpec  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+    "( <text> -> int</text--->"
+    "<text>getSecondoVersion( ) </text--->"
+    "<text>Returns the version string (version.subversion.revision) for the "
+    "running Secondo kernel process. The result is always defined.</text--->"
+    "<text>query getSecondoVersion()</text--->"
+    ") )";
+
+/*
+21.4 Operator instance
+
+*/
+
+Operator getSecondoVersion( "getSecondoVersion",
+                   getSecondoVersionSpec,
+                   getSecondoVersionVM,
+                   Operator::SimpleSelect,
+                   getSecondoVersionTM);
+
+
+/*
+22 Operator ~getBDBVersion~
+
+21.1 Type Mapping for ~getBDBVersion~
+
+---- getBDBVersion:    --> string
+----
+
+*/
+ListExpr getBDBVersionTM(ListExpr args){
+  if( nl->ListLength(args)==0 ){
+     return nl->SymbolAtom("string");
+  }
+  ErrorReporter::ReportError("No argument expected");
+  return nl->TypeError();
+}
+
+/*
+22.2 Value Mapping
+
+*/
+
+int getBDBVersionVM(Word* args, Word& result,
+            int message, Word& local, Supplier s){
+
+  result = qp->ResultStorage(s);
+  CcString* res = static_cast<CcString*>(result.addr);
+  ostringstream os;
+  os.precision(47);
+  os << DB_VERSION_MAJOR << "."
+     << DB_VERSION_MINOR;
+  res->Set( true, os.str() );
+  return 0;
+}
+
+/*
+22.3 Specification
+
+*/
+
+const string getBDBVersionSpec  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+    "( <text> -> int</text--->"
+    "<text>getBDBVersion( ) </text--->"
+    "<text>Returns the version string (version.subversion) for the "
+    "running Secondo kernel process' BerkeleyDB version. "
+    "The result is always defined.</text--->"
+    "<text>query getBDBVersion()</text--->"
+    ") )";
+
+/*
+22.4 Operator instance
+
+*/
+
+Operator getBDBVersion( "getBDBVersion",
+                   getBDBVersionSpec,
+                   getBDBVersionVM,
+                   Operator::SimpleSelect,
+                   getBDBVersionTM);
+
+
+/*
+23 Operator ~getSecondoPlatform~
+
+23.1 Type Mapping for ~getSecondoPlatform~
+
+---- getSecondoPlatform:    --> string
+----
+
+*/
+ListExpr getSecondoPlatformTM(ListExpr args){
+  if( nl->ListLength(args)==0 ){
+     return nl->SymbolAtom("string");
+  }
+  ErrorReporter::ReportError("No argument expected");
+  return nl->TypeError();
+}
+
+/*
+23.2 Value Mapping
+
+*/
+
+int getSecondoPlatformVM(Word* args, Word& result,
+            int message, Word& local, Supplier s){
+
+  result = qp->ResultStorage(s);
+  CcString* res = static_cast<CcString*>(result.addr);
+  res->Set(true, WinUnix::getPlatformStr());
+  return 0;
+}
+
+/*
+23.3 Specification
+
+*/
+
+const string getSecondoPlatformSpec  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+    "( <text> -> string</text--->"
+    "<text>getSecondoPlatform( ) </text--->"
+    "<text>Returns the platform, this Secondo kernel is running on. "
+    "The result is always defined.</text--->"
+    "<text>query getSecondoPlatform()</text--->"
+    ") )";
+
+/*
+23.4 Operator instance
+
+*/
+
+Operator getSecondoPlatform( "getSecondoPlatform",
+                   getSecondoPlatformSpec,
+                   getSecondoPlatformVM,
+                   Operator::SimpleSelect,
+                   getSecondoPlatformTM);
+
+/*
+24 Operator ~getPageSize~
+
+24.1 Type Mapping for ~getPageSize~
+
+---- getPageSize:    --> int
+----
+
+*/
+ListExpr getPageSizeTM(ListExpr args){
+  if( nl->ListLength(args)==0 ){
+     return nl->SymbolAtom("int");
+  }
+  ErrorReporter::ReportError("No argument expected");
+  return nl->TypeError();
+}
+
+/*
+24.2 Value Mapping
+
+*/
+
+int getPageSizeVM(Word* args, Word& result,
+            int message, Word& local, Supplier s){
+
+  result = qp->ResultStorage(s);
+  CcInt* res = static_cast<CcInt*>(result.addr);
+  res->Set(true, WinUnix::getPageSize());
+  return 0;
+}
+
+/*
+24.3 Specification
+
+*/
+
+const string getPageSizeSpec  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+    "( <text> -> int</text--->"
+    "<text>getPageSize( ) </text--->"
+    "<text>Returns the file-system's page size. "
+    "The result is always defined.</text--->"
+    "<text>query getPageSize()</text--->"
+    ") )";
+
+/*
+24.4 Operator instance
+
+*/
+
+Operator getPageSize( "getPageSize",
+                   getPageSizeSpec,
+                   getPageSizeVM,
+                   Operator::SimpleSelect,
+                   getPageSizeTM);
+
+/*
+25 Creating the Algebra
 
 */
 
@@ -4443,6 +4740,11 @@ public:
     AddOperator( &getDirectory);
     AddOperator( &toCSVtext);
     AddOperator( &fromCSVtext);
+    AddOperator( &getPID);
+    AddOperator( &getSecondoVersion);
+    AddOperator( &getBDBVersion);
+    AddOperator( &getSecondoPlatform);
+    AddOperator( &getPageSize);
   }
   ~ImExAlgebra() {};
 };

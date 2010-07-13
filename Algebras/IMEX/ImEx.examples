@@ -260,3 +260,33 @@ Number   : 2
 Signature: CSVIMPORTABLE x string -> CSVIMPORTABLE
 Example  : query fromCSVtext(TRUE, "")
 Result   : (bool undef)
+
+Operator : getPID
+Number   : 1
+Signature: -> int
+Example  : query getPID() > 0
+Result   : (bool TRUE)
+
+Operator : getSecondoVersion
+Number   : 1
+Signature: -> string
+Example  : query fromCSVtext( 1, tostring(replace((totext( getSecondoVersion() ) sentences transformstream extract[elem]),".","") ) ) >= 3
+Result   : (bool TRUE)
+
+Operator : getBDBVersion
+Number   : 1
+Signature: -> string
+Example  : query fromCSVtext( 1, tostring(replace((totext( getBDBVersion() ) sentences transformstream extract[elem]),".","") ) ) >= 4
+Result   : (bool TRUE)
+
+Operator : getSecondoPlatform
+Number   : 1
+Signature: -> string
+Example  : query getSecondoPlatform()
+Result   : (platform (linux (string "linux")) (linux64 (string "linux")) (win32 (string "win32"))(mac_osx (string "linux")))
+
+Operator : getPageSize
+Number   : 1
+Signature: -> int
+Example  : query getPageSize() > 0
+Result   : (bool TRUE)
