@@ -283,7 +283,7 @@ Operator : getSecondoPlatform
 Number   : 1
 Signature: -> string
 Example  : query getSecondoPlatform()
-Result   : (platform (linux (string "linux")) (linux64 (string "linux")) (win32 (string "win32"))(mac_osx (string "linux")))
+Result   : (platform (linux (string "linux")) (linux64 (string "linux64")) (win32 (string "win32")) (mac_osx (string "linux")))
 
 Operator : getPageSize
 Number   : 1
