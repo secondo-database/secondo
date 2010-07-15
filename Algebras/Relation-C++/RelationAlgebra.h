@@ -375,8 +375,7 @@ This struct contains necessary information for opening a relation.
 struct RelationDescriptor
 {
   friend ostream& operator<<(ostream& o, const RelationDescriptor& rd);
-  inline
-  RelationDescriptor( TupleType* tupleType, bool b=false ):
+  inline RelationDescriptor( TupleType* tupleType, bool b=false ):
     isTemp(b),  
     tupleType( tupleType ),
     attrExtSize( tupleType->GetNoAttributes() ),
@@ -449,15 +448,15 @@ The simple constructors.
 The first constructor.
 
 */
-  inline
-  RelationDescriptor( const RelationDescriptor& d ):
+  inline RelationDescriptor( const RelationDescriptor& d ):
     isTemp( d.isTemp ),  
     tupleType( d.tupleType ),
     attrExtSize( d.attrExtSize ),
     attrSize( d.attrSize )
     {
       tupleType->IncReference();
-      init(d.noTuples, d.totalExtSize, d.totalSize, d.tupleFileId, d.lobFileId);
+      init(d.noTuples, d.totalExtSize, d.totalSize,
+           d.tupleFileId, d.lobFileId);
     }
 /*
 The copy constructor.
@@ -478,7 +477,8 @@ The destructor.
     tupleType = d.tupleType;
     tupleType->IncReference();
 
-    init(d.noTuples, d.totalExtSize, d.totalSize, d.tupleFileId, d.lobFileId);
+    init(d.noTuples, d.totalExtSize, d.totalSize,
+         d.tupleFileId, d.lobFileId);
     attrExtSize = d.attrExtSize;
     attrSize = d.attrSize;
     isTemp = d.isTemp;
@@ -660,8 +660,10 @@ Creates a tuple from the ~typeInfo~ and ~value~ information.
 Corresponds to the ~In~-function of type constructor ~tuple~.
 
 */
-    static Tuple *RestoreFromList( const ListExpr typeInfo, ListExpr value,
-                                   int errorPos, ListExpr& errorInfo,
+    static Tuple *RestoreFromList( const ListExpr typeInfo,
+                                   ListExpr value,
+                                   int errorPos,
+                                   ListExpr& errorInfo,
                                    bool& correct );
 /*
 Acts as the ~In~ function, but uses internal representation for
@@ -767,9 +769,9 @@ part, i.e. the small FLOBs.
     inline int GetExtSize( int i ) const
     {
       int attrExtSize = GetRootSize( i );
-      //cout << "GetExtSize(i).GetRootSize(i)" << attrExtSize << endl; 
-      //cout << "size = " << tupleType->GetAttributeType(i).size;
-      //cout << "coreSize = " << tupleType->GetAttributeType(i).coreSize;
+  //cout << "GetExtSize(i).GetRootSize(i)" << attrExtSize << endl;
+  //cout << "size = " << tupleType->GetAttributeType(i).size;
+  //cout << "coreSize = " << tupleType->GetAttributeType(i).coreSize;
       for( int j = 0; j < attributes[i]->NumOfFLOBs(); j++)
       {
         Flob *tmpFlob = attributes[i]->GetFLOB(j);
@@ -951,8 +953,9 @@ record.
                    vector<double>& attrSize );
 
 
-  void SaveOrel(SmiRecord* record, SmiFileId& lobFileId, double& extSize,
-                double& size, vector<double>& attrExtSize, 
+  void SaveOrel(SmiRecord* record, SmiFileId& lobFileId,
+                double& extSize, double& size,
+                vector<double>& attrExtSize,
                 vector<double>& attrSize,
                 bool ignorePersistentLOBs, TupleId tupleId);
 
@@ -962,8 +965,10 @@ record.
   bool OpenOrel(SmiFileId lobFileId,
                 PrefetchingIterator* iter, TupleId tupleId);
 
-  bool OpenPartialOrel( TupleType* newtype, const list<int>& attrList,
-                        SmiFileId lobfileId, PrefetchingIterator* iter,
+  bool OpenPartialOrel( TupleType* newtype,
+                        const list<int>& attrList,
+                        SmiFileId lobfileId,
+                        PrefetchingIterator* iter,
                         TupleId tupleId);
 
   void UpdateAttributesOrel( const vector<int>& changedIndices,
@@ -976,7 +981,8 @@ record.
 Opens a tuple from ~tuplefile~(~rid~) and ~lobfile~.
 
 */
-  bool Open( SmiRecordFile *tuplefile, SmiFileId lobfileId,
+  bool Open( SmiRecordFile *tuplefile,
+             SmiFileId lobfileId,
              SmiRecordId rid,
              const bool dontReportError );
 
@@ -1027,7 +1033,7 @@ Create Write a memory buffer and put the tuple into it as binary form,
 then return the ~bufSize~ to indicate the size of the buffer.
 
 */
-  char* WriteToBin(uint16_t& bufSize);
+  char* WriteToBin(u_int32_t& bufSize);
 
 /*
 Write a tuple to an allocated memory buffer.
@@ -1040,13 +1046,13 @@ Write a tuple to an allocated memory buffer.
 Read a tuple from memory buffer of binary form.
 
 */
-  uint16_t ReadFromBin(char* buf);
+  u_int32_t ReadFromBin(char* buf);
 
 /*
 Return the size of the memory buffer for putting the tuple into.
 
 */
-  uint16_t GetBlockSize(size_t& coreSize,
+  u_int32_t GetBlockSize(size_t& coreSize,
                       size_t& extensionSize) const;
 
   static SmiSize extensionLimit;
@@ -1120,7 +1126,8 @@ Initializes the attributes array with zeros.
 Initializes a tuple.
 
 */
-    void ChangeTupleType(TupleType* newtype, const list<int>& attrIds) {
+    void ChangeTupleType(TupleType* newtype,
+                         const list<int>& attrIds) {
 
         tupleType->DeleteIfAllowed();
         newtype->IncReference();
@@ -1221,28 +1228,65 @@ to ~defAttributes~, otherwise it is dinamically constructed.
                       size_t extensionSize,
                       bool ignoreLOBs, 
                       SmiRecordFile* file,
-                      const SmiFileId& lobFileId) const;
+                      const SmiFileId& lobFileId,
+                      bool containLOBs = false) const;
 
   void WriteToBlock( char* buf,
-                     /*size_t bufSize,*/
                      size_t coreSize,
                      size_t extensionSize,
                      bool ignoreLOBs,
                      SmiRecordFile* file,
-                     const SmiFileId& lobFileId) const;
+                     const SmiFileId& lobFileId,
+                     bool containLOBs = false) const;
+/*
+Write a tuple into a memory block, the size of the tuple is decided
+by function ~CalculateBlockSize~.
 
+----
+tupleSize = coreSize + extensionSize + sizeof(TUPLESIZE-TYPE)
+----
+
+By default, Secondo only write a tuple's ~core~ , ~extension~
+and small flobs into the memory block.
+But in some situation, like in RemoteStreamAlgebra, the memory block
+should contain the tuple's complete data, and the big flobs are
+also written into the ~extension~ part.
+In this case, the default TUPLESIZE-TYPE which is u\_int16\_t,
+is not big enough to express the actual size of the tuple.
+Therefore ~containLOBs~ is set to indicate whether the big flobs should
+also be written into the memory block.
+when ~containLOBs~ is true, the TUPLESIZE-TYPE will be set to u\_int32\_t,
+and it's big enough to express the tuple's size
+
+*/
   size_t CalculateBlockSize( size_t& attrSizes,
                              double& extSize,
                              double& size,
                              vector<double>& attrExtSize,
-                             vector<double>& attrSize
+                             vector<double>& attrSize,
+                             bool dontContainLOBs = true
                            ) const;
 
 
   char* GetSMIBufferData(SmiRecord& r, uint16_t& rootSize);
-  char* GetSMIBufferData(PrefetchingIterator* iter, uint16_t& rootSize);
+  char* GetSMIBufferData(PrefetchingIterator* iter,
+                         uint16_t& rootSize);
 
-  void InitializeAttributes(char* src);
+  void InitializeAttributes(char* src, bool containLOBs = false);
+
+/*
+In ~WriteToBlock~, the big flobs may also be written into the memory
+block, which is decided by ~containLOBs~.
+Then when read a tuple back from a memory block, it also use ~containLOBs~
+to indicate whether the big flobs are inside the memory block.
+If it's true, then it will invoke Flob::createFromBlock function to read
+big flobs back from the memory.
+
+However, in the comment of Flob::createFromBlock, it said this function
+does some evil thing, but it's not clear enough.
+
+*/
+
   void InitializeSomeAttributes( const list<int>& attrList,
                                  char* src);
 
