@@ -38,7 +38,7 @@ September 2003, M. Spiekermann: Implementation of getpagesize()
 #include <stdlib.h>
 #endif
 
-#ifdef SECONDO_LINUX
+#if defined(SECONDO_LINUX) || defined(SECONDO_MAC_OSX)
 #include <execinfo.h>
 #endif
 
@@ -205,8 +205,7 @@ uint64_t WinUnix::convertEndian(const uint64_t n){
 
     
 /* Obtain a backtrace and print it to stdout. */
-#ifdef SECONDO_LINUX
-   
+#if defined(SECONDO_LINUX) || defined(SECONDO_MAC_OSX)
 void
 WinUnix::stacktrace(const string& fullAppName)
 {
