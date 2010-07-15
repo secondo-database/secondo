@@ -187,14 +187,32 @@ TSendTypeMap(ListExpr args)
   Socket *gate = Socket::CreateGlobal( "localhost", port ),
          *client;
 
-  CHECK_COND( gate && gate->IsOk(), "Unable to listen to port" );
+  if (!gate || !gate->IsOk())
+    {
+      ErrorReporter::ReportError(
+          "Unable to listen to port." );
+      return nl->TypeError();
+    }
 
   client = gate->Accept();
 
-  CHECK_COND( client && client->IsOk(),
-      "Unable to connect with client" );
+  if (!client || !client->IsOk())
+  {
+    ErrorReporter::ReportError(
+        "Unable to connect with client." );
+    return nl->TypeError();
+  }
 
   client->GetSocketStream() << streamType << AppendAttrType << endl;
+  string rtnInfo;
+  getline(client->GetSocketStream(), rtnInfo);
+  if (rtnInfo != "<GET TYPE/>")
+  {
+    ErrorReporter::ReportError(
+        "Unable to get return type info from client");
+    return nl->TypeError();
+  }
+
 
   // Warning - the client pointer is not being deleted.
 
@@ -243,14 +261,15 @@ TReceiveTypeMap(ListExpr args)
   }
 
   cout << "Host: " << host << ":" << port << endl;
-
   Socket *client =
       Socket::Connect( host, port, Socket::SockGlobalDomain );
+
 
   CHECK_COND( client && client->IsOk(),
       "Unable to connect to server." );
 
   getline( client->GetSocketStream(), streamTypeStr );
+  client->GetSocketStream() << "<GET TYPE/>" << endl;
 
   string keyTypeName = "";
   string::size_type loc = streamTypeStr.find("APPEND",0);
@@ -342,18 +361,21 @@ without reading the tuple themselves.
 
 */
 
-static const size_t MAX_TUPLESIZE = 65535; //Copy from class Tuple
-static const size_t SOCKET_SIZE = 1024;  //Copy from StreamBuffer
-static const size_t SOCKET_METASIZE = 2 * sizeof(int);
-const size_t SOCKTUP_SIZE = SOCKET_SIZE - SOCKET_METASIZE;
+//static const u_int32_t MAX_TUPLESIZE = 65535; //Copy from class Tuple
+static const u_int32_t MAX_TUPLESIZE = 655359;
+//(10*2^16 - 1) including huge flobs
+
+static const u_int32_t SOCKET_SIZE = 1024;  //Copy from StreamBuffer
+static const u_int32_t SOCKET_METASIZE = 2 * sizeof(u_int32_t);
+const u_int32_t SOCKTUP_SIZE = SOCKET_SIZE - SOCKET_METASIZE;
 
 void sendSocket(Socket* client, char* buf,
-                  int* sock_ID, int sock_Num)
+      int32_t* sock_ID, int32_t sock_Num)
 {
   TRACE_ENTER
   //Set sock_ID and sock_Num
-  memcpy(buf, sock_ID, sizeof(int));
-  memcpy(buf + sizeof(int), &sock_Num, sizeof(sock_Num));
+  memcpy(buf, sock_ID, sizeof(int32_t));
+  memcpy(buf + sizeof(int), &sock_Num, sizeof(int32_t));
 
   if(!client->Write(buf, SOCKET_SIZE))
   {
@@ -363,16 +385,16 @@ void sendSocket(Socket* client, char* buf,
   }
   else
   {
-    int replySockID = 0;
+    int32_t replySockID = 0;
     do
     {
-      if(!client->Read(buf, sizeof(int)))
+      if(!client->Read(buf, sizeof(int32_t)))
       {
         string errMsg = client->GetErrorText();
         cerr << "Sender read socket failed: " << errMsg << endl;
         return;
       }
-      memcpy(&replySockID, buf, sizeof(replySockID));
+      memcpy(&replySockID, buf, sizeof(int32_t));
     }while(replySockID != (*sock_ID+1));
     // return until the package is received
   }
@@ -381,54 +403,55 @@ void sendSocket(Socket* client, char* buf,
   TRACE_LEAVE
 }
 
-int receiveSocket(Socket* client, char* buf,
-                    int* sock_ID)
+int32_t receiveSocket(Socket* client, char* buf,
+                  int32_t* sock_ID)
 {
   //Read one socket, remove the socket info,
   //and put tuple value to allocated buffer
   char sockBuffer[SOCKET_SIZE];
-  const int expectSockID = (*sock_ID);
-  int get_SockID = expectSockID - 1;
-  int sockNum = -1;
+  const int32_t expectSockID = (*sock_ID);
+  int32_t get_SockID = expectSockID - 1;
+  int32_t sockNum = -1;
 
   while(true)
   {
     //Make sure get\_SockID is read from the socket.
     get_SockID = expectSockID - 1;
-    memcpy(sockBuffer, &get_SockID, sizeof(get_SockID));
+    memcpy(sockBuffer, &get_SockID, sizeof(int32_t));
 
     if(!client->Read(sockBuffer, SOCKET_SIZE))
     {
       string errMsg = client->GetErrorText();
       cerr << "Receiver read socket failed: " << errMsg << endl;
-      return sockNum;
+      return -2;    //Indicate that read socket error
     }
 
-    memcpy(&get_SockID, sockBuffer, sizeof(get_SockID));
+    memcpy(&get_SockID, sockBuffer, sizeof(int32_t));
     if (get_SockID == expectSockID)
     {
       //Read the sock\_Num of this socket
-      memcpy(&sockNum, sockBuffer + sizeof(int), sizeof(int));
+      memcpy(&sockNum, sockBuffer + sizeof(int32_t), sizeof(int32_t));
       //Read tuple value to allocated buffer
       memcpy(buf, sockBuffer + SOCKET_METASIZE, SOCKTUP_SIZE);
 
       //Return the successive signal
       (*sock_ID)++;
-      memcpy(sockBuffer, sock_ID, sizeof(int));
-      if(!client->Write(sockBuffer,sizeof(int)))
+      memcpy(sockBuffer, sock_ID, sizeof(int32_t));
+      if(!client->Write(sockBuffer,sizeof(int32_t)))
       {
         string errMsg = client->GetErrorText();
         cerr << "Receiver write socket failed: " << errMsg << endl;
+        return -3;  //Indicate that write back socket error
       }
-      return sockNum;
+      return sockNum;    
     }
   }
 }
 
 void sendTupleBlock(Socket* client, char* buf,
-                    int* sock_ID, size_t curPos)
+                    int32_t* sock_ID, u_int32_t curPos)
 {
-  size_t offset = SOCKET_METASIZE;
+  u_int32_t offset = SOCKET_METASIZE;
   int sock_Num =
       ceil((float(curPos - SOCKET_METASIZE)) / SOCKTUP_SIZE);
   //The amount of the sockets need to be sent for this buffer
@@ -454,7 +477,7 @@ TSendStream(Word* args, Word& result,
   bool haveKey = false;
   int keyIndex = 0;
   string keyTypeName;
-  size_t keySize = 0;
+  u_int32_t keySize = 0;
   if (qp->GetNoSons(s) == 6)
   {
     haveKey = true;
@@ -463,13 +486,13 @@ TSendStream(Word* args, Word& result,
         (string)(char*)((CcString*)args[4].addr)->GetStringval();
 
     if ("int" == keyTypeName)
-      keySize = sizeof(int);
+      keySize = sizeof(int32_t);
     else if ("string" == keyTypeName)
       keySize = 0; //The size depends on the value
     else if ("bool" == keyTypeName)
       keySize = sizeof(bool);
     else if ("real" == keyTypeName)
-      keySize = sizeof(double);
+      keySize = sizeof(double);  //the size of double in 64 platform ??
     else
     {
       cerr << "ERROR: unknown storage type for attribute No "
@@ -522,20 +545,24 @@ is shown below:
 
   char tupleBlock[MAX_TUPLESIZE];
   memset(tupleBlock, 0, sizeof(tupleBlock));
-  size_t offset = SOCKET_METASIZE;
-  size_t tbSize = MAX_TUPLESIZE - SOCKET_SIZE;
+  u_int32_t offset = SOCKET_METASIZE;
+  u_int32_t tbSize = MAX_TUPLESIZE - SOCKET_SIZE;
   // left space in tupleBlock
 
-  int sock_ID = -1;    //used to synchronize the sockets,
-  int tup_Num = 0;     //amount of tuples inside buffer
+  int32_t sock_ID = 0;    //used to synchronize the sockets,
+  int32_t tup_Num = 0;     //amount of tuples inside buffer
 
+  int counter = 0;
 
   qp->Open(args[0].addr);
   qp->Request(args[0].addr, elem);
   bool haveNext = false;
   while ( ( haveNext = qp->Received(args[0].addr)) || (tup_Num > 0))
   {
-    uint16_t tupleSize;
+    counter++;
+
+//    uint16_t tupleSize;
+    u_int32_t tupleSize;
 
     if ( haveNext )
     {
@@ -544,6 +571,7 @@ is shown below:
       size_t coreSize = 0;
       size_t extensionSize = 0;
       tupleSize = tuple->GetBlockSize(coreSize, extensionSize);
+      //tupleSize = coreSize + extensionSize + sizeof(uint32_t)
       assert(tupleSize < MAX_TUPLESIZE);
 
       if(haveKey && ("string" == keyTypeName))
@@ -571,7 +599,6 @@ is shown below:
       {
         if ("int" == keyTypeName)
         {
-          //keySize = sizeof(int);
           memcpy(tupleBlock + offset, &keySize, sizeof(keySize));
           offset += sizeof(keySize);
           int keyValue =
@@ -588,7 +615,6 @@ is shown below:
         }
         else if ("bool" == keyTypeName)
         {
-          //keySize = sizeof(bool);
           memcpy(tupleBlock + offset, &keySize, sizeof(keySize));
           offset += sizeof(keySize);
           bool keyValue =
@@ -597,7 +623,6 @@ is shown below:
         }
         else if ("real" == keyTypeName)
         {
-          //keySize = sizeof(double);
           memcpy(tupleBlock + offset, &keySize, sizeof(keySize));
           offset += sizeof(keySize);
           double keyValue =
@@ -633,8 +658,10 @@ is shown below:
   ((CcInt*) result.addr)->Set(true, count);
   qp->Close(args[0].addr);
 
-  client->Close();
+  if (client)
+    client->Close();
   delete client;
+  client = 0;
 
   return 0;
 }
@@ -646,7 +673,7 @@ TReceiveStream(Word* args, Word& result,
   struct RemoteStreamInfo
   {
     Socket *client;
-    int sock_ID;
+    int32_t sock_ID;
     string keyTypeName;
     bool haveKey;
     TupleType* tupleType;
@@ -655,7 +682,7 @@ TReceiveStream(Word* args, Word& result,
 
     inline RemoteStreamInfo(
         Socket *client, string ktn, TupleType* tupleType ):
-      client( client ), sock_ID(-1), keyTypeName(ktn),
+      client( client ), sock_ID(0), keyTypeName(ktn),
       tupleType( tupleType ), tupleBuffer(0), iterator(0)
     {
       haveKey = keyTypeName.size() > 0 ? true : false;
@@ -663,39 +690,40 @@ TReceiveStream(Word* args, Word& result,
 
     inline ~RemoteStreamInfo()
     {
-      if( client ) client->Close();
+      if( client )
+        client->Close();
       delete client;
+      client = 0;
 
       if (tupleBuffer)
         delete tupleBuffer;
       tupleBuffer = 0;
-
     }
 
-    Tuple* LoadTuples(char* buf, size_t curPos)
+    Tuple* LoadTuples(char* buf, u_int32_t curPos)
     {
+
       tupleBuffer = new TupleBuffer(
           qp->MemoryAvailableForOperator());
 
-      size_t offset = 0;
+      u_int32_t offset = 0;
       Tuple* tuple = 0;
       while(offset < curPos)
       {
         if (haveKey)
         {
           //Ignore the part contains the key value;
-          size_t keySize = 0;
-          memcpy(&keySize, buf + offset, sizeof(keySize));
-          offset += sizeof(keySize);
+          u_int32_t keySize = 0;
+          memcpy(&keySize, buf + offset, sizeof(u_int32_t));
+          offset += sizeof(u_int32_t);
           //Since in Secondo,
           //it's unnecessary to read the key value out,
           //skip this data directly.
           offset += keySize;
         }
 
-        uint16_t tupleSize = 0;
+        u_int32_t tupleSize = 0;
         memcpy(&tupleSize, buf + offset, sizeof(tupleSize));
-
         if (tupleSize > 0)
         {
           tuple = new Tuple(tupleType);
@@ -736,6 +764,7 @@ TReceiveStream(Word* args, Word& result,
 
       remoteStreamInfo =
           new RemoteStreamInfo( client, keyTypeName, tupleType );
+
       local.addr = remoteStreamInfo;
       TRACE_LEAVE
       return 0;
@@ -791,10 +820,9 @@ TReceiveStream(Word* args, Word& result,
           return YIELD;
         }
       }
-      //close the client
-      client->Close();
-      delete client;
-      remoteStreamInfo->client = 0;
+
+      //No more results
+      result.setAddr(0);
 
       TRACE_LEAVE
       return CANCEL;
