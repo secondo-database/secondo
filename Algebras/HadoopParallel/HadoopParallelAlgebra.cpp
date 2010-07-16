@@ -231,10 +231,12 @@ deLocalInfo::deLocalInfo(Word _streamA, Word wAttrIndexA,
   isAEnd = false;
 
   //The tupleType here should looks like (tuple(....))
-  tupTypeA = nl->OneElemList(
-      nl->Second(GetTupleResultType(qp->GetSon(s,0))));
-  tupTypeB = nl->OneElemList(
-      nl->Second(GetTupleResultType(qp->GetSon(s,1))));
+  tupTypeA =
+      SecondoSystem::GetCatalog()->NumericType(
+      nl->Second(qp->GetSupplierTypeExpr(qp->GetSon(s,0))));
+  tupTypeB =
+      SecondoSystem::GetCatalog()->NumericType(
+      nl->Second(qp->GetSupplierTypeExpr(qp->GetSon(s,1))));
 
   ListExpr resultType = GetTupleResultType(s);
   resultTupleType = new TupleType( nl->Second( resultType ) );
