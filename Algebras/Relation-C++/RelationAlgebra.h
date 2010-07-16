@@ -1026,7 +1026,7 @@ Transform the tuple value to a Base 64 code string
 Read a tuple value from a Base 64 code string
 
 */
-  bool ReadFromBinStr(string binStr);
+  void ReadFromBinStr(string binStr);
 
 /*
 Create Write a memory buffer and put the tuple into it as binary form,
