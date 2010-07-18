@@ -299,10 +299,6 @@ SETI::SETI(SETIArea AREA, int SPLITS) : suf(0), rtreeFile(0)
       // Create RTree for cell
       cells[j][i]->rtreePtr = new R_Tree<2,TupleId>(rtreeFile);
       cells[j][i]->rtreeRecID = cells[j][i]->rtreePtr->HeaderRecordId();
-   ofstream myfile;
-   myfile.open("daniel.txt",ios::app);
-   myfile << "create " << cells[j][i]->rtreePtr->HeaderRecordId() << endl;
-   myfile.close();
     }
   }
 
@@ -425,11 +421,9 @@ Word SETI::In( ListExpr typeInfo, ListExpr instance, int errorPos,
 
    // Check number of partitions
   int numPartitions = nl->IntValue( nl->Second(instance) );
-  if (!(numPartitions == 4096 ||
-        numPartitions ==  256 ||
-        numPartitions ==   16 ||
-        numPartitions ==    4 ||
-        numPartitions ==    1))
+  if (!(CompareFloats(fmod(sqrt(numPartitions),1),0) &&
+        numPartitions >= 1 &&
+        numPartitions <= 4096))
   {
     // Wrong number of partitions -> create default SETI
     result.addr = new SETI(ModifyArea(area), 1);
@@ -571,18 +565,7 @@ bool SETI::Save( SmiRecord& valueRecord, size_t& offset,
 void SETI::Close( const ListExpr typeInfo, Word& w )
 {
   SETI* setiPtr = static_cast<SETI*>(w.addr);
-
-   ofstream myfile;
-   myfile.open("daniel.txt",ios::app);
-   myfile << "close 0" << endl;
-   myfile.close();
-
   delete setiPtr;
-
-   myfile.open("daniel.txt",ios::app);
-   myfile << "close 1" << endl;
-   myfile.close();
-
   w.addr = 0;
 }
 
@@ -772,11 +755,6 @@ void SETI::ReadSETI()
       cellPtr->tiv.start.ReadFrom(tivStart);
       cellPtr->tiv.end = DateTime(0,0,instanttype);
       cellPtr->tiv.end.ReadFrom(tivEnd);
-
-       ofstream myfile;
-   myfile.open("daniel.txt",ios::app);
-   myfile << "read " << cellPtr->rtreeRecID << endl;
-   myfile.close();
 
       // Create new RTree with existing RTree file/header 
       cellPtr->rtreePtr = new R_Tree<2,TupleId>( rtreeFile,
@@ -1140,11 +1118,9 @@ int CreateVM(Word* args, Word& result, int message, Word& local, Supplier s)
   
   // Check number of partitions
   int numPartitions = partitions->GetValue();
-  if (!(numPartitions == 4096 ||
-        numPartitions ==  256 ||
-        numPartitions ==   16 ||
-        numPartitions ==    4 ||
-        numPartitions ==    1))
+   if (!(CompareFloats(fmod(sqrt(numPartitions),1),0) &&
+        numPartitions >= 1 &&
+        numPartitions <= 4096))
   {
    // Wrong number of partitions -> create default SETI
    setiPtr = new SETI(area,1);
@@ -1171,8 +1147,8 @@ struct CreateInfo : OperatorInfo {
     signature = "rect x int -> seti";
     syntax    = "createSETI( _, _ )";
     meaning   = "SETI construction operator. The second argument (partitions)"
-                "must be 1, 4, 16, 256 or 4096, otherwise it will be set a "
-                "default value.";
+                "must be a sqare number, otherwise it will be set a default"
+                " value.";
   }
 };
 
@@ -1393,7 +1369,7 @@ int InsertHandle(SETI* SETIPTR, UploadUnit* UNITPTR)
       offset += sizeof(int);
       page->Write(&segment->tivStart, sizeof(double), offset);
       offset += sizeof(double);
-       page->Write(&segment->tivEnd, sizeof(double), offset);
+      page->Write(&segment->tivEnd, sizeof(double), offset);
       offset += sizeof(double);
       page->Write( &segment->pos1, sizeof(UnitPos), offset );
       offset += sizeof(UnitPos);

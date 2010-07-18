@@ -59,7 +59,7 @@ UGrid-Algebra offers the following methods:
 
 const int pageSize        = 4096;    // Alternatively: WinUnix::getPageSize()
 const int maxSplits       = 64;      // Number of max splits for one dim
-const int flBuckets       = 100;     // Number of hash buckets in frontline  
+const int flBuckets       = 1000;    // Number of hash buckets in front-line  
 const int updateCycle     = 100000;  // Update cycle for SmiUpdateFile
 const int maxHistoryUnits = 70;      // Max number of history units in page
 const double tol          = 0.00001; // Tolerance for floating points
