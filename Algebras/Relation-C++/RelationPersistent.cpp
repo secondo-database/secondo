@@ -495,7 +495,7 @@ void Tuple::WriteToBlock(char* buf,
 
         attrFlobs.push_back(*tmpFlob);
 
-        if(!containLOBs && (flobsz >= extensionLimit))
+        if(!ignoreLobs && !containLOBs && (flobsz >= extensionLimit))
         {
           DEBUG_MSG("tmpFlob->saveToFile");
           tmpFlob->saveToFile( lobFileId,false, *tmpFlob );
@@ -1105,7 +1105,6 @@ string Tuple::WriteToBinStr()
   string binStr;
   b64.encode(data, blockSize, binStr);
 
-  //free(data);
   return replaceAll(binStr, "\n", "");
 }
 
