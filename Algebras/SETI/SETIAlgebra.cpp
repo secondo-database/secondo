@@ -217,7 +217,7 @@ SETI::SETI(SETIArea AREA, int SPLITS) : suf(0), rtreeFile(0)
   header->fileID = suf->GetFileId();
 
    // Create RTree file
-  rtreeFile = new SmiRecordFile(true,pageSize);
+  rtreeFile = new SmiRecordFile(true, pageSizeRTree);
   rtreeFile->Create();
   header->rtreeFileID = rtreeFile->GetFileId();
   
