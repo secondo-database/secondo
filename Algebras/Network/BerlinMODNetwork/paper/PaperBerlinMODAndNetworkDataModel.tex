@@ -747,7 +747,7 @@ car within the unit. Therefore we always have to examine the spatial dimensions
 of the $route\ interval$ passed within a unit to compute the units bounding box
 using algorithm \ref{alg:unitbbox}.
 \begin{algorithm}[H]
-  \caption{\op{Berechnung Unit Bounding Box}}
+  \caption{Berechnung Unit Bounding Box}
   \label{alg:unitbbox}
   \begin{algorithmic}[1]
     \STATE Get route curve usint B-Tree index of $routes$ relation
@@ -840,7 +840,8 @@ units of the \dt{mgpoint} &O(1)\\
 argument.&O(1)\\
   \hline
 \op{trajectory}&\dt{mgpoint} $\rightarrow$ \dt{gline}& Returns the $trajectory$
-of the \dt{mgpoint} value as \dt{gline}&O($r$), if trajectory is defined, O($m \log r + r$) otherwise\\
+of the \dt{mgpoint} value as \dt{gline}&O($r$), if trajectory is defined,\\
+&&&O($m \log r + r$) otherwise\\
   \hline
 \op{units}&\dt{mgpoint} $\rightarrow$ \dt{stream}(\dt{ugpoint})& Returns a
 stream
@@ -1562,31 +1563,33 @@ so we tested in our experiments many different query formulations for each of th
 17 BerlinMOD/R queries in for the object based approach (OBA) and the trip based
 approach (TBA) to get optimal queries delivering the correct result in a minimum of time.
 
-In Appendix \ref{app:executableQueries} you can find the resulting executable
-\secondo{} queries for NET in detail. The \secondo{} scripts with the queries
-can be downloaded from our web page \cite{NetworkWeb}. In this Section we give
-only a short overview over the \bmodb{} queries and their NET algorithms.
+In Appendix \ref{app:executableQueries} the resulting executable
+\secondo{} queries are for NET are given in detail. The \secondo{} scripts with
+the queries can be downloaded from our web page \cite{NetworkWeb}.
+In this Section we give a short overview of the query algorithms used for the
+NET representation of the \bmodb{}.
 
 Every time we need a licence in the result or have a query licence number we need
 an additional step in the TBA queries to connect the $dataMNtrip$ and $dataMcar$
-relation using the $moid$ attribute and the corresponding B-Tree indexes.
+relation using the $moid$ attribute and the corresponding B-Tree indexes
+$dataMNtrip\_Moid\_btree$ respectively $dataMcar\_Moid\_btree$.
 We will not repeat this step at every single TBA query description.
 
 Query 1 asks for the models of the cars with licence plate numbers from $QueryLicences$,
 and query 2 for the number of vehicles that are ``passenger cars''. Both queries
 deal only with standard attributes; so we only changed the relation names and the
-B-Tree indexes to match the NET representation.
+B-Tree indexes to match the NET representation of the \bmodb{}.
 
 Query 3 searches for the positions of the ten cars from $QueryLicence1$ at the
 ten time instants from $QueryInstants1$. We use the licence B-Tree to select the
 ten cars and compute the positions of these ten cars for each of the ten time
-instants from $QueryInstants1$ if the time instant is inside the definition time
+instants from $QueryInstants1$, if the time instant is inside the definition time
 of the trip.
 
 Query 4 asks for the licence numbers of the cars that passed the points
 from $QueryPointsNet$. We create a $netbox$ for each \dt{gpoint} in $QueryPointNet$
-and use our specialised $netbox$ R-Tree of the \dt{mgpoint} \dt{RouteInterval} to
-select the vehicles passing the given query points.
+and use our specialised R-Tree $dataSNcar\_TrajBoxNet$ respectively
+$dataMNtrip\_TrajBoxNet$ to select the vehicles passing the given query points.
 
 The queries 5, 6, and 10 deal with Euclidean distance values, which are not very
 useful in network environments. In networks everything is constrained by the
@@ -1599,35 +1602,32 @@ the results comparable.
 Query 5 asks for the minimum distance between places where vehicles with
 licences from $QueryLicence1$ and $QueryLicence2$ have been. We select the cars
 with licence plate numbers from $QueryLicence1$ respectively $QueryLicences2$ using the
-B-Tree over the $Licence$ attribute of the $dataSNcar$ relation. In the TBA, the
-resulting trajectories for each car are aggregated into one single trajectory
+B-Tree over the $Licence$ attribute. In the TBA, the
+resulting trajectories for each car are aggregated into one single $trajectory$
 for each car. In both approaches we create a \dt{line} value for each resulting
-(aggregated) trajectory value of the \dt{mgpoint}s and compute the Euclidean distance
-between these \dt{line} values for each pair of licences one from $QueryLicences1$ and one
-from $QueryLicences2$.
+(aggregated) $trajectory$ of the \dt{mgpoint}s and compute the Euclidean distance
+between these \dt{line} values for each pair of licences one from $QueryLicences1$
+and one from $QueryLicences2$.
 
 Query 6 asks for the pairs of licences from ``trucks'' that have been as close as
-10m or less to each other. We filter $dataSNcar$ relation, respectively $dataMcar$
-relation to select the ``trucks'' and compute the spatio-temporal bounding box
-of each trip of a ``truck''. We extend the spatial dimensions of the bounding boxes
-by 5m in each spatial direction and retranslate the \dt{mgpoint} values into \dt{mpoint}
-values in a first step. In a second step, we compute join the results from
-step one with itself using the intersection of the bounding boxes as join criteria.
-We filter the result to include all licence pairs of ``trucks'' that had sometimes
-a distance lower than 10m. In the TBA, we additionally remove the duplicate licence
-pairs from the result.
+10m or less to each other. We select the ``trucks'' from $dataSNcar$ relation,
+respectively $dataMcar$ relation, extend their spatio-temporal
+bounding boxes in all spatial dimensions by 5m, and retranslate the
+\dt{mgpoint} values into \dt{mpoint} values in a first step. In a second step,
+we join the results from step one with itself using the intersection of the bounding boxes as join criteria. We filter the result to include all licence pairs of
+``trucks'' that had sometimes a distance lower than 10m and remove the duplicate
+licence pairs from the result.
 
 Query 7 asks for the licence plate numbers of the ``passenger'' cars that reached
-the points from $QueryPoints$ first of all ``passenger'' cars during the
-observation period. The first step to solve query 7 in the NDM is
-equal to query 4. In a filter step we remove all ``not passenger'' cars from the
-first intermediate result. We compute for each remaining candidate trip the times
-the trip reaches first the query positions. We group the resulting time instants
+the points from $QueryPointsNet$ first of all ``passenger'' cars during the
+observation period. We select all ``passenger'' cars that passed one
+of the points from $QueryPointsNet$ before we compute for each remaining candidate
+trip the times the trip reaches first the query positions.
+We group the resulting time instants
 by the identifiers of the query positions and compute the minimum time stamp of
 each group, which is in fact the first time the query position was reached by a
 car. In a last step the licences of the ``passenger'' cars reaching the query
-positions at this first time instant are computed using the specialised
-network-temporal index of the NDM.
+positions at this first time instant are selected.
 
 Query 8 computes the overall travelled distances of the vehicles from $QueryLicence1$
 within the periods from $QueryPeriods1$. We select the candidate cars using the
@@ -1648,28 +1648,25 @@ bounding box of each of this trips by 1.5 m in every spatial direction. After th
 select the ten candidate trips given by $QueryLicences1$, retranslate them and
 extend their spatial bounding boxes in the same way. We join all trips from the
 first two steps where the extended bounding boxes intersect and filter the
-candidate pairs that have different licences and their distance is sometimes
-less than 3m to each other. We compute the position of the \dt{mgpoint} at the
-times the distance between the remaining candidate pairs of \dt{mpoint} was less
-than 3 m and return the licence pairs and the network positions of the first car
-when it has been closer than 3 m to the other one.
+candidate pairs that have different licences and sometimes a distance less than
+3m to each other. We compute the position of the \dt{mgpoint} at the
+times the distance was less than 3 m and return the licence pairs and the network positions of the first car when it has been closer than 3 m to the other one.
 
-In the TBA we select the trips given by $QueryLicences1$ from
+In the TBA, we select the trips given by $QueryLicences1$ from
 $dataMNtrip$, retranslate them into \dt{mpoint} values, and extend their spatio-temporal
-bounding boxes by 3m in each spatial direction. After that we use the spatio-temporal
-index of $dataMNtrip$ to select for each trip of the ten cars, the cars
-of $dataMNtrip$ which spatio-temporal bounding boxes intersect the extended spatio-temporal
-bounding boxes built before. For every pair of candidate trips we
+bounding boxes by 3m in each spatial direction. After that, we use the spatio-temporal
+index of $dataMNtrip$ to select the cars of $dataMNtrip$ with intersecting
+spatio-temporal bounding boxes. For every pair of candidate trips we
 retranslate the second trip and use the Euclidean Distance function for \dt{mpoint}
 values to determine the times when the both \dt{mgpoint} had a distance less than 3m.
 At last we restrict the trip of the query \dt{mgpoint} to this times and
 aggregate the resulting trips into one single trip for each licence pair.
 
 In our experiments we tried out several indexes to support a faster query execution
-of query 10 including the MON-Tree presented in \cite{MONTreeAlmeidaGeoinformatica}. The MON-Tree showed
-very good CPU times but never the less the total run time was very high. In the end
-the simple form described above showed the best complete run time performance of all
-indexes.
+of query 10 including the MON-Tree presented in \cite{MONTreeAlmeidaGeoinformatica}.
+The MON-Tree used very small amounts of CPU time, but nevertheless, the total query
+run time was very high if we used the MON-Tree. In the end the simple form described
+above showed the best complete run time performance of all indexes.
 
 Query 11 asks for the vehicles that passed a point from $QueryPoints1Net$ at one of the
 time instants from $QueryInstants1$. We build a network-temporal query box from the
@@ -1689,36 +1686,35 @@ periods. In TBA possible duplicate licence pairs have to be removed and the
 resulting $moid$s must be mapped to the licences of the cars to generate the result
 using the B-Tree $moid$ index of $dataMcar$.
 
-Query 14 asks for the vehicles that have been in one of the regions from $QueryRegions1Net$
-at a time instant from $QueryInstants1$. We build temporal-netboxes from the query
-objects to select candidate trips using the temporal-network position index. We refine the
+Query 14 asks for the vehicles that have been in one of the regions from
+$QueryRegions1Net$ at a time instant from $QueryInstants1$. We build
+temporal-netboxes from the query objects to select candidate trips using the
+temporal-network position index. We refine the
 result filtering the candidate trips really full filling the query predicates.
 
-Query 15 asks for the vehicles passing a point from $QueryPoints1Net$ during a period
-from $QueryPeriods1$. Analogous to query 14 we build temporal-netboxes of the
-of the query parameters to select the candidate trips using the temporal-network
-position index and refine the result filtering the candidates really fullfilling
+Query 15 asks for the vehicles passing a point from $QueryPoints1Net$ during a
+period from $QueryPeriods1$. Almost similar to query 14 we select the candidate
+trips building temporal-netboxes of the query parameters and using TNPI. The
+result is refined by a filter step selecting the candidates really fullfilling
 the query constraints.
 
-Query 16 asks for the licence pairs one from $QueryLicence1$ and one from $QueryLicence2$
-of vehicles, which were both present in a region from $QueryRegions1Net$ within a period
-from $QueryPeriods1$, but did not meet there and then. We select the candidate trips
-using the licence B-Tree of $dataSNcar$ relation and restrict the resulting trips to be
-\op{present} during the query periods and \op{inside} the query region. This is done
-one time for the licences from $QueryLicences1$ and one time for the licences from
-$QueryLicences2$. The both intermediate results are joined and filtered to get the
+Query 16 asks for the licence pairs one from $QueryLicence1$ and one from
+$QueryLicence2$ of vehicles, which were both present in a region from
+$QueryRegions1Net$ within a period from $QueryPeriods1$, but did not meet there
+and then. We select the candidate trips using the licence B-Tree and restrict
+the resulting trips to be \op{present} during the query periods and move
+\op{inside} the query regions. This is done one time for the licences from $QueryLicences1$ and one time for the licences from $QueryLicences2$.
+The both intermediate results are joined and filtered to get the
 trips of different cars which where at the same period in the same region
 without meeting each other there and then. In the TBA we have
-to do a additional selection from trips with the $moids$ belonging to the cars
-selected before by the licences and remove duplicates of licence pairs from the
-same period and region.
+to remove duplicates of licence pairs from the same period and region.
 
 Query 17 asks for the points from $QueryPointsNet$ that have been visited by a
-maximum number of different vehicles. In a first step we use almost the query
+maximum number of different vehicles. In a first step, we use almost the query
 algorithm from query 4 to select the trips passing a given query
 point. After that we group the cars passing query points by the ids of the
 query points and count the number of cars passing this query point. In a last
-step the point(s) with the maximum number of passing cars is(are) selected.
+step the point / points with the maximum number of passing cars is / are selected.
 In the TBA we have to remove duplicate vehicles from the result list before we
 count the number of passing cars.
 \section{Experimental Setup}
@@ -1730,13 +1726,14 @@ the \bmodb{} version provided in the web \cite{NetworkWeb}.
 
 We generated three databases with different amounts of data using the data generation
 script of the \bmodb{} with the $scalefactor$ 0.05, 0.2, and 1.0. The following
-steps are done with all three databases. We first created the \bmodb{} data and indexes
-using the script ``BerlinMOD\_CreateObjects.SEC'' for SPACE. The NET
-representation of the databases was generated by the the script ``Network\_CreateObjects.SEC''
-that uses the algorithms and builds the indexes described in Section \ref{sec:Translation}.
+steps are done with all three databases. We first created the \bmodb{} data and
+indexes using the script ``BerlinMOD\_CreateObjects.SEC'' for SPACE,
+and the script ``Network\_CreateObjects.SEC'' for NET representation. The latter
+script uses the algorithms and builds the indexes described in Section
+ \ref{sec:Translation}.
 
-Table \ref{tab:dbstat} shows the created amounts of data for the different $scalefactor$
-values in both data models. As you can see, NET NDM needs less
+Table \ref{tab:dbstat} shows the created amounts of data for the different
+$scalefactor$ values in both data models. As you can see, NET needs less
 than 40\% of the storage space of the \bmodb{} data model. The main cause is that
 the same trip is represented by less than 50\% of the units in NET
 compared to SPACE. This is a very good result and we expect this effect to
@@ -1782,8 +1779,9 @@ than in SPACE representation because they have less entries.
 
 We found some isolated mismatches in some query results as we compared the results
 of the SPACE queries and the NET queries for the OBA and the TBA. We detected
-that the source data of the street map of the \bmodb{} is not well defined in all places.
-Figure \ref{fig:routefailure} shows two examples for the street map failures. Using
+that the source data of the street map of the \bmodb{} is not well defined in all
+places. Figure \ref{fig:routefailure} shows two examples for the street map
+failures. Using
 a very high zoom factor you can see that single streets consist of more than one
 line. We corrected the source file ``streets.data'' of the \bmodb{} at the places
 where we detected the errors and restarted the building of the databases and our
@@ -1800,11 +1798,11 @@ each other in the different data models and approaches.
 \label{sec:results}
 \todo{Result Analysis}
 We repeated the \bmodb{} query execution several times for both data models and
-approaches. The tables in Figure \ref{fig:compruntimes} and the graphic in
+approaches. The tables in Figure \ref{fig:compruntimes} and the graphic in Figure
 \ref{fig:CompTotalRunTimesGraphic} compare the average query run times in seconds
 for the different scale factors, data models, and approaches.
 As you can see, the total run time of all queries in NET is around
-50\% less than the total query run time of SPACE at each scale factor.
+50\% less than the total query run time of SPACE at each $scalefactor$.
 \begin{figure}[h]
   \begin{minipage}{0.5\linewidth}
     \begin{tiny}
@@ -1967,21 +1965,21 @@ and approaches at the different $scalefactors$. These results are expected, beca
 both queries deal only with standard attributes and standard indexes, which
 are not influenced by the different data models.
 
-Although the query algorithms for both data models and approaches are almost the same,
-SPACE outperforms NET for query 3 by tenths of a second. On the one hand, the
-number of units in NET is less than the number of units in the SPACE,
+Although the query algorithms for both data models and approaches are almost the
+same, SPACE outperforms NET for query 3 by tenths of a second. On the one hand, the
+number of units in NET is less than the number of units in SPACE,
 such that the unit which contains the query time instant should be found faster.
 But on the other hand, a \dt{gpoint} value has more internal elements (3 \dt{int},
 1 \dt{real}, and 1 \dt{bool}) than a \dt{point} value (2 \dt{real}, and 1 \dt{bool}),
-such that each unit in NET is much bigger than in SPACE, therefore computing and
-copying the result needs a little more time in NET than in SPACE.
+such that each unit in NET has much four more elements than in SPACE, therefore
+access and copying needs a little more time in NET than in SPACE.
 
 In query 4 NET outperforms SPACE significantly at all $scalefactors$ ($>$ 3 min OBA,
-$>$ 2 min TBA at $scalefactor$ 1.0).
-The NET index used in query 4 is much smaller (OBA 24 MB, TBA 160 MB, at $scalefactor$ 1.0)
-than the spatial unit index of SPACE (OBA 3.7 GB, TBA 3.7 GB at $scalefactor$ 1.0)
-and more precise, such that we do not need an additional expensive refinement step after the
-index usage in NET, like we do in SPACE.
+$>$ 2 min TBA at $scalefactor$ 1.0). The NET index used in query 4 is much smaller
+(OBA 24 MB, TBA 160 MB, at $scalefactor$ 1.0) than the spatial unit index of SPACE
+(OBA 3.7 GB, TBA 3.7 GB at $scalefactor$ 1.0) and more precise, such that we do not
+need an additional expensive refinement step after the index usage in NET,
+like we do in SPACE.
 
 We expected NET to be slower than SPACE in the queries 5, 6, and 10, because
 we retranslate intermediate results from NET representation into SPACE representation.
@@ -2005,97 +2003,90 @@ a spatio-temporal filtering, SPACE uses only a spatial filtering, such that many
 false candidates are included in the expensive distance computation part of the
 algorithm.
 
-After the very good results from query 4 we did not expect query 7 to have such
-bad results in the run time comparison. In fact SPACE outperforms NET significantly
-in both approaches and at all $scalefactors$. in TBA, while at the smaller scale factors in
-OBA the NDM outperforms the DMFS. We think there are two main causes: On the one hand we
-have to do the expensive operation \dt{at} for \dt{mgpoint} for the double number
-of query \dt{gpoint} compared with the DMFS and
-on the other hand the test points out a weakness of the NDM
-implementation of the operation \op{at} for \dt{mgpoint}. But in the end, NDM looses
-at scale factor 1.0 less than 45 seconds in the OBA respectively less
-than 120 seconds in TBA, what is not much compared with the advantages in the
-other benchmark queries.
+After the very good results from query 4 we did not expect SPACE to outperform
+NET at query 7 in almost all cases. Only at $scalfactor$ 1.0 in OBA NET outperforms
+SPACE. The weakness of NET is that we have to do the expensive \op{at} operation
+for the double number of query \dt{gpoint} compared with SPACE
+(see Section \ref{sec:translateSTdata}).
+But in the end, NET looses at $scalefactor$ 1.0 around 1 minute, what is not much
+compared with the advantages in the other benchmark queries.
 
 Query 8 is a very fast query in both data models, although the query run time of
-the NDM is more than 50\% less than the query run time of the
-DMFS. This is caused by the
+NET is more than 50\% less than the query run time of SPACE. This is caused by the
 $length$ attribute of the \dt{mgpoint} and the smaller number of units of a
 \dt{mgpoint} compared with the corresponding \dt{mpoint}.
 
-For query 9, the NDM outperforms the DMFS by orders of magnitude. The advantages
-named in the analysis of query 8's run time results have a much higher impact
-when the number of examined trips becomes bigger. At scale factor 1.0 this saves
-more than 10 min time in the OBA and more than 50 min time in the TBA.
+For query 9, NET outperforms SPACE by orders of magnitude. The advantages
+named in the analysis of query 8 have a much higher impact
+when the number of examined trips becomes bigger. At $scalefactor$ 1.0 this saves
+more than 40 minutes time in the OBA and more than 55 minutes time in the TBA.
 
 The ratio of the run times of query 10 changes between the amounts of data and
-both data models. In the OBA and at scale factor 1.0 in the TBA the NDM outperforms
-the DMFS at all scale factors, while in the TBA at the two small databases the
-DMFS outperforms the NDM significantly. Before our experiments we expected that
-the DMFS would outperform the NDM in all cases, because of the expensive
-retranslation of intermediate results. So why is the NDM faster ($>$ 20 min in
-OBA and $>$ 3 min in TBA at scale factor 1.0) than the DMFS?
-In the OBA we use bounding boxes for a preselect of candidate trips that step is not
-performed in the DMFS. In the TBA the results are only better for the big amounts
-of data we think this is due to the fact that the number of units in \dt{mgpoint}
-values is always smaller than in \dt{mpoint} values such that the final aggregation
-of the different trips of the same cars can be done faster in the NDM
-than in the DMFS.
+both data models. In the OBA NET outperforms SPACE at all $scalefactors$,
+while in the TBA SPACE outperforms NET significantly.
+Before our experiments we expected that SPACE would outperform NET in all cases,
+because of the expensive retranslation of intermediate results.
+So why is NET 80 minutes faster at $scalefactor$ 1.0 in OBA than SPACE?
+In NET we use bounding boxes to preselect candidate trips that step is not
+performed in SPACE. The disadvantage of NET in TBA becomes smaller at higher
+$scalefactors$ we think this is due to the fact that the number of units in
+\dt{mgpoint} values is always smaller than in \dt{mpoint} values such that the
+final aggregation of the different trips of the same cars can be done faster
+in NET than SPACE.
+
+In our experiments we also tested the MON-Tree \cite{MONTreeAlmeidaGeoinformatica}
+as spatio-temporal index. But, although the CPU run time was very small, the
+elapsed run time performance was very bad. Such that the primitive index outperformed
+the MON-Tree in all cases.
 
 Query 11 is identical with the first part of query 12. So it is surprising that
-the run time of query 11 at scalefactor 1.0 is longer than the run time of query 12,
+the run time of query 11 at $scalefactor$ 1.0 is longer than the run time of query 12,
 which does additional computations. In our experiments with the different queries
 we have seen that there exist numerous cache effects depending on the sequence of
-the queries. So we think that query 12 takes profit cache effects resulting from
-query 11 running immediately before query 12. Another weakness of the NDM pointed
-out by the run times of query 11 and query 14 is that our
-network-temporal position index has bad run times for query $netbox$ objects
-constructed from a single \dt{gpoint} and a single time instant. This becomes worse
-with a higher number of indexed units. As you can see at query 15 this does not
-hold for query $netboxes$ constructed from a single \dt{gpoint} and a time interval.
-We have to spend some more work to figure out the problem and develop a better
-network-temporal position index to improve our NDM system.
-
-In our experiments we also tested the MON-Tree \cite{MONTreeAlmeidaGeoinformatica} as network-temporal
-index but the elapsed run time performance was not good, although the CPU run times
-was were small.
+the queries. So we think that query 12 takes profit of cache effects resulting from
+query 11 running immediately before query 12. Another weakness of NET pointed
+out by the run times of query 11 and some other queries is that our TNPI has bad
+run times for query $netboxes$ created from a single \dt{gpoint} and a single
+time instant. This becomes worse with a higher number of indexed units. As you can
+see at query 15 this does not hold for query $netboxes$ constructed from a single
+\dt{gpoint} and a time interval. We have to spend some more work to figure out
+the problem and develop a better TNPI to improve our NET implementation.
 
 The bad performance of the network-temporal position index is also shown by query 13.
-The NDM outperforms the DMFS significantly, but we do not use any index in the
-executable NDM queries, while the DMFS uses its spatio-temporal index to preselect
+NET outperforms SPACE significantly, but we do not use any index in the
+executable NET queries, while SPACE uses its spatio-temporal index to preselect
 candidate trips. The same holds for query 17.
 
-The NDM version of query 16 takes profit from the smaller number
-of units in the NDM and outperforms the data model of free movement
+The NET version of query 16 takes profit from the smaller number
+of units in NET and outperforms the data model of free movement
 in two dimensional space.
 
 Although we detected in our experiments some points of weakness in the network-temporal
-position indexing, the NDM outperforms the DMFS by orders of magnitude. The weakness
-of the NDM mostly occurs in queries with short run times, whereas the advantages
-of the NDM become apparent in the queries with long run times, such that the weakness
-of the network-temporal position index is covered by the advantages of the network
-data model.
+position indexing, NET outperforms SPACE by orders of magnitude. The weakness
+of NET mostly occurs in queries with short run times, whereas the advantages
+of NET become apparent in the queries with long run times, such that the weakness
+of the network-temporal position index is covered by the advantages of NET.
 \section{Summary and Future Work}
 \label{sec:summary}
-We presented our translation of the \bmodb{} into the NDM and
+We presented our translation of the \bmodb{} into the NDM NET and
 compared the capabilities of both data models, with very good results for the
-NDM. Our experiments show that the NDM outperforms
-the DMFS by orders of magnitude with respect to storage space and query run times.
+NET. Our experiments show that NET outperforms
+SPACE by orders of magnitude with respect to storage space and query run times.
 This is mainly caused by the much lower number of units for an \dt{mgpoint} value
 compared with the number of units of the corresponding \dt{mpoint}, which also
-results in smaller indexes for the NDM objects. The \bmodb{} of the NDM pointed out
+results in smaller indexes for NET objects. The \bmodb{} of NET pointed out
 that we should spend time in the improvement of the network-temporal position index
 and the \op{at} operation for \dt{mgpoint} and \dt{gpoint} values.
 
-The good results of the NDM encourage us to work on an extension
+The good results of NET encourages us to work on an extension
 of the \bmodb{}, which should enable us to compare the capabilities of different
 spatio-temporal NDMs with respect to the special challenges of
-NDM, like shortest path and fastest path computation.
+NDM, like shortest path computation.
 
 Another direction of our actual work is traffic flow estimation and traffic jam
-representation in the NDM.
+representation in the network data model NET.
 
-Another interesting topic for future work on the NDMs is the efficient
+Another interesting topic for future work on network data models is the efficient
 computation of dynamic network distances between moving network objects.
 \bibliography{BerlinMODAndNetworkDataModel}{}
 \bibliographystyle{plain}
@@ -2111,14 +2102,14 @@ trip based approach (TBA).
 xxx\=xxx\=xxx\=xxx\=xxx\=xxx\=xxx\=xxx\=xxx\=xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\kill
 \op{let} Q1OBA =\\
 \>QueryLicences \op{feed} \{l\}\\
-\>\>\op{loopjoin} [dataSNcar\_Licence\_btree dataSNcar \op{exactmatch} [.Licence\_l]]\\
-\>\>\op{project} [Licence, Model]\\
+\>\op{loopjoin} [dataSNcar\_Licence\_btree dataSNcar \op{exactmatch} [.Licence\_l]]\\
+\>\op{project} [Licence, Model]\\
 \op{consume};\\
 \\
 \op{let} Q1TBA =\\
 \>QueryLicences \op{feed} \{l\}\\
-\>\>\op{loopjoin} [dataMcar\_Licence\_btree dataMcar \op{exactmatch}[.Licence\_l]]\\
-\>\>\op{project} [Licence, Model]\\
+\>\op{loopjoin} [dataMcar\_Licence\_btree dataMcar \op{exactmatch}[.Licence\_l]]\\
+\>\op{project} [Licence, Model]\\
 \op{consume};\\
 \\
 \op{let} Q2OBA = dataSNcar \op{feed filter} [.Type = 'passenger'] \op{count};\\
@@ -2226,7 +2217,7 @@ xxx\=xxx\=xxx\=xxx\=xxx\=xxx\=xxx\=xxx\=xxx\=xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\kill
 \op{let} Q6TBA =\\
 \>Q6hTBA \op{feed} \{c1\}\\
 \>Q6hTBA \op{feed} \{c2\}\\
-\>\op{symmjoin}[(.Box\_c1 \op{intersects} ..Box\_c2) \op{and} (.Licence\_c1 < ..Licence\_c2)]\\
+\>\op{symmjoin}[(.Box\_c1 \op{intersects} ..Box\_c2) \op{and} (.Licence\_c1 $<$ ..Licence\_c2)]\\
 \>\op{filter} [\op{everNearerThan}(.ptrip\_c1, .ptrip\_c2, 10.0)]\\
 \>\op{project} [Licence\_c1, Licence\_c2]\\
 \>\op{sortby} [Licence\_c1 \op{asc}, Licence\_c2 \op{asc}]\\
@@ -2504,7 +2495,7 @@ attr(t,Instant\_i)]]\{a\}\\
 \>\op{projectextendstream}[Id, Region; Rrect:  \op{routeintervals}(.Region)]
 \{r\}\\
 \>QueryInstant1 \op{feed} \{i\}\\
-\>{product}\\
+\>\op{product}\\
 \>\op{projectextend}[Id\_R, Region\_r, Instant\_i; Box:
 \op{box3d}(attr(t,Rrect\_r), attr(t,Instant\_i))]\\
 \>\op{loopsel}[\op{fun} (t:TUPLE) dataSNcar\_BoxNet\_timespace
