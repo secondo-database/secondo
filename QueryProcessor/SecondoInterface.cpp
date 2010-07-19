@@ -587,7 +587,8 @@ SecondoInterface::Secondo( const string& commandText,
                            int& errorCode,
                            int& errorPos,
                            string& errorMessage,
-                           const string& resultFileName /*="SecondoResult"*/ )
+                           const string& resultFileName /*="SecondoResult"*/,
+                           const bool isApplicationLevelCommand/* = true */ )
 {
 /*
 
@@ -596,21 +597,21 @@ The command is one of a set of SECONDO commands.
 
 Error Codes: see definition module.
 
-If value 0 is returned, the command was executed without error.
+If ~errorCode~ 0 is returned, the command was executed without error.
 
 To avoid redundant maintainance of error messages in the C++ code and in the
 Java-GUI, the errorcode will not longer be used and code -1 will be returned
-in case of an error. All error messages shoold be stored in the ErrorReporter
-as a formatted string with linebreaks and this string will be returned.
+in case of an error. All error messages should be stored in the ErrorReporter
+as a formatted string with linebreaks and this string will be returned in
+return parameter ~errorMessage~.
 
 Messages send to ~cerr~ or ~cout~ should be avoided, since they can not be
 transferred to the client. If necessary please use the ~cmsg~ object explained
 in the file "include/LogMsg.h"
 
 Please create new functions for implementation of new commands, since this
-function conatins already many lines of code. Some commands have been moved to
-separate functions which should be named Command\_<name>.
-
+function contains already many lines of code. Hence, some commands have been
+moved to separate functions. This kind of functions should be named Command\_<name>.
 
 */
 
@@ -632,9 +633,13 @@ separate functions which should be named Command\_<name>.
 
   // copy command list to internal NL memory
   ListExpr commandLE2 = nl->TheEmptyList();
-  if (commandLE)
-  {
-     commandLE2 = al->CopyList(commandLE, nl);
+  if (!commandAsText && commandLE){
+    if(!isApplicationLevelCommand){// use own NL storage
+//       commandLE2 = commandLE; // XRIS original code
+      commandLE2 = nl->CopyList(commandLE, nl); //  XRIS new code
+    } else { // copy from application's NL storage
+      commandLE2 = al->CopyList(commandLE, nl);
+    }
   }
 
   // The error list which may be extended by some catalog commands
@@ -948,7 +953,7 @@ separate functions which should be named Command\_<name>.
 
           default:
           {
-            cmsg.info() 
+            cmsg.info()
               << "Error during restore detected. Trying to create "
 	            << "derived objects ..." << endl;
             cmsg.send();
@@ -1380,6 +1385,26 @@ separate functions which should be named Command\_<name>.
     {
       errorCode = Command_Set( list );
     }
+
+    // --- conditional command: if <p> then <c1> [ else <c2> ] endif
+    else if ( nl->IsEqual( first, "if" ) &&
+              (
+                (    (length == 7)
+                  && nl->IsEqual(nl->Nth( 3, list ), "then")
+                  && nl->IsEqual(nl->Nth( 5, list ), "else")
+                  && nl->IsEqual(nl->Nth( 7, list ), "endif")
+                ) ||
+                (    (length == 5)
+                  && nl->IsEqual(nl->Nth( 3, list ), "then")
+                  && nl->IsEqual(nl->Nth( 5, list ), "endif")
+                )
+              )
+            )
+    {
+      errorCode = SecondoInterface::Command_Conditional( list,
+                                       resultList,
+                                       errorMessage );
+    }
     else
     {
       errorCode = ERR_CMD_NOT_RECOGNIZED;         // Command not recognized
@@ -1411,7 +1436,9 @@ separate functions which should be named Command\_<name>.
   // copy result into application specific list container.
   StopWatch copyTime;
   if (resultList) {
-     resultList = nl->CopyList(resultList, al);
+     if(isApplicationLevelCommand){
+      resultList = nl->CopyList(resultList, al);
+     }
      if (printQueryAnalysis)
      {
         cmsg.info() << padStr("Copying result ...",20)
@@ -1422,16 +1449,23 @@ separate functions which should be named Command\_<name>.
   }
 
   if (showResult) {
-    cmsg.info() << endl << "### Result after copying: "
-                << al->ToString(resultList) << endl;
+    if(isApplicationLevelCommand){ // use external NL storage
+        cmsg.info() << endl << "### Result after copying: "
+                    << al->ToString(resultList) << endl;
+    } else { // use internal NL storage
+        cmsg.info() << endl << "### Result after copying: "
+                    << nl->ToString(resultList) << endl;
+    }
     cmsg.send();
   }
-  nl->initializeListMemory();
+  if(isApplicationLevelCommand){ // clear NL storage after an ApplicationCommand
+    nl->initializeListMemory();
+  }
 
   cmdReal = cmdTime.diffSecondsReal();
   cmdCPU = cmdTime.diffSecondsCPU();
 
-  // initialize and increment query counter
+  // initialize and increment query counter (better: command counter)
   static int CmdNr = 0;
   CmdNr++;
 
@@ -1503,6 +1537,7 @@ separate functions which should be named Command\_<name>.
   am.UpdateOperatorUsage(operatorUsageRel);
 
   Flob::killAllNativeFlobs();
+
   return;
 }
 
@@ -2004,6 +2039,83 @@ SecondoInterface::Command_Set( const ListExpr list )
   return errorCode;
 }
 
+/*
+1.2.5 The if-then-endif and if-then-else-endif Command
+
+~list~ must have one of the following two structures:
+
+----
+  (if <value-expression> then <command> endif)
+  (if <value-expression> then <command> else <command> endif)
+----
+
+*/
+SI_Error
+SecondoInterface::Command_Conditional( const ListExpr list,
+                                       ListExpr &resultList,
+                                       string &errorMessage )
+{
+  SI_Error errorCode = ERR_NO_ERROR;
+  bool pred_def = false;
+  bool pred_val = false;
+  int errorPos = 0;
+  ListExpr command = nl->TheEmptyList();
+  ListExpr presult = nl->TheEmptyList();
+  resultList       = nl->TheEmptyList();
+  errorMessage     = "";
+
+  command = nl->TwoElemList(nl->SymbolAtom("query"),nl->Second( list ));
+  errorCode = SecondoInterface::Command_Query( command, presult, errorMessage );
+  if(errorCode != ERR_NO_ERROR){
+    return errorCode;
+  } else { // check result type
+    if(    (nl->ListLength(presult) != 2)
+        || !nl->IsAtom(nl->First(presult))
+        || !nl->IsEqual(nl->First(presult),"bool")
+        || !nl->IsAtom(nl->Second(presult))
+      ){
+      errorMessage =
+        "IF-THEN-ELSE-ENDIF: Expected a boolean expression as predicate.";
+      errorCode = ERR_SYNTAX_ERROR;
+      return errorCode;
+    } else { // get result value
+      pred_def = !nl->IsEqual(nl->Second(presult),"undef");
+      if(pred_def){
+        pred_val =  nl->BoolValue(nl->Second(presult));
+      } // else pred_val = false
+    }
+  }
+  if( pred_def && pred_val ){
+    // execute 1st command (THEN-branch)
+    command = nl->Nth( 4, list );
+    SecondoInterface::Secondo( "",
+                           command,
+                           0,
+                           false,
+                           false,
+                           resultList,
+                           errorCode,
+                           errorPos,
+                           errorMessage,
+                           "SecondoResult",
+                           false);
+  } else if( pred_def && !pred_val && (nl->ListLength(list) == 7) ){
+    // execute 2nd command (ELSE-branch)
+    command = nl->Nth( 6, list );
+    SecondoInterface::Secondo( "",
+                           command,
+                           0,
+                           false,
+                           false,
+                           resultList,
+                           errorCode,
+                           errorPos,
+                           errorMessage,
+                           "SecondoResult",
+                           false);
+  }
+  return errorCode;
+}
 
 /*
 1.3 Procedure ~NumericTypeExpr~

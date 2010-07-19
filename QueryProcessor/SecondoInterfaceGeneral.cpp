@@ -396,10 +396,13 @@ Calling Secondo with command given in textual syntax
 bool
 SecondoInterface::Secondo( const string& cmdText,
                            ListExpr& resultList,
-                           SecErrInfo& err       )
+                           SecErrInfo& err,
+                           const string& resultFileName,
+                           const bool isApplicationLevelCommand )
 {
   Secondo( cmdText, nl->Empty(), 1, false, false,
-           resultList, err.code, err.pos, err.msg );
+           resultList, err.code, err.pos, err.msg,
+           resultFileName, isApplicationLevelCommand );
 
   if (err.code != ERR_NO_ERROR || err.msg != "")
     return false;
@@ -414,10 +417,13 @@ Calling Secondo with command given in list syntax
 bool
 SecondoInterface::Secondo( const ListExpr cmdList,
                            ListExpr& resultList,
-                           SecErrInfo& err       )
+                           SecErrInfo& err,
+                           const string& resultFileName,
+                           const bool isApplicationLevelCommand )
 {
   Secondo( "", cmdList, 0, false, false,
-           resultList, err.code, err.pos, err.msg );
+           resultList, err.code, err.pos, err.msg, resultFileName,
+           isApplicationLevelCommand );
 
   if (err.code != ERR_NO_ERROR || err.msg != "")
     return false;

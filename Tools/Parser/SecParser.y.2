@@ -1,10 +1,10 @@
 
 
 /*
----- 
+----
 This file is part of SECONDO.
 
-Copyright (C) 2004, University in Hagen, Department of Computer Science, 
+Copyright (C) 2004, University in Hagen, Department of Computer Science,
 Database Systems for New Applications.
 
 SECONDO is free software; you can redistribute it and/or modify
@@ -26,11 +26,11 @@ May 15, 1998 RHG Added rule for the ~model~ command.
 
 Feb 3, 1999 Stefan Dieker Added "typexpr : typeexpr ':' typeexpr" rule
 
-August 10, 2000 RHG Changed definition of syntax for constant values. Now to be written as 
+August 10, 2000 RHG Changed definition of syntax for constant values. Now to be written as
 
 	'[' typeexpr 'const' valueexpr ']'
 
-for example, 
+for example,
 
 ----	[points const ((1 -4) (2 3))]
 	[int const 954]
@@ -55,7 +55,7 @@ relation constants can be parsed correctly. The new notation is
 
 for example
 
-        [const int value 25]    
+        [const int value 25]
 
         [const rel(tuple([no1:int, no2:int])) value ((1 4) (2 5) (3 6))]
 
@@ -68,11 +68,13 @@ October 14, 2004 RHG Added text atoms and file atoms for nested lists.
 
 January 10, 2005 Victor Almeida removed the ~model~ token.
 
+July 15, 2010 Christian Duentgen added conditionalcommand.
 */
 
 %%
 
 /* commands */
+
 
 commands  :  command
     |  command ';'
@@ -84,125 +86,287 @@ command    :  basic
     |  database
     |  inquiries
     |  set
-    ;  
+    |  conditionalcommand
+    |  commandblock
+    ;
+
+commandblock  :  ZZBEGINSEQ commandseq ZZENDSEQ
+    { CLEAR();
+      PRINTF("(beginseq (");
+      PRINT($2);
+      PRINTF(") endseq)\n");
+    }
+    |  ZZBEGINSEQ ZZENDSEQ
+    { CLEAR();
+      PRINTF("(beginseq () endseq)\n");
+    }
+    ;
+
+commandseq  :  commandseq '|' command
+    { CLEAR();
+      PRINT($1);
+      PRINTF(" ");
+      PRINT($3);
+    }
+    | command
+    { CLEAR();
+      PRINT($1);
+    }
+
+    ;
+
+conditionalcommand  :  ZZIF valueexpr ZZTHEN command ZZELSE command ZZENDIF
+    { CLEAR();
+      PRINTF("(if ");
+      PRINT($2);
+      PRINTF(" then ");
+      PRINT($4);
+      PRINTF(" else ");
+      PRINT($6);
+      PRINTF(" endif)\n");
+    }
+    | ZZIF valueexpr ZZTHEN command ZZENDIF
+    { CLEAR();
+      PRINTF("(if ");
+      PRINT($2);
+      PRINTF(" then ");
+      PRINT($4);
+      PRINTF(" endif)\n");
+    }
+    ;
 
 basic    :  ZZTYPE ZZIDENTIFIER ZZINFIXOP typeexpr
-        {string equalstr;
+        {
+        CLEAR();
+        string equalstr;
         NestedText::CopyOut( $3, equalstr );
         if(equalstr!="=") {
           yyerror("type declataion expects a '=' at the third position");
           return -1;
         }
-        PRINTF("(type "); PRINT($2); 
-        PRINTF(" = "); PRINT($4); PRINTF(")\n");}
-    |  ZZDELETE ZZTYPE ZZIDENTIFIER  
-        {PRINTF("(delete type "); PRINT($3); 
-        PRINTF(")\n");}
+        PRINTF("(type "); PRINT($2);
+        PRINTF(" = "); PRINT($4); PRINTF(")\n");
+        $$ = NestedText::AtomC(yacc_outtext->c_str());
+        }
+    |  ZZDELETE ZZTYPE ZZIDENTIFIER
+        {CLEAR();
+        PRINTF("(delete type "); PRINT($3);
+        PRINTF(")\n");
+        $$ = NestedText::AtomC(yacc_outtext->c_str());
+        }
     |  ZZCREATE ZZIDENTIFIER ':' typeexpr
-        {PRINTF("(create "); PRINT($2); 
-        PRINTF(" : "); PRINT($4); PRINTF(")\n");}
+        {
+        CLEAR();
+        PRINTF("(create "); PRINT($2);
+        PRINTF(" : "); PRINT($4); PRINTF(")\n");
+        $$ = NestedText::AtomC(yacc_outtext->c_str());
+        }
 
     |    {paramno=0; emptystack();}
       ZZUPDATE ZZIDENTIFIER ZZASSIGN valueexpr
-        {PRINTF("(update "); PRINT($3); 
-        PRINTF(" := "); PRINT($5); PRINTF(")\n");}
-                |       ZZKILL ZZIDENTIFIER
-                                {PRINTF("(kill "); PRINT($2);
-                                PRINTF(")\n");}
+        {
+        CLEAR();
+        PRINTF("(update "); PRINT($3);
+        PRINTF(" := "); PRINT($5); PRINTF(")\n");
+        $$ = NestedText::AtomC(yacc_outtext->c_str());
+        }
+    |       ZZKILL ZZIDENTIFIER
+        {PRINTF("(kill "); PRINT($2);
+         PRINTF(")\n");
+         $$ = NestedText::AtomC(yacc_outtext->c_str());
+         }
     |  ZZDELETE ZZIDENTIFIER
-        {PRINTF("(delete "); PRINT($2); 
-        PRINTF(")\n");}
+        {
+        CLEAR();
+        PRINTF("(delete "); PRINT($2);
+        PRINTF(")\n");
+        $$ = NestedText::AtomC(yacc_outtext->c_str());
+        }
 
     |    {paramno=0; emptystack();}
       ZZQUERY valueexpr
-        {PRINTF("(query "); PRINT($3); 
-        PRINTF(")\n"); }
+        {
+        CLEAR();
+        PRINTF("(query "); PRINT($3);
+        PRINTF(")\n");
+        $$ = NestedText::AtomC(yacc_outtext->c_str());
+        }
 
     |    {paramno=0; emptystack();}
       ZZLET ZZIDENTIFIER ZZINFIXOP  valueexpr
-       {string equalstr;
+       {
+        CLEAR();
+       string equalstr;
         NestedText::CopyOut( $4, equalstr );
         if(equalstr!="=") {
           yyerror("let command expects a '=' at the third position");
           return -1;
         }
         PRINTF("(let "); PRINT($3);
-        PRINTF(" = "); PRINT($5); PRINTF(")\n");}
+        PRINTF(" = "); PRINT($5); PRINTF(")\n");
+         $$ = NestedText::AtomC(yacc_outtext->c_str());
+        }
 
     |    {paramno=0; emptystack();}
       ZZDERIVE ZZIDENTIFIER ZZINFIXOP valueexpr
-       {string equalstr;
+       {
+        CLEAR();
+       string equalstr;
         NestedText::CopyOut( $4, equalstr );
         if(equalstr!="=") {
           yyerror("derive command expects a '=' at the third position");
           return -1;
         }
         PRINTF("(derive "); PRINT($3);
-        PRINTF(" = "); PRINT($5); PRINTF(")\n");}
+        PRINTF(" = "); PRINT($5); PRINTF(")\n");
+        $$ = NestedText::AtomC(yacc_outtext->c_str());
+
+      }
 
     |  ZZPERSISTENT ZZIDENTIFIER
-        {PRINTF("(persistent "); PRINT($2); 
-        PRINTF(")\n");}
+        {
+        CLEAR();
+        PRINTF("(persistent "); PRINT($2);
+        PRINTF(")\n");
+        $$ = NestedText::AtomC(yacc_outtext->c_str());
+        }
     ;
 
 transaction  :  ZZBEGIN1 ZZTRANSACTION
-        {PRINTF("(begin transaction)\n");}
+        {
+        CLEAR();
+        PRINTF("(begin transaction)\n");
+         $$ = NestedText::AtomC(yacc_outtext->c_str());
+        }
     |  ZZCOMMIT ZZTRANSACTION
-        {PRINTF("(commit transaction)\n");}
+        {
+        CLEAR();
+        PRINTF("(commit transaction)\n");
+         $$ = NestedText::AtomC(yacc_outtext->c_str());
+        }
     |  ZZABORT ZZTRANSACTION
-        {PRINTF("(abort transaction)\n");}
+        {
+        CLEAR();
+        PRINTF("(abort transaction)\n");
+         $$ = NestedText::AtomC(yacc_outtext->c_str());
+        }
     ;
 
 database  :  ZZCREATE ZZDATABASE ZZIDENTIFIER
-        {PRINTF("(create database "); PRINT($3); 
-        PRINTF(")\n");}
+        {
+        CLEAR();
+        PRINTF("(create database "); PRINT($3);
+        PRINTF(")\n");
+        $$ = NestedText::AtomC(yacc_outtext->c_str());
+        }
     |  ZZDELETE ZZDATABASE ZZIDENTIFIER
-        {PRINTF("(delete database "); PRINT($3); 
-        PRINTF(")\n");}
+        {
+        CLEAR();
+        PRINTF("(delete database "); PRINT($3);
+        PRINTF(")\n");
+        $$ = NestedText::AtomC(yacc_outtext->c_str());
+        }
     |  ZZOPEN ZZDATABASE ZZIDENTIFIER
-        {PRINTF("(open database "); PRINT($3); 
-        PRINTF(")\n");}
-    |  ZZCLOSE ZZDATABASE 
-        {PRINTF("(close database)\n");}
+        {
+        CLEAR();
+        PRINTF("(open database "); PRINT($3);
+        PRINTF(")\n");
+        $$ = NestedText::AtomC(yacc_outtext->c_str());
+        }
+    |  ZZCLOSE ZZDATABASE
+        {
+        CLEAR();
+        PRINTF("(close database)\n");
+         $$ = NestedText::AtomC(yacc_outtext->c_str());
+        }
     |  ZZSAVE ZZDATABASE ZZTO filename
-        {PRINTF("(save database to "); PRINT($4); 
-        PRINTF(")\n");}
+        {
+        CLEAR();
+        PRINTF("(save database to "); PRINT($4);
+        PRINTF(")\n");
+        $$ = NestedText::AtomC(yacc_outtext->c_str());
+        }
     |  ZZSAVE ZZIDENTIFIER ZZTO filename
-        {PRINTF("(save "); PRINT($2); 
-         PRINTF(" to "); PRINT($4); 
-        PRINTF(")\n");}
-    |  ZZRESTORE ZZDATABASE ZZIDENTIFIER ZZFROM filename 
-        {PRINTF("(restore database "); PRINT($3); 
-        PRINTF(" from "); PRINT($5); PRINTF(")\n");}
-    |  ZZRESTORE ZZIDENTIFIER ZZFROM filename 
-        {PRINTF("(restore "); PRINT($2); 
-        PRINTF(" from "); PRINT($4); PRINTF(")\n");}
+        {
+        CLEAR();
+        PRINTF("(save "); PRINT($2);
+         PRINTF(" to "); PRINT($4);
+        PRINTF(")\n");
+        $$ = NestedText::AtomC(yacc_outtext->c_str());
+        }
+    |  ZZRESTORE ZZDATABASE ZZIDENTIFIER ZZFROM filename
+        {
+        CLEAR();
+        PRINTF("(restore database "); PRINT($3);
+        PRINTF(" from "); PRINT($5); PRINTF(")\n");
+        $$ = NestedText::AtomC(yacc_outtext->c_str());
+        }
+    |  ZZRESTORE ZZIDENTIFIER ZZFROM filename
+        {
+        CLEAR();
+        PRINTF("(restore "); PRINT($2);
+        PRINTF(" from "); PRINT($4); PRINTF(")\n");
+        $$ = NestedText::AtomC(yacc_outtext->c_str());
+        }
     ;
 
-filename  :  ZZIDENTIFIER 
+filename  :  ZZIDENTIFIER
     |  ZZTEXT
     ;
 
 inquiries  :  ZZLIST ZZDATABASES
-        {PRINTF("(list databases)\n");}
+        {
+        CLEAR();
+        PRINTF("(list databases)\n");
+        $$ = NestedText::AtomC(yacc_outtext->c_str());
+        }
     |  ZZLIST ZZALGEBRAS
-        {PRINTF("(list algebras)\n");}
+        {
+        CLEAR();
+        PRINTF("(list algebras)\n");
+         $$ = NestedText::AtomC(yacc_outtext->c_str());
+        }
     |  ZZLIST ZZALGEBRA ZZIDENTIFIER
-        {PRINTF("(list algebra "); PRINT($3); 
-        PRINTF(")\n");}        
+        {
+        CLEAR();
+        PRINTF("(list algebra "); PRINT($3);
+        PRINTF(")\n");
+        $$ = NestedText::AtomC(yacc_outtext->c_str());
+        }
     |  ZZLIST ZZTYPE ZZCONSTRUCTORS
-        {PRINTF("(list type constructors)\n");}
+        {
+        CLEAR();
+        PRINTF("(list type constructors)\n");
+         $$ = NestedText::AtomC(yacc_outtext->c_str());
+        }
     |  ZZLIST ZZOPERATORS
-        {PRINTF("(list operators)\n");}
+        {
+        CLEAR();
+        PRINTF("(list operators)\n");
+         $$ = NestedText::AtomC(yacc_outtext->c_str());
+        }
     |  ZZLIST ZZTYPES
-        {PRINTF("(list types)\n");}
+        {
+        CLEAR();
+        PRINTF("(list types)\n");
+         $$ = NestedText::AtomC(yacc_outtext->c_str());
+        }
     |  ZZLIST ZZOBJECTS
-        {PRINTF("(list objects)\n");}
+        {
+        CLEAR();
+        PRINTF("(list objects)\n");
+         $$ = NestedText::AtomC(yacc_outtext->c_str());
+        }
     |  ZZLIST ZZCOUNTERS
-        {PRINTF("(list counters)\n");}
+        {
+        CLEAR();
+        PRINTF("(list counters)\n");
+         $$ = NestedText::AtomC(yacc_outtext->c_str());
+        }
     ;
 
 set : ZZIDENTIFIER ZZSTRING ZZINFIXOP ZZBOOLEAN  {
+        CLEAR();
         string setstr;
         NestedText::CopyOut( $1, setstr );
         string equalstr;
@@ -220,6 +384,7 @@ set : ZZIDENTIFIER ZZSTRING ZZINFIXOP ZZBOOLEAN  {
         PRINTF(" = ");
         PRINT($4);
         PRINTF(" )");
+        $$ = NestedText::AtomC(yacc_outtext->c_str());
       }
     ;
 
@@ -253,8 +418,8 @@ constructor  :  ZZIDENTIFIER  {$$ = $1;}
     ;
 
 typeexprs  :  typeexpr  {$$ = $1;}
-    |  typeexprs ',' typeexpr  
-          {$$ = NestedText::Concat($1, 
+    |  typeexprs ',' typeexpr
+          {$$ = NestedText::Concat($1,
             NestedText::Concat(NestedText::AtomC(" "), $3));}
     ;
 
@@ -295,7 +460,7 @@ arg    : ZZIDENTIFIER ':' typeexpr
     ;
 
 args    : arg    {$$ = $1;}
-    | args ',' arg  {$$ = NestedText::Concat($1, 
+    | args ',' arg  {$$ = NestedText::Concat($1,
                   NestedText::Concat(NestedText::AtomC(" "), $3));}
     ;
 
@@ -312,22 +477,22 @@ attribute2  : ZZDOUBLE ZZIDENTIFIER
       {$$ = NestedText::Concat(NestedText::AtomC("(attr "),
         NestedText::Concat(NestedText::AtomC(param2),
         NestedText::Concat(NestedText::AtomC(" "),
-        NestedText::Concat($2,        
+        NestedText::Concat($2,
           NestedText::AtomC(")")  ))));}
     ;
 
 
 constant  : ZZINTEGER | ZZREAL | ZZSTRING | ZZTEXT | ZZBOOLEAN
-    ; 
+    ;
 
 nestedlist  : atom      {$$ = $1;}
     | '(' rest    {$$ = NestedText::Concat($1, $2);}
     ;
 
 rest    : ')'      {$$ = $1;}
-    | atom rest    {$$ = NestedText::Concat($1, 
+    | atom rest    {$$ = NestedText::Concat($1,
             NestedText::Concat(NestedText::AtomC(" "), $2));}
-    | nestedlist rest  {$$ = NestedText::Concat($1, 
+    | nestedlist rest  {$$ = NestedText::Concat($1,
             NestedText::Concat(NestedText::AtomC(" "), $2));}
     ;
 
@@ -337,7 +502,7 @@ atom    : constant    {$$ = $1;}
     | ZZFILE    {$$ = $1;}
     ;
 
-list    : elems      {$$ = NestedText::Concat(NestedText::AtomC("("), 
+list    : elems      {$$ = NestedText::Concat(NestedText::AtomC("("),
             NestedText::Concat($1,
             NestedText::AtomC(")")     ));}
     ;
@@ -349,11 +514,11 @@ elems    :       {$$ = NestedText::AtomC("");}
     ;
 
 elem    : valueexpr    {$$ = $1;}
-    | valueexpr valueexpr  
+    | valueexpr valueexpr
       {$$ = NestedText::Concat(NestedText::AtomC("("),
         NestedText::Concat($1,
         NestedText::Concat(NestedText::AtomC(" "),
-        NestedText::Concat($2,        
+        NestedText::Concat($2,
           NestedText::AtomC(")")  ))));}
     | namedfunction    {$$ = $1;}
     ;
@@ -364,18 +529,18 @@ naming    : ZZIDENTIFIER ':'  {$$ = $1;}
 valueexprlistcomma : valueexpr
                      { $$ = $1; }
                    | valueexprlistcomma ',' valueexpr
-                     {$$ = NestedText::Concat($1,  
-                      NestedText::Concat(NestedText::AtomC(" "),$3)); 
+                     {$$ = NestedText::Concat($1,
+                      NestedText::Concat(NestedText::AtomC(" "),$3));
                      }
                    ;
-simplearguments : valueexprlistcomma 
+simplearguments : valueexprlistcomma
                   { $$ = $1; }
                 | simplearguments ';' valueexprlistcomma
-                  {$$ = NestedText::Concat($1,  
-                        NestedText::Concat(NestedText::AtomC(" "),$3)); 
+                  {$$ = NestedText::Concat($1,
+                        NestedText::Concat(NestedText::AtomC(" "),$3));
                   }
                 ;
- 
+
 valueexpr  : ZZIDENTIFIER        {$$ = $1;}
     | constant        {$$ = $1;}
     | function        {$$ = $1;}
@@ -383,7 +548,7 @@ valueexpr  : ZZIDENTIFIER        {$$ = $1;}
       {$$ = NestedText::Concat(NestedText::AtomC("("),
         NestedText::Concat($1,
         NestedText::Concat(NestedText::AtomC(" "),
-        NestedText::Concat($3,        
+        NestedText::Concat($3,
           NestedText::AtomC(")")  ))));}
     | ZZIDENTIFIER '(' ')'
       {$$ = NestedText::Concat(
@@ -396,7 +561,7 @@ valueexpr  : ZZIDENTIFIER        {$$ = $1;}
       {$$ = NestedText::Concat(NestedText::AtomC("("),
         NestedText::Concat($3,
         NestedText::Concat(NestedText::AtomC(" "),
-        NestedText::Concat($5,        
+        NestedText::Concat($5,
           NestedText::AtomC(")")  ))));}
     | '[' list ']'        {$$ = $2;}
 
@@ -409,109 +574,109 @@ valueexpr  : ZZIDENTIFIER        {$$ = $1;}
     | ZZGROUP        {$$ = NestedText::AtomC(param1);}
 
     | valueexpr '{' ZZIDENTIFIER '}'
-      {$$ = NestedText::Concat(NestedText::AtomC("(rename"), 
-        NestedText::Concat(NestedText::AtomC(" "), 
+      {$$ = NestedText::Concat(NestedText::AtomC("(rename"),
+        NestedText::Concat(NestedText::AtomC(" "),
         NestedText::Concat($1,
-        NestedText::Concat(NestedText::AtomC(" "), 
+        NestedText::Concat(NestedText::AtomC(" "),
         NestedText::Concat($3,
         NestedText::AtomC(")")     )))));}
 
     | valueexpr '{' ZZINTEGER '}'
-      {$$ = NestedText::Concat(NestedText::AtomC("(counter"), 
-        NestedText::Concat(NestedText::AtomC(" "), 
+      {$$ = NestedText::Concat(NestedText::AtomC("(counter"),
+        NestedText::Concat(NestedText::AtomC(" "),
         NestedText::Concat($3,
-        NestedText::Concat(NestedText::AtomC(" "), 
+        NestedText::Concat(NestedText::AtomC(" "),
         NestedText::Concat($1,
         NestedText::AtomC(")")     )))));}
 
     | valueexpr '{' ZZREAL ',' ZZREAL '}'
-      {$$ = NestedText::Concat(NestedText::AtomC("(predinfo "), 
-        NestedText::Concat($3, 
-        NestedText::Concat(NestedText::AtomC(" "), 
+      {$$ = NestedText::Concat(NestedText::AtomC("(predinfo "),
+        NestedText::Concat($3,
+        NestedText::Concat(NestedText::AtomC(" "),
         NestedText::Concat($5,
-        NestedText::Concat(NestedText::AtomC(" "), 
+        NestedText::Concat(NestedText::AtomC(" "),
         NestedText::Concat($1,
         NestedText::AtomC(")")     ))))));}
 
     | valueexpr '{' ZZREAL ',' ZZINTEGER '}'
-      {$$ = NestedText::Concat(NestedText::AtomC("(predinfo "), 
-        NestedText::Concat($3, 
-        NestedText::Concat(NestedText::AtomC(" "), 
+      {$$ = NestedText::Concat(NestedText::AtomC("(predinfo "),
+        NestedText::Concat($3,
+        NestedText::Concat(NestedText::AtomC(" "),
         NestedText::Concat($5,
         NestedText::Concat(NestedText::AtomC(".0 "),
         NestedText::Concat($1,
         NestedText::AtomC(")")     ))))));}
 
     | valueexpr '{' ZZINTEGER ',' ZZREAL '}'
-      {$$ = NestedText::Concat(NestedText::AtomC("(predinfo "), 
-        NestedText::Concat($3, 
-        NestedText::Concat(NestedText::AtomC(".0 "), 
+      {$$ = NestedText::Concat(NestedText::AtomC("(predinfo "),
+        NestedText::Concat($3,
+        NestedText::Concat(NestedText::AtomC(".0 "),
         NestedText::Concat($5,
         NestedText::Concat(NestedText::AtomC(" "),
         NestedText::Concat($1,
         NestedText::AtomC(")")     ))))));}
 
     | valueexpr '{' ZZINTEGER ',' ZZINTEGER '}'
-      {$$ = NestedText::Concat(NestedText::AtomC("(predinfo "), 
-        NestedText::Concat($3, 
-        NestedText::Concat(NestedText::AtomC(".0 "), 
+      {$$ = NestedText::Concat(NestedText::AtomC("(predinfo "),
+        NestedText::Concat($3,
+        NestedText::Concat(NestedText::AtomC(".0 "),
         NestedText::Concat($5,
         NestedText::Concat(NestedText::AtomC(".0 "),
         NestedText::Concat($1,
         NestedText::AtomC(")")     ))))));}
 
     | valueexpr ZZINFIXOP valueexpr
-      {$$ = NestedText::Concat(NestedText::AtomC("("), 
-        NestedText::Concat($2, 
-        NestedText::Concat(NestedText::AtomC(" "), 
+      {$$ = NestedText::Concat(NestedText::AtomC("("),
+        NestedText::Concat($2,
+        NestedText::Concat(NestedText::AtomC(" "),
         NestedText::Concat($1,
-        NestedText::Concat(NestedText::AtomC(" "), 
+        NestedText::Concat(NestedText::AtomC(" "),
         NestedText::Concat($3,
         NestedText::AtomC(")")     ))))));
       }
     | valueexpr ZZINFIXOP_BUF valueexpr
       {$$ = NestedText::Concat(
         USE_AUTO_BUFFER?NestedText::AtomC("( !  (")
-                       :NestedText::AtomC("("), 
-        NestedText::Concat($2, 
-        NestedText::Concat(NestedText::AtomC(" "), 
+                       :NestedText::AtomC("("),
+        NestedText::Concat($2,
+        NestedText::Concat(NestedText::AtomC(" "),
         NestedText::Concat($1,
-        NestedText::Concat(NestedText::AtomC(" "), 
+        NestedText::Concat(NestedText::AtomC(" "),
         NestedText::Concat($3,
         USE_AUTO_BUFFER?NestedText::AtomC("))")
                        :NestedText::AtomC(")")     ))))));
       }
     | ZZPREFIXOP '(' valueexprlistcomma ')'
-      {$$ = NestedText::Concat(NestedText::AtomC("("), 
-        NestedText::Concat($1, 
-        NestedText::Concat(NestedText::AtomC(" "), 
+      {$$ = NestedText::Concat(NestedText::AtomC("("),
+        NestedText::Concat($1,
+        NestedText::Concat(NestedText::AtomC(" "),
         NestedText::Concat($3,
         NestedText::AtomC(")")     ))));
       }
     | ZZPREFIXOP_BUF '(' valueexprlistcomma ')'
       {$$ = NestedText::Concat(
         USE_AUTO_BUFFER? NestedText::AtomC("( ! (")
-                       : NestedText::AtomC("("), 
-        NestedText::Concat($1, 
-        NestedText::Concat(NestedText::AtomC(" "), 
+                       : NestedText::AtomC("("),
+        NestedText::Concat($1,
+        NestedText::Concat(NestedText::AtomC(" "),
         NestedText::Concat($3,
         USE_AUTO_BUFFER?NestedText::AtomC("))")
                       :NestedText::AtomC(")") ))));
       }
     | ZZPREFIXOP '(' ')'
-      {$$ = NestedText::Concat(NestedText::AtomC("("), 
-        NestedText::Concat($1, 
+      {$$ = NestedText::Concat(NestedText::AtomC("("),
+        NestedText::Concat($1,
         NestedText::AtomC(")")     ));
       }
     | ZZPREFIXOP_BUF '(' ')'
       {$$ = NestedText::Concat(
         USE_AUTO_BUFFER?NestedText::AtomC("( ! (")
-                       :NestedText::AtomC("("), 
-        NestedText::Concat($1, 
+                       :NestedText::AtomC("("),
+        NestedText::Concat($1,
         USE_AUTO_BUFFER?NestedText::AtomC("))")
                        :NestedText::AtomC(")")     ));
       }
-      
+
 
 /* algebra specific part */
 

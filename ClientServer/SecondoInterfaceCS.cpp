@@ -1,8 +1,8 @@
 /*
----- 
+----
 This file is part of SECONDO.
 
-Copyright (C) 2004, University in Hagen, Department of Computer Science, 
+Copyright (C) 2004, University in Hagen, Department of Computer Science,
 Database Systems for New Applications.
 
 SECONDO is free software; you can redistribute it and/or modify
@@ -57,7 +57,7 @@ SecondoInterface::SecondoInterface(bool isServer /*= false*/)
 {
   Init();
 
-  serverInstance = isServer; 
+  serverInstance = isServer;
   nl = new NestedList();
   al = nl;
 }
@@ -107,22 +107,22 @@ SecondoInterface::Initialize( const string& user, const string& pswd,
       ok = (SmiEnvironment::CreateTmpEnvironment( cerr ) == 0);
 
     if (!ok) {
-      cerr << "Error: No Berkeley-DB environment! " 
+      cerr << "Error: No Berkeley-DB environment! "
            << "Persistent nested lists not available!"
            << endl;
-    }      
-    
+    }
+
     // Connect with server, needed host and port
     if ( secHost.length() == 0 || secPort.length() == 0 )
     {
       if ( parmFile.length() != 0 )
       {
-        secHost = SmiProfile::GetParameter( "Environment", 
-                                            "SecondoHost", 
+        secHost = SmiProfile::GetParameter( "Environment",
+                                            "SecondoHost",
                                             "", parmFile );
-        
-        secPort = SmiProfile::GetParameter( "Environment", 
-                                            "SecondoPort", 
+
+        secPort = SmiProfile::GetParameter( "Environment",
+                                            "SecondoPort",
                                             "", parmFile );
       }
     }
@@ -212,19 +212,19 @@ SecondoInterface::Terminate()
   }
 
   if (initialized)
-  {	  
+  {
     delete nl;
     al = 0;
     SmiEnvironment::DeleteTmpEnvironment();
     initialized = false;
-  }  
+  }
 }
 
 
 
 
-/************************************************************************** 
-3.1 The Secondo Procedure 
+/**************************************************************************
+3.1 The Secondo Procedure
 
 */
 
@@ -238,11 +238,12 @@ SecondoInterface::Secondo( const string& commandText,
                            int& errorCode,
                            int& errorPos,
                            string& errorMessage,
-                           const string& resultFileName /*="SecondoResult"*/)
+                           const string& resultFileName /*="SecondoResult"*/,
+                           const bool isApplicationLevelCommand /* = true */ )
 {
 /*
 ~Secondo~ reads a command and executes it; it possibly returns a result.
-The command is one of the set of SECONDO commands. 
+The command is one of the set of SECONDO commands.
 
 For an explanation of the error codes refer to SecondoInterface.h
 
@@ -276,7 +277,7 @@ For an explanation of the error codes refer to SecondoInterface.h
           if ( !nl->WriteToString( cmdText, commandLE ) )
           {
             // syntax error in command/expression
-            errorCode = ERR_SYNTAX_ERROR;  
+            errorCode = ERR_SYNTAX_ERROR;
           }
         }
         break;
@@ -289,7 +290,7 @@ For an explanation of the error codes refer to SecondoInterface.h
       default:
       {
        // Command type not implemented
-        errorCode = ERR_CMD_LEVEL_NOT_YET_IMPL; 
+        errorCode = ERR_CMD_LEVEL_NOT_YET_IMPL;
       }
     } // switch
   }
@@ -299,7 +300,7 @@ For an explanation of the error codes refer to SecondoInterface.h
 
   ios_base::iostate s = iosock.exceptions();
   iosock.exceptions(ios_base::failbit|ios_base::badbit|ios_base::eofbit);
-  
+
   if ( iosock.fail() )
   {
     errorCode = ERR_CONNECTION_TO_SERVER_LOST;
@@ -330,7 +331,7 @@ For an explanation of the error codes refer to SecondoInterface.h
            nl->IsEqual( nl->First( list ), "save" ) &&
            nl->IsEqual( nl->Second( list ), "database" ) &&
            nl->IsEqual( nl->Third( list ), "to" ) &&
-           nl->IsAtom( nl->Fourth( list )) && 
+           nl->IsAtom( nl->Fourth( list )) &&
            ((nl->AtomType( nl->Fourth( list )) == SymbolType) ||
             (nl->AtomType( nl->Fourth( list )) == SymbolType) ||
             (nl->AtomType( nl->Fourth( list )) == SymbolType) ))
@@ -345,15 +346,15 @@ For an explanation of the error codes refer to SecondoInterface.h
         }
         // request for save database
         iosock << "<DbSave/>" << endl;
-        
-        errorCode = csp->ReadResponse( resultList, 
-                                       errorCode, errorPos, 
+
+        errorCode = csp->ReadResponse( resultList,
+                                       errorCode, errorPos,
                                        errorMessage         );
 
         if (errorCode == ERR_NO_ERROR) {
           nl->WriteToFile( filename.c_str(), resultList );
           resultList=nl->TheEmptyList();
-        }  
+        }
       }
       else
       {
@@ -369,7 +370,7 @@ For an explanation of the error codes refer to SecondoInterface.h
   }
   else if ( posSave != string::npos && // save object to filename
             posTo   != string::npos &&
-            posDatabase == string::npos &&                        
+            posDatabase == string::npos &&
             posSave < posTo )
   {
     if ( commandType == 1 )
@@ -383,7 +384,7 @@ For an explanation of the error codes refer to SecondoInterface.h
            nl->IsAtom( nl->Second( list )) &&
           (nl->AtomType( nl->Fourth( list )) == SymbolType) &&
            nl->IsEqual( nl->Third( list ), "to" ) &&
-           nl->IsAtom( nl->Fourth( list )) && 
+           nl->IsAtom( nl->Fourth( list )) &&
           ((nl->AtomType( nl->Fourth( list )) == SymbolType) ||
            (nl->AtomType( nl->Fourth( list )) == StringType) ||
            (nl->AtomType( nl->Fourth( list )) == TextType)))
@@ -398,21 +399,21 @@ For an explanation of the error codes refer to SecondoInterface.h
         }
 
         objName = nl->SymbolValue( nl->Second( list ) );
-        
+
         // request list representation for object
         iosock << "<ObjectSave>" << endl
                << objName << endl
                << "</ObjectSave>" << endl;
-        
-        errorCode = csp->ReadResponse( resultList, 
-                                       errorCode, errorPos, 
+
+        errorCode = csp->ReadResponse( resultList,
+                                       errorCode, errorPos,
                                        errorMessage         );
 
         if (errorCode == ERR_NO_ERROR) {
           cout << "writing file " << filename << endl;
           nl->WriteToFile( filename.c_str(), resultList );
           resultList=nl->TheEmptyList();
-        }  
+        }
       }
       else
       {
@@ -426,7 +427,7 @@ For an explanation of the error codes refer to SecondoInterface.h
       errorCode = ERR_SYNTAX_ERROR;
     }
   }
-  
+
   else if ( posRestore  != string::npos &&
             posDatabase == string::npos &&
             posFrom     != string::npos &&
@@ -439,16 +440,16 @@ For an explanation of the error codes refer to SecondoInterface.h
     if ( nl->ReadFromString( cmdText, list ) )
     {
       if ( nl->ListLength( list ) == 4 &&
-           nl->IsEqual( nl->First( list ), "restore" ) && 
-           nl->IsAtom( nl->Second( list )) && 
+           nl->IsEqual( nl->First( list ), "restore" ) &&
+           nl->IsAtom( nl->Second( list )) &&
           (nl->AtomType( nl->Second( list )) == SymbolType) &&
            nl->IsEqual( nl->Third( list ), "from" ) &&
-           nl->IsAtom( nl->Fourth( list )) && 
+           nl->IsAtom( nl->Fourth( list )) &&
           ((nl->AtomType( nl->Fourth( list )) == SymbolType) ||
            (nl->AtomType( nl->Fourth( list )) == StringType) ||
            (nl->AtomType( nl->Fourth( list )) == TextType))   )
       {
-        // send object symbol 
+        // send object symbol
         string filename ="";
         switch(nl->AtomType(nl->Fourth(list))){
            case SymbolType : filename = nl->SymbolValue(nl->Fourth(list));
@@ -464,12 +465,12 @@ For an explanation of the error codes refer to SecondoInterface.h
 
         // send file data
         csp->SendFile(filename);
-        
+
         // send end tag
         iosock << csp->endObjectRestore << endl;
-        
-        errorCode = csp->ReadResponse( resultList, 
-                                       errorCode, errorPos, 
+
+        errorCode = csp->ReadResponse( resultList,
+                                       errorCode, errorPos,
                                        errorMessage         );
       }
       else
@@ -484,7 +485,7 @@ For an explanation of the error codes refer to SecondoInterface.h
       errorCode = ERR_SYNTAX_ERROR;
     }
   }
-  
+
   else if ( posDatabase != string::npos &&
             posRestore  != string::npos &&
             posFrom     != string::npos &&
@@ -497,17 +498,17 @@ For an explanation of the error codes refer to SecondoInterface.h
     if ( nl->ReadFromString( cmdText, list ) )
     {
       if ( nl->ListLength( list ) == 5 &&
-           nl->IsEqual( nl->First( list ), "restore" ) && 
+           nl->IsEqual( nl->First( list ), "restore" ) &&
            nl->IsEqual( nl->Second( list ), "database" ) &&
-           nl->IsAtom( nl->Third( list )) && 
+           nl->IsAtom( nl->Third( list )) &&
           (nl->AtomType( nl->Third( list )) == SymbolType) &&
            nl->IsEqual( nl->Fourth( list ), "from" ) &&
-           nl->IsAtom( nl->Fifth( list )) && 
+           nl->IsAtom( nl->Fifth( list )) &&
           ((nl->AtomType( nl->Fifth( list )) == SymbolType) ||
            (nl->AtomType( nl->Fifth( list )) == StringType) ||
            (nl->AtomType( nl->Fifth( list )) == TextType))   )
       {
-        // send object symbol 
+        // send object symbol
         iosock << csp->startDbRestore << endl
                << nl->SymbolValue( nl->Third( list ) ) << endl;
 
@@ -523,12 +524,12 @@ For an explanation of the error codes refer to SecondoInterface.h
           default : assert(false);
         }
         csp->SendFile(filename);
-        
+
         // send end tag
         iosock << csp->endDbRestore << endl;
 
-        errorCode = csp->ReadResponse( resultList, 
-                                       errorCode, errorPos, 
+        errorCode = csp->ReadResponse( resultList,
+                                       errorCode, errorPos,
                                        errorMessage         );
       }
       else
@@ -551,8 +552,8 @@ For an explanation of the error codes refer to SecondoInterface.h
            << cmdText << endl
            << "</Secondo>" << endl;
     // Receive result
-    errorCode = csp->ReadResponse( resultList, 
-                                   errorCode, errorPos, 
+    errorCode = csp->ReadResponse( resultList,
+                                   errorCode, errorPos,
                                    errorMessage         );
   }
 

@@ -18,6 +18,7 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with SECONDO; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+
 ----
 
 //[%]	[\%]
@@ -37,6 +38,8 @@ January 29, 2004 RHG. Increased numbers [%]n to 2000 and [%]e to 4000.
 October 14, 2004 RHG Added text and file tokens.
 
 January 10, 2006 Victor Almeida removed the ~model~ token.
+
+July 15, 2010 Christian Duentgen added conditionalcommand
 
 */
 
@@ -121,6 +124,12 @@ counters	{yylval = NestedText::Atom( yytext, yyleng ); return ZZCOUNTERS;}
 ".."		{yylval = NestedText::Atom( yytext, yyleng ); return ZZDOUBLE;}
 value		{yylval = NestedText::Atom( yytext, yyleng ); return ZZVALUE;}
 "="		{yylval = NestedText::Atom( yytext, yyleng ); return ZZINFIXOP;}
+if		{yylval = NestedText::Atom( yytext, yyleng ); return ZZIF;}
+then		{yylval = NestedText::Atom( yytext, yyleng ); return ZZTHEN;}
+else		{yylval = NestedText::Atom( yytext, yyleng ); return ZZELSE;}
+endif		{yylval = NestedText::Atom( yytext, yyleng ); return ZZENDIF;}
+beginseq   {yylval = NestedText::Atom( yytext, yyleng ); return ZZBEGINSEQ;}
+endseq   {yylval = NestedText::Atom( yytext, yyleng ); return ZZENDSEQ;}
 
 {textstart}	{if(text_sp)
                    delete text_sp;

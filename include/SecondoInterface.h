@@ -1,8 +1,8 @@
 /*
----- 
+----
 This file is part of SECONDO.
 
-Copyright (C) 2004, University in Hagen, Department of Computer Science, 
+Copyright (C) 2004, University in Hagen, Department of Computer Science,
 Database Systems for New Applications.
 
 SECONDO is free software; you can redistribute it and/or modify
@@ -44,16 +44,16 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 September 1995 Claudia Freundorfer
 
 January 2, 1997 Ralf Hartmut G[ue]ting. Explanation of commands and
-introduction of error codes. 
+introduction of error codes.
 
 January 10, 1997 RHG Additional error codes for error lists. Made
-variable ~Errors~ available as well as procedure ~NumericTypeExpr~. 
+variable ~Errors~ available as well as procedure ~NumericTypeExpr~.
 
 January 17, 1998 RHG Changes in description, new error code 9.
 
 May 15, 1998 RHG Added a command ~model value-expression~ which is
 analogous to ~query value-expression~ but computes the result model for
-a given query rather than the result value. 
+a given query rather than the result value.
 
 May 2002 Ulrich Telle Port to C++, added initialization and termination
 methods for hiding the details of setting up the "Secondo"[3] environment
@@ -62,10 +62,10 @@ from the user interface program.
 December 2002 M. Spiekermann an application specific nested list memory (al) was
 introduced. Every Interface method which returns a nested list copies the
 list from the nl Object into the al Object. If a list is input for some Interface
-methods e.g. NumTypeExpr(...) the list is copied from al to nl. Now the core systems 
+methods e.g. NumTypeExpr(...) the list is copied from al to nl. Now the core systems
 own list memory is refreshed in the Interface method Secondo(...) so that every
 command is processed with an initially empty list container.
-The application has to take care about its own list memory to avoid infinte growing.  
+The application has to take care about its own list memory to avoid infinte growing.
 
 April 29 2003 Hoffmann Added save and restore commands for single objects.
 
@@ -73,13 +73,13 @@ May 2004, M. Spiekermann. Support for derived objects added.
 
 August 2004, M. Spiekermann. All error codes of the interface are now represented
 by constants. The mapping between codes and error messages is also implemented in
-the header file to facalitate maintenance. Moreover, new private methods for some 
-Secondo commands have been declared to reduce the complex nesting in the 
+the header file to facalitate maintenance. Moreover, new private methods for some
+Secondo commands have been declared to reduce the complex nesting in the
 implementation of the ~Secondo~ function.
 
-September 2004, M. Spiekermann. A bug in the error handling of restore database has been fixed. 
-Error code definitions have been moved to ErrorCodes.h. in order to make them available also 
-in other modules like SecondoSystem. 
+September 2004, M. Spiekermann. A bug in the error handling of restore database has been fixed.
+Error code definitions have been moved to ErrorCodes.h. in order to make them available also
+in other modules like SecondoSystem.
 
 December 2004, M. Spiekermann. A new function implementing the ~set~ command was added.
 
@@ -103,10 +103,10 @@ The first subsection describes the initialization and termination of the
 interface.
 
 The second subsection describes the various commands and the errors that
-may occur for each of them. 
+may occur for each of them.
 
 The third subsection describes error handling and the specific error
-codes; it makes error messages available in an array ~errors~. 
+codes; it makes error messages available in an array ~errors~.
 
 The fourth subsection makes some procedures for type transformation and
 information available, namely ~NumericTypeExpr~, ~GetTypeId~ and ~LookUpTypeExpr~.
@@ -116,7 +116,7 @@ representation of values at the user interface). ~GetTypeId~ returns the
 algebra and type identifier for a type.
 
 Note that there have been some slight changes in respect to [G[ue]95]
-in the treatment of the database state in database commands. 
+in the treatment of the database state in database commands.
 
 */
 
@@ -141,12 +141,12 @@ class DerivedObj;
 // up the namespace)
 class Socket;
 
-/************************************************************************** 
+/**************************************************************************
 2.1 Class "SecondoInterface"[1]
 
 2.1.1 Creation, Deletion, Initialization and Termination
 
-*/ 
+*/
 
 struct SecErrInfo {
 
@@ -154,7 +154,7 @@ struct SecErrInfo {
   int pos;
   string msg;
   SecErrInfo() : code(0), pos(0), msg("") {}
-  ~SecErrInfo() {}; 
+  ~SecErrInfo() {};
 };
 
 
@@ -216,23 +216,28 @@ the "Secondo"[3] system and the ~SmiEnvironment~ are shut down.
                 int& errorPos,
                 string& errorMessage,
                 const string& resultFileName =
-                                "SecondoResult" );
+                                "SecondoResult",
+                const bool isApplicationLevelCommand = true);
 
-   bool Secondo( const string& cmdText, 
-                 ListExpr& resultList, 
-                 SecErrInfo& err        );
+   bool Secondo( const string& cmdText,
+                 ListExpr& resultList,
+                 SecErrInfo& err,
+                 const string& resultFileName = "SecondoResult",
+                 const bool isApplicationLevelCommand = true        );
 
-   bool Secondo( const ListExpr cmdList, 
-                 ListExpr& resultList, 
-                 SecErrInfo& err        );
+   bool Secondo( const ListExpr cmdList,
+                 ListExpr& resultList,
+                 SecErrInfo& err,
+                 const string& resultFileName = "SecondoResult",
+                 const bool isApplicationLevelCommand = true        );
 /*
 Reads a command and executes it; it possibly returns a result.
 The command is one of a set of "Secondo"[3] commands described below. The
-parameters have the following meaning. 
+parameters have the following meaning.
 
 A "Secondo"[3] command can be given at various ~levels~; parameter
 ~commandLevel~ indicates the level of the current command. The levels
-are defined as follows: 
+are defined as follows:
 
   * 0 -- "Secondo"[3] executable command in nested list syntax (~list~)
 
@@ -243,13 +248,13 @@ then the text string must be placed in ~commandText~. If the command is
 given in ~list~ syntax, it can be passed either as a text string in
 ~commandText~, in which case ~commandAsText~ must be "true"[4], or as a list
 expression in ~commandLE~; in the latter case, ~commandAsText~ must be
-"false"[4]. 
+"false"[4].
 
 If the command produces a result (e.g. a query), then the result can be
 requested to be returned either as a list expression (~resultAsText~ is
 "false"[4]) in the parameter ~resultList~, or (~resultAsText~ is "true"[4]) in a
 text file whose name is set to *SecondoResult* by default, but may be
-overwritten. 
+overwritten.
 
 Finally, the procedure returns an ~errorCode~ and error message. All error codes
 are defined in file ~ErrorCodes.h~. They are explained below together with the
@@ -262,29 +267,40 @@ for details.
 
 Furthermore, ~errorPos~ contains a position within the ~commandBuffer~
 where the error was detected (only when the command was given in the
-text buffer, of course). - not yet implemented. - 
+text buffer, of course). - not yet implemented. -
 
-The second alternative is a short form for the ~text~ syntax without 
+The second alternative is a short form for the ~text~ syntax without
 the possibilty to specify a text file. Similary the third form is doing the
 same with a command given as list.
+
+Only if the function is called by an application, ~isApplicationLevelCommand~
+should be set to ~true~ (default). This instructs the QueryProcessor to clear
+its internal NL storage after processing the command, to copy all ~ListExpr~
+values among the input and output parameters from the application's NL
+storage to the QueryProcessor's internal NL storage, and to copy the results
+from the internal NL storage to the application NL's storage.
+
+For recursive calls, ~isApplicationLevelCommand~ should be set to ~false~, so
+that the internal NBL storage is not invalidated when returning from a call.
 
 2.1.1 Basic Commands
 
 ----  type <identifier> = <type expression>
       delete type <identifier>
       create <identifier> : <type expression>
+      let <identifier> = <value expression>
       update <identifier> := <value expression>
       delete <identifier>
       query <value expression>
+      if <value expression> then <command> [else <command>] endif
 
       (not yet implemented:)
-      let <identifier> = <value expression>
       persistent <identifier>
 ----
 
 */
 
-/*  
+/*
 All basic commands are only valid, if currently a database is open.
 
 ----  type <identifier> = <type expression>
@@ -302,7 +318,7 @@ In case of error 5, an error list with further information is returned
 in ~resultList~.
 
 ----  delete type <identifier>
-----    
+----
 
 Delete the type name ~identifier~. Possible errors:
 
@@ -316,7 +332,7 @@ Delete the type name ~identifier~. Possible errors:
 ----
 
 Create an object called ~identifier~ of the type given by ~type
-expression~. The value is still undefined. Possible errors: 
+expression~. The value is still undefined. Possible errors:
 
   * ~identifier~ already used
 
@@ -332,7 +348,7 @@ in ~resultList~.
 ----
 
 Assign the value computed by ~value expression~ to the object
-~identifier~. Possible errors: 
+~identifier~. Possible errors:
 
   * ~identifier~ is not a known object name
 
@@ -359,7 +375,7 @@ Destroy the object ~identifier~. Possible errors:
 ----
 
 Evaluate the value expression and return the result as a nested list.
-Possible errors: 
+Possible errors:
 
   * error in ~value expression~
 
@@ -376,7 +392,7 @@ Assign the value resulting from ~value expression~ to a new object
 called ~identifier~. The object must not exist yet; it is created by
 this command and its type is by definition the one of the value
 expression. This object is temporary so far; it will be automatically
-destroyed at the end of a session. Possible errors: 
+destroyed at the end of a session. Possible errors:
 
   * ~identifier~ already used
 
@@ -386,13 +402,26 @@ destroyed at the end of a session. Possible errors:
 
   * no database open
 
+
+---- if <value expression> then <command> [else <command>] endif
+----
+
+This is a conditional command. Depending on the value of the value-expresion,
+either the first command is executed (value = TRUE) or not (value = FALSE).
+If the optional else extension is used, its command is executed only if the
+value-expression is FALSE. If the value-expression is undefined, none of the
+commands is executed.
+
+If the type of the value-expression is not ~bool~ or no database is opened,
+the command fails with an error.
+
 ----  persistent <identifier>
 ----
 
 Make the object ~identifier~ persistent, so that it will survive the end
 of a session. Presumably this object was created by a ~let~ command
 earlier. If it is not a temporary object, this command is not an error,
-but has no effect. Possible errors: 
+but has no effect. Possible errors:
 
   * ~identifier~ is not a known object name
 
@@ -409,7 +438,7 @@ persistent by default. That is the ~persistent~ command is obsolete.
 ----  begin transaction
       commit transaction
       abort transaction
-----    
+----
 
 These commands can only be used when a database is open. Any permanent
 changes to a database can only be made within a transaction. Only a
@@ -428,7 +457,7 @@ Start a transaction. Possible errors:
 ----
 
 Commit a running transaction; all changes to the database will be
-effective. Possible errors: 
+effective. Possible errors:
 
   * no transaction is active.
 
@@ -438,7 +467,7 @@ effective. Possible errors:
 ----
 
 Abort a running transaction; all changes to the database will be
-revoked. Possible errors: 
+revoked. Possible errors:
 
   * no transaction is active.
 
@@ -453,7 +482,7 @@ transaction.
 ----  create database <identifier>
       delete database <identifier>
       open database <identifier>
-      close database 
+      close database
       save database to <filename>
       save <objectname> to <filename>
       restore database <identifier> from <filename>
@@ -464,7 +493,7 @@ transaction.
 
 The commands ~create database~ and ~delete database~ are only valid when
 currently there is no open database ("IsDatabaseOpen() == false"[4]).
-They leave this state unchanged. 
+They leave this state unchanged.
 
 The commands ~open database~ and ~restore database~ are only valid when
 currently there is no open database ("IsDatabaseOpen() == false"[4]), the
@@ -474,7 +503,7 @@ The command ~close database~ is only valid if "IsDatabaseOpen() == true"[4].
 No database is open after successful completion.
 
 The command ~save database~ is only valid if "IsDatabaseOpen() == true"[4],
-it leaves the state of the database unchanged. 
+it leaves the state of the database unchanged.
 
 ----  create database <identifier>
 ----
@@ -518,20 +547,20 @@ Close the currently open database. Possible errors:
 /*
 Write the entire contents of the database ~identifier~ in nested list
 format to the file ~filename~. The structure of the file is the
-following: 
+following:
 
 ----  (DATABASE <database name>
-        (DESCRIPTIVE ALGEBRA) 
+        (DESCRIPTIVE ALGEBRA)
           (TYPES
-            (TYPE <type name> <type expression>)*    
+            (TYPE <type name> <type expression>)*
           )
           (OBJECTS
             (OBJECT <object name> (<type name>) <type expression>
                                                 <value>)*
           )
-        (EXECUTABLE ALGEBRA) 
+        (EXECUTABLE ALGEBRA)
           (TYPES
-            (TYPE <type name> <type expression>)*    
+            (TYPE <type name> <type expression>)*
           )
           (OBJECTS
             (OBJECT <object name> (<type name>) <type expression>
@@ -541,12 +570,12 @@ following:
 ----
 
 If the file exists, it will be overwritten, otherwise created.
-Possible errors: 
+Possible errors:
 
   * no database open
 
   * a problem occurred in writing the file (no permission, file system full, etc.)
-  
+
 ----  save <objectname> to <filename>
 ----
 
@@ -559,21 +588,21 @@ following:
 ----
 
 If the file exists, it will be overwritten, otherwise be created.
-Possible errors: 
+Possible errors:
 
   * database not open
 
   * a problem occurred in writing the file (no permission, file system full, etc.)
-  
+
   * identifier of object is not known in the currently opened database
-	
+
 ----  restore database <identifier> from <filename>
 ----
 
 Read the contents of the file ~filename~ into the database ~identifier~.
 The database is in open state after successful completion.
 Previous contents of the database are lost.
-Possible errors: 
+Possible errors:
 
   * ~identifier~ is not a known database name
 
@@ -599,7 +628,7 @@ Precondition:
 
 The database must be in open state and the object is not known in the currently opened database.
 
-Possible errors: 
+Possible errors:
 
   * the object name is not known in the database
 
@@ -641,7 +670,7 @@ All Secondo list commands return a nested list with the following general list s
 
 where ~inquiry~ is a fixed symbol atom, <inquirydestination> a symbol atom with the value ~databases~,
 ~algebras~, ~algebra~, ~types~, ~objects~, ~constructors~ or operators and <valuelist> is of type nested
-list.  
+list.
 
 ----  list databases
       ( inquiry ( databases <valuelist> ) )
@@ -652,15 +681,15 @@ Returns a list of names of existing databases. Possible errors: none.
 
 ----  list type constructors
       ( inquiry ( constructors <valuelist> ) )
-      E.G: ( inquiry (constructors 
+      E.G: ( inquiry (constructors
              (
-               (date 
+               (date
                  ("Signature" "Example Type List" "List Rep" "Example List")
                  ("-> DATA" "date" <text>"<year>-<month>-<day>"</text---> <text>"2003-09-05"</text--->)))))
 ----
 
 Return a nested list of type constructors (and their specifications).
-For the precise format see [G[ue]95]. Possible errors: none. 
+For the precise format see [G[ue]95]. Possible errors: none.
 
 */
 
@@ -668,16 +697,16 @@ For the precise format see [G[ue]95]. Possible errors: none.
 
 ----  list operators
       ( inquiry ( operators <valuelist> ) )
-      E.G.: (inquiry (operators 
+      E.G.: (inquiry (operators
               (
-                (and 
+                (and
                   ("Signature" "Syntax" "Meaning" "Example")
                   (<text>(bool bool) -> bool</text---> <text>_ and _</text---> <text>Logical And.
                    </text---> <text>query (8 = 8) and (3 < 4)</text--->)))))
 ----
 
 Return a nested list of operators (and their specifications). For the
-precise format see [G[ue]95]. Possible errors: none. 
+precise format see [G[ue]95]. Possible errors: none.
 
 ----  list types
       ( inquiry ( types <valuelist> ) )
@@ -690,14 +719,14 @@ precise format see [G[ue]95]. Possible errors: none.
 /*
 
 Return a nested list of type names defined in the currently open
-database. The format is: 
+database. The format is:
 
 ----  (TYPES
-        (TYPE <type name> <type expression>)*    
+        (TYPE <type name> <type expression>)*
       )
 ----
 
-Possible errors: 
+Possible errors:
 
   * no database open
 
@@ -706,7 +735,7 @@ Possible errors:
 ----
 
 Return a nested list of objects existing in the currently open database.
-The format is: 
+The format is:
 
 ----  (OBJECTS
         (OBJECT <object name> (<type name>) <type expression>)*
@@ -716,7 +745,7 @@ The format is:
 This is the same format as the one used in saving and restoring the
 database except that the ~value~ component is missing. The type name is
 written within a sublist since an object need not have a type name.
-Possible errors: 
+Possible errors:
 
   * no database open
 
@@ -729,11 +758,11 @@ contains the counter values from the last query.
 Possible errors:
 
   * no database open
-  
+
 ----    list algebras
         ( inquiry ( algebras <valuelist> ) )
-        E.G.: (inquiry (algebras 
-              (StandardAlgebra RelationAlgebra))) 
+        E.G.: (inquiry (algebras
+              (StandardAlgebra RelationAlgebra)))
 ----
 
 Returns a list of the currently active included algebras at Secondo runtime.
@@ -741,17 +770,17 @@ Possible errors: none.
 
 ----    list algebra <algebraname>
         ( inquiry ( algebra <valuelist> ) )
-        E.G.: (inquiry (algebra 
-               (RectangleAlgebra 
+        E.G.: (inquiry (algebra
+               (RectangleAlgebra
                  (
                    (
-                     (rect 
+                     (rect
                        ("Signature" "Example Type List" "List Rep" "Example List")
                        ("-> DATA" "rect" "(<left> <right> <bottom> <top>)" "(0 1 0 1)")))
                    (
-                     (intersects 
+                     (intersects
                         ("Signature" "Syntax" "Meaning" "Example")
-                        (<text>(rect x rect) -> bool </text---> <text>_ intersects _</text---> 
+                        (<text>(rect x rect) -> bool </text---> <text>_ intersects _</text--->
                          <text>Intersects.</text---> <text>query rect1 intersects rect2</text--->)))))))
 ----
 
@@ -762,7 +791,7 @@ The following procedure allows an application to transform a type
 expression into an equivalent form with numeric codes. This may be
 useful to provide type-specific output or representation procedures. One
 can organize such procedures via doubly indexed arrays (indexed by
-algebra number and type constructor number). 
+algebra number and type constructor number).
 
 */
 
@@ -771,7 +800,7 @@ algebra number and type constructor number).
 Transforms a given type expression into a list structure where each type
 constructor has been replaced by the corresponding pair (algebraId,
 typeId). The catalog is used to resolve type names in the type expression.
-For example, 
+For example,
 
 ----  int    ->    (1 1)
 
@@ -783,10 +812,10 @@ For example,
 Identifiers such as ~name~, ~age~ are moved unchanged into the result
 list. If a type expression contains other constants that are not
 symbols, e.g. integer constants as in "(array 10 real)"[4], they are also
-moved unchanged into the result list. 
+moved unchanged into the result list.
 
 The resulting form of the type expression is useful for calling the type
-specific ~In~ and ~Out~ procedures. 
+specific ~In~ and ~Out~ procedures.
 
 */
   bool GetTypeId( const string& name,
@@ -814,7 +843,7 @@ the second initializes the RTFlags found in the configuration file.
 The function below returns a message string for a specific error message.
 
 */
-  static string GetErrorMessage( const int errorCode, 
+  static string GetErrorMessage( const int errorCode,
 		                 const ListExpr params = 0 );
 /*
 
@@ -827,7 +856,7 @@ For example the error codes  "ERR\_SPECIFIC\_KIND\_CHECKING\_ERROR"[4] and
 3, ...). These error messages may then have further parameters. To interpret
 such error messages (and return information to the user) one needs to add code
 branching on these specific error code numbers. Such code should be provided in
-the implementation of this function. 
+the implementation of this function.
 
 
 Background:
@@ -835,14 +864,14 @@ Background:
 Some procedures which generate their own error messages have a
 parameter ~errorInfo~ containing a pointer to the current last element
 of ~errorList~. It appends the error message as a list with a command of
-the form 
+the form
 
 ----  errorInfo = Append(errorInfo, <message list>)
 ----
 
 If errors are appended to the list within the execution of a "Secondo"[3]
 command, then the list ~errorList~ is returned in parameter ~resultList~
-of procedure ~Secondo~. This currently happens for the commands 
+of procedure ~Secondo~. This currently happens for the commands
 
 ----  type <identifier> = <type expr>
       create <identifier> : <type expr>
@@ -866,7 +895,7 @@ parameter ~ostr~.
 Needed to support ~derived~ Objects
 
 */
-  
+
   void SetDebugLevel( const int level );
 /*
 Sets the debug level of the query processor.
@@ -879,42 +908,45 @@ Sets the debug level of the query processor.
   void Init();                // Inititalize to  default values
   void InitErrorMessages();
 
-  void showTimes(double real, double cpu); 
+  void showTimes(double real, double cpu);
 
   void StartCommand();
   bool FinishCommand( SI_Error& errorCode, string& errorMessage );
-  
+
   void constructErrMsg(int& errorCode, string& errorMessage);
-	
+
   // implementation of SECONDO commands
-  SI_Error Command_Query( const ListExpr list, 
+  SI_Error Command_Query( const ListExpr list,
                           ListExpr& result, string& errorMessage );
 
   SI_Error Command_Create( const ListExpr list,
-                           ListExpr& result, 
+                           ListExpr& result,
                            ListExpr& error, string& errorMessage );
 
   SI_Error Command_Let( const ListExpr list, string& errorMessage );
-  
+
   SI_Error Command_Set( const ListExpr list );
 
   SI_Error Command_Derive( const ListExpr list, string& errorMessage );
-	
+
   SI_Error Command_Update( const ListExpr list, string& errorMessage );
 
+  SI_Error Command_Conditional( const ListExpr list,
+                                ListExpr &resultList,
+                                string &errorMessage );
 
   bool initialized;       // state of interface
   bool activeTransaction; // state of transaction block
 
-  NestedList*  nl;        // pointer to nested list instances 
-  NestedList*  al;  
+  NestedList*  nl;        // pointer to nested list instances
+  NestedList*  al;
 
   Socket*     server;     // used in C/S version only
   CSProtocol* csp;
-  
-  bool ServerInstance();  // check if the current instance 
-  bool serverInstance;    // was create by the server 
-  
+
+  bool ServerInstance();  // check if the current instance
+  bool serverInstance;    // was create by the server
+
   typedef map<int,string> ErrorMap;
   static ErrorMap errors;
 
@@ -922,7 +954,7 @@ Sets the debug level of the query processor.
 
   // members for tracking query times
   bool printQueryAnalysis;
-  
+
   StopWatch cmdTime;
   double cmdReal;
   double cmdCPU;
@@ -931,14 +963,14 @@ Sets the debug level of the query processor.
   double commitReal;
   double outObjReal;
   double copyReal;
- 
+
 };
 
 /*
 *References*
 
 [G[ue]95] G[ue]ting, R.H., The SECONDO Project. Praktische Informatik
-IV, Fernuniversit[ae]t Hagen, working paper, November 1995. 
+IV, Fernuniversit[ae]t Hagen, working paper, November 1995.
 
 */
 #endif
