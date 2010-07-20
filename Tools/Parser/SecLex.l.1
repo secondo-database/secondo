@@ -128,8 +128,9 @@ if		{yylval = NestedText::Atom( yytext, yyleng ); return ZZIF;}
 then		{yylval = NestedText::Atom( yytext, yyleng ); return ZZTHEN;}
 else		{yylval = NestedText::Atom( yytext, yyleng ); return ZZELSE;}
 endif		{yylval = NestedText::Atom( yytext, yyleng ); return ZZENDIF;}
-beginseq   {yylval = NestedText::Atom( yytext, yyleng ); return ZZBEGINSEQ;}
-endseq   {yylval = NestedText::Atom( yytext, yyleng ); return ZZENDSEQ;}
+while   {yylval = NestedText::Atom( yytext, yyleng ); return ZZWHILE;}
+do   {yylval = NestedText::Atom( yytext, yyleng ); return ZZDO;}
+endwhile   {yylval = NestedText::Atom( yytext, yyleng ); return ZZENDWHILE;}
 
 {textstart}	{if(text_sp)
                    delete text_sp;

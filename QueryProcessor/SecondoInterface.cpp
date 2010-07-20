@@ -1405,6 +1405,32 @@ moved to separate functions. This kind of functions should be named Command\_<na
                                        resultList,
                                        errorMessage );
     }
+
+    // --- command sequence: (beginseq (command*) endseq)
+    else if ( nl->IsEqual( first, "beginseq" ) &&
+                (length == 3) &&
+                !nl->IsAtom( nl->Nth(2, list) ) &&
+                nl->IsEqual( nl->Nth(3, list), "endseq" )
+            )
+    {
+      errorCode =  SecondoInterface::Command_Sequence( list,
+                                       resultList,
+                                       errorMessage );
+    }
+
+    // --- while-do loop: (while <p> do <c> endwhile)
+    else if ( nl->IsEqual( first, "while" ) &&
+              (length == 5) &&
+              nl->IsEqual( nl->Nth(3,list), "do" ) &&
+              nl->IsEqual( nl->Nth(5,list), "endwhile" )
+            )
+    {
+      errorCode = Command_WhileDoLoop( list,
+                                       resultList,
+                                       errorMessage );
+    }
+
+    // --- ERROR: unrecognized command
     else
     {
       errorCode = ERR_CMD_NOT_RECOGNIZED;         // Command not recognized
@@ -2056,13 +2082,13 @@ SecondoInterface::Command_Conditional( const ListExpr list,
                                        string &errorMessage )
 {
   SI_Error errorCode = ERR_NO_ERROR;
-  bool pred_def = false;
-  bool pred_val = false;
-  int errorPos = 0;
-  ListExpr command = nl->TheEmptyList();
-  ListExpr presult = nl->TheEmptyList();
-  resultList       = nl->TheEmptyList();
-  errorMessage     = "";
+  bool pred_def      = false;
+  bool pred_val      = false;
+  int errorPos       = 0;
+  ListExpr command   = nl->TheEmptyList();
+  ListExpr presult   = nl->TheEmptyList();
+  resultList         = nl->TheEmptyList();
+  errorMessage       = "";
 
   command = nl->TwoElemList(nl->SymbolAtom("query"),nl->Second( list ));
   errorCode = SecondoInterface::Command_Query( command, presult, errorMessage );
@@ -2097,7 +2123,7 @@ SecondoInterface::Command_Conditional( const ListExpr list,
                            errorCode,
                            errorPos,
                            errorMessage,
-                           "SecondoResult",
+                           "SecondoQPResult_tmp",
                            false);
   } else if( pred_def && !pred_val && (nl->ListLength(list) == 7) ){
     // execute 2nd command (ELSE-branch)
@@ -2111,11 +2137,150 @@ SecondoInterface::Command_Conditional( const ListExpr list,
                            errorCode,
                            errorPos,
                            errorMessage,
-                           "SecondoResult",
+                           "SecondoQPResult_tmp",
                            false);
   }
   return errorCode;
 }
+
+/*
+1.2.6 The command-sequence Command
+
+~list~ must have the following structure:
+
+----
+  (beginseq (<command>*) endseq)
+----
+
+*/
+SI_Error
+SecondoInterface::Command_Sequence( const ListExpr  list,
+                                    ListExpr       &resultList,
+                                    string         &errorMessage )
+{
+  SI_Error errorCode  = ERR_NO_ERROR;
+  int errorPos        = 0;
+  int no_commands     = nl->ListLength(nl->Second(list));
+  int i               = 1;
+  ListExpr command    = nl->TheEmptyList();
+  ListExpr lastResult = nl->TheEmptyList();
+  ListExpr cresult    = nl->TheEmptyList();
+  resultList          = nl->TheEmptyList();
+  errorMessage        = "";
+
+  while( (errorCode == ERR_NO_ERROR) && (i<=no_commands) ){
+    command = nl->Nth(i, nl->Second(list)); // get nth command
+    cresult = nl->TheEmptyList();
+    SecondoInterface::Secondo( "",
+                           command,
+                           0,
+                           false,
+                           false,
+                           cresult,
+                           errorCode,
+                           errorPos,
+                           errorMessage,
+                           "SecondoQPResult_tmp",
+                           false);         // execute ii
+//     cmsg.info() << endl << "Result List for command " << i << "/"
+//                 << no_commands << ": "
+//                 << nl->ToString(cresult) << endl;
+//     cmsg.send();
+    // append result to result list
+    if(nl->IsEmpty(resultList)){ // create OneElemList;
+      resultList = nl->OneElemList(cresult);
+      lastResult = resultList;
+    } else { // append to existing list
+      lastResult = nl->Append(lastResult,cresult);
+    }
+    i++;
+  }
+  return errorCode;
+}
+
+/*
+1.2.t The While-Do Loop Command
+
+~list~ must have the following structure:
+
+----  (while <value-expression> do <command> endwhile)
+----
+
+*/
+SI_Error
+SecondoInterface::Command_WhileDoLoop( const ListExpr  list,
+                                       ListExpr       &resultList,
+                                       string         &errorMessage )
+{
+  SI_Error errorCode    = ERR_NO_ERROR;
+  bool pred_def         = true;
+  bool pred_val         = true;
+  int errorPos          = 0;
+  ListExpr pred_command = nl->TheEmptyList();
+  ListExpr loop_command = nl->TheEmptyList();
+  ListExpr presult      = nl->TheEmptyList();
+  ListExpr cresult      = nl->TheEmptyList();
+  ListExpr lastResult   = nl->TheEmptyList();
+  int loop_cnt          = 0;
+  resultList            = nl->TheEmptyList();
+  errorMessage          = "";
+
+  pred_command = nl->TwoElemList(nl->SymbolAtom("query"),nl->Second( list ));
+  loop_command = nl->Fourth( list );
+  while ( (errorCode == ERR_NO_ERROR) && pred_def && pred_val ){
+    errorCode = SecondoInterface::Command_Query( pred_command,
+                                                 presult,
+                                                 errorMessage );
+    if(errorCode == ERR_NO_ERROR){
+      // check result type
+      if(    (nl->ListLength(presult) != 2)
+          || !nl->IsAtom(nl->First(presult))
+          || !nl->IsEqual(nl->First(presult),"bool")
+          || !nl->IsAtom(nl->Second(presult))
+        ){
+        errorMessage =
+          "WHILE-DO-ENDWHILE: Expected a boolean expression as predicate.";
+        errorCode = ERR_SYNTAX_ERROR;
+      } else { // get result value
+        pred_def = !nl->IsEqual(nl->Second(presult),"undef");
+        if(pred_def){
+          pred_val =  nl->BoolValue(nl->Second(presult));
+        } else {
+          pred_val = false;
+        }
+      }
+    }
+    if( (errorCode == ERR_NO_ERROR) && pred_def && pred_val ){
+      // execute command
+      cresult = nl->TheEmptyList();
+      SecondoInterface::Secondo( "",
+                            loop_command,
+                            0,
+                            false,
+                            false,
+                            cresult,
+                            errorCode,
+                            errorPos,
+                            errorMessage,
+                            "SecondoQPResult_tmp",
+                            false);
+      // print result
+      loop_cnt++;
+//       cmsg.info() << endl << "Result for loop " << loop_cnt << ": "
+//                   << nl->ToString(cresult) << endl;
+//       cmsg.send();
+      // append result to result list
+      if(nl->IsEmpty(resultList)){ // create OneElemList;
+        resultList = nl->OneElemList(cresult);
+        lastResult = resultList;
+      } else { // append to existing list
+        lastResult = nl->Append(lastResult,cresult);
+      }
+    }
+  } // end while
+  return errorCode;
+}
+
 
 /*
 1.3 Procedure ~NumericTypeExpr~

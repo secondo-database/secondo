@@ -403,7 +403,9 @@ destroyed at the end of a session. Possible errors:
   * no database open
 
 
----- if <value expression> then <command> [else <command>] endif
+----
+  NL-syntax: (if <value-expression> then <command> [else <command>] endif)
+  Text-syntax: if <value-expression> then <command> [else <command>] endif
 ----
 
 This is a conditional command. Depending on the value of the value-expresion,
@@ -413,7 +415,34 @@ value-expression is FALSE. If the value-expression is undefined, none of the
 commands is executed.
 
 If the type of the value-expression is not ~bool~ or no database is opened,
-the command fails with an error.
+the command fails with a syntax error.
+
+----
+  NL-syntax: (beginseq (command [| comand]*) endsec)
+  Text-syntax: { command [| comand]* } or { }
+----
+
+This is a command sequence. The commands are executed one after another until
+a command returns an error. Then, the execution of the sequence is stopped.
+In this case, only the result, error code and error message of the *last*
+executed command is returned. Other wise, a list with the results in the given
+sequence is returned.
+
+---
+  NL-syntax: (while <value-expression> do <command> endwhile)
+  Text-syntax: while <value-expression> do <command> endwhile
+---
+
+This is a while-do loop command. The parameter ~command~ is executed as long as
+the ~value-expresion~, is evaluted to TRUE. If the value-expression gets
+undefined or FALSE, ~command~ is not exececuted and the loop is exited.
+
+If an error occurs, the result is always the result of the last executed
+instance of ~command~. Otherwise it is a list with the results of all calls of
+~command~.
+
+If the type of the value-expression is not ~bool~ or no database is opened,
+the command fails with a syntax error.
 
 ----  persistent <identifier>
 ----
@@ -932,6 +961,14 @@ Sets the debug level of the query processor.
   SI_Error Command_Update( const ListExpr list, string& errorMessage );
 
   SI_Error Command_Conditional( const ListExpr list,
+                                ListExpr &resultList,
+                                string &errorMessage );
+
+  SI_Error Command_Sequence( const ListExpr list,
+                             ListExpr &resultList,
+                             string &errorMessage );
+
+  SI_Error Command_WhileDoLoop( const ListExpr list,
                                 ListExpr &resultList,
                                 string &errorMessage );
 

@@ -88,17 +88,30 @@ command    :  basic
     |  set
     |  conditionalcommand
     |  commandblock
+    |  whilecommand
     ;
 
-commandblock  :  ZZBEGINSEQ commandseq ZZENDSEQ
+whilecommand  :  ZZWHILE valueexpr ZZDO command ZZENDWHILE
+    { CLEAR();
+      PRINTF("(while ");
+      PRINT($2);
+      PRINTF(" do ");
+      PRINT($4);
+      PRINTF(" endwhile)\n");
+      $$ = NestedText::AtomC(yacc_outtext->c_str());
+    }
+
+commandblock  :  '{' commandseq '}'
     { CLEAR();
       PRINTF("(beginseq (");
       PRINT($2);
       PRINTF(") endseq)\n");
+      $$ = NestedText::AtomC(yacc_outtext->c_str());
     }
-    |  ZZBEGINSEQ ZZENDSEQ
+    |  '{' '}'
     { CLEAR();
       PRINTF("(beginseq () endseq)\n");
+      $$ = NestedText::AtomC(yacc_outtext->c_str());
     }
     ;
 
@@ -107,12 +120,11 @@ commandseq  :  commandseq '|' command
       PRINT($1);
       PRINTF(" ");
       PRINT($3);
+      $$ = NestedText::AtomC(yacc_outtext->c_str());
     }
     | command
-    { CLEAR();
-      PRINT($1);
+    { $$ = $1;
     }
-
     ;
 
 conditionalcommand  :  ZZIF valueexpr ZZTHEN command ZZELSE command ZZENDIF
@@ -124,6 +136,7 @@ conditionalcommand  :  ZZIF valueexpr ZZTHEN command ZZELSE command ZZENDIF
       PRINTF(" else ");
       PRINT($6);
       PRINTF(" endif)\n");
+      $$ = NestedText::AtomC(yacc_outtext->c_str());
     }
     | ZZIF valueexpr ZZTHEN command ZZENDIF
     { CLEAR();
@@ -132,6 +145,7 @@ conditionalcommand  :  ZZIF valueexpr ZZTHEN command ZZELSE command ZZENDIF
       PRINTF(" then ");
       PRINT($4);
       PRINTF(" endif)\n");
+      $$ = NestedText::AtomC(yacc_outtext->c_str());
     }
     ;
 
@@ -196,7 +210,7 @@ basic    :  ZZTYPE ZZIDENTIFIER ZZINFIXOP typeexpr
       ZZLET ZZIDENTIFIER ZZINFIXOP  valueexpr
        {
         CLEAR();
-       string equalstr;
+        string equalstr;
         NestedText::CopyOut( $4, equalstr );
         if(equalstr!="=") {
           yyerror("let command expects a '=' at the third position");
@@ -211,7 +225,7 @@ basic    :  ZZTYPE ZZIDENTIFIER ZZINFIXOP typeexpr
       ZZDERIVE ZZIDENTIFIER ZZINFIXOP valueexpr
        {
         CLEAR();
-       string equalstr;
+        string equalstr;
         NestedText::CopyOut( $4, equalstr );
         if(equalstr!="=") {
           yyerror("derive command expects a '=' at the third position");
