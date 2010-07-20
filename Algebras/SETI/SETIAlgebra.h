@@ -59,15 +59,15 @@ SETI-Algebra offers the following methods:
 
 ******************************************************************************/
 
-const int     pageSize    = 4096;    // Alternatively: WinUnix::getPageSize()
-const int     pageSizeRTree = 4000;  // Alternatively: WinUnix::getPageSize()
-const int     maxSplits   = 64;      // Number of max splits for one dim
-const int     flBuckets   = 1000;    // Number of hash buckets in front-line
-const int     updateCycle = 100000;  // Update cycle for SmiUpdateFile
-const int     maxTrjSeg   = 70;      // Max number of trj segments in page
-const double  tol         = 0.00001; // Tolerance for floating points
-bool         intersects[4];          // Indicates an intersection of cell ...
-                                     // ... border and trajectory segment
+const int    pageSize      = 4096;    // Alternatively: WinUnix::getPageSize()
+const int    rtreePageSize = 4000;    // Page size used for RTrees
+const int    maxSplits     = 64;      // Number of max splits for one dim
+const int    flBuckets     = 1000;    // Number of hash buckets in front-line
+const int    updateCycle   = 100000;  // Update cycle for SmiUpdateFile
+const int    maxTrjSeg     = 70;      // Max number of trj segments in page
+const double tol           = 0.00001; // Tolerance for floating points
+bool         intersects[4];           // Indicates an intersection of cell ...
+                                      // ... border and trajectory segment
 
 /******************************************************************************
 
@@ -126,12 +126,12 @@ The SETICell structure contains all information  of a cell in a SETI grid.
 
 struct SETICell
 {
-  int         numEntries;       // Number of segments in cell
-  SETIArea    area;             // Cell area (partition)
-  db_pgno_t   currentPage;      // Number of current cell page
-  SmiRecordId rtreeRecID;       // RTree header record id
-  R_Tree<2,TupleId>* rtreePtr;  // RTree pointer
-  Interval<Instant> tiv;        // Cell time interval
+  int                numEntries;  // Number of segments in cell
+  SETIArea           area;        // Cell area (partition)
+  db_pgno_t          currentPage; // Number of current cell page
+  SmiRecordId        rtreeRecID;  // RTree header record id
+  R_Tree<2,TupleId>* rtreePtr;    // RTree pointer
+  Interval<Instant>  tiv;         // Cell time interval
 };
 
 /******************************************************************************
@@ -258,10 +258,10 @@ class SETI
     // Reads SETI header, frontline and cell information
     void ReadSETI();
     
-    SmiUpdateFile*  suf;                         // SmiUpdateFile
-    SmiRecordFile*  rtreeFile;                   // File for RTrees
-    SETIHeader*     header;                      // SETI header
-    SETICell*       cells[maxSplits][maxSplits]; // SETI cells
+    SmiUpdateFile* suf;                         // SmiUpdateFile
+    SmiRecordFile* rtreeFile;                   // File for RTrees
+    SETIHeader*    header;                      // SETI header
+    SETICell*      cells[maxSplits][maxSplits]; // SETI cells
 };
 
 #endif
