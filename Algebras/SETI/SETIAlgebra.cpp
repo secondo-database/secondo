@@ -216,8 +216,8 @@ SETI::SETI(SETIArea AREA, int SPLITS) : suf(0), rtreeFile(0)
   suf->Create();
   header->fileID = suf->GetFileId();
 
-   // Create RTree file
-  rtreeFile = new SmiRecordFile(true, pageSizeRTree);
+  // Create RTree file
+  rtreeFile = new SmiRecordFile(true, rtreePageSize);
   rtreeFile->Create();
   header->rtreeFileID = rtreeFile->GetFileId();
   
@@ -1146,9 +1146,8 @@ struct CreateInfo : OperatorInfo {
     name      = "createSETI";
     signature = "rect x int -> seti";
     syntax    = "createSETI( _, _ )";
-    meaning   = "SETI construction operator. The second argument (partitions)"
-                "must be a sqare number, otherwise it will be set a default"
-                " value.";
+    meaning   = "SETI construction operator. The second argument must be a "
+                "sqare number, otherwise it will be set a default value.";
   }
 };
 
