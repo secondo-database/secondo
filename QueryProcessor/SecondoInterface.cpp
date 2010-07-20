@@ -2114,7 +2114,8 @@ SecondoInterface::Command_Conditional( const ListExpr list,
   if( pred_def && pred_val ){
     // execute 1st command (THEN-branch)
     command = nl->Nth( 4, list );
-    SecondoInterface::Secondo( "",
+    const string command_text = "ELSE: " + (nl->ToString(command));
+    SecondoInterface::Secondo( command_text,
                            command,
                            0,
                            false,
@@ -2128,7 +2129,8 @@ SecondoInterface::Command_Conditional( const ListExpr list,
   } else if( pred_def && !pred_val && (nl->ListLength(list) == 7) ){
     // execute 2nd command (ELSE-branch)
     command = nl->Nth( 6, list );
-    SecondoInterface::Secondo( "",
+    const string command_text = "THEN: " + (nl->ToString(command));
+    SecondoInterface::Secondo( command_text,
                            command,
                            0,
                            false,
@@ -2169,9 +2171,14 @@ SecondoInterface::Command_Sequence( const ListExpr  list,
   errorMessage        = "";
 
   while( (errorCode == ERR_NO_ERROR) && (i<=no_commands) ){
+    stringstream out;
+    out << i;
+    string i_s = out.str();
     command = nl->Nth(i, nl->Second(list)); // get nth command
     cresult = nl->TheEmptyList();
-    SecondoInterface::Secondo( "",
+    const string command_text =   "SEQUENCE (" + i_s + "): "
+                                + (nl->ToString(command));
+    SecondoInterface::Secondo( command_text,
                            command,
                            0,
                            false,
@@ -2195,6 +2202,7 @@ SecondoInterface::Command_Sequence( const ListExpr  list,
     }
     i++;
   }
+  resultList = nl->TwoElemList(nl->SymbolAtom("resultsequence"),resultList);
   return errorCode;
 }
 
@@ -2251,9 +2259,15 @@ SecondoInterface::Command_WhileDoLoop( const ListExpr  list,
       }
     }
     if( (errorCode == ERR_NO_ERROR) && pred_def && pred_val ){
+      loop_cnt++;
+      stringstream out;
+      out << loop_cnt;
+      string loop_cnt_s = out.str();
       // execute command
       cresult = nl->TheEmptyList();
-      SecondoInterface::Secondo( "",
+      const string command_text =   "DO (" + loop_cnt_s + "): "
+                                  + (nl->ToString(loop_command));
+      SecondoInterface::Secondo( command_text,
                             loop_command,
                             0,
                             false,
@@ -2265,7 +2279,6 @@ SecondoInterface::Command_WhileDoLoop( const ListExpr  list,
                             "SecondoQPResult_tmp",
                             false);
       // print result
-      loop_cnt++;
 //       cmsg.info() << endl << "Result for loop " << loop_cnt << ": "
 //                   << nl->ToString(cresult) << endl;
 //       cmsg.send();
@@ -2278,6 +2291,7 @@ SecondoInterface::Command_WhileDoLoop( const ListExpr  list,
       }
     }
   } // end while
+  resultList = nl->TwoElemList(nl->SymbolAtom("resultsequence"),resultList);
   return errorCode;
 }
 

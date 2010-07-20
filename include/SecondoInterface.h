@@ -425,8 +425,8 @@ the command fails with a syntax error.
 This is a command sequence. The commands are executed one after another until
 a command returns an error. Then, the execution of the sequence is stopped.
 In this case, only the result, error code and error message of the *last*
-executed command is returned. Other wise, a list with the results in the given
-sequence is returned.
+executed command is returned. Other wise, a list (resultsequence R), where R is
+a nested list with the commands' results in the given sequence is returned.
 
 ---
   NL-syntax: (while <value-expression> do <command> endwhile)
@@ -438,7 +438,8 @@ the ~value-expresion~, is evaluted to TRUE. If the value-expression gets
 undefined or FALSE, ~command~ is not exececuted and the loop is exited.
 
 If an error occurs, the result is always the result of the last executed
-instance of ~command~. Otherwise it is a list with the results of all calls of
+instance of ~command~. Otherwise it is a list (resultsequence R), where R is
+a nested list with the results of all calls of
 ~command~.
 
 If the type of the value-expression is not ~bool~ or no database is opened,
