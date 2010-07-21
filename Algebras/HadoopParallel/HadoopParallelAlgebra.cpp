@@ -127,54 +127,82 @@ struct doubleExportInfo : OperatorInfo
 */
 ListExpr doubleExportTypeMap(ListExpr args)
 {
+  if (nl->ListLength(args) != 4)
+  {
+    ErrorReporter::ReportError(
+            "Operator doubleexport expect a list of four arguments");
+    return nl->TypeError();
+  }
 
-  CHECK_COND(nl->ListLength(args) == 4, "Expect 4 arguments");
-  CHECK_COND(listutils::isTupleStream(nl->First(args))
-    && listutils::isTupleStream(nl->Second(args))
-    && listutils::isSymbol(nl->Third(args))
-    && listutils::isSymbol(nl->Fourth(args)),
-    "Expect stream (tuple((a1 t1) ... (ai ti) ... (an tm)))"
-         "x stream (tuple((b1 p1) ... (bj tj) ... (bm tm)))"
-         "x ai x bj -> stream (tuple (key:text) (value:text))");
+  if (listutils::isTupleStream(nl->First(args))
+      && listutils::isTupleStream(nl->Second(args))
+      && listutils::isSymbol(nl->Third(args))
+      && listutils::isSymbol(nl->Fourth(args)))
+  {
+    //Get the indices of two indicated key attributes
+    ListExpr tupTypeA, tupTypeB;
+    tupTypeA = nl->Second(nl->First(args));
+    tupTypeB = nl->Second(nl->Second(args));
 
-  //Get the indices of two indicated key attributes
-  ListExpr tupTypeA, tupTypeB;
-  tupTypeA = nl->Second(nl->First(args));
-  tupTypeB = nl->Second(nl->Second(args));
+    ListExpr attrTypeA, attrTypeB;
+    ListExpr tupListA = nl->Second(tupTypeA);
+    string attrAName = nl->SymbolValue(nl->Third(args));
+    int attrAIndex =
+        listutils::findAttribute(tupListA,attrAName,attrTypeA);
+    if (attrAIndex <= 0)
+    {
+      ErrorReporter::ReportError(
+        "Attributename " + attrAName
+        + " not found in the first argument");
+      return nl->TypeError();
+    }
 
-  ListExpr attrTypeA, attrTypeB;
-  ListExpr tupListA = nl->Second(tupTypeA);
-  string attrAName = nl->SymbolValue(nl->Third(args));
-  int attrAIndex =
-      listutils::findAttribute(tupListA,attrAName,attrTypeA);
-  CHECK_COND(attrAIndex > 0,
-    "Attributename " + attrAName
-    + " not found in the first argument");
-  ListExpr tupListB = nl->Second(nl->Second(nl->Second(args)));
-  string attrBName = nl->SymbolValue(nl->Fourth(args));
-  int attrBIndex =
-      listutils::findAttribute(tupListB,attrBName,attrTypeB);
-  CHECK_COND(attrBIndex > 0,
-    "Attributename " + attrBName
-    + " not found in the second argument");
-  CHECK_COND( listutils::isDATA(attrTypeA)
+    ListExpr tupListB = nl->Second(nl->Second(nl->Second(args)));
+    string attrBName = nl->SymbolValue(nl->Fourth(args));
+    int attrBIndex =
+        listutils::findAttribute(tupListB,attrBName,attrTypeB);
+    if (attrBIndex <= 0)
+    {
+      ErrorReporter::ReportError(
+        "Attributename " + attrBName
+        + " not found in the second argument");
+      return nl->TypeError();
+    }
+
+    if (listutils::isDATA(attrTypeA)
       && listutils::isDATA(attrTypeB)
-      && nl->Equal(attrTypeA, attrTypeB),
-    "Expect equal and DATA kind key types.");
+      && nl->Equal(attrTypeA, attrTypeB))
+    {
+      ListExpr attrList = nl->TwoElemList(
+          nl->TwoElemList(nl->StringAtom("keyT",false),
+              nl->SymbolAtom(STRING)),
+          nl->TwoElemList(nl->StringAtom("valueT",false),
+              nl->SymbolAtom(TEXT)));
+      NList AttrList(attrList, nl);
+      NList tupleStreamList = NList(NList().tupleStreamOf(AttrList));
 
-  ListExpr attrList = nl->TwoElemList(
-      nl->TwoElemList(nl->StringAtom("keyT",false),
-          nl->SymbolAtom(STRING)),
-      nl->TwoElemList(nl->StringAtom("valueT",false),
-          nl->SymbolAtom(TEXT)));
-  NList AttrList(attrList, nl);
-  NList tupleStreamList = NList(NList().tupleStreamOf(AttrList));
-
-  return nl->ThreeElemList(
-               nl->SymbolAtom("APPEND"),
-               nl->TwoElemList(nl->IntAtom(attrAIndex),
-                               nl->IntAtom(attrBIndex)),
-               tupleStreamList.listExpr());
+      return nl->ThreeElemList(
+                 nl->SymbolAtom("APPEND"),
+                 nl->TwoElemList(nl->IntAtom(attrAIndex),
+                                 nl->IntAtom(attrBIndex)),
+                 tupleStreamList.listExpr());
+    }
+    else
+    {
+      ErrorReporter::ReportError(
+        "Operator doubleexport expect same and DATA kind key types.");
+      return nl->TypeError();
+    }
+  }
+  else
+  {
+    ErrorReporter::ReportError(
+            "Operator doubleexport expect: "
+            "stream (tuple((a1 t1) ... (ai ti) ... (an tm)))"
+            "x stream (tuple((b1 p1) ... (bj tj) ... (bm tm)))"
+            "x ai x bj -> stream (tuple (key:text) (value:text))");
+    return nl->TypeError();
+  }
 }
 
 /*
@@ -222,21 +250,13 @@ int doubleExportValueMap(Word* args, Word& result,
 
 deLocalInfo::deLocalInfo(Word _streamA, Word wAttrIndexA,
                          Word _streamB, Word wAttrIndexB,
-                         Supplier s)
+                         Supplier s):resultTupleType(0)
 {
   streamA = _streamA;
   streamB = _streamB;
   attrIndexA = StdTypes::GetInt( wAttrIndexA ) - 1;
   attrIndexB = StdTypes::GetInt( wAttrIndexB ) - 1;
   isAEnd = false;
-
-  //The tupleType here should looks like (tuple(....))
-  tupTypeA =
-      SecondoSystem::GetCatalog()->NumericType(
-      nl->Second(qp->GetSupplierTypeExpr(qp->GetSon(s,0))));
-  tupTypeB =
-      SecondoSystem::GetCatalog()->NumericType(
-      nl->Second(qp->GetSupplierTypeExpr(qp->GetSon(s,1))));
 
   ListExpr resultType = GetTupleResultType(s);
   resultTupleType = new TupleType( nl->Second( resultType ) );
@@ -251,25 +271,24 @@ and set their ~SI~ as 2.
 
 Tuple* deLocalInfo::nextResultTuple()
 {
-  Word result(Address(0));
+  Tuple* tuple = 0;
 
   if(!isAEnd){
-    result = makeTuple(streamA, attrIndexA, tupTypeA, 1);
-    if (result.addr != 0)
-      return static_cast<Tuple*>( result.addr );
-    else
+    tuple = makeTuple(streamA, attrIndexA, 1);
+    if (tuple == 0)
       isAEnd = true;
+    else
+      return tuple;
   }
-  result = makeTuple(streamB, attrIndexB, tupTypeB, 2);
-  return static_cast<Tuple*> (result.addr);
+  tuple = makeTuple(streamB, attrIndexB, 2);
+  return tuple;
 }
 
-Word deLocalInfo::makeTuple(Word stream, int index,
-                            ListExpr typeInfo, int SI)
+Tuple* deLocalInfo::makeTuple(Word stream, int index,int SI)
 {
   bool yield = false;
-  Word result(Address(0));
-  Tuple *oldTuple, *newTuple;
+  Word result;
+  Tuple *oldTuple, *newTuple = 0;
 
   qp->Request(stream.addr, result);
   yield = qp->Received(stream.addr);
@@ -278,24 +297,20 @@ Word deLocalInfo::makeTuple(Word stream, int index,
     //Get a tuple from the stream;
     oldTuple = static_cast<Tuple*>(result.addr);
 
-    string binStr = oldTuple->WriteToBinStr();
-
     string key =
         ((Attribute*)(oldTuple->GetAttribute(index)))->getCsvStr();
     string tupStr = oldTuple->WriteToBinStr();
     stringstream vs;
     vs << "(" << SI << " '" << tupStr << "')";
-    oldTuple->DeleteIfAllowed();
 
-    // -- Use binary form to replace the valueStr;
     newTuple = new Tuple(resultTupleType);
     newTuple->PutAttribute(0,new CcString(key));
     newTuple->PutAttribute(1,new FText(true, vs.str()));
 
-    result.setAddr(newTuple);
+    oldTuple->DeleteIfAllowed();
   }
 
-  return result;
+  return newTuple;
 }
 
 string binEncode(ListExpr nestList)
@@ -395,31 +410,57 @@ struct paraHashJoinInfo : OperatorInfo
 ListExpr paraHashJoinTypeMap(ListExpr args)
 {
 
-  CHECK_COND(nl->ListLength(args) == 3, "Expect 3 arguments");
+  if (nl->ListLength(args) != 3)
+  {
+    ErrorReporter::ReportError(
+      "Operator parahashjoin expect a list of three arguments");
+    return nl->TypeError();
+  }
 
   ListExpr stream = nl->First(args);
   ListExpr relA = nl->Second(args);
   ListExpr relB = nl->Third(args);
 
-  CHECK_COND(listutils::isTupleStream(stream)
+  if (listutils::isTupleStream(stream)
     && listutils::isRelDescription(relA)
-    && listutils::isRelDescription(relB),
-    "Expect input as stream(tuple) x rel(tuple) x rel(tuple)");
+    && listutils::isRelDescription(relB))
+  {
+    ListExpr streamTupleList = nl->Second(nl->Second(stream));
+    if (nl->ListLength(streamTupleList) != 1)
+    {
+      ErrorReporter::ReportError(
+        "Operator parahashjoin only accept tuple stream "
+        "with one TEXT type argument");
+      return nl->TypeError();
+    }
+    else if (!listutils::isSymbol(
+        nl->Second(nl->First(streamTupleList)),TEXT))
+    {
+      ErrorReporter::ReportError(
+              "Operator parahashjoin only accept tuple stream "
+              "with one TEXT type argument");
+      return nl->TypeError();
+    }
 
-  ListExpr streamTupleList = nl->Second(nl->Second(stream));
-  CHECK_COND(nl->ListLength(streamTupleList) == 1
-  && listutils::isSymbol(nl->Second(nl->First(streamTupleList)),TEXT),
-  "Expect input stream as (stream(tuple((value text))))");
+    ListExpr rAtupNList =
+        renameList(nl->Second(nl->Second(relA)), "1");
+    ListExpr rBtupNList =
+        renameList(nl->Second(nl->Second(relB)), "2");
+    ListExpr resultAttrList = ConcatLists(rAtupNList, rBtupNList);
+    ListExpr resultList = nl->TwoElemList(nl->SymbolAtom("stream"),
+          nl->TwoElemList(nl->SymbolAtom("tuple"), resultAttrList));
 
-  ListExpr rAtupNList =
-      renameList(nl->Second(nl->Second(relA)), "1");
-  ListExpr rBtupNList =
-      renameList(nl->Second(nl->Second(relB)), "2");
-  ListExpr resultAttrList = ConcatLists(rAtupNList, rBtupNList);
-  ListExpr resultList = nl->TwoElemList(nl->SymbolAtom("stream"),
-        nl->TwoElemList(nl->SymbolAtom("tuple"), resultAttrList));
+    return resultList;
 
-  return resultList;
+  }
+  else
+  {
+    ErrorReporter::ReportError(
+      "Operator parahashjoin expect input as "
+        "stream(tuple) x rel(tuple) x rel(tuple)");
+    return nl->TypeError();
+  }
+
 }
 
 /*
@@ -506,7 +547,6 @@ phjLocalInfo::phjLocalInfo(Word _stream, Supplier s,
 
   joinedTuples = 0;
   tupleIterator = 0;
-  //getNewProducts();
 }
 
 /*
@@ -553,7 +593,6 @@ Or else, make the products, and put the result tuples into the ~joinedTuples~.
 
 */
 
-//bool phjLocalInfo::getNewProducts()
 GenericRelationIterator* phjLocalInfo::getNewProducts()
 {
 
@@ -668,12 +707,9 @@ GenericRelationIterator* phjLocalInfo::getNewProducts()
       delete tbA;
       delete tbB;
 
-      //tupleIterator = joinedTuples->MakeScan();
       return joinedTuples->MakeScan();
-      //return true;
     }
   }
-//  return false;
   return 0;
 }
 
@@ -875,43 +911,77 @@ struct paraJoinInfo : OperatorInfo
 
 ListExpr paraJoinTypeMap( ListExpr args )
 {
-  CHECK_COND(nl->ListLength(args) == 4,
-    "Expect four arguments");
+  if (nl->ListLength(args) != 4)
+  {
+    ErrorReporter::ReportError(
+      "Operator parajoin expect a list of four arguments");
+    return nl->TypeError();
+  }
 
   ListExpr streamList = nl->First(args);
   ListExpr relAList = nl->Second(args);
   ListExpr relBList = nl->Third(args);
   ListExpr mapNL = nl->Fourth(args);
 
-  CHECK_COND(listutils::isTupleStream(streamList)
+  if (listutils::isTupleStream(streamList)
     && listutils::isRelDescription(relAList)
-    && listutils::isRelDescription(relBList),
-    "Expect (stream(tuple((value text))))"
-          "x(rel(tuple(T1))) x (rel(tuple(T2)))"
-          "x((map (stream(T1)) (stream(T2)) (stream(T1 T2))))");
+    && listutils::isRelDescription(relBList))
+  {
+    ListExpr attrList = nl->Second(nl->Second(streamList));
+    if (nl->ListLength(attrList) != 1)
+    {
+      ErrorReporter::ReportError(
+        "Operator parajoin only accept tuple stream "
+        "with one TEXT type argument");
+      return nl->TypeError();
+    }
+    else if (!listutils::isSymbol(
+      nl->Second(nl->First(attrList)),TEXT))
+    {
+      ErrorReporter::ReportError(
+        "Operator parajoin only accept tuple stream "
+        "with one TEXT type argument");
+      return nl->TypeError();
+    }
 
-  ListExpr attrList = nl->Second(nl->Second(streamList));
-  CHECK_COND(nl->ListLength(attrList) == 1
-    && listutils::isSymbol(nl->Second(nl->First(attrList)),TEXT),
-    "Expect input stream as (stream(tuple((value text))))");
+    if (listutils::isMap<2>(mapNL))
+    {
+      if (listutils::isTupleStream(nl->Second(mapNL))
+        && listutils::isTupleStream(nl->Third(mapNL))
+        && listutils::isTupleStream(nl->Fourth(mapNL)))
+      {
+        ListExpr resultList = nl->TwoElemList(
+            nl->SymbolAtom("stream"),
+              nl->TwoElemList(nl->SymbolAtom("tuple"),
+                  nl->Second(nl->Second(nl->Fourth(mapNL)))));
 
-  //The map indicates the join method for tuples within same bucket
-  CHECK_COND(listutils::isMap<2>(mapNL),
-      "Expect binary function as the fourth argument.");
-
-  CHECK_COND(
-       listutils::isTupleStream(nl->Second(mapNL))
-    && listutils::isTupleStream(nl->Third(mapNL))
-    && listutils::isTupleStream(nl->Fourth(mapNL)),
-    "Expect (map (stream(T1)) (stream(T2)) (stream(T1 T2)))"
-  );
-
-  ListExpr resultList = nl->TwoElemList(
-      nl->SymbolAtom("stream"),
-        nl->TwoElemList(nl->SymbolAtom("tuple"),
-            nl->Second(nl->Second(nl->Fourth(mapNL)))));
-
-  return resultList;
+        return resultList;
+      }
+      else
+      {
+        ErrorReporter::ReportError(
+                "Operator parajoin expects parameter function "
+                  "as (map (stream(T1)) (stream(T2)) (stream(T1 T2)))");
+        return nl->TypeError();
+      }
+    }
+    else
+    {
+      ErrorReporter::ReportError(
+        "Operator parajoin expects binary function "
+          "as the fourth argument.");
+      return nl->TypeError();
+    }
+  }
+  else
+  {
+    ErrorReporter::ReportError(
+      "Operator parajoin expect "
+        "(stream(tuple((value text))))"
+        "x(rel(tuple(T1))) x (rel(tuple(T2)))"
+        "x((map (stream(T1)) (stream(T2)) (stream(T1 T2))))");
+    return nl->TypeError();
+  }
 }
 
 
@@ -956,7 +1026,7 @@ int paraJoinValueMap(Word* args, Word& result,
       return CANCEL;
     localInfo = (pjLocalInfo*) local.addr;
 
-    result = localInfo->getNextTuple();
+    result.setAddr(localInfo->getNextTuple());
     if (result.addr)
       return YIELD;
     else
@@ -973,7 +1043,7 @@ int paraJoinValueMap(Word* args, Word& result,
       return CANCEL;
     localInfo = (pjLocalInfo*) local.addr;
 
-    result = localInfo->getNextInputTuple(tupBufferA);
+    result.setAddr(localInfo->getNextInputTuple(tupBufferA));
     if ( result.addr != 0)
       return YIELD;
     else
@@ -984,7 +1054,7 @@ int paraJoinValueMap(Word* args, Word& result,
       return CANCEL;
     localInfo = (pjLocalInfo*) local.addr;
 
-    result = localInfo->getNextInputTuple(tupBufferB);
+    result.setAddr(localInfo->getNextInputTuple(tupBufferB));
     if ( result.addr != 0)
       return YIELD;
     else
@@ -1060,7 +1130,6 @@ void pjLocalInfo::loadTuples()
     {
       cTuple = static_cast<Tuple*> (cTupleWord.addr);
       tupStr = ((FText*) (cTuple->GetAttribute(0)))->GetValue();
-      cTuple->DeleteIfAllowed();
 
       int SI = atoi(tupStr.substr(1,1).c_str());
       sTupStr = tupStr.substr(4, tupStr.size() - 6);
@@ -1096,6 +1165,7 @@ void pjLocalInfo::loadTuples()
       }
       }
 
+      cTuple->DeleteIfAllowed();
       if (isInBucket)
         qp->Request(mixedStream.addr, cTupleWord);
     }
@@ -1138,7 +1208,7 @@ then continue scan the input stream until the input stream is
 exhausted too.
 
 */
-Word pjLocalInfo::getNextInputTuple(tupleBufferType tbt)
+Tuple* pjLocalInfo::getNextInputTuple(tupleBufferType tbt)
 {
   Tuple* tuple = 0;
 
@@ -1149,7 +1219,7 @@ Word pjLocalInfo::getNextInputTuple(tupleBufferType tbt)
     tuple = itrB->GetNextTuple();
   }
 
-  return SetWord(tuple);
+  return tuple;
 }
 
 /*
@@ -1159,7 +1229,7 @@ If the function's output stream is exhausted,
 then load the tuples of one bucket from the input stream.
 
 */
-Word pjLocalInfo::getNextTuple()
+void* pjLocalInfo::getNextTuple()
 {
   Word funResult(Address(0));
 
@@ -1167,11 +1237,11 @@ Word pjLocalInfo::getNextTuple()
   {
     qp->Request(JNfun, funResult);
     if (funResult.addr){
-      return funResult;
+      return funResult.addr;
     }
     else if (endOfStream) {
       qp->Close(JNfun);
-      return SetWord(Address(0));
+      return 0;
     }
     else {
       // No more result in current bucket, load the next bucket
@@ -1182,7 +1252,7 @@ Word pjLocalInfo::getNextTuple()
       continue;
     }
   }
-  return SetWord(Address(0));
+  return 0;
 }
 
 /*
@@ -1198,12 +1268,18 @@ For simulating this proceduce in Secondo, we create this operator
 called ~add0Tuple~.
 This operator must get the outputs from ~doubleexport~, and be used
 after a ~sortby~ operator which sort the tuples by their keys.
-Then this operator can scan the whole stream, and add the ~ST~ tuples
+Then this operator can scan the whole stream, and add the ~0Tuple~s
 when the keys values change.
 
 At the same time, this operator also abandon the keyT field of
 the input stream, only extract the valueT field to the next operator,
 like ~parahashjoin~ or ~parajoin~.
+
+Added in 21th July 2010 -- Jiamin
+I changed the ~add0Tuple~ to keep the ~keyT~ attribute,
+to reduce the additional overhead of creating new tuples.
+Therefore, a ~project~ operator is needed to project the ~valueT~ part
+only to the following ~parajoin~ or ~parahashjoin~ operator.
 
 */
 
@@ -1214,7 +1290,7 @@ struct add0TupleInfo : OperatorInfo
     name = "add0Tuple";
     signature =
         "(  (stream(tuple((keyT string)(valueT text))))"
-        "-> stream(tuple((valueT text)))  )";
+        "-> stream(tuple((keyT string)(valueT text)))  )";
     syntax = "_ add0Tuple";
     meaning = "Separate tuples by inserting 0 tuples";
   }
@@ -1225,26 +1301,45 @@ struct add0TupleInfo : OperatorInfo
 
 ----
     (stream(tuple((keyT string)(valueT text))))
-      -> stream(tuple((valueT text)))
+      -> stream(tuple((keyT string)(valueT text)))
 ----
 
 */
 ListExpr add0TupleTypeMap(ListExpr args)
 {
-  CHECK_COND(nl->ListLength(args) == 1, "Expect 1 argument");
+  int len = nl->ListLength(args);
+  if (len != 1)
+  {
+    ErrorReporter::ReportError(
+            "Operator add0TupleTypeMap only expect one argument.");
+    return nl->TypeError();
+  }
+
   ListExpr streamNL = nl->First(args);
-  CHECK_COND(listutils::isTupleStream(streamNL),
-      "Expect a stream of tuple.");
+  if (!listutils::isTupleStream(streamNL))
+  {
+    ErrorReporter::ReportError(
+            "Operator add0TupleTypeMap expect a tuple stream.");
+    return nl->TypeError();
+  }
+
   ListExpr tupleList = nl->Second(nl->Second(streamNL));
-  CHECK_COND(nl->ListLength(tupleList) == 2
-    && listutils::isSymbol(nl->Second(nl->First(tupleList)), STRING)
-    && listutils::isSymbol(nl->Second(nl->Second(tupleList)), TEXT),
-    "Expect stream(tuple((string)(text)))");
-
-  return nl->TwoElemList(nl->SymbolAtom(STREAM),
-      nl->TwoElemList(nl->SymbolAtom(TUPLE),
-          nl->OneElemList(nl->Second(tupleList))));
-
+  if (nl->ListLength(tupleList) == 2
+      && listutils::isSymbol(nl->Second(nl->First(tupleList)), STRING)
+      && listutils::isSymbol(nl->Second(nl->Second(tupleList)), TEXT))
+  {
+    return streamNL;
+//    return nl->TwoElemList(nl->SymbolAtom(STREAM),
+//          nl->TwoElemList(nl->SymbolAtom(TUPLE),
+//              nl->OneElemList(nl->Second(tupleList))));
+  }
+  else
+  {
+    ErrorReporter::ReportError(
+           "Operator add0TupleTypeMap expect input "
+           "as stream(tuple((string)(text)))");
+    return nl->TypeError();
+  }
 }
 
 
@@ -1258,7 +1353,7 @@ int add0TupleValueMap(Word* args, Word& result,
 {
   a0tLocalInfo *localInfo;
   Word cTupleWord;
-  Tuple *oldTuple, *newTuple, *sepTuple;
+  Tuple *oldTuple, *sepTuple;
 
   switch (message)
   {
@@ -1278,12 +1373,10 @@ int add0TupleValueMap(Word* args, Word& result,
 
     if(localInfo->needInsert)
     {
-      //insert the separate tuple
-      newTuple = localInfo->moreTuple->Clone();
-      result.setAddr(newTuple);
+      // Output the cached tuple
+      result.setAddr(localInfo->cachedTuple);
 
-      localInfo->moreTuple->DeleteIfAllowed();
-      localInfo->moreTuple = 0;
+      localInfo->cachedTuple = 0;
       localInfo->needInsert = false;
       return YIELD;
     }
@@ -1295,29 +1388,27 @@ int add0TupleValueMap(Word* args, Word& result,
         oldTuple = (Tuple*)cTupleWord.addr;
         string key =
             ((CcString*)(oldTuple->GetAttribute(0)))->GetValue();
-        string value =
-            ((FText*)(oldTuple->GetAttribute(1)))->GetValue();
-        oldTuple->DeleteIfAllowed();
-
-        newTuple = new Tuple(localInfo->resultTupleType);
-        newTuple->PutAttribute(0, new FText(true, value));
 
         if ("" == localInfo->key)
-          localInfo->key = key;
+          localInfo->key = key;  //Set the initial key value
 
         if (key == localInfo->key)
         {
-          result.setAddr(newTuple);
+          result.setAddr(oldTuple);  //Unchanged key value
           return YIELD;
         }
         else
         {
-          localInfo->moreTuple = newTuple;
+          //  The key value changes,
+          //  cache the current tuple with changed key,
+          //  and insert the separate 0Tuple
+          localInfo->cachedTuple = oldTuple;
           localInfo->needInsert = true;
           localInfo->key = key;
 
           sepTuple = new Tuple(localInfo->resultTupleType);
-          sepTuple->PutAttribute(0, new FText(true, "(0 '')"));
+          sepTuple->PutAttribute(0, new CcString(true, "0Tuple"));
+          sepTuple->PutAttribute(1, new FText(true, "(0 '')"));
 
           result.setAddr(sepTuple);
           return YIELD;

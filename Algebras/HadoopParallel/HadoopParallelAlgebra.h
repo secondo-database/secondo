@@ -69,7 +69,8 @@ private:
 
   TupleType *resultTupleType;
 
-  Word makeTuple(Word stream, int index, ListExpr typeInfo, int sig);
+//  Tuple* makeTuple(Word stream, int index, ListExpr typeInfo, int sig);
+  Tuple* makeTuple(Word stream, int index, int sig);
 
 public:
   deLocalInfo(Word _streamA, Word wAttrIndexA,
@@ -78,7 +79,9 @@ public:
 
   ~deLocalInfo()
   {
-    delete resultTupleType;
+    //delete resultTupleType;
+    if (resultTupleType != 0)
+      resultTupleType->DeleteIfAllowed();
   }
 
   Tuple* nextResultTuple();
@@ -135,7 +138,6 @@ private:
   TupleBuffer *joinedTuples;
   GenericRelationIterator *tupleIterator;
 
-//  bool getNewProducts();
   GenericRelationIterator* getNewProducts();
 
 public:
@@ -246,10 +248,10 @@ public:
   }
 
   // Get the next tuple from tupleBuffer A or tuppleBuffer B.
-  Word getNextInputTuple(tupleBufferType tbt);
+  Tuple* getNextInputTuple(tupleBufferType tbt);
 
   // Get the next result tuple
-  Word getNextTuple();
+  void* getNextTuple();
 };
 
 /*
@@ -262,12 +264,12 @@ struct a0tLocalInfo
 {
   string key;
   TupleType *resultTupleType;
-  Tuple *moreTuple;
+  Tuple *cachedTuple;
   bool needInsert;
   string sepTupleStr;
 
   inline a0tLocalInfo(ListExpr rtNL):
-      key(""), moreTuple(0),
+      key(""), cachedTuple(0),
       needInsert(false)
   {
     resultTupleType = new TupleType(nl->Second(rtNL));
@@ -279,9 +281,9 @@ struct a0tLocalInfo
       resultTupleType->DeleteIfAllowed();
     resultTupleType = 0;
 
-    if ( moreTuple != 0)
-      moreTuple->DeleteIfAllowed();
-    moreTuple = 0;
+    if ( cachedTuple != 0)
+      cachedTuple->DeleteIfAllowed();
+    cachedTuple = 0;
 
   }
 };
