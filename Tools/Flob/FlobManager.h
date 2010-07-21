@@ -159,7 +159,7 @@ Creates a new, empty Flob with a given size within a temporal file
 
 */
 
-      bool create(const SmiSize& size, Flob& result);  // result flob
+      bool create(const SmiSize size, Flob& result);  // result flob
 
 /*
 ~create~

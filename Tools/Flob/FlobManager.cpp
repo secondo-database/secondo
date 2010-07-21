@@ -208,15 +208,20 @@ This can be realized by calling the ~dropFile~ function.
 
 
 bool FlobManager::makeControllable(Flob& flob){
+
     if(flob.dataPointer){
+
       assert(flob.id.isDestroyed());
       // found an evil flob, create a nice one from it
+
+      char* dp = flob.dataPointer;
+      flob.dataPointer = 0;
+     
       if(!create(flob.size,flob)){
          assert(false);
          return false;
       }
-      char* dp = flob.dataPointer;
-      flob.dataPointer = 0;
+
       if(! putData(flob, dp, 0,flob.size,false)){
        assert(false);
        return false;
@@ -251,6 +256,11 @@ bool FlobManager::resize(Flob& flob, const SmiSize& newSize,
 
     if(flob.dataPointer){
       makeControllable(flob);
+    }
+
+
+    if(newSize==flob.size){
+       return true;
     }
 
     assert(!flob.id.isDestroyed());
@@ -685,7 +695,7 @@ Warning: this function does not change the dataPointer.
 
 */
 
- bool FlobManager::create(const SmiSize& size, Flob& result) {  // result flob
+ bool FlobManager::create(const SmiSize size, Flob& result) {  // result flob
  __TRACE_ENTER__
    SmiRecord rec;
    SmiRecordId recId;
@@ -693,7 +703,7 @@ Warning: this function does not change the dataPointer.
   if(size > 536870912){ // 512 MB
     cerr << "Warning try to cretae a very big flob , size = " << size <<endl;
   }
- 
+
    if(!DestroyedFlobs->isEmpty()){
      result = DestroyedFlobs->pop();
      result.size = size;
@@ -717,7 +727,7 @@ Warning: this function does not change the dataPointer.
       }
    }
 
-
+  
    __TRACE_LEAVE__
    return true;
  }
