@@ -46,16 +46,24 @@ consume;
 # from QueryLicence2 have been?1
 query now();
 
-let Q5bOBA =
+let Q5h1OBA =
   QueryLicences1 feed {l1}
   loopsel[dataSNcar_Licence_btree dataSNcar exactmatch [.Licence_l1]
-  projectextend[Licence; TrajLine: gline2line(trajectory(.Trip))]]{c1}
+  projectextend[Licence; TrajLine: gline2line(trajectory(.Trip))]]
+consume;
+let Q5h2OBA =
   QueryLicences2 feed {l2}
   loopsel[dataSNcar_Licence_btree dataSNcar exactmatch [.Licence_l2]
-  projectextend[Licence; TrajLine: gline2line(trajectory(.Trip))]]{c2}
+  projectextend[Licence; TrajLine: gline2line(trajectory(.Trip))]]
+consume;
+let Q5bOBA =
+Q5h1OBA feed {c1}
+Q5h2OBA feed {c2}
   product
   projectextend [Licence_c1, Licence_c2; Distance: distance(.TrajLine_c1, .TrajLine_c2)]
 consume;
+delete Q5h1OBA;
+delete Q5h2OBA;
 
 # Query 6: What are the pairs of license plate numbers of "trucks", that have have been as close as 10m or less to each other?
 query now();
@@ -87,26 +95,23 @@ query now();
 # cars  during the complete observation period?
 query now();
 
-let Q7cOBA =
-QueryPointsNet feed projectextend[Id, Pos; Prect: gpoint2rect(.Pos)] {a}
+let Q7hOBA =
   QueryPointsNet feed projectextend[Id, Pos; Prect: gpoint2rect(.Pos)]
   loopsel [fun(t:TUPLE) dataSNcar_TrajBoxNet windowintersectsS[attr(t,Prect)]
   sort rdup dataSNcar gettuples
   filter [.Type = "passenger"]
-  projectextend[; Id: attr(t,Id) , Instant: inst(initial(.Trip at attr(t,Pos)))]]
+  projectextend[Licence; Id: attr(t,Id) , Instant: inst(initial(.Trip at attr(t,Pos)))]]
   filter[not(isempty(.Instant))]
   sortby[Id asc, Instant asc]
-  groupby[Id; FirstTime: group feed min[Instant]]{b}
-  symmjoin [.Id_a = ..Id_b]
-  projectextend [Id_a, FirstTime_b, Pos_a; MBR: box3d(.Prect_a, .FirstTime_b)]
- loopjoin[dataSNcar_BoxNet_timespace windowintersectsS[.MBR]
-  sort rdup dataSNcar gettuples]
-  filter[.Type = "passenger"]
-  projectextend[Licence, FirstTime_b, Id_a; Instant: inst(initial(.Trip at .Pos_a))]
-  filter [not(isempty(.Instant))]
-  filter[.Instant <= .FirstTime_b]
-  project[Id_a, Licence]
+consume;
+let Q7cOBA =
+Q7hOBA feed groupby[Id; FirstTime: group feed min[Instant]]{b}
+Q7hOBA feed {a}
+ symmjoin [..Id_a = .Id_b]
+filter[.Instant_a <= .FirstTime_b]
+  project[Id_a, Licence_a]
  consume;
+delete Q7hOBA;
 
 # Query 8: What are the overall traveled distances of the vehicles with license plate numbers from QueryLicences1 during the periods from
 # QueryPeriods1?
@@ -223,19 +228,17 @@ consume;
 # Query 14: Which vehicles traveled within one of the regions from QueryRegions1 at one of the instants from QueryInstant1?
 
 query now();
-
 let Q14aOBA =
+dataSNcar feed
+QueryInstant1 feed
+product
+projectextend[Licence, Instant; PosX: val(.Trip atinstant .Instant)]
+projectextendstream[Licence, Instant; Pos: polygpoints(.PosX,B_NETWORK)]
 QueryRegions1Net feed filter[not(isempty(.Region))]
-projectextendstream[Id, Region; Rrect:  routeintervals(.Region)] {r}
-  QueryInstant1 feed {i}
-  product
-  projectextend[Id_r, Region_r,Instant_i; Box: box3d(.Rrect_r, .Instant_i)]
-  loopsel[fun(t:TUPLE) dataSNcar_BoxNet_timespace windowintersectsS[attr(t, Box)]
-  sort rdup dataSNcar gettuples
-    filter[(val(.Trip atinstant (attr(t,Instant_i)))) inside (attr(t,Region_r))]
-  projectextend [Licence;Instant: attr(t,Instant_i), Id: attr(t,Id_r)]]
-  sortby [Id asc, Instant asc, Licence asc]
-  krdup[Id, Instant, Licence]
+symmjoin[.Pos inside ..Region]
+project[Id, Instant, Licence]
+sortby [Id asc, Instant asc, Licence asc]
+krdup[Id, Instant, Licence]
 consume;
 
 #  Query 15: Which vehicles passed a point from QueryPoints1 during a period from QueryPeriods1?

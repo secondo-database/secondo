@@ -114,7 +114,7 @@ delete Q6bh1TBA;
 # cars  during the complete observation period?
 
 query now();
-let Q7ah1TBA =
+let Q7hTBA =
   QueryPointsNet feed
   projectextend[Id, Pos; Prect: gpoint2rect(.Pos)]
   loopsel[fun(t:TUPLE) dataMNtrip_TrajBoxNet windowintersectsS[attr(t,Prect)]
@@ -129,17 +129,17 @@ consume;
 query now();
 
 let Q7aTBA =
-  Q7ah1TBA feed {a}
-  Q7ah1TBA feed
+  Q7hTBA feed
     groupby [Id; FirstTime: group feed min[TimeAtPos]]{b}
-  symmjoin[(.Id_a = ..Id_b)]
+  Q7hTBA feed {a}
+  symmjoin[(..Id_a = .Id_b)]
   filter[.TimeAtPos_a <= .FirstTime_b]
   project [Id_a, Licence_X_a]
   sortby [Id_a asc, Licence_X_a asc]
   krdup [Id_a, Licence_X_a]
  consume;
+delete Q7hTBA;
 
-delete Q7ah1TBA;
 
 # Query 8: What are the overall traveled distances of the vehicles with  license plate numbers from QueryLicences1 during the periods from
 # QueryPeriods1?
