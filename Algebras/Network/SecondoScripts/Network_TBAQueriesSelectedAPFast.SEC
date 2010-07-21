@@ -181,6 +181,7 @@ consume;
 #   what are the latter licenses?
 
 query now();
+
 let Q10dTBA =
   QueryLicences1 feed project[Licence] {V1}
   loopsel[ fun(t:TUPLE)

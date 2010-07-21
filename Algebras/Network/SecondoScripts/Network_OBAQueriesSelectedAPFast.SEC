@@ -142,6 +142,7 @@ consume;
 
 # Query 10: When and where did the vehicles with license plate numbers from QueryLicences1 meet other vehicles (distance < 3m) and
 # what are the latter licenses?
+
 query now();
 
 let Q10OBA =

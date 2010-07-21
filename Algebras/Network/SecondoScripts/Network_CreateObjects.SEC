@@ -161,9 +161,9 @@ let dataMNtrip_SpatioTemp =
   sortby [Box asc]
  bulkloadrtree[Box];
 
-let dataSNcar_MONTree = B_NETWORK dataSNcar createmontree[Trip];
+#let dataSNcar_MONTree = B_NETWORK dataSNcar createmontree[Trip];
 
-let dataMNtrip_MONTree = B_NETWORK dataMNtrip createmontree[Trip];
+#let dataMNtrip_MONTree = B_NETWORK dataMNtrip createmontree[Trip];
 
 #let dataSNcar_SpatioTempUnit =
 #  dataSNcar feed addid

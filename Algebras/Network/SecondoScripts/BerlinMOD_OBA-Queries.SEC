@@ -97,6 +97,7 @@ delete OBACRres005tmp2;
 query now();
 #############################################################
 # F - 6
+
 let OBACRres006 =
   dataSCcar feed {V1} filter[.Type_V1 = "truck"]
   dataSCcar feed {V2} filter[.Type_V2 = "truck"]

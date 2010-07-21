@@ -225,6 +225,8 @@ let TBACRres009 =
 query now();
 #############################################################
 # J - 10
+
+
 let TBACRres010 =
   QueryLicences feed head[10] project[Licence] {V1}
   loopsel[ fun(t:TUPLE)
