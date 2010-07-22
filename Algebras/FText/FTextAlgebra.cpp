@@ -73,6 +73,9 @@ October 2008, Christian D[ue]ntgen added operators ~sendtextUDP~ and
 #include "AlgebraManager.h"
 #include "StandardTypes.h"
 #include "RelationAlgebra.h"
+#include "SecondoInterface.h"
+#include "SecondoInterface.h"
+#include "DerivedObj.h"
 #include "NList.h"
 #include "DiceCoeff.h"
 #include "SecParser.h"
@@ -243,7 +246,7 @@ bool FText::Adjacent(const Attribute *arg) const
   theText.read(a, theText.getSize() );
   farg->theText.read(b, farg->theText.getSize() );
 
-  if( strcmp( a, b ) == 0 ) 
+  if( strcmp( a, b ) == 0 )
     return true;
 
   if( strlen( a ) == strlen( b ) )
@@ -1495,6 +1498,43 @@ ListExpr blowfish_decodeTM(ListExpr args){
    return blowfish_encodeTM(args);
 }
 
+/*
+2.54 ~letObject~
+
+---- {string|text} x {string|text} x bool --> text
+----
+
+*/
+
+ListExpr StringtypeStringtypeBool2TextTM(ListExpr args){
+  NList type(args);
+  int noargs = nl->ListLength(args);
+  if(    (noargs  != 3)
+      || ((type.first() != symbols::STRING) && (type.first() != symbols::TEXT))
+      || ((type.second()!= symbols::STRING) && (type.second()!= symbols::TEXT))
+      || ( type.third() != symbols::BOOL) ) {
+    return NList::typeError("Expected {string|text} x {string|text} x bool.");
+  }
+  return NList(symbols::TEXT).listExpr();
+}
+
+/*
+2.55 ~deleteObject~
+
+---- {string|text} --> text
+----
+
+*/
+
+ListExpr Stringtype2TextTM(ListExpr args){
+  NList type(args);
+  int noargs = nl->ListLength(args);
+  if(    (noargs  != 1)
+      || ((type.first()!=symbols::STRING) && (type.first() != symbols::TEXT))) {
+    return NList::typeError("Expected {string|text}.");
+  }
+  return NList(symbols::TEXT).listExpr();
+}
 
 
 /*
@@ -1621,9 +1661,9 @@ The length of a string is three characters or more.
 */
 {
   struct TheText {
-     int start, 
-     nochr, 
-     strlength; 
+     int start,
+     nochr,
+     strlength;
      char* subw;
   }* thetext;
 
@@ -2129,7 +2169,7 @@ int cryptVM(Word* args, Word& result, int message,
   T* arg = static_cast<T*>(args[0].addr);
   if(!arg->IsDefined()){
      res->SetDefined(false);
-     return 0;  
+     return 0;
   }
   string a = arg->GetValue();
   srand( (unsigned) time(0) ) ;
@@ -2165,7 +2205,7 @@ int cryptVM(Word* args, Word& result, int message,
   T2* arg2 = static_cast<T2*>(args[1].addr);
   if(!arg1->IsDefined() || !arg2->IsDefined()){
      res->SetDefined(false);
-     return 0;  
+     return 0;
   }
   string a = arg1->GetValue();
   string b = arg2->GetValue();
@@ -2200,8 +2240,8 @@ ValueMapping cryptvm[] = {
      if(s1=="text" && s2=="string") return 4;
      if(s1=="text" && s2=="text") return 5;
    }
-   return -1; // type mapping and selection are not compatible 
- } 
+   return -1; // type mapping and selection are not compatible
+ }
 
 /*
 4.27 Operator checkpw
@@ -2217,7 +2257,7 @@ int checkpwVM(Word* args, Word& result, int message,
   T2* arg2 = static_cast<T2*>(args[1].addr);
   if(!arg1->IsDefined() || !arg2->IsDefined()){
      res->SetDefined(false);
-     return 0;  
+     return 0;
   }
   string a = arg1->GetValue();
   string b = arg2->GetValue();
@@ -2240,8 +2280,8 @@ int checkpwSelect(ListExpr args){
   if(s1=="string" && s2=="text") return 1;
   if(s1=="text" && s2=="string") return 2;
   if(s1=="text" && s2=="text") return 3;
-  return -1; // type mapping and selection are not compatible 
- } 
+  return -1; // type mapping and selection are not compatible
+ }
 
 
 
@@ -2278,7 +2318,7 @@ int md5VM(Word* args, Word& result, int message,
   T2* arg2 = static_cast<T2*>(args[1].addr);
   if(!arg1->IsDefined() || !arg2->IsDefined()){
      res->SetDefined(false);
-     return 0;  
+     return 0;
   }
   string a = arg1->GetValue();
   string b = arg2->GetValue();
@@ -2287,7 +2327,7 @@ int md5VM(Word* args, Word& result, int message,
   }
 
   char*  c = (MD5::unix_encode(a.c_str(),b.c_str()));
-  
+
   unsigned char *c1 = reinterpret_cast<unsigned char*>(c);
 
   res->Set(true,MD5::toString(c1));
@@ -2316,8 +2356,8 @@ ValueMapping md5vm[] = {
      if(s1=="text" && s2=="string") return 4;
      if(s1=="text" && s2=="text") return 5;
    }
-   return -1; // type mapping and selection are not compatible 
- } 
+   return -1; // type mapping and selection are not compatible
+ }
 
 template<class T1, class T2>
 int blowfish_encodeVM(Word* args, Word& result, int message,
@@ -2329,7 +2369,7 @@ int blowfish_encodeVM(Word* args, Word& result, int message,
   T2* arg2 = static_cast<T2*>(args[1].addr);
   if(!arg1->IsDefined() || !arg2->IsDefined()){
      res->SetDefined(false);
-     return 0;  
+     return 0;
   }
   string a = arg1->GetValue();
   string b = arg2->GetValue();
@@ -2337,8 +2377,8 @@ int blowfish_encodeVM(Word* args, Word& result, int message,
   CBlowFish bf;
   unsigned char* passwd = (unsigned char*)(a.c_str());
   unsigned char* text = (unsigned char*)(b.c_str());
- 
-  bf.Initialize(passwd, a.length()); 
+
+  bf.Initialize(passwd, a.length());
   int ol = bf.GetOutputLength(b.length());
   unsigned char out[ol];
   int l = bf.Encode(text, out, b.length());
@@ -2358,10 +2398,10 @@ int blowfish_encodeVM(Word* args, Word& result, int message,
  // value mapping array
 
 ValueMapping blowfish_encodevm[] = {
-         blowfish_encodeVM<CcString, CcString>, 
+         blowfish_encodeVM<CcString, CcString>,
          blowfish_encodeVM<CcString, FText>,
-         blowfish_encodeVM<FText, CcString>, 
-         blowfish_encodeVM<FText, FText> 
+         blowfish_encodeVM<FText, CcString>,
+         blowfish_encodeVM<FText, FText>
 };
 
  // Selection function
@@ -2372,8 +2412,8 @@ ValueMapping blowfish_encodevm[] = {
    if(s1=="string" && s2=="text") return 1;
    if(s1=="text" && s2=="string") return 2;
    if(s1=="text" && s2=="text") return 3;
-   return -1; // type mapping and selection are not compatible 
- } 
+   return -1; // type mapping and selection are not compatible
+ }
 
 /*
 
@@ -2392,7 +2432,7 @@ int fromHex(unsigned char s){
      return s -'A'+10;
   }
   return -1;
-} 
+}
 
 template<class T1, class T2>
 int blowfish_decodeVM(Word* args, Word& result, int message,
@@ -2404,7 +2444,7 @@ int blowfish_decodeVM(Word* args, Word& result, int message,
   T2* arg2 = static_cast<T2*>(args[1].addr);
   if(!arg1->IsDefined() || !arg2->IsDefined()){
      res->SetDefined(false);
-     return 0;  
+     return 0;
   }
   string a = arg1->GetValue();
   string b = arg2->GetValue();
@@ -2412,8 +2452,8 @@ int blowfish_decodeVM(Word* args, Word& result, int message,
   CBlowFish bf;
   unsigned char* passwd = (unsigned char*)(a.c_str());
   unsigned char* text = (unsigned char*)(b.c_str());
- 
-  bf.Initialize(passwd, a.length()); 
+
+  bf.Initialize(passwd, a.length());
   unsigned char orig[b.length()/2+1];
   // read the coded block from hex-text
   for(unsigned int i=0;i<b.length()-1;i+=2){
@@ -2424,9 +2464,9 @@ int blowfish_decodeVM(Word* args, Word& result, int message,
        return 0;
      }
      orig[i/2] = (unsigned char)(p1*16+p2);
-  } 
+  }
   orig[b.length()/2]=0;
-  bf.Decode(orig, orig, b.length()/2); 
+  bf.Decode(orig, orig, b.length()/2);
   res->Set(true,string((char*)orig));
   return 0;
 }
@@ -2435,16 +2475,16 @@ int blowfish_decodeVM(Word* args, Word& result, int message,
  // value mapping array
 
 ValueMapping blowfish_decodevm[] = {
-         blowfish_decodeVM<CcString, CcString>, 
+         blowfish_decodeVM<CcString, CcString>,
          blowfish_decodeVM<CcString, FText>,
-         blowfish_decodeVM<FText, CcString>, 
-         blowfish_decodeVM<FText, FText> 
+         blowfish_decodeVM<FText, CcString>,
+         blowfish_decodeVM<FText, FText>
 };
 
  // Selection function
  int blowfish_decodeSelect(ListExpr args){
    return blowfish_encodeSelect(args);
- } 
+ }
 
 /*
 4.29 Operator ~find~
@@ -2913,7 +2953,7 @@ int FTextValueMapEvaluate( Word* args, Word& result, int message,
                    DeleteObj(queryResType,queryresultword)){
               cerr << "problem in deleting queryresultword" << endl;
 
-            } 
+            }
             nl->WriteToString(resultstring,valueList);
           }
           // else: typeerror or nonevaluable query
@@ -3484,7 +3524,7 @@ int FTextValueMapToObject( Word* args, Word& result, int message,
 //   }
   // Pass the Result
   qp->DeleteResultStorage(s);
-  qp->ChangeResultStorage(s,myRes); 
+  qp->ChangeResultStorage(s,myRes);
   result = qp->ResultStorage(s);
   return 0;
 }
@@ -4244,6 +4284,359 @@ ValueMapping FText_VMMap_MapReceiveTextStreamUDP[] =
   FTextValueMapReceiveTextStreamUDP<FText,   FText   >   // 3
 };
 
+/*
+Operator ~letObject~
+
+*/
+template <class T1, class T2>
+int ftextletObjectVM( Word* args, Word& result, int message,
+                                     Word& local, Supplier s )
+{
+  result      = qp->ResultStorage( s );
+  FText *Res  = reinterpret_cast<FText*>(result.addr);
+
+  T1* CCObjName  = static_cast<T1*>(args[0].addr);
+  T2* CCommand   = static_cast<T2*>(args[1].addr);
+  CcBool* CcIsNL = static_cast<CcBool*>(args[2].addr);
+  string querystring       = "";
+  string querystringParsed = "";
+  string typestring        = "";
+  string errorstring       = "";
+  string ObjNameString     = "";
+  Word queryresultword;
+
+  SecondoCatalog* ctlg = SecondoSystem::GetCatalog();
+
+  SecParser mySecParser;
+  ListExpr parsedCommand;
+
+  // check definedness of all parameters
+  if(    !CCObjName->IsDefined()
+      || !CCommand->IsDefined()
+      || !CcIsNL->IsDefined() ){
+    Res->Set(false, "");
+    return 0;
+  }
+
+  // check for a valid object name
+  ObjNameString = CCObjName->GetValue();
+  if( (ObjNameString == "") ){
+    Res->Set(true, "ERROR: Empty object name.");
+    return 0;
+  } else if ( ctlg->IsSystemObject(ObjNameString) ) {
+    Res->Set(true, "ERROR: Object name identifier is a reseverved identifier.");
+    return 0;
+  } else if (ctlg->IsObjectName(ObjNameString) ) {
+    Res->Set(true, "ERROR: Object name identifier "
+                      + ObjNameString + " is already used.");
+    return 0;
+  }
+
+  // try to create the value from the valeNL/valueText
+  querystring = CCommand->GetValue();
+
+  if( !CcIsNL->GetBoolval() ){ // Command in SecondoExecutableLanguage
+        // call Parser: add "query" and transform expression
+        //              to nested-list-string
+        if(mySecParser.Text2List( "query " + querystring,
+                                             querystringParsed ) != 0)
+        {
+          Res->Set(true, "ERROR: Value text does not contain a "
+              "parsable value expression.");
+          return 0;
+        }
+
+  } else {// Command is already a nested-list-string: just copy
+    querystringParsed = querystring;
+  }
+  // read nested list: transform nested-list-string to nested list
+  if (!nl->ReadFromString(querystringParsed, parsedCommand) ) {
+    Res->Set(true, "ERROR: Value text does not produce a "
+              "valid nested list expression.");
+    return 0;
+  }
+  if ( !CcIsNL->GetBoolval() ) {
+    // remove the "query" from the list
+    if ( (nl->ListLength(parsedCommand) == 2) ){
+          parsedCommand = nl->Second(parsedCommand);
+          //string parsedCommandstr;
+          //nl->WriteToString(parsedCommandstr, parsedCommand);
+          //cout << "NLimport: OK. parsedCommand=" << parsedCommandstr  << endl;
+    } else {
+      Res->Set(true, "ERROR: Value text does not produce a "
+                     "valid nested list expression.");
+      return 0;
+    }
+  }
+  // evaluate command
+  OpTree tree = 0;
+  ListExpr resultType;
+//   if( !SecondoSystem::BeginTransaction() ){
+//     Res->Set(true, "ERROR: BeginTranscation failed!");
+//     return 0;
+//   };
+  QueryProcessor *qpp = new QueryProcessor( nl, am );
+  try{
+    bool correct        = false;
+    bool evaluable      = false;
+    bool defined        = false;
+    bool isFunction     = false;
+    Word qresult;
+    cerr << __PRETTY_FUNCTION__ << "Trying to build the operator tree" << endl;
+    qpp->Construct( parsedCommand,
+                   correct,
+                   evaluable,
+                   defined,
+                   isFunction,
+                   tree,
+                   resultType );
+    if ( !correct ){
+      Res->Set(true, "ERROR: Value text yields a TYPEERROR.");
+      // Do not need to destroy tree here!
+      return 0;
+    }
+    typestring = nl->ToString(resultType);
+    if ( evaluable || isFunction ){
+      string typeName = "";
+      ctlg->CreateObject(ObjNameString, typeName, resultType, 0);
+    }
+    if ( evaluable ){
+      qpp->EvalS( tree, qresult, 1 );
+      if( IsRootObject( tree ) && !IsConstantObject( tree ) ){
+        ctlg->CloneObject( ObjNameString, qresult );
+        qpp->Destroy( tree, true );
+      } else {
+        ctlg->UpdateObject( ObjNameString, qresult );
+        qpp->Destroy( tree, false );
+      }
+    } else if ( isFunction ) { // abstraction or function object
+      if ( nl->IsAtom( parsedCommand ) ) { // function object
+        ListExpr functionList = ctlg->GetObjectValue(
+                nl->SymbolValue( parsedCommand ) );
+        ctlg->UpdateObject( ObjNameString, SetWord( functionList ) );
+      } else {
+        ctlg->UpdateObject( ObjNameString, SetWord( parsedCommand ) );
+      }
+      if( tree ) {
+        qpp->Destroy( tree, true );
+        tree = 0;
+      }
+    }
+  } catch(SI_Error err) {
+    if(tree) {
+      qpp->Destroy( tree, true );
+      tree = 0;
+    }
+    if( qpp ) {
+      delete qpp;
+      qpp = 0;
+    }
+    errorstring = "ERROR: " + SecondoInterface::GetErrorMessage(err);
+//     if ( !SecondoSystem::AbortTransaction() ){
+//       errorstring += ". AbortTransaction failed."
+//     };
+    Res->Set(true, errorstring);
+    return 0;
+  }
+//   if( !SecondoSystem::CommitTransaction() ){
+//     Res->Set(true, "ERROR: CommitTranscation failed!");
+//     return 0;
+//   };
+  if( qpp ) {
+    delete qpp;
+    qpp = 0;
+  }
+  // Create object descriptor for the result FText
+  string restring = "(OBJECT " + ObjNameString + " () (" + typestring + "))";
+  Res->Set(true, restring);
+  return 0;
+}
+
+// value mapping array
+ValueMapping ftextletobject_vm[] = {
+         ftextletObjectVM<CcString, CcString>,
+         ftextletObjectVM<CcString, FText>,
+         ftextletObjectVM<FText,    CcString>,
+         ftextletObjectVM<FText,    FText> };
+
+/*
+Operator ~deleteObject~
+
+*/
+
+template<class T1>
+int ftextdeleteObjectVM( Word* args, Word& result, int message,
+                                     Word& local, Supplier s )
+{
+  result               = qp->ResultStorage( s );
+  FText *Res           = reinterpret_cast<FText*>(result.addr);
+  T1* CCObjName        = static_cast<T1*>(args[0].addr);
+  SecondoCatalog* ctlg = SecondoSystem::GetCatalog();
+  string objName       = CCObjName->GetValue();
+  string typestring    = "";
+
+  if ( !CCObjName->IsDefined() ){
+    Res->Set(false, "");
+    return 0;
+  } else if ( (objName == "") ){
+    Res->Set(true, "ERROR: Empty object name.");
+    return 0;
+  } else if ( ctlg->IsSystemObject(objName) ) {
+      Res->Set(true, "ERROR: Cannot delete system object " + objName + ".");
+      return 0;
+  } else if ( !ctlg->IsObjectName(objName) ) {
+    Res->Set(true, "ERROR: Object " + objName + " is unknown.");
+    return 0;
+  } else {
+    ListExpr typeExpr = ctlg->GetObjectTypeExpr( objName );
+    typestring = nl->ToString(typeExpr);
+    if ( !ctlg->DeleteObject( objName ) ){
+      Res->Set(true, "ERROR: Object " + objName + " is unknown.");
+      return 0;
+    } else {
+      // also delete from derived objects table if necessary
+      DerivedObj *derivedObjPtr = new DerivedObj();
+      derivedObjPtr->deleteObj( objName );
+      delete derivedObjPtr;
+    }
+  }
+  Res->Set(true,"(OBJECT " + objName +" () (" + typestring + "))");
+  return 0;
+}
+
+// value mapping array
+ValueMapping ftextdeleteobject_vm[] = {
+         ftextdeleteObjectVM<CcString>,
+         ftextdeleteObjectVM<FText> };
+
+// Selection function
+int ftextdeleteobjectselect( ListExpr args )
+{
+  NList type(args);
+  if( type.first()=="string" )
+    return 0;
+  if( type.first()=="text" )
+    return 1;
+  return -1;
+}
+
+/*
+Operator ~createObject~
+
+*/
+template <class T1, class T2>
+int ftextcreateObjectVM( Word* args, Word& result, int message,
+                                     Word& local, Supplier s )
+{
+  result      = qp->ResultStorage( s );
+  FText *Res  = reinterpret_cast<FText*>(result.addr);
+
+  T1* CCObjName  = static_cast<T1*>(args[0].addr);
+  T2* CCommand   = static_cast<T2*>(args[1].addr);
+  CcBool* CcIsNL = static_cast<CcBool*>(args[2].addr);
+  string querystring       = "";
+  string querystringParsed = "";
+  string typestring        = "";
+  string errorstring       = "";
+  string ObjNameString     = "";
+  Word queryresultword;
+
+  SecondoCatalog* ctlg = SecondoSystem::GetCatalog();
+
+  SecParser mySecParser;
+  ListExpr parsedCommand;
+
+  // check definedness of all parameters
+  if(    !CCObjName->IsDefined()
+      || !CCommand->IsDefined()
+      || !CcIsNL->IsDefined() ){
+    Res->Set(false, "");
+    return 0;
+  }
+
+  // check for a valid object name
+  ObjNameString = CCObjName->GetValue();
+  if( (ObjNameString == "") ){
+    Res->Set(true, "ERROR: Empty object name.");
+    return 0;
+  } else if ( ctlg->IsSystemObject(ObjNameString) ) {
+    Res->Set(true, "ERROR: Object name identifier is a reseverved identifier.");
+    return 0;
+  } else if (ctlg->IsObjectName(ObjNameString) ) {
+    Res->Set(true, "ERROR: Object name identifier "
+                      + ObjNameString + " is already used.");
+    return 0;
+  }
+
+  // try to create the value from the valueNL/valueText
+  querystring = CCommand->GetValue();
+
+  if( !CcIsNL->GetBoolval() ){ // Command in SecondoExecutableLanguage
+        // call Parser: add "query" and transform expression
+        //              to nested-list-string
+        if(mySecParser.Text2List( "query " + querystring,
+                                             querystringParsed ) != 0)
+        {
+          Res->Set(true, "ERROR: Type text does not contain a "
+              "parsable value expression.");
+          return 0;
+        }
+
+  } else {// Command is already a nested-list-string: just copy
+    querystringParsed = querystring;
+  }
+  // read nested list: transform nested-list-string to nested list
+  if (!nl->ReadFromString(querystringParsed, parsedCommand) ) {
+    Res->Set(true, "ERROR: Type text does not produce a "
+              "valid nested list expression.");
+    return 0;
+  }
+  if ( !CcIsNL->GetBoolval() ) {
+    // remove the "query" from the list
+    if ( (nl->ListLength(parsedCommand) == 2) ){
+          parsedCommand = nl->Second(parsedCommand);
+          //string parsedCommandstr;
+          //nl->WriteToString(parsedCommandstr, parsedCommand);
+          //cout << "NLimport: OK. parsedCommand=" << parsedCommandstr  << endl;
+    } else {
+      Res->Set(true, "ERROR: Type text does not produce a "
+                     "valid nested list expression.");
+      return 0;
+    }
+  }
+  ListExpr typeExpr2 = ctlg->ExpandedType( parsedCommand );
+  ListExpr errorList;
+  string userDefTypeName = "";
+  string typeExprString = nl->ToString(typeExpr2);
+  if ( ctlg->KindCorrect( typeExpr2, errorList ) ) {
+    if (    nl->IsAtom( parsedCommand )
+         && ((nl->AtomType( parsedCommand ) == SymbolType))
+       ) {
+      userDefTypeName = nl->SymbolValue( parsedCommand );
+      if ( !ctlg->MemberType( userDefTypeName ) ) { // not a user-defined type
+          userDefTypeName = "";
+      }
+    }
+    if ( !ctlg->CreateObject( ObjNameString, userDefTypeName, typeExpr2, 0 ) ){
+      Res->Set(true, "ERROR: Object name identifier "
+                        + ObjNameString + " is already used.");
+      return 0;
+    }
+  } else { // Wrong type expression
+      Res->Set(true, "ERROR: Invalid type expression.");
+      return 0;
+  }
+  Res->Set(true, "(OBJECT " + ObjNameString +" () (" + typeExprString + "))");
+  return -1;
+}
+
+// value mapping array
+ValueMapping ftextcreateobject_vm[] = {
+         ftextcreateObjectVM<CcString, CcString>,
+         ftextcreateObjectVM<CcString, FText>,
+         ftextcreateObjectVM<FText,    CcString>,
+         ftextcreateObjectVM<FText,    FText> };
+
 
 /*
 3.4 Definition of Operators
@@ -4681,6 +5074,48 @@ const string blowfish_decodeSpec  =
     "<text>query blowfish_decode(\"TopSecret\",\"f27d7581d1aaaff\")"
     "</text--->"
     ") )";
+
+const string ftextletObjectSpec  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+    "( <text> {string|text} x {string|text} x bool  -> text </text--->"
+    "<text>letObject( objectName, valueNL, isNL )</text--->"
+    "<text>Create a database object as a side effect. The object's name is "
+    "objectName, and it is set to value valueNL. Parameter isNL indicates "
+    "whether valueNL is given in NL syntax (TRUE) or text syntax (FALSE). "
+    "The operator acts like the 'let object' command. The return value is a "
+    "object descriptor (OBJECT () (<typeNL>) (<valueNL>)) is assignment was "
+    "successful, an error message otherwise.</text--->"
+    "<text>query letObject(\"MyThreeInt\",'3', FALSE)"
+    "</text--->"
+    ") )";
+
+const string ftextdeleteObjectSpec  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+    "( <text> {string|text} -> text </text--->"
+    "<text>deleteObject( objectName )</text--->"
+    "<text>Deletes a database object as a side effect. The object is named "
+    "objectName. You should NEVER try to delete an object, that is used by the "
+    "query trying to delete it. If deletion fails, an error message is "
+    "returned, otherwise a descriptor (OBJECT () (<typeNL>) (<valueNL>)) for "
+    "the deleted object is returned.</text--->"
+    "<text>query deleteObject(\"MyThreeInt\")"
+    "</text--->"
+    ") )";
+
+const string ftextcreateObjectSpec  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+    "( <text> {string|text} x {string|text} x bool -> text </text--->"
+    "<text>createObject( objectName, typeexpr, isNL )</text--->"
+    "<text>Creates a database object as a side effect. The object is named "
+    "objectName. It's type is given by typeexpr. The boolean parameter must be "
+    "set to TRU, iff the typeexpr is given in NL-syntax, and FALSE when in "
+    "text sxntax. If creation fails, an error message is returned, otherwise a "
+    "descriptor (OBJECT () (<typeNL>) (<valueNL>)) for the created "
+    "object.</text--->"
+    "<text>query createObject(\"MyThreeInt\", 'int', TRUE)"
+    "</text--->"
+    ") )";
+
 /*
 The Definition of the operators of the type ~text~.
 
@@ -5046,13 +5481,58 @@ Operator md5
     );
 
 Operator blowfish_encode ( "blowfish_encode", blowfish_encodeSpec,
-                           6, blowfish_encodevm, blowfish_encodeSelect,
+                           4, blowfish_encodevm, blowfish_encodeSelect,
                            blowfish_encodeTM
     );
 Operator blowfish_decode ( "blowfish_decode", blowfish_decodeSpec,
-                           6, blowfish_decodevm, blowfish_decodeSelect,
+                           4, blowfish_decodevm, blowfish_decodeSelect,
                            blowfish_decodeTM
     );
+
+Operator ftextletObject ( "letObject", ftextletObjectSpec,
+                           4, ftextletobject_vm, blowfish_encodeSelect,
+                           StringtypeStringtypeBool2TextTM
+    );
+
+Operator ftextdeleteObject ( "deleteObject", ftextdeleteObjectSpec,
+                           2, ftextdeleteobject_vm, ftextdeleteobjectselect,
+                           Stringtype2TextTM
+    );
+
+Operator ftextcreateObject ( "createObject", ftextcreateObjectSpec,
+                           4, ftextcreateobject_vm, blowfish_encodeSelect,
+                           StringtypeStringtypeBool2TextTM
+    );
+
+// Operator ftextupdateObject ( "updateObject", ftextupdateObjectSpec,
+//                            4, ftextupdateobject_vm, blowfish_encodeSelect,
+//                            StringtypeStringtypeBool2TextTM
+//     );
+//
+// Operator ftextderiveObject ( "deriveObject", ftextderiveObjectSpec,
+//                            4, ftextderiveobject_vm, blowfish_encodeSelect,
+//                            StringtypeStringtypeBool2TextTM
+//     );
+//
+// Operator ftextgetObjectTypeNL ( "getObjectTypeNL", ftextgetObjectTypeNLSpec,
+//                            2, ftextgetObjectTypeNL_vm, blowfish_encodeSelect,
+//                            Stringtype2TextTM
+//     );
+//
+// Operator ftextgetObjectValueNL ("getObjectValueNL",ftextgetObjectValueNLSpec,
+//                            2,ftextgetObjectValueNL_vm, blowfish_encodeSelect,
+//                            Stringtype2TextTM
+//     );
+//
+// Operator ftextgetDatabaseName
+// (
+//   "getDatabaseName",           //name
+//   ftextgetDatabaseNameSpec,   //specification
+//   ftextgetDatabaseName_VM, //value mapping
+//   Operator::SimpleSelect,         //trivial selection function
+//   wmpty2stringTM //type mapping
+// );
+
 /*
 5 Creating the algebra
 
@@ -5111,6 +5591,14 @@ public:
     AddOperator( &md5);
     AddOperator( &blowfish_encode);
     AddOperator( &blowfish_decode);
+    AddOperator( &ftextletObject);
+    AddOperator( &ftextdeleteObject);
+    AddOperator( &ftextcreateObject);
+//     AddOperator( &ftextderiveObject);
+//     AddOperator( &ftextupdateObject);
+//     AddOperator( &ftextgetObjectTypeNL);
+//     AddOperator( &ftextgetObjectValueNL);
+//     AddOperator( &ftextgetDatabaseName);
 
     LOGMSG( "FText:Trace",
       cout <<"End FTextAlgebra() : Algebra()"<<'\n';

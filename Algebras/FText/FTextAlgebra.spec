@@ -18,7 +18,6 @@
 #Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 operator length alias LENGTH pattern op(_)
-operator ifthenelse alias IFTHENELSE pattern op (_, _, _)
 operator sentences alias SENTENCES pattern _ op
 operator dice alias DICE pattern op (_, _, _)
 operator contains alias CONTAINS pattern _ infixop _
@@ -27,21 +26,11 @@ operator sentences alias SENTENCES pattern _ op
 operator getcatalog alias GETCATALOG pattern op( _ )
 operator subtext alias SUBTEXT pattern op(_, _, _)
 operator find alias FIND pattern op(_, _)
-operator evaluate alias EVALUATE pattern op( _ )
 operator replace alias REPLACE pattern op(_, _, _)
-operator getTypeNL alias GETTYPENL pattern _ op
-operator getValueNL alias GETVALUENL pattern _ op
-operator toobject alias TOOBJECT pattern op(_, _)
 operator chartext alias CHARTEXT pattern op(_)
 operator toupper alias TOUPPER pattern op(_)
 operator tolower alias TOLOWER pattern op(_)
 operator totext alias TOTEXT pattern op(_)
-operator sendtextUDP alias SENDTEXTUDP pattern op(_, _, _, _)
-operator receivetextUDP alias RECEIVETEXTUDP pattern op(_, _, _)
-operator receivetextstreamUDP alias RECEIVETEXTSTREAMUDP pattern op(_, _, _)
-operator isDBObject alias ISDBOBJECT pattern op( _ )
-
-
 operator substr alias SUBSTR pattern op(_, _, _)
 operator isempty alias ISEMPTY pattern op( _ )
 operator trim alias TRIM pattern op( _ )
@@ -53,10 +42,28 @@ operator > alias GT pattern _ infixop _
 operator <= alias LE pattern _ infixop _
 operator >= alias GE pattern _ infixop _
 operator tostring alias TOSTRING pattern op(_)
+operator sendtextUDP alias SENDTEXTUDP pattern op(_, _, _, _)
+operator receivetextUDP alias RECEIVETEXTUDP pattern op(_, _, _)
+operator receivetextstreamUDP alias RECEIVETEXTSTREAMUDP pattern op(_, _, _)
+
+operator isDBObject alias ISDBOBJECT pattern op( _ )
+operator evaluate alias EVALUATE pattern op( _ )
+operator letObject alias LETOBJECT pattern op ( _, _, _ )
+operator deleteObject alias DELETEOBJECT pattern op ( _ )
+operator createObject alias CREATEOBJECT pattern op ( _, _, _)
+operator updateObject alias UPDATEOBJECT pattern op ( _, _, _)
+operator deriveObject alias DERIVEOBJECT pattern op ( _, _, _)
+operator getObjectTypeNL alias GETOBJECTTYPENL pattern _ op
+operator getObjectValueNL alias GETOBJECTVALUENL pattern _ op
+operator getTypeNL alias GETTYPENL pattern _ op
+operator getValueNL alias GETVALUENL pattern _ op
+operator toobject alias TOOBJECT pattern op(_, _)
+operator getDatabaseName alias GETDATABASENAME pattern op( _ )
 
 operator md5 alias MD5 pattern op(_,_)
 operator checkpw alias CHECKPW pattern op(_,_)
 operator crypt alias Crypt pattern op(_)
 operator blowfish_encode alias BLOWFISH_ENCODE pattern op(_,_)
 operator blowfish_decode alias BLOWFISH_DECODE pattern op(_,_)
+
 

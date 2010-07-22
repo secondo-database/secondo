@@ -425,82 +425,82 @@ Example  : query receivetextstreamUDP("",'2626',0.08,5.0) count >= 50
 Result   : TRUE
 
 
-Operator : crypt 
+Operator : crypt
 Number   : 1
 Signature: string -> string
 Example  : query length(crypt("Secondo"))
 Result   : 13
 Remark   : Salt is choosen randomly
 
-Operator : crypt 
+Operator : crypt
 Number   : 2
 Signature: text -> string
 Example  : query length(crypt('Secondo'))
 Result   : 13
 Remark   : Salt is choosen randomly
 
-Operator : crypt 
+Operator : crypt
 Number   : 3
 Signature: string x string -> string
 Example  : query crypt("Secondo","1A")
-Result   : (platform (linux (string "1AhU2966bcBQA")) (win32 (string "1AhU2966bcBQA")) (linux64 (string "1AhU2966bcBQA")) (mac_osx bug)) 
+Result   : (platform (linux (string "1AhU2966bcBQA")) (win32 (string "1AhU2966bcBQA")) (linux64 (string "1AhU2966bcBQA")) (mac_osx bug))
 
 
-Operator : crypt 
+Operator : crypt
 Number   : 4
 Signature: string x text -> string
 Example  : query crypt("Secondo",'1A')
-Result   : (platform (linux (string "1AhU2966bcBQA")) (win32 (string "1AhU2966bcBQA")) (linux64 (string "1AhU2966bcBQA")) (mac_osx bug)) 
+Result   : (platform (linux (string "1AhU2966bcBQA")) (win32 (string "1AhU2966bcBQA")) (linux64 (string "1AhU2966bcBQA")) (mac_osx bug))
 
 
-Operator : crypt 
+Operator : crypt
 Number   : 5
 Signature: text x string -> string
 Example  : query crypt('Secondo',"1A")
-Result   : (platform (linux (string "1AhU2966bcBQA")) (win32 (string "1AhU2966bcBQA")) (linux64 (string "1AhU2966bcBQA")) (mac_osx bug))  
+Result   : (platform (linux (string "1AhU2966bcBQA")) (win32 (string "1AhU2966bcBQA")) (linux64 (string "1AhU2966bcBQA")) (mac_osx bug))
 
 
-Operator : crypt 
+Operator : crypt
 Number   : 6
 Signature: text x text -> string
 Example  : query crypt('Secondo','1A')
-Result   : (platform (linux (string "1AhU2966bcBQA")) (win32 (string "1AhU2966bcBQA")) (linux64 (string "1AhU2966bcBQA")) (mac_osx bug)) 
+Result   : (platform (linux (string "1AhU2966bcBQA")) (win32 (string "1AhU2966bcBQA")) (linux64 (string "1AhU2966bcBQA")) (mac_osx bug))
 
 
-Operator : md5 
+Operator : md5
 Number   : 1
 Signature: text  -> string
 Example  : query md5('Secondo')
-Result   : (string "ee1f0dc1f40c173cb97860902aa302e4") 
+Result   : (string "ee1f0dc1f40c173cb97860902aa302e4")
 
-Operator : md5 
+Operator : md5
 Number   : 2
 Signature: string  -> string
 Example  : query md5("Secondo")
-Result   : (string "ee1f0dc1f40c173cb97860902aa302e4") 
+Result   : (string "ee1f0dc1f40c173cb97860902aa302e4")
 
 
-Operator : checkpw 
+Operator : checkpw
 Number   : 1
 Signature: string x string -> bool
 Example  : query checkpw("Secondo", crypt("Secondo"))
 Result   : (platform (linux (bool TRUE)) (linux64 (bool TRUE)) (win32 (bool TRUE)) (mac_osx bug))
 
 
-Operator : checkpw 
+Operator : checkpw
 Number   : 2
 Signature: string x text -> bool
 Example  : query checkpw("Secondo", totext(crypt("Secondo")))
 Result   : (platform (linux (bool TRUE)) (linux64 (bool TRUE)) (win32 (bool TRUE)) (mac_osx bug))
 
- 
-Operator : checkpw 
+
+Operator : checkpw
 Number   : 3
 Signature: text x string -> bool
 Example  : query checkpw('Secondo', crypt("Secondo"))
 Result   : (platform (linux (bool TRUE)) (linux64 (bool TRUE)) (win32 (bool TRUE)) (mac_osx bug))
 
-Operator : checkpw 
+Operator : checkpw
 Number   : 4
 Signature: text x text -> bool
 Example  : query checkpw('Secondo', totext(crypt("Secondo")))
@@ -559,15 +559,74 @@ Example  : query blowfish_decode('TopSecret','580f3f5dc4bb4e73')
 Result   : (text 'Secondo')
 
 
-Operator : svg2text 
+Operator : svg2text
 Number   : 1
 Signature: svg -> text
 Example  : query svg2text([const svg value ''])
 Result   : (text '')
 
-Operator : text2svg 
+Operator : text2svg
 Number   : 1
 Signature: text -> svg
 Example  : query text2svg([const text value ''])
 Result   : (svg'')
 
+Operator : letObject
+Number   : 1
+Signature: {string|text} x {string|text} x bool -> text
+Example  : {query isdefined(deleteObject("MyIntThree")) | query letObject("MyIntThree","3",FALSE)}
+Result   : (resultsequence ((bool TRUE) (text '(OBJECT MyIntThree () (int))')))
+
+Operator : letObject
+Number   : 2
+Signature: {string|text} x {string|text} x bool -> text
+Example  : {query isdefined(deleteObject("MyIntThree")) | query letObject("MyIntThree",'3',FALSE)}
+Result   : (resultsequence ((bool TRUE) (text '(OBJECT MyIntThree () (int))')))
+
+Operator : letObject
+Number   : 3
+Signature: {string|text} x {string|text} x bool -> text
+Example  : {query isdefined(deleteObject("MyIntThree")) | query letObject('MyIntThree','3',FALSE)}
+Result   : (resultsequence ((bool TRUE) (text '(OBJECT MyIntThree () (int))')))
+
+Operator : letObject
+Number   : 4
+Signature: {string|text} x {string|text} x bool -> text
+Example  : {query isdefined(deleteObject("MyIntThree")) | query letObject('MyIntThree',"3",FALSE)}
+Result   : (resultsequence ((bool TRUE) (text '(OBJECT MyIntThree () (int))')))
+
+Operator : deleteObject
+Number   : 1
+Signature: {string|text} -> text
+Example  : {query isdefined(deleteObject("MyIntThree")) | query letObject('MyIntThree',"3",FALSE) | query deleteObject("MyIntThree")}
+Result   : (resultsequence ((bool TRUE) (text '(OBJECT MyIntThree () (int))') (text '(OBJECT MyIntThree () (int))')))
+
+Operator : deleteObject
+Number   : 2
+Signature: {string|text} -> text
+Example  : {query isdefined(deleteObject("MyIntThree")) | query letObject('MyIntThree',"3",FALSE) | query deleteObject('MyIntThree')}
+Result   : (resultsequence ((bool TRUE) (text '(OBJECT MyIntThree () (int))') (text '(OBJECT MyIntThree () (int))')))
+
+Operator : createObject
+Number   : 1
+Signature: {string|text} x {string|text} x bool -> text
+Example  : {query isdefined(deleteObject("MyIntThree")) | query createObject("MyIntThree","int",TRUE)}
+Result   : (resultsequence ((bool TRUE) (text '(OBJECT MyIntThree () (int))')))
+
+Operator : createObject
+Number   : 2
+Signature: {string|text} x {string|text} x bool -> text
+Example  : {query isdefined(deleteObject("MyIntThree")) | query createObject("MyIntThree",'int',TRUE)}
+Result   : (resultsequence ((bool TRUE) (text '(OBJECT MyIntThree () (int))')))
+
+Operator : createObject
+Number   : 3
+Signature: {string|text} x {string|text} x bool -> text
+Example  : {query isdefined(deleteObject("MyIntThree")) | query createObject('MyIntThree',"int",TRUE)}
+Result   : (resultsequence ((bool TRUE) (text '(OBJECT MyIntThree () (int))')))
+
+Operator : createObject
+Number   : 4
+Signature: {string|text} x {string|text} x bool -> text
+Example  : {query isdefined(deleteObject("MyIntThree")) | query createObject('MyIntThree','int',TRUE)}
+Result   : (resultsequence ((bool TRUE) (text '(OBJECT MyIntThree () (int))')))
