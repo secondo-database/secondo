@@ -74,6 +74,7 @@ operator floor alias FLOOR pattern op( _ , _ )
 operator ceil alias CEIL pattern op( _ , _ )
 operator num2string alias NUM2STRING pattern op( _ )
 operator char alias CHAR pattern op ( _ )
+operator ifthenelse alias IFTHENELSE pattern op (_, _, _)
 
 operator abs alias ABS pattern op ( _ )
 operator ++ alias PLUSPLUS pattern _ op
