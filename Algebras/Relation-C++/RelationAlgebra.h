@@ -1029,31 +1029,29 @@ Read a tuple value from a Base 64 code string
   void ReadFromBinStr(string binStr);
 
 /*
-Create Write a memory buffer and put the tuple into it as binary form,
-then return the ~bufSize~ to indicate the size of the buffer.
-
-*/
-  char* WriteToBin(u_int32_t& bufSize);
-
-/*
-Write a tuple to an allocated memory buffer.
+Write a complete tuple into an allocated binary block,
+including its big flobs whose sizes are larger than ~extensionLimit~.
+The flobs will be written after a normal tuple block.
+At the same time, a new head value used to indicate how big
+the extended memory block is.
 
 */
   void WriteToBin(char* buf,
-      size_t coreSize = 0, size_t extensionSize = 0);
+      size_t coreSize, size_t extensionSize, size_t flobSize);
 
 /*
-Read a tuple from memory buffer of binary form.
+Read a tuple from a binary block written by ~WriteToBin~.
 
 */
   u_int32_t ReadFromBin(char* buf);
 
 /*
-Return the size of the memory buffer for putting the tuple into.
+Return the size that a complete binary tuple block needs.
 
 */
-  u_int32_t GetBlockSize(size_t& coreSize,
-                      size_t& extensionSize) const;
+  size_t GetBlockSize(size_t& coreSize,
+                         size_t& extensionSize,
+                         size_t& flobSize) const;
 
   static SmiSize extensionLimit;
 /*
@@ -1228,8 +1226,7 @@ to ~defAttributes~, otherwise it is dinamically constructed.
                       size_t extensionSize,
                       bool ignoreLOBs, 
                       SmiRecordFile* file,
-                      const SmiFileId& lobFileId,
-                      bool containLOBs = false) const;
+                      const SmiFileId& lobFileId) const;
 
   void WriteToBlock( char* buf,
                      size_t coreSize,
@@ -1263,8 +1260,7 @@ and it's big enough to express the tuple's size
                              double& extSize,
                              double& size,
                              vector<double>& attrExtSize,
-                             vector<double>& attrSize,
-                             bool dontContainLOBs = true
+                             vector<double>& attrSize
                            ) const;
 
 

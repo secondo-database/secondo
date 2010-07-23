@@ -405,33 +405,22 @@ char* Tuple::WriteToBlock( size_t coreSize,
                            size_t extensionSize,
                            bool ignoreLobs,
                            SmiRecordFile* tuplefile,
-                           const SmiFileId& lobFileId,
-                           bool containLOBs/* = false */) const
+                           const SmiFileId& lobFileId) const
 {
  TRACE_ENTER
   // create a single block able to pick up the roots of the
   // attributes and all small FLOBs
-  // If ~containLOBs~ is set as true, then the big FLOBs are also
-  // written into the memory block
 
-  char* data;
-  if (containLOBs)
-  {
-    const u_int32_t dataSize = coreSize + extensionSize;
-    const size_t recordSizeLen = sizeof(dataSize);
-    const size_t blockSize = dataSize + recordSizeLen;
-    data = (char*) malloc(blockSize);
-  }
-  else
-  {
-    const uint16_t dataSize = coreSize + extensionSize;
-    const size_t recordSizeLen = sizeof(dataSize);
-    const size_t blockSize = dataSize + recordSizeLen;
-    data = (char*) malloc(blockSize);
-  }
+  const uint16_t dataSize = coreSize + extensionSize; 
+  
+  const size_t recordSizeLen = sizeof(dataSize);
+  const size_t blockSize = dataSize + recordSizeLen;
+
+  
+  char* data = (char*) malloc( blockSize );
 
   WriteToBlock(data, coreSize, extensionSize,
-               ignoreLobs, tuplefile, lobFileId, containLOBs);
+      ignoreLobs, tuplefile, lobFileId);
 
   return data;
 }
@@ -442,28 +431,27 @@ void Tuple::WriteToBlock(char* buf,
                          bool ignoreLobs,
                          SmiRecordFile* file,
                          const SmiFileId& lobFileId,
-                         bool containLOBs/* = false */) const
+                         bool containLOBs/* = false*/) const
 {
   TRACE_ENTER
   assert(buf);
 
+  const uint16_t dataSize = coreSize + extensionSize;
+
   char* data = buf;
-  char* ext;
+  char* ext = data + sizeof(dataSize) + coreSize;
+
+  char* lob = 0;
+  SmiSize lobOffset = 0;
+  if (containLOBs)
+  {
+    lob = data + sizeof(dataSize) + coreSize + extensionSize;
+    lobOffset = sizeof(dataSize) + coreSize + extensionSize;
+  }
 
   // current position in the core part
   SmiSize offset = 0;
-  if (containLOBs)
-  {
-    const u_int32_t dataSize = coreSize + extensionSize;
-    ext = data + sizeof(dataSize) + coreSize;
-    WriteVar<u_int32_t>( dataSize, data, offset );
-  }
-  else
-  {
-    const uint16_t dataSize = coreSize + extensionSize;
-    ext = data + sizeof(dataSize) + coreSize;
-    WriteVar<uint16_t>( dataSize, data, offset );
-  }
+  WriteVar<uint16_t>( dataSize, data, offset );
 
   // current position in the extension
   SmiSize extOffset = offset + coreSize;
@@ -479,7 +467,7 @@ void Tuple::WriteToBlock(char* buf,
   {
     SHOW(attributes[i]->IsDefined())
 
-    Attribute::StorageType st = attributes[i]->GetStorageType();
+    Attribute::StorageType st =  attributes[i]->GetStorageType();
 
     if (Attribute::Default == st)
     {
@@ -495,12 +483,40 @@ void Tuple::WriteToBlock(char* buf,
 
         attrFlobs.push_back(*tmpFlob);
 
-        if(!ignoreLobs && !containLOBs && (flobsz >= extensionLimit))
+        if(!ignoreLobs && (flobsz >= extensionLimit))
         {
-          DEBUG_MSG("tmpFlob->saveToFile");
-          tmpFlob->saveToFile( lobFileId,false, *tmpFlob );
+          if (!containLOBs)
+          {
+            DEBUG_MSG("tmpFlob->saveToFile");
+            tmpFlob->saveToFile( lobFileId,false, *tmpFlob );
+          }
+          else
+          {
+            //Write big Flobs to the flob area,
+            //located in the end of the memory block
+            assert(lob);
+
+            // write data to flob area
+            tmpFlob->read(lob, flobsz);
+
+            SmiFileId fid(0);
+            bool isTemp = true;
+            if(tupleFile){
+               fid = tupleFile->GetFileId();
+               isTemp = tupleFile->IsTemp();
+            }
+            Flob newFlob = Flob::createFrom(fid, tupleId,
+                lobOffset, isTemp, flobsz);
+
+            // change flob header
+            *tmpFlob = newFlob;
+
+            // update lob offset
+            lobOffset += flobsz;
+            lob += flobsz;
+          }
         }
-        else if ( containLOBs || flobsz < extensionLimit)
+        else if (flobsz < extensionLimit)
         { // put small flobs to memory block too
 
           // write data to extension
@@ -589,25 +605,19 @@ size_t Tuple::CalculateBlockSize( size_t& coreSize,
                                   double& extSize,
                                   double& size,
                                   vector<double>& attrExtSize,
-                                  vector<double>& attrSize,
-                                  bool dontContainLOBs/* = true*/) const
+                                  vector<double>& attrSize
+                                 ) const
 {
 /*
-These size values represent aggregate values for a single tuple.
+These size values represent aggregate values for a single specific tuple.
 
 ----
 coreSize = tupleType's size.
-extensionSize = each attribute's value size + (smallFlob size)
-extSize = coreSize + extensionSize
-size = extSize + (big Flobs)
+extensionSize = sum of each attribute's value size + (smallFlob sizes)
+lobSize = sum of each attribute's bigFlob size
+extSize += extensionSize
+size += extensionSize + lobSize
 return extensionSize
-----
-
-If ~containLOBs~ is true,
-then ~extensionSize~ also includes big Flobs' sizes.
-
-----
-tupleSize = coreSize + extensionSize + sizeof(TUPLESIZE-TYPE)
 ----
 
 */
@@ -663,7 +673,7 @@ tupleSize = coreSize + extensionSize + sizeof(TUPLESIZE-TYPE)
       //assert( i >= 0 && (size_t)i < attrSize.size() );
       const SmiSize tmpFlobSize = tmpFlob->getSize();
       SHOW(tmpFlobSize)
-      if (!dontContainLOBs || tmpFlobSize < extensionLimit){ // small Flobs
+      if (tmpFlobSize < extensionLimit){ // small Flobs
         extensionSize += tmpFlobSize;
         attrExtSize[i] += tmpFlobSize;
       } else { // big Flobs
@@ -793,13 +803,19 @@ void Tuple::InitializeAttributes(char* src, bool containLOBs/* = false*/)
 {
   TRACE_ENTER
 
-  size_t offset;
-  if (containLOBs)
-    offset = sizeof(u_int32_t);
-  else
-    offset = sizeof(u_int16_t);
+  size_t offset = 0;
 
-  SHOW(offset)
+  // indicate the area holding tuple's big flobs
+  size_t lobOffset = 0;
+  if(containLOBs)
+  {
+    u_int16_t tupleSize;
+    ReadVar<u_int16_t>(tupleSize, src, offset);
+    lobOffset = sizeof(u_int16_t) + tupleSize;
+  }
+  offset = sizeof(u_int16_t);
+
+    SHOW(offset)
 
   for(int i=0;i<noAttributes;i++){
     
@@ -853,9 +869,18 @@ void Tuple::InitializeAttributes(char* src, bool containLOBs/* = false*/)
     // create uncontrollable Flobs
     for(int k=0; k< attributes[i]->NumOfFLOBs();k++){
       Flob* flob = attributes[i]->GetFLOB(k);
-      if(containLOBs || flob->getSize() < extensionLimit){
+      if(flob->getSize() < extensionLimit){
          Flob::createFromBlock(*flob, src + flob->getOffset(), 
                                flob->getSize(), true);
+      }
+      else if(containLOBs)
+      {
+        assert(lobOffset > 0);
+        Flob::createFromBlock(*flob, src + lobOffset,
+                              flob->getSize(), true);
+        flob->resize(flob->getSize());  //swap flob into a limited memory cache
+        //resize function will make the ftext attribute be empty
+        lobOffset += flob->getSize();
       }
     }
     // Call the Initialize function for every attribute
@@ -1096,10 +1121,14 @@ string Tuple::WriteToBinStr()
 {
   size_t coreSize = 0;
   size_t extensionSize = 0;
-  u_int32_t tupleSize = GetBlockSize(coreSize, extensionSize);
-  const size_t blockSize = tupleSize + sizeof(tupleSize);
+  size_t flobSize = 0;
+  size_t blockSize = GetBlockSize(coreSize, extensionSize, flobSize);
+
+  //The tuple block need two values to indicate the whole block size
+  //and only the tuple's core and extension length.
+  //blockSize += sizeof(blockSize) + sizeof(u_int16_t);
   char data[blockSize];
-  WriteToBin(data, coreSize, extensionSize);
+  WriteToBin(data, coreSize, extensionSize, flobSize);
 
   Base64 b64;
   string binStr;
@@ -1116,52 +1145,73 @@ void Tuple::ReadFromBinStr(string binStr)
   int result = b64.decode( binStr, bytes );
   assert( result <= sizeDecoded );
 
-  InitializeAttributes(bytes, true);
+  ReadFromBin(bytes);
 }
 
 /*
 Put complete tuple's binary data into an allocated memory buffer,
- including its Flobs.
+including its big Flobs.
+The head value of the block named ~blockSize~ is used to
+indicate the whole block's size
+
+----
+blockSize = tupleSize + flobSize + sizeof(blockSize)
+tupleSize = coreSize + extensionSize + sizeof(tupleSize)
+----
 
 */
 void Tuple::WriteToBin(char* buf,
-                       size_t coreSize, size_t extensionSize)
+            size_t coreSize, size_t extensionSize, size_t flobSize)
 {
-  u_int32_t bufSize;
-  if ((0 == coreSize) && (0 == extensionSize))
-    bufSize = GetBlockSize(coreSize, extensionSize);
+  u_int32_t blockSize =
+      sizeof(u_int32_t) + sizeof(u_int16_t)
+      + coreSize + extensionSize + flobSize;
+  memcpy(buf, &blockSize, sizeof(blockSize));
 
-  WriteToBlock(buf, coreSize, extensionSize, false, 0, 0, true);
+  WriteToBlock(buf + sizeof(u_int32_t),
+      coreSize, extensionSize,
+      false, 0, 0, true);
 }
 
-u_int32_t Tuple::GetBlockSize( size_t& coreSize,
-                            size_t& extensionSize) const
+size_t Tuple::GetBlockSize( size_t& coreSize,
+                               size_t& extensionSize,
+                               size_t& flobSize) const
 {
-  double extSize = 0;
-  double size = 0;
+  // Get the memory block size of a single tuple, includes its big Flobs,
+  // and head size values.
+
+  double extSize = 0.0;
+  double size = 0.0;
   vector<double> attrExtSize(tupleType->GetNoAttributes());
   vector<double> attrSize(tupleType->GetNoAttributes());
 
-  //The extensionSize also includes big Flobs' sizes
-  extSize += tupleType->GetCoreSize();
-  size += tupleType->GetCoreSize();
-  coreSize = 0;
+  extSize = tupleType->GetCoreSize();
+  size = tupleType->GetCoreSize();
   extensionSize = CalculateBlockSize( coreSize, extSize,
                                       size, attrExtSize,
-                                      attrSize, false);
-
-  return ( coreSize + extensionSize + sizeof(uint32_t) );
+                                      attrSize);
+  flobSize = size - extensionSize - tupleType->GetCoreSize();
+  //size = tupleType's core size + extensionSize + flobSize (big flobs)
+  return size + sizeof(u_int32_t) + sizeof(u_int16_t);
+  //return size;
 }
 
+/*
+Read a tuple from a memory block, outputted from ~WriteToBin~ function.
+The block contains a tuple's complete data, including its big Flobs.
+
+*/
 u_int32_t Tuple::ReadFromBin(char* buf)
 {
   assert(buf);
 
-  u_int32_t rz;
-  memcpy(&rz, buf, sizeof(rz));
-  rz += sizeof(rz);
-  InitializeAttributes(buf, true);
-  return rz;
+  u_int32_t blockSize;
+  memcpy(&blockSize, buf, sizeof(blockSize));
+
+  //blockSize += sizeof(blockSize);
+  InitializeAttributes(buf + sizeof(blockSize), true);
+
+  return blockSize;
 }
 
 TupleFileIterator::TupleFileIterator(TupleFile& f)
