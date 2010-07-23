@@ -362,7 +362,7 @@ without reading the tuple themselves.
 */
 
 //static const u_int32_t MAX_TUPLESIZE = 65535; //Copy from class Tuple
-static const u_int32_t MAX_TUPLESIZE = 655359;
+static const u_int32_t MAX_TOTALTUPLESIZE = 655359;
 //(10*2^16 - 1) including huge flobs
 
 static const u_int32_t SOCKET_SIZE = 1024;  //Copy from StreamBuffer
@@ -543,10 +543,10 @@ is shown below:
   int count = 0;
   int wcount = 0;
 
-  char tupleBlock[MAX_TUPLESIZE];
+  char tupleBlock[MAX_TOTALTUPLESIZE];
   memset(tupleBlock, 0, sizeof(tupleBlock));
   u_int32_t offset = SOCKET_METASIZE;
-  u_int32_t tbSize = MAX_TUPLESIZE - SOCKET_SIZE;
+  u_int32_t tbSize = MAX_TOTALTUPLESIZE - SOCKET_SIZE;
   // left space in tupleBlock
 
   int32_t sock_ID = 0;    //used to synchronize the sockets,
@@ -561,8 +561,7 @@ is shown below:
   {
     counter++;
 
-//    uint16_t tupleSize;
-    u_int32_t tupleSize;
+    size_t tupleBlockSize;
 
     if ( haveNext )
     {
@@ -570,9 +569,11 @@ is shown below:
 
       size_t coreSize = 0;
       size_t extensionSize = 0;
-      tupleSize = tuple->GetBlockSize(coreSize, extensionSize);
-      //tupleSize = coreSize + extensionSize + sizeof(uint32_t)
-      assert(tupleSize < MAX_TUPLESIZE);
+      size_t flobSize = 0;
+      tupleBlockSize = tuple->GetBlockSize(coreSize, extensionSize, flobSize);
+      // tupleBlockSize =  sizeof(uint32_t) + sizeof(uint16_t)
+      //                   + coreSize + extensionSize + flobSize
+      assert(tupleBlockSize < MAX_TOTALTUPLESIZE);
 
       if(haveKey && ("string" == keyTypeName))
       {
@@ -581,7 +582,7 @@ is shown below:
                 ->GetAttribute(keyIndex))->GetStringval()).size() + 1;
       }
 
-      if (tupleSize + keySize + sizeof(keySize) >= tbSize)
+      if (tupleBlockSize + keySize + sizeof(keySize) >= tbSize)
       {
         //No more space for this tuple, send the buffer
         sendTupleBlock(client, tupleBlock, &sock_ID, offset);
@@ -590,7 +591,7 @@ is shown below:
         //reset buffer
         memset(tupleBlock, 0, sizeof(tupleBlock));
         offset = SOCKET_METASIZE;
-        tbSize = MAX_TUPLESIZE - SOCKET_SIZE;
+        tbSize = MAX_TOTALTUPLESIZE - SOCKET_SIZE;
         tup_Num = 0;
       }
 
@@ -634,10 +635,12 @@ is shown below:
       }
 
       // Write the tuple into the buffer
-      tuple->WriteToBin(tupleBlock + offset, coreSize, extensionSize);
+      tuple->WriteToBin(tupleBlock + offset,
+          coreSize, extensionSize, flobSize);
+
       tup_Num++;
-      offset += tupleSize;
-      tbSize -= tupleSize;
+      offset += tupleBlockSize;
+      tbSize -= tupleBlockSize;
       wcount++;
 
       tuple->DeleteIfAllowed();
@@ -715,19 +718,17 @@ TReceiveStream(Word* args, Word& result,
           //Ignore the part contains the key value;
           u_int32_t keySize = 0;
           memcpy(&keySize, buf + offset, sizeof(u_int32_t));
-          offset += sizeof(u_int32_t);
-          //Since in Secondo,
-          //it's unnecessary to read the key value out,
-          //skip this data directly.
-          offset += keySize;
+          offset += sizeof(u_int32_t);  //skip keySize
+          offset += keySize;            //skip keyValue
         }
 
-        u_int32_t tupleSize = 0;
-        memcpy(&tupleSize, buf + offset, sizeof(tupleSize));
-        if (tupleSize > 0)
+        u_int32_t tupleBlockSize = 0;
+        memcpy(&tupleBlockSize, buf + offset, sizeof(tupleBlockSize));
+        if (tupleBlockSize > 0)
         {
           tuple = new Tuple(tupleType);
-          offset += tuple->ReadFromBin(buf + offset);
+          tuple->ReadFromBin(buf + offset);
+          offset += tupleBlockSize;
 
           tupleBuffer->AppendTuple(tuple);
           tuple->DeleteIfAllowed();
@@ -795,7 +796,7 @@ TReceiveStream(Word* args, Word& result,
         }
       }
 
-      char tupleBlock[MAX_TUPLESIZE];
+      char tupleBlock[MAX_TOTALTUPLESIZE];
       memset(tupleBlock, 0, sizeof(tupleBlock));
       Socket* client = remoteStreamInfo->client;
       int* sock_ID = &(remoteStreamInfo->sock_ID);
