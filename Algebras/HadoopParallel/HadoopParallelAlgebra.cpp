@@ -1433,6 +1433,207 @@ int add0TupleValueMap(Word* args, Word& result,
 
 
 /*
+5.14 Operator ~tofile~
+
+This operator maps
+
+----   (rel (tuple y)) x string x int -> bool
+----
+
+This operator save a relation's main information to two files.
+The first file take the same name of the relation,
+and put the relation's type list.
+Then the second file, with the name of the relation and index number,
+and put the relation's description list.
+
+
+5.14.0 Specification
+
+*/
+
+struct ToFileInfo : OperatorInfo {
+
+  ToFileInfo() : OperatorInfo()
+  {
+    name =      "tofile";
+    signature = "(rel (tuple y)) x string x int -> bool";
+    syntax =    "_ tofile[ name, index ]";
+    meaning =   "save a relation's descriptor to a text file,"
+                "whose filename is the composition the given "
+                "name and index number.";
+  }
+
+};
+
+/*
+5.14.1 Type mapping
+
+*/
+ListExpr ToFileTypeMap(ListExpr args)
+{
+  NList l(args);
+  string err = "tofile expects (rel(tuple(...)) string int)";
+
+  if (!l.checkLength(3, err))
+    return l.typeError(err);
+
+  NList attrs;
+  if (!l.first().checkRel(attrs))
+    return l.typeError(err);
+
+  if (!l.second().isSymbol(Symbols::STRING()))
+    return l.typeError(err);
+
+  if (!l.third().isSymbol(Symbols::INT()))
+    return l.typeError(err);
+
+  return NList(Symbols::BOOL()).listExpr();
+}
+/*
+5.14.2 Value mapping
+
+*/
+int ToFileValueMap(Word* args, Word& result,
+    int message, Word& local, Supplier s)
+{
+  Relation* r = (Relation*)args[0].addr;
+  ListExpr relTypeList = qp->GetSupplierTypeExpr(qp->GetSon(s, 0));
+  ListExpr desList = r->SaveToList(relTypeList);
+  result = qp->ResultStorage(s);
+
+  string name = ((CcString*)args[1].addr)->GetValue();
+  int index = ((CcInt*)args[2].addr)->GetIntval();
+  stringstream ss;
+  ss << name << "_" << index;
+
+  string fileName = ss.str();
+  ofstream descFile(fileName.c_str());
+  ofstream typeFile((name + "_type").c_str());
+  if(!descFile.good() || !typeFile.good())
+  {
+    cerr << "Create descriptor file " << fileName
+        << " and typeInfo file" << name << " error!\n";
+    ((CcBool*)(result.addr))->Set(true, false);
+  }
+  else
+  {
+    typeFile << nl->ToString(relTypeList) << endl;
+    typeFile.close();
+    descFile << nl->ToString(desList) << endl;
+    descFile.close();
+    ((CcBool*)(result.addr))->Set(true, true);
+  }
+  return 0;
+}
+
+/*
+5.15 Operator ~relfile~
+
+This operator maps
+
+----   relName x int -> rel(tuple(...))
+----
+
+This operator restore a relation from a descriptor file
+created by ~tofile~ operator.
+The relation type list is stored in a file with name ~relName~,
+and it's descriptor information is stored in another file with
+name ~relName\_index~ .
+
+5.15.0 Specification
+
+*/
+
+struct RelFileInfo : OperatorInfo {
+
+  RelFileInfo() : OperatorInfo()
+  {
+    name =      "relfile";
+    signature = "relName x int -> rel(tuple(...))";
+    syntax =    "relfile( relName, int )";
+    meaning =   "restore a relation from a descriptor file"
+                "created by ~tofile~ operator.";
+  }
+
+};
+
+/*
+5.14.1 Type mapping
+
+*/
+ListExpr RelFileTypeMap(ListExpr args)
+{
+  NList l(args);
+  string err = "relfile expects (relName, int)";
+
+  if (!l.checkLength(2, err))
+    return l.typeError(err);
+
+  if (!(nl->IsAtom(l.first().listExpr())))
+  {
+    ErrorReporter::ReportError(
+        "The first parameter is not a symbol, "
+        "check whether sharing the same name with a Secondo object.");
+    return nl->TypeError();
+  }
+
+  if (!l.second().isSymbol(Symbols::INT()))
+    return l.typeError(err);
+
+  //Need to open the file and get the relation's typeInfo nestList
+  string relName = nl->SymbolValue(l.first().listExpr());
+  ListExpr relType;
+  if(!nl->ReadFromFile(relName, relType))
+  {
+    ErrorReporter::ReportError("Can't open file: " + relName);
+    return nl->TypeError();
+  }
+
+  if(!listutils::isRelDescription(relType))
+  {
+      ErrorReporter::ReportError("The nested list in file: "
+          + relName + " is not a relation's type list");
+      return nl->TypeError();
+  }
+
+  return nl->ThreeElemList(nl->SymbolAtom("APPEND"),
+                          nl->OneElemList(nl->StringAtom(relName)),
+                          relType);
+}
+/*
+5.14.2 Value mapping
+
+*/
+int RelFileValueMap(Word* args, Word& result,
+    int message, Word& local, Supplier s)
+{
+
+  int index = ((CcInt*)args[1].addr)->GetIntval();
+  string relName = ((CcString*)args[2].addr)->GetValue();
+  stringstream desFileName;
+  desFileName << relName.substr(0, (relName.find("_") + 1)) << index;
+
+  ListExpr relDescriptor;
+  if (nl->ReadFromFile(desFileName.str(), relDescriptor))
+  {
+    ListExpr errorInfo;
+    bool correct;
+    result.setAddr(Relation::RestoreFromList(
+        SecondoSystem::GetCatalog()->NumericType(qp->GetType(s)),
+        relDescriptor,
+        0,errorInfo,correct));
+  }
+  else
+  {
+    cerr << "Can't access descriptor file '"
+        << desFileName.str() << "'\n";
+    result.setAddr(0);
+  }
+  return 0;
+}
+
+
+/*
 3 Class ~HadoopParallelAlgebra~
 
 A new subclass ~HadoopParallelAlgebra~ of class ~Algebra~ is declared.
@@ -1467,6 +1668,9 @@ public:
     AddOperator(TUPSTREAMInfo(), 0, TUPSTREAMType);
     AddOperator(TUPSTREAM2Info(), 0, TUPSTREAM2Type);
     AddOperator(TUPSTREAM3Info(), 0, TUPSTREAM3Type);
+
+    AddOperator( ToFileInfo(), ToFileValueMap, ToFileTypeMap);
+    AddOperator( RelFileInfo(), RelFileValueMap, RelFileTypeMap);
 
   }
   ~HadoopParallelAlgebra()

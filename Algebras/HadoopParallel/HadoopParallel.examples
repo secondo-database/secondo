@@ -42,3 +42,15 @@ Number: 1
 Signature: (stream(tuple((keyT string)(valueT text)))) -> stream(tuple((keyT string)(valueT text)))
 Example: query plz feed head[5] {p} Orte feed head[3] {o} doubleexport[Ort_p, Ort_o] sortby[keyT] add0Tuple count;
 Result: 11
+
+Operator : tofile
+Number   : 1
+Signature: (rel (tuple y)) x string x int -> bool
+Example  : query plz tofile["plz", 1]
+Result   : TRUE
+
+Operator : relfile
+Number   : 1
+Signature: relName x int -> rel(tuple())
+Example  : query relfile(plz_type, 1) feed count
+Result   : 41267
