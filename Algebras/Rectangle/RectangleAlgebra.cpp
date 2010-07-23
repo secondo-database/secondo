@@ -1645,15 +1645,14 @@ struct CellGrid{
   void setBoundBox(double lbx, double lby, double rtx, double rty)
   {
     //set the LBX, LBY, RTX, RTY;
-    LBX = floor((lbx - x0) / xWidth);
-    LBY = floor((lby - y0) / yWidth);
-
+    LBX = static_cast<int>(floor((lbx - x0) / xWidth));
+    LBY = static_cast<int>(floor((lby - y0) / yWidth));
 
     // A rectangle's top edge belongs to the blower cell,
     // and its right edge belongs to the lefter cell
     // when the rectangle's top-right point is located in
     // cells' boundary.
-    RTX = floor((rtx - x0) / xWidth);
+    RTX = static_cast<int>(floor((rtx - x0) / xWidth));
     if (fabs(rtx - x0) == RTX)
       RTX--;
     RTY = int((rty - y0) / yWidth);
@@ -1816,9 +1815,8 @@ gridIntersectsVM(Word* args, Word& result,
 	double interx = max(rectA->MinD(0), rectB->MinD(0));
 	double intery = max(rectA->MinD(1), rectB->MinD(1));
 	
-	//Rectangle<2> interRect = rectA->Intersection(*rectB);
-    int LBX = floor((interx - x0) / xw);
-    int LBY = floor((intery - y0) / yw);
+    int LBX = static_cast<int>(floor((interx - x0) / xw));
+    int LBY = static_cast<int>(floor((intery - y0) / yw));
     int cscNo = LBX + LBY*nx + 1;
 	
 	res->Set( true, (cellno == cscNo) );
