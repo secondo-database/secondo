@@ -1043,7 +1043,7 @@ the extended memory block is.
 Read a tuple from a binary block written by ~WriteToBin~.
 
 */
-  u_int32_t ReadFromBin(char* buf);
+  u_int32_t ReadFromBin(char* buf, u_int32_t bSize = 0);
 
 /*
 Return the size that a complete binary tuple block needs.

@@ -1201,16 +1201,20 @@ Read a tuple from a memory block, outputted from ~WriteToBin~ function.
 The block contains a tuple's complete data, including its big Flobs.
 
 */
-u_int32_t Tuple::ReadFromBin(char* buf)
+u_int32_t Tuple::ReadFromBin(char* buf, u_int32_t bSize/* = 0*/)
 {
   assert(buf);
 
   u_int32_t blockSize;
-  memcpy(&blockSize, buf, sizeof(blockSize));
+  if (bSize == 0)
+  {
+    memcpy(&blockSize, buf, sizeof(blockSize));
+    buf += sizeof(blockSize);
+  }
+  else
+    blockSize = bSize;
 
-  //blockSize += sizeof(blockSize);
-  InitializeAttributes(buf + sizeof(blockSize), true);
-
+  InitializeAttributes(buf, true);
   return blockSize;
 }
 
