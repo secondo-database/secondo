@@ -64,6 +64,7 @@ but includes tuples of different schemes.
 #include "Symbols.h"
 #include "Base64.h"
 #include "regex.h"
+#include "FileSystem.h"
 
 using namespace symbols;
 using namespace std;
@@ -130,7 +131,7 @@ ListExpr doubleExportTypeMap(ListExpr args)
   if (nl->ListLength(args) != 4)
   {
     ErrorReporter::ReportError(
-            "Operator doubleexport expect a list of four arguments");
+      "Operator doubleexport expect a list of four arguments");
     return nl->TypeError();
   }
 
@@ -179,7 +180,8 @@ ListExpr doubleExportTypeMap(ListExpr args)
           nl->TwoElemList(nl->StringAtom("valueT",false),
               nl->SymbolAtom(TEXT)));
       NList AttrList(attrList, nl);
-      NList tupleStreamList = NList(NList().tupleStreamOf(AttrList));
+      NList tupleStreamList =
+          NList(NList().tupleStreamOf(AttrList));
 
       return nl->ThreeElemList(
                  nl->SymbolAtom("APPEND"),
@@ -190,17 +192,18 @@ ListExpr doubleExportTypeMap(ListExpr args)
     else
     {
       ErrorReporter::ReportError(
-        "Operator doubleexport expect same and DATA kind key types.");
+        "Operator doubleexport expect "
+          "two same and DATA kind key types.");
       return nl->TypeError();
     }
   }
   else
   {
     ErrorReporter::ReportError(
-            "Operator doubleexport expect: "
-            "stream (tuple((a1 t1) ... (ai ti) ... (an tm)))"
-            "x stream (tuple((b1 p1) ... (bj tj) ... (bm tm)))"
-            "x ai x bj -> stream (tuple (key:text) (value:text))");
+      "Operator doubleexport expect: "
+      "stream (tuple((a1 t1) ... (ai ti) ... (an tm)))"
+      "x stream (tuple((b1 p1) ... (bj tj) ... (bm tm)))"
+      "x ai x bj -> stream (tuple (key:text) (value:text))");
     return nl->TypeError();
   }
 }
@@ -618,7 +621,8 @@ GenericRelationIterator* phjLocalInfo::getNewProducts()
     {
       Tuple* currentTuple =
           static_cast<Tuple*> (currentTupleWord.addr);
-      tupStr = ((FText*) (currentTuple->GetAttribute(0)))->GetValue();
+      tupStr =
+          ((FText*) (currentTuple->GetAttribute(0)))->GetValue();
       currentTuple->DeleteIfAllowed();
 
       int SI = atoi(tupStr.substr(1,1).c_str());
@@ -888,10 +892,11 @@ struct paraJoinInfo : OperatorInfo
   paraJoinInfo()
   {
     name = "parajoin";
-    signature = "( (stream(tuple((key int)(value text))))"
-                 "x(rel(tuple(T1))) x (rel(tuple(T2)))"
-                 "x(map (stream(T1)) (stream(T2)) (stream(T1 T2))) )"
-                 " -> stream(tuple(T1 T2))";
+    signature =
+        "( (stream(tuple((key int)(value text))))"
+        "x(rel(tuple(T1))) x (rel(tuple(T2)))"
+        "x(map (stream(T1)) (stream(T2)) (stream(T1 T2))) )"
+        " -> stream(tuple(T1 T2))";
     syntax = "_ _ _ parajoin [funlist]";
     meaning = "join mixed tuples from two relations";
   }
@@ -951,7 +956,7 @@ ListExpr paraJoinTypeMap( ListExpr args )
         && listutils::isTupleStream(nl->Fourth(mapNL)))
       {
         ListExpr resultList = nl->TwoElemList(
-            nl->SymbolAtom("stream"),
+              nl->SymbolAtom("stream"),
               nl->TwoElemList(nl->SymbolAtom("tuple"),
                   nl->Second(nl->Second(nl->Fourth(mapNL)))));
 
@@ -960,8 +965,8 @@ ListExpr paraJoinTypeMap( ListExpr args )
       else
       {
         ErrorReporter::ReportError(
-                "Operator parajoin expects parameter function "
-                  "as (map (stream(T1)) (stream(T2)) (stream(T1 T2)))");
+            "Operator parajoin expects parameter function "
+            "as (map (stream(T1)) (stream(T2)) (stream(T1 T2)))");
         return nl->TypeError();
       }
     }
@@ -1325,8 +1330,8 @@ ListExpr add0TupleTypeMap(ListExpr args)
 
   ListExpr tupleList = nl->Second(nl->Second(streamNL));
   if (nl->ListLength(tupleList) == 2
-      && listutils::isSymbol(nl->Second(nl->First(tupleList)), STRING)
-      && listutils::isSymbol(nl->Second(nl->Second(tupleList)), TEXT))
+  && listutils::isSymbol(nl->Second(nl->First(tupleList)), STRING)
+  && listutils::isSymbol(nl->Second(nl->Second(tupleList)), TEXT))
   {
     return streamNL;
 //    return nl->TwoElemList(nl->SymbolAtom(STREAM),
@@ -1572,8 +1577,8 @@ ListExpr RelFileTypeMap(ListExpr args)
   if (!(nl->IsAtom(l.first().listExpr())))
   {
     ErrorReporter::ReportError(
-        "The first parameter is not a symbol, "
-        "check whether sharing the same name with a Secondo object.");
+      "The first parameter is not a symbol, "
+      "check whether sharing a same name with Secondo objects.");
     return nl->TypeError();
   }
 
@@ -1600,6 +1605,7 @@ ListExpr RelFileTypeMap(ListExpr args)
                           nl->OneElemList(nl->StringAtom(relName)),
                           relType);
 }
+
 /*
 5.14.2 Value mapping
 
@@ -1618,10 +1624,18 @@ int RelFileValueMap(Word* args, Word& result,
   {
     ListExpr errorInfo;
     bool correct;
-    result.setAddr(Relation::RestoreFromList(
-        SecondoSystem::GetCatalog()->NumericType(qp->GetType(s)),
-        relDescriptor,
-        0,errorInfo,correct));
+    result.setAddr(
+        Relation::RestoreFromList(
+          SecondoSystem::GetCatalog()->NumericType(qp->GetType(s)),
+          relDescriptor,0,errorInfo,correct));
+
+    //close the empty relation created by qp
+    qp->Close(qp->ResultStorage(s).addr);
+
+//Relation* r = (Relation*)(qp->ResultStorage(s).addr);
+//cout << "1" << endl;
+//r->Close();
+//cout << "1" << endl;
   }
   else
   {
@@ -1629,6 +1643,315 @@ int RelFileValueMap(Word* args, Word& result,
         << desFileName.str() << "'\n";
     result.setAddr(0);
   }
+  return 0;
+}
+
+/*
+5.15 Operator ~fconsume~
+
+This operator maps
+
+----   stream(tuple(...)) x string x [int] -> bool
+----
+
+This operator writes the tuples of the accepted tuple-stream
+into a binary file. The name of the file depends on the second
+accepted argument ~fileName~. If the third argument ~index~ is
+available, then the file name will add a postfix with this ~index~,
+to distinguish this file from a group of similar files.
+
+Besides, the nested list of the relation's type is written into
+a separated file but in a same directory. Use a separated file to
+put the type information is because the type mapping function of
+the below operator ~ffeed~ needs to read this file,
+and return the type information while importing the binary file.
+
+
+5.15.0 Specification
+
+*/
+
+struct FConsumeInfo : OperatorInfo {
+
+  FConsumeInfo() : OperatorInfo()
+  {
+    name =      "fconsume";
+    signature = "stream(tuple(...)) x string x [int] -> bool";
+    syntax =    "fconsume[ _ , _ ]";
+    meaning =   "write a stream of tuples into a binary file";
+  }
+
+};
+
+/*
+5.14.1 Type mapping
+
+*/
+ListExpr FConsumeTypeMap(ListExpr args)
+{
+  NList l(args);
+  string err = "operator fconsume expects "
+               "(stream(tuple(...)), string, [int])";
+
+  if(l.length() < 2 || l.length() > 3)
+    return l.typeError(err);
+
+  NList attr;
+  if(!l.first().checkStreamTuple(attr) )
+    return l.typeError(err);
+
+  if(!l.second().isSymbol(Symbols::STRING()) )
+    return l.typeError(err);
+
+  if(l.length() == 3 && !l.third().isSymbol(Symbols::INT()) )
+    return l.typeError(err);
+
+  return NList(Symbols::BOOL()).listExpr();
+}
+/*
+5.14.2 Value mapping
+
+*/
+int FConsumeValueMap(Word* args, Word& result,
+    int message, Word& local, Supplier s)
+{
+  result = qp->ResultStorage(s);
+
+  int index = -1;
+  string relName;
+  if (qp->GetNoSons(s) == 3 )
+    index = ((CcInt*)args[2].addr)->GetIntval();
+
+  relName = ((CcString*)args[1].addr)->GetValue();
+
+  //Write the type of the relation into a separated file.
+  string typeFileName = FileSystem::GetCurrentFolder();
+  FileSystem::AppendItem(typeFileName, "cell");
+  FileSystem::AppendItem(typeFileName, relName + "_type");
+  ofstream typeFile(typeFileName.c_str());
+  if (!typeFile.good())
+  {
+    cerr << "Create typeInfo file"
+        << relName + "_type" << " error!\n";
+    ((CcBool*)(result.addr))->Set(true, false);
+  }
+  else
+  {
+    //The accepted input is a stream tuple
+    ListExpr relTypeList = nl->TwoElemList(
+      nl->SymbolAtom("rel"),
+      nl->Second(qp->GetSupplierTypeExpr(qp->GetSon(s,0))) );
+    typeFile << nl->ToString(relTypeList) << endl;
+    typeFile.close();
+  }
+
+  //Write complete tuples into a binary file.
+  if (index > 0)
+  {
+    stringstream ss;
+    ss << relName << "_" << index;
+    relName = ss.str();
+  }
+  //create a path for this file.
+  string blockFileName = FileSystem::GetCurrentFolder();
+  FileSystem::AppendItem(blockFileName, "cell");
+  FileSystem::AppendItem(blockFileName, relName);
+
+  cout << "fileName is: " << blockFileName << endl;
+  ofstream blockFile(blockFileName.c_str(), ios::binary);
+  if (!blockFile.good())
+  {
+    cerr << "Create file " << blockFileName << " error!" << endl;
+    ((CcBool*)(result.addr))->Set(true, false);
+    return 0;
+  }
+
+  Word wTuple(Address(0));
+  qp->Open(args[0].addr);
+  qp->Request(args[0].addr, wTuple);
+  while(qp->Received(args[0].addr))
+  {
+    Tuple* t = static_cast<Tuple*>(wTuple.addr);
+
+    size_t coreSize = 0;
+    size_t extensionSize = 0;
+    size_t flobSize = 0;
+    size_t tupleBlockSize =
+        t->GetBlockSize(coreSize, extensionSize, flobSize);
+    char* tBlock = (char*)malloc(tupleBlockSize);
+    t->WriteToBin(tBlock, coreSize, extensionSize, flobSize);
+    blockFile.write(tBlock, tupleBlockSize);
+
+    t->DeleteIfAllowed();
+    qp->Request(args[0].addr, wTuple);
+  }
+  qp->Close(args[0].addr);
+  blockFile.close();
+
+  ((CcBool*)(result.addr))->Set(true, true);
+  return 0;
+}
+
+/*
+5.15 Operator ~ffeed~
+
+This operator maps
+
+----   relName x string x [int] -> rel(tuple(...))
+----
+
+This operator restore a relation from a binary file
+created by ~fconsume~ operator.
+
+The first argument is used to define the name of the relation that we
+should read from. It's composed by two parts, prefix ~f\_~ and ~name~.
+The prefix is used to specify that the relation is read from a file.
+
+As we explained in ~fconsume~, two files are created to store the tuples,
+one is type info file, whose name is ~name~\_type, and another is binary
+file, whose name is ~name~ \_index,
+where the ~index~ is the third argument of this query.
+If the ~index~ doesn't exist, then the file name is only the ~name~ itself.
+
+Besides, the second argument defines the ~path~ of these two files.
+If the ~path~ is empty, then the files are put in a default path,
+SECONDO\_BUILD\_DIR/bin/cell/, or else the binary file can't be put into
+another specified path.
+
+5.15.0 Specification
+
+*/
+
+struct FFeedInfo : OperatorInfo {
+
+  FFeedInfo() : OperatorInfo()
+  {
+    name =      "ffeed";
+    signature = "relName x string x [int] -> rel(tuple(...))";
+    syntax =    "ffeed( _, _, _ )";
+    meaning =   "restore a relation from a binary file"
+                "created by ~fconsume~ operator.";
+  }
+
+};
+
+/*
+5.14.1 Type mapping
+
+*/
+ListExpr FFeedTypeMap(ListExpr args)
+{
+  NList l(args);
+  string err = "relfile expects (f_relName, string, [int])";
+
+  if (l.length() < 2 || l.length() > 3)
+    return l.typeError(err);
+
+  if (!(nl->IsAtom(l.first().listExpr())))
+    return l.typeError(err);
+
+  string relName = nl->SymbolValue(l.first().listExpr());
+  if (relName.find_first_of("f_") > 0)
+    return l.typeError(err);
+  relName = relName.substr(2);
+
+  if (!l.second().isSymbol(Symbols::STRING()))
+    return l.typeError(err);
+
+  if (l.length() == 3 && !l.third().isSymbol(Symbols::INT()))
+    return l.typeError(err);
+
+  //The type file can only be put into the default directory
+  string typeFileName = FileSystem::GetCurrentFolder();
+  FileSystem::AppendItem(typeFileName, "cell");
+  FileSystem::AppendItem(typeFileName, relName + "_type");
+  ListExpr relType;
+  if(!nl->ReadFromFile(typeFileName, relType))
+  {
+    ErrorReporter::ReportError("Can't open file: " + typeFileName);
+    return nl->TypeError();
+  }
+
+  if(!listutils::isRelDescription(relType))
+  {
+      ErrorReporter::ReportError("The nested list in file: "
+          + typeFileName + " is not a tuple relation type.");
+      return nl->TypeError();
+  }
+
+  return nl->ThreeElemList(nl->SymbolAtom("APPEND"),
+                          nl->OneElemList(nl->StringAtom(relName)),
+                          relType);
+}
+
+/*
+5.14.2 Value mapping
+
+*/
+int FFeedValueMap(Word* args, Word& result,
+    int message, Word& local, Supplier s)
+{
+
+  int index = -1;
+  string relName, path;
+
+  path = ((CcString*)args[1].addr)->GetValue();
+  if (qp->GetNoSons(s) == 4)
+  {
+    index = ((CcInt*)args[2].addr)->GetIntval();
+    relName = ((CcString*)args[3].addr)->GetValue();
+  }
+  else
+    relName = ((CcString*)args[2].addr)->GetValue();
+
+  if (path == "")
+  {
+    path = FileSystem::GetCurrentFolder();
+    FileSystem::AppendItem(path, "cell");
+    FileSystem::AppendItem(path, relName);
+  }
+
+  if(index > 0)
+  {
+    stringstream ss;
+    ss << path << "_" << index;
+    path = ss.str();
+  }
+
+  TupleType* tupleType = new TupleType(
+          SecondoSystem::GetCatalog()
+            ->NumericType(nl->Second(qp->GetType(s))));
+  GenericRelation* rel=
+      (GenericRelation*)((qp->ResultStorage(s)).addr);
+  if (rel->GetNoTuples() > 0)
+    rel->Clear();
+
+  if (!FileSystem::FileOrFolderExists(path))
+  {
+    cerr << "File " << path << " doesn't exist!" << endl;
+    result.setAddr(rel);
+    return 0;
+  }
+
+  ifstream tupleBlockFile(path.c_str(), ios::binary);
+  u_int32_t blockSize;
+  tupleBlockFile.read(reinterpret_cast<char*>(&blockSize),
+          sizeof(blockSize));
+  while(!tupleBlockFile.eof()){
+    blockSize -= sizeof(blockSize);
+
+    char* tupleBlock = (char*)malloc(blockSize);
+    tupleBlockFile.read(tupleBlock, blockSize);
+    Tuple* t = new Tuple(tupleType);
+    t->ReadFromBin(tupleBlock, blockSize);
+
+    rel->AppendTuple(t);
+    tupleBlockFile.read(reinterpret_cast<char*>(&blockSize),
+            sizeof(blockSize));
+  }
+  tupleBlockFile.close();
+  result.setAddr(rel);
+
   return 0;
 }
 
@@ -1671,6 +1994,9 @@ public:
 
     AddOperator( ToFileInfo(), ToFileValueMap, ToFileTypeMap);
     AddOperator( RelFileInfo(), RelFileValueMap, RelFileTypeMap);
+
+    AddOperator( FConsumeInfo(), FConsumeValueMap, FConsumeTypeMap);
+    AddOperator( FFeedInfo(), FFeedValueMap, FFeedTypeMap);
 
   }
   ~HadoopParallelAlgebra()
