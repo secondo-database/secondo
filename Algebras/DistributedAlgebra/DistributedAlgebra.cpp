@@ -113,7 +113,7 @@ class DArray
          int getSize();
          int getAlgID();
          int getTypID();
-         DServer* getServer();
+         DServerManager* getServerManager();
          Word* getElements();
          bool isDefined();
          string getName();
@@ -152,8 +152,8 @@ class DArray
          string name;
          ListExpr type;
          
-         
-         DServer* server;
+         DServerManager* manager;
+         //DServer* server;
          Word* elements;
          
 };
@@ -190,7 +190,15 @@ DArray::DArray(ListExpr n_type, string n, int s)
                   
          elements = new Word[size];
          
-         server = new DServer("192.168.2.3",1234,name,type);         
+         ListExpr serverlist = nl->TwoElemList((nl->TwoElemList
+                                        (nl->StringAtom("192.168.2.3"),
+                                                       nl->IntAtom(1234))),
+                                        (nl->TwoElemList(
+                                                nl->StringAtom("127.0.0.1"),
+                                                nl->IntAtom(1234))));
+         manager = new DServerManager(serverlist, name,type,size);
+         //server = manager->getServerbyID(0);
+         //server = new DServer("192.168.2.3",1234,name,type);         
          //Server must be specified in the
 //         code for now (see also DArray::initialize below)
          
@@ -207,8 +215,9 @@ DArray::~DArray()
          
          delete elements;
          
-         if(server != 0) server->Terminate();
-         delete server;}
+         /*if(server != 0) server->Terminate();
+         delete server;*/
+         delete manager;}
 }
 
 void DArray::remove()
@@ -217,6 +226,7 @@ void DArray::remove()
          if(defined)
          for(int i = 0;i<size;i++)
          {
+                  DServer* server = manager->getServerByIndex(i);
                   server->setCmd("delete",nl->IntAtom(i),elements);
                   server->run();
          }
@@ -225,6 +235,8 @@ void DArray::remove()
 
 void DArray::refresh(int i)
 {
+         cout << "Refreshing Element" << toString_d(i);
+         DServer* server = manager->getServerByIndex(i);
          server->setCmd("read",nl->IntAtom(i),elements);
          server->run();
 }
@@ -241,15 +253,29 @@ void DArray::initialize(ListExpr n_type, string n, int s, Word* n_elem)
          
          size = s;
          
+         ListExpr serverlist = nl->TwoElemList(
+                                (nl->TwoElemList(nl->StringAtom("192.168.2.3"),
+                                 nl->IntAtom(1234))),
+                                (nl->TwoElemList(nl->StringAtom("127.0.0.1"),
+                                 nl->IntAtom(1234))));
+         manager = new DServerManager(serverlist, name,type,size);
+         //server = manager->getServerbyID(0);
          elements = n_elem;
-         server = new DServer("192.168.2.3",1234,name,type);
+         //server = new DServer("192.168.2.3",1234,name,type);
          //Server must be specified in the code
 //         for now (see also Constructor above)
          
-         for(int i = 0; i<size; i++)
+         /*for(int i = 0; i<size; i++)
          {
+                  DServer* server = manager->getServerByIndex(i);
                   server->setCmd("write",nl->IntAtom(i),elements);
                   server->run();
+         }*/
+         for(int i = 0; i<manager->getNoOfServers();i++)
+         {
+                 DServer* server = manager->getServerbyID(i);
+                 server->setCmd("write",manager->getIndexList(i),elements);
+                 server->run();
          }
 }
 
@@ -267,8 +293,12 @@ void DArray::initialize(ListExpr n_type, string n, int s)
          
          elements = new Word[size];
          
-         server = new DServer(
-         "192.168.2.3",1234,name,type);                  //see above
+         ListExpr serverlist = nl->TwoElemList(nl->StringAtom("192.168.2.3"),
+                                                       nl->IntAtom(1234));
+         manager = new DServerManager(serverlist, name,type,size);
+         //server = manager->getServerbyID(0);
+         /*server = new DServer(
+         "192.168.2.3",1234,name,type);                  //see above*/
          
 }
 
@@ -277,7 +307,8 @@ Word DArray::get(int i)
 { 
          if(defined) 
          {
-                  refresh(i); return elements[i];
+                  refresh(i); 
+		 return elements[i];
          } 
          else 
          { 
@@ -289,6 +320,7 @@ void DArray::set(Word n_elem, int i)
 { 
          if(defined) 
          {
+                  DServer* server = manager->getServerByIndex(i);
                   elements[i] = n_elem;
                   server->setCmd("write",nl->IntAtom(i),elements);
                   server->run();
@@ -308,7 +340,7 @@ bool DArray::isDefined() { return defined; }
 
 int DArray::getSize() { return size; }
 
-DServer* DArray::getServer() {return server;}
+DServerManager* DArray::getServerManager() {return manager;}
 
 Word* DArray::getElements() {return elements;}
 
@@ -427,8 +459,9 @@ Word DArray::Clone( const ListExpr typeInfo, const Word& w )
          {
                   ListExpr arg = nl->TwoElemList(nl->StringAtom(neu->getName()),
                                                            nl->IntAtom(i));
-                  alt->getServer()->setCmd("copy",arg,neu->getElements());
-                  alt->getServer()->run();
+                  alt->getServerManager()->getServerByIndex(i)
+                        ->setCmd("copy",arg,neu->getElements());
+                  alt->getServerManager()->getServerByIndex(i)->run();
          }
          
 
@@ -436,8 +469,8 @@ Word DArray::Clone( const ListExpr typeInfo, const Word& w )
 }
 
 
-bool DArray::Open( SmiRecord& valueRecord , s
-                                    ize_t& offset , 
+bool DArray::Open( SmiRecord& valueRecord , 
+                                    size_t& offset , 
                                     const ListExpr typeInfo , 
                                     Word& value )
 {
@@ -795,9 +828,11 @@ static int putFun( Word* args,
                                                      ((DArray*)result.addr)
                                                                ->getName()),
                                                                nl->IntAtom(j));
-                           array_alt->getServer()->setCmd("copy",
+                           array_alt->getServerManager()->getServerByIndex(j)
+                                                        ->setCmd("copy",
                                            arg,array_alt->getElements());
-                           array_alt->getServer()->run();
+                           array_alt->getServerManager()->getServerByIndex(j)
+                                                        ->run();
                   }
                   else
                   {
@@ -812,8 +847,7 @@ const string putSpec =
    "(( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
      "( <text>darray t -> darray t</text--->"
        "<text>put ( _, _, _ )</text--->"
-       "<text>Returns a distributed array 
-                           where one element is altered</text--->"
+"<text>Returns a distributed array where one element is altered</text--->"
        "<text>query put(makeDarray(1,2,3),2,2)</text---> ))";
 
 Operator putA(

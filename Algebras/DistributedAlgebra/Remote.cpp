@@ -90,7 +90,7 @@ DServer::DServer(string n_host,int n_port,string n_name,ListExpr n_type)
                         getline( iosock, line );
                         if (line[line.size() - 1] == '\r')
                         line.resize(line.size() - 1);
-                        //cout << line << endl;
+                        cout << line << endl;
                 }while(line.find("</SecondoResponse>") == string::npos);
         }
         else cout << "ERROR3";
@@ -120,18 +120,27 @@ void DServer::setCmd(string n_cmd, ListExpr n_arg,Word* n_array)
 
 void DServer::run()
 {
+
+        int arg2;
+        ListExpr akt;
+        
         if(cmd=="write")
         {
                 int algID,typID;
                 extractIds(type,algID,typID);
                 string daten;
                 
-                arg2 = nl->IntValue(arg);
+                
+      
+                do {
+                if(!nl->IsAtom(arg)) akt = nl->First(arg);
+                else akt = arg;
+                arg2 = nl->IntValue(akt);
         
                 ListExpr ls = ((am->OutObj(algID,typID))(type,elements[arg2]));
                 daten = nl->ToString(ls);
                 iostream& iosock = server->GetSocketStream();
-                string com = "let r" + name + nl->ToString(arg) + " = " + daten;
+                string com = "let r" + name + nl->ToString(akt) + " = " + daten;
                 
                 
                 iosock << "<Secondo>" << endl << "1" << endl << "delete r" 
@@ -158,6 +167,10 @@ void DServer::run()
                         while(line.find("</SecondoResponse") == string::npos);
                 
                 else cout << "DATENFEHLER";
+                
+                if(!nl->IsAtom(arg) && !nl->IsEmpty(arg)) arg = nl->Rest(arg);
+                }
+                while(!nl->IsAtom(arg) && !nl->IsEmpty(arg));
                 //Daten auf den Server schreiben
         }
         
@@ -167,13 +180,21 @@ void DServer::run()
                 extractIds(type,algID,typID);
                 
                 string daten;
-                arg2 = nl->IntValue(arg);
-        
+                
+                do {
+                if(!nl->IsAtom(arg)) akt = nl->First(arg);
+                else akt = arg;
+                arg2 = nl->IntValue(akt);
+                        
                 ListExpr ls;
                 
                 iostream& iosock = server->GetSocketStream();
                 iosock << "<Secondo>" << endl << "1" << endl << "query r" 
-                        << name << nl->ToString(arg) << endl << "</Secondo>" 
+                        << name << nl->ToString(akt) << endl << "</Secondo>" 
+                        << endl;
+                
+                cout << "<Secondo>" << endl << "1" << endl << "query r" 
+                        << name << nl->ToString(akt) << endl << "</Secondo>" 
                         << endl;
                 
                 string line;
@@ -181,6 +202,8 @@ void DServer::run()
                 if(line=="<SecondoResponse>")
                 {
                         nl->ReadBinaryFrom(iosock, ls);
+                        string debug_out = nl->ToString(ls);
+                        cout << debug_out;
                         
                         do
                                 getline(iosock,line);
@@ -196,6 +219,10 @@ void DServer::run()
                                         ( type, ls, 1, errorInfo, correct));
                 }
                 else cout << "DATENFEHLER LESEN";
+                
+                if(!nl->IsAtom(arg) && !nl->IsEmpty(arg)) arg = nl->Rest(arg);
+                }
+                while(!nl->IsAtom(arg) && !nl->IsEmpty(arg));
         }
         
         if(cmd=="delete")
@@ -242,5 +269,81 @@ void DServer::run()
                         
         }
         
+                
 }
+
+DServerManager::DServerManager(ListExpr serverlist_n, 
+                                                      string name_n, 
+                                                      ListExpr type,
+                                                      int sizeofarray)
+{
+        array_size = sizeofarray;
+        
+        name = name_n;
+        
+        size = nl->ListLength(serverlist_n);
+        if(size==-1) size=1;
+        
+
+        serverlist = new DServer*[size];
+        
+        ListExpr elem = nl->First(serverlist_n);
+        serverlist_n = nl->Rest(serverlist_n);
+        
+        for(int i = 0; i<size; i++)
+        {
+            serverlist[i] = new DServer(nl->StringValue(nl->First(elem)),
+                                                nl->IntValue(nl->Second(elem)), 
+                                                        name,
+                                                        type);
+                if(i < size-1){elem = nl->First(serverlist_n);
+                serverlist_n = nl->Rest(serverlist_n);}
+        }
+}
+
+DServerManager::~DServerManager()
+{
+        for(int i = 0; i<size; i++)
+        {
+                if(serverlist[i] != 0) serverlist[i]->Terminate();
+                delete serverlist[i];
+        }
+        
+        delete serverlist;
+}
+
+DServer* DServerManager::getServerbyID(int id)
+{
+        return serverlist[id];
+}
+
+DServer* DServerManager::getServerByIndex(int index)
+{
+        return serverlist[index % size];
+}
+
+ListExpr DServerManager::getIndexList(int id)
+{
+        ListExpr res = nl->TheEmptyList();
+        for(int i = id; i<array_size; i+=size)
+        {
+                res = nl->Cons(nl->IntAtom(i), res);
+        }
+        return res;
+}
+                
+ListExpr DServerManager::getNamedIndexList(int id)
+{
+        ListExpr res = nl->TheEmptyList();
+        for(int i = id; i<array_size; i+=size)
+        {
+                res = nl->Cons(nl->TwoElemList(nl->StringAtom(name),
+					nl->IntAtom(i)), res);
+        }
+        return res;
+}
+        
+int DServerManager::getNoOfServers() {return size;}        
+        
+        
                         

@@ -28,7 +28,7 @@ March 2010 Tobias Timmerscheidt
 
 */
 
-// Enthält die Klassen ObjectReader/Writer, RemoteObject
+// Enthält die Klassen DServer, DServerManager
 
 #ifndef H_REMOTE_H
 #define H_REMOTE_H
@@ -56,11 +56,33 @@ class DServer
                   string host,name,cmd;
                   int port,state;
                   ListExpr type,arg;
-                  int arg2;
                   Word* elements;
          
                   CSProtocol* csp;
                   Socket* server;
+};
+
+class DServerManager
+{
+	public:
+		DServerManager(ListExpr serverlist_n, 
+			string name_n, ListExpr type, int sizeofarray);
+		~DServerManager();
+		DServer* getServerByIndex(int index);
+		DServer* getServerbyID(int id);
+		
+		//int getID(int index) = 0;
+		ListExpr getIndexList(int id);
+		ListExpr getNamedIndexList(int id);
+	
+		int getNoOfServers();
+	
+	private:
+		
+		DServer** serverlist;
+		int size;
+		int array_size;
+		string name;
 };
                   
                   
