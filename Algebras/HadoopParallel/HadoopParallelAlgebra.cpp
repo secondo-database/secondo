@@ -1436,216 +1436,6 @@ int add0TupleValueMap(Word* args, Word& result,
   return 0;
 }
 
-
-/*
-5.14 Operator ~tofile~
-
-This operator maps
-
-----   (rel (tuple y)) x string x int -> bool
-----
-
-This operator save a relation's main information to two files.
-The first file take the same name of the relation,
-and put the relation's type list.
-Then the second file, with the name of the relation and index number,
-and put the relation's description list.
-
-
-5.14.0 Specification
-
-*/
-
-struct ToFileInfo : OperatorInfo {
-
-  ToFileInfo() : OperatorInfo()
-  {
-    name =      "tofile";
-    signature = "(rel (tuple y)) x string x int -> bool";
-    syntax =    "_ tofile[ name, index ]";
-    meaning =   "save a relation's descriptor to a text file,"
-                "whose filename is the composition the given "
-                "name and index number.";
-  }
-
-};
-
-/*
-5.14.1 Type mapping
-
-*/
-ListExpr ToFileTypeMap(ListExpr args)
-{
-  NList l(args);
-  string err = "tofile expects (rel(tuple(...)) string int)";
-
-  if (!l.checkLength(3, err))
-    return l.typeError(err);
-
-  NList attrs;
-  if (!l.first().checkRel(attrs))
-    return l.typeError(err);
-
-  if (!l.second().isSymbol(Symbols::STRING()))
-    return l.typeError(err);
-
-  if (!l.third().isSymbol(Symbols::INT()))
-    return l.typeError(err);
-
-  return NList(Symbols::BOOL()).listExpr();
-}
-/*
-5.14.2 Value mapping
-
-*/
-int ToFileValueMap(Word* args, Word& result,
-    int message, Word& local, Supplier s)
-{
-  Relation* r = (Relation*)args[0].addr;
-  ListExpr relTypeList = qp->GetSupplierTypeExpr(qp->GetSon(s, 0));
-  ListExpr desList = r->SaveToList(relTypeList);
-  result = qp->ResultStorage(s);
-
-  string name = ((CcString*)args[1].addr)->GetValue();
-  int index = ((CcInt*)args[2].addr)->GetIntval();
-  stringstream ss;
-  ss << name << "_" << index;
-
-  string fileName = ss.str();
-  ofstream descFile(fileName.c_str());
-  ofstream typeFile((name + "_type").c_str());
-  if(!descFile.good() || !typeFile.good())
-  {
-    cerr << "Create descriptor file " << fileName
-        << " and typeInfo file" << name << " error!\n";
-    ((CcBool*)(result.addr))->Set(true, false);
-  }
-  else
-  {
-    typeFile << nl->ToString(relTypeList) << endl;
-    typeFile.close();
-    descFile << nl->ToString(desList) << endl;
-    descFile.close();
-    ((CcBool*)(result.addr))->Set(true, true);
-  }
-  return 0;
-}
-
-/*
-5.15 Operator ~relfile~
-
-This operator maps
-
-----   relName x int -> rel(tuple(...))
-----
-
-This operator restore a relation from a descriptor file
-created by ~tofile~ operator.
-The relation type list is stored in a file with name ~relName~,
-and it's descriptor information is stored in another file with
-name ~relName\_index~ .
-
-5.15.0 Specification
-
-*/
-
-struct RelFileInfo : OperatorInfo {
-
-  RelFileInfo() : OperatorInfo()
-  {
-    name =      "relfile";
-    signature = "relName x int -> rel(tuple(...))";
-    syntax =    "relfile( relName, int )";
-    meaning =   "restore a relation from a descriptor file"
-                "created by ~tofile~ operator.";
-  }
-
-};
-
-/*
-5.14.1 Type mapping
-
-*/
-ListExpr RelFileTypeMap(ListExpr args)
-{
-  NList l(args);
-  string err = "relfile expects (relName, int)";
-
-  if (!l.checkLength(2, err))
-    return l.typeError(err);
-
-  if (!(nl->IsAtom(l.first().listExpr())))
-  {
-    ErrorReporter::ReportError(
-      "The first parameter is not a symbol, "
-      "check whether sharing a same name with Secondo objects.");
-    return nl->TypeError();
-  }
-
-  if (!l.second().isSymbol(Symbols::INT()))
-    return l.typeError(err);
-
-  //Need to open the file and get the relation's typeInfo nestList
-  string relName = nl->SymbolValue(l.first().listExpr());
-  ListExpr relType;
-  if(!nl->ReadFromFile(relName, relType))
-  {
-    ErrorReporter::ReportError("Can't open file: " + relName);
-    return nl->TypeError();
-  }
-
-  if(!listutils::isRelDescription(relType))
-  {
-      ErrorReporter::ReportError("The nested list in file: "
-          + relName + " is not a relation's type list");
-      return nl->TypeError();
-  }
-
-  return nl->ThreeElemList(nl->SymbolAtom("APPEND"),
-                          nl->OneElemList(nl->StringAtom(relName)),
-                          relType);
-}
-
-/*
-5.14.2 Value mapping
-
-*/
-int RelFileValueMap(Word* args, Word& result,
-    int message, Word& local, Supplier s)
-{
-
-  int index = ((CcInt*)args[1].addr)->GetIntval();
-  string relName = ((CcString*)args[2].addr)->GetValue();
-  stringstream desFileName;
-  desFileName << relName.substr(0, (relName.find("_") + 1)) << index;
-
-  ListExpr relDescriptor;
-  if (nl->ReadFromFile(desFileName.str(), relDescriptor))
-  {
-    ListExpr errorInfo;
-    bool correct;
-    result.setAddr(
-        Relation::RestoreFromList(
-          SecondoSystem::GetCatalog()->NumericType(qp->GetType(s)),
-          relDescriptor,0,errorInfo,correct));
-
-    //close the empty relation created by qp
-    qp->Close(qp->ResultStorage(s).addr);
-
-//Relation* r = (Relation*)(qp->ResultStorage(s).addr);
-//cout << "1" << endl;
-//r->Close();
-//cout << "1" << endl;
-  }
-  else
-  {
-    cerr << "Can't access descriptor file '"
-        << desFileName.str() << "'\n";
-    result.setAddr(0);
-  }
-  return 0;
-}
-
 /*
 5.15 Operator ~fconsume~
 
@@ -1677,7 +1467,7 @@ struct FConsumeInfo : OperatorInfo {
   {
     name =      "fconsume";
     signature = "stream(tuple(...)) x string x [int] -> bool";
-    syntax =    "fconsume[ _ , _ ]";
+    syntax =    "_ fconsume[ _ , _ ]";
     meaning =   "write a stream of tuples into a binary file";
   }
 
@@ -1712,85 +1502,227 @@ ListExpr FConsumeTypeMap(ListExpr args)
 5.14.2 Value mapping
 
 */
+struct fconsumeLocalInfo
+{
+  int state;
+  int current;
+};
+
 int FConsumeValueMap(Word* args, Word& result,
     int message, Word& local, Supplier s)
 {
-  result = qp->ResultStorage(s);
+  fconsumeLocalInfo* fcli;
 
-  int index = -1;
-  string relName;
-  if (qp->GetNoSons(s) == 3 )
-    index = ((CcInt*)args[2].addr)->GetIntval();
-
-  relName = ((CcString*)args[1].addr)->GetValue();
-
-  //Write the type of the relation into a separated file.
-  string typeFileName = FileSystem::GetCurrentFolder();
-  FileSystem::AppendItem(typeFileName, "cell");
-  FileSystem::AppendItem(typeFileName, relName + "_type");
-  ofstream typeFile(typeFileName.c_str());
-  if (!typeFile.good())
+  if ( message <= CLOSE)
   {
-    cerr << "Create typeInfo file"
-        << relName + "_type" << " error!\n";
-    ((CcBool*)(result.addr))->Set(true, false);
+    result = qp->ResultStorage(s);
+
+    fcli = (fconsumeLocalInfo*) local.addr;
+    if (fcli) delete fcli;
+
+    fcli = new fconsumeLocalInfo();
+    fcli->state = 0;
+    fcli->current = 0;
+    local.setAddr(fcli);
+
+    int index = -1;
+    string relName;
+    if (qp->GetNoSons(s) == 3 )
+      index = ((CcInt*)args[2].addr)->GetIntval();
+
+    relName = ((CcString*)args[1].addr)->GetValue();
+
+    //Write the type of the relation into a separated file.
+    string typeFileName = FileSystem::GetCurrentFolder();
+    FileSystem::AppendItem(typeFileName, "cell");
+    FileSystem::AppendItem(typeFileName, relName + "_type");
+    ofstream typeFile(typeFileName.c_str());
+    ListExpr relTypeList;
+    if (!typeFile.good())
+    {
+      cerr << "Create typeInfo file"
+          << relName + "_type" << " error!\n";
+      ((CcBool*)(result.addr))->Set(true, false);
+      return 0;
+    }
+    else
+    {
+      //The accepted input is a stream tuple
+      relTypeList = nl->TwoElemList(
+        nl->SymbolAtom("rel"),
+        nl->Second(qp->GetSupplierTypeExpr(qp->GetSon(s,0))) );
+      typeFile << nl->ToString(relTypeList) << endl;
+      typeFile.close();
+    }
+
+    //Write complete tuples into a binary file.
+    if (index > 0)
+    {
+      stringstream ss;
+      ss << relName << "_" << index;
+      relName = ss.str();
+    }
+    //create a path for this file.
+    string blockFileName = FileSystem::GetCurrentFolder();
+    FileSystem::AppendItem(blockFileName, "cell");
+    FileSystem::AppendItem(blockFileName, relName);
+
+    ofstream blockFile(blockFileName.c_str(), ios::binary);
+    if (!blockFile.good())
+    {
+      cerr << "Create file " << blockFileName << " error!" << endl;
+      ((CcBool*)(result.addr))->Set(true, false);
+      return 0;
+    }
+
+    //Statistic information
+    TupleType *tt = new TupleType(SecondoSystem::GetCatalog()
+                        ->NumericType(nl->Second(relTypeList)));
+    vector<double> attrExtSize(tt->GetNoAttributes());
+    vector<double> attrSize(tt->GetNoAttributes());
+    double totalSize = 0.0;
+    double totalExtSize = 0.0;
+    int count = 0;
+
+    Word wTuple(Address(0));
+    qp->Open(args[0].addr);
+    qp->Request(args[0].addr, wTuple);
+    while(qp->Received(args[0].addr))
+    {
+      Tuple* t = static_cast<Tuple*>(wTuple.addr);
+
+      size_t coreSize = 0;
+      size_t extensionSize = 0;
+      size_t flobSize = 0;
+      size_t tupleBlockSize =
+          t->GetBlockSize(coreSize, extensionSize, flobSize,
+                          &attrExtSize, &attrSize);
+
+      totalSize += (coreSize + extensionSize + flobSize);
+      totalExtSize += (coreSize + extensionSize);
+
+      char* tBlock = (char*)malloc(tupleBlockSize);
+      t->WriteToBin(tBlock, coreSize, extensionSize, flobSize);
+      blockFile.write(tBlock, tupleBlockSize);
+      free(tBlock);
+      count++;
+      fcli->current++;
+
+      t->DeleteIfAllowed();
+      qp->Request(args[0].addr, wTuple);
+    }
+
+    // write a zero after all tuples to indicate the end.
+    u_int32_t endMark = 0;
+    blockFile.write((char*)&endMark, sizeof(endMark));
+
+    // build a description list of output tuples
+    NList descList;
+    descList.append(NList(count));
+    descList.append(NList(totalExtSize));
+    descList.append(NList(totalSize));
+    for(int i = 0; i < tt->GetNoAttributes(); i++)
+    {
+      descList.append(NList(attrExtSize[i]));
+      descList.append(NList(attrSize[i]));
+    }
+
+    //put the base64 code of the description list to the file end.
+    string descStr = binEncode(descList.listExpr());
+    u_int32_t descSize = descStr.size() + 1;
+    blockFile.write(descStr.c_str(), descSize);
+    blockFile.write((char*)&descSize, sizeof(descSize));
+
+    qp->Close(args[0].addr);
+    blockFile.close();
+    cout << "\nCreate block fileName: " << blockFileName << endl;
+
+    ((CcBool*)(result.addr))->Set(true, true);
+    fcli->state = 1;
+    return 0;
+
   }
-  else
+  else if ( message == REQUESTPROGRESS )
   {
-    //The accepted input is a stream tuple
-    ListExpr relTypeList = nl->TwoElemList(
-      nl->SymbolAtom("rel"),
-      nl->Second(qp->GetSupplierTypeExpr(qp->GetSon(s,0))) );
-    typeFile << nl->ToString(relTypeList) << endl;
-    typeFile.close();
-  }
+    ProgressInfo p1;
+    ProgressInfo* pRes;
+    const double uConsume = 0.024;   //millisecs per tuple
+    const double vConsume = 0.0003;  //millisecs per byte in
+                                        //  root/extension
+    const double wConsume = 0.001338;  //millisecs per byte in FLOB
 
-  //Write complete tuples into a binary file.
-  if (index > 0)
-  {
-    stringstream ss;
-    ss << relName << "_" << index;
-    relName = ss.str();
-  }
-  //create a path for this file.
-  string blockFileName = FileSystem::GetCurrentFolder();
-  FileSystem::AppendItem(blockFileName, "cell");
-  FileSystem::AppendItem(blockFileName, relName);
+    fcli = (fconsumeLocalInfo*) local.addr;
+    pRes = (ProgressInfo*) result.addr;
 
-  cout << "fileName is: " << blockFileName << endl;
-  ofstream blockFile(blockFileName.c_str(), ios::binary);
-  if (!blockFile.good())
+    if (qp->RequestProgress(args[0].addr, &p1))
+    {
+      pRes->Card = p1.Card;
+      pRes->CopySizes(p1);
+
+      pRes->Time = p1.Time + p1.Card *
+            (uConsume + p1.SizeExt * vConsume
+             + (p1.Size - p1.SizeExt) * wConsume);
+
+      if ( fcli == 0 )
+      {
+        pRes->Progress = (p1.Progress * p1.Time) / pRes->Time;
+      }
+      else
+      {
+        if (fcli->state == 0)
+        {
+          if ( p1.BTime < 0.1 && pipelinedProgress ) //non-blocking,
+                                                     //use pipelining
+            pRes->Progress = p1.Progress;
+          else
+            pRes->Progress =
+            (p1.Progress * p1.Time +
+              fcli->current *  (uConsume + p1.SizeExt * vConsume
+                  + (p1.Size - p1.SizeExt) * wConsume) )
+                / pRes->Time;
+        }
+        else
+        {
+          pRes->Progress = 1.0;
+        }
+      }
+
+      pRes->BTime = pRes->Time;    //completely blocking
+      pRes->BProgress = pRes->Progress;
+
+      return YIELD;      //successful
+    }
+    else
+      return CANCEL;
+  }
+  else if ( message == CLOSEPROGRESS )
   {
-    cerr << "Create file " << blockFileName << " error!" << endl;
-    ((CcBool*)(result.addr))->Set(true, false);
+    fcli = (fconsumeLocalInfo*) local.addr;
+    if ( fcli ){
+       delete fcli;
+       local.setAddr(0);
+    }
     return 0;
   }
 
-  Word wTuple(Address(0));
-  qp->Open(args[0].addr);
-  qp->Request(args[0].addr, wTuple);
-  while(qp->Received(args[0].addr))
-  {
-    Tuple* t = static_cast<Tuple*>(wTuple.addr);
-
-    size_t coreSize = 0;
-    size_t extensionSize = 0;
-    size_t flobSize = 0;
-    size_t tupleBlockSize =
-        t->GetBlockSize(coreSize, extensionSize, flobSize);
-    char* tBlock = (char*)malloc(tupleBlockSize);
-    t->WriteToBin(tBlock, coreSize, extensionSize, flobSize);
-    blockFile.write(tBlock, tupleBlockSize);
-
-    t->DeleteIfAllowed();
-    qp->Request(args[0].addr, wTuple);
-  }
-  qp->Close(args[0].addr);
-  blockFile.close();
-
-  ((CcBool*)(result.addr))->Set(true, true);
   return 0;
 }
+
+const string FConsumeSpec  =
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" ) "
+  "( <text>(stream(tuple(...)) x string x [int]) -> "
+  "( bool )</text--->"
+  "<text>_ fconsume[ _ , _ ]</text--->"
+  "<text>Write a stream of tuples into a binary file.</text--->"
+  ") )";
+
+Operator fconsumeOp (
+    "fconsume",               // name
+    FConsumeSpec,             // specification
+    FConsumeValueMap,                 // value mapping
+    Operator::SimpleSelect, // trivial selection function
+    FConsumeTypeMap           // type mapping
+);
 
 /*
 5.15 Operator ~ffeed~
@@ -1827,7 +1759,7 @@ struct FFeedInfo : OperatorInfo {
   FFeedInfo() : OperatorInfo()
   {
     name =      "ffeed";
-    signature = "relName x string x [int] -> rel(tuple(...))";
+    signature = "relName x string x [int] -> stream(tuple(...))";
     syntax =    "ffeed( _, _, _ )";
     meaning =   "restore a relation from a binary file"
                 "created by ~fconsume~ operator.";
@@ -1879,82 +1811,246 @@ ListExpr FFeedTypeMap(ListExpr args)
       return nl->TypeError();
   }
 
+  ListExpr streamType = nl->TwoElemList(
+    nl->SymbolAtom("stream"),
+    nl->Second(relType));
+
   return nl->ThreeElemList(nl->SymbolAtom("APPEND"),
                           nl->OneElemList(nl->StringAtom(relName)),
-                          relType);
+                          streamType);
 }
 
 /*
 5.14.2 Value mapping
 
 */
+class FFeedLocalInfo: public ProgressLocalInfo
+{
+public:
+  FFeedLocalInfo(string filePath, ListExpr streamTypeList)
+  : tupleBlockFile(0)
+  {
+    if (!FileSystem::FileOrFolderExists(filePath))
+    {
+        cerr << "Error: File '" << filePath
+            << "' doesn't exist!\n" << endl;
+    }
+    else
+    {
+      tupleBlockFile = new ifstream(filePath.c_str(), ios::binary);
+      if (!tupleBlockFile->good())
+      {
+        cerr << "Error accessing file '" << filePath << "'\n\n";
+        tupleBlockFile = 0;
+      }
+    }
+    tupleType = new TupleType(SecondoSystem::GetCatalog()
+                    ->NumericType(nl->Second(streamTypeList)));
+
+    if (tupleBlockFile)
+    {
+      //get the description list
+      u_int32_t descSize;
+      size_t fileLength;
+      tupleBlockFile->seekg(0, ios::end);
+      fileLength = tupleBlockFile->tellg();
+      tupleBlockFile->seekg(
+          (fileLength - sizeof(descSize)), ios::beg);
+      tupleBlockFile->read((char*)&descSize, sizeof(descSize));
+
+      char descStr[descSize];
+      tupleBlockFile->seekg(
+          (fileLength - (descSize + sizeof(descSize))), ios::beg);
+      tupleBlockFile->read(descStr, descSize);
+      tupleBlockFile->seekg(0, ios::beg);
+
+      NList descList = NList(binDecode(string(descStr)));
+
+      //Initialize the sizes of progress local info
+      noAttrs = tupleType->GetNoAttributes();
+      total = descList.first().intval();
+      attrSize = new double[noAttrs];
+      attrSizeExt = new double[noAttrs];
+      for(int i = 0; i < noAttrs; i++)
+      {
+        attrSizeExt[i] =
+            descList.elem(4 + i*2).realval() / total;
+        attrSize[i] =
+            descList.elem(4 + (i*2 + 1)).realval() / total;
+
+        SizeExt += attrSizeExt[i]; //average sizeExt of a tuple
+        Size += attrSize[i];
+      }
+
+      sizesInitialized = true;
+      sizesChanged = true;
+    }
+  }
+  ~FFeedLocalInfo() {
+    if (tupleBlockFile)
+    {
+      delete tupleBlockFile;
+      tupleBlockFile = 0;
+    }
+    if (tupleType)
+    {
+      tupleType->DeleteIfAllowed();
+    }
+  }
+
+  Tuple* getNextTuple(){
+    if (0 == tupleBlockFile )
+      return 0;
+
+    Tuple* t = 0;
+    u_int32_t blockSize;
+    tupleBlockFile->read(
+        reinterpret_cast<char*>(&blockSize),
+        sizeof(blockSize));
+    if (!tupleBlockFile->eof() && (blockSize > 0))
+    {
+      blockSize -= sizeof(blockSize);
+      char tupleBlock[blockSize];
+      tupleBlockFile->read(tupleBlock, blockSize);
+      t = new Tuple(tupleType);
+      t->ReadFromBin(tupleBlock, blockSize);
+    }
+
+    return t;
+  }
+
+  ifstream *tupleBlockFile;
+  TupleType* tupleType;
+
+};
+
 int FFeedValueMap(Word* args, Word& result,
     int message, Word& local, Supplier s)
 {
-
   int index = -1;
   string relName, path;
+  FFeedLocalInfo* ffli = 0;
+  Supplier sonOfFeed;
 
-  path = ((CcString*)args[1].addr)->GetValue();
-  if (qp->GetNoSons(s) == 4)
+  switch(message)
   {
-    index = ((CcInt*)args[2].addr)->GetIntval();
-    relName = ((CcString*)args[3].addr)->GetValue();
+    case OPEN: {
+      path = ((CcString*)args[1].addr)->GetValue();
+      if (qp->GetNoSons(s) == 4)
+      {
+        index = ((CcInt*)args[2].addr)->GetIntval();
+        relName = ((CcString*)args[3].addr)->GetValue();
+      }
+      else
+        relName = ((CcString*)args[2].addr)->GetValue();
+
+      if (path == "")
+      {
+        path = FileSystem::GetCurrentFolder();
+        FileSystem::AppendItem(path, "cell");
+        FileSystem::AppendItem(path, relName);
+      }
+
+      if(index > 0)
+      {
+        stringstream ss;
+        ss << path << "_" << index;
+        path = ss.str();
+      }
+
+      ffli = (FFeedLocalInfo*) local.addr;
+      if (ffli) delete ffli;
+      ffli = new FFeedLocalInfo(path, qp->GetType(s));
+
+      ffli->returned = 0;
+      local.setAddr(ffli);
+      return 0;
+    }
+    case REQUEST: {
+      ffli = (FFeedLocalInfo*)local.addr;
+      Tuple *t = ffli->getNextTuple();
+      if (0 == t)
+        return CANCEL;
+      else
+      {
+        ffli->returned++;
+        result.setAddr(t);
+        return YIELD;
+      }
+
+    }
+    case CLOSE: {
+      ffli = (FFeedLocalInfo*)local.addr;
+      if (ffli->tupleBlockFile){
+        ffli->tupleBlockFile->close();
+        delete ffli->tupleBlockFile;
+        ffli->tupleBlockFile = 0;
+      }
+    }
+    case CLOSEPROGRESS: {
+      sonOfFeed = qp->GetSupplierSon(s, 0);
+      ffli = (FFeedLocalInfo*) local.addr;
+      if ( ffli )
+      {
+         delete ffli;
+         local.setAddr(0);
+      }
+      return 0;
+    }
+    case REQUESTPROGRESS: {
+
+      ProgressInfo p1;
+      ProgressInfo *pRes = 0;
+      const double uFeed = 0.00194;    //milliseconds per tuple
+      const double vFeed = 0.0000196;  //milliseconds per Byte
+
+      pRes = (ProgressInfo*) result.addr;
+      ffli = (FFeedLocalInfo*) local.addr;
+
+      if (ffli)
+      {
+        ffli->sizesChanged = false;
+
+/*
+This operator should always be the first operator of a tuple,
+therefore it doesn't have any son operator.
+
+*/
+        pRes->Card = (double)ffli->total;
+        pRes->CopySizes(ffli);
+        pRes->Time =
+            (ffli->total + 1) * (uFeed + ffli->SizeExt * vFeed);
+        pRes->Progress =
+            ffli->returned * (uFeed + ffli->SizeExt * vFeed)
+            / pRes->Time;
+        pRes->BTime = 0.001;
+        pRes->BProgress = 1.0;
+
+        return YIELD;
+      }
+      else
+        return CANCEL;
+    }
   }
-  else
-    relName = ((CcString*)args[2].addr)->GetValue();
-
-  if (path == "")
-  {
-    path = FileSystem::GetCurrentFolder();
-    FileSystem::AppendItem(path, "cell");
-    FileSystem::AppendItem(path, relName);
-  }
-
-  if(index > 0)
-  {
-    stringstream ss;
-    ss << path << "_" << index;
-    path = ss.str();
-  }
-
-  TupleType* tupleType = new TupleType(
-          SecondoSystem::GetCatalog()
-            ->NumericType(nl->Second(qp->GetType(s))));
-  GenericRelation* rel=
-      (GenericRelation*)((qp->ResultStorage(s)).addr);
-  if (rel->GetNoTuples() > 0)
-    rel->Clear();
-
-  if (!FileSystem::FileOrFolderExists(path))
-  {
-    cerr << "File " << path << " doesn't exist!" << endl;
-    result.setAddr(rel);
-    return 0;
-  }
-
-  ifstream tupleBlockFile(path.c_str(), ios::binary);
-  u_int32_t blockSize;
-  tupleBlockFile.read(reinterpret_cast<char*>(&blockSize),
-          sizeof(blockSize));
-  while(!tupleBlockFile.eof()){
-    blockSize -= sizeof(blockSize);
-
-    char* tupleBlock = (char*)malloc(blockSize);
-    tupleBlockFile.read(tupleBlock, blockSize);
-    Tuple* t = new Tuple(tupleType);
-    t->ReadFromBin(tupleBlock, blockSize);
-
-    rel->AppendTuple(t);
-    tupleBlockFile.read(reinterpret_cast<char*>(&blockSize),
-            sizeof(blockSize));
-  }
-  tupleBlockFile.close();
-  result.setAddr(rel);
-
   return 0;
 }
 
+const string FFeedSpec  =
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" ) "
+  "( <text>(relName x string x [int] ) -> "
+  "( stream(tuple(...)) )</text--->"
+  "<text>ffeed( _, _, _ )</text--->"
+  "<text>restore a relation from a binary file "
+  "created by ~fconsume~ operator.</text--->"
+  ") )";
+
+Operator ffeedOp (
+    "ffeed",               // name
+    FFeedSpec,             // specification
+    FFeedValueMap,                 // value mapping
+    Operator::SimpleSelect, // trivial selection function
+    FFeedTypeMap           // type mapping
+);
 
 /*
 3 Class ~HadoopParallelAlgebra~
@@ -1992,11 +2088,13 @@ public:
     AddOperator(TUPSTREAM2Info(), 0, TUPSTREAM2Type);
     AddOperator(TUPSTREAM3Info(), 0, TUPSTREAM3Type);
 
-    AddOperator( ToFileInfo(), ToFileValueMap, ToFileTypeMap);
-    AddOperator( RelFileInfo(), RelFileValueMap, RelFileTypeMap);
+    AddOperator(&fconsumeOp);
+    AddOperator(&ffeedOp);
 
-    AddOperator( FConsumeInfo(), FConsumeValueMap, FConsumeTypeMap);
-    AddOperator( FFeedInfo(), FFeedValueMap, FFeedTypeMap);
+#ifdef USE_PROGRESS
+    fconsumeOp.EnableProgress();
+    ffeedOp.EnableProgress();
+#endif
 
   }
   ~HadoopParallelAlgebra()
