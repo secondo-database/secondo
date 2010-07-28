@@ -1175,21 +1175,30 @@ void Tuple::WriteToBin(char* buf,
 
 size_t Tuple::GetBlockSize( size_t& coreSize,
                                size_t& extensionSize,
-                               size_t& flobSize) const
+                               size_t& flobSize,
+                               vector<double>* aes/* = 0*/,
+                               vector<double>* as/* = 0*/) const
 {
   // Get the memory block size of a single tuple, includes its big Flobs,
   // and head size values.
 
   double extSize = 0.0;
   double size = 0.0;
-  vector<double> attrExtSize(tupleType->GetNoAttributes());
-  vector<double> attrSize(tupleType->GetNoAttributes());
+  vector<double> *attrExtSize = aes;
+  vector<double> *attrSize = as;
+  if (!attrExtSize)
+    attrExtSize = new vector<double>(tupleType->GetNoAttributes());
+  if (!attrSize)
+    attrSize = new vector<double>(tupleType->GetNoAttributes());
+
+//  vector<double> attrExtSize(tupleType->GetNoAttributes());
+//  vector<double> attrSize(tupleType->GetNoAttributes());
 
   extSize = tupleType->GetCoreSize();
   size = tupleType->GetCoreSize();
   extensionSize = CalculateBlockSize( coreSize, extSize,
-                                      size, attrExtSize,
-                                      attrSize);
+                                      size, *attrExtSize,
+                                      *attrSize);
   flobSize = size - extensionSize - tupleType->GetCoreSize();
   //size = tupleType's core size + extensionSize + flobSize (big flobs)
   return size + sizeof(u_int32_t) + sizeof(u_int16_t);

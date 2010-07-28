@@ -1051,7 +1051,9 @@ Return the size that a complete binary tuple block needs.
 */
   size_t GetBlockSize(size_t& coreSize,
                          size_t& extensionSize,
-                         size_t& flobSize) const;
+                         size_t& flobSize,
+                         vector<double>* attrExtSize = 0,
+                         vector<double>* attrSize = 0) const;
 
   static SmiSize extensionLimit;
 /*
