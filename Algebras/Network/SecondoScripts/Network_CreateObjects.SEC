@@ -1,36 +1,71 @@
-#####################################################################
-# Translate BerlinMOD Data to network representation
-#####################################################################
+
+################################################################################
+## File: CreateNetwork Objects #################################################
+################################################################################
+##  This file is part of SECONDO.                                             ##
+##                                                                            ##
+##  Copyright (C) 2010, University in Hagen, Faculty of Mathematics and       ##
+##  Computer Science, Database Systems for New Applications.                  ##
+##                                                                            ##
+##  SECONDO is free software; you can redistribute it and/or modify           ##
+##  it under the terms of the GNU General Public License as published by      ##
+##  the Free Software Foundation; either version 2 of the License, or         ##
+##  (at your option) any later version.                                       ##
+##                                                                            ##
+##  SECONDO is distributed in the hope that it will be useful,                ##
+##  but WITHOUT ANY WARRANTY; without even the implied warranty of            ##
+##  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the             ##
+##  GNU General Public License for more details.                              ##
+##                                                                            ##
+##  You should have received a copy of the GNU General Public License         ##
+##  along with SECONDO; if not, write to the Free Software                    ##
+##  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA ##
+################################################################################
+
+# This file performs translates the spatial and spatio-temporal data objects   #
+# of the BerlinMOD benchmark in the Secondo DBMS into their network data       #
+# model representation and builds the according indexes.                       #
+#                                                                              #
+# It is assumed that there is a database berlinmod with the data objects       #
+# created by the BerlinMOD_DataGenerator.SEC script.                           #
+#                                                                              #
+################################################################################
+#                                                                              #
+# Open Database Berlinmod                                                      #
+#                                                                              #
+################################################################################
 
 open database berlinmod;
 
-######################################################################
-# Build a network from street data.
-######################################################################
+################################################################################
+#                                                                              #
+# Build a Network From Streets Data.                                           #
+#                                                                              #
+################################################################################
 
-let B_ROUTES =
+let B_Routes =
 streets feed projectextendstream[; geoData: .geoData polylines[TRUE]]
 addcounter[id,1]
 projectextend [id; lengt : size(.geoData), geometry: fromline(.geoData), dual: TRUE, startSmaller: TRUE]
 consume;
 
-let B_JUNCTIONS =
-B_ROUTES feed {r1}
-B_ROUTES feed {r2}
+let B_Junctions =
+B_Routes feed {r1}
+B_Routes feed {r2}
 symmjoin [(.id_r1 < ..id_r2) and (.geometry_r1 intersects ..geometry_r2)]
 projectextendstream[id_r1, geometry_r1, id_r2, geometry_r2; CROSSING_POINT: components(crossings(.geometry_r1, .geometry_r2))]
 projectextend[; r1id: .id_r1, r1meas: atpoint(.geometry_r1, .CROSSING_POINT, TRUE), r2id: .id_r2, r2meas: atpoint(.geometry_r2, .CROSSING_POINT, TRUE), cc: 65535]
 consume;
 
-let B_NETWORK = thenetwork(1, B_ROUTES, B_JUNCTIONS);
+let B_NETWORK = thenetwork(1, B_Routes, B_Junctions);
 
-#########################################################
-#
-# translate relation values in network representation
-#
-#########################################################
+################################################################################
+#                                                                              #
+# Translate Trips into Network Representation                                  #
+#                                                                              #
+################################################################################
 
-let dataSNcar = dataScar feed 
+let dataSNcar = dataScar feed
   projectextend[Licence, Model, Type; Trip: mpoint2mgpoint(B_NETWORK, .Trip)]
 consume;
 
@@ -38,6 +73,12 @@ let dataMNtrip =
   dataMtrip feed
   projectextend [Moid; Trip: mpoint2mgpoint(B_NETWORK, .Trip)]
 consume;
+
+################################################################################
+#                                                                              #
+# Translate QueryPoint Set into Newtork Representation                         #
+#                                                                              #
+################################################################################
 
 let QueryPointsNet =
   QueryPoints feed
@@ -51,8 +92,11 @@ let QueryPoints1Net =
   projectextendstream[Id;  Pos: polygpoints(.Pos, B_NETWORK)]
  consume;
 
-###########
-# build a single line value from all routes geometry slines
+################################################################################
+#                                                                              #
+# Translate QueryRegions into Network Representation                           #
+#                                                                              #
+################################################################################
 
 let routesline =
   components(routes(B_NETWORK) feed
@@ -63,30 +107,26 @@ let routesline =
   sortby [NoSeg desc]
   extract [elem];
 
-##########
-# get the line values from the intersection of the QueryRegions with the routesline
-
 let QRlines =
   QueryRegions feed
   projectextend [Id; lr: intersection_new(.Region, routesline)]
  consume;
-
-#########
-# transform the lines to gline values
 
 let QueryRegionsNet =
   QRlines feed
   projectextend[Id; Region: line2gline(B_NETWORK, .lr)]
  consume;
 
-######################################################################
-##Start building Indexes                                            ##
-######################################################################
-
-######################################################################
-# Build btrees for licences for dataScar, dataMtrip and for moids of
-# dataMcar and dataMNtrip objects
-#
+################################################################################
+#                                                                              #
+# Build Network Indexes                                                        #
+#                                                                              #
+################################################################################
+#                                                                              #
+# B-Tree indexes for licences in dataScar, and dataMtrip, and for moids in     #
+# dataMcar and dataMNtrip.                                                     #
+#                                                                              #
+################################################################################
 
 let dataSNcar_Licence_btree = dataSNcar createbtree[Licence];
 
@@ -96,25 +136,13 @@ let dataMcar_Moid_btree = dataMcar createbtree[Moid];
 
 let dataMNtrip_Moid_btree = dataMNtrip createbtree[Moid];
 
-####################################################################
-# For many queries of BerlinMOD only the first 10 Elements of
-# QueryPoints, QueryRegions, QueryInstants, QueryPeriods are used.
-# From QueryLicences the first and second 10 Elements are used.
-# If we build this selections once we don't have to do it in every query again.
 
-let QueryLicences1 = QueryLicences feed head[10] consume;
-
-let QueryLicences2 = QueryLicences feed head[20] filter [.Id > 10] consume;
-
-let QueryPeriods1 = QueryPeriods feed head[10] consume;
-
-let QueryInstant1 = QueryInstants feed head[10] consume;
-
-let QueryRegions1Net = QueryRegionsNet feed head[10] consume;
-
-####################################################################
-#For many queries of BerlinMod it is helpful to have spatio and/or temporal
-# indexes of the used mgpoints.
+################################################################################
+#                                                                              #
+# Temporal Network Position Indexes (TNPI) and Network Position Indexes (NPI)  #
+# for dataMNtrip and dataSNcar                                                 #
+#                                                                              #
+################################################################################
 
 let dataSNcar_BoxNet_timespace =
   dataSNcar feed
@@ -146,13 +174,11 @@ let dataMNtrip_TrajBoxNet =
   sortby [Box asc]
  bulkloadrtree[Box];
 
-# for experimental use query 10
-let dataSNcar_SpatioTemp =
-  dataSNcar feed
-  addid
-  projectextend[TID; Box: mgpbbox(.Trip)]
-  sortby [Box asc]
- bulkloadrtree[Box];
+################################################################################
+#                                                                              #
+# Spatio-Temporal Index for dataMNtrip                                         #
+#                                                                              #
+################################################################################
 
 let dataMNtrip_SpatioTemp =
   dataMNtrip feed
@@ -161,22 +187,27 @@ let dataMNtrip_SpatioTemp =
   sortby [Box asc]
  bulkloadrtree[Box];
 
-#let dataSNcar_MONTree = B_NETWORK dataSNcar createmontree[Trip];
 
-#let dataMNtrip_MONTree = B_NETWORK dataMNtrip createmontree[Trip];
+################################################################################
+#                                                                              #
+# Often used Query Object Relations                                            #
+#                                                                              #
+################################################################################
 
-#let dataSNcar_SpatioTempUnit =
-#  dataSNcar feed addid
-#  projectextendstream[TID; UTrip: units(.Trip)]
-#  extend[Box: unitboundingbox(.UTrip)]
-#  sortby[Box asc]
-# bulkloadrtree[Box];
+let QueryLicences1 = QueryLicences feed head[10] consume;
 
-#let dataMNtrip_SpatioTempUnit =
-#  dataMNtrip feed addid
-#  projectextendstream[TID; UTrip: units(.Trip)]
-#  extend[Box: unitboundingbox(.UTrip)]
-#  sortby[Box asc]
-# bulkloadrtree[Box];
+let QueryLicences2 = QueryLicences feed head[20] filter [.Id > 10] consume;
+
+let QueryPeriods1 = QueryPeriods feed head[10] consume;
+
+let QueryInstant1 = QueryInstants feed head[10] consume;
+
+let QueryRegions1Net = QueryRegionsNet feed head[10] consume;
+
+################################################################################
+#                                                                              #
+# Creation Finished Close Database                                             #
+#                                                                              #
+################################################################################
 
 close database;
