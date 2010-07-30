@@ -5622,3 +5622,407 @@ void SpacePartition::FillHoleOfPave(Network* n, Relation* rel,  int attr_pos1,
       }
     }
 }
+
+/*
+a class to collect all possible sections of a route where the interesting
+points can locate 
+
+*/
+StrRS::StrRS()
+{
+	r1 = NULL;
+	r2 = NULL;
+	count = 0;
+	resulttype = NULL;
+}
+
+StrRS::~StrRS()
+{
+	if(resulttype != NULL) delete resulttype;
+}
+
+StrRS::StrRS(Network* net,Relation* rel1, Relation* rel2):n(net), r1(rel1),
+r2(rel2), count(0),resulttype(NULL)
+{
+
+}
+
+/*
+for each route, it creates a set of sections from that route where the
+intersecting places can locate. It is according to the position of each
+junction.  The sections should not intersect the junction area 
+(zebra crossing). For each junction position, 
+w meters before it and w meters after it, these places are available. 
+
+*/
+void StrRS::GetSections(int attr_pos1, int attr_pos2, int attr_pos3)
+{
+	const double dist_delta = 10.0; 
+	for(int i = 1;i <= r2->GetNoTuples();i++){
+		Tuple* cross_tuple = r2->GetTuple(i, false);
+		CcInt* rid = (CcInt*)cross_tuple->GetAttribute(attr_pos2);
+        Region* cross_reg = (Region*)cross_tuple->GetAttribute(attr_pos3);
+//		cout<<"rid "<<rid<<" cross "<<*cross_reg<<endl; 
+//		cout<<"rid "<<rid->GetIntval()<<endl; 
+		Tuple* route_tuple = r1->GetTuple(rid->GetIntval(), false);
+        SimpleLine* sl = (SimpleLine*)route_tuple->GetAttribute(attr_pos1);
+		vector<JunctionSortEntry> xjuns;
+		n->GetJunctionsOnRoute(rid, xjuns);
+//		cout<<*l<<endl; 
+		vector<float> cross_pos; 
+        ////////////collect intersection points and the position///////	
+        for(unsigned int j = 0;j < xjuns.size();j++){
+			double meas = xjuns[j].GetRouteMeas();
+//			cout<<"meas "<<meas<<endl; 
+			if(j == 0){
+                if(!AlmostEqual(meas, 0.0)) cross_pos.push_back(0.0);
+			}
+			cross_pos.push_back(meas);
+		}
+        
+/*		for(int j = 0;j < cross_pos.size();j++)
+			cout<<cross_pos[j]<<" ";
+		cout<<endl; */
+
+		for(unsigned int j = 0;j < cross_pos.size();j++){
+			if(j == 0){
+				if(cross_pos.size() == 1){
+					double pos1 = cross_pos[j] + dist_delta;
+					double pos2 = sl->Length() - dist_delta;
+					while(pos1 < pos2){
+                        SimpleLine* sub_sl = new SimpleLine(0);
+                        sl->SubLine(pos1, pos2, true, *sub_sl);
+						Line* l = new Line(0);
+						sub_sl->toLine(*l);
+                        if(l->Intersects(*cross_reg) == false){
+                            rids.push_back(rid->GetIntval());
+							lines.push_back(*l);
+							delete l;
+							delete sub_sl; 
+							break; 
+						}else{
+							pos1 += dist_delta;
+                            pos2 -= dist_delta; 	
+						}
+						delete l;
+						delete sub_sl; 
+					}
+				}else{
+
+					double pos1 = cross_pos[j];
+                    double pos2 = cross_pos[j + 1] - dist_delta;
+					while(pos1 < pos2){
+                        SimpleLine* sub_sl = new SimpleLine(0);
+                        sl->SubLine(pos1, pos2, true, *sub_sl);
+						Line* l = new Line(0);
+						sub_sl->toLine(*l);
+                        if(l->Intersects(*cross_reg) == false){
+                            rids.push_back(rid->GetIntval());
+							lines.push_back(*l);
+							delete l;
+							delete sub_sl; 
+							break; 
+						}else{
+							pos1 += dist_delta;
+							pos2 -= dist_delta; 
+						}
+						delete l;
+						delete sub_sl; 
+					}
+				}
+			}else{
+				double pos1 = cross_pos[j - 1] + dist_delta;
+				double pos2 = cross_pos[j] - dist_delta;
+				while(pos1 < pos2){
+					SimpleLine* sub_sl = new SimpleLine(0);
+					sl->SubLine(pos1, pos2, true, *sub_sl);
+					Line* l = new Line(0);
+					sub_sl->toLine(*l);
+					if(l->Intersects(*cross_reg) == false){
+                        rids.push_back(rid->GetIntval());
+						lines.push_back(*l);
+						delete l;
+						delete sub_sl; 
+						break; 
+					}else{
+						pos1 += dist_delta;
+						pos2 -= dist_delta; 	
+					}
+					delete l;
+					delete sub_sl; 
+				}
+                /////////////process the last part/////////////////
+				if(j == cross_pos.size() - 1){
+					double pos1 = cross_pos[j] + dist_delta;
+					double pos2 = sl->Length() - dist_delta;
+					while(pos1 < pos2){
+                        SimpleLine* sub_sl = new SimpleLine(0);
+                        sl->SubLine(pos1, pos2, true, *sub_sl);
+						Line* l = new Line(0);
+						sub_sl->toLine(*l);
+                        if(l->Intersects(*cross_reg) == false){
+                            rids.push_back(rid->GetIntval());
+							lines.push_back(*l);
+							delete l;
+							delete sub_sl; 
+							break; 
+						}else{
+							pos1 += dist_delta;
+                            pos2 -= dist_delta; 	
+						}
+						delete l;
+						delete sub_sl; 
+					}
+				}
+			}
+		}
+        //////////////////////////////////////////////////////////////////////
+		cross_tuple->DeleteIfAllowed();
+		route_tuple->DeleteIfAllowed();
+	}
+}
+
+/*
+get the interesting points locate on both sides of a road region 
+
+*/
+void StrRS::GetInterestingPoints(HalfSegment hs, Point ip, 
+                              vector<MyPoint>& intersect_ps, 
+                              Region* reg1, Region* reg2)
+{
+    Point p1 = hs.GetLeftPoint();
+    Point p2 = hs.GetRightPoint();
+
+    const double delta_dist = 10.0;
+    Line* line1 = new Line(0);
+
+    if(MyAlmostEqual(p1.GetX(), p2.GetX())){
+        double y = ip.GetY();
+        double x1 = ip.GetX() - delta_dist;
+        double x2 = ip.GetX() + delta_dist;
+        
+        line1->StartBulkLoad();
+        HalfSegment hs;
+        Point lp,rp;
+        lp.Set(x1, y);
+        rp.Set(x2, y);
+        hs.Set(true,lp,rp);
+        int edgeno = 0;
+        hs.attr.edgeno = edgeno++;
+        *line1 += hs;
+        hs.SetLeftDomPoint(!hs.IsLeftDomPoint());
+        *line1 += hs;
+        line1->EndBulkLoad();
+
+      }else if(MyAlmostEqual(p1.GetY(), p2.GetY())){
+            double y1 = ip.GetY() - delta_dist;
+            double y2 = ip.GetY() + delta_dist;
+            double x = ip.GetX();
+
+            line1->StartBulkLoad();
+            HalfSegment hs;
+            Point lp,rp;
+            lp.Set(x, y1);
+            rp.Set(x, y2);
+            hs.Set(true,lp,rp);
+            int edgeno = 0;
+            hs.attr.edgeno = edgeno++;
+            *line1 += hs;
+            hs.SetLeftDomPoint(!hs.IsLeftDomPoint());
+            *line1 += hs;
+            line1->EndBulkLoad();
+
+            
+      }else{//not vertical
+        double k1 = (p2.GetY() - p1.GetY())/(p2.GetX() - p1.GetX());
+        double k2 = -1/k1;
+        double c2 = ip.GetY() - ip.GetX()*k2;
+
+        double x1 = ip.GetX() - delta_dist;
+        double x2 = ip.GetX() + delta_dist;
+
+        
+        line1->StartBulkLoad();
+        HalfSegment hs;
+        Point lp,rp;
+        lp.Set(x1, x1*k2 + c2);
+        rp.Set(x2, x2*k2 + c2);
+        hs.Set(true,lp,rp);
+        int edgeno = 0;
+        hs.attr.edgeno = edgeno++;
+        *line1 += hs;
+        hs.SetLeftDomPoint(!hs.IsLeftDomPoint());
+        *line1 += hs;
+        line1->EndBulkLoad();
+      }
+        vector<MyPoint> temp; 
+//        cout<<"ip "<<ip<<" created line "<<*line1<<endl;
+
+        Line* l1 = new Line(0);
+        Line* l2 = new Line(0);
+        line1->Intersection(*reg1, *l1);
+        line1->Intersection(*reg2, *l2);
+//        cout<<l1->Size()<<" "<<l2->Size()<<endl; 
+        if(l1->Size() >= 2 && l2->Size() >= 2){        
+
+            Point lp, rp;
+    
+            for(int i = 0;i < l1->Size();i++){
+                HalfSegment hs;
+                l1->Get(i, hs);
+                if(!hs.IsLeftDomPoint())continue; 
+                lp = hs.GetLeftPoint();
+                rp = hs.GetRightPoint();
+//                cout<<"lp1 "<<lp<<" rp1 "<<rp<<endl; 
+                MyPoint mp_l(lp, lp.Distance(ip));
+                temp.push_back(mp_l);
+                MyPoint mp_r(rp, rp.Distance(ip));
+                temp.push_back(mp_r);
+            }
+
+            for(int i = 0;i < l2->Size();i++){
+                HalfSegment hs;
+                l2->Get(i, hs);
+                if(!hs.IsLeftDomPoint())continue; 
+                lp = hs.GetLeftPoint();
+                rp = hs.GetRightPoint();
+//                cout<<"lp2 "<<lp<<" rp2 "<<rp<<endl; 
+                MyPoint mp_l(lp, lp.Distance(ip));
+                temp.push_back(mp_l);
+                MyPoint mp_r(rp, rp.Distance(ip));
+                temp.push_back(mp_r);
+            }
+
+            sort(temp.begin(),temp.end());
+            assert(temp.size() >= 4);
+            for(unsigned int i = 0;i < 4;i++){
+                intersect_ps.push_back(temp[i]);
+            }
+            delete l1;
+            delete l2;    
+        
+            delete line1;
+        }
+}
+
+/*
+Generate Interesting points on pavement 
+
+*/
+void StrRS::GenPoints1(int attr_pos1, int attr_pos2, int attr_pos3, 
+                      int attr_pos4, int no_ps)
+{
+    const double dist_deta = 2.0;
+//    cout<<"generating no_ps points "<<no_ps<<endl; 
+    int no_sub_sec = r1->GetNoTuples();
+    struct timeval tval;
+    struct timezone tzone;
+
+    gettimeofday(&tval, &tzone);
+    srand48(tval.tv_sec);
+    while(no_ps > 0){
+        //randomly selects a section
+        int  m = lrand48() % no_sub_sec + 1;
+        Tuple* tuple_sec = r1->GetTuple(m, false); 
+        int rid = ((CcInt*)tuple_sec->GetAttribute(attr_pos1))->GetIntval();
+        Line* l = (Line*)tuple_sec->GetAttribute(attr_pos2);
+        //randomly selects a halfsegment in the section 
+        int no_hs = l->Size(); 
+        int hs_index =  lrand48()%no_hs;
+        HalfSegment hs;
+        l->Get(hs_index, hs);
+        double length = hs.Length();
+        if(length > dist_deta){
+            int pos = lrand48()% ((int)floor(length));
+            assert(0 <= pos && pos <= length);
+//            cout<<"rid "<<rid<<" length "<<length<<" pos "<<pos<<endl; 
+            Point ip;
+            ip = hs.AtPosition(pos);
+            vector<MyPoint> intersect_ps;
+            Tuple* tuple_pave = r2->GetTuple(rid, false);
+            Region* pave_reg1 = (Region*)tuple_pave->GetAttribute(attr_pos3);
+            Region* pave_reg2 = (Region*)tuple_pave->GetAttribute(attr_pos4);
+            GetInterestingPoints(hs, ip, intersect_ps, pave_reg1, pave_reg2);
+            tuple_pave->DeleteIfAllowed();
+            for(unsigned int i = 0;i < intersect_ps.size();i++){
+                rids.push_back(rid);
+                ps.push_back(ip);
+                if(i == 0 || i == 1)
+                    ps_type.push_back(false);
+                else
+                    ps_type.push_back(true);
+                interestps.push_back(intersect_ps[i].loc);
+            }
+            no_ps -= intersect_ps.size();    
+        }
+        tuple_sec->DeleteIfAllowed();
+    }    
+}
+
+/*
+traverse the Rtree to find which triangle contains the point 
+
+*/
+void StrRS::DFTraverse(R_Tree<2,TupleId>* rtree, SmiRecordId adr, Point* p,
+                      int attr_pos)
+{
+  R_TreeNode<2,TupleId>* node = rtree->GetMyNode(adr,false,
+                  rtree->MinEntries(0), rtree->MaxEntries(0));
+
+  for(int j = 0;j < node->EntryCount();j++){
+      if(node->IsLeaf()){
+            R_TreeLeafEntry<2,TupleId> e =
+                 (R_TreeLeafEntry<2,TupleId>&)(*node)[j];
+            Tuple* dg_tuple2 = r2->GetTuple(e.info, false);
+            Region* candi_reg =
+                     (Region*)dg_tuple2->GetAttribute(attr_pos);
+            if(candi_reg->Contains(*p)){
+                for(int i = 0;i < candi_reg->Size();i++){
+                    HalfSegment hs;
+                    candi_reg->Get(i, hs);
+                    if(!hs.IsLeftDomPoint())continue; 
+                    if(hs.Contains(*p)){
+                        rids.push_back(e.info);
+                        BBox<2> bbox = candi_reg->BoundingBox();
+                        Coord x = p->GetX() - bbox.MinD(0);
+                        Coord y = p->GetY() - bbox.MinD(1);
+                        Point new_p(true, x, y);
+                        interestps.push_back(new_p);
+                        ps.push_back(*p);
+                        break; 
+                    }
+                }
+            }
+              dg_tuple2->DeleteIfAllowed();
+      }else{
+            R_TreeInternalEntry<2> e =
+                (R_TreeInternalEntry<2>&)(*node)[j];
+            if(p->Inside(e.box)){
+              DFTraverse(rtree, e.pointer, p, attr_pos);
+            }
+      }
+  }
+  delete node;
+}
+
+/*
+mapping the point into a triangle 
+
+*/
+void StrRS::GenPoints2(R_Tree<2,TupleId>* rtree, int attr_pos1, 
+                       int attr_pos2, unsigned int no_ps)
+{
+    SmiRecordId adr = rtree->RootRecordId();
+
+    for(int i = 1;i <= r1->GetNoTuples();i++){
+        Tuple* point_tuple = r1->GetTuple(i, false);
+        Point* p1 = (Point*)point_tuple->GetAttribute(attr_pos1);
+        DFTraverse(rtree, adr, p1, attr_pos2);
+        point_tuple->DeleteIfAllowed();
+        if(rids.size() == no_ps)break; 
+    }
+    if(rids.size() < no_ps){
+        cout<<"WARNING!!! not enough points found"<<endl;
+    }
+    
+}

@@ -238,3 +238,24 @@ Number   : 2
 Signature: region -> (stream(((x1 t1) ... (xn tn))))
 Example  : query gethole(node_reg) count;
 Result   : 2
+
+
+Operator : getsections
+Number   : 2
+Signature: network x rel x rel x attr x attr x attr -> (stream(((x1 t1) ... (xn tn))))
+Example  : query getsections(n, r, paveregions, curve, rid, crossreg) count;
+Result   : 2
+
+
+Operator : geninterestp1
+Number   : 2
+Signature: rel x rel x attr x attr x attr x attr x int -> (stream(((x1 t1) ... (xn tn))))
+Example  : query geninterestp1(subsections, pave_regions1, rid, sec, pavement1, pavement2,2) count;
+Result   : 2
+
+
+Operator : geninterestp2
+Number   : 2
+Signature: rel x rel x rtree x attr x attr x int -> (stream(((x1 t1) ... (xn tn))))
+Example  : query geninterestp2(interestp, dg_node, rtree_dg, loc2, pavement, 2) count;
+Result   : 2

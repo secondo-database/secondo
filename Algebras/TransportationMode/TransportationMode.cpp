@@ -405,6 +405,42 @@ const string OpTMGetHoleSpec  =
     "<text>get all holes of a region</text--->"
     "<text>query gethole(node_reg) count; </text--->"
     ") )";
+
+const string OpTMGetSectionsSpec  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+    "\"Example\" ) "
+    "( <text>network x rel1 x rel1 x attr1 x attr2 x attr3"
+    " -> (stream (tuple( (x1 t1)(x2 t2)...(xn tn)))</text--->"
+    "<text>getsections(n, r, r, attr,attr,attr)</text--->"
+    "<text>for each route, get the possible sections where interesting "
+	"points can locate</text--->"
+    "<text>query getsections(n, r, paveregions, curve, rid, crossreg) "
+	"count;</text--->"
+    ") )";
+
+const string OpTMGenInterestP1Spec  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+    "\"Example\" ) "
+    "( <text> rel x rel x attr1 x attr2 x attr3 x attr4"
+    " -> (stream (tuple( (x1 t1)(x2 t2)...(xn tn)))</text--->"
+    "<text>geninterestp1(r, r, attr, attr, attr, attr)</text--->"
+    "<text>generate interesting points locate in pavement</text--->"
+    "<text>query geninterestp1(subsections, pave_regions1, rid, sec,"
+    "pavement1, pavement2) count;</text--->"
+    ") )";
+
+
+const string OpTMGenInterestP2Spec  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+    "\"Example\" ) "
+    "( <text> rel x rel x rtree x attr1 x attr2 x int "
+    " -> (stream (tuple( (x1 t1)(x2 t2)...(xn tn)))</text--->"
+    "<text>geninterestp2(r, r, rtree, attr, attr, int)</text--->"
+    "<text>map the point inot a triangle and represent it by triangle</text--->"
+    "<text>query geninterestp2(interestp, dg_node, rtree_dg, loc2, pavement, 2)"
+    "count;</text--->"
+    ") )";
+
 ////////////////TypeMap function for operators//////////////////////////////
 
 /*
@@ -2065,6 +2101,251 @@ ListExpr OpTMGetHoleTypeMap ( ListExpr args )
   }
   return  nl->SymbolAtom ( "typeerror" );
 }
+
+/*
+TypeMap fun for operator getsections
+it get a set of sections from each route where interesting points can locate
+
+*/
+
+ListExpr OpTMGetSectionsTypeMap ( ListExpr args )
+{
+  if ( nl->ListLength ( args ) != 6 )
+  {
+    return  nl->SymbolAtom ( "typeerror" );
+  }
+ 
+  ListExpr param1 = nl->Second ( args );
+  ListExpr param2 = nl->Third(args);
+  ListExpr attrName1 = nl->Fourth(args);
+  ListExpr attrName2 = nl->Fifth(args);
+  ListExpr attrName3 = nl->Sixth(args);
+
+  ListExpr attrType1;
+  string aname1 = nl->SymbolValue(attrName1);
+  int j1 = listutils::findAttribute(nl->Second(nl->Second(param1)),
+                      aname1,attrType1);
+
+  if(j1 == 0 || !listutils::isSymbol(attrType1,"sline")){
+      return listutils::typeError("attr name" + aname1 + "not found"
+                      "or not of type region");
+  }
+
+  ListExpr attrType2;
+  string aname2 = nl->SymbolValue(attrName2);
+  int j2 = listutils::findAttribute(nl->Second(nl->Second(param2)),
+                      aname2,attrType2);
+
+  if(j2 == 0 || !listutils::isSymbol(attrType2,"int")){
+      return listutils::typeError("attr name" + aname2 + "not found"
+                      "or not of type region");
+  }
+
+
+  ListExpr attrType3;
+  string aname3 = nl->SymbolValue(attrName3);
+  int j3 = listutils::findAttribute(nl->Second(nl->Second(param2)),
+                      aname3,attrType3);
+
+  if(j3 == 0 || !listutils::isSymbol(attrType3,"region")){
+      return listutils::typeError("attr name" + aname3 + "not found"
+                      "or not of type region");
+  }
+
+
+    if (!(listutils::isRelDescription(param1)))
+        return nl->SymbolAtom ( "typeerror" );
+
+    if (!(listutils::isRelDescription(param2)))
+        return nl->SymbolAtom ( "typeerror" );
+
+    if(nl->IsEqual(nl->First(args),"network")){	
+
+      ListExpr result = nl->TwoElemList(
+             nl->SymbolAtom("stream"),
+               nl->TwoElemList(
+                 nl->SymbolAtom("tuple"),
+                     nl->TwoElemList(
+                       nl->TwoElemList(nl->SymbolAtom("rid"),
+                                   nl->SymbolAtom("int")),
+                      nl->TwoElemList(nl->SymbolAtom("sec"),
+                                    nl->SymbolAtom("line"))
+                  )
+                )
+          );
+    return nl->ThreeElemList(nl->SymbolAtom("APPEND"),
+            nl->ThreeElemList(nl->IntAtom(j1),nl->IntAtom(j2),
+            nl->IntAtom(j3)),result);
+  }
+  return  nl->SymbolAtom ( "typeerror" );
+}
+
+/*
+TypeMap fun for operator getinterestp1
+generate interesting points locate on pavement 
+
+*/
+
+ListExpr OpTMGetInterestP1TypeMap ( ListExpr args )
+{
+  if ( nl->ListLength ( args ) != 7 )
+  {
+    return  nl->SymbolAtom ( "typeerror" );
+  }
+  
+  ListExpr param1 = nl->First ( args );
+  ListExpr param2 = nl->Second ( args );
+  ListExpr attrName1 = nl->Third(args);
+  ListExpr attrName2 = nl->Fourth(args);
+  ListExpr attrName3 = nl->Fifth(args);
+  ListExpr attrName4 = nl->Sixth(args);
+  ListExpr param3 = nl->Nth(7, args);
+
+
+ if (!(listutils::isRelDescription(param1)))
+    return nl->SymbolAtom ( "typeerror" );
+
+ if (!(listutils::isRelDescription(param2)))
+    return nl->SymbolAtom ( "typeerror" );
+  
+  ListExpr attrType1;
+  string aname1 = nl->SymbolValue(attrName1);
+  int j1 = listutils::findAttribute(nl->Second(nl->Second(param1)),
+                      aname1,attrType1);
+
+  if(j1 == 0 || !listutils::isSymbol(attrType1, "int")){
+      return listutils::typeError("attr name" + aname1 + "not found"
+                      "or not of type region");
+  }
+
+  ListExpr attrType2;
+  string aname2 = nl->SymbolValue(attrName2);
+  int j2 = listutils::findAttribute(nl->Second(nl->Second(param1)),
+                      aname2,attrType2);
+
+  if(j2 == 0 || !listutils::isSymbol(attrType2, "line")){
+      return listutils::typeError("attr name" + aname2 + "not found"
+                      "or not of type region");
+  }
+
+  ListExpr attrType3;
+  string aname3 = nl->SymbolValue(attrName3);
+  int j3 = listutils::findAttribute(nl->Second(nl->Second(param2)),
+                      aname3,attrType3);
+
+  if(j3 == 0 || !listutils::isSymbol(attrType3, "region")){
+      return listutils::typeError("attr name" + aname3 + "not found"
+                      "or not of type region");
+  }
+
+  ListExpr attrType4;
+  string aname4 = nl->SymbolValue(attrName4);
+  int j4 = listutils::findAttribute(nl->Second(nl->Second(param2)),
+                      aname4, attrType4);
+
+  if(j4 == 0 || !listutils::isSymbol(attrType4, "region")){
+      return listutils::typeError("attr name" + aname4 + "not found"
+                      "or not of type region");
+  }
+
+    if(nl->IsEqual(param3,"int")){
+      ListExpr result = nl->TwoElemList(
+             nl->SymbolAtom("stream"),
+               nl->TwoElemList(
+                 nl->SymbolAtom("tuple"),
+                     nl->FourElemList(
+                       nl->TwoElemList(nl->SymbolAtom("rid"),
+                                   nl->SymbolAtom("int")),
+                       nl->TwoElemList(nl->SymbolAtom("loc1"),
+                                    nl->SymbolAtom("point")),
+                       nl->TwoElemList(nl->SymbolAtom("loc2"),
+                                    nl->SymbolAtom("point")),
+                       nl->TwoElemList(nl->SymbolAtom("ptype"),
+                                    nl->SymbolAtom("bool"))
+                  )
+                )
+          );
+
+     return nl->ThreeElemList(nl->SymbolAtom("APPEND"),
+            nl->FourElemList(nl->IntAtom(j1),nl->IntAtom(j2),
+                              nl->IntAtom(j3), nl->IntAtom(j4)),result);
+    }
+    return  nl->SymbolAtom ( "typeerror" );
+}
+
+/*
+TypeMap fun for operator getinterestp2
+map each point into a triangle 
+
+*/
+
+ListExpr OpTMGetInterestP2TypeMap ( ListExpr args )
+{
+  if ( nl->ListLength ( args ) != 6 )
+  {
+    return  nl->SymbolAtom ( "typeerror" );
+  }
+  
+  ListExpr param1 = nl->First ( args );
+  ListExpr param2 = nl->Second ( args );
+  ListExpr param3 = nl->Third( args);
+  ListExpr attrName1 = nl->Fourth(args);
+  ListExpr attrName2 = nl->Fifth(args);
+  ListExpr param6 = nl->Sixth(args);  
+  
+
+ if (!(listutils::isRelDescription(param1)))
+    return nl->SymbolAtom ( "typeerror" );
+
+ if (!(listutils::isRelDescription(param2)))
+    return nl->SymbolAtom ( "typeerror" );
+  
+ if (!(listutils::isRTreeDescription(param3)))
+    return nl->SymbolAtom ( "typeerror" );
+
+  ListExpr attrType1;
+  string aname1 = nl->SymbolValue(attrName1);
+  int j1 = listutils::findAttribute(nl->Second(nl->Second(param1)),
+                      aname1,attrType1);
+
+  if(j1 == 0 || !listutils::isSymbol(attrType1, "point")){
+      return listutils::typeError("attr name" + aname1 + "not found"
+                      "or not of type region");
+  }
+
+  ListExpr attrType2;
+  string aname2 = nl->SymbolValue(attrName2);
+  int j2 = listutils::findAttribute(nl->Second(nl->Second(param2)),
+                      aname2,attrType2);
+
+  if(j2 == 0 || !listutils::isSymbol(attrType2, "region")){
+      return listutils::typeError("attr name" + aname2 + "not found"
+                      "or not of type region");
+  }
+
+   if(nl->IsEqual(param6,"int")){
+      ListExpr result = nl->TwoElemList(
+             nl->SymbolAtom("stream"),
+               nl->TwoElemList(
+                 nl->SymbolAtom("tuple"),
+                     nl->ThreeElemList(
+                       nl->TwoElemList(nl->SymbolAtom("oid"),
+                                   nl->SymbolAtom("int")),
+                       nl->TwoElemList(nl->SymbolAtom("loc1"),
+                                    nl->SymbolAtom("point")),
+                       nl->TwoElemList(nl->SymbolAtom("loc2"),
+                                    nl->SymbolAtom("point"))
+                  )
+                )
+          );
+
+     return nl->ThreeElemList(nl->SymbolAtom("APPEND"),
+            nl->TwoElemList(nl->IntAtom(j1),nl->IntAtom(j2)),result);
+    }
+
+    return  nl->SymbolAtom ( "typeerror" );
+}
+
 int GetContourSelect(ListExpr args)
 {
     if(nl->IsEqual(nl->First(args),"text"))return 0;
@@ -4124,7 +4405,178 @@ int OpTMGetHoleValueMap ( Word* args, Word& result, int message,
 }
 
 
+/*
+get all possible sections of a route where interesting points can locate
+for each route, it takes a set of sub routes 
 
+*/
+int OpTMGetSectionsValueMap ( Word* args, Word& result, int message,
+                         Word& local, Supplier in_pSupplier )
+{
+
+  StrRS* routesec;
+  switch(message){
+      case OPEN:{
+		Network* net = (Network*)args[0].addr; 
+        Relation* r1 = (Relation*)args[1].addr;
+		Relation* r2 = (Relation*)args[2].addr;
+        routesec = new StrRS(net, r1,r2);
+        routesec->resulttype =
+            new TupleType(nl->Second(GetTupleResultType(in_pSupplier)));
+		int pos1 = ((CcInt*)args[6].addr)->GetIntval() - 1;
+		int pos2 = ((CcInt*)args[7].addr)->GetIntval() - 1; 
+		int pos3 = ((CcInt*)args[8].addr)->GetIntval() - 1;  
+
+        routesec->GetSections(pos1, pos2, pos3);
+        local.setAddr(routesec);
+        return 0;
+      }
+      case REQUEST:{
+          if(local.addr == NULL) return CANCEL;
+          routesec = (StrRS*)local.addr;
+          if(routesec->count == routesec->rids.size())
+                          return CANCEL;
+
+            Tuple* tuple = new Tuple(routesec->resulttype);
+		    int rid = routesec->rids[routesec->count];
+//		  cout<<"rid "<<rid<<" m1 "<<meas1<<" m2 "<<meas2<<endl; 
+            tuple->PutAttribute(0, new CcInt(true, rid));
+            tuple->PutAttribute(1, new Line(routesec->lines[routesec->count]));
+            result.setAddr(tuple);
+            routesec->count++;
+            return YIELD;
+      }
+      case CLOSE:{
+          if(local.addr){
+            routesec = (StrRS*)local.addr;
+            delete routesec;
+            local.setAddr(Address(0));
+          }
+          return 0;
+      }
+  }
+  return 0;
+
+}
+
+
+
+/*
+generate interesting points on pavement 
+
+*/
+int OpTMGenInterestP1ValueMap ( Word* args, Word& result, int message,
+                         Word& local, Supplier in_pSupplier )
+{
+
+  StrRS* routesec;
+  switch(message){
+      case OPEN:{
+        Relation* r1 = (Relation*)args[0].addr;
+        Relation* r2 = (Relation*)args[1].addr;
+        int no_ps = ((CcInt*)args[6].addr)->GetIntval();
+        routesec = new StrRS(NULL, r1,r2);
+        routesec->resulttype =
+            new TupleType(nl->Second(GetTupleResultType(in_pSupplier)));
+        int pos1 = ((CcInt*)args[7].addr)->GetIntval() - 1;
+        int pos2 = ((CcInt*)args[8].addr)->GetIntval() - 1; 
+        int pos3 = ((CcInt*)args[9].addr)->GetIntval() - 1;  
+        int pos4 = ((CcInt*)args[10].addr)->GetIntval() - 1;  
+
+        routesec->GenPoints1(pos1, pos2, pos3, pos4, no_ps);
+        local.setAddr(routesec);
+        return 0;
+      }
+      case REQUEST:{
+          if(local.addr == NULL) return CANCEL;
+          routesec = (StrRS*)local.addr;
+          if(routesec->count == routesec->rids.size())
+                          return CANCEL;
+
+          Tuple* tuple = new Tuple(routesec->resulttype);
+          int rid = routesec->rids[routesec->count];
+//        cout<<"rid "<<rid<<" m1 "<<meas1<<" m2 "<<meas2<<endl; 
+          tuple->PutAttribute(0, new CcInt(true, rid));
+          tuple->PutAttribute(1, 
+                            new Point(routesec->ps[routesec->count]));
+          tuple->PutAttribute(2, 
+                            new Point(routesec->interestps[routesec->count]));
+          tuple->PutAttribute(3, 
+                        new CcBool(true, routesec->ps_type[routesec->count]));
+          result.setAddr(tuple);
+          routesec->count++;
+          return YIELD;
+      }
+      case CLOSE:{
+          if(local.addr){
+            routesec = (StrRS*)local.addr;
+            delete routesec;
+            local.setAddr(Address(0));
+          }
+          return 0;
+      }
+  }
+  return 0;
+
+}
+
+/*
+mapping the point into a triangle 
+
+*/
+int OpTMGenInterestP2ValueMap ( Word* args, Word& result, int message,
+                         Word& local, Supplier in_pSupplier )
+{
+
+  StrRS* routesec;
+  switch(message){
+      case OPEN:{
+        Relation* r1 = (Relation*)args[0].addr;
+        Relation* r2 = (Relation*)args[1].addr;
+        
+        R_Tree<2,TupleId>* rtree = (R_Tree<2,TupleId>*)args[2].addr;
+        unsigned int no_ps = ((CcInt*)args[5].addr)->GetIntval();
+
+        routesec = new StrRS(NULL, r1, r2);
+        routesec->resulttype =
+            new TupleType(nl->Second(GetTupleResultType(in_pSupplier)));
+        int pos1 = ((CcInt*)args[6].addr)->GetIntval() - 1;
+        int pos2 = ((CcInt*)args[7].addr)->GetIntval() - 1; 
+        
+        routesec->GenPoints2(rtree, pos1, pos2, no_ps);
+        local.setAddr(routesec);
+        return 0;
+      }
+      case REQUEST:{
+          if(local.addr == NULL) return CANCEL;
+          routesec = (StrRS*)local.addr;
+          if(routesec->count == routesec->rids.size())
+                          return CANCEL;
+
+          Tuple* tuple = new Tuple(routesec->resulttype);
+          int rid = routesec->rids[routesec->count];
+//        cout<<"rid "<<rid<<" m1 "<<meas1<<" m2 "<<meas2<<endl; 
+          tuple->PutAttribute(0, new CcInt(true, rid));
+          tuple->PutAttribute(1, 
+                            new Point(routesec->interestps[routesec->count]));
+          tuple->PutAttribute(2, 
+                            new Point(routesec->ps[routesec->count]));
+          result.setAddr(tuple);
+          routesec->count++;
+          return YIELD;
+      }
+      case CLOSE:{
+          if(local.addr){
+            routesec = (StrRS*)local.addr;
+            delete routesec;
+            local.setAddr(Address(0));
+          }
+          return 0;
+      }
+  }
+  return 0;
+
+}
 ////////////////Operator Constructor///////////////////////////////////////
 Operator checksline(
     "checksline",               // name
@@ -4464,6 +4916,31 @@ Operator gethole(
     OpTMGetHoleTypeMap
 );
 
+Operator getsections(
+    "getsections",
+    OpTMGetSectionsSpec,
+    OpTMGetSectionsValueMap,
+    Operator::SimpleSelect,
+    OpTMGetSectionsTypeMap
+);
+
+Operator geninterestp1(
+    "geninterestp1",
+    OpTMGenInterestP1Spec,
+    OpTMGenInterestP1ValueMap,
+    Operator::SimpleSelect,
+    OpTMGetInterestP1TypeMap
+);
+
+Operator geninterestp2(
+    "geninterestp2",
+    OpTMGenInterestP2Spec,
+    OpTMGenInterestP2ValueMap,
+    Operator::SimpleSelect,
+    OpTMGetInterestP2TypeMap
+);
+
+
 /*
 Main Class for Transportation Mode
 
@@ -4518,6 +4995,9 @@ class TransportationModeAlgebra : public Algebra
     AddOperator(&generate_wp3);
     AddOperator(&getcontour);
     AddOperator(&getpolygon);
+    AddOperator(&getsections);	
+    AddOperator(&geninterestp1);
+    AddOperator(&geninterestp2);
     ///////////////rotational plane sweep algorithm////////////////////
     AddOperator(&getallpoints);
     AddOperator(&rotationsweep);

@@ -682,6 +682,28 @@ struct MyPoint{
   double dist;
 };
 
+struct MyPoint_Ext:public MyPoint{
+	Point loc2; 
+	double dist2;
+	MyPoint_Ext(){}
+	MyPoint_Ext(const Point& p1, const Point& p2, double d1, double d2):
+	MyPoint(p1,d1),loc2(p2),dist2(d2){}
+	MyPoint_Ext(const MyPoint_Ext& mpe):
+	MyPoint(mpe),loc2(mpe.loc2), dist2(mpe.dist2){}
+	MyPoint_Ext& operator=(const MyPoint_Ext& mpe)
+	{
+		MyPoint::operator=(mpe);
+		loc2 = mpe.loc2; 
+		dist2 = mpe.dist2;
+		return *this; 
+	}
+	 void Print()
+  	{
+    	cout<<" loc1 " <<loc<<"loc2 "<<loc2
+			<<" dist1 "<<dist<<" dist2 "<<dist2<<endl; 
+  	}
+};
+
 /*
 a compressed version of junction
 loc--position, rid1, rid2, and relative position in each route, len1, len2
@@ -915,6 +937,36 @@ struct SpacePartition{
   void FillHoleOfPave(Network* n, Relation* rel,  int attr_pos1,
                       int attr_pos2, int width);
 
+};
+
+
+/*
+for each route, it returns all possible locations where interesting points
+can locate 
+
+*/
+struct StrRS{
+	Network* n;
+	Relation* r1;
+	Relation* r2;
+	unsigned int count;
+	TupleType* resulttype;
+    vector<int> rids; 
+	vector<Line> lines;
+    vector<Point> interestps;
+    vector<Point> ps; 
+    vector<bool> ps_type; 
+	StrRS();
+	~StrRS();
+	StrRS(Network* net, Relation* rel1, Relation* rel2);
+	void GetSections(int attr_pos1, int attr_pos2, int attr_pos3);
+    void GenPoints1(int attr_pos1, int attr_pos2, int attr_pos3, 
+                   int attr_pos4, int no_ps);
+    void GenPoints2(R_Tree<2,TupleId>*, int attr_pos1, int attr_pos2, 
+                    unsigned int);
+    void DFTraverse(R_Tree<2,TupleId>*, SmiRecordId, Point*, int);
+    void GetInterestingPoints(HalfSegment hs, Point ip, 
+                              vector<MyPoint>& intersect_ps, Region*, Region*);
 };
 
 #define MYPI 3.1415927
