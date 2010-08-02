@@ -897,7 +897,7 @@ struct paraJoinInfo : OperatorInfo
         "x(rel(tuple(T1))) x (rel(tuple(T2)))"
         "x(map (stream(T1)) (stream(T2)) (stream(T1 T2))) )"
         " -> stream(tuple(T1 T2))";
-    syntax = "_ _ _ parajoin [funlist]";
+    syntax = "_ _ _ parajoin [fun]";
     meaning = "join mixed tuples from two relations";
   }
 };
@@ -916,79 +916,84 @@ struct paraJoinInfo : OperatorInfo
 
 ListExpr paraJoinTypeMap( ListExpr args )
 {
-  if (nl->ListLength(args) != 4)
+  if (nl->ListLength(args) == 4)
   {
-    ErrorReporter::ReportError(
-      "Operator parajoin expect a list of four arguments");
-    return nl->TypeError();
-  }
+    // parajoin for taking mixed streams
 
-  ListExpr streamList = nl->First(args);
-  ListExpr relAList = nl->Second(args);
-  ListExpr relBList = nl->Third(args);
-  ListExpr mapNL = nl->Fourth(args);
+    ListExpr streamList = nl->First(args);
+    ListExpr relAList = nl->Second(args);
+    ListExpr relBList = nl->Third(args);
+    ListExpr mapNL = nl->Fourth(args);
 
-  if (listutils::isTupleStream(streamList)
-    && listutils::isRelDescription(relAList)
-    && listutils::isRelDescription(relBList))
-  {
-    ListExpr attrList = nl->Second(nl->Second(streamList));
-    if (nl->ListLength(attrList) != 1)
+    if (listutils::isTupleStream(streamList)
+      && listutils::isRelDescription(relAList)
+      && listutils::isRelDescription(relBList))
     {
-      ErrorReporter::ReportError(
-        "Operator parajoin only accept tuple stream "
-        "with one TEXT type argument");
-      return nl->TypeError();
-    }
-    else if (!listutils::isSymbol(
-      nl->Second(nl->First(attrList)),TEXT))
-    {
-      ErrorReporter::ReportError(
-        "Operator parajoin only accept tuple stream "
-        "with one TEXT type argument");
-      return nl->TypeError();
-    }
-
-    if (listutils::isMap<2>(mapNL))
-    {
-      if (listutils::isTupleStream(nl->Second(mapNL))
-        && listutils::isTupleStream(nl->Third(mapNL))
-        && listutils::isTupleStream(nl->Fourth(mapNL)))
+      ListExpr attrList = nl->Second(nl->Second(streamList));
+      if (nl->ListLength(attrList) != 1)
       {
-        ListExpr resultList = nl->TwoElemList(
-              nl->SymbolAtom("stream"),
-              nl->TwoElemList(nl->SymbolAtom("tuple"),
-                  nl->Second(nl->Second(nl->Fourth(mapNL)))));
+        ErrorReporter::ReportError(
+          "Operator parajoin only accept tuple stream "
+          "with one TEXT type argument");
+        return nl->TypeError();
+      }
+      else if (!listutils::isSymbol(
+        nl->Second(nl->First(attrList)),TEXT))
+      {
+        ErrorReporter::ReportError(
+          "Operator parajoin only accept tuple stream "
+          "with one TEXT type argument");
+        return nl->TypeError();
+      }
 
-        return resultList;
+      if (listutils::isMap<2>(mapNL))
+      {
+        if (listutils::isTupleStream(nl->Second(mapNL))
+          && listutils::isTupleStream(nl->Third(mapNL))
+          && listutils::isTupleStream(nl->Fourth(mapNL)))
+        {
+          ListExpr resultList = nl->TwoElemList(
+                nl->SymbolAtom("stream"),
+                nl->TwoElemList(nl->SymbolAtom("tuple"),
+                    nl->Second(nl->Second(nl->Fourth(mapNL)))));
+
+          return resultList;
+        }
+        else
+        {
+          ErrorReporter::ReportError(
+              "Operator parajoin expects parameter function "
+              "as (map (stream(T1)) (stream(T2)) (stream(T1 T2)))");
+          return nl->TypeError();
+        }
       }
       else
       {
         ErrorReporter::ReportError(
-            "Operator parajoin expects parameter function "
-            "as (map (stream(T1)) (stream(T2)) (stream(T1 T2)))");
+          "Operator parajoin expects binary function "
+            "as the fourth argument.");
         return nl->TypeError();
       }
     }
     else
     {
       ErrorReporter::ReportError(
-        "Operator parajoin expects binary function "
-          "as the fourth argument.");
+        "Operator parajoin expect "
+          "(stream(tuple((value text))))"
+          "x(rel(tuple(T1))) x (rel(tuple(T2)))"
+          "x((map (stream(T1)) (stream(T2)) (stream(T1 T2))))");
       return nl->TypeError();
     }
   }
   else
   {
     ErrorReporter::ReportError(
-      "Operator parajoin expect "
-        "(stream(tuple((value text))))"
-        "x(rel(tuple(T1))) x (rel(tuple(T2)))"
-        "x((map (stream(T1)) (stream(T2)) (stream(T1 T2))))");
+      "Operator parajoin expect a list of four arguments");
     return nl->TypeError();
   }
-}
 
+
+}
 
 /*
 5.2 Value Mapping of Operator ~parajoin~
@@ -1084,6 +1089,8 @@ int paraJoinValueMap(Word* args, Word& result,
 
   return 0;
 }
+
+
 
 /*
 3.3 Auxiliary Functions of Operator ~parajoin~
@@ -1194,7 +1201,6 @@ void pjLocalInfo::loadTuples()
     }
     else
     {
-      tpIndex_A = tpIndex_B = 0;
       isBufferFilled = true;
       itrA = tbA->MakeScan();
       itrB = tbB->MakeScan();
@@ -1259,6 +1265,342 @@ void* pjLocalInfo::getNextTuple()
   }
   return 0;
 }
+
+
+/*
+6 Parajoin2
+
+This is a modified version of *parajoin* operator.
+The main difference of the new operator is that,
+it accepts two separated sorted tuple stream,
+and collect tuples have a same key attribute value,
+then use the parameter join function to process them.
+
+*/
+struct paraJoin2Info : OperatorInfo
+{
+  paraJoin2Info()
+  {
+    name = "parajoin2";
+    signature =
+        "( (stream(tuple(T1))) x (stream(tuple(T2)))"
+        "x (map (stream(T1)) (stream(T2)) (stream(T1 T2))) )"
+        " -> stream(tuple(T1 T2))";
+    syntax = "_ _ parajoin2 [ _, _ ; fun]";
+    meaning = "use parameter join function to merge join two "
+              "input sorted streams according to key values.";
+  }
+};
+
+
+/*
+Take another two sorted stream,
+then use the parameter function to execute merge-join operation.
+
+----
+   ( (stream(tuple((a1 t1) (a2 t2) ... (ai ti) ... (am tm) )))
+   x (stream(tuple((b1 p1) (b2 p2) ... (bj tj) ... (bn pn) ))))
+   x ai x bj
+   x ((map (stream((a1 t1) (a2 t2) ... (am tm) ))
+           (stream((b1 p1) (b2 p2) ... (bn pn) ))
+           (stream((a1 t1) (a2 t2) ... (am tm)
+                   (b1 p1) (b2 p2) ... (bn pn)))))  )
+   -> stream(tuple((a1 t1) (a2 t2) ... (am tm)
+                   (b1 p1) (b2 p2) ... (bn pn)))
+----
+
+*/
+
+ListExpr paraJoin2TypeMap(ListExpr args)
+{
+  if(nl->ListLength(args) == 5)
+    {
+      NList l(args);
+      NList streamA = l.first();
+      NList streamB = l.second();
+      NList keyA = l.third();
+      NList keyB = l.fourth();
+      NList mapList = l.fifth();
+
+      string err = "parajoin2 expects "
+          "(stream(tuple(T1)) x stream(tuple(T2)) "
+          "x string x string "
+          "x (map (stream(T1)) (stream(T2)) (stream(T1 T2))))";
+      string err1 = "parajoin2 can't found key attribute : ";
+
+      NList attrA;
+      if (!streamA.checkStreamTuple(attrA))
+        return l.typeError(err);
+
+      NList attrB;
+      if (!streamB.checkStreamTuple(attrB))
+        return l.typeError(err);
+
+      ListExpr keyAType, keyBType;
+      int keyAIndex = listutils::findAttribute(
+                                 attrA.listExpr(),
+                                 keyA.convertToString(),
+                                 keyAType);
+      if ( keyAIndex <= 0 )
+        return l.typeError(err1 + keyA.convertToString());
+
+      int keyBIndex = listutils::findAttribute(
+                                 attrB.listExpr(),
+                                 keyB.convertToString(),
+                                 keyBType);
+      if ( keyBIndex <= 0 )
+        return l.typeError(err1 + keyB.convertToString());
+
+      if (!nl->Equal(keyAType, keyBType))
+        return l.typeError(
+            "parajoin2 expects two key attributes with same type.");
+
+      NList attrResult;
+      if (mapList.first().isSymbol(Symbols::MAP())
+          && mapList.second().first().isSymbol(Symbols::STREAM())
+          && mapList.second().second().first().isSymbol(Symbols::TUPLE())
+          && mapList.third().first().isSymbol(Symbols::STREAM())
+          && mapList.third().second().first().isSymbol(Symbols::TUPLE())
+          && mapList.fourth().checkStreamTuple(attrResult)  )
+      {
+        NList resultStream =
+            NList(NList(STREAM, NList(NList(TUPLE), attrResult)));
+
+        return NList(NList("APPEND"),
+                     NList(NList(keyAIndex), NList(keyBIndex)),
+                     resultStream).listExpr();
+      }
+      else
+        return l.typeError(err);
+    }
+    else
+    {
+      ErrorReporter::ReportError(
+        "Operator parajoin expect a list of five arguments");
+      return nl->TypeError();
+    }
+}
+
+int paraJoin2ValueMap(Word* args, Word& result,
+                int message, Word& local, Supplier s)
+{
+  pj2LocalInfo* li;
+
+  switch(message)
+  {
+    case OPEN:{
+      qp->Open(args[0].addr);
+      qp->Open(args[1].addr);
+
+      if (li)
+        delete li;
+      li = new pj2LocalInfo(args[0], args[1],
+                            args[5], args[6],
+                            args[4], s);
+      local.setAddr(li);
+      return 0;
+    }
+    case REQUEST:{
+      if (0 == local.addr)
+        return CANCEL;
+      li = (pj2LocalInfo*)local.addr;
+
+      result.setAddr(li->getNextTuple());
+      if (result.addr)
+        return YIELD;
+      else
+        return CANCEL;
+    }
+    case (1*FUNMSG)+OPEN:{
+      return 0;
+    }
+    case (2*FUNMSG)+OPEN:{
+      return 0;
+    }
+    case (1*FUNMSG)+REQUEST:{
+      if (0 == local.addr)
+        return CANCEL;
+      li = (pj2LocalInfo*)local.addr;
+
+      result.setAddr(li->getNextInputTuple(tupBufferA));
+      if (result.addr)
+        return YIELD;
+      else
+        return CANCEL;
+    }
+    case (2*FUNMSG)+REQUEST:{
+      if (0 == local.addr)
+        return CANCEL;
+      li = (pj2LocalInfo*)local.addr;
+
+      result.setAddr(li->getNextInputTuple(tupBufferB));
+      if (result.addr)
+        return YIELD;
+      else
+        return CANCEL;
+    }
+    case (1*FUNMSG)+CLOSE:{
+      return 0;
+    }
+    case (2*FUNMSG)+CLOSE:{
+      return 0;
+    }
+    case CLOSE:{
+      if (0 == local.addr)
+        return CANCEL;
+      li = (pj2LocalInfo*)local.addr;
+
+      delete li;
+      qp->Close(args[0].addr);
+      qp->Close(args[1].addr);
+      return 0;
+    }
+  }
+
+  //should never be here
+  return 0;
+}
+
+bool pj2LocalInfo::LoadTuples()
+{
+  assert(!endOfStream);
+
+  bool loaded = false;
+
+  //Clear the buffer
+  if (ita)
+    delete ita; ita = 0;
+  if (tba)
+    delete tba; tba = 0;
+
+  if (itb)
+    delete itb; itb = 0;
+  if (tbb)
+    delete tbb; tbb = 0;
+
+  if (cta == 0)
+    cta.setTuple(NextTuple(streamA));
+  if (ctb == 0)
+    ctb.setTuple(NextTuple(streamB));
+
+  if ( cta == 0 || ctb == 0)
+  {
+    //one of the stream is exhausted
+    endOfStream = true;
+    return loaded;
+  }
+
+  int cmp = CompareTuples(cta.tuple, keyAIndex,
+                          ctb.tuple, keyBIndex);
+
+  // Assume both streams are ordered by asc
+  while(0 != cmp)
+  {
+    if (cmp < 0)
+    {
+      //a < b, get more a until a >= b
+      while (cmp < 0)
+      {
+        cta.setTuple(NextTuple(streamA));
+        if ( cta == 0 )
+        {
+          endOfStream = true;
+          return loaded;
+        }
+        cmp = CompareTuples(cta.tuple, keyAIndex,
+                            ctb.tuple, keyBIndex);
+      }
+    }
+    else if (cmp > 0)
+    {
+      //a > b, get more b until a <= b
+      while (cmp > 0)
+      {
+        ctb.setTuple(NextTuple(streamB));
+        if ( ctb == 0 )
+          {
+            endOfStream = true;
+            return loaded;
+          }
+        cmp = CompareTuples(cta.tuple, keyAIndex,
+                            ctb.tuple, keyBIndex);
+      }
+    }
+  }
+
+  //Take all tuples from streamA, until the next tuple is bigger
+  //than the current one.
+  tba = new TupleBuffer(maxMem);
+  int cmpa = 0;
+  RTuple tmpa;
+  while ( (cta != 0) && (0 == cmpa) )
+  {
+    tmpa = cta;
+    tba->AppendTuple(tmpa.tuple);
+    cta.setTuple(NextTuple(streamA));
+    if ( cta != 0 )
+      cmpa = CompareTuples(tmpa.tuple, keyAIndex,
+                         cta.tuple, keyAIndex);
+  }
+
+  tbb = new TupleBuffer(maxMem);
+  int cmpb = 0;
+  RTuple tmpb;
+  while ( (ctb != 0) && (0 == cmpb) )
+  {
+    tmpb = ctb;
+    tbb->AppendTuple(tmpb.tuple);
+    ctb.setTuple(NextTuple(streamB));
+    if ( ctb != 0 )
+      cmpb = CompareTuples(tmpb.tuple, keyBIndex,
+                         ctb.tuple, keyBIndex);
+  }
+
+  loaded = true;
+  ita = tba->MakeScan();
+  itb = tbb->MakeScan();
+  return loaded;
+}
+
+int pj2LocalInfo::CompareTuples(Tuple* ta, int kai,
+                                Tuple* tb, int kbi)
+{
+  Attribute* a = static_cast<Attribute*>(ta->GetAttribute(kai));
+  Attribute* b = static_cast<Attribute*>(tb->GetAttribute(kbi));
+
+  if (!a->IsDefined() || !b->IsDefined())
+    return -1;
+
+  int cmp = a->Compare(b);
+  return cmp;
+}
+
+Tuple* pj2LocalInfo::getNextTuple()
+{
+  Word funResult(Address(0));
+
+  while(!endOfStream)
+  {
+    qp->Request(pf, funResult);
+    if (funResult.addr)
+      return (Tuple*)funResult.addr;
+    else if (endOfStream)
+    {
+      qp->Close(pf);
+      return 0;
+    }
+    else
+    {
+      qp->Close(pf);
+      if (LoadTuples())
+        qp->Open(pf);
+    }
+  }
+
+  //should never be here ...
+  return 0;
+}
+
 
 /*
 6 Operator ~add0Tuple~
@@ -2079,6 +2421,9 @@ public:
 
     AddOperator(paraJoinInfo(),
         paraJoinValueMap, paraJoinTypeMap);
+
+    AddOperator(paraJoin2Info(),
+        paraJoin2ValueMap, paraJoin2TypeMap);
 
     AddOperator(add0TupleInfo(),
         add0TupleValueMap, add0TupleTypeMap);

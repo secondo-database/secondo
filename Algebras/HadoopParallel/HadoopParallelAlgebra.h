@@ -44,6 +44,7 @@ And includes one method:
 #define HADOOPPARALLELALGEBRA_H_
 
 #include "FTextAlgebra.h"
+#include "RTuple.h"
 
 /*
 1.1 deLocalInfo Class
@@ -190,7 +191,6 @@ private:
   GenericRelationIterator *itrA;
   TupleBuffer *tbB;
   GenericRelationIterator *itrB;
-  int tpIndex_A, tpIndex_B;
   const int maxMem;
   bool endOfStream;
   bool isBufferFilled;
@@ -212,8 +212,8 @@ public:
     itrA(0),
     tbB(0),
     itrB(0),
-    tpIndex_A(-1),
-    tpIndex_B(-1),
+//    tpIndex_A(-1),
+//    tpIndex_B(-1),
     maxMem(mem),
     endOfStream(false),
     isBufferFilled(false)
@@ -222,7 +222,6 @@ public:
     JNfun = fun;
     qp->SetupStreamArg(JNfun, 1, s);
     qp->SetupStreamArg(JNfun, 2, s);
-
     qp->Open(JNfun);
 
     tupleTypeA = new TupleType(ttA);
@@ -252,6 +251,100 @@ public:
 
   // Get the next result tuple
   void* getNextTuple();
+};
+
+/*
+1.4 pj2LocalInfo Class
+
+Assists ~parajoin2~ operator.
+
+*/
+
+class pj2LocalInfo
+{
+private:
+  Word streamA, streamB;
+  Supplier pf;  //parameter function
+
+  int keyAIndex, keyBIndex;
+
+  TupleBuffer *tba, *tbb;
+  GenericRelationIterator *ita, *itb;
+  RTuple cta, ctb;  //Cached tuple for the next bucket
+
+  int maxMem;
+  bool endOfStream;
+  //any stream is end, then the operation is over
+
+  bool LoadTuples();
+  //find both streams' closest buckets
+  //having the same key attribute value
+
+  int CompareTuples(Tuple* ta, int kai,
+                    Tuple* tb, int kbi);
+
+  inline Tuple* NextTuple(Word stream)
+  {
+    bool yield = false;
+    Word result( Address(0) );
+
+    qp->Request(stream.addr, result);
+    yield = qp->Received(stream.addr);
+
+    if(yield)
+    {
+      return static_cast<Tuple*>( result.addr );
+    }
+    else
+    {
+      result.addr = 0;
+      return static_cast<Tuple*>( result.addr );
+    }
+  }
+
+public:
+  pj2LocalInfo(Word _sa, Word _sb, Word _kai, Word _kbi,
+               Word _fun, Supplier s)
+  : streamA(_sa), streamB(_sb),
+    tba(0), tbb(0), ita(0), itb(0),
+    cta(0), ctb(0),
+    endOfStream(false)
+  {
+    keyAIndex = StdTypes::GetInt( _kai ) - 1;
+    keyBIndex = StdTypes::GetInt( _kbi ) - 1;
+
+    pf = _fun.addr;
+    qp->SetupStreamArg(pf, 1, s);
+    qp->SetupStreamArg(pf, 2, s);
+    qp->Open(pf);
+
+    maxMem = qp->MemoryAvailableForOperator();
+  }
+
+  ~pj2LocalInfo()
+  {
+    if (ita)
+      delete ita; ita = 0;
+    if (tba)
+      delete tba; tba = 0;
+
+    if (itb)
+      delete itb; itb = 0;
+    if (tbb)
+      delete tbb; tbb = 0;
+  }
+
+  Tuple* getNextTuple();
+
+  inline Tuple* getNextInputTuple(tupleBufferType tbt)
+  {
+    if (ita && tupBufferA == tbt)
+      return ita->GetNextTuple();
+    else if (itb && tupBufferB == tbt)
+      return itb->GetNextTuple();
+    else
+      return 0;
+  }
 };
 
 /*

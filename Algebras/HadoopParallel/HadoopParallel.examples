@@ -37,6 +37,12 @@ Signature: ( (stream(tuple((v: text)))) x (rel(tuple(T1))) x (rel(tuple(T2))) x 
 Example: query plz feed {p} Orte feed {o} doubleexport[Ort_p, Ort_o] sortby[keyT] add0Tuple project[valueT] plz Orte parajoin[. {p} .. {o} product] count;
 Result: 10052
 
+Operator: parajoin2
+Number: 1
+Signature: (  (stream(tuple((value text)))) x (rel(tuple(T1))) x (rel(tuple(T2))) x ((map (stream(T1)) (stream(T2)) (stream(T1 T2))))  ) -> stream(tuple(T1 T2))
+Example: query plz feed sortby[Ort asc] {p} Orte feed sortby[Ort asc] {o} parajoin2[Ort_p, Ort_o;.  ..  product] count
+Result: 10052
+
 Operator: add0Tuple
 Number: 1
 Signature: (stream(tuple((keyT string)(valueT text)))) -> stream(tuple((keyT string)(valueT text)))
