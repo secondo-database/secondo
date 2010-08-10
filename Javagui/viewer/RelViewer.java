@@ -287,7 +287,7 @@ public class RelViewer extends SecondoViewer{
       return false;
    else{
      LE = LE.first();
-     if(LE.isAtom())
+     if(LE.isAtom() || LE.isEmpty())
        return false;
      else{
        LE = LE.first();
