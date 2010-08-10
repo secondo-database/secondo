@@ -99,6 +99,7 @@ ListExpr OutFloor3D(ListExpr typeInfo, Word value)
 {
 //  cout<<"OutFloor3D()"<<endl;
   Floor3D* fl = (Floor3D*)(value.addr);
+
   if(!fl->IsDefined()){
     return nl->SymbolAtom("undef");
   }
@@ -108,6 +109,7 @@ ListExpr OutFloor3D(ListExpr typeInfo, Word value)
   }
   else{
     Region* cr = const_cast<Region*>(fl->GetRegion());
+
     Region *RCopy=new Region(*cr, true); // in memory
 
     RCopy->LogicSort();
@@ -652,7 +654,7 @@ Word InFloor3D(const ListExpr typeInfo, const ListExpr instance,
     cr->EndBulkLoad( true, true, true, false );
 
     correct = true;
-//    return SetWord( cr );
+//    cout<<*cr<<endl; 
     Floor3D* fl = new Floor3D(height, *cr);
     return SetWord(fl);
 
@@ -741,6 +743,7 @@ StandardSpatialAttribute<2>(true),reg(0)
     SecondoSystem::GetCatalog()->NumericType(xType);
   Region* r = (Region*)Attribute::Open(valueRecord,offset,xNumericType);
   reg = *r;
+//  cout<<*r<<endl; 
   delete r;
   SetDefined(true);
 }

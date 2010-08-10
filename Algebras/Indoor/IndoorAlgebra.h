@@ -82,7 +82,7 @@ public:
     StandardSpatialAttribute<2>(fl.IsDefined()),
     floor_height(fl.GetHeight()),reg(*(fl.GetRegion()))
     {
-//      cout<<"Constructor3()"<<endl;
+//        cout<<"Constructor3()"<<endl;
     }
     ~Floor3D()
     {
@@ -133,6 +133,11 @@ public:
     }
     float GetHeight() {return floor_height;}
     static void* Cast(void* addr){return new (addr)Floor3D();}
+    /////////////very important two functions////////////////////
+    ////////especially floor3d is an attribute in a relation/////
+    inline int NumOfFLOBs() const { return reg.NumOfFLOBs();}
+    inline Flob* GetFLOB(const int i) { return reg.GetFLOB(i);}
+    /////////////////////////////////////////////////////////////////
 private:
     float floor_height;
     Region reg;
