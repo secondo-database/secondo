@@ -281,6 +281,36 @@ public class HoeseViewer extends SecondoViewer {
     MouseKoordLabel.setFont(new Font("Monospaced", Font.PLAIN, 12));
     MouseKoordLabel.setForeground(Color.black);
     actTimeLabel = new JLabel("No Time");
+
+    actTimeLabel.addMouseListener(new MouseAdapter(){
+      public void mouseClicked(MouseEvent evt){
+        if(evt.getClickCount()!=2){
+           return;
+        }
+        if(TimeBounds==null){
+          JOptionPane.showMessageDialog(null,
+               "Only available, if temporal objects are included",
+               "Error",JOptionPane.ERROR_MESSAGE);
+          return;
+        }
+
+        String inputValue = JOptionPane.showInputDialog(null,
+                                                        "Please input the new time value",
+                     LEUtils.convertTimeToString(CurrentState.ActualTime));
+        if(inputValue==null){
+          return;
+        }
+        Double t = LEUtils.convertStringToTime(inputValue);
+        if(t==null){
+          JOptionPane.showMessageDialog(null,"Invalid Time Value","Error",JOptionPane.ERROR_MESSAGE);
+          return;
+        } 
+        setTime(t.doubleValue());
+      }
+
+    });
+
+
     actTimeLabel.setFont(new Font("Monospaced", Font.PLAIN, 12));
     actTimeLabel.setForeground(Color.black);
 
@@ -1883,6 +1913,28 @@ public boolean canDisplay(SecondoObject o){
     }
   }
 
+/** Sets the current time to the given value.
+  * If the giuven time is outside the current time interval,
+  * the time is set to the nearest boder of the time interval.
+  **/
+  public boolean setTime(double time){
+     if(TimeBounds == null){
+       return false;
+     }
+     if(time < TimeBounds.getStart()){
+         time = TimeBounds.getStart();
+     }
+     if(time > TimeBounds.getEnd()){
+         time = TimeBounds.getEnd();
+     }
+     TimeSlider.setVisible(true);
+     TimeSlider.setValue( (long)Math.round(time*86400000) );
+     actTimeLabel.setText(LEUtils.convertTimeToString(CurrentState.ActualTime));
+     return true;     
+  }
+
+
+
   /**
    * optional
    * @param evt
@@ -2466,6 +2518,7 @@ public boolean canDisplay(SecondoObject o){
       implements ChangeValueListener {
 
     public void valueChanged (ChangeValueEvent e) {
+
       if (TimeBounds == null) {
         TimeSlider.setValue(0);
         return;
@@ -2479,8 +2532,9 @@ public boolean canDisplay(SecondoObject o){
         if (anf > TimeBounds.getEnd())
           anf = TimeBounds.getEnd();
       }
-      if (anf == CurrentState.ActualTime)
+      if (anf == CurrentState.ActualTime){
         return;
+      }
       GraphDisplay.setIgnorePaint(true);
       CurrentState.ActualTime = anf;
       actTimeLabel.setText(LEUtils.convertTimeToString(CurrentState.ActualTime));
