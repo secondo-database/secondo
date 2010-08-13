@@ -65,6 +65,7 @@ but includes tuples of different schemes.
 #include "Base64.h"
 #include "regex.h"
 #include "FileSystem.h"
+#include "../Array/ArrayAlgebra.h"
 
 using namespace symbols;
 using namespace std;
@@ -1783,7 +1784,8 @@ int add0TupleValueMap(Word* args, Word& result,
 
 This operator maps
 
-----   stream(tuple(...)) x string x [int] -> bool
+----   stream(tuple(...)) x string x string x [int]
+                      x m_machine1 x m_machine2 -> bool
 ----
 
 This operator writes the tuples of the accepted tuple-stream
@@ -1798,6 +1800,21 @@ put the type information is because the type mapping function of
 the below operator ~ffeed~ needs to read this file,
 and return the type information while importing the binary file.
 
+Update ~fconsume~ maps
+
+----
+stream(tuple(...)) x string x [int]
+x [string] x [m_Machine1] x [m_Machine2] -> BOOL
+----
+
+The updated ~fconsume~ operator besides exporting the tuple stream
+into a local binary file, also put its schema file to two remote
+machine by using sftp server.
+
+And it also adds the third argument,
+~path~ which also is an optional argument,
+for writing the binary
+file to a specialized place other than the default one.
 
 5.15.0 Specification
 
@@ -1808,8 +1825,9 @@ struct FConsumeInfo : OperatorInfo {
   FConsumeInfo() : OperatorInfo()
   {
     name =      "fconsume";
-    signature = "stream(tuple(...)) x string x [int] -> bool";
-    syntax =    "_ fconsume[ _ , _ ]";
+    signature = "stream(tuple(...)) x string x string "
+        "x [int] x [m_machine1] x [m_machine2] -> bool";
+    syntax =    "_ fconsume[ _ , _ , _ , _ , _ ]";
     meaning =   "write a stream of tuples into a binary file";
   }
 
@@ -1823,9 +1841,12 @@ ListExpr FConsumeTypeMap(ListExpr args)
 {
   NList l(args);
   string err = "operator fconsume expects "
-               "(stream(tuple(...)), string, [int])";
+               "(stream(tuple(...)) string string "
+               "[int] [m_Machine1] [m_Machine1])";
 
-  if(l.length() < 2 || l.length() > 3)
+  //operator can take at least 2, at most 6 arguments.
+  int len = l.length();
+  if(len < 3 || len > 6)
     return l.typeError(err);
 
   NList attr;
@@ -1835,21 +1856,63 @@ ListExpr FConsumeTypeMap(ListExpr args)
   if(!l.second().isSymbol(Symbols::STRING()) )
     return l.typeError(err);
 
-  if(l.length() == 3 && !l.third().isSymbol(Symbols::INT()) )
+  if(!l.third().isSymbol(Symbols::STRING()) )
     return l.typeError(err);
 
-  return NList(Symbols::BOOL()).listExpr();
+  //Optional Arguments ...
+  string srvName[2] = {"", ""};
+  bool haveIndex = false;
+  if (len > 3)
+  {
+    if (l.fourth().isSymbol(Symbols::INT()))
+      haveIndex = true;
+
+    switch(len)
+    {
+      case 4:
+        if (!haveIndex)
+          srvName[0] = nl->SymbolValue(l.fourth().listExpr());
+        break;
+      case 5:
+        if (haveIndex)
+          srvName[0] = nl->SymbolValue(l.fifth().listExpr());
+        else
+        {
+          srvName[0] = nl->SymbolValue(l.fourth().listExpr());
+          srvName[1] = nl->SymbolValue(l.fifth().listExpr());
+        }
+        break;
+      case 6:
+        srvName[0] = nl->SymbolValue(l.fifth().listExpr());
+        srvName[1] = nl->SymbolValue(l.sixth().listExpr());
+        break;
+      default:
+        break;
+    }
+
+    for(int i = 0; i < 2; i++ )
+    {
+      if ("" != srvName[i])
+      {
+        if(srvName[i].compare(0, 2, "m_") > 0)
+          return l.typeError(err);
+        else
+          srvName[i] = srvName[i].substr(2);
+      }
+    }
+  }
+
+  return NList(NList("APPEND"),
+               NList(NList(haveIndex),
+                     NList(srvName[0],true),
+                     NList(srvName[1],true)),
+               NList(Symbols::BOOL())).listExpr();
 }
+
 /*
 5.14.2 Value mapping
 
 */
-struct fconsumeLocalInfo
-{
-  int state;
-  int current;
-};
-
 int FConsumeValueMap(Word* args, Word& result,
     int message, Word& local, Supplier s)
 {
@@ -1857,6 +1920,51 @@ int FConsumeValueMap(Word* args, Word& result,
 
   if ( message <= CLOSE)
   {
+    string relName, path;
+    bool haveIndex;
+    int index = -1;
+    string machine[2] = {"",""};  //two remote sftp server name
+
+    int len = qp->GetNoSons(s);
+    relName = ((CcString*)args[1].addr)->GetValue();
+    path = ((CcString*)args[2].addr)->GetValue();
+
+    switch(len)
+    {
+      case 6:{
+        //only take three necessary arguments
+        break;
+      }
+      case 7:{
+        haveIndex = ((CcBool*)args[4].addr)->GetValue();
+        if (haveIndex)
+          index = ((CcInt*)args[3].addr)->GetValue();
+        else
+          machine[0] = ((CcString*)args[5].addr)->GetValue();
+        break;
+      }
+      case 8:{
+        haveIndex = ((CcBool*)args[5].addr)->GetValue();
+        if (haveIndex)
+        {
+          index = ((CcInt*)args[3].addr)->GetValue();
+          machine[0] = ((CcString*)args[6].addr)->GetValue();
+        }
+        else
+        {
+          machine[0] = ((CcString*)args[6].addr)->GetValue();
+          machine[1] = ((CcString*)args[7].addr)->GetValue();
+        }
+        break;
+      }
+      case 9:{
+        //have all arguments
+        index = ((CcInt*)args[3].addr)->GetValue();
+        machine[0] = ((CcString*)args[7].addr)->GetValue();
+        machine[1] = ((CcString*)args[8].addr)->GetValue();
+      }
+    }
+
     result = qp->ResultStorage(s);
 
     fcli = (fconsumeLocalInfo*) local.addr;
@@ -1867,16 +1975,17 @@ int FConsumeValueMap(Word* args, Word& result,
     fcli->current = 0;
     local.setAddr(fcli);
 
-    int index = -1;
-    string relName;
-    if (qp->GetNoSons(s) == 3 )
-      index = ((CcInt*)args[2].addr)->GetIntval();
-
-    relName = ((CcString*)args[1].addr)->GetValue();
+    //If path is not specified, then use the default path
+    //$SECONDO\_BUILD\_DIR\/bin\/parallel
+    //And the specified path must be an absolute path
+    if ("" == path)
+    {
+      path = FileSystem::GetCurrentFolder();
+      FileSystem::AppendItem(path, "parallel");
+    }
 
     //Write the type of the relation into a separated file.
-    string typeFileName = FileSystem::GetCurrentFolder();
-    FileSystem::AppendItem(typeFileName, "cell");
+    string typeFileName = path;
     FileSystem::AppendItem(typeFileName, relName + "_type");
     ofstream typeFile(typeFileName.c_str());
     ListExpr relTypeList;
@@ -1896,19 +2005,28 @@ int FConsumeValueMap(Word* args, Word& result,
       typeFile << nl->ToString(relTypeList) << endl;
       typeFile.close();
     }
+    cout << "\nCreate type file: " << typeFileName << endl;
+
+    //Put the schema file to other two machines
+    for(int i = 0; i < 2; i++)
+    {
+      if ("" != machine[i])
+      {
+        system(("scp " + typeFileName + " "
+            + machine[i] + ":secondo/bin/parallel/").c_str());
+      }
+    }
 
     //Write complete tuples into a binary file.
-    if (index > 0)
+    if (index >= 0)
     {
       stringstream ss;
       ss << relName << "_" << index;
       relName = ss.str();
     }
     //create a path for this file.
-    string blockFileName = FileSystem::GetCurrentFolder();
-    FileSystem::AppendItem(blockFileName, "cell");
+    string blockFileName = path;
     FileSystem::AppendItem(blockFileName, relName);
-
     ofstream blockFile(blockFileName.c_str(), ios::binary);
     if (!blockFile.good())
     {
@@ -2092,6 +2210,39 @@ If the ~path~ is empty, then the files are put in a default path,
 SECONDO\_BUILD\_DIR/bin/cell/, or else the binary file can't be put into
 another specified path.
 
+Update ~ffeed~ operator.
+
+This oeprator maps
+
+----
+relName x path x [fileIndex] x [ Machines x machineIndex x schemaMachine]
+-> rel(tuple(...))
+----
+
+Besides reading file(both schema file and binary file) from local hard disk,
+it's also possible to read it from a remote machine, if that machine offers
+sftp server, and there is no need to input username or password.
+
+The ~Machines~ is an Secondo array of strings, which contains the names
+of all computers that the current node can access by sftp.
+The ~machineIndex~ is an integer, it is used to denote
+which machine in ~Machines~ contains the tuple binary file.
+The ~schemaMachine~ is an symbol, just like relName,
+it is used to denote a machine that contains the schema file that
+the operator ~fconsume~ writes.
+
+This operator reads the tuple file in two different situations:
+*local* or *remote*.
+
+  * *local* means both the schema file and the tuple binary file
+are stored in the local disk. And it only needs at most top three
+arguments.
+
+  * *remote* means both these two files are stored in a remote machine
+which can be accessed by sftp. Then the operator need to copy the
+files to the local hard disk, then to read it as usual.
+
+
 5.15.0 Specification
 
 */
@@ -2102,7 +2253,7 @@ struct FFeedInfo : OperatorInfo {
   {
     name =      "ffeed";
     signature = "relName x string x [int] -> stream(tuple(...))";
-    syntax =    "ffeed( _, _, _ )";
+    syntax =    "ffeed( _, _, _ , _, _, _)";
     meaning =   "restore a relation from a binary file"
                 "created by ~fconsume~ operator.";
   }
@@ -2116,33 +2267,62 @@ struct FFeedInfo : OperatorInfo {
 ListExpr FFeedTypeMap(ListExpr args)
 {
   NList l(args);
-  string err = "relfile expects (f_relName, string, [int])";
+  string err = "ffeed expects (f_relName, string, [int], "
+      "[(array string), int, m_machine])";
 
-  if (l.length() < 2 || l.length() > 3)
+  //operator only accept 2|3|5|6 arguments
+  int len = l.length();
+  if ((len < 2) || (len > 6) || (len == 4))
     return l.typeError(err);
 
   if (!(nl->IsAtom(l.first().listExpr())))
     return l.typeError(err);
 
   string relName = nl->SymbolValue(l.first().listExpr());
-  if (relName.find_first_of("f_") > 0)
+  if (relName.compare(0, 2, "f_") > 0)
     return l.typeError(err);
   relName = relName.substr(2);
 
   if (!l.second().isSymbol(Symbols::STRING()))
     return l.typeError(err);
 
-  if (l.length() == 3 && !l.third().isSymbol(Symbols::INT()))
+  if ((len%3 == 0) && !l.third().isSymbol(Symbols::INT()))
     return l.typeError(err);
 
-  //The type file can only be put into the default directory
+  //The type file must be put into the default directory
   string typeFileName = FileSystem::GetCurrentFolder();
-  FileSystem::AppendItem(typeFileName, "cell");
+  FileSystem::AppendItem(typeFileName, "parallel");
   FileSystem::AppendItem(typeFileName, relName + "_type");
+  if (len > 4)
+  {
+    int pos = (6 == len) ? 4 : 3;
+
+    //remote mode
+    if (!(l.elem(pos).first().isSymbol("array")
+       && l.elem(pos).second().isSymbol(Symbols::STRING())))
+    {
+      return l.typeError(err);
+    }
+
+    pos++;
+    if (!l.elem(pos).isSymbol(Symbols::INT()))
+      return l.typeError(err);
+
+    pos++;
+    string nodeName = nl->SymbolValue(l.elem(pos).listExpr());
+    if (nodeName.compare(0, 2, "m_") > 0)
+      return l.typeError(err);
+    nodeName = nodeName.substr(2);
+
+    //!!!we assume in every node's home directory, where the sftp
+    //server start, exists a link to its $SECONDO\_BUILD\_DIR !!!
+    system(("scp " + nodeName + ":secondo/bin/parallel/"
+        + relName + "_type" + " " + typeFileName).c_str());
+  }
   ListExpr relType;
   if(!nl->ReadFromFile(typeFileName, relType))
   {
-    ErrorReporter::ReportError("Can't open file: " + typeFileName);
+    ErrorReporter::ReportError("Can't access file: " + typeFileName);
     return nl->TypeError();
   }
 
@@ -2166,106 +2346,6 @@ ListExpr FFeedTypeMap(ListExpr args)
 5.14.2 Value mapping
 
 */
-class FFeedLocalInfo: public ProgressLocalInfo
-{
-public:
-  FFeedLocalInfo(string filePath, ListExpr streamTypeList)
-  : tupleBlockFile(0)
-  {
-    if (!FileSystem::FileOrFolderExists(filePath))
-    {
-        cerr << "Error: File '" << filePath
-            << "' doesn't exist!\n" << endl;
-    }
-    else
-    {
-      tupleBlockFile = new ifstream(filePath.c_str(), ios::binary);
-      if (!tupleBlockFile->good())
-      {
-        cerr << "Error accessing file '" << filePath << "'\n\n";
-        tupleBlockFile = 0;
-      }
-    }
-    tupleType = new TupleType(SecondoSystem::GetCatalog()
-                    ->NumericType(nl->Second(streamTypeList)));
-
-    if (tupleBlockFile)
-    {
-      //get the description list
-      u_int32_t descSize;
-      size_t fileLength;
-      tupleBlockFile->seekg(0, ios::end);
-      fileLength = tupleBlockFile->tellg();
-      tupleBlockFile->seekg(
-          (fileLength - sizeof(descSize)), ios::beg);
-      tupleBlockFile->read((char*)&descSize, sizeof(descSize));
-
-      char descStr[descSize];
-      tupleBlockFile->seekg(
-          (fileLength - (descSize + sizeof(descSize))), ios::beg);
-      tupleBlockFile->read(descStr, descSize);
-      tupleBlockFile->seekg(0, ios::beg);
-
-      NList descList = NList(binDecode(string(descStr)));
-
-      //Initialize the sizes of progress local info
-      noAttrs = tupleType->GetNoAttributes();
-      total = descList.first().intval();
-      attrSize = new double[noAttrs];
-      attrSizeExt = new double[noAttrs];
-      for(int i = 0; i < noAttrs; i++)
-      {
-        attrSizeExt[i] =
-            descList.elem(4 + i*2).realval() / total;
-        attrSize[i] =
-            descList.elem(4 + (i*2 + 1)).realval() / total;
-
-        SizeExt += attrSizeExt[i]; //average sizeExt of a tuple
-        Size += attrSize[i];
-      }
-
-      sizesInitialized = true;
-      sizesChanged = true;
-    }
-  }
-  ~FFeedLocalInfo() {
-    if (tupleBlockFile)
-    {
-      delete tupleBlockFile;
-      tupleBlockFile = 0;
-    }
-    if (tupleType)
-    {
-      tupleType->DeleteIfAllowed();
-    }
-  }
-
-  Tuple* getNextTuple(){
-    if (0 == tupleBlockFile )
-      return 0;
-
-    Tuple* t = 0;
-    u_int32_t blockSize;
-    tupleBlockFile->read(
-        reinterpret_cast<char*>(&blockSize),
-        sizeof(blockSize));
-    if (!tupleBlockFile->eof() && (blockSize > 0))
-    {
-      blockSize -= sizeof(blockSize);
-      char tupleBlock[blockSize];
-      tupleBlockFile->read(tupleBlock, blockSize);
-      t = new Tuple(tupleType);
-      t->ReadFromBin(tupleBlock, blockSize);
-    }
-
-    return t;
-  }
-
-  ifstream *tupleBlockFile;
-  TupleType* tupleType;
-
-};
-
 int FFeedValueMap(Word* args, Word& result,
     int message, Word& local, Supplier s)
 {
@@ -2273,37 +2353,66 @@ int FFeedValueMap(Word* args, Word& result,
   string relName, path;
   FFeedLocalInfo* ffli = 0;
   Supplier sonOfFeed;
+  Array *machines;
+  int mIndex = -1;
+  string servName = "";
 
   switch(message)
   {
     case OPEN: {
       path = ((CcString*)args[1].addr)->GetValue();
-      if (qp->GetNoSons(s) == 4)
+      int len = qp->GetNoSons(s);
+
+      switch(len)
       {
+      case 3:{
+        relName = ((CcString*)args[2].addr)->GetValue();
+        break;
+      }
+      case 4:{
         index = ((CcInt*)args[2].addr)->GetIntval();
         relName = ((CcString*)args[3].addr)->GetValue();
+        break;
       }
-      else
-        relName = ((CcString*)args[2].addr)->GetValue();
+      case 6:{
+        machines = (Array*)args[2].addr;
+        mIndex = ((CcInt*)args[3].addr)->GetIntval() - 1;
+        relName = ((CcString*)args[5].addr)->GetValue();
+        servName = ((CcString*)(machines->getElement(mIndex)).addr)->GetValue();
+        break;
+      }
+      case 7:{
+        index = ((CcInt*)args[2].addr)->GetIntval();
+        machines = (Array*)args[3].addr;
+        mIndex = ((CcInt*)args[4].addr)->GetIntval() - 1;
+        relName = ((CcString*)args[6].addr)->GetValue();
+        servName = ((CcString*)(machines->getElement(mIndex)).addr)->GetValue();
+        break;
+      }
+      }
+
+      if(index >= 0)
+      {
+        stringstream ss;
+        ss << relName << "_" << index;
+        relName = ss.str();
+      }
 
       if (path == "")
       {
         path = FileSystem::GetCurrentFolder();
-        FileSystem::AppendItem(path, "cell");
+        FileSystem::AppendItem(path, "parallel");
         FileSystem::AppendItem(path, relName);
       }
 
-      if(index > 0)
-      {
-        stringstream ss;
-        ss << path << "_" << index;
-        path = ss.str();
-      }
-
+      //Reuse the sftp connection
       ffli = (FFeedLocalInfo*) local.addr;
-      if (ffli) delete ffli;
-      ffli = new FFeedLocalInfo(path, qp->GetType(s));
+      if (ffli)
+        ffli->checkServ(servName);
+      else
+        ffli = new FFeedLocalInfo(qp->GetType(s), servName);
 
+      ffli->fetchBlockFile(relName, path);
       ffli->returned = 0;
       local.setAddr(ffli);
       return 0;
@@ -2328,7 +2437,9 @@ int FFeedValueMap(Word* args, Word& result,
         delete ffli->tupleBlockFile;
         ffli->tupleBlockFile = 0;
       }
+      return 0;  //must return
     }
+
     case CLOSEPROGRESS: {
       sonOfFeed = qp->GetSupplierSon(s, 0);
       ffli = (FFeedLocalInfo*) local.addr;
@@ -2340,7 +2451,6 @@ int FFeedValueMap(Word* args, Word& result,
       return 0;
     }
     case REQUESTPROGRESS: {
-
       ProgressInfo p1;
       ProgressInfo *pRes = 0;
       const double uFeed = 0.00194;    //milliseconds per tuple
