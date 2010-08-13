@@ -113,6 +113,7 @@ using namespace std;
 #include "RelationAlgebra.h"
 #include "time.h"
 #include "FunVector.h"
+#include "ArrayAlgebra.h"
 
 
 extern NestedList* nl;
@@ -209,27 +210,6 @@ Since an object is represented as a storage Word (which is often a pointer to
 the actual object), the data structure of an ~array~ is an array of Word.
 
 */
-class Array
-{
-  public:
-    Array(int, int, int, Word*);
-    Array();
-    ~Array();
-    void initialize(int, int, int, Word*);
-    bool isDefined();
-    int getSize();
-    int getElemAlgId();
-    int getElemTypeId();
-    Word getElement(int);
-    void setElement(int, Word);
-  private:
-    bool defined;
-    int size;
-    int elemAlgId;
-    int elemTypeId;
-    Word* array;
-};
-
 Array::Array( int algebraId, int typeId, int n, Word* elements )
 
 // Constructor with complete initialization of the array
@@ -265,7 +245,7 @@ Array::initialize( int algebraId, int typeId, int n, Word* elements )
 // If the array is already defined, it will be cleared and redefined.
 
 {
-  //cerr << "Array::initialize, defined =" << defined << endl;	
+  //cerr << "Array::initialize, defined =" << defined << endl;
   if (defined) {
     delete [] array;
   }
@@ -510,7 +490,7 @@ bool
 OpenArray( SmiRecord& valueRecord, size_t& offset,
            const ListExpr typeInfo, Word& value )
 {
-  //cerr << "*OpenArray" << endl;	
+  //cerr << "*OpenArray" << endl;
 
   ListExpr valueList = 0;
   string valueString = "";
@@ -544,7 +524,7 @@ bool
 SaveArray( SmiRecord& valueRecord, size_t& offset,
            const ListExpr typeInfo, Word& value)
 {
-  //cerr << "*SaveArray" << endl;	
+  //cerr << "*SaveArray" << endl;
   ListExpr valueList;
   string valueString;
   int valueLength;
@@ -572,7 +552,7 @@ elements of the array. Additional details are explained within these function.
 Word
 CreateArray( const ListExpr typeInfo )
 {
-  //cerr << "*CreateArray" << endl;	
+  //cerr << "*CreateArray" << endl;
   return SetWord(new Array());
 }
 
@@ -581,7 +561,7 @@ DeleteArray( const ListExpr typeInfo, Word& w )
 {
   SecondoCatalog* sc = SecondoSystem::GetCatalog();
   Array* array = (Array*)w.addr;
-  //cerr << "*DeleteArray, defined =" << array->isDefined() << endl;	
+  //cerr << "*DeleteArray, defined =" << array->isDefined() << endl;
 
   if (array->isDefined()) {
 
@@ -604,7 +584,7 @@ void CloseArray( const ListExpr typeInfo, Word& w )
 {
   SecondoCatalog* sc = SecondoSystem::GetCatalog();
   Array* array = (Array*)w.addr;
-  //cerr << "*CloseArray, defined =" << array->isDefined() << endl;	
+  //cerr << "*CloseArray, defined =" << array->isDefined() << endl;
 
   if (array->isDefined()) {
 
@@ -626,7 +606,7 @@ void CloseArray( const ListExpr typeInfo, Word& w )
 Word
 CloneArray( const ListExpr typeInfo, const Word& w )
 {
-  //cerr << "*CloneArray" << endl;	
+  //cerr << "*CloneArray" << endl;
   Array* array = (Array*)w.addr;
   Array* newarray;
 
@@ -1665,8 +1645,8 @@ distributeFun (Word* args, Word& result, int message, Word& local, Supplier s)
 
   } else {
 
-    // should never happen	  
-    assert(false);	  
+    // should never happen
+    assert(false);
     return 1;
   }
 }
@@ -1758,18 +1738,18 @@ summarizeFun( Word* args, Word& result, int message, Word& local, Supplier s )
 
       while (current < array->getSize())
       {
-    	Relation* r=static_cast<Relation*>(array->getElement(current).addr);
-    	if (r->GetNoTuples() > 0)
-    	{
-    	  current++;
-		  rit = r->MakeScan();
-		  return true;
-    	}
-    	else
-    	{
-    	  current++;
-    	  continue;
-    	}
+    Relation* r=static_cast<Relation*>(array->getElement(current).addr);
+    if (r->GetNoTuples() > 0)
+    {
+      current++;
+      rit = r->MakeScan();
+      return true;
+    }
+    else
+    {
+      current++;
+      continue;
+    }
       }
 
       rit=0;
