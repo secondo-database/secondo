@@ -43,8 +43,15 @@ And includes one method:
 #ifndef HADOOPPARALLELALGEBRA_H_
 #define HADOOPPARALLELALGEBRA_H_
 
+#define MAX_WAITING_TIME 10
+
+#include <cstdlib>
 #include "FTextAlgebra.h"
 #include "RTuple.h"
+#include "FileSystem.h"
+#include <stdio.h>
+#include <fcntl.h>
+#include <signal.h>
 
 /*
 1.1 deLocalInfo Class
@@ -265,7 +272,6 @@ class pj2LocalInfo
 private:
   Word streamA, streamB;
   Supplier pf;  //parameter function
-
   int keyAIndex, keyBIndex;
 
   TupleBuffer *tba, *tbb;
@@ -381,5 +387,153 @@ struct a0tLocalInfo
   }
 };
 
+
+/*
+1.4 FFeedLocalInfo Class
+
+Assists ~ffeed~ operator.
+Support progress estimation.
+
+*/
+class FFeedLocalInfo: public ProgressLocalInfo
+{
+public:
+  FFeedLocalInfo( ListExpr streamTypeList, string _svn = "")
+  : tupleBlockFile(0),servName(_svn),
+    baseRemotePath("secondo/bin/parallel/")
+  {
+
+    tupleType = new TupleType(SecondoSystem::GetCatalog()
+                    ->NumericType(nl->Second(streamTypeList)));
+  }
+
+  ~FFeedLocalInfo() {
+    if (tupleBlockFile)
+    {
+      delete tupleBlockFile;
+      tupleBlockFile = 0;
+    }
+    if (tupleType)
+    {
+      tupleType->DeleteIfAllowed();
+    }
+  }
+
+  bool fetchBlockFile(string relName, string filePath)
+  {
+    if ("" != servName)
+    {
+      //remote mode
+      system(("scp " + servName + ":" + baseRemotePath + relName
+          + " " + filePath).c_str());
+    }
+
+    if (!FileSystem::FileOrFolderExists(filePath))
+    {
+      cerr << "Error: File '" << filePath
+           << "' doesn't exist!\n" << endl;
+      return false;
+    }
+    else
+    {
+      tupleBlockFile = new ifstream(filePath.c_str(), ios::binary);
+      if (!tupleBlockFile->good())
+      {
+        cerr << "Error accessing file '" << filePath << "'\n\n";
+        tupleBlockFile = 0;
+      }
+    }
+
+    if (tupleBlockFile)
+    {
+      //get the description list
+      u_int32_t descSize;
+      size_t fileLength;
+      tupleBlockFile->seekg(0, ios::end);
+      fileLength = tupleBlockFile->tellg();
+      tupleBlockFile->seekg(
+          (fileLength - sizeof(descSize)), ios::beg);
+      tupleBlockFile->read((char*)&descSize, sizeof(descSize));
+
+      char descStr[descSize];
+      tupleBlockFile->seekg(
+          (fileLength - (descSize + sizeof(descSize))), ios::beg);
+      tupleBlockFile->read(descStr, descSize);
+      tupleBlockFile->seekg(0, ios::beg);
+
+      NList descList = NList(binDecode(string(descStr)));
+
+      //Initialize the sizes of progress local info
+      noAttrs = tupleType->GetNoAttributes();
+      total = descList.first().intval();
+      attrSize = new double[noAttrs];
+      attrSizeExt = new double[noAttrs];
+      for(int i = 0; i < noAttrs; i++)
+      {
+        attrSizeExt[i] =
+            descList.elem(4 + i*2).realval() / total;
+        attrSize[i] =
+            descList.elem(4 + (i*2 + 1)).realval() / total;
+
+        SizeExt += attrSizeExt[i]; //average sizeExt of a tuple
+        Size += attrSize[i];
+      }
+
+      sizesInitialized = true;
+      sizesChanged = true;
+    }
+
+    return true;
+  }
+
+  Tuple* getNextTuple(){
+    if (0 == tupleBlockFile )
+    {
+      cerr << "no block file" << endl;
+      return 0;
+    }
+
+    Tuple* t = 0;
+    u_int32_t blockSize;
+    tupleBlockFile->read(
+        reinterpret_cast<char*>(&blockSize),
+        sizeof(blockSize));
+    if (!tupleBlockFile->eof() && (blockSize > 0))
+    {
+      blockSize -= sizeof(blockSize);
+      char tupleBlock[blockSize];
+      tupleBlockFile->read(tupleBlock, blockSize);
+      t = new Tuple(tupleType);
+      t->ReadFromBin(tupleBlock, blockSize);
+    }
+
+    return t;
+  }
+
+  void checkServ(const string newServName)
+  {
+    if (newServName != servName)
+      servName = newServName;
+  }
+
+  ifstream *tupleBlockFile;
+  TupleType* tupleType;
+
+  string servName;
+  const string baseRemotePath;
+
+};
+
+/*
+1.5 structure ~fconsumeLocalInfo~
+
+Assist ~fconsume~ operator.
+
+*/
+struct fconsumeLocalInfo
+{
+  int state;
+  int current;
+};
 
 #endif /* HADOOPPARALLELALGEBRA_H_ */

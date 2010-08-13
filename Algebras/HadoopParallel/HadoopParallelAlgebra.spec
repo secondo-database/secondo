@@ -23,4 +23,4 @@ operator parajoin alias PARAJOIN pattern _ _ _ op[fun] implicit parameters strea
 operator parajoin2 alias PARAJOIN2 pattern _ _ op[_,_;fun] implicit parameters stream1, stream2 types ANY, ANY2 
 operator add0Tuple alias ADD0TUPLE pattern _ op
 operator fconsume alias FCONSUME pattern _ op [_, _]
-operator ffeed alias FFEED pattern op (_,_,_)
+operator ffeed alias FFEED pattern op (_,_,_,_,_,_)
