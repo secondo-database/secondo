@@ -65,7 +65,6 @@ but includes tuples of different schemes.
 #include "Base64.h"
 #include "regex.h"
 #include "FileSystem.h"
-#include "../Array/ArrayAlgebra.h"
 
 using namespace symbols;
 using namespace std;
@@ -1784,37 +1783,76 @@ int add0TupleValueMap(Word* args, Word& result,
 
 This operator maps
 
-----   stream(tuple(...)) x string x string x [int]
-                      x m_machine1 x m_machine2 -> bool
+----   ( stream(tuple(...)) x string x string x [int]
+             x [m\_Machine1] x [m\_Machine2]
+             x [array(string) x int x int x int] )-> bool
 ----
 
-This operator writes the tuples of the accepted tuple-stream
-into a binary file. The name of the file depends on the second
-accepted argument ~fileName~. If the third argument ~index~ is
-available, then the file name will add a postfix with this ~index~,
-to distinguish this file from a group of similar files.
+Operator ~fconsume~ writes the accepted tuple-stream into a binary file,
+and put the nested list of the input stream's schema
+into a separate text file.
+Totally it has three different modes:
 
-Besides, the nested list of the relation's type is written into
-a separated file but in a same directory. Use a separated file to
-put the type information is because the type mapping function of
-the below operator ~ffeed~ needs to read this file,
-and return the type information while importing the binary file.
+  * Local mode
+  * Type remote mode
+  * Data remote mode
 
-Update ~fconsume~ maps
+Local mode means ~fconsume~ writes both binary file and schema file
+to local hard disk. Then the type remote mode means it writes both
+files to local disk, and copy the schema file to at most two remote
+machines' disks. At last the data remote mode means it not only
+copies the schema file to remote machine, but also the binary files,
+and if required, it also delete these two files on local disk.
 
-----
-stream(tuple(...)) x string x [int]
-x [string] x [m_Machine1] x [m_Machine2] -> BOOL
-----
+This operator supports at most 9 arguments, the top three are necessary,
+then the next three are optional. The end four arguments are
+optional as a whole, i.e., if required, these four arguments are
+asked as a whole.
 
-The updated ~fconsume~ operator besides exporting the tuple stream
-into a local binary file, also put its schema file to two remote
-machine by using sftp server.
+The first three necessary arguments are the accepted tuple stream,
+the name and the path of the output files. The file name must not
+be empty, because it decides the output files' names. Assume the
+file name is given as "FILE", then the exported schema file name
+is FILE\_type. If the optional fourth argument ~index~ is given,
+then the binary file name is FILE\_index.
+The file path could be empty, and the files will be put into
+the default path \$SECONDO\_BUILD\_DIR/bin/parallel/
+if the given path is empty. In the contrast, the given path must be
+an absolute Unix path if it is not empty.
 
-And it also adds the third argument,
-~path~ which also is an optional argument,
-for writing the binary
-file to a specialized place other than the default one.
+The fourth argument ~index~ is optional, it gives an identifiable
+postfix to the binary file. If it's not given, then the binary file
+name is just the one we give as the second argument.
+
+If only set at most above four arguments, then the operator is
+used as local mode. And it changes to type remote mode if one of the
+next two arguments is given.
+
+The next two arguments are symbol type, and it must start with
+prefix 'm\_' to indicate that they are the names of two machines.
+These two parameters denotes two remote machines' names,
+then ~fconsume~ copies the schema file to them.
+It's also possible that only one argument is denoted.
+
+For transporting files between different machines,
+we use utility ~scp~ to copy files,
+and it must doesn't need any password between these machines.
+
+The last four arguments: ~Machines~, ~sI~, ~tI~ and ~dT~
+are viewed as a whole, and are used to process data remote mode.
+~Machines~ is a string array, each element is one remote machine's name,
+which keeps non-password-required ssh connection with the local machine.
+~sI~ means self index, is the array index of the local machine.
+~tI~ means target index, is the array index the first target
+machine where the operator will duplicate the binary file to.
+The last argument ~dT~ means duplicate times, i.e. how many remote
+machines will keep the replication of the binary file.
+If ~dT~ is bigger than 1, then ~fconsume~ will not only copy the
+binary file to the machine where ~tI~ point to in ~Machines~,
+but also copy to (~dT~ - 1) remote machines after ~tI~.
+If the duplication keeping machines don't contain the local one,
+then the produced binary file will be removed after the replication.
+
 
 5.15.0 Specification
 
@@ -1826,9 +1864,14 @@ struct FConsumeInfo : OperatorInfo {
   {
     name =      "fconsume";
     signature = "stream(tuple(...)) x string x string "
-        "x [int] x [m_machine1] x [m_machine2] -> bool";
-    syntax =    "_ fconsume[ _ , _ , _ , _ , _ ]";
-    meaning =   "write a stream of tuples into a binary file";
+        "x [int] x [m_machine1] x [m_machine2] "
+        "x [ array(string) x int x int x int ] -> bool";
+    syntax =    "_ fconsume[ _ , _ , _ , _ , _ , _, _, _, _ ]";
+    meaning =   "Write a stream of tuples into a binary file, "
+        "and may replicate to some remote machines."
+        "The number of arguments are changed "
+        "along with different mode, details about modes"
+        "can be read in source code";
   }
 
 };
@@ -1842,10 +1885,19 @@ ListExpr FConsumeTypeMap(ListExpr args)
   NList l(args);
   string err = "operator fconsume expects "
                "(stream(tuple(...)) string string "
-               "[int] [m_Machine1] [m_Machine1])";
+               "[int] [m_Machine1] [m_Machine1] "
+               " [ array(string) x int x int x int] )";
 
-  //operator can take at least 2, at most 6 arguments.
   int len = l.length();
+
+  //If the data remote mode exist, then the first parameter
+  //start from ~drmPos~.
+  int drmPos = (len - 4);
+
+  //First type mapping the operator without considering data remote
+  if (drmPos > 2)
+    len -= 4;
+
   if(len < 3 || len > 6)
     return l.typeError(err);
 
@@ -1902,12 +1954,31 @@ ListExpr FConsumeTypeMap(ListExpr args)
     }
   }
 
+  //Second consider the situation with data remote mode
+  if( drmPos > 2 )
+  {
+    NList arrayList= l.elem(++drmPos);
+    NList siList = l.elem(++drmPos);
+    NList tiList = l.elem(++drmPos);
+    NList dtList = l.elem(++drmPos);
+
+    if (!(arrayList.first().isSymbol("array")
+        && arrayList.second().isSymbol(Symbols::STRING())))
+      return l.typeError(err);
+
+    if (!( siList.isSymbol(Symbols::INT())
+        && tiList.isSymbol(Symbols::INT())
+        && dtList.isSymbol(Symbols::INT())))
+      return l.typeError(err);
+  }
+
   return NList(NList("APPEND"),
                NList(NList(haveIndex),
                      NList(srvName[0],true),
                      NList(srvName[1],true)),
                NList(Symbols::BOOL())).listExpr();
 }
+
 
 /*
 5.14.2 Value mapping
@@ -1920,52 +1991,90 @@ int FConsumeValueMap(Word* args, Word& result,
 
   if ( message <= CLOSE)
   {
+    result = qp->ResultStorage(s);
+
     string relName, path;
-    bool haveIndex;
+    bool haveIndex = false;
     int index = -1;
     string machine[2] = {"",""};  //two remote sftp server name
+    Array *machines = 0;
+    int si = -1, ti = -1, dt = -1;
+    bool drMode = false;
 
-    int len = qp->GetNoSons(s);
     relName = ((CcString*)args[1].addr)->GetValue();
     path = ((CcString*)args[2].addr)->GetValue();
 
+    if("" == relName)
+    {
+      cerr << "Error: The file name doesn't exit! "<< endl;
+      ((CcBool*)(result.addr))->Set(true, false);
+      return 0;
+    }
+/*
+The indexes of different parameters are fixed according to
+the argument list length.
+
+*/
+    const int paraMap[12][8] = {
+        { -1, -1, -1, -1, -1, -1, -1, -1 },  //(3)0
+        {  4,  3, -1, -1, -1, -1, -1, -1 },  //(4T)1
+        {  4, -1,  5, -1, -1, -1, -1, -1 },  //(4F)2
+        {  5,  3,  6, -1, -1, -1, -1, -1 },  //(5T)3
+        {  5, -1,  6,  7, -1, -1, -1, -1 },  //(5F)4
+        { -1,  3,  7,  8, -1, -1, -1, -1 },  //(6)5
+        { -1, -1, -1, -1,  3,  4,  5,  6 },  //(7)6
+        {  8,  3, -1, -1,  4,  5,  6,  7 },  //(8T)7
+        {  8, -1,  9, -1,  4,  5,  6,  7 },  //(8F)8
+        {  9,  3, 10, -1,  5,  6,  7,  8 },  //(9T)9
+        {  9, -1, 10, 11,  5,  6,  7,  8 },  //(9F)10
+        { -1,  3, 11, 12,  6,  7,  8,  9 }   //(10)11
+    };
+
+    int len = qp->GetNoSons(s);
+    int paraIndex;
+
     switch(len)
     {
-      case 6:{
-        //only take three necessary arguments
-        break;
-      }
-      case 7:{
-        haveIndex = ((CcBool*)args[4].addr)->GetValue();
-        if (haveIndex)
-          index = ((CcInt*)args[3].addr)->GetValue();
-        else
-          machine[0] = ((CcString*)args[5].addr)->GetValue();
-        break;
-      }
-      case 8:{
-        haveIndex = ((CcBool*)args[5].addr)->GetValue();
-        if (haveIndex)
-        {
-          index = ((CcInt*)args[3].addr)->GetValue();
-          machine[0] = ((CcString*)args[6].addr)->GetValue();
-        }
-        else
-        {
-          machine[0] = ((CcString*)args[6].addr)->GetValue();
-          machine[1] = ((CcString*)args[7].addr)->GetValue();
-        }
-        break;
-      }
-      case 9:{
-        //have all arguments
-        index = ((CcInt*)args[3].addr)->GetValue();
-        machine[0] = ((CcString*)args[7].addr)->GetValue();
-        machine[1] = ((CcString*)args[8].addr)->GetValue();
-      }
+      case 6: paraIndex = 0; break;
+      case 7: paraIndex = 1; break;
+      case 8: paraIndex = 3; break;
+      case 9: paraIndex = 5; break;
+      case 10: paraIndex = 6; break;
+      case 11: paraIndex = 7; break;
+      case 12: paraIndex = 9; break;
+      case 13: paraIndex = 11; break;
     }
 
-    result = qp->ResultStorage(s);
+    //check ~haveIndex~
+    if(paraMap[paraIndex][0] > 0)
+    {
+      haveIndex =
+          ((CcBool*)args[paraMap[paraIndex][0]].addr)->GetValue();
+      if (!haveIndex)
+        paraIndex++;
+    }
+
+    //file index
+    if(paraMap[paraIndex][1] > 0)
+      index = ((CcInt*)args[paraMap[paraIndex][1]].addr)->GetValue();
+
+    //schema machine name
+    for(int i = 0; i < 2; i++)
+    {
+      if (paraMap[paraIndex][2 + i] > 0)
+        machine[i] =((CcString*)args[
+                     paraMap[paraIndex][2 + i]].addr)->GetValue();
+    }
+
+    //machine array
+    if (paraMap[paraIndex][4] > 0)
+    {
+      drMode = true;
+      machines = (Array*)args[paraMap[paraIndex][4]].addr;
+      si = ((CcInt*)args[paraMap[paraIndex][5]].addr)->GetValue();
+      ti = ((CcInt*)args[paraMap[paraIndex][6]].addr)->GetValue();
+      dt = ((CcInt*)args[paraMap[paraIndex][7]].addr)->GetValue();
+    }
 
     fcli = (fconsumeLocalInfo*) local.addr;
     if (fcli) delete fcli;
@@ -1976,7 +2085,7 @@ int FConsumeValueMap(Word* args, Word& result,
     local.setAddr(fcli);
 
     //If path is not specified, then use the default path
-    //$SECONDO\_BUILD\_DIR\/bin\/parallel
+    //\$SECONDO\_BUILD\_DIR/bin/parallel/
     //And the specified path must be an absolute path
     if ("" == path)
     {
@@ -2013,7 +2122,7 @@ int FConsumeValueMap(Word* args, Word& result,
       if ("" != machine[i])
       {
         system(("scp " + typeFileName + " "
-            + machine[i] + ":secondo/bin/parallel/").c_str());
+            + machine[i] + rmDefaultPath).c_str());
       }
     }
 
@@ -2024,6 +2133,7 @@ int FConsumeValueMap(Word* args, Word& result,
       ss << relName << "_" << index;
       relName = ss.str();
     }
+
     //create a path for this file.
     string blockFileName = path;
     FileSystem::AppendItem(blockFileName, relName);
@@ -2097,6 +2207,40 @@ int FConsumeValueMap(Word* args, Word& result,
     blockFile.close();
     cout << "\nCreate block fileName: " << blockFileName << endl;
 
+    if (drMode)
+    {
+      int aSize = machines->getSize();
+      bool dupliMachines[aSize];
+      bool keepLocal = false;
+      memset(dupliMachines, 0, aSize);
+
+      //Mark the machines need to be copied
+      for(int i = 0; i < dt; i++)
+        dupliMachines[((ti - 1 + i) % aSize)] = true;
+
+      if (dupliMachines[(si -1)])
+      {
+        keepLocal = true;
+        dupliMachines[(si -1)] = false;
+      }
+
+      for(int i = 0; i < aSize; i++)
+      {
+        if (dupliMachines[i])
+          system(("scp " + blockFileName + " "
+            + ((CcString*)(machines->getElement(i)).addr)->GetValue()
+            + rmDefaultPath + relName ).c_str());
+      }
+
+      if (!keepLocal)
+      {
+        system(("rm " + blockFileName).c_str());
+        cerr << "Local file '" + blockFileName
+            + "' is removed" << endl;
+      }
+
+    }
+
     ((CcBool*)(result.addr))->Set(true, true);
     fcli->state = 1;
     return 0;
@@ -2168,10 +2312,14 @@ int FConsumeValueMap(Word* args, Word& result,
   return 0;
 }
 
+
+
 const string FConsumeSpec  =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" ) "
-  "( <text>(stream(tuple(...)) x string x [int]) -> "
-  "( bool )</text--->"
+  "( <text>(stream(tuple(...)) x string x string x [int]"
+  " x [m_Machine1] x [m_Machine2]"
+  " x [array(string) x int x int x int] ) -> "
+  " bool )</text--->"
   "<text>_ fconsume[ _ , _ ]</text--->"
   "<text>Write a stream of tuples into a binary file.</text--->"
   ") )";
@@ -2189,13 +2337,16 @@ Operator fconsumeOp (
 
 This operator maps
 
-----   relName x string x [int] -> rel(tuple(...))
+----
+relName x path x [fileIndex]
+x [ array(string) x int x int x m\_schemaMachine]
+-> rel(tuple(...))
 ----
 
 This operator restore a relation from a binary file
 created by ~fconsume~ operator.
 
-The first argument is used to define the name of the relation that we
+The first argument ~relName~ is used to define the name of the relation that we
 should read from. It's composed by two parts, prefix ~f\_~ and ~name~.
 The prefix is used to specify that the relation is read from a file.
 
@@ -2205,42 +2356,30 @@ file, whose name is ~name~ \_index,
 where the ~index~ is the third argument of this query.
 If the ~index~ doesn't exist, then the file name is only the ~name~ itself.
 
-Besides, the second argument defines the ~path~ of these two files.
-If the ~path~ is empty, then the files are put in a default path,
-SECONDO\_BUILD\_DIR/bin/cell/, or else the binary file can't be put into
-another specified path.
-
-Update ~ffeed~ operator.
-
-This oeprator maps
-
-----
-relName x path x [fileIndex] x [ Machines x machineIndex x schemaMachine]
--> rel(tuple(...))
-----
+The type file which contains the schema of the relation must be
+put into the default path SECONDO\_BUILD\_DIR/bin/parallel/.
+But the binary file could be put into another path that is specified
+by the second argument ~path~. If ~path~ is empty, then
+the binary file also must be put into the default path,
 
 Besides reading file(both schema file and binary file) from local hard disk,
-it's also possible to read it from a remote machine, if that machine offers
-sftp server, and there is no need to input username or password.
+~ffeed~ also support reading data from another machine if these two
+machines are linked by non-password-required ssh connection.
+
+If want to get the relation from a remote machine, then following
+four arguments must be given as a whole: ~Machines~, ~ti~, ~att~
+and ~m\_schemaMachine~.
 
 The ~Machines~ is an Secondo array of strings, which contains the names
-of all computers that the current node can access by sftp.
-The ~machineIndex~ is an integer, it is used to denote
-which machine in ~Machines~ contains the tuple binary file.
-The ~schemaMachine~ is an symbol, just like relName,
-it is used to denote a machine that contains the schema file that
-the operator ~fconsume~ writes.
-
-This operator reads the tuple file in two different situations:
-*local* or *remote*.
-
-  * *local* means both the schema file and the tuple binary file
-are stored in the local disk. And it only needs at most top three
-arguments.
-
-  * *remote* means both these two files are stored in a remote machine
-which can be accessed by sftp. Then the operator need to copy the
-files to the local hard disk, then to read it as usual.
+of all computers that the current node can access by ssh.
+The ~ti~ means target index, it is used to denote which machine
+in ~Machines~ contains the binary file.
+The ~att~ means attempt times, if ~ffeed~ can't copy the binary file
+from the machine which ~ti~ point to, then it will try to read the
+file from the machine (~ti~ + 1), until it's totally tried ~att~ times.
+The ~schemaMachine~ is an symbol, just like ~relName~, but is started
+with ~m\_~ prefix to state this is a symbol of a machine.
+It is used to denote a machine that contains the text schema file.
 
 
 5.15.0 Specification
@@ -2252,8 +2391,10 @@ struct FFeedInfo : OperatorInfo {
   FFeedInfo() : OperatorInfo()
   {
     name =      "ffeed";
-    signature = "relName x string x [int] -> stream(tuple(...))";
-    syntax =    "ffeed( _, _, _ , _, _, _)";
+    signature = "(relName x path x [fileIndex]"
+                "x [ array(string) x int x int x m_schemaMachine]"
+                "-> rel(tuple(...)))";
+    syntax =    "ffeed( _, _, _ , _, _, _, _)";
     meaning =   "restore a relation from a binary file"
                 "created by ~fconsume~ operator.";
   }
@@ -2268,11 +2409,12 @@ ListExpr FFeedTypeMap(ListExpr args)
 {
   NList l(args);
   string err = "ffeed expects (f_relName, string, [int], "
-      "[(array string), int, m_machine])";
+      "[(array string), int, int, m_machine])";
 
-  //operator only accept 2|3|5|6 arguments
+  //operator only accept 2|3|6|7 arguments
   int len = l.length();
-  if ((len < 2) || (len > 6) || (len == 4))
+  if (!( (2 == len) || (3 == len)
+         ||(6 == len) || (7 == len) ))
     return l.typeError(err);
 
   if (!(nl->IsAtom(l.first().listExpr())))
@@ -2286,16 +2428,17 @@ ListExpr FFeedTypeMap(ListExpr args)
   if (!l.second().isSymbol(Symbols::STRING()))
     return l.typeError(err);
 
-  if ((len%3 == 0) && !l.third().isSymbol(Symbols::INT()))
+  if (((3 == len) || (7 == len))
+      && !l.third().isSymbol(Symbols::INT()))
     return l.typeError(err);
 
   //The type file must be put into the default directory
   string typeFileName = FileSystem::GetCurrentFolder();
   FileSystem::AppendItem(typeFileName, "parallel");
   FileSystem::AppendItem(typeFileName, relName + "_type");
-  if (len > 4)
+  if (len > 5)
   {
-    int pos = (6 == len) ? 4 : 3;
+    int pos = (6 == len) ? 3 : 4;
 
     //remote mode
     if (!(l.elem(pos).first().isSymbol("array")
@@ -2304,20 +2447,22 @@ ListExpr FFeedTypeMap(ListExpr args)
       return l.typeError(err);
     }
 
-    pos++;
-    if (!l.elem(pos).isSymbol(Symbols::INT()))
+    if (!l.elem(++pos).isSymbol(Symbols::INT()))
       return l.typeError(err);
 
-    pos++;
-    string nodeName = nl->SymbolValue(l.elem(pos).listExpr());
+    if(!l.elem(++pos).isSymbol(Symbols::INT()))
+      return l.typeError(err);
+
+    string nodeName = nl->SymbolValue(l.elem(++pos).listExpr());
     if (nodeName.compare(0, 2, "m_") > 0)
       return l.typeError(err);
     nodeName = nodeName.substr(2);
 
     //!!!we assume in every node's home directory, where the sftp
-    //server start, exists a link to its $SECONDO\_BUILD\_DIR !!!
-    system(("scp " + nodeName + ":secondo/bin/parallel/"
-        + relName + "_type" + " " + typeFileName).c_str());
+    //server start, exists a link to its \$SECONDO\_BUILD\_DIR !!!
+    system(("scp "
+        + nodeName + rmDefaultPath + relName + "_type" + " "
+        + typeFileName).c_str());
   }
   ListExpr relType;
   if(!nl->ReadFromFile(typeFileName, relType))
@@ -2353,9 +2498,9 @@ int FFeedValueMap(Word* args, Word& result,
   string relName, path;
   FFeedLocalInfo* ffli = 0;
   Supplier sonOfFeed;
-  Array *machines;
+  Array *machines = 0;
   int mIndex = -1;
-  string servName = "";
+  int attemptTime = 0;
 
   switch(message)
   {
@@ -2374,19 +2519,19 @@ int FFeedValueMap(Word* args, Word& result,
         relName = ((CcString*)args[3].addr)->GetValue();
         break;
       }
-      case 6:{
+      case 7:{
         machines = (Array*)args[2].addr;
         mIndex = ((CcInt*)args[3].addr)->GetIntval() - 1;
-        relName = ((CcString*)args[5].addr)->GetValue();
-        servName = ((CcString*)(machines->getElement(mIndex)).addr)->GetValue();
+        attemptTime = ((CcInt*)args[4].addr)->GetIntval();
+        relName = ((CcString*)args[6].addr)->GetValue();
         break;
       }
-      case 7:{
+      case 8:{
         index = ((CcInt*)args[2].addr)->GetIntval();
         machines = (Array*)args[3].addr;
         mIndex = ((CcInt*)args[4].addr)->GetIntval() - 1;
-        relName = ((CcString*)args[6].addr)->GetValue();
-        servName = ((CcString*)(machines->getElement(mIndex)).addr)->GetValue();
+        attemptTime = ((CcInt*)args[5].addr)->GetIntval();
+        relName = ((CcString*)args[7].addr)->GetValue();
         break;
       }
       }
@@ -2407,12 +2552,11 @@ int FFeedValueMap(Word* args, Word& result,
 
       //Reuse the sftp connection
       ffli = (FFeedLocalInfo*) local.addr;
-      if (ffli)
-        ffli->checkServ(servName);
-      else
-        ffli = new FFeedLocalInfo(qp->GetType(s), servName);
+      if (ffli) delete ffli;
+      ffli = new FFeedLocalInfo(qp->GetType(s));
 
-      ffli->fetchBlockFile(relName, path);
+      ffli->fetchBlockFile(
+          relName, path, machines, mIndex, attemptTime);
       ffli->returned = 0;
       local.setAddr(ffli);
       return 0;
