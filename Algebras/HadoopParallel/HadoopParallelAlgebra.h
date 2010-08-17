@@ -52,6 +52,9 @@ And includes one method:
 #include <stdio.h>
 #include <fcntl.h>
 #include <signal.h>
+#include "../Array/ArrayAlgebra.h"
+
+const string rmDefaultPath = /*$HOME/*/":secondo/bin/parallel/";
 
 /*
 1.1 deLocalInfo Class
@@ -398,9 +401,8 @@ Support progress estimation.
 class FFeedLocalInfo: public ProgressLocalInfo
 {
 public:
-  FFeedLocalInfo( ListExpr streamTypeList, string _svn = "")
-  : tupleBlockFile(0),servName(_svn),
-    baseRemotePath("secondo/bin/parallel/")
+  FFeedLocalInfo( ListExpr streamTypeList)
+  : tupleBlockFile(0)
   {
 
     tupleType = new TupleType(SecondoSystem::GetCatalog()
@@ -419,13 +421,25 @@ public:
     }
   }
 
-  bool fetchBlockFile(string relName, string filePath)
+  bool fetchBlockFile(string relName, string filePath,
+      Array* machines = 0, int servIndex = -1, int att = -1)
   {
-    if ("" != servName)
+    //Fetch binary file from remote machine.
+    if (machines && att > 0)
     {
-      //remote mode
-      system(("scp " + servName + ":" + baseRemotePath + relName
-          + " " + filePath).c_str());
+      FileSystem::DeleteFileOrFolder(filePath);
+
+      int aSize = machines->getSize();
+      while((att--) > 0
+          && !FileSystem::FileOrFolderExists(filePath))
+      {
+        string servName =
+            ((CcString*)(machines->
+                getElement((servIndex++) % aSize)).addr)->GetValue();
+
+        system(("scp " + servName + rmDefaultPath + relName
+            + " " + filePath).c_str());
+      }
     }
 
     if (!FileSystem::FileOrFolderExists(filePath))
@@ -488,10 +502,7 @@ public:
 
   Tuple* getNextTuple(){
     if (0 == tupleBlockFile )
-    {
-      cerr << "no block file" << endl;
       return 0;
-    }
 
     Tuple* t = 0;
     u_int32_t blockSize;
@@ -510,17 +521,8 @@ public:
     return t;
   }
 
-  void checkServ(const string newServName)
-  {
-    if (newServName != servName)
-      servName = newServName;
-  }
-
   ifstream *tupleBlockFile;
   TupleType* tupleType;
-
-  string servName;
-  const string baseRemotePath;
 
 };
 
