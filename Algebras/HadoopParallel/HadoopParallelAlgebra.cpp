@@ -2338,37 +2338,41 @@ Operator fconsumeOp (
 This operator maps
 
 ----
-relName x path x [fileIndex]
-x [ array(string) x int x int x m\_schemaMachine]
+string x string x [int] x [schemaMachine]
+x [ array(string) x int x int]
 -> rel(tuple(...))
 ----
 
 This operator restore a relation from a binary file
 created by ~fconsume~ operator.
 
-The first argument ~relName~ is used to define the name of the relation that we
-should read from. It's composed by two parts, prefix ~f\_~ and ~name~.
+The first two string arguments ~relName~ and ~path~ are indispensable.
+~relName~ is used to define the name of the relation that we should read from.
+It's composed by two parts, prefix ~f\_~ and ~name~.
 The prefix is used to specify that the relation is read from a file.
+~path~ could be empty, then the binary file must locate in default
+path \$SECONDO\_BUILD\_DIR/. If it's not empty, then the ~path~ must
+be an absolute path.
 
-As we explained in ~fconsume~, two files are created to store the tuples,
-one is type info file, whose name is ~name~\_type, and another is binary
-file, whose name is ~name~ \_index,
-where the ~index~ is the third argument of this query.
-If the ~index~ doesn't exist, then the file name is only the ~name~ itself.
+The third argument ~index~ defines a postfix of the binary file.
+It's an optional argument, if it's not defined, then the binary file's
+name is only ~name~. Or else, the file's name is ~name~ \_index.
 
-The type file which contains the schema of the relation must be
-put into the default path SECONDO\_BUILD\_DIR/bin/parallel/.
-But the binary file could be put into another path that is specified
-by the second argument ~path~. If ~path~ is empty, then
-the binary file also must be put into the default path,
+The fourth argument ~schemaMachine~ defines a remote machine's
+name which may contains the schema file of the relation.
+It's also an optional argument, if it's not defined,
+then the schema file must be put into the local default path
+SECONDO\_BUILD\_DIR/bin/parallel/.
+If ~schemaMachine~ is defined, then it must be started
+with ~m\_~ prefix to state this is a symbol of a machine.
+And it will be first use scp utility to copy the schma file from
+the defined remote machine to local default path.
 
-Besides reading file(both schema file and binary file) from local hard disk,
+Besides reading binary file from local hard disk,
 ~ffeed~ also support reading data from another machine if these two
 machines are linked by non-password-required ssh connection.
-
 If want to get the relation from a remote machine, then following
-four arguments must be given as a whole: ~Machines~, ~ti~, ~att~
-and ~m\_schemaMachine~.
+three arguments must be given as a whole: ~Machines~, ~ti~ and ~att~.
 
 The ~Machines~ is an Secondo array of strings, which contains the names
 of all computers that the current node can access by ssh.
@@ -2377,9 +2381,6 @@ in ~Machines~ contains the binary file.
 The ~att~ means attempt times, if ~ffeed~ can't copy the binary file
 from the machine which ~ti~ point to, then it will try to read the
 file from the machine (~ti~ + 1), until it's totally tried ~att~ times.
-The ~schemaMachine~ is an symbol, just like ~relName~, but is started
-with ~m\_~ prefix to state this is a symbol of a machine.
-It is used to denote a machine that contains the text schema file.
 
 
 5.15.0 Specification
@@ -2391,8 +2392,8 @@ struct FFeedInfo : OperatorInfo {
   FFeedInfo() : OperatorInfo()
   {
     name =      "ffeed";
-    signature = "(relName x path x [fileIndex]"
-                "x [ array(string) x int x int x m_schemaMachine]"
+    signature = "(relName x path x [fileIndex] x [schemaMachine]"
+                "x [ array(string) x int x int]"
                 "-> rel(tuple(...)))";
     syntax =    "ffeed( _, _, _ , _, _, _, _)";
     meaning =   "restore a relation from a binary file"
@@ -2408,18 +2409,22 @@ struct FFeedInfo : OperatorInfo {
 ListExpr FFeedTypeMap(ListExpr args)
 {
   NList l(args);
-  string err = "ffeed expects (f_relName, string, [int], "
-      "[(array string), int, int, m_machine])";
+  string err = "ffeed expects(f_relName, string, [int], [m_machine]"
+      "[(array string), int, int])";
 
   //operator only accept 2|3|6|7 arguments
   int len = l.length();
-  if (!( (2 == len) || (3 == len)
-         ||(6 == len) || (7 == len) ))
+
+  int drmPos = (len - 3);
+
+  if (drmPos > 1)
+    len -= 3;
+
+  if ( len < 2 || len > 4)
     return l.typeError(err);
 
   if (!(nl->IsAtom(l.first().listExpr())))
     return l.typeError(err);
-
   string relName = nl->SymbolValue(l.first().listExpr());
   if (relName.compare(0, 2, "f_") > 0)
     return l.typeError(err);
@@ -2428,42 +2433,38 @@ ListExpr FFeedTypeMap(ListExpr args)
   if (!l.second().isSymbol(Symbols::STRING()))
     return l.typeError(err);
 
-  if (((3 == len) || (7 == len))
-      && !l.third().isSymbol(Symbols::INT()))
-    return l.typeError(err);
-
   //The type file must be put into the default directory
   string typeFileName = FileSystem::GetCurrentFolder();
   FileSystem::AppendItem(typeFileName, "parallel");
   FileSystem::AppendItem(typeFileName, relName + "_type");
-  if (len > 5)
-  {
-    int pos = (6 == len) ? 3 : 4;
 
-    //remote mode
-    if (!(l.elem(pos).first().isSymbol("array")
-       && l.elem(pos).second().isSymbol(Symbols::STRING())))
+  bool haveIndex = false;
+  int mPos = 3;  //Position of the remote schema machine argument
+  if (len > 2)
+  {
+    if (l.third().isSymbol(Symbols::INT()))
     {
-      return l.typeError(err);
+      haveIndex = true;
+      mPos++;
     }
 
-    if (!l.elem(++pos).isSymbol(Symbols::INT()))
-      return l.typeError(err);
+    if (mPos == len )
+    {
+      if(!l.elem(mPos).isAtom())
+        return l.typeError(err);
+      string nodeName = nl->SymbolValue(l.elem(mPos).listExpr());
+      if (nodeName.compare(0, 2, "m_") > 0)
+        return l.typeError(err);
+      nodeName = nodeName.substr(2);
 
-    if(!l.elem(++pos).isSymbol(Symbols::INT()))
-      return l.typeError(err);
-
-    string nodeName = nl->SymbolValue(l.elem(++pos).listExpr());
-    if (nodeName.compare(0, 2, "m_") > 0)
-      return l.typeError(err);
-    nodeName = nodeName.substr(2);
-
-    //!!!we assume in every node's home directory, where the sftp
-    //server start, exists a link to its \$SECONDO\_BUILD\_DIR !!!
-    system(("scp "
-        + nodeName + rmDefaultPath + relName + "_type" + " "
-        + typeFileName).c_str());
+      //!!!we assume in every node's home directory, where the sftp
+      //server start, exists a link to its \$SECONDO\_BUILD\_DIR !!!
+      system(("scp "
+          + nodeName + rmDefaultPath + relName + "_type" + " "
+          + typeFileName).c_str());
+    }
   }
+
   ListExpr relType;
   if(!nl->ReadFromFile(typeFileName, relType))
   {
@@ -2478,13 +2479,29 @@ ListExpr FFeedTypeMap(ListExpr args)
       return nl->TypeError();
   }
 
+  if (drmPos > 1)
+  {
+    //remote mode
+    drmPos++;
+    if (!(l.elem(drmPos).first().isSymbol("array")
+       && l.elem(drmPos).second().isSymbol(Symbols::STRING())))
+      return l.typeError(err);
+
+    if (!l.elem(++drmPos).isSymbol(Symbols::INT()))
+      return l.typeError(err);
+
+    if(!l.elem(++drmPos).isSymbol(Symbols::INT()))
+      return l.typeError(err);
+  }
+
   ListExpr streamType = nl->TwoElemList(
     nl->SymbolAtom("stream"),
     nl->Second(relType));
 
-  return nl->ThreeElemList(nl->SymbolAtom("APPEND"),
-                          nl->OneElemList(nl->StringAtom(relName)),
-                          streamType);
+  return NList(NList("APPEND"),
+               NList(NList(haveIndex),
+                     NList(relName, true)),
+               NList(streamType)).listExpr();
 }
 
 /*
@@ -2507,33 +2524,19 @@ int FFeedValueMap(Word* args, Word& result,
     case OPEN: {
       path = ((CcString*)args[1].addr)->GetValue();
       int len = qp->GetNoSons(s);
+      int pos = len;
 
-      switch(len)
+      relName = ((CcString*)args[(--pos)].addr)->GetValue();
+      bool haveIndex = ((CcBool*)args[(--pos)].addr)->GetValue();
+
+      if (haveIndex)
+        index = ((CcInt*)args[2].addr)->GetIntval();
+
+      if ((pos - 4) > 0)
       {
-      case 3:{
-        relName = ((CcString*)args[2].addr)->GetValue();
-        break;
-      }
-      case 4:{
-        index = ((CcInt*)args[2].addr)->GetIntval();
-        relName = ((CcString*)args[3].addr)->GetValue();
-        break;
-      }
-      case 7:{
-        machines = (Array*)args[2].addr;
-        mIndex = ((CcInt*)args[3].addr)->GetIntval() - 1;
-        attemptTime = ((CcInt*)args[4].addr)->GetIntval();
-        relName = ((CcString*)args[6].addr)->GetValue();
-        break;
-      }
-      case 8:{
-        index = ((CcInt*)args[2].addr)->GetIntval();
-        machines = (Array*)args[3].addr;
-        mIndex = ((CcInt*)args[4].addr)->GetIntval() - 1;
-        attemptTime = ((CcInt*)args[5].addr)->GetIntval();
-        relName = ((CcString*)args[7].addr)->GetValue();
-        break;
-      }
+        attemptTime = ((CcInt*)args[(--pos)].addr)->GetIntval();
+        mIndex = ((CcInt*)args[(--pos)].addr)->GetIntval() - 1;
+        machines = (Array*)args[(--pos)].addr;
       }
 
       if(index >= 0)
