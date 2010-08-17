@@ -682,11 +682,13 @@ TReceiveStream(Word* args, Word& result,
     TupleType* tupleType;
     TupleBuffer *tupleBuffer;
     GenericRelationIterator *iterator;
+    bool sockValid; //Indicate whether the socket is available
 
     inline RemoteStreamInfo(
         Socket *client, string ktn, TupleType* tupleType ):
       client( client ), sock_ID(0), keyTypeName(ktn),
       tupleType( tupleType ), tupleBuffer(0), iterator(0)
+      ,sockValid(true)
     {
       haveKey = keyTypeName.size() > 0 ? true : false;
     }
@@ -803,24 +805,29 @@ TReceiveStream(Word* args, Word& result,
       int sock_Num = -1;
 
       size_t offset = 0;
-      while( (sock_Num =
-          receiveSocket(client, tupleBlock + offset, sock_ID)) > 1)
+      if (remoteStreamInfo->sockValid)
       {
-        offset += SOCKTUP_SIZE;
-      }
+          while ((sock_Num = receiveSocket(
+              client, tupleBlock + offset, sock_ID)) > 1)
+          {
+            offset += SOCKTUP_SIZE;
+          }
 
-      if (sock_Num > 0)
-      {
-        offset += SOCKTUP_SIZE;
-        //Load the tuples from the buffer
-        tuple = remoteStreamInfo->LoadTuples(tupleBlock, offset);
-        if (tuple)
-        {
-          result.setAddr(tuple);
-          TRACE_LEAVE
-          return YIELD;
+          if (sock_Num > 0)
+          {
+            offset += SOCKTUP_SIZE;
+            //Load the tuples from the buffer
+            tuple = remoteStreamInfo->LoadTuples(tupleBlock, offset);
+            if (tuple)
+            {
+              result.setAddr(tuple);
+              TRACE_LEAVE
+              return YIELD;
+            }
+          }
+          else
+            remoteStreamInfo->sockValid = false;
         }
-      }
 
       //No more results
       result.setAddr(0);
