@@ -2320,7 +2320,7 @@ const string FConsumeSpec  =
   " x [m_Machine1] x [m_Machine2]"
   " x [array(string) x int x int x int] ) -> "
   " bool )</text--->"
-  "<text>_ fconsume[ _ , _ ]</text--->"
+  "<text>_ fconsume[ _ , _ , _ , _ , _ , _, _, _, _ ]</text--->"
   "<text>Write a stream of tuples into a binary file.</text--->"
   ") )";
 
@@ -2394,7 +2394,7 @@ struct FFeedInfo : OperatorInfo {
     name =      "ffeed";
     signature = "(relName x path x [fileIndex] x [schemaMachine]"
                 "x [ array(string) x int x int]"
-                "-> rel(tuple(...)))";
+                "-> stream(tuple(...)))";
     syntax =    "ffeed( _, _, _ , _, _, _, _)";
     meaning =   "restore a relation from a binary file"
                 "created by ~fconsume~ operator.";
@@ -2636,9 +2636,10 @@ therefore it doesn't have any son operator.
 
 const string FFeedSpec  =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" ) "
-  "( <text>(relName x string x [int] ) -> "
+  "( <text>(relName x path x [fileIndex] x [schemaMachine] "
+  "x [ array(string) x int x int]) -> "
   "( stream(tuple(...)) )</text--->"
-  "<text>ffeed( _, _, _ )</text--->"
+  "<text>ffeed( _, _, _, _, _, _, _)</text--->"
   "<text>restore a relation from a binary file "
   "created by ~fconsume~ operator.</text--->"
   ") )";

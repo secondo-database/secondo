@@ -427,19 +427,30 @@ public:
     //Fetch binary file from remote machine.
     if (machines && att > 0)
     {
-      FileSystem::DeleteFileOrFolder(filePath);
-
+      char hostName[255];
       int aSize = machines->getSize();
-      while((att--) > 0
-          && !FileSystem::FileOrFolderExists(filePath))
+
+      do
       {
         string servName =
             ((CcString*)(machines->
                 getElement((servIndex++) % aSize)).addr)->GetValue();
 
-        system(("scp " + servName + rmDefaultPath + relName
-            + " " + filePath).c_str());
-      }
+        //If the file is on local machine, don't delete it.
+        memset(hostName, '\0', sizeof(hostName));
+        if (0 == gethostname(hostName, sizeof(hostName)))
+        {
+          if (0 != strcmp(hostName, servName.c_str()))
+          {
+            FileSystem::DeleteFileOrFolder(filePath);
+            system(("scp " + servName + rmDefaultPath + relName
+                + " " + filePath).c_str());
+          }
+          else
+            break;
+        }
+      }while((--att) > 0
+          && !FileSystem::FileOrFolderExists(filePath));
     }
 
     if (!FileSystem::FileOrFolderExists(filePath))
