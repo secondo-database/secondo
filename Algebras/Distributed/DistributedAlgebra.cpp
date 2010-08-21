@@ -42,6 +42,7 @@ The address and port of the server must be set at lines 188, 238 and 261 of this
 #include "NestedList.h"
 #include "QueryProcessor.h"
 #include "StandardTypes.h"
+#include "RelationAlgebra.h"
 
 #include "TypeMapUtils.h"
 #include "Symbols.h"
@@ -101,12 +102,12 @@ class DArray
 {
          public:
          DArray();
-         DArray(ListExpr,string,int);
+         DArray(ListExpr,string,int,ListExpr);
          
          ~DArray();
          
-         void initialize(ListExpr,string, int,Word*);
-         void initialize(ListExpr,string,int);
+         void initialize(ListExpr,string, int,ListExpr,Word*);
+         void initialize(ListExpr,string,int,ListExpr);
          Word get(int);
          void set(Word,int);
          
@@ -114,6 +115,7 @@ class DArray
          int getAlgID();
          int getTypID();
          DServerManager* getServerManager();
+         ListExpr getServerList();
          Word* getElements();
          bool isDefined();
          string getName();
@@ -151,6 +153,7 @@ class DArray
          int typ_id;
          string name;
          ListExpr type;
+         ListExpr serverlist;
          
          DServerManager* manager;
          //DServer* server;
@@ -176,7 +179,7 @@ DArray::DArray()
          no++;
 }
 
-DArray::DArray(ListExpr n_type, string n, int s)
+DArray::DArray(ListExpr n_type, string n, int s, ListExpr n_serverlist)
 {
          defined = true;
          
@@ -190,12 +193,7 @@ DArray::DArray(ListExpr n_type, string n, int s)
                   
          elements = new Word[size];
          
-         ListExpr serverlist = nl->TwoElemList((nl->TwoElemList
-                                        (nl->StringAtom("192.168.2.3"),
-                                                       nl->IntAtom(1234))),
-                                        (nl->TwoElemList(
-                                                nl->StringAtom("127.0.0.1"),
-                                                nl->IntAtom(1234))));
+         serverlist = n_serverlist;
          manager = new DServerManager(serverlist, name,type,size);
          //server = manager->getServerbyID(0);
          //server = new DServer("192.168.2.3",1234,name,type);         
@@ -242,7 +240,8 @@ void DArray::refresh(int i)
 }
 
 
-void DArray::initialize(ListExpr n_type, string n, int s, Word* n_elem)
+void DArray::initialize(ListExpr n_type, string n, int s,
+                                  ListExpr n_serverlist, Word* n_elem)
 {
          defined = true;
          
@@ -253,11 +252,8 @@ void DArray::initialize(ListExpr n_type, string n, int s, Word* n_elem)
          
          size = s;
          
-         ListExpr serverlist = nl->TwoElemList(
-                                (nl->TwoElemList(nl->StringAtom("192.168.2.3"),
-                                 nl->IntAtom(1234))),
-                                (nl->TwoElemList(nl->StringAtom("127.0.0.1"),
-                                 nl->IntAtom(1234))));
+         serverlist = n_serverlist;
+        
          manager = new DServerManager(serverlist, name,type,size);
          //server = manager->getServerbyID(0);
          elements = n_elem;
@@ -280,7 +276,7 @@ void DArray::initialize(ListExpr n_type, string n, int s, Word* n_elem)
 }
 
 
-void DArray::initialize(ListExpr n_type, string n, int s)
+void DArray::initialize(ListExpr n_type, string n, int s, ListExpr n_serverlist)
 {
          defined = true;
          
@@ -293,8 +289,7 @@ void DArray::initialize(ListExpr n_type, string n, int s)
          
          elements = new Word[size];
          
-         ListExpr serverlist = nl->TwoElemList(nl->StringAtom("192.168.2.3"),
-                                                       nl->IntAtom(1234));
+         serverlist = n_serverlist;
          manager = new DServerManager(serverlist, name,type,size);
          //server = manager->getServerbyID(0);
          /*server = new DServer(
@@ -308,7 +303,7 @@ Word DArray::get(int i)
          if(defined) 
          {
                   refresh(i); 
-		 return elements[i];
+                 return elements[i];
          } 
          else 
          { 
@@ -333,6 +328,8 @@ int DArray::getAlgID() { return alg_id; }
 int DArray::getTypID() { return typ_id; }
 
 ListExpr DArray::getType() { return type; }
+
+ListExpr DArray::getServerList() { return serverlist; }
 
 string DArray::getName() { return name; }
 
@@ -362,8 +359,9 @@ Word DArray::In( const ListExpr typeInfo, const ListExpr instance,
          extractIds(nl->Second(typeInfo),algID,typID);
          DArray* a = new DArray(nl->Second(typeInfo),
                                                       getArrayName(DArray::no), 
-                                                      nl->ListLength(instance));
-         ListExpr listOfElements = instance;
+                                                      nl->ListLength(instance),
+                                                      nl->First(instance));
+         ListExpr listOfElements = nl->Rest(instance);
          ListExpr element;
          int i = 0;
          
@@ -397,14 +395,15 @@ ListExpr DArray::Out( ListExpr typeInfo, Word value )
          ListExpr list;
          ListExpr last;
          ListExpr element;
+         list = nl->OneElemList(a->getServerList());last=list;
          
          if(a->isDefined())
                   for(int i = 0; i<a->getSize();i++)
                   {
                            element = ((am->OutObj(a->getAlgID(),a->getTypID()))
                                              (nl->Second(typeInfo),a->get(i)));
-                           if(i==0) {list=nl->OneElemList(element);last=list;}
-                           else         last=nl->Append(last,element);
+                           /*if(i==0) {list=nl->OneElemList(element);last=list;}
+                           else*/         last=nl->Append(last,element);
                   }
                            
          else 
@@ -453,7 +452,8 @@ Word DArray::Clone( const ListExpr typeInfo, const Word& w )
          
          neu = new DArray(nl->Second(typeInfo),
                                              getArrayName(DArray::no),
-                                             alt->getSize());
+                                             alt->getSize(),
+                                             alt->getServerList());
                   
          for(int i =0;i<alt->getSize();i++)
          {
@@ -475,7 +475,7 @@ bool DArray::Open( SmiRecord& valueRecord ,
                                     Word& value )
 {
          char* buffer;
-         string name, type;
+         string name, type, server;
          int length;
          int size;
          
@@ -489,6 +489,14 @@ bool DArray::Open( SmiRecord& valueRecord ,
          offset += length;
          type.assign(buffer, length);
          delete buffer;
+        
+         valueRecord.Read(&length, sizeof(length), offset);
+         offset += sizeof(length);
+         buffer = new char[length];
+         valueRecord.Read(buffer, length, offset);
+         offset += length;
+         server.assign(buffer, length);
+         delete buffer;
          
          valueRecord.Read(&length, sizeof(length), offset);
          offset += sizeof(length);
@@ -501,8 +509,11 @@ bool DArray::Open( SmiRecord& valueRecord ,
          ListExpr typeList;
          nl->ReadFromString( type, typeList);
          
+         ListExpr serverlist;
+         nl->ReadFromString(server,serverlist);
+         
                   
-         value.addr = ((Word)new DArray(typeList,name,size)).addr;
+         value.addr = ((Word)new DArray(typeList,name,size,serverlist)).addr;
          return true;
 }
 
@@ -514,16 +525,25 @@ bool DArray::Save( SmiRecord& valueRecord ,
          int length;
          int size = ((DArray*)value.addr)->getSize();
          
-         string type;
-         nl->WriteToString( type, nl->Second(typeInfo) );
-         length = type.length();
+         
          
          valueRecord.Write(&size, sizeof(int),offset);
          offset+=sizeof(int);
-         
+        
+         string type;
+         nl->WriteToString( type, nl->Second(typeInfo) );
+         length = type.length();
          valueRecord.Write( &length, sizeof(length), offset);
          offset += sizeof(length);
          valueRecord.Write ( type.data(), length, offset);
+         offset += length;
+        
+         string server;
+         nl->WriteToString( server, ((DArray*)value.addr)->getServerList());
+         length = server.length();
+         valueRecord.Write( &length, sizeof(length), offset);
+         offset += sizeof(length);
+         valueRecord.Write ( server.data(), length, offset);
          offset += length;
          
          string name = ((DArray*)value.addr)->getName();
@@ -635,6 +655,10 @@ Typemap (t t t...) -> darray t
 static ListExpr
 makeDarrayTypeMap( ListExpr args )
 {
+         ListExpr slist = nl->First(args);
+         if(nl->ToString(slist) != "(rel (tuple ((Server string) (Port int))))")
+                 return nl->SymbolAtom("typeerror");
+         args = nl->Rest(args);
          ListExpr first = nl->First(args);
          ListExpr rest = nl->Rest(args);
          while(!(nl->IsEmpty(rest)))
@@ -659,21 +683,32 @@ makeDarrayfun( Word* args, Word& result, int message, Word& local, Supplier s )
          int algID, typID;
          extractIds( typeOfElement, algID, typID);
          
-         int size = qp->GetNoSons(s);
+         int size = qp->GetNoSons(s)-1;
          
          Word* cloned = new Word[size];
          
          for(int i = 0;i<size;i++)
          {                  
-             cloned[i] = (am->CloneObj(algID,typID))(typeOfElement,args[i]);
+             cloned[i] = (am->CloneObj(algID,typID))(typeOfElement,args[i+1]);
          }
          
-         
-         
+         GenericRelation* r = (GenericRelation*)args[0].addr;
+        GenericRelationIterator* rit = r->MakeScan();
+         ListExpr reltype;
+         nl->ReadFromString("(rel (tuple ((Server string) (Port int))))",
+                                         reltype);
+         cout << nl->ToString(reltype);
+         ListExpr serverlist = Relation::Out(reltype,rit);
+        /*ListExpr serverlist = nl->TwoElemList((nl->TwoElemList
+                                        (nl->StringAtom("192.168.2.3"),
+                                                       nl->IntAtom(1234))),
+                                        (nl->TwoElemList(
+                                                nl->StringAtom("127.0.0.1"),
+                                                nl->IntAtom(1234))));*/
          result = qp->ResultStorage(s);
          ((DArray*)result.addr)->initialize(typeOfElement, 
-                                                      getArrayName(DArray::no),
-                                                                 size,
+                                        getArrayName(DArray::no),
+                                                        size,serverlist,
                                                                  cloned);
          
          
@@ -817,7 +852,8 @@ static int putFun( Word* args,
          ((DArray*)result.addr)->initialize(array_alt->getType(),
                                                                getArrayName
                                                                   (DArray::no),
-                                                      array_alt->getSize());
+                                                      array_alt->getSize(),
+                                                array_alt->getServerList());
          
          for(int j = 0; j<array_alt->getSize();j++)
          {
@@ -856,6 +892,7 @@ Operator putA(
          putFun,
          Operator::SimpleSelect,
          putTypeMap);
+
 
 
 /* 

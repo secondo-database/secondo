@@ -64,25 +64,26 @@ class DServer
 
 class DServerManager
 {
-	public:
-		DServerManager(ListExpr serverlist_n, 
-			string name_n, ListExpr type, int sizeofarray);
-		~DServerManager();
-		DServer* getServerByIndex(int index);
-		DServer* getServerbyID(int id);
-		
-		//int getID(int index) = 0;
-		ListExpr getIndexList(int id);
-		ListExpr getNamedIndexList(int id);
-	
-		int getNoOfServers();
-	
-	private:
-		
-		DServer** serverlist;
-		int size;
-		int array_size;
-		string name;
+        public:
+                DServerManager(ListExpr serverlist_n, 
+                        string name_n, ListExpr type, int sizeofarray);
+                ~DServerManager();
+                DServer* getServerByIndex(int index);
+                DServer* getServerbyID(int id);
+                
+                //int getID(int index) = 0;
+                ListExpr getIndexList(int id);
+                ListExpr getNamedIndexList(int id);
+        
+                int getNoOfServers();
+        
+        private:
+                
+                DServer** serverlist;
+                ListExpr server;
+                int size;
+                int array_size;
+                string name;
 };
                   
                   

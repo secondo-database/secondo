@@ -155,15 +155,16 @@ void DServer::run()
                 
                 //else cout << "DATENFEHLER";
 
-                        
+                cout << com << "\n";
                 iosock << "<Secondo>" << endl << "1" << endl 
                                 << com << endl << "</Secondo>" << endl;
                 
                 //string line;
                 getline(iosock,line);
+                
                 if(line=="<SecondoResponse>")
                         do
-                        getline(iosock,line);
+                        {getline(iosock,line);cout << line;}
                         while(line.find("</SecondoResponse") == string::npos);
                 
                 else cout << "DATENFEHLER";
@@ -338,7 +339,7 @@ ListExpr DServerManager::getNamedIndexList(int id)
         for(int i = id; i<array_size; i+=size)
         {
                 res = nl->Cons(nl->TwoElemList(nl->StringAtom(name),
-					nl->IntAtom(i)), res);
+                                        nl->IntAtom(i)), res);
         }
         return res;
 }
