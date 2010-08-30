@@ -68,6 +68,7 @@ extern QueryProcessor *qp;
 //Uses Function from ArrayAlgebra
 void extractIds(const ListExpr,int&,int&);
 
+
 //Converts int to string
 string toString_d(int i)
 {
@@ -86,6 +87,42 @@ string getArrayName(int number)
          return t;
 }
 
+ListExpr convertSingleType( ListExpr type)
+{
+     if(nl->ListLength(type) != 2) return nl->SymbolAtom("ERROR");
+     if(!nl->IsAtom(nl->First(type)) || !nl->IsAtom(nl->Second(type)))
+               return nl->SymbolAtom("ERROR");
+     
+     int algID, typID;
+     
+     extractIds(type,algID,typID);
+     
+     SecondoCatalog* sc = SecondoSystem::GetCatalog();
+     if(algID < 0 || typID < 0) return nl->SymbolAtom("ERROR");
+     
+     return nl->SymbolAtom(sc->GetTypeName(algID,typID));
+}
+
+ListExpr convertType( ListExpr type )
+{
+     ListExpr result,result2; 
+   
+     if(nl->ListLength(type) < 2)
+          if(nl->IsAtom(type) || nl->IsEmpty(type)) return type;
+          else return convertType(nl->First(type));
+     
+     if(nl->ListLength(type) == 2 &&
+          nl->IsAtom(nl->First(type)) &&
+          nl->IsAtom(nl->Second(type)))
+                    return convertSingleType(type);
+     
+     result = convertType(nl->First(type));
+     result2 = convertType(nl->Rest(type)); 
+     //result = nl->Append(result, convertType(nl->Rest(type)));
+    
+     return nl->TwoElemList(result,result2);
+}
+     
 
 
 /*
@@ -102,12 +139,12 @@ class DArray
 {
          public:
          DArray();
-         DArray(ListExpr,string,int,ListExpr);
+         DArray(ListExpr, string,int,ListExpr);
          
          ~DArray();
          
-         void initialize(ListExpr,string, int,ListExpr,Word*);
-         void initialize(ListExpr,string,int,ListExpr);
+         void initialize(ListExpr, string, int,ListExpr,Word*);
+         void initialize(ListExpr, string,int,ListExpr);
          Word get(int);
          void set(Word,int);
          
@@ -153,6 +190,7 @@ class DArray
          int typ_id;
          string name;
          ListExpr type;
+         
          ListExpr serverlist;
          
          DServerManager* manager;
@@ -184,6 +222,7 @@ DArray::DArray(ListExpr n_type, string n, int s, ListExpr n_serverlist)
          defined = true;
          
          type = n_type;
+         
          
          
          extractIds( type, alg_id, typ_id);
@@ -233,7 +272,7 @@ void DArray::remove()
 
 void DArray::refresh(int i)
 {
-         cout << "Refreshing Element" << toString_d(i);
+         //cout << "Refreshing Element" << toString_d(i);
          DServer* server = manager->getServerByIndex(i);
          server->setCmd("read",nl->IntAtom(i),elements);
          server->run();
@@ -525,8 +564,6 @@ bool DArray::Save( SmiRecord& valueRecord ,
          int length;
          int size = ((DArray*)value.addr)->getSize();
          
-         
-         
          valueRecord.Write(&size, sizeof(int),offset);
          offset+=sizeof(int);
         
@@ -663,7 +700,6 @@ makeDarrayTypeMap( ListExpr args )
          ListExpr rest = nl->Rest(args);
          while(!(nl->IsEmpty(rest)))
          {
-                  cout << endl << nl->ToString(rest) << endl;
                   if(!nl->Equal(nl->First(rest),first))
                            return nl->SymbolAtom("typeerror");
                   rest = nl->Rest(rest);
@@ -697,7 +733,6 @@ makeDarrayfun( Word* args, Word& result, int message, Word& local, Supplier s )
          ListExpr reltype;
          nl->ReadFromString("(rel (tuple ((Server string) (Port int))))",
                                          reltype);
-         cout << nl->ToString(reltype);
          ListExpr serverlist = Relation::Out(reltype,rit);
         /*ListExpr serverlist = nl->TwoElemList((nl->TwoElemList
                                         (nl->StringAtom("192.168.2.3"),
@@ -783,12 +818,15 @@ static int getFun( Word* args,
         resultType = nl->First(resultType);
       }
     }
-
     resultType = sc->NumericType(resultType);
     
+    int algID,typID; extractIds(resultType,algID,typID);
+    Word cloned = (am->CloneObj(algID,typID))(resultType,(Word)array->get(i));
+
     //code from ArrayAlgebra.cpp ends here
-    
-    result.addr = ((Word)array->get(i)).addr;
+    result = qp->ResultStorage(s);
+    result.addr = cloned.addr;
+    return 0;
 }
          
 const string getSpec =
@@ -893,8 +931,275 @@ Operator putA(
          Operator::SimpleSelect,
          putTypeMap);
 
+/* 
+
+4.5 Operator send
+
+Internal Usage for Data Transfer between Master and Worker
+
+*/
+
+static ListExpr sendTypeMap( ListExpr args )
+{
+     /*if(nl->IsEqual(nl->First(args),"Symbol"))
+             if(nl->IsEqual(nl->Second(args),"Symbol"))
+                  return nl->SymbolAtom("int");
+     {cout << "Fehler Typemapping"; return nl->SymbolAtom("typeerror");}*/
+      return nl->ThreeElemList(
+                    nl->SymbolAtom("APPEND"),
+                    nl->TwoElemList(nl->StringAtom(
+                                               nl->ToString(nl->First(args))),
+                                              nl->StringAtom(nl->ToString(
+                                                  nl->Second(args)))),
+                    nl->SymbolAtom("int"));
+
+}
+
+static int sendFun( Word* args, 
+                                    Word& result, 
+                                    int message, 
+                                    Word& local, 
+                                    Supplier s)
+{
+
+     string host = (string)(char*)((CcString*)args[3].addr)->GetStringval();
+     string port = (string)(char*)((CcString*)args[4].addr)->GetStringval();
+     string line;
+
+     host = replaceAll(host,"_",".");
+     host = replaceAll(host,"h","");
+     port = replaceAll(port,"p","");
+
+     Socket* master = Socket::Connect(host,port,Socket::SockGlobalDomain);
+     
+     
+     
+     if(master!=0 && master->IsOk())
+     {
+
+          iostream& iosock = master->GetSocketStream();
+          getline(iosock,line);
+          
+          if(line=="<TYPE>")
+          {
+               getline(iosock,line);
+               ListExpr type;
+               nl->ReadFromString(line,type);
+
+               getline(iosock,line);
+               if(line=="</TYPE>")
+               {
+                    int algID,typID;
+                    extractIds(type,algID,typID);
+                    
+                    SmiRecordFile recF(false,0);
+                    SmiRecord rec;
+                    SmiRecordId recID;
+                    
+                    recF.Open("sendop");
+                    recF.AppendRecord(recID,rec);
+                    size_t size = 0;
+                    
+                    am->SaveObj(algID,typID,rec,size,type,args[2]);
+                    char* buffer = new char[size];
+                    
+                    rec.Read(buffer,size,0);
+                    rec.Truncate(3);
+                    recF.DeleteRecord(recID);
+                    recF.Close();
+
+                    iosock << "<SIZE>" << endl << size << endl
+                         << "</SIZE>" << endl;
+
+                    master->Write(buffer,size);
+
+                    result = qp->ResultStorage(s);
+
+                    ((CcInt*)result.addr)->Set(0);
+                    
+                    //recF.Remove();
+
+                    
+               }
+               master->Close();delete master;master=0;
+              
+               return 0;
+          }
+          result = qp->ResultStorage(s);
+          ((CcInt*)result.addr)->Set(1);
+     }
+                    
+     return 0;               
+		
+                    
+     }
+         
+const string sendSpec =
+   "(( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
+     "( <text>-</text--->"
+       "<text>-</text--->"
+       "<text>Internal Usage by DistributedAlgebra</text--->"
+       "<text>-</text---> ))";
+
+Operator sendA(
+         "sendD",
+         sendSpec,
+         sendFun,
+         Operator::SimpleSelect,
+         sendTypeMap);
 
 
+/* 
+
+4.6 Operator receive
+
+Internal Usage for Data Transfer between Master and Worker
+
+*/
+
+static ListExpr receiveTypeMap( ListExpr args )
+{
+     string host = nl->ToString(nl->First(args));
+     string port = nl->ToString(nl->Second(args));
+     string line;
+     
+     host = replaceAll(host,"_",".");
+     host = replaceAll(host,"h","");
+     port = replaceAll(port,"p","");
+
+     Socket* master = Socket::Connect(host,port,Socket::SockGlobalDomain);
+     
+     if(master==0 || !master->IsOk()) 
+          {cout << "FEHLER bei Typemapping";
+               return nl->SymbolAtom("typeerror");}
+     
+     iostream& iosock = master->GetSocketStream();
+     
+     getline(iosock,line);
+     if(line!= "<TYPE>") return nl->SymbolAtom("typeerror");
+     getline(iosock,line);
+     ListExpr type;
+     nl->ReadFromString(line,type);
+     getline(iosock,line);
+     if(line!= "</TYPE>") return nl->SymbolAtom("typeerror");
+     
+     iosock << "<CLOSE>" << endl;
+     
+     master->Close(); delete master; master=0;
+     
+     SecondoCatalog* sc = SecondoSystem::GetCatalog();
+     int algID, typID; extractIds(type,algID,typID);
+
+      return nl->ThreeElemList(
+          nl->SymbolAtom("APPEND"),
+          nl->TwoElemList(nl->StringAtom(nl->ToString(nl->First(args))),
+                              nl->StringAtom(nl->ToString(nl->Second(args)))),
+                              convertType(type));
+
+}
+
+static int receiveFun( Word* args, 
+                                    Word& result, 
+                                    int message, 
+                                    Word& local, 
+                                    Supplier s)
+{
+
+     string host = (string)(char*)((CcString*)args[2].addr)->GetStringval();
+     string port = (string)(char*)((CcString*)args[3].addr)->GetStringval();
+     string line;
+
+     host = replaceAll(host,"_",".");
+     host = replaceAll(host,"h","");
+     port = replaceAll(port,"p","");
+
+     Socket* master = Socket::Connect(host,port,Socket::SockGlobalDomain);
+     
+     
+     
+     if(master!=0 && master->IsOk())
+     {
+
+          iostream& iosock = master->GetSocketStream();
+          iosock << "LOS" << endl;
+          getline(iosock,line);
+          
+          if(line=="<TYPE>")
+          {
+               getline(iosock,line);
+               ListExpr type;
+               nl->ReadFromString(line,type);
+
+               getline(iosock,line);
+               if(line=="</TYPE>")
+               {
+                    int algID,typID;
+                    extractIds(type,algID,typID);
+                    size_t size =0;
+                    
+                    getline(iosock,line);
+                    if(line=="<SIZE>")
+                    {
+                    getline(iosock,line);
+                         
+                     size = atoi(line.data());
+
+                    getline(iosock,line);
+                    if(line=="</SIZE>")
+                    {
+                         
+                         char* buffer = new char[size]; 
+                         iosock.read(buffer,size);
+
+
+                         SmiRecordFile recF(false,0);
+                         SmiRecord rec;
+                         SmiRecordId recID;
+                    
+                         recF.Open("receiveop");
+                         recF.AppendRecord(recID,rec);
+                         size_t s0 = 0;
+                         
+                         rec.Write(buffer,size,0);
+                         
+                         result = qp->ResultStorage(s);
+                         am->OpenObj(algID,typID,rec,s0,type,result); 
+
+                         rec.Truncate(3);
+                         recF.DeleteRecord(recID);
+                         recF.Close();
+                         
+
+                    }}
+                    
+               }
+               master->Close();delete master;master=0;
+              
+               return 0;
+          }
+     
+     }
+      
+     result = qp->ResultStorage(s);
+     ((CcInt*)(result.addr))->Set(true,3);
+     return 0;               
+		
+                    
+     }
+         
+const string receiveSpec =
+   "(( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
+     "( <text>-</text--->"
+       "<text>-</text--->"
+       "<text>Internal Usage by DistributedAlgebra</text--->"
+       "<text>-</text---> ))";
+
+Operator receiveA(
+         "receiveD",
+         receiveSpec,
+         receiveFun,
+         Operator::SimpleSelect,
+         receiveTypeMap);
 /* 
 
 5 Creating the Algebra 
@@ -914,6 +1219,8 @@ class DistributedAlgebra : public Algebra
              AddOperator( &makeDarray );
              AddOperator( &getA );
              AddOperator( &putA );
+             AddOperator( &sendA );
+             AddOperator( &receiveA);
     }
     ~DistributedAlgebra() {}
 };

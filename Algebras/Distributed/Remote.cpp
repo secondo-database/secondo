@@ -90,7 +90,7 @@ DServer::DServer(string n_host,int n_port,string n_name,ListExpr n_type)
                         getline( iosock, line );
                         if (line[line.size() - 1] == '\r')
                         line.resize(line.size() - 1);
-                        cout << line << endl;
+                        //cout << line << endl;
                 }while(line.find("</SecondoResponse>") == string::npos);
         }
         else cout << "ERROR3";
@@ -137,10 +137,10 @@ void DServer::run()
                 else akt = arg;
                 arg2 = nl->IntValue(akt);
         
-                ListExpr ls = ((am->OutObj(algID,typID))(type,elements[arg2]));
-                daten = nl->ToString(ls);
                 iostream& iosock = server->GetSocketStream();
-                string com = "let r" + name + nl->ToString(akt) + " = " + daten;
+               string port =toString_d((1800+arg2)); 
+               string com = "let r" + name + nl->ToString(akt) + 
+                     " = " + "receiveD(h192_168_2_26,p" + port + ")";
                 
                 
                 iosock << "<Secondo>" << endl << "1" << endl << "delete r" 
@@ -155,16 +155,56 @@ void DServer::run()
                 
                 //else cout << "DATENFEHLER";
 
-                cout << com << "\n";
+                //cout << com << "\n";
                 iosock << "<Secondo>" << endl << "1" << endl 
                                 << com << endl << "</Secondo>" << endl;
                 
+                
+                Socket* gate = Socket::CreateGlobal( "192.168.2.26", port);
+
+                Socket* worker = gate->Accept();
+
+                iostream& cbsock1 = worker->GetSocketStream();
+                cbsock1 << "<TYPE>" << endl << nl->ToString(type) 
+                        << endl << "</TYPE>" << endl;
+                getline(cbsock1,line);
+                if(line!="<CLOSE>") cout << "FEHLER";
+                worker->Close();delete worker;
+                        
+                worker = gate->Accept();
+                iostream& cbsock = worker->GetSocketStream();
+                
+                cbsock << "<TYPE>" << endl << nl->ToString(type) 
+                    << endl << "</TYPE>" << endl;
+
+                SmiRecordFile recF(false,0);
+                SmiRecord rec;
+                SmiRecordId recID;
+                
+                recF.Open("send");// + nl->ToString(arg));
+                recF.AppendRecord(recID,rec);
+                size_t size = 0;
+                am->SaveObj(algID,typID,rec,size,type,elements[arg2]);
+                
+                char* buffer = new char[size]; 
+                rec.Read(buffer,size,0);
+                
+                cbsock << "<SIZE>" << endl << size << endl << "</SIZE>" << endl;
+                
+                worker->Write(buffer,size);
+                
+                rec.Truncate(3);
+                recF.DeleteRecord(recID);
+                recF.Close();
+
+                worker->Close();delete worker;worker=0;
+                gate->Close();delete gate;gate=0;
                 //string line;
                 getline(iosock,line);
                 
                 if(line=="<SecondoResponse>")
                         do
-                        {getline(iosock,line);cout << line;}
+                        {getline(iosock,line);}
                         while(line.find("</SecondoResponse") == string::npos);
                 
                 else cout << "DATENFEHLER";
@@ -181,30 +221,73 @@ void DServer::run()
                 extractIds(type,algID,typID);
                 
                 string daten;
-                
+                SmiRecordFile recF(false,0);
                 do {
                 if(!nl->IsAtom(arg)) akt = nl->First(arg);
                 else akt = arg;
                 arg2 = nl->IntValue(akt);
                         
-                ListExpr ls;
+                ListExpr ls;string port =toString_d((1300+arg2));
                 
                 iostream& iosock = server->GetSocketStream();
-                iosock << "<Secondo>" << endl << "1" << endl << "query r" 
-                        << name << nl->ToString(akt) << endl << "</Secondo>" 
-                        << endl;
+                iosock << "<Secondo>" << endl << "1" << endl 
+                     << "query sendD (h192_168_2_26,p" << port << ",r" 
+                        << name << nl->ToString(akt) << ")" <<  endl 
+                         << "</Secondo>" << endl;
                 
-                cout << "<Secondo>" << endl << "1" << endl << "query r" 
-                        << name << nl->ToString(akt) << endl << "</Secondo>" 
-                        << endl;
-                
+                     
+                Socket* gate = Socket::CreateGlobal( "192.168.2.26", port);
+
+                Socket* worker = gate->Accept();
+
+                iostream& cbsock = worker->GetSocketStream();
+                cbsock << "<TYPE>" << endl << nl->ToString(type)
+                     << endl << "</TYPE>" << endl;
+                             
                 string line;
+                getline(cbsock,line);
+                
+                if(line=="<SIZE>")
+                {
+                     getline(cbsock,line);
+                     int size = atoi(line.data());
+                     getline(cbsock,line);
+
+                    
+                    char* buffer = new char[size];
+                    worker->Read(buffer,size);
+                     
+                     
+                     SmiRecord rec;
+                     SmiRecordId recID;
+                     
+                     string n = "receive";// + nl->ToString(arg);
+                     recF.Open("rec");
+                     recF.AppendRecord(recID,rec);
+                     rec.Write(buffer,size,0);
+                     
+                     size_t s = 0;
+                     am->OpenObj(algID,typID,rec,s,type,elements[arg2]);
+                     
+                     recF.DeleteRecord(recID);
+                     recF.Close();
+                    worker->Close();delete worker;worker=0;
+                    gate->Close();delete gate;gate=0;
+                     //elements[arg2].addr = buffer;
+
+                }
+                else cout << "FEHLER BEI CALLBACK";
+                
+               
+                
                 getline(iosock,line);
+      
+                
                 if(line=="<SecondoResponse>")
                 {
                         nl->ReadBinaryFrom(iosock, ls);
                         string debug_out = nl->ToString(ls);
-                        cout << debug_out;
+                        //cout << debug_out;
                         
                         do
                                 getline(iosock,line);
@@ -216,15 +299,16 @@ void DServer::run()
                         ListExpr errorInfo = nl->OneElemList
                                                 (nl->SymbolAtom("ERRORS"));
                         bool correct;
-                        elements[arg2] = ((am->InObj(algID,typID))
-                                        ( type, ls, 1, errorInfo, correct));
+                        //elements[arg2] = ((am->InObj(algID,typID))
+                           //             ( type, ls, 1, errorInfo, correct));
                 }
                 else cout << "DATENFEHLER LESEN";
                 
                 if(!nl->IsAtom(arg) && !nl->IsEmpty(arg)) arg = nl->Rest(arg);
                 }
                 while(!nl->IsAtom(arg) && !nl->IsEmpty(arg));
-        }
+                //recF.Remove();
+         }
         
         if(cmd=="delete")
         {
