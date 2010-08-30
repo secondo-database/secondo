@@ -442,6 +442,7 @@ public:
         {
           if (0 != strcmp(hostName, servName.c_str()))
           {
+            filePath += "_" + servName;
             FileSystem::DeleteFileOrFolder(filePath);
             system(("scp " + servName + rmDefaultPath + relName
                 + " " + filePath).c_str());
