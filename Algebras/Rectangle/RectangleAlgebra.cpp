@@ -829,40 +829,42 @@ RectangleTypeMapBool2( ListExpr args )
 
 rect x real x real x real x real x int -> stream(int)
 
+Also support for 3D rectangle, if so the map becomes:
+rect3 x real x real x real x real x real x real x int -> stream(int)
+
 */
 ListExpr
 cellNumberTM( ListExpr args )
 {
-  if (nl->ListLength(args) != 6 ){
-    ErrorReporter::ReportError("Expect 6 arguments");
-    return (nl->SymbolAtom("typeerror"));
-  }
+  NList l(args);
+  string err = "cellnumber expects(rect, x0, y0, xw, yw, nx) "
+      "or (rect3, x0, y0, z0, xw, yw, zw, nx) ";
 
-  ListExpr tRect, tX0, tY0, tXw, tYw, tNx;
-  tRect = nl->First(args);
-  tX0 = nl->Second(args);
-  tY0 = nl->Third(args);
-  tXw = nl->Fourth(args);
-  tYw = nl->Fifth(args);
-  tNx = nl->Sixth(args);
+  bool is3D = false;
+  int len = l.length();
+  if (len == 8)
+    is3D = true;
+  else if (len != 6)
+    return l.typeError(err);
 
-  if (  (nl->IsEqual(tRect, "rect"))
-      &&(listutils::isSymbol(tX0, REAL))
-      &&(listutils::isSymbol(tY0, REAL))
-      &&(listutils::isSymbol(tXw, REAL))
-      &&(listutils::isSymbol(tYw, REAL))
-      &&(listutils::isSymbol(tNx, INT))
-  )
+  NList tRect;
+  tRect = l.first();
+
+  if ((is3D && !tRect.isSymbol("rect3"))
+      || (!is3D && !tRect.isSymbol("rect")))
+    return l.typeError(err);
+
+  for(int i = 2; i < len; i++)
   {
-    return NList(STREAM, INT).listExpr();
-  }
-  else
-  {
-    ErrorReporter::ReportError(
-        "Expect (rect, real, real, real, real, int)");
-    return (nl->SymbolAtom("typeerror"));
+    if (!l.elem(i).isSymbol(Symbols::REAL()))
+      return l.typeError(err);
   }
 
+  //parameter nx
+  if (!l.elem(len).isSymbol(Symbols::INT()))
+    return l.typeError(err);
+
+  return NList(STREAM, INT).listExpr();
 }
 
 /*
@@ -1633,25 +1635,42 @@ cellNumberVM(Word* args, Word& result,
                     int message, Word& local, Supplier s)
 {
 struct CellGrid{
-
-  CellGrid(double _x0, double _y0, double _xw, double _yw, int _nx):
-    nx(_nx), x0(_x0), y0(_y0),
-    xWidth(_xw), yWidth(_yw),
-    cx(0), cy(0),
-    initialized(false), finished(false)
+  CellGrid(double _x0, double _y0, double _z0,
+           double _xw, double _yw, double _zw,
+           int _nx, bool _3D):
+    nx(_nx), x0(_x0), y0(_y0), z0(_z0),
+    xWidth(_xw), yWidth(_yw), zWidth(_zw),
+    cx(0), cy(0), cz(0),
+    initialized(false), finished(false), is3D(_3D)
   {}
 
   //Get the bound box of the rectangle in the grid
-  void setBoundBox(double lbx, double lby, double rtx, double rty)
+  void setBoundBox(double lbx, double rtx,
+                   double lby, double rty,
+                   double lbz = 0.0, double rtz = 0.0)
   {
+    //Make sure the widths of the grid all are not 0
+    if (   fabs(xWidth - 0.0) <= 1e-10
+        || fabs(yWidth - 0.0) <= 1e-10
+        || (is3D && fabs(zWidth - 0.0) <= 1e-10))
+    {
+      cerr << "Unacceptable grid width: " <<
+          xWidth << "," << yWidth << "," << zWidth << endl;
+      return;
+    }
 
     //set the LBX, LBY, RTX, RTY;
     LBX = static_cast<int>(floor((lbx - x0) / xWidth));
     LBY = static_cast<int>(floor((lby - y0) / yWidth));
+    if (is3D)
+      LBZ = static_cast<int>(floor((lbz - z0) / zWidth));
+    else
+      LBZ = 0;
 
     // A rectangle's top edge belongs to the blower cell,
-    // and its right edge belongs to the lefter cell
-    // when the rectangle's top-right point is located in
+    // its right edge belongs to the lefter cell,
+    // and its ceil edge belongs to the lower cell if it's a box
+    // when the rectangle's top-right point locates on
     // cells' boundary.
     RTX = static_cast<int>(floor((rtx - x0) / xWidth));
     if (fabs(rtx - RTX*xWidth - x0) <= 1e-10)
@@ -1659,11 +1678,19 @@ struct CellGrid{
     RTY = static_cast<int>(floor((rty - y0) / yWidth));
     if (fabs(rty - RTY*yWidth - y0) <= 1e-10)
       RTY--;
+    if (is3D)
+    {
+      RTZ = static_cast<int>(floor((rtz - z0) / zWidth));
+      if (fabs(rtz - RTZ*zWidth - z0) <= 1e-10)
+        RTZ--;
+    }
+    else
+      RTZ = 0;
 
-    //  The cell grid is located in the first quadrant.
-    //  If the rectangle is located in other quadrants,
+    //  The cell grid must locates in the first quadrant.
+    //  If the rectangle locates in other quadrants,
     //  then an empty int stream will be returned.
-    if(LBX < 0 || LBY < 0)
+    if(LBX < 0 || LBY < 0 || LBZ < 0)
     {
       cerr << "Error: The rectangle is outside the first quadrant\n";
       finished = true;
@@ -1671,7 +1698,7 @@ struct CellGrid{
 
     cx = LBX;
     cy = LBY;
-
+    cz = LBZ;
 
     initialized = true;
   }
@@ -1686,7 +1713,7 @@ struct CellGrid{
     }
     else if (!finished)
     {
-      cellNum = cx + cy * nx + 1;
+      cellNum = cx + cy * nx + cz * nx * nx + 1;
 
       if (cx < RTX)
         cx++;
@@ -1694,6 +1721,12 @@ struct CellGrid{
       {
         cx = LBX;
         cy++;
+      }
+      else if (cz < RTZ)
+      {
+        cx = LBX;
+        cy = LBY;
+        cz++;
       }
       else
       {
@@ -1705,11 +1738,12 @@ struct CellGrid{
   }
 
   int nx;
-  double x0, y0, xWidth, yWidth;
-  int LBX, LBY, RTX, RTY; //LB: left-buttom; RT: right-top
-  int cx, cy; //Current cell coordinate number
+  double x0, y0, z0, xWidth, yWidth, zWidth;
+  int LBX, LBY, LBZ, RTX, RTY, RTZ; //LB: left-buttom; RT: right-top
+  int cx, cy, cz; //Current cell coordinate number
   bool initialized;
   bool finished;
+  bool is3D;
 };
 
   CellGrid* grid = static_cast<CellGrid*>(local.addr);
@@ -1718,22 +1752,51 @@ struct CellGrid{
   case OPEN: {
     if(grid){
       delete grid;
+      grid = 0;
     }
 
-    Rectangle<2> *rect = (Rectangle<2> *)args[0].addr;
-    double x0 = ((CcReal *)args[1].addr)->GetValue();
-    double y0 = ((CcReal *)args[2].addr)->GetValue();
-    double xw = ((CcReal *)args[3].addr)->GetValue();
-    double yw = ((CcReal *)args[4].addr)->GetValue();
-    int nx = ((CcInt *)args[5].addr)->GetValue();
-    grid = new CellGrid(x0, y0, xw, yw, nx);
-    if(!rect->IsDefined())
+    double x0 = 0.0, y0 = 0.0, z0 = 0.0;
+    double xw = 0.0, yw = 0.0, zw = 0.0;
+    int nx;
+    int len = qp->GetNoSons(s);
+    if (6 == len)
     {
-      cerr << "Uninitialized rectangle is used" << endl;
-      return CANCEL;
+      Rectangle<2> *rect = (Rectangle<2> *)args[0].addr;
+      x0 = ((CcReal *)args[1].addr)->GetValue();
+      y0 = ((CcReal *)args[2].addr)->GetValue();
+      xw = ((CcReal *)args[3].addr)->GetValue();
+      yw = ((CcReal *)args[4].addr)->GetValue();
+      nx = ((CcInt *)args[5].addr)->GetValue();
+      grid = new CellGrid(x0, y0, z0, xw, yw, zw, nx, false);
+      if(!rect->IsDefined())
+      {
+        cerr << "Uninitialized rectangle is used" << endl;
+        return CANCEL;
+      }
+      grid->setBoundBox(rect->MinD(0), rect->MaxD(0),
+                        rect->MinD(1),rect->MaxD(1));
     }
-    grid->setBoundBox(rect->MinD(0), rect->MinD(1),
-                      rect->MaxD(0), rect->MaxD(1));
+    else
+    {
+      Rectangle<3> *rect = (Rectangle<3> *)args[0].addr;
+      x0 = ((CcReal *)args[1].addr)->GetValue();
+      y0 = ((CcReal *)args[2].addr)->GetValue();
+      z0 = ((CcReal *)args[3].addr)->GetValue();
+      xw = ((CcReal *)args[4].addr)->GetValue();
+      yw = ((CcReal *)args[5].addr)->GetValue();
+      zw = ((CcReal *)args[6].addr)->GetValue();
+      nx = ((CcInt *)args[7].addr)->GetValue();
+      grid = new CellGrid(x0, y0, z0, xw, yw, zw, nx, true);
+      if(!rect->IsDefined())
+      {
+        cerr << "Uninitialized rectangle is used" << endl;
+        return CANCEL;
+      }
+      grid->setBoundBox(rect->MinD(0), rect->MaxD(0),
+                        rect->MinD(1), rect->MaxD(1),
+                        rect->MinD(2), rect->MaxD(2));
+    }
+
 
     local.addr = grid;
     return 0;
@@ -2363,8 +2426,11 @@ struct cellnumber_Info : OperatorInfo {
   cellnumber_Info() : OperatorInfo()
   {
     name =      "cellnumber";
-    signature = "rect x real x real x real x real x int -> stream(int)";
-    syntax =    "cellnumber(_, _, _, _, _, _)";
+    signature =
+        "rect x real x real x real x real x int -> stream(int)\n"
+        "rect3 x real x real x real x real x real x real x int "
+        "-> stream(int)";
+    syntax =    "cellnumber(_, _, _, _, _, _, _, _)";
     meaning =   "Return numbers of cells while a rectangle is "
         "partitioned on a finite grid space";
   }
