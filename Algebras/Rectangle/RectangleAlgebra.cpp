@@ -1644,6 +1644,7 @@ struct CellGrid{
   //Get the bound box of the rectangle in the grid
   void setBoundBox(double lbx, double lby, double rtx, double rty)
   {
+
     //set the LBX, LBY, RTX, RTY;
     LBX = static_cast<int>(floor((lbx - x0) / xWidth));
     LBY = static_cast<int>(floor((lby - y0) / yWidth));
@@ -1653,10 +1654,10 @@ struct CellGrid{
     // when the rectangle's top-right point is located in
     // cells' boundary.
     RTX = static_cast<int>(floor((rtx - x0) / xWidth));
-    if (fabs(rtx - x0) == RTX)
+    if (fabs(rtx - RTX*xWidth - x0) <= 1e-10)
       RTX--;
-    RTY = int((rty - y0) / yWidth);
-    if (fabs(rty - y0) == RTY)
+    RTY = static_cast<int>(floor((rty - y0) / yWidth));
+    if (fabs(rty - RTY*yWidth - y0) <= 1e-10)
       RTY--;
 
     //  The cell grid is located in the first quadrant.
@@ -1670,6 +1671,7 @@ struct CellGrid{
 
     cx = LBX;
     cy = LBY;
+
 
     initialized = true;
   }
@@ -1704,7 +1706,7 @@ struct CellGrid{
 
   int nx;
   double x0, y0, xWidth, yWidth;
-  int LBX, LBY, RTX, RTY;
+  int LBX, LBY, RTX, RTY; //LB: left-buttom; RT: right-top
   int cx, cy; //Current cell coordinate number
   bool initialized;
   bool finished;
