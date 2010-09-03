@@ -33,7 +33,10 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include <functional>
 
 /*
-~contains~
+
+1 Some auxiliary Functions
+
+1.1 ~contains~
 
 A function checking whether an object is 
 contained within a vector.
@@ -50,6 +53,12 @@ static bool contains(const std::vector<T> v, T elem){
    return false;   
 }
 
+/*
+1.2 ~printset~
+
+This function just prints out a set of something.
+
+*/
 template<typename T>
 static std::ostream& printset(const std::set<T>& s, std::ostream& o){
   o << "{";
@@ -64,6 +73,13 @@ static std::ostream& printset(const std::set<T>& s, std::ostream& o){
   return o;
 }
 
+
+/*
+1.3 ~printVector~
+
+This function prints aout the content of a vector.
+
+*/
 template<typename T>
 static std::ostream& printVector(const std::vector<T>& s, std::ostream& o){
   o << "[";
@@ -79,7 +95,33 @@ static std::ostream& printVector(const std::vector<T>& s, std::ostream& o){
 }
 
 /*
-~removeState~
+1.4 ~intersects~
+
+Checks whether ttwo sets have at least one common element;
+
+*/
+template<typename T>
+static bool intersects( const std::set<T>& s1, const std::set<T>& s2){
+   typename std::set<T>::const_iterator it1 = s1.begin();
+   typename std::set<T>::const_iterator it2 = s2.begin();
+   while(it1!=s1.end() && it2!=s2.end()){
+      if(*it1==*it2){
+        return true;
+      } else if(*it1 < *it2){
+          it1++;
+      } else {
+          it2++;
+      }
+   } 
+   return false;
+}
+
+
+
+
+
+/*
+1.4 ~removeState~
 
 removes state from the set and decrements all elements in the set greater
 than state by one.
@@ -104,10 +146,10 @@ static void removeState(std::set<int>& targets, int state){
 }
 
 /*
-1 Class State
+2 Class State
 
-This class decribes the state of an non-deterministic finite 
-automaton. Also the transitions starting at this state are stored.
+This class stores the transitions of an state of an nfa.
+
 
 */
 
@@ -293,7 +335,7 @@ Returns the contained epsilon transitions.
      return transitions;
   }
 
-  std::set<int> getFollowStates(bool includeEpsilonTransitions) const{
+  std::set<int> getTargets(bool includeEpsilonTransitions) const{
     std::set<int> result;
     typename std::map<sigma, std::set<int> >::const_iterator it;
     for(it = transitions.begin(); it!=transitions.end(); it++){
@@ -538,6 +580,7 @@ regular expression.
      } 
    }
    removeUnreachable();
+   removeDeadEnds();
  }
 
 
@@ -789,6 +832,70 @@ transitions.
  }
 
 
+/*
+~removeDeadEnds~
+
+This function removes all states from the automatone from which never an 
+final state can be reached.
+
+*/
+
+void removeDeadEnds(){
+   if(finalStates.empty() || states.empty() ){ 
+     // the automaton recognize nothing
+     states.clear();
+     startState = -1;
+     return;
+   }
+   std::set<int> finalPossible;
+   getFinalPossible(finalPossible);
+   if(finalPossible.find(startState)==finalPossible.end()){
+     // from the start state never a final state can be reached
+     states.clear();
+     startState = -1;
+     return;
+   }
+   std::vector<int> deadEnds;
+   for(unsigned int i=0;i<states.size();i++){
+      if(finalPossible.find(i)==finalPossible.end()){
+         deadEnds.push_back(i);
+      }
+   }
+   removeStates(deadEnds);
+}
+
+
+
+/*
+~getFinalPossible~
+
+
+*/
+
+void getFinalPossible(std::set<int>& initial){
+  initial = finalStates;
+  unsigned int size = initial.size();
+  do{
+    size = initial.size();
+    for(unsigned int i=0;i<states.size();i++){
+      if(initial.find(i)==initial.end()){
+         std::set<int> trans = states[i].getTargets(true);
+         if(intersects<int>(trans,initial)){
+            initial.insert(i);
+         }
+      }
+    }
+
+  } while(size!=initial.size());
+
+}
+
+
+
+
+
+
+
 
 /*
 ~removeStates~
@@ -867,7 +974,7 @@ void removeState(int state1){
       return;
    }
    reachable.insert(initial); // mark as processed
-   std::set<int> successors = states[initial].getFollowStates(true);
+   std::set<int> successors = states[initial].getTargets(true);
    typename std::set<int>::iterator it;
    for(it=successors.begin(); it!=successors.end(); it++){
       getReachable(reachable, *it);
