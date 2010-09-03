@@ -392,6 +392,83 @@ void removeState(int state){
 
 
 
+/*
+~isDeterministic~
+
+This function checks whether this state has no epsilon transitions and 
+for aeach element of sigma at most one transition.
+
+*/
+bool isDeterministic() const{
+  if(! epsilonTransitions.empty()){
+    return false;
+  }  
+  typename std::map<sigma, std::set<int> >::const_iterator it;
+  for(it=transitions.begin(); it!=transitions.end(); it++){
+    if(it->second.size()>1){
+      return false;
+    }
+  }
+  return true;
+}
+
+/*
+~removeNonDeterministicTransitions~
+
+
+This function removes all non deterministic transitions (without epsilon 
+transitions) from this state and returns these.
+
+*/
+
+  std::map<sigma, std::set<int> > removeNonDeterministicTransitions(){
+     std::map<sigma, std::set<int> > result;
+     std::map<sigma, std::set<int> > remainder;
+     typename std::map<sigma, std::set<int> >::iterator it;
+     for(it = transitions.begin(); it!=transitions.end(); it++){
+        if(it->second.size() > 1){
+           result[it->first] = it->second;
+        } else {
+           remainder[it->first] = it->second;
+        }
+     }
+     transitions = remainder;
+     return result;
+  }
+
+
+/*
+~extractSigmas~
+
+This function inserts all sigmas defining transitions starting
+at this state into the given set.
+
+*/
+  
+void extractSigmas(std::set<sigma>& initial){
+  typename std::map<sigma, std::set<int> >::const_iterator it;
+  for(it = transitions.begin(); it!=transitions.end(); it++){
+      initial.insert(it->first);
+  }
+}
+
+/*
+~extractTargets~
+
+This function inserts all targets coming from the given sigma into
+the given set.
+
+*/
+
+void extractTargets(sigma s, std::set<int>& initial){
+  typename std::map<sigma, std::set<int> >::const_iterator it;
+  it = transitions.find(s);
+  if(it==transitions.end()){
+     return;
+  } else {
+    initial.insert(it->second.begin(), it->second.end());
+  }
+}  
 
 
 
@@ -584,6 +661,121 @@ regular expression.
  }
 
 
+
+/*
+~isDeterministic~
+
+Checks whether this automaton is deterministic.
+
+*/
+bool isDeterministic(){
+  for(unsigned i=0;i< states.size();i++){
+    if(!states[i].isDeterministic()){
+       return false;
+    }
+  }
+  return true;
+}
+
+
+
+
+static unsigned int 
+    retrieveOrCreateIndex(std::vector<std::set<int> >& newStates,
+                          std::set<int> elem){
+   for(unsigned i=0; i<newStates.size(); i++){
+      if(newStates[i] == elem){
+        return i;
+      }
+   }
+   newStates.push_back(elem);
+   return newStates.size() - 1;
+}
+
+
+/*
+~makeDeterministic~
+
+This function creates a determinitic finite automaton from this 
+object.  The automaton is always represented as an nfa. 
+
+*/
+  void makeDeterministic(){
+     removeEpsilonTransitions();
+     if(isDeterministic()){
+        return;
+     }
+     
+     // ok, we have to introduce additional states representing whole sets 
+     // of "old" states
+
+     std::vector<std::set<int> > newStates;
+
+     for(unsigned int i=0;i<states.size(); i++){
+        if(!states[i].isDeterministic()){
+           std::map<sigma, std::set<int> > ndt = 
+                states[i].removeNonDeterministicTransitions();
+           typename std::map<sigma, std::set<int> >:: iterator it;
+           for(it = ndt.begin(); it!=ndt.end(); it++){
+               int index = retrieveOrCreateIndex(newStates, it->second);
+               states[i].insertTransition(it->first,states.size()+index);
+           }
+        }
+     }
+     
+     unsigned int oldsize = states.size();
+
+     // process newly created states ....
+
+     // insert new states into vector
+    
+     for(unsigned int i=0; i< newStates.size();i++){
+       State<sigma> s;
+       states.push_back(s);
+     }
+
+     // insert transitions from big states , eventually creating new big states
+     unsigned int pos = 0;
+     while( pos < newStates.size() ){
+       std::set<int> current = newStates[pos];
+       // collect all sigmas introducing transitions from all contained states
+       // from the current state
+
+       std::set<sigma> usedSigmas;
+       typename std::set<int> ::iterator it1;
+       for(it1=current.begin(); it1!=current.end(); it1++){
+          states[*it1].extractSigmas(usedSigmas);
+       }
+
+       typename std::set<sigma>::iterator it2;
+       for(it2=usedSigmas.begin(); it2!=usedSigmas.end(); it2++){
+          sigma s = *it2;
+          std::set<int> targets;
+          targets.clear();
+          for(it1=current.begin(); it1!=current.end(); it1++){
+             states[*it1].extractTargets(s,targets);
+          }
+          if(targets.size()==1){ // target is a simple state
+             states[pos+oldsize].insertTransition(s,*(targets.begin()));
+          } else {
+             unsigned int bigsize = newStates.size();
+             unsigned int index = retrieveOrCreateIndex(newStates, targets);
+             if(newStates.size()!=bigsize){ // create a new state
+                State<sigma> s;
+                states.push_back(s);
+             }             
+             states[pos+oldsize].insertTransition(s,index+oldsize);
+          }
+       }
+
+       pos++;
+     }  
+
+     
+
+
+
+  }
 
 
 
