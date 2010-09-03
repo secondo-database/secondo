@@ -829,8 +829,27 @@ RectangleTypeMapBool2( ListExpr args )
 
 rect x real x real x real x real x int -> stream(int)
 
-Also support for 3D rectangle, if so the map becomes:
-rect3 x real x real x real x real x real x real x int -> stream(int)
+The parameter list contains:
+rect2, x0, y0, x-width, y-width, nx.
+
+rect2 is a 2D rectangle.
+Point (x0, y0) is the left-buttom point of the whole grid.
+x-width and y-width is the length and width of each cell in this grid.
+nx is the number of cells in every row of the gird.
+The grid can be endless along with y-axis.
+
+This operator also support 3D grid, and the map becomes:
+rect3 x real x real x real x real x real x real x int x int -> stream(int)
+
+The parameter list of 3D version contains:
+rect3, x0, y0, z0, x-width, y-width, z-width, nx, ny
+
+rect3 is a 3D rectangle.
+Point (x0, y0, z0) is the left buttom point of the 3D grid.
+x-width, y-width and z-width is the length, width and hight of each cell.
+nx is the number of cells on every row,
+ny is the number of cells on every column.
+The grid can be endless along with z-axis.
 
 */
 ListExpr
@@ -838,11 +857,11 @@ cellNumberTM( ListExpr args )
 {
   NList l(args);
   string err = "cellnumber expects(rect, x0, y0, xw, yw, nx) "
-      "or (rect3, x0, y0, z0, xw, yw, zw, nx) ";
+      "or (rect3, x0, y0, z0, xw, yw, zw, nx, ny) ";
 
   bool is3D = false;
   int len = l.length();
-  if (len == 8)
+  if (len == 9)
     is3D = true;
   else if (len != 6)
     return l.typeError(err);
@@ -854,15 +873,18 @@ cellNumberTM( ListExpr args )
       || (!is3D && !tRect.isSymbol("rect")))
     return l.typeError(err);
 
-  for(int i = 2; i < len; i++)
+  int nl = is3D ? 2 : 1;
+  for (int i = 0; i < nl; i++)
+  {
+    if (!l.elem(len--).isSymbol(Symbols::INT()))
+      return l.typeError(err);
+  }
+
+  for(int i = 2; i <= len; i++)
   {
     if (!l.elem(i).isSymbol(Symbols::REAL()))
       return l.typeError(err);
   }
-
-  //parameter nx
-  if (!l.elem(len).isSymbol(Symbols::INT()))
-    return l.typeError(err);
 
   return NList(STREAM, INT).listExpr();
 }
@@ -1637,8 +1659,9 @@ cellNumberVM(Word* args, Word& result,
 struct CellGrid{
   CellGrid(double _x0, double _y0, double _z0,
            double _xw, double _yw, double _zw,
-           int _nx, bool _3D):
-    nx(_nx), x0(_x0), y0(_y0), z0(_z0),
+           int _nx, int _ny, bool _3D):
+    nx(_nx), ny(_ny),
+    x0(_x0), y0(_y0), z0(_z0),
     xWidth(_xw), yWidth(_yw), zWidth(_zw),
     cx(0), cy(0), cz(0),
     initialized(false), finished(false), is3D(_3D)
@@ -1713,7 +1736,7 @@ struct CellGrid{
     }
     else if (!finished)
     {
-      cellNum = cx + cy * nx + cz * nx * nx + 1;
+      cellNum = cx + cy * nx + cz * nx * ny + 1;
 
       if (cx < RTX)
         cx++;
@@ -1737,7 +1760,7 @@ struct CellGrid{
     return cellNum;
   }
 
-  int nx;
+  int nx, ny;
   double x0, y0, z0, xWidth, yWidth, zWidth;
   int LBX, LBY, LBZ, RTX, RTY, RTZ; //LB: left-buttom; RT: right-top
   int cx, cy, cz; //Current cell coordinate number
@@ -1757,7 +1780,7 @@ struct CellGrid{
 
     double x0 = 0.0, y0 = 0.0, z0 = 0.0;
     double xw = 0.0, yw = 0.0, zw = 0.0;
-    int nx;
+    int nx = 0, ny = 0;
     int len = qp->GetNoSons(s);
     if (6 == len)
     {
@@ -1767,7 +1790,7 @@ struct CellGrid{
       xw = ((CcReal *)args[3].addr)->GetValue();
       yw = ((CcReal *)args[4].addr)->GetValue();
       nx = ((CcInt *)args[5].addr)->GetValue();
-      grid = new CellGrid(x0, y0, z0, xw, yw, zw, nx, false);
+      grid = new CellGrid(x0, y0, z0, xw, yw, zw, nx, ny, false);
       if(!rect->IsDefined())
       {
         cerr << "Uninitialized rectangle is used" << endl;
@@ -1786,7 +1809,8 @@ struct CellGrid{
       yw = ((CcReal *)args[5].addr)->GetValue();
       zw = ((CcReal *)args[6].addr)->GetValue();
       nx = ((CcInt *)args[7].addr)->GetValue();
-      grid = new CellGrid(x0, y0, z0, xw, yw, zw, nx, true);
+      ny = ((CcInt *)args[8].addr)->GetValue();
+      grid = new CellGrid(x0, y0, z0, xw, yw, zw, nx, ny, true);
       if(!rect->IsDefined())
       {
         cerr << "Uninitialized rectangle is used" << endl;
@@ -2428,9 +2452,9 @@ struct cellnumber_Info : OperatorInfo {
     name =      "cellnumber";
     signature =
         "rect x real x real x real x real x int -> stream(int)\n"
-        "rect3 x real x real x real x real x real x real x int "
+        "rect3 x real x real x real x real x real x real x int x int"
         "-> stream(int)";
-    syntax =    "cellnumber(_, _, _, _, _, _, _, _)";
+    syntax =    "cellnumber(_, _, _, _, _, _, _, _, _)";
     meaning =   "Return numbers of cells while a rectangle is "
         "partitioned on a finite grid space";
   }

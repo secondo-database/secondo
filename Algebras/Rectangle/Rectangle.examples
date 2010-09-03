@@ -190,9 +190,9 @@ Result   : TRUE
 
 Operator : cellnumber
 Number   : 1
-Signature: (rect<dim> x real x real x real x real x int) -> stream(int), rect3 x real x real x real x real x real x real x int -> stream(int)
-Example  : query cellnumber(rectangle2(0.3, 2.5, 1.3, 2.5), 0.0, 0.0, 1.0, 1.0, 5) printstream count
-Result   : 6
+Signature: (rect<dim> x real x real x real x real x int) -> stream(int), rect3 x real x real x real x real x real x real x int x int -> stream(int)
+Example  : query cellnumber(rectangle3(0.3, 2.5, 0.3, 2.5, -0.2, 0.3), 0.0, 0.0, -0.2, 0.5, 0.5, 0.4, 10, 6) printstream count
+Result   : 50
 
 Operator : gridintersects
 Number   : 1
