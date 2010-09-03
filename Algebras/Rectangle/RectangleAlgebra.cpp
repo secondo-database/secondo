@@ -873,8 +873,8 @@ cellNumberTM( ListExpr args )
       || (!is3D && !tRect.isSymbol("rect")))
     return l.typeError(err);
 
-  int nl = is3D ? 2 : 1;
-  for (int i = 0; i < nl; i++)
+  int np = is3D ? 2 : 1;
+  for (int i = 0; i < np; i++)
   {
     if (!l.elem(len--).isSymbol(Symbols::INT()))
       return l.typeError(err);
@@ -894,42 +894,73 @@ cellNumberTM( ListExpr args )
 
  real x real x real x real x int x rect x rect x int -> boolean
 
+This operator is used to check whether the current grid cell is the
+common smallest cell of two inputed rectangle.
+The parameter list contains:
+x0, y0, xw, yw, nx, rectA, rectB, cn.
+
+Point(x0, y0) is the left-buttom point of the grid,
+xw and yw is the length and width of each cell,
+nx is the number of cells on every row,
+the grid is endless in y-axis.
+Two continuous rectangles are participated reactangle,
+and the cn is the number of the cell that need to be verified.
+
+The operator also can support 3D grid, and the map becomes
+
+real x real x real x real x real x real
+ x int x int x rect x rect x int -> booln
+
+The parameter list contains:
+x0, y0, z0, x-width, y-width, z-width, nx, ny, rectA, rectB, cn.
+
+Point (x0, y0, z0) is the left-buttom point of the whole grid.
+x-width, y-width and z-width describe the size of each cell.
+nx and ny decides the amount of cells on every row and column of the grid.
+The grid is end-less in z-axis.
+cn is also the number of the cell that need to be verified.
+
 */
 ListExpr
 gridIntersectsTM( ListExpr args )
 {
-  if (nl->ListLength(args) != 8 ){
-    ErrorReporter::ReportError("Expect 8 arguments");
-    return (nl->SymbolAtom("typeerror"));
+  NList l(args);
+  string err = "gridIntersects expects "
+      "(x0, y0, xw, yw, nx, rectA, rectB, cn) or "
+      "(x0, y0, z0, xw, yw, zw, nx, ny, rectA, rectB, cn)";
+
+  bool is3D = false;
+  int len = l.length();
+  if (len == 11)
+    is3D = true;
+  else if (len != 8)
+    return l.typeError(err);
+
+  int gpl = is3D ? 6 : 4; //grid parameter length
+  int np = is3D ? 8 : 5;
+  int ei = 1;  //element index
+
+  for (; ei <= gpl; ei++)
+  {
+    if (!l.elem(ei).isSymbol(Symbols::REAL()))
+      l.typeError(err);
   }
 
-  ListExpr rectA, rectB, x0, y0, xW, yW, nX, cn;
-  x0 = nl->First(args);
-  y0 = nl->Second(args);
-  xW = nl->Third(args);
-  yW = nl->Fourth(args);
-  nX = nl->Fifth(args);
-  rectA = nl->Sixth(args);
-  rectB = nl->Nth(7, args);
-  cn = nl->Nth(8, args);
+  for (; ei <= np; ei++)
+  {
+    if(!l.elem(ei).isSymbol(Symbols::INT()))
+      l.typeError(err);
+  }
 
-  if ( (nl->IsEqual(rectA, "rect"))
-    && (nl->IsEqual(rectB, "rect"))
-    && (listutils::isSymbol(x0, REAL))
-    && (listutils::isSymbol(y0, REAL))
-    && (listutils::isSymbol(xW, REAL))
-    && (listutils::isSymbol(yW, REAL))
-    && (listutils::isSymbol(nX, INT))
-    && (listutils::isSymbol(cn, INT)) )
-  {
-    return NList(BOOL).listExpr();
-  }
-  else
-  {
-    ErrorReporter::ReportError(
-        "Expect (rect , real , real , real , real , int , int , rect)");
-    return (nl->SymbolAtom("typeerror"));
-  }
+  for (int i=0; i < 2; i++)
+    if(!l.elem(ei++).isSymbol((is3D ? "rect3" : "rect")))
+      l.typeError(err);
+
+  assert(ei == len);
+  if (!l.elem(ei).isSymbol(Symbols::INT()))
+    l.typeError(err);
+
+  return NList(BOOL).listExpr();
 
 }
 
@@ -1715,7 +1746,8 @@ struct CellGrid{
     //  then an empty int stream will be returned.
     if(LBX < 0 || LBY < 0 || LBZ < 0)
     {
-      cerr << "Error: The rectangle is outside the first quadrant\n";
+      cerr << "Error: The rectangle locates "
+          "outside of the first quadrant\n";
       finished = true;
     }
 
@@ -1876,41 +1908,106 @@ gridIntersectsVM(Word* args, Word& result,
 {
   result = qp->ResultStorage( s );
   CcBool* res = static_cast<CcBool*>(result.addr);
-   
-  Rectangle<2> *rectA = (Rectangle<2> *)args[5].addr;
-  Rectangle<2> *rectB = (Rectangle<2> *)args[6].addr;
 
-  if (!rectA->IsDefined() || !rectB->IsDefined())
-  {
-    ErrorReporter::ReportError("RectangleAlgebra::gridIntersects: "
-        "Uninitialized rectangle is used");
-    return 0;
-  }
+  bool is3D = false;
+  int nx = 0, ny = 0;
+  int LBX = 0, LBY = 0, LBZ = 0;
+  double x0 = 0.0, y0 = 0.0, z0 = 0.0;
+  double xw = 0.0, yw = 0.0, zw = 0.0;
+  double interx = 0.0, intery = 0.0, interz = 0.0;
+  int cscNo = 0, cellno = -1;
 
-  if (!rectA->Intersects(*rectB))
+  if (qp->GetNoSons(s) == 8)
   {
-    res->Set( true, false );
+    // 2D grid
+    Rectangle<2> *rectA = (Rectangle<2> *)args[5].addr;
+    Rectangle<2> *rectB = (Rectangle<2> *)args[6].addr;
+
+    if (!rectA->IsDefined() || !rectB->IsDefined())
+    {
+      ErrorReporter::ReportError("RectangleAlgebra::gridIntersects: "
+          "Uninitialized rectangle is used");
+      return 0;
+    }
+
+    if (!rectA->Intersects(*rectB))
+    {
+      res->Set( true, false );
+    }
+    else
+    {
+      x0 = ((CcReal *)args[0].addr)->GetValue();
+      y0 = ((CcReal *)args[1].addr)->GetValue();
+      xw = ((CcReal *)args[2].addr)->GetValue();
+      yw = ((CcReal *)args[3].addr)->GetValue();
+
+      nx = ((CcInt *)args[4].addr)->GetValue();
+      cellno = ((CcInt *)args[7].addr)->GetValue();
+
+      interx = max(rectA->MinD(0), rectB->MinD(0));
+      intery = max(rectA->MinD(1), rectB->MinD(1));
+    }
   }
   else
   {
-  
-    double x0 = ((CcReal *)args[0].addr)->GetValue();
-    double y0 = ((CcReal *)args[1].addr)->GetValue();
-    double xw = ((CcReal *)args[2].addr)->GetValue();
-    double yw = ((CcReal *)args[3].addr)->GetValue();
-    int nx = ((CcInt *)args[4].addr)->GetValue();
-	int cellno = ((CcInt *)args[7].addr)->GetValue();
-	
-	double interx = max(rectA->MinD(0), rectB->MinD(0));
-	double intery = max(rectA->MinD(1), rectB->MinD(1));
-	
-    int LBX = static_cast<int>(floor((interx - x0) / xw));
-    int LBY = static_cast<int>(floor((intery - y0) / yw));
-    int cscNo = LBX + LBY*nx + 1;
-	
-	res->Set( true, (cellno == cscNo) );
+    // 3D grid
+    is3D = true;
+    Rectangle<3> *rectA = (Rectangle<3> *)args[8].addr;
+    Rectangle<3> *rectB = (Rectangle<3> *)args[9].addr;
 
+    if (!rectA->IsDefined() || !rectB->IsDefined())
+    {
+      ErrorReporter::ReportError("RectangleAlgebra::gridIntersects: "
+          "Uninitialized rectangle is used");
+      return 0;
+    }
+
+    if (!rectA->Intersects(*rectB))
+      res->Set(true, false);
+    else
+    {
+      x0 = ((CcReal *)args[0].addr)->GetValue();
+      y0 = ((CcReal *)args[1].addr)->GetValue();
+      z0 = ((CcReal *)args[2].addr)->GetValue();
+      xw = ((CcReal *)args[3].addr)->GetValue();
+      yw = ((CcReal *)args[4].addr)->GetValue();
+      zw = ((CcReal *)args[5].addr)->GetValue();
+      nx = ((CcInt *)args[6].addr)->GetValue();
+      ny = ((CcInt *)args[7].addr)->GetValue();
+      cellno = ((CcInt *)args[10].addr)->GetValue();
+
+      interx = max(rectA->MinD(0), rectB->MinD(0));
+      intery = max(rectA->MinD(1), rectB->MinD(1));
+      interz = max(rectA->MinD(2), rectB->MinD(2));
+    }
   }
+
+  if (fabs(xw - 0.0) <= 1e-10
+      || fabs(yw - 0.0) <= 1e-10
+      || (is3D && fabs(zw - 0.0) <= 1e-10))
+  {
+    cerr << "Unacceptable grid width: " <<
+            xw << "," << yw << "," << zw << endl;
+    res->Set( true, false );
+    return 0;
+  }
+
+  LBX = static_cast<int>(floor((interx - x0) / xw));
+  LBY = static_cast<int>(floor((intery - y0) / yw));
+  if (is3D)
+    LBZ = static_cast<int>(floor((interz - z0) / zw));
+
+  if(LBX < 0 || LBY < 0 || LBZ < 0)
+  {
+    cerr << "Error: The rectangles locate "
+        "outside of the first quadrant\n";
+    res->Set( true, false );
+    return 0;
+  }
+
+  cscNo = LBX + LBY*nx + LBZ*nx*ny + 1;
+  res->Set(true, (cellno == cscNo));
+
   return 0;
 }
 /*
@@ -2467,8 +2564,10 @@ struct gridintersects_Info : OperatorInfo {
   {
     name = "gridintersects";
     signature = "real x real x real x real x int x "
-        "rectangle x rectangle x int -> bool";
-    syntax = "op (_, _, _, _, _, _, _, _)";
+        "rectangle x rectangle x int -> bool\n"
+        "real x real x real x real x real x real"
+        "x int x int x rect x rect x int -> bool";
+    syntax = "op (_, _, _, _, _, _, _, _, _, _, _)";
     meaning = "Return whether the current cell is "
         "the common smallest cell of these two rectangles";
   }
