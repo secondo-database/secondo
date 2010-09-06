@@ -1559,6 +1559,8 @@ bool pj2LocalInfo::LoadTuples()
   loaded = true;
   ita = tba->MakeScan();
   itb = tbb->MakeScan();
+  if ( (cta == 0) || (ctb == 0))
+    endOfStream = true;
   return loaded;
 }
 
