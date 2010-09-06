@@ -10,12 +10,12 @@ Result   : ()
 Operator : insertUpload
 Number   : 1
 Signature: ugrid x uploadunit -> bool
-Example  : query insertUpload( myUGrid, [const uploadunit value (9 "2010-10-12" (8.2 1.6))] )
+Example  : query insertUpload( myUGrid, [const uploadunit value (9 "2010-08-30-11:35" (8.2 1.6))] )
 Result   : TRUE
 
 Operator : insertStream
 Number   : 1
-Signature: ((stream (tuple([a1:d1, ..., ai:uploadunit,..., an:dn]))) x ugrid x ai) -> bool
+Signature: stream(tuple([a1:d1, ..., ai:uploadunit,..., an:dn])) x ugrid x ai -> bool
 Example  : query myUploadRel feed insertStream[ myUGrid, upload ]
 Result   : TRUE
 
