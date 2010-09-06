@@ -66,13 +66,13 @@ integer numbers. The Grammar is:
 
 */
 
-
-
-void deleteCurrentBuffer();
-int yylex();
-int yyerror (const char *error);
-void yy_scan_string(const char* argument);
-
+#ifdef __cplusplus
+extern "C"{
+ int yylex();
+ int yyerror (const char *error);
+ void yy_scan_string(const char* argument);
+}
+#endif
 
 int parse_success;
 IntNfa* result;
@@ -97,16 +97,24 @@ char* last_message=0;
 
 %token OPEN CLOSE STARS OR EPSILON ERROR 
 %token <numval> NUMBER
-%type <theNfa> expr term factor atom
+%type <theNfa> expr term factor atom start
 
 
 %%
 
+start: expr{
+
+         //std::cout << "start -> expr" << std::endl;
+         result = $1;
+      }
+
 expr : term {
+         //std::cout << "expr -> term " << std::endl;
          $$ = $1;
        }
 
      | term OR expr {
+         //std::cout << "expr -> term | expr " << std::endl;
          $$ = $1;
          IntNfa* n = $$;
          n->nfa.disjunction($3->nfa);
@@ -115,9 +123,12 @@ expr : term {
      ;
 
 term : factor {
+         //std::cout << "term -> factor" << std::endl;
          $$ = $1;
+
        }
      | factor term {
+         //std::cout << "term -> factor term" << std::endl;
          $$ = $1;
          IntNfa* n = $$;
          n->nfa.concat($2->nfa);
@@ -126,9 +137,11 @@ term : factor {
      ;
 
 factor : atom {
+         //std::cout << "factor -> atom " << std::endl;
           $$ = $1;
          }
        | atom STARS {
+         //std::cout << "factor -> atom stars" << std::endl;
           $$ = $1;
           IntNfa* n = $$;
           n->nfa.star();
@@ -136,13 +149,16 @@ factor : atom {
        ;
 
 atom  : OPEN expr CLOSE {
+         //std::cout << "atom -> ( epxr ) " << std::endl;
            $$ = $2;
         }
       | NUMBER {
+         //std::cout << "atom -> number" << std::endl;
         int number = $1;
         $$ = new IntNfa(number); 
         }
       | EPSILON {
+         //std::cout << "atom -> epsilon " << std::endl;
           $$ = new IntNfa();
         }
       ;
@@ -176,14 +192,16 @@ the first argument is parsed according to the rules given above.
 
 */
 int parseString(const char* argument, IntNfa** T){
+
     yy_scan_string(argument);
+
     yyparse();
+
     if(parse_success && last_message){
           free(last_message);
           last_message=0;
     }
     (*T) = result;
-    deleteCurrentBuffer();
     return parse_success;
 }
 
@@ -202,6 +220,5 @@ char* GetLastMessage(){
   char* M = (char*) malloc(strlen(last_message)+1);
   strcpy(M,last_message);
   return M; 
-
 }
 

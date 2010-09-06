@@ -33,51 +33,58 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include <string>
 #include <iostream>
 
-#include "Nfa.h"
+#include "IntNfa.h"
 
 
+int yyparse();
 
+
+int parseString(const char* arg, IntNfa** res);
 
 int main(int argc, char** argv){
 
-  Nfa<char> nfa_1('a');
+   if(argc<2){
+    std::cout << "argument missing" << std::endl;
+    return 127;
+   }
 
-  std::cout << "nfa a: " << std::endl; nfa_1.print(std::cout) << std::endl;
+   const char* expr = argv[1];
 
-  Nfa<char> nfa_2('b');
-  Nfa<char> nfa_3('c');
+   IntNfa* res = 0;
 
-  nfa_1.concat(nfa_2);
 
-  std::cout << "nfa ab: " << std::endl; nfa_1.print(std::cout) << std::endl;
+
+
+   std::cout << "call parseString" << std::endl;
   
-  nfa_1.disjunction(nfa_3);
+   parseString(expr, &res);
+
+   if(res){
+    res->nfa.print(std::cout);
 
 
-  std::cout << "nfa ab | c : " << std::endl; nfa_1.print(std::cout) 
-            << std::endl;
+    std::cout << "without epsilon transitions " << std::endl;
+
+    res->nfa.removeEpsilonTransitions();
+
+    res->nfa.print(std::cout) << std::endl; 
 
 
-  nfa_1.star();
+    std::cout << "make deterministic " << std::endl;
+
+    res->nfa.makeDeterministic();
+
+    
+    res->nfa.print(std::cout);
 
 
-  std::cout << "(nfa ab | c)* : " 
-            << std::endl; nfa_1.print(std::cout) 
-            << std::endl;
+    delete res;
 
+   } else {
+     std::cout << "Error during parsing" << std::endl;
+   }
+   
 
-  nfa_1.removeEpsilonTransitions();
-
-
-  std::cout << "(nfa ab | c)* (without epsilon): " 
-            << std::endl; nfa_1.print(std::cout) 
-            << std::endl;
-
-  nfa_1.makeDeterministic();
-
-  std::cout << "(nfa ab | c)* (deterministic version): " 
-            << std::endl; nfa_1.print(std::cout) 
-            << std::endl;
 
 
 }

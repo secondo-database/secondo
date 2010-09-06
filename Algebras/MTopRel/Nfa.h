@@ -305,6 +305,7 @@ of contained target states.
     std::set<int> s3;
     while(it3 != epsilonTransitions.end()){
       s3.insert(*it3 + no);
+      it3++;
     }
     epsilonTransitions = s3;
   }
@@ -776,6 +777,8 @@ object.  The automaton is always represented as an nfa.
 
        pos++;
      }  
+     removeUnreachable();
+     removeDeadEnds();
   }
 
 
@@ -1275,13 +1278,16 @@ Changes this nfa to represent the disjuntion of this and the argument.
 template<typename sigma>
  void Nfa<sigma>::disjunction(const Nfa<sigma>& second){
    int num = states.size();
+
    append(second);
+   
    // create the new start state
    State<sigma> start;
    start.insertEpsilonTransition(startState);
    start.insertEpsilonTransition(num+second.startState);
    states.push_back(start);
    startState = states.size()-1;
+
    // create the new end state
    State<sigma> end;
    std::set<int>::iterator it;
@@ -1294,6 +1300,7 @@ template<typename sigma>
    states.push_back(end);
    finalStates.clear();
    finalStates.insert(states.size()-1);
+
  }
 
 /*
@@ -1330,8 +1337,10 @@ template<typename sigma>
 */
 template<typename sigma>
 void Nfa<sigma>::append(const Nfa<sigma>& second){
+
    typename std::vector<State<sigma> >::const_iterator it;
    int num = states.size();
+   int count = 1;
    for(it = second.states.begin(); it != second.states.end(); it++){
      State<sigma> s = *it;
      s.shift(num);

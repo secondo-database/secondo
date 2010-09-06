@@ -21,7 +21,16 @@ CCFLAGS = $(DEFAULTCCFLAGS) -I../FText -I../Rectangle
 # creates a "lib$(MODNAME).a" file in the secondo/lib dir. Rules
 # for creating ".dep" files and ".o" files are defined in makefile.env
 .PHONY: all
-all: $(OBJECTS) $(LIBOBJ)
+all: $(OBJECTS) $(LIBOBJ)   NFATest
+
+
+NFATest: NFATest.o Scanner.o RegExParser.o  
+	$(CC) -o NFATest  NFATest.o  RegExParser.o Scanner.o  -lstdc++ -lfl
+
+NFATest.o: NFATest.cpp
+	$(CC) -c -o  NFATest.o NFATest.cpp
+
+
 
 OBJECTS += Scanner.o RegExParser.o 
 
@@ -50,11 +59,11 @@ RegExParser.o: RegExParser.y.c
 	$(CC) -x c++ -c -o RegExParser.o RegExParser.y.c 
 
 
-RegExParser.y.c: RegExParser.y
+RegExParser.y.c: RegExParser.y Nfa.h
 	$(YACC) -d -o RegExParser.y.c RegExParser.y
 
 Scanner.o: Scanner.c
-	$(CC)  -c -o Scanner.o Scanner.c
+	$(CC) -c -o Scanner.o Scanner.c
 
 Scanner.c: Scanner.l RegExParser.y.c
 	$(LEX) -o Scanner.c Scanner.l

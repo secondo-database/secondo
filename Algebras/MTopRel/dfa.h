@@ -25,8 +25,6 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 
 
-enum DfaState = {normal, final, complete, completefinal, error};
-
 class DFA{
 
 public:
@@ -38,20 +36,19 @@ Constructors
 
   DFA() {}
 
-  DFA(const int sigma,  // size of the alphabet
-      const string regex); // regular expression over numbers
+  DFA(const string regex); // regular expression over numbers
 
 
   ~DFA(){
-
-   }
+     if(canDestroy){
+       states.Destroy();
+       transitions.Destroy();
+     }
+   } // no pointers 
 
 
   void Destroy(){
-    states.Destroy();
-    transitions.Destroy();
-    start = -1;
-    current = -1;
+    canDestroy= true;
   }
  
 
@@ -81,6 +78,7 @@ Brings the dfa into its initial state.
     current = start;
   }  
 
+
 /*
 ~isFinal~
 
@@ -92,13 +90,9 @@ Checks whether the dfa is in a final state.
     if(current<0) {
       return false;
     }
-    DfaState state;
-    states.Get(current, state);
-    switch(state){
-      case final:
-      case completefinal: return true;
-      default: return false;
-    }
+    bool isFinal;
+    finalStates.get(current, isFinal);
+    return isFinal;
   }
 
 
@@ -111,33 +105,8 @@ Checks whether this automaton is in an error state.
 */
 
   bool isError() const{
-   if(current<0){
-     return true;
-   }
-   DfaState state;
-   states.Get(current, state);
-   return state==error;
+     return current<0;
   } 
-
-/*
-~isComplete~
-
-Checks whether the current state is never leaved independent
-on further inputs.
-
-*/
-
-  bool isComplete() const{
-    if(current<0) {
-      return false;
-    }
-    DfaState state;
-    states.Get(current, state);
-    switch(state){
-      case complete:
-      case completefinal: return true;
-      default: return false;
-    }
 
 
 /*
@@ -148,9 +117,6 @@ Goes into the next state depending on the input.
 */
 
   void next(int symbol){
-     assert(symbol>=0);
-     assert(symbol<=numOfSymbols);
-
      if((current < 0) || (start<0)){
         return;
      }
@@ -164,10 +130,7 @@ private:
 
    int start;    // start state
    int current;  // current state
-   DbArray<DfaState> states; // marks for each state
-
    DbArray<int> transitions;  // transition table
+   DbArray<bool> finalStates;
    int numOfsymbols;    // size of sigma
-
- 
 };

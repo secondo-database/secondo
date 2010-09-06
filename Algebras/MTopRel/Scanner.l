@@ -34,12 +34,6 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 #include "RegExParser.y.h"
 
-
-void deleteCurrentBuffer(){
-    yy_delete_buffer(YY_CURRENT_BUFFER);
-}
-
-
  
 // %option prefix="regex"
 %}
@@ -47,7 +41,7 @@ void deleteCurrentBuffer(){
 %option noyywrap
 
 whitespace [ \n\r\t\a\b\f\t\v]
-number [0-9]+
+int [0-9][0-9]*
 stars "*"("*"|whitespace)*
 epsilon "e"
 
@@ -59,10 +53,10 @@ epsilon "e"
 {whitespace}   { ; }
 "("            { return OPEN; }
 ")"            { return CLOSE; }
-stars          { return STARS; } 
+{stars}        { return STARS; } 
 "|"            { return OR; }
-epsilon        { return EPSILON;}
-number         { yylval.numval = atoi(yytext);
+{epsilon}      { return EPSILON;}
+{int}          { yylval.numval = atoi(yytext);
                  return NUMBER;
                }
 .              { return ERROR; }
