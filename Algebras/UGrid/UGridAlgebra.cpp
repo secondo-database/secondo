@@ -26,7 +26,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 [1] Declaration of UGridAlgebra
 
-July 2010, Daniel Brockmann
+September 2010, Daniel Brockmann
 
 1 Overview
 
@@ -825,23 +825,23 @@ UGridNode* UGrid::CreateUGridTree( UGridNode* FATHERNODE, int SQUARES,
       if ( i == 1 ) {              row = row-1; } // right-bottom cell
       if ( i == 2 ) { col = col-1;              } // left-top cell
      
-     // Create and initialize UGridCell
-     cells[col][row] = new UGridCell();
-     UGridCell* cellPtr = cells[col][row];
-     cellPtr->fatherNode = node;
-     cellPtr->numEntries = 0;
-     cellPtr->currentPage = (db_pgno_t)0;
-     cellPtr->pos1 = UnitPos(0,0);
-     cellPtr->pos2 = UnitPos(0,0);
-     cellPtr->tiv.start = DateTime(0,0,instanttype);
-     cellPtr->tiv.end = DateTime(0,0,instanttype);
-     cellPtr->tiv.lc = false;
-     cellPtr->tiv.rc = false;
-     
-     if ( i == 0 ) node->leftBottomCell  = cellPtr;
-     if ( i == 1 ) node->rightBottomCell = cellPtr;
-     if ( i == 2 ) node->leftTopCell     = cellPtr;
-     if ( i == 3 ) node->rightTopCell    = cellPtr;
+      // Create and initialize UGridCell
+      cells[col][row] = new UGridCell();
+      UGridCell* cellPtr = cells[col][row];
+      cellPtr->fatherNode = node;
+      cellPtr->numEntries = 0;
+      cellPtr->currentPage = (db_pgno_t)0;
+      cellPtr->pos1 = UnitPos(0,0);
+      cellPtr->pos2 = UnitPos(0,0);
+      cellPtr->tiv.start = DateTime(0,0,instanttype);
+      cellPtr->tiv.end = DateTime(0,0,instanttype);
+      cellPtr->tiv.lc = false;
+      cellPtr->tiv.rc = false;
+      
+      if ( i == 0 ) node->leftBottomCell  = cellPtr;
+      if ( i == 1 ) node->rightBottomCell = cellPtr;
+      if ( i == 2 ) node->leftTopCell     = cellPtr;
+      if ( i == 3 ) node->rightTopCell    = cellPtr;
     }
   }
   return node;
@@ -1886,9 +1886,8 @@ struct CreateInfo : OperatorInfo {
     name      = "createUGrid";
     signature = "rect x int -> ugrid";
     syntax    = "createUGrid( _, _ )";
-    meaning   = "UGrid construction operator. The second argument (partitions)"
-                "must be 4, 16, 256 or 4096, otherwise it will be set a "
-                "default value.";
+    meaning   = "UGrid construction operator. The second argument must be 4, "
+                "16, 256 or 4096, otherwise it will be set a default value.";
   }
 };
 
@@ -2385,7 +2384,7 @@ struct InsertStreamInfo : OperatorInfo {
 
 /******************************************************************************
 
-8 ugridIntersectsWindow operator
+8 IntersectsWindow operator
 
 Returns all history units which intersects the search window.
 
@@ -2458,7 +2457,7 @@ set<HistoryUnit*> FindHistoryUnits( UGrid* UGRIDPTR, UGridArea AREA,
   UnitPos pos2;
 
   // Find  HistoryUnits in pages
-  for (pIt = UGRIDPTR->pages.begin(); pIt != UGRIDPTR->pages.end(); pIt++)
+  for (pIt = UGRIDPTR->pages.begin(); pIt != UGRIDPTR->pages.end();)
   {    
     pageID = *pIt;
     SmiUpdatePage* page;
@@ -2512,10 +2511,11 @@ set<HistoryUnit*> FindHistoryUnits( UGrid* UGRIDPTR, UGridArea AREA,
     }
     // Drop page
     UGRIDPTR->GetUpdateFile()->PutPage(page->GetPageNo(),false);
+    UGRIDPTR->pages.erase(pIt++);
   }
 
   // Check if history unit intersects window
-  for (huIt = historyUnits.begin(); huIt != historyUnits.end(); huIt++)
+  for (huIt = historyUnits.begin(); huIt != historyUnits.end();)
   {
     HistoryUnit* huPtr = huIt->second;;
     Instant huStart(instanttype);
@@ -2531,8 +2531,8 @@ set<HistoryUnit*> FindHistoryUnits( UGrid* UGRIDPTR, UGridArea AREA,
          AREA.x2 >= huPtr->pos2.x && AREA.y2 >= huPtr->pos2.y)))
       hits.insert(huPtr);
       else delete huPtr;
+      historyUnits.erase(huIt++);
   }
-  UGRIDPTR->pages.clear();
    
   // Release SmiUpdateFile
   UGRIDPTR->SetSemaphore(false);
@@ -2665,9 +2665,10 @@ int IntersectsWinVM(Word* args, Word& result, int message,
         Tuple*         tup = new Tuple( tupType );
         tup->PutAttribute( 0, ( Attribute* ) moID );
         tup->PutAttribute( 1, ( Attribute* ) upoint );
-        iterator->it++;
         result.addr = tup;
         delete tiv;
+        delete hu;
+        iterator->hits.erase(iterator->it++);
         return YIELD;
       }
       else
@@ -2680,7 +2681,6 @@ int IntersectsWinVM(Word* args, Word& result, int message,
     {
       if (iterator != 0)
       {
-        iterator->hits.clear();
         delete iterator;
         local.addr = 0;
       }
@@ -2867,6 +2867,8 @@ int InsideWinVM(Word* args, Word& result,int message,Word& local,Supplier s)
         iterator->it++;
         result.addr = tup;
         delete tiv;
+        delete hu;
+        iterator->hits.erase(iterator->it++);
         return YIELD;
       }
       else
@@ -2879,7 +2881,6 @@ int InsideWinVM(Word* args, Word& result,int message,Word& local,Supplier s)
     {
       if (iterator != 0)
       {
-        iterator->hits.clear();
         delete iterator;
         local.addr = 0;
       }
@@ -3022,6 +3023,8 @@ int GetTrajectoryVM( Word* args, Word& result, int message, Word& local,
         iterator->it++;
         result.addr = tup;
         delete tiv;
+        delete hu;
+        iterator->hits.erase(iterator->it++);
         return YIELD;
       }
       else
@@ -3034,7 +3037,6 @@ int GetTrajectoryVM( Word* args, Word& result, int message, Word& local,
     {
       if (iterator != 0)
       {
-        iterator->hits.clear();
         delete iterator;
         local.addr = 0;
       }

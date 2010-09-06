@@ -26,7 +26,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 [1] Implementation of SETIAlgebra
 
-July 2010, Daniel Brockmann
+September 2010, Daniel Brockmann
 
 1 Overview
 
@@ -1289,8 +1289,9 @@ int InsertHandle(SETI* SETIPTR, UploadUnit* UNITPTR)
           assert( PageSelected );
           page->Read(&pageTiv, sizeof(Interval<Instant> ), sizeof(int)); 
           
-          Rectangle<2> box = Rectangle<2>(true, -1.0, pageTiv.start.ToDouble(), 
-                                                -1.0, pageTiv.end.ToDouble());
+          Rectangle<2> box = Rectangle<2>(true, pageTiv.start.ToDouble()-tol, 
+                                                pageTiv.end.ToDouble()+tol,
+                                                -1.0, 1.0);
           R_TreeLeafEntry<2,TupleId> e(box,cellPtr->currentPage);
           cellPtr->rtreePtr->Insert(e);
           
@@ -1689,8 +1690,9 @@ set<TrjSeg*> FindTrjSegments( SETI* SETIPTR, SETIArea AREA,
   int bottom = ComputeLine(hPtr->area.y1,hPtr->area.y2,hPtr->splits,AREA.y1);
   int top    = ComputeLine(hPtr->area.y1,hPtr->area.y2,hPtr->splits,AREA.y2);
 
-  Rectangle<2> searchBox = Rectangle<2>(true, -1.0, TIME1.ToDouble(),
-                                              -1.0, TIME2.ToDouble());
+  Rectangle<2> searchBox = Rectangle<2>(true, TIME1.ToDouble()-tol, 
+                                              TIME2.ToDouble()+tol,
+                                              -1.0, 1.0);
   for (int i = bottom; i <= top; i++)
   {
     for (int j = left; j <= right; j++)
@@ -1723,7 +1725,7 @@ set<TrjSeg*> FindTrjSegments( SETI* SETIPTR, SETIArea AREA,
   UnitPos pos2;
 
   // Find  segments in pages
-  for (pIt = pages.begin(); pIt != pages.end(); pIt++)
+  for (pIt = pages.begin(); pIt != pages.end();)
   {    
     pageID = *pIt;
     SmiUpdatePage* page;
@@ -1777,10 +1779,11 @@ set<TrjSeg*> FindTrjSegments( SETI* SETIPTR, SETIArea AREA,
     }
     // Drop page
     SETIPTR->GetUpdateFile()->PutPage(page->GetPageNo(),false);
+    pages.erase(pIt++);
   }
 
   // Check if segment intersects window
-  for (sIt = segments.begin(); sIt != segments.end(); sIt++)
+  for (sIt = segments.begin(); sIt != segments.end();)
   {
     TrjSeg* segPtr = sIt->second;
     Instant segStart(instanttype);
@@ -1793,9 +1796,9 @@ set<TrjSeg*> FindTrjSegments( SETI* SETIPTR, SETIArea AREA,
          TIME1 <= segEnd && TIME2 >= segStart )
       hits.insert(segPtr);
       else delete segPtr;
+      segments.erase(sIt++);
   }
-  pages.clear();
-   
+
   // Release SmiUpdateFile
   SETIPTR->SetSemaphore(false);
   
@@ -1927,9 +1930,10 @@ int IntersectsWinVM(Word* args, Word& result, int message,
         Tuple*         tup = new Tuple( tupType );
         tup->PutAttribute( 0, ( Attribute* ) moID );
         tup->PutAttribute( 1, ( Attribute* ) upoint );
-        iterator->it++;
         result.addr = tup;
         delete tiv;
+        delete segment;
+        iterator->hits.erase(iterator->it++);
         return YIELD;
       }
       else
@@ -1942,7 +1946,6 @@ int IntersectsWinVM(Word* args, Word& result, int message,
     {
       if (iterator != 0)
       {
-        iterator->hits.clear();
         delete iterator;
         local.addr = 0;
       }
@@ -2124,9 +2127,10 @@ int InsideWinVM(Word* args, Word& result,int message,Word& local,Supplier s)
         Tuple*         tup = new Tuple( tupType );
         tup->PutAttribute( 0, ( Attribute* ) moID );
         tup->PutAttribute( 1, ( Attribute* ) upoint );
-        iterator->it++;
         result.addr = tup;
         delete tiv;
+        delete segment;
+        iterator->hits.erase(iterator->it++);
         return YIELD;
       }
       else
@@ -2139,7 +2143,6 @@ int InsideWinVM(Word* args, Word& result,int message,Word& local,Supplier s)
     {
       if (iterator != 0)
       {
-        iterator->hits.clear();
         delete iterator;
         local.addr = 0;
       }
@@ -2279,9 +2282,10 @@ int GetTrajectoryVM( Word* args, Word& result, int message, Word& local,
         Tuple*     tup = new Tuple( tupType );
         tup->PutAttribute( 0, ( Attribute* ) moID );
         tup->PutAttribute( 1, ( Attribute* ) upoint );
-        iterator->it++;
         result.addr = tup;
         delete tiv;
+        delete segment;
+        iterator->hits.erase(iterator->it++);
         return YIELD;
       }
       else
@@ -2294,7 +2298,6 @@ int GetTrajectoryVM( Word* args, Word& result, int message, Word& local,
     {
       if (iterator != 0)
       {
-        iterator->hits.clear();
         delete iterator;
         local.addr = 0;
       }
