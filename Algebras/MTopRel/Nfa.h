@@ -731,6 +731,9 @@ object.  The automaton is always represented as an nfa.
     
      for(unsigned int i=0; i< newStates.size();i++){
        State<sigma> s;
+       if(intersects<int>(newStates[i], finalStates)){
+           finalStates.insert(states.size());
+       }
        states.push_back(s);
      }
 
@@ -762,6 +765,9 @@ object.  The automaton is always represented as an nfa.
              unsigned int index = retrieveOrCreateIndex(newStates, targets);
              if(newStates.size()!=bigsize){ // create a new state
                 State<sigma> s;
+                if(intersects<int>(newStates[index], finalStates)){
+                  finalStates.insert(states.size());
+                }
                 states.push_back(s);
              }             
              states[pos+oldsize].insertTransition(s,index+oldsize);
@@ -770,11 +776,6 @@ object.  The automaton is always represented as an nfa.
 
        pos++;
      }  
-
-     
-
-
-
   }
 
 
