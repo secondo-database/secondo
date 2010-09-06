@@ -12,7 +12,7 @@ Operator : vec
 Number   : 1
 Signature: (string string ... ) -> stvector
 Example  : let follows= vec("aa.bb", "aa.b.b", "a.a.bb", "a.a.b.b")  
-Result   : file
+Result   : []
 
 Operator : stpatternex
 Number   : 1
@@ -47,11 +47,11 @@ Result   : 10
 Operator : passmbool
 Number   : 1
 Signature: mbool -> mbool
-Example  : query ten feed extend[mb1: randommbool(now()), mb2: randommbool(now())] filter[. stpattern[f1: passmbool(.mb1), f2: passmbool(.mb2); stconstraint("f1","f2",vec("aabb")) ]]  consume 
-Result   : file 
+Example  : query ten feed extend[mb1: randommbool(now())] filter[always(.mb1 = passmbool(.mb1))] count
+Result   : 10
 
 Operator : randomdelay
 Number   : 1
 Signature: mpoint x duration -> mpoint
-Example  : query randomdelay(train7) 
-Result   : file 
+Example  : query always(randomdelay(train7, create_duration(0, 5000)) = train7)
+Result   : FALSE
