@@ -986,6 +986,7 @@ opSignature(isempty, temporallifted, [T],mbool,[]) :-
   memberchk(T,[mbool, mint, mstring, mreal, mpoint, mregion]),!.
 opSignature(inside, temporallifted, [mpoint,points],mbool,[exp,liftedspatialrange]).
 opSignature(inside, temporallifted, [mpoint,line],mbool,[exp,liftedspatialrange]).
+opSignature(inside, temporallifted, [mpoint,region],mbool,[exp,liftedspatialrange]).
 opSignature(inside, temporallifted, [movingregion,points],mbool,[exp,liftedspatialrange]).
 opSignature(inside, temporallifted, [movingregion,line],mbool,[exp,liftedspatialrange]).
 opSignature(intersection, temporallifted, [T,T],T,[comm,ass,exp]) :-
