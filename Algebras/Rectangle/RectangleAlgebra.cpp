@@ -942,23 +942,24 @@ gridIntersectsTM( ListExpr args )
 
   for (; ei <= gpl; ei++)
   {
-    if (!l.elem(ei).isSymbol(Symbols::REAL()))
-      l.typeError(err);
+    if (!(l.elem(ei).isSymbol(Symbols::REAL())))
+      return l.typeError(err);
   }
 
   for (; ei <= np; ei++)
   {
-    if(!l.elem(ei).isSymbol(Symbols::INT()))
-      l.typeError(err);
+    if(!(l.elem(ei).isSymbol(Symbols::INT())))
+      return l.typeError(err);
   }
 
   for (int i=0; i < 2; i++)
-    if(!l.elem(ei++).isSymbol((is3D ? "rect3" : "rect")))
-      l.typeError(err);
+  {
+    if(!(l.elem(ei++).isSymbol((is3D ? "rect3" : "rect"))))
+      return l.typeError(err);
+  }
 
-  assert(ei == len);
   if (!l.elem(ei).isSymbol(Symbols::INT()))
-    l.typeError(err);
+    return l.typeError(err);
 
   return NList(BOOL).listExpr();
 
