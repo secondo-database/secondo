@@ -1933,6 +1933,7 @@ gridIntersectsVM(Word* args, Word& result,
     if (!rectA->Intersects(*rectB))
     {
       res->Set( true, false );
+      return 0;
     }
     else
     {
@@ -1963,7 +1964,10 @@ gridIntersectsVM(Word* args, Word& result,
     }
 
     if (!rectA->Intersects(*rectB))
+    {
       res->Set(true, false);
+      return 0;
+    }
     else
     {
       x0 = ((CcReal *)args[0].addr)->GetValue();
@@ -1986,8 +1990,9 @@ gridIntersectsVM(Word* args, Word& result,
       || fabs(yw - 0.0) <= 1e-10
       || (is3D && fabs(zw - 0.0) <= 1e-10))
   {
-    cerr << "Unacceptable grid width: " <<
-            xw << "," << yw << "," << zw << endl;
+    cerr << "RectangleAlgebra::gridIntersects:"
+        "Unacceptable grid width (" <<
+            xw << "," << yw << "," << zw << ")" << endl;
     res->Set( true, false );
     return 0;
   }
@@ -1999,7 +2004,8 @@ gridIntersectsVM(Word* args, Word& result,
 
   if(LBX < 0 || LBY < 0 || LBZ < 0)
   {
-    cerr << "Error: The rectangles locate "
+    cerr << "RectangleAlgebra::gridIntersects: "
+        "Error, the rectangles locate "
         "outside of the first quadrant\n";
     res->Set( true, false );
     return 0;
