@@ -52,6 +52,7 @@ integer numbers. The Grammar is:
 
 #include "IntNfa.h"
 #include "RegExParser.y.h"
+#include "../../include/Stack.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -76,6 +77,7 @@ extern "C"{
 
 int parse_success;
 IntNfa* result;
+Stack<IntNfa*>* stack=0;
 char* last_message=0;
 
 // %name-prefix="regex"
@@ -118,7 +120,6 @@ expr : term {
          $$ = $1;
          IntNfa* n = $$;
          n->nfa.disjunction($3->nfa);
-         delete $3;
        }
      ;
 
@@ -132,7 +133,6 @@ term : factor {
          $$ = $1;
          IntNfa* n = $$;
          n->nfa.concat($2->nfa);
-         delete $2;
        }
      ;
 
@@ -156,10 +156,12 @@ atom  : OPEN expr CLOSE {
          //std::cout << "atom -> number" << std::endl;
         int number = $1;
         $$ = new IntNfa(number); 
+        stack->push($$);
         }
       | EPSILON {
          //std::cout << "atom -> epsilon " << std::endl;
           $$ = new IntNfa();
+          stack->push($$);
         }
       ;
 
@@ -193,6 +195,8 @@ the first argument is parsed according to the rules given above.
 */
 int parseString(const char* argument, IntNfa** T){
 
+    stack = new Stack<IntNfa*>();
+
     yy_scan_string(argument);
 
     yyparse();
@@ -201,7 +205,18 @@ int parseString(const char* argument, IntNfa** T){
           free(last_message);
           last_message=0;
     }
+    while(!stack->isEmpty()){
+      IntNfa* elem = stack->pop();
+      if(elem!=result){
+        delete elem;
+      }
+    }
+
     (*T) = result;
+
+    delete stack;
+    stack = 0;
+
     return parse_success;
 }
 
