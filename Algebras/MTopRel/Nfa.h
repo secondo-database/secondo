@@ -44,8 +44,8 @@ contained within a vector.
 */
 template<typename T>
 static bool contains(const std::vector<T> v, T elem){
-   typename std::vector<T>::const_iterator it = v.begin();
-   while(it!=v.end()){
+   typename std::vector<T>::const_iterator it;
+   for(it=v.begin(); it!=v.end();it++){
       if(*it == elem){
         return true;
       }
@@ -117,6 +117,23 @@ static bool intersects( const std::set<T>& s1, const std::set<T>& s2){
 }
 
 
+/* 
+1.5 ~getVectorIndex~
+
+  Returns the first index within a vector having the same value as 
+  the given one. If the element is not found, -1 is returned.
+
+*/
+
+template<typename T>
+static int getVectorIndex(const std::vector<T>& v, const T& elem){
+  for(unsigned int i=0;i<v.size();i++){
+     if(v[i]==elem){
+        return i;
+     }
+  }
+  return -1;
+}
 
 
 
@@ -657,6 +674,7 @@ regular expression.
          removeEpsilonChains();
      } 
    }
+   
    removeUnreachable();
    removeDeadEnds();
  }
@@ -820,8 +838,8 @@ Replaces states within an epsilon loop by a single one.
 
 */
   void removeEpsilonLoops(){
-    unsigned int pos = 0;
     std::vector<int> loop;
+    unsigned int pos = 0;
     while(pos < states.size()){
        if(findEpsilonLoop(pos,loop)){
           mergeEpsilonLoop(loop);
@@ -881,46 +899,44 @@ will be false.
    bool findEpsilonLoop(const int state, std::vector<int>& loop) const{
      loop.clear();
      loop.push_back(state);
+
      return findEpsilonLoop(loop);
    }
 
 
    bool findEpsilonLoop( std::vector<int>& loop) const{
-      int last = loop[loop.size()-1];
-      State<sigma> state = states[last];
-      const std::set<int>& trans = state.getEpsilonTransitions();
-      if(trans.size()!=0){ // dead end
+
+     int last = loop[loop.size()-1];  // last state added to loop
+     State<sigma> s = states[last]; // the according state
+
+     std::set<int> trans = s.getEpsilonTransitions();
+     if(trans.empty()){  // dead end
         return false;
-      }
+     }
+     
+     // first, look whether one of the follow states closes the loop
+     typename std::set<int>::iterator it1;
+     for(it1=trans.begin(); it1!=trans.end();it1++){
+        int next = *it1;
+        int index = getVectorIndex<int>(loop, next);
+        if(index >= 0) {
+           std::vector<int> part(loop.begin()+index, loop.end());
+           loop = part;
+           return true;
+        }
+     }
 
-      typename std::set<int>::iterator sit = trans.begin();
-      while(sit!=trans.end()){
-         typename std::vector<int>::iterator vit = loop.begin();
-         while(vit!=loop.end()){
-            if(*vit==*sit){
-              if(vit==loop.begin()){
-                return true;
-              } else {
-                 vit--;
-                 loop.erase(loop.begin(), vit);
-                 return true;
-              }
-            }  
-            vit++;
-         }
-         sit++;
-      } 
-
-      sit = trans.begin();
-      while(sit!=trans.end()){
-        loop.push_back(*sit);
+     // ok, no loop found, extend the loop
+     for(it1 = trans.begin(); it1!=trans.end(); it1++){
+        loop.push_back(*it1);
         if(findEpsilonLoop(loop)){
           return true;
+        } else {
+          loop.pop_back();
         }
-        loop.pop_back();
-        sit++;
-      }
-      return false;
+     } 
+     // no loop found
+     return false;
    }
 
 /*
@@ -930,7 +946,9 @@ Merges states given in s by a single state.
 
 */
   void mergeEpsilonLoop(const std::vector<int>& loop){
-     // create a state for the mergeg states
+
+
+     // create a state for the merged states
      State<sigma> S;
      std::vector<State<sigma> > newStates;
 
@@ -956,48 +974,61 @@ Merges states given in s by a single state.
         State<sigma> s = states[i];
         if(contains<int>(loop,i)){
            std::map<sigma, std::set<int> > transitions = s.getTransitions();
-           typename std::map<sigma, std::set<int> >::iterator it;
-           for(it = transitions.begin(); it!=transitions.end(); it++){
-              std::set<int>::iterator it2 = it->second.begin();
-              while(it2!=it->second.end()){
-                 newStates[0].insertTransition(it->first, posmap[*it2]);
-                 it2++;
+           typename std::map<sigma, std::set<int> >::iterator it1;
+
+           // process normal transitions
+           for(it1 = transitions.begin(); it1!=transitions.end(); it1++){
+              typename std::set<int>::iterator it2; 
+              for(it2=it1->second.begin(); it2!=it1->second.end(); it2++){
+                 newStates[0].insertTransition(it1->first, posmap[*it2]);
               }
            }
  
+           // process epsilon transitions
            std::set<int> epsTransitions = s.getEpsilonTransitions();
-           typename std::set<int>::iterator it3 =epsTransitions.begin();
-           while(it3 != epsTransitions.end()){
-              if(posmap[*it3]!=0){
-                newStates[i].insertEpsilonTransition(posmap[*it3]);
+           typename std::set<int>::iterator it3;
+           for(it3 = epsTransitions.begin(); it3!=epsTransitions.end(); it3++){
+              if(posmap[*it3] != 0){
+                newStates[0].insertEpsilonTransition(posmap[*it3]);
               }
-              it3++;
            }
         } else {
           State<sigma> newState;
+
+          // process normal transitions
           std::map<sigma, std::set<int> > transitions = s.getTransitions();
-          typename std::map<sigma,std::set<int> >::iterator it;
-          for(it= transitions.begin(); it!=transitions.end(); it++){
-              std::set<int>::iterator it2 = it->second.begin();
-              while(it2!=it->second.end()){
-                 newState.insertTransition(it->first, posmap[*it2]);
-                 it2++;
+          typename std::map<sigma,std::set<int> >::iterator it1;
+          for(it1= transitions.begin(); it1!=transitions.end(); it1++){
+              typename std::set<int>::iterator it2;
+              for(it2=it1->second.begin();it2!=it1->second.end(); it2++){
+                  newState.insertTransition(it1->first, posmap[*it2]);
               }
            }
-           std::set<int> epsTransitions = s.getEpsilonTransitions();
-           typename std::set<int>::iterator it3 =epsTransitions.begin();
-           while(it3 != epsTransitions.end()){
-              newState.insertEpsilonTransition(posmap[*it3]);
-              it3++;
-           }
-           newStates.push_back(newState);
+
+          // process epsilon transitions
+          std::set<int> epsTransitions = s.getEpsilonTransitions();
+          typename std::set<int>::iterator it3;
+          for(it3=epsTransitions.begin();it3!=epsTransitions.end(); it3++){
+             newState.insertEpsilonTransition(posmap[*it3]);
+          }
+  
+          // insert the newly created state
+          newStates.push_back(newState);
         }
      }
    
      states = newStates;
      startState = posmap[startState];
-     finalStates.clear();
-     finalStates.insert( posmap[*finalStates.begin()]);   
+     
+     // process finalStates
+     std::set<int> newFinal;
+     typename std::set<int>::iterator it4;   
+     for(it4=finalStates.begin();it4!=finalStates.end(); it4++){
+        newFinal.insert(posmap[*it4]);
+     }
+     finalStates=newFinal;
+
+
   }
 
 
