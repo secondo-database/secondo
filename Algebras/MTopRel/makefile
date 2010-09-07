@@ -78,5 +78,5 @@ Scanner.c: Scanner.l RegExParser.y.c
 .PHONY: clean
 clean:
 	$(RM) $(DEP_FILES) $(OBJECTS) $(LIBOBJ)
-	$(RM) -f P RegExParser.o RegExParser.y.c Scanner.o Scanner.c 
+	$(RM) -f P RegExParser.o RegExParser.y.c Scanner.o Scanner.c  NFATest
 	$(RM) -f RegExParser.y.h
