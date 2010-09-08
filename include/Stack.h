@@ -28,7 +28,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //[_] [\_]
 
 
-[1]  A Main Memory based R-Tree implementation
+[1]  A simple stack implementation
 
 [TOC]
 
@@ -36,6 +36,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 #ifndef STACK_H
 #define STACK_H
+
+#include <assert.h>
 
 
 template<class T>
