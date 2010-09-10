@@ -38,6 +38,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 // %option prefix="regex"
 %}
 
+%option prefix="regex"
 %option noyywrap
 
 whitespace [ \n\r\t\a\b\f\t\v]
@@ -56,7 +57,7 @@ epsilon "e"
 {stars}        { return STARS; } 
 "|"            { return OR; }
 {epsilon}      { return EPSILON;}
-{int}          { yylval.numval = atoi(yytext);
+{int}          { regexlval.numval = atoi(yytext);
                  return NUMBER;
                }
 .              { return ERROR; }

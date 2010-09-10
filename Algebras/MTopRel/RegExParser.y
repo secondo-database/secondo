@@ -69,16 +69,16 @@ integer numbers. The Grammar is:
 
 #ifdef __cplusplus
 extern "C"{
- int yylex();
- int yyerror (const char *error);
- void yy_scan_string(const char* argument);
+ int regexlex();
+ int regexerror (const char *error);
+ void regex_scan_string(const char* argument);
 }
 #endif
 
 int parse_success;
 IntNfa* result;
 Stack<IntNfa*>* stack=0;
-char* last_message=0;
+char* regex_last_message=0;
 
 // %name-prefix="regex"
 %}
@@ -95,6 +95,8 @@ char* last_message=0;
    struct IntNfa* theNfa;
    int numval;
 }
+
+%name-prefix="regex"
 
 
 %token OPEN CLOSE STARS OR EPSILON ERROR 
@@ -176,7 +178,7 @@ an error.
 
 */
 
-int yyerror (const char *error)
+int regexerror (const char *error)
 {
   parse_success=0; 
   result = 0;
@@ -197,13 +199,13 @@ int parseString(const char* argument, IntNfa** T){
 
     stack = new Stack<IntNfa*>();
 
-    yy_scan_string(argument);
+    regex_scan_string(argument);
 
     yyparse();
 
-    if(parse_success && last_message){
-          free(last_message);
-          last_message=0;
+    if(parse_success && regex_last_message){
+          free(regex_last_message);
+          regex_last_message=0;
     }
     while(!stack->isEmpty()){
       IntNfa* elem = stack->pop();
@@ -229,11 +231,11 @@ to deallocate the memory of the result.
 
 */
 char* GetLastMessage(){
-  if(!last_message){
+  if(!regex_last_message){
     return 0;
   }
-  char* M = (char*) malloc(strlen(last_message)+1);
-  strcpy(M,last_message);
+  char* M = (char*) malloc(strlen(regex_last_message)+1);
+  strcpy(M,regex_last_message);
   return M; 
 }
 

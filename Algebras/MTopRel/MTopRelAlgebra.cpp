@@ -59,7 +59,7 @@ class MTopRelAlgebra: public Algebra{
 */
 extern "C"
 Algebra*
-InitializeTopRelAlgebra( NestedList* nlRef, QueryProcessor* qpRef )
+InitializeMTopRelAlgebra( NestedList* nlRef, QueryProcessor* qpRef )
 {
   nl = nlRef;
   qp = qpRef;
