@@ -25,7 +25,7 @@ all: $(OBJECTS) $(LIBOBJ)   NFATest
 
 
 NFATest: NFATest.o Scanner.o RegExParser.o  
-	$(CC) -o NFATest  NFATest.o  RegExParser.o Scanner.o  -lstdc++ -lfl
+	$(CC) -o NFATest  NFATest.o  RegExParser.o Scanner.o Functions.o  -lstdc++ -lfl
 
 NFATest.o: NFATest.cpp
 	$(CC) -c -o  NFATest.o NFATest.cpp

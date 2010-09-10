@@ -31,136 +31,13 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include <iostream>
 #include <algorithm>
 #include <functional>
-
-/*
-
-1 Some auxiliary Functions
-
-1.1 ~contains~
-
-A function checking whether an object is 
-contained within a vector.
-
-*/
-template<typename T>
-static bool contains(const std::vector<T> v, T elem){
-   typename std::vector<T>::const_iterator it;
-   for(it=v.begin(); it!=v.end();it++){
-      if(*it == elem){
-        return true;
-      }
-   }
-   return false;   
-}
-
-/*
-1.2 ~printset~
-
-This function just prints out a set of something.
-
-*/
-template<typename T>
-static std::ostream& printset(const std::set<T>& s, std::ostream& o){
-  o << "{";
-  typename std::set<T>::const_iterator it;
-  for(it=s.begin();it!=s.end();it++){
-    if(it!=s.begin()){
-      o << ", ";
-    }
-    o << *it;
-  }
-  o << "}";
-  return o;
-}
-
-
-/*
-1.3 ~printVector~
-
-This function prints aout the content of a vector.
-
-*/
-template<typename T>
-static std::ostream& printVector(const std::vector<T>& s, std::ostream& o){
-  o << "[";
-  typename std::vector<T>::const_iterator it;
-  for(it=s.begin();it!=s.end();it++){
-    if(it!=s.begin()){
-      o << ", ";
-    }
-    o << *it;
-  }
-  o << "]";
-  return o;
-}
-
-/*
-1.4 ~intersects~
-
-Checks whether ttwo sets have at least one common element;
-
-*/
-template<typename T>
-static bool intersects( const std::set<T>& s1, const std::set<T>& s2){
-   typename std::set<T>::const_iterator it1 = s1.begin();
-   typename std::set<T>::const_iterator it2 = s2.begin();
-   while(it1!=s1.end() && it2!=s2.end()){
-      if(*it1==*it2){
-        return true;
-      } else if(*it1 < *it2){
-          it1++;
-      } else {
-          it2++;
-      }
-   } 
-   return false;
-}
-
-
-/* 
-1.5 ~getVectorIndex~
-
-  Returns the first index within a vector having the same value as 
-  the given one. If the element is not found, -1 is returned.
-
-*/
-
-template<typename T>
-static int getVectorIndex(const std::vector<T>& v, const T& elem){
-  for(unsigned int i=0;i<v.size();i++){
-     if(v[i]==elem){
-        return i;
-     }
-  }
-  return -1;
-}
+#include "Functions.h"
+#include <assert.h>
 
 
 
-/*
-1.4 ~removeState~
-
-removes state from the set and decrements all elements in the set greater
-than state by one.
-
-*/
-static void removeState(std::set<int>& targets, int state){
-  if(state<0){
-    return;
-  }
-  targets.erase(state);
-  std::set<int> result;
-  std::set<int>::iterator it;
-  for(it=targets.begin(); it!=targets.end();it++){
-    if(*it>state){
-      result.insert(*it -1); 
-    }else{
-      result.insert(*it);
-    }
-  }
-  targets.clear();
-  targets = result;
-}
+#ifndef  NFA_H
+#define NFA_H
 
 /*
 2 Class State
@@ -352,6 +229,18 @@ Returns the contained epsilon transitions.
   const std::map<sigma, std::set<int> >& getTransitions() const{
      return transitions;
   }
+
+  std::set<int> getTransitions(const sigma& s) const{
+    typename std::map<sigma, std::set<int> >::const_iterator it = 
+                           transitions.find(s);
+    if(it!=transitions.end()){
+      return it->second;
+    } else {  // return an empty set
+      std::set<int> res; 
+      return res;
+    }
+  }  
+
 
   std::set<int> getTargets(bool includeEpsilonTransitions) const{
     std::set<int> result;
@@ -800,9 +689,23 @@ object.  The automaton is always represented as an nfa.
   }
 
 
+  unsigned int numOfStates() const{
+    return states.size();
+  }
 
+  State<sigma> getState(const int index) const{
+     assert( (index >= 0 ) );
+     assert(index < static_cast<int>(states.size()));
+     return states[index];
+  }
 
+  bool isFinalState(const int index) const{
+     return finalStates.find(index) != finalStates.end();
+  }
 
+  int getStartState() const{
+    return startState;
+  }
 
 
 private:
@@ -812,7 +715,7 @@ private:
 
 */
  
-   unsigned int startState;
+   int startState;
    std::vector<State<sigma> > states;
    std::set<int> finalStates; 
 
@@ -1045,7 +948,7 @@ transitions.
    if(states.size()==0){
      return;
    }
-   if(startState>=states.size()){
+   if(startState>=static_cast<int>(states.size())){
       states.clear();
       finalStates.clear();
       startState = 0;
@@ -1148,9 +1051,10 @@ void removeState(int state1){
    if(state1<0){
      return;
    }
-   unsigned int state = state1;
+   int state = state1;
  
-   if( ( state>=states.size()) || (state == startState) ){
+   if( ( state>=static_cast<int>(states.size())) || 
+       (state == startState) ){
       return;
    }
    states.erase(states.begin()+state);
@@ -1383,6 +1287,6 @@ void Nfa<sigma>::append(const Nfa<sigma>& second){
 
 
 
-
+#endif
 
 
