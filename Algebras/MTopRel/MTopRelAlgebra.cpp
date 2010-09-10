@@ -26,5 +26,46 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 
 #include "dfa.h"
+#include "GenericTC.h"
+#include "Algebra.h"
+
+
+GenTC<TopRelDfa> topreldfa;
+
+
+
+
+
+class MTopRelAlgebra: public Algebra{
+
+  public:
+
+    MTopRelAlgebra(){
+       AddTypeConstructor( &topreldfa );
+       topreldfa.AssociateKind("DATA");
+
+       // add operators
+
+    }
+    
+    ~MTopRelAlgebra() {};
+
+};
+
+/*
+3 Initialization of the Algebra
+
+
+*/
+extern "C"
+Algebra*
+InitializeTopRelAlgebra( NestedList* nlRef, QueryProcessor* qpRef )
+{
+  nl = nlRef;
+  qp = qpRef;
+  return (new MTopRelAlgebra());
+}
+
+
 
 

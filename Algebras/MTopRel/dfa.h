@@ -33,6 +33,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "TopRel.h"
 #include "NestedList.h" 
 #include "IntNfa.h"
+#include "GenericTC.h"
 
 
 
@@ -388,6 +389,127 @@ Goes into the next state depending on the input.
  void CopyFrom(const Attribute* right){
     operator=(*((TopRelDfa*) right));
  }
+
+
+ static const string BasicType(){
+    return "mtoprel";
+ }
+
+
+ static ListExpr Property(){
+     return gentc::GenProperty("-> DATA",
+                           BasicType(),
+                          "(complicated list)",
+                          "(a big list)");
+ }
+
+ static bool CheckKind(ListExpr type, ListExpr& errorInfo){
+      return nl->IsEqual(type,BasicType());
+ }
+
+
+ bool ReadFrom(const ListExpr value, const ListExpr typeInfo){
+    if(nl->ListLength(value)!=5){
+      SetDefined(false);
+      return  false;
+    }
+    ListExpr current = nl->First(value);
+    if(nl->AtomType(current!=IntType)){
+      SetDefined(false);
+      return false;
+    }
+    startState = nl->IntValue(current);
+    currentState = startState;
+
+    current = nl->Second(value);
+    if(nl->AtomType(current)!=NoAtom){
+       SetDefined(false);
+       return false;
+    }
+    transitions.clean();
+    while(!nl->IsEmpty(current)){
+       ListExpr first = nl->First(current);
+       if(nl->AtomType(first)!=IntType){
+         SetDefined(false);
+         return false;
+       }
+       transitions.Append(nl->IntValue(first));
+       current = nl->Rest(current);
+    }
+
+    finalStates.clean();
+    current = nl->Third(value);
+    while(!nl->IsEmpty(current)){
+       ListExpr first = nl->First(current);
+       if(nl->AtomType(first)!=BoolType){
+         SetDefined(false);
+         return false;
+       }
+       finalStates.Append(nl->BoolValue(first));
+       current = nl->Rest(current);
+    }
+
+    ListExpr typeInfo1 = nl->SymbolAtom("predicategroup");
+
+    if(!predicateGroup.ReadFrom(nl->Fourth(value), typeInfo1)){
+       SetDefined(false);
+       return false;
+    }
+    current = nl->Fifth(value);
+    if(nl->AtomType(current)!=IntType){
+       SetDefined(false);
+       return false;
+    }
+    numOfSymbols= nl->IntValue(current);
+    if(!numOfSymbols * finalStates.Size() == transitions.Size()){
+       SetDefined(false);
+       return false;
+    }
+    SetDefined(true);
+    return true;
+
+ }
+
+ ListExpr ToListExpr(const ListExpr typeInfo){
+    if(!IsDefined()){
+      return nl->SymbolAtom("undef");
+    }
+    ListExpr first = nl->IntAtom(startState);
+    ListExpr second;
+    if(transitions.Size()==0){
+       second = nl->TheEmptyList();
+    } else {
+      int x;
+      transitions.Get(0,x);
+      second = nl->OneElemList(nl->IntAtom(x));
+      ListExpr last = second;
+      for(int i=1; i< transitions.Size();i++){
+        transitions.Get(i,x);
+        last = nl->Append(last, nl->IntAtom(x));
+      }
+    }
+
+    ListExpr third;
+    if(finalStates.Size()==0){
+      third = nl->TheEmptyList();
+    } else {
+      bool x;
+      finalStates.Get(0,x);
+      second = nl->OneElemList(nl->BoolAtom(x));
+      ListExpr last = second;
+      for(int i=1; i< finalStates.Size();i++){
+        finalStates.Get(i,x);
+        last = nl->Append(last, nl->BoolAtom(x));
+      }
+    }
+
+    ListExpr typeInfo1 = nl->SymbolAtom("predicategroup");
+    ListExpr fourth = predicateGroup.ToListExpr(typeInfo1);
+    ListExpr fifth = nl->IntAtom(numOfSymbols);
+
+    return nl->FiveElemList(first, second, third, fourth, fifth);
+ }
+
 
 
 private:
