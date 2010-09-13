@@ -108,6 +108,10 @@ public:
     Set(true,value);
   }
 
+  static string BasicType(){ 
+     return "text";
+  } 
+
 
 private:
   Flob theText;
