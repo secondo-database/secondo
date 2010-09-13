@@ -27,10 +27,71 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 #include "dfa.h"
 #include "GenericTC.h"
+#include "GenOps.h"
 #include "Algebra.h"
+#include "FTextAlgebra.h"
 
+
+/*
+1 Type Constructor
+
+*/
 
 GenTC<TopRelDfa> topreldfa;
+
+
+/*
+2 Operators
+
+
+1.1 createdfa
+
+
+Operator for creating a topreldfa from a pridicategroup and a 
+text.
+
+*/
+
+int
+  createDfaVM( Word* args, Word& result, int message,
+               Word& local, Supplier s ){
+
+    result = qp->ResultStorage(s);
+    toprel::PredicateGroup* pg = 
+         static_cast<toprel::PredicateGroup*>(args[0].addr);
+    FText* regex = static_cast<FText*>(args[1].addr);
+    TopRelDfa* res = static_cast<TopRelDfa*>(result.addr);
+    if(!pg->IsDefined() || !regex->IsDefined()){
+      res->SetDefined(false); 
+      return 0;
+    }
+    string r = regex->GetValue();
+
+    res->setTo( r, *pg);
+    return 0;
+}
+
+const string createDfaSpec  = 
+      "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+           "\"Example\" )"
+        "( <text>predicategroup x text -> mtoprel  </text--->"
+       "<text>createDfa(_,_)</text--->"
+       "<text>Creates an mtoprel object</text--->"
+       "<text>query createDfa(stdpgroup(), 'inside meet disjoint'</text--->"
+       ") )";
+
+
+Operator createDfa(
+           "createDfa",
+           createDfaSpec,
+           createDfaVM,
+           Operator::SimpleSelect,
+           TypeMap2<toprel::PredicateGroup, FText, TopRelDfa>);
+
+
+
+
+
 
 
 
@@ -45,6 +106,7 @@ class MTopRelAlgebra: public Algebra{
        topreldfa.AssociateKind("DATA");
 
        // add operators
+       AddOperator(&createDfa);
 
     }
     

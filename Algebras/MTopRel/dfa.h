@@ -42,6 +42,9 @@ bool lengthSmaller( const string& s1, const string& s2){
 }
 
 
+bool lengthGreater( const string& s1, const string& s2){
+   return s1.length() > s2.length();
+}
 
 string num2str(const int num){
  stringstream s;
@@ -86,11 +89,15 @@ Constructors
      Attribute(d.IsDefined()),
      startState(d.startState),
      currentState(d.currentState),
-     transitions(d.transitions),
-     finalStates(d.finalStates),
-     predicateGroup(d.predicateGroup),
+     transitions(0),
+     finalStates(0),
+     predicateGroup(0),
      numOfSymbols(d.numOfSymbols),
-     canDestroy(false) {}
+     canDestroy(false) {
+      transitions.copyFrom(d.transitions);
+      finalStates.copyFrom(d.finalStates);
+      predicateGroup.CopyFrom(&d.predicateGroup);
+    }
 
 
    TopRelDfa& operator=(const TopRelDfa& src){
@@ -98,9 +105,9 @@ Constructors
      SetDefined(src.IsDefined());
      startState = src.startState;
      currentState = src.currentState;
-     transitions = src.transitions;
-     finalStates = src.finalStates;
-     predicateGroup = src.predicateGroup;
+     transitions.copyFrom(src.transitions);
+     finalStates.copyFrom(src.finalStates);
+     predicateGroup.CopyFrom(&src.predicateGroup);
      numOfSymbols = src.numOfSymbols;
      return *this;
    }
@@ -110,26 +117,33 @@ Constructors
 
   void setTo(const string& regex,
              const toprel::PredicateGroup& pg) {
+    
+
     if(!pg.IsDefined()){
+      cout << "pg not defined" << endl;
       SetDefined(false);
       return;
     }  
     std::vector<string> names = pg.getNames();
     // sort vector by the  length of its elements
-    std::sort(names.begin(), names.end(), lengthSmaller); 
+    std::sort(names.begin(), names.end(), lengthGreater); 
 
 
     // replaces all names 
     string changed = regex;
-    for(unsigned int i=names.size()-1; i>=0; i--){
-      changed = replaceAll(changed,names[i], string(" ") + 
-                           num2str(i) + string(" ")); 
+    for(unsigned int i=0;i<names.size();i++){
+      string res = " " + num2str(i)+" ";
+      changed = replaceAll(changed,names[i],res); 
     }
+
+
+    cout << "parse string" << changed << endl;
 
     IntNfa* nfa = 0;
     parseString(changed.c_str(),&nfa);
 
     if(nfa==0){ // error in regular expression -> Set to be undefined
+      cout << "invalid regular expression" << endl;
       SetDefined(false);
       return;
     }
@@ -138,11 +152,16 @@ Constructors
     nfa->nfa.makeDeterministic();
 
     if(nfa->nfa.getStartState() < 0){
+      cout << "StartState < 0" << endl;
       SetDefined(false);
       delete nfa;
       return;
     }
     
+    SetDefined(true);
+
+    cout << "Create the dfa" << endl;
+
 
     transitions.clean();
     finalStates.clean();
@@ -162,11 +181,17 @@ Constructors
     }
 
 
+    cout << "equalize predicate group" << endl;
+
+    predicateGroup.CopyFrom(&pg);
+
+    startState = nfa->nfa.getStartState();
+    numOfSymbols = names.size();
 
 
 
 
-
+    cout << "finished" << endl;
 
  
    
@@ -495,8 +520,8 @@ Goes into the next state depending on the input.
     } else {
       bool x;
       finalStates.Get(0,x);
-      second = nl->OneElemList(nl->BoolAtom(x));
-      ListExpr last = second;
+      third = nl->OneElemList(nl->BoolAtom(x));
+      ListExpr last = third;
       for(int i=1; i< finalStates.Size();i++){
         finalStates.Get(i,x);
         last = nl->Append(last, nl->BoolAtom(x));
@@ -506,6 +531,7 @@ Goes into the next state depending on the input.
     ListExpr typeInfo1 = nl->SymbolAtom("predicategroup");
     ListExpr fourth = predicateGroup.ToListExpr(typeInfo1);
     ListExpr fifth = nl->IntAtom(numOfSymbols);
+
 
     return nl->FiveElemList(first, second, third, fourth, fifth);
  }
