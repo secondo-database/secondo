@@ -997,6 +997,20 @@ This function returns the name of this cluster.
            strcpy(res, name);
       } 
 
+/*
+2.2.21 GetName
+
+Return the name of this cluster as a string.
+
+*/
+
+  string GetName() const{
+     STRING_T s;
+     GetName(s);
+     string res(s);
+     return res;
+  }
+
 
 /*
 2.2.21 Restrict
@@ -1471,6 +1485,19 @@ void SetToDefault();
    void Destroy(){
       canDelete = true;
    }
+
+
+std::vector<string> getNames() const{
+  std::vector<string> res;
+  res.push_back(unSpecified.GetName());
+  Cluster c;
+  for(int i=0;i<theClusters.Size();i++){
+     theClusters.Get(i,c);
+     res.push_back(c.GetName());
+  }
+  return res;
+}
+
 
 private:
    mutable DbArray<Cluster> theClusters;
