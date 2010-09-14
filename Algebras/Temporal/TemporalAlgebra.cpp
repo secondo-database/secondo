@@ -99,6 +99,7 @@ file.
 #include "MMRTree.h"
 #include <time.h>
 #include "AlmostEqual.h"
+#include "ListUtils.h"
 
 #include "RefinementStream.h"
 
@@ -1590,7 +1591,7 @@ bool UPoint::At( const Point& p, TemporalUnit<Point>& res ) const {
     }
   }
 
-  
+
 
   double d_x = p1.GetX() - p0.GetX();
   double d_y = p1.GetY() - p0.GetY();
@@ -1603,7 +1604,7 @@ bool UPoint::At( const Point& p, TemporalUnit<Point>& res ) const {
      delta = (p.GetY()-p0.GetY() ) / d_y;
      useX = false;
   }
-  
+
   if( (delta<0) || (delta>1)){
     result->SetDefined(false);
     return false;
@@ -1624,10 +1625,10 @@ bool UPoint::At( const Point& p, TemporalUnit<Point>& res ) const {
   }
 
 
-  Instant time = timeInterval.start + 
+  Instant time = timeInterval.start +
                  (timeInterval.end-timeInterval.start)*delta;
 
-  //double timeD = timeInterval.start.ToDouble() + 
+  //double timeD = timeInterval.start.ToDouble() +
   //               (timeInterval.end-timeInterval.start).ToDouble()*delta;
   //DateTime time(instanttype);
   //time.ReadFrom(timeD);
@@ -8515,7 +8516,7 @@ ListExpr TypeMapLinearize2(ListExpr args){
 ListExpr TypeMapApproximate(ListExpr args){
 
   int len = nl->ListLength(args);
-  if(len != 3 ){
+  if( (len != 3) &&  (len != 4) ){
       ErrorReporter::ReportError("three arguments expected");
       return nl->SymbolAtom("typeerror");
   }
@@ -8627,6 +8628,20 @@ ListExpr TypeMapApproximate(ListExpr args){
                                 " not occur in the typle");
      return nl->SymbolAtom("typeerror");
   }
+
+  if(restype != "mpoint" && len != 3){
+     ErrorReporter::ReportError("Expected only 3 arguments.");
+     return nl->SymbolAtom("typeerror");
+  }
+
+  if(len == 4){
+     ListExpr dur = nl->Fourth(args);
+     if(!listutils::isSymbol(dur,"duration")){
+        ErrorReporter::ReportError("4th argument must be of type 'duration'.");
+        return nl->SymbolAtom("typeerror");
+     }
+  }
+
 
   // all is correct
   ListExpr ind = nl->TwoElemList(nl->IntAtom(a1index),
@@ -10813,11 +10828,23 @@ int ApproximateMPoint(Word* args, Word& result,
                 Supplier s){
    result = qp->ResultStorage(s);
    MPoint* res = (MPoint*) result.addr;
-   int index1 = ((CcInt*)args[3].addr)->GetIntval();
-   int index2 = ((CcInt*)args[4].addr)->GetIntval();
+   int no_args = qp->GetNoSons(s);
+   DateTime dur(durationtype);
+   bool split = false;
+   if(no_args == 6){ //
+      dur.CopyFrom(static_cast<Attribute*>(args[3].addr));
+      split = true;
+   }
+   int index1 = ((CcInt*)args[no_args-2].addr)->GetIntval();
+   int index2 = ((CcInt*)args[no_args-1].addr)->GetIntval();
 
    res->Clear();
-   res->SetDefined(true);
+   if( !split || dur.IsDefined() ){
+    res->SetDefined(true);
+   } else { // undefined splitting duration parameter --> return UNDEF mpoint
+    res->SetDefined(false);
+    return 0;
+   }
    Word actual;
 
    qp->Open(args[0].addr);
@@ -10835,10 +10862,14 @@ int ApproximateMPoint(Word* args, Word& result,
          if(!first){
             // check order of instants - ignored wrong ordered elements
             if(currentInstant>lastInstant){
+               if(split && (currentInstant - lastInstant) > dur ) {
+                 first = true;
+               } else {
                Interval<Instant> interval(lastInstant, currentInstant,
                                            true ,false);
-               UPoint unit(interval,lastValue,currentValue);
-               res->MergeAdd(unit);
+                  UPoint unit(interval,lastValue,currentValue);
+                  res->MergeAdd(unit);
+               }
             }
          } else {
            first = false;
@@ -13055,12 +13086,15 @@ const string TemporalSpecLinearize =
 
 const string TemporalSpecApproximate =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-  "( <text>stream(tuple(a1: t1) (...(an,tn) x ai x aj  -> mtj ,"
+  "( <text>stream(tuple(a1: t1) (...(an,tn) x ai x aj [ x duration ] -> mtj ,"
            " (ti = instant, tj in {real,point)</text--->"
-  "<text>_ approximate [ i, j ] </text--->"
+  "<text>_ approximate [ i, j, dt_split ] </text--->"
   "<text>Computes a piecewise linear approximation from the time/value pairs"
   " of the stream argument. i/j indicate the attribute names for the "
-  "time/value data within the stream tuples.</text--->"
+  "time/value data within the stream tuples. The optional parameter dt_split "
+  "sets a maximum duration for unit definition times. If two consecutive data "
+  "points have longer temporal distance, they are not connected by a unit."
+  "</text--->"
   "<text>  </text--->"
   ") )";
 
