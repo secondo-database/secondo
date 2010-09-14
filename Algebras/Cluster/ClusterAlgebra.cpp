@@ -226,7 +226,7 @@ if(ps->IsEmpty()) {
   ((Points*)result.addr)->SetDefined(false);
   free(rcpoints);
   free(cpoints);
-  return 1; 
+  return 1;
 }
 
 for(int a = 0; a < ps->Size();a++) // transfer x/y-values
@@ -474,7 +474,7 @@ private:
   unsigned int minPts; // minimum size for core points
   double eps;          // epsilon
   double eps2;         // epsilon * epsilon
-  bool  defined;       
+  bool  defined;
   int* no;             // cluster number
   set<int>** env1;     // environments;
   int size;            // number of points
@@ -509,8 +509,8 @@ contained in pts;
         Rectangle<2> box(true,min1,max1);
         tree.insert(box, i);
      }
-    
-     
+
+
      /* compute environments using filter /refine */
      for(int i=0;i<pts->Size();i++){
         pts->Get(i,p);
@@ -537,7 +537,7 @@ contained in pts;
 
 
 
-/* 
+/*
 ~qdist~
 
 This function computes the square of the distance between two point value.
@@ -555,7 +555,7 @@ double qdist(Point& p1, Point& p2){
 }
 
 
-/* 
+/*
 ~expand~
 
 This function implements the expand algorithm of dbscan.
@@ -723,7 +723,7 @@ private:
   unsigned int minPts; // minimum size for core points
   double eps;          // epsilon
   double eps2;         // epsilon * epsilon
-  bool  defined;       
+  bool  defined;
   int* no;             // cluster number
   int size;            // number of points
   int pos;             // current position
@@ -753,7 +753,7 @@ private:
      }
   }
 
-  set<int>* getEnv(int pos){  
+  set<int>* getEnv(int pos){
      set<int>* res = new set<int>();
      Point p;
      pts->Get(pos,p);
@@ -781,7 +781,7 @@ private:
   }
 
 
-  unsigned int getEnvSize(int pos){  
+  unsigned int getEnvSize(int pos){
      int res = 0;
      Point p;
      double min1[2];
@@ -808,7 +808,7 @@ private:
     return res;
   }
 
-/* 
+/*
 ~qdist~
 
 This function computes the square of the distance between two point value.
@@ -826,7 +826,7 @@ double qdist(Point& p1, Point& p2){
 }
 
 
-/* 
+/*
 ~expand~
 
 This function implements the expand algorithm of dbscan.
@@ -939,7 +939,7 @@ public:
      equalize(src);
      return *this;
   }
-  
+
 
   bool operator<(const Edge& e)const{
      if(cost < e.cost) return true;
@@ -972,7 +972,7 @@ public:
     void equalize(const Edge& src){
        this->cost = src.cost;
        this->dest = src.dest;
-       this->src = src.src; 
+       this->src = src.src;
     }
 
 
@@ -993,19 +993,19 @@ ostream& operator<<(ostream& o, const set<int>& e){
      }
      o << *it;
   }
-  o << "}";   
+  o << "}";
   return o;
 }
 
 struct intset{
   intset():member(),refs(1){}
-  
+
   void deleteIfAllowed(){
      refs--;
      if(refs<1){
         delete this;
      }
-  } 
+  }
 
   set<int> member;
   int refs;
@@ -1017,9 +1017,9 @@ struct cCluster{
       cx = 0.0;
       cy = 0.0;
       member = new intset();
-      forbidden = false; 
+      forbidden = false;
     }
- 
+
     cCluster(const cCluster& c){
        cx = c.cx;
        cy = c.cy;
@@ -1052,7 +1052,7 @@ struct cCluster{
     size_t size(){
       return member->member.size();
     }
-    
+
     void insert(int i){
       member->member.insert(i);
     }
@@ -1060,12 +1060,12 @@ struct cCluster{
     void erase(int i){
        member->member.erase(i);
     }
-   
+
     void clear(){
        member->member.clear();
     }
 
- 
+
     double cx;
     double cy;
     intset* member; // avoid copying of this set !!!!
@@ -1103,7 +1103,7 @@ The complete clustering is done here.
       fcluster = 0;
       computeEnv();
       currentCNum = 0;
-      origPos = 0; 
+      origPos = 0;
     } else {
        this->defined = 0;
        this->pts = 0;
@@ -1160,10 +1160,10 @@ Returns the next cluster or 0 if no more clusters exist.
 
 
 
-private: 
+private:
   bool defined;
   Points* pts;
-  double eps; 
+  double eps;
   double eps2;  // the square of eps
   int* icluster; // initial cluster
   int* fcluster; // final cluster
@@ -1177,7 +1177,7 @@ private:
 
   map<int, set<int> > currentFinalCluster;
   map<int, set<int> >::iterator currentFinalPos;
-   
+
   int* origPos;
 
 
@@ -1209,8 +1209,8 @@ contained in pts;
         Rectangle<2> box(true,min1,max1);
         tree.insert(box, i);
      }
-    
-     
+
+
      /* compute environments using filter /refine */
      for(int i=0;i<pts->Size();i++){
         env[i] = new set<int>();
@@ -1238,7 +1238,7 @@ contained in pts;
 /*
 ~qdist~
 
-~qdist~  computes the square of the distance between two points 
+~qdist~  computes the square of the distance between two points
 
 */
   double qdist(const Point& p1, const Point& p2){
@@ -1259,7 +1259,7 @@ contained in pts;
 
   }
 
-/* 
+/*
 ~getNextInitialCluster~
 
 This function extracts the next initial clsuter from the original point.
@@ -1268,8 +1268,8 @@ function has to delete the returned value.
 
 */
   set<int>* getNextInitialCluster(){
-        
-    while(currentInitialPos<size && 
+
+    while(currentInitialPos<size &&
           icluster[currentInitialPos]>=0){
        currentInitialPos++;
     }
@@ -1278,13 +1278,13 @@ function has to delete the returned value.
     if(currentInitialPos>=size){ // set exhausted
       return 0;
     }
-      
+
 
     set<int>* res = new set<int>();
 
-    
+
     set<int> seed(*env[currentInitialPos]);
-    
+
      while(!seed.empty()){
        int p = *(seed.begin());
        if(icluster[p]<0){ // point is "free"
@@ -1295,9 +1295,9 @@ function has to delete the returned value.
                 seed.insert(*it);
            }
        }
-     }  
+     }
      seed.erase(p);
-   } 
+   }
 
    return res;
   }
@@ -1305,7 +1305,7 @@ function has to delete the returned value.
 /*
 ~computeFinalCluster0~
 
-Divides the points value ps into a set of clusters. The 
+Divides the points value ps into a set of clusters. The
 first number is set to cnum. Cnum is increased automatically.
 
 */
@@ -1321,7 +1321,7 @@ first number is set to cnum. Cnum is increased automatically.
     Point p_j;
 
     vector<Edge> edges;
-    
+
     int tmpfcluster[size];
     if(origPos){
       delete[] origPos;
@@ -1332,16 +1332,16 @@ first number is set to cnum. Cnum is increased automatically.
     // initialize origPos
     for(int i=0;i<size;i++){
       origPos[i] = -1;
-    } 
+    }
 
     map<int,int> rev;
-  
+
 
    int pos = 0;
    set<int>::iterator it1;
 
 
-   for(it1=currentInitialCluster->begin(); 
+   for(it1=currentInitialCluster->begin();
        it1!=currentInitialCluster->end();
        it1++){
       rev[*it1] = pos;
@@ -1349,7 +1349,7 @@ first number is set to cnum. Cnum is increased automatically.
    }
 
    pos = 0;
-   for(it1=currentInitialCluster->begin(); 
+   for(it1=currentInitialCluster->begin();
        it1!=currentInitialCluster->end();
        it1++){
        origPos[pos] = *it1;
@@ -1371,7 +1371,7 @@ first number is set to cnum. Cnum is increased automatically.
           if(src<dest){
              edges.push_back(Edge(src,dest,dist));
           }
-       } 
+       }
    }
 
     // sort the vector of edges
@@ -1386,7 +1386,7 @@ first number is set to cnum. Cnum is increased automatically.
        int c1 = tmpfcluster[e.src];
        int c2 = tmpfcluster[e.dest];
        if(c1!=c2){ // otherwise the points are already in the same cluster
-           // compute the maximum distance between points of c1 
+           // compute the maximum distance between points of c1
            // and points of c2
            set<int>::iterator it1,it2;
            set<int> s1 = currentFinalCluster[c1];
@@ -1409,7 +1409,7 @@ first number is set to cnum. Cnum is increased automatically.
              currentFinalCluster[c1] = s1;
            }
 
-       } 
+       }
     }
 
     currentFinalPos = currentFinalCluster.begin();
@@ -1450,15 +1450,15 @@ void insertPoint(vector<cCluster>& clusters, int pos){
   for(unsigned int i=0;i<clusters.size();i++){
     if(!clusters[i].forbidden){
        double dist = qdist(x,y,clusters[i].cx,clusters[i].cy);
-       if(index < 0 || 
+       if(index < 0 ||
           ((dist < bestDist) ||
-           ((dist == bestDist) && 
+           ((dist == bestDist) &&
             (clusters[index].size() > clusters[i].size())))){
           index = i;
           bestDist = dist;
-       } 
+       }
     }
-  } 
+  }
 
   if((index < 0) || (bestDist > eps2)){ // no cluster found, produce a new one
      cCluster cl;
@@ -1471,12 +1471,12 @@ void insertPoint(vector<cCluster>& clusters, int pos){
   }
 
   // insert the point into the best cluster
-  clusters[index].cx = (clusters[index].cx * 
-                        clusters[index].size() + x ) /  
+  clusters[index].cx = (clusters[index].cx *
+                        clusters[index].size() + x ) /
                        (clusters[index].size() +1);
- 
-  clusters[index].cy = (clusters[index].cy * 
-                        clusters[index].size() + y ) /  
+
+  clusters[index].cy = (clusters[index].cy *
+                        clusters[index].size() + y ) /
                        (clusters[index].size() +1 );
 
   clusters[index].insert(pos);
@@ -1494,7 +1494,7 @@ void insertPoint(vector<cCluster>& clusters, int pos){
       if(qdist(pc,p2) > eps2){
          removed.insert(*it);
       }
-  } 
+  }
 
   // remove 'bad' points from the cluster
   double sx = 0.0;
@@ -1513,10 +1513,10 @@ void insertPoint(vector<cCluster>& clusters, int pos){
   // thiy may lead to long running times
 
   // correct the center
-  clusters[index].cx = ((clusters[index].cx * 
+  clusters[index].cx = ((clusters[index].cx *
                         (clusters[index].member.size() + removed.size())) -
                        sx) / clusters[index].member.size();
-  clusters[index].cy = ((clusters[index].cy * 
+  clusters[index].cy = ((clusters[index].cy *
                         (clusters[index].member.size() + removed.size())) -
                        sy) / clusters[index].member.size();
 
@@ -1524,9 +1524,9 @@ void insertPoint(vector<cCluster>& clusters, int pos){
 
 
   // inserts the points again
-  clusters[index].forbidden = true; 
+  clusters[index].forbidden = true;
   for(it = removed.begin(); it!=removed.end();it++){
-    insertPoint(clusters,*it); 
+    insertPoint(clusters,*it);
   }
   clusters[index].forbidden = false;
 
@@ -1539,7 +1539,7 @@ void insertPointSimple(vector<cCluster>& clusters, int pos){
   double x = p.GetX();
   double y = p.GetY();
 
-  // clusters has to be non-empty 
+  // clusters has to be non-empty
 
   int index = 0;
   int size = clusters.size();
@@ -1548,12 +1548,12 @@ void insertPointSimple(vector<cCluster>& clusters, int pos){
   for(int i=1;i<size;i++){
      double dist = qdist(x,y,clusters[i].cx,clusters[i].cy);
      if( (dist < bestDist) ||
-         ((dist == bestDist) && 
+         ((dist == bestDist) &&
           (clusters[index].size() > clusters[i].size()))){
         index = i;
         bestDist = dist;
-     } 
-  } 
+     }
+  }
 
   if(!(bestDist <= eps2)){
      cout << "Error a point was not assigned to a cluster " << endl;
@@ -1562,7 +1562,7 @@ void insertPointSimple(vector<cCluster>& clusters, int pos){
      cout << "Allowed dist " << eps2 << endl;
      cout << "Best cluster " << index << endl;
      cout << "#cluster " << size << endl;
-     assert(false); 
+     assert(false);
 
   }
 
@@ -1570,42 +1570,42 @@ void insertPointSimple(vector<cCluster>& clusters, int pos){
 }
 
 void computeFinalCluster1(){
-  
+
   currentFinalCluster.clear();
-  
+
   vector<cCluster> currentCluster;
 
   // insert the points
   set<int>::iterator it1;
-  for( it1 = currentInitialCluster->begin(); 
-       it1 != currentInitialCluster->end(); 
+  for( it1 = currentInitialCluster->begin();
+       it1 != currentInitialCluster->end();
        it1++){
-     insertPoint(currentCluster,*it1);  
+     insertPoint(currentCluster,*it1);
   }
-  
 
-  // by the movement of the center, some 
+
+  // by the movement of the center, some
   // clusters may have unhandsome overlappings
-  // we will redistribute the points located in such 
+  // we will redistribute the points located in such
   // overlappings
 
  // redistribute the points
   vector<cCluster>::iterator it3;
   for(it3 = currentCluster.begin(); it3 != currentCluster.end(); it3++){
-      ((*it3)).clear(); 
+      ((*it3)).clear();
   }
-  
-  for( it1 = currentInitialCluster->begin(); 
-       it1 != currentInitialCluster->end(); 
+
+  for( it1 = currentInitialCluster->begin();
+       it1 != currentInitialCluster->end();
        it1++){
-     insertPointSimple(currentCluster,*it1);  
+     insertPointSimple(currentCluster,*it1);
   }
 
   // copy the result into currentFinalCluster
   int i = 0;
   vector<cCluster>::iterator it2;
   for(it2 = currentCluster.begin();
-      it2 != currentCluster.end(); 
+      it2 != currentCluster.end();
       it2++){
       currentFinalCluster[i++] = (*it2).member->member;
   }
@@ -1632,7 +1632,7 @@ Returns the next cluster
            case 0:  computeFinalCluster0(); break;
            case 1:  computeFinalCluster1(); break;
            default: assert(false);
-         } 
+         }
        } else {
          return 0;
        }
@@ -1645,11 +1645,11 @@ Returns the next cluster
            case 0:  computeFinalCluster0(); break;
            case 1:  computeFinalCluster1(); break;
            default: assert(false);
-         } 
+         }
        } else{
           return 0;
        }
-    } 
+    }
 
     set<int> cs = (*currentFinalPos).second;
     Points* res = new Points(cs.size());
@@ -1664,10 +1664,10 @@ Returns the next cluster
         }
         (*res) += p;
     }
-    res->EndBulkLoad();   
+    res->EndBulkLoad();
     currentFinalPos++;
 
-    return res; 
+    return res;
 
  }
 
@@ -1675,8 +1675,8 @@ Returns the next cluster
 };
 
 template<int i>
-int cluster_dFun (Word* args, Word& result, int message, Word& local, 
-                Supplier s) {     
+int cluster_dFun (Word* args, Word& result, int message, Word& local,
+                Supplier s) {
  switch(message){
       case OPEN : {
         Points* pts = static_cast<Points*>(args[0].addr);
@@ -1687,9 +1687,9 @@ int cluster_dFun (Word* args, Word& result, int message, Word& local,
         if(local.addr==0){
           return CANCEL;
         }
-        ClusterD_LocalInfo* linfo = 
+        ClusterD_LocalInfo* linfo =
                static_cast<ClusterD_LocalInfo*>(local.addr);
-        
+
         Points* hasNext = linfo->getNext(i);
         result.setAddr(hasNext);
         if(hasNext){
@@ -1701,9 +1701,9 @@ int cluster_dFun (Word* args, Word& result, int message, Word& local,
         if(local.addr!=0){
            delete static_cast<ClusterD_LocalInfo*>(local.addr);
            local.addr = 0;
-        }    
+        }
         return 0;
-    }                       
+    }
  }
  return -1; // should never be reached
 
@@ -1712,8 +1712,8 @@ int cluster_dFun (Word* args, Word& result, int message, Word& local,
 /*
 1.3 Value Mapping for cluster[_]f
 
-Cluster[_]f implements the same slgoithms as cluster[_]e. 
-The difference is that this algoritms avoids the preprocessing step 
+Cluster[_]f implements the same slgoithms as cluster[_]e.
+The difference is that this algoritms avoids the preprocessing step
 to avoid large allocations of memory. Instead of that, an R-tree is
 used to manage the centers.
 
@@ -1737,7 +1737,7 @@ Here, the complete work is done.
       cluster = 0;
       size = 0;
     } else {
-      defined = true;   
+      defined = true;
       size = pts->Size();
       this->eps = max(FACTOR,eps->GetRealval());
       this->eps2 = this->eps * this->eps;
@@ -1746,7 +1746,7 @@ Here, the complete work is done.
       pos=0;
       no_cluster = cluster->size();
     }
-  }  
+  }
 
 /*
 ~Destructor~
@@ -1777,7 +1777,7 @@ This function returns the next cluster as a points value.
        res->StartBulkLoad();
        set<int>::iterator it;
        Point p;
-       for(it = (*cluster)[pos].begin(); 
+       for(it = (*cluster)[pos].begin();
            it != (*cluster)[pos].end(); it++){
          pts->Get(*it,p);
          (*res) += p;
@@ -1812,10 +1812,10 @@ private:
 ~qdist~
 
 Returns the square of the Euclidean distance between the points defined
-by (x1, y1) and (x2,y2). 
+by (x1, y1) and (x2,y2).
 
 */
-double qdist(const double x1,const  double y1, 
+double qdist(const double x1,const  double y1,
              const double x2, const double y2) const{
   double dx = x2-x1;
   double dy = y2-y1;
@@ -1876,10 +1876,10 @@ void insertPointSimple(const mmrtree::Rtree<2>& tree, const int pos){
 /*
 ~insertPoint~
 
-Inserts a point to the nearest cluster. If no appropriate cluster is found, a new one 
+Inserts a point to the nearest cluster. If no appropriate cluster is found, a new one
 is created. The center of the cluster is changed to be the center of all points
 within the cluster including that one at positon ~pos~. Thereby, some points of the
-cluster may exceed the maximum distance to the cluster's center. Such points are 
+cluster may exceed the maximum distance to the cluster's center. Such points are
 reinserted recursively but the source cluster is locked.
 
 */
@@ -1906,13 +1906,13 @@ void insertPoint(mmrtree::Rtree<2>& tree, const int pos){
      tree.insert(box,cluster->size()-1);
      return;
   }
-  
+
   (*cluster)[index].insert(pos);
   double cx = (*cluster)[index].cx;
   double cy = (*cluster)[index].cy;
   int s = (*cluster)[index].size();
   (*cluster)[index].cx = ( (cx * (s - 1.0) + x) / s);
-  (*cluster)[index].cy = ( (cy * (s - 1.0) + y) / s); 
+  (*cluster)[index].cy = ( (cy * (s - 1.0) + y) / s);
 
   min[0] = cx - FACTOR;
   min[1] = cy - FACTOR;
@@ -1927,14 +1927,14 @@ void insertPoint(mmrtree::Rtree<2>& tree, const int pos){
   max[1] = (*cluster)[index].cy + FACTOR;
   Rectangle<2> newCenter(true,min,max);
   tree.insert(newCenter,index);
-  
+
   repairClusterAt(index,tree);
 }
 
 /*
 ~repairClusterAt~
 
-Removes all points exceeding the maximum allowed distance to the cluster's 
+Removes all points exceeding the maximum allowed distance to the cluster's
 center from the cluster at ~index~. Such points are reinserted.
 
 */
@@ -1945,19 +1945,19 @@ void repairClusterAt(const int index, mmrtree::Rtree<2>& tree){
   set<int> wrong;
   set<int>::iterator it;
   Point  p;
-  for(it = (*cluster)[index].begin(); 
+  for(it = (*cluster)[index].begin();
       it!= (*cluster)[index].end(); it++){
       pts->Get(*it,p);
       double d = qdist(cx,cy, p.GetX(),p.GetY());
       if(d>eps2){
         wrong.insert(*it);
-      }  
+      }
   }
 
   for( it=wrong.begin(); it!=wrong.end(); it++){
      (*cluster)[index].erase(*it);
   }
-      
+
   for( it=wrong.begin(); it!=wrong.end(); it++){
      insertPoint(tree,*it);
   }
@@ -1991,7 +1991,7 @@ void computeCluster(){
    }
 }
 
-}; 
+};
 
 
 /*
@@ -1999,8 +1999,8 @@ void computeCluster(){
 
 */
 
-int cluster_fFun (Word* args, Word& result, int message, Word& local, 
-                Supplier s) {     
+int cluster_fFun (Word* args, Word& result, int message, Word& local,
+                Supplier s) {
  switch(message){
       case OPEN : {
         Points* pts = static_cast<Points*>(args[0].addr);
@@ -2011,9 +2011,9 @@ int cluster_fFun (Word* args, Word& result, int message, Word& local,
         if(local.addr==0){
           return CANCEL;
         }
-        ClusterF_LocalInfo* linfo = 
+        ClusterF_LocalInfo* linfo =
                static_cast<ClusterF_LocalInfo*>(local.addr);
-        
+
         Points* hasNext = linfo->getNext();
         result.setAddr(hasNext);
         if(hasNext){
@@ -2025,9 +2025,9 @@ int cluster_fFun (Word* args, Word& result, int message, Word& local,
         if(local.addr!=0){
            delete static_cast<ClusterF_LocalInfo*>(local.addr);
            local.addr = 0;
-        }    
+        }
         return 0;
-    }                       
+    }
  }
  return -1; // should never be reached
 
@@ -2045,7 +2045,8 @@ const string cluster_aSpec =
       "( <text>points -> points</text--->"
       "<text>cluster_a ( _ )</text--->"
       "<text>Find cluster for"
-      " points with standard cluster parameters.</text--->"
+      " points with standard cluster parameters. "
+      "[ADVICE: Do not use.]</text--->"
       "<text>query cluster_a (Kneipen)</text--->"
       ") )";
 /*
@@ -2058,7 +2059,8 @@ const string cluster_bSpec =
       "( <text>points -> points</text--->"
       "<text>_ cluster_b [_, _] </text--->"
       "<text>Find cluster for"
-      " points with parameters MinPts (1) and Eps (2).</text--->"
+      " points with parameters MinPts (1) and Eps (2). "
+      "[ADVICE: Do not use.]</text--->"
       "<text>query Kneipen cluster_b[5,200]</text--->"
       ") )";
 /*
@@ -2069,31 +2071,41 @@ const string cluster_cSpec =
 		"( ( \"Signature\" \"Syntax\" \"Meaning\" "
 		"\"Example\" ) "
 		"( <text>points x int x real -> stream(points)</text--->"
-		"<text> _ cluster_c [_, _] </text--->"
-		"<text>compute cluster for given minPts"
-		" and epsilon. </text--->"
-		"<text>query Kneipen cluster_g[5,200.0] count</text--->"
+		"<text> _ cluster_c [ minpts, epsilon ] </text--->"
+		"<text>For a point set given as a points value, compute the clusters using "
+    "the DBSCAN algorithm with parameters minPts (minimum number of points "
+    "forming a cluster core) and epsilon (maximum distance between points in "
+    "a cluster core). "
+    "Returns a stream of points values (point sets) representing the clusters. "
+		"</text--->"
+		"<text>query Kneipen cluster_c[5,200.0] count</text--->"
 		") )";
 
 const string cluster_gSpec =
 		"( ( \"Signature\" \"Syntax\" \"Meaning\" "
 		"\"Example\" ) "
 		"( <text>points x int x real -> stream(points)</text--->"
-		"<text> _ cluster_c [_, _] </text--->"
-		"<text>compute cluster for given minPts"
-		" and epsilon. </text--->"
+		"<text> _ cluster_g [ minpts, epsilon] </text--->"
+    "<text>For a point set given as a points value, compute the clusters using "
+    "the DBSCAN algorithm with parameters minPts (minimum number of points "
+    "forming a cluster core) and epsilon (maximum distance between points in "
+    "a cluster core). [Alternative implementation?]."
+    "Returns a stream of points values (point sets) representing the clusters. "
 		"<text>query Kneipen cluster_g[5,200.0] count</text--->"
 		") )";
 /*
 6.4 Specification string for Operator cluster\_d
 
 */
-const string cluster_dSpec = 
+const string cluster_dSpec =
       "( ( \"Signature\" \"Syntax\" \"Meaning\" "
       "\"Example\" ) "
       "( <text>points x real -> stream(points)</text--->"
-      "<text> _ cluster_d [ _] </text--->"
-      "<text>compute cluster for given  and epsilon. </text--->"
+      "<text> _ cluster_d [ maxdist ] </text--->"
+      "<text>For a point set given as a points value, compute the clusters "
+      "using the a distance-based clustering algorithm with parameter maxdist "
+      "(maximum distance between points within a cluster. Returns a stream of "
+      "points values (point sets) representing the clusters. "
       "<text>query Kneipen cluster_b[200.0] count</text--->"
       ") )";
 /*
@@ -2396,19 +2408,19 @@ public:
     AddOperator ( &cluster_d );
     AddOperator ( &cluster_e );
     AddOperator ( &cluster_f );
-                
+
     ///// tracefile  /////
    // if ( RTFlag::isActive("ClusterText:Trace") ) {
    //   cmsg.file() << "Cluster: Constructor " << endl;
    //   cmsg.send();
    // }
-    ///// tracefile end /////   
+    ///// tracefile end /////
   }
-  ~ClusterAlgebra() {}; 
+  ~ClusterAlgebra() {};
 };
 
 
-} // end of namespace clusteralg 
+} // end of namespace clusteralg
 
 /*
 9.1 Initialization (Standard)
@@ -2429,17 +2441,17 @@ dynamically at runtime.
 
 extern "C"
 Algebra*
-InitializeClusterAlgebra(  NestedList* nlRef, 
-                           QueryProcessor* qpRef 
+InitializeClusterAlgebra(  NestedList* nlRef,
+                           QueryProcessor* qpRef
                            )
 {
   nl = nlRef;
   qp = qpRef;
-   
+
   ///// tracefile ////
  // if ( RTFlag::isActive("ClusterText:Trace") ) {
- //    cmsg.file() << "Cluster: InitializeClusterAlgebra " 
+ //    cmsg.file() << "Cluster: InitializeClusterAlgebra "
  //                << endl; cmsg.send(); }
-  
+
   return (new clusteralg::ClusterAlgebra());
 }
