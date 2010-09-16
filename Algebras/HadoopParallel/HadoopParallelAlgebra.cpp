@@ -1559,7 +1559,7 @@ bool pj2LocalInfo::LoadTuples()
   loaded = true;
   ita = tba->MakeScan();
   itb = tbb->MakeScan();
-  if ( (cta == 0) || (ctb == 0))
+  if ((0 == tba->GetNoTuples()) || (0 == tbb->GetNoTuples()))
     endOfStream = true;
   return loaded;
 }
