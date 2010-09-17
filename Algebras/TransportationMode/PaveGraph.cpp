@@ -2682,7 +2682,7 @@ void CompTriangle::GetVPoints(Relation* rel1, Relation* rel2,
       if(hole_id == 1){
         if(index1 == index2 + 1){
           face_direction = !face_direction;
-        }else if(index == 0 && index2 == ps.size() - 1){
+        }else if(index1 == 0 && index2 == ps.size() - 1){
           face_direction = !face_direction;
         }
       }else{

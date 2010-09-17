@@ -259,3 +259,11 @@ Number   : 2
 Signature: rel x rel x rtree x attr x attr x int -> (stream(((x1 t1) ... (xn tn))))
 Example  : query geninterestp2(interestp, dg_node, rtree_dg, loc2, pavement, 2) count;
 Result   : 2
+
+
+Operator : cellbox
+Number   : 2
+Signature: rect x int  (stream(((x1 t1) ... (xn tn))))
+Example  : query cellbox(bbox, 10) count;
+Result   : 10
+

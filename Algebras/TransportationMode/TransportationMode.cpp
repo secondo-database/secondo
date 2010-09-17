@@ -412,10 +412,10 @@ const string OpTMGetSectionsSpec  =
     "( <text>network x rel1 x rel1 x attr1 x attr2 x attr3"
     " -> (stream (tuple( (x1 t1)(x2 t2)...(xn tn)))</text--->"
     "<text>getsections(n, r, r, attr,attr,attr)</text--->"
-    "<text>for each route, get the possible sections where interesting "
+    "<text>for each route, get the possible sections where interesting"
 	"points can locate</text--->"
-    "<text>query getsections(n, r, paveregions, curve, rid, crossreg) "
-	"count;</text--->"
+    "<text>query getsections(n, r, paveregions, curve, rid, crossreg) count;"
+	"</text--->"
     ") )";
 
 const string OpTMGenInterestP1Spec  =
@@ -441,6 +441,15 @@ const string OpTMGenInterestP2Spec  =
     "count;</text--->"
     ") )";
 
+const string OpTMCellBoxSpec  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+    "\"Example\" ) "
+    "( <text>bbox x int-> (stream (tuple( (x1 t1)(x2 t2)...(xn tn)))</text--->"
+    "<text>cellbox(bbox, 10)</text--->"
+    "<text>partition the bbox into 10 x 10 equal size cells</text--->"
+    "<text>query cellbox(bbox, 10)"
+    "count;</text--->"
+    ") )";
 ////////////////TypeMap function for operators//////////////////////////////
 
 /*
@@ -2342,6 +2351,43 @@ ListExpr OpTMGetInterestP2TypeMap ( ListExpr args )
      return nl->ThreeElemList(nl->SymbolAtom("APPEND"),
             nl->TwoElemList(nl->IntAtom(j1),nl->IntAtom(j2)),result);
     }
+
+    return  nl->SymbolAtom ( "typeerror" );
+}
+
+
+/*
+TypeMap fun for operator cellbox 
+partition the whole box into a set of cells 
+
+*/
+
+ListExpr OpTMCellBoxTypeMap ( ListExpr args )
+{
+  if ( nl->ListLength ( args ) != 2 )
+  {
+    return  nl->SymbolAtom ( "list length should be 2" );
+  }
+  
+  ListExpr param1 = nl->First ( args );
+  ListExpr param2 = nl->Second ( args );
+  ListExpr MBR_ATOM;
+  if(nl->IsEqual(param1,"rect") && nl->IsEqual(param2,"int")){
+    MBR_ATOM = nl->SymbolAtom("rect");
+     return nl->TwoElemList(
+            nl->SymbolAtom("stream"),
+            nl->TwoElemList(
+                nl->SymbolAtom("tuple"),
+                nl->TwoElemList(
+                    nl->TwoElemList(
+                        nl->SymbolAtom("cellid"),
+                        nl->SymbolAtom("int")
+                    ),
+                    nl->TwoElemList(
+                        nl->SymbolAtom("cover_area"),
+                        nl->SymbolAtom("region")
+                    ))));
+  } 
 
     return  nl->SymbolAtom ( "typeerror" );
 }
@@ -4577,6 +4623,133 @@ int OpTMGenInterestP2ValueMap ( Word* args, Word& result, int message,
   return 0;
 
 }
+
+
+struct Cell{
+  int id;
+  BBox<2> box;
+  Cell(int i,BBox<2> b):id(i),box(b){}
+  Cell(const Cell& cell):id(cell.id),box(cell.box){}
+  Cell& operator=(const Cell& cell)
+  {
+    id = cell.id;
+    box = cell.box;
+    return *this;
+  }
+};
+
+struct CellList{
+  CellList(Rectangle<2>* b_box, unsigned int no):
+  big_box(b_box),cell_no(no),count(0),resulttype(NULL){}
+  void CreateCell();
+  Rectangle<2>* big_box; 
+  unsigned int cell_no;
+  unsigned int count;
+  TupleType* resulttype;
+  vector<Cell> cell_array;
+};
+/*
+partition the global box into a set of cell box 
+
+*/
+void CellList::CreateCell()
+{
+  double minx = big_box->MinD(0);
+  double miny = big_box->MinD(1);
+  double maxx = big_box->MaxD(0);
+  double maxy = big_box->MaxD(1);
+  
+  cout<<"minx "<<minx<<" maxx "<<maxx<<" miny "<<miny<<" maxy "<<maxy<<endl; 
+  
+  int cell_id = 0; 
+  double y_value_min = miny;
+  double x_value_min = minx; 
+  double y_value_max;
+  double x_value_max; 
+  
+  double y_interval = ceil((maxy - miny)/cell_no);
+  double x_interval = ceil((maxx - minx)/cell_no);
+  
+  for(unsigned int i = 0;i < cell_no;i++){
+    
+    y_value_max = y_value_min + y_interval;
+    
+    x_value_min = minx;
+    for(unsigned int j = 0;j < cell_no;j++){
+      
+      x_value_max = x_value_min + x_interval; 
+      double min[2];
+      double max[2];
+      min[0] = x_value_min;
+      min[1] = y_value_min;
+      max[0] = x_value_max;
+      max[1] = y_value_max;
+      
+      BBox<2>* box = new BBox<2>(true, min,max); 
+      Cell* cell = new Cell(cell_id,*box);
+      
+      delete box; 
+      cell_array.push_back(*cell); 
+      cell_id++;
+      x_value_min = x_value_max; 
+    }
+  
+    y_value_min = y_value_max; 
+  }
+}
+
+/*
+partition the box into a set of cell box
+
+*/
+int OpTMCellBoxValueMap ( Word* args, Word& result, int message,
+                         Word& local, Supplier in_pSupplier )
+{
+
+  CellList* box_list;
+  switch(message){
+      case OPEN:{
+        Rectangle<2>* b_box = (Rectangle<2>*)args[0].addr;
+        unsigned int cell_no = ((CcInt*)args[1].addr)->GetIntval();
+        
+        box_list = new CellList(b_box, cell_no);
+        box_list->resulttype =
+            new TupleType(nl->Second(GetTupleResultType(in_pSupplier)));
+        
+        box_list->CreateCell();
+        local.setAddr(box_list);
+        return 0;
+      }
+      case REQUEST:{
+          if(local.addr == NULL) return CANCEL;
+          box_list = (CellList*)local.addr;
+          if(box_list->count == box_list->cell_array.size())
+                          return CANCEL;
+
+          Tuple* tuple = new Tuple(box_list->resulttype);
+          int id = box_list->cell_array[box_list->count].id;
+//        cout<<"rid "<<rid<<" m1 "<<meas1<<" m2 "<<meas2<<endl; 
+          tuple->PutAttribute(0, new CcInt(true, id));
+          tuple->PutAttribute(1, 
+//                 new Rectangle<2>(box_list->cell_array[box_list->count].box));
+               new Region(box_list->cell_array[box_list->count].box));
+          
+          result.setAddr(tuple);
+          box_list->count++;
+          return YIELD;
+      }
+      case CLOSE:{
+          if(local.addr){
+            box_list = (CellList*)local.addr;
+            delete box_list;
+            local.setAddr(Address(0));
+          }
+          return 0;
+      }
+  }
+  return 0;
+
+}
 ////////////////Operator Constructor///////////////////////////////////////
 Operator checksline(
     "checksline",               // name
@@ -4940,6 +5113,13 @@ Operator geninterestp2(
     OpTMGetInterestP2TypeMap
 );
 
+Operator cellbox(
+  "cellbox",
+  OpTMCellBoxSpec,               
+  OpTMCellBoxValueMap,
+  Operator::SimpleSelect,
+  OpTMCellBoxTypeMap
+);
 
 /*
 Main Class for Transportation Mode
@@ -5002,6 +5182,8 @@ class TransportationModeAlgebra : public Algebra
     AddOperator(&getallpoints);
     AddOperator(&rotationsweep);
     AddOperator(&gethole);
+    ////////////////////create bus network//////////////////////////
+    AddOperator(&cellbox);
   }
   ~TransportationModeAlgebra() {};
  private:
