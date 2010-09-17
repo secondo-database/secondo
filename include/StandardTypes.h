@@ -741,6 +741,11 @@ class CcString : public Attribute
     stringsDeleted++;
   }
 
+  bool operator==(const CcString& other) const{
+    return Compare(&other)==0;
+  }
+
+
   inline void Initialize()
   {}
 
@@ -975,6 +980,11 @@ class CcString : public Attribute
     //cout << "Cc3" << endl;
     stringsCreated++;
   }
+
+  bool operator==(const CcString& other) const{
+    return Compare(&other)==0;
+  }
+
 
 
   inline ~CcString()

@@ -101,6 +101,7 @@ extern QueryProcessor* qp;
 using namespace datetime;
 
 
+
 //#define REF_DEBUG(msg) cout << msg << endl;
 #define REF_DEBUG(msg)
 
@@ -1382,6 +1383,17 @@ class ConstTemporalUnit : public StandardTemporalUnit<Alpha>
     constValue.CopyFrom( &a );
   }
 
+  // the following constructor is for implementation compatibility with
+  // UnitTypes for continious value range types (like UReal, UPoint)
+  ConstTemporalUnit( const Interval<Instant>& _interval, const Alpha& a,
+                                                         const Alpha& b ):
+    StandardTemporalUnit<Alpha>( _interval )
+  {
+    assert(a == b);
+    this->del.isDefined = true;
+    constValue.CopyFrom( &a );
+  }
+
   ConstTemporalUnit( const ConstTemporalUnit<Alpha>& u ):
     StandardTemporalUnit<Alpha>( u.timeInterval )
   {
@@ -1692,6 +1704,30 @@ class UReal : public StandardTemporalUnit<CcReal>
        del.refs=1;
        del.SetDelete();
        del.isDefined = true;
+  }
+  // linear approximation between v1 and v2
+  UReal(const Interval<Instant>& _interval,
+        const CcReal& ccv1,
+        const CcReal& ccv2): StandardTemporalUnit<CcReal>(_interval){
+    if(!ccv1.IsDefined() || !ccv2.IsDefined()){
+      SetDefined(false);
+      return;
+    }
+    double v1 = ccv1.GetValue();
+    double v2 = ccv2.GetValue();
+
+    Instant diff = _interval.end - _interval.start;
+    a = 0;
+    r = false;
+    c = v1;
+    if(diff.IsZero()){
+      b = 0;
+      return;
+    }
+    b = (v2-v1) / diff.ToDouble();
+    del.refs=1;
+    del.SetDelete();
+    del.isDefined = true;
   }
 
 /*
@@ -2095,7 +2131,7 @@ class UPoint : public SpatialTemporalUnit<Point, 3>
   UPoint(bool is_defined):
     SpatialTemporalUnit<Point, 3>(is_defined)
   {
-  }; 
+  };
   UPoint( const Interval<Instant>& _interval,
           const double x0, const double y0,
           const double x1, const double y1 ):
@@ -2109,7 +2145,7 @@ class UPoint : public SpatialTemporalUnit<Point, 3>
     SpatialTemporalUnit<Point, 3>( _interval ),
     p0( _p0 ),
     p1( _p1 )
-    { 
+    {
       SetDefined(p0.IsDefined() && p1.IsDefined());
     }
 
@@ -7939,5 +7975,21 @@ bool ConsolidateUnitVector(
 //   cout << "Finished." << endl;
   return true;
 }
+
+/*
+3 Type definitions moved here from TemporalExtAlgebra.h
+
+The types UString and MString was defined to implement the data types
+~ustring~ and ~mapping(string)~ according to the declared defintions in the
+signature for moving objects. The types RBool and RString was declared in order
+to implement the data types ~range(bool)~ and ~range(string)~. They are
+also part of the signature for moving objects.
+
+*/
+typedef ConstTemporalUnit<CcString> UString;
+typedef Mapping< UString, CcString > MString;
+typedef Range<CcBool> RBool;
+typedef Range<CcString> RString;
+
 
 #endif // _TEMPORAL_ALGEBRA_H_

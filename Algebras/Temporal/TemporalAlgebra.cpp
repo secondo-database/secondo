@@ -8516,136 +8516,95 @@ ListExpr TypeMapLinearize2(ListExpr args){
 ListExpr TypeMapApproximate(ListExpr args){
 
   int len = nl->ListLength(args);
-  if( (len != 3) &&  (len != 4) ){
-      ErrorReporter::ReportError("three arguments expected");
-      return nl->SymbolAtom("typeerror");
-  }
-  // extract the attribute names
-  ListExpr a1list = nl->Second(args);
-  ListExpr a2list = nl->Third(args);
-
-  if(nl->AtomType(a1list)!=SymbolType){
-      ErrorReporter::ReportError("the second argument has to be a symbol");
-      return nl->SymbolAtom("typeerror");
-  }
-  if(nl->AtomType(a2list)!=SymbolType){
-      ErrorReporter::ReportError("the third argument has to be a symbol");
-      return nl->SymbolAtom("typeerror");
-  }
-  string a1 = nl->SymbolValue(a1list);
-  string a2 = nl->SymbolValue(a2list);
-
-  string restype="";
-  int a1index = -1;
-  int a2index = -1;
-
-  ListExpr stype = nl->First(args);
-  if(nl->AtomType(stype)!=NoAtom){
-     ErrorReporter::ReportError("stream(tuple(...))"
-                                " expected as the first argument");
-     return nl->SymbolAtom("typeerror");
+  if( (len != 3) &&  (len != 4) && (len != 5)){
+      return listutils::typeError("three, four, or five arguments expected");
   }
 
-  if((nl->ListLength(stype)!=2) ||
-     (!nl->IsEqual(nl->First(stype),"stream" ))){
-     ErrorReporter::ReportError("stream(tuple(...))"
-                                " expected as the first argument");
-     return nl->SymbolAtom("typeerror");
-  }
 
-  ListExpr ttype = nl->Second(stype);
-
-  if((nl->ListLength(ttype)!=2) ||
-     (!nl->IsEqual(nl->First(ttype),"tuple" ))){
-     ErrorReporter::ReportError("stream(tuple(...))"
-                                " expected as the first argument");
-     return nl->SymbolAtom("typeerror");
-  }
-
-  ListExpr attributes = nl->Second(ttype);
-  if(nl->AtomType(attributes)!=NoAtom){
-      ErrorReporter::ReportError("invalid tuple type");
-      return nl->SymbolAtom("typeerror");
-  }
-  int pos = 0;
-  while(!nl->IsEmpty(attributes)){
-     ListExpr attr = nl->First(attributes);
-     if( (nl->AtomType(attr)!=NoAtom) ||
-         (nl->ListLength(attr)!=2)){
-         ErrorReporter::ReportError("invalid tuple type");
-         return nl->SymbolAtom("typeerror");
+  int durindex = -1;
+  // check the last (optional) parameter
+  if(len==4){
+     ListExpr fourth = nl->Fourth(args);
+     if(!listutils::isSymbol(fourth,"duration") &&
+        !listutils::isSymbol(fourth,"bool")){
+        return listutils::typeError("4th parameter must be of type "
+                                     "'duration' or 'bool'");
      }
-     ListExpr anl = nl->First(attr);
-     ListExpr atl = nl->Second(attr);
-     if( (nl->AtomType(anl)!=SymbolType) ||
-         (nl->AtomType(atl)!=SymbolType)){
-         ErrorReporter::ReportError("invalid tuple type");
-         return nl->SymbolAtom("typeerror");
-     }
-
-     string aname = nl->SymbolValue(anl);
-     if(aname==a1){
-        if(a1index>=0){
-           ErrorReporter::ReportError("attr name occurs twice");
-           return nl->SymbolAtom("typeerror");
-        }
-        if(!nl->IsEqual(atl,"instant")){
-            ErrorReporter::ReportError("first attr has to be of type instant");
-            return nl->SymbolAtom("typeerror");
-        }
-        a1index = pos;
-     }
-
-     if(aname==a2){
-        if(a2index >= 0){
-           ErrorReporter::ReportError("attr name occurs twice");
-           return nl->SymbolAtom("typeerror");
-        }
-        string a2type = nl->SymbolValue(atl);
-        if(a2type=="real"){
-            restype = "mreal";
-        } else if (a2type=="point"){
-            restype = "mpoint";
-        } else {
-           ErrorReporter::ReportError("seocond attr has to be of"
-                                      " type real or point");
-           return nl->SymbolAtom("typeerror");
-        }
-        a2index = pos;
-     }
-     pos++;
-     attributes = nl->Rest(attributes);
-  }
-
-  if(a1index<0){
-     ErrorReporter::ReportError("first attr name does"
-                                " not occur in the typle");
-     return nl->SymbolAtom("typeerror");
-  }
-
-  if(a2index<0){
-     ErrorReporter::ReportError("second attr name does"
-                                " not occur in the typle");
-     return nl->SymbolAtom("typeerror");
-  }
-
-  if(restype != "mpoint" && len != 3){
-     ErrorReporter::ReportError("Expected only 3 arguments.");
-     return nl->SymbolAtom("typeerror");
-  }
-
-  if(len == 4){
-     ListExpr dur = nl->Fourth(args);
-     if(!listutils::isSymbol(dur,"duration")){
-        ErrorReporter::ReportError("4th argument must be of type 'duration'.");
-        return nl->SymbolAtom("typeerror");
+     if(listutils::isSymbol(fourth,"duration")){
+         durindex = 4;
      }
   }
 
+  if(len==5){
+    ListExpr fourth = nl->Fourth(args);
+    ListExpr fifth = nl->Fifth(args);
+    if(!listutils::isSymbol(fourth,"bool") ||
+      !listutils::isSymbol(fifth,"duration")){
+      return listutils::typeError("4th parameter must be of type 'bool' and"
+                                  " the 5th one must be of type 'duration'");
+    }
+    durindex = 5;
+  }
 
-  // all is correct
-  ListExpr ind = nl->TwoElemList(nl->IntAtom(a1index),
-                                 nl->IntAtom(a2index));
+  ListExpr stream = nl->First(args);
+  ListExpr attrname_time = nl->Second(args);
+  ListExpr attrname_value = nl->Third(args);
+  if(!listutils::isTupleStream(stream)){
+    return  listutils::typeError("first parameter must be a tuple stream");
+  }
+
+  if(nl->AtomType(attrname_time)!=SymbolType){
+    return  listutils::typeError("second parameter must be an attribute name");
+  }
+
+  if(nl->AtomType(attrname_value)!=SymbolType){
+    return  listutils::typeError("third parameter must be an attribute name");
+  }
+
+  ListExpr type;
+  ListExpr attrList = nl->Second(nl->Second(stream));
+
+  string name = nl->SymbolValue(attrname_time);
+
+  int index1 = listutils::findAttribute(attrList, name, type);
+
+  if(index1==0){
+    return listutils::typeError("attribute name " + name +
+                                " unknown in tuple stream");
+  }
+  if(!listutils::isSymbol(type,"instant")){
+    return listutils::typeError("attribute '" + name +
+    "' must be of type 'instant'");
+  }
+
+  name = nl->SymbolValue(attrname_value);
+
+  int index2 = listutils::findAttribute(attrList, name, type);
+
+  if(index2==0){
+    return listutils::typeError("attribute name " + name +
+    " unknown in tuple stream");
+  }
+
+  string restype;
+  if(listutils::isSymbol(type,"point")){
+      restype = "mpoint";
+  }  else if (listutils::isSymbol(type,"real")){
+     restype = "mreal";
+  }else if (listutils::isSymbol(type,"int")){
+    restype = "mint";
+  } else if (listutils::isSymbol(type,"bool")){
+    restype = "mbool";
+  }else if (listutils::isSymbol(type,"string")){
+    restype = "mstring";
+  } else {
+    return listutils::typeError("third argument is not an allowed type "
+                                 "(point, real, int, bool, string)");
+  }
+
+  ListExpr ind = nl->ThreeElemList(nl->IntAtom(index1-1),
+                                 nl->IntAtom(index2-1),
+                                 nl->IntAtom(durindex-1));
 
   return nl->ThreeElemList(nl->SymbolAtom("APPEND"),
                            ind,
@@ -10057,11 +10016,15 @@ int ApproximateSelect(ListExpr args){
      return 0;
   } else if(type == "mreal"){
      return 1;
+  } else if(type == "mint"){
+     return 2;
+  } else if(type == "mbool"){
+    return 3;
+  } else if(type == "mstring"){
+    return 4;
   }
   return -1;
 }
-
-
 
 /*
 16.2.32 Selection function for ~min~ and ~max~
@@ -10770,122 +10733,111 @@ int Linearize2_ureal(Word* args, Word& result,
 16.2.28 Value Mapping Functions for Approximate
 
 */
+template<typename MType, typename UType, typename VType, bool isContinious>
+int ApproximateMvalue(Word* args, Word& result,
+                      int message, Word& local,
+                      Supplier s){
 
-int ApproximateMReal(Word* args, Word& result,
-                int message, Word& local,
-                Supplier s){
+  result = qp->ResultStorage(s);
+  MType* res = static_cast<MType*>(result.addr);
+  res->Clear();
+  int no_args = qp->GetNoSons(s);
+  DateTime dur(durationtype);
+  bool split = false;
 
-   result = qp->ResultStorage(s);
-   MReal* res = (MReal*) result.addr;
-   int index1 = ((CcInt*)args[3].addr)->GetIntval();
-   int index2 = ((CcInt*)args[4].addr)->GetIntval();
+  int durindex = ((CcInt*)args[no_args-1].addr)->GetIntval();
+  bool makeContinious = isContinious;
 
-   res->Clear();
-   res->SetDefined(true);
-   Word actual;
-
-   qp->Open(args[0].addr);
-   qp->Request(args[0].addr, actual);
-
-   CcReal lastValue,currentValue;
-   Instant lastInstant,currentInstant;
-   bool first = true;
-   while (qp->Received(args[0].addr)) {
-     Tuple* tuple = (Tuple*)actual.addr;
-     currentValue =  *((CcReal*)(tuple->GetAttribute(index2)));
-     currentInstant = *((Instant*)(tuple->GetAttribute(index1)));
-     if(currentInstant.IsDefined()){ // ignore undefined instants
-       if(currentValue.IsDefined()){
-         if(!first){
-            // check order of instants - ignore wrong ordered elements
-            if(currentInstant>lastInstant){
-               Interval<Instant> interval(lastInstant, currentInstant,
-                                          true ,false);
-               UReal unit(interval,lastValue.GetRealval(),
-                                   currentValue.GetRealval());
-               res->MergeAdd(unit);
-            }
-         } else {
-           first = false;
-         }
-         lastValue = currentValue;
-         lastInstant = currentInstant;
+  if(durindex<0){
+    if(no_args == 7){ // optional boolean parameter
+      CcBool* MC = static_cast<CcBool*>(args[6].addr);
+      if(!MC->IsDefined()){
+        res->SetDefined(false);
+        return 0;
       }
-      else { // current value is not defined
-         first = true;
+      makeContinious &= MC->GetValue();
+    }
+  } else {
+    dur.CopyFrom(static_cast<Attribute*>(args[durindex].addr));
+    split = true;
+    if(no_args==8){ // optional boolean parameter
+      CcBool* MC = static_cast<CcBool*>(args[6].addr);
+      if(!MC->IsDefined()){
+        res->SetDefined(false);
+        return 0;
       }
-     }
-     tuple->DeleteIfAllowed();
-     qp->Request(args[0].addr, actual);
-   }
-   qp->Close(args[0].addr);
-   return 0;
-}
+      makeContinious &= MC->GetValue();
+    }
+  }
+
+  int index1 = ((CcInt*)args[no_args-3].addr)->GetIntval();
+  int index2 = ((CcInt*)args[no_args-2].addr)->GetIntval();
 
 
-int ApproximateMPoint(Word* args, Word& result,
-                int message, Word& local,
-                Supplier s){
-   result = qp->ResultStorage(s);
-   MPoint* res = (MPoint*) result.addr;
-   int no_args = qp->GetNoSons(s);
-   DateTime dur(durationtype);
-   bool split = false;
-   if(no_args == 6){ //
-      dur.CopyFrom(static_cast<Attribute*>(args[3].addr));
-      split = true;
-   }
-   int index1 = ((CcInt*)args[no_args-2].addr)->GetIntval();
-   int index2 = ((CcInt*)args[no_args-1].addr)->GetIntval();
-
-   res->Clear();
-   if( !split || dur.IsDefined() ){
+  if( !split || dur.IsDefined() ){
     res->SetDefined(true);
-   } else { // undefined splitting duration parameter --> return UNDEF mpoint
+  } else { // undefined splitting duration parameter --> return UNDEF mpoint
     res->SetDefined(false);
     return 0;
-   }
-   Word actual;
+  }
+  Word actual;
 
-   qp->Open(args[0].addr);
-   qp->Request(args[0].addr, actual);
+  qp->Open(args[0].addr);
+  qp->Request(args[0].addr, actual);
 
-   Point lastValue,currentValue;
-   Instant lastInstant,currentInstant;
-   bool first = true;
-   while (qp->Received(args[0].addr)) {
-     Tuple* tuple = (Tuple*)actual.addr;
-     currentValue =  *((Point*)(tuple->GetAttribute(index2)));
-     currentInstant = *((Instant*)(tuple->GetAttribute(index1)));
-     if(currentInstant.IsDefined()){ // ignore undefined instants
-       if(currentValue.IsDefined()){
-         if(!first){
-            // check order of instants - ignored wrong ordered elements
-            if(currentInstant>lastInstant){
-               if(split && (currentInstant - lastInstant) > dur ) {
-                 first = true;
-               } else {
-               Interval<Instant> interval(lastInstant, currentInstant,
-                                           true ,false);
-                  UPoint unit(interval,lastValue,currentValue);
-                  res->MergeAdd(unit);
-               }
+  VType lastValue,currentValue;
+  Instant lastInstant(instanttype),currentInstant(instanttype);
+  bool first = true;
+  while (qp->Received(args[0].addr)) {
+    Tuple* tuple = (Tuple*)actual.addr;
+    currentValue =  *((VType*)(tuple->GetAttribute(index2)));
+    currentInstant = *((Instant*)(tuple->GetAttribute(index1)));
+    if(currentInstant.IsDefined()){ // ignore undefined instants
+      if(currentValue.IsDefined()){
+        if(!first){
+          // check order of instants - ignore wrong ordered elements
+          if(currentInstant>lastInstant){
+            if(split && (currentInstant - lastInstant) > dur ) {
+              first = true;
+            } else {
+              Interval<Instant> interval(lastInstant, currentInstant,
+                                         true ,false);
+              if(isContinious){
+                UType unit(interval,lastValue,currentValue);
+                res->MergeAdd(unit);
+              } else {
+                UType unit(interval,lastValue,lastValue);
+                res->MergeAdd(unit);
+              }
             }
-         } else {
-           first = false;
-         }
-         lastValue = currentValue;
-         lastInstant = currentInstant;
-       } else { // undefined value found
-         first = true;
-       }
-     }
-     tuple->DeleteIfAllowed();
-     qp->Request(args[0].addr, actual);
-   }
+            lastValue = currentValue;
+            lastInstant = currentInstant;
+          }
+        } else {
+          first = false;
+          lastValue = currentValue;
+          lastInstant = currentInstant;
+        }
+      } else { // undefined value found
+        if(!first){
+          first = true;
+          Interval<Instant> interval(lastInstant, currentInstant, true ,false);
+          if(makeContinious){
+            UType unit(interval,lastValue,currentValue);
+            res->MergeAdd(unit);
+          } else {
+            UType unit(interval,lastValue,lastValue);
+            res->MergeAdd(unit);
+          }
+        }
+      }
+    }
+    tuple->DeleteIfAllowed();
+    qp->Request(args[0].addr, actual);
+  }
 
-   qp->Close(args[0].addr);
-   return 0;
+  qp->Close(args[0].addr);
+  return 0;
 }
 
 /*
@@ -12751,7 +12703,13 @@ ValueMapping linearizemap[] = { Linearize<UReal>, Linearize<MReal> };
 ValueMapping linearize2map[] = { Linearize2_ureal, Linearize2 };
 ValueMapping integratemap[] = { Integrate<UReal>, Integrate<MReal> };
 
-ValueMapping approximatemap[] = { ApproximateMPoint, ApproximateMReal };
+ValueMapping approximatemap[] = {
+  ApproximateMvalue<MPoint, UPoint, Point, true>,
+  ApproximateMvalue<MReal, UReal, CcReal, true>,
+  ApproximateMvalue<MInt, UInt, CcInt, false>,
+  ApproximateMvalue<MBool, UBool, CcBool, false>,
+  ApproximateMvalue<MString, UString, CcString, false>,
+};
 
 ValueMapping minmap[] = { VM_Min<UReal, CcReal>,
                           VM_Min<MReal, CcReal>,
@@ -13086,15 +13044,21 @@ const string TemporalSpecLinearize =
 
 const string TemporalSpecApproximate =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-  "( <text>stream(tuple(a1: t1) (...(an,tn) x ai x aj [ x duration ] -> mtj ,"
-           " (ti = instant, tj in {real,point)</text--->"
-  "<text>_ approximate [ i, j, dt_split ] </text--->"
-  "<text>Computes a piecewise linear approximation from the time/value pairs"
-  " of the stream argument. i/j indicate the attribute names for the "
-  "time/value data within the stream tuples. The optional parameter dt_split "
-  "sets a maximum duration for unit definition times. If two consecutive data "
-  "points have longer temporal distance, they are not connected by a unit."
-  "</text--->"
+  "( <text>stream(tuple(a1: t1) (...(an,tn) x ai x aj [ x bool ] [ x duration ]"
+  "-> mtj , (ti = instant, tj in {real,point,int,bool,string)</text--->"
+  "<text>_ approximate [ i, j, mc, dt_split ] </text--->"
+  "<text>Computes a moving type from the time/value pairs of the stream "
+  "argument. i/j indicate the attribute names for the time/value data within "
+  "the stream tuples. The optional parameter dt_split sets a maximum duration "
+  "for unit definition times. If two consecutive data points have longer "
+  "temporal distance, they are not connected by a unit."
+  "For real and point data, the result contains units with a linear function "
+  "describing the temporal evolution between each pair of consecutive data "
+  "points. For int, bool, and string values, constant units are created, where "
+  "a value is valid until the next given data point. This means, that the final"
+  " data point's value is lost. If the optional boolean parameter 'mc' is set "
+  "to FALSE, this type of constant units is also created for point and real "
+  "data.</text--->"
   "<text>  </text--->"
   ") )";
 
@@ -13782,7 +13746,7 @@ Operator temporallinearize2( "linearize2",
 
 Operator temporalapproximate( "approximate",
                            TemporalSpecApproximate,
-                           2,
+                           5,
                            approximatemap,
                            ApproximateSelect,
                            TypeMapApproximate );

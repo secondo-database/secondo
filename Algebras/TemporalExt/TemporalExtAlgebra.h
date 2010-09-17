@@ -55,24 +55,12 @@ named implementations.
 #include "../../Tools/Flob/DbArray.h"
 #include "RectangleAlgebra.h"
 #include "DateTime.h"
+#include "TemporalAlgebra.h"
 
 extern NestedList* nl;
 extern QueryProcessor* qp;
 
-/*
-3 Type definitions
 
-The types UString and MString was defined to implement the data types
-~ustring~ and ~mapping(string)~ according to the declared defintions in the
-signature for moving objects. The types RBool and RString was declared in order
-to implement the data types ~range(bool)~ and ~range(string)~. They are
-also part of the signature for moving objects.
-
-*/
-typedef ConstTemporalUnit<CcString> UString;
-typedef Mapping< UString, CcString > MString;
-typedef Range<CcBool> RBool;
-typedef Range<CcString> RString;
 
 /*
 4 Declaration of classes
