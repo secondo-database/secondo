@@ -553,6 +553,7 @@ build_query(Relation, [ PredIdentList , Query , Relation ]):-
 	% set samples to be used instead of relations
 	removeSamplesToBeUsed,
 	setSamplesToBeUsed(Relation),
+	debug_writeln(build_query/2, 59, [ 'relations replaced with ', Relation]),
 	!,
 	% build relation expression
 	build_relation_expr(Relation, JoinPredicates, RelationExpr, UsedJoinPredicateIDs, CountSelPreds),
@@ -1548,6 +1549,8 @@ write_list([]).
 write_list([ nl | Rest ]):-
 	nl,
 	write_list(Rest).
+write_list([ Atom | [] ]):-
+	write(Atom).
 write_list([ Atom | Rest ]):-
 	write(Atom),
 	write_list(Rest).
@@ -1664,13 +1667,15 @@ writeln(Msg1, Msg2, Msg3, Msg4, Msg5, Msg6):-
 info_continue(Pred, MessageList):-
 	write_list([ 'INFO: ', Pred, ': ']),
 	write_list(MessageList),
-	nl.
+	nl,
+	!.
 info_continue(Pred, Message, List):-
 	info_continue(Pred,[Message,' args:',List]).
 warn_continue(Pred, MessageList):-
 	write_list([ 'WARN: ', Pred, ': ']),
 	write_list(MessageList),
-	nl.
+	nl,
+	!.
 warn_continue(Pred, Message, List):-
 	warn_continue(Pred,[Message,' args:',List]).
 error_exit(Pred, MessageList):-
@@ -2248,7 +2253,7 @@ corrFeasible:-
   	findall([Node, Sel],
 	   (corrCummSel(Node,_), nodeCardRange(Node,[Sel,_])),
 	   NodesToCorrect),
-  writeln(['to correct: ',NodesToCorrect]),
+	debug_writeln(corrCummSel/2,9, ['to correct: ',NodesToCorrect]),
 	correctCorrCummSels(NodesToCorrect).
 
 /*
