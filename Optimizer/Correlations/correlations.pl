@@ -942,7 +942,6 @@ get_join_set(Relations, _, JointRelations, []):-
 	!.
 get_join_set(Relations, [ JoinPredicate | JoinPredicates ], JointRelations, [ JoinPredicateID | JoinSet ]):-
 	JoinPredicate = [ JoinPredicateID, PredRelations, _ ],
-	debug_writeln(get_join_set/4, 9999, ['check PredRelations ', PredRelations, ' to JointRelations ', JointRelations]),
 	%falsche Reihenfolge: not(subset(PredRelations, JointRelations)),
 	not(subset(JointRelations, PredRelations)),
 	debug_writeln(get_join_set/4, 9999, ['add PredRelations ', PredRelations, ' to JointRelations ', JointRelations]),
@@ -1050,13 +1049,16 @@ get_first_path([ _ | Rest], CheapestJoinPath):-
 */
 
 get_path_cost(NodeID2, NodeID, [], [], 0):-
-	NodeID2 =:= NodeID.
+	NodeID2 =:= NodeID,
+	debug_writeln(get_path_cost/5, 9999, ['cost of path from node ', NodeID2, ' to ', NodeID, ' is 0']).
 get_path_cost(LastNodeID, TargetNodeID, [ CostEdge | CostEdges ], [ PredID | PredIDs ], CostNew):-
 	planEdge(LastNodeID, NewNodeID, PredPath, _),
 	PredID is NewNodeID - LastNodeID,
 	equals_and(PredID,PredID,TargetNodeID),
+	debug_writeln(get_path_cost/5, 9999, ['estimate cost for planEdge from ', LastNodeID, ' to ', NewNodeID]),
+	getPredicate(PredID, Pred),
 	edgeSelectivity(LastNodeID, NewNodeID, Selectivity),
-	cost(PredPath, Selectivity, _, ResultSize, Cost),
+	cost(PredPath, Selectivity, Pred, ResultSize, Cost),
 	CostEdge = costEdge(LastNodeID, NewNodeID, PredPath, NewNodeID, ResultSize, Cost),
 	get_path_cost(NewNodeID, TargetNodeID, CostEdges, PredIDs, CostOld),
 	CostNew is CostOld + Cost.
@@ -2473,5 +2475,24 @@ setPredefinedNodeCards([ [ Node, Card ] | Rest]):-
 	!,
 	setPredefinedNodeCards(Rest).
 
+/*
+6.6.6.6 getPredicate/2
 
+ returns either the predicate with an given ID or the ID of a given predicate
+
+*/
+
+getPredicate(PredID, Pred):-
+	listOfPredicates(AllPredicates),
+	getPredicate(PredID, Pred, AllPredicates).
+
+getPredicate(PredID, Pred, [ [PredID2, _, Pred] | _ ]):-
+	PredID = PredID2.
+% 1 und 1.0 sind gleich
+getPredicate(PredID, Pred, [ [PredID2, _, Pred] | _ ]):-
+	PredID =:= PredID2.
+getPredicate(PredID, Pred, [ _ | Rest ]):-
+	% keine Endlosschleifen
+	not(Rest=[]),
+	getPredicate(PredID, Pred, Rest).
 
