@@ -1463,8 +1463,6 @@ int paraJoin2ValueMap(Word* args, Word& result,
 
 bool pj2LocalInfo::LoadTuples()
 {
-  assert(!endOfStream);
-
   bool loaded = false;
 
   //Clear the buffer
@@ -1478,11 +1476,13 @@ bool pj2LocalInfo::LoadTuples()
   if (tbb)
     delete tbb; tbb = 0;
 
-  if (cta == 0)
-    cta.setTuple(NextTuple(streamA));
-  if (ctb == 0)
-    ctb.setTuple(NextTuple(streamB));
-
+  if (moreTuples)
+  {
+    if (cta == 0)
+      cta.setTuple(NextTuple(streamA));
+    if (ctb == 0)
+      ctb.setTuple(NextTuple(streamB));
+  }
   if ( cta == 0 || ctb == 0)
   {
     //one of the stream is exhausted
@@ -1555,10 +1555,13 @@ bool pj2LocalInfo::LoadTuples()
       cmpb = CompareTuples(tmpb.tuple, keyBIndex,
                          ctb.tuple, keyBIndex);
   }
+  if ((cta == 0) || (ctb == 0))
+    moreTuples = false;
 
-  loaded = true;
   ita = tba->MakeScan();
   itb = tbb->MakeScan();
+  loaded = true;
+
   if ((0 == tba->GetNoTuples()) || (0 == tbb->GetNoTuples()))
     endOfStream = true;
   return loaded;

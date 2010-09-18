@@ -283,6 +283,7 @@ private:
 
   int maxMem;
   bool endOfStream;
+  bool moreTuples;
   //any stream is end, then the operation is over
 
   bool LoadTuples();
@@ -297,18 +298,19 @@ private:
     bool yield = false;
     Word result( Address(0) );
 
-    qp->Request(stream.addr, result);
-    yield = qp->Received(stream.addr);
+    if(stream.addr)
+    {
+      qp->Request(stream.addr, result);
+      yield = qp->Received(stream.addr);
 
-    if(yield)
-    {
-      return static_cast<Tuple*>( result.addr );
+      if(yield)
+      {
+        return static_cast<Tuple*> (result.addr);
+      }
     }
-    else
-    {
-      result.addr = 0;
-      return static_cast<Tuple*>( result.addr );
-    }
+
+    result.addr = 0;
+    return static_cast<Tuple*>( result.addr );
   }
 
 public:
@@ -317,7 +319,7 @@ public:
   : streamA(_sa), streamB(_sb),
     tba(0), tbb(0), ita(0), itb(0),
     cta(0), ctb(0),
-    endOfStream(false)
+    endOfStream(false), moreTuples(true)
   {
     keyAIndex = StdTypes::GetInt( _kai ) - 1;
     keyBIndex = StdTypes::GetInt( _kbi ) - 1;
