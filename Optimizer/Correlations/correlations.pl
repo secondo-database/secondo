@@ -623,23 +623,23 @@ build_relation_expr(Relation, JoinPredicates, RelationExpr, SmallestJoinSet, Cou
 		get_all_join_sets(Relation, JoinPredicates, JoinSets),
 		not(JoinSets=[])
 		->
-		debug_writeln(build_relation_expr/4, 69, [ 'set of possible sets of join predicates for relation ', Relation, ' is ', JoinSets]);
-		warn_continue(build_relation_expr/4, [ 'no set sufficient join predicates for relation ', Relation, ' found - use product']),
+		debug_writeln(build_relation_expr/5, 69, [ 'set of possible sets of join predicates for relation ', Relation, ' is ', JoinSets]);
+		warn_continue(build_relation_expr/5, [ 'no set sufficient join predicates for relation ', Relation, ' found - use product']),
 		fail
 	),
 	%!,  if its not possible to construct a sample query
 	% repeat until a joinset and path is found which is translatable to a sample query
 	get_smallest_join(JoinSets, SmallestJoinSet, _),
-	debug_writeln(build_relation_expr/4, 69, [ 'smallest set of join predicates for relation ', Relation, ' is ', SmallestJoinSet]),
+	debug_writeln(build_relation_expr/5, 69, [ 'smallest set of join predicates for relation ', Relation, ' is ', SmallestJoinSet]),
 	%!, if its not possible to construct a sample query
 	get_cheapest_path(SmallestJoinSet, CheapestJoinPath),
-	debug_writeln(build_relation_expr/4, 69, [ 'cheapest path of smallest join ', CheapestJoinPath]),
+	debug_writeln(build_relation_expr/5, 69, [ 'cheapest path of smallest join ', CheapestJoinPath]),
 	%!, if its not possible to construct a sample query
 	construct_sample_plan(CheapestJoinPath, SamplePlan),
 	!,
 	plan_to_atom(SamplePlan, RelationExpr),
 	%plan_to_atom(CheapestJoinPlan, RelationExpr),
-	debug_writeln(build_relation_expr/4, 61, [ '(Option joinCorrelations set) relation expression ', RelationExpr, ' built for relation ', Relation, ' using set of join predicates ', SmallestJoinSet]),
+	debug_writeln(build_relation_expr/5, 61, [ '(Option joinCorrelations set) relation expression ', RelationExpr, ' built for relation ', Relation, ' using set of join predicates ', SmallestJoinSet]),
 	!.
 
 
@@ -648,7 +648,7 @@ build_relation_expr(Relation, JoinPredicates, RelationExpr, SmallestJoinSet, _):
 
 % unexpected call
 build_relation_expr(A, B, C, D, E):-
-	error_exit(build_relation_expr/4, ['unexpected call with arguments ',[A, B, C, D, E]]).
+	error_exit(build_relation_expr/5, ['unexpected call with arguments ',[A, B, C, D, E]]).
 
 % if Option correlationsProduct is set or
 % if Option correlationsJoin is set and no sufficient set of join predicates were found to build the derivated relation
@@ -928,25 +928,31 @@ get_sel_predicates2(Relation, [ _ | Predicates ], SelPredicateIDs, SelPredicates
 
 %alle Kombis von JoinPreds ermitteln, die reichen alle Relationen zu verbinden
 get_all_join_sets(Relation, JoinPredicates, JoinSets):-
-	debug_outln('get_all_join_sets: ',[Relation, JoinPredicates, JoinSets]),
+	debug_writeln(get_all_join_sets/3, 9999, ['actual params: ',[Relation, JoinPredicates, JoinSets]]),
 	flatten([Relation], RelationList),
 	findall(JoinSet, get_join_set0(RelationList, JoinPredicates, [], JoinSet), JoinSets).
 
 get_join_set0(Relation, JoinPredicates, [], JoinSet):-
-	debug_outln('get_join_set0: ',[Relation, JoinPredicates, [], JoinSet]),
+	debug_writeln(get_join_set0/4, 9999, ['actual params: ',[Relation, JoinPredicates, [], JoinSet]]),
 	get_join_set(Relation, JoinPredicates, [], JoinSet).
 
 get_join_set(Relations, _, JointRelations, []):-
 	set_equal(Relations, JointRelations),
+	debug_writeln(get_join_set/4, 9999, ['all relations involved: ',[Relations, JointRelations]]),
 	!.
 get_join_set(Relations, [ JoinPredicate | JoinPredicates ], JointRelations, [ JoinPredicateID | JoinSet ]):-
 	JoinPredicate = [ JoinPredicateID, PredRelations, _ ],
-	not(subset(PredRelations, JointRelations)),
+	debug_writeln(get_join_set/4, 9999, ['check PredRelations ', PredRelations, ' to JointRelations ', JointRelations]),
+	%falsche Reihenfolge: not(subset(PredRelations, JointRelations)),
+	not(subset(JointRelations, PredRelations)),
+	debug_writeln(get_join_set/4, 9999, ['add PredRelations ', PredRelations, ' to JointRelations ', JointRelations]),
 	append(PredRelations, JointRelations, JointRelationsTmp),
 	list_to_set(JointRelationsTmp, JointRelationsNew),
 	get_join_set(Relations, JoinPredicates, JointRelationsNew, JoinSet).
 get_join_set(Relations, [ JoinPredicate | JoinPredicates ], JointRelations, JoinSet):-
 	JoinPredicate = [ _, _, _ ],
+	debug_writeln(get_join_set/4, 9999, ['found an alternative join path: ', 
+		[Relations, [ JoinPredicate | JoinPredicates ], JointRelations, JoinSet]]),
 	%ist Alternativpfad fuer findall, deshalb nicht: subset(PredRelations, JointRelations),
 	get_join_set(Relations, JoinPredicates, JointRelations, JoinSet).
 
