@@ -1056,7 +1056,7 @@ get_path_cost(LastNodeID, TargetNodeID, [ CostEdge | CostEdges ], [ PredID | Pre
 	PredID is NewNodeID - LastNodeID,
 	equals_and(PredID,PredID,TargetNodeID),
 	edgeSelectivity(LastNodeID, NewNodeID, Selectivity),
-	cost(PredPath, Selectivity, ResultSize, Cost),
+	cost(PredPath, Selectivity, _, ResultSize, Cost),
 	CostEdge = costEdge(LastNodeID, NewNodeID, PredPath, NewNodeID, ResultSize, Cost),
 	get_path_cost(NewNodeID, TargetNodeID, CostEdges, PredIDs, CostOld),
 	CostNew is CostOld + Cost.
