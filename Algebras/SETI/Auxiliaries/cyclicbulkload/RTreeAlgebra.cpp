@@ -42,7 +42,7 @@ R-trees. Also added several operators for rtree insprospection.
 October 2009, Christian Duentgen corrected type mapping for ~gettuples~ and
 ~gettuples2~ and replaced weird 'CHECK\_COND' macro in all type mappings.
 
-July 2010, Daniel Brockmann added operator for cyclic bulk loading
+September 2010, Daniel Brockmann added operator for cyclic bulk loading
 
 [TOC]
 
@@ -6365,6 +6365,7 @@ int CyclicBulkloadVM(Word* args, Word& result, int message,
   Rectangle<2>* rect  = static_cast<Rectangle<2>*>(args[1].addr);
   int       numCells  = static_cast<CcInt*>(args[2].addr)->GetValue();
   int       cycleTime = static_cast<CcInt*>(args[3].addr)->GetValue();
+  int       entries = 0;
   
   // Create new RTree
   R_Tree<3, TupleId>* rtree = (R_Tree<3, TupleId>*)qp->ResultStorage(s).addr;
@@ -6458,8 +6459,6 @@ int CyclicBulkloadVM(Word* args, Word& result, int message,
         u.tupId = ((TupleIdentifier *)tuple->GetAttribute(tidIndex))->GetTid();
         mp->Get(i, u.up);
       
-        int col = ComputeLine(area.x1, area.x2, splits, u.up.p0.GetX());
-        int row = ComputeLine(area.y1, area.y2, splits, u.up.p0.GetY());
         // Insert upoint into cell, sorted by start time
         systemTime->Now();
         if ( u.up.timeInterval.end < *systemTime &&
@@ -6468,11 +6467,14 @@ int CyclicBulkloadVM(Word* args, Word& result, int message,
              u.up.p0.GetY() > area.y1 && u.up.p0.GetY() < area.y2 &&
              u.up.p1.GetY() > area.y1 && u.up.p1.GetY() < area.y2 )
         {
+          int col = ComputeLine(area.x1, area.x2, splits, u.up.p0.GetX());
+          int row = ComputeLine(area.y1, area.y2, splits, u.up.p0.GetY());
       
           cells[col][row]->
                units.insert(make_pair(u.up.timeInterval.start.ToDouble(),u));
         }
         i++;
+        entries++;
       }
     }
     else
@@ -6483,8 +6485,6 @@ int CyclicBulkloadVM(Word* args, Word& result, int message,
       u.tupId = ((TupleIdentifier *)tuple->GetAttribute(tidIndex))->GetTid();
       u.up = *up;
       
-      int col = ComputeLine(area.x1, area.x2, splits, u.up.p0.GetX());
-      int row = ComputeLine(area.y1, area.y2, splits, u.up.p0.GetY());
       // Insert upoint into cell, sorted by start time
       systemTime->Now();
       if ( u.up.timeInterval.end < *systemTime &&
@@ -6493,16 +6493,29 @@ int CyclicBulkloadVM(Word* args, Word& result, int message,
            u.up.p0.GetY() > area.y1 && u.up.p0.GetY() < area.y2 &&
            u.up.p1.GetY() > area.y1 && u.up.p1.GetY() < area.y2 )
       {
+        int col = ComputeLine(area.x1, area.x2, splits, u.up.p0.GetX());
+        int row = ComputeLine(area.y1, area.y2, splits, u.up.p0.GetY());
       
         cells[col][row]->
              units.insert(make_pair(u.up.timeInterval.start.ToDouble(),u));
+        entries++;
       }
     }
     delete tuple;
     qp->Request(args[0].addr, wTuple);
   }
-  // Insert the last entries into the RTree and finalize bulk load
+  // Insert the last entries into the RTree
   InsertUnits(numCells, splits, splits, rtree);
+  
+  // Insert dummy if the rtree is empty
+  if (entries == 0)
+  {
+     Rectangle<3>* box = new Rectangle<3>(true,0.0,1.0,0.0,1.0,0.0,1.0);
+     R_TreeLeafEntry<3, TupleId> e(*box,0);
+     rtree->InsertBulkLoad(e);
+  }
+
+  // Finalize bulk load
   int FinalizedBulkLoad = rtree->FinalizeBulkLoad();
   assert(FinalizedBulkLoad);
   return 0;
