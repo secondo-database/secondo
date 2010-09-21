@@ -13106,7 +13106,7 @@ const string TemporalSpecApproximate =
   "a value is valid until the next given data point. This means, that the final"
   " data point's value is lost. If the optional boolean parameter 'mc' is set "
   "to FALSE, this type of constant units is also created for point and real "
-  "data.</text--->"
+  "data. The default value for 'mc' is TRUE.</text--->"
   "<text>  </text--->"
   ") )";
 

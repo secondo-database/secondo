@@ -833,7 +833,7 @@ The parameter list contains:
 rect2, x0, y0, x-width, y-width, nx.
 
 rect2 is a 2D rectangle.
-Point (x0, y0) is the left-buttom point of the whole grid.
+Point (x0, y0) is the left-bottom point of the whole grid.
 x-width and y-width is the length and width of each cell in this grid.
 nx is the number of cells in every row of the gird.
 The grid can be endless along with y-axis.
@@ -1699,7 +1699,7 @@ struct CellGrid{
     initialized(false), finished(false), is3D(_3D)
   {}
 
-  //Get the bound box of the rectangle in the grid
+  //Set the MBR of the rectangle in the grid
   void setBoundBox(double lbx, double rtx,
                    double lby, double rty,
                    double lbz = 0.0, double rtz = 0.0)
@@ -1717,12 +1717,13 @@ struct CellGrid{
     //set the LBX, LBY, RTX, RTY;
     LBX = static_cast<int>(floor((lbx - x0) / xWidth));
     LBY = static_cast<int>(floor((lby - y0) / yWidth));
+
     if (is3D)
       LBZ = static_cast<int>(floor((lbz - z0) / zWidth));
     else
       LBZ = 0;
 
-    // A rectangle's top edge belongs to the blower cell,
+    // A rectangle's top edge belongs to the lower cell,
     // its right edge belongs to the lefter cell,
     // and its ceil edge belongs to the lower cell if it's a box
     // when the rectangle's top-right point locates on
@@ -1742,7 +1743,7 @@ struct CellGrid{
     else
       RTZ = 0;
 
-    //  The cell grid must locates in the first quadrant.
+    //  The cell grid must be located in the first quadrant.
     //  If the rectangle locates in other quadrants,
     //  then an empty int stream will be returned.
     if(LBX < 0 || LBY < 0 || LBZ < 0)
@@ -1764,7 +1765,7 @@ struct CellGrid{
     int cellNum = -1;
     if (!initialized)
     {
-      cerr << "The grid for cellnumber operator doesn't initialized." << endl;
+      cerr << "The grid for cellnumber operator isn't initialized." << endl;
       cellNum = -1;
     }
     else if (!finished)
@@ -1815,6 +1816,12 @@ struct CellGrid{
     double xw = 0.0, yw = 0.0, zw = 0.0;
     int nx = 0, ny = 0;
     int len = qp->GetNoSons(s);
+    for(int arg=0; arg<len; arg++){
+      if(!(static_cast<Attribute*>(args[arg].addr))->IsDefined()) {
+        cerr << "Undefined argument used in cellnumber." << endl;
+        return CANCEL;
+      }
+    }
     if (6 == len)
     {
       Rectangle<2> *rect = (Rectangle<2> *)args[0].addr;
@@ -1824,11 +1831,6 @@ struct CellGrid{
       yw = ((CcReal *)args[4].addr)->GetValue();
       nx = ((CcInt *)args[5].addr)->GetValue();
       grid = new CellGrid(x0, y0, z0, xw, yw, zw, nx, ny, false);
-      if(!rect->IsDefined())
-      {
-        cerr << "Uninitialized rectangle is used" << endl;
-        return CANCEL;
-      }
       grid->setBoundBox(rect->MinD(0), rect->MaxD(0),
                         rect->MinD(1),rect->MaxD(1));
     }
@@ -1844,11 +1846,6 @@ struct CellGrid{
       nx = ((CcInt *)args[7].addr)->GetValue();
       ny = ((CcInt *)args[8].addr)->GetValue();
       grid = new CellGrid(x0, y0, z0, xw, yw, zw, nx, ny, true);
-      if(!rect->IsDefined())
-      {
-        cerr << "Uninitialized rectangle is used" << endl;
-        return CANCEL;
-      }
       grid->setBoundBox(rect->MinD(0), rect->MaxD(0),
                         rect->MinD(1), rect->MaxD(1),
                         rect->MinD(2), rect->MaxD(2));
@@ -1921,15 +1918,16 @@ gridIntersectsVM(Word* args, Word& result,
   if (qp->GetNoSons(s) == 8)
   {
     // 2D grid
+    for(int arg=0; arg<8; arg++) {
+      if(!static_cast<Attribute*>(args[arg].addr)->IsDefined()){
+        ErrorReporter::ReportError("RectangleAlgebra::gridIntersects: "
+        "Undefined argument used");
+        res->Set( false, false );
+        return 0;
+      }
+    }
     Rectangle<2> *rectA = (Rectangle<2> *)args[5].addr;
     Rectangle<2> *rectB = (Rectangle<2> *)args[6].addr;
-
-    if (!rectA->IsDefined() || !rectB->IsDefined())
-    {
-      ErrorReporter::ReportError("RectangleAlgebra::gridIntersects: "
-          "Uninitialized rectangle is used");
-      return 0;
-    }
 
     if (!rectA->Intersects(*rectB))
     {
@@ -1953,16 +1951,17 @@ gridIntersectsVM(Word* args, Word& result,
   else
   {
     // 3D grid
+    for(int arg=0; arg<11; arg++) {
+      if(!static_cast<Attribute*>(args[arg].addr)->IsDefined()){
+        ErrorReporter::ReportError("RectangleAlgebra::gridIntersects: "
+        "Undefined argument used");
+        res->Set( false, false );
+        return 0;
+      }
+    }
     is3D = true;
     Rectangle<3> *rectA = (Rectangle<3> *)args[8].addr;
     Rectangle<3> *rectB = (Rectangle<3> *)args[9].addr;
-
-    if (!rectA->IsDefined() || !rectB->IsDefined())
-    {
-      ErrorReporter::ReportError("RectangleAlgebra::gridIntersects: "
-          "Uninitialized rectangle is used");
-      return 0;
-    }
 
     if (!rectA->Intersects(*rectB))
     {
@@ -2558,9 +2557,14 @@ struct cellnumber_Info : OperatorInfo {
         "rect x real x real x real x real x int -> stream(int)\n"
         "rect3 x real x real x real x real x real x real x int x int"
         "-> stream(int)";
-    syntax =    "cellnumber(_, _, _, _, _, _, _, _, _)";
-    meaning =   "Return numbers of cells while a rectangle is "
-        "partitioned on a finite grid space";
+    syntax =    "cellnumber( box, x0, y0, [z0,] wx, wy, [wz,] nx, [ny] )";
+    meaning =   "Returns a stream of numbers of all cells intersected by box "
+        "with respect to a regular 2D- [3D-] grid starting at (x0,y0 [,z0]) and"
+        "--- for positive widths --- extending to the first quadrant (octant). "
+        "Each cell has widths wx, wy [and wz]. nx [and ny] determine the "
+        "grid's number of columns [and rows] available in the grip. The grid "
+        "is one-side unbounded in the remaining dimension. Cell numbering "
+        "starts in the lower left corner.";
   }
 
 };
@@ -2574,9 +2578,10 @@ struct gridintersects_Info : OperatorInfo {
         "rectangle x rectangle x int -> bool\n"
         "real x real x real x real x real x real"
         "x int x int x rect x rect x int -> bool";
-    syntax = "op (_, _, _, _, _, _, _, _, _, _, _)";
+    syntax = "op ( x0, y0, [z0,] wx, wy, [wz,] nx, [ny,] box1, box2)";
     meaning = "Return whether the current cell is "
-        "the common smallest cell of these two rectangles";
+    "the smallest common grid cell overlapped by these two rectangles. For "
+    "comments on grid specification see operator 'cellnumber'.";
   }
 };
 
