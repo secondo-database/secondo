@@ -440,7 +440,9 @@ remove_obsolete_queries([], _, QueryList, QueryList):-
 % obsolete query -> remove query
 remove_obsolete_queries([ QueryDesc | RQuery ], Keep, RQueryRev, QueryList):-
 	QueryDesc = [ QueryPreds, _, _],
-	subset(QueryPreds, Keep),
+	debug_writeln(remove_obsolete_queries/4, 42, [ 'is ', QueryPreds, 'a subset of ', Keep, '?' ]),
+	%VJO falsche REihenfolge: subset(QueryPreds, Keep),
+	subset(Keep, QueryPreds),
 	debug_writeln(remove_obsolete_queries/4, 42, [ 'query ', QueryDesc, ' removed' ]),
 	remove_obsolete_queries(RQuery, Keep, RQueryRev, QueryList).
 
@@ -636,6 +638,7 @@ build_relation_expr(Relation, JoinPredicates, RelationExpr, SmallestJoinSet, Cou
 	debug_writeln(build_relation_expr/5, 69, [ 'cheapest path of smallest join ', CheapestJoinPath]),
 	%!, if its not possible to construct a sample query
 	construct_sample_plan(CheapestJoinPath, SamplePlan),
+	debug_writeln(build_relation_expr/5, 69, [ 'cheapest plan built ', SamplePlan]),
 	!,
 	plan_to_atom(SamplePlan, RelationExpr),
 	%plan_to_atom(CheapestJoinPlan, RelationExpr),
@@ -886,7 +889,10 @@ get_join_predicates(Relation, JoinPredicateIDs, JoinPredicates):-
 
 get_join_predicates2(_, [], [], []).
 get_join_predicates2(Relation, [ Predicate | Predicates ], [ [PredID] | JoinPredicateIDs ], [ Predicate | JoinPredicates ]):-
+	debug_writeln(get_join_predicates2/4, 9999, [ 'check predicate ', Predicate, ' and relation ', Relation]),
 	Predicate = [ PredID, PredRelation, pr(_, _, _) ],
+	debug_writeln(get_join_predicates2/4, 9999, [ 'is ', Relation, '  a part of ', PredRelation, ' ?']),
+	% korrekte Reihenfolge der PArameter - wenn alle RElationen im Praedikat bettrachtet werden, verbindet das PRaedikat die Relationen
 	subset(PredRelation, Relation),
 	!,
 	get_join_predicates2(Relation, Predicates, JoinPredicateIDs, JoinPredicates).
@@ -1158,15 +1164,24 @@ removeSamplesToBeUsed:-
 */
 
 construct_sample_plan(Path, Plan):-
+	debug_writeln(construct_sample_plan/2, 9999, [ 'construct plan of path: ', Path]),
 	plan(Path, TmpPlan),
+	debug_writeln(construct_sample_plan/2, 9999, [ 'temporary plan contructed: ', TmpPlan]),
 	!, % if prepare_sample_query/2 fails because of untranslatable TmpPlan do not retry plan/2
+	replace_relations_by_samples(TmpPlan, Plan),
+	debug_writeln(construct_sample_plan/2, 9999, [ 'final plan constructed: ', Plan]).
+
+replace_relations_by_samples(TmpPlan, Plan):-
 	prepare_sample_query(TmpPlan, Plan).
+
+replace_relations_by_samples(Plan, Plan):-
+	warn_continue(replace_relations_by_samples/2, [ 'unable to use samples for ', Plan ]).
 
 prepare_sample_query(In, Out):-
 	query_sample(In, Out),
 	!.
 prepare_sample_query(In, Out):-
-	warn_continue(prepare_sample_query/2, ['unable to build sample query', [In, Out]]),
+	warn_continue(prepare_sample_query/2, ['unable to build sample query ', [In, Out]]),
 	!,
 	fail.
 
@@ -1182,9 +1197,10 @@ query_sample(IndexName, _) :-
 	dcName2externalName(DCindexName,IndexName),
 	databaseName(DB),
 	storedIndex(DB,_,_,_,DCindexName),
+	debug_writeln( query_sample/2, 9999, [ 'found Index ', DCindexName]),
 	% dann ist der Ausdruck fuer sample nicht anwendbar
 	% Suche nach sample query ist fehlgeschlagen
-	warn_continue(query_sample/2,['using of indexes not supported for sample queries - try another path',IndexName]),
+	warn_continue(query_sample/2,['found Index ', DCindexName, 'using of indexes not supported for sample queries - try another path']),
 	!,
 	fail.
 
