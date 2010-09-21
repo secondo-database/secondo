@@ -80,4 +80,5 @@ operator p2mp alias MP2ONEMP pattern op(_,_,_,_)
 operator delay alias DELAY pattern op(_,_)
 operator distancetraversed alias DISTANCETRAVERSED pattern op(_)
 operator mint2mbool alias MINT2MBOOL pattern op(_)
+operator mint2mreal alias MINT2MREAL pattern op(_)
 

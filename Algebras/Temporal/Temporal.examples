@@ -571,6 +571,11 @@ Signature : mint -> mbool
 Example   : query mint2mbool(zero())
 Result    : (mbool ( ( ("begin of time" "end of time" TRUE TRUE) FALSE)))
 
+Operator  : mint2mreal
+Number    : 1
+Signature : mint -> mreal
+Example   : query mint2mreal(zero())
+Result    : (mbool ( ( ("begin of time" "end of time" TRUE TRUE) FALSE)))
 
 Operator  : uval
 Number    : 1

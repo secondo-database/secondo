@@ -2401,6 +2401,30 @@ void MInt::WriteTo(MBool& arg){
   }
   //EndBulkLoad(false);
 }
+
+void MInt::WriteTo(MReal& arg){
+  // remove all units
+  arg.Clear();
+  if(!IsDefined()){
+    arg.SetDefined(false);
+    return;
+  }
+  arg.SetDefined(true);
+  int size = GetNoComponents();
+  if(size>0){
+     arg.Resize(size);
+  }
+  UInt uint;
+  //arg.StartBulkLoad();
+  for(int i=0;i<size;i++){
+    Get(i,uint);
+    double v = (double)uint.constValue.GetIntval();
+    UReal ureal(uint.timeInterval, v, v);
+    arg.Add(ureal);
+  }
+  //EndBulkLoad(false);
+}
+
 bool compareuint(const UInt& u1,const UInt& u2)
 {
   if( !u1.IsDefined() && u1.IsDefined() )
@@ -7767,6 +7791,22 @@ ListExpr TemporalMInt2MBool(ListExpr args){
 }
 
 /*
+Type Mapping for the mint2mreal function
+
+*/
+ListExpr TemporalMInt2MReal(ListExpr args){
+  if(nl->ListLength(args)!=1){
+    ErrorReporter::ReportError("Single argument expected");
+    return nl->SymbolAtom( "typeerror" );
+  }
+  if(nl->IsEqual(nl->First(args),"mint")){
+    return   nl->SymbolAtom("mreal");
+  }
+  ErrorReporter::ReportError("mint expected");
+  return nl->SymbolAtom( "typeerror" );
+}
+
+/*
 16.1.1 Type Mapping for the ~ExtendDeftime~ function
 
 */
@@ -10559,6 +10599,14 @@ int MInt2MBool( Word* args, Word& result, int message, Word&
  return 0;
 
 }
+
+int MInt2MReal( Word* args, Word& result, int message, Word&
+ local, Supplier s ){
+ result = qp->ResultStorage(s);
+ ((MInt*) args[0].addr)->WriteTo(*((MReal*) result.addr));
+ return 0;
+
+}
 /*
 16.3.29 Value mapping functions of operator ~distance~
 
@@ -13278,6 +13326,14 @@ const string TemporalMInt2MBoolSpec =
   "<text>mint2mbool(zero())</text--->"
   ") )";
 
+const string TemporalMInt2MRealSpec =
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+  "( <text>mint -> mreal </text--->"
+  "<text>mint2mreal( _ ) </text--->"
+  "<text>Converts the mint value into an mreal value.</text--->"
+  "<text>mint2mreal(zero())</text--->"
+  ") )";
+
 const string TemporalExtDeftimeSpec =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
   "( <text>mT x uT -> mT with T in {bool, int}  </text--->"
@@ -13885,6 +13941,12 @@ Operator mint2mbool( "mint2mbool",
                        Operator::SimpleSelect,
                        TemporalMInt2MBool );
 
+Operator mint2mreal( "mint2mreal",
+                       TemporalMInt2MRealSpec,
+                       MInt2MReal,
+                       Operator::SimpleSelect,
+                       TemporalMInt2MReal );
+
 Operator extdeftime( "extdeftime",
                       TemporalExtDeftimeSpec,
                       2,
@@ -14103,6 +14165,7 @@ class TemporalAlgebra : public Algebra
     AddOperator(&temporalbox2d);
     AddOperator(&mbool2mint);
     AddOperator(&mint2mbool);
+    AddOperator(&mint2mreal);
     AddOperator(&extdeftime);
     AddOperator(&temporaltranslateappend);
     AddOperator(&temporaltranslateappendS);

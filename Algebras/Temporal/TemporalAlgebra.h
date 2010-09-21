@@ -2918,7 +2918,7 @@ The database array of temporal units.
 
 */
 typedef Mapping< UBool, CcBool > MBool;
-
+class MReal;
 /*
 3.10 Class ~MInt~
 
@@ -2983,7 +2983,7 @@ representing the  value 1 over their interval.
    void ReadFrom(const MBool& arg);
 
 /*
-~WriteTo~
+~WriteTo(MBool)~
 
 Writes the value of this moving(int) into the value
 of the result moving(bool). The temporal structure of
@@ -2993,6 +2993,14 @@ to a unit with value false. Otherwise true.
 
 */
   void WriteTo(MBool& arg);
+
+/*
+~WriteTo(MReal)~
+
+Casts this MInt into an MReal.
+
+*/
+    void WriteTo(MReal& arg);
 
 
    static const string BasicType(){
@@ -3094,7 +3102,7 @@ start and end value and possible the extremum.
 /*
 3.11.6 Operation ~AtMin~
 
-Restrict to periods where the temporal value is maximal.
+Restrict to periods where the temporal value is minimal.
 
 */
    void AtMin( MReal& result ) const;
@@ -3102,13 +3110,13 @@ Restrict to periods where the temporal value is maximal.
 /*
 3.11.7 Operation ~AtMax~
 
-Restrict to periods where the temporal value is minimum.
+Restrict to periods where the temporal value is maximal.
 
 */
    void AtMax( MReal& result ) const;
 
 /*
-3.11.8 Operation ~AtMax~
+3.11.8 Operation ~AtValue~
 
 Restrict to periods where the temporal value is equal to a const value.
 
