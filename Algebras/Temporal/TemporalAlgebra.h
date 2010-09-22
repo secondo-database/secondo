@@ -7329,6 +7329,25 @@ int MappingUnits(Word* args, Word& result, int message, Word& local, Supplier s)
   return -1;
 }
 
+template <class Mapping, class Unit>
+int MappingGetUnit
+(Word* args, Word& result, int message, Word& local, Supplier s)
+{
+  Mapping* m = static_cast<Mapping*>(args[0].addr);
+  result = qp->ResultStorage( s );
+
+  CcInt* index = ((CcInt*)args[1].addr);
+  Unit* pResult = ((Unit*)result.addr);
+
+  if(!m->IsDefined() || m->GetNoComponents()==0 || index->GetIntval() < 0 || 
+      index->GetIntval() >= m->GetNoComponents())
+  {
+    pResult->SetDefined(false);
+    return 0;
+  }
+  m->Get( index->GetIntval(), *pResult );
+  return 0;
+}
 
 /*
 7.0 Refinement Partition

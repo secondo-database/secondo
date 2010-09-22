@@ -8351,6 +8351,41 @@ ListExpr MovingTypeMapUnits( ListExpr args )
 }
 
 /*
+16.1.12 Type Mapping Function ~MovingTypeMapGetUnit~
+
+It is used for the operator ~getunit~
+
+Type mapping for ~getunit~ is
+
+----    (mbool)  -> (ubool)
+        (mint)   -> (uint)
+  (mreal)  -> (ureal)
+  (mpoint) -> (upoint)
+----
+
+*/
+ListExpr MovingTypeMapGetUnit( ListExpr args )
+{
+  if ( nl->ListLength(args) == 2 && nl->IsEqual(nl->Second(args), "int"))
+  {
+    ListExpr arg1 = nl->First(args);
+
+    if( nl->IsEqual( arg1, "mbool" ) )
+      return nl->SymbolAtom("ubool");
+
+    if( nl->IsEqual( arg1, "mint" ) )
+      return nl->SymbolAtom("uint");
+
+    if( nl->IsEqual( arg1, "mreal" ) )
+      return nl->SymbolAtom("ureal");
+
+    if( nl->IsEqual( arg1, "mpoint" ) )
+      return nl->SymbolAtom("upoint");
+  }
+  return nl->SymbolAtom("typeerror");
+}
+
+/*
 16.1.12 Type mapping for simplify operator
 
 */
@@ -12729,6 +12764,11 @@ ValueMapping temporalunitsmap[] = { MappingUnits<MBool, UBool>,
                                     MappingUnits<MReal, UReal>,
                                     MappingUnits<MPoint, UPoint> };
 
+ValueMapping temporalgetunitmap[] = { MappingGetUnit<MBool, UBool>,
+                                    MappingGetUnit<MInt,  UInt>,
+                                    MappingGetUnit<MReal, UReal>,
+                                    MappingGetUnit<MPoint, UPoint> };
+
 ValueMapping temporalbox3dmap[] = { Box3d_rect,
                                     Box3d_instant,
                                     Box3d_rect_instant,
@@ -13168,6 +13208,16 @@ const string TemporalSpecUnits  =
   "<text> units( _ )</text--->"
   "<text>Covert a moving type object to a stream of units.</text--->"
   "<text>units( mpoint1 )</text--->"
+  ") )";
+
+const string TemporalSpecGetUnit  =
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+  "( <text>For T in {bool, int, real, point}:\n"
+  "   mT -> uT</text--->"
+  "<text> getunit( _, _ )</text--->"
+  "<text>Yields the unit at the specified index in moving type object."
+  "</text--->"
+  "<text>mpoint1 getunit( 0 )</text--->"
   ") )";
 
 const string TemporalSpecBBox  =
@@ -13846,6 +13896,13 @@ Operator temporalunits( "units",
                         MovingSimpleSelect,
                         MovingTypeMapUnits );
 
+Operator temporalgetunit( "getunit",
+                        TemporalSpecGetUnit,
+                        5,
+                        temporalgetunitmap,
+                        MovingSimpleSelect,
+                        MovingTypeMapGetUnit );
+
 Operator temporalbbox( "bbox",
                        TemporalSpecBBox,
                        5,
@@ -14133,6 +14190,7 @@ class TemporalAlgebra : public Algebra
     AddOperator( &temporalinitial );
     AddOperator( &temporalfinal );
     AddOperator( &temporalunits );
+    AddOperator( &temporalgetunit );
     AddOperator( &temporalbbox );
     AddOperator( &temporalmbrange );
     AddOperator( &temporalbbox2d );

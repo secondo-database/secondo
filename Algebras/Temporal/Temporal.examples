@@ -410,6 +410,11 @@ Signature: For T in {bool, int, real, point}: mT -> (stream uT)
 Example  : query units(train7) count
 Result   : 185
 
+Operator : getunit
+Number   : 1
+Signature: For T in {bool, int, real, point}: mT -> uT
+Example  : query getunit(train7, 0)
+Result   : (("2003-11-20-06:06" "2003-11-20-06:06:08.692" TRUE FALSE) (16821.0 1252.0 16673.0 1387.0))
 
 Operator : val
 Number   : 1
@@ -575,7 +580,7 @@ Operator  : mint2mreal
 Number    : 1
 Signature : mint -> mreal
 Example   : query mint2mreal(zero())
-Result    : (mbool ( ( ("begin of time" "end of time" TRUE TRUE) FALSE)))
+Result    : (mreal ((("begin of time" "end of time" TRUE TRUE) (0.0 -0.0 0.0 FALSE))))
 
 Operator  : uval
 Number    : 1
