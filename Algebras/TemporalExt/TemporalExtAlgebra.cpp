@@ -3990,7 +3990,7 @@ int MovingDerivativeExt( Word* args, Word& result, int message,
     for(int i=0;i<m->GetNoComponents();i++)
     {
         m->Get(i, unitin);
-        if(!CheckURealDerivable(&unitin))
+        if(CheckURealDerivable(&unitin))
         {
             unitout.a = 0.;
             unitout.b = 2*unitin.a;
