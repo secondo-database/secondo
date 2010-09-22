@@ -1,4 +1,0 @@
-/*
-4 Implementation of the classes
-
-*/

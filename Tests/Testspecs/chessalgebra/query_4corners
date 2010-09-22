@@ -1,4 +1,0 @@
-query wjc2 feed loopjoin[.Match movingpoints] 
- filter[(.Piece="Rook") or (.Piece="rook")]
-  filter[(.Route passes a1) and (.Route passes a8)
-   and (.Route passes h1) and (.Route passes h8)] count 

@@ -1,9 +1,0 @@
-Database : berlintest 
-Restore  : No
-
-Operator : lastoptree 
-Number   : 1
-Signature: -> svg 
-Example  : query lastoptree()
-Result   : (sgv 'xml description')
-

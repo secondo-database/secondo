@@ -1,7 +1,0 @@
-This folder contains modified versions of source code files that were changed/modified outside 
-the ExtRelation2Algebra.
-
-+ RelationAlgebra.h.txt (TupleFile, TupleFileIterator)
-+ RelationPersistent.cpp.txt (TupleFile, TupleFileIterator)
-+ FileSystem.h.txt ( FileSystem::MakeTemp() )
-+ FileSystem.cpp.txt ( FileSystem::MakeTemp() )
