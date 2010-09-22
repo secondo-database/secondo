@@ -9752,41 +9752,209 @@ Operator temporalunitlength( "length",
                              Operator::SimpleSelect,
                              TUTypeMapLength);
 
-
 /*
-5.45 Operator ~~
+5.45 Operator ~canmeet~
 
-----
-     (insert signature here)
-
-----
+The predicate predictes whether two mpoint objects will become close to 
+eachother (in terms of a given distance threshold), within a given time 
+duration assuming that they keep the speed and direction of the given two 
+upoints.
 
 */
 
 /*
-5.45.1 Type mapping function for ~~
+5.45.1 Type mapping function for ~canmeet~
 
 */
+
+ListExpr
+TypeMapTemporalUnitCanMeet( ListExpr args )
+{
+  ListExpr upoint1, upoint2, distance, duration;
+  string outstr;
+
+  if ( nl->IsAtom( args ) || nl->ListLength( args ) != 4 )
+    {
+      nl->WriteToString(outstr, args);
+      ErrorReporter::ReportError("Operator canmeet expects a list of "
+                                 "length four, but gets '" + outstr +
+                                 "'.");
+      return nl->SymbolAtom( "typeerror" );
+    }
+
+  upoint1 = nl->First(args);
+  upoint2 = nl->Second(args);
+  distance = nl->Third(args);
+  duration = nl->Fourth(args);
+  
+  // check for compatibility of arguments
+  if( !nl->IsAtom(upoint1) || !nl->IsEqual(upoint1, "upoint"))
+    {
+      nl->WriteToString(outstr, upoint1);
+      ErrorReporter::ReportError("Operator canmeet expects upoint as a first "
+                                 "argument, but gets '" + outstr + "'.");
+      return nl->SymbolAtom( "typeerror" );
+    }
+
+  if( !nl->IsAtom(upoint2) || !nl->IsEqual(upoint2, "upoint"))
+     {
+       nl->WriteToString(outstr, upoint2);
+       ErrorReporter::ReportError("Operator canmeet expects upoint as a second "
+                                  "argument, but gets '" + outstr + "'.");
+       return nl->SymbolAtom( "typeerror" );
+     }
+     
+  if( !nl->IsAtom(distance) || !nl->IsEqual(distance, "real"))
+     {
+       nl->WriteToString(outstr, distance);
+       ErrorReporter::ReportError("Operator canmeet expects real as a third "
+                                  "argument, but gets '" + outstr + "'.");
+       return nl->SymbolAtom( "typeerror" );
+     }
+  
+  if( !nl->IsAtom(duration) || !nl->IsEqual(duration, "duration"))
+     {
+       nl->WriteToString(outstr, duration);
+       ErrorReporter::ReportError("Operator canmeet expects duration as a "
+                                  "fourth "
+                                  "argument, but gets '" + outstr + "'.");
+       return nl->SymbolAtom( "typeerror" );
+     }
+  return nl->SymbolAtom( "bool" );
+}
 
 /*
-5.45.2 Value mapping for operator ~~
+5.45.2 Value mapping for operator ~canmeet~
 
 */
+
+int TUCanMeet( Word* args, Word& result, int message,
+                              Word& local, Supplier s )
+{
+  bool debugme=false;
+  Interval<Instant> iv;
+
+  //  Word a1, a2;
+  UPoint *u1, *u2;
+  CcReal* distThreshold;
+  Instant* timeThreshold;
+  result = qp->ResultStorage( s );
+  CcBool* res = (CcBool*) result.addr;
+
+  u1 = (UPoint*)(args[0].addr);
+  u2 = (UPoint*)(args[1].addr);
+  distThreshold = (CcReal*)(args[2].addr);
+  timeThreshold = (Instant*)(args[3].addr);
+  double tThresholdMin=0, tThresholdMax=0;
+  if (!u1->IsDefined() ||
+      !u2->IsDefined() ||
+      !distThreshold->IsDefined() ||
+      ! timeThreshold->IsDefined())
+    { // return undefined ureal
+      res->SetDefined( false );
+    }
+  else
+    { 
+      // calculate result
+      res->SetDefined( true );
+      // 1- Extend the two upoints so that their time intervals are equal 
+      UPoint u1ex(*u1), u2ex(*u2);
+      Point newPoint;
+      if(u1->timeInterval.start < u2->timeInterval.start) 
+        //extend u2 backward
+      {
+        tThresholdMin = u2->timeInterval.start.ToDouble();
+        u2->TemporalFunction(u1->timeInterval.start, newPoint, true);
+        u2ex.timeInterval.start = u1->timeInterval.start;
+        u2ex.p0 = newPoint;
+      }
+      else
+        //extend u1 backward
+      {
+        tThresholdMin = u1->timeInterval.start.ToDouble();
+        u1->TemporalFunction(u2->timeInterval.start, newPoint, true);
+        u1ex.timeInterval.start = u2->timeInterval.start;
+        u1ex.p0 = newPoint;
+      }
+      
+      if(u1->timeInterval.end < u2->timeInterval.end)
+        //extend u1 forward
+      {
+        tThresholdMax = u2->timeInterval.end.ToDouble() + 
+          timeThreshold->ToDouble();
+        u1->TemporalFunction(u2->timeInterval.end, newPoint, true);
+        u1ex.timeInterval.end = u2->timeInterval.end;
+        u1ex.p1 = newPoint;
+      }
+      else
+        //extend u2 forward
+      {
+        tThresholdMax = u1->timeInterval.end.ToDouble() + 
+                  timeThreshold->ToDouble();
+        u2->TemporalFunction(u1->timeInterval.end, newPoint, true);
+        u2ex.timeInterval.end = u1->timeInterval.end;
+        u2ex.p1 = newPoint;
+      }
+  
+      // 2- Compute the distance between the two extended units
+      UReal dist(0);
+      u1ex.Distance( u2ex, dist );
+      if(debugme)
+        dist.Print(cerr);
+      // 3- Compute the time when the distance reaches the distThreshould
+      double c= dist.c - ((dist.r)? 
+          distThreshold->GetRealval() * distThreshold->GetRealval(): 
+            distThreshold->GetRealval());
+      double coeff = (dist.b * dist.b) - (4 * dist.a * c);
+      if(coeff < 0)
+      {
+        res->Set(true, false);
+        return 0;
+      }
+      coeff = sqrt(coeff);
+      double t1= ((dist.b * -1) + coeff )/ (2 * dist.a);
+      double t2= ((dist.b * -1) - coeff )/ (2 * dist.a);
+      double intervalStart= u1ex.timeInterval.start.ToDouble();
+      if( (t1 + intervalStart) > tThresholdMin && 
+          (t1 + intervalStart) < tThresholdMax)
+        res->Set(true, true);
+      else if( (t2 + intervalStart) > tThresholdMin && 
+          (t2 + intervalStart) < tThresholdMax)
+        res->Set(true, true);
+      else
+        res->Set(true, false);
+    }
+  // pass on result
+  return 0;
+}
+
 
 /*
-5.45.3 Specification for operator ~~
+5.45.3 Specification for operator ~canmeet~
 
 */
+const string TemporalSpecCanMeet =
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+  "(<text>"
+  "( upoint upoint real duration) -> bool</text--->"
+  "<text>canmeet( _, _, _, _)</text--->"
+  "<text> The predicate predictes whether two upoint objects will become close"
+  " to eachother (in terms of the given distance threshold), within the given "
+  " time duration, assuming that they keep their speed and direction.</text--->"
+  "<text>canmeet(upoint1,upoint2, 50.0, now() + create_duration(0, 5000))"
+  "</text--->"
+  ") )";
 
 /*
-5.45.4 Selection Function of operator ~~
+5.45.5 Definition of operator ~canmeet~
 
 */
 
-/*
-5.45.5 Definition of operator ~~
-
-*/
+Operator temporalunitcanmeet( "canmeet",
+                               TemporalSpecCanMeet,
+                               TUCanMeet,
+                               Operator::SimpleSelect,
+                               TypeMapTemporalUnitCanMeet);
 
 /*
 5.44 Operator ~~
@@ -9883,6 +10051,7 @@ public:
     AddOperator( &temporalunittheupoint );
     AddOperator( &temporalunittheivalue );
     AddOperator( &temporalunitlength );
+    AddOperator( &temporalunitcanmeet);
   }
   ~TemporalUnitAlgebra() {};
 };

@@ -658,3 +658,8 @@ Signature: upoint -> real
 Example  : query (units(Trains feed extract[Trip]) use[fun(U:upoint) length(U)] transformstream sum[elem]) = length(Trains feed extract[Trip])
 Result   : TRUE
 
+Operator : canmeet
+Number   : 1
+Signature: (upoint upoint real duration) -> bool
+Example  : query units(train7) transformstream {a} units(train7down) transformstream {b} symmjoin[deftime(.elem_a) intersects deftime(..elem_b)] filter[canmeet(.elem_a, .elem_b, 100.0, create_duration(0, 60000))] count
+Result   : 6

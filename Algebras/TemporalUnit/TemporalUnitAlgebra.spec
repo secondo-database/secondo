@@ -63,4 +63,4 @@ operator < alias LT pattern _ infixop _
 operator > alias GT pattern _ infixop _
 operator <= alias LE pattern _ infixop _
 operator >= alias GE pattern _ infixop _
-
+operator canmeet alias CANMEET pattern op ( _ , _ , _ , _ )
