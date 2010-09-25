@@ -33,6 +33,7 @@ March 2010 Tobias Timmerscheidt
 #ifndef H_REMOTE_H
 #define H_REMOTE_H
 
+
 #include "StandardTypes.h"
 #include "SocketIO.h"
 #include "Profiles.h"
@@ -52,6 +53,11 @@ class DServer
                   
                   int getState();
          
+                  bool Multiply(int count);
+                  DServer** getChilds() { return childs; }
+                  void DestroyChilds();
+                  int getNumChilds() { return num_childs;}
+         
          private:
                   string host,name,cmd;
                   int port,state;
@@ -60,6 +66,13 @@ class DServer
          
                   CSProtocol* csp;
                   Socket* server;
+         
+                  Socket* cbworker;
+      
+                  int num_childs;
+                  DServer** childs;
+                  
+                  bool rel_open;
 };
 
 class DServerManager
@@ -70,6 +83,8 @@ class DServerManager
                 ~DServerManager();
                 DServer* getServerByIndex(int index);
                 DServer* getServerbyID(int id);
+     
+               int getMultipleServerIndex(int index);
                 
                 //int getID(int index) = 0;
                 ListExpr getIndexList(int id);

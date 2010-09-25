@@ -35,11 +35,15 @@ March 2010 Tobias Timmerscheidt
 #include "SocketIO.h"
 #include "Profiles.h"
 #include "CSProtocol.h"
+#include "RelationAlgebra.h"
 
 using namespace std;
 
 void extractIds(const ListExpr,int&,int&);
 string toString_d(int);
+
+const string HostIP = "192.168.2.26";
+const string HostIP_ = "h192_168_2_26";
 
 DServer::DServer(string n_host,int n_port,string n_name,ListExpr n_type)
 {
@@ -47,6 +51,10 @@ DServer::DServer(string n_host,int n_port,string n_name,ListExpr n_type)
         port = n_port;
         name = n_name;
         type = n_type;
+     
+        rel_open = false;
+     
+        num_childs = 0;
         
         
         string line;
@@ -90,7 +98,7 @@ DServer::DServer(string n_host,int n_port,string n_name,ListExpr n_type)
                         getline( iosock, line );
                         if (line[line.size() - 1] == '\r')
                         line.resize(line.size() - 1);
-                        //cout << line << endl;
+                        
                 }while(line.find("</SecondoResponse>") == string::npos);
         }
         else cout << "ERROR3";
@@ -106,7 +114,6 @@ void DServer::Terminate()
                 server->Close();
                 delete server;
                 server=0;
-                cout << "TERMINATED";
         }
 }
 
@@ -140,7 +147,7 @@ void DServer::run()
                 iostream& iosock = server->GetSocketStream();
                string port =toString_d((1800+arg2)); 
                string com = "let r" + name + nl->ToString(akt) + 
-                     " = " + "receiveD(h192_168_2_26,p" + port + ")";
+                     " = " + "receiveD(" + HostIP_ + ",p" + port + ")";
                 
                 
                 iosock << "<Secondo>" << endl << "1" << endl << "delete r" 
@@ -155,12 +162,11 @@ void DServer::run()
                 
                 //else cout << "DATENFEHLER";
 
-                //cout << com << "\n";
                 iosock << "<Secondo>" << endl << "1" << endl 
                                 << com << endl << "</Secondo>" << endl;
                 
                 
-                Socket* gate = Socket::CreateGlobal( "192.168.2.26", port);
+                Socket* gate = Socket::CreateGlobal( HostIP, port);
 
                 Socket* worker = gate->Accept();
 
@@ -171,7 +177,7 @@ void DServer::run()
                 if(line!="<CLOSE>") cout << "FEHLER";
                 worker->Close();delete worker;
                         
-                worker = gate->Accept();
+                worker = gate->Accept(); gate->Close();delete gate;gate=0;
                 iostream& cbsock = worker->GetSocketStream();
                 
                 cbsock << "<TYPE>" << endl << nl->ToString(type) 
@@ -198,7 +204,7 @@ void DServer::run()
                 recF.Close();
 
                 worker->Close();delete worker;worker=0;
-                gate->Close();delete gate;gate=0;
+               
                 //string line;
                 getline(iosock,line);
                 
@@ -231,12 +237,12 @@ void DServer::run()
                 
                 iostream& iosock = server->GetSocketStream();
                 iosock << "<Secondo>" << endl << "1" << endl 
-                     << "query sendD (h192_168_2_26,p" << port << ",r" 
+                     << "query sendD (" << HostIP_ << ",p" << port << ",r" 
                         << name << nl->ToString(akt) << ")" <<  endl 
                          << "</Secondo>" << endl;
                 
                      
-                Socket* gate = Socket::CreateGlobal( "192.168.2.26", port);
+                Socket* gate = Socket::CreateGlobal( HostIP, port);
 
                 Socket* worker = gate->Accept();
 
@@ -351,10 +357,249 @@ void DServer::run()
                 do
                 {getline(iosock,line);/*cout<<line;*/}
                         while(line.find("</SecondoResponse>") == string::npos);
+                
                         
         }
         
+        if(cmd=="open_write_rel")
+        {
+             //Initializes the writing of a tuple-stream,
+	     //the d_receive_rel operator is started on the remote worker
+             
+             string line;
+             iostream& iosock = server->GetSocketStream();
+              int  arg2 = nl->IntValue(arg);
+              string port =toString_d((1800+arg2)); 
+               string com = "let r" + name + nl->ToString(arg) + 
+                     " = " + "d_receive_rel(" + HostIP_ + ",p" + port + ")";
                 
+                
+                iosock << "<Secondo>" << endl << "1" << endl << "delete r" 
+                        << name << nl->ToString(arg)  << endl << "</Secondo>" 
+                        << endl;
+                
+                getline(iosock,line);
+                if(line=="<SecondoResponse>")
+                        do
+                        getline(iosock,line); 
+                        while(line.find("</SecondoResponse") == string::npos);
+                        
+               iosock << "<Secondo>" << endl << "1" << endl 
+                                << com << endl << "</Secondo>" << endl;
+                
+                
+                Socket* gate = Socket::CreateGlobal( HostIP, port);
+
+                cbworker = gate->Accept();
+                        
+                iostream& cbsock1 = cbworker->GetSocketStream();
+                cbsock1 << "<TYPE>" << endl << nl->ToString(type) 
+                        << endl << "</TYPE>" << endl;
+                        
+                //Tuple *tpl = (Tuple*)elements[0].addr;
+                //TupleType* tt = tpl->GetTupleType();
+                        
+                                        
+                getline(cbsock1,line);
+                if(line!="<CLOSE>") cout << "FEHLER";
+                cbworker->Close();delete cbworker;
+                        
+                cbworker = gate->Accept();
+                //iostream& cbsock2 = cbworker->GetSocketStream();
+                
+                //cbsock2.write((char*)tt,sizeof(TupleType));
+                
+               gate->Close();delete gate;gate=0;
+                        
+               rel_open = true;
+               
+          }
+          
+          if(cmd == "write_rel")
+          {
+               if(!rel_open) return;
+               
+               string line;
+               
+               Tuple *tpl = (Tuple*)elements[0].addr;
+               size_t cS,eS,fS,size;
+               size = tpl->GetBlockSize(cS,eS,fS);
+               
+               
+               int num_blocks = (size / 1024) + 1;
+               
+               char* buffer = new char[num_blocks*1024];
+               memset(buffer,0,1024*num_blocks);
+               
+               tpl->WriteToBin(buffer,cS,eS,fS);
+               
+               iostream& cbsock = cbworker->GetSocketStream();
+               
+               cbsock << "<TUPLE>" << endl << toString_d(size)
+		  << endl << "</TUPLE>" << endl;
+               getline(cbsock,line); 
+	       if(line!= "<OK>") {cout << "Worker nicht bereit!"; return;}
+               
+               
+               getline(cbsock,line); 
+	       if(atoi(line.data()) != num_blocks) 
+		       {cout << "Falsche Blockzahl von Worker"; return;}
+               getline(cbsock,line);
+               
+               for(int i = 0; i<num_blocks;i++)
+               {
+                    cbsock.write(buffer+i*1024,1024);
+               }
+               
+               tpl->DeleteIfAllowed();
+          }
+          
+          if(cmd == "close_write_rel")
+          {
+               string line;
+
+               iostream& cbsock = cbworker->GetSocketStream();
+               iostream& iosock = server->GetSocketStream(); 
+               
+               cbsock << "<CLOSE>" << endl;
+               cbworker->ShutDown(); //delete cbworker; cbworker = 0;
+               
+                getline(iosock,line);
+                
+                if(line=="<SecondoResponse>")
+                        do
+               {getline(iosock,line);}
+                        while(line.find("</SecondoResponse") == string::npos);
+                
+                else cout << "DATENFEHLER, keine Antwort";
+                
+                rel_open = false;
+           }
+
+               
+           if(cmd == "read_rel")
+           {
+                    
+                int algID,typID;
+                
+                extractIds(type,algID,typID);
+                
+                arg2 = nl->IntValue(arg);
+                string line;        
+                string port =toString_d((1300+arg2));
+                
+                char* buffer = 0;
+                
+                iostream& iosock = server->GetSocketStream();
+                iosock << "<Secondo>" << endl << "1" << endl 
+                     << "query d_send_rel (" << HostIP_ << ",p" << port << ",r" 
+                        << name << toString_d(arg2) << ")" <<  endl 
+                         << "</Secondo>" << endl;
+                
+                     
+                Socket* gate = Socket::CreateGlobal( HostIP, port);
+
+                Socket* worker = gate->Accept();
+
+                iostream& cbsock = worker->GetSocketStream();
+                
+                GenericRelation* rel = (Relation*)elements[arg2].addr;
+                
+                getline(cbsock,line);
+                while(line=="<TUPLE>")
+                {
+                    getline(cbsock,line);
+                    size_t size = atoi(line.data());
+                     
+                     getline(cbsock,line);
+                     
+                     int num_blocks = (size / 1024) + 1;
+                     
+                     if(buffer!=0) delete buffer;
+                     buffer = new char[num_blocks*1024];
+                     memset(buffer,0,num_blocks*1024);
+                     
+                     //iosock << toString_d(num_blocks);
+                     for(int i = 0; i < num_blocks; i++)
+                          cbsock.read(buffer+i*1024,1024);
+                     
+                    TupleType* tt = new TupleType(nl->Second(type));
+                     
+                    Tuple* t = new Tuple(tt);
+                     
+                     t->ReadFromBin(buffer);
+                     rel->AppendTuple(t);
+                     
+                     t->DeleteIfAllowed();
+                     
+                     getline(cbsock,line);
+                }
+                
+                if(line != "<CLOSE>") 
+			cout << "Fehlerhaftes Ende des Relationempfangs";
+                
+                //elements[arg2].addr = rel; //delete rel;
+                
+                gate->Close(); delete gate; gate=0;
+                worker->Close(); delete worker; worker=0;
+                
+                
+                getline(iosock,line);
+      
+                ListExpr ls;
+                if(line=="<SecondoResponse>")
+                {
+                        nl->ReadBinaryFrom(iosock, ls);
+                        string debug_out = nl->ToString(ls);
+                        //cout << debug_out;
+                        
+                        do
+                                getline(iosock,line);
+                        while(line.find("</SecondoResponse>") == string::npos);
+                        
+                        ls = nl->Second(nl->Fourth(ls));
+                        
+                        
+                        ListExpr errorInfo = nl->OneElemList
+                                                (nl->SymbolAtom("ERRORS"));
+                        bool correct;
+                        //elements[arg2] = ((am->InObj(algID,typID))
+                           //             ( type, ls, 1, errorInfo, correct));
+                }
+                else cout << "DATENFEHLER LESEN";
+           }
+                     
+                     
+                          
+}
+
+bool DServer::Multiply(int count)
+{
+     if(num_childs > 0) return false;
+     
+     num_childs = count;
+     childs = new DServer*[num_childs];
+     
+     for(int i = 0;i<num_childs;i++)
+     {
+          childs[i] = new DServer(host,port,name,type);
+     }
+     
+     return true;
+     
+}
+
+void DServer::DestroyChilds()
+{
+     for(int i = 0;i<num_childs;i++)
+     {
+          childs[i]->Terminate();
+          delete childs[i];
+     }
+     
+     delete childs; childs = 0;
+     
+     num_childs = 0;
 }
 
 DServerManager::DServerManager(ListExpr serverlist_n, 
@@ -428,7 +673,12 @@ ListExpr DServerManager::getNamedIndexList(int id)
         return res;
 }
         
-int DServerManager::getNoOfServers() {return size;}        
+int DServerManager::getNoOfServers() {return size;}
+
+int DServerManager::getMultipleServerIndex(int index)
+{
+	return (index / size) - 1;
+}
         
         
                         
