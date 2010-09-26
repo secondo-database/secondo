@@ -7349,6 +7349,57 @@ int MappingGetUnit
   return 0;
 }
 
+template <class Mapping, class Unit>
+int MappingTimeShift( Word* args, Word& result,
+                    int message, Word& local, Supplier s )
+{
+    Word t;
+    DateTime* dd;
+    Unit unit; 
+    Mapping* mapping, *mpResult;
+
+    result = qp->ResultStorage( s );
+
+    mapping= (Mapping*)args[0].addr,
+    mpResult = (Mapping*)result.addr;
+    mpResult->Clear();
+
+    dd = (DateTime *)args[1].addr;
+
+    if( mapping->IsDefined() &&
+        dd->IsDefined() )
+    {    
+      mpResult->SetDefined( true );
+      if(mapping->GetNoComponents() == 0)
+        return 0;
+      mapping->Get(0, unit);
+      if( (unit.timeInterval.start.ToDouble() +  dd->ToDouble()) < 0 )
+      {
+        mpResult->SetDefined( false );
+        return 0;
+      }
+      
+      mpResult->StartBulkLoad();
+      for( int i = 0; i < mapping->GetNoComponents(); i++ )
+      {
+        mapping->Get( i, unit );
+        Unit aux( unit );
+        aux.timeInterval.start.Add(dd);
+        aux.timeInterval.end.Add(dd);
+        mpResult->Add(aux);
+      }
+      mpResult->EndBulkLoad();
+      return 0;
+    }
+    else
+    {
+      mpResult->SetDefined( false );
+      return 0;
+    }
+}
+
+  
+  
 /*
 7.0 Refinement Partition
 

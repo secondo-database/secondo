@@ -8272,6 +8272,27 @@ ListExpr MRAUnitsTypeMap( ListExpr args )
 }
 
 /*
+Type mapping for the ~timsshift~ operator:
+
+*/
+
+ListExpr MRegTimeShiftTM( ListExpr args )
+{
+  if ( nl->ListLength( args ) == 2 )
+  {
+    ListExpr arg1 = nl->First( args ),
+             arg2 = nl->Second( args );
+
+    if( nl->IsEqual( arg2, "duration" ) )
+    {
+      if( nl->IsEqual( arg1, "movingregion" ) )
+        return nl->SymbolAtom( "movingregion" );
+    }
+  }
+  return nl->SymbolAtom( "typeerror" );
+}
+
+/*
 1.1.1 For unit testing operators
 
 */
@@ -8958,6 +8979,54 @@ int mraunitsvalmap(Word* args, Word& result,
   return -1;
 }
 
+/*
+Value mapping functions of operator ~timeshift~
+
+*/
+int MRegTimeShiftMap( Word* args, Word& result,
+                    int message, Word& local, Supplier s )
+{
+    Word t;
+    DateTime* dd;
+    URegionEmb uregEmb;
+    MRegion * mapping, *mpResult;
+
+    result = qp->ResultStorage( s );
+
+    mapping= (MRegion*)args[0].addr,
+    mpResult = (MRegion*)result.addr;
+    mpResult->Clear();
+
+    dd = (DateTime *)args[1].addr;
+
+    if( mapping->IsDefined() &&
+        dd->IsDefined() )
+    {    
+      mpResult->SetDefined( true );
+      if(mapping->GetNoComponents() == 0)
+        return 0;
+      mapping->Get(0, uregEmb);
+      if( (uregEmb.timeInterval.start.ToDouble() +  dd->ToDouble()) < 0 )
+      {
+        mpResult->SetDefined( false );
+        return 0;
+      }
+      
+      for( int i = 0; i < mapping->GetNoComponents(); i++ )
+      {
+        URegion aux( i, *mapping );
+        aux.GetEmbedded()->timeInterval.start.Add(dd);
+        aux.GetEmbedded()->timeInterval.end.Add(dd);
+        mpResult->AddURegion(aux);
+      }
+      return 0;
+    }
+    else
+    {
+      mpResult->SetDefined( false );
+      return 0;
+    }
+}
 
 /*
 1.1.1 For unit testing operators
@@ -9411,6 +9480,13 @@ const string mraunitsspec  =
   "the moving region.</text--->"
   "<text>units( movingregion1 )</text--->) )";
 
+const string MRegTimeShiftSpec =
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+  "( <text>movingregion x duration -> movingregion</text--->"
+  "<text>_ timeshift[ _ ]</text--->"
+  "<text>Shifts the definition time of the moving region object.</text--->"
+  "<text>msnow timeshift[ create_duration(1, 0) ]</text--->"
+  ") )";
 /*
 Used for unit testing only.
 
@@ -9563,6 +9639,11 @@ static Operator mraunits("units",
                          MRAUnitsTypeMap);
 
 
+Operator mregtimeshift( "timeshift",
+                         MRegTimeShiftSpec,
+                         MRegTimeShiftMap,
+                         Operator::SimpleSelect,
+                         MRegTimeShiftTM );
 /*
 Used for unit testing only.
 
@@ -9624,6 +9705,7 @@ public:
     AddOperator(&move);
     AddOperator(&vertextrajectory);
     AddOperator(&mraunits);
+    AddOperator(&mregtimeshift);
 
 #ifdef MRA_TRAVERSED
     AddOperator(&traversed);

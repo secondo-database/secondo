@@ -138,4 +138,10 @@ Signature: mregion -> line
 Example  : query vertextrajectory(mrain)
 Result   : file
 
+Operator  : timeshift
+Number    : 1
+Signature : (movingregion, duration) -> movingregion
+Example   : query no_components(msnow timeshift[create_duration(0, 100)]) feed count
+Result    : (int 1)
+   
 

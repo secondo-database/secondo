@@ -588,3 +588,9 @@ Signature : uint -> int
 Example   : query uval(the_unit(99, six30, nine, FALSE, TRUE))
 Result    : (int 99)
 
+Operator  : timeshift
+Number    : 1
+Signature : (mT, duration) -> mT
+Example   : query no_components(train7 timeshift[create_duration(1, 0)])
+Result    : (int 185)
+   

@@ -9488,6 +9488,38 @@ Not implemented:
 }
 
 /*
+Type mapping function ~MappingTimeShift~
+
+It is for the operator ~timeshift~.
+
+*/
+ListExpr
+MappingTimeShiftTM( ListExpr args )
+{
+  if ( nl->ListLength( args ) == 2 )
+  {
+    ListExpr arg1 = nl->First( args ),
+             arg2 = nl->Second( args );
+
+    if( nl->IsEqual( arg2, "duration" ) )
+    {
+      if( nl->IsEqual( arg1, "mbool" ) )
+        return nl->SymbolAtom( "mbool" );
+
+      if( nl->IsEqual( arg1, "mint" ) )
+        return nl->SymbolAtom( "mint" );
+
+      if( nl->IsEqual( arg1, "mreal" ) )
+        return nl->SymbolAtom( "mreal" );
+
+      if( nl->IsEqual( arg1, "mpoint" ) )
+        return nl->SymbolAtom( "mpoint" );
+    }
+  }
+  return nl->SymbolAtom( "typeerror" );
+}
+
+/*
 16.2 Selection function
 
 A selection function is quite similar to a type mapping function. The only
@@ -12823,6 +12855,11 @@ ValueMapping restrictVM[] = {
   restrictVM1, restrictVM2
 };
 
+ValueMapping MappingTimeShiftMap[] = { 
+    MappingTimeShift<MBool, UBool>,
+    MappingTimeShift<MInt,  UInt>,
+    MappingTimeShift<MReal, UReal>,
+    MappingTimeShift<MPoint, UPoint> };
 /*
 16.4.2 Specification strings
 
@@ -12838,6 +12875,14 @@ const string TemporalSpecIsEmpty  =
   "<text>Returns TRUE iff the instant/range/unit type value is "
   "undefined or empty.</text--->"
   "<text>query isempty( mpoint1 )</text--->"
+  ") )";
+
+const string MappingTimeShiftSpec =
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+  "( <text>moving(x) x duration -> moving(x)</text--->"
+  "<text>_ timeshift[ _ ]</text--->"
+  "<text>Shifts the definition time of a moving object.</text--->"
+  "<text>train7 timeshift[ create_duration(1, 0) ]</text--->"
   ") )";
 
 const string TemporalSpecEQ  =
@@ -14098,6 +14143,13 @@ Operator distancetraversedoperator( DistanceTraversedOperatorInfo,
 		   DistanceTraversedOperatorValueMapping,
 		   DistanceTraversedOperatorTypeMapping );
 
+Operator mappingtimeshift( "timeshift",
+                         MappingTimeShiftSpec,
+                         4,
+                         MappingTimeShiftMap,
+                         MovingSimpleSelect,
+                         MappingTimeShiftTM );
+
 /*
 6 Creating the Algebra
 
@@ -14243,6 +14295,7 @@ class TemporalAlgebra : public Algebra
     AddOperator(&p2mp);
     AddOperator(&delayoperator);
     AddOperator(&distancetraversedoperator);
+    AddOperator(&mappingtimeshift);
 
 #ifdef USE_PROGRESS
     temporalunits.EnableProgress();
