@@ -2125,7 +2125,7 @@ ELSE remove short parts of elements as follows:
         {
           if(debugme)
           {cerr<<"\nCur:  "; (*cur).Print(cerr);}
-          set<int>::iterator diffIt= (*cur).removed.begin();
+          set<int>::iterator diffIt= (*cur).removed.begin(), tmpIt;
           while(diffIt != (*cur).removed.end())
           {
             int elemToRemove= *diffIt;
@@ -2143,11 +2143,17 @@ ELSE remove short parts of elements as follows:
                 --((*unitToChange).count);
                 ++unitToChange;
               }
+              tmpIt = diffIt; ++tmpIt;
               (*cur).removed.erase(diffIt);
+              if(! (*cur).removed.empty())
+                diffIt = --tmpIt;
+              else
+                diffIt == (*cur).removed.end();
               changed = true;
             }
             elems.erase(elemsIt);
-            ++diffIt;
+            if(diffIt != (*cur).removed.end())
+              ++diffIt;
           }
           if(debugme)
             Print(elems, cerr);

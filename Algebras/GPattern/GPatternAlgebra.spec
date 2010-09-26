@@ -19,7 +19,7 @@
 
 
 operator reportpattern alias REPORTPATTERN pattern _ op[funlist;list;_] implicit parameter streamelem type STREAMELEM !!
-operator gpattern alias GPATTERN pattern _ op[_,_,_,_]
+operator gpattern alias GPATTERN pattern _ op[_,_,_,_] implicit parameter tuple type TUPLE
 operator crosspattern alias CROSSPATTERN pattern _ op[_,_,_]
 operator tconstraint alias TCONSTRAINT pattern op(_,_,_)
 operator emptymset alias EMPTYMSET pattern op()
