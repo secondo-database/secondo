@@ -415,6 +415,7 @@ int CSP::MBool2Vec(const MBool* mb, vector<Interval<CcReal> >& vec)
   UBool unit(0);
   vec.clear();
   Interval<CcReal> elem(CcReal(true,0.0),CcReal(true,0.0),true,true);
+  if(!mb->IsDefined() || mb->IsEmpty() || !mb->IsValid()) return 0;
   for(int i=0; i<mb->GetNoComponents(); i++)
   {
     mb->Get(i, unit);
