@@ -68,6 +68,8 @@ September 2009 Simone Jandt: UReal new Member CompUReal implemented.
 29.09.2009 Mahmoud Sakr: Added the operators: delay, distancetraversed, and
 mint2mbool
 
+27.09.2010 Christian D[ue]ntgen added operator ~turns~.
+
 [TOC]
 
 1 Overview
@@ -100,6 +102,7 @@ file.
 #include <time.h>
 #include "AlmostEqual.h"
 #include "ListUtils.h"
+#include "Symbols.h"
 
 #include "RefinementStream.h"
 
@@ -9488,6 +9491,54 @@ Not implemented:
 }
 
 /*
+1.1.1 Type Mapping Function for Operator ~turns~
+
+The signature is:
+
+----
+    mpoint x real x real [ x duration] --> stream(tuple((TimeOld instant)
+                                                        (TimeNew instant)
+                                                        (PosOld point)
+                                                        (PosNew point)
+                                                        (HeadingOld real)
+                                                        (HeadingNew real)
+                                                        (HeadingDiff real)))
+----
+
+
+*/
+
+ListExpr TurnsOperatorTypeMapping( ListExpr typeList ){
+  NList l(typeList);
+  int len = l.length();
+  if( (len != 3) && (len != 4) ){
+    return l.typeError("Operator 'turns' expects 3 or 4 arguments.");
+  }
+  if( !(l.elem(1).isSymbol(symbols::MPOINT)) ){
+    return l.typeError("Operator 'turns' expects an 'mpoint' as 1st argument.");
+  }
+  if( !(l.elem(2).isSymbol(symbols::REAL)) ){
+    return l.typeError("Operator 'turns' expects a 'real' as 2nd argument.");
+  }
+  if( !(l.elem(3).isSymbol(symbols::REAL)) ){
+    return l.typeError("Operator 'turns' expects a 'real' as 3rd argument.");
+  }
+  if( len==4 && !(l.elem(4).isSymbol(symbols::DURATION)) ){
+    return l.typeError("Operator 'turns' expects 'duration' as 4th argument.");
+  }
+  NList resTupleType =NList(NList("TimeOld"),NList(symbols::INSTANT)).enclose();
+  resTupleType.append(NList(NList("TimeNew"),NList(symbols::INSTANT)));
+  resTupleType.append(NList(NList("PosOld"),NList(symbols::POINT)));
+  resTupleType.append(NList(NList("PosNew"),NList(symbols::POINT)));
+  resTupleType.append(NList(NList("HeadingOld"),NList(symbols::REAL)));
+  resTupleType.append(NList(NList("HeadingNew"),NList(symbols::REAL)));
+  resTupleType.append(NList(NList("HeadingDiff"),NList(symbols::REAL)));
+  NList resType =
+        NList(NList(symbols::STREAM),NList(NList(symbols::TUPLE),resTupleType));
+  return resType.listExpr();
+}
+
+/*
 Type mapping function ~MappingTimeShift~
 
 It is for the operator ~timeshift~.
@@ -9520,7 +9571,7 @@ MappingTimeShiftTM( ListExpr args )
 }
 
 /*
-16.2 Selection function
+16.2 Selection functions
 
 A selection function is quite similar to a type mapping function. The only
 difference is that it doesn't return a type but the index of a value
@@ -12601,6 +12652,193 @@ int P2MpVM( Word* args, Word& result, int message,
 }
 
 /*
+1.1.1 Value Mapping for Operator ~turns~
+
+Class for the localinfo in operator ~turns~:
+
+*/
+
+class TurnsLocalInfo{
+  public:
+    double minDiff;
+    double maxDiff;
+    DateTime maxDur;
+    int currUnitIndex;
+    int noUnits;
+    UPoint lastUnit;
+    UPoint currUnit;
+    bool finished;
+    bool isFirstUnit;
+    bool useMaxDur;
+    TupleType *resultTupleType;
+
+    TurnsLocalInfo( const MPoint &mp_,
+                    const CcReal &minDiff_,
+                    const CcReal &maxDiff_,
+                    const DateTime &maxDur_) :
+      minDiff(0.0),
+      maxDiff(0.0),
+      maxDur(-9999,-9999,durationtype),
+      currUnitIndex(0),
+      noUnits(0),
+      lastUnit(false),
+      currUnit(false),
+      finished(false),
+      isFirstUnit(true),
+      useMaxDur(false),
+      resultTupleType(0)
+    {
+      if( !mp_.IsDefined() || !minDiff_.IsDefined() || !maxDiff_.IsDefined()
+                           || !maxDur_.IsDefined() ){
+        finished = true;
+      } else {
+        minDiff = fabs(minDiff_.GetValue());
+        maxDiff = fabs(maxDiff_.GetValue());
+        maxDur  = maxDur_;
+        noUnits = mp_.GetNoComponents();
+        finished = (noUnits <= currUnitIndex);
+        useMaxDur = !(maxDur.ToDouble() < 0.0);
+        finished = !(maxDiff >= minDiff);
+      }
+    }
+    ~TurnsLocalInfo(){
+      if(resultTupleType){
+        resultTupleType->DeleteIfAllowed();
+      }
+    }
+};
+
+/*
+Value mapping Function
+
+*/
+int TurnsOperatorValueMapping( Word* args, Word& result, int message,
+            Word& local, Supplier s ) {
+    TurnsLocalInfo *li = static_cast<TurnsLocalInfo*>(local.addr);
+    UPoint u(false);
+
+    MPoint* m = static_cast<MPoint*>(args[0].addr);
+    CcReal* minDiff = static_cast<CcReal*>(args[1].addr);
+    CcReal* maxDiff = static_cast<CcReal*>(args[2].addr);
+    DateTime *maxDur = 0;
+    int no_args = qp->GetNoSons(s);
+    bool deleteMaxDur = false;
+
+    double lastHead = 0.0, currHead = 0.0, diffHead = 0.0;
+    Point *lastPos=0, *currPos=0;
+    DateTime *lastTime = 0, *currTime=0;
+    CcReal *lastHeading=0, *currHeading=0, *diffHeading=0;
+    bool found = false;
+
+    Tuple *newTuple = 0;
+    switch( message )
+    {
+      case OPEN:
+        if(no_args==3){
+          maxDur = new DateTime(-9999,-9999,durationtype);
+          maxDur->SetDefined(true);
+          deleteMaxDur = true;
+        } else { // no_args==4
+          maxDur = static_cast<DateTime*>(args[3].addr);
+        }
+        li = new TurnsLocalInfo(*m, *minDiff, *maxDiff, *maxDur);
+        local.addr = li;
+        if(!li->resultTupleType){
+          li->resultTupleType =
+                          new TupleType(nl->Second(GetTupleResultType(s)));
+        }
+        if(deleteMaxDur){
+          delete maxDur;
+          deleteMaxDur = false;
+          maxDur = 0;
+        }
+        return 0;
+
+      case REQUEST:
+        if( !local.addr || li->finished ) {
+          return CANCEL;
+        }
+        found = false;
+        while( !found && (li->currUnitIndex < li->noUnits) ) {
+          m->Get( li->currUnitIndex, li->currUnit );
+          if( li->isFirstUnit ) {
+            // We just started: save currUnit and continue
+            li->lastUnit = li->currUnit;
+            li->isFirstUnit = false;
+          } else if( li->useMaxDur && ( li->maxDur <
+             (li->currUnit.timeInterval.start - li->lastUnit.timeInterval.end)))
+          {
+            // We encountered a 'time warp': save currUnit and restart
+            li->lastUnit = li->currUnit;
+            li->isFirstUnit = true;
+          } else if( AlmostEqual(li->lastUnit.p0,li->lastUnit.p1) ) {
+            // The last unit was static: replace by currUnit
+            li->lastUnit = li->currUnit;
+          } else if( AlmostEqual(li->currUnit.p0,li->currUnit.p1) ) {
+            // The current unit is static: don't save and continue
+          } else {
+            // now, we have 2 units. Both are non-static and temporally near
+            // enough...
+            lastHead = li->lastUnit.p0.Direction(li->lastUnit.p1);
+            currHead = li->currUnit.p0.Direction(li->currUnit.p1);
+            diffHead = currHead - lastHead;
+            if(diffHead > 180.0) {
+              diffHead = 360.0 - diffHead;
+            } else if(diffHead < -180.0){
+              diffHead = 360.0 + diffHead;
+            }
+            if(diffHead <= -180.0){
+              diffHead *= -1.0;
+            }
+            if(    (fabs(diffHead) >= li->minDiff)
+                && (fabs(diffHead) <= li->maxDiff) ) {
+              // create attributes for result tuple
+              lastTime    = new DateTime(li->lastUnit.timeInterval.end);
+              currTime    = new DateTime(li->currUnit.timeInterval.start);
+              lastPos     = new Point(li->lastUnit.p1);
+              currPos     = new Point(li->currUnit.p0);
+              lastHeading = new CcReal(true, lastHead);
+              currHeading = new CcReal(true, currHead);
+              diffHeading = new CcReal(true, diffHead);
+              found = true;
+            } else { ; // nothing to do here
+            }
+            li->lastUnit = li->currUnit;
+          }
+          li->currUnitIndex++;
+        } // end while
+        if(li->currUnitIndex >= li->noUnits){
+          li->finished = true;
+        }
+        if(found){
+          // create a result tuple
+          newTuple = new Tuple( li->resultTupleType );
+          newTuple->PutAttribute( 0,(Attribute*)lastTime );
+          newTuple->PutAttribute( 1,(Attribute*)currTime );
+          newTuple->PutAttribute( 2,(Attribute*)lastPos );
+          newTuple->PutAttribute( 3,(Attribute*)currPos );
+          newTuple->PutAttribute( 4,(Attribute*)lastHeading );
+          newTuple->PutAttribute( 5,(Attribute*)currHeading );
+          newTuple->PutAttribute( 6,(Attribute*)diffHeading );
+          result.setAddr(newTuple);
+          return YIELD;
+        } else {
+          return CANCEL;
+        }
+
+      case CLOSE:
+        if(local.addr){
+          delete li;
+          li = 0;
+        }
+        return 0;
+    }
+    /* should not happen */
+    return -1;
+  }
+
+
+/*
 16.4 Definition of operators
 
 Definition of operators is done in a way similar to definition of
@@ -12855,7 +13093,7 @@ ValueMapping restrictVM[] = {
   restrictVM1, restrictVM2
 };
 
-ValueMapping MappingTimeShiftMap[] = { 
+ValueMapping MappingTimeShiftMap[] = {
     MappingTimeShift<MBool, UBool>,
     MappingTimeShift<MInt,  UInt>,
     MappingTimeShift<MReal, UReal>,
@@ -13229,6 +13467,10 @@ const string TemporalSpecBreakPoints =
   "<text>breakpoints( train7, [const duration value (0 1000)] )</text--->"
   ") )";
 
+/*
+1.1.1 Spec for ~gk~
+
+*/
 const string TemporalSpecgk =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
   "( <text>mpoint -> mpoint</text--->"
@@ -13625,6 +13867,22 @@ OperatorInfo DistanceTraversedOperatorInfo( "distancetraversed",
   "by the moving point",
   "");
 
+OperatorInfo TurnsOperatorInfo( "turns",
+  "mpoint x real x real [ x duration ] -> stream(tuple(TimeOld instant, "
+  "TimeNew instant, PosOld point, PosNew point, HeadingOld real, "
+  "HeadingNew real, HeadingDiff real))",
+  "turns( mp, mindiff, maxdiff [, maxdur ] )",
+  "Given a mpoint 'mp' the operator will return a stream of tuples describing "
+  "all the object's turns where the heading changes by at least 'mindiff' and "
+  "at most 'maxdiff' degrees (both parameters absolute values are used)."
+  "The optional parameter 'maxdur' specifies a maximum duration of definition "
+  "gaps of the object, that will be ignored (negative durations or missing "
+  "parameter are handled as 'don't care about temporal distance at all'). "
+  "Static periods (where the object does not move) are considered like "
+  "undefined periods. Positive 'HeadingDiff' indicates a counterclockwise "
+  "rotation, negative 'HeadingDiff' indicates clockwise rotation. "
+  "'HeadingDiff' is always in range ]-180.0,180.0]",
+  "");
 
 /*
 16.4.3 Operators
@@ -14143,6 +14401,10 @@ Operator distancetraversedoperator( DistanceTraversedOperatorInfo,
 		   DistanceTraversedOperatorValueMapping,
 		   DistanceTraversedOperatorTypeMapping );
 
+Operator turns( TurnsOperatorInfo,
+                TurnsOperatorValueMapping,
+                TurnsOperatorTypeMapping );
+
 Operator mappingtimeshift( "timeshift",
                          MappingTimeShiftSpec,
                          4,
@@ -14295,6 +14557,7 @@ class TemporalAlgebra : public Algebra
     AddOperator(&p2mp);
     AddOperator(&delayoperator);
     AddOperator(&distancetraversedoperator);
+    AddOperator(&turns);
     AddOperator(&mappingtimeshift);
 
 #ifdef USE_PROGRESS

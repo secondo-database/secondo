@@ -414,7 +414,7 @@ Operator : getunit
 Number   : 1
 Signature: For T in {bool, int, real, point}: mT -> uT
 Example  : query getunit(train7, 0)
-Result   : (("2003-11-20-06:06" "2003-11-20-06:06:08.692" TRUE FALSE) (16821.0 1252.0 16673.0 1387.0))
+Result   : (upoint (("2003-11-20-06:06" "2003-11-20-06:06:08.692" TRUE FALSE) (16821.0 1252.0 16673.0 1387.0)))
 
 Operator : val
 Number   : 1
@@ -588,9 +588,14 @@ Signature : uint -> int
 Example   : query uval(the_unit(99, six30, nine, FALSE, TRUE))
 Result    : (int 99)
 
+Operator  : turns
+Number    : 1
+Signature : mpoint x real x real [ x duration ] -> stream(tuple(TimeOld instant, TimeNew instant, PosOld point, PosNew point, HeadingOld real, HeadingNew real, HeadingDiff real))
+Example   : query turns(train1, 45.0, 47.0, [const duration value (0 60000)]) tconsume
+Result    : ((trel(tuple((TimeOld instant)(TimeNew instant)(PosOld point)(PosNew point)(HeadingOld real)(HeadingNew real)(HeadingDiff real)))) (("2003-11-20-06:24:19.668" "2003-11-20-06:24:19.668" (5452.0 9877.0) (5452.0 9877.0) 238.1340223063963 192.2361115094163 -45.89791079698)))
+
 Operator  : timeshift
 Number    : 1
 Signature : (mT, duration) -> mT
 Example   : query no_components(train7 timeshift[create_duration(1, 0)])
 Result    : (int 185)
-   

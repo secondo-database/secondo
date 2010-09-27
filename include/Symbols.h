@@ -156,6 +156,9 @@ namespace symbols {
 #undef RBOOL
 #undef RSTRING
 
+#undef INSTANT
+#undef DURATION
+
  Sym POINT("point");
  Sym REGION("region");
  Sym LINE("line");
@@ -178,7 +181,8 @@ namespace symbols {
  Sym RREAL("rreal");
  Sym RBOOL("rbool");
  Sym RSTRING("rstring");
-
+ Sym INSTANT("instant");
+ Sym DURATION("duration");
 
  // histogram types
 #undef HISTOGRAM1D
