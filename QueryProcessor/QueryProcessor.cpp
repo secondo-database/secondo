@@ -2605,6 +2605,11 @@ arguments preceding this function argument in an operator application.
               nl->SymbolAtom( "functionerror" ),
               nl->SymbolAtom( "typeerror" ) ));
   }
+  if(nl->AtomType(annexpr)!=NoAtom){
+    return (nl->TwoElemList(
+                nl->SymbolAtom( "functionerror" ),
+                nl->SymbolAtom( "typeerror" ) ));
+  }
   list = nl->Append( lastElem, nl->Second( annexpr ) );
   return (nl->TwoElemList(
             nl->FourElemList(
@@ -3275,9 +3280,9 @@ Deletes an operator tree object.
         } /* for */
         if ( tree->u.op.isFun )
         {
-          //delete tree->u.op.funArgs; // deleted by queryprocessor destructor 
+          //delete tree->u.op.funArgs; // deleted by queryprocessor destructor
           // u.op.funArgs = 0;
-          ; 
+          ;
         }
         if ( (tree->u.op.resultAlgId != 0) &&
              ( (tree->u.op.isFun && destroyRootValue) ||
