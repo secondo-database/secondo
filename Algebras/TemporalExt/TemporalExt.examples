@@ -165,7 +165,7 @@ Operator : derivative_new
 Number   : 1
 Signature: mreal -> mreal
 Example  : query derivative_new([const mreal value((("2005-10-10" "2005-10-20" TRUE TRUE)(2.0 3.0 4.0 FALSE)))])
-Result   : (mreal((("2005-10-10" "2005-10-20" TRUE TRUE)(0.0 4.0 3.0 FALSE))))
+Result   : (mreal((("2005-10-10" "2005-10-20" TRUE TRUE)(2.0 3.0 4.0 FALSE))))
 
 
 Operator : final
@@ -179,7 +179,7 @@ Operator : initial
 Number   : 1
 Signature: mstring -> istring
 Example  : query val(initial(train7upsights))
-Result   : "Flughafen Schönefeld"
+Result   : "Flughafen Schï¿½nefeld"
 
 Operator : inst
 Number   : 1
