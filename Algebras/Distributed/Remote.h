@@ -38,6 +38,9 @@ March 2010 Tobias Timmerscheidt
 #include "SocketIO.h"
 #include "Profiles.h"
 #include "CSProtocol.h"
+#include "zthread/Runnable.h"
+#include "zthread/Thread.h"
+#include "zthread/CountedPtr.h"
 
 using namespace std;
 
@@ -56,6 +59,8 @@ class DServer
                   bool Multiply(int count);
                   DServer** getChilds() { return childs; }
                   void DestroyChilds();
+		  
+
                   int getNumChilds() { return num_childs;}
          
          private:
@@ -68,7 +73,7 @@ class DServer
                   Socket* server;
          
                   Socket* cbworker;
-      
+	 
                   int num_childs;
                   DServer** childs;
                   
@@ -83,7 +88,7 @@ class DServerManager
                 ~DServerManager();
                 DServer* getServerByIndex(int index);
                 DServer* getServerbyID(int id);
-     
+	
                int getMultipleServerIndex(int index);
                 
                 //int getID(int index) = 0;
@@ -91,6 +96,7 @@ class DServerManager
                 ListExpr getNamedIndexList(int id);
         
                 int getNoOfServers();
+	
         
         private:
                 
@@ -100,6 +106,28 @@ class DServerManager
                 int array_size;
                 string name;
 };
+
+class DServerExecutor : public ZThread::Runnable
+{
+	DServer* server;
+	public:
+	DServerExecutor(DServer* s) {server=s;}
+	
+	void run() {server->run();}
+};
+
+class RelationWriter : public ZThread::Runnable
+{
+	DServer* worker;
+	Word* elements;
+	ListExpr arg;
+	public:
+	RelationWriter(DServer* s, Word* e, ListExpr a) 
+     {worker=s; elements = e; arg = a;}
+	
+	void run();
+};
+	
                   
                   
                   

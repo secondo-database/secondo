@@ -51,6 +51,9 @@ The address and port of the server must be set at lines 188, 238 and 261 of this
 #include "Remote.h"
 
 #include <sstream>
+#include "zthread/ThreadedExecutor.h"
+#include "zthread/CountedPtr.h"
+#include "zthread/AtomicCount.h"
 
 using namespace std;
 using namespace symbols;
@@ -68,6 +71,7 @@ extern QueryProcessor *qp;
 
 //Uses Function from ArrayAlgebra
 void extractIds(const ListExpr,int&,int&);
+
 
 
 //Converts int to string
@@ -104,13 +108,14 @@ ListExpr convertSingleType( ListExpr type)
      return nl->SymbolAtom(sc->GetTypeName(algID,typID));
 }
 
+
 ListExpr convertType( ListExpr type )
 {
      ListExpr result,result2; 
    
      if(nl->ListLength(type) < 2)
-          if(nl->IsAtom(type) || nl->IsEmpty(type)) return type;
-          else return convertType(nl->First(type));
+     {if(nl->IsAtom(type) || nl->IsEmpty(type)) return type;
+          else return convertType(nl->First(type));}
      
      if(nl->ListLength(type) == 2 &&
           nl->IsAtom(nl->First(type)) &&
@@ -123,6 +128,7 @@ ListExpr convertType( ListExpr type )
     
      return nl->TwoElemList(result,result2);
 }
+
 
 ListExpr convertTupleType( ListExpr type)
 {
@@ -178,6 +184,7 @@ class DArray
          ListExpr getType();
          
          void refresh(int);
+	 void refresh();
          
          void remove();
          
@@ -292,21 +299,23 @@ DArray::~DArray()
           }
          delete elements;
          
-         /*if(server != 0) server->Terminate();
-         delete server;*/
          delete manager;}
 }
 
 void DArray::remove()
 {
          
-         if(defined)
-         for(int i = 0;i<size;i++)
+         if(defined){
+	    ZThread::ThreadedExecutor exec;
+         for(int i = 0;i<manager->getNoOfServers();i++)
          {
-                  DServer* server = manager->getServerByIndex(i);
-                  server->setCmd("delete",nl->IntAtom(i),elements);
-                  server->run();
+                  DServer* server = manager->getServerbyID(i);
+                  server->setCmd("delete",manager->getIndexList(i),elements);
+                  DServerExecutor* server_ex = new DServerExecutor(server);
+                  exec.execute(server_ex);//server->run();
          }
+         exec.wait();
+	 }
                   
 }
 
@@ -316,7 +325,7 @@ void DArray::refresh(int i)
          DServer* server = manager->getServerByIndex(i);
          if(isRelation)
          {
-              //(am->DeleteObj(alg_id,typ_id))(type,elements[i]);
+              if(present[i]) (am->DeleteObj(alg_id,typ_id))(type,elements[i]);
               elements[i].addr = (am->CreateObj(alg_id,typ_id))(type).addr;
               server->setCmd("read_rel",nl->IntAtom(i),elements);
               server->run();
@@ -326,6 +335,42 @@ void DArray::refresh(int i)
                server->setCmd("read",nl->IntAtom(i),elements);
                server->run();
          }
+	 present[i] = true;
+}
+
+void DArray::refresh()
+{
+     ZThread::ThreadedExecutor exec;
+	DServerExecutor* server_ex;
+     /*if(isRelation)*/ for(int i=0;i<size;i++)
+	{if(present[i])(am->DeleteObj(alg_id,typ_id))(type,elements[i]);
+	if(isRelation) elements[i].addr = 
+          (am->CreateObj(alg_id,typ_id))(type).addr;}
+     
+     //delete elements;
+     //elements = new Word[size];
+     for(int i = 0; i < manager->getNoOfServers(); i++)
+     {
+          DServer* server = manager->getServerbyID(i);
+          if(isRelation)
+         {
+              //(am->DeleteObj(alg_id,typ_id))(type,elements[i]);
+              //elements[i].addr = (am->CreateObj(alg_id,typ_id))(type).addr;
+              server->setCmd("read_rel",manager->getIndexList(i),elements);
+              //server->run();
+         }
+         else
+         {
+               server->setCmd("read",manager->getIndexList(i),elements);
+               //server->run();
+         }
+          
+         server_ex = new DServerExecutor(server);
+         exec.execute(server_ex);
+	}
+    exec.wait();
+    
+    for(int i=0;i<size;i++) present[i] = true;
 }
 
 
@@ -363,20 +408,28 @@ void DArray::initialize(ListExpr n_type, string n, int s,
                   server->setCmd("write",nl->IntAtom(i),elements);
                   server->run();
          }*/
-         if(!isRelation){
-         for(int i = 0; i<manager->getNoOfServers();i++)
+	 for(int i = 0; i< size; i++) present[i] = true;
+	ZThread::ThreadedExecutor exec;
+	if(!isRelation){
+         
+	for(int i = 0; i<manager->getNoOfServers();i++)
          {
-     
-              
+
                  DServer* server = manager->getServerbyID(i);
                  server->setCmd("write",manager->getIndexList(i),elements);
-                 server->run();
-      
+               DServerExecutor* server_exec = new DServerExecutor(server);
+                 exec.execute(server_exec);//server->run();
          }
           }
           else
-               for(int i= 0;i<size;i++)
-                    WriteRelation(i);
+               for(int i= 0;i<manager->getNoOfServers();i++)
+		{
+			RelationWriter* write = new RelationWriter
+               (manager->getServerbyID(i),elements,manager->getIndexList(i));
+			exec.execute(write);
+		}
+	  exec.wait();
+	  cout << "DArray mit großem Erfolg geschrieben!!" << endl;
 }
 
 
@@ -411,10 +464,9 @@ void DArray::initialize(ListExpr n_type, string n, int s, ListExpr n_serverlist)
 
 Word DArray::get(int i) 
 { 
-         if(defined) 
+         if(defined && present[i]) 
          {
-                  refresh(i); 
-                 present[i] = true;
+                  //refresh(i); 
                  return elements[i];
          } 
          else 
@@ -552,6 +604,7 @@ ListExpr DArray::Out( ListExpr typeInfo, Word value )
          ListExpr last;
          ListExpr element;
          list = nl->OneElemList(a->getServerList());last=list;
+	a->refresh();
          
          if(a->isDefined())// && !a->isRelType())
                   for(int i = 0; i<a->getSize();i++)
@@ -940,6 +993,7 @@ static int getFun( Word* args,
     resultType = sc->NumericType(resultType);
     
     int algID,typID; extractIds(resultType,algID,typID);
+    array->refresh(i);
     Word cloned = (am->CloneObj(algID,typID))(resultType,(Word)array->get(i));
 
     //code from ArrayAlgebra.cpp ends here
@@ -1114,7 +1168,6 @@ static int sendFun( Word* args,
                     recF.Open("sendop");
                     recF.AppendRecord(recID,rec);
                     size_t size = 0;
-                    
                     am->SaveObj(algID,typID,rec,size,type,args[2]);
                     char* buffer = new char[size];
                     
@@ -1300,7 +1353,7 @@ static int receiveFun( Word* args,
      return 0;               
 		
                     
-     }
+}
          
 const string receiveSpec =
    "(( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
@@ -1376,7 +1429,7 @@ static int receiverelFun( Word* args,
      
      ListExpr resultType; 
      nl->ReadFromString((string)(char*)((CcString*)args[4].addr)
-                              ->GetStringval(),resultType);
+          ->GetStringval(),resultType);
      
      
      resultType = nl->Second(resultType); 
@@ -1465,14 +1518,17 @@ Operator receiverelA(
          receiverelFun,
          Operator::SimpleSelect,
          receiverelTypeMap);
-               
+
+
 /*
+
 
 4.8 Operator d\_send\_rel
 
 Internal Usage for Data Transfer between Master and Worker
 
 */
+
 
 static ListExpr sendrelTypeMap( ListExpr args )
 {
@@ -1568,9 +1624,11 @@ Operator sendrelA(
 
 /*
 
+
 4.9 Operator distribute
 
 */
+
 
 static ListExpr distributeTypeMap( ListExpr inargs )
 {
@@ -1762,14 +1820,11 @@ distributeFun (Word* args, Word& result, int message, Word& local, Supplier s)
 const string distributeSpec =
    "(( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
     "( <text>((stream (tuple ((x1 t1) ... (xn tn)))) xi j) -> "
-      "(darray (rel (tuple ((x1 t1) ... (xi-1 ti-1) (xi+1 ti+1) ... "
-      "(xn tn)))))</text--->"
+     "(darray (rel (tuple ((x1 t1) ... (xi-1 ti-1)" 
+     "(xi+1 ti+1) ... (xn tn)))))</text--->"
       "<text>_ ddistribute [ _ , _ ]</text--->"
-      "<text>Distributes a stream of tuples into a darray of relations. The "
-      "attribute xi determines the index of the relation, therefore ti must "
-      "be int. The parameter j determines the size of the resulting DArray."
-      "xi mod j is calculated and the tuple is sorted into an element of"
-      "DArray respectively</text--->"
+      "<text>Distributes a stream of tuples" 
+     "into a darray of relations.</text--->"
       "<text>let prel = plz feed distribute [pkg]</text---> ))";
 
 Operator distributeA (
