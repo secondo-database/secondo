@@ -34,6 +34,7 @@ template<typename arg, typename result>
 class unary_functor{
   public:
     virtual result operator()(const arg& a) const = 0;
+    virtual ~unary_functor(){}
 };
 
 
