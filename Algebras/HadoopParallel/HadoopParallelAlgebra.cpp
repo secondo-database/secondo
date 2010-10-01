@@ -1384,7 +1384,7 @@ ListExpr paraJoin2TypeMap(ListExpr args)
 int paraJoin2ValueMap(Word* args, Word& result,
                 int message, Word& local, Supplier s)
 {
-  pj2LocalInfo* li;
+  pj2LocalInfo* li=0;
 
   switch(message)
   {
