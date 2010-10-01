@@ -2111,6 +2111,124 @@ Creates the distance to an other UReal value.
   bool r;
 };
 
+
+/*
+3.8 Gid structures
+
+The following 2 classes are used to represent 2D cell grids and events created
+by moving objects on such a grid.
+
+The following class ~CellGrid2D~ describes a regular grid.
+
+*/
+
+class CellGrid2D {
+  public:
+    CellGrid2D(); // standard constructor
+    CellGrid2D(const double &x0_, const double &y0_,
+               const double &wx_, const double &wy_, const int32_t &nox_);
+      // Defines a structure for a three-side bounded grid, open to one
+      // Y-direction. The grid is specified by an origin (x0_,x0_), a cell-width
+      // wx_, a cell-height wy_ and a number of cells in X-direction nox_.
+      // If wy_ is positive, the grid is open to +X, if it is negative, to -X.
+      // If wx_ is positive, the grid extends to the "left", otherwise to the
+      // "right" side of the origin.
+      // The cells are numbered sequentially starting with 1 for the cell
+      // nearest to the origin.
+      // Cell Bounderies. Point located on the bounderies between cells are
+      // contained by the cell with the lower cell number. Thus, the origin
+      // itself is never located on the grid!
+
+    ~CellGrid2D(); // standard destructor
+
+    double getMaxX() const;
+      // returns the maximum X-coordinate lying on the grid
+
+    double getMaxY() const;
+      // returns the maximum Y-coordinate lying on the grid
+
+    double getMinX() const;
+      // returns the minimum X-coordinate lying on the grid
+
+    double getMinY() const;
+      // returns the minimum Y-coordinate lying on the grid
+
+    bool IsDefined() const;
+      // returns TRUE iff the grid is well-defined
+
+    bool onGrid(const double &x, const double &y) const;
+      // returns true iff (x,y) is located on the grid
+
+    int32_t getCellNo(const double &x, const double &y) const;
+      // returns the cell number for a given point (x,y)
+      // Only positive cell numbers are valid. Negative result indicates
+      // that (x,y) is not located on the grid.
+
+    int32_t getCellNo(const Point &p) const;
+    int32_t getXIndex(const double &x) const;
+    int32_t getYIndex(const double &y) const;
+    Rectangle<2> getMBR() const;
+      // returns the grid's MBR as a 2D-rectangle
+
+    Rectangle<2> getRowMBR(const int32_t &n) const;
+      // returns the grid's nth row as a 2D-rectangle
+      // row numbering starts with 0
+
+    Rectangle<2> getColMBR(const int32_t &n) const;
+      // returns the grid's nth column as a 2D-rectangle
+      // column numbering starts with 0 and ends with no_cells_x - 1
+
+    bool isValidCellNo(const int32_t &n) const;
+      // returns true iff n is a valid grid cell number
+
+    int32_t getInvalidCellNo() const;
+      // returns an invalid cell number
+
+    ostream& Print( ostream &os ) const;
+
+  private:
+    double x0, y0;       // origin of the grid
+    double wx, wy;       // cell-widths for both dimensions
+    int32_t no_cells_x;  // number of cells along X-axis
+    bool defined;        // whether the data is well-defined
+};
+
+/*
+The following class describes an event created by an object moving over a
+regular grid.
+
+*/
+class GridCellSeq {
+  public:
+    GridCellSeq(); // standard constructor - creates undefined instance
+    GridCellSeq(const DateTime &enter,
+                const DateTime &leave,
+                const int32_t &cellNo); // automatically updates defined
+    GridCellSeq(const GridCellSeq &other); // copy-constructor
+    GridCellSeq& operator=(const GridCellSeq &other); // assignment
+    ~GridCellSeq(); // destructor
+
+    DateTime getEnterTime() const;   // read attribute
+    DateTime getLeaveTime() const;   // read attribute
+    int32_t getCellNo() const;       // read attribute
+    void setCellNo(const int32_t &n);     // set attr and update definedness
+    void setEnterTime(const DateTime &t); // set attr and updates definedness
+    void setLeaveTime(const DateTime &t); // set attr and updates definedness
+    void setUndefined();                  // sets defined to false
+    bool IsDefined() const;          // returns definedness
+    void set(const int32_t &c, const DateTime &s, const DateTime &e);
+                                // set all attributes and update definedness
+    ostream& Print( ostream &os ) const;
+
+  private:
+    DateTime my_enterTime; // initial instant of presence in the cell
+    DateTime my_leaveTime; // final instant of presence in the cell
+    int32_t my_cellNo;     // the cell concerned.
+    bool defined;          // well-definedness of the data
+};
+
+
+
 /*
 3.8 UPoint
 
@@ -2330,6 +2448,16 @@ not modify this unit and return ~false~.
 
   void Translate(const double x, const double y,
                  const DateTime& duration);
+/*
+Translates a moving point spatially and temporally.
+
+*/
+
+  void GetGridCellSequence(CellGrid2D &g, vector<GridCellSeq> &res);
+/*
+Computes all events created by a UPoint moving across a regular grid.
+
+*/
 
 /*
 3.8.3 Functions to be part of relations
@@ -2765,6 +2893,14 @@ number of units of the mapping ~Y~.
 
 */
     void AtInstant( const Instant& t, Intime<Alpha>& result ) const;
+/*
+3.3.3.3 Operation ~Temporal Function~
+same as ~AtInstant~, but returns an Alpha, not an Intime.
+
+*/
+    void TemporalFunction( const Instant& t,
+                           Alpha& result,
+                           bool ignoreLimits = true) const;
 
 /*
 3.10.5.3 Operation ~atperiods~
@@ -5840,6 +5976,28 @@ void Mapping<Unit, Alpha>::AtInstant( const Instant& t,
 }
 
 template <class Unit, class Alpha>
+void Mapping<Unit, Alpha>::TemporalFunction( const Instant& t,
+                                             Alpha& result,
+                                             bool ignoreLimits) const
+{
+  if( !IsDefined() || !t.IsDefined() ) {
+    result.SetDefined( false );
+    return;
+  }
+  assert( IsOrdered() );
+  int pos = Position( t );
+  if( pos == -1 )  // not contained in any unit
+    result.SetDefined( false );
+  else
+  {
+    Unit posUnit;
+    units.Get( pos, &posUnit );
+    result.SetDefined( true );
+    posUnit.TemporalFunction( t, result, ignoreLimits );
+  }
+}
+
+template <class Unit, class Alpha>
 void Mapping<Unit, Alpha>::AtPeriods( const Periods& periods,
                                       Mapping<Unit, Alpha>& result ) const
 {
@@ -7339,7 +7497,7 @@ int MappingGetUnit
   CcInt* index = ((CcInt*)args[1].addr);
   Unit* pResult = ((Unit*)result.addr);
 
-  if(!m->IsDefined() || m->GetNoComponents()==0 || index->GetIntval() < 0 || 
+  if(!m->IsDefined() || m->GetNoComponents()==0 || index->GetIntval() < 0 ||
       index->GetIntval() >= m->GetNoComponents())
   {
     pResult->SetDefined(false);
@@ -7355,7 +7513,7 @@ int MappingTimeShift( Word* args, Word& result,
 {
     Word t;
     DateTime* dd;
-    Unit unit; 
+    Unit unit;
     Mapping* mapping, *mpResult;
 
     result = qp->ResultStorage( s );
@@ -7368,7 +7526,7 @@ int MappingTimeShift( Word* args, Word& result,
 
     if( mapping->IsDefined() &&
         dd->IsDefined() )
-    {    
+    {
       mpResult->SetDefined( true );
       if(mapping->GetNoComponents() == 0)
         return 0;
@@ -7378,7 +7536,7 @@ int MappingTimeShift( Word* args, Word& result,
         mpResult->SetDefined( false );
         return 0;
       }
-      
+
       mpResult->StartBulkLoad();
       for( int i = 0; i < mapping->GetNoComponents(); i++ )
       {
@@ -7398,8 +7556,8 @@ int MappingTimeShift( Word* args, Word& result,
     }
 }
 
-  
-  
+
+
 /*
 7.0 Refinement Partition
 

@@ -84,3 +84,4 @@ operator mint2mbool alias MINT2MBOOL pattern op(_)
 operator mint2mreal alias MINT2MREAL pattern op(_)
 operator turns alias TURNS pattern op( _, _, _, _ )
 operator timeshift alias TIMESHIFT pattern _ op[ _ ]
+operator gridcellevents alias GRIDCELLEVENTS pattern op(_)

@@ -2349,6 +2349,490 @@ bool UPoint::AtRegion(const Region *r, vector<UPoint> &result) const {
     ConsolidateUnitVector<UPoint,Point>(this->timeInterval,tmpresult,result);
 }
 
+/*
+Implementation of methods for class ~CellGrid2D~
+
+*/
+
+CellGrid2D::CellGrid2D() :
+      x0(0.0), y0(0.0), wx(0.0), wy(0.0), no_cells_x(0), defined(false) {}
+
+CellGrid2D::CellGrid2D(const double &x0_, const double &y0_,
+               const double &wx_, const double &wy_, const int32_t &nox_)
+      : x0(x0_), y0(y0_), wx(wx_), wy(wy_), no_cells_x(nox_) {
+      // Defines a structure for a three-side bounded grid, open to one
+      // Y-direction. The grid is specified by an origin (x0_,x0_), a cell-width
+      // wx_, a cell-height wy_ and a number of cells in X-direction nox_.
+      // If wy_ is positive, the grid is open to +X, if it is negative, to -X.
+      // If wx_ is positive, the grid extends to the "left", otherwise to the
+      // "right" side of the origin.
+      // The cells are numbered sequentially starting with 1 for the cell
+      // nearest to the origin.
+      // Cell Bounderies. Point located on the bounderies between cells are
+      // contained by the cell with the lower cell number. Thus, the origin
+      // itself is never located on the grid!
+        defined =    (no_cells_x > 0)
+                  && !AlmostEqual(wx,0.0)
+                  && !AlmostEqual(wy,0.0);
+    }
+
+CellGrid2D::~CellGrid2D(){}
+
+double CellGrid2D::getMaxX() const {
+      // returns the maximum X-coordinate lying on the grid
+      return wx < 0.0 ? x0 : x0 + wx * no_cells_x;
+    }
+
+double CellGrid2D::getMaxY() const {
+      // returns the maximum Y-coordinate lying on the grid
+      return wy < 0.0 ? y0 : numeric_limits<double>::max();
+    }
+
+double CellGrid2D::getMinX() const {
+      // returns the minimum X-coordinate lying on the grid
+      return wx > 0.0 ? x0 : x0 + wx * no_cells_x;
+    }
+
+double CellGrid2D::getMinY() const {
+      // returns the minimum Y-coordinate lying on the grid
+      return wy > 0.0 ? y0 : numeric_limits<double>::min();
+    }
+
+bool CellGrid2D::IsDefined() const {
+      // returns TRUE iff the grid is well-defined
+      return defined;
+    }
+
+bool CellGrid2D::onGrid(const double &x, const double &y) const {
+      // returns true iff (x,y) is located on the grid
+      if(!defined) {
+        return false;
+      }
+      int32_t xIndex = static_cast<int32_t>(floor((x - x0) / wx));
+      int32_t yIndex = static_cast<int32_t>(floor((y - y0) / wy));
+      return ( (xIndex>=0) && (xIndex<=no_cells_x) && (yIndex>=0) );
+    }
+
+int32_t CellGrid2D::getCellNo(const double &x, const double &y) const {
+      // returns the cell number for a given point (x,y)
+      // Only positive cell numbers are valid. Negative result indicates
+      // that (x,y) is not located on the grid.
+      if(!defined) {
+        return getInvalidCellNo();
+      }
+      int32_t xIndex = static_cast<int32_t>(floor((x - x0) / wx));
+      int32_t yIndex = static_cast<int32_t>(floor((y - y0) / wy));
+      if( (xIndex>=0) && (xIndex<=no_cells_x) && (yIndex>=0) ) {
+        return xIndex + yIndex * no_cells_x + 1;
+      } else {
+        return getInvalidCellNo();
+      }
+    }
+
+int32_t CellGrid2D::getCellNo(const Point &p) const {
+      if(defined && p.IsDefined()){
+        return getCellNo(p.GetX(),p.GetY());
+      } else {
+        return getInvalidCellNo();
+      }
+    }
+
+int32_t CellGrid2D::getXIndex(const double &x) const {
+      if(defined) {
+        return static_cast<int32_t>(floor((x - x0) / wx));
+      } else {
+        return getInvalidCellNo();
+      }
+    }
+
+int32_t CellGrid2D::getYIndex(const double &y) const {
+      if(defined) {
+        return static_cast<int32_t>(floor((y - y0) / wy));
+      } else {
+        return getInvalidCellNo();
+      }
+    }
+
+Rectangle<2> CellGrid2D::getMBR() const {
+      // returns the grid's MBR as a 2D-rectangle
+      if(defined){
+        double min[2], max[2];
+        min[0] = getMinX(); min[1] = getMinY();
+        max[0] = getMaxX(); max[1] = getMaxY();
+        return Rectangle<2>( true, min, max );
+      } else {
+        return Rectangle<2>( false );
+      }
+    }
+
+Rectangle<2> CellGrid2D::getRowMBR(const int32_t &n) const {
+      // returns the grid's nth row as a 2D-rectangle
+      // row numbering starts with 0
+      if( defined ){
+        double min_val[2], max_val[2];
+        double y1 = y0 + n     * wy;
+        double y2 = y0 + (n+1) * wy;
+        min_val[0] = getMinX(); min_val[1] = min(y1,y2);
+        max_val[0] = getMaxX(); max_val[1] = max(y1,y2);
+        return Rectangle<2>( true, min_val, max_val );
+      } else {
+        return Rectangle<2>( false );
+      }
+    }
+
+Rectangle<2> CellGrid2D::getColMBR(const int32_t &n) const {
+      // returns the grid's nth column as a 2D-rectangle
+      // column numbering starts with 0 and ends with no_cells_x - 1
+      if( defined ){
+        double min_val[2], max_val[2];
+        double x1 = x0 + n * wx;
+        double x2 = x0 + (n+1) * wx;
+        min_val[0] = min(x1,x2); min_val[1] = getMinY();
+        max_val[0] = max(x1,x2); max_val[1] = getMaxY();
+        return Rectangle<2>( true, min_val, max_val );
+      } else {
+        return Rectangle<2>( false );
+      }
+    }
+
+bool CellGrid2D::isValidCellNo(const int32_t &n) const {
+      // returns true iff n is a valid grid cell number
+      return defined && (n>0);
+    }
+
+int32_t CellGrid2D::getInvalidCellNo() const {
+      // returns an invalid cell number
+      return -666;
+    }
+
+ostream& CellGrid2D::Print( ostream &os ) const {
+  if( !IsDefined() )
+  {
+    return os << "(CellGrid2D: undefined)";
+  }
+  os << "(CellGrid2D: defined, "
+     << " origin: (" << x0 << "," << y0 << "), "
+     << " cellwidths: " << wx << " x " << wy << " (X x Y), "
+     << " cells along X-axis: " << no_cells_x
+     << ")" << endl;
+  return os;
+}
+
+ostream& operator<<(ostream& o, const CellGrid2D& u){
+  return u.Print(o);
+}
+
+/*
+Implementation of methods for class ~GridCellSeq~
+
+*/
+
+GridCellSeq::GridCellSeq() :
+      my_enterTime(instanttype),
+      my_leaveTime(instanttype),
+      my_cellNo(0),
+      defined(false){}
+
+GridCellSeq::GridCellSeq(const DateTime &enter,
+                         const DateTime &leave, const int32_t &cellNo)
+      : my_enterTime(enter), my_leaveTime(leave), my_cellNo(cellNo)
+    {
+      defined =    my_enterTime.IsDefined()
+                && my_leaveTime.IsDefined()
+                && (my_enterTime <= my_leaveTime);
+    }
+
+GridCellSeq::GridCellSeq(const GridCellSeq &other) :
+      my_enterTime(other.my_enterTime),
+      my_leaveTime(other.my_leaveTime),
+      my_cellNo(other.my_cellNo),
+      defined(other.defined){
+    }
+
+GridCellSeq& GridCellSeq::operator=(const GridCellSeq &other){
+      my_enterTime = other.my_enterTime;
+      my_leaveTime = other.my_leaveTime;
+      my_cellNo = other.my_cellNo;
+      defined = other.defined;
+      return *this;
+    }
+
+GridCellSeq::~GridCellSeq(){}
+
+DateTime GridCellSeq::getEnterTime() const {return my_enterTime;}
+DateTime GridCellSeq::getLeaveTime() const {return my_leaveTime;}
+int32_t GridCellSeq::getCellNo() const {return my_cellNo;}
+
+void GridCellSeq::setCellNo(const int32_t &n) { my_cellNo = n; }
+void GridCellSeq::setEnterTime(const DateTime &t) {
+  my_enterTime = t;
+  defined =    my_enterTime.IsDefined()
+            && my_leaveTime.IsDefined()
+            && (my_enterTime <= my_leaveTime);
+}
+
+void GridCellSeq::setLeaveTime(const DateTime &t) {
+  my_leaveTime = t;
+  defined =    my_enterTime.IsDefined()
+            && my_leaveTime.IsDefined()
+            && (my_enterTime <= my_leaveTime);
+}
+
+void GridCellSeq::setUndefined(){ defined = false; }
+
+bool GridCellSeq::IsDefined() const{ return defined; }
+
+void GridCellSeq::set(const int32_t &c, const DateTime &s, const DateTime &e){
+  my_cellNo = c;
+  my_enterTime = s;
+  my_leaveTime = e;
+  defined =    my_enterTime.IsDefined()
+            && my_leaveTime.IsDefined()
+            && (my_enterTime <= my_leaveTime);
+
+
+}
+
+ostream& GridCellSeq::Print( ostream &os ) const{
+  if( !IsDefined() )
+  {
+    return os << "(GridCellSeq: undefined)";
+  }
+  os << "(GridCellSeq: defined, Cell:" << my_cellNo << ", Tenter:"
+     << my_enterTime << ",  Tleave:" << my_leaveTime << ")" << endl;
+  return os;
+}
+
+ostream& operator<<(ostream& o, const GridCellSeq& u){
+  return u.Print(o);
+}
+
+bool myCompare (DateTime i, DateTime j) { return (i<j); }
+
+void UPoint::GetGridCellSequence(CellGrid2D &g, vector<GridCellSeq> &res){
+  cout << __PRETTY_FUNCTION__ << " called..." << endl;
+  cout << "\t*this = " << *this << endl;
+  res.clear();
+  res.resize(0);
+  if(!IsDefined() && !g.IsDefined()){
+    cout << "\t*this is undefined. No result!" << endl;
+    cout << __PRETTY_FUNCTION__ << " finished." << endl;
+    return;
+  }
+  double minX = min(p0.GetX(),p1.GetX());
+  double minY = min(p0.GetY(),p1.GetY());
+  double maxX = max(p0.GetX(),p1.GetX());
+  double maxY = max(p0.GetY(),p1.GetY());
+  if(    (minX > g.getMaxX()) || (minY > g.getMaxY())
+      || (maxX < g.getMinX()) || (maxY < g.getMinY())){
+    // p0 and p1 outside the grid and unit does not cross the grid.
+    //         Complete unit out of grid: return empty result.
+    cout << "\t*this located completely off the grid. No result!" << endl;
+    cout << __PRETTY_FUNCTION__ << " finished." << endl;
+    return;
+  }
+
+  if(AlmostEqual(p0,p1)){
+    // special case: static unit
+    cout << "\tSpecial case: static unit." << endl;
+    double x = (p0.GetX() + p1.GetX())/2;
+    double y = (p0.GetY() + p1.GetY())/2;
+    if(g.onGrid(x,y)){
+      GridCellSeq event(  timeInterval.start,
+                          timeInterval.end,
+                          g.getCellNo(x,y)
+                   );
+      res.push_back(event);
+      cout << "\t\tAdded to Result: " << event << endl;
+    }
+    cout << __PRETTY_FUNCTION__ << " finished." << endl;
+    return;
+  }
+
+  UPoint unit_before(false);
+  UPoint unit_inside(false);
+  UPoint unit_after(false);
+
+  // get unit restricted to period while moving inside the grid
+//   cout << "\t\tMBR(g) = " << g.getMBR() << endl;
+  At(g.getMBR(), unit_inside);
+//   cout << "\t\tunit_inside = " << unit_inside << endl;
+  if(    unit_inside.IsDefined()
+      && (timeInterval.start < unit_inside.timeInterval.start) ){
+    // get unit restricted to period before entering the grid
+    Interval<Instant> i( timeInterval.start,
+                         unit_inside.timeInterval.start,
+                         timeInterval.lc,
+                         !unit_inside.timeInterval.rc);
+    if(i.IsValid()){
+      unit_before.SetDefined(true);
+      AtInterval( i, unit_before );
+    }
+  }
+//   cout << "\t\tunit_before = " << unit_before << endl;
+  if(    unit_inside.IsDefined()
+      && (timeInterval.end > unit_inside.timeInterval.end) ){
+    // get unit restricted to period after leaving the grid
+    Interval<Instant> i( unit_inside.timeInterval.end,
+                         timeInterval.end,
+                         !unit_inside.timeInterval.rc,
+                         timeInterval.rc);
+    if(i.IsValid()){
+      unit_after.SetDefined(true);
+      AtInterval( i, unit_after );
+    }
+  }
+//   cout << "\t\tunit_after = " << unit_after << endl;
+
+  // (1) handle part of unit before entering the grid (if present)
+//   cout << "\t(1) handle part of unit before entering the grid (if present)"
+//        << endl;
+  if(unit_before.IsDefined()){
+    GridCellSeq event(  unit_before.timeInterval.start,
+                        unit_before.timeInterval.end,
+                        g.getInvalidCellNo()             );
+    res.push_back(event);
+//     cout << "\t\tAdded to Result: " << event << endl;
+  }
+
+  // (2) handle part of unit fully within the grid (if present)
+  //     this part of the unit may cover several grid cells.
+//   cout << "\t(2) handle part of unit fully within the grid (if present)"
+//        << endl;
+  if(unit_inside.IsDefined()){
+    // create a vector of events where the unit crosses horizontal or vertical
+    // grid lines and oder them by increasing time.
+    minX = min(unit_inside.p0.GetX(),unit_inside.p1.GetX());
+    minY = min(unit_inside.p0.GetY(),unit_inside.p1.GetY());
+    maxX = max(unit_inside.p0.GetX(),unit_inside.p1.GetX());
+    maxY = max(unit_inside.p0.GetY(),unit_inside.p1.GetY());
+
+    int32_t startRow  = g.getYIndex(minY);
+    int32_t endRow    = g.getYIndex(maxY);
+
+    int32_t startCol  = g.getXIndex(minX);
+    int32_t endCol    = g.getXIndex(maxX);
+
+    vector<DateTime> events(0);
+
+    events.push_back(unit_inside.timeInterval.start); // add start
+//     cout << "\t\tAdded initial instant: " << unit_inside.timeInterval.start
+//          << endl;
+    events.push_back(unit_inside.timeInterval.end);   // add end;
+//     cout << "\t\tAdded final instant: " << unit_inside.timeInterval.end
+//          << endl;
+
+    // create horizontal events
+//     cout << "\tProcessing crossings of horizontal grid lines..." << endl;
+    for(int32_t row=startRow; row<=endRow; row++){
+      Rectangle<2> rowRect = g.getRowMBR(row);
+//       cout << "\t\tRect for row " << row << ": " << rowRect << endl;
+      if(rowRect.IsDefined()){
+        UPoint rowUnit(true);
+        unit_inside.At(rowRect, rowUnit);
+//         cout << "\t\trowUnit after At(): " << rowUnit << endl;;
+        if(rowUnit.IsDefined()){
+          events.push_back(rowUnit.timeInterval.end);
+//           cout << "\t\tAdded 'vertical' instant " << rowUnit.timeInterval.end
+//                << endl;
+        } else { // drop the unit
+//           cout << endl << "\t\trow " << row << ": undefined rowUnit"
+//                << " dropped."  << endl;
+        }
+      } else {
+//         cout << endl << "\t\trow " << row << ": undefined rowRect!" << endl;
+        assert( false );
+      }
+    }
+
+// create vertical events
+//     cout << "\tProcessing crossings of vertical grid lines..." << endl;
+
+    for(int32_t col=startCol; col<=endCol; col++){
+      Rectangle<2> colRect = g.getColMBR(col);
+//       cout << "\t\tRect for col " << col << ": " << colRect << endl;
+      if(colRect.IsDefined()){
+        UPoint colUnit(true);
+        unit_inside.At(colRect, colUnit);
+//         cout << "\t\tcolUnit after At(): " << colUnit << endl;;
+        if(colUnit.IsDefined()){
+          events.push_back(colUnit.timeInterval.end);
+//           cout << "\t\tAdded 'horizontal' instant "
+//                << colUnit.timeInterval.end << endl;
+        } else { // drop the unit
+//           cout << endl << "\t\tcolumn " << col << ": undefined colUnit"
+//                << " dropped." << endl;
+        }
+      } else {
+//         cout << endl << "\t\tcolumn " << col << ": undefined colRect!"
+//              << endl;
+        assert( false );
+      }
+    }
+
+    // sort all events
+//     cout << "\n\tevents before sorting:" << endl;
+//     for(vector<DateTime>::iterator j = events.begin(); j< events.end(); j++){
+//       cout << "\t\t" << *j << endl;
+//     }
+//     cout << endl;
+//     cout << "\tSorting instants..." << endl;
+    sort(events.begin(), events.end(), myCompare);
+//     cout << "\n\tevents after sorting:" << endl;
+//     for(vector<DateTime>::iterator j = events.begin(); j< events.end(); j++){
+//       cout << "\t\t" << *j << endl;
+//     }
+//     cout << endl;
+
+    // Handle all events. If two consecutive events have almost the same time,
+    // merge them into a single event. For each remaining event create a result
+    // entry. Use midpoints between two consecutive events to compute according
+    // cell number
+//     cout << "\tProcessing instants..." << endl;
+    vector<DateTime>::iterator curr;
+    vector<DateTime>::iterator last = events.begin();
+    for(curr = events.begin(); curr< events.end(); curr++){
+      if(*curr == *last){
+        // for 1st entry: just proceed
+//         cout << "\t\tFound equal instants: *curr=" << *curr << " *last="
+//              << *last << endl;
+        continue;
+      }
+      // create output
+      DateTime midtime(instanttype);
+      midtime = *last + ((*curr - *last)/2);
+      Point midpoint(true);
+      TemporalFunction(midtime, midpoint, true);
+      int32_t cellno = g.getCellNo(midpoint);
+      if(g.isValidCellNo(cellno)){
+        GridCellSeq event( *last, *curr, cellno);
+        res.push_back(event);
+//         cout << "\t\tAdded to Result: " << event << endl;
+      }
+      last = curr;
+    }
+  }
+
+  // (3) handle part of unit after leaving the grid (if present)
+//   cout << "\t(3) handle part of unit after leaving the grid (if present)"
+//        << endl;
+  if(unit_after.IsDefined()){
+    GridCellSeq event(  unit_after.timeInterval.start,
+                        unit_after.timeInterval.end,
+                        g.getInvalidCellNo());
+    res.push_back(event);
+//     cout << "\t\tAdded to Result: " << event << endl;
+  }
+
+  cout << "\n\tFinal result: res = :" << endl;
+  for(vector<GridCellSeq>::iterator i = res.begin(); i < res.end(); i++){
+    cout << "\t\t" << *i << endl;
+  }
+  cout << endl;
+
+  cout << __PRETTY_FUNCTION__ << " finished." << endl;
+  return;
+}
 
 /*
 3.2 Class ~MInt~
@@ -9571,6 +10055,66 @@ MappingTimeShiftTM( ListExpr args )
 }
 
 /*
+1.1.1 Type Mapping Function for Operator ~gridcellevents~
+
+The signature is:
+
+----
+{mpoint|upoint} x real x real x real x real x int --> stream(tuple(
+          (Cell int)
+          (TimeEntered instant)
+          (TimeLeft instant)
+          (CellPrevious int)
+          (CellNext int)))
+----
+
+
+*/
+
+ListExpr GridCellEventsTypeMapping (ListExpr args)
+{
+  NList l(args);
+  int len = l.length();
+  if( (len != 6) ){
+    return l.typeError("Operator 'gridcellevents' expects 6 arguments.");
+  }
+  if(    !(l.elem(1).isSymbol(symbols::MPOINT))
+      && !(l.elem(1).isSymbol(symbols::UPOINT)) ){
+    return l.typeError("Operator 'gridcellevents' expects an 'upoint' or "
+                       "'mpoint' as 1st argument.");
+  }
+  if( !(l.elem(2).isSymbol(symbols::REAL)) ){
+    return l.typeError("Operator 'gridcellevents' expects a 'real' as 2nd "
+                       "argument.");
+  }
+  if( !(l.elem(3).isSymbol(symbols::REAL)) ){
+    return l.typeError("Operator 'gridcellevents' expects a 'real' as 3rd "
+    "argument.");
+  }
+  if( !(l.elem(4).isSymbol(symbols::REAL)) ){
+    return l.typeError("Operator 'gridcellevents' expects a 'real' as 4th "
+    "argument.");
+  }
+  if( !(l.elem(5).isSymbol(symbols::REAL)) ){
+    return l.typeError("Operator 'gridcellevents' expects a 'real' as 5th "
+    "argument.");
+  }
+  if( !(l.elem(6).isSymbol(symbols::INT)) ){
+    return l.typeError("Operator 'gridcellevents' expects an 'int' as 6th "
+    "argument.");
+  }
+  NList resTupleType =NList(NList("Cell"),NList(symbols::INT)).enclose();
+  resTupleType.append(NList(NList("TimeEntered"),NList(symbols::INSTANT)));
+  resTupleType.append(NList(NList("TimeLeft"),NList(symbols::INSTANT)));
+  resTupleType.append(NList(NList("CellPrevious"),NList(symbols::INT)));
+  resTupleType.append(NList(NList("CellNext"),NList(symbols::INT)));
+  NList resType =
+  NList(NList(symbols::STREAM),NList(NList(symbols::TUPLE),resTupleType));
+  return resType.listExpr();
+}
+
+
+/*
 16.2 Selection functions
 
 A selection function is quite similar to a type mapping function. The only
@@ -10242,13 +10786,23 @@ int SampleMPointSelect(ListExpr args){
 
 
 /*
-16.2.35 SelectionFuntion for ~restrict~
+16.2.35 SelectionFunction for ~restrict~
 
 */
 int restrictSelect(ListExpr args){
    return nl->ListLength(args)==1?0:1;
 }
 
+/*
+1.1.1 Selection Function for ~gridcellevents~
+
+*/
+
+int GridCellEventsSelect(ListExpr args){
+  if(nl->IsEqual(nl->First(args),"upoint")){return 0;}
+  if(nl->IsEqual(nl->First(args),"mpoint")){return 1;}
+  return -1;
+}
 /*
 16.3 Value mapping functions
 
@@ -12837,6 +13391,394 @@ int TurnsOperatorValueMapping( Word* args, Word& result, int message,
     return -1;
   }
 
+/*
+1.1.1 Value Mappings for Operator ~gridcellevents~
+
+1.1.1.1 Class ~GridCellEventsLocalInfo~
+
+The class provides an iterator that allows to request the results for all
+signatures (mpoint and upoint) of operator ~gridcellevents~ one by one using
+function ~getNextResultTuple~
+
+*/
+template<class OBJTYPE>
+class GridCellEventsLocalInfo{
+  public:
+    vector<GridCellSeq>::iterator currEvent;
+
+    GridCellEventsLocalInfo(OBJTYPE &m_,
+                            const CcReal &x0, const CcReal &y0,
+                            const CcReal &wx, const CcReal &wy,
+                            const CcInt &nx,
+                            const Supplier &s) :
+      m(&m_),
+      g(0),
+      events(0),
+      resultTupleType(0),
+      noUnits(0),
+      currUnitCnt(0),
+      finished(true),
+      allUnitsConsumed(true),
+      eventIter(events.begin()),
+      cellLast(0),
+      currentEvent()
+    {
+      if(    m->IsDefined() && x0.IsDefined() && wx.IsDefined()
+          && wy.IsDefined() && nx.IsDefined() )
+      {
+        g = new CellGrid2D( x0.GetValue(),y0.GetValue(),
+                            wx.GetValue(),wy.GetValue(),
+                            nx.GetValue());
+        noUnits = GetNoComponents(m);
+        finished = !(g->IsDefined() && (noUnits>0));
+        allUnitsConsumed = (currUnitCnt>=noUnits);
+        events.clear();
+        cellLast = g->getInvalidCellNo();
+        resultTupleType = new TupleType(nl->Second(GetTupleResultType(s)));
+      }
+    }
+
+    ~GridCellEventsLocalInfo(){
+      if(resultTupleType){
+        resultTupleType->DeleteIfAllowed();
+        resultTupleType = 0;
+      }
+      if(g){
+        delete g;
+        g = 0;
+      }
+    }
+
+    uint32_t GetNoComponents(MPoint* m){ return m->GetNoComponents(); }
+    uint32_t GetNoComponents(UPoint* m){ return 1; }
+    bool isFinished() const {return finished;}
+
+    Tuple* getNextResultTuple() {
+      // Returns a pointer to the next generated result tuple.
+      // Returns 0 iff no more result is available
+      Tuple *newTuple = 0;
+
+      if(finished){ // nothing to do
+        return newTuple;
+      }
+
+      // get the next result using private method
+      int32_t cell     = g->getInvalidCellNo(),
+              cellprev = g->getInvalidCellNo(),
+              cellnext = g->getInvalidCellNo();
+      DateTime timeenter(instanttype),
+               timeleave(instanttype);
+
+      if(next(cell, timeenter, timeleave, cellprev, cellnext)){
+        CcInt *ccCell           = new CcInt(g->isValidCellNo(cell), cell);
+        DateTime *ccTimeEntered = new DateTime(timeenter);
+        DateTime *ccTimeLeft    = new DateTime(timeleave);
+        CcInt *ccCellPrevious = new CcInt(g->isValidCellNo(cellprev), cellprev);
+        CcInt *ccCellNext     = new CcInt(g->isValidCellNo(cellnext), cellnext);
+        // create the result tuple and return it
+        newTuple = new Tuple( resultTupleType );
+        newTuple->PutAttribute( 0,(Attribute*)ccCell );
+        newTuple->PutAttribute( 1,(Attribute*)ccTimeEntered );
+        newTuple->PutAttribute( 2,(Attribute*)ccTimeLeft );
+        newTuple->PutAttribute( 3,(Attribute*)ccCellPrevious );
+        newTuple->PutAttribute( 4,(Attribute*)ccCellNext );
+      }
+      return newTuple;
+    }
+
+    ostream& Print( ostream &os ) {
+      os << "(GridCellEventsLocalInfo: "
+         << "\n\t m: " << *m
+         << ",\n\t g: " << *g;
+      printEvents(os);
+      os << ",\n\t resultTupleType: " << resultTupleType
+         << ",\n\t noUnits: " << noUnits
+         << ",\n\t currUnitCnt: " << currUnitCnt
+         << ",\n\t finished: " << (finished ? "true" : "false")
+         << ",\n\t allUnitsConsumed: " << (allUnitsConsumed ? "true" : "false")
+         << ",\n\t eventIter: <unprintable>"
+         << ",\n\t cellLast: " << cellLast
+         << ",\n\t currentEvent: " << currentEvent
+         << "\n)" << endl;
+      return os;
+    }
+
+  private:
+    OBJTYPE *m;
+    CellGrid2D *g;
+    vector<GridCellSeq> events;
+    TupleType *resultTupleType;
+    uint32_t noUnits;
+    uint32_t currUnitCnt;
+    bool finished;
+    bool allUnitsConsumed;
+    vector<GridCellSeq>::iterator eventIter;
+    int32_t cellLast;         // number of last visited cell
+    GridCellSeq currentEvent; // the current cell info
+
+    bool next(int32_t &cell,
+              DateTime &timestart, DateTime &timeend,
+              int32_t &cellprev, int32_t &cellnext)
+    {
+      // returns true iff a result was produced and the result parameters are
+      // valid. When returning false, the result parameters are invalid.
+      //
+      // The functions scanns the event vector for interesting event
+      // combinations, such as
+      // (1) consecutive events should be merged,
+      //    (a) consecutive non-valid events should always be merged.
+      //    (b) if there is no temporal gap and both have the same Cell.
+      // (2) Only events inside the grid (with valid cellNo) qualify for
+      //     being reported as a result. Events in non-valid cell are only
+      //     used to report UNDEF last/next cell numbers.
+      cout << __PRETTY_FUNCTION__ << " called." << endl;
+      assert(!finished);
+      if(finished){
+        cout << __PRETTY_FUNCTION__ << " finished (false)." << endl;
+        return false;
+      }
+
+      GridCellSeq nextEvent = GridCellSeq();
+      bool found = false;
+      bool yield = false;
+
+      if( eventIter == events.end() ){ // try to refill event-vector
+        bool ok = tryReload(m);
+        cout << "\tInitial tryRelod: " << (ok ? "succeeded." : "failed.")
+             << endl;
+      }
+
+      // merge consecutive events with same cell number and find a nextEvent
+      while( eventIter < events.end() ){
+        cout << "\t\tBegin of while-loop: cellLast=" << cellLast
+        << ", currentEvent=" << currentEvent
+        << ", nextEvent=" << nextEvent
+        << ")" << endl;
+        assert(eventIter->IsDefined()); // events from vector should be defined
+        if(currentEvent.IsDefined()){   // initialized with UNDEF event!
+          if(eventIter->getCellNo() == currentEvent.getCellNo()) {
+            // still within the same cell
+            Point pcurr(false), pnext(false);
+            m->TemporalFunction(eventIter->getEnterTime(), pnext, true);
+            m->TemporalFunction(currentEvent.getLeaveTime(), pcurr, true);
+            if(    !g->isValidCellNo(eventIter->getCellNo())
+                || (   eventIter->getEnterTime() == currentEvent.getLeaveTime()
+                    && AlmostEqual(pcurr,pnext)) )
+            {
+              // merge the events
+              cout << "\t\tMerged events:\n\t\t\tcurr=" << currentEvent
+                   << "\t\t\tnext=" << *eventIter;
+              currentEvent.set( currentEvent.getCellNo(),
+                                currentEvent.getEnterTime(),
+                                eventIter->getLeaveTime());
+              cout << "\t\t\tmerged event: curr = " << currentEvent << endl;
+            } else {
+              if(    AlmostEqual(pcurr,pnext)
+                  && (eventIter->getEnterTime()!=currentEvent.getLeaveTime()) ){
+                // both events valid with same cell but timewarp
+                // --> set return parameters
+                nextEvent = *eventIter; // save for terminal call (after loop)
+                cell      = currentEvent.getCellNo();
+                timestart = currentEvent.getEnterTime();
+                timeend   = currentEvent.getLeaveTime();
+                cellprev  = cellLast;
+                cellnext  = g->getInvalidCellNo();
+                yield = true;
+                currentEvent.setCellNo(g->getInvalidCellNo()); // modify
+                cout << "\t\tcurr is valid (warp-case). Result: (Cell=" << cell
+                << ", TimeEnter=" << timestart
+                << ", TimeLeave=" << timeend
+                << ", CellPrevious=" << cellprev
+                << ", CellNext=" << cellnext
+                << ")." << endl;
+                cellLast = currentEvent.getCellNo();
+                nextEvent = *eventIter; // save for terminal call (after loop)
+                currentEvent = nextEvent;
+              } else {
+                nextEvent = *eventIter; // save for terminal call (after loop)
+                found = true;
+                cout << "\t\tFound interesting event:\n\t\t\tcurr="
+                     << currentEvent << "\n\t\t\tnext=" << *eventIter << endl;
+              }
+            }
+          } else {
+            nextEvent = *eventIter; // save for terminal call (after the loop)
+            found = true;
+            cout << "\t\tFound interesting event:\n\t\t\tcurr="
+                 << currentEvent << "\n\t\t\tnext=" << *eventIter << endl;
+          }
+          // try handling results
+          if(found ){
+            if(g->isValidCellNo(currentEvent.getCellNo())){
+              // currentEvent valid --> set return parameters
+              cell      = currentEvent.getCellNo();
+              timestart = currentEvent.getEnterTime();
+              timeend   = currentEvent.getLeaveTime();
+              cellprev  = cellLast;
+              cellnext  = nextEvent.getCellNo();
+              yield = true; // flag to return at end of this loop!
+              cout << "\t\tcurr is valid (normal case). Result: (Cell=" << cell
+                  << ", TimeEnter=" << timestart
+                  << ", TimeLeave=" << timeend
+                  << ", CellPrevious=" << cellprev
+                  << ", CellNext=" << cellnext
+                  << ")." << endl;
+            } else {
+              cout << "\t\tcurr is invalid. Ignore!" << endl;
+            }
+            cellLast = currentEvent.getCellNo();
+            currentEvent = nextEvent;
+            found = false;
+          }
+        } else { // currEvent is not defined (first call)
+          cout << "\t\tInitial event: shift" << endl;
+          currentEvent = *eventIter;
+        }
+        // advance iterator to next event
+        eventIter++;
+        if(eventIter == events.end()){
+          // no more events generated by this unit - try loading new events
+          // from the next unit:
+          bool ok = tryReload(m);
+          cout << "\ttryRelod: " << (ok ? "succeeded." : "failed.") << endl;
+        }
+        if(yield){
+          cout << __PRETTY_FUNCTION__ << " finished (true)." << endl;
+          return true; // result was generated --> return
+        }
+        cout << "\t\tEnd of while-loop: cellLast=" << cellLast
+        << ", currentEvent=" << currentEvent
+        << ", nextEvent=" << nextEvent
+        << ")" << endl;
+      } // end while
+
+      // no nextEvent found. Try to process current event
+      if(g->isValidCellNo(currentEvent.getCellNo())){
+          // No nextEvent, but currentEvent is on the grid --> produce a result
+          cell      = currentEvent.getCellNo();
+          timestart = currentEvent.getEnterTime();
+          timeend   = currentEvent.getLeaveTime();
+          cellprev  = cellLast;
+          cellnext  = g->getInvalidCellNo();
+          cout << "\t\tTerminal event: curr is valid. Result: (Cell=" << cell
+          << ", TimeEnter=" << timestart
+          << ", TimeLeave=" << timeend
+          << ", CellPrevious=" << cellprev
+          << ", CellNext=" << cellnext
+          << ")." << endl;
+
+          finished = true; // because no more events available!
+          cout << __PRETTY_FUNCTION__ << " finished (true)." << endl;
+          return true;
+      } else {// else: currentEvent not on grid and no more events --> finished!
+        cout << "\t\tTerminal event: curr is invalid." << endl;
+      }
+      finished = true;
+      cout << __PRETTY_FUNCTION__ << " finished (false)." << endl;
+      return false;
+    }
+
+    bool tryReload(UPoint* dummy_) {
+      // Reloads the event vector with new elements created using the mpoint's
+      // next unit. The old content of ~event~ is lost!
+      // Returns true iff reloading was successful.
+      if(allUnitsConsumed) { return false; }; // do nothing
+      // UPoint version
+      m->GetGridCellSequence(*g, events);
+      currUnitCnt++;
+      if(currUnitCnt>=noUnits){
+        allUnitsConsumed = true;
+      }
+      eventIter = events.begin();
+      return true;
+    }
+
+    bool tryReload(MPoint* dummy_) {
+      // Reloads the event vector with new elements created using the mpoint's
+      // next unit. The old content of ~event~ is lost!
+      // Returns true iff reloading was successful.
+      if(allUnitsConsumed) { return false; }; // do nothing
+      UPoint u(true);
+      m->Get(currUnitCnt, u);
+      u.GetGridCellSequence(*g, events);
+      currUnitCnt++;
+      if(currUnitCnt>=noUnits){
+        allUnitsConsumed = true;
+      }
+      eventIter = events.begin();
+      return true;
+    }
+
+    ostream& printEvents( ostream &os, const string prefix = "\n\t",
+                                       const string prefix2 = "\t") {
+      os << prefix2 << "events: [";
+      vector<GridCellSeq>::iterator i;
+      for(i = events.begin(); i < events.end(); i++){
+        os << prefix << prefix2 << *i;
+      }
+      os << prefix2 << "]";
+      return os;
+    }
+};
+
+template<class OBJTYPE>
+ostream& operator<<(ostream& o, GridCellEventsLocalInfo<OBJTYPE>& u){
+  return u.Print(o);
+}
+
+template<class OBJTYPE>
+int GridCellEventsVM( Word* args, Word& result, int message,
+                             Word& local, Supplier s ) {
+  GridCellEventsLocalInfo<OBJTYPE> *li =
+          static_cast<GridCellEventsLocalInfo<OBJTYPE>*>(local.addr);
+
+  OBJTYPE* m = static_cast<OBJTYPE*> (args[0].addr);
+  CcReal* x0 = static_cast<CcReal*>(args[1].addr);
+  CcReal* y0 = static_cast<CcReal*>(args[2].addr);
+  CcReal* wx = static_cast<CcReal*>(args[3].addr);
+  CcReal* wy = static_cast<CcReal*>(args[4].addr);
+  CcInt*  nx = static_cast<CcInt*> (args[5].addr);
+  Tuple *newTuple = 0;
+
+  switch( message )
+  {
+    case OPEN:
+      cout << __PRETTY_FUNCTION__ << ": OPEN called..." << endl;
+      li = new GridCellEventsLocalInfo<OBJTYPE>(*m, *x0, *y0, *wx, *wy, *nx, s);
+      local.addr = li;
+      cout << "li=" << *li;
+      cout << __PRETTY_FUNCTION__ << ": finished OPEN." << endl;
+      return 0;
+
+    case REQUEST:
+      cout << __PRETTY_FUNCTION__ << ": REQUEST called..." << endl;
+      if( !local.addr || li->isFinished() ) {
+        cout << __PRETTY_FUNCTION__ << ": finished REQUEST (CANCEL)." << endl;
+        return CANCEL;
+      }
+      cout << "li=" << *li;
+      newTuple = li->getNextResultTuple();
+      result.setAddr(newTuple);
+      if( newTuple != 0) {
+        cout << __PRETTY_FUNCTION__ << ": finished REQUEST (YIELD)." << endl;
+        return YIELD;
+      }
+      cout << __PRETTY_FUNCTION__ << ": finished REQUEST (CANCEL)." << endl;
+      return CANCEL;
+
+    case CLOSE:
+      cout << __PRETTY_FUNCTION__ << ": CLOSE called..." << endl;
+      if(local.addr){
+        cout << "li=" << *li;
+        delete li;
+        li = 0;
+      }
+      cout << __PRETTY_FUNCTION__ << ": finished CLOSE." << endl;
+      return 0;
+  }
+  /* should not happen */
+  return -1;
+}
 
 /*
 16.4 Definition of operators
@@ -13097,7 +14039,14 @@ ValueMapping MappingTimeShiftMap[] = {
     MappingTimeShift<MBool, UBool>,
     MappingTimeShift<MInt,  UInt>,
     MappingTimeShift<MReal, UReal>,
-    MappingTimeShift<MPoint, UPoint> };
+    MappingTimeShift<MPoint, UPoint>
+};
+
+ValueMapping GridCellEventsValueMapping[] = {
+    GridCellEventsVM<UPoint>,
+    GridCellEventsVM<MPoint>
+};
+
 /*
 16.4.2 Specification strings
 
@@ -13884,6 +14833,21 @@ OperatorInfo TurnsOperatorInfo( "turns",
   "'HeadingDiff' is always in range ]-180.0,180.0]",
   "");
 
+OperatorInfo GridCellEventsOperatorInfo( "gridcellevents",
+  "{upoint,mpoint} -> stream(tuple(Cell int, TimeEntered: instant, "
+  "TimeLeft: instant, CellPrevious: int, CellNext: int))",
+  "gridcellevents( o, x0, y0, wx, wy, nx )",
+  "Given an object 'o' and a regular spatial grid specified by the remaining "
+  "parameters (see operators 'cellnumber' and 'gridintersects'), report all "
+  "visits of 'o' to grid cells. For each stay at a cell, the cell number 'Cell'"
+  ", the instants when 'o' enters and leaves the cell ('TimeEntered', "
+  "'TimeLeft') and the numbers of the two cell visited immediately before "
+  "entering ('CellPrevious') and after leaving ('CellNext') the cell are "
+  "reported. If the cell is entered from/left to a location outside the grid, "
+  "the according cellnumber is set to UNDEF. Regular cell numbers are positive "
+  "integers (excluding '0').",
+  "");
+
 /*
 16.4.3 Operators
 
@@ -14412,6 +15376,11 @@ Operator mappingtimeshift( "timeshift",
                          MovingSimpleSelect,
                          MappingTimeShiftTM );
 
+Operator gridcellevents(  GridCellEventsOperatorInfo,
+                          GridCellEventsValueMapping,
+                          GridCellEventsSelect,
+                          GridCellEventsTypeMapping );
+
 /*
 6 Creating the Algebra
 
@@ -14559,6 +15528,7 @@ class TemporalAlgebra : public Algebra
     AddOperator(&distancetraversedoperator);
     AddOperator(&turns);
     AddOperator(&mappingtimeshift);
+    AddOperator(&gridcellevents);
 
 #ifdef USE_PROGRESS
     temporalunits.EnableProgress();
