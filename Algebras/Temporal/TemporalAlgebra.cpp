@@ -13531,10 +13531,10 @@ class GridCellEventsLocalInfo{
       // (2) Only events inside the grid (with valid cellNo) qualify for
       //     being reported as a result. Events in non-valid cell are only
       //     used to report UNDEF last/next cell numbers.
-      cout << __PRETTY_FUNCTION__ << " called." << endl;
+//       cout << __PRETTY_FUNCTION__ << " called." << endl;
       assert(!finished);
       if(finished){
-        cout << __PRETTY_FUNCTION__ << " finished (false)." << endl;
+//         cout << __PRETTY_FUNCTION__ << " finished (false)." << endl;
         return false;
       }
 
@@ -13543,72 +13543,76 @@ class GridCellEventsLocalInfo{
       bool yield = false;
 
       if( eventIter == events.end() ){ // try to refill event-vector
-        bool ok = tryReload(m);
-        cout << "\tInitial tryRelod: " << (ok ? "succeeded." : "failed.")
-             << endl;
+//         bool ok = tryReload(m);
+//         cout << "\tInitial tryRelod: " << (ok ? "succeeded." : "failed.")
+//              << endl;
       }
 
       // merge consecutive events with same cell number and find a nextEvent
       while( eventIter < events.end() ){
-        cout << "\t\tBegin of while-loop: cellLast=" << cellLast
-        << ", currentEvent=" << currentEvent
-        << ", nextEvent=" << nextEvent
-        << ")" << endl;
+//         cout << "\t\tBegin of while-loop: cellLast=" << cellLast
+//         << ", currentEvent=" << currentEvent
+//         << ", nextEvent=" << nextEvent
+//         << ")" << endl;
         assert(eventIter->IsDefined()); // events from vector should be defined
         if(currentEvent.IsDefined()){   // initialized with UNDEF event!
           if(eventIter->getCellNo() == currentEvent.getCellNo()) {
+//             cout << "\t\tSame cell: " << eventIter->getCellNo() << endl;
             // still within the same cell
             Point pcurr(false), pnext(false);
             m->TemporalFunction(eventIter->getEnterTime(), pnext, true);
             m->TemporalFunction(currentEvent.getLeaveTime(), pcurr, true);
             if(    !g->isValidCellNo(eventIter->getCellNo())
-                || (   eventIter->getEnterTime() == currentEvent.getLeaveTime()
-                    && AlmostEqual(pcurr,pnext)) )
-            {
-              // merge the events
-              cout << "\t\tMerged events:\n\t\t\tcurr=" << currentEvent
-                   << "\t\t\tnext=" << *eventIter;
+                || ( eventIter->getEnterTime() == currentEvent.getLeaveTime() )
+              )
+            { // covers the following case: curr and next cell are the same
+              // and EITHER the cell is off the grid OR the two are temporally
+              // connected
+              // --> merge the events
+//               cout << "\t\tMerged events:\n\t\t\tcurr=" << currentEvent
+//                    << "\t\t\tnext=" << *eventIter;
               currentEvent.set( currentEvent.getCellNo(),
                                 currentEvent.getEnterTime(),
                                 eventIter->getLeaveTime());
-              cout << "\t\t\tmerged event: curr = " << currentEvent << endl;
+//               cout << "\t\t\tmerged event: curr = " << currentEvent << endl;
+            } else if( eventIter->getEnterTime()!=currentEvent.getLeaveTime() )
+            {
+              // both events are valid with same cell but are temporally
+              // unconnected (showing a 'timewarp')
+              // --> set return parameters
+              nextEvent = *eventIter; // save for terminal call (after loop)
+              cell      = currentEvent.getCellNo();
+              timestart = currentEvent.getEnterTime();
+              timeend   = currentEvent.getLeaveTime();
+              cellprev  = cellLast;
+              cellnext  = g->getInvalidCellNo(); // to indicate 'timewarp'
+              yield = true;
+              currentEvent.setCellNo(g->getInvalidCellNo()); // modify
+//               cout << "\t\tcurr is valid (warp-case). Result: (Cell=" << cell
+//               << ", TimeEnter=" << timestart
+//               << ", TimeLeave=" << timeend
+//               << ", CellPrevious=" << cellprev
+//               << ", CellNext=" << cellnext
+//               << ")." << endl;
+              cellLast = g->getInvalidCellNo(); // to indicate 'timewarp'
+              nextEvent = *eventIter; // save for terminal call (after loop)
+              currentEvent = nextEvent;
             } else {
-              if(    AlmostEqual(pcurr,pnext)
-                  && (eventIter->getEnterTime()!=currentEvent.getLeaveTime()) ){
-                // both events valid with same cell but timewarp
-                // --> set return parameters
-                nextEvent = *eventIter; // save for terminal call (after loop)
-                cell      = currentEvent.getCellNo();
-                timestart = currentEvent.getEnterTime();
-                timeend   = currentEvent.getLeaveTime();
-                cellprev  = cellLast;
-                cellnext  = g->getInvalidCellNo();
-                yield = true;
-                currentEvent.setCellNo(g->getInvalidCellNo()); // modify
-                cout << "\t\tcurr is valid (warp-case). Result: (Cell=" << cell
-                << ", TimeEnter=" << timestart
-                << ", TimeLeave=" << timeend
-                << ", CellPrevious=" << cellprev
-                << ", CellNext=" << cellnext
-                << ")." << endl;
-                cellLast = currentEvent.getCellNo();
-                nextEvent = *eventIter; // save for terminal call (after loop)
-                currentEvent = nextEvent;
-              } else {
-                nextEvent = *eventIter; // save for terminal call (after loop)
-                found = true;
-                cout << "\t\tFound interesting event:\n\t\t\tcurr="
-                     << currentEvent << "\n\t\t\tnext=" << *eventIter << endl;
-              }
+              // curr and next are temporally unconnected
+              nextEvent = *eventIter; // save for terminal call (after loop)
+              found = true;
+//               cout << "\t\tFound interesting event (Same cells - "
+//                    << "SHOULD NOT HAPPEN!):\n\t\t\tcurr="
+//                    << currentEvent << "\n\t\t\tnext=" << *eventIter << endl;
             }
           } else {
             nextEvent = *eventIter; // save for terminal call (after the loop)
             found = true;
-            cout << "\t\tFound interesting event:\n\t\t\tcurr="
-                 << currentEvent << "\n\t\t\tnext=" << *eventIter << endl;
+//             cout << "\t\tFound interesting event:\n\t\t\tcurr="
+//                  << currentEvent << "\n\t\t\tnext=" << *eventIter << endl;
           }
           // try handling results
-          if(found ){
+          if( found ){
             if(g->isValidCellNo(currentEvent.getCellNo())){
               // currentEvent valid --> set return parameters
               cell      = currentEvent.getCellNo();
@@ -13617,21 +13621,22 @@ class GridCellEventsLocalInfo{
               cellprev  = cellLast;
               cellnext  = nextEvent.getCellNo();
               yield = true; // flag to return at end of this loop!
-              cout << "\t\tcurr is valid (normal case). Result: (Cell=" << cell
-                  << ", TimeEnter=" << timestart
-                  << ", TimeLeave=" << timeend
-                  << ", CellPrevious=" << cellprev
-                  << ", CellNext=" << cellnext
-                  << ")." << endl;
+//               cout << "\t\tcurr is valid (normal case). Result: (Cell="
+//                   << cell
+//                   << ", TimeEnter=" << timestart
+//                   << ", TimeLeave=" << timeend
+//                   << ", CellPrevious=" << cellprev
+//                   << ", CellNext=" << cellnext
+//                   << ")." << endl;
             } else {
-              cout << "\t\tcurr is invalid. Ignore!" << endl;
+//               cout << "\t\tcurr is invalid. Ignore!" << endl;
             }
             cellLast = currentEvent.getCellNo();
             currentEvent = nextEvent;
             found = false;
           }
         } else { // currEvent is not defined (first call)
-          cout << "\t\tInitial event: shift" << endl;
+//           cout << "\t\tInitial event: shift" << endl;
           currentEvent = *eventIter;
         }
         // advance iterator to next event
@@ -13639,17 +13644,17 @@ class GridCellEventsLocalInfo{
         if(eventIter == events.end()){
           // no more events generated by this unit - try loading new events
           // from the next unit:
-          bool ok = tryReload(m);
-          cout << "\ttryRelod: " << (ok ? "succeeded." : "failed.") << endl;
+//           bool ok = tryReload(m);
+//           cout << "\ttryRelod: " << (ok ? "succeeded." : "failed.") << endl;
         }
         if(yield){
-          cout << __PRETTY_FUNCTION__ << " finished (true)." << endl;
+//           cout << __PRETTY_FUNCTION__ << " finished (true)." << endl;
           return true; // result was generated --> return
         }
-        cout << "\t\tEnd of while-loop: cellLast=" << cellLast
-        << ", currentEvent=" << currentEvent
-        << ", nextEvent=" << nextEvent
-        << ")" << endl;
+//         cout << "\t\tEnd of while-loop: cellLast=" << cellLast
+//         << ", currentEvent=" << currentEvent
+//         << ", nextEvent=" << nextEvent
+//         << ")" << endl;
       } // end while
 
       // no nextEvent found. Try to process current event
@@ -13660,21 +13665,20 @@ class GridCellEventsLocalInfo{
           timeend   = currentEvent.getLeaveTime();
           cellprev  = cellLast;
           cellnext  = g->getInvalidCellNo();
-          cout << "\t\tTerminal event: curr is valid. Result: (Cell=" << cell
-          << ", TimeEnter=" << timestart
-          << ", TimeLeave=" << timeend
-          << ", CellPrevious=" << cellprev
-          << ", CellNext=" << cellnext
-          << ")." << endl;
-
+//           cout << "\t\tTerminal event: curr is valid. Result: (Cell=" << cell
+//                << ", TimeEnter=" << timestart
+//                << ", TimeLeave=" << timeend
+//                << ", CellPrevious=" << cellprev
+//                << ", CellNext=" << cellnext
+//                << ")." << endl;
           finished = true; // because no more events available!
-          cout << __PRETTY_FUNCTION__ << " finished (true)." << endl;
+//           cout << __PRETTY_FUNCTION__ << " finished (true)." << endl;
           return true;
       } else {// else: currentEvent not on grid and no more events --> finished!
-        cout << "\t\tTerminal event: curr is invalid." << endl;
+//         cout << "\t\tTerminal event: curr is invalid." << endl;
       }
       finished = true;
-      cout << __PRETTY_FUNCTION__ << " finished (false)." << endl;
+//       cout << __PRETTY_FUNCTION__ << " finished (false)." << endl;
       return false;
     }
 
@@ -13743,11 +13747,11 @@ int GridCellEventsVM( Word* args, Word& result, int message,
   switch( message )
   {
     case OPEN:
-      cout << __PRETTY_FUNCTION__ << ": OPEN called..." << endl;
+//       cout << __PRETTY_FUNCTION__ << ": OPEN called..." << endl;
       li = new GridCellEventsLocalInfo<OBJTYPE>(*m, *x0, *y0, *wx, *wy, *nx, s);
       local.addr = li;
-      cout << "li=" << *li;
-      cout << __PRETTY_FUNCTION__ << ": finished OPEN." << endl;
+//       cout << "li=" << *li;
+//       cout << __PRETTY_FUNCTION__ << ": finished OPEN." << endl;
       return 0;
 
     case REQUEST:
@@ -13767,13 +13771,13 @@ int GridCellEventsVM( Word* args, Word& result, int message,
       return CANCEL;
 
     case CLOSE:
-      cout << __PRETTY_FUNCTION__ << ": CLOSE called..." << endl;
+//       cout << __PRETTY_FUNCTION__ << ": CLOSE called..." << endl;
       if(local.addr){
-        cout << "li=" << *li;
+//         cout << "li=" << *li;
         delete li;
         li = 0;
       }
-      cout << __PRETTY_FUNCTION__ << ": finished CLOSE." << endl;
+//       cout << __PRETTY_FUNCTION__ << ": finished CLOSE." << endl;
       return 0;
   }
   /* should not happen */
