@@ -770,8 +770,9 @@ inline bool Rectangle<dim>::Proper() const
   if( (this->del.isDefined) )
   {
     for( unsigned i = 0; i < dim; i++ )
-      if( min[i] > max[i] )
-           return false;
+      if( min[i] > max[i] ) {
+        return false;
+      }
   }
   return true;
 }

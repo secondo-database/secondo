@@ -2552,13 +2552,13 @@ struct cellnumber_Info : OperatorInfo {
 
   cellnumber_Info() : OperatorInfo()
   {
-    name =      "cellnumber";
+    name = "cellnumber";
     signature =
         "rect x real x real x real x real x int -> stream(int)\n"
         "rect3 x real x real x real x real x real x real x int x int"
         "-> stream(int)";
-    syntax =    "cellnumber( box, x0, y0, [z0,] wx, wy, [wz,] nx, [ny] )";
-    meaning =   "Returns a stream of numbers of all cells intersected by box "
+    syntax = "cellnumber( box, x0, y0, [z0,] wx, wy, [wz,] nx, [ny] )";
+    meaning = "Returns a stream of numbers of all cells intersected by box "
         "with respect to a regular 2D- [3D-] grid starting at (x0,y0 [,z0]) and"
         "--- for positive widths --- extending to the first quadrant (octant). "
         "Each cell has widths wx, wy [and wz]. nx [and ny] determine the "
@@ -2574,8 +2574,8 @@ struct gridintersects_Info : OperatorInfo {
   gridintersects_Info() : OperatorInfo()
   {
     name = "gridintersects";
-    signature = "real x real x real x real x int x "
-        "rectangle x rectangle x int -> bool\n"
+    signature = "real x real [x real] x real x real [x real] x int [x int] x "
+        "rectangle x rectangle -> bool\n"
         "real x real x real x real x real x real"
         "x int x int x rect x rect x int -> bool";
     syntax = "op ( x0, y0, [z0,] wx, wy, [wz,] nx, [ny,] box1, box2)";
