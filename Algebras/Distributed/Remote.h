@@ -46,91 +46,91 @@ using namespace std;
 
 class DServer
 {
-	    public:
-			   DServer(string,int,string,ListExpr);
-			   void Terminate();
-			   //Word getData();
-			   //void setData(Word);
-			   void setCmd(string,ListExpr,Word*);
-			   void run();
-			   
-			   int getState();
-	    
-			   bool Multiply(int count);
-			   DServer** getChilds() { return childs; }
-			   void DestroyChilds();
-		  
-			   int status;
-			   int getNumChilds() { return num_childs;}
-	    
-	    private:
-			   string host,name,cmd;
-			   int port,state;
-			   ListExpr type,arg;
-			   Word* elements;
-	    
-			   CSProtocol* csp;
-			   Socket* server;
-	    
-			   Socket* cbworker;
-	 
-			   int num_childs;
-			   DServer** childs;
-			   
-			   bool rel_open;
+         public:
+                  DServer(string,int,string,ListExpr);
+                  void Terminate();
+                  //Word getData();
+                  //void setData(Word);
+                  void setCmd(string,ListExpr,Word*);
+                  void run();
+                  
+                  int getState();
+         
+                  bool Multiply(int count);
+                  DServer** getChilds() { return childs; }
+                  void DestroyChilds();
+            
+                  int status;
+                  int getNumChilds() { return num_childs;}
+         
+         private:
+                  string host,name,cmd;
+                  int port,state;
+                  ListExpr type,arg;
+                  Word* elements;
+         
+                  CSProtocol* csp;
+                  Socket* server;
+         
+                  Socket* cbworker;
+      
+                  int num_childs;
+                  DServer** childs;
+                  
+                  bool rel_open;
 };
 
 class DServerManager
 {
-	   public:
-			 DServerManager(ListExpr serverlist_n, 
-				string name_n, ListExpr type, int sizeofarray);
-			 ~DServerManager();
-			 DServer* getServerByIndex(int index);
-			 DServer* getServerbyID(int id);
-	
-			int getMultipleServerIndex(int index);
-			 
-			 //int getID(int index) = 0;
-			 ListExpr getIndexList(int id);
-			 ListExpr getNamedIndexList(int id);
-	   
-			 int getNoOfServers();
-	
-	   
-	   private:
-			 
-			 DServer** serverlist;
-			 ListExpr server;
-			 int size;
-			 int array_size;
-			 string name;
+        public:
+                DServerManager(ListExpr serverlist_n, 
+                    string name_n, ListExpr type, int sizeofarray);
+                ~DServerManager();
+                DServer* getServerByIndex(int index);
+                DServer* getServerbyID(int id);
+     
+               int getMultipleServerIndex(int index);
+                
+                //int getID(int index) = 0;
+                ListExpr getIndexList(int id);
+                ListExpr getNamedIndexList(int id);
+        
+                int getNoOfServers();
+     
+        
+        private:
+                
+                DServer** serverlist;
+                ListExpr server;
+                int size;
+                int array_size;
+                string name;
 };
 
 class DServerExecutor : public ZThread::Runnable
 {
-	DServer* server;
-	public:
-	DServerExecutor(DServer* s) {server=s;}
-	
-	void run() {server->run();}
+     DServer* server;
+     public:
+     DServerExecutor(DServer* s) {server=s;}
+     
+     void run() {server->run();}
 };
 
 class RelationWriter : public ZThread::Runnable
 {
-	DServer* worker;
-	Word* elements;
-	ListExpr arg;
-	public:
-	RelationWriter(DServer* s, Word* e, ListExpr a) 
-	{worker=s; elements = e; arg = a;}
-	
-	void run();
+     DServer* worker;
+     Word* elements;
+     ListExpr arg;
+     public:
+     RelationWriter(DServer* s, Word* e, ListExpr a) 
+     {worker=s; elements = e; arg = a;}
+     
+     void run();
 };
-	
-			   
-			   
-			   
+     
+                  
+                  
+                  
 
 
 #endif
