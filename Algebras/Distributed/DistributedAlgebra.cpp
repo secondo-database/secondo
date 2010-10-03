@@ -1280,16 +1280,17 @@ static int receiveFun( Word* args,
      host = replaceAll(host,"_",".");
      host = replaceAll(host,"h","");
      port = replaceAll(port,"p","");
-
+     cout << "Funktion ist gestartet!" << endl;
      Socket* master = Socket::Connect(host,port,Socket::SockGlobalDomain);
      
-     
+     cout << "Socket wird versucht..." << endl;
      
      if(master!=0 && master->IsOk())
      {
 
           iostream& iosock = master->GetSocketStream();
           iosock << "LOS" << endl;
+          cout << "Socket ist da..." << endl;
           getline(iosock,line);
           
           if(line=="<TYPE>")
@@ -1304,8 +1305,9 @@ static int receiveFun( Word* args,
                     int algID,typID;
                     extractIds(type,algID,typID);
                     size_t size =0;
-                    
+                    cout << "Typ ist da..." << endl;
                     getline(iosock,line);
+cout << "Fehler des Sockets: " << master->GetErrorText() << endl;
                     if(line=="<SIZE>")
                     {
                     getline(iosock,line);
@@ -1315,10 +1317,11 @@ static int receiveFun( Word* args,
                     getline(iosock,line);
                     if(line=="</SIZE>")
                     {
-                         
+                         cout << "Size ist da..." << endl;
                          char* buffer = new char[size]; 
                          iosock.read(buffer,size);
-
+                         cout << "Daten sind da..." << endl;
+cout << "Fehler des Sockets: " << master->GetErrorText() << endl;
 
                          SmiRecordFile recF(false,0);
                          SmiRecord rec;
@@ -1332,22 +1335,24 @@ static int receiveFun( Word* args,
                          
                          result = qp->ResultStorage(s);
                          am->OpenObj(algID,typID,rec,s0,type,result); 
+cout << "Annahme von: " << nl->ToString((am->OutObj(algID,typID))(type,result))
+                         << endl;
 
                          rec.Truncate(3);
                          recF.DeleteRecord(recID);
                          recF.Close();
-                         
+                         iosock << "<FINISH>" << endl;
 
                     }}
                     
                }
                master->Close();delete master;master=0;
-              
+              cout << "Man glaubt es passt" << endl;
                return 0;
           }
      
      }
-      
+      cout << "FEHLERHAFTE AUSFÜHRUNG" << endl;
      result = qp->ResultStorage(s);
      ((CcInt*)(result.addr))->Set(true,3);
      return 0;               

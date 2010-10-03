@@ -220,6 +220,9 @@ void DServer::run()
                 
                 worker->Write(buffer,size);
                 
+                getline(cbsock,line);
+                if(line!="<FINISH>") cout << "FEHLER";
+                
                 rec.Truncate(3);
                 recF.DeleteRecord(recID);
                 recF.Close();
