@@ -1752,6 +1752,8 @@ distributeFun (Word* args, Word& result, int message, Word& local, Supplier s)
      qp->Open(args[0].addr);
      qp->Request(args[0].addr,current);
      
+     ZThread::ThreadedExecutor ex;
+     
      while(qp->Received(args[0].addr))
      {
           Tuple* tuple1 = (Tuple*)current.addr;
@@ -1777,8 +1779,12 @@ distributeFun (Word* args, Word& result, int message, Word& local, Supplier s)
           Word* w = new Word(1);
           w[0] = SetWord(tuple2);tuple2->IncReference();
 
+          while(server->status != 0) ZThread::Thread::yield();
+          server->status = 1;
           server->setCmd("write_rel",nl->IntAtom(index),w);
-          server->run();
+          DServerExecutor* exec = new DServerExecutor(server);
+          ex.execute(exec);
+          //server->run();
 
           tuple2->DeleteIfAllowed();
           

@@ -48,8 +48,10 @@ using namespace std;
 void extractIds(const ListExpr,int&,int&);
 string toString_d(int);
 
-const string HostIP = "127.0.0.1";
-const string HostIP_ = "h127_0_0_1";
+/*const string HostIP = "84.74.163.156";
+const string HostIP_ = "h84_74_163_156";*/
+string HostIP;
+string HostIP_;
 
 DServer::DServer(string n_host,int n_port,string n_name,ListExpr n_type)
 {
@@ -120,6 +122,8 @@ DServer::DServer(string n_host,int n_port,string n_name,ListExpr n_type)
 	string ip;
 	ip = server->GetSocketAddress();
 	cout << "Die IP-Adresse lautet: " << ip << endl;
+     HostIP = ip;
+     HostIP_ = "h" + replaceAll(ip,".","_");
 }
 
 void DServer::Terminate()
@@ -610,6 +614,7 @@ void DServer::run()
                      
 	//ZThread::Thread::cancel();
 	cout << "Run " << nl->ToString(arg) << " has finished!" << endl;
+           status = 0;
 }
 
 bool DServer::Multiply(int count)

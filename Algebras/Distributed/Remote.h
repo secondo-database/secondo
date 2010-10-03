@@ -60,7 +60,7 @@ class DServer
                   DServer** getChilds() { return childs; }
                   void DestroyChilds();
 		  
-
+                  int status;
                   int getNumChilds() { return num_childs;}
          
          private:
