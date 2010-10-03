@@ -46,65 +46,65 @@ using namespace std;
 
 class DServer
 {
-         public:
-                  DServer(string,int,string,ListExpr);
-                  void Terminate();
-                  //Word getData();
-                  //void setData(Word);
-                  void setCmd(string,ListExpr,Word*);
-                  void run();
-                  
-                  int getState();
-         
-                  bool Multiply(int count);
-                  DServer** getChilds() { return childs; }
-                  void DestroyChilds();
+	    public:
+			   DServer(string,int,string,ListExpr);
+			   void Terminate();
+			   //Word getData();
+			   //void setData(Word);
+			   void setCmd(string,ListExpr,Word*);
+			   void run();
+			   
+			   int getState();
+	    
+			   bool Multiply(int count);
+			   DServer** getChilds() { return childs; }
+			   void DestroyChilds();
 		  
-                  int status;
-                  int getNumChilds() { return num_childs;}
-         
-         private:
-                  string host,name,cmd;
-                  int port,state;
-                  ListExpr type,arg;
-                  Word* elements;
-         
-                  CSProtocol* csp;
-                  Socket* server;
-         
-                  Socket* cbworker;
+			   int status;
+			   int getNumChilds() { return num_childs;}
+	    
+	    private:
+			   string host,name,cmd;
+			   int port,state;
+			   ListExpr type,arg;
+			   Word* elements;
+	    
+			   CSProtocol* csp;
+			   Socket* server;
+	    
+			   Socket* cbworker;
 	 
-                  int num_childs;
-                  DServer** childs;
-                  
-                  bool rel_open;
+			   int num_childs;
+			   DServer** childs;
+			   
+			   bool rel_open;
 };
 
 class DServerManager
 {
-        public:
-                DServerManager(ListExpr serverlist_n, 
-                        string name_n, ListExpr type, int sizeofarray);
-                ~DServerManager();
-                DServer* getServerByIndex(int index);
-                DServer* getServerbyID(int id);
+	   public:
+			 DServerManager(ListExpr serverlist_n, 
+				string name_n, ListExpr type, int sizeofarray);
+			 ~DServerManager();
+			 DServer* getServerByIndex(int index);
+			 DServer* getServerbyID(int id);
 	
-               int getMultipleServerIndex(int index);
-                
-                //int getID(int index) = 0;
-                ListExpr getIndexList(int id);
-                ListExpr getNamedIndexList(int id);
-        
-                int getNoOfServers();
+			int getMultipleServerIndex(int index);
+			 
+			 //int getID(int index) = 0;
+			 ListExpr getIndexList(int id);
+			 ListExpr getNamedIndexList(int id);
+	   
+			 int getNoOfServers();
 	
-        
-        private:
-                
-                DServer** serverlist;
-                ListExpr server;
-                int size;
-                int array_size;
-                string name;
+	   
+	   private:
+			 
+			 DServer** serverlist;
+			 ListExpr server;
+			 int size;
+			 int array_size;
+			 string name;
 };
 
 class DServerExecutor : public ZThread::Runnable
@@ -123,14 +123,14 @@ class RelationWriter : public ZThread::Runnable
 	ListExpr arg;
 	public:
 	RelationWriter(DServer* s, Word* e, ListExpr a) 
-     {worker=s; elements = e; arg = a;}
+	{worker=s; elements = e; arg = a;}
 	
 	void run();
 };
 	
-                  
-                  
-                  
+			   
+			   
+			   
 
 
 #endif

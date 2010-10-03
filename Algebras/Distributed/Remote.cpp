@@ -64,14 +64,14 @@ DServer::DServer(string n_host,int n_port,string n_name,ListExpr n_type)
         rel_open = false;
      
         num_childs = 0;
-	char* g = new char[20];
-	char* szIPAddress = new char[15];
-	gethostname(g,20);
-	cout << "Eigener Hostname ist: " << g << endl;
-	//PHOSTENT host;
-	//host = gethostbyname(g);
-	//szIPAddress = inet_ntoa (*(struct in_addr *)*hostinfo->h_addr_list); 
-	//cout << "Eigene IP-Adresse ist: " << szIPAddress << endl;
+     char* g = new char[20];
+     char* szIPAddress = new char[15];
+     gethostname(g,20);
+     cout << "Eigener Hostname ist: " << g << endl;
+     //PHOSTENT host;
+     //host = gethostbyname(g);
+     //szIPAddress = inet_ntoa (*(struct in_addr *)*hostinfo->h_addr_list); 
+     //cout << "Eigene IP-Adresse ist: " << szIPAddress << endl;
         
         string line;
         
@@ -119,9 +119,9 @@ DServer::DServer(string n_host,int n_port,string n_name,ListExpr n_type)
         }
         else cout << "ERROR3";
         
-	string ip;
-	ip = server->GetSocketAddress();
-	cout << "Die IP-Adresse lautet: " << ip << endl;
+     string ip;
+     ip = server->GetSocketAddress();
+     cout << "Die IP-Adresse lautet: " << ip << endl;
      HostIP = ip;
      HostIP_ = "h" + replaceAll(ip,".","_");
 }
@@ -294,9 +294,9 @@ void DServer::run()
                      rec.Write(buffer,size,0);
                      Word w;
                      size_t s = 0;
-	
+     
                      am->OpenObj(algID,typID,rec,s,type,w);
-		     
+               
                      elements[arg2].addr = w.addr;
                      recF.DeleteRecord(recID);
                      recF.Close();
@@ -359,7 +359,7 @@ void DServer::run()
                 if(!nl->IsAtom(arg) && !nl->IsEmpty(arg)) arg = nl->Rest(arg);
                 }
                 while(!nl->IsAtom(arg) && !nl->IsEmpty(arg));
-		
+          
         }
         
         if(cmd=="copy")
@@ -516,11 +516,11 @@ void DServer::run()
                 int algID,typID;
                 ListExpr akt;
                 extractIds(type,algID,typID);
-		
-		do
-		{
-		if(!nl->IsAtom(arg)) akt = nl->First(arg);
-		else akt = arg;
+          
+          do
+          {
+          if(!nl->IsAtom(arg)) akt = nl->First(arg);
+          else akt = arg;
                 
                 arg2 = nl->IntValue(akt);
                 string line;        
@@ -605,15 +605,15 @@ void DServer::run()
                            //             ( type, ls, 1, errorInfo, correct));
                 }
                 else cout << "DATENFEHLER LESEN";
-		
-		if(!nl->IsEmpty(arg) && !nl->IsAtom(arg)) arg=nl->Rest(arg);
-		}while(!nl->IsEmpty(arg) && !nl->IsAtom(arg));
+          
+          if(!nl->IsEmpty(arg) && !nl->IsAtom(arg)) arg=nl->Rest(arg);
+          }while(!nl->IsEmpty(arg) && !nl->IsAtom(arg));
            }
-	   
+        
                      
                      
-	//ZThread::Thread::cancel();
-	cout << "Run " << nl->ToString(arg) << " has finished!" << endl;
+     //ZThread::Thread::cancel();
+     cout << "Run " << nl->ToString(arg) << " has finished!" << endl;
            status = 0;
 }
 
@@ -721,21 +721,21 @@ int DServerManager::getNoOfServers() {return size;}
 
 int DServerManager::getMultipleServerIndex(int index)
 {
-	return (index / size) - 1;
+     return (index / size) - 1;
 }
         
 void RelationWriter::run()
 {
-	ListExpr akt;
-	int index;
-	cout << "Los gehts!" << endl;
-	do
-	{ 
-		if(!nl->IsAtom(arg)) akt = nl->First(arg);
-		else akt = arg;
-		index = nl->IntValue(akt);
-	cout << "Beginn von Element " << toString_d(index) << endl;
-	GenericRelation* rel = (Relation*)elements[index].addr;
+     ListExpr akt;
+     int index;
+     cout << "Los gehts!" << endl;
+     do
+     { 
+          if(!nl->IsAtom(arg)) akt = nl->First(arg);
+          else akt = arg;
+          index = nl->IntValue(akt);
+     cout << "Beginn von Element " << toString_d(index) << endl;
+     GenericRelation* rel = (Relation*)elements[index].addr;
         GenericRelationIterator* iter = rel->MakeScan();
      
      
@@ -754,12 +754,12 @@ void RelationWriter::run()
           
           word[0].addr = t;t->IncReference();
           worker->setCmd("write_rel",nl->TheEmptyList(),word);
-	     cout << "Abfahrbereit" << endl;
+          cout << "Abfahrbereit" << endl;
           worker->run();
           t->DeleteIfAllowed();
-	 cout << "Tuple geschrieben und gelöscht!" << endl;
+      cout << "Tuple geschrieben und gelöscht!" << endl;
           t = iter->GetNextTuple();
-	  cout << "Neues Tuple geholt" << endl;
+       cout << "Neues Tuple geholt" << endl;
      }
      
      worker->setCmd("close_write_rel",nl->TheEmptyList(),0);

@@ -184,7 +184,7 @@ class DArray
          ListExpr getType();
          
          void refresh(int);
-	 void refresh();
+      void refresh();
          
          void remove();
          
@@ -306,7 +306,7 @@ void DArray::remove()
 {
          
          if(defined){
-	    ZThread::ThreadedExecutor exec;
+         ZThread::ThreadedExecutor exec;
          for(int i = 0;i<manager->getNoOfServers();i++)
          {
                   DServer* server = manager->getServerbyID(i);
@@ -315,7 +315,7 @@ void DArray::remove()
                   exec.execute(server_ex);//server->run();
          }
          exec.wait();
-	 }
+      }
                   
 }
 
@@ -335,16 +335,16 @@ void DArray::refresh(int i)
                server->setCmd("read",nl->IntAtom(i),elements);
                server->run();
          }
-	 present[i] = true;
+      present[i] = true;
 }
 
 void DArray::refresh()
 {
      ZThread::ThreadedExecutor exec;
-	DServerExecutor* server_ex;
+     DServerExecutor* server_ex;
      /*if(isRelation)*/ for(int i=0;i<size;i++)
-	{if(present[i])(am->DeleteObj(alg_id,typ_id))(type,elements[i]);
-	if(isRelation) elements[i].addr = 
+     {if(present[i])(am->DeleteObj(alg_id,typ_id))(type,elements[i]);
+     if(isRelation) elements[i].addr = 
           (am->CreateObj(alg_id,typ_id))(type).addr;}
      
      //delete elements;
@@ -367,7 +367,7 @@ void DArray::refresh()
           
          server_ex = new DServerExecutor(server);
          exec.execute(server_ex);
-	}
+     }
     exec.wait();
     
     for(int i=0;i<size;i++) present[i] = true;
@@ -408,11 +408,11 @@ void DArray::initialize(ListExpr n_type, string n, int s,
                   server->setCmd("write",nl->IntAtom(i),elements);
                   server->run();
          }*/
-	 for(int i = 0; i< size; i++) present[i] = true;
-	ZThread::ThreadedExecutor exec;
-	if(!isRelation){
+      for(int i = 0; i< size; i++) present[i] = true;
+     ZThread::ThreadedExecutor exec;
+     if(!isRelation){
          
-	for(int i = 0; i<manager->getNoOfServers();i++)
+     for(int i = 0; i<manager->getNoOfServers();i++)
          {
 
                  DServer* server = manager->getServerbyID(i);
@@ -423,13 +423,13 @@ void DArray::initialize(ListExpr n_type, string n, int s,
           }
           else
                for(int i= 0;i<manager->getNoOfServers();i++)
-		{
-			RelationWriter* write = new RelationWriter
+          {
+               RelationWriter* write = new RelationWriter
                (manager->getServerbyID(i),elements,manager->getIndexList(i));
-			exec.execute(write);
-		}
-	  exec.wait();
-	  cout << "DArray mit großem Erfolg geschrieben!!" << endl;
+               exec.execute(write);
+          }
+       exec.wait();
+       cout << "DArray mit großem Erfolg geschrieben!!" << endl;
 }
 
 
@@ -604,7 +604,7 @@ ListExpr DArray::Out( ListExpr typeInfo, Word value )
          ListExpr last;
          ListExpr element;
          list = nl->OneElemList(a->getServerList());last=list;
-	a->refresh();
+     a->refresh();
          
          if(a->isDefined())// && !a->isRelType())
                   for(int i = 0; i<a->getSize();i++)
@@ -1198,7 +1198,7 @@ static int sendFun( Word* args,
      }
                     
      return 0;               
-		
+          
                     
      }
          
@@ -1351,7 +1351,7 @@ static int receiveFun( Word* args,
      result = qp->ResultStorage(s);
      ((CcInt*)(result.addr))->Set(true,3);
      return 0;               
-		
+          
                     
 }
          
@@ -1699,26 +1699,26 @@ static ListExpr distributeTypeMap( ListExpr inargs )
 static int
 distributeFun (Word* args, Word& result, int message, Word& local, Supplier s)
 {
-	int size = ((CcInt*)(args[2].addr))->GetIntval();
-	
-	GenericRelation* r = (GenericRelation*)args[3].addr;
+     int size = ((CcInt*)(args[2].addr))->GetIntval();
+     
+     GenericRelation* r = (GenericRelation*)args[3].addr;
         GenericRelationIterator* rit = r->MakeScan();
          ListExpr reltype;
          nl->ReadFromString("(rel (tuple ((Server string) (Port int))))",
                                          reltype);
-	ListExpr serverlist = Relation::Out(reltype,rit);
-	
-	int attrIndex = ((CcInt*)(args[4].addr))->GetIntval() - 1;
-	
-	SecondoCatalog* sc = SecondoSystem::GetCatalog();
-	ListExpr restype = nl->Second(qp->GetType(s));
-	restype = sc->NumericType(restype);
+     ListExpr serverlist = Relation::Out(reltype,rit);
+     
+     int attrIndex = ((CcInt*)(args[4].addr))->GetIntval() - 1;
+     
+     SecondoCatalog* sc = SecondoSystem::GetCatalog();
+     ListExpr restype = nl->Second(qp->GetType(s));
+     restype = sc->NumericType(restype);
 
-	
-	DArray* array = (DArray*)(qp->ResultStorage(s)).addr;
-	array->initialize(restype,getArrayName(DArray::no),
-							size, serverlist);
-	DServerManager* man = array->getServerManager();
+     
+     DArray* array = (DArray*)(qp->ResultStorage(s)).addr;
+     array->initialize(restype,getArrayName(DArray::no),
+                                   size, serverlist);
+     DServerManager* man = array->getServerManager();
      DServer* server = 0;
      DServer** childs = 0;
      
@@ -1745,7 +1745,7 @@ distributeFun (Word* args, Word& result, int message, Word& local, Supplier s)
      
 
      int number = 0;               
-	
+     
      ListExpr tupleType = nl->Second(restype);
      Word current = SetWord( Address (0) );
      
@@ -1816,12 +1816,12 @@ distributeFun (Word* args, Word& result, int message, Word& local, Supplier s)
      result.addr = array;
      return 0;
         
-	
+     
 }
-	
-	
-	
-	
+     
+     
+     
+     
 
 const string distributeSpec =
    "(( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
