@@ -2610,13 +2610,13 @@ ostream& operator<<(ostream& o, const GridCellSeq& u){
 bool myCompare (DateTime i, DateTime j) { return (i<j); }
 
 void UPoint::GetGridCellSequence(CellGrid2D &g, vector<GridCellSeq> &res){
-  cout << __PRETTY_FUNCTION__ << " called..." << endl;
-  cout << "\t*this = " << *this << endl;
+//   cout << __PRETTY_FUNCTION__ << " called..." << endl;
+//   cout << "\t*this = " << *this << endl;
   res.clear();
   res.resize(0);
   if(!IsDefined() && !g.IsDefined()){
-    cout << "\t*this is undefined. No result!" << endl;
-    cout << __PRETTY_FUNCTION__ << " finished." << endl;
+    cout << "\t*this is undefined." << endl;
+//     cout << __PRETTY_FUNCTION__ << " finished." << endl;
     return;
   }
   double minX = min(p0.GetX(),p1.GetX());
@@ -2627,14 +2627,14 @@ void UPoint::GetGridCellSequence(CellGrid2D &g, vector<GridCellSeq> &res){
       || (maxX < g.getMinX()) || (maxY < g.getMinY())){
     // p0 and p1 outside the grid and unit does not cross the grid.
     //         Complete unit out of grid: return empty result.
-    cout << "\t*this located completely off the grid. No result!" << endl;
-    cout << __PRETTY_FUNCTION__ << " finished." << endl;
+//     cout << "\t*this located completely off the grid. No result!" << endl;
+//     cout << __PRETTY_FUNCTION__ << " finished." << endl;
     return;
   }
 
   if(AlmostEqual(p0,p1)){
     // special case: static unit
-    cout << "\tSpecial case: static unit." << endl;
+//     cout << "\tSpecial case: static unit." << endl;
     double x = (p0.GetX() + p1.GetX())/2;
     double y = (p0.GetY() + p1.GetY())/2;
     if(g.onGrid(x,y)){
@@ -2643,9 +2643,9 @@ void UPoint::GetGridCellSequence(CellGrid2D &g, vector<GridCellSeq> &res){
                           g.getCellNo(x,y)
                    );
       res.push_back(event);
-      cout << "\t\tAdded to Result: " << event << endl;
+//       cout << "\t\tAdded to Result: " << event << endl;
     }
-    cout << __PRETTY_FUNCTION__ << " finished." << endl;
+//     cout << __PRETTY_FUNCTION__ << " finished." << endl;
     return;
   }
 
@@ -13755,19 +13755,19 @@ int GridCellEventsVM( Word* args, Word& result, int message,
       return 0;
 
     case REQUEST:
-      cout << __PRETTY_FUNCTION__ << ": REQUEST called..." << endl;
+//       cout << __PRETTY_FUNCTION__ << ": REQUEST called..." << endl;
       if( !local.addr || li->isFinished() ) {
-        cout << __PRETTY_FUNCTION__ << ": finished REQUEST (CANCEL)." << endl;
+//         cout << __PRETTY_FUNCTION__<< ": finished REQUEST (CANCEL)." << endl;
         return CANCEL;
       }
       cout << "li=" << *li;
       newTuple = li->getNextResultTuple();
       result.setAddr(newTuple);
       if( newTuple != 0) {
-        cout << __PRETTY_FUNCTION__ << ": finished REQUEST (YIELD)." << endl;
+//         cout << __PRETTY_FUNCTION__ << ": finished REQUEST (YIELD)." << endl;
         return YIELD;
       }
-      cout << __PRETTY_FUNCTION__ << ": finished REQUEST (CANCEL)." << endl;
+//       cout << __PRETTY_FUNCTION__ << ": finished REQUEST (CANCEL)." << endl;
       return CANCEL;
 
     case CLOSE:
