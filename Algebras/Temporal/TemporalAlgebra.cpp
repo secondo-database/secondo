@@ -921,7 +921,7 @@ int UReal::AtMin(vector<UReal>& result) const
     if( correct )
       result.push_back(unit);
     else
-      cout << "UReal::AtMin(): This should not happen!" << endl;
+      cerr << "UReal::AtMin(): This should not happen!" << endl;
   }
   return result.size();
 }
@@ -981,7 +981,7 @@ int UReal::AtMax( vector<UReal>& result) const
     if( correct )
       result.push_back(unit);
     else
-      cout << "UReal::AtMax(): This should not happen!" << endl;
+      cerr << "UReal::AtMax(): This should not happen!" << endl;
   }
   return result.size();
 }
@@ -1131,7 +1131,7 @@ indicate whether their temporal values are equal or not.
 int UReal::IsEqual(const UReal& other, vector<UBool>& result) const
 {
   result.clear();
-  cout << "UReal::IsEqual() Not Yet Implemented!" << endl;
+  cerr << "UReal::IsEqual() Not Yet Implemented!" << endl;
   return 0;
 }
 
@@ -2615,7 +2615,7 @@ void UPoint::GetGridCellSequence(CellGrid2D &g, vector<GridCellSeq> &res){
   res.clear();
   res.resize(0);
   if(!IsDefined() && !g.IsDefined()){
-    cout << "\t*this is undefined." << endl;
+//     cout << "\t*this is undefined." << endl;
 //     cout << __PRETTY_FUNCTION__ << " finished." << endl;
     return;
   }
@@ -2824,13 +2824,13 @@ void UPoint::GetGridCellSequence(CellGrid2D &g, vector<GridCellSeq> &res){
 //     cout << "\t\tAdded to Result: " << event << endl;
   }
 
-  cout << "\n\tFinal result: res = :" << endl;
-  for(vector<GridCellSeq>::iterator i = res.begin(); i < res.end(); i++){
-    cout << "\t\t" << *i << endl;
-  }
-  cout << endl;
+//   cout << "\n\tFinal result: res = :" << endl;
+//   for(vector<GridCellSeq>::iterator i = res.begin(); i < res.end(); i++){
+//     cout << "\t\t" << *i << endl;
+//   }
+//   cout << endl;
 
-  cout << __PRETTY_FUNCTION__ << " finished." << endl;
+//   cout << __PRETTY_FUNCTION__ << " finished." << endl;
   return;
 }
 
@@ -3989,7 +3989,7 @@ void MReal::Simplify(const double epsilon, MReal& result) const{
       } else {
          if(useleft[i]){
              if(leftDefined){ // debug
-                cout << "Overwrite left part of a ureal " << endl;
+                cerr << "Overwrite left part of a ureal " << endl;
              }
              start = unit.timeInterval.start;
              lc = unit.timeInterval.lc;
@@ -3998,7 +3998,7 @@ void MReal::Simplify(const double epsilon, MReal& result) const{
          }
          if(useright[i]){
              if(!leftDefined){ // debug
-                 cout << "Close ural without left definition " << endl;
+                 cerr << "Close ureal without left definition " << endl;
              } else{
                end = unit.timeInterval.end;
                rc = unit.timeInterval.rc;
@@ -4723,7 +4723,7 @@ void MPoint::Simplify(const double epsilon, MPoint& result,
      if(useleft[i]){
         // debug
         if(leftDefined){
-           cout << " error in mpoint simplification,"
+           cerr << " error in mpoint simplification,"
                 << " overwrite an existing leftPoint "  << endl;
         }
         // end of debug
@@ -4735,7 +4735,7 @@ void MPoint::Simplify(const double epsilon, MPoint& result,
      if(useright[i]){
         // debug
         if(!leftDefined){
-           cout << " error in mpoint simplification,"
+           cerr << " error in mpoint simplification,"
                 << " rightdefined before leftdefined "  << endl;
 
         }
@@ -5311,7 +5311,7 @@ void getCenter(const cluster& cl,
  y = 0;
  int size = cl.size();
  if(size==0){
-   cout << "indexes smaller than zero" << endl;
+   cerr << "indexes smaller than zero" << endl;
    return;
  }
  set<int>::const_iterator it;
@@ -11445,7 +11445,7 @@ int Linearize2_ureal(Word* args, Word& result,
         }
         return 0;
     } // end switch
-    cout << "Linearize2_ureal(): Unknown message (" << message << ")" << endl;
+    cerr << "Linearize2_ureal(): Unknown message (" << message << ")" << endl;
     return -1; // should not happen
 }
 
@@ -13779,6 +13779,7 @@ int GridCellEventsVM( Word* args, Word& result, int message,
 //         cout << "li=" << *li;
         delete li;
         li = 0;
+        local.addr = 0;
       }
 //       cout << __PRETTY_FUNCTION__ << ": finished CLOSE." << endl;
       return 0;
