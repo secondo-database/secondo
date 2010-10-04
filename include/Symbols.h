@@ -84,6 +84,16 @@ namespace symbols {
  Sym WINDOWINTERSECT("windowintersect");
 
 
+// rectangle algebra types
+#undef RECT
+#undef RECT3
+#undef RECT4
+#undef RECT8
+ Sym RECT("rect");
+ Sym RECT3("rect3");
+ Sym RECT4("rect4");
+ Sym RECT8("rect8");
+
  // point rectangle types
 #undef XPOINT
 #undef XRECTANGLE

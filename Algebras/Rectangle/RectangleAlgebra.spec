@@ -37,4 +37,5 @@ operator scalerect alias SCALERECT pattern op( _, _, _ )
 operator size alias SIZE pattern op( _ )
 operator bboxintersects alias BBOXINTERSECTS pattern _ infixop _
 operator cellnumber alias CELLNUMBER pattern op(_, _, _, _, _, _)
-operator gridintersects alias GRIDINTERSECTS pattern op (_, _, _, _, _, _, _, _) 
+operator gridintersects alias GRIDINTERSECTS pattern op (_, _, _, _, _, _, _, _)
+operator gridcell2rect alias GRIDCELL2RECT pattern op (_, _, _, _, _, _)

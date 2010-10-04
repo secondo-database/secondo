@@ -892,7 +892,9 @@ cellNumberTM( ListExpr args )
 /*
 4.1.20 Type mapping function ~gridIntersectsTM~
 
+----
  real x real x real x real x int x rect x rect x int -> boolean
+----
 
 This operator is used to check whether the current grid cell is the
 common smallest cell of two inputed rectangle.
@@ -921,6 +923,7 @@ The grid is end-less in z-axis.
 cn is also the number of the cell that need to be verified.
 
 */
+
 ListExpr
 gridIntersectsTM( ListExpr args )
 {
@@ -963,6 +966,61 @@ gridIntersectsTM( ListExpr args )
 
   return NList(BOOL).listExpr();
 
+}
+
+/*
+4.1.21 Type Mapping for operator ~gridcell2rect~
+
+The operator has following signatures:
+
+----
+  int x real x real x real x real x int --> rect
+  int x real real x real x real x real x real x int x int --> rect3
+----
+
+*/
+ListExpr
+GridCell2Rect_TM( ListExpr args )
+{
+  NList l(args);
+  bool is3D = false;
+  int len = l.length();
+  if (len == 9) {
+    is3D = true;
+  } else if(len != 6){
+    return l.typeError("gridcell2rect expects 6 or 9 arguments.");
+  }
+
+  if(is3D){
+    if(    !l.elem(1).isSymbol(Symbols::INT())
+        || !l.elem(2).isSymbol(Symbols::REAL())
+        || !l.elem(3).isSymbol(Symbols::REAL())
+        || !l.elem(4).isSymbol(Symbols::REAL())
+        || !l.elem(5).isSymbol(Symbols::REAL())
+        || !l.elem(6).isSymbol(Symbols::REAL())
+        || !l.elem(7).isSymbol(Symbols::REAL())
+        || !l.elem(8).isSymbol(Symbols::INT())
+        || !l.elem(9).isSymbol(Symbols::INT())    )
+    {
+      return l.typeError("gridcell2rect expects int x real x real x real x "
+                         "real x real x real x int x int.");
+    } else {
+      return NList(RECT3).listExpr();
+    }
+  }
+  if(    !l.elem(1).isSymbol(Symbols::INT())
+      || !l.elem(2).isSymbol(Symbols::REAL())
+      || !l.elem(3).isSymbol(Symbols::REAL())
+      || !l.elem(4).isSymbol(Symbols::REAL())
+      || !l.elem(5).isSymbol(Symbols::REAL())
+      || !l.elem(6).isSymbol(Symbols::INT())    )
+  {
+    return l.typeError("gridcell2rect expects int x real x real x real x "
+    "real x int.");
+  } else {
+    return NList(RECT).listExpr();
+  }
+  return l.typeError("gridcell2rect: Unknown typemapproblem.");
 }
 
 /*
@@ -1125,6 +1183,20 @@ int Rectangle8Select( ListExpr args )
 
   return -1; // should never occur
 }
+
+/*
+1.1.1 Selection Function for ~gridcell2rect~
+
+*/
+
+int GridCell2Rect_Select( ListExpr args )
+{
+  int len = nl->ListLength(args);
+  if(len == 6){ return 0; }
+  if(len == 9){ return 1; }
+  return -1; // should never happen
+}
+
 
 
 /*
@@ -2016,6 +2088,83 @@ gridIntersectsVM(Word* args, Word& result,
 
   return 0;
 }
+
+/*
+1.1.1 Value Mapping for operator ~gridcell2rect~
+
+*/
+
+template<int DIM>
+int gridcell2rect_vm(Word* args, Word& result,
+                     int message, Word& local, Supplier s) {
+  result = qp->ResultStorage( s );
+  Rectangle<DIM>* res = static_cast<Rectangle<DIM>*>(result.addr);
+
+  int cellNo = 0;
+  double x0 = 0.0, y0 = 0.0, z0 = 0.0;
+  double xw = 0.0, yw = 0.0, zw = 0.0;
+  int nx = 0, ny = 0;
+  int col=0, row=0, level=0;
+  double min[DIM], max[DIM];
+
+  int noArgs = qp->GetNoSons(s);
+  bool is3D = (noArgs==9);
+  for(int arg=0; arg<noArgs; arg++) {
+    if(!static_cast<Attribute*>(args[arg].addr)->IsDefined()){
+        res->SetDefined( false );
+        return 0;
+    }
+  }
+  cellNo = (static_cast<CcInt*>(args[0].addr))->GetValue();
+  if(cellNo < 1){
+    res->SetDefined( false );
+    return 0;
+  }
+  if(is3D){ // 3D grid
+    x0 = (static_cast<CcReal*>(args[1].addr))->GetValue();
+    y0 = (static_cast<CcReal*>(args[2].addr))->GetValue();
+    z0 = (static_cast<CcReal*>(args[3].addr))->GetValue();
+    xw = (static_cast<CcReal*>(args[4].addr))->GetValue();
+    yw = (static_cast<CcReal*>(args[5].addr))->GetValue();
+    zw = (static_cast<CcReal*>(args[6].addr))->GetValue();
+    nx = (static_cast<CcInt*>(args[7].addr))->GetValue();
+    ny = (static_cast<CcInt*>(args[8].addr))->GetValue();
+    if(   (nx < 1) || (ny < 1) || AlmostEqual(xw,0.0)
+      || AlmostEqual(yw,0.0) || AlmostEqual(zw,0.0) ){
+      res->SetDefined( false );
+      return 0;
+    }
+    level =  (cellNo-1) / (nx*ny);
+    row   = ((cellNo-1) % (nx*ny)) / nx;
+    col   = ((cellNo-1) % (nx*ny)) % nx;
+    min[0] = MIN(x0 + col   * xw, x0 + (col+1) * xw);
+    max[0] = MAX(x0 + col   * xw, x0 + (col+1) * xw);
+    min[1] = MIN(y0 + row   * yw, y0 + (row+1) * yw);
+    max[1] = MAX(y0 + row   * yw, y0 + (row+1) * yw);
+    min[2] = MIN(z0 + level * zw, z0 + (level+1) * zw);
+    max[2] = MAX(z0 + level * zw, z0 + (level+1) * zw);
+  } else { // 2D grid
+    x0 = (static_cast<CcReal*>(args[1].addr))->GetValue();
+    y0 = (static_cast<CcReal*>(args[2].addr))->GetValue();
+    xw = (static_cast<CcReal*>(args[3].addr))->GetValue();
+    yw = (static_cast<CcReal*>(args[4].addr))->GetValue();
+    nx = (static_cast<CcInt*>(args[5].addr))->GetValue();
+    if(   (nx < 1) || AlmostEqual(xw,0.0) || AlmostEqual(yw,0.0) ){
+      res->SetDefined( false );
+      return 0;
+    }
+    col = (cellNo-1) % nx;
+    row = (cellNo-1) / nx;
+    min[0] = MIN(x0 + col * xw, x0 + (col+1) * xw);
+    max[0] = MAX(x0 + col * xw, x0 + (col+1) * xw);
+    min[1] = MIN(y0 + row * yw, y0 + (row+1) * yw);
+    max[1] = MAX(y0 + row * yw, y0 + (row+1) * yw);
+  }
+  res->Set(true, min, max);
+  return 0;
+}
+
+
 /*
 4.5 Definition of operators
 
@@ -2159,6 +2308,10 @@ ValueMapping rectanglebboxintersectsmap[] = {
   RectangleBboxIntersects<8,8>
 };
 
+ValueMapping GridCell2Rect_VM[] = {
+  gridcell2rect_vm<2>,
+  gridcell2rect_vm<3>
+};
 
 /*
 4.5.2 Definition of specification strings
@@ -2585,6 +2738,21 @@ struct gridintersects_Info : OperatorInfo {
   }
 };
 
+OperatorInfo GridCell2Rect_INFO(
+    "gridcell2rect",
+    "int x real x real x real x real x int -> rect\n"
+    "int x real x real x real x real x real x real x int x int -> rect3",
+    "gridcell2rect(cellno , x0, y0, [, z0] wx, wy [, wz], nx [, ny] )",
+    "Given a cell number and a grid description, return a rectangle"
+    "representing that cell. If any parameter is UNDEF, or cellno is an invalid"
+    "cell number (cellno>0), the result is UNDEF.",
+    "");
+
+    Operator gridcell2rect(  GridCell2Rect_INFO,
+                             GridCell2Rect_VM,
+                             GridCell2Rect_Select,
+                             GridCell2Rect_TM );
+
 /*
 5 Creating the Algebra
 
@@ -2629,6 +2797,7 @@ class RectangleAlgebra : public Algebra
     AddOperator( &rectanglebboxintersects );
     AddOperator(cellnumber_Info(), cellNumberVM, cellNumberTM);
     AddOperator(gridintersects_Info(), gridIntersectsVM, gridIntersectsTM);
+    AddOperator( &gridcell2rect);
   }
   ~RectangleAlgebra() {};
 };

@@ -200,3 +200,14 @@ Signature: (real x real x real x real x int x rect2 x rect2 x int) -> bool, (rea
 Example  : query gridintersects(0.0, 0.0, 0.0, 0.5, 0.5, 0.5, 10, 10, rectangle3(0.3, 1.5, 0.3, 1.5, 0.2, 0.8), rectangle3(0.6, 1.7, 0.6, 1.7, 0.6, 0.8), 112)
 Result   : TRUE
 
+Operator : gridcell2rect
+Number   : 1
+Signature: (int x real x real x real x real x int) -> rect
+Example  : query gridcell2rect(11, 0.0, 0.0, 1000.0, 1000.0, 10)
+Result   : (rect (0.0 1000.0 1000.0 2000.0))
+
+Operator : gridcell2rect
+Number   : 2
+Signature: (int x real x real x real x real x real x real x int x int) -> rect
+Example  : query gridcell2rect(11, 0.0, 0.0, 0.0, 1000.0, 1000.0, 1000.0, 10, 10)
+Result   : (rect3 (0.0 1000.0 1000.0 2000.0 0.0 1000.0))
