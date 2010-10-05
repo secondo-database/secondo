@@ -941,10 +941,27 @@ gridIntersectsTM( ListExpr args )
   NList l(args);
   string err = "gridIntersects expects "
       "(x0, y0, xw, yw, nx, rectA, rectB, cn) or "
-      "(x0, y0, z0, xw, yw, zw, nx, ny, rectA, rectB, cn)";
+      "(x0, y0, z0, xw, yw, zw, nx, ny, rectA, rectB, cn) or"
+      "(cellgrid2d, rectA, rectB, cn)";
+ 
+
+ 
+
 
   bool is3D = false;
   int len = l.length();
+
+  if(len==4){ // 2D - using cellgrid
+    if(!listutils::isSymbol(nl->First(args), CellGrid2D::BasicType()) ||
+       !listutils::isSymbol(nl->Second(args), "rect") ||
+       !listutils::isSymbol(nl->Third(args), "rect" ) ||
+       !listutils::isSymbol(nl->Fourth(args), CcInt::BasicType())){
+      return listutils::typeError(err);
+    } else {
+       return  nl->SymbolAtom(CcBool::BasicType());
+    }
+  }
+
   if (len == 11)
     is3D = true;
   else if (len != 8)
@@ -2028,18 +2045,36 @@ gridIntersectsVM(Word* args, Word& result,
   double xw = 0.0, yw = 0.0, zw = 0.0;
   double interx = 0.0, intery = 0.0, interz = 0.0;
   int cscNo = 0, cellno = -1;
-
-  if (qp->GetNoSons(s) == 8)
-  {
-    // 2D grid
-    for(int arg=0; arg<8; arg++) {
-      if(!static_cast<Attribute*>(args[arg].addr)->IsDefined()){
-        ErrorReporter::ReportError("RectangleAlgebra::gridIntersects: "
-        "Undefined argument used");
-        res->Set( false, false );
-        return 0;
-      }
+  int noSons = qp->GetNoSons(s);
+ 
+  // check for undefined arguments 
+  for(int arg=0; arg<noSons; arg++) {
+    if(!static_cast<Attribute*>(args[arg].addr)->IsDefined()){
+      ErrorReporter::ReportError("RectangleAlgebra::gridIntersects: "
+      "Undefined argument used");
+      res->Set( false, false );
+      return 0;
     }
+  }
+
+  if(noSons==4){ // 2d grid using cellgrid2d
+    const CellGrid2D* grid = static_cast<CellGrid2D*>(args[0].addr);
+    const Rectangle<2>* rectA = static_cast<const Rectangle<2>*>(args[1].addr);
+    const Rectangle<2>* rectB = static_cast<const Rectangle<2>*>(args[2].addr);
+    cellno = (static_cast<CcInt*>(args[3].addr))->GetValue();
+    if (!rectA->Intersects(*rectB)) {
+      res->Set( true, false );
+      return 0;
+    } else {
+      x0 = grid->getX0();
+      y0 = grid->getY0();
+      xw = grid->getXw();
+      yw = grid->getYw();
+      nx = grid->getNx();
+      interx = max(rectA->MinD(0), rectB->MinD(0));
+      intery = max(rectA->MinD(1), rectB->MinD(1));
+    }
+  } else if (noSons == 8) { // 2D grid, using definition of grid
     Rectangle<2> *rectA = (Rectangle<2> *)args[5].addr;
     Rectangle<2> *rectB = (Rectangle<2> *)args[6].addr;
 
@@ -2061,29 +2096,15 @@ gridIntersectsVM(Word* args, Word& result,
       interx = max(rectA->MinD(0), rectB->MinD(0));
       intery = max(rectA->MinD(1), rectB->MinD(1));
     }
-  }
-  else
-  {
-    // 3D grid
-    for(int arg=0; arg<11; arg++) {
-      if(!static_cast<Attribute*>(args[arg].addr)->IsDefined()){
-        ErrorReporter::ReportError("RectangleAlgebra::gridIntersects: "
-        "Undefined argument used");
-        res->Set( false, false );
-        return 0;
-      }
-    }
+  } else if(noSons==11 ){
     is3D = true;
     Rectangle<3> *rectA = (Rectangle<3> *)args[8].addr;
     Rectangle<3> *rectB = (Rectangle<3> *)args[9].addr;
 
-    if (!rectA->Intersects(*rectB))
-    {
+    if (!rectA->Intersects(*rectB)) {
       res->Set(true, false);
       return 0;
-    }
-    else
-    {
+    } else {
       x0 = ((CcReal *)args[0].addr)->GetValue();
       y0 = ((CcReal *)args[1].addr)->GetValue();
       z0 = ((CcReal *)args[2].addr)->GetValue();
@@ -2098,12 +2119,14 @@ gridIntersectsVM(Word* args, Word& result,
       intery = max(rectA->MinD(1), rectB->MinD(1));
       interz = max(rectA->MinD(2), rectB->MinD(2));
     }
+  } else {
+     cerr << "wrong number of arguments" << endl;
+     assert(false);
   }
 
   if (fabs(xw - 0.0) <= 1e-10
       || fabs(yw - 0.0) <= 1e-10
-      || (is3D && fabs(zw - 0.0) <= 1e-10))
-  {
+      || (is3D && fabs(zw - 0.0) <= 1e-10)) {
     cerr << "RectangleAlgebra::gridIntersects:"
         "Unacceptable grid width (" <<
             xw << "," << yw << "," << zw << ")" << endl;
@@ -2113,11 +2136,11 @@ gridIntersectsVM(Word* args, Word& result,
 
   LBX = static_cast<int>(floor((interx - x0) / xw));
   LBY = static_cast<int>(floor((intery - y0) / yw));
-  if (is3D)
+  if (is3D){
     LBZ = static_cast<int>(floor((interz - z0) / zw));
+  }
 
-  if(LBX < 0 || LBY < 0 || LBZ < 0)
-  {
+  if(LBX < 0 || LBY < 0 || LBZ < 0) {
     cerr << "RectangleAlgebra::gridIntersects: "
         "Error, the rectangles locate "
         "outside of the first quadrant\n";

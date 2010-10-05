@@ -207,6 +207,13 @@ Signature: (real x real x real x real x int x rect2 x rect2 x int) -> bool, (rea
 Example  : query gridintersects(0.0, 0.0, 0.0, 0.5, 0.5, 0.5, 10, 10, rectangle3(0.3, 1.5, 0.3, 1.5, 0.2, 0.8), rectangle3(0.6, 1.7, 0.6, 1.7, 0.6, 0.8), 112)
 Result   : TRUE
 
+Operator : gridintersects
+Number   : 2
+Signature: cellgrid2d x rect x rect x int -> bool 
+Example  : query gridintersects( createCellGrid2D(0.0, 0.0, 0.5, 0.5, 10), rectangle2(0.3, 1.5, 0.3, 1.5), rectangle2(0.6, 1.7, 0.6, 1.7), 12)
+Result   : TRUE
+
+
 Operator : gridcell2rect
 Number   : 1
 Signature: (int x real x real x real x real x int) -> rect
