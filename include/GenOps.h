@@ -246,6 +246,61 @@ public:
   }
 };
 
+
+/*
+1.3 class tm3
+
+Type mapping template for terner  operators.
+
+*/
+template<class A1, class A2, class A3, class R>
+class tm3 : public simpleTMHelper{
+public:
+  tm3():simpleTMHelper(R::BasicType()){
+    *this << A1::BasicType();
+    *this << A2::BasicType();
+    *this << A3::BasicType();
+  }
+};
+
+/*
+1.3 class tm4
+
+Type mapping template for terner  operators.
+
+*/
+template<class A1, class A2, class A3, class A4, class R>
+class tm4 : public simpleTMHelper{
+public:
+  tm4():simpleTMHelper(R::BasicType()){
+    *this << A1::BasicType();
+    *this << A2::BasicType();
+    *this << A3::BasicType();
+    *this << A4::BasicType();
+  }
+};
+
+
+/*
+1.3 class tm5
+
+Type mapping template for terner  operators.
+
+*/
+template<class A1, class A2, class A3, class A4, class A5,  class R>
+class tm5 : public simpleTMHelper{
+public:
+  tm5():simpleTMHelper(R::BasicType()){
+    *this << A1::BasicType();
+    *this << A2::BasicType();
+    *this << A3::BasicType();
+    *this << A4::BasicType();
+    *this << A5::BasicType();
+  }
+};
+
+
+
 /*
 Enter here classes for further type mappings.
 
@@ -321,7 +376,9 @@ Returns the allowed signatures line by line.
      string getSignatures()const {
        stringstream  sigs;
        for(unsigned int i=0;i<mappings.size();i++){
-          sigs << mappings[i].argString() << endl; 
+          sigs << mappings[i].argString() 
+               << " -> " << mappings[i].getResultType() 
+               << endl; 
        }
        return sigs.str();
      }
@@ -382,6 +439,86 @@ Returns the number of stored value mappings.
   return 0;
 }
 
+/*
+  ~Generic Value Mapping Function~
+
+  This function realized value mappings in the form
+    A1 [x] A2 [x] A3 [->] R
+  where Fun is the function applied to a1,a2, and a3.
+
+*/
+  template<class A1, class A2, class A3, class R, class Fun>
+  int GenVM3(Word* args, Word& result, int message,
+            Word& local, Supplier s){
+    result = ::qp->ResultStorage(s);
+    A1* a1 = static_cast<A1*>(args[0].addr);
+    A2* a2 = static_cast<A2*>(args[1].addr);
+    A3* a3 = static_cast<A3*>(args[2].addr);
+    R* res = static_cast<R*>(result.addr); 
+    if(!a1->IsDefined() || !a2->IsDefined() || !a3->IsDefined()){
+      res->SetDefined(false);
+    }  else {
+      Fun fun;
+      fun(a1,a2,a3,res);
+  }
+  return 0;
+}
+
+/*
+  ~Generic Value Mapping Function~
+
+  This function realized value mappings in the form
+    A1 [x] A2 [x] A3 [x] A4 [->] R
+  where Fun is the function applied to a1,a2,a3, and a4.
+
+*/
+  template<class A1, class A2, class A3,class A4, class R, class Fun>
+  int GenVM4(Word* args, Word& result, int message,
+            Word& local, Supplier s){
+    result = ::qp->ResultStorage(s);
+    A1* a1 = static_cast<A1*>(args[0].addr);
+    A2* a2 = static_cast<A2*>(args[1].addr);
+    A3* a3 = static_cast<A3*>(args[2].addr);
+    A4* a4 = static_cast<A4*>(args[3].addr);
+    R* res = static_cast<R*>(result.addr); 
+    if(!a1->IsDefined() || !a2->IsDefined() || !a3->IsDefined()||
+       !a4->IsDefined()){
+      res->SetDefined(false);
+    }  else {
+      Fun fun;
+      fun(a1,a2,a3,a4,res);
+  }
+  return 0;
+}
+
+/*
+  ~Generic Value Mapping Function~
+
+  This function realized value mappings in the form
+    A1 [x] A2 [x] A3 [x] A4 [x] A5 [->] R
+  where Fun is the function applied to a1,a2,a3, and a4.
+
+*/
+  template<class A1, class A2, class A3,class A4, class A5, 
+           class R, class Fun>
+  int GenVM5(Word* args, Word& result, int message,
+            Word& local, Supplier s){
+    result = ::qp->ResultStorage(s);
+    A1* a1 = static_cast<A1*>(args[0].addr);
+    A2* a2 = static_cast<A2*>(args[1].addr);
+    A3* a3 = static_cast<A3*>(args[2].addr);
+    A4* a4 = static_cast<A4*>(args[3].addr);
+    A5* a5 = static_cast<A5*>(args[4].addr);
+    R* res = static_cast<R*>(result.addr); 
+    if(!a1->IsDefined() || !a2->IsDefined() || !a3->IsDefined()||
+       !a4->IsDefined() || !a5->IsDefined()){
+      res->SetDefined(false);
+    }  else {
+      Fun fun;
+      fun(a1,a2,a3,a4,a5,res);
+  }
+  return 0;
+}
 
 /*
 ~Generic Value Mapping~
