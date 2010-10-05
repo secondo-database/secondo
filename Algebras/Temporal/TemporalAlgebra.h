@@ -89,6 +89,7 @@ The type system of the Temporal Algebra can be seen below.
 //#include "DBArray.h"
 #include "../../Tools/Flob/DbArray.h"
 #include "Progress.h"
+#include "CellGrid.h"
 
 
 #include "RectangleAlgebra.h"
@@ -2112,86 +2113,8 @@ Creates the distance to an other UReal value.
 };
 
 
-/*
-3.8 Gid structures
 
-The following 2 classes are used to represent 2D cell grids and events created
-by moving objects on such a grid.
 
-The following class ~CellGrid2D~ describes a regular grid.
-
-*/
-
-class CellGrid2D {
-  public:
-    CellGrid2D(); // standard constructor
-    CellGrid2D(const double &x0_, const double &y0_,
-               const double &wx_, const double &wy_, const int32_t &nox_);
-      // Defines a structure for a three-side bounded grid, open to one
-      // Y-direction. The grid is specified by an origin (x0_,x0_), a cell-width
-      // wx_, a cell-height wy_ and a number of cells in X-direction nox_.
-      // If wy_ is positive, the grid is open to +X, if it is negative, to -X.
-      // If wx_ is positive, the grid extends to the "left", otherwise to the
-      // "right" side of the origin.
-      // The cells are numbered sequentially starting with 1 for the cell
-      // nearest to the origin.
-      // Cell Bounderies. Point located on the bounderies between cells are
-      // contained by the cell with the lower cell number. Thus, the origin
-      // itself is never located on the grid!
-
-    ~CellGrid2D(); // standard destructor
-
-    double getMaxX() const;
-      // returns the maximum X-coordinate lying on the grid
-
-    double getMaxY() const;
-      // returns the maximum Y-coordinate lying on the grid
-
-    double getMinX() const;
-      // returns the minimum X-coordinate lying on the grid
-
-    double getMinY() const;
-      // returns the minimum Y-coordinate lying on the grid
-
-    bool IsDefined() const;
-      // returns TRUE iff the grid is well-defined
-
-    bool onGrid(const double &x, const double &y) const;
-      // returns true iff (x,y) is located on the grid
-
-    int32_t getCellNo(const double &x, const double &y) const;
-      // returns the cell number for a given point (x,y)
-      // Only positive cell numbers are valid. Negative result indicates
-      // that (x,y) is not located on the grid.
-
-    int32_t getCellNo(const Point &p) const;
-    int32_t getXIndex(const double &x) const;
-    int32_t getYIndex(const double &y) const;
-    Rectangle<2> getMBR() const;
-      // returns the grid's MBR as a 2D-rectangle
-
-    Rectangle<2> getRowMBR(const int32_t &n) const;
-      // returns the grid's nth row as a 2D-rectangle
-      // row numbering starts with 0
-
-    Rectangle<2> getColMBR(const int32_t &n) const;
-      // returns the grid's nth column as a 2D-rectangle
-      // column numbering starts with 0 and ends with no_cells_x - 1
-
-    bool isValidCellNo(const int32_t &n) const;
-      // returns true iff n is a valid grid cell number
-
-    int32_t getInvalidCellNo() const;
-      // returns an invalid cell number
-
-    ostream& Print( ostream &os ) const;
-
-  private:
-    double x0, y0;       // origin of the grid
-    double wx, wy;       // cell-widths for both dimensions
-    int32_t no_cells_x;  // number of cells along X-axis
-    bool defined;        // whether the data is well-defined
-};
 
 /*
 The following class describes an event created by an object moving over a

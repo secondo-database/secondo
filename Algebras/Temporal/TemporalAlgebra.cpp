@@ -112,6 +112,8 @@ extern QueryProcessor* qp;
 
 #include "DateTime.h"
 #include "TemporalAlgebra.h"
+#include "GenericTC.h"
+
 
 
 #ifdef SECONDO_WIN32
@@ -2354,8 +2356,11 @@ Implementation of methods for class ~CellGrid2D~
 
 */
 
-CellGrid2D::CellGrid2D() :
-      x0(0.0), y0(0.0), wx(0.0), wy(0.0), no_cells_x(0), defined(false) {}
+CellGrid2D::CellGrid2D() {}
+
+CellGrid2D::CellGrid2D(const int dummy):
+   Attribute(false),
+   x0(0),y0(0),wx(0),wy(0),no_cells_x(0) {}
 
 CellGrid2D::CellGrid2D(const double &x0_, const double &y0_,
                const double &wx_, const double &wy_, const int32_t &nox_)
@@ -2371,10 +2376,26 @@ CellGrid2D::CellGrid2D(const double &x0_, const double &y0_,
       // Cell Bounderies. Point located on the bounderies between cells are
       // contained by the cell with the lower cell number. Thus, the origin
       // itself is never located on the grid!
-        defined =    (no_cells_x > 0)
-                  && !AlmostEqual(wx,0.0)
-                  && !AlmostEqual(wy,0.0);
+        SetDefined( (no_cells_x > 0)
+                     && !AlmostEqual(wx,0.0)
+                     && !AlmostEqual(wy,0.0));
     }
+
+CellGrid2D::CellGrid2D(const CellGrid2D& other):
+   Attribute(other.IsDefined()),
+   x0(other.x0), y0(other.y0), wx(other.wx),wy(other.wy),
+   no_cells_x(other.no_cells_x) {} 
+
+CellGrid2D& CellGrid2D::operator=(const CellGrid2D& other){
+  Attribute::operator=(other);
+  x0 = other.x0;
+  y0 = other.y0;
+  wx = other.wx;
+  wy = other.wy;
+  no_cells_x = other.no_cells_x;
+  return *this;
+}
+
 
 CellGrid2D::~CellGrid2D(){}
 
@@ -2398,14 +2419,10 @@ double CellGrid2D::getMinY() const {
       return wy > 0.0 ? y0 : numeric_limits<double>::min();
     }
 
-bool CellGrid2D::IsDefined() const {
-      // returns TRUE iff the grid is well-defined
-      return defined;
-    }
 
 bool CellGrid2D::onGrid(const double &x, const double &y) const {
       // returns true iff (x,y) is located on the grid
-      if(!defined) {
+      if(!IsDefined()) {
         return false;
       }
       int32_t xIndex = static_cast<int32_t>(floor((x - x0) / wx));
@@ -2417,7 +2434,7 @@ int32_t CellGrid2D::getCellNo(const double &x, const double &y) const {
       // returns the cell number for a given point (x,y)
       // Only positive cell numbers are valid. Negative result indicates
       // that (x,y) is not located on the grid.
-      if(!defined) {
+      if(!IsDefined()) {
         return getInvalidCellNo();
       }
       int32_t xIndex = static_cast<int32_t>(floor((x - x0) / wx));
@@ -2430,7 +2447,7 @@ int32_t CellGrid2D::getCellNo(const double &x, const double &y) const {
     }
 
 int32_t CellGrid2D::getCellNo(const Point &p) const {
-      if(defined && p.IsDefined()){
+      if(IsDefined() && p.IsDefined()){
         return getCellNo(p.GetX(),p.GetY());
       } else {
         return getInvalidCellNo();
@@ -2438,7 +2455,7 @@ int32_t CellGrid2D::getCellNo(const Point &p) const {
     }
 
 int32_t CellGrid2D::getXIndex(const double &x) const {
-      if(defined) {
+      if(IsDefined()) {
         return static_cast<int32_t>(floor((x - x0) / wx));
       } else {
         return getInvalidCellNo();
@@ -2446,7 +2463,7 @@ int32_t CellGrid2D::getXIndex(const double &x) const {
     }
 
 int32_t CellGrid2D::getYIndex(const double &y) const {
-      if(defined) {
+      if(IsDefined()) {
         return static_cast<int32_t>(floor((y - y0) / wy));
       } else {
         return getInvalidCellNo();
@@ -2455,7 +2472,7 @@ int32_t CellGrid2D::getYIndex(const double &y) const {
 
 Rectangle<2> CellGrid2D::getMBR() const {
       // returns the grid's MBR as a 2D-rectangle
-      if(defined){
+      if(IsDefined()){
         double min[2], max[2];
         min[0] = getMinX(); min[1] = getMinY();
         max[0] = getMaxX(); max[1] = getMaxY();
@@ -2468,7 +2485,7 @@ Rectangle<2> CellGrid2D::getMBR() const {
 Rectangle<2> CellGrid2D::getRowMBR(const int32_t &n) const {
       // returns the grid's nth row as a 2D-rectangle
       // row numbering starts with 0
-      if( defined ){
+      if( IsDefined() ){
         double min_val[2], max_val[2];
         double y1 = y0 + n     * wy;
         double y2 = y0 + (n+1) * wy;
@@ -2483,7 +2500,7 @@ Rectangle<2> CellGrid2D::getRowMBR(const int32_t &n) const {
 Rectangle<2> CellGrid2D::getColMBR(const int32_t &n) const {
       // returns the grid's nth column as a 2D-rectangle
       // column numbering starts with 0 and ends with no_cells_x - 1
-      if( defined ){
+      if( IsDefined() ){
         double min_val[2], max_val[2];
         double x1 = x0 + n * wx;
         double x2 = x0 + (n+1) * wx;
@@ -2497,7 +2514,7 @@ Rectangle<2> CellGrid2D::getColMBR(const int32_t &n) const {
 
 bool CellGrid2D::isValidCellNo(const int32_t &n) const {
       // returns true iff n is a valid grid cell number
-      return defined && (n>0);
+      return IsDefined() && (n>0);
     }
 
 int32_t CellGrid2D::getInvalidCellNo() const {
@@ -2516,6 +2533,116 @@ ostream& CellGrid2D::Print( ostream &os ) const {
      << " cells along X-axis: " << no_cells_x
      << ")" << endl;
   return os;
+}
+
+
+size_t CellGrid2D::Sizeof() const{
+   return sizeof(*this);
+}
+
+int CellGrid2D::Compare(const Attribute* other) const{
+  const CellGrid2D* g = static_cast<const CellGrid2D*> (other);
+  if(!IsDefined()){
+     return g->IsDefined()?-1:0;
+  }
+  if(!g->IsDefined()){
+    return 1;
+  }
+  // both are defined
+  if(!AlmostEqual(x0,g->x0)){
+    return x0<g->x0?-1:1;
+  }
+  if(!AlmostEqual(y0,g->y0)){
+    return y0<g->y0?-1:1;
+  }
+  if(no_cells_x!=g->no_cells_x){
+    return no_cells_x<g->no_cells_x?-1:1;
+  }
+  if(!AlmostEqual(wx,g->wx)){
+    return wx<g->wx?-1:1;
+  }
+
+  if(!AlmostEqual(wy,g->wy)){
+    return wy<g->wy?-1:1;
+  }
+  return 0;
+}
+
+
+bool CellGrid2D::Adjacent(const Attribute* other) const{
+  return false;
+}
+
+Attribute* CellGrid2D::Clone() const{
+   return new CellGrid2D(*this);
+}
+
+size_t CellGrid2D::HashValue() const{
+   return static_cast<size_t>(x0+y0+no_cells_x*wx);
+}
+
+void CellGrid2D::CopyFrom(const Attribute* other) {
+    operator=(*(static_cast<const CellGrid2D*>(other)));
+} 
+
+
+const string CellGrid2D::BasicType(){
+   return "cellgrid2d";
+}
+
+ListExpr CellGrid2D::Property(){
+  return gentc::GenProperty("-> DATA",
+                            BasicType(),
+                           "(x0 y0 xw yw n_x)",
+                           "(14.0 15.0 2.0 2.0 37)");
+}
+
+bool CellGrid2D::CheckKind(ListExpr type, ListExpr& errorInfo){
+ return nl->IsEqual(type,BasicType());
+}
+
+ListExpr CellGrid2D::ToListExpr(const ListExpr typeInfo)const{
+   if(!IsDefined()){
+     return nl->SymbolAtom("undef");
+   } else {
+     return nl->FiveElemList( nl->RealAtom(x0),
+                              nl->RealAtom(y0),
+                              nl->RealAtom(wx),
+                              nl->RealAtom(wy),
+                              nl->IntAtom(no_cells_x));
+   }
+}
+
+bool CellGrid2D::ReadFrom(const ListExpr value,const ListExpr typeInfo){
+   if(listutils::isSymbol(value,"undef")){
+      SetDefined(false);
+      return  true;
+   }
+   if(!nl->HasLength(value,5)){
+      return false;
+   }
+   ListExpr l1 = nl->First(value);
+   ListExpr l2 = nl->Second(value);
+   ListExpr l3 = nl->Third(value);
+   ListExpr l4 = nl->Fourth(value);
+   ListExpr l5 = nl->Fifth(value);
+   if(!listutils::isNumeric(l1) ||
+      !listutils::isNumeric(l2) ||
+      !listutils::isNumeric(l3) ||
+      !listutils::isNumeric(l4) ||
+      (nl->AtomType(l5) != IntType)){
+     return  false;
+   }   
+   x0 = listutils::getNumValue(l1);
+   y0 = listutils::getNumValue(l2);
+   wx = listutils::getNumValue(l3);
+   wy = listutils::getNumValue(l4);
+   no_cells_x = nl->IntValue(l5);
+   SetDefined( (no_cells_x > 0)
+                 && !AlmostEqual(wx,0.0)
+                 && !AlmostEqual(wy,0.0));
+
+    return true;
 }
 
 ostream& operator<<(ostream& o, const CellGrid2D& u){
@@ -8153,6 +8280,16 @@ TypeConstructor movingpoint(
         CastMapping<MPoint>,    //cast function
         SizeOfMapping<MPoint>, //sizeof function
         CheckMPoint );  //kind checking function
+
+
+/*
+4.12.5 Creation of the type constructore ~cellgrid2d~
+
+*/
+
+GenTC<CellGrid2D> cellgrid2d;
+
+
 
 /*
 16 Operators
@@ -15416,6 +15553,8 @@ class TemporalAlgebra : public Algebra
     AddTypeConstructor( &movingint );
     AddTypeConstructor( &movingreal );
     AddTypeConstructor( &movingpoint );
+    
+    AddTypeConstructor( &cellgrid2d);
 
     rangeint.AssociateKind( "RANGE" );
     rangeint.AssociateKind( "DATA" );
@@ -15451,6 +15590,8 @@ class TemporalAlgebra : public Algebra
     movingreal.AssociateKind( "DATA" );
     movingpoint.AssociateKind( "TEMPORAL" );
     movingpoint.AssociateKind( "DATA" );
+    
+    cellgrid2d.AssociateKind( "DATA" );
 
     AddOperator( &temporalisempty );
     AddOperator( &temporalequal );
