@@ -40,7 +40,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //[#]  [\neq]
 //[tilde] [\verb|~|]
 
-1 Header File: DBArray
+1 Header File: DbArray
 
 Version: 0.7
 
@@ -78,7 +78,7 @@ Operations have to follow the protocol shown below:
 
                 Figure 1: Protocol [Protocol.eps]
 
-1.3 Class ~DBArray~SetPersistentCache
+1.3 Class ~DbArray~SetPersistentCache
 
 An instance of the class is a handle to a persistent array of fixed size.
 
@@ -357,7 +357,7 @@ bool Find( const void *key,
 
 
 /*
-Restricts the DBArray to the interval set of indices passed as argument.
+Restricts the DbArray to the interval set of indices passed as argument.
 
 */
 virtual bool Restrict( const vector< pair<int, int> >& intervals,
@@ -370,39 +370,39 @@ virtual bool Restrict( const vector< pair<int, int> >& intervals,
       assert( it->first <= it->second );
       newSize += ( ( it->second - it->first ) + 1 ) * sizeof( DbArrayElement );
   }
-  assert( newSize <= Flob::getSize() );
-  DbArray<DbArrayElement> res(newSize/sizeof(DbArrayElement));
-  if( newSize == 0 ){
-    result = res;
-    return true;
-  } else {
-    char *buffer = (char*)malloc( newSize );
-    size_t offset = 0;
-    DbArrayElement e;
-    // copy value into the temporarly buffer
-    for( vector< pair<int, int> >::const_iterator it = intervals.begin();
-         it < intervals.end();
-         it++ ) {
-      for( int j = it->first; j <= it->second; j++ ) {
-         if(!Get( j, &e )){
-            return false;
-         }
-         memcpy( buffer + offset, &e, sizeof( DbArrayElement ) );
-         offset += sizeof( DbArrayElement );
-      }
+assert( newSize <= Flob::getSize() );
+DbArray<DbArrayElement> res(newSize/sizeof(DbArrayElement));
+if( newSize == 0 ){
+  result = res;
+  return true;
+} else {
+  char *buffer = (char*)malloc( newSize );
+  size_t offset = 0;
+  DbArrayElement e;
+  // copy value into the temporarly buffer
+  for( vector< pair<int, int> >::const_iterator it = intervals.begin();
+       it < intervals.end();
+       it++ ) {
+    for( int j = it->first; j <= it->second; j++ ) {
+       if(!Get( j, &e )){
+          return false;
+       }
+       memcpy( buffer + offset, &e, sizeof( DbArrayElement ) );
+       offset += sizeof( DbArrayElement );
     }
-    res.nElements = newSize / sizeof( DbArrayElement );
-    res.maxElements = nElements;
-    if(!res.resize(nElements)){
-      free(buffer);
-      result = res;
-      return false;
-    }
-    bool bres = res.Flob::write(buffer, newSize, 0);
-    result = res;
-    free(buffer);
-    return bres;
   }
+  res.nElements = newSize / sizeof( DbArrayElement );
+  res.maxElements = nElements;
+  if(!res.resize(nElements)){
+    free(buffer);
+    result = res;
+    return false;
+  }
+  bool bres = res.Flob::write(buffer, newSize, 0);
+  result = res;
+  free(buffer);
+  return bres;
+}
 }
 
 /*
@@ -414,7 +414,7 @@ Returns the capacity of the underlying Flob.
 
 
 size_t GetFlobSize() const {
-      return Flob::getSize();
+    return Flob::getSize();
 }
 
 /*
@@ -424,7 +424,7 @@ Returns the total size occupied by the managed elements.
 
 */
 size_t GetUsedSize() const {
-  return nElements * sizeof(DbArrayElement);
+return nElements * sizeof(DbArrayElement);
 }
 
 /*
@@ -434,7 +434,7 @@ Returns the size of a single element.
 
 */
 size_t GetElemSize() const {
-  return sizeof(DbArrayElement);
+return sizeof(DbArrayElement);
 }
 
 /*
@@ -444,7 +444,7 @@ Returns the capacity of the array.
 
 */
 size_t GetCapacity() const {
-  return maxElements;
+return maxElements;
 }
 
 /*
@@ -454,49 +454,217 @@ Saves header information (this) to a record.
 
 */
 virtual size_t serializeHeader( char* buffer, SmiSize& offset) const {
-   // first save the flob
-   SmiSize sz = Flob::serializeHeader(buffer, offset);
-   // append nElements and maxElements
-   WriteVar<int>(nElements, buffer, offset);
-   WriteVar<int>(maxElements, buffer, offset);
-   sz += 2*sizeof(int);
-   return sz;
+ // first save the flob
+ SmiSize sz = Flob::serializeHeader(buffer, offset);
+ // append nElements and maxElements
+ WriteVar<int>(nElements, buffer, offset);
+ WriteVar<int>(maxElements, buffer, offset);
+ sz += 2*sizeof(int);
+ return sz;
 }
 
 virtual void restoreHeader(char* buffer,
-                    SmiSize& offset)
+                  SmiSize& offset)
 {
-   Flob::restoreHeader(buffer, offset);
-   ReadVar<int>(nElements, buffer, offset);
-   ReadVar<int>(maxElements, buffer, offset);
+ Flob::restoreHeader(buffer, offset);
+ ReadVar<int>(nElements, buffer, offset);
+ ReadVar<int>(maxElements, buffer, offset);
 }
 
 
-   bool copyFrom(const DbArray<DbArrayElement>& src){
-      bool res = Flob::copyFrom(src);
-      nElements = src.nElements;
-      maxElements = src.maxElements;
-      return res;
+ bool copyFrom(const DbArray<DbArrayElement>& src){
+    bool res = Flob::copyFrom(src);
+    nElements = src.nElements;
+    maxElements = src.maxElements;
+    return res;
+ }
+
+ bool copyTo(DbArray<DbArrayElement>& dest){
+    bool res = Flob::copyTo(dest);
+    dest.nElements = nElements;
+    dest.maxElements = maxElements;
+    return res;
+ }
+
+ bool copyFrom(const Flob& src){
+   DbArray<DbArrayElement> const* dbsrc =
+              static_cast<DbArray<DbArrayElement> const* >(&src);
+   return copyFrom(*dbsrc);
+ }
+
+ bool copyTo(Flob& dest) const{
+   DbArray<DbArrayElement>* dbdest =
+                    static_cast<DbArray<DbArrayElement>* >(&dest);
+   return copyTo(*dbdest);
+ }
+
+
+class const_iterator{
+ friend class DbArray;
+ public:
+
+     const_iterator(const const_iterator& other):
+       dbarray(other.dbarray), 
+       position(other.position), 
+       elem(other.elem) {}
+
+     const_iterator& operator=(const const_iterator& other){
+        dbarray = other.dbarray;
+        position = other.position;
+        elem = other.elem;
+        return *this;
+     }
+
+     const_iterator& operator++(){
+        if(dbarray){
+          if(position<dbarray.Size()){
+            position++;
+            if(position<dbarray.Size()){
+                dbarray->Get(position,elem);
+            }
+          } else { // end() reached
+             position = dbarray.Size();
+          }
+        } else { // single element iterator
+           if(position<=0){ // 0 or -1 allowed
+              position++; 
+           } 
+        } 
+        return *this;
+     }
+     
+     const_iterator& operator++(int dummy){
+        if(dbarray){
+          if(position<dbarray->Size()){
+            position++;
+            if(position<dbarray->Size()){
+                dbarray->Get(position,elem);
+            }
+          } else { // end() reached
+             position = dbarray->Size();
+          }
+        } else { // single element iterator
+           if(position<=0){ // 0 or -1 allowed
+              position++; 
+           } 
+        } 
+        return *this;
+     }
+
+     const_iterator& operator--(){
+        if(dbarray){
+          if(position>=0){
+            position--;
+            if(position>=0 && position<dbarray->Size()){
+               dbarray->Get(position, elem);
+              }
+            } else {
+              position = -1;
+            }
+          } else {
+            if(position >=0){
+                position--;
+            }
+          }
+          return *this;
+       }
+     
+
+       const_iterator& operator--(int dummy){
+        if(dbarray){
+          if(position>=0){
+            position--;
+            if(position>=0 && position<dbarray->Size()){
+               dbarray->Get(position, elem);
+              }
+            } else {
+              position = -1;
+            }
+          } else {
+            if(position >=0){
+                position--;
+            }
+          }
+          return *this;
+       }
+
+       const DbArrayElement& operator*() const{
+         if(dbarray){
+           assert(position>=0);
+           assert(position < dbarray->Size());
+           return elem; 
+         } else {
+           assert(position==0);
+           return elem;
+         }
+       }
+
+       bool operator==(const const_iterator& other) const{
+          return position == other.position;
+       }
+
+       bool operator<(const const_iterator& other) const{
+          return position < other.position;
+       }
+       bool operator>(const const_iterator& other) const{
+          return position > other.position;
+       }
+       bool operator!=(const const_iterator& other) const{
+          return position != other.position;
+       }
+       bool operator<=(const const_iterator& other) const{
+          return position <= other.position;
+       }
+       bool operator>=(const const_iterator& other) const{
+          return position >= other.position;
+       }
+
+   private:
+       const DbArray<DbArrayElement>* dbarray;
+       int position;
+       DbArrayElement elem;
+
+       const_iterator(const DbArray<DbArrayElement>* dbarray_, 
+                      const int position_ = 0 ):
+         dbarray(dbarray_), position(position_)  { 
+         if(position<0){
+            position=-1;
+         } else if(position < dbarray->Size()){
+            dbarray->Get(position,elem);
+         } else {
+           position = dbarray->Size();
+         }
+       }
+
+       const_iterator(const DbArrayElement& elem_):
+         dbarray(0),position(0), elem(elem_) {} 
+
+
+
+ };
+
+
+
+  const_iterator begin() const{
+     const_iterator it(this);
+     return it;
+   }
+ 
+   const_iterator end() const{
+      const_iterator it(this,Size());
+      return it;
    }
 
-   bool copyTo(DbArray<DbArrayElement>& dest){
-      bool res = Flob::copyTo(dest);
-      dest.nElements = nElements;
-      dest.maxElements = maxElements;
-      return res;
+   static const_iterator elem_iter_begin(const DbArrayElement& elem){
+      const_iterator it(elem);
+      return it;
+   }
+   static const_iterator elem_iter_end(const DbArrayElement& elem){
+      const_iterator it(elem);
+      it++;
+      return it;
    }
 
-   bool copyFrom(const Flob& src){
-     DbArray<DbArrayElement> const* dbsrc =
-                static_cast<DbArray<DbArrayElement> const* >(&src);
-     return copyFrom(*dbsrc);
-   }
-
-   bool copyTo(Flob& dest) const{
-     DbArray<DbArrayElement>* dbdest =
-                      static_cast<DbArray<DbArrayElement>* >(&dest);
-     return copyTo(*dbdest);
-   }
 
   private:
 
