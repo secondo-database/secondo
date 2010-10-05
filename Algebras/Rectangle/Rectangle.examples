@@ -222,9 +222,16 @@ Result   : (rect (0.0 1000.0 1000.0 2000.0))
 
 Operator : gridcell2rect
 Number   : 2
-Signature: (int x real x real x real x real x real x real x int x int) -> rect
+Signature: (int x real x real x real x real x real x real x int x int) -> rect3
 Example  : query gridcell2rect(11, 0.0, 0.0, 0.0, 1000.0, 1000.0, 1000.0, 10, 10)
 Result   : (rect3 (0.0 1000.0 1000.0 2000.0 0.0 1000.0))
+
+Operator : gridcell2rect
+Number   : 3
+Signature: int x llgrid2d -> rect
+Example  : query gridcell2rect(11, createCellGrid2D(0.0, 0.0, 1000.0, 1000.0, 10))
+Result   : (rect (0.0 1000.0 1000.0 2000.0))
+
 
 Operator : center
 Number   : 1

@@ -1013,6 +1013,15 @@ GridCell2Rect_TM( ListExpr args )
   NList l(args);
   bool is3D = false;
   int len = l.length();
+
+  if(len==2){
+    if(!listutils::isSymbol(nl->First(args), CcInt::BasicType()) ||
+       !listutils::isSymbol(nl->Second(args), CellGrid2D::BasicType())){
+      return listutils::typeError("int x cellgrid3d expected");
+    }
+    return nl->SymbolAtom("rect");
+  }
+
   if (len == 9) {
     is3D = true;
   } else if(len != 6){
@@ -1245,7 +1254,7 @@ int Rectangle8Select( ListExpr args )
 int GridCell2Rect_Select( ListExpr args )
 {
   int len = nl->ListLength(args);
-  if(len == 6){ return 0; }
+  if(len == 6 || len == 2 ){ return 0; }
   if(len == 9){ return 1; }
   return -1; // should never happen
 }
@@ -2173,7 +2182,10 @@ int gridcell2rect_vm(Word* args, Word& result,
   double min[DIM], max[DIM];
 
   int noArgs = qp->GetNoSons(s);
+
   bool is3D = (noArgs==9);
+
+  // check for undefined values
   for(int arg=0; arg<noArgs; arg++) {
     if(!static_cast<Attribute*>(args[arg].addr)->IsDefined()){
         res->SetDefined( false );
@@ -2181,10 +2193,12 @@ int gridcell2rect_vm(Word* args, Word& result,
     }
   }
   cellNo = (static_cast<CcInt*>(args[0].addr))->GetValue();
+
   if(cellNo < 1){
     res->SetDefined( false );
     return 0;
   }
+
   if(is3D){ // 3D grid
     x0 = (static_cast<CcReal*>(args[1].addr))->GetValue();
     y0 = (static_cast<CcReal*>(args[2].addr))->GetValue();
@@ -2209,14 +2223,23 @@ int gridcell2rect_vm(Word* args, Word& result,
     min[2] = MIN(z0 + level * zw, z0 + (level+1) * zw);
     max[2] = MAX(z0 + level * zw, z0 + (level+1) * zw);
   } else { // 2D grid
-    x0 = (static_cast<CcReal*>(args[1].addr))->GetValue();
-    y0 = (static_cast<CcReal*>(args[2].addr))->GetValue();
-    xw = (static_cast<CcReal*>(args[3].addr))->GetValue();
-    yw = (static_cast<CcReal*>(args[4].addr))->GetValue();
-    nx = (static_cast<CcInt*>(args[5].addr))->GetValue();
-    if(   (nx < 1) || AlmostEqual(xw,0.0) || AlmostEqual(yw,0.0) ){
-      res->SetDefined( false );
-      return 0;
+    if(noArgs==2){
+      CellGrid2D* grid = static_cast<CellGrid2D*>(args[1].addr);
+      x0 = grid->getX0();
+      y0 = grid->getY0();
+      xw = grid->getXw();
+      yw = grid->getYw();
+      nx = grid->getNx();
+    } else {
+      x0 = (static_cast<CcReal*>(args[1].addr))->GetValue();
+      y0 = (static_cast<CcReal*>(args[2].addr))->GetValue();
+      xw = (static_cast<CcReal*>(args[3].addr))->GetValue();
+      yw = (static_cast<CcReal*>(args[4].addr))->GetValue();
+      nx = (static_cast<CcInt*>(args[5].addr))->GetValue();
+      if(   (nx < 1) || AlmostEqual(xw,0.0) || AlmostEqual(yw,0.0) ){
+        res->SetDefined( false );
+        return 0;
+      }
     }
     col = (cellNo-1) % nx;
     row = (cellNo-1) / nx;
