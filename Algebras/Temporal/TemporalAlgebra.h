@@ -2574,6 +2574,12 @@ The boolean return value is ~false~, iff either the UPoint or the Region is UNDE
 */
 
 
+   static const string BasicType(){
+     return "upoint";
+   }
+
+
+
 /*
 3.8.4 Attributes
 

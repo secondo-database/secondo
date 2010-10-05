@@ -10219,6 +10219,15 @@ The signature is:
           (TimeLeft instant)
           (CellPrevious int)
           (CellNext int)))
+
+
+{mpoint|upoint} x cellgrid2d  --> stream(tuple(
+          (Cell int)
+          (TimeEntered instant)
+          (TimeLeft instant)
+          (CellPrevious int)
+          (CellNext int)))
+
 ----
 
 
@@ -10228,6 +10237,28 @@ ListExpr GridCellEventsTypeMapping (ListExpr args)
 {
   NList l(args);
   int len = l.length();
+
+  NList resTupleType =NList(NList("Cell"),NList(symbols::INT)).enclose();
+  resTupleType.append(NList(NList("TimeEntered"),NList(symbols::INSTANT)));
+  resTupleType.append(NList(NList("TimeLeft"),NList(symbols::INSTANT)));
+  resTupleType.append(NList(NList("CellPrevious"),NList(symbols::INT)));
+  resTupleType.append(NList(NList("CellNext"),NList(symbols::INT)));
+  NList resType =
+  NList(NList(symbols::STREAM),NList(NList(symbols::TUPLE),resTupleType));
+  
+
+  if(len==2){ // {upoint, mpoint} x cellgrid2d
+    if(!listutils::isSymbol(nl->Second(args),CellGrid2D::BasicType())){
+       return listutils::typeError("second argument must be a cellgrid2d");
+    }
+    if(!listutils::isSymbol(nl->First(args), UPoint::BasicType()) &&
+       !listutils::isSymbol(nl->First(args), MPoint::BasicType())){
+      return listutils::typeError("first argument must be of type"
+                                  " upoint or mpoint");
+    }
+    return resType.listExpr();
+  }
+
   if( (len != 6) ){
     return l.typeError("Operator 'gridcellevents' expects 6 arguments.");
   }
@@ -10256,13 +10287,6 @@ ListExpr GridCellEventsTypeMapping (ListExpr args)
     return l.typeError("Operator 'gridcellevents' expects an 'int' as 6th "
     "argument.");
   }
-  NList resTupleType =NList(NList("Cell"),NList(symbols::INT)).enclose();
-  resTupleType.append(NList(NList("TimeEntered"),NList(symbols::INSTANT)));
-  resTupleType.append(NList(NList("TimeLeft"),NList(symbols::INSTANT)));
-  resTupleType.append(NList(NList("CellPrevious"),NList(symbols::INT)));
-  resTupleType.append(NList(NList("CellNext"),NList(symbols::INT)));
-  NList resType =
-  NList(NList(symbols::STREAM),NList(NList(symbols::TUPLE),resTupleType));
   return resType.listExpr();
 }
 
@@ -13591,6 +13615,34 @@ class GridCellEventsLocalInfo{
         resultTupleType = new TupleType(nl->Second(GetTupleResultType(s)));
       }
     }
+    
+    GridCellEventsLocalInfo(OBJTYPE &m_,
+                            const CellGrid2D& grid,
+                            const Supplier &s) :
+      m(&m_),
+      g(0),
+      events(0),
+      resultTupleType(0),
+      noUnits(0),
+      currUnitCnt(0),
+      finished(true),
+      allUnitsConsumed(true),
+      eventIter(events.begin()),
+      cellLast(0),
+      currentEvent()
+    {
+      if(    m->IsDefined() && grid.IsDefined() )
+      {
+        g = new CellGrid2D( grid );
+        noUnits = GetNoComponents(m);
+        finished = !(g->IsDefined() && (noUnits>0));
+        allUnitsConsumed = (currUnitCnt>=noUnits);
+        events.clear();
+        cellLast = g->getInvalidCellNo();
+        resultTupleType = new TupleType(nl->Second(GetTupleResultType(s)));
+      }
+    }
+
 
     ~GridCellEventsLocalInfo(){
       if(resultTupleType){
@@ -13899,13 +13951,23 @@ int GridCellEventsVM( Word* args, Word& result, int message,
     case OPEN: {
 //       cout << __PRETTY_FUNCTION__ << ": OPEN called..." << endl;
       OBJTYPE* m = static_cast<OBJTYPE*> (args[0].addr);
-      CcReal* x0 = static_cast<CcReal*>(args[1].addr);
-      CcReal* y0 = static_cast<CcReal*>(args[2].addr);
-      CcReal* wx = static_cast<CcReal*>(args[3].addr);
-      CcReal* wy = static_cast<CcReal*>(args[4].addr);
-      CcInt*  nx = static_cast<CcInt*> (args[5].addr);
+      int noSons = qp->GetNoSons(s);
       if(li){ delete li; }
-      li = new GridCellEventsLocalInfo<OBJTYPE>(*m, *x0, *y0, *wx, *wy, *nx, s);
+      if(noSons==6){
+         CcReal* x0 = static_cast<CcReal*>(args[1].addr);
+         CcReal* y0 = static_cast<CcReal*>(args[2].addr);
+         CcReal* wx = static_cast<CcReal*>(args[3].addr);
+         CcReal* wy = static_cast<CcReal*>(args[4].addr);
+         CcInt*  nx = static_cast<CcInt*> (args[5].addr);
+         li = new GridCellEventsLocalInfo<OBJTYPE>(*m, *x0, *y0, *wx, 
+                                                   *wy, *nx, s);
+      } else if(noSons==2){
+         li = new GridCellEventsLocalInfo<OBJTYPE>(*m, 
+                       *(static_cast<CellGrid2D*>(args[1].addr)),
+                        s);         
+      } else {
+         assert(false);
+      }
       local.addr = li;
 //       cout << "li=" << *li;
 //       cout << __PRETTY_FUNCTION__ << ": finished OPEN." << endl;
