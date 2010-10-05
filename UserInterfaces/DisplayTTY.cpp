@@ -2658,6 +2658,29 @@ struct DisplayMultiset : DisplayFunction {
   }
 };
 
+
+
+struct DisplayCellgrid2D : DisplayFunction {
+        
+  virtual void Display( ListExpr type, ListExpr numType, ListExpr value )
+  {
+    if(nl->IsEqual(value,"undef")){
+        cout << "UNDEFINED";
+    } else {
+      cout << "[ x0 = " << nl->RealValue(nl->First(value))
+           << ", y0 = " << nl->RealValue(nl->Second(value))
+           << ", wx = " << nl->RealValue(nl->Third(value))
+           << ", wy = " << nl->RealValue(nl->Fourth(value))
+           << ", nx = " << nl->IntValue(nl->Fifth(value))
+           << "]";
+    }
+
+  }
+
+};
+
+
+
 /*
 4 Initialization
 
@@ -2713,6 +2736,8 @@ DisplayTTY::Initialize()
 
   d.Insert( "histogram1d", new DisplayHistogram1d() );
   d.Insert( "histogram2d", new DisplayHistogram2d() );
+
+  d.Insert( "cellgrid2d", new DisplayCellgrid2D() );
 
   // Chess Algebra 07/08
 #ifndef ChessB
