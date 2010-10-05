@@ -194,6 +194,13 @@ Signature: (rect2 x real x real x real x real x int) -> stream(int), (rect3 x re
 Example  : query cellnumber(rectangle3(0.3, 2.5, 0.3, 2.5, -0.2, 0.3), 0.0, 0.0, -0.2, 0.5, 0.5, 0.4, 10, 6) printstream count
 Result   : 50
 
+Operator : cellnumber
+Number   : 2
+Signature: rect x cellgrid2d ->  stream(int)
+Example  : query cellnumber(rectangle2(3.0, 25.0, 3.0, 25.0), createCellGrid2D(0.0, 0.0, 2.0, 5.0,  6)) printstream count
+Result   : 60
+
+
 Operator : gridintersects
 Number   : 1
 Signature: (real x real x real x real x int x rect2 x rect2 x int) -> bool, (real x real x real x real x real x real x int x int x rect3 x rect3 x int) -> bool

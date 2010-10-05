@@ -50,6 +50,7 @@ using namespace std;
 #include "RelationAlgebra.h"
 #include "ListUtils.h"
 #include "Symbols.h"
+#include "CellGrid.h"
 
 extern NestedList* nl;
 extern QueryProcessor* qp;
@@ -861,10 +862,20 @@ cellNumberTM( ListExpr args )
 
   bool is3D = false;
   int len = l.length();
-  if (len == 9)
+
+  if(len==2){ // rect x gridcell2d -> stream(int)
+    if(listutils::isSymbol(nl->First(args), "rect") &&
+       listutils::isSymbol(nl->Second(args), CellGrid2D::BasicType())){
+       return nl->TwoElemList(nl->SymbolAtom("stream"),
+                              nl->SymbolAtom(CcInt::BasicType()));
+    }
+  }
+
+  if (len == 9){
     is3D = true;
-  else if (len != 6)
+  } else if (len != 6){
     return l.typeError(err);
+  }
 
   NList tRect;
   tRect = l.first();
@@ -1919,8 +1930,16 @@ struct CellGrid{
         return CANCEL;
       }
     }
-    if (6 == len)
-    {
+    if(len==2){
+      Rectangle<2> *rect = (Rectangle<2> *)args[0].addr;
+      const CellGrid2D* g = static_cast<CellGrid2D*>(args[1].addr);
+      grid = new CellGrid(g->getX0(), g->getY0(), 0.0,
+                          g->getXw(), g->getYw(), 0.0,
+                          g->getNx(), 0, false);
+      grid->setBoundBox(rect->MinD(0), rect->MaxD(0),
+                        rect->MinD(1),rect->MaxD(1));
+
+    } else if (6 == len) {
       Rectangle<2> *rect = (Rectangle<2> *)args[0].addr;
       x0 = ((CcReal *)args[1].addr)->GetValue();
       y0 = ((CcReal *)args[2].addr)->GetValue();
@@ -1930,9 +1949,7 @@ struct CellGrid{
       grid = new CellGrid(x0, y0, z0, xw, yw, zw, nx, ny, false);
       grid->setBoundBox(rect->MinD(0), rect->MaxD(0),
                         rect->MinD(1),rect->MaxD(1));
-    }
-    else
-    {
+    } else { // len = 9
       Rectangle<3> *rect = (Rectangle<3> *)args[0].addr;
       x0 = ((CcReal *)args[1].addr)->GetValue();
       y0 = ((CcReal *)args[2].addr)->GetValue();
