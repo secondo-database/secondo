@@ -2415,6 +2415,24 @@ bool CellGrid2D::set(const double x0, const double y0,
    return IsDefined();
 }
 
+double CellGrid2D::getX0() const{ 
+  return x0;
+}
+
+double CellGrid2D::getY0() const{
+  return y0;
+}
+double CellGrid2D::getXw() const{
+  return wx;
+}
+double CellGrid2D::getYw() const{
+  return wy;
+}
+int CellGrid2D::getNx() const{
+  return no_cells_x;
+}
+
+
 double CellGrid2D::getMaxX() const {
       // returns the maximum X-coordinate lying on the grid
       return wx < 0.0 ? x0 : x0 + wx * no_cells_x;

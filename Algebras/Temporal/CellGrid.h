@@ -79,6 +79,12 @@ class CellGrid2D: public Attribute{
              const double wy,
              const int no_cells_x);
 
+    double getX0() const;
+    double getY0() const;
+    double getXw() const;
+    double getYw() const;
+    int getNx() const;
+
 
     double getMaxX() const;
       // returns the maximum X-coordinate lying on the grid
