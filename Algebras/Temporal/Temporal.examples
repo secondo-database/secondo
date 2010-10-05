@@ -611,3 +611,12 @@ Number    : 2
 Signature : upoint -> stream(tuple(Cell int, TimeEntered: instant, TimeLeft: instant, CellPrevious: int, CellNext: int))
 Example   : query gridcellevents(the_unit(makepoint(200,-100),makepoint(200,1100),six30, six30 + [const duration value (0 1200000)] ,TRUE, FALSE), 0.0, 0.0, 100.0, 100.0, 10) count
 Result    : (int 11)
+
+Operator  : createCellGrid2D
+Number    : 1
+Signature : {int,real} x {int, real} x {int,real} x {int,real} x int -> gridcell2d
+Example   : query createCellGrid2D( 1.0 1.0 4.0, 5.0, 7)
+Result    : (cellgrid2d (1.0 1.0 4.0 5.0 7));
+
+
+

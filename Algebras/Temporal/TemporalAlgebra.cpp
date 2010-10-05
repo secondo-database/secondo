@@ -113,6 +113,7 @@ extern QueryProcessor* qp;
 #include "DateTime.h"
 #include "TemporalAlgebra.h"
 #include "GenericTC.h"
+#include "GenOps.h"
 
 
 
@@ -2398,6 +2399,21 @@ CellGrid2D& CellGrid2D::operator=(const CellGrid2D& other){
 
 
 CellGrid2D::~CellGrid2D(){}
+
+bool CellGrid2D::set(const double x0, const double y0,
+                     const double wx, const double wy,
+                     const int no_cells_x){
+
+   this->x0 = x0;
+   this->y0 = y0;
+   this->wx = wx;
+   this->wy = wy;
+   this->no_cells_x = no_cells_x;
+   SetDefined( (no_cells_x > 0)
+              && !AlmostEqual(wx,0.0)
+              && !AlmostEqual(wy,0.0));
+   return IsDefined();
+}
 
 double CellGrid2D::getMaxX() const {
       // returns the maximum X-coordinate lying on the grid
@@ -10251,6 +10267,7 @@ ListExpr GridCellEventsTypeMapping (ListExpr args)
 }
 
 
+
 /*
 16.2 Selection functions
 
@@ -15527,6 +15544,134 @@ Operator gridcellevents(  GridCellEventsOperatorInfo,
                           GridCellEventsSelect,
                           GridCellEventsTypeMapping );
 
+
+/*
+5.2 Further Operators
+
+5.2.1 createCellGrid2D
+
+~TypeMapping~ and ~Selection Function~
+
+*/
+
+static complexTM getCreateCellGrid2DCTM(){
+   complexTM tm;
+   tm.add(tm5<CcInt, CcInt, CcInt, CcInt, CcInt, CellGrid2D>());
+   tm.add(tm5<CcInt, CcInt, CcInt, CcReal, CcInt, CellGrid2D>());
+   tm.add(tm5<CcInt, CcInt, CcReal, CcInt, CcInt, CellGrid2D>());
+   tm.add(tm5<CcInt, CcInt, CcReal, CcReal, CcInt, CellGrid2D>());
+   tm.add(tm5<CcInt, CcReal, CcInt, CcInt, CcInt, CellGrid2D>());
+   tm.add(tm5<CcInt, CcReal, CcInt, CcReal, CcInt, CellGrid2D>());
+   tm.add(tm5<CcInt, CcReal, CcReal, CcInt, CcInt, CellGrid2D>());
+   tm.add(tm5<CcInt, CcReal, CcReal, CcReal, CcInt, CellGrid2D>());
+   tm.add(tm5<CcReal, CcInt, CcInt, CcInt, CcInt, CellGrid2D>());
+   tm.add(tm5<CcReal, CcInt, CcInt, CcReal, CcInt, CellGrid2D>());
+   tm.add(tm5<CcReal, CcInt, CcReal, CcInt, CcInt, CellGrid2D>());
+   tm.add(tm5<CcReal, CcInt, CcReal, CcReal, CcInt, CellGrid2D>());
+   tm.add(tm5<CcReal, CcReal, CcInt, CcInt, CcInt, CellGrid2D>());
+   tm.add(tm5<CcReal, CcReal, CcInt, CcReal, CcInt, CellGrid2D>());
+   tm.add(tm5<CcReal, CcReal, CcReal, CcInt, CcInt, CellGrid2D>());
+   tm.add(tm5<CcReal, CcReal, CcReal, CcReal, CcInt, CellGrid2D>());
+   return tm;
+}
+
+
+static ListExpr createCellGrid2DTypeMap(ListExpr args){
+  return getCreateCellGrid2DCTM()(args);
+}
+
+static int createCellGrid2DSelect(ListExpr args){
+   return getCreateCellGrid2DCTM().select(args);
+}
+
+
+/*
+~Functor~ and ~Value Mapping Array~
+
+*/
+
+template<class A1,class A2, class A3, class A4, class A5, class R>
+class CreateCellGrid2DF{
+public:
+  void operator()(const A1* a1, const A2* a2, const A3* a3, 
+                  const A4* a4, const A5* a5, R* res){
+   res->set(a1->GetValue(), a2->GetValue(), a3->GetValue(),
+            a4->GetValue(), a5->GetValue());
+  }
+};
+
+
+
+ValueMapping createCellGrid2DValueMap[] = {
+  GenVM5<CcInt, CcInt, CcInt, CcInt, CcInt, CellGrid2D,
+         CreateCellGrid2DF<CcInt, CcInt, CcInt, CcInt, CcInt, CellGrid2D> >,
+
+  GenVM5<CcInt, CcInt, CcInt, CcReal, CcInt, CellGrid2D,
+         CreateCellGrid2DF<CcInt, CcInt, CcInt, CcReal, CcInt, CellGrid2D> >,
+
+  GenVM5<CcInt, CcInt, CcReal, CcInt, CcInt, CellGrid2D,
+         CreateCellGrid2DF<CcInt, CcInt, CcReal, CcInt, CcInt, CellGrid2D> >,
+
+  GenVM5<CcInt, CcInt, CcReal, CcReal, CcInt, CellGrid2D,
+         CreateCellGrid2DF<CcInt, CcInt, CcReal, CcReal, CcInt, CellGrid2D> >,
+
+  GenVM5<CcInt, CcReal, CcInt, CcInt, CcInt, CellGrid2D,
+         CreateCellGrid2DF<CcInt, CcReal, CcInt, CcInt, CcInt, CellGrid2D> >,
+
+  GenVM5<CcInt, CcReal, CcInt, CcReal, CcInt, CellGrid2D,
+         CreateCellGrid2DF<CcInt, CcReal, CcInt, CcReal, CcInt, CellGrid2D> >,
+
+  GenVM5<CcInt, CcReal, CcReal, CcInt, CcInt, CellGrid2D,
+         CreateCellGrid2DF<CcInt, CcReal, CcReal, CcInt, CcInt, CellGrid2D> >,
+
+  GenVM5<CcInt, CcReal, CcReal, CcReal, CcInt, CellGrid2D,
+         CreateCellGrid2DF<CcInt, CcReal, CcReal, CcReal, CcInt, CellGrid2D> >,
+
+  GenVM5<CcReal, CcInt, CcInt, CcInt, CcInt, CellGrid2D,
+         CreateCellGrid2DF<CcReal, CcInt, CcInt, CcInt, CcInt, CellGrid2D> >,
+
+  GenVM5<CcReal, CcInt, CcInt, CcReal, CcInt, CellGrid2D,
+         CreateCellGrid2DF<CcReal, CcInt, CcInt, CcReal, CcInt, CellGrid2D> >,
+
+  GenVM5<CcReal, CcInt, CcReal, CcInt, CcInt, CellGrid2D,
+         CreateCellGrid2DF<CcReal, CcInt, CcReal, CcInt, CcInt, CellGrid2D> >,
+
+  GenVM5<CcReal, CcInt, CcReal, CcReal, CcInt, CellGrid2D,
+         CreateCellGrid2DF<CcReal, CcInt, CcReal, CcReal, CcInt, CellGrid2D> >,
+
+  GenVM5<CcReal, CcReal, CcInt, CcInt, CcInt, CellGrid2D,
+         CreateCellGrid2DF<CcReal, CcReal, CcInt, CcInt, CcInt, CellGrid2D> >,
+
+  GenVM5<CcReal, CcReal, CcInt, CcReal, CcInt, CellGrid2D,
+         CreateCellGrid2DF<CcReal, CcReal, CcInt, CcReal, CcInt, CellGrid2D> >,
+
+  GenVM5<CcReal, CcReal, CcReal, CcInt, CcInt, CellGrid2D,
+         CreateCellGrid2DF<CcReal, CcReal, CcReal, CcInt, CcInt, CellGrid2D> >,
+
+  GenVM5<CcReal, CcReal, CcReal, CcReal, CcInt, CellGrid2D,
+         CreateCellGrid2DF<CcReal, CcReal, CcReal, CcReal, CcInt, CellGrid2D> >
+};
+
+
+/*
+~Operator Instance~
+
+*/
+
+Operator createCellGrid2D(
+         "createCellGrid2D",
+          getCreateCellGrid2DCTM().getSpecification(
+              "createCellGrid2D(x0, y0, xw, yw, no_cells_x) ",
+              "Creates a cell grid from the arguments, (x0, y0) "
+              " defines a corner point of the grid, xw, yw are "
+              " the width for each dimension and no_cells_x is"
+              " the number of cells in x direction",
+              "query createCellgrid2D(1.0, 1.0, 3.0, 3.0, 5)"),
+          getCreateCellGrid2DCTM().getVMCount(),
+          createCellGrid2DValueMap,
+          createCellGrid2DSelect,
+          createCellGrid2DTypeMap);
+
 /*
 6 Creating the Algebra
 
@@ -15679,6 +15824,9 @@ class TemporalAlgebra : public Algebra
     AddOperator(&turns);
     AddOperator(&mappingtimeshift);
     AddOperator(&gridcellevents);
+
+    AddOperator(&createCellGrid2D);
+
 
 #ifdef USE_PROGRESS
     temporalunits.EnableProgress();

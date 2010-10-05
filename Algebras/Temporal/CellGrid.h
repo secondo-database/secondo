@@ -72,6 +72,14 @@ class CellGrid2D: public Attribute{
 
     ~CellGrid2D(); // standard destructor
 
+     
+    bool set(const double x0,
+             const double y0,
+             const double wx,
+             const double wy,
+             const int no_cells_x);
+
+
     double getMaxX() const;
       // returns the maximum X-coordinate lying on the grid
 
