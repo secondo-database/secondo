@@ -54,6 +54,7 @@ The address and port of the server must be set at lines 188, 238 and 261 of this
 #include "zthread/ThreadedExecutor.h"
 #include "zthread/CountedPtr.h"
 #include "zthread/AtomicCount.h"
+#include "zthread/PoolExecutor.h"
 
 using namespace std;
 using namespace symbols;
@@ -429,7 +430,7 @@ void DArray::initialize(ListExpr n_type, string n, int s,
                exec.execute(write);
           }
        exec.wait();
-       cout << "DArray mit großem Erfolg geschrieben!!" << endl;
+       
 }
 
 
@@ -1257,7 +1258,7 @@ static ListExpr receiveTypeMap( ListExpr args )
      
      SecondoCatalog* sc = SecondoSystem::GetCatalog();
      int algID, typID; extractIds(type,algID,typID);
-
+      ;
       return nl->ThreeElemList(
           nl->SymbolAtom("APPEND"),
           nl->TwoElemList(nl->StringAtom(nl->ToString(nl->First(args))),
@@ -1280,17 +1281,17 @@ static int receiveFun( Word* args,
      host = replaceAll(host,"_",".");
      host = replaceAll(host,"h","");
      port = replaceAll(port,"p","");
-     cout << "Funktion ist gestartet!" << endl;
+     
      Socket* master = Socket::Connect(host,port,Socket::SockGlobalDomain);
      
-     cout << "Socket wird versucht..." << endl;
+     
      
      if(master!=0 && master->IsOk())
      {
 
           iostream& iosock = master->GetSocketStream();
           iosock << "LOS" << endl;
-          cout << "Socket ist da..." << endl;
+          
           getline(iosock,line);
           
           if(line=="<TYPE>")
@@ -1298,16 +1299,16 @@ static int receiveFun( Word* args,
                getline(iosock,line);
                ListExpr type;
                nl->ReadFromString(line,type);
-
+               
                getline(iosock,line);
                if(line=="</TYPE>")
                {
                     int algID,typID;
                     extractIds(type,algID,typID);
                     size_t size =0;
-                    cout << "Typ ist da..." << endl;
+                    
                     getline(iosock,line);
-cout << "Fehler des Sockets: " << master->GetErrorText() << endl;
+
                     if(line=="<SIZE>")
                     {
                     getline(iosock,line);
@@ -1317,11 +1318,11 @@ cout << "Fehler des Sockets: " << master->GetErrorText() << endl;
                     getline(iosock,line);
                     if(line=="</SIZE>")
                     {
-                         cout << "Size ist da..." << endl;
                          char* buffer = new char[size]; 
                          iosock.read(buffer,size);
-                         cout << "Daten sind da..." << endl;
-cout << "Fehler des Sockets: " << master->GetErrorText() << endl;
+                         
+                         iosock << "<FINISH>" << endl;
+
 
                          SmiRecordFile recF(false,0);
                          SmiRecord rec;
@@ -1332,22 +1333,22 @@ cout << "Fehler des Sockets: " << master->GetErrorText() << endl;
                          size_t s0 = 0;
                          
                          rec.Write(buffer,size,0);
-                         
+                         Word w;
                          result = qp->ResultStorage(s);
-                         am->OpenObj(algID,typID,rec,s0,type,result); 
-cout << "Annahme von: " << nl->ToString((am->OutObj(algID,typID))(type,result))
-                         << endl;
+                         am->OpenObj(algID,typID,rec,s0,type,w); 
+
+                         << endl;result.addr = w.addr;
 
                          rec.Truncate(3);
                          recF.DeleteRecord(recID);
                          recF.Close();
-                         iosock << "<FINISH>" << endl;
-
+                         
+                         
                     }}
                     
                }
                master->Close();delete master;master=0;
-              cout << "Man glaubt es passt" << endl;
+              
                return 0;
           }
      
@@ -1845,6 +1846,132 @@ Operator distributeA (
       Operator::SimpleSelect,
       distributeTypeMap );
 
+/*
+
+4.10 Operator loop
+
+*/
+
+static ListExpr loopTypeMap(ListExpr args)
+{
+     if(nl->ListLength(args) == 3)
+     {
+          ListExpr array = nl->First(args);
+          ListExpr map = nl->Second(args);
+          
+          if(nl->ListLength(array) == 2 &&
+               nl->ListLength(map) == 3 &&
+               nl->IsEqual(nl->Third(args),"string"))
+          {
+               if(nl->IsEqual(nl->First(array),"darray") &&
+                    nl->IsEqual(nl->First(map),"map") &&
+                    !nl->IsEqual(nl->Third(map),"typeerror"))
+               {
+                    if(nl->Equal(nl->Second(array),nl->Second(map)))
+                         return nl->ThreeElemList(nl->SymbolAtom("APPEND"),
+                    nl->TwoElemList(nl->SymbolAtom("darray"),
+                                                        nl->Third(map)),
+                                nl->TwoElemList(nl->SymbolAtom("darray"),
+                                                        nl->Third(map)));
+               }
+          }
+     }
+     
+     return nl->SymbolAtom("typeerror");
+}
+
+static int loopValueMap
+(Word* args, Word& result, int message, Word& local, Supplier s)
+{
+     DArray* alt = (DArray*)args[0].addr;
+     
+     result = qp->ResultStorage(s);
+     
+     SecondoCatalog* sc = SecondoSystem::GetCatalog();
+     ListExpr type = sc->NumericType(nl->Second((qp->GetType(s))));
+     ((DArray*)(result.addr))->initialize(type,
+                                                getArrayName(DArray::no),
+                                               alt->getSize(),
+                                               alt->getServerList());
+     
+     string command = (string)(char*)((CcString*)args[2].addr)->GetStringval();
+     
+     ZThread::ThreadedExecutor exec;DServer* server;
+     DServerExecutor* ex;
+     for(int i=0; i < alt->getServerManager()->getNoOfServers(); i++)
+     {
+          server = alt->getServerManager()->getServerbyID(i);
+          ListExpr param = nl->TwoElemList(nl->TwoElemList(
+                                        nl->StringAtom(((DArray*)(result.addr))
+                                                  ->getName()),
+                                        nl->StringAtom(command)),
+                                   alt->getServerManager()->getIndexList(i));
+          server->setCmd("execute",param,alt->getElements());
+          
+          ex = new DServerExecutor(server);
+          exec.execute(ex);
+     }
+     
+     exec.wait();
+     
+     return 0;
+     
+}
+
+const string loopSpec =
+   "(( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
+    "( <text>((stream (tuple ((x1 t1) ... (xn tn)))) xi j) -> "
+     "(darray (rel (tuple ((x1 t1) ... (xi-1 ti-1)" 
+     "(xi+1 ti+1) ... (xn tn)))))</text--->"
+      "<text>_ ddistribute [ _ , _ ]</text--->"
+      "<text>Distributes a stream of tuples" 
+     "into a darray of relations.</text--->"
+      "<text>let prel = plz feed distribute [pkg]</text---> ))";
+
+
+Operator loopA (
+      "dloop",
+      loopSpec,
+      loopValueMap,
+      Operator::SimpleSelect,
+      loopTypeMap );
+
+/*
+
+4.11 Type Operator DELEMENT (derived from Operator ELEMENT of the ArrayAlgebra
+
+*/
+
+ListExpr delementTypeMap( ListExpr args )
+{
+  if(nl->ListLength(args) >= 1)
+  {
+    ListExpr first = nl->First(args);
+    if (nl->ListLength(first) == 2)
+    {
+      if (nl->IsEqual(nl->First(first), "darray")) {
+        return nl->Second(first);
+      }
+    }
+  }
+  return nl->SymbolAtom("typeerror");
+}
+
+const string DELEMENTSpec =
+   "(( \"Signature\" \"Syntax\" \"Meaning\" \"Remarks\" )"
+    "( <text>((array t) ... ) -> t</text--->"
+      "<text>type operator</text--->"
+      "<text>Extracts the type of the elements from a darray type given "
+      "as the first argument.</text--->"
+      "<text>not for use with sos-syntax</text---> ))";
+
+Operator dElementA (
+      "DELEMENT",
+      DELEMENTSpec,
+      0,
+      Operator::SimpleSelect,
+      delementTypeMap );
+
 
 /* 
 
@@ -1870,7 +1997,9 @@ class DistributedAlgebra : public Algebra
              AddOperator( &receiverelA);
              AddOperator( &sendrelA);
              AddOperator( &distributeA);
-    }
+             AddOperator( &loopA);
+          AddOperator( &dElementA);
+     }
     ~DistributedAlgebra() {}
 };
 

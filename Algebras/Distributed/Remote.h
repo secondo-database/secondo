@@ -113,7 +113,7 @@ class DServerExecutor : public ZThread::Runnable
      public:
      DServerExecutor(DServer* s) {server=s;}
      
-     void run() {server->run();}
+     void run();
 };
 
 class RelationWriter : public ZThread::Runnable

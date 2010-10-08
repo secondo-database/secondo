@@ -121,7 +121,6 @@ DServer::DServer(string n_host,int n_port,string n_name,ListExpr n_type)
         
      string ip;
      ip = server->GetSocketAddress();
-     cout << "Die IP-Adresse lautet: " << ip << endl;
      HostIP = ip;
      HostIP_ = "h" + replaceAll(ip,".","_");
 }
@@ -286,7 +285,6 @@ void DServer::run()
                     
                     char* buffer = new char[size];memset(buffer,0,size);
                     cbsock.read(buffer,size);
-                     cout << worker->GetErrorText() << endl;
                      SmiRecordFile recF(false,0);
                      SmiRecord rec;
                      SmiRecordId recID;
@@ -319,8 +317,7 @@ void DServer::run()
                 {
                         nl->ReadBinaryFrom(iosock, ls);
                         string debug_out = nl->ToString(ls);
-                        cout << debug_out;
-                        
+                                                
                         do
                                 getline(iosock,line);
                         while(line.find("</SecondoResponse>") == string::npos);
@@ -350,8 +347,7 @@ void DServer::run()
                      else akt = arg;
                      arg2 = nl->IntValue(akt);
                      //if(arg2 == 1) ZThread::Thread::sleep(1000);
-               cout << "Delete " << toString_d(arg2) << " is running!" << endl;
-                string line;
+               string line;
                 iostream& iosock = server->GetSocketStream();
                 iosock << "<Secondo>" << endl << "1" << endl << "delete r" 
                         << name << toString_d(arg2) << endl << "</Secondo>" 
@@ -389,6 +385,43 @@ void DServer::run()
                 string cmd;
                 cmd = "let r" + to + nl->ToString(list) + " = r" 
                                 + name + nl->ToString(list);
+                iosock << "<Secondo>" << endl << "1" << endl << cmd 
+                                << endl << "</Secondo>" << endl;
+                do
+                {getline(iosock,line);/*cout<<line;*/}
+                        while(line.find("</SecondoResponse>") == string::npos);
+                
+                        
+        }
+        
+        if(cmd=="execute")
+        {
+                string line;
+                iostream& iosock = server->GetSocketStream();
+                string to = nl->StringValue(nl->First(nl->First(arg)));
+                string com = nl->StringValue(nl->Second(nl->First(arg)));
+                ListExpr list = nl->Second(arg);
+                
+                while(!nl->IsAtom(list) && !nl->IsEmpty(list))
+                {
+                        string cmd;
+                        string com_a = replaceAll(com,".","r" + name
+					+ nl->ToString(nl->First(list)));
+                        cmd = "let r" + to + nl->ToString(nl->First(list))
+                                        + " = " + com_a;
+                        iosock << "<Secondo>" << endl << "1" << endl 
+                                << cmd<< endl << "</Secondo>" << endl;
+                        list = nl->Rest(list);
+                        do
+                        {getline(iosock,line); /*cout << line;*/}
+                        while(line.find("</SecondoResponse>") == string::npos);
+                }
+                
+                string cmd;
+                string com_a = replaceAll(com,".","r" + name
+							+ nl->ToString(list));
+                        cmd = "let r" + to + nl->ToString(list)
+                                        + " = " + com_a;
                 iosock << "<Secondo>" << endl << "1" << endl << cmd 
                                 << endl << "</Secondo>" << endl;
                 do
@@ -616,8 +649,9 @@ void DServer::run()
                      
                      
      //ZThread::Thread::cancel();
-     cout << "Run " << nl->ToString(arg) << " has finished!" << endl;
-           status = 0;
+                status = 0;
+           
+           return;
 }
 
 bool DServer::Multiply(int count)
@@ -731,13 +765,13 @@ void RelationWriter::run()
 {
      ListExpr akt;
      int index;
-     cout << "Los gehts!" << endl;
+     
      do
      { 
           if(!nl->IsAtom(arg)) akt = nl->First(arg);
           else akt = arg;
           index = nl->IntValue(akt);
-     cout << "Beginn von Element " << toString_d(index) << endl;
+     
      GenericRelation* rel = (Relation*)elements[index].addr;
         GenericRelationIterator* iter = rel->MakeScan();
      
@@ -751,23 +785,23 @@ void RelationWriter::run()
      word[0].addr = t;
      worker->setCmd("open_write_rel",nl->IntAtom(index),word);
      worker->run();
-     cout << "Relation geöffnet!" << endl;
+     
      while(t != 0)
      {
           
           word[0].addr = t;t->IncReference();
           worker->setCmd("write_rel",nl->TheEmptyList(),word);
-          cout << "Abfahrbereit" << endl;
+          
           worker->run();
           t->DeleteIfAllowed();
-      cout << "Tuple geschrieben und gelöscht!" << endl;
+      
           t = iter->GetNextTuple();
-       cout << "Neues Tuple geholt" << endl;
+       
      }
      
      worker->setCmd("close_write_rel",nl->TheEmptyList(),0);
      worker->run();
-     cout << "Relation geschlossen!" << endl;
+     
      
      delete iter;
      
@@ -776,3 +810,5 @@ void RelationWriter::run()
      
 }
                         
+void DServerExecutor::run()
+{server->run(); }
