@@ -544,6 +544,8 @@ Returns a gline representing the shortest path between two GPoint.
 
   bool ShortestPath(GPoint *ziel, GLine *result);
 
+  bool ShortestPathAStar(GPoint *ziel, GLine *result);
+
   private:
 
 /*
@@ -561,7 +563,6 @@ Route location see struct ~rloc~ for detailed fields
 
 */
     RLoc m_xRouteLocation;
-
 
 };
 

@@ -39,6 +39,20 @@ Example  : query shortest_path([const gpoint value (1 1 0.0 0)],[const gpoint va
 Result   : (gline(1((1 0.0 0.5))))
 Tolerance: %0.01
 
+Operator : shortest_pathastar
+Number   : 1
+Signature: gpoint x gpoint -> gline
+Example  : query shortest_pathastar([const gpoint value(1 1 1.0 2)], [const gpoint value(1 2 1.0 2)]);
+Result   : (gline(1((1 1.0 773.1299430080975)(2 0.0 1.0))))
+Tolerance: %0.01
+
+Operator : shortest_pathastar
+Number   : 2
+Signature: gpoint x gpoint -> gline
+Example  : query shortest_pathastar([const gpoint value (1 1 0.0 0)],[const gpoint value(1 1 0.5 0)]);
+Result   : (gline(1((1 0.0 0.5))))
+Tolerance: %0.01
+
 Operator : length
 Number   : 1
 Signature: gline -> real
