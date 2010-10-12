@@ -456,8 +456,6 @@ Functions for Secondo integration.
 
     static int SizeOfGPoint();
 
-    static ListExpr GPointProperty();
-
     static bool CheckGPoint( ListExpr type, ListExpr& errorInfo );
 
 /*

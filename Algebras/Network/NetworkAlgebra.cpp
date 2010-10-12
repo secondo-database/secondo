@@ -55,6 +55,10 @@ October 2008 - Jianqiu Xu
 #include "Messages.h"
 #include "NetworkManager.h"
 #include "ListUtils.h"
+#include "ConstructorTemplates.h"
+#include "TypeMapUtils.h"
+#include "../../include/Operator.h"
+#include "../../include/Attribute.h"
 
 extern NestedList* nl;
 extern QueryProcessor* qp;
@@ -4770,19 +4774,6 @@ Network *Network::Open ( SmiRecord& in_xValueRecord,
 }
 
 
-ListExpr Network::NetworkProp()
-{
-  ListExpr examplelist = nl->TextAtom();
-  nl->AppendText ( examplelist,
-                   "thenetwork(<id>,<routes-relation>, <junctions-relation>)" );
-
-  return ( nl->TwoElemList (
-               nl->TwoElemList ( nl->StringAtom ( "Creation" ),
-                                 nl->StringAtom ( "Example Creation" ) ),
-               nl->TwoElemList ( examplelist,
-                      nl->StringAtom ( "(let n = thenetwork(id, r,j))" ) ) ));
-}
-
 ListExpr Network::OutNetwork ( ListExpr typeInfo, Word value )
 {
   Network *n = ( Network* ) value.addr;
@@ -5115,15 +5106,36 @@ Secondo TypeConstructor for class ~Network~
 
 */
 
-TypeConstructor network ( "network",          Network::NetworkProp,
-                          Network::OutNetwork,           Network::InNetwork,
-                          0,                    0,
-                          Network::CreateNetwork,        Network::DeleteNetwork,
-                          Network::OpenNetwork,          Network::SaveNetwork,
-                          Network::CloseNetwork,         Network::CloneNetwork,
-                          Network::CastNetwork,          Network::SizeOfNetwork,
-                          Network::CheckNetwork );
+struct networkInfo:ConstructorInfo{
+  networkInfo():ConstructorInfo(){
+    name = "network";
+    signature = "-> NETWORK";
+    typeExample = "network";
+    listRep = "(<id> <routes-relation> <junctions-relation>)";
+    valueExample = "(1 (rel()) (rel()))";
+    remarks = "Complex datatype containing all network information.";
+  }
+};
 
+struct networkFunctions:ConstructorFunctions<Network>{
+  networkFunctions(){
+    in = Network::InNetwork;
+    out = Network::OutNetwork;
+    create = Network::CreateNetwork;
+    deletion = Network::DeleteNetwork;
+    open = Network::OpenNetwork;
+    save = Network::SaveNetwork;
+    close = Network::CloseNetwork;
+    clone = Network::CloneNetwork;
+    cast = Network::CastNetwork;
+    sizeOf = Network::SizeOfNetwork;
+    kindCheck = Network::CheckNetwork;
+  }
+};
+
+networkInfo neti;
+networkFunctions nf;
+TypeConstructor networkTC(neti,nf);
 
 /*
 3 class ~GLine~
@@ -5696,20 +5708,6 @@ int GLine::NoOfComponents()
 };
 
 
-ListExpr GLine::Property()
-{
-  return ( nl->TwoElemList (
-               nl->FourElemList ( nl->StringAtom ( "Signature" ),
-                                  nl->StringAtom ( "Example Type List" ),
-                                  nl->StringAtom ( "List Rep" ),
-                                  nl->StringAtom ( "Example List" ) ),
-               nl->FourElemList (
-                  nl->StringAtom ( "-> DATA" ),
-                  nl->StringAtom ( "gline" ),
-                  nl->StringAtom ( "(<nid> ((<rid> <startpos><endpos>)...))"),
-                  nl->StringAtom ( "(1 ((1 1.5 2.5)(2 1.5 2.0)))" ) ) ) );
-}
-
 bool GLine::Check ( ListExpr type, ListExpr& errorInfo )
 {
   return ( nl->IsEqual ( type, "gline" ) );
@@ -6129,18 +6127,37 @@ bool GLine::Intersects ( GLine *pgl )
 Secondo Type Constructor for class ~GLine~
 
 */
-TypeConstructor gline (
-    "gline",                       //name
-    GLine::Property,               //property function
-    GLine::Out, GLine::In,         //Out and In functions
-    0, 0,                          //SaveToList and
-    //RestoreFromList functions
-    GLine::Create, GLine::Delete,  //object creation and deletion
-    OpenAttribute<GLine>, SaveAttribute<GLine>,  //open and save functions
-    GLine::Close, GLine::CloneGLine,    //object close, and clone
-    GLine::Cast,                   //cast function
-    GLine::SizeOf,                 //sizeof function
-    GLine::Check );                //kind checking function
+
+struct glineInfo:ConstructorInfo{
+  glineInfo(){
+    name = "gline";
+    signature = "-> DATA";
+    typeExample = "gline";
+    listRep = "(<netId> <list of routeintervals>)";
+    valueExample = "(1 ((23 34.8 435.3)(...)))";
+    remarks = "Route interval: (<routeid> <startpos> <endpos>)";
+  }
+};
+
+struct glineFunctions:ConstructorFunctions<GLine>{
+  glineFunctions(){
+    in = GLine::In;
+    out = GLine::Out;
+    create = GLine::Create;
+    deletion = GLine::Delete;
+    open = OpenAttribute<GLine>;
+    save = SaveAttribute<GLine>;
+    close = GLine::Close;
+    clone = GLine::CloneGLine;
+    cast = GLine::Cast;
+    sizeOf = GLine::SizeOf;
+    kindCheck = GLine::Check;
+  }
+};
+
+glineInfo gli;
+glineFunctions glf;
+TypeConstructor glineTC(gli,glf);
 
 
 /*
@@ -6230,20 +6247,6 @@ void* GPoint::CastGPoint ( void* addr )
 int GPoint::SizeOfGPoint()
 {
   return sizeof ( GPoint );
-}
-
-ListExpr GPoint::GPointProperty()
-{
-  return ( nl->TwoElemList (
-               nl->FourElemList ( nl->StringAtom ( "Signature" ),
-                                  nl->StringAtom ( "Example Type List" ),
-                                  nl->StringAtom ( "List Rep" ),
-                                  nl->StringAtom ( "Example List" ) ),
-               nl->FourElemList ( nl->StringAtom ( "-> DATA" ),
-                                  nl->StringAtom ( "gpoint" ),
-                                  nl->StringAtom ( "(<network_id> <route_id> "
-                                                   "<position> <side>)" ),
-                                  nl->StringAtom ( "(1 1 0.0 0)" ) ) ) );
 }
 
 bool GPoint::CheckGPoint ( ListExpr type, ListExpr& errorInfo )
@@ -7370,18 +7373,36 @@ Secondo Type Constructor for class ~GPoint~
 
 */
 
-TypeConstructor gpoint (
-    "gpoint",                                   //name
-    GPoint::GPointProperty,                     //property function
-    GPoint::OutGPoint, GPoint::InGPoint,        //Out and In functions
-    0,                   0,                     //SaveToList and
-    //RestoreFromList functions
-    GPoint::CreateGPoint, GPoint::DeleteGPoint, //object creation/deletion
-    OpenAttribute<GPoint>,SaveAttribute<GPoint>,//open and save functions
-    GPoint::CloseGPoint, GPoint::CloneGPoint,   //object close, and clone
-    GPoint::CastGPoint,                         //cast function
-    GPoint::SizeOfGPoint,                       //sizeof function
-    GPoint::CheckGPoint );                      //kind checking function
+struct gpointInfo:ConstructorInfo{
+  gpointInfo():ConstructorInfo(){
+    name = "gpoint";
+    signature = "-> DATA";
+    typeExample = "gpoint";
+    listRep = "(<netId> <routeId> <pos> <side>)";
+    valueExample = "(1 2 5.4 1)";
+    remarks = "Single position in a network.";
+  }
+};
+
+struct gpointFunctions: ConstructorFunctions<GPoint>{
+  gpointFunctions(){
+    in = GPoint::InGPoint;
+    out = GPoint::OutGPoint;
+    create = GPoint::CreateGPoint;
+    deletion = GPoint::DeleteGPoint;
+    open = OpenAttribute<GPoint>;
+    save = SaveAttribute<GPoint>;
+    close = GPoint::CloseGPoint;
+    cast = GPoint::CastGPoint;
+    clone = GPoint::CloneGPoint;
+    sizeOf = GPoint::SizeOfGPoint;
+    kindCheck = GPoint::CheckGPoint;
+  }
+};
+
+gpointInfo gpi;
+gpointFunctions gf;
+TypeConstructor gpointTC(gpi,gf);
 
 /*
 5 Class GPoints implemented by Jianqiu Xu
@@ -7482,21 +7503,7 @@ void GPoints::Get ( int i, GPoint& pgp ) const
   assert ( i >= 0 && i < m_xGPoints.Size() );
   m_xGPoints.Get ( i,pgp );
 }
-ListExpr GPoints:: Property()
-{
-  return ( nl->TwoElemList (
-               nl->FourElemList ( nl->StringAtom ( "Signature" ),
-                                  nl->StringAtom ( "Example Type List" ),
-                                  nl->StringAtom ( "List Rep" ),
-                                  nl->StringAtom ( "Example List" ) ),
-               nl->FourElemList ( nl->StringAtom ( "-> DATA" ),
-                                  nl->StringAtom ( "gpoints" ),
-                                  nl->StringAtom (
-"(<gpoint1><gpoint2>...<gpointN>))" ),
-                                  nl->StringAtom ( "((1 2.0 0)(2 3.0 0))" ) ) )
-);
 
-}
 
 ListExpr GPoints::Out ( ListExpr in_xTypeInfo,
                         Word in_xValue )
@@ -7648,15 +7655,36 @@ void GPoints::CopyFrom ( const Attribute* right )
   *this = * ( ( const GPoints * ) right );
 }
 
-TypeConstructor gpoints ( "gpoints",
-                          GPoints::Property,
-                          GPoints::Out, GPoints::In,
-                          0, 0,
-                          GPoints::Create, GPoints::Delete,
-                          GPoints::OpenGPoints, GPoints::SaveGPoints,
-                          GPoints::Close, GPoints::CloneGPoints,
-                          GPoints::Cast, GPoints::SizeOf,
-                          GPoints::Check );
+struct gpointsInfo:ConstructorInfo{
+  gpointsInfo(){
+    name = "gpoints";
+    signature = "-> DATA";
+    typeExample = "gpoints";
+    listRep = "(<gpoint1> <gpoint2> ...)";
+    valueExample = "((1 34 235.65 1)(1 98 234.1 0))";
+    remarks = "Set of network positions.";
+  }
+};
+
+struct gpointsFunctions:ConstructorFunctions<GPoints>{
+  gpointsFunctions(){
+    in = GPoints::In;
+    out = GPoints::Out;
+    create = GPoints::Create;
+    deletion = GPoints::Delete;
+    open = GPoints::OpenGPoints;
+    save = GPoints::SaveGPoints;
+    close = GPoints::Close;
+    clone = GPoints::CloneGPoints;
+    cast = GPoints::Cast;
+    sizeOf = GPoints::SizeOf;
+    kindCheck = GPoints::Check;
+  }
+};
+
+gpointsInfo gpsi;
+gpointsFunctions gpsf;
+TypeConstructor gpointsTC(gpsi,gpsf);
 
 
 
@@ -7731,7 +7759,8 @@ int OpNetNetdistance_glgl ( Word* args, Word& result, int message,
 ValueMapping OpNetNetdistancemap[] =
 {
   OpNetNetdistance_gpgp,
-  OpNetNetdistance_glgl
+  OpNetNetdistance_glgl,
+  0
 };
 
 int OpNetNetdistanceselect ( ListExpr args )
@@ -7747,23 +7776,15 @@ int OpNetNetdistanceselect ( ListExpr args )
   return -1; // This point should never be reached
 };
 
-const string OpNetNetdistanceSpec  =
-    "( ( \"Signature\" \"Syntax\" \"Meaning\" "
-    "\"Example\" ) "
-    "( <text>A x A x network-> real with A = gpoint or gline" "</text--->"
-    "<text>netdistance(GPOINT1,GPOINT2, NETWORK)</text--->"
-  "<text>Calculates the network distance of two gpoints resp. glines.</text--->"
-    "<text>query netdistance(gp1,gp2, B_NETWORK)</text--->"
-     ") )";
-
-Operator networknetdistance (
-    "netdistance",               // name
-    OpNetNetdistanceSpec,          // specification
-    2,
-    OpNetNetdistancemap,  // value mapping
-    OpNetNetdistanceselect,        // selection function
-    OpNetNetdistanceTypeMap        // type mapping
-);
+struct netdistanceInfo : OperatorInfo {
+  netdistanceInfo():OperatorInfo(){
+    name = "netdistance";
+    signature = "gpoint X gpoint X network-> real";
+    appendSignature("gline X gline x network -> real");
+    syntax = "netdistance(gp1, gp2, B_Network)";
+    meaning = "Calculates the network distance from gp1 to gp2.";
+  }
+};
 
 /*
 6.2 Operator ~gpoint2rect~
@@ -7811,22 +7832,15 @@ int OpGPoint2RectValueMapping ( Word* args,
   return 0;
 } //end ValueMapping
 
-const string OpGPoint2RectSpec  =
-    "( ( \"Signature\" \"Syntax\" \"Meaning\" "
-    "\"Example\" ) "
-    "( <text>gpoint -> rect" "</text--->"
-    "<text>gpoint2rect(GPOINT)</text--->"
-    "<text>Returns a rectangle representing the gpoint.</text--->"
-    "<text> gpoint2rect (gpoint) </text--->"
-    ") )";
+struct gpoint2rectInfo:OperatorInfo{
+  gpoint2rectInfo():OperatorInfo(){
+    name = "gpoint2rect";
+    signature = "gpoint -> rect";
+    syntax ="gpoint2rect(_)";
+    meaning = "Returns a rectangle representing the gpoint.";
+  }
+};
 
-Operator networkgpoint2rect (
-    "gpoint2rect",               // name
-    OpGPoint2RectSpec,          // specification
-    OpGPoint2RectValueMapping,  // value mapping
-    Operator::SimpleSelect,        // selection function
-    OpGPoint2RectTypeMap        // type mapping
-);
 
 /*
 6.3 Operator ~inside~
@@ -7868,22 +7882,15 @@ int OpInsideValueMap ( Word* args, Word& result, int message,
   return 0;
 }
 
-const string OpInsideSpec  =
-    "( ( \"Signature\" \"Syntax\" \"Meaning\" "
-    "\"Example\" ) "
-    "( <text>gpoint x gline -> bool" "</text--->"
-    "<text> _ inside _</text--->"
-    "<text>Returns true if gpoint is inside gline false elsewhere.</text--->"
-    "<text>GPOINT inside GLINE</text--->"
-    ") )";
+struct insideInfo : OperatorInfo{
+  insideInfo():OperatorInfo(){
+    name = "inside";
+    signature = "gpoint X gline -> bool";
+    syntax = "_ inside _";
+    meaning = "Returns true if the gpoint is on the gline.";
+  }
+};
 
-Operator networkinside (
-    "inside",               // name
-    OpInsideSpec,          // specification
-    OpInsideValueMap,  // value mapping
-    Operator::SimpleSelect,        // selection function
-    OpInsideTypeMap        // type mapping
-);
 
 /*
 6.4 Operator ~length~
@@ -7921,22 +7928,14 @@ int OpLengthValueMap ( Word* args, Word& result, int message,
   return 1;
 }
 
-const string OpLengthSpec  =
-    "( ( \"Signature\" \"Syntax\" \"Meaning\" "
-    "\"Example\" ) "
-    "( <text>gline -> real" "</text--->"
-    "<text>length(_)</text--->"
-    "<text>Calculates the length of the gline.</text--->"
-    "<text>query length(gline)</text--->"
-    ") )";
-
-Operator networklength (
-    "length",               // name
-    OpLengthSpec,          // specification
-    OpLengthValueMap,  // value mapping
-    Operator::SimpleSelect,        // selection function
-    OpLengthTypeMap        // type mapping
-);
+struct lengthInfo: OperatorInfo{
+  lengthInfo():OperatorInfo(){
+    name = "length";
+    signature = "gline -> real";
+    syntax = "length(_)";
+    meaning = "Returns the length of the gline.";
+  }
+};
 
 /*
 6.5 Operator ~line2gline~
@@ -8054,22 +8053,16 @@ int OpLine2GLineValueMapping ( Word* args,
   return 0;
 } //end ValueMapping
 
-const string OpLine2GLineSpec  =
-    "( ( \"Signature\" \"Syntax\" \"Meaning\" "
-    "\"Example\" ) "
-    "( <text>network x line -> gline" "</text--->"
-    "<text>sline2gline(_,_)</text--->"
-    "<text>Translates a line to a gline value.</text--->"
-    "<text>line2gline(B_NETWORK, sline)</text--->"
-    ") )";
+struct line2glineInfo : OperatorInfo{
+  line2glineInfo():OperatorInfo(){
+    name = "line2gline";
+    signature = "network X line -> gline";
+    syntax = "line2gline(_,_)";
+    meaning = "Translates a line into an gline if possible.";
+  }
+};
 
-Operator sline2gline (
-    "line2gline",               // name
-    OpLine2GLineSpec,          // specification
-    OpLine2GLineValueMapping,  // value mapping
-    Operator::SimpleSelect,        // selection function
-    OpLine2GLineTypeMap        // type mapping
-);
+
 
 
 /*
@@ -8138,7 +8131,8 @@ int OpNetEqual_glgl ( Word* args, Word& result, int message,
 ValueMapping OpNetEqualmap[] =
 {
   OpNetEqual_gpgp,
-  OpNetEqual_glgl
+  OpNetEqual_glgl,
+  0
 };
 
 int OpNetEqualselect ( ListExpr args )
@@ -8154,23 +8148,16 @@ int OpNetEqualselect ( ListExpr args )
   return -1; // This point should never be reached
 };
 
-const string OpNetEqualSpec  =
-    "( ( \"Signature\" \"Syntax\" \"Meaning\" "
-    "\"Example\" ) "
-    "( <text>A x A -> bool for GPoint and GLine" "</text--->"
-    "<text> _ = _</text--->"
-    "<text>Returns if two gpoints are equal.</text--->"
-    "<text>query gpoint1 = gpoint2</text--->"
-    ") )";
+struct equalInfo:OperatorInfo{
+  equalInfo():OperatorInfo(){
+    name = "=";
+    signature = "gpoint X gpoint -> bool";
+    appendSignature("gline X gline -> bool");
+    syntax = "_ = _";
+    meaning = "Returns true if the two objects are equal";
+  }
+};
 
-Operator netgpequal (
-    "=",               // name
-    OpNetEqualSpec,          // specification
-    2,
-    OpNetEqualmap,  // value mapping
-    OpNetEqualselect,        // selection function
-    OpNetEqualTypeMap        // type mapping
-);
 
 
 /*
@@ -8234,21 +8221,15 @@ int OpNetIntersectsValueMapping ( Word* args,
   return 0;
 }
 
-const string OpNetIntersectsSpec  =
-    "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-    "( <text>gline x gline -> bool" "</text--->"
-    "<text>intersects(gline, gline)</text--->"
- "<text>Returns true if the both glines intersects false elsewhere.</text--->"
-    "<text>intersects(gline, gline)</text--->"
-    ") )";
+struct intersectsInfo:OperatorInfo{
+  intersectsInfo():OperatorInfo(){
+    name = "intersects";
+    signature = "gline X gline -> bool";
+    syntax = "intersects(_,_)";
+    meaning = "Returns true if the glines intersect.";
+  }
+};
 
-Operator networkintersects (
-    "intersects",               // name
-    OpNetIntersectsSpec,          // specification
-    OpNetIntersectsValueMapping,  // value mapping
-    Operator::SimpleSelect,        // selection function
-    OpNetIntersectsTypeMap        // type mapping
-);
 
 
 /*
@@ -8288,22 +8269,14 @@ int OpNetworkJunctionsValueMapping ( Word* args, Word& result, int message,
   return 0;
 }
 
-const string OpNetworkJunctionsSpec  =
-    "( ( \"Signature\" \"Syntax\" \"Meaning\" "
-    "\"Example\" ) "
-    "( <text>network -> rel" "</text--->"
-    "<text>junctions(_)</text--->"
-    "<text>Return the junctions of a network.</text--->"
-    "<text>query junctions(network)</text--->"
-    ") )";
-
-Operator networkjunctions (
-    "junctions",                // name
-    OpNetworkJunctionsSpec,          // specification
-    OpNetworkJunctionsValueMapping,  // value mapping
-    Operator::SimpleSelect,            // trivial selection function
-    OpNetworkJunctionsTypeMap        // type mapping
-);
+struct junctionsInfo:OperatorInfo{
+  junctionsInfo():OperatorInfo(){
+    name = "junctions";
+    signature = "network -> rel";
+    syntax = "junctions(_)";
+    meaning = "Returns a relation with the junctions of the network";
+  }
+};
 
 
 /*
@@ -8343,22 +8316,15 @@ int OpNetworkRoutesValueMapping ( Word* args, Word& result, int message,
   return 0;
 }
 
-const string OpNetworkRoutesSpec  =
-    "( ( \"Signature\" \"Syntax\" \"Meaning\" "
-    "\"Example\" ) "
-    "( <text>network -> rel" "</text--->"
-    "<text>routes(_)</text--->"
-    "<text>Return the routes of a network.</text--->"
-    "<text>query routes(network)</text--->"
-    ") )";
+struct routesInfo:OperatorInfo{
+  routesInfo():OperatorInfo(){
+    name = "routes";
+    signature = "network -> rel";
+    syntax = "routes(_)";
+    meaning = "Returns a relation with the routes of the network.";
+  }
+};
 
-Operator networkroutes (
-    "routes",                // name
-    OpNetworkRoutesSpec,              // specification
-    OpNetworkRoutesValueMapping,      // value mapping
-    Operator::SimpleSelect,               // trivial selection function
-    OpNetworkRoutesTypeMap            // type mapping
-);
 
 /*
 6.10 Operator ~sections~
@@ -8398,22 +8364,15 @@ int OpNetworkSectionsValueMapping ( Word* args, Word& result, int message,
   return 0;
 }
 
-const string OpNetworkSectionsSpec  =
-    "( ( \"Signature\" \"Syntax\" \"Meaning\" "
-    "\"Example\" ) "
-    "( <text>network -> rel" "</text--->"
-    "<text>sections(_)</text--->"
-    "<text>Return the sections of a network.</text--->"
-    "<text>query sections(network)</text--->"
-    ") )";
+struct sectionsInfo:OperatorInfo{
+  sectionsInfo():OperatorInfo(){
+    name = "sections";
+    signature = "network -> rel";
+    syntax = "sections(_)";
+    meaning = "Returns a relation of the network sections.";
+  }
+};
 
-Operator networksections (
-    "sections",                       // name
-    OpNetworkSectionsSpec,          // specification
-    OpNetworkSectionsValueMapping,  // value mapping
-    Operator::SimpleSelect,           // trivial selection function
-    OpNetworkSectionsTypeMap        // type mapping
-);
 
 
 /*
@@ -8486,22 +8445,15 @@ int OpNetworkTheNetworkValueMapping ( Word* args, Word& result,
   return 0;
 }
 
-const string OpNetworkTheNetworkSpec  =
-    "((\"Signature\" \"Syntax\" \"Meaning\" "
-    "\"Example\") "
-    "(<text>int x rel x rel -> network" "</text--->"
-    "<text>thenetwork(_, _, _)</text--->"
-    "<text>Creates network with id or next free id.</text--->"
-    "<text>let n = thenetwork(int, routes, junctions)</text--->"
-    "))";
+struct theNetworkInfo:OperatorInfo{
+  theNetworkInfo():OperatorInfo(){
+    name = "thenetwork";
+    signature = "int X rel X rel -> network";
+    syntax = "thenetwork(_,_,_)";
+    meaning = "Creates the network with the given data.";
+  }
+};
 
-Operator networkthenetwork (
-    "thenetwork",                // name
-    OpNetworkTheNetworkSpec,              // specification
-    OpNetworkTheNetworkValueMapping,      // value mapping
-    Operator::SimpleSelect,               // trivial selection function
-    OpNetworkTheNetworkTypeMap            // type mapping
-);
 
 /*
 6.12 Operator ~no\_components~
@@ -8540,22 +8492,15 @@ int OpNoComponentsValueMapping ( Word* args, Word& result, int message,
   return 1;
 }
 
-const string OpNoComponentsSpec  =
-    "( ( \"Signature\" \"Syntax\" \"Meaning\" "
-    "\"Example\" ) "
-    "( <text>gline -> int" "</text--->"
-    "<text>no_components(_)</text--->"
-    "<text>Returns the number of route intervals.</text--->"
-    "<text>query no_components(gline)</text--->"
-    ") )";
+struct noComponentsInfo:OperatorInfo{
+  noComponentsInfo():OperatorInfo(){
+    name = "no_components";
+    signature = "gline -> int";
+    syntax = "no_components(_)";
+    meaning = "Returns the number of Route Intervals of the gline.";
+  }
+};
 
-Operator networknocomponents (
-    "no_components",               // name
-    OpNoComponentsSpec,          // specification
-    OpNoComponentsValueMapping,  // value mapping
-    Operator::SimpleSelect,        // selection function
-    OpNoComponentsTypeMap        // type mapping
-);
 
 
 /*
@@ -8628,22 +8573,15 @@ int OpPoint2GPointValueMapping ( Word* args,
   return 0;
 } //end ValueMapping
 
-const string OpPoint2GPointSpec  =
-    "( ( \"Signature\" \"Syntax\" \"Meaning\" "
-    "\"Example\" ) "
-    "( <text>network x point -> gpoint" "</text--->"
-    "<text>point2gpoint(networkobject, point)</text--->"
-    "<text>Translates a point to a gpoint.</text--->"
-    "<text>point2gpoint(b_network, point)</text--->"
-    ") )";
+struct point2gpointInfo:OperatorInfo{
+  point2gpointInfo():OperatorInfo(){
+    name = "point2gpoint";
+    signature = "network X point -> gpoint";
+    syntax = "point2gpoint(_,_)";
+    meaning = "Translates a point into a gpoint value.";
+  }
+};
 
-Operator point2gpoint (
-    "point2gpoint",               // name
-    OpPoint2GPointSpec,          // specification
-    OpPoint2GPointValueMapping,  // value mapping
-    Operator::SimpleSelect,        // selection function
-    OpPoint2GPointTypeMap        // type mapping
-);
 
 /*
 6.14 Operator ~gpoint2point~
@@ -8694,22 +8632,15 @@ int OpGPoint2PointValueMapping ( Word* args,
   return 0;
 } //end ValueMapping
 
-const string OpGPoint2PointSpec  =
-    "( ( \"Signature\" \"Syntax\" \"Meaning\" "
-    "\"Example\" ) "
-    "( <text>gpoint -> point" "</text--->"
-    "<text>gpoint2point(gpoint)</text--->"
-    "<text>Translates a gpoint to a point.</text--->"
-    "<text>gpoint2point(gpoint)</text--->"
-    ") )";
+struct gpoint2pointInfo:OperatorInfo{
+  gpoint2pointInfo():OperatorInfo(){
+    name = "gpoint2point";
+    signature = "gpoint -> point";
+    syntax = "gpoint2point(_)";
+    meaning = "Translates a gpoint into an point value.";
+  }
+};
 
-Operator gpoint2point (
-    "gpoint2point",               // name
-    OpGPoint2PointSpec,          // specification
-    OpGPoint2PointValueMapping,  // value mapping
-    Operator::SimpleSelect,        // selection function
-    OpGPoint2PointTypeMap        // type mapping
-);
 
 
 /*
@@ -8786,24 +8717,16 @@ int OpPolyGPointValueMapping ( Word* args,
   return 0; // ignore unknown message
 } //end ValueMapping
 
+struct polygpointsInfo:OperatorInfo{
+  polygpointsInfo():OperatorInfo(){
+    name = "polygpoints";
+    signature = "gpoint X network -> stream(gpoint)";
+    syntax = "polygpoints(gpoint, network)";
+    meaning = "Returns all gpoints with the network position of gpoint.";
+  }
+};
 
-const string OpPolyGPointSpec  =
-    "( ( \"Signature\" \"Syntax\" \"Meaning\" "
-    "\"Example\" ) "
-    "( <text>gpoint x network -> stream(gpoint)" "</text--->"
-    "<text>gpoint polygpoint</text--->"
-    "<text>Returns the gpoint and gpoints with the same network position"
-    " if the gpoint is a junction.</text--->"
-    "<text> polygpoints (gpoint, network) </text--->"
-    ") )";
 
-Operator polygpoints (
-    "polygpoints",               // name
-    OpPolyGPointSpec,          // specification
-    OpPolyGPointValueMapping,  // value mapping
-    Operator::SimpleSelect,        // selection function
-    OpPolyGPointTypeMap        // type mapping
-);
 
 
 /*
@@ -8867,23 +8790,14 @@ int OpRouteIntervalsValueMapping ( Word* args,
   return 0; // ignore unknown message
 } //end ValueMapping
 
-const string OpRouteIntervalsSpec  =
-    "( ( \"Signature\" \"Syntax\" \"Meaning\" "
-    "\"Example\" ) "
-    "( <text>gline -> stream(rect)" "</text--->"
-    "<text>routeintervals(GLINE)</text--->"
- "<text>Returns a stream of rectangles representing the route intervals of the"
-    " gline.</text--->"
-    "<text> routeintervals (gline) </text--->"
-    ") )";
-
-Operator networkrouteintervals (
-    "routeintervals",               // name
-    OpRouteIntervalsSpec,          // specification
-    OpRouteIntervalsValueMapping,  // value mapping
-    Operator::SimpleSelect,        // selection function
-    OpRouteIntervalsTypeMap        // type mapping
-);
+struct routeIntervalsInfo:OperatorInfo{
+  routeIntervalsInfo():OperatorInfo(){
+    name = "routeintervals";
+    signature = "gline -> stream(rect)";
+    syntax = "routeintervals(_)";
+    meaning = "Returns a netbox for each routeinterval of the gline.";
+  }
+};
 
 
 /*
@@ -8940,22 +8854,15 @@ int OpShortestPathValueMapping ( Word* args,
   return 0;
 }
 
-const string OpShortestPathSpec  =
-    "( ( \"Signature\" \"Syntax\" \"Meaning\" "
-    "\"Example\" ) "
-    "( <text>gpoint x gpoint -> gline" "</text--->"
-    "<text>shortest_path( _ , _)</text--->"
-    "<text>Calculates the shortest path between two gpoints.</text--->"
-    "<text>query shortest_path(x, y)</text--->"
-    ") )";
+struct shortestpathInfo:OperatorInfo{
+  shortestpathInfo():OperatorInfo(){
+    name = "shortest_path";
+    signature = "gpoint X gpoint -> gline";
+    syntax = "shortest_path (_,_)";
+    meaning = "Returns the shortest path between objects using Dijkstra.";
+  }
+};
 
-Operator shortest_path (
-    "shortest_path",               // name
-    OpShortestPathSpec,          // specification
-    OpShortestPathValueMapping,  // value mapping
-    Operator::SimpleSelect,        // trivial selection function
-    OpShortestPathTypeMap        // type mapping
-);
 
 /*
 6.17 Operator ~shortest\_pathastar~
@@ -9011,22 +8918,16 @@ int OpShortestPathAStarValueMapping ( Word* args,
   return 0;
 }
 
-const string OpShortestPathAStarSpec  =
-    "( ( \"Signature\" \"Syntax\" \"Meaning\" "
-    "\"Example\" ) "
-    "( <text>gpoint x gpoint -> gline" "</text--->"
-    "<text>shortest_pathastar( _ , _)</text--->"
-    "<text>Calculates the shortest path between two gpoints.</text--->"
-    "<text>query shortest_path(x, y)</text--->"
-    ") )";
+struct shortestpathAstarInfo:OperatorInfo{
+  shortestpathAstarInfo():OperatorInfo(){
+    name = "shortest_pathastar";
+    signature = "gpoint X gpoint -> gline";
+    syntax = "shortest_pathastar (_,_)";
+    meaning = "Returns shortest path between objects using Astar-Variant.";
+  }
+};
 
-Operator shortest_pathastar (
-    "shortest_pathastar",               // name
-    OpShortestPathAStarSpec,          // specification
-    OpShortestPathAStarValueMapping,  // value mapping
-    Operator::SimpleSelect,        // trivial selection function
-    OpShortestPathAStarTypeMap        // type mapping
-);
+
 
 /*
 6.18 Operator ~gline2line~
@@ -9073,22 +8974,15 @@ int OpGLine2LineValueMapping ( Word* args,
   return 0;
 }
 
-const string OpGLine2LineSpec  =
-    "( ( \"Signature\" \"Syntax\" \"Meaning\" "
-    "\"Example\" ) "
-    "( <text>gline -> line" "</text--->"
-    "<text>gline2line(GLINE)</text--->"
-    "<text>Returns the line value of the gline.</text--->"
-    "<text> gline2line(gline) </text--->"
-    ") )";
+struct gline2lineInfo:OperatorInfo{
+  gline2lineInfo():OperatorInfo(){
+    name = "gline2line";
+    signature = "gline -> line";
+    syntax = "gline2line(_)";
+    meaning = "Translates a gline into an line value.";
+  }
+};
 
-Operator networkgline2line (
-    "gline2line",               // name
-    OpGLine2LineSpec,          // specification
-    OpGLine2LineValueMapping,  // value mapping
-    Operator::SimpleSelect,        // selection function
-    OpGLine2LineTypeMap        // type mapping
-);
 
 /*
 6.19 Operator ~isempty~
@@ -9129,22 +9023,16 @@ int OpNetIsEmptyValueMap ( Word* args, Word& result, int message,
   }
 }
 
-const string OpNetIsEmptySpec  =
-    "( ( \"Signature\" \"Syntax\" \"Meaning\" "
-    "\"Example\" ) "
-    "( <text>gline -> bool" "</text--->"
-    "<text>isemtpy(_)</text--->"
-    "<text>Returns true if the gline is empty.</text--->"
-    "<text>query isempty(gline)</text--->"
-    ") )";
+struct isEmptyInfo:OperatorInfo{
+  isEmptyInfo():OperatorInfo(){
+    name = "isempty";
+    signature = "gline -> bool";
+    syntax = "isempty(_)";
+    meaning = "Returns true if gline has no route intervals.";
+  }
+};
 
-Operator networkisempty (
-    "isempty",               // name
-    OpNetIsEmptySpec,          // specification
-    OpNetIsEmptyValueMap,  // value mapping
-    Operator::SimpleSelect,        // selection function
-    OpNetIsEmptyTypeMap        // type mapping
-);
+
 
 /*
 6.20 Operator ~union~
@@ -9187,23 +9075,14 @@ int OpNetUnionValueMap ( Word* args, Word& result, int message,
   return 0;
 }
 
-const string OpNetUnionSpec  =
-    "( ( \"Signature\" \"Syntax\" \"Meaning\" "
-    "\"Example\" ) "
-    "( <text>gline x gline -> gline" "</text--->"
-    "<text>_ union _ </text--->"
-    "<text>Returns the sorted gline resulting of the union of both "
-    "gline.</text--->"
-    "<text>query gline1 union gline2</text--->"
-    ") )";
-
-Operator networkunion (
-    "union",               // name
-    OpNetUnionSpec,          // specification
-    OpNetUnionValueMap,  // value mapping
-    Operator::SimpleSelect,        // selection function
-    OpNetUnionTypeMap        // type mapping
-);
+struct unionInfo:OperatorInfo{
+  unionInfo():OperatorInfo(){
+    name = "union";
+    signature = "gline X gline -> gline";
+    syntax = "union (_,_)";
+    meaning = "Returns a sorted gline with the route intervals of both gline.";
+  }
+};
 
 /*
 6.21 Operator ~distance~
@@ -9270,7 +9149,8 @@ int OpNetDistance_glgl ( Word* args, Word& result, int message,
 ValueMapping OpNetDistancemap[] =
 {
   OpNetDistance_gpgp,
-  OpNetDistance_glgl
+  OpNetDistance_glgl,
+  0
 };
 
 int OpNetDistanceselect ( ListExpr args )
@@ -9286,27 +9166,15 @@ int OpNetDistanceselect ( ListExpr args )
   return -1; // This point should never be reached
 };
 
-const string OpNetDistanceSpec  =
-    "( ( \"Signature\" \"Syntax\" \"Meaning\" "
-    "\"Example\" ) "
-    "( <text>A x A -> real with A = gpoint or gline" "</text--->"
-    "<text>distance(GPOINT1,GPOINT2)</text--->"
-    "<text>Calculates the Euclidean Distance of gpoints resp. glines.</text--->"
-    "<text>query distance(gp1,gp2)</text--->"
-    ") )";
-
-Operator networkdistance (
-    "distance",               // name
-    OpNetDistanceSpec,          // specification
-    2,
-    OpNetDistancemap,  // value mapping
-    OpNetDistanceselect,        // selection function
-    OpNetDistanceTypeMap        // type mapping
-);
-
-
-
-
+struct distanceInfo:OperatorInfo{
+  distanceInfo():OperatorInfo(){
+    name = "distance";
+    signature = "gpoint X gpoint -> real";
+    appendSignature("gline X gline -> real");
+    syntax = "distance(_,_)";
+    meaning = "Computes the Euclidean Distance between the objects.";
+  }
+};
 
 /*
 7 Creating the ~NetworkAlgebra~
@@ -9318,40 +9186,56 @@ class NetworkAlgebra : public Algebra
   public:
     NetworkAlgebra() : Algebra()
     {
-      AddTypeConstructor ( &network );
-      AddTypeConstructor ( &gpoint );
-      AddTypeConstructor ( &gline );
-      AddTypeConstructor ( &gpoints );
+      AddTypeConstructor ( &networkTC );
+      AddTypeConstructor ( &gpointTC);
+      AddTypeConstructor ( &glineTC );
+      AddTypeConstructor ( &gpointsTC );
 
-      gpoint.AssociateKind ( "DATA" );
-      gline.AssociateKind ( "DATA" );
-      network.AssociateKind ( "NETWORK" );
-      gpoints.AssociateKind ( "DATA" );
+      gpointTC.AssociateKind ( "DATA" );
+      glineTC.AssociateKind ( "DATA" );
+      networkTC.AssociateKind ( "NETWORK" );
+      gpointsTC.AssociateKind ( "DATA" );
 
-
-      AddOperator ( &networkthenetwork );
-      AddOperator ( &networkroutes );
-      AddOperator ( &networkjunctions );
-      AddOperator ( &networksections );
-      AddOperator ( &shortest_path );
-      AddOperator ( &shortest_pathastar);
-      AddOperator ( &networklength );
-      AddOperator ( &networknetdistance );
-      AddOperator ( &point2gpoint );
-      AddOperator ( &gpoint2point );
-      AddOperator ( &netgpequal );
-      AddOperator ( &sline2gline );
-      AddOperator ( &networkinside );
-      AddOperator ( &networknocomponents );
-      AddOperator ( &polygpoints );
-      AddOperator ( &networkrouteintervals );
-      AddOperator ( &networkintersects );
-      AddOperator ( &networkgpoint2rect );
-      AddOperator ( &networkgline2line );
-      AddOperator ( &networkisempty );
-      AddOperator ( &networkunion );
-      AddOperator ( &networkdistance );
-
+      AddOperator ( noComponentsInfo(), OpNoComponentsValueMapping,
+                    OpNoComponentsTypeMap);
+      AddOperator ( isEmptyInfo(), OpNetIsEmptyValueMap, OpNetIsEmptyTypeMap);
+      AddOperator ( theNetworkInfo(), OpNetworkTheNetworkValueMapping,
+                    OpNetworkTheNetworkTypeMap);
+      AddOperator ( routesInfo(), OpNetworkRoutesValueMapping,
+                    OpNetworkRoutesTypeMap);
+      AddOperator ( junctionsInfo(), OpNetworkJunctionsValueMapping,
+                    OpNetworkJunctionsTypeMap);
+      AddOperator ( sectionsInfo(), OpNetworkSectionsValueMapping,
+                    OpNetworkSectionsTypeMap);
+      AddOperator ( insideInfo(), OpInsideValueMap, OpInsideTypeMap);
+      AddOperator ( netdistanceInfo(), OpNetNetdistancemap,
+                    OpNetNetdistanceselect, OpNetNetdistanceTypeMap);
+      AddOperator ( point2gpointInfo(), OpPoint2GPointValueMapping,
+                    OpPoint2GPointTypeMap);
+      AddOperator ( gpoint2pointInfo(), OpGPoint2PointValueMapping,
+                    OpGPoint2PointTypeMap);
+      AddOperator ( equalInfo(), OpNetEqualmap, OpNetEqualselect,
+                    OpNetEqualTypeMap);
+      AddOperator ( line2glineInfo(), OpLine2GLineValueMapping,
+                    OpLine2GLineTypeMap);
+      AddOperator ( insideInfo(), OpInsideValueMap, OpInsideTypeMap);
+      AddOperator ( polygpointsInfo(), OpPolyGPointValueMapping,
+                    OpPolyGPointTypeMap);
+      AddOperator ( routeIntervalsInfo(), OpRouteIntervalsValueMapping,
+                    OpRouteIntervalsTypeMap);
+      AddOperator ( intersectsInfo(), OpNetIntersectsValueMapping,
+                    OpNetIntersectsTypeMap);
+      AddOperator ( gpoint2rectInfo(), OpGPoint2RectValueMapping,
+                    OpGPoint2RectTypeMap);
+      AddOperator ( gline2lineInfo(), OpGLine2LineValueMapping,
+                    OpGLine2LineTypeMap);
+      AddOperator ( unionInfo(), OpNetUnionValueMap, OpNetUnionTypeMap);
+      AddOperator ( distanceInfo(), OpNetDistancemap, OpNetDistanceselect,
+                    OpNetDistanceTypeMap);
+      AddOperator ( shortestpathInfo(), OpShortestPathValueMapping,
+                    OpShortestPathTypeMap);
+      AddOperator ( shortestpathAstarInfo(), OpShortestPathAStarValueMapping,
+                    OpShortestPathAStarTypeMap);
     }
     ~NetworkAlgebra() {delete netList;};
 };
