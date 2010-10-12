@@ -113,7 +113,7 @@ ListExpr convertSingleType( ListExpr type)
 ListExpr convertType( ListExpr type )
 {
      ListExpr result,result2; 
-   
+     
      if(nl->ListLength(type) < 2)
      {if(nl->IsAtom(type) || nl->IsEmpty(type)) return type;
           else return convertType(nl->First(type));}
@@ -126,8 +126,8 @@ ListExpr convertType( ListExpr type )
      result = convertType(nl->First(type));
      result2 = convertType(nl->Rest(type)); 
      //result = nl->Append(result, convertType(nl->Rest(type)));
-    
-     return nl->TwoElemList(result,result2);
+    ListExpr erg = nl->TwoElemList(result,result2);
+     return erg;
 }
 
 
@@ -1337,7 +1337,7 @@ static int receiveFun( Word* args,
                          result = qp->ResultStorage(s);
                          am->OpenObj(algID,typID,rec,s0,type,w); 
 
-                         << endl;result.addr = w.addr;
+                         result.addr = w.addr;
 
                          rec.Truncate(3);
                          recF.DeleteRecord(recID);
