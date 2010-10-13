@@ -796,8 +796,8 @@ void RelationWriter::run()
           t->DeleteIfAllowed();
       
           t = iter->GetNextTuple();
-       
-     }
+	
+    }
      
      worker->setCmd("close_write_rel",nl->TheEmptyList(),0);
      worker->run();
