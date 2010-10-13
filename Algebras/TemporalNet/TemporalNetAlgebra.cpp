@@ -1805,13 +1805,13 @@ void MGPoint::Deftime(Periods &res){
     res.Clear();
     Periods per(0);
     UGPoint unit;
-    per.StartBulkLoad();
+    res.StartBulkLoad();
     for( int i = 0; i < GetNoComponents(); i++ ) {
       Get( i, unit );
       if (unit.IsDefined())
-        per.MergeAdd(unit.timeInterval);
+        res.MergeAdd(unit.timeInterval);
     }
-    per.EndBulkLoad(false);
+    res.EndBulkLoad(false);
 }
 
 
