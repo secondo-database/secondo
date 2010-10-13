@@ -1417,9 +1417,9 @@ static ListExpr receiverelTypeMap( ListExpr args )
 
       return nl->ThreeElemList(
           nl->SymbolAtom("APPEND"),
-          nl->ThreeElemList(nl->StringAtom(nl->ToString(nl->First(args))),
-                              nl->StringAtom(nl->ToString(nl->Second(args))),
-                              nl->StringAtom(nl->ToString(type))),
+          nl->TwoElemList(nl->StringAtom(nl->ToString(nl->First(args))),
+                              nl->StringAtom(nl->ToString(nl->Second(args)))),
+                              //nl->StringAtom(nl->ToString(type))),
                               convertType(type));
 
 }
@@ -1434,13 +1434,21 @@ static int receiverelFun( Word* args,
      string port = (string)(char*)((CcString*)args[3].addr)->GetStringval();
      
      ListExpr resultType; 
-     nl->ReadFromString((string)(char*)((CcString*)args[4].addr)
+     /*nl->ReadFromString((string)(char*)((CcString*)args[4].addr)
           ->GetStringval(),resultType);
      
      
-     resultType = nl->Second(resultType); 
-     TupleType* tupleType = new TupleType(resultType);
+     resultType = nl->Second(resultType);
      
+     if(nl->ListLength(nl->First(nl->Second(resultType))) != 2)
+          resultType = nl->TwoElemList(nl->First(resultType),
+                                                  nl->OneElemList(
+                                                  nl->Second(resultType)));
+     
+     cout << "Tuple-Typ-Input: " << nl->ToString(resultType) << endl;
+     
+     TupleType* tupleType = new TupleType(resultType);
+     */
 
      string line;
 
@@ -1463,6 +1471,17 @@ static int receiverelFun( Word* args,
           
           string line;
           getline(iosock, line);
+          
+          if(line == "<TYPE>")
+          {
+               getline(iosock,line);
+               nl->ReadFromString(line,resultType);
+               resultType = nl->Second(resultType);
+               
+               cout << "ResultType: " << nl->ToString(resultType) << endl;
+               
+               TupleType* tupleType = new TupleType(resultType);
+               getline(iosock,line);getline(iosock,line);
           char* buffer;
           while(line == "<TUPLE>")
           {
@@ -1497,10 +1516,10 @@ static int receiverelFun( Word* args,
           {
                master->Close(); delete master; master=0;
                return 0;
-          }
+          }}
           else
           {
-               cout << "Fehlerhaftes Kommando Relation";
+               cout << "Fehlerhaftes Kommando Relation: " << line << endl;
                return 1;
           }
      }

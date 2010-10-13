@@ -475,8 +475,10 @@ void DServer::run()
                 cbworker->Close();delete cbworker;
                         
                 cbworker = gate->Accept();
-                //iostream& cbsock2 = cbworker->GetSocketStream();
+                iostream& cbsock2 = cbworker->GetSocketStream();
                 
+                cbsock2 << "<TYPE>" << endl << nl->ToString(type) 
+                        << endl << "</TYPE>" << endl;
                 //cbsock2.write((char*)tt,sizeof(TupleType));
                 
                gate->Close();delete gate;gate=0;
