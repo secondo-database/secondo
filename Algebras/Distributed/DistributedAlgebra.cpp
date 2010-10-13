@@ -1496,9 +1496,12 @@ static int receiverelFun( Word* args,
                
                buffer = new char[1024*num_blocks];
                memset(buffer,0,1024*num_blocks);
-               
+               cout << "Lesen beginnt: " << toString_d(num_blocks) 
+               << " Blocks!" << endl;
                for(int i = 0; i<num_blocks; i++)
-                    master->Read(buffer+i*1024,1024);
+                    {master->Read(buffer+i*1024,1024); 
+                         for(int j=0;j<1024;j++) cout 
+                         << toString_d((int)buffer[j+i*1024]); cout << endl;}
                               
                Tuple* t = new Tuple(tupleType);
                
