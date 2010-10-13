@@ -406,7 +406,7 @@ void DServer::run()
                 {
                         string cmd;
                         string com_a = replaceAll(com,".","r" + name
-					+ nl->ToString(nl->First(list)));
+                         + nl->ToString(nl->First(list)));
                         cmd = "let r" + to + nl->ToString(nl->First(list))
                                         + " = " + com_a;
                         iosock << "<Secondo>" << endl << "1" << endl 
@@ -419,7 +419,7 @@ void DServer::run()
                 
                 string cmd;
                 string com_a = replaceAll(com,".","r" + name
-							+ nl->ToString(list));
+                                   + nl->ToString(list));
                         cmd = "let r" + to + nl->ToString(list)
                                         + " = " + com_a;
                 iosock << "<Secondo>" << endl << "1" << endl << cmd 
@@ -798,7 +798,7 @@ void RelationWriter::run()
           t->DeleteIfAllowed();
       
           t = iter->GetNextTuple();
-	
+     
     }
      
      worker->setCmd("close_write_rel",nl->TheEmptyList(),0);
