@@ -53,6 +53,12 @@ Defines, includes, and constants
 #include "QueryProcessor.h"
 #include "Algebra.h"
 #include "DateTime.h"
+#include "ConstructorTemplates.h"
+#include "TypeMapUtils.h"
+#include "../Temporal/TemporalAlgebra.h"
+#include "../../include/Operator.h"
+
+
 
 extern NestedList* nl;
 extern QueryProcessor* qp;
@@ -1661,19 +1667,6 @@ void MGPoint::Clear()
   //}
 }
 
-ListExpr MGPoint::Property()
-{
-  return (nl->TwoElemList(
-            nl->FourElemList(nl->StringAtom("Signature"),
-                             nl->StringAtom("Example Type List"),
-                             nl->StringAtom("List Rep"),
-                             nl->StringAtom("Example List")),
-            nl->FourElemList(nl->StringAtom("-> MAPPING"),
-                             nl->StringAtom("(mgpoint) "),
-                             nl->StringAtom("( u1 ... un ) "),
-                             nl->StringAtom("(((i1 i2 TRUE FALSE) "
-                                            "(1 1 0 0.1 2.4)) ...)"))));
-}
 
 bool MGPoint::Check(ListExpr type,
                     ListExpr& errorInfo)
@@ -5235,25 +5228,35 @@ void MGPoint::Union(MGPoint *mp, MGPoint *res)
   res->SetBoundingBoxDefined(false);
 }
 
-TypeConstructor movinggpoint(
-        "mgpoint",                                  // Name
-        MGPoint::Property,                          // Property function
-        OutMapping<MGPoint, UGPoint, UGPoint::Out>, // Out and In functions
-        InMapping<MGPoint, UGPoint, UGPoint::In>,
-        /*InMGPoint,*/
-        0,                                          // SaveToList and
-        0,                                          // RestoreFromList
-        CreateMapping<MGPoint>,                     // Object creation and
-        DeleteMapping<MGPoint>,                     // deletion
-        OpenAttribute<MGPoint>,                    /*OpenMGPoint,*/
-        SaveAttribute<MGPoint>,                     // Object open and save
-        CloseMapping<MGPoint>,                      // Object close and clone
-        CloneMapping<MGPoint>,
-        CastMapping<MGPoint>,                       // Cast function
-        SizeOfMapping<MGPoint>,                     // Sizeof function
-        MGPoint::Check);                            // Kind checking function
+struct mgpInfo:ConstructorInfo{
+  mgpInfo(){
+    name = "mgpoint";
+    signature = "-> MAPPING";
+    typeExample = "mgpoint";
+    listRep = "(<list of ugpoint)>";
+    valueExample = "(<ugpoint1> <ugpoint2> ...)";
+    remarks = "Describes a single moving network position.";
+  }
+};
 
+struct mgpFunctions:ConstructorFunctions<MGPoint>{
+  mgpFunctions(){
+    in = InMapping<MGPoint, UGPoint, UGPoint::In>;
+    out = OutMapping<MGPoint, UGPoint, UGPoint::Out>;
+    create = CreateMapping<MGPoint>;
+    deletion = DeleteMapping<MGPoint>;
+    open = OpenAttribute<MGPoint>;
+    save = SaveAttribute<MGPoint>;
+    close = CloseMapping<MGPoint>;
+    clone = CloneMapping<MGPoint>;
+    sizeOf = SizeOfMapping<MGPoint>;
+    kindCheck = MGPoint::Check;
+  }
+};
 
+mgpInfo mgpi;
+mgpFunctions mgpf;
+TypeConstructor mgpointTC(mgpi,mgpf);
 
 /*
 3 Classe UGPoint
@@ -5390,18 +5393,6 @@ bool UGPoint::At( const GPoint& p, TemporalUnit<GPoint>& result ) const
 SECONDO Integration of ~ugpoint~
 
 */
-ListExpr UGPoint::Property()
-{
-  return (nl->TwoElemList(
-            nl->FourElemList(nl->StringAtom("Signature"),
-                             nl->StringAtom("Example Type List"),
-                             nl->StringAtom("List Rep"),
-                             nl->StringAtom("Example List")),
-            nl->FourElemList(nl->StringAtom("-> UNIT"),
-                             nl->StringAtom("(ugpoint) "),
-nl->TextAtom("( timeInterval (<nid> <rid> <side> <pos1> <pos2> ) ) "),
-nl->StringAtom("((i1 i2 TRUE FALSE) (1 1 0 0.0 0.3))"))));
-}
 
 bool UGPoint::Check(ListExpr type, ListExpr& errorInfo)
 {
@@ -5984,62 +5975,77 @@ void NotPartedSection(UGPoint unit, double sectMeas1, double sectMeas2,
     }else return Rectangle<3>(false,0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
   }
 
+struct ugpointInfo:ConstructorInfo{
+  ugpointInfo(){
+    name = "ugpoint";
+    signature = "-> UNIT";
+    typeExample = "ugpoint";
+    listRep = "(<timeInterval> <gpoint1> <gpoint2>)";
+    valueExample = "(<timeInterval><gpoint1><gpoint2>)";
+    remarks = "Linear movement of a mgpoint in the network.";
+  }
+};
 
-TypeConstructor unitgpoint(
-        "ugpoint",                              // Name
-        UGPoint::Property,                      // Property function
-        UGPoint::Out, UGPoint::In,              // Out and In functions
-        0,             0,                       // Save to and restore
-                                                // from list functions
-        UGPoint::Create,                        // Object creation
-        UGPoint::Delete,                        // and deletion
-        OpenAttribute<UGPoint>,SaveAttribute<UGPoint>, //Object open and save
-        UGPoint::Close, UGPoint::Clone,         // Object close and clone
-        UGPoint::Cast,                          // Cast function
-        UGPoint::SizeOf,                        // Sizeof function
-        UGPoint::Check);                        // Kind checking function
+struct ugpointFunctions:ConstructorFunctions<UGPoint>{
+  ugpointFunctions(){
+    in = UGPoint::In;
+    out = UGPoint::Out;
+    create = UGPoint::Create;
+    deletion = UGPoint::Delete;
+    open = OpenAttribute<UGPoint>;
+    save = SaveAttribute<UGPoint>;
+    close = UGPoint::Close;
+    clone = UGPoint::Clone;
+    cast = UGPoint::Cast;
+    sizeOf = UGPoint::SizeOf;
+    kindCheck = UGPoint::Check;
+  }
+};
+
+ugpointInfo ugpi;
+ugpointFunctions ugpf;
+TypeConstructor ugpointTC(ugpi,ugpf);
 
 /*
 4 ~igpoint~
 
 */
 
-ListExpr IntimeGPointProperty()
-{
-  return (nl->TwoElemList(
-            nl->FourElemList(nl->StringAtom("Signature"),
-                             nl->StringAtom("Example Type List"),
-                             nl->StringAtom("List Rep"),
-                             nl->StringAtom("Example List")),
-            nl->FourElemList(nl->StringAtom("-> TEMPORAL"),
-                             nl->StringAtom("(igpoint) "),
-                             nl->StringAtom("(instant gpoint-value)"),
-                             nl->StringAtom("((instant) (1 1 1.0 2))"))));
-}
-
-
 bool CheckIntimeGPoint( ListExpr type, ListExpr& errorInfo )
 {
   return (nl->IsEqual( type, "igpoint" ));
 }
 
+struct igpointInfo:ConstructorInfo{
+  igpointInfo(){
+    name = "igpoint";
+    signature = "->TEMPORAL";
+    typeExample = "igpoint";
+    listRep = "(<instant> <gpoint>)";
+    valueExample ="((instant) (1 1 3.0 1))";
+    remarks = "Position of a mgpoint at a that point in time.";
+  }
+};
 
-TypeConstructor intimegpoint(
-        "igpoint",                    //name
-        IntimeGPointProperty,  //property function describing signature
-        OutIntime<GPoint, GPoint::OutGPoint>,
-        InIntime<GPoint, GPoint::InGPoint>,         //Out and In functions
-        0,
-        0,       //SaveToList and RestoreFromList functions
-        CreateIntime<GPoint>,
-        DeleteIntime<GPoint>,              //object creation and deletion
-        OpenAttribute<GPoint>,
-        OpenAttribute<GPoint>,             // object open and save
-        CloseIntime<GPoint>,
-        CloneIntime<GPoint>,               //object close and clone
-        CastIntime<GPoint>,                //cast function
-        SizeOfIntime<GPoint>,              //sizeof function
-        CheckIntimeGPoint );               //kind checking function
+struct igpointFunctions:ConstructorFunctions<Intime<GPoint> >{
+  igpointFunctions(){
+    in = InIntime<GPoint,GPoint::InGPoint>;
+    out = OutIntime<GPoint, GPoint::OutGPoint>;
+    create = CreateIntime<GPoint>;
+    deletion = DeleteIntime<GPoint>;
+    open = OpenAttribute<Intime<GPoint> >;
+    save = SaveAttribute<Intime<GPoint> >;
+    close = CloseIntime<GPoint>;
+    clone = CloneIntime<GPoint>;
+    cast = CastIntime<GPoint>;
+    sizeOf = SizeOfIntime<GPoint>;
+    kindCheck = CheckIntimeGPoint;
+  }
+};
+
+igpointInfo igpi;
+igpointFunctions igpf;
+TypeConstructor igpointTC(igpi,igpf);
 
 /*
 2. Implementation of Class ~MGPSecUnit~
@@ -7132,22 +7138,15 @@ int OpMPoint2MGPointValueMappingNeu(Word* args,
   return 0;
 }
 
-const string OpMPoint2MGPointSpec  =
-  "( ( \"Signature\" \"Syntax\" \"Meaning\" "
-  "\"Example\" ) "
-  "( <text>network x mpoint -> mgpoint" "</text--->"
-  "<text>mpoint2mgpoint(Networkobject, mpoint)</text--->"
-  "<text>Finds a path in a network for a moving point.</text--->"
-  "<text>mpoint2mgpoint(B_NETWORK, x)</text--->"
-  ") )";
+struct mpoint2mgpointInfo:OperatorInfo{
+  mpoint2mgpointInfo(){
+    name = "mpoint2mgpoint";
+    signature = "network X mpoint -> mgpoint";
+    syntax = "mpoint2mgpoint(_,_)";
+    meaning = "Translates the mpoint into an mgpoint if possible.";
+  }
+};
 
-Operator mpoint2mgpoint (
-          "mpoint2mgpoint",                // name
-          OpMPoint2MGPointSpec,          // specification
-          OpMPoint2MGPointValueMappingNeu,  // value mapping
-          Operator::SimpleSelect,          // trivial selection function
-          OpMPoint2MGPointTypeMap        // type mapping
-);
 
 /*
 5.2 Operator ~passes~
@@ -7232,7 +7231,8 @@ int OpPasses_mgpgl(Word* args,
 
 ValueMapping OpPassesvaluemap[] = {
   OpPasses_mgpgp,
-  OpPasses_mgpgl
+  OpPasses_mgpgl,
+  0
 };
 
 int OpPassesSelect( ListExpr args )
@@ -7249,21 +7249,17 @@ int OpPassesSelect( ListExpr args )
   return -1; // This point should never be reached
 }
 
-const string OpPassesSpec  =
-  "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-  "( <text>mgpoint x A -> bool for A gpoint or gline " "</text--->"
-  "<text>_ passes _</text--->"
-  "<text>Checks whether a moving point passes a gpoint or a gline.</text--->"
-  "<text>X_MGPOINT passes X_GPOINT </text--->"
-  ") )";
+struct passesInfo:OperatorInfo{
+  passesInfo(){
+    name = "passes";
+    signature = "mgpoint X gpoint -> bool";
+    appendSignature("mgpoint X gline -> bool");
+    syntax = "_ passes _";
+    meaning = "Returns true if the mgpoint passes the given places.";
+  }
+};
 
-Operator tempnetpasses (
-  "passes",
-  OpPassesSpec,
-  2,
-  OpPassesvaluemap,
-  OpPassesSelect,
-  OpPassesTypeMap );
+
 
 
 /*
@@ -7324,20 +7320,14 @@ int OpSimplifyValueMapping(Word* args,
   return 0;
 }
 
-const string OpSimplifySpec  =
-  "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-  "( <text>mgpoint x real -> mgpoint" "</text--->"
-  "<text>simplify(0.0001, mgpoint)</text--->"
-  "<text>Removes unecessary units from a mgpoint.</text--->"
-  "<text>simplify(0.0001, mgpoint)</text--->"
-  ") )";
-
-Operator simplify("simplify",
-                  OpSimplifySpec,
-                  OpSimplifyValueMapping,
-                  Operator::SimpleSelect,
-                  OpSimplifyTypeMap );
-
+struct simplifyInfo:OperatorInfo{
+  simplifyInfo(){
+    name = "simplify";
+    signature = "mgpoint X real -> mgpoint";
+    syntax = "simplify(_,_)";
+    meaning = "Reduces the number of units by a speed deviation threshold.";
+  }
+};
 
 /*
 5.4 Operator ~at~
@@ -7426,7 +7416,8 @@ int OpAt_mgpgl(Word* args,
 
 ValueMapping OpAtValueMap[] = {
   OpAt_mgpgp,
-  OpAt_mgpgl
+  OpAt_mgpgl,
+  0
 };
 
 int OpAtSelect( ListExpr args )
@@ -7443,21 +7434,15 @@ int OpAtSelect( ListExpr args )
   return -1; // This point should never be reached
 }
 
-const string OpAtSpec  =
-  "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-  "( <text>mgpoint x A -> mgpoint if A is gpoint or gline" "</text--->"
-  "<text> _ at _ </text--->"
-  "<text>Restricts the moving gpoint to the times he was at"
-    " the gpoint or gline.</text--->"
-  "<text> X_MGPOINT at X_GPOINT</text--->"
-  ") )";
-
-Operator tempnetat("at",
-                OpAtSpec,
-                2,
-                OpAtValueMap,
-                OpAtSelect,
-                OpAtTypeMap );
+struct atInfo:OperatorInfo{
+  atInfo(){
+    name = "at";
+    signature = "mgpoint X gpoint -> mgpoint";
+    appendSignature("mgpoint X gline -> mgpoint");
+    syntax = "_ at _";
+    meaning = "Restricts the mgpoint to the given places.";
+  }
+};
 
 /*
 5.5 Operator ~atinstant~
@@ -7519,20 +7504,14 @@ int OpAtinstantValueMapping(Word* args,
   return 0;
 }
 
-const string OpAtinstantSpec  =
-  "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-  "( <text>mgpoint x instant -> igpoint" "</text--->"
-  "<text> _ atinstant _</text--->"
-  "<text>Computes the position of a moving gpoint at a given instant.</text--->"
-  "<text>X_MGPOINT atinstant TIME </text--->"
-  ") )";
-
-Operator tempnetatinstant("atinstant",
-                OpAtinstantSpec,
-                OpAtinstantValueMapping,
-                Operator::SimpleSelect,
-                OpAtinstantTypeMap );
-
+struct atinstantInfo:OperatorInfo{
+  atinstantInfo(){
+    name = "atinstant";
+    signature = "mgpoint X instant -> igpoint";
+    syntax = "_ atinstant _";
+    meaning = "Computes the position of mgpoint at the given instant.";
+  }
+};
 
 /*
 5.6 Operator ~atperiods~
@@ -7596,19 +7575,15 @@ int OpAtperiodsValueMapping(Word* args,
   return 0;
 }
 
-const string OpAtperiodsSpec  =
-  "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-  "( <text>mgpoint x periods -> mgpoint" "</text--->"
-  "<text> _ atperiods _</text--->"
-  "<text>Restricts the moving gpoint to the given periods.</text--->"
-  "<text>X_MGPOINT atperiods PERIODS </text--->"
-  ") )";
+struct atperiodsInfo:OperatorInfo{
+  atperiodsInfo(){
+    name = "atperiods";
+    signature = "mgpoint X periods -> mgpoint";
+    syntax = "_ atperiods _";
+    meaning = "Restricts the mgpoint to the given periods.";
+  }
+};
 
-Operator tempnetatperiods("atperiods",
-                OpAtperiodsSpec,
-                OpAtperiodsValueMapping,
-                Operator::SimpleSelect,
-                OpAtperiodsTypeMap );
 
 
 /*
@@ -7676,23 +7651,20 @@ int OpDeftimeSelect(ListExpr args) {
 
 ValueMapping OpDeftimeValueMapping [] = {
   OpDeftime_mgp,
-  OpDeftime_ugp
+  OpDeftime_ugp,
+  0
 };
 
-const string OpDeftimeSpec  =
-  "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-  "( <text>A -> periods if A is mgpoint or ugpoint" "</text--->"
-  "<text>deftime(_)</text--->"
-  "<text>Returns the periods in which the mgpoint is defined.</text--->"
-  "<text>deftime(mgpoint)</text--->"
-  ") )";
+struct deftimeInfo:OperatorInfo{
+  deftimeInfo(){
+    name = "deftime";
+    signature = "mgpoint -> periods";
+    appendSignature("upgoint -> periods");
+    syntax = "deftime(_)";
+    meaning = "Returns the defintion times of the object.";
+  }
+};
 
-Operator tempnetdeftime("deftime",
-                OpDeftimeSpec,
-                2,
-                OpDeftimeValueMapping,
-                OpDeftimeSelect,
-                OpDeftimeTypeMap );
 
 /*
 5.8 Operator ~final~
@@ -7719,19 +7691,14 @@ ListExpr OpFinalInitialTypeMap(ListExpr in_xArgs)
   return nl->SymbolAtom("igpoint");
 }
 
-const string OpFinalSpec  =
-  "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-  "( <text>mgpoint -> igpoint" "</text--->"
-  "<text> final (_)</text--->"
-  "<text>Computes the final instant of a moving gpoint.</text--->"
-  "<text>final (C_MGPOINT)</text--->"
-  ") )";
-
-Operator tempnetfinal("final",
-                OpFinalSpec,
-                MappingFinal<MGPoint,UGPoint, GPoint>,
-                Operator::SimpleSelect,
-                OpFinalInitialTypeMap );
+struct finalInfo:OperatorInfo{
+  finalInfo(){
+    name = "final";
+    signature = "mgpoint -> igpoint";
+    syntax = "final(_)";
+    meaning = "Returns the final time instant and position of the mgpoint.";
+  }
+};
 
 
 /*
@@ -7741,19 +7708,15 @@ Returns the start point and time of the ~MGPoint~ as ~IGPoint~.
 
 */
 
-const string OpInitialSpec  =
-  "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-  "( <text>mgpoint -> igpoint" "</text--->"
-  "<text> initial (_)</text--->"
-  "<text>Computes the initial position of a moving gpoint.</text--->"
-  "<text>initial (C_MGPOINT)</text--->"
-  ") )";
+struct initialInfo:OperatorInfo{
+  initialInfo(){
+    name = "initial";
+    signature = "mgpoint -> igpoint";
+    syntax = "initial(_)";
+    meaning = "Returns the start time and position of the mgpoint.";
+  }
+};
 
-Operator tempnetinitial("initial",
-                OpInitialSpec,
-                MappingInitial<MGPoint, UGPoint, GPoint>,
-                Operator::SimpleSelect,
-                OpFinalInitialTypeMap );
 
 /*
 5.10 Operator ~inside~
@@ -7808,21 +7771,15 @@ int OpInsideValueMapping(Word* args,
   return 0;
 };
 
+struct insideInfo:OperatorInfo{
+  insideInfo(){
+    name = "inside";
+    signature = "mgpoint X gline -> mbool";
+    syntax = "_ inside _";
+    meaning = "True while mgpoint moves inside gline.";
+  }
+};
 
-const string OpTInsideSpec  =
-  "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-  "( <text>mgpoint x gline -> mbool" "</text--->"
-  "<text> _ inside _ </text--->"
-  "<text>Returns true for the times the mgpoint is at the gline."
-    " False elsewhere.</text--->"
-  "<text> X_MGPOINT inside GLINE</text--->"
-  ") )";
-
-Operator tempnetinside("inside",
-                OpTInsideSpec,
-                OpInsideValueMapping,
-                Operator::SimpleSelect,
-                OpInsideTypeMapping );
 
 
 /*
@@ -7849,19 +7806,15 @@ ListExpr OpInstTypeMap(ListExpr in_xArgs)
   return nl->SymbolAtom( "instant" );
 }
 
-const string OpInstSpec  =
-  "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-  "( <text>igpoint -> instant" "</text--->"
-  "<text>inst(igpoint)</text--->"
-  "<text>Returns the timeinstant value of the igpoint.</text--->"
-  "<text>inst(igpoint)</text--->"
-  ") )";
+struct instInfo:OperatorInfo{
+  instInfo(){
+    name = "inst";
+    signature = "igpoint -> instant";
+    syntax = "inst(_)";
+    meaning = "Returns the time instant of the igpoint.";
+  }
+};
 
-Operator tempnetinst("inst",
-                OpInstSpec,
-                IntimeInst<GPoint>,
-                Operator::SimpleSelect,
-                OpInstTypeMap );
 
 /*
 5.12 Operator ~intersection~
@@ -7915,20 +7868,14 @@ int OpIntersectionValueMapping(Word* args,
   return 0;
 }
 
-const string OpIntersectionSpec  =
-  "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-  "( <text>mgpoint x mgpoint -> mgpoint" "</text--->"
-  "<text>intersection(mgpoint, mgpoint)</text--->"
-  "<text>Returns a moving gpoint representing the intersection of the two "
-    " given moving gpoint.</text--->"
-  "<text>intersection(mgpoint, mgpoint)</text--->"
-  ") )";
-
-Operator tempnetintersection("intersection",
-                OpIntersectionSpec,
-                OpIntersectionValueMapping,
-                Operator::SimpleSelect,
-                OpIntersectionTypeMapping );
+struct intersectionInfo:OperatorInfo{
+  intersectionInfo(){
+    name = "intersection";
+    signature = "mgpoint X mgpoint -> mgpoint";
+    syntax = "intersection(_._)";
+    meaning = "Returns times and places mgpoints met.";
+  }
+};
 
 /*
 5.12 Operator ~intersects~
@@ -7981,20 +7928,16 @@ int OpIntersectsValueMapping(Word* args,
   return 0;
 }
 
-const string OpIntersectsSpec  =
-  "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-  "( <text>mgpoint x mgpoint -> bool" "</text--->"
-  "<text>mgpoint intersects mgpoint</text--->"
-  "<text>Returns true if the mgpoint meet at any point, false"
-  " otherwise.</text--->"
-  "<text>mgpoint intersects mgpoint</text--->"
-  ") )";
+struct intersectsInfo:OperatorInfo{
+  intersectsInfo(){
+    name = "intersects";
+    signature = "mgpoint X mgoint -> bool";
+    syntax = "_ intersects _";
+    meaning = "Returns true if the mgpoint meet at any place.";
+  }
+};
 
-Operator tempnetintersects("intersects",
-                OpIntersectsSpec,
-                OpIntersectsValueMapping,
-                Operator::SimpleSelect,
-                OpIntersectsTypeMapping );
+
 
 /*
 5.13 Operator ~isempty~
@@ -8037,19 +7980,14 @@ int OpIsEmptyValueMapping(Word* args,
   return 0;
 }
 
-const string OpIsEmptySpec  =
-  "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-  "( <text>mgpoint -> bool" "</text--->"
-  "<text> isemtpy (_) </text--->"
-  "<text>Returns true if the moving gpoint is empty, false elsewhere.</text--->"
-  "<text>isempty (MGPOINT) </text--->"
-  ") )";
-
-Operator tempnetisempty("isempty",
-                OpIsEmptySpec,
-                OpIsEmptyValueMapping,
-                Operator::SimpleSelect,
-                OpIsEmptyTypeMap );
+struct isemptyInfo:OperatorInfo{
+  isemptyInfo(){
+    name = "isempty";
+    signature = "mgpoint -> bool";
+    syntax = "isempty(_)";
+    meaning = "Returns true if the mgpoint has no units.";
+  }
+};
 
 /*
 5.14 Operator ~length~
@@ -8115,14 +8053,6 @@ int OpLength_ugp(Word* args,
      return 1;
 }
 
-const string OpTLengthSpec  =
-  "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-  "( <text>mgpoint -> real, ugpoint -> real" "</text--->"
-  "<text>length(xgpoint)</text--->"
-  "<text>Returns the length of the path passed by a m(u)gpoint.</text--->"
-  "<text>length(xgpoint)</text--->"
-  ") )";
-
 int OpLengthSelect(ListExpr args){
   ListExpr arg1 = nl->First( args );
 
@@ -8135,15 +8065,19 @@ int OpLengthSelect(ListExpr args){
 
 ValueMapping OpLengthValueMap[] = {
   OpLength_mgp,
-  OpLength_ugp
+  OpLength_ugp,
+  0
 };
 
-Operator tempnetlength("length",
-                    OpTLengthSpec,
-                    2,
-                    OpLengthValueMap,
-                    OpLengthSelect,
-                    OpLengthTypeMapping );
+struct lengthInfo:OperatorInfo{
+  lengthInfo(){
+    name = "length";
+    signature = "mgpoint -> real";
+    appendSignature("ugpoint -> real");
+    syntax = "length(_)";
+    meaning = "Returns distance driven by the object.";
+  }
+};
 
 
 /*
@@ -8189,19 +8123,14 @@ int OpNoCompValueMapping(Word* args,
   return 0;
 }
 
-const string OpNoCompSpec  =
-  "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-  "( <text>mgpoint -> int" "</text--->"
-  "<text> no_components (_) </text--->"
-  "<text>Returns the number of components of the moving gpoint.</text--->"
-  "<text>no_components(MGPOINT) </text--->"
-  ") )";
-
-Operator tempnetnocomp("no_components",
-                OpNoCompSpec,
-                OpNoCompValueMapping,
-                Operator::SimpleSelect,
-                OpNoCompTypeMap );
+struct noComponentsInfo:OperatorInfo{
+  noComponentsInfo(){
+    name = "no_components";
+    signature = "mgpoint -> int";
+    syntax = "no_components(_)";
+    meaning = "Returns the number of units of the mgpoint.";
+  }
+};
 
 /*
 5.16 Operator ~present~
@@ -8296,25 +8225,20 @@ int OpPresentSelect(ListExpr args){
 
 ValueMapping OpPresentValueMap[] = {
   OpPresent_mgpp,
-  OpPresent_mgpi
+  OpPresent_mgpi,
+  0
 };
 
-const string OpPresentSpec  =
-  "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-  "( <text>mgpoint x A -> bool with A = instant or periods" "</text--->"
-  "<text> _ present _</text--->"
-  "<text>Returns true if the moving gpoint at least once exists in the given "
-    "instant or one of the periods.</text--->"
-  "<text>X_MGPOINT present PERIODS </text--->"
-  ") )";
+struct presentInfo:OperatorInfo{
+  presentInfo(){
+    name = "present";
+    signature = "mgpoint X instant -> bool";
+    appendSignature("mgpoint X periods -> bool");
+    syntax = "_ present _";
+    meaning = "True if mgpoint exists in time value.";
+  }
+};
 
-Operator tempnetpresent(
-                "present",
-                OpPresentSpec,
-                2,
-                OpPresentValueMap,
-                OpPresentSelect,
-                OpPresentTypeMap );
 
 
 /*
@@ -8341,19 +8265,15 @@ ListExpr OpValTypeMap(ListExpr in_xArgs)
   return nl->SymbolAtom( "gpoint" );
 }
 
-const string OpValSpec  =
-  "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-  "( <text>igpoint -> gpoint" "</text--->"
-  "<text>val(igpoint)</text--->"
-  "<text>Returns the gpoint value of the igpoint.</text--->"
-  "<text>val(igpoint)</text--->"
-  ") )";
+struct valInfo:OperatorInfo{
+  valInfo(){
+    name = "val";
+    signature = "igpoint -> gpoint";
+    syntax = "val(_)";
+    meaning = "Returns the gpoint value of the igpoint.";
+  }
+};
 
-Operator tempnetval("val",
-                OpValSpec,
-                IntimeVal<GPoint>,
-                Operator::SimpleSelect,
-                OpValTypeMap );
 
 /*
 5.18 Operator ~trajectory~
@@ -8406,19 +8326,15 @@ int OpTrajectoryValueMapping(Word* args,
   return 0;
 }
 
-const string OpTrajectorySpec  =
-  "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-  "( <text>mgpoint -> gline" "</text--->"
-  "<text>trajectory(mgpoint)</text--->"
-  "<text>Calculates the trajectory for a moving gpoint.</text--->"
-  "<text>trajectory(mgpoint)</text--->"
-  ") )";
+struct trajectoryInfo:OperatorInfo{
+  trajectoryInfo(){
+    name = "trajectory";
+    signature = "mgpoint -> gline";
+    syntax = "trajectory(_)";
+    meaning = "Returns the places traversed by the mgpoint as gline.";
+  }
+};
 
-Operator trajectory("trajectory",
-                    OpTrajectorySpec,
-                    OpTrajectoryValueMapping,
-                    Operator::SimpleSelect,
-                    OpTrajectoryTypeMap );
 
 /*
 5.19 Operator ~units~
@@ -8445,19 +8361,15 @@ ListExpr OpUnitsTypeMap(ListExpr in_xArgs)
                          nl->SymbolAtom("ugpoint"));
 }
 
-const string OpUnitsSpec  =
-  "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-  "( <text>mgpoint -> (stream ugpoint)" "</text--->"
-  "<text>units(mgpoint)</text--->"
-  "<text>get the stream of units of the moving value.</text--->"
-  "<text>units(mgpoint)</text--->"
-  ") )";
+struct unitsInfo:OperatorInfo{
+  unitsInfo(){
+    name = "units";
+    signature = "mgpoint -> stream(ugpoint)";
+    syntax = "units(_)";
+    meaning = "Builds a stream from the units of the mgpoint.";
+  }
+};
 
-Operator units("units",
-               OpUnitsSpec,
-               MappingUnits<MGPoint, UGPoint>,
-               Operator::SimpleSelect,
-               OpUnitsTypeMap );
 
 /*
 5.20 Operator ~unitendpos~
@@ -8500,19 +8412,15 @@ int OpUnitEndPosValueMapping( Word* args, Word& result, int message,
   return 0;
 }
 
-const string OpUnitEndPosSpec  =
-  "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-  "( <text>ugpoint -> double" "</text--->"
-  "<text> unitendpos (_)</text--->"
-  "<text>Returns the end position of a given ugpoint.</text--->"
-  "<text>unitendpos(UGPOINT)</text--->"
-  ") )";
+struct unitendposInfo:OperatorInfo{
+  unitendposInfo(){
+    name = "unitendpos";
+    signature = "ugpoint -> double";
+    syntax = "unitendpos(_)";
+    meaning = "Returns the end position of the ugpoint.";
+  }
+};
 
-Operator tempnetunitendpos("unitendpos",
-                OpUnitEndPosSpec,
-                OpUnitEndPosValueMapping,
-                Operator::SimpleSelect,
-                OpUnitPosTimeTypeMap );
 
 /*
 5.21 Operator ~unitstartpos~
@@ -8538,20 +8446,14 @@ int OpUnitStartPosValueMapping( Word* args, Word& result, int message,
   return 0;
 }
 
-const string OpUnitStartPosSpec  =
-  "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-  "( <text>ugpoint -> double" "</text--->"
-  "<text> unitstartpos (_)</text--->"
-  "<text>Returns the start position of a given ugpoint.</text--->"
-  "<text>unitstartpos(UGPOINT)</text--->"
-  ") )";
-
-Operator tempnetunitstartpos("unitstartpos",
-                OpUnitStartPosSpec,
-                OpUnitStartPosValueMapping,
-                Operator::SimpleSelect,
-                OpUnitPosTimeTypeMap );
-
+struct unitstartposInfo:OperatorInfo{
+  unitstartposInfo(){
+    name = "unitstartpos";
+    signature = "ugpoint -> double";
+    syntax = "unitstartpos(_)";
+    meaning = "Returns the start position of the ugpoint.";
+  }
+};
 
 
 /*
@@ -8577,20 +8479,15 @@ int OpUnitEndTimeValueMapping( Word* args, Word& result, int message,
   return 0;
 }
 
-const string OpUnitEndTimeSpec  =
-  "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-  "( <text>ugpoint -> real" "</text--->"
-  "<text> unitendtime (_)</text--->"
-  "<text>Returns the double value representing the end time instant of the"
-  " given ugpoint.</text--->"
-  "<text>unitendtime(UGPOINT)</text--->"
-  ") )";
+struct unitendtimeInfo:OperatorInfo{
+  unitendtimeInfo(){
+    name = "unitendtime";
+    signature = "ugpoint -> real";
+    syntax = "unitendtime(_)";
+    meaning = "Returns double value of end time instant of ugpoint.";
+  }
+};
 
-Operator tempnetunitendtime("unitendtime",
-                OpUnitEndTimeSpec,
-                OpUnitEndTimeValueMapping,
-                Operator::SimpleSelect,
-                OpUnitPosTimeTypeMap );
 
 
 /*
@@ -8617,20 +8514,14 @@ int OpUnitStartTimeValueMapping( Word* args, Word& result, int message,
   return 0;
 }
 
-const string OpUnitStartTimeSpec  =
-  "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-  "( <text>ugpoint -> real" "</text--->"
-  "<text> unitstarttime (_)</text--->"
-  "<text>Returns the double value representing the start time instant of the"
-  " given ugpoint.</text--->"
-  "<text>unitstarttime(UGPOINT)</text--->"
-  ") )";
-
-Operator tempnetunitstarttime("unitstarttime",
-                OpUnitStartTimeSpec,
-                OpUnitStartTimeValueMapping,
-                Operator::SimpleSelect,
-                OpUnitPosTimeTypeMap );
+struct unitstarttimeInfo:OperatorInfo{
+  unitstarttimeInfo(){
+    name = "unitstarttime";
+    signature = "ugpoint -> real";
+    syntax = "unitstarttime(_)";
+    meaning = "Returns the double value of the start time instant.";
+  }
+};
 
 /*
 5.24 Operator ~unitrid~
@@ -8656,19 +8547,15 @@ int OpUnitRidValueMapping( Word* args, Word& result, int message,
   return 0;
 }
 
-const string OpUnitRidSpec  =
-  "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-  "( <text>ugpoint -> real" "</text--->"
-  "<text> unitrid (_)</text--->"
-  "<text>Returns the route id of a given ugpoint.</text--->"
-  "<text>unitrid(UGPOINT)</text--->"
-  ") )";
+struct unitridInfo:OperatorInfo{
+  unitridInfo(){
+    name = "unitrid";
+    signature = "ugpoint -> real";
+    syntax = "unitrid(_)";
+    meaning = "Returns the route id of ugpoint as real value.";
+  }
+};
 
-Operator tempnetunitrid("unitrid",
-                OpUnitRidSpec,
-                OpUnitRidValueMapping,
-                Operator::SimpleSelect,
-                OpUnitPosTimeTypeMap );
 
 
 /*
@@ -8706,21 +8593,16 @@ int OpUnitBoxValueMapping( Word* args, Word& result, int message,
   return 0;
 }
 
-const string OpUnitBoxSpec  =
-  "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-  "( <text>ugpoint -> rect3" "</text--->"
-  "<text> unitbox (_)</text--->"
-  "<text>Returns the bounding box rectangle of the ugpoint in form: rid,"
-  " rid, min(startpos, endpos), max(startpos, endpos), timeInterval.start,"
-  " timeInterval.end. </text--->"
-  "<text>unitbox(UGPOINT)</text--->"
-  ") )";
+struct unitboxInfo:OperatorInfo{
+  unitboxInfo(){
+    name = "unitbox";
+    signature = "ugpoint -> rect3";
+    syntax = "unitbox(_)";
+    meaning = "Returns the temporal netbox of ugpoint.";
 
-Operator tempnetunitbox("unitbox",
-                OpUnitBoxSpec,
-                OpUnitBoxValueMapping,
-                Operator::SimpleSelect,
-                OpUnitBoxTypeMap );
+  }
+};
+
 
 /*
 5.26 Operator ~unitbox~
@@ -8760,20 +8642,15 @@ int OpUnitBox2ValueMapping( Word* args, Word& result, int message,
   return 0;
 }
 
-const string OpUnitBox2Spec  =
-  "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-  "( <text>ugpoint -> rect2" "</text--->"
-  "<text> unitbox2 (_)</text--->"
-  "<text>Returns the bounding box rectangle of the ugpoint in form: rid,"
-  " rid, min(startpos, endpos), max(startpos, endpos). </text--->"
-  "<text>unitbox2(UGPOINT)</text--->"
-  ") )";
+struct unitbox2Info:OperatorInfo{
+  unitbox2Info(){
+    name = "unitbox2";
+    signature = "ugpoint -> rect2";
+    syntax = "unitbox2(_)";
+    meaning = "Returns netbox (<rid><rid><min(start,end)><max(start,end)>)";
+  }
+};
 
-Operator tempnetunitbox2("unitbox2",
-                OpUnitBox2Spec,
-                OpUnitBox2ValueMapping,
-                Operator::SimpleSelect,
-                OpUnitBox2TypeMap );
 
 
 /*
@@ -8813,19 +8690,14 @@ int OpUnitBoundingBoxValueMapping( Word* args, Word& result, int message,
   return 0;
 }
 
-const string OpUnitBoundingBoxSpec  =
-  "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-  "( <text>ugpoint -> rect3" "</text--->"
-  "<text> unitboundingbox (_)</text--->"
-  "<text>Returns the spatialtemporal bounding box of the ugpoint. </text--->"
-  "<text>unitboundingbox(UGPOINT)</text--->"
-  ") )";
-
-Operator tempnetunitboundingbox("unitboundingbox",
-                OpUnitBoundingBoxSpec,
-                OpUnitBoundingBoxValueMapping,
-                Operator::SimpleSelect,
-                OpUnitBoundingBoxTypeMap );
+struct unitboundingboxInfo:OperatorInfo{
+  unitboundingboxInfo(){
+    name = "unitboundingbox";
+    signature = "ugpoint -> rect3";
+    syntax = "unitboundingbox(_)";
+    meaning = "Returns the spatio-temporal bounding box of the ugpoint.";
+  }
+};
 
 /*
 5.28 Operator ~mgpointboundingbox~
@@ -8864,20 +8736,14 @@ int OpMGPointBoundingBoxValueMapping( Word* args, Word& result, int message,
   return 0;
 }
 
-const string OpMGPointBoundingBoxSpec  =
-  "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-  "( <text>mgpoint -> rect3" "</text--->"
-  "<text> mgpbbox (_)</text--->"
-  "<text>Returns the spatialtemporal bounding box of the mgpoint. </text--->"
-  "<text>mgpbbox(MGPOINT)</text--->"
-  ") )";
-
-Operator tempnetmgpointboundingbox("mgpbbox",
-                OpMGPointBoundingBoxSpec,
-                OpMGPointBoundingBoxValueMapping,
-                Operator::SimpleSelect,
-                OpMGPointBoundingBoxTypeMap );
-
+struct mgpbboxInfo:OperatorInfo{
+  mgpbboxInfo(){
+    name = "mgpbbox";
+    signature = "mgpoint -> rect3";
+    syntax = "mgpbbox(_)";
+    meaning = "Returns the spatial-temporal bounding box of the mgpoint.";
+  }
+};
 
 /*
 5.29 Operator ~mgpoint2mpoint~
@@ -8923,22 +8789,15 @@ int OpMGPoint2MPointValueMapping(Word* args,
   return 0;
 }
 
-const string OpMGPoint2MPointSpec  =
-  "( ( \"Signature\" \"Syntax\" \"Meaning\" "
-  "\"Example\" ) "
-  "( <text>mgpoint -> mpoint" "</text--->"
-  "<text>mgpoint2mpoint(MGPOINT)</text--->"
-  "<text>Returns the mpoint value of the mgpoint.</text--->"
-  "<text> mgpoint2mpoint(mgpoint) </text--->"
-  ") )";
+struct mgpoint2mpointInfo:OperatorInfo{
+  mgpoint2mpointInfo(){
+    name = "mgpoint2mpoint";
+    signature = "mgpoint -> mpoint";
+    syntax = "mgpoint2mpoint(_)";
+    meaning = "Translates the mgpoint into an mpoint value.";
+  }
+};
 
-Operator tempnetmgpoint2mpoint (
-           "mgpoint2mpoint",               // name
-           OpMGPoint2MPointSpec,          // specification
-           OpMGPoint2MPointValueMapping,  // value mapping
-           Operator::SimpleSelect,        // selection function
-           OpMGPoint2MPointTypeMap        // type mapping
-);
 
 
 
@@ -9003,20 +8862,16 @@ int OpDistanceValueMapping(Word* args,
   return 0;
 }
 
-const string OpDistanceSpec  =
-  "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-  "( <text>mgpoint x mgpoint -> mreal" "</text--->"
-  "<text>distance(mgpoint, mgpoint)</text--->"
-  "<text>Returns a moving real representing the Euclidean Distance of the two "
-    " given moving gpoint.</text--->"
-  "<text>query distance(mgpoint, mgpoint)</text--->"
-  ") )";
+struct distanceInfo:OperatorInfo{
+  distanceInfo(){
+    name = "distance";
+    signature = "mgpoint X mgpoint -> mreal";
+    syntax = "distance(_,_)";
+    meaning = "Returns the Euclidean Distance between the two objects.";
+  }
+};
 
-Operator tempnetdistance("distance",
-                OpDistanceSpec,
-                OpDistanceValueMapping,
-                Operator::SimpleSelect,
-                OpDistanceTypeMapping );
+
 
 
 /*
@@ -9073,20 +8928,15 @@ int OpUnionValueMapping(Word* args,
   return 0;
 };
 
-const string OpUnionSpec  =
-  "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-  "( <text>mgpoint x mgpoint -> mgpoint" "</text--->"
-  "<text> _ union _ </text--->"
-  "<text>Returns the union of the two given mgpoint if possible,"
-  "  undef elsewhere.</text--->"
-  "<text> X_MGPOINTA union X_MGPOINTB</text--->"
-  ") )";
+struct unionInfo:OperatorInfo{
+  unionInfo(){
+    name = "union";
+    signature = "mgpoint X mgpoint -> mgpoint";
+    syntax = "_ union _";
+    meaning = "Create the union of the two mgpoint if possible.";
+  }
+};
 
-Operator tempnetunion("union",
-                OpUnionSpec,
-                OpUnionValueMapping,
-                Operator::SimpleSelect,
-                OpUnionTypeMap );
 
 /*
 5.32 Operator ~endunitinst~
@@ -9131,19 +8981,16 @@ int OpEndunitinstValueMapping(Word* args,
   return 0;
 };
 
-const string OpEndunitinstSpec  =
-    "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-    "( <text>ugpoint -> instant" "</text--->"
-    "<text>endunitinst (_)</text--->"
-    "<text>Computes the final time instant of a ugpoint.</text--->"
-    "<text>endunitinst(UGPOINT)</text--->"
-    ") )";
+struct endunitinstInfo:OperatorInfo{
+  endunitinstInfo(){
+    name = "endunitinst";
+    signature = "ugpoint -> instant";
+    syntax = "endunitinst(_)";
+    meaning = "Returns the final time instant form the ugpoint.";
+  }
+};
 
-Operator tempnetendunitinst("endunitinst",
-                      OpEndunitinstSpec,
-                      OpEndunitinstValueMapping,
-                      Operator::SimpleSelect,
-                      OpEndStartunitinstTypeMap);
+
 
 
 /*
@@ -9175,19 +9022,16 @@ int OpStartunitinstValueMapping(Word* args,
   return 0;
 };
 
-const string OpStartunitinstSpec  =
-    "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-    "( <text>ugpoint -> instant" "</text--->"
-    "<text> startunitinst (_)</text--->"
-    "<text>Computes the start time instant of a ugpoint.</text--->"
-    "<text>startunitinst (UGPOINT)</text--->"
-    ") )";
+struct startunitinstInfo:OperatorInfo{
+  startunitinstInfo(){
+    name = "startunitinst";
+    signature = "ugpoint -> instant";
+    syntax = "startunitinst(_)";
+    meaning = "Returns the start time instant of the ugpoint.";
+  }
+};
 
-Operator tempnetstartunitinst("startunitinst",
-                        OpStartunitinstSpec,
-                        OpStartunitinstValueMapping,
-                        Operator::SimpleSelect,
-                        OpEndStartunitinstTypeMap);
+
 
 /*
 5.34 Operator ~ugpoint2mgpoint~
@@ -9238,19 +9082,16 @@ int OpUgpoint2mgpointValueMapping(Word* args,
   return 0;
 };
 
-const string OpUgpoint2mgpointSpec  =
-    "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-    "( <text>ugpoint -> mgpoint" "</text--->"
-    "<text>upgoint2mgpoint (_)</text--->"
-    "<text>Constructs a mgpoint consisting of the single ugpoint.</text--->"
-    "<text>ugpoint2mgpoint(UGPOINT)</text--->"
-    ") )";
+struct ugpoint2mgpointInfo:OperatorInfo{
+  ugpoint2mgpointInfo(){
+    name = "ugpoint2mgpoint";
+    signature = "ugpoint -> mgpoint";
+    syntax = "ugpoint2mgpoint(_)";
+    meaning = "Transfers the ugpoint to an mgpoint with a single unit.";
+  }
+};
 
-Operator tempnetugpoint2mgpoint("ugpoint2mgpoint",
-                            OpUgpoint2mgpointSpec,
-                            OpUgpoint2mgpointValueMapping,
-                            Operator::SimpleSelect,
-                            OpUgpoint2mgpointTypeMap);
+
 
 /*
 5.35 ~mgpsu2tuple~
@@ -9367,54 +9208,77 @@ class TemporalNetAlgebra : public Algebra
 
   TemporalNetAlgebra() : Algebra()
   {
-    AddTypeConstructor( &unitgpoint );
-    AddTypeConstructor( &movinggpoint );
-    AddTypeConstructor( &intimegpoint);
+    AddTypeConstructor( &ugpointTC);
+    AddTypeConstructor( &mgpointTC);
+    AddTypeConstructor( &igpointTC);
     AddTypeConstructor( &mgpsecunitTC);
 
-    movinggpoint.AssociateKind( "TEMPORAL" );
-    movinggpoint.AssociateKind( "DATA" );
-    unitgpoint.AssociateKind( "TEMPORAL" );
-    unitgpoint.AssociateKind( "DATA" );
-    intimegpoint.AssociateKind("TEMPORAL");
-    intimegpoint.AssociateKind("DATA");
+    mgpointTC.AssociateKind( "TEMPORAL" );
+    mgpointTC.AssociateKind( "DATA" );
+    ugpointTC.AssociateKind( "TEMPORAL" );
+    ugpointTC.AssociateKind( "DATA" );
+    igpointTC.AssociateKind("TEMPORAL");
+    igpointTC.AssociateKind("DATA");
     mgpsecunitTC.AssociateKind( "DATA" );
 
-    AddOperator(&mpoint2mgpoint);
-    AddOperator(&units);
-    AddOperator(&simplify);
-    AddOperator(&tempnetpasses);
-    AddOperator(&trajectory);
-    AddOperator(&tempnetlength);
-    AddOperator(&tempnetatinstant);
-    AddOperator(&tempnetinitial);
-    AddOperator(&tempnetfinal);
-    AddOperator(&tempnetat);
-    AddOperator(&tempnetval);
-    AddOperator(&tempnetinst);
-    AddOperator(&tempnetatperiods);
-    AddOperator(&tempnetpresent);
-    AddOperator(&tempnetisempty);
-    AddOperator(&tempnetnocomp);
-    AddOperator(&tempnetinside);
-    AddOperator(&tempnetintersection);
-    AddOperator(&tempnetdeftime);
-    AddOperator(&tempnetunitrid);
-    AddOperator(&tempnetunitstartpos);
-    AddOperator(&tempnetunitendpos);
-    AddOperator(&tempnetunitstarttime);
-    AddOperator(&tempnetunitendtime);
-    AddOperator(&tempnetunitbox);
-    AddOperator(&tempnetunitbox2);
-    AddOperator(&tempnetunitboundingbox);
-    AddOperator(&tempnetmgpointboundingbox);
-    AddOperator(&tempnetmgpoint2mpoint);
-    AddOperator(&tempnetdistance);
-    AddOperator(&tempnetunion);
-    AddOperator(&tempnetstartunitinst);
-    AddOperator(&tempnetendunitinst);
-    AddOperator(&tempnetugpoint2mgpoint);
-    AddOperator(&tempnetintersects);
+
+    AddOperator(atperiodsInfo(), OpAtperiodsValueMapping, OpAtperiodsTypeMap);
+    AddOperator(deftimeInfo(), OpDeftimeValueMapping, OpDeftimeSelect,
+                OpDeftimeTypeMap);
+    AddOperator(mpoint2mgpointInfo(), OpMPoint2MGPointValueMappingNeu,
+                OpMPoint2MGPointTypeMap);
+    AddOperator(simplifyInfo(), OpSimplifyValueMapping, OpSimplifyTypeMap);
+    AddOperator(passesInfo(), OpPassesvaluemap, OpPassesSelect,
+                OpPassesTypeMap);
+    AddOperator(atinstantInfo(), OpAtinstantValueMapping, OpAtinstantTypeMap);
+    AddOperator(atInfo(), OpAtValueMap, OpAtSelect, OpAtTypeMap);
+    AddOperator(initialInfo(), MappingInitial<MGPoint, UGPoint, GPoint>,
+                OpFinalInitialTypeMap);
+    AddOperator(finalInfo(), MappingFinal<MGPoint,UGPoint, GPoint>,
+                OpFinalInitialTypeMap);
+    AddOperator(insideInfo(), OpInsideValueMapping, OpInsideTypeMapping);
+    AddOperator(instInfo(), IntimeInst<GPoint>, OpInstTypeMap);
+    AddOperator(intersectionInfo(), OpIntersectionValueMapping,
+                OpIntersectionTypeMapping);
+    AddOperator(lengthInfo(), OpLengthValueMap, OpLengthSelect,
+                OpLengthTypeMapping);
+    AddOperator(valInfo(), IntimeVal<GPoint>, OpValTypeMap);
+    AddOperator(presentInfo(), OpPresentValueMap, OpPresentSelect,
+                OpPresentTypeMap);
+    AddOperator(isemptyInfo(), OpIsEmptyValueMapping, OpIsEmptyTypeMap);
+    AddOperator(noComponentsInfo(), OpNoCompValueMapping, OpNoCompTypeMap);
+    AddOperator(trajectoryInfo(), OpTrajectoryValueMapping,
+                OpTrajectoryTypeMap);
+    AddOperator(unitsInfo(), MappingUnits<MGPoint, UGPoint>, OpUnitsTypeMap);
+    AddOperator(unitridInfo() , OpUnitRidValueMapping, OpUnitPosTimeTypeMap);
+    AddOperator(unitboxInfo(), OpUnitBoxValueMapping, OpUnitBoxTypeMap);
+    AddOperator(unitstartposInfo(), OpUnitStartPosValueMapping,
+                OpUnitPosTimeTypeMap);
+    AddOperator(unitendposInfo() , OpUnitEndPosValueMapping,
+                OpUnitPosTimeTypeMap);
+    AddOperator(unitstarttimeInfo(), OpUnitStartTimeValueMapping,
+                OpUnitPosTimeTypeMap);
+    AddOperator(unitendtimeInfo(), OpUnitEndTimeValueMapping,
+                OpUnitPosTimeTypeMap);
+    AddOperator(unitboundingboxInfo(), OpUnitBoundingBoxValueMapping,
+                OpUnitBoundingBoxTypeMap);
+    AddOperator(unitbox2Info(), OpUnitBox2ValueMapping, OpUnitBox2TypeMap);
+    AddOperator(mgpbboxInfo(), OpMGPointBoundingBoxValueMapping,
+                OpMGPointBoundingBoxTypeMap);
+    AddOperator(mgpbboxInfo(), OpMGPointBoundingBoxValueMapping,
+                OpMGPointBoundingBoxTypeMap);
+    AddOperator(mgpoint2mpointInfo(), OpMGPoint2MPointValueMapping,
+                OpMGPoint2MPointTypeMap);
+    AddOperator(distanceInfo(), OpDistanceValueMapping, OpDistanceTypeMapping);
+    AddOperator(unionInfo(), OpUnionValueMapping, OpUnionTypeMap);
+    AddOperator(startunitinstInfo(), OpStartunitinstValueMapping,
+                OpEndStartunitinstTypeMap);
+    AddOperator(endunitinstInfo(), OpEndunitinstValueMapping,
+                OpEndStartunitinstTypeMap);
+    AddOperator(ugpoint2mgpointInfo(), OpUgpoint2mgpointValueMapping,
+                OpUgpoint2mgpointTypeMap);
+    AddOperator(intersectsInfo(), OpIntersectsValueMapping,
+                OpIntersectsTypeMapping);
     AddOperator(mgp2mgpsecunitsInfo(), OpMgp2mgpsecunitsValueMap,
                 OpMgp2mgpsecunitsTypeMap);
     AddOperator(mgp2mgpsecunits2Info(), OpMgp2mgpsecunits2ValueMap,

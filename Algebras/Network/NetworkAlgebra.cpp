@@ -5111,9 +5111,9 @@ struct networkInfo:ConstructorInfo{
     name = "network";
     signature = "-> NETWORK";
     typeExample = "network";
-    listRep = "(<id> <routes-relation> <junctions-relation>)";
+    listRep = "(<id> <routes-relation><junctions-relation>)";
     valueExample = "(1 (rel()) (rel()))";
-    remarks = "Complex datatype containing all network information.";
+    remarks = "Datatype containing all network information.";
   }
 };
 
@@ -6135,7 +6135,7 @@ struct glineInfo:ConstructorInfo{
     typeExample = "gline";
     listRep = "(<netId> <list of routeintervals>)";
     valueExample = "(1 ((23 34.8 435.3)(...)))";
-    remarks = "Route interval: (<routeid> <startpos> <endpos>)";
+    remarks = "Route interval: (<routeid><startpos><endpos>)";
   }
 };
 
@@ -7779,8 +7779,8 @@ int OpNetNetdistanceselect ( ListExpr args )
 struct netdistanceInfo : OperatorInfo {
   netdistanceInfo():OperatorInfo(){
     name = "netdistance";
-    signature = "gpoint X gpoint X network-> real";
-    appendSignature("gline X gline x network -> real");
+    signature = "gpoint X gpoint -> real";
+    appendSignature("gline X gline -> real");
     syntax = "netdistance(gp1, gp2, B_Network)";
     meaning = "Calculates the network distance from gp1 to gp2.";
   }
@@ -9080,7 +9080,7 @@ struct unionInfo:OperatorInfo{
     name = "union";
     signature = "gline X gline -> gline";
     syntax = "union (_,_)";
-    meaning = "Returns a sorted gline with the route intervals of both gline.";
+    meaning = "Returns one gline containing both gline.";
   }
 };
 
