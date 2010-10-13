@@ -533,7 +533,9 @@ void DServer::run()
                iostream& iosock = server->GetSocketStream(); 
                
                cbsock << "<CLOSE>" << endl;
-               cbworker->ShutDown(); //delete cbworker; cbworker = 0;
+               getline(cbsock,line);
+               if(line != "<FINISH>") cout << "ERROR" << endl;
+               cbworker->Close(); delete cbworker; cbworker = 0;
                
                 getline(iosock,line);
                 

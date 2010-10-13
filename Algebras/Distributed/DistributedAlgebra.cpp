@@ -1517,6 +1517,7 @@ static int receiverelFun( Word* args,
           
           if(line=="<CLOSE>")
           {
+               iosock << "<FINISH>" << endl;
                master->Close(); delete master; master=0;
                return 0;
           }}
