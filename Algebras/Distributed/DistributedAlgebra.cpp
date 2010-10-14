@@ -27,8 +27,9 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 March 2010 Tobias Timmerscheidt
 
-This algebra implements an array, that holds all its elements at remote servers. Currently only one server can be used.
-The address and port of the server must be set at lines 188, 238 and 261 of this file.
+This algebra implements a distributed array. This type of array keeps its element on remote servers, called worker. Upon creation of the array all elements
+are transfered to the respective workers. The list of workers must be specified in terms of a relation in any operator that gives back a darray.
+Operation on the darray-elements are carried out on the remote machines.
 
 
 
@@ -44,17 +45,9 @@ The address and port of the server must be set at lines 188, 238 and 261 of this
 #include "QueryProcessor.h"
 #include "StandardTypes.h"
 #include "RelationAlgebra.h"
-
 #include "TypeMapUtils.h"
-#include "Symbols.h"
-
 #include "Remote.h"
-
-#include <sstream>
 #include "zthread/ThreadedExecutor.h"
-#include "zthread/CountedPtr.h"
-#include "zthread/AtomicCount.h"
-#include "zthread/PoolExecutor.h"
 
 using namespace std;
 using namespace symbols;
@@ -93,6 +86,8 @@ string getArrayName(int number)
          return t;
 }
 
+//Converts a pair (algID typID) to the corresponding 
+//type name (used by converType)
 ListExpr convertSingleType( ListExpr type)
 {
      if(nl->ListLength(type) != 2) return nl->SymbolAtom("ERROR");
@@ -110,45 +105,28 @@ ListExpr convertSingleType( ListExpr type)
 }
 
 
+//Converts a numerical type to its text representation
 ListExpr convertType( ListExpr type )
 {
      ListExpr result,result2; 
      
+     //Is it not a type expression but an attribute name?
      if(nl->ListLength(type) < 2)
      {if(nl->IsAtom(type) || nl->IsEmpty(type)) return type;
+          //Only one element that is not atomic
           else return convertType(nl->First(type));}
      
+     //Single type expression
      if(nl->ListLength(type) == 2 &&
           nl->IsAtom(nl->First(type)) &&
           nl->IsAtom(nl->Second(type)))
                     return convertSingleType(type);
      
+     //It's a list with more than three elements, proceed recursively
      result = convertType(nl->First(type));
      result2 = convertType(nl->Rest(type)); 
-     //result = nl->Append(result, convertType(nl->Rest(type)));
-    ListExpr erg = nl->TwoElemList(result,result2);
-     return erg;
+     return nl->TwoElemList(result,result2);
 }
-
-
-ListExpr convertTupleType( ListExpr type)
-{
-     ListExpr red_Type = nl->Second(
-                                        nl->Second(type));
-     
-     ListExpr result = nl->First(red_Type);
-     red_Type = nl->Rest(red_Type);
-     
-     while(!nl->IsEmpty(red_Type))
-     {
-          nl->Append(nl->First(nl->First(red_Type)),result);
-          nl->Append(nl->Second(nl->First(red_Type)),result);
-          red_Type = nl->Rest(red_Type);
-     }
-     
-     return result;
-}
-     
 
 
 /*
@@ -166,29 +144,37 @@ class DArray
          public:
          DArray();
          DArray(ListExpr, string,int,ListExpr);
-         
          ~DArray();
          
          void initialize(ListExpr, string, int,ListExpr,Word*);
          void initialize(ListExpr, string,int,ListExpr);
+         
+         //Returns the content of elements[int]
          Word get(int);
+         //Sets elements[int] and sends the object to the respective worker
          void set(Word,int);
          
          int getSize();
          int getAlgID();
          int getTypID();
+         
          DServerManager* getServerManager();
          ListExpr getServerList();
          Word* getElements();
+         
          bool isDefined();
          string getName();
          ListExpr getType();
          
+         //Retrieves the element int/all elements from the worker
+         //refresh must be called before calling get()
          void refresh(int);
-      void refresh();
+         void refresh();
          
+         //Deletes all the remote elements on the workers
          void remove();
          
+         //Persistens Storage functions for the type constructor
          static Word In( const ListExpr typeInfo , const ListExpr instance ,
                                     const int errorPos , ListExpr& errorInfo ,
                                     bool& correct );
@@ -206,16 +192,19 @@ class DArray
                                      const ListExpr typeInfo , Word& value );
          
          
-         
+         //Static no of existing DArray-Instances, used for naming
          static int no;
          
          bool isRelType() {return isRelation;}
          
          private:
               
+         //Sends the relation in elements[index] to the respective worker
          void WriteRelation(int index);
          
+         //Is the DArray defined (posseses a name, size, serverlist, type?!)
          bool defined;
+         //Is a certain element present on the master?
          bool* present;
          bool isRelation;
          int size;
@@ -227,7 +216,7 @@ class DArray
          ListExpr serverlist;
          
          DServerManager* manager;
-         //DServer* server;
+         
          Word* elements;
          
 };
@@ -238,8 +227,10 @@ class DArray
 
 */
 
+//Definition of static variable
 int DArray::no = 0;
 
+//Creates an undefined DArray
 DArray::DArray()
 {
          defined = false;
@@ -252,6 +243,9 @@ DArray::DArray()
          present = 0;
 }
 
+//Creates a defined DArray
+//A DArray is defined by its name, type, size and serverlist
+//It can be defined while all its elements are undefined 
 DArray::DArray(ListExpr n_type, string n, int s, ListExpr n_serverlist)
 {
          defined = true;
@@ -273,14 +267,12 @@ DArray::DArray(ListExpr n_type, string n, int s, ListExpr n_serverlist)
                   
          elements = new Word[size];
          present = new bool[size];
+         //Since no elements are given, none can be present
+     
          for(int i = 0; i<size; i++) present[i] = false;
          
          serverlist = n_serverlist;
          manager = new DServerManager(serverlist, name,type,size);
-         //server = manager->getServerbyID(0);
-         //server = new DServer("192.168.2.3",1234,name,type);         
-         //Server must be specified in the
-//         code for now (see also DArray::initialize below)
          
          no++;
          
@@ -295,6 +287,10 @@ DArray::~DArray()
          
           for(int i=0;i<size;i++)
           {
+               //Elements that are present on the master are deleted
+               //note that this deletes NOT the Secondo-objects on the workers
+               //they need to be deleted seperately which can be done by
+               //the remove-function
                if(present[i])
                (am->DeleteObj(alg_id,typ_id))(type,elements[i]);
           }
@@ -313,7 +309,7 @@ void DArray::remove()
                   DServer* server = manager->getServerbyID(i);
                   server->setCmd("delete",manager->getIndexList(i),elements);
                   DServerExecutor* server_ex = new DServerExecutor(server);
-                  exec.execute(server_ex);//server->run();
+                  exec.execute(server_ex);
          }
          exec.wait();
       }
@@ -343,27 +339,29 @@ void DArray::refresh()
 {
      ZThread::ThreadedExecutor exec;
      DServerExecutor* server_ex;
-     /*if(isRelation)*/ for(int i=0;i<size;i++)
-     {if(present[i])(am->DeleteObj(alg_id,typ_id))(type,elements[i]);
-     if(isRelation) elements[i].addr = 
-          (am->CreateObj(alg_id,typ_id))(type).addr;}
      
-     //delete elements;
-     //elements = new Word[size];
+     //Elements are deleted if they were present
+     //If the darray has a relation-type new relations must be created
+     for(int i=0;i<size;i++)
+     {
+          if(present[i])
+               (am->DeleteObj(alg_id,typ_id))(type,elements[i]);
+          if(isRelation) 
+               elements[i].addr = 
+               (am->CreateObj(alg_id,typ_id))(type).addr;
+     }
+     
+     
      for(int i = 0; i < manager->getNoOfServers(); i++)
      {
           DServer* server = manager->getServerbyID(i);
           if(isRelation)
          {
-              //(am->DeleteObj(alg_id,typ_id))(type,elements[i]);
-              //elements[i].addr = (am->CreateObj(alg_id,typ_id))(type).addr;
               server->setCmd("read_rel",manager->getIndexList(i),elements);
-              //server->run();
          }
          else
          {
                server->setCmd("read",manager->getIndexList(i),elements);
-               //server->run();
          }
           
          server_ex = new DServerExecutor(server);
@@ -371,6 +369,7 @@ void DArray::refresh()
      }
     exec.wait();
     
+     //All elements are present now
     for(int i=0;i<size;i++) present[i] = true;
 }
 
@@ -378,58 +377,52 @@ void DArray::refresh()
 void DArray::initialize(ListExpr n_type, string n, int s,
                                   ListExpr n_serverlist, Word* n_elem)
 {
-         defined = true;
+     defined = true;
          
-         type = n_type;
+     type = n_type;
          
-         extractIds( type , alg_id, typ_id);
+     extractIds( type , alg_id, typ_id);
      
-         SecondoCatalog* sc = SecondoSystem::GetCatalog();
-         if(sc->GetTypeName(alg_id,typ_id) == "rel") isRelation = true;
-         else isRelation = false;
+     SecondoCatalog* sc = SecondoSystem::GetCatalog();
+     if(sc->GetTypeName(alg_id,typ_id) == "rel") isRelation = true;
+     else isRelation = false;
      
-         name = n;
+     name = n;
          
-         size = s;
+     size = s;
          
-         serverlist = n_serverlist;
+     serverlist = n_serverlist;
         
-         manager = new DServerManager(serverlist, name,type,size);
-         //server = manager->getServerbyID(0);
-         elements = n_elem;
-         present = new bool[size];
-         for(int i = 0; i<size; i++) present[i] = true;
-         //server = new DServer("192.168.2.3",1234,name,type);
-         //Server must be specified in the code
-//         for now (see also Constructor above)
+     manager = new DServerManager(serverlist, name,type,size);
          
-         /*for(int i = 0; i<size; i++)
-         {
-                  DServer* server = manager->getServerByIndex(i);
-                  server->setCmd("write",nl->IntAtom(i),elements);
-                  server->run();
-         }*/
-      for(int i = 0; i< size; i++) present[i] = true;
+     elements = n_elem;
+     present = new bool[size];
+     for(int i = 0; i<size; i++) present[i] = true;
+
+      
      ZThread::ThreadedExecutor exec;
-     if(!isRelation){
+     
+     if(!isRelation)
+     {
          
-     for(int i = 0; i<manager->getNoOfServers();i++)
+          for(int i = 0; i<manager->getNoOfServers();i++)
          {
 
                  DServer* server = manager->getServerbyID(i);
                  server->setCmd("write",manager->getIndexList(i),elements);
-               DServerExecutor* server_exec = new DServerExecutor(server);
-                 exec.execute(server_exec);//server->run();
-         }
+                 DServerExecutor* server_exec = new DServerExecutor(server);
+                 exec.execute(server_exec);
           }
-          else
-               for(int i= 0;i<manager->getNoOfServers();i++)
+     }
+     else
+          for(int i= 0;i<manager->getNoOfServers();i++)
           {
                RelationWriter* write = new RelationWriter
                (manager->getServerbyID(i),elements,manager->getIndexList(i));
                exec.execute(write);
           }
-       exec.wait();
+     
+     exec.wait();
        
 }
 
@@ -456,10 +449,6 @@ void DArray::initialize(ListExpr n_type, string n, int s, ListExpr n_serverlist)
          
          serverlist = n_serverlist;
          manager = new DServerManager(serverlist, name,type,size);
-         //server = manager->getServerbyID(0);
-         /*server = new DServer(
-         "192.168.2.3",1234,name,type);                  //see above*/
-         
 }
 
 
@@ -467,7 +456,6 @@ Word DArray::get(int i)
 { 
          if(defined && present[i]) 
          {
-                  //refresh(i); 
                  return elements[i];
          } 
          else 
@@ -481,6 +469,7 @@ void DArray::set(Word n_elem, int i)
          if(defined) 
          {
                   elements[i].addr = n_elem.addr;
+              
                   if(!isRelation)
                   {
                     DServer* server = manager->getServerByIndex(i);
@@ -489,6 +478,7 @@ void DArray::set(Word n_elem, int i)
                   }
                   else
                        WriteRelation(i);
+                  
                   present[i] = true;
          }
 }
@@ -604,16 +594,16 @@ ListExpr DArray::Out( ListExpr typeInfo, Word value )
          ListExpr list;
          ListExpr last;
          ListExpr element;
-         list = nl->OneElemList(a->getServerList());last=list;
-     a->refresh();
+         list = nl->OneElemList(a->getServerList());
+         last=list;
+         a->refresh();
          
-         if(a->isDefined())// && !a->isRelType())
+         if(a->isDefined())
                   for(int i = 0; i<a->getSize();i++)
                   {
-                           element = ((am->OutObj(a->getAlgID(),a->getTypID()))
+                         element = ((am->OutObj(a->getAlgID(),a->getTypID()))
                                              (nl->Second(typeInfo),a->get(i)));
-                           /*if(i==0) {list=nl->OneElemList(element);last=list;}
-                           else*/         last=nl->Append(last,element);
+                         last=nl->Append(last,element);
                   }
                            
          else 
@@ -636,25 +626,30 @@ ListExpr DArray::Out( ListExpr typeInfo, Word value )
 
 Word DArray::Create( const ListExpr typeInfo )
 {
-         
-         return SetWord(new DArray());
+     return SetWord(new DArray());
 }
                   
          
-         
+//Note: The Delete-function deletes the entire DArray, therefore the remote
+//obejcts are delete and thereafter the local data structure. The Close-
+//function only removes the local data structure
+
 void DArray::Delete( const ListExpr typeInfo, Word& w )
 {
-         ((DArray*)w.addr)->remove();
-         delete (DArray*)w.addr;
-         w.addr = 0;
+     ((DArray*)w.addr)->remove();
+     delete (DArray*)w.addr;
+     w.addr = 0;
 }
 
 void DArray::Close( const ListExpr typeInfo, Word& w )
 {
-         delete (DArray*)w.addr;
-         w.addr = 0;
+     delete (DArray*)w.addr;
+     w.addr = 0;
 }
 
+//A new DArray is created locally with the same type, size and serverlist
+//It is given a new name and all the elements of the old array are copied
+//on the workers
 Word DArray::Clone( const ListExpr typeInfo, const Word& w )
 {
          DArray* alt = (DArray*)w.addr;
@@ -815,7 +810,7 @@ struct darrayInfo : ConstructorInfo {
     typeExample  = "darray int";
     listRep      =  "(a1 a2 a3)";
     valueExample = "(4 12 2 8)";
-    remarks      = "";
+    remarks      = "A darray keeps all its element on remote systems";
   }
 };
 
@@ -881,46 +876,40 @@ makeDarrayTypeMap( ListExpr args )
 static int
 makeDarrayfun( Word* args, Word& result, int message, Word& local, Supplier s )
 {
-         SecondoCatalog* sc = SecondoSystem::GetCatalog();         
-         //3 lines copied from ArrayAlgebra.cpp
+     SecondoCatalog* sc = SecondoSystem::GetCatalog();         
 
-         ListExpr type = qp->GetType(s);
-         ListExpr typeOfElement = sc->NumericType(nl->Second(type));
+     ListExpr type = qp->GetType(s);
+     ListExpr typeOfElement = sc->NumericType(nl->Second(type));
           
-          //if(!nl->Equals(nl->First(nl->Second(type)),"rel"){
 
-         int algID, typID;
-         extractIds( typeOfElement, algID, typID);
+     int algID, typID;
+     extractIds( typeOfElement, algID, typID);
          
-         int size = qp->GetNoSons(s)-1;
-         
-         Word* cloned = new Word[size];
-         
-         for(int i = 0;i<size;i++)
-         {                  
-             cloned[i] = (am->CloneObj(algID,typID))(typeOfElement,args[i+1]);
-         }
-         
-         GenericRelation* r = (GenericRelation*)args[0].addr;
-        GenericRelationIterator* rit = r->MakeScan();
-         ListExpr reltype;
-         nl->ReadFromString("(rel (tuple ((Server string) (Port int))))",
+     int size = qp->GetNoSons(s)-1;
+        
+     Word* cloned = new Word[size];
+       
+     //Objects need to be cloned to be persistent after the query ends
+     for(int i = 0;i<size;i++)
+     {                  
+          cloned[i] = (am->CloneObj(algID,typID))(typeOfElement,args[i+1]);
+     }
+     
+     //Generate serverlist as ListExpr from Relation
+     GenericRelation* r = (GenericRelation*)args[0].addr;
+     GenericRelationIterator* rit = r->MakeScan();
+     ListExpr reltype;
+     nl->ReadFromString("(rel (tuple ((Server string) (Port int))))",
                                          reltype);
-         ListExpr serverlist = Relation::Out(reltype,rit);
-        /*ListExpr serverlist = nl->TwoElemList((nl->TwoElemList
-                                        (nl->StringAtom("192.168.2.3"),
-                                                       nl->IntAtom(1234))),
-                                        (nl->TwoElemList(
-                                                nl->StringAtom("127.0.0.1"),
-                                                nl->IntAtom(1234))));*/
-         result = qp->ResultStorage(s);
-         ((DArray*)result.addr)->initialize(typeOfElement, 
+     ListExpr serverlist = Relation::Out(reltype,rit);
+
+     result = qp->ResultStorage(s);
+     ((DArray*)result.addr)->initialize(typeOfElement, 
                                         getArrayName(DArray::no),
                                                         size,serverlist,
                                                                  cloned);
-         
-         
-         return 0;
+     
+     return 0;
 }
 
 const string makeDarraySpec =
@@ -928,7 +917,7 @@ const string makeDarraySpec =
      "( <text>t -> darray t</text--->"
        "<text>makeDarray ( _, _ )</text--->"
        "<text>Returns a distributed Array containing x element</text--->"
-       "<text>query makeDarray(1,2,3)</text---> ))";
+       "<text>query makeDarray(server_rel,1,2,3)</text---> ))";
 
 Operator makeDarray(
          "makeDarray",
@@ -970,36 +959,36 @@ static int getFun( Word* args,
                                     Word& local, 
                                     Supplier s)
 {
-         DArray* array = ((DArray*)args[0].addr);
-         CcInt* index = ((CcInt*)args[1].addr);
+     DArray* array = ((DArray*)args[0].addr);
+     CcInt* index = ((CcInt*)args[1].addr);
          
-         int i = index->GetIntval();
+     int i = index->GetIntval();
          
-         // Following lines from ArrayAlgebra.cpp
-         SecondoCatalog* sc = SecondoSystem::GetCatalog();
-         ListExpr resultType = qp->GetType(s);
+     SecondoCatalog* sc = SecondoSystem::GetCatalog();
+     ListExpr resultType = qp->GetType(s);
 
-         if (nl->ListLength(resultType) > 1) {
-      if (nl->IsEqual(nl->First(resultType), "map")) {
-
-        // In case of a mapping only the type of the resulting object of
-        // the mapping is relevant.
-
-        while (nl->ListLength(resultType) > 1) {
-          resultType = nl->Rest(resultType);
-        }
-        resultType = nl->First(resultType);
-      }
+     if (nl->ListLength(resultType) > 1) 
+     {
+          if (nl->IsEqual(nl->First(resultType), "map")) 
+          {
+               while (nl->ListLength(resultType) > 1) 
+                    resultType = nl->Rest(resultType);
+        
+               resultType = nl->First(resultType);
+          }
     }
+    
     resultType = sc->NumericType(resultType);
     
-    int algID,typID; extractIds(resultType,algID,typID);
+    int algID,typID; 
+    extractIds(resultType,algID,typID);
+    
     array->refresh(i);
     Word cloned = (am->CloneObj(algID,typID))(resultType,(Word)array->get(i));
 
-    //code from ArrayAlgebra.cpp ends here
     result = qp->ResultStorage(s);
     result.addr = cloned.addr;
+    
     return 0;
 }
          
@@ -1008,7 +997,7 @@ const string getSpec =
      "( <text>darray t -> t</text--->"
        "<text>get ( _, _ )</text--->"
        "<text>Returns an element from a distributed Array</text--->"
-       "<text>query get(makeDarray(1,2,3),1)</text---> ))";
+       "<text>query get(makeDarray(server_rel,1,2,3),1)</text---> ))";
 
 Operator getA(
          "get",
@@ -1096,7 +1085,7 @@ const string putSpec =
      "( <text>darray t -> darray t</text--->"
        "<text>put ( _, _, _ )</text--->"
 "<text>Returns a distributed array where one element is altered</text--->"
-       "<text>query put(makeDarray(1,2,3),2,2)</text---> ))";
+       "<text>query put(makeDarray(server_rel,1,2,3),2,2)</text---> ))";
 
 Operator putA(
          "put",
@@ -1185,8 +1174,6 @@ static int sendFun( Word* args,
                     result = qp->ResultStorage(s);
 
                     ((CcInt*)result.addr)->Set(0);
-                    
-                    //recF.Remove();
 
                     
                }
@@ -1256,7 +1243,6 @@ static ListExpr receiveTypeMap( ListExpr args )
      
      master->Close(); delete master; master=0;
      
-     SecondoCatalog* sc = SecondoSystem::GetCatalog();
      int algID, typID; extractIds(type,algID,typID);
       ;
       return nl->ThreeElemList(
@@ -1412,7 +1398,6 @@ static ListExpr receiverelTypeMap( ListExpr args )
      
      master->Close(); delete master; master=0;
      
-     SecondoCatalog* sc = SecondoSystem::GetCatalog();
      int algID, typID; extractIds(type,algID,typID);
 
       return nl->ThreeElemList(
@@ -1633,6 +1618,8 @@ static int sendrelFun( Word* args,
      result = qp->ResultStorage(s);
      ((CcInt*)result.addr)->Set(1);
      
+     return 0;
+     
 }
 
 const string sendrelSpec =
@@ -1749,8 +1736,7 @@ distributeFun (Word* args, Word& result, int message, Word& local, Supplier s)
                                    size, serverlist);
      DServerManager* man = array->getServerManager();
      DServer* server = 0;
-     DServer** childs = 0;
-     
+          
      int server_no = man->getNoOfServers();
      int rel_server = (size / server_no);
      

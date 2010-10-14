@@ -30,14 +30,10 @@ March 2010 Tobias Timmerscheidt
 
 //Implements DServer
 #include "Remote.h"
-#include <sstream>
 #include "SocketIO.h"
-#include "Profiles.h"
-#include "CSProtocol.h"
 #include "RelationAlgebra.h"
 #include "zthread/Runnable.h"
 #include "zthread/Thread.h"
-#include <netdb.h>
 #include <iostream>
 
 
@@ -48,8 +44,6 @@ using namespace std;
 void extractIds(const ListExpr,int&,int&);
 string toString_d(int);
 
-/*const string HostIP = "84.74.163.156";
-const string HostIP_ = "h84_74_163_156";*/
 string HostIP;
 string HostIP_;
 
@@ -64,14 +58,6 @@ DServer::DServer(string n_host,int n_port,string n_name,ListExpr n_type)
         rel_open = false;
      
         num_childs = 0;
-     char* g = new char[20];
-     char* szIPAddress = new char[15];
-     gethostname(g,20);
-     cout << "Eigener Hostname ist: " << g << endl;
-     //PHOSTENT host;
-     //host = gethostbyname(g);
-     //szIPAddress = inet_ntoa (*(struct in_addr *)*hostinfo->h_addr_list); 
-     //cout << "Eigene IP-Adresse ist: " << szIPAddress << endl;
         
         string line;
         
@@ -80,7 +66,7 @@ DServer::DServer(string n_host,int n_port,string n_name,ListExpr n_type)
         if(server!=0 && server->IsOk())
         {
                 iostream& iosock = server->GetSocketStream();
-                csp = new CSProtocol(nl, iosock);
+
                 getline( iosock, line );
                 
                 if(line=="<SecondoOk/>")
@@ -94,7 +80,7 @@ DServer::DServer(string n_host,int n_port,string n_name,ListExpr n_type)
                                 do{
                                         getline( iosock, line);}
                                 while(line != "</SecondoIntro>");
-                                        //cout << "ALLES SUPER!!!";
+                                   
                         }
                         else cout << "SERVERERROR 2!!!";
                 }
@@ -119,10 +105,9 @@ DServer::DServer(string n_host,int n_port,string n_name,ListExpr n_type)
         }
         else cout << "ERROR3";
         
-     string ip;
-     ip = server->GetSocketAddress();
-     HostIP = ip;
-     HostIP_ = "h" + replaceAll(ip,".","_");
+
+     HostIP = server->GetSocketAddress();
+     HostIP_ = "h" + replaceAll(HostIP,".","_");
 }
 
 void DServer::Terminate()
@@ -207,7 +192,7 @@ void DServer::run()
                 SmiRecord rec;
                 SmiRecordId recID;
                 
-                recF.Open("send");// + nl->ToString(arg));
+                recF.Open("send");
                 recF.AppendRecord(recID,rec);
                 size_t size = 0;
                 am->SaveObj(algID,typID,rec,size,type,elements[arg2]);
@@ -228,7 +213,7 @@ void DServer::run()
 
                 worker->Close();delete worker;worker=0;
                
-                //string line;
+                
                 getline(iosock,line);
                 
                 if(line=="<SecondoResponse>")
@@ -241,7 +226,7 @@ void DServer::run()
                 if(!nl->IsAtom(arg) && !nl->IsEmpty(arg)) arg = nl->Rest(arg);
                 }
                 while(/*!nl->IsAtom(arg) &&*/ !nl->IsEmpty(arg));
-                //Daten auf den Server schreiben
+                
         }
         
         if(cmd=="read")
@@ -289,7 +274,7 @@ void DServer::run()
                      SmiRecord rec;
                      SmiRecordId recID;
                      
-                     string n = "receive";// + nl->ToString(arg);
+                     string n = "receive";
                      recF.Open("rec");
                      recF.AppendRecord(recID,rec);
                      rec.Write(buffer,size,0);
@@ -302,8 +287,6 @@ void DServer::run()
                      recF.DeleteRecord(recID);
                      recF.Close();
                     worker->Close();delete worker;worker=0;
-                    //delete buffer;
-                     //elements[arg2].addr = buffer;
 
                 }
                 else cout << "FEHLER BEI CALLBACK";
@@ -325,18 +308,12 @@ void DServer::run()
                         ls = nl->Second(nl->Fourth(ls));
                         
                         
-                        ListExpr errorInfo = nl->OneElemList
-                                                (nl->SymbolAtom("ERRORS"));
-                        bool correct;
-                        //elements[arg2] = ((am->InObj(algID,typID))
-                           //             ( type, ls, 1, errorInfo, correct));
                 }
                 else cout << "DATENFEHLER LESEN";
                 
                 if(!nl->IsAtom(arg) && !nl->IsEmpty(arg)) arg = nl->Rest(arg);
                 }
                 while(!nl->IsAtom(arg) && !nl->IsEmpty(arg));
-                //recF.Remove();
          }
         
         if(cmd=="delete")
@@ -346,7 +323,7 @@ void DServer::run()
                     if(!nl->IsAtom(arg)) akt=nl->First(arg);
                      else akt = arg;
                      arg2 = nl->IntValue(akt);
-                     //if(arg2 == 1) ZThread::Thread::sleep(1000);
+
                string line;
                 iostream& iosock = server->GetSocketStream();
                 iosock << "<Secondo>" << endl << "1" << endl << "delete r" 
@@ -378,7 +355,7 @@ void DServer::run()
                                 << cmd<< endl << "</Secondo>" << endl;
                         list = nl->Rest(list);
                         do
-                        {getline(iosock,line); /*cout << line;*/}
+                        {getline(iosock,line); }
                         while(line.find("</SecondoResponse>") == string::npos);
                 }
                 
@@ -388,7 +365,7 @@ void DServer::run()
                 iosock << "<Secondo>" << endl << "1" << endl << cmd 
                                 << endl << "</Secondo>" << endl;
                 do
-                {getline(iosock,line);/*cout<<line;*/}
+                {getline(iosock,line);}
                         while(line.find("</SecondoResponse>") == string::npos);
                 
                         
@@ -413,7 +390,7 @@ void DServer::run()
                                 << cmd<< endl << "</Secondo>" << endl;
                         list = nl->Rest(list);
                         do
-                        {getline(iosock,line); /*cout << line;*/}
+                        {getline(iosock,line); }
                         while(line.find("</SecondoResponse>") == string::npos);
                 }
                 
@@ -425,7 +402,7 @@ void DServer::run()
                 iosock << "<Secondo>" << endl << "1" << endl << cmd 
                                 << endl << "</Secondo>" << endl;
                 do
-                {getline(iosock,line);/*cout<<line;*/}
+                {getline(iosock,line);}
                         while(line.find("</SecondoResponse>") == string::npos);
                 
                         
@@ -466,9 +443,6 @@ void DServer::run()
                 cbsock1 << "<TYPE>" << endl << nl->ToString(type) 
                         << endl << "</TYPE>" << endl;
                         
-                //Tuple *tpl = (Tuple*)elements[0].addr;
-                //TupleType* tt = tpl->GetTupleType();
-                        
                                         
                 getline(cbsock1,line);
                 if(line!="<CLOSE>") cout << "FEHLER";
@@ -479,7 +453,6 @@ void DServer::run()
                 
                 cbsock2 << "<TYPE>" << endl << nl->ToString(type) 
                         << endl << "</TYPE>" << endl;
-                //cbsock2.write((char*)tt,sizeof(TupleType));
                 
                gate->Close();delete gate;gate=0;
                         
@@ -597,7 +570,7 @@ void DServer::run()
                      buffer = new char[num_blocks*1024];
                      memset(buffer,0,num_blocks*1024);
                      
-                     //iosock << toString_d(num_blocks);
+
                      for(int i = 0; i < num_blocks; i++)
                           cbsock.read(buffer+i*1024,1024);
                      
@@ -616,7 +589,7 @@ void DServer::run()
                 if(line != "<CLOSE>") 
                      cout << "Fehlerhaftes Ende des Relationempfangs";
                 
-                //elements[arg2].addr = rel; //delete rel;
+
                 
                 gate->Close(); delete gate; gate=0;
                 worker->Close(); delete worker; worker=0;
@@ -629,7 +602,7 @@ void DServer::run()
                 {
                         nl->ReadBinaryFrom(iosock, ls);
                         string debug_out = nl->ToString(ls);
-                        //cout << debug_out;
+
                         
                         do
                                 getline(iosock,line);
@@ -640,9 +613,6 @@ void DServer::run()
                         
                         ListExpr errorInfo = nl->OneElemList
                                                 (nl->SymbolAtom("ERRORS"));
-                        bool correct;
-                        //elements[arg2] = ((am->InObj(algID,typID))
-                           //             ( type, ls, 1, errorInfo, correct));
                 }
                 else cout << "DATENFEHLER LESEN";
           
@@ -652,7 +622,6 @@ void DServer::run()
         
                      
                      
-     //ZThread::Thread::cancel();
                 status = 0;
            
            return;
@@ -793,7 +762,8 @@ void RelationWriter::run()
      while(t != 0)
      {
           
-          word[0].addr = t;t->IncReference();
+          word[0].addr = t;
+          t->IncReference();
           worker->setCmd("write_rel",nl->TheEmptyList(),word);
           
           worker->run();

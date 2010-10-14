@@ -36,11 +36,11 @@ March 2010 Tobias Timmerscheidt
 
 #include "StandardTypes.h"
 #include "SocketIO.h"
-#include "Profiles.h"
-#include "CSProtocol.h"
+//#include "Profiles.h"
+//#include "CSProtocol.h"
 #include "zthread/Runnable.h"
 #include "zthread/Thread.h"
-#include "zthread/CountedPtr.h"
+//#include "zthread/CountedPtr.h"
 
 using namespace std;
 
@@ -49,8 +49,7 @@ class DServer
          public:
                   DServer(string,int,string,ListExpr);
                   void Terminate();
-                  //Word getData();
-                  //void setData(Word);
+
                   void setCmd(string,ListExpr,Word*);
                   void run();
                   
@@ -68,8 +67,7 @@ class DServer
                   int port,state;
                   ListExpr type,arg;
                   Word* elements;
-         
-                  CSProtocol* csp;
+
                   Socket* server;
          
                   Socket* cbworker;
@@ -91,7 +89,7 @@ class DServerManager
      
                int getMultipleServerIndex(int index);
                 
-                //int getID(int index) = 0;
+
                 ListExpr getIndexList(int id);
                 ListExpr getNamedIndexList(int id);
         
