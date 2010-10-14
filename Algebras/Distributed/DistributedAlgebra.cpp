@@ -1506,7 +1506,7 @@ static int receiverelFun( Word* args,
                Tuple* t = new Tuple(tupleType);
                
                
-               t->ReadFromBin(buffer);
+               t->ReadFromBin(buffer+sizeof(int),size);
                
                rel->AppendTuple(t);
                
