@@ -792,3 +792,9 @@ Number   : 1
 Signature: stream(point) x bool -> points
 Example  : query components(Kneipen feed projecttransformstream[geoData] collect_points[TRUE]) count <= Kneipen count
 Result   : TRUE
+
+Operator : halfSegments
+Number   : 1
+Signature: region -> stream(tuple(  ... ))
+Example  : query halfSegments(zoogarten) count 
+Result   : 56

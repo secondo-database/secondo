@@ -66,6 +66,7 @@ using namespace std;
 #include "AvlTree.h"
 #include "AVLSegment.h"
 #include "AlmostEqual.h"
+#include "../Relation-C++/RelationAlgebra.h"
 
 #include <vector>
 #include <queue>
@@ -7941,67 +7942,48 @@ double Region::Distance( const Line &l ) const
 
 void Region::Components( vector<Region*>& components )
 {
-  assert( IsDefined() );
-//   for(vector<Region*>::iterator it=components.begin();
-//       it<components.end();
-//       it++)
-//   {
-//     components[it]->DeleteIfAllowed();
-//   }
   components.clear();
   if( IsEmpty() ) { // subsumes IsDefined()
     return;
   }
-  Region* copy = new Region( *this );
-  copy->LogicSort();
+  Region* copy = new Region( *this ); // needed for resorting
 
-  map<int,int> edgeno,
-               cycleno,
-               faceno;
+  copy->LogicSort(); // sort by faceno, cycleno, edgeno
+
 
   HalfSegment hs;
-  for( int i = 0; i < Size(); i++ )
-  {
-    copy->Get( i, hs );
-    Region *r;
-    HalfSegment aux( hs );
-    if( faceno.find( hs.attr.faceno ) == faceno.end() )
-    {
-      r = new Region( 1 );
-      r->StartBulkLoad();
-      components.push_back( r );
-      aux.attr.faceno = faceno.size();
-      faceno.insert( make_pair( hs.attr.faceno, aux.attr.faceno ) );
-    }
-    else
-    {
-      aux.attr.faceno = faceno[ hs.attr.faceno ];
-      r = components[ aux.attr.faceno ];
-    }
+  int currentFaceNo = 0;
+  int edgeno = 0;
+  Region* r = 0;
+  for(int i=0;i<copy->Size();i++){
+     copy->Get(i,hs);
+     if(hs.IsLeftDomPoint()){ // only process left dom segments
+       if(i==0 || hs.attr.faceno!=currentFaceNo){ // next face reached
+         if(r!=0){
+           r->EndBulkLoad();
+           components.push_back(r);
+         }
+         edgeno = 0;
+         r = new Region(1);
+         r->StartBulkLoad();
+         currentFaceNo = hs.attr.faceno;
+       }
+       hs.attr.faceno=0;
+       hs.attr.edgeno=edgeno;
+       (*r) += hs;
+       hs.SetLeftDomPoint(false);
+       (*r) += hs;
+       edgeno++; 
+     }
 
-    if( cycleno.find( hs.attr.cycleno ) == cycleno.end() )
-    {
-      aux.attr.cycleno = cycleno.size();
-      cycleno.insert( make_pair( hs.attr.cycleno, aux.attr.cycleno ) );
-    }
-    else
-      aux.attr.cycleno = cycleno[ hs.attr.cycleno ];
-
-    if( edgeno.find( hs.attr.edgeno ) == edgeno.end() )
-    {
-      aux.attr.edgeno = edgeno.size();
-      edgeno.insert( make_pair( hs.attr.edgeno, aux.attr.edgeno ) );
-    }
-    else
-      aux.attr.edgeno = edgeno[ hs.attr.edgeno ];
-
-    *r += aux;
+  }
+  if(r!=0){
+    r->EndBulkLoad();
+    components.push_back(r);
   }
 
   copy->DeleteIfAllowed();
 
-  for( size_t i = 0; i < components.size(); i++ )
-    components[i]->EndBulkLoad();
 }
 
 void Region::Translate( const Coord& x, const Coord& y, Region& result ) const
@@ -17366,6 +17348,177 @@ Operator spatialmakepoint( "makepoint",
 
 
 /*
+6.16.1 Operator halfSegments
+
+*/
+ListExpr halfSegmentsTM(ListExpr args){
+  if(nl->ListLength(args)!=1){
+     return listutils::typeError("one argument expected");
+  }
+  ListExpr first = nl->First(args);
+  if((listutils::isSymbol(first,"line") ||
+      listutils::isSymbol(first,"region")) ){
+
+   ListExpr attrList = nl->OneElemList( nl->TwoElemList(
+                                          nl->SymbolAtom("FaceNo"),
+                                          nl->SymbolAtom("int")));
+   ListExpr last = attrList;
+   last = nl->Append(last, nl->TwoElemList(nl->SymbolAtom("CycleNo"),
+                                           nl->SymbolAtom("int")));
+
+
+   last = nl->Append(last, nl->TwoElemList(nl->SymbolAtom("EdgeNo"),
+                                           nl->SymbolAtom("int")));
+
+   last = nl->Append(last, nl->TwoElemList(nl->SymbolAtom("CoverageNo"),
+                                           nl->SymbolAtom("int")));
+
+   last = nl->Append(last, nl->TwoElemList(nl->SymbolAtom("InsideAbove"),
+                                           nl->SymbolAtom("bool")));
+
+   last = nl->Append(last, nl->TwoElemList(nl->SymbolAtom("PartnerNo"),
+                                           nl->SymbolAtom("int")));
+
+   last = nl->Append(last, nl->TwoElemList(nl->SymbolAtom("ldp"),
+                                           nl->SymbolAtom("bool")));
+
+   last = nl->Append(last, nl->TwoElemList(nl->SymbolAtom("Segment"),
+                                           nl->SymbolAtom("line")));
+
+    return nl->TwoElemList(
+         nl->SymbolAtom("stream"),
+         nl->TwoElemList(
+           nl->SymbolAtom("tuple"),
+           attrList));
+
+  } else {
+   return listutils::typeError("line or region expected");
+ }
+}
+
+
+template<class T>
+class halfSegmentsLocalInfo{
+  public:
+    halfSegmentsLocalInfo(T* s, ListExpr tt){
+      if(!s->IsDefined()){
+        source = 0;
+        size = 0;
+        pos = 0;
+        tupleType = 0;
+      } else {
+         source = s;
+         size = s->Size();
+         pos = 0;
+         tupleType = new TupleType(tt);
+      }
+    }
+
+    ~halfSegmentsLocalInfo(){
+      if(tupleType){
+         tupleType->DeleteIfAllowed();
+         tupleType=0;
+      }
+    }
+
+    Tuple* next(){
+      if(pos>=size){
+        return 0;
+      }
+      HalfSegment hs;
+      source->Get(pos,hs);
+      pos++;
+      Tuple* res = new Tuple(tupleType);
+      res->PutAttribute(0, new CcInt(true,hs.attr.faceno));
+      res->PutAttribute(1, new CcInt(true,hs.attr.cycleno));
+      res->PutAttribute(2, new CcInt(true,hs.attr.edgeno));
+      res->PutAttribute(3, new CcInt(true,hs.attr.coverageno));
+      res->PutAttribute(4, new CcBool(true,hs.attr.insideAbove));
+      res->PutAttribute(5, new CcInt(true,hs.attr.partnerno));
+      res->PutAttribute(6, new CcBool(true,hs.IsLeftDomPoint()));
+      Line* line = new Line(2);
+      line->StartBulkLoad();
+      (*line) += hs;
+      hs.SetLeftDomPoint(!hs.IsLeftDomPoint());
+      (*line) += hs;
+      line->EndBulkLoad(); 
+      res->PutAttribute(7, line);
+      return res;
+    }
+   
+  private:
+    T* source;
+    int size;
+    int pos;
+    TupleType* tupleType;
+};
+
+
+template<class T>
+int halfSegmentsVM( Word* args, Word& result, int message, 
+                   Word& local, Supplier s )
+{
+   halfSegmentsLocalInfo<T>* li = 
+         static_cast<halfSegmentsLocalInfo<T>*>(local.addr);
+   switch(message){
+     case OPEN: {
+              if(li){
+                delete li;
+              }
+              ListExpr resultType = GetTupleResultType( s );
+              li = new halfSegmentsLocalInfo<T>( static_cast<T*>(args[0].addr),
+                         nl->Second(resultType)
+                     );
+              local.addr=li;
+              return 0;
+           }
+     case REQUEST:{
+         result.addr  = li->next();
+         return result.addr?YIELD:CANCEL;
+     }
+     case CLOSE:{
+              if(li){
+                delete li;
+                local.addr=0;
+              }
+              return 0;
+     }
+
+   }
+   return -1;
+}
+
+
+ValueMapping halfSegmentsvm[] = { halfSegmentsVM<Line>,
+                                 halfSegmentsVM<Region> };
+
+
+int halfSegmentsSelect(ListExpr args){
+  return listutils::isSymbol(nl->First(args),"line")?0:1;
+}
+
+
+const string
+halfSegmentsSpec =
+"( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+"( <text> {line,region} -> stream(tuple(faceno, cycleno,...))</text--->"
+"<text>halfSegements(_) </text--->"
+"<text>Gives the values of the halfsegment into a tuple stream  "
+"</text--->"
+"<text>query halfSegments(zoogarten) count</text---> ) )";
+
+
+Operator halfSegmentsOp (
+  "halfSegments",
+   halfSegmentsSpec,
+   2,
+   halfSegmentsvm,
+   halfSegmentsSelect,
+   halfSegmentsTM );
+
+
+
+/*
 11 Creating the Algebra
 
 */
@@ -17460,6 +17613,7 @@ class SpatialAlgebra : public Algebra
     AddOperator(&spatialcollect_sline);
     AddOperator(&spatialcollect_points);
     AddOperator( &spatialmakepoint );
+    AddOperator( &halfSegmentsOp );
   }
   ~SpatialAlgebra() {};
 };
