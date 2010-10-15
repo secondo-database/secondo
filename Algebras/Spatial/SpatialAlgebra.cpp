@@ -7946,6 +7946,10 @@ void Region::Components( vector<Region*>& components )
   if( IsEmpty() ) { // subsumes IsDefined()
     return;
   }
+
+
+// slow implementation
+  /*
   Region* copy = new Region( *this ); // needed for resorting
 
   copy->LogicSort(); // sort by faceno, cycleno, edgeno
@@ -7983,6 +7987,34 @@ void Region::Components( vector<Region*>& components )
   }
 
   copy->DeleteIfAllowed();
+
+  */
+
+
+  // fast implementation
+  for(int i=0;i<noComponents;i++){
+   components.push_back(new Region(1));
+   components[i]->StartBulkLoad();
+  }
+  HalfSegment hs;
+  for(int i=0;i<Size();i++){
+    Get(i,hs);
+    int face = hs.attr.faceno;
+    hs.attr.faceno = 0;
+    (*components[face]) += hs;
+  }
+
+
+  for(int i=0;i<noComponents;i++){
+    components[i]->EndBulkLoad(false,false,false,false);
+  }
+
+
+
+
+
+
+
 
 }
 
