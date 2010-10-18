@@ -620,7 +620,7 @@ segment is returned.
 
 ostream& operator<<(ostream& o, const AVLSegment& s);
 
-}
+} // end of namespace
 
 
 ostream& operator<<(ostream& o, const avlseg::ExtendedHalfSegment& hs);

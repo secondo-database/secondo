@@ -67,6 +67,7 @@ using namespace std;
 #include "AVLSegment.h"
 #include "AlmostEqual.h"
 #include "../Relation-C++/RelationAlgebra.h"
+#include "RegionTools.h"
 
 #include <vector>
 #include <queue>
@@ -10191,57 +10192,6 @@ bool IsSpatialType(ListExpr type){
 
 
 
-/*
-~getDir~
-
-This fucntion will return true iff the cycle given as a
-vector of points is in clockwise order.
-
-
-*/
-
-bool getDir(const vector<Point>& vp){
-  // determine the direction of cycle
-  int min = 0;
-  for(unsigned int i=1;i<vp.size();i++){
-    if(vp[i] < vp[min]){
-       min = i;
-    }
-  }
-
-  bool cw;
-  int s = vp.size();
-  if(AlmostEqual(vp[0],vp[vp.size()-1])){
-    s--;
-  }
-
-  Point a = vp[ (min - 1 + s ) % s ];
-  Point p = vp[min];
-  Point b = vp[ (min+1) % s];
-  if(AlmostEqual(a.GetX(),p.GetX())){ // a -> p vertical
-    if(a.GetY()>p.GetY()){
-       cw = false;
-    } else {
-       cw = true;
-    }
-  } else if(AlmostEqual(p.GetX(), b.GetX())){ //p -> b vertical
-    if(p.GetY()>b.GetY()){
-       cw = false;
-    } else {
-       cw = true;
-    }
-  } else { // both segments are non-vertical
-    double m_p_a = (a.GetY() - p.GetY()) / (a.GetX() - p.GetX());
-    double m_p_b = (b.GetY() - p.GetY()) / (b.GetX() - p.GetX());
-    if(m_p_a > m_p_b){
-        cw = false;
-    } else {
-        cw = true;
-    }
-  }
-  return cw;
-}
-
 
 /*
 This function check whether a region value is valid after the insertion of a new half segment.
@@ -10992,7 +10942,98 @@ OutRegion( ListExpr typeInfo, Word value )
 
 
 Word
-InRegion( const ListExpr typeInfo, const ListExpr instance,
+InRegion(const ListExpr typeInfo, const ListExpr instance,
+           const int errorPos, ListExpr& errorInfo, bool& correct ){
+
+
+  if(listutils::isSymbol(instance,"undef")){
+    Region* r = new Region(0);
+    r->SetDefined(false);
+    correct = true;
+    return SetWord(Address(r));
+  }
+
+
+  if(nl->AtomType(instance) != NoAtom){
+    correct = false;
+    return SetWord(Address(0));
+  }
+
+  ListExpr regNL = instance; 
+  vector<vector<Point> > cycles;
+
+  while(!nl->IsEmpty(regNL)){
+    ListExpr faceNL = nl->First(regNL);
+    regNL = nl->Rest(regNL);
+    if(nl->AtomType(faceNL)!=NoAtom){
+      correct = false;
+      return SetWord(Address(0));
+    }
+    bool firstCycle = true;
+    Rectangle<2> faceRect;
+    while(!nl->IsEmpty(faceNL)){
+      vector<Point> cycle;
+      ListExpr cycleNL = nl->First(faceNL);
+      faceNL = nl->Rest(faceNL);
+      if(nl->AtomType(cycleNL)!=NoAtom){
+         correct=false;
+         return SetWord(Address(0));
+      }
+
+      Point firstPoint(false,0,0);
+      bool fp = true;
+      Rectangle<2> currentBB;
+      while(!nl->IsEmpty(cycleNL)){
+         ListExpr pointNL = nl->First(cycleNL);
+         cycleNL = nl->Rest(cycleNL);
+         if(nl->ListLength(pointNL)!=2){
+           correct = false;
+           return SetWord(Address(0));
+         }
+         if(!listutils::isNumeric(nl->First(pointNL)) ||
+            !listutils::isNumeric(nl->Second(pointNL))){
+            correct = false;
+            return SetWord(Address(0));
+         }
+         Point p(true, listutils::getNumValue(nl->First(pointNL)),
+                       listutils::getNumValue(nl->Second(pointNL)));
+         cycle.push_back(p);
+         if(fp){
+            fp = false;
+            firstPoint = p;
+            currentBB = p.BoundingBox();
+         } else {
+            currentBB = currentBB.Union(p.BoundingBox());
+         }
+      }
+      if(!AlmostEqual(firstPoint, cycle[cycle.size()-1])){
+        cycle.push_back(firstPoint);
+      }
+      if(firstCycle || !faceRect.Contains(currentBB)){
+        if(!getDir(cycle)){
+           reverseCycle(cycle);
+        }
+        firstCycle=false;
+        faceRect = currentBB;
+      } else {
+        if(getDir(cycle) ){
+           reverseCycle(cycle);
+        }
+        
+      }
+
+      cycles.push_back(cycle);
+    }
+  } 
+
+  Region* res = buildRegion(cycles);
+  correct = res!=0;
+  return SetWord(res);
+}
+
+
+Word
+InRegion_old( const ListExpr typeInfo, const ListExpr instance,
           const int errorPos, ListExpr& errorInfo, bool& correct )
 {
 
