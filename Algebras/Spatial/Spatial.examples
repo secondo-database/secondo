@@ -91,7 +91,7 @@ Operator : components
 Number   : 1
 Signature: points -> stream(point), region -> stream(region)
 Example  : query components(koepenick) count
-Result   : crashes
+Result   : 7
 
 Operator : components
 Number   : 2
