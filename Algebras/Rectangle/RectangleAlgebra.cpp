@@ -1849,11 +1849,11 @@ struct CellGrid{
     }
 
     //set the LBX, LBY, RTX, RTY;
-    LBX = static_cast<int>(floor((lbx - x0) / xWidth));
-    LBY = static_cast<int>(floor((lby - y0) / yWidth));
+    LBX = static_cast<int>(floor( ((lbx - x0) / xWidth)) + 0.5);
+    LBY = static_cast<int>(floor( ((lby - y0) / yWidth)) + 0.5);
 
     if (is3D)
-      LBZ = static_cast<int>(floor((lbz - z0) / zWidth));
+      LBZ = static_cast<int>(floor(((lbz - z0) / zWidth)) + 0.5);
     else
       LBZ = 0;
 
@@ -1884,6 +1884,22 @@ struct CellGrid{
     {
       cerr << "Error: The rectangle locates "
           "outside of the first quadrant\n";
+
+      cerr << "rectangle defined by" 
+           <<   "lbx = " << lbx 
+           << ", rtx = " << rtx 
+           << ", lby = " << lby
+           << ", rty = " << rty << endl << endl;
+      cerr << " grid defined by"
+           << "  nx = " << nx
+           << ", ny = " << ny 
+           << ", x0 = " << x0 
+           << ", y0 = " << y0
+           << ", xwidth = " << xWidth
+           << ", ywidth = " << yWidth << endl << endl;
+      cerr << "LBX = " << LBX << endl;
+      cerr << "LBY = " << LBY << endl;
+      cerr << "LBZ = " << LBZ << endl; 
       finished = true;
     }
 
