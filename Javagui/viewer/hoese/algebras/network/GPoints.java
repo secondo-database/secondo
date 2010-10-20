@@ -23,35 +23,23 @@ import java.awt.geom.AffineTransform;
 import java.awt.geom.Point2D;
 
 import sj.lang.ListExpr;
+import tools.Reporter;
+import java.util.Vector;
 
 /**
- * A point defined via a network.
+ * A list of gpoint defined via a network.
  *
- * @author Martin Scheppokat
+ * @author Simone Jandt
  *
  */
-public class GPoint
+public class GPoints
 {
 
   /**
-   * The id of the network this <code>GPoint</code> belongs to.
+   * The List of GPoints
    */
-  private int m_iNetworkId;
+  Vector m_xGPoints;
 
-  /**
-   * The route in the network this <code>GPoint</code> lies on.
-   */
-  private int m_iRouteId;
-
-  /**
-   * The distance between the start of the route and this <code>GPoint</code>.
-   */
-  private double m_dDistance;
-
-  /**
-   *
-   */
-  private Point2D.Double m_xPoint;
 
   /**
    * Constructor.
@@ -59,42 +47,51 @@ public class GPoint
    * @param in_xList List in secondo-format
    * @throws NetworkNotAvailableException
    */
-  public GPoint(ListExpr in_xList)
+  public GPoints(ListExpr in_xValue)
     throws NetworkNotAvailableException
   {
     // TODO: Check format before reading out the values
+    m_xGPoints = new Vector();
 
-    m_iNetworkId = in_xList.first().intValue();
-    m_iRouteId = in_xList.second().intValue();
-    m_dDistance = in_xList.third().realValue();
+    // Read gpoints from list
+    if(in_xValue.isAtom())
+    {
+      Reporter.writeError("GPoints: List must not be an atom.");
+    }
+    ListExpr in_xGPointList = in_xValue;
+    while(!in_xGPointList.isEmpty())
+    {
+      GPoint gp = new GPoint(in_xGPointList.first());
+      m_xGPoints.add(gp);
+
+      in_xGPointList = in_xGPointList.rest();
+    }
 
     // Check if the network is available. This will throw an exception
     // if it is not.
-    // Get Network. If the network is not loaded an exception is
-    // thrown
-    Network xNetwork = NetworkManager.getInstance().getNetwork(m_iNetworkId);
-
-    // Calculate the point in absolute coordinates
-    Route xRoute = xNetwork.getRouteById(m_iRouteId);
-    m_xPoint = xRoute.getPointOnRoute(m_dDistance);
+    NetworkManager.getInstance().getNetwork(getGPointAt(0).getNetworkId());
   }
 
   /**
-   * Returns this <code>GPoint</code> in a representation suitable for
-   * displaying in the HoeseViewer.
+   * Get-Method for the single gpoint of gpoints
    *
-   * @return A point
-   * @throws Exception
-   * @throws Exception If the network had not yet been loaded.
+   * @param in_iIndex Index between 0 and <code>getGPointsCount()</code>
+   * @return One GPoint
    */
-  public Point2D.Double getRenderObject()
-    throws NetworkNotAvailableException
+  public GPoint getGPointAt(int in_iIndex)
   {
-    return m_xPoint;
+    GPoint xGPoint = (GPoint)m_xGPoints.get(in_iIndex);
+    return xGPoint;
   }
 
-  public int getNetworkId()
+  /**
+   * Returns the number of gpoint this GPoints has.
+   *
+   * @return The number of intervals
+   */
+  public int getGPointsCount()
   {
-    return m_iNetworkId;
+    return m_xGPoints.size();
   }
 }
+
