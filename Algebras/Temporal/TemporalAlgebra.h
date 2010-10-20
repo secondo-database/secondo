@@ -3689,17 +3689,12 @@ bool Interval<Alpha>::Intersects( const Interval<Alpha>& i ) const
 {
   assert( this->IsValid());
   assert( i.IsValid() );
-
-  return !(
-            ( ( (start.Compare( &i.start ) < 0) ||
-                (start.Compare( &i.start ) == 0 && !(lc && i.lc)) ) &&
-              ( (end.Compare( &i.start ) < 0) ||
-                (end.Compare( &i.start ) == 0 && !(rc && i.lc)) ) ) ||
-            ( ( (start.Compare( &i.end ) > 0) ||
-                (start.Compare( &i.end ) == 0 && !(lc && i.rc)) ) &&
-              ( (end.Compare( &i.end ) > 0) ||
-                (end.Compare( &i.end ) == 0 && !(rc && i.rc)) ) )
+  return !( (start.Compare(&i.end) > 0 ) ||
+            ((start.Compare(&i.end) == 0) && ( !lc || !i.rc)) ||
+            (end.Compare(&i.start) < 0 ) ||
+            ((end.Compare(&i.start) == 0 ) && (!rc || !i.lc))
           );
+
 }
 
 template <class Alpha>
@@ -7948,6 +7943,9 @@ bool ConsolidateUnitVector(
     if( !u_full.IsDefined() || !u_full.IsValid() ) { // drop invalid units
 //       cout << "\tcurrUnit is UNDEF or invalid. --> CONTINUE."
 //            << arg[i] << endl;
+      continue;
+    }
+    if(!intv.Intersects(u_full.timeInterval)){
       continue;
     }
     u_full.AtInterval( intv, currUnit ); // restrict to intv
