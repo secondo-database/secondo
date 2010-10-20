@@ -1810,10 +1810,13 @@ void UPoint::AtInterval( const Interval<Instant>& i,
   assert( i.IsValid() );
 
   TemporalUnit<Point>::AtInterval( i, result );
+
   UPoint *pResult = (UPoint*)&result;
   pResult->SetDefined( IsDefined() );
-  if( !IsDefined() )
+
+  if( !IsDefined() ){
     return;
+  }
 
   if( timeInterval.start == result.timeInterval.start )
     {
@@ -2066,7 +2069,7 @@ void UPoint::Length( CcReal& result ) const
 }
 
 // This function will return the intersection of two upoint values as
-// an upoint value. If the common timeInterval iv if open bounded, and
+// an upoint value. If the common timeInterval iv is open bounded, and
 // both units would intersect at the open interval limit, there WILL
 // be passed a result, though it is not inside iv!
 void UPoint::Intersection(const UPoint &other, UPoint &result) const
@@ -2257,6 +2260,7 @@ bool UPoint::AtRegion(const Region *r, vector<UPoint> &result) const {
     }
     return true;
   }
+  
   // create a halfsegment hs using Trajectory() and compute intersection
   vector<UPoint> tmpresult(0);
   UPoint ures(false);
