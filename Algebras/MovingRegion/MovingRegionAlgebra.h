@@ -1196,6 +1196,17 @@ Copy ~MRegion~ instance.
 */
     void CopyFrom(const Attribute* right);
 
+
+
+/*
+Return the name of the Secondo type.
+
+*/
+  static string BasicType(){
+    return "mregion";
+  }
+
+
 /*
 1.1 Unit testing
 
