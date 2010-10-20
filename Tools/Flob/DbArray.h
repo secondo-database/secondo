@@ -116,7 +116,7 @@ Creates a DbArray with a given capacity. Use this instead of the standard
 constructor to create a new ~DbArray~!
 
 */
-   inline DbArray( int n ):
+   inline DbArray( const int n ):
       Flob( n * sizeof( DbArrayElement ) ),
       nElements( 0 ),
       maxElements( n )
@@ -198,7 +198,7 @@ Puts elem to the given position in the array. If the array is not
 large enough, the array is growed automatically.
 
 */
-bool Put( int index, const DbArrayElement& elem ) {
+bool Put( const int index, const DbArrayElement& elem ) {
   if(index >= nElements){ // put a new element
     nElements = index + 1;
     if(index >= maxElements){  // underlying flob is too small

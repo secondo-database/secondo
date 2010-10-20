@@ -123,7 +123,7 @@ This constructor creates a native flob having a given size. The data of a native
 Flob is kept within a special file controlled by the ~FlobManager~.
 
 */
-    inline Flob (SmiSize size_): id(), size( size_ ), dataPointer(0){
+    inline Flob (const SmiSize size_): id(), size( size_ ), dataPointer(0){
       FlobManager::getInstance().create(size_, *this);
     };
 
