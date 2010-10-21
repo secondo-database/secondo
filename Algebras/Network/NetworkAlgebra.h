@@ -77,6 +77,16 @@ struct SectTreeEntry{
     return *this;
   };
 
+ostream& Print ( ostream& os ) const
+{
+  os << "SectTreeEntry: TupleId: " << secttid << endl;
+  os << "RouteId: " << rid << ", start: " << start;
+  os << ", end: " << end << ", startbool: " << startbool;
+  os << ", endbool: " << endbool << endl;
+  os << endl;
+  return os;
+};
+
   TupleId secttid;
   int rid;
   double start, end;
@@ -149,6 +159,11 @@ Get and Set private values.
   inline void SetRouteId(int rid) {m_iRouteId = rid;};
   inline void SetStartPos(double pos) {m_dStart = pos;};
   inline void SetEndPos(double pos){m_dEnd = pos;};
+
+  bool Contains(RouteInterval *ri);
+  bool Intersects(RouteInterval *ri);
+  ostream& Print(ostream& os) const;
+
 
   private:
 /*
@@ -459,11 +474,23 @@ Functions for Secondo integration.
     static bool CheckGPoint( ListExpr type, ListExpr& errorInfo );
 
 /*
-Returns the network distance between 2 ~gpoint~
+Returns the network distance between 2 ~gpoint~ using DijkstrasAlgorithm.
 
 */
 
     double Netdistance (GPoint* toGPoint);
+
+/*
+Returns the network distance between 2 ~gpoint~ using DijkstrasAlgorithm.
+
+*/
+
+    double NetdistanceA (GPoint* toGPoint);
+
+/*
+Never used ?
+
+*/
     double NewNetdistance(GPoint* pToGPoint,GLine* res);//new
 
 /*
@@ -1748,7 +1775,7 @@ the size of the ~DbArray~ is dynamically extended later.
 
     void Get(const int i, RouteInterval &ri) const;
 
-    int NoOfComponents();
+    int NoOfComponents() const;
 
     bool IsSorted();
 
@@ -1860,6 +1887,9 @@ Returns the Bounding GPoints of the GLine.
      {
        m_xRouteIntervals.TrimToSize();
      };
+
+     bool Contains(RouteInterval* ri);
+     bool Intersects(RouteInterval* ri);
 
   private:
 
@@ -2171,6 +2201,8 @@ public:
   GPoints& operator=(const GPoints& gps);
   void FilterAliasGPoints(Network *pNetwork);
   void TrimToSize () {m_xGPoints.TrimToSize();}
+  void MergeAdd(GPoint gp, Network* pNetwork);
+  bool Contains(GPoint gp, Network* pNetwork);
 
 private:
   DbArray<GPoint> m_xGPoints;
