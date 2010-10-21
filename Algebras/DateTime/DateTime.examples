@@ -302,3 +302,18 @@ Number   : 2
 Signature: duration -> string
 Example  : query tostring([const duration value (15 2000)])
 Result   : (string "15;2000")
+
+Operator  : str2instant
+Number    : 1
+Signature : string -> instant
+Example   : query str2instant("2009-1-1-13:56")
+Result    : (instant "2009-1-1-13:56");
+
+
+Operator  : str2instant
+Number    : 1
+Signature : string -> instant
+Example   : query str2instant("wrong")
+Result    : (instant undef);
+
+

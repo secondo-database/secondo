@@ -107,6 +107,7 @@ today               & [->] instant
 #include <time.h>
 #include <sys/timeb.h>
 #include "LogMsg.h"
+#include "ListUtils.h"
 #include <limits>
 
 
@@ -2023,6 +2024,20 @@ ListExpr InstantOrDurationIntTM(ListExpr args){
   return nl->SymbolAtom("typeerror");
 }
 
+
+ListExpr str2instantTM(ListExpr args){
+  if(!nl->HasLength(args,1)){
+    return listutils::typeError("string expected");
+  }
+  if(!listutils::isSymbol(nl->First(args),CcString::BasicType())){
+    return listutils::typeError("string expected");
+  }
+  return nl->SymbolAtom("instant");
+
+}
+
+
+
 /*
 4.2 Value Mappings
 
@@ -2413,6 +2428,23 @@ int DateTimeToStringFun(Word* args, Word& result, int message,
 }
 
 
+int str2instantVM(Word* args, Word& result, int message,
+                                Word& local, Supplier s){
+  result = qp->ResultStorage(s);
+  DateTime* res = static_cast<DateTime*>(result.addr);
+  CcString* arg = static_cast<CcString*>(args[0].addr);
+  if(!arg->IsDefined()){
+    res->SetDefined(false);
+  } else {
+    if(!res->ReadFrom(arg->GetValue())){
+       res->SetDefined(false);
+    }
+  }
+  return 0;
+}
+
+
+
 
 /*
 4.3 Specifications
@@ -2618,6 +2650,16 @@ const string ToStringSpec =
    "\" tostring(_)\" "
    "'returns a string representation of an instant'  "
    "\"query tostring(now()) \" ))";
+
+
+const string str2instantSpec =
+   "((\"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
+  " ( \"string -> instant \""
+   "\" str2instant(_)\" "
+   "'reads a instant from a string'  "
+   "\"query str2instant(tostring(now))  \" ))";
+
+
 
 /*
 4.3 ValueMappings of overloaded Operators
@@ -2869,6 +2911,15 @@ Operator dt_tostring(
        Operator::SimpleSelect,
        DateTimeString );
 
+
+Operator str2instant(
+       "str2instant",
+        str2instantSpec,
+        str2instantVM,
+        Operator::SimpleSelect,
+        str2instantTM
+    );
+
 /*
 5 Creating the Algebra
 
@@ -2918,6 +2969,7 @@ class DateTimeAlgebra : public Algebra
     AddOperator(&dt_duration2real);
     AddOperator(&dt_instant2real);
     AddOperator(&dt_tostring);
+    AddOperator(&str2instant);
   }
   ~DateTimeAlgebra() {};
 };
