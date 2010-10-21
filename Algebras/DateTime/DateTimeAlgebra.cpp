@@ -103,6 +103,7 @@ today               & [->] instant
 #include "SecondoSystem.h"
 #include "Attribute.h"
 #include "StandardTypes.h"
+#include "FTextAlgebra.h"
 #include <math.h>
 #include <time.h>
 #include <sys/timeb.h>
@@ -2029,7 +2030,8 @@ ListExpr str2instantTM(ListExpr args){
   if(!nl->HasLength(args,1)){
     return listutils::typeError("string expected");
   }
-  if(!listutils::isSymbol(nl->First(args),CcString::BasicType())){
+  if(!listutils::isSymbol(nl->First(args),CcString::BasicType()) &&
+     !listutils::isSymbol(nl->First(args),FText::BasicType())){
     return listutils::typeError("string expected");
   }
   return nl->SymbolAtom("instant");
@@ -2428,11 +2430,12 @@ int DateTimeToStringFun(Word* args, Word& result, int message,
 }
 
 
+template<class T>
 int str2instantVM(Word* args, Word& result, int message,
                                 Word& local, Supplier s){
   result = qp->ResultStorage(s);
   DateTime* res = static_cast<DateTime*>(result.addr);
-  CcString* arg = static_cast<CcString*>(args[0].addr);
+  T* arg = static_cast<T*>(args[0].addr);
   if(!arg->IsDefined()){
     res->SetDefined(false);
   } else {
@@ -2654,7 +2657,7 @@ const string ToStringSpec =
 
 const string str2instantSpec =
    "((\"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
-  " ( \"string -> instant \""
+  " ( \"{string,text} -> instant \""
    "\" str2instant(_)\" "
    "'reads a instant from a string'  "
    "\"query str2instant(tostring(now))  \" ))";
@@ -2687,6 +2690,12 @@ ValueMapping MillisecondValueMap[] = {
         MillisecondFun,
         DurationMillisecondFun};
 
+ValueMapping str2instantvm[] = {
+      str2instantVM<CcString>,
+      str2instantVM<FText>
+   };
+
+
 
 /*
 4.4 SelectionFunctions
@@ -2704,6 +2713,17 @@ static int InstantOrDurationIntSelect(ListExpr args){
     return 1;
   return -1; // should not happen
 }
+
+static int str2instantSelect(ListExpr args){
+  if(listutils::isSymbol(nl->First(args),CcString::BasicType())){
+     return 0;
+  } else { // text
+     return 1;
+  }
+
+}
+
+
 
 /*
 4.4 Definition of Operators
@@ -2915,8 +2935,9 @@ Operator dt_tostring(
 Operator str2instant(
        "str2instant",
         str2instantSpec,
-        str2instantVM,
-        Operator::SimpleSelect,
+        2,
+        str2instantvm,
+        str2instantSelect,
         str2instantTM
     );
 
