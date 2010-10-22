@@ -221,7 +221,7 @@ Example  : query theInstant(2006)
 Result   : (instant "2006-01-01")
 
 Operator : theInstant
-Number   : 2 
+Number   : 2
 Signature: int x int -> instant
 Example  : query theInstant(2006,5)
 Result   : (instant "2006-05-01")
@@ -238,7 +238,7 @@ Number   : 4
 Signature: int x int x int x int  -> instant
 Example  : query theInstant(2006,5,5,12)
 Result   : (instant "2006-05-05-12:00")
- 
+
 Operator : theInstant
 Number   : 5
 Signature: int x int x int x int x int -> instant
@@ -311,7 +311,7 @@ Result    : (instant "2009-1-1-13:56");
 
 
 Operator  : str2instant
-Number    : 1
+Number    : 2
 Signature : string -> instant
 Example   : query str2instant("wrong")
 Result    : (instant undef);
