@@ -48,15 +48,15 @@ operator receivetextstreamUDP alias RECEIVETEXTSTREAMUDP pattern op(_, _, _)
 
 operator isDBObject alias ISDBOBJECT pattern op( _ )
 operator evaluate alias EVALUATE pattern op( _ )
+operator getTypeNL alias GETTYPENL pattern _ op
+operator getValueNL alias GETVALUENL pattern _ op
 operator letObject alias LETOBJECT pattern op ( _, _, _ )
 operator deleteObject alias DELETEOBJECT pattern op ( _ )
 operator createObject alias CREATEOBJECT pattern op ( _, _, _)
 operator updateObject alias UPDATEOBJECT pattern op ( _, _, _)
 operator deriveObject alias DERIVEOBJECT pattern op ( _, _, _)
-operator getObjectTypeNL alias GETOBJECTTYPENL pattern _ op
-operator getObjectValueNL alias GETOBJECTVALUENL pattern _ op
-operator getTypeNL alias GETTYPENL pattern _ op
-operator getValueNL alias GETVALUENL pattern _ op
+operator getObjectTypeNL alias GETOBJECTTYPENL pattern op ( _ )
+operator getObjectValueNL alias GETOBJECTVALUENL pattern op ( _ )
 operator toobject alias TOOBJECT pattern op(_, _)
 operator getDatabaseName alias GETDATABASENAME pattern op( _ )
 

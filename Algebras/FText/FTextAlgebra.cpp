@@ -1519,23 +1519,24 @@ ListExpr StringtypeStringtypeBool2TextTM(ListExpr args){
 }
 
 /*
-2.55 ~deleteObject~
+2.55 ~Stringtype2TextTM~
 
 ---- {string|text} --> text
 ----
+
+Used by ~deleteObject~, ~getObjectValueNL~, ~getObjectTypeNL~.
 
 */
 
 ListExpr Stringtype2TextTM(ListExpr args){
   NList type(args);
   int noargs = nl->ListLength(args);
-  if(    (noargs  != 1)
+  if(    (noargs != 1)
       || ((type.first()!=symbols::STRING) && (type.first() != symbols::TEXT))) {
     return NList::typeError("Expected {string|text}.");
   }
   return NList(symbols::TEXT).listExpr();
 }
-
 
 /*
 3.3 Value Mapping Functions
@@ -4637,6 +4638,91 @@ ValueMapping ftextcreateobject_vm[] = {
          ftextcreateObjectVM<FText,    CcString>,
          ftextcreateObjectVM<FText,    FText> };
 
+/*
+Operator ~getObjectTypeNL~
+
+*/
+template <class T1>
+int ftextgetObjectTypeNL_VM( Word* args, Word& result, int message,
+                                     Word& local, Supplier s )
+{
+  result      = qp->ResultStorage( s );
+  FText *Res  = reinterpret_cast<FText*>(result.addr);
+
+  T1* CCObjName  = static_cast<T1*>(args[0].addr);
+  string ObjNameString     = "";
+  string typestring        = "";
+  SecondoCatalog* ctlg = SecondoSystem::GetCatalog();
+
+  // check definedness of the parameters
+  if( !CCObjName->IsDefined() ){
+    Res->Set(false, "");
+    return 0;
+  }
+  // check for a valid object name
+  ObjNameString = CCObjName->GetValue();
+  if( (ObjNameString == "") ){
+    Res->Set(false, "");
+    return 0;
+  } else if ( !ctlg->IsObjectName(ObjNameString) ) {
+    Res->Set(false, "");
+    return 0;
+  }
+  // get the type expression
+  typestring =
+            nl->ToString(ctlg->GetObjectTypeExpr( ObjNameString ));
+  // set result
+  Res->Set(true, typestring);
+  return 0;
+}
+
+// value mapping array
+ValueMapping ftextgetObjectTypeNL_vm[] = {
+         ftextgetObjectTypeNL_VM<CcString>,
+         ftextgetObjectTypeNL_VM<FText> };
+
+/*
+Operator ~getObjectValueNL~
+
+*/
+template <class T1>
+int ftextgetObjectValueNL_VM( Word* args, Word& result, int message,
+                                     Word& local, Supplier s )
+{
+  result      = qp->ResultStorage( s );
+  FText *Res  = reinterpret_cast<FText*>(result.addr);
+
+  T1* CCObjName  = static_cast<T1*>(args[0].addr);
+  string ObjNameString     = "";
+  string valuestring       = "";
+  SecondoCatalog* ctlg = SecondoSystem::GetCatalog();
+
+  // check definedness of the parameters
+  if( !CCObjName->IsDefined() ){
+    Res->Set(false, "");
+    return 0;
+  }
+  // check for a valid object name
+  ObjNameString = CCObjName->GetValue();
+  if( (ObjNameString == "") ){
+    Res->Set(false, "");
+    return 0;
+  } else if ( !ctlg->IsObjectName(ObjNameString) ) {
+    Res->Set(false, "");
+    return 0;
+  }
+  // get the value expression
+  valuestring = nl->ToString(ctlg->GetObjectValue( ObjNameString ));
+  // set result
+  Res->Set(true, valuestring);
+  return 0;
+}
+
+// value mapping array
+ValueMapping ftextgetObjectValueNL_vm[] = {
+         ftextgetObjectValueNL_VM<CcString>,
+         ftextgetObjectValueNL_VM<FText> };
+
 
 /*
 3.4 Definition of Operators
@@ -5116,6 +5202,28 @@ const string ftextcreateObjectSpec  =
     "</text--->"
     ") )";
 
+const string ftextgetObjectTypeNLSpec  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+    "( <text> {string|text} -> text </text--->"
+    "<text>getObjectTypeNL( objectName )</text--->"
+    "<text>Returns a text with the NL type expression associated with the "
+    "database object with the name given as a text or string argument. "
+    "If the according object does not exist, the result is undefined.</text--->"
+    "<text>query 'getObjectTypeNL(\"MyThreeInt\")"
+    "</text--->"
+    ") )";
+
+const string ftextgetObjectValueNLSpec  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+    "( <text> {string|text} -> text </text--->"
+    "<text>getObjectValueNL( objectName )</text--->"
+    "<text>Returns a text with the NL value expression associated with the "
+    "database object with the name given as a text or string argument. "
+    "If the according object does not exist, the result is undefined.</text--->"
+    "<text>query 'getObjectValueNL(\"MyThreeInt\")"
+    "</text--->"
+    ") )";
+
 /*
 The Definition of the operators of the type ~text~.
 
@@ -5513,17 +5621,17 @@ Operator ftextcreateObject ( "createObject", ftextcreateObjectSpec,
 //                            4, ftextderiveobject_vm, blowfish_encodeSelect,
 //                            StringtypeStringtypeBool2TextTM
 //     );
-//
-// Operator ftextgetObjectTypeNL ( "getObjectTypeNL", ftextgetObjectTypeNLSpec,
-//                            2, ftextgetObjectTypeNL_vm, blowfish_encodeSelect,
-//                            Stringtype2TextTM
-//     );
-//
-// Operator ftextgetObjectValueNL ("getObjectValueNL",ftextgetObjectValueNLSpec,
-//                            2,ftextgetObjectValueNL_vm, blowfish_encodeSelect,
-//                            Stringtype2TextTM
-//     );
-//
+
+Operator ftextgetObjectTypeNL ( "getObjectTypeNL", ftextgetObjectTypeNLSpec,
+                           2, ftextgetObjectTypeNL_vm, ftextdeleteobjectselect,
+                           Stringtype2TextTM
+    );
+
+Operator ftextgetObjectValueNL ("getObjectValueNL",ftextgetObjectValueNLSpec,
+                           2,ftextgetObjectValueNL_vm, ftextdeleteobjectselect,
+                           Stringtype2TextTM
+    );
+
 // Operator ftextgetDatabaseName
 // (
 //   "getDatabaseName",           //name
@@ -5596,8 +5704,8 @@ public:
     AddOperator( &ftextcreateObject);
 //     AddOperator( &ftextderiveObject);
 //     AddOperator( &ftextupdateObject);
-//     AddOperator( &ftextgetObjectTypeNL);
-//     AddOperator( &ftextgetObjectValueNL);
+    AddOperator( &ftextgetObjectTypeNL);
+    AddOperator( &ftextgetObjectValueNL);
 //     AddOperator( &ftextgetDatabaseName);
 
     LOGMSG( "FText:Trace",
