@@ -1518,6 +1518,22 @@ ListExpr StringtypeStringtypeBool2TextTM(ListExpr args){
   return NList(symbols::TEXT).listExpr();
 }
 
+
+/*
+2.55 ~getDatabaseName~
+
+*/
+
+ListExpr empty2stringTM(ListExpr args){
+  NList type(args);
+  int noargs = nl->ListLength(args);
+  if( noargs != 0 ) {
+    return NList::typeError("Expected no argument.");
+  }
+  return NList(symbols::STRING).listExpr();
+}
+
+
 /*
 2.55 ~Stringtype2TextTM~
 
@@ -4723,6 +4739,20 @@ ValueMapping ftextgetObjectValueNL_vm[] = {
          ftextgetObjectValueNL_VM<CcString>,
          ftextgetObjectValueNL_VM<FText> };
 
+/*
+Operator ~getDatabaseName~
+
+*/
+
+int getDatabaseName_VM( Word* args, Word& result, int message,
+                                    Word& local, Supplier s )
+{
+  result         = qp->ResultStorage( s );
+  CcString *Res  = reinterpret_cast<CcString*>(result.addr);
+  string dbname  = SecondoSystem::GetInstance()->GetDatabaseName();
+  Res->Set(true, dbname);
+  return 0;
+}
 
 /*
 3.4 Definition of Operators
@@ -5224,6 +5254,14 @@ const string ftextgetObjectValueNLSpec  =
     "</text--->"
     ") )";
 
+const string getDatabaseNameSpec  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+    "( <text>-> string </text--->"
+    "<text>getDatabaseName()</text--->"
+    "<text>Returns a string with the name of the current database.</text--->"
+    "<text>query getDatabaseName()</text--->"
+    ") )";
+
 /*
 The Definition of the operators of the type ~text~.
 
@@ -5632,14 +5670,14 @@ Operator ftextgetObjectValueNL ("getObjectValueNL",ftextgetObjectValueNLSpec,
                            Stringtype2TextTM
     );
 
-// Operator ftextgetDatabaseName
-// (
-//   "getDatabaseName",           //name
-//   ftextgetDatabaseNameSpec,   //specification
-//   ftextgetDatabaseName_VM, //value mapping
-//   Operator::SimpleSelect,         //trivial selection function
-//   wmpty2stringTM //type mapping
-// );
+Operator getDatabaseName
+(
+   "getDatabaseName",          //name
+   getDatabaseNameSpec,        //specification
+   getDatabaseName_VM,         //value mapping
+   Operator::SimpleSelect,     //trivial selection function
+   empty2stringTM              //type mapping
+);
 
 /*
 5 Creating the algebra
@@ -5706,7 +5744,7 @@ public:
 //     AddOperator( &ftextupdateObject);
     AddOperator( &ftextgetObjectTypeNL);
     AddOperator( &ftextgetObjectValueNL);
-//     AddOperator( &ftextgetDatabaseName);
+    AddOperator( &getDatabaseName);
 
     LOGMSG( "FText:Trace",
       cout <<"End FTextAlgebra() : Algebra()"<<'\n';
