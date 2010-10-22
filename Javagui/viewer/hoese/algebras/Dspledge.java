@@ -185,6 +185,50 @@ public class Dspledge extends Dsplline implements Comparable
 		}
 	}
 
+
+  static boolean almostEqual(double d1, double d2){
+   return Math.abs(d1-d2) < 0.000001;
+  }
+
+  static double direction(Point2D.Double p1, Point2D.Double p2 ) {
+    double x1 = p1.getX(),
+           y1 = p1.getY(),
+           x2 = p2.getX(),
+           y2 = p2.getY();
+    if( almostEqual( x1, x2 ) ) {
+       if( y2 > y1 ){
+         return 90.0;
+       }
+       return 270.0;
+     }
+
+     if( almostEqual( y1, y2 ) )  {
+        if( x2 > x1 ){
+           return 0.0;
+        }
+        return 180.0;
+     }
+  
+     double k= (y2 - y1) / (x2 - x1);
+     double direction = Math.atan( k ) * 180 / Math.PI;
+
+      if( x2 < x1 && y2 > y1 )
+        direction = 180 + direction;
+      else if( x2 < x1 && y2 < y1 )
+        direction = 180 + direction;
+      else if( x2 > x1 && y2 < y1 )
+        direction = 360 + direction;
+
+   return direction;
+}
+
+
+
+  public double getDirection(){
+    return direction(point1,point2);
+  }
+
+
 	public void noArrow()
 	{
 		this.isArrow = false;
@@ -351,5 +395,54 @@ public class Dspledge extends Dsplline implements Comparable
 		} else
 			qr.addEntry(this);
 	}
+
+
+  private static Area basicArrow;
+
+  static{
+     GeneralPath gparrow = new GeneralPath();
+     gparrow.moveTo(0,0);
+     gparrow.lineTo(5,-1);
+     gparrow.lineTo(3,0);
+     gparrow.lineTo(5,1);
+     gparrow.lineTo(0,0);
+     basicArrow = new Area(gparrow);
+  }
+
+  public Shape getArrow(AffineTransform af){
+
+   // transform the basicArrow to be in the correct angle at the end of the connection
+   double x1 = point1.getX();
+   double x2 = point2.getX();
+   double y1 = point1.getY();
+   double y2 = point2.getY();
+
+   AffineTransform aat = new AffineTransform();
+
+   double sx = af.getScaleX();
+   double sy = af.getScaleY();
+
+   AffineTransform trans = AffineTransform.getTranslateInstance(x2,y2);
+
+   aat.concatenate(trans);
+   // normalize
+   double dx =  x1-x2;
+   double dy = y1-y2;
+   double len = Math.sqrt(dx*dx+dy*dy); // the length
+   dx = dx / len;
+   dy = dy / len;
+
+   AffineTransform Rot = new AffineTransform(dx,dy,-dy,dx,0,0);
+   aat.concatenate(Rot);
+   
+
+   AffineTransform scale = AffineTransform.getScaleInstance(5/sx,5/sy);
+
+   aat.concatenate(scale);
+   
+   Shape S = aat.createTransformedShape(basicArrow);
+   return S;
+  }
+
 
 }

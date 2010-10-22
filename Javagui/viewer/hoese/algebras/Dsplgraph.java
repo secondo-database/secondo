@@ -49,6 +49,17 @@ private int comparePoints(Point2D.Double p1, Point2D.Double p2){
 }
 
 
+public void setCategory(Category cat){
+   super.setCategory(cat);
+   for(int i=0;i<verticies.size();i++){
+     ((Dsplvertex)(verticies.get(i))).setCategory(cat);
+   }
+   for(int i=0;i<edges.size();i++){
+     ((Dspledge)(edges.get(i))).setCategory(cat);
+   }
+   
+}
+
 	
 /**
  * Find out, if the graph is directed. If it is, then not only true is given in the edges hash is also every double edge removed. 
@@ -116,10 +127,13 @@ private int comparePoints(Point2D.Double p1, Point2D.Double p2){
    public Shape getRenderObject(int no, AffineTransform af){
        if(no<verticies.size()){
            return ((Dsplvertex) verticies.get(no)).getRenderObject(0,af);
-       } else {
+       } else if(no<verticies.size()+edges.size()) {
            no = no -verticies.size();
            return ((Dspledge)edges.get(no)).getRenderObject(0,af);
-       } 
+       } else {
+           no = no - (verticies.size()+edges.size());
+           return ((Dspledge)edges.get(no)).getArrow(af);
+       }
    }
 
    /** draw all Labels
@@ -127,6 +141,7 @@ private int comparePoints(Point2D.Double p1, Point2D.Double p2){
    public void draw(Graphics g, double time, AffineTransform af){
 
      double maxd = Math.min(Math.abs(af.getScaleX()),Math.abs(af.getScaleY())); 
+     Graphics2D g2 = (Graphics2D) g;
      
      Rectangle2D rect = getBounds();
      if(rect==null){
@@ -151,9 +166,44 @@ private int comparePoints(Point2D.Double p1, Point2D.Double p2){
      if(max<verticies.size()+edges.size()){
         return;
      }
+
      for(int i=0;i<edges.size();i++){
         Dspledge e = (Dspledge) edges.get(i);
-        Layer.drawLabel(e,g,e.getBounds(),time,af,Color.RED);
+      
+        // draw arrow
+        g2.fill(af.createTransformedShape(e.getArrow(af)));
+
+
+        double d = e.getDirection();
+        Rectangle2D r = e.getBounds();
+        Point2D.Double p = new Point2D.Double(r.getX() + r.getWidth()/2, r.getY()
+              + r.getHeight()/2);
+
+        af.transform(p, p);
+
+        double mx = p.getX();
+        double my = p.getY();
+        double dx = e.getLabPosOffset().getX();
+        double dy = e.getLabPosOffset().getY();
+        if(d>=0 && d < 90){
+            mx -= dx;
+            my += dy;
+          }  else if(d>=90 && d<180) {
+            mx += dx;
+            my += dy;
+          } else if(d>=180 && d<270){
+            mx += dx;
+            my -= dy;
+          } else {
+            mx -=dx;
+            my -= dy;
+          }
+          g2.setPaint(Color.RED);
+          String label = e.getLabelText(0);
+          dx = g2.getFontMetrics().stringWidth(label) / 2;
+          dy = g2.getFontMetrics().getHeight() / 2;
+          g2.drawString(e.getLabelText(0), (int)(mx-dx/2),(int)(my+dy));
+        
      }
      g.setColor(oldC);
 
@@ -172,7 +222,7 @@ private int comparePoints(Point2D.Double p1, Point2D.Double p2){
    }
 
    public boolean isLineType(int no){
-      return (no>=verticies.size());
+      return (no>=verticies.size() && ( no < (verticies.size() + edges.size())));
    }
 
 
