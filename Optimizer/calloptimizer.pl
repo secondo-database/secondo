@@ -263,7 +263,7 @@ optimizerOptionInfo(noIndex, none, yes,
                     true
                    ).
 
-optimizerOptionInfo(useRandomSMJ, none, no,
+optimizerOptionInfo(useRandomSMJ, none, yes,
                     'Uses sortmergejoin_r2 instead of sortmergejoin.',
                     true,
                     true
@@ -913,8 +913,9 @@ to disk automatically on system halt.
 defaultOptions :-
   setOption(standard),
   delOption(useCounters),
-  setOption(useHashjoin),
-  setOption(useSymmjoin),
+  delOption(noHashjoin),
+  delOption(noSymmjoin),
+  delOption(noIndex),
   delOption(useRandomSMJ),
   setOption(debug),
   debugLevel(selectivity),
