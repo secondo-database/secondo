@@ -13,12 +13,12 @@ optimizerOptionInfo(correlations, none, yes,
 
 
 :- assert(
-optimizerOptionInfo(joinCorrelations, correlations, no,
+optimizerOptionInfo(joinCorrelations, correlations, yes,
                     'Additionally derive joint probabilities for join predicates (nested-loop)',
                     ( setOption(correlations), delOption(joinCorrelations2)), true)).
 
 :- assert(
-optimizerOptionInfo(joinCorrelations2, correlations, no,
+optimizerOptionInfo(joinCorrelations2, correlations, yes,
                     'The same behavior as joinCorrelations but use product-filter',
                     ( setOption(correlations), delOption(joinCorrelations) ), true)).
 
@@ -59,6 +59,6 @@ optimizerOptionInfo(entropy, none, yes,
 
 
 :- assert(
-optimizerOptionInfo(rewriteNonempty, rewriteInference, no,
+optimizerOptionInfo(rewriteNonempty, rewriteInference, yes,
                     'Handle \'nonempty\' in select statements.',
                     true, true)).
