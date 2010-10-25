@@ -27,9 +27,21 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 
 /*
-Failsave loading of stored meta data. Files are created if necessary before reading them.
+
+Predicate ~load_storefiles~: Safely consult files.
+
+----
+  load_storefiles(:Files)
+  load_storefiles(:Files, +Options)
+----
+
+Failsave loading of stored meta data. Files are created if necessary before
+trying to read them.
 
 */
+
+% open the file for append to create is prior to read access (which would fail
+% with an error if the file does not exist yet).
 open_files([F|More]) :-
   open_files(F),
   open_files(More), !.
