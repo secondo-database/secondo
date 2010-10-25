@@ -307,13 +307,13 @@ Operator  : str2instant
 Number    : 1
 Signature : string -> instant
 Example   : query str2instant("2009-1-1-13:56")
-Result    : (instant "2009-1-1-13:56");
+Result    : (instant "2009-1-1-13:56")
 
 
 Operator  : str2instant
 Number    : 2
 Signature : string -> instant
 Example   : query str2instant("wrong")
-Result    : (instant undef);
+Result    : (instant undef)
 
 
