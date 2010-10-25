@@ -7978,7 +7978,7 @@ void Region::Components( vector<Region*>& components )
        (*r) += hs;
        hs.SetLeftDomPoint(false);
        (*r) += hs;
-       edgeno++; 
+       edgeno++;
      }
 
   }
@@ -10385,13 +10385,15 @@ struct P3D{
 
 bool WGSGK::project(const Point& src, Point& result) const{
   if(!src.IsDefined()){
+    cerr << __PRETTY_FUNCTION__ << ": Point Argument is undefined!" << endl;
     result.SetDefined(false);
     return false;
   }
-
   double x = src.GetX();
   double y = src.GetY();
   if(x<-180 || x>180 || y<-90 || y>90){
+    cerr << __PRETTY_FUNCTION__ << ": Point " << src << " is not a valid "
+         << "geographic coordinate!" << endl;
     result.SetDefined(false);
     return false;
   }
@@ -10399,21 +10401,21 @@ bool WGSGK::project(const Point& src, Point& result) const{
   double a = x*Pi/180;
   double b = y*Pi/180;
   if(!useWGS){
-      BesselBLToGaussKrueger(b, a, result);
-      return true;
+    BesselBLToGaussKrueger(b, a, result);
+    return result.IsDefined();
   }
-    double l1 = a;
-    double b1 = b;
+  double l1 = a;
+  double b1 = b;
   a=awgs;
-    b=bwgs;
-    double eq=eqwgs;
-    double N=a/sqrt(1-eq*sin(b1)*sin(b1));
-    double Xq=(N+h1)*cos(b1)*cos(l1);
-    double Yq=(N+h1)*cos(b1)*sin(l1);
-    double Zq=((1-eq)*N+h1)*sin(b1);
+  b=bwgs;
+  double eq=eqwgs;
+  double N=a/sqrt(1-eq*sin(b1)*sin(b1));
+  double Xq=(N+h1)*cos(b1)*cos(l1);
+  double Yq=(N+h1)*cos(b1)*sin(l1);
+  double Zq=((1-eq)*N+h1)*sin(b1);
 
   P3D p;
-    HelmertTransformation(Xq, Yq, Zq, p);
+  HelmertTransformation(Xq, Yq, Zq, p);
   double X = p.x;
   double Y = p.y;
   double Z = p.z;
@@ -10426,22 +10428,22 @@ bool WGSGK::project(const Point& src, Point& result) const{
   double b2 = p.x;
   double l2 = p.y;
   BesselBLToGaussKrueger(b2, l2, result);
-  return true;
+  return result.IsDefined();
 }
 
 
 bool WGSGK::project(const HalfSegment& src, HalfSegment& result) const{
-   result = src;
-   Point p1,p2;
-   if(!project(src.GetLeftPoint(),p1)) return false;
-   if(!project(src.GetRightPoint(),p2)) return false;
-   if(p2<p1){
-     result.attr.insideAbove = ! src.attr.insideAbove;
-     result.Set(src.IsLeftDomPoint(), p2, p1);
-   } else {
-     result.Set(src.IsLeftDomPoint(), p1, p2);
-   }
-   return true;
+  result = src;
+  Point p1,p2;
+  if(!project(src.GetLeftPoint(),p1)) return false;
+  if(!project(src.GetRightPoint(),p2)) return false;
+  if(p2<p1){
+    result.attr.insideAbove = ! src.attr.insideAbove;
+    result.Set(src.IsLeftDomPoint(), p2, p1);
+  } else {
+    result.Set(src.IsLeftDomPoint(), p1, p2);
+  }
+  return true;
 }
 
 
@@ -10517,6 +10519,7 @@ void WGSGK::BesselBLToGaussKrueger(const double b,
   //double Pii=Pi;
   double RVV = MDC;
   double Re=RVV*1000000+kk+Y;
+  result.SetDefined(true);
   result.Set(Re, Ho);
 }
 
@@ -10556,7 +10559,7 @@ bool  WGSGK::gk2geo(const double GKRight,
                     Point&  result) const{
    if(GKRight<1000000 || GKHeight<1000000){
       result.SetDefined(false);
-       return false;
+      return false;
    }
    double e2 = 0.0067192188;
    double c = 6398786.849;
@@ -10587,8 +10590,9 @@ bool  WGSGK::gk2geo(const double GKRight,
    if(useWGS){
       return bessel2WGS(GeoDezRight,GeoDezHeight,result);
    }else{
+      result.SetDefined(true);
       result.Set(GeoDezHeight,GeoDezRight);
-      return true;
+      return result.IsDefined();
    }
 }
 
@@ -10651,8 +10655,9 @@ bool  WGSGK::bessel2WGS(const double geoDezRight1,
         Latitude = atan(Latitude);
      } while(abs(Latitude-LatitudeIt)>=0.000000000000001);
 
+     result.SetDefined(true);
      result.Set((geoDezHeight/Pi)*180,  (Latitude/Pi)*180);
-     return true;
+     return result.IsDefined();
 }
 
 
@@ -10959,7 +10964,7 @@ InRegion(const ListExpr typeInfo, const ListExpr instance,
     return SetWord(Address(0));
   }
 
-  ListExpr regNL = instance; 
+  ListExpr regNL = instance;
   vector<vector<Point> > cycles;
 
   while(!nl->IsEmpty(regNL)){
@@ -11019,12 +11024,12 @@ InRegion(const ListExpr typeInfo, const ListExpr instance,
         if(getDir(cycle) ){
            reverseCycle(cycle);
         }
-        
+
       }
 
       cycles.push_back(cycle);
     }
-  } 
+  }
 
   Region* res = buildRegion(cycles);
   correct = res!=0;
@@ -13036,21 +13041,31 @@ Type Mapping for ~gk~
 
 */
 ListExpr gkTypeMap(ListExpr args){
-  if(nl->ListLength(args)!=1){
-    ErrorReporter::ReportError("one argument expected");
+  int len = nl->ListLength(args);
+  if( (len < 1) || (len > 2) ){
+    ErrorReporter::ReportError("One or two arguments expected.");
     return nl->TypeError();
   }
   ListExpr arg = nl->First(args);
-  string err = "spatial type expected";
   if(nl->AtomType(arg)!=SymbolType){
-    ErrorReporter::ReportError(err);
+    ErrorReporter::ReportError("Spatial type expected.");
     return nl->TypeError();
   }
   string t = nl->SymbolValue(arg);
-  if(t=="point" || t=="points" || t=="line" || t=="region"){
-    return nl->SymbolAtom(t);
+  if(!(t=="point" || t=="points" || t=="line" || t=="region")){
+    ErrorReporter::ReportError("Unsupported spatial type.");
+    return nl->TypeError();
   }
-  ErrorReporter::ReportError(err);
+  if( (len==2) && nl->IsEqual(nl->Second(args),"int") ){
+    if(t=="point" || t=="points" || t=="line" || t=="region"){
+      return nl->SymbolAtom(t); // Zone provided by user
+    }
+  } else if (len==1){
+    return nl->ThreeElemList(nl->SymbolAtom("APPEND"),
+           nl->OneElemList(nl->IntAtom(2)),          // standard zone for Hagen
+           nl->SymbolAtom(t));
+  }
+  ErrorReporter::ReportError("No match.");
   return nl->TypeError();
 }
 
@@ -15812,8 +15827,13 @@ int gkVM_p(Word* args, Word& result, int message,
           Word& local, Supplier s){
    result = qp->ResultStorage(s);
    Point* p = static_cast<Point*>(args[0].addr);
+   CcInt* zone = static_cast<CcInt*>(args[1].addr);
    Point* res = static_cast<Point*>(result.addr);
+   if(!zone->IsDefined() || zone->GetValue() < 0 || zone->GetValue() > 119){
+    res->SetDefined(false);
+   }
    WGSGK gk;
+   gk.setMeridian(zone->GetValue());
    gk.project(*p,*res);
    return 0;
 }
@@ -15822,13 +15842,16 @@ int gkVM_ps(Word* args, Word& result, int message,
           Word& local, Supplier s){
    result = qp->ResultStorage(s);
    Points* p = static_cast<Points*>(args[0].addr);
+   CcInt* zone = static_cast<CcInt*>(args[1].addr);
    Points* res = static_cast<Points*>(result.addr);
    res->Clear();
-   if( !p->IsDefined() ){
+   if(    !p->IsDefined() || !zone->IsDefined()
+       || zone->GetValue()<0 || zone->GetValue() > 119){
      res->SetDefined( false );
      res->Clear();
    }
    WGSGK gk;
+   gk.setMeridian(zone->GetValue());
    res->SetDefined( true );
    res->Resize(p->Size());
    res->StartBulkLoad();
@@ -15853,13 +15876,16 @@ int gkVM_x(Word* args, Word& result, int message,
           Word& local, Supplier s){
    result = qp->ResultStorage(s);
    T* a = static_cast<T*>(args[0].addr);
+   CcInt* zone = static_cast<CcInt*>(args[1].addr);
    T* res = static_cast<T*>(result.addr);
    res->Clear();
-   if( !a->IsDefined() ){
+   if(    !a->IsDefined() || !zone->IsDefined()
+       || zone->GetValue() < 0 || zone->GetValue() > 119){
      res->SetDefined( false );
      return 0;
    }
    WGSGK gk;
+   gk.setMeridian(zone->GetValue());
    res->SetDefined( true );
    res->Resize(a->Size());
    res->StartBulkLoad();
@@ -16823,10 +16849,14 @@ const string utmSpec  =
 
 const string gkSpec  =
    "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-   "( <text>t -> t, t in {point, points, line, region} </text--->"
-   "<text> gk( _ )  </text--->"
-   "<text>projects the arguments using the Gauss Krueger projection</text--->"
-   "<text>query gk([const point value ( 0 0)])</text--->"
+   "( <text>t [ x int] -> t, t in {point, points, line, region} </text--->"
+   "<text> gk( geoobj [, zone] )  </text--->"
+   "<text>Projects the argument 'geoobj' using the Gauss Krueger projection "
+   "with center meridian 'zone'. Zone width is 3°. If 'zone' is not provided,"
+   "2 (center meridian = 6°E, suits the location of Hagen) will be used as a "
+   "default. 'geoobj' is expected to have geografic coordinates (LAT/LON) in °"
+   ", the result's coordinates (NORTHING,EASTING) are in metres.</text--->"
+   "<text>query gk([const point value (0 0)])</text--->"
    ") )";
 
 const string SpatialSpecCollectLine  =
@@ -17514,11 +17544,11 @@ class halfSegmentsLocalInfo{
       (*line) += hs;
       hs.SetLeftDomPoint(!hs.IsLeftDomPoint());
       (*line) += hs;
-      line->EndBulkLoad(); 
+      line->EndBulkLoad();
       res->PutAttribute(7, line);
       return res;
     }
-   
+
   private:
     T* source;
     int size;
@@ -17528,10 +17558,10 @@ class halfSegmentsLocalInfo{
 
 
 template<class T>
-int halfSegmentsVM( Word* args, Word& result, int message, 
+int halfSegmentsVM( Word* args, Word& result, int message,
                    Word& local, Supplier s )
 {
-   halfSegmentsLocalInfo<T>* li = 
+   halfSegmentsLocalInfo<T>* li =
          static_cast<halfSegmentsLocalInfo<T>*>(local.addr);
    switch(message){
      case OPEN: {
@@ -17676,15 +17706,15 @@ class SpatialAlgebra : public Algebra
     AddOperator( &realminize);
     AddOperator( &makeline);
     AddOperator( &makesline);
-    AddOperator(&commonborder2);
-    AddOperator(&spatialtoline);
-    AddOperator(&spatialfromline);
-    AddOperator(&spatialiscycle);
-    AddOperator(&utmOp);
-    AddOperator(&gkOp);
-    AddOperator(&spatialcollect_line);
-    AddOperator(&spatialcollect_sline);
-    AddOperator(&spatialcollect_points);
+    AddOperator( &commonborder2);
+    AddOperator( &spatialtoline);
+    AddOperator( &spatialfromline);
+    AddOperator( &spatialiscycle);
+    AddOperator( &utmOp);
+    AddOperator( &gkOp);
+    AddOperator( &spatialcollect_line);
+    AddOperator( &spatialcollect_sline);
+    AddOperator( &spatialcollect_points);
     AddOperator( &spatialmakepoint );
     AddOperator( &halfSegmentsOp );
   }

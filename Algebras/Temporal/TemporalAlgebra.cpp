@@ -2260,7 +2260,7 @@ bool UPoint::AtRegion(const Region *r, vector<UPoint> &result) const {
     }
     return true;
   }
-  
+
   // create a halfsegment hs using Trajectory() and compute intersection
   vector<UPoint> tmpresult(0);
   UPoint ures(false);
@@ -2389,7 +2389,7 @@ CellGrid2D::CellGrid2D(const double &x0_, const double &y0_,
 CellGrid2D::CellGrid2D(const CellGrid2D& other):
    Attribute(other.IsDefined()),
    x0(other.x0), y0(other.y0), wx(other.wx),wy(other.wy),
-   no_cells_x(other.no_cells_x) {} 
+   no_cells_x(other.no_cells_x) {}
 
 CellGrid2D& CellGrid2D::operator=(const CellGrid2D& other){
   Attribute::operator=(other);
@@ -2419,7 +2419,7 @@ bool CellGrid2D::set(const double x0, const double y0,
    return IsDefined();
 }
 
-double CellGrid2D::getX0() const{ 
+double CellGrid2D::getX0() const{
   return x0;
 }
 
@@ -2621,7 +2621,7 @@ size_t CellGrid2D::HashValue() const{
 
 void CellGrid2D::CopyFrom(const Attribute* other) {
     operator=(*(static_cast<const CellGrid2D*>(other)));
-} 
+}
 
 
 const string CellGrid2D::BasicType(){
@@ -2670,7 +2670,7 @@ bool CellGrid2D::ReadFrom(const ListExpr value,const ListExpr typeInfo){
       !listutils::isNumeric(l4) ||
       (nl->AtomType(l5) != IntType)){
      return  false;
-   }   
+   }
    x0 = listutils::getNumValue(l1);
    y0 = listutils::getNumValue(l2);
    wx = listutils::getNumValue(l3);
@@ -6289,9 +6289,9 @@ void MPoint::Vertices(Points& result) const{
   result.EndBulkLoad();
 }
 
-void MPoint::gk(MPoint& result) const{
+void MPoint::gk(const int &zone, MPoint& result) const{
   result.Clear();
-  if(!IsDefined()){
+  if( !IsDefined() || (zone < 0) || (zone > 119) ) {
      result.SetDefined(false);
      return;
   }
@@ -6300,13 +6300,13 @@ void MPoint::gk(MPoint& result) const{
   result.StartBulkLoad();
   UPoint unit;
   WGSGK gk;
+  gk.setMeridian(zone);
 
   int size = units.Size();
   for(int i=0;i<size;i++){
      units.Get(i,&unit);
      UPoint u(unit);
-     if(!gk.project(unit.p0, u.p0) ||
-        !gk.project(unit.p1, u.p1)){
+     if(!gk.project(unit.p0, u.p0) || !gk.project(unit.p1, u.p1)){
        // error detected
        result.EndBulkLoad();
        result.Clear();
@@ -9109,16 +9109,25 @@ ListExpr MovingTypeMapBreakPoints(ListExpr args){
 */
 
 ListExpr MovingTypeMapgk(ListExpr args){
-   if(nl->ListLength(args)!=1){
-       ErrorReporter::ReportError("one arguments expected");
-       return nl->TypeError();
-   }
-   ListExpr arg1 = nl->First(args);
-   if(nl->IsEqual(arg1,"mpoint")){
-       return nl->SymbolAtom("mpoint");
-   }
-   ErrorReporter::ReportError("mpoint  expected");
-   return nl->TypeError();
+  int len = nl->ListLength(args);
+  if( (len < 1) || (len > 2) ){
+    ErrorReporter::ReportError("One or two arguments expected.");
+    return nl->TypeError();
+  }
+  ListExpr arg1 = nl->First(args);
+  if(!nl->IsEqual(arg1,"mpoint")){
+    ErrorReporter::ReportError("mpoint expected");
+    return nl->TypeError();
+  }
+  if( (len==2) && nl->IsEqual(nl->Second(args),"int") ) {
+      return nl->SymbolAtom("mpoint"); // Zone provided by user
+  } else if (len==1){
+    return nl->ThreeElemList(nl->SymbolAtom("APPEND"),
+           nl->OneElemList(nl->IntAtom(2)),  // standard zone for Hagen
+           nl->SymbolAtom("mpoint"));
+  }
+  ErrorReporter::ReportError("No match.");
+  return nl->TypeError();
 }
 
 ListExpr DelayOperatorTypeMapping( ListExpr typeList )
@@ -10267,7 +10276,7 @@ ListExpr GridCellEventsTypeMapping (ListExpr args)
   resTupleType.append(NList(NList("CellNext"),NList(symbols::INT)));
   NList resType =
   NList(NList(symbols::STREAM),NList(NList(symbols::TUPLE),resTupleType));
-  
+
 
   if(len==2){ // {upoint, mpoint} x cellgrid2d
     if(!listutils::isSymbol(nl->Second(args),CellGrid2D::BasicType())){
@@ -11811,7 +11820,13 @@ int gkVM(Word* args, Word& result,
          int message, Word& local,
          Supplier s){
   result = qp->ResultStorage( s );
-  ((MPoint*)args[0].addr)->gk(*((MPoint*)result.addr));
+  MPoint* argmp = static_cast<MPoint*>(args[0].addr);
+  CcInt*  zone  = static_cast<CcInt*>(args[1].addr);
+  if(!zone->IsDefined()){
+    ((MPoint*)result.addr)->SetDefined(false);
+  } else {
+    argmp->gk(zone->GetValue(), *((MPoint*)result.addr));
+  }
   return 0;
 }
 /*
@@ -13637,7 +13652,7 @@ class GridCellEventsLocalInfo{
         resultTupleType = new TupleType(nl->Second(GetTupleResultType(s)));
       }
     }
-    
+
     GridCellEventsLocalInfo(OBJTYPE &m_,
                             const CellGrid2D& grid,
                             const Supplier &s) :
@@ -13981,12 +13996,12 @@ int GridCellEventsVM( Word* args, Word& result, int message,
          CcReal* wx = static_cast<CcReal*>(args[3].addr);
          CcReal* wy = static_cast<CcReal*>(args[4].addr);
          CcInt*  nx = static_cast<CcInt*> (args[5].addr);
-         li = new GridCellEventsLocalInfo<OBJTYPE>(*m, *x0, *y0, *wx, 
+         li = new GridCellEventsLocalInfo<OBJTYPE>(*m, *x0, *y0, *wx,
                                                    *wy, *nx, s);
       } else if(noSons==2){
-         li = new GridCellEventsLocalInfo<OBJTYPE>(*m, 
+         li = new GridCellEventsLocalInfo<OBJTYPE>(*m,
                        *(static_cast<CellGrid2D*>(args[1].addr)),
-                        s);         
+                        s);
       } else {
          assert(false);
       }
@@ -14669,9 +14684,13 @@ const string TemporalSpecBreakPoints =
 */
 const string TemporalSpecgk =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-  "( <text>mpoint -> mpoint</text--->"
-  "<text>gk( _ ) </text--->"
-  "<text>Applies the Gauss Krueger projection to the argument.</text--->"
+  "( <text>mpoint [ x int ] -> mpoint</text--->"
+  "<text>gk( mp [, zone] ) </text--->"
+  "<text>Projects the argument 'mp' using the Gauss Krueger projection "
+  "with center meridian 'zone'. Zone width is 3°. If 0 <= 'zone' <= 119 is not"
+  " provided, 2 (center meridian = 6°E, suits the location of Hagen) will be "
+  "used as a default. 'mp' is expected to have geografic coordinates (LAT/LON) "
+  "in °, the result's coordinates (NORTHING,EASTING) are in metres.</text--->"
   "<text> gk( trip )</text--->"
   ") )";
 
@@ -15677,7 +15696,7 @@ static int createCellGrid2DSelect(ListExpr args){
 template<class A1,class A2, class A3, class A4, class A5, class R>
 class CreateCellGrid2DF{
 public:
-  void operator()(const A1* a1, const A2* a2, const A3* a3, 
+  void operator()(const A1* a1, const A2* a2, const A3* a3,
                   const A4* a4, const A5* a5, R* res){
    res->set(a1->GetValue(), a2->GetValue(), a3->GetValue(),
             a4->GetValue(), a5->GetValue());
@@ -15782,7 +15801,7 @@ class TemporalAlgebra : public Algebra
     AddTypeConstructor( &movingint );
     AddTypeConstructor( &movingreal );
     AddTypeConstructor( &movingpoint );
-    
+
     AddTypeConstructor( &cellgrid2d);
 
     rangeint.AssociateKind( "RANGE" );
@@ -15819,7 +15838,7 @@ class TemporalAlgebra : public Algebra
     movingreal.AssociateKind( "DATA" );
     movingpoint.AssociateKind( "TEMPORAL" );
     movingpoint.AssociateKind( "DATA" );
-    
+
     cellgrid2d.AssociateKind( "DATA" );
 
     AddOperator( &temporalisempty );

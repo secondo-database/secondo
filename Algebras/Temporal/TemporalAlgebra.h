@@ -3364,10 +3364,10 @@ This operations stores the ends of the units into a ~points~ value.
 
 This method performs a gauss krueger projection to that mpoint.
 If the coordinates are not in geo range (-180-180, -90-90), the result
-will be undefined
+will be undefined. The same holds for zone < 0 and zone > 119.
 
 */
-   void gk(MPoint& result) const;
+   void gk(const int &zone, MPoint& result) const;
 
 
 /*
