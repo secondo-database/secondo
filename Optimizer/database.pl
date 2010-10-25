@@ -511,11 +511,15 @@ checkForAttributeNameConflicts :-
     -> (
          term_to_atom(FoundClashes,FoundClashedA),
          concat_atom(
-           ['The database contains relations violating the unique ',
+           ['=================================================================',
+           '\nWARNING: The database contains relations violating the unique ',
            'naming convention.',
            '\n--->\tPlease rename the attributes or objects such that no',
            '\n--->\tobject name also occurs as an attribute name:\n',
-           '\n--->\t\t',FoundClashedA,'\n'],'',ErrMsg),
+           '\n--->\t\t',FoundClashedA,'\n',
+           '=================================================================',
+           '\n'
+           ],'',ErrMsg),
          write_list(['\nERROR:\t',ErrMsg]), nl, nl,
          throw(error_SQL(database_checkForAttributeNameConflicts
                         ::schemaError::ErrMsg))
@@ -1734,7 +1738,9 @@ relation(Rel, AttrList) :-
 
 readStoredRels :-
   retractall(storedRel(_, _, _)),
-  [storedRels].
+%  [storedRels].
+  load_files(storedRels,[format(source), autoload(true),
+                                      must_be_module(false), silent(true)]).
 
 writeStoredRels :-
   open('storedRels.pl', write, FD),
@@ -1943,7 +1949,9 @@ spelling(Rel, RelExt) :- !,
 */
 readStoredSpells :-
   retractall(storedSpell(_, _, _)),
-  [storedSpells].
+%  [storedSpells].
+  load_files(storedSpells,[format(source), autoload(true),
+                                      must_be_module(false), silent(true)]).
 
 writeStoredSpells :-
   open('storedSpells.pl', write, FD),
@@ -2004,7 +2012,9 @@ card(DCrel, X) :-
 */
 readStoredCards :-
   retractall(storedCard(_, _, _)),
-  [storedCards].
+%  [storedCards].
+  load_files(storedCards,[format(source), autoload(true),
+                                      must_be_module(false), silent(true)]).
 
 writeStoredCards :-
   open('storedCards.pl', write, FD),
@@ -2113,7 +2123,9 @@ readStoredIndexes :-
   retractall(storedIndex(_, _, _, _, _)),
   retractall(storedNoIndex(_, _, _)),
   retractall(storedIndexStat(_, _, _, _, _)),
-  [storedIndexes].
+%  [storedIndexes].
+  load_files(storedIndexes,[format(source), autoload(true),
+                                      must_be_module(false), silent(true)]).
 
 writeStoredIndexes :-
   open('storedIndexes.pl', write, FD),
@@ -4084,7 +4096,9 @@ createExtendAttrList(W,X,Y,Z) :-
 */
 readStoredTupleSizes :-
   retractall(storedTupleSize(_, _, _, _, _)),
-  [storedTupleSizes].
+%  [storedTupleSizes].
+  load_files(storedTupleSizes,[format(source), autoload(true),
+                                      must_be_module(false), silent(true)]).
 
 writeStoredTupleSizes :-
   open('storedTupleSizes.pl', write, FD),
@@ -4299,7 +4313,9 @@ attrType(X, Y) :-
 
 readStoredAttrSizes :-
   retractall(storedAttrSize(_, _, _, _, _, _, _)),
-  [storedAttrSizes].
+%  [storedAttrSizes].
+  load_files(storedAttrSizes,[format(source), autoload(true),
+                                      must_be_module(false), silent(true)]).
 
 writeStoredAttrSizes :-
   open('storedAttrSizes.pl', write, FD),
@@ -4397,7 +4413,9 @@ automatically updated.
 
 readStoredOrders :-
   retractall(storedOrder(_,_,_)),
-  [storedOrderings].
+%  [storedOrderings].
+  load_files(storedOrderings,[format(source), autoload(true),
+                                      must_be_module(false), silent(true)]).
 
 writeStoredOrders :-
   open('storedOrderings.pl', write, FD),
@@ -4488,7 +4506,7 @@ All names of operators and data types available in the Secondo kernel are
 system identifiers. Operators and data types can be retrieved from system tables
 SEC2OPERATORINFO and SEC2TYPEINFO.
 
-There are some more system identifiers, e.g. ~const~ and ~value~., wjich are
+There are some more system identifiers, e.g. ~const~ and ~value~., which are
 used to construct constant value expressions.
 
 Such additional identifiers, that cannot be queried from the Secondo kernel,
