@@ -26,6 +26,28 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 */
 
+/*
+Failsave loading of stored meta data. Files are created if necessary before reading them.
+
+*/
+open_files([F|More]) :-
+  open_files(F),
+  open_files(More), !.
+
+open_files(F) :-
+  atom_concat(F,'.pl',F2),
+  open(F2, append, Bla, [type(text),close_on_abort(true)]),
+  close(Bla).
+
+% more specific - set user-defined options
+load_storefiles(Files, Options) :-
+  open_files(Files),
+  load_files(Files,Options).
+
+% default version with standard options
+load_storefiles(Files) :-
+  load_storefiles(Files,[autoload(true), must_be_module(false),
+                                    silent(true), format(source)]).
 
 /*
 0 Help on User Level Predicates
@@ -451,7 +473,7 @@ optimizerOptionInfo(subqueryUnnesting, subqueries, yes,
 % Section:Start:optimizerOptionInfo_6_e
 % Section:End:optimizerOptionInfo_6_e
 
-:- [calloptimizer_sec]. % include more options
+:- load_storefiles(calloptimizer_sec). % include more options
 
 /*
 ---- showOptions

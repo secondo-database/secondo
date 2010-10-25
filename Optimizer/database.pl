@@ -1739,8 +1739,7 @@ relation(Rel, AttrList) :-
 readStoredRels :-
   retractall(storedRel(_, _, _)),
 %  [storedRels].
-  load_files(storedRels,[format(source), autoload(true),
-                                      must_be_module(false), silent(true)]).
+  load_storefiles(storedRels).
 
 writeStoredRels :-
   open('storedRels.pl', write, FD),
@@ -1950,8 +1949,7 @@ spelling(Rel, RelExt) :- !,
 readStoredSpells :-
   retractall(storedSpell(_, _, _)),
 %  [storedSpells].
-  load_files(storedSpells,[format(source), autoload(true),
-                                      must_be_module(false), silent(true)]).
+  load_storefiles(storedSpells).
 
 writeStoredSpells :-
   open('storedSpells.pl', write, FD),
@@ -2013,8 +2011,7 @@ card(DCrel, X) :-
 readStoredCards :-
   retractall(storedCard(_, _, _)),
 %  [storedCards].
-  load_files(storedCards,[format(source), autoload(true),
-                                      must_be_module(false), silent(true)]).
+  load_storefiles(storedCards).
 
 writeStoredCards :-
   open('storedCards.pl', write, FD),
@@ -2124,8 +2121,7 @@ readStoredIndexes :-
   retractall(storedNoIndex(_, _, _)),
   retractall(storedIndexStat(_, _, _, _, _)),
 %  [storedIndexes].
-  load_files(storedIndexes,[format(source), autoload(true),
-                                      must_be_module(false), silent(true)]).
+  load_storefiles(storedIndexes).
 
 writeStoredIndexes :-
   open('storedIndexes.pl', write, FD),
@@ -4097,8 +4093,7 @@ createExtendAttrList(W,X,Y,Z) :-
 readStoredTupleSizes :-
   retractall(storedTupleSize(_, _, _, _, _)),
 %  [storedTupleSizes].
-  load_files(storedTupleSizes,[format(source), autoload(true),
-                                      must_be_module(false), silent(true)]).
+  load_storefiles(storedTupleSizes).
 
 writeStoredTupleSizes :-
   open('storedTupleSizes.pl', write, FD),
@@ -4314,8 +4309,7 @@ attrType(X, Y) :-
 readStoredAttrSizes :-
   retractall(storedAttrSize(_, _, _, _, _, _, _)),
 %  [storedAttrSizes].
-  load_files(storedAttrSizes,[format(source), autoload(true),
-                                      must_be_module(false), silent(true)]).
+  load_storefiles(storedAttrSizes).
 
 writeStoredAttrSizes :-
   open('storedAttrSizes.pl', write, FD),
@@ -4414,8 +4408,7 @@ automatically updated.
 readStoredOrders :-
   retractall(storedOrder(_,_,_)),
 %  [storedOrderings].
-  load_files(storedOrderings,[format(source), autoload(true),
-                                      must_be_module(false), silent(true)]).
+  load_storefiles(storedOrderings).
 
 writeStoredOrders :-
   open('storedOrderings.pl', write, FD),

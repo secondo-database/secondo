@@ -1284,8 +1284,7 @@ readStoredSels :-
   retractall(storedPredicateSignature(_, _, _)),
   retractall(storedBBoxSize(_,_,_)),
 %  [storedSels].
-  load_files(storedSels,[format(source), autoload(true),
-                                      must_be_module(false), silent(true)]).
+  load_storefiles(storedSels).
 
 /*
 
@@ -1387,8 +1386,7 @@ showSels :-
 readStoredPETs :-
   retractall(storedPET(_, _, _, _)),
 %  [storedPETs].
-  load_files(storedPETs,[format(source), autoload(true),
-                                      must_be_module(false), silent(true)]).
+  load_storefiles(storedPETs).
 
 writeStoredPETs :-
   open('storedPETs.pl', write, FD),
@@ -1432,8 +1430,7 @@ writePET :-
 readStoredPredicateSignatures :-
   retractall(storedPredicateSignature(_, _, _)),
 %  [storedPredicateSignatures].
-  load_files(storedPredicateSignatures,[format(source), autoload(true),
-                                      must_be_module(false), silent(true)]).
+  load_storefiles(storedPredicateSignatures).
 
 writeStoredPredicateSignatures :-
   open('storedPredicateSignatures.pl', write, FD),
@@ -1477,8 +1474,7 @@ readStoredOperatorTF :-
   retractall(tempOperatorTF(_)),
   retractall(storedOperatorTF(_)),
 %  [sysDependentOperatorTF].
-  load_files(sysDependentOperatorTF,[format(source), autoload(true),
-                                      must_be_module(false), silent(true)]).
+  load_storefiles(sysDependentOperatorTF).
 
 
 /*
@@ -1619,8 +1615,7 @@ readStoredCostFactors :-
   retractall(vCostFactorCPU(_)),
   retractall(tempCostFactor(_,_)),
 %  [sysDependentCostFactors].
-  load_files(sysDependentCostFactors,[format(source), autoload(true),
-                                      must_be_module(false), silent(true)]).
+  load_storefiles(sysDependentCostFactors).
 
 writeStoredCostFactors :-
   open('sysDependentCostFactors.pl', write, FD),
