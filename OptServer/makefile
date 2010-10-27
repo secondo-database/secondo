@@ -1,6 +1,6 @@
 #This file is part of SECONDO.
 
-#Copyright (C) 2004, University in Hagen, Department of Computer Science, 
+#Copyright (C) 2004, University in Hagen, Department of Computer Science,
 #Database Systems for New Applications.
 
 #SECONDO is free software; you can redistribute it and/or modify
@@ -43,15 +43,9 @@ LINK_FLAGS := $(ENT_LINK_LIBS) $(LD_LINK_LIBS) \
               $(JNI_CCFLAGS)
 
 ifeq ($(platform),mac_osx)
-LINK_FLAGS += -flat_namespace -undefined suppress
+  LINK_FLAGS += -flat_namespace -undefined suppress
 else
-LINK_FILES += $(JPL_DLL)
-endif
-
-ifeq ($(platform),mac_osx)
-   LINK_FLAGS += -flat_namespace -undefined suppress
-else
-   LINKFILES += $(JPL_DLL)
+  LINKFILES += $(JPL_DLL)
 endif
 
 
@@ -86,7 +80,7 @@ endif
 .PHONY:clean
 clean:
 	make -C 10 clean
-	make -C 30 clean 
+	make -C 30 clean
 	rm -f regSecondo.o
 	rm -f $(REG_SEC_DLL)
 
