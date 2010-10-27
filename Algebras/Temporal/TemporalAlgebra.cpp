@@ -1565,7 +1565,7 @@ bool UPoint::At( const Point& p, TemporalUnit<Point>& res ) const {
 
   // special case: static unit
   if(AlmostEqual(p0,p1)){
-     if(AlmostEqual(p,p0)){
+     if(AlmostEqual(p,p0) || AlmostEqual(p,p1)){
         return true;
      } else {
         result->SetDefined(false);
@@ -1603,12 +1603,20 @@ bool UPoint::At( const Point& p, TemporalUnit<Point>& res ) const {
   double d_y = p1.GetY() - p0.GetY();
   double delta;
   bool useX;
+
   if(fabs(d_x)> fabs(d_y)){
      delta = (p.GetX()-p0.GetX() ) / d_x;
      useX = true;
   } else {
      delta = (p.GetY()-p0.GetY() ) / d_y;
      useX = false;
+  }
+
+  if(AlmostEqual(delta,0)){
+    delta = 0;
+  }
+  if(AlmostEqual(delta,1)){
+    delta = 1;
   }
 
   if( (delta<0) || (delta>1)){
@@ -1633,11 +1641,6 @@ bool UPoint::At( const Point& p, TemporalUnit<Point>& res ) const {
 
   Instant time = timeInterval.start +
                  (timeInterval.end-timeInterval.start)*delta;
-
-  //double timeD = timeInterval.start.ToDouble() +
-  //               (timeInterval.end-timeInterval.start).ToDouble()*delta;
-  //DateTime time(instanttype);
-  //time.ReadFrom(timeD);
 
   result->p0 = p;
   result->p1 = p;
@@ -2264,14 +2267,16 @@ bool UPoint::AtRegion(const Region *r, vector<UPoint> &result) const {
   // create a halfsegment hs using Trajectory() and compute intersection
   vector<UPoint> tmpresult(0);
   UPoint ures(false);
-  Instant t_left, t_right, t_start, t_end;
+  Instant t_left(instanttype),  t_right(instanttype), 
+          t_start(instanttype), t_end(instanttype);
 
   // handle linear intersections
-  Line segs1(true);
-  HalfSegment hs;                      // buffer for the halfsegment
-  Line traj(true);                     // buffer for trajectory
+  Line segs1(2);
+  Line traj(2);                     // buffer for trajectory
+
   UTrajectory(traj);                   // get trajectory (may be empty)
   r->Intersection(traj, segs1);         // compute linear intersections
+
   Line segs(segs1.Size());
   segs1.Simplify(segs, FACTOR);
 
@@ -2281,6 +2286,7 @@ bool UPoint::AtRegion(const Region *r, vector<UPoint> &result) const {
          << " WARNING: r->Intersection(traj, segs) is UNDEF for traj="
          << traj << "." <<endl;
   } else {
+    HalfSegment hs;                      // buffer for the halfsegment
     for(int i=0; i<segs.Size(); i++){    // for each halfsegment hs in segs
     //    compute instants t_left, t_right from segment's start and endpoint
       segs.Get(i,hs);
@@ -2296,6 +2302,7 @@ bool UPoint::AtRegion(const Region *r, vector<UPoint> &result) const {
           continue;
         }
         t_left  = ures.timeInterval.start;
+
         tmpUnit.At( hs.GetRightPoint(), ures );
         if(!ures.IsDefined()){
           cerr << __PRETTY_FUNCTION__
@@ -2322,15 +2329,17 @@ bool UPoint::AtRegion(const Region *r, vector<UPoint> &result) const {
       } // is LeftDomPoint
     }// for each halfsegment hs in segs
   }
+
   // handle point intersections
-  Points points(true);
+  Points points(0);
   r->TouchPoints(traj, points); // compute point intersections
+
   if(!points.IsDefined()){
     cerr << __PRETTY_FUNCTION__
          << " WARNING: r->TouchPoints(traj, points) is UNDEF for traj="
         << traj << "." << endl;
   } else {
-    Point p(true);                       // buffer for the point
+    Point p(true,0.0,0.0);                       // buffer for the point
     int nosegres = tmpresult.size();     // no of linear results
     for(int i=0; i<points.Size(); i++){  // for each point p in points
       points.Get(i,p);
@@ -2351,6 +2360,8 @@ bool UPoint::AtRegion(const Region *r, vector<UPoint> &result) const {
       }
     } // for each point p in points
   }
+
+
   // adapt closedness within tmpresult and copy tmpresult to result
   return
     ConsolidateUnitVector<UPoint,Point>(this->timeInterval,tmpresult,result);
