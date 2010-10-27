@@ -485,10 +485,10 @@ refreshSecondoCatalogInfo :-
 ----
 
 Check whether any objects within the ~secondoCatalogInfo~ facts violates the
-unique downcased naming convention.
+unique downcased naming convention or is named like a typeconstructor or operator.
 
-Check, whether some relation has an attribute named exactly as a dababase objects
-object.
+Check, whether some relation has an attribute named exactly as a dababase
+object, typeconstructor or operator.
 
 If so, an exception is thrown. Otherwise the predicate succeeds.
 
@@ -511,14 +511,15 @@ checkForAttributeNameConflicts :-
     -> (
          term_to_atom(FoundClashes,FoundClashedA),
          concat_atom(
-           ['=================================================================',
-           '\nWARNING: The database contains relations violating the unique ',
-           'naming convention.',
-           '\n--->\tPlease rename the attributes or objects such that no',
-           '\n--->\tobject name also occurs as an attribute name:\n',
-           '\n--->\t\t',FoundClashedA,'\n',
-           '=================================================================',
-           '\n'
+           ['\nERROR:\tSome of the relations have attribute names ',
+           '\n--->\tthat are also used for database objects, or are ',
+           '\n--->\treserved identifiers, such as for keywords, type ',
+           '\n--->\tconstructors, or operators. ',
+           '\n--->\tThis is not allowed, because it creates problems while ',
+           '\n--->\tprocessing database commands. ',
+           '\n--->\tPlease rename the following attributes (or disable the ',
+           '\n--->\talgebra modules defining the according types/operators):\n',
+           '\n--->\t\t',FoundClashedA,'\n'
            ],'',ErrMsg),
          write_list(['\nERROR:\t',ErrMsg]), nl, nl,
          throw(error_SQL(database_checkForAttributeNameConflicts
@@ -538,7 +539,7 @@ getAttributeNameConflicts(DCrel,ConflictList) :-
 getAttributeNameConflicts2(_,[],[]) :- !.
 
 getAttributeNameConflicts2(ExtRel,[[Attr,_]|More],[ExtRel:Attr|ConflictList]) :-
-  secondoCatalogInfo(_,Attr,_,_), !,
+  ( secondoCatalogInfo(_,Attr,_,_) ; systemIdentifier(Attr,_) ) , !,
   getAttributeNameConflicts2(ExtRel,More,ConflictList), !.
 
 getAttributeNameConflicts2(ExtRel,[_|More],ConflictList) :-
@@ -569,7 +570,7 @@ checkObjectNamingConvention :-
     -> (
          term_to_atom(SortedClashes,SortedClashesA),
          concat_atom(
-           ['The database contains objects violating the unique',
+           ['\nERROR:\tThe database contains objects violating the unique',
            '\n--->\tdowncased naming convention.',
            '\n--->\tPlease rename the following objects such that no two of\n',
            '\n--->\ttheir names are the same, when using lower case \n',
@@ -577,6 +578,30 @@ checkObjectNamingConvention :-
            '\n--->\t\t',SortedClashesA,'\n'],'',ErrMsg),
          write_list(['\nERROR:\t',ErrMsg]), nl, nl,
          throw(error_SQL(database_checkObjectNamingConvention(SortedClashes)
+                        ::schemaError::ErrMsg))
+       )
+    ; true
+  ),
+  findall(ObjectExt1,(
+              secondoCatalogInfo(ObjDC,ObjectExt1,_,_),
+              systemIdentifier(ObjectExt1,ObjDC)
+                     ),
+          KeyClashes
+         ),
+  flatten(KeyClashes,FlatKeyClashes),
+  sort(FlatKeyClashes,SortedKeyClashes),
+  length(SortedKeyClashes,NoKeyInstances),
+  ( NoKeyInstances > 0
+    -> (
+         term_to_atom(SortedKeyClashes,SortedKeyClashesA),
+         concat_atom(
+           ['\nERROR:\tThe database contains objects having reserved keyword ',
+           '\n--->\tnames or names of type constructors or operators.',
+           '\n--->\tPlease rename the following objects or deactivate the',
+           '\n--->\algebras exporting the according types/operators:\n',
+           '\n--->\t\t',SortedKeyClashesA,'\n'],'',ErrMsg),
+         write_list(['\nERROR:\t',ErrMsg]), nl, nl,
+         throw(error_SQL(database_checkObjectNamingConvention(SortedKeyClashes)
                         ::schemaError::ErrMsg))
        )
     ; true
@@ -4580,12 +4605,28 @@ validIdentifier(ExtId) :-
 
 readSystemIdentifiers :-
   retractall(systemIdentifier(_,_)),
+  assert(systemIdentifier(begin,begin)),
+  assert(systemIdentifier(transaction,transaction)),
+  assert(systemIdentifier(commit,commit)),
+  assert(systemIdentifier(abort,abort)),
+  assert(systemIdentifier(kill,kill)),
+  assert(systemIdentifier(set,set)),
   assert(systemIdentifier(value,value)),
   assert(systemIdentifier(const,const)),
   assert(systemIdentifier(query,query)),
   assert(systemIdentifier(let,let)),
+  assert(systemIdentifier(derive,derive)),
   assert(systemIdentifier(update,update)),
   assert(systemIdentifier(delete,delete)),
+  assert(systemIdentifier(beginseq,beginseq)),
+  assert(systemIdentifier(endseq,endseq)),
+  assert(systemIdentifier(if,if)),
+  assert(systemIdentifier(then,then)),
+  assert(systemIdentifier(else,else)),
+  assert(systemIdentifier(endif,endif)),
+  assert(systemIdentifier(while,while)),
+  assert(systemIdentifier(do,do)),
+  assert(systemIdentifier(endwhile,endwhile)),
   assert(systemIdentifier(restore,restore)),
   assert(systemIdentifier(database,database)),
   assert(systemIdentifier(list,list)),
