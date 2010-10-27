@@ -264,6 +264,18 @@ Result   : 2
 Operator : cellbox
 Number   : 2
 Signature: rect x int  (stream(((x1 t1) ... (xn tn))))
-Example  : query cellbox(bbox, 10) count;
+Example  : query cellbox(b_box, 10) count;
 Result   : 10
 
+Operator : create_bus_route1
+Number   : 2
+Signature: network x rel x attr_1 x attr_2 x attr_3 x attr4 x btree -> (stream(((x1 t1) ... (xn tn))))
+Example  : query create_bus_route1(n,street_sections_cell,sid_s,cellid_w_a_c,Cnt_a_c,cover_area_b_c, section_cell_index) count; 
+Result   : 75 
+
+
+Operator : create_bus_route2
+Number   : 2
+Signature: network x rel1 x attr x btree x rel2 x attr1 x attr2 -> (stream(((x1 t1) ... (xn tn))))
+Example  : query create_bus_route2(n,street_sections_cell,cellid_w_a_c,section_cell_index,rough_pair, start_cell_id,end_cell_id) count; 
+Result   : 10
