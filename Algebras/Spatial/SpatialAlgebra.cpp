@@ -3173,14 +3173,18 @@ bool HalfSegment::InnerIntersects( const HalfSegment& hs ) const
   }
 }
 
+
+
+  /*
 bool HalfSegment::Intersection( const HalfSegment& hs, Point& resp ) const
 {
   double k, a, K, A;
 
-  if( !BoundingBox().Intersects( hs.BoundingBox() ) ){
+  if( !BoundingBox().Intersects( hs.BoundingBox().Extend(FACTOR) ) ){
     resp.SetDefined( false );
     return false;
   }
+
   resp.SetDefined( true );
 
   Coord xl = lp.GetX(),
@@ -3298,6 +3302,138 @@ bool HalfSegment::Intersection( const HalfSegment& hs, Point& resp ) const
 
   return false;
 }
+ */
+
+bool HalfSegment::Intersection( const HalfSegment& hs, Point& resp ) const {
+
+
+
+  double x0_1 = this->lp.GetX();
+  double y0_1 = this->lp.GetY();
+  double x1_1 = this->rp.GetX();
+  double y1_1 = this->rp.GetY();
+
+  double x0_2 = hs.lp.GetX();
+  double y0_2 = hs.lp.GetY();
+  double x1_2 = hs.rp.GetX();
+  double y1_2 = hs.rp.GetY();
+
+  double dx1 = x1_1 - x0_1;
+  double dx2 = x1_2 - x0_2;
+  double dy1 = y1_1 - y0_1;
+  double dy2 = y1_2 - y0_2;
+
+
+
+
+  resp.SetDefined(false);
+  // check for degenerated segments
+
+  if(AlmostEqual(dx1,0) && AlmostEqual(dy1,0)){
+    // not a segment
+    assert(false);
+    return false;
+  }
+  if(AlmostEqual(dx2,0) && AlmostEqual(dy2,0)){
+    // not a segment
+    assert(false);
+    return false;
+  }
+
+  // check for equal direction. 
+  // if so, only the endpoints must be checked
+  if(AlmostEqual(dx1*dy2, dy1*dx2)){
+    if(AlmostEqual(lp, hs.rp)){
+       resp = lp;
+       return true;
+    }
+    if(AlmostEqual(rp, hs.lp)){
+       resp = rp;
+       return true; 
+    }
+    return false;
+  }
+
+  // different directions, no overlaps possible
+ 
+  // checks for almost equal endpoints
+  if(AlmostEqual(lp,hs.rp) ||
+     AlmostEqual(lp,hs.lp)) {
+    resp=lp;
+    return true;
+  }
+
+  if( AlmostEqual(rp,hs.rp) ||
+    AlmostEqual(rp,hs.lp)){ 
+    resp=rp;
+    return true;
+  }
+
+ 
+
+  // normal computation: just solve the equations given
+  // by the points ;-)
+
+
+  double delta2;
+  double delta1;
+  bool way1 = true;
+  if(fabs(dx1) > fabs(dy1)){
+//  if(fabs(dx1) > 0){
+    delta2 = ((y0_1-y0_2)*dx1 + (x0_2-x0_1)*dy1) / ((dx1*dy2) - (dx2-dy1));
+    delta1 = (x0_2+delta2*(dx2)-x0_1) / dx1; 
+  } else {
+    delta2 = (dy1*(x0_2-x0_1) + dx1*(y0_1-y0_2)) / ( (dy2*dx1) - (dx2*dy1));
+    delta1 = (y0_2+delta2*dy2-y0_1) / dy1;
+    way1 = false;
+  }
+
+  
+
+
+  // corrections from rounding errors 
+  if(AlmostEqual(delta1,0) && delta1<0){
+    delta1 = 0;
+  }
+  if(AlmostEqual(delta1,1) && delta1>1){
+    delta1 = 1;
+  }
+
+  if(AlmostEqual(delta2,0) && delta2<0){
+    delta2 = 0;
+  }
+  if(AlmostEqual(delta2,1) && delta2>1){
+    delta2 = 1;
+  }
+
+  double x = x0_1+delta1*dx1;
+  double y = y0_1+delta1*dy1;
+  
+  if( (delta1<0) || (delta1>1) || (delta2<0) || (delta2>1) ){
+    // intersection point outside one of the segments
+    resp.Set(x,y);
+    resp.SetDefined(false);
+    return false;
+  } else {
+    // check computation by checking the resulting point
+    // agains the resultung point from hs
+
+    if(!AlmostEqual(x,x0_2+delta2*dx2)){
+      cerr << __PRETTY_FUNCTION__ << "@" __FILE__ << ":" << __LINE__ << endl;
+      cerr << "rounding(?) error detected, points are not equal";
+      cerr << " x(this) = " << x << ",  x(hs) = "<< (x0_2*delta2*dx2) << endl;
+    }
+    if(!AlmostEqual(y,y0_2+delta2*dy2)){
+      cerr << __PRETTY_FUNCTION__ << "@" __FILE__ << ":" << __LINE__ << endl;
+      cerr << "rounding(?) error detected, points are not equal";
+      cerr << " y(this) = " << x << ",  y(hs) = "<< (y0_2*delta2*dy2) << endl;
+    }
+    resp.SetDefined(true);
+    resp.Set(x,y);
+    return true;
+  }
+}
+
 
 bool HalfSegment::Intersection( const HalfSegment& hs,
                                 HalfSegment& reshs ) const
@@ -4014,455 +4150,455 @@ void Line::EndBulkLoad( bool sort /* = true */,
   if(sort){
     Sort();
   }
-  if(Size()>0){
-     if(realminize){
-       DbArray<HalfSegment>* line2 = ::Realminize(line);
-       line2->Sort(HalfSegmentCompare);
-       line.copyFrom(*line2);
-       line2->Destroy();
-       delete line2;
-     }
-     SetPartnerNo();
-  }
-  computeComponents();
-  TrimToSize();
+if(Size()>0){
+   if(realminize){
+     DbArray<HalfSegment>* line2 = ::Realminize(line);
+     line2->Sort(HalfSegmentCompare);
+     line.copyFrom(*line2);
+     line2->Destroy();
+     delete line2;
+   }
+   SetPartnerNo();
+}
+computeComponents();
+TrimToSize();
 }
 
 Line& Line::operator=( const Line& l )
 {
-  assert( l.ordered );
-  line.copyFrom(l.line);
-  bbox = l.bbox;
-  length = l.length;
-  noComponents = l.noComponents;
-  ordered = true;
-  currentHS = l.currentHS;
-  this->SetDefined(l.IsDefined());
+assert( l.ordered );
+line.copyFrom(l.line);
+bbox = l.bbox;
+length = l.length;
+noComponents = l.noComponents;
+ordered = true;
+currentHS = l.currentHS;
+this->SetDefined(l.IsDefined());
 
-  return *this;
+return *this;
 }
 
 bool Line::operator==( const Line& l ) const
 {
-  if(!IsDefined() && !l.IsDefined()){
-    return true;
-  }
-  if(!IsDefined() || !l.IsDefined()){
-    return false;
-  }
-  if( IsEmpty() && l.IsEmpty() ) {
-    return true;
-  }
-  if( Size() != l.Size() ){
-    return false;
-  }
-  if( bbox != l.bbox ){
-    return false;
-  }
-  assert( ordered && l.ordered );
-  HalfSegment hs, lhs;
-  for(int i=0;i<Size();i++){
-    line.Get(i, hs);
-    l.line.Get(i, lhs);
-    if( hs != lhs ){
-      return false;
-    }
-  }
+if(!IsDefined() && !l.IsDefined()){
   return true;
+}
+if(!IsDefined() || !l.IsDefined()){
+  return false;
+}
+if( IsEmpty() && l.IsEmpty() ) {
+  return true;
+}
+if( Size() != l.Size() ){
+  return false;
+}
+if( bbox != l.bbox ){
+  return false;
+}
+assert( ordered && l.ordered );
+HalfSegment hs, lhs;
+for(int i=0;i<Size();i++){
+  line.Get(i, hs);
+  l.line.Get(i, lhs);
+  if( hs != lhs ){
+    return false;
+  }
+}
+return true;
 }
 
 bool Line::operator!=( const Line& l ) const
 {
-  return !( *this == l);
+return !( *this == l);
 }
 
 Line& Line::operator+=( const HalfSegment& hs )
 {
-  if(!IsDefined()){
-    assert( IsDefined() );
-    return *this;
-  }
-
-  if( IsEmpty() )
-    bbox = hs.BoundingBox();
-  else
-    bbox = bbox.Union( hs.BoundingBox() );
-
-  if( !IsOrdered() )
-    line.Append( hs );
-  else
-  {
-    int pos;
-    if( !Find( hs, pos ) )
-    {
-      HalfSegment auxhs;
-      for( int i = line.Size() - 1; i >= pos; i++ )
-      {
-        line.Get( i, auxhs );
-        line.Put( i+1, auxhs );
-      }
-      line.Put( pos, hs );
-    }
-  }
+if(!IsDefined()){
+  assert( IsDefined() );
   return *this;
 }
 
+if( IsEmpty() )
+  bbox = hs.BoundingBox();
+else
+  bbox = bbox.Union( hs.BoundingBox() );
+
+if( !IsOrdered() )
+  line.Append( hs );
+else
+{
+  int pos;
+  if( !Find( hs, pos ) )
+  {
+    HalfSegment auxhs;
+    for( int i = line.Size() - 1; i >= pos; i++ )
+    {
+      line.Get( i, auxhs );
+      line.Put( i+1, auxhs );
+    }
+    line.Put( pos, hs );
+  }
+}
+return *this;
+}
+
 Line& Line::operator+=(const Line& l){
-   if(!IsDefined() || !l.IsDefined()){
-     SetDefined( false );
-     return *this;
-   }
-
-   if(l.line.Size()==0){
-     return *this;
-   }
-
-   assert(!IsOrdered());
-
-   if(IsEmpty()){
-      bbox = l.bbox;
-   } else {
-      bbox = bbox.Union(l.bbox);
-   }
-
-   line.Append(l.line);
+ if(!IsDefined() || !l.IsDefined()){
+   SetDefined( false );
    return *this;
+ }
+
+ if(l.line.Size()==0){
+   return *this;
+ }
+
+ assert(!IsOrdered());
+
+ if(IsEmpty()){
+    bbox = l.bbox;
+ } else {
+    bbox = bbox.Union(l.bbox);
+ }
+
+ line.Append(l.line);
+ return *this;
 }
 
 
 Line& Line::operator-=( const HalfSegment& hs )
 {
-  if(!IsDefined()){
-    return *this;
-  }
-
-  assert( IsOrdered() );
-  int pos;
-  HalfSegment auxhs;
-  if( Find( hs, pos ) )
-  {
-    for( int i = pos; i < Size(); i++ )
-    {
-      line.Get( i+1, auxhs );
-      line.Put( i, auxhs );
-    }
-  }
-
-  // Naive way to redo the bounding box.
-  if( IsEmpty() )
-    bbox.SetDefined( false );
-  int i = 0;
-  line.Get( i++, auxhs );
-  bbox = auxhs.BoundingBox();
-  for( ; i < Size(); i++ )
-  {
-    line.Get( i, auxhs );
-    bbox = bbox.Union( auxhs.BoundingBox() );
-  }
-
+if(!IsDefined()){
   return *this;
+}
+
+assert( IsOrdered() );
+int pos;
+HalfSegment auxhs;
+if( Find( hs, pos ) )
+{
+  for( int i = pos; i < Size(); i++ )
+  {
+    line.Get( i+1, auxhs );
+    line.Put( i, auxhs );
+  }
+}
+
+// Naive way to redo the bounding box.
+if( IsEmpty() )
+  bbox.SetDefined( false );
+int i = 0;
+line.Get( i++, auxhs );
+bbox = auxhs.BoundingBox();
+for( ; i < Size(); i++ )
+{
+  line.Get( i, auxhs );
+  bbox = bbox.Union( auxhs.BoundingBox() );
+}
+
+return *this;
 }
 
 bool Line::Contains( const Point& p ) const
 {
-  assert( IsDefined() );
-  assert( p.IsDefined() );
-  if( IsEmpty() )
-    return false;
-
-  int pos;
-  if( Find( p, pos ) )
-    return true;
-
-  if( pos >= Size() )
-    return false;
-
-  HalfSegment hs;
-  for( ; pos >= 0; pos-- )
-  {
-    Get( pos, hs );
-    if( hs.IsLeftDomPoint() )
-    {
-      if( hs.Contains( p ) )
-        return true;
-    }
-  }
+assert( IsDefined() );
+assert( p.IsDefined() );
+if( IsEmpty() )
   return false;
+
+int pos;
+if( Find( p, pos ) )
+  return true;
+
+if( pos >= Size() )
+  return false;
+
+HalfSegment hs;
+for( ; pos >= 0; pos-- )
+{
+  Get( pos, hs );
+  if( hs.IsLeftDomPoint() )
+  {
+    if( hs.Contains( p ) )
+      return true;
+  }
+}
+return false;
 }
 
 bool Line::Intersects( const Line& l ) const
 {
-  assert( IsDefined() );
-  assert( l.IsDefined() );
-  if( IsEmpty() || l.IsEmpty() )
-    return false;
+assert( IsDefined() );
+assert( l.IsDefined() );
+if( IsEmpty() || l.IsEmpty() )
+  return false;
 
-  assert( IsOrdered() );
-  assert( l.IsOrdered() );
-  if( !BoundingBox().Intersects( l.BoundingBox() ) )
-    return false;
+assert( IsOrdered() );
+assert( l.IsOrdered() );
+if( !BoundingBox().Intersects( l.BoundingBox() ) )
+  return false;
 
-  HalfSegment hs1, hs2;
-  for( int i = 0; i < Size(); i++ )
+HalfSegment hs1, hs2;
+for( int i = 0; i < Size(); i++ )
+{
+  Get( i, hs1 );
+  if( hs1.IsLeftDomPoint() )
   {
-    Get( i, hs1 );
-    if( hs1.IsLeftDomPoint() )
+    for( int j = 0; j < l.Size(); j++ )
     {
-      for( int j = 0; j < l.Size(); j++ )
+      l.Get( j, hs2 );
+      if (hs2.IsLeftDomPoint())
       {
-        l.Get( j, hs2 );
-        if (hs2.IsLeftDomPoint())
-        {
-          if( hs1.Intersects( hs2 ) )
-            return true;
-        }
+        if( hs1.Intersects( hs2 ) )
+          return true;
       }
     }
   }
-  return false;
+}
+return false;
 }
 
 bool Line::Intersects( const Region& r ) const
 {
-  assert( IsDefined() );
-  assert( r.IsDefined() );
-  if( IsEmpty() || r.IsEmpty() )
-    return false;
-
-  if( !BoundingBox().Intersects( r.BoundingBox() ) )
-    return false;
-
-  assert( IsOrdered() );
-  assert( r.IsOrdered() );
-  HalfSegment hsl, hsr;
-  for( int i = 0; i < Size(); i++ )
-  {
-    Get( i, hsl );
-    if( hsl.IsLeftDomPoint() )
-    {
-      for( int j = 0; j < r.Size(); j++ )
-      {
-        r.Get( j, hsr );
-        if( hsr.IsLeftDomPoint() )
-        {
-          if( hsl.Intersects( hsr ) )
-            return true;
-        }
-      }
-
-      if( r.Contains( hsl.GetLeftPoint() ) ||
-          r.Contains( hsl.GetRightPoint() ) )
-        return true;
-    }
-  }
+assert( IsDefined() );
+assert( r.IsDefined() );
+if( IsEmpty() || r.IsEmpty() )
   return false;
+
+if( !BoundingBox().Intersects( r.BoundingBox() ) )
+  return false;
+
+assert( IsOrdered() );
+assert( r.IsOrdered() );
+HalfSegment hsl, hsr;
+for( int i = 0; i < Size(); i++ )
+{
+  Get( i, hsl );
+  if( hsl.IsLeftDomPoint() )
+  {
+    for( int j = 0; j < r.Size(); j++ )
+    {
+      r.Get( j, hsr );
+      if( hsr.IsLeftDomPoint() )
+      {
+        if( hsl.Intersects( hsr ) )
+          return true;
+      }
+    }
+
+    if( r.Contains( hsl.GetLeftPoint() ) ||
+        r.Contains( hsl.GetRightPoint() ) )
+      return true;
+  }
+}
+return false;
 }
 
 bool Line::Inside( const Line& l ) const
 {
-  assert( IsDefined() );
-  assert( l.IsDefined() );
-  if(!IsDefined() || !l.IsDefined()){
-    return false;
-  }
+assert( IsDefined() );
+assert( l.IsDefined() );
+if(!IsDefined() || !l.IsDefined()){
+  return false;
+}
 
-  if( IsEmpty() )
-    return true;
-
-  if( l.IsEmpty() )
-    return false;
-
-  if( !l.BoundingBox().Contains( bbox ) )
-    return false;
-
-  assert( IsOrdered() );
-  assert( l.IsOrdered() );
-  HalfSegment hs1, hs2;
-  for( int i = 0; i < Size(); i++ )
-  {
-    Get( i, hs1 );
-    if( hs1.IsLeftDomPoint() )
-    {
-      bool found = false;
-      for( int j = 0; j < l.Size() && !found; j++ )
-      {
-        l.Get( j, hs2 );
-        if( hs2.IsLeftDomPoint() && hs1.Inside( hs2 ) )
-          found = true;
-      }
-      if( !found )
-        return false;
-    }
-  }
+if( IsEmpty() )
   return true;
+
+if( l.IsEmpty() )
+  return false;
+
+if( !l.BoundingBox().Contains( bbox ) )
+  return false;
+
+assert( IsOrdered() );
+assert( l.IsOrdered() );
+HalfSegment hs1, hs2;
+for( int i = 0; i < Size(); i++ )
+{
+  Get( i, hs1 );
+  if( hs1.IsLeftDomPoint() )
+  {
+    bool found = false;
+    for( int j = 0; j < l.Size() && !found; j++ )
+    {
+      l.Get( j, hs2 );
+      if( hs2.IsLeftDomPoint() && hs1.Inside( hs2 ) )
+        found = true;
+    }
+    if( !found )
+      return false;
+  }
+}
+return true;
 }
 
 bool Line::Inside( const Region& r ) const
 {
-  assert( IsDefined() );
-  assert( r.IsDefined() );
-  if(!IsDefined() || !r.IsDefined()){
-    return false;
-  }
+assert( IsDefined() );
+assert( r.IsDefined() );
+if(!IsDefined() || !r.IsDefined()){
+  return false;
+}
 
-  if( IsEmpty() )
-    return true;
-
-  if( r.IsEmpty() )
-    return false;
-
-  if( !r.BoundingBox().Contains( bbox ) )
-    return false;
-
-  assert( IsOrdered() );
-  assert( r.IsOrdered() );
-  HalfSegment hsl;
-  for( int i = 0; i < Size(); i++ )
-  {
-    Get( i, hsl );
-    if( hsl.IsLeftDomPoint() )
-    {
-      if( !r.Contains( hsl ) )
-        return false;
-    }
-  }
+if( IsEmpty() )
   return true;
+
+if( r.IsEmpty() )
+  return false;
+
+if( !r.BoundingBox().Contains( bbox ) )
+  return false;
+
+assert( IsOrdered() );
+assert( r.IsOrdered() );
+HalfSegment hsl;
+for( int i = 0; i < Size(); i++ )
+{
+  Get( i, hsl );
+  if( hsl.IsLeftDomPoint() )
+  {
+    if( !r.Contains( hsl ) )
+      return false;
+  }
+}
+return true;
 }
 
 bool Line::Adjacent( const Region& r ) const
 {
-  assert( IsDefined() );
-  assert( r.IsDefined() );
-  if( IsEmpty() || r.IsEmpty() )
-    return false;
+assert( IsDefined() );
+assert( r.IsDefined() );
+if( IsEmpty() || r.IsEmpty() )
+  return false;
 
-  if( !BoundingBox().Intersects( r.BoundingBox() ) )
-    return false;
+if( !BoundingBox().Intersects( r.BoundingBox() ) )
+  return false;
 
-  assert( IsOrdered() );
-  assert( r.IsOrdered() );
-  HalfSegment hsl, hsr;
-  bool found = false;
-  for( int i = 0; i < Size(); i++ )
+assert( IsOrdered() );
+assert( r.IsOrdered() );
+HalfSegment hsl, hsr;
+bool found = false;
+for( int i = 0; i < Size(); i++ )
+{
+  Get( i, hsl );
+  if( hsl.IsLeftDomPoint() )
   {
-    Get( i, hsl );
-    if( hsl.IsLeftDomPoint() )
+    if( r.InnerContains( hsl.GetLeftPoint() ) ||
+        r.InnerContains( hsl.GetRightPoint() ) )
+      return false;
+
+    for( int j = 0; j < r.Size(); j++ )
     {
-      if( r.InnerContains( hsl.GetLeftPoint() ) ||
-          r.InnerContains( hsl.GetRightPoint() ) )
-        return false;
-
-      for( int j = 0; j < r.Size(); j++ )
+      r.Get( j, hsr );
+      if( hsr.IsLeftDomPoint() )
       {
-        r.Get( j, hsr );
-        if( hsr.IsLeftDomPoint() )
-        {
-          if( !hsr.Intersects( hsl ) )
-            continue;
+        if( !hsr.Intersects( hsl ) )
+          continue;
 
-          found = true;
+        found = true;
 
-          if( hsr.Crosses( hsl ) )
-            return false;
-        }
+        if( hsr.Crosses( hsl ) )
+          return false;
       }
     }
   }
-  return found;
+}
+return found;
 }
 
 
 void Line::Intersection(const Point& p, Points& result)const {
-   result.Clear();
-   if(!IsDefined() || !p.IsDefined()){
-     result.SetDefined(false);
-     return;
-   }
-   result.SetDefined(true);
-   if(this->Contains(p)){
-     result += p;
-   }
+ result.Clear();
+ if(!IsDefined() || !p.IsDefined()){
+   result.SetDefined(false);
+   return;
+ }
+ result.SetDefined(true);
+ if(this->Contains(p)){
+   result += p;
+ }
 }
 
 void Line::Intersection(const Points& ps, Points& result) const{
-  // naive implementation, should be changed to be faster
-   result.Clear();
-   if(!IsDefined() || !ps.IsDefined()){
-     result.SetDefined(false);
-     return;
+// naive implementation, should be changed to be faster
+ result.Clear();
+ if(!IsDefined() || !ps.IsDefined()){
+   result.SetDefined(false);
+   return;
+ }
+ Point p;
+ result.StartBulkLoad();
+ for(int i=0;i<ps.Size(); i++){
+   ps.Get(i,p);
+   if(this->Contains(p)){
+      result += p;
    }
-   Point p;
-   result.StartBulkLoad();
-   for(int i=0;i<ps.Size(); i++){
-     ps.Get(i,p);
-     if(this->Contains(p)){
-        result += p;
-     }
-   }
-   result.EndBulkLoad(false,false,false);
+ }
+ result.EndBulkLoad(false,false,false);
 }
 
 
 void Line::Intersection( const Line& l, Line& result ) const
 {
-  SetOp(*this,l,result,avlseg::intersection_op);
+SetOp(*this,l,result,avlseg::intersection_op);
 }
 
 void Line::Intersection(const Region& r, Line& result) const{
-   r.Intersection(*this,result);
+ r.Intersection(*this,result);
 }
 
 void Line::Minus(const Point& p, Line& result) const {
-  result.Clear();
-  if(!IsDefined() || !p.IsDefined()){
-    result.SetDefined(false);
-    return;
-  }
-  result.CopyFrom(this);
+result.Clear();
+if(!IsDefined() || !p.IsDefined()){
+  result.SetDefined(false);
+  return;
+}
+result.CopyFrom(this);
 }
 
 void Line::Minus(const Points& ps, Line& result) const {
-  result.Clear();
-  if(!IsDefined() || !ps.IsDefined()){
-    result.SetDefined(false);
-    return;
-  }
-  result.CopyFrom(this);
+result.Clear();
+if(!IsDefined() || !ps.IsDefined()){
+  result.SetDefined(false);
+  return;
+}
+result.CopyFrom(this);
 }
 
 void Line::Minus(const Line& line, Line& result) const{
-   SetOp(*this,line,result,avlseg::difference_op);
+ SetOp(*this,line,result,avlseg::difference_op);
 }
 
 void Line::Minus(const Region& region, Line& result) const{
-   SetOp(*this,region, result,avlseg::difference_op);
+ SetOp(*this,region, result,avlseg::difference_op);
 }
 
 
 void Line::Union(const Point& p, Line& result) const{
-  result.Clear();
-  if(!IsDefined() || !p.IsDefined()){
-    result.SetDefined(false);
-    return;
-  }
-  result.CopyFrom(this);
+result.Clear();
+if(!IsDefined() || !p.IsDefined()){
+  result.SetDefined(false);
+  return;
+}
+result.CopyFrom(this);
 }
 
 void Line::Union(const Points& ps, Line& result) const{
-  result.Clear();
-  if(!IsDefined() || !ps.IsDefined()){
-    result.SetDefined(false);
-    return;
-  }
-  result.CopyFrom(this);
+result.Clear();
+if(!IsDefined() || !ps.IsDefined()){
+  result.SetDefined(false);
+  return;
+}
+result.CopyFrom(this);
 }
 
 void Line::Union(const Line& line, Line& result) const{
-   SetOp(*this, line, result, avlseg::union_op);
+ SetOp(*this, line, result, avlseg::union_op);
 }
 
 void Line::Union(const Region& region, Region& result) const{
-   region.Union(*this,result);
+ region.Union(*this,result);
 }
 
 
@@ -4470,335 +4606,335 @@ void Line::Union(const Region& region, Region& result) const{
 
 void Line::Crossings( const Line& l, Points& result ) const
 {
-  result.Clear();
-  if( !IsDefined() || !l.IsDefined() ) {
-    result.SetDefined( false );
-    return;
-  }
-  result.SetDefined( true );
+result.Clear();
+if( !IsDefined() || !l.IsDefined() ) {
+  result.SetDefined( false );
+  return;
+}
+result.SetDefined( true );
 
-  if( IsEmpty() || l.IsEmpty() )
-    return;
+if( IsEmpty() || l.IsEmpty() )
+  return;
 
-  assert( IsOrdered() );
-  assert( l.IsOrdered() );
-  HalfSegment hs1, hs2;
-  Point p;
-  result.StartBulkLoad();
-  for( int i = 0; i < Size(); i++ )
+assert( IsOrdered() );
+assert( l.IsOrdered() );
+HalfSegment hs1, hs2;
+Point p;
+result.StartBulkLoad();
+for( int i = 0; i < Size(); i++ )
+{
+  Get( i, hs1 );
+
+  if( hs1.IsLeftDomPoint() )
   {
-    Get( i, hs1 );
-
-    if( hs1.IsLeftDomPoint() )
+    for( int j = 0; j < l.Size(); j++ )
     {
-      for( int j = 0; j < l.Size(); j++ )
-      {
-        l.Get( j, hs2 );
+      l.Get( j, hs2 );
 
-        if( hs2.IsLeftDomPoint() )
-        {
-          if( hs1.Intersection( hs2, p ) )
-            result += p;
-        }
+      if( hs2.IsLeftDomPoint() )
+      {
+        if( hs1.Intersection( hs2, p ) )
+          result += p;
       }
     }
   }
-  result.EndBulkLoad(true, true); // sort and remove duplicates
+}
+result.EndBulkLoad(true, true); // sort and remove duplicates
 }
 
 void Line::Crossings(Points& result) const{
 
-  result.Clear();
-  if(!IsDefined()){
-     result.SetDefined(false);
-     return;
-  }
-  result.SetDefined(true);
-  int i = 0;
-  int size = Size();
-  Point lastPoint(false);
-  HalfSegment hs;
-  Point p;
-  int count = 0;
-  result.StartBulkLoad();
-  while(i<size){
-     Get(i,hs);
-     p = hs.GetDomPoint();
-     i++;
-     if(!lastPoint.IsDefined()){ // first point
-        lastPoint = p;
-        count = 0;
-     } else if(AlmostEqual(lastPoint,p)){
-       count++;
-     } else {
-       if(count>2){ // crossing found
-         result += p;
-       }
-       lastPoint = p;
-       count = 1;
+result.Clear();
+if(!IsDefined()){
+   result.SetDefined(false);
+   return;
+}
+result.SetDefined(true);
+int i = 0;
+int size = Size();
+Point lastPoint(false);
+HalfSegment hs;
+Point p;
+int count = 0;
+result.StartBulkLoad();
+while(i<size){
+   Get(i,hs);
+   p = hs.GetDomPoint();
+   i++;
+   if(!lastPoint.IsDefined()){ // first point
+      lastPoint = p;
+      count = 0;
+   } else if(AlmostEqual(lastPoint,p)){
+     count++;
+   } else {
+     if(count>2){ // crossing found
+       result += p;
      }
-  }
-  if(lastPoint.IsDefined() && count>2){
-     result += lastPoint;
-  }
-  result.EndBulkLoad();
+     lastPoint = p;
+     count = 1;
+   }
+}
+if(lastPoint.IsDefined() && count>2){
+   result += lastPoint;
+}
+result.EndBulkLoad();
 }
 
 
 
 double Line::Distance( const Point& p ) const
 {
-  assert( !IsEmpty() );
-  assert( p.IsDefined() );
-  if( IsEmpty() || !p.IsDefined()){
-    return -1;
-  }
+assert( !IsEmpty() );
+assert( p.IsDefined() );
+if( IsEmpty() || !p.IsDefined()){
+  return -1;
+}
 
-  assert( IsOrdered() );
-  HalfSegment hs;
-  double result = numeric_limits<double>::max();
+assert( IsOrdered() );
+HalfSegment hs;
+double result = numeric_limits<double>::max();
 
-  for( int i = 0; i < Size(); i++ )
+for( int i = 0; i < Size(); i++ )
+{
+  Get( i, hs );
+
+  if( hs.IsLeftDomPoint() )
   {
-    Get( i, hs );
+    if( hs.Contains( p ) )
+      return 0.0;
 
-    if( hs.IsLeftDomPoint() )
-    {
-      if( hs.Contains( p ) )
-        return 0.0;
-
-      result = MIN( result, hs.Distance( p ) );
-    }
+    result = MIN( result, hs.Distance( p ) );
   }
-  return result;
+}
+return result;
 }
 double Line::MaxDistance( const Point& p ) const
 {
-  assert( !IsEmpty() );
-  assert( p.IsDefined() );
-  if( IsEmpty() || !p.IsDefined()){
-    return -1;
-  }
+assert( !IsEmpty() );
+assert( p.IsDefined() );
+if( IsEmpty() || !p.IsDefined()){
+  return -1;
+}
 
-  assert( IsOrdered() );
-  HalfSegment hs;
-  double result = 0;
+assert( IsOrdered() );
+HalfSegment hs;
+double result = 0;
 
-  for( int i = 0; i < Size(); i++ )
+for( int i = 0; i < Size(); i++ )
+{
+  Get( i, hs );
+
+  if( hs.IsLeftDomPoint() )
   {
-    Get( i, hs );
-
-    if( hs.IsLeftDomPoint() )
-    {
-      result = MAX( result, hs.Distance( p ) );
-    }
+    result = MAX( result, hs.Distance( p ) );
   }
-  return result;
+}
+return result;
 }
 double Line::Distance( const Points& ps ) const
 {
-  assert( !IsEmpty() ); // includes !undef
-  assert( !ps.IsEmpty() ); // includes !undef
-  if( IsEmpty() || ps.IsEmpty()){
-    return -1;
-  }
+assert( !IsEmpty() ); // includes !undef
+assert( !ps.IsEmpty() ); // includes !undef
+if( IsEmpty() || ps.IsEmpty()){
+  return -1;
+}
 
-  assert( IsOrdered() );
-  assert( ps.IsOrdered() );
-  HalfSegment hs;
-  Point p;
-  double result = numeric_limits<double>::max();
+assert( IsOrdered() );
+assert( ps.IsOrdered() );
+HalfSegment hs;
+Point p;
+double result = numeric_limits<double>::max();
 
-  for( int i = 0; i < Size(); i++ )
+for( int i = 0; i < Size(); i++ )
+{
+  Get( i, hs );
+
+  if( hs.IsLeftDomPoint() )
   {
-    Get( i, hs );
-
-    if( hs.IsLeftDomPoint() )
+    for( int j = 0; j < ps.Size(); j++ )
     {
-      for( int j = 0; j < ps.Size(); j++ )
-      {
-        ps.Get( j, p );
-        if( hs.Contains( p ) )
-          return 0;
-        result = MIN( result, hs.Distance( p ) );
-      }
+      ps.Get( j, p );
+      if( hs.Contains( p ) )
+        return 0;
+      result = MIN( result, hs.Distance( p ) );
     }
   }
-  return result;
+}
+return result;
 }
 
 double Line::Distance( const Line& l ) const
 {
-  assert( !IsEmpty() );   // includes !undef
-  assert( !l.IsEmpty() ); // includes !undef
-  if( IsEmpty() || l.IsEmpty()){
-    return -1;
-  }
+assert( !IsEmpty() );   // includes !undef
+assert( !l.IsEmpty() ); // includes !undef
+if( IsEmpty() || l.IsEmpty()){
+  return -1;
+}
 
-  assert( IsOrdered() );
-  assert( l.IsOrdered() );
-  HalfSegment hs1, hs2;
-  double result = numeric_limits<double>::max();
+assert( IsOrdered() );
+assert( l.IsOrdered() );
+HalfSegment hs1, hs2;
+double result = numeric_limits<double>::max();
 
-  for( int i = 0; i < Size(); i++ )
+for( int i = 0; i < Size(); i++ )
+{
+  Get( i, hs1 );
+
+  if( hs1.IsLeftDomPoint() )
   {
-    Get( i, hs1 );
-
-    if( hs1.IsLeftDomPoint() )
+    for( int j = 0; j < l.Size(); j++ )
     {
-      for( int j = 0; j < l.Size(); j++ )
-      {
-        l.Get( j, hs2 );
+      l.Get( j, hs2 );
 
-        if( hs1.Intersects( hs2 ) )
-          return 0.0;
+      if( hs1.Intersects( hs2 ) )
+        return 0.0;
 
-        result = MIN( result, hs1.Distance( hs2 ) );
-      }
+      result = MIN( result, hs1.Distance( hs2 ) );
     }
   }
-  return result;
+}
+return result;
 }
 
 double Line::Distance( const Rectangle<2>& r ) const {
-  assert( !IsEmpty() ); // includes !undef
-  assert( IsOrdered() );
-  assert( r.IsDefined() );
+assert( !IsEmpty() ); // includes !undef
+assert( IsOrdered() );
+assert( r.IsDefined() );
 
-  if( IsEmpty() || !r.IsDefined()){
-    return -1;
-  }
-  assert( IsOrdered() );
-  HalfSegment hs;
-  double dist = numeric_limits<double>::max();
-  for(int i=0; i < line.Size() && dist>0; i++){
-     line.Get(i,hs);
-     if(hs.IsLeftDomPoint()){
-       double d = hs.Distance(r);
-       if(d<dist){
-          dist = d;
-       }
+if( IsEmpty() || !r.IsDefined()){
+  return -1;
+}
+assert( IsOrdered() );
+HalfSegment hs;
+double dist = numeric_limits<double>::max();
+for(int i=0; i < line.Size() && dist>0; i++){
+   line.Get(i,hs);
+   if(hs.IsLeftDomPoint()){
+     double d = hs.Distance(r);
+     if(d<dist){
+        dist = d;
      }
-  }
-  return dist;
+   }
+}
+return dist;
 }
 double Line::MaxDistance( const Rectangle<2>& r ) const
 {
-  assert( !IsEmpty() ); // includes !undef
-  assert( r.IsDefined() );
+assert( !IsEmpty() ); // includes !undef
+assert( r.IsDefined() );
 
-  if( IsEmpty() || !r.IsDefined()){
-    return -1;
-  }
-  assert( IsOrdered() );
-  HalfSegment hs;
-  double dist = 0;
-  for(int i=0; i < line.Size(); i++){
-     line.Get(i,hs);
-     if(hs.IsLeftDomPoint()){
-       double d = hs.MaxDistance(r);
-       if(d > dist){
-          dist = d;
-       }
+if( IsEmpty() || !r.IsDefined()){
+  return -1;
+}
+assert( IsOrdered() );
+HalfSegment hs;
+double dist = 0;
+for(int i=0; i < line.Size(); i++){
+   line.Get(i,hs);
+   if(hs.IsLeftDomPoint()){
+     double d = hs.MaxDistance(r);
+     if(d > dist){
+        dist = d;
      }
-  }
-  return dist;
+   }
+}
+return dist;
 }
 
 int Line::NoComponents() const
 {
-  return noComponents;
+return noComponents;
 }
 
 void Line::Translate( const Coord& x, const Coord& y, Line& result ) const
 {
-  result.Clear();
-  if(!IsDefined()){
-    result.SetDefined(false);
-    return;
-  }
-  result.SetDefined(true);
+result.Clear();
+if(!IsDefined()){
+  result.SetDefined(false);
+  return;
+}
+result.SetDefined(true);
 
-  assert( IsOrdered() );
-  result.Resize(this->Size());
-  result.bbox = this->bbox;
-  HalfSegment hs;
-  for( int i = 0; i < Size(); i++ )
-  {
-    Get( i, hs );
-    hs.Translate( x, y );
-    result.line.Put(i,hs);
-  }
+assert( IsOrdered() );
+result.Resize(this->Size());
+result.bbox = this->bbox;
+HalfSegment hs;
+for( int i = 0; i < Size(); i++ )
+{
+  Get( i, hs );
+  hs.Translate( x, y );
+  result.line.Put(i,hs);
+}
 }
 
 void Line::Rotate( const Coord& x, const Coord& y,
-                   const double alpha,
-                   Line& result ) const
+                 const double alpha,
+                 Line& result ) const
 {
-  result.Clear();
-  if(!IsDefined()){
-     result.SetDefined(false);
-     return;
-  }
-  result.Resize(Size());
-  result.SetDefined(true);
+result.Clear();
+if(!IsDefined()){
+   result.SetDefined(false);
+   return;
+}
+result.Resize(Size());
+result.SetDefined(true);
 
-  double s = sin(alpha);
-  double c = cos(alpha);
+double s = sin(alpha);
+double c = cos(alpha);
 
-  double m00 = c;
-  double m01 = -s;
-  double m02 = x - x*c + y*s;
-  double m10 = s;
-  double m11 = c;
-  double m12 = y - x*s-y*c;
+double m00 = c;
+double m01 = -s;
+double m02 = x - x*c + y*s;
+double m10 = s;
+double m11 = c;
+double m12 = y - x*s-y*c;
 
 
-  result.StartBulkLoad();
-  HalfSegment hso;
-  Point p1;
-  Point p2;
+result.StartBulkLoad();
+HalfSegment hso;
+Point p1;
+Point p2;
 
-  for( int i = 0; i < Size(); i++ )
-  {
-    Get( i, hso );
-    p1.Set( m00*hso.GetLeftPoint().GetX()
-            + m01*hso.GetLeftPoint().GetY() + m02,
-            m10*hso.GetLeftPoint().GetX()
-           + m11*hso.GetLeftPoint().GetY() + m12);
-    p2.Set( m00*hso.GetRightPoint().GetX()
-             + m01*hso.GetRightPoint().GetY() + m02,
-             m10*hso.GetRightPoint().GetX()
-             + m11*hso.GetRightPoint().GetY() + m12);
+for( int i = 0; i < Size(); i++ )
+{
+  Get( i, hso );
+  p1.Set( m00*hso.GetLeftPoint().GetX()
+          + m01*hso.GetLeftPoint().GetY() + m02,
+          m10*hso.GetLeftPoint().GetX()
+         + m11*hso.GetLeftPoint().GetY() + m12);
+  p2.Set( m00*hso.GetRightPoint().GetX()
+           + m01*hso.GetRightPoint().GetY() + m02,
+           m10*hso.GetRightPoint().GetX()
+           + m11*hso.GetRightPoint().GetY() + m12);
 
-    HalfSegment hsr(hso); // ensure to copy attr;
-    hsr.Set(hso.IsLeftDomPoint(),p1,p2);
-    result += hsr;
-  }
-  result.EndBulkLoad(); // reordering may be required
+  HalfSegment hsr(hso); // ensure to copy attr;
+  hsr.Set(hso.IsLeftDomPoint(),p1,p2);
+  result += hsr;
+}
+result.EndBulkLoad(); // reordering may be required
 
 }
 
 void Line::Transform( Region& result ) const
 {
-  result.Clear();
-  if( !IsDefined() ){
-    result.SetDefined( false );
-    return;
+result.Clear();
+if( !IsDefined() ){
+  result.SetDefined( false );
+  return;
+}
+result.SetDefined( true );
+if( !IsEmpty() ) {
+  assert( IsOrdered() );
+  HalfSegment hs;
+  result.StartBulkLoad();
+  for( int i = 0; i < Size(); i++ )
+  {
+    Get( i, hs );
+    result += hs;
   }
-  result.SetDefined( true );
-  if( !IsEmpty() ) {
-    assert( IsOrdered() );
-    HalfSegment hs;
-    result.StartBulkLoad();
-    for( int i = 0; i < Size(); i++ )
-    {
-      Get( i, hs );
-      result += hs;
-    }
-    result.SetNoComponents( NoComponents() );
-    result.EndBulkLoad();
-  }
+  result.SetNoComponents( NoComponents() );
+  result.EndBulkLoad();
+}
 }
 
 
@@ -4809,41 +4945,41 @@ segments degenerated to single points.
 
 */
 static double maxDist(vector<Point>& orig, // points
-                      int min, int max, // range
-                      int& index){  // resultindex
+                    int min, int max, // range
+                    int& index){  // resultindex
 
-  // search the point with the largest distance to the segment between
-  // orig[min] and orig[max]
-  double maxdist = 0.0;
-  int maxindex = -1;
+// search the point with the largest distance to the segment between
+// orig[min] and orig[max]
+double maxdist = 0.0;
+int maxindex = -1;
 
-  try{
-    if(!AlmostEqual(orig.at(min),orig.at(max))){
-      HalfSegment hs(true,orig.at(min),orig.at(max));
-      for(int i=min+1; i<max; i++){
-        double dist = hs.Distance(orig.at(i));
-        if(dist>maxdist){
-          maxdist = dist;
-          maxindex = i;
-        }
-      }
-   } else { // special case of a cycle
-      Point p = orig[min];
-      for(int i=min+1; i<max; i++){
-        double dist = p.Distance(orig.at(i));
-        if(dist>maxdist){
-          maxdist = dist;
-          maxindex = i;
-        }
+try{
+  if(!AlmostEqual(orig.at(min),orig.at(max))){
+    HalfSegment hs(true,orig.at(min),orig.at(max));
+    for(int i=min+1; i<max; i++){
+      double dist = hs.Distance(orig.at(i));
+      if(dist>maxdist){
+        maxdist = dist;
+        maxindex = i;
       }
     }
-    index = maxindex;
-    return maxdist;
-  } catch (out_of_range){
-      cerr << "min=" << min << " max=" << max << " size="
-           << orig.size() << endl;
-      assert(false);
+ } else { // special case of a cycle
+    Point p = orig[min];
+    for(int i=min+1; i<max; i++){
+      double dist = p.Distance(orig.at(i));
+      if(dist>maxdist){
+        maxdist = dist;
+        maxindex = i;
+      }
+    }
   }
+  index = maxindex;
+  return maxdist;
+} catch (out_of_range){
+    cerr << "min=" << min << " max=" << max << " size="
+         << orig.size() << endl;
+    assert(false);
+}
 }
 
 
@@ -4856,318 +4992,318 @@ used.
 */
 
 static bool douglas_peucker(vector<Point>& orig, // original line
-                       const double epsilon, // maximum derivation
-                       bool* use, // result
-                       int min, int max,
-                       bool force = false){ // current range
+                     const double epsilon, // maximum derivation
+                     bool* use, // result
+                     int min, int max,
+                     bool force = false){ // current range
 // always use the endpoints
 use[min] = true;
 use[max] = true;
 if(min+1>=max){ // no inner points, nothing to do
-  return false;
+return false;
 }
- int index;
- double maxdist = maxDist(orig,min,max,index);
- bool cycle = AlmostEqual(orig[min], orig[max]);
- if((maxdist<=epsilon) &&  // line closed enough
-     !cycle &&  // no degenerated segment
-     !force){
-       return false; // all ok, stop recursion
-   } else {
-     bool ins = douglas_peucker(orig,epsilon,use,min,index,cycle);
-     if(index>=0){
-        douglas_peucker(orig,epsilon,use,index,max,cycle && !ins);
-     }
-     return true;
+int index;
+double maxdist = maxDist(orig,min,max,index);
+bool cycle = AlmostEqual(orig[min], orig[max]);
+if((maxdist<=epsilon) &&  // line closed enough
+   !cycle &&  // no degenerated segment
+   !force){
+     return false; // all ok, stop recursion
+ } else {
+   bool ins = douglas_peucker(orig,epsilon,use,min,index,cycle);
+   if(index>=0){
+      douglas_peucker(orig,epsilon,use,index,max,cycle && !ins);
    }
+   return true;
+ }
 }
 
 
 
 static void  douglas_peucker(vector<Point>& orig, // original chain of points
-                             const double epsilon, // maximum derivation
-                             bool* use){ // result
-  for(unsigned int i=0;i<orig.size();i++){
-     use[i] = false;
-  }
-  // call the recursive implementation
-  douglas_peucker(orig,epsilon, use, 0, orig.size()-1);
+                           const double epsilon, // maximum derivation
+                           bool* use){ // result
+for(unsigned int i=0;i<orig.size();i++){
+   use[i] = false;
+}
+// call the recursive implementation
+douglas_peucker(orig,epsilon, use, 0, orig.size()-1);
 }
 
 
 
 void Line::Simplify(Line& result, const double epsilon,
-                    const Points& importantPoints /*= Points(0)*/ ) const{
-   result.Clear(); // remove old stuff
+                  const Points& importantPoints /*= Points(0)*/ ) const{
+ result.Clear(); // remove old stuff
 
-   if(!IsDefined()){ // this is not defined
-      result.SetDefined(false);
-      return;
-   }
-   result.SetDefined(true);
-   if(epsilon<=0){ // maximum derivation reached in each case
-       result.CopyFrom(this);
-       return;
-   }
-   // at least one immediate point is required to simplify
-   // the line, thus at leat 4 halfsegments are needed.
-   if(Size()<4){
-      result.CopyFrom(this);
-      return;
-   }
-   // an array with the used halfsegments
-   bool used[Size()];
-   for(int i=0;i<Size();i++){
-      used[i] = false;
-   }
+ if(!IsDefined()){ // this is not defined
+    result.SetDefined(false);
+    return;
+ }
+ result.SetDefined(true);
+ if(epsilon<=0){ // maximum derivation reached in each case
+     result.CopyFrom(this);
+     return;
+ }
+ // at least one immediate point is required to simplify
+ // the line, thus at leat 4 halfsegments are needed.
+ if(Size()<4){
+    result.CopyFrom(this);
+    return;
+ }
+ // an array with the used halfsegments
+ bool used[Size()];
+ for(int i=0;i<Size();i++){
+    used[i] = false;
+ }
 
-   vector<Point> forward;
-   vector<Point> backward;
-   vector<Point> complete;
+ vector<Point> forward;
+ vector<Point> backward;
+ vector<Point> complete;
 
-   HalfSegment hs; // current halfsegment
+ HalfSegment hs; // current halfsegment
 
-   result.StartBulkLoad();
-   int pos = 0;
-   int size = Size();
-   int egdeno=0;
-   while(pos<size){
-    // skip all halfsegments in prior runs
-    while(pos<size && used[pos]){
-      pos++;
-    }
+ result.StartBulkLoad();
+ int pos = 0;
+ int size = Size();
+ int egdeno=0;
+ while(pos<size){
+  // skip all halfsegments in prior runs
+  while(pos<size && used[pos]){
+    pos++;
+  }
 
-    if(pos<size){
-       // unused halfsegment found
-       forward.clear();
-       backward.clear();
-       int next = pos;
-       // trace the polyline until it ends or critical point is reached
-       bool done = false;
-       while(!done){
-          used[next]= true;
-          Get(next,hs);
-          forward.push_back(hs.GetDomPoint());
-          int partner = hs.attr.partnerno;
-          used[partner] = true;
-          Get(partner,hs);
-          Point p = hs.GetDomPoint();
-          if(importantPoints.Contains(p)){
-            done = true;
-          }else {
-             int s = max(0,partner-2);
-             int e = min(partner+3,Size());
-             int count =0;
-             HalfSegment tmp;
+  if(pos<size){
+     // unused halfsegment found
+     forward.clear();
+     backward.clear();
+     int next = pos;
+     // trace the polyline until it ends or critical point is reached
+     bool done = false;
+     while(!done){
+        used[next]= true;
+        Get(next,hs);
+        forward.push_back(hs.GetDomPoint());
+        int partner = hs.attr.partnerno;
+        used[partner] = true;
+        Get(partner,hs);
+        Point p = hs.GetDomPoint();
+        if(importantPoints.Contains(p)){
+          done = true;
+        }else {
+           int s = max(0,partner-2);
+           int e = min(partner+3,Size());
+           int count =0;
+           HalfSegment tmp;
 
-             // search around partner for segments with an
-             // equal dominating point.
-            for(int k=s; (k<e) && (count < 2); k++){
-               if(k!=partner){
-                  Get(k,tmp);
-                  Point p2 = tmp.GetDomPoint();
-                  if(AlmostEqual(p,p2)){
-                     count++;
-                     next = k;
-                  }
-               }
-             }
-             done = (count != 1) || used[next];
-          }
-       }
-       forward.push_back(hs.GetDomPoint());
-
-       // check possible enlargement into the other direction
-       next = pos; // start again at pos
-       done = false;
-       do{
-          Get(next,hs);
-          Point p = hs.GetDomPoint();
-          // check whether next has an unique connected segment
-          int s = max(0, next-2);
-          int e = min(next+3,Size());
-          int count = 0;
-          HalfSegment tmp;
-          int partner = 0;
-          // search around next
-          if(importantPoints.Contains(p)){
-            done = true;
-          } else {
-             for(int k=s; (k<e) && (count <2); k++){
-                if(k!=next){
-                   Get(k,tmp);
-                   Point p2 = tmp.GetDomPoint();
-                   if(AlmostEqual(p,p2)){
-                     count++;
-                     partner = k;
-                   }
+           // search around partner for segments with an
+           // equal dominating point.
+          for(int k=s; (k<e) && (count < 2); k++){
+             if(k!=partner){
+                Get(k,tmp);
+                Point p2 = tmp.GetDomPoint();
+                if(AlmostEqual(p,p2)){
+                   count++;
+                   next = k;
                 }
              }
-             done = (count!=1) || used[partner];
-             if(!done){ // extension found
-                 used[partner] = true;
-                 Get(partner,hs);
-                 next = hs.attr.partnerno;
-                 used[next] = true;
-                 Get(next,hs);
-                 backward.push_back(hs.GetDomPoint());
-             }
-         }
-       } while(!done);
-       // connect backward and forward into complete
-       complete.clear();
-       for(int i=backward.size()-1; i>=0; i--){
-         complete.push_back(backward[i]);
-       }
-       for(unsigned int i=0;i<forward.size(); i++){
-         complete.push_back(forward[i]);
-       }
-
-
-       // determine all segments to use and copy them into the result
-       bool use[complete.size()];
-       douglas_peucker(complete,epsilon,use);
-       int size = complete.size();
-       Point last = complete[0];
-       for(int i=1;i<size;i++){
-          if(use[i]){
-             Point p = complete[i];
-             HalfSegment nhs(true,last,p);
-             nhs.attr.edgeno=egdeno;
-             result += nhs;
-             nhs.SetLeftDomPoint(false);
-             result += nhs;
-             egdeno++;
-             last = p;
-          }
-       }
-
+           }
+           done = (count != 1) || used[next];
+        }
      }
+     forward.push_back(hs.GetDomPoint());
+
+     // check possible enlargement into the other direction
+     next = pos; // start again at pos
+     done = false;
+     do{
+        Get(next,hs);
+        Point p = hs.GetDomPoint();
+        // check whether next has an unique connected segment
+        int s = max(0, next-2);
+        int e = min(next+3,Size());
+        int count = 0;
+        HalfSegment tmp;
+        int partner = 0;
+        // search around next
+        if(importantPoints.Contains(p)){
+          done = true;
+        } else {
+           for(int k=s; (k<e) && (count <2); k++){
+              if(k!=next){
+                 Get(k,tmp);
+                 Point p2 = tmp.GetDomPoint();
+                 if(AlmostEqual(p,p2)){
+                   count++;
+                   partner = k;
+                 }
+              }
+           }
+           done = (count!=1) || used[partner];
+           if(!done){ // extension found
+               used[partner] = true;
+               Get(partner,hs);
+               next = hs.attr.partnerno;
+               used[next] = true;
+               Get(next,hs);
+               backward.push_back(hs.GetDomPoint());
+           }
+       }
+     } while(!done);
+     // connect backward and forward into complete
+     complete.clear();
+     for(int i=backward.size()-1; i>=0; i--){
+       complete.push_back(backward[i]);
+     }
+     for(unsigned int i=0;i<forward.size(); i++){
+       complete.push_back(forward[i]);
+     }
+
+
+     // determine all segments to use and copy them into the result
+     bool use[complete.size()];
+     douglas_peucker(complete,epsilon,use);
+     int size = complete.size();
+     Point last = complete[0];
+     for(int i=1;i<size;i++){
+        if(use[i]){
+           Point p = complete[i];
+           HalfSegment nhs(true,last,p);
+           nhs.attr.edgeno=egdeno;
+           result += nhs;
+           nhs.SetLeftDomPoint(false);
+           result += nhs;
+           egdeno++;
+           last = p;
+        }
+     }
+
    }
-   result.EndBulkLoad();
+ }
+ result.EndBulkLoad();
 }
 
 
 void Line::Realminize(){
-   // special case: empty line
-  if(!IsDefined()){
-    line.clean();
-    return;
-  }
+ // special case: empty line
+if(!IsDefined()){
+  line.clean();
+  return;
+}
 
-  Line tmp(0);
-  Realminize2(*this,tmp);
-  *this = tmp;
+Line tmp(0);
+Realminize2(*this,tmp);
+*this = tmp;
 }
 
 void Line::Vertices( Points* result ) const
 {
-  result->Clear();
-  if(!IsDefined()){
-    result->SetDefined(false);
-    return;
-  }
-  result->SetDefined(true);
-  if( IsEmpty() ){
-    return;
-  }
+result->Clear();
+if(!IsDefined()){
+  result->SetDefined(false);
+  return;
+}
+result->SetDefined(true);
+if( IsEmpty() ){
+  return;
+}
 
-  assert( IsOrdered() );
-  HalfSegment hs;
-  result->StartBulkLoad();
-  for( int i = 0; i < Size(); i++ )
-  {
-    Get( i, hs );
-    *result += hs.GetDomPoint();
-  }
-  result->EndBulkLoad( false, true );
+assert( IsOrdered() );
+HalfSegment hs;
+result->StartBulkLoad();
+for( int i = 0; i < Size(); i++ )
+{
+  Get( i, hs );
+  *result += hs.GetDomPoint();
+}
+result->EndBulkLoad( false, true );
 }
 
 void Line::Boundary(Points* result) const{
-  // we assume that the interior of each halfsegment has no
-  // common point with any part of another halfsegment
-  result->Clear();
-  if(!IsDefined()){
-     result->SetDefined(false);
-     return;
-  }
-  result->SetDefined(true);
-  if(IsEmpty()){
-    return;
-  }
-  HalfSegment hs;
-  HalfSegment hs_n; // neighbooring halfsegment
-  Point p;
-  int size = Size();
-  result->StartBulkLoad();
-  for(int i=0;i<size;i++){
-     bool common = false;
-     Get(i,hs);
-     p=hs.GetDomPoint();
-     if(i>0){
-       Get(i-1,hs_n);
-       if(p==hs_n.GetDomPoint()){
-          common=true;
-       }
+// we assume that the interior of each halfsegment has no
+// common point with any part of another halfsegment
+result->Clear();
+if(!IsDefined()){
+   result->SetDefined(false);
+   return;
+}
+result->SetDefined(true);
+if(IsEmpty()){
+  return;
+}
+HalfSegment hs;
+HalfSegment hs_n; // neighbooring halfsegment
+Point p;
+int size = Size();
+result->StartBulkLoad();
+for(int i=0;i<size;i++){
+   bool common = false;
+   Get(i,hs);
+   p=hs.GetDomPoint();
+   if(i>0){
+     Get(i-1,hs_n);
+     if(p==hs_n.GetDomPoint()){
+        common=true;
      }
-     if(i<size-1){
-       Get(i+1,hs_n);
-       if(p==hs_n.GetDomPoint()){
-          common=true;
-       }
+   }
+   if(i<size-1){
+     Get(i+1,hs_n);
+     if(p==hs_n.GetDomPoint()){
+        common=true;
      }
-     if(!common){
-        *result += p;
-     }
-  }
-  result->EndBulkLoad(false,false);
+   }
+   if(!common){
+      *result += p;
+   }
+}
+result->EndBulkLoad(false,false);
 
 }
 
 
 bool Line::Find( const HalfSegment& hs, int& pos, const bool& exact ) const
 {
-  assert( IsDefined() );
-  assert( IsOrdered() );
-  if( exact )
-    return line.Find( &hs, HalfSegmentCompare, pos );
+assert( IsDefined() );
+assert( IsOrdered() );
+if( exact )
   return line.Find( &hs, HalfSegmentCompare, pos );
+return line.Find( &hs, HalfSegmentCompare, pos );
 }
 
 bool Line::Find( const Point& p, int& pos, const bool& exact ) const
 {
-  assert( IsDefined() );
-  assert( p.IsDefined() );
-  assert( IsOrdered() );
-  if( exact )
-    return line.Find( &p, PointHalfSegmentCompare, pos );
-  return line.Find( &p, PointHalfSegmentCompareAlmost, pos );
+assert( IsDefined() );
+assert( p.IsDefined() );
+assert( IsOrdered() );
+if( exact )
+  return line.Find( &p, PointHalfSegmentCompare, pos );
+return line.Find( &p, PointHalfSegmentCompareAlmost, pos );
 }
 
 void Line::SetPartnerNo() {
- if(!IsDefined() || line.Size()==0){
-   return;
- }
- DbArray<int> TMP((line.Size()+1)/2);
+if(!IsDefined() || line.Size()==0){
+ return;
+}
+DbArray<int> TMP((line.Size()+1)/2);
 
- HalfSegment hs1;
- HalfSegment hs2;
- for(int i=0; i<line.Size(); i++){
-    line.Get(i,hs1);
-    if(hs1.IsLeftDomPoint()){
-      TMP.Put(hs1.attr.edgeno, i);
-    } else {
-      int lpp;
-      TMP.Get(hs1.attr.edgeno,lpp);
-      int leftpos = lpp;
-      HalfSegment right = hs1;
-      right.attr.partnerno = leftpos;
-      right.attr.insideAbove = false;
-      right.attr.coverageno = 0;
-      right.attr.cycleno = 0;
-      right.attr.faceno = 0;
-      line.Get(leftpos,hs2);
-      HalfSegment left = hs2;
+HalfSegment hs1;
+HalfSegment hs2;
+for(int i=0; i<line.Size(); i++){
+  line.Get(i,hs1);
+  if(hs1.IsLeftDomPoint()){
+    TMP.Put(hs1.attr.edgeno, i);
+  } else {
+    int lpp;
+    TMP.Get(hs1.attr.edgeno,lpp);
+    int leftpos = lpp;
+    HalfSegment right = hs1;
+    right.attr.partnerno = leftpos;
+    right.attr.insideAbove = false;
+    right.attr.coverageno = 0;
+    right.attr.cycleno = 0;
+    right.attr.faceno = 0;
+    line.Get(leftpos,hs2);
+    HalfSegment left = hs2;
       left.attr.partnerno = i;
       left.attr.insideAbove = false;
       left.attr.coverageno = 0;
@@ -8107,10 +8243,13 @@ void Region::TouchPoints( const Line& l, Points& result ) const
   }
   result.SetDefined( true );
 
-  if( IsEmpty() || l.IsEmpty() )
+  if( IsEmpty() || l.IsEmpty() ) {
     return;
+  }
 
   assert( IsOrdered() && l.IsOrdered() );
+
+
   HalfSegment hs1, hs2;
   Point p;
 
@@ -8127,13 +8266,14 @@ void Region::TouchPoints( const Line& l, Points& result ) const
 
         if( hs2.IsLeftDomPoint() )
         {
-          if( hs1.Intersection( hs2, p ) )
+          if( hs1.Intersection( hs2, p ) ) {
             result += p;
+          }
         }
       }
     }
   }
-  result.EndBulkLoad( true, true );
+  result.EndBulkLoad();
 }
 
 void Region::TouchPoints( const Region& r, Points& result ) const
