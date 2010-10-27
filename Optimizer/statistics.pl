@@ -1351,19 +1351,19 @@ writeStoredSel(Stream) :-
 showSel :-
   storedSel(DB, X, Y),
   replaceCharList(X, XRepl),
-  format('  ~p~16|~p.~p~n',[Y,DB,XRepl]).
+  format('  ~w~16|~w.~w~n',[Y,DB,XRepl]).
 %  write(Y), write('\t\t'), write(DB), write('.'), write(X), nl.
 
 showBBoxSel :-
   storedBBoxSel(DB, X, Y),
   replaceCharList(X, XRepl),
-  format('  ~p~16|~p.~p~n',[Y,DB,XRepl]).
+  format('  ~w~16|~w.~w~n',[Y,DB,XRepl]).
 %  write(Y), write('\t\t'), write(DB), write('.'), write(X), nl.
 
 showBBoxSize :-
   storedBBoxSize(DB, X, Y),
   replaceCharList(X, XRepl),
-  format('  ~p~16|~p.~p~n',[Y,DB,XRepl]).
+  format('  ~w~16|~w.~w~n',[Y,DB,XRepl]).
 %  write(Y), write('\t\t'), write(DB), write('.'), write(X), nl.
 
 :-assert(helpLine(showSels,0,[],'Display known selectivities.')).
@@ -1403,13 +1403,13 @@ writeStoredPET(Stream) :-
 :-assert(helpLine(showPETs,0,[],'Display known predicate evaluation times.')).
 showPETs :-
   write('\nStored predicate costs:\n'),
-  format('  ~p~18|~p~34|~p~n',['Calculated [ms]', 'Measured [ms]','Predicate']),
+  format('  ~w~18|~w~34|~w~n',['Calculated [ms]', 'Measured [ms]','Predicate']),
   findall(_, showPET, _).
 
 showPET :-
   storedPET(DB, P, Calc, Exp),
   replaceCharList(P, PRepl),
-  format('  ~p~18|~p~34|~p.~p~n',[Calc, Exp, DB, PRepl]).
+  format('  ~w~18|~w~34|~w.~w~n',[Calc, Exp, DB, PRepl]).
 
 :-
   dynamic(storedPET/4),
@@ -1449,13 +1449,13 @@ writeStoredPredicateSignature(Stream) :-
                   'Display known predicate signatures.')).
 showStoredPredicateSignatures :-
   write('\nStored predicate signatures:\n'),
-  format('  ~p~12|~p~36|~p~n',['Database','Predicate','Signature']),
+  format('  ~w~12|~w~36|~w~n',['Database','Predicate','Signature']),
   findall(_, showStoredPredicateSignature, _).
 
 showStoredPredicateSignature :-
   storedPredicateSignature(DB, P, S),
   replaceCharList(P, PRepl),
-  format('  ~p~12|~p~36|~p~n',[DB, PRepl, S]).
+  format('  ~w~12|~w~36|~w~n',[DB, PRepl, S]).
 
 
 /*
@@ -2556,11 +2556,11 @@ showSingleAttribute(Rel,Attr) :-
   databaseName(DB),
   storedAttrSize(DB, Rel, Attr, Type, MemSize, CoreSize, LobSize),
   dcName2externalName(Rel:Attr, AttrS),
-  format('\t~p~35|~p~49|~p~60|~p~69|~p~n',
+  format('\t~w~35|~w~49|~w~60|~w~69|~w~n',
   [AttrS, Type, MemSize, CoreSize, LobSize]).
 
 showAllAttributes(Rel) :-
-  format('\t~p~35|~p~49|~p~60|~p~69|~p~n',
+  format('\t~w~35|~w~49|~w~60|~w~69|~w~n',
   ['AttributeName','Type','MemoryFix','DiskCore','DiskLOB']),
   findall(_, showSingleAttribute(Rel, _), _).
 

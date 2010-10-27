@@ -2300,12 +2300,12 @@ types.
 showSingleIndexType :-
   logicalIndexType(LogicalIndexTypeCode, LogicalTypeExpr, _,
                    SupportedAttributeTypeList,_,_,_,_),
-  format('~2|~p~34|~p~44|~p~79|~n',
+  format('~2|~w~34|~w~44|~w~79|~n',
          [LogicalTypeExpr,LogicalIndexTypeCode,SupportedAttributeTypeList]).
 
 showIndexTypes :-
   write('\nAvailable index types:\n'),
-  format('~2|~p~34|~p~44|~p~79|~n',
+  format('~2|~w~34|~w~44|~w~79|~n',
          ['Index Type','Type Code','Supported Key Types']),
   write_list(['  --------------------------------------------------',
               '----------------------------']),nl,
@@ -3156,7 +3156,7 @@ showIndexes :-
   (databaseName(DB)
    -> ( write_list(['\n\nOverview on all Indexes available in database \'',
                     DB,'\':']),nl,
-        format('~p~35|~p~69|~p~n',
+        format('~w~35|~w~69|~w~n',
                ['Index Name', 'Relation:Attribute', 'Logical Index Type']),
         write_list(['---------------------------------------------------',
                     '------------------------------------']),
@@ -3166,7 +3166,7 @@ showIndexes :-
                   dcName2externalName(DCrel,ExtRelName),
                   dcName2externalName(DCrel:DCattr,ExtAttrName),
                   dcName2externalName(DCindexName,ExtIndexName),
-                  format('~p~35|~p~p~p~69|~p~n',
+                  format('~w~35|~w~w~w~69|~w~n',
                          [ExtIndexName, ExtRelName, ':',ExtAttrName,IndexType])
                 ),
                 _)
@@ -3408,7 +3408,7 @@ This predicate lists all index statistics available in the knowledge base
 showIndexStatistics :-
   databaseName(DB),
   write_list(['\nStatistics on Indexes for Database \'',DB,'\':\n']),
-  format('  ~p~40|~p~75|~p~n',['Index Name','Statistic Name','Statistic Value']),
+  format('  ~w~40|~w~75|~w~n',['Index Name','Statistic Name','Statistic Value']),
   write('------------------------------------------------------'),
   write('-----------------------------------------------------\n'),
  findall(_,showIndexStatistics1(DB),_).
@@ -3419,7 +3419,7 @@ showIndexStatistics1(DB) :-
     -> true
     ;  EntryP = Entry
   ),
-  format('  ~p~40|~p~75|~p~n',[DCindexName,Key,EntryP]).
+  format('  ~w~40|~w~75|~w~n',[DCindexName,Key,EntryP]).
 
 /*
 9 Update Indexes And Relations
@@ -4258,11 +4258,11 @@ readSecondoTypeSizes :-
 showOneDatatype :-
   secDatatype(Type, Size, NoFlobs, Pers, Algebra, Kinds),
   findall([NullType,NullVal], nullValue(Type,NullType,NullVal), NullValues),
-  format('~p~20|~p~30|~p~35|~p~40|~p~55|~p~70|~p~n',[Type,Size,NoFlobs,Pers,
+  format('~w~20|~w~30|~w~35|~w~40|~w~55|~w~70|~w~n',[Type,Size,NoFlobs,Pers,
                                          Algebra,Kinds,NullValues]).
 
 showDatatypes :-
-  format('~p~20|~p~30|~p~35|~p~40|~p~55|~p~70|~p~n',
+  format('~w~20|~w~30|~w~35|~w~40|~w~55|~w~70|~w~n',
          ['Type','Size','Flobs','Pers','Algebra','Kinds','NullValues']),
   findall(_, showOneDatatype, _).
 

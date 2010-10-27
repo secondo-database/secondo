@@ -820,7 +820,7 @@ showTuplesRec([], _).
 
 showTuplesRec([H|T], WriteSpec) :-
   showTupleRec(H, WriteSpec), nl,
-  %format('~p~t~+~p~t~+~p~t~+~p~n',H),
+  %format('~w~t~+~w~t~+~w~t~+~w~n',H),
   showTuplesRec(T, WriteSpec).
 
 showTupleRec([], _).
@@ -828,7 +828,7 @@ showTupleRec([], _).
 showTupleRec([H|T], [Wh|Wt]) :-
   %showValue('Wh', Wh),
   writef(Wh, [H]),
-  %format('~p~t ~+~p~t ~+~p~t~ +~p',[H]),
+  %format('~w~t ~+~w~t ~+~w~t~ +~w',[H]),
   showTupleRec(T, Wt).
 
 showHeader(L, WriteSpec) :-
