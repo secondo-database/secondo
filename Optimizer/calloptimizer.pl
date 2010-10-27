@@ -526,7 +526,7 @@ showOption([Option|Y]) :-
        ; write(' ')
   ),
   write(']    '),
-  format('~p:~30|~p~n',[Option, Text]),
+  format('~w:~30|~w~n',[Option, Text]),
   showSubOptions(Option),
   showOption(Y), !.
 
@@ -539,7 +539,7 @@ showSubOption(Super,[Option|Y]) :-
        ; write(' ')
   ),
   write(') '),
-  format('~p:~30|~p~n',[Option, Text]),
+  format('~w:~30|~w~n',[Option, Text]),
   showSubOption(Super,Y), !.
 
 showSubOptions(Super) :-
