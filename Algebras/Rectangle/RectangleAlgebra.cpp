@@ -1849,13 +1849,22 @@ struct CellGrid{
     }
 
     //set the LBX, LBY, RTX, RTY;
-    LBX = static_cast<int>(floor( ((lbx - x0) / xWidth)) + 0.5);
-    LBY = static_cast<int>(floor( ((lby - y0) / yWidth)) + 0.5);
+    if(AlmostEqual(0.0, ((lbx - x0) / xWidth))){
+      LBX = 0;
+    } else {
+       LBX = static_cast<int>(floor( ((lbx - x0) / xWidth)));
+    }
+    if(AlmostEqual(0.0,((lby - y0) / yWidth))){
+      LBY=0;
+    } else {
+      LBY = static_cast<int>(floor( ((lby - y0) / yWidth)));
+    }
 
-    if (is3D)
-      LBZ = static_cast<int>(floor(((lbz - z0) / zWidth)) + 0.5);
-    else
+    if (is3D && !AlmostEqual(0.0,((lbz - z0) / zWidth))){
+      LBZ = static_cast<int>(floor(((lbz - z0) / zWidth)));
+    } else { 
       LBZ = 0;
+    }
 
     // A rectangle's top edge belongs to the lower cell,
     // its right edge belongs to the lefter cell,
