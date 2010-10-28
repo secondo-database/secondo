@@ -896,38 +896,6 @@ downcase_first(Atom, Res) :-
   name(Res, L).
 
 
-/*
-2.2 The built in predicate ~portray~
-
-Pretty printing of user defined operators. The built in dynamic predicate
-~portray/1~ is used by the ~print~ predicate. It can be used to define how
-Terms should be typed. We use this to add spaces for prefix infix and postfix
-operators.
-
-*/
-
-
-portray(Term) :-
-  Term =.. [F | [Arg1, Arg2] ],
-  atomic(F),
-  current_op(_, xfx, F),
-  print(Arg1), write(' '), write(F), write(' '), print(Arg2).
-
-portray(Term) :-
-  Term =.. [F | Arg1],
-  atomic(F),
-  current_op(_, fx, F),
-  write(F), write(' '), print(Arg1).
-
-portray(Term) :-
-  Term =.. [F | Arg1],
-  atomic(F),
-  current_op(_, xf, F),
-  print(Arg1), write(' '), write(F).
-
-portray(Term) :-
-  write(Term).
-
 
 /*
 2.3 ~subList/3~
