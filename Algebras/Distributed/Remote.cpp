@@ -66,6 +66,10 @@ DServer::DServer(string n_host,int n_port,string n_name,ListExpr n_type)
         if(server!=0 && server->IsOk())
         {
                 iostream& iosock = server->GetSocketStream();
+<<<<<<< Remote.cpp
+                //csp = new CSProtocol(nl, iosock);
+                getline( iosock, line );cout << line << endl;
+=======
 
                 getline( iosock, line );
                 
@@ -142,8 +146,8 @@ void DServer::run()
                 extractIds(type,algID,typID);
                 string daten;
                 
-                
-      
+		TypeConstructor* t = am->GetTC(algID,typID);
+		
                 do {
                 if(!nl->IsAtom(arg)) akt = nl->First(arg);
                 else akt = arg;
@@ -155,6 +159,20 @@ void DServer::run()
                      " = " + "receiveD(" + HostIP_ + ",p" + port + ")";
                 
                 
+		if(t->NumOfFLOBs() > 0)
+		{
+			Attribute* a = static_cast<Attribute*>
+						((am->Cast(algID,typID))
+						((elements[arg2]).addr));
+			Flob* f = a->GetFLOB(0);
+			
+			SmiSize si = f->getSize();
+			char* buf = new char[si];
+			
+			f->read(buf,si,0);
+			
+		}	
+			
                 iosock << "<Secondo>" << endl << "1" << endl << "delete r" 
                         << name << toString_d(arg2)  << endl << "</Secondo>" 
                         << endl;
@@ -200,9 +218,37 @@ void DServer::run()
                 char* buffer = new char[size]; 
                 rec.Read(buffer,size,0);
                 
+		//size = (size_t)am->SizeOfObj(algID,typID);
+		//void* buffer = elements[arg2].addr;
                 cbsock << "<SIZE>" << endl << size << endl << "</SIZE>" << endl;
                 
                 worker->Write(buffer,size);
+		//delete buffer;
+		
+		Attribute* a;
+		if(t->NumOfFLOBs() > 0 ) 
+			a = static_cast<Attribute*>((am->Cast(algID,typID))
+						((elements[arg2]).addr));
+		for(int i = 0; i < t->NumOfFLOBs(); i++)
+		{
+			Flob* f = a->GetFLOB(i);
+			
+			SmiSize si = f->getSize();
+			int n_blocks = si / 1024 + 1;
+			char* buf = new char[n_blocks*1024];
+			memset(buf,0,1024*n_blocks);
+			
+			f->read(buf,si,0);
+			
+			cbsock << "<FLOB>" << endl << "<SIZE>" << endl 
+					<< si << endl << "</SIZE>" << endl;
+			for(int j = 0; j<n_blocks;j++)
+				worker->Write(buf+j*1024,1024);
+			cbsock << "</FLOB>" << endl;
+		}
+		
+		cbsock << "<CLOSE>" << endl;
+			
                 
                 getline(cbsock,line);
                 if(line!="<FINISH>") cout << "FEHLER";
@@ -286,6 +332,47 @@ void DServer::run()
                      elements[arg2].addr = w.addr;
                      recF.DeleteRecord(recID);
                      recF.Close();
+		      
+		     getline(cbsock,line);
+		     int flobs=0;
+		     while(line=="<FLOB>")
+			{
+				getline(cbsock,line);
+				if(line!="<SIZE>") cout << "ERROR";
+				getline(cbsock,line);
+				SmiSize si = atoi(line.data());
+				getline(cbsock,line);
+				if(line!="</SIZE>") cout << "ERROR";
+				
+				int n_blocks = si / 1024 + 1;
+				char* buf = new char[n_blocks*1024];
+				memset(buf,0,1024*n_blocks);
+				for(int i = 0; i< n_blocks; i++)
+					cbsock.read(buf+1024*i,1024);
+				
+				
+				Attribute* a = static_cast<Attribute*>
+					((am->Cast(algID,typID))(w.addr));
+				
+				
+				Flob*  f = a->GetFLOB(flobs);
+				f->write(buf,si,0);
+				
+				
+				delete buf;
+				
+				getline(cbsock,line);
+				if(line!="</FLOB>") cout << "ERROR";
+				
+				getline(cbsock,line);
+				flobs++;
+				//receive FLOB
+			}
+			
+			if(line!="<CLOSE>") cout << "ERROR";
+                         
+                         iosock << "<FINISH>" << endl;
+			
                     worker->Close();delete worker;worker=0;
 
                 }
