@@ -1170,6 +1170,36 @@ static int sendFun( Word* args,
                          << "</SIZE>" << endl;
 
                     master->Write(buffer,size);
+		    
+		    TypeConstructor* t = am->GetTC(algID,typID);
+		    Attribute* a;
+		    if(t->NumOfFLOBs() > 0 ) 
+			a = static_cast<Attribute*>
+				((am->Cast(algID,typID))(args[2].addr));
+	            for(int i = 0; i < t->NumOfFLOBs(); i++)
+		   {
+			Flob* f = a->GetFLOB(i);
+			
+			SmiSize si = f->getSize();
+			int n_blocks = si / 1024 + 1;
+			char* buf = new char[n_blocks*1024];
+			memset(buf,0,1024*n_blocks);
+			
+			f->read(buf,si,0);
+			
+			iosock << "<FLOB>" << endl 
+			   << "<SIZE>" << endl << si << endl 
+			   << "</SIZE>" << endl;
+			for(int j = 0; j<n_blocks;j++)
+				master->Write(buf+j*1024,1024);
+			iosock << "</FLOB>" << endl;
+		   }
+		
+	       	   iosock << "<CLOSE>" << endl;
+			
+                 
+                   getline(iosock,line);
+                   if(line!="<FINISH>") cout << "FEHLER";
 
                     result = qp->ResultStorage(s);
 
@@ -1304,13 +1334,12 @@ static int receiveFun( Word* args,
                     getline(iosock,line);
                     if(line=="</SIZE>")
                     {
-                         char* buffer = new char[size]; 
+                        
+			
+			char* buffer = new char[size]; 
                          iosock.read(buffer,size);
-                         
-                         iosock << "<FINISH>" << endl;
-
-
-                         SmiRecordFile recF(false,0);
+			
+			 SmiRecordFile recF(false,0);
                          SmiRecord rec;
                          SmiRecordId recID;
                     
@@ -1322,13 +1351,56 @@ static int receiveFun( Word* args,
                          Word w;
                          result = qp->ResultStorage(s);
                          am->OpenObj(algID,typID,rec,s0,type,w); 
-
+		
                          result.addr = w.addr;
-
                          rec.Truncate(3);
                          recF.DeleteRecord(recID);
                          recF.Close();
+			 getline(iosock,line);
+			
+			
+			int flobs = 0;    
+			while(line=="<FLOB>")
+			{
+				getline(iosock,line);
+				if(line!="<SIZE>") cout << "ERROR";
+				getline(iosock,line);
+				SmiSize si = atoi(line.data());
+				getline(iosock,line);
+				if(line!="</SIZE>") cout << "ERROR";
+				
+				int n_blocks = si / 1024 + 1;
+				char* buf = new char[n_blocks*1024];
+				memset(buf,0,1024*n_blocks);
+				for(int i = 0; i< n_blocks; i++)
+					iosock.read(buf+1024*i,1024);
+				
+				cout << "Blockzahl: " << toString_d(n_blocks) 
+					<< endl;
+				cout << "Testdaten: " << 
+					toString_d((int)buf[2345]) << endl;
+				
+				Attribute* a = static_cast<Attribute*>
+					((am->Cast(algID,typID))(result.addr));
+				
+				
+				Flob*  f = a->GetFLOB(flobs);
+				f->write(buf,si,0);
+				
+				delete buf;
+				
+				getline(iosock,line);
+				if(line!="</FLOB>") cout << "ERROR";
+				
+				getline(iosock,line);
+				flobs++;
+				//receive FLOB
+			}
+			
+			if(line!="<CLOSE>") cout << "ERROR";
                          
+                         iosock << "<FINISH>" << endl;
+
                          
                     }}
                     
