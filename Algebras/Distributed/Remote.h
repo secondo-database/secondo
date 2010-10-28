@@ -50,7 +50,7 @@ class DServer
                   DServer(string,int,string,ListExpr);
                   void Terminate();
 
-                  void setCmd(string,ListExpr,Word*);
+                  void setCmd(string,list<int>*,Word*);
                   void run();
                   
                           
@@ -64,7 +64,9 @@ class DServer
          private:
                   string host,name,cmd;
                   int port;
-                  ListExpr type,arg;
+                  ListExpr type;
+                  list<int>* arg;
+         
                   Word* elements;
 
                   Socket* server;
@@ -89,7 +91,7 @@ class DServerManager
                int getMultipleServerIndex(int index);
                 
 
-                ListExpr getIndexList(int id);
+                list<int>* getIndexList(int id);
                 ListExpr getNamedIndexList(int id);
         
                 int getNoOfServers();
@@ -117,9 +119,9 @@ class RelationWriter : public ZThread::Runnable
 {
      DServer* worker;
      Word* elements;
-     ListExpr arg;
+     list<int>* arg;
      public:
-     RelationWriter(DServer* s, Word* e, ListExpr a) 
+     RelationWriter(DServer* s, Word* e, list<int>* a) 
      {worker=s; elements = e; arg = a;}
      
      void run();

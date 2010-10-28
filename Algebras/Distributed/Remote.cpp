@@ -66,10 +66,6 @@ DServer::DServer(string n_host,int n_port,string n_name,ListExpr n_type)
         if(server!=0 && server->IsOk())
         {
                 iostream& iosock = server->GetSocketStream();
-<<<<<<< Remote.cpp
-                //csp = new CSProtocol(nl, iosock);
-                getline( iosock, line );cout << line << endl;
-=======
 
                 getline( iosock, line );
                 
@@ -126,7 +122,7 @@ void DServer::Terminate()
         }
 }
 
-void DServer::setCmd(string n_cmd, ListExpr n_arg,Word* n_array)
+void DServer::setCmd(string n_cmd, list<int>* n_arg,Word* n_array)
 {
         
         cmd = n_cmd;
@@ -138,7 +134,7 @@ void DServer::run()
 {
 
         int arg2;
-        ListExpr akt;
+        //ListExpr akt;
         
         if(cmd=="write")
         {
@@ -148,14 +144,17 @@ void DServer::run()
                 
 		TypeConstructor* t = am->GetTC(algID,typID);
 		
-                do {
-                if(!nl->IsAtom(arg)) akt = nl->First(arg);
+                while(!arg->empty())
+               {
+                /*if(!nl->IsAtom(arg)) akt = nl->First(arg);
                 else akt = arg;
-                arg2 = nl->IntValue(akt);
+                arg2 = nl->IntValue(akt);*/
+               arg2 = arg->front();
+               arg->pop_front();
         
                 iostream& iosock = server->GetSocketStream();
                string port =toString_d((1800+arg2)); 
-               string com = "let r" + name + nl->ToString(akt) + 
+               string com = "let r" + name + toString_d(arg2) + 
                      " = " + "receiveD(" + HostIP_ + ",p" + port + ")";
                 
                 
@@ -269,9 +268,9 @@ void DServer::run()
                 
                 else cout << "DATENFEHLER";
                 
-                if(!nl->IsAtom(arg) && !nl->IsEmpty(arg)) arg = nl->Rest(arg);
+                //if(!nl->IsAtom(arg) && !nl->IsEmpty(arg)) arg = nl->Rest(arg);
                 }
-                while(/*!nl->IsAtom(arg) &&*/ !nl->IsEmpty(arg));
+                //while(/*!nl->IsAtom(arg) &&*/ !nl->IsEmpty(arg));
                 
         }
         
@@ -282,11 +281,15 @@ void DServer::run()
                 
                 string daten;
                 
-                do {
-                if(!nl->IsAtom(arg)) akt = nl->First(arg);
+                while(!arg->empty())
+               {
+                /*if(!nl->IsAtom(arg)) akt = nl->First(arg);
                 else akt = arg;
-                arg2 = nl->IntValue(akt);
-                ListExpr ls;string port =toString_d((1500+arg2));
+                arg2 = nl->IntValue(akt);*/
+                ListExpr ls;
+               arg2 = arg->front();
+               arg->pop_front();
+               string port =toString_d((1500+arg2));
                 
                 iostream& iosock = server->GetSocketStream();
                 iosock << "<Secondo>" << endl << "1" << endl 
@@ -398,18 +401,20 @@ void DServer::run()
                 }
                 else cout << "DATENFEHLER LESEN";
                 
-                if(!nl->IsAtom(arg) && !nl->IsEmpty(arg)) arg = nl->Rest(arg);
+                //if(!nl->IsAtom(arg) && !nl->IsEmpty(arg)) arg = nl->Rest(arg);
                 }
-                while(!nl->IsAtom(arg) && !nl->IsEmpty(arg));
+                //while(!nl->IsAtom(arg) && !nl->IsEmpty(arg));
          }
         
         if(cmd=="delete")
         {
-                do
+                while(!arg->empty())
                 {
-                    if(!nl->IsAtom(arg)) akt=nl->First(arg);
+                    /*if(!nl->IsAtom(arg)) akt=nl->First(arg);
                      else akt = arg;
-                     arg2 = nl->IntValue(akt);
+                     arg2 = nl->IntValue(akt);*/
+                   arg2 = arg->front();
+                   arg->pop_front();
 
                string line;
                 iostream& iosock = server->GetSocketStream();
@@ -419,9 +424,9 @@ void DServer::run()
                 do
                                 getline(iosock,line);
                         while(line.find("</SecondoResponse>") == string::npos);
-                if(!nl->IsAtom(arg) && !nl->IsEmpty(arg)) arg = nl->Rest(arg);
+                //if(!nl->IsAtom(arg) && !nl->IsEmpty(arg)) arg = nl->Rest(arg);
                 }
-                while(!nl->IsAtom(arg) && !nl->IsEmpty(arg));
+                //while(!nl->IsAtom(arg) && !nl->IsEmpty(arg));
           
         }
         
@@ -429,31 +434,36 @@ void DServer::run()
         {
                 string line;
                 iostream& iosock = server->GetSocketStream();
-                string to = nl->StringValue(nl->First(arg));
-                ListExpr list = nl->Second(arg);
-                
-                while(!nl->IsAtom(list))
+                //string to = nl->StringValue(nl->First(arg));
+                //ListExpr list = nl->Second(arg);
+                string to = ((string*)(elements[0].addr))->data();
+               
+           
+                //while(!nl->IsAtom(list))
+            while(!arg->empty())
                 {
+                        arg2 = arg->front();
+                        arg->pop_front();
                         string cmd;
-                        cmd = "let r" + to + nl->ToString(nl->First(list))
+                        cmd = "let r" + to + nl->ToString(arg2)
                                         + " = r" + name 
-                                        + nl->ToString(nl->First(list));
+                                        + nl->ToString(arg2);
                         iosock << "<Secondo>" << endl << "1" << endl 
                                 << cmd<< endl << "</Secondo>" << endl;
-                        list = nl->Rest(list);
+                        //list = nl->Rest(list);
                         do
                         {getline(iosock,line); }
                         while(line.find("</SecondoResponse>") == string::npos);
                 }
                 
-                string cmd;
+                /*string cmd;
                 cmd = "let r" + to + nl->ToString(list) + " = r" 
                                 + name + nl->ToString(list);
                 iosock << "<Secondo>" << endl << "1" << endl << cmd 
                                 << endl << "</Secondo>" << endl;
                 do
                 {getline(iosock,line);}
-                        while(line.find("</SecondoResponse>") == string::npos);
+		while(line.find("</SecondoResponse>") == string::npos);*/
                 
                         
         }
@@ -462,26 +472,31 @@ void DServer::run()
         {
                 string line;
                 iostream& iosock = server->GetSocketStream();
-                string to = nl->StringValue(nl->First(nl->First(arg)));
-                string com = nl->StringValue(nl->Second(nl->First(arg)));
-                ListExpr list = nl->Second(arg);
+                string to = ((string*)(elements[0].addr))->data();
+		// nl->StringValue(nl->First(nl->First(arg)));
+                string com = ((string*)(elements[1].addr))->data();
+		// nl->StringValue(nl->Second(nl->First(arg)));
+                //ListExpr list = nl->Second(arg);
                 
-                while(!nl->IsAtom(list) && !nl->IsEmpty(list))
+                //while(!nl->IsAtom(list) && !nl->IsEmpty(list))
+                 while(!arg->empty())
                 {
+                        arg2 = arg->front();
+                        arg->pop_front();
                         string cmd;
                         string com_a = replaceAll(com,".","r" + name
-                         + nl->ToString(nl->First(list)));
-                        cmd = "let r" + to + nl->ToString(nl->First(list))
+                         + toString_d(arg2));
+                        cmd = "let r" + to + nl->ToString(arg2)
                                         + " = " + com_a;
                         iosock << "<Secondo>" << endl << "1" << endl 
                                 << cmd<< endl << "</Secondo>" << endl;
-                        list = nl->Rest(list);
+                        //list = nl->Rest(list);
                         do
                         {getline(iosock,line); }
                         while(line.find("</SecondoResponse>") == string::npos);
                 }
                 
-                string cmd;
+                /*string cmd;
                 string com_a = replaceAll(com,".","r" + name
                                    + nl->ToString(list));
                         cmd = "let r" + to + nl->ToString(list)
@@ -490,7 +505,7 @@ void DServer::run()
                                 << endl << "</Secondo>" << endl;
                 do
                 {getline(iosock,line);}
-                        while(line.find("</SecondoResponse>") == string::npos);
+		while(line.find("</SecondoResponse>") == string::npos);*/
                 
                         
         }
@@ -502,14 +517,15 @@ void DServer::run()
              
              string line;
              iostream& iosock = server->GetSocketStream();
-              int  arg2 = nl->IntValue(arg);
+              //int  arg2 = nl->IntValue(arg);
+              int arg2 = arg->front();
               string port =toString_d((1800+arg2)); 
-               string com = "let r" + name + nl->ToString(arg) + 
+               string com = "let r" + name + toString_d(arg2) + 
                      " = " + "d_receive_rel(" + HostIP_ + ",p" + port + ")";
                 
                 
                 iosock << "<Secondo>" << endl << "1" << endl << "delete r" 
-                        << name << nl->ToString(arg)  << endl << "</Secondo>" 
+                        << name << toString_d(arg2)  << endl << "</Secondo>" 
                         << endl;
                 
                 getline(iosock,line);
@@ -617,12 +633,14 @@ void DServer::run()
                 ListExpr akt;
                 extractIds(type,algID,typID);
           
-          do
+          while(!arg->empty())
           {
-          if(!nl->IsAtom(arg)) akt = nl->First(arg);
-          else akt = arg;
+          //if(!nl->IsAtom(arg)) akt = nl->First(arg);
+          //else akt = arg;
                 
-                arg2 = nl->IntValue(akt);
+                //arg2 = nl->IntValue(akt);
+             arg2 = arg->front();
+             arg->pop_front();
                 string line;        
                 string port =toString_d((1300+arg2));
                 
@@ -703,8 +721,8 @@ void DServer::run()
                 }
                 else cout << "DATENFEHLER LESEN";
           
-          if(!nl->IsEmpty(arg) && !nl->IsAtom(arg)) arg=nl->Rest(arg);
-          }while(!nl->IsEmpty(arg) && !nl->IsAtom(arg));
+          //if(!nl->IsEmpty(arg) && !nl->IsAtom(arg)) arg=nl->Rest(arg);
+          }//while(!nl->IsEmpty(arg) && !nl->IsAtom(arg));
            }
         
                      
@@ -793,12 +811,14 @@ DServer* DServerManager::getServerByIndex(int index)
         return serverlist[index % size];
 }
 
-ListExpr DServerManager::getIndexList(int id)
+list<int>* DServerManager::getIndexList(int id)
 {
-        ListExpr res = nl->TheEmptyList();
+        //ListExpr res = nl->TheEmptyList();
+       list<int>* res = new list<int>;
         for(int i = id; i<array_size; i+=size)
         {
-                res = nl->Cons(nl->IntAtom(i),res);
+                //res = nl->Cons(nl->IntAtom(i),res);
+               res->push_front(i);
         }
         return res;
 }
@@ -826,11 +846,16 @@ void RelationWriter::run()
      ListExpr akt;
      int index;
      
-     do
+     while(!arg->empty())
      { 
-          if(!nl->IsAtom(arg)) akt = nl->First(arg);
+          /*f(!nl->IsAtom(arg)) akt = nl->First(arg);
           else akt = arg;
-          index = nl->IntValue(akt);
+          index = nl->IntValue(akt);*/
+        index = arg->front();
+        arg->pop_front();
+	     
+	list<int>* l = new list<int>;
+         l->push_front(index);
      
      GenericRelation* rel = (Relation*)elements[index].addr;
         GenericRelationIterator* iter = rel->MakeScan();
@@ -843,7 +868,7 @@ void RelationWriter::run()
 
      t = iter->GetNextTuple();
      word[0].addr = t;
-     worker->setCmd("open_write_rel",nl->IntAtom(index),word);
+     worker->setCmd("open_write_rel",l,word);
      worker->run();
      
      while(t != 0)
@@ -851,7 +876,7 @@ void RelationWriter::run()
           
           word[0].addr = t;
           t->IncReference();
-          worker->setCmd("write_rel",nl->TheEmptyList(),word);
+          worker->setCmd("write_rel",0,word);
           
           worker->run();
           t->DeleteIfAllowed();
@@ -860,14 +885,14 @@ void RelationWriter::run()
      
     }
      
-     worker->setCmd("close_write_rel",nl->TheEmptyList(),0);
+     worker->setCmd("close_write_rel",0,0);
      worker->run();
      
      
      delete iter;
      
-     if(!nl->IsAtom(arg) && !nl->IsEmpty(arg)) arg=nl->Rest(arg);
-     }while(!nl->IsAtom(arg) && !nl->IsEmpty(arg));
+     //if(!nl->IsAtom(arg) && !nl->IsEmpty(arg)) arg=nl->Rest(arg);
+     }//while(!nl->IsAtom(arg) && !nl->IsEmpty(arg));
      
 }
                         

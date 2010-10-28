@@ -71,61 +71,64 @@ void extractIds(const ListExpr,int&,int&);
 //Converts int to string
 string toString_d(int i)
 {
-         std::string s;
-         std::stringstream out;
-         out << i;
-         s = out.str();
-         return s;
+   std::string s;
+   std::stringstream out;
+   out << i;
+   s = out.str();
+   return s;
 }
 
 
 //Creates an unique identifier for a new distributed array
 string getArrayName(int number)
 {
-         string t = toString_d(time(0)) + toString_d(number);
-         return t;
+   string t = toString_d(time(0)) + toString_d(number);
+   return t;
 }
 
 //Converts a pair (algID typID) to the corresponding 
 //type name (used by converType)
 ListExpr convertSingleType( ListExpr type)
 {
-     if(nl->ListLength(type) != 2) return nl->SymbolAtom("ERROR");
-     if(!nl->IsAtom(nl->First(type)) || !nl->IsAtom(nl->Second(type)))
-               return nl->SymbolAtom("ERROR");
+   if(nl->ListLength(type) != 2) return nl->SymbolAtom("ERROR");
+      if(!nl->IsAtom(nl->First(type)) || !nl->IsAtom(nl->Second(type)))
+         return nl->SymbolAtom("ERROR");
      
-     int algID, typID;
+   int algID, typID;
      
-     extractIds(type,algID,typID);
+   extractIds(type,algID,typID);
      
-     SecondoCatalog* sc = SecondoSystem::GetCatalog();
-     if(algID < 0 || typID < 0) return nl->SymbolAtom("ERROR");
+   SecondoCatalog* sc = SecondoSystem::GetCatalog();
+   if(algID < 0 || typID < 0) return nl->SymbolAtom("ERROR");
      
-     return nl->SymbolAtom(sc->GetTypeName(algID,typID));
+   return nl->SymbolAtom(sc->GetTypeName(algID,typID));
 }
 
 
 //Converts a numerical type to its text representation
 ListExpr convertType( ListExpr type )
 {
-     ListExpr result,result2; 
+   ListExpr result,result2; 
      
      //Is it not a type expression but an attribute name?
-     if(nl->ListLength(type) < 2)
-     {if(nl->IsAtom(type) || nl->IsEmpty(type)) return type;
-          //Only one element that is not atomic
-          else return convertType(nl->First(type));}
+   if(nl->ListLength(type) < 2)
+   {
+      if(nl->IsAtom(type) || nl->IsEmpty(type)) return type;
+      //Only one element that is not atomic
+      else return convertType(nl->First(type));
+   }
      
      //Single type expression
-     if(nl->ListLength(type) == 2 &&
-          nl->IsAtom(nl->First(type)) &&
-          nl->IsAtom(nl->Second(type)))
-                    return convertSingleType(type);
+   if(nl->ListLength(type) == 2 &&
+         nl->IsAtom(nl->First(type)) &&
+         nl->IsAtom(nl->Second(type)))
+            
+         return convertSingleType(type);
      
-     //It's a list with more than three elements, proceed recursively
-     result = convertType(nl->First(type));
-     result2 = convertType(nl->Rest(type)); 
-     return nl->TwoElemList(result,result2);
+   //It's a list with more than three elements, proceed recursively
+   result = convertType(nl->First(type));
+   result2 = convertType(nl->Rest(type)); 
+   return nl->TwoElemList(result,result2);
 }
 
 
@@ -141,83 +144,83 @@ ListExpr convertType( ListExpr type )
 
 class DArray
 {
-         public:
-         DArray();
-         DArray(ListExpr, string,int,ListExpr);
-         ~DArray();
+   public:
+   DArray();
+   DArray(ListExpr, string,int,ListExpr);
+   ~DArray();
          
-         void initialize(ListExpr, string, int,ListExpr,Word*);
-         void initialize(ListExpr, string,int,ListExpr);
+   void initialize(ListExpr, string, int,ListExpr,Word*);
+   void initialize(ListExpr, string,int,ListExpr);
          
-         //Returns the content of elements[int]
-         Word get(int);
-         //Sets elements[int] and sends the object to the respective worker
-         void set(Word,int);
+   //Returns the content of elements[int]
+   Word get(int);
+   //Sets elements[int] and sends the object to the respective worker
+   void set(Word,int);
          
-         int getSize();
-         int getAlgID();
-         int getTypID();
+   int getSize();
+   int getAlgID();
+   int getTypID();
          
-         DServerManager* getServerManager();
-         ListExpr getServerList();
-         Word* getElements();
+   DServerManager* getServerManager();
+   ListExpr getServerList();
+   Word* getElements();
          
-         bool isDefined();
-         string getName();
-         ListExpr getType();
+   bool isDefined();
+   string getName();
+   ListExpr getType();
          
-         //Retrieves the element int/all elements from the worker
-         //refresh must be called before calling get()
-         void refresh(int);
-         void refresh();
+   //Retrieves the element int/all elements from the worker
+   //refresh must be called before calling get()
+   void refresh(int);
+   void refresh();
          
-         //Deletes all the remote elements on the workers
-         void remove();
+   //Deletes all the remote elements on the workers
+   void remove();
          
-         //Persistens Storage functions for the type constructor
-         static Word In( const ListExpr typeInfo , const ListExpr instance ,
-                                    const int errorPos , ListExpr& errorInfo ,
-                                    bool& correct );
-         static ListExpr Out( ListExpr typeInfo , Word value );
-         static Word Create( const ListExpr typeInfo );
-         static void Delete( const ListExpr typeInfo , Word& w );
-         static void Close( const ListExpr typeInfo, Word& w );
-         static Word Clone( const ListExpr typeInfo , const Word& w );
-         static bool KindCheck( ListExpr type , ListExpr& errorInfo );
-         static int SizeOfObj();
-         static bool Open( SmiRecord& valueRecord ,
-                                  size_t& offset , const ListExpr typeInfo,
-                                             Word& value );
-         static bool Save( SmiRecord& valueRecord , size_t& offset ,
-                                     const ListExpr typeInfo , Word& value );
+   //Persistens Storage functions for the type constructor
+   static Word In( const ListExpr typeInfo , const ListExpr instance ,
+                           const int errorPos , ListExpr& errorInfo ,
+                           bool& correct );
+   static ListExpr Out( ListExpr typeInfo , Word value );
+   static Word Create( const ListExpr typeInfo );
+   static void Delete( const ListExpr typeInfo , Word& w );
+   static void Close( const ListExpr typeInfo, Word& w );
+   static Word Clone( const ListExpr typeInfo , const Word& w );
+   static bool KindCheck( ListExpr type , ListExpr& errorInfo );
+   static int SizeOfObj();
+   static bool Open( SmiRecord& valueRecord ,
+                                 size_t& offset , const ListExpr typeInfo,
+                                 Word& value );
+   static bool Save( SmiRecord& valueRecord , size_t& offset ,
+                                 const ListExpr typeInfo , Word& value );
          
          
-         //Static no of existing DArray-Instances, used for naming
-         static int no;
+   //Static no of existing DArray-Instances, used for naming
+   static int no;
          
-         bool isRelType() {return isRelation;}
+   bool isRelType() {return isRelation;}
          
-         private:
+   private:
               
-         //Sends the relation in elements[index] to the respective worker
-         void WriteRelation(int index);
+   //Sends the relation in elements[index] to the respective worker
+   void WriteRelation(int index);
          
-         //Is the DArray defined (posseses a name, size, serverlist, type?!)
-         bool defined;
-         //Is a certain element present on the master?
-         bool* present;
-         bool isRelation;
-         int size;
-         int alg_id;
-         int typ_id;
-         string name;
-         ListExpr type;
+   //Is the DArray defined (posseses a name, size, serverlist, type?!)
+   bool defined;
+   //Is a certain element present on the master?
+   bool* present;
+   bool isRelation;
+   int size;
+   int alg_id;
+   int typ_id;
+   string name;
+   ListExpr type;
          
-         ListExpr serverlist;
+   ListExpr serverlist;
          
-         DServerManager* manager;
+   DServerManager* manager;
          
-         Word* elements;
+   Word* elements;
          
 };
 
@@ -233,14 +236,14 @@ int DArray::no = 0;
 //Creates an undefined DArray
 DArray::DArray()
 {
-         defined = false;
-         isRelation = false;
-         size=0;
-         alg_id=0;
-         typ_id=0;
-         name="";
-         no++;
-         present = 0;
+   defined = false;
+   isRelation = false;
+   size=0;
+   alg_id=0;
+   typ_id=0;
+   name="";
+   no++;
+   present = 0;
 }
 
 //Creates a defined DArray
@@ -248,33 +251,36 @@ DArray::DArray()
 //It can be defined while all its elements are undefined 
 DArray::DArray(ListExpr n_type, string n, int s, ListExpr n_serverlist)
 {
-         defined = true;
+   defined = true;
          
-         type = n_type;
+   type = n_type;
          
          
          
-         extractIds( type, alg_id, typ_id);
+   extractIds( type, alg_id, typ_id);
      
-         SecondoCatalog* sc = SecondoSystem::GetCatalog();
-         if(sc->GetTypeName(alg_id,typ_id) == "rel") isRelation = true;
-         else isRelation = false;
+   SecondoCatalog* sc = SecondoSystem::GetCatalog();
+   if(sc->GetTypeName(alg_id,typ_id) == "rel") 
+      isRelation = true;
+   else 
+      isRelation = false;
      
           
-         name = n;
+   name = n;
          
-         size = s;
+   size = s;
                   
-         elements = new Word[size];
-         present = new bool[size];
-         //Since no elements are given, none can be present
+   elements = new Word[size];
+   present = new bool[size];
+   //Since no elements are given, none can be present
      
-         for(int i = 0; i<size; i++) present[i] = false;
+   for(int i = 0; i<size; i++) 
+      present[i] = false;
          
-         serverlist = n_serverlist;
-         manager = new DServerManager(serverlist, name,type,size);
+   serverlist = n_serverlist;
+   manager = new DServerManager(serverlist, name,type,size);
          
-         no++;
+   no++;
          
 }
 
@@ -282,91 +288,104 @@ DArray::DArray(ListExpr n_type, string n, int s, ListExpr n_serverlist)
 
 DArray::~DArray()
 {
-         no--;
-         if(defined){
+   no--;
+   if(defined)
+   {
          
-          for(int i=0;i<size;i++)
-          {
-               //Elements that are present on the master are deleted
-               //note that this deletes NOT the Secondo-objects on the workers
-               //they need to be deleted seperately which can be done by
-               //the remove-function
-               if(present[i])
+      for(int i=0;i<size;i++)
+      {
+         //Elements that are present on the master are deleted
+         //note that this deletes NOT the Secondo-objects on the workers
+         //they need to be deleted seperately which can be done by
+         //the remove-function
+         if(present[i])
                (am->DeleteObj(alg_id,typ_id))(type,elements[i]);
-          }
-         delete elements;
+      }
+      delete elements;
          
-         delete manager;}
+      delete manager;
+   }
 }
 
 void DArray::remove()
 {
          
-         if(defined){
-         ZThread::ThreadedExecutor exec;
-         for(int i = 0;i<manager->getNoOfServers();i++)
-         {
-                  DServer* server = manager->getServerbyID(i);
-                  server->setCmd("delete",manager->getIndexList(i),elements);
-                  DServerExecutor* server_ex = new DServerExecutor(server);
-                  exec.execute(server_ex);
-         }
-         exec.wait();
+   if(defined)
+   {
+      ZThread::ThreadedExecutor exec;
+      for(int i = 0;i<manager->getNoOfServers();i++)
+      {
+         DServer* server = manager->getServerbyID(i);
+         server->setCmd("delete",manager->getIndexList(i),elements);
+         DServerExecutor* server_ex = new DServerExecutor(server);
+         exec.execute(server_ex);
       }
+         exec.wait();
+   }
                   
 }
 
 void DArray::refresh(int i)
 {
          
-         DServer* server = manager->getServerByIndex(i);
-         if(isRelation)
-         {
-              if(present[i]) (am->DeleteObj(alg_id,typ_id))(type,elements[i]);
-              elements[i].addr = (am->CreateObj(alg_id,typ_id))(type).addr;
-              server->setCmd("read_rel",nl->IntAtom(i),elements);
-              server->run();
-         }
-         else
-         {
-               server->setCmd("read",nl->IntAtom(i),elements);
-               server->run();
-         }
-      present[i] = true;
+   DServer* server = manager->getServerByIndex(i);
+   list<int>* l = new list<int>;
+   l->push_front(i);
+   
+   if(isRelation)
+   {
+      
+      if(present[i]) 
+         (am->DeleteObj(alg_id,typ_id))(type,elements[i]);
+      
+      elements[i].addr = (am->CreateObj(alg_id,typ_id))(type).addr;
+      server->setCmd("read_rel",l,elements);
+      server->run();
+   }
+   
+   else
+   {
+      server->setCmd("read",l,elements);
+      server->run();
+   }
+   
+   present[i] = true;
 }
+
 
 void DArray::refresh()
 {
-     ZThread::ThreadedExecutor exec;
-     DServerExecutor* server_ex;
+   ZThread::ThreadedExecutor exec;
+   DServerExecutor* server_ex;
      
-     //Elements are deleted if they were present
-     //If the darray has a relation-type new relations must be created
-     for(int i=0;i<size;i++)
-     {
-          if(present[i])
-               (am->DeleteObj(alg_id,typ_id))(type,elements[i]);
-          if(isRelation) 
-               elements[i].addr = 
-               (am->CreateObj(alg_id,typ_id))(type).addr;
-     }
+   //Elements are deleted if they were present
+   //If the darray has a relation-type new relations must be created
+   for(int i=0;i<size;i++)
+   {
+      if(present[i])
+         (am->DeleteObj(alg_id,typ_id))(type,elements[i]);
+      
+      if(isRelation) 
+         elements[i].addr = (am->CreateObj(alg_id,typ_id))(type).addr;
+   }
      
      
-     for(int i = 0; i < manager->getNoOfServers(); i++)
-     {
-          DServer* server = manager->getServerbyID(i);
-          if(isRelation)
-         {
-              server->setCmd("read_rel",manager->getIndexList(i),elements);
-         }
-         else
-         {
-               server->setCmd("read",manager->getIndexList(i),elements);
-         }
+   for(int i = 0; i < manager->getNoOfServers(); i++)
+   {
+      DServer* server = manager->getServerbyID(i);
+      if(isRelation)
+      {
+         server->setCmd("read_rel",manager->getIndexList(i),elements);
+      }
+      else
+      {
+         server->setCmd("read",manager->getIndexList(i),elements);
+      }
           
-         server_ex = new DServerExecutor(server);
-         exec.execute(server_ex);
-     }
+      server_ex = new DServerExecutor(server);
+      exec.execute(server_ex);
+   }
+   
     exec.wait();
     
      //All elements are present now
@@ -377,50 +396,55 @@ void DArray::refresh()
 void DArray::initialize(ListExpr n_type, string n, int s,
                                   ListExpr n_serverlist, Word* n_elem)
 {
-     defined = true;
+   defined = true;
          
-     type = n_type;
+   type = n_type;
          
-     extractIds( type , alg_id, typ_id);
+   extractIds( type , alg_id, typ_id);
      
-     SecondoCatalog* sc = SecondoSystem::GetCatalog();
-     if(sc->GetTypeName(alg_id,typ_id) == "rel") isRelation = true;
-     else isRelation = false;
+   SecondoCatalog* sc = SecondoSystem::GetCatalog();
+   
+   if(sc->GetTypeName(alg_id,typ_id) == "rel") 
+      isRelation = true;
+   else 
+      isRelation = false;
      
-     name = n;
+   name = n;
          
-     size = s;
+   size = s;
          
-     serverlist = n_serverlist;
+   serverlist = n_serverlist;
         
-     manager = new DServerManager(serverlist, name,type,size);
+   manager = new DServerManager(serverlist, name,type,size);
          
-     elements = n_elem;
-     present = new bool[size];
-     for(int i = 0; i<size; i++) present[i] = true;
+   elements = n_elem;
+   present = new bool[size];
+   
+   for(int i = 0; i<size; i++)
+      present[i] = true;
 
       
-     ZThread::ThreadedExecutor exec;
+   ZThread::ThreadedExecutor exec;
      
-     if(!isRelation)
-     {
+   if(!isRelation)
+   {
          
-          for(int i = 0; i<manager->getNoOfServers();i++)
-         {
+      for(int i = 0; i<manager->getNoOfServers();i++)
+      {
 
-                 DServer* server = manager->getServerbyID(i);
-                 server->setCmd("write",manager->getIndexList(i),elements);
-                 DServerExecutor* server_exec = new DServerExecutor(server);
-                 exec.execute(server_exec);
-          }
-     }
-     else
-          for(int i= 0;i<manager->getNoOfServers();i++)
-          {
-               RelationWriter* write = new RelationWriter
+         DServer* server = manager->getServerbyID(i);
+         server->setCmd("write",manager->getIndexList(i),elements);
+         DServerExecutor* server_exec = new DServerExecutor(server);
+         exec.execute(server_exec);
+      }
+   }
+   else
+      for(int i= 0;i<manager->getNoOfServers();i++)
+         {
+            RelationWriter* write = new RelationWriter
                (manager->getServerbyID(i),elements,manager->getIndexList(i));
-               exec.execute(write);
-          }
+            exec.execute(write);
+         }
      
      exec.wait();
        
@@ -429,58 +453,65 @@ void DArray::initialize(ListExpr n_type, string n, int s,
 
 void DArray::initialize(ListExpr n_type, string n, int s, ListExpr n_serverlist)
 {
-         defined = true;
+   defined = true;
          
-         type = n_type;
+   type = n_type;
          
-         extractIds( type , alg_id, typ_id);
+   extractIds( type , alg_id, typ_id);
      
-         SecondoCatalog* sc = SecondoSystem::GetCatalog();
-         if(sc->GetTypeName(alg_id,typ_id) == "rel") isRelation = true;
-         else isRelation = false;
+   SecondoCatalog* sc = SecondoSystem::GetCatalog();
+   
+   if(sc->GetTypeName(alg_id,typ_id) == "rel") 
+      isRelation = true;
+   else 
+      isRelation = false;
      
-         name = n;
+   name = n;
          
-         size = s;
+   size = s;
          
-         elements = new Word[size];
-         present = new bool[size];
-         for(int i = 0; i<size; i++) present[i] = false;
+   elements = new Word[size];
+   present = new bool[size];
+   for(int i = 0; i<size; i++) 
+      present[i] = false;
          
-         serverlist = n_serverlist;
-         manager = new DServerManager(serverlist, name,type,size);
+   serverlist = n_serverlist;
+   manager = new DServerManager(serverlist, name,type,size);
 }
 
 
 Word DArray::get(int i) 
 { 
-         if(defined && present[i]) 
-         {
-                 return elements[i];
-         } 
-         else 
-         { 
-                  cout << "Error: Array nicht definiert!!"; return new Word(); 
-         } 
+   if(defined && present[i]) 
+   {
+      return elements[i];
+   } 
+   else 
+   { 
+      cout << "Error: Array nicht definiert!!"; return new Word(); 
+   } 
 }
 
 void DArray::set(Word n_elem, int i) 
 { 
-         if(defined) 
-         {
-                  elements[i].addr = n_elem.addr;
+   list<int>* l = new list<int>;
+   l->push_front(i);
+   
+   if(defined) 
+   {
+      elements[i].addr = n_elem.addr;
               
-                  if(!isRelation)
-                  {
-                    DServer* server = manager->getServerByIndex(i);
-                    server->setCmd("write",nl->IntAtom(i),elements);
-                    server->run();
-                  }
-                  else
-                       WriteRelation(i);
+      if(!isRelation)
+      {
+         DServer* server = manager->getServerByIndex(i);
+         server->setCmd("write",l,elements);
+         server->run();
+      }
+      else
+         WriteRelation(i);
                   
-                  present[i] = true;
-         }
+      present[i] = true;
+   }
 }
 
          
@@ -505,36 +536,39 @@ Word* DArray::getElements() {return elements;}
 
 void DArray::WriteRelation(int index)
 {
-     GenericRelation* rel = (Relation*)elements[index].addr;
-     GenericRelationIterator* iter = rel->MakeScan();
+   GenericRelation* rel = (Relation*)elements[index].addr;
+   GenericRelationIterator* iter = rel->MakeScan();
      
-     DServer* worker = manager->getServerByIndex(index);
+   DServer* worker = manager->getServerByIndex(index);
      
-     Tuple* t;
+   Tuple* t;
+   
+   list<int>* l = new list<int>;
+   l->push_front(index);
      
      
-     Word* word = new Word[1];
+   Word* word = new Word[1];
 
-     t = iter->GetNextTuple();
-     word[0].addr = t;
-     worker->setCmd("open_write_rel",nl->IntAtom(index),word);
-     worker->run();
+   t = iter->GetNextTuple();
+   word[0].addr = t;
+   worker->setCmd("open_write_rel",l,word);
+   worker->run();
      
-     while(t != 0)
-     {
+   while(t != 0)
+   {
           
-          word[0].addr = t;
-          worker->setCmd("write_rel",nl->TheEmptyList(),word);
-          worker->run();
-          t->DeleteIfAllowed();
-          t = iter->GetNextTuple();
-     }
+      word[0].addr = t;
+      worker->setCmd("write_rel",0,word);
+      worker->run();
+      t->DeleteIfAllowed();
+      t = iter->GetNextTuple();
+   }
      
-     worker->setCmd("close_write_rel",nl->TheEmptyList(),0);
-     worker->run();
+   worker->setCmd("close_write_rel",0,0);
+   worker->run();
      
      
-     delete iter;
+   delete iter;
      
 
 }
@@ -552,68 +586,70 @@ Word DArray::In( const ListExpr typeInfo, const ListExpr instance,
                         bool& correct )
 {
          
-         Word e;
-         int algID, typID;
+   Word e;
+   int algID, typID;
          
-         extractIds(nl->Second(typeInfo),algID,typID);
-         DArray* a = new DArray(nl->Second(typeInfo),
-                                                      getArrayName(DArray::no), 
-                                                      nl->ListLength(instance),
-                                                      nl->First(instance));
-         ListExpr listOfElements = nl->Rest(instance);
-         ListExpr element;
-         int i = 0;
+   extractIds(nl->Second(typeInfo),algID,typID);
+   DArray* a = new DArray(nl->Second(typeInfo),
+                                          getArrayName(DArray::no), 
+                                          nl->ListLength(instance),
+                                          nl->First(instance));
+   
+   ListExpr listOfElements = nl->Rest(instance);
+   ListExpr element;
+   int i = 0;
          
-         do
-         {
-                  element = nl->First(listOfElements);
-                  listOfElements = nl->Rest(listOfElements);
-                  e = ((am->InObj(algID,typID))
-                           (nl->Second(typeInfo),element,
-                           errorPos,errorInfo,correct));
-                  a->set(e,i);
-                  i++;
-         }
-         while(!nl->IsEmpty(listOfElements) && correct);
+   do
+   {
+      element = nl->First(listOfElements);
+      listOfElements = nl->Rest(listOfElements);
+      e = ((am->InObj(algID,typID))
+               (nl->Second(typeInfo),element,errorPos,errorInfo,correct));
+      
+      a->set(e,i);
+      i++;
+   }
+   while(!nl->IsEmpty(listOfElements) && correct);
          
-         if(correct)
-         {
-                  return SetWord(a);
-         }
+   if(correct)
+   {
+      return SetWord(a);
+   }
          
-         correct=false;
-         return SetWord(Address(0));
+   correct=false;
+   return SetWord(Address(0));
          
          
 }
 
+
 ListExpr DArray::Out( ListExpr typeInfo, Word value )
 {
-         DArray* a = (DArray*)value.addr;
+   DArray* a = (DArray*)value.addr;
          
-         ListExpr list;
-         ListExpr last;
-         ListExpr element;
-         list = nl->OneElemList(a->getServerList());
-         last=list;
-         a->refresh();
+   ListExpr list;
+   ListExpr last;
+   ListExpr element;
+   list = nl->OneElemList(a->getServerList());
+   last=list;
+   a->refresh();
          
-         if(a->isDefined())
-                  for(int i = 0; i<a->getSize();i++)
-                  {
-                         element = ((am->OutObj(a->getAlgID(),a->getTypID()))
-                                             (nl->Second(typeInfo),a->get(i)));
-                         last=nl->Append(last,element);
-                  }
+   if(a->isDefined())
+      for(int i = 0; i<a->getSize();i++)
+      {
+         element = ((am->OutObj(a->getAlgID(),a->getTypID()))
+                              (nl->Second(typeInfo),a->get(i)));
+         last=nl->Append(last,element);
+      }
                            
-         else 
-         {
-                  cout << "Fehler! DArray nicht definiert oder Relation";
-                  ListExpr err = nl->StringAtom("RELATION, KEINE AUSGABE");
-                  return err;
-         }
+   else 
+   {
+      cout << "Fehler! DArray nicht definiert oder Relation";
+      ListExpr err = nl->StringAtom("RELATION, KEINE AUSGABE");
+      return err;
+   }
          
-         return list;
+   return list;
 }
 
 
@@ -626,7 +662,7 @@ ListExpr DArray::Out( ListExpr typeInfo, Word value )
 
 Word DArray::Create( const ListExpr typeInfo )
 {
-     return SetWord(new DArray());
+   return SetWord(new DArray());
 }
                   
          
@@ -636,15 +672,15 @@ Word DArray::Create( const ListExpr typeInfo )
 
 void DArray::Delete( const ListExpr typeInfo, Word& w )
 {
-     ((DArray*)w.addr)->remove();
-     delete (DArray*)w.addr;
-     w.addr = 0;
+   ((DArray*)w.addr)->remove();
+    delete (DArray*)w.addr;
+   w.addr = 0;
 }
 
 void DArray::Close( const ListExpr typeInfo, Word& w )
 {
-     delete (DArray*)w.addr;
-     w.addr = 0;
+   delete (DArray*)w.addr;
+   w.addr = 0;
 }
 
 //A new DArray is created locally with the same type, size and serverlist
@@ -652,25 +688,34 @@ void DArray::Close( const ListExpr typeInfo, Word& w )
 //on the workers
 Word DArray::Clone( const ListExpr typeInfo, const Word& w )
 {
-         DArray* alt = (DArray*)w.addr;
-         DArray* neu;
+   DArray* alt = (DArray*)w.addr;
+   DArray* neu;
          
-         neu = new DArray(nl->Second(typeInfo),
-                                             getArrayName(DArray::no),
-                                             alt->getSize(),
-                                             alt->getServerList());
+   neu = new DArray(nl->Second(typeInfo),
+                                 getArrayName(DArray::no),
+                                 alt->getSize(),
+                                 alt->getServerList());
                   
-         for(int i =0;i<alt->getSize();i++)
-         {
-                  ListExpr arg = nl->TwoElemList(nl->StringAtom(neu->getName()),
-                                                           nl->IntAtom(i));
-                  alt->getServerManager()->getServerByIndex(i)
-                        ->setCmd("copy",arg,neu->getElements());
-                  alt->getServerManager()->getServerByIndex(i)->run();
-         }
+   for(int i =0;i<alt->getSize();i++)
+   {
+      ListExpr arg = nl->TwoElemList(nl->StringAtom(neu->getName()),
+                                                         nl->IntAtom(i));
+      
+      list<int>* l = new list<int>;
+      l->push_front(i);
+      
+      string to = neu->getName();
+      Word* w = new Word[0];
+      w[0].addr = &to;
+
+      alt->getServerManager()->getServerByIndex(i)
+                  ->setCmd("copy",l,w);
+      
+      alt->getServerManager()->getServerByIndex(i)->run();
+   }
          
 
-         return SetWord(neu);
+   return SetWord(neu);
 }
 
 
@@ -679,47 +724,47 @@ bool DArray::Open( SmiRecord& valueRecord ,
                                     const ListExpr typeInfo , 
                                     Word& value )
 {
-         char* buffer;
-         string name, type, server;
-         int length;
-         int size;
+   char* buffer;
+   string name, type, server;
+   int length;
+   int size;
          
-         valueRecord.Read(&size,sizeof(int),offset);
-         offset+=sizeof(int);
+   valueRecord.Read(&size,sizeof(int),offset);
+   offset+=sizeof(int);
          
-         valueRecord.Read(&length, sizeof(length), offset);
-         offset += sizeof(length);
-         buffer = new char[length];
-         valueRecord.Read(buffer, length, offset);
-         offset += length;
-         type.assign(buffer, length);
-         delete buffer;
+   valueRecord.Read(&length, sizeof(length), offset);
+   offset += sizeof(length);
+   buffer = new char[length];
+   valueRecord.Read(buffer, length, offset);
+   offset += length;
+   type.assign(buffer, length);
+   delete buffer;
         
-         valueRecord.Read(&length, sizeof(length), offset);
-         offset += sizeof(length);
-         buffer = new char[length];
-         valueRecord.Read(buffer, length, offset);
-         offset += length;
-         server.assign(buffer, length);
-         delete buffer;
+   valueRecord.Read(&length, sizeof(length), offset);
+   offset += sizeof(length);
+   buffer = new char[length];
+   valueRecord.Read(buffer, length, offset);
+   offset += length;
+   server.assign(buffer, length);
+   delete buffer;
          
-         valueRecord.Read(&length, sizeof(length), offset);
-         offset += sizeof(length);
-         buffer = new char[length];
-         valueRecord.Read(buffer, length, offset);
-         offset += length;
-         name.assign(buffer, length);
-         delete buffer;
+   valueRecord.Read(&length, sizeof(length), offset);
+   offset += sizeof(length);
+   buffer = new char[length];
+   valueRecord.Read(buffer, length, offset);
+   offset += length;
+   name.assign(buffer, length);
+   delete buffer;
          
-         ListExpr typeList;
-         nl->ReadFromString( type, typeList);
+   ListExpr typeList;
+   nl->ReadFromString( type, typeList);
          
-         ListExpr serverlist;
-         nl->ReadFromString(server,serverlist);
+   ListExpr serverlist;
+   nl->ReadFromString(server,serverlist);
          
                   
-         value.addr = ((Word)new DArray(typeList,name,size,serverlist)).addr;
-         return true;
+   value.addr = ((Word)new DArray(typeList,name,size,serverlist)).addr;
+   return true;
 }
 
 bool DArray::Save( SmiRecord& valueRecord ,
@@ -727,39 +772,39 @@ bool DArray::Save( SmiRecord& valueRecord ,
                                     const ListExpr typeInfo , 
                                     Word& value )
 {
-         int length;
-         int size = ((DArray*)value.addr)->getSize();
+   int length;
+   int size = ((DArray*)value.addr)->getSize();
          
-         valueRecord.Write(&size, sizeof(int),offset);
-         offset+=sizeof(int);
+   valueRecord.Write(&size, sizeof(int),offset);
+   offset+=sizeof(int);
         
-         string type;
-         nl->WriteToString( type, nl->Second(typeInfo) );
-         length = type.length();
-         valueRecord.Write( &length, sizeof(length), offset);
-         offset += sizeof(length);
-         valueRecord.Write ( type.data(), length, offset);
-         offset += length;
+   string type;
+   nl->WriteToString( type, nl->Second(typeInfo) );
+   length = type.length();
+   valueRecord.Write( &length, sizeof(length), offset);
+   offset += sizeof(length);
+   valueRecord.Write ( type.data(), length, offset);
+   offset += length;
         
-         string server;
-         nl->WriteToString( server, ((DArray*)value.addr)->getServerList());
-         length = server.length();
-         valueRecord.Write( &length, sizeof(length), offset);
-         offset += sizeof(length);
-         valueRecord.Write ( server.data(), length, offset);
-         offset += length;
+   string server;
+   nl->WriteToString( server, ((DArray*)value.addr)->getServerList());
+   length = server.length();
+   valueRecord.Write( &length, sizeof(length), offset);
+   offset += sizeof(length);
+   valueRecord.Write ( server.data(), length, offset);
+   offset += length;
          
-         string name = ((DArray*)value.addr)->getName();
-         length = name.length();
+   string name = ((DArray*)value.addr)->getName();
+   length = name.length();
          
-         valueRecord.Write( &length, sizeof(length), offset);
-         offset += sizeof(length);
-         valueRecord.Write ( name.data(), length, offset);
-         offset += length;
+   valueRecord.Write( &length, sizeof(length), offset);
+   offset += sizeof(length);
+   valueRecord.Write ( name.data(), length, offset);
+   offset += length;
          
          
          
-         return true;
+   return true;
 }
 
 /*
@@ -770,20 +815,21 @@ bool DArray::Save( SmiRecord& valueRecord ,
 
 bool DArray::KindCheck( ListExpr type, ListExpr& errorInfo )
 {
-         if(nl->ListLength(type) == 2)
-         {
-                  if(nl->IsEqual(nl->First(type),"darray"))
-                  {
+   if(nl->ListLength(type) == 2)
+   {
+      if(nl->IsEqual(nl->First(type),"darray"))
+      {
                   
-                           SecondoCatalog* sc = SecondoSystem::GetCatalog();
-                           if(sc->KindCorrect(nl->Second(type),errorInfo))
-                           {
-                                    return true;
-                           }
-                  }
-         }
+         SecondoCatalog* sc = SecondoSystem::GetCatalog();
          
-         return false;
+         if(sc->KindCorrect(nl->Second(type),errorInfo))
+         {
+            return true;
+         }
+      }
+   }
+         
+   return false;
          
 }
          
@@ -791,7 +837,7 @@ bool DArray::KindCheck( ListExpr type, ListExpr& errorInfo )
 
 int DArray::SizeOfObj()
 {
-         return sizeof(DArray);
+   return sizeof(DArray);
 }
 
 
@@ -801,21 +847,24 @@ int DArray::SizeOfObj()
 
 */
 
-struct darrayInfo : ConstructorInfo {
+struct darrayInfo : ConstructorInfo 
+{
 
-  darrayInfo() {
+   darrayInfo()
+   {
 
-    name         = "darray";
-    signature    = "typeconstructor -> ARRAY" ;
-    typeExample  = "darray int";
-    listRep      =  "(a1 a2 a3)";
-    valueExample = "(4 12 2 8)";
-    remarks      = "A darray keeps all its element on remote systems";
-  }
+      name         = "darray";
+      signature    = "typeconstructor -> ARRAY" ;
+      typeExample  = "darray int";
+      listRep      =  "(a1 a2 a3)";
+      valueExample = "(4 12 2 8)";
+      remarks      = "A darray keeps all its element on remote systems";
+   }
 };
 
 
-struct darrayFunctions : ConstructorFunctions<DArray> {
+struct darrayFunctions : ConstructorFunctions<DArray> 
+{
 
   darrayFunctions()
   {
@@ -855,61 +904,63 @@ Typemap (t t t...) -> darray t
 
 */
 
-static ListExpr
-makeDarrayTypeMap( ListExpr args )
+static ListExpr makeDarrayTypeMap( ListExpr args )
 {
-         ListExpr slist = nl->First(args);
-         if(nl->ToString(slist) != "(rel (tuple ((Server string) (Port int))))")
-                 return nl->SymbolAtom("typeerror");
-         args = nl->Rest(args);
-         ListExpr first = nl->First(args);
-         ListExpr rest = nl->Rest(args);
-         while(!(nl->IsEmpty(rest)))
-         {
-                  if(!nl->Equal(nl->First(rest),first))
-                           return nl->SymbolAtom("typeerror");
-                  rest = nl->Rest(rest);
-         }
-         return nl->TwoElemList(nl->SymbolAtom("darray"),nl->First(args));
+   ListExpr slist = nl->First(args);
+   if(nl->ToString(slist) != "(rel (tuple ((Server string) (Port int))))")
+      return nl->SymbolAtom("typeerror");
+   
+   args = nl->Rest(args);
+   ListExpr first = nl->First(args);
+   ListExpr rest = nl->Rest(args);
+   while(!(nl->IsEmpty(rest)))
+   {
+      if(!nl->Equal(nl->First(rest),first))
+         return nl->SymbolAtom("typeerror");
+      
+      rest = nl->Rest(rest);
+   }
+         
+   return nl->TwoElemList(nl->SymbolAtom("darray"),nl->First(args));
+
 }
 
-static int
+static int 
 makeDarrayfun( Word* args, Word& result, int message, Word& local, Supplier s )
 {
-     SecondoCatalog* sc = SecondoSystem::GetCatalog();         
+   SecondoCatalog* sc = SecondoSystem::GetCatalog();         
 
-     ListExpr type = qp->GetType(s);
-     ListExpr typeOfElement = sc->NumericType(nl->Second(type));
+   ListExpr type = qp->GetType(s);
+   ListExpr typeOfElement = sc->NumericType(nl->Second(type));
           
 
-     int algID, typID;
-     extractIds( typeOfElement, algID, typID);
+   int algID, typID;
+   extractIds( typeOfElement, algID, typID);
          
-     int size = qp->GetNoSons(s)-1;
+    int size = qp->GetNoSons(s)-1;
         
-     Word* cloned = new Word[size];
+   Word* cloned = new Word[size];
        
-     //Objects need to be cloned to be persistent after the query ends
-     for(int i = 0;i<size;i++)
-     {                  
-          cloned[i] = (am->CloneObj(algID,typID))(typeOfElement,args[i+1]);
-     }
+   //Objects need to be cloned to be persistent after the query ends
+   for(int i = 0;i<size;i++)
+   {                  
+      cloned[i] = (am->CloneObj(algID,typID))(typeOfElement,args[i+1]);
+   }
      
-     //Generate serverlist as ListExpr from Relation
-     GenericRelation* r = (GenericRelation*)args[0].addr;
-     GenericRelationIterator* rit = r->MakeScan();
-     ListExpr reltype;
-     nl->ReadFromString("(rel (tuple ((Server string) (Port int))))",
-                                         reltype);
-     ListExpr serverlist = Relation::Out(reltype,rit);
+   //Generate serverlist as ListExpr from Relation
+   GenericRelation* r = (GenericRelation*)args[0].addr;
+   GenericRelationIterator* rit = r->MakeScan();
+   ListExpr reltype;
+   nl->ReadFromString("(rel (tuple ((Server string) (Port int))))",reltype);
+   ListExpr serverlist = Relation::Out(reltype,rit);
 
-     result = qp->ResultStorage(s);
-     ((DArray*)result.addr)->initialize(typeOfElement, 
-                                        getArrayName(DArray::no),
-                                                        size,serverlist,
-                                                                 cloned);
+   result = qp->ResultStorage(s);
+   ((DArray*)result.addr)->initialize(typeOfElement, 
+                                                      getArrayName(DArray::no),
+                                                      size,serverlist,
+                                                      cloned);
      
-     return 0;
+   return 0;
 }
 
 const string makeDarraySpec =
@@ -936,60 +987,60 @@ Operator makeDarray(
 
 static ListExpr getTypeMap( ListExpr args )
 {
-         if(nl->ListLength(args) == 2)
-         {
-                  ListExpr arg1 = nl->First(args);
-                  ListExpr arg2 = nl->Second(args);
+   if(nl->ListLength(args) == 2)
+   {
+      ListExpr arg1 = nl->First(args);
+      ListExpr arg2 = nl->Second(args);
                   
-                  if(!nl->IsAtom(arg1) && 
-                           nl->IsEqual(nl->First(arg1),"darray") &&
-                           nl->IsEqual(arg2,"int"))
-                  {
-                           ListExpr resulttype = nl->Second(arg1);
-                           return resulttype;
-                  }
-         }
+      if(!nl->IsAtom(arg1) && 
+         nl->IsEqual(nl->First(arg1),"darray") &&
+         nl->IsEqual(arg2,"int"))
+      {
+         ListExpr resulttype = nl->Second(arg1);
+         return resulttype;
+      }
+   }
          
-         return nl->SymbolAtom("typeerror");
+   return nl->SymbolAtom("typeerror");
 }
 
 static int getFun( Word* args, 
-                                    Word& result, 
-                                    int message, 
-                                    Word& local, 
-                                    Supplier s)
+                              Word& result, 
+                              int message, 
+                              Word& local, 
+                              Supplier s)
 {
-     DArray* array = ((DArray*)args[0].addr);
-     CcInt* index = ((CcInt*)args[1].addr);
+   DArray* array = ((DArray*)args[0].addr);
+   CcInt* index = ((CcInt*)args[1].addr);
          
-     int i = index->GetIntval();
+   int i = index->GetIntval();
          
-     SecondoCatalog* sc = SecondoSystem::GetCatalog();
-     ListExpr resultType = qp->GetType(s);
+   SecondoCatalog* sc = SecondoSystem::GetCatalog();
+   ListExpr resultType = qp->GetType(s);
 
-     if (nl->ListLength(resultType) > 1) 
-     {
-          if (nl->IsEqual(nl->First(resultType), "map")) 
-          {
-               while (nl->ListLength(resultType) > 1) 
-                    resultType = nl->Rest(resultType);
+   if (nl->ListLength(resultType) > 1) 
+   {
+      if (nl->IsEqual(nl->First(resultType), "map")) 
+      {
+         while (nl->ListLength(resultType) > 1) 
+            resultType = nl->Rest(resultType);
         
-               resultType = nl->First(resultType);
-          }
-    }
+         resultType = nl->First(resultType);
+      }
+   }
     
-    resultType = sc->NumericType(resultType);
+   resultType = sc->NumericType(resultType);
     
-    int algID,typID; 
-    extractIds(resultType,algID,typID);
+   int algID,typID; 
+   extractIds(resultType,algID,typID);
     
-    array->refresh(i);
-    Word cloned = (am->CloneObj(algID,typID))(resultType,(Word)array->get(i));
+   array->refresh(i);
+   Word cloned = (am->CloneObj(algID,typID))(resultType,(Word)array->get(i));
 
-    result = qp->ResultStorage(s);
-    result.addr = cloned.addr;
+   result = qp->ResultStorage(s);
+   result.addr = cloned.addr;
     
-    return 0;
+   return 0;
 }
          
 const string getSpec =
@@ -1017,22 +1068,23 @@ Operator getA(
 
 static ListExpr putTypeMap( ListExpr args )
 {
-         if(nl->ListLength(args) == 3)
-         {
-                  ListExpr arg1 = nl->First(args);
-                  ListExpr arg2 = nl->Second(args);
-                  ListExpr arg3 = nl->Third(args);
+   if(nl->ListLength(args) == 3)
+   {
+      ListExpr arg1 = nl->First(args);
+      ListExpr arg2 = nl->Second(args);
+      ListExpr arg3 = nl->Third(args);
                   
-                 if(!nl->IsAtom(arg1) && nl->IsEqual(nl->First(arg1),"darray")
-                     && nl->Equal(nl->Second(arg1),arg2)  
-                     && nl->IsEqual(arg3,"int"))
-                  {
-                           return arg1;
-                  }
-         }
+      if(!nl->IsAtom(arg1) && nl->IsEqual(nl->First(arg1),"darray")
+         && nl->Equal(nl->Second(arg1),arg2)  
+         && nl->IsEqual(arg3,"int"))
+      {
+         return arg1;
+      }
+   }
          
-         return nl->SymbolAtom("typeerror");
+   return nl->SymbolAtom("typeerror");
 }
+
 
 static int putFun( Word* args,
                                     Word& result,
@@ -1040,44 +1092,54 @@ static int putFun( Word* args,
                                     Word& local,
                                     Supplier s)
 {
-         DArray* array_alt = ((DArray*)args[0].addr);
-         Word element = args[1];
-         int i = ((CcInt*)args[2].addr)->GetIntval();
+   DArray* array_alt = ((DArray*)args[0].addr);
+   Word element = args[1];
+   int i = ((CcInt*)args[2].addr)->GetIntval();
 
          
-         Word elem_n = ((am->CloneObj(array_alt->getAlgID(),
-                                    array_alt->getTypID()))
-                                    (array_alt->getType(),element));
+   Word elem_n = ((am->CloneObj(array_alt->getAlgID(),
+                              array_alt->getTypID()))
+                              (array_alt->getType(),element));
 
-         result = qp->ResultStorage(s);
-         ((DArray*)result.addr)->initialize(array_alt->getType(),
-                                                               getArrayName
-                                                                  (DArray::no),
+   result = qp->ResultStorage(s);
+   ((DArray*)result.addr)->initialize(array_alt->getType(),
+                                                      getArrayName
+                                                      (DArray::no),
                                                       array_alt->getSize(),
-                                                array_alt->getServerList());
+                                                   array_alt->getServerList());
          
-         for(int j = 0; j<array_alt->getSize();j++)
-         {
-                  if(j!=i)
-                  {
-                           ListExpr arg = nl->TwoElemList
-                                                      (nl->StringAtom(
-                                                     ((DArray*)result.addr)
+   for(int j = 0; j<array_alt->getSize();j++)
+   {
+      Word* w = new Word[0];
+      string to = ((DArray*)result.addr)->getName();
+      w[0].addr = &to;
+      
+      if(j!=i)
+      {
+         ListExpr arg = nl->TwoElemList(nl->StringAtom(((DArray*)result.addr)
                                                                ->getName()),
-                                                               nl->IntAtom(j));
-                           array_alt->getServerManager()->getServerByIndex(j)
-                                                        ->setCmd("copy",
-                                           arg,array_alt->getElements());
-                           array_alt->getServerManager()->getServerByIndex(j)
-                                                        ->run();
-                  }
-                  else
-                  {
-                           ((DArray*)result.addr)->set(elem_n,j);
-                  }
-         }
+                                                         nl->IntAtom(j));
          
-         return 0;
+         list<int>* l = new list<int>;
+         l->push_front(j);
+         
+         
+         array_alt->getServerManager()->getServerByIndex(j)->setCmd(
+                                                   "copy",
+                                                   l,
+                                                   w);
+         
+         array_alt->getServerManager()->getServerByIndex(j)->run();
+      }
+      else
+      {
+         ((DArray*)result.addr)->set(elem_n,j);
+      }
+   
+   }
+         
+   return 0;
+   
 }
 
 const string putSpec =
@@ -1170,33 +1232,33 @@ static int sendFun( Word* args,
                          << "</SIZE>" << endl;
 
                     master->Write(buffer,size);
-		    
-		    TypeConstructor* t = am->GetTC(algID,typID);
-		    Attribute* a;
-		    if(t->NumOfFLOBs() > 0 ) 
-			a = static_cast<Attribute*>
-				((am->Cast(algID,typID))(args[2].addr));
-	            for(int i = 0; i < t->NumOfFLOBs(); i++)
-		   {
-			Flob* f = a->GetFLOB(i);
-			
-			SmiSize si = f->getSize();
-			int n_blocks = si / 1024 + 1;
-			char* buf = new char[n_blocks*1024];
-			memset(buf,0,1024*n_blocks);
-			
-			f->read(buf,si,0);
-			
-			iosock << "<FLOB>" << endl 
-			   << "<SIZE>" << endl << si << endl 
-			   << "</SIZE>" << endl;
-			for(int j = 0; j<n_blocks;j++)
-				master->Write(buf+j*1024,1024);
-			iosock << "</FLOB>" << endl;
-		   }
-		
-	       	   iosock << "<CLOSE>" << endl;
-			
+          
+          TypeConstructor* t = am->GetTC(algID,typID);
+          Attribute* a;
+          if(t->NumOfFLOBs() > 0 ) 
+         a = static_cast<Attribute*>
+            ((am->Cast(algID,typID))(args[2].addr));
+               for(int i = 0; i < t->NumOfFLOBs(); i++)
+         {
+         Flob* f = a->GetFLOB(i);
+         
+         SmiSize si = f->getSize();
+         int n_blocks = si / 1024 + 1;
+         char* buf = new char[n_blocks*1024];
+         memset(buf,0,1024*n_blocks);
+         
+         f->read(buf,si,0);
+         
+         iosock << "<FLOB>" << endl 
+            << "<SIZE>" << endl << si << endl 
+            << "</SIZE>" << endl;
+         for(int j = 0; j<n_blocks;j++)
+            master->Write(buf+j*1024,1024);
+         iosock << "</FLOB>" << endl;
+         }
+      
+               iosock << "<CLOSE>" << endl;
+         
                  
                    getline(iosock,line);
                    if(line!="<FINISH>") cout << "FEHLER";
@@ -1335,11 +1397,11 @@ static int receiveFun( Word* args,
                     if(line=="</SIZE>")
                     {
                         
-			
-			char* buffer = new char[size]; 
+         
+         char* buffer = new char[size]; 
                          iosock.read(buffer,size);
-			
-			 SmiRecordFile recF(false,0);
+         
+          SmiRecordFile recF(false,0);
                          SmiRecord rec;
                          SmiRecordId recID;
                     
@@ -1351,53 +1413,53 @@ static int receiveFun( Word* args,
                          Word w;
                          result = qp->ResultStorage(s);
                          am->OpenObj(algID,typID,rec,s0,type,w); 
-		
+      
                          result.addr = w.addr;
                          rec.Truncate(3);
                          recF.DeleteRecord(recID);
                          recF.Close();
-			 getline(iosock,line);
-			
-			
-			int flobs = 0;    
-			while(line=="<FLOB>")
-			{
-				getline(iosock,line);
-				if(line!="<SIZE>") cout << "ERROR";
-				getline(iosock,line);
-				SmiSize si = atoi(line.data());
-				getline(iosock,line);
-				if(line!="</SIZE>") cout << "ERROR";
-				
-				int n_blocks = si / 1024 + 1;
-				char* buf = new char[n_blocks*1024];
-				memset(buf,0,1024*n_blocks);
-				for(int i = 0; i< n_blocks; i++)
-					iosock.read(buf+1024*i,1024);
-				
-				cout << "Blockzahl: " << toString_d(n_blocks) 
-					<< endl;
-				cout << "Testdaten: " << 
-					toString_d((int)buf[2345]) << endl;
-				
-				Attribute* a = static_cast<Attribute*>
-					((am->Cast(algID,typID))(result.addr));
-				
-				
-				Flob*  f = a->GetFLOB(flobs);
-				f->write(buf,si,0);
-				
-				delete buf;
-				
-				getline(iosock,line);
-				if(line!="</FLOB>") cout << "ERROR";
-				
-				getline(iosock,line);
-				flobs++;
-				//receive FLOB
-			}
-			
-			if(line!="<CLOSE>") cout << "ERROR";
+          getline(iosock,line);
+         
+         
+         int flobs = 0;    
+         while(line=="<FLOB>")
+         {
+            getline(iosock,line);
+            if(line!="<SIZE>") cout << "ERROR";
+            getline(iosock,line);
+            SmiSize si = atoi(line.data());
+            getline(iosock,line);
+            if(line!="</SIZE>") cout << "ERROR";
+            
+            int n_blocks = si / 1024 + 1;
+            char* buf = new char[n_blocks*1024];
+            memset(buf,0,1024*n_blocks);
+            for(int i = 0; i< n_blocks; i++)
+               iosock.read(buf+1024*i,1024);
+            
+            cout << "Blockzahl: " << toString_d(n_blocks) 
+               << endl;
+            cout << "Testdaten: " << 
+               toString_d((int)buf[2345]) << endl;
+            
+            Attribute* a = static_cast<Attribute*>
+               ((am->Cast(algID,typID))(result.addr));
+            
+            
+            Flob*  f = a->GetFLOB(flobs);
+            f->write(buf,si,0);
+            
+            delete buf;
+            
+            getline(iosock,line);
+            if(line!="</FLOB>") cout << "ERROR";
+            
+            getline(iosock,line);
+            flobs++;
+            //receive FLOB
+         }
+         
+         if(line!="<CLOSE>") cout << "ERROR";
                          
                          iosock << "<FINISH>" << endl;
 
@@ -1826,7 +1888,10 @@ distributeFun (Word* args, Word& result, int message, Word& local, Supplier s)
           if(child > -1)
                server = (server->getChilds())[child];
           
-          server->setCmd("open_write_rel",nl->IntAtom(i),0);
+          list<int>* l = new list<int>;
+          l->push_front(i);
+          
+          server->setCmd("open_write_rel",l,0);
           server->run();
      }
      
@@ -1868,7 +1933,7 @@ distributeFun (Word* args, Word& result, int message, Word& local, Supplier s)
 
           while(server->status != 0) ZThread::Thread::yield();
           server->status = 1;
-          server->setCmd("write_rel",nl->IntAtom(index),w);
+          server->setCmd("write_rel",0,w);
           DServerExecutor* exec = new DServerExecutor(server);
           ex.execute(exec);
           //server->run();
@@ -1889,7 +1954,7 @@ distributeFun (Word* args, Word& result, int message, Word& local, Supplier s)
           if(child > -1)
                server = (server->getChilds())[child];
           
-          server->setCmd("close_write_rel",nl->IntAtom(i),0);
+          server->setCmd("close_write_rel",0,0);
           server->run();
      }
      
@@ -1979,15 +2044,19 @@ static int loopValueMap
      
      ZThread::ThreadedExecutor exec;DServer* server;
      DServerExecutor* ex;
+     Word* w = new Word[2];
+     string to = ((DArray*)(result.addr))->getName();
+     w[0].addr = &to;
+     w[1].addr = &command;
      for(int i=0; i < alt->getServerManager()->getNoOfServers(); i++)
      {
           server = alt->getServerManager()->getServerbyID(i);
-          ListExpr param = nl->TwoElemList(nl->TwoElemList(
+          /*ListExpr param = nl->TwoElemList(nl->TwoElemList(
                                         nl->StringAtom(((DArray*)(result.addr))
                                                   ->getName()),
                                         nl->StringAtom(command)),
-                                   alt->getServerManager()->getIndexList(i));
-          server->setCmd("execute",param,alt->getElements());
+                                   alt->getServerManager()->getIndexList(i));*/
+          server->setCmd("execute",0,w);
           
           ex = new DServerExecutor(server);
           exec.execute(ex);
