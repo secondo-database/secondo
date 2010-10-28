@@ -28,7 +28,7 @@ March 2010 Tobias Timmerscheidt
 
 */
 
-// Enthält die Klassen DServer, DServerManager
+// Enthï¿½lt die Klassen DServer, DServerManager
 
 #ifndef H_REMOTE_H
 #define H_REMOTE_H
@@ -53,8 +53,7 @@ class DServer
                   void setCmd(string,ListExpr,Word*);
                   void run();
                   
-                  int getState();
-         
+                          
                   bool Multiply(int count);
                   DServer** getChilds() { return childs; }
                   void DestroyChilds();
@@ -64,7 +63,7 @@ class DServer
          
          private:
                   string host,name,cmd;
-                  int port,state;
+                  int port;
                   ListExpr type,arg;
                   Word* elements;
 
