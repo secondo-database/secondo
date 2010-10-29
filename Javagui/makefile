@@ -41,26 +41,35 @@ doc: removedoc
 demo:
 	@echo "Building Javagui-Demo-Version, please be patient"
 	@make -s
-	@rm -rf Demotmp
-	@rm -rf Demo
+	@rm -rf Demo Demotmp
 	@mkdir Demotmp
-	@echo "Javagui recompiled, extract the files needed by Demo"
-	@find . -type d -printf "%P\n" | grep -v '^CVS' | grep -v '^Demotmp' | grep -v '^doc'| sed -e "s#.*#mkdir -p Demotmp/&#g " | sh
-	@find . -name "*.class" -printf "%P\n" | sed -e "s#.*#cp '&' 'Demotmp/&' #g" | sh
-	@echo "Main-Class: gui.MainWindow" > Manifest.txt
-	@(cd Demotmp; jar -xf ../lib/$(MP3); jar -xf ../lib/$(CUPRUNTIME); find -name "*.java" -exec rm {} \; )
+	@find -maxdepth 1 -not -name . -not -name Demotmp -exec cp -r {} Demotmp \;
+	@find Demotmp -type d -name CVS -exec rm -rf {} \; 2>/dev/null || echo ""
+	@find Demotmp -name "*java" -exec rm -f {} \;
+	@echo "extract third party jar files"
+	@rm -rf Demotmp/lib
+	@cd Demotmp;find ../lib -name "*jar" -exec jar -xf {} \; ; cd ..
 	@cp res/*.gif Demotmp/res
-	@echo "Building jar-archive and removing temporaly files"
+	@echo "Main-Class: gui.MainWindow" > Manifest.txt
+	@rm Demotmp/GBS* 
+	@rm Demotmp/gui.cfg*
+	@echo "Building jar archive"
 	@(cd Demotmp; jar -cmf ../Manifest.txt ../Javagui.jar .)
 	@rm -rf Demotmp
 	@rm Manifest.txt
 	@mkdir Demo
 	@mv Javagui.jar Demo
-	@cp gui.cfg Demo
-	@cp GBS.cfg Demo
+	@cp gui.cfg Demo || cp gui.cfg.example Demo/gui.cfg 
+	@cp GBS.cfg Demo || cp GBS.cfg.sample Demo/GBS.cfg
 	@echo "java -Xmx80M -jar Javagui.jar" > Demo/sgui
 	@chmod +x Demo/sgui
 	@echo "Building Demo has finished successfully, you can find it in the Demo directory"
+
+#	@echo "Javagui recompiled, extract the files needed by Demo"
+#	@find . -type d -printf "%P\n" | grep -v '^CVS' | grep -v '^Demotmp' | grep -v '^doc'| sed -e "s#.*#mkdir -p Demotmp/&#g " | sh
+#	@find . -name "*.class" -printf "%P\n" | sed -e "s#.*#cp '&' 'Demotmp/&' #g" | sh
+#	@(cd Demotmp; jar -xf ../lib/$(MP3); jar -xf ../lib/$(CUPRUNTIME); find -name "*.java" -exec rm {} \; )
+#	@echo "Building jar-archive and removing temporaly files"
 
 
 .PHONY: removedoc # removes the documentation
