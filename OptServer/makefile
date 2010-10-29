@@ -26,7 +26,8 @@ INCLUDEFLAGS := -I. $(JNIINCLUDE) $(PLINCLUDEFLAGS) -I$(INCLUDEDIR)
 REG_SEC_DLL=$(OPTDIR)/$(DLLPREF)regSecondo.$(JNI_DLLEXT)
 
 ifndef JPL_DLL
-JPL_DLL=$(OPTDIR)/$(DLLPREF)jpl.$(JNI_DLLEXT)
+JPL_DLL_SIMPLE=$(DLLPREF)jpl.$(JNI_DLLEXT)
+JPL_DLL=$(OPTDIR)/$(JPL_DLL_SIMPLE)
 endif
 
 LINKFILES := $(SECONDO_BUILD_DIR)/UserInterfaces/cmsg.o $(SECONDOPL_DIR)/SecondoPL.o $(LIBDIR)/SecondoInterfaceCS.o $(LIBDIR)/SecondoInterfaceGeneral.o
@@ -45,9 +46,10 @@ LINK_FLAGS := $(ENT_LINK_LIBS) $(LD_LINK_LIBS) \
 ifeq ($(platform),mac_osx)
   LINK_FLAGS += -flat_namespace -undefined suppress
 else
-  LINKFILES += $(JPL_DLL)
+LINK_FLAGS += -L$(OPTDIR)
+LINK_FLAGS += -ljpl
+LINK_FILES += ./$(JPL_DLL_SIMPLE)
 endif
-
 
 
 .PHONY:all
