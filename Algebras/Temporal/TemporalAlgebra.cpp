@@ -2053,7 +2053,7 @@ void UPoint::UTrajectory( Line& line ) const
   if( !AlmostEqual( p0, p1 ) )
         {
           hs.Set( true, p0, p1 );
-          hs.attr.edgeno = ++edgeno;
+          hs.attr.edgeno = edgeno++;
           line += hs;
           hs.SetLeftDomPoint( !hs.IsLeftDomPoint() );
           line += hs;
