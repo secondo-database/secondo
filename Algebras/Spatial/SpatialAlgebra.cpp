@@ -5284,26 +5284,37 @@ void Line::SetPartnerNo() {
 if(!IsDefined() || line.Size()==0){
  return;
 }
-DbArray<int> TMP((line.Size()+1)/2);
+
+// reserve a slot for each edgeno
+int tmpsize = (line.Size()+1)/2;
+
+DbArray<int> TMP(tmpsize);
+  // intialize the array (it's only needed for
+  // wrong sorted halfsegments)
+for(int i=0;i<tmpsize+1;i++){
+  TMP.Put(i,-1);
+}
+
 
 HalfSegment hs1;
 HalfSegment hs2;
+int lpp;
 for(int i=0; i<line.Size(); i++){
   line.Get(i,hs1);
+  TMP.Get(hs1.attr.edgeno,lpp);
   if(hs1.IsLeftDomPoint()){
-    TMP.Put(hs1.attr.edgeno, i);
-  } else {
-    int lpp;
-    TMP.Get(hs1.attr.edgeno,lpp);
-    int leftpos = lpp;
-    HalfSegment right = hs1;
-    right.attr.partnerno = leftpos;
-    right.attr.insideAbove = false;
-    right.attr.coverageno = 0;
-    right.attr.cycleno = 0;
-    right.attr.faceno = 0;
-    line.Get(leftpos,hs2);
-    HalfSegment left = hs2;
+    if(lpp>=0){ // error case, segment already registered
+      cerr << "wrong order in halfsegment array" << endl;
+      cerr << "the system may be instable" << endl;
+      int leftpos = lpp;
+      HalfSegment right = hs1;
+      right.attr.partnerno = leftpos;
+      right.attr.insideAbove = false;
+      right.attr.coverageno = 0;
+      right.attr.cycleno = 0;
+      right.attr.faceno = 0;
+      line.Get(leftpos,hs2);
+      HalfSegment left = hs2;
       left.attr.partnerno = i;
       left.attr.insideAbove = false;
       left.attr.coverageno = 0;
@@ -5311,9 +5322,36 @@ for(int i=0; i<line.Size(); i++){
       left.attr.faceno = 0;
       line.Put(i,right);
       line.Put(leftpos,left);
-     }
+    } else {
+      // normal case, put number to tmp
+      TMP.Put(hs1.attr.edgeno, i);
     }
-    TMP.Destroy();
+  } else { // RightDomPoint
+    if(lpp<0){ // error case left segment not found
+      cerr << "Error in halfsegment array detected" << endl;
+      cerr << "may be a wrong ordering or wrong set edgeno's" << endl;
+      TMP.Put(hs1.attr.edgeno, i);
+    } else {
+      int leftpos = lpp;
+      HalfSegment right = hs1;
+      right.attr.partnerno = leftpos;
+      right.attr.insideAbove = false;
+      right.attr.coverageno = 0;
+      right.attr.cycleno = 0;
+      right.attr.faceno = 0;
+      line.Get(leftpos,hs2);
+      HalfSegment left = hs2;
+      left.attr.partnerno = i;
+      left.attr.insideAbove = false;
+      left.attr.coverageno = 0;
+      left.attr.cycleno = 0;
+      left.attr.faceno = 0;
+      line.Put(i,right);
+      line.Put(leftpos,left);
+    }
+  }
+ }
+  TMP.Destroy();
 }
 
 bool Line::GetNextSegment( const int poshs, const HalfSegment& hs,
