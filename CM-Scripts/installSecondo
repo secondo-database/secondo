@@ -43,6 +43,7 @@ fi
 echo "copying data"
 
 mkdir $TARGET_DIR/bin
+mkdir $TARGET_DIR/bin/tmp
 mkdir $TARGET_DIR/Data
 mkdir $TARGET_DIR/Documents
 mkdir $TARGET_DIR/Javagui
@@ -52,15 +53,16 @@ mkdir -p $TARGET_DIR/Jpl/lib/classes/jpl/fli
 
 
 cp $SECONDO_BUILD_DIR/bin/*test $TARGET_DIR/bin
-cp -r $SECONDO_BUILD_DIR/bin/tmp $TARGET_DIR/bin
+cp -r $SECONDO_BUILD_DIR/bin/tmp/*.examples $TARGET_DIR/bin/tmp/
 cp $SECONDO_BUILD_DIR/bin/opt $TARGET_DIR/bin
 cp $SECONDO_BUILD_DIR/bin/Orte $TARGET_DIR/bin
 cp $SECONDO_BUILD_DIR/bin/Secondo* $TARGET_DIR/bin
+rm -f $TARGET_DIR/bin/SecondoServer.msg
 cp $SECONDO_BUILD_DIR/bin/StartMonitor $TARGET_DIR/bin
 cp $SECONDO_BUILD_DIR/bin/Test* $TARGET_DIR/bin
 
 cp -r $SECONDO_BUILD_DIR/Data/* $TARGET_DIR/Data
-cp -r $SECONDO_BUILD_DIR/Data/* $TARGET_DIR/Documents
+cp -r $SECONDO_BUILD_DIR/Documents/* $TARGET_DIR/Documents
 
 cp $SECONDO_BUILD_DIR/Javagui/Demo/* $TARGET_DIR/Javagui
 
@@ -69,7 +71,15 @@ cp $SECONDO_BUILD_DIR/Jpl/lib/classes/jpl/fli/*class $TARGET_DIR/Jpl/lib/classes
 
 cp -r $SECONDO_BUILD_DIR/Optimizer/* $TARGET_DIR/Optimizer
 
-echo "remove CVS directories"
+rm $TARGET_DIR/Optimizer/stored*
+rm $TARGET_DIR/Optimizer/*log
+
+
+
+
+echo "remove CVS directories and makefiles"
 
 find $TARGET_DIR -name CVS -type d  -print0 | xargs -0 rm -r {}
+
+find $TARGET_DIR -name makefile  -print0 | xargs -0 rm -r {}
 
