@@ -50,6 +50,7 @@ mkdir $TARGET_DIR/Javagui
 mkdir $TARGET_DIR/Jpl
 mkdir $TARGET_DIR/Optimizer
 mkdir -p $TARGET_DIR/Jpl/lib/classes/jpl/fli
+mkdir -p $TARGET_DIR/Selftest
 
 
 cp $SECONDO_BUILD_DIR/bin/*test $TARGET_DIR/bin
@@ -74,12 +75,16 @@ cp -r $SECONDO_BUILD_DIR/Optimizer/* $TARGET_DIR/Optimizer
 rm $TARGET_DIR/Optimizer/stored*
 rm $TARGET_DIR/Optimizer/*log
 
+cp -r $SECONDO_BUILD_DIR/Selftest/* $TARGET_DIR/Selftest
+
+
 
 
 
 echo "remove CVS directories and makefiles"
 
-find $TARGET_DIR -name CVS -type d  -print0 | xargs -0 rm -r {}
+find $TARGET_DIR -depth -name CVS -type d -exec rm -rf {} \; 
 
-find $TARGET_DIR -name makefile  -print0 | xargs -0 rm -r {}
+find $TARGET_DIR -name makefile  -type f -exec rm -rf {} \;
+
 
