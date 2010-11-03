@@ -48,6 +48,7 @@ Operation on the darray-elements are carried out on the remote machines.
 #include "TypeMapUtils.h"
 #include "Remote.h"
 #include "zthread/ThreadedExecutor.h"
+#include "../FText/FTextAlgebra.h"
 
 using namespace std;
 using namespace symbols;
@@ -127,8 +128,11 @@ ListExpr convertType( ListExpr type )
      
    //It's a list with more than three elements, proceed recursively
    result = convertType(nl->First(type));
-   result2 = convertType(nl->Rest(type)); 
+   result2 = convertType(nl->Rest(type));
+   if(nl->ListLength(type) == 2)
    return nl->TwoElemList(result,result2);
+   else   
+      return nl->Cons(result,result2);
 }
 
 
@@ -304,6 +308,7 @@ DArray::~DArray()
       delete elements;
          
       delete manager;
+      delete present;
    }
 }
 
@@ -592,7 +597,7 @@ Word DArray::In( const ListExpr typeInfo, const ListExpr instance,
    extractIds(nl->Second(typeInfo),algID,typID);
    DArray* a = new DArray(nl->Second(typeInfo),
                                           getArrayName(DArray::no), 
-                                          nl->ListLength(instance),
+                                          nl->ListLength(instance)-1,
                                           nl->First(instance));
    
    ListExpr listOfElements = nl->Rest(instance);
@@ -1255,6 +1260,7 @@ static int sendFun( Word* args,
          for(int j = 0; j<n_blocks;j++)
             master->Write(buf+j*1024,1024);
          iosock << "</FLOB>" << endl;
+    delete buf;
          }
       
                iosock << "<CLOSE>" << endl;
@@ -1437,10 +1443,6 @@ static int receiveFun( Word* args,
             for(int i = 0; i< n_blocks; i++)
                iosock.read(buf+1024*i,1024);
             
-            cout << "Blockzahl: " << toString_d(n_blocks) 
-               << endl;
-            cout << "Testdaten: " << 
-               toString_d((int)buf[2345]) << endl;
             
             Attribute* a = static_cast<Attribute*>
                ((am->Cast(algID,typID))(result.addr));
@@ -1533,7 +1535,10 @@ static ListExpr receiverelTypeMap( ListExpr args )
      master->Close(); delete master; master=0;
      
      int algID, typID; extractIds(type,algID,typID);
-
+          
+     cout << "Ende-Typemapping-Receive-Rel" << endl;
+     cout << "Numerischer Typ !" << nl->ToString(type) << "!" << endl;
+     cout << "Ergebnistyp !" << nl->ToString(convertType(type)) << "! " << endl;
       return nl->ThreeElemList(
           nl->SymbolAtom("APPEND"),
           nl->TwoElemList(nl->StringAtom(nl->ToString(nl->First(args))),
@@ -1570,7 +1575,7 @@ static int receiverelFun( Word* args,
      */
 
      string line;
-
+     cout << "Beginn Value-Mapping-Receive-Rel" << endl;
      host = replaceAll(host,"_",".");
      host = replaceAll(host,"h","");
      port = replaceAll(port,"p","");
@@ -1615,12 +1620,8 @@ static int receiverelFun( Word* args,
                
                buffer = new char[1024*num_blocks];
                memset(buffer,0,1024*num_blocks);
-               cout << "Lesen beginnt: " << toString_d(num_blocks) 
-               << " Blocks!" << endl;
                for(int i = 0; i<num_blocks; i++)
-                    {master->Read(buffer+i*1024,1024); 
-                         for(int j=0;j<1024;j++) cout 
-                         << toString_d((int)buffer[j+i*1024]); cout << endl;}
+                    master->Read(buffer+i*1024,1024); 
                               
                Tuple* t = new Tuple(tupleType);
                
@@ -1639,12 +1640,12 @@ static int receiverelFun( Word* args,
                iosock << "<FINISH>" << endl;
                master->Close(); delete master; master=0;
                return 0;
-          }}
+          }
           else
           {
                cout << "Fehlerhaftes Kommando Relation: " << line << endl;
                return 1;
-          }
+          }}
      }
      
      else cout << "Fehler bei Verbindungsaufbau Relation";
@@ -1945,7 +1946,7 @@ distributeFun (Word* args, Word& result, int message, Word& local, Supplier s)
           number++; cout << toString_d(number) << " Tuple verarbeitet" << endl;
      }
      
-     
+     ex.wait();     
      
      for(int i = 0; i < size; i++)
      {
@@ -2007,7 +2008,7 @@ static ListExpr loopTypeMap(ListExpr args)
           
           if(nl->ListLength(array) == 2 &&
                nl->ListLength(map) == 3 &&
-               nl->IsEqual(nl->Third(args),"string"))
+               nl->IsEqual(nl->Third(args),"text"))
           {
                if(nl->IsEqual(nl->First(array),"darray") &&
                     nl->IsEqual(nl->First(map),"map") &&
@@ -2040,7 +2041,7 @@ static int loopValueMap
                                                alt->getSize(),
                                                alt->getServerList());
      
-     string command = (string)(char*)((CcString*)args[2].addr)->GetStringval();
+     string command = ((FText*)args[2].addr)->GetValue();
      
      ZThread::ThreadedExecutor exec;DServer* server;
      DServerExecutor* ex;
@@ -2056,7 +2057,7 @@ static int loopValueMap
                                                   ->getName()),
                                         nl->StringAtom(command)),
                                    alt->getServerManager()->getIndexList(i));*/
-          server->setCmd("execute",0,w);
+          server->setCmd("execute",alt->getServerManager()->getIndexList(i),w);
           
           ex = new DServerExecutor(server);
           exec.execute(ex);
@@ -2136,9 +2137,9 @@ class DistributedAlgebra : public Algebra
   public:
     DistributedAlgebra() : Algebra()
     {
-             darrayTC.AssociateKind("ARRAY");
-             AddTypeConstructor( &darrayTC );
              
+             AddTypeConstructor( &darrayTC );
+             darrayTC.AssociateKind("ARRAY");
              AddOperator( &makeDarray );
              AddOperator( &getA );
              AddOperator( &putA );

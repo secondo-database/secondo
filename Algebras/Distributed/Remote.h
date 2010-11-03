@@ -92,7 +92,6 @@ class DServerManager
                 
 
                 list<int>* getIndexList(int id);
-                ListExpr getNamedIndexList(int id);
         
                 int getNoOfServers();
      
@@ -114,6 +113,22 @@ class DServerExecutor : public ZThread::Runnable
      
      void run();
 };
+
+class DServerCreator : public ZThread::Runnable
+{
+   public:
+   DServerCreator(DServer** s, string h, int p, string n, ListExpr t);
+   
+   void run();
+   
+   private:
+   DServer** server;
+   string host,name;
+   int port;
+   ListExpr type;
+};
+   
+   
 
 class RelationWriter : public ZThread::Runnable
 {

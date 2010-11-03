@@ -34,6 +34,8 @@ March 2010 Tobias Timmerscheidt
 #include "RelationAlgebra.h"
 #include "zthread/Runnable.h"
 #include "zthread/Thread.h"
+#include "zthread/ThreadedExecutor.h"
+#include "zthread/Mutex.h"
 #include <iostream>
 
 
@@ -47,13 +49,16 @@ string toString_d(int);
 string HostIP;
 string HostIP_;
 
+ZThread::Mutex Flob_Mutex;
+
 DServer::DServer(string n_host,int n_port,string n_name,ListExpr n_type)
 {
      
         host = n_host;
         port = n_port;
         name = n_name;
-        type = n_type;
+   type = n_type;
+   
      
         rel_open = false;
      
@@ -134,7 +139,7 @@ void DServer::run()
 {
 
         int arg2;
-        //ListExpr akt;
+
         
         if(cmd=="write")
         {
@@ -142,13 +147,11 @@ void DServer::run()
                 extractIds(type,algID,typID);
                 string daten;
                 
-		TypeConstructor* t = am->GetTC(algID,typID);
-		
+      TypeConstructor* t = am->GetTC(algID,typID);
+      
                 while(!arg->empty())
                {
-                /*if(!nl->IsAtom(arg)) akt = nl->First(arg);
-                else akt = arg;
-                arg2 = nl->IntValue(akt);*/
+
                arg2 = arg->front();
                arg->pop_front();
         
@@ -158,20 +161,20 @@ void DServer::run()
                      " = " + "receiveD(" + HostIP_ + ",p" + port + ")";
                 
                 
-		if(t->NumOfFLOBs() > 0)
-		{
-			Attribute* a = static_cast<Attribute*>
-						((am->Cast(algID,typID))
-						((elements[arg2]).addr));
-			Flob* f = a->GetFLOB(0);
-			
-			SmiSize si = f->getSize();
-			char* buf = new char[si];
-			
-			f->read(buf,si,0);
-			
-		}	
-			
+      if(t->NumOfFLOBs() > 0)
+      {
+         Attribute* a = static_cast<Attribute*>
+                  ((am->Cast(algID,typID))
+                  ((elements[arg2]).addr));
+         Flob* f = a->GetFLOB(0);
+         
+         SmiSize si = f->getSize();
+         char* buf = new char[si];
+         
+         f->read(buf,si,0);
+         
+      }	
+         
                 iosock << "<Secondo>" << endl << "1" << endl << "delete r" 
                         << name << toString_d(arg2)  << endl << "</Secondo>" 
                         << endl;
@@ -217,37 +220,36 @@ void DServer::run()
                 char* buffer = new char[size]; 
                 rec.Read(buffer,size,0);
                 
-		//size = (size_t)am->SizeOfObj(algID,typID);
-		//void* buffer = elements[arg2].addr;
+
                 cbsock << "<SIZE>" << endl << size << endl << "</SIZE>" << endl;
                 
                 worker->Write(buffer,size);
-		//delete buffer;
-		
-		Attribute* a;
-		if(t->NumOfFLOBs() > 0 ) 
-			a = static_cast<Attribute*>((am->Cast(algID,typID))
-						((elements[arg2]).addr));
-		for(int i = 0; i < t->NumOfFLOBs(); i++)
-		{
-			Flob* f = a->GetFLOB(i);
-			
-			SmiSize si = f->getSize();
-			int n_blocks = si / 1024 + 1;
-			char* buf = new char[n_blocks*1024];
-			memset(buf,0,1024*n_blocks);
-			
-			f->read(buf,si,0);
-			
-			cbsock << "<FLOB>" << endl << "<SIZE>" << endl 
-					<< si << endl << "</SIZE>" << endl;
-			for(int j = 0; j<n_blocks;j++)
-				worker->Write(buf+j*1024,1024);
-			cbsock << "</FLOB>" << endl;
-		}
-		
-		cbsock << "<CLOSE>" << endl;
-			
+      delete buffer;
+      
+      Attribute* a;
+      if(t->NumOfFLOBs() > 0 ) 
+         a = static_cast<Attribute*>((am->Cast(algID,typID))
+                  ((elements[arg2]).addr));
+      for(int i = 0; i < t->NumOfFLOBs(); i++)
+      {
+         Flob* f = a->GetFLOB(i);
+         
+         SmiSize si = f->getSize();
+         int n_blocks = si / 1024 + 1;
+         char* buf = new char[n_blocks*1024];
+         memset(buf,0,1024*n_blocks);
+         
+         f->read(buf,si,0);
+         
+         cbsock << "<FLOB>" << endl << "<SIZE>" << endl 
+               << si << endl << "</SIZE>" << endl;
+         for(int j = 0; j<n_blocks;j++)
+            worker->Write(buf+j*1024,1024);
+         cbsock << "</FLOB>" << endl;
+      }
+      
+      cbsock << "<CLOSE>" << endl;
+         
                 
                 getline(cbsock,line);
                 if(line!="<FINISH>") cout << "FEHLER";
@@ -268,9 +270,9 @@ void DServer::run()
                 
                 else cout << "DATENFEHLER";
                 
-                //if(!nl->IsAtom(arg) && !nl->IsEmpty(arg)) arg = nl->Rest(arg);
+
                 }
-                //while(/*!nl->IsAtom(arg) &&*/ !nl->IsEmpty(arg));
+
                 
         }
         
@@ -283,9 +285,7 @@ void DServer::run()
                 
                 while(!arg->empty())
                {
-                /*if(!nl->IsAtom(arg)) akt = nl->First(arg);
-                else akt = arg;
-                arg2 = nl->IntValue(akt);*/
+
                 ListExpr ls;
                arg2 = arg->front();
                arg->pop_front();
@@ -335,47 +335,53 @@ void DServer::run()
                      elements[arg2].addr = w.addr;
                      recF.DeleteRecord(recID);
                      recF.Close();
-		      
-		     getline(cbsock,line);
-		     int flobs=0;
-		     while(line=="<FLOB>")
-			{
-				getline(cbsock,line);
-				if(line!="<SIZE>") cout << "ERROR";
-				getline(cbsock,line);
-				SmiSize si = atoi(line.data());
-				getline(cbsock,line);
-				if(line!="</SIZE>") cout << "ERROR";
-				
-				int n_blocks = si / 1024 + 1;
-				char* buf = new char[n_blocks*1024];
-				memset(buf,0,1024*n_blocks);
-				for(int i = 0; i< n_blocks; i++)
-					cbsock.read(buf+1024*i,1024);
-				
-				
-				Attribute* a = static_cast<Attribute*>
-					((am->Cast(algID,typID))(w.addr));
-				
-				
-				Flob*  f = a->GetFLOB(flobs);
-				f->write(buf,si,0);
-				
-				
-				delete buf;
-				
-				getline(cbsock,line);
-				if(line!="</FLOB>") cout << "ERROR";
-				
-				getline(cbsock,line);
-				flobs++;
-				//receive FLOB
-			}
-			
-			if(line!="<CLOSE>") cout << "ERROR";
+            
+           getline(cbsock,line);
+           int flobs=0;
+           
+           Flob_Mutex.acquire();
+           
+           while(line=="<FLOB>")
+         {
+            getline(cbsock,line);
+            if(line!="<SIZE>") cout << "ERROR";
+            getline(cbsock,line);
+            SmiSize si = atoi(line.data());
+            getline(cbsock,line);
+            if(line!="</SIZE>") cout << "ERROR";
+            
+            int n_blocks = si / 1024 + 1;
+            char* buf = new char[n_blocks*1024];
+            memset(buf,0,1024*n_blocks);
+            for(int i = 0; i< n_blocks; i++)
+               cbsock.read(buf+1024*i,1024);
+            
+            
+            Attribute* a = static_cast<Attribute*>
+               ((am->Cast(algID,typID))(w.addr));
+            
+            
+            Flob*  f = a->GetFLOB(flobs);
+            if(f->getSize() != si) cout << "Flob-Größe inkorrekt" <<endl;
+            f->write(buf,si,0);
+            
+            
+            delete buf;
+            
+            getline(cbsock,line);
+            if(line!="</FLOB>") cout << "ERROR";
+            
+            getline(cbsock,line);
+            flobs++;
+            //receive FLOB
+         }
+         
+         Flob_Mutex.release();
+         
+         if(line!="<CLOSE>") cout << "ERROR";
                          
                          iosock << "<FINISH>" << endl;
-			
+         
                     worker->Close();delete worker;worker=0;
 
                 }
@@ -401,18 +407,15 @@ void DServer::run()
                 }
                 else cout << "DATENFEHLER LESEN";
                 
-                //if(!nl->IsAtom(arg) && !nl->IsEmpty(arg)) arg = nl->Rest(arg);
+
                 }
-                //while(!nl->IsAtom(arg) && !nl->IsEmpty(arg));
+
          }
         
         if(cmd=="delete")
         {
                 while(!arg->empty())
                 {
-                    /*if(!nl->IsAtom(arg)) akt=nl->First(arg);
-                     else akt = arg;
-                     arg2 = nl->IntValue(akt);*/
                    arg2 = arg->front();
                    arg->pop_front();
 
@@ -424,22 +427,20 @@ void DServer::run()
                 do
                                 getline(iosock,line);
                         while(line.find("</SecondoResponse>") == string::npos);
-                //if(!nl->IsAtom(arg) && !nl->IsEmpty(arg)) arg = nl->Rest(arg);
+
                 }
-                //while(!nl->IsAtom(arg) && !nl->IsEmpty(arg));
-          
+
         }
         
         if(cmd=="copy")
         {
                 string line;
                 iostream& iosock = server->GetSocketStream();
-                //string to = nl->StringValue(nl->First(arg));
-                //ListExpr list = nl->Second(arg);
+
                 string to = ((string*)(elements[0].addr))->data();
                
            
-                //while(!nl->IsAtom(list))
+
             while(!arg->empty())
                 {
                         arg2 = arg->front();
@@ -450,20 +451,13 @@ void DServer::run()
                                         + nl->ToString(arg2);
                         iosock << "<Secondo>" << endl << "1" << endl 
                                 << cmd<< endl << "</Secondo>" << endl;
-                        //list = nl->Rest(list);
+
                         do
                         {getline(iosock,line); }
                         while(line.find("</SecondoResponse>") == string::npos);
                 }
                 
-                /*string cmd;
-                cmd = "let r" + to + nl->ToString(list) + " = r" 
-                                + name + nl->ToString(list);
-                iosock << "<Secondo>" << endl << "1" << endl << cmd 
-                                << endl << "</Secondo>" << endl;
-                do
-                {getline(iosock,line);}
-		while(line.find("</SecondoResponse>") == string::npos);*/
+
                 
                         
         }
@@ -473,39 +467,27 @@ void DServer::run()
                 string line;
                 iostream& iosock = server->GetSocketStream();
                 string to = ((string*)(elements[0].addr))->data();
-		// nl->StringValue(nl->First(nl->First(arg)));
                 string com = ((string*)(elements[1].addr))->data();
-		// nl->StringValue(nl->Second(nl->First(arg)));
-                //ListExpr list = nl->Second(arg);
-                
-                //while(!nl->IsAtom(list) && !nl->IsEmpty(list))
+
                  while(!arg->empty())
                 {
                         arg2 = arg->front();
                         arg->pop_front();
                         string cmd;
-                        string com_a = replaceAll(com,".","r" + name
+                        string com_a = replaceAll(com,"!","r" + name
                          + toString_d(arg2));
-                        cmd = "let r" + to + nl->ToString(arg2)
+                        cmd = "let r" + to + toString_d(arg2)
                                         + " = " + com_a;
+         cout << "Execute: " << cmd << endl;
                         iosock << "<Secondo>" << endl << "1" << endl 
                                 << cmd<< endl << "</Secondo>" << endl;
-                        //list = nl->Rest(list);
+                      
                         do
-                        {getline(iosock,line); }
+                        {getline(iosock,line);}
                         while(line.find("</SecondoResponse>") == string::npos);
                 }
                 
-                /*string cmd;
-                string com_a = replaceAll(com,".","r" + name
-                                   + nl->ToString(list));
-                        cmd = "let r" + to + nl->ToString(list)
-                                        + " = " + com_a;
-                iosock << "<Secondo>" << endl << "1" << endl << cmd 
-                                << endl << "</Secondo>" << endl;
-                do
-                {getline(iosock,line);}
-		while(line.find("</SecondoResponse>") == string::npos);*/
+                
                 
                         
         }
@@ -517,7 +499,7 @@ void DServer::run()
              
              string line;
              iostream& iosock = server->GetSocketStream();
-              //int  arg2 = nl->IntValue(arg);
+              
               int arg2 = arg->front();
               string port =toString_d((1800+arg2)); 
                string com = "let r" + name + toString_d(arg2) + 
@@ -579,7 +561,9 @@ void DServer::run()
                char* buffer = new char[num_blocks*1024];
                memset(buffer,0,1024*num_blocks);
                
+          Flob_Mutex.acquire();
                tpl->WriteToBin(buffer,cS,eS,fS);
+          Flob_Mutex.release();
                
                iostream& cbsock = cbworker->GetSocketStream();
                
@@ -599,10 +583,12 @@ void DServer::run()
                }
                
                tpl->DeleteIfAllowed();
+          
           }
           
           if(cmd == "close_write_rel")
           {
+      if(rel_open){
                string line;
 
                iostream& cbsock = cbworker->GetSocketStream();
@@ -610,7 +596,7 @@ void DServer::run()
                
                cbsock << "<CLOSE>" << endl;
                getline(cbsock,line);
-               if(line != "<FINISH>") cout << "ERROR" << endl;
+               if(line != "<FINISH>") cout << "ERROR: " << line << endl;
                cbworker->Close(); delete cbworker; cbworker = 0;
                
                 getline(iosock,line);
@@ -623,7 +609,7 @@ void DServer::run()
                 else cout << "DATENFEHLER, keine Antwort";
                 
                 rel_open = false;
-           }
+           }}
 
                
            if(cmd == "read_rel")
@@ -635,10 +621,7 @@ void DServer::run()
           
           while(!arg->empty())
           {
-          //if(!nl->IsAtom(arg)) akt = nl->First(arg);
-          //else akt = arg;
-                
-                //arg2 = nl->IntValue(akt);
+       
              arg2 = arg->front();
              arg->pop_front();
                 string line;        
@@ -721,8 +704,8 @@ void DServer::run()
                 }
                 else cout << "DATENFEHLER LESEN";
           
-          //if(!nl->IsEmpty(arg) && !nl->IsAtom(arg)) arg=nl->Rest(arg);
-          }//while(!nl->IsEmpty(arg) && !nl->IsAtom(arg));
+          
+          }
            }
         
                      
@@ -779,15 +762,23 @@ DServerManager::DServerManager(ListExpr serverlist_n,
         ListExpr elem = nl->First(serverlist_n);
         serverlist_n = nl->Rest(serverlist_n);
         
+   ZThread::ThreadedExecutor exec;
         for(int i = 0; i<size; i++)
         {
-            serverlist[i] = new DServer(nl->StringValue(nl->First(elem)),
+       DServerCreator* c = new DServerCreator(&serverlist[i],
+                  nl->StringValue(nl->First(elem)),
+                                                nl->IntValue(nl->Second(elem)), 
+                  name,
+                                                type);
+      exec.execute(c);
+            /*serverlist[i] = new DServer(nl->StringValue(nl->First(elem)),
                                                 nl->IntValue(nl->Second(elem)), 
                                                         name,
-                                                        type);
+                                                        type);*/
                 if(i < size-1){elem = nl->First(serverlist_n);
                 serverlist_n = nl->Rest(serverlist_n);}
         }
+   exec.wait();
 }
 
 DServerManager::~DServerManager()
@@ -813,26 +804,14 @@ DServer* DServerManager::getServerByIndex(int index)
 
 list<int>* DServerManager::getIndexList(int id)
 {
-        //ListExpr res = nl->TheEmptyList();
        list<int>* res = new list<int>;
         for(int i = id; i<array_size; i+=size)
         {
-                //res = nl->Cons(nl->IntAtom(i),res);
                res->push_front(i);
         }
         return res;
 }
                 
-ListExpr DServerManager::getNamedIndexList(int id)
-{
-        ListExpr res = nl->TheEmptyList();
-        for(int i = id; i<array_size; i+=size)
-        {
-                res = nl->Cons(nl->TwoElemList(nl->StringAtom(name),
-                                        nl->IntAtom(i)), res);
-        }
-        return res;
-}
         
 int DServerManager::getNoOfServers() {return size;}
 
@@ -853,8 +832,8 @@ void RelationWriter::run()
           index = nl->IntValue(akt);*/
         index = arg->front();
         arg->pop_front();
-	     
-	list<int>* l = new list<int>;
+        
+   list<int>* l = new list<int>;
          l->push_front(index);
      
      GenericRelation* rel = (Relation*)elements[index].addr;
@@ -898,3 +877,16 @@ void RelationWriter::run()
                         
 void DServerExecutor::run()
 {server->run(); }
+
+DServerCreator::DServerCreator
+(DServer** s, string h, int p, string n, ListExpr t)
+{
+   string s_type = nl->ToString(t);
+        nl->ReadFromString(s_type,type);
+   server = s; host = h; port = p; name = n;
+}
+
+void DServerCreator::run()
+{
+   *server = new DServer(host,port,name,type);
+}
