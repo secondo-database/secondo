@@ -26,9 +26,13 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 March 2010 Tobias Timmerscheidt
 
+Header-File for Remote.cpp
+Contains definitions of DServer, DServerManager, DServerExecutor
+RelationWriter and DServerCreator
+
 */
 
-// Enth�lt die Klassen DServer, DServerManager
+
 
 #ifndef H_REMOTE_H
 #define H_REMOTE_H
@@ -36,110 +40,118 @@ March 2010 Tobias Timmerscheidt
 
 #include "StandardTypes.h"
 #include "SocketIO.h"
-//#include "Profiles.h"
-//#include "CSProtocol.h"
 #include "zthread/Runnable.h"
 #include "zthread/Thread.h"
-//#include "zthread/CountedPtr.h"
 
 using namespace std;
 
+
+
 class DServer
 {
-         public:
-                  DServer(string,int,string,ListExpr);
-                  void Terminate();
+   public:
+      DServer(string,int,string,ListExpr);
+      void Terminate();
 
-                  void setCmd(string,list<int>*,Word*);
-                  void run();
+      void setCmd(string,list<int>*,Word*);
+      void run();
                   
                           
-                  bool Multiply(int count);
-                  DServer** getChilds() { return childs; }
-                  void DestroyChilds();
+      bool Multiply(int count);
+      DServer** getChilds() { return childs; }
+      void DestroyChilds();
             
-                  int status;
-                  int getNumChilds() { return num_childs;}
-         
-         private:
-                  string host,name,cmd;
-                  int port;
-                  ListExpr type;
-                  list<int>* arg;
-         
-                  Word* elements;
-
-                  Socket* server;
-         
-                  Socket* cbworker;
+      int status;
+      int getNumChilds() { return num_childs;}
       
-                  int num_childs;
-                  DServer** childs;
+      string geterrorText() { return errorText; }
+         
+   private:
+      string host,name,cmd;
+      int port;
+      ListExpr type;
+      list<int>* arg;
+         
+      Word* elements;
+
+      Socket* server;
+         
+      Socket* cbworker;
+      
+      int num_childs;
+      DServer** childs;
                   
-                  bool rel_open;
+      bool rel_open;
+   
+      string errorText;
 };
 
 class DServerManager
 {
-        public:
-                DServerManager(ListExpr serverlist_n, 
-                    string name_n, ListExpr type, int sizeofarray);
-                ~DServerManager();
-                DServer* getServerByIndex(int index);
-                DServer* getServerbyID(int id);
+   public:
+      DServerManager(ListExpr serverlist_n, 
+                              string name_n, ListExpr type, int sizeofarray);
+      ~DServerManager();
+      DServer* getServerByIndex(int index);
+      DServer* getServerbyID(int id);
      
-               int getMultipleServerIndex(int index);
+      int getMultipleServerIndex(int index);
                 
 
-                list<int>* getIndexList(int id);
+      list<int>* getIndexList(int id);
         
-                int getNoOfServers();
+      int getNoOfServers();
+   
+      string geterrorText() { return errorText; }
      
         
-        private:
+   private:
                 
-                DServer** serverlist;
-                ListExpr server;
-                int size;
-                int array_size;
-                string name;
+      DServer** serverlist;
+
+      int size;
+      int array_size;
+      string name;
+   
+      string errorText;
 };
 
 class DServerExecutor : public ZThread::Runnable
 {
-     DServer* server;
-     public:
-     DServerExecutor(DServer* s) {server=s;}
+   DServer* server;
+   public:
+   DServerExecutor(DServer* s) {server=s;}
      
-     void run();
+   void run();
 };
 
 class DServerCreator : public ZThread::Runnable
 {
    public:
-   DServerCreator(DServer** s, string h, int p, string n, ListExpr t);
+      DServerCreator(DServer** s, string h, int p, string n, ListExpr t);
    
-   void run();
+      void run();
    
    private:
-   DServer** server;
-   string host,name;
-   int port;
-   ListExpr type;
+      DServer** server;
+      string host,name;
+      int port;
+      ListExpr type;
 };
    
    
 
 class RelationWriter : public ZThread::Runnable
 {
-     DServer* worker;
-     Word* elements;
-     list<int>* arg;
-     public:
-     RelationWriter(DServer* s, Word* e, list<int>* a) 
-     {worker=s; elements = e; arg = a;}
+   DServer* worker;
+   Word* elements;
+   list<int>* arg;
+   
+   public:
+      RelationWriter(DServer* s, Word* e, list<int>* a) 
+         {worker=s; elements = e; arg = a;}
      
-     void run();
+      void run();
 };
      
                   

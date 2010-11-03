@@ -129,6 +129,7 @@ ListExpr convertType( ListExpr type )
    //It's a list with more than three elements, proceed recursively
    result = convertType(nl->First(type));
    result2 = convertType(nl->Rest(type));
+   
    if(nl->ListLength(type) == 2)
    return nl->TwoElemList(result,result2);
    else   
@@ -703,8 +704,6 @@ Word DArray::Clone( const ListExpr typeInfo, const Word& w )
                   
    for(int i =0;i<alt->getSize();i++)
    {
-      ListExpr arg = nl->TwoElemList(nl->StringAtom(neu->getName()),
-                                                         nl->IntAtom(i));
       
       list<int>* l = new list<int>;
       l->push_front(i);
@@ -1121,9 +1120,6 @@ static int putFun( Word* args,
       
       if(j!=i)
       {
-         ListExpr arg = nl->TwoElemList(nl->StringAtom(((DArray*)result.addr)
-                                                               ->getName()),
-                                                         nl->IntAtom(j));
          
          list<int>* l = new list<int>;
          l->push_front(j);
@@ -1171,7 +1167,7 @@ Internal Usage for Data Transfer between Master and Worker
 
 static ListExpr sendTypeMap( ListExpr args )
 {
-      return nl->ThreeElemList(
+   return nl->ThreeElemList(
                     nl->SymbolAtom("APPEND"),
                     nl->TwoElemList(nl->StringAtom(
                                                nl->ToString(nl->First(args))),
@@ -1188,105 +1184,113 @@ static int sendFun( Word* args,
                                     Supplier s)
 {
 
-     string host = (string)(char*)((CcString*)args[3].addr)->GetStringval();
-     string port = (string)(char*)((CcString*)args[4].addr)->GetStringval();
-     string line;
+   string host = (string)(char*)((CcString*)args[3].addr)->GetStringval();
+   string port = (string)(char*)((CcString*)args[4].addr)->GetStringval();
+   string line;
 
-     host = replaceAll(host,"_",".");
-     host = replaceAll(host,"h","");
-     port = replaceAll(port,"p","");
+   host = replaceAll(host,"_",".");
+   host = replaceAll(host,"h","");
+   port = replaceAll(port,"p","");
 
-     Socket* master = Socket::Connect(host,port,Socket::SockGlobalDomain);
+   Socket* master = Socket::Connect(host,port,Socket::SockGlobalDomain);
      
      
      
-     if(master!=0 && master->IsOk())
-     {
+   if(master!=0 && master->IsOk())
+   {
 
-          iostream& iosock = master->GetSocketStream();
-          getline(iosock,line);
+      iostream& iosock = master->GetSocketStream();
+      getline(iosock,line);
           
-          if(line=="<TYPE>")
-          {
-               getline(iosock,line);
-               ListExpr type;
-               nl->ReadFromString(line,type);
+      if(line=="<TYPE>")
+      {
+         getline(iosock,line);
+         ListExpr type;
+         nl->ReadFromString(line,type);
 
-               getline(iosock,line);
-               if(line=="</TYPE>")
-               {
-                    int algID,typID;
-                    extractIds(type,algID,typID);
-                    
-                    SmiRecordFile recF(false,0);
-                    SmiRecord rec;
-                    SmiRecordId recID;
-                    
-                    recF.Open("sendop");
-                    recF.AppendRecord(recID,rec);
-                    size_t size = 0;
-                    am->SaveObj(algID,typID,rec,size,type,args[2]);
-                    char* buffer = new char[size];
-                    
-                    rec.Read(buffer,size,0);
-                    rec.Truncate(3);
-                    recF.DeleteRecord(recID);
-                    recF.Close();
-
-                    iosock << "<SIZE>" << endl << size << endl
-                         << "</SIZE>" << endl;
-
-                    master->Write(buffer,size);
-          
-          TypeConstructor* t = am->GetTC(algID,typID);
-          Attribute* a;
-          if(t->NumOfFLOBs() > 0 ) 
-         a = static_cast<Attribute*>
-            ((am->Cast(algID,typID))(args[2].addr));
-               for(int i = 0; i < t->NumOfFLOBs(); i++)
+         getline(iosock,line);
+         if(line=="</TYPE>")
          {
-         Flob* f = a->GetFLOB(i);
+            int algID,typID;
+            extractIds(type,algID,typID);
+                    
+            SmiRecordFile recF(false,0);
+            SmiRecord rec;
+            SmiRecordId recID;
+                    
+            recF.Open("sendop");
+            recF.AppendRecord(recID,rec);
+            size_t size = 0;
+            am->SaveObj(algID,typID,rec,size,type,args[2]);
+            char* buffer = new char[size];
+                    
+            rec.Read(buffer,size,0);
+            
+            rec.Truncate(3);
+            recF.DeleteRecord(recID);
+            recF.Close();
+
+            iosock << "<SIZE>" << endl << size << endl
+                     << "</SIZE>" << endl;
+
+            master->Write(buffer,size);
+            
+            delete buffer;
+          
+            TypeConstructor* t = am->GetTC(algID,typID);
+            Attribute* a;
+            if(t->NumOfFLOBs() > 0 ) 
+               a = static_cast<Attribute*>
+                     ((am->Cast(algID,typID))(args[2].addr));
+            
+            for(int i = 0; i < t->NumOfFLOBs(); i++)
+            {
+               Flob* f = a->GetFLOB(i);
          
-         SmiSize si = f->getSize();
-         int n_blocks = si / 1024 + 1;
-         char* buf = new char[n_blocks*1024];
-         memset(buf,0,1024*n_blocks);
+               SmiSize si = f->getSize();
+               int n_blocks = si / 1024 + 1;
+               char* buf = new char[n_blocks*1024];
+               memset(buf,0,1024*n_blocks);
          
-         f->read(buf,si,0);
+               f->read(buf,si,0);
          
-         iosock << "<FLOB>" << endl 
-            << "<SIZE>" << endl << si << endl 
-            << "</SIZE>" << endl;
-         for(int j = 0; j<n_blocks;j++)
-            master->Write(buf+j*1024,1024);
-         iosock << "</FLOB>" << endl;
-    delete buf;
-         }
+               iosock << "<FLOB>" << endl 
+                        << "<SIZE>" << endl << si << endl 
+                        << "</SIZE>" << endl;
+               
+               for(int j = 0; j<n_blocks;j++)
+                  master->Write(buf+j*1024,1024);
+               
+               iosock << "</FLOB>" << endl;
+               delete buf;
+            }
       
-               iosock << "<CLOSE>" << endl;
+            iosock << "<CLOSE>" << endl;
          
                  
-                   getline(iosock,line);
-                   if(line!="<FINISH>") cout << "FEHLER";
+            getline(iosock,line);
+            if(line!="<FINISH>") cout << "FEHLER";
 
-                    result = qp->ResultStorage(s);
+            result = qp->ResultStorage(s);
 
-                    ((CcInt*)result.addr)->Set(0);
+            ((CcInt*)result.addr)->Set(0);
 
                     
-               }
-               master->Close();delete master;master=0;
+         }
+         
+         master->Close();delete master;master=0;
               
-               return 0;
-          }
-          result = qp->ResultStorage(s);
-          ((CcInt*)result.addr)->Set(1);
-     }
+         return 0;
+      }
+      
+      result = qp->ResultStorage(s);
+      ((CcInt*)result.addr)->Set(1);
+   }
                     
-     return 0;               
+   return 0;               
           
                     
-     }
+}
          
 const string sendSpec =
    "(( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
@@ -1313,38 +1317,42 @@ Internal Usage for Data Transfer between Master and Worker
 
 static ListExpr receiveTypeMap( ListExpr args )
 {
-     string host = nl->ToString(nl->First(args));
-     string port = nl->ToString(nl->Second(args));
-     string line;
+   string host = nl->ToString(nl->First(args));
+   string port = nl->ToString(nl->Second(args));
+   string line;
      
-     host = replaceAll(host,"_",".");
-     host = replaceAll(host,"h","");
-     port = replaceAll(port,"p","");
+   host = replaceAll(host,"_",".");
+   host = replaceAll(host,"h","");
+   port = replaceAll(port,"p","");
 
-     Socket* master = Socket::Connect(host,port,Socket::SockGlobalDomain);
+   Socket* master = Socket::Connect(host,port,Socket::SockGlobalDomain);
      
-     if(master==0 || !master->IsOk()) 
-          {cout << "FEHLER bei Typemapping";
-               return nl->SymbolAtom("typeerror");}
+   if(master==0 || !master->IsOk()) 
+      return nl->SymbolAtom("typeerror");
      
-     iostream& iosock = master->GetSocketStream();
+   iostream& iosock = master->GetSocketStream();
      
-     getline(iosock,line);
-     if(line!= "<TYPE>") return nl->SymbolAtom("typeerror");
-     getline(iosock,line);
-     ListExpr type;
-     nl->ReadFromString(line,type);
-     getline(iosock,line);
-     if(line!= "</TYPE>") return nl->SymbolAtom("typeerror");
+   getline(iosock,line);
+   if(line!= "<TYPE>") 
+      return nl->SymbolAtom("typeerror");
+   
+   getline(iosock,line);
+   ListExpr type;
+   nl->ReadFromString(line,type);
      
-     iosock << "<CLOSE>" << endl;
+   getline(iosock,line);
+   if(line!= "</TYPE>") 
+      return nl->SymbolAtom("typeerror");
      
-     master->Close(); delete master; master=0;
+   iosock << "<CLOSE>" << endl;
      
-     int algID, typID; extractIds(type,algID,typID);
-      ;
-      return nl->ThreeElemList(
-          nl->SymbolAtom("APPEND"),
+   master->Close(); delete master; master=0;
+     
+   int algID, typID; 
+   extractIds(type,algID,typID);
+   return nl->ThreeElemList(
+          
+         nl->SymbolAtom("APPEND"),
           nl->TwoElemList(nl->StringAtom(nl->ToString(nl->First(args))),
                               nl->StringAtom(nl->ToString(nl->Second(args)))),
                               convertType(type));
@@ -1358,129 +1366,133 @@ static int receiveFun( Word* args,
                                     Supplier s)
 {
 
-     string host = (string)(char*)((CcString*)args[2].addr)->GetStringval();
-     string port = (string)(char*)((CcString*)args[3].addr)->GetStringval();
-     string line;
+   string host = (string)(char*)((CcString*)args[2].addr)->GetStringval();
+   string port = (string)(char*)((CcString*)args[3].addr)->GetStringval();
+   string line;
 
-     host = replaceAll(host,"_",".");
-     host = replaceAll(host,"h","");
-     port = replaceAll(port,"p","");
+   host = replaceAll(host,"_",".");
+   host = replaceAll(host,"h","");
+   port = replaceAll(port,"p","");
      
-     Socket* master = Socket::Connect(host,port,Socket::SockGlobalDomain);
+   Socket* master = Socket::Connect(host,port,Socket::SockGlobalDomain);
      
      
      
-     if(master!=0 && master->IsOk())
-     {
+   if(master!=0 && master->IsOk())
+   {
 
-          iostream& iosock = master->GetSocketStream();
-          iosock << "LOS" << endl;
+      iostream& iosock = master->GetSocketStream();
+      iosock << "LOS" << endl;
           
-          getline(iosock,line);
+      getline(iosock,line);
           
-          if(line=="<TYPE>")
-          {
-               getline(iosock,line);
-               ListExpr type;
-               nl->ReadFromString(line,type);
+      if(line=="<TYPE>")
+      {
+         getline(iosock,line);
+         ListExpr type;
+         nl->ReadFromString(line,type);
                
-               getline(iosock,line);
-               if(line=="</TYPE>")
-               {
-                    int algID,typID;
-                    extractIds(type,algID,typID);
-                    size_t size =0;
-                    
-                    getline(iosock,line);
-
-                    if(line=="<SIZE>")
-                    {
-                    getline(iosock,line);
-                         
-                     size = atoi(line.data());
-
-                    getline(iosock,line);
-                    if(line=="</SIZE>")
-                    {
-                        
-         
-         char* buffer = new char[size]; 
-                         iosock.read(buffer,size);
-         
-          SmiRecordFile recF(false,0);
-                         SmiRecord rec;
-                         SmiRecordId recID;
-                    
-                         recF.Open("receiveop");
-                         recF.AppendRecord(recID,rec);
-                         size_t s0 = 0;
-                         
-                         rec.Write(buffer,size,0);
-                         Word w;
-                         result = qp->ResultStorage(s);
-                         am->OpenObj(algID,typID,rec,s0,type,w); 
-      
-                         result.addr = w.addr;
-                         rec.Truncate(3);
-                         recF.DeleteRecord(recID);
-                         recF.Close();
-          getline(iosock,line);
-         
-         
-         int flobs = 0;    
-         while(line=="<FLOB>")
+         getline(iosock,line);
+         if(line=="</TYPE>")
          {
+            int algID,typID;
+            extractIds(type,algID,typID);
+            size_t size =0;
+                    
             getline(iosock,line);
-            if(line!="<SIZE>") cout << "ERROR";
-            getline(iosock,line);
-            SmiSize si = atoi(line.data());
-            getline(iosock,line);
-            if(line!="</SIZE>") cout << "ERROR";
+
+            if(line=="<SIZE>")
+            {
+               getline(iosock,line);
+                         
+               size = atoi(line.data());
+
+               getline(iosock,line);
+               if(line=="</SIZE>")
+               {
+                  char* buffer = new char[size]; 
+                  iosock.read(buffer,size);
+         
+                  SmiRecordFile recF(false,0);
+                  SmiRecord rec;
+                  SmiRecordId recID;
+                    
+                  recF.Open("receiveop");
+                  recF.AppendRecord(recID,rec);
+                  size_t s0 = 0;
+                         
+                  rec.Write(buffer,size,0);
+                  Word w;
+                  result = qp->ResultStorage(s);
+                  am->OpenObj(algID,typID,rec,s0,type,w); 
+      
+                  result.addr = w.addr;
+                  rec.Truncate(3);
+                  recF.DeleteRecord(recID);
+                  recF.Close();
+                  getline(iosock,line);
+                  
+                  delete buffer;
+         
+                  int flobs = 0;    
+                  while(line=="<FLOB>")
+                  {
+                     getline(iosock,line);
+                     if(line!="<SIZE>") 
+                        cout << "ERROR";
+                     
+                     getline(iosock,line);
+                     SmiSize si = atoi(line.data());
+                     
+                     getline(iosock,line);
+                     if(line!="</SIZE>") 
+                        cout << "ERROR";
             
-            int n_blocks = si / 1024 + 1;
-            char* buf = new char[n_blocks*1024];
-            memset(buf,0,1024*n_blocks);
-            for(int i = 0; i< n_blocks; i++)
-               iosock.read(buf+1024*i,1024);
+                     int n_blocks = si / 1024 + 1;
+                     char* buf = new char[n_blocks*1024];
+                     memset(buf,0,1024*n_blocks);
+                    
+                     for(int i = 0; i< n_blocks; i++)
+                        iosock.read(buf+1024*i,1024);
             
             
-            Attribute* a = static_cast<Attribute*>
-               ((am->Cast(algID,typID))(result.addr));
+                     Attribute* a = static_cast<Attribute*>
+                        ((am->Cast(algID,typID))(result.addr));
             
             
-            Flob*  f = a->GetFLOB(flobs);
-            f->write(buf,si,0);
+                     Flob*  f = a->GetFLOB(flobs);
+                     f->write(buf,si,0);
             
-            delete buf;
+                     delete buf;
             
-            getline(iosock,line);
-            if(line!="</FLOB>") cout << "ERROR";
+                     getline(iosock,line);
+                     if(line!="</FLOB>") 
+                        cout << "ERROR";
             
-            getline(iosock,line);
-            flobs++;
-            //receive FLOB
+                     getline(iosock,line);
+                     flobs++;
+                  }
+         
+                  if(line!="<CLOSE>") 
+                     cout << "ERROR";
+                         
+                  iosock << "<FINISH>" << endl;
+
+                         
+               }
+            }
+                    
          }
          
-         if(line!="<CLOSE>") cout << "ERROR";
-                         
-                         iosock << "<FINISH>" << endl;
-
-                         
-                    }}
-                    
-               }
-               master->Close();delete master;master=0;
+         master->Close();delete master;master=0;
               
-               return 0;
-          }
+         return 0;
+      }
      
-     }
-      cout << "FEHLERHAFTE AUSFÜHRUNG" << endl;
-     result = qp->ResultStorage(s);
-     ((CcInt*)(result.addr))->Set(true,3);
-     return 0;               
+   }
+   
+   return 0;               
           
-                    
 }
          
 const string receiveSpec =
@@ -1506,44 +1518,45 @@ Operator receiveA(
 
 static ListExpr receiverelTypeMap( ListExpr args )
 {
-     string host = nl->ToString(nl->First(args));
-     string port = nl->ToString(nl->Second(args));
-     string line;
+   string host = nl->ToString(nl->First(args));
+   string port = nl->ToString(nl->Second(args));
+   string line;
      
-     host = replaceAll(host,"_",".");
-     host = replaceAll(host,"h","");
-     port = replaceAll(port,"p","");
+   host = replaceAll(host,"_",".");
+   host = replaceAll(host,"h","");
+   port = replaceAll(port,"p","");
 
-     Socket* master = Socket::Connect(host,port,Socket::SockGlobalDomain);
+   Socket* master = Socket::Connect(host,port,Socket::SockGlobalDomain);
      
-     if(master==0 || !master->IsOk()) 
-          {cout << "FEHLER bei Typemapping";
-               return nl->SymbolAtom("typeerror");}
+   if(master==0 || !master->IsOk()) 
+      return nl->SymbolAtom("typeerror");
      
-     iostream& iosock = master->GetSocketStream();
+   iostream& iosock = master->GetSocketStream();
      
-     getline(iosock,line);
-     if(line!= "<TYPE>") return nl->SymbolAtom("typeerror");
-     getline(iosock,line);
-     ListExpr type;
-     nl->ReadFromString(line,type);
-     getline(iosock,line);
-     if(line!= "</TYPE>") return nl->SymbolAtom("typeerror");
+   getline(iosock,line);
+   if(line!= "<TYPE>") 
+      return nl->SymbolAtom("typeerror");
+   
+   getline(iosock,line);
+   ListExpr type;
+   nl->ReadFromString(line,type);
+   
+   getline(iosock,line);
+   if(line!= "</TYPE>")
+      return nl->SymbolAtom("typeerror");
      
-     iosock << "<CLOSE>" << endl;
+   iosock << "<CLOSE>" << endl;
      
-     master->Close(); delete master; master=0;
+   master->Close(); delete master; master=0;
      
-     int algID, typID; extractIds(type,algID,typID);
+   int algID, typID; 
+   extractIds(type,algID,typID);
           
-     cout << "Ende-Typemapping-Receive-Rel" << endl;
-     cout << "Numerischer Typ !" << nl->ToString(type) << "!" << endl;
-     cout << "Ergebnistyp !" << nl->ToString(convertType(type)) << "! " << endl;
-      return nl->ThreeElemList(
+   
+   return nl->ThreeElemList(
           nl->SymbolAtom("APPEND"),
           nl->TwoElemList(nl->StringAtom(nl->ToString(nl->First(args))),
                               nl->StringAtom(nl->ToString(nl->Second(args)))),
-                              //nl->StringAtom(nl->ToString(type))),
                               convertType(type));
 
 }
@@ -1554,103 +1567,85 @@ static int receiverelFun( Word* args,
                                     Word& local, 
                                     Supplier s)
 {
-     string host = (string)(char*)((CcString*)args[2].addr)->GetStringval();
-     string port = (string)(char*)((CcString*)args[3].addr)->GetStringval();
+   string host = (string)(char*)((CcString*)args[2].addr)->GetStringval();
+   string port = (string)(char*)((CcString*)args[3].addr)->GetStringval();
      
-     ListExpr resultType; 
-     /*nl->ReadFromString((string)(char*)((CcString*)args[4].addr)
-          ->GetStringval(),resultType);
-     
-     
-     resultType = nl->Second(resultType);
-     
-     if(nl->ListLength(nl->First(nl->Second(resultType))) != 2)
-          resultType = nl->TwoElemList(nl->First(resultType),
-                                                  nl->OneElemList(
-                                                  nl->Second(resultType)));
-     
-     cout << "Tuple-Typ-Input: " << nl->ToString(resultType) << endl;
-     
-     TupleType* tupleType = new TupleType(resultType);
-     */
+   ListExpr resultType; 
+ 
+   string line;
+   
+   host = replaceAll(host,"_",".");
+   host = replaceAll(host,"h","");
+   port = replaceAll(port,"p","");
 
-     string line;
-     cout << "Beginn Value-Mapping-Receive-Rel" << endl;
-     host = replaceAll(host,"_",".");
-     host = replaceAll(host,"h","");
-     port = replaceAll(port,"p","");
+   Socket* master = Socket::Connect(host,port,Socket::SockGlobalDomain);
+     
+   result = qp->ResultStorage(s);
+     
+   GenericRelation* rel = (Relation*)result.addr;
+     
+   if(master!=0 && master->IsOk())
+   {
 
-     Socket* master = Socket::Connect(host,port,Socket::SockGlobalDomain);
-     
-     result = qp->ResultStorage(s);
-     
-     GenericRelation* rel = (Relation*)result.addr;
-     
-     if(master!=0 && master->IsOk())
-     {
-
-          iostream& iosock = master->GetSocketStream();
+      iostream& iosock = master->GetSocketStream();
           
-          //iosock.read((char*)tupleType,sizeof(TupleType));
+      string line;
+      getline(iosock, line);
           
-          string line;
-          getline(iosock, line);
+      if(line == "<TYPE>")
+      {
+         getline(iosock,line);
+         nl->ReadFromString(line,resultType);
+         resultType = nl->Second(resultType);
+               
+         TupleType* tupleType = new TupleType(resultType);
+         getline(iosock,line);
+         getline(iosock,line);
           
-          if(line == "<TYPE>")
-          {
-               getline(iosock,line);
-               nl->ReadFromString(line,resultType);
-               resultType = nl->Second(resultType);
+         while(line == "<TUPLE>")
+         {
+            getline(iosock,line);
+            size_t size = atoi(line.data());
                
-               cout << "ResultType: " << nl->ToString(resultType) << endl;
+            int num_blocks = (size / 1024) + 1;
+            getline(iosock,line);
                
-               TupleType* tupleType = new TupleType(resultType);
-               getline(iosock,line);getline(iosock,line);
-          char* buffer;
-          while(line == "<TUPLE>")
-          {
-               getline(iosock,line);
-               size_t size = atoi(line.data());
+            iosock << "<OK>" << endl << toString_d(num_blocks) 
+                     << endl << "</OK>" << endl;
                
-               int num_blocks = (size / 1024) + 1;
-               getline(iosock,line);
-               
-               iosock << "<OK>" << endl << toString_d(num_blocks) 
-               << endl << "</OK>" << endl;
-               
-               buffer = new char[1024*num_blocks];
-               memset(buffer,0,1024*num_blocks);
-               for(int i = 0; i<num_blocks; i++)
-                    master->Read(buffer+i*1024,1024); 
+            char* buffer = new char[1024*num_blocks];
+            memset(buffer,0,1024*num_blocks);
+            
+            for(int i = 0; i<num_blocks; i++)
+               master->Read(buffer+i*1024,1024); 
                               
-               Tuple* t = new Tuple(tupleType);
+            Tuple* t = new Tuple(tupleType);
                
+            t->ReadFromBin(buffer+sizeof(int),size);
+            rel->AppendTuple(t);
                
-               t->ReadFromBin(buffer+sizeof(int),size);
+            t->DeleteIfAllowed();
                
-               rel->AppendTuple(t);
-               
-                t->DeleteIfAllowed();
-               
-               getline(iosock,line);
-          }
+            delete buffer;
+            getline(iosock,line);
+         }
           
-          if(line=="<CLOSE>")
-          {
+         delete tupleType;
+         
+         if(line=="<CLOSE>")
+         {
                iosock << "<FINISH>" << endl;
                master->Close(); delete master; master=0;
                return 0;
-          }
-          else
-          {
-               cout << "Fehlerhaftes Kommando Relation: " << line << endl;
-               return 1;
-          }}
-     }
-     
-     else cout << "Fehler bei Verbindungsaufbau Relation";
-     
-     return 1;
+         }
+         else
+            return 1;
+   
+      }
+   
+   }
+
+   return 1;
      
 }
 
@@ -1681,13 +1676,13 @@ Internal Usage for Data Transfer between Master and Worker
 
 static ListExpr sendrelTypeMap( ListExpr args )
 {
-     return nl->ThreeElemList(
-                    nl->SymbolAtom("APPEND"),
-                    nl->TwoElemList(nl->StringAtom(
-                                               nl->ToString(nl->First(args))),
-                                              nl->StringAtom(nl->ToString(
-                                                  nl->Second(args)))),
-                    nl->SymbolAtom("int"));
+   return nl->ThreeElemList(
+                  nl->SymbolAtom("APPEND"),
+                  nl->TwoElemList(nl->StringAtom(
+                                             nl->ToString(nl->First(args))),
+                                             nl->StringAtom(nl->ToString(
+                                             nl->Second(args)))),
+                  nl->SymbolAtom("int"));
 
 }
 
@@ -1698,62 +1693,62 @@ static int sendrelFun( Word* args,
                                     Supplier s)
 {
 
-     string host = (string)(char*)((CcString*)args[3].addr)->GetStringval();
-     string port = (string)(char*)((CcString*)args[4].addr)->GetStringval();
-     string line;
+   string host = (string)(char*)((CcString*)args[3].addr)->GetStringval();
+   string port = (string)(char*)((CcString*)args[4].addr)->GetStringval();
+   string line;
 
-     host = replaceAll(host,"_",".");
-     host = replaceAll(host,"h","");
-     port = replaceAll(port,"p","");
+   host = replaceAll(host,"_",".");
+   host = replaceAll(host,"h","");
+   port = replaceAll(port,"p","");
 
-     Socket* master = Socket::Connect(host,port,Socket::SockGlobalDomain);
+   Socket* master = Socket::Connect(host,port,Socket::SockGlobalDomain);
      
-     char* buffer;
-     if(master!=0 && master->IsOk())
-     {
+   if(master!=0 && master->IsOk())
+   {
 
-          iostream& iosock = master->GetSocketStream();
-          GenericRelation* rel = (Relation*)args[2].addr;
-          GenericRelationIterator* iter = rel->MakeScan();
-          Tuple* t;
+      iostream& iosock = master->GetSocketStream();
+      GenericRelation* rel = (Relation*)args[2].addr;
+      GenericRelationIterator* iter = rel->MakeScan();
+      Tuple* t;
           
-          while((t=iter->GetNextTuple()) != 0)
-          {
-               size_t cS,eS,fS;
-               size_t size = t->GetBlockSize(cS,eS,fS);
+      while((t=iter->GetNextTuple()) != 0)
+      {
+         size_t cS,eS,fS;
+         size_t size = t->GetBlockSize(cS,eS,fS);
                
-               iosock << "<TUPLE>" << endl << toString_d(size) 
-               << endl << "</TUPLE>" << endl;
+         iosock << "<TUPLE>" << endl << toString_d(size) 
+                  << endl << "</TUPLE>" << endl;
                
-               int num_blocks = (size / 1024) + 1;
-               delete buffer;
-               buffer = new char[num_blocks*1024];
-               memset(buffer,0,num_blocks*1024);
+         int num_blocks = (size / 1024) + 1;
+
+         char* buffer = new char[num_blocks*1024];
+         memset(buffer,0,num_blocks*1024);
                
-               t->WriteToBin(buffer,cS,eS,fS);
+         t->WriteToBin(buffer,cS,eS,fS);
                
-               for(int i =0; i< num_blocks; i++)
-                    iosock.write(buffer+i*1024,1024);
+         for(int i =0; i< num_blocks; i++)
+            iosock.write(buffer+i*1024,1024);
                
-               t->DeleteIfAllowed();
-          }
+         t->DeleteIfAllowed();
+         delete buffer;
+      }
           
-          iosock << "<CLOSE>" << endl;
+      iosock << "<CLOSE>" << endl;
           
-          master->Close(); delete master; master=0;
+      master->Close(); delete master; master=0;
           
-          delete iter;
+      delete iter;
           
-          result = qp->ResultStorage(s);
-          ((CcInt*)result.addr)->Set(0);
+      result = qp->ResultStorage(s);
+      ((CcInt*)result.addr)->Set(0);
           
-          return 0;
-     }
+      return 0;
+   }
      
-     result = qp->ResultStorage(s);
-     ((CcInt*)result.addr)->Set(1);
+   result = qp->ResultStorage(s);
+   ((CcInt*)result.addr)->Set(1);
      
-     return 0;
+   return 0;
      
 }
 
@@ -1783,193 +1778,199 @@ Operator sendrelA(
 
 static ListExpr distributeTypeMap( ListExpr inargs )
 {
-     NList args(inargs);
-     if( args.length() == 4)
-     {
-          NList stream_desc = args.first();
-          ListExpr attr_desc = args.second().listExpr();
-          if( stream_desc.isList() && stream_desc.first().isSymbol("stream")
-               && (stream_desc.length() == 2)
-               && (nl->AtomType(attr_desc) == SymbolType))
-          {
-               ListExpr tuple_desc = stream_desc.second().listExpr();
-               string attr_name = nl->SymbolValue(attr_desc);
+   NList args(inargs);
+   if( args.length() == 4)
+   {
+      NList stream_desc = args.first();
+      ListExpr attr_desc = args.second().listExpr();
+      if( stream_desc.isList() && stream_desc.first().isSymbol("stream")
+            && (stream_desc.length() == 2)
+            && (nl->AtomType(attr_desc) == SymbolType))
+      {
+         ListExpr tuple_desc = stream_desc.second().listExpr();
+         string attr_name = nl->SymbolValue(attr_desc);
                
-               if(nl->IsEqual(nl->First(tuple_desc),"tuple") &&
-                    nl->ListLength(tuple_desc) == 2)
-               {
-                    ListExpr attrL = nl->Second(tuple_desc);
+         if(nl->IsEqual(nl->First(tuple_desc),"tuple") &&
+            nl->ListLength(tuple_desc) == 2)
+         {
+            ListExpr attrL = nl->Second(tuple_desc);
                     
-                    if(IsTupleDescription(attrL))
-                    {
-                         int attrIndex;
-                         ListExpr attrType;
+            if(IsTupleDescription(attrL))
+            {
+               int attrIndex;
+               ListExpr attrType;
                          
-                         attrIndex = FindAttribute(attrL,attr_name,attrType);
+               attrIndex = FindAttribute(attrL,attr_name,attrType);
                          
-                         if(nl->ListLength(attrL > 1) && attrIndex > 0
-                              && nl->IsEqual(attrType,"int"))
-                         {
-                              ListExpr attrL2 = nl->TheEmptyList();
-                              ListExpr last;
+               if(nl->ListLength(attrL > 1) && attrIndex > 0
+                  && nl->IsEqual(attrType,"int"))
+               {
+                  ListExpr attrL2 = nl->TheEmptyList();
+                  ListExpr last;
                               
-                              while(!nl->IsEmpty(attrL))
-                              {
-                                   ListExpr attr = nl->First(attrL);
+                  while(!nl->IsEmpty(attrL))
+                  {
+                     ListExpr attr = nl->First(attrL);
                                    
-                                   if(nl->SymbolValue(nl->First(attr)) 
-                                        != attr_name)
-                                   {
-                                        if(nl->IsEmpty(attrL2)){
-                                             attrL2 = nl->OneElemList(attr);
-                                             last = attrL2;}
-                                        else
-                                             last = nl->Append(last,attr);
-                                   }
+                     if(nl->SymbolValue(nl->First(attr)) != attr_name)
+                     {
+                        if(nl->IsEmpty(attrL2))
+                        {
+                           attrL2 = nl->OneElemList(attr);
+                           last = attrL2;
+                        }
+                        else
+                           last = nl->Append(last,attr);
+                     }
                                    
-                                   attrL = nl->Rest(attrL);
-                              }
-                              return nl->ThreeElemList(
-                         nl->SymbolAtom("APPEND"),
-                         nl->OneElemList(nl->IntAtom(attrIndex)),
-                         nl->TwoElemList(
-                           nl->SymbolAtom("darray"),
-                           nl->TwoElemList(
-                             nl->SymbolAtom("rel"),
-                             nl->TwoElemList(nl->SymbolAtom("tuple"),
-                                             attrL2))));
-                         }
-                    }
+                     attrL = nl->Rest(attrL);
+                  }
+                  return nl->ThreeElemList(
+                                 nl->SymbolAtom("APPEND"),
+                                 nl->OneElemList(
+                                    nl->IntAtom(attrIndex)),
+                                 nl->TwoElemList(
+                                    nl->SymbolAtom("darray"),
+                                    nl->TwoElemList(
+                                       nl->SymbolAtom("rel"),
+                                       nl->TwoElemList(
+                                          nl->SymbolAtom("tuple"),
+                                          attrL2))));
                }
-          }
-     }
+            }
+         }
+      }
+   }
      
-     return args.typeError("input is not (stream(tuple(y))) x ...");
+   return args.typeError("input is not (stream(tuple(y))) x ...");
 }
 
 static int
 distributeFun (Word* args, Word& result, int message, Word& local, Supplier s)
 {
-     int size = ((CcInt*)(args[2].addr))->GetIntval();
+   int size = ((CcInt*)(args[2].addr))->GetIntval();
      
-     GenericRelation* r = (GenericRelation*)args[3].addr;
-        GenericRelationIterator* rit = r->MakeScan();
-         ListExpr reltype;
-         nl->ReadFromString("(rel (tuple ((Server string) (Port int))))",
-                                         reltype);
-     ListExpr serverlist = Relation::Out(reltype,rit);
+   GenericRelation* r = (GenericRelation*)args[3].addr;
+   GenericRelationIterator* rit = r->MakeScan();
+   ListExpr reltype;
+   nl->ReadFromString("(rel (tuple ((Server string) (Port int))))",reltype);
+   ListExpr serverlist = Relation::Out(reltype,rit);
      
-     int attrIndex = ((CcInt*)(args[4].addr))->GetIntval() - 1;
+   int attrIndex = ((CcInt*)(args[4].addr))->GetIntval() - 1;
      
-     SecondoCatalog* sc = SecondoSystem::GetCatalog();
-     ListExpr restype = nl->Second(qp->GetType(s));
-     restype = sc->NumericType(restype);
+   SecondoCatalog* sc = SecondoSystem::GetCatalog();
+   ListExpr restype = nl->Second(qp->GetType(s));
+   restype = sc->NumericType(restype);
 
      
-     DArray* array = (DArray*)(qp->ResultStorage(s)).addr;
-     array->initialize(restype,getArrayName(DArray::no),
-                                   size, serverlist);
-     DServerManager* man = array->getServerManager();
-     DServer* server = 0;
+   DArray* array = (DArray*)(qp->ResultStorage(s)).addr;
+   array->initialize(restype,getArrayName(DArray::no),size, serverlist);
+   
+   DServerManager* man = array->getServerManager();
+   DServer* server = 0;
           
-     int server_no = man->getNoOfServers();
-     int rel_server = (size / server_no);
+   int server_no = man->getNoOfServers();
+   int rel_server = (size / server_no);
      
-     for(int i = 0; i<server_no;i++)
-     {
-          server = man->getServerbyID(i);
-          server->Multiply(rel_server);
-     }
+   for(int i = 0; i<server_no;i++)
+   {
+      server = man->getServerbyID(i);
+      server->Multiply(rel_server);
+   }
 
      
-     for(int i = 0; i < size; i++)
-     {
-          server = man->getServerByIndex(i);
-          int child = man->getMultipleServerIndex(i);
-          if(child > -1)
-               server = (server->getChilds())[child];
+   for(int i = 0; i < size; i++)
+   {
+      server = man->getServerByIndex(i);
+      int child = man->getMultipleServerIndex(i);
+      
+      if(child > -1)
+         server = (server->getChilds())[child];
           
-          list<int>* l = new list<int>;
-          l->push_front(i);
+      list<int>* l = new list<int>;
+      l->push_front(i);
           
-          server->setCmd("open_write_rel",l,0);
-          server->run();
-     }
+      server->setCmd("open_write_rel",l,0);
+      server->run();
+   }
      
 
-     int number = 0;               
+   int number = 0;               
      
-     ListExpr tupleType = nl->Second(restype);
-     Word current = SetWord( Address (0) );
+   ListExpr tupleType = nl->Second(restype);
+   Word current = SetWord( Address (0) );
      
-     qp->Open(args[0].addr);
-     qp->Request(args[0].addr,current);
+   qp->Open(args[0].addr);
+   qp->Request(args[0].addr,current);
      
-     ZThread::ThreadedExecutor ex;
+   ZThread::ThreadedExecutor ex;
      
-     while(qp->Received(args[0].addr))
-     {
-          Tuple* tuple1 = (Tuple*)current.addr;
-          Tuple* tuple2 = new Tuple(tupleType);
+   while(qp->Received(args[0].addr))
+   {
+      Tuple* tuple1 = (Tuple*)current.addr;
+      Tuple* tuple2 = new Tuple(tupleType);
 
           
-          int j = 0;
-          for(int i = 0; i < tuple1->GetNoAttributes(); i++)
-          {
-               if(i != attrIndex)
-                    tuple2->CopyAttribute(i,tuple1,j++);
-          }
+      int j = 0;
+      for(int i = 0; i < tuple1->GetNoAttributes(); i++)
+      {
+         if(i != attrIndex)
+            tuple2->CopyAttribute(i,tuple1,j++);
+      }
 
-          int index = ((CcInt*)(tuple1->GetAttribute(attrIndex)))->GetIntval();
-          tuple1->DeleteIfAllowed();
+      int index = ((CcInt*)(tuple1->GetAttribute(attrIndex)))->GetIntval();
+      tuple1->DeleteIfAllowed();
           
-          index = index % size;
-          int child = man->getMultipleServerIndex(index);
-          server = man->getServerByIndex(index);
-          if(child > -1) server = (server->getChilds())[child];
+      index = index % size;
+      int child = man->getMultipleServerIndex(index);
+      server = man->getServerByIndex(index);
+      
+      if(child > -1) 
+         server = (server->getChilds())[child];
           
-          //current = SetWord(tuple2);
-          Word* w = new Word(1);
-          w[0] = SetWord(tuple2);tuple2->IncReference();
+      Word* w = new Word(1);
+      w[0] = SetWord(tuple2);tuple2->IncReference();
 
-          while(server->status != 0) ZThread::Thread::yield();
-          server->status = 1;
-          server->setCmd("write_rel",0,w);
-          DServerExecutor* exec = new DServerExecutor(server);
-          ex.execute(exec);
-          //server->run();
+      while(server->status != 0) 
+         ZThread::Thread::yield();
+      
+      server->status = 1;
+      server->setCmd("write_rel",0,w);
+      DServerExecutor* exec = new DServerExecutor(server);
+      
+      ex.execute(exec);
 
-          tuple2->DeleteIfAllowed();
+      tuple2->DeleteIfAllowed();
           
-          qp->Request(args[0].addr,current);
+      qp->Request(args[0].addr,current);
           
-          number++; cout << toString_d(number) << " Tuple verarbeitet" << endl;
-     }
+      number++; 
+      cout << toString_d(number) << " Tuple verarbeitet" << endl;
+   }
      
-     ex.wait();     
+   ex.wait();     
      
-     for(int i = 0; i < size; i++)
-     {
-          server = man->getServerByIndex(i);
-          int child = man->getMultipleServerIndex(i);
-          if(child > -1)
-               server = (server->getChilds())[child];
+   for(int i = 0; i < size; i++)
+   {
+      server = man->getServerByIndex(i);
+      int child = man->getMultipleServerIndex(i);
+      if(child > -1)
+         server = (server->getChilds())[child];
           
-          server->setCmd("close_write_rel",0,0);
-          server->run();
-     }
+      server->setCmd("close_write_rel",0,0);
+      server->run();
+   }
      
-     for(int i = 0; i<server_no;i++)
-     {
-          server = man->getServerbyID(i);
-          server->DestroyChilds();
-     }
+   for(int i = 0; i<server_no;i++)
+   {
+      server = man->getServerbyID(i);
+      server->DestroyChilds();
+   }
      
      
-     result.addr = array;
-     return 0;
+   result.addr = array;
+   return 0;
         
-     
 }
      
      
@@ -2001,71 +2002,69 @@ Operator distributeA (
 
 static ListExpr loopTypeMap(ListExpr args)
 {
-     if(nl->ListLength(args) == 3)
-     {
-          ListExpr array = nl->First(args);
-          ListExpr map = nl->Second(args);
+   if(nl->ListLength(args) == 3)
+   {
+      ListExpr array = nl->First(args);
+      ListExpr map = nl->Second(args);
           
-          if(nl->ListLength(array) == 2 &&
-               nl->ListLength(map) == 3 &&
-               nl->IsEqual(nl->Third(args),"text"))
-          {
-               if(nl->IsEqual(nl->First(array),"darray") &&
-                    nl->IsEqual(nl->First(map),"map") &&
-                    !nl->IsEqual(nl->Third(map),"typeerror"))
-               {
-                    if(nl->Equal(nl->Second(array),nl->Second(map)))
-                         return nl->ThreeElemList(nl->SymbolAtom("APPEND"),
-                    nl->TwoElemList(nl->SymbolAtom("darray"),
-                                                        nl->Third(map)),
+      if(nl->ListLength(array) == 2 &&
+         nl->ListLength(map) == 3 &&
+         nl->IsEqual(nl->Third(args),"text"))
+      {
+         if(nl->IsEqual(nl->First(array),"darray") &&
+            nl->IsEqual(nl->First(map),"map") &&
+            !nl->IsEqual(nl->Third(map),"typeerror"))
+         {
+            if(nl->Equal(nl->Second(array),nl->Second(map)))
+               return nl->ThreeElemList(
+                                 nl->SymbolAtom("APPEND"),
+                                 nl->TwoElemList(nl->SymbolAtom("darray"),
+                                                            nl->Third(map)),
                                 nl->TwoElemList(nl->SymbolAtom("darray"),
-                                                        nl->Third(map)));
-               }
-          }
-     }
+                                                            nl->Third(map)));
+         }
+      }
+   }
      
-     return nl->SymbolAtom("typeerror");
+   return nl->SymbolAtom("typeerror");
 }
 
 static int loopValueMap
 (Word* args, Word& result, int message, Word& local, Supplier s)
 {
-     DArray* alt = (DArray*)args[0].addr;
+   DArray* alt = (DArray*)args[0].addr;
      
-     result = qp->ResultStorage(s);
+   result = qp->ResultStorage(s);
      
-     SecondoCatalog* sc = SecondoSystem::GetCatalog();
-     ListExpr type = sc->NumericType(nl->Second((qp->GetType(s))));
-     ((DArray*)(result.addr))->initialize(type,
-                                                getArrayName(DArray::no),
-                                               alt->getSize(),
-                                               alt->getServerList());
+   SecondoCatalog* sc = SecondoSystem::GetCatalog();
+   ListExpr type = sc->NumericType(nl->Second((qp->GetType(s))));
+   ((DArray*)(result.addr))->initialize(type,
+                                                      getArrayName(DArray::no),
+                                                      alt->getSize(),
+                                                      alt->getServerList());
      
-     string command = ((FText*)args[2].addr)->GetValue();
+   string command = ((FText*)args[2].addr)->GetValue();
      
-     ZThread::ThreadedExecutor exec;DServer* server;
-     DServerExecutor* ex;
-     Word* w = new Word[2];
-     string to = ((DArray*)(result.addr))->getName();
-     w[0].addr = &to;
-     w[1].addr = &command;
-     for(int i=0; i < alt->getServerManager()->getNoOfServers(); i++)
-     {
-          server = alt->getServerManager()->getServerbyID(i);
-          /*ListExpr param = nl->TwoElemList(nl->TwoElemList(
-                                        nl->StringAtom(((DArray*)(result.addr))
-                                                  ->getName()),
-                                        nl->StringAtom(command)),
-                                   alt->getServerManager()->getIndexList(i));*/
-          server->setCmd("execute",alt->getServerManager()->getIndexList(i),w);
+   ZThread::ThreadedExecutor exec;DServer* server;
+   DServerExecutor* ex;
+   
+   Word* w = new Word[2];
+   string to = ((DArray*)(result.addr))->getName();
+   w[0].addr = &to;
+   w[1].addr = &command;
+   
+   for(int i=0; i < alt->getServerManager()->getNoOfServers(); i++)
+   {
+      server = alt->getServerManager()->getServerbyID(i);
+      server->setCmd("execute",alt->getServerManager()->getIndexList(i),w);
           
-          ex = new DServerExecutor(server);
-          exec.execute(ex);
-     }
+      ex = new DServerExecutor(server);
+      exec.execute(ex);
+   }
      
-     exec.wait();
+   exec.wait();
      
-     return 0;
+   return 0;
      
 }
 
@@ -2095,17 +2094,19 @@ Operator loopA (
 
 ListExpr delementTypeMap( ListExpr args )
 {
-  if(nl->ListLength(args) >= 1)
-  {
-    ListExpr first = nl->First(args);
-    if (nl->ListLength(first) == 2)
-    {
-      if (nl->IsEqual(nl->First(first), "darray")) {
-        return nl->Second(first);
-      }
-    }
-  }
-  return nl->SymbolAtom("typeerror");
+   if(nl->ListLength(args) >= 1)
+   {
+      ListExpr first = nl->First(args);
+      if (nl->ListLength(first) == 2)
+      {
+         if (nl->IsEqual(nl->First(first), "darray")) 
+         {
+            return nl->Second(first);
+         }
+      } 
+   }
+   
+   return nl->SymbolAtom("typeerror");
 }
 
 const string DELEMENTSpec =
@@ -2134,24 +2135,23 @@ Operator dElementA (
 
 class DistributedAlgebra : public Algebra
 {
-  public:
-    DistributedAlgebra() : Algebra()
-    {
-             
-             AddTypeConstructor( &darrayTC );
-             darrayTC.AssociateKind("ARRAY");
-             AddOperator( &makeDarray );
-             AddOperator( &getA );
-             AddOperator( &putA );
-             AddOperator( &sendA );
-             AddOperator( &receiveA);
-             AddOperator( &receiverelA);
-             AddOperator( &sendrelA);
-             AddOperator( &distributeA);
-             AddOperator( &loopA);
-          AddOperator( &dElementA);
-     }
-    ~DistributedAlgebra() {}
+   public:
+      DistributedAlgebra() : Algebra()
+      {
+         AddTypeConstructor( &darrayTC );
+         darrayTC.AssociateKind("ARRAY");
+         AddOperator( &makeDarray );
+         AddOperator( &getA );
+         AddOperator( &putA );
+         AddOperator( &sendA );
+         AddOperator( &receiveA);
+         AddOperator( &receiverelA);
+         AddOperator( &sendrelA);
+         AddOperator( &distributeA);
+         AddOperator( &loopA);
+         AddOperator( &dElementA);
+      }
+      ~DistributedAlgebra() {}
 };
 
 
