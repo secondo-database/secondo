@@ -252,8 +252,8 @@ void DServer::run()
                 
          getline(cbsock1,line);
          if(line!="<CLOSE>") 
-            errorText = "Unexpected response from" 
-                              + "worker (No <Close> after type transmission)!";
+            errorText = (string)"Unexpected response from" 
+			+ " worker (No <Close> after type transmission)!";
          
          worker->Close();delete worker;
                         
@@ -318,7 +318,7 @@ void DServer::run()
          getline(cbsock,line);
          
          if(line!="<FINISH>")
-            errorText = "Unexpected response from worker" 
+            errorText = (string)"Unexpected response from worker" 
                               + " (No <FINISH> after value transmission";
                 
          rec.Truncate(3);
@@ -343,7 +343,7 @@ void DServer::run()
          }
                 
          else 
-            errorText = "Unexpected response from the " 
+            errorText = (string)"Unexpected response from the " 
                         + "worker (No <SecondoResponse> after let-command)";
                 
 
@@ -423,7 +423,7 @@ void DServer::run()
             { 
                getline(cbsock,line);
                if(line!="<SIZE>")
-                  errorText = "Unexpected Response from" 
+                  errorText = (string)"Unexpected Response from" 
                                  + " worker (<SIZE> expected)!";
                
                getline(cbsock,line);
@@ -431,7 +431,7 @@ void DServer::run()
                getline(cbsock,line);
                
                if(line!="</SIZE>")
-                  errorText = "Unexpected Response from " 
+                  errorText = (string)"Unexpected Response from " 
                                  + "worker (</SIZE> expected)!";
             
                int n_blocks = si / 1024 + 1;
@@ -455,7 +455,7 @@ void DServer::run()
             
                getline(cbsock,line);
                if(line!="</FLOB>") 
-                  errorText = "Unexpected Response from " 
+                  errorText = (string)"Unexpected Response from " 
                                     + "worker (</SIZE> expected)!";
             
                getline(cbsock,line);
@@ -465,7 +465,7 @@ void DServer::run()
             Flob_Mutex.release();
          
             if(line!="<CLOSE>")
-               errorText = "Unexpected Response from " 
+               errorText = (string)"Unexpected Response from " 
                                  + "worker (<CLOSE> expected)!";
                          
             iosock << "<FINISH>" << endl;
@@ -493,7 +493,7 @@ void DServer::run()
                         
          }
          else
-            errorText = "Unexpected Response from " 
+            errorText = (string)"Unexpected Response from " 
                               + "worker (<SecondoResponse> expected)!";
                 
 
@@ -527,7 +527,7 @@ void DServer::run()
             while(line.find("</SecondoResponse>") == string::npos);
          }
          else
-            errorText = "Unexpected Response from worker " 
+            errorText = (string)"Unexpected Response from worker " 
                               + "(<SecondoResponse> expected)!";
 
       }
@@ -564,7 +564,7 @@ void DServer::run()
             while(line.find("</SecondoResponse>") == string::npos);
          }
          else
-            errorText = "Unexpected Response from worker " 
+            errorText = (string)"Unexpected Response from worker " 
                               + "(<SecondoResponse> expected)!";
       }
    
@@ -603,7 +603,7 @@ void DServer::run()
             while(line.find("</SecondoResponse>") == string::npos);
          }
          else
-            errorText = "Unexpected Response from worker " 
+            errorText = (string)"Unexpected Response from worker " 
                               + "(<SecondoResponse> expected)!";
       }
    }
@@ -635,7 +635,7 @@ void DServer::run()
             getline(iosock,line); 
          while(line.find("</SecondoResponse") == string::npos);
       else
-            errorText = "Unexpected Response from worker " 
+            errorText = (string)"Unexpected Response from worker " 
                               + "(<SecondoResponse> expected)!";
                         
       iosock << "<Secondo>" << endl << "1" << endl 
@@ -742,7 +742,7 @@ void DServer::run()
          }
          while(line.find("</SecondoResponse") == string::npos);
       else
-         errorText = "Unexpected Response from worker! " 
+         errorText = (string)"Unexpected Response from worker! " 
                            + "(<SecondoResponse> expected)";
                 
       
@@ -809,7 +809,7 @@ void DServer::run()
          }
                 
          if(line != "<CLOSE>") 
-            errorText = "Unexpected Response from worker! " 
+            errorText = (string)"Unexpected Response from worker! " 
                               + "(<CLOSE> or <TUPLE> expected)";
                 
 
