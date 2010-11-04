@@ -484,6 +484,7 @@ for such a gline, create a set of points on it
 void BusRoute::CreateStops(int br_id, GLine* gl, Line* l, int route_type)
 {
   vector<double> dist_for_stops1;//for type 1
+  dist_for_stops1.push_back(820.0);
   dist_for_stops1.push_back(1000.0);
   dist_for_stops1.push_back(900.0);
   dist_for_stops1.push_back(1100.0);
@@ -500,6 +501,7 @@ void BusRoute::CreateStops(int br_id, GLine* gl, Line* l, int route_type)
   vector<double> dist_for_stops2;//for type 2
   dist_for_stops2.push_back(900.0);
   dist_for_stops2.push_back(1100.0);
+  dist_for_stops2.push_back(820.0);
   dist_for_stops2.push_back(1150.0); 
   dist_for_stops2.push_back(1250.0); 
   dist_for_stops2.push_back(850.0); 
@@ -510,6 +512,7 @@ void BusRoute::CreateStops(int br_id, GLine* gl, Line* l, int route_type)
   vector<double> dist_for_stops3;//for type 3
   dist_for_stops3.push_back(900.0);
   dist_for_stops3.push_back(1100.0); 
+  dist_for_stops3.push_back(850.0);
   dist_for_stops3.push_back(950.0); 
   dist_for_stops3.push_back(1300.0); 
   dist_for_stops3.push_back(1000.0);  
@@ -959,7 +962,9 @@ void BusRoute::MergeBusStop1(vector<BusStop>& stop_list)
         br_stop_id.push_back(stop_list[i].br_stop_id); 
         GPoint* gp = new GPoint(true,n->GetId(),stop_list[i].rid,final_pos);
         bus_stop_loc_1.push_back(*gp); 
-  
+          
+//        cout<<"gp "<<*gp<<endl 
+        
         Point* p = new Point();
         gp->ToPoint(p);
         bus_stop_loc_2.push_back(*p);      
