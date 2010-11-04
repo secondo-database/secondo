@@ -138,6 +138,23 @@ class DServerCreator : public ZThread::Runnable
       int port;
       ListExpr type;
 };
+
+class DServerMultiplyer : public ZThread::Runnable
+{
+   DServer* server;
+   int count;
+   
+   public:
+      DServerMultiplyer(DServer* s, int c)
+      {
+         server=s; count = c;
+      }
+   
+      void run()
+      {
+      server->Multiply(count);
+      }
+};
    
    
 
