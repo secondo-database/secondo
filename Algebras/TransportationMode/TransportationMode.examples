@@ -276,6 +276,27 @@ Result   : 75
 
 Operator : create_bus_route2
 Number   : 2
-Signature: network x rel1 x attr x btree x rel2 x attr1 x attr2 -> (stream(((x1 t1) ... (xn tn))))
-Example  : query create_bus_route2(n,street_sections_cell,cellid_w_a_c,section_cell_index,rough_pair, start_cell_id,end_cell_id) count; 
+Signature: network x rel1 x attr x btree x rel2 x attr1 x attr2 x attr3 -> (stream(((x1 t1) ... (xn tn))))
+Example  : query create_bus_route2(n,street_sections_cell,cellid_w_a_c,section_cell_index,rough_pair, start_cell_id,end_cell_id,route_type) count; 
+Result   : 10
+
+
+Operator : create_bus_stop1
+Number   : 2
+Signature: network x rel x attr1 x attr2 x attr3 x attr4 -> (stream(((x1 t1) ... (xn tn))))
+Example  : query create_bus_stop1(n,busroutes,br_id,bus_route1,bus_route2,route_type) count; 
+Result   : 10
+
+
+Operator : create_bus_stop2
+Number   : 2
+Signature: network x rel x attr1 x attr2 x attr3 -> (stream(((x1 t1) ... (xn tn))))
+Example  : query create_bus_stop2(n,bus_stops1,br_id,bus_stop_id,bus_stop1) count; 
+Result   : 10
+
+
+Operator : create_bus_stop3
+Number   : 2
+Signature: network x rel1 x attr x rel2 x attr1 x attr2 x attr3 x btree -> (stream(((x1 t1) ... (xn tn))))
+Example  : query create_bus_stop3(n,busroutes, bus_route1, bus_stops2, br_id,bus_stop_id, bus_stop1,btree_sec_id) count; 
 Result   : 10

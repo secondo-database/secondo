@@ -110,20 +110,79 @@ struct Section_Cell{
 };
 
 /*
+structure that is used for bus stop 
+
+*/
+struct BusStop{
+  int br_id;
+  int br_stop_id; 
+  int rid;
+  double pos;
+  int sid; 
+  bool def;
+  BusStop(){}
+  BusStop(int id1, int id2, int r, double p, int id3, bool d):
+  br_id(id1),br_stop_id(id2),rid(r),pos(p), sid(id3), def(d){}
+  BusStop(const BusStop& bs):
+  br_id(bs.br_id),br_stop_id(bs.br_stop_id),rid(bs.rid),
+  pos(bs.pos),sid(bs.sid), def(bs.def){}
+  BusStop& operator=(const BusStop& bs)
+  {
+    br_id = bs.br_id;
+    br_stop_id = bs.br_stop_id;
+    rid = bs.rid;
+    pos = bs.pos; 
+    sid = bs.sid; 
+    def = bs.def; 
+    return *this; 
+  }
+  bool operator<(const BusStop& bs)const
+  {
+/*    if(rid > bs.rid) return true;
+    else if(rid == bs.rid){
+      if(pos > bs.pos) return true;
+      else if(AlmostEqual(pos,bs.pos))return true;
+      else return false; 
+      
+    }else return false; */
+
+    if(rid < bs.rid) return true;
+    else if(rid == bs.rid){
+      if(pos < bs.pos) return true;
+      else if(AlmostEqual(pos,bs.pos))return true;
+      else return false; 
+      
+    }else return false; 
+
+  }
+  void Print()
+  {
+    cout<<"br_id "<<br_id<<" stop_id "<<br_stop_id
+        <<" rid "<<rid<<" pos "<<pos<<" sid "<<sid<<endl; 
+  }
+}; 
+
+
+/*
 structure that is used to create bus network 
 
 */
 struct BusRoute{
   Network* n;
-  Relation* rel1; //store sec_id,cell_id,cnt
+  Relation* rel1; //store sec_id,cell_id,cnt 
+                  //also used for bus routes br_id, bus_route1,bus_route2 
+                  //also used for bus stops, br_id, bus_stop_id,bus_stop2 
   BTree* btree;
   
   Relation* rel2;//store cell paris, start cell -- end cell 
+                 //store bus stops for opeartor createbusstop3 
   
   unsigned int count;
   TupleType* resulttype;
   
-  vector<GLine> bus_lines; 
+  vector<GLine> bus_lines1; //gline
+  vector<Line> bus_lines2; //line 
+  
   vector<Point> start_gp;
   vector<Point> end_gp; 
   vector<Line> bus_sections1;
@@ -134,6 +193,15 @@ struct BusRoute{
   vector<BBox<2> > end_cells; 
   vector<int> start_cell_id;
   vector<int> end_cell_id;
+  vector<int> bus_route_type; 
+  ////////////bus stops structure////////////////////////
+  vector<int> br_id_list;
+  vector<int> br_stop_id;
+  vector<GPoint> bus_stop_loc_1; 
+  vector<Point> bus_stop_loc_2; 
+  vector<int> sec_id_list; 
+  
+  /////////////////////////////////////
   
   BusRoute(Network* net,Relation* r1,BTree* b):
   n(net),rel1(r1),btree(b)
@@ -143,20 +211,43 @@ struct BusRoute{
   n(net), rel1(r1), btree(b), rel2(r2)
   {count = 0;resulttype=NULL;}
   
+  
   BusRoute(){count=0;resulttype = NULL;}
   ~BusRoute(){if(resulttype != NULL) delete resulttype;}
   
+  ////////////rough description of bus routes/////////////////////////////
   void CreateRoute1(int attr1,int attr2,int attr3,int attr4); 
   void BuildRoute(vector<Section_Cell>& cell_list3,
                      vector<Section_Cell> cell_list1, int attr1, int bus_no);
   void BuildRoute_Limit(vector<Section_Cell>& cell_list3,
                      vector<Section_Cell> cell_list1, int attr1, 
-                     int bus_no,int limit_no);
+                     int bus_no, unsigned int limit_no);
   int FindEndCell(Section_Cell& start_cell,
                   vector<Section_Cell>& cell_list, float dist_val); 
+  /////////////////////////////create bus routes//////////////////////////
+  void CreateRoute2(int attr,int attr1,int attr2,int attr3); 
+  void ConnectCell(int attr,int from_cell_id,int end_cell_id, int route_type);
   
-  void CreateRoute2(int attr,int attr1,int attr2); 
-  void ConnectCell(int attr,int from_cell_id,int end_cell_id);
+  /////////////////////////////create bus stops/////////////////////
+  void CreateBusStop1(int attr1,int attr2,int attr3, int attr4); 
+  void CreateStops(int br_id, GLine* gl, Line* l, int route_type); 
+  bool FindNextStop(vector<SectTreeEntry> sec_list,
+                    unsigned int& last_sec_index,double& last_sec_start,
+                    double& last_sec_end, double& last_sec_gp_pos,
+                    double next_stop_dist, 
+                    double dist_to_jun, vector<bool> start_from); 
+  void CreateBusStop2(int attr1,int attr2,int attr3); 
+  void MergeBusStop1(vector<BusStop>& temp_list); 
+  void CreateBusStop3(int attr,int attr1,int attr2,int attr3); 
+  void GetSectionList(GLine* gl,vector<SectTreeEntry>&, vector<bool>&);
+  void FindDownSection(double,vector<SectTreeEntry>,int sec_index,
+                       const double dist_val,
+                       vector<SectTreeEntry>&,vector<bool>);
+  void FindUpSection(double,vector<SectTreeEntry>,int sec_index,
+                       const double dist_val,
+                       vector<SectTreeEntry>&,vector<bool>);
+  void MergeBusStop2(vector<SectTreeEntry>,vector<SectTreeEntry>,
+                     vector<BusStop>&, int cur_index, int attr);
 };
 #endif
 
