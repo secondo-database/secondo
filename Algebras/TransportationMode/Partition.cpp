@@ -2862,6 +2862,78 @@ void SpacePartition::ExtendSeg2(vector<MyHalfSegment>& segs,int delta,
 }
 
 /*
+For the given line, it gets all the points forming its boundary where delta
+defines the deviation of the left or right side line for transfer.
+
+*/
+void SpacePartition::ExtendSeg3(vector<MyHalfSegment>& segs,int delta,
+                     bool clock_wise, vector<Point>& outer)
+{
+    const double delta_dist = 0.1;
+
+    for(unsigned int i = 0;i < segs.size();i++){
+ //     cout<<"start "<<segs[i].GetLeftPoint()<<" to "
+ //         <<segs[i].GetRightPoint()<<endl;
+      if(i < segs.size() - 1){
+        Point to1 = segs[i].GetRightPoint();
+        Point from2 = segs[i+1].GetLeftPoint();
+        assert(to1.Distance(from2) < delta_dist);
+      }
+    }
+
+//    cout<<"segs size "<<segs.size()<<endl; 
+    
+    vector<MyHalfSegment> boundary;
+    Gettheboundary(segs, boundary, delta, clock_wise);
+
+//    cout<<"boundary size "<<boundary.size()<<endl; 
+    
+    for(unsigned int i = 0;i < boundary.size();i++){
+       ///////////////outer segments////////////////////////////////
+       Point p = boundary[i].GetLeftPoint();
+       outer.push_back(p);
+    }    
+
+    
+    outer.push_back(boundary[boundary.size() - 1].GetRightPoint());
+//    cout<<"outer size "<<outer.size()<<endl; 
+    
+/*      if(clock_wise){
+        for(unsigned int i = 0;i < boundary.size();i++){
+          ///////////////outer segments////////////////////////////////
+          Point p = boundary[i].GetLeftPoint();
+
+          ModifyPoint(p);
+
+          /////////////////////////////////////////////////////////
+          if(i == 0){
+              outer.push_back(boundary[i].GetLeftPoint());
+          }
+          else{
+            outer.push_back(p);
+
+          }
+        }
+
+      }else{
+        for(int i = boundary.size() - 1;i >= 0;i--){
+          /////////////////////////////////////////////////////////////
+          Point p = boundary[i].GetRightPoint();
+          ModifyPoint(p);
+         /////////////////////////////////////////////////////////////
+          if((unsigned)i == boundary.size() - 1){
+              outer.push_back(boundary[i].GetRightPoint());
+
+          }else{
+              outer.push_back(p);
+          }
+        }
+
+      }*/
+
+}
+
+/*
 for the given line, order it in such a way that segi.to = seg{i+1}.from
 store the result in vector<MyHalfSegment>, with higher precision
 

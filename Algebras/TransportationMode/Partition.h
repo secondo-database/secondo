@@ -808,6 +808,10 @@ struct SpacePartition{
   void ExtendSeg2(vector<MyHalfSegment>& segs,int delta,
                      bool clock_wise, vector<Point>& outer);
 
+ //translate a given line with a distance limitation 
+  void ExtendSeg3(vector<MyHalfSegment>& segs,int delta,
+                     bool clock_wise, vector<Point>& outer);
+                    
   // order the segments so that the end point of last one connects to the start
   // point of the next one, the result is stored as vector<MyHalfSegment>
 

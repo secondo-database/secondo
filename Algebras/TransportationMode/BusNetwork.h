@@ -65,6 +65,7 @@ Oct, 2010 Jianqiu xu
 #include "WinUnix.h"
 #include "AvlTree.h"
 #include "Symbols.h"
+#include "Partition.h"
 
 /*
 store cell id and the number of road sections intersecting it.
@@ -162,6 +163,61 @@ struct BusStop{
   }
 }; 
 
+struct BusStop_Ext:public BusStop{
+  Point loc;
+  bool start_small;
+  BusStop_Ext(){}
+  BusStop_Ext(int id1, int id2, double p, Point q, bool s):
+  BusStop(id1,id2,0,p,0,true),loc(q), start_small(s){}
+  BusStop_Ext(const BusStop_Ext& bse):
+  BusStop(bse),loc(bse.loc), start_small(bse.start_small){}
+  BusStop_Ext& operator=(const BusStop_Ext& bse)
+  {
+    BusStop::operator=(bse);
+    loc = bse.loc;
+    start_small = bse.start_small; 
+    return *this; 
+  }
+  void Print()
+  {
+    BusStop::Print(); 
+    cout<<"loc "<<loc<<endl; 
+  }
+  bool operator<(const BusStop_Ext& bse) const
+  {
+    return loc < bse.loc; 
+  
+  }
+};
+
+struct GP_Point{
+  int rid;
+  double pos1; 
+  double pos2;
+  Point loc1;
+  Point loc2;
+  GP_Point(){}
+  GP_Point(int r, double p1,double p2, Point q1, Point q2):
+  rid(r),pos1(p1),pos2(p2),loc1(q1),loc2(q2){}
+  GP_Point(const GP_Point& gp_p):
+  rid(gp_p.rid),pos1(gp_p.pos1),pos2(gp_p.pos2),
+  loc1(gp_p.loc1),loc2(gp_p.loc2){}
+  GP_Point& operator=(const GP_Point& gp_p)
+  {
+    rid = gp_p.rid;
+    pos1 = gp_p.pos1;
+    pos2 = gp_p.pos2;
+    loc1 = gp_p.loc1;
+    loc2 = gp_p.loc2; 
+    return *this;
+  }
+  void Print()
+  {
+    cout<<"rid "<<rid<<" pos1 "<<pos1<<" pos2 "<<pos2
+         <<"loc1 "<<loc1<<" loc2 "<<loc2<<endl; 
+  }
+
+};
 
 /*
 structure that is used to create bus network 
@@ -187,7 +243,7 @@ struct BusRoute{
   vector<Point> end_gp; 
   vector<Line> bus_sections1;
   vector<Line> bus_sections2; 
-  
+  vector<int> br_uid_list; 
   
   vector<BBox<2> > start_cells;
   vector<BBox<2> > end_cells; 
@@ -200,7 +256,8 @@ struct BusRoute{
   vector<GPoint> bus_stop_loc_1; 
   vector<Point> bus_stop_loc_2; 
   vector<int> sec_id_list; 
-  
+  vector<double> bus_stop_loc_3; 
+  vector<bool> startSmaller; 
   /////////////////////////////////////
   
   BusRoute(Network* net,Relation* r1,BTree* b):
@@ -224,6 +281,7 @@ struct BusRoute{
                      int bus_no, unsigned int limit_no);
   int FindEndCell(Section_Cell& start_cell,
                   vector<Section_Cell>& cell_list, float dist_val); 
+  void ConvertGLine(GLine* gl1, GLine* gl2); 
   /////////////////////////////create bus routes//////////////////////////
   void CreateRoute2(int attr,int attr1,int attr2,int attr3); 
   void ConnectCell(int attr,int from_cell_id,int end_cell_id, int route_type);
@@ -248,6 +306,20 @@ struct BusRoute{
                        vector<SectTreeEntry>&,vector<bool>);
   void MergeBusStop2(vector<SectTreeEntry>,vector<SectTreeEntry>,
                      vector<BusStop>&, int cur_index, int attr);
+  ///////////////////////translate bus route//////////////////////////////
+  void CreateRoute3(int attr1, int attr2, int attr3, int w);
+  void ComputeLine(vector<Point>& point_list, Line* l);
+  
+  void CalculateStartSmaller(vector<BusStop>& bus_stop_list,int,int,
+                                vector<SectTreeEntry>& sec_list,
+                                vector<bool>& start_from,
+                                vector<double>& dist_list,SimpleLine* sl);
+  ///////////////////change the position of bus stops///////////////////
+  /////////////////////change the representation for bus stops////////////
+  void CreateBusStop4(int attr_a,int attr_b,int attr1,int attr2,
+                      int attr3,int attr4); 
+  void GetInterestingPoints(HalfSegment hs,Point loc, vector<MyPoint>& list,
+                            Line* l1, Line* l2);
 };
 #endif
 

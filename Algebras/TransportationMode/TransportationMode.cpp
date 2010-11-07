@@ -477,6 +477,18 @@ const string OpTMCreateBusRouteSpec2  =
     "count;</text--->"
     ") )";
     
+const string OpTMCreateBusRouteSpec3  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+    "\"Example\" ) "
+    "( <text>rel x attr1 x attr2 x attr3 x real"
+    "-> (stream (tuple( (x1 t1)(x2 t2)...(xn tn)))</text--->"
+    "<text>create_bus_route3(rel,attr1,attr2,attr3,real);"
+    "</text--->"
+    "<text>translate bus routes</text--->"
+    "<text>query create_bus_route3(busroutes,br_id,bus_route2,route_type"
+    "roadwidth/2) count;</text--->"
+    ") )";
+    
 const string OpTMCreateBusStopSpec1  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" "
     "\"Example\" ) "
@@ -509,6 +521,19 @@ const string OpTMCreateBusStopSpec3  =
     "<text>merge bus stops</text--->"
     "<text>query create_bus_stop3(n,busroutes, bus_route1, bus_stops2,"
     "br_id, bus_stop_id, bus_stop1,btree_sec_id) count;</text--->"
+    ") )";
+    
+    
+const string OpTMCreateBusStopSpec4  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+    "\"Example\" ) "
+    "( <text>rel1 x attr1 x attr2 x rel2 x attr1 x attr2 x attr3 x attr4"
+    "-> (stream (tuple( (x1 t1)(x2 t2)...(xn tn)))</text--->"
+    "<text>create_bus_stops5(rel1,attr_a, attr_b,rel2,attr1,attr2,attr3,attr4);"
+    "</text--->"
+    "<text>new position for bus stops after translate bus route</text--->"
+    "<text>query create_bus_stop5(newbusroutes, bus_route1,bus_route2," 
+    "bus_stops3,br_id, bus_stop_id, bus_stop2,startSmaller) count;</text--->"
     ") )";
     
 ////////////////TypeMap function for operators//////////////////////////////
@@ -2693,6 +2718,92 @@ ListExpr OpTMCreateBusRouteTypeMap2 ( ListExpr args )
 
 
 /*
+TypeMap fun for operator createbusroute3
+translate bus routes 
+
+*/
+
+ListExpr OpTMCreateBusRouteTypeMap3 ( ListExpr args )
+{
+  if ( nl->ListLength ( args ) != 5 )
+  {
+    return  nl->SymbolAtom ( "list length should be 5" );
+  }
+  
+  ListExpr param1 = nl->First ( args );
+  if(!IsRelDescription(param1))
+    return nl->SymbolAtom ( "typeerror: param1 should be relation" );
+  
+  
+  ListExpr attrName1 = nl->Second ( args );
+  ListExpr attrType1;
+  string aname1 = nl->SymbolValue(attrName1);
+  int j1 = listutils::findAttribute(nl->Second(nl->Second(param1)),
+                      aname1,attrType1);
+                      
+  if(j1 == 0 || !listutils::isSymbol(attrType1,"int")){
+      return listutils::typeError("attr name" + aname1 + "not found"
+                      "or not of type int");
+  }
+  
+  
+  ListExpr attrName2 = nl->Third ( args );
+  ListExpr attrType2;
+  string aname2 = nl->SymbolValue(attrName2);
+  int j2 = listutils::findAttribute(nl->Second(nl->Second(param1)),
+                      aname2,attrType2);
+  if(j2 == 0 || !listutils::isSymbol(attrType2,"line"))
+      return listutils::typeError("attr name" + aname2 + "not found"
+                      "or not of type line");
+  
+                      
+  ListExpr attrName3 = nl->Fourth ( args );
+  ListExpr attrType3;
+  string aname3 = nl->SymbolValue(attrName3);
+  int j3 = listutils::findAttribute(nl->Second(nl->Second(param1)),
+                      aname3,attrType3);
+  if(j3 == 0 || !listutils::isSymbol(attrType3,"int"))
+      return listutils::typeError("attr name" + aname3 + "not found"
+                      "or not of type int");
+  
+                      
+  ListExpr param5 = nl->Fifth ( args );
+  if(!(nl->IsAtom(param5) && nl->AtomType(param5) == SymbolType &&  
+     nl->SymbolValue(param5) == "real")){
+      return nl->SymbolAtom ( "typeerror: param5 should be real" );
+  }
+  
+
+     ListExpr res = nl->TwoElemList(
+            nl->SymbolAtom("stream"),
+            nl->TwoElemList(
+                nl->SymbolAtom("tuple"),
+                                        
+                nl->FiveElemList(
+                    nl->TwoElemList(
+                        nl->SymbolAtom("br_id"),
+                        nl->SymbolAtom("int")), 
+                    nl->TwoElemList(
+                        nl->SymbolAtom("bus_route1"),
+                        nl->SymbolAtom("line")),
+                    nl->TwoElemList(
+                        nl->SymbolAtom("bus_route2"),
+                        nl->SymbolAtom("line")),
+                    nl->TwoElemList(
+                        nl->SymbolAtom("route_type"),
+                        nl->SymbolAtom("int")),
+                    nl->TwoElemList(
+                        nl->SymbolAtom("br_uid"),
+                        nl->SymbolAtom("int"))                                 
+                    )));
+
+      return nl->ThreeElemList(
+        nl->SymbolAtom("APPEND"),
+        nl->ThreeElemList(nl->IntAtom(j1),nl->IntAtom(j2),nl->IntAtom(j3)),res);
+}
+
+
+/*
 TypeMap fun for operator createbusstops1
 create bus stop
 
@@ -2944,7 +3055,8 @@ ListExpr OpTMCreateBusStopTypeMap3 ( ListExpr args )
             nl->TwoElemList(
                 nl->SymbolAtom("tuple"),
                                         
-                nl->FourElemList(
+//                nl->FourElemList(
+                nl->FiveElemList(
                     nl->TwoElemList(
                         nl->SymbolAtom("br_id"),
                         nl->SymbolAtom("int")), 
@@ -2956,7 +3068,10 @@ ListExpr OpTMCreateBusStopTypeMap3 ( ListExpr args )
                         nl->SymbolAtom("gpoint")),
                     nl->TwoElemList(
                         nl->SymbolAtom("bus_stop2"),
-                        nl->SymbolAtom("point"))
+                        nl->SymbolAtom("point")),
+                    nl->TwoElemList(
+                        nl->SymbolAtom("startSmaller"),
+                        nl->SymbolAtom("bool"))
                     )));
 
       return nl->ThreeElemList(
@@ -2964,6 +3079,131 @@ ListExpr OpTMCreateBusStopTypeMap3 ( ListExpr args )
         nl->FourElemList(nl->IntAtom(j),nl->IntAtom(j1),nl->IntAtom(j2),
                          nl->IntAtom(j3)),res);
 }
+
+
+/*
+TypeMap fun for operator createbusstops5
+new position for bus stops (id,pos) after translate bus route: down and up 
+and get the pos value for each kind of bus stop 
+
+*/
+
+ListExpr OpTMCreateBusStopTypeMap4 ( ListExpr args )
+{
+  if ( nl->ListLength ( args ) != 8 )
+  {
+    return  nl->SymbolAtom ( "list length should be 8" );
+  }
+  
+  ListExpr param1 = nl->First ( args );
+  if(!IsRelDescription(param1))
+    return nl->SymbolAtom ( "typeerror: param1 should be a relation" );
+  
+  ListExpr attrName_a = nl->Second ( args );
+  ListExpr attrType_a;
+  string aname_a = nl->SymbolValue(attrName_a);
+  int j_1 = listutils::findAttribute(nl->Second(nl->Second(param1)),
+                      aname_a,attrType_a);
+                      
+  if(j_1 == 0 || !listutils::isSymbol(attrType_a,"line")){
+      return listutils::typeError("attr name" + aname_a + "not found"
+                      "or not of type line");
+  }
+  
+  
+  ListExpr attrName_b = nl->Third ( args );
+  ListExpr attrType_b;
+  string aname_b = nl->SymbolValue(attrName_b);
+  int j_2 = listutils::findAttribute(nl->Second(nl->Second(param1)),
+                      aname_b,attrType_b);
+                      
+  if(j_2 == 0 || !listutils::isSymbol(attrType_b,"line")){
+      return listutils::typeError("attr name" + aname_b + "not found"
+                      "or not of type line");
+  }
+  
+  
+  ListExpr param4 = nl->Fourth ( args );
+  if(!IsRelDescription(param4))
+    return nl->SymbolAtom ( "typeerror: param4 should be a relation" );
+  
+  
+  ListExpr attrName1 = nl->Fifth ( args );
+  ListExpr attrType1;
+  string aname1 = nl->SymbolValue(attrName1);
+  int j1 = listutils::findAttribute(nl->Second(nl->Second(param4)),
+                      aname1,attrType1);
+                      
+  if(j1 == 0 || !listutils::isSymbol(attrType1,"int")){
+      return listutils::typeError("attr name" + aname1 + "not found"
+                      "or not of type int");
+  }
+  
+  ListExpr attrName2 = nl->Sixth (args );
+  ListExpr attrType2;
+  string aname2 = nl->SymbolValue(attrName2);
+  int j2 = listutils::findAttribute(nl->Second(nl->Second(param4)),
+                      aname2,attrType2);
+  if(j2 == 0 || !listutils::isSymbol(attrType2,"int"))
+      return listutils::typeError("attr name" + aname2 + "not found"
+                      "or not of type int");
+  
+  ListExpr attrName3 = nl->Nth (7, args );
+  ListExpr attrType3;
+  string aname3 = nl->SymbolValue(attrName3);
+  int j3 = listutils::findAttribute(nl->Second(nl->Second(param4)),
+                      aname3,attrType3);
+  if(j3 == 0 || !listutils::isSymbol(attrType3,"point"))
+      return listutils::typeError("attr name" + aname3 + "not found"
+                      "or not of type point");
+
+                      
+  ListExpr attrName4 = nl->Nth (8, args );
+  ListExpr attrType4;
+  string aname4 = nl->SymbolValue(attrName4);
+  int j4 = listutils::findAttribute(nl->Second(nl->Second(param4)),
+                      aname4, attrType4);
+  if(j4 == 0 || !listutils::isSymbol(attrType4,"bool"))
+      return listutils::typeError("attr name" + aname4 + "not found"
+                      "or not of type bool");
+                      
+     ListExpr res = nl->TwoElemList(
+            nl->SymbolAtom("stream"),
+            nl->TwoElemList(
+                nl->SymbolAtom("tuple"),
+                                        
+                nl->SixElemList(
+                    nl->TwoElemList(
+                        nl->SymbolAtom("br_id"),
+                        nl->SymbolAtom("int")),
+                    nl->TwoElemList(
+                        nl->SymbolAtom("br_uid"),
+                        nl->SymbolAtom("int")), 
+                    nl->TwoElemList(
+                        nl->SymbolAtom("bus_stop_id"),
+                        nl->SymbolAtom("int")),
+                    nl->TwoElemList(
+                        nl->SymbolAtom("bus_stop1"),
+                        nl->SymbolAtom("point")),
+                    nl->TwoElemList(
+                        nl->SymbolAtom("bus_stop2"),
+                        nl->SymbolAtom("point")),
+                    nl->TwoElemList(
+                        nl->SymbolAtom("bus_pos"),
+                        nl->SymbolAtom("real"))
+//                    nl->TwoElemList(
+//                        nl->SymbolAtom("test_line"),
+//                        nl->SymbolAtom("line"))
+                    )));
+
+      return nl->ThreeElemList(
+        nl->SymbolAtom("APPEND"),
+        nl->SixElemList(nl->IntAtom(j_1),nl->IntAtom(j_2),nl->IntAtom(j1),
+                         nl->IntAtom(j2),nl->IntAtom(j3),
+                         nl->IntAtom(j4)),res);
+
+}
+
 
 int GetContourSelect(ListExpr args)
 {
@@ -5466,6 +5706,64 @@ int OpTMCreateBusRouteValueMap2 ( Word* args, Word& result, int message,
 }
 
 /*
+create bus routes3
+translate the bus route into two where one is for up and the other is for down
+
+*/
+int OpTMCreateBusRouteValueMap3 ( Word* args, Word& result, int message,
+                         Word& local, Supplier in_pSupplier )
+{
+
+  BusRoute* br;
+  switch(message){
+      case OPEN:{
+        Relation* r = (Relation*)args[0].addr; 
+        float width = ((CcReal*)args[4].addr)->GetRealval(); 
+        
+        int attr1 = ((CcInt*)args[5].addr)->GetIntval() - 1;
+        int attr2 = ((CcInt*)args[6].addr)->GetIntval() - 1;
+        int attr3 = ((CcInt*)args[7].addr)->GetIntval() - 1;
+        
+
+        br = new BusRoute(NULL,r,NULL,NULL);
+        br->resulttype =
+            new TupleType(nl->Second(GetTupleResultType(in_pSupplier)));
+        
+        br->CreateRoute3(attr1,attr2,attr3, (int)width);
+        local.setAddr(br);
+        return 0;
+      }
+      case REQUEST:{
+          if(local.addr == NULL) return CANCEL;
+          br = (BusRoute*)local.addr;
+          if(br->count == br->br_id_list.size())return CANCEL;
+
+          Tuple* tuple = new Tuple(br->resulttype);
+//        cout<<"rid "<<rid<<" m1 "<<meas1<<" m2 "<<meas2<<endl; 
+          tuple->PutAttribute(0, new CcInt(true, br->br_id_list[br->count]));
+          tuple->PutAttribute(1, new Line(br->bus_lines2[br->count]));
+          tuple->PutAttribute(2, new Line(br->bus_sections1[br->count]));
+          tuple->PutAttribute(3, new CcInt(true,br->bus_route_type[br->count]));
+          tuple->PutAttribute(4, new CcInt(true,br->br_uid_list[br->count]));
+          
+          result.setAddr(tuple);
+          br->count++;
+          return YIELD;
+      }
+      case CLOSE:{
+          if(local.addr){
+            br = (BusRoute*)local.addr;
+            delete br;
+            local.setAddr(Address(0));
+          }
+          return 0;
+      }
+  }
+  return 0;
+
+}
+
+/*
 create bus stops
 for each bus route, it creates a sequence of points on it as bus stops 
 
@@ -5622,6 +5920,7 @@ int OpTMCreateBusStopValueMap3 ( Word* args, Word& result, int message,
           tuple->PutAttribute(1, new CcInt(true,br->br_stop_id[br->count]));
           tuple->PutAttribute(2, new GPoint(br->bus_stop_loc_1[br->count]));
           tuple->PutAttribute(3, new Point(br->bus_stop_loc_2[br->count]));
+          tuple->PutAttribute(4, new CcBool(true,br->startSmaller[br->count]));
 
           result.setAddr(tuple);
           br->count++;
@@ -5639,6 +5938,74 @@ int OpTMCreateBusStopValueMap3 ( Word* args, Word& result, int message,
   return 0;
 
 }
+
+
+/*
+change the position for bus stops (id,pos) after translate bus route
+and translate the original bus stop to its up and down bus route.
+
+*/
+int OpTMCreateBusStopValueMap4 ( Word* args, Word& result, int message,
+                         Word& local, Supplier in_pSupplier )
+{
+
+  BusRoute* br;
+  switch(message){
+      case OPEN:{
+        Relation* r1 = (Relation*)args[0].addr; 
+        Relation* r2 = (Relation*)args[3].addr; 
+        
+        int attr_a = ((CcInt*)args[8].addr)->GetIntval() - 1;
+        int attr_b = ((CcInt*)args[9].addr)->GetIntval() - 1;
+        int attr1 = ((CcInt*)args[10].addr)->GetIntval() - 1;
+        int attr2 = ((CcInt*)args[11].addr)->GetIntval() - 1;
+        int attr3 = ((CcInt*)args[12].addr)->GetIntval() - 1;
+        int attr4 = ((CcInt*)args[13].addr)->GetIntval() - 1;
+        
+
+        br = new BusRoute(NULL,r1,NULL,r2);
+        br->resulttype =
+            new TupleType(nl->Second(GetTupleResultType(in_pSupplier)));
+        
+        br->CreateBusStop4(attr_a, attr_b, attr1, attr2, attr3, attr4);
+        local.setAddr(br);
+        return 0;
+      }
+      case REQUEST:{
+          if(local.addr == NULL) return CANCEL;
+          br = (BusRoute*)local.addr;
+          if(br->count == br->br_id_list.size())return CANCEL;
+
+          Tuple* tuple = new Tuple(br->resulttype);          
+          
+          tuple->PutAttribute(0, new CcInt(true, br->br_id_list[br->count]));
+          tuple->PutAttribute(1, new CcInt(true, br->br_uid_list[br->count]));
+          tuple->PutAttribute(2, new CcInt(true,br->br_stop_id[br->count]));
+          tuple->PutAttribute(3, new Point(br->start_gp[br->count]));
+          tuple->PutAttribute(4, new Point(br->end_gp[br->count]));
+          tuple->PutAttribute(5, 
+                              new CcReal(true,br->bus_stop_loc_3[br->count]));
+                              
+//          tuple->PutAttribute(5,new Line(br->bus_sections1[br->count])); 
+
+          result.setAddr(tuple);
+          br->count++;
+          return YIELD;
+      }
+      case CLOSE:{
+          if(local.addr){
+            br = (BusRoute*)local.addr;
+            delete br;
+            local.setAddr(Address(0));
+          }
+          return 0;
+      }
+  }
+  return 0;
+
+}
+
+
 ////////////////Operator Constructor///////////////////////////////////////
 Operator checksline(
     "checksline",               // name
@@ -6026,6 +6393,15 @@ Operator create_bus_route2(
   OpTMCreateBusRouteTypeMap2
 );
 
+Operator create_bus_route3(
+  "create_bus_route3",
+  OpTMCreateBusRouteSpec3,               
+  OpTMCreateBusRouteValueMap3,
+  Operator::SimpleSelect,
+  OpTMCreateBusRouteTypeMap3
+);
+
+
 Operator create_bus_stop1(
   "create_bus_stop1",
   OpTMCreateBusStopSpec1,               
@@ -6049,6 +6425,15 @@ Operator create_bus_stop3(
   OpTMCreateBusStopValueMap3,
   Operator::SimpleSelect,
   OpTMCreateBusStopTypeMap3
+);
+
+
+Operator create_bus_stop4(
+  "create_bus_stop4",
+  OpTMCreateBusStopSpec4,               
+  OpTMCreateBusStopValueMap4,
+  Operator::SimpleSelect,
+  OpTMCreateBusStopTypeMap4
 );
 
 /*
@@ -6114,11 +6499,14 @@ class TransportationModeAlgebra : public Algebra
     AddOperator(&gethole);
     ////////////////////create bus network//////////////////////////
     AddOperator(&cellbox);
-    AddOperator(&create_bus_route1); 
-    AddOperator(&create_bus_route2); 
-    AddOperator(&create_bus_stop1); 
-    AddOperator(&create_bus_stop2); 
-    AddOperator(&create_bus_stop3); 
+    AddOperator(&create_bus_route1); //rough representation
+    AddOperator(&create_bus_route2); //create bus route 
+    AddOperator(&create_bus_route3);//copy bus route, split 
+    AddOperator(&create_bus_stop1); //create bus stops on bus routes
+    AddOperator(&create_bus_stop2); //merge bus stops (same road section)
+    AddOperator(&create_bus_stop3); //merge bus stops (adjacent section)
+    AddOperator(&create_bus_stop4); //change bus stop position 
+    
   }
   ~TransportationModeAlgebra() {};
  private:
