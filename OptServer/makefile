@@ -24,18 +24,12 @@ include ../makefile.jni
 INCLUDEFLAGS := -I. $(JNIINCLUDE) $(PLINCLUDEFLAGS) -I$(INCLUDEDIR)
 
 REG_SEC_DLL=$(OPTDIR)/$(DLLPREF)regSecondo.$(JNI_DLLEXT)
-LINKFILES := $(SECONDO_BUILD_DIR)/UserInterfaces/cmsg.o $(SECONDOPL_DIR)/SecondoPL.o $(LIBDIR)/SecondoInterfaceCS.o $(LIBDIR)/SecondoInterfaceGeneral.o
 
 ifndef JPL_DLL
-JPL_DLL_SIMPLE=$(DLLPREF)jpl.$(JNI_DLLEXT)
-JPL_DLL=$(OPTDIR)/$(JPL_DLL_SIMPLE)
-LINK_FLAGS += -L$(OPTDIR)
-LINK_FLAGS += -ljpl
-LINK_FILES += ./$(JPL_DLL_SIMPLE)
-else 
-LINKFILES += $(JPL_DLL)
+JPL_DLL=$(OPTDIR)/$(DLLPREF)jpl.$(JNI_DLLEXT)
 endif
 
+LINKFILES := $(SECONDO_BUILD_DIR)/UserInterfaces/cmsg.o $(SECONDOPL_DIR)/SecondoPL.o $(LIBDIR)/SecondoInterfaceCS.o $(LIBDIR)/SecondoInterfaceGeneral.o
 
 # Some optional switches used for providing a prolog
 # predicate which maximizes the entropy. For details
@@ -51,7 +45,9 @@ LINK_FLAGS := $(ENT_LINK_LIBS) $(LD_LINK_LIBS) \
 ifeq ($(platform),mac_osx)
   LINK_FLAGS += -flat_namespace -undefined suppress
 else
+  LINKFILES += $(JPL_DLL)
 endif
+
 
 
 .PHONY:all
