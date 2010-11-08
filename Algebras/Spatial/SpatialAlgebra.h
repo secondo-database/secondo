@@ -1632,6 +1632,16 @@ Changes the capacities of the contained arrays to the required size.
   }
 
 /*
+~StartsSmaller~
+
+Returns true if SimpleLine start at smaller end point.
+
+*/
+ inline bool StartsSmaller(){
+   return startSmaller;
+ }
+
+/*
 ~Comparison~
 
 The operator __==__ checks whether the structures of two simple lines are equal.
@@ -1679,6 +1689,7 @@ geometry.
 ~Distance Operators~
 
 */
+
   double Distance(const Point& p )const;
 
   double Distance(const Points& ps ) const;
