@@ -395,31 +395,60 @@ Set Methods of ~gpoint~
     int Compare( const Attribute* arg ) const
     {
       const GPoint *p = (const GPoint*) arg;
-      if (m_iNetworkId < p->GetNetworkId()) {
+      return Compare(*p);
+    }
+
+    int Compare(const GPoint p) const
+    {
+      if (m_iNetworkId < p.GetNetworkId())
+      {
         return -1;
-      } else {
-        if (m_iNetworkId > p->GetNetworkId()) {
+      }
+      else
+      {
+        if (m_iNetworkId > p.GetNetworkId())
+        {
           return 1;
-        } else { // same network
-          if (m_xRouteLocation.rid < p->GetRouteId()){
+        }
+        else
+        { // same network
+          if (m_xRouteLocation.rid < p.GetRouteId())
+          {
             return -1;
-          }else {
-            if (m_xRouteLocation.rid > p->GetRouteId()){
+          }
+          else
+          {
+            if (m_xRouteLocation.rid > p.GetRouteId())
+            {
               return 1;
-            } else{ //same route
-              if (m_xRouteLocation.d < p->GetPosition()){
+            }
+            else
+            { //same route
+              if (m_xRouteLocation.d < p.GetPosition())
+              {
                 return -1;
-              } else {
-                if (m_xRouteLocation.d > p->GetPosition()){
+              }
+              else
+              {
+                if (m_xRouteLocation.d > p.GetPosition())
+                {
                   return 1;
-                } else { //same Position
-                  if (m_xRouteLocation.side == 2 || p->GetSide() == 2 ||
-                      m_xRouteLocation.side == p->GetSide()){
+                }
+                else
+                { //same Position
+                  if (m_xRouteLocation.side == 2 || p.GetSide() == 2 ||
+                      m_xRouteLocation.side == p.GetSide())
+                  {
                     return 0;
-                  } else {
-                    if (m_xRouteLocation.side < p->GetSide()) {
+                  }
+                  else
+                  {
+                    if (m_xRouteLocation.side < p.GetSide())
+                    {
                       return -1;
-                    } else {
+                    }
+                    else
+                    {
                       return 1;
                     }
                   }
@@ -429,6 +458,7 @@ Set Methods of ~gpoint~
           }
         }
       }
+      return -1; //should never been reached
     }
 
     bool Adjacent( const Attribute *arg ) const
@@ -486,6 +516,7 @@ Returns the network distance between 2 ~gpoint~ using DijkstrasAlgorithm.
 */
 
     double NetdistanceA (GPoint* toGPoint);
+    double NetdistanceA (GPoint* toGPoint, Network* pNetwork);
 
 /*
 Never used ?
@@ -570,6 +601,7 @@ Returns a gline representing the shortest path between two GPoint.
   bool ShortestPath(GPoint *ziel, GLine *result);
 
   bool ShortestPathAStar(GPoint *ziel, GLine *result);
+  bool ShortestPathAStar(GPoint* ziel, GLine* result, Network *pNetwork);
 
   private:
 
@@ -980,12 +1012,15 @@ struct JunctionSortEntry
   {
   }
 
+  ~JunctionSortEntry(){}
   bool m_bFirstRoute;
 
   Tuple* m_pJunction;
 
   bool operator<(const JunctionSortEntry& in_xOther) const
   {
+    return GetRouteMeas() < in_xOther.GetRouteMeas();
+    /*
     CcReal* xMeas1;
     if(m_bFirstRoute)
     {
@@ -1008,10 +1043,10 @@ struct JunctionSortEntry
           (CcReal*)in_xOther.m_pJunction->GetAttribute(JUNCTION_ROUTE2_MEAS);
     }
 
-    return (xMeas1->GetRealval() < xMeas2->GetRealval());
+    return (xMeas1->GetRealval() < xMeas2->GetRealval());*/
   }
 
-  double GetRouteMeas()
+  double GetRouteMeas() const
   {
     CcReal* pMeas;
     if(m_bFirstRoute)
@@ -1082,6 +1117,15 @@ struct JunctionSortEntry
           m_pJunction->GetAttribute(JUNCTION_SECTION_BDOWN_RC))->GetTid();
     }
     return pTid;
+  }
+
+  ostream& Print(ostream& os) const
+  {
+    os << "JunctionSortEntry First Route : " << m_bFirstRoute;
+    os << "Tuple: ";
+    m_pJunction->Print(os);
+    os << endl;
+    return os;
   }
 };
 
@@ -1409,7 +1453,7 @@ Returns a set of sections which are covered by the given ~RouteInterval~
 */
 
     void GetSectionsOfRouteInterval(const RouteInterval *in_ri,
-                                    DbArray<SectTreeEntry> *io_SectionIds);
+                                    vector<SectTreeEntry>& io_SectionIds);
 
     void GetSectionsOfRoutInterval(const RouteInterval *in_ri,
                                   vector<TupleId> &res);
@@ -1747,6 +1791,8 @@ the size of the ~DbArray~ is dynamically extended later.
 
     GLine(const GLine* in_xOther);
 
+    GLine(bool def);
+
     ~GLine() {};
 
     GLine( ListExpr in_xValue,
@@ -1770,6 +1816,7 @@ the size of the ~DbArray~ is dynamically extended later.
     void AddRouteInterval(RouteInterval ri);
 
     double GetLength ();
+    void SetLength(double l);
 
     int GetNetworkId();
 
@@ -1789,7 +1836,13 @@ Computes the network distance of 2 glines.
 */
 
     double Netdistance(GLine* pgl2);
+    double Netdistance ( GLine* pgl2, Network* pNetwork );
+    double NetdistanceNew(GLine* pgl2);
+    double NetdistanceNew(GLine* pgl2, Network* pNetwork);
 
+
+    bool ShortestPath(GLine *to, GLine *result);
+    bool ShortestPath(GLine *to, GLine *result, Network* pNetwork);
 /*
 Computes the euclidean distance of 2 glines.
 
@@ -1827,7 +1880,8 @@ Returns the Bounding GPoints of the GLine.
 
 */
 
-    GPoints* GetBGP();
+    void GetBGP(Network* pNetwork, GPoints* result);
+    void GetBGP(GPoints* result);
 
     void Clear();
 
@@ -2156,6 +2210,29 @@ Deletes the tree.
   RITree *m_left, *m_right;
 };
 
+
+class GPointsSections
+{
+  public:
+    GPointsSections(){};
+
+    GPointsSections(GPoint g, TupleId t, Point p):m_gp(g),m_tid(t),m_p(p)
+    {
+    };
+
+    ~GPointsSections(){};
+
+    GPoint GetGP() {return m_gp;};
+
+    TupleId GetTid() {return m_tid;};
+
+    Point GetPoint() {return m_p;};
+
+  private:
+    GPoint m_gp;
+    TupleId m_tid;
+    Point m_p;
+};
 /*
 6. class GPoints by Jianqiu Xu.
 
@@ -2167,6 +2244,7 @@ class GPoints: public Attribute{
 public:
   GPoints();
   GPoints(int in_iSize);
+  GPoints(bool defined);
   GPoints(GPoints* in_xOther);
   ~GPoints(){}
   ostream& Print(ostream& os)const;
@@ -2174,6 +2252,7 @@ public:
   size_t Sizeof()const;
   GPoints& operator+=(const GPoint &gp);
   GPoints& operator-=(const GPoint &gp);
+  GPoints& operator=(const GPoints& otherGPoints);
   int NumOfFLOBs()const;
   Flob* GetFLOB(const int i);
   void Get(int i, GPoint& gp)const;
@@ -2195,16 +2274,28 @@ public:
                           const ListExpr typeInfo, Word& value);
   int Compare(const Attribute*)const;
   bool Adjacent(const Attribute*)const;
-  GPoints* Clone()const;
+  GPoints* Clone() const;
   size_t HashValue()const;
   void CopyFrom(const Attribute* right);
-  GPoints& operator=(const GPoints& gps);
   void FilterAliasGPoints(Network *pNetwork);
   void TrimToSize () {m_xGPoints.TrimToSize();}
   void MergeAdd(GPoint gp, Network* pNetwork);
   bool Contains(GPoint gp, Network* pNetwork);
+  bool Contains(GPoint gp);
+  double Netdistance(GPoints* bgp, Network* pNetwork);
+  double Netdistance(GPoints* bgp);
+  int GetNetworkId();
+  bool ShortestPath(GPoints* bgp, GLine* res);
+  bool ShortestPath(GPoints* bgp, GLine* res, Network* pNetwork);
+  bool Inside(GPoint gp);
+  bool Intersects(GPoints* bgp, Network* pNetwork);
+  bool Intersects(GPoints* bgp);
+  void Clear();
 
 private:
+  void GetSectionTupleIds(DbArray<GPointsSections>* gpSections,
+                         Network* pNetwork);
+
   DbArray<GPoint> m_xGPoints;
 };
 

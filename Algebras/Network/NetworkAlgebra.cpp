@@ -40,6 +40,7 @@ October 2008 - Jianqiu Xu
 #include <time.h>
 #include <map>
 #include <iterator>
+#include <algorithm>
 
 #include "TupleIdentifier.h"
 #include "RelationAlgebra.h"
@@ -59,6 +60,7 @@ October 2008 - Jianqiu Xu
 #include "TypeMapUtils.h"
 #include "../../include/Operator.h"
 #include "../../include/Attribute.h"
+#include <limits>
 
 extern NestedList* nl;
 extern QueryProcessor* qp;
@@ -153,66 +155,11 @@ bool RouteInterval::Intersects(RouteInterval *ri)
   double tend = max(GetStartPos(),GetEndPos());
   double start = min(ri->GetStartPos(),ri->GetEndPos());
   double end = max(ri->GetStartPos(),ri->GetEndPos());
-  if(Contains(ri) || (ri->GetRouteId() == GetRouteId() &&
+  if(ri->Contains(this) || Contains(ri) || (ri->GetRouteId() == GetRouteId() &&
     ((start < tstart && tstart < end) || (start < tend && tend < end))))
     return true;
   else
     return false;
-}
-
-bool searchIntersectsRouteInterval (RouteInterval *ri, const GLine *pGLine,
-                                    int low, int high )
-{
-  RouteInterval rigl;
-  if ( low <= high )
-  {
-    int mid = ( high + low ) / 2;
-    if ( ( mid < 0 ) || ( mid >= pGLine->NoOfComponents() ) )
-    {
-      return false;
-    }
-    else
-    {
-      pGLine->Get ( mid, rigl );
-      if ( rigl.GetRouteId() < ri->GetRouteId() )
-      {
-        return searchIntersectsRouteInterval ( ri, pGLine, mid+1, high );
-      }
-      else
-      {
-        if ( rigl.GetRouteId() > ri->GetRouteId() )
-        {
-          return searchIntersectsRouteInterval ( ri, pGLine, low, mid-1 );
-        }
-        else
-        {
-          if ( rigl.GetStartPos() > ri->GetEndPos())
-          {
-            return searchIntersectsRouteInterval ( ri, pGLine, low, mid-1 );
-          }
-          else
-          {
-            if ( rigl.GetEndPos() < ri->GetStartPos() )
-            {
-              return searchIntersectsRouteInterval ( ri, pGLine, mid+1, high );
-            }
-            else
-            {
-              if (rigl.Intersects(ri))
-              {
-                return true;
-              }
-              else
-              {
-                return false;
-              }
-            }
-          }
-        }
-      }
-    }
-  }
-  return false;
 }
 
 bool searchRouteInterval (RouteInterval *ri, const GLine *pGLine, int low,
@@ -837,9 +784,8 @@ bool searchUnit ( GLine *pGLine, size_t low, size_t high,
   RouteInterval rI;
   if ( low <= high )
   {
-    size_t mid = ( high + low ) / 2;
-    int imid = mid;
-    if ( ( mid < 0 ) || ( imid >= pGLine->NoOfComponents() ) )
+    int mid = ( high + low ) / 2;
+    if ( ( mid < 0 ) || ( mid >= pGLine->NoOfComponents() ) )
     {
       return false;
     }
@@ -901,7 +847,7 @@ class GPointList
 
     */
     GPointList ( GPoint *gp, Network *pNetwork ) :
-        aliasGP ( 0 )
+        aliasGP ( 1 )
     {
       lastPos = 0;
       aliasGP.clean();
@@ -918,15 +864,13 @@ class GPointList
         while ( !found && i < xJunctions.size() )
         {
           pCurrJunction = xJunctions[i];
-          if ( fabs ( pCurrJunction.GetRouteMeas() - gp->GetPosition() ) < 0.01
-)
+          if (fabs( pCurrJunction.GetRouteMeas() - gp->GetPosition() ) < 0.01)
           {
             found = true;
-            GPoint test ( true, gp->GetNetworkId(),
+            aliasGP.Append ( GPoint( true, gp->GetNetworkId(),
                           pCurrJunction.GetOtherRouteId(),
                           pCurrJunction.GetOtherRouteMeas(),
-                          None );
-            aliasGP.Append ( test );
+                          None) );
           }
           i++;
         }
@@ -935,11 +879,10 @@ class GPointList
           pCurrJunction = xJunctions[i];
           if ( fabs ( pCurrJunction.GetRouteMeas() - gp->GetPosition() ) <0.01 )
           {
-            GPoint test ( true, gp->GetNetworkId(),
+            aliasGP.Append ( GPoint(true, gp->GetNetworkId(),
                           pCurrJunction.GetOtherRouteId(),
                           pCurrJunction.GetOtherRouteMeas(),
-                          None );
-            aliasGP.Append ( test );
+                          None) );
           }
           else
           {
@@ -947,7 +890,7 @@ class GPointList
           }
           i++;
         }
-        for ( unsigned int i=0;i<xJunctions.size();i++ )
+        for ( size_t i=0;i<xJunctions.size();i++ )
         {
           xJunctions[i].m_pJunction->DeleteIfAllowed();
         }
@@ -969,17 +912,18 @@ class GPointList
     */
     const GPoint NextGPoint()
     {
-      GPoint pAktGPoint;
-      if ( lastPos >= aliasGP.Size() || lastPos < 0 )
-      {
-        pAktGPoint.SetDefined ( false );
-      }
-      else
+      GPoint pAktGPoint(true);
+      if ( lastPos < aliasGP.Size() && lastPos >= 0 )
       {
         aliasGP.Get ( lastPos, pAktGPoint );
         lastPos++;
+        return pAktGPoint;
       }
-      return pAktGPoint;
+      else
+      {
+        pAktGPoint.SetDefined(false);
+        return pAktGPoint;
+      }
     }
 
   private:
@@ -1264,7 +1208,7 @@ struct SectIDTree
   SectIDTree() {};
 
   SectIDTree ( TupleId sectIdent, TupleId beforeSectIdent, bool upDown,
-               int arrayIndex,
+               int arrayIndex, double dist = numeric_limits<double>::max(),
                SectIDTree *l = 0,SectIDTree *r = 0 )
   {
     sectID = sectIdent;
@@ -1273,6 +1217,7 @@ struct SectIDTree
     index = arrayIndex;
     left = l;
     right = r;
+    distFromStart = dist;
 
   };
 
@@ -1305,6 +1250,27 @@ struct SectIDTree
     }
   };
 
+  ostream& Print(ostream& os) const
+  {
+    if (left != 0)
+    {
+      os << "left son:";
+      left->Print(os);
+    }
+    os << "This: ";
+    os << "sectID: " << sectID;
+    os << ", before sectId: " << beforeSectId;
+    os << ", upDownFlag: " << upDownFlag;
+    os << ", DistFromStart: " << distFromStart;
+    os << ", Index: " << index << endl;
+    if (right != 0)
+    {
+      os << "right son: "
+      right->Print(os);
+    }
+    return os;
+  }
+
   void Remove()
   {
     if ( left != 0 ) left->Remove();
@@ -1313,7 +1279,8 @@ struct SectIDTree
   };
 
   bool Insert ( TupleId sectIdent, TupleId beforeSectIdent, bool upDownFlag,
-                int arrayIndex,SectIDTree *&pointer )
+                int arrayIndex, SectIDTree *&pointer,
+                double dist = numeric_limits<double>::max())
   {
     pointer = Find ( sectIdent );
     if ( pointer->sectID != sectIdent )
@@ -1321,7 +1288,7 @@ struct SectIDTree
       if ( pointer->sectID > sectIdent )
       {
         pointer->left = new SectIDTree ( sectIdent, beforeSectIdent, upDownFlag,
-                                         arrayIndex );
+                                         arrayIndex, dist );
         pointer = pointer->left;
         return true;
       }
@@ -1330,7 +1297,7 @@ struct SectIDTree
         if ( pointer->sectID < sectIdent )
         {
           pointer->right = new SectIDTree ( sectIdent, beforeSectIdent,
-                                            upDownFlag, arrayIndex );
+                                            upDownFlag, arrayIndex, dist);
           pointer = pointer->right;
           return true;
         }
@@ -1343,7 +1310,18 @@ struct SectIDTree
     }
     else
     {
-      return false;
+      if (dist < pointer->distFromStart)
+      {
+        pointer->beforeSectId = beforeSectIdent;
+        pointer->distFromStart = dist;
+        pointer->index = arrayIndex;
+        pointer->upDownFlag = upDownFlag;
+        return true;
+      }
+      else
+      {
+        return false;
+      }
     }
   };
 
@@ -1355,6 +1333,16 @@ struct SectIDTree
   void SetIndex ( int arrayIndex )
   {
     index = arrayIndex;
+  };
+
+  void SetFlag(bool upDown)
+  {
+    upDownFlag = upDown;
+  };
+
+  void SetDistance(double dist)
+  {
+    distFromStart = dist;
   };
 
   int GetIndex ( TupleId sectIdent )
@@ -1376,6 +1364,7 @@ struct SectIDTree
   TupleId beforeSectId;
   bool upDownFlag;
   int index;
+  double distFromStart;
   SectIDTree *left, *right;
 };
 
@@ -1456,7 +1445,7 @@ struct PrioQueue
     {
       prioQ.Put ( firstFree, nElem );
       sectTree->Insert ( nElem.sectID, nElem.beforeSectID, nElem.upDownFlag,
-                         firstFree, pSection );
+                         firstFree, pSection/*, nElem.distFromStart */);
       CorrectPosition ( firstFree, nElem, pSection ,sectTree );
       firstFree++;
     }
@@ -1590,20 +1579,21 @@ struct PrioQueueA
     int act = checkX;
     PQEntryA test;
     bool found = false;
-    while ( checkX >= 0 && !found )
+    while ( act > 0 && !found )
     {
       if ( ( act % 2 ) == 0 ) checkX = ( act-2 ) / 2;
       else checkX = ( act -1 ) / 2;
       if ( checkX >= 0 )
       {
         prioQ.Get ( checkX, test );
-        if ( test.prioval > nElem.prioval )
+        if ( test.prioval > nElem.prioval ||
+             (test.prioval == nElem.prioval &&
+              test.valFromStart > nElem.valFromStart))
         {
-          PQEntryA help = test;
           prioQ.Put ( checkX, nElem );
           pSection->SetIndex ( checkX );
-          prioQ.Put ( act, help );
-          SectIDTree *thelp = sectTree->Find ( help.sectID );
+          prioQ.Put ( act, test );
+          SectIDTree *thelp = sectTree->Find ( test.sectID );
           thelp->SetIndex ( act );
           act = checkX;
         }
@@ -1621,29 +1611,38 @@ struct PrioQueueA
 
   void Insert ( PQEntryA nElem, SectIDTree *sectTree )
   {
+    /*cout << "Insert: ";
+    nElem.Print(cout);
+    cout << endl;*/
     SectIDTree *pSection = sectTree->Find ( nElem.sectID );
-    PQEntryA old;
-    if ( pSection->sectID == nElem.sectID )
+    if (pSection == 0 || pSection->sectID != nElem.sectID)
     {
-      if ( pSection->index != numeric_limits<int>::max() )
-      {
-        prioQ.Get ( pSection->index, old );
-        if ( nElem.prioval < old.prioval )
-        {
-          prioQ.Put ( pSection->index, nElem );
-          pSection->SetBeforeSectId ( nElem.beforeSectID );
-          CorrectPosition ( pSection->index, nElem, pSection, sectTree );
-        }
-      }
+      prioQ.Put ( firstFree, nElem );
+      firstFree++;
+      sectTree->Insert ( nElem.sectID, nElem.beforeSectID, nElem.upDownFlag,
+                         firstFree-1, pSection, nElem.valFromStart);
+      CorrectPosition ( firstFree-1, nElem, pSection ,sectTree );
     }
     else
     {
-      prioQ.Put ( firstFree, nElem );
-      sectTree->Insert ( nElem.sectID, nElem.beforeSectID, nElem.upDownFlag,
-                         firstFree, pSection );
-      CorrectPosition ( firstFree, nElem, pSection ,sectTree );
-      firstFree++;
+      if ( pSection != 0 && pSection->sectID == nElem.sectID &&
+           nElem.valFromStart < pSection->distFromStart)
+      {
+        if ( pSection->index != numeric_limits<int>::max())
+          prioQ.Put ( pSection->index, nElem );
+        else
+        {
+          prioQ.Put(firstFree,nElem);
+          pSection->SetIndex(firstFree);
+          firstFree++;
+        }
+        pSection->SetBeforeSectId ( nElem.beforeSectID );
+        pSection->SetDistance(nElem.valFromStart);
+        pSection->SetFlag(nElem.upDownFlag);
+        CorrectPosition ( pSection->index, nElem, pSection, sectTree );
+      }
     }
+    /*Print(cout);*/
   }
 
   PQEntryA* GetAndDeleteMin ( SectIDTree *sectTree )
@@ -1656,10 +1655,15 @@ struct PrioQueueA
       SectIDTree *tRet = sectTree->Find ( result.sectID );
       tRet->SetIndex ( numeric_limits<int>::max() );
       prioQ.Get ( firstFree-1, last );
+      prioQ.Put(firstFree-1, PQEntryA((TupleId)numeric_limits<long>::max(),
+                                   numeric_limits<double>::max(),
+                                   numeric_limits<double>::max(),
+                                   false,
+                                   (TupleId)numeric_limits<long>::max()));
       prioQ.Put ( 0, last );
       firstFree--;
       SectIDTree *pSection = sectTree->Find ( last.sectID );
-      pSection->SetIndex ( 0 );
+      pSection->SetIndex (0);
       int act = 0;
       int checkX = 0;
       bool found = false;
@@ -1675,28 +1679,52 @@ struct PrioQueueA
           {
             if ( test1.prioval <= test2.prioval )
             {
-              PQEntryA help = test1;
               prioQ.Put ( checkX, last );
               pSection->SetIndex ( checkX );
-              prioQ.Put ( act, help );
-              SectIDTree *thelp = sectTree->Find ( help.sectID );
+              prioQ.Put ( act, test1 );
+              SectIDTree *thelp = sectTree->Find ( test1.sectID );
               thelp->SetIndex ( act );
               act = checkX;
             }
             else
             {
-              PQEntryA help = test2;
               prioQ.Put ( checkX+1, last );
               pSection->SetIndex ( checkX+1 );
-              prioQ.Put ( act, help );
-              SectIDTree *thelp = sectTree->Find ( help.sectID );
+              prioQ.Put ( act, test2);
+              SectIDTree *thelp = sectTree->Find ( test2.sectID );
               thelp->SetIndex ( act );
               act = checkX+1;
             }
           }
           else
           {
-            found = true;
+            if (test1.prioval == last.prioval &&
+                test1.valFromStart < last.valFromStart)
+            {
+              prioQ.Put ( checkX, last );
+              pSection->SetIndex ( checkX );
+              prioQ.Put ( act, test1);
+              SectIDTree *thelp = sectTree->Find ( test1.sectID );
+              thelp->SetIndex ( act );
+              act = checkX;
+            }
+            else
+            {
+              if (test2.prioval == last.prioval &&
+                  test2.valFromStart < last.valFromStart)
+              {
+                prioQ.Put ( checkX+1, last );
+                pSection->SetIndex ( checkX+1 );
+                prioQ.Put ( act, test2 );
+                SectIDTree *thelp = sectTree->Find ( test2.sectID );
+                thelp->SetIndex ( act );
+                act = checkX+1;
+              }
+              else
+              {
+                found = true;
+              }
+            }
           }
         }
         else
@@ -1704,13 +1732,14 @@ struct PrioQueueA
           if ( checkX != 0 && checkX == firstFree-1 )
           {
             prioQ.Get ( checkX, test1 );
-            if ( test1.prioval < last.prioval)
+            if ( test1.prioval < last.prioval ||
+                (test1.prioval == last.prioval &&
+                 test1.valFromStart < last.valFromStart))
             {
-              PQEntryA help = test1;
               prioQ.Put ( checkX, last );
               pSection->SetIndex ( checkX );
-              prioQ.Put ( act, help );
-              SectIDTree *thelp = sectTree->Find ( help.sectID );
+              prioQ.Put ( act, test1 );
+              SectIDTree *thelp = sectTree->Find ( test1.sectID );
               thelp->SetIndex ( act );
               act = checkX;
             }
@@ -1719,8 +1748,16 @@ struct PrioQueueA
               found = true;
             }
           }
+          else
+          {
+            found = true;
+          }
         }
       }
+      /*cout << "GetMin: ";
+      retValue->Print(cout);
+      cout << endl;
+      Print(cout);*/
       return retValue;
     }
     else return 0;
@@ -1741,6 +1778,19 @@ struct PrioQueueA
   void Destroy()
   {
     prioQ.Destroy();
+  }
+
+  ostream& Print(ostream& os) const
+  {
+    os << "PriorityQueue Start: " << endl;
+    PQEntryA pE;
+    for (int i = 0; i < prioQ.Size(); i++)
+    {
+      prioQ.Get(i,pE);
+      pE.Print(os);
+    }
+    os << "Ende PriorityQueue" << endl;
+    return os;
   }
 
   DbArray<PQEntryA> prioQ;
@@ -2354,7 +2404,7 @@ JUNCTION_ROUTE1_ID );
     assert ( pLine != 0 );
     CcReal* pMeas = ( CcReal* ) pNewJunction->GetAttribute (
 JUNCTION_ROUTE1_MEAS );
-    Point* pPoint = new Point ( false );
+    Point* pPoint = new Point ( true );
     pLine->AtPosition ( pMeas->GetRealval(), true, *pPoint );
     pNewJunction->PutAttribute ( JUNCTION_POS, pPoint );
 
@@ -2455,22 +2505,21 @@ void Network::FillSections()
   while ( ( pRoute = pRoutesIt->GetNextTuple() ) != 0 )
   {
     // Current position on route - starting at the beginning of the route
-    double dCurrentPosOnRoute = 0;
+    double dCurrentPosOnRoute = 0.0;
     SimpleLine* pRouteCurve = ( SimpleLine* ) pRoute->GetAttribute ( ROUTE_CURVE
 );
     TupleId iTupleId = pRoute->GetTupleId();
     CcInt* xRouteId = ( CcInt* ) pRoute->GetAttribute ( ROUTE_ID );
     int iRouteId = xRouteId->GetIntval();
-    bool bDual = ( ( CcBool* ) pRoute->GetAttribute ( ROUTE_DUAL )
-)->GetBoolval();
+    bool bDual = ((CcBool*) pRoute->GetAttribute(ROUTE_DUAL))->GetBoolval();
     /////////////////////////////////////////////////////////////////////
     //
     // We need to find all junctions belonging to this route
     //
     vector<JunctionSortEntry> xJunctions;
+    xJunctions.clear();
     GetJunctionsOnRoute ( xRouteId,
                           xJunctions );
-
     /////////////////////////////////////////////////////////////////////
     //
     // Now that we found all relevant junctions we can iterate over them.
@@ -2489,7 +2538,7 @@ void Network::FillSections()
 
       // If the first junction is at the very start of the route, no
       // section will be added
-      if ( xCurrentEntry.GetRouteMeas() == 0 )
+      if ( xCurrentEntry.GetRouteMeas() == 0.0 )
       {
         vector<int> xIndices;
         vector<Attribute*> xAttrs;
@@ -2532,9 +2581,9 @@ void Network::FillSections()
         // Find out, if the orientation of the subline differs from the position
         // of the line. If so, the direction has to be changed.
         bool bLineStartsSmaller;
-        Point pStartPoint ( false );
+        Point pStartPoint ( true );
         pRouteCurve->AtPosition ( dStartPos, bStartSmaller, pStartPoint );
-        Point pEndPoint ( false );
+        Point pEndPoint ( true );
         pRouteCurve->AtPosition ( dEndPos, bStartSmaller, pEndPoint );
         if ( pStartPoint.GetX() < pEndPoint.GetX() ||
                 (
@@ -2646,9 +2695,9 @@ void Network::FillSections()
       // Find out, if the orientation of the subline differs from the position
       // of the sline. If so, the direction has to be changed.
       bool bLineStartsSmaller;
-      Point pStartPoint ( false );
+      Point pStartPoint ( true );
       pRouteCurve->AtPosition ( dStartPos, bStartSmaller, pStartPoint );
-      Point pEndPoint ( false );
+      Point pEndPoint ( true );
       pRouteCurve->AtPosition ( dEndPos, bStartSmaller, pEndPoint );
       if ( pStartPoint.GetX() < pEndPoint.GetX() ||
               (
@@ -2711,6 +2760,7 @@ void Network::FillSections()
     // Fill Up-Pointers of all sections but the last
     //
     vector<JunctionSortEntry> yJunctions;
+    yJunctions.clear();
     GetJunctionsOnRoute ( xRouteId,
                           yJunctions );
     if ( yJunctions.size() > 2 )
@@ -2884,8 +2934,7 @@ void Network::FillAdjacencyLists()
     // Retrieve the connectivity code
     //
     int iCc =
-        ( ( CcInt* ) pCurrentJunction->GetAttribute ( JUNCTION_CC )
-)->GetIntval();
+       ((CcInt*) pCurrentJunction->GetAttribute ( JUNCTION_CC ))->GetIntval();
     ConnectivityCode xCc ( iCc );
 
     //////////////////////////////////
@@ -3014,7 +3063,7 @@ void Network::FillAdjacencyLists()
   // Now - as the second step the adjacency lists are filled.
   //
   // Sort the list by the first directed section
-  sort ( xList.begin(),
+  stable_sort ( xList.begin(),
          xList.end() );
 
   DirectedSectionPair xLastPair;
@@ -3644,21 +3693,18 @@ Relation *Network::GetJunctions()
 
 
 void Network::GetJunctionsOnRoute ( CcInt* in_pRouteId,
-                                    vector<JunctionSortEntry> &inout_xJunctions
-)
+                                    vector<JunctionSortEntry>& inout_xJunctions)
 {
   BTreeIterator* pJunctionsIt;
   pJunctionsIt = m_pBTreeJunctionsByRoute1->ExactMatch ( in_pRouteId );
-  while ( pJunctionsIt->Next() )
+  inout_xJunctions.clear();
+  while(pJunctionsIt->Next())
   {
-    // Get next junction
     Tuple* pCurrentJunction = m_pJunctions->GetTuple ( pJunctionsIt->GetId(),
                                                        false );
     inout_xJunctions.push_back(JunctionSortEntry(true, pCurrentJunction ));
   }
   delete pJunctionsIt;
-
-  // Now we look up the second b-tree
   pJunctionsIt = m_pBTreeJunctionsByRoute2->ExactMatch ( in_pRouteId );
   while ( pJunctionsIt->Next() )
   {
@@ -3667,10 +3713,7 @@ void Network::GetJunctionsOnRoute ( CcInt* in_pRouteId,
     inout_xJunctions.push_back(JunctionSortEntry(false, pCurrentJunction));
   }
   delete pJunctionsIt;
-
-  // The junctions will be sorted by their mesure on the relevant route.
-  sort ( inout_xJunctions.begin(),
-         inout_xJunctions.end() );
+  stable_sort(inout_xJunctions.begin(), inout_xJunctions.end());
 }
 
 Tuple* Network::GetSection ( TupleId n )
@@ -3698,8 +3741,7 @@ TupleId Network::GetTupleIdSectionOnRoute ( GPoint* in_xGPoint )
           ( ( CcReal* ) actSect->GetAttribute ( SECTION_MEAS1 ) )->GetRealval();
       double end =
           ( ( CcReal* ) actSect->GetAttribute ( SECTION_MEAS2 ) )->GetRealval();
-      if ( in_xGPoint->GetPosition() >= start&&in_xGPoint->GetPosition() <= end
-)
+      if ( in_xGPoint->GetPosition() >= start&&in_xGPoint->GetPosition() <= end)
       {
         delete pSectionIter;
         actSect->DeleteIfAllowed();
@@ -3717,11 +3759,10 @@ TupleId Network::GetTupleIdSectionOnRoute ( GPoint* in_xGPoint )
         {
           if ( fabs ( in_xGPoint->GetPosition() - end ) <= 0.01 )
           {
-            Tuple *pRoute = GetRoute ( ( ( TupleIdentifier* )
-                                         actSect->GetAttribute ( SECTION_RRC )
-)->GetTid() );
-            if ( fabs ( ( ( CcReal* )
-                          pRoute->GetAttribute ( ROUTE_LENGTH ) )->GetRealval()
+            Tuple *pRoute =
+             GetRoute(((TupleIdentifier*)
+              actSect->GetAttribute(SECTION_RRC))->GetTid());
+            if (fabs(((CcReal*)pRoute->GetAttribute(ROUTE_LENGTH))->GetRealval()
                         - end ) <= 0.01 )
             {
               pRoute->DeleteIfAllowed();
@@ -3859,7 +3900,7 @@ Tuple* Network::GetRoute ( TupleId in_routeTID )
 }
 
 void Network::GetSectionsOfRouteInterval ( const RouteInterval *ri,
-        DbArray<SectTreeEntry> *io_SectionIds )
+        vector<SectTreeEntry>& io_SectionIds )
 {
   double ristart = min ( ri->GetStartPos(), ri->GetEndPos() );
   double riend = max ( ri->GetStartPos(), ri->GetEndPos() );
@@ -3897,13 +3938,12 @@ void Network::GetSectionsOfRouteInterval ( const RouteInterval *ri,
       SectTreeEntry *sect =
         new SectTreeEntry ( actSect->GetTupleId(), ri->GetRouteId(), start,
                             end, bsectstart, bsectend );
-      io_SectionIds->Append ( *sect );
+      io_SectionIds.push_back(*sect);
       delete sect;
     }
     actSect->DeleteIfAllowed();
     if ( riend <= end ) break;
   }
-  io_SectionIds->TrimToSize();
   delete pSectionIter;
 };
 
@@ -3968,7 +4008,7 @@ void Network::GetPointOnRoute ( const GPoint* in_pGPoint, Point*& res )
   assert ( pRoute != 0 );
   SimpleLine* pLine = ( SimpleLine* ) pRoute->GetAttribute ( ROUTE_CURVE );
   assert ( pLine != 0 );
-  pLine->AtPosition ( in_pGPoint->GetPosition(),true, *res );
+  pLine->AtPosition ( in_pGPoint->GetPosition(),pLine->StartsSmaller(), *res );
   pRoute->DeleteIfAllowed();
   delete pRoutesIter;
   /*return res;*/
@@ -5061,7 +5101,7 @@ GPoint* Network::GetNetworkPosOfPoint ( Point p )
   }
   else
   {
-    GPoint *result = new GPoint ( false );
+    GPoint *result = new GPoint ( true );
     pCurrRoute->DeleteIfAllowed();
     return result;
   }
@@ -5167,7 +5207,7 @@ ROUTE_CURVE );
         pCurrRoute->DeleteIfAllowed();
       }
     } // should not be reached
-    GPoint *result = new GPoint ( false );
+    GPoint *result = new GPoint ( true );
     pCurrRoute->DeleteIfAllowed();
     return result;
   }
@@ -5319,6 +5359,13 @@ The simple constructor. Should not be used.
 GLine::GLine():Attribute()
 {}
 
+GLine::GLine(bool def):Attribute(def),m_xRouteIntervals(0)
+{
+  SetDefined(def);
+  m_bSorted = false;
+  m_dLength = 0.0;
+}
+
 GLine::GLine ( int in_iSize ) :
     Attribute(true),
     m_xRouteIntervals ( in_iSize )
@@ -5456,6 +5503,7 @@ void GLine::AddRouteInterval ( RouteInterval ri )
 {
   m_xRouteIntervals.Append ( ri );
   m_dLength = m_dLength + fabs ( ri.GetEndPos() - ri.GetStartPos() );
+
 }
 
 void GLine::AddRouteInterval ( int in_iRouteId,
@@ -5489,6 +5537,13 @@ Word GLine::In ( const ListExpr typeInfo, const ListExpr instance,
 {
   GLine* pGline = new GLine ( 0 );
   if ( nl->ListLength ( instance ) == 0 )
+  {
+    correct = true;
+    pGline->SetDefined ( false );
+    return SetWord ( pGline );
+  }
+  if (nl->ListLength(instance) == 1 &&
+    listutils::isSymbol(instance,"undef"))
   {
     correct = true;
     pGline->SetDefined ( false );
@@ -5603,7 +5658,7 @@ ListExpr GLine::Out ( ListExpr in_xTypeInfo,
 
 Word GLine::Create ( const ListExpr typeInfo )
 {
-  return SetWord ( new GLine ( 0 ) );
+  return SetWord ( new GLine ( true ) );
 }
 
 void GLine::Clear()
@@ -5635,12 +5690,18 @@ Word GLine::CloneGLine ( const ListExpr typeInfo,
   return SetWord ( ( ( GLine* ) w.addr )->Clone() );
 }
 
+void GLine::SetLength(double l)
+{
+  m_dLength = l;
+}
+
 GLine* GLine::Clone() const
 {
   GLine *xOther = new GLine ( Size() );
   xOther->SetDefined ( IsDefined() );
   xOther->SetSorted ( m_bSorted );
   xOther->SetNetworkId ( m_iNetworkId );
+  xOther->SetLength(m_dLength);
   /*RouteInterval ri;
   for ( int i = 0; i < Size(); i++ )
   {
@@ -5752,11 +5813,11 @@ int GLine::Compare ( const Attribute* arg ) const
 
 GLine& GLine::operator= ( const GLine& l )
 {
+  SetDefined(l.IsDefined());
   m_xRouteIntervals.copyFrom(l.m_xRouteIntervals);
   m_bSorted = l.m_bSorted;
-  SetDefined(l.IsDefined());
   m_iNetworkId = l.m_iNetworkId;
-  TrimToSize();
+  m_dLength=l.m_dLength;
   return *this;
 }
 
@@ -5843,21 +5904,7 @@ DbArray<RouteInterval>* GLine::GetRouteIntervals()
 
 void GLine::CopyFrom ( const Attribute* right )
 {
-  *this = * ( ( const GLine* ) right );
-  //Clear();
-  /*
-  GLine *src = (GLine*) right;
-  SetDefined(src->IsDefined());
-  SetSorted(src->IsSorted());
-  const RouteInterval* ri;
-  for (int i = 0; i < src->Size(); i++) {
-    src->Get(i,ri);
-    int rid = ri.GetRouteId();
-    double start = ri.GetStartPos();
-    double end = ri.GetEndPos();
-    AddRouteInterval(rid, start, end);
-  }
-  */
+  *this = * ( ( const GLine * ) right );
 }
 
 double GLine::GetLength()
@@ -5891,46 +5938,124 @@ bool GLine::Check ( ListExpr type, ListExpr& errorInfo )
   return ( nl->IsEqual ( type, "gline" ) );
 }
 
+
+bool GLine::ShortestPath(GLine *to, GLine *result)
+{
+  result->Clear();
+  if (!IsDefined() || !to->IsDefined())
+  {
+    result->SetDefined(false);
+    return false;
+  }
+  Network* pNetwork = NetworkManager::GetNetworkNew(GetNetworkId(),netList);
+  bool bres = ShortestPath(to,result,pNetwork);
+  NetworkManager::CloseNetwork(pNetwork);
+  return bres;
+}
+
+bool GLine::ShortestPath (GLine *pgl2, GLine *result, Network *pNetwork)
+{
+  result->Clear();
+  if ( GetNetworkId() != pgl2->GetNetworkId() )
+  {
+    cmsg.inFunError ( "Both glines must belong to the network." );
+    return false;
+  }
+  if (Intersects(pgl2))
+  {
+    result->SetDefined(true);
+    result->SetNetworkId(pNetwork->GetId());
+    return true;
+  }
+  GPoints *bGPgl1 = new GPoints(true);
+  GetBGP(pNetwork, bGPgl1);
+  GPoints *bGPgl2 = new GPoints(true);
+  pgl2->GetBGP(pNetwork,bGPgl2);
+  bool bres = bGPgl1->ShortestPath(bGPgl2,result,pNetwork);
+  bGPgl1->DeleteIfAllowed();
+  bGPgl2->DeleteIfAllowed();
+  return bres;
+}
+/*
+NetdistanceNew method computes the network distance between two glines.
+Uses GPoints Netdistance
+
+*/
+double GLine::NetdistanceNew (GLine* pgl2)
+{
+  if (!IsDefined() || !pgl2->IsDefined() ||
+      NoOfComponents() < 1 || pgl2->NoOfComponents() < 1)
+    return numeric_limits< double >::max();
+  Network* pNetwork = NetworkManager::GetNetworkNew(GetNetworkId(),netList);
+  double result = NetdistanceNew(pgl2,pNetwork);
+  NetworkManager::CloseNetwork(pNetwork);
+  return result;
+}
+
+double GLine::NetdistanceNew (GLine* pgl2, Network* pNetwork)
+{
+  if (!IsDefined() || !pgl2->IsDefined() ||
+      NoOfComponents() < 1 || pgl2->NoOfComponents() < 1 ||
+      GetNetworkId() != pgl2->GetNetworkId() )
+  {
+    return numeric_limits<double>::max();
+  }
+  if (Intersects(pgl2)) return 0.0;
+  GPoints *bGPgl1 = new GPoints(true);
+  GetBGP(pNetwork,bGPgl1);
+  GPoints *bGPgl2 = new GPoints(true);
+  pgl2->GetBGP(pNetwork,bGPgl2);
+  double result = bGPgl1->Netdistance(bGPgl2,pNetwork);
+  bGPgl1->DeleteIfAllowed();
+  bGPgl2->DeleteIfAllowed();
+  return result;
+}
+
+double GLine::Netdistance(GLine* pgl2)
+{
+  if (!IsDefined()|| !pgl2->IsDefined() ||
+      NoOfComponents() < 1 || pgl2->NoOfComponents() < 1)
+    return numeric_limits<double>::max();
+  Network* pNetwork = NetworkManager::GetNetworkNew(GetNetworkId(),netList);
+  double result = Netdistance(pgl2,pNetwork);
+  NetworkManager::CloseNetwork(pNetwork);
+  return result;
+}
+
 /*
 Netdistance method computes the network distance between two glines. Uses
 network distance method of ~GPoint~.
 
 */
 
-double GLine::Netdistance ( GLine* pgl2 )
+double GLine::Netdistance ( GLine* pgl2, Network* pNetwork )
 {
-  //GLine* pgl1 = (GLine*) this;
-  double minDist = numeric_limits<double>::max();
-  double aktDist = numeric_limits<double>::max();
   if ( GetNetworkId() != pgl2->GetNetworkId() )
   {
     cmsg.inFunError ( "Both glines must belong to the network." );
-    return minDist;
+    return numeric_limits<double>::max();
   }
-  GPoints *bGPgl1 = GetBGP();
-  GPoints *bGPgl2 = pgl2->GetBGP();
+  if (Intersects(pgl2))
+  {
+    return 0.0;
+  }
+
+  GPoints *bGPgl1 = new GPoints(0);
+  GetBGP(pNetwork,bGPgl1);
+  GPoints *bGPgl2 = new GPoints(0);
+  pgl2->GetBGP(pNetwork,bGPgl2);
   GPoint gp1, gp2;
+  double minDist = numeric_limits<double>::max();
+  double aktDist = numeric_limits<double>::max();
   for ( int i = 0; i < bGPgl1->Size(); i++ )
   {
     bGPgl1->Get ( i,gp1 );
-    if ( gp1.Inside ( pgl2 ) )
-    {
-      bGPgl1->DeleteIfAllowed();
-      bGPgl2->DeleteIfAllowed();
-      return 0.0;
-    }
     for ( int j = 0; j < bGPgl2->Size(); j++ )
     {
       bGPgl2->Get ( j, gp2 );
-      if ( gp2.Inside ( this ) )
-      {
-        bGPgl1->DeleteIfAllowed();
-        bGPgl2->DeleteIfAllowed();
-        return 0.0;
-      }
-      aktDist = gp1.NetdistanceA ( &gp2 );
+      aktDist = gp1.NetdistanceA ( &gp2, pNetwork );
       if ( aktDist < minDist ) minDist = aktDist;
-      if ( minDist <= 0.0 )
+      if (minDist <= 0.0)
       {
         bGPgl1->DeleteIfAllowed();
         bGPgl2->DeleteIfAllowed();
@@ -6242,7 +6367,7 @@ bool GLine::Intersects (RouteInterval* ri)
 {
   if (IsSorted())
   {
-    return searchIntersectsRouteInterval(ri, this, 0, NoOfComponents());
+    return searchUnit(this, 0, NoOfComponents()-1, *ri);
   }
   else
   {
@@ -6393,6 +6518,11 @@ Word GPoint::InGPoint ( const ListExpr typeInfo,
       return SetWord ( gp );
     }
   }
+  if (listutils::isSymbol( instance, "undef" ))
+  {
+    correct = true;
+    return SetWord ( new GPoint(false));
+  }
 
   correct = false;
   return SetWord ( Address ( 0 ) );
@@ -6415,7 +6545,7 @@ ListExpr GPoint::OutGPoint ( ListExpr typeInfo, Word value )
 
 Word GPoint::CreateGPoint ( const ListExpr typeInfo )
 {
-  return SetWord ( new GPoint ( false ) );
+  return SetWord ( new GPoint ( true ) );
 }
 
 void GPoint::DeleteGPoint ( const ListExpr typeInfo, Word& w )
@@ -6473,12 +6603,11 @@ double GPoint::Netdistance ( GPoint* pToGPoint )
   }
 }
 
-
-double GPoint::NetdistanceA ( GPoint* pToGPoint )
+double GPoint::NetdistanceA (GPoint* pToGPoint, Network* pNetwork)
 {
   GLine* pGLine = new GLine ( 0 );
   double res;
-  if ( ShortestPathAStar ( pToGPoint, pGLine ) )
+  if ( ShortestPathAStar ( pToGPoint, pGLine, pNetwork ) )
   {
     res = pGLine->GetLength();
     pGLine->DeleteIfAllowed();
@@ -6489,6 +6618,16 @@ double GPoint::NetdistanceA ( GPoint* pToGPoint )
     pGLine->DeleteIfAllowed();
     return numeric_limits<double>::max();
   }
+}
+
+double GPoint::NetdistanceA ( GPoint* pToGPoint )
+{
+  if (!IsDefined() || !pToGPoint->IsDefined())
+    return numeric_limits<double>::max();
+  Network* pNetwork = NetworkManager::GetNetworkNew(GetNetworkId(),netList);
+  double result = NetdistanceA(pToGPoint,pNetwork);
+  NetworkManager::CloseNetwork(pNetwork);
+  return result;
 }
 
 double GPoint::NewNetdistance ( GPoint* pToGPoint,GLine* gline )
@@ -6530,9 +6669,9 @@ double GPoint::Distance ( GPoint* pToGPoint )
     //Network* pNetwork=NetworkManager::GetNetwork(GetNetworkId());
     Network* pNetwork = NetworkManager::GetNetworkNew ( GetNetworkId(),
                         netList );
-    Point *from = new Point ( false );
+    Point *from = new Point ( true );
     pNetwork->GetPointOnRoute ( this, from );
-    Point *to = new Point ( false );
+    Point *to = new Point ( true );
     pNetwork->GetPointOnRoute ( pToGPoint,to );
     double res = from->Distance ( *to );
     from->DeleteIfAllowed();
@@ -6610,8 +6749,23 @@ Dijkstras Algorithm. The path is returned as gline value.
 
 */
 
-bool GPoint::ShortestPathAStar (GPoint *to, GLine *result)
+bool GPoint::ShortestPathAStar(GPoint *to, GLine *result)
 {
+  result->Clear();
+  if (!IsDefined() || !to->IsDefined())
+  {
+    result->SetDefined(false);
+    return false;
+  }
+  Network* pNetwork = NetworkManager::GetNetworkNew(GetNetworkId(),netList);
+  double bres = ShortestPathAStar(to, result, pNetwork);
+  NetworkManager::CloseNetwork(pNetwork);
+  return bres;
+}
+
+bool GPoint::ShortestPathAStar (GPoint *to, GLine *result, Network *pNetwork)
+{
+  result->Clear();
   if (!IsDefined() || !to->IsDefined())
   {
     sendMessage ( "Both gpoints must exist and be defined." );
@@ -6624,23 +6778,13 @@ bool GPoint::ShortestPathAStar (GPoint *to, GLine *result)
     result->SetDefined ( false );
     return false;
   }
-  Network* pNetwork = NetworkManager::GetNetworkNew (GetNetworkId(),
-                      netList);
-  if (pNetwork == 0)
-  {
-    sendMessage ( "Network is not defined." );
-    result->SetDefined ( false );
-    NetworkManager::CloseNetwork(pNetwork);
-    return false;
-  }
-  result->SetNetworkId(GetNetworkId());
+  result->SetNetworkId(pNetwork->GetId());
   TupleId startSectionTId = pNetwork->GetTupleIdSectionOnRoute(this);
   Tuple* startSection = pNetwork->GetSection(startSectionTId);
   if (startSection == 0)
   {
     sendMessage ( "No start section found." );
     result->SetDefined ( false );
-    NetworkManager::CloseNetwork(pNetwork);
     return false;
   }
   TupleId endSectionTId = pNetwork->GetTupleIdSectionOnRoute(to);
@@ -6651,7 +6795,6 @@ bool GPoint::ShortestPathAStar (GPoint *to, GLine *result)
     sendMessage ( "No end section found." );
     result->SetDefined ( false );
     startSection->DeleteIfAllowed();
-    NetworkManager::CloseNetwork(pNetwork);
     return false;
   }
   if (startSectionTId == endSectionTId)
@@ -6660,7 +6803,6 @@ bool GPoint::ShortestPathAStar (GPoint *to, GLine *result)
                                to->GetPosition() );
     startSection->DeleteIfAllowed();
     endSection->DeleteIfAllowed();
-    NetworkManager::CloseNetwork(pNetwork);
     return true;
   }
   /*
@@ -6679,7 +6821,7 @@ bool GPoint::ShortestPathAStar (GPoint *to, GLine *result)
   double dist = 0.0;
   Point *sPoint = ToPoint(pNetwork);
   double weight = sPoint->Distance(*endPoint);
-  delete sPoint;
+  sPoint->DeleteIfAllowed();
   vector<DirectedSection> adjSectionList;
   adjSectionList.clear();
   if ( GetSide() == 0 || GetSide() == 2)
@@ -6906,7 +7048,6 @@ on a stack to turn them in right order.
   startSection->DeleteIfAllowed();
   endSection->DeleteIfAllowed();
   endPoint->DeleteIfAllowed();
-  NetworkManager::CloseNetwork ( pNetwork );
   result->SetSorted ( false );
   result->SetDefined ( true );
   result->TrimToSize();
@@ -7222,7 +7363,7 @@ void GPoint::ToPoint ( Point *&res )
 
 Point* GPoint::ToPoint() const
 {
-  Point *res = new Point ( false );
+  Point *res = new Point ( true );
   //Network *pNetwork = NetworkManager::GetNetwork(GetNetworkId());
   Network* pNetwork = NetworkManager::GetNetworkNew ( GetNetworkId(), netList );
   if ( pNetwork != 0 ) pNetwork->GetPointOnRoute ( this, res );
@@ -7232,7 +7373,7 @@ Point* GPoint::ToPoint() const
 
 Point* GPoint::ToPoint ( Network*& pNetwork ) const
 {
-  Point *res = new Point ( false );
+  Point *res = new Point ( true );
   if ( pNetwork != 0 ) pNetwork->GetPointOnRoute ( this, res );
   return res;
 };
@@ -7242,23 +7383,41 @@ Returns the bounding GPoints of the given GLine.
 
 */
 
-
-GPoints* GLine::GetBGP()
+void GLine::GetBGP(GPoints* result)
 {
-  GPoints *result = new GPoints(0);
+  result->Clear();
+  if (!IsDefined() || NoOfComponents()==0)
+  {
+    result->SetDefined(false);
+  }
+  else
+  {
+    Network* pNetwork = NetworkManager::GetNetworkNew(GetNetworkId(),netList);
+    GetBGP(pNetwork, result);
+    NetworkManager::CloseNetwork(pNetwork);
+  }
+}
+
+void GLine::GetBGP(Network* pNetwork, GPoints* result)
+{
+  result->Clear();
   if ( !IsDefined() || NoOfComponents() == 0 )
-    return result;
-  Network *pNetwork = NetworkManager::GetNetworkNew(GetNetworkId(),netList);
+  {
+    result->SetDefined(false);
+  }
+  else
+  {
   RouteInterval ri;
-  DbArray<SectTreeEntry> *actSections = new DbArray<SectTreeEntry>(0);
+  vector<SectTreeEntry> actSections;
+  actSections.clear();
   for (int i = 0; i < Size(); i++)
   {
     Get(i, ri);
     pNetwork->GetSectionsOfRouteInterval(&ri, actSections);
     SectTreeEntry nEntry;
-    for (int a = 0; a < actSections->Size() ; a++)
+    for (size_t a = 0; a < actSections.size() ; a++)
     {
-      actSections->Get(a,nEntry);
+      nEntry = actSections[a];
       vector<DirectedSection> adjSect;
       adjSect.clear();
       if (!nEntry.startbool)
@@ -7284,6 +7443,8 @@ GPoints* GLine::GetBGP()
                 ((CcInt*)actSection->GetAttribute(SECTION_RID))->GetIntval(),
                ((CcReal*)actSection->GetAttribute(SECTION_MEAS1))->GetRealval(),
               ((CcReal*)actSection->GetAttribute(SECTION_MEAS2))->GetRealval());
+            actSection->DeleteIfAllowed();
+            actSection = 0;
             if (!Intersects(ri))
             {
 
@@ -7323,6 +7484,8 @@ GPoints* GLine::GetBGP()
                 ((CcInt*)actSection->GetAttribute(SECTION_RID))->GetIntval(),
               ((CcReal*)actSection->GetAttribute(SECTION_MEAS1))->GetRealval(),
               ((CcReal*)actSection->GetAttribute(SECTION_MEAS2))->GetRealval());
+            actSection->DeleteIfAllowed();
+            actSection = 0;
             if (!Intersects(ri))
             {
               result->MergeAdd(GPoint(true, GetNetworkId(), nEntry.rid,
@@ -7333,25 +7496,23 @@ GPoints* GLine::GetBGP()
               break;
             }
             delete ri;
+
           }
         }
         adjSect.clear();
       }
     }
-    actSections->clean();
+    actSections.clear();
+    }
   }
-  delete actSections;
-  actSections = 0;
-  NetworkManager::CloseNetwork ( pNetwork );
-  result->TrimToSize();
-  return result;
+  result->SetDefined(true);
 };
 
 bool GLine::Contains(RouteInterval* ri)
 {
   if (IsSorted())
   {
-    return searchRouteInterval(ri, this, 0, NoOfComponents());
+    return searchRouteInterval(ri, this, 0, NoOfComponents()-1);
   }
   else
   {
@@ -7412,11 +7573,16 @@ enum edistjoinpointlistrelation {POINTSID = 0,POINTSOBJECT};
 
 GPoints::GPoints():Attribute()
 {}
+
+GPoints::GPoints(bool def):Attribute(def),m_xGPoints(0)
+{}
+
 GPoints::GPoints ( int in_iSize ) :Attribute(true),m_xGPoints ( in_iSize )
 {}
+
 GPoints::GPoints ( GPoints* in_xOther ) :
     Attribute(in_xOther->IsDefined()),
-    m_xGPoints ( 0 )
+    m_xGPoints ( in_xOther->Size() )
 {
   GPoint pCurrentInterval;
   for ( int i = 0; i < in_xOther->m_xGPoints.Size(); i++ )
@@ -7427,6 +7593,12 @@ GPoints::GPoints ( GPoints* in_xOther ) :
   }
   SetDefined(in_xOther->IsDefined());
   TrimToSize();
+}
+
+void GPoints::Clear()
+{
+  m_xGPoints.clean();
+  SetDefined(true);
 }
 
 bool GPoints::IsEmpty() const
@@ -7445,10 +7617,11 @@ ostream& GPoints::Print ( ostream& os ) const
   }
   return os;
 }
+
 GPoints& GPoints::operator= ( const GPoints& gps )
 {
+  SetDefined(gps.IsDefined());
   m_xGPoints.copyFrom(gps.m_xGPoints);
-  TrimToSize();
   return *this;
 }
 
@@ -7489,6 +7662,14 @@ void GPoints::MergeAdd(GPoint gp, Network* pNetwork)
   if (!Contains(gp,pNetwork)) m_xGPoints.Append(gp);
 }
 
+bool GPoints::Contains(GPoint gp)
+{
+  Network* pNetwork = NetworkManager::GetNetworkNew(gp.GetNetworkId(),netList);
+  bool result = Contains(gp,pNetwork);
+  NetworkManager::CloseNetwork(pNetwork);
+  return result;
+}
+
 bool GPoints::Contains(GPoint gp, Network* pNetwork)
 {
   GPointList *gpl = new GPointList(&gp,pNetwork);
@@ -7501,16 +7682,558 @@ bool GPoints::Contains(GPoint gp, Network* pNetwork)
       m_xGPoints.Get(i,gpold);
       if (gpold == gptest)
       {
+        //gpl->Destroy();
         delete gpl;
         return true;
       }
     }
     gptest = gpl->NextGPoint();
   }
+  //gpl->Destroy();
   delete gpl;
   return false;
 }
 
+int GPoints::GetNetworkId()
+{
+  if(!IsDefined() || Size() < 1) return -1;
+  GPoint gp;
+  Get(0,gp);
+  return gp.GetNetworkId();
+}
+
+double GPoints::Netdistance(GPoints* bgp, Network* pNetwork)
+{
+  if(!IsDefined() || !bgp->IsDefined() || Size() < 1 || bgp->Size() < 1)
+    return numeric_limits<double>::max();
+  if (Intersects(bgp,pNetwork)) return 0.0;
+  GLine* pSP = new GLine(0);
+  if (ShortestPath(bgp,pSP,pNetwork))
+  {
+    double result = pSP->GetLength();
+    pSP->DeleteIfAllowed();
+    return result;
+  }
+  pSP->DeleteIfAllowed();
+  return numeric_limits< double >::max();
+}
+
+double GPoints::Netdistance(GPoints* bgp)
+{
+  if(!IsDefined()||Size() < 1) return numeric_limits<double>::max();
+  Network *pNetwork = NetworkManager::GetNetworkNew(GetNetworkId(),netList);
+  double result = Netdistance(bgp,pNetwork);
+  NetworkManager::CloseNetwork(pNetwork);
+  return result;
+}
+
+bool GPoints::Inside(GPoint gp)
+{
+  if (!IsDefined() || Size() < 1) return false;
+  GPoint gp1;
+  for (int i = 0; i < Size(); i++)
+  {
+    Get(0,gp1);
+    if (gp1 == gp) return true;
+  }
+  return false;
+}
+
+void GPoints::GetSectionTupleIds(DbArray<GPointsSections>* gpSections,
+                                 Network *pNetwork)
+{
+  GPoint gp;
+  for (int i = 0 ; i < Size() ; i++)
+  {
+    Get(i,gp);
+    Point *pPoint = gp.ToPoint(pNetwork);
+    gpSections->Append(GPointsSections(gp,
+                                       pNetwork->GetTupleIdSectionOnRoute(&gp),
+                                       *pPoint));
+    pPoint->DeleteIfAllowed();
+  }
+}
+
+
+bool GPoints::Intersects(GPoints* bgp)
+{
+  if(!IsDefined() || !bgp->IsDefined() || Size() < 1 || bgp->Size() < 1)
+    return false;
+  GPoint gp;
+  Get(0,gp);
+  Network *pNetwork =
+    NetworkManager::GetNetworkNew(gp.GetNetworkId(),netList);
+  bool result = Intersects(bgp, pNetwork);
+  NetworkManager::CloseNetwork(pNetwork);
+  return result;
+}
+
+bool GPoints::Intersects(GPoints* bgp, Network* pNetwork)
+{
+  if(!IsDefined() || !bgp->IsDefined() || Size() < 1 || bgp->Size() < 1)
+    return false;
+  GPoint gp;
+  for (int i = 0; i < Size(); i++)
+  {
+    Get(i,gp);
+    GPointList* gpl = new GPointList(&gp,pNetwork);
+    GPoint test = gpl->NextGPoint();
+    while (test.IsDefined())
+    {
+      for (int j = 0; j < bgp->Size(); j++)
+      {
+        if (bgp->Contains(gp,pNetwork))
+        {
+          //gpl->Destroy();
+          delete gpl;
+          return true;
+        }
+      }
+      test = gpl->NextGPoint();
+    }
+    //gpl->Destroy();
+    delete gpl;
+  }
+  return false;
+}
+
+bool GPoints::ShortestPath(GPoints* bgp, GLine* res)
+{
+  res->Clear();
+  if(!IsDefined() || !bgp->IsDefined() || Size() < 1 || bgp->Size() < 1)
+  {
+    res->SetDefined(false);
+    return false;
+  }
+  GPoint gp;
+  Get(0,gp);
+  Network *pNetwork =
+    NetworkManager::GetNetworkNew(gp.GetNetworkId(),netList);
+  bool result = ShortestPath(bgp, res, pNetwork);
+  NetworkManager::CloseNetwork(pNetwork);
+  return result;
+}
+
+
+bool GPoints::ShortestPath(GPoints* bgp, GLine* res, Network* pNetwork)
+{
+  res->Clear();
+  if(!IsDefined() || !bgp->IsDefined() || Size() < 1 || bgp->Size() < 1)
+  {
+    res->SetDefined(false);
+    return false;
+  }
+  res->SetNetworkId(pNetwork->GetId());
+  if (Intersects(bgp,pNetwork))
+  {
+    res->SetDefined(true);
+    return true;
+  }
+  DbArray<GPointsSections>* startSections = new DbArray<GPointsSections>(0);
+  DbArray<GPointsSections>* endSections = new DbArray<GPointsSections>(0);
+  GetSectionTupleIds(startSections,pNetwork);
+  bgp->GetSectionTupleIds(endSections,pNetwork);
+  if (startSections->Size() < 1 || endSections->Size() < 1)
+  {
+    startSections->Destroy();
+    endSections->Destroy();
+    delete startSections;
+    delete endSections;
+    res->SetDefined(false);
+    return false;
+  }
+  Points* endPoints = new Points(endSections->Size()-1);
+  endPoints->StartBulkLoad();
+  GPointsSections gps;
+  for (int i = 0; i < endSections->Size(); i++)
+  {
+    endSections->Get(i,gps);
+    *endPoints += gps.GetPoint();
+  }
+  endPoints->EndBulkLoad();
+  /*
+  Initialize PriorityQueue
+
+  */
+  GPointsSections source,target;
+  double dist = 0.0;
+  double weight = 0.0;
+  Point* sPoint = 0;
+  PrioQueueA* prioQ = new PrioQueueA(0);
+  SectIDTree *visitedSect = new SectIDTree (
+              (TupleId) numeric_limits<long>::max(),
+              (TupleId) numeric_limits<long>::max(),
+              false,
+              numeric_limits<int>::max());
+  SectIDTree *phelp = 0;
+  vector<DirectedSection> adjSectionList;
+
+  for (int i = 0; i < startSections->Size(); i++)
+  {
+    startSections->Get(i,source);
+    visitedSect->Insert(source.GetTid(), (TupleId) numeric_limits<long>::max(),
+                        true, numeric_limits<int>::max(), phelp,
+                        0.0);
+  }
+  for (int i = 0; i < startSections->Size(); i++)
+  {
+    startSections->Get(i,source);
+    for (int j = 0; j < endSections->Size(); j++)
+    {
+      endSections->Get(j,target);
+      if (source.GetTid() == target.GetTid())
+      {
+        res->AddRouteInterval(source.GetGP().GetRouteId(),
+                              source.GetGP().GetPosition(),
+                              target.GetGP().GetPosition());
+        startSections->Destroy();
+        endSections->Destroy();
+        delete startSections;
+        delete endSections;
+        endPoints->Destroy();
+        delete endPoints;
+        prioQ->Destroy();
+        delete prioQ;
+        visitedSect->Remove();
+        delete visitedSect;
+        res->SetDefined(true);
+        return true;
+      }
+    }
+    Tuple* sourceTuple = pNetwork->GetSection(source.GetTid());
+    double sectMeas1 =
+      ((CcReal*) sourceTuple->GetAttribute(SECTION_MEAS1))->GetRealval();
+    double sectMeas2 =
+      ((CcReal*)sourceTuple->GetAttribute(SECTION_MEAS2))->GetRealval();
+    adjSectionList.clear();
+    dist = fabs(source.GetGP().GetPosition() - sectMeas1);
+    sPoint = (GPoint(true,
+                pNetwork->GetId(),
+                ((CcInt*)sourceTuple->GetAttribute(SECTION_RID))->GetIntval(),
+                sectMeas1,
+                Down)).ToPoint(pNetwork);
+
+    weight = dist + endPoints->Distance(*sPoint);
+    sPoint->DeleteIfAllowed();
+    pNetwork->GetAdjacentSections ( source.GetTid(), false, adjSectionList );
+    for (size_t k = 0;  k < adjSectionList.size(); k++ )
+    {
+      DirectedSection actNextSect = adjSectionList[k];
+      if(actNextSect.GetSectionTid()!=source.GetTid())
+      {
+        prioQ->Insert(PQEntryA ( actNextSect.GetSectionTid(),
+                                 weight,
+                                 dist,
+                                 actNextSect.GetUpDownFlag(),
+                                 source.GetTid()), visitedSect ) ;
+      }
+    }
+    adjSectionList.clear();
+    dist = fabs(sectMeas2 - source.GetGP().GetPosition());
+    sPoint = (GPoint(true,
+                 pNetwork->GetId(),
+                  ((CcInt*)sourceTuple->GetAttribute(SECTION_RID))->GetIntval(),
+                     sectMeas2,
+                     Up)).ToPoint(pNetwork);
+    sourceTuple->DeleteIfAllowed();
+    sourceTuple = 0;
+    weight = dist + endPoints->Distance(*sPoint);
+    sPoint->DeleteIfAllowed();
+    pNetwork->GetAdjacentSections ( source.GetTid(), true, adjSectionList );
+    for ( size_t k = 0;  k < adjSectionList.size(); k++ )
+    {
+      DirectedSection actNextSect = adjSectionList[k];
+      if (actNextSect.GetSectionTid() != source.GetTid())
+        prioQ->Insert (PQEntryA ( actNextSect.GetSectionTid(),
+                                 weight,
+                                 dist,
+                                 actNextSect.GetUpDownFlag(),
+                                 source.GetTid()), visitedSect );
+    }
+    adjSectionList.clear();
+  }
+/*
+Use priorityQueue to find shortestPath.
+
+*/
+
+  PQEntryA *actPQEntry = 0;
+  bool found = false;
+  while (!prioQ->IsEmpty() && !found )
+  {
+    actPQEntry = prioQ->GetAndDeleteMin ( visitedSect );
+    Tuple *actSection = pNetwork->GetSection ( actPQEntry->sectID );
+    double sectMeas1 =
+      ((CcReal*) actSection->GetAttribute(SECTION_MEAS1))->GetRealval();
+    double sectMeas2 =
+      ((CcReal*) actSection->GetAttribute(SECTION_MEAS2))->GetRealval();
+    int actRouteId =
+      ((CcInt*) actSection->GetAttribute(SECTION_RID))->GetIntval();
+    dist = actPQEntry->valFromStart + fabs ( sectMeas2 - sectMeas1 );
+    if(actPQEntry->upDownFlag)
+    {
+      sPoint =
+        (GPoint(true,
+                pNetwork->GetId(),
+                ((CcInt*)actSection->GetAttribute(SECTION_RID))->GetIntval(),
+                sectMeas2,
+                Up)).ToPoint(pNetwork);
+    }
+    else
+    {
+      sPoint =
+        (GPoint(true,
+                pNetwork->GetId(),
+                ((CcInt*)actSection->GetAttribute(SECTION_RID))->GetIntval(),
+                sectMeas1,
+                Down)).ToPoint(pNetwork);
+    }
+    weight = dist + endPoints->Distance(*sPoint);
+    sPoint->DeleteIfAllowed();
+    sPoint = 0;
+    actSection->DeleteIfAllowed();
+    actSection = 0;
+    bool lastSectReached = false;
+    int lastSectPos = -1;
+    for (int j = 0; j < endSections->Size(); j++)
+    {
+      endSections->Get(j,target);
+      if (actPQEntry->sectID == target.GetTid())
+      {
+        lastSectReached = true;
+        lastSectPos = j;
+        break;
+      }
+    }
+    if ( !lastSectReached)
+    {
+/*
+Search further in the network unitl reached last section.
+Get adjacent sections and insert into priority Queue.
+
+*/
+      adjSectionList.clear();
+      pNetwork->GetAdjacentSections ( actPQEntry->sectID,
+                                      actPQEntry->upDownFlag,
+                                      adjSectionList );
+      for ( size_t i = 0; i < adjSectionList.size();i++ )
+      {
+        DirectedSection actNextSect = adjSectionList[i];
+        if ( actNextSect.GetSectionTid() != actPQEntry->sectID )
+          prioQ->Insert(PQEntryA(actNextSect.GetSectionTid(),
+                                 weight,
+                                 dist,
+                                 actNextSect.GetUpDownFlag(),
+                                 actPQEntry->sectID ), visitedSect );
+      }
+      if ( actPQEntry )
+      {
+        delete actPQEntry;
+        actPQEntry = 0;
+      }
+    }
+    else
+    {
+/*
+Shortest Path nearly found.
+
+It might exist another endSection in the priority queue
+with the same distance from the start section, where the distance of the
+gpoint is nearer to the end of the last section. Therefore we have to check
+the values of the priorty queue with the same weight. To find the correct
+end Section.
+
+Compute last route interval and resulting gline.
+
+*/
+      found = true;
+      endSections->Get(lastSectPos,target);
+      double startRI, endRI;
+      endRI = target.GetGP().GetPosition();
+      if ( actPQEntry->upDownFlag == true )
+        startRI = sectMeas1;
+      else
+        startRI = sectMeas2;
+      double restDist = fabs(endRI-startRI);
+      bool btestended = false;
+      while (!btestended)
+      {
+        PQEntryA* pqtest = prioQ->GetAndDeleteMin(visitedSect);
+        if (pqtest != 0 && pqtest->prioval == actPQEntry->prioval)
+        {
+          GPointsSections testgps;
+          for (int k = 0; k < endSections->Size(); k++)
+          {
+            endSections->Get(k,testgps);
+            if (testgps.GetTid() == pqtest->sectID)
+            {
+              Tuple *qptest = pNetwork->GetSection(pqtest->sectID);
+              double endTestRI = testgps.GetGP().GetPosition();
+              double startTestRI = 0.0;
+              if ( pqtest->upDownFlag == true )
+                startTestRI =
+                  ((CcReal*)qptest->GetAttribute(SECTION_MEAS1))->GetRealval();
+              else
+                startTestRI =
+                  ((CcReal*)qptest->GetAttribute(SECTION_MEAS2))->GetRealval();
+              if (restDist > fabs(endTestRI - startTestRI))
+              {
+                target = testgps;
+                endRI = endTestRI;
+                startRI = startTestRI;
+                lastSectPos = k;
+                restDist = fabs(endTestRI - startTestRI);
+                actRouteId =
+                  ((CcInt*)qptest->GetAttribute(SECTION_RID))->GetIntval();
+                delete actPQEntry;
+                actPQEntry = pqtest;
+              }
+              qptest->DeleteIfAllowed();
+              qptest = 0;
+            }
+          }
+        }
+        else
+        {
+          btestended = true;
+        }
+        if (pqtest != 0 && pqtest != actPQEntry)
+        {
+          delete pqtest;
+          pqtest = 0;
+        }
+      }
+/*
+Get the sections used for shortest path and write them in right
+order (from start to end gpoint) in the resulting gline. Because Dijkstra gives
+the sections from end to start, we have to put the result sections
+on a stack to turn them in right order.
+
+*/
+      /*cout << "start Ausgabe shortest path" << endl;*/
+      RIStack *riStack = new RIStack ( actRouteId, startRI, endRI );
+      TupleId lastSectId = actPQEntry->sectID;
+      /*cout << "lastSectId: " << actPQEntry->sectID << endl;*/
+      SectIDTree *pElem = visitedSect->Find ( actPQEntry->beforeSectID );
+      bool end = false;
+      //   if (startRI >= endRI) upDown = false;
+      while ( !end )
+      {
+        /*cout << "act Section Id: " << pElem->sectID << endl;*/
+        //GetSection
+        actSection = pNetwork->GetSection ( pElem->sectID );
+        actRouteId =
+          (( CcInt*)actSection->GetAttribute(SECTION_RID))->GetIntval();
+        sectMeas1 =
+          ((CcReal*)actSection->GetAttribute(SECTION_MEAS1))->GetRealval();
+        sectMeas2 =
+          ((CcReal*)actSection->GetAttribute(SECTION_MEAS2))->GetRealval();
+        actSection->DeleteIfAllowed();
+        actSection = 0;
+        bool firstSectReached = false;
+        int firstSectPos = -1;
+        for (int k = 0; k < startSections->Size(); k++)
+        {
+          startSections->Get(k,source);
+          if (pElem->sectID == source.GetTid())
+          {
+            firstSectReached = true;
+            firstSectPos = k;
+            break;
+          }
+        }
+        if ( !firstSectReached)
+        {
+          if ( pElem->upDownFlag )
+            riStack->Push ( actRouteId, sectMeas1, sectMeas2, riStack );
+          else
+            riStack->Push ( actRouteId, sectMeas2, sectMeas1, riStack );
+          lastSectId = pElem->sectID;
+          pElem = visitedSect->Find ( pElem->beforeSectId );
+        }
+        else
+        {
+          /*cout << "first section reached" << endl;*/
+          end = true;
+          startSections->Get(firstSectPos,source);
+          pNetwork->GetAdjacentSections(source.GetTid(),true,adjSectionList);
+          bool stsectfound = false;
+          for(size_t t = 0; t < adjSectionList.size(); t++)
+          {
+            DirectedSection adjSection = adjSectionList[t];
+            if ( adjSection.GetSectionTid() == lastSectId )
+            {
+              if ( fabs (source.GetGP().GetPosition() - sectMeas2 ) > 0.1 )
+              {
+                stsectfound = true;
+                riStack->Push ( actRouteId, source.GetGP().GetPosition(),
+                                sectMeas2, riStack );
+                break;
+              }
+            }
+          }
+          adjSectionList.clear();
+          if ( !stsectfound )
+          {
+            pNetwork->GetAdjacentSections ( source.GetTid(), false,
+                                              adjSectionList );
+            for(size_t t = 0; t < adjSectionList.size() ;t++)
+            {
+              DirectedSection adjSection = adjSectionList[t];
+              if ( adjSection.GetSectionTid() == lastSectId )
+              {
+                if ( fabs (source.GetGP().GetPosition() - sectMeas1 ) > 0.1 )
+                {
+                  stsectfound = true;
+                  riStack->Push ( actRouteId, source.GetGP().GetPosition(),
+                                  sectMeas1, riStack );
+                  break;
+                }
+              }
+            }
+            adjSectionList.clear();
+          }
+        }
+        if ( actSection )
+        {
+          actSection->DeleteIfAllowed();
+          actSection = 0;
+        }
+        // Cleanup and return result
+      }
+      /*cout << "RiStack to gline" << endl;*/
+      riStack->StackToGLine ( res );
+      riStack->RemoveStack();
+      if ( actSection )
+      {
+        actSection->DeleteIfAllowed();
+        actSection = 0;
+      }
+    }
+    if ( actPQEntry != 0)
+    {
+      delete actPQEntry;
+      actPQEntry = 0;
+    }
+  }
+  if ( visitedSect != 0 )
+  {
+     visitedSect->Remove();
+     visitedSect = 0;
+  }
+  prioQ->Destroy();
+  delete prioQ;
+  startSections->Destroy();
+  endSections->Destroy();
+  delete startSections;
+  delete endSections;
+  endPoints->Destroy();
+  delete endPoints;
+  res->SetSorted ( false );
+  res->SetDefined ( true );
+  res->TrimToSize();
+  return true;
+}
 
 GPoints& GPoints::operator-= ( const GPoint& gp )
 {
@@ -7535,27 +8258,32 @@ void GPoints::Get ( int i, GPoint& pgp ) const
 ListExpr GPoints::Out ( ListExpr in_xTypeInfo,
                         Word in_xValue )
 {
-  GPoints *pGPS = ( GPoints* ) in_xValue.addr;
 
-  if ( pGPS->IsEmpty() )
+  GPoints *pGPS = ( GPoints* ) (in_xValue.addr);
+  //if (!pGPS->IsDefined()) return nl->SymbolAtom("undef");
+  if ( pGPS->IsEmpty())
   {
     return nl->TheEmptyList();
   }
   GPoint pgp;
   pGPS->Get ( 0,pgp );
   ListExpr result =
-      nl->OneElemList ( GPoint::OutGPoint ( nl->TheEmptyList(),SetWord ( ( void*
-) &pgp ) ) );
+      nl->OneElemList(GPoint::OutGPoint(nl->TheEmptyList(),
+                                        SetWord((void*)&pgp)));
   ListExpr last = result;
-  for ( int i = 1; i < pGPS->Size();i++ )
+  if (pGPS->Size() > 1)
   {
-    pGPS->Get ( i,pgp );
-    last =
-        nl->Append ( last,GPoint::OutGPoint ( nl->TheEmptyList(),
-                                              SetWord ( ( void* ) &pgp ) ) );
+    for ( int i = 1; i < pGPS->Size();i++ )
+    {
+      pGPS->Get ( i,pgp );
+      last =
+        nl->Append(last,GPoint::OutGPoint (nl->TheEmptyList(),
+                                           SetWord((void*)&pgp)));
+    }
   }
   return result;
 }
+
 Word GPoints::In ( const ListExpr typeInfo, const ListExpr instance,
                    const int errorPos, ListExpr& errorInfo, bool& correct )
 {
@@ -7566,20 +8294,30 @@ Word GPoints::In ( const ListExpr typeInfo, const ListExpr instance,
     return SetWord ( Address ( 0 ) );
   }
   GPoints* pGPS = new GPoints ( nl->ListLength ( instance ) );
+  if (nl->IsEqual(instance,"undef"))
+  {
+    correct = true;
+    pGPS->SetDefined(false);
+    return SetWord(Address(pGPS));
+  }
+
   ListExpr rest = instance;
   while ( !nl->IsEmpty ( rest ) )
   {
     ListExpr first = nl->First ( rest );
     rest = nl->Rest ( rest );
-    if ( nl->ListLength ( first ) != 4 )
+    if (!nl->ListLength ( first ) == 4)
     {
       correct = false;
       cmsg.inFunError ( "GPoint incorrect.Expected list of 4 Elements." );
       return SetWord ( Address ( 0 ) );
     }
     GPoint* pgp =
-        ( GPoint* ) GPoint::InGPoint (
-nl->TheEmptyList(),first,0,errorInfo,correct ).addr;
+      ( GPoint*)GPoint::InGPoint(nl->TheEmptyList(),
+                                 first,
+                                 0,
+                                 errorInfo,
+                                 correct ).addr;
     if ( correct )
     {
       ( *pGPS ) += ( *pgp );
@@ -7588,14 +8326,13 @@ nl->TheEmptyList(),first,0,errorInfo,correct ).addr;
     else
     {
       pgp->DeleteIfAllowed();
-      return SetWord ( Address ( 0 ) );
     }
   }
-  correct = true;
   pGPS->SetDefined ( true );
   pGPS->TrimToSize();
   return SetWord ( pGPS );
 }
+
 bool GPoints::OpenGPoints ( SmiRecord& valueRecord,size_t& offset,
                             const ListExpr typeInfo, Word& value )
 {
@@ -7611,10 +8348,12 @@ bool GPoints::SaveGPoints ( SmiRecord& valueRecord,size_t& offset,
   Attribute::Save ( valueRecord,offset,typeInfo,pGPS );
   return true;
 }
+
 Word GPoints::Create ( const ListExpr typeInfo )
 {
-  return SetWord ( new GPoints ( 0 ) );
+  return SetWord ( new GPoints ( true ) );
 }
+
 void GPoints::Delete ( const ListExpr typeInfo,
                        Word& w )
 {
@@ -7623,41 +8362,59 @@ void GPoints::Delete ( const ListExpr typeInfo,
   if ( gp->DeleteIfAllowed() == true )
     w.addr = 0;
 }
+
 void GPoints::Close ( const ListExpr typeInfo,
                       Word& w )
 {
   if ( ( ( GPoints* ) w.addr )->DeleteIfAllowed() == true )
     w.addr = 0;
 }
+
 Word GPoints::CloneGPoints ( const ListExpr typeInfo,
                              const Word& w )
 {
-  return SetWord ( new GPoints ( * ( ( GPoints* ) w.addr ) ) );
+  return SetWord ( ( ( GPoints* ) w.addr )->Clone() );
 }
+
+GPoints* GPoints::Clone() const
+{
+  GPoints *xOther = new GPoints ( Size() );
+  xOther->SetDefined ( IsDefined() );
+  xOther->m_xGPoints.copyFrom(m_xGPoints);
+  return xOther;
+}
+
 void* GPoints::Cast ( void* addr )
 {
-  return new ( addr ) GPoints();
+  return new ( addr ) GPoints;
 }
+
 bool GPoints::Check ( ListExpr type, ListExpr& errorInfo )
 {
   return ( nl->IsEqual ( type, "gpoints" ) );
 }
 
-int GPoints::Compare ( const Attribute* ) const
+
+int GPoints::Compare ( const Attribute* a) const
+{
+  GPoints* pGPS = (GPoints*) a;
+  if (Size() < pGPS->Size()) return -1;
+  if (Size() > pGPS->Size()) return 1;
+  GPoint gp1, gp2;
+  for (int i = 0; i < Size(); i++)
+  {
+    Get(i,gp1);
+    Get(i,gp2);
+    if (gp1.Compare(gp2) != 0) return gp1.Compare(gp2);
+  }
+  return 0;
+}
+
+bool GPoints::Adjacent ( const Attribute* a) const
 {
   return false;
-
-}
-bool GPoints::Adjacent ( const Attribute* ) const
-{
-  return false;
 }
 
-GPoints* GPoints::Clone() const
-{
-  GPoints* res = new GPoints ( *this );
-  return res;
-}
 size_t GPoints::HashValue() const
 {
   size_t xHash = 0;
@@ -7677,6 +8434,7 @@ size_t GPoints::HashValue() const
   }
   return xHash;
 }
+
 void GPoints::CopyFrom ( const Attribute* right )
 {
   *this = * ( ( const GPoints * ) right );
@@ -7735,12 +8493,12 @@ ListExpr OpNetNetdistanceTypeMap ( ListExpr args )
   ListExpr param2 = nl->Second ( args );
   //ListExpr param3 = nl->Third(args);
 
-  if ( ( nl->IsAtom ( param1 ) && nl->AtomType ( param1 ) == SymbolType &&
-          nl->IsAtom ( param2 ) && nl->AtomType ( param2 ) == SymbolType &&
-          ( ( nl->SymbolValue ( param1 ) == "gpoint" &&
-              nl->SymbolValue ( param2 ) == "gpoint" ) ||
-            ( nl->SymbolValue ( param1 ) == "gline" &&
-              nl->SymbolValue ( param2 ) == "gline" ) ) ) )
+  if ( nl->IsAtom ( param1 ) && nl->AtomType ( param1 ) == SymbolType &&
+       nl->IsAtom ( param2 ) && nl->AtomType ( param2 ) == SymbolType &&
+      ( ( nl->SymbolValue ( param1 ) == "gpoint" &&
+          nl->SymbolValue ( param2 ) == "gpoint" ) ||
+        ( nl->SymbolValue ( param1 ) == "gline" &&
+          nl->SymbolValue ( param2 ) == "gline" ) ) )
   {
     return nl->SymbolAtom ( "real" );
   }
@@ -7809,6 +8567,119 @@ struct netdistanceInfo : OperatorInfo {
     signature = "gpoint X gpoint -> real";
     appendSignature("gline X gline -> real");
     syntax = "netdistance(_,_)";
+    meaning = "Returns network distance from 1st to 2nd.";
+  }
+};
+
+ListExpr OpNetNetdistanceNewTypeMap ( ListExpr args )
+{
+  if ( nl->ListLength ( args ) != 2 )
+  {
+    return ( nl->SymbolAtom ( "typeerror" ) );
+  }
+  ListExpr param1 = nl->First ( args );
+  ListExpr param2 = nl->Second ( args );
+  //ListExpr param3 = nl->Third(args);
+
+  if ( nl->IsAtom ( param1 ) && nl->AtomType ( param1 ) == SymbolType &&
+       nl->IsAtom ( param2 ) && nl->AtomType ( param2 ) == SymbolType &&
+      ( ( nl->SymbolValue ( param1 ) == "gpoint" &&
+          nl->SymbolValue ( param2 ) == "gpoint" ) ||
+        ( nl->SymbolValue ( param1 ) == "gline" &&
+          nl->SymbolValue ( param2 ) == "gline" ) ||
+        ( nl->SymbolValue(param1) == "gpoints" &&
+          nl->SymbolValue(param2) == "gpoints") ) )
+  {
+    return nl->SymbolAtom ( "real" );
+  }
+  return nl->SymbolAtom ( "typeerror" );
+}
+
+int OpNetNetdistanceNew_gpgp ( Word* args, Word& result, int message,
+                            Word& local, Supplier in_pSupplier )
+{
+  GPoint* pFromGPoint = ( GPoint* ) args[0].addr;
+  GPoint* pToGPoint = ( GPoint* ) args[1].addr;
+  result = qp->ResultStorage ( in_pSupplier );
+  CcReal* pResult = ( CcReal* ) result.addr;
+  if ( ! ( pFromGPoint->IsDefined() ) || ! ( pToGPoint->IsDefined() ) )
+  {
+    cmsg.inFunError ( "Both gpoint must be defined!" );
+    return 0;
+  };
+  double dist =  pFromGPoint->NetdistanceA ( pToGPoint );
+  if ( dist < numeric_limits<double>::max() ) pResult->Set ( true,dist );
+  else pResult->Set ( false, dist );
+  return 1;
+};
+
+int OpNetNetdistanceNew_glgl ( Word* args, Word& result, int message,
+                            Word& local, Supplier in_pSupplier )
+{
+  GLine* pGLine1 = ( GLine* ) args[0].addr;
+  GLine* pGLine2 = ( GLine* ) args[1].addr;
+  CcReal* pResult = ( CcReal* ) qp->ResultStorage ( in_pSupplier ).addr;
+  result = SetWord ( pResult );
+  if ( ! ( pGLine1->IsDefined() ) || ! ( pGLine2->IsDefined() ) )
+  {
+    cmsg.inFunError ( "Both gpoint must be defined!" );
+    return 0;
+  };
+  double dist = pGLine1->NetdistanceNew ( pGLine2 );
+  if ( dist != numeric_limits<double>::max() ) pResult->Set ( true, dist );
+  else pResult->Set ( false, dist );
+  return 1;
+};
+
+int OpNetNetdistanceNew_gpsgps ( Word* args, Word& result, int message,
+                            Word& local, Supplier in_pSupplier )
+{
+  GPoints* pGPoints1 = ( GPoints* ) args[0].addr;
+  GPoints* pGPoints2 = ( GPoints* ) args[1].addr;
+  CcReal* pResult = ( CcReal* ) qp->ResultStorage ( in_pSupplier ).addr;
+  result = SetWord ( pResult );
+  if ( ! ( pGPoints1->IsDefined() ) || ! ( pGPoints2->IsDefined() ) )
+  {
+    cmsg.inFunError ( "Both gpoint must be defined!" );
+    return 0;
+  };
+  double dist = pGPoints1->Netdistance( pGPoints2 );
+  if ( dist != numeric_limits<double>::max() ) pResult->Set ( true, dist );
+  else pResult->Set ( false, dist );
+  return 1;
+};
+
+ValueMapping OpNetNetdistanceNewmap[] =
+{
+  OpNetNetdistanceNew_gpgp,
+  OpNetNetdistanceNew_glgl,
+  OpNetNetdistanceNew_gpsgps,
+  0
+};
+
+int OpNetNetdistanceNewselect ( ListExpr args )
+{
+  ListExpr arg1 = nl->First ( args );
+  ListExpr arg2 = nl->Second ( args );
+  if ( nl->SymbolValue ( arg1 ) == "gpoint" &&
+          nl->SymbolValue ( arg2 ) == "gpoint" )
+    return 0;
+  if ( nl->SymbolValue ( arg1 ) == "gline" &&
+          nl->SymbolValue ( arg2 ) == "gline" )
+    return 1;
+  if ( nl->SymbolValue ( arg1 ) == "gpoints" &&
+          nl->SymbolValue ( arg2 ) == "gpoints" )
+    return 2;
+  return -1; // This point should never be reached
+};
+
+struct netdistanceNewInfo : OperatorInfo {
+  netdistanceNewInfo():OperatorInfo(){
+    name = "netdistancenew";
+    signature = "gpoint X gpoint -> real";
+    appendSignature("gline X gline -> real");
+    appendSignature("gpoints X gpoints -> real");
+    syntax = "netdistancenew(_,_)";
     meaning = "Returns network distance from 1st to 2nd.";
   }
 };
@@ -8736,7 +9607,10 @@ int OpPolyGPointValueMapping ( Word* args,
     case CLOSE:
       if ( local.addr != 0 )
       {
-        delete ( GPointList* ) local.addr;
+        localinfo = ( GPointList* ) local.addr;
+        //localinfo->Destroy();
+        delete localinfo;
+        localinfo = 0;
         local = SetWord ( Address ( 0 ) );
       }
       return 0;
@@ -8904,51 +9778,103 @@ ListExpr OpShortestPathAStarTypeMap ( ListExpr in_xArgs )
   if ( nl->ListLength ( in_xArgs ) != 2 )
     return ( nl->SymbolAtom ( "typeerror" ) );
 
-  ListExpr xGPoint1Desc = nl->First ( in_xArgs );
-  ListExpr xGPoint2Desc = nl->Second ( in_xArgs );
+  ListExpr firstArg = nl->First ( in_xArgs );
+  ListExpr secondArg = nl->Second ( in_xArgs );
 // ListExpr xGPoint3Desc = nl->Third(in_xArgs);
 
-  if ( ( !nl->IsAtom ( xGPoint1Desc ) ) ||
-          nl->AtomType ( xGPoint1Desc ) != SymbolType ||
-          nl->SymbolValue ( xGPoint1Desc ) != "gpoint" )
+  if ( ( !nl->IsAtom ( firstArg) ) ||
+          nl->AtomType ( firstArg ) != SymbolType ||
+          !(nl->SymbolValue(firstArg ) == "gpoint" ||
+            nl->SymbolValue(firstArg ) == "gline" ||
+            nl->SymbolValue(firstArg) == "gpoints"))
   {
     return ( nl->SymbolAtom ( "typeerror" ) );
   }
 
-  if ( ( !nl->IsAtom ( xGPoint2Desc ) ) ||
-          nl->AtomType ( xGPoint2Desc ) != SymbolType ||
-          nl->SymbolValue ( xGPoint2Desc ) != "gpoint" )
+  if ( ( !nl->IsAtom ( secondArg ) ) ||
+          nl->AtomType ( secondArg ) != SymbolType ||
+          nl->SymbolValue(secondArg) != nl->SymbolValue(firstArg))
   {
     return ( nl->SymbolAtom ( "typeerror" ) );
   }
-  //if((!nl->IsAtom(xGPoint3Desc))|| (!nl->IsEqual(xGPoint3Desc,"network"))) {
-  //  return (nl->SymbolAtom("typeerror"));
-  //}
-
   return nl->SymbolAtom ( "gline" );
 }
 
-int OpShortestPathAStarValueMapping ( Word* args,
-                                 Word& result,
-                                 int message,
-                                 Word& local,
-                                 Supplier in_xSupplier )
+int OpShortestPathAStar_gpgp ( Word* args,
+                               Word& result,
+                               int message,
+                               Word& local,
+                               Supplier in_xSupplier )
 {
-
   GPoint *pFromGPoint = ( GPoint* ) args[0].addr;
   GPoint *pToGPoint = ( GPoint* ) args[1].addr;
   GLine* pGLine = ( GLine* ) qp->ResultStorage ( in_xSupplier ).addr;
   result = SetWord ( pGLine );
-
   pGLine->SetSorted ( false );
   pGLine->SetDefined ( pFromGPoint->ShortestPathAStar ( pToGPoint, pGLine ) );
   return 0;
 }
 
+int OpShortestPathAStar_gpsgps ( Word* args,
+                               Word& result,
+                               int message,
+                               Word& local,
+                               Supplier in_xSupplier )
+{
+  GPoints *pFromGPoints = ( GPoints* ) args[0].addr;
+  GPoints *pToGPoints = ( GPoints* ) args[1].addr;
+  GLine* pGLine = ( GLine* ) qp->ResultStorage ( in_xSupplier ).addr;
+  result = SetWord ( pGLine );
+  pGLine->SetSorted ( false );
+  pGLine->SetDefined ( pFromGPoints->ShortestPath( pToGPoints, pGLine ) );
+  return 0;
+}
+
+int OpShortestPathAStar_glgl ( Word* args,
+                               Word& result,
+                               int message,
+                               Word& local,
+                               Supplier in_xSupplier )
+{
+  GLine *pFromGLine = ( GLine* ) args[0].addr;
+  GLine *pToGLine = ( GLine* ) args[1].addr;
+  GLine* pGLine = ( GLine* ) qp->ResultStorage ( in_xSupplier ).addr;
+  result = SetWord ( pGLine );
+  pGLine->SetSorted ( false );
+  pGLine->SetDefined ( pFromGLine->ShortestPath( pToGLine, pGLine ) );
+  return 0;
+}
+
+int OpShortestPathAStarSelect ( ListExpr args )
+{
+  ListExpr arg1 = nl->First ( args );
+  ListExpr arg2 = nl->Second ( args );
+  if ( nl->SymbolValue ( arg1 ) == "gpoint" &&
+          nl->SymbolValue ( arg2 ) == "gpoint" )
+    return 0;
+  if ( nl->SymbolValue ( arg1 ) == "gpoints" &&
+          nl->SymbolValue ( arg2 ) == "gpoints" )
+    return 1;
+  if ( nl->SymbolValue ( arg1 ) == "gline" &&
+          nl->SymbolValue ( arg2 ) == "gline" )
+    return 2;
+  return -1; // This point should never be reached
+};
+
+ValueMapping OpShortestPathAStarMap[] =
+{
+  OpShortestPathAStar_gpgp,
+  OpShortestPathAStar_gpsgps,
+  OpShortestPathAStar_glgl,
+  0
+};
+
 struct shortestpathAstarInfo:OperatorInfo{
   shortestpathAstarInfo():OperatorInfo(){
     name = "shortest_pathastar";
     signature = "gpoint X gpoint -> gline";
+    appendSignature("gpoints X gpoints -> gline");
+    appendSignature("gline X gline -> gline");
     syntax = "shortest_pathastar (_,_)";
     meaning = "Returns shortest path between objects using Astar-Variant.";
   }
@@ -9238,9 +10164,7 @@ int OpGetBGPValueMap ( Word* args, Word& result, int message,
     pGPoints->SetDefined(false);
     return 0;
   }
-  GPoints* res = pGL1->GetBGP();
-  *pGPoints = *res;
-  delete res;
+  pGL1->GetBGP(pGPoints);
   return 0;
 }
 
@@ -9252,6 +10176,7 @@ struct getBGPInfo:OperatorInfo{
     meaning = "Returns the bounding GPoints of gline.";
   }
 };
+
 
 /*
 7 Creating the ~NetworkAlgebra~
@@ -9288,6 +10213,8 @@ class NetworkAlgebra : public Algebra
       AddOperator ( insideInfo(), OpInsideValueMap, OpInsideTypeMap);
       AddOperator ( netdistanceInfo(), OpNetNetdistancemap,
                     OpNetNetdistanceselect, OpNetNetdistanceTypeMap);
+      AddOperator ( netdistanceNewInfo(), OpNetNetdistanceNewmap,
+                    OpNetNetdistanceNewselect, OpNetNetdistanceNewTypeMap);
       AddOperator ( point2gpointInfo(), OpPoint2GPointValueMapping,
                     OpPoint2GPointTypeMap);
       AddOperator ( gpoint2pointInfo(), OpGPoint2PointValueMapping,
@@ -9312,8 +10239,8 @@ class NetworkAlgebra : public Algebra
                     OpNetDistanceTypeMap);
       AddOperator ( shortestpathInfo(), OpShortestPathValueMapping,
                     OpShortestPathTypeMap);
-      AddOperator ( shortestpathAstarInfo(), OpShortestPathAStarValueMapping,
-                    OpShortestPathAStarTypeMap);
+      AddOperator ( shortestpathAstarInfo(), OpShortestPathAStarMap,
+                    OpShortestPathAStarSelect, OpShortestPathAStarTypeMap);
       AddOperator ( getBGPInfo(), OpGetBGPValueMap, OpGetBGPTypeMap);
     }
     ~NetworkAlgebra() {

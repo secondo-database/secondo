@@ -21,3 +21,4 @@ operator isempty alias ISEMPTY pattern op ( _ )
 operator union alias UNION pattern _ infixop _
 operator distance alias DISTANCE pattern op ( _ , _ )
 operator getBGP alias GETBGP pattern op ( _ )
+operator netdistancenew alias NETDISTANCENEW pattern op ( _ , _ )
