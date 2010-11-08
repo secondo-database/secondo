@@ -1265,7 +1265,7 @@ struct SectIDTree
     os << ", Index: " << index << endl;
     if (right != 0)
     {
-      os << "right son: "
+      os << "right son: ";
       right->Print(os);
     }
     return os;
@@ -1367,6 +1367,7 @@ struct SectIDTree
   double distFromStart;
   SectIDTree *left, *right;
 };
+
 
 /*
 struct Priority Queue for Dijkstras Algorithm of shortest path computing between
