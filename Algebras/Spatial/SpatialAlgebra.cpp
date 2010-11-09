@@ -3426,7 +3426,7 @@ bool HalfSegment::Intersection( const HalfSegment& hs, Point& resp ) const {
     if(!AlmostEqual(y,y0_2+delta2*dy2)){
       cerr << __PRETTY_FUNCTION__ << "@" __FILE__ << ":" << __LINE__ << endl;
       cerr << "rounding(?) error detected, points are not equal";
-      cerr << " y(this) = " << x << ",  y(hs) = "<< (y0_2*delta2*dy2) << endl;
+      cerr << " y(this) = " << y << ",  y(hs) = "<< (y0_2*delta2*dy2) << endl;
     }
     resp.SetDefined(true);
     resp.Set(x,y);
