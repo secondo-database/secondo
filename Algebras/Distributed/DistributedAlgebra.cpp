@@ -1932,8 +1932,8 @@ distributeFun (Word* args, Word& result, int message, Word& local, Supplier s)
       l->push_front(i);
           
       server->setCmd("open_write_rel",l,0);
-	DServerExecutor* run = new DServerExecutor(server);
-	ex.execute(run);      
+   DServerExecutor* run = new DServerExecutor(server);
+   ex.execute(run);      
 //server->run();
    }
    ex.wait();  
