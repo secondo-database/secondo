@@ -24,7 +24,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 /*
 [1] DistributedAlgebra
 
-March 2010 Tobias Timmerscheidt
+November 2010 Tobias Timmerscheidt
 
 Header-File for Remote.cpp
 Contains definitions of DServer, DServerManager, DServerExecutor

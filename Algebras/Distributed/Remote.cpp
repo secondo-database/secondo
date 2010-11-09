@@ -24,7 +24,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 /*
 [1] DistributedAlgebra
 
-March 2010 Tobias Timmerscheidt
+November 2010 Tobias Timmerscheidt
 
 This file contains the implementation of DServer, DServerManager,
 DServerCreator, DServerExecutor and RelationWriter
@@ -537,7 +537,6 @@ void DServer::run()
          string cmd;
          cmd = "let r" + to + toString_d(arg2) + " = r" 
                         + name + toString_d(arg2);
-         cout << "Kommando: " << cmd << endl;
          iosock << "<Secondo>" << endl << "1" << endl 
                      << cmd<< endl << "</Secondo>" << endl;
 
@@ -835,18 +834,11 @@ bool DServer::Multiply(int count)
    num_childs = count;
    childs = new DServer*[num_childs];
      
-   //ZThread::ThreadedExecutor exec;
    for(int i = 0;i<num_childs;i++)
    {
-      /*cout << "Multiplying 1 server!" << endl;
-      DServerCreator* ex;
-      ex = new DServerCreator(&childs[i],host,port,name,type);
-      exec.execute(ex);*/
       childs[i] = new DServer(host,port,name,type);
    }
    
-   //exec.wait();
-   cout << "Multiply finished!" << endl;
    return true;
      
 }

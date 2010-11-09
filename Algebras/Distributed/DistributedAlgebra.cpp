@@ -25,11 +25,11 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 /*
 [1] DistributedAlgebra
 
-March 2010 Tobias Timmerscheidt
+November 2010 Tobias Timmerscheidt
 
 This algebra implements a distributed array. This type of array keeps its element on remote servers, called worker. Upon creation of the array all elements
 are transfered to the respective workers. The list of workers must be specified in terms of a relation in any operator that gives back a darray.
-Operation on the darray-elements are carried out on the remote machines.
+Operations on the darray-elements are carried out on the remote machines.
 
 
 
@@ -326,7 +326,9 @@ void DArray::remove()
          DServerExecutor* server_ex = new DServerExecutor(server);
          exec.execute(server_ex);
       }
-         exec.wait();
+      
+      exec.wait();
+   
    }
                   
 }
@@ -501,7 +503,7 @@ Word DArray::get(int i)
    } 
    else 
    { 
-      cout << "Error: Array nicht definiert!!"; return new Word(); 
+      cout << "Error: Array not defined!!"; return new Word(); 
    } 
 }
 
@@ -668,8 +670,7 @@ ListExpr DArray::Out( ListExpr typeInfo, Word value )
                            
    else 
    {
-      cout << "Fehler! DArray nicht definiert oder Relation";
-      ListExpr err = nl->StringAtom("RELATION, KEINE AUSGABE");
+      ListExpr err = nl->StringAtom("Error: DArray is undefined!");
       return err;
    }
          
@@ -1001,8 +1002,8 @@ makeDarrayfun( Word* args, Word& result, int message, Word& local, Supplier s )
 
 const string makeDarraySpec =
    "(( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
-     "( <text>t -> darray t</text--->"
-       "<text>makeDarray ( _, _ )</text--->"
+     "( <text>(rel(tuple([Server: string, Port: int])) t t ...)"
+       " -> darray t</text---><text>makeDarray ( _, _ )</text--->"
        "<text>Returns a distributed Array containing x element</text--->"
        "<text>query makeDarray(server_rel,1,2,3)</text---> ))";
 
@@ -1075,7 +1076,7 @@ static int getFun( Word* args,
          
 const string getSpec =
    "(( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
-     "( <text>darray t -> t</text--->"
+     "( <text>((darray t) int) -> t</text--->"
        "<text>get ( _, _ )</text--->"
        "<text>Returns an element from a distributed Array</text--->"
        "<text>query get(makeDarray(server_rel,1,2,3),1)</text---> ))";
@@ -1174,7 +1175,7 @@ static int putFun( Word* args,
 
 const string putSpec =
    "(( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
-     "( <text>darray t -> darray t</text--->"
+     "( <text>((darray t) t int) -> darray t</text--->"
        "<text>put ( _, _, _ )</text--->"
 "<text>Returns a distributed array where one element is altered</text--->"
        "<text>query put(makeDarray(server_rel,1,2,3),2,2)</text---> ))";
@@ -1304,7 +1305,7 @@ static int sendFun( Word* args,
          
                  
             getline(iosock,line);
-            if(line!="<FINISH>") cout << "FEHLER";
+            if(line!="<FINISH>") cout << "Error: No Finish from Worker!";
 
             result = qp->ResultStorage(s);
 
@@ -1474,14 +1475,14 @@ static int receiveFun( Word* args,
                   {
                      getline(iosock,line);
                      if(line!="<SIZE>") 
-                        cout << "ERROR";
+                        cout << "Error: Unexpected Response from Worker!";
                      
                      getline(iosock,line);
                      SmiSize si = atoi(line.data());
                      
                      getline(iosock,line);
                      if(line!="</SIZE>") 
-                        cout << "ERROR";
+                        cout << "Error: Unexpected Response from Worker!";
             
                      int n_blocks = si / 1024 + 1;
                      char* buf = new char[n_blocks*1024];
@@ -1502,7 +1503,7 @@ static int receiveFun( Word* args,
             
                      getline(iosock,line);
                      if(line!="</FLOB>") 
-                        cout << "ERROR";
+                        cout << "Error: Unexpected Response from Worker!";
             
                      getline(iosock,line);
                      flobs++;
@@ -1510,7 +1511,7 @@ static int receiveFun( Word* args,
                   Flob::clearCaches();
          
                   if(line!="<CLOSE>") 
-                     cout << "ERROR";
+                     cout << "Error: Unexpected Response from Worker!";
                          
                   iosock << "<FINISH>" << endl;
 
@@ -1909,16 +1910,14 @@ distributeFun (Word* args, Word& result, int message, Word& local, Supplier s)
    int rel_server = (size / server_no);
    
    ZThread::ThreadedExecutor ex;
-   cout << "Multiplying" << endl;
+   cout << "Multiplying worker connections..." << endl;
    for(int i = 0; i<server_no;i++)
    {
       server = man->getServerbyID(i);
       DServerMultiplyer* mult = new DServerMultiplyer(server,rel_server);
       ex.execute(mult);
    }
-   cout << "Waiting for Multiplying" << endl;
    ex.wait();
-   cout << "Multipliziert" << endl;
      
    for(int i = 0; i < size; i++)
    {
@@ -1988,7 +1987,7 @@ distributeFun (Word* args, Word& result, int message, Word& local, Supplier s)
       qp->Request(args[0].addr,current);
           
       number++; 
-      cout << toString_d(number) << " Tuple verarbeitet" << endl;
+      cout << toString_d(number) << " tuples sent!" << endl;
    }
      
    ex.wait();     
@@ -2022,13 +2021,14 @@ distributeFun (Word* args, Word& result, int message, Word& local, Supplier s)
 
 const string distributeSpec =
    "(( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
-    "( <text>((stream (tuple ((x1 t1) ... (xn tn)))) xi j) -> "
+    "( <text>((stream (tuple ((x1 t1) ... (xn tn)))) xi int (rel(tuple("
+      "[Server:string, Port: int]))) ) -> "
      "(darray (rel (tuple ((x1 t1) ... (xi-1 ti-1)" 
      "(xi+1 ti+1) ... (xn tn)))))</text--->"
-      "<text>_ ddistribute [ _ , _ ]</text--->"
+      "<text>_ ddistribute [ _ , _ , _]</text--->"
       "<text>Distributes a stream of tuples" 
      "into a darray of relations.</text--->"
-      "<text>let prel = plz feed distribute [pkg]</text---> ))";
+      "<text>let prel = plz feed ddistribute [pkg,3,server_rel]</text--->";
 
 Operator distributeA (
       "ddistribute",
@@ -2107,7 +2107,7 @@ static int loopValueMap
    }
 
 
-exec.wait();     
+   exec.wait();     
  
      
 
@@ -2118,13 +2118,12 @@ exec.wait();
 
 const string loopSpec =
    "(( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
-    "( <text>((stream (tuple ((x1 t1) ... (xn tn)))) xi j) -> "
-     "(darray (rel (tuple ((x1 t1) ... (xi-1 ti-1)" 
-     "(xi+1 ti+1) ... (xn tn)))))</text--->"
-      "<text>_ ddistribute [ _ , _ ]</text--->"
-      "<text>Distributes a stream of tuples" 
-     "into a darray of relations.</text--->"
-      "<text>let prel = plz feed distribute [pkg]</text---> ))";
+    "( <text>((darray t) (map t u) text) -> darray u</text--->"
+      "<text>_ dloop [ _ , _ ]</text--->"
+      "<text>Evaluates each element with a function, that needs to be given"
+      "as paremeter function an as a text value (where ! represents "
+      "the element)</text--->"
+      "<text>query plz_a20 dloop[. feed count,'! feed count']</text--->";
 
 
 Operator loopA (
