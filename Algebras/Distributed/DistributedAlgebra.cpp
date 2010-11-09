@@ -1909,16 +1909,16 @@ distributeFun (Word* args, Word& result, int message, Word& local, Supplier s)
    int rel_server = (size / server_no);
    
    ZThread::ThreadedExecutor ex;
-     
+   cout << "Multiplying" << endl;
    for(int i = 0; i<server_no;i++)
    {
       server = man->getServerbyID(i);
       DServerMultiplyer* mult = new DServerMultiplyer(server,rel_server);
       ex.execute(mult);
    }
-   
+   cout << "Waiting for Multiplying" << endl;
    ex.wait();
-
+   cout << "Multipliziert" << endl;
      
    for(int i = 0; i < size; i++)
    {
@@ -1932,9 +1932,11 @@ distributeFun (Word* args, Word& result, int message, Word& local, Supplier s)
       l->push_front(i);
           
       server->setCmd("open_write_rel",l,0);
-      server->run();
+	DServerExecutor* run = new DServerExecutor(server);
+	ex.execute(run);      
+//server->run();
    }
-     
+   ex.wait();  
 
    int number = 0;               
      
@@ -2079,21 +2081,22 @@ static int loopValueMap
      
    SecondoCatalog* sc = SecondoSystem::GetCatalog();
    ListExpr type = sc->NumericType(nl->Second((qp->GetType(s))));
-   ((DArray*)(result.addr))->initialize(type,
-                                                      getArrayName(DArray::no),
-                                                      alt->getSize(),
-                                                      alt->getServerList());
-     
    string command = ((FText*)args[2].addr)->GetValue();
      
    ZThread::ThreadedExecutor exec;DServer* server;
    DServerExecutor* ex;
-   
+
    Word* w = new Word[2];
-   string to = ((DArray*)(result.addr))->getName();
+   //string to = ((DArray*)(result.addr))->getName();
+   string name = getArrayName(DArray::no);
+   string to = name;
    w[0].addr = &to;
    w[1].addr = &command;
    
+   ((DArray*)(result.addr))->initialize(type,
+                                                      name,
+                                                      alt->getSize(),
+                                                      alt->getServerList());   
    for(int i=0; i < alt->getServerManager()->getNoOfServers(); i++)
    {
       server = alt->getServerManager()->getServerbyID(i);
@@ -2102,8 +2105,12 @@ static int loopValueMap
       ex = new DServerExecutor(server);
       exec.execute(ex);
    }
+
+
+exec.wait();     
+ 
      
-   exec.wait();
+
 
    return 0;
      

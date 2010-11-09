@@ -152,7 +152,7 @@ class DServerMultiplyer : public ZThread::Runnable
    
       void run()
       {
-      server->Multiply(count);
+      	server->Multiply(count);
       }
 };
    

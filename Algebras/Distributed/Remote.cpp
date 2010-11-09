@@ -143,7 +143,7 @@ DServer::DServer(string n_host,int n_port,string n_name,ListExpr n_type)
    HostIP = server->GetSocketAddress();
    HostIP_ = "h" + replaceAll(HostIP,".","_");
    
-   cout << "Connection to Worker on " << HostIP << " established." << endl;
+   cout << "Connection to Worker on " << host << " established." << endl;
 }
 
 /*
@@ -280,6 +280,9 @@ void DServer::run()
                 
          char* buffer = new char[size]; 
          rec.Read(buffer,size,0);
+         //rec.Truncate(3);
+         recF.DeleteRecord(recID);
+         recF.Close();
                 
          //Size of the binary data is sent
          cbsock << "<SIZE>" << endl << size << endl << "</SIZE>" << endl;
@@ -329,9 +332,6 @@ void DServer::run()
             errorText = (string)"Unexpected response from worker" 
                               + " (No <FINISH> after value transmission";
                 
-         rec.Truncate(3);
-         recF.DeleteRecord(recID);
-         recF.Close();
 
          worker->Close();delete worker;worker=0;
 
@@ -835,16 +835,18 @@ bool DServer::Multiply(int count)
    num_childs = count;
    childs = new DServer*[num_childs];
      
-   ZThread::ThreadedExecutor exec;
+   //ZThread::ThreadedExecutor exec;
    for(int i = 0;i<num_childs;i++)
    {
+      /*cout << "Multiplying 1 server!" << endl;
       DServerCreator* ex;
       ex = new DServerCreator(&childs[i],host,port,name,type);
-      exec.execute(ex);
+      exec.execute(ex);*/
+      childs[i] = new DServer(host,port,name,type);
    }
    
-   exec.wait();
-     
+   //exec.wait();
+   cout << "Multiply finished!" << endl;
    return true;
      
 }
