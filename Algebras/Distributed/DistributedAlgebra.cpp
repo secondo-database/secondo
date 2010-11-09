@@ -2028,7 +2028,7 @@ const string distributeSpec =
       "<text>_ ddistribute [ _ , _ , _]</text--->"
       "<text>Distributes a stream of tuples" 
      "into a darray of relations.</text--->"
-      "<text>let prel = plz feed ddistribute [pkg,3,server_rel]</text--->";
+      "<text>let prel = plz feed ddistribute [pkg,3,server_rel]</text--->))";
 
 Operator distributeA (
       "ddistribute",
@@ -2123,7 +2123,7 @@ const string loopSpec =
       "<text>Evaluates each element with a function, that needs to be given"
       "as paremeter function an as a text value (where ! represents "
       "the element)</text--->"
-      "<text>query plz_a20 dloop[. feed count,'! feed count']</text--->";
+      "<text>query plz_a20 dloop[. feed count,'! feed count']</text--->))";
 
 
 Operator loopA (
