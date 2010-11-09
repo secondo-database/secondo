@@ -432,6 +432,9 @@ void BusRoute::ConnectCell(int attr,int from_cell_id,
     //    cout<<"rid2 "<<rid2<<endl; 
 
     GLine* gl = new GLine(0);
+    
+//    cout<<"gp1 "<<*gp1<<" gp2 "<<*gp2<<endl; 
+    
     gp1->ShortestPath(gp2, gl);
     
     delete location1; 
@@ -463,6 +466,10 @@ void BusRoute::ConnectCell(int attr,int from_cell_id,
 
 /*
 reorder the route interval in each gline 
+Note: 2010.11.8. Currently, it only works with the old version of computing
+intersectiong points of halfsegments in Spatial Algebra. The new version of
+computing has some problems in Network Algebra. Because the rounding error of
+computing junction points, it can't get the correct adjacent section list. 
 
 */
 void BusRoute::ConvertGLine(GLine* gl, GLine* newgl)
@@ -543,6 +550,10 @@ void BusRoute::ConvertGLine(GLine* gl, GLine* newgl)
    for(unsigned int i = 0; i < gp_p_list.size() - 1;i++){
     GP_Point gp_p1 = gp_p_list[i];
     GP_Point gp_p2 = gp_p_list[i + 1];
+    
+//    cout<<"gp1 loc1 "<<gp_p1.loc1<<" gp1 loc2 "<<gp_p1.loc2
+//        <<"gp2 loc1 "<<gp_p2.loc1<<" gp2 loc2 "<<gp_p2.loc2<<endl; 
+    
     if(gp_p1.loc1.Distance(gp_p2.loc1) < dist_delta || 
        gp_p1.loc1.Distance(gp_p2.loc2) < dist_delta){
       if(gp_p1.pos1 < gp_p1.pos2)
@@ -559,6 +570,7 @@ void BusRoute::ConvertGLine(GLine* gl, GLine* newgl)
         temp_start_from.push_back(true); 
     
     }else assert(false);
+    
    }
    
     GP_Point gp_p1 = gp_p_list[gp_p_list.size() - 1];
@@ -617,7 +629,7 @@ void BusRoute::ConvertGLine(GLine* gl, GLine* newgl)
 }
 
 /*
-translate a bus route into two, down and up
+translate a bus route into two routes, down and up
 
 */
 
@@ -640,7 +652,7 @@ void BusRoute::CreateRoute3(int attr1, int attr2, int attr3, int w)
       int br_id = ((CcInt*)tuple_bus_route->GetAttribute(attr1))->GetIntval();
       Line* l = (Line*)tuple_bus_route->GetAttribute(attr2);
       int route_type = 
-          ((CcInt*)tuple_bus_route->GetAttribute(attr2))->GetIntval();
+          ((CcInt*)tuple_bus_route->GetAttribute(attr3))->GetIntval();
   
       ////////////////////////translate/////////////////////////////////    
       SimpleLine* sl = new SimpleLine(0);
@@ -663,7 +675,7 @@ void BusRoute::CreateRoute3(int attr1, int attr2, int attr3, int w)
       ComputeLine(outer_l, l1);
       l1->EndBulkLoad();
       bus_sections1.push_back(*l1);
-      delete l1;
+      
    
       br_id_list.push_back(br_id);
       bus_lines2.push_back(*l);
@@ -676,7 +688,7 @@ void BusRoute::CreateRoute3(int attr1, int attr2, int attr3, int w)
       ComputeLine(outer_r, l2);
       l2->EndBulkLoad();
       bus_sections1.push_back(*l2); 
-      delete l2; 
+       
       
       br_id_list.push_back(br_id);
       bus_lines2.push_back(*l);
@@ -684,15 +696,20 @@ void BusRoute::CreateRoute3(int attr1, int attr2, int attr3, int w)
       br_uid_list.push_back(bus_route_uid);
       bus_route_uid++;
       
-      
+      delete l1;
+      delete l2;
       delete sp; 
       delete sl; 
       tuple_bus_route->DeleteIfAllowed();
+      
+      
   }
   
 }
+
+
 /*
-from the input a list of points, it computes a line value
+it inputs a list of points and computes a line value
 
 */
 
@@ -1892,6 +1909,9 @@ void BusRoute::CreateBusStop4(int attr_a,int attr_b,int attr1,int attr2,
   vector<Line> line_list2;
   vector<SimpleLine> sline_list;
   
+  
+  vector<bool> bus_route_direction; 
+  
   for(int i = 1;i <= rel1->GetNoTuples();i+= 2){
     Tuple* tuple_bus_route1 = rel1->GetTuple(i, false);
     Tuple* tuple_bus_route2 = rel1->GetTuple(i + 1, false);
@@ -1910,6 +1930,7 @@ void BusRoute::CreateBusStop4(int attr_a,int attr_b,int attr1,int attr2,
     sline_list.push_back(*sl1);
     sline_list.push_back(*sl2);
         
+
     delete sl1;
     delete sl2; 
     
@@ -1996,16 +2017,17 @@ void BusRoute::CreateBusStop4(int attr_a,int attr_b,int attr1,int attr2,
 //      cout<<"pos1 "<<pos1<<" pos2 "<<pos2<<endl; 
     
       br_id_list.push_back(bs_ext.br_id);
-      br_uid_list.push_back(bs_ext.br_id*2 - 1);
+      br_uid_list.push_back(bs_ext.br_id*2 - 1);//line l1
       br_stop_id.push_back(bs_ext.br_stop_id);
       start_gp.push_back(bs_ext.loc);
       end_gp.push_back(intersect_ps[0].loc);
       bus_stop_loc_3.push_back(pos1); 
 //      bus_sections1.push_back(*l1);  /////////////for debuging/////////
       
+      
       br_id_list.push_back(bs_ext.br_id);
       br_stop_id.push_back(bs_ext.br_stop_id);
-      br_uid_list.push_back(bs_ext.br_id*2);
+      br_uid_list.push_back(bs_ext.br_id*2);//line l2
       start_gp.push_back(bs_ext.loc);
       end_gp.push_back(intersect_ps[1].loc);
       bus_stop_loc_3.push_back(pos2); 
@@ -2016,10 +2038,11 @@ void BusRoute::CreateBusStop4(int attr_a,int attr_b,int attr1,int attr2,
   }
       
     //////////////   relation  ///////////////////////////
-  /////////////  bus route uid = br id * 2 -1///////////
-  ////////////   bus route uid = br id * 2 /////////////
+  /////////////  br uid = br id * 2 -1////////line l1 ///
+  ////////////   br uid = br id * 2 //////////line l2 ///
   //////////////////////////////////////////////////////
 }
+
 
 /*
 get the intersecting point between the create small line and two bus routes 
@@ -2133,4 +2156,209 @@ void BusRoute::GetInterestingPoints(HalfSegment hs, Point ip,
         delete ps1;
         delete ps2;
         delete line1; 
+}
+
+/*
+for the two new generated bus routes, it sets the up and down value 
+
+*/
+
+void BusRoute::CreateRoute4(int attr1, int attr2, int attr3, int attr4, 
+                            int attr_a, int attr_b)
+{
+//  cout<<"attr1 "<<attr1<<" attr2 "<<attr2<<" attr3 "<<attr3
+//      <<"attr4 "<<attr4<<"attr_a "<<attr_a<<" attr_b "<<attr_b<<endl; 
+
+  vector<bool> start_small_list;
+  int last_br_id = 0;
+  for(int i = 1;i <= rel2->GetNoTuples();i++){
+      Tuple* tuple_bus_stop = rel2->GetTuple(i, false);
+      int br_id = ((CcInt*)tuple_bus_stop->GetAttribute(attr_a))->GetIntval();
+      bool sm = ((CcBool*)tuple_bus_stop->GetAttribute(attr_b))->GetBoolval();
+      if(start_small_list.size() == 0){
+        start_small_list.push_back(sm);
+        last_br_id = br_id; 
+      }  
+      else{
+        if(br_id != last_br_id){
+          last_br_id = br_id; 
+          start_small_list.push_back(sm);
+        }
+      }
+      
+      tuple_bus_stop->DeleteIfAllowed();
+  }
+//  cout<<"start_small_list size "<<start_small_list.size()<<endl; 
+  
+  for(int i = 1;i <= rel1->GetNoTuples();i+=2){
+    Tuple* tuple_bus_route1 = rel1->GetTuple(i, false);
+    Tuple* tuple_bus_route2 = rel1->GetTuple(i + 1, false);
+    
+    int br_id1 = ((CcInt*)tuple_bus_route1->GetAttribute(attr1))->GetIntval();
+    int br_id2 = ((CcInt*)tuple_bus_route2->GetAttribute(attr1))->GetIntval();
+    assert(br_id1 == br_id2);
+    
+    Line* l1 = (Line*)tuple_bus_route1->GetAttribute(attr2);
+    Line* l2 = (Line*)tuple_bus_route2->GetAttribute(attr2);
+    
+    SimpleLine* sl1 = new SimpleLine(0);
+    SimpleLine* sl2 = new SimpleLine(0);
+    sl1->fromLine(*l1);
+    sl2->fromLine(*l2);
+    
+    
+    CalculateUpandDown(sl1, sl2, start_small_list[br_id1 - 1]); 
+    
+    delete sl1;
+    delete sl2; 
+    
+    int route_type1 = 
+        ((CcInt*)tuple_bus_route1->GetAttribute(attr3))->GetIntval();
+    int route_type2 = 
+        ((CcInt*)tuple_bus_route2->GetAttribute(attr3))->GetIntval();
+        
+        
+    int br_uid_1 = 
+        ((CcInt*)tuple_bus_route1->GetAttribute(attr4))->GetIntval();
+    int br_uid_2 = 
+        ((CcInt*)tuple_bus_route2->GetAttribute(attr4))->GetIntval();
+    
+        
+    br_id_list.push_back(br_id1);
+    br_id_list.push_back(br_id2); 
+    
+    bus_sections1.push_back(*l1);
+    bus_sections1.push_back(*l2);
+    
+    bus_route_type.push_back(route_type1);
+    bus_route_type.push_back(route_type2);
+    
+    br_uid_list.push_back(br_uid_1);
+    br_uid_list.push_back(br_uid_2);
+    
+    
+    tuple_bus_route1->DeleteIfAllowed();
+    tuple_bus_route2->DeleteIfAllowed();
+    
+  }
+  
+}
+
+
+/*
+define the up and down for each route. 
+if it is up, the bus stop id increases
+if it is down, the bus stop id decreases
+use l1, and l2 to build a cycle. use the cycle (counter-clockwise or clockwise)
+to determine the direction for l1 and l2.
+we also have to the start smaller value because it needs to identify where the
+route starts 
+
+We assume all buses moving on the right side of the road (Germany,China)
+
+*/
+
+void BusRoute::CalculateUpandDown( SimpleLine* sl1, SimpleLine* sl2, bool sm)
+{
+  
+  SpacePartition* sp = new SpacePartition();
+   
+  vector<MyHalfSegment> seq_halfseg1; //reorder it from start to end
+  sp->ReorderLine(sl1, seq_halfseg1);
+  
+  vector<MyHalfSegment> seq_halfseg2; //reorder it from start to end
+  sp->ReorderLine(sl2, seq_halfseg2);
+ 
+  
+  assert(sl1->Size() >= 2);
+  assert(sl2->Size() >= 2);
+  vector<Point> point_list;
+  
+  //assume we start from sl1 (up direction)
+  if(sm){
+    unsigned int index1 = 0;
+    unsigned int index2 = 1;
+    
+    point_list.push_back(seq_halfseg1[index1].from);
+    point_list.push_back(seq_halfseg1[index2].from);
+    point_list.push_back(seq_halfseg1[index2].to);
+    point_list.push_back(seq_halfseg2[index2].to);
+    point_list.push_back(seq_halfseg2[index2].from);
+    point_list.push_back(seq_halfseg2[index1].from);
+    
+
+  }else{
+    unsigned int index1 = seq_halfseg1.size() - 1;
+    unsigned int index2 = seq_halfseg1.size() - 2;
+  
+    point_list.push_back(seq_halfseg1[index1].to);
+    point_list.push_back(seq_halfseg1[index1].from);
+    point_list.push_back(seq_halfseg1[index2].from);
+    point_list.push_back(seq_halfseg2[index2].from);
+    point_list.push_back(seq_halfseg2[index1].from);
+    point_list.push_back(seq_halfseg2[index1].to);
+    
+  }  
+   
+    vector<Region> regs;
+    sp->ComputeRegion(point_list,regs);
+    assert(regs.size() == 1);
+    delete sp; 
+  
+    CompTriangle* ct = new CompTriangle();
+    bool clock_wise = ct->GetClockwise(point_list);
+    if(clock_wise){
+  //    cout<<"l1 "<<false<<"l2 "<<true<<endl;
+      direction_flag.push_back(false);
+      direction_flag.push_back(true);
+    }else{
+  //    cout<<"l1 "<<true<<" l2 "<<false<<endl; 
+      direction_flag.push_back(true);
+      direction_flag.push_back(false);
+    }
+    delete ct; 
+
+}
+
+/*
+set the up and down value for each bus stop 
+
+*/
+void BusRoute::CreateBusStop5(int attr,int attr1,int attr2,
+                      int attr3,int attr4, int attr5)
+{
+  cout<<"attr "<<attr<<"attr1 "<<attr1<<" attr2 "<<attr2
+      <<" attr3 "<<attr3<<" attr4 "<<attr4<<" attr5 "<<attr5<<endl; 
+
+  vector<bool> br_direction; 
+  for(int i = 1;i <= rel1->GetNoTuples();i++){
+      Tuple* tuple_bus_route = rel1->GetTuple(i, false);
+      bool direction = 
+        ((CcBool*)tuple_bus_route->GetAttribute(attr))->GetBoolval();
+      br_direction.push_back(direction);
+      tuple_bus_route->DeleteIfAllowed();
+  }
+  
+  cout<<"direction size "<<br_direction.size()<<endl; 
+  for(int i = 1;i <= rel2->GetNoTuples();i++){
+    Tuple* tuple_bus_stop = rel2->GetTuple(i, false);
+    int br_id =  ((CcInt*)tuple_bus_stop->GetAttribute(attr1))->GetIntval();
+    int br_uid = ((CcInt*)tuple_bus_stop->GetAttribute(attr2))->GetIntval();
+    int stop_id = ((CcInt*)tuple_bus_stop->GetAttribute(attr3))->GetIntval();
+    Point* loc = (Point*)tuple_bus_stop->GetAttribute(attr4);
+    double pos = ((CcReal*)tuple_bus_stop->GetAttribute(attr5))->GetRealval();
+    assert(br_uid == br_id *2 - 1 || br_uid == br_id * 2);
+    
+    bool direction = br_direction[br_uid - 1];
+    
+    br_id_list.push_back(br_id);
+    br_uid_list.push_back(br_uid);
+    br_stop_id.push_back(stop_id);
+    start_gp.push_back(*loc);
+    bus_stop_loc_3.push_back(pos);
+    bus_stop_flag.push_back(direction); 
+    
+    tuple_bus_stop->DeleteIfAllowed();
+  }
+  
 }

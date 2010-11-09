@@ -66,6 +66,7 @@ Oct, 2010 Jianqiu xu
 #include "AvlTree.h"
 #include "Symbols.h"
 #include "Partition.h"
+#include "PaveGraph.h"
 
 /*
 store cell id and the number of road sections intersecting it.
@@ -250,6 +251,8 @@ struct BusRoute{
   vector<int> start_cell_id;
   vector<int> end_cell_id;
   vector<int> bus_route_type; 
+  vector<bool> direction_flag; 
+  vector<bool> bus_stop_flag; 
   ////////////bus stops structure////////////////////////
   vector<int> br_id_list;
   vector<int> br_stop_id;
@@ -308,6 +311,8 @@ struct BusRoute{
                      vector<BusStop>&, int cur_index, int attr);
   ///////////////////////translate bus route//////////////////////////////
   void CreateRoute3(int attr1, int attr2, int attr3, int w);
+  void CalculateUpandDown(SimpleLine* l1, SimpleLine* l2, bool sm);
+  
   void ComputeLine(vector<Point>& point_list, Line* l);
   
   void CalculateStartSmaller(vector<BusStop>& bus_stop_list,int,int,
@@ -320,6 +325,12 @@ struct BusRoute{
                       int attr3,int attr4); 
   void GetInterestingPoints(HalfSegment hs,Point loc, vector<MyPoint>& list,
                             Line* l1, Line* l2);
+  //////////////////////set the up and down value/////////////////////////
+  void CreateRoute4(int attr1, int attr2, int attr3, int attr4, 
+                    int attr_a, int attr_b);
+  void CreateBusStop5(int attr,int attr1,int attr2,
+                      int attr3,int attr4, int attr5); 
+  
 };
 #endif
 

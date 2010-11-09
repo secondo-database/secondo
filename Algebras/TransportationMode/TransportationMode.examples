@@ -287,6 +287,13 @@ Example  : query create_bus_route3(busroutes,br_id,bus_route2,route_type,roadwid
 Result   : 10
 
 
+Operator : create_bus_route4
+Number   : 2
+Signature: rel1 x attr1 x attr2 x attr3 x attr4 x rel2 x attr1 x attr2 -> (stream(((x1 t1) ... (xn tn))))
+Example  : query create_bus_route4(busroutes,br_id,bus_route1,route_type,br_uid,bus_stops3, br_id,startSmaller) count; 
+Result   : 10
+
+
 Operator : create_bus_stop1
 Number   : 2
 Signature: network x rel x attr1 x attr2 x attr3 x attr4 -> (stream(((x1 t1) ... (xn tn))))
@@ -314,3 +321,8 @@ Signature: rel1 x attra x attrb x rel2 x attr1 x attr2 x attr3 x attr4 -> (strea
 Example  : query create_bus_stop4(newbusroutes,bus_route1, bus_route2, bus_stops4, br_id, bus_stop_id, bus_stop,startSmaller) count; 
 Result   : 10
 
+Operator : create_bus_stop5
+Number   : 2
+Signature: rel1 x attr x rel2 x attr1 x attr2 x attr3 x attr4 x attr5 -> (stream(((x1 t1) ... (xn tn))))
+Example  : query create_bus_stop5(final_busroutes,bus_direction,bus_stops4, br_id, br_uid, bus_stop_id, bus_stop2, bus_pos) count; 
+Result   : 10

@@ -647,9 +647,24 @@ CompTriangle:: ~CompTriangle()
   if(path != NULL) delete path;
   if(resulttype != NULL) delete resulttype;
 }
-/*
-Compute the area of a polygon
 
+/*
+get the clockwise value 
+
+*/
+bool CompTriangle::GetClockwise(const vector<Point>& contour)
+{
+  float obj_area = Area(contour);
+  if(0.0f < obj_area) return false;
+  else return true; 
+}
+
+/*
+Compute the area of a polygon. It is also used to compute the clockwise 
+value of a list of points.
+if area > 0.0f, counter-clockwise order
+else clockwise order 
+          
 */
 
 float CompTriangle::Area(const vector<Point>& contour)
