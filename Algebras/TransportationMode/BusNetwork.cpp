@@ -1961,17 +1961,33 @@ void BusRoute::CreateBusStop4(int attr_a,int attr_b,int attr1,int attr2,
     
     ////////////get the intersection point//////////////////////////////
     BusStop_Ext bse_0 = bus_stop_list_new[0]; 
+    
+//    bse_0.Print(); 
+    
     Line* l = &line_list1[bse_0.br_id - 1];
     HalfSegment hs;
     int index = -1;
+    
+    double hs_p_dist = numeric_limits<double>::max();
+    int temp_index = -1; 
+    
     for(index = 0;index < l->Size();index++){
       l->Get(index, hs);
       if(hs.IsLeftDomPoint() == false)continue;
       if(hs.Contains(bse_0.loc))break; 
+      if(hs.Distance(bse_0.loc) < hs_p_dist){ //solve numeric problem 
+          hs_p_dist = hs.Distance(bse_0.loc);
+          temp_index = index; 
+      }
     }
+    
     if(index == -1 || index == l->Size()){
-        cout<<"can't find the point (might be numeric problem)"<<endl;
-        assert(false); 
+        if(temp_index != -1){
+          l->Get(temp_index, hs);
+        }else{
+          cout<<"can't find the point (might be numeric problem)"<<endl;
+          assert(false); 
+        }    
     }
     
 //    cout<<"hs "<<hs<<endl; 
@@ -1992,7 +2008,6 @@ void BusRoute::CreateBusStop4(int attr_a,int attr_b,int attr1,int attr2,
       double pos1,pos2;
 
 //      cout<<"br_id "<<bs_ext.br_id<<"bs_stop_id "<<bs_ext.br_stop_id<<endl;
-          
 
       Line* l1 = &line_list2[(bs_ext.br_id * 2 - 1) - 1];
       Line* l2 = &line_list2[(bs_ext.br_id * 2) - 1];
@@ -2004,16 +2019,20 @@ void BusRoute::CreateBusStop4(int attr_a,int attr_b,int attr1,int attr2,
 
 //      cout<<"0 "<<intersect_ps[0].loc
 //          <<" 1 "<<intersect_ps[1].loc<<endl; 
-          
-//      assert(l1->Contains(intersect_ps[0].loc));
-//      assert(l2->Contains(intersect_ps[1].loc));
-    
+              
       SimpleLine* sl1 = &sline_list[(bs_ext.br_id * 2 - 1) - 1];
       SimpleLine* sl2 = &sline_list[(bs_ext.br_id * 2 ) - 1];
       
-      assert(sl1->AtPoint(intersect_ps[0].loc,sm,pos1));
-      assert(sl2->AtPoint(intersect_ps[1].loc,sm,pos2));
-    
+//      assert(sl1->AtPoint(intersect_ps[0].loc,sm,pos1));
+//      assert(sl2->AtPoint(intersect_ps[1].loc,sm,pos2));
+
+      //to solve numeric problem
+      if(sl1->AtPoint(intersect_ps[0].loc,sm,pos1) == false)
+        assert(MyAtPoint(sl1,intersect_ps[0].loc,sm,pos1,dist_delta));
+      //to solve numeric problem
+      if(sl2->AtPoint(intersect_ps[1].loc,sm,pos2) == false)
+        assert(MyAtPoint(sl2,intersect_ps[1].loc,sm,pos2,dist_delta));
+
 //      cout<<"pos1 "<<pos1<<" pos2 "<<pos2<<endl; 
     
       br_id_list.push_back(bs_ext.br_id);
@@ -2156,6 +2175,51 @@ void BusRoute::GetInterestingPoints(HalfSegment hs, Point ip,
         delete ps1;
         delete ps2;
         delete line1; 
+}
+
+/*
+If the original SimpleLine::AtPoint does not work.
+use this one. It uses the distance (a very small distance) 
+between the point and halfsegment to
+determine whether the point locates on the simpleline 
+
+*/
+bool BusRoute::MyAtPoint(SimpleLine* sl, Point& loc, 
+                         bool sm, double& res, double dist_delta)
+{
+  SpacePartition* sp = new SpacePartition();
+   
+  vector<MyHalfSegment> seq_halfseg; //reorder it from start to end
+  sp->ReorderLine(sl, seq_halfseg);
+  bool find = false;
+  double pos = 0.0;
+  if(sm){
+    for(unsigned int i = 0;i < seq_halfseg.size();i++){
+      HalfSegment hs(true,seq_halfseg[i].from,seq_halfseg[i].to);
+      if(hs.Distance(loc) < dist_delta){
+        pos += loc.Distance(seq_halfseg[i].from);
+        res = pos;      
+        find = true; 
+        break; 
+      }else
+        pos += hs.Length();
+    }  
+  }else{
+    for(int i = seq_halfseg.size() - 1;i >= 0;i--){
+      HalfSegment hs(true,seq_halfseg[i].from,seq_halfseg[i].to);
+      if(hs.Distance(loc) < dist_delta){
+        pos += loc.Distance(seq_halfseg[i].to);
+        res = pos;      
+        find = true; 
+        break; 
+      }else
+        pos += hs.Length();
+    }  
+  }
+  
+  delete sp; 
+
+  return find; 
 }
 
 /*
@@ -2327,8 +2391,8 @@ set the up and down value for each bus stop
 void BusRoute::CreateBusStop5(int attr,int attr1,int attr2,
                       int attr3,int attr4, int attr5)
 {
-  cout<<"attr "<<attr<<"attr1 "<<attr1<<" attr2 "<<attr2
-      <<" attr3 "<<attr3<<" attr4 "<<attr4<<" attr5 "<<attr5<<endl; 
+//  cout<<"attr "<<attr<<"attr1 "<<attr1<<" attr2 "<<attr2
+//      <<" attr3 "<<attr3<<" attr4 "<<attr4<<" attr5 "<<attr5<<endl; 
 
   vector<bool> br_direction; 
   for(int i = 1;i <= rel1->GetNoTuples();i++){
@@ -2339,7 +2403,8 @@ void BusRoute::CreateBusStop5(int attr,int attr1,int attr2,
       tuple_bus_route->DeleteIfAllowed();
   }
   
-  cout<<"direction size "<<br_direction.size()<<endl; 
+//  cout<<"direction size "<<br_direction.size()<<endl; 
+  
   for(int i = 1;i <= rel2->GetNoTuples();i++){
     Tuple* tuple_bus_stop = rel2->GetTuple(i, false);
     int br_id =  ((CcInt*)tuple_bus_stop->GetAttribute(attr1))->GetIntval();

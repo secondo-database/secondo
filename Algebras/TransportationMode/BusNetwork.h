@@ -325,6 +325,8 @@ struct BusRoute{
                       int attr3,int attr4); 
   void GetInterestingPoints(HalfSegment hs,Point loc, vector<MyPoint>& list,
                             Line* l1, Line* l2);
+  bool MyAtPoint(SimpleLine* sl, Point& loc, bool startSmaller, 
+                 double& res, double dist_delta);                            
   //////////////////////set the up and down value/////////////////////////
   void CreateRoute4(int attr1, int attr2, int attr3, int attr4, 
                     int attr_a, int attr_b);
