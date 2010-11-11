@@ -224,7 +224,6 @@ private static class TextViewerFrame extends JFrame{
 JComboBox encodingCB;
 private String encoding="UTF-8";
 
-//private static String[] encodings={"UTF-8", "ISO-8859-1", "ISO-8859-5", "Shift-jis", "Euc-jp"};
 
 
 
@@ -331,6 +330,12 @@ public TextViewerFrame(){
   
 
   PlainBtn = new JButton("plain");
+  resetBtn = new JButton("reset");
+  resetBtn.addActionListener(new ActionListener(){
+    public void actionPerformed(ActionEvent evt){
+       setSource(Source);
+    }
+  });
   HtmlBtn = new JButton("html");
   RtfBtn = new JButton("rtf"); 
   PdfBtn = new JButton("pdf");
@@ -429,19 +434,23 @@ public TextViewerFrame(){
   RtfBtn.addActionListener(FormatSwitcher);
   PdfBtn.addActionListener(FormatSwitcher);
 
-  JPanel ControlPanel = new JPanel(new GridLayout(3,1));
+  JPanel ControlPanel = new JPanel(new BorderLayout());
+  
   JPanel FormatPanel = new JPanel();
   FormatPanel.add(new JLabel("show as : "));
-  JPanel p1 = new JPanel();
+  JPanel p1 = new JPanel(new GridLayout(3,1));
+
   p1.add(PlainBtn);
   p1.add(encodingCB);
+  p1.add(resetBtn);
   FormatPanel.add(p1);
   FormatPanel.add(HtmlBtn);
   FormatPanel.add(RtfBtn); 
   FormatPanel.add(PdfBtn);
-  ControlPanel.add(FormatPanel);
-  ControlPanel.add(CloseBtn);
-  ControlPanel.add(SaveBtn);
+  
+  ControlPanel.add(FormatPanel,BorderLayout.NORTH);
+  ControlPanel.add(CloseBtn,BorderLayout.CENTER);
+  ControlPanel.add(SaveBtn,BorderLayout.SOUTH);
 
   getContentPane().add(ControlPanel,BorderLayout.SOUTH);
   setSize(640,480); 
@@ -545,7 +554,14 @@ public void setSource(Dspltext S){
     TheText = S.theList.textValue();
     if(S.Type!=PDF_TYPE){
        try{
-          Display.setText(TheText);
+         if(PlainBtn.isEnabled()){
+           Display.setText(TheText);
+         } else { // plain text
+          TextViewerFrame.this.Display.read( new InputStreamReader(
+                       new ByteArrayInputStream(
+                       TheText.getBytes()),encoding),
+                       null); 
+         }
        } catch(Exception e){
          setToPlain(true); 
        }
@@ -718,6 +734,7 @@ private JButton SaveBtn;
 private JFileChooser fileChooser;
 private Dspltext Source;
 private JButton PlainBtn;
+private JButton resetBtn;
 private JButton HtmlBtn;
 private JButton RtfBtn;
 private JButton PdfBtn;
