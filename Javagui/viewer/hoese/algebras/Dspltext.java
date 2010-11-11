@@ -33,6 +33,11 @@ import tools.Base64Decoder;
 import org.jpedal.*;
 import tools.Reporter;
 import java.io.*;
+import java.util.SortedMap;
+import java.nio.charset.Charset;
+import java.util.Map;
+import java.util.Iterator;
+
 
 
 /**
@@ -201,6 +206,8 @@ private ListExpr theList;
 private int Type; // contains the type which is the text (probably)
 
 
+
+
 private static final int PLAIN_TYPE=0;
 private static final int HTML_TYPE=1;
 private static final int RTF_TYPE=2;
@@ -213,13 +220,19 @@ private static final String WHITESPACES = " \t\n\r";
 
 private static class TextViewerFrame extends JFrame{
 
+
+JComboBox encodingCB;
+private String encoding="UTF-8";
+
+//private static String[] encodings={"UTF-8", "ISO-8859-1", "ISO-8859-5", "Shift-jis", "Euc-jp"};
+
+
+
 public TextViewerFrame(){
 
   getContentPane().setLayout(new BorderLayout());
   Display = new JEditorPane();
-  if(EKPlain==null){
-      //EKPlain = JEditorPane.createEditorKitForContentType("text/plain");
-      EKPlain = new StyledEditorKit();
+  if(EKHtml==null){
       EKHtml = JEditorPane.createEditorKitForContentType("text/html");
       EKRtf = JEditorPane.createEditorKitForContentType("text/rtf");
   }
@@ -288,6 +301,35 @@ public TextViewerFrame(){
     }
   }
 
+
+  encodingCB = new JComboBox();
+  Iterator acs = Charset.availableCharsets().entrySet().iterator();
+  //for(int i=0; i<encodings.length; i++){
+  //  encodingCB.addItem(encodings[i]);
+  //}
+  while(acs.hasNext()){
+    Map.Entry e = (Map.Entry) acs.next();
+    Charset cs = (Charset) e.getValue();
+    encodingCB.addItem(cs.displayName());
+  }
+  encodingCB.setSelectedItem("UTF-8");
+ 
+
+
+  encodingCB.addActionListener(new ActionListener(){
+    public void actionPerformed(ActionEvent evt){
+        try{
+          TextViewerFrame.this.TheText = new String(TextViewerFrame.this.Display.getText().getBytes(encoding));
+        } catch(Exception e){
+           TextViewerFrame.this.TheText = TextViewerFrame.this.Display.getText();
+        }
+        String enc = (String) encodingCB.getSelectedItem();
+        encoding = enc;
+        setToPlain(false);
+    }
+  });
+  
+
   PlainBtn = new JButton("plain");
   HtmlBtn = new JButton("html");
   RtfBtn = new JButton("rtf"); 
@@ -299,27 +341,15 @@ public TextViewerFrame(){
          LastSearchPos=0;
          // get the text if it is editable 
          if(TextViewerFrame.this.Display.isEditable()&&!ISPDF){
-              TextViewerFrame.this.TheText = TextViewerFrame.this.Display.getText();
+             try{
+                TextViewerFrame.this.TheText = new String(TextViewerFrame.this.Display.getText().getBytes(encoding));
+             } catch(Exception e){
+                   TextViewerFrame.this.TheText = TextViewerFrame.this.Display.getText();
+             }
          }
          Container CP=TextViewerFrame.this.getContentPane();
          if(TextViewerFrame.this.PlainBtn.equals(src)){
-              TextViewerFrame.this.Display.setEditorKit(TextViewerFrame.EKPlain);
-              TextViewerFrame.this.Display.setEditable(true);
-              TextViewerFrame.this.Display.setText(TextViewerFrame.this.TheText);
-              TextViewerFrame.this.Display.setCaretPosition(0);
-              TextViewerFrame.this.Source.Type = Dspltext.PLAIN_TYPE;
-              TextViewerFrame.this.PlainBtn.setEnabled(false);
-              TextViewerFrame.this.HtmlBtn.setEnabled(true);
-              TextViewerFrame.this.RtfBtn.setEnabled(true);
-              TextViewerFrame.this.PdfBtn.setEnabled(true);
-              if(TextViewerFrame.this.ISPDF){
-                 CP.remove(pdf_viewer);
-                 CP.add(TextPanel,BorderLayout.CENTER);
-                 ISPDF=false;
-                 TextViewerFrame.this.invalidate();
-                 TextViewerFrame.this.validate();
-                 TextViewerFrame.this.repaint(); 
-              }
+            setToPlain(false);
          } else
          if(TextViewerFrame.this.HtmlBtn.equals(src)){
             try{
@@ -329,6 +359,7 @@ public TextViewerFrame(){
               TextViewerFrame.this.Display.setCaretPosition(0);
               TextViewerFrame.this.Source.Type = Dspltext.HTML_TYPE;
               TextViewerFrame.this.PlainBtn.setEnabled(true);
+              TextViewerFrame.this.encodingCB.setEnabled(false);
               TextViewerFrame.this.HtmlBtn.setEnabled(false);
               TextViewerFrame.this.RtfBtn.setEnabled(true);
               TextViewerFrame.this.PdfBtn.setEnabled(true);
@@ -341,7 +372,7 @@ public TextViewerFrame(){
                  TextViewerFrame.this.repaint(); 
               }
             }catch(Exception e){
-               setToPlainBecauseError();
+               setToPlain(true);
             }
          }else
          if(TextViewerFrame.this.RtfBtn.equals(src)){
@@ -352,6 +383,7 @@ public TextViewerFrame(){
               TextViewerFrame.this.Display.setCaretPosition(0);
               TextViewerFrame.this.Source.Type = Dspltext.RTF_TYPE;
               TextViewerFrame.this.PlainBtn.setEnabled(true);
+              TextViewerFrame.this.encodingCB.setEnabled(false);
               TextViewerFrame.this.HtmlBtn.setEnabled(true);
               TextViewerFrame.this.RtfBtn.setEnabled(false);
               TextViewerFrame.this.PdfBtn.setEnabled(true);
@@ -364,13 +396,14 @@ public TextViewerFrame(){
                  TextViewerFrame.this.repaint(); 
               }
             } catch(Exception e){
-              setToPlainBecauseError(); 
+              setToPlain(true); 
             }
          }else
          if(TextViewerFrame.this.PdfBtn.equals(src)){
              byte[]  content = Base64Decoder.decode(TheText);
              if(pdf_viewer.setPdfData(content)){   
                 TextViewerFrame.this.PlainBtn.setEnabled(true);
+                TextViewerFrame.this.encodingCB.setEnabled(false);
                 TextViewerFrame.this.HtmlBtn.setEnabled(true);
                 TextViewerFrame.this.RtfBtn.setEnabled(true);
                 TextViewerFrame.this.PdfBtn.setEnabled(false);
@@ -383,7 +416,7 @@ public TextViewerFrame(){
                     TextViewerFrame.this.repaint(); 
                 }
              }else {
-                setToPlainBecauseError();
+                setToPlain(true);
              }
 
          }
@@ -399,7 +432,10 @@ public TextViewerFrame(){
   JPanel ControlPanel = new JPanel(new GridLayout(3,1));
   JPanel FormatPanel = new JPanel();
   FormatPanel.add(new JLabel("show as : "));
-  FormatPanel.add(PlainBtn);
+  JPanel p1 = new JPanel();
+  p1.add(PlainBtn);
+  p1.add(encodingCB);
+  FormatPanel.add(p1);
   FormatPanel.add(HtmlBtn);
   FormatPanel.add(RtfBtn); 
   FormatPanel.add(PdfBtn);
@@ -449,18 +485,28 @@ private void searchText(){
 }
 
 
-private void setToPlainBecauseError(){
-    
-    Reporter.showError("Cannot show the text in specified format\n"+
+private void setToPlain(boolean isError){
+    if(isError){
+      Reporter.showError("Cannot show the text in specified format\n"+
                        ", switch to plain text");
+    }
+    
     LastSearchPos=0;
-    Display.setEditorKit(EKPlain);
+    Display.setContentType("text/plain; charset="+encoding);
     Display.setEditable(true);
-    TheText = Source.theList.textValue();
-    Display.setText(TheText);
+    try{
+       TextViewerFrame.this.Display.read( new InputStreamReader(
+                                            new ByteArrayInputStream(
+                                                TextViewerFrame.this.TheText.getBytes()),encoding),
+                                                null); 
+    } catch(Exception e){
+       Reporter.debug(e);
+       TextViewerFrame.this.Display.setText(TextViewerFrame.this.TheText); 
+    }
     Display.setCaretPosition(0);
     Source.Type = Dspltext.PLAIN_TYPE;
     PlainBtn.setEnabled(false);
+    encodingCB.setEnabled(true);
     HtmlBtn.setEnabled(true);
     RtfBtn.setEnabled(true);
     PdfBtn.setEnabled(true);
@@ -478,12 +524,14 @@ public void setSource(Dspltext S){
     Source = S;
     LastSearchPos=0;
     PlainBtn.setEnabled(true);
+    encodingCB.setEnabled(false);
     HtmlBtn.setEnabled(true);
     RtfBtn.setEnabled(true);
     PdfBtn.setEnabled(true);
     if(S.Type==Dspltext.PLAIN_TYPE){
-       Display.setEditorKit(EKPlain);
+       Display.setContentType("text/plain; charset="+encoding);
        PlainBtn.setEnabled(false);
+       encodingCB.setEnabled(true);
        Display.setEditable(true); 
     }else if(S.Type==Dspltext.HTML_TYPE){
        Display.setEditorKit(EKHtml);
@@ -499,7 +547,7 @@ public void setSource(Dspltext S){
        try{
           Display.setText(TheText);
        } catch(Exception e){
-         setToPlainBecauseError(); 
+         setToPlain(true); 
        }
         Display.setCaretPosition(0);// go to top 
        if(ISPDF){
@@ -521,7 +569,7 @@ public void setSource(Dspltext S){
            }
        }catch(Exception e){
           Reporter.debug(e);
-          setToPlainBecauseError();
+          setToPlain(true);
        }
     }
 }
@@ -674,7 +722,6 @@ private JButton HtmlBtn;
 private JButton RtfBtn;
 private JButton PdfBtn;
 private String TheText;
-private static EditorKit EKPlain=null;
 private static EditorKit EKHtml=null;
 private static EditorKit EKRtf=null;
 private static JScrollPane TextScrollPane;
