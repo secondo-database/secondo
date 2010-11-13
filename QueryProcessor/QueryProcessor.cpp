@@ -1559,6 +1559,9 @@ function index.
 
   ListExpr resultType, last, pair, lastType, signature;
   resultType = last = pair = lastType = signature = nl->TheEmptyList();
+  
+  ListExpr typeArgList, lastTypeArg;
+  typeArgList = lastTypeArg = nl->TheEmptyList();
 
   ListExpr firstSig, firstType, result, functionList;
   firstSig = firstType = result = functionList = nl->TheEmptyList();
@@ -1971,10 +1974,20 @@ function index.
         ((nl->ListLength( pair ) == 2) &&
         (nl->ListLength(nl->First(pair)) == 3) &&
         (TypeOfSymbol(nl->Second(nl->First(pair))) == QP_OPERATOR));
-      list = nl->OneElemList( pair );
+		
+              //list of annotations
+      list = nl->OneElemList( pair );	
       lastElem = list;
+              //list of types
       typeList = nl->OneElemList( nl->Second( pair ) );
       lastType = typeList;
+	      //list of pairs (type, argument). Operators
+              //that have registered
+              //UsesArgsInTypeMapping will get this list
+              //instead of the typelist
+      typeArgList = nl->OneElemList( 
+		nl->TwoElemList( nl-> Second(pair), first) );
+	  lastTypeArg = typeArgList;
 
       while (!nl->IsEmpty( rest ))
       {
@@ -1997,6 +2010,8 @@ function index.
 
         lastElem = nl->Append( lastElem, pair );
         lastType = nl->Append( lastType, nl->Second( pair ) );
+		lastTypeArg = nl->Append( lastTypeArg, 
+		  nl->TwoElemList( nl->Second( pair) , nl->First( rest )) );
         rest = nl->Rest( rest );
       }
       last = lastElem;   /* remember the last element to be able to
@@ -2051,12 +2066,16 @@ will be processed.
 	        throw qp_error( err.str() );
               }
 
+		 //for all three lists, remove the first argument 
+                 //representing the operator
               rest = nl->Rest( list );
               typeList = nl->Rest( typeList );
+              typeArgList = nl->Rest( typeArgList );
+			  
 
               resultType =
                 TestOverloadedOperators( operatorStr, opList,
-                                         typeList, alId, opId,
+                                         typeList, typeArgList, alId, opId,
                                          opFunId, true, traceMode );
 
               /* check whether the type mapping has requested to
@@ -2331,7 +2350,8 @@ ListExpr
 QueryProcessor::TestOverloadedOperators( const string&
                                          operatorSymbolStr,
                                          ListExpr opList,
-                                         ListExpr typeList,
+                                         ListExpr typeList, 
+                                         ListExpr typeArgList,
                                          int& alId,
                                          int& opId,
                                          int& opFunId,
@@ -2360,8 +2380,23 @@ QueryProcessor::TestOverloadedOperators( const string&
     opId = nl->IntValue( nl->Second( nl->First( opList ) ) );
 
     /* apply the operator's type mapping: */
-    resultType =
-      algebraManager->TransformType( alId, opId, typeList );
+	// (i) standard case: pass the list of types
+	// (ii) special case: pass the list of pairs (type, argument)
+	// This is for operators who need to see argument expressions 
+        // within the type
+	// mapping, for example, a filename passed as a string, to get some type
+	// information from the file.
+	// This case applies if the operator has registered  
+        // "UsesArgumentsInTypeMapping"
+        // It is demonstrated with the filter operator in the relation
+        // algebra.
+	
+	if ( !algebraManager->
+             getOperator( alId, opId )->UsesArgsInTypeMapping() )
+	  resultType = algebraManager->TransformType( alId, opId, typeList );
+	else
+	  resultType = algebraManager->TransformType( alId, opId, typeArgList );
+	  
     string algName = algebraManager->GetAlgebraName(alId);
 
     if( traceMode )
@@ -2417,7 +2452,7 @@ QueryProcessor::TestOverloadedOperators( const string&
 
       /*  Check whether this is a type operator; in that case
        *  opFunId will be negative. A type operator does only a type
-       *  mapping, nothig else; hence it is wrong here and we return
+       *  mapping, nothing else; hence it is wrong here and we return
        *  type error.
       */
       if ( opFunId < 0 )
@@ -2543,8 +2578,10 @@ arguments preceding this function argument in an operator application.
           int opFunId = 0;
           paramtype =
             TestOverloadedOperators( name2, opList, typeList,
-                                     alId, opId, opFunId,
-                                     false, traceMode );
+	      nl->TheEmptyList(), //type operators not eligible
+                                  //to see argument exprs
+              alId, opId, opFunId,
+              false, traceMode );
         }
         else
         {
