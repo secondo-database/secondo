@@ -58,6 +58,8 @@ An operator instance consists of
 
   * a boolean indicating whether this operator does not want automatic evaluation of its arguments (example: ifthenelse operator), default is false.
 
+  * a boolean indicating whether this operator needs arguments to be passed to type mapping functions, default is false.
+
 All properties of operators are set in the constructor. Only the value mapping
 functions have to be registered later on since their number is arbitrary. This
 number is set in the constructor (~noF~).
@@ -74,6 +76,7 @@ struct OperatorInfo {
   string remark;
   bool supportsProgress;
   bool requestsArgs;
+  bool usesArgsInTypeMapping;
    
   OperatorInfo() :
     name(""),  
@@ -83,7 +86,8 @@ struct OperatorInfo {
     example(""),
     remark(""),
     supportsProgress(false),	
-    requestsArgs(false)	
+    requestsArgs(false),
+    usesArgsInTypeMapping(false)	
   {}
 
   OperatorInfo(const OperatorInfo& o) :
@@ -94,7 +98,8 @@ struct OperatorInfo {
     example(o.example),
     remark(o.remark),
     supportsProgress(o.supportsProgress),	
-    requestsArgs(o.requestsArgs)	
+    requestsArgs(o.requestsArgs),
+    usesArgsInTypeMapping(o.usesArgsInTypeMapping)	
   {}
 
   OperatorInfo( const string& _name,
@@ -111,6 +116,7 @@ struct OperatorInfo {
    remark="";
    supportsProgress = false;
    requestsArgs = false;
+   usesArgsInTypeMapping = false;
  } 
 
  OperatorInfo( const string& opName, const string& specStr);
@@ -130,7 +136,8 @@ struct OperatorInfo {
      <<  example << ", "
      <<  remark << ", "
      << "supportsProgress = " << supportsProgress << ", "
-     << "requestsArgs = " <<  requestsArgs << "]";
+     << "requestsArgs = " <<  requestsArgs << ", "
+     << "usesArgsInTypeMapping = " <<  usesArgsInTypeMapping << "]";
    return o;
  }
  
@@ -301,6 +308,21 @@ Checks the ~requestsArgs~ field.
 */
 
 
+
+  void SetUsesArgsInTypeMapping() { usesArgsInTypeMapping = true; }
+/*
+Sets the ~ usesArgsInTypeMapping ~ field.
+
+*/
+
+
+  bool UsesArgsInTypeMapping() { return usesArgsInTypeMapping; }
+/*
+Checks the ~ usesArgsInTypeMapping ~ field.
+
+*/
+
+
   inline int GetNumOfFun(){
      return numOfFunctions;
   }
@@ -357,11 +379,14 @@ Adds a value mapping function to the list of overloaded operator functions.
     int            numOfFunctions; // No. overloaded functions
     SelectFunction selectFunc;
     ValueMapping*  valueMap;       // Array of size numOfFunctions
-    unsigned int*   calls;          // counter for each overloaded version
+    unsigned int*  calls;          // counter for each overloaded version
     TypeMapping    typeMap;
     bool           supportsProgress;  //Operator supports progress queries.
-    bool	   requestsArgs;   //operator explicitly asks for evaluation
-			           //of its arguments
+    bool           requestsArgs;	//operator explicitly asks for 
+						//evaluation of its arguments
+    bool           usesArgsInTypeMapping;  // Operator needs arguments
+	                    // to be passed to its type mapping 
+						// function 	
 };
 
 

@@ -135,6 +135,7 @@ Operator::Operator( const string& nm,
   typeMap        = tm;
   supportsProgress = false;
   requestsArgs   = false;
+  usesArgsInTypeMapping = false;
 
   for ( int i = 0; i < numOfFunctions; i++ ){
     calls[i] = 0;
@@ -165,7 +166,7 @@ Operator::Operator( const string& nm,
   typeMap        = tm;
   supportsProgress = false;
   requestsArgs   = false;
-
+  usesArgsInTypeMapping = false;
 }
 
 Operator::Operator( const OperatorInfo& oi,
@@ -194,6 +195,7 @@ Operator::Operator( const OperatorInfo& oi,
   typeMap        = tm;
   supportsProgress = oi.supportsProgress ? true : false;
   requestsArgs   = oi.requestsArgs ? true : false;
+  usesArgsInTypeMapping = oi.usesArgsInTypeMapping ? true : false;
 
 }
 
@@ -216,6 +218,7 @@ Operator::Operator( const OperatorInfo& oi,
   typeMap        = tm;
   supportsProgress = oi.supportsProgress ? true : false;
   requestsArgs   = oi.requestsArgs ? true : false;
+  usesArgsInTypeMapping = oi.usesArgsInTypeMapping ? true : false;
 
   for ( int i = 0; i < max; i++ ) {
     //cout << "Adding " << i << endl;
@@ -247,7 +250,8 @@ ostream& Operator::Print(ostream& o) const{
      <<  spec << ", "
      << "numOfFunctions = "   <<  numOfFunctions << ", "
      << "supportsProgress ="  <<  supportsProgress << ", "
-     << "requestsArgs ="  <<     requestsArgs
+     << "requestsArgs ="  <<     requestsArgs << ", "
+	 << "usesArgsInTypeMapping ="  <<     usesArgsInTypeMapping
      << "]";
    return o;
 }

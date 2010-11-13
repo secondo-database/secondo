@@ -1993,6 +1993,22 @@ Result type of filter operation.
                -> (stream (tuple x))
 ----
 
+Type mapping function modified to show the possibility of getting
+not only types but also arguments in the type mapping. This happens 
+when an operator
+registers "UsesArgsinTypeMapping". Type list now has the form
+
+----	( (type1 arg1) (type2 arg2) )
+----
+
+that is
+
+----	(
+		  ( (stream (tuple x))  arg1 )
+		  ( (map (tuple x) bool)  arg2 )
+		)
+----
+
 */
 ListExpr FilterTypeMap(ListExpr args)
 {
@@ -2001,12 +2017,12 @@ ListExpr FilterTypeMap(ListExpr args)
     ErrorReporter::ReportError("two arguments expected");
     return nl->TypeError();
   }
-  if(!listutils::isTupleStream(nl->First(args))){
+  if(!listutils::isTupleStream(nl->First(nl->First(args)))){
     ErrorReporter::ReportError("first argument must be a stream of tuples");
     return nl->TypeError();
   }
 
-  ListExpr map = nl->Second(args);
+  ListExpr map = nl->First(nl->Second(args));
   if(!listutils::isMap<1>(map)){
      ErrorReporter::ReportError("map expected as the second argument");
      return nl->TypeError();
@@ -2018,12 +2034,28 @@ ListExpr FilterTypeMap(ListExpr args)
     return nl->TypeError();
   }
 
-  if(!nl->Equal(nl->Second(nl->First(args)),nl->Second(map))){
+  if(!nl->Equal(nl->Second(nl->First(nl->First(args))), nl->Second(map))){
     ErrorReporter::ReportError("map and tuple type are not consistent");
     return nl->TypeError();
   }
-  return nl->First(args);
+  
+  //just for demonstrating "UsesArgsInTypeMapping"
 
+  bool showArguments = false;
+  if ( showArguments ) {
+        cout << "arguments to the filter operator:" << endl;
+	    cout << "first argument: ";
+		nl->WriteListExpr( nl->Second(nl->First(args)), cout, 2 );  
+		cout << endl;
+	    cout << "second argument: ";
+		nl->WriteListExpr( nl->Second(nl->Second(args)), cout, 2 );  
+        cout << endl;
+		cout << endl;
+  }
+
+  
+  
+  return nl->First(nl->First(args));
 }
 
 /*
@@ -5757,7 +5789,7 @@ class RelationAlgebra : public Algebra
     AddOperator(&relalgTUPLE);
     AddOperator(&relalgTUPLE2);
     AddOperator(&relalgattr);
-    AddOperator(&relalgfilter);
+    AddOperator(&relalgfilter); relalgfilter.SetUsesArgsInTypeMapping();
     AddOperator(&relalgproject);
     AddOperator(&relalgremove);
     AddOperator(&relalgproduct);

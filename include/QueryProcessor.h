@@ -692,13 +692,14 @@ function body.
 */
 
   ListExpr TestOverloadedOperators( const string& operatorSymbolStr, 
-                                    ListExpr opList, 
-                                    ListExpr typeList, 
-                                    int& alId, 
-                                    int& opId, 
-                                    int& opFunId, 
-                                    bool checkFunId, 
-                                    bool traceMode );
+      ListExpr opList, 
+      ListExpr typeList, 
+      ListExpr typeArgList, 
+      int& alId, 
+      int& opId, 
+      int& opFunId, 
+      bool checkFunId, 
+      bool traceMode );
 /*
 Test all possible type mappings for overloaded operators. The output of the
 first successfully applied type mapping will be returned.
