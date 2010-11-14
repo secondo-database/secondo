@@ -321,8 +321,51 @@ Signature: rel1 x attra x attrb x rel2 x attr1 x attr2 x attr3 x attr4 -> (strea
 Example  : query create_bus_stop4(newbusroutes,bus_route1, bus_route2, bus_stops4, br_id, bus_stop_id, bus_stop,startSmaller) count; 
 Result   : 10
 
+
 Operator : create_bus_stop5
 Number   : 2
 Signature: rel1 x attr x rel2 x attr1 x attr2 x attr3 x attr4 x attr5 -> (stream(((x1 t1) ... (xn tn))))
 Example  : query create_bus_stop5(final_busroutes,bus_direction,bus_stops4, br_id, br_uid, bus_stop_id, bus_stop2, bus_pos) count; 
 Result   : 10
+
+Operator : maptoint
+Number   : 2
+Signature: string -> int
+Example  : query maptoint("abc");
+Result   : 10
+
+
+Operator : maptoreal
+Number   : 2
+Signature: string -> real
+Example  : query maptoreal("abc");
+Result   : 10.0
+
+
+Operator : get_route_density1
+Number   : 2
+Signature: network x rel1 x attr1 x attr2 x btree x attr2 x attr1 x attr2 x periods1 x periods2 -> (stream(((x1 t1) ... (xn tn))))
+Example  : query get_route_density1(n,q7,secid,flow,btree_traffic,busroutes,br_id,bus_route1,night1,night2) count;
+Result   : 10.0
+
+
+Operator : set_ts_nightbus
+Number   : 2
+Signature: rel x attr1 x attr2 x attr3 x periods1 x periods2 -> (stream(((x1 t1) ... (xn tn))))
+Example  : query set_ts_nightbus(night_bus,br_id,duration1,duration2,night1,night2) count;
+Result   : 10.0
+
+
+Operator : set_br_speed
+Number   : 2
+Signature: network x rel1 x attr1 x attr2 x rel2 x attr x rel3 x attr -> (stream(((x1 t1) ... (xn tn))))
+Example  : query set_br_speed(n,busroutes,br_id,bus_route1,streets,Vmax,final_busroutes,startSmaller) count;
+Result   : 10.0
+
+
+Operator : create_bus_segment_speed
+Number   : 2
+Signature: rel1 x attr1 x attr2 x attr3 x attr4 x rel2 x attr1 x attr2 x btree1 x rel3 x btree2 -> (stream(((x1 t1) ... (xn tn))))
+Example  : query create_bus_segment_speed(final_busroutes,br_id, bus_route, bus_direction, startSmaller,final_busstops, bus_pos, stop_direction, btree_bs,br_speed,btree_br_speed) count;
+Result   : 10.0
+

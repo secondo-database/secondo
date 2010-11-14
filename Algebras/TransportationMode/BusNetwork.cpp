@@ -1275,6 +1275,11 @@ it can't only cover part of a road section
 
 It also calculates the startSmaller value for each bus route.
 
+very important value startSmaller. It records whether the simpleline starts
+from the small or big. The simpleline comes from coverting gline. 
+gline records the shortest path. We have to know after converting where the
+start point is. 
+
 */
 void BusRoute::CreateBusStop3(int attr,int attr1,int attr2,int attr3)
 {
@@ -1427,6 +1432,7 @@ void BusRoute::CreateBusStop3(int attr,int attr1,int attr2,int attr3)
     vector<SectTreeEntry> sec_list; 
     
     GetSectionList(gl, sec_list, start_from); 
+    /////collect bus stops from the same bus route /////
     int start = index; 
     while(bus_stop_list[index].br_id == i && index < bus_stop_list.size()){
       index++;
@@ -1817,7 +1823,7 @@ void BusRoute::CalculateStartSmaller(vector<BusStop>& bus_stop_list,
  //   cout<<"sec_id "<<sec_id
  //       <<" busstop sec id "<<bus_stop_list[bus_stop_index].sid<<endl; 
     
-    
+    //find the section where the bus stop locates 
     while(bus_stop_list[bus_stop_index].sid == sec_id){
         double temp_dist = 0.0; 
         if(start_from[i]){
@@ -1873,7 +1879,10 @@ void BusRoute::CalculateStartSmaller(vector<BusStop>& bus_stop_list,
 
 /*
 change the position of bus stops after translate the bus route: down and up 
-and for each route, it gets pos value 
+and for each route, it gets pos value.
+bus stops on up direction are from small to big
+bus tops on down direction are from big to small, but the pos value is set
+according to the smaller start point 
 
 */
 void BusRoute::CreateBusStop4(int attr_a,int attr_b,int attr1,int attr2,
@@ -2253,6 +2262,8 @@ void BusRoute::CreateRoute4(int attr1, int attr2, int attr3, int attr4,
       tuple_bus_stop->DeleteIfAllowed();
   }
 //  cout<<"start_small_list size "<<start_small_list.size()<<endl; 
+
+  assert(start_small_list.size() == rel1->GetNoTuples() / 2); 
   
   for(int i = 1;i <= rel1->GetNoTuples();i+=2){
     Tuple* tuple_bus_route1 = rel1->GetTuple(i, false);
@@ -2300,11 +2311,16 @@ void BusRoute::CreateRoute4(int attr1, int attr2, int attr3, int attr4,
     br_uid_list.push_back(br_uid_1);
     br_uid_list.push_back(br_uid_2);
     
+    ///////////////////add the startsmaller value /////////////////////////
+    startSmaller.push_back(start_small_list[br_id1 - 1]);
+    startSmaller.push_back(start_small_list[br_id1 - 1]);
     
     tuple_bus_route1->DeleteIfAllowed();
     tuple_bus_route2->DeleteIfAllowed();
     
   }
+ 
+  assert(startSmaller.size() == br_id_list.size()); 
   
 }
 
@@ -2427,3 +2443,625 @@ void BusRoute::CreateBusStop5(int attr,int attr1,int attr2,
   }
   
 }
+//////////////////////////////////////////////////////////////////////////////
+//      use the road density data to set time schedule for each bus route  ///
+/////////////////////////////////////////////////////////////////////////////
+
+/*
+distinguish daytime and night buses. use the network flow value.
+for night bus, we don't dinstinguish Sunday and Workday 
+
+*/
+
+void RoadDenstiy::GetDayTimeAndNightRoutes(int attr1, int attr2, int attr_a,
+                                    int attr_b,Periods* peri1, Periods* peri2)
+{
+//  cout<<"attr1 "<<attr1<<" attr2 "<<attr2
+//      <<"attr_a "<<attr_a<<" attr_b "<<attr_b<<endl; 
+//  cout<<*peri1<<" "<<*peri2<<endl; 
+
+  Interval<Instant> periods1;
+  Interval<Instant> periods2;
+  peri1->Get(0, periods1);
+  peri2->Get(0, periods2);
+  
+//  cout<<periods1<<" "<<periods2<<endl; 
+  
+  for(int i = 1;i <= rel2->GetNoTuples();i++){
+     
+    Tuple* tuple_bus_stop = rel2->GetTuple(i, false);
+    int br_id = ((CcInt*)tuple_bus_stop->GetAttribute(attr_a))->GetIntval();
+    GLine* gl = (GLine*)tuple_bus_stop->GetAttribute(attr_b);
+    
+//    cout<<*gl<<endl; 
+    
+    BusRoute* br = new BusRoute(n,NULL,NULL);
+
+    vector<bool> start_from; 
+    vector<SectTreeEntry> sec_list; 
+    br->GetSectionList(gl, sec_list, start_from);
+    
+    int traffic_num = 0;
+    
+    Interval<Instant> time_span1 = periods1;
+    Interval<Instant> time_span2 = periods2; 
+    
+    for(unsigned int j = 0;j < sec_list.size();j++){
+        int secid = sec_list[j].secttid; 
+        /////////////use btree to find the section/////////////////
+        CcInt* search_sec_id = new CcInt(true, secid);
+        BTreeIterator* btree_iter = btree->ExactMatch(search_sec_id);
+        while(btree_iter->Next()){
+          Tuple* tuple_traffic = rel1->GetTuple(btree_iter->GetId(), false);
+          MInt* flow = (MInt*)tuple_traffic->GetAttribute(attr2);
+//          cout<<*flow<<endl; 
+          for(int k = 0;k < flow->GetNoComponents();k++){
+            UInt cur_uint;
+            flow->Get(k,cur_uint);
+            
+            if(periods1.Intersects(cur_uint.timeInterval)){
+//              cout<<"1"<<endl; 
+//              cur_uint.Print(cout);  
+              traffic_num += cur_uint.constValue.GetValue();
+              
+              if(cur_uint.timeInterval.start > time_span1.start && 
+                 cur_uint.timeInterval.start < time_span1.end){
+                time_span1.start = cur_uint.timeInterval.start;
+              }  
+              if(cur_uint.timeInterval.end < time_span1.end && 
+                 cur_uint.timeInterval.end > time_span1.start)
+                time_span1.end = cur_uint.timeInterval.end; 
+            }
+
+            if(periods2.Intersects(cur_uint.timeInterval)){
+//              cout<<"2"<<endl; 
+//              cur_uint.Print(cout);  
+              traffic_num += cur_uint.constValue.GetValue();
+              
+              if(cur_uint.timeInterval.start > time_span2.start &&
+                 cur_uint.timeInterval.start < time_span2.end)
+                time_span2.start = cur_uint.timeInterval.start;
+              if(cur_uint.timeInterval.end < time_span2.end &&
+                 cur_uint.timeInterval.end > time_span2.start)
+                time_span2.end = cur_uint.timeInterval.end; 
+            }
+          }
+          
+          tuple_traffic->DeleteIfAllowed();
+        }
+        delete btree_iter;
+        delete search_sec_id;
+        //////////////////////////////////////////////////////////
+    }
+    delete br; 
+    
+    tuple_bus_stop->DeleteIfAllowed();
+    
+    br_id_list.push_back(br_id); 
+    traffic_no.push_back(traffic_num);
+    
+    Periods* p1 = new Periods(0);
+    p1->StartBulkLoad();
+    p1->MergeAdd(time_span1);
+    p1->EndBulkLoad();
+    duration1.push_back(*p1);
+    
+    delete p1; 
+    
+    Periods* p2 = new Periods(0);
+    p2->StartBulkLoad();
+    p2->MergeAdd(time_span2);
+    p2->EndBulkLoad();
+    duration2.push_back(*p2);
+    
+    delete p2; 
+  }
+  
+}
+
+/*
+create time interval for each night bus
+it returns brid, time interval for each schedule  and two intervals
+each interval records the first and last schedule time of this route 
+
+*/
+void RoadDenstiy::SetTSNightBus(int attr1,int attr2, int attr3,
+                                Periods* peri1, Periods* peri2)
+{
+//  cout<<"attr1 "<<attr1<<" attr2 "<<attr2<<" attr3 "<<attr3<<endl;
+//  cout<<*peri1<<" "<<*peri2<<endl; 
+  
+  const int bus_time_interval = 60; //one hour for each schedule
+  
+  for(int i = 1;i <= rel1->GetNoTuples();i++){
+    Tuple* tuple_bus_route = rel1->GetTuple(i, false);
+    int br_id = ((CcInt*)tuple_bus_route->GetAttribute(attr1))->GetIntval();
+    Periods* time1 = (Periods*)tuple_bus_route->GetAttribute(attr2);
+    Periods* time2 = (Periods*)tuple_bus_route->GetAttribute(attr3);
+    
+    
+    Interval<Instant> time_span1;
+    Interval<Instant> time_span2;
+    
+    Interval<Instant> interval1;
+    Interval<Instant> interval2;
+    
+    time1->Get(0, interval1);
+    time2->Get(0, interval2);
+    
+    int h1 = interval1.start.GetHour();
+    int h2 = interval2.start.GetHour();
+    
+    if(h1 > h2){
+      double m = 
+        CalculateTimeSpan1(time1, peri1,time_span1,bus_time_interval,i); 
+        CalculateTimeSpan2(peri2,time_span2,bus_time_interval,m); 
+    }else{
+      double m = 
+        CalculateTimeSpan1(time2, peri2,time_span2,bus_time_interval,i); 
+        CalculateTimeSpan2(peri1,time_span1,bus_time_interval,m); 
+    }  
+
+    br_id_list.push_back(br_id);
+    
+//    duration1.push_back(*time1);
+//    duration2.push_back(*time2);
+
+//    cout<<time_span1<<endl;
+//    cout<<time_span2<<endl; 
+    
+    Periods* p1 = new Periods(0);
+    p1->StartBulkLoad();
+    p1->MergeAdd(time_span1);
+    p1->EndBulkLoad();
+    duration1.push_back(*p1);
+    
+    delete p1; 
+    
+    Periods* p2 = new Periods(0);
+    p2->StartBulkLoad();
+    p2->MergeAdd(time_span2);
+    p2->EndBulkLoad();
+    duration2.push_back(*p2);
+    
+    delete p2; 
+    
+    
+//    time_interval.push_back(bus_time_interval);
+    
+    time_interval.push_back(1.0/24.0); //1 means 1 day , 1.0/24.0 = 1 hour 
+    tuple_bus_route->DeleteIfAllowed();
+    
+  }  
+}
+
+/*
+calculate the first and end time schedule of bus route 
+if the start minute is larger than 30. we reduce the start hour by one 
+e.g., 21:57 ---> 20:57 
+else keep it e.g., 21:14 --> 21:14 
+
+*/
+double RoadDenstiy::CalculateTimeSpan1(Periods* t, Periods* p, 
+                                    Interval<Instant>& span, const int bti,
+                                    int index)
+{
+  Interval<Instant> p1;
+  Interval<Instant> t1;
+  p->Get(0, p1);
+  t->Get(0, t1); 
+  int m1 = t1.start.GetMinute();
+//  cout<<"start minute "<<m1<<endl; 
+  if(m1 == 0){
+//      m1 = lrand48() % bti;
+      m1 = index % bti; 
+  }
+  
+  /////////////set the time for the first schedule //////////////////////////
+  Instant start = t1.start;
+//  cout<<"old "<<start<<endl; 
+  if(m1 > bti/2){  // larger than half an hour 
+    start = p1.start; // 1 means 1 day. 1.0/24.0 1 hour 1.0/(24*60) 1 minute
+    double d = start.ToDouble() - 1.0/24.0 +  m1*1.0/(24.0*60);
+    start.ReadFrom(d);  
+  }else{
+    start = p1.start;
+    double d = start.ToDouble() + m1*1.0/(24.0*60);
+    start.ReadFrom(d);  
+  }
+  
+//  cout<<"start "<<start; 
+  /////////////set the time for the last schedule///////////////////////////
+  
+  double d_s = start.ToDouble();
+  double d_e = p1.end.ToDouble(); 
+  double one_hour = 1/24.0; 
+  while(d_s < d_e){
+    d_s += one_hour; 
+    
+  }
+  d_s -= one_hour; 
+  Instant end = p1.end;//initialize value 
+  end.ReadFrom(d_s);
+//  cout<<" end "<<end<<endl; 
+  
+  span.start = start;
+  span.lc = true;
+  span.end = end;
+  span.rc = false; 
+  
+  return m1*1.0/(24.0*60);//minute e.g., 20, 15 
+}
+
+
+/*
+calculate the first and end time schedule of bus route 
+use the minute in the last time span plus the hour 0:00 
+
+*/
+void RoadDenstiy::CalculateTimeSpan2(Periods* p, 
+                                    Interval<Instant>& span, const int bti,
+                                     double m)
+{
+  Interval<Instant> p1;
+  p->Get(0, p1);
+   
+  /////////////set the time for the first schedule //////////////////////////
+  Instant start = p1.start;
+  double d = start.ToDouble() + m;  
+  start.ReadFrom(d);  
+  
+//  cout<<"start "<<start; 
+  /////////////set the time for the last schedule///////////////////////////
+  
+  double d_s = start.ToDouble();
+  double d_e = p1.end.ToDouble(); 
+  double one_hour = 1/24.0; 
+  while(d_s < d_e){
+    d_s += one_hour; 
+    
+  }
+  d_s -= one_hour; 
+  Instant end = p1.end;//initialize value 
+  end.ReadFrom(d_s);
+//  cout<<" end "<<end<<endl; 
+
+  span.start = start;
+  span.lc = true;
+  span.end = end;
+  span.rc = false; 
+  
+}
+
+/*
+set up the speed value for each bus route 
+
+*/
+
+void RoadDenstiy::SetBRSpeed(int attr1, int attr2, int attr, int attr_sm)
+{
+  ///////////////collect the startsmaller value for each route//////////
+  vector<bool> sm_list;
+  for(int i = 1;i <= rel3->GetNoTuples();i+= 2){
+    Tuple* tuple_route1 = rel3->GetTuple(i, false);
+    bool sm1 = ((CcBool*)tuple_route1->GetAttribute(attr_sm))->GetBoolval();
+    sm_list.push_back(sm1);
+    Tuple* tuple_route2 = rel3->GetTuple(i + 1, false);
+    bool sm2 = ((CcBool*)tuple_route2->GetAttribute(attr_sm))->GetBoolval();
+    assert(sm1 == sm2);
+    tuple_route1->DeleteIfAllowed();
+    tuple_route2->DeleteIfAllowed();
+  }
+  
+  
+//  cout<<"attr1 "<<attr1<<" attr2 "<<attr2<<" attr "<<attr<<endl; 
+  vector<double> route_speed; 
+  //// take the speed limit value from the relation///////////////
+  for(int i = 1;i <= rel2->GetNoTuples();i++){
+    Tuple* tuple_route = rel2->GetTuple(i, false);
+    double speed_val = ((CcReal*)tuple_route->GetAttribute(attr))->GetRealval();
+    route_speed.push_back(speed_val);
+    tuple_route->DeleteIfAllowed();
+  }
+  
+//  cout<<"size "<<route_speed.size()<<endl; 
+  for(int i = 1;i <= rel1->GetNoTuples();i++){
+    
+//    if(i > 3 ) continue; 
+    
+    Tuple* tuple_bus_route = rel1->GetTuple(i, false);
+    int br_id = ((CcInt*)tuple_bus_route->GetAttribute(attr1))->GetIntval();
+    GLine* gl = (GLine*)tuple_bus_route->GetAttribute(attr2); 
+    
+    ///////////////collect all road sections/////////////////////////
+    ///////////////get the route id and the corresponding speed value////////
+    BusRoute* br = new BusRoute(n,NULL,NULL);
+
+    vector<bool> start_from; 
+    vector<SectTreeEntry> sec_list; 
+    br->GetSectionList(gl, sec_list, start_from);
+    
+    vector<Pos_Speed> pos_speed1;
+    double dist = 0.0; 
+    for(unsigned int j = 0;j < sec_list.size();j++){
+      dist += fabs(sec_list[j].end - sec_list[j].start);
+      double s = route_speed[sec_list[j].rid - 1];
+      /////////////we define -1 --- 10km/h //////////////////////////
+      ////////the street that is not valid for cars//////////////
+      if(s < 0.0) s = 10.0; 
+      ///////////////////////////////////////////////////////////
+      Pos_Speed* ps = new Pos_Speed(dist, s);
+      pos_speed1.push_back(*ps);
+      delete ps;
+    }  
+    
+//    cout<<" size "<<pos_speed1.size()<<endl; 
+    
+    delete br; 
+    /////////////// merge value /////////////////////////////////
+    vector<Pos_Speed> pos_speed2;
+    pos_speed2.push_back(pos_speed1[0]);
+//    cout<<"before "<<endl; 
+    for(unsigned int j = 1;j < pos_speed1.size();j++){
+//        pos_speed1[j].Print();
+        Pos_Speed ps1 = pos_speed1[j];
+        Pos_Speed ps2 = pos_speed2[pos_speed2.size() - 1];
+        if(AlmostEqual(ps1.speed_val, ps2.speed_val)){
+          pos_speed2[pos_speed2.size() - 1].pos = ps1.pos;
+        }else
+          pos_speed2.push_back(ps1);
+    }
+    
+//    cout<<"after "<<endl; 
+
+      Line* l = new Line(0);
+      gl->Gline2line(l);
+      SimpleLine* sl = new SimpleLine(0);
+      sl->fromLine(*l);
+      
+    for(unsigned int j = 0;j < pos_speed2.size();j++){
+//      pos_speed2[j].Print();
+      br_id_list.push_back(br_id);
+      br_pos.push_back(pos_speed2[j].pos);
+      speed_limit.push_back(pos_speed2[j].speed_val);
+
+      /////////////get the sub line of the speed//////////////////////////
+
+      SimpleLine* sub_line = new SimpleLine(0);   
+      double pos1, pos2; 
+      if(j == 0){
+        pos1 = 0.0;;
+        pos2 = pos_speed2[j].pos; 
+      }else if(j == pos_speed2.size() - 1){
+        pos1 = pos_speed2[j].pos;
+        pos2 = sl->Length();
+      }else{
+        pos1 = pos_speed2[j - 1].pos;
+        pos2 = pos_speed2[j].pos;
+      }
+      
+      sl->SubLine(pos1, pos2, sm_list[br_id - 1] , *sub_line);
+      Line* sub_l = new Line(0);
+      sub_line->toLine(*sub_l);
+      br_subroute.push_back(*sub_l);
+      delete sub_l; 
+      delete sub_line;
+      /////////////////////////////////////////////////////////////////////
+    }  
+    delete sl;
+    delete l;
+    
+    //////////////////////////////////////////////////////////////
+    tuple_bus_route->DeleteIfAllowed();
+  }
+  
+}
+
+bool CompareBusStop(const BusStop_Ext& bs1, const BusStop_Ext& bs2)
+{
+  if(bs1.rid < bs2.rid) return true;
+    else if(bs1.rid == bs2.rid){
+      if(bs1.pos < bs2.pos) return true;
+      else if(AlmostEqual(bs1.pos,bs2.pos))return true;
+      else return false; 
+      
+    }else return false; 
+
+}
+
+/*
+for each bus route segment, it sets the speed value 
+
+*/
+void RoadDenstiy::CreateSegmentSpeed(int attr1, int attr2, int attr3, int attr4,
+                          int attr_a, int attr_b)
+{
+//  cout<<"attr1 "<<attr1<<" attr2 "<<attr2<<" attr3 "<<attr3
+//      <<" attr4 "<<attr4
+//      <<" attr_a "<<attr_a<<" attr_b "<<attr_b<<endl; 
+
+  for(int i = 1;i <= rel1->GetNoTuples();i++){
+    Tuple* tuple_bus_route = rel1->GetTuple(i, false);
+    /////collect br id, line, up down, startSmaller value of each route/////
+    int br_id = ((CcInt*)tuple_bus_route->GetAttribute(attr1))->GetIntval();
+    Line* l = (Line*)tuple_bus_route->GetAttribute(attr2);
+    bool up_down = 
+        ((CcBool*)tuple_bus_route->GetAttribute(attr3))->GetBoolval();
+    bool startsmaller = 
+        ((CcBool*)tuple_bus_route->GetAttribute(attr4))->GetBoolval();
+    
+//    cout<<"br_id "<<br_id<<" up_down "<<up_down
+//        <<" smaller "<<startsmaller<<endl;
+    
+    ////////////////get the speed limit of this bus route ///////////////////
+    CcInt* search_speed_id = new CcInt(true, br_id);
+    BTreeIterator* btree_iter2 = btree_b->ExactMatch(search_speed_id);
+    vector<Pos_Speed> br_speed_list; 
+    
+    while(btree_iter2->Next()){
+      Tuple* tuple_bs = rel3->GetTuple(btree_iter2->GetId(), false);
+      double bs_pos = 
+              ((CcReal*)tuple_bs->GetAttribute(BR_POS))->GetRealval();
+      double speed_val = 
+              ((CcReal*)tuple_bs->GetAttribute(BR_SPEED))->GetRealval();
+      Pos_Speed* pos_speed = new Pos_Speed(bs_pos, speed_val);
+      br_speed_list.push_back(*pos_speed);
+      delete pos_speed; 
+      tuple_bs->DeleteIfAllowed();
+    }
+      
+    
+    delete btree_iter2;
+    delete search_speed_id;
+    
+/*    cout<<"speed limit"<<endl; 
+    for(unsigned int j = 0;j < br_speed_list.size();j++){
+      br_speed_list[j].Print();
+    }*/
+    
+    /////////collect all bus stops of this route/////////////////////////////
+    
+    CcInt* search_bs_id = new CcInt(true, br_id);
+    BTreeIterator* btree_iter1 = btree_a->ExactMatch(search_bs_id);
+    vector<BusStop_Ext> bus_stop_list; 
+    
+    while(btree_iter1->Next()){
+        Tuple* tuple_bs = rel2->GetTuple(btree_iter1->GetId(), false);
+        double bs_pos = 
+              ((CcReal*)tuple_bs->GetAttribute(attr_a))->GetRealval();
+        bool direction = 
+              ((CcBool*)tuple_bs->GetAttribute(attr_b))->GetBoolval();
+        //take bus stops on the same side of the route   
+        if(direction == up_down){   
+          Point p(true,0.0,0.0);
+          BusStop_Ext* bs_ext = new BusStop_Ext(br_id,0,bs_pos,p,direction);
+          bus_stop_list.push_back(*bs_ext);
+          delete bs_ext; 
+        }
+        tuple_bs->DeleteIfAllowed();
+    }
+    delete btree_iter1;
+    delete search_bs_id;
+    
+    sort(bus_stop_list.begin(),bus_stop_list.end(),CompareBusStop);
+    
+/*    cout<<"bus stop list "<<endl; 
+    for(unsigned int j = 0;j < bus_stop_list.size();j++){
+      bus_stop_list[j].Print();
+    }*/
+      
+    /////////////////////////////////////////////////////////////////////////
+    SimpleLine* sl = new SimpleLine(0);
+    sl->fromLine(*l);
+      
+    
+    CalculateRouteSegment(sl, br_speed_list, bus_stop_list, startsmaller);
+
+    delete sl;
+
+    ////////////////////////////////////////////////////////////////////////
+    tuple_bus_route->DeleteIfAllowed();
+    
+  }
+  
+}
+
+/*
+calculate the bus segment combined with speed limit value 
+the returned lines are already ordered in the same way as bus stops 
+from bus stop id small to big 
+
+*/
+void RoadDenstiy::CalculateRouteSegment(SimpleLine* sl, 
+                                        vector<Pos_Speed> br_speed_list, 
+                             vector<BusStop_Ext> bus_stop_list, bool sm)
+{
+  BusStop_Ext last_stop = bus_stop_list[0];
+  unsigned int index_speed = 0; 
+//  cout<<"length "<<sl->Length()<<endl; 
+  
+  vector<SimpleLine> sub_line_list; 
+  vector<double> speed_val_list; 
+  for(unsigned int i = 1;i < bus_stop_list.size();i++){
+      BusStop_Ext cur_stop = bus_stop_list[i];
+      
+      ////////////advance the index ///////////////////////////
+      while(br_speed_list[index_speed].pos < last_stop.pos ||
+            AlmostEqual(br_speed_list[index_speed].pos,last_stop.pos))
+        index_speed++;
+      
+      //////////////////////////////////////////////////////////
+      if(cur_stop.pos < br_speed_list[index_speed].pos || 
+          AlmostEqual(cur_stop.pos,br_speed_list[index_speed].pos)){
+          SimpleLine* sub_line1 = new SimpleLine(0);
+          sl->SubLine(last_stop.pos,cur_stop.pos,sm,*sub_line1);
+//          cout<<"sub length1 "<<sub_line1->Length()<<endl;
+          sub_line_list.push_back(*sub_line1);
+          delete sub_line1; 
+          speed_val_list.push_back(br_speed_list[index_speed].speed_val);
+          
+      }else{
+          //between last stop and cur stop 
+          assert(last_stop.pos < br_speed_list[index_speed].pos &&
+                 br_speed_list[index_speed].pos < cur_stop.pos); 
+                 
+          SimpleLine* sub_line2 = new SimpleLine(0);
+          sl->SubLine(last_stop.pos,br_speed_list[index_speed].pos,
+                      sm,*sub_line2);
+//          cout<<"sub length2 "<<sub_line2->Length()<<endl;
+          sub_line_list.push_back(*sub_line2);
+          delete sub_line2; 
+          speed_val_list.push_back(br_speed_list[index_speed].speed_val);
+          
+          
+          unsigned int index_speed_tmp = index_speed + 1;
+          while(index_speed_tmp < br_speed_list.size() && 
+                br_speed_list[index_speed_tmp].pos < cur_stop.pos){
+          
+            SimpleLine* sub_line3 = new SimpleLine(0);
+            sl->SubLine(br_speed_list[index_speed].pos,
+                      br_speed_list[index_speed_tmp].pos,
+                      sm,*sub_line3);
+//            cout<<"sub length3 "<<sub_line3->Length()<<endl;
+            sub_line_list.push_back(*sub_line3);
+            delete sub_line3; 
+            speed_val_list.push_back(br_speed_list[index_speed_tmp].speed_val);
+
+            index_speed = index_speed_tmp;
+            index_speed_tmp = index_speed + 1;
+          }
+
+          SimpleLine* sub_line4 = new SimpleLine(0);
+          sl->SubLine(br_speed_list[index_speed].pos,cur_stop.pos, 
+                      sm,*sub_line4);
+//          cout<<"sub length4 "<<sub_line4->Length()<<endl;
+          sub_line_list.push_back(*sub_line4);
+          delete sub_line4; 
+          
+          if(index_speed_tmp < br_speed_list.size())
+            speed_val_list.push_back(br_speed_list[index_speed_tmp].speed_val);
+          else
+            speed_val_list.push_back(br_speed_list[index_speed].speed_val);
+          
+      }
+      last_stop = cur_stop; 
+  }
+
+  BusStop_Ext temp_stop = bus_stop_list[0];
+  assert(speed_val_list.size() == sub_line_list.size());
+  for(unsigned int i = 0;i < sub_line_list.size();i++){
+    br_id_list.push_back(temp_stop.br_id);
+    br_direction.push_back(temp_stop.start_small);
+    
+    Line* temp_l = new Line(0);
+    sub_line_list[i].toLine(*temp_l);
+    br_subroute.push_back(*temp_l);
+    delete temp_l; 
+
+
+    speed_limit.push_back(speed_val_list[i]);
+  }  
+  
+  
+}
+

@@ -182,7 +182,7 @@ struct BusStop_Ext:public BusStop{
   void Print()
   {
     BusStop::Print(); 
-    cout<<"loc "<<loc<<endl; 
+    cout<<"loc "<<loc<<" start_small "<<start_small<<endl; 
   }
   bool operator<(const BusStop_Ext& bse) const
   {
@@ -260,7 +260,7 @@ struct BusRoute{
   vector<Point> bus_stop_loc_2; 
   vector<int> sec_id_list; 
   vector<double> bus_stop_loc_3; 
-  vector<bool> startSmaller; 
+  vector<bool> startSmaller; //used for simpleline
   /////////////////////////////////////
   
   BusRoute(Network* net,Relation* r1,BTree* b):
@@ -334,6 +334,89 @@ struct BusRoute{
                       int attr3,int attr4, int attr5); 
   
 };
+
+/*
+get the road section density. use it to calculate the time schedule of each
+bus route 
+
+*/
+
+struct Pos_Speed{
+  double pos;
+  double speed_val; 
+  Pos_Speed(){}
+  Pos_Speed(double p, double s):pos(p),speed_val(s){}
+  Pos_Speed(const Pos_Speed& ps):pos(ps.pos),speed_val(ps.speed_val){}
+  Pos_Speed& operator=(const Pos_Speed& ps)
+  {
+    pos = ps.pos;
+    speed_val = ps.speed_val;
+    return *this;
+  }
+  void Print()
+  {
+    cout<<"pos "<<pos<<" speed "<<speed_val<<endl; 
+  }
+};
+
+struct RoadDenstiy{
+  Network* n;
+  Relation* rel1; //1. density relation  2. bus route relation
+  Relation* rel2; //1. bus route relation 2. street data with speed limit  
+  Relation* rel3; // brspeed relation 
+  
+  BTree* btree; 
+  BTree* btree_a;//build on bus stops relation 
+  BTree* btree_b;//build on bus route speed relation 
+  
+  unsigned int count;
+  TupleType* resulttype;
+  
+  vector<int> br_id_list; 
+  vector<int> traffic_no;
+  vector<Periods> duration1;
+  vector<Periods> duration2; 
+  vector<double> time_interval; //minute 
+  
+  vector<double> br_pos;
+  vector<double> speed_limit; 
+  
+  vector<Line> br_subroute; 
+  vector<bool> br_direction;//up and down  
+  
+  //for bus route speed relation  
+  enum BR_SPEED{BR_ID = 0, BR_POS, BR_SPEED,BR_SPEED_SEG}; 
+  
+  RoadDenstiy(){count=0;resulttype = NULL;}
+  RoadDenstiy(Network* net,Relation* r1,Relation* r2,BTree* bt):
+  n(net),rel1(r1),rel2(r2),btree(bt)
+  {count=0;resulttype = NULL;}
+  RoadDenstiy(Network* net,Relation* r1,Relation* r2,Relation* r3,BTree* bt):
+  n(net),rel1(r1),rel2(r2),rel3(r3),btree(bt)
+  {count=0;resulttype = NULL;}
+  RoadDenstiy(Relation* r1,Relation* r2, Relation* r3,BTree* b1,BTree* b2):
+  rel1(r1),rel2(r2), rel3(r3), btree_a(b1), btree_b(b2)
+  {count=0;resulttype = NULL;}
+  
+  ~RoadDenstiy(){if(resulttype != NULL) delete resulttype;}
+
+  void GetDayTimeAndNightRoutes(int attr1, int attr2, int attr_a, int attr_b,
+                                Periods*, Periods*);
+  void SetTSNightBus(int attr1,int attr2, int attr3, Periods*, Periods*);
+  double CalculateTimeSpan1(Periods* t, Periods* p1,
+                         Interval<Instant>& span,int bti, int index);
+  void CalculateTimeSpan2(Periods* p1,
+                         Interval<Instant>& span,int bti, double m);
+  void SetBRSpeed(int attr1, int attr2, int attr, int attr_sm); 
+  void CreateSegmentSpeed(int attr1, int attr2, int attr3, int attr4,
+                          int attr_a, int attr_b);
+  void CalculateRouteSegment(SimpleLine* sl, vector<Pos_Speed> br_speed_list, 
+                             vector<BusStop_Ext> bus_stop_list, bool sm);
+
+  
+};
+
+
 #endif
 
 
