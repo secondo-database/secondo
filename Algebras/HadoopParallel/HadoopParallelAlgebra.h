@@ -552,4 +552,46 @@ struct fconsumeLocalInfo
   int current;
 };
 
+/*
+1.6 hdpJoinLocalInfo class
+
+*/
+
+class hdpJoinLocalInfo
+{
+private:
+  vector<pair<int, int> > resultList;
+  vector<pair<int, int> >::iterator it;
+  TupleType *resultTupleType;
+
+public:
+  hdpJoinLocalInfo(Supplier s){
+
+    ListExpr resultTTList = GetTupleResultType(s);
+    resultTupleType = new TupleType(nl->Second(resultTTList));
+  }
+
+  void insertPair(pair<int, int> elem){
+    resultList.push_back(elem);
+  }
+
+  void setIterator(){
+    it = resultList.begin();
+  }
+
+  Tuple* getTuple()
+  {
+    if (it == resultList.end())
+      return 0;
+    else {
+      Tuple *t = new Tuple(resultTupleType);
+      t->PutAttribute(0, new CcInt((*it).first));
+      t->PutAttribute(1, new CcInt((*it).second));
+
+      it++;
+      return t;
+    }
+  }
+};
+
 #endif /* HADOOPPARALLELALGEBRA_H_ */

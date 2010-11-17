@@ -1,5 +1,5 @@
 Database: opt
-Restore : No
+Restore : NO
 
 Operator: doubleexport
 Number: 1
@@ -51,12 +51,18 @@ Result: 11
 
 Operator : fconsume
 Number   : 1
-Signature: stream(tuple(...)) x string x [int] -> bool
-Example  : query plz feed fconsume["plz", 1]
+Signature: stream(tuple(...)) x string x text x [int] x [string] x [string] x [ array(string) x int x int x int] -> bool
+Example  : query plz feed fconsume["plz", '', 1]
 Result   : TRUE
 
 Operator : ffeed
 Number   : 1
-Signature: relName x string x [int] -> rel(tuple(...))
-Example  : query ffeed(f_plz,"", 1) count
+Signature: string x string x [int] x [string] x [array(string) x int x int] -> rel(tuple(...))
+Example  : query ffeed("plz",'',1) count
 Result   : 41267
+
+Operator : hadoopjoin
+Number   : 1
+Signature: ((stream(tuple(T1))) x (stream(tuple(T2))) x array(string) x int x int x (map stream(tuple(T1)) stream(tuple(T2)) stream(tuple(T1 T2)))) -> stream(tuple((mIndex int)(pIndex int)))
+Example  : query plz feed extend[Cell: length(.Ort)] extend[Partition: .Cell mod 20] Orte feed extend[Cell: length(.Ort)] extend[Partition: .Cell mod 20] {rr} hadoopjoin[ [const array(string) value ("node1" "node2")], 1, 20; . .. parajoin2[Cell, Cell_rr;. .. symmjoin[.Ort = ..Ort_rr]] ] getTypeNL;
+Result   : '(stream (tuple ((mIndex int) (pIndex int))))' 
