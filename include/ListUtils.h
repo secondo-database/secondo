@@ -197,6 +197,16 @@ Checks for a valid description of a relation
 
   bool isKeyDescription(ListExpr tupleList, ListExpr keyList);
 
+
+/*
+~isBDBIndexableType~
+
+This function checks whether a type can be used as a key within a
+Berkeley-DB structure.
+
+*/
+  bool isBDBIndexableType(ListExpr key);
+
 /*
 Checks for a tuple stream
 

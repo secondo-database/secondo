@@ -144,6 +144,26 @@ bool isBTreeDescription(ListExpr btree){
 
 
 /*
+Checks wether the list given as argument is a type usuable as
+an key for a Berkeley DB index.
+
+*/
+bool isBDBIndexableType(ListExpr key){
+  ListExpr errorInfo = emptyErrorInfo();
+  AlgebraManager *algMgr = SecondoSystem::GetAlgebraManager();
+  bool indexable = algMgr->CheckKind("INDEXABLE", key,errorInfo) ||
+                   (nl->IsAtom(key) &&
+                    nl->AtomType(key) == SymbolType &&
+                    (nl->SymbolValue(key) == "int" ||
+                     nl->SymbolValue(key) == "tid" ||
+                     nl->SymbolValue(key) == "real" ||
+                     nl->SymbolValue(key) == "bool" ||
+                     nl->SymbolValue(key) == "string"));
+  return indexable;
+}
+
+
+/*
 Checks for a BTree2Description
 
 */
@@ -151,17 +171,9 @@ bool isBTree2Description(ListExpr btree2){
   if(nl->ListLength(btree2)!=4){
     return false;
   }
-  ListExpr errorInfo = emptyErrorInfo();
   ListExpr uniq = nl->Fourth(btree2);
-  AlgebraManager *algMgr = SecondoSystem::GetAlgebraManager();
   ListExpr key = nl->Second(btree2);
-  bool indexable = algMgr->CheckKind("INDEXABLE", key,errorInfo) ||
-                   (nl->IsAtom(key) &&
-                    nl->AtomType(key) == SymbolType &&
-                    (nl->SymbolValue(key) == "int" ||
-                     nl->SymbolValue(key) == "real" ||
-                     nl->SymbolValue(key) == "bool" ||
-                     nl->SymbolValue(key) == "string"));
+  bool indexable = isBDBIndexableType(key);
   return (nl->IsEqual(nl->First(btree2),"btree2") &&
             indexable &&
             nl->IsAtom(nl->Third(btree2)) &&
@@ -380,11 +392,7 @@ Checks for a valid relation description.
         return false;
       attrIndex = findAttribute(nl->Second(tupleList),
                                 nl->SymbolValue(keyList), attrType);
-      return attrIndex > 0 &&
-              (isSymbol(attrType,"string") ||
-                isSymbol(attrType,"int") ||
-                isSymbol(attrType,"real") ||
-                isKind(attrType,"INDEXABLE"));
+      return attrIndex > 0 && isBDBIndexableType(attrType);
     }
     while(!nl->IsEmpty(keyList)) {
       ListExpr elem = nl->First(keyList);
@@ -395,11 +403,7 @@ Checks for a valid relation description.
       ListExpr attrType;
       int attrIndex = findAttribute(nl->Second(tupleList),
                                     nl->SymbolValue(elem), attrType);
-      if (attrIndex == 0 ||
-          ( !isSymbol(attrType,"string") &&
-            !isSymbol(attrType,"int") &&
-            !isSymbol(attrType,"real") &&
-            !isKind(attrType,"INDEXABLE"))){
+      if (attrIndex == 0 || !isBDBIndexableType(attrType)) {
         return false;
       }
     }

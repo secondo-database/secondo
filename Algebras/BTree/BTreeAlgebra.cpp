@@ -190,7 +190,7 @@ ExtractKeyTypeFromTypeInfo( ListExpr typeInfo )
       typeId = nl->IntValue( nl->Second( nl->Third( typeInfo ) ) );
 
   string keyTypeString = am->GetTC( algId, typeId )->Name();
-  if( keyTypeString == "int" )
+  if( (keyTypeString == "int")  || (keyTypeString == "tid") )
   {
     return SmiKey::Integer;
   }
@@ -852,11 +852,8 @@ ListExpr CreateBTreeTypeMap(ListExpr args)
     return listutils::typeError("attr name " + name + "not found in attr list");
   }
   
-  if(!listutils::isSymbol(attrType,"string") &&
-     !listutils::isSymbol(attrType,"int") &&
-     !listutils::isSymbol(attrType,"real") &&
-     !listutils::isKind(attrType,"INDEXABLE")){
-    return listutils::typeError("selected attribut not in kind INDEXABLE");
+  if(!listutils::isBDBIndexableType(attrType)){
+    return listutils::typeError("selected attribute not an indexable key");
   }
 
   ListExpr tupleDescription = nl->Second(first);

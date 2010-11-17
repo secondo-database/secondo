@@ -539,15 +539,10 @@ ListExpr CreateHashTypeMap(ListExpr args)
    return listutils::typeError(err + "( attribute not found )");
   }
  
-  set<string> s;
-  s.insert("string");
-  s.insert("int");
-  s.insert("real");
 
-  if(!listutils::isASymbolIn(attrType,s) &&
-     !listutils::isKind(attrType,"INDEXABLE")){
+  if(!listutils::isBDBIndexableType(attrType)){
     return listutils::typeError(" attribute not indexable");
-  } 
+  }
 
   if( nl->IsEqual(nl->First(first), "rel") ) {
     return nl->ThreeElemList(
