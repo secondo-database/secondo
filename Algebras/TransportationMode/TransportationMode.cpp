@@ -476,6 +476,18 @@ const string OpTMCreateBusRouteSpec2  =
     "section_cell_index,rough_pair,start_cell_id,end_cell_id,route_type) "
     "count;</text--->"
     ") )";
+
+const string OpTMRefineBusRouteSpec  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+    "\"Example\" ) "
+    "( <text>network x rel x attr1 x attr2 x attr3 x attr4"
+    " x attr5 x attr6 -> (stream (tuple( (x1 t1)(x2 t2)...(xn tn)))</text--->"
+    "<text>refine_bus_route(n,rel,attr1,attr2,attr3,attr4,attr5,attr6);"
+    "</text--->"
+    "<text>refine bus routes,filter some bus routes which are similar</text--->"
+    "<text>query refine_bus_route(n,busroutes_temp,br_id,bus_route1,"
+    "bus_route2,start_loc,end_loc,route_type) count;</text--->"
+    ") )";
     
 const string OpTMCreateBusRouteSpec3  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" "
@@ -605,6 +617,17 @@ const string OpTMSETTSNightBusSpec  =
     "night1,night2) count;</text--->"
     ") )";
 
+const string OpTMSETTSDayBusSpec  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+    "\"Example\" ) "
+    "( <text>rel x attr1 x attr2 x attr3 x periods1 x periods2 -> "
+    "(stream (tuple( (x1 t1)(x2 t2)...(xn tn)))</text--->"
+    "<text>set_ts_daybus(rel,attr1,attr2,attr3,peridos1,periods2);</text--->"
+    "<text>set time schedule for daytime buses</text--->"
+    "<text>query set_ts_daybus(day_bus,br_id,duration1,duration2,"
+    "night1,night2) count;</text--->"
+    ") )";
+    
 const string OpTMSETBRSpeedBusSpec  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" "
     "\"Example\" ) "
@@ -629,6 +652,39 @@ const string OpTMCreateBusSegmentSpeedSpec  =
     "<text>query create_bus_segment_speed(final_busroutes, br_id, bus_route, "
     "bus_direction,startSmaller,final_busstops, bus_pos," 
     "stop_direction, btree_bs,br_speed, btree_br_speed) count;</text--->"
+    ") )";
+
+const string OpTMCreateNightBusSpec  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+    "\"Example\" ) "
+    "( <text>rel1 x rel2 x btree "
+    "->(stream (tuple( (x1 t1)(x2 t2)...(xn tn)))</text--->"
+    "<text>create_night_bus_mo(rel,rel,btree);</text--->"
+    "<text>create night moving bus </text--->"
+    "<text>query create_night_bus_mo(ts_nightbus, "
+    "bus_segment_speed,btree_seg_speed) count;</text--->"
+    ") )";
+
+const string OpTMCreateDayTimeBusSpec  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+    "\"Example\" ) "
+    "( <text>rel1 x rel2 x btree "
+    "->(stream (tuple( (x1 t1)(x2 t2)...(xn tn)))</text--->"
+    "<text>create_daytime_bus_mo(rel,rel,btree);</text--->"
+    "<text>create daytime moving bus </text--->"
+    "<text>query create_daytime_bus_mo(ts_daybus, "
+    "bus_segment_speed,btree_seg_speed) count;</text--->"
+    ") )";
+
+const string OpTMCreateTimeTableSpec  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+    "\"Example\" ) "
+    "( <text>rel1 x rel2 x btree "
+    "->(stream (tuple( (x1 t1)(x2 t2)...(xn tn)))</text--->"
+    "<text>create_time_table(rel,rel,btree);</text--->"
+    "<text>create time table at each spatial location </text--->"
+    "<text>query create_time_table(final_busstops,all_bus_rel,btree_mo)"
+    "count;</text--->"
     ") )";
     
 ////////////////TypeMap function for operators//////////////////////////////
@@ -2813,6 +2869,125 @@ ListExpr OpTMCreateBusRouteTypeMap2 ( ListExpr args )
 
 
 /*
+TypeMap fun for operator refine bus route 
+
+*/
+
+ListExpr OpTMRefineBusRouteTypeMap ( ListExpr args )
+{
+  if ( nl->ListLength ( args ) != 8 )
+  {
+    return  nl->SymbolAtom ( "list length should be 8" );
+  }
+  
+  ListExpr param1 = nl->First ( args );
+  if(!(nl->IsAtom(param1) && nl->AtomType(param1) == SymbolType &&  
+     nl->SymbolValue(param1) == "network")){
+      return nl->SymbolAtom ( "typeerror: param1 should be network" );
+  }
+  
+  ListExpr param2 = nl->Second ( args );
+  if(!IsRelDescription(param2))
+    return nl->SymbolAtom ( "typeerror: param2 should be relation" );
+  
+  
+  ListExpr attrName1 = nl->Third ( args );
+  ListExpr attrType1;
+  string aname1 = nl->SymbolValue(attrName1);
+  int j1 = listutils::findAttribute(nl->Second(nl->Second(param2)),
+                      aname1,attrType1);
+  if(j1 == 0 || !listutils::isSymbol(attrType1,"int")){
+      return listutils::typeError("attr name" + aname1 + "not found"
+                      "or not of type int");
+  }
+  
+  ListExpr attrName2 = nl->Fourth ( args );
+  ListExpr attrType2;
+  string aname2 = nl->SymbolValue(attrName2);
+  int j2 = listutils::findAttribute(nl->Second(nl->Second(param2)),
+                      aname2,attrType2);
+  if(j2 == 0 || !listutils::isSymbol(attrType2,"gline")){
+      return listutils::typeError("attr name" + aname2 + "not found"
+                      "or not of type gline");
+  }
+  
+  
+  ListExpr attrName3 = nl->Fifth ( args );
+  ListExpr attrType3;
+  string aname3 = nl->SymbolValue(attrName3);
+  int j3 = listutils::findAttribute(nl->Second(nl->Second(param2)),
+                      aname3,attrType3);
+  if(j3 == 0 || !listutils::isSymbol(attrType3,"line")){
+      return listutils::typeError("attr name" + aname3 + "not found"
+                      "or not of type line");
+  }
+  
+  ListExpr attrName4 = nl->Sixth ( args );
+  ListExpr attrType4;
+  string aname4 = nl->SymbolValue(attrName4);
+  int j4 = listutils::findAttribute(nl->Second(nl->Second(param2)),
+                      aname4,attrType4);
+  if(j4 == 0 || !listutils::isSymbol(attrType4,"point")){
+      return listutils::typeError("attr name" + aname4 + "not found"
+                      "or not of type point");
+  }
+  
+  ListExpr attrName5 = nl->Nth (7, args );
+  ListExpr attrType5;
+  string aname5 = nl->SymbolValue(attrName5);
+  int j5 = listutils::findAttribute(nl->Second(nl->Second(param2)),
+                      aname5,attrType5);
+  if(j5 == 0 || !listutils::isSymbol(attrType5,"point")){
+      return listutils::typeError("attr name" + aname5 + "not found"
+                      "or not of type point");
+  }
+  
+  ListExpr attrName6 = nl->Nth (8, args );
+  ListExpr attrType6;
+  string aname6 = nl->SymbolValue(attrName6);
+  int j6 = listutils::findAttribute(nl->Second(nl->Second(param2)),
+                      aname6,attrType6);
+  if(j6 == 0 || !listutils::isSymbol(attrType6,"int")){
+      return listutils::typeError("attr name" + aname6 + "not found"
+                      "or not of type int");
+  }
+
+     ListExpr res = nl->TwoElemList(
+            nl->SymbolAtom("stream"),
+            nl->TwoElemList(
+                nl->SymbolAtom("tuple"),
+                                        
+                nl->SixElemList(
+                    nl->TwoElemList(
+                        nl->SymbolAtom("br_id"),
+                        nl->SymbolAtom("int")), 
+                    nl->TwoElemList(
+                        nl->SymbolAtom("bus_route1"),
+                        nl->SymbolAtom("gline")),
+                    nl->TwoElemList(
+                        nl->SymbolAtom("bus_route2"),
+                        nl->SymbolAtom("line")),
+                    nl->TwoElemList(
+                        nl->SymbolAtom("start_loc"),
+                        nl->SymbolAtom("point")),
+                    nl->TwoElemList(
+                        nl->SymbolAtom("end_loc"),
+                        nl->SymbolAtom("point")),
+                    nl->TwoElemList(
+                        nl->SymbolAtom("route_type"),
+                        nl->SymbolAtom("int"))
+
+                    )));
+
+      return nl->ThreeElemList(
+        nl->SymbolAtom("APPEND"),
+        nl->SixElemList(nl->IntAtom(j1),nl->IntAtom(j2),
+                        nl->IntAtom(j3),nl->IntAtom(j4),
+                        nl->IntAtom(j5),nl->IntAtom(j6)),res);
+}
+
+
+/*
 TypeMap fun for operator createbusroute3
 translate bus routes 
 
@@ -3697,7 +3872,7 @@ ListExpr OpTMGetRouteDensity1TypeMap ( ListExpr args )
 
 
 /*
-TypeMap fun for operator set ts nightbus night bus routs
+TypeMap fun for operator set ts night bus routs
 
 */
 
@@ -3780,6 +3955,95 @@ ListExpr OpTMSetTSNighbBusTypeMap ( ListExpr args )
         nl->ThreeElemList(nl->IntAtom(j1),nl->IntAtom(j2),nl->IntAtom(j3)),res);
 
 }
+
+/*
+TypeMap fun for operator set ts daytime bus routs
+
+*/
+
+ListExpr OpTMSetTSDayBusTypeMap ( ListExpr args )
+{
+  if ( nl->ListLength ( args ) != 6 )
+  {
+    return  nl->SymbolAtom ( "list length should be 6" );
+  }
+  
+  
+  ListExpr param1 = nl->First ( args );
+  if(!IsRelDescription(param1))
+    return nl->SymbolAtom ( "typeerror: param1 should be a relation" );
+  
+  ListExpr attrName1 = nl->Second ( args );
+  ListExpr attrType1;
+  string aname1 = nl->SymbolValue(attrName1);
+  int j1 = listutils::findAttribute(nl->Second(nl->Second(param1)),
+                      aname1,attrType1);
+                      
+  if(j1 == 0 || !listutils::isSymbol(attrType1,"int")){
+      return listutils::typeError("attr name" + aname1 + "not found"
+                      "or not of type int");
+  }
+  
+  ListExpr attrName2 = nl->Third(args);
+  ListExpr attrType2;
+  string aname2 = nl->SymbolValue(attrName2);
+  int j2 = listutils::findAttribute(nl->Second(nl->Second(param1)),
+                      aname2,attrType2);
+  if(j2 == 0 || !listutils::isSymbol(attrType2,"periods"))
+      return listutils::typeError("attr name" + aname2 + "not found"
+                      "or not of type periods");
+                      
+  ListExpr attrName3 = nl->Fourth(args);
+  ListExpr attrType3;
+  string aname3 = nl->SymbolValue(attrName3);
+  int j3 = listutils::findAttribute(nl->Second(nl->Second(param1)),
+                      aname3,attrType3);
+  if(j3 == 0 || !listutils::isSymbol(attrType3,"periods"))
+      return listutils::typeError("attr name" + aname3 + "not found"
+                      "or not of type periods");
+
+  ListExpr param5 = nl->Fifth(args );
+  if(!(nl->IsAtom(param5) && nl->AtomType(param5) == SymbolType &&  
+     nl->SymbolValue(param5) == "periods")){
+      return nl->SymbolAtom ( "typeerror: param7 should be periods" );
+  }
+  
+  ListExpr param6 = nl->Sixth(args );
+  if(!(nl->IsAtom(param6) && nl->AtomType(param6) == SymbolType &&  
+     nl->SymbolValue(param6) == "periods")){
+      return nl->SymbolAtom ( "typeerror: param8 should be periods" );
+  }               
+  
+     ListExpr res = nl->TwoElemList(
+            nl->SymbolAtom("stream"),
+            nl->TwoElemList(
+                nl->SymbolAtom("tuple"),
+
+                nl->FiveElemList(
+                    nl->TwoElemList(
+                        nl->SymbolAtom("br_id"),
+                        nl->SymbolAtom("int")),
+                    nl->TwoElemList(
+                        nl->SymbolAtom("duration1"),
+                        nl->SymbolAtom("periods")),
+                    nl->TwoElemList(
+                        nl->SymbolAtom("duration2"),
+                        nl->SymbolAtom("periods")),
+                    nl->TwoElemList(
+                        nl->SymbolAtom("br_interval1"),
+                        nl->SymbolAtom("real")),
+                    nl->TwoElemList(
+                        nl->SymbolAtom("br_interval2"),
+                        nl->SymbolAtom("real"))
+                    )));
+
+
+      return nl->ThreeElemList(
+        nl->SymbolAtom("APPEND"),
+        nl->ThreeElemList(nl->IntAtom(j1),nl->IntAtom(j2),nl->IntAtom(j3)),res);
+
+}
+
 
 
 /*
@@ -3977,12 +4241,12 @@ ListExpr OpTMCreateBusSegmentSpeedTypeMap ( ListExpr args )
       return  nl->SymbolAtom ( "parameter 11 should be btree" );
   
 
-     ListExpr res = nl->TwoElemList(
+/*     ListExpr res = nl->TwoElemList(
             nl->SymbolAtom("stream"),
             nl->TwoElemList(
                 nl->SymbolAtom("tuple"),
 
-                nl->FourElemList(
+                nl->SixElemList(
                     nl->TwoElemList(
                         nl->SymbolAtom("br_id"),
                         nl->SymbolAtom("int")),
@@ -3994,14 +4258,44 @@ ListExpr OpTMCreateBusSegmentSpeedTypeMap ( ListExpr args )
                         nl->SymbolAtom("line")),
                     nl->TwoElemList(
                         nl->SymbolAtom("speed_limit"),
-                        nl->SymbolAtom("real"))
-                    )));
+                        nl->SymbolAtom("real")),
+                    nl->TwoElemList(
+                        nl->SymbolAtom("startSmaller"),
+                        nl->SymbolAtom("bool")),
+                    nl->TwoElemList(
+                        nl->SymbolAtom("start_loc"),
+                        nl->SymbolAtom("point"))
+                    )));*/
 
-/*      ListExpr res1 =  nl->FourElemList(nl->IntAtom(j1),nl->IntAtom(j2),
-                       nl->IntAtom(j3),nl->IntAtom(j4));
-      ListExpr res2 =  nl->FourElemList(nl->IntAtom(j_a),nl->IntAtom(j_b),
-                       nl->IntAtom(j_1),nl->IntAtom(j_2));*/
-      
+      ListExpr res = nl->TwoElemList(
+            nl->SymbolAtom("stream"),
+            nl->TwoElemList(
+                nl->SymbolAtom("tuple"),
+                nl->Cons(
+                    nl->TwoElemList(
+                        nl->SymbolAtom("br_id"),
+                        nl->SymbolAtom("int")),
+                nl->SixElemList(
+                    nl->TwoElemList(
+                        nl->SymbolAtom("bus_direction"),
+                        nl->SymbolAtom("bool")),
+                    nl->TwoElemList(
+                        nl->SymbolAtom("bus_sub_route"),
+                        nl->SymbolAtom("line")),
+                    nl->TwoElemList(
+                        nl->SymbolAtom("speed_limit"),
+                        nl->SymbolAtom("real")),
+                    nl->TwoElemList(
+                        nl->SymbolAtom("startSmaller"),
+                        nl->SymbolAtom("bool")),
+                    nl->TwoElemList(
+                        nl->SymbolAtom("start_loc"),
+                        nl->SymbolAtom("point")),
+                    nl->TwoElemList(
+                        nl->SymbolAtom("segment_id"),
+                        nl->SymbolAtom("int")))
+                    )));      
+                    
 //      cout<<"j1 "<<j1<<" j2 "<<j2<<" j3 "<<j3<<" j4 "<<j4<<endl;
 //      cout<<"j_a "<<j_a<<" j_b "<<j_b<<" j_1 "<<j_1<<" j_2 "<<j_2<<endl; 
       
@@ -4013,6 +4307,118 @@ ListExpr OpTMCreateBusSegmentSpeedTypeMap ( ListExpr args )
                           res);
 
 }
+
+
+/*
+TypeMap fun for operator create night and daytime moving bus 
+
+*/
+
+ListExpr OpTMCreateMovingBusTypeMap ( ListExpr args )
+{
+  if ( nl->ListLength ( args ) != 3 )
+  {
+    return  nl->SymbolAtom ( "list length should be 3" );
+  }
+  
+  ListExpr param1 = nl->First ( args );
+  if(!IsRelDescription(param1))
+    return nl->SymbolAtom ( "typeerror: param1 should be a relation" );
+  
+ 
+  ListExpr param2 = nl->Second ( args );
+  if(!IsRelDescription(param2))
+    return nl->SymbolAtom ( "typeerror: param2 should be a relation" );
+  
+  ListExpr index = nl->Third(args);
+  if(!listutils::isBTreeDescription(index))
+      return  nl->SymbolAtom ( "param3  should be btree" );
+  
+     ListExpr res = nl->TwoElemList(
+            nl->SymbolAtom("stream"),
+            nl->TwoElemList(
+                nl->SymbolAtom("tuple"),
+
+                nl->SixElemList(
+                    nl->TwoElemList(
+                        nl->SymbolAtom("br_id"),
+                        nl->SymbolAtom("int")),
+                    nl->TwoElemList(
+                        nl->SymbolAtom("bus_direction"),
+                        nl->SymbolAtom("bool")),
+                    nl->TwoElemList(
+                        nl->SymbolAtom("bus_trip"),
+                        nl->SymbolAtom("mpoint")),
+                    nl->TwoElemList(
+                        nl->SymbolAtom("bus_type"),
+                        nl->SymbolAtom("string")),
+                    nl->TwoElemList(
+                        nl->SymbolAtom("bus_day"),
+                        nl->SymbolAtom("string")),
+                    nl->TwoElemList(
+                        nl->SymbolAtom("schedule_id"),
+                        nl->SymbolAtom("int"))
+                    )));
+      return res; 
+}
+
+
+/*
+TypeMap fun for operator create time table for each spatial location 
+
+*/
+
+ListExpr OpTMCreateTimeTableTypeMap ( ListExpr args )
+{
+  if ( nl->ListLength ( args ) != 3 )
+  {
+    return  nl->SymbolAtom ( "list length should be 3" );
+  }
+  
+  ListExpr param1 = nl->First ( args );
+  if(!IsRelDescription(param1))
+    return nl->SymbolAtom ( "typeerror: param1 should be a relation" );
+  
+ 
+  ListExpr param2 = nl->Second ( args );
+  if(!IsRelDescription(param2))
+    return nl->SymbolAtom ( "typeerror: param2 should be a relation" );
+  
+  ListExpr index = nl->Third(args);
+  if(!listutils::isBTreeDescription(index))
+      return  nl->SymbolAtom ( "param3  should be btree" );
+  
+     ListExpr res = nl->TwoElemList(
+            nl->SymbolAtom("stream"),
+            nl->TwoElemList(
+                nl->SymbolAtom("tuple"),
+                nl->Cons(
+                    nl->TwoElemList(
+                        nl->SymbolAtom("bus_loc"),
+                        nl->SymbolAtom("point")),
+                nl->SixElemList(
+                    nl->TwoElemList(
+                        nl->SymbolAtom("br_id"),
+                        nl->SymbolAtom("int")),
+                    nl->TwoElemList(
+                        nl->SymbolAtom("bus_stop_id"),
+                        nl->SymbolAtom("int")),
+                    nl->TwoElemList(
+                        nl->SymbolAtom("bus_direction"),
+                        nl->SymbolAtom("bool")),
+                    nl->TwoElemList(
+                        nl->SymbolAtom("bus_day"),
+                        nl->SymbolAtom("string")),
+                    nl->TwoElemList(
+                        nl->SymbolAtom("schedule_time"),
+                        nl->SymbolAtom("instant")),
+                    nl->TwoElemList(
+                        nl->SymbolAtom("loc_id"),
+                        nl->SymbolAtom("int")))
+                    )));
+      return res; 
+}
+
 
 int GetContourSelect(ListExpr args)
 {
@@ -6515,6 +6921,68 @@ int OpTMCreateBusRouteValueMap2 ( Word* args, Word& result, int message,
 }
 
 /*
+refine bus routes. It filters some bus routes which are very similar to each
+other 
+
+*/
+int OpTMRefineBusRouteValueMap ( Word* args, Word& result, int message,
+                         Word& local, Supplier in_pSupplier )
+{
+
+  BusRoute* br;
+  switch(message){
+      case OPEN:{
+        Network* n = (Network*)args[0].addr;
+        Relation* r = (Relation*)args[1].addr; 
+        
+        int attr1 = ((CcInt*)args[8].addr)->GetIntval() - 1;
+        int attr2 = ((CcInt*)args[9].addr)->GetIntval() - 1;
+        int attr3 = ((CcInt*)args[10].addr)->GetIntval() - 1;
+        int attr4 = ((CcInt*)args[11].addr)->GetIntval() - 1;
+        int attr5 = ((CcInt*)args[12].addr)->GetIntval() - 1;
+        int attr6 = ((CcInt*)args[13].addr)->GetIntval() - 1;
+
+        br = new BusRoute(n,r, NULL, NULL);
+        br->resulttype =
+            new TupleType(nl->Second(GetTupleResultType(in_pSupplier)));
+        
+        br->RefineBusRoute(attr1,attr2,attr3,attr4,attr5,attr6);
+        local.setAddr(br);
+        return 0;
+      }
+      case REQUEST:{
+          if(local.addr == NULL) return CANCEL;
+          br = (BusRoute*)local.addr;
+          if(br->count == br->bus_lines1.size())return CANCEL;
+
+          Tuple* tuple = new Tuple(br->resulttype);
+          
+          tuple->PutAttribute(0, new CcInt(true,br->br_id_list[br->count]));
+          tuple->PutAttribute(1, new GLine(br->bus_lines1[br->count]));
+          tuple->PutAttribute(2, new Line(br->bus_lines2[br->count]));
+          tuple->PutAttribute(3, new Point(br->start_gp[br->count]));
+          tuple->PutAttribute(4, new Point(br->end_gp[br->count]));
+          tuple->PutAttribute(5, new CcInt(true,br->bus_route_type[br->count]));
+          
+          result.setAddr(tuple);
+          br->count++;
+          return YIELD;
+      }
+      case CLOSE:{
+          if(local.addr){
+            br = (BusRoute*)local.addr;
+            delete br;
+            local.setAddr(Address(0));
+          }
+          return 0;
+      }
+  }
+  return 0;
+
+}
+
+
+/*
 create bus routes3
 translate the bus route into two where one is for up and the other is for down
 
@@ -7060,7 +7528,7 @@ int OpTMCreateRouteDensityValueMap1 ( Word* args, Word& result, int message,
         rd->resulttype =
             new TupleType(nl->Second(GetTupleResultType(in_pSupplier)));
         
-        rd->GetDayTimeAndNightRoutes(attr1, attr2, attr_a,attr_b, peri1, peri2);
+        rd->GetNightRoutes(attr1, attr2, attr_a,attr_b, peri1, peri2);
         local.setAddr(rd);
         return 0;
       }
@@ -7131,6 +7599,64 @@ int OpTMSetTSNightBusValueMap ( Word* args, Word& result, int message,
           tuple->PutAttribute(1, new Periods(rd->duration1[rd->count]));
           tuple->PutAttribute(2, new Periods(rd->duration2[rd->count]));
           tuple->PutAttribute(3, new CcReal(true,rd->time_interval[rd->count]));
+          
+          result.setAddr(tuple);
+          rd->count++;
+          return YIELD;
+      }
+      case CLOSE:{
+          if(local.addr){
+            rd = (RoadDenstiy*)local.addr;
+            delete rd;
+            local.setAddr(Address(0));
+          }
+          return 0;
+      }
+  }
+  return 0;
+
+}
+
+/*
+set time schedule for daytime bus
+
+*/
+int OpTMSetTSDayBusValueMap ( Word* args, Word& result, int message,
+                         Word& local, Supplier in_pSupplier )
+{
+
+  RoadDenstiy* rd;
+  switch(message){
+      case OPEN:{
+        Relation* r = (Relation*)args[0].addr; 
+        Periods* peri1 = (Periods*)args[4].addr;
+        Periods* peri2 = (Periods*)args[5].addr;
+        
+        
+        int attr1 = ((CcInt*)args[6].addr)->GetIntval() - 1;
+        int attr2 = ((CcInt*)args[7].addr)->GetIntval() - 1;
+        int attr3 = ((CcInt*)args[8].addr)->GetIntval() - 1;
+        
+        
+        rd = new RoadDenstiy(NULL,r,NULL,NULL);
+        rd->resulttype =
+            new TupleType(nl->Second(GetTupleResultType(in_pSupplier)));
+        
+        rd->SetTSDayTimeBus(attr1, attr2, attr3, peri1, peri2);
+        local.setAddr(rd);
+        return 0;
+      }
+      case REQUEST:{
+          if(local.addr == NULL) return CANCEL;
+          rd = (RoadDenstiy*)local.addr;
+          if(rd->count == rd->br_id_list.size())return CANCEL;
+
+          Tuple* tuple = new Tuple(rd->resulttype);          
+          tuple->PutAttribute(0, new CcInt(true, rd->br_id_list[rd->count]));
+          tuple->PutAttribute(1, new Periods(rd->duration1[rd->count]));
+          tuple->PutAttribute(2, new Periods(rd->duration2[rd->count]));
+          tuple->PutAttribute(3, new CcReal(true,rd->time_interval[rd->count]));
+          tuple->PutAttribute(4,new CcReal(true,rd->time_interval2[rd->count]));
           
           result.setAddr(tuple);
           rd->count++;
@@ -7253,6 +7779,177 @@ int OpTMCreateBusSegmentSpeedValueMap ( Word* args, Word& result, int message,
           tuple->PutAttribute(1, new CcBool(true, rd->br_direction[rd->count]));
           tuple->PutAttribute(2, new Line(rd->br_subroute[rd->count])); 
           tuple->PutAttribute(3, new CcReal(true, rd->speed_limit[rd->count]));
+          tuple->PutAttribute(4, new CcBool(true, rd->startSmaller[rd->count]));
+          tuple->PutAttribute(5, new Point(rd->start_loc_list[rd->count]));
+          tuple->PutAttribute(6, 
+                              new CcInt(true,rd->segment_id_list[rd->count]));
+
+          
+          result.setAddr(tuple);
+          rd->count++;
+          return YIELD;
+      }
+      case CLOSE:{
+          if(local.addr){
+            rd = (RoadDenstiy*)local.addr;
+            delete rd;
+            local.setAddr(Address(0));
+          }
+          return 0;
+      }
+  }
+  return 0;
+
+}
+
+
+/*
+create night moving bus 
+
+*/
+int OpTMCreateNightBusValueMap ( Word* args, Word& result, int message,
+                         Word& local, Supplier in_pSupplier )
+{
+
+  RoadDenstiy* rd;
+  switch(message){
+      case OPEN:{
+        
+        Relation* r1 = (Relation*)args[0].addr; 
+        Relation* r2 = (Relation*)args[1].addr; 
+        BTree* btree = (BTree*)args[2].addr; 
+        
+        rd = new RoadDenstiy(NULL,r1,r2, btree);
+        rd->resulttype =
+            new TupleType(nl->Second(GetTupleResultType(in_pSupplier)));
+        
+        rd->CreateNightBus();
+        local.setAddr(rd);
+        return 0;
+      }
+      case REQUEST:{
+          if(local.addr == NULL) return CANCEL;
+          rd = (RoadDenstiy*)local.addr;
+          if(rd->count == rd->br_id_list.size())return CANCEL;
+
+          Tuple* tuple = new Tuple(rd->resulttype);
+          tuple->PutAttribute(0, new CcInt(true, rd->br_id_list[rd->count]));
+          tuple->PutAttribute(1, new CcBool(true, rd->br_direction[rd->count]));
+          tuple->PutAttribute(2, new MPoint(rd->bus_trip[rd->count])); 
+          tuple->PutAttribute(3, new CcString(true, rd->trip_type[rd->count]));
+          tuple->PutAttribute(4, new CcString(true, rd->trip_day[rd->count])); 
+          tuple->PutAttribute(5, 
+                              new CcInt(true, rd->schedule_id_list[rd->count]));
+          result.setAddr(tuple);
+          rd->count++;
+          return YIELD;
+      }
+      case CLOSE:{
+          if(local.addr){
+            rd = (RoadDenstiy*)local.addr;
+            delete rd;
+            local.setAddr(Address(0));
+          }
+          return 0;
+      }
+  }
+  return 0;
+
+}
+
+/*
+create daytime moving bus 
+
+*/
+int OpTMCreateDayTimeBusValueMap ( Word* args, Word& result, int message,
+                         Word& local, Supplier in_pSupplier )
+{
+
+  RoadDenstiy* rd;
+  switch(message){
+      case OPEN:{
+        
+        Relation* r1 = (Relation*)args[0].addr; 
+        Relation* r2 = (Relation*)args[1].addr; 
+        BTree* btree = (BTree*)args[2].addr; 
+        
+        rd = new RoadDenstiy(NULL,r1,r2, btree);
+        rd->resulttype =
+            new TupleType(nl->Second(GetTupleResultType(in_pSupplier)));
+        
+        rd->CreateDayTimeBus();
+        local.setAddr(rd);
+        return 0;
+      }
+      case REQUEST:{
+          if(local.addr == NULL) return CANCEL;
+          rd = (RoadDenstiy*)local.addr;
+          if(rd->count == rd->br_id_list.size())return CANCEL;
+
+          Tuple* tuple = new Tuple(rd->resulttype);
+          tuple->PutAttribute(0, new CcInt(true, rd->br_id_list[rd->count]));
+          tuple->PutAttribute(1, new CcBool(true, rd->br_direction[rd->count]));
+          tuple->PutAttribute(2, new MPoint(rd->bus_trip[rd->count])); 
+          tuple->PutAttribute(3, new CcString(true, rd->trip_type[rd->count]));
+          tuple->PutAttribute(4, new CcString(true, rd->trip_day[rd->count])); 
+          tuple->PutAttribute(5, 
+                              new CcInt(true, rd->schedule_id_list[rd->count]));
+          result.setAddr(tuple);
+          rd->count++;
+          return YIELD;
+      }
+      case CLOSE:{
+          if(local.addr){
+            rd = (RoadDenstiy*)local.addr;
+            delete rd;
+            local.setAddr(Address(0));
+          }
+          return 0;
+      }
+  }
+  return 0;
+
+}
+
+/*
+create time table for each spatial location
+
+*/
+int OpTMCreateTimeTableValueMap ( Word* args, Word& result, int message,
+                         Word& local, Supplier in_pSupplier )
+{
+
+  RoadDenstiy* rd;
+  switch(message){
+      case OPEN:{
+        
+        Relation* r1 = (Relation*)args[0].addr; 
+        Relation* r2 = (Relation*)args[1].addr; 
+        BTree* btree = (BTree*)args[2].addr; 
+        
+        rd = new RoadDenstiy(NULL,r1,r2, btree);
+        rd->resulttype =
+            new TupleType(nl->Second(GetTupleResultType(in_pSupplier)));
+        
+        rd->CreateTimeTable();
+        local.setAddr(rd);
+        return 0;
+      }
+      case REQUEST:{
+          if(local.addr == NULL) return CANCEL;
+          rd = (RoadDenstiy*)local.addr;
+          if(rd->count == rd->bus_stop_loc.size())return CANCEL;
+
+          Tuple* tuple = new Tuple(rd->resulttype);
+          tuple->PutAttribute(0, new Point(rd->bus_stop_loc[rd->count])); 
+          tuple->PutAttribute(1, new CcInt(true, rd->br_id_list[rd->count]));
+          tuple->PutAttribute(2, 
+                              new CcInt(true, rd->bus_stop_id_list[rd->count]));
+          tuple->PutAttribute(3, new CcBool(true, rd->br_direction[rd->count]));
+          tuple->PutAttribute(4, new CcString(true, rd->trip_day[rd->count])); 
+          tuple->PutAttribute(5, new Instant(rd->schedule_time[rd->count])); 
+          tuple->PutAttribute(6, 
+                              new CcInt(true, rd->unique_id_list[rd->count]));
 
           result.setAddr(tuple);
           rd->count++;
@@ -7658,6 +8355,15 @@ Operator create_bus_route2(
   OpTMCreateBusRouteTypeMap2
 );
 
+Operator refine_bus_route(
+  "refine_bus_route",
+  OpTMRefineBusRouteSpec,               
+  OpTMRefineBusRouteValueMap,
+  Operator::SimpleSelect,
+  OpTMRefineBusRouteTypeMap
+);
+
+
 Operator create_bus_route3(
   "create_bus_route3",
   OpTMCreateBusRouteSpec3,               
@@ -7749,6 +8455,14 @@ Operator set_ts_nightbus(
   OpTMSetTSNighbBusTypeMap
 );
 
+Operator set_ts_daybus(
+  "set_ts_daybus",
+  OpTMSETTSDayBusSpec,
+  OpTMSetTSDayBusValueMap,
+  Operator::SimpleSelect,
+  OpTMSetTSDayBusTypeMap
+);
+
 Operator set_br_speed(
   "set_br_speed",
   OpTMSETBRSpeedBusSpec,
@@ -7765,6 +8479,33 @@ Operator create_bus_segment_speed(
   Operator::SimpleSelect,
   OpTMCreateBusSegmentSpeedTypeMap
 );
+
+
+Operator create_night_bus_mo(
+  "create_night_bus_mo",
+  OpTMCreateNightBusSpec,
+  OpTMCreateNightBusValueMap,
+  Operator::SimpleSelect,
+  OpTMCreateMovingBusTypeMap
+);
+
+Operator create_daytime_bus_mo(
+  "create_daytime_bus_mo",
+  OpTMCreateDayTimeBusSpec,
+  OpTMCreateDayTimeBusValueMap,
+  Operator::SimpleSelect,
+  OpTMCreateMovingBusTypeMap
+);
+
+
+Operator create_time_table(
+  "create_time_table",
+  OpTMCreateTimeTableSpec,
+  OpTMCreateTimeTableValueMap,
+  Operator::SimpleSelect,
+  OpTMCreateTimeTableTypeMap
+);
+
 
 /*
 Main Class for Transportation Mode
@@ -7831,6 +8572,7 @@ class TransportationModeAlgebra : public Algebra
     AddOperator(&cellbox);
     AddOperator(&create_bus_route1); //rough representation
     AddOperator(&create_bus_route2); //create bus route 
+    AddOperator(&refine_bus_route); //filter some bus routes which are similar 
     AddOperator(&create_bus_route3);//copy bus route, split 
     AddOperator(&create_bus_route4);//set up and down for bus routes 
     AddOperator(&create_bus_stop1); //create bus stops on bus routes
@@ -7843,8 +8585,12 @@ class TransportationModeAlgebra : public Algebra
     AddOperator(&maptoreal);
     AddOperator(&get_route_density1);//get daytime and night bus routes 
     AddOperator(&set_ts_nightbus);//set time schedule for night bus 
+    AddOperator(&set_ts_daybus);//set time schedule for daytime bus 
     AddOperator(&set_br_speed);// set speed value for each bus route 
     AddOperator(&create_bus_segment_speed); //set speed value for each segment 
+    AddOperator(&create_night_bus_mo);//create night moving bus 
+    AddOperator(&create_daytime_bus_mo);//create daytime moving bus 
+    AddOperator(&create_time_table);//create time table for each spatial stop 
   }
   ~TransportationModeAlgebra() {};
  private:

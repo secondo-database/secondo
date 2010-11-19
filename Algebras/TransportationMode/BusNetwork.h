@@ -254,7 +254,7 @@ struct BusRoute{
   vector<bool> direction_flag; 
   vector<bool> bus_stop_flag; 
   ////////////bus stops structure////////////////////////
-  vector<int> br_id_list;
+  vector<int> br_id_list;          //starts from 1 
   vector<int> br_stop_id;
   vector<GPoint> bus_stop_loc_1; 
   vector<Point> bus_stop_loc_2; 
@@ -287,8 +287,11 @@ struct BusRoute{
   void ConvertGLine(GLine* gl1, GLine* gl2); 
   /////////////////////////////create bus routes//////////////////////////
   void CreateRoute2(int attr,int attr1,int attr2,int attr3); 
-  void ConnectCell(int attr,int from_cell_id,int end_cell_id, int route_type);
-  
+  void ConnectCell(int attr,int from_cell_id,int end_cell_id, 
+                   int route_type, int seed);
+  /////////////////////refine bus routes////////////////////////////////
+  void RefineBusRoute(int, int, int, int, int, int);
+  int FilterBusRoute(GLine* gl1, GLine* gl2, int id1, int id2);
   /////////////////////////////create bus stops/////////////////////
   void CreateBusStop1(int attr1,int attr2,int attr3, int attr4); 
   void CreateStops(int br_id, GLine* gl, Line* l, int route_type); 
@@ -377,16 +380,48 @@ struct RoadDenstiy{
   vector<Periods> duration1;
   vector<Periods> duration2; 
   vector<double> time_interval; //minute 
+  vector<double> time_interval2; //minute for daytime bus (Monday and Sunday)
+  
   
   vector<double> br_pos;
   vector<double> speed_limit; 
   
   vector<Line> br_subroute; 
   vector<bool> br_direction;//up and down  
+  vector<bool> startSmaller; //for simpleline 
+  vector<int> segment_id_list; //the relationship betwee bus stop id 
+  
+  vector<Point> start_loc_list;
+  vector<int> bus_stop_id_list; 
+  
+  vector<MPoint> bus_trip; 
+  vector<string> trip_type;//type: night or daytime 
+  vector<string> trip_day;//monday or sunday 
+  vector<int> schedule_id_list; //schedule id 1, 2, ,3 
+  
+  vector<Point> bus_stop_loc; 
+  vector<Instant> schedule_time; 
+  vector<int> unique_id_list; 
+  
   
   //for bus route speed relation  
   enum BR_SPEED{BR_ID = 0, BR_POS, BR_SPEED,BR_SPEED_SEG}; 
+  //for bus route segment speed relation
+  enum BR_SEGMENTD_SPEED{BR_ID1,BUS_DIRECTION,SUB_ROUTE_LINE,
+                         SPEED_LIMIT,START_SMALLER,START_LOC,SEGMENT_ID};
+  //for night bus schedule
+  enum NIGHT_SCHEDULE{BR_ID2,DURATION1,DURATION2,BR_INTERVAL};
   
+  //for daytime bus schedule 
+  enum DAY_SCHEDULE{BR_ID3,DURATION_1,DURATION_2,BR_INTERVAL1,BR_INTERVAL2};
+  
+  ///////////////////////bus stops relation///////////////////////////
+  enum BR_STOP{BR_ID4 = 0,BR_UID,BUS_STOP_ID,BUS_LOC,BUS_POS,STOP_DIRECTION};
+
+  //////////////////////moving bus relation///////////////////////////
+  enum MO_BUS{BR_ID5 = 0, MO_BUS_DIRECTION,BUS_TRIP,BUS_TYPE,
+              BUS_DAY,SCHEDULE_ID}; 
+
   RoadDenstiy(){count=0;resulttype = NULL;}
   RoadDenstiy(Network* net,Relation* r1,Relation* r2,BTree* bt):
   n(net),rel1(r1),rel2(r2),btree(bt)
@@ -400,20 +435,44 @@ struct RoadDenstiy{
   
   ~RoadDenstiy(){if(resulttype != NULL) delete resulttype;}
 
-  void GetDayTimeAndNightRoutes(int attr1, int attr2, int attr_a, int attr_b,
+  void GetNightRoutes(int attr1, int attr2, int attr_a, int attr_b,
                                 Periods*, Periods*);
   void SetTSNightBus(int attr1,int attr2, int attr3, Periods*, Periods*);
+  void SetTSDayTimeBus(int attr1,int attr2, int attr3, Periods*, Periods*);
   double CalculateTimeSpan1(Periods* t, Periods* p1,
-                         Interval<Instant>& span,int bti, int index);
-  void CalculateTimeSpan2(Periods* p1,
-                         Interval<Instant>& span,int bti, double m);
+                         Interval<Instant>& span,int index);
+  void CalculateTimeSpan2(Periods* p1,Interval<Instant>& span,double m);
+  void CalculateTimeSpan3(Periods* t, Periods* p1,
+                         Interval<Instant>& span,
+                         int index, double interval);
+
   void SetBRSpeed(int attr1, int attr2, int attr, int attr_sm); 
   void CreateSegmentSpeed(int attr1, int attr2, int attr3, int attr4,
                           int attr_a, int attr_b);
   void CalculateRouteSegment(SimpleLine* sl, vector<Pos_Speed> br_speed_list, 
                              vector<BusStop_Ext> bus_stop_list, bool sm);
-
-  
+  ////////////////////////create moving bus//////////////////////////////
+  void CreateNightBus();
+  void CreateMovingBus(int br_id,Periods* peri,
+                       double time_interval, bool daytime);    
+  void CreateUp(int br_id,Periods* peri,
+                double time_interval, bool daytime);
+  void CreateDown(int br_id,Periods* peri,
+                  double time_interval, bool daytime);
+  //traverse halfsegmet to create moving points, from index small to big
+  void CreateBusTrip1(MPoint*,vector<MyHalfSegment>, Instant&, 
+                      double, UPoint&);
+  //traverse halfsegmet to create moving points, from index big to small 
+  void CreateBusTrip2(MPoint*,vector<MyHalfSegment>, Instant&, 
+                      double, UPoint&);
+  void CopyBusTrip(int br_id,bool direction, MPoint* mo, 
+                   Periods*, double, bool daytime, int scheduleid);
+  void CreateDayTimeBus(); 
+  //////add night or daytime, and Sunday or Monday/////////////////
+  void AddTypeandDay(MPoint* mo, bool daytime);
+  ////////////////////////create time table/////////////////////////////////
+  void CreateTimeTable();
+  void CreateLocTable(vector<BusStop_Ext> bus_stop_list_new,int count_id);
 };
 
 

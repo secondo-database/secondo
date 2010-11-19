@@ -280,6 +280,14 @@ Signature: network x rel1 x attr x btree x rel2 x attr1 x attr2 x attr3 -> (stre
 Example  : query create_bus_route2(n,street_sections_cell,cellid_w_a_c,section_cell_index,rough_pair, start_cell_id,end_cell_id,route_type) count; 
 Result   : 10
 
+
+Operator : refine_bus_route
+Number   : 2
+Signature: network x rel x attr1 x attr2 x attr3 x attr4 x attr5 x attr6 -> (stream(((x1 t1) ... (xn tn))))
+Example  : query refine_bus_route(n,busroutes_tmp,br_id,bus_route1,bus_route2,start_loc,end_loc,route_type) count; 
+Result   : 10
+
+
 Operator : create_bus_route3
 Number   : 2
 Signature: rel x attr1 x attr2 x real  -> (stream(((x1 t1) ... (xn tn))))
@@ -356,6 +364,13 @@ Example  : query set_ts_nightbus(night_bus,br_id,duration1,duration2,night1,nigh
 Result   : 10.0
 
 
+Operator : set_ts_daybus
+Number   : 2
+Signature: rel x attr1 x attr2 x attr3 x periods1 x periods2 -> (stream(((x1 t1) ... (xn tn))))
+Example  : query set_ts_daybus(day_bus,br_id,duration1,duration2,Monday,Sunday) count;
+Result   : 10.0
+
+
 Operator : set_br_speed
 Number   : 2
 Signature: network x rel1 x attr1 x attr2 x rel2 x attr x rel3 x attr -> (stream(((x1 t1) ... (xn tn))))
@@ -369,3 +384,21 @@ Signature: rel1 x attr1 x attr2 x attr3 x attr4 x rel2 x attr1 x attr2 x btree1 
 Example  : query create_bus_segment_speed(final_busroutes,br_id, bus_route, bus_direction, startSmaller,final_busstops, bus_pos, stop_direction, btree_bs,br_speed,btree_br_speed) count;
 Result   : 10.0
 
+Operator : create_night_bus_mo
+Number   : 2
+Signature: rel1 x rel2 x btree -> (stream(((x1 t1) ... (xn tn))))
+Example  : query create_night_bus_mo(ts_nightbus,bus_segment_speed,btree_seg_speed) count;
+Result   : 10.0
+
+Operator : create_daytime_bus_mo
+Number   : 2
+Signature: rel1 x rel2 x btree -> (stream(((x1 t1) ... (xn tn))))
+Example  : query create_daytime_bus_mo(ts_daybus,bus_segment_speed,btree_seg_speed) count;
+Result   : 10.0
+
+
+Operator : create_time_table
+Number   : 2
+Signature: rel1 x rel2 x btree -> (stream(((x1 t1) ... (xn tn))))
+Example  : query create_time_table(final_busstops,all_bus_rel,btree_mo) count;
+Result   : 10.0
