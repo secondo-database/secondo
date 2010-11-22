@@ -1434,12 +1434,12 @@ public static ListExpr textAtom(String value){
         }
         DataOutputStream out = null;
         try{ // write Text into the File
-            out = new DataOutputStream(
+          out = new DataOutputStream(
                           new BufferedOutputStream(
                               new FileOutputStream((File)this.value)));
-            out.writeBytes(value);
-            out.flush();
-            out.close();
+          out.write(value.getBytes());
+          out.flush();
+          out.close();
         }catch(Exception e){
             Reporter.debug(e);
             Reporter.writeError("Error in writing temporal file of text atom");
