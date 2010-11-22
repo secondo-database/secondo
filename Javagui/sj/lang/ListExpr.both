@@ -1454,11 +1454,7 @@ public static ListExpr textAtom(String value){
   long v = getValue();
   try{
       byte [] textData;
-      if(gui.Environment.ENCODING!=null){
-          textData = value.getBytes(gui.Environment.ENCODING);
-      } else {
-          textData = value.getBytes();
-      }
+      textData = value.getBytes();
       if(!dbarray.put(v,textData)){
          Reporter.debug("Error in putting text into dbarray");
       }
@@ -1501,11 +1497,7 @@ public void appendText(String text){
      update(); // update this (length)
      try{
         byte[] theData;
-        if(gui.Environment.ENCODING!=null) {
-            theData = NewText.getBytes(gui.Environment.ENCODING);
-        } else {
-            theData = NewText.getBytes();
-        }
+        theData = NewText.getBytes();
         if (! dbarray.put(v,theData)){ // write new text into the dbarray
            Reporter.debug("Error in writing text to dbarray ");
         }
@@ -2016,17 +2008,7 @@ public byte[] textValueAsByteArray () {
    return getTextBytes(v);
 #else
     if(value==null || !(value instanceof File)){ // main memory based
-       if(gui.Environment.ENCODING!=null) {
-          try{
-             return  ((String)this.value).getBytes(gui.Environment.ENCODING);
-         } catch (Exception e){
-            System.err.println("Invalid encoding detected");
-            System.exit(0);
-            return null;
-         }
-       } else {
            return  ((String)this.value).getBytes();
-       }
     }else{
        try{
          File F = (File) value;
@@ -2068,11 +2050,7 @@ public InputStream textValueAsInputStream() throws IOException{
   return new ByteArrayInputStream(b);
 #else
   if(!(value instanceof File)){
-    if(gui.Environment.ENCODING!=null) {
-       return new ByteArrayInputStream( ((String)value).getBytes(gui.Environment.ENCODING));
-    } else {
-       return new ByteArrayInputStream( ((String)value).getBytes());
-    }
+    return new ByteArrayInputStream( ((String)value).getBytes());
   }else{
     return new FileInputStream((File)value);
   }
@@ -2310,11 +2288,7 @@ private static ListExpr stringValuedAtom(String value,byte atomType){
  long SKey = getNextKey();
  try{
     byte[] StringBytes;
-    if(gui.Environment.ENCODING!=null){
-        StringBytes  = value.getBytes(gui.Environment.ENCODING);
-    } else {
-        StringBytes = value.getBytes();
-    }
+    StringBytes = value.getBytes();
     if(!dbarray.put(SKey,StringBytes)){
         Reporter.debug("Error in putting text into dbarray ");
          return null;
@@ -2365,11 +2339,7 @@ private static byte[] getTextBytes(long key){
 
 private static String getText(long key){
   try{
-     if(gui.Environment.ENCODING!=null) {
-         return new String(getTextBytes(key),gui.Environment.ENCODING);
-     } else {
-         return new String(getTextBytes(key));
-    }
+    return new String(getTextBytes(key));
   } catch(Exception e){
     Reporter.debug(e);
     return null;
