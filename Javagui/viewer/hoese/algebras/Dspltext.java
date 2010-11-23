@@ -230,10 +230,10 @@ private String encoding="UTF-8";
 public TextViewerFrame(){
 
   getContentPane().setLayout(new BorderLayout());
-  Display = new JEditorPane();
+  Display = new JTextPane();
   if(EKHtml==null){
-      EKHtml = JEditorPane.createEditorKitForContentType("text/html");
-      EKRtf = JEditorPane.createEditorKitForContentType("text/rtf");
+      EKHtml = JTextPane.createEditorKitForContentType("text/html");
+      EKRtf = JTextPane.createEditorKitForContentType("text/rtf");
   }
 
   TextScrollPane = new JScrollPane(Display);
@@ -501,7 +501,24 @@ private void setToPlain(boolean isError){
     }
     
     LastSearchPos=0;
-    Display.setContentType("text/plain; charset="+encoding);
+
+    String contentType = "text/plain; charset="+encoding;
+
+   // Display.setContentType(contentType);
+
+    EditorKit EKPlain = Display.getEditorKitForContentType(contentType);
+
+    /*
+     Before switching to plain text, we switch to rtf.
+     This is a work around to avoid display failures when switching directly
+     from html to plain text. 
+    */
+    Display.setEditorKit(EKRtf);
+
+
+    Display.setEditorKit(EKPlain);
+
+
     Display.setEditable(true);
     try{
        TextViewerFrame.this.Display.read( new InputStreamReader(
@@ -519,14 +536,15 @@ private void setToPlain(boolean isError){
     HtmlBtn.setEnabled(true);
     RtfBtn.setEnabled(true);
     PdfBtn.setEnabled(true);
+    Display.updateUI();
     if(ISPDF){
        getContentPane().remove(pdf_viewer); 
        getContentPane().add(TextPanel,BorderLayout.CENTER);
        ISPDF=false;
-       invalidate();
-       validate();
-       repaint();
     } 
+    invalidate();
+    validate();
+    repaint();
 }
 
 public void setSource(Dspltext S){
@@ -728,7 +746,7 @@ static final float SCALEFACTOR=1.2F;
 }
 
 
-private JEditorPane Display;
+private JTextPane Display;
 private JButton CloseBtn;
 private JButton SaveBtn;
 private JFileChooser fileChooser;
