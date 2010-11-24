@@ -632,6 +632,8 @@ The simple constructor should not be used.
 
     void Clear();
 
+    static void* Cast(void* addr);
+
     virtual MGPoint* Clone() const;
 
     void CopyFrom(const Attribute* right)

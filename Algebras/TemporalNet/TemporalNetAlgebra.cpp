@@ -1667,6 +1667,10 @@ void MGPoint::Clear()
   //}
 }
 
+void* MGPoint::Cast(void* addr)
+{
+  return new (addr) MGPoint;
+}
 
 bool MGPoint::Check(ListExpr type,
                     ListExpr& errorInfo)
@@ -4627,9 +4631,16 @@ bool MGPoint::Passes(GLine *&gl){
 
 
 MGPoint* MGPoint::Clone() const {
-  MGPoint *result = new MGPoint( GetNoComponents() );
-  if(GetNoComponents()>0){
-      result->units.resize(GetNoComponents());
+  if (!IsDefined())
+  {
+    MGPoint* result = new MGPoint(0);
+    result->SetDefined(false);
+  }
+
+  MGPoint* result = new MGPoint( GetNoComponents() );
+  if(GetNoComponents()>0)
+  {
+    result->units.resize(GetNoComponents());
   }
   result->StartBulkLoad();
   UGPoint unit;
@@ -5251,6 +5262,7 @@ struct mgpFunctions:ConstructorFunctions<MGPoint>{
     clone = CloneMapping<MGPoint>;
     sizeOf = SizeOfMapping<MGPoint>;
     kindCheck = MGPoint::Check;
+    cast = MGPoint::Cast;
   }
 };
 
