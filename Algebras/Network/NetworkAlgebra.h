@@ -290,10 +290,14 @@ class GPoint : public Attribute
     GPoint():Attribute()
     {}
 
+    GPoint(bool def)
+      : Attribute(def)
+    {}
+
     GPoint( bool in_bDefined,
-            int in_iNetworkId = 0,
-            int in_xRid = 0,
-            double in_dLocation = 0.0,
+            int in_iNetworkId,
+            int in_xRid,
+            double in_dLocation,
             Side in_xSide = None ):
     Attribute(in_bDefined),
     m_iNetworkId( in_iNetworkId ),
