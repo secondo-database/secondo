@@ -336,6 +336,11 @@ void BusRoute::CreateRoute2(int attr,int attr1,int attr2,int attr3)
     tuple_cell_pair->DeleteIfAllowed(); 
   
   }
+  ///////////////////add several special routes//////////////////////////
+  /////////maybe not the shortest path, cycle route//////////////////////
+  ////////////////////////////////////////////////////////////////////////
+  
+  
 }
 
 /*
