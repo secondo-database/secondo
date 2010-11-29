@@ -1,0 +1,165 @@
+
+This document describes, how to create an environment able to
+compile secondo on a fresh installed SuSe 11.3.
+
+
+First, be sure that the system is up to date,
+
+After a standard installation of SuSe 11.3, no develeper tools 
+are installed. So, you have to install various packets to be able 
+to compile Secondo.
+To do so, start the package management (yast) and install the
+following packages:
+
+make
+flex
+bison
+libjpeg-devel
+swipl
+gsl-devel
+readline-devel
+gmp-devel
+java-1_6_0_openjdk-devel
+gcc
+gcc-c++
+graphviz-devel
+
+
+Yast will report a lot of additional packages to be installed. Just accept it.
+
+
+Unfortunately, there is no package available including the c++ api of the
+Berkeley DB. It is required to configure and make the Berkely DB manually.
+
+Get the Berkeley DB without encryption filename "db-?.?.??.NC.tar.gz"
+for example from oracle.com.
+
+copy the file into an empty directory and unpack the file using the following
+command:
+
+tar -xzf *.tar.gz
+
+This creates a single directory having the name of the file without .tar.gz.
+Change to this directory.
+
+After that, change to the build_unix directory and enter the commands
+  
+mkdir $HOME/BDB
+
+../dist/configure --prefix=$HOME/BDB --enable-cxx
+
+This should be finished correctly
+
+Then type
+
+make
+
+.. and after some time type:
+
+make install
+
+After finishing the installation of the Berkeley DB, a file is needed to set 
+some environments variables. Because the locations for different systems 
+also differ, here are listed the file content for both operation systems 
+(32 bit and 64 bit).
+Just copy the content into a file called $HOME/.secondorc
+
+
+File for 32 bit environment:
+
+
+##################  .secondorc for 32 bit SuSe 11.3 environment #######
+
+if [ -n "$1" ]; then
+  export SECONDO_BUILD_DIR=$1
+else
+  export SECONDO_BUILD_DIR=$PWD
+fi 
+
+export SECONDO_PLATFORM=linux
+export BDB_DIR=$HOME/BDB
+
+export BERKELEY_DB_DIR=$BDB_DIR
+export BERKELEY_DB_LIB=db_cxx
+
+export J2SDK_ROOT=//usr/lib/jvm/java-1.6.0-openjdk/
+export SWI_HOME_DIR=/usr/lib/swipl-5.10.0/
+export PL_LIB_DIR=$SWI_HOME_DIR/lib/i686-linux
+export PL_LIB=swipl
+export PL_INCLUDE_DIR=$SWI_HOME_DIR/include
+export PL_VERSION=50647
+export readline=true
+export PATH=$PATH:.
+export SECONDO_CONFIG=$SECONDO_BUILD_DIR/bin/SecondoConfig.ini
+export JAVAVER="1.6"
+
+export PATH=.:$BDB_DIR/bin:$PATH
+
+
+export LD_LIBRARY_PATH=$BDB_DIR/lib:/usr/lib/swipl-5.10.0/lib/i686-linux/
+                                               
+##################### end of file ######################################
+
+
+For a 64 bit environment, use the following content:
+
+########### .secondorc for 64 bit SuSe 11.3 environment ##################
+
+if [ -n "$1" ]; then
+  export SECONDO_BUILD_DIR=$1
+else
+  export SECONDO_BUILD_DIR=$PWD
+fi
+
+
+export SECONDO_PLATFORM=linux64
+
+# berkeley db  
+export BDB_DIR=/home/secondo/BDB
+
+export BERKELEY_DB_DIR=$BDB_DIR
+export BERKELEY_DB_LIB=db_cxx
+
+
+# java
+export J2SDK_ROOT=/usr/lib64/jvm/java-1.6.0-openjdk-1.6.0/
+export JAVAVER="1.6"
+
+# prolog related
+export SWI_HOME_DIR=/usr/lib64/swipl-5.10.0
+export PL_LIB_DIR=$SWI_HOME_DIR/lib/x86_64-linux/
+export PL_LIB=swipl
+export PL_INCLUDE_DIR=$SWI_HOME_DIR/include
+export PL_VERSION=51000  
+export JPL_DLL=$PL_LIB_DIR/libjpl.so
+export JPL_JAR=$SWI_HOME_DIR/lib/jpl.jar
+
+
+# other
+export readline=true
+
+export PATH=$PATH:.
+#export SECONDO_CONFIG=$SECONDO_BUILD_DIR/bin/SecondoConfig.ini
+
+export PATH=.:$BDB_DIR/bin:$PATH
+
+
+export LD_LIBRARY_PATH=$BDB_DIR/lib:$PL_LIB_DIR
+
+
+
+
+############## end of file #################################
+
+
+
+
+After that, add the following entry into the file $HOME/.bashrc file
+
+source ~/.secondorc $HOME/secondo
+
+
+
+Now, you are able to compile secondo (see Secondo User's Manual).
+
+

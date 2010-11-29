@@ -1,0 +1,83 @@
+
+Secondo 3.0 Installation on Ubuntu 9.10
+=======================================
+
+
+1 Required Packages
+-------------------
+
+For compiling and running Secondo 3.0 on Ubuntu 9.10 you don't need 
+any special versions of software packages. Just install the versions
+of the tools provided by the standard system. 
+
+On our system this was:
+
+Berkeley-DB 4.6
+SWI-Prolog 5.6.64
+gcc 4.4.1-ubuntu9
+flex 2.35
+bison 2.4.1
+java 1.6.0
+make 3.8.1
+bash 4.0.33
+libjpeg 6.2
+libreadline 5.2
+libgsl 1.12 
+
+Install missing packages using your preferred tool 
+(synaptic package manager / apt-get).
+
+
+2 Installing Secondo
+--------------------
+
+Download Secondo version 3.0 (linux version) from the website:
+  http://dna.fernuni-hagen.de/secondo
+and unpack the file within your home directory using 
+  tar -xzf <file>. 
+
+Create a file ".secondorc" within your home directory having 
+the following content:
+
+export SECONDO_PLATFORM=linux64
+export SECONDO_BUILD_DIR=$HOME/secondo
+export BERKELEY_DB_LIB="db_cxx"
+export BERKELEY_DB_DIR=/usr
+export J2SDK_ROOT=/usr/lib/jvm/java-6-sun-1.6.0.15/
+export SWI_HOME_DIR=/usr/lib/swi-prolog
+export PL_LIB_DIR=$SWI_HOME_DIR/lib/amd64
+export PL_INCLUDE_DIR=$SWI_HOME_DIR/include
+export PL_VERSION=50647
+export SECONDO_JAVA=$J2SDK_ROOT/bin/java
+export readline=true
+export PATH=$PATH:.:$SECONDO_BUILD_DIR/Tools/pd
+export SECONDO_CONFIG=$SECONDO_BUILD_DIR/bin/SecondoConfig.ini
+export JAVAVER=1.6
+
+alias secroot='export SECONDO_BUILD_DIR=$PWD'
+
+
+If you want to run Secondo on a 32 bit Ubuntu, change the first line to
+export SECONDO_PLATFORM=linux
+You may also need to adjust some path variables, especially PL_LIB_DIR has to
+be set according to your local platform.
+
+Edit your file ".bashrc" located in your home directory by adding the following 
+lines:
+
+source .secondorc
+
+Close your terminal and start a new bash. 
+
+After that you have to patch Secondo to run on Ubuntu. To do so, just
+call from the bash:
+  $HOME/secondo/CM-Scripts/patchUbuntu804
+
+Then you can compile Secondo:
+
+  cd secondo
+  make
+
+Read the Secondo User Manual for further instructions and enjoy the
+Secondo extensible database system.
+
