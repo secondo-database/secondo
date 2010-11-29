@@ -97,6 +97,12 @@ export PATH=.:$BDB_DIR/bin:$PATH
 
 
 export LD_LIBRARY_PATH=$BDB_DIR/lib:/usr/lib/swipl-5.10.0/lib/i686-linux/
+
+# enable the pd system
+export PATH=$PATH:$SECONDO_BUILD_DIR/Tools/pd
+export PD_HEADER=$SECONDO_BUILD_DIR/Tools/pd/pd_header_listing
+
+
                                                
 ##################### end of file ######################################
 
@@ -146,6 +152,9 @@ export PATH=.:$BDB_DIR/bin:$PATH
 
 export LD_LIBRARY_PATH=$BDB_DIR/lib:$PL_LIB_DIR
 
+# enable the pd system
+export PATH=$PATH:$SECONDO_BUILD_DIR/Tools/pd
+export PD_HEADER=$SECONDO_BUILD_DIR/Tools/pd/pd_header_listing
 
 
 
