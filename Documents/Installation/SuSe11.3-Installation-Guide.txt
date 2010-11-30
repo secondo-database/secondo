@@ -54,7 +54,7 @@ Then type
 
 make
 
-.. and after some time type:
+After compilation has finished. type:
 
 make install
 
@@ -65,8 +65,7 @@ also differ, here are listed the file content for both operation systems
 Just copy the content into a file called $HOME/.secondorc
 
 
-File for 32 bit environment:
-
+File for a 32 bit environment:
 
 ##################  .secondorc for 32 bit SuSe 11.3 environment #######
 
@@ -161,12 +160,13 @@ export PD_HEADER=$SECONDO_BUILD_DIR/Tools/pd/pd_header_listing
 ############## end of file #################################
 
 
+Download and unpack the Secondo source code, so that it is rooted at
+a directory ~/secondo. If you choose an other directory for the source 
+root, you need to adapt the command in the next step: 
 
-
-After that, add the following entry into the file $HOME/.bashrc file
+Add the following entry into the file $HOME/.bashrc file:
 
 source ~/.secondorc $HOME/secondo
-
 
 
 Now, you are able to compile secondo (see Secondo User's Manual).
