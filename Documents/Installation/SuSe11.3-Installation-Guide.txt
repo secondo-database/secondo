@@ -1,35 +1,34 @@
 
 This document describes, how to create an environment able to
-compile secondo on a fresh installed SuSe 11.3.
+compile secondo on a fresh installed Open SuSe Linux 11.3.
 
+ (1) First, be sure that the Linux system is up to date.
 
-First, be sure that the system is up to date,
-
-After a standard installation of SuSe 11.3, no develeper tools 
+ (2) After a standard installation of SuSe 11.3, no develeper tools 
 are installed. So, you have to install various packets to be able 
-to compile Secondo.
-To do so, start the package management (yast) and install the
-following packages:
+to compile Secondo. 
 
-make
-flex
-bison
-libjpeg-devel
-swipl
-gsl-devel
-readline-devel
-gmp-devel
-java-1_6_0_openjdk-devel
-gcc
-gcc-c++
-graphviz-devel
+Start the package management (yast) and install the following packages:
 
+  make
+  flex
+  bison
+  libjpeg-devel
+  swipl
+  gsl-devel
+  readline-devel
+  gmp-devel
+  java-1_6_0_openjdk-devel
+  gcc
+  gcc-c++
+  graphviz-devel
 
-Yast will report a lot of additional packages to be installed. Just accept it.
+Yast will report a lot of additional packages to be installed. Just accept all 
+suggested changes.
 
-
-Unfortunately, there is no package available including the c++ api of the
-Berkeley DB. It is required to configure and make the Berkely DB manually.
+ (3) Unfortunately, there is no package available including the C++ API of the
+Berkeley DB. Hence, it is necessary to configure and make the Berkely DB 
+manually
 
 Get the Berkeley DB without encryption filename "db-?.?.??.NC.tar.gz"
 for example from oracle.com.
@@ -37,35 +36,41 @@ for example from oracle.com.
 copy the file into an empty directory and unpack the file using the following
 command:
 
-tar -xzf *.tar.gz
+  tar -xzf *.tar.gz
 
 This creates a single directory having the name of the file without .tar.gz.
 Change to this directory.
 
 After that, change to the build_unix directory and enter the commands
   
-mkdir $HOME/BDB
+  mkdir $HOME/BDB
 
-../dist/configure --prefix=$HOME/BDB --enable-cxx
+  ../dist/configure --prefix=$HOME/BDB --enable-cxx
 
 This should be finished correctly
 
 Then type
 
-make
+  make
 
-After compilation has finished. type:
+and after compilation has finished, type
 
-make install
+  make install
 
-After finishing the installation of the Berkeley DB, a file is needed to set 
-some environments variables. Because the locations for different systems 
-also differ, here are listed the file content for both operation systems 
-(32 bit and 64 bit).
-Just copy the content into a file called $HOME/.secondorc
+ (4) After finishing the installation of the Berkeley DB, a file is needed to 
+set some environments variables. Because the locations for libraries and 
+includes differ for 32 and 64 bit systems, two different sets of commands are 
+required. Depending on your installed system, either choose the section for 32 
+bit or 64 bit platforms and copy the content into a file called 
+$HOME/.secondorc
 
+If you are unsure about your system, you may type
 
-File for a 32 bit environment:
+  uname -a
+
+to find out about the running Linux kernel. 
+
+File contents for $HOME/.secondorc on a 32 bit environment:
 
 ##################  .secondorc for 32 bit SuSe 11.3 environment #######
 
@@ -106,7 +111,7 @@ export PD_HEADER=$SECONDO_BUILD_DIR/Tools/pd/pd_header_listing
 ##################### end of file ######################################
 
 
-For a 64 bit environment, use the following content:
+File contents for $HOME/.secondorc on a 64 bit environment:
 
 ########### .secondorc for 64 bit SuSe 11.3 environment ##################
 
@@ -160,15 +165,13 @@ export PD_HEADER=$SECONDO_BUILD_DIR/Tools/pd/pd_header_listing
 ############## end of file #################################
 
 
-Download and unpack the Secondo source code, so that it is rooted at
+ (5) Download and unpack the Secondo source code, so that it is rooted at
 a directory ~/secondo. If you choose an other directory for the source 
-root, you need to adapt the command in the next step: 
+root, you need to adapt the command in the next step. 
 
-Add the following entry into the file $HOME/.bashrc file:
+ (6) Add the following entry into the file $HOME/.bashrc file:
 
-source ~/.secondorc $HOME/secondo
-
-
-Now, you are able to compile secondo (see Secondo User's Manual).
+  source ~/.secondorc $HOME/secondo
 
 
+Now, you are finally able to compile Secondo (see Secondo User's Manual).
