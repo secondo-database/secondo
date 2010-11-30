@@ -3721,6 +3721,7 @@ isNotOfSecond(X, X, Y) :- Y = attr(_, 2, _).
 Begin of Goehr's extension
 
 The same as above, but for three attributes (return order: X, Y, Z).
+
 */
 
 isOfFirst(X, X, _, _) :- X = attr(_, 1, _).
