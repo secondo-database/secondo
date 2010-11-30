@@ -44,6 +44,7 @@ June 2009 Sven Jungnickel new function MakeTemp() added.
 #ifdef SECONDO_WIN32
 #include <io.h>
 #include <windows.h>
+#include <time.h>
 #else
 #include <unistd.h>
 #include <sys/stat.h>

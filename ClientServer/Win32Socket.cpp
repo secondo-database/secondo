@@ -39,6 +39,7 @@ For a description of the public interface see the ~SocketIO~ header file.
 #include <cstdio>
 #include <string.h>
 #include <string>
+#include <assert.h>
 
 #define MAX_HOST_NAME  256
 #define MILLISECOND   1000
