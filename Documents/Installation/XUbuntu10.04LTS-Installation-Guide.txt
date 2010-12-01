@@ -24,7 +24,7 @@ Installation of Secondo on Xubuntu 10.04
     sudo apt-get install swi-prolog
     sudo apt-get install libjpeg62
     sudo apt-get install libjpeg62-dev
-    sudo apt-get install libgsk0-dev
+    sudo apt-get install libgsl0-dev
     sudo apt-get install openjdk-6-jdk
 
     (you can also use the sun sdk)
