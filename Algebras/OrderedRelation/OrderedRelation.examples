@@ -18,3 +18,10 @@ Number   : 1
 Signature: (orel (tuple (a1:t1,a2:t2,...,an:tn)) (ai1 ai2 ... ain)) x (ti1 ti2) -> (stream (tuple X))
 Example  : query (Orte feed oconsume[BevT] orange[500;800] count) = (Orte feed filter[.BevT>= 500] filter[.BevT <= 800] count)
 Result   : TRUE
+
+Operator : oshortestpath
+Number   : 1
+Signature: (orel (tuple (a1:t1,a2:t2,...,an:tn)) (ai1)) x int x int x (tuple->real) -> stream(tuple(a1:t1,...an+1:tn+1))
+Example  : query Orte;
+Result   : TRUE
+

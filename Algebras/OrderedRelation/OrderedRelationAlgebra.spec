@@ -20,3 +20,4 @@
 operator oleftrange alias OLEFTRANGE pattern _ op [list]
 operator orightrange alias ORIGHTRANGE pattern _ op [list]
 operator orange alias ORANGE pattern _ op [list; list]
+operator oshortestpath alias OSHORTESTPATH pattern _ op [_,_;_]
