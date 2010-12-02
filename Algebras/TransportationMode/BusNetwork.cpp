@@ -893,6 +893,97 @@ int BusRoute::FilterBusRoute(GLine* gl1, GLine* gl2, int br_id1, int br_id2)
   return 0; 
 }
 
+/*
+calculate the total length of bus routes. of course it does not include 
+redundant one. and get the percentage of bus routes in road network 
+
+*/
+float BusRoute::BusRouteInRoad(int attr1)
+{
+  vector<RouteInterval> ri_list;
+
+  for(int i = 1;i <= rel1->GetNoTuples();i++){
+    Tuple* tuple_bus_route = rel1->GetTuple(i, false);
+    GLine* gl = (GLine*)tuple_bus_route->GetAttribute(attr1); 
+
+    for(int j = 0; j < gl->Size();j++){
+      RouteInterval* ri = new RouteInterval();
+      gl->Get(j, *ri); 
+      if(ri->GetStartPos() > ri->GetEndPos()){
+          double temp = ri->GetStartPos();
+          ri->SetStartPos(ri->GetEndPos());
+          ri->SetEndPos(temp); 
+      }
+      ri_list.push_back(*ri);
+    }
+    tuple_bus_route->DeleteIfAllowed();
+  }
+  sort(ri_list.begin(), ri_list.end(), CompareRouteInterval);
+  //////////////// merge intervals from the same route ////////////////////
+  int last_rid = -1; 
+  vector<RouteInterval> ri_list1; 
+  vector<RouteInterval> ri_list2; 
+
+  const double dist_delta = 0.01; 
+  for(unsigned int i = 0;i < ri_list.size();i++){
+//      ri_list[i].Print(cout); 
+
+      if(ri_list[i].GetRouteId() != last_rid){
+  
+        last_rid = ri_list[i].GetRouteId();   
+        for(unsigned int j = 0;j < ri_list1.size();j++){
+          ri_list2.push_back(ri_list1[j]);
+        }
+        ri_list1.clear();
+        ri_list1.push_back(ri_list[i]);
+      }else{
+
+           unsigned int index = ri_list1.size() - 1; 
+            if(ri_list[i].GetStartPos() > ri_list1[index].GetEndPos()){
+              ri_list1.push_back(ri_list[i]);
+           }else if(ri_list1[index].GetStartPos() < ri_list[i].GetStartPos() &&
+                   ri_list[i].GetStartPos() < ri_list1[index].GetEndPos() &&
+                   ri_list[i].GetEndPos() > ri_list1[index].GetEndPos()){
+              ri_list1[index].SetEndPos(ri_list[i].GetEndPos());
+           }else if((fabs(ri_list[i].GetStartPos() - 
+                         ri_list1[index].GetStartPos()) < dist_delta ||
+                    fabs(ri_list[i].GetStartPos() - 
+                         ri_list1[index].GetEndPos()) < dist_delta)  &&
+                  ri_list[i].GetEndPos() > ri_list1[index].GetEndPos()){
+              ri_list1[index].SetEndPos(ri_list[i].GetEndPos());
+           }
+      }
+  }
+  //////////////////////////////////////////////////////////////////////////
+  double length1 = 0.0;
+  for(unsigned int i = 0;i < ri_list2.size();i++){
+//    ri_list2[i].Print(cout); 
+    length1 += fabs(ri_list2[i].GetEndPos() - ri_list2[i].GetStartPos());
+  }
+
+  for(unsigned int i = 0;i < ri_list1.size();i++){
+//    ri_list1[i].Print(cout); 
+    length1 += fabs(ri_list1[i].GetEndPos() - ri_list1[i].GetStartPos());
+  }
+
+  double length2 = 0.0; 
+  Relation* roads_rel = n->GetRoutes();
+  for(int i = 1;i <= roads_rel->GetNoTuples();i++){
+    Tuple* road_tuple = roads_rel->GetTuple(i, false);
+    SimpleLine* curve = (SimpleLine*)road_tuple->GetAttribute(ROUTE_CURVE);
+    length2 += curve->Length();
+    road_tuple->DeleteIfAllowed();
+  }
+  length1 = length1/1000.0;
+  length2 = length2/1000.0;
+  
+  
+  cout.setf(ios::fixed);
+  cout<<setprecision(4)
+  <<"bus route length "<<length1<<"km road length "<<length2<<"km"<<endl; 
+  return length1/length2; 
+}
+
 
 /*
 translate a bus route into two routes, down and up
@@ -2216,6 +2307,8 @@ void BusRoute::CreateBusStop4(int attr_a,int attr_b,int attr1,int attr2,
 //      <<" sline list size "<<sline_list.size()<<endl; 
       
   const double dist_delta = 0.01; 
+  int stop_loc_id = 1; //unique spatial location before transfer up and down  
+  
   for(unsigned int i = 0;i < bus_stop_list.size();i++){
     vector<BusStop_Ext> bus_stop_list_new; 
   
@@ -2316,6 +2409,9 @@ void BusRoute::CreateBusStop4(int attr_a,int attr_b,int attr1,int attr2,
       end_gp.push_back(intersect_ps[0].loc);
       bus_stop_loc_3.push_back(pos1); 
 //      bus_sections1.push_back(*l1);  /////////////for debuging/////////
+
+      /// unique spatial location: no up and down 
+      stop_loc_id_list.push_back(stop_loc_id);
       
       
       br_id_list.push_back(bs_ext.br_id);
@@ -2325,9 +2421,13 @@ void BusRoute::CreateBusStop4(int attr_a,int attr_b,int attr1,int attr2,
       end_gp.push_back(intersect_ps[1].loc);
       bus_stop_loc_3.push_back(pos2); 
 //      bus_sections1.push_back(*l2);  /////////////for debuging/////////
+
+      /// unique spatial location: no up and down 
+      stop_loc_id_list.push_back(stop_loc_id);///// unique spatial location 
       
     }
 
+    stop_loc_id++;//another differnt spatial location in space 
   }
       
     //////////////   relation  ///////////////////////////
@@ -4274,7 +4374,7 @@ void RoadDenstiy::CreateLocTable(vector<BusStop_Ext> bus_stop_list_new,
               Instant et = up.timeInterval.end; 
               double d_st = st.ToDouble();
               double d_et = et.ToDouble();
-              assert(AlmostEqual(fabs(d_st-d_et), stop_time));//30 seconds 
+              assert(AlmostEqual(fabs(d_st-d_et), stop_time));//check 30 seconds
               schedule_t = st; 
               find = true;
             }  
@@ -4320,6 +4420,1049 @@ void RoadDenstiy::CreateLocTable(vector<BusStop_Ext> bus_stop_list_new,
      delete search_trip_id;
     ////////////////////////////////////////////////////////////////////
   }
+}
+
+/*
+create time table at each spatial location. several bus stops from different
+bus routes can locate at the same spatial location 
+Compact Storage:
+loc:point lineid:int stopid:int direction:bool deftime:periods
+locid:int scheduleinterval:double 
+
+for one route, one direction, one stop, it has at most four tuples
+night1 night2 sunday monday 
+
+or only two tuples: sunday mondy 
+
+*/
+void RoadDenstiy::CreateTimeTable_Compact(Periods* peri1, Periods* peri2)
+{
+  ////////////collect all bus stops /////////////////////////////////
+  vector<BusStop_Ext> bus_stop_list;
+  for(int i = 1;i <= rel1->GetNoTuples();i++){
+    Tuple* tuple_bus_stop = rel1->GetTuple(i, false);
+    int br_id = ((CcInt*)tuple_bus_stop->GetAttribute(BR_ID4))->GetIntval();
+    int stop_id = 
+        ((CcInt*)tuple_bus_stop->GetAttribute(BUS_STOP_ID))->GetIntval();
+    Point* loc = (Point*)tuple_bus_stop->GetAttribute(BUS_LOC);
+    bool start_small = 
+          ((CcBool*)tuple_bus_stop->GetAttribute(STOP_DIRECTION))->GetBoolval();
+
+    BusStop_Ext* bse = new BusStop_Ext(br_id,stop_id,0,*loc,start_small);
+    bus_stop_list.push_back(*bse);
+    delete bse; 
+    tuple_bus_stop->DeleteIfAllowed();
+  }    
+  
+  sort(bus_stop_list.begin(), bus_stop_list.end());
+//  cout<<"bus_stop_list size "<<bus_stop_list.size()<<endl; 
+  
+  const double dist_delta = 0.01; 
+  unsigned int temp_count = 1;
+  for(unsigned int i = 0;i < bus_stop_list.size();i++){
+    vector<BusStop_Ext> bus_stop_list_new; 
+  
+    bus_stop_list_new.push_back(bus_stop_list[i]);
+  
+    ////////collect all bus stops mapping to the same 2D point in space/////
+    unsigned int j = i + 1;
+    BusStop_Ext bse = bus_stop_list_new[0]; 
+//    bse.Print();
+    
+    while(j < bus_stop_list.size() &&
+        bus_stop_list[j].loc.Distance(bse.loc) < dist_delta ){
+        bus_stop_list_new.push_back(bus_stop_list[j]);
+        j++; 
+    }
+    i = j - 1; 
+    ///////////////////process bus stop list new ///////////////////////////
+//    cout<<"sub size "<<bus_stop_list_new.size()<<endl; 
+
+    CreateLocTable_Compact(bus_stop_list_new,temp_count,peri1,peri2);
+
+    temp_count++; 
+    
+//    break; 
+  }  
+}
+
+/*
+get the time table for one spatial location 
+
+*/
+void RoadDenstiy::CreateLocTable_Compact(vector<BusStop_Ext> bus_stop_list_new, 
+                                 int count_id, Periods* peri1, Periods* peri2)
+{
+//  cout<<"bus_stop_list_new size "<<bus_stop_list_new.size()<<endl; 
+
+  Point loc = bus_stop_list_new[0].loc; 
+
+//  cout<<"bus stop location "<<loc<<endl; 
+  
+  for(unsigned int i = 0;i < bus_stop_list_new.size();i++){
+      int br_id = bus_stop_list_new[i].br_id;
+      bool direction = bus_stop_list_new[i].start_small;
+      int stop_id = bus_stop_list_new[i].br_stop_id;
+      
+//      if( !(br_id == 11 && direction)) continue; 
+
+//      cout<<"br_id "<<br_id<<" direction "<<direction<<endl; 
+
+      /////use btree to find all bus trips of this route ///////
+     CcInt* search_trip_id = new CcInt(true, br_id);
+     BTreeIterator* btree_iter = btree->ExactMatch(search_trip_id);
+
+     vector<MPoint> night_mo;
+     vector<MPoint> day_mo1; //Monday
+     vector<MPoint> day_mo2; //Sunday 
+
+     while(btree_iter->Next()){
+        Tuple* tuple_trip = rel2->GetTuple(btree_iter->GetId(), false);
+        int br_trip_id = 
+            ((CcInt*)tuple_trip->GetAttribute(BR_ID5))->GetIntval();
+        bool trip_direction = 
+            ((CcBool*)tuple_trip->GetAttribute(MO_BUS_DIRECTION))->GetBoolval();
+        assert(br_id == br_trip_id);
+        if(direction == trip_direction){
+          MPoint* mo = (MPoint*)tuple_trip->GetAttribute(BUS_TRIP);
+          string busday = 
+            ((CcString*)tuple_trip->GetAttribute(BUS_DAY))->GetValue();
+          string bus_type = 
+            ((CcString*)tuple_trip->GetAttribute(BUS_TYPE))->GetValue();
+          UPoint up;
+          mo->Get(0, up);
+          ////////////////////////////////////////////////////////////////////
+          ////////  classify the buses into groups according to time  ///////
+          //////////////////////////////////////////////////////////////////
+
+          if(bus_type.compare("night") == 0){// only need one day for night bus 
+              if(SameDay(up,peri1))
+                night_mo.push_back(*mo);
+          }else{
+            if(busday.compare("Monday") == 0){
+              day_mo1.push_back(*mo);
+            }  
+            else if(busday.compare("Sunday") == 0){
+              day_mo2.push_back(*mo);
+            }  
+            else assert(false);
+          }  
+          ////////////////////////////////////////////////////////////
+        }
+        tuple_trip->DeleteIfAllowed();
+     }
+     delete btree_iter;
+     delete search_trip_id;
+    ////////////////////////////////////////////////////////////////////
+//    cout<<"night_mo "<<night_mo.size()<<endl;
+//    cout<<"workday_mo "<<day_mo1.size()<<endl;
+//    cout<<"weekend_mo "<<day_mo2.size()<<endl; 
+
+    ////////////////////////////////////////////////////////////////////
+    if(night_mo.size() > 0)
+      CreatTableAtStopNight(night_mo,loc,br_id,stop_id,direction,
+                     peri1,peri2,count_id);
+    CreatTableAtStop(day_mo1,loc,br_id,stop_id,direction,count_id);
+    CreatTableAtStop(day_mo2,loc,br_id,stop_id,direction,count_id);
+    ////////////////////////////////////////////////////////////////////
+  }
+}
+
+/*
+check whether thay are in the same day 
+
+*/
+bool RoadDenstiy::SameDay(UPoint& up, Periods* peri1)
+{
+    Interval<Instant> periods1;
+    peri1->Get(0, periods1);
+    int day1 = up.timeInterval.start.GetDay();
+    int day2 = periods1.start.GetDay();
+    if(day1 == day2)return true;
+    else
+      return false; 
+}
+
+/*
+create table at one location for night buses 
+
+*/
+void RoadDenstiy::CreatTableAtStopNight(vector<MPoint>& mo_list, Point& loc, 
+                                   int br_id, int stop_id, bool dir,
+                                   Periods* night1, Periods* night2,
+                                   int count_id)
+{
+    Interval<Instant> periods1;
+    night1->Get(0, periods1);
+    Interval<Instant> periods2;
+    night2->Get(0, periods2);
+
+//    cout<<"peri1 "<<*night1<<" peri2 "<<*night2<<endl; 
+    
+    double e1 = periods1.end.ToDouble();
+
+    vector<MPoint> mo_list1;
+    vector<MPoint> mo_list2; 
+    for(unsigned int i = 0;i < mo_list.size();i++){
+      MPoint mo = mo_list[i];
+      UPoint up;
+      mo.Get(0, up);
+      double s = up.timeInterval.start.ToDouble(); 
+      if( s < e1 || AlmostEqual(s, e1))
+        mo_list1.push_back(mo_list[i]);
+      else 
+        mo_list2.push_back(mo_list[i]);
+    }
+//    cout<<"mo_list1 size "<<mo_list1.size()
+//        <<" mo_list2 size "<<mo_list2.size()<<endl; 
+
+    CreatTableAtStop(mo_list1,loc,br_id,stop_id,dir,count_id);
+    CreatTableAtStop(mo_list2,loc,br_id,stop_id,dir,count_id);
+}
+
+/*
+create time table for one location 
+
+*/
+void RoadDenstiy::CreatTableAtStop(vector<MPoint> trip_list, Point& loc,
+                                   int br_id, int stop_id, bool dir,
+                                   int count_id)
+{
+
+  assert(trip_list.size() >= 2);
+  
+  MPoint start_mo_0 = trip_list[0];
+  UPoint up1;
+  start_mo_0.Get(0, up1);//the start time of first trip 
+  Instant start_time_0 = up1.timeInterval.start;
+  Instant st = start_time_0;
+  GetTimeInstantStop(start_mo_0, loc,st); 
+  
+  /////////////cut second and millsecond ///////////////////////////////
+  int second_val_s = st.GetSecond(); 
+  int msecond_val_s = st.GetMillisecond(); 
+  double double_s = st.ToDouble() - 
+                       second_val_s/(24.0*60.0*60.0) -
+                       msecond_val_s/(24.0*60.0*60.0*1000.0);
+  st.ReadFrom(double_s);
+  /////////////////////////////////////////////////////////////////
+  
+  MPoint start_mo_1 = trip_list[1];
+  UPoint up2;
+  start_mo_1.Get(0, up1);//the start time of second trip 
+  Instant start_time_1 = up1.timeInterval.start;
+  
+
+  ///////////  get time interval for schedule  ///////////////////
+  double sch_interval = start_time_1.ToDouble() - start_time_0.ToDouble();
+  assert(sch_interval > 0.0);
+//  cout<<"schedule "<<sch_interval*24.0*60.0*60.0<<" seconds"<<endl; 
+  
+  ////////////////last bus trip ////////////////////////////////////
+  MPoint end_mo = trip_list[trip_list.size() - 1];
+  UPoint up3;
+  end_mo.Get(0, up3);//the start time of last trip 
+  Instant end_time  = up3.timeInterval.start; 
+  /////////////////cut second and millsecond ////////////////////////////////
+  Instant et = end_time;
+  
+  GetTimeInstantStop(end_mo, loc, et); 
+
+  int second_val_e = et.GetSecond(); 
+  int msecond_val_e = et.GetMillisecond(); 
+  double double_e = et.ToDouble() - 
+                       second_val_e/(24.0*60.0*60.0) -
+                       msecond_val_e/(24.0*60.0*60.0*1000.0);
+  et.ReadFrom(double_e);
+  ////////////////////////////////////////////////////////////////////////////
+  assert(second_val_s == second_val_e); 
+  Interval<Instant> time_span;
+  time_span.start = st;
+  time_span.lc = true;
+  time_span.end = et;
+  time_span.rc = true; 
+
+   Periods* peri = new Periods(0);
+   peri->StartBulkLoad();
+   peri->MergeAdd(time_span);
+   peri->EndBulkLoad();
+//   duration.push_back(*peri);
+//   cout<<"periods "<<*peri<<endl; 
 
 
+  bus_stop_loc.push_back(loc);
+  br_id_list.push_back(br_id);
+  bus_stop_id_list.push_back(stop_id);
+  br_direction.push_back(dir);
+  duration1.push_back(*peri);
+  unique_id_list.push_back(count_id);
+  schedule_interval.push_back(sch_interval);
+  delete peri; 
+
+  
+    ////////////////////////    check time  ////////////////////////////// 
+  for(unsigned int i = 0;i < trip_list.size();i++){ 
+    MPoint mo = trip_list[i];
+    Instant temp_instant;
+    GetTimeInstantStop(mo, loc, temp_instant);
+    int second_val = temp_instant.GetSecond();
+    assert(second_val == second_val_s);
+  }
+  //////////////////////////////////////////////////////////////////////// 
+}
+
+/*
+get the time that the train arrives at this point(stop)
+
+*/
+void RoadDenstiy::GetTimeInstantStop(MPoint& mo, Point loc, Instant& arrove_t)
+{
+  const double dist_delta = 0.01; 
+  const double stop_time = 30.0/(24.0*60.0*60.0); //30 seconds for buses  
+  for(int j = 0;j < mo.GetNoComponents();j++){
+      UPoint up;
+      mo.Get(j, up);
+      Point loc1 = up.p0;
+      Point loc2 = up.p1; 
+
+      if(loc1.Distance(loc2) < dist_delta && 
+         loc1.Distance(loc) < dist_delta){ //find the place 
+            Instant st = up.timeInterval.start;
+            Instant et = up.timeInterval.end; 
+            double d_st = st.ToDouble();
+            double d_et = et.ToDouble();
+            assert(AlmostEqual(fabs(d_st-d_et), stop_time));//check 30 seconds
+            arrove_t = st; 
+            return; 
+      }  
+ }
+  assert(false);
+}
+
+////////////////////////////////////////////////////////////////////////////
+//////////////////        Create UBahn Trains    ///////////////////////////
+////////////////////////////////////////////////////////////////////////////
+
+/*
+create UBahan Trains. use the original data. translate the time and copy 
+more trips 
+
+*/
+
+void UBTrain::CreateUBTrains(int attr1,int attr2,int attr3, Periods* peri)
+{
+//  cout<<"attr1 "<<attr1<<" attr2 "<<attr2<<" attr3 "<<attr3
+//      <<" Periods "<<*peri<<endl; 
+
+  //1.  take all bus trips from one line, one direction 
+  //2.  find the first schedule 
+  //3.  change the time according to peri
+  
+  vector<UBTrainTrip> trip_list; 
+  id_count = 1; 
+  for(int i = 1;i <= rel1->GetNoTuples();i++){
+    Tuple* tuple_trip = rel1->GetTuple(i, false);
+    int l_id = ((CcInt*)tuple_trip->GetAttribute(attr1))->GetIntval();
+    bool d = ((CcBool*)tuple_trip->GetAttribute(attr2))->GetBoolval();
+    MPoint* trip = (MPoint*)tuple_trip->GetAttribute(attr3); 
+    
+//    if(l_id != 15){
+//      tuple_trip->DeleteIfAllowed();
+//      continue; 
+//    }
+    UBTrainTrip* train_trip = new UBTrainTrip(l_id,d,*trip);
+    if(trip_list.size() == 0)
+      trip_list.push_back(*train_trip);
+    else{
+      UBTrainTrip last_trip = trip_list[trip_list.size() - 1];
+      if(train_trip->line_id == last_trip.line_id)
+        trip_list.push_back(*train_trip);
+      else{
+         ////////////process the train from the same line////////////////
+//        cout<<"l_id "<<l_id<<" d "<<d<<endl; 
+        CreateUBTrainTrip(trip_list, peri); 
+
+        trip_list.clear();
+        trip_list.push_back(*train_trip);
+      }
+
+    }
+    
+    delete train_trip; 
+    tuple_trip->DeleteIfAllowed();
+  }
+  
+  CreateUBTrainTrip(trip_list, peri);//process the last  
+  
+}
+
+/*
+create the UBahn Train Trip for each route 
+
+*/
+void UBTrain::CreateUBTrainTrip(vector<UBTrainTrip> trip_list, Periods* peri)
+{
+//  cout<<" size "<<trip_list.size()<<endl; 
+
+  vector<UBTrainTrip> trip_list_up;
+  vector<UBTrainTrip> trip_list_down;
+  for(unsigned int i = 0;i < trip_list.size();i++){
+    if(trip_list[i].direction)
+        trip_list_up.push_back(trip_list[i]);
+    else
+        trip_list_down.push_back(trip_list[i]);
+  }
+  
+  sort(trip_list_up.begin(), trip_list_up.end());
+  sort(trip_list_down.begin(), trip_list_down.end()); 
+
+  CreateTrainTrip(trip_list_up, peri); ///////// UP direction 
+  CreateTrainTrip(trip_list_down, peri);  ///////// DOWN direction 
+}
+
+/*
+create UBahn Trip 
+
+*/
+void UBTrain::CreateTrainTrip(vector<UBTrainTrip> trip_list, Periods* time_peri)
+{
+    /////////////create the time difference in days ////////////////////////
+    Periods* peri1 = new Periods(0);
+    trip_list[0].train_trip.DefTime(*peri1);
+    Interval<Instant> periods1;
+    peri1->Get(0, periods1);
+    delete peri1; 
+
+    Interval<Instant> periods2;
+    time_peri->Get(0, periods2);
+
+    int day1 = periods1.start.GetDay();
+    int day2 = periods2.start.GetDay();
+    
+    double waittime = 10.0/(24.0*60.0*60.0);
+    const double dist_delta = 0.01; 
+    ////////////get the first trip of new time ////////////////////////////
+    MPoint new_trip(0);
+    for(unsigned int i = 0;i < trip_list.size();i++){
+      Periods* peri = new Periods(0);
+      trip_list[i].train_trip.DefTime(*peri);
+      Interval<Instant> periods;
+      peri->Get(0, periods);
+      
+//      cout<<"old "<<periods<<endl; 
+    
+      MPoint mo = trip_list[i].train_trip;
+      MPoint* new_mo = new MPoint(0);
+      new_mo->StartBulkLoad();
+      
+      Instant start_time = periods.start; 
+//      cout<<"old start time "<<start_time<<endl;
+      start_time.ReadFrom(start_time.ToDouble() + (double)(day2-day1));
+//      cout<<"new start time "<<start_time<<endl; 
+      for(int j = 0;j < mo.GetNoComponents();j++){
+        if(j == 0 ){// add stop 10 seconds for waiting, the first stop  
+            UPoint up_temp;
+            mo.Get(0, up_temp);
+            Instant st = start_time;
+            st.ReadFrom(st.ToDouble() - waittime); 
+            Instant et = start_time;
+            up_temp.timeInterval.start = st;
+            up_temp.timeInterval.end = et;
+            if(up_temp.p0.Distance(up_temp.p1) > dist_delta){
+              up_temp.p1 = up_temp.p0; 
+              new_mo->Add(up_temp);
+            }else{
+              double delva = up_temp.timeInterval.end.ToDouble() - 
+                      up_temp.timeInterval.start.ToDouble();
+              assert(AlmostEqual(delva,waittime)); //check time deviation 
+            }  
+//            cout<<up_temp<<endl; 
+        }
+            
+        UPoint up;
+        mo.Get(j, up);
+        double time_interval = 
+             up.timeInterval.end.ToDouble() - up.timeInterval.start.ToDouble();
+        
+        UPoint* new_up = new UPoint(up);
+        new_up->timeInterval.start = start_time;
+        
+        Instant end_time = start_time;
+        end_time.ReadFrom(start_time.ToDouble() + time_interval);
+        new_up->timeInterval.end = end_time; 
+        start_time = end_time; 
+        new_mo->Add(*new_up);
+        delete new_up; 
+
+        if(j == mo.GetNoComponents() - 1){//last station, wait for 10 seconds 
+            UPoint up_temp;
+            mo.Get(j, up_temp);
+            Instant st = end_time;
+            Instant et = end_time;
+            et.ReadFrom(et.ToDouble() + waittime); 
+            up_temp.timeInterval.start = st;
+            up_temp.timeInterval.end = et;
+            if(up_temp.p0.Distance(up_temp.p1) > dist_delta){//the last stop 
+              up_temp.p0 = up_temp.p1; 
+              new_mo->Add(up_temp);
+            }else{
+              double delva = up_temp.timeInterval.end.ToDouble() - 
+                      up_temp.timeInterval.start.ToDouble();
+              assert(AlmostEqual(delva,waittime)); //check time deviation 
+            }  
+        }
+
+      }
+      new_mo->EndBulkLoad();
+      new_mo->DefTime(*peri);
+      peri->Get(0, periods);
+//      cout<<"new "<<periods<<endl; 
+      new_trip = *new_mo; 
+      delete new_mo;
+      delete peri; 
+      break;  ////////////////  only need to create the first trip 
+    }
+    
+    ////////////////////get the time schedule ///////////////////////////
+    assert(trip_list.size() > 2); 
+    
+    Periods* peri_1 = new Periods(0);
+    trip_list[0].train_trip.DefTime(*peri_1);
+    Interval<Instant> periods_1;
+    peri_1->Get(0, periods_1);
+
+    
+    Periods* peri_2 = new Periods(0);
+    trip_list[1].train_trip.DefTime(*peri_2);
+    Interval<Instant> periods_2;
+    peri_2->Get(0, periods_2);
+
+    delete peri_1;
+    delete peri_2; 
+    
+    double schedule_time = 
+        periods_2.start.ToDouble() - periods_1.start.ToDouble();
+        
+    int w_day = periods2.start.GetWeekday(); 
+    if(w_day != 0){
+      cout<<"the day should be Monday"<<endl; 
+      return; 
+    }
+
+    ///////////////copy the train trip//////////////////////////////////
+    int start_pos = id_list.size(); //record the start position 
+    
+    int schedule_id = 1; 
+    id_list.push_back(id_count);
+    id_count++; 
+    int train_line_id = trip_list[0].line_id;
+    bool train_direction = trip_list[0].direction;
+    line_id_list.push_back(train_line_id);
+    direction_list.push_back(train_direction); 
+    train_trip.push_back(new_trip); 
+    schedule_id_list.push_back(schedule_id);
+    schedule_id++; 
+
+    
+    Periods* peri_a = new Periods(0);
+    new_trip.DefTime(*peri_a);
+    peri_a->Get(0, periods_1);
+    Instant start_time = periods_1.start; 
+    
+    time_peri->Get(0, periods_2);
+    Instant end_time = periods_2.end; 
+    
+    while(start_time < end_time){
+        MPoint* mo = new MPoint(0);
+        mo->StartBulkLoad();
+        for(int i = 0;i < new_trip.GetNoComponents();i++){
+            UPoint up;
+            new_trip.Get(i, up);
+            Instant st = up.timeInterval.start;
+            st.ReadFrom(st.ToDouble() + (schedule_id - 1)*schedule_time);
+            Instant et = up.timeInterval.end;
+            et.ReadFrom(et.ToDouble() + (schedule_id - 1)*schedule_time);
+            up.timeInterval.start = st;
+            up.timeInterval.end = et;
+            mo->Add(up);
+        }
+        mo->EndBulkLoad();
+        /////////////////////////////////////////////////////////////////
+        mo->DefTime(*peri_a);
+        peri_a->Get(0, periods_1);
+        start_time = periods_1.start; 
+        start_time.ReadFrom(start_time.ToDouble() + schedule_time); 
+        ///////////////////////////////////////////////////////////////////
+        id_list.push_back(id_count);
+        id_count++; 
+        line_id_list.push_back(train_line_id);
+        direction_list.push_back(train_direction); 
+        train_trip.push_back(*mo); 
+        schedule_id_list.push_back(schedule_id);
+        schedule_id++; 
+        ///////////////////////////////////////////////////////////////////
+        delete mo; 
+    }
+
+    delete peri_a; 
+
+    int end_pos = id_list.size();//end position 
+    ////////////  make it one day more //////////////////////////
+    CopyTrainTrip(start_pos, end_pos, train_line_id,train_direction); 
+}
+
+/*
+let the UBahn train move one day more ---Sunday 
+
+*/
+void UBTrain::CopyTrainTrip(int start_pos, int end_pos,int line_id, bool d)
+{
+//  cout<<"start_pos "<<start_pos<<" end_pos "<<end_pos<<endl; 
+
+  int schedule_id = 1; 
+  for(int i = start_pos; i< end_pos;i++){//the same schedule 
+    MPoint mo = train_trip[i];
+    MPoint* new_mo = new MPoint(0);
+    new_mo->StartBulkLoad();
+    for(int j = 0;j < mo.GetNoComponents();j++){
+      UPoint up;
+      mo.Get(j, up);
+      Instant st = up.timeInterval.start;
+      st.ReadFrom(st.ToDouble() - 1.0);//one day before 
+      Instant et = up.timeInterval.end;
+      et.ReadFrom(et.ToDouble() - 1.0);//one day before
+      up.timeInterval.start = st;
+      up.timeInterval.end = et; 
+      new_mo->Add(up);
+    }
+    new_mo->EndBulkLoad();
+    /////////////////////////////////////////////////////////////////////
+    id_list.push_back(id_count);
+    id_count++; 
+    line_id_list.push_back(line_id);
+    direction_list.push_back(d); 
+    train_trip.push_back(*new_mo); 
+    schedule_id_list.push_back(schedule_id);
+    schedule_id++; 
+    /////////////////////////////////////////////////////////////////////
+    delete new_mo; 
+  }
+}
+
+/*
+extract train stops from train trip 
+
+*/
+
+void UBTrain::CreateUBTrainStop(int attr1, int attr2, int attr3)
+{
+//  cout<<"attr1 "<<attr1<<" attr2 "<<attr2<<" attr3 "<<attr3<<endl; 
+  const double delta_dist = 0.01; 
+
+  int last_line_id = 0; 
+  for(int i = 1;i <= rel1->GetNoTuples();i++){
+    Tuple* tuple_train = rel1->GetTuple(i, false);
+    int lineid = 
+          ((CcInt*)tuple_train->GetAttribute(attr1))->GetIntval();
+    bool direction =       
+          ((CcBool*)tuple_train->GetAttribute(attr2))->GetBoolval(); 
+    /////////we define the stop id increases along up direction
+    /////// it means id decreases along down direction 
+    int stopid = 1; 
+    if(last_line_id != lineid && direction){ //should be the same result 
+//    if(last_line_id != lineid && direction == false){
+        MPoint* mo = (MPoint*)tuple_train->GetAttribute(attr3); 
+        /////  extract bus stop from mo  ///// 
+        for(int j = 0;j < mo->GetNoComponents();j++){
+          UPoint up;
+          mo->Get(j, up);
+          if(up.p0.Distance(up.p1) < delta_dist){ //a stop position 
+              line_id_list.push_back(lineid);
+              stop_loc_list.push_back(up.p0);
+              stop_id_list.push_back(stopid);
+              stopid++;
+          }
+        }
+        last_line_id = lineid; 
+    }
+    tuple_train->DeleteIfAllowed();
+  }
+}
+
+/*
+create time tables for trains 
+
+*/
+void UBTrain::CreateTimeTable()
+{
+  ////////////////////    collect all train stations   /////////////////
+  vector<BusStop_Ext> station_list; 
+  for(int i = 1;i <= rel1->GetNoTuples();i++){
+      Tuple* tuple_stop = rel1->GetTuple(i, false);
+      int lineid = ((CcInt*)tuple_stop->GetAttribute(T_LINEID))->GetIntval();
+      Point* loc = (Point*)tuple_stop->GetAttribute(T_STOP_LOC);
+      int stopid = ((CcInt*)tuple_stop->GetAttribute(T_STOP_ID))->GetIntval(); 
+      BusStop_Ext* bs_e = new BusStop_Ext(lineid,stopid,0.0,*loc,true);
+      station_list.push_back(*bs_e);
+      delete bs_e; 
+      tuple_stop->DeleteIfAllowed(); 
+  }
+  sort(station_list.begin(), station_list.end());
+  
+  const double dist_delta = 0.01; 
+  unsigned int temp_count = 1;
+  for(unsigned int i = 0;i < station_list.size();i++){
+    vector<BusStop_Ext> station_list_new; 
+  
+    station_list_new.push_back(station_list[i]);
+  
+    ////////collect all bus stops mapping to the same 2D point in space/////
+    unsigned int j = i + 1;
+    BusStop_Ext bse = station_list_new[0]; 
+//    bse.Print();
+    
+    while(j < station_list.size() &&
+        station_list[j].loc.Distance(bse.loc) < dist_delta ){
+        station_list_new.push_back(station_list[j]);
+        j++; 
+    }
+    i = j - 1; 
+    ///////////////////process train station list new /////////////////////
+    CreateLocTable(station_list_new,temp_count);
+    temp_count++; 
+
+  }  
+
+//  cout<<"different spatial locations "<<temp_count - 1<<endl; 
+
+}
+
+/*
+find the time table for one spatial location 
+Time tables for trains are the same on Sunday and Monday 
+
+*/
+
+void UBTrain::CreateLocTable(vector<BusStop_Ext> station_list_new,int count_id)
+{
+//  cout<<"size "<<station_list_new.size()<<endl; 
+
+  Point loc = station_list_new[0].loc; 
+  
+//  cout<<"bus stop location "<<loc<<endl; 
+  
+  const double dist_delta = 0.01; 
+  const double stop_time = 10.0/(24.0*60.0*60.0); //10 seconds for trains 
+  
+  for(unsigned int i = 0;i < station_list_new.size();i++){
+      int br_id = station_list_new[i].br_id;
+      int stop_id = station_list_new[i].br_stop_id;
+      /////use btree to find all bus trips of this route ///////
+     CcInt* search_trip_id = new CcInt(true, br_id);
+     BTreeIterator* btree_iter = btree1->ExactMatch(search_trip_id);
+     while(btree_iter->Next()){
+        Tuple* tuple_trip = rel2->GetTuple(btree_iter->GetId(), false);
+        int br_trip_id = 
+            ((CcInt*)tuple_trip->GetAttribute(T_LINE))->GetIntval();
+        bool trip_direction = 
+            ((CcBool*)tuple_trip->GetAttribute(T_UP))->GetBoolval();
+        assert(br_id == br_trip_id);
+
+        MPoint* mo = (MPoint*)tuple_trip->GetAttribute(T_TRIP);
+//        cout<<"br_trip_id "<<br_trip_id
+//            <<"direction "<<trip_direction<<endl; 
+
+//          cout<<*mo<<endl; 
+        ////////////////////traverse the trip to find the point/////////////  
+          int j = 0;
+          for(;j < mo->GetNoComponents();j++){
+            UPoint up;
+            mo->Get(j, up);
+            Point loc1 = up.p0;
+            Point loc2 = up.p1; 
+//            cout<<"loc1 "<<loc1<<" loc2 "<<loc2<<endl; 
+            bool find = false; 
+            Instant schedule_t; 
+            if(loc1.Distance(loc2) < dist_delta && 
+               loc1.Distance(loc) < dist_delta){ //find the place 
+              Instant st = up.timeInterval.start;
+              Instant et = up.timeInterval.end; 
+              double d_st = st.ToDouble();
+              double d_et = et.ToDouble();
+//              cout<<"st "<<st<<" et "<<et<<endl; 
+              assert(AlmostEqual(fabs(d_st-d_et), stop_time) || 
+                     fabs(d_st-d_et) > stop_time);//check 10 seconds
+              schedule_t = st; 
+              find = true;
+            }  
+            //////////after add waiting 10 seconds for the last stop //////
+            /////////////////////add result////////////////////////
+            if(find){
+              stop_loc_list.push_back(loc);
+              line_id_list.push_back(br_id);
+              direction_list.push_back(trip_direction);
+              stop_id_list.push_back(stop_id);
+
+              ///////////////cut second and millisecond value/////////////////
+              int second_val = schedule_t.GetSecond(); 
+              int msecond_val = schedule_t.GetMillisecond(); 
+              double double_s = schedule_t.ToDouble() - 
+                                second_val/(24.0*60.0*60.0) -
+                                msecond_val/(24.0*60.0*60.0*1000.0);
+              
+              schedule_t.ReadFrom(double_s);
+              schedule_time.push_back(schedule_t);
+              loc_id_list.push_back(count_id);
+              break; 
+            }
+          }  
+          assert(j != mo->GetNoComponents());
+
+        tuple_trip->DeleteIfAllowed();
+     }
+     delete btree_iter;
+     delete search_trip_id;
+    ////////////////////////////////////////////////////////////////////
+  }
+
+}
+
+/*
+compact storage of time tables.
+Instead of storing each time instant for every bus trip, 
+it stores the time periods and time interval of schedule for each route 
+
+*/
+
+void UBTrain::CreateTimeTable_Compact()
+{
+  vector<BusStop_Ext> station_list; 
+  for(int i = 1;i <= rel1->GetNoTuples();i++){
+      Tuple* tuple_stop = rel1->GetTuple(i, false);
+      int lineid = ((CcInt*)tuple_stop->GetAttribute(T_LINEID))->GetIntval();
+      Point* loc = (Point*)tuple_stop->GetAttribute(T_STOP_LOC);
+      int stopid = ((CcInt*)tuple_stop->GetAttribute(T_STOP_ID))->GetIntval(); 
+      BusStop_Ext* bs_e = new BusStop_Ext(lineid,stopid,0.0,*loc,true);
+      station_list.push_back(*bs_e);
+      delete bs_e; 
+      tuple_stop->DeleteIfAllowed(); 
+  }
+  sort(station_list.begin(), station_list.end());
+  
+  const double dist_delta = 0.01; 
+  unsigned int temp_count = 1;
+  for(unsigned int i = 0;i < station_list.size();i++){
+    vector<BusStop_Ext> station_list_new; 
+  
+    station_list_new.push_back(station_list[i]);
+  
+    ////////collect all bus stops mapping to the same 2D point in space/////
+    unsigned int j = i + 1;
+    BusStop_Ext bse = station_list_new[0]; 
+//    bse.Print();
+    
+    while(j < station_list.size() &&
+        station_list[j].loc.Distance(bse.loc) < dist_delta ){
+        station_list_new.push_back(station_list[j]);
+        j++; 
+    }
+    i = j - 1; 
+    ///////////////////process train station list new ///////////////////////
+    CreateLocTable_Compact(station_list_new,temp_count);
+    temp_count++; 
+
+//     break; 
+  }  
+
+}
+
+
+/*
+find the time table for one spatial location 
+Time tables for trains are the same on Sunday and Monday 
+Compact Storage -- [start time of first trip, start time of last trip]
+schedule time interval 
+
+*/
+
+void UBTrain::CreateLocTable_Compact(vector<BusStop_Ext> station_list_new,
+                                     int count_id)
+{
+//  cout<<"size "<<station_list_new.size()<<endl; 
+
+  Point loc = station_list_new[0].loc; 
+  
+//  cout<<"bus stop location "<<loc<<endl; 
+  
+  for(unsigned int i = 0;i < station_list_new.size();i++){
+      int br_id = station_list_new[i].br_id;
+      int stop_id = station_list_new[i].br_stop_id;
+      /////use btree to find all bus trips of this route ///////
+     CcInt* search_trip_id = new CcInt(true, br_id);
+     BTreeIterator* btree_iter = btree1->ExactMatch(search_trip_id);
+     
+     vector<MPoint> trip_up;
+     vector<MPoint> trip_down; 
+     
+     bool one_day = false; 
+     int bus_day = -1; 
+     while(btree_iter->Next()){
+        Tuple* tuple_trip = rel2->GetTuple(btree_iter->GetId(), false);
+        int br_trip_id = 
+            ((CcInt*)tuple_trip->GetAttribute(T_LINE))->GetIntval();
+        bool trip_direction = 
+            ((CcBool*)tuple_trip->GetAttribute(T_UP))->GetBoolval();
+        assert(br_id == br_trip_id);
+
+        MPoint* mo = (MPoint*)tuple_trip->GetAttribute(T_TRIP);
+        UPoint up;
+        mo->Get(0, up);
+        if(one_day == false){
+          bus_day = up.timeInterval.start.GetDay();
+          one_day = true; 
+          if(trip_direction)
+            trip_up.push_back(*mo);
+          else
+            trip_down.push_back(*mo);
+        }else if(up.timeInterval.start.GetDay() == bus_day){//the same day 
+          assert(bus_day != -1);
+//          cout<<"bus day "<<bus_day<<endl; 
+          if(trip_direction)
+            trip_up.push_back(*mo);
+          else
+            trip_down.push_back(*mo);
+        }
+        tuple_trip->DeleteIfAllowed();
+     }
+     delete btree_iter;
+     delete search_trip_id;
+    ////////////////////////////////////////////////////////////////////
+    
+//    cout<<"up size "<<trip_up.size()<<endl;
+//    cout<<"down size "<<trip_up.size()<<endl; 
+    
+    TimeTableCompact(trip_up,loc,br_id,stop_id,true,count_id);
+    TimeTableCompact(trip_down,loc,br_id,stop_id,false,count_id);
+  }
+
+}
+
+/*
+extract the time for one route in one direction 
+
+*/
+void UBTrain::TimeTableCompact(vector<MPoint>& trip_list, Point loc,int br_id,
+                               int stop_id, bool dir, int count_id)
+{
+  assert(trip_list.size() >= 2);
+  
+  MPoint start_mo_0 = trip_list[0];
+  UPoint up1;
+  start_mo_0.Get(0, up1);//the start time of first trip 
+  Instant start_time_0 = up1.timeInterval.start;
+  Instant st = start_time_0;
+  GetTimeInstantStop(start_mo_0, loc,st); 
+  
+  /////////////cut second and millsecond ///////////////////////////////
+  int second_val_s = st.GetSecond(); 
+  int msecond_val_s = st.GetMillisecond(); 
+  double double_s = st.ToDouble() - 
+                       second_val_s/(24.0*60.0*60.0) -
+                       msecond_val_s/(24.0*60.0*60.0*1000.0);
+  st.ReadFrom(double_s);
+  /////////////////////////////////////////////////////////////////
+  
+  MPoint start_mo_1 = trip_list[1];
+  UPoint up2;
+  start_mo_1.Get(0, up1);//the start time of second trip 
+  Instant start_time_1 = up1.timeInterval.start;
+  
+
+  ///////////  get time interval for schedule  ///////////////////
+  double sch_interval = start_time_1.ToDouble() - start_time_0.ToDouble();
+  assert(sch_interval > 0.0);
+//  cout<<"schedule "<<sch_interval*24.0*60.0*60.0<<" seconds"<<endl; 
+  
+  ////////////////last bus trip ////////////////////////////////////
+  MPoint end_mo = trip_list[trip_list.size() - 1];
+  UPoint up3;
+  end_mo.Get(0, up3);//the start time of last trip 
+  Instant end_time  = up3.timeInterval.start; 
+  /////////////////cut second and millsecond ////////////////////////////////
+  Instant et = end_time;
+  
+  GetTimeInstantStop(end_mo, loc, et); 
+
+  int second_val_e = et.GetSecond(); 
+  int msecond_val_e = et.GetMillisecond(); 
+  double double_e = et.ToDouble() - 
+                       second_val_e/(24.0*60.0*60.0) -
+                       msecond_val_e/(24.0*60.0*60.0*1000.0);
+  et.ReadFrom(double_e);
+  ////////////////////////////////////////////////////////////////////////////
+  assert(second_val_s == second_val_e); 
+  Interval<Instant> time_span;
+  time_span.start = st;
+  time_span.lc = true;
+  time_span.end = et;
+  time_span.rc = true; 
+
+   Periods* peri = new Periods(0);
+   peri->StartBulkLoad();
+   peri->MergeAdd(time_span);
+   peri->EndBulkLoad();
+//   duration.push_back(*peri);
+//   cout<<"periods "<<*peri<<endl; 
+
+
+//   const double dist_delta = 0.01; 
+//   const double stop_time = 10.0/(24.0*60.0*60.0); //10 seconds for trains 
+  
+  stop_loc_list.push_back(loc);
+  line_id_list.push_back(br_id);
+  stop_id_list.push_back(stop_id);
+  direction_list.push_back(dir);
+  duration.push_back(*peri);
+  loc_id_list.push_back(count_id);
+  schedule_interval.push_back(sch_interval);
+  delete peri; 
+   
+  ////////////////////////    check time  ////////////////////////////// 
+  for(unsigned int i = 0;i < trip_list.size();i++){ 
+    MPoint mo = trip_list[i];
+    Instant temp_instant;
+    GetTimeInstantStop(mo, loc, temp_instant);
+    int second_val = temp_instant.GetSecond();
+    assert(second_val == second_val_s);
+  }
+  //////////////////////////////////////////////////////////////////////// 
+}
+
+/*
+get the time that the train arrives at this point(stop)
+
+*/
+void UBTrain::GetTimeInstantStop(MPoint& mo, Point loc, Instant& arrove_t)
+{
+  const double dist_delta = 0.01; 
+  const double stop_time = 10.0/(24.0*60.0*60.0); //10 seconds for trains 
+  for(int j = 0;j < mo.GetNoComponents();j++){
+      UPoint up;
+      mo.Get(j, up);
+      Point loc1 = up.p0;
+      Point loc2 = up.p1; 
+
+      if(loc1.Distance(loc2) < dist_delta && 
+         loc1.Distance(loc) < dist_delta){ //find the place 
+            Instant st = up.timeInterval.start;
+            Instant et = up.timeInterval.end; 
+            double d_st = st.ToDouble();
+            double d_et = et.ToDouble();
+            assert(AlmostEqual(fabs(d_st-d_et), stop_time) || 
+                   fabs(d_st-d_et) > stop_time);//check 10 seconds
+            arrove_t = st; 
+            return; 
+      }  
+ }
+  assert(false);
 }

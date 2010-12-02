@@ -27,7 +27,12 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 August, 2009 Jianqiu Xu
 
-March, 2010 Jianqiu Xu
+March, 2010 Jianqiu Xu Create Pavements for Pedestrian 
+
+Oct.,2010 Jianqiu Xu Create Bus Network and Trains 
+
+Dec. 2010 Jianqiu Xu Move Indoor Algebra to Transporation Mode Algebra 
+
 
 [TOC]
 
@@ -45,12 +50,1182 @@ queries moving objects with transportation modes.
 #include "PaveGraph.h"
 #include "Triangulate.h"
 #include "BusNetwork.h"
+#include "Indoor.h"
 
 extern NestedList* nl;
 extern QueryProcessor *qp;
 
 
 namespace TransportationMode{
+////////////////////////   Indoor   ////////////////////////////////////////
+
+//////////////////////   3D Point          ////////////////////////////////
+
+/*
+Creation of the type constructor instance for point3d
+
+*/
+
+ListExpr Point3DProperty()
+{
+  return nl->TwoElemList(
+           nl->FourElemList(
+             nl->StringAtom("Signature"),
+             nl->StringAtom("Example Type List"),
+             nl->StringAtom("List Rep"),
+             nl->StringAtom("Example List")),
+           nl->FourElemList(
+             nl->StringAtom("-> DATA"),
+             nl->StringAtom("point3d"),
+             nl->StringAtom("(x y z)"),
+             nl->StringAtom("(10 5 2)")));
+}
+
+/*
+output function for data type point3d
+
+*/
+ListExpr OutPoint3D(ListExpr typeInfo, Word value)
+{
+  Point3D* p3d = (Point3D*)value.addr;
+  if(p3d->IsDefined()){
+      return nl->ThreeElemList(
+              nl->RealAtom(p3d->GetX()),
+              nl->RealAtom(p3d->GetY()),
+              nl->RealAtom(p3d->GetZ())
+         );
+  }else
+    return nl->SymbolAtom("undef");
+}
+
+/*
+input function for data type point3d
+
+*/
+Word InPoint3D(const ListExpr typeInfo, const ListExpr instance,
+               const int errorPos, ListExpr& errorInfo, bool& correct)
+{
+  correct = true;
+  if( nl->ListLength( instance ) == 3 ) {
+    ListExpr first = nl->First(instance);
+    ListExpr second = nl->Second(instance);
+    ListExpr third = nl->Third(instance);
+
+    correct = listutils::isNumeric(first) &&
+              listutils::isNumeric(second) && listutils::isNumeric(third);
+    if(!correct){
+       return SetWord( Address(0) );
+    } else {
+      return SetWord(new Point3D(true, listutils::getNumValue(first),
+                                       listutils::getNumValue(second),
+                                        listutils::getNumValue(third)));
+    }
+  } else if( listutils::isSymbol( instance, "undef" ) ){
+     return SetWord(new Point3D(false));
+  }
+  correct = false;
+  return SetWord( Address(0) );
+}
+
+Word CreatePoint3D(const ListExpr typeInfo)
+{
+  return SetWord (new Point3D(false));
+}
+
+void DeletePoint3D(const ListExpr typeInfo, Word& w)
+{
+//  ((Point3D*)w.addr)->DeleteIfAllowed();
+  Point3D* p3d = (Point3D*)w.addr;
+  delete p3d;
+   w.addr = NULL;
+}
+
+void ClosePoint3D(const ListExpr typeInfo, Word& w)
+{
+//  ((Point3D*)w.addr)->DeleteIfAllowed();
+  Point3D* p3d = (Point3D*)w.addr;
+  delete p3d;
+  w.addr = NULL;
+}
+
+
+Word ClonePoint3D(const ListExpr typeInfo, const Word& w)
+{
+  Point3D* p3d = new Point3D(*(Point3D*)w.addr);
+  return SetWord(p3d);
+}
+
+void* CastPoint3D(void* addr)
+{
+  return new (addr)Point3D();
+}
+
+int SizeOfPoint3D()
+{
+  return sizeof(Point3D);
+}
+
+bool CheckPoint3D(ListExpr type, ListExpr& errorInfo)
+{
+  return nl->IsEqual(type, "point3d");
+}
+
+/*
+save function for point3d
+
+*/
+bool SavePoint3D(SmiRecord& valueRecord, size_t& offset,
+                 const ListExpr typeInfo, Word& value)
+{
+    Point3D* p3d = (Point3D*)value.addr;
+    return p3d->Save(valueRecord, offset, typeInfo);
+}
+
+bool OpenPoint3D(SmiRecord& valueRecord, size_t& offset,
+                 const ListExpr typeInfo, Word& value)
+{
+  value.addr = new Point3D(valueRecord, offset, typeInfo);
+  return value.addr != NULL;
+}
+
+TypeConstructor point3d(
+    "point3d", Point3DProperty,
+     OutPoint3D, InPoint3D,
+     0, 0,
+     CreatePoint3D, DeletePoint3D,
+//     OpenPoint3D, SavePoint3D,
+     OpenAttribute<Point3D>, SaveAttribute<Point3D>,
+     ClosePoint3D, ClonePoint3D,
+     CastPoint3D,
+     SizeOfPoint3D,
+     CheckPoint3D
+);
+
+///////////////////////////  3D Line  //////////////////////////////////
+
+/*
+List Representation
+
+The list representation of a point is
+
+----  (x y)
+----
+
+~Out~-function
+
+*/
+ListExpr OutLine3D( ListExpr typeInfo, Word value )
+{
+  Line3D* points = (Line3D*)(value.addr);
+  if(!points->IsDefined()){
+    return nl->SymbolAtom("undef");
+  }
+
+  if( points->IsEmpty() )
+    return nl->TheEmptyList();
+
+//  Point p;
+  Point3D p;
+  assert( points->Get( 0, p ) );
+/*  ListExpr result =
+    nl->OneElemList( OutPoint( nl->TheEmptyList(), SetWord( (void*)&p ) ) );*/
+ ListExpr result =
+    nl->OneElemList( OutPoint3D( nl->TheEmptyList(), SetWord( (void*)&p ) ) );
+  ListExpr last = result;
+
+  for( int i = 1; i < points->Size(); i++ )
+  {
+    assert( points->Get( i, p ) );
+/*   last = nl->Append( last,
+                       OutPoint( nl->TheEmptyList(), SetWord( (void*)&p ) ) );/
+    last = nl->Append( last,
+                       OutPoint3D( nl->TheEmptyList(), SetWord( (void*)&p)));
+  }
+  return result;
+}
+
+/*
+In function
+
+*/
+Word InLine3D( const ListExpr typeInfo, const ListExpr instance,
+       const int errorPos, ListExpr& errorInfo, bool& correct )
+{
+  if(nl->IsEqual(instance,"undef")) {
+      Points* points = new Points(0);
+      points->Clear();
+      points->SetDefined(false);
+      correct=true;
+      return SetWord( Address(points) );
+  }
+  Line3D* points = new Line3D( max(0,nl->ListLength( instance) ) );
+  points->SetDefined( true );
+  if(nl->AtomType(instance)!=NoAtom) {
+    points->DeleteIfAllowed();
+    correct = false;
+    cout << __PRETTY_FUNCTION__ << ": Unexpected Atom!" << endl;
+    return SetWord( Address(points) );
+  }
+
+  ListExpr rest = instance;
+  points->StartBulkLoad();
+  while( !nl->IsEmpty( rest ) ) {
+    ListExpr first = nl->First( rest );
+    rest = nl->Rest( rest );
+
+/*    Point *p = (Point*)InPoint( nl->TheEmptyList(),
+                                first, 0, errorInfo, correct ).addr;*/
+    Point3D *p = (Point3D*)InPoint3D( nl->TheEmptyList(),
+                                first, 0, errorInfo, correct ).addr;
+
+    if( correct && p->IsDefined() ) {
+      (*points) += (*p);
+      delete p;
+    } else {
+      if(p) {
+        delete p;
+      }
+      cout << __PRETTY_FUNCTION__ << ": Incorrect or undefined point!" << endl;
+      points->DeleteIfAllowed();
+      correct = false;
+      return SetWord( Address(0) );
+    }
+
+  }
+  points->EndBulkLoad();
+
+  if( points->IsValid() ) {
+    correct = true;
+    return SetWord( points );
+  }
+  points->DeleteIfAllowed();
+  correct = false;
+  cout << __PRETTY_FUNCTION__ << ": Invalid points value!" << endl;
+  return SetWord( Address(0) );
+}
+
+/*
+Create function
+
+*/
+Word CreateLine3D( const ListExpr typeInfo )
+{
+  return SetWord( new Line3D( 0 ) );
+}
+
+/*
+Delete function
+
+*/
+void DeleteLine3D( const ListExpr typeInfo, Word& w )
+{
+  Line3D *ps = (Line3D *)w.addr;
+  ps->Destroy();
+  ps->DeleteIfAllowed(false);
+  w.addr = 0;
+}
+
+/*
+Close function
+
+*/
+void CloseLine3D( const ListExpr typeInfo, Word& w )
+{
+  ((Line3D *)w.addr)->DeleteIfAllowed();
+  w.addr = 0;
+}
+
+/*
+Clone function
+
+*/
+Word CloneLine3D( const ListExpr typeInfo, const Word& w )
+{
+  return SetWord( new Line3D( *((Line3D *)w.addr) ) );
+}
+
+/*
+Open function
+
+*/
+bool OpenLine3D( SmiRecord& valueRecord, size_t& offset,
+            const ListExpr typeInfo, Word& value )
+{
+  Line3D *ps = (Line3D*)Attribute::Open( valueRecord, offset, typeInfo );
+  value = SetWord( ps );
+  return true;
+}
+
+/*
+Save function
+
+*/
+bool SaveLine3D( SmiRecord& valueRecord, size_t& offset,
+            const ListExpr typeInfo, Word& value )
+{
+  Line3D *ps = (Line3D*)value.addr;
+  Attribute::Save( valueRecord, offset, typeInfo, ps );
+  return true;
+}
+
+/*
+SizeOf function
+
+*/
+int SizeOfLine3D()
+{
+  return sizeof(Line3D);
+}
+
+
+ListExpr Line3DProperty()
+{
+  return (nl->TwoElemList(
+            nl->FourElemList(nl->StringAtom("Signature"),
+                       nl->StringAtom("Example Type List"),
+           nl->StringAtom("List Rep"),
+           nl->StringAtom("Example List")),
+            nl->FourElemList(nl->StringAtom("-> DATA"),
+                       nl->StringAtom("line3d"),
+           nl->StringAtom("(<point3d>*) where point3d is (<x><y><z>)"),
+           nl->StringAtom("( (10 1 2)(4 5 3) )"))));
+}
+
+
+bool CheckLine3D( ListExpr type, ListExpr& errorInfo )
+{
+  return (nl->IsEqual( type, "line3d" ));
+}
+
+
+void* CastLine3D(void* addr)
+{
+  return (new (addr) Line3D());
+}
+
+TypeConstructor line3d(
+        "line3d",                     //name
+        Line3DProperty,               //property function describing signature
+        OutLine3D,      InLine3D,     //Out and In functions
+        0,              0,            //SaveTo and RestoreFrom List functions
+        CreateLine3D,   DeleteLine3D, //object creation and deletion
+        OpenLine3D,     SaveLine3D,   // object open and save
+        CloseLine3D,    CloneLine3D,  //object close and clone
+        CastLine3D,                   //cast function
+        SizeOfLine3D,                 //sizeof function
+        CheckLine3D );
+
+//////////////////////  Floor3D  ///////////////////////////////////////////
+
+/*
+Creation of the type constructor instance for floor3d
+
+*/
+ListExpr Floor3DProperty()
+{
+//  cout<<"Floor3DProperty()"<<endl;
+  ListExpr examplelist = nl->TextAtom();
+  nl->AppendText(examplelist,"thefloor(floor_height, polygon)");
+  return nl->TwoElemList(
+          nl->TwoElemList(nl->StringAtom("Creation"),
+                          nl->StringAtom("Example Creation")),
+          nl->TwoElemList(examplelist,
+                         nl->StringAtom("(let room1=thefloor(0, r))"))
+
+      );
+}
+
+/*
+OutPut function for floor3d
+
+*/
+ListExpr OutFloor3D(ListExpr typeInfo, Word value)
+{
+//  cout<<"OutFloor3D()"<<endl;
+  Floor3D* fl = (Floor3D*)(value.addr);
+
+  if(!fl->IsDefined()){
+    return nl->SymbolAtom("undef");
+  }
+
+  if( fl->IsEmpty() ){
+    return (nl->TheEmptyList());
+  }
+  else{
+    Region* cr = const_cast<Region*>(fl->GetRegion());
+
+    Region *RCopy=new Region(*cr, true); // in memory
+
+    RCopy->LogicSort();
+
+    HalfSegment hs, hsnext;
+
+    ListExpr regionNL = nl->TheEmptyList();
+    ListExpr regionNLLast = regionNL;
+
+    ListExpr faceNL = nl->TheEmptyList();
+    ListExpr faceNLLast = faceNL;
+
+    ListExpr cycleNL = nl->TheEmptyList();
+    ListExpr cycleNLLast = cycleNL;
+
+    ListExpr pointNL;
+
+    int currFace = -999999, currCycle= -999999; // avoid uninitialized use
+    Point outputP, leftoverP;
+
+    for( int i = 0; i < RCopy->Size(); i++ ){
+      RCopy->Get( i, hs );
+      if (i==0){
+        currFace = hs.attr.faceno;
+        currCycle = hs.attr.cycleno;
+        RCopy->Get( i+1, hsnext );
+
+        if ((hs.GetLeftPoint() == hsnext.GetLeftPoint()) ||
+            ((hs.GetLeftPoint() == hsnext.GetRightPoint()))){
+          outputP = hs.GetRightPoint();
+          leftoverP = hs.GetLeftPoint();
+        }
+        else if ((hs.GetRightPoint() == hsnext.GetLeftPoint()) ||
+                 ((hs.GetRightPoint() == hsnext.GetRightPoint()))){
+          outputP = hs.GetLeftPoint();
+          leftoverP = hs.GetRightPoint();
+        }
+        else{
+          cerr << "\n" << __PRETTY_FUNCTION__ << ": Wrong data format --- "
+               << "discontiguous segments!" << endl
+               << "\ths     = " << hs     << endl
+               << "\thsnext = " << hsnext << endl;
+          return nl->SymbolAtom("undef");
+        }
+
+        pointNL = OutPoint( nl->TheEmptyList(), SetWord(&outputP) );
+        if (cycleNL == nl->TheEmptyList())
+        {
+          cycleNL = nl->OneElemList(pointNL);
+          cycleNLLast = cycleNL;
+        }
+        else
+        {
+          cycleNLLast = nl->Append( cycleNLLast, pointNL );
+        }
+      }
+      else{
+          if (hs.attr.faceno == currFace){
+            if (hs.attr.cycleno == currCycle){
+              outputP=leftoverP;
+              if (hs.GetLeftPoint() == leftoverP)
+                leftoverP = hs.GetRightPoint();
+              else if (hs.GetRightPoint() == leftoverP){
+                leftoverP = hs.GetLeftPoint();
+              }else{
+              cerr << "\n" << __PRETTY_FUNCTION__ << ": Wrong data format --- "
+                  << "discontiguous segment in cycle!" << endl
+                  << "\thh        = " << hs << endl
+                  << "\tleftoverP = " << leftoverP << endl;
+              return nl->SymbolAtom("undef");
+              }
+
+            pointNL=OutPoint( nl->TheEmptyList(),
+                              SetWord( &outputP) );
+            if (cycleNL == nl->TheEmptyList()){
+              cycleNL=nl->OneElemList(pointNL);
+              cycleNLLast = cycleNL;
+            }
+            else{
+              cycleNLLast = nl->Append(cycleNLLast, pointNL);
+            }
+          }
+          else{
+            if (faceNL == nl->TheEmptyList())
+            {
+              faceNL = nl->OneElemList(cycleNL);
+              faceNLLast = faceNL;
+            }
+            else
+            {
+              faceNLLast = nl->Append(faceNLLast, cycleNL);
+            }
+            cycleNL = nl->TheEmptyList();
+            currCycle = hs.attr.cycleno;
+
+
+            RCopy->Get( i+1, hsnext );
+            if ((hs.GetLeftPoint() == hsnext.GetLeftPoint()) ||
+                ((hs.GetLeftPoint() == hsnext.GetRightPoint())))
+            {
+              outputP = hs.GetRightPoint();
+              leftoverP = hs.GetLeftPoint();
+            }
+            else if ((hs.GetRightPoint() == hsnext.GetLeftPoint()) ||
+                     ((hs.GetRightPoint() == hsnext.GetRightPoint())))
+            {
+              outputP = hs.GetLeftPoint();
+              leftoverP = hs.GetRightPoint();
+            }
+            else
+            {
+              cerr << "\n" << __PRETTY_FUNCTION__ << ": Wrong data format --- "
+                  << "discontiguous segments in cycle!" << endl
+                  << "\ths     = " << hs     << endl
+                  << "\thsnext = " << hsnext << endl;
+              return nl->SymbolAtom("undef");
+            }
+
+            pointNL = OutPoint( nl->TheEmptyList(),
+                                SetWord(&outputP) );
+            if (cycleNL == nl->TheEmptyList())
+            {
+              cycleNL = nl->OneElemList(pointNL);
+              cycleNLLast = cycleNL;
+            }
+            else
+            {
+              cycleNLLast = nl->Append(cycleNLLast, pointNL);
+            }
+          }
+        }else{
+          if (faceNL == nl->TheEmptyList())
+          {
+            faceNL = nl->OneElemList(cycleNL);
+            faceNLLast = faceNL;
+          }
+          else
+          {
+            faceNLLast = nl->Append(faceNLLast, cycleNL);
+          }
+          cycleNL = nl->TheEmptyList();
+
+
+          if (regionNL == nl->TheEmptyList())
+          {
+            regionNL = nl->OneElemList(faceNL);
+            regionNLLast = regionNL;
+          }
+          else
+          {
+            regionNLLast = nl->Append(regionNLLast, faceNL);
+          }
+          faceNL = nl->TheEmptyList();
+
+          currFace = hs.attr.faceno;
+          currCycle = hs.attr.cycleno;
+
+
+          RCopy->Get( i+1, hsnext );
+          if ((hs.GetLeftPoint() == hsnext.GetLeftPoint()) ||
+             ((hs.GetLeftPoint() == hsnext.GetRightPoint())))
+          {
+            outputP = hs.GetRightPoint();
+            leftoverP = hs.GetLeftPoint();
+          }
+          else if ((hs.GetRightPoint() == hsnext.GetLeftPoint()) ||
+                  ((hs.GetRightPoint() == hsnext.GetRightPoint())))
+          {
+            outputP = hs.GetLeftPoint();
+            leftoverP = hs.GetRightPoint();
+          }
+          else
+          {
+            cerr << "\n" << __PRETTY_FUNCTION__ << ": Wrong data format --- "
+                << "discontiguous segments in cycle!" << endl
+                << "\ths     = " << hs     << endl
+                << "\thsnext = " << hsnext << endl;
+            return nl->SymbolAtom("undef");
+          }
+
+          pointNL = OutPoint(nl->TheEmptyList(), SetWord(&outputP));
+          if (cycleNL == nl->TheEmptyList())
+          {
+            cycleNL = nl->OneElemList(pointNL);
+            cycleNLLast = cycleNL;
+          }
+          else
+          {
+            cycleNLLast = nl->Append(cycleNLLast, pointNL);
+          }
+        }
+      }
+    }
+
+    if (faceNL == nl->TheEmptyList())
+    {
+      faceNL = nl->OneElemList(cycleNL);
+      faceNLLast = faceNL;
+    }
+    else
+    {
+      faceNLLast = nl->Append(faceNLLast, cycleNL);
+    }
+    cycleNL = nl->TheEmptyList();
+
+
+    if (regionNL == nl->TheEmptyList())
+    {
+      regionNL = nl->OneElemList(faceNL);
+      regionNLLast = regionNL;
+    }
+    else
+    {
+      regionNLLast = nl->Append(regionNLLast, faceNL);
+    }
+    faceNL = nl->TheEmptyList();
+
+    RCopy->DeleteIfAllowed();
+//    return  regionNL;
+    return nl->TwoElemList(nl->RealAtom(fl->GetHeight()), regionNL);
+  }
+}
+
+/*
+input function for data type floor3d
+a float value for ground height and a region for space covered
+
+*/
+Word InFloor3D(const ListExpr typeInfo, const ListExpr instance,
+               const int errorPos, ListExpr& errorInfo, bool& correct)
+{
+//  cout<<"InFloor3D()"<<endl;
+  if(nl->ListLength(instance) != 2){
+    string strErrorMessage = "floor3d(): List length must be 2";
+    errorInfo = nl->Append(errorInfo,nl->StringAtom(strErrorMessage));
+    correct = false;
+    return SetWord(Address(0));
+  }
+
+  if (nl->IsAtom(instance)){
+     correct=false;
+     return SetWord( Address(0) );
+  }
+
+  if(nl->IsEqual(instance,"undef")){
+    correct=false;
+    return SetWord(Address(0));
+  }
+
+  ListExpr height_list = nl->First(instance);
+  if(!nl->IsAtom(height_list) || nl->AtomType(height_list) != RealType){
+    string strErrorMessage = "floor3d(): height must be float type";
+    errorInfo = nl->Append(errorInfo,nl->StringAtom(strErrorMessage));
+    correct = false;
+    return SetWord(Address(0));
+  }
+  float height = nl->RealValue(height_list);
+//  cout<<"height "<<height<<endl;
+
+  ListExpr RegionNL = nl->Second(instance);
+
+  Region* cr = new Region( 0 );
+  cr->StartBulkLoad();
+
+
+//  ListExpr RegionNL = instance;
+  ListExpr FaceNL, CycleNL;
+  int fcno=-1;
+  int ccno=-1;
+  int edno=-1;
+  int partnerno = 0;
+
+
+    while( !nl->IsEmpty( RegionNL ) ){
+      FaceNL = nl->First( RegionNL );
+      RegionNL = nl->Rest( RegionNL);
+      bool isCycle = true;
+
+      //A face is composed by 1 cycle, and can have holes.
+      //All the holes must be inside the face. (TO BE IMPLEMENTED0)
+      //Region *faceCycle;
+
+      fcno++;
+      ccno=-1;
+      edno=-1;
+
+      if (nl->IsAtom( FaceNL ))
+      {
+        correct=false;
+        return SetWord( Address(0) );
+      }
+
+      while (!nl->IsEmpty( FaceNL) ){
+        CycleNL = nl->First( FaceNL );
+        FaceNL = nl->Rest( FaceNL );
+
+        ccno++;
+        edno=-1;
+
+        if (nl->IsAtom( CycleNL ))
+        {
+          correct=false;
+          return SetWord( Address(0) );
+        }
+
+        if (nl->ListLength( CycleNL) <3)
+        {
+          cerr << __PRETTY_FUNCTION__ << ": A cycle must have at least 3 edges!"
+               << endl;
+          correct=false;
+          return SetWord( Address(0) );
+        }
+        else{
+          ListExpr firstPoint = nl->First( CycleNL );
+          ListExpr prevPoint = nl->First( CycleNL );
+          ListExpr flagedSeg, currPoint;
+          CycleNL = nl->Rest( CycleNL );
+          Points *cyclepoints= new Points( 8 ); // in memory
+          Point *currvertex,p1,p2,firstP;
+          Region *rDir = new Region(32);
+          rDir->StartBulkLoad();
+          currvertex = (Point*) InPoint ( nl->TheEmptyList(),
+              firstPoint, 0, errorInfo, correct ).addr;
+          if (!correct) {
+             // todo: delete temp objects
+             return SetWord( Address(0) );
+          }
+          cyclepoints->StartBulkLoad();
+          (*cyclepoints) += (*currvertex);
+          p1 = *currvertex;
+          firstP = p1;
+          cyclepoints->EndBulkLoad();
+          delete currvertex;
+          while ( !nl->IsEmpty( CycleNL) )
+          {
+//            cout<<"cycle "<<endl;
+            currPoint = nl->First( CycleNL );
+            CycleNL = nl->Rest( CycleNL );
+            currvertex = (Point*) InPoint( nl->TheEmptyList(),
+                  currPoint, 0, errorInfo, correct ).addr;
+//            cout<<"curvertex "<<*currvertex<<endl;
+            if (!correct) return SetWord( Address(0) );
+
+            if (cyclepoints->Contains(*currvertex))
+            {
+              cerr<< __PRETTY_FUNCTION__ << ": The same vertex: "
+                  <<(*currvertex)
+                  <<" appears repeatedly within the current cycle!"<<endl;
+              correct=false;
+              return SetWord( Address(0) );
+            }
+            else
+            {
+              p2 = *currvertex;
+              cyclepoints->StartBulkLoad();
+              (*cyclepoints) += (*currvertex);
+              cyclepoints->EndBulkLoad(true,false,false);
+            }
+            delete currvertex;
+
+            flagedSeg = nl->TwoElemList
+            (nl-> BoolAtom(true),
+             nl->TwoElemList(prevPoint, currPoint));
+            prevPoint=currPoint;
+            edno++;
+            //Create left dominating half segment
+            HalfSegment * hs = (HalfSegment*)InHalfSegment
+                      ( nl->TheEmptyList(), flagedSeg,
+                       0, errorInfo, correct ).addr;
+            if(!correct){
+              if(hs){
+                cerr << __PRETTY_FUNCTION__ << ": Creation of left dominating "
+                     << "half segment (1) failed!" << endl;
+                delete hs;
+              }
+              cr->DeleteIfAllowed();
+              return SetWord( Address(0) );
+            }
+            hs->attr.faceno=fcno;
+            hs->attr.cycleno=ccno;
+            hs->attr.edgeno=edno;
+            hs->attr.partnerno=partnerno;
+            partnerno++;
+            hs->attr.insideAbove = (hs->GetLeftPoint() == p1);
+              //true (L-->R ),false (R--L)
+            p1 = p2;
+
+            if (( correct )&&( cr->InsertOk(*hs) ))
+            {
+              (*cr) += (*hs);
+//              cout<<"cr+1 "<<*hs<<endl;
+              if( hs->IsLeftDomPoint() )
+              {
+                (*rDir) += (*hs);
+//                cout<<"rDr+1 "<<*hs<<endl;
+                hs->SetLeftDomPoint( false );
+              }
+              else
+              {
+                hs->SetLeftDomPoint( true );
+//                cout<<"rDr+2 "<<*hs<<endl;
+                (*rDir) += (*hs);
+              }
+              (*cr) += (*hs);
+//              cout<<"cr+2 "<<*hs<<endl;
+              delete hs;
+            }
+            else
+            {
+              cerr<< __PRETTY_FUNCTION__ << ": Problematic HalfSegment: "
+                  << endl;
+              if(correct)
+                cerr << "\nhs = " << (*hs) << " cannot be inserted." << endl;
+              else
+                cerr << "\nInvalid half segment description." << endl;
+              correct=false;
+              return SetWord( Address(0) );
+            }
+
+          }
+          delete cyclepoints;
+
+          edno++;
+          flagedSeg= nl->TwoElemList
+            (nl-> BoolAtom(true),
+             nl->TwoElemList(firstPoint, currPoint));
+          HalfSegment * hs = (HalfSegment*)InHalfSegment
+                  ( nl->TheEmptyList(), flagedSeg,
+                    0, errorInfo, correct ).addr;
+          if(!correct){
+            if(hs){
+                cerr << __PRETTY_FUNCTION__ << ": Creation of "
+                     << "half segment (2) failed!" << endl;
+                delete hs;
+            }
+            cr->DeleteIfAllowed();
+            return SetWord( Address(0) );
+          }
+          hs->attr.faceno=fcno;
+          hs->attr.cycleno=ccno;
+          hs->attr.edgeno=edno;
+          hs->attr.partnerno=partnerno;
+          hs->attr.insideAbove = (hs->GetRightPoint() == firstP);
+          //true (L-->R ),false (R--L),
+          //the order of typing is last point than first point.
+          partnerno++;
+
+          //The last half segment of the region
+          if (( correct )&&( cr->InsertOk(*hs) ))
+          {
+            (*cr) += (*hs);
+//             cout<<"cr+3 "<<*hs<<endl;
+            if( hs->IsLeftDomPoint() )
+            {
+              (*rDir) += (*hs);
+//              cout<<"rDr+3 "<<*hs<<endl;
+              hs->SetLeftDomPoint( false );
+            }
+            else
+            {
+              hs->SetLeftDomPoint( true );
+//              cout<<"rDr+4 "<<*hs<<endl;
+              (*rDir) += (*hs);
+            }
+            (*cr) += (*hs);
+//            cout<<"cr+4 "<<*hs<<endl;
+            delete hs;
+            rDir->EndBulkLoad(true, false, false, false);
+
+
+            //To calculate the inside above attribute
+            bool direction = rDir->GetCycleDirection();
+
+            int h = cr->Size() - ( rDir->Size() * 2 );
+            while ( h < cr->Size())
+            {
+              //after each left half segment of the region is its
+              //correspondig right half segment
+              HalfSegment hsIA;
+              bool insideAbove;
+              cr->Get(h,hsIA);
+              /*
+                The test for adjusting the inside above can be described
+                as above, but was implemented in a different way that
+                produces the same result.
+                if ( (direction  && hsIA->attr.insideAbove) ||
+                     (!direction && !hsIA->attr.insideAbove) )
+                {
+                  //clockwise and l-->r or
+                  //counterclockwise and r-->l
+                  hsIA->attr.insideAbove=false;
+                }
+                else
+                  //clockwise and r-->r or
+                  //counterclockwise and l-->r
+                  true;
+
+              */
+              if (direction == hsIA.attr.insideAbove)
+                insideAbove = false;
+              else
+                insideAbove = true;
+              if (!isCycle)
+                insideAbove = !insideAbove;
+              HalfSegment auxhsIA( hsIA );
+              auxhsIA.attr.insideAbove = insideAbove;
+              cr->UpdateAttr(h,auxhsIA.attr);
+              //Get right half segment
+              cr->Get(h+1,hsIA);
+              auxhsIA = hsIA;
+              auxhsIA.attr.insideAbove = insideAbove;
+              cr->UpdateAttr(h+1,auxhsIA.attr);
+              h+=2;
+            }
+
+            //After the first face's cycle read the faceCycle variable is set.
+            //Afterwards
+            //it is tested if all the new cycles are inside the faceCycle.
+            /*
+            if (isCycle)
+              faceCycle = new Region(rDir,false);
+            else
+              //To implement the test
+            */
+            rDir->DeleteIfAllowed();
+            //After the end of the first cycle of the face,
+            //all the following cycles are
+            //holes, then isCycle is set to false.
+            isCycle = false;
+
+          }
+          else
+          {
+            correct=false;
+            return SetWord( Address(0) );
+          }
+        }
+      }
+    }
+
+    cr->SetNoComponents( fcno+1 );
+    cr->EndBulkLoad( true, true, true, false );
+
+    correct = true;
+//    cout<<*cr<<endl; 
+    Floor3D* fl = new Floor3D(height, *cr);
+    return SetWord(fl);
+
+}
+
+void CloseFloor3D(const ListExpr typeInfo, Word& w)
+{
+//  cout<<"CloseFloor3D()"<<endl;
+//  ((Floor3D*)w.addr)->DeleteIfAllowed();
+  delete static_cast<Floor3D*> (w.addr);
+  w.addr = NULL;
+}
+
+Word CloneFloor3D(const ListExpr typeInfo, const Word& w)
+{
+//  cout<<"CloneFloor3D()"<<endl;
+  Floor3D* fl = new Floor3D(*(Floor3D*)w.addr);
+  return SetWord(fl);
+}
+
+Word CreateFloor3D(const ListExpr typeInfo)
+{
+//  cout<<"CreateFloor3D()"<<endl;
+  return SetWord (new Floor3D(0.0));
+}
+
+void DeleteFloor3D(const ListExpr typeInfo, Word& w)
+{
+//  cout<<"DeleteFloor3D()"<<endl;
+  Floor3D* fl = (Floor3D*)w.addr;
+  delete fl;
+   w.addr = NULL;
+}
+
+
+int SizeOfFloor3D()
+{
+//  cout<<"SizeOfFloor3D()"<<endl;
+  return sizeof(Floor3D);
+}
+
+bool CheckFloor3D(ListExpr type, ListExpr& errorInfo)
+{
+//  cout<<"CheckFloor3D()"<<endl;
+  return nl->IsEqual(type, "floor3d");
+}
+
+/*
+open function for floor3d
+
+*/
+
+bool OpenFloor3D(SmiRecord& valueRecord, size_t& offset,
+                 const ListExpr typeInfo, Word& value)
+{
+//  cout<<"OpenFloor3D()"<<endl;
+  value.addr = new Floor3D(valueRecord, offset, typeInfo);
+  return value.addr != NULL;
+}
+
+/*
+save function for floor3d
+
+*/
+bool SaveFloor3D(SmiRecord& valueRecord, size_t& offset,
+                 const ListExpr typeInfo, Word& value)
+{
+//    cout<<"SaveFloor3D()"<<endl;
+    Floor3D* fl = (Floor3D*)value.addr;
+    return fl->Save(valueRecord, offset, typeInfo);
+}
+
+TypeConstructor floor3d(
+    "floor3d", Floor3DProperty,
+     OutFloor3D, InFloor3D,
+     0, 0,
+     CreateFloor3D, DeleteFloor3D,
+     OpenFloor3D, SaveFloor3D,
+     CloseFloor3D, CloneFloor3D,
+     Floor3D::Cast,
+     SizeOfFloor3D,
+     CheckFloor3D
+);
+
+///////////////////////  Indoor Operators    /////////////////////////////////
+
+const string SpatialSpecTheFloor =
+"( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+"( <text>float x region -> floor3d</text--->"
+"<text>thefloor ( _, _ ) </text--->"
+"<text>create a floor3d object.</text--->"
+"<text>query thefloor (5.0, r)</text---> ) )";
+
+const string SpatialSpecGetHeight =
+"( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+"( <text>floor3d -> float</text--->"
+"<text>getheight ( _ ) </text--->"
+"<text>get the ground height of a floor3d object</text--->"
+"<text>query getheight(floor3d_1)</text---> ) )";
+
+const string SpatialSpecGetRegion =
+"( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+"( <text>floor3d -> region</text--->"
+"<text>getregion ( _ ) </text--->"
+"<text>get the ground area of a floor3d object</text--->"
+"<text>query getregion(floor3d_1)</text---> ) )";
+
+/*
+TypeMap function for operator thefloor
+
+*/
+ListExpr TheFloorTypeMap(ListExpr args)
+{
+  if(nl->ListLength(args) != 2){
+      string err = "float x region expected";
+      return listutils::typeError(err);
+  }
+  ListExpr arg1 = nl->First(args);
+  ListExpr arg2 = nl->Second(args);
+  if(nl->IsEqual(arg1, "real") && nl->IsEqual(arg2, "region"))
+      return nl->SymbolAtom("floor3d");
+
+  return nl->SymbolAtom("typeerror");
+}
+
+/*
+TypeMap function for operator getheight
+
+*/
+ListExpr GetHeightTypeMap(ListExpr args)
+{
+  if(nl->ListLength(args) != 1){
+      string err = "floor3d expected";
+      return listutils::typeError(err);
+  }
+
+  if(nl->IsEqual(nl->First(args), "floor3d"))
+      return nl->SymbolAtom("real");
+
+  return nl->SymbolAtom("typeerror");
+}
+
+/*
+TypeMap function for operator getregion
+
+*/
+ListExpr GetRegionTypeMap(ListExpr args)
+{
+  if(nl->ListLength(args) != 1){
+      string err = "floor3d expected";
+      return listutils::typeError(err);
+  }
+
+  if(nl->IsEqual(nl->First(args), "floor3d"))
+      return nl->SymbolAtom("region");
+
+  return nl->SymbolAtom("typeerror");
+}
+
+/*
+ValueMap function for operator thefloor
+
+*/
+int TheFloorValueMap(Word* args, Word& result, int message,
+                    Word& local, Supplier s)
+{
+  float h = ((CcReal*)args[0].addr)->GetRealval();
+  Region* r = (Region*)args[1].addr;
+  result = qp->ResultStorage(s);
+  Floor3D* fl = (Floor3D*)result.addr;
+  fl->SetValue(h, r);
+  return 0;
+}
+
+/*
+ValueMap function for operator getheight
+
+*/
+int GetHeightValueMap(Word* args, Word& result, int message,
+                    Word& local, Supplier s)
+{
+  Floor3D* fl = (Floor3D*)args[0].addr;
+  result = qp->ResultStorage(s);
+  CcReal* res = (CcReal*)result.addr;
+  if(!fl->IsDefined()) res->Set(false,0.0);
+  else
+      res->Set(true,fl->GetHeight());
+  return 0;
+}
+
+/*
+ValueMap function for operator getregion
+
+*/
+int GetRegionValueMap(Word* args, Word& result, int message,
+                    Word& local, Supplier s)
+{
+  Floor3D* fl = (Floor3D*)args[0].addr;
+  result = qp->ResultStorage(s);
+  Region* res = (Region*)result.addr;
+  *res = Region(*fl->GetRegion());
+  return 0;
+}
+
+Operator thefloor("thefloor",
+    SpatialSpecTheFloor,
+    TheFloorValueMap,
+    Operator::SimpleSelect,
+    TheFloorTypeMap
+);
+
+Operator getheight("getheight",
+    SpatialSpecGetHeight,
+    GetHeightValueMap,
+    Operator::SimpleSelect,
+    GetHeightTypeMap
+);
+
+Operator getregion("getregion",
+    SpatialSpecGetRegion,
+    GetRegionValueMap,
+    Operator::SimpleSelect,
+    GetRegionTypeMap
+);
+
+//////////////////////  Indoor  ////////////////////////////////////////////
+
 
 ////////////string for Operator Spec //////////////////////////////////
 const string OpTMCheckSlineSpec  =
@@ -482,11 +1657,21 @@ const string OpTMRefineBusRouteSpec  =
     "\"Example\" ) "
     "( <text>network x rel x attr1 x attr2 x attr3 x attr4"
     " x attr5 x attr6 -> (stream (tuple( (x1 t1)(x2 t2)...(xn tn)))</text--->"
-    "<text>refine_bus_route(n,rel,attr1,attr2,attr3,attr4,attr5,attr6);"
+    "<text>refine_bus_route(network,rel,attr1,attr2,attr3,attr4,attr5,attr6);"
     "</text--->"
     "<text>refine bus routes,filter some bus routes which are similar</text--->"
     "<text>query refine_bus_route(n,busroutes_temp,br_id,bus_route1,"
     "bus_route2,start_loc,end_loc,route_type) count;</text--->"
+    ") )";
+
+const string OpTMBusRouteRoadSpec  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+    "\"Example\" ) "
+    "( <text>network x rel x attr1 "
+    "-> (stream (tuple( (x1 t1)(x2 t2)...(xn tn)))</text--->"
+    "<text>bus_route_road(n,rel,attr1);</text--->"
+    "<text>calculate the total length of bus routes in road network</text--->"
+    "<text>query bus_route_road(n,busroutes,bus_route1) count;</text--->"
     ") )";
     
 const string OpTMCreateBusRouteSpec3  =
@@ -676,17 +1861,80 @@ const string OpTMCreateDayTimeBusSpec  =
     "bus_segment_speed,btree_seg_speed) count;</text--->"
     ") )";
 
-const string OpTMCreateTimeTableSpec  =
+const string OpTMCreateTimeTable1Spec  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" "
     "\"Example\" ) "
     "( <text>rel1 x rel2 x btree "
     "->(stream (tuple( (x1 t1)(x2 t2)...(xn tn)))</text--->"
-    "<text>create_time_table(rel,rel,btree);</text--->"
+    "<text>create_time_table1(rel,rel,btree);</text--->"
     "<text>create time table at each spatial location </text--->"
-    "<text>query create_time_table(final_busstops,all_bus_rel,btree_mo)"
+    "<text>query create_time_table1(final_busstops,all_bus_rel,btree_mo)"
     "count;</text--->"
     ") )";
+
+const string OpTMCreateTimeTable1NewSpec  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+    "\"Example\" ) "
+    "( <text>rel1 x rel2 x btree x periods x periods"
+    "->(stream (tuple( (x1 t1)(x2 t2)...(xn tn)))</text--->"
+    "<text>create_time_table1_new(rel,rel,btree,periods,periods);</text--->"
+    "<text>create time table at each spatial location </text--->"
+    "<text>query create_time_table1_new(final_busstops,all_bus_rel,btree_mo,"
+    "night1, night2) count;</text--->"
+    ") )";
     
+const string OpTMCreateUBTrainsSpec  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+    "\"Example\" ) "
+    "( <text>rel x attr1 x attr2 x attr3 x duration "
+    "->(stream (tuple( (x1 t1)(x2 t2)...(xn tn)))</text--->"
+    "<text>createUBTrains(rel,attr1,attr2,attr3,duration);</text--->"
+    "<text>create UBahn Trains </text--->"
+    "<text>query createUBTrains(UBahnTrains1,Line,Up,Trip,"
+    "UBTrain_time) count;</text--->"
+    ") )";
+    
+const string OpTMCreateUBTrainStopSpec  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+    "\"Example\" ) "
+    "( <text>rel x attr1 x attr2 x attr3 "
+    "->(stream (tuple( (x1 t1)(x2 t2)...(xn tn)))</text--->"
+    "<text>create_train_stop(rel,attr,attr,attr);</text--->"
+    "<text>create UBahn Train Stops </text--->"
+    "<text>query create_train_stop(UBahnTrains,Line,Up,Trip) count;</text--->"
+    ") )";
+
+const string OpTMCreateTimeTable2Spec  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+    "\"Example\" ) "
+    "( <text>rel1 x rel2 x btree "
+    "->(stream (tuple( (x1 t1)(x2 t2)...(xn tn)))</text--->"
+    "<text>create_time_table2(rel,rel,btree);</text--->"
+    "<text>create time table at each spatial location </text--->"
+    "<text>query create_time_table2(train_stops,ubtrains,btree_train)"
+    "count;</text--->"
+    ") )";
+
+const string OpTMCreateTimeTable2NewSpec  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+    "\"Example\" ) "
+    "( <text>rel1 x rel2 x btree "
+    "->(stream (tuple( (x1 t1)(x2 t2)...(xn tn)))</text--->"
+    "<text>create_time_table2_new(rel,rel,btree);</text--->"
+    "<text>compact storage of time tables </text--->"
+    "<text>query create_time_table2_new(train_stops,ubtrains,btree_train)"
+    "count;</text--->"
+    ") )";
+
+const string OpTMInstant2DaySpec  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+    "\"Example\" ) "
+    "( <text>instant -> int </text--->"
+    "<text>instant2day(instant);</text--->"
+    "<text>get the day of time</text--->"
+    "<text>query instant2day(theInstant(2007,6,3,9,0,0,0));</text--->"
+    ") )";
+
 ////////////////TypeMap function for operators//////////////////////////////
 
 /*
@@ -2988,6 +4236,48 @@ ListExpr OpTMRefineBusRouteTypeMap ( ListExpr args )
 
 
 /*
+TypeMap fun for operator bus route road.
+calculate the total length of bus routes in road network 
+
+*/
+
+ListExpr OpTMBusRouteRoadTypeMap ( ListExpr args )
+{
+  if ( nl->ListLength ( args ) != 3 )
+  {
+    return  nl->SymbolAtom ( "list length should be 3" );
+  }
+  
+  ListExpr param1 = nl->First ( args );
+  if(!(nl->IsAtom(param1) && nl->AtomType(param1) == SymbolType &&  
+     nl->SymbolValue(param1) == "network")){
+      return nl->SymbolAtom ( "typeerror: param1 should be network" );
+  }
+  
+  ListExpr param2 = nl->Second ( args );
+  if(!IsRelDescription(param2))
+    return nl->SymbolAtom ( "typeerror: param2 should be relation" );
+  
+
+  ListExpr attrName2 = nl->Third ( args );
+  ListExpr attrType2;
+  string aname2 = nl->SymbolValue(attrName2);
+  int j2 = listutils::findAttribute(nl->Second(nl->Second(param2)),
+                      aname2,attrType2);
+  if(j2 == 0 || !listutils::isSymbol(attrType2,"gline")){
+      return listutils::typeError("attr name" + aname2 + "not found"
+                      "or not of type gline");
+  }
+
+  ListExpr res = nl->SymbolAtom("real");
+  
+  return nl->ThreeElemList(
+        nl->SymbolAtom("APPEND"),
+        nl->OneElemList(nl->IntAtom(j2)),res);
+                        
+}
+
+/*
 TypeMap fun for operator createbusroute3
 translate bus routes 
 
@@ -3555,7 +4845,7 @@ ListExpr OpTMCreateBusStopTypeMap4 ( ListExpr args )
       return listutils::typeError("attr name" + aname4 + "not found"
                       "or not of type bool");
                       
-     ListExpr res = nl->TwoElemList(
+/*     ListExpr res = nl->TwoElemList(
             nl->SymbolAtom("stream"),
             nl->TwoElemList(
                 nl->SymbolAtom("tuple"),
@@ -3582,7 +4872,38 @@ ListExpr OpTMCreateBusStopTypeMap4 ( ListExpr args )
 //                    nl->TwoElemList(
 //                        nl->SymbolAtom("test_line"),
 //                        nl->SymbolAtom("line"))
-                    )));
+                    )));*/
+
+
+     ListExpr res = nl->TwoElemList(
+            nl->SymbolAtom("stream"),
+            nl->TwoElemList(
+                nl->SymbolAtom("tuple"),
+                  nl->Cons(
+                   nl->TwoElemList(
+                        nl->SymbolAtom("br_id"),
+                        nl->SymbolAtom("int")),
+                   nl->SixElemList(
+                    nl->TwoElemList(
+                        nl->SymbolAtom("br_uid"),
+                        nl->SymbolAtom("int")), 
+                    nl->TwoElemList(
+                        nl->SymbolAtom("bus_stop_id"),
+                        nl->SymbolAtom("int")),
+                    nl->TwoElemList(
+                        nl->SymbolAtom("bus_stop1"),
+                        nl->SymbolAtom("point")),
+                    nl->TwoElemList(
+                        nl->SymbolAtom("bus_stop2"),
+                        nl->SymbolAtom("point")),
+                    nl->TwoElemList(
+                        nl->SymbolAtom("bus_pos"),
+                        nl->SymbolAtom("real")),
+                    nl->TwoElemList(
+                        nl->SymbolAtom("stop_loc_id"),
+                        nl->SymbolAtom("int"))
+                    ))));
+
 
       return nl->ThreeElemList(
         nl->SymbolAtom("APPEND"),
@@ -4368,7 +5689,7 @@ TypeMap fun for operator create time table for each spatial location
 
 */
 
-ListExpr OpTMCreateTimeTableTypeMap ( ListExpr args )
+ListExpr OpTMCreateTimeTable1TypeMap ( ListExpr args )
 {
   if ( nl->ListLength ( args ) != 3 )
   {
@@ -4419,6 +5740,365 @@ ListExpr OpTMCreateTimeTableTypeMap ( ListExpr args )
       return res; 
 }
 
+/*
+TypeMap fun for operator create time table for each spatial location 
+Compact storage structure 
+
+*/
+
+ListExpr OpTMCreateTimeTable1NewTypeMap ( ListExpr args )
+{
+  if ( nl->ListLength ( args ) != 5 )
+  {
+    return  nl->SymbolAtom ( "list length should be 5" );
+  }
+  
+  ListExpr param1 = nl->First ( args );
+  if(!IsRelDescription(param1))
+    return nl->SymbolAtom ( "typeerror: param1 should be a relation" );
+  
+ 
+  ListExpr param2 = nl->Second ( args );
+  if(!IsRelDescription(param2))
+    return nl->SymbolAtom ( "typeerror: param2 should be a relation" );
+  
+  ListExpr index = nl->Third(args);
+  if(!listutils::isBTreeDescription(index))
+      return  nl->SymbolAtom ( "param3  should be btree" );
+  
+  ListExpr param4 = nl->Fourth(args );
+  if(!(nl->IsAtom(param4) && nl->AtomType(param4) == SymbolType &&  
+     nl->SymbolValue(param4) == "periods")){
+      return nl->SymbolAtom ( "typeerror: param4 should be periods" );
+  }  
+  
+  
+  ListExpr param5 = nl->Fifth(args );
+  if(!(nl->IsAtom(param5) && nl->AtomType(param5) == SymbolType &&  
+     nl->SymbolValue(param5) == "periods")){
+      return nl->SymbolAtom ( "typeerror: param5 should be periods" );
+  }  
+  
+   ListExpr res = nl->TwoElemList(
+            nl->SymbolAtom("stream"),
+            nl->TwoElemList(
+                nl->SymbolAtom("tuple"),
+                nl->Cons(            
+                    nl->TwoElemList(
+                        nl->SymbolAtom("stop_loc"),
+                        nl->SymbolAtom("point")),        
+                nl->SixElemList(
+                    nl->TwoElemList(
+                        nl->SymbolAtom("br_id"),
+                        nl->SymbolAtom("int")),
+                    nl->TwoElemList(
+                        nl->SymbolAtom("stop_id"),
+                        nl->SymbolAtom("int")),
+                    nl->TwoElemList(
+                        nl->SymbolAtom("bus_direction"),
+                        nl->SymbolAtom("bool")),
+                    nl->TwoElemList(
+                        nl->SymbolAtom("whole_time"),
+                        nl->SymbolAtom("periods")),
+                    nl->TwoElemList(
+                        nl->SymbolAtom("schedule_interval"),
+                        nl->SymbolAtom("real")),
+                    nl->TwoElemList(
+                        nl->SymbolAtom("loc_id"),
+                        nl->SymbolAtom("int")))
+                    )));
+
+      return res; 
+}
+
+/*
+TypeMap fun for operator create UBahn Trains
+
+*/
+
+ListExpr OpTMCreateUBTrainsTypeMap ( ListExpr args )
+{
+  if ( nl->ListLength ( args ) != 5 )
+  {
+    return  nl->SymbolAtom ( "list length should be 5" );
+  }
+  
+  ListExpr param1 = nl->First ( args );
+  if(!IsRelDescription(param1))
+    return nl->SymbolAtom ( "typeerror: param1 should be a relation" );
+  
+  ListExpr attrName1 = nl->Second ( args );
+  ListExpr attrType1;
+  string aname1 = nl->SymbolValue(attrName1);
+  int j1 = listutils::findAttribute(nl->Second(nl->Second(param1)),
+                      aname1,attrType1);
+                      
+  if(j1 == 0 || !listutils::isSymbol(attrType1,"int")){
+      return listutils::typeError("attr name" + aname1 + "not found"
+                      "or not of type int");
+  }
+
+  ListExpr attrName2 = nl->Third ( args );
+  ListExpr attrType2;
+  string aname2 = nl->SymbolValue(attrName2);
+  int j2 = listutils::findAttribute(nl->Second(nl->Second(param1)),
+                      aname2,attrType2);
+                      
+  if(j2 == 0 || !listutils::isSymbol(attrType2,"bool")){
+      return listutils::typeError("attr name" + aname2 + "not found"
+                      "or not of type bool");
+  }
+
+
+  ListExpr attrName3 = nl->Fourth ( args );
+  ListExpr attrType3;
+  string aname3 = nl->SymbolValue(attrName3);
+  int j3 = listutils::findAttribute(nl->Second(nl->Second(param1)),
+                      aname3,attrType3);
+                      
+  if(j3 == 0 || !listutils::isSymbol(attrType3,"mpoint")){
+      return listutils::typeError("attr name" + aname3 + "not found"
+                      "or not of type mpoint");
+  }
+
+
+  ListExpr param5 = nl->Fifth(args );
+  if(!(nl->IsAtom(param5) && nl->AtomType(param5) == SymbolType &&  
+     nl->SymbolValue(param5) == "periods")){
+      return nl->SymbolAtom ( "typeerror: param5 should be periods" );
+  }  
+  
+  
+     ListExpr res = nl->TwoElemList(
+            nl->SymbolAtom("stream"),
+            nl->TwoElemList(
+                nl->SymbolAtom("tuple"),
+
+                nl->FiveElemList(
+                    nl->TwoElemList(
+                        nl->SymbolAtom("Id"),
+                        nl->SymbolAtom("int")),
+                    nl->TwoElemList(
+                        nl->SymbolAtom("Line"),
+                        nl->SymbolAtom("int")),
+                    nl->TwoElemList(
+                        nl->SymbolAtom("Up"),
+                        nl->SymbolAtom("bool")),
+                    nl->TwoElemList(
+                        nl->SymbolAtom("Trip"),
+                        nl->SymbolAtom("mpoint")),
+                    nl->TwoElemList(
+                        nl->SymbolAtom("schedule_id"),
+                        nl->SymbolAtom("int"))
+                    )));
+
+      return nl->ThreeElemList(
+        nl->SymbolAtom("APPEND"),
+        nl->ThreeElemList(nl->IntAtom(j1),nl->IntAtom(j2),
+                          nl->IntAtom(j3)), res);
+}
+
+
+/*
+TypeMap fun for operator create UBahn Train Stops 
+
+*/
+
+ListExpr OpTMCreateUBTrainStopTypeMap ( ListExpr args )
+{
+  if ( nl->ListLength ( args ) != 4 )
+  {
+    return  nl->SymbolAtom ( "list length should be 4" );
+  }
+  
+  ListExpr param1 = nl->First ( args );
+  if(!IsRelDescription(param1))
+    return nl->SymbolAtom ( "typeerror: param1 should be a relation" );
+  
+  ListExpr attrName1 = nl->Second ( args );
+  ListExpr attrType1;
+  string aname1 = nl->SymbolValue(attrName1);
+  int j1 = listutils::findAttribute(nl->Second(nl->Second(param1)),
+                      aname1,attrType1);
+                      
+  if(j1 == 0 || !listutils::isSymbol(attrType1,"int")){
+      return listutils::typeError("attr name" + aname1 + "not found"
+                      "or not of type int");
+  }
+
+  ListExpr attrName2 = nl->Third ( args );
+  ListExpr attrType2;
+  string aname2 = nl->SymbolValue(attrName2);
+  int j2 = listutils::findAttribute(nl->Second(nl->Second(param1)),
+                      aname2,attrType2);
+                      
+  if(j2 == 0 || !listutils::isSymbol(attrType2,"bool")){
+      return listutils::typeError("attr name" + aname2 + "not found"
+                      "or not of type bool");
+  }
+
+
+  ListExpr attrName3 = nl->Fourth ( args );
+  ListExpr attrType3;
+  string aname3 = nl->SymbolValue(attrName3);
+  int j3 = listutils::findAttribute(nl->Second(nl->Second(param1)),
+                      aname3,attrType3);
+
+  if(j3 == 0 || !listutils::isSymbol(attrType3,"mpoint")){
+      return listutils::typeError("attr name" + aname3 + "not found"
+                      "or not of type mpoint");
+  }
+
+     ListExpr res = nl->TwoElemList(
+            nl->SymbolAtom("stream"),
+            nl->TwoElemList(
+                nl->SymbolAtom("tuple"),
+
+                nl->ThreeElemList(
+                    nl->TwoElemList(
+                        nl->SymbolAtom("LineId"),
+                        nl->SymbolAtom("int")),
+                    nl->TwoElemList(
+                        nl->SymbolAtom("loc"),
+                        nl->SymbolAtom("point")),
+                    nl->TwoElemList(
+                        nl->SymbolAtom("stop_id"),
+                        nl->SymbolAtom("int"))
+                    )));
+
+      return nl->ThreeElemList(
+        nl->SymbolAtom("APPEND"),
+        nl->ThreeElemList(nl->IntAtom(j1),nl->IntAtom(j2),
+                          nl->IntAtom(j3)), res);
+}
+
+/*
+TypeMap fun for operator create time table for each spatial location 
+
+*/
+
+ListExpr OpTMCreateTimeTable2TypeMap ( ListExpr args )
+{
+  if ( nl->ListLength ( args ) != 3 )
+  {
+    return  nl->SymbolAtom ( "list length should be 3" );
+  }
+  
+  ListExpr param1 = nl->First ( args );
+  if(!IsRelDescription(param1))
+    return nl->SymbolAtom ( "typeerror: param1 should be a relation" );
+  
+ 
+  ListExpr param2 = nl->Second ( args );
+  if(!IsRelDescription(param2))
+    return nl->SymbolAtom ( "typeerror: param2 should be a relation" );
+  
+  ListExpr index = nl->Third(args);
+  if(!listutils::isBTreeDescription(index))
+      return  nl->SymbolAtom ( "param3  should be btree" );
+  
+     ListExpr res = nl->TwoElemList(
+            nl->SymbolAtom("stream"),
+            nl->TwoElemList(
+                nl->SymbolAtom("tuple"),
+                nl->SixElemList(
+                    nl->TwoElemList(
+                        nl->SymbolAtom("station_loc"),
+                        nl->SymbolAtom("point")),
+                    nl->TwoElemList(
+                        nl->SymbolAtom("line_id"),
+                        nl->SymbolAtom("int")),
+                    nl->TwoElemList(
+                        nl->SymbolAtom("stop_id"),
+                        nl->SymbolAtom("int")),
+                    nl->TwoElemList(
+                        nl->SymbolAtom("train_direction"),
+                        nl->SymbolAtom("bool")),
+                    nl->TwoElemList(
+                        nl->SymbolAtom("schedule_time"),
+                        nl->SymbolAtom("instant")),
+                    nl->TwoElemList(
+                        nl->SymbolAtom("loc_id"),
+                        nl->SymbolAtom("int"))
+                    )));
+      return res; 
+}
+
+
+/*
+TypeMap fun for operator create time table for each spatial location 
+Compact Storage 
+
+*/
+
+ListExpr OpTMCreateTimeTable2NewTypeMap ( ListExpr args )
+{
+  if ( nl->ListLength ( args ) != 3 )
+  {
+    return  nl->SymbolAtom ( "list length should be 3" );
+  }
+  
+  ListExpr param1 = nl->First ( args );
+  if(!IsRelDescription(param1))
+    return nl->SymbolAtom ( "typeerror: param1 should be a relation" );
+  
+ 
+  ListExpr param2 = nl->Second ( args );
+  if(!IsRelDescription(param2))
+    return nl->SymbolAtom ( "typeerror: param2 should be a relation" );
+  
+  ListExpr index = nl->Third(args);
+  if(!listutils::isBTreeDescription(index))
+      return  nl->SymbolAtom ( "param3  should be btree" );
+  
+     ListExpr res = nl->TwoElemList(
+            nl->SymbolAtom("stream"),
+            nl->TwoElemList(
+                nl->SymbolAtom("tuple"),
+                nl->Cons(            
+                    nl->TwoElemList(
+                        nl->SymbolAtom("station_loc"),
+                        nl->SymbolAtom("point")),        
+                nl->SixElemList(
+                    nl->TwoElemList(
+                        nl->SymbolAtom("line_id"),
+                        nl->SymbolAtom("int")),
+                    nl->TwoElemList(
+                        nl->SymbolAtom("stop_id"),
+                        nl->SymbolAtom("int")),
+                    nl->TwoElemList(
+                        nl->SymbolAtom("train_direction"),
+                        nl->SymbolAtom("bool")),
+                    nl->TwoElemList(
+                        nl->SymbolAtom("whole_time"),
+                        nl->SymbolAtom("periods")),
+                    nl->TwoElemList(
+                        nl->SymbolAtom("schedule_interval"),
+                        nl->SymbolAtom("real")),
+                    nl->TwoElemList(
+                        nl->SymbolAtom("loc_id"),
+                        nl->SymbolAtom("int")))
+                    )));
+      return res; 
+}
+
+
+/*
+TypeMap fun for operator instant2day
+
+*/
+
+ListExpr OpTMInstant2DayNewTypeMap ( ListExpr args )
+{
+  if ( nl->ListLength ( args ) != 1 )
+  {
+    return  nl->SymbolAtom ( "list length should be 1" );
+  }
+  if(nl->IsEqual(nl->First(args),"instant")){
+    return nl->SymbolAtom("int");
+  }else
+    return nl->SymbolAtom ( "typeerror: param1 should be instant" );
+}
 
 int GetContourSelect(ListExpr args)
 {
@@ -6983,6 +8663,29 @@ int OpTMRefineBusRouteValueMap ( Word* args, Word& result, int message,
 
 
 /*
+calculate the total length of bus routes in road network.
+It returns the percentage value 
+
+*/
+int OpTMBusRouteRoadValueMap ( Word* args, Word& result, int message,
+                         Word& local, Supplier in_pSupplier )
+{
+
+  Network* n = (Network*)args[0].addr;
+  Relation* r = (Relation*)args[1].addr; 
+        
+  int attr1 = ((CcInt*)args[3].addr)->GetIntval() - 1;
+  
+  BusRoute* br = new BusRoute(n,r, NULL, NULL);
+  float route_road = br->BusRouteInRoad(attr1);
+  result = qp->ResultStorage(in_pSupplier);
+  CcReal* pResult = (CcReal*)result.addr; 
+  pResult->Set(true, route_road); 
+  return 1;
+
+}
+
+/*
 create bus routes3
 translate the bus route into two where one is for up and the other is for down
 
@@ -7329,6 +9032,9 @@ int OpTMCreateBusStopValueMap4 ( Word* args, Word& result, int message,
                               new CcReal(true,br->bus_stop_loc_3[br->count]));
                               
 //          tuple->PutAttribute(5,new Line(br->bus_sections1[br->count])); 
+          tuple->PutAttribute(6, 
+                              new CcInt(true,br->stop_loc_id_list[br->count]));
+
 
           result.setAddr(tuple);
           br->count++;
@@ -7912,10 +9618,10 @@ int OpTMCreateDayTimeBusValueMap ( Word* args, Word& result, int message,
 }
 
 /*
-create time table for each spatial location
+create time table for each spatial location--Bus 
 
 */
-int OpTMCreateTimeTableValueMap ( Word* args, Word& result, int message,
+int OpTMCreateTimeTable1ValueMap ( Word* args, Word& result, int message,
                          Word& local, Supplier in_pSupplier )
 {
 
@@ -7966,6 +9672,328 @@ int OpTMCreateTimeTableValueMap ( Word* args, Word& result, int message,
   }
   return 0;
 
+}
+
+/*
+create time table for each spatial location--Bus 
+Compact storage:
+loc:point lineid:int stopid:int direction:bool deftime:periods
+locid:int scheduleinterval:double 
+
+*/
+int OpTMCreateTimeTable1NewValueMap ( Word* args, Word& result, int message,
+                         Word& local, Supplier in_pSupplier )
+{
+
+  RoadDenstiy* rd;
+  switch(message){
+      case OPEN:{
+        
+        Relation* r1 = (Relation*)args[0].addr; 
+        Relation* r2 = (Relation*)args[1].addr; 
+        BTree* btree = (BTree*)args[2].addr; 
+        Periods* peri1 = (Periods*)args[3].addr;
+        Periods* peri2 = (Periods*)args[4].addr;
+
+
+        rd = new RoadDenstiy(NULL,r1,r2, btree);
+        rd->resulttype =
+            new TupleType(nl->Second(GetTupleResultType(in_pSupplier)));
+        
+        rd->CreateTimeTable_Compact(peri1, peri2);
+        local.setAddr(rd);
+        return 0;
+      }
+      case REQUEST:{
+          if(local.addr == NULL) return CANCEL;
+          rd = (RoadDenstiy*)local.addr;
+          if(rd->count == rd->bus_stop_loc.size())return CANCEL;
+
+          Tuple* tuple = new Tuple(rd->resulttype);
+          tuple->PutAttribute(0, new Point(rd->bus_stop_loc[rd->count])); 
+          tuple->PutAttribute(1, new CcInt(true, rd->br_id_list[rd->count]));
+          tuple->PutAttribute(2, 
+                              new CcInt(true, rd->bus_stop_id_list[rd->count]));
+          tuple->PutAttribute(3, new CcBool(true, rd->br_direction[rd->count]));
+          tuple->PutAttribute(4, new Periods(rd->duration1[rd->count])); 
+          tuple->PutAttribute(5,
+                            new CcReal(true,rd->schedule_interval[rd->count]));
+          tuple->PutAttribute(6, 
+                            new CcInt(true, rd->unique_id_list[rd->count]));
+          result.setAddr(tuple);
+          rd->count++;
+          return YIELD;
+      }
+      case CLOSE:{
+          if(local.addr){
+            rd = (RoadDenstiy*)local.addr;
+            delete rd;
+            local.setAddr(Address(0));
+          }
+          return 0;
+      }
+  }
+  return 0;
+
+}
+
+
+
+/*
+create UBahn Trains 
+
+*/
+int OpTMCreateUBahanTrainsValueMap ( Word* args, Word& result, int message,
+                         Word& local, Supplier in_pSupplier )
+{
+
+  UBTrain* ubtrain;
+  switch(message){
+      case OPEN:{
+        
+        Relation* r = (Relation*)args[0].addr; 
+        Periods* peri = (Periods*)args[4].addr;        
+        
+        int attr1 = ((CcInt*)args[5].addr)->GetIntval() - 1;
+        int attr2 = ((CcInt*)args[6].addr)->GetIntval() - 1;
+        int attr3 = ((CcInt*)args[7].addr)->GetIntval() - 1;
+
+        ubtrain = new UBTrain(r);
+        ubtrain->resulttype =
+            new TupleType(nl->Second(GetTupleResultType(in_pSupplier)));
+        
+        ubtrain->CreateUBTrains(attr1,attr2,attr3,peri);
+        local.setAddr(ubtrain);
+        return 0;
+      }
+      case REQUEST:{
+          if(local.addr == NULL) return CANCEL;
+          ubtrain = (UBTrain*)local.addr;
+          if(ubtrain->count == ubtrain->id_list.size())return CANCEL;
+
+          Tuple* tuple = new Tuple(ubtrain->resulttype);
+          tuple->PutAttribute(0, 
+                            new CcInt(true, ubtrain->id_list[ubtrain->count]));
+          tuple->PutAttribute(1, 
+                        new CcInt(true, ubtrain->line_id_list[ubtrain->count]));
+          tuple->PutAttribute(2, 
+                     new CcBool(true, ubtrain->direction_list[ubtrain->count]));
+          tuple->PutAttribute(3, 
+                     new MPoint(ubtrain->train_trip[ubtrain->count])); 
+          tuple->PutAttribute(4, 
+                    new CcInt(true, ubtrain->schedule_id_list[ubtrain->count]));
+
+          result.setAddr(tuple);
+          ubtrain->count++;
+          return YIELD;
+      }
+      case CLOSE:{
+          if(local.addr){
+            ubtrain = (UBTrain*)local.addr;
+            delete ubtrain;
+            local.setAddr(Address(0));
+          }
+          return 0;
+      }
+  }
+  return 0;
+
+}
+
+/*
+create UBahn Train Stops 
+
+*/
+int OpTMCreateUBahanTrainStopValueMap ( Word* args, Word& result, int message,
+                         Word& local, Supplier in_pSupplier )
+{
+
+  UBTrain* ubtrain;
+  switch(message){
+      case OPEN:{
+        
+        Relation* r = (Relation*)args[0].addr; 
+        
+        int attr1 = ((CcInt*)args[4].addr)->GetIntval() - 1;
+        int attr2 = ((CcInt*)args[5].addr)->GetIntval() - 1;
+        int attr3 = ((CcInt*)args[6].addr)->GetIntval() - 1;
+
+        ubtrain = new UBTrain(r);
+        ubtrain->resulttype =
+            new TupleType(nl->Second(GetTupleResultType(in_pSupplier)));
+        
+        ubtrain->CreateUBTrainStop(attr1,attr2,attr3);
+        local.setAddr(ubtrain);
+        return 0;
+      }
+      case REQUEST:{
+          if(local.addr == NULL) return CANCEL;
+          ubtrain = (UBTrain*)local.addr;
+          if(ubtrain->count == ubtrain->line_id_list.size())return CANCEL;
+
+          Tuple* tuple = new Tuple(ubtrain->resulttype);
+          tuple->PutAttribute(0, 
+                        new CcInt(true, ubtrain->line_id_list[ubtrain->count]));
+          tuple->PutAttribute(1, 
+                        new Point(ubtrain->stop_loc_list[ubtrain->count]));
+          tuple->PutAttribute(2, 
+                     new CcInt(true, ubtrain->stop_id_list[ubtrain->count]));
+
+          result.setAddr(tuple);
+          ubtrain->count++;
+          return YIELD;
+      }
+      case CLOSE:{
+          if(local.addr){
+            ubtrain = (UBTrain*)local.addr;
+            delete ubtrain;
+            local.setAddr(Address(0));
+          }
+          return 0;
+      }
+  }
+  return 0;
+
+}
+
+
+/*
+create time table for each spatial location--Train 
+
+*/
+int OpTMCreateTimeTable2ValueMap ( Word* args, Word& result, int message,
+                         Word& local, Supplier in_pSupplier )
+{
+
+  UBTrain* ubtrain;
+  switch(message){
+      case OPEN:{
+        
+        Relation* r1 = (Relation*)args[0].addr; 
+        Relation* r2 = (Relation*)args[1].addr; 
+        BTree* btree = (BTree*)args[2].addr; 
+
+        ubtrain = new UBTrain(r1,r2, btree);
+        ubtrain->resulttype =
+            new TupleType(nl->Second(GetTupleResultType(in_pSupplier)));
+
+        ubtrain->CreateTimeTable();
+        local.setAddr(ubtrain);
+        return 0;
+      }
+      case REQUEST:{
+          if(local.addr == NULL) return CANCEL;
+          ubtrain = (UBTrain*)local.addr;
+          if(ubtrain->count == ubtrain->line_id_list.size())return CANCEL;
+
+          Tuple* tuple = new Tuple(ubtrain->resulttype);
+          tuple->PutAttribute(0, 
+                             new Point(ubtrain->stop_loc_list[ubtrain->count]));
+          tuple->PutAttribute(1, 
+                    new CcInt(true, ubtrain->line_id_list[ubtrain->count]));
+          tuple->PutAttribute(2, 
+                    new CcInt(true, ubtrain->stop_id_list[ubtrain->count]));
+          tuple->PutAttribute(3, 
+                    new CcBool(true, ubtrain->direction_list[ubtrain->count]));
+          tuple->PutAttribute(4, 
+                    new Instant(ubtrain->schedule_time[ubtrain->count])); 
+          tuple->PutAttribute(5, 
+                    new CcInt(true, ubtrain->loc_id_list[ubtrain->count])); 
+
+          result.setAddr(tuple);
+          ubtrain->count++;
+          return YIELD;
+      }
+      case CLOSE:{
+          if(local.addr){
+            ubtrain = (UBTrain*)local.addr;
+            delete ubtrain;
+            local.setAddr(Address(0));
+          }
+          return 0;
+      }
+  }
+  return 0;
+
+}
+
+
+/*
+create time table for each spatial location--Train (Compact Storage)
+loc:point lineid:int stopid:int direction:bool deftime:periods
+locid:int scheduleinterval:double 
+
+*/
+int OpTMCreateTimeTable2NewValueMap ( Word* args, Word& result, int message,
+                         Word& local, Supplier in_pSupplier )
+{
+
+  UBTrain* ubtrain;
+  switch(message){
+      case OPEN:{
+        
+        Relation* r1 = (Relation*)args[0].addr; 
+        Relation* r2 = (Relation*)args[1].addr; 
+        BTree* btree = (BTree*)args[2].addr; 
+
+        ubtrain = new UBTrain(r1,r2, btree);
+        ubtrain->resulttype =
+            new TupleType(nl->Second(GetTupleResultType(in_pSupplier)));
+
+        ubtrain->CreateTimeTable_Compact();
+        local.setAddr(ubtrain);
+        return 0;
+      }
+      case REQUEST:{
+          if(local.addr == NULL) return CANCEL;
+          ubtrain = (UBTrain*)local.addr;
+          if(ubtrain->count == ubtrain->line_id_list.size())return CANCEL;
+
+          Tuple* tuple = new Tuple(ubtrain->resulttype);
+          tuple->PutAttribute(0, 
+                             new Point(ubtrain->stop_loc_list[ubtrain->count]));
+          tuple->PutAttribute(1, 
+                    new CcInt(true, ubtrain->line_id_list[ubtrain->count]));
+          tuple->PutAttribute(2, 
+                    new CcInt(true, ubtrain->stop_id_list[ubtrain->count]));
+          tuple->PutAttribute(3, 
+                    new CcBool(true, ubtrain->direction_list[ubtrain->count]));
+          tuple->PutAttribute(4, 
+                    new Periods(ubtrain->duration[ubtrain->count])); 
+          tuple->PutAttribute(5, 
+                  new CcReal(true, ubtrain->schedule_interval[ubtrain->count]));
+          tuple->PutAttribute(6, 
+                    new CcInt(true, ubtrain->loc_id_list[ubtrain->count])); 
+
+          result.setAddr(tuple);
+          ubtrain->count++;
+          return YIELD;
+      }
+      case CLOSE:{
+          if(local.addr){
+            ubtrain = (UBTrain*)local.addr;
+            delete ubtrain;
+            local.setAddr(Address(0));
+          }
+          return 0;
+      }
+  }
+  return 0;
+
+}
+
+
+/*
+get the day of an instant 
+
+*/
+int OpTMInstant2DayValueMap ( Word* args, Word& result, int message,
+                         Word& local, Supplier in_pSupplier )
+{
+    result = qp->ResultStorage(in_pSupplier);
+    DateTime* t = (DateTime*)args[0].addr;
+    ((CcInt*)result.addr)->Set(true,t->GetDay());
+    return 0; 
 }
 
 ////////////////Operator Constructor///////////////////////////////////////
@@ -8363,6 +10391,14 @@ Operator refine_bus_route(
   OpTMRefineBusRouteTypeMap
 );
 
+Operator bus_route_road(
+  "bus_route_road",
+  OpTMBusRouteRoadSpec,
+  OpTMBusRouteRoadValueMap,
+  Operator::SimpleSelect,
+  OpTMBusRouteRoadTypeMap
+);
+
 
 Operator create_bus_route3(
   "create_bus_route3",
@@ -8498,14 +10534,65 @@ Operator create_daytime_bus_mo(
 );
 
 
-Operator create_time_table(
-  "create_time_table",
-  OpTMCreateTimeTableSpec,
-  OpTMCreateTimeTableValueMap,
+Operator create_time_table1(
+  "create_time_table1",
+  OpTMCreateTimeTable1Spec,
+  OpTMCreateTimeTable1ValueMap,
   Operator::SimpleSelect,
-  OpTMCreateTimeTableTypeMap
+  OpTMCreateTimeTable1TypeMap
 );
 
+
+Operator create_time_table1_new(
+  "create_time_table1_new",
+  OpTMCreateTimeTable1NewSpec,
+  OpTMCreateTimeTable1NewValueMap,
+  Operator::SimpleSelect,
+  OpTMCreateTimeTable1NewTypeMap
+);
+
+
+Operator createUBTrains(
+  "createUBTrains",
+  OpTMCreateUBTrainsSpec,
+  OpTMCreateUBahanTrainsValueMap,
+  Operator::SimpleSelect,
+  OpTMCreateUBTrainsTypeMap
+);
+
+
+Operator create_train_stop(
+  "create_train_stop",
+  OpTMCreateUBTrainStopSpec,
+  OpTMCreateUBahanTrainStopValueMap,
+  Operator::SimpleSelect,
+  OpTMCreateUBTrainStopTypeMap
+);
+
+Operator create_time_table2(
+  "create_time_table2",
+  OpTMCreateTimeTable2Spec,
+  OpTMCreateTimeTable2ValueMap,
+  Operator::SimpleSelect,
+  OpTMCreateTimeTable2TypeMap
+);
+
+Operator create_time_table2_new(
+  "create_time_table2_new",
+  OpTMCreateTimeTable2NewSpec,
+  OpTMCreateTimeTable2NewValueMap,
+  Operator::SimpleSelect,
+  OpTMCreateTimeTable2NewTypeMap
+);
+
+
+Operator instant2day(
+  "instant2day",
+  OpTMInstant2DaySpec,
+  OpTMInstant2DayValueMap,
+  Operator::SimpleSelect,
+  OpTMInstant2DayNewTypeMap
+);
 
 /*
 Main Class for Transportation Mode
@@ -8520,7 +10607,15 @@ class TransportationModeAlgebra : public Algebra
     dualgraph.AssociateKind("DUALGRAPH");
     AddTypeConstructor(&visualgraph);
     visualgraph.AssociateKind("VISUALGRAPH");
-    ////operators for partition regions////
+    ////////////    Indoor   Data Type   ///////////////////////////////////
+    AddTypeConstructor( &point3d);
+    AddTypeConstructor( &line3d);
+    AddTypeConstructor( &floor3d);
+
+    point3d.AssociateKind("DATA");
+    line3d.AssociateKind("DATA");
+    floor3d.AssociateKind("DATA");
+    ////operators for partition regions//////////////////////////
     AddOperator(&checksline);
     AddOperator(&modifyboundary);
     AddOperator(&segment2region);
@@ -8569,10 +10664,12 @@ class TransportationModeAlgebra : public Algebra
     AddOperator(&rotationsweep);
     AddOperator(&gethole);
     ////////////////////create bus network//////////////////////////
+    ///////////////// bus stops and bus routes  //////////////////////
     AddOperator(&cellbox);
     AddOperator(&create_bus_route1); //rough representation
     AddOperator(&create_bus_route2); //create bus route 
     AddOperator(&refine_bus_route); //filter some bus routes which are similar 
+    AddOperator(&bus_route_road); //calculate the total length of bus routes 
     AddOperator(&create_bus_route3);//copy bus route, split 
     AddOperator(&create_bus_route4);//set up and down for bus routes 
     AddOperator(&create_bus_stop1); //create bus stops on bus routes
@@ -8581,6 +10678,7 @@ class TransportationModeAlgebra : public Algebra
     AddOperator(&create_bus_stop4); //change bus stop position 
     AddOperator(&create_bus_stop5); //set up and down for bus stops 
     //////////////preprocess road data to get denstiy value/////////////
+    ///////////// create time table and moving buses  //////////////////
     AddOperator(&maptoint);
     AddOperator(&maptoreal);
     AddOperator(&get_route_density1);//get daytime and night bus routes 
@@ -8590,7 +10688,19 @@ class TransportationModeAlgebra : public Algebra
     AddOperator(&create_bus_segment_speed); //set speed value for each segment 
     AddOperator(&create_night_bus_mo);//create night moving bus 
     AddOperator(&create_daytime_bus_mo);//create daytime moving bus 
-    AddOperator(&create_time_table);//create time table for each spatial stop 
+    AddOperator(&create_time_table1);//create time table for each spatial stop 
+    AddOperator(&create_time_table1_new);//compact storage of bus time tables 
+    //////////    process UBahn Trains    /////////////////////////////
+    AddOperator(&createUBTrains); //create UBahn Trains 
+    AddOperator(&create_train_stop);//create UBahn Train Stops 
+    AddOperator(&create_time_table2);//create time table for train stop 
+    AddOperator(&create_time_table2_new);//compact storage of train time tables 
+    ////////////////  Indoor Operators   ///////////////////////////////
+    AddOperator(&thefloor);
+    AddOperator(&getregion);
+    AddOperator(&getheight);
+    /////////////////  others  /////////////////////////////////////////
+    AddOperator(&instant2day); 
   }
   ~TransportationModeAlgebra() {};
  private:

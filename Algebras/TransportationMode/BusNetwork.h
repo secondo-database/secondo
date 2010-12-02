@@ -261,6 +261,7 @@ struct BusRoute{
   vector<int> sec_id_list; 
   vector<double> bus_stop_loc_3; 
   vector<bool> startSmaller; //used for simpleline
+  vector<int> stop_loc_id_list; //different spatial locations for bus stops 
   /////////////////////////////////////
   
   BusRoute(Network* net,Relation* r1,BTree* b):
@@ -292,6 +293,7 @@ struct BusRoute{
   /////////////////////refine bus routes////////////////////////////////
   void RefineBusRoute(int, int, int, int, int, int);
   int FilterBusRoute(GLine* gl1, GLine* gl2, int id1, int id2);
+  float BusRouteInRoad(int);
   /////////////////////////////create bus stops/////////////////////
   void CreateBusStop1(int attr1,int attr2,int attr3, int attr4); 
   void CreateStops(int br_id, GLine* gl, Line* l, int route_type); 
@@ -402,7 +404,7 @@ struct RoadDenstiy{
   vector<Point> bus_stop_loc; 
   vector<Instant> schedule_time; 
   vector<int> unique_id_list; 
-  
+  vector<double> schedule_interval;
   
   //for bus route speed relation  
   enum BR_SPEED{BR_ID = 0, BR_POS, BR_SPEED,BR_SPEED_SEG}; 
@@ -473,9 +475,118 @@ struct RoadDenstiy{
   ////////////////////////create time table/////////////////////////////////
   void CreateTimeTable();
   void CreateLocTable(vector<BusStop_Ext> bus_stop_list_new,int count_id);
+  ///////////////////////Compact Storage ///////////////////////////////
+  void CreateTimeTable_Compact(Periods*,Periods*);
+  void CreateLocTable_Compact(vector<BusStop_Ext>,int count_id,
+                              Periods*,Periods*);
+  bool SameDay(UPoint& up, Periods* peri1);
+  void CreatTableAtStopNight(vector<MPoint>& mo_list, Point& loc, 
+                                   int br_id, int stop_id, bool dir,
+                                   Periods* night1, Periods* night2,
+                                   int count_id);
+  void CreatTableAtStop(vector<MPoint> mo_list, Point& loc,
+                                   int br_id, int stop_id, bool dir,
+                                   int count_id); 
+  void GetTimeInstantStop(MPoint& mo, Point loc, Instant& arrove_t); 
+};
+
+
+/*
+To create UBahn trains 
+
+*/
+struct UBTrainTrip{
+  int line_id;
+  bool direction;
+  MPoint train_trip;
+  UBTrainTrip(){}
+  UBTrainTrip(int id,bool d,MPoint tr):line_id(id),direction(d),train_trip(tr){}
+  UBTrainTrip(const UBTrainTrip& train_tr):
+  line_id(train_tr.line_id),direction(train_tr.direction),
+  train_trip(train_tr.train_trip){}
+  UBTrainTrip& operator=(const UBTrainTrip& train_tr)
+  {
+    line_id = train_tr.line_id;
+    direction = train_tr.direction;
+    train_trip = train_tr.train_trip;
+    return *this;
+  }
+  void Print()
+  {
+    cout<<"line id "<<line_id<<" direction "<<direction
+        <<" trip "<<train_trip<<endl; 
+  }
+  
+  bool operator<(const UBTrainTrip& ubtrain) const
+  {
+    Periods* peri1 = new Periods(0);
+    Periods* peri2 = new Periods(0);
+    this->train_trip.DefTime(*peri1);
+    ubtrain.train_trip.DefTime(*peri2);
+    
+    Interval<Instant> periods1;
+    Interval<Instant> periods2;
+    peri1->Get(0, periods1);
+    peri2->Get(0, periods2);
+    
+    delete peri1;
+    delete peri2; 
+    
+    return periods1.start < periods2.start; 
+  }
+
+};
+
+struct UBTrain{
+  Relation* rel1;
+  Relation* rel2;
+  BTree* btree1; 
+  
+  unsigned int id_count; 
+  vector<int> id_list;
+  vector<int> line_id_list;
+  vector<bool> direction_list;
+  vector<MPoint> train_trip; 
+  vector<int> schedule_id_list; 
+  
+  vector<Point> stop_loc_list; 
+  vector<int> stop_id_list; 
+  
+  vector<Instant> schedule_time;
+  vector<int> loc_id_list; 
+
+  vector<Periods> duration; //the whole life time for one day 
+  vector<double> schedule_interval; //time interval for each bus trip 
+  
+  UBTrain(){count = 0;resulttype = NULL;}
+  UBTrain(Relation* r):rel1(r),count(0),resulttype(NULL){}
+  UBTrain(Relation* r1,Relation* r2,BTree* b):
+  rel1(r1), rel2(r2), btree1(b), count(0), resulttype(NULL){}
+  ~UBTrain(){if(resulttype != NULL) delete resulttype;}
+
+  //////////    for UBahn Trips ///////////////////////////////////////
+  enum UBAHN_TRIN{T_ID,T_LINE,T_UP,T_TRIP,T_SCHEDULE};
+  /////////////// Train Stops ///////////////////////////////////////
+  enum UBAHN_STOP{T_LINEID,T_STOP_LOC,T_STOP_ID}; 
+  
+  unsigned int count;
+  TupleType* resulttype;
+  
+  void CreateUBTrains(int,int,int,Periods*);
+  void CreateUBTrainTrip(vector<UBTrainTrip> trip_list, Periods* peri); 
+  void CreateTrainTrip(vector<UBTrainTrip>, Periods*);
+  void CopyTrainTrip(int start_pos, int end_pos,int line_id, bool d);
+  void CreateUBTrainStop(int,int,int);
+  void CreateTimeTable();
+  void CreateLocTable(vector<BusStop_Ext> station_list_new,int count_id);
+  ////////////////  Compact Storage of Time Tables //////////////
+  void CreateTimeTable_Compact();
+  void CreateLocTable_Compact(vector<BusStop_Ext> station_list_new,
+                              int count_id);
+  void TimeTableCompact(vector<MPoint>&,Point,int,int,bool,int);
+  void GetTimeInstantStop(MPoint& mo, Point loc, Instant& st);
 };
 
 
 #endif
-
 

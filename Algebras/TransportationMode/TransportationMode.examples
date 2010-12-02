@@ -287,6 +287,12 @@ Signature: network x rel x attr1 x attr2 x attr3 x attr4 x attr5 x attr6 -> (str
 Example  : query refine_bus_route(n,busroutes_tmp,br_id,bus_route1,bus_route2,start_loc,end_loc,route_type) count; 
 Result   : 10
 
+Operator : bus_route_road
+Number   : 2
+Signature: network x rel x attr1 -> (stream(((x1 t1) ... (xn tn))))
+Example  : query bus_route_road(n,busroutes,bus_route1) count; 
+Result   : 10
+
 
 Operator : create_bus_route3
 Number   : 2
@@ -397,8 +403,71 @@ Example  : query create_daytime_bus_mo(ts_daybus,bus_segment_speed,btree_seg_spe
 Result   : 10.0
 
 
-Operator : create_time_table
+Operator : create_time_table1
 Number   : 2
 Signature: rel1 x rel2 x btree -> (stream(((x1 t1) ... (xn tn))))
-Example  : query create_time_table(final_busstops,all_bus_rel,btree_mo) count;
+Example  : query create_time_table1(final_busstops,all_bus_rel,btree_mo) count;
 Result   : 10.0
+
+Operator : create_time_table1_new
+Number   : 2
+Signature: rel1 x rel2 x btree x periods1 x periods2 -> (stream(((x1 t1) ... (xn tn))))
+Example  : query create_time_table1_new(final_busstops,all_bus_rel,btree_mo,night1,night2) count;
+Result   : 10.0
+
+
+Operator : createUBTrains
+Number   : 2
+Signature: rel x attr1 x attr2 x attr3 x duration -> (stream(((x1 t1) ... (xn tn))))
+Example  : query createUBTrains(UBahnTrains1,Line,Up,Trip,UBTrain_time) count; 
+Result   : 10.0
+
+
+Operator : create_train_stop
+Number   : 2
+Signature: rel x attr1 x attr2 x attr3-> (stream(((x1 t1) ... (xn tn))))
+Example  : query create_train_stop(ubtrains,Line,Up,Trip) count; 
+Result   : 10.0
+
+
+Operator : create_time_table2
+Number   : 2
+Signature: rel1 x rel2 x btree -> (stream(((x1 t1) ... (xn tn))))
+Example  : query create_time_table2(train_stops,ubtrains,btree_train) count;
+Result   : 10.0
+
+
+Operator : create_time_table2_new
+Number   : 2
+Signature: rel1 x rel2 x btree -> (stream(((x1 t1) ... (xn tn))))
+Example  : query create_time_table2_new(train_stops,ubtrains,btree_train) count;
+Result   : 10.0
+
+Operator : thefloor
+Number   : 1
+Signature: float x region -> floor3d
+Example  : query getheight(thefloor(3.0, [const region value ((((1 1)(5 1)(5 5)(1 5))))]));
+Result   : 3.0
+
+
+Operator : getheight
+Number   : 1
+Signature: floor3d -> float
+Example  : query getheight(thefloor(3.0, [const region value ((((1 1)(5 1)(5 5)(1 5))))]));
+Result   : 3.0
+
+
+Operator : getregion
+Number   : 1
+Signature: float -> region
+Example  : query area(getregion(thefloor(3.0, [const region value ((((1 1)(5 1)(5 5)(1 5))))])));
+Result   : 16
+
+
+Operator : instant2day 
+Number   : 1
+Signature: instant -> int
+Example  : query instant2day(theInstant(2007,6,3,9,0,0,0));
+Result   : 3989
+
+ 
