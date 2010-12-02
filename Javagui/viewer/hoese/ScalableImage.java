@@ -6,26 +6,27 @@ import java.awt.Image;
 import java.awt.geom.Rectangle2D;
 import java.awt.image.BufferedImage;
 
-
-
-/** This class provides an component which displays an image
-  * in the size of the bounds of this component
-  */
+/**
+ * This class provides an component which displays an image in the size of the
+ * bounds of this component
+ */
 
 
 public class ScalableImage extends Component {
 
-   /** Creates a new instance of type ScalableImage without any content. 
-     **/
+	/**
+	 * Creates a new instance of type ScalableImage without any content.
+	 */
     public ScalableImage () {
        this.image=null;
        this.scaledImage = null;
        this.clippedScaledImage=null;
     }
 
-    /** Draws this component 
-      * If an image is available, this image is painted otherwise nothing.
-      */
+	/**
+	 * Draws this component If an image is available, this image is painted
+	 * otherwise nothing.
+	 */
     public void paint(Graphics g) {
       super.paint(g);
       if(scaledImage!=null){

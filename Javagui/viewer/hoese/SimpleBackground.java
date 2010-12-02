@@ -1,6 +1,3 @@
-/**
- * 
- */
 package viewer.hoese;
 
 import java.awt.Color;
@@ -11,6 +8,9 @@ import java.util.Properties;
 
 import javax.swing.JColorChooser;
 import javax.swing.JComponent;
+
+import viewer.hoese.Background;
+import viewer.hoese.BackgroundChangedEvent;
 
 /**
  * This Background class homogeniously fills the visiable background (the total
@@ -67,16 +67,22 @@ public class SimpleBackground extends Background {
 	}
 
 	/**
-	 * Set up the Background with the background color and bounds from the
-	 * Argument. All registered Listeners are informed.
+	 * Set up the Background with parameters given as a Properties object. Can
+	 * be used to restore the Background settings, e.g. from a file. All
+	 * registered Listeners are informed. The image data is retrieved from files
+	 * rooted at the given path.
 	 * 
+	 * @param p
+	 *            The Background settings to restore.
+	 * @param backgrounddatapath
+	 *            A path to a directory where additional data is stored in
+	 *            files.
 	 * @see viewer.hoese.Background#setConfiguration(java.util.Properties)
-	 * @param
 	 */
 	@Override
-	public void setConfiguration(Properties p) {
-		super.setConfiguration(p);
-		String bcstring = p.getProperty(BGSTR);
+	public void setConfiguration(Properties p, String backgrounddatapath) {
+		super.setConfiguration(p, backgrounddatapath);
+		String bcstring = p.getProperty(KEY_BGCOLOR, null);
 		if(bcstring != null) {
 			int rgb = Integer.parseInt(bcstring);
 			backgroundcolor = new Color(rgb);
@@ -90,16 +96,20 @@ public class SimpleBackground extends Background {
 	}
 
 	/**
-	 * Saves the background color and bounds to a Properties Object.
+	 * Return the Background's settings as a Properties object. The Properties
+	 * can be used to save Background settings for later reference. Additional
+	 * data may be stored to files rooted at the given path.
 	 * 
+	 * @param BackgroundDataPath
+	 *            Path where to store the current image
+	 * @return The Background's settings as a Properties object.
 	 * @see viewer.hoese.Background#getConfiguration(java.lang.Object)
-	 * @param The
-	 *            Background's settings as a Properties object.
 	 */
 	@Override
-	public Properties getConfiguration() {
-		Properties p = super.getConfiguration();
-		p.setProperty(BGSTR, "" + backgroundcolor.getRGB());
+	public Properties getConfiguration(String backgrounddatapath) {
+		Properties p = super.getConfiguration(backgrounddatapath);
+		p.setProperty(KEY_BGCOLOR, "" + backgroundcolor.getRGB());
+		// TODO store the image as a file
 		return p;
 	}
 
@@ -147,5 +157,5 @@ public class SimpleBackground extends Background {
 	 */
 	private Color backgroundcolor;
 
-	public static final String BGSTR = "backgroundcolor";
+	public static final String KEY_BGCOLOR = "backgroundcolor";
 }

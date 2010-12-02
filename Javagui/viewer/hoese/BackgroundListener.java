@@ -1,7 +1,5 @@
 package viewer.hoese;
 
-import viewer.hoese.BackgroundChangedEvent;
-
 /**
  * @author Christian Duentgen
  * 

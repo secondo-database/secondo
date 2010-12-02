@@ -16,9 +16,7 @@ import sj.lang.ListExpr;
  * This class is to be extended by classes representing different kinds of
  * backgrounds in the HoeseViever, e.g. SimpleBackground, ImageBackground, or
  * TiledBackground.
- * 
  * @author Christian Duentgen
- * 
  */
 public abstract class Background extends javax.swing.JComponent {
 
@@ -38,7 +36,6 @@ public abstract class Background extends javax.swing.JComponent {
 
 	/**
 	 * Sets the Background's boundary
-	 * 
 	 * @param rect
 	 *            A Rectangle2D defining the Background's boundary
 	 */
@@ -48,7 +45,6 @@ public abstract class Background extends javax.swing.JComponent {
 	
 	/**
 	 * Returns the Background's boundary
-	 * 
 	 * @return The Background's boundary
 	 */
 	public Rectangle2D.Double getBBox() {
@@ -58,7 +54,6 @@ public abstract class Background extends javax.swing.JComponent {
 	/**
 	 * Sets the Background's clipping boundary. Only parts of the background
 	 * lying within the clipping area are displayed.
-	 * 
 	 * @param rect
 	 *            A Rectangle2D defining the clipping area.
 	 */
@@ -68,7 +63,6 @@ public abstract class Background extends javax.swing.JComponent {
 
 	/**
 	 * Returns the Background's current clipping area.
-	 * 
 	 * @return A Rectangle2D defining the Background's clipping area.
 	 */
 	public Rectangle2D.Double getClipBBox() {
@@ -77,7 +71,6 @@ public abstract class Background extends javax.swing.JComponent {
 
 	/**
 	 * Display a dialog to allow a user to set up parameters for the Background.
-	 * 
 	 * @param parent
 	 *            The parent of the dialog component used.
 	 */
@@ -86,26 +79,30 @@ public abstract class Background extends javax.swing.JComponent {
 	/**
 	 * Set up the Background with parameters given as a Properties object. Can
 	 * be used to restore the Background settings, e.g. from a file. All
-	 * registered Listeners are informed.
+	 * registered Listeners are informed. Additional data may be retrieved from
+	 * files rooted at the given path.
 	 * 
 	 * @param p
 	 *            The Background settings to restore.
+	 * @param backgrounddatapath
+	 *            A path to a directory where additional data is stored in
+	 *            files.
 	 */
-	public void setConfiguration(Properties p) {
-		String n = p.getProperty(NAMESTR);
+	public void setConfiguration(Properties p, String backgrounddatapath) {
+		String n = p.getProperty(KEY_NAME);
 		if (n != null) {
 			name = n;
 		}
-		n = p.getProperty(LICENSESTR);
+		n = p.getProperty(KEY_LICENSE);
 		if (n != null) {
 			license = n;
 		}
 		Rectangle2D.Double b = createRectangle2DFromString(p
-				.getProperty(BBOXSTR));
+				.getProperty(KEY_BBOX));
 		if (b != null) {
 			bbox = b;
 		}
-		b = createRectangle2DFromString(p.getProperty(CLIPBBOXSTR));
+		b = createRectangle2DFromString(p.getProperty(KEY_CLIPBBOX));
 		if (b != null) {
 			clipbbox = b;
 		}
@@ -135,28 +132,29 @@ public abstract class Background extends javax.swing.JComponent {
 
 	/**
 	 * Return the Background's settings as a Properties object. The Properties
-	 * can be used to save Background settings for later reference. All
-	 * registered Listeners are informed.
+	 * can be used to save Background settings for later reference. Additional
+	 * data may be stored to files rooted at the given path.
 	 * 
+	 * @param backgrounddatapath
+	 *            Path, where to store data files.
 	 * @return The Background's settings as a Properties object.
 	 */
-	public Properties getConfiguration() {
+	public Properties getConfiguration(String backgrounddatapath) {
 		Properties p = new Properties();
-		p.setProperty(NAMESTR, name);
-		p.setProperty(LICENSESTR, license);
+		p.setProperty(KEY_NAME, name);
+		p.setProperty(KEY_LICENSE, license);
 		String bboxstr = "" + bbox.getX() + " " + bbox.getY() + " "
 				+ bbox.getWidth() + " " + bbox.getHeight();
-		p.setProperty(BBOXSTR, bboxstr);
+		p.setProperty(KEY_BBOX, bboxstr);
 		bboxstr = "" + clipbbox.getX() + " " + clipbbox.getY() + " "
 				+ clipbbox.getWidth() + " " + clipbbox.getHeight();
-		p.setProperty(CLIPBBOXSTR, bboxstr);
+		p.setProperty(KEY_CLIPBBOX, bboxstr);
 		return p;
 	}
 
 	/**
 	 * Add an Object as a listener to the Background. Listeners will be informed
 	 * when the Background's content changed, so that it might be painted again.
-	 * 
 	 * @param l
 	 *            The Object to enlist as a listener.
 	 */
@@ -169,7 +167,6 @@ public abstract class Background extends javax.swing.JComponent {
 	/**
 	 * Removes an Object from the Background's listener list. That object will
 	 * no longer be informed about changes to the Background.
-	 * 
 	 * @param l
 	 *            The Object to remove from the listener list.
 	 */
@@ -185,12 +182,12 @@ public abstract class Background extends javax.swing.JComponent {
 	 * 
 	 */
 	public void handleBackgroundDataChangedEvent(BackgroundChangedEvent evt) {
+		// empty implementation
 	}
 
 	/**
 	 * Returns the Background's name, e.g. to allow to choose between different
 	 * available Backgrounds.
-	 * 
 	 * @return The Background's name.
 	 */
 	public final String getName() {
@@ -202,7 +199,6 @@ public abstract class Background extends javax.swing.JComponent {
 	 * or pictures come with a license stating to display a copyright or license
 	 * message together with the map/ picture. The returned license should be
 	 * displayed at an appropriate place.
-	 * 
 	 * @return The Background's license.
 	 */
 	public final String getLicense() {
@@ -244,26 +240,35 @@ public abstract class Background extends javax.swing.JComponent {
 	/**
 	 * String constant used as key for license within Property
 	 */
-	public static final String LICENSESTR = "license";
+	public static final String KEY_LICENSE = "license";
 
 	/**
 	 * String constant used as key for name within Property
 	 */
-	public static final String NAMESTR = "name";
+	public static final String KEY_NAME = "name";
 
 	/**
 	 * String constant used as key for bbox within Property
 	 */
-	public static final String BBOXSTR = "bbox";
+	public static final String KEY_BBOX = "bbox";
 
 	/**
 	 * String constant used as key for clipbbox within Property
 	 */
-	public static final String CLIPBBOXSTR = "clipbbox";
+	public static final String KEY_CLIPBBOX = "clipbbox";
 
-	public ListExpr toListExpr() {
+	/**
+	 * Creates a nested list representation of the Background's configuration,
+	 * that can be saved as part of a saved GUI session. The provided path
+	 * indicates a directory where additional data files may be stored.
+	 * 
+	 * @param backgrounddatapath
+	 *            Path to the data directory
+	 * @return The listExpr representing this object.
+	 */
+	public ListExpr toListExpr(String backgrounddatapath) {
 		// TODO Finish implementation!
-		Properties p = getConfiguration();
+		Properties p = getConfiguration(backgrounddatapath);
 		Set<Object> keys = p.keySet();
 		Iterator<Object> i = keys.iterator();
 		if (!i.hasNext()) {
@@ -285,7 +290,18 @@ public abstract class Background extends javax.swing.JComponent {
 		return nl;
 	}
 
-	public void fromListExpr(ListExpr l) {
+	/**
+	 * Restores the Background settings from a nested list representation of
+	 * Background's configuration, so that the Background can be restored when
+	 * loading a saved GUI session. The provided path indicates the directory
+	 * with additional data files used for restoration.
+	 * 
+	 * @param l
+	 *            The listExpr representing this object.
+	 * @param backgrounddatapath
+	 *            Path to the data directory
+	 */
+	public void readFromList(ListExpr l, String backgrounddatapath) {
 		Properties p = new Properties();
 		while (!(l.isAtom() || l.isEmpty())) {
 			ListExpr pair = l.first();
@@ -298,6 +314,6 @@ public abstract class Background extends javax.swing.JComponent {
 				p.setProperty(key, value);
 			}
 		}
-		setConfiguration(p);
+		setConfiguration(p, backgrounddatapath);
 	}
 }
