@@ -1,9 +1,9 @@
 package viewer.hoese;
 
-import java.awt.*;
-import java.awt.event.*;
-import javax.swing.*;
-import java.awt.geom.*;
+import java.awt.Component;
+import java.awt.Graphics;
+import java.awt.Image;
+import java.awt.geom.Rectangle2D;
 import java.awt.image.BufferedImage;
 
 
