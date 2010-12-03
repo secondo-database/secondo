@@ -10,6 +10,7 @@ import java.util.Properties;
 
 import javax.swing.JComponent;
 
+import sj.lang.ListExpr;
 import tools.Reporter;
 
 /**
@@ -19,12 +20,60 @@ import tools.Reporter;
  */
 public class ImageBackground extends Background {
 
-	private static final long serialVersionUID = 3198851131892244547L;
+	/**
+	 * Generated VersionUID for serialization
+	 */
+	private static final long serialVersionUID = -9060443805324796816L;
 
+	/**
+	 * Constructs an undefined Background.
+	 */
 	public ImageBackground() {
 		img = new ScalableImage();
 		bbox = null;
 		clipbbox = null;
+	}
+
+	/**
+	 * Constructs an ImageBackground by interaction with the user.
+	 * 
+	 * @param parent
+	 *            The parent component for the used dialog.
+	 */
+	public ImageBackground(JComponent parent) {
+		img = new ScalableImage();
+		bbox = null;
+		clipbbox = null;
+		showConfigDialog(parent);
+	}
+
+	/**
+	 * Creates an ImageBackground from a nested list and a data path.
+	 * 
+	 * @param l
+	 *            The nested list to read from.
+	 * @param datapath
+	 *            The directory with the background image file.
+	 */
+	public ImageBackground(ListExpr l, String datapath) {
+		name = "ImageBackground";
+		license = "";
+		readFromList(l, datapath);
+	}
+
+	/**
+	 * Constructs an ImageBackground from a suitable Properties object.
+	 * 
+	 * @param p
+	 *            The Properties to restore from.
+	 * @param datafilepath
+	 *            Path of the directory holding the nackground image file.
+	 */
+	public ImageBackground(Properties p, String datafilepath) {
+		img = new ScalableImage();
+		bbox = null;
+		clipbbox = null;
+		setConfiguration(p, datafilepath);
 	}
 
 	/**

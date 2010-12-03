@@ -34,13 +34,14 @@ public abstract class Background extends javax.swing.JComponent {
 		listeners = null;
 	}
 
+
 	/**
 	 * Sets the Background's boundary
 	 * @param rect
 	 *            A Rectangle2D defining the Background's boundary
 	 */
 	public void setBBox(Rectangle2D.Double rect) {
-		bbox = rect;
+		bbox = (Rectangle2D.Double) rect.clone();
 	}
 	
 	/**
@@ -58,7 +59,7 @@ public abstract class Background extends javax.swing.JComponent {
 	 *            A Rectangle2D defining the clipping area.
 	 */
 	public void setClipBBox(Rectangle2D.Double rect) {
-		clipbbox = rect;
+		clipbbox = (Rectangle2D.Double) rect.clone();
 	}
 
 	/**
@@ -108,6 +109,14 @@ public abstract class Background extends javax.swing.JComponent {
 		}
 	}
 
+	/**
+	 * Creates a {@link Rectangle2D.Double} from its String representation, e.g.
+	 * to restore a rectangle from a value in a {@link Properties} object.
+	 * 
+	 * @param s
+	 *            The String to read from
+	 * @return The Rectangle2D.Double represented by the String parameter
+	 */
 	public static Rectangle2D.Double createRectangle2DFromString(String s) {
 		if (s == null) {
 			return null;
@@ -235,6 +244,9 @@ public abstract class Background extends javax.swing.JComponent {
 	 */
 	protected Rectangle2D.Double clipbbox;
 
+	/**
+	 * Structure to maintain the set of registered listeners
+	 */
 	private LinkedList<BackgroundListener> listeners;
 
 	/**

@@ -9,13 +9,11 @@ import java.util.Properties;
 import javax.swing.JColorChooser;
 import javax.swing.JComponent;
 
-import viewer.hoese.Background;
-import viewer.hoese.BackgroundChangedEvent;
+import sj.lang.ListExpr;
 
 /**
  * This Background class homogeniously fills the visiable background (the total
  * clipping area) with a user-defined colour.
- * 
  * @author Christian Duentgen
  * 
  */
@@ -40,9 +38,52 @@ public class SimpleBackground extends Background {
 	 *            The color to be used as background color;
 	 */
 	public SimpleBackground(Color c) {
-		setName("SimpleBackground");
+		name = "SimpleBackground";
 		license = "";
 		backgroundcolor = c;
+	}
+
+	/**
+	 * Creates a SimpleBackground, restoring it from a property.
+	 * 
+	 * @param p
+	 *            The properties to read from.
+	 * @param datapath
+	 *            The directory with additional data (not used).
+	 */
+	public SimpleBackground(Properties p, String datapath) {
+		name = "SimpleBackground";
+		license = "";
+		backgroundcolor = getBackground();
+		setConfiguration(p, datapath);
+	}
+
+	/**
+	 * Creates a SimpleBackground from a nested list and a data path.
+	 * 
+	 * @param l
+	 *            The nested list to read from.
+	 * @param datapath
+	 *            The directory with additional data (not used).
+	 */
+	public SimpleBackground(ListExpr l, String datapath) {
+		name = "SimpleBackground";
+		license = "";
+		backgroundcolor = getBackground();
+		readFromList(l, datapath);
+	}
+
+	/**
+	 * Constructs a SimpleBackground by interaction with the user.
+	 * 
+	 * @param parent
+	 *            The parent for the used dialog
+	 */
+	public SimpleBackground(JComponent parent) {
+		name = "SimpleBackground";
+		license = "";
+		backgroundcolor = getBackground();
+		showConfigDialog(parent);
 	}
 
 	/**
@@ -50,7 +91,6 @@ public class SimpleBackground extends Background {
 	 * about the change.
 	 * 
 	 * @see viewer.hoese.Background#showConfigDialog(javax.swing.JComponent)
-	 * 
 	 * @param parent
 	 *            The parent of the dialog component used.
 	 */
@@ -71,7 +111,6 @@ public class SimpleBackground extends Background {
 	 * be used to restore the Background settings, e.g. from a file. All
 	 * registered Listeners are informed. The image data is retrieved from files
 	 * rooted at the given path.
-	 * 
 	 * @param p
 	 *            The Background settings to restore.
 	 * @param backgrounddatapath
@@ -99,7 +138,6 @@ public class SimpleBackground extends Background {
 	 * Return the Background's settings as a Properties object. The Properties
 	 * can be used to save Background settings for later reference. Additional
 	 * data may be stored to files rooted at the given path.
-	 * 
 	 * @param BackgroundDataPath
 	 *            Path where to store the current image
 	 * @return The Background's settings as a Properties object.
@@ -109,15 +147,12 @@ public class SimpleBackground extends Background {
 	public Properties getConfiguration(String backgrounddatapath) {
 		Properties p = super.getConfiguration(backgrounddatapath);
 		p.setProperty(KEY_BGCOLOR, "" + backgroundcolor.getRGB());
-		// TODO store the image as a file
 		return p;
 	}
 
 	/**
 	 * Paints the background as a filled rectangle.
-	 * 
 	 * @see viewer.hoese.Background#paint()
-	 * 
 	 * @param g
 	 *            The Graphics object to paint to.
 	 */
@@ -148,8 +183,8 @@ public class SimpleBackground extends Background {
 	 */
 	@Override
 	public void setClipBBox(Rectangle2D.Double rect) {
-		clipbbox = rect;
-		bbox = rect;
+		clipbbox = (Rectangle2D.Double) rect.clone();
+		bbox = (Rectangle2D.Double) rect.clone();
 	}
 
 	/**
