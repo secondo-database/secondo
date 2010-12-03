@@ -6,8 +6,25 @@ package tools.downloadmanager;
 
 
 
-public interface DownloadObserver{
+public abstract class  DownloadObserver implements Comparable{
+  public DownloadObserver(){
+      id = maxID++; 
+  }
 
 /** This method is called if the state of a download changed. **/
-  public void downloadStateChanged(DownloadEvent evt);
+  public abstract void downloadStateChanged(DownloadEvent evt);
+
+
+  public int compareTo(Object obj){
+     DownloadObserver o = (DownloadObserver) obj;
+     if(o.id==id) return 0;
+     if(o.id<id) return 1;
+      return -1;
+  }
+
+
+  static int maxID=0;
+  private int id;
+
+
 }

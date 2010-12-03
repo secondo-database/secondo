@@ -2,7 +2,7 @@ package tools.downloadmanager;
 
 /** Class describing an state change of a download **/
 
-class DownloadEvent{
+public class DownloadEvent{
 
   /** Creates a new DownloadEvent from the arguments. **/
   public DownloadEvent( Object source, DownloadState state, Exception ex){
@@ -27,6 +27,13 @@ class DownloadEvent{
   public Exception getException(){
     return ex;
   } 
+
+
+  public String toString(){
+    return "Source = " + source +"\n"+
+           "State = " + state +"\n"+
+           "Exception = " + ex;
+  }
 
   private Object source;
   private DownloadState state;

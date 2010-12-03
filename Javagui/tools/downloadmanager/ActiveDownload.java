@@ -44,12 +44,15 @@ class ActiveDownload extends PlannedDownload implements Runnable{
     FileOutputStream out=null;
     try{
        in = url.openStream();
+       targetFile.getParentFile().mkdirs();
        out = new FileOutputStream(targetFile);
        byte[] buffer = new byte[256];
        int size = -1;
        do{
           size = in.read(buffer);
-          out.write(buffer,0,size); 
+          if(size >=0){
+              out.write(buffer,0,size); 
+          }
        }while(!canceled && (size>=0));
 
        in.close();
@@ -74,6 +77,12 @@ class ActiveDownload extends PlannedDownload implements Runnable{
        informListeners(new DownloadEvent(this,DownloadState.BROKEN, e));
     }
   }
+
+  public String toString(){
+      return super.toString() + (running?"running":"waiting");
+  }
+
+
 
   private boolean running;
 

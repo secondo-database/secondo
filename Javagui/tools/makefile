@@ -70,5 +70,6 @@ endif
 clean:
 	rm -f *.class
 	rm -f GetEnv.o GetEnv.h $(GetEnvDLL) GetEnv.def
+	make -C downloadmanager clean
 
 

@@ -10,12 +10,12 @@ import java.util.LinkedList;
 import java.util.Collection;
 import java.util.Iterator;
 
-public class DownloadManager implements DownloadObserver{
+public class DownloadManager extends  DownloadObserver{
 
 
   /** Creates a new DownloadManager. 
    **/
-  public void DownloadManager(File tmpDirectory, int maxDownloads) throws InvalidArgumentException{
+  public DownloadManager(File tmpDirectory, int maxDownloads) throws InvalidArgumentException{
      if(!tmpDirectory.isDirectory()){
          throw new InvalidArgumentException("tmpdirectory must be an directiry");
      }

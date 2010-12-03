@@ -79,6 +79,10 @@ class PlannedDownload{
     }
   }
 
+  public String toString(){
+     return "Download:"+url+" file = " + targetFile + "noObservers " + observers.size() + "Canceled:" + canceled;
+  }
+
 
   protected URL url;
   protected File  targetFile;
