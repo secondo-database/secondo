@@ -50,7 +50,11 @@ JAN, 2010 Mahmoud Sakr
 #include "STPatternAlgebra.h"
 #include "SpatialAlgebra.h"
 #include "MSet.h"
+#include "igraph/igraph.h"
 #include <map>
+#include <functional>
+#include <algorithm>
+
 using namespace datetime;
 using namespace mset;
 typedef DateTime Instant;
@@ -60,7 +64,7 @@ extern QueryProcessor* qp;
 
 namespace GPattern {
 enum quantifier {exactly, atleast};
-
+typedef pair<int, int> intpair;
 
 struct DoubleInterval
 {
@@ -86,49 +90,549 @@ struct DoubleInterval
   }
 };
 
+
+
 class GPatternHelper
 {
 public:
 
-  GPatternHelper(){}
-  ~GPatternHelper() {}
+GPatternHelper(){}
+~GPatternHelper() {}
 
-  static void ComputeAddSubGraphs(InMemMSet& accumlator, 
-      list<InMemUSet>::iterator begin, list<InMemUSet>::iterator end,
-      bool isCommutative,
-      unsigned int n,  double d, quantifier q, string subGraphType,
-      vector<InMemMSet>* resStream)
+template<class MSetClass, class IteratorClass>
+static void FindSubGraphs(MSetClass& Accumlator,
+    IteratorClass begin, IteratorClass end , 
+    vector<intpair>& ids, double d, int n, string qts, 
+    list<InMemMSet*>*& finalResStream)
+{
+  bool debugme= false;
+  IteratorClass cur= begin;
+  set<int> s;
+  list<InMemMSet*>* resStream= 0, *localResStream= 0;
+  finalResStream= new list<InMemMSet*>(0);
+
+  FindDynamicComponents(Accumlator, begin, end, ids, d, n, qts, resStream);
+
+  bool locallyChanged= true, globallyChanged= false;
+  InMemMSet* curMSet=0;
+  while(resStream->begin() != resStream->end())
   {
-    bool debugme= false;
-//    assert(acc.GetNoComponents() > 0 );
-//    assert(d > 0);
-//    assert(((*t2).endtime - (*t1).starttime) > d);
-//    
-//    // create a typedef for the Graph type
-//    typedef adjacency_list<vecS, vecS, bidirectionalS> Graph;
-//
-//    // Make convenient labels for the vertices
-//    enum { A, B, C, D, E, N };
-//    const int num_vertices = N;
-//    const char* name = "ABCDE";
-//
-//    // writing out the edges in the graph
-//    typedef std::pair<int, int> Edge;
-//    Edge edge_array[] = 
-//    { Edge(A,B), Edge(A,D), Edge(C,A), Edge(D,C),
-//        Edge(C,E), Edge(B,D), Edge(D,E) };
-//    const int num_edges = sizeof(edge_array)/sizeof(edge_array[0]);
-//
-//    // declare a graph object
-//    Graph g(num_vertices);
-//
-//    // add the edges to the graph object
-//    for (int i = 0; i < num_edges; ++i)
-//      add_edge(edge_array[i].first, edge_array[i].second, g);
+    curMSet= resStream->front();
+    if(debugme)
+      curMSet->Print(cerr);
+    locallyChanged=true; globallyChanged= false;
+    while(locallyChanged)
+    {
+      locallyChanged= curMSet->RemoveSmallUnits(n);
+      locallyChanged= 
+        (locallyChanged || curMSet->RemoveShortElemParts(d) );
+      globallyChanged= (globallyChanged || locallyChanged);
+    }
+    if(debugme)
+      curMSet->Print(cerr);
+    if(globallyChanged)
+    {     
+      list<InMemUSet>::iterator begin2= curMSet->units.begin(), end2, tmp;
+      while(begin2 != curMSet->units.end())
+      {
+        end2= curMSet->GetPeriodEndUnit(begin2);
+        if(debugme)
+        {
+          (*begin2).Print(cerr);
+          (*end2).Print(cerr);
+        }
+        if((*end2).endtime - (*begin2).starttime >= d)
+        {
+          ++end2;
+          GPatternHelper::FindSubGraphs<InMemMSet, list<InMemUSet>::iterator>(
+              *curMSet, begin2, end2 , ids, d, n, qts, localResStream);
+          resStream->splice(resStream->end(), *localResStream);
+          delete localResStream;
+        }
+        else
+          ++end2;
+        begin2= end2;
+      }
+      delete curMSet;
+    }
+    else
+      finalResStream->push_back(curMSet);
+    resStream->pop_front();
+  }
+  delete resStream;
+}
+  
+static void FindDynamicComponents(InMemMSet& Accumlator,
+    list<InMemUSet>::iterator begin, 
+    list<InMemUSet>::iterator end , 
+    vector<intpair>& ids, double d, int n, string qts, 
+    list<InMemMSet*>*& finalResStream)
+{
+  bool debugme= false;  
+  set<int> constValue;
+  map<int, int> _map;
+  vector<int> mergeIndex;
+  double starttime, endtime;
+  bool lc, rc;
+  int cnt= 0;
+  
+  list<InMemMSet*>* resStream= new list<InMemMSet*>(0);
+  finalResStream= new list<InMemMSet*>(0);
+  list<InMemUSet>::iterator cur= begin;  
+      
+  if(debugme)
+    Accumlator.Print(cerr);
     
+  while(cur != end)
+  {
+    cerr<<endl<< "Processing unit number: " <<++cnt;
+    starttime= (*cur).starttime; endtime= (*cur).endtime;
+    lc= (*cur).lc; rc= (*cur).rc;
     
+    DynamicGraphAppend((*cur).constValue, starttime, endtime, lc, rc,
+        ids, d, n, qts, resStream, finalResStream);
+    ++cur;
+  }
+  cerr<<"\n FindDynamicComponents finished successfully ";  
+  if(debugme)
+  {
+    cerr<< "\nresStream contains "<< resStream->size() << " results\n";
+    for(list<InMemMSet*>::iterator 
+        it= resStream->begin(); it != resStream->end(); ++it)
+      (*it)->Print(cerr);
+  }
+  resStream->remove_if(bind2nd(checkShortDelete(), d));
+  if(debugme)
+  {
+    cerr<< "\nresStream contains "<< resStream->size() << " results\n";
+    for(list<InMemMSet*>::iterator 
+        it= resStream->begin(); it != resStream->end(); ++it)
+      (*it)->Print(cerr);
+  }
+  finalResStream->splice(finalResStream->end(), *resStream);
+  if(debugme)
+  {
+    cerr<< "\nfinalResStream contains "<< 
+      finalResStream->size() << " results\n";
+    for(list<InMemMSet*>::iterator 
+        it= finalResStream->begin(); it != finalResStream->end(); ++it)
+      (*it)->Print(cerr);
+  }
+  delete resStream;
+}
+
+struct 
+checkShortDelete: binary_function< InMemMSet* ,double,bool>
+{
+public: 
+  bool operator() (InMemMSet* _mset, double d) const
+  {
+    if(_mset->units.empty())
+    {
+      delete _mset;
+      return true;
+    }
+    double starttime= _mset->units.front().starttime, 
+    endtime= _mset->units.back().endtime;
+    if(endtime - starttime < d) 
+    {
+      delete _mset;
+      return true;
+    }
+    return false;
+  }
+};
+
+static void FindDynamicComponents(CompressedInMemMSet& Accumlator,
+    list<CompressedInMemUSet>::iterator begin, 
+    list<CompressedInMemUSet>::iterator end , 
+    vector<intpair>& ids, double d, int n, string qts, 
+    list<InMemMSet*>*& finalResStream)
+{
+  bool debugme= false;
+  set<int> constValue;
+  map<int, int> _map;
+  vector<int> mergeIndex;
+  double starttime, endtime;
+  bool lc, rc;
+  int cnt= 0;
+  
+  list<InMemMSet*>* resStream= new list<InMemMSet*>(0);
+  finalResStream= new list<InMemMSet*>(0);
+  list<CompressedInMemUSet>::iterator cur= begin;
+  while(cur != end)
+  {
+    cerr<<"\n\nProcessing unit number: " <<++cnt;
+    cerr<<"\nresStream has: " <<resStream->size();
+    cerr<<" results, finalResStream has: " <<finalResStream->size();
+    Accumlator.GetSet(cur, constValue);
+    starttime= (*cur).starttime; endtime= (*cur).endtime;
+    lc= (*cur).lc; rc= (*cur).rc;
+    ++cur;
+    DynamicGraphAppend(constValue, starttime, endtime, lc, rc,
+        ids, d, n, qts, resStream, finalResStream);
+  }
+  cerr<<"\n FindDynamicComponents finished successfully ";
+  if(debugme)
+  {
+    cerr<< "\nresStream contains "<< resStream->size() << " results\n";
+    for(list<InMemMSet*>::iterator 
+        it= resStream->begin(); it != resStream->end(); ++it)
+      (*it)->Print(cerr);
+  }
+  resStream->remove_if(bind2nd(checkShortDelete(), d));
+  if(debugme)
+  {
+    cerr<< "\nresStream contains "<< resStream->size() << " results\n";
+    for(list<InMemMSet*>::iterator 
+        it= resStream->begin(); it != resStream->end(); ++it)
+      (*it)->Print(cerr);
+  }
+  finalResStream->splice(finalResStream->end(), *resStream);
+  if(debugme)
+  {
+    cerr<< "\nfinalResStream contains "<< 
+      finalResStream->size() << " results\n";
+    for(list<InMemMSet*>::iterator 
+        it= finalResStream->begin(); it != finalResStream->end(); ++it)
+      (*it)->Print(cerr);
+  }
+  delete resStream;
+}
+
+static void DynamicGraphAppend(set<int> &constValue, double starttime, 
+    double endtime, bool lc, bool rc, vector<intpair>& ids, double d, 
+    int n, string qts, 
+    list<InMemMSet*>* resStream, list<InMemMSet*>* finalResStream)
+{
+  bool debugme= false;
+  set<int> *subGraph;
+  map<int, int> _map;
+  igraph_t* graph;
+  vector<set<int> >* subGraphsNodes, *subGraphsEdges;
+  vector<int> mergeIndex;
+  bool intersects;
+  int cnt= 0;
+  bool merged= false;
+  
+  graph= Set2Graph(constValue, ids, _map);
+  if(graph == 0)
+  {
+    cerr<< "\n Empty set yields empty graph ";
+    resStream->remove_if(bind2nd(checkShortDelete(), d));
+    finalResStream->splice(finalResStream->end(), *resStream);
+    resStream->clear();
+    if(debugme)
+    {
+      cerr<< "\nresStream contains "<< resStream->size() << " results\n";
+      for(list<InMemMSet*>::iterator 
+          it= resStream->begin(); it != resStream->end(); ++it)
+        (*it)->Print(cerr);
+    }
+    if(debugme)
+    {
+      cerr<< "\nfinalResStream contains "<< 
+        finalResStream->size() << " results\n";
+      for(list<InMemMSet*>::iterator 
+          it= finalResStream->begin(); it != finalResStream->end(); ++it)
+        (*it)->Print(cerr);
+    }
+    return;
   }
   
+  subGraphsNodes= FindSubGraphs(graph, n, qts, _map);
+  int size= subGraphsNodes->size();
+  cerr<<"\n Number of subgraphs in this unit is: "<< size;
+  subGraphsEdges= new vector<set<int> >(size);
+  for(unsigned int i=0; i< subGraphsNodes->size(); ++i)
+  {
+    GraphNodes2Edges(
+        (*subGraphsNodes)[i], constValue, ids, (*subGraphsEdges)[i]);
+    (*subGraphsNodes)[i].clear();
+  }
+  delete subGraphsNodes;
+
+  if(resStream->empty())
+  {
+    for(unsigned int i=0; i< subGraphsEdges->size(); ++i)
+    {
+      InMemMSet* newmset= new InMemMSet();
+      newmset->MergeAdd((*subGraphsEdges)[i], starttime, endtime, lc, rc);
+      resStream->push_back(newmset);
+      if(debugme)
+        newmset->Print(cerr);
+    }
+    if(debugme)
+    {
+      cerr<< "\nresStream contains "<< resStream->size() << " results\n";
+      for(list<InMemMSet*>::iterator 
+          it= resStream->begin(); it != resStream->end(); ++it)
+        (*it)->Print(cerr);
+    }
+    if(debugme)
+    {
+      cerr<< "\nfinalResStream contains "<< resStream->size() << " results\n";
+      for(list<InMemMSet*>::iterator 
+          it= finalResStream->begin(); it != finalResStream->end(); ++it)
+        (*it)->Print(cerr);
+    }
+  }
+  else
+  {
+    if(subGraphsEdges->empty())
+    {
+      resStream->remove_if(bind2nd(checkShortDelete(), d));
+      finalResStream->splice(finalResStream->end(), *resStream);
+      resStream->clear();
+      if(debugme)
+      {
+        cerr<< "\nresStream contains "<< resStream->size() << " results\n";
+        for(list<InMemMSet*>::iterator 
+            it= resStream->begin(); it != resStream->end(); ++it)
+          (*it)->Print(cerr);
+      }
+      if(debugme)
+      {
+        cerr<< "\nfinalResStream contains "<< 
+          finalResStream->size() << " results\n";
+        for(list<InMemMSet*>::iterator 
+            it= finalResStream->begin(); it != finalResStream->end(); ++it)
+          (*it)->Print(cerr);
+      }
+    }
+    else
+    {    
+      list<InMemMSet*>::iterator it= resStream->begin();
+      while(it != resStream->end())
+      {
+        InMemMSet* _mset= (*it);
+        InMemUSet* uset= &_mset->units.back();
+        for(unsigned int i=0; i< subGraphsEdges->size(); ++i)
+        {
+          subGraph= &(*subGraphsEdges)[i];
+          intersects = uset->Intersects(*subGraph);
+          if(intersects)
+            mergeIndex.push_back(i);
+        }
+        if(mergeIndex.empty())
+        {
+          if(debugme)
+          {
+            cerr<<endl<< resStream->size() <<endl << _mset << endl;
+            _mset->Print(cerr);
+          }
+          double starttime= _mset->units.front().starttime, 
+                endtime= _mset->units.back().endtime;
+          if(endtime - starttime < d) 
+            delete _mset;
+          else
+            finalResStream->push_back(_mset);
+          resStream->erase(it++);  
+          if(debugme)
+          {
+            cerr<< "\nresStream contains "<< resStream->size() << " results\n";
+            for(list<InMemMSet*>::iterator 
+                it= resStream->begin(); it != resStream->end(); ++it)
+              (*it)->Print(cerr);
+          }
+          if(debugme)
+          {
+            cerr<< "\nfinalResStream contains "<< 
+              finalResStream->size() << " results\n";
+            for(list<InMemMSet*>::iterator 
+                it= finalResStream->begin(); it != finalResStream->end(); ++it)
+              (*it)->Print(cerr);
+          }
+          
+        }
+        else if(mergeIndex.size() == 1)
+        {
+          subGraph= &(*subGraphsEdges)[mergeIndex[0]];
+          merged= _mset->MergeAdd(*subGraph, starttime, endtime, lc, rc);
+          if(debugme)
+            _mset->Print(cerr);
+          assert(merged);
+          ++it;
+          mergeIndex.clear();
+        }
+        else
+        {
+          for(unsigned int k=0; k< mergeIndex.size(); ++k)
+          {
+            subGraph= &(*subGraphsEdges)[mergeIndex[k]];
+            list<InMemUSet>::iterator msetEnd= _mset->units.end();
+            InMemMSet* newMSet= 
+              new InMemMSet(*_mset, _mset->units.begin(), --msetEnd);
+            merged= newMSet->MergeAdd(*subGraph, starttime, endtime, lc, rc);
+            if(debugme)
+              newMSet->Print(cerr);
+            assert(merged);  
+            resStream->push_front(newMSet);
+            if(debugme)
+              cerr<<endl<< resStream->size() << endl;
+          }
+          mergeIndex.clear();
+          delete _mset;
+          resStream->erase(it++); 
+          if(debugme)
+          {
+            cerr<< "\nresStream contains "<< resStream->size() << " results\n";
+            for(list<InMemMSet*>::iterator 
+                it= resStream->begin(); it != resStream->end(); ++it)
+              (*it)->Print(cerr);
+          }
+          if(debugme)
+          {
+            cerr<< "\nfinalResStream contains "<< 
+              finalResStream->size() << " results\n";
+            for(list<InMemMSet*>::iterator 
+                it= finalResStream->begin(); it != finalResStream->end(); ++it)
+              (*it)->Print(cerr);
+          }
+        }
+      }
+    }
+  }
+  subGraphsEdges->clear();
+  delete subGraphsEdges;
+  subGraphsEdges=0;
+  _map.clear();
+  igraph_destroy(graph);
+  delete graph;
+  graph=0;
+
+}
+static void GraphNodes2Edges(set<int>& subGraphNodes, set<int>& graphEdges, 
+    vector<intpair>& edge2Nodes, set<int>& res)
+{
+  res.clear();
+  intpair edge;
+  for(set<int>::iterator it= graphEdges.begin(); it!= graphEdges.end(); ++it)
+  {
+    edge= edge2Nodes[*it];
+    if(subGraphNodes.find(edge.first) != subGraphNodes.end() &&
+        subGraphNodes.find(edge.second) != subGraphNodes.end())
+      res.insert(*it);
+  }
+
+}
+
+static bool Merge(InMemMSet *_mset, set<int> *subGraph, double starttime,
+    double endtime, bool lc, bool rc)
+{
+  InMemUSet uset= _mset->units.back();
+  bool intersects = uset.Intersects(*subGraph);
+  if(intersects)
+  {
+    _mset->MergeAdd(*subGraph, starttime, endtime, lc, rc);
+    return true;
+  }
+  return false;
+}
+  
+static vector<set<int> >* FindSubGraphs(
+    igraph_t* g, unsigned int n, string qts, map<int, int>& _map)
+{
+  if(qts == "cc")
+  {
+    igraph_vector_t membership, csize;
+    igraph_vector_init(&membership, 0);
+    igraph_vector_init(&csize, 0);
+    igraph_integer_t no;
+    vector<set<int> >* res= 0;
+    map< int, int> rmap;
+    pair< set<int>::iterator, bool > insertRes;
+    int nodeName, clusterName;
+    for(map<int, int>::iterator it= _map.begin(); it!= _map.end(); ++it)
+      rmap.insert(make_pair((*it).second, (*it).first));
+
+    int rc= igraph_clusters(g, &membership, &csize, &no, IGRAPH_WEAK);
+    if(rc==0)
+    {
+      res= new vector<set<int> >(static_cast<int>(no));
+      for(int i=0; i< igraph_vector_size(&membership); ++i)
+      {
+        nodeName= rmap[i]; 
+        clusterName= VECTOR(membership)[i];
+        insertRes= (*res)[clusterName].insert(nodeName);
+        assert(insertRes.second);
+      }
+    }
+    vector<set<int> >::iterator it1= res->begin();
+    while( it1 != res->end()) 
+    {
+      if((*it1).size() < n)
+        it1= res->erase(it1);
+        else
+          ++it1;
+    }
+
+    igraph_vector_destroy(&membership);
+    igraph_vector_destroy(&csize);
+    return res;
+  }
+  else if(qts == "clique")
+  {
+    return 0;
+  }
+}
+
+  static igraph_t* Set2Graph(set<int>& constValue, vector<intpair>& ids, 
+      map<int, int>& _map)
+  {
+    bool debugme= false;
+    igraph_t *graph= 0;
+    if(constValue.empty()) return graph;
+    graph= new igraph_t();
+    igraph_vector_t edges;
+    igraph_vector_init(&edges, constValue.size()* 2);
+    intpair edge;
+    int i=0, vertix= 0;
+    pair< map<int,int>::iterator, bool > insertRes;
+    for(set<int>::iterator it= constValue.begin(); it!= constValue.end(); ++it)
+    {
+      edge= ids[*it];
+      insertRes= _map.insert(make_pair(edge.first, vertix));
+      if(insertRes.second) ++vertix;
+      VECTOR(edges)[i++] = (*insertRes.first).second;
+      
+      insertRes= _map.insert(make_pair(edge.second, vertix));
+      if(insertRes.second) ++vertix;
+      VECTOR(edges)[i++] = (*insertRes.first).second;
+      if(debugme)
+        cerr<<endl<<"Edge added ("<<VECTOR(edges)[i-2]
+          <<','<<VECTOR(edges)[i-1]<<')';
+    }
+    igraph_create(graph, &edges, 0, IGRAPH_UNDIRECTED);
+    igraph_vector_destroy(&edges);
+    return graph;
+  }
+
+  static InMemMSet* EdgeMSet2NodeMSet(InMemMSet* edgeMSet, vector<intpair>& ids)
+  {
+    InMemMSet* res= 0;
+    intpair edge;
+    set<int> nodeSet;
+    if(edgeMSet == 0 || edgeMSet->GetNoComponents() == 0) return res;
+    
+    res= new InMemMSet();
+    for(list<InMemUSet>::iterator 
+        it1= edgeMSet->units.begin(); it1!= edgeMSet->units.end(); ++it1)
+    {
+      InMemUSet* edgeUSet= &(*it1);
+      nodeSet.clear();
+      for(set<int>::iterator it2= edgeUSet->constValue.begin(); 
+        it2!= edgeUSet->constValue.end(); ++it2)
+      {
+        edge= ids[*it2];
+        nodeSet.insert(edge.first);
+        nodeSet.insert(edge.second);
+      }
+      res->MergeAdd(nodeSet, edgeUSet->starttime, edgeUSet->endtime,
+          edgeUSet->lc, edgeUSet->rc);
+    }
+    return res;
+  }
   
   static void ComputeAddSubSets(InMemMSet& acc,
       list<InMemUSet>::iterator t1, list<InMemUSet>::iterator t2,
@@ -459,7 +963,7 @@ Connectivity rank as in the paper.
 */
   int PickVariable();
 
-}GPSolver;
+};
 
 
 
