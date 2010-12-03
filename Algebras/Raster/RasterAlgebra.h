@@ -38,7 +38,7 @@ May, 2007 Leonardo Azevedo, Rafael Brand
 
 #include "./Signature/Signature4CRS.h"
 
-#include "DBArray.h"
+#include "../../Tools/Flob/DbArray.h"
 
 /*
 1.1 Raster4CRS
@@ -51,7 +51,7 @@ class Raster4CRS: public Signature4CRS, public Attribute
 {
  public:
   //potency dx dy mbr.min.x mbr.min.y mbr.max.x mbr.max.y signature...   
-  DBArray<unsigned long> rasterFLOB;
+  DbArray<unsigned long> rasterFLOB;
 
   int signatureType;
  

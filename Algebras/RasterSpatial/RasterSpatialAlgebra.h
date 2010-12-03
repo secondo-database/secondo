@@ -42,7 +42,7 @@ May, 2007 Leonardo Azevedo, Rafael Brand
 #include "SpatialAlgebra.h"
 #include <fstream>
 
-#include "DBArray.h"
+#include "../../Tools/Flob/DbArray.h"
 #include "./../Raster/Signature/GenerateRaster.h"
 
 class Raster4CRS;
@@ -65,7 +65,7 @@ class CRasterRegion: public Region
     Raster4CRS *rasterSignature;
     
    //potency dx dy signature...   
-    DBArray<unsigned long> rasterFLOB;
+    DbArray<unsigned long> rasterFLOB;
     
     bool rasterDefined;
 
@@ -474,7 +474,7 @@ class CRasterLine: public Line
     //Raster4CRS *rasterSignature;
  
    //potency dx dy signature...   
-    DBArray<unsigned long> rasterFLOB;
+    DbArray<unsigned long> rasterFLOB;
 
   public:
     Raster4CRS *rasterSignature;
@@ -905,7 +905,7 @@ class CRasterPoints: public Points
     Raster4CRS *rasterSignature;
  
    //potency dx dy signature...   
-    DBArray<unsigned long> rasterFLOB;
+    DbArray<unsigned long> rasterFLOB;
 
     void SelectFirst_pp( const Points& P1, const Points& P2, 
             object& obj, status& stat );

@@ -45,7 +45,7 @@ using namespace std;
 #include "./Signature/GenerateRaster.cpp"
 //#include "./Signature/Estruturas.h"
 #include "./Signature/CompareRaster.cpp"
-#include "DBArray.h"
+#include "../../Tools/Flob/DbArray.h"
 
 
 //#define DEBUGMESSAGES
