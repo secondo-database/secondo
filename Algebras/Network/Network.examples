@@ -25,6 +25,30 @@ Signature: rel x rel -> network
 Example  : query thenetwork(1, B_ROUTES, B_JUNCTIONS);
 Result   : file_platform
 
+Operator : spsearchvisited
+Number   : 1
+Signature: gpoint x gpoint x bool -> stream(tuple((rid int) (meas1 real) (meas2 real) (dual bool) (curve sline)(curveStartsSmaller bool) (rrc tid) (sid int)))
+Example  : query spsearchvisited([const gpoint value(1 1 1.0 2)], [const gpoint value(1 2 1.0 2)], TRUE) consume;
+Result   : file
+
+Operator : spsearchvisited
+Number   : 2
+Signature: gpoint x gpoint x bool -> stream(tuple((rid int) (meas1 real) (meas2 real) (dual bool) (curve sline)(curveStartsSmaller bool) (rrc tid) (sid int)))
+Example  : query spsearchvisited([const gpoint value(1 1 1.0 2)], [const gpoint value(1 2 1.0 2)], FALSE) consume;
+Result   : file
+
+Operator : spsearchvisited
+Number   : 3
+Signature: gline x gline x bool -> stream(tuple((rid int) (meas1 real) (meas2 real) (dual bool) (curve sline)(curveStartsSmaller bool) (rrc tid) (sid int)))
+Example  : query spsearchvisited([const gline value(1((1 0.0 0.5)))],[const gline value(1((2 0.7 1.5)))], FALSE) consume;
+Result   : file
+
+Operator : spsearchvisited
+Number   : 4
+Signature: gpoints x gpoints x bool -> stream(tuple((rid int) (meas1 real) (meas2 real) (dual bool) (curve sline)(curveStartsSmaller bool) (rrc tid) (sid int)))
+Example  : query spsearchvisited([const gpoints value((1 1 0.5 2))],[const gpoints value((1 2 0.7 2)(1 2 1.5 2))], FALSE) consume;
+Result   : file
+
 Operator : shortest_path
 Number   : 1
 Signature: gpoint x gpoint -> gline

@@ -515,7 +515,7 @@ Returns the network distance between 2 ~gpoint~ using DijkstrasAlgorithm.
     double Netdistance (GPoint* toGPoint);
 
 /*
-Returns the network distance between 2 ~gpoint~ using DijkstrasAlgorithm.
+Returns the network distance between 2 ~gpoint~ using AStar-Algorithm.
 
 */
 
@@ -599,13 +599,25 @@ Returns a point degenerated rectangle as network bounding box of the gpoint
 
 /*
 Returns a gline representing the shortest path between two GPoint.
+Using DijkstrasAlgorithm
 
 */
 
-  bool ShortestPath(GPoint *ziel, GLine *result);
+  bool ShortestPath(GPoint *ziel, GLine *result,
+                    DbArray<TupleId>* touchedSects = 0);
+  bool ShortestPath(GPoint* ziel, GLine* result, Network* pNetwork,
+                    DbArray<TupleId>* touchedSects = 0);
 
-  bool ShortestPathAStar(GPoint *ziel, GLine *result);
-  bool ShortestPathAStar(GPoint* ziel, GLine* result, Network *pNetwork);
+/*
+Returns a gline representing the shortest path between two GPoint.
+Using AStarAlgorithm
+
+*/
+
+  bool ShortestPathAStar(GPoint *ziel, GLine *result,
+                         DbArray<TupleId>* touchedSects = 0);
+  bool ShortestPathAStar(GPoint* ziel, GLine* result, Network *pNetwork,
+                         DbArray<TupleId>* touchedSects = 0);
 
   private:
 
@@ -1845,8 +1857,10 @@ Computes the network distance of 2 glines.
     double NetdistanceNew(GLine* pgl2, Network* pNetwork);
 
 
-    bool ShortestPath(GLine *to, GLine *result);
-    bool ShortestPath(GLine *to, GLine *result, Network* pNetwork);
+    bool ShortestPath(GLine *to, GLine *result,
+                      DbArray<TupleId>* touchedSects = 0);
+    bool ShortestPath(GLine *to, GLine *result, Network* pNetwork,
+                      DbArray<TupleId>* touchedSects = 0);
 /*
 Computes the euclidean distance of 2 glines.
 
@@ -2289,8 +2303,10 @@ public:
   double Netdistance(GPoints* bgp, Network* pNetwork);
   double Netdistance(GPoints* bgp);
   int GetNetworkId();
-  bool ShortestPath(GPoints* bgp, GLine* res);
-  bool ShortestPath(GPoints* bgp, GLine* res, Network* pNetwork);
+  bool ShortestPath(GPoints* bgp, GLine* res,
+                    DbArray<TupleId>* touchedSects = 0);
+  bool ShortestPath(GPoints* bgp, GLine* res, Network* pNetwork,
+                    DbArray<TupleId>* touchedSects = 0);
   bool Inside(GPoint gp);
   bool Intersects(GPoints* bgp, Network* pNetwork);
   bool Intersects(GPoints* bgp);
