@@ -59,10 +59,13 @@ class ActiveDownload extends PlannedDownload implements Runnable{
        out.close();
        if(canceled){
          informListeners(new DownloadEvent(this, DownloadState.CANCEL, null));
+          running=false;
          return;
        }
        // download complete
        informListeners(new DownloadEvent(this,DownloadState.DONE, null));
+       System.out.println("ActiveDownload finished\n" + this+"\n\n\n");
+      
     } catch(Exception e){
        if(in!=null){
          try{
@@ -76,6 +79,7 @@ class ActiveDownload extends PlannedDownload implements Runnable{
        }
        informListeners(new DownloadEvent(this,DownloadState.BROKEN, e));
     }
+    running=false;
   }
 
   public String toString(){

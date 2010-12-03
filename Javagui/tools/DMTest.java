@@ -114,6 +114,8 @@ public class DMTest{
          System.out.println("Cannot create downloadManager");
          System.out.println("File = " + f);
          System.out.println("MaxDownloads = " + maxDownloads);
+         System.out.println(e);
+         e.printStackTrace();
          System.exit(0);
      }
      DownloadObserver observer = new PrintObserver();

@@ -7,5 +7,9 @@ class InvalidArgumentException extends Exception{
     this.message=message;
   }
 
+  public String toString(){
+    return "InvalidArgumentException " + message; 
+  }
+
   private String message;
 }

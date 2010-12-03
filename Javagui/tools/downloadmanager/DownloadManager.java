@@ -16,9 +16,9 @@ public class DownloadManager extends  DownloadObserver{
   /** Creates a new DownloadManager. 
    **/
   public DownloadManager(File tmpDirectory, int maxDownloads) throws InvalidArgumentException{
-     if(!tmpDirectory.isDirectory()){
-         throw new InvalidArgumentException("tmpdirectory must be an directiry");
-     }
+   //  if(!tmpDirectory.isDirectory()){
+   //      throw new InvalidArgumentException("tmpdirectory must be an directiry");
+   //  }
      if(!tmpDirectory.exists()){
          tmpDirectory.mkdirs();
      }
@@ -56,7 +56,9 @@ public class DownloadManager extends  DownloadObserver{
 
     if( (plannedDownloads.size()>0) || (activeDownloads.size()>=maxDownloads)){
        // all download slots are used. So, the download is just planned
-       plannedDownloads.put(url, new PlannedDownload(url,f, ob));
+       PlannedDownload d = new PlannedDownload(url,f,this);
+       d.addObserver(ob);
+       plannedDownloads.put(url,d);
        plannedQueue.offer(url);
        return null;
     }
