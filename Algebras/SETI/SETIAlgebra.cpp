@@ -2407,6 +2407,8 @@ Converts a stream of mpoints/moids into a stream of uploadunits.
 
 ******************************************************************************/
 
+bool isMPoint = true;
+
 ListExpr ConvertMP2UUTM(ListExpr args)
 {  
   NList type(args);
@@ -2464,11 +2466,15 @@ ListExpr ConvertMP2UUTM(ListExpr args)
 
   if ( k != 0 )
   {
-    if ( nl->SymbolValue(attrtype2) != "mpoint" )
+    if ( nl->SymbolValue(attrtype2) != "mpoint" &&
+         nl->SymbolValue(attrtype2) != "upoint")
     {
-      return NList::typeError("Second attribute type is not of type mpoint.");
+      return NList::typeError("Second attribute is not of type"
+                              " mpoint or upoint.");
     }
-   
+
+    if ( nl->SymbolValue(attrtype2) == "upoint") isMPoint = false;
+    else isMPoint = true;
   }
   else
   {
@@ -2537,21 +2543,32 @@ int ConvertMP2UUVM(Word* args, Word& result, int message,
                               ( iterator->currentTupleWord.addr );
         int moID = static_cast<CcInt*>(currentTuple->GetAttribute(attr1))
                                        ->GetIntval();
-        MPoint* mp = static_cast<MPoint*>(currentTuple->GetAttribute(attr2));
-
-        UPoint up;
-        mp->Get(iterator->it,up);
-        UnitPos pos( up.p1.GetX(), up.p1.GetY() );
-        UploadUnit* uu = new UploadUnit(moID, up.timeInterval.end, pos );
-        TupleType* tupType =new TupleType(nl->Second(GetTupleResultType(s)));
-        Tuple* tup = new Tuple( tupType );
-        tup->PutAttribute( 0, ( Attribute* ) uu );
-        result.addr = tup;
-        iterator->it++;
-        iterator->cnt++;
-
-        if (iterator->it == mp->GetNoComponents()) iterator->it = 0;
-        
+        if (isMPoint) 
+        {
+          MPoint* mp = static_cast<MPoint*>(currentTuple->GetAttribute(attr2));
+          UPoint up;
+          mp->Get(iterator->it,up);
+          UnitPos pos( up.p1.GetX(), up.p1.GetY() );
+          UploadUnit* uu = new UploadUnit(moID, up.timeInterval.end, pos );
+          TupleType* tupType =new TupleType(nl->Second(GetTupleResultType(s)));
+          Tuple* tup = new Tuple( tupType );
+          tup->PutAttribute( 0, ( Attribute* ) uu );
+          result.addr = tup;
+          iterator->it++;
+          iterator->cnt++;
+          if (iterator->it == mp->GetNoComponents()) iterator->it = 0;
+        }
+        else
+        {
+          UPoint* up = static_cast<UPoint*>(currentTuple->GetAttribute(attr2));
+          UnitPos pos( up->p1.GetX(), up->p1.GetY() );
+          UploadUnit* uu = new UploadUnit(moID, up->timeInterval.end, pos );
+          TupleType* tupType =new TupleType(nl->Second(GetTupleResultType(s)));
+          Tuple* tup = new Tuple( tupType );
+          tup->PutAttribute( 0, ( Attribute* ) uu );
+          result.addr = tup;
+          iterator->cnt++;
+        }
         return YIELD;
       }
       else
@@ -2583,8 +2600,8 @@ struct ConvertMP2UUInfo : OperatorInfo {
   ConvertMP2UUInfo()
   {
     name      = "convertMP2UU";
-    signature = "((stream (tuple([a1:d1, ..., ai:int, "
-                "..., aj:mpoint, ..., an:dn]))) x int x ai x aj)"
+    signature = "((stream (tuple([a1:d1, ..., ai:int, ..., "
+                "aj:mpoint|upoint, ..., an:dn]))) x int x ai x aj)"
                 " -> stream (tuple (Upload uploadunit))";
     syntax    = "_ convertMP2UU [ _, _, _ ]";
     meaning   = "Converts mpoints into upload units.";
