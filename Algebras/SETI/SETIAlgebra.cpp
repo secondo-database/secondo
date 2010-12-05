@@ -2522,6 +2522,7 @@ int ConvertMP2UUVM(Word* args, Word& result, int message,
       iterator = new Iterator();
       local.addr = iterator;
       qp->Open(args[0].addr);
+      return 0;
     }
     case REQUEST: 
     {
@@ -2537,7 +2538,7 @@ int ConvertMP2UUVM(Word* args, Word& result, int message,
          received = qp->Received(args[0].addr);
       }
 
-      if ( received && iterator->cnt <= numUploads )
+      if ( received && iterator->cnt < numUploads )
       {
         Tuple* currentTuple = static_cast<Tuple*>
                               ( iterator->currentTupleWord.addr );
