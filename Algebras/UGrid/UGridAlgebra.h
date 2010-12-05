@@ -340,7 +340,7 @@ class UGrid
     // Destructs the UGridTree
     void DestructUGridTree( UGridNode* FATHERNODE, int SQUARES );
     // Inserts HistoryUnit page id's into pages set
-    void UGrid::insertPageID(db_pgno_t NODEPAGEID, bool HUPAGEID);
+    void insertPageID(db_pgno_t NODEPAGEID, bool HUPAGEID);
     
     SmiUpdateFile* suf;                         // SmiUpdateFile
     UGridHeader*   header;                      // UGrid header
