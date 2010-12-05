@@ -1690,8 +1690,8 @@ set<TrjSeg*> FindTrjSegments( SETI* SETIPTR, SETIArea AREA,
   int bottom = ComputeLine(hPtr->area.y1,hPtr->area.y2,hPtr->splits,AREA.y1);
   int top    = ComputeLine(hPtr->area.y1,hPtr->area.y2,hPtr->splits,AREA.y2);
 
-  Rectangle<2> searchBox = Rectangle<2>(true, TIME1.ToDouble()-tol, 
-                                              TIME2.ToDouble()+tol,
+  Rectangle<2> searchBox = Rectangle<2>(true, TIME1.ToDouble()-0.1, 
+                                              TIME2.ToDouble()+0.1,
                                               -1.0, 1.0);
   for (int i = bottom; i <= top; i++)
   {
@@ -1791,9 +1791,12 @@ set<TrjSeg*> FindTrjSegments( SETI* SETIPTR, SETIArea AREA,
     segStart.ReadFrom(segPtr->tivStart);
     segEnd.ReadFrom(segPtr->tivEnd);
     
-    if ( AREA.x2 >= segPtr->pos1.x && AREA.y2 >= segPtr->pos1.y &&
-         AREA.x1 <= segPtr->pos2.x && AREA.y1 <= segPtr->pos2.y &&
-         TIME1 <= segEnd && TIME2 >= segStart )
+    if ( TIME1   <= segEnd &&
+         TIME2   >= segStart &&
+       ((AREA.x1 <= segPtr->pos1.x && AREA.y1 <= segPtr->pos1.y  &&
+         AREA.x2 >= segPtr->pos1.x && AREA.y2 >= segPtr->pos1.y) ||
+        (AREA.x1 <= segPtr->pos2.x && AREA.y1 <= segPtr->pos2.y  &&
+         AREA.x2 >= segPtr->pos2.x && AREA.y2 >= segPtr->pos2.y)))
       hits.insert(segPtr);
       else delete segPtr;
       segments.erase(sIt++);
