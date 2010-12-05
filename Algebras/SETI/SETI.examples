@@ -22,13 +22,13 @@ Result   : TRUE
 Operator : intersectsWindow
 Number   : 1
 Signature: seti x rect x  string x string -> stream (tuple (MovObjId int)(TrjSeg upoint))
-Example  : query intersectsWindow( mySETI, myRect, "2004-11-30-12:32", "2011-08-30-12:32" ) count
+Example  : query intersectsWindow( mySETI, myRect, str2instant("2004-11-30-12:32"), str2instant("2011-08-30-12:32") ) count
 Result   : 10
 
 Operator : insideWindow
 Number   : 1
 Signature: seti x rect x  string x string -> stream (tuple (MovObjId int)(TrjSeg upoint))
-Example  : query insideWindow( mySETI, myRect, "2004-11-30-12:32", "2011-08-30-12:32" ) count
+Example  : query insideWindow( mySETI, myRect, str2instant("2004-11-30-12:32"), str2instant("2011-08-30-12:32") ) count
 Result   : 8
 
 Operator : getTrajectory

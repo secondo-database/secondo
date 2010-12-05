@@ -2552,10 +2552,10 @@ ListExpr IntersectsWinTM(ListExpr args)
   if(!(nl->ListLength( args ) == 4 &&
       nl->IsEqual(nl->First(args),"ugrid") &&
       nl->IsEqual(nl->Second(args),"rect") &&
-      nl->IsEqual(nl->Third(args),"string") &&
-      nl->IsEqual(nl->Fourth(args),"string")))
+      nl->IsEqual(nl->Third(args),"instant") &&
+      nl->IsEqual(nl->Fourth(args),"instant")))
   {
-    ErrorReporter::ReportError("ugrid x rect x string x string expected!");
+    ErrorReporter::ReportError("ugrid x rect x instant x instant expected!");
     return (nl->SymbolAtom( "typeerror" ));
   }
 
@@ -2601,26 +2601,8 @@ int IntersectsWinVM(Word* args, Word& result, int message,
    {
       UGrid* ugridPtr     = static_cast<UGrid*>(args[0].addr);
       Rectangle<2>*  rect = static_cast<Rectangle<2>*>(args[1].addr);
-      CcString* t1_string = static_cast<CcString*>(args[2].addr);
-      CcString* t2_string = static_cast<CcString*>(args[3].addr);
-
-      // Get instants
-      bool ok1, ok2;
-      int errorPos = 0;
-      ListExpr errorInfo;
-      Instant* time1 = static_cast<Instant*>(InInstant( nl->TheEmptyList(),
-                       nl->StringAtom(t1_string->GetValue()), 
-                       errorPos, errorInfo, ok1 ).addr);
-      Instant* time2 = static_cast<Instant*>(InInstant( nl->TheEmptyList(),
-                       nl->StringAtom(t2_string->GetValue()), 
-                       errorPos, errorInfo, ok2 ).addr);
-      // Check instants
-      if(!(ok1 && ok2))
-      {
-        ErrorReporter::ReportError("Invalid instant-format strings!");
-        iterator = 0;
-        return -1;
-      }
+      Instant* time1      = static_cast<Instant*>(args[2].addr);
+      Instant* time2      = static_cast<Instant*>(args[3].addr);
 
       // Change instant values if necessary
       if  (*time1 > *time2 )
@@ -2703,7 +2685,7 @@ struct IntersectsWinInfo : OperatorInfo {
   IntersectsWinInfo()
   {
    name      =  "intersectsWindow";
-    signature =  "ugrid x rect x  string x string  -> "
+    signature =  "ugrid x rect x  instant x instant  -> "
                  "stream (tuple (MovObjId int)(HistoryUnit upoint))";
     syntax    =  "intersectsWindow ( _, _, _, _ )";
     meaning   =  "Returns all history units which"
@@ -2727,10 +2709,10 @@ ListExpr InsideWinTM(ListExpr args)
   if(!(nl->ListLength( args ) == 4 &&
       nl->IsEqual(nl->First(args),"ugrid") &&
       nl->IsEqual(nl->Second(args),"rect") &&
-      nl->IsEqual(nl->Third(args),"string") &&
-      nl->IsEqual(nl->Fourth(args),"string")))
+      nl->IsEqual(nl->Third(args),"instant") &&
+      nl->IsEqual(nl->Fourth(args),"instant")))
   {
-    ErrorReporter::ReportError("ugrid x rect x string x string expected!");
+    ErrorReporter::ReportError("ugrid x rect x instant x instant expected!");
     return (nl->SymbolAtom( "typeerror" ));
   }
 
@@ -2775,27 +2757,8 @@ int InsideWinVM(Word* args, Word& result,int message,Word& local,Supplier s)
    {
      UGrid* ugridPtr     = static_cast<UGrid*>(args[0].addr);
      Rectangle<2>*  rect = static_cast<Rectangle<2>*>(args[1].addr);
-     CcString* t1_string = static_cast<CcString*>(args[2].addr);
-     CcString* t2_string = static_cast<CcString*>(args[3].addr);
-
-     // Get instants
-     bool ok1, ok2;
-     int errorPos = 0;
-     ListExpr errorInfo;
-     Instant* time1 = static_cast<Instant*>(InInstant( nl->TheEmptyList(),
-                      nl->StringAtom(t1_string->GetValue()), 
-                      errorPos, errorInfo, ok1 ).addr);
-     Instant* time2 = static_cast<Instant*>(InInstant( nl->TheEmptyList(),
-                      nl->StringAtom(t2_string->GetValue()), 
-                      errorPos, errorInfo, ok2 ).addr);
-
-     // Check instants
-     if(!(ok1 && ok2))
-     {
-       ErrorReporter::ReportError("Invalid instant-format strings!");
-       iterator = 0;
-       return -1;
-     }
+     Instant* time1      = static_cast<Instant*>(args[2].addr);
+     Instant* time2      = static_cast<Instant*>(args[3].addr);
      
      // Change time values if necessary
      if  (*time1 > *time2 )
@@ -2903,7 +2866,7 @@ struct InsideWinInfo : OperatorInfo {
   InsideWinInfo()
   {
     name      =  "insideWindow";
-    signature =  "ugrid x rect x  string x string -> "
+    signature =  "ugrid x rect x  instant x instant -> "
                  "stream (tuple (MovObjId int)(HistoryUnit upoint))";
     syntax    =  "insideWindow ( _, _, _, _ )";
     meaning   =  "Returns all history units inside the search window.";

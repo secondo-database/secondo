@@ -22,13 +22,13 @@ Result   : TRUE
 Operator : intersectsWindow
 Number   : 1
 Signature: ugrid x rect x  string x string -> stream (tuple (MovObjId int)(HistoryUnit upoint))
-Example  : query intersectsWindow( myUGrid, myRect, "2004-11-30-12:32", "2011-08-30-12:32" ) count
+Example  : query intersectsWindow( myUGrid, myRect, str2instant("2004-11-30-12:32"), str2instant("2011-08-30-12:32") ) count
 Result   : 10
 
 Operator : insideWindow
 Number   : 1
 Signature: ugrid x rect x  string x string -> stream (tuple (MovObjId int)(HistoryUnit upoint))
-Example  : query insideWindow( myUGrid, myRect, "2004-11-30-12:32", "2011-08-30-12:32" ) count
+Example  : query insideWindow( myUGrid, myRect, str2instant("2004-11-30-12:32"), str2instant("2011-08-30-12:32") ) count
 Result   : 8
 
 Operator : getTrajectory
