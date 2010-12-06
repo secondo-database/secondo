@@ -1,17 +1,17 @@
-Database: berlintest
+Database: opt
 Restore : No
-
-Operator : receive
-Number   : 1
-Signature: (stream (tuple x)) int -> int
-Example  : query receive(hostname,p1032) consume
-Result   : bug
-Remark   : Cannot be tested within selftest
 
 Operator : send
 Number   : 1
-Signature: (stream (tuple x)) int -> int
-Example  : query Rel feed send[p1032]
+Signature: (stream (tuple ((a1 t1)(a2 t2) ... (an tn)))) x int x [ai] -> int
+Example  : query plz feed send[1032, PLZ]
+Result   : bug
+Remark   : Cannot be tested within selftest
+
+Operator : receive
+Number   : 1
+Signature: string x int -> (stream (tuple x))
+Example  : query receive("localhost",1032) consume
 Result   : bug
 Remark   : Cannot be tested within selftest
 

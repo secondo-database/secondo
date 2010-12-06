@@ -37,6 +37,10 @@ May 2010 Jiamin Lu use binary form to transport the tuples,
 replace the original method of using strings to transfer the nestedLists
 of the tuples.
 
+Nov 2010 Jiamin Lu change the type mapping function by using
+arguments' values in typemapping function, to avoid using symbol type
+argument values to express the IP address and port.
+
 1 RemoteStream Algebra
 
 This algebra allows distributed query processing by connecting streams 
@@ -52,18 +56,22 @@ using namespace std;
 #include "StandardTypes.h"
 #include "SocketIO.h"
 #include "RelationAlgebra.h"
+#include "TemporalAlgebra.h"
 #include "../FText/FTextAlgebra.h"
 #include "ListUtils.h"
 #include "Symbols.h"
 #include "Serialize.h"
 #include <string>
-#include <iostream>   //for testing
 #include <cmath>
+#include "../HadoopParallel/HadoopParallelAlgebra.h"
 
 #define TRACE_ON
 
 extern NestedList* nl;
 extern QueryProcessor *qp;
+
+const int min_PortNum = 1024;
+const int max_PorNum = 65535;
 
 /*
 
@@ -76,197 +84,185 @@ that port. It returns the number of tuples sent.
 
   * stream(tuple) port [->] int       send
 
-The port number must be in the format pNNNN. For example, to send
-data from rel ~ten~ through port ~1032~ we write
+As we register these two operators with ~SetUsesArgsInTypeMapping~,
+the port number is an integer number, E.g.
 
-  query ten feed send\[p1032\]
+  query plz feed send[1032]
 
 The ~receive~ operator expetcs a hostname and a port, and produces a stream:
 
   * hostname port [->] stream(tuple)      receive
 
-If the hostname start with "ip\_", means this is an IP address.
-Besides, since the symbol type can't include "." character,
-use "\_" to replace it.
-For example, to receive data from ip: 192.168.0.1
-through prot ~1032~ we write
+The hostname is a string type, could be an IP address, or a hostname.
 
-  query receive(ip\_192\_168\_0\_1, p1032) consume
+  query receive("192.168.0.1", 1032) consume
 
 2.1 Type Mapping Function
 
 Type mapping for ~send~ is
 
-----	((stream tuple) int) -> (int)
+----	((stream tuple((a1 t1)(a2 t2) ... (an tn)))
+       x int x [ai]) -> (int)
 ----
 
 Type mapping for ~receive~ is
 
-----	(hostname port) -> (stream tuple)
+----	(string int) -> (stream tuple)
 ----
+
+Operator send also accept an optional argument keyAttribute.
+If the keyAttribute is specified, then for each tuple,
+it's keyAttribute value would be copied, and put at the head of
+the tuple's binary value.
 
 */
 
 ListExpr
 TSendTypeMap(ListExpr args)
 {
-  ListExpr first, second;
-  string argstr;
+  NList l(args);
 
-  int len = nl->ListLength(args);
+  string lenErr = "Operator send expect a list of "
+      "two or three arguments";
+  string typeErr = "Operator send expects "
+      "(stream(tuple(a1, a2, ... an))) x int x [ai]";
+  string portErr = "Error! Port number should within [ " +
+      int2string(min_PortNum) + "," + int2string(max_PorNum) + " ]";
+  string keyNameErr = "Error! NOT find attribute name : ";
+  string keyTypeErr = "Error! Expect {int,string,bool,real} type "
+      "of key attribute : ";
+  string connErr = "Error! Connection error of ";
+  string evaErr = "Error! Infeasible evaluation in TM for attribute ";
+
+  int len = l.length();
   if (len != 2 && len != 3)
+    return l.typeError(lenErr);
+
+  NList attr;
+  if (!l.first().first().checkStreamTuple(attr))
+    return l.typeError(typeErr);
+  string streamType = l.first().first().convertToString();
+  string tupleType = l.first().first().second().convertToString();
+
+  if (!l.second().first().isSymbol(Symbols::INT()))
+    return l.typeError(typeErr);
+  NList pList;
+  if (!getNLArgValueInTM(l.second().second(), pList))
+    return l.typeError(evaErr + "port number");
+  int port = pList.intval();
+  if (port < min_PortNum || port > max_PorNum)
   {
-    ErrorReporter::ReportError(
-        "Operator send expect a list of two or three arguments");
-    return nl->TypeError();
+    cerr << "The present port number is: " << port << endl;
+    return l.typeError(portErr);
   }
 
-  first = nl->First(args);
-  nl->WriteToString(argstr, first);
-  if(! listutils::isTupleStream(first))
+  int keyIndex = 0;    //The index of the key attribute
+  ListExpr keyTypeNL = nl->Empty();
+  string keyTypeStr = "";
+  if (3 == len)
   {
-    ErrorReporter::ReportError(
-        "Operator send expects a list with structure "
-        "((stream (tuple ((a1 t1)...(an tn)))) port)\n"
-        "Operator count gets a list with structure '"
-        + argstr + "'.");
-    return nl->TypeError();
+    if (!l.third().first().isAtom())
+      return l.typeError(typeErr);
+    string keyName = l.third().second().str();
+
+    keyIndex = listutils::findAttribute(
+        attr.listExpr(), keyName, keyTypeNL);
+    if (0 == keyIndex)
+      return l.typeError(keyNameErr + keyName);
+
+    NList keyType(keyTypeNL);
+    if (!( keyType.isSymbol(Symbols::INT())
+        || keyType.isSymbol(Symbols::STRING())
+        || keyType.isSymbol(Symbols::REAL())
+        || keyType.isSymbol(Symbols::BOOL())))
+      return l.typeError(keyTypeErr + keyName);
+    keyTypeStr = keyType.convertToString();
   }
 
-  second = nl->Second(args);
-  if (! listutils::isSymbol(second))
-  {
-    ErrorReporter::ReportError(
-        "Operator send expects as second argument a "
-        "symbol atom (port number p9999)." );
-    return nl->TypeError();
-  }
-
-  int index = 0;
-  string AppendAttrType = "";
-  ListExpr attrType = nl->Empty();
-  if (len == 3)
-  {
-    //Check the third argument should be an attribute name;
-    ListExpr third;
-    third = nl->Third(args);
-    if (! listutils::isSymbol(third))
-    {
-      ErrorReporter::ReportError(
-          "Operator send expects the key attribute name be a "
-          "symbol atom." );
-      return nl->TypeError();
-    }
-
-    string name = nl->SymbolValue(third);
-    index = listutils::findAttribute(
-        nl->Second(nl->Second(first)), name, attrType);
-    if (index == 0)
-    {
-      ErrorReporter::ReportError(
-          "Attrbute name " + name + " not found in attribute list." );
-      return nl->TypeError();
-    }
-
-    if (! listutils::isSymbol(attrType))
-    {
-      ErrorReporter::ReportError(
-          "Attrbute name " + name + " should be SymbolType" );
-      return nl->TypeError();
-    }
-
-    stringstream ss;
-    ss << "APPEND " << nl->ToString(attrType);
-    AppendAttrType = ss.str();
-  }
-
-  string port = nl->SymbolValue(second).substr(1),
-         streamType = nl->ToString(first),
-         tupleType = nl->ToString(nl->Second(first));
-
-  Socket *gate = Socket::CreateGlobal( "localhost", port ),
+  Socket *gate = Socket::CreateGlobal("localhost", int2string(port)),
          *client;
 
   if (!gate || !gate->IsOk())
-    {
-      ErrorReporter::ReportError(
-          "Unable to listen to port." );
-      return nl->TypeError();
-    }
+    return l.typeError(connErr +
+          "unable listening to port: " + int2string(port));
 
   client = gate->Accept();
-
   if (!client || !client->IsOk())
   {
-    ErrorReporter::ReportError(
-        "Unable to connect with client." );
-    return nl->TypeError();
+    gate->Close();
+    return l.typeError(connErr +
+        "unable connecting with client." );
   }
 
-  client->GetSocketStream() << streamType << AppendAttrType << endl;
+  client->GetSocketStream()
+      << streamType
+      << ((0 == keyTypeStr.length()) ? ""
+          : ("APPEND " + keyTypeStr))<< endl;
   string rtnInfo;
   getline(client->GetSocketStream(), rtnInfo);
+  //The client should send a handshake message to server as a response
   if (rtnInfo != "<GET TYPE/>")
   {
-    ErrorReporter::ReportError(
-        "Unable to get return type info from client");
+    gate->Close();
+    return l.typeError(connErr +
+        "unable getting handshake message from the client.");
     return nl->TypeError();
   }
 
-
   // Warning - the client pointer is not being deleted.
-
   gate->Close();
   delete gate;
 
   int sd = client->GetDescriptor();
-
-  return nl->ThreeElemList(
-           nl->SymbolAtom("APPEND"),
-           nl->ThreeElemList(nl->IntAtom(index),
-                             nl->StringAtom(nl->ToString(attrType)),
-                             nl->IntAtom(sd)),
-           nl->SymbolAtom("int"));
+  return NList(NList("APPEND"),
+               NList(NList(keyIndex),
+                     NList(keyTypeStr, true),
+                     NList(sd)),
+               NList(Symbols::INT())).listExpr();
 }
 
 ListExpr
 TReceiveTypeMap(ListExpr args)
 {
-  ListExpr first, second;
+//  ListExpr first, second;
+  NList l(args);
 
-  CHECK_COND(nl->ListLength(args) == 2,
-    "Operator receive expects a list of length two.");
+  string lenErr = "Operator receive expects a list of length two.";
+  string typeErr = "Operator receive expects (string , int)";
+  string portErr = "Error! Port number should within [ " +
+      int2string(min_PortNum) + "," + int2string(max_PorNum) + " ]";
+  string connErr = "Error! Connection error of ";
+  string evaErr = "Error! Infeasible evaluation in TM for attribute ";
 
-  first = nl->First(args);
-  CHECK_COND( nl->IsAtom(first) && nl->AtomType(first) == SymbolType,
-    "Operator receive expects as first argument a symbol "
-    "atom (host name, p.e. localhost)." );
+  if (l.length() != 2)
+    return l.typeError(lenErr);
 
-  second = nl->Second(args);
-  CHECK_COND( nl->IsAtom(second)
-      && nl->AtomType(second) == SymbolType,
-    "Operator send expects as second argument a symbol "
-    "atom (port number, p.e. p9999)." );
+  if (!l.first().first().isSymbol(Symbols::STRING()))
+    return l.typeError(typeErr);
 
-  string host = nl->SymbolValue(first),
-         port = nl->SymbolValue(second).substr(1),
-         streamTypeStr;
+  if (!l.second().first().isSymbol(Symbols::INT()))
+    return l.typeError(typeErr);
 
-  //Accept ip address
-  string ipPrefix = "ip_";
-  if (!host.compare(0, ipPrefix.size(), ipPrefix))
-  {
-    host = host.substr(ipPrefix.size());
-    host = replaceAll(host, "_", ".");
-  }
+  string host, streamTypeStr;
+  NList hList;
+  if (!getNLArgValueInTM(l.first().second(), hList))
+    return l.typeError(evaErr + "host name");
+  host = hList.str();
+  NList pList;
+  if (!getNLArgValueInTM(l.second().second(), pList))
+    return l.typeError(evaErr + "port number");
+  int port = pList.intval();
+  if (port < min_PortNum || port > max_PorNum)
+    return l.typeError(portErr);
 
   cout << "Host: " << host << ":" << port << endl;
   Socket *client =
-      Socket::Connect( host, port, Socket::SockGlobalDomain );
+      Socket::Connect( host, int2string(port),
+          Socket::SockGlobalDomain );
 
-
-  CHECK_COND( client && client->IsOk(),
-      "Unable to connect to server." );
+  if (!client || !client->IsOk())
+    return l.typeError(connErr +
+      "unable connecting with server." );
 
   getline( client->GetSocketStream(), streamTypeStr );
   client->GetSocketStream() << "<GET TYPE/>" << endl;
@@ -277,23 +273,12 @@ TReceiveTypeMap(ListExpr args)
   {
     keyTypeName = streamTypeStr.substr(loc + 7);
     streamTypeStr = streamTypeStr.substr(0, loc);
-
-    if ((keyTypeName != "")
-        && (keyTypeName != "int")
-        && (keyTypeName != "string")
-        && (keyTypeName != "bool")
-        && (keyTypeName != "real"))
-    {
-      ErrorReporter::ReportError("Error key attribute type");
-      return nl->SymbolAtom("typeerror");
-    }
   }
 
   ListExpr streamType;
   nl->ReadFromString(streamTypeStr, streamType);
 
   // Warning - the client pointer is not being deleted.
-
   return nl->ThreeElemList(
            nl->SymbolAtom("APPEND"),
            nl->TwoElemList(
@@ -308,11 +293,10 @@ TReceiveTypeMap(ListExpr args)
 
 Though the class Socket defined inside Secondo offers an iostream
 object to transform data, and makes the communication very easy,
-this method needs the sender to
-invoke Tuple class's ~Out~ function to transfer all tuples
-into nestedLists, then the receiver can use the ~In~ function
-to rebuild all the tuples.
-Since the transformation is inefficient and unnecessary,
+this method needs the sender to invoke tuple's ~Out~ function
+to transform tuples into nestedLists,
+then the receiver can use the ~In~ function to rebuild the tuples.
+Obviously the transformation is inefficient and unnecessary,
 we decided to improve it by transporting tuples' binary data directly.
 
 In the sender side, we create a public memory buffer
@@ -452,8 +436,8 @@ void sendTupleBlock(Socket* client, char* buf,
                     int32_t* sock_ID, u_int32_t curPos)
 {
   u_int32_t offset = SOCKET_METASIZE;
-  int sock_Num =
-      ceil((float(curPos - SOCKET_METASIZE)) / SOCKTUP_SIZE);
+  int sock_Num = static_cast<int>(
+      ceil((float(curPos - SOCKET_METASIZE)) / SOCKTUP_SIZE));
   //The amount of the sockets need to be sent for this buffer
 
   while(offset < curPos)
@@ -466,7 +450,6 @@ void sendTupleBlock(Socket* client, char* buf,
 
   assert(sock_Num == 0);
 }
-
 
 int
 TSendStream(Word* args, Word& result,
@@ -908,7 +891,9 @@ class RemoteStreamAlgebra : public Algebra
   RemoteStreamAlgebra() : Algebra()
   {
     AddOperator( &TSend );
+    TSend.SetUsesArgsInTypeMapping();
     AddOperator( &TReceive );
+    TReceive.SetUsesArgsInTypeMapping();
   }
   ~RemoteStreamAlgebra() {};
 };
