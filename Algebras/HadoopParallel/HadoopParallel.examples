@@ -64,5 +64,5 @@ Result   : 41267
 Operator : hadoopjoin
 Number   : 1
 Signature: ((stream(tuple(T1))) x (stream(tuple(T2))) x array(string) x int x int x (map stream(tuple(T1)) stream(tuple(T2)) stream(tuple(T1 T2)))) -> stream(tuple((mIndex int)(pIndex int)))
-Example  : query plz feed extend[Cell: length(.Ort)] extend[Partition: .Cell mod 20] Orte feed extend[Cell: length(.Ort)] extend[Partition: .Cell mod 20] {rr} hadoopjoin[ [const array(string) value ("node1" "node2")], 1, 20; . .. parajoin2[Cell, Cell_rr;. .. symmjoin[.Ort = ..Ort_rr]] ] getTypeNL;
+Example  : query plz feed extend[Cell: length(.Ort)] extend[Partition: .Cell mod 20] Orte feed extend[Cell: length(.Ort)] extend[Partition: .Cell mod 20] {rr} hadoopjoin[ [const array(string) value ("node1" "node2")], 1, 20, "Result"; . sortby[Cell] .. sortby[Cell_rr] parajoin2[Cell, Cell_rr;. .. symmjoin[.Ort = ..Ort_rr]] ] getTypeNL;
 Result   : '(stream (tuple ((mIndex int) (pIndex int))))' 

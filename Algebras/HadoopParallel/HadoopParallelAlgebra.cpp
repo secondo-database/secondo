@@ -307,7 +307,7 @@ Tuple* deLocalInfo::makeTuple(Word stream, int index,int SI)
     vs << "(" << SI << " '" << tupStr << "')";
 
     newTuple = new Tuple(resultTupleType);
-    newTuple->PutAttribute(0,new CcString(key));
+    newTuple->PutAttribute(0,new CcString(true, key));
     newTuple->PutAttribute(1,new FText(true, vs.str()));
 
     oldTuple->DeleteIfAllowed();
@@ -1783,6 +1783,67 @@ int add0TupleValueMap(Word* args, Word& result,
   return 0;
 }
 
+
+/*
+For arguments used in TypeMapping function,
+if they are not direct string type data,
+use a separated query processor to evaluate its value.
+
+*/
+
+bool getNLArgValueInTM(NList args, NList& value)
+{
+  if ((args.isList()) || (args.isSymbol()))
+  {
+    ListExpr queryList = args.listExpr();
+    bool success;
+    Word queryresultword;
+    string typestring   = "";
+    string errorstring   = "";
+    bool correct = false;
+    bool evaluable = false;
+    bool defined = false;
+    bool isFunction = false;
+    success =
+        QueryProcessor::ExecuteQuery(queryList,
+                                      queryresultword,
+                                      typestring,
+                                      errorstring,
+                                      correct,
+                                      evaluable,
+                                      defined,
+                                      isFunction);
+    ListExpr queryResType;
+    if (!nl->ReadFromString(typestring, queryResType))
+    {
+      cerr << "ERROR! Invalid argument type. " << errorstring << endl;
+      return false;
+    }
+    else
+    {
+      if (correct && evaluable && defined && (typestring != "typeerror"))
+      {
+        ListExpr valueList = SecondoSystem::GetCatalog() ->OutObject(
+            queryResType, queryresultword);
+        if (!SecondoSystem::GetCatalog()-> DeleteObj(queryResType,
+            queryresultword)) {
+          cerr << "ERROR! Problem in deleting queryresultword" << endl;
+          return false;
+        }
+        value = NList(valueList);
+        return true;
+      }
+      cerr << "ERROR! Incorrect evaluation for arguments in TM." << endl;
+      return false;
+    }
+  }
+  else
+  {
+    value = args;
+    return true;
+  }
+}
+
 /*
 5.15 Operator ~fconsume~
 
@@ -1906,6 +1967,7 @@ ListExpr FConsumeTypeMap(ListExpr args)
                " [ array(string) x int x int x int] )";
   string err1 = "The file name should NOT be empty!";
   string err2 = "ERROR! The file path doesn't exist. \n";
+  string err3 = "ERROR! Infeasible evaluation in TM for attribute ";
 
   //all possible argument length: 3|4|5|6| 7|8|9|10
   int len = l.length();
@@ -1918,28 +1980,35 @@ ListExpr FConsumeTypeMap(ListExpr args)
   if (drmPos > 2)
     len -= 4;
 
-  if(len < 3 || len > 6)
+  if (len < 3 || len > 6)
     return l.typeError(lengthErr);
 
   NList attr;
   if(!l.first().first().checkStreamTuple(attr) )
     return l.typeError(typeErr);
 
-  if(!l.second().first().isSymbol(Symbols::STRING()) )
+  if (!l.second().first().isSymbol(Symbols::STRING()) )
     return l.typeError(typeErr);
-  string fileName = l.second().second().str();
+  NList fnList;
+  if (!getNLArgValueInTM(l.second().second(), fnList))
+    return l.typeError(err3 + "fileName");
+  string fileName = fnList.str();
+
   if (0 == fileName.length())
     return l.typeError(err1);
 
-  if(!l.third().first().isSymbol(Symbols::TEXT()) )
+  if (!l.third().first().isSymbol(Symbols::TEXT()) )
     return l.typeError(typeErr);
 
   //Create the type file.
   //If path is not specified, then use the default path
   //\$SECONDO\_BUILD\_DIR/bin/parallel/ .
   //And the specified path must be an absolute path
-  string typeFileName = l.second().second().str() + "_type";
-  string filePath = l.third().second().str();
+  string typeFileName = fileName + "_type";
+  NList fpList;
+  if (!getNLArgValueInTM(l.third().second(), fpList))
+    return l.typeError(err3 + "filePath");
+  string filePath = fpList.str();
   if (0 == filePath.length())
   {
     filePath = FileSystem::GetCurrentFolder();
@@ -1963,11 +2032,11 @@ ListExpr FConsumeTypeMap(ListExpr args)
   bool haveIndex = false;
   if (len > 3)
   {
-    string nodeName[2] = {"", ""};
+    int nodeArgLoc[2] = {-1 , -1 };
     if (l.fourth().first().isSymbol(Symbols::INT()))
       haveIndex = true;
     else if (l.fourth().first().isSymbol(Symbols::STRING()))
-      nodeName[0] = l.fourth().second().str();
+      nodeArgLoc[0] = 4;
     else
       return l.typeError(typeErr);
 
@@ -1978,16 +2047,16 @@ ListExpr FConsumeTypeMap(ListExpr args)
       case 5:
         if (l.fifth().first().isSymbol(Symbols::STRING())){
           if (haveIndex)
-            nodeName[0] = l.fifth().second().str();
+            nodeArgLoc[0] = 5;
           else
-            nodeName[1] = l.fifth().second().str();
+            nodeArgLoc[1] = 5;
           break;
         }
       case 6:
         if ((l.fifth().first().isSymbol(Symbols::STRING())
             && l.sixth().first().isSymbol(Symbols::STRING()))){
-          nodeName[0] = l.fifth().second().str();
-          nodeName[1] = l.sixth().second().str();
+          nodeArgLoc[0] = 5;
+          nodeArgLoc[1] = 6;
         break;
         }
       default:
@@ -1997,10 +2066,15 @@ ListExpr FConsumeTypeMap(ListExpr args)
     //Copy the type file to remote nodes if asked
     for(int i = 0; i < 2; i++)
     {
-      if ("" != nodeName[i])
+      if (nodeArgLoc[i] > 0)
       {
+        NList nnList;
+        if (!getNLArgValueInTM(
+                l.elem(nodeArgLoc[i]).second(), nnList))
+          return l.typeError(err3 + " for node " + int2string(i) );
+        string nodeName = nnList.str();
         system(("scp " + filePath + " "
-            + nodeName[i] + rmDefaultPath).c_str());
+            + nodeName + rmDefaultPath).c_str());
       }
     }
   }
@@ -2361,6 +2435,7 @@ ListExpr FFeedTypeMap(ListExpr args)
   string err2 = "ERROR! Type file NOT exist!\n";
   string err3 = "ERROR! A tuple relation type list is "
       "NOT contained in file: ";
+  string err4 = "ERROR! Infeasible evaluation in TM for attribute ";
 
   //operator only accept 2|3|4|5|6|7 arguments
   int len = l.length();
@@ -2372,13 +2447,22 @@ ListExpr FFeedTypeMap(ListExpr args)
 
   if (!l.first().first().isSymbol(Symbols::STRING()))
     return l.typeError(typeErr);
-  string fileName = l.first().second().str();
+  NList fnList;
+  if (!getNLArgValueInTM(l.first().second(), fnList))
+    return l.typeError(err4 + "fileName");
+  string fileName = fnList.str();
+
   if (0 == fileName.length())
     return l.typeError(err1);
 
+  //only for test the getNLArgValueInTM
   if (!l.second().first().isSymbol(Symbols::TEXT()))
     return l.typeError(typeErr);
-  string filePath = l.second().second().str();
+  NList fpList;
+  if (!getNLArgValueInTM(l.second().second(), fpList))
+    return l.typeError(err4 + "filePath");
+  string filePath = fpList.str();
+
   if (0 == filePath.length())
   {
     filePath = FileSystem::GetCurrentFolder();
@@ -2417,7 +2501,10 @@ ListExpr FFeedTypeMap(ListExpr args)
   if (rtnPos > 0)
   {
     //copy the type file from the remote machine
-    string nodeName = l.elem(rtnPos).second().str();
+    NList nnList;
+    if (!getNLArgValueInTM(l.elem(rtnPos).second(), nnList))
+      return l.typeError(err3 + "node name");
+    string nodeName = nnList.str();
 
     //!!!we assume in every node's home directory, where the sftp
     //server start, exists a link to its \$SECONDO\_BUILD\_DIR !!!
@@ -2430,7 +2517,6 @@ ListExpr FFeedTypeMap(ListExpr args)
     return l.typeError(err2 + filePath);
   if(!listutils::isRelDescription(relType))
     return l.typeError(err3 + filePath);
-
   if (drMode)
   {
     //remote mode
@@ -2443,7 +2529,6 @@ ListExpr FFeedTypeMap(ListExpr args)
     if(!l.elem(++drmPos).first().isSymbol(Symbols::INT()))
       return l.typeError(typeErr);
   }
-
   NList streamType =
       NList(NList(Symbols::STREAM()),
       NList(NList(relType).second()));
@@ -2601,7 +2686,7 @@ struct HdpJoinInfo : OperatorInfo {
     name = "hadoopjoin";
     signature =
         "mq1Stream x mq2Stream x machineArray x masterIndex"
-        "x reduceNum x rqMap"
+        "x reduceNum x resultName x rqMap"
         "-> stream(tuple((mIndex int)(pIndex int)))";
     syntax = "_ _ hadoopjoin[_, _, _, _, _, _; fun]";
     meaning =
@@ -2618,7 +2703,7 @@ The operator maps:
 
 ----
    ( (stream(tuple(T1))) x (stream(tuple(T2)))
-    x array(string) x int x int
+    x array(string) x int x int x string
     x (map stream(tuple(T1)) stream(tuple(T2))
            stream(tuple(T1 T2))))
     -> stream(tuple((mIndex int)(pIndex int)))
@@ -2630,22 +2715,24 @@ The operator only works in the Secondo system
 which is deployed in a cluster which has a Hadoop system,
 and the Secondo Monitors on all nodes that belong to the cluster
 have been started already.
-The results of the operation are distributed in nodes as files.
+The results of the operation are distributed in nodes as files,
+with argument ~resultName~ as file name.
 And the operator outputs a tuple stream to indicate these files' places.
-The tuple stream contains two fields: mIndex and pIndex,
-while the mIndex denotes which node have the result file,
+The tuple stream contains two fields: mIndex and pIndex.
+The mIndex denotes which node have the result file,
 and the pIndex denotes which part of the complete result is inside
 the file.
 
-The operator contains 6 parameters in total:
-mq1Stream, mq2Stream, machineArr, masterIndex, rtNum and rqMap.
+The operator contains 7 parameters in total:
+mq1Stream, mq2Stream, machineArr, masterIndex, rtNum,
+resultName and rqMap.
 
 The mq1Stream, mq2Stream and rqMap are Secondo queries.
 By using the feature of ~SetUsesArgsInTypeMapping~,
 we can get the nested list of these queries, and send them to
 Hadoop program as arguments.
-Then these queries are merged with some fixed queries
-written in the Hadoop program already, and are sent to multiple
+Then these queries are merged with some fixed nested list type
+queries written in the Hadoop program already, and are sent to multiple
 remote Secondo monitors to run.
 
 The machineArr is an array object that is kept
@@ -2666,7 +2753,7 @@ ListExpr hdpJoinTypeMap(ListExpr args)
   NList l(args);
   int len = l.length();
 
-  if (len == 6)
+  if (len == 7)
   {
     string typeErr = "operator hadoopjoin expects "
         "stream(tuple(T1)), stream(tuple(T2)), "
@@ -2674,8 +2761,8 @@ ListExpr hdpJoinTypeMap(ListExpr args)
         "(map (stream(tuple(T1))) stream(tuple(T2)) "
         "  stream(tuple(T1 T2))))";
     string err2 = "operator hadoopjoin ecpects "
-        "both input streams contain attributes of: "
-        "Cell and Partition";
+        "both input streams contain attribute Partition";
+    string err3 = "ERROR! Infeasible evaluation in TM for attribute ";
 
     string streamStr[2] = {"", ""};
     for (int argIndex = 1; argIndex <= 2; argIndex++)
@@ -2698,17 +2785,24 @@ ListExpr hdpJoinTypeMap(ListExpr args)
     if (!l.fifth().first().isSymbol(Symbols::INT()))
       return l.typeError(typeErr);
 
-    string mapStr = l.sixth().second().fourth().convertToString();
-    NList mapList = l.sixth().first();
+    if (!l.sixth().first().isSymbol(Symbols::STRING()))
+      return l.typeError(typeErr);
+    NList rnList;
+    if (!getNLArgValueInTM(l.sixth().second(), rnList))
+      return l.typeError(err3 + "resultName");
+    string resultName = rnList.str();
+
+    string mapStr = l.elem(7).second().fourth().convertToString();
+    NList mapList = l.elem(7).first();
     NList attrAB, attr[2];
     if (mapList.first().isSymbol(Symbols::MAP())
         && mapList.second().checkStreamTuple(attr[0])
         && mapList.third().checkStreamTuple(attr[1])
         && mapList.fourth().checkStreamTuple(attrAB))
     {
+      //Confirmation of Cell and Partition attributes
       bool haveCP[2] = {false, false};
       for (int i = 0; i < 2; i++){
-        string lmaName = "";  //last match attribute name
         if (!IsTupleDescription(attr[i].listExpr()))
           return l.typeError(typeErr);
         NList rest = attr[i];
@@ -2717,15 +2811,9 @@ ListExpr hdpJoinTypeMap(ListExpr args)
           rest.rest();
           if (a.second().isSymbol("int")){
             string aName = a.first().convertToString();
-            if (("Cell" ==
-                    aName.substr(0,aName.find_first_of("_")))
-             || ("Partition" ==
-                    aName.substr(0,aName.find_first_of("_")))){
-              if ("" == lmaName)
-                lmaName = aName;
-              else if (aName != lmaName){
+            if ("Partition" ==
+                  aName.substr(0,aName.find_first_of("_"))){
                 haveCP[i] = true;
-              }
             }
           }
         }
@@ -2733,13 +2821,13 @@ ListExpr hdpJoinTypeMap(ListExpr args)
       if (!(haveCP[0] && haveCP[1]))
         return l.typeError(err2);
 
-      // Write the join result type into local file,
+      // Write the join result type into local default path,
       // in case the following operators need.
       NList joinResult = NList(NList(REL),
                        NList(NList(TUPLE), NList(attrAB)));
       string typeFileName = FileSystem::GetCurrentFolder();
       FileSystem::AppendItem(typeFileName, "parallel");
-      FileSystem::AppendItem(typeFileName, "Result_type");
+      FileSystem::AppendItem(typeFileName, resultName + "_type");
       ofstream typeFile(typeFileName.c_str());
       if (!typeFile.good())
       {
@@ -2832,10 +2920,11 @@ int hdpJoinValueMap(Word* args, Word& result,
 
       //0.3 get other arguments
       int rtNum = ((CcInt*)args[4].addr)->GetIntval();
+      string rName = ((CcString*)args[5].addr)->GetValue();
       string mrQuery[3] = {
-          ((FText*)args[6].addr)->GetValue(),
           ((FText*)args[7].addr)->GetValue(),
           ((FText*)args[8].addr)->GetValue(),
+          ((FText*)args[9].addr)->GetValue(),
       };
 
       //1 evaluate the hadoop program
@@ -2849,7 +2938,7 @@ int hdpJoinValueMap(Word* args, Word& result,
           << "\"" << mrQuery[0] << "\" \\\n"
           << "\"" << mrQuery[1] << "\" \\\n"
           << "\"" << mrQuery[2] << "\" \\\n"
-          << rtNum << endl;
+          << rtNum << " " << rName << endl;
       int rtn;
       rtn = system("hadoop dfs -rmr OUTPUT");
       rtn = system(queryStr.str().c_str());
@@ -2860,7 +2949,7 @@ int hdpJoinValueMap(Word* args, Word& result,
       hjli = new hdpJoinLocalInfo(s);
 
       FILE *fs;
-      char buf[32];
+      char buf[MAX_STRINGSIZE];
       fs = popen("hadoop dfs -cat OUTPUT/part*", "r");
 
       while(fgets(buf, sizeof(buf), fs))
@@ -2869,7 +2958,7 @@ int hdpJoinValueMap(Word* args, Word& result,
         ss << buf;
         istringstream iss(ss.str());
         int mIndex, pIndex;
-        iss >> mIndex >> pIndex;
+        iss >> pIndex >> mIndex;
         hjli->insertPair(make_pair(mIndex, pIndex));
       }
       pclose(fs);

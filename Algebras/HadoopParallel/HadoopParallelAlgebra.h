@@ -53,8 +53,12 @@ And includes one method:
 #include <fcntl.h>
 #include <signal.h>
 #include "../Array/ArrayAlgebra.h"
+#ifdef SECONDO_WIN32
+#include <winsock2.h>
+#endif
 
 const string rmDefaultPath = /*$HOME/*/":secondo/bin/parallel/";
+bool getNLArgValueInTM(NList args, NList& value);
 
 /*
 1.1 deLocalInfo Class
@@ -430,8 +434,14 @@ public:
     if (machines && att > 0)
     {
       char hostName[255];
-      int aSize = machines->getSize();
+      memset(hostName, '\0', sizeof(hostName));
+      if (0 != gethostname(hostName, sizeof(hostName) - 1 ))
+      {
+        cerr << "Error: Can't get localhost name" << endl;
+        return false;
+      }
 
+      int aSize = machines->getSize();
       do
       {
         string servName =
@@ -439,19 +449,15 @@ public:
                 getElement((servIndex++) % aSize)).addr)->GetValue();
 
         //If the file is on local machine, don't delete it.
-        memset(hostName, '\0', sizeof(hostName));
-        if (0 == gethostname(hostName, sizeof(hostName)))
+        if (0 != strcmp(hostName, servName.c_str()))
         {
-          if (0 != strcmp(hostName, servName.c_str()))
-          {
-            filePath += "_" + servName;
-            FileSystem::DeleteFileOrFolder(filePath);
-            system(("scp " + servName + rmDefaultPath + relName
-                + " " + filePath).c_str());
-          }
-          else
-            break;
+          filePath += "_" + servName;
+          FileSystem::DeleteFileOrFolder(filePath);
+          system(("scp " + servName + rmDefaultPath + relName
+              + " " + filePath).c_str());
         }
+        else
+          break;
       }while((--att) > 0
           && !FileSystem::FileOrFolderExists(filePath));
     }
