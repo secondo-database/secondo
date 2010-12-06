@@ -13,6 +13,8 @@ import java.util.Comparator;
 
 import java.util.regex.*;
 
+import javax.swing.text.html.*;
+
 
  class RecObserver extends DownloadObserver{
 
@@ -21,7 +23,7 @@ import java.util.regex.*;
        }
 
 
-
+/*
       String extractHRefFromAnchor(String a){
 
          Pattern hrefPat1 = Pattern.compile("href\\s*=\\s*\"[^\"]*\"",Pattern.CASE_INSENSITIVE );  // with quotes
@@ -85,13 +87,71 @@ import java.util.regex.*;
              e.printStackTrace();
           }
           return urls;
+      } 
+
+     */
+
+      Vector<URL> extractURLs(File f , URL url){
+        Vector<URL> res = new Vector<URL>();
+        try{ 
+
+          BufferedReader br = new BufferedReader(new FileReader(f));
+          HTMLEditorKit editorKit = new HTMLEditorKit();
+          HTMLDocument htmlDoc = new HTMLDocument();
+          htmlDoc.putProperty("IgnoreCharsetDirective", Boolean.TRUE);
+
+          editorKit.read(br, htmlDoc, 0);
+
+
+          HTMLDocument.Iterator iter = htmlDoc.getIterator(HTML.Tag.A);
+
+
+          while (iter.isValid()) {
+            try{
+               res.add(new URL(url, iter.getAttributes().getAttribute( HTML.Attribute.HREF).toString()  ));;
+            } catch(Exception e){
+                System.err.println("Error in constructing url");
+            }
+            iter.next();
+          }
+          
+          iter = htmlDoc.getIterator(HTML.Tag.FRAME);
+
+          while (iter.isValid()) {
+            try{
+               res.add(new URL(url, iter.getAttributes().getAttribute( HTML.Attribute.SRC).toString()  ));;
+            } catch(Exception e){
+                System.err.println("Error in constructing url");
+            }
+            iter.next();
+          }
+
+
+          iter = htmlDoc.getIterator(HTML.Tag.IMG);
+
+          while (iter.isValid()) {
+            try{
+               res.add(new URL(url, iter.getAttributes().getAttribute( HTML.Attribute.SRC).toString()  ));;
+            } catch(Exception e){
+                System.err.println("Error in constructing url");
+            }
+            iter.next();
+          }
+
+       } catch(Exception e){
+            System.err.println("Problem in extracting links");
+       }
+       return res;
+ 
+
       }
+
+
 
       public void downloadStateChanged(DownloadEvent evt){
           ActiveDownload ad = (ActiveDownload) evt.getSource();
 
           URL url = ad.getURL();
-          System.out.println("DownloadState changed " + url );
           if(evt.getState()==DownloadState.DONE){
              File f =  Mirror.dm.getURL(url,null);
              if(f==null){
@@ -101,11 +161,9 @@ import java.util.regex.*;
              String mime = URLConnection.getFileNameMap().getContentTypeFor(f.getAbsolutePath());
              if(mime.startsWith("text")){
                 Vector<URL> urls = extractURLs(f,url);
-                System.out.println("found URLS = " + urls);
                 Mirror.urls.addAll(urls);
                 Mirror.startDownload();
              } else{
-                System.out.println("skip file "+ f +" because mime type is" + mime);
              }
           } else {
              System.err.println("download of "+ url + " not successful " + evt.getState());
