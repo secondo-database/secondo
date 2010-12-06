@@ -2,6 +2,7 @@
 package tools.downloadmanager;
 
 import java.net.URL;
+import java.net.URLConnection;
 import java.io.InputStream;
 import java.io.FileOutputStream;
 import java.io.File;
@@ -11,7 +12,7 @@ import java.io.File;
 /** Class describing an download. After creation of the download, you have to call the
   * start mathod the start the download.
   **/
-class ActiveDownload extends PlannedDownload implements Runnable{
+public class ActiveDownload extends PlannedDownload implements Runnable{
 
 
   /** Creates a new ActiveDownload form the arguments.
@@ -43,7 +44,10 @@ class ActiveDownload extends PlannedDownload implements Runnable{
     InputStream in = null;
     FileOutputStream out=null;
     try{
-       in = url.openStream();
+       URLConnection connection = url.openConnection();
+       connection.setConnectTimeout(3000);
+       connection.setReadTimeout(3000);
+       in = connection.getInputStream();
        targetFile.getParentFile().mkdirs();
        out = new FileOutputStream(targetFile);
        byte[] buffer = new byte[256];
@@ -64,7 +68,6 @@ class ActiveDownload extends PlannedDownload implements Runnable{
        }
        // download complete
        informListeners(new DownloadEvent(this,DownloadState.DONE, null));
-       System.out.println("ActiveDownload finished\n" + this+"\n\n\n");
       
     } catch(Exception e){
        if(in!=null){
@@ -76,6 +79,10 @@ class ActiveDownload extends PlannedDownload implements Runnable{
          try{
            out.close();
          }catch(Exception eout){}
+       }
+       try{
+         targetFile.delete();
+       } catch(Exception e3){
        }
        informListeners(new DownloadEvent(this,DownloadState.BROKEN, e));
     }

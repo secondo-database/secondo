@@ -9,7 +9,6 @@ package tools.downloadmanager;
 public abstract class  DownloadObserver implements Comparable{
   public DownloadObserver(){
       id = maxID++; 
-      System.out.println("create observer nr " + id); 
   }
 
 /** This method is called if the state of a download changed. **/

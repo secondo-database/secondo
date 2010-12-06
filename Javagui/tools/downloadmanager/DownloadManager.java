@@ -43,30 +43,32 @@ public class DownloadManager extends  DownloadObserver{
    * Note: The file can become invalid if the clearCache or removeUrl function
    * is called.
    */
-  public synchronized File getURL(URL url, DownloadObserver ob){
-    File f = computeFile(url);
-    if(f.exists()){
-      return f;
-    }
+  public  File getURL(URL url, DownloadObserver ob){
+    synchronized(syncObj){
+			File f = computeFile(url);
+			if(f.exists()){
+				return f;
+			}
 
-    // insert observer is there is a download for that url 
-    if(insertObserver(url,ob)){ 
-      return null;
-    }
+			// insert observer is there is a download for that url 
+			if(insertObserver(url,ob)){ 
+				return null;
+			}
 
-    if( (plannedDownloads.size()>0) || (activeDownloads.size()>=maxDownloads)){
-       // all download slots are used. So, the download is just planned
-       PlannedDownload d = new PlannedDownload(url,f,this);
-       d.addObserver(ob);
-       plannedDownloads.put(url,d);
-       plannedQueue.offer(url);
-       return null;
+			if( (plannedDownloads.size()>0) || (activeDownloads.size()>=maxDownloads)){
+				 // all download slots are used. So, the download is just planned
+				 PlannedDownload d = new PlannedDownload(url,f,this);
+				 d.addObserver(ob);
+				 plannedDownloads.put(url,d);
+				 plannedQueue.offer(url);
+				 return null;
+			}
+			// the is a free download slot, create a new download for the url
+			ActiveDownload dl = new ActiveDownload(url, f, this);
+			dl.addObserver(ob);
+			activeDownloads.put(url,dl);
+			dl.start();
     }
-    // the is a free download slot, create a new download for the url
-    ActiveDownload dl = new ActiveDownload(url, f, this);
-    dl.addObserver(ob);
-    activeDownloads.put(url,dl);
-    dl.start();
     return null;
   }
 
@@ -83,25 +85,27 @@ public class DownloadManager extends  DownloadObserver{
     * @param ob: observer which should be informed about the progress of the download
     **/
   public void updateURL(URL url, boolean force, DownloadObserver ob){
-    if(insertObserver(url,ob)){
-       return;
-    }
-    File f = computeFile(url);
-    // file not present, just start the normal download
-    if(!f.exists()){
-      getURL(url,ob);
-      return;
-    }
-    // file is present // do some more complicated stuff
-      File tmpFile = computeTmpFile(url);
+    synchronized(syncObj){
+			if(insertObserver(url,ob)){
+				 return;
+			}
+			File f = computeFile(url);
+			// file not present, just start the normal download
+			if(!f.exists()){
+				getURL(url,ob);
+				return;
+			}
+			// file is present // do some more complicated stuff
+				File tmpFile = computeTmpFile(url);
 
-      // idea start a new download into a temporarly file
-      // assign another observer to that download
-      // if the download is finished successful, move the new file to the 
-      // file to be updated 
-      // if the downloads breaks down, remove the temp file 
-      // in each case inform ob about the new state.
-      //TODO:...
+				// idea start a new download into a temporarly file
+				// assign another observer to that download
+				// if the download is finished successful, move the new file to the 
+				// file to be updated 
+				// if the downloads breaks down, remove the temp file 
+				// in each case inform ob about the new state.
+				//TODO:...
+   }
  }
 
 
@@ -111,69 +115,77 @@ public class DownloadManager extends  DownloadObserver{
     * If the download is canceled, the observer is informed about that.
     **/
   public boolean removeURL(URL url){
-     PlannedDownload pd = plannedDownloads.get(url);
-     if(pd!=null){
-        pd.cancel();
-        plannedDownloads.remove(url);
-        return true;
+    synchronized(syncObj){
+			 PlannedDownload pd = plannedDownloads.get(url);
+			 if(pd!=null){
+					pd.cancel();
+					plannedDownloads.remove(url);
+					return true;
+			 }
+			 ActiveDownload ad = activeDownloads.get(url);
+			 if(ad!=null){
+					ad.cancel();
+					activeDownloads.remove(url);
+					return true; 
+			 }
+			 File f = computeFile(url);
+			 if(f.exists()){
+					f.delete();
+					return true;
+			 }
+			 // url was not managed
      }
-     ActiveDownload ad = activeDownloads.get(url);
-     if(ad!=null){
-        ad.cancel();
-        activeDownloads.remove(url);
-        return true; 
-     }
-     File f = computeFile(url);
-     if(f.exists()){
-        f.delete();
-        return true;
-     }
-     // url was not managed
      return  false; 
   }
 
 
   /** cancels all active and inactive downloads informing the related observers **/
   public void cancelDownloads(){
-     Collection<PlannedDownload> cpd = plannedDownloads.values();
-     plannedDownloads.clear();     
-     Iterator<PlannedDownload> itpd = cpd.iterator();
-     while(itpd.hasNext()){
-        PlannedDownload pd = itpd.next();
-        itpd.remove();
-        pd.cancel(); 
-     }
+    synchronized(syncObj){
+			 Collection<PlannedDownload> cpd = plannedDownloads.values();
+			 plannedDownloads.clear();     
+			 Iterator<PlannedDownload> itpd = cpd.iterator();
+			 while(itpd.hasNext()){
+					PlannedDownload pd = itpd.next();
+					itpd.remove();
+					pd.cancel(); 
+			 }
 
-     Collection<ActiveDownload> cad = activeDownloads.values();
-     activeDownloads.clear();
-     Iterator<ActiveDownload> itad = cad.iterator();
-     while(itad.hasNext()){
-        ActiveDownload ad = itad.next();
-        itad.remove();
-        ad.cancel(); 
-     }
+			 Collection<ActiveDownload> cad = activeDownloads.values();
+			 activeDownloads.clear();
+			 Iterator<ActiveDownload> itad = cad.iterator();
+			 while(itad.hasNext()){
+					ActiveDownload ad = itad.next();
+					itad.remove();
+					ad.cancel(); 
+			 }
+   }
   }
 
   /** cancels all downloads and removes all files located below the tmpdirectory **/
   public void clearChache() {
-     cancelDownloads();
-     deleteDirContent(rootDir);
+    synchronized(syncObj){
+			 cancelDownloads();
+			 deleteDirContent(rootDir);
+   }
   }
 
 
   /** reaction to finished downloads **/
   public void downloadStateChanged(DownloadEvent evt){
-    ActiveDownload ad = (ActiveDownload) evt.getSource();
-    activeDownloads.remove(ad.getURL());
-    while(plannedQueue.size()>0){
-       URL url = (URL) plannedQueue.poll();
-       PlannedDownload pd = plannedDownloads.get(url);
-       if(pd!=null){
-          plannedDownloads.remove(url);
-          activate(pd);
-          return;
-       }
-    }
+   synchronized(syncObj){
+      ActiveDownload ad = (ActiveDownload) evt.getSource();
+      activeDownloads.remove(ad.getURL());
+      while(plannedQueue.size()>0){
+         URL url = (URL) plannedQueue.poll();
+         PlannedDownload pd = plannedDownloads.get(url);
+         if(pd!=null){
+            plannedDownloads.remove(url);
+            activate(pd);
+            return;
+         }
+      }
+   }
   }
 
   /** activates a planned download **/
@@ -273,5 +285,7 @@ public class DownloadManager extends  DownloadObserver{
   private HashMap<URL, ActiveDownload> activeDownloads;
   private HashMap<URL, PlannedDownload> plannedDownloads;
   private Queue<URL> plannedQueue;
+
+  private final Object syncObj = new Object();
   
 }

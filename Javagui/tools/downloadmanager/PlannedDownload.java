@@ -43,16 +43,7 @@ class PlannedDownload{
     if(canceled){
        return false;
     }  else if(observer!=null){
-       System.out.println("No Observers " + observers.size());
-       System.out.println("These are " + observers);
-       System.out.println("insert "+observer);
-
        observers.add(observer);
-
-       System.out.println("new size = " +observers.size());
-       System.out.println("These are " + observers);
-      
-
        return  true;
     }
     return false;
@@ -83,7 +74,8 @@ class PlannedDownload{
   protected void informListeners(DownloadEvent evt){
     Iterator<DownloadObserver> it = observers.iterator();
     while(it.hasNext()){
-       it.next().downloadStateChanged(evt);
+       DownloadObserver ob = it.next();
+       ob.downloadStateChanged(evt);
     }
   }
 
