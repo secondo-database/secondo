@@ -6217,9 +6217,9 @@ void InsertUnits (int SQUARES, int RIGHTCOL, int TOPROW,
         double end   = it->second.up.timeInterval.end.ToDouble();
         if ( start < end )
         {
-          Rectangle<3>* box = new Rectangle<3>(true, start, end, 
-                                               x1-tol, x2+tol,
-                                               y1-tol, y2+tol );
+          Rectangle<3>* box = new Rectangle<3>(true, x1-tol, x2+tol,
+                                                     y1-tol, y2+tol,
+                                                     start, end );
           // Insert entry into RTree
           R_TreeLeafEntry<3, TupleId> e(*box, it->second.tupId);
           RTREE->InsertBulkLoad(e);
