@@ -12,8 +12,9 @@ import javax.swing.JComponent;
 import sj.lang.ListExpr;
 
 /**
- * This Background class homogeniously fills the visiable background (the total
- * clipping area) with a user-defined colour.
+ * This Background class homogeneously fills the visible background (the total
+ * clipping area) with a user-defined color.
+ * 
  * @author Christian Duentgen
  * 
  */
@@ -29,6 +30,7 @@ public class SimpleBackground extends Background {
 		name = "SimpleBackground";
 		license = "";
 		backgroundcolor = getBackground();
+		useforbbox = false;
 	}
 
 	/**
@@ -41,6 +43,7 @@ public class SimpleBackground extends Background {
 		name = "SimpleBackground";
 		license = "";
 		backgroundcolor = c;
+		useforbbox = false;
 	}
 
 	/**
@@ -55,6 +58,7 @@ public class SimpleBackground extends Background {
 		name = "SimpleBackground";
 		license = "";
 		backgroundcolor = getBackground();
+		useforbbox = false;
 		setConfiguration(p, datapath);
 	}
 
@@ -70,6 +74,7 @@ public class SimpleBackground extends Background {
 		name = "SimpleBackground";
 		license = "";
 		backgroundcolor = getBackground();
+		useforbbox = false;
 		readFromList(l, datapath);
 	}
 
@@ -83,6 +88,7 @@ public class SimpleBackground extends Background {
 		name = "SimpleBackground";
 		license = "";
 		backgroundcolor = getBackground();
+		useforbbox = false;
 		showConfigDialog(parent);
 	}
 
@@ -96,8 +102,14 @@ public class SimpleBackground extends Background {
 	 */
 	@Override
 	public void showConfigDialog(JComponent parent) {
+		name = "SimpleBackground";
+		license = "";
+		useforbbox = false;
 		backgroundcolor = JColorChooser.showDialog(this,
-				"Choose the background color, nerd!", backgroundcolor);
+				"Choose the background color:", backgroundcolor);
+		if (backgroundcolor == null) {
+			backgroundcolor = getBackground();
+		}
 		BackgroundChangedEvent evt = new BackgroundChangedEvent() {
 			public Object getSource() {
 				return SimpleBackground.this;
@@ -121,6 +133,7 @@ public class SimpleBackground extends Background {
 	@Override
 	public void setConfiguration(Properties p, String backgrounddatapath) {
 		super.setConfiguration(p, backgrounddatapath);
+		backgroundcolor = getBackground();
 		String bcstring = p.getProperty(KEY_BGCOLOR, null);
 		if(bcstring != null) {
 			int rgb = Integer.parseInt(bcstring);
@@ -175,7 +188,7 @@ public class SimpleBackground extends Background {
 
 	/**
 	 * Sets the Background's clipping boundary. Since this specialized
-	 * Background should paint the entire visible background in a heterogenous
+	 * Background should paint the entire visible background in a heterogeneous
 	 * color, this simultaneously changes the bounds member attribute.
 	 * 
 	 * @see viewer.hoese.Background#getConfiguration(java.lang.Object)
@@ -183,8 +196,12 @@ public class SimpleBackground extends Background {
 	 */
 	@Override
 	public void setClipBBox(Rectangle2D.Double rect) {
-		clipbbox = (Rectangle2D.Double) rect.clone();
-		bbox = (Rectangle2D.Double) rect.clone();
+		if ((bbox != null) && (rect != null)) {
+			clipbbox = (Rectangle2D.Double) bbox.createIntersection(rect);
+		} else {
+			clipbbox = (Rectangle2D.Double) rect;
+		}
+		bbox = (Rectangle2D.Double) rect;
 	}
 
 	/**

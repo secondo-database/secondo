@@ -1,6 +1,3 @@
-/**
- * 
- */
 package viewer.hoese;
 
 import java.awt.Graphics;
@@ -29,9 +26,12 @@ public class ImageBackground extends Background {
 	 * Constructs an undefined Background.
 	 */
 	public ImageBackground() {
+		name = "ImageBackground (no image)";
+		license = "";
 		img = new ScalableImage();
 		bbox = null;
 		clipbbox = null;
+		useforbbox = false;
 	}
 
 	/**
@@ -41,9 +41,12 @@ public class ImageBackground extends Background {
 	 *            The parent component for the used dialog.
 	 */
 	public ImageBackground(JComponent parent) {
+		name = "ImageBackground";
+		license = "";
 		img = new ScalableImage();
 		bbox = null;
 		clipbbox = null;
+		useforbbox = false;
 		showConfigDialog(parent);
 	}
 
@@ -58,6 +61,10 @@ public class ImageBackground extends Background {
 	public ImageBackground(ListExpr l, String datapath) {
 		name = "ImageBackground";
 		license = "";
+		img = new ScalableImage();
+		bbox = null;
+		clipbbox = null;
+		useforbbox = false;
 		readFromList(l, datapath);
 	}
 
@@ -70,9 +77,12 @@ public class ImageBackground extends Background {
 	 *            Path of the directory holding the nackground image file.
 	 */
 	public ImageBackground(Properties p, String datafilepath) {
+		name = "ImageBackground";
+		license = "";
 		img = new ScalableImage();
 		bbox = null;
 		clipbbox = null;
+		useforbbox = false;
 		setConfiguration(p, datafilepath);
 	}
 
@@ -80,18 +90,26 @@ public class ImageBackground extends Background {
 	 * Display a dialog for importing a background image from a file and
 	 * locating it to the world (i.e. setting its bounds). Inform all listeners,
 	 * if this was successful.
+	 * 
 	 * @see viewer.hoese.Background#showConfigDialog(javax.swing.JComponent)
+	 * @param parent
+	 *            This parameter is ignored.
 	 */
 	@Override
 	public void showConfigDialog(JComponent parent) {
-		BufferedImage bi = new BackGroundImage(null).getImage();
+		BackGroundImage bgi = new BackGroundImage(null);
+		bgi.setVisible(false);
+		BufferedImage bi = bgi.getImage();
 		if (bi != null) {
 			img.setImage(bi);
 			bbox = new BackGroundImage(null).getBBox();
 			if ((clipbbox == null) && (bbox != null)) {
 				clipbbox = bbox;
 			}
+			name = "ImageBackground";
+			license = "";
 			img.setClipRect(clipbbox);
+			useforbbox = bgi.useForBoundingBox();
 			BackgroundChangedEvent evt = new BackgroundChangedEvent() {
 				public Object getSource() {
 					return ImageBackground.this;
@@ -101,8 +119,41 @@ public class ImageBackground extends Background {
 		}
 	}
 
-	/* (non-Javadoc)
+	/**
+	 * This overrides the method inherited from JComponent. It sets the location
+	 * and dimensions of the objects's graphical representation. It uses the
+	 * field member img (class SacalableImage), which is capable of handling
+	 * clipping and getting itself drawn. This methods deals with screen
+	 * coordinates!
+	 * 
+	 * @param x
+	 *            x-coordinate, relative to upper left border.
+	 * @param y
+	 *            y-coordinate, relative to upper left border.
+	 * @param w
+	 *            width (non-negative),
+	 * @param h
+	 *            height (non-negative),
+	 */
+	public void setBounds(int x, int y, int w, int h) {
+		img.setBounds(x, y, w, h);
+		super.setBounds(x, y, w, h);
+	}
+
+	/**
+	 * Use the parameter as the new background image
+	 * @param img The image to be used as new backgrund
+	 */
+	public void setImage(BufferedImage newimage) {
+		img.setImage(newimage);
+	}
+	
+	/**
+	 * Paint method
+	 * 
 	 * @see viewer.hoese.Background#paint(java.awt.Graphics)
+	 * @param g
+	 *            Graphic to which the Background is drawn.
 	 */
 	@Override
 	public void paint(Graphics g) {

@@ -1,6 +1,7 @@
 package viewer.hoese;
 
 import java.awt.geom.Rectangle2D;
+import java.awt.Rectangle;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.ListIterator;
@@ -16,6 +17,9 @@ import sj.lang.ListExpr;
  * This class is to be extended by classes representing different kinds of
  * backgrounds in the HoeseViever, e.g. SimpleBackground, ImageBackground, or
  * TiledBackground.
+ * 
+ * Specializations of this class should override the inherited paint() method.
+ * 
  * @author Christian Duentgen
  */
 public abstract class Background extends javax.swing.JComponent {
@@ -31,12 +35,13 @@ public abstract class Background extends javax.swing.JComponent {
 		license = null;
 		bbox = null;
 		clipbbox = null;
+		viewport = null;
 		listeners = null;
 	}
 
 
 	/**
-	 * Sets the Background's boundary
+	 * Sets the Background's boundary (world coordinates)
 	 * @param rect
 	 *            A Rectangle2D defining the Background's boundary
 	 */
@@ -45,7 +50,7 @@ public abstract class Background extends javax.swing.JComponent {
 	}
 	
 	/**
-	 * Returns the Background's boundary
+	 * Returns the Background's boundary (world coordinates)
 	 * @return The Background's boundary
 	 */
 	public Rectangle2D.Double getBBox() {
@@ -53,23 +58,47 @@ public abstract class Background extends javax.swing.JComponent {
 	}
 
 	/**
-	 * Sets the Background's clipping boundary. Only parts of the background
-	 * lying within the clipping area are displayed.
+	 * Sets the Background's clipping boundary (world coordinates). 
+	 * Only parts of the background lying within the clipping area are 
+	 * displayed. This allows the Background to keep only its visible parts 
+	 * in memory.
+	 * 
 	 * @param rect
 	 *            A Rectangle2D defining the clipping area.
 	 */
 	public void setClipBBox(Rectangle2D.Double rect) {
-		clipbbox = (Rectangle2D.Double) rect.clone();
+		if( (bbox != null) && rect != null) {
+			clipbbox.setRect(bbox.createIntersection(rect));
+		} else {
+			clipbbox = rect;
+		}
 	}
-
+    
 	/**
-	 * Returns the Background's current clipping area.
+	 * Returns the Background's current clipping area (world coordinates).
 	 * @return A Rectangle2D defining the Background's clipping area.
 	 */
 	public Rectangle2D.Double getClipBBox() {
 		return clipbbox;
 	}
 
+	/**
+	 * Set the the current viewport (visible area in screen coordinates).
+	 * The viewport is set to the intersection of the background's current
+	 * bounds and the parameter Rectangle. 
+	 * @param vp Rectangle describing visible area in screen coordinates.
+	 */
+	public void setViewport(Rectangle vp) {
+		viewport = vp;
+	}
+	
+	/**
+	 * Return the current viewport (visible area in screen coordinates)
+	 */
+	public Rectangle getViewport() {
+		return viewport;
+	}
+	
 	/**
 	 * Display a dialog to allow a user to set up parameters for the Background.
 	 * @param parent
@@ -82,6 +111,8 @@ public abstract class Background extends javax.swing.JComponent {
 	 * be used to restore the Background settings, e.g. from a file. All
 	 * registered Listeners are informed. Additional data may be retrieved from
 	 * files rooted at the given path.
+	 * Overriding methods should check the property KEY_BACKGROUNDTYPE on whether 
+	 * it fits their classname! 
 	 * 
 	 * @param p
 	 *            The Background settings to restore.
@@ -103,10 +134,8 @@ public abstract class Background extends javax.swing.JComponent {
 		if (b != null) {
 			bbox = b;
 		}
-		b = createRectangle2DFromString(p.getProperty(KEY_CLIPBBOX));
-		if (b != null) {
-			clipbbox = b;
-		}
+		n = p.getProperty(KEY_USEFORBBOX);
+		useforbbox = (n != null) && (n == "yes");
 	}
 
 	/**
@@ -143,6 +172,8 @@ public abstract class Background extends javax.swing.JComponent {
 	 * Return the Background's settings as a Properties object. The Properties
 	 * can be used to save Background settings for later reference. Additional
 	 * data may be stored to files rooted at the given path.
+	 * Overriding methods should add KEY_BACKGROUNDTYPE with their classname 
+	 * as the value. 
 	 * 
 	 * @param backgrounddatapath
 	 *            Path, where to store data files.
@@ -155,9 +186,11 @@ public abstract class Background extends javax.swing.JComponent {
 		String bboxstr = "" + bbox.getX() + " " + bbox.getY() + " "
 				+ bbox.getWidth() + " " + bbox.getHeight();
 		p.setProperty(KEY_BBOX, bboxstr);
-		bboxstr = "" + clipbbox.getX() + " " + clipbbox.getY() + " "
-				+ clipbbox.getWidth() + " " + clipbbox.getHeight();
-		p.setProperty(KEY_CLIPBBOX, bboxstr);
+		if(useforbbox) {
+			p.setProperty(KEY_USEFORBBOX, "yes");
+		} else {
+			p.setProperty(KEY_USEFORBBOX, "no");
+		}
 		return p;
 	}
 
@@ -225,6 +258,16 @@ public abstract class Background extends javax.swing.JComponent {
 	}
 
 	/**
+	 * Check the flag that indicates whether the Background is to be considered
+	 * when calculation the world's dimensions.
+	 * 
+	 * @return true, iff the Background's bbox is considered in world's bbox.
+	 */
+	public final boolean useForBoundingBox() {
+		return useforbbox;
+	}
+	
+	/**
 	 * The name of the Background
 	 */
 	protected String name;
@@ -245,9 +288,20 @@ public abstract class Background extends javax.swing.JComponent {
 	protected Rectangle2D.Double clipbbox;
 
 	/**
+	 * The current viewport (clipping area in screen coordinates)
+	 */
+	protected Rectangle viewport; 
+	
+	/**
 	 * Structure to maintain the set of registered listeners
 	 */
 	private LinkedList<BackgroundListener> listeners;
+
+	/**
+	 * Whether the Background's bounding box is considered in calculation of the
+	 * world's bounding box.
+	 */
+	protected boolean useforbbox;
 
 	/**
 	 * String constant used as key for license within Property
@@ -265,9 +319,14 @@ public abstract class Background extends javax.swing.JComponent {
 	public static final String KEY_BBOX = "bbox";
 
 	/**
-	 * String constant used as key for clipbbox within Property
+	 * String constant used as key for useforbbox within Property
 	 */
-	public static final String KEY_CLIPBBOX = "clipbbox";
+	public static final String KEY_USEFORBBOX = "useforbbox";
+	
+	/**
+	 * String constant used as key for the background class type within Property
+	 */
+	public static final String KEY_BACKGROUNDTYPE = "backgroundtype";
 
 	/**
 	 * Creates a nested list representation of the Background's configuration,
