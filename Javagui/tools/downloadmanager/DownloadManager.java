@@ -64,7 +64,7 @@ public class DownloadManager extends  DownloadObserver{
 				 return null;
 			}
 			// the is a free download slot, create a new download for the url
-			ActiveDownload dl = new ActiveDownload(url, f, this);
+			ActiveDownload dl = new ActiveDownload(url, f, this, connectTimeout, readTimeout);
 			dl.addObserver(ob);
 			activeDownloads.put(url,dl);
 			dl.start();
@@ -188,9 +188,34 @@ public class DownloadManager extends  DownloadObserver{
    }
   }
 
+  /** Sets the timeout for connecting with the server in milliseconds. A value of zero
+    * or less will describe an infinite timeout.
+    **/
+  public void setConnectTimeout(int connectTimeout){
+      this.connectTimeout = Math.max(0, connectTimeout);
+  }
+
+  /** Sets the timeout for a single read action from  the server in milliseconds. A value of zero
+    * or less will describe an infinite timeout.
+    **/
+  public void setiReadTimeout(int readTimeout){
+      this.readTimeout = Math.max(0, readTimeout);
+  }
+
+ /** returns the current value of the connection time out **/
+  public int getConnectTimeout(){
+    return connectTimeout;
+  }
+
+ /** returns the current value of timeout  for reading. **/
+  public int getReadTimeout(){
+    return readTimeout;
+  }
+
+
   /** activates a planned download **/
   private void activate(PlannedDownload pd){
-     ActiveDownload ad = new ActiveDownload(pd);
+     ActiveDownload ad = new ActiveDownload(pd, connectTimeout, readTimeout);
      activeDownloads.put(ad.getURL(), ad);
      ad.start();
   }
@@ -285,7 +310,8 @@ public class DownloadManager extends  DownloadObserver{
   private HashMap<URL, ActiveDownload> activeDownloads;
   private HashMap<URL, PlannedDownload> plannedDownloads;
   private Queue<URL> plannedQueue;
-
   private final Object syncObj = new Object();
+  private int connectTimeout = 3000;
+  private int readTimeout = 3000;
   
 }

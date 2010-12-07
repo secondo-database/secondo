@@ -20,15 +20,19 @@ public class ActiveDownload extends PlannedDownload implements Runnable{
     * @param targetFile: the file where the content of the url should be stored
     * @param observer: an observer of this download
     **/
-  public ActiveDownload(URL url, File targetFile, DownloadObserver observer){
+  public ActiveDownload(URL url, File targetFile, DownloadObserver observer, int connectTimeout, int readTimeout){
      super(url,targetFile, observer);
      running = false;
+     this.connectTimeout  = Math.max(0,connectTimeout);
+     this.readTimeout  = Math.max(0,readTimeout);
   }
 
   /** creates an active download from a planned one **/
-  public ActiveDownload(PlannedDownload pd){
+  public ActiveDownload(PlannedDownload pd, int connectTimeout, int readTimeout){
      super(pd);
      running = false;
+     this.connectTimeout  = Math.max(0,connectTimeout);
+     this.readTimeout  = Math.max(0,readTimeout);
   }
 
   /** starts the download. **/
@@ -45,8 +49,8 @@ public class ActiveDownload extends PlannedDownload implements Runnable{
     FileOutputStream out=null;
     try{
        URLConnection connection = url.openConnection();
-       connection.setConnectTimeout(3000);
-       connection.setReadTimeout(3000);
+       connection.setConnectTimeout(connectTimeout);
+       connection.setReadTimeout(readTimeout);
        in = connection.getInputStream();
        targetFile.getParentFile().mkdirs();
        out = new FileOutputStream(targetFile);
@@ -96,5 +100,7 @@ public class ActiveDownload extends PlannedDownload implements Runnable{
 
 
   private boolean running;
+  private int readTimeout;
+  private int connectTimeout;
 
 }
