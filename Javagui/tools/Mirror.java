@@ -10,6 +10,7 @@ import java.io.BufferedReader;
 import java.io.FileReader;
 import java.util.TreeSet;
 import java.util.Comparator;
+import java.util.Iterator;
 
 import java.util.regex.*;
 
@@ -21,75 +22,6 @@ import javax.swing.text.html.*;
        RecObserver(URL url){
           this.url=url;
        }
-
-
-/*
-      String extractHRefFromAnchor(String a){
-
-         Pattern hrefPat1 = Pattern.compile("href\\s*=\\s*\"[^\"]*\"",Pattern.CASE_INSENSITIVE );  // with quotes
-
-         Matcher m1 = hrefPat1.matcher(a);
-         if(m1.find(0)){
-           String g = m1.group();
-           int index1 = g.indexOf("\"");
-           int index2 = g.indexOf("\"",index1);
-           g = g.substring(index1+1);
-           g = g.substring(0,g.length()-1);
-           return g;
-         }
-         
-        Pattern hrefPat2 = Pattern.compile("href\\s*=\\s*[^\\s]*\\s",Pattern.CASE_INSENSITIVE); // without quotes
-         Matcher m2 = hrefPat2.matcher(a);
-         if(m2.find(0)){
-             String g = m2.group();
-             g = g.substring(g.indexOf("=")+1,g.length());
-             g = g.trim();
-             Pattern whiteSpacePat = Pattern.compile("\\s");
-             Matcher wm = whiteSpacePat.matcher(g);
-             if(wm.find()){
-                g = g.substring(0,wm.start()-1);
-             }
-             return g;
-         }
-         return null;
-      }
-
-
-      Vector<URL> extractURLs(File f, URL url){
-         Vector<URL> urls = new Vector<URL>();
-         try{
-            BufferedReader in = new BufferedReader(new FileReader(f));
-            StringBuffer sb = new StringBuffer();
-            while(in.ready()){
-               sb.append(in.readLine());
-            }
-            in.close();  
-            String fileContent = sb.toString();
-            // extract links within the string
-            Pattern p = Pattern.compile("<a .*>",Pattern.CASE_INSENSITIVE);   
-            Matcher m = p.matcher(sb);
-            int pos = 0;
-            while(m.find(pos)){
-                int start = m.start();
-                String group = m.group();
-                int index = group.indexOf(">");
-                group = group.substring(0,index+1);
-                String link = extractHRefFromAnchor(group);
-                try{
-                      urls.add(new URL(url,link));
-                } catch(Exception e){
-                   System.err.println("cannot create url from " + link);
-                }
-                pos = m.start() + group.length();
-            }
-          } catch(Exception e){
-             System.err.println("problem in extracting links");
-             e.printStackTrace();
-          }
-          return urls;
-      } 
-
-     */
 
       Vector<URL> extractURLs(File f , URL url){
         Vector<URL> res = new Vector<URL>();
@@ -110,7 +42,7 @@ import javax.swing.text.html.*;
             try{
                res.add(new URL(url, iter.getAttributes().getAttribute( HTML.Attribute.HREF).toString()  ));;
             } catch(Exception e){
-                System.err.println("Error in constructing url");
+                System.err.println("Error in constructing url 1:" + e);
             }
             iter.next();
           }
@@ -121,7 +53,7 @@ import javax.swing.text.html.*;
             try{
                res.add(new URL(url, iter.getAttributes().getAttribute( HTML.Attribute.SRC).toString()  ));;
             } catch(Exception e){
-                System.err.println("Error in constructing url");
+                System.err.println("Error in constructing url 2:" + e);
             }
             iter.next();
           }
@@ -145,7 +77,6 @@ import javax.swing.text.html.*;
  
 
       }
-
 
 
       public void downloadStateChanged(DownloadEvent evt){
@@ -190,17 +121,18 @@ public class Mirror{
 
   static int maxDownloads = 5;
 
-  public static void startDownload(){
-    while(!urls.isEmpty()){
-       URL first = urls.first();
-       urls.remove(first); 
-       if(basic.getHost().equals(first.getHost())){
-          System.out.println("getURL " + first);
-          dm.getURL(first, observer);
+  public static synchronized void startDownload(){
+    Iterator<URL> it = urls.iterator();
+    while(it.hasNext()){
+       URL n  = it.next();
+       if(basic.getHost().equals(n.getHost())){
+          System.out.println("getURL " + n);
+          dm.getURL(n, observer);
        } else {
-          System.out.println("skip URL " + first);
+          System.out.println("skip URL " + n);
        }
     }
+    urls.clear();
   }
 
 
