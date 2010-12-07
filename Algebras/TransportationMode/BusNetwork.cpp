@@ -4535,18 +4535,18 @@ void RoadDenstiy::CreateLocTable_Compact(vector<BusStop_Ext> bus_stop_list_new,
           ////////  classify the buses into groups according to time  ///////
           //////////////////////////////////////////////////////////////////
 
-          if(bus_type.compare("night") == 0){// only need one day for night bus 
+          if(bus_type.compare("night") == 0){// only need one day for night bus
               if(SameDay(up,peri1))
                 night_mo.push_back(*mo);
           }else{
             if(busday.compare("Monday") == 0){
               day_mo1.push_back(*mo);
-            }  
+            }
             else if(busday.compare("Sunday") == 0){
               day_mo2.push_back(*mo);
-            }  
+            }
             else assert(false);
-          }  
+          }
           ////////////////////////////////////////////////////////////
         }
         tuple_trip->DeleteIfAllowed();
@@ -4630,7 +4630,7 @@ void RoadDenstiy::CreatTableAtStop(vector<MPoint> trip_list, Point& loc,
 {
 
   assert(trip_list.size() >= 2);
-  
+
   MPoint start_mo_0 = trip_list[0];
   UPoint up1;
   start_mo_0.Get(0, up1);//the start time of first trip 
@@ -4638,7 +4638,7 @@ void RoadDenstiy::CreatTableAtStop(vector<MPoint> trip_list, Point& loc,
   Instant st = start_time_0;
   GetTimeInstantStop(start_mo_0, loc,st); 
   
-  /////////////cut second and millsecond ///////////////////////////////
+  /////////////cut second and millsecond /////////////////////////////
   int second_val_s = st.GetSecond(); 
   int msecond_val_s = st.GetMillisecond(); 
   double double_s = st.ToDouble() - 
@@ -4734,7 +4734,7 @@ void RoadDenstiy::GetTimeInstantStop(MPoint& mo, Point loc, Instant& arrove_t)
             assert(AlmostEqual(fabs(d_st-d_et), stop_time));//check 30 seconds
             arrove_t = st; 
             return; 
-      }  
+      }
  }
   assert(false);
 }
@@ -4787,13 +4787,13 @@ void UBTrain::CreateUBTrains(int attr1,int attr2,int attr3, Periods* peri)
       }
 
     }
-    
+
     delete train_trip; 
     tuple_trip->DeleteIfAllowed();
   }
-  
+
   CreateUBTrainTrip(trip_list, peri);//process the last  
-  
+
 }
 
 /*
@@ -5462,7 +5462,8 @@ void UBTrain::GetTimeInstantStop(MPoint& mo, Point loc, Instant& arrove_t)
                    fabs(d_st-d_et) > stop_time);//check 10 seconds
             arrove_t = st; 
             return; 
-      }  
+      }
  }
   assert(false);
 }
+

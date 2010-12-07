@@ -175,7 +175,7 @@ Result   : 1
 Operator : getvgedge
 Number   : 2
 Signature: dualgraph x rel1 x rel2 x rel3 x btree-> (stream(((x1 t1) ... (xn tn)))
-Example  : query getvnode(dg1, vgnodes, tri_reg_new_sort, vertex_tri, btr_vid) count;
+Example  : query getvgedge(dg1, vgnodes, tri_reg_new, vertex_tri, btr_vid) count;
 Result   : 1
 
 Operator : myinside
@@ -199,7 +199,7 @@ Result   : 3
 Operator : decomposetri
 Number   : 2
 Signature: rel -> (stream(((x1 t1) ... (xn tn)))
-Example  : query getadjnode(tri_reg_new_sort) count;
+Example  : query decomposetri(tri_reg_new_sort) count;
 Result   : 10
 
 Operator : createvgraph
@@ -462,6 +462,32 @@ Number   : 1
 Signature: float -> region
 Example  : query area(getregion(thefloor(3.0, [const region value ((((1 1)(5 1)(5 5)(1 5))))])));
 Result   : 16
+
+
+Operator : thedoor
+Number   : 1
+Signature: genrange x genrange x mbool x bool -> door3d
+Example  : query type_of_door(thedoor(gr1,gr2,doorstate,FALSE));
+Result   : FALSE
+
+Operator : type_of_door
+Number   : 1
+Signature: door3d -> bool
+Example  : query type_of_door(door1);
+Result   : FALSE
+
+
+Operator : loc_of_door
+Number   : 1
+Signature: door3d x int -> genrange 
+Example  : query loc_of_door(door1,1);
+Result   : (1 ((5.93 4.42 7.53 4.37)))
+
+Operator : state_of_door
+Number   : 1
+Signature: door3d -> mbool
+Example  : query no_components(state_of_door(door1));
+Result   : 1
 
 
 Operator : instant2day 

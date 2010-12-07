@@ -57,9 +57,14 @@ extern QueryProcessor *qp;
 
 
 namespace TransportationMode{
-////////////////////////   Indoor   ////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////
+////////////////////////   Indoor data Type//////////////////////////////////
+///////////// point3d line3d floor3d door3d staircase3d  ///////////////////
+////////////////////////////////////////////////////////////////////////////
 
+///////////////////////////////////////////////////////////////////////////
 //////////////////////   3D Point          ////////////////////////////////
+///////////////////////////////////////////////////////////////////////////
 
 /*
 Creation of the type constructor instance for point3d
@@ -201,7 +206,9 @@ TypeConstructor point3d(
      CheckPoint3D
 );
 
+//////////////////////////////////////////////////////////////////////////
 ///////////////////////////  3D Line  //////////////////////////////////
+///////////////////////////////////////////////////////////////////////
 
 /*
 List Representation
@@ -237,7 +244,7 @@ ListExpr OutLine3D( ListExpr typeInfo, Word value )
   {
     assert( points->Get( i, p ) );
 /*   last = nl->Append( last,
-                       OutPoint( nl->TheEmptyList(), SetWord( (void*)&p ) ) );/
+                      OutPoint( nl->TheEmptyList(), SetWord( (void*)&p ) ) );*/
     last = nl->Append( last,
                        OutPoint3D( nl->TheEmptyList(), SetWord( (void*)&p)));
   }
@@ -415,8 +422,56 @@ TypeConstructor line3d(
         SizeOfLine3D,                 //sizeof function
         CheckLine3D );
 
-//////////////////////  Floor3D  ///////////////////////////////////////////
 
+//////////////////// functions are in Indoor.h  /////////////////////////////
+TypeConstructor door3d(
+        "door3d",                     //name
+        Door3DProperty,               //property function describing signature
+        OutDoor3D,   InDoor3D,     //Out and In functions
+        0,              0,            //SaveTo and RestoreFrom List functions
+        CreateDoor3D,   DeleteDoor3D, //object creation and deletion
+        OpenDoor3D,     SaveDoor3D,   // object open and save
+        CloseDoor3D,    CloneDoor3D,  //object close and clone
+        CastDoor3D,                   //cast function
+        SizeOfDoor3D,                 //sizeof function
+        CheckDoor3D ); 
+
+///////////////   functions are in Indoor.h   ////////////////////////////////
+TypeConstructor staircase3d(
+        "staircase3d",                     //name
+        Staircase3DProperty,         //property function describing signature
+        OutStaircase3D,   InStaircase3D,  //Out and In functions
+        0,              0,            //SaveTo and RestoreFrom List functions
+        CreateStaircase3D,   DeleteStaircase3D, //object creation and deletion
+        OpenStaircase3D,     SaveStaircase3D,   // object open and save
+        CloseStaircase3D, CloneStaircase3D,  //object close and clone
+        CastStaircase3D,              //cast function
+        SizeOfStaircase3D,            //sizeof function
+        CheckStaircase3D ); 
+
+///////////////////////////////////////////////////////////////////////////
+////////////////////  general data type  /////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+TypeConstructor genrange(
+        "genrange",                     //name
+        GenRangeProperty,              //property function describing signature
+        OutGenRange,      InGenRange,     //Out and In functions
+        0,              0,            //SaveTo and RestoreFrom List functions
+        CreateGenRange,   DeleteGenRange, //object creation and deletion
+        OpenGenRange,     SaveGenRange,   // object open and save
+//      OpenAttribute<GenRange>, SaveAttribute<GenRange>,//object open and save
+
+        CloseGenRange,    CloneGenRange,  //object close and clone
+        GenRange::Cast,
+        SizeOfGenRange,                 //sizeof function
+        CheckGenRange ); 
+///////////////////   general data type   ////////////////////////////////////
+
+
+//////////////////////////////////////////////////////////////////////////////
+//////////////////////  Floor3D  ///////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////
 /*
 Creation of the type constructor instance for floor3d
 
@@ -1106,6 +1161,35 @@ const string SpatialSpecGetRegion =
 "<text>get the ground area of a floor3d object</text--->"
 "<text>query getregion(floor3d_1)</text---> ) )";
 
+const string SpatialSpecTheDoor =
+"( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+"( <text>genrange x genrange x mbool x bool -> door3d</text--->"
+"<text>thedoor ( _, _ ) </text--->"
+"<text>create a door3d object.</text--->"
+"<text>query thedoor (gr1, gr2, doorstate, FALSE)</text---> ) )";
+
+const string SpatialSpecTypeOfDoor =
+"( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+"( <text>door3d -> bool</text--->"
+"<text>type_of_door ( _ ) </text--->"
+"<text>get the type of door: lift or non-lift</text--->"
+"<text>query type_of_door (door1)</text---> ) )";
+
+const string SpatialSpecLocOfDoor =
+"( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+"( <text>door3d x int -> genrange</text--->"
+"<text>loc_of_door (_, _) </text--->"
+"<text>get the relative location of door</text--->"
+"<text>query loc_of_door (door1,1)</text---> ) )";
+
+const string SpatialSpecStateOfDoor =
+"( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+"( <text>door3d -> mbool</text--->"
+"<text>state_of_door (_) </text--->"
+"<text>get the time dependent state of door</text--->"
+"<text>query state_of_door (door1)</text---> ) )";
+
+
 /*
 TypeMap function for operator thefloor
 
@@ -1159,6 +1243,82 @@ ListExpr GetRegionTypeMap(ListExpr args)
 }
 
 /*
+TypeMap function for operator thedoor
+
+*/
+ListExpr TheDoorTypeMap(ListExpr args)
+{
+  if(nl->ListLength(args) != 4){
+      string err = "genrange x genrange x mbool x bool expected";
+      return listutils::typeError(err);
+  }
+  ListExpr arg1 = nl->First(args);
+  ListExpr arg2 = nl->Second(args);
+  ListExpr arg3 = nl->Third(args);
+  ListExpr arg4 = nl->Fourth(args);
+  if(nl->IsEqual(arg1, "genrange") && nl->IsEqual(arg2, "genrange") &&
+     nl->IsEqual(arg3, "mbool") && nl->IsEqual(arg4, "bool"))
+      return nl->SymbolAtom("door3d");
+
+  return nl->SymbolAtom("typeerror");
+}
+
+/*
+TypeMap function for operator type of door
+
+*/
+ListExpr TypeOfDoorTypeMap(ListExpr args)
+{
+  if(nl->ListLength(args) != 1){
+      string err = "door3d";
+      return listutils::typeError(err);
+  }
+  ListExpr arg1 = nl->First(args);
+  if(nl->IsEqual(arg1, "door3d"))
+      return nl->SymbolAtom("bool");
+
+  return nl->SymbolAtom("typeerror");
+}
+
+
+/*
+TypeMap function for operator loc of door
+
+*/
+ListExpr LocOfDoorTypeMap(ListExpr args)
+{
+  if(nl->ListLength(args) != 2){
+      string err = "door3d x int";
+      return listutils::typeError(err);
+  }
+  ListExpr arg1 = nl->First(args);
+  ListExpr arg2 = nl->Second(args);
+  if(nl->IsEqual(arg1, "door3d") && nl->IsEqual(arg2, "int"))
+      return nl->SymbolAtom("genrange");
+
+  return nl->SymbolAtom("typeerror");
+}
+
+
+/*
+TypeMap function for operator state of door
+
+*/
+ListExpr StateOfDoorTypeMap(ListExpr args)
+{
+  if(nl->ListLength(args) != 1){
+      string err = "door3d";
+      return listutils::typeError(err);
+  }
+  ListExpr arg1 = nl->First(args);
+  if(nl->IsEqual(arg1, "door3d"))
+      return nl->SymbolAtom("mbool");
+
+  return nl->SymbolAtom("typeerror");
+}
+
+
+/*
 ValueMap function for operator thefloor
 
 */
@@ -1203,6 +1363,84 @@ int GetRegionValueMap(Word* args, Word& result, int message,
   return 0;
 }
 
+
+/*
+ValueMap function for operator thedoor
+
+*/
+int TheDoorValueMap(Word* args, Word& result, int message,
+                    Word& local, Supplier s)
+{
+  GenRange* gr1 = (GenRange*)args[0].addr;
+  GenRange* gr2 = (GenRange*)args[1].addr;
+  MBool* mb = (MBool*)args[2].addr;
+  bool b = ((CcBool*)args[3].addr)->GetBoolval();
+  result = qp->ResultStorage(s);
+  Door3D* dr = (Door3D*)result.addr;
+  dr->SetValue(gr1, gr2, mb, b);
+  return 0;
+}
+
+/*
+ValueMap function for operator type of door 
+
+*/
+int TypeOfDoorValueMap(Word* args, Word& result, int message,
+                    Word& local, Supplier s)
+{
+  Door3D* d = (Door3D*)args[0].addr; 
+  result = qp->ResultStorage(s);
+  CcBool* res = static_cast<CcBool*>(result.addr);
+  if(d->IsDefined())
+    res->Set(true, d->GetDoorType());
+  else
+    res->Set(false,false);
+  return 0;
+}
+
+
+/*
+ValueMap function for operator loc of door 
+
+*/
+int LocOfDoorValueMap(Word* args, Word& result, int message,
+                    Word& local, Supplier s)
+{
+  Door3D* d = (Door3D*)args[0].addr; 
+  int index = ((CcInt*)args[1].addr)->GetIntval(); 
+  result = qp->ResultStorage(s);
+  GenRange* res = static_cast<GenRange*>(result.addr);
+  if(d->IsDefined() && (index == 1 || index == 2))
+    *res = *(d->GetLoc(index));
+  if(index < 1 || index > 2)
+    cout<<"index should be 1 or 2"<<endl; 
+  return 0;
+}
+
+/*
+ValueMap function for operator state of door 
+
+*/
+int StateOfDoorValueMap(Word* args, Word& result, int message,
+                    Word& local, Supplier s)
+{
+  Door3D* d = (Door3D*)args[0].addr; 
+  result = qp->ResultStorage(s);
+  MBool* res = static_cast<MBool*>(result.addr);
+  if(d->IsDefined()){
+//    *res = *(d->GetTState());
+    res->StartBulkLoad();
+    for(int i = 0;i < d->GetTState()->GetNoComponents();i++){
+      UBool ub;
+      d->GetTState()->Get(i, ub);
+      res->Add(ub);
+    }
+    res->EndBulkLoad();
+  }
+  return 0;
+}
+
+
 Operator thefloor("thefloor",
     SpatialSpecTheFloor,
     TheFloorValueMap,
@@ -1222,6 +1460,34 @@ Operator getregion("getregion",
     GetRegionValueMap,
     Operator::SimpleSelect,
     GetRegionTypeMap
+);
+
+Operator thedoor("thedoor",
+    SpatialSpecTheDoor,
+    TheDoorValueMap,
+    Operator::SimpleSelect,
+    TheDoorTypeMap
+);
+
+Operator type_of_door("type_of_door",
+    SpatialSpecTypeOfDoor,
+    TypeOfDoorValueMap,
+    Operator::SimpleSelect,
+    TypeOfDoorTypeMap
+);
+
+Operator loc_of_door("loc_of_door",
+    SpatialSpecLocOfDoor,
+    LocOfDoorValueMap,
+    Operator::SimpleSelect,
+    LocOfDoorTypeMap
+);
+
+Operator state_of_door("state_of_door",
+    SpatialSpecStateOfDoor,
+    StateOfDoorValueMap,
+    Operator::SimpleSelect,
+    StateOfDoorTypeMap
 );
 
 //////////////////////  Indoor  ////////////////////////////////////////////
@@ -1931,7 +2197,7 @@ const string OpTMInstant2DaySpec  =
     "\"Example\" ) "
     "( <text>instant -> int </text--->"
     "<text>instant2day(instant);</text--->"
-    "<text>get the day of time</text--->"
+    "<text>get the day (int value) of time</text--->"
     "<text>query instant2day(theInstant(2007,6,3,9,0,0,0));</text--->"
     ") )";
 
@@ -10607,14 +10873,21 @@ class TransportationModeAlgebra : public Algebra
     dualgraph.AssociateKind("DUALGRAPH");
     AddTypeConstructor(&visualgraph);
     visualgraph.AssociateKind("VISUALGRAPH");
-    ////////////    Indoor   Data Type   ///////////////////////////////////
+    ////////////    Indoor   Data Type   //////////////////////////
     AddTypeConstructor( &point3d);
     AddTypeConstructor( &line3d);
     AddTypeConstructor( &floor3d);
-
+    AddTypeConstructor( &door3d);
+    AddTypeConstructor( &staircase3d);
+    
     point3d.AssociateKind("DATA");
     line3d.AssociateKind("DATA");
     floor3d.AssociateKind("DATA");
+    door3d.AssociateKind("DATA");
+    staircase3d.AssociateKind("DATA");
+    ////////////////////general data type ////////////////////////
+    AddTypeConstructor(&genrange);
+    genrange.AssociateKind("DATA"); 
     ////operators for partition regions//////////////////////////
     AddOperator(&checksline);
     AddOperator(&modifyboundary);
@@ -10696,11 +10969,16 @@ class TransportationModeAlgebra : public Algebra
     AddOperator(&create_time_table2);//create time table for train stop 
     AddOperator(&create_time_table2_new);//compact storage of train time tables 
     ////////////////  Indoor Operators   ///////////////////////////////
-    AddOperator(&thefloor);
-    AddOperator(&getregion);
-    AddOperator(&getheight);
+    AddOperator(&thefloor);//create a floor3d object 
+    AddOperator(&getregion);//2D area for a room 
+    AddOperator(&getheight);//height for a room 
+    AddOperator(&thedoor);//create a doo3d object 
+    AddOperator(&type_of_door);//lift or non-lift 
+    AddOperator(&loc_of_door); //relative location in one room 
+    AddOperator(&state_of_door); //time dependent state:open closed 
     /////////////////  others  /////////////////////////////////////////
     AddOperator(&instant2day); 
+    
   }
   ~TransportationModeAlgebra() {};
  private:
