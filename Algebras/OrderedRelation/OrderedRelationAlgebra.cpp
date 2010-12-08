@@ -1503,7 +1503,7 @@ struct NodeEntryTree
   {
     int i = 0;
     if (tree.Size() < 1) return -1;
-    while (i < tree.Size())
+    while (i < fFree)
     {
       TreeEntry test = GetTreeEntry(i);
       switch(test.Compare(te))
@@ -1539,10 +1539,10 @@ struct NodeEntryTree
   {
     int i = 0;
     if (tree.Size() < 1) return -1;
-    while (i < tree.Size())
+    while (i < fFree)
     {
       TreeEntry test = GetTreeEntry(i);
-      switch(test.Compare(nId))
+      switch(test.GetNodeEntry().Compare(nId))
       {
         case 0:
         {
@@ -1571,82 +1571,72 @@ struct NodeEntryTree
     return -1; // should never been reached
   };
 
-  bool Insert(const TreeEntry nE, int& newPos)
+  void Insert(const TreeEntry nE, int& newPos)
   {
 
     newPos = Find(nE);
-    if (newPos == -1)
+    if (newPos < 0 )
     {
       newPos = fFree;
       fFree++;
       tree.Put(newPos, nE);
-      return true;
     }
     else
     {
-      TreeEntry test = GetTreeEntry(newPos);
-      switch(test.Compare(nE))
+      if (newPos < fFree)
       {
-        case 1:
+        TreeEntry test = GetTreeEntry(newPos);
+        switch(test.Compare(nE))
         {
-          test.SetLeft(fFree);
-          tree.Put(newPos,test);
-          tree.Put(fFree,nE);
-          fFree++;
-          return true;
-          break;
-        }
-        case -1:
-        {
-          test.SetRight(fFree);
-          tree.Put(newPos,test);
-          tree.Put(fFree,nE);
-          fFree++;
-          return true;
-          break;
-        }
-        case 0:
-        {
-          return false;
-          break;
-        }
-        default: //should never been reached
-        {
-          return false;
-          break;
+          case 1:
+          {
+            test.SetLeft(fFree);
+            tree.Put(newPos,test);
+            tree.Put(fFree,nE);
+            fFree++;
+            break;
+          }
+          case -1:
+          {
+            test.SetRight(fFree);
+            tree.Put(newPos,test);
+            tree.Put(fFree,nE);
+            fFree++;
+            break;
+          }
+          case 0:
+          {
+            tree.Put(newPos,nE);
+            break;
+          }
+          default: //should never been reached
+          {
+            break;
+          }
         }
       }
     }
-    return false; // should never been reached
   };
 
   void SetIndex (const int pos, const int index)
   {
-    if (pos > -1 && pos < fFree)
-    {
-      TreeEntry te = GetTreeEntry(pos);
-      NodeEntry nE = te.GetNodeEntry();
-      nE.SetArrayIndex(index);
-      te.SetNodeEntry(nE);
-      tree.Put(pos,te);
-    }
+    assert (pos > -1 && pos < fFree);
+    TreeEntry te = GetTreeEntry(pos);
+    NodeEntry nE = te.GetNodeEntry();
+    nE.SetArrayIndex(index);
+    te.SetNodeEntry(nE);
+    tree.Put(pos,te);
   }
 
-  int GetIndex (const int nodeId) const
+  inline int GetIndex (const int pos) const
   {
-    int test = Find(nodeId);
-    if (test != -1)
-    {
-      TreeEntry te = GetTreeEntry(test);
-      NodeEntry ne = te.GetNodeEntry();
-      if (ne.GetNodeId() == nodeId)
-        return ne.GetArrayIndex();
-    }
-    return numeric_limits<int>::max();
+    assert(pos > -1 && pos < fFree);
+    return GetTreeEntry(pos).GetNodeEntry().GetArrayIndex();
   }
 
   void SetBeforeNodeId(const int pos, const int before)
   {
+    assert(pos > -1 && pos < fFree);
     TreeEntry te = GetTreeEntry(pos);
     NodeEntry ne = te.GetNodeEntry();
     ne.SetBeforeNodeId(before);
@@ -1656,6 +1646,7 @@ struct NodeEntryTree
 
   TreeEntry GetTreeEntry(const int pos) const
   {
+    assert(pos > -1 && pos < fFree);
     TreeEntry te;
     tree.Get(pos,te);
     return te;
@@ -1663,20 +1654,25 @@ struct NodeEntryTree
 
   bool IsNode(const int pos, const int nodeNumber) const
   {
-    TreeEntry te = GetTreeEntry(pos);
-    NodeEntry ne = te.GetNodeEntry();
-    if (ne.GetNodeId() == nodeNumber) return true;
-    else return false;
+    assert(pos > -1 && pos < fFree);
+
+    if (GetTreeEntry(pos).GetNodeEntry().GetNodeId() == nodeNumber)
+      return true;
+    else
+      return false;
   }
 
   ostream& Print(ostream& os) const
   {
     os << "Start NodeEntryTree: " << endl;
     TreeEntry tE;
-    for (int i = 0; i < tree.Size(); i++)
+    if (fFree > 0)
     {
-      tree.Get(i,tE);
-      tE.Print(os);
+      for (int i = 0; i < tree.Size(); i++)
+      {
+        tree.Get(i,tE);
+        tE.Print(os);
+      }
     }
     os << "Ende NodeEntryTree" << endl;
     return os;
@@ -1704,17 +1700,6 @@ struct PQEntryOrel
 
   ~PQEntryOrel()
   {}
-
-  inline int Compare(const PQEntryOrel& nE) const
-  {
-    if (nodeNumber < nE.nodeNumber) return -1;
-    if (nodeNumber > nE.nodeNumber) return 1;
-    if (prioval < nE.prioval) return -1;
-    if (prioval > nE.prioval) return 1;
-    if (distFromStart < nE.distFromStart) return -1;
-    if (distFromStart > nE.distFromStart) return 1;
-    return 0;
-  }
 
   ostream& Print(ostream& os) const
   {
@@ -1772,10 +1757,13 @@ struct PQueueOrel
   {
     os << "Start PriorityQueue: " << endl;
     PQEntryOrel pE;
-    for (int i = 0; i < prioQ.Size(); i++)
+    if (firstFree > 0)
     {
-      prioQ.Get(i,pE);
-      pE.Print(os);
+      for (int i = 0; i < firstFree; i++)
+      {
+        prioQ.Get(i,pE);
+        pE.Print(os);
+      }
     }
     os << "Ende PriorityQueue" << endl;
     return os;
@@ -1821,37 +1809,46 @@ position in the  priority queue must be corrected.
     }
   }
 
+  void Append ( const PQEntryOrel nE, int pNElemPos,
+                NodeEntryTree *pNodeTree)
+  {
+    int actPos = firstFree;
+    prioQ.Put(actPos, nE );
+    pNodeTree->Insert(TreeEntry(NodeEntry(nE.nodeNumber,
+                                          actPos,
+                                          nE.beforeNodeNumber),
+                                -1,-1),
+                      pNElemPos);
+    CorrectPosition(actPos, nE, pNodeTree );
+    firstFree++;
+  }
+
   void Insert ( const PQEntryOrel nE, NodeEntryTree *pNodeTree )
   {
     int pNElemPos = pNodeTree->Find(nE.nodeNumber);
-    int actPos = -1;
-    if (pNElemPos == -1 ||!pNodeTree->IsNode(pNElemPos, nE.nodeNumber))
-    {
-      actPos = firstFree;
-      prioQ.Put(actPos, nE );
-      pNodeTree->Insert(TreeEntry(
-                          NodeEntry(nE.nodeNumber,
-                                    actPos,
-                                    nE.beforeNodeNumber),
-                          -1,-1),
-                        pNElemPos);
-      CorrectPosition(actPos, nE, pNodeTree );
-      firstFree++;
-    }
+    if (pNElemPos < 0)
+      Append(nE, pNElemPos, pNodeTree);
     else
     {
-      if ( pNElemPos != -1 && pNodeTree->IsNode(pNElemPos, nE.nodeNumber))
+      if ( pNElemPos > -1 && pNElemPos < pNodeTree->fFree)
       {
-        int index = pNodeTree->GetIndex(pNElemPos);
-        if (index >= 0 && index < firstFree)
+        if (!pNodeTree->IsNode(pNElemPos, nE.nodeNumber))
         {
-          PQEntryOrel test;
-          prioQ.Get(index, test);
-          if (test.prioval > nE.prioval)
+          Append(nE, pNElemPos, pNodeTree);
+        }
+        else
+        {
+          int index = pNodeTree->GetIndex(pNElemPos);
+          if (index > -1 && index < firstFree)
           {
-            prioQ.Put(index, nE);
-            pNodeTree->SetBeforeNodeId(pNElemPos,nE.beforeNodeNumber);
-            CorrectPosition(index, nE, pNodeTree);
+            PQEntryOrel test;
+            prioQ.Get(index, test);
+            if (test.prioval > nE.prioval)
+            {
+              prioQ.Put(index, nE);
+              pNodeTree->SetBeforeNodeId(pNElemPos, nE.beforeNodeNumber);
+              CorrectPosition(index, nE, pNodeTree);
+            }
           }
         }
       }
@@ -1878,14 +1875,14 @@ position in the  priority queue must be corrected.
     int tRet = pNodeTree->Find(result.nodeNumber);
     prioQ.Get(firstFree-1,last);
     prioQ.Put(0,last);
-    prioQ.Put(firstFree-1, PQEntryOrel(numeric_limits<int>::max(),
-                                       numeric_limits<int>::max(),
+    prioQ.Put(firstFree-1, PQEntryOrel(-1,
+                                       -1,
                                        numeric_limits<double>::max(),
                                        numeric_limits<double>::max()));
     firstFree--;
     int pNewPos = pNodeTree->Find(last.nodeNumber);
     pNodeTree->SetIndex(pNewPos,0);
-    pNodeTree->SetIndex(tRet,numeric_limits<int>::max());
+    pNodeTree->SetIndex(tRet,-1);
     int actIndex = 0;
     int testIndex = 0;
     bool found = false;
@@ -1921,7 +1918,7 @@ position in the  priority queue must be corrected.
       }
       else
       {
-        if (testIndex != 0 && testIndex == firstFree-1)
+        if (testIndex > 0 && testIndex == firstFree-1)
         {
           prioQ.Get(testIndex,test1);
           if (test1.prioval < last.prioval ||
@@ -1956,7 +1953,7 @@ struct  OShortestPathInfo
 
   ~OShortestPathInfo(){};
 
-  GenericRelation* resTuples;
+  TupleBuffer* resTuples;
   GenericRelationIterator* iter;
   int counter;
   int seqNoAttrIndex;
@@ -1977,10 +1974,10 @@ cout << "OShortestPathValuMap" << endl;
       //Create localinfo
       if (spi != 0) delete spi;
       spi = new OShortestPathInfo();
-      local.setAddr(spi);
       ListExpr tupleType = GetTupleResultType( s );
       TupleType* rtt = new TupleType( nl->Second( tupleType ) );
-      spi->resTuples = new Relation(rtt,true);
+      spi->resTuples = new TupleBuffer((size_t) 64*1024*1024);
+      local.setAddr(spi);
       // Check for simplest Case
       int startNode = ((CcInt*)args[1].addr)->GetIntval();
       int endNode = ((CcInt*)args[2].addr)->GetIntval();
@@ -2006,7 +2003,7 @@ cout << "OShortestPathValuMap" << endl;
       NodeEntryTree* visitedNodes = new NodeEntryTree(0);
       PQueueOrel* prioQ = new PQueueOrel(0);
       prioQ->Insert(PQEntryOrel(startNode,
-                                numeric_limits<int>::max(),
+                                -1,
                                 0.0,
                                 0.0),
                     visitedNodes);
@@ -2014,7 +2011,7 @@ cout << "OShortestPathValuMap" << endl;
       PQEntryOrel* actPQEntry = 0;
       double dist = 0.0;
       Tuple* actTuple = 0;
-      CcInt* minNodeId = new CcInt(true,numeric_limits<int>::min());
+      CcInt* minNodeId = new CcInt(true,0);
       CcInt* maxNodeId = new CcInt(true,numeric_limits<int>::max());
       //Search shortest path
       while(!prioQ->IsEmpty() && !found)
@@ -2236,6 +2233,7 @@ cout << "OShortestPathValuMap" << endl;
       {
         delete spi->iter;
         spi->iter = 0;
+        spi->resTuples->Clear();
         delete spi->resTuples;
         spi->resTuples = 0;
         delete spi;
