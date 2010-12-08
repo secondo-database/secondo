@@ -16,6 +16,8 @@ public class Cache<T extends Cacheable, L extends ObjectLoader<T> > {
     currentMem = 0;
     this.loader = loader;
     this.lru = new LRU<File>();
+    hits = 0;
+    failures = 0;
   }
 
 /** Returns the element for the given File.
@@ -25,9 +27,11 @@ public class Cache<T extends Cacheable, L extends ObjectLoader<T> > {
         return null;
      }
      if(map.containsKey(f)){
+       hits++;
        lru.use(f);   // bring to from of lru
        return map.get(f);
      }
+     failures++;
      T value = loader.loadFromFile(f);
 
      if(value.getUsedMem() > maxMem){
@@ -66,7 +70,15 @@ public class Cache<T extends Cacheable, L extends ObjectLoader<T> > {
 
 
   public String toString(){
-    return "Cache[ " + map.size() + " | " + currentMem +" / " + maxMem +"]";
+    return "Cache[ " + map.size() + " | " + currentMem +" / " + maxMem +"; hits = " + hits +", fails = " + failures +"]";
+  }
+
+  public void clear(){
+    map.clear();
+    lru.clear();
+    currentMem = 0;
+    hits = 0;
+    failures =0;
   }
 
 
@@ -107,5 +119,10 @@ public class Cache<T extends Cacheable, L extends ObjectLoader<T> > {
  private Map<File,T> map; 
  private L loader;
  private LRU<File> lru;
+
+
+ // statistical information
+ private int hits;
+ private int failures;
 
 }
