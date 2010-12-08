@@ -39,11 +39,18 @@ public class CacheTest{
      }
 
      Vector<File> imgs = getImgs(f);
+
+
      System.out.println("Start test with" + imgs.size() + "Files");
+     if(imgs.size()==0){
+        return;
+     }
 
      Cache<CachedImage,ImgLoader> cache = new Cache<CachedImage, ImgLoader>(2*1024*1024 , new ImgLoader());
 
+     long t1 = System.currentTimeMillis();
      // first test, simple cache all files
+     System.out.println("######################  Test 1 simple ########################################");
      for(int i=0;i<imgs.size();i++){
         CachedImage img = cache.getElem(imgs.get(i));
         if(img==null){
@@ -51,6 +58,48 @@ public class CacheTest{
         } 
         System.out.println(cache);
      }
+     long t2 = System.currentTimeMillis();
+     System.out.println("Test 1 has taken " + (t2-t1 ) + " ms");
+     t1 = t2;
+
+
+     System.out.println("##################### Test 2 twice insertion ########################################");
+     cache.clear();
+     int max = 1;
+     for(int i=0;i<imgs.size(); i++){
+        CachedImage img = cache.getElem(imgs.get(i));
+        System.out.println("First = " + cache);
+        img = cache.getElem(imgs.get(i));
+        if(img==null){
+           System.out.println("Problem with file " + imgs.get(i));
+        } 
+        System.out.println("Second: "+ cache);
+        max = Math.max(max,cache.size());
+     }
+
+     t2 = System.currentTimeMillis();
+     System.out.println("Test 2 has taken " + (t2-t1 ) + " ms");
+     t1 = t2;
+
+
+     System.out.println("################### Test 3 random from 2*maximum reached size , 100.000 times#################################");
+     cache.clear();
+     java.util.Random R = new java.util.Random(1);
+     for(int i=0;i<imgs.size(); i++){
+        int num = R.nextInt(max);
+        CachedImage img = cache.getElem(imgs.get(num));
+        System.out.println( cache);
+        if(img==null){
+           System.out.println("Problem with file " + imgs.get(i));
+        } 
+     }
+
+
+     t2 = System.currentTimeMillis();
+     System.out.println("Test 3 has taken " + (t2-t1 ) + " ms");
+     t1 = t2;
+
+      
      
 
 
