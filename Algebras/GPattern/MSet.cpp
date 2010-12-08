@@ -1566,7 +1566,7 @@ bool InMemMSet::GetNextTrueUnit(MBool& mbool, int& pos, UBool& unit)
   while(pos < mbool.GetNoComponents())
   {
     mbool.Get(pos, unit);
-    if(unit.constValue.GetValue())
+    if(unit.IsDefined() && unit.constValue.GetValue())
       return true;
     else
       ++pos;
@@ -2470,7 +2470,7 @@ bool CompressedInMemMSet::GetNextTrueUnit(MBool& mbool, int& pos, UBool& unit)
   while(pos < mbool.GetNoComponents())
   {
     mbool.Get(pos, unit);
-    if(unit.constValue.GetValue())
+    if(unit.IsDefined() && unit.constValue.GetValue())
       return true;
     else
       ++pos;
@@ -2502,11 +2502,12 @@ void CompressedInMemMSet::Buffer (MBool& arg, int key)
   }
 }
 
-void CompressedInMemMSet::Buffer (MBool& arg, int key, double d)
+bool CompressedInMemMSet::Buffer (MBool& arg, int key, double d)
 {
   if(arg.GetNoComponents()==0)
-    return; 
+    return false; 
 
+  bool longUnitFound= false;
   UBool ubool;
   int cur=0;
   double starttime, endtime;
@@ -2516,15 +2517,17 @@ void CompressedInMemMSet::Buffer (MBool& arg, int key, double d)
     assert(ubool.IsValid());
     starttime= ubool.timeInterval.start.ToDouble() * day2min;
     endtime= ubool.timeInterval.end.ToDouble() * day2min;
-    if(endtime - starttime < d) return;
+    ++cur;
+    if(endtime - starttime < d) continue;
     lc= ubool.timeInterval.lc;
     rc= ubool.timeInterval.rc;
     Event entrance(key,  (lc)? closedstart: openstart);
     Event theleave(key, (rc)? closedend: openend);
     buffer.insert(pair<double, Event>(starttime, entrance));
     buffer.insert(pair<double, Event>(endtime, theleave));
-    ++cur;
+    longUnitFound= true;
   }
+  return longUnitFound;
 }
 
 void CompressedInMemMSet::ClassifyEvents(
@@ -2592,6 +2595,9 @@ void CompressedInMemMSet::AddUnit( set<int>& constValue,
         inserter(unit.added, unit.added.begin()));
     unit.starttime= starttime; unit.endtime= endtime; unit.lc= lc; unit.rc= rc;
     unit.count= constValue.size();
+    units.push_back(unit);
+    validLastUnitValue= true;
+    lastUnitValue.insert(constValue.begin(), constValue.end()); 
     return;
   }
   
@@ -2624,6 +2630,32 @@ void CompressedInMemMSet::AddUnit( set<int>& constValue,
   if(debugme)
     assert( (lastUnitValue.size() == constValue.size())  &&
       (equal(lastUnitValue.begin(), lastUnitValue.end(), constValue.begin())));
+}
+
+bool CompressedInMemMSet::MergeAdd(set<int>& val, double &starttime, 
+    double &endtime, bool lc, bool rc)
+{
+  bool merged= false;
+  if(!units.empty())
+  {
+    set<int>* finalSet= GetFinalSet();
+    CompressedInMemUSet* lastUSet= &units.back();
+    if( AlmostEqual(starttime, lastUSet->endtime) && 
+        (lc || lastUSet->rc))
+    {
+      merged= true;
+      bool equals= ((val.size() == finalSet->size()) &&
+          equal(val.begin(), val.end(), finalSet->begin()));
+      if(equals)
+      {
+        lastUSet->endtime= endtime;
+        lastUSet->rc= rc;
+        return merged;
+      }
+    }
+  }
+  AddUnit(val, starttime, endtime, lc, rc);
+  return merged;
 }
 
 void CompressedInMemMSet::ConstructPeriodFromBuffer(
@@ -4001,4 +4033,203 @@ void* USet::CastUSet(void* addr)
   return new (addr) USet();
 }
 
+
+
+
+CompressedUSetRef::CompressedUSetRef(){}
+CompressedUSetRef::CompressedUSetRef(bool def):isdefined(def){}
+
+
+CompressedMSet::CompressedMSet(){}
+CompressedMSet::CompressedMSet(int cnt):removed(0), added(0), units(cnt){}
+CompressedMSet::CompressedMSet(CompressedMSet& arg)
+{
+  this->CopyFrom(arg);
+}
+
+int CompressedMSet::GetNoComponents()
+{
+  return this->units.Size();
+}
+
+void CompressedMSet::CopyFrom(CompressedMSet& arg)
+{
+  Clear();
+  int val;
+  CompressedUSetRef unitRef;
+  for(int i = 0; i < arg.units.Size(); ++i )
+  {
+    arg.units.Get( i, unitRef );
+    this->units.Append( unitRef );
+  }
+
+  for(int i = 0; i < arg.added.Size(); ++i )
+  {
+    arg.added.Get( i, val );
+    this->added.Append( val );
+  }
+  
+  for(int i = 0; i < arg.removed.Size(); ++i )
+  {
+    arg.removed.Get( i, val );
+    this->removed.Append( val );
+  }
+}
+
+void CompressedMSet::Clear()
+{
+  this->units.clean();
+  this->added.clean();
+  this->removed.clean();
+}
+
+void CompressedMSet::GetSet(int index, set<int>& res)
+{
+  CompressedUSetRef unitRef;
+  int elem;
+  for(int i= 0; i<= index; ++i)
+  {
+    this->units.Get( i, unitRef );
+    for(int j=unitRef.addedstart; j<= unitRef.addedend; ++j)
+    {
+      this->added.Get(j, elem);
+      res.insert(elem);
+    }
+    for(int j=unitRef.removedstart; j<= unitRef.removedend; ++j)
+    {
+      this->removed.Get(j, elem);
+      res.erase(elem);
+    }
+    assert(res.size() == unitRef.count);
+  }
+}
+
+set<int>* CompressedMSet::GetFinalSet()
+{
+  if(this->units.Size() == 0)
+  {
+    validLastUnitValue= true;
+    lastUnitValue.clear();
+  }
+  if(validLastUnitValue)
+    return &lastUnitValue;
+  else
+  {
+    int last= this->units.Size() - 1;
+    this->GetSet(last, lastUnitValue);
+    validLastUnitValue= true;
+    return &lastUnitValue;
+  }
+  return 0;
+}
+
+void CompressedMSet::WriteToCompressedInMemMSet(CompressedInMemMSet& res)
+{
+  res.Clear();
+  CompressedInMemUSet uset;
+  CompressedUSetRef unitRef;
+  int elem;
+  for(int i= 0; i< this->units.Size(); ++i)
+  {
+    this->units.Get( i, unitRef );
+    uset.added.clear(); uset.removed.clear();
+    uset.starttime= unitRef.starttime;  uset.endtime= unitRef.endtime;
+    uset.lc= unitRef.lc; uset.rc= unitRef.rc;
+    uset.count= unitRef.count;
+    for(int j=unitRef.addedstart; j<= unitRef.addedend; ++j)
+    {
+      this->added.Get(j, elem);
+      uset.added.insert(elem);
+    }
+    for(int j=unitRef.removedstart; j<= unitRef.removedend; ++j)
+    {
+      this->removed.Get(j, elem);
+      uset.removed.insert(elem);
+    }
+  }
+  if(this->validLastUnitValue)
+    res.GetFinalSet();
+}
+
+ostream& CompressedMSet::Print( ostream &os ){}
+
+void CompressedMSet::AddUnit( set<int>& constValue,
+    double starttime, double endtime, bool lc, bool rc)
+{
+  bool debugme= false;
+  set<int>* finalSet= GetFinalSet();
+  CompressedUSetRef unit;
+  if(units.Size()== 0)
+  {
+    this->Clear();
+    for(set<int>::iterator it= constValue.begin(); it!=constValue.end(); ++it)
+      this->added.Append(*it);
+    unit.removedstart=0;      unit.removedend=0;
+    unit.addedstart=0;      unit.addedend=constValue.size() - 1;
+    unit.starttime= starttime; unit.endtime= endtime; unit.lc= lc; unit.rc= rc;
+    unit.count= constValue.size();
+    this->units.Append(unit);
+    
+    this->validLastUnitValue= true;
+    lastUnitValue.insert(constValue.begin(), constValue.end()); 
+    return;
+  }
+  
+  set<int> _added, _removed;
+  set_difference(constValue.begin(), constValue.end(),
+      finalSet->begin(), finalSet->end(),   
+      inserter(_added, _added.begin()));
+  set_difference(finalSet->begin(), finalSet->end(),
+      constValue.begin(), constValue.end(),
+      inserter(_removed, _removed.begin()));
+  
+  unit.removedstart=this->removed.Size()-1;      
+  unit.addedstart= this->added.Size() -1;
+  for(set<int>::iterator it= _added.begin(); it!=_added.end(); ++it)
+    this->added.Append(*it);
+  for(set<int>::iterator it= _removed.begin(); it!=_removed.end(); ++it)
+    this->removed.Append(*it);
+  unit.removedend=this->removed.Size()-1;      
+  unit.addedend= this->added.Size() -1;
+  unit.starttime= starttime; unit.endtime= endtime;
+  unit.lc= lc; unit.rc= rc; 
+  unit.count= constValue.size();
+  this->units.Append(unit);
+
+  if(validLastUnitValue)
+  {
+    lastUnitValue.insert(_added.begin(), _added.end()); 
+    for(set<int>::iterator elem= _removed.begin(); 
+      elem != _removed.end(); ++elem)
+      lastUnitValue.erase(*elem);
+  }
+}
+
+bool CompressedMSet::MergeAdd(set<int>& val, double &starttime, 
+    double &endtime, bool lc, bool rc)
+{
+  bool merged= false;
+  if(this->units.Size() != 0)
+  {
+    set<int>* finalSet= GetFinalSet();
+    CompressedUSetRef lastUSet;
+    this->units.Get(this->units.Size()-1, lastUSet);
+    if( AlmostEqual(starttime, lastUSet.endtime) && 
+        (lc || lastUSet.rc))
+    {
+      merged= true;
+      bool equals= ((val.size() == finalSet->size()) &&
+          equal(val.begin(), val.end(), finalSet->begin()));
+      if(equals)
+      {
+        lastUSet.endtime= endtime;
+        lastUSet.rc= rc;
+        this->units.Put(this->units.Size()-1, lastUSet);
+        return merged;
+      }
+    }
+  }
+  AddUnit(val, starttime, endtime, lc, rc);
+  return merged;
+}
 };

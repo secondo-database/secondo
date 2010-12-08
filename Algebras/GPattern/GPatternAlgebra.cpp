@@ -1512,7 +1512,7 @@ Value map CrossPattern
 int CrossPatternVM 
 (Word* args, Word& result, int message, Word& local, Supplier s)
 {
-  bool debugme= true;
+  bool debugme= false;
   switch( message )
   {
   case OPEN: 
@@ -1529,7 +1529,8 @@ Defining local variables
     vector<intpair> ids(0);
     CompressedInMemMSet accumlator;
     //InMemMSet accumlator2;
-    list<InMemMSet*>* resStream= new list<InMemMSet*>(), *resStreamFinal=0,
+    list<CompressedInMemMSet*>* resStream= 
+      new list<CompressedInMemMSet*>(), *resStreamFinal=0,
       *localResStream=0;
 
 /*
@@ -1575,18 +1576,35 @@ Evaluating the gpattern results
       mbool = static_cast<MBool*>(value.addr);
       if (mbool->IsDefined())
       {
-        accumlator.Buffer(*mbool, tupleCnt, d);
-        //accumlator.Buffer(*mbool, tupleCnt);
+        bool inc= accumlator.Buffer(*mbool, tupleCnt, d);
+        //GPatternHelper::removeShortUnits(*mbool, d);
         //accumlator2.Union(*mbool, tupleCnt);
+        if(debugme)
+          cerr<< endl<< tupleCnt << endl << ids.size();
+        if(inc)  
+          ++tupleCnt;
+        else
+          ids.pop_back();
+        //accumlator.Buffer(*mbool, tupleCnt);
       }
       tup->DeleteIfAllowed();
       qp->Request(TheStream, t);
-      ++tupleCnt;
     }
 
     accumlator.ConstructFromBuffer();
     qp->Close(TheStream);
-  
+    cerr<<endl<<accumlator.GetNoComponents();
+    if(debugme)
+    {
+      MSet tmp1(0), tmp2(0);
+      accumlator.WriteToMSet(tmp1);
+      //accumlator2.WriteToMSet(tmp2);
+      if(tmp1 != tmp2)
+      {
+        tmp1.Print(cerr);
+        tmp2.Print(cerr);
+      }
+    }
     bool changed= true;
     while(changed && accumlator.GetNoComponents() > 0)
     {
@@ -1596,11 +1614,12 @@ Evaluating the gpattern results
       //accumlator2.RemoveShortElemParts(d);
       changed= (accumlator.RemoveShortElemParts(d) || changed );  
     }
+    cerr<<endl<<accumlator.GetNoComponents();
     if(debugme)
     {
       MSet tmp1(0), tmp2(0);
       accumlator.WriteToMSet(tmp1);
-      accumlator2.WriteToMSet(tmp2);
+      //accumlator2.WriteToMSet(tmp2);
       if(tmp1 != tmp2)
       {
         tmp1.Print(cerr);
@@ -1633,8 +1652,8 @@ Evaluating the gpattern results
         ++end;
       begin= end;
     }
-    resStreamFinal= new list<InMemMSet*>();
-    for(list<InMemMSet*>::iterator 
+    resStreamFinal= new list<CompressedInMemMSet*>();
+    for(list<CompressedInMemMSet*>::iterator 
         it= resStream->begin(); it!= resStream->end(); ++it)
     {
       resStreamFinal->push_back(GPatternHelper::EdgeMSet2NodeMSet(*it, ids));
@@ -1648,13 +1667,14 @@ Evaluating the gpattern results
   }
   case REQUEST: { // return the next stream element
 
-    list<InMemMSet*>* resStream= static_cast< list<InMemMSet*>* >(local.addr);
+    list<CompressedInMemMSet*>* resStream= 
+      static_cast< list<CompressedInMemMSet*>* >(local.addr);
     if ( resStream->size() != 0)
     {
       MSet* res= new MSet(0);
-      (*resStream->begin())->WriteToMSet(*res);
-      delete *resStream->begin();
-      resStream->erase(resStream->begin());
+      resStream->front()->WriteToMSet(*res);
+      delete resStream->front();
+      resStream->pop_front();
       result= SetWord(res);  
       return YIELD;
     }

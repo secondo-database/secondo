@@ -110,6 +110,8 @@ class USet;
 class MSet;
 class CompressedInMemUSet;
 class CompressedInMemMSet;
+class CompressedUSet;
+class CompressedMSet;
 class InMemUSet;
 class InMemMSet;
 
@@ -667,7 +669,7 @@ public:
   bool GetNextTrueUnit(MBool& mbool, int& pos, UBool& unit);
   
   void Buffer (MBool& arg, int key);
-  void Buffer (MBool& arg, int key, double duration);
+  bool Buffer (MBool& arg, int key, double duration);
   
   void ClassifyEvents(pair< multimap<double, Event>::iterator, 
       multimap<double, Event>::iterator >& events, 
@@ -679,6 +681,9 @@ public:
   void AddUnit( set<int>& constValue,
       double starttime, double endtime, bool lc, bool rc);
   
+  bool MergeAdd(set<int>& val, double &starttime, 
+      double &endtime, bool lc, bool rc);
+  
   void ConstructPeriodFromBuffer(multimap<double, Event>::iterator periodStart,
       multimap<double, Event>::iterator periodEnd);
   
@@ -688,6 +693,64 @@ public:
   list<CompressedInMemUSet> units;
   list<CompressedInMemUSet>::iterator it;
 };
+
+
+class CompressedUSetRef
+{
+public:
+ 
+  CompressedUSetRef();
+  CompressedUSetRef(bool);
+  
+  int addedstart;
+  int addedend;
+  int removedstart;
+  int removedend;
+  int count;
+  bool isdefined;
+  double starttime, endtime;
+  bool lc, rc;
+};
+
+class CompressedMSet
+{
+private:
+  set<int> lastUnitValue;
+  bool validLastUnitValue;
+
+public:
+  
+  CompressedMSet();
+  
+  CompressedMSet(int);
+  
+  CompressedMSet(CompressedMSet& arg);
+  
+  int GetNoComponents();
+  
+  void CopyFrom(CompressedMSet& arg);
+  
+  void Clear();
+  
+  void GetSet(int index, set<int>& res);
+  
+  set<int>* GetFinalSet();
+  
+  void WriteToCompressedInMemMSet(CompressedInMemMSet& res);
+  
+  ostream& Print( ostream &os );
+  
+  void AddUnit( set<int>& constValue,
+      double starttime, double endtime, bool lc, bool rc);
+  
+  bool MergeAdd(set<int>& val, double &starttime, 
+      double &endtime, bool lc, bool rc);
+
+  DbArray<int> removed;
+  DbArray<int> added;
+  DbArray<CompressedUSetRef> units;
+};
+
 
 
 };
