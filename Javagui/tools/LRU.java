@@ -90,6 +90,24 @@ class LRU<E> {
        return elem;
     }
 
+
+   /** Removes an element from LRU **/
+   public boolean remove(E elem){
+     if(!map.containsKey(elem)){
+        return false;
+     }
+     LRUElem<E> victim = map.get(elem);
+     if(head==victim){
+          head = victim.next;
+     }  
+     if(end==victim){
+         end = victim.prev;
+     }
+     victim.disconnect();
+     map.remove(elem);
+     return true;
+   }
+
     public void clear(){
         map.clear();
         head=null;

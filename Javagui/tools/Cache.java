@@ -38,6 +38,39 @@ public class Cache<T extends Cacheable, L extends ObjectLoader<T> > {
      return value;
   }
 
+  /** returns the number of chached files */
+  public int size(){
+     return map.size();
+  }
+
+  /** returns the currently used memory **/
+  public int getUsedMem(){
+     return currentMem;
+  }
+
+  /** returns the maximum value of memory for using by this cahce**/
+  public int getMaxMem(){
+    return maxMem;
+  }
+
+ 
+  /** removes an element from cache **/
+  public boolean remove(File f){
+     if(!map.containsKey(f)){
+        return false;
+     }  
+     map.remove(f);
+     lru.remove(f);
+     return true;
+  } 
+
+
+  public String toString(){
+    return "Cache[ " + map.size() + " | " + currentMem +" / " + maxMem +"]";
+  }
+
+
+
  /** Inserts a new pair into the cache **/
   private void insert(File f,T value){
       map.put(f,value); 
@@ -64,7 +97,7 @@ public class Cache<T extends Cacheable, L extends ObjectLoader<T> > {
   }
 
 
-
+  
 
 
  
