@@ -1,7 +1,7 @@
 package viewer.hoese;
 
-import java.awt.geom.Rectangle2D;
 import java.awt.Rectangle;
+import java.awt.geom.Rectangle2D;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.ListIterator;
@@ -12,6 +12,7 @@ import java.util.StringTokenizer;
 import javax.swing.JComponent;
 
 import sj.lang.ListExpr;
+import tools.Reporter;
 
 /**
  * This class is to be extended by classes representing different kinds of
@@ -36,7 +37,7 @@ public abstract class Background extends javax.swing.JComponent {
 		bbox = null;
 		clipbbox = null;
 		viewport = null;
-		listeners = null;
+		listeners = new LinkedList<BackgroundListener>();
 	}
 
 
@@ -111,8 +112,6 @@ public abstract class Background extends javax.swing.JComponent {
 	 * be used to restore the Background settings, e.g. from a file. All
 	 * registered Listeners are informed. Additional data may be retrieved from
 	 * files rooted at the given path.
-	 * Overriding methods should check the property KEY_BACKGROUNDTYPE on whether 
-	 * it fits their classname! 
 	 * 
 	 * @param p
 	 *            The Background settings to restore.
@@ -122,17 +121,31 @@ public abstract class Background extends javax.swing.JComponent {
 	 */
 	public void setConfiguration(Properties p, String backgrounddatapath) {
 		String n = p.getProperty(KEY_NAME);
-		if (n != null) {
+		if (n == null) {
+			Reporter.writeError("Could not set Background property: "
+					+ KEY_NAME + " not found).");
+			name = "Unnamed " + this.getClass().getName();
+		} else {
 			name = n;
 		}
 		n = p.getProperty(KEY_LICENSE);
-		if (n != null) {
-			license = n;
+		if (n == null) {
+			Reporter.writeError("Could not set Background property: "
+					+ KEY_LICENSE + " not found).");
+			n = "";
+		} else {
+			license = null;
 		}
-		Rectangle2D.Double b = createRectangle2DFromString(p
-				.getProperty(KEY_BBOX));
-		if (b != null) {
-			bbox = b;
+		n = p.getProperty(KEY_BBOX);
+		if (n == null) {
+			Reporter.writeError("Could not set Background property: "
+					+ KEY_BBOX + " not found).");
+			bbox = null;
+		} else {
+			Rectangle2D.Double b = createRectangle2DFromString(n);
+			if (b != null) {
+				bbox = b;
+			}
 		}
 		n = p.getProperty(KEY_USEFORBBOX);
 		useforbbox = (n != null) && (n == "yes");
@@ -172,8 +185,6 @@ public abstract class Background extends javax.swing.JComponent {
 	 * Return the Background's settings as a Properties object. The Properties
 	 * can be used to save Background settings for later reference. Additional
 	 * data may be stored to files rooted at the given path.
-	 * Overriding methods should add KEY_BACKGROUNDTYPE with their classname 
-	 * as the value. 
 	 * 
 	 * @param backgrounddatapath
 	 *            Path, where to store data files.
@@ -181,11 +192,18 @@ public abstract class Background extends javax.swing.JComponent {
 	 */
 	public Properties getConfiguration(String backgrounddatapath) {
 		Properties p = new Properties();
-		p.setProperty(KEY_NAME, name);
-		p.setProperty(KEY_LICENSE, license);
-		String bboxstr = "" + bbox.getX() + " " + bbox.getY() + " "
+		p.setProperty(KEY_BACKGROUNDCLASSNAME, this.getClass().getName());
+		if (name != null) {
+			p.setProperty(KEY_NAME, name);
+		}
+		if (license != null) {
+			p.setProperty(KEY_LICENSE, license);
+		}
+		if (bbox != null) {
+			String bboxstr = "" + bbox.getX() + " " + bbox.getY() + " "
 				+ bbox.getWidth() + " " + bbox.getHeight();
-		p.setProperty(KEY_BBOX, bboxstr);
+			p.setProperty(KEY_BBOX, bboxstr);
+		}
 		if(useforbbox) {
 			p.setProperty(KEY_USEFORBBOX, "yes");
 		} else {
@@ -295,7 +313,7 @@ public abstract class Background extends javax.swing.JComponent {
 	/**
 	 * Structure to maintain the set of registered listeners
 	 */
-	private LinkedList<BackgroundListener> listeners;
+	protected LinkedList<BackgroundListener> listeners;
 
 	/**
 	 * Whether the Background's bounding box is considered in calculation of the
@@ -322,11 +340,11 @@ public abstract class Background extends javax.swing.JComponent {
 	 * String constant used as key for useforbbox within Property
 	 */
 	public static final String KEY_USEFORBBOX = "useforbbox";
-	
+
 	/**
-	 * String constant used as key for the background class type within Property
+	 * String constant used as key for the background class name within Property
 	 */
-	public static final String KEY_BACKGROUNDTYPE = "backgroundtype";
+	public static final String KEY_BACKGROUNDCLASSNAME = "backgroundclassname";
 
 	/**
 	 * Creates a nested list representation of the Background's configuration,
@@ -386,5 +404,63 @@ public abstract class Background extends javax.swing.JComponent {
 			}
 		}
 		setConfiguration(p, backgrounddatapath);
+	}
+
+	/**
+	 * Factory method, that restores and returns any Background object
+	 * from an Properties object. If restoration fails, a SimpleBackground is
+	 * returned.
+	 * 
+	 * @param p
+	 *            The Properties to restore from.
+	 * @param backgrounddatapath
+	 *            A directory with additional data.
+	 * @return The restored Background object.
+	 */
+	public static final Background createFromProperties(Properties p,
+			String backgrounddatapath) {
+		String bgclassname = p.getProperty(KEY_BACKGROUNDCLASSNAME);
+		if (bgclassname == null) {
+			Reporter.writeError("Could not restore the Background (cannot determine Background class).");
+			return new SimpleBackground();
+		}
+		try {
+			Background inst = (Background) Class.forName(bgclassname)
+					.newInstance();
+			inst.setConfiguration(p, backgrounddatapath);
+			return inst;
+		} catch(Exception e) {
+			Reporter.writeError("Could not restore the Background (failed to create the instance).");
+		    Reporter.debug(e);			
+		    return new SimpleBackground();
+		}
+	}
+
+	/**
+	 * Factory method, that restores and returns any Background object
+	 * from a ListExpr object. If restoration fails, a SimpleBackground is
+	 * returned.
+	 * 
+	 * @param l
+	 *            The ListExpr to restore from.
+	 * @param backgrounddatapath
+	 *            A directory with additional data.
+	 * @return The restored Background object.
+	 */
+	public static final Background createFromListExpr(ListExpr l,
+			String backgrounddatapath) {
+		Properties p = new Properties();
+		while (!(l.isAtom() || l.isEmpty())) {
+			ListExpr pair = l.first();
+			l = l.rest();
+			if ((pair.listLength() == 2)
+					&& (pair.first().isAtom() && pair.first().atomType() == ListExpr.STRING_ATOM)
+					&& (pair.second().isAtom() && pair.second().atomType() == ListExpr.TEXT_ATOM)) {
+				String key = pair.first().toString();
+				String value = pair.second().toString();
+				p.setProperty(key, value);
+			}
+		}
+		return createFromProperties(p, backgrounddatapath);
 	}
 }

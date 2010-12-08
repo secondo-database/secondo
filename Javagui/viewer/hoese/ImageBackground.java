@@ -3,6 +3,7 @@ package viewer.hoese;
 import java.awt.Graphics;
 import java.awt.image.BufferedImage;
 import java.io.File;
+import java.util.LinkedList;
 import java.util.Properties;
 
 import javax.swing.JComponent;
@@ -31,7 +32,9 @@ public class ImageBackground extends Background {
 		img = new ScalableImage();
 		bbox = null;
 		clipbbox = null;
+		viewport = null;
 		useforbbox = false;
+		listeners = new LinkedList<BackgroundListener>();
 	}
 
 	/**
@@ -41,12 +44,14 @@ public class ImageBackground extends Background {
 	 *            The parent component for the used dialog.
 	 */
 	public ImageBackground(JComponent parent) {
-		name = "ImageBackground";
+		name = "ImageBackground (no image)";
 		license = "";
 		img = new ScalableImage();
 		bbox = null;
 		clipbbox = null;
+		viewport = null;
 		useforbbox = false;
+		listeners = new LinkedList<BackgroundListener>();
 		showConfigDialog(parent);
 	}
 
@@ -64,7 +69,9 @@ public class ImageBackground extends Background {
 		img = new ScalableImage();
 		bbox = null;
 		clipbbox = null;
+		viewport = null;
 		useforbbox = false;
+		listeners = new LinkedList<BackgroundListener>();
 		readFromList(l, datapath);
 	}
 
@@ -82,7 +89,9 @@ public class ImageBackground extends Background {
 		img = new ScalableImage();
 		bbox = null;
 		clipbbox = null;
+		viewport = null;
 		useforbbox = false;
+		listeners = new LinkedList<BackgroundListener>();
 		setConfiguration(p, datafilepath);
 	}
 
@@ -97,6 +106,9 @@ public class ImageBackground extends Background {
 	 */
 	@Override
 	public void showConfigDialog(JComponent parent) {
+		if (listeners == null) {
+			listeners = new LinkedList<BackgroundListener>();
+		}
 		BackGroundImage bgi = new BackGroundImage(null);
 		bgi.setVisible(false);
 		BufferedImage bi = bgi.getImage();
@@ -136,6 +148,9 @@ public class ImageBackground extends Background {
 	 *            height (non-negative),
 	 */
 	public void setBounds(int x, int y, int w, int h) {
+		if (img == null) {
+			img = new ScalableImage();
+		}
 		img.setBounds(x, y, w, h);
 		super.setBounds(x, y, w, h);
 	}
@@ -158,7 +173,9 @@ public class ImageBackground extends Background {
 	@Override
 	public void paint(Graphics g) {
 		super.paint(g);
-		img.paint(g);
+		if (img != null) {
+			img.paint(g);
+		}
 	}
 
 	/**
@@ -184,6 +201,9 @@ public class ImageBackground extends Background {
 	 */
 	@Override
 	public void setConfiguration(Properties p, String backgrounddatapath) {
+		if (listeners == null) {
+			listeners = new LinkedList<BackgroundListener>();
+		}
 		super.setConfiguration(p, backgrounddatapath);
 		// TODO restore the image itself from a file stored as a property
 		String filename = p.getProperty(KEY_BGIMAGE);

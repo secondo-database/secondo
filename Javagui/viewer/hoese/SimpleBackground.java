@@ -4,12 +4,14 @@ import java.awt.Color;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
 import java.awt.geom.Rectangle2D;
+import java.util.LinkedList;
 import java.util.Properties;
 
 import javax.swing.JColorChooser;
 import javax.swing.JComponent;
 
 import sj.lang.ListExpr;
+import tools.Reporter;
 
 /**
  * This Background class homogeneously fills the visible background (the total
@@ -31,6 +33,10 @@ public class SimpleBackground extends Background {
 		license = "";
 		backgroundcolor = getBackground();
 		useforbbox = false;
+		bbox = null;
+		clipbbox = null;
+		viewport = null;
+		listeners = new LinkedList<BackgroundListener>();
 	}
 
 	/**
@@ -42,8 +48,16 @@ public class SimpleBackground extends Background {
 	public SimpleBackground(Color c) {
 		name = "SimpleBackground";
 		license = "";
-		backgroundcolor = c;
+		if (c != null) {
+			backgroundcolor = c;
+		} else {
+			backgroundcolor = getBackground();
+		}
 		useforbbox = false;
+		bbox = null;
+		clipbbox = null;
+		viewport = null;
+		listeners = new LinkedList<BackgroundListener>();
 	}
 
 	/**
@@ -59,6 +73,10 @@ public class SimpleBackground extends Background {
 		license = "";
 		backgroundcolor = getBackground();
 		useforbbox = false;
+		bbox = null;
+		clipbbox = null;
+		viewport = null;
+		listeners = new LinkedList<BackgroundListener>();
 		setConfiguration(p, datapath);
 	}
 
@@ -75,6 +93,10 @@ public class SimpleBackground extends Background {
 		license = "";
 		backgroundcolor = getBackground();
 		useforbbox = false;
+		bbox = null;
+		clipbbox = null;
+		viewport = null;
+		listeners = new LinkedList<BackgroundListener>();
 		readFromList(l, datapath);
 	}
 
@@ -89,6 +111,10 @@ public class SimpleBackground extends Background {
 		license = "";
 		backgroundcolor = getBackground();
 		useforbbox = false;
+		bbox = null;
+		clipbbox = null;
+		viewport = null;
+		listeners = new LinkedList<BackgroundListener>();
 		showConfigDialog(parent);
 	}
 
@@ -105,6 +131,12 @@ public class SimpleBackground extends Background {
 		name = "SimpleBackground";
 		license = "";
 		useforbbox = false;
+		bbox = null;
+		clipbbox = null;
+		viewport = null;
+		if (listeners == null) {
+			listeners = new LinkedList<BackgroundListener>();
+		}
 		backgroundcolor = JColorChooser.showDialog(this,
 				"Choose the background color:", backgroundcolor);
 		if (backgroundcolor == null) {
@@ -132,19 +164,41 @@ public class SimpleBackground extends Background {
 	 */
 	@Override
 	public void setConfiguration(Properties p, String backgrounddatapath) {
+		license = "";
+		useforbbox = false;
+		bbox = null;
+		clipbbox = null;
+		viewport = null;
+		if (listeners == null) {
+			listeners = new LinkedList<BackgroundListener>();
+		}
 		super.setConfiguration(p, backgrounddatapath);
 		backgroundcolor = getBackground();
 		String bcstring = p.getProperty(KEY_BGCOLOR, null);
 		if(bcstring != null) {
-			int rgb = Integer.parseInt(bcstring);
-			backgroundcolor = new Color(rgb);
-			BackgroundChangedEvent evt = new BackgroundChangedEvent() {
-				public Object getSource() {
-					return SimpleBackground.this;
-				}
-			};
-			informListeners(evt);
+			try {
+				int rgb = Integer.parseInt(bcstring);
+				backgroundcolor = new Color(rgb);
+			} catch(Exception e) {
+					Reporter.writeError("Could not set Background property: "
+							+ KEY_BGCOLOR + " is not a valid RGB code).");
+					if (backgroundcolor == null) {
+						backgroundcolor = getBackground();
+					}
+			}
+		} else {
+			Reporter.writeError("Could not set Background property: "
+					+ KEY_BGCOLOR + " not found).");
+			if (backgroundcolor == null) {
+				backgroundcolor = getBackground();
+			}
 		}
+		BackgroundChangedEvent evt = new BackgroundChangedEvent() {
+			public Object getSource() {
+				return SimpleBackground.this;
+			} 
+		};
+		informListeners(evt);
 	}
 
 	/**
@@ -159,7 +213,11 @@ public class SimpleBackground extends Background {
 	@Override
 	public Properties getConfiguration(String backgrounddatapath) {
 		Properties p = super.getConfiguration(backgrounddatapath);
-		p.setProperty(KEY_BGCOLOR, "" + backgroundcolor.getRGB());
+		if (p == null) {
+			Reporter.writeError("ERROR: No property!");
+		}
+		int a = backgroundcolor.getRGB();
+		p.setProperty(KEY_BGCOLOR, ("" + a));
 		return p;
 	}
 
