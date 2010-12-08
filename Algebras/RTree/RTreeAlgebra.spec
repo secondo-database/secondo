@@ -36,3 +36,5 @@ operator getRootNode alias GETROOTNODE pattern op ( _ )
 operator getNodeInfo alias GETNODEINFO pattern op ( _ , _ )
 operator getNodeSons alias GETNODESONS pattern op ( _ , _ )
 operator getLeafEntries alias GETLEAFENTRIES pattern op ( _ , _ )
+operator cyclicbulkload alias CYCLICBULKLOAD pattern _  op [ _, _, _, _ ] 
+
