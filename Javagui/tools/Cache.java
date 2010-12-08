@@ -18,11 +18,13 @@ public class Cache<T extends Cacheable, L extends ObjectLoader<T> > {
     this.lru = new LRU<File>();
     hits = 0;
     failures = 0;
+    recentlyReplaced=0;;
   }
 
 /** Returns the element for the given File.
   **/
   public T getElem(File f){
+     recentlyReplaced=0;;
      if(f==null){
         return null;
      }
@@ -70,7 +72,7 @@ public class Cache<T extends Cacheable, L extends ObjectLoader<T> > {
 
 
   public String toString(){
-    return "Cache[ " + map.size() + " | " + currentMem +" / " + maxMem +"; hits = " + hits +", fails = " + failures +"]";
+    return "Cache[ " + map.size() + " | " + currentMem +" / " + maxMem +"; hits = " + hits +", fails = " + failures +"recentlyReplaced = " +  recentlyReplaced+"]";
   }
 
   public void clear(){
@@ -81,6 +83,16 @@ public class Cache<T extends Cacheable, L extends ObjectLoader<T> > {
     failures =0;
   }
 
+  /** returns the number of objects found in cache **/
+  public int getHits(){
+     return hits;
+  }
+
+  /** returns the number of objects not found in cache **/
+  public int getFailures() {
+     return failures;
+  }
+
 
 
  /** Inserts a new pair into the cache **/
@@ -88,8 +100,10 @@ public class Cache<T extends Cacheable, L extends ObjectLoader<T> > {
       map.put(f,value); 
       lru.use(f);   // add a new use of f 
       currentMem += value.getUsedMem();
+      recentlyReplaced=0;;
       while(currentMem>maxMem){
          deleteLRUElem();
+         recentlyReplaced++;
       }
   }
 
@@ -109,7 +123,10 @@ public class Cache<T extends Cacheable, L extends ObjectLoader<T> > {
   }
 
 
-  
+  /** Returns the number of elements replaced by the last get Operation **/
+  public int getRecentlyReplaced(){
+     return recentlyReplaced;
+  } 
 
 
  
@@ -124,5 +141,6 @@ public class Cache<T extends Cacheable, L extends ObjectLoader<T> > {
  // statistical information
  private int hits;
  private int failures;
+ private int recentlyReplaced;
 
 }
