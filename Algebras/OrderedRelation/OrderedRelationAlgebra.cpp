@@ -55,6 +55,656 @@ OrderedRelation.h header file.
 #define DEBUG_OREL2
 #endif
 
+
+/*
+2.1 Structs and Tools
+
+2.1.1 Priority Queue and Visited Sections for Shortest Path Computations
+
+*/
+struct NodeEntry
+{
+  NodeEntry(){}
+
+  NodeEntry(const int id, const int index, const int before)
+    : nodeId(id), arrayIndex(index), beforeNodeId(before)
+  {}
+
+  NodeEntry(const NodeEntry& nE)
+    : nodeId(nE.nodeId), arrayIndex(nE.arrayIndex),
+      beforeNodeId(nE.beforeNodeId)
+  {}
+
+  ~NodeEntry()
+  {}
+
+  inline int Compare(const NodeEntry nE) const
+  {
+    return Compare(nE.GetNodeId());
+  }
+
+  inline int Compare(const int nId) const
+  {
+    if (nodeId < nId) return -1;
+    if (nodeId > nId) return 1;
+    return 0;
+  }
+
+  inline void operator=( const NodeEntry nE)
+  {
+    nodeId = nE.nodeId;
+    arrayIndex = nE.arrayIndex;
+    beforeNodeId = nE.beforeNodeId;
+  }
+
+  ostream& Print(ostream& os) const
+  {
+    os << "Node Number: " << nodeId;
+    os << ", Predecessor Node Number: " << beforeNodeId;
+    os << ", array Index: " << arrayIndex;
+    os << endl;
+    return os;
+  }
+
+  inline int GetNodeId() const
+  {
+    return nodeId;
+  }
+
+  inline int GetArrayIndex() const
+  {
+    return arrayIndex;
+  }
+
+  inline int GetBeforeNodeId() const
+  {
+    return beforeNodeId;
+  }
+
+  inline void SetNodeId(const int id)
+  {
+    nodeId = id;
+  }
+
+  inline void SetArrayIndex(const int index)
+  {
+    arrayIndex = index;
+  }
+
+  inline void SetBeforeNodeId (const int id)
+  {
+    beforeNodeId = id;
+  }
+
+  int nodeId;
+  int arrayIndex;
+  int beforeNodeId;
+};
+
+struct TreeEntry
+{
+
+  TreeEntry(){};
+
+  TreeEntry(const NodeEntry elem, int l = -1, int r = -1)
+    : nEntry(elem), left(l), right(r)
+  {}
+
+  TreeEntry(const TreeEntry& te)
+    : nEntry(te.GetNodeEntry()), left (te.GetLeft()), right(te.GetRight())
+  {}
+
+  ~TreeEntry()
+  {}
+
+  inline NodeEntry GetNodeEntry() const
+  {
+    return nEntry;
+  }
+
+  inline int GetLeft() const
+  {
+    return left;
+  }
+
+  inline int GetRight() const
+  {
+    return right;
+  }
+
+  inline void operator=(const TreeEntry nTEntry)
+  {
+    nEntry = nTEntry.GetNodeEntry();
+    left = nTEntry.GetLeft();
+    right = nTEntry.GetRight();
+  }
+
+  inline void SetNodeEntry(const NodeEntry& ne)
+  {
+    nEntry = ne;
+  }
+
+  inline void SetLeft(const int n)
+  {
+    left = n;
+  }
+
+  inline void SetRight(const int n)
+  {
+    right = n;
+  }
+
+  inline int Compare(const TreeEntry& nE) const
+  {
+    return GetNodeEntry().Compare(nE.GetNodeEntry());
+  }
+
+  inline int Compare(const int nodeId) const
+  {
+    return GetNodeEntry().Compare(nodeId);
+  }
+
+  ostream& Print(ostream& os) const
+  {
+    os << "Entry: ";
+    nEntry.Print(os);
+    os << "left: " << left << ", right: " << right << endl;
+    return os;
+  }
+
+  NodeEntry nEntry;
+  int left,right;
+};
+
+struct NodeEntryTree
+{
+  NodeEntryTree()
+    : tree(0)
+  {
+    fFree = 0;
+  }
+
+  NodeEntryTree(const int n)
+    : tree(n)
+  {
+    fFree = 0;
+  }
+
+  ~NodeEntryTree()
+  {}
+
+  inline void Destroy()
+  {
+    tree.Destroy();
+  }
+
+  inline void Remove()
+  {
+    tree.Destroy();
+    delete this;
+  };
+
+  int Find(const TreeEntry& te) const
+  {
+    int i = 0;
+    if (tree.Size() < 1) return -1;
+    while (i < fFree)
+    {
+      TreeEntry test = GetTreeEntry(i);
+      switch(test.Compare(te))
+      {
+        case 0:
+        {
+          return i;
+          break;
+        }
+        case -1:
+        {
+          if (test.GetRight() != -1) i = test.GetRight();
+          else return i;
+          break;
+        }
+        case 1:
+        {
+          if (test.GetLeft() != -1) i = test.GetLeft();
+          else return i;
+          break;
+        }
+        default: // should never been reached
+        {
+          return -1;
+          break;
+        }
+      }
+    }
+    return -1; // should never been reached
+  };
+
+  int Find(const int nId) const
+  {
+    int i = 0;
+    if (tree.Size() < 1) return -1;
+    while (i < fFree)
+    {
+      TreeEntry test = GetTreeEntry(i);
+      switch(test.GetNodeEntry().Compare(nId))
+      {
+        case 0:
+        {
+          return i;
+          break;
+        }
+        case 1:
+        {
+          if (test.GetLeft() != -1) i = test.GetLeft();
+          else return i;
+          break;
+        }
+        case -1:
+        {
+          if (test.GetRight() != -1) i = test.GetRight();
+          else return i;
+          break;
+        }
+        default: // should never been reached
+        {
+          return -1;
+          break;
+        }
+      }
+    }
+    return -1; // should never been reached
+  };
+
+  void Insert(const TreeEntry nE, int& newPos)
+  {
+
+    newPos = Find(nE);
+    if (newPos < 0 )
+    {
+      newPos = fFree;
+      fFree++;
+      tree.Put(newPos, nE);
+    }
+    else
+    {
+      if (newPos < fFree)
+      {
+        TreeEntry test = GetTreeEntry(newPos);
+        switch(test.Compare(nE))
+        {
+          case 1:
+          {
+            test.SetLeft(fFree);
+            tree.Put(newPos,test);
+            tree.Put(fFree,nE);
+            fFree++;
+            break;
+          }
+          case -1:
+          {
+            test.SetRight(fFree);
+            tree.Put(newPos,test);
+            tree.Put(fFree,nE);
+            fFree++;
+            break;
+          }
+          case 0:
+          {
+            tree.Put(newPos,nE);
+            break;
+          }
+          default: //should never been reached
+          {
+            break;
+          }
+        }
+      }
+    }
+  };
+
+  void SetIndex (const int pos, const int index)
+  {
+    assert (pos > -1 && pos < fFree);
+    TreeEntry te = GetTreeEntry(pos);
+    NodeEntry nE = te.GetNodeEntry();
+    nE.SetArrayIndex(index);
+    te.SetNodeEntry(nE);
+    tree.Put(pos,te);
+  }
+
+  inline int GetIndex (const int pos) const
+  {
+    assert(pos > -1 && pos < fFree);
+    return GetTreeEntry(pos).GetNodeEntry().GetArrayIndex();
+  }
+
+  void SetBeforeNodeId(const int pos, const int before)
+  {
+    assert(pos > -1 && pos < fFree);
+    TreeEntry te = GetTreeEntry(pos);
+    NodeEntry ne = te.GetNodeEntry();
+    ne.SetBeforeNodeId(before);
+    te.SetNodeEntry(ne);
+    tree.Put(pos,te);
+  }
+
+  TreeEntry GetTreeEntry(const int pos) const
+  {
+    assert(pos > -1 && pos < fFree);
+    TreeEntry te;
+    tree.Get(pos,te);
+    return te;
+  }
+
+  bool IsNode(const int pos, const int nodeNumber) const
+  {
+    assert(pos > -1 && pos < fFree);
+
+    if (GetTreeEntry(pos).GetNodeEntry().GetNodeId() == nodeNumber)
+      return true;
+    else
+      return false;
+  }
+
+  ostream& Print(ostream& os) const
+  {
+    os << "Start NodeEntryTree: " << endl;
+    TreeEntry tE;
+    if (fFree > 0)
+    {
+      for (int i = 0; i < tree.Size(); i++)
+      {
+        tree.Get(i,tE);
+        tE.Print(os);
+      }
+    }
+    os << "Ende NodeEntryTree" << endl;
+    return os;
+  }
+
+  DbArray<TreeEntry> tree;
+  int fFree;
+};
+
+
+struct PQEntryOrel
+{
+  PQEntryOrel() {}
+
+  PQEntryOrel(const int node, const int before, const double dist,
+              const double prio)
+    : nodeNumber(node), beforeNodeNumber(before), distFromStart(dist),
+      prioval(prio)
+  {}
+
+  PQEntryOrel(const PQEntryOrel& nE)
+    : nodeNumber(nE.nodeNumber), beforeNodeNumber(nE.beforeNodeNumber),
+      distFromStart(nE.distFromStart), prioval(nE.prioval)
+  {}
+
+  ~PQEntryOrel()
+  {}
+
+  ostream& Print(ostream& os) const
+  {
+    os << "Node Number: " << nodeNumber;
+    os << ", Predecessor Node Number: " << beforeNodeNumber;
+    os << ", Prioval: " << prioval;
+    os << ", Distance From Start: " << distFromStart;
+    os << endl;
+    return os;
+  }
+
+  int nodeNumber;
+  int beforeNodeNumber;
+  double distFromStart;
+  double prioval;
+
+};
+
+struct PQueueOrel
+{
+
+  PQueueOrel()
+    : prioQ(0)
+  {
+    firstFree = 0;
+  }
+
+  PQueueOrel(const int n)
+    : prioQ(n)
+  {
+    firstFree = 0;
+  }
+
+  ~PQueueOrel()
+  {}
+
+  inline void Destroy()
+  {
+    prioQ.Destroy();
+  }
+
+  inline void Clear()
+  {
+    prioQ.clean();
+    firstFree = 0;
+  }
+
+  inline bool IsEmpty() const
+  {
+    if (firstFree == 0 ) return true;
+    else return false;
+  }
+
+  ostream& Print(ostream& os) const
+  {
+    os << "Start PriorityQueue: " << endl;
+    PQEntryOrel pE;
+    if (firstFree > 0)
+    {
+      for (int i = 0; i < firstFree; i++)
+      {
+        prioQ.Get(i,pE);
+        pE.Print(os);
+      }
+    }
+    os << "Ende PriorityQueue" << endl;
+    return os;
+  }
+
+/*
+If a node is reached second time and the prioval of the second way is
+smaller than on the path found before. The prioval, the valFromStart and the
+position in the  priority queue must be corrected.
+
+*/
+
+  void CorrectPosition ( const int actPosIndex, const PQEntryOrel& nEle,
+                         NodeEntryTree* pNodeTree )
+  {
+    int testIndex = actPosIndex;
+    int n = actPosIndex;
+    PQEntryOrel test;
+    bool found = false;
+    while ( testIndex > 0 && !found )
+    {
+
+      if ( ( testIndex % 2 ) == 0 ) n = ( testIndex-2 ) / 2;
+      else n = ( testIndex -1 ) / 2;
+      if ( n >= 0 )
+      {
+        prioQ.Get ( n, test );
+        if ( test.prioval > nEle.prioval ||
+             (test.prioval == nEle.prioval &&
+              test.distFromStart > nEle.distFromStart))
+        {
+          Swap ( n, nEle, testIndex, test, pNodeTree );
+        }
+        else
+        {
+          found = true;
+        }
+      }
+      else
+      {
+        found = true;
+      }
+    }
+  }
+
+  void Append ( const PQEntryOrel nE, int pNElemPos,
+                NodeEntryTree *pNodeTree)
+  {
+    int actPos = firstFree;
+    prioQ.Put(actPos, nE );
+    pNodeTree->Insert(TreeEntry(NodeEntry(nE.nodeNumber,
+                                          actPos,
+                                          nE.beforeNodeNumber),
+                                -1,-1),
+                      pNElemPos);
+    CorrectPosition(actPos, nE, pNodeTree );
+    firstFree++;
+  }
+
+  void Insert ( const PQEntryOrel nE, NodeEntryTree *pNodeTree )
+  {
+    int pNElemPos = pNodeTree->Find(nE.nodeNumber);
+    if (pNElemPos < 0)
+      Append(nE, pNElemPos, pNodeTree);
+    else
+    {
+      if ( pNElemPos > -1 && pNElemPos < pNodeTree->fFree)
+      {
+        if (!pNodeTree->IsNode(pNElemPos, nE.nodeNumber))
+        {
+          Append(nE, pNElemPos, pNodeTree);
+        }
+        else
+        {
+          int index = pNodeTree->GetIndex(pNElemPos);
+          if (index > -1 && index < firstFree)
+          {
+            PQEntryOrel test;
+            prioQ.Get(index, test);
+            if (test.prioval > nE.prioval)
+            {
+              prioQ.Put(index, nE);
+              pNodeTree->SetBeforeNodeId(pNElemPos, nE.beforeNodeNumber);
+              CorrectPosition(index, nE, pNodeTree);
+            }
+          }
+        }
+      }
+    }
+  }
+
+  void Swap(const int testIndex, const PQEntryOrel& last,
+            int& actIndex, const PQEntryOrel& test1,
+            NodeEntryTree* pNodeTree)
+  {
+    prioQ.Put(testIndex, last);
+    pNodeTree->SetIndex(pNodeTree->Find(last.nodeNumber),testIndex);
+    prioQ.Put(actIndex, test1);
+    pNodeTree->SetIndex(pNodeTree->Find(test1.nodeNumber),actIndex);
+    actIndex = testIndex;
+  }
+
+  PQEntryOrel* GetAndDeleteMin(NodeEntryTree* pNodeTree)
+  {
+    if (firstFree <= 0) return 0;
+    PQEntryOrel result, last, test1, test2;
+    prioQ.Get(0,result);
+    PQEntryOrel* retValue = new PQEntryOrel(result);
+    int tRet = pNodeTree->Find(result.nodeNumber);
+    prioQ.Get(firstFree-1,last);
+    prioQ.Put(0,last);
+    prioQ.Put(firstFree-1, PQEntryOrel(-1,
+                                       -1,
+                                       numeric_limits<double>::max(),
+                                       numeric_limits<double>::max()));
+    firstFree--;
+    int pNewPos = pNodeTree->Find(last.nodeNumber);
+    pNodeTree->SetIndex(pNewPos,0);
+    pNodeTree->SetIndex(tRet,-1);
+    int actIndex = 0;
+    int testIndex = 0;
+    bool found = false;
+    while (testIndex < firstFree && !found)
+    {
+      testIndex = 2*actIndex + 1;
+      if (testIndex < firstFree-1)
+      {
+        prioQ.Get(testIndex, test1);
+        prioQ.Get(testIndex+1, test2);
+        if (test1.prioval < last.prioval ||
+            test2.prioval < last.prioval)
+        {
+          if (test1.prioval <= test2.prioval)
+            Swap(testIndex, last, actIndex, test1, pNodeTree);
+          else
+            Swap(testIndex+1, last, actIndex, test2, pNodeTree);
+        }
+        else
+        {
+          if(test1.prioval == last.prioval &&
+             test1.distFromStart < last.distFromStart)
+            Swap(testIndex, last, actIndex, test1, pNodeTree);
+          else
+          {
+            if (test2.prioval == last.prioval &&
+                test2.distFromStart < last.distFromStart)
+              Swap(testIndex+1, last, actIndex, test2, pNodeTree);
+            else
+              found = true;
+          }
+        }
+      }
+      else
+      {
+        if (testIndex > 0 && testIndex == firstFree-1)
+        {
+          prioQ.Get(testIndex,test1);
+          if (test1.prioval < last.prioval ||
+              (test1.prioval == last.prioval &&
+               test1.distFromStart < last.distFromStart))
+            Swap(testIndex, last, actIndex, test1, pNodeTree);
+          else
+            found = true;
+        }
+        else
+        {
+          found = true;
+        }
+      }
+    }
+    return retValue;
+  }
+
+  DbArray<PQEntryOrel> prioQ;
+  int firstFree;
+};
+
+struct  OShortestPathInfo
+{
+  OShortestPathInfo()
+  {
+    resTuples = 0;
+    iter = 0;
+    counter = 0;
+    seqNoAttrIndex = 0;
+  }
+
+  ~OShortestPathInfo(){};
+
+  TupleBuffer* resTuples;
+  GenericRelationIterator* iter;
+  int counter;
+  int seqNoAttrIndex;
+};
+
+
 /*
 3 Implementation
 3.1 OrderedRelationIterator
@@ -1171,7 +1821,7 @@ Operator orange (
                 );
 
 /*
-4.2 Operator ~oshortestpath~
+4.2 Operator ~oshortestpathd~
 
 We want to use the ordered relation as graph representation. And use this
 specialised ordered relation for shortest path computing.
@@ -1187,28 +1837,30 @@ For the shortest path operation the input relation should be ordered by the
 numbers of the starting nodes at the first and by the end node numbers at the
 second level to reduce the number of page accesses.
 
-The operation ~oshortestpath~ expects an ordered relation with at least three
+The operation ~oshortestpathd~ expects an ordered relation with at least three
 attributes (two integer and one doulbe) like described before. Two integers
 identifying the start and the end node and a cost function mapping the tuple
 values to an real number describing the costs of the edge.
 
-The operation ~oshortestpath~ extends the original tuples by an new attribute
+The operation ~oshortestpathd~ extends the original tuples by an new attribute
 seqNo of type int. Describing the sequence number of the edge within the path
 from the start node to the end node.
 
+For the path computation Dijkstras Algorithm is used.
+
 */
 
-ListExpr OShortestPathTypeMap(ListExpr args)
+ListExpr OShortestPathDTypeMap(ListExpr args)
 {
   #ifdef DEBUG_OREL
-    cout << "OShortestPathTypeMap" << endl;
+    cout << "OShortestPathDTypeMap" << endl;
   #endif
   #ifdef DEBUG_OREL2
     cout << nl->ToString(args) << endl;
   #endif
   if(nl->ListLength(args) != 4)
   {
-    return listutils::typeError("oshortestpath expects 4 arguments");
+    return listutils::typeError("oshortestpathd expects 4 arguments");
   }
   ListExpr orelList = nl->First(args);
   ListExpr startNodeList = nl->Second(args);
@@ -1218,7 +1870,7 @@ ListExpr OShortestPathTypeMap(ListExpr args)
   //Check of first argument
   if(!listutils::isOrelDescription(orelList))
   {
-    return listutils::typeError("oshortestpath expects orel as first argument");
+    return listutils::typeError("oshortestpathd expects orel as 1. argument");
   }
 
   ListExpr orelTuple = nl->Second(orelList);
@@ -1285,7 +1937,7 @@ ListExpr OShortestPathTypeMap(ListExpr args)
 
   if(!listutils::isSymbol(mapres,"real"))
   {
-    return listutils::typeError("Wrong mapping result type for oshortestpath");
+    return listutils::typeError("Wrong mapping result type for oshortestpathd");
   }
 
   //returns stream of tuples like in orel
@@ -1316,654 +1968,11 @@ ListExpr OShortestPathTypeMap(ListExpr args)
   return outlist;
 }
 
-
-struct NodeEntry
-{
-  NodeEntry(){}
-
-  NodeEntry(const int id, const int index, const int before)
-    : nodeId(id), arrayIndex(index), beforeNodeId(before)
-  {}
-
-  NodeEntry(const NodeEntry& nE)
-    : nodeId(nE.nodeId), arrayIndex(nE.arrayIndex),
-      beforeNodeId(nE.beforeNodeId)
-  {}
-
-  ~NodeEntry()
-  {}
-
-  inline int Compare(const NodeEntry nE) const
-  {
-    return Compare(nE.GetNodeId());
-  }
-
-  inline int Compare(const int nId) const
-  {
-    if (nodeId < nId) return -1;
-    if (nodeId > nId) return 1;
-    return 0;
-  }
-
-  inline void operator=( const NodeEntry nE)
-  {
-    nodeId = nE.nodeId;
-    arrayIndex = nE.arrayIndex;
-    beforeNodeId = nE.beforeNodeId;
-  }
-
-  ostream& Print(ostream& os) const
-  {
-    os << "Node Number: " << nodeId;
-    os << ", Predecessor Node Number: " << beforeNodeId;
-    os << ", array Index: " << arrayIndex;
-    os << endl;
-    return os;
-  }
-
-  inline int GetNodeId() const
-  {
-    return nodeId;
-  }
-
-  inline int GetArrayIndex() const
-  {
-    return arrayIndex;
-  }
-
-  inline int GetBeforeNodeId() const
-  {
-    return beforeNodeId;
-  }
-
-  inline void SetNodeId(const int id)
-  {
-    nodeId = id;
-  }
-
-  inline void SetArrayIndex(const int index)
-  {
-    arrayIndex = index;
-  }
-
-  inline void SetBeforeNodeId (const int id)
-  {
-    beforeNodeId = id;
-  }
-
-  int nodeId;
-  int arrayIndex;
-  int beforeNodeId;
-};
-
-struct TreeEntry
-{
-
-  TreeEntry(){};
-
-  TreeEntry(const NodeEntry elem, int l = -1, int r = -1)
-    : nEntry(elem), left(l), right(r)
-  {}
-
-  TreeEntry(const TreeEntry& te)
-    : nEntry(te.GetNodeEntry()), left (te.GetLeft()), right(te.GetRight())
-  {}
-
-  ~TreeEntry()
-  {}
-
-  inline NodeEntry GetNodeEntry() const
-  {
-    return nEntry;
-  }
-
-  inline int GetLeft() const
-  {
-    return left;
-  }
-
-  inline int GetRight() const
-  {
-    return right;
-  }
-
-  inline void operator=(const TreeEntry nTEntry)
-  {
-    nEntry = nTEntry.GetNodeEntry();
-    left = nTEntry.GetLeft();
-    right = nTEntry.GetRight();
-  }
-
-  inline void SetNodeEntry(const NodeEntry& ne)
-  {
-    nEntry = ne;
-  }
-
-  inline void SetLeft(const int n)
-  {
-    left = n;
-  }
-
-  inline void SetRight(const int n)
-  {
-    right = n;
-  }
-
-  inline int Compare(const TreeEntry& nE) const
-  {
-    return GetNodeEntry().Compare(nE.GetNodeEntry());
-  }
-
-  inline int Compare(const int nodeId) const
-  {
-    return GetNodeEntry().Compare(nodeId);
-  }
-
-  ostream& Print(ostream& os) const
-  {
-    os << "Entry: ";
-    nEntry.Print(os);
-    os << "left: " << left << ", right: " << right << endl;
-    return os;
-  }
-
-  NodeEntry nEntry;
-  int left,right;
-};
-
-struct NodeEntryTree
-{
-  NodeEntryTree()
-    : tree(0)
-  {
-    fFree = 0;
-  }
-
-  NodeEntryTree(const int n)
-    : tree(n)
-  {
-    fFree = 0;
-  }
-
-  ~NodeEntryTree()
-  {}
-
-  inline void Destroy()
-  {
-    tree.Destroy();
-  }
-
-  inline void Remove()
-  {
-    tree.Destroy();
-    delete this;
-  };
-
-  int Find(const TreeEntry& te) const
-  {
-    int i = 0;
-    if (tree.Size() < 1) return -1;
-    while (i < fFree)
-    {
-      TreeEntry test = GetTreeEntry(i);
-      switch(test.Compare(te))
-      {
-        case 0:
-        {
-          return i;
-          break;
-        }
-        case -1:
-        {
-          if (test.GetRight() != -1) i = test.GetRight();
-          else return i;
-          break;
-        }
-        case 1:
-        {
-          if (test.GetLeft() != -1) i = test.GetLeft();
-          else return i;
-          break;
-        }
-        default: // should never been reached
-        {
-          return -1;
-          break;
-        }
-      }
-    }
-    return -1; // should never been reached
-  };
-
-  int Find(const int nId) const
-  {
-    int i = 0;
-    if (tree.Size() < 1) return -1;
-    while (i < fFree)
-    {
-      TreeEntry test = GetTreeEntry(i);
-      switch(test.GetNodeEntry().Compare(nId))
-      {
-        case 0:
-        {
-          return i;
-          break;
-        }
-        case 1:
-        {
-          if (test.GetLeft() != -1) i = test.GetLeft();
-          else return i;
-          break;
-        }
-        case -1:
-        {
-          if (test.GetRight() != -1) i = test.GetRight();
-          else return i;
-          break;
-        }
-        default: // should never been reached
-        {
-          return -1;
-          break;
-        }
-      }
-    }
-    return -1; // should never been reached
-  };
-
-  void Insert(const TreeEntry nE, int& newPos)
-  {
-
-    newPos = Find(nE);
-    if (newPos < 0 )
-    {
-      newPos = fFree;
-      fFree++;
-      tree.Put(newPos, nE);
-    }
-    else
-    {
-      if (newPos < fFree)
-      {
-        TreeEntry test = GetTreeEntry(newPos);
-        switch(test.Compare(nE))
-        {
-          case 1:
-          {
-            test.SetLeft(fFree);
-            tree.Put(newPos,test);
-            tree.Put(fFree,nE);
-            fFree++;
-            break;
-          }
-          case -1:
-          {
-            test.SetRight(fFree);
-            tree.Put(newPos,test);
-            tree.Put(fFree,nE);
-            fFree++;
-            break;
-          }
-          case 0:
-          {
-            tree.Put(newPos,nE);
-            break;
-          }
-          default: //should never been reached
-          {
-            break;
-          }
-        }
-      }
-    }
-  };
-
-  void SetIndex (const int pos, const int index)
-  {
-    assert (pos > -1 && pos < fFree);
-    TreeEntry te = GetTreeEntry(pos);
-    NodeEntry nE = te.GetNodeEntry();
-    nE.SetArrayIndex(index);
-    te.SetNodeEntry(nE);
-    tree.Put(pos,te);
-  }
-
-  inline int GetIndex (const int pos) const
-  {
-    assert(pos > -1 && pos < fFree);
-    return GetTreeEntry(pos).GetNodeEntry().GetArrayIndex();
-  }
-
-  void SetBeforeNodeId(const int pos, const int before)
-  {
-    assert(pos > -1 && pos < fFree);
-    TreeEntry te = GetTreeEntry(pos);
-    NodeEntry ne = te.GetNodeEntry();
-    ne.SetBeforeNodeId(before);
-    te.SetNodeEntry(ne);
-    tree.Put(pos,te);
-  }
-
-  TreeEntry GetTreeEntry(const int pos) const
-  {
-    assert(pos > -1 && pos < fFree);
-    TreeEntry te;
-    tree.Get(pos,te);
-    return te;
-  }
-
-  bool IsNode(const int pos, const int nodeNumber) const
-  {
-    assert(pos > -1 && pos < fFree);
-
-    if (GetTreeEntry(pos).GetNodeEntry().GetNodeId() == nodeNumber)
-      return true;
-    else
-      return false;
-  }
-
-  ostream& Print(ostream& os) const
-  {
-    os << "Start NodeEntryTree: " << endl;
-    TreeEntry tE;
-    if (fFree > 0)
-    {
-      for (int i = 0; i < tree.Size(); i++)
-      {
-        tree.Get(i,tE);
-        tE.Print(os);
-      }
-    }
-    os << "Ende NodeEntryTree" << endl;
-    return os;
-  }
-
-  DbArray<TreeEntry> tree;
-  int fFree;
-};
-
-
-struct PQEntryOrel
-{
-  PQEntryOrel() {}
-
-  PQEntryOrel(const int node, const int before, const double dist,
-              const double prio)
-    : nodeNumber(node), beforeNodeNumber(before), distFromStart(dist),
-      prioval(prio)
-  {}
-
-  PQEntryOrel(const PQEntryOrel& nE)
-    : nodeNumber(nE.nodeNumber), beforeNodeNumber(nE.beforeNodeNumber),
-      distFromStart(nE.distFromStart), prioval(nE.prioval)
-  {}
-
-  ~PQEntryOrel()
-  {}
-
-  ostream& Print(ostream& os) const
-  {
-    os << "Node Number: " << nodeNumber;
-    os << ", Predecessor Node Number: " << beforeNodeNumber;
-    os << ", Prioval: " << prioval;
-    os << ", Distance From Start: " << distFromStart;
-    os << endl;
-    return os;
-  }
-
-  int nodeNumber;
-  int beforeNodeNumber;
-  double distFromStart;
-  double prioval;
-
-};
-
-struct PQueueOrel
-{
-
-  PQueueOrel()
-    : prioQ(0)
-  {
-    firstFree = 0;
-  }
-
-  PQueueOrel(const int n)
-    : prioQ(n)
-  {
-    firstFree = 0;
-  }
-
-  ~PQueueOrel()
-  {}
-
-  inline void Destroy()
-  {
-    prioQ.Destroy();
-  }
-
-  inline void Clear()
-  {
-    prioQ.clean();
-    firstFree = 0;
-  }
-
-  inline bool IsEmpty() const
-  {
-    if (firstFree == 0 ) return true;
-    else return false;
-  }
-
-  ostream& Print(ostream& os) const
-  {
-    os << "Start PriorityQueue: " << endl;
-    PQEntryOrel pE;
-    if (firstFree > 0)
-    {
-      for (int i = 0; i < firstFree; i++)
-      {
-        prioQ.Get(i,pE);
-        pE.Print(os);
-      }
-    }
-    os << "Ende PriorityQueue" << endl;
-    return os;
-  }
-
-/*
-If a node is reached second time and the prioval of the second way is
-smaller than on the path found before. The prioval, the valFromStart and the
-position in the  priority queue must be corrected.
-
-*/
-
-  void CorrectPosition ( const int actPosIndex, const PQEntryOrel& nEle,
-                         NodeEntryTree* pNodeTree )
-  {
-    int testIndex = actPosIndex;
-    int n = actPosIndex;
-    PQEntryOrel test;
-    bool found = false;
-    while ( testIndex > 0 && !found )
-    {
-
-      if ( ( testIndex % 2 ) == 0 ) n = ( testIndex-2 ) / 2;
-      else n = ( testIndex -1 ) / 2;
-      if ( n >= 0 )
-      {
-        prioQ.Get ( n, test );
-        if ( test.prioval > nEle.prioval ||
-             (test.prioval == nEle.prioval &&
-              test.distFromStart > nEle.distFromStart))
-        {
-          Swap ( n, nEle, testIndex, test, pNodeTree );
-        }
-        else
-        {
-          found = true;
-        }
-      }
-      else
-      {
-        found = true;
-      }
-    }
-  }
-
-  void Append ( const PQEntryOrel nE, int pNElemPos,
-                NodeEntryTree *pNodeTree)
-  {
-    int actPos = firstFree;
-    prioQ.Put(actPos, nE );
-    pNodeTree->Insert(TreeEntry(NodeEntry(nE.nodeNumber,
-                                          actPos,
-                                          nE.beforeNodeNumber),
-                                -1,-1),
-                      pNElemPos);
-    CorrectPosition(actPos, nE, pNodeTree );
-    firstFree++;
-  }
-
-  void Insert ( const PQEntryOrel nE, NodeEntryTree *pNodeTree )
-  {
-    int pNElemPos = pNodeTree->Find(nE.nodeNumber);
-    if (pNElemPos < 0)
-      Append(nE, pNElemPos, pNodeTree);
-    else
-    {
-      if ( pNElemPos > -1 && pNElemPos < pNodeTree->fFree)
-      {
-        if (!pNodeTree->IsNode(pNElemPos, nE.nodeNumber))
-        {
-          Append(nE, pNElemPos, pNodeTree);
-        }
-        else
-        {
-          int index = pNodeTree->GetIndex(pNElemPos);
-          if (index > -1 && index < firstFree)
-          {
-            PQEntryOrel test;
-            prioQ.Get(index, test);
-            if (test.prioval > nE.prioval)
-            {
-              prioQ.Put(index, nE);
-              pNodeTree->SetBeforeNodeId(pNElemPos, nE.beforeNodeNumber);
-              CorrectPosition(index, nE, pNodeTree);
-            }
-          }
-        }
-      }
-    }
-  }
-
-  void Swap(const int testIndex, const PQEntryOrel& last,
-            int& actIndex, const PQEntryOrel& test1,
-            NodeEntryTree* pNodeTree)
-  {
-    prioQ.Put(testIndex, last);
-    pNodeTree->SetIndex(pNodeTree->Find(last.nodeNumber),testIndex);
-    prioQ.Put(actIndex, test1);
-    pNodeTree->SetIndex(pNodeTree->Find(test1.nodeNumber),actIndex);
-    actIndex = testIndex;
-  }
-
-  PQEntryOrel* GetAndDeleteMin(NodeEntryTree* pNodeTree)
-  {
-    if (firstFree <= 0) return 0;
-    PQEntryOrel result, last, test1, test2;
-    prioQ.Get(0,result);
-    PQEntryOrel* retValue = new PQEntryOrel(result);
-    int tRet = pNodeTree->Find(result.nodeNumber);
-    prioQ.Get(firstFree-1,last);
-    prioQ.Put(0,last);
-    prioQ.Put(firstFree-1, PQEntryOrel(-1,
-                                       -1,
-                                       numeric_limits<double>::max(),
-                                       numeric_limits<double>::max()));
-    firstFree--;
-    int pNewPos = pNodeTree->Find(last.nodeNumber);
-    pNodeTree->SetIndex(pNewPos,0);
-    pNodeTree->SetIndex(tRet,-1);
-    int actIndex = 0;
-    int testIndex = 0;
-    bool found = false;
-    while (testIndex < firstFree && !found)
-    {
-      testIndex = 2*actIndex + 1;
-      if (testIndex < firstFree-1)
-      {
-        prioQ.Get(testIndex, test1);
-        prioQ.Get(testIndex+1, test2);
-        if (test1.prioval < last.prioval ||
-            test2.prioval < last.prioval)
-        {
-          if (test1.prioval <= test2.prioval)
-            Swap(testIndex, last, actIndex, test1, pNodeTree);
-          else
-            Swap(testIndex+1, last, actIndex, test2, pNodeTree);
-        }
-        else
-        {
-          if(test1.prioval == last.prioval &&
-             test1.distFromStart < last.distFromStart)
-            Swap(testIndex, last, actIndex, test1, pNodeTree);
-          else
-          {
-            if (test2.prioval == last.prioval &&
-                test2.distFromStart < last.distFromStart)
-              Swap(testIndex+1, last, actIndex, test2, pNodeTree);
-            else
-              found = true;
-          }
-        }
-      }
-      else
-      {
-        if (testIndex > 0 && testIndex == firstFree-1)
-        {
-          prioQ.Get(testIndex,test1);
-          if (test1.prioval < last.prioval ||
-              (test1.prioval == last.prioval &&
-               test1.distFromStart < last.distFromStart))
-            Swap(testIndex, last, actIndex, test1, pNodeTree);
-          else
-            found = true;
-        }
-        else
-        {
-          found = true;
-        }
-      }
-    }
-    return retValue;
-  }
-
-  DbArray<PQEntryOrel> prioQ;
-  int firstFree;
-};
-
-struct  OShortestPathInfo
-{
-  OShortestPathInfo()
-  {
-    resTuples = 0;
-    iter = 0;
-    counter = 0;
-    seqNoAttrIndex = 0;
-  }
-
-  ~OShortestPathInfo(){};
-
-  TupleBuffer* resTuples;
-  GenericRelationIterator* iter;
-  int counter;
-  int seqNoAttrIndex;
-};
-
-int OShortestPathValueMap(Word* args, Word& result, int message,
+int OShortestPathDValueMap(Word* args, Word& result, int message,
                           Word& local, Supplier s)
 {
 #ifdef DEBUG_OREL
-cout << "OShortestPathValuMap" << endl;
+cout << "OShortestPathDValuMap" << endl;
 #endif
   OShortestPathInfo* spi = (OShortestPathInfo*) local.addr;
 
@@ -2248,7 +2257,7 @@ cout << "OShortestPathValuMap" << endl;
   return 0;
 }
 
-const string OShortestPathSpec =
+const string OShortestPathDSpec =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" "
   "\"Example\" ) "
   "( <text>(orel(tuple(a1:t1 ... an:tn))(ai1 ai2 ... ain)) x ti1 x ti2 x "
@@ -2257,16 +2266,504 @@ const string OShortestPathSpec =
   "<text>_ oshortestpath [int,int;fun]</text--->"
   "<text>Returns the shortest path from node ti1 to ti2 as stream of tuples"
   " where each tuple is extended by a sequence number telling which is the"
-  " place of the tuple in the shortest path.</text--->"
-  "<text>query otest oshortestpath[1,1; fun (t: tuple([Start: int, Ziel: int, "
+  " place of the tuple in the shortest path. Uses Dijkstras Algorithm</text--->"
+  "<text>query otest oshortestpathd[1,1; fun (t: tuple([Start: int, Ziel: int, "
   "Cost: real])) attr(t,Cost)] consume</text--->) )";
 
-Operator oshortestpath (
-                "oshortestpath",               // name
-                OShortestPathSpec,             // specification
-                OShortestPathValueMap,  // value mapping
+Operator oshortestpathd (
+                "oshortestpathd",               // name
+                OShortestPathDSpec,             // specification
+                OShortestPathDValueMap,  // value mapping
                 Operator::SimpleSelect, // trivial selection function
-                OShortestPathTypeMap    // type mapping
+                OShortestPathDTypeMap    // type mapping
+                );
+
+/*
+4.2 Operator ~oshortestpatha~
+
+We want to use the ordered relation as graph representation. And use this
+specialised ordered relation for shortest path computing.
+
+An ordered relation representing the edges of a graph contains for each edge of
+the graph one tuple. Each tuple consists at least of two integer attributes
+identifying the start and end node of the edge, and not less than two
+double attributes representing the costs of the edge, and the distance function
+to the target. For weight computation in Astar-Algorithm.
+The tuples may contain further attributes giving additonal cost informations
+or arbitrary informations for each edge.
+
+For the shortest path operation the input relation should be ordered by the
+numbers of the starting nodes at the first and by the end node numbers at the
+second level to reduce the number of page accesses.
+
+The operation ~oshortestpatha~ expects an ordered relation with at least four
+attributes (two integer and two double) like described before. Two integers
+identifying the start and the end node and a cost function mapping the tuple
+values to an real number describing the costs of the edge.
+
+The operation ~oshortestpatha~ extends the original tuples by an new attribute
+seqNo of type int. Describing the sequence number of the edge within the path
+from the start node to the end node.
+
+For the path computation AStar-Algorithm is used.
+
+*/
+
+ListExpr OShortestPathATypeMap(ListExpr args)
+{
+  #ifdef DEBUG_OREL
+    cout << "OShortestPathATypeMap" << endl;
+  #endif
+  #ifdef DEBUG_OREL2
+    cout << nl->ToString(args) << endl;
+  #endif
+  if(nl->ListLength(args) != 5)
+  {
+    return listutils::typeError("oshortestpatha expects 5 arguments");
+  }
+  ListExpr orelList = nl->First(args);
+  ListExpr startNodeList = nl->Second(args);
+  ListExpr endNodeList = nl->Third(args);
+  ListExpr functionDistMap = nl->Fourth(args);
+  ListExpr functionWeightMap = nl->Fifth(args);
+
+  //Check of first argument
+  if(!listutils::isOrelDescription(orelList))
+  {
+    return listutils::typeError("oshortestpatha expects orel as 1. argument");
+  }
+
+  ListExpr orelTuple = nl->Second(orelList);
+
+  if (!listutils::isTupleDescription(orelTuple))
+  {
+    return listutils::typeError("second value of orel is not of type tuple");
+  }
+
+  ListExpr orelAttrList(nl->Second(orelTuple));
+
+  if (!listutils::isAttrList(orelAttrList))
+  {
+    return listutils::typeError("Error in orel attrlist.");
+  }
+
+  if (nl->ListLength(orelAttrList) >= 3)
+  {
+    ListExpr firstAttr = nl->First(orelAttrList);
+
+    if (nl->ListLength(firstAttr) != 2 ||
+        nl->SymbolValue(nl->Second(firstAttr)) != "int")
+    {
+      return listutils::typeError("First attribute of orel should be int");
+    }
+
+    ListExpr secondAttr = nl->Second(orelAttrList);
+    if (nl->ListLength(secondAttr) != 2 ||
+        nl->SymbolValue(nl->Second(secondAttr)) != "int")
+    {
+      return listutils::typeError("Second attribute of orel should be int");
+    }
+  }
+  else
+  {
+    return listutils::typeError("orel has less than 3 attributes.");
+  }
+
+  //Check of second argument
+  if (!listutils::isSymbol(startNodeList,"int"))
+  {
+    return listutils::typeError("Second argument should be int");
+  }
+
+  //Check of third argument
+  if (!listutils::isSymbol(endNodeList,"int"))
+  {
+    return listutils::typeError("Third argument should be int");
+  }
+
+  // check of fourth argument
+  if (!listutils::isMap<1>(functionDistMap))
+  {
+    return listutils::typeError("Fourth argument should be a map");
+  }
+
+  ListExpr mapTuple1 = nl->Second(functionDistMap);
+
+  if (!nl->Equal(orelTuple,mapTuple1))
+  {
+    return listutils::typeError("Tuple of map function must match orel tuple");
+  }
+
+  ListExpr mapres1 = nl->Third(functionDistMap);
+
+  if(!listutils::isSymbol(mapres1,"real"))
+  {
+    return listutils::typeError("Wrong mapping result type for oshortestpatha");
+  }
+
+  // check of fifth argument
+  if (!listutils::isMap<1>(functionWeightMap))
+  {
+    return listutils::typeError("Fifth argument should be a map");
+  }
+
+  ListExpr mapTuple2 = nl->Second(functionWeightMap);
+
+  if (!nl->Equal(orelTuple,mapTuple2))
+  {
+    return listutils::typeError("Tuple of map function must match orel tuple");
+  }
+
+  ListExpr mapres2 = nl->Third(functionWeightMap);
+
+  if(!listutils::isSymbol(mapres2,"real"))
+  {
+    return listutils::typeError("Wrong mapping result type for oshortestpath");
+  }
+
+  //returns stream of tuples like in orel
+  NList extendAttrList(nl->TwoElemList(nl->SymbolAtom("SeqNo"),
+                                       nl->SymbolAtom("int")));
+  NList extOrelAttrList(nl->TheEmptyList());
+
+
+  for (int i = 0; i < nl->ListLength(orelAttrList); i++)
+  {
+    NList attr(nl->Nth(i+1,orelAttrList));
+    extOrelAttrList.append(attr);
+    #ifdef DEBUG_OREL2
+    cout << "extOrelAttrList: ";
+    extOrelAttrList.writeAsStringTo(cout);
+    cout << endl;
+    #endif
+  }
+
+  extOrelAttrList.append(extendAttrList);
+
+
+  ListExpr outlist = nl->TwoElemList(nl->SymbolAtom("stream"),
+                                     nl->TwoElemList(
+                                      nl->SymbolAtom("tuple"),
+                                      extOrelAttrList.listExpr()));
+
+  return outlist;
+}
+
+int OShortestPathAValueMap(Word* args, Word& result, int message,
+                          Word& local, Supplier s)
+{
+#ifdef DEBUG_OREL
+cout << "OShortestPathAValuMap" << endl;
+#endif
+  OShortestPathInfo* spi = (OShortestPathInfo*) local.addr;
+
+  switch(message)
+  {
+    case OPEN:
+    {
+      //Create localinfo
+      if (spi != 0) delete spi;
+      spi = new OShortestPathInfo();
+      ListExpr tupleType = GetTupleResultType( s );
+      TupleType* rtt = new TupleType( nl->Second( tupleType ) );
+      spi->resTuples = new TupleBuffer((size_t) 64*1024*1024);
+      local.setAddr(spi);
+      // Check for simplest Case
+      int startNode = ((CcInt*)args[1].addr)->GetIntval();
+      int endNode = ((CcInt*)args[2].addr)->GetIntval();
+      if (startNode == endNode)
+      {
+        //source and target node are equal no path
+        rtt->DeleteIfAllowed();
+        rtt = 0;
+        return 0;
+      }
+
+      //Shortest Path Evaluation
+      //Get edge Tuples for StartNode
+      OrderedRelation* orel = (OrderedRelation*)args[0].addr;
+      OrderedRelationIterator* orelIt = 0;
+      vector<void*> attributes(2);
+      vector<SmiKey::KeyDataType> kElems(2);
+      SmiKey test((long int) 0);
+      kElems[0] = test.GetType();
+      kElems[1] = test.GetType();
+      int toNode = startNode;
+      //Init priority Queue
+      NodeEntryTree* visitedNodes = new NodeEntryTree(0);
+      PQueueOrel* prioQ = new PQueueOrel(0);
+      prioQ->Insert(PQEntryOrel(startNode,
+                                -1,
+                                0.0,
+                                0.0),
+                    visitedNodes);
+      bool found = false;
+      PQEntryOrel* actPQEntry = 0;
+      double dist = 0.0;
+      Tuple* actTuple = 0;
+      CcInt* minNodeId = new CcInt(true,0);
+      CcInt* maxNodeId = new CcInt(true,numeric_limits<int>::max());
+      //Search shortest path
+      while(!prioQ->IsEmpty() && !found)
+      {
+        actPQEntry = prioQ->GetAndDeleteMin(visitedNodes);
+        if (actPQEntry->nodeNumber == endNode)
+        {
+          found = true;
+        }
+        else
+        {
+          CcInt* actNodeInt = new CcInt(true,actPQEntry->nodeNumber);
+
+          attributes[0] = actNodeInt;
+          attributes[1] = minNodeId;
+          CompositeKey actNodeLower(attributes,kElems,false);
+          attributes[1] = maxNodeId;
+          CompositeKey actNodeUpper(attributes,kElems,true);
+          orelIt =
+            (OrderedRelationIterator*) orel->MakeRangeScan(actNodeLower,
+                                                           actNodeUpper);
+          actTuple = orelIt->GetNextTuple();
+          while(actTuple != 0)
+          {
+            toNode = ((CcInt*)actTuple->GetAttribute(1))->GetIntval();
+            if (actPQEntry->nodeNumber != toNode)
+            {
+              ArgVectorPointer funArgs1 = qp->Argument(args[3].addr);
+              Word funResult1;
+              ((*funArgs1)[0]).setAddr(actTuple);
+              qp->Request(args[3].addr,funResult1);
+              double edgeCost = ((CcReal*)funResult1.addr)->GetRealval();
+              if (edgeCost < 0.0)
+              {
+                cerr << "Found negativ edge cost computation aborted." << endl;
+                actTuple->DeleteIfAllowed();
+                actTuple = 0;
+                actNodeInt->DeleteIfAllowed();
+                delete orelIt;
+                orelIt = 0;
+                delete actPQEntry;
+                actPQEntry = 0;
+                minNodeId->DeleteIfAllowed();
+                maxNodeId->DeleteIfAllowed();
+                attributes.clear();
+                kElems.clear();
+                prioQ->Clear();
+                prioQ->Destroy();
+                delete prioQ;
+                visitedNodes->Destroy();
+                delete visitedNodes;
+                rtt->DeleteIfAllowed();
+                rtt = 0;
+                return 0;
+              }
+              ArgVectorPointer funArgs2 = qp->Argument(args[4].addr);
+              Word funResult2;
+              ((*funArgs2)[0]).setAddr(actTuple);
+              qp->Request(args[3].addr,funResult2);
+              double restCost = ((CcReal*)funResult2.addr)->GetRealval();
+              if (restCost < 0) restCost = 0;
+              double prioVal = dist + restCost;
+              prioQ->Insert(PQEntryOrel(toNode,
+                                        actPQEntry->nodeNumber,
+                                        dist,
+                                        prioVal),
+                            visitedNodes);
+            }
+            actTuple->DeleteIfAllowed();
+            actTuple = 0;
+            actTuple = orelIt->GetNextTuple();
+          }
+          if (actTuple != 0)
+          {
+            actTuple->DeleteIfAllowed();
+            actTuple = 0;
+          }
+          actNodeInt->DeleteIfAllowed();
+          delete orelIt;
+          orelIt = 0;
+          delete actPQEntry;
+          actPQEntry = 0;
+        }
+      }
+      minNodeId->DeleteIfAllowed();
+      maxNodeId->DeleteIfAllowed();
+      if (!found) //no path exists
+      {
+        cout << "no path exists" << endl;
+        attributes.clear();
+        kElems.clear();
+        prioQ->Clear();
+        prioQ->Destroy();
+        delete prioQ;
+        visitedNodes->Destroy();
+        delete visitedNodes;
+        rtt->DeleteIfAllowed();
+        rtt = 0;
+        return 0;
+      }
+      else //Shortest Path found write result Relation
+      {
+        int actEntryPos = visitedNodes->Find(actPQEntry->nodeNumber);
+        TreeEntry te = visitedNodes->GetTreeEntry(actEntryPos);
+        NodeEntry nE = te.GetNodeEntry();
+        delete actPQEntry;
+        actPQEntry = 0;
+        CcInt* startNodeInt = new CcInt(true,nE.beforeNodeId);
+        CcInt* endNodeInt = new CcInt(true,nE.nodeId);
+        attributes[0] = startNodeInt;
+        attributes[1] = endNodeInt;
+        CompositeKey actNodeKeyLower(attributes,kElems,false);
+        CompositeKey actNodeKeyUpper(attributes,kElems,true);
+        Tuple *newTuple = 0;
+        orelIt =
+          (OrderedRelationIterator*) orel->MakeRangeScan(actNodeKeyLower,
+                                                         actNodeKeyUpper);
+        actTuple = orelIt->GetNextTuple();
+        found = false;
+        while (!found && actTuple != 0)
+        {
+          newTuple = new Tuple( rtt );
+          int i = 0;
+          while( i < actTuple->GetNoAttributes())
+          {
+            newTuple->CopyAttribute(i, actTuple,i);
+            i++;
+          }
+          CcInt* noOfNodes = new CcInt(true, 0);
+          spi->seqNoAttrIndex = i;
+          newTuple->PutAttribute(i,noOfNodes);
+          spi->resTuples->AppendTuple(newTuple);
+          if (newTuple != 0)
+          {
+            newTuple->DeleteIfAllowed();
+            newTuple = 0;
+          }
+          if (nE.GetBeforeNodeId() != startNode)
+            actEntryPos = visitedNodes->Find(nE.GetBeforeNodeId());
+          else
+            found = true;
+          if (!found)
+          {
+            te = visitedNodes->GetTreeEntry(actEntryPos);
+            nE = te.GetNodeEntry();
+            startNodeInt->DeleteIfAllowed();
+            endNodeInt->DeleteIfAllowed();
+            startNodeInt = new CcInt(true,nE.beforeNodeId);
+            endNodeInt = new CcInt(true,nE.nodeId);
+            attributes[0] = startNodeInt;
+            attributes[1] = endNodeInt;
+            CompositeKey actNodeKeyLower(attributes,kElems,false);
+            CompositeKey actNodeKeyUpper(attributes,kElems,true);
+            delete orelIt;
+            orelIt =
+              (OrderedRelationIterator*) orel->MakeRangeScan(actNodeKeyLower,
+                                                             actNodeKeyUpper);
+            if (actTuple != 0)
+            {
+              actTuple->DeleteIfAllowed();
+              actTuple = 0;
+            }
+            actTuple = orelIt->GetNextTuple();
+          }
+        }
+        if (startNodeInt != 0)
+        {
+          startNodeInt->DeleteIfAllowed();
+          startNodeInt = 0;
+        }
+        if (endNodeInt != 0)
+        {
+          endNodeInt->DeleteIfAllowed();
+          endNodeInt = 0;
+        }
+        if (actTuple != 0)
+        {
+          actTuple->DeleteIfAllowed();
+          actTuple = 0;
+        }
+        delete orelIt;
+        orelIt = 0;
+      }
+      if (actTuple != 0)
+      {
+         actTuple->DeleteIfAllowed();
+         actTuple = 0;
+      }
+      rtt->DeleteIfAllowed();
+      rtt = 0;
+      attributes.clear();
+      kElems.clear();
+      prioQ->Clear();
+      prioQ->Destroy();
+      delete prioQ;
+      visitedNodes->Destroy();
+      delete visitedNodes;
+      spi->counter = spi->resTuples->GetNoTuples();
+      spi->iter = spi->resTuples->MakeScan();
+      return 0;
+      break;
+    }
+
+    case REQUEST:
+    {
+      if (spi != 0 && spi->resTuples != 0 && spi->iter != 0)
+      {
+        Tuple* res = spi->iter->GetNextTuple();
+        if (res != 0)
+        {
+          res->PutAttribute( spi->seqNoAttrIndex,
+                             new CcInt (true, spi->counter));
+          spi->counter--;
+          result.setAddr(res);
+          return YIELD;
+        }
+      }
+      return CANCEL;
+      break;
+    }
+
+    case CLOSE:
+    {
+      if (spi != 0)
+      {
+        delete spi->iter;
+        spi->iter = 0;
+        spi->resTuples->Clear();
+        delete spi->resTuples;
+        spi->resTuples = 0;
+        delete spi;
+        spi = 0;
+        local.setAddr(0);
+      }
+      return 0;
+      break;
+    }
+
+  }
+  return 0;
+}
+
+const string OShortestPathASpec =
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+  "\"Example\" ) "
+  "( <text>(orel(tuple(a1:t1 ... an:tn))(ai1 ai2 ... ain)) x ti1 x ti2 x "
+  " (tuple->real) -> "
+  "(stream (tuple(a1:t1 ... an:tn SeqNo: int)))</text--->"
+  "<text>_ oshortestpatha [int,int;fun, fun]</text--->"
+  "<text>Returns the shortest path from node ti1 to ti2 as stream of tuples"
+  " where each tuple is extended by a sequence number telling which is the"
+  " place of the tuple in the shortest path. Uses A Star Algorithm.</text--->"
+  "<text>query otest oshortestpath[1,1; fun (t: tuple([Start: int, Ziel: int, "
+  "Cost: real, Weight: real])) attr(t,Cost), fun (t: tuple([Start: int, Ziel: "
+  "int, Cost: real, Weight: real])) attr(t,Weight)] consume</text--->) )";
+
+Operator oshortestpatha (
+                "oshortestpatha",               // name
+                OShortestPathASpec,             // specification
+                OShortestPathAValueMap,  // value mapping
+                Operator::SimpleSelect, // trivial selection function
+                OShortestPathATypeMap    // type mapping
                 );
 
 
@@ -2356,7 +2853,8 @@ class OrderedRelationAlgebra : public Algebra {
       AddOperator(&oleftrange);
       AddOperator(&orightrange);
       AddOperator(&orange);
-      AddOperator(&oshortestpath);
+      AddOperator(&oshortestpathd);
+      AddOperator(&oshortestpatha);
       #ifdef USE_PROGRESS
       oleftrange.EnableProgress();
       orightrange.EnableProgress();

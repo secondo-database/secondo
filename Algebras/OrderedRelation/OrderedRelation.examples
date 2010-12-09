@@ -19,9 +19,15 @@ Signature: (orel (tuple (a1:t1,a2:t2,...,an:tn)) (ai1 ai2 ... ain)) x (ti1 ti2) 
 Example  : query (Orte feed oconsume[BevT] orange[500;800] count) = (Orte feed filter[.BevT>= 500] filter[.BevT <= 800] count)
 Result   : TRUE
 
-Operator : oshortestpath
+Operator : oshortestpathd
 Number   : 1
 Signature: (orel (tuple (a1:t1,a2:t2,...,an:tn)) (ai1)) x int x int x (tuple->real) -> stream(tuple(a1:t1,...an+1:tn+1))
-Example  : query otestrel oshortestpath [1;3; fun (t:tuple([id_s1: int, id_s2: int, Name_s1: string, Name_s2: string, geoData_s1: point, geoData_s2: point])) distance(attr(t,geoData_s1),attr(t,geoData_s2))] consume;
+Example  : query otestrel oshortestpathd [1;3; fun (t:tuple([id_s1: int, id_s2: int, Name_s1: string, Name_s2: string, geoData_s1: point, geoData_s2: point])) distance(attr(t,geoData_s1),attr(t,geoData_s2))] consume;
+Result   : file
+
+Operator : oshortestpatha
+Number   : 1
+Signature: (orel (tuple (a1:t1,a2:t2,...,an:tn)) (ai1)) x int x int x (tuple->real) x (tuple->real)-> stream(tuple(a1:t1,...an+1:tn+1))
+Example  : query otestrel oshortestpatha [1,3; fun (t:tuple([id_s1: int, id_s2: int, Name_s1: string, Name_s2: string, geoData_s1: point, geoData_s2: point])) distance(attr(t,geoData_s1),attr(t,geoData_s2)),  fun (s:tuple([id_s1: int, id_s2: int, Name_s1: string, Name_s2: string, geoData_s1: point, geoData_s2: point])) distance(attr(s,geoData_s1),attr(s,geoData_s2)) * 0.0] consume;
 Result   : file
 
