@@ -1,6 +1,6 @@
 //This file is part of SECONDO.
 
-//Copyright (C) 2004, University in Hagen, Department of Computer Science, 
+//Copyright (C) 2004, University in Hagen, Department of Computer Science,
 //Database Systems for New Applications.
 
 //SECONDO is free software; you can redistribute it and/or modify
@@ -20,18 +20,32 @@
 
 package  viewer.hoese;
 
-import java.awt.*;
-import java.awt.event.*;
-import javax.swing.*;
-import java.awt.geom.*;
-import java.util.*;
-import viewer.HoeseViewer;
-import javax.swing.border.*;
-import java.awt.image.BufferedImage;
+import java.awt.AlphaComposite;
+import java.awt.Color;
+import java.awt.Component;
+import java.awt.Composite;
+import java.awt.Dimension;
+import java.awt.Graphics;
+import java.awt.Graphics2D;
+import java.awt.Rectangle;
+import java.awt.RenderingHints;
+import java.awt.event.ActionListener;
+import java.awt.event.MouseListener;
+import java.awt.geom.AffineTransform;
+import java.awt.geom.Rectangle2D;
+import java.util.ListIterator;
+import java.util.Vector;
+
+import javax.swing.JComboBox;
+import javax.swing.JComponent;
+import javax.swing.JLayeredPane;
+import javax.swing.JToggleButton;
+
 import tools.Reporter;
+import viewer.HoeseViewer;
 
 /**
- * This class implements the layer-stack for the graphical objects. The super class is a 
+ * This class implements the layer-stack for the graphical objects. The super class is a
  * JLayeredPane, which offers a lot of functionality needed here.
  */
 public class GraphWindow extends JLayeredPane
@@ -43,14 +57,14 @@ public class GraphWindow extends JLayeredPane
 /** Main-application */
   HoeseViewer mw;
 
-/** a scalable image as background */
- ScalableImage background=new ScalableImage();
+	/** The background object - start with a SimpleBackground */
+	Background background = new SimpleBackground(); // XRIS NEW
 
 /** a flag for ignoring a repaint message.
-    This can be used to make all changes without new drawing. 
+    This can be used to make all changes without new drawing.
 **/
-   private boolean ignorePaint = false; 
-    
+   private boolean ignorePaint = false;
+
 
 /** a additional object for  painting **/
    DsplGraph  additionalGraphObject;
@@ -77,15 +91,7 @@ public class GraphWindow extends JLayeredPane
            ((JComponent)com[0]).setVisible(((JToggleButton)evt.getSource()).isSelected());
       }
     };
-    // add a switch for the background
-    //JToggleButton jt = new JToggleButton();
-    //jt.setSelected(true);
-    //jt.setAlignmentX(Component.CENTER_ALIGNMENT);
-    //jt.setPreferredSize(new Dimension(10, 10));
-    //jt.addActionListener(LayerButtonListener);
-    //jt.setActionCommand("-1");
-    //mw.addSwitch(jt,0);
-    add(background,new Integer(-1));
+
   }
 
 
@@ -121,11 +127,6 @@ public class GraphWindow extends JLayeredPane
   public Category createAutoCat () {
     Category defCat = new Category();
     int r, g, b;
-    /*        r=(int)(Math.random()*256);
-     g=(int)(Math.random()*256);
-     b=(int)(Math.random()*256);
-     defCat.setLineColor(new Color(r,g,b));* @see <a href="Categorysrc.html#GraphWindow">Source</a>
-   */
     defCat.setLineColor(Color.black);
     defCat.setName("Auto" + Integer.toString(CategoryEditor.CpCnt++));
     defCat.setLineWidth((float)Math.abs(Math.random()*5.0f + 0.5f));
@@ -166,7 +167,7 @@ public class GraphWindow extends JLayeredPane
                 break;
             }
       case CurrentState.CATEGORY_MANUAL: {
-               newQueryRepresentation(grob);          
+               newQueryRepresentation(grob);
                break;
            }
       case CurrentState.CATEGORY_BY_NAME: {
@@ -185,7 +186,7 @@ public class GraphWindow extends JLayeredPane
                     } else {
                         dg.setCategory(cat);
                     }
-                 } 
+                 }
               }
               // process remaining objects
               if(remaining.size()>0){
@@ -218,14 +219,14 @@ public class GraphWindow extends JLayeredPane
      }
      // nothing found
      return null;
-  }  
+  }
 
 
   /**
    * Adds the Layer l to the top of layerstack
    * @param l
    * @return The layertoggle of this layer
-   * @see <a href="Categorysrc.html#addLayer">Source</a> 
+   * @see <a href="Categorysrc.html#addLayer">Source</a>
    */
   public JToggleButton addLayer (Layer l) {
     //    add (lay,new Integer(highestLayer()+1));
@@ -278,10 +279,10 @@ public class GraphWindow extends JLayeredPane
   /**
    * Sets a new size for all layers
    * @param asize
-   * @see <a href="Categorysrc.html#updateLayersSize">Source</a> 
+   * @see <a href="Categorysrc.html#updateLayersSize">Source</a>
    */
   public void updateLayersSize (Rectangle asize) {
-    setPreferredSize(new Dimension((int)(asize.getX() + asize.getWidth()), 
+    setPreferredSize(new Dimension((int)(asize.getX() + asize.getWidth()),
         (int)(asize.getY() + asize.getHeight())));              //updateLayerSize();
     for (int i = 0; i < getComponentCount(); i++)
       //if (getLayer(getComponent(i))<=10000)
@@ -291,11 +292,11 @@ public class GraphWindow extends JLayeredPane
 
   /**
    * Recalculates the boundingbox of all graph. objects
-   * @see <a href="Categorysrc.html#updateBoundingBox">Source</a> 
+   * @see <a href="Categorysrc.html#updateBoundingBox">Source</a>
    */
   public void updateBoundingBox () {
     Rectangle2D.Double r;
-    BackGroundImage bgi = mw.getBackgroundImage();
+    Background bgi = getBackgroundObject();
     if(bgi.useForBoundingBox()){
          r = (Rectangle2D.Double) bgi.getBBox().clone();
     }else{
@@ -306,20 +307,20 @@ public class GraphWindow extends JLayeredPane
         Layer l = (Layer)getComponent(i);
         Rectangle2D.Double layer_box = l.getWorldCoordBounds();
         if (r == null)
-          r = layer_box; 
-        else{ 
+          r = layer_box;
+        else{
           if(layer_box!=null)
               r = (Rectangle2D.Double)r.createUnion(layer_box);
         }
       }
-    if (r != null)
+    if (r != null){
       mw.BBoxWC = r;
+    }
   }
 
   public void updateBackground(){
-    BackGroundImage bgi = mw.getBackgroundImage();
+    Background bgi = getBackgroundObject();
     if(bgi==null){
-      remove(background);
       repaint();
       if(gui.Environment.DEBUG_MODE){
           Reporter.writeError("cannot find the background ");
@@ -333,62 +334,57 @@ public class GraphWindow extends JLayeredPane
     }
     mw.updateViewParameter();
 
-    BufferedImage bgimg = bgi.getImage();
-    if(bgimg==null){
-       background.setImage(null);
-       repaint();
-       return;
-    }
-    // ok a background is given
-    BufferedImage img2 = background.getImage();
-    if(bgimg==img2){ // no changes of the picture
-      return;
-    }
-
-    
-   //if(img2==null){
-   //    add(background,new Integer(-1));
-   // }
-    background.setImage(bgimg);
     repaint();
   }
 
   /**
    * draws all layers
    * @param g
-   * @see <a href="Categorysrc.html#paintChildren">Source</a> 
+   * @see <a href="Categorysrc.html#paintChildren">Source</a>
    */
   public void paintChildren (Graphics g) {
-    if(ignorePaint) return;
 
-    // paint the background image
-    // first transform the boundig box for the background 
-    // to into screen coordinates
-    AffineTransform at = CurrentState.transform;
-    Rectangle2D R = at.createTransformedShape(mw.getBackgroundImage().getBBox()).getBounds();
-    background.setBounds((int)R.getX(),(int)R.getY(),(int)R.getWidth(),(int)R.getHeight());
-    Rectangle2D R2 = mw.GeoScrollPane.getBounds();
-    Rectangle2D R3 = getBounds(); 
-    R2.setRect(-R3.getX(),-R3.getY(),R2.getWidth(),R2.getHeight());
-    background.setClipRect(R2);
-    Graphics2D g2 = (Graphics2D)g;
-    g2.setRenderingHint(RenderingHints.KEY_STROKE_CONTROL, RenderingHints.VALUE_STROKE_PURE);
-    super.paintChildren(g2);
+	if (ignorePaint) {
+			return;
+  }
+  // paint the background
+  // first transform the bounding box for the background
+  // into screen coordinates
+  AffineTransform at = CurrentState.transform;
+  Graphics2D g2 = (Graphics2D) g;
+  try{
+    AffineTransform iat = at.createInverse();
+    Rectangle vpbounds = mw.GeoScrollPane.getViewport().getBounds(null);
+    Rectangle2D cbbi = iat.createTransformedShape(vpbounds.getBounds()).getBounds();
+    if(background != null) {
+      background.paint(this,g2,at, cbbi);
+    }
+  } catch(Exception e){
+     Reporter.writeError("Problem while drawing background");
+     Reporter.debug(e);
+  }
 
-    // paint  the selected object again to be visible even if it is behind othe objects
 
-    DsplGraph dg = mw.getSelGO();
-    if ((dg != null) && (dg.getVisible())){
-	   		      Composite C = g2.getComposite();
-		  			  g2.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 0.0f));
-			  	    Layer.draw(dg,g2,CurrentState.ActualTime,at);
-	            g2.setComposite(C);
-     }
-     // draw addinitional objects from objectvcreation
-     if(additionalGraphObject!=null){
-         Layer.draw(additionalGraphObject,g2,CurrentState.ActualTime,at); 
-     }
-}
+  g2.setRenderingHint(RenderingHints.KEY_STROKE_CONTROL,
+        RenderingHints.VALUE_STROKE_PURE);
+	super.paintChildren(g2);
+
+		// paint the selected object again to be visible even if it is behind
+		// other objects
+
+	    DsplGraph dg = mw.getSelGO();
+		if ((dg != null) && (dg.getVisible())) {
+			Composite C = g2.getComposite();
+			g2.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER,
+					0.0f));
+			Layer.draw(dg, g2, CurrentState.ActualTime, at);
+			g2.setComposite(C);
+		}
+		// draw addinitional objects from objectvcreation
+		if (additionalGraphObject != null) {
+			Layer.draw(additionalGraphObject, g2, CurrentState.ActualTime, at);
+		}
+	}
 
   public void addMouseListener(MouseListener ML){
      MouseListener[] MLs = getMouseListeners();
@@ -400,6 +396,23 @@ public class GraphWindow extends JLayeredPane
   }
 
 
+  /**
+   * returns the actual background object
+   */
+  public Background getBackgroundObject() {
+    return background;
+  }
+
+  /**
+   * set the background object
+   */
+  public void setBackgroundObject(Background b) {
+    if(b != null){
+      background = b;
+    } else if (background == null){
+      background = new SimpleBackground(Color.PINK);
+    }
+  }
 
 }
 

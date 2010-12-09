@@ -1,11 +1,13 @@
 package viewer.hoese;
 
+import java.awt.Rectangle;
 import java.awt.Color;
-import java.awt.Graphics;
 import java.awt.Graphics2D;
 import java.awt.geom.Rectangle2D;
 import java.util.LinkedList;
 import java.util.Properties;
+import java.awt.geom.AffineTransform;
+
 
 import javax.swing.JColorChooser;
 import javax.swing.JComponent;
@@ -16,9 +18,9 @@ import tools.Reporter;
 /**
  * This Background class homogeneously fills the visible background (the total
  * clipping area) with a user-defined color.
- * 
+ *
  * @author Christian Duentgen
- * 
+ *
  */
 public class SimpleBackground extends Background {
 
@@ -31,17 +33,15 @@ public class SimpleBackground extends Background {
 	public SimpleBackground() {
 		name = "SimpleBackground";
 		license = "";
-		backgroundcolor = getBackground();
+		backgroundcolor = Color.RED;
 		useforbbox = false;
 		bbox = null;
-		clipbbox = null;
-		viewport = null;
 		listeners = new LinkedList<BackgroundListener>();
 	}
 
 	/**
 	 * The simple constructor sets the background color to "white"
-	 * 
+	 *
 	 * @param c
 	 *            The color to be used as background color;
 	 */
@@ -51,18 +51,16 @@ public class SimpleBackground extends Background {
 		if (c != null) {
 			backgroundcolor = c;
 		} else {
-			backgroundcolor = getBackground();
+			backgroundcolor = Color.GREEN;
 		}
 		useforbbox = false;
 		bbox = null;
-		clipbbox = null;
-		viewport = null;
 		listeners = new LinkedList<BackgroundListener>();
 	}
 
 	/**
 	 * Creates a SimpleBackground, restoring it from a property.
-	 * 
+	 *
 	 * @param p
 	 *            The properties to read from.
 	 * @param datapath
@@ -71,18 +69,16 @@ public class SimpleBackground extends Background {
 	public SimpleBackground(Properties p, String datapath) {
 		name = "SimpleBackground";
 		license = "";
-		backgroundcolor = getBackground();
+		backgroundcolor = Color.PINK;
 		useforbbox = false;
 		bbox = null;
-		clipbbox = null;
-		viewport = null;
 		listeners = new LinkedList<BackgroundListener>();
 		setConfiguration(p, datapath);
 	}
 
 	/**
 	 * Creates a SimpleBackground from a nested list and a data path.
-	 * 
+	 *
 	 * @param l
 	 *            The nested list to read from.
 	 * @param datapath
@@ -91,29 +87,25 @@ public class SimpleBackground extends Background {
 	public SimpleBackground(ListExpr l, String datapath) {
 		name = "SimpleBackground";
 		license = "";
-		backgroundcolor = getBackground();
+		backgroundcolor = Color.BLUE;
 		useforbbox = false;
 		bbox = null;
-		clipbbox = null;
-		viewport = null;
 		listeners = new LinkedList<BackgroundListener>();
 		readFromList(l, datapath);
 	}
 
 	/**
 	 * Constructs a SimpleBackground by interaction with the user.
-	 * 
+	 *
 	 * @param parent
 	 *            The parent for the used dialog
 	 */
 	public SimpleBackground(JComponent parent) {
 		name = "SimpleBackground";
 		license = "";
-		backgroundcolor = getBackground();
+		backgroundcolor = Color.DARK_GRAY;
 		useforbbox = false;
 		bbox = null;
-		clipbbox = null;
-		viewport = null;
 		listeners = new LinkedList<BackgroundListener>();
 		showConfigDialog(parent);
 	}
@@ -121,7 +113,7 @@ public class SimpleBackground extends Background {
 	/**
 	 * Opens a Dialog for choosing the background color. Informs all listeners
 	 * about the change.
-	 * 
+	 *
 	 * @see viewer.hoese.Background#showConfigDialog(javax.swing.JComponent)
 	 * @param parent
 	 *            The parent of the dialog component used.
@@ -132,15 +124,13 @@ public class SimpleBackground extends Background {
 		license = "";
 		useforbbox = false;
 		bbox = null;
-		clipbbox = null;
-		viewport = null;
 		if (listeners == null) {
 			listeners = new LinkedList<BackgroundListener>();
 		}
-		backgroundcolor = JColorChooser.showDialog(this,
+		backgroundcolor = JColorChooser.showDialog(null,
 				"Choose the background color:", backgroundcolor);
 		if (backgroundcolor == null) {
-			backgroundcolor = getBackground();
+			backgroundcolor = Color.CYAN;
 		}
 		BackgroundChangedEvent evt = new BackgroundChangedEvent() {
 			public Object getSource() {
@@ -167,13 +157,11 @@ public class SimpleBackground extends Background {
 		license = "";
 		useforbbox = false;
 		bbox = null;
-		clipbbox = null;
-		viewport = null;
 		if (listeners == null) {
 			listeners = new LinkedList<BackgroundListener>();
 		}
 		super.setConfiguration(p, backgrounddatapath);
-		backgroundcolor = getBackground();
+		backgroundcolor = Color.ORANGE;
 		String bcstring = p.getProperty(KEY_BGCOLOR, null);
 		if(bcstring != null) {
 			try {
@@ -183,20 +171,20 @@ public class SimpleBackground extends Background {
 					Reporter.writeError("Could not set Background property: "
 							+ KEY_BGCOLOR + " is not a valid RGB code).");
 					if (backgroundcolor == null) {
-						backgroundcolor = getBackground();
+						backgroundcolor = Color.MAGENTA;
 					}
 			}
 		} else {
 			Reporter.writeError("Could not set Background property: "
 					+ KEY_BGCOLOR + " not found).");
 			if (backgroundcolor == null) {
-				backgroundcolor = getBackground();
+				backgroundcolor = Color.LIGHT_GRAY;
 			}
 		}
 		BackgroundChangedEvent evt = new BackgroundChangedEvent() {
 			public Object getSource() {
 				return SimpleBackground.this;
-			} 
+			}
 		};
 		informListeners(evt);
 	}
@@ -228,11 +216,13 @@ public class SimpleBackground extends Background {
 	 *            The Graphics object to paint to.
 	 */
 	@Override
-	public void paint(Graphics g) {
-		Graphics2D g2d = (Graphics2D) g;
-		g2d.setBackground(backgroundcolor);
-		super.paint(g2d);
-	}
+	public void paint(JComponent parent, Graphics2D g, AffineTransform at, Rectangle2D rect) {
+    if(parent!=null){
+       parent.setBackground(backgroundcolor);
+    } else {
+       Reporter.writeError("parent is null");
+    }
+  }
 
 	/**
 	 * This is a call-back method to be called by external objects requesting
@@ -244,23 +234,12 @@ public class SimpleBackground extends Background {
 	public void handleBackgroundDataChangedEvent(BackgroundChangedEvent evt) {
 	}
 
-	/**
-	 * Sets the Background's clipping boundary. Since this specialized
-	 * Background should paint the entire visible background in a heterogeneous
-	 * color, this simultaneously changes the bounds member attribute.
-	 * 
-	 * @see viewer.hoese.Background#getConfiguration(java.lang.Object)
-	 * @param rect
-	 */
-	@Override
-	public void setClipBBox(Rectangle2D.Double rect) {
-		if ((bbox != null) && (rect != null)) {
-			clipbbox = (Rectangle2D.Double) bbox.createIntersection(rect);
-		} else {
-			clipbbox = (Rectangle2D.Double) rect;
-		}
-		bbox = (Rectangle2D.Double) rect;
-	}
+
+
+
+  public String toString(){
+     return getClass().getName() + "[" + super.toString() + ", " + "backgroundcolor = " + backgroundcolor+"]";
+  }
 
 	/**
 	 * The background color to be used.

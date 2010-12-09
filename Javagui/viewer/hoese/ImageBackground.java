@@ -1,10 +1,13 @@
 package viewer.hoese;
 
-import java.awt.Graphics;
+import java.awt.Rectangle;
+import java.awt.Graphics2D;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.util.LinkedList;
 import java.util.Properties;
+import java.awt.geom.AffineTransform;
+import java.awt.geom.Rectangle2D;
 
 import javax.swing.JComponent;
 
@@ -14,7 +17,7 @@ import tools.Reporter;
 /**
  * This class implements a Background showing a scalable image.
  * @author Christian Duentgen
- * 
+ *
  */
 public class ImageBackground extends Background {
 
@@ -29,27 +32,19 @@ public class ImageBackground extends Background {
 	public ImageBackground() {
 		name = "ImageBackground (no image)";
 		license = "";
-		img = new ScalableImage();
-		bbox = null;
-		clipbbox = null;
-		viewport = null;
 		useforbbox = false;
 		listeners = new LinkedList<BackgroundListener>();
 	}
 
 	/**
 	 * Constructs an ImageBackground by interaction with the user.
-	 * 
+	 *
 	 * @param parent
 	 *            The parent component for the used dialog.
 	 */
 	public ImageBackground(JComponent parent) {
 		name = "ImageBackground (no image)";
 		license = "";
-		img = new ScalableImage();
-		bbox = null;
-		clipbbox = null;
-		viewport = null;
 		useforbbox = false;
 		listeners = new LinkedList<BackgroundListener>();
 		showConfigDialog(parent);
@@ -57,7 +52,7 @@ public class ImageBackground extends Background {
 
 	/**
 	 * Creates an ImageBackground from a nested list and a data path.
-	 * 
+	 *
 	 * @param l
 	 *            The nested list to read from.
 	 * @param datapath
@@ -66,10 +61,6 @@ public class ImageBackground extends Background {
 	public ImageBackground(ListExpr l, String datapath) {
 		name = "ImageBackground";
 		license = "";
-		img = new ScalableImage();
-		bbox = null;
-		clipbbox = null;
-		viewport = null;
 		useforbbox = false;
 		listeners = new LinkedList<BackgroundListener>();
 		readFromList(l, datapath);
@@ -77,7 +68,7 @@ public class ImageBackground extends Background {
 
 	/**
 	 * Constructs an ImageBackground from a suitable Properties object.
-	 * 
+	 *
 	 * @param p
 	 *            The Properties to restore from.
 	 * @param datafilepath
@@ -86,10 +77,6 @@ public class ImageBackground extends Background {
 	public ImageBackground(Properties p, String datafilepath) {
 		name = "ImageBackground";
 		license = "";
-		img = new ScalableImage();
-		bbox = null;
-		clipbbox = null;
-		viewport = null;
 		useforbbox = false;
 		listeners = new LinkedList<BackgroundListener>();
 		setConfiguration(p, datafilepath);
@@ -99,7 +86,7 @@ public class ImageBackground extends Background {
 	 * Display a dialog for importing a background image from a file and
 	 * locating it to the world (i.e. setting its bounds). Inform all listeners,
 	 * if this was successful.
-	 * 
+	 *
 	 * @see viewer.hoese.Background#showConfigDialog(javax.swing.JComponent)
 	 * @param parent
 	 *            This parameter is ignored.
@@ -109,18 +96,16 @@ public class ImageBackground extends Background {
 		if (listeners == null) {
 			listeners = new LinkedList<BackgroundListener>();
 		}
-		BackGroundImage bgi = new BackGroundImage(null);
-		bgi.setVisible(false);
+		if (bgi == null ) {
+      bgi = new BackGroundImage(null);
+    }
+		bgi.setVisible(true);
 		BufferedImage bi = bgi.getImage();
 		if (bi != null) {
-			img.setImage(bi);
-			bbox = new BackGroundImage(null).getBBox();
-			if ((clipbbox == null) && (bbox != null)) {
-				clipbbox = bbox;
-			}
+			img = bi;
+			bbox = bgi.getBBox();
 			name = "ImageBackground";
 			license = "";
-			img.setClipRect(clipbbox);
 			useforbbox = bgi.useForBoundingBox();
 			BackgroundChangedEvent evt = new BackgroundChangedEvent() {
 				public Object getSource() {
@@ -129,59 +114,47 @@ public class ImageBackground extends Background {
 			};
 			informListeners(evt);
 		}
+    computeTransform();
 	}
 
-	/**
-	 * This overrides the method inherited from JComponent. It sets the location
-	 * and dimensions of the objects's graphical representation. It uses the
-	 * field member img (class SacalableImage), which is capable of handling
-	 * clipping and getting itself drawn. This methods deals with screen
-	 * coordinates!
-	 * 
-	 * @param x
-	 *            x-coordinate, relative to upper left border.
-	 * @param y
-	 *            y-coordinate, relative to upper left border.
-	 * @param w
-	 *            width (non-negative),
-	 * @param h
-	 *            height (non-negative),
-	 */
-	public void setBounds(int x, int y, int w, int h) {
-		if (img == null) {
-			img = new ScalableImage();
-		}
-		img.setBounds(x, y, w, h);
-		super.setBounds(x, y, w, h);
-	}
+
 
 	/**
 	 * Use the parameter as the new background image
 	 * @param img The image to be used as new backgrund
 	 */
 	public void setImage(BufferedImage newimage) {
-		img.setImage(newimage);
+		img = newimage;
+    computeTransform();
 	}
-	
+
 	/**
 	 * Paint method
-	 * 
+	 *
 	 * @see viewer.hoese.Background#paint(java.awt.Graphics)
 	 * @param g
 	 *            Graphic to which the Background is drawn.
 	 */
 	@Override
-	public void paint(Graphics g) {
-		super.paint(g);
+	public void paint(JComponent parent,Graphics2D g, AffineTransform at, Rectangle2D clipRect) {
+    if(parent!=null){
+       parent.setBackground(java.awt.Color.WHITE);
+    }
 		if (img != null) {
-			img.paint(g);
+      if(at_img2wc==null){
+         computeTransform();
+      }
+      AffineTransform at_img2screen = new AffineTransform(at_img2wc);
+      //at_img2screen.preConcatenate(at);
+      at_img2screen.concatenate(at);
+			g.drawImage(img,at_img2screen, null);
 		}
 	}
 
 	/**
 	 * This might be useful for automatically changing background images, but as
 	 * these are not yet implemented, this method has an empty implementation.
-	 * 
+	 *
 	 * @see viewer.hoese.Background#handleBackgroundDataChangedEvent()
 	 */
 	@Override
@@ -193,7 +166,7 @@ public class ImageBackground extends Background {
 	 * Set up the Background with parameters given as a Properties object. Can
 	 * be used to restore the Background settings, e.g. from a file. All
 	 * registered Listeners are informed.
-	 * 
+	 *
 	 * @param backgrounddatapath
 	 *            Path, where data files are stored.
 	 * @param p
@@ -229,8 +202,7 @@ public class ImageBackground extends Background {
 			}
 		}
 		if (bi != null) { // assign the image, update bboxes
-			img.setImage(bi);
-			img.setClipRect(clipbbox);
+			img = bi;
 		}
 		// inform listeners
 		BackgroundChangedEvent evt = new BackgroundChangedEvent() {
@@ -238,6 +210,7 @@ public class ImageBackground extends Background {
 				return ImageBackground.this;
 			}
 		};
+    computeTransform();
 		informListeners(evt);
 	}
 
@@ -245,7 +218,7 @@ public class ImageBackground extends Background {
 	 * Return the Background's settings as a Properties object. The Properties
 	 * can be used to save Background settings for later reference. Additional
 	 * data may be stored to files rooted at the given path.
-	 * 
+	 *
 	 * @param backgrounddatapath
 	 *            Path, where to store data files.
 	 * @return The Background's settings as a Properties object.
@@ -275,7 +248,7 @@ public class ImageBackground extends Background {
 					f = new File(backgrounddatapath + filename + bgnumber
 							+ ".png");
 				} while (f.exists());
-				javax.imageio.ImageIO.write(img.getImage(), "png", f);
+				javax.imageio.ImageIO.write(img, "png", f);
 				filename = filename + bgnumber + ".png";
 			}
 		} catch (Exception e) {
@@ -289,10 +262,62 @@ public class ImageBackground extends Background {
 		return p;
 	}
 
+  public String toString(){
+     return getClass().getName()+"["+super.toString()+", img = "+
+                                    img+ ", at_img2wc = " + at_img2wc+"]";
+  }
+
+
+  private void computeTransform(){
+     if(img==null || bbox == null){
+       at_img2wc=null;
+       return;
+     }
+     double img_w = img.getWidth();
+     double img_h = img.getHeight();
+     if(img_w<=0 || img_h<=0){
+       at_img2wc=null;
+       return;
+     }
+     double wc_x = bbox.getX();
+     double wc_y = bbox.getY();
+     double wc_w = bbox.getWidth();
+     double wc_h = bbox.getHeight();
+
+     if(wc_w<=0 || wc_h <=0){
+       at_img2wc=null;
+       return;
+     }
+
+     double scale_x = wc_w/img_w;
+     double scale_y = wc_h/img_h * -1.0;
+
+
+    //at_img2wc = AffineTransform.getScaleInstance(scale_x, scale_y);
+    //at_img2wc.translate(wc_x, wc_y - img_h);
+    at_img2wc = AffineTransform.getTranslateInstance(wc_x, img_h - wc_y);
+    at_img2wc.scale(scale_x, scale_y);
+
+    Rectangle2D.Double debugr = new Rectangle2D.Double(img.getMinX(), img.getMinY(), img.getWidth(), img.getHeight());
+    System.out.println("----------------------------------------");
+    System.out.println("Img_rectangle = " + debugr);
+    System.out.println("at_img2wc = " + at_img2wc);
+    System.out.println("Transformed img = " + at_img2wc.createTransformedShape(debugr).getBounds2D());
+    System.out.println("bbox = " + bbox);
+    System.out.println("----------------------------------------");
+  }
+
+
 	/**
 	 * The image that is used for the background.
 	 */
-	private ScalableImage img;
+	private BufferedImage img = null;
+
+  /** Dialog for user interaction. **/
+  private static BackGroundImage bgi = null;
+
+  /** Transformation from image to bbox world coordinates*/
+  private AffineTransform at_img2wc = null;
 
 	/**
 	 * String constant used as key for the background image within Property

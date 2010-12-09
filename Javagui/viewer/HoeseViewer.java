@@ -1,6 +1,6 @@
 //This file is part of SECONDO.
 
-//Copyright (C) 2004, University in Hagen, Department of Computer Science, 
+//Copyright (C) 2004, University in Hagen, Department of Computer Science,
 //Database Systems for New Applications.
 
 //SECONDO is free software; you can redistribute it and/or modify
@@ -19,31 +19,108 @@
 
 package  viewer;
 
-import  javax.swing.*;
-import  java.awt.*;
-import  java.awt.event.*;
-import  java.net.URL;
-import  java.io.*;
-import  java.util.Properties;
-import  java.util.Vector;
-import  java.util.StringTokenizer;
-import  java.util.Enumeration;
-import  sj.lang.ListExpr;
-import  java.util.ListIterator;
-import  javax.swing.event.*;
-import  java.awt.geom.*;
-import  javax.swing.border.*;
-import  viewer.hoese.*;
-import  gui.SecondoObject;
-import  gui.idmanager.*;
-import  project.*;
-import  components.*;
-import  java.awt.image.*;
-import  viewer.hoese.algebras.Dsplpointsequence;
-import javax.swing.plaf.basic.*;
-import tools.Reporter;
-import sj.lang.ServerErrorCodes;
+import gui.SecondoObject;
+import gui.idmanager.ID;
+import gui.idmanager.IDManager;
+
+import java.awt.AlphaComposite;
+import java.awt.BorderLayout;
+import java.awt.Color;
+import java.awt.Component;
+import java.awt.Composite;
+import java.awt.Container;
+import java.awt.Dimension;
+import java.awt.Font;
+import java.awt.Frame;
+import java.awt.Graphics2D;
+import java.awt.GridLayout;
+import java.awt.Image;
+import java.awt.Point;
+import java.awt.Rectangle;
+import java.awt.Shape;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import java.awt.event.InputEvent;
+import java.awt.event.ItemEvent;
+import java.awt.event.ItemListener;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
+import java.awt.event.MouseMotionListener;
+import java.awt.geom.AffineTransform;
+import java.awt.geom.Line2D;
+import java.awt.geom.Point2D;
+import java.awt.geom.Rectangle2D;
+import java.awt.image.BufferedImage;
+import java.io.File;
+import java.io.FileInputStream;
+import java.util.ListIterator;
+import java.util.Properties;
+import java.util.StringTokenizer;
 import java.util.TreeSet;
+import java.util.Vector;
+
+import javax.swing.AbstractAction;
+import javax.swing.BoxLayout;
+import javax.swing.ButtonGroup;
+import javax.swing.ImageIcon;
+import javax.swing.JButton;
+import javax.swing.JCheckBoxMenuItem;
+import javax.swing.JColorChooser;
+import javax.swing.JComboBox;
+import javax.swing.JComponent;
+import javax.swing.JFileChooser;
+import javax.swing.JLabel;
+import javax.swing.JMenu;
+import javax.swing.JMenuItem;
+import javax.swing.JOptionPane;
+import javax.swing.JPanel;
+import javax.swing.JRadioButtonMenuItem;
+import javax.swing.JScrollPane;
+import javax.swing.JSeparator;
+import javax.swing.JSplitPane;
+import javax.swing.JToggleButton;
+import javax.swing.JToolBar;
+import javax.swing.KeyStroke;
+import javax.swing.ListModel;
+import javax.swing.SwingConstants;
+import javax.swing.Timer;
+import javax.swing.event.ChangeEvent;
+import javax.swing.event.ChangeListener;
+import javax.swing.event.ListSelectionEvent;
+import javax.swing.event.ListSelectionListener;
+import javax.swing.event.MouseInputAdapter;
+
+import project.Projection;
+import sj.lang.ListExpr;
+import sj.lang.ServerErrorCodes;
+import tools.Reporter;
+import viewer.hoese.Background;
+import viewer.hoese.Category;
+import viewer.hoese.CategoryEditor;
+import viewer.hoese.CurrentState;
+import viewer.hoese.DsplBase;
+import viewer.hoese.DsplGraph;
+import viewer.hoese.GraphWindow;
+import viewer.hoese.ImageBackground;
+import viewer.hoese.Interval;
+import viewer.hoese.LEUtils;
+import viewer.hoese.LabelAttrDlg;
+import viewer.hoese.Layer;
+import viewer.hoese.LayerMgmt;
+import viewer.hoese.ManualLinkPool;
+import viewer.hoese.ProjectionManager;
+import viewer.hoese.QueryResult;
+import viewer.hoese.ScalableImage;
+import viewer.hoese.SimpleBackground;
+import viewer.hoese.TextWindow;
+import viewer.hoese.TimeInputDialog;
+import viewer.hoese.TimePanel;
+import viewer.hoese.Timed;
+import viewer.hoese.algebras.Dsplpointsequence;
+
+import components.ChangeValueEvent;
+import components.ChangeValueListener;
+import components.LongScrollBar;
 
 /**
  * this is a viewer for spatial and temporal spatial objects
@@ -141,7 +218,7 @@ public class HoeseViewer extends SecondoViewer {
  /* settings-menu */
   private javax.swing.JMenu jMenuGui;
   private JMenuItem jMenuBackgroundColor;
-  private static boolean changeAllBackgrounds=false; 
+  private static boolean changeAllBackgrounds=false;
   private javax.swing.JMenuItem MINewCat;
 
   private JMenu Menu_Prj;
@@ -215,10 +292,7 @@ public class HoeseViewer extends SecondoViewer {
   private String FileSeparator;
 
 
-  /** a dialog for assigning a background image */
-  private BackGroundImage bgImage;
-
-  /** the maximum number of pixels for capturing the bakcground */
+  /** the maximum number of pixels for capturing the background */
   private long MAXCAPTUREPIXELS = 10000000L;
 
   /** set the border when capturing the visible rectangle */
@@ -304,7 +378,7 @@ public class HoeseViewer extends SecondoViewer {
         if(t==null){
           JOptionPane.showMessageDialog(null,"Invalid Time Value","Error",JOptionPane.ERROR_MESSAGE);
           return;
-        } 
+        }
         setTime(t.doubleValue());
       }
 
@@ -343,7 +417,7 @@ public class HoeseViewer extends SecondoViewer {
     createPointSequenceBtn = new JButton();
     createPointSequenceBtn.setOpaque(true);
     createPointSequenceListener=new CreatePointSequenceListener();
-    
+
     ActionListener createPointSequenceAL = new ActionListener(){
           public void actionPerformed(ActionEvent evt){
               Object src = evt.getSource();
@@ -353,13 +427,13 @@ public class HoeseViewer extends SecondoViewer {
               if(HoeseViewer.this.createPointSequenceActivated){
                   // finish the input
                   if(!src.equals(lastSrc)) // ignore messages from the other button
-                    return;   
+                    return;
                   Butt.setBackground(Butt.getParent().getBackground());
                   createPointSequenceActivated=false;
                   GraphDisplay.removeMouseListener(createPointSequenceListener);
                   GraphDisplay.removeMouseMotionListener(createPointSequenceListener);
-                  createPointSequenceListener.closeSequence(); 
-                  SelectionControl.enableSelection(true); 
+                  createPointSequenceListener.closeSequence();
+                  SelectionControl.enableSelection(true);
                   GraphDisplay.repaint();
                   create_Rectangle_MI.setEnabled(true);
                   create_Points_MI.setEnabled(true);
@@ -371,7 +445,7 @@ public class HoeseViewer extends SecondoViewer {
               } else{ // start input
                   lastSrc = src;
                   Butt.setBackground(aColor);
-                  createPointSequenceActivated=true; 
+                  createPointSequenceActivated=true;
                   SelectionControl.enableSelection(false);
                   GraphDisplay.addMouseListener(createPointSequenceListener);
                   GraphDisplay.addMouseMotionListener(createPointSequenceListener);
@@ -382,7 +456,7 @@ public class HoeseViewer extends SecondoViewer {
                   create_FilledPointSequence_MI.setEnabled(false);
                   create_Point_MI.setEnabled(false);
                   create_Region_MI.setEnabled(false);
-              }            
+              }
           }
           Color aColor = Color.GREEN;
 //          Color dColor = Color.LIGHT_GRAY;
@@ -499,8 +573,8 @@ public class HoeseViewer extends SecondoViewer {
     actTimeLabel.setHorizontalAlignment(SwingConstants.CENTER);
     MouseKoordLabel.setHorizontalAlignment(SwingConstants.CENTER);
     jtb.add(TimeSliderAndLabels);
-    jtb.add(aPanel);   
- 
+    jtb.add(aPanel);
+
     TextDisplay = new TextWindow(this);
     DoQuerySelection = new QueryListSelectionListener();
     CurrentState.transform.scale(ZoomFactor, ZoomFactor);
@@ -518,26 +592,26 @@ public class HoeseViewer extends SecondoViewer {
         try {
           p = (Point2D.Double)CurrentState.transform.inverseTransform(e.getPoint(),p);
         } catch (Exception ex) {}
-        // compute the inverse projection if possible 
+        // compute the inverse projection if possible
         if(!ProjectionManager.isReversible()){
            MouseKoordLabel.setBackground(Color.PINK);
-           MouseKoordLabel.setText(Double.toString(p.getX()) + " / " + 
+           MouseKoordLabel.setText(Double.toString(p.getX()) + " / " +
                                    Double.toString(p.getY()).concat(COORD_EXT).substring(0,
                                    MAX_COORD_LENGTH));
         } else{
            MouseKoordLabel.setBackground(getBackground());
            double px = p.getX();
            double py = p.getY();
-           if(ProjectionManager.getOrig(px,py,aPoint)){           
+           if(ProjectionManager.getOrig(px,py,aPoint)){
                double x = aPoint.x;
                double y = aPoint.y;
                MouseKoordLabel.setText( (""+x)+
-                                         " / "+(""+y).concat(COORD_EXT).substring(0,MAX_COORD_LENGTH));    
+                                         " / "+(""+y).concat(COORD_EXT).substring(0,MAX_COORD_LENGTH));
           }else{
                MouseKoordLabel.setBackground(Color.RED);
-               MouseKoordLabel.setText( (""+px) + " / "+ 
-                                         (""+py).concat(COORD_EXT).substring(0,MAX_COORD_LENGTH));    
- 
+               MouseKoordLabel.setText( (""+px) + " / "+
+                                         (""+py).concat(COORD_EXT).substring(0,MAX_COORD_LENGTH));
+
           }
         }
       }
@@ -555,7 +629,7 @@ public class HoeseViewer extends SecondoViewer {
     SpatioTempPanel.add(GeoScrollPane, BorderLayout.CENTER);
     SpatioTempPanel.add(LayerSwitchBar, BorderLayout.WEST);
     VisComPanel = new JSplitPane(JSplitPane.VERTICAL_SPLIT, SpatioTempPanel,dummy);
-    
+
     VisComPanel.setOneTouchExpandable(true);
     VisComPanel.setResizeWeight(1);
     TimeDisplay = new TimePanel(this);
@@ -572,9 +646,8 @@ public class HoeseViewer extends SecondoViewer {
     setLayout(new BorderLayout());
     add(pane,BorderLayout.CENTER);
     setDivider();
-    bgImage = new BackGroundImage(null);
 
-    /* initialize the file chooser for saving images */ 
+    /* initialize the file chooser for saving images */
     FC_Images.setDialogTitle(pngTitle);
     pngFilter = new javax.swing.filechooser.FileFilter(){
         public boolean accept(File PathName){
@@ -583,8 +656,8 @@ public class HoeseViewer extends SecondoViewer {
               return true;
            if(PathName.getName().endsWith(".png"))
                return true;
-           else 
-              return false;                
+           else
+              return false;
          }
          public String getDescription(){
            return "PNG images";
@@ -597,14 +670,14 @@ public class HoeseViewer extends SecondoViewer {
               return true;
            if(PathName.getName().endsWith(".eps"))
                return true;
-           else 
-              return false;                
+           else
+              return false;
          }
          public String getDescription(){
            return "eps images";
          }
     };
-    FC_Images.setFileFilter(pngFilter);           
+    FC_Images.setFileFilter(pngFilter);
     if(changeAllBackgrounds){
        setAllOpaque(this,false);
     }
@@ -717,7 +790,7 @@ public class HoeseViewer extends SecondoViewer {
           right = theList;
 
       }   else{
-          right = ListExpr.append(right,catList); 
+          right = ListExpr.append(right,catList);
       }
     }
     if(theList==null) {
@@ -761,29 +834,21 @@ public class HoeseViewer extends SecondoViewer {
     jMenuBackgroundColor = new JMenuItem("Background Color");
     jMenuBackgroundColor.addActionListener(new ActionListener(){
         public void actionPerformed(ActionEvent evt){
-            Color OldBG = GraphDisplay.getBackground();
-            Color BG = JColorChooser.showDialog(
-                            HoeseViewer.this,
-                            "Choose Background Color",
-                             OldBG);
-            if(!OldBG.equals(BG)){
-                GraphDisplay.setBackground(BG);
-                if(changeAllBackgrounds){
-                   setAllOpaque(HoeseViewer.this,true); 
-                   TimeSlider.setOpaque(false);
-                   setAllBackgrounds(HoeseViewer.this,BG);
-                }
+            if(!(GraphDisplay.getBackgroundObject() instanceof SimpleBackground)){
+              GraphDisplay.setBackgroundObject(new SimpleBackground());
             }
-  }
+            GraphDisplay.getBackgroundObject().showConfigDialog(null);
+            repaint();
+        }
     });
 
     MINewCat = new javax.swing.JMenuItem();
-    
+
     catManual = new JRadioButtonMenuItem("Category manual");
     catAuto   = new JRadioButtonMenuItem("Category auto");
     catByName = new JRadioButtonMenuItem("Category by name");
 
-    ButtonGroup catSelGroup = new ButtonGroup(); 
+    ButtonGroup catSelGroup = new ButtonGroup();
     catSelGroup.add(catManual);
     catSelGroup.add(catAuto);
     catSelGroup.add(catByName);
@@ -964,12 +1029,12 @@ public class HoeseViewer extends SecondoViewer {
            if(FC_Images.showSaveDialog(HoeseViewer.this)==JFileChooser.APPROVE_OPTION){
               File F = FC_Images.getSelectedFile();
               try{
-                 javax.imageio.ImageIO.write(bi,"png",F); 
+                 javax.imageio.ImageIO.write(bi,"png",F);
               } catch(Exception e){
                  Reporter.showError("Error in saving image ");
               }
            }
-           g.dispose(); 
+           g.dispose();
            System.gc();
            System.runFinalization();
         }
@@ -1021,7 +1086,7 @@ public class HoeseViewer extends SecondoViewer {
     jMenuGui.add(catAuto);
     jMenuGui.add(catByName);
     jMenuGui.add(new JSeparator());
-    
+
      createMenu = new JMenu("Object Creation");
    // jMenuGui.add(createMenu); // moved into the main menu
     selectSequenceCat = new JMenuItem("Select Category");
@@ -1034,7 +1099,7 @@ public class HoeseViewer extends SecondoViewer {
     create_Point_MI=new JRadioButtonMenuItem("Point");
     create_Line_MI=new JRadioButtonMenuItem("Line");
     create_Region_MI = new JRadioButtonMenuItem("Region");
-    
+
     createMenu.add(create_Rectangle_MI);
     if(enablePointSequence){
         createMenu.add(create_PointSequence_MI);
@@ -1072,13 +1137,13 @@ public class HoeseViewer extends SecondoViewer {
                 createPointSequenceListener.setMode(CreatePointSequenceListener.REGION_MODE);
         }
     };
-   create_Rectangle_MI.addChangeListener(cL); 
-   create_PointSequence_MI.addChangeListener(cL); 
-   create_FilledPointSequence_MI.addChangeListener(cL); 
-   create_Points_MI.addChangeListener(cL); 
-   create_Point_MI.addChangeListener(cL); 
+   create_Rectangle_MI.addChangeListener(cL);
+   create_PointSequence_MI.addChangeListener(cL);
+   create_FilledPointSequence_MI.addChangeListener(cL);
+   create_Points_MI.addChangeListener(cL);
+   create_Point_MI.addChangeListener(cL);
    create_Line_MI.addChangeListener(cL);
-   create_Region_MI.addChangeListener(cL); 
+   create_Region_MI.addChangeListener(cL);
 
    selectSequenceCat.addActionListener(new ActionListener(){
          public void actionPerformed(ActionEvent evt){
@@ -1090,7 +1155,7 @@ public class HoeseViewer extends SecondoViewer {
              Category lastcat = createPointSequenceListener.getCat();
              for(int i=0;i<catarray.length;i++){
                   catarray[i] = (Category) Cats.get(i);
-             } 
+             }
              Object res = JOptionPane.showInputDialog(HoeseViewer.this,
                                                       "Select a category",
                                                       "CategorySelector",
@@ -1103,7 +1168,7 @@ public class HoeseViewer extends SecondoViewer {
                      GraphDisplay.repaint();
                 }
              }
-                                                       
+
          }
     });
 
@@ -1128,19 +1193,31 @@ public class HoeseViewer extends SecondoViewer {
     };
 
     jMIShowCE = jMenuGui.add(AACatEdit);
-    
+
     JMenu BGMenu = new JMenu("BackGround");
-    
-    AASetBackground = new AbstractAction("set image") {
-      public void actionPerformed (java.awt.event.ActionEvent evt) {
-        bgImage.setVisible(true);
-        GraphDisplay.updateBackground();
-      }
-    };
+
+		AASetBackground = new AbstractAction("set image") {
+			public void actionPerformed(java.awt.event.ActionEvent evt) {
+        System.out.println("Hallo, hier AASetBackground!");
+        Background background = GraphDisplay.getBackgroundObject();
+        if(!(background instanceof ImageBackground)){
+          background = new ImageBackground();
+          GraphDisplay.setBackgroundObject(background);
+        }
+        System.out.println("Background before configuration = " + background);
+				background.showConfigDialog(null); // XRIS NEW
+        System.out.println("Background after configuration = " + background);
+				GraphDisplay.updateBackground();
+			}
+		};
 
     AARemoveBackground = new AbstractAction("remove image"){
        public void actionPerformed(java.awt.event.ActionEvent evt){
-         bgImage.setImage(null);
+         Background background = GraphDisplay.getBackgroundObject();
+         if(background instanceof ImageBackground){
+           background = new SimpleBackground(); // XRIS NEW
+           GraphDisplay.setBackgroundObject(background);
+        }
          GraphDisplay.updateBackground();
        }
     };
@@ -1153,14 +1230,12 @@ public class HoeseViewer extends SecondoViewer {
            double h =  R.getHeight();
            if(w<=0 | h<=0){
               Reporter.showError("cannot capture the background");
-              bgImage.setImage(null);
-              GraphDisplay.updateBackground();
-              return; 
-           } 
+              return;
+           }
            try{
               boolean scale = false; // image to scale ?
               double sf=1.0; // the scale factor
-              long MAXPIXELS = MAXCAPTUREPIXELS;            
+              long MAXPIXELS = MAXCAPTUREPIXELS;
               if((long)(w*h) > MAXPIXELS){
                  sf = Math.sqrt( MAXPIXELS/ ((R.getWidth()*R.getHeight())));
                  w =  (w*sf);
@@ -1170,36 +1245,37 @@ public class HoeseViewer extends SecondoViewer {
 
               BufferedImage bi = new BufferedImage((int)w,(int)h,BufferedImage.TYPE_3BYTE_BGR);
               Graphics2D g = bi.createGraphics();
-              
+
               if(scale){
                 AffineTransform sdat = new AffineTransform();
-                sdat.setToScale(sf,sf);   
+                sdat.setToScale(sf,sf);
                 g.setTransform(sdat);
-              } 
+              }
               GraphDisplay.printAll(g);
-              bgImage.setImage(bi);
+              ImageBackground background = new ImageBackground();
+			        background.setImage(bi);
               AffineTransform at = (AffineTransform) CurrentState.transform.clone();
-              // convert the bounding bocx of the GraphDisplay into
+              // convert the bounding box of the GraphDisplay into
               // world coordinates.
               try{
-                  R.setRect(0,0,R.getWidth(),R.getHeight());    
+                  R.setRect(0,0,R.getWidth(),R.getHeight());
                   R = at.createInverse().createTransformedShape(R).getBounds2D();
               } catch(Exception e){
                   Reporter.showError("Cannot determine the bounding box of this image");
               }
-              bgImage.setBBox(R.getX(),R.getY(),R.getWidth(),R.getHeight());
+              background.setBBox(new Rectangle2D.Double(R.getX(),R.getY(),R.getWidth(),R.getHeight()));
               g.dispose();
+              GraphDisplay.setBackgroundObject(background);
               GraphDisplay.updateBackground();
             }catch(Exception e){
                // because large sized data are processed, a OutOfMemory error is possible
                Reporter.showError("an error in capturing the background is occured");
-               bgImage.setImage(null); 
-           }
+            }
            System.gc();
            System.runFinalization();
        }
     };
-   
+
     AbstractAction AACaptureRect = new AbstractAction("capture visible rect"){
        public void actionPerformed(java.awt.event.ActionEvent evt){
            try{
@@ -1220,27 +1296,30 @@ public class HoeseViewer extends SecondoViewer {
               AffineTransform trans = new AffineTransform();
               double x = R.getX()+border;
               double y = R.getY()+border;
-              trans.setToTranslation(x,y);   
+              trans.setToTranslation(x,y);
               g.setTransform(trans);
               GraphDisplay.printAll(g);
-              bgImage.setImage(bi);
+              ImageBackground background = new ImageBackground();
+              background.setImage(bi);
               // convert the bounding bocx of the GraphDisplay into
               // world coordinates.
               Rectangle2D R2= new Rectangle2D.Double();
               AffineTransform at = (AffineTransform) CurrentState.transform.clone();
               try{
-                  R2.setRect(-x,-y,vw,vh);    
+
+                  R2.setRect(-x,-y,vw,vh);
                   R2 = at.createInverse().createTransformedShape(R2).getBounds2D();
               } catch(Exception e){
                   Reporter.showError("Cannot determine the bounding box of this image");
               }
-              bgImage.setBBox(R2.getX(),R2.getY(),R2.getWidth(),R2.getHeight());
+					background.setBBox(new Rectangle2D.Double(R2.getX(), R2
+							.getY(), R2.getWidth(), R2.getHeight()));
               g.dispose();
+              GraphDisplay.setBackgroundObject(background);
               GraphDisplay.updateBackground();
             }catch(Exception e){
                // because large sized data are processed, a OutOfMemory error is possible
                Reporter.showError("an error in capturing the background is occured");
-               bgImage.setImage(null); 
            }
            System.gc();
            System.runFinalization();
@@ -1249,22 +1328,22 @@ public class HoeseViewer extends SecondoViewer {
     JMenu SelectBorder = new JMenu("Select Bordersize");
     JRadioButtonMenuItem Border_0 = new JRadioButtonMenuItem("0");
     SelectBorder.add(Border_0);
-    
+
     JRadioButtonMenuItem Border_30 = new JRadioButtonMenuItem("30");
     SelectBorder.add(Border_30);
 
     JRadioButtonMenuItem Border_50 = new JRadioButtonMenuItem("50");
-    SelectBorder.add(Border_50); 
+    SelectBorder.add(Border_50);
 
     JRadioButtonMenuItem Border_100 = new JRadioButtonMenuItem("100");
-    SelectBorder.add(Border_100); 
+    SelectBorder.add(Border_100);
 
     JRadioButtonMenuItem Border_200 = new JRadioButtonMenuItem("200");
-    SelectBorder.add(Border_200); 
+    SelectBorder.add(Border_200);
 
     JRadioButtonMenuItem Border_500 = new JRadioButtonMenuItem("500");
-    SelectBorder.add(Border_500); 
- 
+    SelectBorder.add(Border_500);
+
     ButtonGroup SelectBorderGroup = new ButtonGroup();
     SelectBorderGroup.add(Border_0);
     SelectBorderGroup.add(Border_30);
@@ -1277,14 +1356,14 @@ public class HoeseViewer extends SecondoViewer {
     ActionListener SelectBorderListener = new ActionListener(){
         public void actionPerformed(ActionEvent evt){
            Object src = evt.getSource();
-           if(! (src instanceof JMenuItem)) 
+           if(! (src instanceof JMenuItem))
                return;
            String Label = ((JMenuItem)src).getText().trim();
            try{
              CaptureBorder = Integer.parseInt(Label);
            }catch(Exception e){
               Reporter.showError("Cannot determine the size of the border");
-           } 
+           }
         }
     };
     Border_0.addActionListener(SelectBorderListener);
@@ -1294,13 +1373,13 @@ public class HoeseViewer extends SecondoViewer {
     Border_200.addActionListener(SelectBorderListener);
     Border_500.addActionListener(SelectBorderListener);
     BGMenu.add(jMenuBackgroundColor);
-    BGMenu.add(AASetBackground); 
+    BGMenu.add(AASetBackground);
     BGMenu.add(AARemoveBackground);
     BGMenu.add(AACaptureBackground);
     BGMenu.add(AACaptureRect);
     BGMenu.add(SelectBorder);
 
-   jMenuGui.add(BGMenu); 
+   jMenuGui.add(BGMenu);
 
     AAZoomOut = new AbstractAction("Zoom out"){
       public void actionPerformed (java.awt.event.ActionEvent evt) {
@@ -1466,10 +1545,10 @@ public class HoeseViewer extends SecondoViewer {
             qr.clearSelection();
             ((DsplBase)o).setVisible(false);
             GraphDisplay.repaint();
-          } 
+          }
           else
             Reporter.showError("No DsplBase object selected!");
-        } 
+        }
         else
           Reporter.showError("No query selected!");
       }
@@ -1488,11 +1567,11 @@ public class HoeseViewer extends SecondoViewer {
             ((DsplBase)o).setVisible(true);
             GraphDisplay.repaint();
             TextDisplay.repaint();
-          } 
-          else 
+          }
+          else
             Reporter.showError("No DsplBase object selected!");
         }
-        else 
+        else
           Reporter.showError("No query selected!");
       }
     });
@@ -1624,7 +1703,7 @@ public class HoeseViewer extends SecondoViewer {
   }
 
 
-/** returns the index of qr in TextDisplay-ComboBox, 
+/** returns the index of qr in TextDisplay-ComboBox,
   * if qr not in this box then -1 is returned
   **/
 private int getQueryIndex1(QueryResult qr){
@@ -1677,7 +1756,7 @@ public void removeObject(SecondoObject o){
    //QueryResult qr = new QueryResult(o);
    int index = getQueryIndex(o);
    if (index>=0){
-       
+
        JComboBox CB = TextDisplay.getQueryCombo();
        QueryResult qr = (QueryResult) CB.getItemAt(index);  // we need the original
 
@@ -1733,7 +1812,7 @@ public boolean addProjection(String Name){
      PrjSelector.addProjection((Projection)P);
      return true;
     }
- catch(Exception e){ 
+ catch(Exception e){
      Reporter.debug(e);
      return false;}
 }
@@ -1762,7 +1841,7 @@ public boolean selectObject(SecondoObject o){
       CB.setSelectedIndex(index);
       return true;
     }
-}  
+}
 
 /** all query results can be displayed (see work of Th.Hoese) **/
 public boolean canDisplay(SecondoObject o){
@@ -1804,7 +1883,7 @@ public boolean canDisplay(SecondoObject o){
    * Adds a new QueryResult qr to the Textwindow
    * @param qr
    * @return True if no error has occured
-   * @see <a href="MainWindowsrc.html#addQueryResult">Source</a> 
+   * @see <a href="MainWindowsrc.html#addQueryResult">Source</a>
    */
   public boolean addQueryResult (QueryResult qr) {
     CurrentQueryResult = qr;
@@ -1829,14 +1908,14 @@ public boolean canDisplay(SecondoObject o){
  public String getName(){
     return "Hoese-Viewer";
  }
-  
+
  /** adds a new SecondoObject to this Viewer **/
   public boolean addObject(SecondoObject o){
 
     if(getQueryIndex(o)>=0)
       return false;
     else {
-      QueryResult qr= new QueryResult(o); 
+      QueryResult qr= new QueryResult(o);
       if (addQueryResult(qr)) {
         if (!CurrentQueryResult.getGraphObjects().isEmpty()){
           addSwitch(GraphDisplay.addLayerObjects(CurrentQueryResult.getGraphObjects()),-1);
@@ -1877,13 +1956,13 @@ public boolean canDisplay(SecondoObject o){
      }
    }
 
-   
+
 
 
   /**
    *
-   * @return The selected grph. object 
-   * @see <a href="MainWindowsrc.html#getSelGO">Source</a> 
+   * @return The selected grph. object
+   * @see <a href="MainWindowsrc.html#getSelGO">Source</a>
    */
   public DsplGraph getSelGO () {
     return  selGraphObj;
@@ -1892,8 +1971,8 @@ public boolean canDisplay(SecondoObject o){
 
   /**
    * Sets actual global timeinterval
-   * @param in Interval 
-   * @see <a href="MainWindowsrc.html#setActualTime">Source</a> 
+   * @param in Interval
+   * @see <a href="MainWindowsrc.html#setActualTime">Source</a>
    */
   public void setActualTime (Interval in) {
     TimeBounds = in;
@@ -1902,7 +1981,7 @@ public boolean canDisplay(SecondoObject o){
       actTimeLabel.setText("no time");
       //TimeSlider.setVisible(false);
       CurrentState.ActualTime = 0;
-    } 
+    }
     else {
       TimeBounds.increase(TIMEBORDER);
       TimeSlider.setVisible(true);
@@ -1930,7 +2009,7 @@ public boolean canDisplay(SecondoObject o){
      TimeSlider.setVisible(true);
      TimeSlider.setValue( (long)Math.round(time*86400000) );
      actTimeLabel.setText(LEUtils.convertTimeToString(CurrentState.ActualTime));
-     return true;     
+     return true;
   }
 
 
@@ -1938,13 +2017,13 @@ public boolean canDisplay(SecondoObject o){
   /**
    * optional
    * @param evt
-   * @see <a href="MainWindowsrc.html#on_jMenu_Browse">Source</a> 
+   * @see <a href="MainWindowsrc.html#on_jMenu_Browse">Source</a>
    */
   private void on_jMenu_Browse (java.awt.event.ActionEvent evt) {               //GEN-FIRST:event_on_jMenu_Browse
     // Add your handling code here:
   }             //GEN-LAST:event_on_jMenu_Browse
 
-/** Save session to selected file 
+/** Save session to selected file
    */
   private void on_jMenu_SaveSession (java.awt.event.ActionEvent evt) {          //GEN-FIRST:event_on_jMenu_SaveSession
     // Add your handling code here:
@@ -1954,7 +2033,8 @@ public boolean canDisplay(SecondoObject o){
       File file = FC_Session.getSelectedFile();
       //          File file=new File("Session");
       String DirName = FC_Session.getCurrentDirectory().getAbsolutePath();
-      ListExpr le = ListExpr.fourElemList(ListExpr.symbolAtom("session"), bgImage.toListExpr(DirName), 
+			ListExpr le = ListExpr.fourElemList(ListExpr.symbolAtom("session"),
+					GraphDisplay.getBackgroundObject().toListExpr(DirName),
           writeAllCats(), TextDisplay.convertAllQueryResults());
       String suc;
       if(le.writeToFile(file.getPath()) == 0)
@@ -1962,10 +2042,10 @@ public boolean canDisplay(SecondoObject o){
       else
          Reporter.showError("save session failed");
     }
-  }             
+  }
 
 /** Loads session from a file
-  */  
+  */
   private void on_jMenu_OpenSession (java.awt.event.ActionEvent evt) {          //GEN-FIRST:event_on_jMenu_OpenSession
     FC_Session.setDialogTitle("Open Session");
     int returnVal = FC_Session.showOpenDialog(HoeseViewer.this);
@@ -1987,13 +2067,13 @@ public boolean canDisplay(SecondoObject o){
          Reporter.showError("i can't load the file");
          return;
       }
-      
+
       // check ListExprFormat
       if (le.listLength()!=4){
          Reporter.showError(" the file contains not a session ");
          return;
       }
-         
+
       ListExpr type = le.first();
 
       if (!type.isAtom() || !(type.atomType()==ListExpr.SYMBOL_ATOM) || !type.symbolValue().equals("session")){
@@ -2006,7 +2086,9 @@ public boolean canDisplay(SecondoObject o){
       type.destroy();
       Cats = new Vector(10, 5);
       String DirName = FC_Session.getCurrentDirectory().getAbsolutePath();
-      bgImage.readFromListExpr(le.first(),DirName);
+			Background background = Background.createFromListExpr(le.first(), DirName); // XRIS
+																			// NEW
+      GraphDisplay.setBackgroundObject(background);
       readAllCats(le.second());
       if(!Cats.contains(Category.getDefaultCat())){
          Cats.add(Category.getDefaultCat());
@@ -2036,7 +2118,7 @@ public boolean canDisplay(SecondoObject o){
             }
          }
       }
-      GraphDisplay.updateBackground(); 
+      GraphDisplay.updateBackground();
 
     }
     // Add your handling code here:
@@ -2133,15 +2215,15 @@ public boolean canDisplay(SecondoObject o){
     // if no objects or only a single point,line is visible
     if ((wpw == 0) && (wph == 0)) {
       return  new AffineTransform(1, 0, 0, 1, -wp1x + extra, -wp1y + extra);
-    } 
+    }
     else if (wpw == 0)
-      wpw = 1; 
+      wpw = 1;
     else if (wph == 0)
       wph = 1;
-    // now division by zero impossible  
+    // now division by zero impossible
     double m00, m11;
     if (w/wpw > h/wph) {        //keep aspect ratio
-      //h-=60;  
+      //h-=60;
       m11 = (2*extra - h)/wph;
       m00 = -m11;
     }
@@ -2208,7 +2290,7 @@ public boolean canDisplay(SecondoObject o){
     Rectangle2D r = null;
     int num = selGraphObj.numberOfShapes();
     // compute the bounds of the selected object
-   
+
     for(int i=0;i<num;i++){
        Shape s = selGraphObj.getRenderObject(i,CurrentState.transform);
        if(s!=null){
@@ -2218,8 +2300,8 @@ public boolean canDisplay(SecondoObject o){
               r.add(s.getBounds2D());
            }
        }
-    } 
-    
+    }
+
     if (r == null)            // an emtpy spatial object or an undefined timed object
        return;
     //try{
@@ -2232,14 +2314,14 @@ public boolean canDisplay(SecondoObject o){
       double y = (double)-GraphDisplay.getY();
       double rmid_x = r.getX()+r.getWidth()/2;
       double rmid_y = r.getY()+r.getHeight()/2;
-      int border = 60; 
-      if(rmid_x-x<border || // left 
+      int border = 60;
+      if(rmid_x-x<border || // left
          rmid_x>x+w-border || // right
          rmid_y-y<border || // above
          rmid_y>y+h-border){ // under
          GeoScrollPane.getHorizontalScrollBar().setValue((int)(rmid_x - w/2));
          GeoScrollPane.getVerticalScrollBar().setValue((int)(rmid_y - h/2));
-      } 
+      }
     }
     isMouseSelected = false;
   }
@@ -2259,17 +2341,12 @@ public boolean canDisplay(SecondoObject o){
     LayerSwitchBar.repaint();
   }
 
-  /** returns the actual backgroundimage 
-    */
-  public BackGroundImage getBackgroundImage(){
-    return bgImage;
-  }
 
-
-
-/** Listens to a selection change in a query list
-  * @see <a href="MainWindowsrc.html#QueryListSelectionListener">Source</a>
-   */
+	/**
+	 * Listens to a selection change in a query list
+	 *
+	 * @see <a href="MainWindowsrc.html#QueryListSelectionListener">Source</a>
+	 */
 
   class QueryListSelectionListener
       implements ListSelectionListener {
@@ -2313,7 +2390,7 @@ public boolean canDisplay(SecondoObject o){
         selGraphObj = dgorig;
         if (!isMouseSelected && (selGraphObj instanceof Timed)){
           Interval tb = ((Timed)selGraphObj).getBoundingInterval();
-          if(tb!=null) 
+          if(tb!=null)
              TimeSlider.setValue((long)Math.round(tb.getStart()*86400000));
         }
         makeSelectionVisible();
@@ -2542,7 +2619,7 @@ public boolean canDisplay(SecondoObject o){
       GraphDisplay.setIgnorePaint(false);
       GraphDisplay.repaint();
       SelectionControl.drawRectangle();
-      
+
     }
   }
 
@@ -2593,7 +2670,7 @@ public boolean canDisplay(SecondoObject o){
                createMenu.remove(create_PointSequence_MI);
                createMenu.remove(create_FilledPointSequence_MI);
            }
-       } 
+       }
 
        // set special category path
        String TmpCatPath = configuration.getProperty("CATEGORY_PATH");
@@ -2646,21 +2723,21 @@ public boolean canDisplay(SecondoObject o){
           MaxPixels=MaxPixels.trim();
           try{
              long mp = Long.parseLong(MaxPixels);
-             ScalableImage.setMaxPixels(mp); 
+             ScalableImage.setMaxPixels(mp);
           } catch(Exception e){
             Reporter.writeError("Error in reading MaxPixels");
-          } 
+          }
     }
-    
+
     String MaxCapPixels = configuration.getProperty("MAXCAPTUREPIXELS");
     if(MaxCapPixels!=null){
           MaxCapPixels=MaxCapPixels.trim();
           try{
              long mp = Long.parseLong(MaxCapPixels);
-             MAXCAPTUREPIXELS=mp; 
+             MAXCAPTUREPIXELS=mp;
           } catch(Exception e){
             Reporter.writeError("Error in readng MaxCapturePixels");
-          } 
+          }
     }
 
 
@@ -2731,7 +2808,7 @@ public boolean canDisplay(SecondoObject o){
             catSelDone=true;
        }
     }
-   
+
     String autocat = configuration.getProperty("AUTOCAT");
     if(!catSelDone && autocat!=null){
       Reporter.writeWarning("using deprecated AUTOCAT in configuration file \n"+
@@ -2769,15 +2846,15 @@ public boolean canDisplay(SecondoObject o){
                error=true;
             }
           }
-       } 
+       }
        if(!error){ // 4 values read
           if(box[2]<=0 || box[3] <=0){
              Reporter.showError("width or height of the bounding box "+
                                 "smaller than zero in configuiration file");
           } else{
-             Rectangle2D.Double wbox = new Rectangle2D.Double(box[0],box[1],box[2],box[3]); 
+             Rectangle2D.Double wbox = new Rectangle2D.Double(box[0],box[1],box[2],box[3]);
              Reporter.writeInfo("set bounding box to "+wbox);
-             CurrentState.setWorldBB(wbox); 
+             CurrentState.setWorldBB(wbox);
           }
        }
 
@@ -2919,28 +2996,28 @@ public boolean canDisplay(SecondoObject o){
 
  class CreatePointSequenceListener extends MouseInputAdapter{
 
-    /** Will be called if an mouse click is performed. 
-      * This event is evaluated when the current mode is 
+    /** Will be called if an mouse click is performed.
+      * This event is evaluated when the current mode is
       * unequal to the rectangle mode which have a special treatment.
       * In all other modes. the new point is added to the current
-      * point sequence. 
+      * point sequence.
       **/
         public void mouseClicked(MouseEvent evt){
           if(mode==RECTANGLE_MODE){
              return;
-          } 
+          }
           if(evt.getButton()!=MouseEvent.BUTTON1)
              return;
-      
+
           if(!computeOrig(evt.getPoint(),aPoint)){
-              Reporter.showError("Error in computing Projection");  
-              return;// ignore this point 
+              Reporter.showError("Error in computing Projection");
+              return;// ignore this point
           }
           double x = aPoint.x;
           double y = aPoint.y;
 
           if(mode==POINT_MODE){
-               ListExpr pointList = ListExpr.twoElemList( 
+               ListExpr pointList = ListExpr.twoElemList(
                                             ListExpr.symbolAtom("point"),
                                             ListExpr.twoElemList(
                                             ListExpr.realAtom(x),
@@ -2965,7 +3042,7 @@ public boolean canDisplay(SecondoObject o){
 
            boolean repchanged = ps.add(x,y) || mode==FILLED_POINT_SEQUENCE_MODE ||
                                                mode==REGION_MODE;
-           GraphDisplay.paintAdditional(ps); 
+           GraphDisplay.paintAdditional(ps);
            if(repchanged)
               GraphDisplay.repaint();
            points.add(thePoint);
@@ -2973,22 +3050,22 @@ public boolean canDisplay(SecondoObject o){
            Layer.draw(ps,G,CurrentState.ActualTime,CurrentState.transform);
 }
 
-      /** This function computes the coordinates in the 'world' from the 
-        * given mouse coordinates. 
+      /** This function computes the coordinates in the 'world' from the
+        * given mouse coordinates.
         **/
       private boolean computeOrig(java.awt.Point orig, java.awt.geom.Point2D.Double result){
           // first compute the virtual screen coordinates
           Point2D.Double p = new Point2D.Double();
           try{
             p = (Point2D.Double) CurrentState.transform.inverseTransform(orig,p);
-          }catch(Exception e){} 
+          }catch(Exception e){}
           double x = p.getX();
           double y = p.getY();
           return ProjectionManager.estimateOrig(x,y,result);
       }
 
-     /** Sets the current point sequnce to be empty. And removes a rectangle if there is one. 
-       **/ 
+     /** Sets the current point sequnce to be empty. And removes a rectangle if there is one.
+       **/
       public void reset(){
           ps.reset();
           points=null;
@@ -3000,22 +3077,22 @@ public boolean canDisplay(SecondoObject o){
       }
 
       /** Sets the category for a point sequence.
-        * The drawing of a rectangle is not affected by this method 
+        * The drawing of a rectangle is not affected by this method
         **/
       public void setCategory(Category cat){
           ps.setCategory(cat);
       }
-     
+
       /** Returns the category which is curretly used for painting a
-        * point sequence 
-        **/ 
+        * point sequence
+        **/
       public Category getCat(){
           return ps.getCategory();
       }
 
       /** Will be called when the mouse is pressed.
        * This event is only processed in the rectangle mode.
-       * It starts the painting and creating of a single rectangle. 
+       * It starts the painting and creating of a single rectangle.
        */
       public void mousePressed(MouseEvent evt){
          if(mode!=RECTANGLE_MODE)
@@ -3032,7 +3109,7 @@ public boolean canDisplay(SecondoObject o){
         * The user is asked for a name of the created rectangle.
         * From the name and the rectangle, a SecondoObject instance
         * will be created and stored in the object list and the
-        * database. 
+        * database.
         */
       public void mouseReleased(MouseEvent evt){
          if(mode!=RECTANGLE_MODE)
@@ -3048,9 +3125,9 @@ public boolean canDisplay(SecondoObject o){
          x2 = evt.getX();
          y2 = evt.getY();
          rectangle_start=false;
-         // ask for the object name 
+         // ask for the object name
          if(x1==x2 || y1==y2) // not a rectangle
-            return; 
+            return;
          String Name=getNameFromUser();
          if(Name!=null){
               Point p1 = new Point(Math.min(x1,x2),Math.min(y1,y2));
@@ -3106,11 +3183,11 @@ public boolean canDisplay(SecondoObject o){
          G.drawRect(x,y,w,h);
       }
 
-     
-      
+
+
       /** Checks whether the given vector of  points is a simple
         *  Region.
-        **/ 
+        **/
        private boolean isPolygon(Vector points){
            // in the pointvector cannot be intersection segments
            int size = points.size();
@@ -3119,7 +3196,7 @@ public boolean canDisplay(SecondoObject o){
            if(haveIntersections(points,(Point2D.Double)points.get(0)))
               return false;
            // missing check for building a region (points not on a single segment
-           return true; 
+           return true;
        }
 
        /** Checks whether the segment from the last point in the points vector
@@ -3177,7 +3254,7 @@ public boolean canDisplay(SecondoObject o){
                              ListExpr.realAtom(P.getY())));
               }
              }
-             if(mode==LINE_MODE){ 
+             if(mode==LINE_MODE){
                if(points.size()>2){
                   double lastx;
                   double lasty;
@@ -3197,7 +3274,7 @@ public boolean canDisplay(SecondoObject o){
                                                                   ListExpr.realAtom(x),
                                                                   ListExpr.realAtom(y));
                          lastx=x;
-                         lasty=y; 
+                         lasty=y;
                          if(first){
                              value.destroy();
                              value = ListExpr.oneElemList(Segment);
@@ -3206,9 +3283,9 @@ public boolean canDisplay(SecondoObject o){
                          } else{
                            last = ListExpr.append(last,Segment);
                          }
-                                          
-                     } 
-                  } // for 
+
+                     }
+                  } // for
                 } // more than two points
              } // LINE_MODE
              if(mode==REGION_MODE){
@@ -3217,7 +3294,7 @@ public boolean canDisplay(SecondoObject o){
                  Reporter.showError("Points don't build a valid polygon.");
                  reset();
                  return;
-               } 
+               }
                value = ListExpr.oneElemList(ListExpr.oneElemList(value));
              }
              String Name=getNameFromUser();
@@ -3249,7 +3326,7 @@ public boolean canDisplay(SecondoObject o){
           ListExpr resultList = ListExpr.theEmptyList();
            StringBuffer errorMessage= new StringBuffer();
           if(!VC.execCommand(cmd,errorCode,resultList,errorMessage)){
-               Reporter.showError("Error in storing pointsequence\n"+ 
+               Reporter.showError("Error in storing pointsequence\n"+
                                         sj.lang.ServerErrorCodes.getErrorMessageText(errorCode.value)+"\n"+
                                         errorMessage);
                 return false;
@@ -3258,7 +3335,7 @@ public boolean canDisplay(SecondoObject o){
         }
           return false;
       }
- 
+
 
       /** Asks the user for a name until the name is a correct symbol **/
       private String getNameFromUser(){
@@ -3268,7 +3345,7 @@ public boolean canDisplay(SecondoObject o){
            if(Name!=null) Name = Name.trim();
          } while(Name!=null && !LEUtils.isIdent(Name));
          return Name;
-      } 
+      }
 
 
       public void setMode(int mode){
@@ -3287,7 +3364,7 @@ public boolean canDisplay(SecondoObject o){
              if(mode==REGION_MODE)
                 ps.setPaintMode(Dsplpointsequence.AREA_MODE);
          }
-      }  
+      }
 
       public int getMode(){
          return mode;
@@ -3303,7 +3380,7 @@ public boolean canDisplay(SecondoObject o){
       private int x2;
       private int y2;
       private boolean rectangle_start=false;
-      private boolean isPainted=false; // true if an rectangle is painted 
+      private boolean isPainted=false; // true if an rectangle is painted
       private boolean active=false;
 
       private static final int POINT_SEQUENCE_MODE=0;

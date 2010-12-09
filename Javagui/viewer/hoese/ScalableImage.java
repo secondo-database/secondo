@@ -31,15 +31,21 @@ public class ScalableImage extends Component {
       super.paint(g);
       if(scaledImage!=null){
           g.drawImage(scaledImage,0,0,this);
+          System.out.println("draw picture (" + 0+", "+ 0 + " )  (" +
+                       scaledImage.getWidth(null) + ", " + scaledImage.getHeight(null)+")");
       }else if(clippedScaledImage!=null){
           Rectangle2D b = getBounds();
-          int x = (int) (ClipRect.getX()-b.getX());
-          int y = (int) (ClipRect.getY()-b.getY());
-          g.drawImage(clippedScaledImage,x,y,this); 
+          if(b!=null && ClipRect!=null){
+            int x = (int) (ClipRect.getX()-b.getX());
+            int y = (int) (ClipRect.getY()-b.getY());
+            g.drawImage(clippedScaledImage,x,y,this);
+            System.out.println("draw picture (" + x+", "+ y + " )  (" +
+                       clippedScaledImage.getWidth(null) + ", " + clippedScaledImage.getHeight(null)+")");
+          }
       }
     }
 
-   /** Sets a new image for this component 
+   /** Sets a new image for this component
     */
     public void setImage(BufferedImage img){
         this.image = img;
@@ -51,8 +57,8 @@ public class ScalableImage extends Component {
                 this.scaledImage=null;
                 System.gc();
                 return;
-            } 
-            if(h>0 && w>0) 
+            }
+            if(h>0 && w>0)
                   this.scaledImage = img.getScaledInstance((int)w,(int)h,0);
             else
                 this.scaledImage = null;
@@ -62,7 +68,7 @@ public class ScalableImage extends Component {
     }
 
     /* Sets the bounds for this components.
-     * The contained image is resized to fit into the new 
+     * The contained image is resized to fit into the new
      * box
      **/
     public void setBounds(int x, int y, int  w, int  h){
@@ -70,19 +76,19 @@ public class ScalableImage extends Component {
         if(oldBounds.getWidth()!=w || oldBounds.getHeight()!=h){
             if((long)h*w>MAXPIXELS){
                 this.scaledImage=null;
-            } else{ 
+            } else{
                if(w>0 && h>0 && image!=null)
                    this.scaledImage = image.getScaledInstance(w,h,0);
                else
-                   this.scaledImage = null; 
+                   this.scaledImage = null;
             }
             System.gc();
             System.runFinalization();
         }
         super.setBounds(x,y,w,h);
-        ClipRect=null;    
-    } 
-    
+        ClipRect=null;
+    }
+
     /** Returns the managed image */
     public BufferedImage getImage(){ return image;}
 
@@ -98,7 +104,7 @@ public class ScalableImage extends Component {
    /** Sets the cliprect */
    public void setClipRect(Rectangle2D ClipRect){
        if(scaledImage!=null || image==null || ClipRect==null){
-           this.ClipRect=ClipRect; 
+           this.ClipRect=ClipRect;
            clippedScaledImage = null;
            changeClipRect();
            return;
@@ -112,7 +118,7 @@ public class ScalableImage extends Component {
        }
        this.ClipRect=ClipRect;
        changeClipRect();
-       createClippedScaledImage();      
+       createClippedScaledImage();
    }
 
   /** This method ensure that the cliprect in part of the bounds of this
@@ -132,7 +138,7 @@ public class ScalableImage extends Component {
 
 
    /**  This function create a clip of the complete image to save memory;
-     */ 
+     */
    private void createClippedScaledImage(){
       if(image==null){
         clippedScaledImage=null;
@@ -163,7 +169,7 @@ public class ScalableImage extends Component {
          h = ih - y;
       }
       if(x+w>iw){
-         w = iw -x;  
+         w = iw -x;
       }
       clippedScaledImage=image.getSubimage(x,y,w,h);
       int cw = ((int)ClipRect.getWidth());
@@ -172,22 +178,30 @@ public class ScalableImage extends Component {
          clippedScaledImage=clippedScaledImage.getScaledInstance(cw,ch,Image.SCALE_FAST);
       else
         clippedScaledImage = null;
-   } 
+   }
 
    public static long getMaxPixels(){
       return MAXPIXELS;
-   }   
+   }
    public static void setMaxPixels(long maxpixels){
        // we require a minumum maxpixels of 1 million pixels
        MAXPIXELS = Math.max(1000000,maxpixels);
    }
- 
+
+
+   public String toString(){
+      return getClass().getName()+ "[" + "image = " + image +
+                                   ", scaledImage = " + scaledImage +
+                                   ", ClipRect = " + ClipRect +
+                                  ", clippedScaledImage = " + clippedScaledImage + "]";
+   }
+
   /* the managed image */
     private BufferedImage image;
 
    /** A scaled version of the managed image with at most MAXPIXELS
-     * pixels. 
-     * Using this picture avoids frequently computations on pictures 
+     * pixels.
+     * Using this picture avoids frequently computations on pictures
      */
     private Image scaledImage;
 

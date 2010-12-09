@@ -1,13 +1,16 @@
 package viewer.hoese;
 
 import java.awt.Rectangle;
+import java.awt.Graphics2D;
 import java.awt.geom.Rectangle2D;
+import java.awt.geom.AffineTransform;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.ListIterator;
 import java.util.Properties;
 import java.util.Set;
 import java.util.StringTokenizer;
+
 
 import javax.swing.JComponent;
 
@@ -18,15 +21,76 @@ import tools.Reporter;
  * This class is to be extended by classes representing different kinds of
  * backgrounds in the HoeseViever, e.g. SimpleBackground, ImageBackground, or
  * TiledBackground.
- * 
+ *
  * Specializations of this class should override the inherited paint() method.
- * 
+ *
  * @author Christian Duentgen
  */
-public abstract class Background extends javax.swing.JComponent {
+public abstract class Background {
 
 	private static final long serialVersionUID = 9039714158763811782L;
+  /**
+   * The name of the Background
+   */
+  protected String name;
 
+  /**
+   * A license string to be displayed with the background
+   */
+  protected String license;
+
+  /**
+   * The boundary of the complete background.
+   */
+  protected Rectangle2D.Double bbox;
+
+
+  /**
+   * Structure to maintain the set of registered listeners
+   */
+  protected LinkedList<BackgroundListener> listeners;
+
+  /**
+   * Whether the Background's bounding box is considered in calculation of the
+   * world's bounding box.
+   */
+  protected boolean useforbbox;
+
+  /**
+   * String constant used as key for license within Property
+   */
+  public static final String KEY_LICENSE = "license";
+
+  /**
+   * String constant used as key for name within Property
+   */
+  public static final String KEY_NAME = "name";
+
+  /**
+   * String constant used as key for bbox within Property
+   */
+  public static final String KEY_BBOX = "bbox";
+
+  /**
+   * String constant used as key for useforbbox within Property
+   */
+  public static final String KEY_USEFORBBOX = "useforbbox";
+
+  /**
+   * String constant used as key for the background class name within Property
+   */
+  public static final String KEY_BACKGROUNDCLASSNAME = "backgroundclassname";
+
+
+  public String toString(){
+     return  getClass().getName()+"["+
+                  "name = " + name + ", " +
+                  "license = " + license + ", " +
+                  "useforbbox = " + useforbbox + ", " +
+                  "bbox = " + bbox +  "] ";
+  }
+
+  public abstract void paint(JComponent parent, Graphics2D g, AffineTransform at, Rectangle2D clipRect);
 	/**
 	 * The constructor sets all member variables to null. SInce this is an
 	 * abstract class, it should never be used anyway.
@@ -35,8 +99,6 @@ public abstract class Background extends javax.swing.JComponent {
 		name = null;
 		license = null;
 		bbox = null;
-		clipbbox = null;
-		viewport = null;
 		listeners = new LinkedList<BackgroundListener>();
 	}
 
@@ -47,9 +109,11 @@ public abstract class Background extends javax.swing.JComponent {
 	 *            A Rectangle2D defining the Background's boundary
 	 */
 	public void setBBox(Rectangle2D.Double rect) {
+    System.out.println("Called Background.setBBox(...)");
+    (new Throwable()).printStackTrace();
 		bbox = (Rectangle2D.Double) rect.clone();
 	}
-	
+
 	/**
 	 * Returns the Background's boundary (world coordinates)
 	 * @return The Background's boundary
@@ -58,48 +122,8 @@ public abstract class Background extends javax.swing.JComponent {
 		return bbox;
 	}
 
-	/**
-	 * Sets the Background's clipping boundary (world coordinates). 
-	 * Only parts of the background lying within the clipping area are 
-	 * displayed. This allows the Background to keep only its visible parts 
-	 * in memory.
-	 * 
-	 * @param rect
-	 *            A Rectangle2D defining the clipping area.
-	 */
-	public void setClipBBox(Rectangle2D.Double rect) {
-		if( (bbox != null) && rect != null) {
-			clipbbox.setRect(bbox.createIntersection(rect));
-		} else {
-			clipbbox = rect;
-		}
-	}
-    
-	/**
-	 * Returns the Background's current clipping area (world coordinates).
-	 * @return A Rectangle2D defining the Background's clipping area.
-	 */
-	public Rectangle2D.Double getClipBBox() {
-		return clipbbox;
-	}
 
-	/**
-	 * Set the the current viewport (visible area in screen coordinates).
-	 * The viewport is set to the intersection of the background's current
-	 * bounds and the parameter Rectangle. 
-	 * @param vp Rectangle describing visible area in screen coordinates.
-	 */
-	public void setViewport(Rectangle vp) {
-		viewport = vp;
-	}
-	
-	/**
-	 * Return the current viewport (visible area in screen coordinates)
-	 */
-	public Rectangle getViewport() {
-		return viewport;
-	}
-	
+
 	/**
 	 * Display a dialog to allow a user to set up parameters for the Background.
 	 * @param parent
@@ -112,7 +136,7 @@ public abstract class Background extends javax.swing.JComponent {
 	 * be used to restore the Background settings, e.g. from a file. All
 	 * registered Listeners are informed. Additional data may be retrieved from
 	 * files rooted at the given path.
-	 * 
+	 *
 	 * @param p
 	 *            The Background settings to restore.
 	 * @param backgrounddatapath
@@ -154,7 +178,7 @@ public abstract class Background extends javax.swing.JComponent {
 	/**
 	 * Creates a {@link Rectangle2D.Double} from its String representation, e.g.
 	 * to restore a rectangle from a value in a {@link Properties} object.
-	 * 
+	 *
 	 * @param s
 	 *            The String to read from
 	 * @return The Rectangle2D.Double represented by the String parameter
@@ -185,7 +209,7 @@ public abstract class Background extends javax.swing.JComponent {
 	 * Return the Background's settings as a Properties object. The Properties
 	 * can be used to save Background settings for later reference. Additional
 	 * data may be stored to files rooted at the given path.
-	 * 
+	 *
 	 * @param backgrounddatapath
 	 *            Path, where to store data files.
 	 * @return The Background's settings as a Properties object.
@@ -223,7 +247,7 @@ public abstract class Background extends javax.swing.JComponent {
 			listeners.add(l);
 		}
 	}
-	
+
 	/**
 	 * Removes an Object from the Background's listener list. That object will
 	 * no longer be informed about changes to the Background.
@@ -239,7 +263,7 @@ public abstract class Background extends javax.swing.JComponent {
 	 * the Background to update it's internal data. E.g. it could be called by a
 	 * FileDownloadManager after a requestes map tile download has been
 	 * finished.
-	 * 
+	 *
 	 */
 	public void handleBackgroundDataChangedEvent(BackgroundChangedEvent evt) {
 		// empty implementation
@@ -278,79 +302,19 @@ public abstract class Background extends javax.swing.JComponent {
 	/**
 	 * Check the flag that indicates whether the Background is to be considered
 	 * when calculation the world's dimensions.
-	 * 
+	 *
 	 * @return true, iff the Background's bbox is considered in world's bbox.
 	 */
 	public final boolean useForBoundingBox() {
 		return useforbbox;
 	}
-	
-	/**
-	 * The name of the Background
-	 */
-	protected String name;
 
-	/**
-	 * A license string to be displayed with the background
-	 */
-	protected String license;
-
-	/**
-	 * The boundary of the complete background.
-	 */
-	protected Rectangle2D.Double bbox;
-
-	/**
-	 * The boundary of the part of the background to be currently displayed.
-	 */
-	protected Rectangle2D.Double clipbbox;
-
-	/**
-	 * The current viewport (clipping area in screen coordinates)
-	 */
-	protected Rectangle viewport; 
-	
-	/**
-	 * Structure to maintain the set of registered listeners
-	 */
-	protected LinkedList<BackgroundListener> listeners;
-
-	/**
-	 * Whether the Background's bounding box is considered in calculation of the
-	 * world's bounding box.
-	 */
-	protected boolean useforbbox;
-
-	/**
-	 * String constant used as key for license within Property
-	 */
-	public static final String KEY_LICENSE = "license";
-
-	/**
-	 * String constant used as key for name within Property
-	 */
-	public static final String KEY_NAME = "name";
-
-	/**
-	 * String constant used as key for bbox within Property
-	 */
-	public static final String KEY_BBOX = "bbox";
-
-	/**
-	 * String constant used as key for useforbbox within Property
-	 */
-	public static final String KEY_USEFORBBOX = "useforbbox";
-
-	/**
-	 * String constant used as key for the background class name within Property
-	 */
-	public static final String KEY_BACKGROUNDCLASSNAME = "backgroundclassname";
 
 	/**
 	 * Creates a nested list representation of the Background's configuration,
 	 * that can be saved as part of a saved GUI session. The provided path
 	 * indicates a directory where additional data files may be stored.
-	 * 
+	 *
 	 * @param backgrounddatapath
 	 *            Path to the data directory
 	 * @return The listExpr representing this object.
@@ -384,7 +348,7 @@ public abstract class Background extends javax.swing.JComponent {
 	 * Background's configuration, so that the Background can be restored when
 	 * loading a saved GUI session. The provided path indicates the directory
 	 * with additional data files used for restoration.
-	 * 
+	 *
 	 * @param l
 	 *            The listExpr representing this object.
 	 * @param backgrounddatapath
@@ -398,8 +362,8 @@ public abstract class Background extends javax.swing.JComponent {
 			if ((pair.listLength() == 2)
 					&& (pair.first().isAtom() && pair.first().atomType() == ListExpr.STRING_ATOM)
 					&& (pair.second().isAtom() && pair.second().atomType() == ListExpr.TEXT_ATOM)) {
-				String key = pair.first().toString();
-				String value = pair.second().toString();
+				String key = pair.first().stringValue();
+				String value = pair.second().stringValue();
 				p.setProperty(key, value);
 			}
 		}
@@ -410,7 +374,7 @@ public abstract class Background extends javax.swing.JComponent {
 	 * Factory method, that restores and returns any Background object
 	 * from an Properties object. If restoration fails, a SimpleBackground is
 	 * returned.
-	 * 
+	 *
 	 * @param p
 	 *            The Properties to restore from.
 	 * @param backgrounddatapath
@@ -431,7 +395,7 @@ public abstract class Background extends javax.swing.JComponent {
 			return inst;
 		} catch(Exception e) {
 			Reporter.writeError("Could not restore the Background (failed to create the instance).");
-		    Reporter.debug(e);			
+		    Reporter.debug(e);
 		    return new SimpleBackground();
 		}
 	}
@@ -440,7 +404,7 @@ public abstract class Background extends javax.swing.JComponent {
 	 * Factory method, that restores and returns any Background object
 	 * from a ListExpr object. If restoration fails, a SimpleBackground is
 	 * returned.
-	 * 
+	 *
 	 * @param l
 	 *            The ListExpr to restore from.
 	 * @param backgrounddatapath
@@ -456,11 +420,14 @@ public abstract class Background extends javax.swing.JComponent {
 			if ((pair.listLength() == 2)
 					&& (pair.first().isAtom() && pair.first().atomType() == ListExpr.STRING_ATOM)
 					&& (pair.second().isAtom() && pair.second().atomType() == ListExpr.TEXT_ATOM)) {
-				String key = pair.first().toString();
-				String value = pair.second().toString();
+				String key = pair.first().stringValue();
+				String value = pair.second().stringValue();
 				p.setProperty(key, value);
 			}
 		}
 		return createFromProperties(p, backgrounddatapath);
 	}
+
+
+
 }
