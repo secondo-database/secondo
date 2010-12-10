@@ -209,7 +209,20 @@ public class SimpleBackground extends Background {
 	@Override
 	public void paint(JComponent parent, Graphics2D g, AffineTransform at, Rectangle2D rect) {
     if(parent!=null){
-       parent.setBackground(backgroundcolor);
+        Color c = parent.getBackground();
+        if(c==null && backgroundcolor==null){
+            return;
+        }
+        if(c==null || backgroundcolor==null){
+            parent.setBackground(backgroundcolor);
+            backgroundcolor = parent.getBackground();
+            return;
+        }
+       if(!c.equals(backgroundcolor)){
+          parent.setBackground(backgroundcolor);
+          backgroundcolor = parent.getBackground();
+          return;
+       }
     } else {
        Reporter.writeError("parent is null");
     }

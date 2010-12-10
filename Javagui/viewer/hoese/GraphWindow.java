@@ -343,15 +343,16 @@ public class GraphWindow extends JLayeredPane
    * @see <a href="Categorysrc.html#paintChildren">Source</a>
    */
   public void paintChildren (Graphics g) {
-
 	if (ignorePaint) {
 			return;
   }
+
+  AffineTransform at = CurrentState.transform;
+  Graphics2D g2 = (Graphics2D) g;
+  
   // paint the background
   // first transform the bounding box for the background
   // into screen coordinates
-  AffineTransform at = CurrentState.transform;
-  Graphics2D g2 = (Graphics2D) g;
   try{
     AffineTransform iat = at.createInverse();
     Rectangle vpbounds = mw.GeoScrollPane.getViewport().getBounds(null);

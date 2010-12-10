@@ -102,6 +102,7 @@ import viewer.hoese.DsplBase;
 import viewer.hoese.DsplGraph;
 import viewer.hoese.GraphWindow;
 import viewer.hoese.ImageBackground;
+import viewer.hoese.OSMBackground;
 import viewer.hoese.Interval;
 import viewer.hoese.LEUtils;
 import viewer.hoese.LabelAttrDlg;
@@ -266,6 +267,7 @@ public class HoeseViewer extends SecondoViewer {
   private AbstractAction AACatEdit;
   private AbstractAction AAViewCat;
   private AbstractAction AASetBackground;
+  private AbstractAction AAOSMBackground;
   private AbstractAction AACaptureBackground;
   private AbstractAction AALabelAttr;
   private String tok, PickTok;
@@ -1228,6 +1230,18 @@ public class HoeseViewer extends SecondoViewer {
 		};
 
 
+    AAOSMBackground = new AbstractAction("open street map"){
+      public void actionPerformed(java.awt.event.ActionEvent evt) {
+        Background background = GraphDisplay.getBackgroundObject();
+        if(!(background instanceof OSMBackground)){
+            background = new OSMBackground();
+            GraphDisplay.setBackgroundObject(background);
+         }
+         GraphDisplay.updateBackground();
+      }
+    };
+
+
 
     AACaptureBackground = new AbstractAction("capture image"){
        public void actionPerformed(java.awt.event.ActionEvent evt){
@@ -1392,6 +1406,7 @@ public class HoeseViewer extends SecondoViewer {
     BGMenu.add(AACaptureBackground);
     BGMenu.add(AACaptureRect);
     BGMenu.add(SelectBorder);
+    BGMenu.add(AAOSMBackground);
 
    jMenuGui.add(BGMenu);
 
