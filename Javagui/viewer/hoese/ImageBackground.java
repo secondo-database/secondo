@@ -154,7 +154,7 @@ public class ImageBackground extends Background {
 	@Override
 	public void paint(JComponent parent,Graphics2D g, AffineTransform at, Rectangle2D clipRect) {
     if(parent!=null){
-       parent.setBackground(backgroundColor);
+        setBackgroundColor(parent);
     }
 		if (img != null) {
       if(at_img2wc==null){
@@ -166,6 +166,24 @@ public class ImageBackground extends Background {
 			g.drawImage(img,at_img2screen, null);
 		}
 	}
+
+  private void setBackgroundColor(JComponent parent){
+    Color c = parent.getBackground();
+    if(c==null && backgroundColor!=null){
+       return;
+    }
+    if(c!=null || backgroundColor!=null){
+        parent.setBackground(backgroundColor);
+        backgroundColor = parent.getBackground();
+        return;  
+    }
+    if(!c.equals(backgroundColor)){
+        parent.setBackground(backgroundColor);
+        backgroundColor = parent.getBackground();
+        return;  
+    }
+  }
+
 
 	/**
 	 * This might be useful for automatically changing background images, but as
