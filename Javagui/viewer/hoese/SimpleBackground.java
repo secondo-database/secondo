@@ -33,7 +33,7 @@ public class SimpleBackground extends Background {
 	public SimpleBackground() {
 		name = "SimpleBackground";
 		license = "";
-		backgroundcolor = Color.RED;
+		backgroundcolor = null;
 		useforbbox = false;
 		bbox = null;
 		listeners = new LinkedList<BackgroundListener>();
@@ -48,11 +48,7 @@ public class SimpleBackground extends Background {
 	public SimpleBackground(Color c) {
 		name = "SimpleBackground";
 		license = "";
-		if (c != null) {
-			backgroundcolor = c;
-		} else {
-			backgroundcolor = Color.GREEN;
-		}
+		backgroundcolor = c;
 		useforbbox = false;
 		bbox = null;
 		listeners = new LinkedList<BackgroundListener>();
@@ -69,7 +65,7 @@ public class SimpleBackground extends Background {
 	public SimpleBackground(Properties p, String datapath) {
 		name = "SimpleBackground";
 		license = "";
-		backgroundcolor = Color.PINK;
+		backgroundcolor = null;
 		useforbbox = false;
 		bbox = null;
 		listeners = new LinkedList<BackgroundListener>();
@@ -87,7 +83,7 @@ public class SimpleBackground extends Background {
 	public SimpleBackground(ListExpr l, String datapath) {
 		name = "SimpleBackground";
 		license = "";
-		backgroundcolor = Color.BLUE;
+		backgroundcolor = null;
 		useforbbox = false;
 		bbox = null;
 		listeners = new LinkedList<BackgroundListener>();
@@ -103,7 +99,7 @@ public class SimpleBackground extends Background {
 	public SimpleBackground(JComponent parent) {
 		name = "SimpleBackground";
 		license = "";
-		backgroundcolor = Color.DARK_GRAY;
+		backgroundcolor = null;
 		useforbbox = false;
 		bbox = null;
 		listeners = new LinkedList<BackgroundListener>();
@@ -127,11 +123,12 @@ public class SimpleBackground extends Background {
 		if (listeners == null) {
 			listeners = new LinkedList<BackgroundListener>();
 		}
-		backgroundcolor = JColorChooser.showDialog(null,
+		Color selectedColor = JColorChooser.showDialog(null,
 				"Choose the background color:", backgroundcolor);
-		if (backgroundcolor == null) {
-			backgroundcolor = Color.CYAN;
-		}
+    if(selectedColor!=null){
+       backgroundcolor = selectedColor;
+    }
+
 		BackgroundChangedEvent evt = new BackgroundChangedEvent() {
 			public Object getSource() {
 				return SimpleBackground.this;
@@ -161,7 +158,7 @@ public class SimpleBackground extends Background {
 			listeners = new LinkedList<BackgroundListener>();
 		}
 		super.setConfiguration(p, backgrounddatapath);
-		backgroundcolor = Color.ORANGE;
+		backgroundcolor = null;
 		String bcstring = p.getProperty(KEY_BGCOLOR, null);
 		if(bcstring != null) {
 			try {
@@ -170,16 +167,10 @@ public class SimpleBackground extends Background {
 			} catch(Exception e) {
 					Reporter.writeError("Could not set Background property: "
 							+ KEY_BGCOLOR + " is not a valid RGB code).");
-					if (backgroundcolor == null) {
-						backgroundcolor = Color.MAGENTA;
-					}
 			}
 		} else {
 			Reporter.writeError("Could not set Background property: "
 					+ KEY_BGCOLOR + " not found).");
-			if (backgroundcolor == null) {
-				backgroundcolor = Color.LIGHT_GRAY;
-			}
 		}
 		BackgroundChangedEvent evt = new BackgroundChangedEvent() {
 			public Object getSource() {
@@ -235,6 +226,10 @@ public class SimpleBackground extends Background {
 	}
 
 
+  /** sets the background color used in this background **/
+  public void setBackgroundColor(Color c){
+     backgroundcolor = c; 
+  }
 
 
   public String toString(){

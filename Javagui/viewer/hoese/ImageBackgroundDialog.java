@@ -18,14 +18,34 @@ import tools.Reporter;
   * image is in worldcoordinates.
   **/
 
-public class  BackGroundImage extends JDialog{
+public class  ImageBackgroundDialog extends JDialog{
 
 
 /** Construct this 
   */
-  public BackGroundImage(Frame owner){
+  public ImageBackgroundDialog(Frame owner){
      // create the dialog
       super(owner,true);
+
+      useColorCB = new JCheckBox("use Color");
+      selectedColorLabel = new JLabel(" color ");
+      selectedColorLabel.setOpaque(true);
+      selectedColorLabel.setBackground(Color.WHITE);
+      JButton chooseColorBtn = new JButton("choose color");
+      chooseColorBtn.addActionListener(new ActionListener(){
+        public void actionPerformed(ActionEvent evt){
+            Color c = JColorChooser.showDialog(null, "Select a color", selectedColorLabel.getBackground());
+            if(c!=null){
+               selectedColorLabel.setBackground(c);
+            }
+        }
+      });
+      JPanel colorPanel = new JPanel();
+      colorPanel.add(new JLabel ("BackgroundColor:"));
+      colorPanel.add(useColorCB);
+      colorPanel.add(selectedColorLabel);
+      colorPanel.add(chooseColorBtn);
+
       JPanel P = new JPanel(new GridLayout(8,2));
       P.add(new JLabel("x",JLabel.RIGHT));
       P.add(XTF = new JTextField(6));
@@ -62,6 +82,9 @@ public class  BackGroundImage extends JDialog{
       CP.add(OkBtn = new JButton("Ok"));
       CP.add(CancelBtn = new JButton("Cancel"));
       getContentPane().add(CP,BorderLayout.SOUTH);
+      getContentPane().add(colorPanel, BorderLayout.NORTH);
+
+
       // assign methods to the buttons
       ActionListener AL = new ActionListener(){
           public void actionPerformed(ActionEvent evt){
@@ -204,13 +227,23 @@ public boolean setBBox(double x, double y, double w, double h){
     return true; 
 }
 
+public boolean setBBox(Rectangle2D.Double r){
+    if(r==null || r.getHeight()<=0 || r.getWidth()<=0){
+       return false;
+    }
+    bounds = r;
+    reset();
+    return true;
+}
+
+
 public boolean useForBoundingBox(){
    return useForBBox.isSelected();
 }
 
 
 /** 
-  * Returns the image of this BackgroundImage 
+  * Returns the image of this ImageBackgroundDialog 
   * If no image is available, the result will be null.
   */
 public BufferedImage getImage(){
@@ -224,7 +257,7 @@ public Rectangle2D.Double getBBox(){
    return bounds;
 }
 
-/** Returns the nested list representation of this BackgroundImage */
+/** Returns the nested list representation of this ImageBackgroundDialog */
 public ListExpr toListExpr(String BackgroundImagePath){
    ListExpr ImageList;
    if(theImage==null){
@@ -315,6 +348,30 @@ public boolean readFromListExpr(ListExpr le,String BackgroundImagePath){
 }
 
 
+  /** returns the selected backgroundcolor **/
+  public Color getBackgroundColor(){
+     if(useColorCB.isSelected()){
+         return selectedColorLabel.getBackground();
+     } else {
+         return null;
+     }
+  }
+
+
+  /** reads the contents of all fields from a ImageBackground **/
+  public void readFrom(ImageBackground ibg){
+     setImage(ibg.getImage());
+     setBBox(ibg.getBBox());
+     Color c = ibg.getBackgroundColor();
+     if(c!=null){
+        useColorCB.setSelected(true);
+        selectedColorLabel.setBackground(c);
+     } else {
+        useColorCB.setSelected(false);
+     } 
+  }
+  
+
 
 
 private BufferedImage theImage=null;
@@ -343,8 +400,8 @@ private TFW tfw = new TFW();
 private Rectangle2D.Double R1 = new Rectangle2D.Double();
 private Rectangle2D.Double R2 = new Rectangle2D.Double();
 private JRadioButton useForBBox = new JRadioButton("include in bbox");
-
-
+private JLabel selectedColorLabel;
+private JCheckBox useColorCB;
 
 private class TFW{
 
@@ -505,6 +562,8 @@ private class ImageDisplay extends JLabel implements java.awt.image.ImageObserve
          }
         repaint();
   }
+
+
   private Image theImage;
 
 }

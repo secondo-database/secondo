@@ -2,6 +2,7 @@ package viewer.hoese;
 
 import java.awt.Rectangle;
 import java.awt.Graphics2D;
+import java.awt.Color;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.util.LinkedList;
@@ -97,9 +98,16 @@ public class ImageBackground extends Background {
 			listeners = new LinkedList<BackgroundListener>();
 		}
 		if (bgi == null ) {
-      bgi = new BackGroundImage(null);
+      bgi = new ImageBackgroundDialog(null);
     }
+    bgi.readFrom(this);
 		bgi.setVisible(true);
+    readFrom(bgi);
+	}
+
+
+  /** reads the content of this background from an dialog **/
+  private void readFrom(ImageBackgroundDialog bgi){
 		BufferedImage bi = bgi.getImage();
 		if (bi != null) {
 			img = bi;
@@ -107,6 +115,7 @@ public class ImageBackground extends Background {
 			name = "ImageBackground";
 			license = "";
 			useforbbox = bgi.useForBoundingBox();
+      backgroundColor = bgi.getBackgroundColor();
 			BackgroundChangedEvent evt = new BackgroundChangedEvent() {
 				public Object getSource() {
 					return ImageBackground.this;
@@ -115,7 +124,8 @@ public class ImageBackground extends Background {
 			informListeners(evt);
 		}
     computeTransform();
-	}
+  }
+
 
 
 
@@ -128,6 +138,12 @@ public class ImageBackground extends Background {
     computeTransform();
 	}
 
+  /** Returns the currently used image of this background **/
+  public BufferedImage getImage(){
+      return img;
+  }
+
+
 	/**
 	 * Paint method
 	 *
@@ -138,7 +154,7 @@ public class ImageBackground extends Background {
 	@Override
 	public void paint(JComponent parent,Graphics2D g, AffineTransform at, Rectangle2D clipRect) {
     if(parent!=null){
-       parent.setBackground(java.awt.Color.WHITE);
+       parent.setBackground(backgroundColor);
     }
 		if (img != null) {
       if(at_img2wc==null){
@@ -267,7 +283,7 @@ public class ImageBackground extends Background {
                                     img+ ", at_img2wc = " + at_img2wc+"]";
   }
 
-
+  /** computes the affine transformation to map the image to the current bounding box **/
   private void computeTransform(){
      if(img==null || bbox == null){
        at_img2wc=null;
@@ -291,20 +307,18 @@ public class ImageBackground extends Background {
 
      double scale_x = wc_w/img_w;
      double scale_y = wc_h/img_h * -1.0;
+     at_img2wc = AffineTransform.getTranslateInstance(wc_x,  wc_y +  wc_h);
+     at_img2wc.scale(scale_x, scale_y);
+  }
 
+  /** sets the color outside the image **/
+  public void setBackgroundColor(Color c){
+      backgroundColor = c;
+  }
 
-    //at_img2wc = AffineTransform.getScaleInstance(scale_x, scale_y);
-    //at_img2wc.translate(wc_x, wc_y - img_h);
-    at_img2wc = AffineTransform.getTranslateInstance(wc_x,  wc_y +  wc_h);
-    at_img2wc.scale(scale_x, scale_y);
-
-    Rectangle2D.Double debugr = new Rectangle2D.Double(img.getMinX(), img.getMinY(), img.getWidth(), img.getHeight());
-    System.out.println("----------------------------------------");
-    System.out.println("Img_rectangle = " + debugr);
-    System.out.println("at_img2wc = " + at_img2wc);
-    System.out.println("Transformed img = " + at_img2wc.createTransformedShape(debugr).getBounds2D());
-    System.out.println("bbox = " + bbox);
-    System.out.println("----------------------------------------");
+  /** returns the colors used outside the image **/
+  public Color getBackgroundColor(){
+     return backgroundColor;
   }
 
 
@@ -314,10 +328,14 @@ public class ImageBackground extends Background {
 	private BufferedImage img = null;
 
   /** Dialog for user interaction. **/
-  private static BackGroundImage bgi = null;
+  private static ImageBackgroundDialog bgi = null;
 
   /** Transformation from image to bbox world coordinates*/
   private AffineTransform at_img2wc = null;
+
+  /** Used backgroundcolor outside the image **/
+  private Color backgroundColor = null;
+
 
 	/**
 	 * String constant used as key for the background image within Property

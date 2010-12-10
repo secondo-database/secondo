@@ -109,8 +109,6 @@ public abstract class Background {
 	 *            A Rectangle2D defining the Background's boundary
 	 */
 	public void setBBox(Rectangle2D.Double rect) {
-    System.out.println("Called Background.setBBox(...)");
-    (new Throwable()).printStackTrace();
 		bbox = (Rectangle2D.Double) rect.clone();
 	}
 

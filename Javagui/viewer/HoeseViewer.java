@@ -217,6 +217,7 @@ public class HoeseViewer extends SecondoViewer {
 
  /* settings-menu */
   private javax.swing.JMenu jMenuGui;
+  private JMenuItem jMenuNoBackground;
   private JMenuItem jMenuBackgroundColor;
   private static boolean changeAllBackgrounds=false;
   private javax.swing.JMenuItem MINewCat;
@@ -265,7 +266,6 @@ public class HoeseViewer extends SecondoViewer {
   private AbstractAction AACatEdit;
   private AbstractAction AAViewCat;
   private AbstractAction AASetBackground;
-  private AbstractAction AARemoveBackground;
   private AbstractAction AACaptureBackground;
   private AbstractAction AALabelAttr;
   private String tok, PickTok;
@@ -580,6 +580,9 @@ public class HoeseViewer extends SecondoViewer {
     CurrentState.transform.scale(ZoomFactor, ZoomFactor);
     LayerSwitchBar = new JPanel();
     GraphDisplay = new GraphWindow(this);
+    Color bgColor = getBackground();
+    GraphDisplay.setBackgroundObject(new SimpleBackground(bgColor));
+    
     GraphDisplay.setOpaque(true); // needed for background-color
     MouseKoordLabel.setOpaque(true);
 
@@ -831,11 +834,27 @@ public class HoeseViewer extends SecondoViewer {
 
  /** Menu Settings */
     jMenuGui = new javax.swing.JMenu();
+
+
+    jMenuNoBackground = new JMenuItem("No Background");
+    jMenuNoBackground.addActionListener(new ActionListener(){
+      public void actionPerformed(ActionEvent evt){
+         Background bg = GraphDisplay.getBackgroundObject();
+         if(bg instanceof SimpleBackground){
+            ((SimpleBackground)bg).setBackgroundColor(null);   
+         } else {
+           Color c = null;
+           GraphDisplay.setBackgroundObject(new SimpleBackground(c));
+         }
+         repaint();
+      }
+    });
+
     jMenuBackgroundColor = new JMenuItem("Background Color");
     jMenuBackgroundColor.addActionListener(new ActionListener(){
         public void actionPerformed(ActionEvent evt){
             if(!(GraphDisplay.getBackgroundObject() instanceof SimpleBackground)){
-              GraphDisplay.setBackgroundObject(new SimpleBackground());
+              GraphDisplay.setBackgroundObject(new SimpleBackground(TextDisplay.getBackground()));
             }
             GraphDisplay.getBackgroundObject().showConfigDialog(null);
             repaint();
@@ -1198,32 +1217,21 @@ public class HoeseViewer extends SecondoViewer {
 
 		AASetBackground = new AbstractAction("set image") {
 			public void actionPerformed(java.awt.event.ActionEvent evt) {
-        System.out.println("Hallo, hier AASetBackground!");
         Background background = GraphDisplay.getBackgroundObject();
         if(!(background instanceof ImageBackground)){
           background = new ImageBackground();
           GraphDisplay.setBackgroundObject(background);
         }
-        System.out.println("Background before configuration = " + background);
 				background.showConfigDialog(null); // XRIS NEW
-        System.out.println("Background after configuration = " + background);
 				GraphDisplay.updateBackground();
 			}
 		};
 
-    AARemoveBackground = new AbstractAction("remove image"){
-       public void actionPerformed(java.awt.event.ActionEvent evt){
-         Background background = GraphDisplay.getBackgroundObject();
-         if(background instanceof ImageBackground){
-           background = new SimpleBackground(); // XRIS NEW
-           GraphDisplay.setBackgroundObject(background);
-        }
-         GraphDisplay.updateBackground();
-       }
-    };
+
 
     AACaptureBackground = new AbstractAction("capture image"){
        public void actionPerformed(java.awt.event.ActionEvent evt){
+           // get the current bounding box
            Rectangle2D r1 = GraphDisplay.getBounds();
            Rectangle2D R =  new Rectangle2D.Double(r1.getX(),r1.getY(),r1.getWidth(),r1.getHeight());
            double w =  R.getWidth();
@@ -1233,6 +1241,10 @@ public class HoeseViewer extends SecondoViewer {
               return;
            }
            try{
+              // create a new Buffered Image from the current content of the
+              // GraphDisplay
+
+              // check whether the image is larger than allowed
               boolean scale = false; // image to scale ?
               double sf=1.0; // the scale factor
               long MAXPIXELS = MAXCAPTUREPIXELS;
@@ -1251,9 +1263,11 @@ public class HoeseViewer extends SecondoViewer {
                 sdat.setToScale(sf,sf);
                 g.setTransform(sdat);
               }
+
               GraphDisplay.printAll(g);
               ImageBackground background = new ImageBackground();
 			        background.setImage(bi);
+
               AffineTransform at = (AffineTransform) CurrentState.transform.clone();
               // convert the bounding box of the GraphDisplay into
               // world coordinates.
@@ -1372,9 +1386,9 @@ public class HoeseViewer extends SecondoViewer {
     Border_100.addActionListener(SelectBorderListener);
     Border_200.addActionListener(SelectBorderListener);
     Border_500.addActionListener(SelectBorderListener);
+    BGMenu.add(jMenuNoBackground);
     BGMenu.add(jMenuBackgroundColor);
     BGMenu.add(AASetBackground);
-    BGMenu.add(AARemoveBackground);
     BGMenu.add(AACaptureBackground);
     BGMenu.add(AACaptureRect);
     BGMenu.add(SelectBorder);
