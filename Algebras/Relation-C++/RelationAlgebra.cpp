@@ -845,6 +845,7 @@ first argument.
 
 ----    ((stream x) ...)                -> x
         ((rel x)    ...)                -> x
+        ((orel x)    ...)                -> x
 ----
 
 */
@@ -856,8 +857,9 @@ ListExpr TUPLETypeMap(ListExpr args)
   }
   ListExpr first = nl->First(args);
   if(listutils::isTupleStream(first) ||
-     listutils::isRelDescription(first)){
-    return nl->Second(first);
+     listutils::isRelDescription(first) ||
+     listutils::isOrelDescription(first) ){
+       return nl->Second(first);
   }
   ErrorReporter::ReportError("rel(tuple(...)) or stream(tuple(...))) expected");
   return nl->TypeError();
