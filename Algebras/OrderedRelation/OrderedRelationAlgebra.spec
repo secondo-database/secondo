@@ -20,5 +20,8 @@
 operator oleftrange alias OLEFTRANGE pattern _ op [list]
 operator orightrange alias ORIGHTRANGE pattern _ op [list]
 operator orange alias ORANGE pattern _ op [list; list]
-operator oshortestpathd alias OSHORTESTPATHD pattern _ op [_,_;_]
-operator oshortestpatha alias OSHORTESTPATHA pattern _ op [_,_;_,_]
+operator oshortestpathd alias OSHORTESTPATHD pattern _ op [ _, _; fun] 
+         implicit parameter tuple type TUPLE
+operator oshortestpatha alias OSHORTESTPATHA pattern _ op [ _, _; fun, fun]
+         implicit parameter tuple type TUPLE
+
