@@ -145,8 +145,8 @@ public class ImageBackground extends Background {
          computeTransform();
       }
       AffineTransform at_img2screen = new AffineTransform(at_img2wc);
-      //at_img2screen.preConcatenate(at);
-      at_img2screen.concatenate(at);
+      at_img2screen.preConcatenate(at);
+      //at_img2screen.concatenate(at);
 			g.drawImage(img,at_img2screen, null);
 		}
 	}
@@ -295,7 +295,7 @@ public class ImageBackground extends Background {
 
     //at_img2wc = AffineTransform.getScaleInstance(scale_x, scale_y);
     //at_img2wc.translate(wc_x, wc_y - img_h);
-    at_img2wc = AffineTransform.getTranslateInstance(wc_x, img_h - wc_y);
+    at_img2wc = AffineTransform.getTranslateInstance(wc_x,  wc_y +  wc_h);
     at_img2wc.scale(scale_x, scale_y);
 
     Rectangle2D.Double debugr = new Rectangle2D.Double(img.getMinX(), img.getMinY(), img.getWidth(), img.getHeight());
