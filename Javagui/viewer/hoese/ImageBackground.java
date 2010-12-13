@@ -116,6 +116,7 @@ public class ImageBackground extends Background {
 			license = "";
 			useforbbox = bgi.useForBoundingBox();
       backgroundColor = bgi.getBackgroundColor();
+      backgroundColorChanged = true;
 			BackgroundChangedEvent evt = new BackgroundChangedEvent() {
 				public Object getSource() {
 					return ImageBackground.this;
@@ -154,7 +155,10 @@ public class ImageBackground extends Background {
 	@Override
 	public void paint(JComponent parent,Graphics2D g, AffineTransform at, Rectangle2D clipRect) {
     if(parent!=null){
-        setBackgroundColor(parent);
+      if(backgroundColorChanged){
+         backgroundColorChanged=false;
+         parent.setBackground(backgroundColor);
+      }
     }
 		if (img != null) {
       if(at_img2wc==null){
@@ -167,22 +171,6 @@ public class ImageBackground extends Background {
 		}
 	}
 
-  private void setBackgroundColor(JComponent parent){
-    Color c = parent.getBackground();
-    if(c==null && backgroundColor!=null){
-       return;
-    }
-    if(c!=null || backgroundColor!=null){
-        parent.setBackground(backgroundColor);
-        backgroundColor = parent.getBackground();
-        return;  
-    }
-    if(!c.equals(backgroundColor)){
-        parent.setBackground(backgroundColor);
-        backgroundColor = parent.getBackground();
-        return;  
-    }
-  }
 
 
 	/**
@@ -332,6 +320,7 @@ public class ImageBackground extends Background {
   /** sets the color outside the image **/
   public void setBackgroundColor(Color c){
       backgroundColor = c;
+      backgroundColorChanged = true;
   }
 
   /** returns the colors used outside the image **/
@@ -353,6 +342,8 @@ public class ImageBackground extends Background {
 
   /** Used backgroundcolor outside the image **/
   private Color backgroundColor = null;
+  /** flag indicating a changed background color **/
+  private boolean backgroundColorChanged = true; 
 
 
 	/**

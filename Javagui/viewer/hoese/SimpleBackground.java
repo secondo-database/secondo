@@ -34,6 +34,7 @@ public class SimpleBackground extends Background {
 		name = "SimpleBackground";
 		license = "";
 		backgroundcolor = null;
+    backgroundChanged=true;
 		useforbbox = false;
 		bbox = null;
 		listeners = new LinkedList<BackgroundListener>();
@@ -49,6 +50,7 @@ public class SimpleBackground extends Background {
 		name = "SimpleBackground";
 		license = "";
 		backgroundcolor = c;
+    backgroundChanged=true;
 		useforbbox = false;
 		bbox = null;
 		listeners = new LinkedList<BackgroundListener>();
@@ -66,6 +68,7 @@ public class SimpleBackground extends Background {
 		name = "SimpleBackground";
 		license = "";
 		backgroundcolor = null;
+    backgroundChanged = true;
 		useforbbox = false;
 		bbox = null;
 		listeners = new LinkedList<BackgroundListener>();
@@ -84,6 +87,7 @@ public class SimpleBackground extends Background {
 		name = "SimpleBackground";
 		license = "";
 		backgroundcolor = null;
+    backgroundChanged=true;
 		useforbbox = false;
 		bbox = null;
 		listeners = new LinkedList<BackgroundListener>();
@@ -100,6 +104,7 @@ public class SimpleBackground extends Background {
 		name = "SimpleBackground";
 		license = "";
 		backgroundcolor = null;
+    backgroundChanged=true;
 		useforbbox = false;
 		bbox = null;
 		listeners = new LinkedList<BackgroundListener>();
@@ -126,7 +131,10 @@ public class SimpleBackground extends Background {
 		Color selectedColor = JColorChooser.showDialog(null,
 				"Choose the background color:", backgroundcolor);
     if(selectedColor!=null){
-       backgroundcolor = selectedColor;
+       if(!selectedColor.equals(backgroundcolor)){
+          backgroundcolor = selectedColor;
+          backgroundChanged = true;
+       }
     }
 
 		BackgroundChangedEvent evt = new BackgroundChangedEvent() {
@@ -159,6 +167,7 @@ public class SimpleBackground extends Background {
 		}
 		super.setConfiguration(p, backgrounddatapath);
 		backgroundcolor = null;
+    backgroundChanged=true;
 		String bcstring = p.getProperty(KEY_BGCOLOR, null);
 		if(bcstring != null) {
 			try {
@@ -209,19 +218,9 @@ public class SimpleBackground extends Background {
 	@Override
 	public void paint(JComponent parent, Graphics2D g, AffineTransform at, Rectangle2D rect) {
     if(parent!=null){
-        Color c = parent.getBackground();
-        if(c==null && backgroundcolor==null){
-            return;
-        }
-        if(c==null || backgroundcolor==null){
-            parent.setBackground(backgroundcolor);
-            backgroundcolor = parent.getBackground();
-            return;
-        }
-       if(!c.equals(backgroundcolor)){
+       if(backgroundChanged){
+          backgroundChanged=false;
           parent.setBackground(backgroundcolor);
-          backgroundcolor = parent.getBackground();
-          return;
        }
     } else {
        Reporter.writeError("parent is null");
@@ -241,7 +240,19 @@ public class SimpleBackground extends Background {
 
   /** sets the background color used in this background **/
   public void setBackgroundColor(Color c){
-     backgroundcolor = c; 
+     if(c==null && backgroundcolor==null){ // backgroundcolor not changed
+        return;
+     }
+     if(backgroundcolor==null || c==null){
+        backgroundChanged = true;
+        backgroundcolor = c; 
+        return;
+     }
+     if(!c.equals(backgroundcolor)){
+        backgroundChanged = true;
+        backgroundcolor = c; 
+        return;
+     }
   }
 
 
@@ -253,6 +264,7 @@ public class SimpleBackground extends Background {
 	 * The background color to be used.
 	 */
 	private Color backgroundcolor;
+  private boolean backgroundChanged=true;
 
 	public static final String KEY_BGCOLOR = "backgroundcolor";
 }
