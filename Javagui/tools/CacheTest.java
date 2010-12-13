@@ -86,7 +86,7 @@ public class CacheTest{
      cache.clear();
      java.util.Random R = new java.util.Random(1);
      for(int i=0;i<imgs.size(); i++){
-        int num = R.nextInt(max/2 + 1);
+        int num = R.nextInt(max + 1);
         CachedImage img = cache.getElem(imgs.get(num));
         System.out.println( cache);
         if(img==null){

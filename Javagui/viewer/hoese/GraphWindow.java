@@ -355,8 +355,8 @@ public class GraphWindow extends JLayeredPane
   // into screen coordinates
   try{
     AffineTransform iat = at.createInverse();
-    Rectangle vpbounds = mw.GeoScrollPane.getViewport().getBounds(null);
-    Rectangle2D cbbi = iat.createTransformedShape(vpbounds.getBounds()).getBounds();
+    Rectangle vpbounds = mw.GeoScrollPane.getViewport().getViewRect();
+    Rectangle2D cbbi = iat.createTransformedShape(vpbounds.getBounds2D()).getBounds2D();
     if(background != null) {
       background.paint(this,g2,at, cbbi);
     }

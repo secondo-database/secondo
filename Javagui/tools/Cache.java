@@ -35,7 +35,9 @@ public class Cache<T extends Cacheable, L extends ObjectLoader<T> > {
      }
      failures++;
      T value = loader.loadFromFile(f);
-
+     if(value==null){
+       return null;
+     }
      if(value.getUsedMem() > maxMem){
          // do not cache values exceeding the available memory for this cache
          return value;

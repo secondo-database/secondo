@@ -5,14 +5,14 @@ package tools.downloadmanager;
 public class DownloadEvent{
 
   /** Creates a new DownloadEvent from the arguments. **/
-  public DownloadEvent( Object source, DownloadState state, Exception ex){
+  public DownloadEvent( ActiveDownload source, DownloadState state, Exception ex){
      this.source = source;
      this.state = state;
      this.ex = ex;
   }
 
   /** Returns the source of this event, normally the assigned Download **/
-  public Object getSource(){
+  public ActiveDownload getSource(){
      return source;
   }
 
@@ -35,7 +35,7 @@ public class DownloadEvent{
            "Exception = " + ex;
   }
 
-  private Object source;
+  private ActiveDownload source;
   private DownloadState state;
   private Exception ex;
 }

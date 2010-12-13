@@ -198,7 +198,7 @@ public class DownloadManager extends  DownloadObserver{
   /** Sets the timeout for a single read action from  the server in milliseconds. A value of zero
     * or less will describe an infinite timeout.
     **/
-  public void setiReadTimeout(int readTimeout){
+  public void setReadTimeout(int readTimeout){
       this.readTimeout = Math.max(0, readTimeout);
   }
 
