@@ -109,7 +109,7 @@ Are several inline initialization functions for ~Word~ instances.
 
 */
 
-const int MAXARG = 20;
+const int MAXARG = 100;
 const int FUNMSG = 10;
 
 /*
