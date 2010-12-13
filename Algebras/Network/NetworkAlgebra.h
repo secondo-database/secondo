@@ -2234,17 +2234,28 @@ class GPointsSections
   public:
     GPointsSections(){};
 
-    GPointsSections(GPoint g, TupleId t, Point p):m_gp(g),m_tid(t),m_p(p)
+    GPointsSections(const GPoint g, const TupleId t, const Point p)
+    : m_gp(g), m_tid(t), m_p(p)
     {
     };
 
     ~GPointsSections(){};
 
-    GPoint GetGP() {return m_gp;};
+    GPoint GetGP() const {return m_gp;};
 
-    TupleId GetTid() {return m_tid;};
+    TupleId GetTid() const {return m_tid;};
 
-    Point GetPoint() {return m_p;};
+    Point GetPoint() const {return m_p;};
+
+    ostream& Print(ostream& os) const
+    {
+      os << "GPoint: ";
+      m_gp.Print(os);
+      os << ", Point: ";
+      m_p.Print(os);
+      os << ", TupleId: " << (long int) m_tid << endl;
+      return os;
+    };
 
   private:
     GPoint m_gp;
