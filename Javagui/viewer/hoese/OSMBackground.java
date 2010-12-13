@@ -29,7 +29,7 @@ public class OSMBackground extends Background {
 
   public OSMBackground(){
      name = "OSMBackground";
-     bbox = new Rectangle2D.Double(-180,-90, 360,180); // able to display the world
+     bbox = new Rectangle2D.Double(-180,-90, 360,180); // able to display the "world"
      listeners = new LinkedList<BackgroundListener>();
      useforbbox = false;
      try{ 
@@ -44,11 +44,7 @@ public class OSMBackground extends Background {
            OSMBackground.this.downloadStateChanged(evt);
         }
      };
-
-      imageCache = new Cache<CachedImage, ImgLoader>(CACHESIZE, new ImgLoader());
-
-
-
+     imageCache = new Cache<CachedImage, ImgLoader>(CACHESIZE, new ImgLoader());
   }
 
   // don't allow to change the bounding box from outside
@@ -56,23 +52,25 @@ public class OSMBackground extends Background {
 
 
   public void showConfigDialog(JComponent f){ 
-     // basically there is no user interaction required for this viewer
-     // maybe choosing of the directory of temporarly files
+     // TODO: settings for maxDownloads etc.
+
   }
 
 
   public void paint(JComponent parent, Graphics2D g, AffineTransform at, Rectangle2D clipRect){
-
-     clipRect = clipRect.createIntersection(bbox);
-     if(clipRect.isEmpty()){
-        return;
-     }
-     parent.setBackground(Color.RED);  // non available tiles will be painted in red
-     if(!clipRect.intersects(bbox)){
-         return;   
-     }
-     LinkedList< Pair<URL, AffineTransform > > urls = computeURLs(clipRect);
-     paintURLs(g,urls, at);      
+     try{
+        clipRect = clipRect.createIntersection(bbox);
+        if(clipRect.isEmpty()){
+          return;
+        }
+        //parent.setBackground(Color.RED);  // non available tiles will be painted in red
+        LinkedList< Pair<URL, AffineTransform > > urls = computeURLs((Rectangle2D.Double)clipRect);
+        if(urls!=null){
+           paintURLs(g,urls, at);      
+        }
+    } catch(Exception e ){
+        e.printStackTrace();
+    }
   }
 
 
@@ -110,20 +108,54 @@ public class OSMBackground extends Background {
 
 
 
-  private LinkedList<Pair<URL, AffineTransform>> computeURLs(Rectangle2D bbox){
+  private int getTileX(int zoom, double lon){
+     return   (int)Math.floor( (lon + 180) / 360 * (1<<zoom) ) ;
+  }
+
+  private int getTileY(int zoom, double lat){
+   return (int)Math.floor( (1 - Math.log(Math.tan(Math.toRadians(lat)) + 1 / Math.cos(Math.toRadians(lat))) / Math.PI) / 2 * (1<<zoom) ) ;
+  }
+
+
+  private LinkedList<Pair<URL, AffineTransform>> computeURLs(Rectangle2D.Double bbox){
+     if(bbox==null){
+       return null;
+     }
+     
+     if(bbox.equals(lastClipRect)){
+        return lastURLs;
+     }
+
      System.out.println("enter compute URLS +++++++++++++++++++++++++++++++++++++++++++++++++++");
 
      int zoom = computeZoomLevel(bbox.getWidth(), bbox.getHeight());
-     double noTiles = Math.pow(2,zoom);
-     System.out.println("Zoom = " + zoom);
-     System.out.println("no Tiles = " + noTiles);
-     
-     int x1 = (int)( ((bbox.getX()+180)*noTiles) / 360.0);
-     int x2 = ((int)( ((bbox.getX()+bbox.getWidth()+180)*noTiles) / 360.0));
 
+     System.out.println("Zoom = " + zoom);
+
+
+
+     System.out.println("bbox = " + bbox);
+     System.out.println("bbClass = " + bbox.getClass().getName());
+
+     System.out.println("wx1 = " + bbox.getX());
+     System.out.println("wx2 = " + (bbox.getX()+bbox.getWidth()));
+     System.out.println("wy1 = " + bbox.getY());
+     System.out.println("wy2 = " + (bbox.getY()+bbox.getHeight()));
+    
+     int x1 = getTileX(zoom, bbox.getX());
+     int x2 = getTileX(zoom, bbox.getX()+bbox.getWidth());
+     int y1 = getTileY(zoom, bbox.getY() + bbox.getHeight()); 
+     int y2 = getTileY(zoom, bbox.getY());
+
+
+     // debug::start
+      double lon = 51.17;
+      double lat = 7.33;
+      System.out.println("TileX = " + getTileX(zoom , lat));
+      System.out.println("TileY = " + getTileY(zoom, lon));
+     // debug::end
      
-     int y1 = (int)( ((bbox.getY()+90)*noTiles) / 180.0);
-     int y2 = ((int)( ((bbox.getY()+bbox.getHeight()+90)*noTiles) / 180.0)) ;
+     System.out.println("computeURLS: (x1, y1 , x2, y2) = (" + x1+", " + y1+ ", " + x2 + ", " + y2+")");
 
 
      LinkedList<Pair<URL, AffineTransform>> res = new LinkedList<Pair<URL,AffineTransform>>();
@@ -136,6 +168,7 @@ public class OSMBackground extends Background {
         }
      } 
      System.out.println("leave compute URLS +++++++++++++++++++++++++++++++++++++++++++++++++++");
+     lastURLs = res;
      return res; 
   }
 
@@ -144,40 +177,51 @@ public class OSMBackground extends Background {
      // TODO : implement it
      try{
        URL url = new URL("http://"+SERVER+"/"+z+"/"+x+"/"+y+".png");
+       System.out.println("URL = " + url);
      } catch(Exception e){
          e.printStackTrace();
          return null;
      }
      //AffineTransform at = AffineTransform.getScaleInstance( TILESIZE_X * getTileSizeX(z) , TILESIZE_Y * getTileSizeY(z)); 
      //at.translate( getTileSizeX(z)*x -180 -x, getTileSizeY(z)*y - 90 - y);
-      
-
-
-
      return null;
   }
 
 
   private int computeZoomLevel(double width, double height){
+          
+
+
      double z_x = Math.log((360*DIM_X) / (width*TILESIZE_X) ) / l2;   // computing log_2
-     double z_y = Math.log((180/DIM_Y) / (height*TILESIZE_Y)) / l2;
+     double z_y = Math.log((180*DIM_Y) / (height*TILESIZE_Y)) / l2;
  
      System.out.println("z_x = " + z_x);
      System.out.println("z_y = " + z_y);
 
 
      double z = Math.max(z_x,z_y);
-     int zoom = (int)(Math.ceil(z + .05));
-     if(zoom>MAX_ZOOM){
-        zoom = MAX_ZOOM;
-     }
-     if(zoom>0){
-        zoom--;
-     }
-     return zoom;
+     return (int) z;
+
   }  
 
 
+
+  Rectangle2D.Double getBBoxForTile(int x, int y, int zoom){
+    double north = tile2lat(y, zoom);
+    double south = tile2lat(y + 1, zoom);
+    double west = tile2lon(x, zoom);
+    double east = tile2lon(x + 1, zoom);
+    return new Rectangle2D.Double(west, south, east-west, north-south);  
+  }
+ 
+  static double tile2lon(int x, int z) {
+     return x / Math.pow(2.0, z) * 360.0 - 180;
+  }
+ 
+  static double tile2lat(int y, int z) {
+    double n = Math.PI - (2.0 * Math.PI * y) / Math.pow(2.0, z);
+    return Math.toDegrees(Math.atan(Math.sinh(n)));
+  }
 
 
 
@@ -214,7 +258,9 @@ public class OSMBackground extends Background {
   
   DownloadObserver observer; 
 
-  
+
+  Rectangle2D lastClipRect = null;
+  LinkedList<Pair<URL, AffineTransform>>  lastURLs;
 
 
 }
