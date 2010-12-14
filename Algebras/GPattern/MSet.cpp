@@ -4041,8 +4041,10 @@ CompressedUSetRef::CompressedUSetRef(bool def):isdefined(def){}
 
 
 CompressedMSet::CompressedMSet(){}
-CompressedMSet::CompressedMSet(int cnt):removed(0), added(0), units(cnt){}
-CompressedMSet::CompressedMSet(CompressedMSet& arg)
+CompressedMSet::CompressedMSet(int cnt):
+  removed(0), added(0), units(cnt), validLastUnitValue(false){}
+CompressedMSet::CompressedMSet(CompressedMSet& arg):
+  removed(0), added(0), units(0), validLastUnitValue(false)
 {
   this->CopyFrom(arg);
 }
@@ -4087,6 +4089,7 @@ void CompressedMSet::GetSet(int index, set<int>& res)
 {
   CompressedUSetRef unitRef;
   int elem;
+  res.clear();
   for(int i= 0; i<= index; ++i)
   {
     this->units.Get( i, unitRef );
@@ -4095,11 +4098,13 @@ void CompressedMSet::GetSet(int index, set<int>& res)
       this->added.Get(j, elem);
       res.insert(elem);
     }
+
     for(int j=unitRef.removedstart; j<= unitRef.removedend; ++j)
     {
       this->removed.Get(j, elem);
       res.erase(elem);
     }
+
     assert(res.size() == unitRef.count);
   }
 }
@@ -4129,26 +4134,24 @@ void CompressedMSet::WriteToCompressedInMemMSet(CompressedInMemMSet& res)
   CompressedInMemUSet uset;
   CompressedUSetRef unitRef;
   int elem;
+  set<int> toAdd, toRemove;
   for(int i= 0; i< this->units.Size(); ++i)
   {
     this->units.Get( i, unitRef );
-    uset.added.clear(); uset.removed.clear();
-    uset.starttime= unitRef.starttime;  uset.endtime= unitRef.endtime;
-    uset.lc= unitRef.lc; uset.rc= unitRef.rc;
-    uset.count= unitRef.count;
+    toAdd.clear(); toRemove.clear();
     for(int j=unitRef.addedstart; j<= unitRef.addedend; ++j)
     {
       this->added.Get(j, elem);
-      uset.added.insert(elem);
+      toAdd.insert(elem);
     }
     for(int j=unitRef.removedstart; j<= unitRef.removedend; ++j)
     {
       this->removed.Get(j, elem);
-      uset.removed.insert(elem);
+      toRemove.insert(elem);
     }
+    res.AddUnit(unitRef.starttime, unitRef.endtime, 
+        unitRef.lc, unitRef.rc, toAdd, toRemove, unitRef.count);
   }
-  if(this->validLastUnitValue)
-    res.GetFinalSet();
 }
 
 ostream& CompressedMSet::Print( ostream &os ){}
@@ -4164,7 +4167,7 @@ void CompressedMSet::AddUnit( set<int>& constValue,
     this->Clear();
     for(set<int>::iterator it= constValue.begin(); it!=constValue.end(); ++it)
       this->added.Append(*it);
-    unit.removedstart=0;      unit.removedend=0;
+    unit.removedstart=0;      unit.removedend=-1;
     unit.addedstart=0;      unit.addedend=constValue.size() - 1;
     unit.starttime= starttime; unit.endtime= endtime; unit.lc= lc; unit.rc= rc;
     unit.count= constValue.size();
@@ -4182,14 +4185,16 @@ void CompressedMSet::AddUnit( set<int>& constValue,
   set_difference(finalSet->begin(), finalSet->end(),
       constValue.begin(), constValue.end(),
       inserter(_removed, _removed.begin()));
-  
-  unit.removedstart=this->removed.Size()-1;      
-  unit.addedstart= this->added.Size() -1;
+  cerr<<endl<<constValue.size()<<"\t"<<finalSet->size()<<'\t'<<
+    _added.size()<<'\t'<<_removed.size() << '\t' <<
+    finalSet->size() + _added.size() - _removed.size()<<endl;
+  unit.removedstart= this->removed.Size();      
+  unit.addedstart= this->added.Size() ;
   for(set<int>::iterator it= _added.begin(); it!=_added.end(); ++it)
     this->added.Append(*it);
   for(set<int>::iterator it= _removed.begin(); it!=_removed.end(); ++it)
     this->removed.Append(*it);
-  unit.removedend=this->removed.Size()-1;      
+  unit.removedend= this->removed.Size() -1;      
   unit.addedend= this->added.Size() -1;
   unit.starttime= starttime; unit.endtime= endtime;
   unit.lc= lc; unit.rc= rc; 

@@ -120,40 +120,42 @@ template<class MSetClass, class IteratorClass>
 static void FindSubGraphs(MSetClass& Accumlator,
     IteratorClass begin, IteratorClass end , 
     vector<intpair>& ids, double d, int n, string qts, 
-    list<CompressedInMemMSet*>*& finalResStream)
+    list<CompressedMSet*>*& finalResStream)
 {
   bool debugme= false;
   IteratorClass cur= begin;
   set<int> s;
-  list<CompressedInMemMSet*>* resStream= 0, *localResStream= 0;
-  finalResStream= new list<CompressedInMemMSet*>(0);
+  list<CompressedMSet*>* resStream= 0, *localResStream= 0;
+  finalResStream= new list<CompressedMSet*>(0);
 
   FindDynamicComponents(Accumlator, begin, end, ids, d, n, qts, resStream);
 
   bool locallyChanged= true, globallyChanged= false;
-  CompressedInMemMSet* curMSet=0;
+  CompressedInMemMSet* curInMemMSet= new CompressedInMemMSet();
+  CompressedMSet* curMSet=0;
   while(resStream->begin() != resStream->end())
   {
     curMSet= resStream->front();
+    curMSet->WriteToCompressedInMemMSet(*curInMemMSet);
     if(debugme)
-      curMSet->Print(cerr);
+      curInMemMSet->Print(cerr);
     locallyChanged=true; globallyChanged= false;
     while(locallyChanged)
     {
-      locallyChanged= curMSet->RemoveSmallUnits(n);
+      locallyChanged= curInMemMSet->RemoveSmallUnits(n);
       locallyChanged= 
-        (locallyChanged || curMSet->RemoveShortElemParts(d) );
+        (locallyChanged || curInMemMSet->RemoveShortElemParts(d) );
       globallyChanged= (globallyChanged || locallyChanged);
     }
     if(debugme)
-      curMSet->Print(cerr);
+      curInMemMSet->Print(cerr);
     if(globallyChanged)
     {     
       list<CompressedInMemUSet>::iterator begin2= 
-        curMSet->units.begin(), end2, tmp;
-      while(begin2 != curMSet->units.end())
+        curInMemMSet->units.begin(), end2, tmp;
+      while(begin2 != curInMemMSet->units.end())
       {
-        end2= curMSet->GetPeriodEndUnit(begin2);
+        end2= curInMemMSet->GetPeriodEndUnit(begin2);
         if(debugme)
         {
           (*begin2).Print(cerr);
@@ -164,7 +166,7 @@ static void FindSubGraphs(MSetClass& Accumlator,
           ++end2;
           GPatternHelper::FindSubGraphs<CompressedInMemMSet, 
             list<CompressedInMemUSet>::iterator>(
-              *curMSet, begin2, end2 , ids, d, n, qts, localResStream);
+              *curInMemMSet, begin2, end2 , ids, d, n, qts, localResStream);
           resStream->splice(resStream->end(), *localResStream);
           delete localResStream;
         }
@@ -173,12 +175,14 @@ static void FindSubGraphs(MSetClass& Accumlator,
         begin2= end2;
       }
       delete curMSet;
+      curInMemMSet->Clear();
     }
     else
       finalResStream->push_back(curMSet);
     resStream->pop_front();
   }
   delete resStream;
+  delete curInMemMSet;
 }
   
 //static void FindDynamicComponents(CompressedInMemMSet& Accumlator,
@@ -241,18 +245,21 @@ static void FindSubGraphs(MSetClass& Accumlator,
 //}
 
 struct 
-checkShortDelete: binary_function< CompressedInMemMSet* ,double,bool>
+checkShortDelete: binary_function< CompressedMSet* ,double,bool>
 {
 public: 
-  bool operator() (CompressedInMemMSet* _mset, double d) const
+  bool operator() (CompressedMSet* _mset, double d) const
   {
-    if(_mset->units.empty())
+    if(_mset->units.Size() == 0)
     {
       delete _mset;
       return true;
     }
-    double starttime= _mset->units.front().starttime, 
-    endtime= _mset->units.back().endtime;
+    CompressedUSetRef uset;
+    _mset->units.Get(0, uset);
+    double starttime= uset.starttime;
+    _mset->units.Get(_mset->units.Size() - 1, uset);
+    double endtime= uset.endtime;
     if(endtime - starttime < d) 
     {
       delete _mset;
@@ -265,8 +272,8 @@ public:
 static void FindDynamicComponents(CompressedInMemMSet& Accumlator,
     list<CompressedInMemUSet>::iterator begin, 
     list<CompressedInMemUSet>::iterator end , 
-    vector<intpair>& ids, double d, int n, string qts, 
-    list<CompressedInMemMSet*>*& finalResStream)
+    vector<intpair>& ids, double d, int n, string& qts, 
+    list<CompressedMSet*>*& finalResStream)
 {
   bool debugme= false;
   set<int> constValue;
@@ -276,12 +283,13 @@ static void FindDynamicComponents(CompressedInMemMSet& Accumlator,
   bool lc, rc;
   int cnt= 0;
   
-  list<CompressedInMemMSet*>* resStream= new list<CompressedInMemMSet*>(0);
-  finalResStream= new list<CompressedInMemMSet*>(0);
+  list<CompressedMSet*>* resStream= new list<CompressedMSet*>(0);
+  finalResStream= new list<CompressedMSet*>(0);
   list<CompressedInMemUSet>::iterator cur= begin;
   while(cur != end)
   {
-    cerr<<"\n\nProcessing unit number: " <<++cnt;
+    cerr<<"\n\nProcessing unit number: " <<++cnt <<" unit has: "
+      <<(*cur).count<<" elems";
     cerr<<"\nresStream has: " <<resStream->size();
     cerr<<" results, finalResStream has: " <<finalResStream->size();
     Accumlator.GetSet(cur, constValue);
@@ -295,7 +303,7 @@ static void FindDynamicComponents(CompressedInMemMSet& Accumlator,
   if(debugme)
   {
     cerr<< "\nresStream contains "<< resStream->size() << " results\n";
-    for(list<CompressedInMemMSet*>::iterator 
+    for(list<CompressedMSet*>::iterator 
         it= resStream->begin(); it != resStream->end(); ++it)
       (*it)->Print(cerr);
   }
@@ -303,7 +311,7 @@ static void FindDynamicComponents(CompressedInMemMSet& Accumlator,
   if(debugme)
   {
     cerr<< "\nresStream contains "<< resStream->size() << " results\n";
-    for(list<CompressedInMemMSet*>::iterator 
+    for(list<CompressedMSet*>::iterator 
         it= resStream->begin(); it != resStream->end(); ++it)
       (*it)->Print(cerr);
   }
@@ -312,7 +320,7 @@ static void FindDynamicComponents(CompressedInMemMSet& Accumlator,
   {
     cerr<< "\nfinalResStream contains "<< 
       finalResStream->size() << " results\n";
-    for(list<CompressedInMemMSet*>::iterator 
+    for(list<CompressedMSet*>::iterator 
         it= finalResStream->begin(); it != finalResStream->end(); ++it)
       (*it)->Print(cerr);
   }
@@ -342,8 +350,8 @@ static bool SetIntersects(set<int> &set1, set<int> &set2)
 
 static void DynamicGraphAppend(set<int> &constValue, double starttime, 
     double endtime, bool lc, bool rc, vector<intpair>& ids, double d, 
-    int n, string qts, list<CompressedInMemMSet*>* resStream, 
-    list<CompressedInMemMSet*>* finalResStream)
+    int n, string& qts, list<CompressedMSet*>* resStream, 
+    list<CompressedMSet*>* finalResStream)
 {
   bool debugme= false;
   set<int> *subGraph;
@@ -364,7 +372,7 @@ static void DynamicGraphAppend(set<int> &constValue, double starttime,
     if(debugme)
     {
       cerr<< "\nresStream contains "<< resStream->size() << " results\n";
-      for(list<CompressedInMemMSet*>::iterator 
+      for(list<CompressedMSet*>::iterator 
           it= resStream->begin(); it != resStream->end(); ++it)
         (*it)->Print(cerr);
     }
@@ -372,7 +380,7 @@ static void DynamicGraphAppend(set<int> &constValue, double starttime,
     {
       cerr<< "\nfinalResStream contains "<< 
         finalResStream->size() << " results\n";
-      for(list<CompressedInMemMSet*>::iterator 
+      for(list<CompressedMSet*>::iterator 
           it= finalResStream->begin(); it != finalResStream->end(); ++it)
         (*it)->Print(cerr);
     }
@@ -381,12 +389,13 @@ static void DynamicGraphAppend(set<int> &constValue, double starttime,
   
   subGraphsNodes= FindSubGraphs(graph, n, qts, _map);
   int size= subGraphsNodes->size();
-  cerr<<"\n Number of subgraphs in this unit is: "<< size;
+  cerr<<"\n Number of subgraphs in this unit is: "<< size <<" with sizes: ";
   subGraphsEdges= new vector<set<int> >(size);
   for(unsigned int i=0; i< subGraphsNodes->size(); ++i)
   {
     GraphNodes2Edges(
         (*subGraphsNodes)[i], constValue, ids, (*subGraphsEdges)[i]);
+    cerr<< (*subGraphsEdges)[i].size()<<", ";
     (*subGraphsNodes)[i].clear();
   }
   delete subGraphsNodes;
@@ -395,7 +404,7 @@ static void DynamicGraphAppend(set<int> &constValue, double starttime,
   {
     for(unsigned int i=0; i< subGraphsEdges->size(); ++i)
     {
-      CompressedInMemMSet* newmset= new CompressedInMemMSet();
+      CompressedMSet* newmset= new CompressedMSet(0);
       newmset->MergeAdd((*subGraphsEdges)[i], starttime, endtime, lc, rc);
       resStream->push_back(newmset);
       if(debugme)
@@ -404,7 +413,7 @@ static void DynamicGraphAppend(set<int> &constValue, double starttime,
     if(debugme)
     {
       cerr<< "\nresStream contains "<< resStream->size() << " results\n";
-      for(list<CompressedInMemMSet*>::iterator 
+      for(list<CompressedMSet*>::iterator 
           it= resStream->begin(); it != resStream->end(); ++it)
         (*it)->Print(cerr);
     }
@@ -412,7 +421,7 @@ static void DynamicGraphAppend(set<int> &constValue, double starttime,
     {
       cerr<< "\nfinalResStream contains "<< 
         resStream->size() << " results\n";
-      for(list<CompressedInMemMSet*>::iterator 
+      for(list<CompressedMSet*>::iterator 
           it= finalResStream->begin(); it != finalResStream->end(); ++it)
         (*it)->Print(cerr);
     }
@@ -427,7 +436,7 @@ static void DynamicGraphAppend(set<int> &constValue, double starttime,
       if(debugme)
       {
         cerr<< "\nresStream contains "<< resStream->size() << " results\n";
-        for(list<CompressedInMemMSet*>::iterator 
+        for(list<CompressedMSet*>::iterator 
             it= resStream->begin(); it != resStream->end(); ++it)
           (*it)->Print(cerr);
       }
@@ -435,17 +444,18 @@ static void DynamicGraphAppend(set<int> &constValue, double starttime,
       {
         cerr<< "\nfinalResStream contains "<< 
           finalResStream->size() << " results\n";
-        for(list<CompressedInMemMSet*>::iterator 
+        for(list<CompressedMSet*>::iterator 
             it= finalResStream->begin(); it != finalResStream->end(); ++it)
           (*it)->Print(cerr);
       }
     }
     else
-    {    
-      list<CompressedInMemMSet*>::iterator it= resStream->begin();
+    { 
+      CompressedUSetRef _uset;
+      list<CompressedMSet*>::iterator it= resStream->begin();
       while(it != resStream->end())
       {
-        CompressedInMemMSet* _mset= (*it);
+        CompressedMSet* _mset= (*it);
         set<int>* finalSet= _mset->GetFinalSet();
         for(unsigned int i=0; i< subGraphsEdges->size(); ++i)
         {
@@ -461,8 +471,10 @@ static void DynamicGraphAppend(set<int> &constValue, double starttime,
             cerr<<endl<< resStream->size() <<endl << _mset << endl;
             _mset->Print(cerr);
           }
-          double starttime= _mset->units.front().starttime, 
-                endtime= _mset->units.back().endtime;
+          _mset->units.Get(0, _uset);
+          double starttime= _uset.starttime; 
+          _mset->units.Get(_mset->units.Size() - 1 , _uset);
+          double endtime= _uset.endtime;
           if(endtime - starttime < d) 
             delete _mset;
           else
@@ -472,7 +484,7 @@ static void DynamicGraphAppend(set<int> &constValue, double starttime,
           {
             cerr<< "\nresStream contains "<< 
               resStream->size() << " results\n";
-            for(list<CompressedInMemMSet*>::iterator 
+            for(list<CompressedMSet*>::iterator 
                 it= resStream->begin(); it != resStream->end(); ++it)
               (*it)->Print(cerr);
           }
@@ -480,7 +492,7 @@ static void DynamicGraphAppend(set<int> &constValue, double starttime,
           {
             cerr<< "\nfinalResStream contains "<< 
               finalResStream->size() << " results\n";
-            for(list<CompressedInMemMSet*>::iterator 
+            for(list<CompressedMSet*>::iterator 
               it= finalResStream->begin(); it!= finalResStream->end(); ++it)
               (*it)->Print(cerr);
           }
@@ -501,9 +513,7 @@ static void DynamicGraphAppend(set<int> &constValue, double starttime,
           for(unsigned int k=0; k< mergeIndex.size(); ++k)
           {
             subGraph= &(*subGraphsEdges)[mergeIndex[k]];
-            list<CompressedInMemUSet>::iterator msetEnd= _mset->units.end();
-            CompressedInMemMSet* newMSet= 
-              new CompressedInMemMSet(*_mset, _mset->units.begin(), msetEnd);
+            CompressedMSet* newMSet= new CompressedMSet(*_mset);
             merged= newMSet->MergeAdd(*subGraph, starttime, endtime, lc, rc);
             if(debugme)
               newMSet->Print(cerr);
@@ -518,7 +528,7 @@ static void DynamicGraphAppend(set<int> &constValue, double starttime,
           if(debugme)
           {
             cerr<< "\nresStream contains "<< resStream->size() << " results\n";
-            for(list<CompressedInMemMSet*>::iterator 
+            for(list<CompressedMSet*>::iterator 
                 it= resStream->begin(); it != resStream->end(); ++it)
               (*it)->Print(cerr);
           }
@@ -526,7 +536,7 @@ static void DynamicGraphAppend(set<int> &constValue, double starttime,
           {
             cerr<< "\nfinalResStream contains "<< 
               finalResStream->size() << " results\n";
-            for(list<CompressedInMemMSet*>::iterator 
+            for(list<CompressedMSet*>::iterator 
                 it= finalResStream->begin(); it != finalResStream->end(); ++it)
               (*it)->Print(cerr);
           }
@@ -745,28 +755,38 @@ static vector<set<int> >* FindSubGraphs(
     }
   }
   
-  static CompressedInMemMSet* 
-    EdgeMSet2NodeMSet(CompressedInMemMSet* edgeMSet, vector<intpair>& ids)
+  static CompressedMSet* 
+    EdgeMSet2NodeMSet(CompressedMSet* edgeMSet, vector<intpair>& ids)
   {
-    CompressedInMemMSet* res= new CompressedInMemMSet();
+    CompressedMSet* res= new CompressedMSet(0);
+    CompressedUSetRef _uset;
     set<int> curEdgeSet, curNodeSet;
     if(edgeMSet == 0 || edgeMSet->GetNoComponents() == 0) return res;
     
-    list<CompressedInMemUSet>::iterator it= edgeMSet->units.begin();
-    edgeMSet->GetSet(it, curEdgeSet);
+    edgeMSet->units.Get(0, _uset);
+    edgeMSet->GetSet(0, curEdgeSet);
     EdgeSet2NodeSet(curEdgeSet, curNodeSet, ids);
     res->MergeAdd(
-        curNodeSet, (*it).starttime, (*it).endtime, (*it).lc, (*it).rc);
-    ++it;
-    while(it!= edgeMSet->units.end())
+        curNodeSet, _uset.starttime, _uset.endtime, _uset.lc, _uset.rc);
+    int i=1, elem;
+    while(i < edgeMSet->units.Size())
     {
-      CompressedInMemUSet* edgeUSet= &(*it);
-      SetAddRemove(curEdgeSet, edgeUSet->added, edgeUSet->removed);
-      assert(curEdgeSet.size() == edgeUSet->count);
+      edgeMSet->units.Get(i, _uset);
+      for(int j= _uset.addedstart; j<=_uset.addedend; ++j)
+      {
+        edgeMSet->added.Get(j, elem);
+        curEdgeSet.insert(elem);
+      }
+      for(int j= _uset.removedstart; j<=_uset.removedend; ++j)
+      {
+        edgeMSet->removed.Get(j, elem);
+        curEdgeSet.erase(elem);
+      }
+      assert(curEdgeSet.size() == _uset.count);
       EdgeSet2NodeSet(curEdgeSet, curNodeSet, ids);
       res->MergeAdd(
-          curNodeSet, (*it).starttime, (*it).endtime, (*it).lc, (*it).rc);
-      ++it;
+          curNodeSet, _uset.starttime, _uset.endtime, _uset.lc, _uset.rc);
+      ++i;
     }
     return res;
   }

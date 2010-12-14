@@ -1529,8 +1529,8 @@ Defining local variables
     vector<intpair> ids(0);
     CompressedInMemMSet accumlator;
     //InMemMSet accumlator2;
-    list<CompressedInMemMSet*>* resStream= 
-      new list<CompressedInMemMSet*>(), *resStreamFinal=0,
+    list<CompressedMSet*>* resStream= 
+      new list<CompressedMSet*>(), *resStreamFinal=0,
       *localResStream=0;
 
 /*
@@ -1652,8 +1652,8 @@ Evaluating the gpattern results
         ++end;
       begin= end;
     }
-    resStreamFinal= new list<CompressedInMemMSet*>();
-    for(list<CompressedInMemMSet*>::iterator 
+    resStreamFinal= new list<CompressedMSet*>();
+    for(list<CompressedMSet*>::iterator 
         it= resStream->begin(); it!= resStream->end(); ++it)
     {
       resStreamFinal->push_back(GPatternHelper::EdgeMSet2NodeMSet(*it, ids));
@@ -1667,12 +1667,14 @@ Evaluating the gpattern results
   }
   case REQUEST: { // return the next stream element
 
-    list<CompressedInMemMSet*>* resStream= 
-      static_cast< list<CompressedInMemMSet*>* >(local.addr);
+    list<CompressedMSet*>* resStream= 
+      static_cast< list<CompressedMSet*>* >(local.addr);
+    CompressedInMemMSet tmp;  
     if ( resStream->size() != 0)
     {
       MSet* res= new MSet(0);
-      resStream->front()->WriteToMSet(*res);
+      resStream->front()->WriteToCompressedInMemMSet(tmp);
+      tmp.WriteToMSet(*res);
       delete resStream->front();
       resStream->pop_front();
       result= SetWord(res);  
@@ -1688,8 +1690,9 @@ Evaluating the gpattern results
 
   }
   case CLOSE: { // free the local storage
-    list<InMemMSet*>* resStream= static_cast<list<InMemMSet*>* >(local.addr);
-    for(list<InMemMSet*>::iterator 
+    list<CompressedMSet*>* resStream= 
+      static_cast<list<CompressedMSet*>* >(local.addr);
+    for(list<CompressedMSet*>::iterator 
         it= resStream->begin(); it!= resStream->end(); ++it)
     {
       delete *it;
