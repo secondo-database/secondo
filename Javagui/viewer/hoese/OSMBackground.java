@@ -187,40 +187,15 @@ public class OSMBackground extends Background {
   private void paintName(Graphics2D g, Pair<URL, AffineTransform> url, AffineTransform at){
 
     String labelText = url.first().getFile().toString();
-
-    System.out.println("paintName " + labelText);
-
-    Rectangle2D.Double rImg = new Rectangle2D.Double(0,0, DIM_Y, DIM_Y);
-
+    Rectangle2D.Double rImg = new Rectangle2D.Double(0,0, TILESIZE_X, TILESIZE_Y);
     Rectangle2D rWorld = url.second().createTransformedShape(rImg).getBounds2D();   
-
-    System.out.println("Tile Position is " + rWorld);
- 
     Point2D.Double p = new Point2D.Double(rWorld.getX() + rWorld.getWidth()/2, rWorld.getY() + rWorld.getHeight()/2);
-
-    System.out.println("Middle of bbox is " + p);
-
     at.transform(p, p);
     float x = (float) p.getX();
     float y = (float) p.getY();
-
-    System.out.println("p in Screen Coordinates " + x + ", " + y);
-
-
-    //Rectangle2D re = g.getFont().getStringBounds(labelText, g.getFontRenderContext());
-    // x -= re.getWidth()/2.0;
-    // y += re.getHeight()/2.0;
-   
-    
-
-
-    System.out.println("paint Position : "+ x + ", " + y );
-    System.out.println("Orig AT = " + g.getTransform());
-
-   
-    labelText = "(" + rWorld.getX() + ", " + rWorld.getY() + ")";
-
-
+    Rectangle2D re = g.getFont().getStringBounds(labelText, g.getFontRenderContext());
+     x -= re.getWidth()/2.0;
+     y += re.getHeight()/2.0;
     g.drawString(labelText, x,y);
   }
 
@@ -455,10 +430,10 @@ public class OSMBackground extends Background {
   private boolean showTiles = true;
 
   /** flag indicating whether the tile frames are to be painted **/
-  private boolean showFrames=true;
+  private boolean showFrames=false;
 
   /** flag indicating whether the tile names are to be painted **/
-  private boolean showNames=true;
+  private boolean showNames=false;
 
   /** color for frames and names **/
   private Color color = Color.RED;
