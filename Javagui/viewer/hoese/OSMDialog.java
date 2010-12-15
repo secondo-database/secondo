@@ -17,6 +17,8 @@ public class OSMDialog extends JDialog{
      super(parent,true); // create a modal dialog
 
      accepted = true;
+
+     licenseDialog = new LicenseDialog(null);
     
      // create components for server settings
      selectionCB    = new JComboBox();
@@ -167,6 +169,11 @@ public class OSMDialog extends JDialog{
              tileSizeXTF.setText("256");
              tileSizeYTF.setText("256");
              nameTF.setText("Mapnik");
+             try{
+                licenseUrl = new URL("http://dna.fernuni-hagen.de/secondo");
+              } catch(Exception e){
+                licenseUrl = null;
+              }
 
           } else if(s.equals("open street map osmarender")){
              OSMDialog.this.enableServerSettings(false);
@@ -182,6 +189,11 @@ public class OSMDialog extends JDialog{
              tileSizeXTF.setText("256");
              tileSizeYTF.setText("256");
              nameTF.setText("Osmarender");
+             try{
+               licenseUrl = new URL("http://dna.fernuni-hagen.de/Christian.html");
+              } catch(Exception e){
+                licenseUrl = null;
+              }
 
           } else if(s.equals("open street map cycle")){
              OSMDialog.this.enableServerSettings(false);
@@ -197,8 +209,15 @@ public class OSMDialog extends JDialog{
              tileSizeXTF.setText("256");
              tileSizeYTF.setText("256");
              nameTF.setText("Cycle");
+             try{
+               licenseUrl = new URL("http://filmclub-bali.bplaced.net/bali.php");
+              } catch(Exception e){
+                licenseUrl = null;
+              }
+             
           } else if(s.equals("customized")){
              OSMDialog.this.enableServerSettings(true);
+             licenseUrl = null;
           } else {
              System.err.println("Fatal System Error, "+
                                 "Please turn off your computer and never switch it on again!\n"+
@@ -348,6 +367,22 @@ public class OSMDialog extends JDialog{
          OSMDialog.this.reset(origSettings);
       }
     });
+
+    showLicenseBtn.addActionListener(new ActionListener(){
+       public void actionPerformed(ActionEvent evt){
+          if(licenseUrl==null){
+               JOptionPane.showMessageDialog(null, "License unknown " + licenseUrl);
+          } else {
+             if(licenseDialog.setSource(licenseUrl)){
+               licenseDialog.setVisible(true);
+             } else {
+               JOptionPane.showMessageDialog(null, "Cannot load license from " + licenseUrl);
+             }
+         }
+       }
+    });
+
+
   }
 
 
@@ -519,5 +554,8 @@ public class OSMDialog extends JDialog{
 
   private boolean accepted;
   private Properties origSettings;
+
+  private URL licenseUrl;
+  private LicenseDialog licenseDialog;
 
 }
