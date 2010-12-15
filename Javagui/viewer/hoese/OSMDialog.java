@@ -32,44 +32,9 @@ public class OSMDialog extends JDialog{
      tileSizeXTF    = new JTextField(4);
      tileSizeYTF    = new JTextField(4);
      nameTF         = new JTextField(12);
+     licenseUrlTF   = new JTextField(12);
+     warningTF      = new JTextField(30);
       
-     JPanel serverSettings1 = new JPanel();
-     serverSettings1.add(new Label("Protocol"));
-     serverSettings1.add(protocolTF);
-     serverSettings1.add(new JLabel("  Server"));
-     serverSettings1.add(serverTF);
-     serverSettings1.add(new JLabel("  Port"));
-     serverSettings1.add(portTF);
-     serverSettings1.add(new JLabel("  Directory"));
-     serverSettings1.add(directoryTF);
-
-     JPanel serverSettings2 = new JPanel();
-     serverSettings2.add(new JLabel("min Zoom"));
-     serverSettings2.add(minZoomLevelTF);
-     serverSettings2.add(new JLabel("  max Zoom"));
-     serverSettings2.add(maxZoomLevelTF);
-     serverSettings2.add(new JLabel(" max Downloads"));
-     serverSettings2.add(maxDownloadsTF);
-
-     JPanel serverSettings3 = new JPanel();
-     serverSettings3.add(new JLabel("tile size X"));
-     serverSettings3.add(tileSizeXTF);
-     serverSettings3.add(new JLabel("  tile size Y"));
-     serverSettings3.add(tileSizeYTF);
-     serverSettings3.add(new JLabel("  name"));
-     serverSettings3.add(nameTF);
-
-     JPanel serverSettings4 = new JPanel(new GridLayout(3,1));
-     serverSettings4.add(serverSettings1);
-     serverSettings4.add(serverSettings2);
-     serverSettings4.add(serverSettings3);
-
-     JPanel serverSettings = new JPanel(new BorderLayout());
-     serverSettings.add(selectionCB, BorderLayout.NORTH);
-     serverSettings.add(serverSettings4, BorderLayout.CENTER);
-
-
-     // create components for common setting      
 
      showFrames = new JCheckBox("show frames");
      showNames = new JCheckBox("show tile names");
@@ -82,38 +47,20 @@ public class OSMDialog extends JDialog{
      setFgColorBtn = new JButton("set frame/name color");
      showLicenseBtn = new JButton("show License");
 
-     JPanel commonSettings1 = new JPanel();
-     commonSettings1.add(showFrames);
-     commonSettings1.add(showNames);
-     
-     JPanel commonSettings2 = new JPanel();
-     commonSettings2.add(backgroundColor);
-     commonSettings2.add(setBgColorBtn);
-     commonSettings2.add(foregroundColor);
-     commonSettings2.add(setFgColorBtn);
-
-     JPanel commonSettings3 = new JPanel();
-     commonSettings3.add(showLicenseBtn);
-
-     JPanel commonSettings = new JPanel(new GridLayout(3,1));
-     commonSettings.add(commonSettings1);
-     commonSettings.add(commonSettings2);
-     commonSettings.add(commonSettings3);
-
 
      acceptBtn = new JButton("accept");
      resetBtn = new JButton("reset");
      cancelBtn = new JButton("cancel");
-     JPanel commandPanel = new JPanel();
-     commandPanel.add(acceptBtn);
-     commandPanel.add(resetBtn);
-     commandPanel.add(cancelBtn);
 
 
-     getContentPane().setLayout(new BorderLayout());
-     getContentPane().add(serverSettings, BorderLayout.NORTH);
-     getContentPane().add(commonSettings, BorderLayout.CENTER);  
-     getContentPane().add(commandPanel, BorderLayout.SOUTH);
+    layoutComponents(getContentPane());
+
+
+
+
+
+
+
 
      setDefaultCloseOperation( WindowConstants.DO_NOTHING_ON_CLOSE ); // don't allow closing by pressing "X"
 
@@ -127,6 +74,138 @@ public class OSMDialog extends JDialog{
      addBtnListener();
      
   }
+
+  /** puts all the contained components at their places. **/
+  private void layoutComponents(Container root){
+     root.setLayout(new BorderLayout());
+
+     // create and add the command panel (south)
+     JPanel commandPanel = new JPanel();
+     commandPanel.add(acceptBtn);
+     commandPanel.add(resetBtn);
+     commandPanel.add(cancelBtn);
+     root.add(commandPanel,BorderLayout.SOUTH);
+
+     // north ( preset type and name )
+     JPanel categoryPanel = new JPanel(new GridLayout(1,2));
+     JPanel selectionPanel = new JPanel();
+     selectionPanel.add(new JLabel("Choose preset type:"));
+     selectionPanel.add(selectionCB);
+     categoryPanel.add(selectionPanel);
+     JPanel namePanel = new JPanel();
+     namePanel.add(new JLabel("Name:"));
+     namePanel.add(nameTF);
+     categoryPanel.add(namePanel);
+     root.add(categoryPanel, BorderLayout.NORTH);
+
+     // center
+     JPanel centerPanel = new JPanel(new BorderLayout());
+     JTabbedPane serverSettingsTab = new JTabbedPane();
+     JPanel serverSettingsPanel = new JPanel(new GridLayout(8,1));
+     serverSettingsTab.add("Server Settings", serverSettingsPanel);
+
+     serverSettingsPanel.add(new JLabel("Base Settings"));
+     JPanel baseSettings1 = new JPanel(new GridLayout(1,2));
+     JPanel baseSettings2 = new JPanel(new GridLayout(1,2));
+     JPanel baseSettings3 = new JPanel(new GridLayout(1,2));
+     serverSettingsPanel.add(baseSettings1);
+     serverSettingsPanel.add(baseSettings2);
+     serverSettingsPanel.add(baseSettings3);
+     serverSettingsPanel.add(new JLabel("Zoom Levels"));
+     JPanel zoomPanel = new JPanel(new GridLayout(1,2));
+     serverSettingsPanel.add(zoomPanel);
+     serverSettingsPanel.add(new JLabel("Tile Dimensions"));
+     JPanel tileDimensionsPanel = new JPanel(new GridLayout(1,2));
+     serverSettingsPanel.add(tileDimensionsPanel);
+
+     JPanel protocolPanel = new JPanel();
+     protocolPanel.add(new JLabel("Protocol:"));
+     protocolPanel.add(protocolTF);
+     JPanel serverPanel = new JPanel();
+     serverPanel.add(new JLabel("Server:"));
+     serverPanel.add(serverTF);
+     baseSettings1.add(protocolPanel);
+     baseSettings1.add(serverPanel);
+     
+     
+     JPanel portPanel = new JPanel();
+     portPanel.add(new JLabel("Port:"));
+     portPanel.add(portTF);
+     JPanel directoryPanel = new JPanel();
+     directoryPanel.add(new JLabel("Directory:"));
+     directoryPanel.add(directoryTF);
+     baseSettings2.add(portPanel);
+     baseSettings2.add(directoryPanel);
+
+
+     JPanel maxDownPanel = new JPanel();
+     maxDownPanel.add(new JLabel("Max Parallel Downloads:"));
+     maxDownPanel.add(maxDownloadsTF);
+     JPanel licenseUrlPanel = new JPanel();
+     licenseUrlPanel.add(new JLabel("License's URL:"));
+     licenseUrlPanel.add(licenseUrlTF);
+     baseSettings3.add(maxDownPanel);
+     baseSettings3.add(licenseUrlPanel);
+
+
+     JPanel minZoomPanel = new JPanel();
+     minZoomPanel.add(new JLabel("Minimum:"));
+     minZoomPanel.add(minZoomLevelTF);
+     JPanel maxZoomPanel = new JPanel();
+     maxZoomPanel.add(new JLabel("Maximum:"));
+     maxZoomPanel.add(maxZoomLevelTF);
+     zoomPanel.add(minZoomPanel);
+     zoomPanel.add(maxZoomPanel);
+
+     JPanel tileXPanel = new JPanel();
+     tileXPanel.add(new JLabel("Width (X):"));
+     tileXPanel.add(tileSizeXTF);
+     tileXPanel.add(new JLabel("pixels"));
+     JPanel tileYPanel = new JPanel();
+     tileYPanel.add(new JLabel("Height (Y):"));
+     tileYPanel.add(tileSizeYTF);
+     tileYPanel.add(new JLabel("pixels"));
+     tileDimensionsPanel.add(tileXPanel);
+     tileDimensionsPanel.add(tileYPanel);
+
+     JTabbedPane displayOptionsTab = new JTabbedPane();
+     JPanel displayOptions = new JPanel(new GridLayout(2,2));
+     displayOptionsTab.add("Display Options", displayOptions);
+     JPanel showFramesPanel = new JPanel();
+     showFramesPanel.add(showFrames);
+     displayOptions.add(showFramesPanel);
+     JPanel backgroundPanel = new JPanel();
+     backgroundPanel.add(backgroundColor);
+     backgroundPanel.add(setBgColorBtn);
+     displayOptions.add(backgroundPanel);
+     JPanel showNamesPanel = new JPanel();
+     showNamesPanel.add(showNames);
+     displayOptions.add(showNamesPanel);
+     JPanel foregroundPanel = new JPanel();
+     foregroundPanel.add(foregroundColor);
+     foregroundPanel.add(setFgColorBtn);
+     displayOptions.add(foregroundPanel);
+
+     centerPanel.add(serverSettingsTab, BorderLayout.NORTH);
+     centerPanel.add(displayOptionsTab,BorderLayout.CENTER);
+
+     // laber panel
+     JTabbedPane infoTab = new JTabbedPane();
+     JPanel infoPanel = new JPanel();
+     infoTab.add("Information", infoPanel);
+     infoPanel.add(new JLabel("Info:")); 
+     infoPanel.add(warningTF);
+     infoPanel.add(new JLabel("  "));
+     infoPanel.add(showLicenseBtn);
+     
+
+     centerPanel.add(infoTab,BorderLayout.SOUTH);
+
+     root.add(centerPanel, BorderLayout.CENTER);
+  }
+
+
+
 
   /** Shows this dialog.
     * @return true if the new selection was accepted, false if canceled.
@@ -169,12 +248,7 @@ public class OSMDialog extends JDialog{
              tileSizeXTF.setText("256");
              tileSizeYTF.setText("256");
              nameTF.setText("Mapnik");
-             try{
-                licenseUrl = new URL("http://dna.fernuni-hagen.de/secondo");
-              } catch(Exception e){
-                licenseUrl = null;
-              }
-
+             licenseUrlTF.setText("http://dna.fernuni-hagen.de/secondo");
           } else if(s.equals("open street map osmarender")){
              OSMDialog.this.enableServerSettings(false);
              protocolTF.setText("http");
@@ -189,12 +263,7 @@ public class OSMDialog extends JDialog{
              tileSizeXTF.setText("256");
              tileSizeYTF.setText("256");
              nameTF.setText("Osmarender");
-             try{
-               licenseUrl = new URL("http://dna.fernuni-hagen.de/Christian.html");
-              } catch(Exception e){
-                licenseUrl = null;
-              }
-
+             licenseUrlTF.setText("http://dna.fernuni-hagen.de/christian.html");
           } else if(s.equals("open street map cycle")){
              OSMDialog.this.enableServerSettings(false);
              protocolTF.setText("http");
@@ -209,15 +278,10 @@ public class OSMDialog extends JDialog{
              tileSizeXTF.setText("256");
              tileSizeYTF.setText("256");
              nameTF.setText("Cycle");
-             try{
-               licenseUrl = new URL("http://filmclub-bali.bplaced.net/bali.php");
-              } catch(Exception e){
-                licenseUrl = null;
-              }
-             
+             licenseUrlTF.setText("http://filmclub-bali.bplaced.net/bali.php");
           } else if(s.equals("customized")){
              OSMDialog.this.enableServerSettings(true);
-             licenseUrl = null;
+             licenseUrlTF.setText("");
           } else {
              System.err.println("Fatal System Error, "+
                                 "Please turn off your computer and never switch it on again!\n"+
@@ -234,6 +298,7 @@ public class OSMDialog extends JDialog{
      serverTF.setEditable(on);
      portTF.setEditable(on);
      directoryTF.setEditable(on);
+     licenseUrlTF.setEditable(on);
 
      minZoomLevelTF.setEditable(on);
      maxZoomLevelTF.setEditable(on);
@@ -370,13 +435,19 @@ public class OSMDialog extends JDialog{
 
     showLicenseBtn.addActionListener(new ActionListener(){
        public void actionPerformed(ActionEvent evt){
-          if(licenseUrl==null){
-               JOptionPane.showMessageDialog(null, "License unknown " + licenseUrl);
+          String lurl = licenseUrlTF.getText().trim();
+          if(lurl.length()==0){
+               JOptionPane.showMessageDialog(null, "License unknown");
           } else {
-             if(licenseDialog.setSource(licenseUrl)){
-               licenseDialog.setVisible(true);
-             } else {
-               JOptionPane.showMessageDialog(null, "Cannot load license from " + licenseUrl);
+             try{
+                URL licenseUrl = new URL(lurl);
+                if(licenseDialog.setSource(licenseUrl)){
+                   licenseDialog.setVisible(true);
+                } else {
+                   JOptionPane.showMessageDialog(null, "Cannot load license from " + licenseUrl);
+                }
+             } catch(Exception e){
+                JOptionPane.showMessageDialog(null, lurl +" is not a valid url.");
              }
          }
        }
@@ -535,6 +606,9 @@ public class OSMDialog extends JDialog{
   private JTextField tileSizeXTF;
   private JTextField tileSizeYTF;
   private JTextField nameTF;
+  private JTextField licenseUrlTF;
+
+  private JTextField warningTF;
 
   // display and cache settings
   private JCheckBox showFrames;
@@ -555,7 +629,6 @@ public class OSMDialog extends JDialog{
   private boolean accepted;
   private Properties origSettings;
 
-  private URL licenseUrl;
   private LicenseDialog licenseDialog;
 
 }
