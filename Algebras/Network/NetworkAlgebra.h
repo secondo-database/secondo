@@ -846,6 +846,12 @@ Redefinition of the assignment operator.
     return m_iSectionTid;
   }
 
+  ostream& Print(ostream& os) const
+  {
+    os << "Directed Section: TupleId: " << (long) m_iSectionTid;
+    os << ", UpDownFlag(false = 0 = down): " << m_bUpDown << endl;
+    return os;
+  }
   private:
 
 /*

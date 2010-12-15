@@ -142,8 +142,8 @@ bool RouteInterval::Contains(RouteInterval *ri)
   double start = min(ri->GetStartPos(),ri->GetEndPos());
   double end = max(ri->GetStartPos(),ri->GetEndPos());
   if (ri->GetRouteId() == GetRouteId() &&
-     ((fabs ( tstart - start ) < 0.01 && fabs ( tend - end ) < 0.01 ) ||
-     (tstart <= start && tend  >= end)))
+     ((tstart <= start || fabs ( tstart - start ) < 0.01) &&
+      (end  <= tend ||fabs (tend - end ) < 0.01 )))
     return true;
   else
     return false;
@@ -775,9 +775,10 @@ Used by operator ~intersects~
 
 */
 
-bool searchUnit ( GLine *pGLine, size_t low, size_t high,
+bool searchUnit ( GLine *pGLine, int low, int high,
                   RouteInterval pRi )
 {
+
   assert ( pGLine->IsSorted() );
   RouteInterval rI;
   if ( low <= high )
@@ -790,6 +791,7 @@ bool searchUnit ( GLine *pGLine, size_t low, size_t high,
     else
     {
       pGLine->Get ( mid, rI );
+
       if ( rI.GetRouteId() < pRi.GetRouteId() )
       {
         return searchUnit ( pGLine, mid+1, high, pRi );
@@ -820,10 +822,6 @@ bool searchUnit ( GLine *pGLine, size_t low, size_t high,
         }
       }
     }
-  }
-  else
-  {
-    return false;
   }
   return false;
 }
@@ -4335,12 +4333,12 @@ void Network::GetSectionsOfRouteInterval ( const RouteInterval *ri,
           ( start <= ristart && end >= ristart ) ||
           ( start <= riend && end >= riend ))
     {
-      if (start < ristart)
+      if (start < ristart && fabs(start - ristart) > 0.01)
       {
         start = ristart;
         bsectstart = false;
       }
-      if (riend < end)
+      if (riend < end && fabs(end - riend) > 0.01)
       {
         end = riend;
         bsectend = false;
@@ -6438,7 +6436,7 @@ double GLine::Netdistance(GLine* pgl2)
 
 /*
 Netdistance method computes the network distance between two glines. Uses
-network distance method of ~GPoint~.
+astar network distance method of ~GPoint~.
 
 */
 
@@ -7897,14 +7895,12 @@ void GLine::GetBGP(Network* pNetwork, GPoints* result)
       adjSect.clear();
       if (!nEntry.startbool)
       {
-
         result->MergeAdd(GPoint(true, GetNetworkId(), nEntry.rid,
                                   nEntry.start),
                            pNetwork);
       }
       else
       {
-
         pNetwork->GetAdjacentSections(nEntry.secttid, false, adjSect);
         for (size_t b = 0; b < adjSect.size(); b++)
         {
@@ -7913,39 +7909,36 @@ void GLine::GetBGP(Network* pNetwork, GPoints* result)
           {
             Tuple* actSection =
               pNetwork->GetSection(actDirSection.GetSectionTid());
-            RouteInterval* ri =
+            RouteInterval* pri =
               new RouteInterval(
-                ((CcInt*)actSection->GetAttribute(SECTION_RID))->GetIntval(),
-               ((CcReal*)actSection->GetAttribute(SECTION_MEAS1))->GetRealval(),
-              ((CcReal*)actSection->GetAttribute(SECTION_MEAS2))->GetRealval());
+              ((CcInt*)actSection->GetAttribute(SECTION_RID))->GetIntval(),
+          ((CcReal*)actSection->GetAttribute(SECTION_MEAS1))->GetRealval()+1.0,
+          ((CcReal*)actSection->GetAttribute(SECTION_MEAS2))->GetRealval()-1.0);
             actSection->DeleteIfAllowed();
             actSection = 0;
-            if (!Intersects(ri))
+            if (!Intersects(pri))
             {
-
               result->MergeAdd(GPoint(true, GetNetworkId(), nEntry.rid,
                                       nEntry.start),
                               pNetwork);
               adjSect.clear();
-              delete ri;
+              delete pri;
               break;
             }
-
-            delete ri;
+            delete pri;
+            pri = 0;
           }
         }
         adjSect.clear();
       }
       if (!nEntry.endbool)
       {
-
         result->MergeAdd(GPoint(true, GetNetworkId(), nEntry.rid,
                                   nEntry.end),
                            pNetwork);
       }
       else
       {
-
         pNetwork->GetAdjacentSections(nEntry.secttid, true, adjSect);
         for (size_t b = 0; b < adjSect.size(); b++)
         {
@@ -7954,24 +7947,24 @@ void GLine::GetBGP(Network* pNetwork, GPoints* result)
           {
             Tuple* actSection =
               pNetwork->GetSection(actDirSection.GetSectionTid());
-            RouteInterval* ri =
+            RouteInterval* pri1 =
               new RouteInterval(
                 ((CcInt*)actSection->GetAttribute(SECTION_RID))->GetIntval(),
-              ((CcReal*)actSection->GetAttribute(SECTION_MEAS1))->GetRealval(),
-              ((CcReal*)actSection->GetAttribute(SECTION_MEAS2))->GetRealval());
+          ((CcReal*)actSection->GetAttribute(SECTION_MEAS1))->GetRealval()+1.0,
+          ((CcReal*)actSection->GetAttribute(SECTION_MEAS2))->GetRealval()-1.0);
             actSection->DeleteIfAllowed();
             actSection = 0;
-            if (!Intersects(ri))
+            if (!Intersects(pri1))
             {
               result->MergeAdd(GPoint(true, GetNetworkId(), nEntry.rid,
                                       nEntry.end),
                               pNetwork);
               adjSect.clear();
-              delete ri;
+              delete pri1;
               break;
             }
-            delete ri;
-
+            delete pri1;
+            pri1 = 0;
           }
         }
         adjSect.clear();
@@ -8501,6 +8494,10 @@ Use priorityQueue to find shortestPath.
       else
         InsertAdjacentSections(actPQEntry->sectID, Down, false, dist, endPoints,
                                pNetwork, prioQ, visitedSect, touchedSects);
+      delete actPQEntry;
+      actPQEntry = 0;
+      actSection->DeleteIfAllowed();
+      actSection = 0;
     }
     else
     {
@@ -8523,19 +8520,18 @@ Use priorityQueue to find shortestPath.
         ((CcReal*)actSection->GetAttribute(SECTION_MEAS1))->GetRealval();
       sectMeas2 =
         ((CcReal*)actSection->GetAttribute(SECTION_MEAS2))->GetRealval();
-      /*if (fabs(endRI - sectMeas1) <= 0.01 || fabs(endRI - sectMeas2) <= 0.01)
-      {
+      actRouteId =
+        ((CcInt*)actSection->GetAttribute(SECTION_RID))->GetIntval();
+      if (bgp->Contains(GPoint(true,GetNetworkId(),actRouteId,sectMeas1)) &&
+          bgp->Contains(GPoint(true,GetNetworkId(),actRouteId,sectMeas2)))
         startRI = endRI;
-      }
       else
-      {*/
+      {
         if ( actPQEntry->upDownFlag)
           startRI = sectMeas1;
         else
           startRI = sectMeas2;
-      //}
-      actRouteId =
-        ((CcInt*)actSection->GetAttribute(SECTION_RID))->GetIntval();
+      }
       double minPathLength = actPQEntry->valFromStart + fabs(endRI-startRI);
       bool btestended = false;
       while (!btestended)
@@ -8558,21 +8554,35 @@ Use priorityQueue to find shortestPath.
               InsertAdjacentSections(pqtest->sectID, Down, false, dist,
                                      endPoints, pNetwork, prioQ, visitedSect,
                                      touchedSects);
+            delete pqtest;
+            pqtest = 0;
+            actTestSection->DeleteIfAllowed();
+            actTestSection = 0;
           }
           else
           {
             GPointsSections testgps;
             endSections->Get(posLastTest,testgps);
             double endTestRI = testgps.GetGP().GetPosition();
+            double testSectMeas1 =
+              ((CcReal*)actTestSection->GetAttribute(SECTION_MEAS1))
+                ->GetRealval();
+            double testSectMeas2 =
+              ((CcReal*)actTestSection->GetAttribute(SECTION_MEAS2))
+                ->GetRealval();
             double startTestRI = 0.0;
-            if ( pqtest->upDownFlag)
-              startTestRI =
-                ((CcReal*)actTestSection->GetAttribute(SECTION_MEAS1))
-                  ->GetRealval();
+            if (bgp->Contains(GPoint(true,GetNetworkId(),actTestRouteId,
+                                     testSectMeas1)) &&
+                bgp->Contains(GPoint(true,GetNetworkId(),actTestRouteId,
+                                     testSectMeas2)))
+              startTestRI = endTestRI;
             else
-              startTestRI =
-                ((CcReal*)actTestSection->GetAttribute(SECTION_MEAS2))
-                  ->GetRealval();
+            {
+              if ( pqtest->upDownFlag)
+                startTestRI = testSectMeas1;
+              else
+                startTestRI = testSectMeas2;
+            }
             double actPathLength =
               pqtest->valFromStart + fabs(endTestRI - startTestRI);
             if (actPathLength < minPathLength)
@@ -8584,10 +8594,15 @@ Use priorityQueue to find shortestPath.
               actRouteId = actTestRouteId;
               delete actPQEntry;
               actPQEntry = pqtest;
+              actSection->DeleteIfAllowed();
+              actSection = actTestSection;
             }
           }
-          actTestSection->DeleteIfAllowed();
-          actTestSection = 0;
+          if (actSection != actTestSection && actTestSection != 0)
+          {
+            actTestSection->DeleteIfAllowed();
+            actTestSection = 0;
+          }
         }
         else
           btestended = true;
@@ -8615,6 +8630,7 @@ Use priorityQueue to find shortestPath.
     //GetSection
     TupleId actTupleId =
       visitedSect->GetTreeEntry(pElem).GetEntry().GetSectId();
+    if (actSection != 0) actSection->DeleteIfAllowed();
     actSection = pNetwork->GetSection(actTupleId);
     if (actSection != 0)
     {
@@ -8642,51 +8658,52 @@ Use priorityQueue to find shortestPath.
       {
         /*cout << "first section reached" << endl;*/
         end = true;
-        startSections->Get(firstSectPos, source);
-//         if (!Contains(source.GetGP()))
-//         {
-        vector<DirectedSection> adjSectionList;
-        adjSectionList.clear();
-        pNetwork->GetAdjacentSections(source.GetTid(),
-                                      true,
-                                      adjSectionList);
-        bool stsectfound = false;
-        for(size_t t = 0; t < adjSectionList.size(); t++)
+        if (!(Contains(GPoint(true,GetNetworkId(),actRouteId,sectMeas1)) &&
+            Contains(GPoint(true,GetNetworkId(),actRouteId,sectMeas2))))
         {
-          DirectedSection adjSection = adjSectionList[t];
-          if ( adjSection.GetSectionTid() == lastSectId )
-          {
-            if (fabs (source.GetGP().GetPosition() - sectMeas2 ) > 0.01 )
-            {
-              stsectfound = true;
-              riStack->Push ( actRouteId, source.GetGP().GetPosition(),
-                              sectMeas2, riStack );
-              break;
-            }
-          }
-        }
-        adjSectionList.clear();
-        if ( !stsectfound )
-        {
-          pNetwork->GetAdjacentSections ( source.GetTid(), false,
-                                          adjSectionList );
-          for(size_t t = 0; t < adjSectionList.size() ;t++)
+          startSections->Get(firstSectPos, source);
+          vector<DirectedSection> adjSectionList;
+          adjSectionList.clear();
+          pNetwork->GetAdjacentSections(source.GetTid(),
+                                        true,
+                                        adjSectionList);
+          bool stsectfound = false;
+          for(size_t t = 0; t < adjSectionList.size(); t++)
           {
             DirectedSection adjSection = adjSectionList[t];
             if ( adjSection.GetSectionTid() == lastSectId )
             {
-              if(fabs(source.GetGP().GetPosition() - sectMeas1 ) > 0.01)
+              if (fabs (source.GetGP().GetPosition() - sectMeas2 ) > 0.01 )
               {
-                riStack->Push ( actRouteId, source.GetGP().GetPosition(),
-                                sectMeas1, riStack );
                 stsectfound = true;
+                riStack->Push ( actRouteId, source.GetGP().GetPosition(),
+                                sectMeas2, riStack );
                 break;
               }
             }
           }
+          adjSectionList.clear();
+          if ( !stsectfound )
+          {
+            pNetwork->GetAdjacentSections ( source.GetTid(), false,
+                                            adjSectionList );
+            for(size_t t = 0; t < adjSectionList.size() ;t++)
+            {
+              DirectedSection adjSection = adjSectionList[t];
+              if ( adjSection.GetSectionTid() == lastSectId )
+              {
+                if(fabs(source.GetGP().GetPosition() - sectMeas1 ) > 0.01)
+                {
+                  riStack->Push ( actRouteId, source.GetGP().GetPosition(),
+                                  sectMeas1, riStack );
+                  stsectfound = true;
+                  break;
+                }
+              }
+            }
+          }
+          adjSectionList.clear();
         }
-        adjSectionList.clear();
-    //}
       }
     }
   }
