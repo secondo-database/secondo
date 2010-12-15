@@ -65,6 +65,8 @@ public class OSMBackground extends Background {
         }
      };
      imageCache = new Cache<CachedImage, ImgLoader>(CACHESIZE, new ImgLoader());
+
+     settings = new OSMDialog(null);
   }
 
   /** Overrides the setBBox function from Background. Does nothing bacause the 
@@ -75,7 +77,7 @@ public class OSMBackground extends Background {
 
   /** Shows a dialog to configure this background. **/
   public void showConfigDialog(JComponent f){ 
-     // TODO: settings for maxDownloads etc.
+     boolean accepted = settings.showDialog(); 
 
   }
 
@@ -427,7 +429,7 @@ public class OSMBackground extends Background {
   LinkedList<Pair<URL, AffineTransform>>  lastURLs;
 
   /** flag indicating whether the tiles are to be painted **/
-  private boolean showTiles = true;
+  private boolean showTiles = false;
 
   /** flag indicating whether the tile frames are to be painted **/
   private boolean showFrames=false;
@@ -441,6 +443,8 @@ public class OSMBackground extends Background {
   private Color bgColor = Color.YELLOW;
   /** flag indicating a change of the background color since last painting **/
   private boolean bgColorChanged = true;
+
+  private OSMDialog settings;
 
 }
 
