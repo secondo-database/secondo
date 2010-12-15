@@ -75,6 +75,7 @@ public class OSMDialog extends JDialog{
      backgroundColor.setOpaque(true);
      setBgColorBtn = new JButton("set background color");
      foregroundColor = new JLabel("   ");
+     foregroundColor.setBackground(Color.RED);
      foregroundColor.setOpaque(true);
      setFgColorBtn = new JButton("set frame/name color");
      showLicenseBtn = new JButton("show License");
@@ -155,7 +156,7 @@ public class OSMDialog extends JDialog{
           if(s.equals("open street map mapnik")){
              OSMDialog.this.enableServerSettings(false);
              protocolTF.setText("http");
-             serverTF.setText("tile.opensteetmap.org");
+             serverTF.setText("tile.openstreetmap.org");
              portTF.setText("80");
              directoryTF.setText("");
 
@@ -190,7 +191,7 @@ public class OSMDialog extends JDialog{
              directoryTF.setText("tiles/cycle");
 
              minZoomLevelTF.setText("1");
-             maxZoomLevelTF.setText("17");
+             maxZoomLevelTF.setText("18");
              maxDownloadsTF.setText("2");
 
              tileSizeXTF.setText("256");
@@ -226,59 +227,59 @@ public class OSMDialog extends JDialog{
 
    
   /** reads the current values into origSettings **/
-  private void readSettings(Properties settings){
+  public void readSettings(Properties settings){
       trimValues();
-      settings.clear();
-      settings.setProperty("SELECTION", selectionCB.getSelectedItem().toString());
+      settings.setProperty(OSMBackground.KEY_SELECTION, selectionCB.getSelectedItem().toString());
 
-      settings.setProperty("PROTOCOL", protocolTF.getText() );
-      settings.setProperty("SERVER", serverTF.getText() );
-      settings.setProperty("PORT",portTF.getText());
-		  settings.setProperty("DIRECTORY",directoryTF.getText());
+      settings.setProperty(OSMBackground.KEY_PROTOCOL, protocolTF.getText() );
+      settings.setProperty(OSMBackground.KEY_SERVER, serverTF.getText() );
+      settings.setProperty(OSMBackground.KEY_PORT,portTF.getText());
+		  settings.setProperty(OSMBackground.KEY_DIRECTORY,directoryTF.getText());
 
-		  settings.setProperty("MINZOOMLEVEL",minZoomLevelTF.getText());
-		  settings.setProperty("MAXZOOMLEVEL",maxZoomLevelTF.getText());
-		  settings.setProperty("MAXDOWNLOADS",maxDownloadsTF.getText());
+		  settings.setProperty(OSMBackground.KEY_MINZOOMLEVEL,minZoomLevelTF.getText());
+		  settings.setProperty(OSMBackground.KEY_MAXZOOMLEVEL,maxZoomLevelTF.getText());
+		  settings.setProperty(OSMBackground.KEY_MAXDOWNLOADS,maxDownloadsTF.getText());
 
-		  settings.setProperty("TILESIZEX",tileSizeXTF.getText());
-		  settings.setProperty("TILESIZEY",tileSizeYTF.getText());
-		  settings.setProperty("NAME",nameTF.getText());
+		  settings.setProperty(OSMBackground.KEY_TILESIZEX,tileSizeXTF.getText());
+		  settings.setProperty(OSMBackground.KEY_TILESIZEY,tileSizeYTF.getText());
+		  settings.setProperty(OSMBackground.KEY_NAME,nameTF.getText());
 
-      settings.setProperty("SHOWFRAMES",(showFrames.isSelected()?"TRUE":"FALSE"));;
-      settings.setProperty("SHOWNAMES",(showNames.isSelected()?"TRUE":"FALSE"));
+      settings.setProperty(OSMBackground.KEY_SHOWFRAMES,(showFrames.isSelected()?"TRUE":"FALSE"));;
+      settings.setProperty(OSMBackground.KEY_SHOWNAMES,(showNames.isSelected()?"TRUE":"FALSE"));
       Color c;
       if(( c = backgroundColor.getBackground())!=null){
-         settings.setProperty("BACKGROUNDCOLOR", ("" + c.getRGB()));
+         settings.setProperty(OSMBackground.KEY_BACKGROUNDCOLOR, ("" + c.getRGB()));
       }
       if( (c = foregroundColor.getBackground() ) !=null){
-        settings.setProperty("FOREGROUNDCOLOR", ("" + c.getRGB()));
+        settings.setProperty(OSMBackground.KEY_FOREGROUNDCOLOR, ("" + c.getRGB()));
       }
   }  
 
 
   /** puts the values from origSettings into the textFields **/
-  private void reset(){
-      selectionCB.setSelectedItem(origSettings.getProperty("SELECTION")); 
+  public void reset(Properties properties){
 
-      protocolTF.setText(origSettings.getProperty("PROTOCOL"));
-      serverTF.setText(origSettings.getProperty("SERVER"));
+      selectionCB.setSelectedItem(properties.getProperty(OSMBackground.KEY_SELECTION)); 
+
+      protocolTF.setText(properties.getProperty(OSMBackground.KEY_PROTOCOL));
+      serverTF.setText(properties.getProperty(OSMBackground.KEY_SERVER));
  
-      portTF.setText(origSettings.getProperty("PORT"));
-      directoryTF.setText(origSettings.getProperty("DIRECTORY"));
+      portTF.setText(properties.getProperty(OSMBackground.KEY_PORT));
+      directoryTF.setText(properties.getProperty(OSMBackground.KEY_DIRECTORY));
 
-      minZoomLevelTF.setText(origSettings.getProperty("MINZOOMLEVEL"));
-      maxZoomLevelTF.setText(origSettings.getProperty("MAXZOOMLEVEL"));
-      maxDownloadsTF.setText(origSettings.getProperty("MAXDOWNLOADS"));
+      minZoomLevelTF.setText(properties.getProperty(OSMBackground.KEY_MINZOOMLEVEL));
+      maxZoomLevelTF.setText(properties.getProperty(OSMBackground.KEY_MAXZOOMLEVEL));
+      maxDownloadsTF.setText(properties.getProperty(OSMBackground.KEY_MAXDOWNLOADS));
 
-      tileSizeXTF.setText(origSettings.getProperty("TILESIZEX"));
-      tileSizeYTF.setText(origSettings.getProperty("TILESIZEY"));
-      nameTF.setText(origSettings.getProperty("NAME"));
+      tileSizeXTF.setText(properties.getProperty(OSMBackground.KEY_TILESIZEX));
+      tileSizeYTF.setText(properties.getProperty(OSMBackground.KEY_TILESIZEY));
+      nameTF.setText(properties.getProperty(OSMBackground.KEY_NAME));
 
 
-      showFrames.setSelected( origSettings.getProperty("SHOWFRAMES").equals("TRUE"));
-      showNames.setSelected( origSettings.getProperty("SHOWNAMES").equals("TRUE"));
+      showFrames.setSelected( properties.getProperty(OSMBackground.KEY_SHOWFRAMES).equals("TRUE"));
+      showNames.setSelected( properties.getProperty(OSMBackground.KEY_SHOWNAMES).equals("TRUE"));
 
-      String colorstr = origSettings.getProperty("BACKGROUNDCOLOR");    
+      String colorstr = properties.getProperty(OSMBackground.KEY_BACKGROUNDCOLOR);    
       if(colorstr==null){
         backgroundColor.setBackground(null);
       } else {
@@ -290,7 +291,7 @@ public class OSMDialog extends JDialog{
          }
       }
 
-      colorstr = origSettings.getProperty("FOREGROUNDCOLOR");    
+      colorstr = properties.getProperty(OSMBackground.KEY_FOREGROUNDCOLOR);    
       if(colorstr==null){
         foregroundColor.setBackground(null);
       } else {
@@ -300,6 +301,9 @@ public class OSMDialog extends JDialog{
          } catch(Exception e){
             foregroundColor.setBackground(Color.PINK);
          }
+      }
+      if(!checkContents()){
+          setToDefault();
       }
   }
 
@@ -315,7 +319,7 @@ public class OSMDialog extends JDialog{
     });
     cancelBtn.addActionListener(new ActionListener(){
        public void actionPerformed(ActionEvent evt){
-         OSMDialog.this.reset();
+         OSMDialog.this.reset(origSettings);
          OSMDialog.this.accepted = false;
          setVisible(false);
        }
@@ -341,13 +345,13 @@ public class OSMDialog extends JDialog{
 
     resetBtn.addActionListener(new ActionListener(){
       public void actionPerformed(ActionEvent evt){
-         OSMDialog.this.reset();
+         OSMDialog.this.reset(origSettings);
       }
     });
   }
 
 
-  private boolean checkContents(){
+  public boolean checkContents(){
     trimValues();
  
     int port;
@@ -437,11 +441,31 @@ public class OSMDialog extends JDialog{
    return true;
  } 
 
+ public void setToDefault(){
+    selectionCB.setSelectedIndex(0);
+ }
+
+
  private void trimValues(){
     protocolTF.setText(protocolTF.getText().trim());
     serverTF.setText(serverTF.getText().trim());
     portTF.setText(portTF.getText().trim());
-    directoryTF.setText(directoryTF.getText().trim());
+
+
+    String dir = directoryTF.getText().trim();
+    if(!dir.startsWith("/")){
+       dir = "/"+dir;
+    }
+    
+
+    if(!dir.endsWith("/")){
+      dir +="/";
+    }
+
+    directoryTF.setText(dir.trim());
+    
+    
+
 
     minZoomLevelTF.setText(minZoomLevelTF.getText().trim());
     maxZoomLevelTF.setText(maxZoomLevelTF.getText().trim());

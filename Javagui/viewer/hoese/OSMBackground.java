@@ -17,6 +17,7 @@ import java.util.Iterator;
 import javax.swing.JComponent;
 import java.io.File;
 import java.net.URL;
+import java.util.Properties;
 
 import tools.downloadmanager.DownloadManager;
 import tools.downloadmanager.DownloadObserver;
@@ -49,7 +50,7 @@ public class OSMBackground extends Background {
      listeners = new LinkedList<BackgroundListener>();
      useforbbox = false;
      try{ 
-        downloadManager = new DownloadManager(new File(PATH), MAXDOWNLOADS); 
+        downloadManager = new DownloadManager(new File(PATH), maxDownloads); 
      } catch (Exception e){
         System.err.println("Problem in initiating download manager");
         downloadManager = null;
@@ -78,6 +79,9 @@ public class OSMBackground extends Background {
   /** Shows a dialog to configure this background. **/
   public void showConfigDialog(JComponent f){ 
      boolean accepted = settings.showDialog(); 
+     Properties props = new Properties();
+     settings.readSettings(props);
+     setCheckedConfiguration(props);
 
   }
 
@@ -86,9 +90,9 @@ public class OSMBackground extends Background {
     * a specific server. **/
   public void paint(JComponent parent, Graphics2D g, AffineTransform at, Rectangle2D clipRect){
      // set background color
-     if(bgColorChanged && parent !=null){
-       bgColorChanged = false;
-       parent.setBackground(bgColor);
+     if(backgroundColorChanged && parent !=null){
+       backgroundColorChanged = false;
+       parent.setBackground(backgroundColor);
      }
 
      // compute the bounding box in geographic coordinates
@@ -136,6 +140,7 @@ public class OSMBackground extends Background {
       }
       Paint paint = g.getPaint();
       g.setPaint(color);
+
       if(showFrames){
          it = urls.iterator();
          while(it.hasNext()){
@@ -189,7 +194,7 @@ public class OSMBackground extends Background {
   private void paintName(Graphics2D g, Pair<URL, AffineTransform> url, AffineTransform at){
 
     String labelText = url.first().getFile().toString();
-    Rectangle2D.Double rImg = new Rectangle2D.Double(0,0, TILESIZE_X, TILESIZE_Y);
+    Rectangle2D.Double rImg = new Rectangle2D.Double(0,0, tileSizeX, tileSizeY);
     Rectangle2D rWorld = url.second().createTransformedShape(rImg).getBounds2D();   
     Point2D.Double p = new Point2D.Double(rWorld.getX() + rWorld.getWidth()/2, rWorld.getY() + rWorld.getHeight()/2);
     at.transform(p, p);
@@ -307,7 +312,8 @@ public class OSMBackground extends Background {
   private Pair<URL, AffineTransform> computeURL(int x, int y, int z){
      URL url;
      try{
-       url = new URL("http://"+SERVER+"/"+z+"/"+x+"/"+y+".png");
+       URL base = new URL(protocol, server, port, directory);
+       url = new URL(base, ""+ z+"/"+x+"/"+y+ ".png");
      } catch(Exception e){
          e.printStackTrace();
          return null;
@@ -324,8 +330,8 @@ public class OSMBackground extends Background {
 
      r.setRect(p1.getX(), p1.getY(), p2.getX()-p1.getX(), p2.getY()-p1.getY()); 
 
-     double scale_x =  r.getWidth() / TILESIZE_X;
-     double scale_y = -1.0 * r.getHeight() / TILESIZE_Y;
+     double scale_x =  r.getWidth() / tileSizeX;
+     double scale_y = -1.0 * r.getHeight() / tileSizeY;
 
      AffineTransform at = AffineTransform.getTranslateInstance(r.getX(), r.getY() + r.getHeight()); 
      at.scale(scale_x, scale_y);
@@ -338,15 +344,15 @@ public class OSMBackground extends Background {
     * @param height size in y dimension within the world
     **/
   private int computeZoomLevel(double width, double height){
-     double z_x = Math.log((360*DIM_X) / (width*TILESIZE_X) ) / l2;   // computing log_2
-     double z_y = Math.log((180*DIM_Y) / (height*TILESIZE_Y)) / l2;
+     double z_x = Math.log((360*DIM_X) / (width*tileSizeX) ) / l2;   // computing log_2
+     double z_y = Math.log((180*DIM_Y) / (height*tileSizeY)) / l2;
      double z = Math.max(z_x,z_y);
      int zoom = (int) z;
-     if(zoom > MAX_ZOOM){
-        zoom = MAX_ZOOM;
+     if(zoom > maxZoomLevel){
+        zoom = maxZoomLevel;
      }
-     if(zoom<MIN_ZOOM){
-        zoom = MIN_ZOOM;
+     if(zoom<minZoomLevel){
+        zoom = minZoomLevel;
      }
      return zoom;
   }  
@@ -360,6 +366,75 @@ public class OSMBackground extends Background {
     double east = tile2lon(x + 1, zoom);
     return new Rectangle2D.Double(west, south, east-west, north-south);  
   }
+
+
+	public Properties getConfiguration(String backgroundDataPath) {
+    Properties res = super.getConfiguration(backgroundDataPath);
+    settings.readSettings(res);
+    return res;
+  }
+
+  public void setConfiguration(Properties properties, String backgroundDataPath){
+     super.setConfiguration(properties, backgroundDataPath);
+     
+     settings.reset(properties);
+     Properties corrected = new Properties();
+     settings.readSettings(corrected);
+     setCheckedConfiguration(corrected);
+
+      
+  }
+
+  private void setCheckedConfiguration(Properties s ){
+     // now we can be sure that all the values are correct :-)
+
+   try{
+      protocol  = s.getProperty(KEY_PROTOCOL); 
+      server    = s.getProperty(KEY_SERVER);
+      port      = Integer.parseInt(s.getProperty(KEY_PORT)); 
+
+      directory = s.getProperty(KEY_DIRECTORY);
+      minZoomLevel = Integer.parseInt(s.getProperty(KEY_MINZOOMLEVEL)); 
+      maxZoomLevel = Integer.parseInt(s.getProperty(KEY_MAXZOOMLEVEL)); 
+      maxDownloads = Integer.parseInt(s.getProperty(KEY_MAXDOWNLOADS)); 
+      tileSizeX = Integer.parseInt(s.getProperty(KEY_TILESIZEX));
+      tileSizeY = Integer.parseInt(s.getProperty(KEY_TILESIZEY));
+      name = s.getProperty(KEY_NAME);
+      showFrames = s.getProperty(KEY_SHOWFRAMES).equals("TRUE");
+      showNames = s.getProperty(KEY_SHOWNAMES).equals("TRUE"); 
+      backgroundColor = new Color(Integer.parseInt(s.getProperty(KEY_BACKGROUNDCOLOR )));
+      backgroundColorChanged = true;
+      color = new Color(Integer.parseInt(s.getProperty(KEY_FOREGROUNDCOLOR )));
+    } catch(Exception e){
+      System.err.println("The impossible has occured.");
+      e.printStackTrace();
+    }
+  }
+
+
+
+
+
+ static final String KEY_SELECTION = "SELECTION";
+ static final String KEY_PROTOCOL = "PROTOCOL";
+ static final String KEY_SERVER = "SERVER";
+ static final String KEY_PORT = "PORT";
+ static final String KEY_DIRECTORY = "DIRECTORY";
+ static final String KEY_MINZOOMLEVEL = "MINZOOMLEVEL";
+ static final String KEY_MAXZOOMLEVEL = "MAXZOOMLEVEL";
+ static final String KEY_MAXDOWNLOADS = "MAXDOWNLOADS";
+ static final String KEY_TILESIZEX = "TILESIZEX";
+ static final String KEY_TILESIZEY = "TILESIZEY";
+ static final String KEY_NAME = "NAME";
+ static final String KEY_SHOWFRAMES = "SHOWFRAMES";
+ static final String KEY_SHOWNAMES = "SHOWNAMES";
+ static final String KEY_BACKGROUNDCOLOR = "BACKGROUNDCOLOR";
+ static final String KEY_FOREGROUNDCOLOR = "FOREGROUNDCOLOR";
+  
+
+
+
+
 
   /** computes the western boundary of a specified tile in world coordinates.
     **/
@@ -378,7 +453,7 @@ public class OSMBackground extends Background {
   private String PATH = "osmDowloads"; 
 
   /** maximum amount of parallel downloads **/
-  private int MAXDOWNLOADS = 2;
+  private int maxDownloads = 2;
 
   /** size of the image cache in bytes **/
   private int CACHESIZE = 8*1024*1024;   // 8 MB cache
@@ -390,16 +465,16 @@ public class OSMBackground extends Background {
   private int DIM_Y;
 
   /** maximum zoom level to be used **/
-  private static int MAX_ZOOM = 18;
+  private int maxZoomLevel = 18;
   /** minimum zoom level to be used **/
-  private static int MIN_ZOOM = 1;
+  private int minZoomLevel  = 1;
 
  
   /** Size of a single tile in x dimension **/
-  private static final int TILESIZE_X = 256;
+  private int tileSizeX = 256;
 
   /** Size of a single tile in y dimension **/
-  private static final int TILESIZE_Y = 256;
+  private  int tileSizeY = 256;
 
 
   /** logarithm of 2 to save computation time **/
@@ -407,7 +482,10 @@ public class OSMBackground extends Background {
 
 
   /** host name of the tile server. **/
-  private static final String SERVER = "tile.openstreetmap.org";
+  private  String protocol = "http";
+  private  String server = "tile.openstreetmap.org";
+  private int port;
+  private  String directory = "/";
 
 
   /** DownloadManager for downloading images from osm **/
@@ -429,7 +507,7 @@ public class OSMBackground extends Background {
   LinkedList<Pair<URL, AffineTransform>>  lastURLs;
 
   /** flag indicating whether the tiles are to be painted **/
-  private boolean showTiles = false;
+  private boolean showTiles = true;
 
   /** flag indicating whether the tile frames are to be painted **/
   private boolean showFrames=false;
@@ -440,9 +518,9 @@ public class OSMBackground extends Background {
   /** color for frames and names **/
   private Color color = Color.RED;
   /** background color **/
-  private Color bgColor = Color.YELLOW;
+  private Color backgroundColor = Color.YELLOW;
   /** flag indicating a change of the background color since last painting **/
-  private boolean bgColorChanged = true;
+  private boolean backgroundColorChanged = true;
 
   private OSMDialog settings;
 

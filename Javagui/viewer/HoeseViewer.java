@@ -1235,9 +1235,9 @@ public class HoeseViewer extends SecondoViewer {
         Background background = GraphDisplay.getBackgroundObject();
         if(!(background instanceof OSMBackground)){
             background = new OSMBackground();
-            GraphDisplay.setBackgroundObject(background);
          }
          background.showConfigDialog(null);
+         GraphDisplay.setBackgroundObject(background);
          GraphDisplay.updateBackground();
       }
     };
