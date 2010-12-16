@@ -3,11 +3,27 @@
 package viewer.hoese;
 
 
-import javax.swing.*;
-import java.util.Properties;
-import java.awt.*;
-import java.awt.event.*;
+import java.awt.BorderLayout;
+import java.awt.Color;
+import java.awt.Container;
+import java.awt.GridLayout;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
 import java.net.URL;
+import java.util.Properties;
+
+import javax.swing.JButton;
+import javax.swing.JCheckBox;
+import javax.swing.JColorChooser;
+import javax.swing.JComboBox;
+import javax.swing.JDialog;
+import javax.swing.JFrame;
+import javax.swing.JLabel;
+import javax.swing.JOptionPane;
+import javax.swing.JPanel;
+import javax.swing.JTabbedPane;
+import javax.swing.JTextField;
+import javax.swing.WindowConstants;
 
 
 public class OSMDialog extends JDialog{
@@ -318,15 +334,20 @@ public class OSMDialog extends JDialog{
       settings.setProperty(OSMBackground.KEY_PROTOCOL, protocolTF.getText() );
       settings.setProperty(OSMBackground.KEY_SERVER, serverTF.getText() );
       settings.setProperty(OSMBackground.KEY_PORT,portTF.getText());
-		  settings.setProperty(OSMBackground.KEY_DIRECTORY,directoryTF.getText());
+		settings.setProperty(OSMBackground.KEY_DIRECTORY, directoryTF.getText());
 
-		  settings.setProperty(OSMBackground.KEY_MINZOOMLEVEL,minZoomLevelTF.getText());
-		  settings.setProperty(OSMBackground.KEY_MAXZOOMLEVEL,maxZoomLevelTF.getText());
-		  settings.setProperty(OSMBackground.KEY_MAXDOWNLOADS,maxDownloadsTF.getText());
+	  settings.setProperty(OSMBackground.KEY_MINZOOMLEVEL,
+				minZoomLevelTF.getText());
+		settings.setProperty(OSMBackground.KEY_MAXZOOMLEVEL,
+				maxZoomLevelTF.getText());
+		settings.setProperty(OSMBackground.KEY_MAXDOWNLOADS,
+				maxDownloadsTF.getText());
+		settings.setProperty(OSMBackground.KEY_LICENSEURL,
+				licenseUrlTF.getText());
 
-		  settings.setProperty(OSMBackground.KEY_TILESIZEX,tileSizeXTF.getText());
-		  settings.setProperty(OSMBackground.KEY_TILESIZEY,tileSizeYTF.getText());
-		  settings.setProperty(OSMBackground.KEY_NAME,nameTF.getText());
+	  settings.setProperty(OSMBackground.KEY_TILESIZEX, tileSizeXTF.getText());
+		settings.setProperty(OSMBackground.KEY_TILESIZEY, tileSizeYTF.getText());
+		settings.setProperty(OSMBackground.KEY_NAME, nameTF.getText());
 
       settings.setProperty(OSMBackground.KEY_SHOWFRAMES,(showFrames.isSelected()?"TRUE":"FALSE"));;
       settings.setProperty(OSMBackground.KEY_SHOWNAMES,(showNames.isSelected()?"TRUE":"FALSE"));
@@ -475,7 +496,8 @@ public class OSMDialog extends JDialog{
     }   
 
     try{
-       URL url = new URL(protocolTF.getText(), serverTF.getText(), port, directoryTF.getText());
+			URL url = new URL(protocolTF.getText(), serverTF.getText(), port,
+					directoryTF.getText());
     } catch(Exception e){
         JOptionPane.showMessageDialog(this, "Cannot build a URL from protocol, server, port, and directory.");
         protocolTF.requestFocus();
