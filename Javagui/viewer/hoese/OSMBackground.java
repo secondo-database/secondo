@@ -22,12 +22,10 @@ import java.util.Properties;
 import tools.downloadmanager.DownloadManager;
 import tools.downloadmanager.DownloadObserver;
 import tools.downloadmanager.DownloadEvent;
-import tools.downloadmanager.DownloadObserver;
 import tools.downloadmanager.DownloadState;
 import tools.downloadmanager.ActiveDownload;
 import tools.Cache;
 import tools.Pair;
-import project.Projection;
 
 
 /** Implementation of Open Street Map Tiles as Background for 
@@ -72,22 +70,29 @@ public class OSMBackground extends Background {
 
   /** Overrides the setBBox function from Background. Does nothing bacause the 
     ** bounding box is fixed by the server. 
+    * @param rect Dummy only!
     **/
   public void setBBox(Rectangle2D.Double rect){ }
 
 
-  /** Shows a dialog to configure this background. **/
+  /** Shows a dialog to configure this background. 
+   * @param f Used as the dialog's parent  
+   * **/
   public void showConfigDialog(JComponent f){ 
-     boolean accepted = settings.showDialog(); 
+     settings.showDialog(); 
      Properties props = new Properties();
      settings.readSettings(props);
      setCheckedConfiguration(props);
-
   }
 
 
   /** Overrides the paint method from Background. Paints the tiles downloaded from
-    * a specific server. **/
+    * a specific server.
+    * @param parent The parent component containing the background.
+    * @param g The garphics context to paint on.
+    * @param at Affine transformation from world to screen coordinates.
+    * @param clipRect The part of the world to be drawn (world coordinates).
+    */
   public void paint(JComponent parent, Graphics2D g, AffineTransform at, Rectangle2D clipRect){
      // set background color
      if(backgroundColorChanged && parent !=null){
@@ -127,9 +132,10 @@ public class OSMBackground extends Background {
 
   /** Paint the tiles, frames, and labels coming from urls depending on some
     * flag members. 
+    * @param g Graphics context to paint on
     * @param urls Urls to be painted
-    * @param at transformation from world to screen coordinates
-    **/
+    * @param at trrectansformation from world to screen coordinates
+    */
   private void paintURLs(Graphics2D g, LinkedList<Pair<URL, AffineTransform> > urls, AffineTransform at){
       
       Iterator<Pair<URL, AffineTransform> > it = urls.iterator();
@@ -164,7 +170,7 @@ public class OSMBackground extends Background {
     * @param url source of the image and a transformation to map the image into the world
     * @param at mapping from world to screen coordinates
     * @param frame if set to true, only the frame of the image is painted, otherwise the image 
-    **/
+    */
   private void paintURL(Graphics2D g, Pair<URL, AffineTransform> url, AffineTransform at, boolean frame){
       // start download 
       File f = downloadManager.getURL(url.first(), observer);
@@ -190,7 +196,12 @@ public class OSMBackground extends Background {
   }
 
 
-  /** does'nt work **/
+/**
+ * Pain the name of a map tile image file to the screen
+ * @param g Graphics context to draw on.
+ * @param url Map tile, whose name is to be printed.
+ * @param at Affine transformation from world to screen coordinates.
+ */
   private void paintName(Graphics2D g, Pair<URL, AffineTransform> url, AffineTransform at){
 
     String labelText = url.first().getFile().toString();
@@ -241,10 +252,11 @@ public class OSMBackground extends Background {
 
   /** Callback method. Called when a state of a pending download is changed.
     * Calls the  repaint method  of the parent component.
+    * @param evt Event to handle.
     **/
   private void downloadStateChanged(DownloadEvent evt){
      DownloadState state = evt.getState();
-     ActiveDownload ad = evt.getSource();
+     //ActiveDownload ad = evt.getSource();
      if(lastParent!=null && state == DownloadState.DONE){
        lastParent.repaint();
      }
@@ -254,6 +266,7 @@ public class OSMBackground extends Background {
   /** returns the X index of a tile covering longitude  at specified zoom level.
     * @param zoom the used zoom level
     * @param lon longitude
+    * @return the X-index of the tile covering the given longitude
     **/
   private int getTileX(int zoom, double lon){
      return   (int)Math.floor( (lon + 180) / 360 * (1<<zoom) ) ;
@@ -262,13 +275,15 @@ public class OSMBackground extends Background {
   /** returns the Y index of a tile covering latitude  at specified zoom level.
     * @param zoom the used zoom level
     * @param lat latitude
+    * @return the Y-index of the tile covering the given latitude
     **/
   private int getTileY(int zoom, double lat){
    return (int)Math.floor( (1 - Math.log(Math.tan(Math.toRadians(lat)) + 1 / Math.cos(Math.toRadians(lat))) / Math.PI) / 2 * (1<<zoom) ) ;
   }
 
   /** Computes the urls required to cover at least the given rectangle. 
-    * @param bbox the rectangle to be covered in world coordinates 
+    * @param bbox the rectangle to be covered in world coordinates
+    * @return The list of all visibile map tiles and according translation/scale matrices    
     **/
   private LinkedList<Pair<URL, AffineTransform>> computeURLs(Rectangle2D.Double bbox){
      if(bbox==null){
@@ -307,7 +322,8 @@ public class OSMBackground extends Background {
     * to the proper location within the world.
     * @param x X index of a tile
     * @param y Y index of a tile
-    * qparam z zoom level 
+    * @param z zoom level 
+    * @return A pair of image URL and affine transformation to shift it to its proper location and zoom it according to zoom level and visible screen
     **/
   private Pair<URL, AffineTransform> computeURL(int x, int y, int z){
      URL url;
@@ -342,6 +358,7 @@ public class OSMBackground extends Background {
   /** compute a zoom level for a given size within the world.
     * @param witdh size in x dimension within the world
     * @param height size in y dimension within the world
+    * @return The recommended zoom level
     **/
   private int computeZoomLevel(double width, double height){
      double z_x = Math.log((360*DIM_X) / (width*tileSizeX) ) / l2;   // computing log_2
@@ -358,7 +375,12 @@ public class OSMBackground extends Background {
   }  
 
 
-  /** compute the bounding box covered by a specified tile in world coordinates. **/
+  /** compute the bounding box covered by a specified tile in world coordinates.
+    * @param x X index of a tile
+    * @param y Y index of a tile
+    * @param z zoom level 
+    * @return The images's MBR in world coordinates  
+    **/
   private Rectangle2D.Double getBBoxForTile(int x, int y, int zoom){
     double north = tile2lat(y, zoom);
     double south = tile2lat(y + 1, zoom);
@@ -367,13 +389,21 @@ public class OSMBackground extends Background {
     return new Rectangle2D.Double(west, south, east-west, north-south);  
   }
 
-
-	public Properties getConfiguration(String backgroundDataPath) {
+  /** Export the background's properties
+   * @param backgroundDataPath Directory for storing files
+   * @return The backgound's properties
+   */
+  public Properties getConfiguration(String backgroundDataPath) {
     Properties res = super.getConfiguration(backgroundDataPath);
     settings.readSettings(res);
     return res;
   }
 
+  /** Set the background properties
+   * @param properties The background properties to restore
+   * @param backgroundDataPath Directory with additional data files
+   */
+  @Override
   public void setConfiguration(Properties properties, String backgroundDataPath){
      super.setConfiguration(properties, backgroundDataPath);
      
@@ -385,6 +415,10 @@ public class OSMBackground extends Background {
       
   }
 
+  /**
+   * Set previously validated background settings
+   * @param s The validated background properties to restore
+   */
   private void setCheckedConfiguration(Properties s ){
      // now we can be sure that all the values are correct :-)
 
@@ -412,37 +446,38 @@ public class OSMBackground extends Background {
   }
 
 
-
-
-
- static final String KEY_SELECTION = "SELECTION";
- static final String KEY_PROTOCOL = "PROTOCOL";
- static final String KEY_SERVER = "SERVER";
- static final String KEY_PORT = "PORT";
- static final String KEY_DIRECTORY = "DIRECTORY";
- static final String KEY_MINZOOMLEVEL = "MINZOOMLEVEL";
- static final String KEY_MAXZOOMLEVEL = "MAXZOOMLEVEL";
- static final String KEY_MAXDOWNLOADS = "MAXDOWNLOADS";
- static final String KEY_TILESIZEX = "TILESIZEX";
- static final String KEY_TILESIZEY = "TILESIZEY";
- static final String KEY_NAME = "NAME";
- static final String KEY_SHOWFRAMES = "SHOWFRAMES";
- static final String KEY_SHOWNAMES = "SHOWNAMES";
- static final String KEY_BACKGROUNDCOLOR = "BACKGROUNDCOLOR";
- static final String KEY_FOREGROUNDCOLOR = "FOREGROUNDCOLOR";
-  
-
-
-
+  /* Constants used as keys within Properties representing background settings */
+  static final String KEY_SELECTION = "SELECTION";
+  static final String KEY_PROTOCOL = "PROTOCOL";
+  static final String KEY_SERVER = "SERVER";
+  static final String KEY_PORT = "PORT";
+  static final String KEY_DIRECTORY = "DIRECTORY";
+  static final String KEY_MINZOOMLEVEL = "MINZOOMLEVEL";
+  static final String KEY_MAXZOOMLEVEL = "MAXZOOMLEVEL";
+  static final String KEY_MAXDOWNLOADS = "MAXDOWNLOADS";
+  static final String KEY_LICENSEURL = "LICENSEURL";
+  static final String KEY_TILESIZEX = "TILESIZEX";
+  static final String KEY_TILESIZEY = "TILESIZEY";
+  static final String KEY_NAME = "NAME";
+  static final String KEY_SHOWFRAMES = "SHOWFRAMES";
+  static final String KEY_SHOWNAMES = "SHOWNAMES";
+  static final String KEY_BACKGROUNDCOLOR = "BACKGROUNDCOLOR";
+  static final String KEY_FOREGROUNDCOLOR = "FOREGROUNDCOLOR";
 
 
   /** computes the western boundary of a specified tile in world coordinates.
+   * @param x The map tile's X-index
+   * @param z The zoom level
+   * @return The longitude of the western boundary of a map tile
     **/
   private static double tile2lon(int x, int z) {
      return x / Math.pow(2.0, z) * 360.0 - 180;
   }
  
   /** computes the northern  boundary of a specified tile in world coordinates.
+   * @param x The map tile's Y-index
+   * @param z The zoom level
+   * @return The latitude of the nortehrn boundary of a map tile
     **/
   private static double tile2lat(int y, int z) {
     double n = Math.PI - (2.0 * Math.PI * y) / Math.pow(2.0, z);
@@ -481,7 +516,7 @@ public class OSMBackground extends Background {
   private static final double l2 = Math.log(2);
 
 
-  /** host name of the tile server. **/
+  /* host name of the tile server. */
   private  String protocol = "http";
   private  String server = "tile.openstreetmap.org";
   private int port;
@@ -522,6 +557,7 @@ public class OSMBackground extends Background {
   /** flag indicating a change of the background color since last painting **/
   private boolean backgroundColorChanged = true;
 
+  /** The configuration dialog **/
   private OSMDialog settings;
 
 }
