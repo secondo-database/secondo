@@ -2,13 +2,13 @@
 
 package tools.downloadmanager;
 
-import java.net.URL;
 import java.io.File;
-import java.util.HashMap;
-import java.util.Queue;
-import java.util.LinkedList;
+import java.net.URL;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.Iterator;
+import java.util.LinkedList;
+import java.util.Queue;
 
 public class DownloadManager extends  DownloadObserver{
 
@@ -45,28 +45,41 @@ public class DownloadManager extends  DownloadObserver{
    */
   public  File getURL(URL url, DownloadObserver ob){
     synchronized(syncObj){
-			File f = computeFile(url);
-			if(f.exists()){
-				return f;
+			if (activeDownloads.containsKey(url)) {
+				ActiveDownload ad = activeDownloads.get(url);
+				ad.addObserver(ob);
+				return null;
 			}
-
-			// insert observer is there is a download for that url 
-			if(insertObserver(url,ob)){ 
+			if (plannedDownloads.containsKey(url)) {
+				PlannedDownload pd = plannedDownloads.get(url);
+				pd.addObserver(ob);
 				return null;
 			}
 
-			if( (plannedDownloads.size()>0) || (activeDownloads.size()>=maxDownloads)){
-				 // all download slots are used. So, the download is just planned
-				 PlannedDownload d = new PlannedDownload(url,f,this);
-				 d.addObserver(ob);
-				 plannedDownloads.put(url,d);
-				 plannedQueue.offer(url);
-				 return null;
+			File f = computeFile(url);
+			if (f.exists()) {
+				return f;
+			}
+
+		// insert observer is there is a download for that url
+			if (insertObserver(url, ob)) {
+				return null;
+			}
+
+		if ((plannedDownloads.size() > 0)
+					|| (activeDownloads.size() >= maxDownloads)) {
+				// all download slots are used. So, the download is just planned
+				PlannedDownload d = new PlannedDownload(url, f, this);
+				d.addObserver(ob);
+				plannedDownloads.put(url, d);
+				plannedQueue.offer(url);
+				return null;
 			}
 			// the is a free download slot, create a new download for the url
-			ActiveDownload dl = new ActiveDownload(url, f, this, connectTimeout, readTimeout);
+			ActiveDownload dl = new ActiveDownload(url, f, this,
+					connectTimeout, readTimeout);
 			dl.addObserver(ob);
-			activeDownloads.put(url,dl);
+			activeDownloads.put(url, dl);
 			dl.start();
     }
     return null;
@@ -95,9 +108,8 @@ public class DownloadManager extends  DownloadObserver{
 				getURL(url,ob);
 				return;
 			}
-			// file is present // do some more complicated stuff
-				File tmpFile = computeTmpFile(url);
-
+			// file is present // do some more complicated stuff File tmpFile =
+			// computeTmpFile(url);
 				// idea start a new download into a temporarly file
 				// assign another observer to that download
 				// if the download is finished successful, move the new file to the 

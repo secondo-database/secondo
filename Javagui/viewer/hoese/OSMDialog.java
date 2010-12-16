@@ -29,7 +29,10 @@ import javax.swing.WindowConstants;
 public class OSMDialog extends JDialog{
 
 
-  public OSMDialog(JFrame parent){
+	/** UID for serialization */
+	private static final long serialVersionUID = 8201724968404205556L;
+
+	public OSMDialog(JFrame parent) {
      super(parent,true); // create a modal dialog
 
      accepted = true;
@@ -72,12 +75,6 @@ public class OSMDialog extends JDialog{
     layoutComponents(getContentPane());
 
 
-
-
-
-
-
-
      setDefaultCloseOperation( WindowConstants.DO_NOTHING_ON_CLOSE ); // don't allow closing by pressing "X"
 
      addKnownServers();
@@ -85,10 +82,9 @@ public class OSMDialog extends JDialog{
 
      origSettings = new Properties();
 
-     readSettings(origSettings);
+		storeSettingsToProperties(origSettings);
 
-     addBtnListener();
-     
+		addBtnListener();
   }
 
   /** puts all the contained components at their places. **/
@@ -227,9 +223,9 @@ public class OSMDialog extends JDialog{
     * @return true if the new selection was accepted, false if canceled.
     **/
   public boolean showDialog(){
-      setSize(900,300);
-      setVisible(true);
-      return accepted;
+		setSize(980, 600);
+		setVisible(true);
+		return accepted;
   }
 
 
@@ -239,10 +235,11 @@ public class OSMDialog extends JDialog{
     * server setting text fields
     **/
   private void addKnownServers(){
-     selectionCB.addItem("open street map mapnik");
-     selectionCB.addItem("open street map osmarender");
-     selectionCB.addItem("open street map cycle");
-     selectionCB.addItem("customized");
+		selectionCB.addItem("Open Street Map - Mapnik Style");
+		selectionCB.addItem("Open Street Map - Osmarender");
+		selectionCB.addItem("Open Street Map - Cycle Style");
+		selectionCB.addItem("Open Street Map - Maplint Style");
+		selectionCB.addItem("customized");
 
      selectionCB.addActionListener( new ActionListener(){
        public void actionPerformed(ActionEvent evt){
@@ -250,7 +247,7 @@ public class OSMDialog extends JDialog{
           if(s==null){
              return;
           }
-          if(s.equals("open street map mapnik")){
+				if (s.equals("Open Street Map - Mapnik Style")) {
              OSMDialog.this.enableServerSettings(false);
              protocolTF.setText("http");
              serverTF.setText("tile.openstreetmap.org");
@@ -263,9 +260,11 @@ public class OSMDialog extends JDialog{
 
              tileSizeXTF.setText("256");
              tileSizeYTF.setText("256");
-             nameTF.setText("Mapnik");
-             licenseUrlTF.setText("http://dna.fernuni-hagen.de/secondo");
-          } else if(s.equals("open street map osmarender")){
+					nameTF.setText("OSM Mapnik");
+					licenseUrlTF
+							.setText("http://wiki.openstreetmap.org/wiki/Tile_usage_policy");
+
+				} else if (s.equals("Open Street Map - Osmarender")) {
              OSMDialog.this.enableServerSettings(false);
              protocolTF.setText("http");
              serverTF.setText("tah.openstreetmap.org");
@@ -278,9 +277,11 @@ public class OSMDialog extends JDialog{
 
              tileSizeXTF.setText("256");
              tileSizeYTF.setText("256");
-             nameTF.setText("Osmarender");
-             licenseUrlTF.setText("http://dna.fernuni-hagen.de/christian.html");
-          } else if(s.equals("open street map cycle")){
+					nameTF.setText("OSM Osmarender");
+					licenseUrlTF
+							.setText("http://wiki.openstreetmap.org/wiki/Tile_usage_policy");
+
+				} else if (s.equals("Open Street Map - Cycle Style")) {
              OSMDialog.this.enableServerSettings(false);
              protocolTF.setText("http");
              serverTF.setText("andy.sandbox.cloudmade.com");;
@@ -293,11 +294,33 @@ public class OSMDialog extends JDialog{
 
              tileSizeXTF.setText("256");
              tileSizeYTF.setText("256");
-             nameTF.setText("Cycle");
-             licenseUrlTF.setText("http://filmclub-bali.bplaced.net/bali.php");
+					nameTF.setText("OSM Cycle");
+					licenseUrlTF
+							.setText("http://wiki.openstreetmap.org/wiki/Tile_usage_policy");
+
+
+				} else if (s.equals("Open Street Map - Maplint Style")) {
+					OSMDialog.this.enableServerSettings(false);
+					protocolTF.setText("http");
+					serverTF.setText("tah.openstreetmap.org");
+					;
+					portTF.setText("80");
+					directoryTF.setText("Tiles/maplint");
+
+					minZoomLevelTF.setText("1");
+					maxZoomLevelTF.setText("18");
+					maxDownloadsTF.setText("2");
+
+					tileSizeXTF.setText("256");
+					tileSizeYTF.setText("256");
+					nameTF.setText("OSM Maplint");
+					licenseUrlTF
+							.setText("http://wiki.openstreetmap.org/wiki/Tile_usage_policy");
+
           } else if(s.equals("customized")){
              OSMDialog.this.enableServerSettings(true);
              licenseUrlTF.setText("");
+
           } else {
              System.err.println("Fatal System Error, "+
                                 "Please turn off your computer and never switch it on again!\n"+
@@ -326,8 +349,8 @@ public class OSMDialog extends JDialog{
    }
 
    
-  /** reads the current values into origSettings **/
-  public void readSettings(Properties settings){
+	/** stores the current settings to a Properties object **/
+	public void storeSettingsToProperties(Properties settings) {
       trimValues();
       settings.setProperty(OSMBackground.KEY_SELECTION, selectionCB.getSelectedItem().toString());
 
@@ -362,7 +385,7 @@ public class OSMDialog extends JDialog{
 
 
   /** puts the values from origSettings into the textFields **/
-  public void reset(Properties properties){
+	public void restoreSettingsFromProperties(Properties properties) {
 
       selectionCB.setSelectedItem(properties.getProperty(OSMBackground.KEY_SELECTION)); 
 
@@ -375,6 +398,8 @@ public class OSMDialog extends JDialog{
       minZoomLevelTF.setText(properties.getProperty(OSMBackground.KEY_MINZOOMLEVEL));
       maxZoomLevelTF.setText(properties.getProperty(OSMBackground.KEY_MAXZOOMLEVEL));
       maxDownloadsTF.setText(properties.getProperty(OSMBackground.KEY_MAXDOWNLOADS));
+		licenseUrlTF.setText(properties
+				.getProperty(OSMBackground.KEY_LICENSEURL));
 
       tileSizeXTF.setText(properties.getProperty(OSMBackground.KEY_TILESIZEX));
       tileSizeYTF.setText(properties.getProperty(OSMBackground.KEY_TILESIZEY));
@@ -424,7 +449,7 @@ public class OSMDialog extends JDialog{
     });
     cancelBtn.addActionListener(new ActionListener(){
        public void actionPerformed(ActionEvent evt){
-         OSMDialog.this.reset(origSettings);
+				OSMDialog.this.restoreSettingsFromProperties(origSettings);
          OSMDialog.this.accepted = false;
          setVisible(false);
        }
@@ -450,7 +475,7 @@ public class OSMDialog extends JDialog{
 
     resetBtn.addActionListener(new ActionListener(){
       public void actionPerformed(ActionEvent evt){
-         OSMDialog.this.reset(origSettings);
+				OSMDialog.this.restoreSettingsFromProperties(origSettings);
       }
     });
 
@@ -496,7 +521,7 @@ public class OSMDialog extends JDialog{
     }   
 
     try{
-			URL url = new URL(protocolTF.getText(), serverTF.getText(), port,
+			new URL(protocolTF.getText(), serverTF.getText(), port,
 					directoryTF.getText());
     } catch(Exception e){
         JOptionPane.showMessageDialog(this, "Cannot build a URL from protocol, server, port, and directory.");
@@ -607,7 +632,7 @@ public class OSMDialog extends JDialog{
 
   public Properties getSettings(){
     Properties res = new Properties();
-    readSettings(res);
+		storeSettingsToProperties(res);
     return res;
   }
 

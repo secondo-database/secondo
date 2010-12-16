@@ -1,11 +1,11 @@
 
 package tools.downloadmanager;
 
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.InputStream;
 import java.net.URL;
 import java.net.URLConnection;
-import java.io.InputStream;
-import java.io.FileOutputStream;
-import java.io.File;
 
 
 
@@ -53,12 +53,16 @@ public class ActiveDownload extends PlannedDownload implements Runnable{
        connection.setReadTimeout(readTimeout);
        in = connection.getInputStream();
        targetFile.getParentFile().mkdirs();
-       out = new FileOutputStream(targetFile);
+			boolean first = true;
        byte[] buffer = new byte[256];
        int size = -1;
        do{
           size = in.read(buffer);
           if(size >=0){
+					if (first) {
+						first = false;
+						out = new FileOutputStream(targetFile);
+					}
               out.write(buffer,0,size); 
           }
        }while(!canceled && (size>=0));

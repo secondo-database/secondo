@@ -1,31 +1,32 @@
 
 package viewer.hoese;
 
-import java.awt.geom.Rectangle2D;
-import java.awt.Shape;
+import java.awt.Color;
+import java.awt.Dimension;
+import java.awt.Graphics2D;
 import java.awt.Paint;
 import java.awt.Rectangle;
-import java.awt.Color;
-import java.awt.Graphics2D;
-import java.awt.Dimension;
+import java.awt.Shape;
 import java.awt.Toolkit;
-import java.awt.geom.Point2D;
 import java.awt.geom.AffineTransform;
+import java.awt.geom.Point2D;
+import java.awt.geom.Rectangle2D;
 import java.awt.image.BufferedImage;
-import java.util.LinkedList;
-import java.util.Iterator;
-import javax.swing.JComponent;
 import java.io.File;
 import java.net.URL;
+import java.util.Iterator;
+import java.util.LinkedList;
 import java.util.Properties;
 
-import tools.downloadmanager.DownloadManager;
-import tools.downloadmanager.DownloadObserver;
-import tools.downloadmanager.DownloadEvent;
-import tools.downloadmanager.DownloadState;
-import tools.downloadmanager.ActiveDownload;
+import javax.swing.JComponent;
+
 import tools.Cache;
 import tools.Pair;
+import tools.downloadmanager.ActiveDownload;
+import tools.downloadmanager.DownloadEvent;
+import tools.downloadmanager.DownloadManager;
+import tools.downloadmanager.DownloadObserver;
+import tools.downloadmanager.DownloadState;
 
 
 /** Implementation of Open Street Map Tiles as Background for 
@@ -81,7 +82,7 @@ public class OSMBackground extends Background {
   public void showConfigDialog(JComponent f){ 
      settings.showDialog(); 
      Properties props = new Properties();
-     settings.readSettings(props);
+		settings.storeSettingsToProperties(props);
      setCheckedConfiguration(props);
   }
 
@@ -256,11 +257,13 @@ public class OSMBackground extends Background {
     **/
   private void downloadStateChanged(DownloadEvent evt){
      DownloadState state = evt.getState();
-     //ActiveDownload ad = evt.getSource();
+     ActiveDownload ad = evt.getSource();
      if(lastParent!=null && state == DownloadState.DONE){
        lastParent.repaint();
+     } else if (state == DownloadState.BROKEN ) {
+    	 System.out.println("Dowlnload broken: " + ad.getURL());
+			System.out.println("Exception: " + evt.getException());
      }
-
   }
   
   /** returns the X index of a tile covering longitude  at specified zoom level.
@@ -395,7 +398,7 @@ public class OSMBackground extends Background {
    */
   public Properties getConfiguration(String backgroundDataPath) {
     Properties res = super.getConfiguration(backgroundDataPath);
-    settings.readSettings(res);
+		settings.storeSettingsToProperties(res);
     return res;
   }
 
@@ -407,9 +410,9 @@ public class OSMBackground extends Background {
   public void setConfiguration(Properties properties, String backgroundDataPath){
      super.setConfiguration(properties, backgroundDataPath);
      
-     settings.reset(properties);
+		settings.restoreSettingsFromProperties(properties);
      Properties corrected = new Properties();
-     settings.readSettings(corrected);
+		settings.storeSettingsToProperties(corrected);
      setCheckedConfiguration(corrected);
 
       
