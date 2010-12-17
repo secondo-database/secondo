@@ -46,7 +46,7 @@ public class OSMBackground extends Background {
 																	// the
 																	// "world"
 		listeners = new LinkedList<BackgroundListener>();
-		useforbbox = false;
+		useforbbox = true;
 		try {
 			downloadManager = new DownloadManager(new File(PATH), maxDownloads);
 		} catch (Exception e) {
@@ -376,6 +376,7 @@ public class OSMBackground extends Background {
 			server = s.getProperty(KEY_SERVER);
 			port = Integer.parseInt(s.getProperty(KEY_PORT));
 			directory = s.getProperty(KEY_DIRECTORY);
+			prefix = s.getProperty(KEY_PREFIX);
 
 			minZoomLevel = Integer.parseInt(s.getProperty(KEY_MINZOOMLEVEL));
 			maxZoomLevel = Integer.parseInt(s.getProperty(KEY_MAXZOOMLEVEL));
@@ -385,6 +386,8 @@ public class OSMBackground extends Background {
 			name = s.getProperty(KEY_NAME);
 			showFrames = s.getProperty(KEY_SHOWFRAMES).equals("TRUE");
 			showNames = s.getProperty(KEY_SHOWNAMES).equals("TRUE");
+			useforbbox = s.getProperty(Background.KEY_USEFORBBOX)
+					.equals("TRUE");
 			backgroundColor = new Color(Integer.parseInt(s
 					.getProperty(KEY_BACKGROUNDCOLOR)));
 			backgroundColorChanged = true;
@@ -395,9 +398,10 @@ public class OSMBackground extends Background {
 			Class c = Class.forName(s.getProperty(KEY_MAPPERCLASS));
 			mapper = (Rect2UrlMapper) c.getConstructor(
 					new Class[] { int.class, int.class, int.class, int.class,
-							int.class, int.class, URL.class }).newInstance(
+							int.class, int.class, URL.class, String.class })
+					.newInstance(
 					tileSizeX, tileSizeY, DIM_X, DIM_Y, minZoomLevel,
-					maxZoomLevel, baseUrl);
+					maxZoomLevel, baseUrl, prefix);
 
 		} catch (Exception e) {
 			System.err.println("The impossible has occured.");
@@ -411,6 +415,7 @@ public class OSMBackground extends Background {
 	static final String KEY_SERVER = "SERVER";
 	static final String KEY_PORT = "PORT";
 	static final String KEY_DIRECTORY = "DIRECTORY";
+	static final String KEY_PREFIX = "PREFIX";
 	static final String KEY_MINZOOMLEVEL = "MINZOOMLEVEL";
 	static final String KEY_MAXZOOMLEVEL = "MAXZOOMLEVEL";
 	static final String KEY_MAXDOWNLOADS = "MAXDOWNLOADS";
@@ -455,6 +460,7 @@ public class OSMBackground extends Background {
 	private String server = "tile.openstreetmap.org";
 	private int port;
 	private String directory = "/";
+	private String prefix = "";
 
 	/** DownloadManager for downloading images from osm **/
 	private DownloadManager downloadManager;

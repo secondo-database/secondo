@@ -17,9 +17,10 @@ public class StaticGoogleMapsMapper extends StaticOSMMapper implements
 		Rect2UrlMapper {
 
 	public StaticGoogleMapsMapper(int tileSizeX, int tileSizeY, int DIM_X,
-			int DIM_Y, int minZoomLevel, int maxZoomLevel, URL baseUrl) {
+			int DIM_Y, int minZoomLevel, int maxZoomLevel, URL baseUrl,
+			String prefix) {
 		super(tileSizeX, tileSizeY, DIM_X, DIM_Y, minZoomLevel, maxZoomLevel,
-				baseUrl);
+				baseUrl, prefix);
 	}
 
 	/**
@@ -45,11 +46,8 @@ public class StaticGoogleMapsMapper extends StaticOSMMapper implements
 		double centerX = r.getX() + r.getWidth() / 2.0;
 		double centerY = r.getY() + r.getHeight() / 2.0;
 		try {
-			url = new URL(baseUrl, "staticmap?zoom=" + z + "&center=" + centerY
-					+ "," + centerX + "&format=png&size=" + tileSizeX + "x"
-					+ tileSizeY + "&maptype="
-					+ mapType + "&sensor=false");
-			System.out.println("\nurl = " + url);
+			url = new URL(baseUrl, prefix + "x=" + x + "&y=" + y + "&z=" + z);
+
 		} catch (Exception e) {
 			e.printStackTrace();
 			return null;

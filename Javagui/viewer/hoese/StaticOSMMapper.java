@@ -17,7 +17,7 @@ import tools.Pair;
 public class StaticOSMMapper implements Rect2UrlMapper {
 
 	public StaticOSMMapper(int tileSizeX, int tileSizeY, int DIM_X, int DIM_Y,
-			int minZoomLevel, int maxZoomLevel, URL baseUrl) {
+			int minZoomLevel, int maxZoomLevel, URL baseUrl, String prefix) {
 		this.tileSizeX = tileSizeX;
 		this.tileSizeY = tileSizeY;
 		this.DIM_X = DIM_X;
@@ -25,10 +25,7 @@ public class StaticOSMMapper implements Rect2UrlMapper {
 		this.minZoomLevel = minZoomLevel;
 		this.maxZoomLevel = maxZoomLevel;
 		this.baseUrl = baseUrl;
-		
-		
-		System.out.println("OSMMappper created:" + this);
-		
+		this.prefix = prefix;
 	}
 
 	/**
@@ -62,9 +59,6 @@ public class StaticOSMMapper implements Rect2UrlMapper {
 	}
 
 	protected AffineTransform computeTransform(Rectangle2D.Double r) {
-
-		System.out.println(" compute Transfrom " + this);
-
 		// compute projected bounding box
 		java.awt.geom.Point2D.Double p1 = new java.awt.geom.Point2D.Double();
 		java.awt.geom.Point2D.Double p2 = new java.awt.geom.Point2D.Double();
@@ -76,8 +70,8 @@ public class StaticOSMMapper implements Rect2UrlMapper {
 		r.setRect(p1.getX(), p1.getY(), p2.getX() - p1.getX(),
 				p2.getY() - p1.getY());
 
-		double scale_x = r.getWidth() / tileSizeX;
-		double scale_y = -1.0 * r.getHeight() / tileSizeY;
+		double scale_x = r.getWidth() / (double) tileSizeX;
+		double scale_y = -1.0 * r.getHeight() / (double) tileSizeY;
 
 		AffineTransform at = AffineTransform.getTranslateInstance(r.getX(),
 				r.getY() + r.getHeight());
@@ -183,9 +177,6 @@ public class StaticOSMMapper implements Rect2UrlMapper {
 	 * @return The recommended zoom level
 	 **/
 	private int computeZoomLevel(double width, double height) {
-
-		System.out.println("computeZoomLevel " + this);
-
 		double z_x = Math.log((360 * DIM_X) / (width * tileSizeX)) / l2; // computing
 																			// log_2
 		double z_y = Math.log((180 * DIM_Y) / (height * tileSizeY)) / l2;
@@ -267,6 +258,7 @@ public class StaticOSMMapper implements Rect2UrlMapper {
 	int minZoomLevel;
 	int maxZoomLevel;
 	URL baseUrl;
+	String prefix;
 
 	/** logarithm of 2 to save computation time **/
 	private static final double l2 = Math.log(2);
