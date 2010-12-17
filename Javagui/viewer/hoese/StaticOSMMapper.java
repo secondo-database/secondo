@@ -25,6 +25,10 @@ public class StaticOSMMapper implements Rect2UrlMapper {
 		this.minZoomLevel = minZoomLevel;
 		this.maxZoomLevel = maxZoomLevel;
 		this.baseUrl = baseUrl;
+		
+		
+		System.out.println("OSMMappper created:" + this);
+		
 	}
 
 	/**
@@ -43,7 +47,7 @@ public class StaticOSMMapper implements Rect2UrlMapper {
 	 *         proper location and zoom it according to zoom level and visible
 	 *         screen
 	 **/
-	private Pair<URL, AffineTransform> computeURL(int x, int y, int z) {
+	protected Pair<URL, AffineTransform> computeURL(int x, int y, int z) {
 		URL url;
 		try {
 			url = new URL(baseUrl, "" + z + "/" + x + "/" + y + ".png");
@@ -52,6 +56,14 @@ public class StaticOSMMapper implements Rect2UrlMapper {
 			return null;
 		}
 		Rectangle2D.Double r = getBBoxForTile(x, y, z);
+		AffineTransform at = computeTransform(r);
+
+		return new Pair<URL, AffineTransform>(url, at);
+	}
+
+	protected AffineTransform computeTransform(Rectangle2D.Double r) {
+
+		System.out.println(" compute Transfrom " + this);
 
 		// compute projected bounding box
 		java.awt.geom.Point2D.Double p1 = new java.awt.geom.Point2D.Double();
@@ -70,8 +82,10 @@ public class StaticOSMMapper implements Rect2UrlMapper {
 		AffineTransform at = AffineTransform.getTranslateInstance(r.getX(),
 				r.getY() + r.getHeight());
 		at.scale(scale_x, scale_y);
-		return new Pair<URL, AffineTransform>(url, at);
+		return at;
+
 	}
+
 
 	/**
 	 * Computes the urls required to cover at least the given rectangle.
@@ -169,6 +183,9 @@ public class StaticOSMMapper implements Rect2UrlMapper {
 	 * @return The recommended zoom level
 	 **/
 	private int computeZoomLevel(double width, double height) {
+
+		System.out.println("computeZoomLevel " + this);
+
 		double z_x = Math.log((360 * DIM_X) / (width * tileSizeX)) / l2; // computing
 																			// log_2
 		double z_y = Math.log((180 * DIM_Y) / (height * tileSizeY)) / l2;
@@ -195,7 +212,7 @@ public class StaticOSMMapper implements Rect2UrlMapper {
 	 *            zoom level
 	 * @return The images's MBR in world coordinates
 	 **/
-	private Rectangle2D.Double getBBoxForTile(int x, int y, int zoom) {
+	protected Rectangle2D.Double getBBoxForTile(int x, int y, int zoom) {
 		double north = tile2lat(y, zoom);
 		double south = tile2lat(y + 1, zoom);
 		double west = tile2lon(x, zoom);
@@ -228,6 +245,13 @@ public class StaticOSMMapper implements Rect2UrlMapper {
 	private static double tile2lat(int y, int z) {
 		double n = Math.PI - (2.0 * Math.PI * y) / Math.pow(2.0, z);
 		return Math.toDegrees(Math.atan(Math.sinh(n)));
+	}
+
+	public String toString() {
+		return "tileSizeX = " + tileSizeX + ", tileSizeY = " + tileSizeY
+				+ ", DIM_X = " + DIM_X + ", DIM_Y = " + DIM_Y
+				+ ", minZoomLevel = " + minZoomLevel + ", maxZoomLevel = "
+				+ maxZoomLevel + ", baseUrl = " + baseUrl;
 	}
 
 	/** the last used bounding box **/

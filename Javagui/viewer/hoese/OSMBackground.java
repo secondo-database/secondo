@@ -4,7 +4,6 @@ import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.Graphics2D;
 import java.awt.Paint;
-import java.awt.Rectangle;
 import java.awt.Shape;
 import java.awt.Toolkit;
 import java.awt.geom.AffineTransform;
@@ -168,7 +167,7 @@ public class OSMBackground extends Background {
 		Iterator<Pair<URL, AffineTransform>> it = urls.iterator();
 		if (showTiles) {
 			while (it.hasNext()) {
-				paintURL(g, it.next(), at, false);
+				paintURL(g, it.next(), at);
 			}
 		}
 		Paint paint = g.getPaint();
@@ -177,7 +176,7 @@ public class OSMBackground extends Background {
 		if (showFrames) {
 			it = urls.iterator();
 			while (it.hasNext()) {
-				paintURL(g, it.next(), at, true);
+				paintTileFrame(g, it.next().second(), at);
 			}
 		}
 
@@ -205,8 +204,13 @@ public class OSMBackground extends Background {
 	 *            otherwise the image
 	 */
 	private void paintURL(Graphics2D g, Pair<URL, AffineTransform> url,
-			AffineTransform at, boolean frame) {
+			AffineTransform at) {
 		// start download
+
+		if (url.first() == null) {
+			return;
+		}
+
 		File f = downloadManager.getURL(url.first(), observer);
 
 		if (f != null) { // url already downloaded
@@ -217,11 +221,7 @@ public class OSMBackground extends Background {
 			} else {
 				BufferedImage img = cimg.getImage();
 				if (img != null) {
-					if (frame) {
-						paintImageFrame(g, cimg.getImage(), url.second(), at);
-					} else {
 						paintImage(g, cimg.getImage(), url.second(), at);
-					}
 				} else {
 					System.err
 							.println("could not extract image from file " + f);
@@ -243,7 +243,8 @@ public class OSMBackground extends Background {
 	private void paintName(Graphics2D g, Pair<URL, AffineTransform> url,
 			AffineTransform at) {
 
-		String labelText = url.first().getFile().toString();
+		String labelText = (url.first() == null) ? "null" : url.first()
+				.getFile().toString();
 		Rectangle2D.Double rImg = new Rectangle2D.Double(0, 0, tileSizeX,
 				tileSizeY);
 		Rectangle2D rWorld = url.second().createTransformedShape(rImg)
@@ -294,18 +295,17 @@ public class OSMBackground extends Background {
 	 * @param world2screnn
 	 *            mapping from world coordinates to screen coordinates
 	 **/
-	private void paintImageFrame(Graphics2D g, BufferedImage img,
+	private void paintTileFrame(Graphics2D g,
 			AffineTransform img2world, AffineTransform world2Screen) {
-		if (img != null) {
-			AffineTransform at = new AffineTransform(world2Screen);
-			at.concatenate(img2world);
-			Rectangle2D.Double r = new Rectangle2D.Double(0, 0, img.getWidth(),
-					img.getHeight());
-			Shape s = at.createTransformedShape(r);
-			Rectangle r1 = s.getBounds();
-			g.drawRect((int) r1.getX(), (int) r1.getY(), (int) r1.getWidth(),
-					(int) r1.getHeight());
-		}
+
+		Rectangle2D.Double rImg = new Rectangle2D.Double(0, 0, tileSizeX,
+				tileSizeY);
+		Rectangle2D rWorld = img2world.createTransformedShape(rImg)
+				.getBounds2D();
+
+		Shape rScreen = world2Screen.createTransformedShape(rWorld);
+		g.draw(rScreen);
+
 	}
 
 	/**

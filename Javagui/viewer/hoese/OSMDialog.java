@@ -236,6 +236,7 @@ public class OSMDialog extends JDialog {
 		selectionCB.addItem("Open Street Map - Osmarender");
 		selectionCB.addItem("Open Street Map - Cycle Style");
 		selectionCB.addItem("Open Street Map - Maplint Style");
+		selectionCB.addItem("Google Maps - Roadmap Style");
 		selectionCB.addItem("customized");
 
 		selectionCB.addActionListener(new ActionListener() {
@@ -318,6 +319,26 @@ public class OSMDialog extends JDialog {
 					licenseUrlTF
 							.setText("http://wiki.openstreetmap.org/wiki/Tile_usage_policy");
 					mapperClassTF.setText("viewer.hoese.StaticOSMMapper");
+
+				} else if (s.equals("Google Maps - Roadmap Style")) {
+					OSMDialog.this.enableServerSettings(false);
+					protocolTF.setText("http");
+					serverTF.setText("maps.google.com");
+					;
+					portTF.setText("80");
+					directoryTF.setText("maps/api");
+
+					minZoomLevelTF.setText("1");
+					maxZoomLevelTF.setText("21");
+					maxDownloadsTF.setText("20");
+
+					tileSizeXTF.setText("640");
+					tileSizeYTF.setText("600");
+					nameTF.setText("Google RoadMap");
+					licenseUrlTF
+							.setText("http://code.google.com/intl/de-DE/apis/maps/terms.html");
+					mapperClassTF
+							.setText("viewer.hoese.StaticGoogleMapsMapper");
 
 				} else if (s.equals("customized")) {
 					OSMDialog.this.enableServerSettings(true);
