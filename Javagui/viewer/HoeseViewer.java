@@ -65,7 +65,6 @@ import javax.swing.ButtonGroup;
 import javax.swing.ImageIcon;
 import javax.swing.JButton;
 import javax.swing.JCheckBoxMenuItem;
-import javax.swing.JColorChooser;
 import javax.swing.JComboBox;
 import javax.swing.JComponent;
 import javax.swing.JFileChooser;
@@ -102,13 +101,13 @@ import viewer.hoese.DsplBase;
 import viewer.hoese.DsplGraph;
 import viewer.hoese.GraphWindow;
 import viewer.hoese.ImageBackground;
-import viewer.hoese.OSMBackground;
 import viewer.hoese.Interval;
 import viewer.hoese.LEUtils;
 import viewer.hoese.LabelAttrDlg;
 import viewer.hoese.Layer;
 import viewer.hoese.LayerMgmt;
 import viewer.hoese.ManualLinkPool;
+import viewer.hoese.OSMBackground;
 import viewer.hoese.ProjectionManager;
 import viewer.hoese.QueryResult;
 import viewer.hoese.ScalableImage;
@@ -2239,12 +2238,14 @@ public boolean canDisplay(SecondoObject o){
     double wp1y = BBWC.getY();
     double wpw = BBWC.getWidth();
     double wph = BBWC.getHeight();
+
     double w = ClipRect.getWidth();             //(double) GeoScrollPane.getViewport().getWidth();
     double h = ClipRect.getHeight();            //(double) GeoScrollPane.getViewport().getHeight();
     //ClipRect.setSize((int)w,(int)h);
     // if no objects or only a single point,line is visible
     if ((wpw == 0) && (wph == 0)) {
-      return  new AffineTransform(1, 0, 0, 1, -wp1x + extra, -wp1y + extra);
+			return new AffineTransform(1, 0, 0, -1, -wp1x + extra, -wp1y
+					+ extra);
     }
     else if (wpw == 0)
       wpw = 1;
