@@ -2205,6 +2205,111 @@ struct PrioQueueA
   int firstFree;
 
 };
+
+/*
+Some helpful methods for shortest path computing
+
+*/
+
+bool IsLastSection(const TupleId source,
+                   DbArray<GPointsSections>* endSections, int& pos)
+{
+  GPointsSections target;
+  for (int j = 0; j < endSections->Size(); j++)
+  {
+    endSections->Get(j,target);
+    if (source == target.GetTid())
+    {
+      pos = j;
+      return true;
+    }
+  }
+  return false;
+}
+
+bool IsFirstSection(const TupleId pElem,
+                    DbArray<GPointsSections>* startSections,
+                    int& pos)
+{
+  GPointsSections source;
+  for (int k = 0; k < startSections->Size(); k++)
+  {
+    startSections->Get(k,source);
+    if (pElem == source.GetTid())
+    {
+      pos = k;
+      return true;
+    }
+  }
+  return false;
+}
+
+void InsertAdjacentSections(TupleId tid, const Side direction,
+                            const bool init, double dist,
+                            Points* endPoints,
+                            Network* pNetwork, PrioQueueA* prioQ,
+                            SectIDTreeP* visitedSect,
+                            DbArray<TupleId>* touchedSects)
+{
+  Tuple* sourceTuple = pNetwork->GetSection(tid);
+  double sectMeas1 =
+    ((CcReal*) sourceTuple->GetAttribute(SECTION_MEAS1))->GetRealval();
+  double sectMeas2 =
+    ((CcReal*)sourceTuple->GetAttribute(SECTION_MEAS2))->GetRealval();
+  int actRouteId =
+    ((CcInt*)sourceTuple->GetAttribute(SECTION_RID))->GetIntval();
+  Point* sPoint = 0;
+  if (direction == Down)
+  {
+    if (init)
+      dist = fabs(dist - sectMeas1);
+    else
+      dist += fabs(sectMeas2 - sectMeas1);
+    sPoint = (GPoint( true,
+                      pNetwork->GetId(),
+                      actRouteId,
+                      sectMeas1,
+                      Down)).ToPoint(pNetwork);
+  }
+  else
+  {
+    if (init)
+      dist = fabs(sectMeas2 - dist);
+    else
+      dist += fabs(sectMeas2 - sectMeas1);
+    sPoint = (GPoint( true,
+                      pNetwork->GetId(),
+                      actRouteId,
+                      sectMeas2,
+                      Up)).ToPoint(pNetwork);
+  }
+  double weight = dist + endPoints->Distance(*sPoint);
+  sPoint->DeleteIfAllowed();
+  sPoint = 0;
+  sourceTuple->DeleteIfAllowed();
+  sourceTuple = 0;
+  vector<DirectedSection> adjSectionList;
+  adjSectionList.clear();
+  if (direction == Down)
+    pNetwork->GetAdjacentSections ( tid, false, adjSectionList );
+  else
+    pNetwork->GetAdjacentSections ( tid, true, adjSectionList );
+  for (size_t k = 0;  k < adjSectionList.size(); k++ )
+  {
+    DirectedSection actNextSect = adjSectionList[k];
+    if(actNextSect.GetSectionTid()!= tid)
+    {
+      prioQ->Insert(PQEntryA ( actNextSect.GetSectionTid(),
+                               weight,
+                               dist,
+                               actNextSect.GetUpDownFlag(),
+                               tid),
+                    visitedSect, touchedSects ) ;
+    }
+  }
+  adjSectionList.clear();
+}
+
 /*
 2 Class Definitions
 
@@ -6388,6 +6493,81 @@ bool GLine::ShortestPath (GLine *pgl2, GLine *result, Network *pNetwork,
   bGPgl2->DeleteIfAllowed();
   return bres;
 }
+
+bool GLine::ShortestPath(GPoint *to, GLine *result,
+                         DbArray<TupleId>* touchedSects)
+{
+  result->Clear();
+  if (touchedSects != 0) touchedSects->clean();
+  if (!IsDefined() || !to->IsDefined())
+  {
+    result->SetDefined(false);
+    return false;
+  }
+  Network* pNetwork = NetworkManager::GetNetworkNew(GetNetworkId(),netList);
+  bool bres = ShortestPath(to, result, pNetwork, touchedSects);
+  NetworkManager::CloseNetwork(pNetwork);
+  return bres;
+}
+
+bool GLine::ShortestPath(GPoint *to, GLine *result, Network* pNetwork,
+                  DbArray<TupleId>* touchedSects)
+{
+  result->Clear();
+  if (touchedSects != 0) touchedSects->clean();
+  if ( GetNetworkId() != to->GetNetworkId() )
+  {
+    return false;
+  }
+  result->SetNetworkId(pNetwork->GetId());
+  if (to->Inside(this))
+  {
+    result->SetDefined(true);
+    return true;
+  }
+  GPoints *bGPgl1 = new GPoints(true);
+  GetBGP(pNetwork, bGPgl1);
+  GPoints *bGPgl2 = new GPoints(true);
+  bGPgl2->MergeAdd(*to,pNetwork);
+  bool bres = bGPgl1->ShortestPath(bGPgl2,result,pNetwork, touchedSects);
+  bGPgl1->DeleteIfAllowed();
+  bGPgl2->DeleteIfAllowed();
+  return bres;
+}
+
+bool GLine::ShortestPath(GPoints *to, GLine *result,
+                         DbArray<TupleId>* touchedSects)
+{
+  result->Clear();
+  if (touchedSects != 0) touchedSects->clean();
+  if (!IsDefined() || !to->IsDefined())
+  {
+    result->SetDefined(false);
+    return false;
+  }
+  Network* pNetwork = NetworkManager::GetNetworkNew(GetNetworkId(),netList);
+  bool bres = ShortestPath(to, result, pNetwork, touchedSects);
+  NetworkManager::CloseNetwork(pNetwork);
+  return bres;
+}
+
+bool GLine::ShortestPath(GPoints *to, GLine *result, Network* pNetwork,
+                         DbArray<TupleId>* touchedSects)
+{
+  result->Clear();
+  if (touchedSects != 0) touchedSects->clean();
+  if ( GetNetworkId() != to->GetNetworkId() )
+  {
+    return false;
+  }
+  result->SetNetworkId(pNetwork->GetId());
+  GPoints *bGPgl1 = new GPoints(true);
+  GetBGP(pNetwork, bGPgl1);
+  bool bres = bGPgl1->ShortestPath(to,result,pNetwork, touchedSects);
+  bGPgl1->DeleteIfAllowed();
+  return bres;
+}
+
 /*
 NetdistanceNew method computes the network distance between two glines.
 Uses GPoints Netdistance
@@ -6423,6 +6603,61 @@ double GLine::NetdistanceNew (GLine* pgl2, Network* pNetwork)
   return result;
 }
 
+double GLine::NetdistanceNew(GPoint* pgl2)
+{
+  if (!IsDefined() || !pgl2->IsDefined() ||
+      NoOfComponents() < 1)
+    return numeric_limits< double >::max();
+  Network* pNetwork = NetworkManager::GetNetworkNew(GetNetworkId(),netList);
+  double result = NetdistanceNew(pgl2,pNetwork);
+  NetworkManager::CloseNetwork(pNetwork);
+  return result;
+}
+
+double GLine::NetdistanceNew(GPoint* pgl2, Network* pNetwork)
+{
+  if (!IsDefined() || !pgl2->IsDefined() ||
+      NoOfComponents() < 1 || GetNetworkId() != pgl2->GetNetworkId() )
+  {
+    return numeric_limits<double>::max();
+  }
+  if (pgl2->Inside(this)) return 0.0;
+  GPoints *bGPgl1 = new GPoints(true);
+  GetBGP(pNetwork,bGPgl1);
+  GPoints *bGPgl2 = new GPoints(true);
+  bGPgl2->MergeAdd(*pgl2,pNetwork);
+  double result = bGPgl1->Netdistance(bGPgl2,pNetwork);
+  bGPgl1->DeleteIfAllowed();
+  bGPgl2->DeleteIfAllowed();
+  return result;
+}
+
+double GLine::NetdistanceNew(GPoints* pgl2)
+{
+  if (!IsDefined() || !pgl2->IsDefined() ||
+      NoOfComponents() < 1 || pgl2->Size() < 1)
+    return numeric_limits< double >::max();
+  Network* pNetwork = NetworkManager::GetNetworkNew(GetNetworkId(),netList);
+  double result = NetdistanceNew(pgl2,pNetwork);
+  NetworkManager::CloseNetwork(pNetwork);
+  return result;
+}
+
+double GLine::NetdistanceNew(GPoints* pgl2, Network* pNetwork)
+{
+  if (!IsDefined() || !pgl2->IsDefined() ||
+      NoOfComponents() < 1 || pgl2->Size() < 1 ||
+      GetNetworkId() != pgl2->GetNetworkId() )
+  {
+    return numeric_limits<double>::max();
+  }
+  GPoints *bGPgl1 = new GPoints(true);
+  GetBGP(pNetwork,bGPgl1);
+  double result = bGPgl1->Netdistance(pgl2,pNetwork);
+  bGPgl1->DeleteIfAllowed();
+  return result;
+}
+
 double GLine::Netdistance(GLine* pgl2)
 {
   if (!IsDefined()|| !pgl2->IsDefined() ||
@@ -6447,37 +6682,91 @@ double GLine::Netdistance ( GLine* pgl2, Network* pNetwork )
     cmsg.inFunError ( "Both glines must belong to the network." );
     return numeric_limits<double>::max();
   }
-  if (Intersects(pgl2))
+  DbArray<TupleId>* touchedSects = 0;
+  GLine *path = new GLine(false);
+  if (ShortestPathBF(pgl2,path,pNetwork,touchedSects))
   {
-    return 0.0;
+    double res = path->GetLength();
+    path->DeleteIfAllowed();
+    path = 0;
+    return res;
   }
+  else
+  {
+    path->DeleteIfAllowed();
+    path = 0;
+    return numeric_limits<double>::max();
+  }
+}
 
+bool GLine::ShortestPathBF(GLine *pgl2, GLine *result, Network *pNetwork,
+                           DbArray<TupleId>* touchedSects)
+{
+  result->Clear();
+  if (touchedSects != 0) touchedSects->clean();
+  if (!IsDefined()|| !pgl2->IsDefined() ||
+      NoOfComponents() < 1 || pgl2->NoOfComponents() < 1)
+    return false;
+  if ( GetNetworkId() != pgl2->GetNetworkId() )
+    return false;
+  result->SetNetworkId(GetNetworkId());
+  if (Intersects(pgl2))
+    return true;
   GPoints *bGPgl1 = new GPoints(0);
   GetBGP(pNetwork,bGPgl1);
   GPoints *bGPgl2 = new GPoints(0);
   pgl2->GetBGP(pNetwork,bGPgl2);
   GPoint gp1, gp2;
-  double minDist = numeric_limits<double>::max();
-  double aktDist = numeric_limits<double>::max();
+  bool first = true;
   for ( int i = 0; i < bGPgl1->Size(); i++ )
   {
     bGPgl1->Get ( i,gp1 );
     for ( int j = 0; j < bGPgl2->Size(); j++ )
     {
       bGPgl2->Get ( j, gp2 );
-      aktDist = gp1.NetdistanceA ( &gp2, pNetwork );
-      if ( aktDist < minDist ) minDist = aktDist;
-      if (minDist <= 0.0)
+      GLine *test = new GLine(false);
+      DbArray<TupleId> *testTouchedSects = new DbArray<TupleId> (0);
+      if (gp1.ShortestPathAStar(&gp2,test,pNetwork,testTouchedSects))
       {
-        bGPgl1->DeleteIfAllowed();
-        bGPgl2->DeleteIfAllowed();
-        return 0.0;
+        if (first)
+          *result = *test;
+        else
+          if (test->GetLength() < result->GetLength())
+            *result = *test;
+        test->DeleteIfAllowed();
+        test = 0;
+        if (result->GetLength() <= 0)
+        {
+          bGPgl1->DeleteIfAllowed();
+          bGPgl2->DeleteIfAllowed();
+          if (touchedSects != 0) touchedSects->Append(*testTouchedSects);
+          testTouchedSects->Destroy();
+          delete testTouchedSects;
+          return true;
+        }
       }
+      if (touchedSects != 0) touchedSects->Append(*testTouchedSects);
+      testTouchedSects->Destroy();
+      delete testTouchedSects;
     }
   }
   bGPgl1->DeleteIfAllowed();
   bGPgl2->DeleteIfAllowed();
-  return minDist;
+  return true;
+}
+
+bool GLine::ShortestPathBF(GLine *pgl2, GLine *result,
+                           DbArray<TupleId>* touchedSects)
+{
+  result->Clear();
+  if (touchedSects != 0) touchedSects->clean();
+  if (!IsDefined()|| !pgl2->IsDefined() ||
+      NoOfComponents() < 1 || pgl2->NoOfComponents() < 1)
+    return false;
+  Network* pNetwork = NetworkManager::GetNetworkNew(GetNetworkId(),netList);
+  bool res = ShortestPathBF(pgl2, result, pNetwork, touchedSects);
+  NetworkManager::CloseNetwork(pNetwork);
+  return res;
 }
 
 /*
@@ -7078,6 +7367,56 @@ double GPoint::NewNetdistance ( GPoint* pToGPoint,GLine* gline )
 
 }
 
+double GPoint::NetdistanceNew (GLine* toGLine)
+{
+  if (!IsDefined() || !toGLine->IsDefined() || toGLine->NoOfComponents() < 1 ||
+      GetNetworkId() != toGLine->GetNetworkId())
+    return numeric_limits<double>::max();
+  Network* pNetwork = NetworkManager::GetNetworkNew(GetNetworkId(),netList);
+  double res = NetdistanceNew(toGLine,pNetwork);
+  NetworkManager::CloseNetwork(pNetwork);
+  return res;
+}
+
+double GPoint::NetdistanceNew (GLine* toGLine, Network* pNetwork)
+{
+  double res = numeric_limits<double>::max();
+  if (!IsDefined() || !toGLine->IsDefined() || toGLine->NoOfComponents() < 1 ||
+      GetNetworkId() != toGLine->GetNetworkId())
+    return res;
+  GLine *path = new GLine(0);
+  if (ShortestPathAStar(toGLine,path,pNetwork,0))
+    res = path->GetLength();
+  path->DeleteIfAllowed();
+  return res;
+}
+
+double GPoint::NetdistanceNew (GPoints* toGPoints)
+{
+  if (!IsDefined() || !toGPoints->IsDefined() ||
+       toGPoints->Size() < 1 ||
+       GetNetworkId() != toGPoints->GetNetworkId())
+    return numeric_limits<double>::max();
+  Network* pNetwork = NetworkManager::GetNetworkNew(GetNetworkId(),netList);
+  double res = NetdistanceNew(toGPoints,pNetwork);
+  NetworkManager::CloseNetwork(pNetwork);
+  return res;
+}
+
+double GPoint::NetdistanceNew (GPoints* toGPoints, Network* pNetwork)
+{
+  double res = numeric_limits<double>::max();
+  if (!IsDefined() || !toGPoints->IsDefined() ||
+       toGPoints->Size() < 1 ||
+       GetNetworkId() != toGPoints->GetNetworkId())
+    return res;
+  GLine *path = new GLine(0);
+  if (ShortestPathAStar(toGPoints,path,pNetwork,0))
+    res = path->GetLength();
+  path->DeleteIfAllowed();
+  return res;
+}
+
 /*
 Distance function computes the Euclidean Distance between two ~GPoint~s.
 
@@ -7228,6 +7567,7 @@ bool GPoint::ShortestPathAStar (GPoint *to, GLine *result, Network *pNetwork,
   {
     result->AddRouteInterval ( GetRouteId(), GetPosition(),
                                to->GetPosition() );
+    if (touchedSects != 0) touchedSects->Append(startSectionTId);
     startSection->DeleteIfAllowed();
     endSection->DeleteIfAllowed();
     return true;
@@ -7242,11 +7582,12 @@ bool GPoint::ShortestPathAStar (GPoint *to, GLine *result, Network *pNetwork,
   visitedSect->Insert(SectIDTreeEntry(
                         SectEntry(startSectionTId,
                                  (TupleId) numeric_limits<long>::max(),
-                                  false,
-                                  numeric_limits<int>::max(),
+                                  true,
+                                  -1,
                                   0.0),
                         -1,-1),
                       nPos);
+  if (touchedSects != 0) touchedSects->Append(startSectionTId);
   double sectMeas1 =
     ((CcReal*) startSection->GetAttribute(SECTION_MEAS1))->GetRealval();
   double sectMeas2 =
@@ -7317,6 +7658,7 @@ Use priorityQueue to find shortestPath.
   bool found = false;
   while (!prioQ->IsEmpty() && !found )
   {
+
     actPQEntry = prioQ->GetAndDeleteMin ( visitedSect );
     Tuple *actSection = pNetwork->GetSection ( actPQEntry->sectID );
     sectMeas1 =
@@ -7411,11 +7753,11 @@ on a stack to turn them in right order.
       //   if (startRI >= endRI) upDown = false;
       while ( !end )
       {
-
+        TupleId actTupleId =
+            visitedSect->GetTreeEntry(pElem).GetEntry().GetSectId();
         //GetSection
         actSection =
-          pNetwork->GetSection(
-            visitedSect->GetTreeEntry(pElem).GetEntry().GetSectId());
+          pNetwork->GetSection(actTupleId);
         actRouteId =
           (( CcInt*)actSection->GetAttribute(SECTION_RID))->GetIntval();
         sectMeas1 =
@@ -7423,7 +7765,7 @@ on a stack to turn them in right order.
         sectMeas2 =
           ((CcReal*)actSection->GetAttribute(SECTION_MEAS2))->GetRealval();
 
-        if ( !visitedSect->IsNode(pElem, startSectionTId ))
+        if ( actTupleId != startSectionTId )
         {
           if ( visitedSect->GetTreeEntry(pElem).GetEntry().GetUpDownFlag())
             riStack->Push ( actRouteId, sectMeas1, sectMeas2, riStack );
@@ -7499,7 +7841,6 @@ on a stack to turn them in right order.
         actSection = 0;
       }
     }
-
   }
   if ( visitedSect != 0 ) visitedSect->Remove();
   prioQ->Destroy();
@@ -7813,6 +8154,70 @@ stack to turn in right order.
   result->TrimToSize();
   return true;
 };
+
+ bool GPoint::ShortestPathAStar(GLine *ziel, GLine *result,
+                                DbArray<TupleId>* touchedSects)
+ {
+   result->Clear();
+   if (touchedSects != 0) touchedSects->clean();
+   if (!IsDefined() || !ziel->IsDefined() || ziel->NoOfComponents() < 1)
+    return false;
+   Network* pNetwork = NetworkManager::GetNetworkNew(GetNetworkId(),netList);
+   bool res = ShortestPathAStar(ziel,result,pNetwork,touchedSects);
+   NetworkManager::CloseNetwork(pNetwork);
+   return res;
+ }
+
+ bool GPoint::ShortestPathAStar(GLine* ziel, GLine* result, Network *pNetwork,
+                         DbArray<TupleId>* touchedSects)
+ {
+    result->Clear();
+    if (touchedSects != 0) touchedSects->clean();
+    if (!IsDefined() || !ziel->IsDefined() || ziel->NoOfComponents() < 1)
+      return false;
+    if (GetNetworkId() != ziel->GetNetworkId()) return false;
+    result->SetNetworkId(GetNetworkId());
+    GPoints* start = new GPoints(1);
+    start->MergeAdd(*this,pNetwork);
+    GPoints* target = new GPoints(0);
+    ziel->GetBGP(pNetwork,target);
+    bool res = start->ShortestPath(target, result, pNetwork, touchedSects);
+    result->SetDefined(res);
+    start->DeleteIfAllowed();
+    target->DeleteIfAllowed();
+    return res;
+ }
+
+bool GPoint::ShortestPathAStar(GPoints *ziel, GLine *result,
+                       DbArray<TupleId>* touchedSects)
+{
+  result->Clear();
+  if (touchedSects != 0) touchedSects->clean();
+  if (!IsDefined() || !ziel->IsDefined() || ziel->Size() < 1)
+    return false;
+  Network* pNetwork = NetworkManager::GetNetworkNew(GetNetworkId(),netList);
+  bool res = ShortestPathAStar(ziel,result,pNetwork,touchedSects);
+  NetworkManager::CloseNetwork(pNetwork);
+  return res;
+}
+
+bool GPoint::ShortestPathAStar(GPoints* ziel, GLine* result, Network *pNetwork,
+                       DbArray<TupleId>* touchedSects)
+{
+  result->Clear();
+  if (touchedSects != 0) touchedSects->clean();
+  if (!IsDefined() || !ziel->IsDefined() || ziel->Size() < 1)
+    return false;
+  if (GetNetworkId() != ziel->GetNetworkId()) return false;
+  result->SetNetworkId(GetNetworkId());
+  GPoints* start = new GPoints(1);
+  start->MergeAdd(*this,pNetwork);
+  bool res = start->ShortestPath(ziel, result, pNetwork, touchedSects);
+  result->SetDefined(res);
+  start->DeleteIfAllowed();
+  return res;
+}
+
 
 /*
 Returns the x,y point represented by gpoint.
@@ -8170,31 +8575,6 @@ int GPoints::GetNetworkId()
   return gp.GetNetworkId();
 }
 
-double GPoints::Netdistance(GPoints* bgp, Network* pNetwork)
-{
-  if(!IsDefined() || !bgp->IsDefined() || Size() < 1 || bgp->Size() < 1)
-    return numeric_limits<double>::max();
-  if (Intersects(bgp,pNetwork)) return 0.0;
-  GLine* pSP = new GLine(0);
-  if (ShortestPath(bgp,pSP,pNetwork,0))
-  {
-    double result = pSP->GetLength();
-    pSP->DeleteIfAllowed();
-    return result;
-  }
-  pSP->DeleteIfAllowed();
-  return numeric_limits< double >::max();
-}
-
-double GPoints::Netdistance(GPoints* bgp)
-{
-  if(!IsDefined()||Size() < 1) return numeric_limits<double>::max();
-  Network *pNetwork = NetworkManager::GetNetworkNew(GetNetworkId(),netList);
-  double result = Netdistance(bgp,pNetwork);
-  NetworkManager::CloseNetwork(pNetwork);
-  return result;
-}
-
 bool GPoints::Inside(GPoint gp)
 {
   if (!IsDefined() || Size() < 1) return false;
@@ -8278,104 +8658,6 @@ bool GPoints::ShortestPath(GPoints* bgp, GLine* res,
   return result;
 }
 
-bool IsLastSection(const TupleId source,
-                   DbArray<GPointsSections>* endSections, int& pos)
-{
-  GPointsSections target;
-  for (int j = 0; j < endSections->Size(); j++)
-  {
-    endSections->Get(j,target);
-    if (source == target.GetTid())
-    {
-      pos = j;
-      return true;
-    }
-  }
-  return false;
-}
-
-bool IsFirstSection(const TupleId pElem,
-                    DbArray<GPointsSections>* startSections,
-                    int& pos)
-{
-  GPointsSections source;
-  for (int k = 0; k < startSections->Size(); k++)
-  {
-    startSections->Get(k,source);
-    if (pElem == source.GetTid())
-    {
-      pos = k;
-      return true;
-    }
-  }
-  return false;
-}
-
-void InsertAdjacentSections(TupleId tid, const Side direction,
-                            const bool init, double dist,
-                            Points* endPoints,
-                            Network* pNetwork, PrioQueueA* prioQ,
-                            SectIDTreeP* visitedSect,
-                            DbArray<TupleId>* touchedSects)
-{
-  Tuple* sourceTuple = pNetwork->GetSection(tid);
-  double sectMeas1 =
-    ((CcReal*) sourceTuple->GetAttribute(SECTION_MEAS1))->GetRealval();
-  double sectMeas2 =
-    ((CcReal*)sourceTuple->GetAttribute(SECTION_MEAS2))->GetRealval();
-  int actRouteId =
-    ((CcInt*)sourceTuple->GetAttribute(SECTION_RID))->GetIntval();
-  Point* sPoint = 0;
-  if (direction == Down)
-  {
-    if (init)
-      dist = fabs(dist - sectMeas1);
-    else
-      dist += fabs(sectMeas2 - sectMeas1);
-    sPoint = (GPoint( true,
-                      pNetwork->GetId(),
-                      actRouteId,
-                      sectMeas1,
-                      Down)).ToPoint(pNetwork);
-  }
-  else
-  {
-    if (init)
-      dist = fabs(sectMeas2 - dist);
-    else
-      dist += fabs(sectMeas2 - sectMeas1);
-    sPoint = (GPoint( true,
-                      pNetwork->GetId(),
-                      actRouteId,
-                      sectMeas2,
-                      Up)).ToPoint(pNetwork);
-  }
-  double weight = dist + endPoints->Distance(*sPoint);
-  sPoint->DeleteIfAllowed();
-  sPoint = 0;
-  sourceTuple->DeleteIfAllowed();
-  sourceTuple = 0;
-  vector<DirectedSection> adjSectionList;
-  adjSectionList.clear();
-  if (direction == Down)
-    pNetwork->GetAdjacentSections ( tid, false, adjSectionList );
-  else
-    pNetwork->GetAdjacentSections ( tid, true, adjSectionList );
-  for (size_t k = 0;  k < adjSectionList.size(); k++ )
-  {
-    DirectedSection actNextSect = adjSectionList[k];
-    if(actNextSect.GetSectionTid()!= tid)
-    {
-      prioQ->Insert(PQEntryA ( actNextSect.GetSectionTid(),
-                               weight,
-                               dist,
-                               actNextSect.GetUpDownFlag(),
-                               tid),
-                    visitedSect, touchedSects ) ;
-    }
-  }
-  adjSectionList.clear();
-}
 
 bool GPoints::ShortestPath(GPoints* bgp, GLine* res, Network* pNetwork,
                            DbArray<TupleId>* touchedSects)
@@ -8736,6 +9018,157 @@ Use priorityQueue to find shortestPath.
   return true;
 }
 
+bool GPoints::ShortestPath(GPoint* gp, GLine* res,
+                           DbArray<TupleId>* touchedSects)
+{
+  res->Clear();
+  if (touchedSects != 0) touchedSects->clean();
+  if(!IsDefined() || !gp->IsDefined() || Size() < 1 )
+  {
+    res->SetDefined(false);
+    return false;
+  }
+  Network *pNetwork =
+    NetworkManager::GetNetworkNew(gp->GetNetworkId(),netList);
+  bool result = ShortestPath(gp, res, pNetwork, touchedSects);
+  NetworkManager::CloseNetwork(pNetwork);
+  return result;
+}
+
+bool GPoints::ShortestPath(GPoint* gp, GLine* res, Network* pNetwork,
+                           DbArray<TupleId>* touchedSects)
+{
+  res->Clear();
+  if (touchedSects != 0) touchedSects->clean();
+  if ( GetNetworkId() != gp->GetNetworkId() )
+  {
+    res->SetDefined(false);
+    return false;
+  }
+  res->SetNetworkId(pNetwork->GetId());
+  if (Contains(*gp))
+  {
+    res->SetDefined(true);
+    return true;
+  }
+  GPoints *bGPgl2 = new GPoints(true);
+  bGPgl2->MergeAdd(*gp,pNetwork);
+  bool bres = ShortestPath(bGPgl2,res,pNetwork, touchedSects);
+  bGPgl2->DeleteIfAllowed();
+  return bres;
+}
+
+bool GPoints::ShortestPath(GLine* gl, GLine* res,
+                           DbArray<TupleId>* touchedSects)
+{
+  res->Clear();
+  if (touchedSects != 0) touchedSects->clean();
+  if(!IsDefined() || !gl->IsDefined() || Size() < 1 || gl->NoOfComponents() < 1)
+  {
+    res->SetDefined(false);
+    return false;
+  }
+  Network *pNetwork =
+    NetworkManager::GetNetworkNew(gl->GetNetworkId(),netList);
+  bool result = ShortestPath(gl, res, pNetwork, touchedSects);
+  NetworkManager::CloseNetwork(pNetwork);
+  return result;
+}
+
+bool GPoints::ShortestPath(GLine* gl, GLine* res, Network* pNetwork,
+                    DbArray<TupleId>* touchedSects)
+{
+  res->Clear();
+  if (touchedSects != 0) touchedSects->clean();
+  if ( GetNetworkId() != gl->GetNetworkId() )
+  {
+    cmsg.inFunError ( "Both glines must belong to the network." );
+    return false;
+  }
+  GPoints *bGPgl2 = new GPoints(true);
+  gl->GetBGP(pNetwork,bGPgl2);
+  bool bres = ShortestPath(bGPgl2,res,pNetwork, touchedSects);
+  bGPgl2->DeleteIfAllowed();
+  return bres;
+}
+
+double GPoints::Netdistance(GPoints* bgp, Network* pNetwork)
+{
+  if(!IsDefined() || !bgp->IsDefined() || Size() < 1 || bgp->Size() < 1)
+    return numeric_limits<double>::max();
+  if (Intersects(bgp,pNetwork)) return 0.0;
+  GLine* pSP = new GLine(0);
+  if (ShortestPath(bgp,pSP,pNetwork,0))
+  {
+    double result = pSP->GetLength();
+    pSP->DeleteIfAllowed();
+    return result;
+  }
+  pSP->DeleteIfAllowed();
+  return numeric_limits< double >::max();
+}
+
+double GPoints::Netdistance(GPoints* bgp)
+{
+  if(!IsDefined()||Size() < 1 || !bgp->IsDefined() || bgp->Size() < 1)
+    return numeric_limits<double>::max();
+  Network *pNetwork = NetworkManager::GetNetworkNew(GetNetworkId(),netList);
+  double result = Netdistance(bgp,pNetwork);
+  NetworkManager::CloseNetwork(pNetwork);
+  return result;
+}
+
+double GPoints::Netdistance(GPoint* gp, Network* pNetwork)
+{
+  if(!IsDefined() || !gp->IsDefined() || Size() < 1)
+    return numeric_limits<double>::max();
+  GLine* pSP = new GLine(0);
+  if (ShortestPath(gp, pSP, pNetwork, 0))
+  {
+    double result = pSP->GetLength();
+    pSP->DeleteIfAllowed();
+    return result;
+  }
+  pSP->DeleteIfAllowed();
+  return numeric_limits< double >::max();
+}
+
+double GPoints::Netdistance(GPoint* gp)
+{
+  if(!IsDefined() || Size() < 1 || !gp->IsDefined())
+    return numeric_limits<double>::max();
+  Network *pNetwork = NetworkManager::GetNetworkNew(GetNetworkId(),netList);
+  double result = Netdistance(gp,pNetwork);
+  NetworkManager::CloseNetwork(pNetwork);
+  return result;
+}
+
+double GPoints::Netdistance(GLine* gl, Network* pNetwork)
+{
+  if(!IsDefined() || !gl->IsDefined() || Size() < 1 || gl->NoOfComponents()<1)
+    return numeric_limits<double>::max();
+  GLine* pSP = new GLine(0);
+  if (ShortestPath(gl, pSP, pNetwork, 0))
+  {
+    double result = pSP->GetLength();
+    pSP->DeleteIfAllowed();
+    return result;
+  }
+  pSP->DeleteIfAllowed();
+  return numeric_limits< double >::max();
+
+}
+
+double GPoints::Netdistance(GLine* gl)
+{
+  if(!IsDefined()||Size() < 1 || !gl->IsDefined() || gl->NoOfComponents() < 1)
+    return numeric_limits<double>::max();
+  Network *pNetwork = NetworkManager::GetNetworkNew(GetNetworkId(),netList);
+  double result = Netdistance(gl,pNetwork);
+  NetworkManager::CloseNetwork(pNetwork);
+  return result;
+}
+
 GPoints& GPoints::operator-= ( const GPoint& gp )
 {
   GPoints *nGPs = new GPoints ( 0 );
@@ -9018,7 +9451,7 @@ int OpNetNetdistance_gpgp ( Word* args, Word& result, int message,
     cmsg.inFunError ( "Both gpoint must be defined!" );
     return 0;
   };
-  double dist =  pFromGPoint->NetdistanceA ( pToGPoint );
+  double dist =  pFromGPoint->Netdistance ( pToGPoint );
   if ( dist < numeric_limits<double>::max() ) pResult->Set ( true,dist );
   else pResult->Set ( false, dist );
   return 1;
@@ -9074,26 +9507,24 @@ struct netdistanceInfo : OperatorInfo {
 
 ListExpr OpNetNetdistanceNewTypeMap ( ListExpr args )
 {
-  if ( nl->ListLength ( args ) != 2 )
+  NList param(args);
+  if (param.length() != 2)
   {
-    return ( nl->SymbolAtom ( "typeerror" ) );
+    return listutils::typeError("netdistancenew expects 2 arguments.");
   }
-  ListExpr param1 = nl->First ( args );
-  ListExpr param2 = nl->Second ( args );
-  //ListExpr param3 = nl->Third(args);
-
-  if ( nl->IsAtom ( param1 ) && nl->AtomType ( param1 ) == SymbolType &&
-       nl->IsAtom ( param2 ) && nl->AtomType ( param2 ) == SymbolType &&
-      ( ( nl->SymbolValue ( param1 ) == "gpoint" &&
-          nl->SymbolValue ( param2 ) == "gpoint" ) ||
-        ( nl->SymbolValue ( param1 ) == "gline" &&
-          nl->SymbolValue ( param2 ) == "gline" ) ||
-        ( nl->SymbolValue(param1) == "gpoints" &&
-          nl->SymbolValue(param2) == "gpoints") ) )
+  if (!( param.first().isSymbol("gpoint") || param.first().isSymbol("gline")
+       || param.first().isSymbol("gpoints")))
   {
-    return nl->SymbolAtom ( "real" );
+      return
+        listutils::typeError("1.argument should be gpoint, gline or gpoints.");
   }
-  return nl->SymbolAtom ( "typeerror" );
+  if (!(param.second().isSymbol("gpoint")|| param.second().isSymbol("gline") ||
+        param.second().isSymbol("gpoints")))
+  {
+    return
+      listutils::typeError("2.argument should be gpoint, gline or gpoints.");
+  }
+  return nl->SymbolAtom ( "real" );
 }
 
 int OpNetNetdistanceNew_gpgp ( Word* args, Word& result, int message,
@@ -9150,11 +9581,125 @@ int OpNetNetdistanceNew_gpsgps ( Word* args, Word& result, int message,
   return 1;
 };
 
+int OpNetNetdistanceNew_gpgl ( Word* args, Word& result, int message,
+                               Word& local, Supplier in_pSupplier )
+{
+  GPoint* pGPoint = ( GPoint* ) args[0].addr;
+  GLine* pGLine = ( GLine* ) args[1].addr;
+  CcReal* pResult = ( CcReal* ) qp->ResultStorage ( in_pSupplier ).addr;
+  result = SetWord ( pResult );
+  if ( ! ( pGPoint->IsDefined() ) || ! ( pGLine->IsDefined() ) )
+  {
+    cmsg.inFunError ( "Both arguments must be defined!" );
+    return 0;
+  };
+  double dist = pGPoint->NetdistanceNew ( pGLine );
+  if ( dist != numeric_limits<double>::max() ) pResult->Set ( true, dist );
+  else pResult->Set ( false, dist );
+  return 1;
+};
+
+int OpNetNetdistanceNew_gpgps ( Word* args, Word& result, int message,
+                                Word& local, Supplier in_pSupplier )
+{
+  GPoint* pGPoint = ( GPoint* ) args[0].addr;
+  GPoints* pGPoints = ( GPoints* ) args[1].addr;
+  CcReal* pResult = ( CcReal* ) qp->ResultStorage ( in_pSupplier ).addr;
+  result = SetWord ( pResult );
+  if ( ! ( pGPoint->IsDefined() ) || ! ( pGPoints->IsDefined() ) )
+  {
+    cmsg.inFunError ( "Both arguments must be defined!" );
+    return 0;
+  };
+  double dist = pGPoint->NetdistanceNew ( pGPoints );
+  if ( dist != numeric_limits<double>::max() ) pResult->Set ( true, dist );
+  else pResult->Set ( false, dist );
+  return 1;
+};
+
+int OpNetNetdistanceNew_glgp ( Word* args, Word& result, int message,
+                               Word& local, Supplier in_pSupplier )
+{
+  GLine* pGLine = ( GLine* ) args[0].addr;
+  GPoint* pGPoint = ( GPoint* ) args[1].addr;
+  CcReal* pResult = ( CcReal* ) qp->ResultStorage ( in_pSupplier ).addr;
+  result = SetWord ( pResult );
+  if ( ! ( pGLine->IsDefined() ) || ! ( pGPoint->IsDefined() ) )
+  {
+    cmsg.inFunError ( "Both arguments must be defined!" );
+    return 0;
+  };
+  double dist = pGPoint->NetdistanceNew ( pGLine );
+  if ( dist != numeric_limits<double>::max() ) pResult->Set ( true, dist );
+  else pResult->Set ( false, dist );
+  return 1;
+};
+
+int OpNetNetdistanceNew_glgps ( Word* args, Word& result, int message,
+                                Word& local, Supplier in_pSupplier )
+{
+  GLine* pGLine = ( GLine* ) args[0].addr;
+  GPoints* pGPoints = ( GPoints* ) args[1].addr;
+  CcReal* pResult = ( CcReal* ) qp->ResultStorage ( in_pSupplier ).addr;
+  result = SetWord ( pResult );
+  if ( ! ( pGLine->IsDefined() ) || ! ( pGPoints->IsDefined() ) )
+  {
+    cmsg.inFunError ( "Both arguments must be defined!" );
+    return 0;
+  };
+  double dist = pGLine->NetdistanceNew ( pGPoints );
+  if ( dist != numeric_limits<double>::max() ) pResult->Set ( true, dist );
+  else pResult->Set ( false, dist );
+  return 1;
+};
+
+int OpNetNetdistanceNew_gpsgp ( Word* args, Word& result, int message,
+                                Word& local, Supplier in_pSupplier )
+{
+  GPoints* pGPoints = ( GPoints* ) args[0].addr;
+  GPoint* pGPoint = ( GPoint* ) args[1].addr;
+  CcReal* pResult = ( CcReal* ) qp->ResultStorage ( in_pSupplier ).addr;
+  result = SetWord ( pResult );
+  if ( ! ( pGPoints->IsDefined() ) || ! ( pGPoint->IsDefined() ) )
+  {
+    cmsg.inFunError ( "Both arguments must be defined!" );
+    return 0;
+  };
+  double dist = pGPoints->Netdistance ( pGPoint );
+  if ( dist != numeric_limits<double>::max() ) pResult->Set ( true, dist );
+  else pResult->Set ( false, dist );
+  return 1;
+};
+
+int OpNetNetdistanceNew_gpsgl ( Word* args, Word& result, int message,
+                                Word& local, Supplier in_pSupplier )
+{
+  GPoints* pGPoints = ( GPoints* ) args[0].addr;
+  GLine* pGLine = ( GLine* ) args[1].addr;
+  CcReal* pResult = ( CcReal* ) qp->ResultStorage ( in_pSupplier ).addr;
+  result = SetWord ( pResult );
+  if ( ! ( pGLine->IsDefined() ) || ! ( pGPoints->IsDefined() ) )
+  {
+    cmsg.inFunError ( "Both arguments must be defined!" );
+    return 0;
+  };
+  double dist = pGPoints->Netdistance ( pGLine );
+  if ( dist != numeric_limits<double>::max() ) pResult->Set ( true, dist );
+  else pResult->Set ( false, dist );
+  return 1;
+};
+
 ValueMapping OpNetNetdistanceNewmap[] =
 {
   OpNetNetdistanceNew_gpgp,
   OpNetNetdistanceNew_glgl,
   OpNetNetdistanceNew_gpsgps,
+  OpNetNetdistanceNew_gpgl,
+  OpNetNetdistanceNew_gpgps,
+  OpNetNetdistanceNew_glgp,
+  OpNetNetdistanceNew_glgps,
+  OpNetNetdistanceNew_gpsgp,
+  OpNetNetdistanceNew_gpsgl,
   0
 };
 
@@ -9171,6 +9716,24 @@ int OpNetNetdistanceNewselect ( ListExpr args )
   if ( nl->SymbolValue ( arg1 ) == "gpoints" &&
           nl->SymbolValue ( arg2 ) == "gpoints" )
     return 2;
+  if ( nl->SymbolValue ( arg1 ) == "gpoint" &&
+          nl->SymbolValue ( arg2 ) == "gline" )
+    return 3;
+  if ( nl->SymbolValue ( arg1 ) == "gpoint" &&
+          nl->SymbolValue ( arg2 ) == "gpoints" )
+    return 4;
+  if ( nl->SymbolValue ( arg1 ) == "gline" &&
+          nl->SymbolValue ( arg2 ) == "gpoint" )
+    return 5;
+  if ( nl->SymbolValue ( arg1 ) == "gline" &&
+          nl->SymbolValue ( arg2 ) == "gpoints" )
+    return 6;
+  if ( nl->SymbolValue ( arg1 ) == "gpoints" &&
+          nl->SymbolValue ( arg2 ) == "gpoint" )
+    return 7;
+  if ( nl->SymbolValue ( arg1 ) == "gpoints" &&
+          nl->SymbolValue ( arg2 ) == "gline" )
+    return 8;
   return -1; // This point should never be reached
 };
 
@@ -9180,8 +9743,14 @@ struct netdistanceNewInfo : OperatorInfo {
     signature = "gpoint X gpoint -> real";
     appendSignature("gline X gline -> real");
     appendSignature("gpoints X gpoints -> real");
+    appendSignature("gpoint x gline -> real");
+    appendSignature("gpoint x gpoints-> real");
+    appendSignature("gline X gpoint -> real");
+    appendSignature("gline X gpoints -> real");
+    appendSignature("gpoints X gpoint -> real");
+    appendSignature("gpoints X gline -> real");
     syntax = "netdistancenew(_,_)";
-    meaning = "Returns network distance from 1st to 2nd.";
+    meaning = "Network distance from 1st to 2nd using AStar.";
   }
 };
 
@@ -10278,29 +10847,24 @@ AStar-Algorithm to compute the shortest path.
 
 */
 
-ListExpr OpShortestPathAStarTypeMap ( ListExpr in_xArgs )
+ListExpr OpShortestPathAStarTypeMap ( ListExpr args )
 {
-  if ( nl->ListLength ( in_xArgs ) != 2 )
-    return ( nl->SymbolAtom ( "typeerror" ) );
-
-  ListExpr firstArg = nl->First ( in_xArgs );
-  ListExpr secondArg = nl->Second ( in_xArgs );
-// ListExpr xGPoint3Desc = nl->Third(in_xArgs);
-
-  if ( ( !nl->IsAtom ( firstArg) ) ||
-          nl->AtomType ( firstArg ) != SymbolType ||
-          !(nl->SymbolValue(firstArg ) == "gpoint" ||
-            nl->SymbolValue(firstArg ) == "gline" ||
-            nl->SymbolValue(firstArg) == "gpoints"))
+  NList param(args);
+  if (param.length() != 2)
   {
-    return ( nl->SymbolAtom ( "typeerror" ) );
+    return listutils::typeError("netdistancenew expects 2 arguments.");
   }
-
-  if ( ( !nl->IsAtom ( secondArg ) ) ||
-          nl->AtomType ( secondArg ) != SymbolType ||
-          nl->SymbolValue(secondArg) != nl->SymbolValue(firstArg))
+  if (!( param.first().isSymbol("gpoint") || param.first().isSymbol("gline")
+       || param.first().isSymbol("gpoints")))
   {
-    return ( nl->SymbolAtom ( "typeerror" ) );
+      return
+        listutils::typeError("1.argument should be gpoint, gline or gpoints.");
+  }
+  if (!(param.second().isSymbol("gpoint")|| param.second().isSymbol("gline") ||
+        param.second().isSymbol("gpoints")))
+  {
+    return
+      listutils::typeError("2.argument should be gpoint, gline or gpoints.");
   }
   return nl->SymbolAtom ( "gline" );
 }
@@ -10379,6 +10943,150 @@ int OpShortestPathAStar_glgl ( Word* args,
   return 0;
 }
 
+int OpShortestPathAStar_gpgl ( Word* args,
+                               Word& result,
+                               int message,
+                               Word& local,
+                               Supplier in_xSupplier )
+{
+  GPoint *pFromGPoint = ( GPoint* ) args[0].addr;
+  GLine *pToGLine = ( GLine* ) args[1].addr;
+  GLine* pGLine = ( GLine* ) qp->ResultStorage ( in_xSupplier ).addr;
+  result = SetWord ( pGLine );
+  pGLine->SetSorted ( false );
+  if (!pFromGPoint->IsDefined() || !pToGLine->IsDefined())
+  {
+    pGLine->SetDefined(false);
+    return 0;
+  }
+  Network* pNetwork = NetworkManager::GetNetworkNew(pFromGPoint->GetNetworkId(),
+                                                    netList);
+  pGLine->SetDefined ( pFromGPoint->ShortestPathAStar( pToGLine, pGLine,
+                                                       pNetwork, 0 ) );
+  NetworkManager::CloseNetwork(pNetwork);
+  return 0;
+}
+
+int OpShortestPathAStar_gpgps ( Word* args,
+                               Word& result,
+                               int message,
+                               Word& local,
+                               Supplier in_xSupplier )
+{
+  GPoint *pFromGPoint = ( GPoint* ) args[0].addr;
+  GPoints *pToGPoints = ( GPoints* ) args[1].addr;
+  GLine* pGLine = ( GLine* ) qp->ResultStorage ( in_xSupplier ).addr;
+  result = SetWord ( pGLine );
+  pGLine->SetSorted ( false );
+  if (!pFromGPoint->IsDefined() || !pToGPoints->IsDefined())
+  {
+    pGLine->SetDefined(false);
+    return 0;
+  }
+  Network* pNetwork = NetworkManager::GetNetworkNew(pFromGPoint->GetNetworkId(),
+                                                    netList);
+  pGLine->SetDefined ( pFromGPoint->ShortestPathAStar( pToGPoints, pGLine,
+                                                       pNetwork, 0 ) );
+  NetworkManager::CloseNetwork(pNetwork);
+  return 0;
+}
+
+int OpShortestPathAStar_glgp ( Word* args,
+                               Word& result,
+                               int message,
+                               Word& local,
+                               Supplier in_xSupplier )
+{
+  GLine *pFromGLine = ( GLine* ) args[0].addr;
+  GPoint *pToGPoint = ( GPoint* ) args[1].addr;
+  GLine* pGLine = ( GLine* ) qp->ResultStorage ( in_xSupplier ).addr;
+  result = SetWord ( pGLine );
+  pGLine->SetSorted ( false );
+  if (!pFromGLine->IsDefined() || !pToGPoint->IsDefined())
+  {
+    pGLine->SetDefined(false);
+    return 0;
+  }
+  Network* pNetwork = NetworkManager::GetNetworkNew(pFromGLine->GetNetworkId(),
+                                                    netList);
+  pGLine->SetDefined ( pFromGLine->ShortestPath( pToGPoint, pGLine,
+                                                       pNetwork, 0 ) );
+  NetworkManager::CloseNetwork(pNetwork);
+  return 0;
+}
+
+int OpShortestPathAStar_glgps ( Word* args,
+                               Word& result,
+                               int message,
+                               Word& local,
+                               Supplier in_xSupplier )
+{
+  GLine *pFromGLine = ( GLine* ) args[0].addr;
+  GPoints *pToGPoints = ( GPoints* ) args[1].addr;
+  GLine* pGLine = ( GLine* ) qp->ResultStorage ( in_xSupplier ).addr;
+  result = SetWord ( pGLine );
+  pGLine->SetSorted ( false );
+  if (!pFromGLine->IsDefined() || !pToGPoints->IsDefined())
+  {
+    pGLine->SetDefined(false);
+    return 0;
+  }
+  Network* pNetwork = NetworkManager::GetNetworkNew(pFromGLine->GetNetworkId(),
+                                                    netList);
+  pGLine->SetDefined ( pFromGLine->ShortestPath(pToGPoints, pGLine,
+                                               pNetwork, 0 ) );
+  NetworkManager::CloseNetwork(pNetwork);
+  return 0;
+}
+
+int OpShortestPathAStar_gpsgp ( Word* args,
+                               Word& result,
+                               int message,
+                               Word& local,
+                               Supplier in_xSupplier )
+{
+  GPoints *pFromGPoints = ( GPoints* ) args[0].addr;
+  GPoint *pToGPoint = ( GPoint* ) args[1].addr;
+  GLine* pGLine = ( GLine* ) qp->ResultStorage ( in_xSupplier ).addr;
+  result = SetWord ( pGLine );
+  pGLine->SetSorted ( false );
+  if (!pFromGPoints->IsDefined() || !pToGPoint->IsDefined())
+  {
+    pGLine->SetDefined(false);
+    return 0;
+  }
+  Network* pNetwork =
+    NetworkManager::GetNetworkNew(pFromGPoints->GetNetworkId(), netList);
+  pGLine->SetDefined ( pFromGPoints->ShortestPath( pToGPoint, pGLine,
+                                                       pNetwork, 0 ) );
+  NetworkManager::CloseNetwork(pNetwork);
+  return 0;
+}
+
+int OpShortestPathAStar_gpsgl ( Word* args,
+                               Word& result,
+                               int message,
+                               Word& local,
+                               Supplier in_xSupplier )
+{
+  GPoints *pFromGPoints = ( GPoints* ) args[0].addr;
+  GLine *pToGLine = ( GLine* ) args[1].addr;
+  GLine* pGLine = ( GLine* ) qp->ResultStorage ( in_xSupplier ).addr;
+  result = SetWord ( pGLine );
+  pGLine->SetSorted ( false );
+  if (!pFromGPoints->IsDefined() || !pToGLine->IsDefined())
+  {
+    pGLine->SetDefined(false);
+    return 0;
+  }
+  Network* pNetwork =
+    NetworkManager::GetNetworkNew(pFromGPoints->GetNetworkId(), netList);
+  pGLine->SetDefined ( pFromGPoints->ShortestPath( pToGLine, pGLine,
+                                                       pNetwork, 0 ) );
+  NetworkManager::CloseNetwork(pNetwork);
+  return 0;
+}
+
 int OpShortestPathAStarSelect ( ListExpr args )
 {
   ListExpr arg1 = nl->First ( args );
@@ -10386,20 +11094,44 @@ int OpShortestPathAStarSelect ( ListExpr args )
   if ( nl->SymbolValue ( arg1 ) == "gpoint" &&
           nl->SymbolValue ( arg2 ) == "gpoint" )
     return 0;
-  if ( nl->SymbolValue ( arg1 ) == "gpoints" &&
-          nl->SymbolValue ( arg2 ) == "gpoints" )
-    return 1;
   if ( nl->SymbolValue ( arg1 ) == "gline" &&
           nl->SymbolValue ( arg2 ) == "gline" )
+    return 1;
+  if ( nl->SymbolValue ( arg1 ) == "gpoints" &&
+          nl->SymbolValue ( arg2 ) == "gpoints" )
     return 2;
+  if ( nl->SymbolValue ( arg1 ) == "gpoint" &&
+          nl->SymbolValue ( arg2 ) == "gline" )
+    return 3;
+  if ( nl->SymbolValue ( arg1 ) == "gpoint" &&
+          nl->SymbolValue ( arg2 ) == "gpoints" )
+    return 4;
+  if ( nl->SymbolValue ( arg1 ) == "gline" &&
+          nl->SymbolValue ( arg2 ) == "gpoint" )
+    return 5;
+  if ( nl->SymbolValue ( arg1 ) == "gline" &&
+          nl->SymbolValue ( arg2 ) == "gpoints" )
+    return 6;
+  if ( nl->SymbolValue ( arg1 ) == "gpoints" &&
+          nl->SymbolValue ( arg2 ) == "gpoint" )
+    return 7;
+  if ( nl->SymbolValue ( arg1 ) == "gpoints" &&
+          nl->SymbolValue ( arg2 ) == "gline" )
+    return 8;
   return -1; // This point should never be reached
 };
 
 ValueMapping OpShortestPathAStarMap[] =
 {
   OpShortestPathAStar_gpgp,
-  OpShortestPathAStar_gpsgps,
   OpShortestPathAStar_glgl,
+  OpShortestPathAStar_gpsgps,
+  OpShortestPathAStar_gpgl,
+  OpShortestPathAStar_gpgps,
+  OpShortestPathAStar_glgp,
+  OpShortestPathAStar_glgps,
+  OpShortestPathAStar_gpsgp,
+  OpShortestPathAStar_gpsgl,
   0
 };
 
@@ -10407,8 +11139,14 @@ struct shortestpathAstarInfo:OperatorInfo{
   shortestpathAstarInfo():OperatorInfo(){
     name = "shortest_pathastar";
     signature = "gpoint X gpoint -> gline";
-    appendSignature("gpoints X gpoints -> gline");
     appendSignature("gline X gline -> gline");
+    appendSignature("gpoints X gpoints -> gline");
+    appendSignature("gpoint x gline -> gline");
+    appendSignature("gpoint x gpoints -> gline");
+    appendSignature("gline X gpoint -> gline");
+    appendSignature("gline X gpoints -> gline");
+    appendSignature("gpoints X gpoint -> gline");
+    appendSignature("gpoints X gline -> gline");
     syntax = "shortest_pathastar (_,_)";
     meaning = "Returns shortest path between objects using Astar-Variant.";
   }
@@ -10726,15 +11464,17 @@ ListExpr OpSPSearchVisitedTypeMap ( ListExpr args )
   {
     return listutils::typeError("spsearchvisited expects 3 arguments.");
   }
-  if (param.first() != param.second())
-  {
-    return listutils::typeError("1. and 2.argument must have same type.");
-  }
   if (!( param.first().isSymbol("gpoint") || param.first().isSymbol("gline")
        || param.first().isSymbol("gpoints")))
   {
       return
         listutils::typeError("1.argument should be gpoint, gline or gpoints.");
+  }
+  if (!(param.second().isSymbol("gpoint")|| param.second().isSymbol("gline") ||
+        param.second().isSymbol("gpoints")))
+  {
+    return
+      listutils::typeError("2.argument should be gpoint, gline or gpoints.");
   }
   if (!param.third().isSymbol("bool"))
   {
@@ -10773,7 +11513,7 @@ int OpSPSearchVisitedValueMap_gpgp(Word* args, Word& result, int message,
     case OPEN:
     {
       li = new OpSPSearchVisitedLocalInfo();
-      li->visitedSections = new DbArray<TupleId>(0);
+      li->visitedSections = new DbArray<TupleId>(1);
       GPoint *pFromGPoint = ( GPoint* ) args[0].addr;
       GPoint *pToGPoint = ( GPoint* ) args[1].addr;
       bool dijkstra = ((CcBool*)args[2].addr)->GetBoolval();
@@ -10814,7 +11554,7 @@ int OpSPSearchVisitedValueMap_gpgp(Word* args, Word& result, int message,
         li = (OpSPSearchVisitedLocalInfo*) local.addr;
       else
         return CANCEL;
-      if (li->pos >= li->visitedSections->Size())
+      if (li->pos < 0 || li->pos >= li->visitedSections->Size())
         return CANCEL;
       else
       {
@@ -10862,15 +11602,16 @@ int OpSPSearchVisitedValueMap_glgl(Word* args, Word& result, int message,
       li->visitedSections = new DbArray<TupleId>(0);
       GLine *pFromGLine = ( GLine* ) args[0].addr;
       GLine *pToGLine = ( GLine* ) args[1].addr;
-      bool dijkstra = ((CcBool*)args[2].addr)->GetBoolval();
+      bool bruteforce = ((CcBool*)args[2].addr)->GetBoolval();
       bool success = false;
       GLine* pGLine = new GLine(0);
       li->pNetwork =
         NetworkManager::GetNetworkNew(pFromGLine->GetNetworkId(),netList);
-      if (dijkstra)
+      if (bruteforce)
       {
-        cerr << "dijkstra for gline does not exist." << endl;
-        success = false;
+
+        success = pFromGLine->ShortestPathBF(pToGLine, pGLine, li->pNetwork,
+                                             li->visitedSections);
       }
       else
       {
@@ -10900,7 +11641,7 @@ int OpSPSearchVisitedValueMap_glgl(Word* args, Word& result, int message,
         li = (OpSPSearchVisitedLocalInfo*) local.addr;
       else
         return CANCEL;
-      if (li->pos >= li->visitedSections->Size())
+      if (li->pos < 0 || li->pos >= li->visitedSections->Size())
         return CANCEL;
       else
       {
@@ -10986,7 +11727,7 @@ int OpSPSearchVisitedValueMap_gpsgps(Word* args, Word& result, int message,
         li = (OpSPSearchVisitedLocalInfo*) local.addr;
       else
         return CANCEL;
-      if (li->pos >= li->visitedSections->Size())
+      if (li->pos < 0 || li->pos >= li->visitedSections->Size())
         return CANCEL;
       else
       {
@@ -11021,12 +11762,527 @@ int OpSPSearchVisitedValueMap_gpsgps(Word* args, Word& result, int message,
   return 0; //should never been reached
 }
 
+int OpSPSearchVisitedValueMap_gpgl(Word* args, Word& result, int message,
+                                   Word& local, Supplier in_pSupplier)
+{
+  OpSPSearchVisitedLocalInfo* li = 0;
+
+  switch(message)
+  {
+    case OPEN:
+    {
+      li = new OpSPSearchVisitedLocalInfo();
+      li->visitedSections = new DbArray<TupleId>(0);
+      GPoint *pFromGPoint = ( GPoint* ) args[0].addr;
+      GLine *pToGLine = ( GLine* ) args[1].addr;
+      bool dijkstra = ((CcBool*)args[2].addr)->GetBoolval();
+      bool success = false;
+      GLine* pGLine = new GLine(0);
+      li->pNetwork =
+        NetworkManager::GetNetworkNew(pFromGPoint->GetNetworkId(),netList);
+      if (dijkstra)
+      {
+        success = false;
+      }
+      else
+      {
+        success = pFromGPoint->ShortestPathAStar ( pToGLine, pGLine,
+                                                   li->pNetwork,
+                                                   li->visitedSections);
+      }
+      if(!success)
+      {
+        li->visitedSections->Destroy();
+        delete li->visitedSections;
+        li->visitedSections = 0;
+        NetworkManager::CloseNetwork(li->pNetwork);
+        li->pNetwork = 0;
+        delete li;
+        li = 0;
+      }
+      pGLine->DeleteIfAllowed();
+      local.addr = li;
+      return 0;
+      break;
+    }
+
+    case REQUEST:
+    {
+      if (local.addr != 0)
+        li = (OpSPSearchVisitedLocalInfo*) local.addr;
+      else
+        return CANCEL;
+      if (li->pos < 0 || li->pos >= li->visitedSections->Size())
+        return CANCEL;
+      else
+      {
+        TupleId actTID;
+        li->visitedSections->Get(li->pos,actTID);
+        Tuple* actTuple = li->pNetwork->GetSection(actTID);
+        result.setAddr(actTuple);
+        li->pos++;
+        return YIELD;
+      }
+      break;
+    }
+
+    case CLOSE:
+    {
+      if (local.addr != 0)
+      {
+        li = (OpSPSearchVisitedLocalInfo*) local.addr;
+        NetworkManager::CloseNetwork(li->pNetwork);
+        li->pNetwork = 0;
+        li->visitedSections->Destroy();
+        delete li->visitedSections;
+        li->visitedSections = 0;
+        delete li;
+        li = 0;
+        local.addr = 0;
+      }
+      return 0;
+      break;
+    }
+  }
+  return 0; //should never been reached
+}
+
+int OpSPSearchVisitedValueMap_gpgps(Word* args, Word& result, int message,
+                                    Word& local, Supplier in_pSupplier)
+{
+  OpSPSearchVisitedLocalInfo* li = 0;
+
+  switch(message)
+  {
+    case OPEN:
+    {
+      li = new OpSPSearchVisitedLocalInfo();
+      li->visitedSections = new DbArray<TupleId>(0);
+      GPoint *pFromGPoint = ( GPoint* ) args[0].addr;
+      GPoints *pToGPoints = ( GPoints* ) args[1].addr;
+      bool dijkstra = ((CcBool*)args[2].addr)->GetBoolval();
+      bool success = false;
+      GLine* pGLine = new GLine(0);
+      li->pNetwork =
+        NetworkManager::GetNetworkNew(pFromGPoint->GetNetworkId(),netList);
+      if (dijkstra)
+      {
+        success = false;
+      }
+      else
+      {
+        success = pFromGPoint->ShortestPathAStar ( pToGPoints, pGLine,
+                                                   li->pNetwork,
+                                                   li->visitedSections);
+      }
+      if(!success)
+      {
+        li->visitedSections->Destroy();
+        delete li->visitedSections;
+        li->visitedSections = 0;
+        NetworkManager::CloseNetwork(li->pNetwork);
+        li->pNetwork = 0;
+        delete li;
+        li = 0;
+      }
+      pGLine->DeleteIfAllowed();
+      local.addr = li;
+      return 0;
+      break;
+    }
+
+    case REQUEST:
+    {
+      if (local.addr != 0)
+        li = (OpSPSearchVisitedLocalInfo*) local.addr;
+      else
+        return CANCEL;
+      if (li->pos < 0 || li->pos >= li->visitedSections->Size())
+        return CANCEL;
+      else
+      {
+        TupleId actTID;
+        li->visitedSections->Get(li->pos,actTID);
+        Tuple* actTuple = li->pNetwork->GetSection(actTID);
+        result.setAddr(actTuple);
+        li->pos++;
+        return YIELD;
+      }
+      break;
+    }
+
+    case CLOSE:
+    {
+      if (local.addr != 0)
+      {
+        li = (OpSPSearchVisitedLocalInfo*) local.addr;
+        NetworkManager::CloseNetwork(li->pNetwork);
+        li->pNetwork = 0;
+        li->visitedSections->Destroy();
+        delete li->visitedSections;
+        li->visitedSections = 0;
+        delete li;
+        li = 0;
+        local.addr = 0;
+      }
+      return 0;
+      break;
+    }
+  }
+  return 0; //should never been reached
+}
+
+int OpSPSearchVisitedValueMap_glgp(Word* args, Word& result, int message,
+                                   Word& local, Supplier in_pSupplier)
+{
+  OpSPSearchVisitedLocalInfo* li = 0;
+
+  switch(message)
+  {
+    case OPEN:
+    {
+      li = new OpSPSearchVisitedLocalInfo();
+      li->visitedSections = new DbArray<TupleId>(0);
+      GLine *pFromGLine = ( GLine* ) args[0].addr;
+      GPoint *pToGPoint = ( GPoint* ) args[1].addr;
+      bool dijkstra = ((CcBool*)args[2].addr)->GetBoolval();
+      bool success = false;
+      GLine* pGLine = new GLine(0);
+      li->pNetwork =
+        NetworkManager::GetNetworkNew(pFromGLine->GetNetworkId(),netList);
+      if (dijkstra)
+      {
+        success = false;
+      }
+      else
+      {
+        success = pFromGLine->ShortestPath ( pToGPoint, pGLine,
+                                                   li->pNetwork,
+                                                   li->visitedSections);
+      }
+      if(!success)
+      {
+        li->visitedSections->Destroy();
+        delete li->visitedSections;
+        li->visitedSections = 0;
+        NetworkManager::CloseNetwork(li->pNetwork);
+        li->pNetwork = 0;
+        delete li;
+        li = 0;
+      }
+      pGLine->DeleteIfAllowed();
+      local.addr = li;
+      return 0;
+      break;
+    }
+
+    case REQUEST:
+    {
+      if (local.addr != 0)
+        li = (OpSPSearchVisitedLocalInfo*) local.addr;
+      else
+        return CANCEL;
+      if (li->pos < 0 || li->pos >= li->visitedSections->Size())
+        return CANCEL;
+      else
+      {
+        TupleId actTID;
+        li->visitedSections->Get(li->pos,actTID);
+        Tuple* actTuple = li->pNetwork->GetSection(actTID);
+        result.setAddr(actTuple);
+        li->pos++;
+        return YIELD;
+      }
+      break;
+    }
+
+    case CLOSE:
+    {
+      if (local.addr != 0)
+      {
+        li = (OpSPSearchVisitedLocalInfo*) local.addr;
+        NetworkManager::CloseNetwork(li->pNetwork);
+        li->pNetwork = 0;
+        li->visitedSections->Destroy();
+        delete li->visitedSections;
+        li->visitedSections = 0;
+        delete li;
+        li = 0;
+        local.addr = 0;
+      }
+      return 0;
+      break;
+    }
+  }
+  return 0; //should never been reached
+}
+
+int OpSPSearchVisitedValueMap_glgps(Word* args, Word& result, int message,
+                                    Word& local, Supplier in_pSupplier)
+{
+  OpSPSearchVisitedLocalInfo* li = 0;
+
+  switch(message)
+  {
+    case OPEN:
+    {
+      li = new OpSPSearchVisitedLocalInfo();
+      li->visitedSections = new DbArray<TupleId>(0);
+      GLine *pFromGLine = ( GLine* ) args[0].addr;
+      GPoints *pToGPoints = ( GPoints* ) args[1].addr;
+      bool dijkstra = ((CcBool*)args[2].addr)->GetBoolval();
+      bool success = false;
+      GLine* pGLine = new GLine(0);
+      li->pNetwork =
+        NetworkManager::GetNetworkNew(pFromGLine->GetNetworkId(),netList);
+      if (dijkstra)
+      {
+        success = false;
+      }
+      else
+      {
+        success = pFromGLine->ShortestPath ( pToGPoints, pGLine,
+                                                   li->pNetwork,
+                                                   li->visitedSections);
+      }
+      if(!success)
+      {
+        li->visitedSections->Destroy();
+        delete li->visitedSections;
+        li->visitedSections = 0;
+        NetworkManager::CloseNetwork(li->pNetwork);
+        li->pNetwork = 0;
+        delete li;
+        li = 0;
+      }
+      pGLine->DeleteIfAllowed();
+      local.addr = li;
+      return 0;
+      break;
+    }
+
+    case REQUEST:
+    {
+      if (local.addr != 0)
+        li = (OpSPSearchVisitedLocalInfo*) local.addr;
+      else
+        return CANCEL;
+      if (li->pos < 0 || li->pos >= li->visitedSections->Size())
+        return CANCEL;
+      else
+      {
+        TupleId actTID;
+        li->visitedSections->Get(li->pos,actTID);
+        Tuple* actTuple = li->pNetwork->GetSection(actTID);
+        result.setAddr(actTuple);
+        li->pos++;
+        return YIELD;
+      }
+      break;
+    }
+
+    case CLOSE:
+    {
+      if (local.addr != 0)
+      {
+        li = (OpSPSearchVisitedLocalInfo*) local.addr;
+        NetworkManager::CloseNetwork(li->pNetwork);
+        li->pNetwork = 0;
+        li->visitedSections->Destroy();
+        delete li->visitedSections;
+        li->visitedSections = 0;
+        delete li;
+        li = 0;
+        local.addr = 0;
+      }
+      return 0;
+      break;
+    }
+  }
+  return 0; //should never been reached
+}
+
+int OpSPSearchVisitedValueMap_gpsgp(Word* args, Word& result, int message,
+                                   Word& local, Supplier in_pSupplier)
+{
+  OpSPSearchVisitedLocalInfo* li = 0;
+
+  switch(message)
+  {
+    case OPEN:
+    {
+      li = new OpSPSearchVisitedLocalInfo();
+      li->visitedSections = new DbArray<TupleId>(0);
+      GPoints *pFromGPoints = ( GPoints* ) args[0].addr;
+      GPoint *pToGPoint = ( GPoint* ) args[1].addr;
+      bool dijkstra = ((CcBool*)args[2].addr)->GetBoolval();
+      bool success = false;
+      GLine* pGLine = new GLine(0);
+      li->pNetwork =
+        NetworkManager::GetNetworkNew(pFromGPoints->GetNetworkId(),netList);
+      if (dijkstra)
+      {
+        success = false;
+      }
+      else
+      {
+        success = pFromGPoints->ShortestPath ( pToGPoint, pGLine,
+                                                   li->pNetwork,
+                                                   li->visitedSections);
+      }
+      if(!success)
+      {
+        li->visitedSections->Destroy();
+        delete li->visitedSections;
+        li->visitedSections = 0;
+        NetworkManager::CloseNetwork(li->pNetwork);
+        li->pNetwork = 0;
+        delete li;
+        li = 0;
+      }
+      pGLine->DeleteIfAllowed();
+      local.addr = li;
+      return 0;
+      break;
+    }
+
+    case REQUEST:
+    {
+      if (local.addr != 0)
+        li = (OpSPSearchVisitedLocalInfo*) local.addr;
+      else
+        return CANCEL;
+      if (li->pos < 0 || li->pos >= li->visitedSections->Size())
+        return CANCEL;
+      else
+      {
+        TupleId actTID;
+        li->visitedSections->Get(li->pos,actTID);
+        Tuple* actTuple = li->pNetwork->GetSection(actTID);
+        result.setAddr(actTuple);
+        li->pos++;
+        return YIELD;
+      }
+      break;
+    }
+
+    case CLOSE:
+    {
+      if (local.addr != 0)
+      {
+        li = (OpSPSearchVisitedLocalInfo*) local.addr;
+        NetworkManager::CloseNetwork(li->pNetwork);
+        li->pNetwork = 0;
+        li->visitedSections->Destroy();
+        delete li->visitedSections;
+        li->visitedSections = 0;
+        delete li;
+        li = 0;
+        local.addr = 0;
+      }
+      return 0;
+      break;
+    }
+  }
+  return 0; //should never been reached
+}
+
+int OpSPSearchVisitedValueMap_gpsgl(Word* args, Word& result, int message,
+                                    Word& local, Supplier in_pSupplier)
+{
+  OpSPSearchVisitedLocalInfo* li = 0;
+
+  switch(message)
+  {
+    case OPEN:
+    {
+      li = new OpSPSearchVisitedLocalInfo();
+      li->visitedSections = new DbArray<TupleId>(0);
+      GPoints *pFromGPoints = ( GPoints* ) args[0].addr;
+      GLine *pToGLine = ( GLine* ) args[1].addr;
+      bool dijkstra = ((CcBool*)args[2].addr)->GetBoolval();
+      bool success = false;
+      GLine* pGLine = new GLine(0);
+      li->pNetwork =
+        NetworkManager::GetNetworkNew(pFromGPoints->GetNetworkId(),netList);
+      if (dijkstra)
+      {
+        success = false;
+      }
+      else
+      {
+        success = pFromGPoints->ShortestPath ( pToGLine, pGLine,
+                                                   li->pNetwork,
+                                                   li->visitedSections);
+      }
+      if(!success)
+      {
+        li->visitedSections->Destroy();
+        delete li->visitedSections;
+        li->visitedSections = 0;
+        NetworkManager::CloseNetwork(li->pNetwork);
+        li->pNetwork = 0;
+        delete li;
+        li = 0;
+      }
+      pGLine->DeleteIfAllowed();
+      local.addr = li;
+      return 0;
+      break;
+    }
+
+    case REQUEST:
+    {
+      if (local.addr != 0)
+        li = (OpSPSearchVisitedLocalInfo*) local.addr;
+      else
+        return CANCEL;
+      if (li->pos < 0 || li->pos >= li->visitedSections->Size())
+        return CANCEL;
+      else
+      {
+        TupleId actTID;
+        li->visitedSections->Get(li->pos,actTID);
+        Tuple* actTuple = li->pNetwork->GetSection(actTID);
+        result.setAddr(actTuple);
+        li->pos++;
+        return YIELD;
+      }
+      break;
+    }
+
+    case CLOSE:
+    {
+      if (local.addr != 0)
+      {
+        li = (OpSPSearchVisitedLocalInfo*) local.addr;
+        NetworkManager::CloseNetwork(li->pNetwork);
+        li->pNetwork = 0;
+        li->visitedSections->Destroy();
+        delete li->visitedSections;
+        li->visitedSections = 0;
+        delete li;
+        li = 0;
+        local.addr = 0;
+      }
+      return 0;
+      break;
+    }
+  }
+  return 0; //should never been reached
+}
 
 ValueMapping OpSpvisitedmap[] =
 {
   OpSPSearchVisitedValueMap_gpgp,
   OpSPSearchVisitedValueMap_glgl,
   OpSPSearchVisitedValueMap_gpsgps,
+  OpSPSearchVisitedValueMap_gpgl,
+  OpSPSearchVisitedValueMap_gpgps,
+  OpSPSearchVisitedValueMap_glgp,
+  OpSPSearchVisitedValueMap_glgps,
+  OpSPSearchVisitedValueMap_gpsgp,
+  OpSPSearchVisitedValueMap_gpsgl,
   0
 };
 
@@ -11043,6 +12299,24 @@ int OpSpvisitedselect ( ListExpr args )
   if (nl->SymbolValue (arg1) == "gpoints" &&
       nl->SymbolValue (arg2) == "gpoints")
     return 2;
+  if ( nl->SymbolValue ( arg1 ) == "gpoint" &&
+          nl->SymbolValue ( arg2 ) == "gline" )
+    return 3;
+   if (nl->SymbolValue (arg1) == "gpoint" &&
+      nl->SymbolValue (arg2) == "gpoints")
+    return 4;
+   if ( nl->SymbolValue ( arg1 ) == "gline" &&
+          nl->SymbolValue ( arg2 ) == "gpoint" )
+    return 5;
+   if (nl->SymbolValue (arg1) == "gline" &&
+      nl->SymbolValue (arg2) == "gpoints")
+    return 6;
+   if ( nl->SymbolValue ( arg1 ) == "gpoints" &&
+          nl->SymbolValue ( arg2 ) == "gpoint" )
+    return 7;
+   if (nl->SymbolValue (arg1) == "gpoints" &&
+      nl->SymbolValue (arg2) == "gline")
+    return 8;
   return -1; // This point should never be reached
 };
 
@@ -11051,7 +12325,13 @@ struct spsearchvisitedInfo:OperatorInfo{
     name = "spsearchvisited";
     signature = "gpoint x gpoint x bool->stream(tuple(X)))";
     appendSignature("gline x gline x bool->stream(tuple(X)))");
-    appendSignature("gline x gline x bool->stream(tuple(X)))");
+    appendSignature("gpoints x gpoints x bool->stream(tuple(X)))");
+    appendSignature("gpoint x gline x bool->stream(tuple(X)))");
+    appendSignature("gpoint x gpoints x bool->stream(tuple(X)))");
+    appendSignature("gline x gpoint x bool->stream(tuple(X)))");
+    appendSignature("gline x gpoints x bool->stream(tuple(X)))");
+    appendSignature("gpoints x gpoint x bool->stream(tuple(X)))");
+    appendSignature("gpoints x gline x bool->stream(tuple(X)))");
     syntax = "spsearchvisited(_,_,_)";
     meaning = "Stream of network sections visited by shortestpath";
   }

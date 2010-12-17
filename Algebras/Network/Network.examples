@@ -49,6 +49,48 @@ Signature: gpoints x gpoints x bool -> stream(tuple((rid int) (meas1 real) (meas
 Example  : query spsearchvisited([const gpoints value((1 1 0.5 2))],[const gpoints value((1 2 0.7 2)(1 2 1.5 2))], FALSE) consume;
 Result   : file
 
+Operator : spsearchvisited
+Number   : 5
+Signature: gline x gline x bool -> stream(tuple((rid int) (meas1 real) (meas2 real) (dual bool) (curve sline)(curveStartsSmaller bool) (rrc tid) (sid int)))
+Example  : query spsearchvisited([const gline value(1((1 0.0 0.5)))],[const gline value(1((2 0.7 1.5)))], TRUE) consume;
+Result   : file
+
+Operator : spsearchvisited
+Number   : 6
+Signature: gpoint x gline x bool -> stream(tuple((rid int) (meas1 real) (meas2 real) (dual bool) (curve sline)(curveStartsSmaller bool) (rrc tid) (sid int)))
+Example  : query spsearchvisited([const gpoint value(1 1 1.0 2)],[const gline value(1((2 0.7 1.5)))], FALSE) consume;
+Result   : file
+
+Operator : spsearchvisited
+Number   : 7
+Signature: gpoint x gpoints x bool -> stream(tuple((rid int) (meas1 real) (meas2 real) (dual bool) (curve sline)(curveStartsSmaller bool) (rrc tid) (sid int)))
+Example  : query spsearchvisited([const gpoint value(1 1 1.0 2)],[const gpoints value((1 2 0.7 2)(1 2 1.5 2))], FALSE) consume;
+Result   : file
+
+Operator : spsearchvisited
+Number   : 8
+Signature: gline x gpoint x bool -> stream(tuple((rid int) (meas1 real) (meas2 real) (dual bool) (curve sline)(curveStartsSmaller bool) (rrc tid) (sid int)))
+Example  : query spsearchvisited([const gline value(1((1 0.0 0.5)))],[const gpoint value(1 2 1.5 2)], FALSE) consume;
+Result   : file
+
+Operator : spsearchvisited
+Number   : 9
+Signature: gline x gpoints x bool -> stream(tuple((rid int) (meas1 real) (meas2 real) (dual bool) (curve sline)(curveStartsSmaller bool) (rrc tid) (sid int)))
+Example  : query spsearchvisited([const gline value(1((1 0.0 0.5)))],[const gpoints value((1 2 1.5 2))], FALSE) consume;
+Result   : file
+
+Operator : spsearchvisited
+Number   : 10
+Signature: gpoints x gpoint x bool -> stream(tuple((rid int) (meas1 real) (meas2 real) (dual bool) (curve sline)(curveStartsSmaller bool) (rrc tid) (sid int)))
+Example  : query spsearchvisited([const gpoints value((1 1 0.5 2))],[const gpoint value(1 2 0.7 2)], FALSE) consume;
+Result   : file
+
+Operator : spsearchvisited
+Number   : 11
+Signature: gpoints x gline x bool -> stream(tuple((rid int) (meas1 real) (meas2 real) (dual bool) (curve sline)(curveStartsSmaller bool) (rrc tid) (sid int)))
+Example  : query spsearchvisited([const gpoints value((1 1 0.5 2))],[const gline value(1 ((2 0.7 1.5)))], FALSE) consume;
+Result   : file
+
 Operator : shortest_path
 Number   : 1
 Signature: gpoint x gpoint -> gline
@@ -91,6 +133,47 @@ Example  : query shortest_pathastar([const gpoints value((1 1 0.5 2))],[const gp
 Result   : (gline(1((1 0.5 773.1299430080975)(2 0.0 0.7))))
 Tolerance: &0.01
 
+Operator : shortest_pathastar
+Number   : 5
+Signature: gpoint x gline -> gline
+Example  : query shortest_pathastar([const gpoint value(1 1 1.0 2)], [const gline value(1((2 0.7 1.5)))]);
+Result   : (gline(1((1 1.0 773.1299430080975)(2 0.0 0.7))))
+Tolerance: %0.01
+
+Operator : shortest_pathastar
+Number   : 6
+Signature: gpoint x gpoints -> gline
+Example  : query shortest_pathastar([const gpoint value(1 1 0.5 2)],[const gpoints value((1 2 0.7 2)(1 2 1.5 2))])
+Result   : (gline(1((1 0.5 773.1299430080975)(2 0.0 0.7))))
+Tolerance: &0.01
+
+Operator : shortest_pathastar
+Number   : 7
+Signature: gline x gpoint -> gline
+Example  : query shortest_pathastar([const gline value(1((1 0.0 0.5)))],[const gpoint value(1 2 0.7 2)])
+Result   : (gline(1((1 0.5 773.1299430080975)(2 0.0 0.7))))
+Tolerance: &0.01
+
+Operator : shortest_pathastar
+Number   : 8
+Signature: gline x gpoints -> gline
+Example  : query shortest_pathastar([const gline value(1((1 0.0 0.5)))],[const gpoints value((1 2 0.7 2))])
+Result   : (gline(1((1 0.5 773.1299430080975)(2 0.0 0.7))))
+Tolerance: &0.01
+
+Operator : shortest_pathastar
+Number   : 9
+Signature: gpoints x gpoint -> gline
+Example  : query shortest_pathastar([const gpoints value((1 1 0.5 2))],[const gpoint value(1 2 0.7 2)])
+Result   : (gline(1((1 0.5 773.1299430080975)(2 0.0 0.7))))
+Tolerance: &0.01
+
+Operator : shortest_pathastar
+Number   : 10
+Signature: gpoints x gline -> gline
+Example  : query shortest_pathastar([const gpoints value((1 1 0.5 2))],[const gline value(1((2 0.7 1.5)))])
+Result   : (gline(1((1 0.5 773.1299430080975)(2 0.0 0.7))))
+Tolerance: &0.01
 
 Operator : length
 Number   : 1
@@ -115,8 +198,8 @@ Tolerance:%0.01
 Operator : netdistance
 Number   : 2
 Signature: gline x gline -> real
-Example  : query netdistance([const gline value(1((1 0.0 0.5)))], [const gline value(1((2 0.7 1.5)))]);
-Result   : 773.3299430080975
+Example  : query netdistance([const gline value(1((1 0.0 1.0)))], [const gline value(1((2 1.0 1.5)))]);
+Result   : 773.6299430080975
 Tolerance:%0.01
 
 Operator : netdistancenew
@@ -137,6 +220,48 @@ Operator : netdistancenew
 Number   : 3
 Signature: gpoints x gpoints -> real
 Example  : query netdistancenew([const gpoints value((1 1 0.5 2))],[const gpoints value((1 2 0.7 2)(1 2 1.5 2))]);
+Result   : 773.3299430080975
+Tolerance:%0.01
+
+Operator : netdistancenew
+Number   : 4
+Signature: gpoint x gline -> real
+Example  : query netdistancenew([const gpoint value(1 1 1.0 2)], [const gline value(1((2 1.0 2.0)))]);
+Result   : 773.1299430080975
+Tolerance:%0.01
+
+Operator : netdistancenew
+Number   : 5
+Signature: gpoint x gpoints -> real
+Example  : query netdistancenew([const gpoint value(1 1 1.0 2)], [const gpoints value((1 2 1.0 2))]);
+Result   : 773.1299430080975
+Tolerance:%0.01
+
+Operator : netdistancenew
+Number   : 6
+Signature: gline x gpoint -> real
+Example  : query netdistancenew([const gline value(1((1 0.0 0.5)))], [const gpoint value(1 2 0.7 2)]);
+Result   : 773.3299430080975
+Tolerance:%0.01
+
+Operator : netdistancenew
+Number   : 7
+Signature: gline x gpoints -> real
+Example  : query netdistancenew([const gline value(1((1 0.0 0.5)))], [const gpoints value((1 2 0.7 2))]);
+Result   : 773.3299430080975
+Tolerance:%0.01
+
+Operator : netdistancenew
+Number   : 8
+Signature: gpoints x gpoint -> real
+Example  : query netdistancenew([const gpoints value((1 1 0.5 2))],[const gpoint value(1 2 0.7 2)]);
+Result   : 773.3299430080975
+Tolerance:%0.01
+
+Operator : netdistancenew
+Number   : 9
+Signature: gpoints x gline -> real
+Example  : query netdistancenew([const gpoints value((1 1 0.5 2))],[const gline value(1 ((2 0.7 1.5)))]);
 Result   : 773.3299430080975
 Tolerance:%0.01
 

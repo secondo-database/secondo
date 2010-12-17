@@ -522,6 +522,12 @@ Returns the network distance between 2 ~gpoint~ using AStar-Algorithm.
     double NetdistanceA (GPoint* toGPoint);
     double NetdistanceA (GPoint* toGPoint, Network* pNetwork);
 
+    double NetdistanceNew (GLine* toGLine);
+    double NetdistanceNew (GLine* toGLine, Network* pNetwork);
+
+    double NetdistanceNew (GPoints* toGPoints);
+    double NetdistanceNew (GPoints* toGPoints, Network* pNetwork);
+
 /*
 Never used ?
 
@@ -609,7 +615,9 @@ Using DijkstrasAlgorithm
                     DbArray<TupleId>* touchedSects = 0);
 
 /*
-Returns a gline representing the shortest path between two GPoint.
+Returns a gline representing the shortest path between a GPoint.and
+a gpoint or gline.
+
 Using AStarAlgorithm
 
 */
@@ -618,6 +626,17 @@ Using AStarAlgorithm
                          DbArray<TupleId>* touchedSects = 0);
   bool ShortestPathAStar(GPoint* ziel, GLine* result, Network *pNetwork,
                          DbArray<TupleId>* touchedSects = 0);
+
+  bool ShortestPathAStar(GLine *ziel, GLine *result,
+                         DbArray<TupleId>* touchedSects = 0);
+  bool ShortestPathAStar(GLine* ziel, GLine* result, Network *pNetwork,
+                         DbArray<TupleId>* touchedSects = 0);
+
+  bool ShortestPathAStar(GPoints *ziel, GLine *result,
+                         DbArray<TupleId>* touchedSects = 0);
+  bool ShortestPathAStar(GPoints* ziel, GLine* result, Network *pNetwork,
+                         DbArray<TupleId>* touchedSects = 0);
+
 
   private:
 
@@ -1859,14 +1878,36 @@ Computes the network distance of 2 glines.
 
     double Netdistance(GLine* pgl2);
     double Netdistance ( GLine* pgl2, Network* pNetwork );
+
     double NetdistanceNew(GLine* pgl2);
     double NetdistanceNew(GLine* pgl2, Network* pNetwork);
+
+    double NetdistanceNew(GPoint* pgl2);
+    double NetdistanceNew(GPoint* pgl2, Network* pNetwork);
+
+    double NetdistanceNew(GPoints* pgl2);
+    double NetdistanceNew(GPoints* pgl2, Network* pNetwork);
 
 
     bool ShortestPath(GLine *to, GLine *result,
                       DbArray<TupleId>* touchedSects = 0);
     bool ShortestPath(GLine *to, GLine *result, Network* pNetwork,
                       DbArray<TupleId>* touchedSects = 0);
+
+    bool ShortestPath(GPoint *to, GLine *result,
+                      DbArray<TupleId>* touchedSects = 0);
+    bool ShortestPath(GPoint *to, GLine *result, Network* pNetwork,
+                      DbArray<TupleId>* touchedSects = 0);
+
+    bool ShortestPath(GPoints *to, GLine *result,
+                      DbArray<TupleId>* touchedSects = 0);
+    bool ShortestPath(GPoints *to, GLine *result, Network* pNetwork,
+                      DbArray<TupleId>* touchedSects = 0);
+
+    bool ShortestPathBF(GLine *pgl2, GLine *result,
+                        DbArray<TupleId>* touchedSects);
+    bool ShortestPathBF(GLine *pgl2, GLine *result, Network *pNetwork,
+                        DbArray<TupleId>* touchedSects);
 /*
 Computes the euclidean distance of 2 glines.
 
@@ -2319,10 +2360,22 @@ public:
   bool Contains(GPoint gp);
   double Netdistance(GPoints* bgp, Network* pNetwork);
   double Netdistance(GPoints* bgp);
+  double Netdistance(GPoint* gp, Network* pNetwork);
+  double Netdistance(GPoint* gp);
+  double Netdistance(GLine* gl, Network* pNetwork);
+  double Netdistance(GLine* gl);
   int GetNetworkId();
   bool ShortestPath(GPoints* bgp, GLine* res,
                     DbArray<TupleId>* touchedSects = 0);
   bool ShortestPath(GPoints* bgp, GLine* res, Network* pNetwork,
+                    DbArray<TupleId>* touchedSects = 0);
+  bool ShortestPath(GPoint* gp, GLine* res,
+                    DbArray<TupleId>* touchedSects = 0);
+  bool ShortestPath(GPoint* gp, GLine* res, Network* pNetwork,
+                    DbArray<TupleId>* touchedSects = 0);
+  bool ShortestPath(GLine* gl, GLine* res,
+                    DbArray<TupleId>* touchedSects = 0);
+  bool ShortestPath(GLine* gl, GLine* res, Network* pNetwork,
                     DbArray<TupleId>* touchedSects = 0);
   bool Inside(GPoint gp);
   bool Intersects(GPoints* bgp, Network* pNetwork);
