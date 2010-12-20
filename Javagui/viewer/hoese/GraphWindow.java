@@ -57,8 +57,8 @@ public class GraphWindow extends JLayeredPane
 /** Main-application */
   HoeseViewer mw;
 
-	/** The background object - start with a SimpleBackground */
-	Background background = new SimpleBackground(); // XRIS NEW
+  /** The background object - start with a SimpleBackground */
+  Background background = new SimpleBackground();
 
 /** a flag for ignoring a repaint message.
     This can be used to make all changes without new drawing.
@@ -83,7 +83,7 @@ public class GraphWindow extends JLayeredPane
        * Shows /hides the layer associatd with the layer-button responsable for this event
        * @param evt
        * @see <a href="Categorysrc.html#actionPerformed">Source</a>
-   */
+       */
       public void actionPerformed (java.awt.event.ActionEvent evt) {
         int laynr = Integer.parseInt(evt.getActionCommand());
         Component[] com = getComponentsInLayer(laynr);
@@ -343,13 +343,13 @@ public class GraphWindow extends JLayeredPane
    * @see <a href="Categorysrc.html#paintChildren">Source</a>
    */
   public void paintChildren (Graphics g) {
-	if (ignorePaint) {
-			return;
+  if (ignorePaint) {
+      return;
   }
 
   AffineTransform at = CurrentState.transform;
   Graphics2D g2 = (Graphics2D) g;
-  
+
   // paint the background
   // first transform the bounding box for the background
   // into screen coordinates
@@ -368,24 +368,24 @@ public class GraphWindow extends JLayeredPane
 
   g2.setRenderingHint(RenderingHints.KEY_STROKE_CONTROL,
         RenderingHints.VALUE_STROKE_PURE);
-	super.paintChildren(g2);
+  super.paintChildren(g2);
 
-		// paint the selected object again to be visible even if it is behind
-		// other objects
+    // paint the selected object again to be visible even if it is behind
+    // other objects
 
-	    DsplGraph dg = mw.getSelGO();
-		if ((dg != null) && (dg.getVisible())) {
-			Composite C = g2.getComposite();
-			g2.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER,
-					0.0f));
-			Layer.draw(dg, g2, CurrentState.ActualTime, at);
-			g2.setComposite(C);
-		}
-		// draw addinitional objects from objectvcreation
-		if (additionalGraphObject != null) {
-			Layer.draw(additionalGraphObject, g2, CurrentState.ActualTime, at);
-		}
-	}
+      DsplGraph dg = mw.getSelGO();
+    if ((dg != null) && (dg.getVisible())) {
+      Composite C = g2.getComposite();
+      g2.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER,
+          0.0f));
+      Layer.draw(dg, g2, CurrentState.ActualTime, at);
+      g2.setComposite(C);
+    }
+    // draw addinitional objects from objectvcreation
+    if (additionalGraphObject != null) {
+      Layer.draw(additionalGraphObject, g2, CurrentState.ActualTime, at);
+    }
+  }
 
   public void addMouseListener(MouseListener ML){
      MouseListener[] MLs = getMouseListeners();
@@ -416,8 +416,3 @@ public class GraphWindow extends JLayeredPane
   }
 
 }
-
-
-
-
-

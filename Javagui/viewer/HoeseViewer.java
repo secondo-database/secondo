@@ -337,10 +337,10 @@ public class HoeseViewer extends SecondoViewer {
       while(ST.hasMoreTokens()){
         String FileName = CatPath+ST.nextToken().trim();
         ListExpr le = new ListExpr();
-  File F1 = new File(FileName);
-  if(!F1.exists()){
-     Reporter.writeError("i can't find the StandardCategoryFile "+FileName);
-  }else
+        File F1 = new File(FileName);
+        if(!F1.exists()){
+          Reporter.writeError("i can't find the StandardCategoryFile "+FileName);
+        }else
            if(le.readFromFile(FileName)!=0){
               Reporter.writeError("i can't load the file "+FileName);
            } else{
@@ -349,8 +349,6 @@ public class HoeseViewer extends SecondoViewer {
            }
       }
     }
-
-
 
     MouseKoordLabel = new JLabel("-------/-------");
     MouseKoordLabel.setFont(new Font("Monospaced", Font.PLAIN, 12));
@@ -583,7 +581,7 @@ public class HoeseViewer extends SecondoViewer {
     GraphDisplay = new GraphWindow(this);
     Color bgColor = getBackground();
     GraphDisplay.setBackgroundObject(new SimpleBackground(bgColor));
-    
+
     GraphDisplay.setOpaque(true); // needed for background-color
     MouseKoordLabel.setOpaque(true);
 
@@ -837,12 +835,12 @@ public class HoeseViewer extends SecondoViewer {
     jMenuGui = new javax.swing.JMenu();
 
 
-    jMenuNoBackground = new JMenuItem("No Background");
+    jMenuNoBackground = new JMenuItem("Color: Default");
     jMenuNoBackground.addActionListener(new ActionListener(){
       public void actionPerformed(ActionEvent evt){
          Background bg = GraphDisplay.getBackgroundObject();
          if(bg instanceof SimpleBackground){
-            ((SimpleBackground)bg).setBackgroundColor(null);   
+            ((SimpleBackground)bg).setBackgroundColor(null);
          } else {
            Color c = null;
            GraphDisplay.setBackgroundObject(new SimpleBackground(c));
@@ -851,7 +849,7 @@ public class HoeseViewer extends SecondoViewer {
       }
     });
 
-    jMenuBackgroundColor = new JMenuItem("Background Color");
+    jMenuBackgroundColor = new JMenuItem("Color: Choose...");
     jMenuBackgroundColor.addActionListener(new ActionListener(){
         public void actionPerformed(ActionEvent evt){
             if(!(GraphDisplay.getBackgroundObject() instanceof SimpleBackground)){
@@ -884,7 +882,7 @@ public class HoeseViewer extends SecondoViewer {
                } else if(i==catByName){
                  CurrentState.setCatSelectionMode(CurrentState.CATEGORY_BY_NAME);
                } else {
-                  Reporter.writeError("unknown item detected for changing cat selection mode");
+                  Reporter.writeError("Unknown item detected for changing cat selection mode.");
                }
            }
        }
@@ -1216,20 +1214,20 @@ public class HoeseViewer extends SecondoViewer {
 
     JMenu BGMenu = new JMenu("BackGround");
 
-		AASetBackground = new AbstractAction("set image") {
-			public void actionPerformed(java.awt.event.ActionEvent evt) {
+    AASetBackground = new AbstractAction("Image: Import...") {
+      public void actionPerformed(java.awt.event.ActionEvent evt) {
         Background background = GraphDisplay.getBackgroundObject();
         if(!(background instanceof ImageBackground)){
           background = new ImageBackground();
           GraphDisplay.setBackgroundObject(background);
         }
-				background.showConfigDialog(null); // XRIS NEW
-				GraphDisplay.updateBackground();
-			}
-		};
+        background.showConfigDialog(null);
+        GraphDisplay.updateBackground();
+      }
+    };
 
 
-    AAOSMBackground = new AbstractAction("open street map"){
+    AAOSMBackground = new AbstractAction("TiledMap (OSM, GoogleMaps)..."){
       public void actionPerformed(java.awt.event.ActionEvent evt) {
         Background background = GraphDisplay.getBackgroundObject();
         if(!(background instanceof OSMBackground)){
@@ -1243,7 +1241,7 @@ public class HoeseViewer extends SecondoViewer {
 
 
 
-    AACaptureBackground = new AbstractAction("capture image"){
+    AACaptureBackground = new AbstractAction("Image: Capture All"){
        public void actionPerformed(java.awt.event.ActionEvent evt){
            // get the current bounding box
            Rectangle2D r1 = GraphDisplay.getBounds();
@@ -1251,7 +1249,7 @@ public class HoeseViewer extends SecondoViewer {
            double w =  R.getWidth();
            double h =  R.getHeight();
            if(w<=0 | h<=0){
-              Reporter.showError("cannot capture the background");
+              Reporter.showError("Cannot capture the background.");
               return;
            }
            try{
@@ -1280,7 +1278,7 @@ public class HoeseViewer extends SecondoViewer {
 
               GraphDisplay.printAll(g);
               ImageBackground background = new ImageBackground();
-			        background.setImage(bi);
+              background.setImage(bi);
 
               AffineTransform at = (AffineTransform) CurrentState.transform.clone();
               // convert the bounding box of the GraphDisplay into
@@ -1297,21 +1295,21 @@ public class HoeseViewer extends SecondoViewer {
               GraphDisplay.updateBackground();
             }catch(Exception e){
                // because large sized data are processed, a OutOfMemory error is possible
-               Reporter.showError("an error in capturing the background is occured");
+               Reporter.showError("An error occured while capturing the background.");
             }
            System.gc();
            System.runFinalization();
        }
     };
 
-    AbstractAction AACaptureRect = new AbstractAction("capture visible rect"){
+    AbstractAction AACaptureRect = new AbstractAction("Image: Capture Visible"){
        public void actionPerformed(java.awt.event.ActionEvent evt){
            try{
               // we will not scale it beacuse the maximum size is restricted by
               // the screen size
               Rectangle VisRect = GeoScrollPane.getBounds();
               if(VisRect.getHeight()<=0 || VisRect.getWidth()<=0){
-                Reporter.showError("cannot capture the rectangle");
+                Reporter.showError("Cannot capture the rectangle.");
               }
               int border = CaptureBorder; // later change for setting by the user
               int vw = (int)VisRect.getWidth()+2*border;
@@ -1338,16 +1336,16 @@ public class HoeseViewer extends SecondoViewer {
                   R2.setRect(-x,-y,vw,vh);
                   R2 = at.createInverse().createTransformedShape(R2).getBounds2D();
               } catch(Exception e){
-                  Reporter.showError("Cannot determine the bounding box of this image");
+                  Reporter.showError("Cannot determine the bounding box of this image.");
               }
-					background.setBBox(new Rectangle2D.Double(R2.getX(), R2
-							.getY(), R2.getWidth(), R2.getHeight()));
+          background.setBBox(new Rectangle2D.Double(R2.getX(), R2
+              .getY(), R2.getWidth(), R2.getHeight()));
               g.dispose();
               GraphDisplay.setBackgroundObject(background);
               GraphDisplay.updateBackground();
             }catch(Exception e){
                // because large sized data are processed, a OutOfMemory error is possible
-               Reporter.showError("an error in capturing the background is occured");
+               Reporter.showError("An error occured while capturing the background.");
            }
            System.gc();
            System.runFinalization();
@@ -1390,7 +1388,7 @@ public class HoeseViewer extends SecondoViewer {
            try{
              CaptureBorder = Integer.parseInt(Label);
            }catch(Exception e){
-              Reporter.showError("Cannot determine the size of the border");
+              Reporter.showError("Cannot determine the size of the border.");
            }
         }
     };
@@ -2062,8 +2060,8 @@ public boolean canDisplay(SecondoObject o){
       File file = FC_Session.getSelectedFile();
       //          File file=new File("Session");
       String DirName = FC_Session.getCurrentDirectory().getAbsolutePath();
-			ListExpr le = ListExpr.fourElemList(ListExpr.symbolAtom("session"),
-					GraphDisplay.getBackgroundObject().toListExpr(DirName),
+      ListExpr le = ListExpr.fourElemList(ListExpr.symbolAtom("session"),
+          GraphDisplay.getBackgroundObject().toListExpr(DirName),
           writeAllCats(), TextDisplay.convertAllQueryResults());
       String suc;
       if(le.writeToFile(file.getPath()) == 0)
@@ -2115,8 +2113,7 @@ public boolean canDisplay(SecondoObject o){
       type.destroy();
       Cats = new Vector(10, 5);
       String DirName = FC_Session.getCurrentDirectory().getAbsolutePath();
-			Background background = Background.createFromListExpr(le.first(), DirName); // XRIS
-																			// NEW
+      Background background = Background.createFromListExpr(le.first(), DirName);
       GraphDisplay.setBackgroundObject(background);
       readAllCats(le.second());
       if(!Cats.contains(Category.getDefaultCat())){
@@ -2244,8 +2241,8 @@ public boolean canDisplay(SecondoObject o){
     //ClipRect.setSize((int)w,(int)h);
     // if no objects or only a single point,line is visible
     if ((wpw == 0) && (wph == 0)) {
-			return new AffineTransform(1, 0, 0, -1, -wp1x + extra, -wp1y
-					+ extra);
+      return new AffineTransform(1, 0, 0, -1, -wp1x + extra, -wp1y
+          + extra);
     }
     else if (wpw == 0)
       wpw = 1;
@@ -2373,11 +2370,11 @@ public boolean canDisplay(SecondoObject o){
   }
 
 
-	/**
-	 * Listens to a selection change in a query list
-	 *
-	 * @see <a href="MainWindowsrc.html#QueryListSelectionListener">Source</a>
-	 */
+  /**
+   * Listens to a selection change in a query list
+   *
+   * @see <a href="MainWindowsrc.html#QueryListSelectionListener">Source</a>
+   */
 
   class QueryListSelectionListener
       implements ListSelectionListener {
