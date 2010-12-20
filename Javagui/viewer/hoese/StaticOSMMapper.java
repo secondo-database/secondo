@@ -90,7 +90,6 @@ public class StaticOSMMapper implements Rect2UrlMapper {
 	 * @return The list of all visible map tiles and according translation/scale
 	 *         matrices
 	 **/
-	@Override
 	public LinkedList<Pair<URL, AffineTransform>> computeURLs(
 			Rectangle2D.Double bbox) {
 		if (bbox == null) {

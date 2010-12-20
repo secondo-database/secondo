@@ -39,7 +39,6 @@ public class StaticGoogleMapsMapper extends StaticOSMMapper implements
 	 *         its proper location and zoom it according to zoom level and
 	 *         visible screen
 	 **/
-	@Override
 	protected Pair<URL, AffineTransform> computeURL(int x, int y, int z) {
 		URL url;
 		Rectangle2D.Double r = getBBoxForTile(x, y, z);
