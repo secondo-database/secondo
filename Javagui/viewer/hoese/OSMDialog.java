@@ -257,6 +257,8 @@ public class OSMDialog extends JDialog {
 		selectionCB.addItem("Eniro maps - Topographic (Sweden only)");
 		selectionCB.addItem("Eniro maps - Aerial (Sweden only)");
 		selectionCB.addItem("MyTopo - Toporaphic (USA only)");
+		selectionCB.addItem("Google RoadMap");
+
 		selectionCB.addItem("customized");
 
 		selectionCB.addActionListener(new ActionListener() {
@@ -584,6 +586,24 @@ public class OSMDialog extends JDialog {
 					licenseUrlTF.setText("");
 					mapperClassTF.setText("viewer.hoese.StaticOSMMapper");
 
+				} else if (s.equals("Google RoadMap")) {
+					OSMDialog.this.enableServerSettings(false);
+					protocolTF.setText("http");
+					serverTF.setText("maps.google.com");
+					;
+					portTF.setText("80");
+					directoryTF.setText("maps/api");
+					prefixTF.setText("");
+
+					minZoomLevelTF.setText("1");
+					maxZoomLevelTF.setText("21");
+					maxDownloadsTF.setText("2");
+
+					tileSizeXTF.setText("256");
+					tileSizeYTF.setText("256");
+					nameTF.setText("Google Roadmap)");
+					licenseUrlTF.setText("");
+					mapperClassTF.setText("viewer.hoese.StaticGoogleMapsMapper2");
 				} else if (s.equals("customized")) {
 					OSMDialog.this.enableServerSettings(true);
 					licenseUrlTF.setText("");

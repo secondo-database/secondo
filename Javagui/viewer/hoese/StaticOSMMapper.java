@@ -17,7 +17,7 @@ import tools.Pair;
 public class StaticOSMMapper implements Rect2UrlMapper {
 
 	public StaticOSMMapper(int tileSizeX, int tileSizeY, int DIM_X, int DIM_Y,
-			int minZoomLevel, int maxZoomLevel, URL baseUrl, String prefix) {
+    int minZoomLevel, int maxZoomLevel, URL baseUrl, String prefix) {
 		this.tileSizeX = tileSizeX;
 		this.tileSizeY = tileSizeY;
 		this.DIM_X = DIM_X;
@@ -58,14 +58,17 @@ public class StaticOSMMapper implements Rect2UrlMapper {
 		return new Pair<URL, AffineTransform>(url, at);
 	}
 
+
+  /** computes the affine transformation to map an rectangle (0,0,tileSizeX, tileSizeY)
+    * to the given rectangle.
+    **/
 	protected AffineTransform computeTransform(Rectangle2D.Double r) {
 		// compute projected bounding box
 		java.awt.geom.Point2D.Double p1 = new java.awt.geom.Point2D.Double();
 		java.awt.geom.Point2D.Double p2 = new java.awt.geom.Point2D.Double();
 
 		ProjectionManager.project(r.getX(), r.getY(), p1);
-		ProjectionManager.project(r.getX() + r.getWidth(),
-				r.getY() + r.getHeight(), p2);
+		ProjectionManager.project(r.getX() + r.getWidth(), r.getY() + r.getHeight(), p2);
 
 		r.setRect(p1.getX(), p1.getY(), p2.getX() - p1.getX(),
 				p2.getY() - p1.getY());
@@ -175,7 +178,7 @@ public class StaticOSMMapper implements Rect2UrlMapper {
 	 *            size in y dimension within the world
 	 * @return The recommended zoom level
 	 **/
-	private int computeZoomLevel(double width, double height) {
+	protected int computeZoomLevel(double width, double height) {
 		double z_x = Math.log((360 * DIM_X) / (width * tileSizeX)) / l2; // computing
 																			// log_2
 		double z_y = Math.log((180 * DIM_Y) / (height * tileSizeY)) / l2;
