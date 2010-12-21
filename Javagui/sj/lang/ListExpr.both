@@ -52,7 +52,9 @@ import java.io.*;
 import  tools.Base64Decoder;
 import  java_cup.runtime.*;
 import tools.Reporter;
-
+import java.util.Properties;
+import java.util.Iterator;
+import java.util.Set;
 
 public class ListExpr{
 
@@ -295,6 +297,64 @@ public void setValueTo (ListExpr list) {
 #endif
 }
 
+/**
+ * Create a list of pairs representing the (key, value)-pair of a Properties
+ * object.
+ * 
+ * @param p
+ *            the Properties to read from
+ * @return a ListExpr representing the Properties
+ */
+public static ListExpr fromProperties(Properties p) {
+	Set<Object> keys = p.keySet();
+	Iterator<Object> i = keys.iterator();
+	if (!i.hasNext()) {
+		return ListExpr.theEmptyList();
+	}
+	String keystr = (String) i.next();
+	String valuestr = p.getProperty(keystr);
+	ListExpr pair = ListExpr.twoElemList(ListExpr.stringAtom(keystr),
+			ListExpr.textAtom(valuestr));
+	ListExpr nl = ListExpr.oneElemList(pair);
+	ListExpr last = nl;
+	while (i.hasNext()) {
+		keystr = (String) i.next();
+		valuestr = p.getProperty(keystr);
+		pair = ListExpr.twoElemList(ListExpr.stringAtom(keystr),
+				ListExpr.textAtom(valuestr));
+		last = ListExpr.append(last, pair);
+	}
+	return nl;
+}
+
+/**
+ * Inserts (key, value)-Pairs found in a list ((stringAtom textAtom)*) into
+ * a Properties object. Returns false if and only if some problem occurs.
+ * 
+ * @param l
+ *            the ListExpr to read from
+ * @return the Properties
+ */
+public static boolean toProperties(ListExpr l, Properties p) {
+	if (l.isAtom()) {
+		return false;
+	}
+	boolean ok = true;
+	while (!(l.isAtom() || l.isEmpty())) {
+		ListExpr pair = l.first();
+		l = l.rest();
+		if ((pair.listLength() == 2)
+				&& (pair.first().isAtom() && pair.first().atomType() == ListExpr.STRING_ATOM)
+				&& (pair.second().isAtom() && pair.second().atomType() == ListExpr.TEXT_ATOM)) {
+			String key = pair.first().stringValue();
+			String value = pair.second().stringValue();
+			p.setProperty(key, value);
+		} else {
+			ok = false;
+		}
+	}
+	return ok;
+}
 
 /** This method returns an empty ListExpr. It will return the same as creating
   * a new ListExpr directly using the class constructor.

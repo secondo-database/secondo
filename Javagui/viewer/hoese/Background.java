@@ -1,16 +1,12 @@
 package viewer.hoese;
 
-import java.awt.Rectangle;
 import java.awt.Graphics2D;
-import java.awt.geom.Rectangle2D;
 import java.awt.geom.AffineTransform;
-import java.util.Iterator;
+import java.awt.geom.Rectangle2D;
 import java.util.LinkedList;
 import java.util.ListIterator;
 import java.util.Properties;
-import java.util.Set;
 import java.util.StringTokenizer;
-
 
 import javax.swing.JComponent;
 
@@ -318,27 +314,8 @@ public abstract class Background {
 	 * @return The listExpr representing this object.
 	 */
 	public ListExpr toListExpr(String backgrounddatapath) {
-		// TODO Finish implementation!
 		Properties p = getConfiguration(backgrounddatapath);
-		Set<Object> keys = p.keySet();
-		Iterator<Object> i = keys.iterator();
-		if (!i.hasNext()) {
-			return ListExpr.theEmptyList();
-		}
-		String keystr = (String) i.next();
-		String valuestr = p.getProperty(keystr);
-		ListExpr pair = ListExpr.twoElemList(ListExpr.stringAtom(keystr),
-				ListExpr.textAtom(valuestr));
-		ListExpr nl = ListExpr.oneElemList(pair);
-		ListExpr last = nl;
-		while (i.hasNext()) {
-			keystr = (String) i.next();
-			valuestr = p.getProperty(keystr);
-			pair = ListExpr.twoElemList(ListExpr.stringAtom(keystr),
-					ListExpr.textAtom(valuestr));
-			last = ListExpr.append(last, pair);
-		}
-		return nl;
+		return ListExpr.fromProperties(p);
 	}
 
 	/**
@@ -354,17 +331,7 @@ public abstract class Background {
 	 */
 	public void readFromList(ListExpr l, String backgrounddatapath) {
 		Properties p = new Properties();
-		while (!(l.isAtom() || l.isEmpty())) {
-			ListExpr pair = l.first();
-			l = l.rest();
-			if ((pair.listLength() == 2)
-					&& (pair.first().isAtom() && pair.first().atomType() == ListExpr.STRING_ATOM)
-					&& (pair.second().isAtom() && pair.second().atomType() == ListExpr.TEXT_ATOM)) {
-				String key = pair.first().stringValue();
-				String value = pair.second().stringValue();
-				p.setProperty(key, value);
-			}
-		}
+		ListExpr.toProperties(l, p); // ignore boolean result;
 		setConfiguration(p, backgrounddatapath);
 	}
 
