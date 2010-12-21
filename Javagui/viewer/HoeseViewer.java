@@ -2132,7 +2132,7 @@ public boolean canDisplay(SecondoObject o){
          QueryResult QR;
          for(int i=0;i<count;i++){
             QR = (QueryResult)CB.getItemAt(i);
-            SO = new SecondoObject(IDManager.getNextID());
+            SO = new SecondoObject(QR.getId());
             String name = QR.getCommand();
             SO.setName(name);
             SO.fromList(QR.getListExpr());

@@ -51,6 +51,13 @@ public class QueryResult extends JList {
 
 
 
+
+
+  /** return the Id for this QueryResult **/
+  public ID getId(){
+       return id;
+  }
+
 /** the QueryRepresentations for this QueryResult */
   // private ViewConfig myViewConfig = null;
   private Vector ViewConfigs= new Vector(2);
@@ -345,7 +352,7 @@ public class QueryResult extends JList {
       return false;
     else{
       QueryResult qr = (QueryResult)o;
-      return command.equals(qr.command) && (LEResult==(qr.LEResult));
+      return this.id == qr.id;
     }
   }
 
