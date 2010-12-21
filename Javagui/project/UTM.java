@@ -19,6 +19,8 @@
 
 package project;
 
+import java.util.Properties;
+
 
 
 public class UTM implements Projection{
@@ -28,7 +30,7 @@ public class UTM implements Projection{
      double lw = phi;
      // zone number??
      long lzn =(int)((lw+180)/6) + 1;
-		 long bd = (int)(1+(bw+80)/8);
+		long bd = (int) (1 + (bw + 80) / 8);
      double br = bw*PI/180; 
      double tan1 = Math.tan(br);
      double tan2 = tan1*tan1;
@@ -80,6 +82,42 @@ public class UTM implements Projection{
    }
 
 
+	public Properties getProperties() {
+		Properties p = new Properties();
+		p.setProperty(KEY_A, "" + a);
+		p.setProperty(KEY_F, "" + f);
+		return p;
+	}
+
+	public boolean setProperties(Properties p) {
+		boolean ok = true;
+		try {
+			String o = p.getProperty(KEY_A);
+			a = Double.parseDouble(o);
+			o = p.getProperty(KEY_F);
+			f = Double.parseDouble(o);
+		} catch (Exception e) { // set defaults
+			a = 6378137.000;
+			f = 3.35281068e-3;
+			ok = false;
+		}
+		c = a / (1 - f);
+		ex2 = (2 * f - f * f) / ((1 - f) * (1 - f));
+		ex4 = ex2 * ex2;
+		ex6 = ex4 * ex2;
+		ex8 = ex4 * ex4;
+		e0 = c
+				* (PI / 180)
+				* (1 - 3 * ex2 / 4 + 45 * ex4 / 64 - 175 * ex6 / 256 + 11025 * ex8 / 16384);
+		e2 = c
+				* (-3 * ex2 / 8 + 15 * ex4 / 32 - 525 * ex6 / 1024 + 2205 * ex8 / 4096);
+		e4 = c * (15 * ex4 / 256 - 105 * ex6 / 1024 + 2205 * ex8 / 16384);
+		e6 = c * (-35 * ex6 / 3072 + 315 * ex8 / 12288);
+		return ok;
+	}
+
+	private static String KEY_A = "A";
+	private static String KEY_F = "F";
 
    // constants for the wgs84 date
    // big half axe
@@ -89,7 +127,7 @@ public class UTM implements Projection{
 
    // derived constants
    
-   private static double c = a/(1-f); // Polkrümmungshalbmesser in german
+	private static double c = a / (1 - f); // Polkruemmungshalbmesser in german
 
   // square of the excentricity 
   protected static double  ex2 = (2*f-f*f)/((1-f)*(1-f));
@@ -97,16 +135,15 @@ public class UTM implements Projection{
   protected static double  ex6 = ex4*ex2;
   protected static double  ex8 = ex4*ex4;
 
-
-
-
- // coefficients for computation of the length of the 
- // meridian arc 
- protected static  double e0 = c*(PI/180)*(1 - 3*ex2/4 + 
+	// coefficients for computation of the length of the
+	// meridian arc
+	protected static double e0 = c
+			* (PI / 180)
+			* (1 - 3 * ex2 / 4 +
                                45*ex4/64  - 175*ex6/256  + 11025*ex8/16384);
- protected static double e2 = c*(  - 3*ex2/8 + 15*ex4/32  - 525*ex6/1024 +  2205*ex8/4096);
- protected static double e4 = c*(15*ex4/256 - 105*ex6/1024 +  2205*ex8/16384);
- protected static double e6 = c*( -  35*ex6/3072 +   315*ex8/12288);
-
-
+	protected static double e2 = c
+			* (-3 * ex2 / 8 + 15 * ex4 / 32 - 525 * ex6 / 1024 + 2205 * ex8 / 4096);
+	protected static double e4 = c
+			* (15 * ex4 / 256 - 105 * ex6 / 1024 + 2205 * ex8 / 16384);
+	protected static double e6 = c * (-35 * ex6 / 3072 + 315 * ex8 / 12288);
 }

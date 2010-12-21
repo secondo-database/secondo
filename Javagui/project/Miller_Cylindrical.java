@@ -19,6 +19,8 @@
 
 package project;
 
+import java.util.Properties;
+
 import tools.Reporter;
 
 public class Miller_Cylindrical implements Projection{
@@ -56,6 +58,30 @@ public class Miller_Cylindrical implements Projection{
        return false;
     }
    }
+
+	public Properties getProperties() {
+		Properties p = new Properties();
+		p.setProperty(KEY_LAMBDA0, "" + Lambda_0);
+		p.setProperty(KEY_SECDISTANCE, "" + secure_distance);
+		return p;
+	}
+
+	public boolean setProperties(Properties p) {
+		try {
+			String o = p.getProperty(KEY_LAMBDA0);
+			Lambda_0 = Double.parseDouble(o);
+			o = p.getProperty(KEY_SECDISTANCE);
+			secure_distance = Double.parseDouble(o);
+		} catch (Exception e) { // set defaults
+			Lambda_0 = 0;
+			secure_distance = 1;
+			return false;
+		}
+		return true;
+	}
+
+	private static String KEY_LAMBDA0 = "LAMBDA0";
+	private static String KEY_SECDISTANCE = "SECDISTANCE";
 
    private double Lambda_0 = 0;
    private double secure_distance = 1;

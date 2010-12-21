@@ -19,6 +19,8 @@
 
 package project;
 
+import java.util.Properties;
+
 import tools.Reporter;
 
 public class VoidProjection implements Projection{
@@ -47,4 +49,13 @@ public class VoidProjection implements Projection{
        result.y = y;
        return true;
    }
+
+	public Properties getProperties() {
+		return new Properties();
+	}
+
+	public boolean setProperties(Properties p) {
+		return true;
+	}
+
 }

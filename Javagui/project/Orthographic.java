@@ -19,6 +19,8 @@
 
 package project;
 
+import java.util.Properties;
+
 import tools.Reporter;
 
 public class Orthographic implements Projection{
@@ -77,8 +79,38 @@ public class Orthographic implements Projection{
       return true;
    }
 
-   private double Lambda_0 = 0;
-   private double Phi_1 = 0*PI/180;
-   private double secure_distance = 10;
+	public Properties getProperties() {
+		Properties p = new Properties();
+		p.setProperty(KEY_LAMBDA0, "" + Lambda_0);
+		p.setProperty(KEY_SECDISTANCE, "" + secure_distance);
+		p.setProperty(KEY_PHI1, "" + Phi_1);
+		return p;
+	}
+
+	public boolean setProperties(Properties p) {
+		try {
+			String o = p.getProperty(KEY_LAMBDA0);
+			Lambda_0 = Double.parseDouble(o);
+			o = p.getProperty(KEY_SECDISTANCE);
+			secure_distance = Double.parseDouble(o);
+			o = p.getProperty(KEY_PHI1);
+			Phi_1 = Double.parseDouble(o);
+
+		} catch (Exception e) { // set defaults
+			Lambda_0 = 0;
+			Phi_1 = 0 * PI / 180;
+			secure_distance = 10;
+			return false;
+		}
+		return true;
+	}
+
+	private static String KEY_LAMBDA0 = "LAMBDA0";
+	private static String KEY_SECDISTANCE = "SECDISTANCE";
+	private static String KEY_PHI1 = "PHI1";
+
+	private double Lambda_0 = 0;
+	private double Phi_1 = 0 * PI / 180;
+	private double secure_distance = 10;
 
 }

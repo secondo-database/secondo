@@ -1,7 +1,14 @@
 package project;
 
 
-import javax.swing.*;
+import java.util.Properties;
+
+import javax.swing.ButtonGroup;
+import javax.swing.JButton;
+import javax.swing.JPanel;
+import javax.swing.JRadioButton;
+import javax.swing.JTextField;
+
 import tools.Reporter;
 
 
@@ -167,29 +174,59 @@ public void setMeridian(int m){
 
 public static double  Pi = 3.1415926535897932384626433832795028841971693993751058209749445923078164;
 
-private static final double awgs = 6378137.0;         // WGS84 Semi-Major Axis = Equatorial Radius in meters
-private static final double bwgs = 6356752.314;      // WGS84 Semi-Minor Axis = Polar Radius in meters
-private static final double abes = 6377397.155;       // Bessel Semi-Major Axis = Equatorial Radius in meters
-private static final double bbes = 6356078.962;       // Bessel Semi-Minor Axis = Polar Radius in meters
-private static final double cbes = 111120.6196;       // Bessel latitude to Gauss-Krueger meters
-private static final double dx   = -585.7;                // Translation Parameter 1
-private static final double dy   = -87.0;                  // Translation Parameter 2
-private static final double dz   = -409.2;                // Translation Parameter 3
-private static final double rotx = 2.540423689E-6;   // Rotation Parameter 1
-private static final double roty = 7.514612057E-7;   // Rotation Parameter 2
-private static final double rotz = -1.368144208E-5;  // Rotation Parameter 3
-private static final double sc = 0.99999122;           // Scaling Factor
-private static double h1 = 0;
-// derived constants
-private static double eqwgs = (awgs*awgs-bwgs*bwgs)/(awgs*awgs);
-private static double eqbes = (abes*abes-bbes*bbes)/(abes*abes);
-// point for shipping results
-private static P3d p3d = new P3d();
-// the meridian code digit
-private double MDC = 2.0;  // standard in Hagena
-private boolean useWGS = true; // usw coordinates in wgs ellipsoid
-private GKSettings gKSettings = new GKSettings(this);
+	private static final double awgs = 6378137.0; // WGS84 Semi-Major Axis =
+													// Equatorial Radius in
+													// meters
+	private static final double bwgs = 6356752.314; // WGS84 Semi-Minor Axis =
+													// Polar Radius in meters
+	private static final double abes = 6377397.155; // Bessel Semi-Major Axis =
+													// Equatorial Radius in
+													// meters
+	private static final double bbes = 6356078.962; // Bessel Semi-Minor Axis =
+													// Polar Radius in meters
+	private static final double cbes = 111120.6196; // Bessel latitude to
+													// Gauss-Krueger meters
+	private static final double dx = -585.7; // Translation Parameter 1
+	private static final double dy = -87.0; // Translation Parameter 2
+	private static final double dz = -409.2; // Translation Parameter 3
+	private static final double rotx = 2.540423689E-6; // Rotation Parameter 1
+	private static final double roty = 7.514612057E-7; // Rotation Parameter 2
+	private static final double rotz = -1.368144208E-5; // Rotation Parameter 3
+	private static final double sc = 0.99999122; // Scaling Factor
+	private static double h1 = 0;
+	// derived constants
+	private static double eqwgs = (awgs * awgs - bwgs * bwgs) / (awgs * awgs);
+	private static double eqbes = (abes * abes - bbes * bbes) / (abes * abes);
+	// point for shipping results
+	private static P3d p3d = new P3d();
+	// the meridian code digit
+	private double MDC = 2.0; // standard strip for Hagen, Germany
+	private boolean useWGS = true; // usw coordinates in wgs ellipsoid
+	private GKSettings gKSettings = new GKSettings(this);
 
+	private final static String KEY_MDC = "MDC";
+	private final static String KEY_USEWGS = "USEWGS";
+
+	public Properties getProperties() {
+		Properties p = new Properties();
+		p.setProperty(KEY_MDC, "" + MDC);
+		p.setProperty(KEY_USEWGS, useWGS ? "true" : "false");
+		return p;
+	}
+
+	public boolean setProperties(Properties p) {
+		try {
+			String o = p.getProperty(KEY_MDC);
+			MDC = Double.parseDouble(o);
+			o = p.getProperty(KEY_USEWGS);
+			useWGS = (o == "true");
+		} catch (Exception e) { // set defaults
+			MDC = 2.0;
+			useWGS = true;
+			return false;
+	}
+		return true;
+	}
 
 /** This function computes the geo coordinates from the gauss krueger ones
   * This is the java transformation of a Java script found at:

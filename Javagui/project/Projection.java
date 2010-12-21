@@ -27,22 +27,26 @@ http://mathworld.wolfram.com/topics/MapProjections.html
 
 
 */
+import java.util.Properties;
 
 
 public interface Projection{
+	public boolean project(double lambda, double phi,
+			java.awt.geom.Point2D.Double result);
 
+	public boolean getOrig(double px, double py,
+			java.awt.geom.Point2D.Double result);
 
-   public boolean project(double lambda, double phi, java.awt.geom.Point2D.Double result);
+	public boolean showSettings();
 
-   public boolean getOrig(double px, double py, java.awt.geom.Point2D.Double result);
-      
+	public String getName();
 
-   public boolean showSettings();
+	public boolean isReversible();
 
-   public String getName();
+	public Properties getProperties();
 
-   public boolean isReversible();
+	public boolean setProperties(Properties p);
 
-   static final double LOG_E = Math.log(Math.E);
-   static final double PI = Math.PI;
- }
+	static final double LOG_E = Math.log(Math.E);
+	static final double PI = Math.PI;
+}

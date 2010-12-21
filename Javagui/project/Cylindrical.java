@@ -19,6 +19,8 @@
 
 package project;
 
+import java.util.Properties;
+
 import tools.Reporter;
 
 public class Cylindrical implements Projection{
@@ -55,15 +57,38 @@ public class Cylindrical implements Projection{
    public boolean getOrig(double x, double y, java.awt.geom.Point2D.Double result){
       result.x = x + Lambda_0;
       result.y = (Math.atan((y * PI) / 180))*180/PI;
-      return true;
+		return true;
    }    
 
    public boolean isReversible(){
       return true;
    }
 
-   private double Lambda_0 = 0;
-   private double secure_distance = 10;
+	public Properties getProperties() {
+		Properties p = new Properties();
+		p.setProperty(KEY_LAMBDA0, "" + Lambda_0);
+		p.setProperty(KEY_SECDISTANCE, "" + secure_distance);
+		return p;
+	}
 
+	public boolean setProperties(Properties p) {
+		try {
+			String o = p.getProperty(KEY_LAMBDA0);
+			Lambda_0 = Double.parseDouble(o);
+			o = p.getProperty(KEY_SECDISTANCE);
+			secure_distance = Double.parseDouble(o);
+		} catch (Exception e) { // set defaults
+			Lambda_0 = 0;
+			secure_distance = 10;
+			return false;
+		}
+		return true;
+	}
+
+	private static String KEY_LAMBDA0 = "LAMBDA0";
+	private static String KEY_SECDISTANCE = "SECDISTANCE";
+
+	private double Lambda_0 = 0;
+	private double secure_distance = 10;
 }
 

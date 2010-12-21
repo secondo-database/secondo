@@ -19,6 +19,8 @@
 
 package project;
 
+import java.util.Properties;
+
 import tools.Reporter;
 
 public class OSMMercator implements Projection{
@@ -67,6 +69,30 @@ public class OSMMercator implements Projection{
      result.setLocation(lon,lat);
      return true;
   }
+
+	public Properties getProperties() {
+		Properties p = new Properties();
+		p.setProperty(KEY_ORIGINSHIFT, "" + originShift);
+		p.setProperty(KEY_SECDISTANCE, "" + secure_distance);
+		return p;
+	}
+
+	public boolean setProperties(Properties p) {
+		try {
+			String o = p.getProperty(KEY_ORIGINSHIFT);
+			originShift = Double.parseDouble(o);
+			o = p.getProperty(KEY_SECDISTANCE);
+			secure_distance = Double.parseDouble(o);
+		} catch (Exception e) { // set defaults
+			originShift = Math.PI * 6378137.0;
+			secure_distance = 1.0;
+			return false;
+		}
+		return true;
+	}
+
+	private static String KEY_ORIGINSHIFT = "ORIGINSHIFT";
+	private static String KEY_SECDISTANCE = "SECDISTANCE";
 
   double originShift =  Math.PI * 6378137.0;
   double secure_distance = 1.0;
