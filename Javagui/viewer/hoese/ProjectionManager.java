@@ -19,8 +19,10 @@
 
 package viewer.hoese;
 
-import project.*;
-import java.awt.geom.*;
+import java.util.Properties;
+
+import project.Projection;
+import project.VoidProjection;
 import tools.Reporter;
 
 
@@ -134,10 +136,54 @@ public class ProjectionManager {
 
    }
  
+	/**
+	 * Returns a descriptor for the current Projection P.
+	 * 
+	 * @return The Projection descriptor
+	 */
+   public static Properties getProperties() {
+		Properties prop = P.getProperties();
+		prop.setProperty(KEY_PROJECTION_CLASS, P.getClass().getName());
+		prop.setProperty(KEY_EPSILON, "" + EPSILON);
+		return prop;
+   }
 
-private static Projection P = new  VoidProjection();
+	/**
+	 * Restores the currently used Projection P and its settings to the
+	 * Projection described by a Properties object. If restoration fails
+	 * critically, a VoidProjection is returned.
+	 * 
+	 * @param prop
+	 *            The Projection descriptor.
+	 * @return whether the original Projection could be restored or not.
+	 */
+   public static boolean setProperties(Properties prop) {
+		try {
+			EPSILON = Double.parseDouble(prop.getProperty(KEY_EPSILON));
+		} catch (Exception e) {
+			EPSILON = 0.00001;
+		}
+	   String projclassname = prop.getProperty(KEY_PROJECTION_CLASS);
+		if (projclassname == null) {
+			Reporter.writeError("Could not restore the Projection (cannot determine Projection class).");
+			P = new VoidProjection();
+		}
+		try {
+			P = (Projection) Class.forName(projclassname).newInstance();
+		} catch(Exception e) {
+			Reporter.writeError("Could not restore the Projection (failed to create the instance).");
+		    Reporter.debug(e);
+			P = new VoidProjection();
+			return false;
+		}
+		return P.setProperties(prop);
+   }
+   
+   private static Projection P = new  VoidProjection();
 
-private static Projection VP = new VoidProjection();
-private static double EPSILON=0.00001;
-
+   private static Projection VP = new VoidProjection();
+   private static double EPSILON=0.00001;
+   
+	private static final String KEY_PROJECTION_CLASS = "PROJECTION_CLASSNAME";
+	private static final String KEY_EPSILON = "PM_EPSILON";
 }
