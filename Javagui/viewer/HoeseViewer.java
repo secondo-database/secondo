@@ -2060,7 +2060,8 @@ public boolean canDisplay(SecondoObject o){
       File file = FC_Session.getSelectedFile();
       //          File file=new File("Session");
       String DirName = FC_Session.getCurrentDirectory().getAbsolutePath();
-      ListExpr le = ListExpr.fourElemList(ListExpr.symbolAtom("session"),
+			ListExpr le = ListExpr.fiveElemList(ListExpr.symbolAtom("session"),
+					ProjectionManager.toListExpr(),
           GraphDisplay.getBackgroundObject().toListExpr(DirName),
           writeAllCats(), TextDisplay.convertAllQueryResults());
       String suc;
@@ -2091,26 +2092,34 @@ public boolean canDisplay(SecondoObject o){
           ok=false;
         }
       if(!ok){
-         Reporter.showError("i can't load the file");
+				Reporter.showError("I can't load the file");
          return;
       }
 
       // check ListExprFormat
-      if (le.listLength()!=4){
-         Reporter.showError(" the file contains not a session ");
+			int listlength = le.listLength();
+			if ((listlength != 4) && (listlength != 5)) {
+				Reporter.showError(" The file contains not a session.");
          return;
       }
 
       ListExpr type = le.first();
 
       if (!type.isAtom() || !(type.atomType()==ListExpr.SYMBOL_ATOM) || !type.symbolValue().equals("session")){
-         Reporter.showError(" the file contains no session ");
+				Reporter.showError(" The file contains no session.");
          le.destroy();
          return;
       }
 
       le = le.rest();
       type.destroy();
+
+			if (ProjectionManager.readFromList(le.first())) { // try to restore
+																// ProjectionManager
+																// settings:
+				le = le.rest();
+			}
+
       Cats = new Vector(10, 5);
       String DirName = FC_Session.getCurrentDirectory().getAbsolutePath();
       Background background = Background.createFromListExpr(le.first(), DirName);

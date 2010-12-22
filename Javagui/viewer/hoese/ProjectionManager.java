@@ -23,6 +23,7 @@ import java.util.Properties;
 
 import project.Projection;
 import project.VoidProjection;
+import sj.lang.ListExpr;
 import tools.Reporter;
 
 
@@ -179,11 +180,44 @@ public class ProjectionManager {
 		return P.setProperties(prop);
    }
    
+	/**
+	 * Returns a nested list describing the current Projection setting.
+	 * 
+	 * @return Current settings in a nested list representation
+	 */
+	public static ListExpr toListExpr() {
+		return ListExpr.twoElemList(ListExpr.symbolAtom(KEY_PROJECTIONMANAGER),
+				ListExpr.fromProperties(getProperties()));
+	}
+
+	/**
+	 * Restores the Projection settings to the state represented by the nested
+	 * list
+	 * 
+	 * @param l
+	 *            Settings to restore in nested list representation
+	 * @return
+	 */
+	public static boolean readFromList(ListExpr l) {
+		boolean ok = false;
+		if ((l.listLength() == 2) && l.first().isAtom()
+				&& (l.first().atomType() == ListExpr.SYMBOL_ATOM)
+				&& (l.first().symbolValue().equals(KEY_PROJECTIONMANAGER))) {
+			Properties prop = new Properties();
+			ok = ListExpr.toProperties(l.second(), prop);
+			ok &= setProperties(prop);
+		} else {
+			P = new VoidProjection();
+		}
+		return ok;
+	}
+
    private static Projection P = new  VoidProjection();
 
    private static Projection VP = new VoidProjection();
    private static double EPSILON=0.00001;
    
+	private static final String KEY_PROJECTIONMANAGER = "PROJECTION_MANAGER";
 	private static final String KEY_PROJECTION_CLASS = "PROJECTION_CLASSNAME";
 	private static final String KEY_EPSILON = "PM_EPSILON";
 }
