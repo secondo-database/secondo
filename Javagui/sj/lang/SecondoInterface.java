@@ -37,10 +37,20 @@ level remains.
 
 package sj.lang;
 
-import java.net.*;
-import java.io.*;
+import java.io.BufferedInputStream;
+import java.io.BufferedOutputStream;
+import java.io.BufferedReader;
+import java.io.BufferedWriter;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.io.OutputStream;
+import java.net.Socket;
+import java.net.UnknownHostException;
 import java.util.StringTokenizer;
 import java.util.Vector;
+
 import tools.Reporter;
 
 /*
@@ -171,7 +181,7 @@ not accessible by the user code.
           try {
             line = inSocketStream.readLine();
         if(line==null){
-           Reporter.writeError("failed");
+							Reporter.writeError("Could not read data from server.");
            initialized = false;
            return false;
         }
@@ -185,7 +195,7 @@ not accessible by the user code.
 
               if(line==null){
                  initialized = false;
-                 Reporter.writeError("failed");
+								Reporter.writeError("Could not read data from server.");
                 return false;
               }
               if ( line.equals( "<SecondoIntro>" ) ) {
@@ -193,7 +203,7 @@ not accessible by the user code.
                   line = inSocketStream.readLine();
                   if(line==null){
                      initialized = false;
-                     Reporter.writeError("failed");
+										Reporter.writeError("Could not read data from server.");
                      return false;
                   } 
                   if ( !line.equals( "</SecondoIntro>" ) ) {
@@ -224,7 +234,7 @@ not accessible by the user code.
              initialized = false;
           }
         } else {
-          Reporter.writeError( "failed." );
+					Reporter.writeError("Connection to SecondoServer could not be established.");
           initialized = false;
         }
         if ( !initialized && serverSocket != null ) {

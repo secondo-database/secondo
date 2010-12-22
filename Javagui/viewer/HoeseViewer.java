@@ -2117,6 +2117,8 @@ public boolean canDisplay(SecondoObject o){
 			if (ProjectionManager.readFromList(le.first())) { // try to restore
 																// ProjectionManager
 																// settings:
+				PrjSelector.selectProjection(ProjectionManager
+						.getActualProjection());
 				le = le.rest();
 			}
 
@@ -2993,45 +2995,77 @@ public boolean canDisplay(SecondoObject o){
         Menu=M;
      }
 
-     public boolean addProjection(Projection P){
-        if(P==null) return false;
-        if(Projections.contains(P)) return false;
-  String Name = P.getName();
-  JCheckBoxMenuItem MI = new JCheckBoxMenuItem(Name);
-  Menu.add(MI);
-  if(Projections.size()==0){
-      MI.setState(true);
-      selectedIndex = 0;
-  }
+		private int indexOf(Projection p) {
+			String c = p.getClass().getName();
+			for (int i = 0; i < Projections.size(); i++) {
+				if (Projections.get(i).getClass().getName().equals(c)) {
+					return i;
+				}
+			}
+			return -1;
+		}
 
-  MI.addActionListener(this);
-  MenuItems.add(MI);
-  Projections.add(P);
-  return true;
+     public boolean addProjection(Projection P){
+			if (P == null) {
+				return false;
+			}
+			if (indexOf(P) >= 0) {
+				return false;
+			}
+			String Name = P.getName();
+			JCheckBoxMenuItem MI = new JCheckBoxMenuItem(Name);
+			Menu.add(MI);
+			if (Projections.size() == 0) {
+				MI.setState(true);
+				selectedIndex = 0;
+			}
+			MI.addActionListener(this);
+			MenuItems.add(MI);
+			Projections.add(P);
+			return true;
      }
+
+		public void selectProjection(Projection p) {
+			if (p == null) {
+				return;
+			}
+			addProjection(p); // be sure that this projection is available
+
+			// mark the correct item within the menu
+			if (selectedIndex >= 0) {
+				((JCheckBoxMenuItem) MenuItems.get(selectedIndex))
+						.setState(false);
+			}
+			selectedIndex = indexOf(p);
+			((JCheckBoxMenuItem) MenuItems.get(selectedIndex)).setState(true);
+		}
 
      public void actionPerformed(ActionEvent evt){
-        Object source = evt.getSource();
-  int index = MenuItems.indexOf(source);
-  if(index<0) return;
-  if(index==selectedIndex) return;
-
-
-  ProjectionManager.setProjection((Projection)Projections.get(index));
-  if(selectedIndex>=0)
-    ((JCheckBoxMenuItem)MenuItems.get(selectedIndex)).setState(false);
-        selectedIndex=index;
-  ((JCheckBoxMenuItem)source).setState(true);
+			Object source = evt.getSource();
+			int index = MenuItems.indexOf(source);
+			if (index < 0) {
+				return;
+			}
+			if (index == selectedIndex) {
+				return;
+			}
+			ProjectionManager.setProjection(Projections.get(index));
+			if (selectedIndex >= 0) {
+				((JCheckBoxMenuItem) MenuItems.get(selectedIndex))
+						.setState(false);
+			}
+			selectedIndex = index;
+			((JCheckBoxMenuItem) source).setState(true);
      }
 
-     private Vector Projections = new Vector();
+		private Vector<Projection> Projections = new Vector<Projection>();
      private Vector MenuItems = new Vector();
      private JMenu Menu;
      private int selectedIndex = -1;
   }
 
 
- class CreatePointSequenceListener extends MouseInputAdapter{
+	class CreatePointSequenceListener extends MouseInputAdapter {
 
     /** Will be called if an mouse click is performed.
       * This event is evaluated when the current mode is
@@ -3039,8 +3073,8 @@ public boolean canDisplay(SecondoObject o){
       * In all other modes. the new point is added to the current
       * point sequence.
       **/
-        public void mouseClicked(MouseEvent evt){
-          if(mode==RECTANGLE_MODE){
+		public void mouseClicked(MouseEvent evt) {
+			if (mode == RECTANGLE_MODE) {
              return;
           }
           if(evt.getButton()!=MouseEvent.BUTTON1)
@@ -3077,25 +3111,30 @@ public boolean canDisplay(SecondoObject o){
               }
           }
 
-           boolean repchanged = ps.add(x,y) || mode==FILLED_POINT_SEQUENCE_MODE ||
+			boolean repchanged = ps.add(x, y)
+					|| mode == FILLED_POINT_SEQUENCE_MODE
+					||
                                                mode==REGION_MODE;
-           GraphDisplay.paintAdditional(ps);
-           if(repchanged)
+			GraphDisplay.paintAdditional(ps);
+			if (repchanged) {
               GraphDisplay.repaint();
-           points.add(thePoint);
-           Graphics2D G = (Graphics2D)GraphDisplay.getGraphics();
-           Layer.draw(ps,G,CurrentState.ActualTime,CurrentState.transform);
-}
+			}
+			points.add(thePoint);
+			Graphics2D G = (Graphics2D) GraphDisplay.getGraphics();
+			Layer.draw(ps, G, CurrentState.ActualTime, CurrentState.transform);
+		}
 
       /** This function computes the coordinates in the 'world' from the
         * given mouse coordinates.
         **/
-      private boolean computeOrig(java.awt.Point orig, java.awt.geom.Point2D.Double result){
+		private boolean computeOrig(java.awt.Point orig,
+				java.awt.geom.Point2D.Double result) {
           // first compute the virtual screen coordinates
           Point2D.Double p = new Point2D.Double();
           try{
             p = (Point2D.Double) CurrentState.transform.inverseTransform(orig,p);
-          }catch(Exception e){}
+			} catch (Exception e) {
+			}
           double x = p.getX();
           double y = p.getY();
           return ProjectionManager.estimateOrig(x,y,result);
@@ -3103,12 +3142,13 @@ public boolean canDisplay(SecondoObject o){
 
      /** Sets the current point sequnce to be empty. And removes a rectangle if there is one.
        **/
-      public void reset(){
+		public void reset() {
           ps.reset();
           points=null;
           GraphDisplay.paintAdditional(null);
-          if(isPainted)
+			if (isPainted) {
               paintRectangle();
+			}
           rectangle_start=false;
           isPainted=false;
       }
@@ -3132,10 +3172,12 @@ public boolean canDisplay(SecondoObject o){
        * It starts the painting and creating of a single rectangle.
        */
       public void mousePressed(MouseEvent evt){
-         if(mode!=RECTANGLE_MODE)
+			if (mode != RECTANGLE_MODE) {
            return;
-         if(evt.getButton()!=MouseEvent.BUTTON1)
+			}
+			if (evt.getButton() != MouseEvent.BUTTON1) {
            return;
+			}
          x1 = evt.getX();
          y1 = evt.getY();
          rectangle_start=true;
@@ -3149,22 +3191,27 @@ public boolean canDisplay(SecondoObject o){
         * database.
         */
       public void mouseReleased(MouseEvent evt){
-         if(mode!=RECTANGLE_MODE)
+			if (mode != RECTANGLE_MODE) {
             return;
-         if(evt.getButton()!=MouseEvent.BUTTON1)
+			}
+			if (evt.getButton() != MouseEvent.BUTTON1) {
             return;
-         if(!rectangle_start)
+			}
+			if (!rectangle_start) {
             return;
+			}
 
-         if(isPainted)
-           paintRectangle();
+         if (isPainted) {
+				paintRectangle();
+			}
          isPainted=false;
          x2 = evt.getX();
          y2 = evt.getY();
          rectangle_start=false;
          // ask for the object name
-         if(x1==x2 || y1==y2) // not a rectangle
+			if (x1 == x2 || y1 == y2) {// not a rectangle
             return;
+			}
          String Name=getNameFromUser();
          if(Name!=null){
               Point p1 = new Point(Math.min(x1,x2),Math.min(y1,y2));
@@ -3197,12 +3244,15 @@ public boolean canDisplay(SecondoObject o){
         * coordinates will be drawn.
         */
       public void mouseDragged(MouseEvent evt){
-          if(mode!=RECTANGLE_MODE)
+			if (mode != RECTANGLE_MODE) {
               return;
-          if(!rectangle_start)
+			}
+			if (!rectangle_start) {
               return;
-          if(isPainted)
+			}
+			if (isPainted) {
               paintRectangle();
+			}
           x2 = evt.getX();
           y2 = evt.getY();
           paintRectangle();
@@ -3211,13 +3261,13 @@ public boolean canDisplay(SecondoObject o){
 
       /** Paints a rectangle in XOR mode from the current coordinates. */
       private void paintRectangle(){
-         Graphics2D G = (Graphics2D) GraphDisplay.getGraphics();
+			Graphics2D G = (Graphics2D) GraphDisplay.getGraphics();
           G.setXORMode(Color.white);
-         int x = Math.min(x1,x2);
-         int w = Math.abs(x1-x2);
-         int y = Math.min(y1,y2);
-         int h= Math.abs(y1-y2);
-         G.drawRect(x,y,w,h);
+			int x = Math.min(x1, x2);
+			int w = Math.abs(x1 - x2);
+			int y = Math.min(y1, y2);
+			int h = Math.abs(y1 - y2);
+			G.drawRect(x, y, w, h);
       }
 
 
@@ -3228,10 +3278,12 @@ public boolean canDisplay(SecondoObject o){
        private boolean isPolygon(Vector points){
            // in the pointvector cannot be intersection segments
            int size = points.size();
-           if(size<3)
+			if (size < 3) {
               return false;
-           if(haveIntersections(points,(Point2D.Double)points.get(0)))
+			}
+			if (haveIntersections(points, (Point2D.Double) points.get(0))) {
               return false;
+			}
            // missing check for building a region (points not on a single segment
            return true;
        }
@@ -3242,8 +3294,9 @@ public boolean canDisplay(SecondoObject o){
          **/
        private boolean haveIntersections(Vector points, Point2D.Double p){
             int size = points.size();
-            if(size<2) // no segments in points
+			if (size < 2) {// no segments in points
                return false;
+			}
             Point2D.Double p1 = (Point2D.Double) points.get(size-1);
             Point2D.Double p2;
             // create the line from the last point to the new point
@@ -3252,8 +3305,9 @@ public boolean canDisplay(SecondoObject o){
             p1 = (Point2D.Double) points.get(0);
             for(int i=1;i<points.size()-1;i++){
                p2 = (Point2D.Double)points.get(i);
-               if(line.intersectsLine(p1.x,p1.y,p2.x,p2.y))
+				if (line.intersectsLine(p1.x, p1.y, p2.x, p2.y)) {
                   return true;
+				}
                p1 = p2;
             }
             return false;
@@ -3268,8 +3322,9 @@ public boolean canDisplay(SecondoObject o){
         * this method will be have no effect.
         **/
       public void closeSequence(){
-         if(mode==RECTANGLE_MODE || mode==POINT_MODE)
+			if (mode == RECTANGLE_MODE || mode == POINT_MODE) {
              return;
+			}
          if(points!=null){ // points are available
             ListExpr value=new ListExpr();
             ListExpr last=null;
@@ -3317,7 +3372,7 @@ public boolean canDisplay(SecondoObject o){
                              value = ListExpr.oneElemList(Segment);
                              last  = value;
                              first = false;
-                         } else{
+								} else {
                            last = ListExpr.append(last,Segment);
                          }
 
@@ -3363,14 +3418,15 @@ public boolean canDisplay(SecondoObject o){
           ListExpr resultList = ListExpr.theEmptyList();
            StringBuffer errorMessage= new StringBuffer();
           if(!VC.execCommand(cmd,errorCode,resultList,errorMessage)){
-               Reporter.showError("Error in storing pointsequence\n"+
+					Reporter.showError("Error in storing pointsequence\n"
+							+
                                         sj.lang.ServerErrorCodes.getErrorMessageText(errorCode.value)+"\n"+
                                         errorMessage);
-                return false;
+					return false;
           }
           return true;
         }
-          return false;
+			return false;
       }
 
 
@@ -3388,18 +3444,24 @@ public boolean canDisplay(SecondoObject o){
       public void setMode(int mode){
          if(mode>=0 && mode<7 ){
              this.mode=mode;
-             if(mode==POINT_SEQUENCE_MODE)
+				if (mode == POINT_SEQUENCE_MODE) {
                 ps.setPaintMode(Dsplpointsequence.LINE_MODE);
-             if(mode==FILLED_POINT_SEQUENCE_MODE)
+				}
+				if (mode == FILLED_POINT_SEQUENCE_MODE) {
                 ps.setPaintMode(Dsplpointsequence.AREA_MODE);
-             if(mode==POINTS_MODE)
+				}
+				if (mode == POINTS_MODE) {
                 ps.setPaintMode(Dsplpointsequence.POINTS_MODE);
-             if(mode==LINE_MODE)
+				}
+				if (mode == LINE_MODE) {
                 ps.setPaintMode(Dsplpointsequence.LINE_MODE);
-             if(mode==POINT_MODE)
+				}
+				if (mode == POINT_MODE) {
                 ps.setPaintMode(Dsplpointsequence.POINTS_MODE);
-             if(mode==REGION_MODE)
+				}
+				if (mode == REGION_MODE) {
                 ps.setPaintMode(Dsplpointsequence.AREA_MODE);
+				}
          }
       }
 

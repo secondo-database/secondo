@@ -140,7 +140,7 @@ public abstract class Background {
 	public void setConfiguration(Properties p, String backgrounddatapath) {
 		String n = p.getProperty(KEY_NAME);
 		if (n == null) {
-			Reporter.writeError("Could not set Background property: "
+			Reporter.writeWarning("Could not set Background property: "
 					+ KEY_NAME + " not found).");
 			name = "Unnamed " + this.getClass().getName();
 		} else {
@@ -148,7 +148,7 @@ public abstract class Background {
 		}
 		n = p.getProperty(KEY_LICENSE);
 		if (n == null) {
-			Reporter.writeError("Could not set Background property: "
+			Reporter.writeWarning("Could not set Background property: "
 					+ KEY_LICENSE + " not found).");
 			n = "";
 		} else {
@@ -156,7 +156,7 @@ public abstract class Background {
 		}
 		n = p.getProperty(KEY_BBOX);
 		if (n == null) {
-			Reporter.writeError("Could not set Background property: "
+			Reporter.writeWarning("Could not set Background property: "
 					+ KEY_BBOX + " not found).");
 			bbox = null;
 		} else {
