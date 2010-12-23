@@ -1156,7 +1156,7 @@ Building S.Part of outerRelation.
 
 */
           FlushLeavesOverflowed(leavesOverflowed, hdr.outerEntry,
-                               dr.outerRelPart, hdr.outerRelInfo);
+                               hdr.outerRelPart, hdr.outerRelInfo);
 
           Tuple* innerTuple =
             ((TupleBuffer*)hdr.innerRelation)->
