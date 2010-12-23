@@ -800,7 +800,7 @@ class shpLInfo{
     }
 
     bool writeHeader(uint32_t type){
-       file.open((baseName + ".shp").c_str(),
+       file.open((baseName ).c_str(),
                   ios::out | ios::trunc | ios_base::binary);
        if(!file.good()){
          return false;
@@ -1422,6 +1422,114 @@ ListExpr shptypeTM(ListExpr args){
 
 */
 
+/*
+This function retrieves the type of a
+
+*/
+string getShpType(const string fname, bool& correct, string& errorMessage){
+  correct = false;
+  if(fname.length()==0){
+     errorMessage = "invalid filename";
+     return "";
+  }
+
+  ifstream f(fname.c_str(),std::ios::binary);
+  if(!f.good()){
+     errorMessage = "problem in reading file";
+     return "";
+  }
+
+  f.seekg(0,ios::end);
+  streampos flen = f.tellg();
+  if(flen < 100){
+     errorMessage =  "not a valid shape file";
+     f.close();
+     return "";
+  }
+
+
+  f.seekg(0,ios::beg);
+  uint32_t code = 0;
+  f.read(reinterpret_cast<char*>(&code),4);
+  if(WinUnix::isLittleEndian()){
+     code = WinUnix::convertEndian(code);
+  }
+  if(code!=9994){
+     errorMessage = "invalid file code  detected";
+     f.close();
+     return "";
+  }
+
+  uint32_t version;
+  f.seekg(28,ios::beg);
+  f.read(reinterpret_cast<char*>(&version),4);
+  if(!WinUnix::isLittleEndian()){
+      version = WinUnix::convertEndian(version);
+  }
+  if(version != 1000){
+    errorMessage = "invalid version detected";
+    f.close();
+    return "";
+  }
+  uint32_t type;
+  f.read(reinterpret_cast<char*>(&type),4);
+  if(!WinUnix::isLittleEndian()){
+    type = WinUnix::convertEndian(type);
+  }
+  f.close();
+
+  switch(type){
+    case 0 : { errorMessage = "null shape, no corresponding secondo type";
+               return "";
+             }
+    case 1 : { correct = true;
+               return "point";
+             }
+    case 3 : { correct = true;
+               return "line";
+             }
+    case 5 : { correct = true;
+               return "region";
+             }
+    case 8 : { correct = true;
+               return "points";
+             }
+    case 11 : { errorMessage = "PointZ, no corresponding secondo type";
+               return "";
+             }
+    case 13 : { errorMessage = ("PolyLineZ, no corresponding secondo type");
+               return "";
+             }
+    case 15 : { errorMessage = ("PolygonZ, no corresponding secondo type");
+               return "";
+             }
+    case 18 : { errorMessage=("MultiPointZ, no corresponding secondo type");
+               return "";
+             }
+    case 21 : { errorMessage=("PointM, no corresponding secondo type");
+               return "";
+             }
+    case 23 : { errorMessage =("PolyLineM, no corresponding secondo type");
+               return "";
+             }
+    case 25 : {errorMessage=("PolygonM, no corresponding secondo type");
+               return "";
+             }
+    case 28 : { errorMessage=("MultiPointM, no corresponding secondo type");
+               return "";
+             }
+    case 31 : { errorMessage = ("MultiPatch, no corresponding secondo type");
+               return "";
+             }
+    default : errorMessage = " not a valid shape type";
+              return "";
+  }
+
+}
+
+
+
+
 int shptypeVM(Word* args, Word& result,
             int message, Word& local, Supplier s){
 
@@ -1432,96 +1540,20 @@ int shptypeVM(Word* args, Word& result,
      res->Set(false,"");
      return 0;
   }
-  string fname = FN->GetValue();
-  if(fname.length()==0){
-     res->Set(true,"invalid filename");
-     return 0;
-  }
-  ifstream f(fname.c_str(),std::ios::binary);
-  if(!f.good()){
-     res->Set(true,"problem in reading file");
-     return 0;
-  }
-  f.seekg(0,ios::end);
-  streampos flen = f.tellg();
-  if(flen < 100){
-     res->Set(true,"not a valid shape file");
-     return 0;
-  }
-  f.seekg(0,ios::beg);
-  uint32_t code = 0;
-  f.read(reinterpret_cast<char*>(&code),4);
-  if(WinUnix::isLittleEndian()){
-     code = WinUnix::convertEndian(code);
-  }
-  if(code!=9994){
-     res->Set(true,"invalid file code  detected");
-     return 0;
-  }
-
-  uint32_t version;
-  f.seekg(28,ios::beg);
-  f.read(reinterpret_cast<char*>(&version),4);
-  if(!WinUnix::isLittleEndian()){
-      version = WinUnix::convertEndian(version);
-  }
-  if(version != 1000){
-    res->Set("invalid version detected");
+  bool correct;
+  string shpType;
+  string errMsg;
+  shpType = getShpType(FN->GetValue(), correct, errMsg);
+  if(!correct){
+    res->Set(true, errMsg);
     return 0;
   }
-  uint32_t type;
-  f.read(reinterpret_cast<char*>(&type),4);
-  if(!WinUnix::isLittleEndian()){
-    type = WinUnix::convertEndian(type);
+  string value = "()";
+  if(shpType=="point"){
+    value = "(0 0)";
   }
-  f.close();
-
-  switch(type){
-    case 0 : { res->Set("null shape, no corresponding secondo type");
-               return 0;
-             }
-    case 1 : { res->Set(true,"[const point value (0 0)]");
-               return 0;
-             }
-    case 3 : { res->Set(true,"[const line value ()]");
-               return 0;
-             }
-    case 5 : { res->Set(true,"[const region value ()]");
-               return 0;
-             }
-    case 8 : { res->Set(true,"[const points value ()]");
-               return 0;
-             }
-    case 11 : { res->Set("PointZ, no corresponding secondo type");
-               return 0;
-             }
-    case 13 : { res->Set("PolyLineZ, no corresponding secondo type");
-               return 0;
-             }
-    case 15 : { res->Set("PolygonZ, no corresponding secondo type");
-               return 0;
-             }
-    case 18 : { res->Set("MultiPointZ, no corresponding secondo type");
-               return 0;
-             }
-    case 21 : { res->Set("PointM, no corresponding secondo type");
-               return 0;
-             }
-    case 23 : { res->Set("PolyLineM, no corresponding secondo type");
-               return 0;
-             }
-    case 25 : { res->Set("PolygonM, no corresponding secondo type");
-               return 0;
-             }
-    case 28 : { res->Set("MultiPointM, no corresponding secondo type");
-               return 0;
-             }
-    case 31 : { res->Set("MultiPatch, no corresponding secondo type");
-               return 0;
-             }
-    default : res->Set("true, not a valid shape type");
-              return 0;
-  }
+  res->Set(true, "[const "+shpType+" value "+value+"]");
+  return 0;
 }
 
 /*
@@ -1598,13 +1630,24 @@ class shpimportInfo{
 
  public:
 
-   shpimportInfo(int allowedType, FText* fname){
+   shpimportInfo( const ListExpr allowedType1, const FText* fname){
+      int allowedType = -1;
+      if(listutils::isSymbol(allowedType1,"point")){
+           allowedType=1;
+       } else  if(listutils::isSymbol(allowedType1,"line")){
+           allowedType=3;
+       } else  if(listutils::isSymbol(allowedType1,"region")){
+           allowedType=5;
+       } else  if(listutils::isSymbol(allowedType1,"points")){
+           allowedType=8;
+       }
+
 
      if(!fname->IsDefined()){
        defined = false;
      } else {
        defined = true;
-       string name = fname->GetValue()+".shp";
+       string name = fname->GetValue();
        file.open(name.c_str(),ios::binary);
        if(!file.good()){
          defined = false;
@@ -2152,17 +2195,24 @@ void removeDeadEnd(DbArray<HalfSegment>* segments,
 
 
 
-template<int type>
+template<int filePos>
 int shpimportVM(Word* args, Word& result,
             int message, Word& local, Supplier s){
 
    switch(message){
      case OPEN: {
-       FText* fname = static_cast<FText*>(args[1].addr);
+       if(local.addr){
+          delete (shpimportInfo*)local.addr;
+       }
+       FText* fname = static_cast<FText*>(args[filePos].addr);
+       ListExpr type = nl->Second(qp->GetType(s));
        local.setAddr(new shpimportInfo(type,fname));
        return 0;
      }
      case REQUEST: {
+       if(!local.addr){
+          return CANCEL;
+       }
        shpimportInfo* info = static_cast<shpimportInfo*>(local.addr);
        if(!info){
          return CANCEL;
@@ -2200,38 +2250,78 @@ const string shpimportSpec  =
     ") )";
 
 /*
-5.4 Value Mapping Array
-
-*/
-
-ValueMapping shpimportmap[] =
-{  shpimportVM<1>, shpimportVM<3>,
-   shpimportVM<5>, shpimportVM<8>};
-
-/*
-5.5. Selection Function
-
-*/
-int shpimportSelect( ListExpr args )
-{
-  string st = nl->SymbolValue(nl->First(args));
-  if(st =="point") return 0;
-  if(st =="line") return 1;
-  if(st== "region") return 2;
-  if(st== "points") return 3;
-  return -1;
-}
-
-/*
 5.6 Operator instance
 
 */
 Operator shpimport( "shpimport",
                     shpimportSpec,
-                    4,
-                    shpimportmap,
-                    shpimportSelect,
+                    shpimportVM<1>,
+                    Operator::SimpleSelect,
                     shpimportTM);
+
+
+/*
+6 Operator shpimport2
+
+imports a shape file without given the type directly.
+
+*/
+ListExpr shpimport2TM(ListExpr args){
+   if(nl->ListLength(args)!=1){
+      return listutils::typeError("one argument expected");
+   }
+   ListExpr arg = nl->First(args);
+   ListExpr type = nl->First(arg);
+   ListExpr value = nl->Second(arg);
+
+   if(!listutils::isSymbol(type,"text")){
+       return listutils::typeError("text expected");
+   }
+
+   // get the value if possible
+
+   Word res;
+   bool success = QueryProcessor::ExecuteQuery(nl->ToString(value),res);
+   if(!success){
+     return listutils::typeError("could not evaluate the value of  " + 
+                                  nl->ToString(value) );
+   }
+
+   FText* resText = static_cast<FText*>(res.addr);
+
+   string name = resText->GetValue();
+
+   string shpType;
+   bool correct;
+   string errmsg;
+
+   shpType = getShpType(name, correct, errmsg);
+   if(!correct){
+      return listutils::typeError(errmsg);
+   }
+   return nl->TwoElemList(nl->SymbolAtom("stream"), nl->SymbolAtom(shpType));
+}
+
+
+
+const string shpimport2Spec  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+    "( <text> text -> stream(s), s in {point, points, line, region}</text--->"
+    "<text> shpimport2(_) </text--->"
+    "<text> produces a stream of spatial objects from a shapefile</text--->"
+    "<text> query shpimport2('kinos.shp') count</text--->"
+    ") )";
+
+
+/*
+5.6 Operator instance
+
+*/
+Operator shpimport2( "shpimport2",
+                    shpimport2Spec,
+                    shpimportVM<0>,
+                    Operator::SimpleSelect,
+                    shpimport2TM);
 
 
 
@@ -2394,8 +2484,6 @@ int dbtypeVM(Word* args, Word& result,
 
 
   string name = arg->GetValue();
-
-  cout << "retrieve type for file " << name << endl;;
 
   bool correct;
   string errorMessage = "";
@@ -2824,7 +2912,7 @@ int dbimportVM(Word* args, Word& result,
 
   switch(message){
     case OPEN: {
-      ListExpr type = qp->GetType(qp->GetSon(s,0));
+      ListExpr type = qp->GetType(s);
       FText* fname = static_cast<FText*>(args[1].addr);
       local.setAddr(new DbimportInfo(type,fname));
       return 0;
@@ -4531,6 +4619,8 @@ public:
     AddOperator( &db3export );
     AddOperator( &shptype );
     AddOperator( &shpimport );
+    AddOperator( &shpimport2 );
+    shpimport2.SetUsesArgsInTypeMapping();
     AddOperator( &dbtype );
     AddOperator( &dbimport);
     AddOperator( &dbimport2);
