@@ -37,7 +37,7 @@ Result    : 10
 Operator : db3export
 Number   : 1
 Signature: stream(tuple) x text -> stream(tuple)
-Example  : query intstream(1,10) transformstream db3export['ten'] count
+Example  : query intstream(1,10) transformstream db3export['ten.dbf'] count
 Result   : 10
 
 
@@ -45,15 +45,20 @@ Operator : dbtype
 Number   : 1
 Signature: text -> text
 Example  : query dbtype('ten.dbf')
-Result   : '[const rel(tuple([elem : int ] )) value ()]'
+Result   : '[const rel(tuple([elem : int])) value ()]'
 
 
 Operator : dbimport
 Number   : 1
 Signature: rel(tuple(...)) x text  -> stream(tuple(...))
-Example  : query  [const rel(tuple([elem : int ] )) value ()] dbimport['ten'] count
+Example  : query  [const rel(tuple([elem : int ] )) value ()] dbimport['ten.dbf'] count
 Result   : 10
 
+Operator : dbimport2
+Number   : 1
+Signature: text  -> stream(tuple(...))
+Example  : query  dbimport2('ten.dbf') count
+Result   : 10
 
 Operator : shpexport
 Number   : 1

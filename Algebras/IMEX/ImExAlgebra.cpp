@@ -1141,7 +1141,7 @@ public:
           return;
       }
       // open the file
-      f.open((this->fname+".dbf").c_str(),
+      f.open((this->fname).c_str(),
               ios::out | ios::trunc | ios::binary);
 
       if(!f.good()){
@@ -2257,74 +2257,74 @@ ListExpr dbtypeTM(ListExpr args){
 
 */
 
-int dbtypeVM(Word* args, Word& result,
-            int message, Word& local, Supplier s){
+ListExpr getDBAttrList(string name, bool& correct, string& errorMessage){
 
-  FText* arg = static_cast<FText*>(args[0].addr);
-  result = qp->ResultStorage(s);
-  FText* res = static_cast<FText*>(result.addr);
-  if(!arg->IsDefined()){
-     res->SetDefined(false);
-     return 0;
-  }
   ifstream f;
-  string name = arg->GetValue();
+  correct = true;
   f.open(name.c_str(),ios::binary);
   if(!f.good()){
-     res->Set(true, "Cannot open file");
-     return 0;
+     errorMessage="could not open file";
+     correct = false;
+     return listutils::typeError();
   }
+
   unsigned char code= 0;
   f.read(reinterpret_cast<char*>(&code),1);
   if(code!=0x03 && code!=0x83){
      f.close();
-     res->Set(true,"Not a DBase III file");
-     return 0;
+     errorMessage = "Not a DBase III file";
+     correct = false;
+     return listutils::typeError();
   }
   if(!f.good()){
-    res->Set(true , "problem in reading file");
-    return 0;
+    errorMessage = "problem in reading file";
+    correct = false;
+    return listutils::typeError();
   }
   f.seekg(8,ios::beg);
 
   if(!f.good()){
-    res->Set(true , "problem in reading file");
-    return 0;
+    errorMessage = "problem in reading file";
+    correct = false;
+    return listutils::typeError();
   }
 
   uint16_t headerlength;
   f.read(reinterpret_cast<char*>(&headerlength),2);
-
-  cout << "length =" << headerlength << endl;
 
   if(!WinUnix::isLittleEndian()){
      headerlength = WinUnix::convertEndian(headerlength);
   }
   int check = (headerlength-1) % 32;
   if(check!=0){
-     res->Set(true,"wrong headerlength");
+    errorMessage = "wrong header length";
+    correct = false;
      f.close();
-     return 0;
+    return listutils::typeError();
   }
   if(!f.good()){
-      res->Set(true,"Error in reading file");
-      f.close();
-      return 0;
+    errorMessage = "problem in reading file";
+    f.close();
+    correct = false;
+    return listutils::typeError();
   }
-  cerr << "HeaderLength = " << headerlength << endl;
   int noRecords = (headerlength-32) / 32;
 
-  cerr << "noRecord " << noRecords << endl;
+  
+
   f.seekg(0,ios::end);
   if(f.tellg() < headerlength){
-      res->Set(true,"invalid filesize");
-      f.close();
-      return 0;
+    errorMessage = "invalid filesize";
+    correct = false;
+    f.close();
+    return listutils::typeError();
   }
+
   f.seekg(32,ios::beg);
   char buffer[32];
-  stringstream attrList;
-  attrList << "[";
+
+  ListExpr attrList;
+  ListExpr last;
   for(int i=0;i<noRecords;i++){
      f.read(buffer,32);
      stringstream ns;
@@ -2360,23 +2360,73 @@ int dbtypeVM(Word* args, Word& result,
          break;
       }
       default : {
-         res->Set(true,"unknown type ");
+         errorMessage = "unknown type ";
          f.close();
-         return 0;
+         correct = false;
+         return listutils::typeError();
       }
      }
-     if(i>0){
-       attrList << ",";
-     }
-     attrList << name << " : " << type ;
+     ListExpr attr = nl->TwoElemList(nl->SymbolAtom(name), 
+                                     nl->SymbolAtom(type));
+     if(i==0){ // first elem
+       attrList = nl->OneElemList(attr);
+       last = attrList;
+     } else {
+        last = nl->Append(last,attr);
+    }
   }
   f.close();
-  attrList << " ] ";
-  attrList.flush();
-  string val = string("[const rel(tuple(") +
-               attrList.str() +
-               string(")) value ()]");
-  res->Set(true, val);
+  return attrList;
+}
+
+
+
+int dbtypeVM(Word* args, Word& result,
+            int message, Word& local, Supplier s){
+
+  FText* arg = static_cast<FText*>(args[0].addr);
+  result = qp->ResultStorage(s);
+  FText* res = static_cast<FText*>(result.addr);
+  if(!arg->IsDefined()){
+     res->SetDefined(false);
+     return 0;
+  }
+
+
+  string name = arg->GetValue();
+
+  cout << "retrieve type for file " << name << endl;;
+
+  bool correct;
+  string errorMessage = "";
+  ListExpr attrList = getDBAttrList(name, correct, errorMessage);
+
+  
+
+  if(!correct){
+     res->SetDefined(false);
+     cout << errorMessage;
+     return 0;
+  }
+
+  stringstream resstr;
+  resstr << "[const rel(tuple([";
+  bool first = true;
+  while(!nl->IsEmpty(attrList)){
+     ListExpr a = nl->First(attrList);
+     if(!first){
+        resstr << ", ";
+     }
+     resstr << nl->SymbolValue(nl->First(a));
+     resstr << " : ";
+     resstr << nl->SymbolValue(nl->Second(a));
+     attrList = nl->Rest(attrList);
+     first = false;
+  }
+  resstr << "])) value ()]";
+ 
+  resstr.flush();
+  res->Set(true, resstr.str());
   return 0;
 }
 
@@ -2477,7 +2527,7 @@ public:
         return;
      }
      name = fname->GetValue();
-     file.open((name+".dbf").c_str(),ios::binary);
+     file.open((name).c_str(),ios::binary);
      if(!file.good()) {
         cerr << "error in reading file" << endl;
         defined = false;
@@ -2814,6 +2864,125 @@ Operator dbimport( "dbimport",
                    Operator::SimpleSelect,
                    dbimportTM);
 
+
+
+
+/*
+8 Operator db3import2
+
+This variant of the db3import operator combines the dbtype and the 
+dbimport operator to a single operator. It exploits a new feature of
+secondo, namely accessing values of constant expressions within type mappings
+not available during the implementation of db3type and db3import.
+
+*/
+
+/*
+8.1 Value Mapping
+
+
+The value mapping of this function is text -> stream(tuple(....)) 
+
+The tuple type depends on the content of the file specified by the text.
+If the file does not reprensent a valid db3 file, the result will be 
+a typeerror.
+
+*/
+ListExpr dbimport2TM(ListExpr args){
+   if(nl->ListLength(args)!=1){
+      return listutils::typeError("one argument expected");
+   }
+
+   ListExpr arg = nl->First(args);
+   // the format must be (text value)
+   // where values represents the value of the text as 
+   // query expression
+   if(nl->ListLength(arg)!=2){
+      return listutils::typeError("internal error");
+   }
+
+   if(!listutils::isSymbol(nl->First(arg), FText::BasicType())){
+       return listutils::typeError("the argument must be of type text");
+   }
+
+   ListExpr value = nl->Second(arg);
+
+   Word res;
+   bool success = QueryProcessor::ExecuteQuery(nl->ToString(value),res);
+   if(!success){
+     return listutils::typeError("could not evaluate the value of text");
+   }
+
+   FText* resText = static_cast<FText*>(res.addr);
+
+   string name = resText->GetValue();
+   resText->DeleteIfAllowed();
+   resText = 0;
+   bool correct;
+   string errMsg="";
+   ListExpr attrList = getDBAttrList(name,correct, errMsg);
+   if(!correct){
+       return listutils::typeError(errMsg);
+   }   
+   return nl->TwoElemList(nl->SymbolAtom("stream"),
+                   nl->TwoElemList(nl->SymbolAtom("tuple"), attrList));
+
+
+}
+
+
+const string dbimport2Spec  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+    "( <text> text -> stream (tuple(...))</text--->"
+    "<text>  dbimport2(filename) </text--->"
+    "<text> returns the content of the file as a stream </text--->"
+    "<text> </text--->"
+    ") )";
+
+
+
+int dbimport2VM(Word* args, Word& result,
+               int message, Word& local, Supplier s){
+
+  switch(message){
+    case OPEN: {
+      ListExpr type = qp->GetType(s);
+      FText* fname = static_cast<FText*>(args[0].addr);
+      local.setAddr(new DbimportInfo(type,fname));
+      return 0;
+    }
+    case REQUEST: {
+      DbimportInfo* info = static_cast<DbimportInfo*>(local.addr);
+      if(!info){
+        return CANCEL;
+      } else {
+        Tuple* tuple = info->getNext();
+        result.addr = tuple;
+        return tuple==0?CANCEL:YIELD;
+      }
+    }
+    case CLOSE: {
+      DbimportInfo* info = static_cast<DbimportInfo*>(local.addr);
+      if(info){
+        info->close();
+        delete info;
+        local.addr=0;
+      }
+
+    }
+    default: {
+     return 0;
+    }
+  }
+}
+
+
+
+Operator dbimport2( "dbimport2",
+                   dbimport2Spec,
+                   dbimport2VM,
+                   Operator::SimpleSelect,
+                   dbimport2TM);
 
 
 /*
@@ -4364,6 +4533,8 @@ public:
     AddOperator( &shpimport );
     AddOperator( &dbtype );
     AddOperator( &dbimport);
+    AddOperator( &dbimport2);
+    dbimport2.SetUsesArgsInTypeMapping();
     AddOperator( &saveObject);
     AddOperator( &csvimport);
     AddOperator( &isFile);
