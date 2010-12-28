@@ -466,8 +466,8 @@ Result   : 16
 
 Operator : thedoor
 Number   : 1
-Signature: genrange x genrange x mbool x bool -> door3d
-Example  : query type_of_door(thedoor(gr1,gr2,doorstate,FALSE));
+Signature: int x line x int x line x mbool x bool -> door3d
+Example  : query type_of_door(thedoor(1,l1,2,l3,doorstate,FALSE));
 Result   : FALSE
 
 Operator : type_of_door
@@ -476,10 +476,16 @@ Signature: door3d -> bool
 Example  : query type_of_door(door1);
 Result   : FALSE
 
+Operator : oid_of_door
+Number   : 1
+Signature: door3d x int -> int
+Example  : query oid_of_door(door1,1);
+Result   : 1
+
 
 Operator : loc_of_door
 Number   : 1
-Signature: door3d x int -> genrange 
+Signature: door3d x int -> line 
 Example  : query loc_of_door(door1,1);
 Result   : (1 ((5.93 4.42 7.53 4.37)))
 
@@ -490,6 +496,54 @@ Example  : query no_components(state_of_door(door1));
 Result   : 1
 
 
+Operator : get_floor
+Number   : 1
+Signature: groom x int -> floor3d
+Example  : query get_height(get_floor(groom1, 0));
+Result   : 2.0
+
+Operator : add_height_groom
+Number   : 1
+Signature: groom x real -> groom
+Example  : query get_height(get_floor(add_height_groom(groom1, 3.0),0));
+Result   : 2.0
+
+
+Operator : translate_groom
+Number   : 1
+Signature: groom x real x real -> groom
+Example  : query get_height(get_floor(groom1 translate_groom [2.0, 0.0]),0);
+Result   : 2.0
+
+
+Operator : createdoorbox
+Number   : 1
+Signature: rel -> (stream(((x1 t1) ... (xn tn))))
+Example  : query createdoorbox(university) count;
+Result   : 300
+
+
+Operator : createdoor
+Number   : 1
+Signature: rel1 x rel2 x rtree x attr1 x attr2 x attr3 -> (stream(((x1 t1) ... (xn tn))))
+Example  : query createdoor(university,box3d_rel,rtree_box3d,groom_oid,groom_tid,Box3d) count;
+Result   : 300
+
+
+Operator : createadjdoor
+Number   : 1
+Signature: rel1 x rel2 x btree x attr1 x attr2 x attr3 x attr4 -> (stream(((x1 t1) ... (xn tn))))
+Example  : query createadjdoor(building_uni,node_rel,btree,Door,door_loc,groom_oid1,doorheight) count;
+Result   : 300
+
+
+Operator : path_in_region 
+Number   : 1
+Signature: region x point x point -> line 
+Example  : query size(path_in_region(reg1, p1, p2));
+Result   : 25.0 
+
+
 Operator : instant2day 
 Number   : 1
 Signature: instant -> int
@@ -497,3 +551,8 @@ Example  : query instant2day(theInstant(2007,6,3,9,0,0,0));
 Result   : 3989
 
  
+Operator : ref_id
+Number   : 1
+Signature: genloc -> int
+Example  : query ref_id([const genloc value (1 (5.0 4.42 ))]);
+Result   : 1

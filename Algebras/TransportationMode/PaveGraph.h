@@ -70,6 +70,58 @@ May, 2010 Jianqiu xu
 
 static const float EPSILON=0.0000000001f;
 
+/*
+structure for shortest path searching in a polygon
+the graph is build the decomposed triangles.
+it finds the path with minimum number of triangles connecting the start point
+and the end point
+
+*/
+struct Path_elem{
+  int prev_index;//previous in expansion list
+  int cur_index; //current entry  in expansion list
+  int tri_index; //object id
+  Path_elem(){}
+  Path_elem(int p, int c, int t):prev_index(p), cur_index(c),
+                   tri_index(t){}
+  Path_elem(const Path_elem& pe):prev_index(pe.prev_index),
+                  cur_index(pe.cur_index), tri_index(pe.tri_index){}
+  Path_elem& operator=(const Path_elem& pe)
+  {
+//    cout<<"Path_elem ="<<endl;
+    prev_index = pe.prev_index;
+    cur_index = pe.cur_index;
+    tri_index = pe.tri_index;
+    return *this;
+  }
+
+};
+
+struct SPath_elem:public Path_elem{
+  unsigned int weight;
+  SPath_elem(){}
+  SPath_elem(int p, int c, int t, int w):Path_elem(p, c, t), weight(w){}
+  SPath_elem(const SPath_elem& se):Path_elem(se),
+                       weight(se.weight){}
+  SPath_elem& operator=(const SPath_elem& se)
+  {
+//    cout<<"SPath_elem ="<<endl;
+    Path_elem::operator=(se);
+    weight = se.weight;
+    return *this;
+  }
+  bool operator<(const SPath_elem& se) const
+  {
+    return weight > se.weight;
+  }
+
+  void Print()
+  {
+    cout<<"prev "<<prev_index<<" cur "<<cur_index
+        <<"tri_index" <<tri_index<<" weight "<<weight<<endl;
+  }
+};
+
 struct RPoint;
 struct CompTriangle{
   Region* reg;

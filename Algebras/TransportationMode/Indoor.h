@@ -35,11 +35,6 @@ Oct. 2010 Jianqiu Xu Move from IndoorAlgebra to Transportation Mode Algebra
 
 1 Overview
 
-This header file essentially contains the definition of the classes ~Point~,
-~Points~, ~Line~, and ~Region~ used in the Spatial Algebra. These classes
-respectively correspond to the memory representation for the type constructors
-~point~, ~points~, ~line~, and ~region~.  Figure \cite{fig:spatialdatatypes.eps}
-shows examples of these spatial data types.
 
 2 Defines and includes
 
@@ -61,11 +56,34 @@ shows examples of these spatial data types.
 #include "../Spatial/SpatialAlgebra.h"
 #include "../Temporal/TemporalAlgebra.h"
 
+
+#include "NestedList.h"
+
+#include "QueryProcessor.h"
+#include "RTreeAlgebra.h"
+#include "BTreeAlgebra.h"
+#include "TemporalAlgebra.h"
+#include "StandardTypes.h"
+#include "LogMsg.h"
+#include "NList.h"
+#include "RelationAlgebra.h"
+#include "ListUtils.h"
+#include "NetworkAlgebra.h"
+#include "SpatialAlgebra.h"
+#include "Partition.h"
+#include "PaveGraph.h"
+
+
+#define ARR_SIZE(a) sizeof(a)/sizeof(a[0])
+
 Word InHalfSegment( const ListExpr typeInfo, const ListExpr instance,
                const int errorPos, ListExpr& errorInfo, bool& correct );
 
+Word
+InLine( const ListExpr typeInfo, const ListExpr instance,
+        const int errorPos, ListExpr& errorInfo, bool& correct );
 
-                          
+
 /*
 3D point for indoor application
 
@@ -187,31 +205,7 @@ private:
     double z;
 };
 
-Point3D::Point3D(SmiRecord& valueRecord, size_t& offset,
-                 const ListExpr typeInfo)
-{
-  valueRecord.Read(&x, sizeof(double), offset);
-  offset += sizeof(double);
-  valueRecord.Read(&y, sizeof(double), offset);
-  offset += sizeof(double);
-  valueRecord.Read(&z, sizeof(double), offset);
-  offset += sizeof(double);
-  SetDefined(true);
-}
 
-bool Point3D::Save(SmiRecord& valueRecord, size_t& offset,
-                 const ListExpr typeInfo)
-{
-//  cout<<"Point3D::Save()"<<endl;
-  valueRecord.Write(&x, sizeof(double),offset);
-  offset += sizeof(double);
-  valueRecord.Write(&y, sizeof(double),offset);
-  offset += sizeof(double);
-  valueRecord.Write(&z, sizeof(double), offset);
-  offset += sizeof(double);
-//  cout<<x<<" "<<y<<" "<<z<<endl;
-  return true;
-}
 
 /*
 3D Line 
@@ -370,100 +364,6 @@ inline void Line3D::TrimToSize(){
   points.TrimToSize();
 }
 
-double Line3D::Distance( const Rectangle<3>& r ) const
-{
-  return 0.0;
-}
-
-void Line3D::StartBulkLoad()
-{
-
-}
-
-void Line3D::EndBulkLoad( bool sort, bool remDup, bool trim )
-{
-  if( !IsDefined() ) {
-    Clear();
-    SetDefined( false );
-  }
-
-  if( sort ){
-    Sort();
-  }
-
-  if( remDup ){
-    RemoveDuplicates();
-  }
-  if(trim){
-    points.TrimToSize();
-  }
-}
-
-
-void Line3D::RemoveDuplicates()
-{
-
-}
-
-void Line3D::Sort(const bool exact /*= true*/)
-{
-
-}
-
-void Line3D::Clear()
-{
-  points.clean();
-}
-
-
-Line3D& Line3D::operator+=( const Point3D& p )
-{
-  if(!IsDefined()){
-    return *this;
-  }
-  points.Append(p);
-  return *this;
-}
-
-bool Line3D::IsValid() const
-{
-  return true;
-}
-
-size_t Line3D::HashValue() const
-{
-  return (size_t)0.0;
-}
-
-void Line3D::CopyFrom( const Attribute* right )
-{
-  const Line3D *ps = (const Line3D*)right;
-  assert( ps->IsOrdered() );
-  *this = *ps;
-}
-
-int Line3D::Compare( const Attribute* arg ) const
-{
-  return 0;
-}
-
-int Line3D::CompareAlmost( const Attribute* arg ) const
-{
-  return 0;
-}
-
-bool Line3D::Adjacent( const Attribute* arg ) const
-{
-  return 0;
-}
-
-Line3D& Line3D::operator=( const Line3D& ps )
-{
-  assert( ps.IsOrdered() );
-  points.copyFrom(ps.points);
-  SetDefined(ps.IsDefined());
-  return *this;
-}
 
 
 /*
@@ -544,46 +444,34 @@ public:
     inline int NumOfFLOBs() const { return reg.NumOfFLOBs();}
     inline Flob* GetFLOB(const int i) { return reg.GetFLOB(i);}
     /////////////////////////////////////////////////////////////////
+    void Print()
+    {
+      cout<<"height "<<floor_height<<"reg "<<reg<<endl; 
+    }
 private:
     float floor_height;
     Region reg;
 };
 
 
-/*
-Constructor function for Floor3D
+//////////////////////////////////////////////////////////////////////////////
+//////////////////////  Floor3D  ///////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////
 
-*/
-Floor3D::Floor3D(SmiRecord& valueRecord, size_t& offset,
-                 const ListExpr typeInfo):
-StandardSpatialAttribute<2>(true),reg(0)
-{
-//  cout<<"Floor3D(SmiRecord& , size_t& , const ListExpr) here"<<endl;
-  valueRecord.Read(&floor_height, sizeof(float), offset);
-  offset += sizeof(float);
-  ListExpr xType = nl->SymbolAtom("region");
-  ListExpr xNumericType =
-    SecondoSystem::GetCatalog()->NumericType(xType);
-  Region* r = (Region*)Attribute::Open(valueRecord,offset,xNumericType);
-  reg = *r;
-//  cout<<*r<<endl; 
-  delete r;
-  SetDefined(true);
-}
-
-bool Floor3D::Save(SmiRecord& valueRecord, size_t& offset,
-                 const ListExpr typeInfo)
-{
-//  cout<<"Save()"<<endl;
-  valueRecord.Write(&floor_height, sizeof(float),offset);
-  offset += sizeof(float);
-  ListExpr xType = nl->SymbolAtom("region");
-  ListExpr xNumericType =
-    SecondoSystem::GetCatalog()->NumericType(xType);
-  Attribute::Save(valueRecord, offset, xNumericType, &reg);
-  return true;
-}
-
+ListExpr Floor3DProperty();
+ListExpr OutFloor3D(ListExpr typeInfo, Word value);
+Word InFloor3D(const ListExpr typeInfo, const ListExpr instance,
+               const int errorPos, ListExpr& errorInfo, bool& correct);
+void CloseFloor3D(const ListExpr typeInfo, Word& w);
+Word CloneFloor3D(const ListExpr typeInfo, const Word& w);
+Word CreateFloor3D(const ListExpr typeInfo);
+void DeleteFloor3D(const ListExpr typeInfo, Word& w);
+int SizeOfFloor3D();
+bool CheckFloor3D(ListExpr type, ListExpr& errorInfo);
+bool OpenFloor3D(SmiRecord& valueRecord, size_t& offset,
+                 const ListExpr typeInfo, Word& value);
+bool SaveFloor3D(SmiRecord& valueRecord, size_t& offset,
+                 const ListExpr typeInfo, Word& value);
 
 /*
 data type for door: 
@@ -595,25 +483,31 @@ class Door3D:public StandardSpatialAttribute<2>{
   Door3D(){}  
   Door3D(bool b):StandardSpatialAttribute<2>(true),
   door_pos1(0),door_pos2(0),tpstate(0), lift_door(b){}
-  inline Door3D(GenRange& gr1,GenRange& gr2, MBool& mb, bool& b):
+  inline Door3D(int id1, int id2, Line& gr1, Line& gr2, MBool& mb, bool& b):
   StandardSpatialAttribute<2>(true),
-  door_pos1(gr1),door_pos2(gr2),tpstate(mb), lift_door(b){}
+  oid1(id1), oid2(id2), door_pos1(gr1), door_pos2(gr2),
+  tpstate(mb), lift_door(b){}
 
   Door3D(const Door3D& dr):StandardSpatialAttribute<2>(true),
-  door_pos1(dr.door_pos1),door_pos2(dr.door_pos2),
+  oid1(dr.oid1), oid2(dr.oid2), door_pos1(dr.door_pos1),
+  door_pos2(dr.door_pos2),
   tpstate(dr.tpstate), lift_door(dr.lift_door){}
   Door3D& operator=(const Door3D& dr)
   {
+    oid1 = dr.oid1;
+    oid2 = dr.oid2; 
     door_pos1 = dr.door_pos1;
     door_pos2 = dr.door_pos2; 
     tpstate = dr.tpstate;
     lift_door = dr.lift_door; 
     return *this; 
   }
-  void SetValue(GenRange* gr1,GenRange* gr2, MBool* mb, bool b)
+  void SetValue(int id1, Line* l1, int id2, Line* l2, MBool* mb, bool b)
   {
-      door_pos1 = *gr1;
-      door_pos2 = *gr2;
+      oid1 = id1;
+      door_pos1 = *l1;
+      oid2 = id2; 
+      door_pos2 = *l2;
       tpstate = *mb; 
       lift_door = b; 
       SetDefined(true);
@@ -653,7 +547,12 @@ class Door3D:public StandardSpatialAttribute<2>{
   bool Save(SmiRecord& valueRecord, size_t& offset,
                  const ListExpr typeInfo); 
 
-  GenRange* GetLoc(int i){
+  int GetOid(int i){
+    if(i == 1) return oid1;
+    if(i == 2) return oid2;
+    return 0; 
+  }
+  Line* GetLoc(int i){
     if(i == 1)
       return &door_pos1;
     if(i == 2)
@@ -663,7 +562,7 @@ class Door3D:public StandardSpatialAttribute<2>{
   
   MBool* GetTState(){return &tpstate;}
   bool GetDoorType(){return lift_door;}
-  
+
   ~Door3D()
   {
     
@@ -672,8 +571,7 @@ class Door3D:public StandardSpatialAttribute<2>{
   ////////especially door3d is an attribute in a relation/////
   inline int NumOfFLOBs() const { 
      return door_pos1.NumOfFLOBs() + 
-            door_pos2.NumOfFLOBs() + 
-            tpstate.NumOfFLOBs();
+            door_pos2.NumOfFLOBs() + tpstate.NumOfFLOBs();
   }
   inline Flob* GetFLOB(const int i) { 
     if(i < door_pos1.NumOfFLOBs())
@@ -686,715 +584,422 @@ class Door3D:public StandardSpatialAttribute<2>{
       return tpstate.GetFLOB(i - j);
     }  
   }
-
-  GenRange door_pos1; //position in one room
-  GenRange door_pos2; //position in another room
+  
+  int oid1;
+  int oid2;
+  Line door_pos1;
+  Line door_pos2;
   MBool tpstate; //temporal state 
   bool lift_door; //true:elevator false:non-elevator
 };
 
-
-
-/*
-Constructor function for Door3D
-
-*/
-Door3D::Door3D(SmiRecord& valueRecord, size_t& offset,
-                 const ListExpr typeInfo):StandardSpatialAttribute<2>(true),
-                 door_pos1(0),door_pos2(0), tpstate(0)
-{
-//  cout<<"Door3D(SmiRecord& , size_t& , const ListExpr) here"<<endl;
-  
-  valueRecord.Read(&door_pos1.oid, sizeof(unsigned int), offset);
-  offset += sizeof(unsigned int);
-  ListExpr xType = nl->SymbolAtom("line");
-  ListExpr xNumericType =
-    SecondoSystem::GetCatalog()->NumericType(xType);
-  Line* l1 = (Line*)Attribute::Open(valueRecord,offset,xNumericType);
-  door_pos1.loc_range = *l1;
-  delete l1;
-  
-  valueRecord.Read(&door_pos2.oid, sizeof(unsigned int), offset);
-  offset += sizeof(unsigned int);
-  Line* l2 = (Line*)Attribute::Open(valueRecord,offset,xNumericType);
-  door_pos2.loc_range = *l2;
-  delete l2;
-
-/*  ListExpr xType = nl->SymbolAtom("genrange");
-  ListExpr xNumericType =
-    SecondoSystem::GetCatalog()->NumericType(xType);
-  GenRange* gr1 = (GenRange*)Attribute::Open(valueRecord,offset,xNumericType);
-  door_pos1 = *gr1;
-
-  GenRange* gr2 = (GenRange*)Attribute::Open(valueRecord,offset,xNumericType);
-  door_pos2 = *gr2;
-  cout<<gr1->GetObjId()<<" "<<gr2->GetObjId()<<endl; */
-  
-  xType = nl->SymbolAtom("mbool");
-  xNumericType = SecondoSystem::GetCatalog()->NumericType(xType);
-  MBool* mb = (MBool*)Attribute::Open(valueRecord,offset,xNumericType);
-  tpstate = *mb; 
-//  cout<<tpstate<<endl; 
-  
-  
-  valueRecord.Read(&lift_door, sizeof(bool), offset);
-  offset += sizeof(bool);
-
-  SetDefined(true);
-}
-
-bool Door3D::Save(SmiRecord& valueRecord, size_t& offset,
-                 const ListExpr typeInfo)
-{
-//  cout<<"Save()"<<endl;
-  
-/*  ListExpr xType = nl->SymbolAtom("genrange");
-  ListExpr xNumericType =
-    SecondoSystem::GetCatalog()->NumericType(xType);
-  Attribute::Save(valueRecord, offset, xNumericType, &door_pos1);
-  Attribute::Save(valueRecord, offset, xNumericType, &door_pos2);*/
-
-  valueRecord.Write(&door_pos1.oid, sizeof(unsigned int),offset);
-  offset += sizeof(unsigned int);
-  ListExpr xType = nl->SymbolAtom("line");
-  ListExpr xNumericType =
-    SecondoSystem::GetCatalog()->NumericType(xType);
-  Line* l1 = const_cast<Line*>( door_pos1.GetLine());  
-  Attribute::Save(valueRecord, offset, xNumericType,l1);
-
-
-  valueRecord.Write(&door_pos2.oid, sizeof(unsigned int),offset);
-  offset += sizeof(unsigned int);
-  Line* l2 = const_cast<Line*>( door_pos2.GetLine());  
-  Attribute::Save(valueRecord, offset, xNumericType,l2);
-
-
-  xType = nl->SymbolAtom("mbool");
-  xNumericType = SecondoSystem::GetCatalog()->NumericType(xType);
-  Attribute::Save(valueRecord, offset, xNumericType, &tpstate);
-  
-  valueRecord.Write(&lift_door, sizeof(bool), offset);
-  offset += sizeof(bool);
-  return true;
-}
-/*
-Door3D Property function 
-
-*/
-ListExpr Door3DProperty()
-{
-  return (nl->TwoElemList(
-            nl->FourElemList(nl->StringAtom("Signature"),
-                       nl->StringAtom("Example Type List"),
-           nl->StringAtom("List Rep"),
-           nl->StringAtom("Example List")),
-            nl->FourElemList(nl->StringAtom("-> DATA"),
-                       nl->StringAtom("door3d"),
-           nl->StringAtom("(<door3d>) (genrange genrange mbool bool)"),
-           nl->StringAtom("(doorpos1 doorpos2 doorstat type)"))));
-}
-
-
-ListExpr OutDoor3D( ListExpr typeInfo, Word value )
-{
-//  cout<<"OutDoor3D()"<<endl; 
-  Door3D* dr = (Door3D*)(value.addr);
-  if(!dr->IsDefined()){
-    return nl->SymbolAtom("undef");
-  }
-
-  if( dr->IsEmpty() ){
-    return nl->TheEmptyList();
-  }
-  ListExpr genrange1 = OutGenRange(nl->TheEmptyList(), SetWord(dr->GetLoc(1)));
-  ListExpr genrange2 = OutGenRange(nl->TheEmptyList(), SetWord(dr->GetLoc(2)));
-  ListExpr tempstate = OutMapping<MBool,UBool,
-  OutConstTemporalUnit<CcBool,OutCcBool> >(nl->TheEmptyList(), 
-                                          SetWord(dr->GetTState()));
-  
-  return nl->FourElemList(genrange1,genrange2,tempstate,
-                          nl->BoolAtom(dr->GetDoorType()));
-  
-}
-
-
-/*
-In function
-
-*/
+ListExpr Door3DProperty(); 
+ListExpr OutDoor3D( ListExpr typeInfo, Word value ); 
 Word InDoor3D( const ListExpr typeInfo, const ListExpr instance,
-       const int errorPos, ListExpr& errorInfo, bool& correct )
-{
-  if(nl->IsEqual(instance,"undef")) {
-      Door3D* dr = new Door3D();
-      dr->SetDefined(false);
-      correct=true;
-      return SetWord(Address(dr));
-  }
-  ////////////////////////////////////////////////////////////////////////
-  /////////////////////// get the first genrange /////////////////////////
-  ///////////////////////////////////////////////////////////////////////
-  ListExpr first_instance = nl->First(instance); 
-  ListExpr oid_list1 = nl->First(first_instance);
-
-  if(!nl->IsAtom(oid_list1) || nl->AtomType(oid_list1) != IntType){
-    string strErrorMessage = "genrange(): obj id must be int type";
-    errorInfo = nl->Append(errorInfo,nl->StringAtom(strErrorMessage));
-    correct = false;
-    return SetWord(Address(0));
-  }
- 
-  unsigned int oid1 = nl->IntValue(oid_list1);
-  ListExpr LineNL1 = nl->Second(first_instance);
-  Line* l1 = new Line( 0 );
-  HalfSegment * hs;
-  l1->StartBulkLoad();
-  ListExpr first, halfseg, halfpoint;
-  ListExpr rest = first_instance;
-  int edgeno = 0;
-
-  while( !nl->IsEmpty( rest )){
-      first = nl->First( LineNL1 );
-      rest = nl->Rest( LineNL1 );
-
-      if( nl->ListLength( first ) == 4 )
-      {
-        halfpoint = nl->TwoElemList(
-                      nl->TwoElemList(
-                        nl->First(first),
-                        nl->Second(first)),
-                      nl->TwoElemList(
-                        nl->Third(first),
-                        nl->Fourth(first)));
-      } else { // wrong list representation
-         l1->DeleteIfAllowed();
-         correct = false;
-         return SetWord( Address(0) );
-      }
-      halfseg = nl->TwoElemList(nl->BoolAtom(true), halfpoint);
-      hs = (HalfSegment*)InHalfSegment( nl->TheEmptyList(), halfseg,
-                                        0, errorInfo, correct ).addr;
-      if( correct )
-      {
-        hs->attr.edgeno = edgeno++;
-        *l1 += *hs;
-        hs->SetLeftDomPoint( !hs->IsLeftDomPoint() );
-        *l1 += *hs;
-      }
-      delete hs;
-  }
-  l1->EndBulkLoad();
-
-  correct = true;
-  GenRange* gr1 = new GenRange(oid1, *l1);
-  delete l1; 
-  ///////////////////////////////////////////////////////////////////////////
-  ////////////////////////  get the second genrange /////////////////////////
-  ///////////////////////////////////////////////////////////////////////////
-  ListExpr second_instance = nl->Second(instance); 
-  ListExpr oid_list2 = nl->First(second_instance);
-
-  if(!nl->IsAtom(oid_list2) || nl->AtomType(oid_list2) != IntType){
-    string strErrorMessage = "genrange(): obj id must be int type";
-    errorInfo = nl->Append(errorInfo,nl->StringAtom(strErrorMessage));
-    correct = false;
-    return SetWord(Address(0));
-  }
-
-  unsigned int oid2 = nl->IntValue(oid_list2);
-  ListExpr LineNL2 = nl->Second(second_instance);
-  Line* l2 = new Line( 0 );
-  
-  l2->StartBulkLoad();
-  rest = second_instance;
-  edgeno = 0;
-  while( !nl->IsEmpty( rest )){
-      first = nl->First( LineNL2 );
-      rest = nl->Rest( LineNL2 );
-
-      if( nl->ListLength( first ) == 4 )
-      {
-        halfpoint = nl->TwoElemList(
-                      nl->TwoElemList(
-                        nl->First(first),
-                        nl->Second(first)),
-                      nl->TwoElemList(
-                        nl->Third(first),
-                        nl->Fourth(first)));
-      } else { // wrong list representation
-         l2->DeleteIfAllowed();
-         correct = false;
-         return SetWord( Address(0) );
-      }
-      halfseg = nl->TwoElemList(nl->BoolAtom(true), halfpoint);
-      hs = (HalfSegment*)InHalfSegment( nl->TheEmptyList(), halfseg,
-                                        0, errorInfo, correct ).addr;
-      if( correct )
-      {
-        hs->attr.edgeno = edgeno++;
-        *l2 += *hs;
-        hs->SetLeftDomPoint( !hs->IsLeftDomPoint() );
-        *l2 += *hs;
-      }
-      delete hs;
-  }
-  l2->EndBulkLoad();
-
-  correct = true;
-  GenRange* gr2 = new GenRange(oid2, *l2);
-  delete l2; 
-  ////////////////////////////////////////////////////////////////////////
-  /////////////  time-dependent state mbool //////////////////////////////
-  ///////////////////////////////////////////////////////////////////////
-  ListExpr temporal_state = nl->Third(instance);
-  int numUnits = 0;
-  if(nl->AtomType(temporal_state)==NoAtom){
-    numUnits = nl->ListLength(temporal_state);
-  }
-  MBool* m = new MBool( numUnits );
-  correct = true;
-  int unitcounter = 0;
-  string errmsg;
-
-  m->StartBulkLoad();
-
-  rest = temporal_state;
-  if (nl->AtomType( rest ) != NoAtom)
-  { if(nl->IsEqual(rest,"undef")){
-       m->EndBulkLoad();
-       m->SetDefined(false);
-       return SetWord( Address( m ) );
-    } else {
-      correct = false;
-      m->Destroy();
-      delete m;
-      return SetWord( Address( 0 ) );
-    }
-  }
-  else while( !nl->IsEmpty( rest ) )
-  {
-    ListExpr first = nl->First( rest );
-    rest = nl->Rest( rest );
-
-//    UBool *unit = (UBool*)InUnit( nl->TheEmptyList(), first,
-//                                errorPos, errorInfo, correct ).addr;
-    UBool *unit = (UBool*)InConstTemporalUnit<CcBool,InCcBool>( 
-                                nl->TheEmptyList(), first,
-                                errorPos, errorInfo, correct ).addr;
-
-    if ( !correct )
-    {
-      errmsg = "InMapping(): Representation of Unit "
-          + int2string(unitcounter) + " is wrong.";
-      errorInfo = nl->Append(errorInfo, nl->StringAtom(errmsg));
-      m->Destroy();
-      delete m;
-      return SetWord( Address(0) );
-    }
-    if(  !unit->IsDefined() || !unit->IsValid() )
-    {
-      errmsg = "InMapping(): Unit " + int2string(unitcounter) + " is undef.";
-      errorInfo = nl->Append(errorInfo, nl->StringAtom(errmsg));
-      correct = false;
-      delete unit;
-      m->Destroy();
-      delete m;
-      return SetWord( Address(0) );
-    }
-    m->Add( *unit );
-    unitcounter++;
-    delete unit;
-  }
-
-  m->EndBulkLoad( true ); 
-//  cout<<*m<<endl; 
-  ////////////////////////////////////////////////////////////////////////
-  ////////////// type of door: non-lift or lift////////////////////////////
-  /////////////////////////////////////////////////////////////////////////
-  ListExpr door_type = nl->Fourth(instance);
-  bool dr_type = nl->BoolValue(door_type);
-  ///////////////////////////////////////////////////////////////////////
-  Door3D* dr = new Door3D(*gr1,*gr2, *m, dr_type);
-
-  delete gr1;
-  delete gr2;  
-  delete m; 
-  return SetWord(dr);
-
-}
-
-
-Word CreateDoor3D(const ListExpr typeInfo)
-{
-//  cout<<"CreateDoor3D()"<<endl;
-  return SetWord (new Door3D(false));
-}
-
-
-void DeleteDoor3D(const ListExpr typeInfo, Word& w)
-{
-//  cout<<"DeleteDoor3D()"<<endl;
-  Door3D* dr = (Door3D*)w.addr;
-  delete dr;
-   w.addr = NULL;
-}
-
+       const int errorPos, ListExpr& errorInfo, bool& correct );
+Word CreateDoor3D(const ListExpr typeInfo);
+void DeleteDoor3D(const ListExpr typeInfo, Word& w);
 bool OpenDoor3D(SmiRecord& valueRecord, size_t& offset,
-                 const ListExpr typeInfo, Word& value)
-{
-//  cout<<"OpenDoor3D()"<<endl;
-  value.addr = new Door3D(valueRecord, offset, typeInfo);
-  return value.addr != NULL;
-}
-
-
-/*
-save function for GenRange 
-
-*/
+                 const ListExpr typeInfo, Word& value);
 bool SaveDoor3D(SmiRecord& valueRecord, size_t& offset,
-                 const ListExpr typeInfo, Word& value)
-{
-//    cout<<"SaveDoor3D()"<<endl;
-    Door3D* dr = (Door3D*)value.addr;
-    return dr->Save(valueRecord, offset, typeInfo);
-}
-
-void CloseDoor3D( const ListExpr typeInfo, Word& w )
-{
-  ((Door3D*)w.addr)->DeleteIfAllowed();
-  w.addr = 0;
-}
-
-Word CloneDoor3D( const ListExpr typeInfo, const Word& w )
-{
-  return SetWord( new Door3D( *((Door3D *)w.addr) ) );
-}
-
-void* CastDoor3D(void* addr)
-{
-  return (new (addr) Door3D());
-}
-
-int SizeOfDoor3D()
-{
-  return sizeof(Door3D);
-}
-
-bool CheckDoor3D( ListExpr type, ListExpr& errorInfo )
-{
-  return (nl->IsEqual( type, "door3d" ));
-}
+                 const ListExpr typeInfo, Word& value);
+void CloseDoor3D( const ListExpr typeInfo, Word& w );
+Word CloneDoor3D( const ListExpr typeInfo, const Word& w );
+void* CastDoor3D(void* addr);
+int SizeOfDoor3D();
+bool CheckDoor3D( ListExpr type, ListExpr& errorInfo );
 
 //////////////////////////////////////////////////////////////////////////////
-///////////////////// data type for elevator and staircase  /////////////////
-/////////////////////////////////////////////////////////////////////////////
-////// we can not store DbArray<Region> in Secondo  ///////////////////////
-///////// 1) assume normal office has only one floor (groom) //////////////////
-///////// 2) for elevator and staircase, assume each floor covers a rectangle//
-///////////////////////////////////////////////////////////////////////////
+//////////////////// data type for general room /////////////////////////////
+////////////////////////////////////////////////////////////////////////////
+Word InRegion(const ListExpr typeInfo, const ListExpr instance,
+           const int errorPos, ListExpr& errorInfo, bool& correct ); 
+Word InRegion_old( const ListExpr typeInfo, const ListExpr instance,
+          const int errorPos, ListExpr& errorInfo, bool& correct );
+
 /*
-the height and a rectangle for one floor 
+old version of region input 
+pointlist is to store the point in such a way that it is the same as for the
+input. 
+1) Outercycle in a clock-wise and holes in a counter-clock wise 
+2) index list stores the start position of the first point for the outercycle 
+and the hole 
 
 */
-struct RectFloor{
-  float h;
-  Rectangle<2> rect_f;
-  RectFloor(){}
-  RectFloor(float f,Rectangle<2> a):h(f),rect_f(a){}
-  RectFloor(const RectFloor& rf):h(rf.h),rect_f(rf.rect_f){}
-  bool operator<(const RectFloor& rf) const
+Word MyInRegion(const ListExpr typeInfo, const ListExpr instance,
+               const int errorPos, ListExpr& errorInfo, bool& correct, 
+                int& cycno);
+
+
+/*
+it records the start position in DbArray and number of points 
+also the height for these points constructing a region 
+One cycle one floorelem. If a region has holes inside, there are several 
+elements where the first stores the outer and the rest stores the holes 
+But they have the same id (one region). the outer cycle and holes are 
+distinguished by value-hole 
+
+*/
+struct FloorElem{
+  int id;
+  int start_pos; 
+  int num;//the first is outercycle, and the second, third are holes 
+  float h; 
+  FloorElem(){}
+  FloorElem(int i,int pos, int n, float f):
+  id(i), start_pos(pos), num(n), h(f){}
+  FloorElem(const FloorElem& fe):
+  id(fe.id), start_pos(fe.start_pos), num(fe.num), h(fe.h){}
+  FloorElem& operator=(const FloorElem& fe)
   {
-    return h < rf.h; 
-  }
-  RectFloor& operator=(const RectFloor& rf)
-  {
-    h = rf.h;
-    rect_f = rf.rect_f;
+    id = fe.id;
+    start_pos = fe.start_pos;
+    num = fe.num;
+    h = fe.h; 
     return *this; 
+  }
+  void Print()
+  {
+    cout<<"obj id "<<id<<" start_pos "<<start_pos
+        <<"num "<<num<<" height "<<h<<endl; 
   }
 };
 
-class Staircase3D:public StandardSpatialAttribute<2>{
+/*
+for all indoor rooms:OR,BR,CO,ST,EL
+  type of grooms   
+  OR:Office Room (office room,conference room chamber...)
+  BR:Bathroom   
+  CO:Corridor    
+  ST:Staicase  
+  EL:Elevator  
+
+*/
+
+const string room_type[] = {"OR", "BR", "CO", "ST", "EL"}; 
+enum ROOM_TYPE{OR = 0, BR, CO, ST, EL}; 
+
+inline int GetRoomEnum(string s)
+{
+//  int tm size = sizeof(str_tm)/sizeof(str_tm[0]);
+  int type_size = ARR_SIZE(room_type);
+//  cout<<"tm_size "<<tm_size<<endl; 
+  for(int i = 0;i < type_size;i++){
+      if(room_type[i].compare(s) == 0){
+        if(i == 0) return OR;
+        if(i == 1) return BR;
+        if(i == 2) return CO;
+        if(i == 3) return ST;
+        if(i == 4) return EL;
+      }
+  }
+  return -1;
+}
+inline string GetRoomStr(int t)
+{
+//  int tm size = sizeof(str_tm)/sizeof(str_tm[0]);
+  int type_size = ARR_SIZE(room_type); 
+  assert(0 <= t && t < type_size);
+  return room_type[t];
+}
+
+
+/*
+GRoom: a set of 3D regions. the implementation is similar as for GenRange 
+
+*/
+class GRoom:public StandardSpatialAttribute<2>{ 
   public:
-    Staircase3D(){}
-    Staircase3D(const int initsize):StandardSpatialAttribute(true),
-    floors(initsize){}
-    Staircase3D(const Staircase3D& staircase):
-    StandardSpatialAttribute<2>(staircase.IsDefined()){
-      if(staircase.IsDefined())
-        floors.copyFrom(staircase.floors);
+    GRoom(){}
+    GRoom(const int initsize):StandardSpatialAttribute(true),
+    elem_list(initsize), seg_list(initsize){}
+
+
+    ~GRoom()
+    {
+
     }
-    ~Staircase3D(){}
-    inline int Size() const {return floors.Size();}
-    inline bool IsEmpty() const{return !IsDefined() || Size() == 0;}
+    GRoom& operator=(const GRoom& gr)
+    {
+      elem_list.clean();
+      seg_list.clean();
+//      cout<<"GRoom ="<<endl; 
+      GRoom* groom = const_cast<GRoom*>(&gr);
+      for(int i = 0;i < groom->RealElemSize();i++){
+        FloorElem felem;
+        groom->GetElem(i, felem);
+        elem_list.Append(felem);
+      }
+      for(int i = 0;i < groom->SegSize();i++){
+        HalfSegment hs;
+        groom->GetSeg(i, hs);
+        seg_list.Append(hs);
+      }
+      SetDefined(true);
+      return *this; 
+    }
 
     inline size_t Sizeof() const{return sizeof(*this);}
     int Compare(const Attribute* arg) const{ return 0;}
     inline bool Adjacent(const Attribute* arg)const{return false;}
-    Staircase3D* Clone() const {return new Staircase3D(*this);}
+    GRoom* Clone() const {return new GRoom(*this);}
     size_t HashValue() const{return (size_t)0;}
-
-    Staircase3D& operator+=(RectFloor& rf);
-    void Get(const int i, RectFloor& rf)
-    {
-      assert(IsDefined());
-      assert(i >= 0 && i < floors.Size());
-      floors.Get(i, &rf);
-    }
     void CopyFrom(const Attribute* right)
     {
-      *this = *(const Staircase3D*)right;
+      *this = *(const GRoom*)right;
     }
+
+    inline int Size() const {
+//        cout<<"Size "<<endl;
+        ////////// holes have the same id as the outer cycle ///////
+        ///////   they do not have to be considered  ////////////////
+        vector<int> rid_list;
+        for(int i = 0;i < elem_list.Size();i++){
+          FloorElem felem;
+          elem_list.Get(i, felem);
+          if(rid_list.size() == 0)
+            rid_list.push_back(felem.id);
+          else{
+            int last_id = rid_list[rid_list.size() - 1];
+            if(felem.id != last_id)
+              rid_list.push_back(felem.id);
+          }
+        }
+        return rid_list.size(); 
+    }
+    inline bool IsEmpty() const{return !IsDefined() || Size() == 0;}
+    
+    int ElemSize(){return Size();}
+    int RealElemSize(){return elem_list.Size();}
+    int SegSize(){return seg_list.Size();}
+    void Add(int id, float h, vector<HalfSegment>&);
+    void Get(const int i, float& h, Region& r) const;
+    void Clear()
+    {
+      elem_list.clean();
+      seg_list.clean();
+    }
+    void GetElem(const int i, FloorElem& felem)
+    {
+      if(0 <= i && i < elem_list.Size())
+        elem_list.Get(i, felem);
+      else{
+        cout<<"not valid index in GetElem()"<<endl;
+        assert(false);
+      }
+    
+    }
+    void GetSeg(const int i, HalfSegment& hs)
+    {
+      if(0 <= i && i < seg_list.Size())
+        seg_list.Get(i, hs);
+      else{
+        cout<<"not valid index in GetSeg()"<<endl;
+        assert(false);
+      }
+    }
+    void PutSeg(const int i, HalfSegment hs)
+    {
+      if(0 <= i && i < seg_list.Size())
+        seg_list.Put(i, hs);
+      else{
+        cout<<"not valid index in PutSeg()"<<endl;
+        assert(false);
+      }
+    }
+    void AddHeight(float h)
+    {
+      for(int i = 0;i < elem_list.Size();i++){
+        FloorElem felem;
+        elem_list.Get(i, felem);
+        felem.h += h;
+        elem_list.Put(i, felem);
+      }
+    }
+    void Translate(const Coord& x, const Coord& y, GRoom& result);
+    void GetRegion(Region& r);
     const Rectangle<2> BoundingBox() const
     {
       Rectangle<2> bbox;
-      for(int i = 0;i < floors.Size();i++){
-          RectFloor rf;
-          floors.Get(i,&rf);
-          if(i == 0)
-            bbox = rf.rect_f;
-          else
-            bbox.Union(rf.rect_f);
+      for( int i = 0; i < Size(); i++ ){
+        Region r(0);
+        float h;
+        Get( i, h, r);
+        if( i == 0 ){
+          bbox = r.BoundingBox();
+        }else
+          bbox = bbox.Union(r.BoundingBox());
       }
+
       return bbox;
     }
     double Distance(const Rectangle<2>& r)const
    {
       return BoundingBox().Distance(r);
    }
-    inline int NumOfFLOBs() const { 
-      return 1;
-    }
-    inline Flob* GetFLOB(const int i) { 
-      return &floors;
-    }
+   float GetLowHeight();
+   float GetHighHeight();
+   
+  /////////////very important two functions////////////////////
+  ////////especially genrange is an attribute in a relation/////
+  inline int NumOfFLOBs() const { 
+    return 2;
+  }
+  inline Flob* GetFLOB(const int i) { 
+//    cout<<"GetFLOB"<<endl; 
+     if(i < 1)
+      return &elem_list;
+    else 
+      return &seg_list;
+  }
+  
+  void Print(); 
   private:
-    DbArray<RectFloor> floors; 
+    DbArray<FloorElem> elem_list;//one cycle one element, reg id starts from 0
+    DbArray<HalfSegment> seg_list; 
+};
+
+ListExpr GRoomProperty();
+ListExpr OutGRoom( ListExpr typeInfo, Word value );
+Word InGRoom( const ListExpr typeInfo, const ListExpr instance,
+       const int errorPos, ListExpr& errorInfo, bool& correct );
+
+bool OpenGRoom(SmiRecord& valueRecord, size_t& offset,
+                 const ListExpr typeInfo, Word& value);
+
+bool SaveGRoom(SmiRecord& valueRecord, size_t& offset,
+                 const ListExpr typeInfo, Word& value);
+Word CreateGRoom(const ListExpr typeInfo);
+void DeleteGRoom(const ListExpr typeInfo, Word& w);
+void CloseGRoom( const ListExpr typeInfo, Word& w );
+Word CloneGRoom( const ListExpr typeInfo, const Word& w );
+void* CastGRoomD(void* addr);
+int SizeOfGRoom();
+bool CheckGRoom( ListExpr type, ListExpr& errorInfo );
+
+/*
+for indoor navigation 
+
+*/
+struct IndoorNav{
+  Relation* rel1; //university room relation 
+  Relation* rel2; //door 3d box relation 
+  vector<int> oid_list; 
+  vector<int> tid_list; 
+  vector<Rectangle<3> > box_list; 
+  
+  vector<Door3D> door_list; 
+  vector<Line> line_list;
+  vector<int> groom_id_list1;
+  vector<int> groom_id_list2; 
+  vector<float> door_heights; 
+  vector<int> door_types; //0 office rooms 1 staircase 2 elevator 
+  
+  vector<Line3D> path_list; 
+  
+  /////////////the attribute position for indoor (groom+door) relation 
+  enum GROOM_REL{I_OID = 0, I_Name, I_Type, I_Room, I_Door}; 
+  
+  unsigned int count;
+  TupleType* resulttype;
+  
+  IndoorNav(){count = 0; resulttype = NULL;}
+  IndoorNav(Relation* r1, Relation* r2):
+  rel1(r1), rel2(r2)
+  { count = 0; 
+    resulttype = NULL;
+  }
+  ~IndoorNav(){if(resulttype != NULL) delete resulttype;}
+
+  ///////////////////build 3d box on each door //////////////////////////
+  void CreateDoorBox();
+  void CreateBox3D(int, int, Line*, float);
+  float NextFloorHeight(float h, vector<float>& floor_height);
+  ////////////////create a relation storing door////////////////////////
+  void CreateDoor(R_Tree<3, TupleId>*, int, int ,int);
+  void DFTraverse(R_Tree<3,TupleId>* rtree, SmiRecordId adr, int id, 
+                  Rectangle<3>* bbox3d, int attr1, int attr2, 
+                  int attr3, vector<TupleId>& id_list); 
+  bool BBox3DEqual(Rectangle<3>* bbox3d, Rectangle<3>* bbox_3d);
+  void CreateResDoor(int id, int oid, int tid, vector<TupleId> id_list, 
+                     int attr1, int attr2, int attr3, vector<bool>& visit_flag);
+  void GRoomDoorLine(Rectangle<3>* bbox3d_1, Rectangle<3>* bbox3d_2, 
+                     Line* l1, Line* l2, Line* l3, 
+                     const Rectangle<2>*, const Rectangle<2>*);
+   ////////////////create a relation storing edges connecting doors////////////
+   void CreateAdjDoor(BTree*, int, int ,int, int);
+   void BuildPath(int groom_oid, GRoom* groom, 
+                  vector<int> tid_list, int attr1, int attr2, 
+                  int attr3, int attr4);
 };
 
 
-Staircase3D& Staircase3D::operator+=(RectFloor& rf)
-{
-  floors.Append(rf);
-  return *this; 
-}
+
+struct PointAndID{
+  int pid; 
+  Point loc; 
+  PointAndID(){}
+  PointAndID(int id, Point& q):pid(id), loc(q){}
+  PointAndID(const PointAndID& paid):
+  pid(paid.pid), loc(paid.loc){}
+  PointAndID& operator=(const PointAndID& paid)
+  {
+    pid = paid.pid; 
+    loc = paid.loc; 
+    return *this; 
+  }
+  void Print()
+  {
+    cout<<" pid "<<pid<<" loc "<<loc<<endl; 
+  }
+};
 
 /*
-Staircase3D Property Function 
+structure used for the priority queue for shortest path searching 
 
 */
-ListExpr Staircase3DProperty()
-{
-  return (nl->TwoElemList(
-            nl->FourElemList(nl->StringAtom("Signature"),
-                       nl->StringAtom("Example Type List"),
-           nl->StringAtom("List Rep"),
-           nl->StringAtom("Example List")),
-            nl->FourElemList(nl->StringAtom("-> DATA"),
-                       nl->StringAtom("staircase3d"),
-           nl->StringAtom("(<staircase3d>) ((height rect)(height rect))"),
-           nl->StringAtom("((2.0 rect1)(5.0 rect2))"))));
-}
-
-/*
-output the list expression for RectFloor 
-
-*/
-ListExpr OutRectFloor(ListExpr typeInfo, Word value)
-{
-  RectFloor* rf = (RectFloor*)value.addr;
-  ListExpr height_nl = nl->RealAtom(rf->h); 
-  ListExpr rect_nl = OutRectangle<2>(nl->TheEmptyList(),
-                                     SetWord((void*)&(rf->rect_f)));
-  return nl->TwoElemList(height_nl,rect_nl);
-}
-
-/*
-output the list expression for Staircase3D 
-
-*/
-ListExpr OutStaircase3D( ListExpr typeInfo, Word value )
-{
-//  cout<<"OutStaircase3D()"<<endl; 
-  Staircase3D* stair = (Staircase3D*)(value.addr);
-  if(!stair->IsDefined()){
-    return nl->SymbolAtom("undef");
+struct RPath_elem:public Path_elem{
+  double weight;
+  RPath_elem(){}
+  RPath_elem(int p, int c, int t, double w):Path_elem(p, c, t), weight(w){}
+  RPath_elem(const RPath_elem& se):Path_elem(se),
+                       weight(se.weight){}
+  RPath_elem& operator=(const RPath_elem& se)
+  {
+//    cout<<"SPath_elem ="<<endl;
+    Path_elem::operator=(se);
+    weight = se.weight;
+    return *this;
+  }
+  bool operator<(const RPath_elem& se) const
+  {
+    return weight > se.weight;
   }
 
-  if( stair->IsEmpty() ){
-    return nl->TheEmptyList();
+  void Print()
+  {
+    cout<<"prev "<<prev_index<<" cur "<<cur_index
+        <<" tri_index " <<tri_index<<" weight "<<weight<<endl;
   }
-//  cout<<"stair size "<<stair->Size()<<endl; 
-  bool first = true;
-  ListExpr result = nl->TheEmptyList();
-  ListExpr last = result; 
-  for(int i = 0;i < stair->Size();i++){
-    RectFloor rf;
-    stair->Get(i, rf);
-    ListExpr rectfloor_nl = OutRectFloor(nl->TheEmptyList(), 
-                                         SetWord((void*)&rf));
-    if(first){
-      result = nl->OneElemList(rectfloor_nl);
-      first = false;
-      last = result; 
-    }else
-      last = nl->Append(last,rectfloor_nl);
-  }
-  
-  return result; 
-}
+};
 
 /*
-In function
+compute the shorest path inside a region where the region can be 
+convex with holes or  concave with holes i
 
 */
-Word InStaircase3D( const ListExpr typeInfo, const ListExpr instance,
-       const int errorPos, ListExpr& errorInfo, bool& correct )
-{
-  if(nl->IsEqual(instance,"undef")) {
-      Staircase3D* staircase = new Staircase3D();
-      staircase->SetDefined(false);
-      correct=true;
-      return SetWord(Address(staircase));
-  }
-  
-  Staircase3D* staircase = new Staircase3D(0);
-//  cout<<"length "<<nl->ListLength(instance)<<endl;
 
-  ListExpr floor_nl = instance;
-  while(!nl->IsEmpty(floor_nl)){
-      ListExpr first_fl = nl->First(floor_nl);
-      floor_nl = nl->Rest(floor_nl);
-      ListExpr height_nl = nl->First(first_fl);
-      float height = nl->RealValue(height_nl);
-//      cout<<"hegiht "<<height<<endl;
-      ListExpr rect_nl = nl->Second(first_fl);
-      assert(nl->ListLength(rect_nl) == 4);
-      if(!( nl->IsAtom(nl->First(rect_nl) && 
-        nl->AtomType(nl->First(rect_nl)) == RealType))){
-        cout<<"should be real type"<<endl;  
-        correct = false;
-        break;
-      }
-      if(!( nl->IsAtom(nl->Second(rect_nl) && 
-         nl->AtomType(nl->Second(rect_nl)) == RealType))){
-        cout<<"should be real type"<<endl;  
-        correct = false;
-        break;
-      }
-      if(!( nl->IsAtom(nl->Third(rect_nl) && 
-        nl->AtomType(nl->Third(rect_nl)) == RealType))){
-        cout<<"should be real type"<<endl;  
-        correct = false;
-        break;
-      }
-      if(!( nl->IsAtom(nl->Fourth(rect_nl) && 
-        nl->AtomType(nl->Fourth(rect_nl)) == RealType))){
-        cout<<"should be real type"<<endl;  
-        correct = false;
-        break;
-      }
-      double x1, y1, x2, y2;
-      x1 = nl->RealValue(nl->First(rect_nl));
-      y1 = nl->RealValue(nl->Second(rect_nl));
-      x2 = nl->RealValue(nl->Third(rect_nl));
-      y2 = nl->RealValue(nl->Fourth(rect_nl));
-      double min[2],max[2];
-      min[0] = x1;
-      min[1] = y1;
-      max[0] = x2;
-      max[1] = y2; 
-//      cout<<"x1 "<<x1<<" y1 "<<y1<<" x2 "<<x2<<" y2 "<<y2<<endl; 
-      Rectangle<2>* rect = new Rectangle<2>(true, min, max);
-//      cout<<*rect<<endl; 
-      RectFloor* rf = new RectFloor(height,*rect);
-      *staircase += *rf;
-      delete rf; 
-      delete rect; 
-  }
-  ////////////////very important ////////////////////////////////
-  correct = true; 
-  ////////////////////////////////////////////////////////
-  return SetWord(staircase);
-
-}
-
-/*
-Open a Staircase3D object 
-
-*/
-bool OpenStaircase3D(SmiRecord& valueRecord, size_t& offset,
-                 const ListExpr typeInfo, Word& value)
-{
-//  cout<<"OpenStaircase3D()"<<endl; 
-  Staircase3D* staircase = 
-      (Staircase3D*)Attribute::Open(valueRecord,offset,typeInfo);
-  value = SetWord(staircase);
-
-  return true; 
-}
-
-/*
-Save a Staircase3D object 
-
-*/
-bool SaveStaircase3D(SmiRecord& valueRecord, size_t& offset,
-                 const ListExpr typeInfo, Word& value)
-{
-//  cout<<"SaveStaircase3D"<<endl; 
-  Staircase3D* staircase = (Staircase3D*)value.addr; 
-  Attribute::Save(valueRecord,offset,typeInfo, staircase);
-
-  return true; 
-}
-
-
-Word CreateStaircase3D(const ListExpr typeInfo)
-{
-//  cout<<"CreateStaircase3D()"<<endl;
-  return SetWord (new Staircase3D(0));
-}
-
-
-void DeleteStaircase3D(const ListExpr typeInfo, Word& w)
-{
-//  cout<<"DeleteStaircase3D()"<<endl;
-  Staircase3D* stair = (Staircase3D*)w.addr;
-  delete stair;
-   w.addr = NULL;
-}
-
-
-void CloseStaircase3D( const ListExpr typeInfo, Word& w )
-{
-//  cout<<"CloseStaircase3D"<<endl; 
-  ((Staircase3D*)w.addr)->DeleteIfAllowed();
-  w.addr = 0;
-}
-
-Word CloneStaircase3D( const ListExpr typeInfo, const Word& w )
-{
-//  cout<<"CloneStaircase3D"<<endl; 
-  return SetWord( new Staircase3D( *((Staircase3D *)w.addr) ) );
-}
-
-void* CastStaircase3D(void* addr)
-{
-//  cout<<"CastStaircase3D"<<endl; 
-  return (new (addr) Staircase3D());
-}
-
-int SizeOfStaircase3D()
-{
-//  cout<<"SizeOfStaircase3D"<<endl; 
-  return sizeof(Staircase3D);
-}
-
-bool CheckStaircase3D( ListExpr type, ListExpr& errorInfo )
-{
-//  cout<<"CheckStaircase3D"<<endl; 
-  return (nl->IsEqual( type, "staircase3d" ));
-}
+void ShortestPath_InRegion(Region* reg, Point* s, Point* d, Line* pResult);
+bool DirectReachable(PointAndID& start_loc, PointAndID& end_loc, 
+               vector<HalfSegment>& seg_list); 
+void InitializeQueue(Region* reg, priority_queue<RPath_elem>& path_queue, 
+                     vector<RPath_elem>& expand_queue,
+                     PointAndID start_loc, vector<PointAndID>& ps_list,
+                     vector<HalfSegment>& seg_list, vector<bool>& visit_flag); 
+void FindAdj(Region* reg, PointAndID top, vector<bool>& visit_flag, 
+             vector<int>& adj_list, vector<PointAndID>& ps_list,
+             vector<HalfSegment>& seg_list); 
+bool SegAvailable(HalfSegment hs, vector<HalfSegment>& set_list); 
+void GetBoundaryPoints(Region* r, vector<Point>& ps, unsigned int); 
 
 #endif // __INDOOR_H__
