@@ -3175,16 +3175,22 @@ bool HalfSegment::InnerIntersects( const HalfSegment& hs ) const
 
 
 
-  /*
+  
 bool HalfSegment::Intersection( const HalfSegment& hs, Point& resp ) const
 {
   double k, a, K, A;
 
-  if( !BoundingBox().Intersects( hs.BoundingBox().Extend(FACTOR) ) ){
+  /*if( !BoundingBox().Intersects( hs.BoundingBox().Extend(FACTOR) ) ){
     resp.SetDefined( false );
     return false;
-  }
+  }*/
 
+  
+  if(!BoundingBox().Intersects(hs.BoundingBox())){ //old implementation but ok
+    resp.SetDefined(false);
+    return false; 
+  }
+  
   resp.SetDefined( true );
 
   Coord xl = lp.GetX(),
@@ -3302,9 +3308,8 @@ bool HalfSegment::Intersection( const HalfSegment& hs, Point& resp ) const
 
   return false;
 }
- */
-
-bool HalfSegment::Intersection( const HalfSegment& hs, Point& resp ) const {
+ 
+/*bool HalfSegment::Intersection( const HalfSegment& hs, Point& resp ) const {
 
 
 
@@ -3326,22 +3331,16 @@ bool HalfSegment::Intersection( const HalfSegment& hs, Point& resp ) const {
 
 
 
-  resp.SetDefined(false);
-  // check for degenerated segments
+  resp.SetDefined(false);  // check for degenerated segments
 
-  if(AlmostEqual(dx1,0) && AlmostEqual(dy1,0)){
-    // not a segment
+  if(AlmostEqual(dx1,0) && AlmostEqual(dy1,0)){// not a segment
     assert(false);
     return false;
   }
-  if(AlmostEqual(dx2,0) && AlmostEqual(dy2,0)){
-    // not a segment
+  if(AlmostEqual(dx2,0) && AlmostEqual(dy2,0)){// not a segment
     assert(false);
     return false;
-  }
-
-  // check for equal direction. 
-  // if so, only the endpoints must be checked
+  }// check for equal direction if so, only the endpoints must be checked
   if(AlmostEqual(dx1*dy2, dy1*dx2)){
     if(AlmostEqual(lp, hs.rp)){
        resp = lp;
@@ -3352,11 +3351,7 @@ bool HalfSegment::Intersection( const HalfSegment& hs, Point& resp ) const {
        return true; 
     }
     return false;
-  }
-
-  // different directions, no overlaps possible
- 
-  // checks for almost equal endpoints
+  }//different directions, no overlaps possiblechecks for almost equal endpoints
   if(AlmostEqual(lp,hs.rp) ||
      AlmostEqual(lp,hs.lp)) {
     resp=lp;
@@ -3367,64 +3362,45 @@ bool HalfSegment::Intersection( const HalfSegment& hs, Point& resp ) const {
     AlmostEqual(rp,hs.lp)){ 
     resp=rp;
     return true;
-  }
-
- 
-
-  // normal computation: just solve the equations given
-  // by the points ;-)
+  }// normal computation: just solve the equations given, by the points ;-)
 
 
   double delta2;
   double delta1;
   bool way1 = true;
-  if(fabs(dx1) > fabs(dy1)){
-//  if(fabs(dx1) > 0){
+  if(fabs(dx1) > fabs(dy1)){ //  if(fabs(dx1) > 0){
     delta2 = ((y0_1-y0_2)*dx1 + (x0_2-x0_1)*dy1) / ((dx1*dy2) - (dx2-dy1));
     delta1 = (x0_2+delta2*(dx2)-x0_1) / dx1; 
   } else {
     delta2 = (dy1*(x0_2-x0_1) + dx1*(y0_1-y0_2)) / ( (dy2*dx1) - (dx2*dy1));
     delta1 = (y0_2+delta2*dy2-y0_1) / dy1;
     way1 = false;
-  }
-
-  
-
-
-  // corrections from rounding errors 
+  }// corrections from rounding errors 
   if(AlmostEqual(delta1,0) && delta1<0){
     delta1 = 0;
   }
   if(AlmostEqual(delta1,1) && delta1>1){
     delta1 = 1;
   }
-
   if(AlmostEqual(delta2,0) && delta2<0){
     delta2 = 0;
   }
   if(AlmostEqual(delta2,1) && delta2>1){
     delta2 = 1;
   }
-
   double x = x0_1+delta1*dx1;
   double y = y0_1+delta1*dy1;
-  
   if( (delta1<0) || (delta1>1) || (delta2<0) || (delta2>1) ){
-    // intersection point outside one of the segments
     resp.Set(x,y);
     resp.SetDefined(false);
     return false;
   } else {
-    // check computation by checking the resulting point
-    // agains the resultung point from hs
-
     if(!AlmostEqual(x,x0_2+delta2*dx2)){
       cerr << __PRETTY_FUNCTION__ << "@" __FILE__ << ":" << __LINE__ << endl;
       cerr << "rounding(?) error detected, points are not equal";
       cerr << " x(this) = " << x << ",  x(hs) = "<< (x0_2*delta2*dx2) << endl;
     }
     if(!AlmostEqual(y,y0_2+delta2*dy2)){
-      cerr << __PRETTY_FUNCTION__ << "@" __FILE__ << ":" << __LINE__ << endl;
       cerr << "rounding(?) error detected, points are not equal";
       cerr << " y(this) = " << y << ",  y(hs) = "<< (y0_2*delta2*dy2) << endl;
     }
@@ -3432,8 +3408,7 @@ bool HalfSegment::Intersection( const HalfSegment& hs, Point& resp ) const {
     resp.Set(x,y);
     return true;
   }
-}
-
+}*/
 
 bool HalfSegment::Intersection( const HalfSegment& hs,
                                 HalfSegment& reshs ) const
@@ -3448,7 +3423,7 @@ bool HalfSegment::Intersection( const HalfSegment& hs,
     reshs = hs;
     return true;
   }
-
+  
   Coord xl = lp.GetX(),
         yl = lp.GetY(),
         xr = rp.GetX(),
@@ -7505,7 +7480,9 @@ bool Region::Contains( const HalfSegment& hs ) const
         return true;
       else if( hs.Intersects(auxhs)){
               if(auxhs.Contains(hs.GetLeftPoint()) ||
-                  auxhs.Contains(hs.GetRightPoint()))
+                  auxhs.Contains(hs.GetRightPoint()) ||
+                  hs.Contains(auxhs.GetLeftPoint()) || 
+                  hs.Contains(auxhs.GetRightPoint()))
                     checkMidPoint = true;
               else{ //the intersection point that is not the endpoint
                   Point temp_p;

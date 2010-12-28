@@ -1354,7 +1354,6 @@ as an attribute.
      return line;
    }
 
- protected:
    inline Line() {} // This constructor should only be used
                     // within the Cast function.
   private:
