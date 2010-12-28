@@ -704,6 +704,50 @@ struct MyPoint_Ext:public MyPoint{
   	}
 };
 
+
+/* structure for rotational plane sweep */
+struct RPoint{
+  Point p;
+  double angle;
+  Point n1, n2;
+  double dist;
+  int regid;
+  RPoint(){}
+  RPoint(Point& q, double a, double d, int id):p(q),angle(a),dist(d),regid(id){}
+  RPoint(const RPoint& rp):p(rp.p),angle(rp.angle),
+                           n1(rp.n1), n2(rp.n2), dist(rp.dist),regid(rp.regid){}
+  RPoint& operator=(const RPoint& rp)
+  {
+    p = rp.p;
+    angle = rp.angle;
+    n1 = rp.n1;
+    n2 = rp.n2;
+    dist = rp.dist;
+    regid = rp.regid;
+    return *this;
+  }
+  void SetNeighbor(Point& p1, Point& p2)
+  {
+    n1 = p1;
+    n2 = p2;
+  }
+  bool operator<(const RPoint& rp) const
+  {
+    if(AlmostEqual(angle,rp.angle)){
+        return dist > rp.dist;
+    }else
+      return angle > rp.angle;
+  }
+  void Print()
+  {
+//    cout<<" n1 "<<n1<<" n2 "<<n2<<endl;
+//    cout<<"p "<<p<<" angle "<<angle<<"dist "<<dist<<endl;
+    cout<<"p "<<p<<"angle "<<angle<<endl;
+  }
+
+};
+
+
 /*
 a compressed version of junction
 loc--position, rid1, rid2, and relative position in each route, len1, len2
