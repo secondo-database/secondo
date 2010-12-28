@@ -2304,7 +2304,9 @@ bool RegContainHS(Region* r, HalfSegment hs)
         return true;
       else if( hs.Intersects(auxhs)){
               if(auxhs.Contains(hs.GetLeftPoint()) ||
-                  auxhs.Contains(hs.GetRightPoint()))
+                  auxhs.Contains(hs.GetRightPoint()) ||
+                  hs.Contains(auxhs.GetLeftPoint()) || 
+                  hs.Contains(auxhs.GetRightPoint()))
                     checkMidPoint = true;
               else{ //the intersection point that is not the endpoint
                   Point temp_p;
