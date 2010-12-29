@@ -1470,7 +1470,7 @@ void BusRoute::CreateBusStop2(int attr1,int attr2,int attr3)
   ////////////////take all stops in one route////////////////////////
   int count = 0;
   for(unsigned int i = 0;i < bus_stop_list.size();i++){
-    int sid = bus_stop_list[i].sid; 
+    unsigned int sid = bus_stop_list[i].sid; 
     
     vector<BusStop> temp_list; 
     temp_list.push_back(bus_stop_list[i]); 
@@ -2107,7 +2107,7 @@ void BusRoute::GetSectionList(GLine* gl,vector<SectTreeEntry>& sec_list,
     
     if(!AlmostEqual(ri->GetStartPos(), ri->GetEndPos())){
       
-      DbArray<SectTreeEntry>* actSections = new DbArray<SectTreeEntry>(0);
+/*      DbArray<SectTreeEntry>* actSections = new DbArray<SectTreeEntry>(0);
       n->GetSectionsOfRouteInterval(ri,actSections);
 
       SectTreeEntry nEntry;
@@ -2141,7 +2141,42 @@ void BusRoute::GetSectionList(GLine* gl,vector<SectTreeEntry>& sec_list,
       }
       
       
-      delete actSections;
+      delete actSections;*/
+
+      vector<SectTreeEntry> actSections;
+      n->GetSectionsOfRouteInterval(ri,actSections);
+
+      SectTreeEntry nEntry;
+
+      vector<SectTreeEntry> sec_list_temp; 
+
+      for(unsigned int j = 0;j < actSections.size();j++){
+          nEntry = actSections[j];
+
+          ////////////////////////////////////////////////////
+//          cout<<"entry "<<nEntry.rid
+//              <<" start "<<nEntry.start
+//              <<" end "<<nEntry.end<<endl; 
+              
+          if(AlmostEqual(nEntry.start,nEntry.end))continue; 
+
+          sec_list_temp.push_back(nEntry); 
+          
+          if(ri->GetStartPos() < ri->GetEndPos()) start_from.push_back(true);
+          else
+            start_from.push_back(false); 
+          
+      }  
+      
+      if(ri->GetStartPos() < ri->GetEndPos()){
+        for(unsigned int k = 0;k < sec_list_temp.size();k++)
+          sec_list.push_back(sec_list_temp[k]);
+      }else{
+        for(int k = sec_list_temp.size() - 1;k >= 0;k--)
+          sec_list.push_back(sec_list_temp[k]);
+      }
+      
+
     }  
       delete ri; 
   }
@@ -2171,7 +2206,7 @@ void BusRoute::CalculateStartSmaller(vector<BusStop>& bus_stop_list,
   //////////bus stops are ordered from id small to id big///////////
   
   for(unsigned int i = 0;i < sec_list.size();i++){
-    int sec_id = sec_list[i].secttid; 
+    unsigned int sec_id = sec_list[i].secttid; 
     double start = sec_list[i].start;
     double end = sec_list[i].end; 
     

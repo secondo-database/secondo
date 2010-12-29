@@ -2306,12 +2306,17 @@ bool RegContainHS(Region* r, HalfSegment hs)
               if(auxhs.Contains(hs.GetLeftPoint()) ||
                   auxhs.Contains(hs.GetRightPoint()) ||
                   hs.Contains(auxhs.GetLeftPoint()) || 
-                  hs.Contains(auxhs.GetRightPoint()))
+                  hs.Contains(auxhs.GetRightPoint())){
                     checkMidPoint = true;
-              else{ //the intersection point that is not the endpoint
+               //the intersection point that is not the endpoint
                   Point temp_p;
-                  assert(hs.Intersection(auxhs,temp_p));
-                  intersection_points.push_back(temp_p);
+                  if(hs.Intersection(auxhs,temp_p))
+                    intersection_points.push_back(temp_p);
+                  HalfSegment temp_hs;
+                  if(hs.Intersection(auxhs, temp_hs)){
+                      intersection_points.push_back(temp_hs.GetLeftPoint());
+                      intersection_points.push_back(temp_hs.GetRightPoint());
+                  }
               }
       }
     }

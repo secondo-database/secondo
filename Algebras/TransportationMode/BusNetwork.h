@@ -120,10 +120,10 @@ struct BusStop{
   int br_stop_id; 
   int rid;
   double pos;
-  int sid; 
+  unsigned int sid; 
   bool def;
   BusStop(){}
-  BusStop(int id1, int id2, int r, double p, int id3, bool d):
+  BusStop(int id1, int id2, int r, double p, unsigned int id3, bool d):
   br_id(id1),br_stop_id(id2),rid(r),pos(p), sid(id3), def(d){}
   BusStop(const BusStop& bs):
   br_id(bs.br_id),br_stop_id(bs.br_stop_id),rid(bs.rid),

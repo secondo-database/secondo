@@ -917,7 +917,7 @@ struct IndoorNav{
   float NextFloorHeight(float h, vector<float>& floor_height);
   ////////////////create a relation storing door////////////////////////
   void CreateDoor(R_Tree<3, TupleId>*, int, int ,int);
-  void DFTraverse(R_Tree<3,TupleId>* rtree, SmiRecordId adr, int id, 
+  void DFTraverse(R_Tree<3,TupleId>* rtree, SmiRecordId adr, unsigned int id, 
                   Rectangle<3>* bbox3d, int attr1, int attr2, 
                   int attr3, vector<TupleId>& id_list); 
   bool BBox3DEqual(Rectangle<3>* bbox3d, Rectangle<3>* bbox_3d);
@@ -960,15 +960,18 @@ structure used for the priority queue for shortest path searching
 */
 struct RPath_elem:public Path_elem{
   double weight;
+  double real_w; 
   RPath_elem(){}
-  RPath_elem(int p, int c, int t, double w):Path_elem(p, c, t), weight(w){}
+  RPath_elem(int p, int c, int t, double w1, double w2):
+  Path_elem(p, c, t), weight(w1), real_w(w2){}
   RPath_elem(const RPath_elem& se):Path_elem(se),
-                       weight(se.weight){}
+                       weight(se.weight), real_w(se.real_w){}
   RPath_elem& operator=(const RPath_elem& se)
   {
 //    cout<<"SPath_elem ="<<endl;
     Path_elem::operator=(se);
     weight = se.weight;
+    real_w = se.real_w; 
     return *this;
   }
   bool operator<(const RPath_elem& se) const
@@ -979,7 +982,8 @@ struct RPath_elem:public Path_elem{
   void Print()
   {
     cout<<"prev "<<prev_index<<" cur "<<cur_index
-        <<" tri_index " <<tri_index<<" weight "<<weight<<endl;
+        <<" tri_index " <<tri_index<<
+        " weight1 "<<weight<<" weight2 "<<real_w<<endl;
   }
 };
 
@@ -990,11 +994,10 @@ convex with holes or  concave with holes i
 */
 
 void ShortestPath_InRegion(Region* reg, Point* s, Point* d, Line* pResult);
-bool DirectReachable(PointAndID& start_loc, PointAndID& end_loc, 
-               vector<HalfSegment>& seg_list); 
 void InitializeQueue(Region* reg, priority_queue<RPath_elem>& path_queue, 
                      vector<RPath_elem>& expand_queue,
-                     PointAndID start_loc, vector<PointAndID>& ps_list,
+                     PointAndID start_loc, PointAndID end_loc,
+                     vector<PointAndID>& ps_list,
                      vector<HalfSegment>& seg_list, vector<bool>& visit_flag); 
 void FindAdj(Region* reg, PointAndID top, vector<bool>& visit_flag, 
              vector<int>& adj_list, vector<PointAndID>& ps_list,
