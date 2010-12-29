@@ -4635,6 +4635,7 @@ MGPoint* MGPoint::Clone() const {
   {
     MGPoint* result = new MGPoint(0);
     result->SetDefined(false);
+    return result; 
   }
 
   MGPoint* result = new MGPoint( GetNoComponents() );
