@@ -683,11 +683,9 @@ public:
   
   bool MergeAdd(set<int>& val, double &starttime, 
       double &endtime, bool lc, bool rc);
-  
-  void ConstructPeriodFromBuffer(multimap<double, Event>::iterator periodStart,
-      multimap<double, Event>::iterator periodEnd);
-  
+   
   void ConstructFromBuffer();
+
   
   multimap<double, Event> buffer;
   list<CompressedInMemUSet> units;
@@ -746,6 +744,8 @@ public:
   bool MergeAdd(set<int>& val, double &starttime, 
       double &endtime, bool lc, bool rc);
 
+  double DurationLength();
+  
   DbArray<int> removed;
   DbArray<int> added;
   DbArray<CompressedUSetRef> units;

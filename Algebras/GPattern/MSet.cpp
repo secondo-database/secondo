@@ -1853,7 +1853,7 @@ ostream& CompressedInMemUSet::Print( ostream &os )
 }
 
 
-CompressedInMemMSet::CompressedInMemMSet(){}
+CompressedInMemMSet::CompressedInMemMSet():validLastUnitValue(false){}
 CompressedInMemMSet::CompressedInMemMSet(CompressedInMemMSet& arg, 
     list<CompressedInMemUSet>::iterator begin,
     list<CompressedInMemUSet>::iterator end)
@@ -2658,14 +2658,12 @@ bool CompressedInMemMSet::MergeAdd(set<int>& val, double &starttime,
   return merged;
 }
 
-void CompressedInMemMSet::ConstructPeriodFromBuffer(
-    multimap<double, Event>::iterator periodStart,
-    multimap<double, Event>::iterator periodEnd)
+void CompressedInMemMSet::ConstructFromBuffer()
 {
   units.clear();
-  if(periodStart == periodEnd) return;
+  if(this->buffer.begin() == this->buffer.end()) return;
   
-  multimap<double, Event>::iterator cur=periodStart;
+  multimap<double, Event>::iterator cur=this->buffer.begin();
   pair< multimap<double, Event>::iterator, 
     multimap<double, Event>::iterator > events;
   map<EventType, vector<multimap<double, Event>::iterator> > eventClasses;
@@ -2718,9 +2716,9 @@ void CompressedInMemMSet::ConstructPeriodFromBuffer(
     lc=false;
     curElemsCount+= elemsToAdd.size();
   }
-  for(multimap<double,Event>::iterator k=events.first; k!= events.second;++k) 
-    ++cur;
-  while(cur != periodEnd)
+  this->buffer.erase(events.first, events.second);
+  cur= this->buffer.begin();
+  while(cur != this->buffer.end())
   {
     curtime= (*cur).first;
     events = buffer.equal_range(curtime);
@@ -2793,16 +2791,10 @@ void CompressedInMemMSet::ConstructPeriodFromBuffer(
       lc=false;
       curElemsCount+= elemsToAdd.size() - elemsToRemove.size();
     }
-    for(map<double,Event>::iterator k= events.first; k!= events.second; ++k) 
-       ++cur;
+    this->buffer.erase(events.first, events.second);
+    cur= this->buffer.begin();
   }
   validLastUnitValue= false;
-}
-
-
-void CompressedInMemMSet::ConstructFromBuffer()
-{   
-  ConstructPeriodFromBuffer(buffer.begin(), buffer.end());
 }
 
 set<int>* CompressedInMemMSet::GetFinalSet()
@@ -4154,7 +4146,12 @@ void CompressedMSet::WriteToCompressedInMemMSet(CompressedInMemMSet& res)
   }
 }
 
-ostream& CompressedMSet::Print( ostream &os ){}
+ostream& CompressedMSet::Print( ostream &os )
+{
+  CompressedInMemMSet _mset;
+  this->WriteToCompressedInMemMSet(_mset);
+  return _mset.Print(os);
+}
 
 void CompressedMSet::AddUnit( set<int>& constValue,
     double starttime, double endtime, bool lc, bool rc)
@@ -4236,5 +4233,15 @@ bool CompressedMSet::MergeAdd(set<int>& val, double &starttime,
   }
   AddUnit(val, starttime, endtime, lc, rc);
   return merged;
+}
+
+double CompressedMSet::DurationLength()
+{
+  if(this->units.Size() == 0) return 0;
+  
+  CompressedUSetRef firstUSet, lastUSet;
+  this->units.Get(0, firstUSet);
+  this->units.Get(this->units.Size()-1, lastUSet);
+  return lastUSet.endtime - firstUSet.starttime;
 }
 };
