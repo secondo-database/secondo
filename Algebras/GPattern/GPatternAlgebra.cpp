@@ -1579,8 +1579,6 @@ Evaluating the gpattern results
         bool inc= accumlator.Buffer(*mbool, tupleCnt, d);
         //GPatternHelper::removeShortUnits(*mbool, d);
         //accumlator2.Union(*mbool, tupleCnt);
-        if(debugme)
-          cerr<< endl<< tupleCnt << endl << ids.size();
         if(inc)  
           ++tupleCnt;
         else
@@ -1602,7 +1600,7 @@ Evaluating the gpattern results
       if(tmp1 != tmp2)
       {
         tmp1.Print(cerr);
-        tmp2.Print(cerr);
+        //tmp2.Print(cerr);
       }
     }
     bool changed= true;
@@ -1652,17 +1650,17 @@ Evaluating the gpattern results
         ++end;
       begin= end;
     }
-    resStreamFinal= new list<CompressedMSet*>();
-    for(list<CompressedMSet*>::iterator 
-        it= resStream->begin(); it!= resStream->end(); ++it)
-    {
-      resStreamFinal->push_back(GPatternHelper::EdgeMSet2NodeMSet(*it, ids));
-      delete *it;
-      *it = 0;
-    }
-    delete resStream;
+//    resStreamFinal= new list<CompressedMSet*>();
+//    for(list<CompressedMSet*>::iterator 
+//        it= resStream->begin(); it!= resStream->end(); ++it)
+//    {
+//      resStreamFinal->push_back(GPatternHelper::EdgeMSet2NodeMSet(*it, ids));
+//      delete *it;
+//      *it = 0;
+//    }
+//    delete resStream;
     
-    local= SetWord(resStreamFinal);
+    local= SetWord(resStream);
     return 0;
   }
   case REQUEST: { // return the next stream element

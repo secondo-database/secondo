@@ -54,6 +54,7 @@ JAN, 2010 Mahmoud Sakr
 #include <map>
 #include <functional>
 #include <algorithm>
+#include "LightWeightGraph.h"
 
 using namespace datetime;
 using namespace mset;
@@ -116,10 +117,11 @@ static void removeShortUnits(MBool &mbool, double d)
   }
 }
 
+
 template<class MSetClass, class IteratorClass>
 static void FindSubGraphs(MSetClass& Accumlator,
     IteratorClass begin, IteratorClass end , 
-    vector<intpair>& ids, double d, int n, string qts, 
+    vector<intpair>& ids, double d, int n, string& qts, 
     list<CompressedMSet*>*& finalResStream)
 {
   bool debugme= false;
@@ -286,18 +288,28 @@ static void FindDynamicComponents(CompressedInMemMSet& Accumlator,
   list<CompressedMSet*>* resStream= new list<CompressedMSet*>(0);
   finalResStream= new list<CompressedMSet*>(0);
   list<CompressedInMemUSet>::iterator cur= begin;
+  LWGraph* graph= new LWGraph();
+  list<Component*>* components= new list<Component*>();
+  
   while(cur != end)
   {
     cerr<<"\n\nProcessing unit number: " <<++cnt <<" unit has: "
       <<(*cur).count<<" elems";
     cerr<<"\nresStream has: " <<resStream->size();
     cerr<<" results, finalResStream has: " <<finalResStream->size();
-    Accumlator.GetSet(cur, constValue);
-    starttime= (*cur).starttime; endtime= (*cur).endtime;
-    lc= (*cur).lc; rc= (*cur).rc;
+//    Accumlator.GetSet(cur, constValue);
+//    starttime= (*cur).starttime; endtime= (*cur).endtime;
+//    lc= (*cur).lc; rc= (*cur).rc;
+    DynamicGraphAppend(graph, components, cur, ids, d, n, qts, 
+        resStream, finalResStream);
+    if(debugme)
+    {
+      cerr<< "\nresStream contains "<< resStream->size() << " results\n";
+      for(list<CompressedMSet*>::iterator 
+          it= resStream->begin(); it != resStream->end(); ++it)
+        (*it)->Print(cerr);
+    }
     ++cur;
-    DynamicGraphAppend(constValue, starttime, endtime, lc, rc,
-        ids, d, n, qts, resStream, finalResStream);
   }
   cerr<<"\n FindDynamicComponents finished successfully ";
   if(debugme)
@@ -348,209 +360,327 @@ static bool SetIntersects(set<int> &set1, set<int> &set2)
   return false;
 }
 
-static void DynamicGraphAppend(set<int> &constValue, double starttime, 
-    double endtime, bool lc, bool rc, vector<intpair>& ids, double d, 
-    int n, string& qts, list<CompressedMSet*>* resStream, 
+static void CheckAdd(Component* newComp, int n , list<Component*>* components)
+{
+  if(newComp->graph->nodes_count() >= n)
+  {
+    newComp->message = Component::NewlyAdded;
+    newComp->resStreams.clear();
+    components->push_back(newComp);
+  }
+  else
+    delete newComp;
+}
+
+static void UpdateMerge(set<int>& newEdges, vector<intpair>& ids, 
+    vector< list<Component*>::iterator>* affectedComponents)
+{
+  Component* comp= *(*affectedComponents)[0];
+  int numNodesBeforeInsert= comp->graph->nodes_count();
+  InsertEdgesUndirected(comp->graph, newEdges, ids);
+  int numNodesAfterInsert= comp->graph->nodes_count();
+  
+  if(numNodesBeforeInsert != numNodesAfterInsert)
+    comp->UpdateMessage( Component::NewlyAddedNodes );
+  else
+    comp->UpdateMessage( Component::NewlyAddedEdges );
+}
+
+static void MergeComponents(Component* newComp, 
+    vector< list<Component*>::iterator>* affectedComponents, 
+    list<Component*>* components)
+{
+  Component* bigComp= new Component();
+  for(unsigned int i=0; i< affectedComponents->size(); ++i)
+    bigComp->Union( *(*affectedComponents)[i]);
+    //a union of graphs and resStreams
+    
+  for(unsigned int i=0; i< affectedComponents->size(); ++i)
+  {
+    delete *(*affectedComponents)[i];
+    components->erase((*affectedComponents)[i]);
+  }
+  
+  components->push_back(bigComp);
+}
+
+static void UpdateRemove(Component* delComp, int n, 
+    vector< list<Component*>::iterator>* affectedComponents, 
+    list<Component*>* components)
+{
+  Component* comp= *(*affectedComponents)[0];
+  int sizeBeforeDel= comp->graph->nodes_count();
+  comp->RemoveEdgesFrom(delComp);
+  int sizeAfterDel= comp->graph->nodes_count();
+  vector< LWGraph* >* newComponents= comp->graph->cluster();
+  
+  vector< LWGraph* >::iterator it= --newComponents->end(); 
+  while(!newComponents->empty() && it >= newComponents->begin())
+  {
+    if((*it)->nodes_count() < n)
+    {
+      delete *it; 
+      newComponents->erase(it--);
+    }
+    else
+      --it;
+  }
+  
+  if(newComponents->size() == 1)
+  {
+    //simple edge/node removal
+    assert(sizeBeforeDel >= sizeAfterDel);
+    if(sizeBeforeDel > sizeAfterDel)
+    {
+      //simple node removal 
+      comp->UpdateMessage(Component::RemovedNodes);
+      delete comp->graph;
+      comp->graph= (*newComponents)[0];
+    }
+    else if (sizeBeforeDel == sizeAfterDel)
+    {
+      //simple edge removal
+      comp->UpdateMessage(Component::RemovedEdges);
+      delete comp->graph;
+      comp->graph= (*newComponents)[0];
+    }
+    else
+      assert(false);
+  }
+  else if(newComponents->empty())
+  {
+    //a deletion of a complete component
+    if (comp->UpdateMessage(Component::RemoveNow));
+    {
+      delete comp->graph;
+      delete comp;
+      components->erase((*affectedComponents)[0]);
+    }
+  }
+  else if(newComponents->size() > 1)
+  {
+    //a split of a component
+    for(unsigned int i=0; i< newComponents->size(); ++i)
+    {
+      Component* nC= new Component();
+      nC->resStreams.resize(comp->resStreams.size());
+      copy(comp->resStreams.begin(), comp->resStreams.end(), 
+          nC->resStreams.begin());
+      nC->SetMessage(comp->message);
+      nC->UpdateMessage(Component::SplitFromExtistingComponent);
+      nC->graph= (*newComponents)[i];
+      components->push_back(nC);
+    }
+    delete comp->graph;
+    delete comp;
+    components->erase((*affectedComponents)[0]);
+  }
+  delete newComponents;
+  
+}
+
+static void Finalize(list<Component*>* components,double d, 
+    CompressedInMemUSet& cur, list<CompressedMSet*>* resStream, 
     list<CompressedMSet*>* finalResStream)
+{
+  bool debugme= true;
+  list<list<CompressedMSet*>::iterator> remainingResStreams;
+  for(list<CompressedMSet*>::iterator res= resStream->begin(); res!= 
+    resStream->end(); ++res)
+    remainingResStreams.push_back(res);
+    
+  for(list<Component*>::iterator it= components->begin(); it!=
+    components->end(); ++it)
+  {
+    Component* comp= *it;
+    switch(comp->message)
+    {
+    case Component::NotChanged:
+    case Component::NewlyAddedEdges:
+    case Component::RemovedEdges:
+    {
+      CompressedUSetRef theUSet;
+      for(list< list<mset::CompressedMSet*>::iterator >::iterator res= 
+        comp->resStreams.begin(); res!= comp->resStreams.end(); ++res)
+      {
+        mset::CompressedMSet* theMSet= **res;
+        theMSet->units.Get(theMSet->GetNoComponents()-1, theUSet);
+        assert(AlmostEqual(theUSet.endtime, cur.starttime) && 
+            (theUSet.rc || cur.lc));
+        theUSet.endtime= cur.endtime;
+        theUSet.rc= cur.rc;
+        theMSet->units.Put(theMSet->GetNoComponents()-1, theUSet);
+        remainingResStreams.remove(*res);
+      }
+    }break;
+    case Component::NewlyAddedNodes:
+    case Component::RemovedNodes:
+    {
+      set<int> compNodes;
+      for(list< list<mset::CompressedMSet*>::iterator >::iterator res= 
+        comp->resStreams.begin(); res!= comp->resStreams.end(); ++res)
+      {
+        CompressedMSet* theMSet= **res;
+        comp->graph->get_nodes(compNodes);
+        theMSet->MergeAdd(compNodes, cur.starttime, cur.endtime,
+            cur.lc, cur.rc);
+        remainingResStreams.remove(*res);
+      }      
+    }break;
+    case Component::NewlyAdded:
+    {
+      set<int> compNodes;
+      CompressedMSet* newMSet= new CompressedMSet(0);
+      comp->graph->get_nodes(compNodes);
+      newMSet->AddUnit(compNodes, cur.starttime, cur.endtime,
+          cur.lc, cur.rc);
+      resStream->push_back(newMSet);
+      list<CompressedMSet*>::iterator newMSetIt= resStream->end(); 
+      --newMSetIt;
+      comp->resStreams.push_back(newMSetIt);
+    }break;
+    case Component::SplitFromExtistingComponent:
+    {
+      list< list<mset::CompressedMSet*>::iterator > resStreams;
+      for(list< list<mset::CompressedMSet*>::iterator >::iterator res= 
+        comp->resStreams.begin(); res!= comp->resStreams.end(); ++res)
+      {
+        set<int> compNodes;
+        CompressedMSet* theMSet= **res;
+        CompressedMSet* newMSet= new CompressedMSet(*theMSet);
+        comp->graph->get_nodes(compNodes);
+        newMSet->MergeAdd(compNodes, cur.starttime, cur.endtime,
+            cur.lc, cur.rc);
+        resStream->push_back(newMSet);
+        list<CompressedMSet*>::iterator newMSetIt= resStream->end(); 
+        --newMSetIt;
+        resStreams.push_back(newMSetIt);
+        remainingResStreams.remove(*res);
+      }  
+      comp->resStreams.clear();
+      comp->resStreams.resize(resStreams.size());
+      copy(resStreams.begin(), resStreams.end(), comp->resStreams.begin());
+      
+    }break;
+    default:
+    {
+      assert(0);
+    }
+    
+    };
+  }
+  
+  list<list<CompressedMSet*>::iterator>::iterator res=
+    remainingResStreams.begin(); 
+  while(res!= remainingResStreams.end())
+  {
+    CompressedMSet* _mset= **res;
+    if(_mset->DurationLength() > d)
+    {
+      if(debugme)
+      {
+        cerr<<"Moving the following mset from resStream to finalResStream:";
+        _mset->Print(cerr);
+      }
+      finalResStream->push_back(_mset);
+    }
+    else
+      delete _mset;
+    resStream->erase(*res);
+    ++res;
+  }
+}
+
+static void DynamicGraphAppend(LWGraph* graph, list<Component*>* components,
+    list<CompressedInMemUSet>::iterator cur, vector<intpair>& ids, double d, 
+    int n, string& qts, list<CompressedMSet*>*& resStream, 
+    list<CompressedMSet*>*& finalResStream)
 {
   bool debugme= false;
   set<int> *subGraph;
   map<int, int> _map;
-  igraph_t* graph;
-  vector<set<int> >* subGraphsNodes, *subGraphsEdges;
+  
+  
+  vector<Component*> newComponents, delComponents;
+  vector< list<Component*>::iterator> affectedComponents;
   vector<int> mergeIndex;
   bool intersects;
   bool merged= false;
   
-  graph= Set2Graph(constValue, ids, _map);
-  if(graph == 0)
+  if(debugme)
+    graph->print(cerr);
+  for(list<Component*>::iterator it= 
+    components->begin(); it!= components->end(); ++it)
+    (*it)->SetMessage(Component::NotChanged);
+  
+  if(!(*cur).added.empty())
   {
-    cerr<< "\n Empty set yields empty graph ";
-    resStream->remove_if(bind2nd(checkShortDelete(), d));
-    finalResStream->splice(finalResStream->end(), *resStream);
-    resStream->clear();
-    if(debugme)
+    InsertEdgesUndirected(graph, (*cur).added, ids);
+
+    FindComponentsOf(graph, (*cur).added, ids, newComponents);
+    for(vector<Component*>::iterator newComp= 
+      newComponents.begin(); newComp!= newComponents.end(); ++newComp)
     {
-      cerr<< "\nresStream contains "<< resStream->size() << " results\n";
-      for(list<CompressedMSet*>::iterator 
-          it= resStream->begin(); it != resStream->end(); ++it)
-        (*it)->Print(cerr);
+      if(debugme)
+        (*newComp)->graph->print(cerr);
+      affectedComponents.clear();
+      for(list<Component*>::iterator comp= 
+        components->begin(); comp!= components->end(); ++comp)
+      {
+        intersects= (*comp)->Intersects( *newComp );
+        if(intersects)
+          affectedComponents.push_back(comp);
+      } 
+
+      if( affectedComponents.empty())
+        CheckAdd(*newComp, n , components);
+
+      else if( affectedComponents.size() == 1) 
+        UpdateMerge((*cur).added, ids, &affectedComponents);
+      //new edges/nodes are added to an existing component without causing a 
+      //merge with other component. This causes no change.
+
+      else if( affectedComponents.size() > 1) 
+        MergeComponents(*newComp, &affectedComponents, components);
+      //the added edges caused some components to merge together.
+      //delete *newComp;
     }
-    if(debugme)
+    //delete newComponents;
+  }
+
+  if(!(*cur).removed.empty())
+  {
+    RemoveEdgesUndirected(graph, (*cur).removed, ids);
+    Cluster((*cur).removed, ids, delComponents);
+    for(vector<Component*>::iterator delComp= 
+      delComponents.begin(); delComp!= delComponents.end(); ++delComp)
     {
-      cerr<< "\nfinalResStream contains "<< 
-        finalResStream->size() << " results\n";
-      for(list<CompressedMSet*>::iterator 
-          it= finalResStream->begin(); it != finalResStream->end(); ++it)
-        (*it)->Print(cerr);
+      affectedComponents.clear();
+      intersects= false;
+      for(list<Component*>::iterator comp= 
+        components->begin(); comp!= components->end() && !intersects; ++comp)
+      {
+        intersects= (*comp)->Intersects( *delComp );
+        if(intersects)
+          affectedComponents.push_back(comp);
+      } 
+      
+      if(affectedComponents.empty());
+        // do nothing. This is a removal of some non-compoenent edges
+
+      else if (affectedComponents.size() == 1)
+        UpdateRemove(*delComp, n, &affectedComponents, components);
+        // can be a simple edge removal, a split of a component, or a 
+        // deletion of a complete component
+      
+      else if (affectedComponents.size() > 1)
+        assert(false);
+      //delete *delComp;
     }
-    return;
+    //delete delComponents;
   }
   
-  subGraphsNodes= FindSubGraphs(graph, n, qts, _map);
-  int size= subGraphsNodes->size();
-  cerr<<"\n Number of subgraphs in this unit is: "<< size <<" with sizes: ";
-  subGraphsEdges= new vector<set<int> >(size);
-  for(unsigned int i=0; i< subGraphsNodes->size(); ++i)
-  {
-    GraphNodes2Edges(
-        (*subGraphsNodes)[i], constValue, ids, (*subGraphsEdges)[i]);
-    cerr<< (*subGraphsEdges)[i].size()<<", ";
-    (*subGraphsNodes)[i].clear();
-  }
-  delete subGraphsNodes;
-
-  if(resStream->empty())
-  {
-    for(unsigned int i=0; i< subGraphsEdges->size(); ++i)
-    {
-      CompressedMSet* newmset= new CompressedMSet(0);
-      newmset->MergeAdd((*subGraphsEdges)[i], starttime, endtime, lc, rc);
-      resStream->push_back(newmset);
-      if(debugme)
-        newmset->Print(cerr);
-    }
-    if(debugme)
-    {
-      cerr<< "\nresStream contains "<< resStream->size() << " results\n";
-      for(list<CompressedMSet*>::iterator 
-          it= resStream->begin(); it != resStream->end(); ++it)
-        (*it)->Print(cerr);
-    }
-    if(debugme)
-    {
-      cerr<< "\nfinalResStream contains "<< 
-        resStream->size() << " results\n";
-      for(list<CompressedMSet*>::iterator 
-          it= finalResStream->begin(); it != finalResStream->end(); ++it)
-        (*it)->Print(cerr);
-    }
-  }
-  else
-  {
-    if(subGraphsEdges->empty())
-    {
-      resStream->remove_if(bind2nd(checkShortDelete(), d));
-      finalResStream->splice(finalResStream->end(), *resStream);
-      resStream->clear();
-      if(debugme)
-      {
-        cerr<< "\nresStream contains "<< resStream->size() << " results\n";
-        for(list<CompressedMSet*>::iterator 
-            it= resStream->begin(); it != resStream->end(); ++it)
-          (*it)->Print(cerr);
-      }
-      if(debugme)
-      {
-        cerr<< "\nfinalResStream contains "<< 
-          finalResStream->size() << " results\n";
-        for(list<CompressedMSet*>::iterator 
-            it= finalResStream->begin(); it != finalResStream->end(); ++it)
-          (*it)->Print(cerr);
-      }
-    }
-    else
-    { 
-      CompressedUSetRef _uset;
-      list<CompressedMSet*>::iterator it= resStream->begin();
-      while(it != resStream->end())
-      {
-        CompressedMSet* _mset= (*it);
-        set<int>* finalSet= _mset->GetFinalSet();
-        for(unsigned int i=0; i< subGraphsEdges->size(); ++i)
-        {
-          subGraph= &(*subGraphsEdges)[i];
-          intersects = SetIntersects(*finalSet, *subGraph);
-          if(intersects)
-            mergeIndex.push_back(i);
-        }
-        if(mergeIndex.empty())
-        {
-          if(debugme)
-          {
-            cerr<<endl<< resStream->size() <<endl << _mset << endl;
-            _mset->Print(cerr);
-          }
-          _mset->units.Get(0, _uset);
-          double starttime= _uset.starttime; 
-          _mset->units.Get(_mset->units.Size() - 1 , _uset);
-          double endtime= _uset.endtime;
-          if(endtime - starttime < d) 
-            delete _mset;
-          else
-            finalResStream->push_back(_mset);
-          resStream->erase(it++);  
-          if(debugme)
-          {
-            cerr<< "\nresStream contains "<< 
-              resStream->size() << " results\n";
-            for(list<CompressedMSet*>::iterator 
-                it= resStream->begin(); it != resStream->end(); ++it)
-              (*it)->Print(cerr);
-          }
-          if(debugme)
-          {
-            cerr<< "\nfinalResStream contains "<< 
-              finalResStream->size() << " results\n";
-            for(list<CompressedMSet*>::iterator 
-              it= finalResStream->begin(); it!= finalResStream->end(); ++it)
-              (*it)->Print(cerr);
-          }
-          
-        }
-        else if(mergeIndex.size() == 1)
-        {
-          subGraph= &(*subGraphsEdges)[mergeIndex[0]];
-          merged= _mset->MergeAdd(*subGraph, starttime, endtime, lc, rc);
-          if(debugme)
-            _mset->Print(cerr);
-          assert(merged);
-          ++it;
-          mergeIndex.clear();
-        }
-        else
-        {
-          for(unsigned int k=0; k< mergeIndex.size(); ++k)
-          {
-            subGraph= &(*subGraphsEdges)[mergeIndex[k]];
-            CompressedMSet* newMSet= new CompressedMSet(*_mset);
-            merged= newMSet->MergeAdd(*subGraph, starttime, endtime, lc, rc);
-            if(debugme)
-              newMSet->Print(cerr);
-            assert(merged);  
-            resStream->push_front(newMSet);
-            if(debugme)
-              cerr<<endl<< resStream->size() << endl;
-          }
-          mergeIndex.clear();
-          delete _mset;
-          resStream->erase(it++); 
-          if(debugme)
-          {
-            cerr<< "\nresStream contains "<< resStream->size() << " results\n";
-            for(list<CompressedMSet*>::iterator 
-                it= resStream->begin(); it != resStream->end(); ++it)
-              (*it)->Print(cerr);
-          }
-          if(debugme)
-          {
-            cerr<< "\nfinalResStream contains "<< 
-              finalResStream->size() << " results\n";
-            for(list<CompressedMSet*>::iterator 
-                it= finalResStream->begin(); it != finalResStream->end(); ++it)
-              (*it)->Print(cerr);
-          }
-        }
-      }
-    }
-  }
-  subGraphsEdges->clear();
-  delete subGraphsEdges;
-  subGraphsEdges=0;
-  _map.clear();
-  igraph_destroy(graph);
-  delete graph;
-  graph=0;
+  Finalize(components, d, *cur, resStream, finalResStream);
 
 }
 static void GraphNodes2Edges(set<int>& subGraphNodes, set<int>& graphEdges, 
