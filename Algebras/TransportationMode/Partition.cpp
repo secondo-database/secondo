@@ -2948,6 +2948,10 @@ store the result in vector<MyHalfSegment>, with higher precision
 void SpacePartition::ReorderLine(SimpleLine* sline,
                                  vector<MyHalfSegment>& seq_halfseg)
 {
+    if(!(sline->Size() > 0)){
+      cout<<__FILE__<<" "<<__LINE__<<" line empty "<<endl; 
+      return; 
+    }
     Point sp;
     assert(sline->AtPosition(0.0,true,sp));
     vector<MyHalfSegment> copyline;

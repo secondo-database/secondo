@@ -205,8 +205,6 @@ private:
     double z;
 };
 
-
-
 /*
 3D Line 
 
@@ -227,7 +225,9 @@ class Line3D: public StandardSpatialAttribute<3>
     }
 
     inline ~Line3D()
-    {}
+    {
+//      points.print(cout);
+    }
 
     inline bool IsOrdered() const;
 
@@ -249,7 +249,6 @@ class Line3D: public StandardSpatialAttribute<3>
 
     inline void TrimToSize();
 
-//    inline bool Get( const int i, Point& p ) const;
     inline bool Get( const int i, Point3D& p ) const;
 
     Line3D& operator=( const Line3D& ps );
@@ -259,7 +258,7 @@ class Line3D: public StandardSpatialAttribute<3>
 
     bool operator!=( const Line3D& ) const;
 
-//    Line3D& operator+=( const Point& p );
+
     Line3D& operator+=( const Point3D& p );
 
     bool Adjacent( const Region& r ) const;
@@ -277,26 +276,32 @@ class Line3D: public StandardSpatialAttribute<3>
       return new Line3D( *this );
     }
     double Distance( const Rectangle<3>& r ) const;
-
+    void Print();
+    static void* Cast(void* addr){return (new(addr)Line3D());}
+    double Length();
+    
   private:
 
     void Sort(const bool exact = true);
 
     void RemoveDuplicates();
 
-//    DbArray<Point> points;
     DbArray<Point3D> points;
 };
 
 inline Line3D::Line3D( const int initsize ) :
 StandardSpatialAttribute<3>(true),
 points( initsize )
-{ }
+{ 
+//  cout<<"constructor1 "<<endl; 
+//  cout<<"initsize "<<initsize<<endl; 
+}
 
 inline Line3D::Line3D( const Line3D& ps ) :
 StandardSpatialAttribute<3>(ps.IsDefined()),
 points( ps.Size() )
 {
+//  cout<<"constructor2"<<endl; 
   if( IsDefined() ) {
     assert( ps.IsOrdered() );
     points.copyFrom(ps.points);
@@ -448,6 +453,7 @@ public:
     {
       cout<<"height "<<floor_height<<"reg "<<reg<<endl; 
     }
+    
 private:
     float floor_height;
     Region reg;
@@ -838,7 +844,7 @@ class GRoom:public StandardSpatialAttribute<2>{
       return BoundingBox().Distance(r);
    }
    float GetLowHeight();
-   float GetHighHeight();
+   
    
   /////////////very important two functions////////////////////
   ////////especially genrange is an attribute in a relation/////
@@ -877,10 +883,37 @@ void* CastGRoomD(void* addr);
 int SizeOfGRoom();
 bool CheckGRoom( ListExpr type, ListExpr& errorInfo );
 
+
+
 /*
 for indoor navigation 
 
 */
+
+struct MySegHeight:public MyHalfSegment{
+  float h;
+  MySegHeight(){ h = 0.0;}
+  MySegHeight(bool def, const Point& p1, const Point& p2, double d):
+            MyHalfSegment(def,p1,p2), h(d){}
+  MySegHeight(const MySegHeight& msd):MyHalfSegment(msd), h(msd.h){}
+  MySegHeight& operator=(const MySegHeight& msd)
+  {
+      MyHalfSegment::operator=(msd);
+      h = msd.h;
+      return *this;
+  }
+  bool operator<(const MySegHeight& msd) const
+  {
+//    cout<<"from1 "<<from<<" to1 "<<to<<endl;
+//    cout<<"from2 "<<msd.from<<" to2 "<<msd.to<<endl;
+    bool result = h < msd.h;
+//    cout<<"< "<<result<<endl;
+    return result;
+  }
+
+};
+
+
 struct IndoorNav{
   Relation* rel1; //university room relation 
   Relation* rel2; //door 3d box relation 
@@ -895,9 +928,14 @@ struct IndoorNav{
   vector<float> door_heights; 
   vector<int> door_types; //0 office rooms 1 staircase 2 elevator 
   
+  
+  vector<int> groom_oid_list; 
+  vector<unsigned int> door_tid_list1;
+  vector<unsigned int> door_tid_list2; 
   vector<Line3D> path_list; 
   
   /////////////the attribute position for indoor (groom+door) relation 
+  static string Indoor_GRoom_Door; 
   enum GROOM_REL{I_OID = 0, I_Name, I_Type, I_Room, I_Door}; 
   
   unsigned int count;
@@ -911,6 +949,8 @@ struct IndoorNav{
   }
   ~IndoorNav(){if(resulttype != NULL) delete resulttype;}
 
+  void CreateLine3D(int oid, Line* l, float h);
+  void CreateDoor3D();
   ///////////////////build 3d box on each door //////////////////////////
   void CreateDoorBox();
   void CreateBox3D(int, int, Line*, float);
@@ -928,7 +968,22 @@ struct IndoorNav{
                      const Rectangle<2>*, const Rectangle<2>*);
    ////////////////create a relation storing edges connecting doors////////////
    void CreateAdjDoor(BTree*, int, int ,int, int);
-   void BuildPath(int groom_oid, GRoom* groom, 
+   void BuildPathEL(int groom_oid, GRoom* groom, vector<int> tid_list, 
+                            int attr1, int attr2, 
+                            int attr3, int attr4);
+   void BuildPathST(int groom_oid, GRoom* groom, vector<int> tid_list, 
+                            int attr1, int attr2, 
+                            int attr3, int attr4);
+   void ST_ConnectOneFloor(int groom_oid, GRoom* groom, Line* l1, 
+                                   Line* l2, int tid1, int tid2, float h);
+   void FindPathInRegion(GRoom* groom, float h, 
+                         vector<MyHalfSegment>& mhs, Point* p1, Point* p2); 
+   void ST_ConnectFloors(int groom_oid, GRoom* groom, Line* l1, 
+                                   Line* l2, int tid1, int tid2, 
+                         float h1, float h2, vector<MySegHeight>&); 
+
+   void ConstructMiddlePath(GRoom* groom, vector<MySegHeight>& middle_path); 
+   void BuildPathORAndCO(int groom_oid, GRoom* groom, 
                   vector<int> tid_list, int attr1, int attr2, 
                   int attr3, int attr4);
 };
@@ -987,6 +1042,7 @@ struct RPath_elem:public Path_elem{
   }
 };
 
+
 /*
 compute the shorest path inside a region where the region can be 
 convex with holes or  concave with holes i
@@ -1004,5 +1060,50 @@ void FindAdj(Region* reg, PointAndID top, vector<bool>& visit_flag,
              vector<HalfSegment>& seg_list); 
 bool SegAvailable(HalfSegment hs, vector<HalfSegment>& set_list); 
 void GetBoundaryPoints(Region* r, vector<Point>& ps, unsigned int); 
+
+
+/*
+Indoor graph for navigation 
+
+*/
+
+class IndoorGraph: public BaseGraph{
+public:
+  static string NodeTypeInfo;
+  static string EdgeTypeInfo;
+  
+  enum IGNodeTypeInfo{I_DOOR = 0, I_DOOR_LOC, I_GROOM_OID1, 
+                      I_GROOM_OID2, I_DOOR_HEIGHT, I_DOOR_TYPE};
+  enum IGEdgeTypeInfo{I_GROOM_OID = 0,I_DOOR_TID1, I_DOOR_TID2, I_PATH};
+
+  //////////////////////////////////////////////////////////////
+  ~IndoorGraph();
+  IndoorGraph();
+  IndoorGraph(ListExpr in_xValue,int in_iErrorPos,
+                     ListExpr& inout_xErrorInfo,
+                     bool& inout_bCorrect);
+  VisualGraph(SmiRecord&, size_t&, const ListExpr);
+  //////////////////////////////////////////////////////////////
+  void Load(int, Relation*,Relation*);
+  static ListExpr OutVisualGraph(ListExpr typeInfo, Word value);
+  ListExpr Out(ListExpr typeInfo);
+  static bool CheckIndoorGraph(ListExpr type, ListExpr& errorInfo);
+  static void CloseIndoorGraph(const ListExpr typeInfo, Word& w);
+  static void DeleteIndoorGraph(const ListExpr typeInfo, Word& w);
+  static Word CreateIndoorGraph(const ListExpr typeInfo);
+  static Word InIndoorGraph(ListExpr in_xTypeInfo,
+                            ListExpr in_xValue,
+                            int in_iErrorPos, ListExpr& inout_xErrorInfo,
+                            bool& inout_bCorrect);
+  static bool OpenVisualGraph(SmiRecord& valueRecord, size_t& offset,
+                           const ListExpr typeInfo, Word& value);
+  static VisualGraph* Open(SmiRecord& valueRecord,size_t& offset,
+                          const ListExpr typeInfo);
+  static bool SaveVisualGraph(SmiRecord& valueRecord, size_t& offset,
+                           const ListExpr typeInfo, Word& value);
+  bool Save(SmiRecord& in_xValueRecord,size_t& inout_iOffset,
+              const ListExpr in_xTypeInfo);
+};
+
 
 #endif // __INDOOR_H__

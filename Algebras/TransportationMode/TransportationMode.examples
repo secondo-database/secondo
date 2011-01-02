@@ -516,6 +516,19 @@ Example  : query get_height(get_floor(groom1 translate_groom [2.0, 0.0]),0);
 Result   : 2.0
 
 
+Operator : length_l3d
+Number   : 1
+Signature: line3d -> real 
+Example  : query length_l3d(l3d1);
+Result   : 3.0
+
+Operator : createdoor3d
+Number   : 1
+Signature: rel -> (stream(((x1 t1) ... (xn tn))))
+Example  : query createdoor3d(university) count;
+Result   : 200 
+
+
 Operator : createdoorbox
 Number   : 1
 Signature: rel -> (stream(((x1 t1) ... (xn tn))))

@@ -317,6 +317,7 @@ Create function
 */
 Word CreateLine3D( const ListExpr typeInfo )
 {
+//  cout<<"CreateLine3D "<<endl; 
   return SetWord( new Line3D( 0 ) );
 }
 
@@ -326,6 +327,7 @@ Delete function
 */
 void DeleteLine3D( const ListExpr typeInfo, Word& w )
 {
+//  cout<<"DeleteLine3D "<<endl; 
   Line3D *ps = (Line3D *)w.addr;
   ps->Destroy();
   ps->DeleteIfAllowed(false);
@@ -338,6 +340,7 @@ Close function
 */
 void CloseLine3D( const ListExpr typeInfo, Word& w )
 {
+//  cout<<"CloseLine3D "<<endl; 
   ((Line3D *)w.addr)->DeleteIfAllowed();
   w.addr = 0;
 }
@@ -405,11 +408,6 @@ bool CheckLine3D( ListExpr type, ListExpr& errorInfo )
 }
 
 
-void* CastLine3D(void* addr)
-{
-  return (new (addr) Line3D());
-}
-
 TypeConstructor line3d(
         "line3d",                     //name
         Line3DProperty,               //property function describing signature
@@ -418,7 +416,7 @@ TypeConstructor line3d(
         CreateLine3D,   DeleteLine3D, //object creation and deletion
         OpenLine3D,     SaveLine3D,   // object open and save
         CloseLine3D,    CloneLine3D,  //object close and clone
-        CastLine3D,                   //cast function
+        Line3D::Cast,                   //cast function
         SizeOfLine3D,                 //sizeof function
         CheckLine3D );
 
@@ -543,6 +541,22 @@ const string SpatialSpecTranslateGRoom =
 "<text>_ translate_groom [_, _] </text--->"
 "<text>translate the 2D area of a groom</text--->"
 "<text>query groom1 translate_groom [20.0, 0.0]</text---> ) )";
+
+
+const string SpatialSpecLengthLine3D =
+"( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+"( <text>line3d -> real</text--->"
+"<text> length_l3d(_) </text--->"
+"<text>return the length of a 3D line</text--->"
+"<text>query length_3d(l3d1)</text---> ) )";
+
+const string SpatialSpecCreateDoor3D =
+"( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+"( <text>rel -> (stream (tuple( (x1 t1)(x2 t2)...(xn tn)))</text--->"
+"<text>createdoor3d() </text--->"
+"<text>create a 3d line for each door</text--->"
+"<text>query createdoor3d(university) count</text---> ) )";
+
 
 const string SpatialSpecCreateDoorBox =
 "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
@@ -786,6 +800,61 @@ ListExpr TranslateGroomTypeMap(ListExpr args)
   return nl->SymbolAtom("typeerror");
 }
 
+
+/*
+TypeMap function for operator length l3d 
+
+*/
+ListExpr LengthLine3DTypeMap(ListExpr args)
+{
+  if(nl->ListLength(args) != 1){
+      string err = "line3d expected";
+      return listutils::typeError(err);
+  }
+  ListExpr arg1 = nl->First(args);
+  if(nl->IsEqual(arg1, "line3d"))
+      return nl->SymbolAtom("real");
+
+  return nl->SymbolAtom("typeerror");
+}
+
+
+/*
+TypeMap function for operator createdoor3d
+
+*/
+ListExpr CreateDoor3DTypeMap(ListExpr args)
+{
+  if(nl->ListLength(args) != 1){
+      string err = "rel";
+      return listutils::typeError(err);
+  }
+  ListExpr arg1 = nl->First(args);
+
+  ListExpr xType;
+  nl->ReadFromString(IndoorNav::Indoor_GRoom_Door, xType); 
+  if (listutils::isRelDescription(arg1)){
+      if(CompareSchemas(arg1, xType)){
+          ListExpr result =
+            nl->TwoElemList(
+              nl->SymbolAtom("stream"),
+                nl->TwoElemList(
+                  nl->SymbolAtom("tuple"),
+                      nl->TwoElemList(
+                        nl->TwoElemList(nl->SymbolAtom("groom_oid"),
+                                    nl->SymbolAtom("int")),
+                        nl->TwoElemList(nl->SymbolAtom("Door"),
+                                      nl->SymbolAtom("line3d"))
+                  )
+                )
+          );
+          return result; 
+      }else
+        return nl->SymbolAtom("schema error");
+  }
+  return nl->SymbolAtom("typeerror");
+}
+
 /*
 TypeMap function for operator createdoorbox
 
@@ -798,9 +867,11 @@ ListExpr CreateDoorBoxTypeMap(ListExpr args)
   }
   ListExpr arg1 = nl->First(args);
 
+  ListExpr xType;
+  nl->ReadFromString(IndoorNav::Indoor_GRoom_Door, xType); 
   if (listutils::isRelDescription(arg1)){
-
-      ListExpr result =
+      if(CompareSchemas(arg1, xType)){
+          ListExpr result =
           nl->TwoElemList(
               nl->SymbolAtom("stream"),
                 nl->TwoElemList(
@@ -815,7 +886,9 @@ ListExpr CreateDoorBoxTypeMap(ListExpr args)
                   )
                 )
           );
-     return result; 
+        return result; 
+      }else
+        return nl->SymbolAtom("schema error"); 
   }
   return nl->SymbolAtom("typeerror");
 }
@@ -1244,6 +1317,72 @@ int TranslateGRoomValueMap(Word* args, Word& result, int message,
   return 0;
 }
 
+/*
+ValueMap function for operator length l3d  
+
+*/
+int LengthLine3DValueMap(Word* args, Word& result, int message,
+                    Word& local, Supplier s)
+{
+  result = qp->ResultStorage( s );
+  Line3D* l = (Line3D *)args[0].addr; 
+  CcReal* pResult = static_cast<CcReal *>(result.addr);
+  
+  if(l->IsDefined() )
+    pResult->Set(true, l->Length());
+  else
+    pResult->Set(false, 0);
+  return 0;
+}
+
+/*
+ValueMap function for operator createdoor3d
+
+*/
+int CreateDoor3DValueMap(Word* args, Word& result, int message,
+                    Word& local, Supplier in_pSupplier)
+{
+
+  IndoorNav* indoor_nav;
+
+  switch(message){
+      case OPEN:{
+        Relation* rel = (Relation*)args[0].addr;
+
+        indoor_nav = new IndoorNav(rel, NULL);
+        indoor_nav->resulttype =
+            new TupleType(nl->Second(GetTupleResultType(in_pSupplier)));
+
+        indoor_nav->CreateDoor3D();
+        local.setAddr(indoor_nav);
+        return 0;
+      }
+      case REQUEST:{
+          if(local.addr == NULL) return CANCEL;
+          indoor_nav = (IndoorNav*)local.addr;
+          if(indoor_nav->count == indoor_nav->groom_oid_list.size())
+                          return CANCEL;
+          Tuple* tuple = new Tuple(indoor_nav->resulttype);
+          tuple->PutAttribute(0,
+                new CcInt(true,indoor_nav->groom_oid_list[indoor_nav->count]));
+          tuple->PutAttribute(1,
+                new Line3D(indoor_nav->path_list[indoor_nav->count]));
+          
+          result.setAddr(tuple);
+          indoor_nav->count++;
+          return YIELD;
+      }
+      case CLOSE:{
+          if(local.addr){
+            indoor_nav = (IndoorNav*)local.addr;
+            delete indoor_nav;
+            local.setAddr(Address(0));
+          }
+          return 0;
+      }
+  }
+  return 0;
+}
 
 /*
 ValueMap function for operator createdoorbox 
@@ -1391,15 +1530,15 @@ int CreateAdjDoorValueMap(Word* args, Word& result, int message,
       case REQUEST:{
           if(local.addr == NULL) return CANCEL;
           indoor_nav = (IndoorNav*)local.addr;
-          if(indoor_nav->count == indoor_nav->oid_list.size())
+          if(indoor_nav->count == indoor_nav->groom_oid_list.size())
                           return CANCEL;
           Tuple* tuple = new Tuple(indoor_nav->resulttype);
           tuple->PutAttribute(0,
-                new Door3D(indoor_nav->oid_list[indoor_nav->count]));
+                new CcInt(true, indoor_nav->groom_oid_list[indoor_nav->count]));
           tuple->PutAttribute(1,
-                new Line(indoor_nav->groom_id_list1[indoor_nav->count]));
+                new CcInt(true, indoor_nav->door_tid_list1[indoor_nav->count]));
           tuple->PutAttribute(2,
-                new CcInt(true, indoor_nav->groom_id_list2[indoor_nav->count]));
+                new CcInt(true, indoor_nav->door_tid_list2[indoor_nav->count]));
           tuple->PutAttribute(3,
                 new Line3D(indoor_nav->path_list[indoor_nav->count]));
 
@@ -1532,6 +1671,20 @@ Operator translate_groom("translate_groom",
     TranslateGRoomValueMap,
     Operator::SimpleSelect,
     TranslateGroomTypeMap
+);
+
+Operator length_l3d("length_l3d",
+    SpatialSpecLengthLine3D,
+    LengthLine3DValueMap,
+    Operator::SimpleSelect,
+    LengthLine3DTypeMap
+);
+
+Operator createdoor3d("createdoor3d",
+    SpatialSpecCreateDoor3D,
+    CreateDoor3DValueMap,
+    Operator::SimpleSelect,
+    CreateDoor3DTypeMap
 );
 
 
@@ -10599,6 +10752,19 @@ TypeConstructor visualgraph("visualgraph", VisualGraph::BaseGraphProp,
       VisualGraph::CheckVisualGraph
 );
 
+
+TypeConstructor indoorgraph("indoorgraph", IndoorGraph::BaseGraphProp,
+      IndoorGraph::OutVisualGraph, IndoorGraph::InVisualGraph,
+      0, 0,
+      IndoorGraph::CreateIndoorGraph, IndoorGraph::DeleteIndoorGraph,
+      IndoorGraph::OpenVisualGraph, IndoorGraph::SaveVisualGraph,
+      IndoorGraph::CloseIndoorGraph, IndoorGraph::CloneBaseGraph,
+      IndoorGraph::CastBaseGraph, IndoorGraph::SizeOfBaseGraph,
+      IndoorGraph::CheckIndoorGraph
+);
+
+
+
 Operator createdualgraph(
     "createdualgraph",
     OpTMCreateDGSpec,
@@ -11071,10 +11237,13 @@ class TransportationModeAlgebra : public Algebra
  public:
   TransportationModeAlgebra() : Algebra()
   {
+    //////////////////graph data type/////////////////////////////////
     AddTypeConstructor(&dualgraph);
     dualgraph.AssociateKind("DUALGRAPH");
     AddTypeConstructor(&visualgraph);
     visualgraph.AssociateKind("VISUALGRAPH");
+    AddTypeConstructor(&indoorgraph);
+    indoorgraph.AssociateKind("INDOORGRAPH");
     ////////////    Indoor   Data Type   //////////////////////////
     AddTypeConstructor( &point3d);
     AddTypeConstructor( &line3d);
@@ -11189,8 +11358,10 @@ class TransportationModeAlgebra : public Algebra
     AddOperator(&get_floor);//get one element from a groom 
     AddOperator(&add_height_groom);//move the groom higher by the input 
     AddOperator(&translate_groom);//translate the 2D region 
+    AddOperator(&length_l3d);//the length of a 3d line 
     //////////////// indoor  navigation //////////////////////////////////
-    AddOperator(&createdoorbox); 
+    AddOperator(&createdoor3d); //create line3d to denote the doors 
+    AddOperator(&createdoorbox); //create a 3d box for each door 
     AddOperator(&createdoor);//the node relation for the graph (doors)
     AddOperator(&createadjdoor); //the edge relation for the graph 
     AddOperator(&path_in_region);//shortest path between two points inside a reg
