@@ -81,6 +81,9 @@ file	  	"<file>"[^<\n]+"</file--->"
 
 [ \t\n\r\v\f\b\a]+  	;
 
+
+
+"."{ident}    {yylval = NestedText::Atom( yytext+1, yyleng-1 ); return ZZATTRABBR;}
 -?[0-9]+  	{yylval = NestedText::Atom( yytext, yyleng ); return ZZINTEGER;}
 {number}	{yylval = NestedText::Atom( yytext, yyleng ); return ZZREAL;}
 TRUE  		{yylval = NestedText::Atom( yytext, yyleng ); return ZZBOOLEAN;}

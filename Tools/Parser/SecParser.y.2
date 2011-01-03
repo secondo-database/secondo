@@ -479,11 +479,13 @@ args    : arg    {$$ = $1;}
     ;
 
 
-attribute  : '.' ZZIDENTIFIER
-      {$$ = NestedText::Concat(NestedText::AtomC("(attr "),
+attribute  : ZZATTRABBR
+      { char name[strlen($1)];
+        strcpy(name,$1+1);
+        $$ = NestedText::Concat(NestedText::AtomC("(attr "),
         NestedText::Concat(NestedText::AtomC(param1),
         NestedText::Concat(NestedText::AtomC(" "),
-        NestedText::Concat($2,
+        NestedText::Concat(name,
           NestedText::AtomC(")")  ))));}
     ;
 

@@ -97,6 +97,8 @@ void xxerror( const char* s )
   cmsg.error() << "SECONDO Parser: " << s 
                << " in line " 
                << dynamic_cast<Text2ListScan*>(lexPtr)->getLine() 
+               << " at symbol '" 
+               << dynamic_cast<Text2ListScan*>(lexPtr)->YYText() << "'"
                << endl;
   cmsg.send();
 }
