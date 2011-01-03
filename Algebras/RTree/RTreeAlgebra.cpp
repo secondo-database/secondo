@@ -127,36 +127,47 @@ ListExpr RTree2Prop()
                          " creatertree [boundary])"))));
 }
 
+
+
+
+
+
 /*
 1.8 ~Check~-function of type constructor ~rtree~
 
+1.8.1 Auxiliary function for all RTree Versions
+
 */
-bool CheckRTree2(ListExpr type, ListExpr& errorInfo)
+bool CheckRTreeX(ListExpr type, ListExpr& errorInfo, const string & treeType,
+                 const string& indexKIND, const string& indexType)
 {
   AlgebraManager* algMgr;
 
   if((!nl->IsAtom(type))
     && (nl->ListLength(type) == 4)
-    && nl->Equal(nl->First(type), nl->SymbolAtom("rtree")))
-  {
+    && listutils::isSymbol(nl->First(type), treeType)) {
+    
     algMgr = SecondoSystem::GetAlgebraManager();
     return
       algMgr->CheckKind("TUPLE", nl->Second(type), errorInfo) &&
-      (nl->IsEqual(nl->Third(type), "rect") ||
-      algMgr->CheckKind("SPATIAL2D", nl->Third(type), errorInfo)) &&
+      (nl->IsEqual(nl->Third(type), indexType) ||
+      algMgr->CheckKind(indexKIND, nl->Third(type), errorInfo)) &&
       nl->IsAtom(nl->Fourth(type)) &&
       nl->AtomType(nl->Fourth(type)) == BoolType;
-  }
-  else
-  {
+  } else {
     errorInfo = nl->Append(errorInfo,
       nl->ThreeElemList(
         nl->IntAtom(60),
-        nl->SymbolAtom("RTREE2"),
+        nl->SymbolAtom(treeType),
         type));
     return false;
   }
   return true;
+}
+
+
+bool CheckRTree2(ListExpr type, ListExpr& errorInfo){
+  return CheckRTreeX(type, errorInfo,"rtree", "SPATIAL2D", "rect");
 }
 
 /*
@@ -207,27 +218,7 @@ ListExpr RTree3Prop()
 */
 bool CheckRTree3(ListExpr type, ListExpr& errorInfo)
 {
-  AlgebraManager* algMgr;
-
-  if((!nl->IsAtom(type))
-    && (nl->ListLength(type) == 3)
-    && nl->Equal(nl->First(type), nl->SymbolAtom("rtree3")))
-  {
-    algMgr = SecondoSystem::GetAlgebraManager();
-    return
-      algMgr->CheckKind("TUPLE", nl->Second(type), errorInfo) &&
-      algMgr->CheckKind("SPATIAL3D", nl->Third(type), errorInfo);
-  }
-  else
-  {
-    errorInfo = nl->Append(errorInfo,
-      nl->ThreeElemList(
-        nl->IntAtom(60),
-        nl->SymbolAtom("RTREE3"),
-        type));
-    return false;
-  }
-  return true;
+  return CheckRTreeX(type, errorInfo,"rtree3", "SPATIAL3D", "rect3");
 }
 
 /*
@@ -279,27 +270,7 @@ ListExpr RTree4Prop()
 */
 bool CheckRTree4(ListExpr type, ListExpr& errorInfo)
 {
-  AlgebraManager* algMgr;
-
-  if((!nl->IsAtom(type))
-    && (nl->ListLength(type) == 3)
-    && nl->Equal(nl->First(type), nl->SymbolAtom("rtree4")))
-  {
-    algMgr = SecondoSystem::GetAlgebraManager();
-    return
-      algMgr->CheckKind("TUPLE", nl->Second(type), errorInfo)
-      &&nl->Equal(nl->Third(type), nl->SymbolAtom("rect4"));
-  }
-  else
-  {
-    errorInfo = nl->Append(errorInfo,
-      nl->ThreeElemList(
-        nl->IntAtom(60),
-        nl->SymbolAtom("RTREE4"),
-        type));
-    return false;
-  }
-  return true;
+  return CheckRTreeX(type, errorInfo,"rtree4", "SPATIAL4D", "rect4");
 }
 
 /*
@@ -351,27 +322,7 @@ ListExpr RTree8Prop()
 */
 bool CheckRTree8(ListExpr type, ListExpr& errorInfo)
 {
-  AlgebraManager* algMgr;
-
-  if((!nl->IsAtom(type))
-    && (nl->ListLength(type) == 3)
-    && nl->Equal(nl->First(type), nl->SymbolAtom("rtree8")))
-  {
-    algMgr = SecondoSystem::GetAlgebraManager();
-    return
-      algMgr->CheckKind("TUPLE", nl->Second(type), errorInfo)
-      &&nl->Equal(nl->Third(type), nl->SymbolAtom("rect8"));
-  }
-  else
-  {
-    errorInfo = nl->Append(errorInfo,
-      nl->ThreeElemList(
-        nl->IntAtom(60),
-        nl->SymbolAtom("RTREE8"),
-        type));
-    return false;
-  }
-  return true;
+  return CheckRTreeX(type, errorInfo,"rtree4", "SPATIAL8D", "rect8");
 }
 
 /*
@@ -956,6 +907,7 @@ Operator creatertree (
 */
 ListExpr WindowIntersectsTypeMap(ListExpr args)
 {
+
   if( nl->IsEmpty(args) || nl->IsAtom(args) || !nl->ListLength(args) == 3){
     return listutils::typeError("Expects exactly 3 arguments.");
   }
