@@ -480,12 +480,10 @@ args    : arg    {$$ = $1;}
 
 
 attribute  : ZZATTRABBR
-      { char name[strlen($1)];
-        strcpy(name,$1+1);
-        $$ = NestedText::Concat(NestedText::AtomC("(attr "),
+        { $$ = NestedText::Concat(NestedText::AtomC("(attr "),
         NestedText::Concat(NestedText::AtomC(param1),
         NestedText::Concat(NestedText::AtomC(" "),
-        NestedText::Concat(name,
+        NestedText::Concat($1,
           NestedText::AtomC(")")  ))));}
     ;
 
