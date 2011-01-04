@@ -305,27 +305,25 @@ ListExpr WithinTypeMap(ListExpr Args)
 int
 Within_s(Word* args, Word& result, int message, Word& local, Supplier s)
 {
-  ArgVectorPointer funArgs;
-  Word w;
-
   switch ( message )
   {
-    case OPEN:
+    case OPEN:{
+      ArgVectorPointer funArgs;
       funArgs = qp->Argument( args[1].addr );
-      qp->Request( args[0].addr, w );
-      (*funArgs)[0] = w;
+      (*funArgs)[0] = args[0];
       qp->Open( args[1].addr );
       return 0;
-
-    case REQUEST:
+    }
+    case REQUEST:{
       qp->Request( args[1].addr, result );
       if( qp->Received( args[1].addr ) )
         return YIELD;
       return CANCEL;
-
-    case CLOSE:
+    }
+    case CLOSE:{
       qp->Close( args[1].addr );
       return 0;
+    }
   }
 
   return 0;
@@ -334,27 +332,26 @@ Within_s(Word* args, Word& result, int message, Word& local, Supplier s)
 int
 Within2_s(Word* args, Word& result, int message, Word& local, Supplier s)
 {
-  ArgVectorPointer funArgs;
-  Word w;
-
   switch ( message )
   {
-    case OPEN:
-      funArgs = qp->Argument( args[1].addr );
-      qp->Request( args[0].addr, w );
-      (*funArgs)[0] = w;
-      qp->Open( args[1].addr );
+    case OPEN:{
+      ArgVectorPointer funArgs;
+      funArgs = qp->Argument( args[2].addr );
+      (*funArgs)[0] = args[0];
+      (*funArgs)[1] = args[1];
+      qp->Open( args[2].addr );
       return 0;
-
-    case REQUEST:
-      qp->Request( args[1].addr, result );
-      if( qp->Received( args[1].addr ) )
+    }
+    case REQUEST:{
+      qp->Request( args[2].addr, result );
+      if( qp->Received( args[2].addr ) )
         return YIELD;
       return CANCEL;
-
-    case CLOSE:
-      qp->Close( args[1].addr );
+    }
+    case CLOSE:{
+      qp->Close( args[2].addr );
       return 0;
+   }
   }
 
   return 0;
