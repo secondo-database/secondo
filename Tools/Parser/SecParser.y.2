@@ -487,11 +487,11 @@ attribute  : ZZATTRABBR
           NestedText::AtomC(")")  ))));}
     ;
 
-attribute2  : ZZDOUBLE ZZIDENTIFIER
+attribute2  : ZZATTRABBR2 
       {$$ = NestedText::Concat(NestedText::AtomC("(attr "),
         NestedText::Concat(NestedText::AtomC(param2),
         NestedText::Concat(NestedText::AtomC(" "),
-        NestedText::Concat($2,
+        NestedText::Concat($1,
           NestedText::AtomC(")")  ))));}
     ;
 
