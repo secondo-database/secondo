@@ -72,6 +72,8 @@ Oct. 2010 Jianqiu Xu Move from IndoorAlgebra to Transportation Mode Algebra
 #include "SpatialAlgebra.h"
 #include "Partition.h"
 #include "PaveGraph.h"
+#include "GeneralType.h"
+
 
 
 #define ARR_SIZE(a) sizeof(a)/sizeof(a[0])
@@ -82,6 +84,7 @@ Word InHalfSegment( const ListExpr typeInfo, const ListExpr instance,
 Word
 InLine( const ListExpr typeInfo, const ListExpr instance,
         const int errorPos, ListExpr& errorInfo, bool& correct );
+
 
 
 /*
@@ -199,11 +202,30 @@ public :
     {
       cout<<"x "<<x<<" y "<<y<<" z "<<z<<endl;
     }
+    double GetX(){return x;}
+    double GetY(){return y;}
+    double GetZ(){return z;}
 private:
     double x;
     double y;
     double z;
 };
+
+ListExpr OutPoint3D(ListExpr typeInfo, Word value); 
+Word InPoint3D(const ListExpr typeInfo, const ListExpr instance,
+               const int errorPos, ListExpr& errorInfo, bool& correct); 
+ListExpr Point3DProperty(); 
+Word CreatePoint3D(const ListExpr typeInfo); 
+void DeletePoint3D(const ListExpr typeInfo, Word& w);
+void ClosePoint3D(const ListExpr typeInfo, Word& w);
+Word ClonePoint3D(const ListExpr typeInfo, const Word& w); 
+void* CastPoint3D(void* addr);
+int SizeOfPoint3D();
+bool CheckPoint3D(ListExpr type, ListExpr& errorInfo);
+bool SavePoint3D(SmiRecord& valueRecord, size_t& offset,
+                 const ListExpr typeInfo, Word& value);
+bool OpenPoint3D(SmiRecord& valueRecord, size_t& offset,
+                 const ListExpr typeInfo, Word& value);
 
 /*
 3D Line 
@@ -254,9 +276,9 @@ class Line3D: public StandardSpatialAttribute<3>
     Line3D& operator=( const Line3D& ps );
 
 
-    bool operator==( const Line3D& ) const;
+    bool operator==( const Line3D& l) const;
 
-    bool operator!=( const Line3D& ) const;
+    bool operator!=( const Line3D& l) const;
 
 
     Line3D& operator+=( const Point3D& p );
@@ -310,7 +332,30 @@ points( ps.Size() )
 
 inline const Rectangle<3> Line3D::BoundingBox() const
 {
-  return new Rectangle<3>(true,0.0,0.0,0.0,0.0,0.0,0.0);
+//  return new Rectangle<3>(true,0.0,0.0,0.0,0.0,0.0,0.0);
+//  cout<<"Rectangle<3> BoundingBox "<<endl; 
+  double min[3];
+  double max[3];
+  for(int i = 0;i < 3;i++){
+    min[i] = numeric_limits<double>::max();
+    max[i] = numeric_limits<double>::min();
+  }
+
+  for(int i = 0;i < points.Size();i++){
+      Point3D p;
+      points.Get(i, p);
+
+      min[0] = MIN(p.GetX(), min[0]);
+      min[1] = MIN(p.GetY(), min[1]);
+      min[2] = MIN(p.GetZ(), min[2]);
+      
+      max[0] = MAX(p.GetX(), max[0]);
+      max[1] = MAX(p.GetY(), max[1]);
+      max[2] = MAX(p.GetZ(), max[2]);
+  }
+
+  Rectangle<3> bbox3d(true, min, max);
+  return bbox3d; 
 }
 
 /*inline bool Line3D::Get( const int i, Point& p ) const
@@ -321,7 +366,7 @@ inline const Rectangle<3> Line3D::BoundingBox() const
 
 inline bool Line3D::Get( const int i, Point3D& p ) const
 {
-  assert( IsDefined() );
+  assert( IsDefined() && 0 <= i && i < Size());
   return points.Get( i, &p );
 }
 
@@ -369,6 +414,20 @@ inline void Line3D::TrimToSize(){
   points.TrimToSize();
 }
 
+ListExpr OutLine3D( ListExpr typeInfo, Word value ); 
+Word InLine3D( const ListExpr typeInfo, const ListExpr instance,
+       const int errorPos, ListExpr& errorInfo, bool& correct ); 
+Word CreateLine3D( const ListExpr typeInfo );
+void DeleteLine3D( const ListExpr typeInfo, Word& w );
+void CloseLine3D( const ListExpr typeInfo, Word& w );
+Word CloneLine3D( const ListExpr typeInfo, const Word& w );
+bool OpenLine3D( SmiRecord& valueRecord, size_t& offset,
+            const ListExpr typeInfo, Word& value );
+bool SaveLine3D( SmiRecord& valueRecord, size_t& offset,
+            const ListExpr typeInfo, Word& value );
+int SizeOfLine3D();
+ListExpr Line3DProperty();
+bool CheckLine3D( ListExpr type, ListExpr& errorInfo );
 
 
 /*
@@ -913,10 +972,13 @@ struct MySegHeight:public MyHalfSegment{
 
 };
 
+class IndoorGraph; 
 
 struct IndoorNav{
   Relation* rel1; //university room relation 
   Relation* rel2; //door 3d box relation 
+  IndoorGraph* ig; 
+  
   vector<int> oid_list; 
   vector<int> tid_list; 
   vector<Rectangle<3> > box_list; 
@@ -934,6 +996,10 @@ struct IndoorNav{
   vector<unsigned int> door_tid_list2; 
   vector<Line3D> path_list; 
   
+  
+  vector<GenLoc> genloc_list;
+  vector<Point3D> p3d_list; 
+  
   /////////////the attribute position for indoor (groom+door) relation 
   static string Indoor_GRoom_Door; 
   enum GROOM_REL{I_OID = 0, I_Name, I_Type, I_Room, I_Door}; 
@@ -947,6 +1013,12 @@ struct IndoorNav{
   { count = 0; 
     resulttype = NULL;
   }
+
+  IndoorNav(IndoorGraph* g):rel1(NULL), rel2(NULL), ig(g), 
+  count(0), resulttype(NULL)
+  {
+  }
+
   ~IndoorNav(){if(resulttype != NULL) delete resulttype;}
 
   void CreateLine3D(int oid, Line* l, float h);
@@ -962,12 +1034,17 @@ struct IndoorNav{
                   int attr3, vector<TupleId>& id_list); 
   bool BBox3DEqual(Rectangle<3>* bbox3d, Rectangle<3>* bbox_3d);
   void CreateResDoor(int id, int oid, int tid, vector<TupleId> id_list, 
-                     int attr1, int attr2, int attr3, vector<bool>& visit_flag);
+                     int attr1, int attr2, int attr3);
   void GRoomDoorLine(Rectangle<3>* bbox3d_1, Rectangle<3>* bbox3d_2, 
                      Line* l1, Line* l2, Line* l3, 
-                     const Rectangle<2>*, const Rectangle<2>*);
+                     const Rectangle<2>*, const Rectangle<2>*, 
+                     Line3D* l, float h);
    ////////////////create a relation storing edges connecting doors////////////
-   void CreateAdjDoor(BTree*, int, int ,int, int);
+   void CreateAdjDoor1(BTree*, int, int ,int, int);
+   void CreateAdjDoor2(R_Tree<3,TupleId>*);
+   void DFTraverse(R_Tree<3,TupleId>* rtree, SmiRecordId adr, unsigned int id,
+                   Line3D* l, vector<TupleId>& id_list, int groom_oid);
+   
    void BuildPathEL(int groom_oid, GRoom* groom, vector<int> tid_list, 
                             int attr1, int attr2, 
                             int attr3, int attr4);
@@ -986,6 +1063,10 @@ struct IndoorNav{
    void BuildPathORAndCO(int groom_oid, GRoom* groom, 
                   vector<int> tid_list, int attr1, int attr2, 
                   int attr3, int attr4);
+   /////////////////////////////////////////////////////////////////////
+   void GetAdjNodeIG(int oid);
+   ////////////////////////// data generation/////////////////////////
+   void GenerateIP1(int num);
 };
 
 
@@ -1073,7 +1154,7 @@ public:
   static string EdgeTypeInfo;
   
   enum IGNodeTypeInfo{I_DOOR = 0, I_DOOR_LOC, I_GROOM_OID1, 
-                      I_GROOM_OID2, I_DOOR_HEIGHT, I_DOOR_TYPE};
+                      I_GROOM_OID2, I_DOOR_LOC_3D, I_DOOR_HEIGHT};
   enum IGEdgeTypeInfo{I_GROOM_OID = 0,I_DOOR_TID1, I_DOOR_TID2, I_PATH};
 
   //////////////////////////////////////////////////////////////
@@ -1082,10 +1163,10 @@ public:
   IndoorGraph(ListExpr in_xValue,int in_iErrorPos,
                      ListExpr& inout_xErrorInfo,
                      bool& inout_bCorrect);
-  VisualGraph(SmiRecord&, size_t&, const ListExpr);
+  IndoorGraph(SmiRecord&, size_t&, const ListExpr);
   //////////////////////////////////////////////////////////////
   void Load(int, Relation*,Relation*);
-  static ListExpr OutVisualGraph(ListExpr typeInfo, Word value);
+  static ListExpr OutIndoorGraph(ListExpr typeInfo, Word value);
   ListExpr Out(ListExpr typeInfo);
   static bool CheckIndoorGraph(ListExpr type, ListExpr& errorInfo);
   static void CloseIndoorGraph(const ListExpr typeInfo, Word& w);
@@ -1095,15 +1176,16 @@ public:
                             ListExpr in_xValue,
                             int in_iErrorPos, ListExpr& inout_xErrorInfo,
                             bool& inout_bCorrect);
-  static bool OpenVisualGraph(SmiRecord& valueRecord, size_t& offset,
+  static bool OpenIndoorGraph(SmiRecord& valueRecord, size_t& offset,
                            const ListExpr typeInfo, Word& value);
-  static VisualGraph* Open(SmiRecord& valueRecord,size_t& offset,
+  static IndoorGraph* Open(SmiRecord& valueRecord,size_t& offset,
                           const ListExpr typeInfo);
-  static bool SaveVisualGraph(SmiRecord& valueRecord, size_t& offset,
+  static bool SaveIndoorGraph(SmiRecord& valueRecord, size_t& offset,
                            const ListExpr typeInfo, Word& value);
   bool Save(SmiRecord& in_xValueRecord,size_t& inout_iOffset,
               const ListExpr in_xTypeInfo);
 };
+
 
 
 #endif // __INDOOR_H__

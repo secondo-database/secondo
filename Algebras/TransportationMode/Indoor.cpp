@@ -67,6 +67,135 @@ bool Point3D::Save(SmiRecord& valueRecord, size_t& offset,
   return true;
 }
 
+/*
+output function for data type point3d
+
+*/
+ListExpr OutPoint3D(ListExpr typeInfo, Word value)
+{
+  Point3D* p3d = (Point3D*)value.addr;
+  if(p3d->IsDefined()){
+      return nl->ThreeElemList(
+              nl->RealAtom(p3d->GetX()),
+              nl->RealAtom(p3d->GetY()),
+              nl->RealAtom(p3d->GetZ())
+         );
+  }else
+    return nl->SymbolAtom("undef");
+}
+
+/*
+input function for data type point3d
+
+*/
+Word InPoint3D(const ListExpr typeInfo, const ListExpr instance,
+               const int errorPos, ListExpr& errorInfo, bool& correct)
+{
+  correct = true;
+  if( nl->ListLength( instance ) == 3 ) {
+    ListExpr first = nl->First(instance);
+    ListExpr second = nl->Second(instance);
+    ListExpr third = nl->Third(instance);
+
+    correct = listutils::isNumeric(first) &&
+              listutils::isNumeric(second) && listutils::isNumeric(third);
+    if(!correct){
+       return SetWord( Address(0) );
+    } else {
+      return SetWord(new Point3D(true, listutils::getNumValue(first),
+                                       listutils::getNumValue(second),
+                                        listutils::getNumValue(third)));
+    }
+  } else if( listutils::isSymbol( instance, "undef" ) ){
+     return SetWord(new Point3D(false));
+  }
+  correct = false;
+  return SetWord( Address(0) );
+}
+
+
+/*
+Creation of the type constructor instance for point3d
+
+*/
+
+ListExpr Point3DProperty()
+{
+  return nl->TwoElemList(
+           nl->FourElemList(
+             nl->StringAtom("Signature"),
+             nl->StringAtom("Example Type List"),
+             nl->StringAtom("List Rep"),
+             nl->StringAtom("Example List")),
+           nl->FourElemList(
+             nl->StringAtom("-> DATA"),
+             nl->StringAtom("point3d"),
+             nl->StringAtom("(x y z)"),
+             nl->StringAtom("(10 5 2)")));
+}
+
+
+Word CreatePoint3D(const ListExpr typeInfo)
+{
+  return SetWord (new Point3D(false));
+}
+
+void DeletePoint3D(const ListExpr typeInfo, Word& w)
+{
+//  ((Point3D*)w.addr)->DeleteIfAllowed();
+  Point3D* p3d = (Point3D*)w.addr;
+  delete p3d;
+   w.addr = NULL;
+}
+
+void ClosePoint3D(const ListExpr typeInfo, Word& w)
+{
+//  ((Point3D*)w.addr)->DeleteIfAllowed();
+  Point3D* p3d = (Point3D*)w.addr;
+  delete p3d;
+  w.addr = NULL;
+}
+
+
+Word ClonePoint3D(const ListExpr typeInfo, const Word& w)
+{
+  Point3D* p3d = new Point3D(*(Point3D*)w.addr);
+  return SetWord(p3d);
+}
+
+void* CastPoint3D(void* addr)
+{
+  return new (addr)Point3D();
+}
+
+int SizeOfPoint3D()
+{
+  return sizeof(Point3D);
+}
+
+bool CheckPoint3D(ListExpr type, ListExpr& errorInfo)
+{
+  return nl->IsEqual(type, "point3d");
+}
+
+/*
+save function for point3d
+
+*/
+bool SavePoint3D(SmiRecord& valueRecord, size_t& offset,
+                 const ListExpr typeInfo, Word& value)
+{
+    Point3D* p3d = (Point3D*)value.addr;
+    return p3d->Save(valueRecord, offset, typeInfo);
+}
+
+bool OpenPoint3D(SmiRecord& valueRecord, size_t& offset,
+                 const ListExpr typeInfo, Word& value)
+{
+  value.addr = new Point3D(valueRecord, offset, typeInfo);
+  return value.addr != NULL;
+}
+
 ///////////////////////////////////////////////////////////////////////////
 /////////////////////// Line3D ////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////
@@ -163,6 +292,35 @@ Line3D& Line3D::operator=( const Line3D& ps )
   return *this;
 }
 
+bool Line3D::operator==( const Line3D& l) const
+{
+  vector<Point3D> ps_list1;
+  vector<Point3D> ps_list2;
+  
+  if(Size() != l.Size()) return false; 
+  
+  for(int i = 0;i < points.Size();i++){
+    Point3D p;
+    points.Get(i, p);
+    ps_list1.push_back(p);
+  }
+  
+  for(int i = 0;i < l.Size();i++){
+    Point3D p;
+    l.Get(i, p);
+    ps_list2.push_back(p);
+  }
+
+  sort(ps_list1.begin(), ps_list1.end());
+  sort(ps_list2.begin(), ps_list2.end());
+
+  for(unsigned int i = 0;i < ps_list1.size();i++){
+    if(!(ps_list1[i] == ps_list2[i])) return false; 
+  }
+
+  return true; 
+}
+
 bool Line3D::Adjacent( const Attribute* arg ) const
 {
   return 0;
@@ -207,6 +365,206 @@ void Line3D::Print()
   }
 
 }
+
+/*
+List Representation
+
+The list representation of a point is
+
+----  (x y)
+----
+
+~Out~-function
+
+*/
+ListExpr OutLine3D( ListExpr typeInfo, Word value )
+{
+  Line3D* points = (Line3D*)(value.addr);
+  if(!points->IsDefined()){
+    return nl->SymbolAtom("undef");
+  }
+
+  if( points->IsEmpty() )
+    return nl->TheEmptyList();
+
+//  Point p;
+  Point3D p;
+  assert( points->Get( 0, p ) );
+/*  ListExpr result =
+    nl->OneElemList( OutPoint( nl->TheEmptyList(), SetWord( (void*)&p ) ) );*/
+ ListExpr result =
+    nl->OneElemList( OutPoint3D( nl->TheEmptyList(), SetWord( (void*)&p ) ) );
+  ListExpr last = result;
+
+  for( int i = 1; i < points->Size(); i++ )
+  {
+    assert( points->Get( i, p ) );
+/*   last = nl->Append( last,
+                      OutPoint( nl->TheEmptyList(), SetWord( (void*)&p ) ) );*/
+    last = nl->Append( last,
+                       OutPoint3D( nl->TheEmptyList(), SetWord( (void*)&p)));
+  }
+  return result;
+}
+
+/*
+In function
+
+*/
+Word InLine3D( const ListExpr typeInfo, const ListExpr instance,
+       const int errorPos, ListExpr& errorInfo, bool& correct )
+{
+  if(nl->IsEqual(instance,"undef")) {
+      Points* points = new Points(0);
+      points->Clear();
+      points->SetDefined(false);
+      correct=true;
+      return SetWord( Address(points) );
+  }
+  Line3D* points = new Line3D( max(0,nl->ListLength( instance) ) );
+  points->SetDefined( true );
+  if(nl->AtomType(instance)!=NoAtom) {
+    points->DeleteIfAllowed();
+    correct = false;
+    cout << __PRETTY_FUNCTION__ << ": Unexpected Atom!" << endl;
+    return SetWord( Address(points) );
+  }
+
+  ListExpr rest = instance;
+  points->StartBulkLoad();
+  while( !nl->IsEmpty( rest ) ) {
+    ListExpr first = nl->First( rest );
+    rest = nl->Rest( rest );
+
+/*    Point *p = (Point*)InPoint( nl->TheEmptyList(),
+                                first, 0, errorInfo, correct ).addr;*/
+    Point3D *p = (Point3D*)InPoint3D( nl->TheEmptyList(),
+                                first, 0, errorInfo, correct ).addr;
+
+    if( correct && p->IsDefined() ) {
+      (*points) += (*p);
+      delete p;
+    } else {
+      if(p) {
+        delete p;
+      }
+      cout << __PRETTY_FUNCTION__ << ": Incorrect or undefined point!" << endl;
+      points->DeleteIfAllowed();
+      correct = false;
+      return SetWord( Address(0) );
+    }
+
+  }
+  points->EndBulkLoad();
+
+  if( points->IsValid() ) {
+    correct = true;
+    return SetWord( points );
+  }
+  points->DeleteIfAllowed();
+  correct = false;
+  cout << __PRETTY_FUNCTION__ << ": Invalid points value!" << endl;
+  return SetWord( Address(0) );
+}
+
+/*
+Create function
+
+*/
+Word CreateLine3D( const ListExpr typeInfo )
+{
+//  cout<<"CreateLine3D "<<endl; 
+  return SetWord( new Line3D( 0 ) );
+}
+
+/*
+Delete function
+
+*/
+void DeleteLine3D( const ListExpr typeInfo, Word& w )
+{
+//  cout<<"DeleteLine3D "<<endl; 
+  Line3D *ps = (Line3D *)w.addr;
+  ps->Destroy();
+  ps->DeleteIfAllowed(false);
+  w.addr = 0;
+}
+
+/*
+Close function
+
+*/
+void CloseLine3D( const ListExpr typeInfo, Word& w )
+{
+//  cout<<"CloseLine3D "<<endl; 
+  ((Line3D *)w.addr)->DeleteIfAllowed();
+  w.addr = 0;
+}
+
+/*
+Clone function
+
+*/
+Word CloneLine3D( const ListExpr typeInfo, const Word& w )
+{
+  return SetWord( new Line3D( *((Line3D *)w.addr) ) );
+}
+
+/*
+Open function
+
+*/
+bool OpenLine3D( SmiRecord& valueRecord, size_t& offset,
+            const ListExpr typeInfo, Word& value )
+{
+  Line3D *ps = (Line3D*)Attribute::Open( valueRecord, offset, typeInfo );
+  value = SetWord( ps );
+  return true;
+}
+
+/*
+Save function
+
+*/
+bool SaveLine3D( SmiRecord& valueRecord, size_t& offset,
+            const ListExpr typeInfo, Word& value )
+{
+  Line3D *ps = (Line3D*)value.addr;
+  Attribute::Save( valueRecord, offset, typeInfo, ps );
+  return true;
+}
+
+/*
+SizeOf function
+
+*/
+int SizeOfLine3D()
+{
+  return sizeof(Line3D);
+}
+
+
+ListExpr Line3DProperty()
+{
+  return (nl->TwoElemList(
+            nl->FourElemList(nl->StringAtom("Signature"),
+                       nl->StringAtom("Example Type List"),
+           nl->StringAtom("List Rep"),
+           nl->StringAtom("Example List")),
+            nl->FourElemList(nl->StringAtom("-> DATA"),
+                       nl->StringAtom("line3d"),
+           nl->StringAtom("(<point3d>*) where point3d is (<x><y><z>)"),
+           nl->StringAtom("( (10 1 2)(4 5 3) )"))));
+}
+
+
+bool CheckLine3D( ListExpr type, ListExpr& errorInfo )
+{
+  return (nl->IsEqual( type, "line3d" ));
+}
+
+
+
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////  Floor3D /////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////
@@ -1351,7 +1709,10 @@ string IndoorNav::Indoor_GRoom_Door =
 "(rel(tuple((oid int)(Name string)(Type string)(Room groom)(Door line))))";
 
 /*
-create a 3d line for the door 
+create a 3d line for the door. We use RTree to find the doors that their 
+locations are the same in space. 
+Because for the data type door3d, we have to know the relative position in 
+each room.  
 
 */
 void IndoorNav::CreateDoor3D()
@@ -1563,14 +1924,9 @@ void IndoorNav::CreateDoor(R_Tree<3, TupleId>* rtree,
 //  cout<<"CreateDoor()"<<endl;
 //  cout<<"attr1 "<<attr1<<" attr2 "<<attr2<<" attr3 "<<attr3<<endl; 
   SmiRecordId adr = rtree->RootRecordId();
-  vector<bool> visit_flag; 
-  for(int i = 1;i <= rel2->GetNoTuples();i++){
-      visit_flag.push_back(true);
-  }
-
 
   for(int i = 1;i <= rel2->GetNoTuples();i++){
-    if(visit_flag[i - 1] == false) continue; 
+
     
     Tuple* door_tuple = rel2->GetTuple(i, false);
     int oid = ((CcInt*)door_tuple->GetAttribute(attr1))->GetIntval();
@@ -1608,7 +1964,7 @@ void IndoorNav::CreateDoor(R_Tree<3, TupleId>* rtree,
     ////////// use tid to get the tuple 
     ///////////use the tuple to get oid and line 
 //    if(id_list.size() == 1)
-    CreateResDoor(id, oid, tid, id_list, attr1, attr2, attr3, visit_flag);
+    CreateResDoor(id, oid, tid, id_list, attr1, attr2, attr3);
 
     /////////////////////////////////////////////////////////////////
     door_tuple->DeleteIfAllowed();
@@ -1626,7 +1982,7 @@ for data type line, region, mbool, the function operator=() is not
 
 */
 void IndoorNav::CreateResDoor(int id, int oid, int tid, vector<TupleId> id_list,
-                     int attr1, int attr2, int attr3, vector<bool>& visit_flag)
+                     int attr1, int attr2, int attr3)
 {
    
   for(unsigned int i = 0;i < id_list.size();i++){
@@ -1652,8 +2008,8 @@ void IndoorNav::CreateResDoor(int id, int oid, int tid, vector<TupleId> id_list,
         box_tuple2->DeleteIfAllowed();
         continue; 
     }*/
-    
-    
+
+
     assert(1 <= groom_tid && groom_tid <= rel1->GetNoTuples());
     
     Tuple* indoor_tuple2 = rel1->GetTuple(groom_tid, false);
@@ -1678,9 +2034,7 @@ void IndoorNav::CreateResDoor(int id, int oid, int tid, vector<TupleId> id_list,
     finish_time.ReadFrom("end of time");
     
     MBool* mb1 = new MBool(0);
-    MBool* mb2 = new MBool(0);
     mb1->StartBulkLoad();
-    mb2->StartBulkLoad();
     UBool ub1;
     ub1.timeInterval.start = begin_time;
     ub1.timeInterval.end = start_time;
@@ -1717,10 +2071,7 @@ void IndoorNav::CreateResDoor(int id, int oid, int tid, vector<TupleId> id_list,
     mb1->Add(ub2);
     mb1->Add(ub3);
     mb1->EndBulkLoad();
-    mb2->Add(ub1);
-    mb2->Add(ub2);
-    mb2->Add(ub3);
-    mb2->EndBulkLoad();
+    
 //    cout<<*mb<<endl; 
     bool lift_door = false;
     if(GetRoomEnum(type1) == EL || GetRoomEnum(type2) == EL)
@@ -1737,7 +2088,9 @@ void IndoorNav::CreateResDoor(int id, int oid, int tid, vector<TupleId> id_list,
     Line* l1 = new Line(0);
     Line* l2 = new Line(0);
     Line* l3 = new Line(0);
-    GRoomDoorLine(bbox3d_1, bbox3d_2, l1, l2, l3, &groom_box1, &groom_box2);
+    Line3D* l3d_1 = new Line3D(0);
+    GRoomDoorLine(bbox3d_1, bbox3d_2, l1, l2, l3, &groom_box1, 
+                  &groom_box2, l3d_1, bbox3d_1->MinD(2));
 
     ///////////////////// create the door //////////////////////////////
     Door3D* door_obj1 = new Door3D(oid1, oid2, *l1, *l2, *mb1, lift_door);
@@ -1746,7 +2099,9 @@ void IndoorNav::CreateResDoor(int id, int oid, int tid, vector<TupleId> id_list,
     line_list.push_back(*l3);
     groom_id_list1.push_back(oid1);
     groom_id_list2.push_back(oid2);
+    path_list.push_back(*l3d_1);
     door_heights.push_back(bbox3d_1->MinD(2));
+
 
     if(GetRoomEnum(type1) == ST || GetRoomEnum(type2) == ST)
       door_types.push_back(1);
@@ -1759,38 +2114,8 @@ void IndoorNav::CreateResDoor(int id, int oid, int tid, vector<TupleId> id_list,
     delete l2;
     delete l3; 
     delete door_obj1; 
-    //////////////////////////////////////////////////////////////////////
-    
-    Line* l4 = new Line(0);
-    Line* l5 = new Line(0);
-    Line* l6 = new Line(0);
-    GRoomDoorLine(bbox3d_1, bbox3d_2, l4, l5, l6, &groom_box1, &groom_box2);
-
-    ///////////////////// create the door //////////////////////////////
-    Door3D* door_obj2 = new Door3D(oid2, oid1, *l4, *l5, *mb2, lift_door);
-    
-    door_list.push_back(*door_obj2);
-    line_list.push_back(*l6);
-    groom_id_list1.push_back(oid2);
-    groom_id_list2.push_back(oid1);
-    door_heights.push_back(bbox3d_1->MinD(2));
-
-    if(GetRoomEnum(type1) == ST || GetRoomEnum(type2) == ST)
-      door_types.push_back(1);
-    else if(GetRoomEnum(type1) == EL || GetRoomEnum(type2) == EL)
-      door_types.push_back(2);
-    else
-      door_types.push_back(0);
-
-    
-    ////////////////////////////////////////////////////////////////////
-    delete l4;
-    delete l5;
-    delete l6; 
-    delete door_obj2; 
-    
+    delete l3d_1; 
     delete mb1; 
-    delete mb2; 
 
     /////////////////////////////////////////////////////////////
     box_tuple1->DeleteIfAllowed();
@@ -1798,11 +2123,9 @@ void IndoorNav::CreateResDoor(int id, int oid, int tid, vector<TupleId> id_list,
     indoor_tuple2->DeleteIfAllowed();
     indoor_tuple1->DeleteIfAllowed(); 
     
-    visit_flag[id_list[i] - 1] = false; 
   }
 
 }
-
 
 /*
 depth-first traverse the Rtree to find the element (line3d) intersects the 
@@ -1869,7 +2192,8 @@ according to the groom
 void IndoorNav::GRoomDoorLine(Rectangle<3>* bbox3d_1, Rectangle<3>* bbox3d_2, 
                      Line* l1, Line* l2, Line* l3, 
                      const Rectangle<2>* groom_box1,
-                     const Rectangle<2>* groom_box2)
+                     const Rectangle<2>* groom_box2,
+                     Line3D* l3d, float h)
 {
 //  cout<<"door box1 "<<*bbox3d_1<<endl; 
 //  cout<<"GRoom box1 "<<*groom_box1<<endl; 
@@ -1924,6 +2248,16 @@ void IndoorNav::GRoomDoorLine(Rectangle<3>* bbox3d_1, Rectangle<3>* bbox3d_2,
   hs3.SetLeftDomPoint(!hs3.IsLeftDomPoint());
   *l3 += hs3; 
   l3->EndBulkLoad();
+  
+  
+  
+  l3d->StartBulkLoad();
+  Point3D lq(true, bbox3d_1->MinD(0), bbox3d_1->MinD(1), h);
+  Point3D rq(true, bbox3d_1->MaxD(0), bbox3d_1->MaxD(1), h);
+  *l3d += lq;
+  *l3d += rq; 
+
+  l3d->EndBulkLoad(); 
 }
 
 /*
@@ -1931,7 +2265,7 @@ create the edges connecting two doors inside one room
 
 */
 
-void IndoorNav::CreateAdjDoor(BTree* btree,int attr1, int attr2, 
+void IndoorNav::CreateAdjDoor1(BTree* btree,int attr1, int attr2, 
                               int attr3, int attr4)
 {
 //  cout<<"CreateAdjDoor() "<<endl;
@@ -1973,25 +2307,26 @@ void IndoorNav::CreateAdjDoor(BTree* btree,int attr1, int attr2,
       ////// the path inside a elevator: EL //////////////////////
       ///////////////////////////////////////////////////////////
       if(GetRoomEnum(groom_type) == EL){
-//        BuildPathEL(groom_oid, groom, tid_list, attr1, attr2, attr3, attr4);
+        BuildPathEL(groom_oid, groom, tid_list, attr1, attr2, attr3, attr4);
       }
       /////////////////////////////////////////////////////////
       ////// the path inside a elevator: ST //////////////////////
       ///////////////////////////////////////////////////////////
       if(GetRoomEnum(groom_type) == ST){
-//        BuildPathST(groom_oid, groom, tid_list, attr1, attr2, attr3, attr4);
+ //       BuildPathST(groom_oid, groom, tid_list, attr1, attr2, attr3, attr4);
       }
       /////////////////////////////////////////////////////////////
       ////// the path inside an office room or corridor: OR or CO///
       //////////////////////////////////////////////////////////////
       if(GetRoomEnum(groom_type) == OR || GetRoomEnum(groom_type) == CO){
-        BuildPathORAndCO(groom_oid, groom, 
-                         tid_list, attr1, attr2, attr3, attr4);
+//        BuildPathORAndCO(groom_oid, groom, 
+//                         tid_list, attr1, attr2, attr3, attr4);
       }
     }
     groom_tuple->DeleteIfAllowed();
   }
 }
+
 /////////////////////////////////////////////////////////////////////////////
 //////////// compute the path for each pair of doors inside one room  //////
 //////////// The rooms needs to be considered: OR, CO, ST, EL  /////////////
@@ -2006,49 +2341,55 @@ void IndoorNav::BuildPathEL(int groom_oid, GRoom* groom, vector<int> tid_list,
                             int attr3, int attr4)
 {
 
-  cout<<"BuildPathEL() tid_lise size "<<tid_list.size()<<endl; 
+//  cout<<"BuildPathEL() tid_lise size "<<tid_list.size()<<endl; 
 //  cout<<"low height "<<groom->GetLowHeight()<<endl; 
   ////////////////////use tid id to collect the door tuple/////////////
-  assert(tid_list.size() == 2);
   
-  Tuple* door_tuple1 = rel2->GetTuple(tid_list[0], false);
-  Tuple* door_tuple2 = rel2->GetTuple(tid_list[1], false);
+//  cout<<"tid list size "<<tid_list.size()<<endl; 
+//  assert(tid_list.size() == 2);
+  for(unsigned int i = 0;i < tid_list.size(); i++){
+    Tuple* door_tuple1 = rel2->GetTuple(tid_list[i], false);
+    float h1 = ((CcReal*)door_tuple1->GetAttribute(attr4))->GetRealval();
+    
+    for(unsigned int j = 0;j < tid_list.size();j++){
+      if(tid_list[i] == tid_list[j])continue; 
+      Tuple* door_tuple2 = rel2->GetTuple(tid_list[j], false);
+      float h2 = ((CcReal*)door_tuple2->GetAttribute(attr4))->GetRealval();
+      if(AlmostEqual(h1, h2))continue; //ignore the doors on the same level 
 
-  Line* l = (Line*)door_tuple1->GetAttribute(attr2);
-  assert(l->Size() == 2);
-  HalfSegment hs;
-  l->Get(0, hs);
-//  cout<<"hs "<<hs<<endl; 
-  float h1 = ((CcReal*)door_tuple1->GetAttribute(attr4))->GetRealval();
-  float h2 = ((CcReal*)door_tuple2->GetAttribute(attr4))->GetRealval();
-//  cout<<"h1 "<<h1<<" h2 "<<h2<<endl; 
-  double x = (hs.GetLeftPoint().GetX() + hs.GetRightPoint().GetX())/2;
-  double y = (hs.GetLeftPoint().GetY() + hs.GetRightPoint().GetY())/2;
-  Point3D p1(true, x, y, h1);
-  Point3D p2(true, x, y, h2);
-  
-  door_tuple1->DeleteIfAllowed();
-  door_tuple2->DeleteIfAllowed(); 
-  
-  Line3D* l3d = new Line3D(0);
-  l3d->StartBulkLoad();
-  *l3d += p1;
-  *l3d += p2; 
-  l3d->EndBulkLoad();
-//  l3d->Print();
+      Line* l = (Line*)door_tuple1->GetAttribute(attr2);
+      assert(l->Size() == 2);
+      HalfSegment hs;
+      l->Get(0, hs);
+
+      double x = (hs.GetLeftPoint().GetX() + hs.GetRightPoint().GetX())/2;
+      double y = (hs.GetLeftPoint().GetY() + hs.GetRightPoint().GetY())/2;
+      Point3D p1(true, x, y, h1);
+      Point3D p2(true, x, y, h2);
+
+      Line3D* l3d = new Line3D(0);
+      l3d->StartBulkLoad();
+      *l3d += p1;
+      *l3d += p2; 
+      l3d->EndBulkLoad();
+
   //////////////////////  result   ////////////////////////////////////////
-  groom_oid_list.push_back(groom_oid);
-  door_tid_list1.push_back(tid_list[0]);
-  door_tid_list2.push_back(tid_list[1]);
-  path_list.push_back(*l3d);
-  
-  groom_oid_list.push_back(groom_oid);
-  door_tid_list1.push_back(tid_list[1]);
-  door_tid_list2.push_back(tid_list[0]);
-  path_list.push_back(*l3d);
+      groom_oid_list.push_back(groom_oid);
+      door_tid_list1.push_back(tid_list[i]);
+      door_tid_list2.push_back(tid_list[j]);
+      path_list.push_back(*l3d);
+      delete l3d; 
 
-  /////////////////////////////////////////////////////////////////////////
-  delete l3d; 
+//      cout<<"groom_oid "<<groom_oid<<"tid1 "<<tid_list[i]
+//          <<" tid2 "<<tid_list[j]<<endl; 
+
+      door_tuple2->DeleteIfAllowed(); 
+    }
+  
+    door_tuple1->DeleteIfAllowed();
+  }
+
+
 }
 
 
@@ -2516,6 +2857,99 @@ void IndoorNav::BuildPathORAndCO(int groom_oid,
   }
 
 }
+
+
+
+
+/*
+create the edges connecting the same door but belong to two rooms 
+
+*/
+
+void IndoorNav::CreateAdjDoor2(R_Tree<3,TupleId>* rtree)
+{
+  SmiRecordId adr = rtree->RootRecordId();
+   
+  for(int i = 1;i <= rel1->GetNoTuples();i++){
+//    if(i != 27) continue; 
+
+    Tuple* door_tuple = rel1->GetTuple(i, false);
+    int groom_oid = 
+    ((CcInt*)door_tuple->GetAttribute(IndoorGraph::I_GROOM_OID1))->GetIntval(); 
+    Line3D* l = (Line3D*)door_tuple->GetAttribute(IndoorGraph::I_DOOR_LOC_3D); 
+    vector<TupleId> id_list; 
+//    l->Print(); 
+    ////// the number of neighbor should be 2 or 3 //////////////////
+    DFTraverse(rtree, adr, i, l, id_list, groom_oid);
+
+    assert(id_list.size() > 0);
+    
+//    cout<<"door tid "<<i<<endl; 
+//    cout<<"neighbor size "<<id_list.size()<<endl; 
+
+    for(unsigned int j = 0;j < id_list.size();j++){
+//      cout<<"neighbor "<<id_list[j]<<endl; 
+
+      groom_oid_list.push_back(groom_oid);
+      door_tid_list1.push_back(i);
+      door_tid_list2.push_back(id_list[j]);
+      Line3D* l3d = new Line3D(0); 
+      path_list.push_back(*l3d); 
+      delete l3d; 
+    }
+
+
+    door_tuple->DeleteIfAllowed(); 
+  }
+
+}
+
+/*
+traverse the RTree to find the same door but belongs to two rooms 
+
+*/
+void IndoorNav::DFTraverse(R_Tree<3,TupleId>* rtree, SmiRecordId adr, 
+                           unsigned int id, Line3D* l, 
+                           vector<TupleId>& id_list, int groom_oid)
+{
+
+  R_TreeNode<3,TupleId>* node = rtree->GetMyNode(adr,false,
+                  rtree->MinEntries(0), rtree->MaxEntries(0));
+  Rectangle<3> bbox3d_1 = l->BoundingBox(); 
+
+  for(int j = 0;j < node->EntryCount();j++){
+      if(node->IsLeaf()){
+              R_TreeLeafEntry<3,TupleId> e =
+                 (R_TreeLeafEntry<3,TupleId>&)(*node)[j];
+              Tuple* door_tuple = rel1->GetTuple(e.info,false);
+              Line3D* l3d = 
+                  (Line3D*)door_tuple->GetAttribute(IndoorGraph::I_DOOR_LOC_3D);
+              int g_id = ((CcInt*)door_tuple->GetAttribute(
+                            IndoorGraph::I_GROOM_OID2))->GetIntval();
+
+              if(l3d->BoundingBox().Intersects(bbox3d_1) && id != e.info
+                 && g_id == groom_oid){
+                  if(*l == *l3d)id_list.push_back(e.info);
+              }
+
+
+/*              if(l3d->BoundingBox().Intersects(bbox3d_1)){
+                 cout<<"l2 ";
+                 l3d->Print();
+                 if(*l == *l3d)id_list.push_back(e.info);
+              }*/
+
+              door_tuple->DeleteIfAllowed();
+      }else{
+            R_TreeInternalEntry<3> e = (R_TreeInternalEntry<3>&)(*node)[j];
+            if(l->BoundingBox().Intersects(e.box)){
+                DFTraverse(rtree, e.pointer, id, l, id_list, groom_oid);
+            }
+      }
+  }
+  delete node;
+}
+
 /////////////////////////////////////////////////////////////////////////////
 ////////// shortest path inside a polygon (convex, concave, holes) /////////
 ////////////////////////////////////////////////////////////////////////////
@@ -2901,29 +3335,45 @@ void GetBoundaryPoints(Region* reg, vector<Point>& ps, unsigned int i)
 
 string IndoorGraph::NodeTypeInfo =
 "(rel (tuple ((Door door3d) (door_loc line) (groom_oid1 int) (groom_oid2 int)\
-  (doorheight real) (doortype int))))";
+  (door_loc3d line3d) (doorheight real))))";
   
 string IndoorGraph::EdgeTypeInfo =
 "(rel (tuple ((groom_oid int) (door_tid1 int) (door_tid2 int) (Path line3d))))";
 
 
+IndoorGraph::~IndoorGraph()
+{
+//  cout<<"~IndoorGraph()"<<endl;
+}
+
+IndoorGraph::IndoorGraph()
+{
+//  cout<<"IndoorGraph::IndoorGraph()"<<endl;
+}
+
+IndoorGraph::IndoorGraph(ListExpr in_xValue,int in_iErrorPos,
+                     ListExpr& inout_xErrorInfo,
+                     bool& inout_bCorrect)
+{
+//  cout<<"IndoorGraph::IndoorGraph(ListExpr)"<<endl;
+}
 
 bool IndoorGraph::CheckIndoorGraph(ListExpr type, ListExpr& errorInfo)
 {
-  cout<<"CheckIndoorGraph()"<<endl;
+//  cout<<"CheckIndoorGraph()"<<endl;
   return nl->IsEqual(type, "indoorgraph");
 }
 
 void IndoorGraph::CloseIndoorGraph(const ListExpr typeInfo, Word& w)
 {
-  cout<<"CloseIndoorGraph()"<<endl;
+//  cout<<"CloseIndoorGraph()"<<endl;
   delete static_cast<IndoorGraph*> (w.addr);
   w.addr = NULL;
 }
 
 void IndoorGraph::DeleteIndoorGraph(const ListExpr typeInfo, Word& w)
 {
-  cout<<"DeleteIndoorGraph()"<<endl;
+//  cout<<"DeleteIndoorGraph()"<<endl;
   IndoorGraph* ig = (IndoorGraph*)w.addr;
   delete ig;
   w.addr = NULL;
@@ -2931,7 +3381,7 @@ void IndoorGraph::DeleteIndoorGraph(const ListExpr typeInfo, Word& w)
 
 Word IndoorGraph::CreateIndoorGraph(const ListExpr typeInfo)
 {
-  cout<<"CreateIndoorGraph()"<<endl;
+//  cout<<"CreateIndoorGraph()"<<endl;
   return SetWord(new IndoorGraph());
 }
 
@@ -2945,13 +3395,290 @@ Word IndoorGraph::InIndoorGraph(ListExpr in_xTypeInfo,
                             int in_iErrorPos, ListExpr& inout_xErrorInfo,
                             bool& inout_bCorrect)
 {
-//  cout<<"InVisualGraph()"<<endl;
-  VisualGraph* vg = new VisualGraph(in_xValue, in_iErrorPos, inout_xErrorInfo,
+//  cout<<"InIndoorGraph()"<<endl;
+  IndoorGraph* ig = new IndoorGraph(in_xValue, in_iErrorPos, inout_xErrorInfo,
                                 inout_bCorrect);
-  if(inout_bCorrect) return SetWord(vg);
+  if(inout_bCorrect) return SetWord(ig);
   else{
-    delete vg;
+    delete ig;
     return SetWord(Address(0));
   }
 }
 
+
+ListExpr IndoorGraph::OutIndoorGraph(ListExpr typeInfo, Word value)
+{
+//  cout<<"OutVisualGraph()"<<endl;
+  IndoorGraph* ig = (IndoorGraph*)value.addr;
+  return ig->Out(typeInfo);
+}
+/*
+Output the indoor graph 
+
+*/
+ListExpr IndoorGraph::Out(ListExpr typeInfo)
+{
+//  cout<<"Out()"<<endl;
+  ListExpr xNode = nl->TheEmptyList();
+  ListExpr xLast = nl->TheEmptyList();
+  ListExpr xNext = nl->TheEmptyList();
+
+  bool bFirst = true;
+  for(int i = 1;i <= edge_rel->GetNoTuples();i++){
+      Tuple* edge_tuple = edge_rel->GetTuple(i, false);
+      CcInt* groom_oid = (CcInt*)edge_tuple->GetAttribute(I_GROOM_OID);
+      CcInt* oid1 = (CcInt*)edge_tuple->GetAttribute(I_DOOR_TID1);
+      CcInt* oid2 = (CcInt*)edge_tuple->GetAttribute(I_DOOR_TID2);
+      Line* connection = (Line*)edge_tuple->GetAttribute(I_PATH);
+
+      ListExpr xline = OutLine3D(nl->TheEmptyList(),SetWord(connection));
+      xNext = nl->FourElemList(nl->IntAtom(groom_oid->GetIntval()),
+                               nl->IntAtom(oid1->GetIntval()),
+                               nl->IntAtom(oid2->GetIntval()),
+                               xline);
+      if(bFirst){
+        xNode = nl->OneElemList(xNext);
+        xLast = xNode;
+        bFirst = false;
+      }else
+          xLast = nl->Append(xLast,xNext);
+      edge_tuple->DeleteIfAllowed();
+  }
+  return nl->TwoElemList(nl->IntAtom(g_id),xNode);
+
+}
+
+IndoorGraph::IndoorGraph(SmiRecord& in_xValueRecord, size_t& inout_iOffset,
+const ListExpr in_xTypeInfo)
+{
+//   cout<<"IndoorGraph::IndoorGraph(SmiRecord)"<<endl;
+   /***********************Read graph id********************************/
+  in_xValueRecord.Read(&g_id,sizeof(int),inout_iOffset);
+  inout_iOffset += sizeof(int);
+
+
+  ListExpr xType;
+  ListExpr xNumericType;
+  /***********************Open relation for node*********************/
+  nl->ReadFromString(NodeTypeInfo,xType);
+  xNumericType = SecondoSystem::GetCatalog()->NumericType(xType);
+  node_rel = Relation::Open(in_xValueRecord, inout_iOffset, xNumericType);
+  if(!node_rel) {
+    return;
+  }
+  /***********************Open relation for edge*********************/
+  nl->ReadFromString(EdgeTypeInfo,xType);
+  xNumericType = SecondoSystem::GetCatalog()->NumericType(xType);
+  edge_rel = Relation::Open(in_xValueRecord, inout_iOffset, xNumericType);
+  if(!edge_rel) {
+    node_rel->Delete();
+    return;
+  }
+
+  ////////////////////adjaency list////////////////////////////////
+   size_t bufsize = sizeof(FlobId) + sizeof(SmiSize) + 2*sizeof(int);
+   SmiSize offset = 0;
+   char* buf = (char*) malloc(bufsize);
+   in_xValueRecord.Read(buf, bufsize, inout_iOffset);
+   inout_iOffset += bufsize;
+   assert(buf != NULL);
+   adj_list.restoreHeader(buf,offset);
+   free(buf);
+   offset = 0;
+   buf = (char*) malloc(bufsize);
+   in_xValueRecord.Read(buf, bufsize, inout_iOffset);
+   assert(buf != NULL);
+   entry_adj_list.restoreHeader(buf,offset);
+   inout_iOffset += bufsize;
+   free(buf);
+
+}
+
+IndoorGraph* IndoorGraph::Open(SmiRecord& valueRecord,size_t& offset,
+                          const ListExpr typeInfo)
+{
+
+  return new IndoorGraph(valueRecord,offset,typeInfo);
+}
+
+
+bool IndoorGraph::OpenIndoorGraph(SmiRecord& valueRecord, size_t& offset,
+                           const ListExpr typeInfo, Word& value)
+{
+//  cout<<"OpenIndoorGraph()"<<endl;
+  value.addr = IndoorGraph::Open(valueRecord, offset, typeInfo);
+  bool result = (value.addr != NULL);
+
+  return result;
+}
+
+
+bool IndoorGraph::SaveIndoorGraph(SmiRecord& valueRecord, size_t& offset,
+                           const ListExpr typeInfo, Word& value)
+{
+//  cout<<"SaveIndoorGraph()"<<endl;
+  IndoorGraph* ig = (IndoorGraph*)value.addr;
+  bool result = ig->Save(valueRecord, offset, typeInfo);
+
+  return result;
+}
+
+/*
+Save an indoor graph 
+
+*/
+
+bool IndoorGraph::Save(SmiRecord& in_xValueRecord,size_t& inout_iOffset,
+              const ListExpr in_xTypeInfo)
+{
+
+//  cout<<"Save()"<<endl;
+  /********************Save graph id ****************************/
+  in_xValueRecord.Write(&g_id,sizeof(int),inout_iOffset);
+  inout_iOffset += sizeof(int);
+
+
+  ListExpr xType;
+  ListExpr xNumericType;
+  /************************save node****************************/
+  nl->ReadFromString(NodeTypeInfo,xType);
+  xNumericType = SecondoSystem::GetCatalog()->NumericType(xType);
+  if(!node_rel->Save(in_xValueRecord,inout_iOffset,xNumericType))
+      return false;
+
+  /************************save edge****************************/
+  nl->ReadFromString(EdgeTypeInfo,xType);
+  xNumericType = SecondoSystem::GetCatalog()->NumericType(xType);
+  if(!edge_rel->Save(in_xValueRecord,inout_iOffset,xNumericType))
+      return false;
+
+
+   SecondoCatalog *ctlg = SecondoSystem::GetCatalog();
+   SmiRecordFile *rf = ctlg->GetFlobFile();
+   adj_list.saveToFile(rf, adj_list);
+   SmiSize offset = 0;
+   size_t bufsize = adj_list.headerSize()+ 2*sizeof(int);
+   char* buf = (char*) malloc(bufsize);
+   adj_list.serializeHeader(buf,offset);
+   assert(offset==bufsize);
+   in_xValueRecord.Write(buf, bufsize, inout_iOffset);
+   inout_iOffset += bufsize;
+   free(buf);
+
+   entry_adj_list.saveToFile(rf, entry_adj_list);
+   offset = 0;
+   buf = (char*) malloc(bufsize);
+   entry_adj_list.serializeHeader(buf,offset);
+   assert(offset==bufsize);
+   in_xValueRecord.Write(buf,bufsize, inout_iOffset);
+   free(buf);
+   inout_iOffset += bufsize;
+
+  return true;
+
+}
+
+/*
+Load the Indoor graph 
+
+*/
+
+void IndoorGraph::Load(int id, Relation* r1, Relation* r2)
+{
+//  cout<<"IndoorGraph::Load()"<<endl;
+  g_id = id;
+  //////////////////node relation////////////////////
+
+  ostringstream xNodePtrStream;
+  xNodePtrStream<<(long)r1;
+  string strQuery = "(consume(sort(feed(" + NodeTypeInfo +
+                "(ptr " + xNodePtrStream.str() + ")))))";
+  Word xResult;
+  int QueryExecuted = QueryProcessor::ExecuteQuery(strQuery, xResult);
+  assert(QueryExecuted);
+  node_rel = (Relation*)xResult.addr;
+
+  /////////////////edge relation/////////////////////
+  ostringstream xEdgePtrStream;
+  xEdgePtrStream<<(long)r2;
+  strQuery = "(consume(sort(feed(" + EdgeTypeInfo +
+                "(ptr " + xEdgePtrStream.str() + ")))))";
+  QueryExecuted = QueryProcessor::ExecuteQuery(strQuery, xResult);
+  assert(QueryExecuted);
+  edge_rel = (Relation*)xResult.addr;
+
+  ////////////adjacency list ////////////////////////////////
+
+  ostringstream xNodeOidPtrStream1;
+  xNodeOidPtrStream1 << (long)edge_rel;
+  strQuery = "(createbtree (" + EdgeTypeInfo +
+             "(ptr " + xNodeOidPtrStream1.str() + "))" + "door_tid1)";
+  QueryExecuted = QueryProcessor::ExecuteQuery(strQuery,xResult);
+  assert(QueryExecuted);
+  BTree* btree_node_oid1 = (BTree*)xResult.addr;
+
+
+//  cout<<"b-tree on edge is finished....."<<endl;
+  /////////////////////////////////////////////////////////////////////////
+  /////////the adjacent list here is different from dual graph and 
+  ///////// visibility graph. before we store the node id
+  /////////now we store the edge id because the weight, path is stored
+  ////////in the edge relation ////////////////////////////////////////
+  //////////////////////////////////////////////////////////////////////
+
+  for(int i = 1;i <= node_rel->GetNoTuples();i++){
+    CcInt* nodeid = new CcInt(true, i);
+    BTreeIterator* btree_iter1 = btree_node_oid1->ExactMatch(nodeid);
+    int start = adj_list.Size();
+//    cout<<"start "<<start<<endl;
+    while(btree_iter1->Next()){
+      Tuple* edge_tuple = edge_rel->GetTuple(btree_iter1->GetId(), false);
+//      int tid2 = ((CcInt*)edge_tuple->GetAttribute(I_DOOR_TID2))->GetIntval();
+
+      adj_list.Append(edge_tuple->GetTupleId());//get the edge tuple id 
+      edge_tuple->DeleteIfAllowed();
+    }
+    delete btree_iter1;
+
+    int end = adj_list.Size();
+    entry_adj_list.Append(ListEntry(start, end));
+//    cout<<"end "<<end<<endl;
+    delete nodeid;
+  }
+
+  delete btree_node_oid1;
+
+}
+
+/*
+get all adjacent nodes for a given node. indoor graph
+
+*/
+
+void IndoorNav::GetAdjNodeIG(int oid)
+{
+    vector<int> adj_list;
+    ig->FindAdj(oid, adj_list);
+//    cout<<"adj_list size "<<adj_list.size()<<endl; 
+    for(unsigned int i = 0;i < adj_list.size();i++){
+      Tuple* edge_tuple = ig->GetEdgeRel()->GetTuple(adj_list[i], false);
+      int neighbor_id = 
+      ((CcInt*)edge_tuple->GetAttribute(IndoorGraph::I_DOOR_TID2))->GetIntval();
+      Line3D* path = (Line3D*)edge_tuple->GetAttribute(IndoorGraph::I_PATH);
+      
+      door_tid_list1.push_back(oid);
+      door_tid_list2.push_back(neighbor_id); 
+      path_list.push_back(*path); 
+      edge_tuple->DeleteIfAllowed();
+    }
+}
+
+/*
+generate interesting points 
+
+*/
+void IndoorNav::GenerateIP1(int num)
+{
+
+
+}

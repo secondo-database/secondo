@@ -204,7 +204,7 @@ Result   : 10
 
 Operator : createvgraph
 Number   : 2
-Signature: int x rel x rel -> dualgraph
+Signature: int x rel x rel -> visibilitygraph
 Example  : query createvgraph(1, edge_rel, node_rel);
 Result   : file_platform
 
@@ -522,6 +522,13 @@ Signature: line3d -> real
 Example  : query length_l3d(l3d1);
 Result   : 3.0
 
+
+Operator : bbox3d
+Number   : 1
+Signature: line3d -> rect3
+Example  : query bbox3d([const line3d value ( (0.0 0.0 0.0) (1.0 1.0 1.0))]);
+Result   : rect: ( (0,0,0) - (1,1,1) )
+
 Operator : createdoor3d
 Number   : 1
 Signature: rel -> (stream(((x1 t1) ... (xn tn))))
@@ -543,10 +550,17 @@ Example  : query createdoor(university,box3d_rel,rtree_box3d,groom_oid,groom_tid
 Result   : 300
 
 
-Operator : createadjdoor
+Operator : createadjdoor1
 Number   : 1
 Signature: rel1 x rel2 x btree x attr1 x attr2 x attr3 x attr4 -> (stream(((x1 t1) ... (xn tn))))
-Example  : query createadjdoor(building_uni,node_rel,btree,Door,door_loc,groom_oid1,doorheight) count;
+Example  : query createadjdoor1(building_uni,node_rel,btree,Door,door_loc,groom_oid1,doorheight) count;
+Result   : 300
+
+
+Operator : createadjdoor2
+Number   : 1
+Signature: rel x rtree -> (stream(((x1 t1) ... (xn tn))))
+Example  : query createadjdoor2(node_rel,rtree_node) count;
 Result   : 300
 
 
@@ -555,6 +569,25 @@ Number   : 1
 Signature: region x point x point -> line 
 Example  : query size(path_in_region(reg1, p1, p2));
 Result   : 25.0 
+
+Operator : createigraph
+Number   : 2
+Signature: int x rel x rel -> indoorgraph
+Example  : query createigraph(1, edge_rel, node_rel);
+Result   : file_platform
+
+Operator : getadjnode_ig
+Number   : 2
+Signature: indoorgraph x int -> (stream(((x1 t1) ... (xn tn)))
+Example  : query getadjnode_ig(ig1,1) count;
+Result   : 3
+
+
+Operator : generate_ip1
+Number   : 2
+Signature: rel x int -> (stream(((x1 t1) ... (xn tn)))
+Example  : query generate_ip1(building_uni, 10) count;
+Result   : 10
 
 
 Operator : instant2day 

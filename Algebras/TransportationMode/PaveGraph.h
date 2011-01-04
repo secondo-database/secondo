@@ -296,7 +296,7 @@ public:
                      bool& inout_bCorrect);
   VisualGraph(SmiRecord&, size_t&, const ListExpr);
   //////////////////////////////////////////////////////////////
-  void Load(int, Relation*,Relation*);
+  void Load(int, Relation*, Relation*);
   static ListExpr OutVisualGraph(ListExpr typeInfo, Word value);
   ListExpr Out(ListExpr typeInfo);
   static bool CheckVisualGraph(ListExpr type, ListExpr& errorInfo);

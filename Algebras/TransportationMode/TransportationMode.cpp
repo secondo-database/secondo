@@ -59,139 +59,8 @@ extern QueryProcessor *qp;
 namespace TransportationMode{
 /////////////////////////////////////////////////////////////////////////////
 ////////////////////////   Indoor data Type//////////////////////////////////
-///////////// point3d line3d floor3d door3d staircase3d  ///////////////////
+///////////// point3d line3d floor3d door3d groom ///////////////////
 ////////////////////////////////////////////////////////////////////////////
-
-///////////////////////////////////////////////////////////////////////////
-//////////////////////   3D Point          ////////////////////////////////
-///////////////////////////////////////////////////////////////////////////
-
-/*
-Creation of the type constructor instance for point3d
-
-*/
-
-ListExpr Point3DProperty()
-{
-  return nl->TwoElemList(
-           nl->FourElemList(
-             nl->StringAtom("Signature"),
-             nl->StringAtom("Example Type List"),
-             nl->StringAtom("List Rep"),
-             nl->StringAtom("Example List")),
-           nl->FourElemList(
-             nl->StringAtom("-> DATA"),
-             nl->StringAtom("point3d"),
-             nl->StringAtom("(x y z)"),
-             nl->StringAtom("(10 5 2)")));
-}
-
-/*
-output function for data type point3d
-
-*/
-ListExpr OutPoint3D(ListExpr typeInfo, Word value)
-{
-  Point3D* p3d = (Point3D*)value.addr;
-  if(p3d->IsDefined()){
-      return nl->ThreeElemList(
-              nl->RealAtom(p3d->GetX()),
-              nl->RealAtom(p3d->GetY()),
-              nl->RealAtom(p3d->GetZ())
-         );
-  }else
-    return nl->SymbolAtom("undef");
-}
-
-/*
-input function for data type point3d
-
-*/
-Word InPoint3D(const ListExpr typeInfo, const ListExpr instance,
-               const int errorPos, ListExpr& errorInfo, bool& correct)
-{
-  correct = true;
-  if( nl->ListLength( instance ) == 3 ) {
-    ListExpr first = nl->First(instance);
-    ListExpr second = nl->Second(instance);
-    ListExpr third = nl->Third(instance);
-
-    correct = listutils::isNumeric(first) &&
-              listutils::isNumeric(second) && listutils::isNumeric(third);
-    if(!correct){
-       return SetWord( Address(0) );
-    } else {
-      return SetWord(new Point3D(true, listutils::getNumValue(first),
-                                       listutils::getNumValue(second),
-                                        listutils::getNumValue(third)));
-    }
-  } else if( listutils::isSymbol( instance, "undef" ) ){
-     return SetWord(new Point3D(false));
-  }
-  correct = false;
-  return SetWord( Address(0) );
-}
-
-Word CreatePoint3D(const ListExpr typeInfo)
-{
-  return SetWord (new Point3D(false));
-}
-
-void DeletePoint3D(const ListExpr typeInfo, Word& w)
-{
-//  ((Point3D*)w.addr)->DeleteIfAllowed();
-  Point3D* p3d = (Point3D*)w.addr;
-  delete p3d;
-   w.addr = NULL;
-}
-
-void ClosePoint3D(const ListExpr typeInfo, Word& w)
-{
-//  ((Point3D*)w.addr)->DeleteIfAllowed();
-  Point3D* p3d = (Point3D*)w.addr;
-  delete p3d;
-  w.addr = NULL;
-}
-
-
-Word ClonePoint3D(const ListExpr typeInfo, const Word& w)
-{
-  Point3D* p3d = new Point3D(*(Point3D*)w.addr);
-  return SetWord(p3d);
-}
-
-void* CastPoint3D(void* addr)
-{
-  return new (addr)Point3D();
-}
-
-int SizeOfPoint3D()
-{
-  return sizeof(Point3D);
-}
-
-bool CheckPoint3D(ListExpr type, ListExpr& errorInfo)
-{
-  return nl->IsEqual(type, "point3d");
-}
-
-/*
-save function for point3d
-
-*/
-bool SavePoint3D(SmiRecord& valueRecord, size_t& offset,
-                 const ListExpr typeInfo, Word& value)
-{
-    Point3D* p3d = (Point3D*)value.addr;
-    return p3d->Save(valueRecord, offset, typeInfo);
-}
-
-bool OpenPoint3D(SmiRecord& valueRecord, size_t& offset,
-                 const ListExpr typeInfo, Word& value)
-{
-  value.addr = new Point3D(valueRecord, offset, typeInfo);
-  return value.addr != NULL;
-}
 
 TypeConstructor point3d(
     "point3d", Point3DProperty,
@@ -205,208 +74,6 @@ TypeConstructor point3d(
      SizeOfPoint3D,
      CheckPoint3D
 );
-
-//////////////////////////////////////////////////////////////////////////
-///////////////////////////  3D Line  //////////////////////////////////
-///////////////////////////////////////////////////////////////////////
-
-/*
-List Representation
-
-The list representation of a point is
-
-----  (x y)
-----
-
-~Out~-function
-
-*/
-ListExpr OutLine3D( ListExpr typeInfo, Word value )
-{
-  Line3D* points = (Line3D*)(value.addr);
-  if(!points->IsDefined()){
-    return nl->SymbolAtom("undef");
-  }
-
-  if( points->IsEmpty() )
-    return nl->TheEmptyList();
-
-//  Point p;
-  Point3D p;
-  assert( points->Get( 0, p ) );
-/*  ListExpr result =
-    nl->OneElemList( OutPoint( nl->TheEmptyList(), SetWord( (void*)&p ) ) );*/
- ListExpr result =
-    nl->OneElemList( OutPoint3D( nl->TheEmptyList(), SetWord( (void*)&p ) ) );
-  ListExpr last = result;
-
-  for( int i = 1; i < points->Size(); i++ )
-  {
-    assert( points->Get( i, p ) );
-/*   last = nl->Append( last,
-                      OutPoint( nl->TheEmptyList(), SetWord( (void*)&p ) ) );*/
-    last = nl->Append( last,
-                       OutPoint3D( nl->TheEmptyList(), SetWord( (void*)&p)));
-  }
-  return result;
-}
-
-/*
-In function
-
-*/
-Word InLine3D( const ListExpr typeInfo, const ListExpr instance,
-       const int errorPos, ListExpr& errorInfo, bool& correct )
-{
-  if(nl->IsEqual(instance,"undef")) {
-      Points* points = new Points(0);
-      points->Clear();
-      points->SetDefined(false);
-      correct=true;
-      return SetWord( Address(points) );
-  }
-  Line3D* points = new Line3D( max(0,nl->ListLength( instance) ) );
-  points->SetDefined( true );
-  if(nl->AtomType(instance)!=NoAtom) {
-    points->DeleteIfAllowed();
-    correct = false;
-    cout << __PRETTY_FUNCTION__ << ": Unexpected Atom!" << endl;
-    return SetWord( Address(points) );
-  }
-
-  ListExpr rest = instance;
-  points->StartBulkLoad();
-  while( !nl->IsEmpty( rest ) ) {
-    ListExpr first = nl->First( rest );
-    rest = nl->Rest( rest );
-
-/*    Point *p = (Point*)InPoint( nl->TheEmptyList(),
-                                first, 0, errorInfo, correct ).addr;*/
-    Point3D *p = (Point3D*)InPoint3D( nl->TheEmptyList(),
-                                first, 0, errorInfo, correct ).addr;
-
-    if( correct && p->IsDefined() ) {
-      (*points) += (*p);
-      delete p;
-    } else {
-      if(p) {
-        delete p;
-      }
-      cout << __PRETTY_FUNCTION__ << ": Incorrect or undefined point!" << endl;
-      points->DeleteIfAllowed();
-      correct = false;
-      return SetWord( Address(0) );
-    }
-
-  }
-  points->EndBulkLoad();
-
-  if( points->IsValid() ) {
-    correct = true;
-    return SetWord( points );
-  }
-  points->DeleteIfAllowed();
-  correct = false;
-  cout << __PRETTY_FUNCTION__ << ": Invalid points value!" << endl;
-  return SetWord( Address(0) );
-}
-
-/*
-Create function
-
-*/
-Word CreateLine3D( const ListExpr typeInfo )
-{
-//  cout<<"CreateLine3D "<<endl; 
-  return SetWord( new Line3D( 0 ) );
-}
-
-/*
-Delete function
-
-*/
-void DeleteLine3D( const ListExpr typeInfo, Word& w )
-{
-//  cout<<"DeleteLine3D "<<endl; 
-  Line3D *ps = (Line3D *)w.addr;
-  ps->Destroy();
-  ps->DeleteIfAllowed(false);
-  w.addr = 0;
-}
-
-/*
-Close function
-
-*/
-void CloseLine3D( const ListExpr typeInfo, Word& w )
-{
-//  cout<<"CloseLine3D "<<endl; 
-  ((Line3D *)w.addr)->DeleteIfAllowed();
-  w.addr = 0;
-}
-
-/*
-Clone function
-
-*/
-Word CloneLine3D( const ListExpr typeInfo, const Word& w )
-{
-  return SetWord( new Line3D( *((Line3D *)w.addr) ) );
-}
-
-/*
-Open function
-
-*/
-bool OpenLine3D( SmiRecord& valueRecord, size_t& offset,
-            const ListExpr typeInfo, Word& value )
-{
-  Line3D *ps = (Line3D*)Attribute::Open( valueRecord, offset, typeInfo );
-  value = SetWord( ps );
-  return true;
-}
-
-/*
-Save function
-
-*/
-bool SaveLine3D( SmiRecord& valueRecord, size_t& offset,
-            const ListExpr typeInfo, Word& value )
-{
-  Line3D *ps = (Line3D*)value.addr;
-  Attribute::Save( valueRecord, offset, typeInfo, ps );
-  return true;
-}
-
-/*
-SizeOf function
-
-*/
-int SizeOfLine3D()
-{
-  return sizeof(Line3D);
-}
-
-
-ListExpr Line3DProperty()
-{
-  return (nl->TwoElemList(
-            nl->FourElemList(nl->StringAtom("Signature"),
-                       nl->StringAtom("Example Type List"),
-           nl->StringAtom("List Rep"),
-           nl->StringAtom("Example List")),
-            nl->FourElemList(nl->StringAtom("-> DATA"),
-                       nl->StringAtom("line3d"),
-           nl->StringAtom("(<point3d>*) where point3d is (<x><y><z>)"),
-           nl->StringAtom("( (10 1 2)(4 5 3) )"))));
-}
-
-
-bool CheckLine3D( ListExpr type, ListExpr& errorInfo )
-{
-  return (nl->IsEqual( type, "line3d" ));
-}
-
 
 TypeConstructor line3d(
         "line3d",                     //name
@@ -550,6 +217,15 @@ const string SpatialSpecLengthLine3D =
 "<text>return the length of a 3D line</text--->"
 "<text>query length_3d(l3d1)</text---> ) )";
 
+
+const string SpatialSpecBBoxLine3D =
+"( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+"( <text>line3d -> rect3</text--->"
+"<text> bbox3d(_) </text--->"
+"<text>return the bounding box of a 3D line</text--->"
+"<text>query bbox3d(l3d1)</text---> ) )";
+
+
 const string SpatialSpecCreateDoor3D =
 "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
 "( <text>rel -> (stream (tuple( (x1 t1)(x2 t2)...(xn tn)))</text--->"
@@ -561,7 +237,7 @@ const string SpatialSpecCreateDoor3D =
 const string SpatialSpecCreateDoorBox =
 "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
 "( <text>rel -> (stream (tuple( (x1 t1)(x2 t2)...(xn tn)))</text--->"
-"<text>createdoorbox() </text--->"
+"<text>createdoorbox(rel) </text--->"
 "<text>create a 3d box for each door</text--->"
 "<text>query createdoorbox(university) count</text---> ) )";
 
@@ -575,14 +251,23 @@ const string SpatialSpecCreateDoor =
 "<text>query createdoor(university, box3d_rel, rtree_box3d, groom_oid, "
 "groom_tid, Box3d) count</text---> ) )";
 
-const string SpatialSpecCreateAdjDoor =
+const string SpatialSpecCreateAdjDoor1 =
 "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
 "( <text>rel1 x rel2 x btree x attr1 x attr2 x attr3 x attr4"
  " -> (stream (tuple( (x1 t1)(x2 t2)...(xn tn)))</text--->"
-"<text>createadjdoor(rel,rel,btree,attr,attr,attr,attr) </text--->"
+"<text>createadjdoor1(rel,rel,btree,attr,attr,attr,attr) </text--->"
 "<text>create the connecting edges for two doors inside one room</text--->"
-"<text>query createadjdoor(building_uni, node_rel, createbtree, "
+"<text>query createadjdoor1(building_uni, node_rel, createbtree, "
 "Door, door_loc, groom_oid1, doorheight) count</text---> ) )";
+
+const string SpatialSpecCreateAdjDoor2 =
+"( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+"( <text>rel x rtree "
+ " -> (stream (tuple( (x1 t1)(x2 t2)...(xn tn)))</text--->"
+"<text>createadjdoor2(rel,rtree) </text--->"
+"<text>create the connecting edge for the same door which can belong to "
+"two rooms </text--->"
+"<text>query createadjdoor2(node_rel, rtree_node) count</text---> ) )";
 
 
 const string SpatialSpecPathInRegion =
@@ -591,6 +276,33 @@ const string SpatialSpecPathInRegion =
 "<text>path_in_region(region,point,point) </text--->"
 "<text>create the shortest path connecting two points inside a region</text--->"
 "<text>query size(path_in_region(reg1, p1, p2))</text---> ) )";
+
+const string OpTMCreateIGSpec  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+    "\"Example\" ) "
+    "( <text>int x rel x rel -> indoorgraph</text--->"
+    "<text>createigraph(int, rel, rel)</text--->"
+    "<text>create an indoor graph by the input edges and nodes"
+    "relation</text--->"
+    "<text>query createigraph(1, edge-rel, node-rel); </text--->"
+    ") )";
+
+const string OpTMGetAdjNodeIGSpec  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+    "\"Example\" ) "
+    "( <text>indoorgraph x int"
+    "(stream (tuple( (x1 t1)(x2 t2)...(xn tn)))</text--->"
+    "<text>getadjnode_ig(indoorgraph,int)</text--->"
+    "<text>for a given node, find its adjacent nodes</text--->"
+    "<text>query getadjnode_ig(ig1,1); </text--->"
+    ") )"; 
+
+ const string SpatialSpecGenerateIP1 =
+"( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+"( <text>rel x int -> (stream (tuple( (x1 t1)(x2 t2)...(xn tn)))</text--->"
+"<text>generate_ip1(rel, int) </text--->"
+"<text>create indoor positions</text--->"
+"<text>query generate_ip1(building_uni,20) count</text---> ) )";
 
 /*
 TypeMap function for operator thefloor
@@ -820,6 +532,23 @@ ListExpr LengthLine3DTypeMap(ListExpr args)
 
 
 /*
+TypeMap function for operator bbox3d 
+
+*/
+ListExpr BBoxLine3DTypeMap(ListExpr args)
+{
+  if(nl->ListLength(args) != 1){
+      string err = "line3d expected";
+      return listutils::typeError(err);
+  }
+  ListExpr arg1 = nl->First(args);
+  if(nl->IsEqual(arg1, "line3d"))
+      return nl->SymbolAtom("rect3");
+
+  return nl->SymbolAtom("typeerror");
+}
+
+/*
 TypeMap function for operator createdoor3d
 
 */
@@ -961,10 +690,10 @@ ListExpr CreateDoorTypeMap(ListExpr args)
                                       nl->SymbolAtom("int")),
                         nl->TwoElemList(nl->SymbolAtom("groom_oid2"),
                                       nl->SymbolAtom("int")),
+                        nl->TwoElemList(nl->SymbolAtom("door_loc3d"),
+                                      nl->SymbolAtom("line3d")), 
                         nl->TwoElemList(nl->SymbolAtom("doorheight"),
-                                      nl->SymbolAtom("real")), 
-                        nl->TwoElemList(nl->SymbolAtom("doortype"),
-                                      nl->SymbolAtom("int"))
+                                      nl->SymbolAtom("real"))
                   )
                 )
           );
@@ -977,10 +706,10 @@ ListExpr CreateDoorTypeMap(ListExpr args)
 
 
 /*
-TypeMap function for operator createadjdoor
+TypeMap function for operator createadjdoor1
 
 */
-ListExpr CreateAdjDoorTypeMap(ListExpr args)
+ListExpr CreateAdjDoor1TypeMap(ListExpr args)
 {
   if(nl->ListLength(args) != 7){
       string err = "rel x rel x btree x attr x attr x attr x attr";
@@ -1067,6 +796,55 @@ ListExpr CreateAdjDoorTypeMap(ListExpr args)
 
 
 /*
+TypeMap function for operator createadjdoor2
+
+*/
+ListExpr CreateAdjDoor2TypeMap(ListExpr args)
+{
+  if(nl->ListLength(args) != 2){
+      string err = "rel x rtree ";
+      return listutils::typeError(err);
+  }
+  ListExpr arg1 = nl->First(args);
+  ListExpr arg2 = nl->Second(args);
+
+  if (!listutils::isRelDescription(arg1)){
+    return listutils::typeError("param1 should be a relation" );
+  }
+  
+  
+  ListExpr xType;
+  nl->ReadFromString(IndoorGraph::NodeTypeInfo, xType);
+  if(!CompareSchemas(arg1, xType))return nl->SymbolAtom ( "typeerror" );
+
+  if(!listutils::isRTreeDescription(arg2) )
+    return listutils::typeError("param2 should be an rtree" );
+
+
+      ListExpr result =
+          nl->TwoElemList(
+              nl->SymbolAtom("stream"),
+                nl->TwoElemList(
+                  nl->SymbolAtom("tuple"),
+//                      nl->FiveElemList(
+                      nl->FourElemList(
+                        nl->TwoElemList(nl->SymbolAtom("groom_oid"),
+                                    nl->SymbolAtom("int")), 
+                        nl->TwoElemList(nl->SymbolAtom("door_tid1"),
+                                      nl->SymbolAtom("int")),
+                        nl->TwoElemList(nl->SymbolAtom("door_tid2"),
+                                      nl->SymbolAtom("int")),
+                        nl->TwoElemList(nl->SymbolAtom("Path"),
+                                      nl->SymbolAtom("line3d"))
+                  )
+                )
+          );
+    return  result;
+
+}
+
+
+/*
 TypeMap function for operator path in region 
 
 */
@@ -1086,6 +864,118 @@ ListExpr PathInRegionTypeMap(ListExpr args)
 
     return listutils::typeError("region x point x point expected" );
 }
+
+
+/*
+TypeMap fun for operator createigraph
+
+*/
+
+ListExpr OpTMCreateIGTypeMap ( ListExpr args )
+{
+  if ( nl->ListLength ( args ) != 3 )
+  {
+    return ( nl->SymbolAtom ( "typeerror" ) );
+  }
+  ListExpr xIdDesc = nl->First(args);
+  ListExpr xNodeDesc = nl->Second(args);
+  ListExpr xEdgeDesc = nl->Third(args);
+  if(!nl->IsEqual(xIdDesc, "int")) return nl->SymbolAtom ( "typeerror" );
+  if(!IsRelDescription(xEdgeDesc) || !IsRelDescription(xNodeDesc))
+      return nl->SymbolAtom ( "typeerror" );
+
+  ListExpr xType;
+  nl->ReadFromString(IndoorGraph::NodeTypeInfo, xType);
+  if(!CompareSchemas(xNodeDesc, xType))return nl->SymbolAtom ( "typeerror" );
+
+  nl->ReadFromString(IndoorGraph::EdgeTypeInfo, xType);
+  if(!CompareSchemas(xEdgeDesc, xType))return nl->SymbolAtom ( "typeerror" );
+
+  return nl->SymbolAtom ( "indoorgraph" );
+}
+
+/*
+TypeMap fun for operator getadjnode
+
+*/
+
+ListExpr OpTMGetAdjNodeIGTypeMap ( ListExpr args )
+{
+  if ( nl->ListLength ( args ) != 2 )
+  {
+    return  nl->SymbolAtom ( "typeerror" );
+  }
+  ListExpr arg1 = nl->First(args);
+  ListExpr arg2 = nl->Second(args);
+
+
+  if(nl->IsAtom(arg1) && nl->AtomType(arg1) == SymbolType &&
+     nl->SymbolValue(arg1) == "indoorgraph" &&
+     nl->IsAtom(arg2) && nl->AtomType(arg2) == SymbolType &&
+     nl->SymbolValue(arg2) == "int"){
+
+      ListExpr result = nl->TwoElemList(
+             nl->SymbolAtom("stream"),
+               nl->TwoElemList(
+                 nl->SymbolAtom("tuple"),
+                     nl->ThreeElemList(
+                       nl->TwoElemList(nl->SymbolAtom("tid1"),
+                                   nl->SymbolAtom("int")),
+                       nl->TwoElemList(nl->SymbolAtom("tid2"),
+                                    nl->SymbolAtom("int")),
+                      nl->TwoElemList(nl->SymbolAtom("connection"),
+                                    nl->SymbolAtom("line3d"))
+                  )
+                )
+          );
+    return result;
+  }
+  return  nl->SymbolAtom ( "typeerror" );
+}
+
+
+/*
+TypeMap function for operator generate ip1
+
+*/
+ListExpr GenerateIP1TypeMap(ListExpr args)
+{
+  if(nl->ListLength(args) != 2){
+      string err = "rel x int";
+      return listutils::typeError(err);
+  }
+  ListExpr arg1 = nl->First(args);
+  ListExpr arg2 = nl->Second(args);
+
+  ListExpr xType;
+  nl->ReadFromString(IndoorNav::Indoor_GRoom_Door, xType); 
+  if (listutils::isRelDescription(arg1)){
+      if(CompareSchemas(arg1, xType) && 
+        nl->IsAtom(arg2) && nl->AtomType(arg2) == SymbolType &&
+        nl->SymbolValue(arg2) == "int" ){
+
+          ListExpr result =
+          nl->TwoElemList(
+              nl->SymbolAtom("stream"),
+                nl->TwoElemList(
+                  nl->SymbolAtom("tuple"),
+                      nl->ThreeElemList(
+                        nl->TwoElemList(nl->SymbolAtom("oid"),
+                                    nl->SymbolAtom("int")),
+                        nl->TwoElemList(nl->SymbolAtom("loc1"),
+                                    nl->SymbolAtom("genloc")), 
+                        nl->TwoElemList(nl->SymbolAtom("loc2"),
+                                      nl->SymbolAtom("point3"))
+                  )
+                )
+          );
+        return result; 
+      }else
+        return nl->SymbolAtom("schema error"); 
+  }
+  return nl->SymbolAtom("typeerror");
+}
+
 
 /*
 ValueMap function for operator thefloor
@@ -1326,12 +1216,31 @@ int LengthLine3DValueMap(Word* args, Word& result, int message,
 {
   result = qp->ResultStorage( s );
   Line3D* l = (Line3D *)args[0].addr; 
-  CcReal* pResult = static_cast<CcReal *>(result.addr);
+  CcReal* pResult = static_cast<CcReal*>(result.addr);
   
   if(l->IsDefined() )
     pResult->Set(true, l->Length());
   else
     pResult->Set(false, 0);
+  return 0;
+}
+
+
+/*
+ValueMap function for operator bbox l3d  
+
+*/
+int BBoxLine3DValueMap(Word* args, Word& result, int message,
+                    Word& local, Supplier s)
+{
+  result = qp->ResultStorage( s );
+  Line3D* l = (Line3D *)args[0].addr; 
+  Rectangle<3>* pResult = static_cast<Rectangle<3>*>(result.addr);
+  
+  if(l->IsDefined() )
+    *pResult = l->BoundingBox();
+  else
+    pResult->SetDefined(false);
   return 0;
 }
 
@@ -1478,9 +1387,9 @@ int CreateDoorValueMap(Word* args, Word& result, int message,
           tuple->PutAttribute(3,
                 new CcInt(true, indoor_nav->groom_id_list2[indoor_nav->count]));
           tuple->PutAttribute(4,
-                new CcReal(true, indoor_nav->door_heights[indoor_nav->count]));
+                new Line3D(indoor_nav->path_list[indoor_nav->count]));
           tuple->PutAttribute(5,
-                new CcInt(true, indoor_nav->door_types[indoor_nav->count]));
+                new CcReal(true, indoor_nav->door_heights[indoor_nav->count]));
 
           result.setAddr(tuple);
           indoor_nav->count++;
@@ -1500,10 +1409,10 @@ int CreateDoorValueMap(Word* args, Word& result, int message,
 
 
 /*
-ValueMap function for operator createadjdoor 
+ValueMap function for operator createadjdoor1 
 
 */
-int CreateAdjDoorValueMap(Word* args, Word& result, int message,
+int CreateAdjDoor1ValueMap(Word* args, Word& result, int message,
                     Word& local, Supplier in_pSupplier)
 {
 
@@ -1523,7 +1432,7 @@ int CreateAdjDoorValueMap(Word* args, Word& result, int message,
         indoor_nav->resulttype =
             new TupleType(nl->Second(GetTupleResultType(in_pSupplier)));
 
-        indoor_nav->CreateAdjDoor(btree, attr1, attr2, attr3, attr4);
+        indoor_nav->CreateAdjDoor1(btree, attr1, attr2, attr3, attr4);
         local.setAddr(indoor_nav);
         return 0;
       }
@@ -1560,6 +1469,60 @@ int CreateAdjDoorValueMap(Word* args, Word& result, int message,
 
 
 /*
+ValueMap function for operator createadjdoor2 
+
+*/
+int CreateAdjDoor2ValueMap(Word* args, Word& result, int message,
+                    Word& local, Supplier in_pSupplier)
+{
+
+  IndoorNav* indoor_nav;
+
+  switch(message){
+      case OPEN:{
+        Relation* rel = (Relation*)args[0].addr;
+        R_Tree<3,TupleId>* rtree = (R_Tree<3,TupleId>*)args[1].addr;
+
+        indoor_nav = new IndoorNav(rel, NULL);
+        indoor_nav->resulttype =
+            new TupleType(nl->Second(GetTupleResultType(in_pSupplier)));
+
+        indoor_nav->CreateAdjDoor2(rtree);
+        local.setAddr(indoor_nav);
+        return 0;
+      }
+      case REQUEST:{
+          if(local.addr == NULL) return CANCEL;
+          indoor_nav = (IndoorNav*)local.addr;
+          if(indoor_nav->count == indoor_nav->groom_oid_list.size())
+                          return CANCEL;
+          Tuple* tuple = new Tuple(indoor_nav->resulttype);
+          tuple->PutAttribute(0,
+                new CcInt(true, indoor_nav->groom_oid_list[indoor_nav->count]));
+          tuple->PutAttribute(1,
+                new CcInt(true, indoor_nav->door_tid_list1[indoor_nav->count]));
+          tuple->PutAttribute(2,
+                new CcInt(true, indoor_nav->door_tid_list2[indoor_nav->count]));
+          tuple->PutAttribute(3,
+                new Line3D(indoor_nav->path_list[indoor_nav->count]));
+
+          result.setAddr(tuple);
+          indoor_nav->count++;
+          return YIELD;
+      }
+      case CLOSE:{
+          if(local.addr){
+            indoor_nav = (IndoorNav*)local.addr;
+            delete indoor_nav;
+            local.setAddr(Address(0));
+          }
+          return 0;
+      }
+  }
+  return 0;
+}
+
+/*
 ValueMap function for operator path in region  
 
 */
@@ -1576,6 +1539,129 @@ int PathInRegionValueMap(Word* args, Word& result, int message,
   
   return 0;
 }
+
+/*
+Value Mapping for  createigraph  operator
+
+*/
+
+int OpTMCreateIGValueMap ( Word* args, Word& result, int message,
+                         Word& local, Supplier in_pSupplier )
+{
+  IndoorGraph* ig = (IndoorGraph*)qp->ResultStorage(in_pSupplier).addr;
+  int ig_id = ((CcInt*)args[0].addr)->GetIntval();
+  Relation* node_rel = (Relation*)args[1].addr;
+  Relation* edge_rel = (Relation*)args[2].addr;
+  ig->Load(ig_id, node_rel, edge_rel);
+  result = SetWord(ig);
+  return 0;
+}
+
+/*
+for a given node, find all its adjacent nodes
+
+*/
+
+int OpTMGetAdjNodeIGValueMap ( Word* args, Word& result, int message,
+                         Word& local, Supplier in_pSupplier )
+{
+
+  IndoorNav* ig;
+  switch(message){
+      case OPEN:{
+
+        IndoorGraph* g = (IndoorGraph*)args[0].addr;
+        int oid = ((CcInt*)args[1].addr)->GetIntval();
+
+        ig = new IndoorNav(g);
+        ig->resulttype =
+            new TupleType(nl->Second(GetTupleResultType(in_pSupplier)));
+        ig->GetAdjNodeIG(oid);
+        local.setAddr(ig);
+        return 0;
+      }
+      case REQUEST:{
+          if(local.addr == NULL) return CANCEL;
+          ig = (IndoorNav*)local.addr;
+          if(ig->count == ig->door_tid_list1.size())
+                          return CANCEL;
+
+          Tuple* tuple = new Tuple(ig->resulttype);
+          tuple->PutAttribute(0,
+                              new CcInt(true, ig->door_tid_list1[ig->count]));
+          tuple->PutAttribute(1, 
+                              new CcInt(true, ig->door_tid_list2[ig->count]));
+          tuple->PutAttribute(2, new Line3D(ig->path_list[ig->count]));
+          result.setAddr(tuple);
+          ig->count++;
+          return YIELD;
+      }
+      case CLOSE:{
+          if(local.addr){
+            ig = (IndoorNav*)local.addr;
+            delete ig;
+            local.setAddr(Address(0));
+          }
+          return 0;
+      }
+  }
+  return 0;
+
+}
+
+
+/*
+ValueMap function for operator createdoorbox 
+
+*/
+int GenerateIP1ValueMap(Word* args, Word& result, int message,
+                    Word& local, Supplier in_pSupplier)
+{
+
+  IndoorNav* indoor_nav;
+
+  switch(message){
+      case OPEN:{
+        Relation* rel = (Relation*)args[0].addr;
+        int num = ((CcInt*)args[1].addr)->GetIntval(); 
+        
+        indoor_nav = new IndoorNav(rel, NULL);
+        indoor_nav->resulttype =
+            new TupleType(nl->Second(GetTupleResultType(in_pSupplier)));
+
+        indoor_nav->GenerateIP1(num);
+        local.setAddr(indoor_nav);
+        return 0;
+      }
+      case REQUEST:{
+          if(local.addr == NULL) return CANCEL;
+          indoor_nav = (IndoorNav*)local.addr;
+          if(indoor_nav->count == indoor_nav->oid_list.size())
+                          return CANCEL;
+          Tuple* tuple = new Tuple(indoor_nav->resulttype);
+          tuple->PutAttribute(0,
+                new CcInt(true,indoor_nav->oid_list[indoor_nav->count]));
+          tuple->PutAttribute(1,
+                new GenLoc(indoor_nav->genloc_list[indoor_nav->count]));
+          tuple->PutAttribute(2,
+               new Point3D(indoor_nav->p3d_list[indoor_nav->count]));
+
+          result.setAddr(tuple);
+          indoor_nav->count++;
+          return YIELD;
+      }
+      case CLOSE:{
+          if(local.addr){
+            indoor_nav = (IndoorNav*)local.addr;
+            delete indoor_nav;
+            local.setAddr(Address(0));
+          }
+          return 0;
+      }
+  }
+  return 0;
+}
+
 
 Operator thefloor("thefloor",
     SpatialSpecTheFloor,
@@ -1680,6 +1766,14 @@ Operator length_l3d("length_l3d",
     LengthLine3DTypeMap
 );
 
+
+Operator bbox3d("bbox3d",
+    SpatialSpecBBoxLine3D,
+    BBoxLine3DValueMap,
+    Operator::SimpleSelect,
+    BBoxLine3DTypeMap
+);
+
 Operator createdoor3d("createdoor3d",
     SpatialSpecCreateDoor3D,
     CreateDoor3DValueMap,
@@ -1702,11 +1796,18 @@ Operator createdoor("createdoor",
     CreateDoorTypeMap
 );
 
-Operator createadjdoor("createadjdoor",
-    SpatialSpecCreateAdjDoor,
-    CreateAdjDoorValueMap,
+Operator createadjdoor1("createadjdoor1",
+    SpatialSpecCreateAdjDoor1,
+    CreateAdjDoor1ValueMap,
     Operator::SimpleSelect,
-    CreateAdjDoorTypeMap
+    CreateAdjDoor1TypeMap
+);
+
+Operator createadjdoor2("createadjdoor2",
+    SpatialSpecCreateAdjDoor2,
+    CreateAdjDoor2ValueMap,
+    Operator::SimpleSelect,
+    CreateAdjDoor2TypeMap
 );
 
 
@@ -1716,6 +1817,32 @@ Operator path_in_region("path_in_region",
     Operator::SimpleSelect,
     PathInRegionTypeMap
 );
+
+
+Operator createigraph(
+    "createigraph",
+    OpTMCreateIGSpec,
+    OpTMCreateIGValueMap,
+    Operator::SimpleSelect,
+    OpTMCreateIGTypeMap
+);
+
+Operator getadjnode_ig(
+    "getadjnode_ig",
+    OpTMGetAdjNodeIGSpec,
+    OpTMGetAdjNodeIGValueMap,
+    Operator::SimpleSelect,
+    OpTMGetAdjNodeIGTypeMap
+);
+
+
+Operator generate_ip1("generate_ip1",
+    SpatialSpecGenerateIP1,
+    GenerateIP1ValueMap,
+    Operator::SimpleSelect,
+    GenerateIP1TypeMap
+);
+
 
 ///////////////////////////////////////////////////////////////////////////
 ////////////////////  general data type  /////////////////////////////////
@@ -10754,10 +10881,10 @@ TypeConstructor visualgraph("visualgraph", VisualGraph::BaseGraphProp,
 
 
 TypeConstructor indoorgraph("indoorgraph", IndoorGraph::BaseGraphProp,
-      IndoorGraph::OutVisualGraph, IndoorGraph::InVisualGraph,
+      IndoorGraph::OutIndoorGraph, IndoorGraph::InIndoorGraph,
       0, 0,
       IndoorGraph::CreateIndoorGraph, IndoorGraph::DeleteIndoorGraph,
-      IndoorGraph::OpenVisualGraph, IndoorGraph::SaveVisualGraph,
+      IndoorGraph::OpenIndoorGraph, IndoorGraph::SaveIndoorGraph,
       IndoorGraph::CloseIndoorGraph, IndoorGraph::CloneBaseGraph,
       IndoorGraph::CastBaseGraph, IndoorGraph::SizeOfBaseGraph,
       IndoorGraph::CheckIndoorGraph
@@ -11359,12 +11486,19 @@ class TransportationModeAlgebra : public Algebra
     AddOperator(&add_height_groom);//move the groom higher by the input 
     AddOperator(&translate_groom);//translate the 2D region 
     AddOperator(&length_l3d);//the length of a 3d line 
+    AddOperator(&bbox3d); //return the 3d box of the a line3d 
+    ///////////////////////////////////////////////////////////////////////
     //////////////// indoor  navigation //////////////////////////////////
+    //////////////////////////////////////////////////////////////////////
     AddOperator(&createdoor3d); //create line3d to denote the doors 
     AddOperator(&createdoorbox); //create a 3d box for each door 
     AddOperator(&createdoor);//the node relation for the graph (doors)
-    AddOperator(&createadjdoor); //the edge relation for the graph 
+    AddOperator(&createadjdoor1); //the edge relation for the graph 
+    AddOperator(&createadjdoor2); //the edge relation for the graph 
     AddOperator(&path_in_region);//shortest path between two points inside a reg
+    AddOperator(&createigraph);//create indoor graph 
+    AddOperator(&getadjnode_ig); //get adjacent node 
+    AddOperator(&generate_ip1);//genrate indoor positions 
     /////////////////  others  /////////////////////////////////////////
     AddOperator(&instant2day); 
     /////////non-temporal operators for generic data types////////////////////
