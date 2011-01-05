@@ -509,6 +509,9 @@ static map<void*, int> OpNodeAddr2Id;
 typedef Operator* OpPtr;
 
 enum OpNodeType { Pointer, Object, IndirectObject, Operator };
+
+
+
 struct OpNode
 {
   bool         evaluable;
@@ -516,7 +519,7 @@ struct OpNode
   OpNodeType   nodetype;
   int          id;
   bool         isRoot;
-  struct OpNodeUnion
+  struct OpNodeStruct
   {
   /*
      common members of OpNodeDirecObject and OpNodeOperator ~symbol~
@@ -544,7 +547,6 @@ operator has a parameter function which may have streams as
 arguments. In this case the operator must
 
 */
-      //int isStream;
     } iobj;
     struct OpNodeOperator
     {
@@ -579,7 +581,7 @@ Constructor for a proper initialization of an ~OpNode~
 */
 
 
-OpNode(OpNodeType type = Operator) :
+OpNode(OpNodeType type) :
   evaluable(false),
   typeExpr(0),
   nodetype(type),
@@ -605,7 +607,6 @@ OpNode(OpNodeType type = Operator) :
       u.iobj.vector = 0;
       u.iobj.funNumber = 0;
       u.iobj.argIndex = 0;
-      //u.iobj.isStream = 0;
       u.received = false;
       break;
     }
@@ -688,7 +689,24 @@ OpNode(OpNodeType type = Operator) :
   }
   }
 
+ /** Checks wether this node is an abstraction **/
+ bool isAbstraction(){
+     if(nodetype!=Operator){
+        return false;
+     } else {
+       return (u.op.algebraId == 0) && (u.op.opFunId == 0);
+     }
+  }
 
+ /** checks wther this opnode is a stream operator **/
+ bool isStreamOp(){
+   return (nodetype==Operator) && u.op.isStream;
+ }
+
+
+
+private:
+  OpNode(){} // bad idea to use an uninitatized object
 
 };
 
@@ -742,8 +760,7 @@ ostream& operator<<(ostream& os, const OpNode& node) {
            << "  vector = " << node.u.iobj.vector << endl
            << "  funNumber = " << node.u.iobj.funNumber << endl
            << "  argIndex = " << node.u.iobj.argIndex << endl
-         //<< "  isStream = " << node.u.iobj.isStream << endl
-             << "  received = " << node.u.received << endl;
+           << "  received = " << node.u.received << endl;
           break;
         }
         case Operator :
@@ -758,7 +775,17 @@ ostream& operator<<(ostream& os, const OpNode& node) {
           }
           else
           {
-            os << "(unknown!)";
+            if(node.u.op.algebraId==0){
+               if(node.u.op.opFunId==0){
+                   os << "(special operator: abstraction)";
+               } else if(node.u.op.opFunId==1){
+                   os << "(special operator: argument list)";
+               } else {
+                   os << "(unknown!)";
+               }
+            } else {
+              os << "(unknown!)";
+            }
           }
           os << endl;
 
@@ -821,6 +848,25 @@ ostream& operator<<(ostream& os, const OpNode& node) {
       }
       return os;
   }
+
+
+/** Prints out all nodes of the given tree **/
+
+  void print(ostream& os, OpNode* node){
+     if(!node){
+        os << "the tree is null" << endl;
+        return;
+     }
+     os << (*node) << endl << endl;
+     if(node->nodetype == Operator){
+        for(int i=0;i<node->u.op.noSons;i++){
+           print(os, static_cast<OpNode*>(node->u.op.sons[i].addr));
+        }
+     } 
+
+  }
+
+
 
 
   /*
@@ -1755,15 +1801,12 @@ function index.
               // return Annotate(<abstraction>)
               NameIndex newvarnames;
               VarEntryTable newvartable;
-              functionList =
-//                 values[valueno-1].value.list;
-                  values[valueno-1].value.list;
+              functionList = values[valueno-1].value.list;
 
               if (traceMode) {
                 cout << "Function object " << name << ": " << endl
                      << nl->ToString(functionList) << endl;
               }
-//               values[valueno-1].isList = true;
               values[valueno-1].isList = true;
               return Annotate( functionList, newvarnames,
                                newvartable, defined,
@@ -2811,13 +2854,11 @@ QueryProcessor::Subtree( const ListExpr expr,
 
     case QP_POINTER:
     {
-      node = new OpNode;
+      node = new OpNode(Pointer);
       node->evaluable = true;
       node->typeExpr = nl->Second( expr );
-      node->nodetype = Pointer;
       node->isRoot = oldfirst;
       node->u.dobj.isConstant = true;
-      node->u.dobj.isModified = false;
       node->u.dobj.valNo = nl->IntValue(nl->Third(nl->First(expr)));
       node->u.dobj.value = values[node->u.dobj.valNo].value;
       if (traceNodes)
@@ -2829,13 +2870,11 @@ QueryProcessor::Subtree( const ListExpr expr,
     }
     case QP_CONSTANT:
     {
-      node = new OpNode;
+      node = new OpNode(Object);
       node->evaluable = true;
       node->typeExpr = nl->Second( expr );
-      node->nodetype = Object;
       node->isRoot = oldfirst;
       node->u.dobj.isConstant = true;
-      node->u.dobj.isModified = false;
       node->u.dobj.valNo = nl->IntValue(nl->Third(nl->First(expr)));
       node->u.dobj.value = values[node->u.dobj.valNo].value;
       if (traceNodes)
@@ -2847,14 +2886,11 @@ QueryProcessor::Subtree( const ListExpr expr,
     }
     case QP_OBJECT:
     {
-      node = new OpNode;
+      node = new OpNode(Object);
       node->evaluable = true;
       node->typeExpr = nl->Second( expr );
-      node->nodetype = Object;
       node->isRoot = oldfirst;
       node->u.symbol = symbolForOperatorOrObject;
-      node->u.dobj.isConstant = false;
-      node->u.dobj.isModified = false;
       node->u.dobj.valNo = nl->IntValue(nl->Third(nl->First(expr)));
       node->u.dobj.value = values[node->u.dobj.valNo].value;
       if (traceNodes)
@@ -2866,10 +2902,9 @@ QueryProcessor::Subtree( const ListExpr expr,
     }
     case QP_OPERATOR:
     {
-      node = new OpNode;
+      node = new OpNode(Operator);
       node->evaluable = true;
       node->typeExpr = nl->Second( expr );
-      node->nodetype = Operator;
       node->isRoot = oldfirst;
       node->u.symbol = symbolForOperatorOrObject;
 
@@ -2903,10 +2938,9 @@ QueryProcessor::Subtree( const ListExpr expr,
     }
     case QP_VARIABLE:
     {
-      node = new OpNode;
+      node = new OpNode(IndirectObject);
       node->evaluable = true;
       node->typeExpr = nl->Second( expr );
-      node->nodetype = IndirectObject;
       node->isRoot = oldfirst;
       node->u.iobj.funNumber =
         nl->IntValue(nl->Fourth(nl->First(expr )));
@@ -3029,14 +3063,10 @@ QueryProcessor::Subtree( const ListExpr expr,
     }
     case QP_IDENTIFIER:
     {
-      node = new OpNode;
+      node = new OpNode(Object);
       node->evaluable = false;
       node->typeExpr = nl->Second( expr );
-      node->nodetype = Object;
       node->isRoot = oldfirst;
-      node->u.dobj.value = SetWord( Address( 0 ) );
-      node->u.dobj.valNo = 0;
-      node->u.dobj.isConstant = false;
       if (traceNodes)
       {
         cout << "QP_IDENTIFIER:" << endl;
@@ -3046,15 +3076,13 @@ QueryProcessor::Subtree( const ListExpr expr,
     }
     case QP_ARGLIST:
     {
-      node = new OpNode;
-      node->evaluable = false;
+      node = new OpNode(Operator);
       node->typeExpr = nl->Second( expr );
-      node->nodetype = Operator;
       node->isRoot = oldfirst;
+      /* special operator [0, 1] means arglist */
       node->u.op.algebraId = 0;
-        /* special operator [0, 1] means arglist */
       node->u.op.opFunId = 1;
-      node->u.op.noSons = 0;
+
       list = nl->Third( nl->First( expr ) );
       while (!nl->IsEmpty( list ))
       {
@@ -3063,10 +3091,6 @@ QueryProcessor::Subtree( const ListExpr expr,
         node->u.op.noSons++;
         list = nl->Rest( list );
       }
-      node->u.op.isFun = false;
-      node->u.op.funNo = 0;
-      node->u.op.isStream = false;
-      node->u.op.resultAlgId = 0;
       if (traceNodes)
       {
         cout << "QP_ARGLIST:" << endl;
@@ -3090,19 +3114,19 @@ QueryProcessor::Subtree( const ListExpr expr,
     case QP_APPLYABS:
     case QP_APPLYFUN:
     {
-      node = new OpNode;
+      node = new OpNode(Operator);
       node->evaluable = true;
       node->typeExpr = nl->Second( expr );
-      node->nodetype = Operator;
       node->isRoot = oldfirst;
+       /* special operator [0, 0] means
+          application of an abstraction */
       node->u.op.algebraId = 0;
-        /* special operator [0, 0] means
-           application of an abstraction */
       node->u.op.opFunId = 0;
       node->u.op.noSons = 1;
-      node->u.op.sons[0].addr =
+      OpNode* sonNode = 
         Subtree( nl->First(nl->Third(nl->First(expr))),
                  first, node ); /* the abstraction */
+      node->u.op.sons[0].addr = sonNode;
       list = nl->Rest( nl->Third( nl->First( expr ) ) );
       while ( !nl->IsEmpty( list ) )
       { /* the arguments */
@@ -3111,15 +3135,12 @@ QueryProcessor::Subtree( const ListExpr expr,
         node->u.op.noSons++;
         list = nl->Rest( list );
       }
-      node->u.op.isFun = false;
-      node->u.op.funNo = 0;
-      node->u.op.isStream = false;
-      node->u.op.resultAlgId = 0;
-      node->u.op.counterNo = 0;
       if (traceNodes) {
         cout << "QP_APPLYABS | QP:APPLYFUN:" << endl;
         cout << *node << endl;
       }
+      node->u.op.isStream = sonNode->u.op.isStream;
+      node->u.op.supportsProgress = sonNode->u.op.supportsProgress;
       return (node);
     }
     case QP_COUNTERDEF:
@@ -3267,6 +3288,11 @@ the function in a database object.
   ResetCounters();
 
   evaluable = tree->evaluable;
+
+  if(evaluable && tree->isAbstraction()){
+     evaluable = !tree->isStreamOp();
+  }
+
   isFunction = (tree->nodetype == Operator) ?
 		 tree->u.op.isFun : false;
 
@@ -3479,6 +3505,12 @@ Code just needed for tracing and error eporting is shown indented.
                         static string fn("QP:Eval ");
                         static map<int, bool>::const_iterator it;
 
+
+  //cout << "Calling eval/" << message <<  " for tree:" << endl;
+  //print(cout,tree);
+  //cout << endl << endl;
+
+
   int i = 0;
   int status = 0;
   ArgVector arg;
@@ -3542,7 +3574,7 @@ request the next element.
 
         if ( (*tree->u.iobj.vector)[MAXARG-argIndex].addr == 0 ) {
           result = (*tree->u.iobj.vector)[argIndex-1];
-  }
+        }
         else
         {
           // A stream! Request next element
@@ -3588,11 +3620,11 @@ Then call the operator's value mapping function.
 */
       case Operator:
       {
-          for ( i = 0; i < tree->u.op.noSons; i++ )
-          {
+        for ( i = 0; i < tree->u.op.noSons; i++ )
+        {
             if ( ((OpNode*)(tree->u.op.sons[i].addr))->evaluable )
             {
-              if ( !tree->u.op.isStream && message <= CLOSE)
+              if ( !tree->u.op.isStream && (message <= CLOSE))
               //no stream operator, normal evaluation
               {
                         if ( traceNodes )
@@ -3600,20 +3632,27 @@ Then call the operator's value mapping function.
                         << i << "]" << endl;
 
                 Eval( tree->u.op.sons[i].addr, arg[i], message );
+                 
+                if(message!=CLOSEPROGRESS){assert(arg[i].addr);}
+
               }
               else // a stream operator
               {
                 if ( message == OPEN )
                 {
-                  Eval( tree->u.op.sons[i].addr,
-                    tree->u.op.sonresults[i], message );
+                  Eval( tree->u.op.sons[i].addr, 
+                        tree->u.op.sonresults[i], message );
 
                         if ( traceNodes )
                         cerr << fn << "Stream op: Compute result for son["
                         << i << "]" << endl;
+                   //assert(tree->u.op.sonresults[i].addr);
 
                 }
                 arg[i] = tree->u.op.sonresults[i];
+              
+                //if(message!=CLOSEPROGRESS){assert(arg[i].addr);}
+
               }
             }
             else
@@ -3623,12 +3662,12 @@ Then call the operator's value mapping function.
                         if ( traceNodes )
                         cerr << fn << "Argument son[" << i <<
                         "] is a stream" << endl;
+
+             // if(message!=CLOSEPROGRESS){assert(arg[i].addr);}
             }
-          }
+        }
 
-
-        if ( tree->u.op.algebraId == 0 && tree->u.op.opFunId == 0 )
-        {
+        if ( tree->isAbstraction()) { 
           ArgVectorPointer absArgs;
 
                         if ( traceNodes )
@@ -3640,19 +3679,27 @@ Then call the operator's value mapping function.
                         cerr << endl;
                         }
 
-          absArgs = Argument(tree->u.op.sons[0].addr );
+          absArgs = Argument(tree->u.op.sons[0].addr ); // argument vector
           for ( i = 1; i < tree->u.op.noSons; i++ )
           {
-            (*absArgs)[i-1] = arg[i];
+            (*absArgs)[i-1] = arg[i]; // load arguments for function
 
                         if ( traceNodes )
                         cerr << fn << "absArgs[" << i-1 << "] = "
                         << (void*)arg[i].addr << endl;
           }
-          Eval( tree->u.op.sons[0].addr, result, message );
+
+
+          if(tree->isStreamOp() && (message==OPEN) ){
+              result.addr = tree->u.op.sons[0].addr;
+          } else {
+             Eval( tree->u.op.sons[0].addr, result, message );
+          }
+
+          return;
         }
-        else
-        {
+
+
 
 #ifdef USE_PROGRESS
           CheckProgress();
@@ -3689,11 +3736,11 @@ Then call the operator's value mapping function.
             exit( 0 );
           }
 
-        }
-        return;
-                        if (traceNodes)
+                    if (traceNodes){
                         cerr << fn << "Operator return status ="
                         << status << endl;
+                    }
+        return;
       }
     }
   }
@@ -3712,6 +3759,11 @@ On a multitasking system with much CPU load the time may be
 a multiple of the one defined here.
 
 */
+
+  if(!allowProgress){
+     return;
+  }
+
   static clock_t clockDelta = CLOCKS_PER_SEC ;
   static clock_t lastClock = clock();
 
@@ -3721,19 +3773,19 @@ a multiple of the one defined here.
   static int progressCtr = progressDelta;
   ProgressInfo progress;
 
-  if (allowProgress)
-    progressCtr--;
+  progressCtr--;
 
-  if (allowProgress && progressCtr == 0) {
+  if ( progressCtr == 0) {
 
-    if ( clock() < lastClock ) lastClock = 0;
+    if ( clock() < lastClock ) {
+        lastClock = 0;
+    }
 
     if ( (clock() - lastClock) > clockDelta / 10) {
 
       allowProgress = false;
 
-      if ( RequestProgress(QueryTree, &progress) )
-      {
+      if ( RequestProgress(QueryTree, &progress) ) {
         if ( progressView ) progressView->ModifyProgressView(progress);
       }
 
@@ -3743,11 +3795,6 @@ a multiple of the one defined here.
     progressCtr = progressDelta;
   }
 }
-
-
-
-
-
 
 
 
@@ -3912,6 +3959,9 @@ QueryProcessor::RequestProgress( const Supplier s, ProgressInfo* p )
 
   if ( trace ) cout << "RequestProgress called with Supplier = " <<
         (void*) s << "  ProgressInfo* = " << (void*) p << endl;
+
+
+  assert(tree!=0);
 
   if ( tree->nodetype == Operator )
   {
