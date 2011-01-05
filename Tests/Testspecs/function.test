@@ -1,0 +1,170 @@
+# Check basic SECONDO commands
+#
+# Jan 2011, Th Behr, C. Düntgen
+#
+
+delete database funtest;
+
+#setup funtest
+
+# if a command between the SETUP directive and the first
+# TESTCASE directive fails, then the whole test has failed 
+# and we immediately skip to the teardown
+# (the whole test does not make sense anymore if the 
+# SETUP has failed)
+
+create database funtest;
+
+open database funtest;
+
+
+let f1 = fun(x : int) x + 1;
+let f2 = fun(x : int , y : int) x * y;
+let f3 = fun(x : int) intstream(1, x);
+let f4 = fun(x : int, y : int) intstream(x,y);
+let f5 = fun(x : int) f1(x);
+let f6 = fun(x : int) f1(f1(x));
+
+let f7 = fun(x : int) f4(x,f6(x));
+
+let f8 = fun( x : int) f3(x) count;
+
+let f9 = fun(x : int, y : int) f4(f3(x) count, f8(y));
+
+let f10 = fun(x : int, y : int) f9(x,y) count;
+let f11 = fun(x : int) intstream(1,x) transformstream;
+let f12 = fun(x : int) f11(x) tconsume;
+let f13 = fun(x : int) f11(x) consume;
+
+
+
+
+#testcase list algebras 
+#yields success 
+list algebra FunctionAlgebra;
+
+#testcase out1; 
+#yields ((map int int) (fun (x int) (+ x 1))) 
+query f1; 
+
+
+#testcase out2; 
+#yields ((map int int int)  (fun (x int) (y int) (* x y))) 
+query f2; 
+
+
+#testcase out3; 
+#yields ((map int (stream int))  (fun (x int) (intstream 1 x))) 
+query f3 ; 
+
+
+
+#testcase out4; 
+#yields ((map int int (stream int))  (fun (x int) (y int) (intstream x y))) 
+query f4 ; 
+
+
+#testcase out5; 
+#yields ((map int int) (fun (x int) (f1 x))) 
+query f5 ; 
+
+
+#testcase out6; 
+#yields ((map int int) (fun (x int) (f1 (f1 x)))) 
+query f6 ; 
+
+
+#testcase out7; 
+#yields ((map int (stream int)) (fun (x int) (f4 x (f6 x)))) 
+query f7 ; 
+
+
+#testcase out8; 
+#yields ((map int int) (fun (x int) (count (f3 x)))) 
+query f8 ; 
+
+
+#testcase out9; 
+#yields ((map int int (stream int))(fun (x int) (y int) (f4 (count (f3 x)) (f8 y)))) 
+query f9 ; 
+
+
+#testcase out10; 
+#yields ((map int int int) (fun (x int) (y int) (count (f9 x y)))) 
+query f10 ; 
+
+
+#testcase out11; 
+#yields ((map int (stream (tuple ( (elem int))))) (fun (x int) (transformstream (intstream 1 x)))) 
+query f11 ; 
+
+
+#testcase out12; 
+#yields ((map int (trel (tuple ( (elem int))))) (fun (x int) (tconsume (f11 x)))) 
+query f12 ; 
+
+
+#testcase out13; 
+#yields ((map int (rel (tuple ( (elem int))))) (fun (x int) (consume (f11 x)))) 
+query f13 ; 
+
+# evaluation of functions
+
+#testcase eval1; 
+#yields (int 1) 
+query f1(0) ; 
+
+
+#testcase error1; 
+#yields error 
+query f1("Wrong") ; 
+
+
+#testcase eval2; 
+#yields (int 12) 
+query f2(3,4) ; 
+
+
+#testcase error2; 
+#yields error 
+query f2(1) ; 
+
+
+#testcase eval3;
+#yields (int 25)
+query f3(25) count;
+
+
+#testcase error3;
+#yields error
+query f3(25);
+
+
+#testcase eval4;
+#yields (int 26)
+query f4(25,50) count;
+
+
+
+
+
+# testing operator within
+
+
+# testing operator within2
+
+# testing operator whiledo
+
+
+# testing functions within loops
+
+
+
+
+# the TEARDOWN directive is followed by commands which
+# should be executed after the execution of all TESTCASES
+#teardown
+
+close database;
+delete database funtest;
+
