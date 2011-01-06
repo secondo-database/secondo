@@ -43,7 +43,7 @@ using namespace extrel2;
 typedef enum {leftStream, rightStream} streamType;
 
 template <unsigned dim>
-class SpatialJoinLocalInfo
+class SpatialJoin2LocalInfo
 {
 private:
 
@@ -64,7 +64,7 @@ private:
   void scanStream(int attrIndex, streamType loc);
 
 public:
-  SpatialJoinLocalInfo(Word leftStreamWord, bool isLRel,
+  SpatialJoin2LocalInfo(Word leftStreamWord, bool isLRel,
                        Word leftAttrIndexWord,
                        Word rightStreamWord, bool isRRel,
                        Word rightAttrIndexWord,
@@ -81,7 +81,7 @@ public:
   }
   Tuple* NextResultTuple();
 
-  ~SpatialJoinLocalInfo(){
+  ~SpatialJoin2LocalInfo(){
     for(int i =  0; i < 2; i++)
     {
       if (r[i].streamBuffer)
