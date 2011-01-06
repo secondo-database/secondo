@@ -1866,11 +1866,8 @@ struct CellGrid{
       LBZ = 0;
     }
 
-    // A rectangle's top edge belongs to the lower cell,
-    // its right edge belongs to the lefter cell,
-    // and its ceil edge belongs to the lower cell if it's a box
-    // when the rectangle's top-right point locates on
-    // cells' boundary.
+    // A rectangle's ceil edge belongs to the lower cell,
+    // and its right edge belongs to the left cell,
     RTX = static_cast<int>(floor((rtx - x0) / xWidth));
     if (fabs(rtx - RTX*xWidth - x0) <= 1e-10)
       RTX--;
@@ -1886,35 +1883,70 @@ struct CellGrid{
     else
       RTZ = 0;
 
-    //  The cell grid must be located in the first quadrant.
-    //  If the rectangle locates in other quadrants,
-    //  then an empty int stream will be returned.
-    if(LBX < 0 || LBY < 0 || LBZ < 0)
-    {
-      cerr << "Error: The rectangle locates "
-          "outside of the first quadrant\n";
+/*
+The cell grid locats in the first quadrant.
+If a rectangle doesn't intersect the first quadrant,
+then gives a warning message and returns an empty int stream.
 
-      cerr << "rectangle defined by" 
+At the same time, for 2D space,
+the cell grid grows infinitely in Y-axis,
+but is limited in X-axis by parameter ~nx~.
+For 3D space, the cell grid is limited in both X and Y axises,
+but grows infinitely in Z-axis.
+Therefore, if any part of the rectangle locates outside the grid,
+a warning message will be given.
+
+*/
+    bool nfq = false, log = false;
+    if (RTX < 0 && RTY < 0 && (!is3D || (is3D && (RTZ < 0))))
+      nfq = true;  //not intersect first quadrant
+    if ((RTX - 1 > nx) || (is3D && (RTY - 1 > ny)))
+      log = true;  //locate outside the cell grid
+
+    if(nfq || log)
+    {
+      if (nfq)
+        cerr << "Error: The rectangle doesn't intersect "
+          "the first quadrant. " << endl << endl;
+      else
+        cerr << "Error: The rectangle is outside "
+           "the coverage of the grid. " << endl << endl;
+
+      cerr << "rectangle defined by "
            <<   "lbx = " << lbx 
            << ", rtx = " << rtx 
            << ", lby = " << lby
-           << ", rty = " << rty << endl << endl;
-      cerr << " grid defined by"
-           << "  nx = " << nx
-           << ", ny = " << ny 
-           << ", x0 = " << x0 
-           << ", y0 = " << y0
-           << ", xwidth = " << xWidth
-           << ", ywidth = " << yWidth << endl << endl;
+           << ", rty = " << rty;
+      if (is3D)
+        cerr << ", lbz = " << lbz
+             << ", rtz = " << rtz;
+      cerr << endl ;
+
+      cerr << "grid defined by"
+           << "  nx = " << nx;
+      if (is3D)
+        cerr << ", ny = " << ny;
+      cerr << ", x0 = " << x0
+           << ", y0 = " << y0;
+      if (is3D)
+        cerr << ", z0 = " << z0;
+       cerr << ", xwidth = " << xWidth
+            << ", ywidth = " << yWidth;
+       if (is3D)
+         cerr << ", zwidth = " << zWidth;
+      cerr << endl << endl;
       cerr << "LBX = " << LBX << endl;
       cerr << "LBY = " << LBY << endl;
       cerr << "LBZ = " << LBZ << endl; 
+      cerr << "RTX = " << RTX << endl;
+      cerr << "RTY = " << RTY << endl;
+      cerr << "RTZ = " << RTZ << endl;
       finished = true;
     }
 
-    cx = LBX;
-    cy = LBY;
-    cz = LBZ;
+    cx = (LBX >= 0) ? LBX : 0;
+    cy = (LBY >= 0) ? LBY : 0;
+    cz = (LBZ >= 0) ? LBZ : 0;
 
     initialized = true;
   }
@@ -1973,7 +2005,7 @@ struct CellGrid{
 
     double x0 = 0.0, y0 = 0.0, z0 = 0.0;
     double xw = 0.0, yw = 0.0, zw = 0.0;
-    int nx = 0, ny = 0;
+    int nx  = 0, ny = INT_MAX;
     int len = qp->GetNoSons(s);
     for(int arg=0; arg<len; arg++){
       if(!(static_cast<Attribute*>(args[arg].addr))->IsDefined()) {
@@ -2073,7 +2105,7 @@ gridIntersectsVM(Word* args, Word& result,
   CcBool* res = static_cast<CcBool*>(result.addr);
 
   bool is3D = false;
-  int nx = 0, ny = 0;
+  int nx = 0, ny = INT_MAX;
   int LBX = 0, LBY = 0, LBZ = 0;
   double x0 = 0.0, y0 = 0.0, z0 = 0.0;
   double xw = 0.0, yw = 0.0, zw = 0.0;
@@ -2176,8 +2208,16 @@ gridIntersectsVM(Word* args, Word& result,
 
   if(LBX < 0 || LBY < 0 || LBZ < 0) {
     cerr << "RectangleAlgebra::gridIntersects: "
-        "Error, the rectangles locate "
-        "outside of the first quadrant\n";
+        "Error, the intersected rectangle locates "
+        "outside of the first quadrant\n\n\n";
+    res->Set( true, false );
+    return 0;
+  }
+
+  if((LBX - 1 > nx) || (is3D && (LBY - 1 > ny))){
+    cerr << "RectangleAlgebra::gridIntersects: "
+        "Error, the intersected rectangle locates "
+        "outside the defined grid\n\n\n";
     res->Set( true, false );
     return 0;
   }
