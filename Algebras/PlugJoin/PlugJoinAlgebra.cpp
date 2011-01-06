@@ -18,9 +18,6 @@ January 2006 Victor Almeida replaced the ~free~ tuples concept to
 reference counters. There are reference counters on tuples and also
 on attributes.
 
-December 2010, Jiamin Lu created a new *spatialjoin* operator
-by evaluating the *parajoin* operator.
-
 [TOC]
 
 0 Overview
@@ -58,7 +55,6 @@ using namespace std;
 #include <set>
 #include "PlugJoinAlgebra.h"
 #include "ListUtils.h"
-#include "TupleBuffer2.h"
 
 extern NestedList* nl;
 extern QueryProcessor* qp;
@@ -69,7 +65,6 @@ extern QueryProcessor* qp;
 #define DOUBLE_MAX (1.7E308)
 #endif
 
-using namespace extrel2;
 
 /*
 If ~PLUGJOIN\_VERBOSE\_MODE~ is set, some interesting things are reported.
@@ -102,8 +97,7 @@ int myComparePnJ( const void* a, const void* b )
 {
  if( ((SortedArrayItem *) a)->pri < ((SortedArrayItem *) b)->pri )
    return -1;
- else if( ((SortedArrayItem *) a)->pri >
-          ((SortedArrayItem *) b)->pri )
+ else if( ((SortedArrayItem *) a)->pri > ((SortedArrayItem *) b)->pri )
    return 1;
  else
    return 0;
@@ -167,49 +161,21 @@ A query-example is: query Rel1 feed Rel2 feed spatialjoin [attrNameRel1, attrNam
 
 */
 
-ListExpr TypeMapSJ(ListExpr args, bool isOld)
+ListExpr spatialjoinTypeMap(ListExpr args)
 {
- string lenErr = "4 parameters expected";
- string oldErr = "stream(tuple) x stream(tuple) "
-                 "x name1 x name2 expected";
- string newErr = "{stream(tuple), rel(tuple)} "
-               "x {stream(tuple), rel(tuple)} "
-               "x name1 x name2 x isOld expected";
- string mapErr = "It's not a map ";
-
- if (nl->ListLength(args) != 4)
-   return listutils::typeError(lenErr);
-
+ string err = "stream(tuple) x stream(tuple) x name1 x name2 expected"; 
+ if(nl->ListLength(args)!=4){
+   return listutils::typeError(err);
+ }
  ListExpr stream1 = nl->First(args);
  ListExpr stream2 = nl->Second(args);
  ListExpr nameL1 = nl->Third(args);
  ListExpr nameL2 = nl->Fourth(args);
-// ListExpr pFunL = nl->Fifth(args);
-
- bool isRel[] = {false, false};
- if (isOld)
- {
-   if(!listutils::isTupleStream(stream1) ||
-      !listutils::isTupleStream(stream2) ||
-      !listutils::isSymbol(nameL1) ||
-      !listutils::isSymbol(nameL2)){
-     return listutils::typeError(oldErr);
-   }
- }
- else
- {
-   if (listutils::isRelDescription(stream1))
-     isRel[0] = true;
-   else if (!listutils::isTupleStream(stream1))
-     return listutils::typeError(newErr);
-   if (listutils::isRelDescription(stream2))
-     isRel[1] = true;
-   else if (!listutils::isTupleStream(stream2))
-     return listutils::typeError(newErr);
-
-   if (!listutils::isSymbol(nameL1) ||
-       !listutils::isSymbol(nameL2))
-     return listutils::typeError(newErr);
+ if(!listutils::isTupleStream(stream1) ||
+    !listutils::isTupleStream(stream2) ||
+    !listutils::isSymbol(nameL1) ||
+    !listutils::isSymbol(nameL2)){
+   return listutils::typeError(err);
  }
 
  ListExpr al1 = nl->Second(nl->Second(stream1));
@@ -237,8 +203,7 @@ ListExpr TypeMapSJ(ListExpr args, bool isOld)
  set<string> r;
  r.insert("rect");
  r.insert("rect3");
- if (isOld)
-  r.insert("rect4");
+ r.insert("rect4");
 
  if(!listutils::isASymbolIn(type1,r) &&
     !listutils::isKind(type1,"SPATIAL2D")){
@@ -247,8 +212,7 @@ ListExpr TypeMapSJ(ListExpr args, bool isOld)
  }
  if(!listutils::isASymbolIn(type2,r) &&
     !listutils::isKind(type1,"SPATIAL2D")){
-   return listutils::typeError("attribute "
-       + name2 + " not supported");
+   return listutils::typeError("attribute " + name2 + " not supported");
  }
 
  if(!listutils::isSymbol(type1) ||
@@ -261,147 +225,21 @@ ListExpr TypeMapSJ(ListExpr args, bool isOld)
 
  ListExpr attrlist = listutils::concat(al1, al2);
 
- NList funList(nl);
- if (!isOld)
- {
-   //compose the nested list of the internal function
-   bool is3D = false;
-   if (nl->SymbolValue(type1) == "rect3")
-     is3D = true;
-
-   const string sName[] = {"s1", "s2"};    // stream name
-   const ListExpr sType[] = {stream1, stream2};  //stream type
-   const string aName[] = {name1, name2};  // join attribute name
-//   const string saName[] = {"xxx_left", "xxx_right"};
-//   //aliases for streams
-   const string tName[] = {"lefttuple", "righttuple"};
-   const string eaName[] = {"xxx_cell_l", "xxx_cell_r"};
-   //extend attribute
-
-   funList.append(NList("fun"));
-   funList.append(NList(NList(sName[0]), NList(sType[0])));
-   funList.append(NList(NList(sName[1]), NList(sType[1])));
-
-   funList.append(NList(NList("xl"), NList(Symbols::REAL())));
-   funList.append(NList(NList("yb"), NList(Symbols::REAL())));
-   funList.append(NList(NList("wx"), NList(Symbols::REAL())));
-   funList.append(NList(NList("wy"), NList(Symbols::REAL())));
-   funList.append(NList(NList("nx"), NList(Symbols::INT())));
-   if (is3D)
-   {
-     funList.append(NList(NList("zb"), NList(Symbols::REAL())));
-     funList.append(NList(NList("wz"), NList(Symbols::REAL())));
-     funList.append(NList(NList("ny"), NList(Symbols::INT())));
-   }
-
-   NList pjList(nl);
-   pjList.append(NList("parajoin2"));
-   for(int i = 0; i < 2; i++)
-   {
-     ListExpr streamList;
-     stringstream listStr;
-     listStr << " (sortby (extendstream "
-             << (isRel[i] ? "( feed " + sName[i] + ")" : sName[i])
-             << "( ( " << eaName[i]
-             << "(fun ( " << tName[i] << " "
-                 << "TUPLE" << " ) "
-             << "(cellnumber "
-               << "(bbox (attr " << tName[i]
-                          << " " << aName[i] << " ))"
-                 << " xl yb " << (is3D ? "zb" : "")
-                 << " wx wy " << (is3D ? "wz" : "")
-                 << "nx " << (is3D ? "ny" : "")
-             << " ))))) (( " << eaName[i] << " asc))) ";
-     nl->ReadFromString(listStr.str(), streamList);
-     pjList.append(NList(streamList));
-   }
-   pjList.append(NList(eaName[0]));
-   pjList.append(NList(eaName[1]));
-
-   ListExpr rsType[2];  //Rename the extended stream type
-   for(int i = 0; i < 2; i++)
-   {
-     ListExpr attrList = nl->Second(nl->Second(sType[i]));
-     ListExpr newAttrList = nl->Empty();
-     ListExpr lastlistn;
-     while(!nl->IsEmpty(attrList))
-     {
-       ListExpr attr = nl->First(attrList);
-       attrList = nl->Rest(attrList);
-       string attrName = nl->SymbolValue(nl->First(attr));
-       ListExpr newAttr = nl->TwoElemList(
-           nl->SymbolAtom(attrName),
-           nl->Second(attr));
-       if (nl->IsEmpty(newAttrList))
-       {
-         newAttrList = nl->OneElemList( newAttr);
-         lastlistn = newAttrList;
-       }
-       else
-         lastlistn = nl->Append(lastlistn, newAttr);
-     }
-     ListExpr extAttr = nl->TwoElemList(
-         nl->SymbolAtom(eaName[i]),
-         nl->SymbolAtom(Symbols::INT()));
-     lastlistn = nl->Append(lastlistn, extAttr);
-     rsType[i] = nl->TwoElemList(
-                   nl->SymbolAtom(Symbols::STREAM()),
-                   nl->TwoElemList(
-                       nl->SymbolAtom(Symbols::TUPLE()),
-                       newAttrList));
-   }
-
-   ListExpr inFunL;
-   stringstream inFunStr;
-   inFunStr << "( fun "
-            << "(s11 " << "ANY" << ") "
-            << "(s22 " << "ANY2" << ") "
-            << "(symmjoin s11 s22 "
-            << "(fun "
-              << "(lefttuple3 TUPLE ) "
-              << "(righttuple4 TUPLE2 ) "
-              << "(and "
-               << "(gridintersects xl yb " << (is3D ? "zb" : "")
-                 << " wx wy " << (is3D ? "wz" : "")
-                 << " nx " << (is3D ? "ny" : "")
-                 << "(bbox (attr lefttuple3 " << aName[0]  << ")) "
-                 << "(bbox (attr righttuple4 " << aName[1] << ")) "
-                  << "(attr lefttuple3 " << eaName[0] << "))"
-                << "(intersects"
-                  << "(attr lefttuple3 " << aName[0] << ")"
-                  << "(attr righttuple4 " << aName[1] << "))))))";
-   nl->ReadFromString(inFunStr.str(), inFunL);
-   pjList.append(NList(inFunL));
-   funList.append(NList(NList("remove"),
-                 pjList,
-                 NList(NList(eaName[0]),
-                       NList(eaName[1]))));
-   //remove the extended attributes,
-   //to make sure the equality of the output tuple type
-   cerr << "funList: " << funList.convertToString() << endl;
-
- }
 
  return nl->ThreeElemList(
             nl->SymbolAtom("APPEND"),
-            nl->SixElemList(
+            nl->ThreeElemList(
                 nl->IntAtom(index1),
                 nl->IntAtom(index2),
-                nl->StringAtom(nl->SymbolValue(type1)),
-                nl->BoolAtom(isRel[0]),
-                nl->BoolAtom(isRel[1]),
-                funList.listExpr()
-                ),
+                nl->StringAtom(nl->SymbolValue(type1))),
             nl->TwoElemList(
                 nl->SymbolAtom("stream"),
                 nl->TwoElemList(
                     nl->SymbolAtom("tuple"),
                     attrlist)));
-}
 
-template<bool isOld>
-ListExpr spatialjoinTypeMap(ListExpr args)
-{  return TypeMapSJ(args, isOld);  }
+
+}
 
 /*
 3.4 Selection function of operator ~spatialjoin~
@@ -413,8 +251,8 @@ spatialjoinSelection (ListExpr args)
 {
   /* find out type of key; similar to typemapping function */
   /* Split argument in four parts */
-  ListExpr relDescriptionS = nl->First(args);//outerRelation
-  ListExpr attrNameS_LE = nl->Third(args);   //attrName of outerRel
+  ListExpr relDescriptionS = nl->First(args);      //outerRelation
+  ListExpr attrNameS_LE = nl->Third(args);         //attrName of outerRel
   ListExpr tupleDescriptionS = nl->Second(relDescriptionS);
   ListExpr attrListS = nl->Second(tupleDescriptionS);
 
@@ -438,13 +276,12 @@ spatialjoinSelection (ListExpr args)
 }
 
 /*
-3.5 ~SpatialJoinLocalInfo\_Old~: Auxiliary Class for operator ~spatialjoinOld~
+3.5 ~SpatialJoinLocalInfo~: Auxiliary Class for operator ~spatialjoin~
 
 */
 
-
 template<unsigned dim>
-class SpatialJoinLocalInfo_Old
+class SpatialJoinLocalInfo
 {
 /*
 3.5.1 Private declarations
@@ -472,10 +309,9 @@ class SpatialJoinLocalInfo_Old
 
   struct NodeInfo
   {
-     unsigned int counter;  //Number of overflows/queries
-     SmiRecordId firstRId;  //First Record of overflows/queries
-     SmiRecordId actualRId;
-     //Record to which next write will be done
+     unsigned int counter;      //Number of overflows/queries
+     SmiRecordId firstRId;      //First Record of overflows/queries
+     SmiRecordId actualRId;     //Record to which next write will be done
 
   NodeInfo() :
     counter ( 0 ),
@@ -483,9 +319,7 @@ class SpatialJoinLocalInfo_Old
     actualRId ( 0 )
     {}
 
-  NodeInfo(unsigned int counter,
-           SmiRecordId firstRId,
-           SmiRecordId actualRId):
+  NodeInfo(unsigned int counter, SmiRecordId firstRId, SmiRecordId actualRId):
     counter ( counter ), firstRId (firstRId), actualRId (actualRId)
     {}
 
@@ -529,28 +363,20 @@ Algorithm.
 
   struct Header
   {
-    R_TreePnJ<dim>* rtree;
-    //pointer to the R-Tree
+    R_TreePnJ<dim>* rtree;  //pointer to the R-Tree
 
-    ArrayIndex outerAttrIndex;
-    //outerRelation: # of joining attribute
+    ArrayIndex outerAttrIndex;  //outerRelation: # of joining attribute
 
-    TupleBuffer *innerRelation;
-    //the buffer corresponding to the right stream
-    TupleBuffer *outerRelation;
-    //the buffer corresponding to the left stream
+    TupleBuffer *innerRelation; //the buffer corresponding to the right stream
+    TupleBuffer *outerRelation; //the buffer corresponding to the left stream
 
-    int recordHeaderSize;
-    //size of record Header (# of partition, # of entries
-                         //in record, nextRecordId);
-    int maxEntriesInRecord;
-    //# of entries which can be written in one record
+    int recordHeaderSize; //size of record Header (# of partition, # of entries
+                          //in record, nextRecordId);
+    int maxEntriesInRecord; //# of entries which can be written in one record
 
-    SmiRecordFile file;
-    //SMI-file to store partitions of overflowed leaves
+    SmiRecordFile file;     //SMI-file to store partitions of overflowed leaves
 
-    PartitionInfo* firstPartitionInfo;
-    //PartitionInfo created by constructor
+    PartitionInfo* firstPartitionInfo;  //PartitionInfo created by constructor
 
     bool firstRTree;                //controls for NextResultTuple
     bool newPartitionsFromStack;
@@ -559,8 +385,7 @@ Algorithm.
     bool firstSearchForTuple;
     bool searchForTuple;
     bool lastPartition;
-    bool getEntryFromFirstRecord;
-    //read first record of chained list
+    bool getEntryFromFirstRecord;   //read first record of chained list
     bool GetNextEntry_readFirst;    //controls for GetNextEntry
     bool GetNextEntry_read;
 
@@ -573,18 +398,14 @@ Algorithm.
     R_TreeEntryPnJ<dim> foundEntry;
       //Next Entry found by First/Next of the R-Tree
 
-    Partition* outerRelPart;
-    //gathering overflows in one partition
-    PartitionInfo* outerRelInfo;
-    //inserts of outer relation
+    Partition* outerRelPart;        //gathering overflows in one partition
+    PartitionInfo* outerRelInfo;    //inserts of outer relation
 
-    PartitionsInfo* actualMaps;
-    //all Partitions in one recursive level
+    PartitionsInfo* actualMaps;     //all Partitions in one recursive level
     PartInfoIter actualMapsIter;
     ArrayIndex actualNodeNo;
 
-    Partition* innerRelPart;
-    //gathering overflows in one partition
+    Partition* innerRelPart;        //gathering overflows in one partition
     PartitionInfo* innerRelInfo;    //queries of inner relation
 
     Header ():
@@ -658,10 +479,9 @@ Plug\&Join-Algorithm. The formula is suggested by Bercken et al..
 */
 
 
-    void BufferInsert (
-        multimap< ArrayIndex,R_TreeEntryPnJ<dim> >* mm,
-        map< ArrayIndex,NodeInfo >* m,
-        ArrayIndex& nodeNo, R_TreeEntryPnJ<dim>& entry);
+    void BufferInsert (multimap< ArrayIndex,R_TreeEntryPnJ<dim> >* mm,
+                   map< ArrayIndex,NodeInfo >* m,
+                   ArrayIndex& nodeNo, R_TreeEntryPnJ<dim>& entry);
 /*
 Inserts ~entry~ in partition and partitionInfo with key value ~nodeNo~:
 
@@ -687,11 +507,10 @@ Reads all Entries of overflowed Leaves and stores it in the innerRelPart
 For every nodeNo in ~m~ all entries in ~mm~ are stored to file.
 
 */
-    void FlushLeavesOverflowed(
-        vector <ArrayIndex>& leavesOverflowed,
-        R_TreeEntryPnJ<dim>& entry,
-        Partition* outerRelPart,
-        PartitionInfo* outerRelCounter);
+    void FlushLeavesOverflowed(vector <ArrayIndex>& leavesOverflowed,
+                               R_TreeEntryPnJ<dim>& entry,
+                               Partition* outerRelPart,
+                               PartitionInfo* outerRelCounter);
 /*
 Flush auxiliary vector with overflowed leaves (of not answerable queries)
 and build S.Partition
@@ -707,14 +526,12 @@ Writes all entries for node ~nodeNo~ in multimap ~mm~ into record ~recNo~.
 
 */
 
-    void ReadFirstEntries (
-        PartitionInfo* m, ArrayIndex& actualNodeNo,
-        SmiRecordId& nextRecordId,
-        vector < R_TreeEntryPnJ<dim> >& entriesOfRecord );
+    void ReadFirstEntries (PartitionInfo* m, ArrayIndex& actualNodeNo,
+                           SmiRecordId& nextRecordId,
+                           vector < R_TreeEntryPnJ<dim> >& entriesOfRecord );
 
-    void ReadNextEntries (
-        SmiRecordId& NextRecordId,
-        vector < R_TreeEntryPnJ<dim> >&entriesOfRecord );
+    void ReadNextEntries ( SmiRecordId& NextRecordId,
+                           vector < R_TreeEntryPnJ<dim> >&entriesOfRecord );
 
     R_TreeEntryPnJ<dim>* GetNextEntry(PartitionInfo* m,
                                       ArrayIndex& actualNodeNo);
@@ -744,9 +561,8 @@ and ~NextResultTuple~.
 
 */
 
-    Tuple* newResultTupleFromEntries (
-        R_TreeEntryPnJ<dim>& outerEntry,
-        R_TreeEntryPnJ<dim>& foundEntry);
+    Tuple* newResultTupleFromEntries (R_TreeEntryPnJ<dim>& outerEntry,
+                                      R_TreeEntryPnJ<dim>& foundEntry);
 /*
 Generates a new Tuple (that must be deleted somewhere), evaluating the
 pointers of the entries and concatenating the tuples from inner and
@@ -760,7 +576,7 @@ outer relation.
 */
   public:
 
-    SpatialJoinLocalInfo_Old(Word innerStreamWord,
+    SpatialJoinLocalInfo(Word innerStreamWord,
                          Word innerAttrIndexWord,
                          Word outerStreamWord,
                          Word outerAttrIndexWord);
@@ -784,16 +600,16 @@ The tuple type of result tuples.
 
 */
 
-    ~SpatialJoinLocalInfo_Old()
+    ~SpatialJoinLocalInfo()
 /*
 The destructor
 
 */
     {
 #ifdef PLUGJOIN_VERBOSE_MODE
-cout <<"_________________________________________________" << endl;
-cout <<endl << "R-Trees built in query : " << rtreeCounter << endl;
-cout <<"_________________________________________________" << endl;
+      cout << "__________________________________________________" << endl;
+      cout << endl << "R-Trees built in query : " << rtreeCounter << endl;
+      cout << "__________________________________________________" << endl;
 #endif
 
       //delete the SMI-File
@@ -866,9 +682,9 @@ cout <<"_________________________________________________" << endl;
 
 */
 template <unsigned dim>
-SpatialJoinLocalInfo_Old<dim>::SpatialJoinLocalInfo_Old
-                 (Word innerStreamWord, Word innerAttrIndexWord,
-                  Word outerStreamWord, Word outerAttrIndexWord)
+SpatialJoinLocalInfo<dim>::SpatialJoinLocalInfo
+                           (Word innerStreamWord, Word innerAttrIndexWord,
+                            Word outerStreamWord, Word outerAttrIndexWord)
 {
 /*
 First buffer the input streams in TupleBuffers.
@@ -901,29 +717,23 @@ Do some initializing work.
 
 */
     //the attribute-numbers of the joining attributes
-    hdr.outerAttrIndex =
-        (((CcInt*)outerAttrIndexWord.addr)->GetIntval()) - 1;
+    hdr.outerAttrIndex = (((CcInt*)outerAttrIndexWord.addr)->GetIntval()) - 1;
     ArrayIndex innerAttrIndexPnJ =
       (((CcInt*)innerAttrIndexWord.addr)->GetIntval())-1;
 
     //some sizes for storing entries in SMI-Records
-    hdr.recordHeaderSize = sizeof(ArrayIndex)
-        //NodeNo of the following
-        //entries in Record
-                       + sizeof(int)
-                       //# of entries in Record
-                       + sizeof(SmiRecordId);
-                       //# of next Record in SMI-File
+    hdr.recordHeaderSize = sizeof(ArrayIndex) //NodeNo of the following
+                                              //entries in Record
+                       + sizeof(int)          //# of entries in Record
+                       + sizeof(SmiRecordId); //# of next Record in SMI-File
 
-    hdr.maxEntriesInRecord = (int)(
-        (page_size - hdr.recordHeaderSize) /
-        (sizeof(R_TreeEntryPnJ<dim>)));
+    hdr.maxEntriesInRecord = (int)((page_size - hdr.recordHeaderSize) /
+                        (sizeof(R_TreeEntryPnJ<dim>)));
 
     Tuple* innerTuple;
 
-    ArrayIndex nodeNo;
-    //No of the node in which the insertion would be
-    //done, if the leave overflows
+    ArrayIndex nodeNo;  //No of the node in which the insertion would be
+                      //done, if the leave overflows
 
 /*
 Structures for S.Partition and informations about S.Partition.
@@ -938,13 +748,11 @@ Building the initial R-Tree and gathering overflowed entries in partiton.
 */
 
     //iterator of the inner relation for building initial R-Tree
-    GenericRelationIterator *innerIter =
-        hdr.innerRelation->MakeScan();
+    GenericRelationIterator *innerIter = hdr.innerRelation->MakeScan();
 
     //computing the number of nodes to use for initial R-Tree
-    int nodesToUse = UseNodesInTree (
-        hdr.outerRelation->GetNoTuples(),
-        hdr.innerRelation->GetNoTuples());
+    int nodesToUse = UseNodesInTree (hdr.outerRelation->GetNoTuples(),
+                                     hdr.innerRelation->GetNoTuples());
 
     hdr.rtree = new R_TreePnJ<dim>( page_size,
                                     default_entries_per_node,
@@ -958,11 +766,9 @@ Building the initial R-Tree and gathering overflowed entries in partiton.
     while ( (innerTuple = innerIter->GetNextTuple()) != 0 )
     {
 
-      BBox<dim> box =
-          ((StandardSpatialAttribute<dim>*)innerTuple->
-            GetAttribute(innerAttrIndexPnJ))->BoundingBox();
-      if(box.IsDefined()){
-        // an undefined box cannot intersects anything
+      BBox<dim> box = ((StandardSpatialAttribute<dim>*)innerTuple->
+                         GetAttribute(innerAttrIndexPnJ))->BoundingBox();
+      if(box.IsDefined()){ // an undefined box cannot intersects anything
          R_TreeEntryPnJ<dim> e( box, innerIter->GetTupleId() );
 
          if ( !(hdr.rtree)->Insert( e, nodeNo ) )
@@ -1024,8 +830,9 @@ Setting controls for REQUEST / nextResultTuple(..).
 
 */
 template <unsigned dim>
-Tuple* SpatialJoinLocalInfo_Old<dim>::NextResultTuple ()
+Tuple* SpatialJoinLocalInfo<dim>::NextResultTuple ()
 {
+
 /*
 If one of the input relations is empty, there could be no result-tuples.
 
@@ -1046,11 +853,10 @@ Otherwise the join must be computed.
 
   Tuple* outerTuple;
 
-  BBox<dim> SBox;
-  //searchBox for window-query
+  BBox<dim> SBox;                       //searchBox for window-query
   R_TreeEntryPnJ<dim> foundEntry;
-  vector <ArrayIndex> leavesOverflowed;
-  //if leaf is empty (overflow in constructor) the nodeNo for
+  vector <ArrayIndex> leavesOverflowed; //if leaf is empty (overflow in
+                                        //constructor) the nodeNo for
                                         //S.Partition
 
   if (hdr.firstRTree )
@@ -1070,12 +876,11 @@ Next tuple found in outer Relation.
 
 */
           SBox = ((StandardSpatialAttribute<dim>*)outerTuple->
-                 GetAttribute(hdr.outerAttrIndex))->BoundingBox();
+                            GetAttribute(hdr.outerAttrIndex))->BoundingBox();
 
           hdr.outerActualTupleId = hdr.outerIter->GetTupleId();
 
-          hdr.outerEntry =
-              R_TreeEntryPnJ<dim>(SBox, hdr.outerActualTupleId);
+          hdr.outerEntry = R_TreeEntryPnJ<dim>(SBox, hdr.outerActualTupleId);
        //   outerTuple->DeleteIfAllowed(); //comment by jianqiu
         }
         else
@@ -1142,7 +947,7 @@ queries into stack.
       };
       if ( hdr.firstSearchForTuple )
       {
-        if ( hdr.rtree->First (SBox, foundEntry, leavesOverflowed))
+        if ( hdr.rtree->First (SBox, foundEntry, leavesOverflowed) )
         {
 /*
 First search for SBox in R-Tree finds an entry.
@@ -1156,11 +961,11 @@ Building S.Part of outerRelation.
 
 */
           FlushLeavesOverflowed(leavesOverflowed, hdr.outerEntry,
-                               hdr.outerRelPart, hdr.outerRelInfo);
+                                hdr.outerRelPart, hdr.outerRelInfo);
 
           Tuple* innerTuple =
-            ((TupleBuffer*)hdr.innerRelation)->
-              GetTuple(foundEntry.pointer, false);
+            ((TupleBuffer*)hdr.innerRelation)->GetTuple(foundEntry.pointer, 
+                                                        false);
 
 
 
@@ -1194,7 +999,7 @@ Building S.Part of outerRelation.
 
 */
           FlushLeavesOverflowed(leavesOverflowed, hdr.outerEntry,
-                            hdr.outerRelPart, hdr.outerRelInfo);
+                                hdr.outerRelPart, hdr.outerRelInfo);
         }
       }
 
@@ -1215,16 +1020,16 @@ Building S.Part of outerRelation.
 
 */
           FlushLeavesOverflowed(leavesOverflowed, hdr.outerEntry,
-                            hdr.outerRelPart, hdr.outerRelInfo);
+                                hdr.outerRelPart, hdr.outerRelInfo);
 
           Tuple* innerTuple =
-            ((TupleBuffer*)hdr.innerRelation)->
-              GetTuple(foundEntry.pointer, false);
+            ((TupleBuffer*)hdr.innerRelation)->GetTuple(foundEntry.pointer,
+                                                        false);
           Tuple* resultTuple = new Tuple( resultTupleType );
 
           outerTuple =
-            ((TupleBuffer*)hdr.outerRelation)->
-              GetTuple(hdr.outerActualTupleId, false);
+            ((TupleBuffer*)hdr.outerRelation)->GetTuple(hdr.outerActualTupleId,
+                                                       false);
           Concat(outerTuple, innerTuple, resultTuple);
 
           outerTuple->DeleteIfAllowed();
@@ -1252,7 +1057,7 @@ Building S.Part of outerRelation.
 
 */
           FlushLeavesOverflowed(leavesOverflowed, hdr.outerEntry,
-                               hdr.outerRelPart, hdr.outerRelInfo);
+                                hdr.outerRelPart, hdr.outerRelInfo);
 
         }
       }  //if ( localInfo->firstSearchForTuple )
@@ -1278,7 +1083,7 @@ Tuple-Id is not necessary.
 
 */
 template <unsigned dim>
-Tuple* SpatialJoinLocalInfo_Old<dim>::NextResultTupleFromStack()
+Tuple* SpatialJoinLocalInfo<dim>::NextResultTupleFromStack()
 {
 
   vector <ArrayIndex> leavesOverflowed;
@@ -1322,13 +1127,13 @@ the informations needed for building the R-Trees of this instance one by one.
 */
 
 #ifdef PLUGJOIN_VERY_VERBOSE_MODE
-cout << endl
-     << "*********************************************************"
-     << "***************************" << endl;
-     cout << "Stacksize = " << Parts.size()
-     << "  (=number of recursive instances in the stack)" << endl;
-cout << "========================================================="
-     << "======" << endl;
+        cout << endl
+             << "**********************************************************"
+             << "***************************" << endl;
+        cout << "Stacksize = " << Parts.size()
+             << "  (=number of recursive instances in the stack)" << endl;
+        cout << "=========================================================="
+             << "======" << endl;
 #endif
         if(hdr.actualMaps){ // delete old stuff
            if(hdr.actualMaps->innerInfo){
@@ -1350,48 +1155,44 @@ cout << "========================================================="
            << hdr.actualMaps->outerInfo->size() << endl;
       cout << "Number partitions of inner relation: "
            << hdr.actualMaps->innerInfo->size() << endl;
-      cout << "*********************************************"
-           << "****************************************" << endl;
+      cout << "************************************************************"
+           << "*************************" << endl;
 #endif
 
 #ifdef PLUGJOIN_VERY_VERBOSE_MODE
-      cout << "=================================================="
-           << "==============" << endl;
+      cout << "============================================================="
+           << "===" << endl;
       cout << "Not inserted entries in the R-Tree " << endl;
-      cout << "(LeafNumber NumberOfNotInsertedEntries "
-           << "SmiRecordIDFirst SmiRecordIdNext)" << endl;
+      cout << "(LeafNumber NumberOfNotInsertedEntries SmiRecordIDFirst "
+           << "SmiRecordIdNext)" << endl;
       typedef typename  PartitionInfo::const_iterator CI;
       for (CI p=hdr.actualMaps->innerInfo->begin();
               p!=hdr.actualMaps->innerInfo->end(); ++p)
       {
         cout << p->first << "   " << p->second.counter << "    ";
-        cout <<p->second.firstRId
-             << "   " << p->second.actualRId << endl;
+        cout <<p->second.firstRId << "   " << p->second.actualRId << endl;
       }
       cout << "Number of Leaves with insertOverflow:"
            << hdr.actualMaps->innerInfo->size() << endl;
-      cout << "==================================================="
-           << "=============" << endl << endl;
+      cout << "============================================================="
+           << "===" << endl << endl;
 
-      cout << "==============================================="
-           << "=================" << endl;
-      cout << "Queries which touched a leaf with insertOverflow "
-          << endl;
-      cout << "(LeafNumber NumberOfQueries "
-          "SmiRecordIDFirst SmiRecordIdNext)"
+      cout << "============================================================="
+           << "===" << endl;
+      cout << "Queries which touched a leaf with insertOverflow " << endl;
+      cout << "(LeafNumber NumberOfQueries SmiRecordIDFirst SmiRecordIdNext)"
            << endl;
       typedef typename  PartitionInfo::const_iterator CI;
       for (CI p=hdr.actualMaps->outerInfo->begin();
               p!=hdr.actualMapsi->outerInfo->end(); ++p)
       {
         cout << p->first << "   " << p->second.counter << "    ";
-        cout <<p->second.firstRId << "   "
-            << p->second.actualRId << endl;
+        cout <<p->second.firstRId << "   " << p->second.actualRId << endl;
       }
       cout << "Number of Leaves with touching queries:"
            << hdr.actualMaps->outerInfo->size() << endl;
-      cout << "==================================="
-           << "============================="<< endl << endl;
+      cout << "================================================================"
+           << endl << endl;
 #endif
         //Caution: actualMapsIter iterates the queries
         //innerPartitons without queries need not to
@@ -1413,12 +1214,10 @@ are inserted in the Tree.
 */
     if ( hdr.nextQueryInPartition )
     {
-      hdr.actualMapsIter--;
-      //the algorithm guarantees at least one partition
+      hdr.actualMapsIter--;    //the algorithm guarantees at least one partition
       hdr.actualNodeNo = hdr.actualMapsIter->first;
 
-      if ( hdr.actualMapsIter ==
-           hdr.actualMaps->outerInfo->begin() )
+      if (  hdr.actualMapsIter == hdr.actualMaps->outerInfo->begin() )
         hdr.lastPartition = true;
       else
         hdr.lastPartition = false;
@@ -1436,14 +1235,13 @@ are inserted in the Tree.
       //number of nodes to use in next R-Tree
       noEntriesOuterRelation = hdr.actualMapsIter->second.counter;
 
-      NodeInfo innerInfo =
-          ((*hdr.actualMaps->innerInfo) [hdr.actualNodeNo]);
+      NodeInfo innerInfo = ((*hdr.actualMaps->innerInfo) [hdr.actualNodeNo]);
       noEntriesInnerRelation = innerInfo.counter;
 
       nodesToUse = UseNodesInTree (noEntriesOuterRelation,
                                    noEntriesInnerRelation);
 
-      hdr.rtree = new R_TreePnJ<dim>( page_size,       //the R-Tree
+      hdr.rtree = new R_TreePnJ<dim>( page_size,                  //the R-Tree
                                       default_entries_per_node,
                                       min_entries_per_centage,
                                       nodesToUse );
@@ -1494,9 +1292,8 @@ Getting the queries and build resultTuples for stream-REQUEST.
       }
 
       R_TreeEntryPnJ<dim>* outerEntry;
-      if ( (outerEntry = GetNextEntry (
-                         hdr.actualMaps->outerInfo,
-                         hdr.actualNodeNo)) == 0)
+      if ( (outerEntry =
+           GetNextEntry (hdr.actualMaps->outerInfo, hdr.actualNodeNo)) == 0)
       {
         //all queries of partition computed
 
@@ -1572,10 +1369,9 @@ Getting the queries and build resultTuples for stream-REQUEST.
           nextResultTupleFound = true;
 
           FlushLeavesOverflowed (leavesOverflowed, hdr.outerEntry,
-                              hdr.outerRelPart, hdr.outerRelInfo );
+                                   hdr.outerRelPart, hdr.outerRelInfo );
 
-          return newResultTupleFromEntries (
-              hdr.outerEntry, hdr.foundEntry);
+          return newResultTupleFromEntries (hdr.outerEntry, hdr.foundEntry);
           break;
         }
         else
@@ -1584,7 +1380,7 @@ Getting the queries and build resultTuples for stream-REQUEST.
           hdr.nextTupleOuterRelation = true;
           nextResultTupleFound = false;
           FlushLeavesOverflowed (leavesOverflowed, hdr.outerEntry,
-                             hdr.outerRelPart, hdr.outerRelInfo );
+                                 hdr.outerRelPart, hdr.outerRelInfo );
         }
       }
       else   // if ( firstSearchForTuple)
@@ -1596,10 +1392,9 @@ Getting the queries and build resultTuples for stream-REQUEST.
           nextResultTupleFound = true;
 
           FlushLeavesOverflowed (leavesOverflowed, hdr.outerEntry,
-                              hdr.outerRelPart, hdr.outerRelInfo);
+                                 hdr.outerRelPart, hdr.outerRelInfo);
 
-          return newResultTupleFromEntries(
-              hdr.outerEntry, hdr.foundEntry);
+          return newResultTupleFromEntries (hdr.outerEntry, hdr.foundEntry);
           break;
         }
         else
@@ -1609,7 +1404,7 @@ Getting the queries and build resultTuples for stream-REQUEST.
           nextResultTupleFound = false;
 
           FlushLeavesOverflowed (leavesOverflowed, hdr.outerEntry,
-                               hdr.outerRelPart, hdr.outerRelInfo);
+                                 hdr.outerRelPart, hdr.outerRelInfo);
 
         }
       }  // if ( firstSearchForTuple )
@@ -1626,10 +1421,10 @@ Getting the queries and build resultTuples for stream-REQUEST.
 
 */
 template <unsigned dim>
-void SpatialJoinLocalInfo_Old<dim>::BufferInsert
-               (multimap< ArrayIndex,R_TreeEntryPnJ<dim> >* mm,
-                map< ArrayIndex,NodeInfo >* m,
-                ArrayIndex& nodeNo, R_TreeEntryPnJ<dim>& entry)
+void SpatialJoinLocalInfo<dim>::BufferInsert
+                               (multimap< ArrayIndex,R_TreeEntryPnJ<dim> >* mm,
+                                map< ArrayIndex,NodeInfo >* m,
+                                ArrayIndex& nodeNo, R_TreeEntryPnJ<dim>& entry)
 {
   mm->insert(make_pair(nodeNo, entry));
 
@@ -1666,8 +1461,7 @@ void SpatialJoinLocalInfo_Old<dim>::BufferInsert
 
     delete firstRecord;
 
-    m->insert (
-        make_pair (nodeNo, NodeInfo(1, firstRecno, firstRecno) ) );
+    m->insert ( make_pair (nodeNo, NodeInfo(1, firstRecno, firstRecno) ) );
 
   };
 
@@ -1679,9 +1473,8 @@ void SpatialJoinLocalInfo_Old<dim>::BufferInsert
 */
 template <unsigned dim>
 void
-SpatialJoinLocalInfo_Old<dim>::
-  FlushAllLeavesToBuffer(Partition* innerRelPart,
-                         PartitionInfo* innerRelInfo)
+SpatialJoinLocalInfo<dim>::FlushAllLeavesToBuffer(Partition* innerRelPart,
+                                                  PartitionInfo* innerRelInfo)
 {
   typedef typename PartitionInfo::const_iterator CI;
   ArrayIndex nodeNo;
@@ -1690,8 +1483,7 @@ SpatialJoinLocalInfo_Old<dim>::
   {
     R_TreeNodePnJ<dim>* leave = hdr.rtree->FlushLeave(p->first);
 
-    for(int entryCount = 0;
-        entryCount <= leave->EntryCount() - 1; entryCount++)
+    for(int entryCount = 0; entryCount <= leave->EntryCount() - 1; entryCount++)
     {
       R_TreeEntryPnJ<dim> e ((*leave)[entryCount]);
       nodeNo = p->first;
@@ -1708,7 +1500,7 @@ SpatialJoinLocalInfo_Old<dim>::
 
 */
 template <unsigned dim>
-void SpatialJoinLocalInfo_Old<dim>::FlushBufferToFile
+void SpatialJoinLocalInfo<dim>::FlushBufferToFile
                                (Partition* mm,
                                 PartitionInfo* m)
 {
@@ -1726,16 +1518,15 @@ void SpatialJoinLocalInfo_Old<dim>::FlushBufferToFile
 
 */
 template <unsigned dim>
-void SpatialJoinLocalInfo_Old<dim>::
-  FlushLeavesOverflowed (vector <ArrayIndex>& leavesOverflowed,
-                         R_TreeEntryPnJ<dim>& entry,
-                         Partition* outerRelPart,
-                         PartitionInfo* outerRelInfo)
+void SpatialJoinLocalInfo<dim>::FlushLeavesOverflowed
+                                (vector <ArrayIndex>& leavesOverflowed,
+                                 R_TreeEntryPnJ<dim>& entry,
+                                 Partition* outerRelPart,
+                                 PartitionInfo* outerRelInfo)
 {
   for (int i = 0; i <= ((int)leavesOverflowed.size() - 1); i++)
   {
-    BufferInsert (
-        outerRelPart, outerRelInfo, leavesOverflowed[i], entry);
+    BufferInsert ( outerRelPart, outerRelInfo, leavesOverflowed[i], entry);
   }
   leavesOverflowed.clear();
 };
@@ -1745,7 +1536,7 @@ void SpatialJoinLocalInfo_Old<dim>::
 
 */
 template <unsigned dim>
-void SpatialJoinLocalInfo_Old<dim>::Write
+void SpatialJoinLocalInfo<dim>::Write
                                 (Partition* mm,
                                  ArrayIndex& nodeNo,
                                  SmiRecordId& recNo,
@@ -1753,11 +1544,9 @@ void SpatialJoinLocalInfo_Old<dim>::Write
 {
   int ctr = mm->count(nodeNo);
   int offset = 0;
-  int sizeOfRecord =
-      hdr.recordHeaderSize + ctr * sizeof(R_TreeEntryPnJ<dim>);
+  int sizeOfRecord = hdr.recordHeaderSize + ctr * sizeof(R_TreeEntryPnJ<dim>);
   char buffer[sizeOfRecord + 1];  // reserving space for buffer
-  memset ( buffer, 0, sizeOfRecord + 1);
-  //initializes the buffer with 0
+  memset ( buffer, 0, sizeOfRecord + 1); //initializes the buffer with 0
 
   //writes record header
   memcpy ( buffer + offset, &nodeNo, sizeof(nodeNo) );
@@ -1779,7 +1568,7 @@ void SpatialJoinLocalInfo_Old<dim>::Write
 
   //writing to SMI-file
   SmiRecord* record = new SmiRecord();
-  bool t1 = hdr.file.SelectRecord(recNo, *record, SmiFile::Update);
+  bool t1 = hdr.file.SelectRecord ( recNo, *record, SmiFile::Update);
   assert ( t1 );
   t1 = record->Write( buffer, sizeOfRecord, 0);
   assert ( t1 );
@@ -1794,7 +1583,7 @@ void SpatialJoinLocalInfo_Old<dim>::Write
 
 */
 template <unsigned dim>
-void SpatialJoinLocalInfo_Old<dim>::ReadFirstEntries
+void SpatialJoinLocalInfo<dim>::ReadFirstEntries
       (PartitionInfo* m,
        ArrayIndex& actualNodeNo,
        SmiRecordId& nextRecordId,
@@ -1827,11 +1616,9 @@ void SpatialJoinLocalInfo_Old<dim>::ReadFirstEntries
   delete record;
 
   //reads nodeNo, number of entries and nextRecordId
-  memcpy (&nodeNoInRecord, buffer + offset,
-      sizeof (nodeNoInRecord));
+  memcpy (&nodeNoInRecord, buffer + offset, sizeof (nodeNoInRecord));
   offset += sizeof (nodeNoInRecord);
-  memcpy (&numberOfEntries, buffer + offset,
-      sizeof (numberOfEntries));
+  memcpy (&numberOfEntries, buffer + offset, sizeof (numberOfEntries));
   offset += sizeof (numberOfEntries);
   memcpy (&nextRecordId, buffer + offset, sizeof (nextRecordId));
   offset += sizeof (nextRecordId);
@@ -1858,14 +1645,12 @@ void SpatialJoinLocalInfo_Old<dim>::ReadFirstEntries
 
 */
 template <unsigned dim>
-void SpatialJoinLocalInfo_Old<dim>::
-     ReadNextEntries(SmiRecordId& nextRecordId,
-                     vector< R_TreeEntryPnJ<dim> >&entriesOfRecord)
+void SpatialJoinLocalInfo<dim>::ReadNextEntries ( SmiRecordId& nextRecordId,
+                           vector < R_TreeEntryPnJ<dim> >&entriesOfRecord )
 {
   //interpreting the record
   int sizeOfRecord =
-    hdr.recordHeaderSize +
-    hdr.maxEntriesInRecord * sizeof(R_TreeEntryPnJ<dim>);
+    hdr.recordHeaderSize + hdr.maxEntriesInRecord * sizeof(R_TreeEntryPnJ<dim>);
   char buffer[sizeOfRecord + 1];
   memset ( buffer, 0, sizeOfRecord + 1);
   int offset = 0;
@@ -1883,14 +1668,11 @@ void SpatialJoinLocalInfo_Old<dim>::
   delete record;
 
   //reads nodeNo, number of entries and nextRecordId
-  memcpy (&nodeNoInRecord, buffer + offset,
-      sizeof (nodeNoInRecord));
+  memcpy (&nodeNoInRecord, buffer + offset, sizeof (nodeNoInRecord));
   offset += sizeof (nodeNoInRecord);
-  memcpy (&numberOfEntries, buffer + offset,
-      sizeof (numberOfEntries));
+  memcpy (&numberOfEntries, buffer + offset, sizeof (numberOfEntries));
   offset += sizeof (numberOfEntries);
-  memcpy (&nextRecordId, buffer + offset,
-      sizeof (nextRecordId));
+  memcpy (&nextRecordId, buffer + offset, sizeof (nextRecordId));
   offset += sizeof (nextRecordId);
 
   //now read the entries and store in entriesOfRecord
@@ -1913,7 +1695,7 @@ void SpatialJoinLocalInfo_Old<dim>::
 
 */
 template <unsigned dim>
-R_TreeEntryPnJ<dim>* SpatialJoinLocalInfo_Old<dim>::GetNextEntry
+R_TreeEntryPnJ<dim>* SpatialJoinLocalInfo<dim>::GetNextEntry
             (PartitionInfo* m, ArrayIndex& actualNodeNo)
 {
   static SmiRecordId NextRecordId;
@@ -1923,8 +1705,7 @@ R_TreeEntryPnJ<dim>* SpatialJoinLocalInfo_Old<dim>::GetNextEntry
   if ( hdr.GetNextEntry_read && hdr.GetNextEntry_readFirst )
   {
     entriesOfRecord.clear();
-    ReadFirstEntries (m, actualNodeNo,
-                      NextRecordId, entriesOfRecord);
+    ReadFirstEntries (m, actualNodeNo, NextRecordId, entriesOfRecord);
     hdr.GetNextEntry_readFirst = false;
     counter = entriesOfRecord.size() - 1;
 
@@ -1961,9 +1742,8 @@ R_TreeEntryPnJ<dim>* SpatialJoinLocalInfo_Old<dim>::GetNextEntry
         return entry;
       }
       else
-      {
-      // could be the last read record has maxEntriesInRecord
-      // entries, but the actual record is empty
+      { // could be the last read record has maxEntriesInRecord entries
+        // but the actual record is empty
         return 0;
       }
     }
@@ -1980,8 +1760,7 @@ R_TreeEntryPnJ<dim>* SpatialJoinLocalInfo_Old<dim>::GetNextEntry
 
 */
 template <unsigned dim>
-TupleBuffer* SpatialJoinLocalInfo_Old<dim>::
-             StreamBuffer (const Word stream)
+TupleBuffer* SpatialJoinLocalInfo<dim>::StreamBuffer (const Word stream)
 {
   Word streamTupleWord;
   TupleBuffer *streamBuffer;
@@ -2021,16 +1800,14 @@ TupleBuffer* SpatialJoinLocalInfo_Old<dim>::
 
 */
 template <unsigned dim>
-Tuple*  SpatialJoinLocalInfo_Old<dim>::
-        newResultTupleFromEntries (R_TreeEntryPnJ<dim>& outerEntry,
-                                   R_TreeEntryPnJ<dim>& foundEntry)
+Tuple*  SpatialJoinLocalInfo<dim>::newResultTupleFromEntries (
+                                               R_TreeEntryPnJ<dim>& outerEntry,
+                                               R_TreeEntryPnJ<dim>& foundEntry)
 {
   Tuple* innerTuple =
-    ((TupleBuffer*)hdr.innerRelation)->
-      GetTuple(foundEntry.pointer, false);
+    ((TupleBuffer*)hdr.innerRelation)->GetTuple(foundEntry.pointer, false);
   Tuple* outerTuple =
-    ((TupleBuffer*)hdr.outerRelation)->
-      GetTuple(outerEntry.pointer, false);
+    ((TupleBuffer*)hdr.outerRelation)->GetTuple(outerEntry.pointer, false);
   Tuple* resultTuple = new Tuple (resultTupleType);
   Concat (outerTuple, innerTuple, resultTuple);
 
@@ -2045,20 +1822,18 @@ Tuple*  SpatialJoinLocalInfo_Old<dim>::
 
 */
 template <unsigned dim>
-int SpatialJoinLocalInfo_Old<dim>::
-    UseNodesInTree (const int noTuplesR, const int noTuplesS)
+int SpatialJoinLocalInfo<dim>::UseNodesInTree (const int noTuplesR,
+                                                   const int noTuplesS)
 {
-  int nodesToUse =
-      int (scalingFactor * (noTuplesR + noTuplesS) /
-           (default_entries_per_node * max_leaves_of_rtree) +1.0);
+  int nodesToUse = int (scalingFactor * (noTuplesR + noTuplesS) /
+                       (default_entries_per_node * max_leaves_of_rtree) +1.0);
 
 /*
 Only the maximum number of nodes may be used, but the minimum number of nodes
 must be used.
 
 */
-  return max (min (nodesToUse, max_leaves_of_rtree),
-              min_leaves_of_rtree);
+  return max (min (nodesToUse, max_leaves_of_rtree), min_leaves_of_rtree);
 }
 
 
@@ -2069,10 +1844,10 @@ must be used.
 */
 template<int D>
 int
-spatialjoinOldValueMapping(Word* args, Word& result, int message,
+spatialjoinValueMapping(Word* args, Word& result, int message,
                          Word& local, Supplier s)
 {
-  SpatialJoinLocalInfo_Old<D> *localInfo;
+  SpatialJoinLocalInfo<D> *localInfo;
   switch (message)
   {
     case OPEN:
@@ -2084,18 +1859,16 @@ spatialjoinOldValueMapping(Word* args, Word& result, int message,
 
       leftStreamWord = args[0];
       rightStreamWord = args[1];
-
       leftAttrIndexWord = args[4];  //APPENDED - Value no 1
       rightAttrIndexWord = args[5]; //APPENDED - Value no 2
 
-      localInfo = new SpatialJoinLocalInfo_Old<D>(rightStreamWord,
+      localInfo = new SpatialJoinLocalInfo<D>(rightStreamWord,
                                               rightAttrIndexWord,
                                               leftStreamWord,
                                               leftAttrIndexWord);
 
       ListExpr resultType = GetTupleResultType( s );
-      localInfo->resultTupleType =
-          new TupleType( nl->Second( resultType ) );
+      localInfo->resultTupleType = new TupleType( nl->Second( resultType ) );
 
       local.setAddr(localInfo);
 
@@ -2104,7 +1877,7 @@ spatialjoinOldValueMapping(Word* args, Word& result, int message,
 
     case REQUEST:
     {
-      localInfo = (SpatialJoinLocalInfo_Old<D>*)local.addr;
+      localInfo = (SpatialJoinLocalInfo<D>*)local.addr;
       result.setAddr(localInfo->NextResultTuple());
       return result.addr != 0 ? YIELD : CANCEL;
     }
@@ -2113,8 +1886,8 @@ spatialjoinOldValueMapping(Word* args, Word& result, int message,
     {
       if(local.addr)
       {
-        localInfo = (SpatialJoinLocalInfo_Old<D>*)local.addr;
-     //the TupleBuffers are deleted in the destructor of localInfo
+        localInfo = (SpatialJoinLocalInfo<D>*)local.addr;
+        //the TupleBuffers are deleted in the destructor of localInfo
         localInfo->resultTupleType->DeleteIfAllowed();
         delete localInfo;
         local.setAddr(0);
@@ -2130,481 +1903,46 @@ spatialjoinOldValueMapping(Word* args, Word& result, int message,
 3.7 Definition of value mapping vectors
 
 */
-ValueMapping spatialjoinOldMap [] = {spatialjoinOldValueMapping<2>,
-                                  spatialjoinOldValueMapping<3>,
-                                  spatialjoinOldValueMapping<4> };
+ValueMapping spatialjoinMap [] = {spatialjoinValueMapping<2>,
+                                  spatialjoinValueMapping<3>,
+                                  spatialjoinValueMapping<4> };
 
 /*
 3.8 Specification of operator ~spatialjoin~
 
 */
-const string spatialjoinSpec  =
-    "( ( \"Signature\" \"Syntax\" \"Meaning\""
-    " \"Example\" )"
-    "( <text>( (stream (tuple ((x1 t1)...(xn tn)))) "
-    "(stream (tuple ((y1 yt1)...(yn ytn))))"
-    " rect||rect3||rect4||SpatialType "
-    " rect||rect3||rect4||SpatialType) -> "
-    "(stream (tuple ((x1 t1)..."
-    "(xn tn)((y1 yt1)...(yn ytn)))))</text--->"
-    "<text>outerStream innerStream spatialjoin "
-    "[outerAttr, innerAttr]</text--->"
-    "<text>Uses the Plug&Join-Algorithm to find all pairs of "
-    "intersecting tuples in the given relations. "
-    "The joining tuples are reported."
-    "</text--->"
-    "<text>query trees feed streets feed spatialjoin "
-    "[pos_trees, pos_streets] consume; "
-    "the joining attributes must be of the same dimension."
-    "</text--->"
-    ") )";
+const string spatialjoinSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\""
+      " \"Example\" )"
+      "( <text>( (stream (tuple ((x1 t1)...(xn tn)))) "
+      "(stream (tuple ((y1 yt1)...(yn ytn))))"
+      " rect||rect3||rect4||SpatialType rect||rect3||rect4||SpatialType) -> "
+      "(stream (tuple ((x1 t1)...(xn tn)((y1 yt1)...(yn ytn)))))</text--->"
+      "<text>outerStream innerStream spatialjoin "
+      "[outerAttr, innerAttr]</text--->"
+      "<text>Uses the Plug&Join-Algorithm to find all pairs of intersecting"
+      " tuples in the given relations. The joining tuples are reported."
+      "</text--->"
+      "<text>query trees feed streets feed spatialjoin [pos_trees, pos_streets]"
+      " consume; the joining attributes must be of the same dimension."
+      "</text--->"
+      ") )";
 
 /*
 3.9 Definition of operator ~spatialjoin~
 
 */
 
-Operator spatialjoinOld (
-         "spatialjoinOld",       // name
-         spatialjoinSpec,        // specification
-         3,                      // number of overloaded functions
-         spatialjoinOldMap,      // value mapping
-         spatialjoinSelection,   // trivial selection function
-         spatialjoinTypeMap<true>// type mapping
-);
-
-/*
-4 Updated operator ~spatialjoin~
-
-4.1 Overview
-
-Create a new version ~spatialjoin~ operator, which performs the
-operation by invoking the ~parajoin2~ operator.
-
-We rename the old version spatialjoin as ~spatialjoinOld~.
-And both operators share a same type mapping function.
-
-At present, the new version doesn't support join for 4D rectangles.
-
-4.2 ~SpatialJoinLocalInfo~: Auxiliary Class for operator ~spatialjoin~
-
-*/
-typedef enum {leftStream, rightStream} streamType;
-template <unsigned dim>
-class SpatialJoinLocalInfo
-{
-private:
-
-  Rectangle<dim> *joinBox;
-  Supplier pf; //parameter function
-  bool isSet;  //ensure setting the function's parameters
-
-  Word streams[2];
-  GenericRelationIterator *relIter[2];
-  bool isRel[2];
-
-
-  Rectangle<dim>* scanStream(int attrIndex, streamType loc);
-
-public:
-  SpatialJoinLocalInfo(Word leftStreamWord, bool isLRel,
-                       Word leftAttrIndexWord,
-                       Word rightStreamWord, bool isRRel,
-                       Word rightAttrIndexWord,
-                       Word funWord, Supplier s);
-
-  void openInputStream(streamType loc);
-  Tuple* getNextInputTuple(streamType loc);
-  void closeInputStream(streamType loc);
-
-  inline void OpenFunction()
-  {
-    if (isSet)
-      qp->Open(pf);
-  }
-  Tuple* NextResultTuple();
-
-  ~SpatialJoinLocalInfo(){}
-
-};
-
-template <unsigned dim>
-SpatialJoinLocalInfo<dim>::SpatialJoinLocalInfo(
-                       Word leftStreamWord, bool _isLR,
-                       Word leftAttrIndexWord,
-                       Word rightStreamWord, bool _isRR,
-                       Word rightAttrIndexWord,
-                       Word funWord, Supplier s)
-{
-  isSet = false;
-
-  int aiLeft = ((CcInt*)leftAttrIndexWord.addr)->GetValue() - 1;
-  int aiRight = ((CcInt*)rightAttrIndexWord.addr)->GetValue() - 1;
-  pf = funWord.addr;
-  qp->SetupStreamArg(pf, 1, s);
-  qp->SetupStreamArg(pf, 2, s);
-  ArgVectorPointer funargs = qp->Argument(pf);
-
-  isRel[0] = _isLR;
-  isRel[1] = _isRR;
-  streams[0] = leftStreamWord;
-  streams[1] = rightStreamWord;
-
-  Rectangle<dim> *boxL, *boxR;
-  boxL = scanStream(aiLeft, leftStream);
-  boxR = scanStream(aiRight, rightStream);
-  joinBox = new Rectangle<dim>(boxL->Intersection(*boxR));
-
-
-/*
-
-We basically set 1000000 as the number of the cells inside the grid.
-This value is used to derive the width of the cells.
-The cells are assumed as square tiles.
-If the width of the whole grid is ~m~, and the length is ~n~.
-Then in 2D space, the width ~wx~ of the cell should be:
-
-----wx = sqrt[2]\{(m*n)\} / 1000
-----
-
-and the actual number of the cells on the x-axis ~nx~ is:
-
-----nx =  ceil(1000 * sqrt[2]\{m/n\})
-----
-
-The ~nx~ doesn't equal to the sqrt[2]\{1000000\}.
-
-If we need to build a 3D grid, and we assume the hight of the grid is ~h~,
-then the width ~wx~ of the cell should be:
-
-----wx = sqrt[3]\{(m*n*h)\} / 100
-----
-
-the actual number of cells on the x-axis ~nx~ is:
-
-----nx = ceil(100 * sqrt[3]\{m^2\/(n*h)\})
-----
-
-the actual number of cells on the y-axis ~ny~ is:
-
-----ny = ceil(100 * sqrt[3]\{n^2/(m*h)\})
-----
-
-The reason of setting 1000000 as the basic number of cells,
-is that this number is the square of 1000 and also the cube of 100.
-
-The reason of choosing a finer grid, is to reduce the number of tuples
-within a same cell.
-
-*/
-
-  double m, n, h;
-  double xl, yb, zb, wx;
-  int nx, ny;
-  if (2 == dim)
-  {
-    //2D space grid
-    m = joinBox->MaxD(0) - joinBox->MinD(0);
-    n = joinBox->MaxD(1) - joinBox->MinD(1);
-    xl = joinBox->MinD(0);
-    yb = joinBox->MinD(1);
-    wx = sqrt(double(m * n)) / 1000.0;
-    nx = ceil(1000 * sqrt(double(m/n)));
-
-    (*funargs)[2].setAddr(new CcReal(xl));
-    (*funargs)[3].setAddr(new CcReal(yb));
-    (*funargs)[4].setAddr(new CcReal(wx));
-    (*funargs)[5].setAddr(new CcReal(wx));
-    (*funargs)[6].setAddr(new CcInt(nx));
-
-    cerr << "xl: " << xl << endl;
-    cerr << "yb: " << yb << endl;
-    cerr << "wx: " << wx << endl;
-    cerr << "nx: " << nx << endl;
-  }
-  else
-  {
-    //3D space grid
-    m = joinBox->MaxD(0) - joinBox->MinD(0);
-    n = joinBox->MaxD(1) - joinBox->MinD(1);
-    h = joinBox->MaxD(2) - joinBox->MinD(2);
-    xl = joinBox->MinD(0);
-    yb = joinBox->MinD(1);
-    zb = joinBox->MinD(2);
-    wx = pow(double(m * n), 1.0/3.0) / 100.0;
-    nx = ceil(100 * pow(double((m*m)/(n*h)), 1.0/3.0));
-    ny = ceil(100 * pow(double((n*n)/(m*h)), 1.0/3.0));
-
-    (*funargs)[2].setAddr(new CcReal(xl));
-    (*funargs)[3].setAddr(new CcReal(yb));
-    (*funargs)[4].setAddr(new CcReal(wx));
-    (*funargs)[5].setAddr(new CcReal(wx));
-    (*funargs)[6].setAddr(new CcInt(nx));
-    (*funargs)[7].setAddr(new CcReal(zb));
-    (*funargs)[8].setAddr(new CcReal(wx));
-    (*funargs)[9].setAddr(new CcInt(ny));
-
-    cerr << "xl: " << xl << endl;
-    cerr << "yb: " << yb << endl;
-    cerr << "zb: " << zb << endl;
-    cerr << "wx: " << wx << endl;
-    cerr << "nx: " << nx << endl;
-    cerr << "ny: " << ny << endl;
-  }
-
-  isSet = true;
-//  cerr << "boxL: " << *boxL << endl;
-//  cerr << "boxR: " << *boxR << endl;
-//  cerr << "joinBox: " << *joinBox << endl;
-}
-
-template<unsigned dim>
-Rectangle<dim>*
-SpatialJoinLocalInfo<dim>::scanStream( int attrIndex, streamType loc)
-{
-  Rectangle<dim> *MBR = 0;
-
-  if (isRel[loc])
-  {
-    //Scan the relation tuple by tuple
-    GenericRelation* rel = (GenericRelation*)streams[loc].addr;
-    GenericRelationIterator *iter = rel->MakeScan();
-    Tuple* nextTup = iter->GetNextTuple();
-    while(!iter->EndOfScan())
-    {
-      Rectangle<dim>
-          tBox = ((StandardSpatialAttribute<dim>*) nextTup
-              ->GetAttribute(attrIndex))->BoundingBox();
-      if (!MBR)
-        MBR = new Rectangle<dim> (tBox);
-      else
-        *MBR = tBox.Union(*MBR);
-      nextTup->DeleteIfAllowed();
-      nextTup = iter->GetNextTuple();
-    }
-    delete iter;
-  }
-  else
-  {
-    //Scan the stream tuple by tuple
-    Word streamTupleWord;
-    qp->Open(streams[loc].addr);
-    qp->Request(streams[loc].addr, streamTupleWord);
-
-    while (qp->Received(streams[loc].addr))
-    {
-      Tuple *nextTup = (Tuple*)streamTupleWord.addr;
-      Rectangle<dim> tBox =
-          ((StandardSpatialAttribute<dim>*)nextTup
-              ->GetAttribute(attrIndex))->BoundingBox();
-      if (!MBR)
-        MBR = new Rectangle<dim>(tBox);
-      else
-        *MBR = tBox.Union(*MBR);
-      nextTup->DeleteIfAllowed();
-      qp->Request(streams[loc].addr, streamTupleWord);
-    }
-    qp->Close(streams[loc].addr);
-  }
-  return MBR;
-}
-
-template<unsigned dim>
-void
-SpatialJoinLocalInfo<dim>::openInputStream(streamType loc)
-{
-  if (isRel[loc])
-  {
-    GenericRelation* rel = (GenericRelation*)streams[loc].addr;
-    relIter[loc] = rel->MakeScan();
-  }
-  else
-  {
-    qp->Open(streams[loc].addr);
-  }
-}
-
-template<unsigned dim>
-Tuple*
-SpatialJoinLocalInfo<dim>::getNextInputTuple(streamType loc)
-{
-  if (isRel[loc])
-  {
-    Tuple* tuple = relIter[loc]->GetNextTuple();
-    if (!relIter[loc]->EndOfScan())
-      return tuple;
-    else
-      return 0;
-  }
-  else
-  {
-    Word inputTuple;
-    qp->Request(streams[loc].addr, inputTuple);
-    if (qp->Received(streams[loc].addr))
-      return (Tuple*)inputTuple.addr;
-    else
-      return 0;
-  }
-}
-
-template<unsigned dim>
-void
-SpatialJoinLocalInfo<dim>::closeInputStream(streamType loc)
-{
-  if (isRel[loc])
-  {
-    delete relIter[loc];
-    relIter[loc] = 0;
-  }
-  else
-  {
-    qp->Close(streams[loc].addr);
-  }
-}
-
-template<unsigned dim>
-Tuple*
-SpatialJoinLocalInfo<dim>::NextResultTuple()
-{
-  Word funResult(Address(0));
-
-  qp->Request(pf, funResult);
-  if (funResult.addr)
-    return (Tuple*)funResult.addr;
-  else
-  {
-    qp->Close(pf);
-    return 0;
-  }
-}
-
-template<int D>
-int
-spatialJoinValueMapping(Word* args, Word& result, int message,
-    Word& local, Supplier s)
-{
-  SpatialJoinLocalInfo<D> *localInfo = 0;
-  switch(message)
-  {
-    case OPEN:
-    {
-//      cerr << "OPEN" << endl;
-      if (localInfo)
-        delete localInfo;
-      localInfo =
-          new SpatialJoinLocalInfo<D>(
-            args[0], ((CcBool*)args[7].addr)->GetValue(), args[4],
-            args[1], ((CcBool*)args[8].addr)->GetValue(), args[5],
-            args[9], s);
-
-      local.setAddr(localInfo);
-
-      localInfo->OpenFunction();
-      return 0;
-    }
-    case REQUEST:
-    {
-//      cerr << "REQUEST" << endl;
-      result.setAddr(Address(0));
-      if (0 != local.addr)
-      {
-        localInfo = (SpatialJoinLocalInfo<D>*)local.addr;
-        result.setAddr(localInfo->NextResultTuple());
-      }
-      return result.addr != 0 ? YIELD : CANCEL;
-    }
-    case (1*FUNMSG)+OPEN:{
-//      cerr << "(1*FUNMSG)+OPEN" << endl;
-      if (0 != local.addr)
-      {
-        localInfo = (SpatialJoinLocalInfo<D>*)local.addr;
-        localInfo->openInputStream(leftStream);
-      }
-      return 0;
-    }
-    case (2*FUNMSG)+OPEN:{
-      if (0 != local.addr)
-      {
-        localInfo = (SpatialJoinLocalInfo<D>*)local.addr;
-        localInfo->openInputStream(rightStream);
-      }
-      return 0;
-    }
-    case (1*FUNMSG)+REQUEST:{
-      if (0 == local.addr)
-      {
-        return CANCEL;
-      }
-
-      localInfo = (SpatialJoinLocalInfo<D>*)local.addr;
-      result.setAddr(localInfo->getNextInputTuple(leftStream));
-      if (result.addr)
-        return YIELD;
-      else
-        return CANCEL;
-    }
-    case (2*FUNMSG)+REQUEST:{
-      if (0 == local.addr)
-      {
-        return CANCEL;
-      }
-      localInfo = (SpatialJoinLocalInfo<D>*)local.addr;
-      result.setAddr(localInfo->getNextInputTuple(rightStream));
-      if (result.addr)
-        return YIELD;
-      else
-        return CANCEL;
-    }
-    case (1*FUNMSG)+CLOSE:{
-      if (0 != local.addr) {
-        localInfo = (SpatialJoinLocalInfo<D>*)local.addr;
-        localInfo->closeInputStream(leftStream);
-      }
-      return 0;
-    }
-    case (2*FUNMSG)+CLOSE:{
-      if (0 != local.addr) {
-        localInfo = (SpatialJoinLocalInfo<D>*)local.addr;
-        localInfo->closeInputStream(rightStream);
-      }
-      return 0;
-    }
-    case CLOSE:
-    {
-      if (local.addr)
-      {
-        localInfo = (SpatialJoinLocalInfo<D>*)local.addr;
-        delete localInfo;
-        local.setAddr(0);
-      }
-      return 0;
-    }
-  }
-  return 0;
-}
-/*
-3.7 Definition of value mapping vectors
-
-*/
-ValueMapping spatialjoinMap [] = {spatialJoinValueMapping<2>,
-    spatialJoinValueMapping<3>,
-    spatialJoinValueMapping<4> };
-
-/*
-4.9 Definition of operator ~spatialjoin~
-
-*/
-
 Operator spatialjoin (
-         "spatialjoin",           // name
-         spatialjoinSpec,         // specification
-         3,                       // number of overloaded functions
-         spatialjoinMap,          // value mapping
-         spatialjoinSelection,    // trivial selection function
-         spatialjoinTypeMap<false>// type mapping
+         "spatialjoin",             // name
+         spatialjoinSpec,           // specification
+         3,                         // number of overloaded functions
+         spatialjoinMap,            // value mapping
+         spatialjoinSelection,      // trivial selection function
+         spatialjoinTypeMap         // type mapping
 );
+
 /*
-5 Definition and initialization of ~PlugJoin~ algebra
+4 Definition and initialization of ~PlugJoin~ algebra
 
 */
 class PlugJoinAlgebra : public Algebra
@@ -2612,7 +1950,6 @@ class PlugJoinAlgebra : public Algebra
  public:
   PlugJoinAlgebra() : Algebra()
   {
-    AddOperator(&spatialjoinOld);
     AddOperator(&spatialjoin);
   }
   ~PlugJoinAlgebra() {};
@@ -2621,7 +1958,7 @@ class PlugJoinAlgebra : public Algebra
 
 extern "C"
 Algebra*
-InitializePlugJoinAlgebra(NestedList* nlRef,QueryProcessor* qpRef)
+InitializePlugJoinAlgebra( NestedList* nlRef, QueryProcessor* qpRef )
 {
   nl = nlRef;
   qp = qpRef;
