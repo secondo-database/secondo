@@ -452,7 +452,7 @@ cells' height is set alone.
     xr = joinBox->MaxD(0);
     yt = joinBox->MaxD(1);
 
-    nx = ceil(length / wx);
+    nx = int(ceil(length / wx));
 
     (*funargs)[2].setAddr(new CcReal(xl));
     (*funargs)[3].setAddr(new CcReal(yb));
@@ -476,8 +476,8 @@ cells' height is set alone.
     yt = joinBox->MaxD(1);
     zt = joinBox->MaxD(2);
 
-    nx = ceil(length / wx);
-    ny = ceil(width / wx);
+    nx = int(ceil(length / wx));
+    ny = int(ceil(width / wx));
 
     (*funargs)[2].setAddr(new CcReal(xl));
     (*funargs)[3].setAddr(new CcReal(yb));
