@@ -51,6 +51,7 @@ in such a way can be represented by four, six or eight numbers (two for each dim
 using namespace std;
 
 #include <cmath>
+#include <limits.h>
 #include "stdarg.h"
 #include "Attribute.h"
 #include "Messages.h"
