@@ -2045,14 +2045,15 @@ Operator distributeA (
 
 static ListExpr loopTypeMap(ListExpr args)
 {
-   if(nl->ListLength(args) == 3)
+
+ 
+   if(nl->ListLength(args) == 2)
    {
-      ListExpr array = nl->First(args);
-      ListExpr map = nl->Second(args);
+      ListExpr array = nl->First(nl->First(args));
+      ListExpr map = nl->First(nl->Second(args));
           
       if(nl->ListLength(array) == 2 &&
-         nl->ListLength(map) == 3 &&
-         nl->IsEqual(nl->Third(args),"text"))
+         nl->ListLength(map) == 3)
       {
          if(nl->IsEqual(nl->First(array),"darray") &&
             nl->IsEqual(nl->First(map),"map") &&
@@ -2061,8 +2062,10 @@ static ListExpr loopTypeMap(ListExpr args)
             if(nl->Equal(nl->Second(array),nl->Second(map)))
                return nl->ThreeElemList(
                                  nl->SymbolAtom("APPEND"),
-                                 nl->TwoElemList(nl->SymbolAtom("darray"),
-                                                            nl->Third(map)),
+                                 nl->TwoElemList(nl->StringAtom(nl->ToString(
+                                    nl->Third(nl->Second(nl->Second(args))))),
+                                       nl->StringAtom(nl->ToString(
+                        nl->First(nl->Second(nl->Second(nl->Second(args))))))),
                                 nl->TwoElemList(nl->SymbolAtom("darray"),
                                                             nl->Third(map)));
          }
@@ -2075,16 +2078,22 @@ static ListExpr loopTypeMap(ListExpr args)
 static int loopValueMap
 (Word* args, Word& result, int message, Word& local, Supplier s)
 {
+
    DArray* alt = (DArray*)args[0].addr;
      
    result = qp->ResultStorage(s);
      
    SecondoCatalog* sc = SecondoSystem::GetCatalog();
    ListExpr type = sc->NumericType(nl->Second((qp->GetType(s))));
-   string command = ((FText*)args[2].addr)->GetValue();
+   string command = ((CcString*)(args[2]).addr)->GetValue();
+   string elementname = ((CcString*)(args[3].addr))->GetValue();
+   command = replaceAll(command,elementname,"!");
+  
      
    ZThread::ThreadedExecutor exec;DServer* server;
    DServerExecutor* ex;
+   
+   int size = alt->getSize();
 
    Word* w = new Word[2];
    //string to = ((DArray*)(result.addr))->getName();
@@ -2097,6 +2106,24 @@ static int loopValueMap
                                                       name,
                                                       alt->getSize(),
                                                       alt->getServerList());   
+                                                      
+   DServerManager* man = alt->getServerManager();
+   //DServer* server = 0;
+          
+   //Mutliply worker connections
+   int server_no = man->getNoOfServers();
+   int rel_server = (size / server_no);
+   
+   cout << "Multiplying worker connections..." << endl;
+   for(int i = 0; i<server_no;i++)
+   {
+      server = man->getServerbyID(i);
+      DServerMultiplyer* mult = new DServerMultiplyer(server,rel_server);
+      exec.execute(mult);
+   }
+   exec.wait();
+   
+   /* Old Version
    for(int i=0; i < alt->getServerManager()->getNoOfServers(); i++)
    {
       server = alt->getServerManager()->getServerbyID(i);
@@ -2104,10 +2131,31 @@ static int loopValueMap
           
       ex = new DServerExecutor(server);
       exec.execute(ex);
+   }*/
+   
+   for(int i=0; i < size; i++)
+   {
+      server = man->getServerByIndex(i);
+      int child = man->getMultipleServerIndex(i);
+      if(child > -1)
+         server = (server->getChilds())[child];
+      
+      list<int>* l = new list<int>; l->push_front(i);
+      server->setCmd("execute",l,w);
+      ex = new DServerExecutor(server);
+      exec.execute(ex);
    }
 
 
    exec.wait();     
+   
+   //Close additional connections
+   
+   for(int i = 0; i<server_no;i++)
+   {
+      server = man->getServerbyID(i);
+      server->DestroyChilds();
+   }
  
      
 
@@ -2195,7 +2243,7 @@ class DistributedAlgebra : public Algebra
          AddOperator( &receiverelA);
          AddOperator( &sendrelA);
          AddOperator( &distributeA);
-         AddOperator( &loopA);
+         AddOperator( &loopA); loopA.SetUsesArgsInTypeMapping();
          AddOperator( &dElementA);
       }
       ~DistributedAlgebra() {}

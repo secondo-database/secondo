@@ -554,6 +554,7 @@ void DServer::run()
         
    if(cmd=="execute")
    {
+      
       if(rel_open) return;
       string line;
       iostream& iosock = server->GetSocketStream();
@@ -569,9 +570,10 @@ void DServer::run()
          
          //A command is executed on the worker
          string cmd;
-         cmd = "let r" + to + toString_d(arg2) + " = " + com_a;
+         cmd = "(let r" + to + toString_d(arg2) + " = " + com_a + ")";
          
-         iosock << "<Secondo>" << endl << "1" << endl 
+         
+         iosock << "<Secondo>" << endl << "0" << endl 
                      << cmd<< endl << "</Secondo>" << endl;
 
          do
@@ -831,7 +833,7 @@ bool DServer::Multiply(int count)
    if(num_childs > 0) 
       return false;
      
-   num_childs = count;
+   num_childs = count - 1; if(count < 1) return true;
    childs = new DServer*[num_childs];
      
    for(int i = 0;i<num_childs;i++)

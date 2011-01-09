@@ -38,7 +38,7 @@ operator d_send_rel alias D_SEND_REL pattern op (_, _, _)
 
 operator ddistribute alias DDISTRIBUTE pattern _ op [_, _]
 
-operator dloop alias DLOOP pattern _ op [ fun, _ ]
+operator dloop alias DLOOP pattern _ op [ fun ]
 implicit parameter element type DELEMENT
 
 # End DistributedAlgebra.spec
