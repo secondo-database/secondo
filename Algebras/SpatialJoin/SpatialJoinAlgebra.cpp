@@ -241,7 +241,7 @@ ListExpr spatialJoinTypeMap(ListExpr args)
                           << " " << eaName2[i] << ") 2) yt)"
         << "(and (>= (maxD (attr " << ptName3[i]
                             << " " << eaName2[i] << ") 3) zb)"
-             << "(<= (maxD (attr " << ptName3[i]
+             << "(<= (minD (attr " << ptName3[i]
                             << " " << eaName2[i] << ") 3) zt)"
       << ")))))))";
 
