@@ -124,8 +124,8 @@ class GraphViz {
   graph_t*  g; 
   GVC_t*    gvc;
 
-  std::map<RType, char*> rtype2str;
-  std::map<LType, char*> ltype2str;
+  std::map<RType, const char*> rtype2str;
+  std::map<LType, const char*> ltype2str;
 
 };
 
