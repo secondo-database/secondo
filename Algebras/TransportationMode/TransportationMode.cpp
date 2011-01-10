@@ -242,14 +242,23 @@ const string SpatialSpecCreateDoorBox =
 "<text>query createdoorbox(university) count</text---> ) )";
 
 
-const string SpatialSpecCreateDoor =
+const string SpatialSpecCreateDoor1 =
 "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
 "( <text>rel1 x rel2 x rtree x attr1 x attr2 x attr3"
  " -> (stream (tuple( (x1 t1)(x2 t2)...(xn tn)))</text--->"
-"<text>createdoor(rel,rel,rtree,attr,attr,attr) </text--->"
+"<text>createdoor1(rel,rel,rtree,attr,attr,attr) </text--->"
 "<text>create a relation storing doors of a building</text--->"
-"<text>query createdoor(university, box3d_rel, rtree_box3d, groom_oid, "
+"<text>query createdoor1(university, box3d_rel, rtree_box3d, groom_oid, "
 "groom_tid, Box3d) count</text---> ) )";
+
+
+const string SpatialSpecCreateDoor2 =
+"( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+"( <text>rel -> (stream (tuple( (x1 t1)(x2 t2)...(xn tn)))</text--->"
+"<text>createdoor2(rel) </text--->"
+"<text>create a relation of virtual doors for staircase</text--->"
+"<text>query createdoor2(university_uni) count</text---> ) )";
+
 
 const string SpatialSpecCreateAdjDoor1 =
 "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
@@ -303,6 +312,16 @@ const string OpTMGetAdjNodeIGSpec  =
 "<text>generate_ip1(rel, int) </text--->"
 "<text>create indoor positions</text--->"
 "<text>query generate_ip1(building_uni,20) count</text---> ) )";
+
+const string SpatialSpecIndoorNavigation =
+"( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+"( <text>rel x genloc x genloc x rel x int"
+ " -> (stream (tuple( (x1 t1)(x2 t2)...(xn tn)))</text--->"
+"<text>indoornavigation(ig,genloc,genloc,rel, int) </text--->"
+"<text>indoor trip planning</text--->"
+"<text>query indoornavigation(ig, gloc1, gloc2, building_uni,0) count"
+"</text---> ) )";
+
 
 /*
 TypeMap function for operator thefloor
@@ -623,10 +642,10 @@ ListExpr CreateDoorBoxTypeMap(ListExpr args)
 }
 
 /*
-TypeMap function for operator createdoor
+TypeMap function for operator createdoor1
 
 */
-ListExpr CreateDoorTypeMap(ListExpr args)
+ListExpr CreateDoor1TypeMap(ListExpr args)
 {
   if(nl->ListLength(args) != 6){
       string err = "rel x rel x rtree x attr x attr x attr";
@@ -704,6 +723,48 @@ ListExpr CreateDoorTypeMap(ListExpr args)
 
 }
 
+
+/*
+TypeMap function for operator createdoor2
+
+*/
+ListExpr CreateDoor2TypeMap(ListExpr args)
+{
+  if(nl->ListLength(args) != 1){
+      string err = "rel";
+      return listutils::typeError(err);
+  }
+  ListExpr arg1 = nl->First(args);
+  
+  if (!listutils::isRelDescription(arg1)){
+    return listutils::typeError("param1 should be a relation" );
+  }
+
+      ListExpr result =
+          nl->TwoElemList(
+              nl->SymbolAtom("stream"),
+                nl->TwoElemList(
+                  nl->SymbolAtom("tuple"),
+//                      nl->FiveElemList(
+                      nl->SixElemList(
+                        nl->TwoElemList(nl->SymbolAtom("Door"),
+                                    nl->SymbolAtom("door3d")), 
+                        nl->TwoElemList(nl->SymbolAtom("door_loc"),
+                                      nl->SymbolAtom("line")),
+                        nl->TwoElemList(nl->SymbolAtom("groom_oid1"),
+                                      nl->SymbolAtom("int")),
+                        nl->TwoElemList(nl->SymbolAtom("groom_oid2"),
+                                      nl->SymbolAtom("int")),
+                        nl->TwoElemList(nl->SymbolAtom("door_loc3d"),
+                                      nl->SymbolAtom("line3d")), 
+                        nl->TwoElemList(nl->SymbolAtom("doorheight"),
+                                      nl->SymbolAtom("real"))
+                  )
+                )
+          );
+    return result;
+
+}
 
 /*
 TypeMap function for operator createadjdoor1
@@ -959,13 +1020,11 @@ ListExpr GenerateIP1TypeMap(ListExpr args)
               nl->SymbolAtom("stream"),
                 nl->TwoElemList(
                   nl->SymbolAtom("tuple"),
-                      nl->ThreeElemList(
-                        nl->TwoElemList(nl->SymbolAtom("oid"),
-                                    nl->SymbolAtom("int")),
+                      nl->TwoElemList(
                         nl->TwoElemList(nl->SymbolAtom("loc1"),
                                     nl->SymbolAtom("genloc")), 
                         nl->TwoElemList(nl->SymbolAtom("loc2"),
-                                      nl->SymbolAtom("point3"))
+                                      nl->SymbolAtom("point3d"))
                   )
                 )
           );
@@ -974,6 +1033,86 @@ ListExpr GenerateIP1TypeMap(ListExpr args)
         return nl->SymbolAtom("schema error"); 
   }
   return nl->SymbolAtom("typeerror");
+}
+
+/*
+TypeMap function for operator indoornavigation
+
+*/
+ListExpr IndoorNavigationTypeMap(ListExpr args)
+{
+  if(nl->ListLength(args) != 5){
+      string err = "rel x int";
+      return listutils::typeError(err);
+  }
+  
+  ListExpr arg1 = nl->First(args);
+  ListExpr arg2 = nl->Second(args);
+  ListExpr arg3 = nl->Third(args);
+  ListExpr arg4 = nl->Fourth(args);
+  ListExpr arg5 = nl->Fifth(args);
+  
+  if(!(nl->IsAtom(nl->First(arg1)) && 
+       nl->AtomType(nl->First(arg1)) == SymbolType &&
+       nl->SymbolValue(nl->First(arg1)) == "indoorgraph")){
+      string err = "param1 should be indoorgraph";
+      return listutils::typeError(err);
+  }
+   if(!(nl->IsAtom(nl->First(arg2)) && 
+        nl->AtomType(nl->First(arg2)) == SymbolType &&
+        nl->SymbolValue(nl->First(arg2)) == "genloc" && 
+        nl->IsAtom(nl->First(arg3)) && 
+        nl->AtomType(nl->First(arg3)) == SymbolType &&
+        nl->SymbolValue(nl->First(arg3)) == "genloc" )){
+      string err = "param2 and param3 should be genloc";
+      return listutils::typeError(err);
+  } 
+
+  if(!listutils::isRelDescription(nl->First(arg4))){
+      string err = "param4 should be a relation";
+      return listutils::typeError(err);
+  }
+  
+  ListExpr xType;
+  nl->ReadFromString(IndoorNav::Indoor_GRoom_Door, xType); 
+  if (!CompareSchemas(nl->First(arg4), xType)){
+     string err = "rel schema error";
+     return listutils::typeError(err);
+  }
+
+  if(!(nl->IsAtom(nl->First(arg5)) && 
+       nl->AtomType(nl->First(arg5)) == SymbolType &&
+       nl->SymbolValue(nl->First(arg5)) == "int" )){
+      string err = "param5 should be int";
+      return listutils::typeError(err);
+  }
+  
+  int n = nl->IntValue(nl->Second(arg5));
+  ListExpr result; 
+   switch(n){
+    case 0: 
+          result =
+          nl->TwoElemList(
+              nl->SymbolAtom("stream"),
+                nl->TwoElemList(
+                  nl->SymbolAtom("tuple"),
+                      nl->ThreeElemList(
+                        nl->TwoElemList(nl->SymbolAtom("loc1"),
+                                    nl->SymbolAtom("genloc")), 
+                        nl->TwoElemList(nl->SymbolAtom("loc2"),
+                                    nl->SymbolAtom("genloc")), 
+                        nl->TwoElemList(nl->SymbolAtom("Path"),
+                                    nl->SymbolAtom("line3d"))
+                  )
+                )
+          );
+        break; 
+    default:
+      string err = "the value of fifth parameter([0,2]) is not correct";
+      return listutils::typeError(err);
+  }
+
+  return result; 
 }
 
 
@@ -1345,10 +1484,10 @@ int CreateDoorBoxValueMap(Word* args, Word& result, int message,
 }
 
 /*
-ValueMap function for operator createdoor 
+ValueMap function for operator createdoor1
 
 */
-int CreateDoorValueMap(Word* args, Word& result, int message,
+int CreateDoor1ValueMap(Word* args, Word& result, int message,
                     Word& local, Supplier in_pSupplier)
 {
 
@@ -1368,7 +1507,7 @@ int CreateDoorValueMap(Word* args, Word& result, int message,
         indoor_nav->resulttype =
             new TupleType(nl->Second(GetTupleResultType(in_pSupplier)));
 
-        indoor_nav->CreateDoor(rtree, attr1, attr2, attr3);
+        indoor_nav->CreateDoor1(rtree, attr1, attr2, attr3);
         local.setAddr(indoor_nav);
         return 0;
       }
@@ -1407,6 +1546,63 @@ int CreateDoorValueMap(Word* args, Word& result, int message,
   return 0;
 }
 
+
+/*
+ValueMap function for operator createdoor2
+
+*/
+int CreateDoor2ValueMap(Word* args, Word& result, int message,
+                    Word& local, Supplier in_pSupplier)
+{
+
+  IndoorNav* indoor_nav;
+
+  switch(message){
+      case OPEN:{
+        Relation* rel1 = (Relation*)args[0].addr;
+        
+        indoor_nav = new IndoorNav(rel1, NULL);
+        indoor_nav->resulttype =
+            new TupleType(nl->Second(GetTupleResultType(in_pSupplier)));
+
+        indoor_nav->CreateDoor2();
+        local.setAddr(indoor_nav);
+        return 0;
+      }
+      case REQUEST:{
+          if(local.addr == NULL) return CANCEL;
+          indoor_nav = (IndoorNav*)local.addr;
+          if(indoor_nav->count == indoor_nav->line_list.size())
+                          return CANCEL;
+          Tuple* tuple = new Tuple(indoor_nav->resulttype);
+          tuple->PutAttribute(0,
+                new Door3D(indoor_nav->door_list[indoor_nav->count]));
+          tuple->PutAttribute(1,
+                new Line(indoor_nav->line_list[indoor_nav->count]));
+          tuple->PutAttribute(2,
+                new CcInt(true, indoor_nav->groom_id_list1[indoor_nav->count]));
+          tuple->PutAttribute(3,
+                new CcInt(true, indoor_nav->groom_id_list2[indoor_nav->count]));
+          tuple->PutAttribute(4,
+                new Line3D(indoor_nav->path_list[indoor_nav->count]));
+          tuple->PutAttribute(5,
+                new CcReal(true, indoor_nav->door_heights[indoor_nav->count]));
+
+          result.setAddr(tuple);
+          indoor_nav->count++;
+          return YIELD;
+      }
+      case CLOSE:{
+          if(local.addr){
+            indoor_nav = (IndoorNav*)local.addr;
+            delete indoor_nav;
+            local.setAddr(Address(0));
+          }
+          return 0;
+      }
+  }
+  return 0;
+}
 
 /*
 ValueMap function for operator createadjdoor1 
@@ -1636,15 +1832,76 @@ int GenerateIP1ValueMap(Word* args, Word& result, int message,
       case REQUEST:{
           if(local.addr == NULL) return CANCEL;
           indoor_nav = (IndoorNav*)local.addr;
-          if(indoor_nav->count == indoor_nav->oid_list.size())
+          if(indoor_nav->count == indoor_nav->genloc_list.size())
                           return CANCEL;
           Tuple* tuple = new Tuple(indoor_nav->resulttype);
           tuple->PutAttribute(0,
-                new CcInt(true,indoor_nav->oid_list[indoor_nav->count]));
-          tuple->PutAttribute(1,
                 new GenLoc(indoor_nav->genloc_list[indoor_nav->count]));
-          tuple->PutAttribute(2,
+          tuple->PutAttribute(1,
                new Point3D(indoor_nav->p3d_list[indoor_nav->count]));
+
+          result.setAddr(tuple);
+          indoor_nav->count++;
+          return YIELD;
+      }
+      case CLOSE:{
+          if(local.addr){
+            indoor_nav = (IndoorNav*)local.addr;
+            delete indoor_nav;
+            local.setAddr(Address(0));
+          }
+          return 0;
+      }
+  }
+  return 0;
+}
+
+
+/*
+ValueMap function for operator indoornavigation  
+
+*/
+int IndoorNavigationValueMap(Word* args, Word& result, int message,
+                    Word& local, Supplier in_pSupplier)
+{
+  IndoorNav* indoor_nav;
+
+  switch(message){
+      case OPEN:{
+        IndoorGraph* ig = (IndoorGraph*)args[0].addr;
+        GenLoc* loc1 = (GenLoc*)args[1].addr;
+        GenLoc* loc2 = (GenLoc*)args[2].addr;
+        Relation* rel = (Relation*)args[3].addr;
+        int type = ((CcInt*)args[4].addr)->GetIntval();
+
+
+        indoor_nav = new IndoorNav(ig);
+        indoor_nav->resulttype =
+            new TupleType(nl->Second(GetTupleResultType(in_pSupplier)));
+        switch(type){
+          case 0: 
+                  indoor_nav->ShortestPath_Length(loc1, loc2, rel);
+                  break;
+          default:
+                  cout<<"invalid type "<<type<<endl;
+                  break; 
+        }    
+
+        local.setAddr(indoor_nav);
+        return 0;
+      }
+      case REQUEST:{
+          if(local.addr == NULL) return CANCEL;
+          indoor_nav = (IndoorNav*)local.addr;
+          if(indoor_nav->count == indoor_nav->genloc_list1.size())
+                          return CANCEL;
+          Tuple* tuple = new Tuple(indoor_nav->resulttype);
+          tuple->PutAttribute(0,
+                new GenLoc(indoor_nav->genloc_list1[indoor_nav->count]));
+          tuple->PutAttribute(1,
+                new GenLoc(indoor_nav->genloc_list2[indoor_nav->count]));
+          tuple->PutAttribute(2,
+               new Line3D(indoor_nav->path_list[indoor_nav->count]));
 
           result.setAddr(tuple);
           indoor_nav->count++;
@@ -1789,12 +2046,20 @@ Operator createdoorbox("createdoorbox",
     CreateDoorBoxTypeMap
 );
 
-Operator createdoor("createdoor",
-    SpatialSpecCreateDoor,
-    CreateDoorValueMap,
+Operator createdoor1("createdoor1",
+    SpatialSpecCreateDoor1,
+    CreateDoor1ValueMap,
     Operator::SimpleSelect,
-    CreateDoorTypeMap
+    CreateDoor1TypeMap
 );
+
+Operator createdoor2("createdoor2",
+    SpatialSpecCreateDoor2,
+    CreateDoor2ValueMap,
+    Operator::SimpleSelect,
+    CreateDoor2TypeMap
+);
+
 
 Operator createadjdoor1("createadjdoor1",
     SpatialSpecCreateAdjDoor1,
@@ -1843,6 +2108,12 @@ Operator generate_ip1("generate_ip1",
     GenerateIP1TypeMap
 );
 
+Operator indoornavigation("indoornavigation",
+    SpatialSpecIndoorNavigation,
+    IndoorNavigationValueMap,
+    Operator::SimpleSelect,
+    IndoorNavigationTypeMap
+);
 
 ///////////////////////////////////////////////////////////////////////////
 ////////////////////  general data type  /////////////////////////////////
@@ -2682,6 +2953,15 @@ const string OpTMInstant2DaySpec  =
     "<text>query instant2day(theInstant(2007,6,3,9,0,0,0));</text--->"
     ") )";
 
+const string OpTMOutputRegionSpec  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+    "\"Example\" ) "
+    "( <text>region -> string </text--->"
+    "<text>outputregion(region);</text--->"
+    "<text>output the vertices in correct order"
+    "(clockwise for the outer cycle and counter clockwise for holes)</text--->"
+    "<text>query outputregion(r1);</text--->"
+    ") )";
 ////////////////TypeMap function for operators//////////////////////////////
 
 /*
@@ -6847,6 +7127,25 @@ ListExpr OpTMInstant2DayNewTypeMap ( ListExpr args )
     return nl->SymbolAtom ( "typeerror: param1 should be instant" );
 }
 
+
+/*
+TypeMap fun for operator outputregion 
+
+*/
+
+ListExpr OpTMOutputRegionTypeMap ( ListExpr args )
+{
+  if ( nl->ListLength ( args ) != 1 )
+  {
+    return  nl->SymbolAtom ( "list length should be 1" );
+  }
+  if(nl->IsEqual(nl->First(args),"region")){
+    return nl->SymbolAtom("string");
+  }else
+    return nl->SymbolAtom ( "typeerror: param1 should be string" );
+}
+
+
 int GetContourSelect(ListExpr args)
 {
     if(nl->IsEqual(nl->First(args),"text"))return 0;
@@ -10744,6 +11043,117 @@ int OpTMInstant2DayValueMap ( Word* args, Word& result, int message,
     return 0; 
 }
 
+
+/*
+output the vertices of a region in a correct way.
+outer cycle: clockwise, holes: counter clockwise 
+
+*/
+string GetRegVertices(Region* reg)
+{
+  string result;
+  if(reg->NoComponents() > 1){
+   result = "region should have one face ";
+   return result; 
+  } 
+  result = " ";
+  CompTriangle* ct = new CompTriangle(reg);
+  unsigned int no_cyc = ct->NoOfCycles();
+
+  vector<SimpleLine*> sl_contour;
+
+  for(unsigned int i = 0;i < no_cyc;i++){
+       SimpleLine* sl = new SimpleLine(0);
+          sl->StartBulkLoad();
+          sl_contour.push_back(sl);
+  }
+  vector<int> edgenos(no_cyc, 0);
+  for(int j = 0;j < reg->Size();j++){
+      HalfSegment hs1;
+      reg->Get(j, hs1);
+      if(!hs1.IsLeftDomPoint()) continue;
+      HalfSegment hs2;
+      hs2.Set(true, hs1.GetLeftPoint(), hs1.GetRightPoint());
+
+      hs2.attr.edgeno = edgenos[hs1.attr.cycleno]++;
+      *sl_contour[hs1.attr.cycleno] += hs2;
+      hs2.SetLeftDomPoint(!hs2.IsLeftDomPoint());
+      *sl_contour[hs1.attr.cycleno] += hs2;
+  }
+
+
+  SpacePartition* sp = new SpacePartition();
+
+  const double dist_delta = 0.001; 
+  for(unsigned int i = 0;i < no_cyc;i++){
+        sl_contour[i]->EndBulkLoad();
+        vector<MyHalfSegment> mhs;
+
+        sp->ReorderLine(sl_contour[i], mhs);
+        vector<Point> ps;
+        for(unsigned int j = 0;j < mhs.size();j++){
+          if(ps.size() == 0)
+            ps.push_back(mhs[j].from);
+          else{
+            Point p = ps[ps.size() - 1];
+            if(p.Distance(mhs[j].from) < dist_delta)
+              continue; 
+            else
+              ps.push_back(mhs[j].from);
+          }
+        }  
+
+
+        bool clock;
+        if(0.0f < ct->Area(ps)){//points counter-clockwise order
+            clock = false;
+        }else{// points clockwise
+            clock = true;
+        }
+
+        if(i == 0){ //outer cycle 
+          cout<<"outer cycle "<<endl; 
+          if(clock){
+            for(unsigned int j = 0;j < ps.size();j++){
+              printf("(%f %f)\n",ps[j].GetX(),ps[j].GetY());
+            }
+          }else{
+            for(int j = ps.size() - 1;j >= 0;j--){
+              printf("(%f %f)\n",ps[j].GetX(),ps[j].GetY());
+            }
+          }
+          cout<<endl; 
+        }else{////////////holes 
+          cout<<"holes"<<endl; 
+          if(clock == false){
+            for(unsigned int j = 0;j < ps.size();j++){
+             printf("(%f %f)\n",ps[j].GetX(),ps[j].GetY());
+            }
+          }else{
+            for(int j = ps.size() - 1;j >= 0;j--){
+             printf("(%f %f)\n",ps[j].GetX(),ps[j].GetY());
+            }
+          }
+          cout<<endl; 
+        }
+
+        delete sl_contour[i];
+  }
+  delete ct;
+  delete sp;
+
+  return result; 
+}
+
+int OpTMOutputRegionValueMap ( Word* args, Word& result, int message,
+                         Word& local, Supplier in_pSupplier )
+{
+    result = qp->ResultStorage(in_pSupplier);
+    Region* reg = (Region*)args[0].addr;
+    ((CcString*)result.addr)->Set(true,GetRegVertices(reg));
+    return 0; 
+}
+
 ////////////////Operator Constructor///////////////////////////////////////
 Operator checksline(
     "checksline",               // name
@@ -11355,6 +11765,16 @@ Operator instant2day(
   OpTMInstant2DayNewTypeMap
 );
 
+
+Operator outputregion(
+  "outputregion",
+  OpTMOutputRegionSpec,
+  OpTMOutputRegionValueMap,
+  Operator::SimpleSelect,
+  OpTMOutputRegionTypeMap
+);
+
+
 /*
 Main Class for Transportation Mode
 
@@ -11492,15 +11912,19 @@ class TransportationModeAlgebra : public Algebra
     //////////////////////////////////////////////////////////////////////
     AddOperator(&createdoor3d); //create line3d to denote the doors 
     AddOperator(&createdoorbox); //create a 3d box for each door 
-    AddOperator(&createdoor);//the node relation for the graph (doors)
+    AddOperator(&createdoor1);//the node relation for the graph (doors)
+    AddOperator(&createdoor2);//the node relation for the graph (virtual doors)
     AddOperator(&createadjdoor1); //the edge relation for the graph 
     AddOperator(&createadjdoor2); //the edge relation for the graph 
     AddOperator(&path_in_region);//shortest path between two points inside a reg
     AddOperator(&createigraph);//create indoor graph 
     AddOperator(&getadjnode_ig); //get adjacent node 
-    AddOperator(&generate_ip1);//genrate indoor positions 
+    AddOperator(&generate_ip1);//generate indoor positions 
+    //indoor navigation 
+    AddOperator(&indoornavigation);indoornavigation.SetUsesArgsInTypeMapping();
     /////////////////  others  /////////////////////////////////////////
     AddOperator(&instant2day); 
+    AddOperator(&outputregion);//output the vertices in correct order 
     /////////non-temporal operators for generic data types////////////////////
     AddOperator(&ref_id); 
     ////////////////////////////////////////////////////////////////////

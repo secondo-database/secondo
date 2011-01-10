@@ -548,7 +548,7 @@ class Door3D:public StandardSpatialAttribute<2>{
   Door3D(){}  
   Door3D(bool b):StandardSpatialAttribute<2>(true),
   door_pos1(0),door_pos2(0),tpstate(0), lift_door(b){}
-  inline Door3D(int id1, int id2, Line& gr1, Line& gr2, MBool& mb, bool& b):
+  inline Door3D(int id1, int id2, Line& gr1, Line& gr2, MBool& mb, bool b):
   StandardSpatialAttribute<2>(true),
   oid1(id1), oid2(id2), door_pos1(gr1), door_pos2(gr2),
   tpstate(mb), lift_door(b){}
@@ -882,7 +882,7 @@ class GRoom:public StandardSpatialAttribute<2>{
       }
     }
     void Translate(const Coord& x, const Coord& y, GRoom& result);
-    void GetRegion(Region& r);
+    void GetRegion(Region& r); //2D area covered by the room 
     const Rectangle<2> BoundingBox() const
     {
       Rectangle<2> bbox;
@@ -973,6 +973,7 @@ struct MySegHeight:public MyHalfSegment{
 };
 
 class IndoorGraph; 
+struct IPath_elem; 
 
 struct IndoorNav{
   Relation* rel1; //university room relation 
@@ -988,7 +989,6 @@ struct IndoorNav{
   vector<int> groom_id_list1;
   vector<int> groom_id_list2; 
   vector<float> door_heights; 
-  vector<int> door_types; //0 office rooms 1 staircase 2 elevator 
   
   
   vector<int> groom_oid_list; 
@@ -999,6 +999,11 @@ struct IndoorNav{
   
   vector<GenLoc> genloc_list;
   vector<Point3D> p3d_list; 
+  
+  vector<GenLoc>  genloc_list1;
+  vector<Point3D> p3d_list1;
+  vector<GenLoc> genloc_list2;
+  vector<Point3D> p3d_list2;
   
   /////////////the attribute position for indoor (groom+door) relation 
   static string Indoor_GRoom_Door; 
@@ -1024,11 +1029,16 @@ struct IndoorNav{
   void CreateLine3D(int oid, Line* l, float h);
   void CreateDoor3D();
   ///////////////////build 3d box on each door //////////////////////////
+  
   void CreateDoorBox();
   void CreateBox3D(int, int, Line*, float);
   float NextFloorHeight(float h, vector<float>& floor_height);
   ////////////////create a relation storing door////////////////////////
-  void CreateDoor(R_Tree<3, TupleId>*, int, int ,int);
+  void CreateDoor1(R_Tree<3, TupleId>*, int, int ,int);
+  void CreateDoorState(MBool* mb);
+  void CreateDoor2();
+  float GetVirtualDoor1(GRoom* groom, Line* l1, Line* l2, Line3D* l3d);
+  float GetVirtualDoor2(GRoom* groom, Line* l1, Line* l2, Line3D* l3d);
   void DFTraverse(R_Tree<3,TupleId>* rtree, SmiRecordId adr, unsigned int id, 
                   Rectangle<3>* bbox3d, int attr1, int attr2, 
                   int attr3, vector<TupleId>& id_list); 
@@ -1067,8 +1077,63 @@ struct IndoorNav{
    void GetAdjNodeIG(int oid);
    ////////////////////////// data generation/////////////////////////
    void GenerateIP1(int num);
+   //////////////////////////shortest path searching////////////////////
+   bool IsLocEqual(GenLoc* loc1, GenLoc* loc2, Relation* rel);
+   void PathInOneRoom(GenLoc* gloc1, GenLoc* gloc2, Relation* rel); 
+   void ShortestPath_Length(GenLoc* gloc1, GenLoc* gloc2, Relation* rel);
+   void ConnectStartLoc(GenLoc* gloc, int door_tid, Relation* rel, 
+                        Line3D* l3d_start); 
+   void Path_StartDoor_EndLoc(int id, GenLoc* d, 
+                           vector<Line3D>& candidate_path, Line3D* s,
+                           Relation* rel);
+   void ConnectEndLoc(GenLoc* gloc, int door_tid, Relation* rel, 
+                        Line3D* l3d_end); 
+   void IndoorShortestPath(int id1, int id2, 
+                           vector<Line3D>& candidate_path, 
+                           Line3D* s, Line3D* d);
+   void InitializeQueue(int id, Point3D* start_p, Point3D* end_p, 
+                        priority_queue<IPath_elem>& path_queue, 
+                        vector<IPath_elem>& expand_path);
+   bool MiddlePoint(Line3D* l, Point3D& p); 
 };
 
+/*
+for indoor shortest path searching 
+
+*/
+struct IPath_elem:public Path_elem{
+  double weight;
+  double real_w;
+  Line3D path; 
+  IPath_elem():path(0){}
+  IPath_elem(int p, int c, int t, double w, double w2, Line3D& l):
+                    Path_elem(p, c, t), weight(w), real_w(w2), path(l){}
+  IPath_elem(const IPath_elem& wp):Path_elem(wp),
+            weight(wp.weight),real_w(wp.real_w), path(wp.path){}
+  IPath_elem& operator=(const IPath_elem& wp)
+  {
+//    cout<<"SPath_elem ="<<endl;
+    Path_elem::operator=(wp);
+    weight = wp.weight;
+    real_w = wp.real_w;
+    path = wp.path;  
+    return *this;
+  }
+  bool operator<(const IPath_elem& ip) const
+  {
+    return weight > ip.weight;
+  }
+
+  void Print()
+  {
+    cout<<" tri_index " <<tri_index<<" realweight "<<real_w
+        <<" weight "<<weight<<" Path "<<endl;
+//    path.Print();
+//    cout<<endl; 
+  }
+};
+
+ostream& operator<<(ostream& o, const IPath_elem& elem); 
 
 
 struct PointAndID{
@@ -1135,7 +1200,7 @@ void InitializeQueue(Region* reg, priority_queue<RPath_elem>& path_queue,
                      vector<RPath_elem>& expand_queue,
                      PointAndID start_loc, PointAndID end_loc,
                      vector<PointAndID>& ps_list,
-                     vector<HalfSegment>& seg_list, vector<bool>& visit_flag); 
+                     vector<HalfSegment>& seg_list); 
 void FindAdj(Region* reg, PointAndID top, vector<bool>& visit_flag, 
              vector<int>& adj_list, vector<PointAndID>& ps_list,
              vector<HalfSegment>& seg_list); 
@@ -1152,6 +1217,7 @@ class IndoorGraph: public BaseGraph{
 public:
   static string NodeTypeInfo;
   static string EdgeTypeInfo;
+  static string NodeBTreeTypeInfo;
   
   enum IGNodeTypeInfo{I_DOOR = 0, I_DOOR_LOC, I_GROOM_OID1, 
                       I_GROOM_OID2, I_DOOR_LOC_3D, I_DOOR_HEIGHT};
@@ -1184,6 +1250,12 @@ public:
                            const ListExpr typeInfo, Word& value);
   bool Save(SmiRecord& in_xValueRecord,size_t& inout_iOffset,
               const ListExpr in_xTypeInfo);
+
+  BTree* GetBTree(){return btree_node;}
+  private:
+    BTree* btree_node; //btree on node relation 
+
+
 };
 
 

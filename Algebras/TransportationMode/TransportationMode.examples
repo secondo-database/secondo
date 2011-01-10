@@ -527,7 +527,7 @@ Operator : bbox3d
 Number   : 1
 Signature: line3d -> rect3
 Example  : query bbox3d([const line3d value ( (0.0 0.0 0.0) (1.0 1.0 1.0))]);
-Result   : rect: ( (0,0,0) - (1,1,1) )
+Result   : ( (0,0,0) - (1,1,1) )
 
 Operator : createdoor3d
 Number   : 1
@@ -543,12 +543,17 @@ Example  : query createdoorbox(university) count;
 Result   : 300
 
 
-Operator : createdoor
+Operator : createdoor1
 Number   : 1
 Signature: rel1 x rel2 x rtree x attr1 x attr2 x attr3 -> (stream(((x1 t1) ... (xn tn))))
-Example  : query createdoor(university,box3d_rel,rtree_box3d,groom_oid,groom_tid,Box3d) count;
+Example  : query createdoor1(university,box3d_rel,rtree_box3d,groom_oid,groom_tid,Box3d) count;
 Result   : 300
 
+Operator : createdoor2
+Number   : 1
+Signature: rel -> (stream(((x1 t1) ... (xn tn))))
+Example  : query createdoor2(university) count;
+Result   : 300
 
 Operator : createadjdoor1
 Number   : 1
@@ -590,11 +595,26 @@ Example  : query generate_ip1(building_uni, 10) count;
 Result   : 10
 
 
+Operator : indoornavigation
+Number   : 2
+Signature: rel x genloc x genloc x rel x int-> (stream(((x1 t1) ... (xn tn)))
+Example  : query indoornavigation(ig1, genloc1, genloc2, building_uni, 1) count;
+Result   : 1
+
+
+Operator : outputregion 
+Number   : 1
+Signature: region -> string 
+Example  : query outputregion(r1);
+Result   : "empty"
+
+
 Operator : instant2day 
 Number   : 1
 Signature: instant -> int
 Example  : query instant2day(theInstant(2007,6,3,9,0,0,0));
 Result   : 3989
+
 
  
 Operator : ref_id

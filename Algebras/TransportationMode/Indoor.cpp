@@ -345,12 +345,11 @@ double Line3D::Distance( const Rectangle<3>& r ) const
 double Line3D::Length()
 {
   double length = 0.0; 
-  for(int i = 0;i < points.Size();i++){
-    if(i == points.Size() - 1)continue;
+  for(int i = 0;i < points.Size() - 1;i++){
     Point3D p1;
     points.Get(i, p1);
     Point3D p2;
-    points.Get( + 1, p2);
+    points.Get(i + 1, p2);
     length += p1.Distance(p2); 
   }
   return length; 
@@ -1432,7 +1431,10 @@ void GRoom::Translate(const Coord& x, const Coord& y, GRoom& result)
   }
 }
 
-/*get the 2D area covered by the region*/
+/*
+get the 2D area covered by the region
+
+*/
 
 void GRoom::GetRegion(Region& r)
 {
@@ -1807,6 +1809,10 @@ for staircase and elevator. In the original data, it only stores the door for
   If a groom has several 3D regions, the door normally is located at the lowest
   level 
 
+The result is: for each groom, we create its doors. so usually, the door 
+(spatial locatin in space) will be represented twice because it connects two
+rooms. 
+
 */
 void IndoorNav::CreateDoorBox()
 {
@@ -1918,7 +1924,7 @@ void IndoorNav::CreateBox3D(int oid, int tid, Line* l, float h)
 create a relation storing the doors of a building 
 
 */
-void IndoorNav::CreateDoor(R_Tree<3, TupleId>* rtree, 
+void IndoorNav::CreateDoor1(R_Tree<3, TupleId>* rtree, 
                            int attr1, int attr2, int attr3)
 {
 //  cout<<"CreateDoor()"<<endl;
@@ -2016,25 +2022,81 @@ void IndoorNav::CreateResDoor(int id, int oid, int tid, vector<TupleId> id_list,
 
     string type2 = ((CcString*)indoor_tuple2->GetAttribute(I_Type))->GetValue();
     GRoom* groom2 = (GRoom*)indoor_tuple2->GetAttribute(I_Room);
-    
+
     Rectangle<3>* bbox3d_2 = (Rectangle<3>*)box_tuple2->GetAttribute(attr3);
     Rectangle<2> groom_box2 = groom2->BoundingBox();
 //    cout<<"bbox3d 2 "<<*bbox3d_2<<endl; 
     ///////////////////////////////////////////////////////////////////
     ///////////////create moving bool/////////////////////////////////
     ///////////////////////////////////////////////////////////////////
-    Instant start_time(instanttype);
-    start_time.ReadFrom("2010-12-5-0:0:0");
-    Instant end_time(instanttype);
-    end_time.ReadFrom("2010-12-6-0:0:0");
-
-    Instant begin_time(instanttype);
-    begin_time.ReadFrom("begin of time");
-    Instant finish_time(instanttype);
-    finish_time.ReadFrom("end of time");
-    
     MBool* mb1 = new MBool(0);
-    mb1->StartBulkLoad();
+    CreateDoorState(mb1); 
+
+    
+    bool lift_door = false;
+    if(GetRoomEnum(type1) == EL || GetRoomEnum(type2) == EL)
+      lift_door = true; 
+    //////////////////////////////////////////////////////////////////
+    ///////////////// the position of the door in space /////////////
+    //////////////////////////////////////////////////////////////////
+
+//    cout<<"line1 "<<*l1<<" line2 "<<*l2<<endl; 
+    ////////////////////////////////////////////////////////////////
+    /////////////////////create line //////////////////////////////////
+    ////////////////////////////////////////////////////////////////////
+    
+    Line* l1 = new Line(0);
+    Line* l2 = new Line(0);
+    Line* l3 = new Line(0);
+    Line3D* l3d_1 = new Line3D(0);
+    GRoomDoorLine(bbox3d_1, bbox3d_2, l1, l2, l3, &groom_box1, 
+                  &groom_box2, l3d_1, bbox3d_1->MinD(2));
+
+    ///////////////////// create the door //////////////////////////////
+    Door3D* door_obj1 = new Door3D(oid1, oid2, *l1, *l2, *mb1, lift_door);
+    //////////////////////  result   /////////////////////////////// 
+    door_list.push_back(*door_obj1);
+    line_list.push_back(*l3);
+    groom_id_list1.push_back(oid1);
+    groom_id_list2.push_back(oid2);
+    path_list.push_back(*l3d_1);
+    door_heights.push_back(bbox3d_1->MinD(2));
+
+
+    delete l1;
+    delete l2;
+    delete l3; 
+    delete door_obj1; 
+    delete l3d_1; 
+    delete mb1; 
+
+    /////////////////////////////////////////////////////////////
+    box_tuple1->DeleteIfAllowed();
+    box_tuple2->DeleteIfAllowed();
+    indoor_tuple2->DeleteIfAllowed();
+    indoor_tuple1->DeleteIfAllowed(); 
+    
+  }
+
+}
+
+/*
+create the time-dependent state for the door 
+
+*/
+void IndoorNav::CreateDoorState(MBool* mb)
+{
+   Instant start_time(instanttype);
+   start_time.ReadFrom("2010-12-5-0:0:0");
+   Instant end_time(instanttype);
+   end_time.ReadFrom("2010-12-6-0:0:0");
+
+   Instant begin_time(instanttype);
+   begin_time.ReadFrom("begin of time");
+   Instant finish_time(instanttype);
+   finish_time.ReadFrom("end of time");
+
+    mb->StartBulkLoad();
     UBool ub1;
     ub1.timeInterval.start = begin_time;
     ub1.timeInterval.end = start_time;
@@ -2066,65 +2128,11 @@ void IndoorNav::CreateResDoor(int id, int oid, int tid, vector<TupleId> id_list,
 //    ub1.Print(cout);
 //    ub2.Print(cout);
 //    ub3.Print(cout);
-    
-    mb1->Add(ub1);
-    mb1->Add(ub2);
-    mb1->Add(ub3);
-    mb1->EndBulkLoad();
-    
-//    cout<<*mb<<endl; 
-    bool lift_door = false;
-    if(GetRoomEnum(type1) == EL || GetRoomEnum(type2) == EL)
-      lift_door = true; 
-    //////////////////////////////////////////////////////////////////
-    ///////////////// the position of the door in space /////////////
-    //////////////////////////////////////////////////////////////////
 
-//    cout<<"line1 "<<*l1<<" line2 "<<*l2<<endl; 
-    ////////////////////////////////////////////////////////////////
-    /////////////////////create line //////////////////////////////////
-    ////////////////////////////////////////////////////////////////////
-    
-    Line* l1 = new Line(0);
-    Line* l2 = new Line(0);
-    Line* l3 = new Line(0);
-    Line3D* l3d_1 = new Line3D(0);
-    GRoomDoorLine(bbox3d_1, bbox3d_2, l1, l2, l3, &groom_box1, 
-                  &groom_box2, l3d_1, bbox3d_1->MinD(2));
-
-    ///////////////////// create the door //////////////////////////////
-    Door3D* door_obj1 = new Door3D(oid1, oid2, *l1, *l2, *mb1, lift_door);
-    //////////////////////  result   /////////////////////////////// 
-    door_list.push_back(*door_obj1);
-    line_list.push_back(*l3);
-    groom_id_list1.push_back(oid1);
-    groom_id_list2.push_back(oid2);
-    path_list.push_back(*l3d_1);
-    door_heights.push_back(bbox3d_1->MinD(2));
-
-
-    if(GetRoomEnum(type1) == ST || GetRoomEnum(type2) == ST)
-      door_types.push_back(1);
-    else if(GetRoomEnum(type1) == EL || GetRoomEnum(type2) == EL)
-      door_types.push_back(2);
-    else
-      door_types.push_back(0);
-    
-    delete l1;
-    delete l2;
-    delete l3; 
-    delete door_obj1; 
-    delete l3d_1; 
-    delete mb1; 
-
-    /////////////////////////////////////////////////////////////
-    box_tuple1->DeleteIfAllowed();
-    box_tuple2->DeleteIfAllowed();
-    indoor_tuple2->DeleteIfAllowed();
-    indoor_tuple1->DeleteIfAllowed(); 
-    
-  }
-
+    mb->Add(ub1);
+    mb->Add(ub2);
+    mb->Add(ub3);
+    mb->EndBulkLoad();
 }
 
 /*
@@ -2181,6 +2189,239 @@ bool IndoorNav::BBox3DEqual(Rectangle<3>* bbox3d, Rectangle<3>* bbox_3d)
     if(!AlmostEqual(bbox3d->MaxD(i), bbox_3d->MaxD(i)))return false; 
   }
   return true; 
+}
+
+
+/*
+create virtual doors for the staircase. The position is the place of the 
+first footstep which is the place for entering the staircase 
+
+*/
+void IndoorNav::CreateDoor2()
+{
+  for(int i = 1;i <= rel1->GetNoTuples();i++){
+    Tuple* groom_tuple = rel1->GetTuple(i, false);
+    string type = ((CcString*)groom_tuple->GetAttribute(I_Type))->GetValue();
+    if(!(GetRoomEnum(type) == ST)){
+      groom_tuple->DeleteIfAllowed();
+      continue; 
+    }
+    int oid = ((CcInt*)groom_tuple->GetAttribute(I_OID))->GetIntval();
+    GRoom* groom = (GRoom*)groom_tuple->GetAttribute(I_Room);
+    Rectangle<2> groom_box = groom->BoundingBox();
+    Line* l1 = new Line(0);
+    Line* l2 = new Line(0);
+    Line* l3 = new Line(0);
+    Line* l4 = new Line(0);
+    
+    Line3D* l3d1 = new Line3D(0);
+    Line3D* l3d2 = new Line3D(0);
+    
+    
+    float h1 = GetVirtualDoor1(groom, l1, l2, l3d1);
+    float h2 = GetVirtualDoor2(groom, l3, l4, l3d2);
+
+    
+    MBool* mb1 = new MBool(0);
+    CreateDoorState(mb1); 
+
+    MBool* mb2 = new MBool(0);
+    CreateDoorState(mb2); 
+
+
+    Door3D* door_obj1 = new Door3D(oid, oid, *l1, *l1, *mb1, false);
+    Door3D* door_obj2 = new Door3D(oid, oid, *l3, *l3, *mb2, false);
+
+    door_list.push_back(*door_obj1);
+    line_list.push_back(*l2);
+    groom_id_list1.push_back(oid);
+    groom_id_list2.push_back(oid);
+    path_list.push_back(*l3d1);
+    door_heights.push_back(h1);
+
+
+    door_list.push_back(*door_obj2);
+    line_list.push_back(*l4);
+    groom_id_list1.push_back(oid);
+    groom_id_list2.push_back(oid);
+    path_list.push_back(*l3d2);
+    door_heights.push_back(h2);
+
+
+    delete l1;
+    delete l2; 
+    delete l3;
+    delete l4; 
+    delete l3d1;
+    delete l3d2; 
+    delete mb1;
+    delete mb2; 
+    delete door_obj1; 
+    delete door_obj2; 
+    groom_tuple->DeleteIfAllowed();
+  }
+
+}
+
+/*
+constuct a middle path in the staircase 
+the middle path does not include the lowest and highest level 
+
+*/
+bool Floor3DCompare1(const Floor3D& f1, const Floor3D& f2)
+{
+  return f1.GetHeight() < f2.GetHeight(); 
+}
+
+
+bool Floor3DCompare2(const Floor3D& f1, const Floor3D& f2)
+{
+  return f1.GetHeight() > f2.GetHeight(); 
+}
+
+/*
+Create a virtual door, relative position in a groom, absolute position 2D,
+absolute position 3D. low level height.
+Note: the height for the foorsteps in the input data is set in the reverse way 
+
+*/
+
+float IndoorNav::GetVirtualDoor1(GRoom* groom, Line* l1, Line* l2, Line3D* l3d)
+{
+
+  vector<Floor3D> floors; 
+  for(int i = 0;i < groom->Size();i++){
+    float h;
+    Region r(0);
+    groom->Get(i, h, r);
+    Floor3D floor(h, r);
+    floors.push_back(floor);
+  }
+
+  sort(floors.begin(), floors.end(), Floor3DCompare2);
+
+  Region* r1 = const_cast<Region*>(floors[0].GetRegion());
+  Region* r2 = const_cast<Region*>(floors[1].GetRegion());
+
+  Line* boundary = new Line(0);
+  r1->Boundary(boundary);
+  r2->Intersection(*boundary, *l2);
+
+  assert(l2->Size() == 2);
+
+  HalfSegment hs;
+  l2->Get(0, hs);
+
+
+  delete boundary;
+
+
+  Rectangle<2> groom_box = groom->BoundingBox();
+   
+  double x1 = hs.GetLeftPoint().GetX() - groom_box.MinD(0);
+  double y1 = hs.GetLeftPoint().GetY() - groom_box.MinD(1);
+  Point p1(true, x1, y1);
+
+  double x2 = hs.GetRightPoint().GetX() - groom_box.MinD(0);
+  double y2 = hs.GetRightPoint().GetY() - groom_box.MinD(1);
+  Point p2(true, x2, y2);
+
+  //////////////////relative position in the groom////////////////////////
+  l1->StartBulkLoad();
+  int edgeno = 0;
+  HalfSegment temp_hs(true, p1, p2); 
+  temp_hs.attr.edgeno = edgeno++;
+  *l1 += temp_hs;
+  temp_hs.SetLeftDomPoint(!temp_hs.IsLeftDomPoint());
+  *l1 += temp_hs; 
+  l1->EndBulkLoad(); 
+  //////////////////////////////////////////////////////////////////////////
+  ////////////////absolute position in 3D space/////////////////////////////
+  //////////////////////////////////////////////////////////////////////////
+  float h = floors[0].GetHeight(); 
+ 
+  l3d->StartBulkLoad();
+  Point3D q1(true, hs.GetLeftPoint().GetX(), hs.GetLeftPoint().GetY(), h);
+  Point3D q2(true, hs.GetRightPoint().GetX(), hs.GetRightPoint().GetY(), h);
+  *l3d += q1;
+  *l3d += q2; 
+  l3d->EndBulkLoad();
+
+  return h; 
+  //////////////////////////////////////////////////////////////////////////
+
+}
+
+/*
+Create a virtual door, relative position in a groom, absolute position 2D,
+absolute position 3D. high level height  
+Note: the height for the foorsteps in the input data is set in the reverse way 
+
+*/
+
+float IndoorNav::GetVirtualDoor2(GRoom* groom, Line* l1, Line* l2, Line3D* l3d)
+{
+  vector<Floor3D> floors; 
+  for(int i = 0;i < groom->Size();i++){
+    float h;
+    Region r(0);
+    groom->Get(i, h, r);
+    Floor3D floor(h, r);
+    floors.push_back(floor);
+  }
+
+  sort(floors.begin(), floors.end(), Floor3DCompare2);
+
+  Region* r1 = const_cast<Region*>(floors[0].GetRegion());
+  Region* r2 = const_cast<Region*>(floors[1].GetRegion());
+
+  Line* boundary = new Line(0);
+  r1->Boundary(boundary);
+  r2->Intersection(*boundary, *l2);
+
+  assert(l2->Size() == 2);
+
+  HalfSegment hs;
+  l2->Get(0, hs);
+
+
+  delete boundary;
+
+
+  Rectangle<2> groom_box = groom->BoundingBox();
+   
+  double x1 = hs.GetLeftPoint().GetX() - groom_box.MinD(0);
+  double y1 = hs.GetLeftPoint().GetY() - groom_box.MinD(1);
+  Point p1(true, x1, y1);
+
+  double x2 = hs.GetRightPoint().GetX() - groom_box.MinD(0);
+  double y2 = hs.GetRightPoint().GetY() - groom_box.MinD(1);
+  Point p2(true, x2, y2);
+
+  //////////////////relative position in the groom////////////////////////
+  l1->StartBulkLoad();
+  int edgeno = 0;
+  HalfSegment temp_hs(true, p1, p2); 
+  temp_hs.attr.edgeno = edgeno++;
+  *l1 += temp_hs;
+  temp_hs.SetLeftDomPoint(!temp_hs.IsLeftDomPoint());
+  *l1 += temp_hs; 
+  l1->EndBulkLoad(); 
+  //////////////////////////////////////////////////////////////////////////
+  ////////////////absolute position in 3D space/////////////////////////////
+  //////////////////////////////////////////////////////////////////////////
+  float h = floors[floors.size() - 1].GetHeight(); 
+ 
+  l3d->StartBulkLoad();
+  Point3D q1(true, hs.GetLeftPoint().GetX(), hs.GetLeftPoint().GetY(), h);
+  Point3D q2(true, hs.GetRightPoint().GetX(), hs.GetRightPoint().GetY(), h);
+  *l3d += q1;
+  *l3d += q2; 
+  l3d->EndBulkLoad();
+  
+  return h; 
+  //////////////////////////////////////////////////////////////////////////
+
 }
 
 /*
@@ -2313,14 +2554,15 @@ void IndoorNav::CreateAdjDoor1(BTree* btree,int attr1, int attr2,
       ////// the path inside a elevator: ST //////////////////////
       ///////////////////////////////////////////////////////////
       if(GetRoomEnum(groom_type) == ST){
- //       BuildPathST(groom_oid, groom, tid_list, attr1, attr2, attr3, attr4);
+        BuildPathST(groom_oid, groom, tid_list, attr1, attr2, attr3, attr4);
+
       }
       /////////////////////////////////////////////////////////////
       ////// the path inside an office room or corridor: OR or CO///
       //////////////////////////////////////////////////////////////
       if(GetRoomEnum(groom_type) == OR || GetRoomEnum(groom_type) == CO){
-//        BuildPathORAndCO(groom_oid, groom, 
-//                         tid_list, attr1, attr2, attr3, attr4);
+        BuildPathORAndCO(groom_oid, groom, 
+                         tid_list, attr1, attr2, attr3, attr4);
       }
     }
     groom_tuple->DeleteIfAllowed();
@@ -2430,6 +2672,8 @@ void IndoorNav::BuildPathST(int groom_oid, GRoom* groom, vector<int> tid_list,
 
          ST_ConnectFloors(groom_oid, groom, l1, l2,
                                tid_list[i], tid_list[j], h1, h2, middle_path);
+
+//        return; 
         }
         door_tuple2->DeleteIfAllowed(); 
       }
@@ -2529,6 +2773,8 @@ void IndoorNav::FindPathInRegion(GRoom* groom, float h,
 //  cout<<" p1 "<<*p1<<" p2 "<<*p2<<endl; 
   ShortestPath_InRegion(r, p1, p2, l); 
 //  cout<<"l "<<*l<<endl; 
+
+  if(l->Size() == 0)return; 
   
   SimpleLine* sl = new SimpleLine(0);
   sl->fromLine(*l); 
@@ -2540,6 +2786,8 @@ void IndoorNav::FindPathInRegion(GRoom* groom, float h,
   delete sl;
   delete r; 
 
+  
+  
   if(mhs[0].from.Distance(*p1) < dist_delta && 
      mhs[mhs.size() - 1].to.Distance(*p2) < dist_delta) return; 
   
@@ -2564,16 +2812,11 @@ void IndoorNav::FindPathInRegion(GRoom* groom, float h,
   assert(false); 
 }
 
-
 /*
-constuct a middle path in the staircase 
-the middle path does not include the lowest and highest level 
+build a path inside a staircase and it connects from the second footstep to 
+the last second footstep. 
 
 */
-bool Floor3DCompare(const Floor3D& f1, const Floor3D& f2)
-{
-  return f1.GetHeight() < f2.GetHeight(); 
-}
 void IndoorNav::ConstructMiddlePath(GRoom* groom, 
                                     vector<MySegHeight>& middle_path)
 {
@@ -2586,11 +2829,11 @@ void IndoorNav::ConstructMiddlePath(GRoom* groom,
     floors.push_back(floor); 
   }
   
-  sort(floors.begin(), floors.end(), Floor3DCompare);
+  sort(floors.begin(), floors.end(), Floor3DCompare1);
   
   ///////// from low height to high height ////////////////////
   for(unsigned int i = 0; i < floors.size();i++){
-//    cout<<floors[i].GetHeight()<<endl; 
+//    cout<<"height "<<floors[i].GetHeight()<<endl; 
     ///////////////////////////////////////////////////////////
     if(i == floors.size() - 1 || i == 0) continue; 
     ////////////////////////////////////////////////////////////
@@ -2598,6 +2841,8 @@ void IndoorNav::ConstructMiddlePath(GRoom* groom,
     Region* cur_r = const_cast<Region*>(floors[i].GetRegion());
     Region* r1 = const_cast<Region*>(floors[i - 1].GetRegion());
     Region* r2 = const_cast<Region*>(floors[i + 1].GetRegion());
+
+//    cout<<"cur "<<*cur_r<<" r1 "<<*r1<<" r2 "<<*r2<<endl; 
     
     Line* l1 = new Line(0);
     r1->Boundary(l1);
@@ -2686,6 +2931,7 @@ void IndoorNav::ST_ConnectFloors(int groom_oid, GRoom* groom, Line* l1,
                                    vector<MySegHeight>& middle_path)
 {
 //  cout<<" ST_ConnectFloorS "<<endl; 
+  
   HalfSegment hs1;
   assert(l1->Size() == 2);
   l1->Get(0, hs1); 
@@ -2702,7 +2948,9 @@ void IndoorNav::ST_ConnectFloors(int groom_oid, GRoom* groom, Line* l1,
   double y2 = (hs2.GetLeftPoint().GetY() + hs2.GetRightPoint().GetY())/2; 
   Point p2(true, x2, y2);
 
-  
+//  cout<<"p1 "<<p1<<"h1 "<<h1<<endl;
+//  cout<<"p2 "<<p2<<"h2 "<<h2<<endl; 
+
   vector<Floor3D> floors; 
   for(int i = 0;i < groom->Size();i++){
     float h;
@@ -2711,7 +2959,7 @@ void IndoorNav::ST_ConnectFloors(int groom_oid, GRoom* groom, Line* l1,
     Floor3D floor(h, r);
     floors.push_back(floor); 
   }
-  sort(floors.begin(), floors.end(), Floor3DCompare);
+  sort(floors.begin(), floors.end(), Floor3DCompare1);
 
 
   if(h1 < h2){
@@ -2738,9 +2986,12 @@ void IndoorNav::ST_ConnectFloors(int groom_oid, GRoom* groom, Line* l1,
           Point3D q(true, p.GetX(), p.GetY(), h1);
           *l3d += q;
         }
-        Point3D q(true, p.GetX(), p.GetY(), middle_path[i].h);
-        *l3d += q;
+        Point3D q1(true, p.GetX(), p.GetY(), middle_path[i].h);
+        *l3d += q1;
 
+        p = middle_path[i].to; 
+        Point3D q2(true, p.GetX(), p.GetY(), middle_path[i].h);
+        *l3d += q2;
     }
 //    cout<<"mhs2 size "<<mhs2.size()<<endl; 
     for(unsigned int i = 0 ;i < mhs2.size();i++){
@@ -2781,13 +3032,17 @@ void IndoorNav::ST_ConnectFloors(int groom_oid, GRoom* groom, Line* l1,
     }
 
     for(int i = middle_path.size() - 1;i >= 0; i--){
-        Point p = middle_path[i].from;
+        Point p = middle_path[i].to;
         if(i == middle_path.size() - 1){
           Point3D q(true, p.GetX(), p.GetY(), h1);
           *l3d += q;
         }
-        Point3D q(true, p.GetX(), p.GetY(), middle_path[i].h);
-        *l3d += q;
+        Point3D q1(true, p.GetX(), p.GetY(), middle_path[i].h);
+        *l3d += q1;
+
+        p = middle_path[i].from; 
+        Point3D q2(true, p.GetX(), p.GetY(), middle_path[i].h);
+        *l3d += q2;
     }
 
     for(unsigned int i = 0 ;i < mhs2.size();i++){
@@ -2882,8 +3137,9 @@ void IndoorNav::CreateAdjDoor2(R_Tree<3,TupleId>* rtree)
     ////// the number of neighbor should be 2 or 3 //////////////////
     DFTraverse(rtree, adr, i, l, id_list, groom_oid);
 
-    assert(id_list.size() > 0);
-    
+//    assert(id_list.size() > 0);
+
+
 //    cout<<"door tid "<<i<<endl; 
 //    cout<<"neighbor size "<<id_list.size()<<endl; 
 
@@ -2924,11 +3180,8 @@ void IndoorNav::DFTraverse(R_Tree<3,TupleId>* rtree, SmiRecordId adr,
               Tuple* door_tuple = rel1->GetTuple(e.info,false);
               Line3D* l3d = 
                   (Line3D*)door_tuple->GetAttribute(IndoorGraph::I_DOOR_LOC_3D);
-              int g_id = ((CcInt*)door_tuple->GetAttribute(
-                            IndoorGraph::I_GROOM_OID2))->GetIntval();
 
-              if(l3d->BoundingBox().Intersects(bbox3d_1) && id != e.info
-                 && g_id == groom_oid){
+              if(l3d->BoundingBox().Intersects(bbox3d_1) && id != e.info){
                   if(*l == *l3d)id_list.push_back(e.info);
               }
 
@@ -2961,16 +3214,23 @@ string PointsTypeInfo =
 void ShortestPath_InRegion(Region* reg, Point* s, Point* d, Line* pResult)
 {
   const double dist_delta = 0.001; 
-  if(reg->Contains(*s) == false || reg->Contains(*d) == false){
-    cout<<"the point should be inside the region"<<endl;
+  if(reg->Contains(*s) == false){
+    cout<<"region "<<*reg<<"start point "<<*s<<endl; 
+    cout<<"start point should be inside the region"<<endl;
     return;
   }
+  if(reg->Contains(*d) == false){
+    cout<<"region "<<*reg<<"end point "<<*d<<endl; 
+    cout<<"end point should be inside the region"<<endl;
+    return;
+  }
+
   if(reg->NoComponents() > 1){
     cout<<"only one face is allowed"<<endl;
     return; 
   }
   if(s->Distance(*d) < dist_delta){
-    cout<<"start location equals to the end locaton"<<endl;
+//    cout<<"start location equals to the end locaton"<<endl;
     return; 
   }
 
@@ -3099,7 +3359,7 @@ void ShortestPath_InRegion(Region* reg, Point* s, Point* d, Line* pResult)
   vector<RPath_elem> expand_path;
 
   InitializeQueue(reg, path_queue, expand_path, start_loc, end_loc,  
-                  ps_list, seg_list, visit_flag); 
+                  ps_list, seg_list); 
 //  cout<<" initialize size "<<pathqueue.size()<<endl; 
 //  cout<<" expand size "<<expandpath.size()<<endl; 
   bool find = false; 
@@ -3174,7 +3434,7 @@ void InitializeQueue(Region* reg, priority_queue<RPath_elem>& path_queue,
                      vector<RPath_elem>& expand_queue,
                      PointAndID start_loc, PointAndID end_loc,
                      vector<PointAndID>& ps_list,
-                     vector<HalfSegment>& seg_list, vector<bool>& visit_flag)
+                     vector<HalfSegment>& seg_list)
 {
 //  cout<<"Initialize Queue "<<endl;
 
@@ -3340,10 +3600,15 @@ string IndoorGraph::NodeTypeInfo =
 string IndoorGraph::EdgeTypeInfo =
 "(rel (tuple ((groom_oid int) (door_tid1 int) (door_tid2 int) (Path line3d))))";
 
+string IndoorGraph::NodeBTreeTypeInfo =
+"(btree (tuple ((Door door3d) (door_loc line) (groom_oid1 int) (groom_oid2 int)\
+  (door_loc3d line3d) (doorheight real))) int)";
+
 
 IndoorGraph::~IndoorGraph()
 {
 //  cout<<"~IndoorGraph()"<<endl;
+  if(btree_node) delete btree_node; 
 }
 
 IndoorGraph::IndoorGraph()
@@ -3492,6 +3757,16 @@ const ListExpr in_xTypeInfo)
    inout_iOffset += bufsize;
    free(buf);
 
+   nl->ReadFromString(NodeBTreeTypeInfo,xType);
+   xNumericType = SecondoSystem::GetCatalog()->NumericType(xType);
+   btree_node = BTree::Open(in_xValueRecord, inout_iOffset, xNumericType);
+   if(!btree_node) {
+     node_rel->Delete();
+     edge_rel->Delete();
+     return;
+   }
+   
+
 }
 
 IndoorGraph* IndoorGraph::Open(SmiRecord& valueRecord,size_t& offset,
@@ -3574,6 +3849,14 @@ bool IndoorGraph::Save(SmiRecord& in_xValueRecord,size_t& inout_iOffset,
    free(buf);
    inout_iOffset += bufsize;
 
+   
+   /////////////////////////////save btree on node ////////////////////
+   nl->ReadFromString(NodeBTreeTypeInfo, xType);
+   xNumericType = SecondoSystem::GetCatalog()->NumericType(xType); 
+   if(!btree_node->Save(in_xValueRecord, inout_iOffset, xNumericType))
+     return false; 
+   /////////////////////////////////////////////////////////////////////
+   
   return true;
 
 }
@@ -3591,8 +3874,12 @@ void IndoorGraph::Load(int id, Relation* r1, Relation* r2)
 
   ostringstream xNodePtrStream;
   xNodePtrStream<<(long)r1;
-  string strQuery = "(consume(sort(feed(" + NodeTypeInfo +
-                "(ptr " + xNodePtrStream.str() + ")))))";
+//  string strQuery = "(consume(sort(feed(" + NodeTypeInfo +
+//                "(ptr " + xNodePtrStream.str() + ")))))";
+
+  string strQuery = "(consume(feed(" + NodeTypeInfo +
+                "(ptr " + xNodePtrStream.str() + "))))";
+
   Word xResult;
   int QueryExecuted = QueryProcessor::ExecuteQuery(strQuery, xResult);
   assert(QueryExecuted);
@@ -3647,6 +3934,38 @@ void IndoorGraph::Load(int id, Relation* r1, Relation* r2)
   }
 
   delete btree_node_oid1;
+  /////////////////////////////////////////////////////////////////////////
+  /////////////////////////build a btree on node rel////////////////////////
+  ostringstream xNodeOidPtrStream2;
+  xNodeOidPtrStream2<< (long)node_rel;
+  strQuery = "(createbtree (" + NodeTypeInfo +
+             "(ptr " + xNodeOidPtrStream2.str() + "))" + "groom_oid1)";
+//  cout<<strQuery<<endl; 
+  QueryExecuted = QueryProcessor::ExecuteQuery(strQuery, xResult);
+  assert(QueryExecuted);
+  btree_node = (BTree*)xResult.addr;
+  /////////////////////////////////////////////////////////////////////////
+
+  ///////////////////////////////////////////////////////////////////////
+  ///////////////////calculate the number of grooms////////////////////
+  /////////////////////////////////////////////////////////////////////
+  
+/*  vector<int> groom_id_list; 
+  for(int i = 1;i <= r2->GetNoTuples();i++){
+    Tuple* groom_tuple = r2->GetTuple(i, false);
+    int gid = 
+    ((CcInt*)groom_tuple->GetAttribute(IndoorGraph::I_GROOM_OID))->GetIntval();
+    groom_id_list.push_back(gid);
+    groom_tuple->DeleteIfAllowed();
+  }
+  sort(groom_id_list.begin(), groom_id_list.end());
+  vector<int>::iterator last;
+  last = unique(groom_id_list.begin(), groom_id_list.end());
+  num_of_grooms = 0;
+  for(vector<int>::iterator iter = groom_id_list.begin(); iter != last;iter++){
+    num_of_grooms++;
+  }*/  
+
 
 }
 
@@ -3674,11 +3993,740 @@ void IndoorNav::GetAdjNodeIG(int oid)
 }
 
 /*
-generate interesting points 
+generate interesting indoor points 
+do not include the position on the staircase and elevator 
+it contains OR, CO, BR 
 
 */
 void IndoorNav::GenerateIP1(int num)
 {
+  int no_rooms = rel1->GetNoTuples(); 
+  struct timeval tval;
+  struct timezone tzone;
+
+  gettimeofday(&tval, &tzone);
+  srand48(tval.tv_sec);
+  
+  
+  for(int i = 1;i <= num;){
+    int room_oid; 
+    room_oid = lrand48() % no_rooms + 1;
+
+   /////////////////////////////////////////////////////////////////
+   ////////////////////special generation//////////////////////////
+   ///////////////////////////////////////////////////////////////
+/*    if( i % 2 == 0)room_oid = 14;
+    else 
+      room_oid = 96;  */
+    /////////////////////////////////////////////////////////////
+    
+    Tuple* room_tuple = rel1->GetTuple(room_oid, false);
+    string type = ((CcString*)room_tuple->GetAttribute(I_Type))->GetValue();
+    if(GetRoomEnum(type) == ST || GetRoomEnum(type) == EL){
+        room_tuple->DeleteIfAllowed();
+        continue; 
+    }
+    
+    GRoom* groom = (GRoom*)room_tuple->GetAttribute(I_Room);
+    Region* reg = new Region(0);
+    groom->GetRegion(*reg); 
+    
+    BBox<2> bbox = reg->BoundingBox();
+    int xx = (int)(bbox.MaxD(0) - bbox.MinD(0)) + 1;
+    int yy = (int)(bbox.MaxD(1) - bbox.MinD(1)) + 1;
+
+    Point p1;
+    Point p2;
+    bool inside = false;
+    int count = 1;
+    while(inside == false && count <= 100){
+        //signed long integers, uniformly distributed over
+        //the interval [-2(31), 2(31)]
+
+        //non-negative, long integers, uniformly distributed over
+        //the interval [0, 2(31)]
+        int x = lrand48()% (xx*100);
+        int y = lrand48()% (yy*100);
+
+        double coord_x = x/100.0;
+        double coord_y = y/100.0;
+
+        Coord x_cord = coord_x + bbox.MinD(0);
+        Coord y_cord = coord_y + bbox.MinD(1);
+        p2.Set(x_cord, y_cord); //absolute position 
+        p1.Set(coord_x, coord_y); //set back to relative position
+        //lower the precision
+        Modify_Point_3(p1);
+        Modify_Point_3(p2);
+        inside = p2.Inside(*reg);
+        count++;
+      }
+      if(inside){
+        float h = groom->GetLowHeight();////////////always on the lowest level 
+        Loc loc(p1.GetX(), p1.GetY());
+        GenLoc genl(room_oid, loc);
+        Point3D q(true, p2.GetX(), p2.GetY(), h);
+        genloc_list.push_back(genl);
+        p3d_list.push_back(q); 
+        i++;
+      }
+
+    delete reg; 
+    room_tuple->DeleteIfAllowed(); 
+  }
+
+}
 
 
+ostream& operator<<(ostream& o, const IPath_elem& elem)
+{
+  o<<"tri_index "<< elem.tri_index<<" "
+   <<"realweight "<<elem.real_w<<" "
+   <<"weight "<<elem.weight<<endl; 
+  return o;     
+}
+
+/*
+return the shortest path with minimum length for indoor navigation 
+
+*/
+void IndoorNav::ShortestPath_Length(GenLoc* gloc1, GenLoc* gloc2, 
+                                   Relation* rel)
+{
+
+  if(IsLocEqual(gloc1, gloc2, rel)){
+    cout<<"the two locations are equal to each other"<<endl;
+    genloc_list1.push_back(*gloc1);
+    genloc_list2.push_back(*gloc2);
+    Line3D* l3d = new Line3D(0);
+    path_list.push_back(*l3d);
+    delete l3d; 
+    return; 
+  }
+  unsigned int groom_oid1 = gloc1->GetOid();
+  unsigned int groom_oid2 = gloc2->GetOid(); 
+//  cout<<"groom oid1 "<<groom_oid1<<" groom oid2 "<<groom_oid2<<endl; 
+  if(groom_oid1 == groom_oid2){
+    PathInOneRoom(gloc1, gloc2, rel); 
+    return; 
+  }
+
+
+  Relation* node_rel = ig->GetNodeRel(); 
+
+  ///////////////collect all doors in that room//////////////////////
+  BTree* btree = ig->GetBTree(); 
+  CcInt* search_id = new CcInt(true, groom_oid1);
+  BTreeIterator* btree_iter = btree->ExactMatch(search_id);
+  vector<int> tid_list; 
+  while(btree_iter->Next()){
+     Tuple* tuple = node_rel->GetTuple(btree_iter->GetId(), false);
+     tid_list.push_back(tuple->GetTupleId());
+     tuple->DeleteIfAllowed();
+  }
+  delete btree_iter;
+  delete search_id;
+
+  ////////////////////for each possible door, search the path/////////////
+  vector<Line3D> candidate_path; 
+  for(unsigned int i = 0;i < tid_list.size();i++){
+//    cout<<"source door tid "<<tid_list[i]<<endl; 
+    Tuple* door_tuple = node_rel->GetTuple(tid_list[i], false);
+    unsigned int gri1 = 
+     ((CcInt*)door_tuple->GetAttribute(IndoorGraph::I_GROOM_OID1))->GetIntval();
+//    unsigned int gri2 = 
+//   ((CcInt*)door_tuple->GetAttribute(IndoorGraph::I_GROOM_OID2))->GetIntval();
+     
+//    cout<<"gri1 "<<gri1<<"gri2 "<<gri2<<endl; 
+    assert(gri1 == groom_oid1); 
+
+    Line3D* l3d_start = new Line3D(0); 
+    ConnectStartLoc(gloc1, tid_list[i], rel, l3d_start);
+    
+//    tid_list[i] = 363; 
+
+    Path_StartDoor_EndLoc(tid_list[i], gloc2, candidate_path, l3d_start, rel);
+    door_tuple->DeleteIfAllowed(); 
+    
+    delete l3d_start; 
+//    break; 
+  }
+  
+
+  ///////////////////select the path with minimum length////////////////////
+  if(candidate_path.size() > 0){
+    double l = candidate_path[0].Length();
+    int index = 0;
+    for(unsigned int i = 1; i < candidate_path.size();i++){
+//      cout<<"i "<<i<<" length "<<candidate_path[i].Length()<<endl; 
+      if(candidate_path[i].Length() < l){
+        l = candidate_path[i].Length();
+        index = i; 
+      }
+    }
+    
+    genloc_list1.push_back(*gloc1);
+    genloc_list2.push_back(*gloc2);
+
+
+    path_list.push_back(candidate_path[index]); 
+
+  }else
+    cout<<"no path available"<<endl; 
+
+}
+
+/*
+check whether the two locations are equal to each other 
+
+*/
+bool IndoorNav::IsLocEqual(GenLoc* gloc1, GenLoc* gloc2, Relation* rel)
+{
+  int groom_oid1 = gloc1->GetOid();
+  int groom_oid2 = gloc2->GetOid(); 
+    
+  assert(1 <= groom_oid1 && groom_oid1 <= rel->GetNoTuples());
+  assert(1 <= groom_oid2 && groom_oid2 <= rel->GetNoTuples());
+
+  Tuple* groom_tuple1 = rel->GetTuple(groom_oid1, false);
+  Tuple* groom_tuple2 = rel->GetTuple(groom_oid2, false);
+  GRoom* groom1 = (GRoom*)groom_tuple1->GetAttribute(I_Room);
+  GRoom* groom2 = (GRoom*)groom_tuple2->GetAttribute(I_Room);
+  
+  Region* reg1 = new Region(0);
+  Region* reg2 = new Region(0);
+  groom1->GetRegion(*reg1); 
+  groom2->GetRegion(*reg2); 
+  BBox<2> bbox1 = reg1->BoundingBox();
+  BBox<2> bbox2 = reg2->BoundingBox();
+  
+  float h1 = groom1->GetLowHeight();
+  float h2 = groom2->GetLowHeight();
+  
+  delete reg1; 
+  delete reg2; 
+  groom_tuple1->DeleteIfAllowed();
+  groom_tuple2->DeleteIfAllowed(); 
+  
+  double x1 = gloc1->GetLoc().loc1 + bbox1.MinD(0);
+  double y1 = gloc1->GetLoc().loc2 + bbox1.MinD(1);
+  
+  double x2 = gloc2->GetLoc().loc1 + bbox2.MinD(0);
+  double y2 = gloc2->GetLoc().loc2 + bbox2.MinD(1);
+  
+  Point3D p1(true, x1, y1, h1);
+  Point3D p2(true, x2, y2, h2); 
+  
+  const double dist_delta = 0.001; 
+  if(p1.Distance(p2) < dist_delta) return true;
+  
+  return false; 
+}
+
+/*
+two locations are in the same room 
+
+*/
+void IndoorNav::PathInOneRoom(GenLoc* gloc1, GenLoc* gloc2, Relation* rel)
+{
+  int groom_oid = gloc1->GetOid();
+  assert(1 <= groom_oid && groom_oid <= rel->GetNoTuples());
+
+  Tuple* groom_tuple = rel->GetTuple(groom_oid, false);
+  string type = ((CcString*)groom_tuple->GetAttribute(I_Type))->GetValue(); 
+  if(GetRoomEnum(type) == ST || GetRoomEnum(type) == EL){
+      groom_tuple->DeleteIfAllowed();
+      
+      genloc_list1.push_back(*gloc1);
+      genloc_list2.push_back(*gloc2);
+      Line3D* l3d = new Line3D(0);
+      path_list.push_back(*l3d); 
+      delete l3d; 
+      cout<<"inside the staircase and elevator. not interesting places"<<endl;
+      cout<<"it should not arrive here"<<endl; 
+      return; 
+  }
+  
+  
+  GRoom* groom = (GRoom*)groom_tuple->GetAttribute(I_Room);
+  Region* reg = new Region(0);
+  groom->GetRegion(*reg); 
+  BBox<2> bbox = reg->BoundingBox();
+  float h = groom->GetLowHeight();
+  
+
+  double x1 = gloc1->GetLoc().loc1 + bbox.MinD(0);
+  double y1 = gloc1->GetLoc().loc2 + bbox.MinD(1);
+
+  double x2 = gloc2->GetLoc().loc1 + bbox.MinD(0);
+  double y2 = gloc2->GetLoc().loc2 + bbox.MinD(1);
+  
+  Point p1(true, x1, y1);
+  Point p2(true, x2, y2);
+  
+//  cout<<"p1 "<<p1<<" p2"<<p2<<endl; 
+  
+  vector<MyHalfSegment> mhs;
+
+  FindPathInRegion(groom, h, mhs, &p1, &p2); 
+  
+  delete reg; 
+  groom_tuple->DeleteIfAllowed();
+  
+  ///////////////// conver to 3D line //////////////////////////////
+  Line3D* l3d = new Line3D(0);
+  l3d->StartBulkLoad();
+  
+  for(unsigned int i = 0;i < mhs.size();i++){
+    Point p = mhs[i].from; 
+    Point3D q(true, p.GetX(), p.GetY(), h);
+    *l3d += q;
+    if(i == mhs.size() - 1){
+      Point p1 = mhs[i].to; 
+      Point3D q1(true, p1.GetX(), p1.GetY(), h);
+      *l3d += q1;
+    }
+  }
+  l3d->EndBulkLoad();
+  
+  genloc_list1.push_back(*gloc1);
+  genloc_list2.push_back(*gloc2);
+  path_list.push_back(*l3d); 
+  delete l3d; 
+}
+
+/*
+build the connection from start location to the door 
+
+*/
+void IndoorNav::ConnectStartLoc(GenLoc* gloc1, int door_tid, Relation* rel, 
+                        Line3D* l3d_start)
+{
+
+  int groom_oid = gloc1->GetOid();
+  assert(1 <= groom_oid && groom_oid <= rel->GetNoTuples());
+
+  Tuple* groom_tuple = rel->GetTuple(groom_oid, false);
+  string type = ((CcString*)groom_tuple->GetAttribute(I_Type))->GetValue(); 
+  if(GetRoomEnum(type) == ST || GetRoomEnum(type) == EL){
+      groom_tuple->DeleteIfAllowed();
+      cout<<"inside the staircase and elevator. not interesting places"<<endl;
+      cout<<"it should not arrive here"<<endl; 
+      return; 
+  }
+  
+  
+  GRoom* groom = (GRoom*)groom_tuple->GetAttribute(I_Room);
+  Region* reg = new Region(0);
+  groom->GetRegion(*reg); 
+  BBox<2> bbox = reg->BoundingBox();
+  float h = groom->GetLowHeight();
+  double x1 = gloc1->GetLoc().loc1 + bbox.MinD(0);
+  double y1 = gloc1->GetLoc().loc2 + bbox.MinD(1);
+  Point p1(true, x1, y1);
+
+  
+  Tuple* door_tuple = ig->GetNodeRel()->GetTuple(door_tid, false);
+  Line* l = (Line*)door_tuple->GetAttribute(IndoorGraph::I_DOOR_LOC); 
+  assert(l->Size() == 2);
+  HalfSegment hs;
+  l->Get(0, hs);
+  double x2 = (hs.GetLeftPoint().GetX() + hs.GetRightPoint().GetX())/2;
+  double y2 = (hs.GetLeftPoint().GetY() + hs.GetRightPoint().GetY())/2;
+  door_tuple->DeleteIfAllowed(); 
+  Point p2(true, x2, y2); 
+
+//  cout<<"p1 "<<p1<<" p2"<<p2<<endl; 
+
+  vector<MyHalfSegment> mhs;
+
+  FindPathInRegion(groom, h, mhs, &p1, &p2); 
+  
+  delete reg; 
+  groom_tuple->DeleteIfAllowed();
+  
+  ///////////////// conver to 3D line //////////////////////////////
+  
+  l3d_start->StartBulkLoad();
+  
+  for(unsigned int i = 0;i < mhs.size();i++){
+    Point p = mhs[i].from; 
+    Point3D q(true, p.GetX(), p.GetY(), h);
+    *l3d_start += q;
+    if(i == mhs.size() - 1){
+      Point p1 = mhs[i].to; 
+      Point3D q1(true, p1.GetX(), p1.GetY(), h);
+      *l3d_start += q1;
+    }
+  }
+  l3d_start->EndBulkLoad();
+  
+//  cout<<"start length "<<l3d_start->Length()<<endl; 
+}
+
+/*
+find the path from the door (id) to the destination 
+
+*/
+void IndoorNav::Path_StartDoor_EndLoc(int id, GenLoc* gloc2, 
+                                   vector<Line3D>& candidate_path, 
+                                   Line3D* l3d_s, Relation* rel)
+{
+
+  unsigned int groom_oid2 = gloc2->GetOid(); 
+  Relation* node_rel = ig->GetNodeRel(); 
+  
+  ///////////////collect all doors in that room//////////////////////
+  CcInt* search_id = new CcInt(true, groom_oid2);
+  BTree* btree = ig->GetBTree();
+  BTreeIterator* btree_iter = btree->ExactMatch(search_id);
+  vector<int> tid_list; 
+  while(btree_iter->Next()){
+     Tuple* tuple = node_rel->GetTuple(btree_iter->GetId(), false);
+     tid_list.push_back(tuple->GetTupleId());
+     tuple->DeleteIfAllowed();
+  }
+  delete btree_iter;
+  delete search_id;
+
+  
+  for(unsigned int i = 0;i < tid_list.size();i++){
+//     cout<<"dest door tid "<<tid_list[i]<<endl; 
+
+//    if(tid_list[i] != 279) continue;
+
+    Tuple* door_tuple = node_rel->GetTuple(tid_list[i], false);
+    unsigned int gri1 = 
+     ((CcInt*)door_tuple->GetAttribute(IndoorGraph::I_GROOM_OID1))->GetIntval();
+
+//    unsigned int gri2 = 
+//   ((CcInt*)door_tuple->GetAttribute(IndoorGraph::I_GROOM_OID2))->GetIntval();
+ 
+//    cout<<"gri1 "<<gri1<<"gri2 "<<gri2<<endl; 
+
+    Line3D* l3d_end = new Line3D(0);
+    ConnectEndLoc(gloc2, tid_list[i], rel, l3d_end); 
+   
+    assert(gri1 == groom_oid2); 
+    IndoorShortestPath(id, tid_list[i], candidate_path, l3d_s, l3d_end);
+    door_tuple->DeleteIfAllowed(); 
+    
+    delete l3d_end; 
+//    break; 
+  }
+
+}
+
+/*
+connect the end location to the path 
+
+*/
+void IndoorNav::ConnectEndLoc(GenLoc* gloc, int door_tid, Relation* rel, 
+                        Line3D* l3d_end)
+{
+  int groom_oid = gloc->GetOid();
+  assert(1 <= groom_oid && groom_oid <= rel->GetNoTuples());
+
+  Tuple* groom_tuple = rel->GetTuple(groom_oid, false);
+  string type = ((CcString*)groom_tuple->GetAttribute(I_Type))->GetValue(); 
+  if(GetRoomEnum(type) == ST || GetRoomEnum(type) == EL){
+      groom_tuple->DeleteIfAllowed();
+      cout<<"inside the staircase and elevator. not interesting places"<<endl;
+      cout<<"it should not arrive here"<<endl; 
+      return; 
+  }
+  
+  
+  GRoom* groom = (GRoom*)groom_tuple->GetAttribute(I_Room);
+  Region* reg = new Region(0);
+  groom->GetRegion(*reg); 
+  BBox<2> bbox = reg->BoundingBox();
+  float h = groom->GetLowHeight();
+  double x1 = gloc->GetLoc().loc1 + bbox.MinD(0);
+  double y1 = gloc->GetLoc().loc2 + bbox.MinD(1);
+  Point p1(true, x1, y1);
+
+  
+  Tuple* door_tuple = ig->GetNodeRel()->GetTuple(door_tid, false);
+  Line* l = (Line*)door_tuple->GetAttribute(IndoorGraph::I_DOOR_LOC); 
+  assert(l->Size() == 2);
+  HalfSegment hs;
+  l->Get(0, hs);
+  double x2 = (hs.GetLeftPoint().GetX() + hs.GetRightPoint().GetX())/2;
+  double y2 = (hs.GetLeftPoint().GetY() + hs.GetRightPoint().GetY())/2;
+  door_tuple->DeleteIfAllowed(); 
+  Point p2(true, x2, y2); 
+
+//  cout<<"p1 "<<p1<<" p2"<<p2<<endl; 
+
+  vector<MyHalfSegment> mhs;
+
+  FindPathInRegion(groom, h, mhs, &p2, &p1); 
+  
+  delete reg; 
+  groom_tuple->DeleteIfAllowed();
+  
+  ///////////////// conver to 3D line //////////////////////////////
+  
+  l3d_end->StartBulkLoad();
+  
+  for(unsigned int i = 0;i < mhs.size();i++){
+    Point p = mhs[i].from; 
+    Point3D q(true, p.GetX(), p.GetY(), h);
+    *l3d_end += q;
+    if(i == mhs.size() - 1){
+      Point p1 = mhs[i].to; 
+      Point3D q1(true, p1.GetX(), p1.GetY(), h);
+      *l3d_end += q1;
+    }
+  }
+  l3d_end->EndBulkLoad();
+//  cout<<"end length "<<l3d_end->Length()<<endl; 
+  
+}
+
+/*
+find the path from one door (id1) to another (id2) 
+
+*/
+bool IndoorNav::MiddlePoint(Line3D* l, Point3D& p)
+{
+  if(l->Size() != 2) return false; 
+  Point3D q1, q2;
+  l->Get(0, q1);
+  l->Get(1, q2);
+  
+  double x = (q1.GetX() + q2.GetX())/2;
+  double y = (q1.GetY() + q2.GetY())/2;
+  double z = (q1.GetZ() + q2.GetZ())/2; 
+  
+  Point3D result(true, x, y, z);
+  p = result; 
+  return true; 
+}
+
+/*
+compute the shortest path from one door to another door 
+
+*/
+void IndoorNav::IndoorShortestPath(int id1, int id2,
+                                   vector<Line3D>& candidate_path, 
+                                    Line3D* l3d_s, Line3D* l3d_d)
+{
+
+//  cout<<"IndoorShortestPath "<<"doorid1 "<<id1<<" doorid2 "<<id2<<endl; 
+  if(id1 == id2){
+    cout<<"two doors are equal"<<endl;
+    assert(false); 
+  }
+  
+  Relation* node_rel = ig->GetNodeRel(); 
+
+  Tuple* door_tuple1 = node_rel->GetTuple(id1, false);
+  Tuple* door_tuple2 = node_rel->GetTuple(id2, false);
+  Line3D* l3d1 = (Line3D*)door_tuple1->GetAttribute(IndoorGraph::I_DOOR_LOC_3D);
+  Line3D* l3d2 = (Line3D*)door_tuple2->GetAttribute(IndoorGraph::I_DOOR_LOC_3D);
+  
+  Point3D start_p, end_p;
+  
+  if(MiddlePoint(l3d1, start_p) == false || 
+     MiddlePoint(l3d2, end_p) == false){
+    cout<<"incorrect door "<<endl;
+    assert(false);
+  }
+
+//  start_p.Print(); 
+//  end_p.Print(); 
+
+
+  door_tuple1->DeleteIfAllowed(); 
+  door_tuple2->DeleteIfAllowed(); 
+  
+  priority_queue<IPath_elem> path_queue;
+  vector<IPath_elem> expand_queue;
+  
+  vector<bool> visit_flag1;////////////door visit 
+  for(int i = 1; i <= node_rel->GetNoTuples();i++)
+    visit_flag1.push_back(false);
+
+
+//  ofstream output("debug.txt");
+  ///////////  initialize the queue //////////////////////////////
+  InitializeQueue(id1, &start_p, &end_p, path_queue, expand_queue);
+ ////////////////////////////////////////////////////////////////
+  bool find = false;
+  IPath_elem dest;//////////destination
+  while(path_queue.empty() == false){
+    IPath_elem top = path_queue.top();
+    path_queue.pop();
+
+    if(visit_flag1[top.tri_index - 1])continue; 
+
+//    top.Print();
+//    output<<top<<endl; 
+
+    if(top.tri_index == id2){
+       cout<<"find the shortest path"<<endl;
+       find = true;
+       dest = top;
+       break;
+    }
+    
+    
+    Tuple* door_tuple = node_rel->GetTuple(top.tri_index, false);
+    /////////////////get the position of the door////////////////////////////
+    Point3D q;
+    Line3D* door_loc = 
+      (Line3D*)door_tuple->GetAttribute(IndoorGraph::I_DOOR_LOC_3D); 
+    assert(MiddlePoint(door_loc, q));
+//    int groom_oid1 = 
+//   ((CcInt*)door_tuple->GetAttribute(IndoorGraph::I_GROOM_OID1))->GetIntval();
+//    int groom_oid2 = 
+//   ((CcInt*)door_tuple->GetAttribute(IndoorGraph::I_GROOM_OID2))->GetIntval();
+
+    door_tuple->DeleteIfAllowed(); 
+
+//    output<<"top door goid1 "<<groom_oid1<<" goid2 "<<groom_oid2<<endl;
+
+   ////////find its adjacecy element, and push them into queue and path//////
+    vector<int> adj_list;
+    ig->FindAdj(top.tri_index, adj_list);
+
+    /////////////////////////////////////////////////////////////
+    int pos_expand_path = top.cur_index;
+
+    for(unsigned int i = 0;i < adj_list.size();i++){
+
+      Tuple* edge_tuple = ig->GetEdgeRel()->GetTuple(adj_list[i], false);
+      int neighbor_id = 
+      ((CcInt*)edge_tuple->GetAttribute(IndoorGraph::I_DOOR_TID2))->GetIntval();
+      Line3D* path = (Line3D*)edge_tuple->GetAttribute(IndoorGraph::I_PATH);
+
+//     int groom_oid = 
+//    ((CcInt*)edge_tuple->GetAttribute(IndoorGraph::I_GROOM_OID))->GetIntval();
+//      output<<"edge groom_oid "<<groom_oid<<endl; 
+//      output<<"neighbor_ id "<<neighbor_id<<endl;
+
+      if(visit_flag1[neighbor_id - 1]){
+//        output<<"door visit already"<<endl; 
+        edge_tuple->DeleteIfAllowed();
+        continue; 
+      }
+
+      Tuple* door_tuple1 = node_rel->GetTuple(neighbor_id, false);
+//      unsigned int groom_id1 = 
+//  ((CcInt*)door_tuple1->GetAttribute(IndoorGraph::I_GROOM_OID1))->GetIntval();
+//      unsigned int groom_id2 = 
+//  ((CcInt*)door_tuple1->GetAttribute(IndoorGraph::I_GROOM_OID2))->GetIntval();
+
+//     output<<"neighbor goid1 "<<groom_id1<<" goid2 "<<groom_id2<<endl; 
+
+//      output<<"available"<<endl; 
+//      cout<<"groom oid "<<groom_oid<<" neighbor door tid "<<neighbor_id<<endl;
+
+     Line3D* l = (Line3D*)door_tuple1->GetAttribute(IndoorGraph::I_DOOR_LOC_3D);
+     Point3D p;
+
+      assert(MiddlePoint(l, p));//get the point of next door 
+      door_tuple1->DeleteIfAllowed(); 
+
+
+      int cur_size = expand_queue.size();
+
+      double w = top.real_w + path->Length(); 
+      double hw = p.Distance(end_p);
+      IPath_elem elem(pos_expand_path, cur_size, 
+                      neighbor_id, w + hw, w, *path);
+      path_queue.push(elem);
+      expand_queue.push_back(elem); 
+
+      edge_tuple->DeleteIfAllowed();
+    }
+
+    visit_flag1[top.tri_index - 1] = true; 
+//    output<<"pop door tid "<<top.tri_index<<" groom_id "<<groom_id<<endl; 
+    
+  }
+
+  ////////////////construct the result//////////////////////////////
+  if(find){
+    
+    vector<Point3D> ps_list; 
+    while(dest.prev_index != -1){
+//      cout<<"sub path "<<endl; 
+//      dest.Print();
+      if(dest.path.Size() > 0){
+          if(ps_list.size() == 0){
+              for(int i = dest.path.Size() - 1;i >= 0;i--){
+                  Point3D q;
+                  dest.path.Get(i, q);
+                  ps_list.push_back(q);
+              }
+          }else{
+              for(int i = dest.path.Size() - 2;i >= 0;i--){
+                  Point3D q;
+                  dest.path.Get(i, q);
+                  ps_list.push_back(q);
+              }
+          }
+      }
+      dest = expand_queue[dest.prev_index];
+    }
+//    cout<<"sub path"<<endl; 
+//    dest.path.Print();
+    if(dest.path.Size() > 0){
+      for(int i = dest.path.Size() - 2;i >= 0;i--){
+        Point3D q;
+        dest.path.Get(i, q);
+        ps_list.push_back(q);
+      }
+    }
+
+    Line3D* l3d = new Line3D(0);
+    l3d->StartBulkLoad();
+    //////////////////connect to the start point////////////////////
+    for(int i = 0;i < l3d_s->Size() - 1;i++){
+      Point3D q;
+      l3d_s->Get(i, q);
+      *l3d += q; 
+    }
+    ///////////////////////////////////////////////////////////////
+
+    for(int i = ps_list.size() - 1;i >= 0; i--){
+      *l3d += ps_list[i];
+    }
+    ////////////////////connect to the end point/////////////////////
+    for(int i = 1;i < l3d_d->Size();i++){
+      Point3D q;
+      l3d_d->Get(i, q);
+      *l3d += q; 
+    }
+
+    l3d->EndBulkLoad(); 
+    candidate_path.push_back(*l3d);
+    delete l3d; 
+  }
+  
+}
+
+/*
+Initialize the queue, put the start door into the queue  
+
+*/
+void IndoorNav::InitializeQueue(int id, Point3D* start_p, 
+                                Point3D* end_p, 
+                        priority_queue<IPath_elem>& path_queue, 
+                        vector<IPath_elem>& expand_queue)
+{
+//    cout<<"InitializeQueue "<<endl; 
+
+    int cur_size = expand_queue.size();
+
+    double w = 0.0; 
+    double hw = start_p->Distance(*end_p);
+    Line3D* l3d = new Line3D(0);
+    IPath_elem elem(-1, cur_size, id, w + hw, w, *l3d);
+    path_queue.push(elem);
+    expand_queue.push_back(elem); 
+    delete l3d; 
 }

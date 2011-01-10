@@ -232,6 +232,12 @@ public:
 //      cout<<"Constructor1()"<<endl;
     }
     
+    GenLoc(const unsigned int o, Loc l):
+    StandardSpatialAttribute<2>(true), oid(o), loc(l)
+    {
+      
+    }
+    
    GenLoc(const GenLoc& genl):StandardSpatialAttribute<2>(genl.IsDefined()){
       if(genl.IsDefined()){
         oid = genl.oid;
@@ -279,7 +285,7 @@ public:
   }
     
   static void* Cast(void* addr){return new (addr)GenLoc();}
-  unsigned GetOid(){return oid;}
+  unsigned int GetOid(){return oid;}
   Loc GetLoc(){return loc;}
   private:
     unsigned int oid;
