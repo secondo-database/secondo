@@ -19,10 +19,15 @@ open database funtest;
 
 
 let f1 = fun(x : int) x + 1;
+
 let f2 = fun(x : int , y : int) x * y;
+
 let f3 = fun(x : int) intstream(1, x);
+
 let f4 = fun(x : int, y : int) intstream(x,y);
+
 let f5 = fun(x : int) f1(x);
+
 let f6 = fun(x : int) f1(f1(x));
 
 let f7 = fun(x : int) f4(x,f6(x));
@@ -33,9 +38,12 @@ let f9 = fun(x : int, y : int) f4(f3(x) count, f8(y));
 
 let f10 = fun(x : int, y : int) f9(x,y) count;
 let f11 = fun(x : int) intstream(1,x) transformstream;
+
 let f12 = fun(x : int) f11(x) tconsume;
+
 let f13 = fun(x : int) f11(x) consume;
 
+let f14 = fun(x : int) f11(x) f11(x) {a} product count;
 
 
 
@@ -145,13 +153,143 @@ query f3(25);
 query f4(25,50) count;
 
 
+#testcase eval5;
+#yields (int 5)
+query f5(4);
+
+#testcase eval6;
+#yields (int 6)
+query f6(4);
 
 
+#testcase eval7;
+#yields (int 3)
+query f7(4) count;
+
+#testcase error7;
+#yields error
+query f7(4);
+
+
+#testcase eval8;
+#yields (int 4)
+query f8(4);
+
+
+#testcase eval9
+#yields (int 999997)
+query f9(3,999999 ) count;
+
+
+#testcase eval9_1
+#yields (int 0)
+query f9(3,1 ) count;
+
+
+#testcase eval10
+#yields (int 999997)
+query f10(3,999999 ) ;
+
+
+#testcase eval10_1
+#yields (int 0)
+query f10(3,1 );
+
+#testcase error11
+#yields error
+query f11(999);
+
+#testcase eval11
+#yields (int 999)
+query f11(999) count;
+
+
+#testcase eval11_2
+#yields ((trel (tuple ((elem int))))  ((1) (2) (3)))
+query f11(3) tconsume;
+
+
+#testcase eval12
+#yields (int 999)
+query f12(999) count;
+
+
+#testcase eval12_2
+#yields ((trel (tuple ((elem int))))  ((1) (2) (3)))
+query f12(3);
+
+
+#testcase eval13
+#yields ((rel (tuple ((elem int))))  ((1) (2) (3)))
+query f13(3);
+
+
+#testcase eval14
+#yields (int  144)
+query f14(12);
 
 # testing operator within
 
+#testcase within_1_object
+#yields 5
+query 4 within [f1(.) ]
+
+
+#testcase within_error_1
+#yields error
+query 4 feed within [f1(.) ]
+
+
+#testcase within_2_object
+#yields 5
+query 4  within [ fun(x : int) x + 1 ]
+
+
+#testcase within_3_stream
+#yields 10
+query intstream(1,10) count  within [ intstream(1,.) ] count 
+
+
+#testcase within_3_object
+#yields 10
+query intstream(1,10) count  within [ intstream(1,.) count ]  
+
+
+#testcase within_4_stream
+#yields 1
+query intstream(1,100000) namedtransformstream[No] extend[ TID : int2tid(.No)] createbtree[No]    within [ . exactmatchS[30]  ]   count;
+
+
+#testcase within_5_stream
+#yields 666
+query intstream(1,10) namedtransformstream[No] intstream(1,666) namedtransformstream[No] {a} product  extend[ TID : int2tid(.No*666 + .No_a)] createbtree[No]    within [ . exactmatchS[6]  ]   count;
+
+
+#testcase within_5_object
+#yields 666
+query intstream(1,10) namedtransformstream[No] intstream(1,666) namedtransformstream[No] {a} product  extend[ TID : int2tid(.No*666 + .No_a)] createbtree[No]    within [ . exactmatchS[6] count ];
+
 
 # testing operator within2
+
+#testcase within2_1_object
+#yields (int 18)
+query intstream(1,10) count 8 within2 [ . + ..]
+
+
+#testcase within2_error1
+#yields error
+query intstream(1,10)  8 within2 [ . + ..]
+
+#testcase within2_2_object
+#yields 
+query intstream(1,5) transformstream tconsume intstream(6,10) transformstream tconsume within2[ . feed .. feed concat . feed concat .. feed concat count];
+
+
+
+
+
+
 
 # testing operator whiledo
 
