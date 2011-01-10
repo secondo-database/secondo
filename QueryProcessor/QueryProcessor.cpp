@@ -231,7 +231,7 @@ to determine selectivities of predicates while processing a query. Furthermore s
 
 // define a runtime exception
 #define qp_error(msg) runtime_error( \
-		          ErrorStr(msg, __FILE__, __LINE__) ); qp_assert
+              ErrorStr(msg, __FILE__, __LINE__) ); qp_assert
 
 using namespace std;
 
@@ -664,7 +664,7 @@ OpNode(OpNodeType type) :
         {
           return nl->SymbolValue(u.symbol);
         }
-	return nl->ToString(u.symbol);
+  return nl->ToString(u.symbol);
   }
 
   string nodeIdStr() const {
@@ -678,15 +678,15 @@ OpNode(OpNodeType type) :
   switch ( nodetype )
   {
     case Object : {
-	if (u.dobj.isConstant) // todo list rep of value
-	  ss << id << ": const";
-	else
-	  ss << id << ": " << symbol();
-	break;
+  if (u.dobj.isConstant) // todo list rep of value
+    ss << id << ": const";
+  else
+    ss << id << ": " << symbol();
+  break;
     }
     case Pointer :        { ss << id << ": pointer "; break; }
     case IndirectObject : { ss << id << ": #fun = "
-			       << u.iobj.funNumber; break; }
+             << u.iobj.funNumber; break; }
     case Operator :       { ss << id << ": " << symbol(); break; }
     default :
     { assert( false ); }
@@ -699,7 +699,7 @@ OpNode(OpNodeType type) :
   switch ( nodetype )
   {
     case Object :         { if (u.dobj.isConstant) return "const";
-			    return "obj"; }
+          return "obj"; }
     case Pointer :        { return "ptr"; }
     case IndirectObject : { return "indObj"; }
     case Operator :       { return "op"; }
@@ -1040,9 +1040,9 @@ ostream& operator<<(ostream& os, const OpNode& node) {
       int i = 0;
       for ( i = 0; i < tree->u.op.noSons; i++ )
       {
-	dot.addEdge( tree->nodeIdStr(),
+  dot.addEdge( tree->nodeIdStr(),
            static_cast<OpNode*>( tree->u.op.sons[i].addr )->nodeIdStr() );
-	BuildDotDescr( tree->u.op.sons[i].addr, dot );
+  BuildDotDescr( tree->u.op.sons[i].addr, dot );
       }
     }
   }
@@ -2036,20 +2036,20 @@ function index.
         ((nl->ListLength( pair ) == 2) &&
         (nl->ListLength(nl->First(pair)) == 3) &&
         (TypeOfSymbol(nl->Second(nl->First(pair))) == QP_OPERATOR));
-		
+    
               //list of annotations
-      list = nl->OneElemList( pair );	
+      list = nl->OneElemList( pair );  
       lastElem = list;
               //list of types
       typeList = nl->OneElemList( nl->Second( pair ) );
       lastType = typeList;
-	      //list of pairs (type, argument). Operators
+        //list of pairs (type, argument). Operators
               //that have registered
               //UsesArgsInTypeMapping will get this list
               //instead of the typelist
       typeArgList = nl->OneElemList( 
-		nl->TwoElemList( nl-> Second(pair), first) );
-	  lastTypeArg = typeArgList;
+    nl->TwoElemList( nl-> Second(pair), first) );
+    lastTypeArg = typeArgList;
 
       while (!nl->IsEmpty( rest ))
       {
@@ -2072,8 +2072,8 @@ function index.
 
         lastElem = nl->Append( lastElem, pair );
         lastType = nl->Append( lastType, nl->Second( pair ) );
-		lastTypeArg = nl->Append( lastTypeArg, 
-		  nl->TwoElemList( nl->Second( pair) , nl->First( rest )) );
+    lastTypeArg = nl->Append( lastTypeArg, 
+      nl->TwoElemList( nl->Second( pair) , nl->First( rest )) );
         rest = nl->Rest( rest );
       }
       last = lastElem;   /* remember the last element to be able to
@@ -2123,17 +2123,17 @@ will be processed.
               ListExpr opList = nl->Third( first );
 
               if ( !nl->HasLength(opList,1)  ) {
-		stringstream err;
-		err << "Expecting a list but got " << nl->ToString(opList);
-	        throw qp_error( err.str() );
+    stringstream err;
+    err << "Expecting a list but got " << nl->ToString(opList);
+          throw qp_error( err.str() );
               }
 
-		 //for all three lists, remove the first argument 
+     //for all three lists, remove the first argument 
                  //representing the operator
               rest = nl->Rest( list );
               typeList = nl->Rest( typeList );
               typeArgList = nl->Rest( typeArgList );
-			  
+        
 
               resultType =
                 TestOverloadedOperators( operatorStr, opList,
@@ -2190,7 +2190,7 @@ will be processed.
 
               if (traceMode)
                 cout << "Case 2: An annotated function." << endl;
-	      throw qp_error( "unexpected function annotation!" );
+        throw qp_error( "unexpected function annotation!" );
 
 
               signature = nl->Rest(nl->Second(nl->First(list)));
@@ -2442,23 +2442,23 @@ QueryProcessor::TestOverloadedOperators( const string&
     opId = nl->IntValue( nl->Second( nl->First( opList ) ) );
 
     /* apply the operator's type mapping: */
-	// (i) standard case: pass the list of types
-	// (ii) special case: pass the list of pairs (type, argument)
-	// This is for operators who need to see argument expressions 
+  // (i) standard case: pass the list of types
+  // (ii) special case: pass the list of pairs (type, argument)
+  // This is for operators who need to see argument expressions 
         // within the type
-	// mapping, for example, a filename passed as a string, to get some type
-	// information from the file.
-	// This case applies if the operator has registered  
+  // mapping, for example, a filename passed as a string, to get some type
+  // information from the file.
+  // This case applies if the operator has registered  
         // "UsesArgumentsInTypeMapping"
         // It is demonstrated with the filter operator in the relation
         // algebra.
-	
-	if ( !algebraManager->
+  
+  if ( !algebraManager->
              getOperator( alId, opId )->UsesArgsInTypeMapping() )
-	  resultType = algebraManager->TransformType( alId, opId, typeList );
-	else
-	  resultType = algebraManager->TransformType( alId, opId, typeArgList );
-	  
+    resultType = algebraManager->TransformType( alId, opId, typeList );
+  else
+    resultType = algebraManager->TransformType( alId, opId, typeArgList );
+    
     string algName = algebraManager->GetAlgebraName(alId);
 
     if( traceMode )
@@ -2640,7 +2640,7 @@ arguments preceding this function argument in an operator application.
           int opFunId = 0;
           paramtype =
             TestOverloadedOperators( name2, opList, typeList,
-	      nl->TheEmptyList(), //type operators not eligible
+        nl->TheEmptyList(), //type operators not eligible
                                   //to see argument exprs
               alId, opId, opFunId,
               false, traceMode );
@@ -3159,6 +3159,7 @@ QueryProcessor::Subtree( const ListExpr expr,
         cout << *node << endl;
       }
       node->u.op.isStream = sonNode->u.op.isStream;
+      node->evaluable = ! node->u.op.isStream;
       node->u.op.supportsProgress = sonNode->u.op.supportsProgress;
       return (node);
     }
@@ -3278,19 +3279,19 @@ the function in a database object.
   nl->ExtractAtoms( resultType, allAtoms );
 
   for ( vector<ListExpr>::const_iterator it = allAtoms.begin();
-	it != allAtoms.end();
-	it++ )
+  it != allAtoms.end();
+  it++ )
   {
     if ( nl->AtomType(*it) == SymbolType &&
-	 TypeOfSymbol(*it) == QP_TYPEERROR )
+   TypeOfSymbol(*it) == QP_TYPEERROR )
     {
       DestroyValuesArray();
       cerr << endl
-	   << "Annotated list contains a \"typeerror\" symbol, "
-	      "hence the result type should be \"typeerror\"."
-	      "Maybe there is a bug in some operators type map "
-	      "function or in the annotate function of the "
-	      "query processor." << endl;
+     << "Annotated list contains a \"typeerror\" symbol, "
+        "hence the result type should be \"typeerror\"."
+        "Maybe there is a bug in some operators type map "
+        "function or in the annotate function of the "
+        "query processor." << endl;
       throw ERR_IN_QUERY_EXPR;
     }
   }
@@ -3313,7 +3314,7 @@ the function in a database object.
   }
 
   isFunction = (tree->nodetype == Operator) ?
-		 tree->u.op.isFun : false;
+     tree->u.op.isFun : false;
 
   if (!evaluable && !isFunction) {
     throw ERR_EXPR_NOT_EVALUABLE;
@@ -3417,7 +3418,7 @@ Deletes an operator tree object.
               }
             }
           }
-	  tree->u.dobj.value.addr = 0;
+    tree->u.dobj.value.addr = 0;
         }
         break;
       }
@@ -3525,9 +3526,13 @@ Code just needed for tracing and error eporting is shown indented.
                         static map<int, bool>::const_iterator it;
 
 
-  //cout << "Calling eval/" << message <<  " for tree:" << endl;
+  //cout << "Calling eval/" << msg2str(message) <<  " for node:" << endl;
   //print(cout,tree);
-  //cout << endl << endl;
+  //cout << (*tree) << endl << endl;
+
+  
+
+
 
 
   int i = 0;
@@ -3698,22 +3703,23 @@ Then call the operator's value mapping function.
                         cerr << endl;
                         }
 
+          // copy arguments from abstraction to argument 
+          // vector of the underlying function
           absArgs = Argument(tree->u.op.sons[0].addr ); // argument vector
-          for ( i = 1; i < tree->u.op.noSons; i++ )
-          {
-            (*absArgs)[i-1] = arg[i]; // load arguments for function
+          for ( i = 1; i < tree->u.op.noSons; i++ ) {
+              (*absArgs)[i-1] = arg[i]; // load arguments for function
 
                         if ( traceNodes )
                         cerr << fn << "absArgs[" << i-1 << "] = "
                         << (void*)arg[i].addr << endl;
           }
+         
 
+          // evaluate the abstraction
+          Eval( tree->u.op.sons[0].addr, result, message );
 
-          if(tree->isStreamOp() && (message==OPEN) ){
-              result.addr = tree->u.op.sons[0].addr;
-          } else {
-             Eval( tree->u.op.sons[0].addr, result, message );
-          }
+          // forward received 
+          tree->u.received = ((OpNode*)tree->u.op.sons[0].addr)->u.received;
 
           return;
         }
@@ -4115,7 +4121,7 @@ QueryProcessor::IsFunctionNode( const Supplier s ) const
 {
   OpTree tree = static_cast<OpTree>( s );
   return (tree->nodetype == Operator)
-	   && ((tree->u.op.resultAlgId == 0) || (tree->u.op.isFun));
+     && ((tree->u.op.resultAlgId == 0) || (tree->u.op.isFun));
 }
 
 
@@ -4257,7 +4263,7 @@ QueryProcessor::ReInitResultStorage( const Supplier s )
 
   //cerr << "u.op.isFun = " << tree->u.op.isFun << endl;
   ListExpr type = (tree->u.op.isFun) ? nl->Third(tree->typeExpr)
-	                             : tree->typeExpr;
+                               : tree->typeExpr;
 
   int algId = tree->u.op.resultAlgId;
   int typeId = tree->u.op.resultTypeId;
