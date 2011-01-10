@@ -756,6 +756,7 @@ each node, and returns the result in ~result~. The ~message~ is "OPEN"[4],
   bool debugMode;
   bool traceMode;
   bool traceNodes;
+  bool debugLocal;
   map <int, bool> argsPrinted;
 
   struct ValueInfo

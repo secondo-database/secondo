@@ -243,6 +243,25 @@ ErrorStr(const string& msg, const string& file, const int& line)
   return err.str();
 }
 
+string msg2str(int message){
+   switch(message){
+      case OPEN : return "OPEN";
+      case REQUEST: return "REQUEST";;
+      case CLOSE : return "CLOSE";
+      case YIELD: return "YIELD";
+      case CANCEL:          return "CANCEL";
+      case CARDINALITY:     return "CARDINALITY";
+      case REQUESTPROGRESS: return "REQUESTPROGRESS";
+      case CLOSEPROGRESS:   return "CLOSEPROGRESS";
+      case FAILURE: return "FAILURE";
+      default : return "UNKNOWN";
+   }
+ }
+
+
+
+
+
 /**************************************************************************
 1.2 Constants, Types, Global Data Structures
 
@@ -300,7 +319,7 @@ QueryProcessor::QueryProcessor( NestedList* newNestedList,
   : progressView(0),nl( newNestedList ),
     algebraManager( newAlgebraManager ),
     testMode( false ), debugMode( false ),
-    traceMode( false ), traceNodes( false )
+    traceMode( false ), traceNodes( false ), debugLocal(false)
 {
   values.resize( MAXVALUES );
   argVectors.resize( MAXFUNCTIONS,0 );
@@ -3355,7 +3374,7 @@ Deletes an operator tree object.
           /* space was allocated for result */
           DeleteResultStorage(tree);
         }
-        if( (tree->u.op.local.addr != 0) && RTFlag::isActive("QP:debuglocal"))
+        if( (tree->u.op.local.addr != 0) && debugLocal)
         {
           cerr << "LocalInfo for operator "
               << tree->u.op.theOperator->GetName()
@@ -4425,31 +4444,10 @@ QueryProcessor::GetTimer()
 void
 QueryProcessor::SetDebugLevel( const int level )
 {
-  switch ( level )
-  {
-    case 1:
-      debugMode = true;
-      traceMode = false;
-      traceNodes = false;
-      break;
-
-    case 2:
-      debugMode = true;
-      traceMode = true;
-      traceNodes = false;
-      break;
-
-    case 3:
-      debugMode = true;
-      traceMode = true;
-      traceNodes = true;
-      break;
-
-    default:
-      debugMode = false;
-      traceMode = false;
-      traceNodes = false;
-  }
+   debugMode = (level & 1) > 0;
+   traceMode = (level & 2) > 0;
+   traceNodes = (level & 4) > 0;
+   debugLocal = (level & 8) > 0;
 }
 
 bool

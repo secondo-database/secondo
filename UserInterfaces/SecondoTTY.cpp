@@ -178,12 +178,16 @@ SecondoTTY::Usage()
   "\n" <<
   "  ?, HELP  - display this message\n" <<
   "  @FILE    - read commands from file 'FILE' (may be nested)\n" <<
-  "  DEBUG n  - set debug level to n, with\n" <<
-  "             0: debug and trace turned off\n" <<
-  "             1: debug mode (show annotated query and operator tree)\n" <<
-  "             2: debug and trace (show type mapping and rec. calls)\n" <<
-  "             3: trace more (construction of nodes of the op. tree,\n" <<
-  "                and execution of the query processors Eval method)\n" <<
+  "  DEBUG n  - set debug level to n where n is an integer where each " <<
+  "bit corresponds to one setting:\n" <<
+  "           bit  0: debug mode (show annotated query and operator tree)\n" <<
+  "           bit  1: trace (show type mapping and rec. calls)\n" <<
+  "           bit  2: trace nodes (construction of nodes of the op. tree,\n" <<
+  "                   and execution of the query processors Eval method)\n" <<
+  "           bit  3: localInfo (prints a warning if an operator does " << 
+  "not have" << 
+  " destroyed its \n" <<
+  "                   localinfo when destroying the operator tree" <<
   "  Q, QUIT  - exit the program\n" <<
   "  # ...    - comment line (first character on line has to be '#')\n" <<
   "\n" <<
