@@ -818,6 +818,14 @@ void DeleteTmpRel( const ListExpr, Word& w )
   w.addr = 0;
 }
 
+
+bool
+ TRelKindCheck( ListExpr type, ListExpr& errorInfo ){
+  return listutils::isRelDescription(type,true);
+}
+
+
+
 /*
 5 Operators
 
@@ -5770,14 +5778,17 @@ class RelationAlgebra : public Algebra
     cf.out = OutTmpRel;
     cf.create = CreateTmpRel;
     cf.deletion = DeleteTmpRel;
+    cf.kindCheck = TRelKindCheck;
 
     ConstructorInfo ci;
     ci.name = "trel";
     ci.signature = "->trel";
-    ci.typeExample = "query plz feed tconsume";
+    ci.typeExample = "trel((tuple(A int)(B string)))";
     ci.listRep = "A list of tuples";
-    ci.valueExample = "(trel(tuple(Nr int))((1) (2) (3)))";
-    ci.remarks = "Type trel represents a tuple buffer.";
+    ci.valueExample = "((1 \"Hello\") (2 \"World\") (3 \"!\"))";
+    ci.remarks = "Type trel represents a temporary relation."
+                 " It is only valid during query evaluation."
+                 " It cannot be made persistent.";
 
     static TypeConstructor cpptrel(ci,cf);
 
