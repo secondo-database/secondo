@@ -132,19 +132,27 @@ Result   : 3719
 
 Operator : ifthenelse
 Number   : 1
-Signature: (bool x T x T) ->  T
-Example  : query ifthenelse(3 < 5,[const string value "less"],[const string value "greater"])
+Signature: (bool x T x T) ->  T , T in DATA
+Example  : query ifthenelse(3 < 5, "less", "greater")
 Result   : "less"
+
+
+Operator : ifthenelse
+Number   : 2
+Signature: (bool x T x T) ->  T , T = stream(...)
+Example  : query ifthenelse(3 > 5,strassen feed , strassen feed head[8]) count
+Result   : 8
+
 
 Operator : ifthenelse2
 Number   : 1
-Signature: (bool x T x T) ->  T
+Signature: (bool x rel x rel) ->  rel
 Example  : query ifthenelse2(3 < 5,ten feed consume,thousand feed consume) count
 Result   : 10
 
 Operator : ifthenelse2
 Number   : 2
-Signature: (bool x T x T) ->  T
+Signature: (bool x trel x trel) ->  trel
 Example  : query ifthenelse2(3 > 5,ten feed tconsume,thousand feed tconsume) count
 Result   : 1000
 
