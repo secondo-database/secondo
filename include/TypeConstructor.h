@@ -143,11 +143,11 @@ struct ConstructorInfo {
                                  nl->StringAtom("Example List"),
                                  nl->StringAtom("Remarks") );
      ListExpr specList = 
-               nl->FiveElemList( nl->StringAtom(signature),
-                                 nl->StringAtom(typeExample),
-                                 nl->StringAtom(listRep),
-                                 nl->StringAtom(valueExample),
-                                 nl->StringAtom(remarks) );
+               nl->FiveElemList( nl->TextAtom(signature),
+                                 nl->TextAtom(typeExample),
+                                 nl->TextAtom(listRep),
+                                 nl->TextAtom(valueExample),
+                                 nl->TextAtom(remarks) );
 
     return nl->TwoElemList(headList, specList ); 
   }
