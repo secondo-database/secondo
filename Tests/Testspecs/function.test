@@ -231,7 +231,7 @@ query f14(12);
 # testing operator within
 
 #testcase within_1_object
-#yields 5
+#yields (int 5)
 query 4 within [f1(.) ]
 
 
@@ -241,32 +241,32 @@ query 4 feed within [f1(.) ]
 
 
 #testcase within_2_object
-#yields 5
+#yields (int 5)
 query 4  within [ fun(x : int) x + 1 ]
 
 
 #testcase within_3_stream
-#yields 10
+#yields (int 10)
 query intstream(1,10) count  within [ intstream(1,.) ] count 
 
 
 #testcase within_3_object
-#yields 10
+#yields (int 10)
 query intstream(1,10) count  within [ intstream(1,.) count ]  
 
 
 #testcase within_4_stream
-#yields 1
+#yields (int 1)
 query intstream(1,100000) namedtransformstream[No] extend[ TID : int2tid(.No)] createbtree[No]    within [ . exactmatchS[30]  ]   count;
 
 
 #testcase within_5_stream
-#yields 666
+#yields (int 666)
 query intstream(1,10) namedtransformstream[No] intstream(1,666) namedtransformstream[No] {a} product  extend[ TID : int2tid(.No*666 + .No_a)] createbtree[No]    within [ . exactmatchS[6]  ]   count;
 
 
 #testcase within_5_object
-#yields 666
+#yields (int 666)
 query intstream(1,10) namedtransformstream[No] intstream(1,666) namedtransformstream[No] {a} product  extend[ TID : int2tid(.No*666 + .No_a)] createbtree[No]    within [ . exactmatchS[6] count ];
 
 
@@ -274,27 +274,174 @@ query intstream(1,10) namedtransformstream[No] intstream(1,666) namedtransformst
 
 #testcase within2_1_object
 #yields (int 18)
-query intstream(1,10) count 8 within2 [ . + ..]
+query intstream(1,10) count 8 within2 [ . + ..];
 
 
 #testcase within2_error1
 #yields error
-query intstream(1,10)  8 within2 [ . + ..]
+query intstream(1,10)  8 within2 [ . + ..];
 
 #testcase within2_2_object
-#yields 
+#yields (int 20)
 query intstream(1,5) transformstream tconsume intstream(6,10) transformstream tconsume within2[ . feed .. feed concat . feed concat .. feed concat count];
 
 
+#testcase within2_1_stream
+#yields (int 7)
+query 2  8 within2 [ intstream(. , ..) ] count;
 
 
 
+#testcase within2_2_stream
+#yields (int 20)
+query intstream(1,5) transformstream tconsume intstream(6,10) transformstream tconsume within2[ . feed .. feed concat . feed concat .. feed concat ] count;
+
+#testcase within2_3_object
+#yields (int 12)
+query 3 8 within2[ f1(.) + f3(..) count ];
+
+
+#testcase within2_3_stream
+#yields (int 8)
+query 3 8 within2[  f3(..)  ] count;
+
+
+#testcase within2_4_stream
+#yields (int 6)
+query 3 8 within2[  f4(., ..)  ] count;
+
+
+#testcase within2_4_stream
+#yields (int 7)
+query f1(3 8 within2[  f4(., ..)  ] count);
 
 
 # testing operator whiledo
 
+#testcase whiledo_1
+#yields (int 10)
+query 1 whiledo[ . < 10; . + 1; TRUE] count
 
-# testing functions within loops
+
+#testcase whiledo_1_undef
+#yields (int 2)
+query [const int value undef] whiledo[. < 10; . + 1; TRUE] count;
+
+
+#testcase whiledo_2_fixpoint
+#yields (int 2)
+query 1 whiledo[ TRUE; . ; TRUE  ] count;
+
+
+#testcase whiledo_3_single
+#yields (int 1)
+query 1 whiledo[ FALSE; . + 1; TRUE] count;
+
+
+#testcase whiledo_4_useFunObj
+#yields (int 9)
+query 1 whiledo[ f1(.) < 10; f1(.); TRUE] count;
+
+#testcase whiledo_5_useFunObjWithFixpoint
+#yields (int 2)
+query 1 whiledo[ . < 20; f3(.) count; TRUE] count;
+
+
+#testcase whiledo_6_useFunObj
+#yields (int 20)
+query 1 whiledo[. < 20; f4(0, .) count; TRUE] count;
+
+
+#testcase whiledo_7_TMerror_3rdIsStream
+#yields error
+query 1 whiledo[. < 20; f4(0, .); TRUE] count;
+
+#testcase whiledo_8_TMerror_1stIsStream
+#yields error
+query 1 feed whiledo[. < 10; . + 1; FALSE] count;
+
+
+#testcase whiledo_8_TMerror
+#yields error
+query "Hallo" whiledo[. < 10; .; TRUE] count;
+
+
+#testcase whiledo_9_TMerror_TypeMismatchArg1_3
+#yields error
+query 1 whiledo[. < 10; num2str(.); TRUE] count;
+
+
+#testcase whiledo_10_TMerror_TypeMismatchArg1_2
+#yields error
+query 1 whiledo[. < "a"; . + 1; TRUE] count;
+
+
+#testcase whiledo_11_TMerror_TypeMismatchArg4
+#yields error
+query 1 whiledo[. < 10; . + 1; 1] count;
+
+
+#testcase whiledo_12_Endless
+#yields (int 1000)
+query 1 whiledo[ . < 2 ; . ; FALSE] head[1000] count;
+
+
+#testcase whiledo_13_Undef4thArg
+#yields (int 2)
+query 1 whiledo[ . < 2 ; . ; [const bool value undef]] head[1000] count;
+
+
+
+# testing functions within streams
+
+#testcase eval_obj_stream
+#yields (int 65)
+query intstream(1,10) transformstream extend[No: f1(.elem)] sum[No];
+
+
+#testcase eval_stream_stream
+#yields (int 55)
+query intstream(1,10) transformstream extend[No: f3(.elem) count] sum[No];
+
+
+#testcase within_stream_stream
+#yields (int 65)
+query intstream(1,10) transformstream extend[ No : .elem  within[ f1(.)]] sum[No];
+
+#testcase fun_within_extendstream
+#yields (int 30)
+query intstream(1,10) transformstream extendstream[ No : f7(.elem)] count;
+
+
+#testcase within_within_extendstream
+#yields (int 55)
+query intstream(1,10) transformstream extendstream[ No : .elem within[ f3(.)] ] count;
+
+
+#testcase within_within_within
+#yields (int 5)
+query 3 within[ . +  1 within [ . + 1]];
+
+
+#testcase any_crazy
+#yields (int 7)
+query 1 within[. feed namedtransformstream[A] extendstream[B: .A f6(.A) within2[ . whiledo[(. + ..) < 10; f1(.); TRUE ] ]] ] count;
+
+
+#testcase any_also_crazy
+#yields (int 100)
+query 10 within[ f3(.) namedtransformstream[A] extendstream[B: .A f6(.A) within2[ . whiledo[(. + ..) < 22; f1(.); TRUE ] ]] ] printstream count;
+
+
+
+
+
+
+
+
+
+
+
 
 
 
