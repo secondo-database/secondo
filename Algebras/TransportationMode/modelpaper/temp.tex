@@ -1,0 +1,41 @@
+\newpage 
+
+\begin{itemize}
+ \item The symbol data type is introduced in Definition \ref{infraobjectsymbol} of Section \ref{sec:infrastructure}. 
+ \item The data type representing trajectories ($\underline{genrange}$) is in Definition \ref{genrange} of Section \ref{sec:location}. 
+ \item The definition for two units which are \textit{mergeable} is in Section \ref{sec:trajectoryrepresentation}.  
+ \item I write a paragraph explaining bus trajectory and traveller's (taking the bus) trajectory in Section \ref{sec:ioinptn}. 
+ \item Operators on transportation modes are in Table \ref{tab:operators4} in Section \ref{sec:infrastructureandtm}. Operators on coverting generic data types to specific types are in Table \ref{tab:convertoperators} in Section \ref{sec:datatypeconvert}. Operators on specifc infrastructures are in Table \ref{tab:operators3} in Section \ref{sec:specific}. 
+
+  \item A short paragraph about implementation is added in Section \ref{sec:implementation}.
+ \item The notations used for queries are introduced in the beginning of Section \ref{sec:exampledataandquery}.
+\end{itemize}
+
+
+\textbf{Issues from Ralf} 
+
+\begin{itemize}
+ \item Can we relate locations within different infrastructures to each other? For example, to find objects traveling by bus through a region in real space? \\
+ 
+ Yes, we can. In this case, we need the \textit{space} object to transform locations in the same coordinate/reference system, i.e., in the free space.  
+
+ \item What about aggregations of infrastructure objects such as the set of rooms on a floor or the set of pavement regions along a road? \\
+
+  After doing union a set of rooms on a floor, we get a groom object where its elements (3D regions) are individual rooms. In this case, only one object identifier will be used. So, the movement of a person walking through several rooms on a floor is represented by referencing to one groom. It is the same for doing union on a set of pavement regions. 
+
+ \item Switching points between infrastructures. How can we refer to them in a query? \\
+
+  First, we can get the 2D point. And then, we can create a genloc object for that point. See the Query 5 and 13.\\
+
+ \item Consider infrastructures as a space where each infrastructure is one location. Similar consider transportation modes as a space. \\
+
+ Is this a question? \\ 
+
+ \item Rough representations of trajectoreis. \\
+
+ An operator called \textbf{lowres} is introduced in Table \ref{tab:operators2} in Section \ref{sec:temporaltypes}, which is to get the moving object with coarse location where the units are low resolution temporal units. And then we can apply operator \textbf{trajectory} to get the rough trajectory. 
+
+ \item Access to genloc or genrange values. \\
+
+      An operator called \textbf{ref\_id} is introduced in Table \ref{tab:operators1} in Section \ref{sec:non-temporalop}.
+\end{itemize}
