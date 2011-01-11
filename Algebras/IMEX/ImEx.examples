@@ -63,14 +63,14 @@ Result   : 10
 Operator : shpexport
 Number   : 1
 Signature: stream(s) x text  -> stream(s) , s in {Point, Points, Line }
-Example  : query  Kinos feed projecttransformstream[geoData] shpexport['kinos'] count
+Example  : query  Kinos feed projecttransformstream[geoData] shpexport['kinos.shp'] count
 Result   : 83
 
 
 Operator : shpexport
 Number   : 2
 Signature: stream(tuple(...) x text x id  -> stream(tuple(...))
-Example  : query  Kinos feed shpexport['kinos',geoData] count
+Example  : query  Kinos feed shpexport['kinos.shp',geoData] count
 Result   : 83
 
 
