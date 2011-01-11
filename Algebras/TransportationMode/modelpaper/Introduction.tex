@@ -1,0 +1,167 @@
+\abstract{}
+The current data models for managing moving objects do classification on the environment,
+e.g., \textit{road network}, \textit{indoor}. \textit{Road network} is for
+moving objects like cars, taxis, and \textit{indoor} is for humans moving inside a building. However,
+each model can only fit into one specific case. But to represent the complete movement 
+for a moving object, especially a human who can move inside a building, walk on the pavement outside, drive the car on the road, and 
+use the public vehicles (bus or train), more than one model are needed. In this paper, we propose 
+a generic data model for representing moving objects that encapsulates multiple environments 
+so that the database system only needs one model to manage all the data. Abstractly, the 
+method is to let the \textit{space} where an object moves be covered by a set of so-called 
+\textit{infrastructures} and represent the location data by \textit{referencing} to these \textit{infrastructures}. 
+Each \textit{infrastructure} corresponds to a kind of moving environment as well as its available 
+places. And it consists of a set of \textit{infrastructure objects}. 
+For example, road network is a kind of \textit{infrastructure} and \textit{indoor} environment 
+is also a kind of \textit{infrastructure} where the roads, streets and rooms are 
+\textit{infrastructure objects}. Besides, transportation modes (e.g., \textit{Car}, 
+\textit{Bus, Walk}) are seamlessly integrated into the model to enrich moving objects with 
+semantic data, making the representation more expressive than only focusing on location data. 
+Because for humans' movement, it is necessary to know both \texttt{where} 
+and \texttt{how}. In addition, our model represents the location in a multiresolution way where 
+both imprecise and precise data is managed. With the generic model, a complete trajectory covering multiple environments can be represented. We propose a set of operators manipulating data and 
+show how the model can be implemented in a database system and formulate query examples on it. 
+
+\section{Introduction}
+\label{sec:introduction}
+Moving objects databases have been extensively studied in the last decade due to their wide 
+applications, e.g., location-based services \cite{HJ2003,ZZPTT03,JKPT04}, 
+transportation and road networks \cite{MYPM06,SJ2008,BSWC09,MLY10}, nearest neighbor queries \cite{TPS02,ISS03,MHP05,GBX2010}, trajectory searching \cite{COO05,JYZJS08,CSZZX2010}. Basically, 
+a moving objects database manages spatial objects
+continuously changing locations over time. Although there has been a lot of work 
+\cite{PO+97,GBE+00,FG+00,HJ2003,SJ2003,GA2006} on modeling moving objects, 
+the methods only address the issue in one specific environment. According to the environment, 
+the current state-of-the-art can be classified into three categories: 
+
+(1) \textit{free space} \cite{PO+97,WX+98,FG+00,GBE+00,GRS00}; 
+
+(2) \textit{road (spatial) network} \cite{VW01,HJ2003,SJ2003,GA2006}; 
+
+(3) \textit{indoor} \cite{JLY109,JLY209}. 
+
+Free space is an environment where the movement has no 
+constraint and the locations are represented by coordinates. In the real world, objects usually
+move only on a pre-defined set of trajectories as specified by the underlying network 
+(road, highway, etc) where the movement is limited by the environment. This is the road network environment. The first two are for \textit{outdoor} movement. Meanwhile, people spend large parts of their lives in \textit{indoor} spaces such as office buildings, shopping centers, etc. The models for \textit{indoor} moving objects are proposed. These models are diverse for different environments, e.g., 
+location representation and data manipulation. Thus, for different applications the 
+database system has to manage several models where each fits into one case. Besides,  
+the queries are limited to one specific environment. The system can not answer queries covering different environments, e.g., \textit{indoor} and \textit{outdoor}. While for humans, the 
+movement can cover all the above three cases, but the complete trajectory can not 
+be managed by existing techniques. In this paper, we propose 
+a generic data model to manage moving objects in all these contexts. It provides a global
+view of space where moving objects are located instead of focusing on an individual environment. \\
+
+
+We consider the movement for humans that can cover several environments. To motivate the
+scope of this paper, consider the following two example movements of \textit{Bobby}: \\
+
+$M_1$:\textit{ walks from his house to the parking lots, and 
+then drives the car along the road and highway to his office building, 
+finally walks from the underground garage to his office room}. \\
+
+$M_2$:\textit{ walks from the house to a bus stop, and 
+then takes a bus to the train station, moves from one city to another by train,
+finally walks from the train station to his office room}. \\
+
+The current technique can not manage the complement movement as the trajectories are split 
+into several parts each of which fits into an environment (e.g., $road$ $network$, $indoor$). 
+Thus, queries like \\
+
+ $Q_1$:``\textit{where is Bobby at 8:00 am, e.g., at home, on the street or in the office room?}", and\\
+
+$Q_2$: ``\textit{how long does Bobby walk during his trip?}" \\
+
+can not be supported in one system. Because for $Q_1$, it first has to identify which
+moving environment $Bobby$ belongs to (e.g., $road$ $network$, $indoor$) as the trajectory 
+data is managed separately and for $Q_2$ the
+walk movement is dispersed in different environments ($outdoor$ and $indoor$). Most existing methods \cite{PO+97,WX+98,FG+00,GBE+00} use a two-tuple
+$(x,y)$ to identify the location, obviously it can not apply for $indoor$ as
+it is a 3D environment. Of course it is possible to extend it to a triple $(x,y,z)$ to
+represent the location. But the method only focuses on geometric properties 
+(e.g., coordinate). The raw location data $(x,y,z)$ means nothing else than three real numbers 
+so that it can not recognize which part is
+for walking and which is for driving. To completely and richly identify 
+the movement, it needs two factors: \texttt{where} and \texttt{how}. 
+As for humans' movement, it can 
+have several kinds of transportation modes, e.g., $Car$, $Bus$, $Walk$. To answer $Q_2$, one initially
+has to recognize the $Walk$ part in the whole movement, but raw location data 
+can not express such a kind of information. \\
+
+Recently, in Microsoft \textit{GeoLife}'s project \cite{GeoLife} researchers work on exploring and 
+learning transportation modes of people's movement \cite{ZLWX08,ZLCXM08,ZCXM09} from raw 
+GPS data to enrich the mobility with informative and context knowledge. By
+mining multiple users' location histories, one can discover the top most interesting 
+locations, classical travel sequences and travel experts in a given geospatial region,
+hence enable a generic travel recommendation. The difficulty is how to partition a user's trajectory into several segments and identify the transportation mode for each piece. This is because the user's trajectory can contain multiple kinds of modes and the
+velocity of a mode suffers from the variable traffic condition. 
+In a transportation system, it is more meaningful to support trip planning with different 
+kinds of motion modes (e.g., $Walk\rightarrow Bus\rightarrow Train$) and the constraint 
+on a specific mode, for example, less than two bus transfers.
+Whereas paper \cite{BSWC09} presents a data model for trip planning in a multimodel 
+transportation system, they do not focus on modeling moving 
+objects. We propose a method for modeling moving objects in various environments and it seamlessly integrates transportation modes. The data model is more expressive if it can represent the semantic data as well as locations. Some researchers focus on mining semantic locations from GPS data \cite{LWY2006,ZZXM09,CCJ10}. \\
+
+
+Basically, there are two contrasting approaches for modeling geometric location data which
+can be classified into two categories: \textit{field-based} model and \textit{object-based} 
+model \cite{SCGLS97}. The first considers the space as being continuous and empty, and there are discrete entities (objects) moving inside the space having their own properties, i.e., coordinates. 
+References \cite{PO+97,WX+98,FG+00,GBE+00} belong to this category. 
+Another considers the world as a surface littered with recognizable and geographic objects
+that are associated with spatial attributes, and every location in space is represented by
+mapping it to those objects. Papers \cite{S02,VD02,BPT04,MR05,GA2006} fall into this category. 
+Besides, trajectory pattern \cite{ABKMMV07,SPDMPV08} also considers the background geographic space where trajectories are located. A preprocessing step is involved there to construct the trajectory 
+with semantic units, e.g., interesting places (hotels and airports).\\
+
+
+In this paper, we follow the method of \textit{object-based} approach 
+and propose a generic and expressive data model for moving objects. 
+We consider the geographic \textit{space} is covered by a set of so-called \textit{infrastructures}, 
+where each corresponds to an environment. For example, \textit{road network} is a kind of \textit{infrastructure}, and $indoor$ is also an \textit{infrastructure}. 
+For each infrastructure consisting of a set of \textit{infrastructure objects}, we model its available places as well as the relative position within a place. 
+Afterwards, we represent the location by \textit{mapping} 
+it to these geo-referenced \textit{infrastructures}, more specifically, \textit{mapping} it to \textit{infrastructure objects}. Papers \cite{GBE+00, BPT04,MR05,GA2006} only consider one case where the model is only available for one environment, e.g., free space, road network, but here we model all environments and the representation is consistent with before for each specific case. 
+We define a general framework for moving objects location representation where all specific environments can apply for it. Besides, transportation modes are well embedded into the model. We know both where the object is and how it moves so that example queries $Q_1$ and $Q_2$ can be answered via one model. \\
+
+
+In addition, our model represents the location data in a multiresolution mechanism  
+where both imprecise and precise data is managed. This is because for some applications \cite{MR05,MRS05}, it may be not necessary to represent the location in its full complexity. 
+For example, consider the query \\
+
+$Q_3$:``\textit{find all travelers passing two states during their trip}". \\
+
+It is only necessary to manage the trajectory in
+such a resolution that it can determine whether the trajectory of a traveler intersects the 
+state region or not, while the precise movement inside can be ignored.  
+Because the higher the resolution is, the more space is needed to store the data and 
+the more time is required for processing. Therefore, 
+it is inefficient to work at full resolution if it is not required. But for most applications,
+high resolution representation (precise location) is preferable which is adopted by most 
+existing models \cite{PO+97,GBE+00,GA2006}. Currently, there does not exist a method which can 
+combine both of them, but our model can. The database system is able to tune the 
+level of scale to the appropriate value, making therefore the system much more powerful, 
+while which level is preferable depends on the application requirement. \\
+
+
+The main contribution of this paper is the design of a generic data model for managing 
+moving objects in various environments. It includes the following specific contributions: 
+\begin{itemize}
+ \item We define a finite set of \textit{infrastructures} covering the $space$ where an object moves 
+and a general definition for all infrastructure objects. A generic model is proposed to represent the location data in various environments. And a framework for generic moving objects is proposed which can represent moving objects in all defined \textit{infrastructures}. The multiresolution location representation is also covered by the model, i.e., precise and imprecise data.
+
+ \item We model available places for each \textit{infrastructure} and give the data 
+type representing the geo-space it covers as well as the relative position inside. Applying the 
+proposed framework of generic moving objects, we show how the location data is represented for each  infrastructure. For one specific environment \textit{indoor}, we also define a graph model for navigation supporting different kinds of optimal routes. e.g., shortest path, smallest number of rooms passed by. 
+
+ \item We show the type system in generic model and define a set of operators on generic moving objects as well as those in a specific environment. We also describe what happens with the
+existing operators for moving objects. New operators are imported for queries on infrastructures and transportation modes. 
+
+ \item A relational interface is provided to exchange information. We show how the graph model for indoor navigation can be implemented. And a group of example queries are formulated which consider the movement in all environments. 
+\end{itemize}
+
+The rest of the paper is organized as follows: 
+The generic data model is presented in Section \ref{sec:genericmodel}. It includes generic location representation, the framework for generic moving objects and multiresolution location representation.
+Section \ref{sec:RfI} describes how the location is represented in each \textit{infrastructure} and 
+Section \ref{sec:operations} shows the operators on proposed data types. We give the
+relational interface for exchanging data and implementation description in Section \ref{sec:relationinterface}, and formulate example queries in Section \ref{sec:exampledataandquery}. 
+Section \ref{sec:relatedwork} reviews related work. Finally, Section \ref{sec:conclusions} 
+concludes the paper. 
+

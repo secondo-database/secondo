@@ -1,0 +1,68 @@
+\documentclass{article}
+%\documentclass{acm_proc_article-sp}
+\usepackage{graphicx}  
+\usepackage{subfigure}
+\usepackage{times,amsmath,epsfig}
+\usepackage{pstricks}
+\usepackage{ntheorem}
+\usepackage{pst-node}
+\usepackage{pst-tree}
+\usepackage{listings}
+\usepackage{amssymb}
+\usepackage{multicol}
+\usepackage{verbatim}
+\usepackage{multirow}
+
+\usepackage[left=3cm,right=3cm]{geometry}
+
+\newcommand{\op}[1]{\ensuremath{\mathit{#1}}}
+\newcommand{\tc}[1]{\ensuremath{\mathbf{#1}}}
+\newcommand{\var}[1]{\ensuremath{#1}}
+\newcommand{\R}{\ensuremath{\mathbb{R}}}
+\makeatletter
+\newif\if@restonecol
+\makeatother
+\let\algorithm\relax
+\let\endalgorithm\relax
+\usepackage[ruled,vlined]{algorithm2e}
+\begin{document}
+
+\title{A Generic Data Model for Moving Objects}
+\author{%
+% author names are typeset in 11pt, which is the default size in the author block
+\fontsize{11}{11}\selectfont%\itshape
+{Jianqiu Xu, Ralf Hartmut G\"uting}
+% add some space between author names and affils
+\vspace{1.6mm}\\
+\fontsize{10}{10}\selectfont%\itshape
+Database Systems for New Applications, Mathematics and Computer Science\\
+\fontsize{10}{10}\selectfont%\itshape
+FernUniversit\"at Hagen, Germany\\
+%\fontsize{10}{10}\selectfont\ttfamily\upshape
+\fontsize{10}{10}\selectfont%\itshape
+ \{jianqiu.xu,rhg\}@fernuni-hagen.de
+% add some space between email and affil
+}
+
+\maketitle
+\newtheorem{Statement}{Definition}[section]
+\newtheorem{lemma}{Lemma}
+\newtheorem*{proof}{Proof}
+
+
+%\input{question}
+%\input{mywork}
+
+\input{Introduction} %3 pages
+\input{GenericModel} %3-4 pages 
+\input{Infrastructure} %5-6 pages 
+\input{Operations}  %2-3 pages 
+\input{Interface} %2-3 pages 
+\input{ExampleDataandQueries} %2 pages
+\input{RelatedWork} %1-2 pages
+\input{Conclusions} %1 pages 
+\bibliographystyle{plain} 
+\bibliography{paper}
+\input{Appendix}
+%\input{temp}
+\end{document}

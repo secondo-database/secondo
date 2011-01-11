@@ -1,0 +1,236 @@
+\documentclass{acm_proc_article-sp}
+\usepackage{graphicx}  
+\begin{document}
+\conferenceinfo{STOC}{Permission to copy without fee all or part of this material '97 El Paso, Texas USA}
+
+\CopyrightYear{2008}
+\title{Circle: an operator for region queries in road networks }
+\numberofauthors{2}
+\author{
+\alignauthor %Jianqiu Xu
+		\qquad\qquad 
+		%Ralf Hartmut G\"uting
+	\\
+       \affaddr{Database Systems for New Applications}\\
+       \affaddr{Mathematics and Computer Science}\\
+				\affaddr{University of Hagen,Germany}\\
+%				\email{\{xjq,rgh\}@fernuni-hagen.de}    
+}
+\maketitle
+\begin{abstract}
+Although various problems have been discussed in road networks, e.g., shortest path, NN(nearest neighbors), distance join, queries related to region objects have not been extensively studied in the literature.
+ And for each point object, it has its own influence range so that the intersection area of two points' influence area is an interesting issue. We introduce an operator called circle 
+Three queries realted to region objects are disscussed in this paper, range queries, intersection and join. 
+In this paper, we provide an operator for 
+\end{abstract}
+
+\category{H.2.8}{Database Management}{Database Applications}
+\terms{Algorithms,Design,Performance}
+\keywords{road networks,regions,}
+\section{Introduction}
+Recently, a series of queries in road networks have been extensively investigated, e.g., distance computation and shortest path[HL2006][HJ2008], various kinds of nearest neighbors[MY 2006][MC2004][MN2005] and distance joins[M2008]. To the best of our knowledge, most of the research work deal with static or moving points object. However, region objects are not widely discussed. In real world, queries related to regions are also very important not only because they can efficiently deal with many complex queries , but also due to its widely application base. For example,a moving car in the city may ask "find the nearest traffic jam and its neighbor area" so that the most optimal route can be choosed according to the results.  There are many queries refer to region objects in road networks.Due to the limitation of the paper, three kinds of common ones are mainly discussed here: range queries, intersection and join. 
+
+ the department of city construction and transportation will choose some positions to construct bus or subway stop which is close to residence area and work area so that it will be very convenient for the people to commute. 
+
+
+Although some existed method for range queries [HW2006][] can deal with the above queries, network region there is ignored or simply discussed, i.e., rectangle. And they do not focus on the representation of query condition and algorithm design. To complete this query efficiently, a network regions should be construct which can cover all the related objects. According to paper [G2006], a network region named gline is constructed by junction points and its related route intervals, not just a rectangle or polygon.
+
+ It will be more efficient and expressive by using network region to answer above queries. The reasons are as follows: first, some complex objects can only be denoted by regions instead of points, e.g., traffic jam, commercial area, speed limit area. So, the method for points objects is not efficient for region objects; second, complex process (e.g., distance computation and searching nearest neighbor) can be directly done within a network region without many times of nodes expansion. 
+
+
+
+
+\begin{itemize}
+	\item range queries
+\end{itemize}
+
+According to VN$^{3}$[MC2004], a comprehensive solution for queries in SNDB should consider query constraints such as direction or range. Range queries is one of the most common queries refer to network regions. It tries to finds all the interesting objects that are within a user-defined region, i.e., all the locations are restricted to the given distance from the query point. For example, "find the hospital, fire control center and police department which are within one mild road distance to the accident scene." To complete this query, it first needs a search region to cover all the locations within that distance constraint area. And then all the interesting objects inside that search region. The search region can be called influence range of the specified query point which means all objects inside that area should be considered and the closest to the query point. It is a network region object which is constructed by the junction point and its related route intervals. Figure 1 shows an example of range queries in road networks. Q is a point object which represents the accident place. There are there kinds of interesting objects here: police office, hospitals and fire center. P$_{1}$, P$_{2}$ and P$_{3}$ are police office, H$_{1}$, H$_{2}$ and H$_{3}$ are hospitals and F$_{1}$, F$_{2}$ and F$_{3}$ are fire centers.  
+
+
+
+\begin{figure}
+	%\centerline{\psfig{figure=networkregionsearch.eps}}
+%	\includegraphics[width=100mm,height=100mm]{networkregionsearch.JPG}
+	\caption{circle operator in road networks}
+	\label{fig:networkregionsearch}
+\end{figure} 
+
+      The intersection and join queries of network regions are extraordinarily common in real world.But to the best of our knowledge, they are not deeply studied in the research community. 
+
+\begin{itemize}
+	\item intersection
+ For example, the Department of Transportation may want to monitor the locations between traffic jam and working area to develop a traffic plan.
+
+\end{itemize}
+
+\begin{itemize}
+	\item join 
+	The join for region object in road networks is an interesting data analysis operator which is defined as follows: given two region sets R and S, find all pairs (r,s), r $\in$ R, s $\in$ S , such that there exists a position which is in or very close to both r and s. 
+\end{itemize}
+
+
+There are much research work about NN(nearest neighbors) queries, e.g., CNN, ANN and KNN. NN is similar with range queries because they both try to find the nearest interesting objects to the query point. However, the current research of NN only focus on the distance pre-computation, storage between network nodes and interesting points. There is no distance constraint which means the interesting objects are not limited in specific area. So, the results of NN queries may not be suitable for range queries if the nearest objects are beyond the constraint area. This is very useful for transportation design and city plan. For example, the bus stop and underground station should be close to residential area or working area, i.e., 200m or 300m. Besides, the solution of NN is mostly based on the distance function between query node and interesting objects. Network expansion is iteratively processed so that some unrelated points are also discussed. There is no direction limit and control during the query process. By using network region, it can cover all the related locations and then find the interesting objects which can avoid many times of distance calculation. 
+
+A network Voronoi diagram [AB2000] [MC2004] is used to divides network space into disjoint polygons and the distance is defined as the shortest path between two objects. Polygon is useful in Euclidean space where there is no link restriction between objects. And many locations in polygon are not on road network so that they should not be considered. In road networks, the locations which are closest to one point actually construct a network region object (route intervals and junction point). (a picture here shows the voronoi diagram and network region)
+
+
+The advantage of utilizing a search region to cover and find the interesting objects is that: firstly, it avoids the complex and time cost process of distance computation and node expansion between network points. And distance pre-computation and storage is also ignored. Secondly, some operators can be easily and efficiently processed among the objects within the search region because locations outside are ignored. For example, the network expansion will not deal with nodes outside the region. So that all process can be deal within the region. In the method of [MC2004], it generates an auxiliary network for expansion which increases the computation complexity. 
+
+
+The contributions of this paper is summarized as follows:
+\begin{itemize}
+	\item A circle operator for constructing network region and supporting region queries which are interested on multi-type objects. Besides, some related operators are presented, i.e., center, radius, direction. 
+\end{itemize}
+\begin{itemize}
+	\item We propose an novel index structure based on junction point which can efficiently supports various network regions queries, i.g., .
+\end{itemize}
+\begin{itemize}
+	\item Two Complex region queries are discussed: intersection and join, and the solution method is also proposed.
+\end{itemize}
+
+The rest of this paper is organized as follows. Section~\ref{Related Work} gives account of previous work. Section~\ref{Preliminary} gives the fundamental definition of data types discussed in this paper. Section~\ref{Circle} and ~\ref{Operators for network regions} propose our methodology. And Section~\ref(Region Queries) discussed some common network region queries. In section ~\ref{Experimental Evaluation}, experiments are conducted on real datasets to demonstrate that the proposed methods and algorithms are efficient and outperforms related algorithms. Finally, section~\ref{Conclusions} concludes the paper.
+\section{Related Work}\label{Related Work}
+The route-oriented network model was proposed in [G2006] which defines the data types network,
+gpoint and gline to represent underlying network,network point and network region. The model has to be extended. For example, the junction there is represented as the intersection of two distinct routes. However, there also exits a network location where three or four routes intersect. Gline (network region) is defined as a set of route intervals, but junction should also be considered. Besides, although it has presented operator set for network data types, join operator is not discussed there. 
+[HW2006] The range queries there are denoted as rectangular regions,however, the constraint area in road networks is a region object constructing by route intervals and junction point instead of rectangular. 
+
+\subsection{distance computation}
+Distance computation and shortest path is the most common and basic research topic in spatial network because the distance depends on the connectivity instead of the objects' location which is different from Euclidean space. The current solution is based on computing and comparing the network distance between the query node and interesting objects. 
+pre-computation storage
+
+A distance indexing on road networks is presented in [HL2006] which can support various queries based on distance computation. A structure called distance signature is designed which stores the approximate distance information of each data object for each node. The index supports range query processing, but it has to traverse all the interesting objects, compute and compare the network distance. If the distance between the query node n and object o suffices, put object o to the result set. In fact, a lot of objects are to be filtered during this process as they are not in the influence range of the query node. Euclidean distance can be chosen as the threshold value to help picking which objects may be in the query results, but it still has to compute all the distances. Besides, it only considered the case where objects are distributed on the nodes so it can store the approximate distance between query node and object because the distance is almost unchangeable. However, in real world the position of the query node may not always be on the node so that the approximate distance is changing all the times. 
+
+\subsection{nearest neighbor queries}
+
+It only considered one type of interesting objects and both the query node and interesting objects are network points.
+
+The method of VN$^{3}$ [MC2004] use network Voronoi diagram to constraint the search space. It is based on precalculating the network Voronoi polygons (NVP) and pre-computing some network distances. Only point objects are discussed there and 
+
+The method of CNN
+The method of ANN 
+
+\subsection{distance join queries}
+Yiu et al.[M2008] present a novel join operator called CIJ (common influence join) for two spatial pointsets P and Q. It returns the pairs of points (p,q), p $\in$ P,q $\in$ Q, such that there exists a location in space, being closer to p than to any other point in P and at the same time closer to q than to any other point in Q. However, it is based on Euclidean distance instead of network distance and both P and Q are static pointsets. \\
+All the method above have to compute the distance between the query point and the interesting objects. The main shortage is that it refers to distance computation between network nodes and points. This is a much complex and time cost process, especially when the network is large and point set is dense. And many unrelated points may also be involved. 
+
+two spatial data points (Join operator)
+The difference is in [M2007] it mainly discusses the top-k dominate queries in multi-dimensional data. It only deals with the relationship between
+data points, however,region queries is not considered.
+
+\section{Preliminary}\label{Preliminary}
+In this section, we present some fundamental properties of network region and give the definitions of  data type discussed in this paper. \\
+A road network is an example of a spatial network which are constructed by route and junction [G2006]. Route can represent road and is depicted by polyline in geometry. It is consisted of route intervals which is defined in definition 1. 
+\textbf{def. 1:}\\ \textit{Route\_Interval = \{(rid$_{i}$,pos1,pos2)$|$ i = 1,...,n \}}
+Junction is a network point which more than two routes intersect.The definition is as follows.\\
+\textbf{def. 2:} \\ \textit{Junction = \{(rid$_{i}$,meas$_{i}$),ccdegree $|$ i$\geq$ 2\}}\\
+The value of ccdegree means the number of intersection routes. In most cases, it is 2,3 or 4. \\
+
+Network region includes route intervals and junctions, seeing definition 3.\\
+\textbf{def. 3:} \\  
+\textit{gline = \{(route\_interval$_{i}$,junction$_{j}$) $|$ i$\geq$1 ,j $\geq$0\}}
+
+The static network region can represent speed limit or construction areas. And moving network regions can describe traffic jam and part of network affected by rainstorm.
+
+the weight or the cost of the edge. For the sake of simplicity, we assume the weight here is the edge length.
+
+query condition\{\\
+\mbox{}\qquad gpoint centerpoint;\\ \mbox{}\qquad float  distance;\\
+\};
+
+\section{Circle}\label{Circle}
+In this section, it provides the framework of circle operator and how it represents the condition of region query. Besides, the operators related to network regions are also presented.
+
+the construction of network circle operator\\
+
+the junction-oriented modeling method and the construction of index based on junction
+
+the network expansion may be unguided, so we use direction operator to control the search range
+(two query point on different sides of a river)
+
+
+\subsection{Operators for network regions}\label{Operators for network regions}
+
+\begin{table}
+ centering
+
+    \caption{Operators Descriptions}     % NOTE!  caption goes _before_ the table contents !!
+    \label{tab:font-sizes}
+
+    \begin{small}
+    \begin{tabular}{|l|l|l|l|}
+    \hline
+    {\bfseries Name} & \multicolumn{1} {c|} {\bfseries Signature/Description} \\
+    \hline
+    Center    &gline $\xrightarrow{}$ gpoint\\
+    \hline	
+    Radius         & table caption (in	\\
+
+    \hline
+    Min         & author email address	\\
+    \hline
+    Max        & level-1 heading  (in 	\\
+    \hline
+    direction        &	author name		\\
+    \hline
+    24        & title			\\
+    \hline
+    \end{tabular}
+    \end{small} 
+\end{table} 
+The operator of center, min and max is quite useful to get the center, start or end of a network region, e.g., a traffic jam. 
+
+We also define some network region operators here which will be discussed further in section 4.
+
+
+
+\section{Region Queries}\label{Region Queries}
+Aggregate Nearest Neighbor Queries in road networks min
+shortest path
+
+\subsection{range queries}
+
+\subsection{Intersection}
+Algorithm 2 Intersection operator for network regions
+
+\subsection{join}
+
+
+\section{Experimental Evaluation}\label{Experimental Evaluation}
+Typical Performance Measurement for Comparing Techniques
+Space Speed(CUP Cost and I/O Cost) Accuracy Generality 
+
+There are three metrics of interest extensively studied in our simulations. 
+In this section, we conducted several experiments to: 1) compare the performance of Circle operator for range queries and NN queries with its competitor, 2) 
+
+Explain dataset,default parameters,measurement,competing solution,varies parameters,show experiments
+generality of solutions/future improvement
+
+
+compare modeling method
+join algorithm
+distance computation
+A$^{*}$ search
+
+\section{Conclusions}\label{Conclusions}
+Various queries related to network region object have generated intense interest in the research community because many new applications are increasing recently.
+
+\section*{ACKNOWLEDGEMENT}
+Thanks for the living financial support from China Scholarship Council.
+
+\bibliographystyle{abbrv}
+\bibliography{sigproc-sp}
+
+$
+\left[ M2008 \right] M. L. Yiu, N. Mamoulis, P. Karras,  Common Influence Join: A Natural Join Operation for Spatial Pointsets, ICDE, pp. 100-109, Cancun, Mexico, April 2008.
+\left[ M2007 \right]  M. L. Yiu, N. Mamoulis,  Efficient Processing of Top-k Dominating Queries on Multi-Dimensional Data,VLDB,2007. \\
+\left[ G2006 \right] R.H. Güting, V.T. de Almeida, and Z. Ding, Modeling and Querying Moving Objects in Networks.  VLDB Journal 2006.\\
+\left[MY2006\right] Mouratidis, K., Yiu, M., Papadias, D., Mamoulis, N. Continuous Nearest Neighbor Monitoring in Road Networks. VLDB,2006.\\
+\left[S2005\right] J. Sankaranarayanan, H. Alborzi, H. Samet.Efficient query processing on spatial networks. ACM-GIS,2005.\\
+\left[HL2006\right] Hu, H., Lee, D.L., and Lee, V.C.S. Distance Indexing on Road Networks.  VLDB 2006.\\
+\left[PZ2003\right] Papadias, D., Zhang, J., Mamoulis, N., Tao, Y. Query Processing in Spatial Network Databases. VLDB, 2003. \\
+\left[MC2004\right] Mohammad R. Kolahdouzan and Cyrus Shahabi, Voronoi-Based K Nearest Neighbor Search for Spatial Network Databases, VLDB 2004.\\
+\left[HJ2008\right] H. Samet, J. Sankaranarayanan, H. Alborzi. Scalable network distance browsing in spatial databases.SIGMOD,2008.\\
+\left[MN2005\right] M. L. Yiu, N. Mamoulis, D. Papadias,  Aggregate Nearest Neighbor Queries in Road Networks, IEEE Transactions on Knowledge and Data Engineering,2005. \\
+\left[AB2000\right] A.Okabe, B. Boots, K.Sugihara, and S.N.Chiu. Spatial Tessellations, Concepts and Applications of Voronoi Diagrams. John Wiley and Sons Ltd., 2nd edition,2000.\\
+\left[HW2006\right] H. Wang,R.Zimmermann, W.Ku. Distributed. continuous range query processing on moving objects. In. DEXA, 2006.\\$
+\end{document}

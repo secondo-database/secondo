@@ -1,0 +1,24 @@
+\section{Conclusions and Future Work}
+\label{sec:conclusions}
+In this paper, we propose a generic data model to manage moving objects in multiple
+environments including public transportation network, \textit{indoor}, region-based outdoor, 
+road network and free space. With this model the database system can manage the complete
+movement of objects in different environments. We consider the \textit{space} where an object moves as a collection of so-called \textit{infrastructures}. 
+Each \textit{infrastructure} corresponds to one moving environment and  
+consists of a set of elements, called \textit{infrastructure objects}. Using the \textit{object-based} approach, we represent the location of moving objects by \textit{referencing} to these \textit{infrastructure} \textit{objects}. A generic model is presented where the location is 
+expressed by a function from time to space which can be applied for all environments. 
+Using the method of \textit{sliced representation}, we define a framework for generic 
+moving objects. It is expressed in a multiresolution way where both approximate and accurate 
+locations are supported.  In addition, semantic data (transportation modes) is encapsulated for moving objects making the data expressive which 
+can be used for knowledge analysis. For each kind of \textit{infrastructure}, we define the corresponding data types representing the space it covers and the relative location inside, 
+as well as the location expression for objects moving in that \textit{infrastructure}. A graph model is proposed for \textit{indoor} navigation where three types of optimal routes are supported: shortest distance, smallest number of rooms and minimum traveling time. The generic model encapsulates 
+the existing work for free space and road network, and they are consistent. A set of operators are defined in the type system for generic model and a relational interface is provided for exchanging data between values of proposed data types and a relational environment. Finally, a group of example queries are formulated on the model. \\
+
+We envision several future directions. The first is to implement the data model in an 
+extensible database system Secondo including data types, operators, and visualization technology 
+(3D data for \textit{indoor}). Another topic is to conduct trajectory pattern mining and analysis as
+semantic data is involved. It is also interesting to consider a benchmark for generic moving objects. 
+
+\section*{Acknowledgment}
+\label{sec:acknowledgement}
+The first author gratefully acknowledges the financial support by Chinese Scholarship Committee. 
