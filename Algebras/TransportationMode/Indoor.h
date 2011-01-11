@@ -975,6 +975,32 @@ struct MySegHeight:public MyHalfSegment{
 class IndoorGraph; 
 struct IPath_elem; 
 
+struct I_Parameter{
+  int num_floors;
+  float floor_height;
+  float speed_person;
+  float speed_elevator; 
+  I_Parameter(){}
+  I_Parameter(int n, float h, float v1, float v2):
+  num_floors(n), floor_height(h), speed_person(v1), speed_elevator(v2){}
+  I_Parameter(const I_Parameter& ip):num_floors(ip.num_floors),
+  floor_height(ip.floor_height), speed_person(ip.speed_person),
+  speed_elevator(ip.speed_elevator){}
+  I_Parameter& operator=(const I_Parameter& ip)
+  {
+    num_floors = ip.num_floors;
+    floor_height = ip.floor_height;
+    speed_person = ip.speed_person;
+    speed_elevator = ip.speed_elevator;
+    return *this; 
+  }
+  void Print()
+  {
+    cout<<"num of floors "<<num_floors<<" height "<<floor_height
+        <<"speed_person "<<speed_person
+        <<"speed_elevator "<<speed_elevator<<endl; 
+  }
+}; 
 struct IndoorNav{
   Relation* rel1; //university room relation 
   Relation* rel2; //door 3d box relation 
@@ -1000,14 +1026,14 @@ struct IndoorNav{
   vector<GenLoc> genloc_list;
   vector<Point3D> p3d_list; 
   
-  vector<GenLoc>  genloc_list1;
-  vector<Point3D> p3d_list1;
-  vector<GenLoc> genloc_list2;
-  vector<Point3D> p3d_list2;
+
+  vector<GRoom> room_list; 
+  vector<double> cost_list; 
   
+  int type; 
   /////////////the attribute position for indoor (groom+door) relation 
   static string Indoor_GRoom_Door; 
-  enum GROOM_REL{I_OID = 0, I_Name, I_Type, I_Room, I_Door}; 
+  enum GROOM_REL{I_OID = 0, I_Name, I_Type, I_Room, I_Door};
   
   unsigned int count;
   TupleType* resulttype;
@@ -1079,14 +1105,17 @@ struct IndoorNav{
    void GenerateIP1(int num);
    //////////////////////////shortest path searching////////////////////
    bool IsLocEqual(GenLoc* loc1, GenLoc* loc2, Relation* rel);
-   void PathInOneRoom(GenLoc* gloc1, GenLoc* gloc2, Relation* rel); 
-   void ShortestPath_Length(GenLoc* gloc1, GenLoc* gloc2, Relation* rel);
+   void PathInOneRoom(GenLoc* gloc1, GenLoc* gloc2, Relation* rel, 
+                      BTree* btree); 
+   void ShortestPath_Length(GenLoc* gloc1, GenLoc* gloc2, 
+                            Relation* rel, BTree* btree);
+
    void ConnectStartLoc(GenLoc* gloc, int door_tid, Relation* rel, 
-                        Line3D* l3d_start); 
+                        BTree* btree, Line3D* l3d_start); 
    void Path_StartDoor_EndLoc(int id, GenLoc* d, 
                            vector<Line3D>& candidate_path, Line3D* s,
-                           Relation* rel);
-   void ConnectEndLoc(GenLoc* gloc, int door_tid, Relation* rel, 
+                           Relation* rel, BTree* btree);
+   void ConnectEndLoc(GenLoc* gloc, int door_tid, Relation* rel, BTree* btree,
                         Line3D* l3d_end); 
    void IndoorShortestPath(int id1, int id2, 
                            vector<Line3D>& candidate_path, 
@@ -1095,6 +1124,28 @@ struct IndoorNav{
                         priority_queue<IPath_elem>& path_queue, 
                         vector<IPath_elem>& expand_path);
    bool MiddlePoint(Line3D* l, Point3D& p); 
+   /////////////////////////minimum number of rooms////////////////////
+   void ShortestPath_Room(GenLoc* gloc1, GenLoc* gloc2, 
+                            Relation* rel, BTree* btree);
+   void Path_StartDoor_EndLoc_Room(int id, GenLoc* d, 
+                           vector< vector<TupleId> >& candidate_path, 
+                                   int stid, int etid);
+   void IndoorShortestPath_Room(int id1, int id2,
+                                vector< vector<TupleId> >& candidate_path,
+                                int s_tid, int e_tid); 
+   ///////////////////////minimum travelling time///////////////////////
+   void ShortestPath_Time(GenLoc* gloc1, GenLoc* gloc2, 
+                            Relation* rel, BTree* btree);
+   void Path_StartDoor_EndLoc_Time(int id, GenLoc* d, 
+                           vector<Line3D>& candidate_path, Line3D* s,
+                           Relation* rel, BTree* btree, vector<double>&,
+                                   I_Parameter& param);
+   void IndoorShortestPath_Time(int id1, int id2, 
+                           vector<Line3D>& candidate_path, 
+                           Line3D* s, Line3D* d, vector<double>& timecost,
+                           I_Parameter& param, Relation* rel, BTree* btree);
+   float SetTimeWeight(double l, int groom_oid, Relation* rel, 
+                       BTree* btree, I_Parameter& param, vector<float>& h_list);
 };
 
 /*
@@ -1105,11 +1156,13 @@ struct IPath_elem:public Path_elem{
   double weight;
   double real_w;
   Line3D path; 
+  int groom_oid; 
   IPath_elem():path(0){}
-  IPath_elem(int p, int c, int t, double w, double w2, Line3D& l):
-                    Path_elem(p, c, t), weight(w), real_w(w2), path(l){}
+  IPath_elem(int p, int c, int t, double w, double w2, Line3D& l, int gid = 0):
+  Path_elem(p, c, t), weight(w), real_w(w2), path(l), groom_oid(gid){}
   IPath_elem(const IPath_elem& wp):Path_elem(wp),
-            weight(wp.weight),real_w(wp.real_w), path(wp.path){}
+            weight(wp.weight),real_w(wp.real_w), 
+            path(wp.path), groom_oid(wp.groom_oid){}
   IPath_elem& operator=(const IPath_elem& wp)
   {
 //    cout<<"SPath_elem ="<<endl;
@@ -1117,6 +1170,7 @@ struct IPath_elem:public Path_elem{
     weight = wp.weight;
     real_w = wp.real_w;
     path = wp.path;  
+    groom_oid = wp.groom_oid; 
     return *this;
   }
   bool operator<(const IPath_elem& ip) const

@@ -315,12 +315,12 @@ const string OpTMGetAdjNodeIGSpec  =
 
 const string SpatialSpecIndoorNavigation =
 "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-"( <text>rel x genloc x genloc x rel x int"
+"( <text>rel x genloc x genloc x rel x btree x int"
  " -> (stream (tuple( (x1 t1)(x2 t2)...(xn tn)))</text--->"
-"<text>indoornavigation(ig,genloc,genloc,rel, int) </text--->"
+"<text>indoornavigation(ig,genloc,genloc,rel,btree, int) </text--->"
 "<text>indoor trip planning</text--->"
-"<text>query indoornavigation(ig, gloc1, gloc2, building_uni,0) count"
-"</text---> ) )";
+"<text>query indoornavigation(ig, gloc1, gloc2, building_uni, btree_groom 0)"
+" count </text---> ) )";
 
 
 /*
@@ -1041,8 +1041,8 @@ TypeMap function for operator indoornavigation
 */
 ListExpr IndoorNavigationTypeMap(ListExpr args)
 {
-  if(nl->ListLength(args) != 5){
-      string err = "rel x int";
+  if(nl->ListLength(args) != 6){
+      string err = "indoorgraph x genloc x genloc x rel x btree x int";
       return listutils::typeError(err);
   }
   
@@ -1051,6 +1051,7 @@ ListExpr IndoorNavigationTypeMap(ListExpr args)
   ListExpr arg3 = nl->Third(args);
   ListExpr arg4 = nl->Fourth(args);
   ListExpr arg5 = nl->Fifth(args);
+  ListExpr arg6 = nl->Sixth(args);
   
   if(!(nl->IsAtom(nl->First(arg1)) && 
        nl->AtomType(nl->First(arg1)) == SymbolType &&
@@ -1080,14 +1081,19 @@ ListExpr IndoorNavigationTypeMap(ListExpr args)
      return listutils::typeError(err);
   }
 
-  if(!(nl->IsAtom(nl->First(arg5)) && 
-       nl->AtomType(nl->First(arg5)) == SymbolType &&
-       nl->SymbolValue(nl->First(arg5)) == "int" )){
-      string err = "param5 should be int";
+  if(!listutils::isBTreeDescription(nl->First(arg5))){
+      string err = "param5 should be a btree";
       return listutils::typeError(err);
   }
   
-  int n = nl->IntValue(nl->Second(arg5));
+  if(!(nl->IsAtom(nl->First(arg6)) && 
+       nl->AtomType(nl->First(arg6)) == SymbolType &&
+       nl->SymbolValue(nl->First(arg6)) == "int" )){
+      string err = "param6 should be int";
+      return listutils::typeError(err);
+  }
+  
+  int n = nl->IntValue(nl->Second(arg6));
   ListExpr result; 
    switch(n){
     case 0: 
@@ -1096,17 +1102,43 @@ ListExpr IndoorNavigationTypeMap(ListExpr args)
               nl->SymbolAtom("stream"),
                 nl->TwoElemList(
                   nl->SymbolAtom("tuple"),
-                      nl->ThreeElemList(
-                        nl->TwoElemList(nl->SymbolAtom("loc1"),
-                                    nl->SymbolAtom("genloc")), 
-                        nl->TwoElemList(nl->SymbolAtom("loc2"),
-                                    nl->SymbolAtom("genloc")), 
+                      nl->OneElemList(
                         nl->TwoElemList(nl->SymbolAtom("Path"),
                                     nl->SymbolAtom("line3d"))
                   )
                 )
           );
+        break;
+    case 1: 
+          result =
+          nl->TwoElemList(
+              nl->SymbolAtom("stream"),
+                nl->TwoElemList(
+                  nl->SymbolAtom("tuple"),
+                      nl->TwoElemList(
+                        nl->TwoElemList(nl->SymbolAtom("groom_oid"),
+                                    nl->SymbolAtom("int")), 
+                        nl->TwoElemList(nl->SymbolAtom("Path"),
+                                    nl->SymbolAtom("groom"))
+                  )
+                )
+          );
         break; 
+    case 2: 
+          result =
+          nl->TwoElemList(
+              nl->SymbolAtom("stream"),
+                nl->TwoElemList(
+                  nl->SymbolAtom("tuple"),
+                      nl->TwoElemList(
+                        nl->TwoElemList(nl->SymbolAtom("Path"),
+                                    nl->SymbolAtom("line3d")),
+                        nl->TwoElemList(nl->SymbolAtom("TimeCost"),
+                                    nl->SymbolAtom("real"))
+                  )
+                )
+          );
+        break;
     default:
       string err = "the value of fifth parameter([0,2]) is not correct";
       return listutils::typeError(err);
@@ -1872,20 +1904,28 @@ int IndoorNavigationValueMap(Word* args, Word& result, int message,
         GenLoc* loc1 = (GenLoc*)args[1].addr;
         GenLoc* loc2 = (GenLoc*)args[2].addr;
         Relation* rel = (Relation*)args[3].addr;
-        int type = ((CcInt*)args[4].addr)->GetIntval();
+        BTree* btree = (BTree*)args[4].addr; 
+        int type = ((CcInt*)args[5].addr)->GetIntval();
 
 
         indoor_nav = new IndoorNav(ig);
         indoor_nav->resulttype =
             new TupleType(nl->Second(GetTupleResultType(in_pSupplier)));
+        indoor_nav->type = type; 
         switch(type){
           case 0: 
-                  indoor_nav->ShortestPath_Length(loc1, loc2, rel);
+                  indoor_nav->ShortestPath_Length(loc1, loc2, rel, btree);
+                  break;
+          case 1: 
+                  indoor_nav->ShortestPath_Room(loc1, loc2, rel, btree);
+                  break;
+          case 2: 
+                  indoor_nav->ShortestPath_Time(loc1, loc2, rel, btree);
                   break;
           default:
                   cout<<"invalid type "<<type<<endl;
                   break; 
-        }    
+        }
 
         local.setAddr(indoor_nav);
         return 0;
@@ -1893,19 +1933,41 @@ int IndoorNavigationValueMap(Word* args, Word& result, int message,
       case REQUEST:{
           if(local.addr == NULL) return CANCEL;
           indoor_nav = (IndoorNav*)local.addr;
-          if(indoor_nav->count == indoor_nav->genloc_list1.size())
+          if(indoor_nav->type == 0){
+             if(indoor_nav->count == indoor_nav->path_list.size())
                           return CANCEL;
-          Tuple* tuple = new Tuple(indoor_nav->resulttype);
-          tuple->PutAttribute(0,
-                new GenLoc(indoor_nav->genloc_list1[indoor_nav->count]));
-          tuple->PutAttribute(1,
-                new GenLoc(indoor_nav->genloc_list2[indoor_nav->count]));
-          tuple->PutAttribute(2,
-               new Line3D(indoor_nav->path_list[indoor_nav->count]));
+              Tuple* tuple = new Tuple(indoor_nav->resulttype);
+              tuple->PutAttribute(0,
+              new Line3D(indoor_nav->path_list[indoor_nav->count]));
 
-          result.setAddr(tuple);
-          indoor_nav->count++;
-          return YIELD;
+              result.setAddr(tuple);
+              indoor_nav->count++;
+              return YIELD;
+          }else if(indoor_nav->type == 1){
+             if(indoor_nav->count == indoor_nav->groom_oid_list.size())
+                          return CANCEL;
+            Tuple* tuple = new Tuple(indoor_nav->resulttype);
+            tuple->PutAttribute(0,
+               new CcInt(true, indoor_nav->groom_oid_list[indoor_nav->count]));
+            tuple->PutAttribute(1,
+               new GRoom(indoor_nav->room_list[indoor_nav->count]));
+
+             result.setAddr(tuple);
+             indoor_nav->count++;
+             return YIELD;
+          }else if(indoor_nav->type == 2){
+             if(indoor_nav->count == indoor_nav->path_list.size())
+                          return CANCEL;
+              Tuple* tuple = new Tuple(indoor_nav->resulttype);
+              tuple->PutAttribute(0,
+                  new Line3D(indoor_nav->path_list[indoor_nav->count]));
+              tuple->PutAttribute(1,
+                  new CcReal(true, indoor_nav->cost_list[indoor_nav->count]));
+              result.setAddr(tuple);
+              indoor_nav->count++;
+              return YIELD;
+          }else assert(false);
+
       }
       case CLOSE:{
           if(local.addr){
