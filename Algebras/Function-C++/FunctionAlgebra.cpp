@@ -46,6 +46,7 @@ using namespace std;
 #include "QueryProcessor.h"
 #include "AlgebraManager.h"
 #include "StandardTypes.h"
+#include "ListUtils.h"
 
 extern NestedList* nl;
 extern QueryProcessor *qp;
@@ -243,6 +244,10 @@ ListExpr WithinTypeMap(ListExpr Args)
   {
     case 2: {
 
+      if(listutils::isStream(args.first().listExpr())){
+         return listutils::typeError("first argument cannot be a stream");
+      }
+
       if (  args.second().hasLength(3) )
       {
         ok =      ( args.first() == args.second().second())
@@ -257,6 +262,12 @@ ListExpr WithinTypeMap(ListExpr Args)
     }
 
     case 3: {
+      if(listutils::isStream(args.first().listExpr())){
+         return listutils::typeError("first argument cannot be a stream");
+      }
+      if(listutils::isStream(args.second().listExpr())){
+         return listutils::typeError("second argument cannot be a stream");
+      }
 
       if ( args.third().hasLength(4) )
       {
@@ -439,24 +450,32 @@ WithinSelect( ListExpr Args )
 
 */
 const string WithinSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
-                        "\"Example\" ) "
-                        "( <text>a x (a -> stream(b)) -> stream(b)\n"
-                        " a x ( a -> c) -> c</text--->"
-                        "<text>_ within [ fun ]</text--->"
-                        "<text>Calls the function passing as argument "
-                        "its own first argument.</text--->"
-                        "<text>query plz createbtree[Ort] "
-                        "within[fun( index: ANY ) "
-                        "Orte feed {o} loopjoin[index plz "
-                        "exactmatch[.Ort_o]] consume]</text--->))";
+        "\"Example\" ) "
+        "( <text>a x (a -> stream(b)) -> stream(b)\n"
+        " a x ( a -> c) -> c</text--->"
+        "<text>_ within [ fun ]</text--->"
+        "<text>Computes the first argument once. Then it calls "
+        "the function, passing the computed 1st argument as "
+        "parameter to the parameter function. This may save time, "
+        "if the 1st argument is referenced more than once within "
+        "the parameter function. The 1st argument must not be a stream!"
+        "</text--->"
+        "<text>query plz createbtree[Ort] "
+        "within[fun( index: ANY ) "
+        "Orte feed {o} loopjoin[index plz "
+        "exactmatch[.Ort_o]] consume]</text--->))";
 
 const string Within2Spec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
     "\"Example\" ) "
     "( <text>a x b x ( a x b -> c) -> c\n"
     "a x b x ( a x b -> stream(c)) -> stream(c)</text--->"
     "<text>_ _ within2[ fun ]</text--->"
-    "<text>Calls the function passing as argument "
-    "its own first and second argument.</text--->"
+    "<text>Computes the first and second argument once. Then it calls "
+    "the function, passing the two computed argument as "
+    "parameters to the parameter function. This may save time, "
+    "if the 1st argument an/or 2nd arguments are referenced more than once "
+    "within the parameter function. The first 2 arguments must not be streams!"
+    "</text--->"
     "<text>(1+2) (2+3) within2[fun(I1: ANY, I2: ANY2) I1 + I2]</text--->))";
 
 /*
@@ -501,7 +520,6 @@ Performs some while-loop like iteration on an object.
 
 ListExpr WhileDoTypeMap(ListExpr Args)
 {
-  cout << __PRETTY_FUNCTION__ << " called." << endl;
 
   NList args(Args);
   static const string typeA =
@@ -510,6 +528,11 @@ ListExpr WhileDoTypeMap(ListExpr Args)
 
   int noargs = args.length();
 
+  if((noargs == 4) && 
+     !(listutils::isSymbol(nl->Fourth(Args),CcBool::BasicType()))){
+    return listutils::typeError("Optional 4th parameter "
+                                "must be of type 'bool'.");
+  }
   if( (noargs == 3 || noargs == 4)
      // second argument
       && args.second().hasLength(3)
@@ -597,9 +620,10 @@ int WhileDoValueMap(Word* args, Word& result,
       sli->isInitial    = true;
 
       if(!avoidEndless->IsDefined()){
-        cerr << "WARNING: "<< __PRETTY_FUNCTION__
-             << ": Optional bool parameter is UNDEFINED! Using TRUE." << endl;
-        sli->finished = true;
+        cmsg.error() << "WARNING: "<< __PRETTY_FUNCTION__
+                   << ": Optional bool parameter is UNDEFINED! Using TRUE." 
+                   << endl;
+        cmsg.send();
         sli->avoidEndlessLoop = true;
       } else {
         sli->avoidEndlessLoop = avoidEndless->GetBoolval();
@@ -682,7 +706,8 @@ int WhileDoValueMap(Word* args, Word& result,
       return 0;
 
   }  // end switch
-  cout << "WhileDoValueMap received UNKNOWN COMMAND" << endl;
+  cmsg.error() << "WhileDoValueMap received UNKNOWN COMMAND" << endl;
+  cmsg.send();
   return -1; // should not be reached
 }
 
@@ -699,7 +724,7 @@ const string WhileDoSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
     "tuple(T) x (tuple(T) -> bool) x (tuple(T) x bool -> tuple(T)) -> "
     "stream(tuple(T))</text--->"
     "<text>obj whiledo[ pred ; func ; avoidEndless ]</text--->"
-    "<text>Always copies the first paramter into the result stream. Then, "
+    "<text>Always copies the first parameter into the result stream. Then, "
     "it copies 'obj' to its internal loop variable and starts a pre-check "
     "loop: as long as 'pred' evaluates to TRUE on the loop variable, function "
     "'func' is evaluated for the current loop variable. "
@@ -707,7 +732,9 @@ const string WhileDoSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
     "a fixpoint is reached during the evaluation (loop variable does not "
     "change), the processing is stopped. In this case, the two last results "
     "will be identical. If 'pred' evaluates to UNDEF, the iteration stops "
-    "immediately (without creating any further result objects).</text--->"
+    "immediately (without creating any further result objects)."
+    "If 'avoidEndless' is specified, but UNDEF, this is handled as if it was "
+    "TRUE.</text--->"
     "<text>query 1 whiledo[ . < 10 ; . + 1 ; TRUE] count"
     "</text--->))";
 
