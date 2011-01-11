@@ -944,7 +944,7 @@ CcMathTypeMap( ListExpr args )
 
 
 /*
-4.2.2 Selection Function
+4.2.2 Selection Functions
 
 A selection function is quite similar to a type mapping function and is needed
 for operators which accept different variants of input parameters. The only
@@ -965,6 +965,17 @@ CcMathSelectCompute( ListExpr args )
 {
   return SimpleSelect<5,3>(maps_arith, args);
 }
+
+
+int ifthenelseSelect(ListExpr args){
+   if(listutils::isStream(nl->Second(args))){
+       return 1;
+   } else {
+       return 0;
+   }
+}
+
+
 
 
 /*
@@ -1294,33 +1305,37 @@ keywordsType( ListExpr args ){
 
 Type mapping for ~ifthenelse~ is
 
-----    (bool x T x T)) -> T
+----    (bool x T x T)) -> T , T in DATA or T = stream(...)
 ----
 
 */
 ListExpr ifthenelseType(ListExpr args)
 {
-  ListExpr arg1, arg2, arg3,
-           errorInfo = nl->OneElemList(nl->SymbolAtom("ERROR"));
+  ListExpr arg1, arg2, arg3;
 
-  if ( nl->ListLength( args ) == 3 )
-  {
-    arg1 = nl->First( args );
-    arg2 = nl->Second( args );
-    arg3 = nl->Third( args );
-    errorInfo = nl->OneElemList(nl->SymbolAtom("ERROR"));
 
-    if (nl->Equal(arg2, arg3) && listutils::isSymbol(arg1,"bool") &&
-        SecondoSystem::GetAlgebraManager()
-                ->CheckKind("DATA", arg2, errorInfo) &&
-        SecondoSystem::GetAlgebraManager()
-                ->CheckKind("DATA", arg3, errorInfo) )
-    {
-      return arg2;
-    }
+  if(!nl->HasLength(args,3)){
+    return listutils::typeError("Expected three arguments.");
   }
-  ErrorReporter::ReportError("Incorrect input for operator ifthenelse.");
-  return (nl->SymbolAtom( "typeerror" ));
+
+  arg1 = nl->First( args );
+  arg2 = nl->Second( args );
+  arg3 = nl->Third( args );
+
+  if(!listutils::isSymbol(arg1, CcBool::BasicType())){
+    return listutils::typeError("The 1st argument must be of type bool."); 
+  }
+
+  if(!listutils::isDATA(arg2) && !listutils::isStream(arg2)){
+    return listutils::typeError("The 2nd argument must be "
+                                "in kind DATA or must be a stream.");
+  }
+
+  if(!nl->Equal(arg2,arg3)){
+    return listutils::typeError("The 2nd and 3rd argument "
+                                "must be of the same type.");
+  }
+  return arg2;
 }
 
 /*
@@ -1353,6 +1368,9 @@ ListExpr ifthenelse2Type(ListExpr args)
   ErrorReporter::ReportError("Incorrect input for operator ifthenelse.");
   return (nl->SymbolAtom( "typeerror" ));
 }
+
+
+
 
 /*
 4.2.14 Type mapping function for the ~between~ operator:
@@ -1667,7 +1685,7 @@ CcPlus_ss( Word* args, Word& result, int message, Word& local, Supplier s )
   if ( wstr1->IsDefined() && wstr2->IsDefined() )
   {
     wres->Set( true,
-	       (STRING_T*)(str1 + str2).substr(0,MAX_STRINGSIZE).c_str() );
+         (STRING_T*)(str1 + str2).substr(0,MAX_STRINGSIZE).c_str() );
   }
   else
   {
@@ -3026,7 +3044,8 @@ are separated by a space character.
 }
 
 int
-ifthenelseFun(Word* args, Word& result, int message, Word& local, Supplier s)
+ifthenelseDataFun(Word* args, Word& result, 
+                 int message, Word& local, Supplier s)
 {
     result = qp->ResultStorage( s );
 
@@ -3050,6 +3069,59 @@ ifthenelseFun(Word* args, Word& result, int message, Word& local, Supplier s)
     return 0;
 }
 
+
+
+int
+ifthenelseStreamFun(Word* args, Word& result, 
+                    int message, Word& local, Supplier s)
+{
+
+  switch(message){
+
+    case OPEN:{   
+          if(local.addr){
+              delete  (int*) local.addr;
+              local.addr = 0;
+          }
+          qp->Request(args[0].addr, result);
+          CcBool* arg1 = (CcBool*) result.addr;
+          if ( !arg1->IsDefined() ) { 
+             return 0; // create an empty stream
+          } else {
+            int index = ( arg1->GetBoolval() ? 1 : 2 );
+            local.addr = new int(index);
+            qp->Open(args[index].addr);
+          }
+          return 0;
+    }
+    case REQUEST: {
+          if(!local.addr){
+             return CANCEL;
+          }
+          int index = *((int *) local.addr);
+          qp->Request(args[index].addr, result);
+          return qp->Received(args[index].addr)?YIELD: CANCEL; 
+    }
+
+    case CLOSE: {
+          if(!local.addr){
+             return 0;
+          }
+          int index = *((int *) local.addr);
+          qp->Close(args[index].addr);
+          delete (int*) local.addr;
+          local.addr=0;        
+          return 0;
+    }
+    default: abort();
+   }
+   return 0;
+}
+
+
+ValueMapping ifthenelseVM[] = { ifthenelseDataFun, ifthenelseStreamFun, 0};
+
+
 int
 ifthenelse2Fun(Word* args, Word& result, int message, Word& local, Supplier s)
 {
@@ -3064,7 +3136,7 @@ ifthenelse2Fun(Word* args, Word& result, int message, Word& local, Supplier s)
     qp->DeleteResultStorage(s);
 
     if ( qp->IsOperatorNode(qp->GetSon(s, index))
-	   && !qp->IsFunctionNode(qp->GetSon(s, index)) )
+     && !qp->IsFunctionNode(qp->GetSon(s, index)) )
     {
       qp->ChangeResultStorage(s, res);
       qp->ReInitResultStorage(qp->GetSon(s,index));
@@ -4136,14 +4208,15 @@ const string CCSpecKeywords  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
 
 const string CCSpecIfthenelse  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
                             "\"Example\" )"
-                             "( <text>(bool x T x T) ->  T </text--->"
+             "( <text>(bool x T x T) ->  T, T in DATA, "
+             "or T = stream(...) </text--->"
              "<text>ifthenelse(P, R1, R2)</text--->"
-             "<text>Evalutes and returns the second argument R1, if the "
+             "<text> Evalutes and returns the second argument R1, if the "
              "boolean value expression, given as a first argument P, can be "
              "evaluated to TRUE. If P evaluates to FALSE, the third argument "
-             "R2 is evaluated and returned. If is undefined, so is the result. "
-             "NOTE: The second and the third argument must be of the "
-             "same type T of kind DATA.</text--->"
+             "R2 is evaluated and returned. If P is undefined, so is the result"
+             " undefined resp. an empty stream."
+             "</text--->"
              "<text>query ifthenelse(3 < 5,[const string value \"less\"],"
                 "[const string value \"greater\"])</text--->"
              ") )";
@@ -4472,8 +4545,8 @@ Operator ccoprelcount2( "relcount2", CCSpecRelcount2, 1, ccoprelcountmap2,
 Operator ccopkeywords( "keywords", CCSpecKeywords, 1, cckeywordsmap,
                        Operator::SimpleSelect, keywordsType );
 
-Operator ccopifthenelse( "ifthenelse", CCSpecIfthenelse, ifthenelseFun,
-                         Operator::SimpleSelect, ifthenelseType );
+Operator ccopifthenelse( "ifthenelse", CCSpecIfthenelse, 2, ifthenelseVM,
+                         ifthenelseSelect, ifthenelseType );
 
 Operator ccopifthenelse2( "ifthenelse2", CCSpecIfthenelse2, ifthenelse2Fun,
                          Operator::SimpleSelect, ifthenelse2Type );
