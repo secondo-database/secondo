@@ -493,6 +493,25 @@ Checks for a stream of kind DATA
     return algMgr->CheckKind("DATA", nl->Second(s), errorInfo);
   }
 
+/*
+Checks whether the list represents a stream.
+
+*/
+  bool isStream(ListExpr s){
+    if(nl->ListLength(s)!=2){
+       return false;
+    }
+    if(!nl->IsEqual(nl->First(s),"stream")){
+       return false;
+    }
+    return true;
+  }
+
+
+
+
+
+
   int findAttribute(ListExpr attrList, const string& name, ListExpr& type){
      assert(isAttrList(attrList));
      int j = 0;

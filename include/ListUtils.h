@@ -220,6 +220,15 @@ Checks for a stream of kind DATA
 */
   bool isDATAStream(ListExpr s);
 
+
+/*
+ Checks wether the list represnets a stream.
+
+*/
+  bool isStream(ListExpr s);
+
+
+
 /*
 
 searches for an attribute name within the list.
