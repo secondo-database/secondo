@@ -226,6 +226,12 @@ definitions of our four classes: ~CcInt~, ~CcReal~, ~CcBool~, ~CcString~.
 #include "SecondoSystem.h" //operator queries
 #include "Counter.h"
 #include "StopWatch.h"
+#include "NList.h"
+#include "RelationAlgebra.h"
+#include "GenOps.h"
+#include "ListUtils.h"
+#include "AlmostEqual.h"
+#include "Progress.h"
 
 #include <iostream>
 #include <string>
@@ -238,11 +244,6 @@ definitions of our four classes: ~CcInt~, ~CcReal~, ~CcBool~, ~CcString~.
 #include <errno.h>
 #include <time.h>       //needed for random number generator
 
-#include "NList.h"
-#include "RelationAlgebra.h"
-#include "GenOps.h"
-#include "ListUtils.h"
-#include "AlmostEqual.h"
 
 extern NestedList* nl;
 extern QueryProcessor *qp;
@@ -3047,26 +3048,29 @@ int
 ifthenelseDataFun(Word* args, Word& result, 
                  int message, Word& local, Supplier s)
 {
-    result = qp->ResultStorage( s );
+    if(message==OPEN || message==REQUEST){
+      result = qp->ResultStorage( s );
 
-    Word res;
+      Word res;
 
-    qp->Request(args[0].addr, res);
-    CcBool* arg1 = (CcBool*) res.addr;
+      qp->Request(args[0].addr, res);
+      CcBool* arg1 = (CcBool*) res.addr;
 
-    if ( !arg1->IsDefined() )
-    {
-      ((Attribute*)result.addr)->SetDefined( false );
+      if ( !arg1->IsDefined() )
+      {
+        ((Attribute*)result.addr)->SetDefined( false );
+        return 0;
+      }
+
+      int index = ( arg1->GetBoolval() ? 1 : 2 );
+      qp->Request(args[index].addr, res);
+
+      ((Attribute*)result.addr)->CopyFrom(
+                  (Attribute*) res.addr );
       return 0;
-    }
-
-    int index = ( arg1->GetBoolval() ? 1 : 2 );
-    qp->Request(args[index].addr, res);
-
-    ((Attribute*)result.addr)->CopyFrom(
-                (Attribute*) res.addr );
-
-    return 0;
+  } else {
+      return CANCEL;
+  }
 }
 
 
@@ -3112,6 +3116,26 @@ ifthenelseStreamFun(Word* args, Word& result,
           delete (int*) local.addr;
           local.addr=0;        
           return 0;
+    }
+
+    case CLOSEPROGRESS:{
+      return 0;
+    }
+    case REQUESTPROGRESS:{
+
+          if(!local.addr){
+             return CANCEL;
+          }
+          int index = *((int *) local.addr);
+          ProgressInfo p1;
+          ProgressInfo *pRes;
+          pRes = (ProgressInfo*) result.addr;
+          if ( qp->RequestProgress(args[index].addr, &p1) ) {    
+              pRes->Copy(p1);
+              return YIELD;
+          } else {
+             return CANCEL;
+          }    
     }
     default: abort();
    }
@@ -4721,6 +4745,11 @@ class CcAlgebra1 : public Algebra
 
     AddOperator( setoptionInfo(), setoption_vm, setoption_tm );
     AddOperator( absInfo(), abs_vms, abs_sf, abs_tm );
+
+#ifdef USE_PROGRESS
+    ccopifthenelse.EnableProgress();
+#endif
+
 
 
   }
