@@ -39,6 +39,11 @@ open database basic_cmd;
 
 let myrel = [const rel(tuple([No: int])) value ((1))];
 
+let ten = intstream(1,10) namedtransformstream[No] consume; 
+
+let thousand = intstream(1,1000) namedtransformstream[No] consume; 
+
+
 #testcase list objects;
 #yields success
 list objects;
@@ -338,6 +343,27 @@ query 4 minus 3
 #testcase ifthenelse
 #yields (string "true")
 query ifthenelse( 3 < 4 , "true" , "false")
+
+#testcase ifthenelse_undef
+#yields (string undef)
+query ifthenelse( [const bool value undef] , "true" , "false")
+
+#testcase ifthenelse_stream
+#yields (int 999999)
+query ifthenelse( 3 < 4 , intstream(1,999999) ,1 feed) count;
+
+#testcase ifthenelse_stream_undef
+#yields (int 0)
+query ifthenelse( [const bool value undef] , intstream(1,999999) ,1 feed) count;
+
+#testcase ifthenelse2_rel
+#yields (int 1000)
+query ifthenelse2( 3 > 4 , ten, thousand) count;
+
+#testcase ifthenelse2_trel
+#yields (int 1000)
+query ifthenelse2( 3 > 4 , ten feed tconsume , thousand feed tconsume) count;
+
 
 #testcase setoption
 #yields (bool undef)
