@@ -1918,7 +1918,15 @@ function index.
         {
           // case (iii-g): nothing of the above => identifier
           // return ((<ident> identifier) <ident>)
-          return (nl->TwoElemList(
+          string typeName;
+          int algId, typeId;
+          if(GetCatalog()->LookUpTypeExpr(expr, typeName, algId,typeId)){
+             string errMsg  = "Type name '" + typeName + 
+                              "' used as an indentifier.";
+             throw runtime_error(errMsg);
+             return (nl->TheEmptyList());
+           }          
+           return (nl->TwoElemList(
                     nl->TwoElemList(
                       expr,
                       nl->SymbolAtom( "identifier" ) ),
