@@ -36,33 +36,62 @@ Dec, 2010 Mahmoud Sakr
 */
 
 #include "MSet.h"
-
+#include "vector"
 namespace GPattern 
 {
 class LWGraph;
 class Component;
+class NewComponent;
+class DelComponent;
+class DelComponent
+{
+  
+};
+
+class NewComponent
+{
+public:
+  vector<int> affectedComponents;
+  set<int> newNodes;
+  ostream& Print( ostream &os );
+  bool AffectsComponent(int label);
+  void Union(NewComponent& arg);
+};
 
 class Component
 {
 public:
-  enum ComponentMessage{NewlyAdded, NotChanged, NewlyAddedEdges, 
-    NewlyAddedNodes, RemovedEdges, RemovedNodes, RemoveInFinalize, 
-    RemoveNow, SplitFromExtistingComponent, NoMessage};
-  LWGraph* graph;
+  enum ComponentMessage{NoMessage, NotChanged, NewlyAddedEdges, 
+    NewlyAddedNodes, RemovedEdges, RemovedNodes, AddRemoveMix, NewlyAdded, 
+    RemoveNow, SplitFromExtistingComponent, MergedFromExistingComponents,
+    ReDistribute};
+  set<int> nodes;
   list< list<mset::CompressedMSet*>::iterator > resStreams;
+  set<int> addedEdges;
+  set<int> removedEdges;
   ComponentMessage message;
-  Component():message(NoMessage){}
-  bool Intersects(Component* arg);
+  bool ExtendedTillLastChange;
+  int label;
+  
+  Component():message(NoMessage), label(-1), 
+    ExtendedTillLastChange(false){}
   void SetMessage(ComponentMessage msg);
   bool UpdateMessage(ComponentMessage newMsg);
-  int Union(Component* arg);
-  void CopyEdgesFrom(Component* comp);
-  void RemoveEdgesFrom(Component* comp);
+  void SynchronizeNodes(LWGraph* g);
+  bool IsConnected(LWGraph* g, int node1, int node2);
+  void Cluster(LWGraph* g, list<set<int> >& splitComponents);
+  void GetEdges(LWGraph* g, set<int>& compEdges);
+  void Union(Component* arg);
+  ostream& Print( ostream &os );
+  void ExtendResStreamsTillNow(double endtime, bool rc);
+  void Reset();
+  bool Intersects(set<int>* arg);
 };
 
 class LWGraph
 {
 public:
+  map<int, int> node_component; 
   map<int,list< set< pair<int, int> > >::iterator> node_index;
   list< set< pair<int, int> > > neighbors;
   LWGraph(){clear();}
@@ -85,12 +114,38 @@ private:
 void InsertEdgesUndirected(
     LWGraph* g, set<int>& edges, vector<pair<int,int> >& edge2nodes);
 
-void FindComponentsOf(LWGraph* g, set<int>& roots, 
-    vector<pair<int,int> >& edge2nodes, vector<Component*>& newComponents);
+void FindComponentsOf(
+    LWGraph* g, list<Component*>* components, set<int>& roots, 
+    vector<pair<int,int> >& edge2nodes, vector<NewComponent>& newComponents);
 
+void RemoveEdgeUndirected(LWGraph* g, int edge, pair<int,int>* edgeNodes);
 void RemoveEdgesUndirected(
     LWGraph* g, set<int>& edges, vector<pair<int,int> >& edge2nodes);
+//void Cluster(set<int>& edges, vector<pair<int,int> >& edge2nodes,
+//    vector<Component*>& Components);
 
-void Cluster(set<int>& edges, vector<pair<int,int> >& edge2nodes,
-    vector<Component*>& Components);
+void SetGraphNodesComponent(LWGraph* graph, set<int>& nodes, int label);
+void RemoveGraphNodesComponent(LWGraph* g, set<int>& nodes);
+void UpdateGraphNodesComponent(LWGraph* g, set<int>& nodes, int label);
+
+int FindEdgeComponent(LWGraph* graph, pair<int, int>* _edge);
+
+list<Component*>::iterator 
+GetComponentIt(list<Component*>* components, int label);
+
+void ExpandInGraph(LWGraph*  graph, pair<int, int>* edgeNodes, 
+    set<int>& curAffectedComponents, set<int>& curNewNodes);
+
+void MergeNewComponents(vector<NewComponent>& newComponents, 
+    set<int>& affectedComponents);
+
+ostream& PrintSet( set<int>& arg, ostream &os );
+ostream& PrintVector( vector<int>& arg, ostream &os );
+
+bool HasOneComponent(set<int> edges, vector< pair<int,int> >& edge2nodes);
+bool IsOneComponent(mset::CompressedMSet* _mset, int n, 
+    vector< pair<int,int> > & edge2nodes);
+
+bool SetIntersects(set<int>* set1, set<int>* set2);
 }
+
