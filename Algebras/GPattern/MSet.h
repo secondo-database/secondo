@@ -79,6 +79,8 @@ using namespace std;
 #include <vector>
 #include <set>
 
+#define ENABLE_ASSERTS true
+#define assertIf(pred) if(ENABLE_ASSERTS) assert(pred) 
 
 namespace mset{
 
@@ -668,7 +670,7 @@ public:
   
   bool GetNextTrueUnit(MBool& mbool, int& pos, UBool& unit);
   
-  void Buffer (MBool& arg, int key);
+  bool Buffer (MBool& arg, int key);
   bool Buffer (MBool& arg, int key, double duration);
   
   void ClassifyEvents(pair< multimap<double, Event>::iterator, 
@@ -739,6 +741,9 @@ public:
   ostream& Print( ostream &os );
   
   void AddUnit( set<int>& constValue,
+      double starttime, double endtime, bool lc, bool rc);
+  
+  void AddUnit( set<int>& added, set<int>& removed,
       double starttime, double endtime, bool lc, bool rc);
   
   bool MergeAdd(set<int>& val, double &starttime, 

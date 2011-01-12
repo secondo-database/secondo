@@ -1525,8 +1525,7 @@ Defining local variables
     Tuple* tup;
     MBool* mbool;
     int id1, id2, tupleCnt=0;
-    intpair id;
-    vector<intpair> ids(0);
+    vector<pair<int, int> > ids(0);
     CompressedInMemMSet accumlator;
     //InMemMSet accumlator2;
     list<CompressedMSet*>* resStream= 
@@ -1567,22 +1566,21 @@ Evaluating the gpattern results
       (*tupleID2Args)[0] = tup;
       qp->Request(tupleID2, value);
       id2= static_cast<CcInt*>(value.addr)->GetIntval();
-      
-      id= make_pair(id1, id2);
-      ids.push_back(id);
-
+     
       (*liftedPredArgs)[0] = tup;
       qp->Request(liftedPred, value);
       mbool = static_cast<MBool*>(value.addr);
       if (mbool->IsDefined())
       {
         bool inc= accumlator.Buffer(*mbool, tupleCnt, d);
+        //bool inc= accumlator.Buffer(*mbool, tupleCnt);
         //GPatternHelper::removeShortUnits(*mbool, d);
         //accumlator2.Union(*mbool, tupleCnt);
-        if(inc)  
+        if(inc) 
+        {
+          ids.push_back(make_pair(id1, id2));
           ++tupleCnt;
-        else
-          ids.pop_back();
+        }
         //accumlator.Buffer(*mbool, tupleCnt);
       }
       tup->DeleteIfAllowed();
@@ -1591,7 +1589,7 @@ Evaluating the gpattern results
 
     accumlator.ConstructFromBuffer();
     qp->Close(TheStream);
-    cerr<<endl<<accumlator.GetNoComponents();
+
     if(debugme)
     {
       MSet tmp1(0), tmp2(0);
@@ -1607,12 +1605,12 @@ Evaluating the gpattern results
     while(changed && accumlator.GetNoComponents() > 0)
     {
       //accumlator2.RemoveSmallUnits(n);
-      changed= accumlator.RemoveSmallUnits(n);
+      changed= GPatternHelper::RemoveUnitsHavingFewNodes(accumlator, ids, n);
 
       //accumlator2.RemoveShortElemParts(d);
       changed= (accumlator.RemoveShortElemParts(d) || changed );  
     }
-    cerr<<endl<<accumlator.GetNoComponents();
+    
     if(debugme)
     {
       MSet tmp1(0), tmp2(0);
@@ -1639,9 +1637,27 @@ Evaluating the gpattern results
       if((*end).endtime - (*begin).starttime >= d)
       {
         ++end;
-        GPatternHelper::FindSubGraphs<CompressedInMemMSet, 
-          list<CompressedInMemUSet>::iterator>(
-          accumlator, begin, end , ids, d, n, qts, localResStream);
+        if(begin != accumlator.units.begin())
+        {
+          CompressedInMemMSet accumlatorPart(accumlator, begin, end);
+          if(debugme)
+          {
+            MSet tmp1(0);
+            accumlatorPart.WriteToMSet(tmp1);
+            //accumlator2.WriteToMSet(tmp2);
+            tmp1.Print(cerr);
+          }
+          GPatternHelper::FindSubGraphs<CompressedInMemMSet, 
+            list<CompressedInMemUSet>::iterator>(accumlatorPart, 
+              accumlatorPart.units.begin(), accumlatorPart.units.end() , 
+              ids, d, n, qts, localResStream, 0);
+        }
+        else
+        {
+          GPatternHelper::FindSubGraphs<CompressedInMemMSet, 
+            list<CompressedInMemUSet>::iterator>(
+            accumlator, begin, end , ids, d, n, qts, localResStream, 0);
+        }
         resStream->splice(resStream->end(), *localResStream);
         delete localResStream;
         localResStream= 0;
@@ -1650,17 +1666,17 @@ Evaluating the gpattern results
         ++end;
       begin= end;
     }
-//    resStreamFinal= new list<CompressedMSet*>();
-//    for(list<CompressedMSet*>::iterator 
-//        it= resStream->begin(); it!= resStream->end(); ++it)
-//    {
-//      resStreamFinal->push_back(GPatternHelper::EdgeMSet2NodeMSet(*it, ids));
-//      delete *it;
-//      *it = 0;
-//    }
-//    delete resStream;
+    resStreamFinal= new list<CompressedMSet*>();
+    for(list<CompressedMSet*>::iterator 
+        it= resStream->begin(); it!= resStream->end(); ++it)
+    {
+      resStreamFinal->push_back(GPatternHelper::EdgeMSet2NodeMSet(*it, ids));
+      delete *it;
+      *it = 0;
+    }
+    delete resStream;
     
-    local= SetWord(resStream);
+    local= SetWord(resStreamFinal);
     return 0;
   }
   case REQUEST: { // return the next stream element
