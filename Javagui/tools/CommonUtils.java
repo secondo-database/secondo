@@ -18,7 +18,7 @@ public static String expandVar(String source){
           }else{
             String var = source.substring(index+2,pos-index);
             Reporter.writeInfo("expand variable "+ var);
-            String repl = tools.GetEnv.getEnv(var);
+            String repl = System.getenv(var);
             if(repl==null){
               Reporter.writeWarning("environment variable "+var+" used but not defined");
               repl="";
