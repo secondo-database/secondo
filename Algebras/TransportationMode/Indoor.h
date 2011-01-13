@@ -903,6 +903,7 @@ class GRoom:public StandardSpatialAttribute<2>{
       return BoundingBox().Distance(r);
    }
    float GetLowHeight();
+   float GetHighHeight();
    
    
   /////////////very important two functions////////////////////

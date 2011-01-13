@@ -1477,6 +1477,21 @@ float GRoom::GetLowHeight()
   return h; 
 }
 
+/*
+return the highest height of a groom 
+
+*/
+float GRoom::GetHighHeight()
+{
+  float h = numeric_limits<float>::min(); 
+  for( int i = 0; i < elem_list.Size(); i++ ){
+    FloorElem felem;
+    elem_list.Get(i, felem);
+    if(felem.h > h)
+      h = felem.h; 
+  }
+  return h; 
+}
 
 /*
 Groom Property function 
@@ -1759,13 +1774,20 @@ void IndoorNav::CreateDoor3D()
     CreateLine3D(oid, l, h);
 
     /////////////////3D box x,y,z ////////////////////////
-    if(GetRoomEnum(s) == ST || GetRoomEnum(s) == EL){//Staircase, Elevator
+    if(GetRoomEnum(s) == ST){//Staircase
+//      cout<<"one more box needed"<<endl;
+      h = groom->GetHighHeight();
+      CreateLine3D(oid, l, h);
+    }
+    
+    if(GetRoomEnum(s) == EL){//Elevator 
 //      cout<<"one more box needed"<<endl;
       h = NextFloorHeight(h, floor_height);  
       if(h > 0.0){
           CreateLine3D(oid, l, h);
       }
     }
+
     indoor_tuple->DeleteIfAllowed();
   }
 }
@@ -1861,7 +1883,13 @@ void IndoorNav::CreateDoorBox()
 
     /////////////////3D box x,y,z ////////////////////////
 
-    if(GetRoomEnum(s) == ST || GetRoomEnum(s) == EL){//Staircase, Elevator
+    if(GetRoomEnum(s) == ST){//Staircase
+//      cout<<"one more box needed"<<endl;
+        h = groom->GetHighHeight();
+        CreateBox3D(oid, tid, l, h);
+    }
+
+    if(GetRoomEnum(s) == EL){// Elevator
 //      cout<<"one more box needed"<<endl;
       h = NextFloorHeight(h, floor_height);  
       if(h > 0.0){
@@ -1889,6 +1917,7 @@ float IndoorNav::NextFloorHeight(float h, vector<float>& floor_height)
     }
   }
   assert(false); 
+//  return -1.0;
 }
 
 void IndoorNav::CreateBox3D(int oid, int tid, Line* l, float h)
@@ -2691,7 +2720,7 @@ build the connection for two doors of a staircase at the same level
 void IndoorNav::ST_ConnectOneFloor(int groom_oid, GRoom* groom, Line* l1, 
                                    Line* l2, int tid1, int tid2, float h)
 {
-//  cout<<" ST_ConnectOneFloor "
+//  cout<<" ST_ConnectOneFloor "<<endl; 
 //      <<"groom oid "<<groom_oid<<" id1 "<<tid1<<" id2 "<<tid2<<endl; 
 
   const double dist_delta = 0.001; 
@@ -2932,7 +2961,7 @@ void IndoorNav::ST_ConnectFloors(int groom_oid, GRoom* groom, Line* l1,
                                    vector<MySegHeight>& middle_path)
 {
 //  cout<<" ST_ConnectFloorS "<<endl; 
-  
+
   HalfSegment hs1;
   assert(l1->Size() == 2);
   l1->Get(0, hs1); 
@@ -3216,12 +3245,12 @@ void ShortestPath_InRegion(Region* reg, Point* s, Point* d, Line* pResult)
 {
   const double dist_delta = 0.001; 
   if(reg->Contains(*s) == false){
-    cout<<"region "<<*reg<<"start point "<<*s<<endl; 
+    cout<<"region "<<*reg<<"start point "<<*s<<" end point "<<*d<<endl; 
     cout<<"start point should be inside the region"<<endl;
     return;
   }
   if(reg->Contains(*d) == false){
-    cout<<"region "<<*reg<<"end point "<<*d<<endl; 
+    cout<<"region "<<*reg<<"start point "<<*s<<" end point "<<*d<<endl; 
     cout<<"end point should be inside the region"<<endl;
     return;
   }
@@ -4006,9 +4035,10 @@ void IndoorNav::GenerateIP1(int num)
   struct timezone tzone;
 
   gettimeofday(&tval, &tzone);
-  srand48(tval.tv_sec);
-  
-  
+
+  srand48(tval.tv_sec);//second 
+//    srand48(tval.tv_usec);//Microseconds
+
   for(int i = 1;i <= num;){
     int room_oid; 
     room_oid = lrand48() % no_rooms + 1;
@@ -4135,7 +4165,7 @@ void IndoorNav::ShortestPath_Length(GenLoc* gloc1, GenLoc* gloc2,
      ((CcInt*)door_tuple->GetAttribute(IndoorGraph::I_GROOM_OID1))->GetIntval();
 //    unsigned int gri2 = 
 //   ((CcInt*)door_tuple->GetAttribute(IndoorGraph::I_GROOM_OID2))->GetIntval();
-     
+
 //    cout<<"gri1 "<<gri1<<"gri2 "<<gri2<<endl; 
     assert(gri1 == groom_oid1); 
 
@@ -4148,6 +4178,7 @@ void IndoorNav::ShortestPath_Length(GenLoc* gloc1, GenLoc* gloc2,
     door_tuple->DeleteIfAllowed(); 
 
     delete l3d_start; 
+
 //    break; 
   }
   
@@ -4415,8 +4446,6 @@ void IndoorNav::Path_StartDoor_EndLoc(int id, GenLoc* gloc2,
   for(unsigned int i = 0;i < tid_list.size();i++){
 //     cout<<"dest door tid "<<tid_list[i]<<endl; 
 
-//    if(tid_list[i] != 279) continue;
-
     Tuple* door_tuple = node_rel->GetTuple(tid_list[i], false);
     unsigned int gri1 = 
      ((CcInt*)door_tuple->GetAttribute(IndoorGraph::I_GROOM_OID1))->GetIntval();
@@ -4432,7 +4461,7 @@ void IndoorNav::Path_StartDoor_EndLoc(int id, GenLoc* gloc2,
     assert(gri1 == groom_oid2); 
     IndoorShortestPath(id, tid_list[i], candidate_path, l3d_s, l3d_end);
     door_tuple->DeleteIfAllowed(); 
-    
+
     delete l3d_end; 
 //    break; 
   }
@@ -4682,7 +4711,7 @@ void IndoorNav::IndoorShortestPath(int id1, int id2,
 
     visit_flag1[top.tri_index - 1] = true; 
 //    output<<"pop door tid "<<top.tri_index<<" groom_id "<<groom_id<<endl; 
-    
+
   }
 
   ////////////////construct the result//////////////////////////////
@@ -5069,6 +5098,7 @@ void IndoorNav::IndoorShortestPath_Room(int id1, int id2,
     while(dest.prev_index != -1){
 //      cout<<"sub path "<<endl; 
 //      dest.Print();
+//        cout<<"groom oid "<<dest.groom_oid<<endl; 
       if(dest.path.Size() > 0){
         int oid = groom_oid_list[groom_oid_list.size() - 1]; 
         if(oid != dest.groom_oid)
@@ -5515,11 +5545,12 @@ float IndoorNav::SetTimeWeight(double l, int groom_oid, Relation* rel,
   struct timezone tzone;
 
   gettimeofday(&tval, &tzone);
-  srand48(tval.tv_sec);
+  srand48(tval.tv_sec); //second
+//  srand48(tval.tv_usec);  //Microseconds
 
   const int size = h_list.size();
   int index =  lrand48() % size;  
-
+  
   return h_list[index]/param.speed_elevator; 
 }
 

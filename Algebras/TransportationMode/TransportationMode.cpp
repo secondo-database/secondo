@@ -597,8 +597,11 @@ ListExpr CreateDoor3DTypeMap(ListExpr args)
                 )
           );
           return result; 
-      }else
-        return nl->SymbolAtom("schema error");
+      }else{
+      string err = 
+      "rel:(oid:int,name:string,type:string,room:groom,door:line) expected";
+      return listutils::typeError(err);
+      } 
   }
   return nl->SymbolAtom("typeerror");
 }
