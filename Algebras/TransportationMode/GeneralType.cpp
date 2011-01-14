@@ -79,7 +79,7 @@ Output  (oid, symbol)
 
 ListExpr OutIORef( ListExpr typeInfo, Word value )
 {
-//  cout<<"OutGenRange"<<endl; 
+//  cout<<"OutIORef"<<endl; 
   IORef* ref = (IORef*)(value.addr);
   if(!ref->IsDefined()){
     return nl->SymbolAtom("undef");
@@ -390,6 +390,17 @@ bool CheckGenLoc( ListExpr type, ListExpr& errorInfo )
   return (nl->IsEqual( type, "genloc" ));
 }
 
+ostream& operator<<(ostream& o, const GenLoc& gloc)
+{
+  if(gloc.IsDefined()){
+    o<<"oid "<<gloc.GetOid()<<" loc1 "<<gloc.GetLoc().loc1
+     <<" loc2 "<<gloc.GetLoc().loc2; 
+  }else
+    o<<" undef";
+  return o;
+
+}
+
 ////////////////////////////////////////////////////////////////////////////
 /////////////////////////Data Type: GenRange///////////////////////////////
 /////////////////////////////////////////////////////////////////////////////
@@ -592,4 +603,635 @@ bool CheckGenRange( ListExpr type, ListExpr& errorInfo )
   return (nl->IsEqual( type, "genrange" ));
 }
 
+/////////////////////////////////////////////////////////////////////////////
+//////////////////////Data Type: UGenLoc//////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////
 
+ListExpr UGenLocProperty()
+{
+  return (nl->TwoElemList(
+            nl->FourElemList(nl->StringAtom("Signature"),
+                       nl->StringAtom("Example Type List"),
+           nl->StringAtom("List Rep"),
+           nl->StringAtom("Example List")),
+            nl->FourElemList(nl->StringAtom("-> DATA"),
+                       nl->StringAtom("ugenloc"),
+           nl->StringAtom("(<interval,gloc,gloc,tm>)"),
+      nl->StringAtom("((interval (1 (10.0 1.0))(1 (12.0 3.0)) Indoor))"))));
+}
+
+
+/*
+Output  (interval, genloc1, genloc2, tm)
+
+*/
+
+ListExpr OutUGenLoc( ListExpr typeInfo, Word value )
+{
+//  cout<<"OutUGenLoc"<<endl; 
+  UGenLoc* ugenloc = (UGenLoc*)(value.addr);
+  if(!ugenloc->IsDefined()){
+    return nl->SymbolAtom("undef");
+  }
+
+  if( ugenloc->IsEmpty() ){
+    return nl->TheEmptyList();
+  }
+    ListExpr timeintervalList = nl->FourElemList(
+          OutDateTime( nl->TheEmptyList(),
+          SetWord(&ugenloc->timeInterval.start) ),
+          OutDateTime( nl->TheEmptyList(), 
+                       SetWord(&ugenloc->timeInterval.end) ),
+          nl->BoolAtom( ugenloc->timeInterval.lc ),
+          nl->BoolAtom( ugenloc->timeInterval.rc)); 
+    ListExpr genloc1 = OutGenLoc(nl->TheEmptyList(), &(ugenloc->gloc1));
+    ListExpr genloc2 = OutGenLoc(nl->TheEmptyList(), &(ugenloc->gloc2));
+    ListExpr tm = nl->StringAtom(GetTMStr(ugenloc->tm)); 
+
+    return nl->FourElemList(timeintervalList,genloc1,genloc2,tm); 
+}
+
+
+/*
+In function
+
+*/
+Word InUGenLoc( const ListExpr typeInfo, const ListExpr instance,
+       const int errorPos, ListExpr& errorInfo, bool& correct )
+{
+  string errmsg;
+  if ( nl->ListLength( instance ) == 4 ){
+    ListExpr first = nl->First( instance );
+
+    if( nl->ListLength( first ) == 4 &&
+        nl->IsAtom( nl->Third( first ) ) &&
+        nl->AtomType( nl->Third( first ) ) == BoolType &&
+        nl->IsAtom( nl->Fourth( first ) ) &&
+        nl->AtomType( nl->Fourth( first ) ) == BoolType ){
+
+       correct = true;
+       Instant *start = (Instant *)InInstant( nl->TheEmptyList(),
+       nl->First( first ),
+        errorPos, errorInfo, correct ).addr;
+
+      if( !correct || !start->IsDefined() ){
+        errmsg = "InUGneLoc(): Error in first instant (Must be defined!).";
+        errorInfo = nl->Append(errorInfo, nl->StringAtom(errmsg));
+        delete start;
+        return SetWord( Address(0) );
+      }
+
+      Instant *end = (Instant *)InInstant( nl->TheEmptyList(),
+       nl->Second( first ),
+                                           errorPos, errorInfo, correct ).addr;
+
+      if( !correct  || !end->IsDefined() )
+      {
+        errmsg = "InUGneLoc(): Error in second instant (Must be defined!).";
+        errorInfo = nl->Append(errorInfo, nl->StringAtom(errmsg));
+        delete start;
+        delete end;
+        return SetWord( Address(0) );
+      }
+
+      Interval<Instant> tinterval( *start, *end,
+                                   nl->BoolValue( nl->Third( first ) ),
+                                   nl->BoolValue( nl->Fourth( first ) ) );
+      delete start;
+      delete end;
+
+      correct = tinterval.IsValid();
+      if (!correct)
+        {
+          errmsg = "InUGneLoc(): Non valid time interval.";
+          errorInfo = nl->Append(errorInfo, nl->StringAtom(errmsg));
+          return SetWord( Address(0) );
+        }
+
+      //////////////////////////////////////////////////////////////////
+      ListExpr second = nl->Second( instance );
+      if(nl->ListLength(second) != 2){
+        errmsg = "InUGneLoc(): the length for GenLoc should be 2.";
+        errorInfo = nl->Append(errorInfo, nl->StringAtom(errmsg));
+        return SetWord( Address(0) );
+      }
+      
+      bool gloc1_correct; 
+      GenLoc* gloc1 = (GenLoc*)InGenLoc(typeInfo, second, 
+                                        errorPos,errorInfo, gloc1_correct).addr;
+      if(gloc1_correct == false){
+          errmsg = "InUGneLoc(): Non correct first location.";
+          errorInfo = nl->Append(errorInfo, nl->StringAtom(errmsg));
+          return SetWord( Address(0) );
+      }
+
+      /////////////////////////////////////////////////////////////////////
+      ListExpr third = nl->Third(instance); 
+      if(nl->ListLength(third) != 2){
+        errmsg = "InUGneLoc(): the length for GenLoc should be 2.";
+        errorInfo = nl->Append(errorInfo, nl->StringAtom(errmsg));
+        return SetWord( Address(0) );
+      }
+      bool gloc2_correct; 
+      GenLoc* gloc2 = (GenLoc*)InGenLoc(typeInfo, third, 
+                                        errorPos,errorInfo, gloc2_correct).addr;
+      if(gloc2_correct == false){
+          errmsg = "InUGneLoc(): Non correct second location.";
+          errorInfo = nl->Append(errorInfo, nl->StringAtom(errmsg));
+          return SetWord( Address(0) );
+      }
+
+      /////////////////////////////////////////////////////////////////////
+      if(gloc1->GetOid() != gloc2->GetOid()){
+         errmsg = "InUGneLoc(): two oid should be the same.";
+         errorInfo = nl->Append(errorInfo, nl->StringAtom(errmsg));
+         return SetWord( Address(0) );
+      }
+
+      ListExpr fourth = nl->Fourth(instance);
+
+      if(nl->AtomType( fourth ) == StringType){
+        string str_tm = nl->StringValue(fourth);
+        int tm = GetTM(str_tm); 
+
+//        cout<<tinterval<<" "<<*gloc1<<" "<<*gloc2<<" "<<str_tm<<endl; 
+
+        UGenLoc *ugenloc = new UGenLoc( tinterval, *gloc1, *gloc2, tm);
+
+        correct = ugenloc->IsValid();
+        if( correct )
+          return SetWord( ugenloc );
+
+        errmsg = "InUGenLoc(): Error in start/end point.";
+        errorInfo = nl->Append(errorInfo, nl->StringAtom(errmsg));
+        delete ugenloc;
+      }
+    }
+  }else if ( nl->IsAtom( instance ) && nl->AtomType( instance ) == SymbolType
+            && nl->SymbolValue( instance ) == "undef" ){
+      UGenLoc *ugenloc = new UGenLoc(false);
+      ugenloc->timeInterval=
+                Interval<DateTime>(DateTime(instanttype),
+                           DateTime(instanttype),true,true);
+      correct = ugenloc->timeInterval.IsValid();
+      if ( correct )
+        return (SetWord( ugenloc ));
+  }
+  errmsg = "InGenLoc(): Error in representation.";
+  errorInfo = nl->Append(errorInfo, nl->StringAtom(errmsg));
+  correct = false;
+  return SetWord( Address(0) );
+}
+
+/*
+Open a UGenLoc object 
+
+*/
+bool OpenUGenLoc(SmiRecord& valueRecord, size_t& offset,
+                 const ListExpr typeInfo, Word& value)
+{
+//  cout<<"OpenGenLoc()"<<endl; 
+
+  UGenLoc* genl = (UGenLoc*)Attribute::Open(valueRecord, offset, typeInfo);
+  value = SetWord(genl);
+  return true; 
+}
+
+/*
+Save a UGenLoc object 
+
+*/
+bool SaveUGenLoc(SmiRecord& valueRecord, size_t& offset,
+                 const ListExpr typeInfo, Word& value)
+{
+//  cout<<"SaveUGenLoc"<<endl; 
+  UGenLoc* genl = (UGenLoc*)value.addr; 
+  Attribute::Save(valueRecord, offset, typeInfo, genl);
+  return true; 
+  
+}
+
+Word CreateUGenLoc(const ListExpr typeInfo)
+{
+// cout<<"CreateUGenLoc()"<<endl;
+  return SetWord (new UGenLoc(0));
+}
+
+
+void DeleteUGenLoc(const ListExpr typeInfo, Word& w)
+{
+// cout<<"DeleteUGenLoc()"<<endl;
+  UGenLoc* ugenl = (UGenLoc*)w.addr;
+  delete ugenl;
+   w.addr = NULL;
+}
+
+
+void CloseUGenLoc( const ListExpr typeInfo, Word& w )
+{
+//  cout<<"CloseUGenLoc"<<endl; 
+  ((UGenLoc*)w.addr)->DeleteIfAllowed();
+  w.addr = 0;
+}
+
+Word CloneUGenLoc( const ListExpr typeInfo, const Word& w )
+{
+//  cout<<"CloneUGenLoc"<<endl; 
+  return SetWord( new UGenLoc( *((UGenLoc*)w.addr) ) );
+}
+
+int SizeOfUGenLoc()
+{
+//  cout<<"SizeOfUGenLoc"<<endl; 
+  return sizeof(UGenLoc);
+}
+
+bool CheckUGenLoc( ListExpr type, ListExpr& errorInfo )
+{
+//  cout<<"CheckUGenLoc"<<endl; 
+  return (nl->IsEqual( type, "ugenloc" ));
+}
+
+/*
+interporlation function for the location 
+
+*/
+void UGenLoc::TemporalFunction( const Instant& t, GenLoc& result,
+                               bool ignoreLimits ) const
+{
+  if( !IsDefined() ||
+      !t.IsDefined() ||
+      (!timeInterval.Contains( t ) && !ignoreLimits) )
+    {
+      result.SetDefined(false);
+    }
+  else if( t == timeInterval.start )
+    {
+      result = gloc1;
+      result.SetDefined(true);
+    }
+  else if( t == timeInterval.end )
+    {
+      result = gloc2;
+      result.SetDefined(true);
+    }
+  else
+    {
+      Instant t0 = timeInterval.start;
+      Instant t1 = timeInterval.end;
+
+      Point p0(gloc1.GetLoc().loc1, gloc1.GetLoc().loc2);
+      Point p1(gloc2.GetLoc().loc1, gloc2.GetLoc().loc2);
+
+      double x = (p1.GetX() - p0.GetX()) * ((t - t0) / (t1 - t0)) + p0.GetX();
+      double y = (p1.GetY() - p0.GetY()) * ((t - t0) / (t1 - t0)) + p0.GetY();
+
+      Loc loc(x,y);
+      int oid = (const_cast<GenLoc*>(&gloc1))->GetOid(); 
+      result.SetValue(oid, loc);
+      result.SetDefined(true);
+    }
+}
+
+/*
+check whether a location is visited 
+
+*/
+bool UGenLoc::Passes( const GenLoc& gloc ) const
+{
+/*
+VTA - I could use the spatial algebra like this
+
+----    HalfSegment hs;
+        hs.Set( true, p0, p1 );
+        return hs.Contains( p );
+----
+but the Spatial Algebra admit rounding errors (floating point operations). It
+would then be very hard to return a true for this function.
+
+*/
+  assert( gloc.IsDefined() );
+  assert( IsDefined() );
+  
+
+  if(gloc.GetOid() != gloc1.GetOid()) return false;
+  if(gloc.GetOid() != gloc2.GetOid()) return false;
+
+  Point p(true, gloc.GetLoc().loc1, gloc.GetLoc().loc2); 
+  Point p0(true, gloc1.GetLoc().loc1, gloc1.GetLoc().loc2);
+  Point p1(true, gloc2.GetLoc().loc1, gloc2.GetLoc().loc2);
+  
+
+  if( (timeInterval.lc && AlmostEqual( p, p0 )) ||
+      (timeInterval.rc && AlmostEqual( p, p1 )) )
+    return true;
+
+  if( AlmostEqual( p0.GetX(), p1.GetX() ) &&
+      AlmostEqual( p0.GetX(), p.GetX() ) )
+    // If the segment is vertical
+  {
+    if( ( p0.GetY() <= p.GetY() && p1.GetY() >= p.GetY() ) ||
+        ( p0.GetY() >= p.GetY() && p1.GetY() <= p.GetY() ) )
+      return true;
+  }
+  else if( AlmostEqual( p0.GetY(), p1.GetY() ) &&
+      AlmostEqual( p0.GetY(), p.GetY() ) )
+    // If the segment is horizontal
+  {
+    if( ( p0.GetX() <= p.GetX() && p1.GetX() >= p.GetX() ) ||
+        ( p0.GetX() >= p.GetX() && p1.GetX() <= p.GetX() ) )
+      return true;
+  }
+  else
+  {
+    double k1 = ( p.GetX() - p0.GetX() ) / ( p.GetY() - p0.GetY() ),
+           k2 = ( p1.GetX() - p0.GetX() ) / ( p1.GetY() - p0.GetY() );
+
+    if( AlmostEqual( k1, k2 ) &&
+        ( ( p0.GetX() < p.GetX() && p1.GetX() > p.GetX() ) ||
+          ( p0.GetX() > p.GetX() && p1.GetX() < p.GetX() ) ) )
+      return true;
+  }
+  return false;
+}
+
+/*
+restrict the movement at a location 
+
+*/
+
+bool UGenLoc::At( const GenLoc& genloc, TemporalUnit<GenLoc>& res ) const 
+{
+
+  assert(genloc.IsDefined());
+  assert(this->IsDefined());
+
+  UGenLoc* result = static_cast<UGenLoc*>(&res);
+  *result = *this;
+
+  Point p0(true, gloc1.GetLoc().loc1, gloc1.GetLoc().loc2); 
+  Point p1(true, gloc2.GetLoc().loc1, gloc2.GetLoc().loc2); 
+  Point p(true, genloc.GetLoc().loc1, genloc.GetLoc().loc2); 
+  
+  // special case: static unit
+  if(AlmostEqual(p0,p1)){
+     if(AlmostEqual(p,p0) || AlmostEqual(p,p1)){
+        return true;
+     } else {
+        result->SetDefined(false);
+        return false;
+     }
+  }
+  // special case p on p0
+  if(AlmostEqual(p0,p)){
+    if(!timeInterval.lc){
+       result->SetDefined(false);
+      return false;
+    } else {
+//       result->p1 = result->p0;
+       result->gloc2 = result->gloc1; 
+       result->timeInterval.rc = true;
+       result->timeInterval.end = timeInterval.start;
+       return true;
+    }
+  }
+  // special case p on p1
+  if(AlmostEqual(p,p1)){
+    if(!timeInterval.rc){
+      result->SetDefined(false);
+      return false;
+    } else {
+//      result->p0 = result->p1;
+      result->gloc1 = result->gloc2; 
+      result->timeInterval.lc = true;
+      result->timeInterval.start = timeInterval.end;
+      return true;
+    }
+  }
+
+  double d_x = p1.GetX() - p0.GetX();
+  double d_y = p1.GetY() - p0.GetY();
+  double delta;
+  bool useX;
+
+  if(fabs(d_x)> fabs(d_y)){
+     delta = (p.GetX()-p0.GetX() ) / d_x;
+     useX = true;
+  } else {
+     delta = (p.GetY()-p0.GetY() ) / d_y;
+     useX = false;
+  }
+
+  if(AlmostEqual(delta,0)){
+    delta = 0;
+  }
+  if(AlmostEqual(delta,1)){
+    delta = 1;
+  }
+
+  if( (delta<0) || (delta>1)){
+    result->SetDefined(false);
+    return false;
+  }
+
+  if(useX){ // check y-value
+    double y = p0.GetY() + delta*d_y;
+    if(!AlmostEqual(y,p.GetY())){
+       result->SetDefined(false);
+       return false;
+    }
+  } else { // check x-value
+    double x = p0.GetX() + delta*d_x;
+    if(!AlmostEqual(x,p.GetX())){
+       result->SetDefined(false);
+       return false;
+    }
+  }
+
+
+  Instant time = timeInterval.start +
+                 (timeInterval.end-timeInterval.start)*delta;
+
+//  result->p0 = p;
+//  result->p1 = p;
+  result->gloc1 = genloc;
+  result->gloc2 = genloc; 
+  result->timeInterval.lc = true;
+  result->timeInterval.rc = true;
+  result->timeInterval.start = time;
+  result->timeInterval.end = time;
+  return true;
+  
+}
+
+
+UGenLoc* UGenLoc::Clone() const
+{
+  UGenLoc* res;
+  if(this->IsDefined()){
+    
+    res = new UGenLoc(timeInterval, gloc1, gloc2, tm); 
+    res->del.isDefined = del.isDefined;
+  }else{
+    res = new UGenLoc(false); 
+  }
+  return res; 
+}
+
+void UGenLoc::CopyFrom(const Attribute* right)
+{
+  const UGenLoc* ugloc = static_cast<const UGenLoc*>(right); 
+  if(ugloc->del.isDefined){
+    timeInterval.CopyFrom(ugloc->timeInterval);
+    gloc1 = ugloc->gloc1;
+    gloc2 = ugloc->gloc2;
+    tm = ugloc->tm; 
+  }
+  del.isDefined = ugloc->del.isDefined; 
+}
+
+/*
+it returns the 3D bounding box. at somewhere else, the program should check
+the object identifier to know whether the movement is outdoor or indoor. if 
+it is indoor, it has to convert 3D box to 4D box (x,y,z,t). And it also has to
+calculate the absolute coordinates in space. 
+
+*/
+const Rectangle<3> UGenLoc::BoundingBox() const
+{
+  if(this->IsDefined()){
+
+    return Rectangle<3>(true, 
+                       MIN(gloc1.GetLoc().loc1, gloc2.GetLoc().loc1),
+                       MAX(gloc1.GetLoc().loc1, gloc2.GetLoc().loc1), 
+                       MIN(gloc1.GetLoc().loc2, gloc2.GetLoc().loc2),
+                       MAX(gloc1.GetLoc().loc2, gloc2.GetLoc().loc2),  
+                       timeInterval.start.ToDouble(),
+                       timeInterval.end.ToDouble());
+  }else
+      return Rectangle<3>(false); 
+
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////general moving objects//////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+ListExpr GenMPointProperty()
+{
+  return (nl->TwoElemList(
+            nl->FourElemList(nl->StringAtom("Signature"),
+                       nl->StringAtom("Example Type List"),
+           nl->StringAtom("List Rep"),
+           nl->StringAtom("Example List")),
+            nl->FourElemList(nl->StringAtom("-> MAPPING"),
+                       nl->StringAtom("genmpoint"),
+           nl->StringAtom("(u1,...,un)"),
+      nl->StringAtom("((interval (1 (10.0 1.0))(1 (12.0 3.0)) Indoor))"))));
+}
+
+
+bool CheckGenMPoint( ListExpr type, ListExpr& errorInfo )
+{
+//  cout<<"CheckGenMPoint"<<endl; 
+  return (nl->IsEqual( type, "genmpoint" ));
+}
+
+void GenMPoint::Clear()
+{
+  Mapping<UGenLoc, GenLoc>::Clear();
+}
+
+/*
+copy it from another data 
+
+*/
+void GenMPoint::CopyFrom(const Attribute* right)
+{
+
+    const GenMPoint *genmo = (const GenMPoint*)right;
+    assert( genmo->IsOrdered() );
+    Clear();
+    this->SetDefined(genmo->IsDefined());
+    if( !this->IsDefined() ) {
+      return;
+    }
+    StartBulkLoad();
+    UGenLoc unit;
+    for( int i = 0; i < genmo->GetNoComponents(); i++ ){
+      genmo->Get( i, unit );
+      Add( unit );
+    }
+    EndBulkLoad( false );
+
+}
+
+Attribute* GenMPoint::Clone() const
+{
+    assert( IsOrdered() );
+    GenMPoint *result;
+    if( !this->IsDefined() ){
+      result = new GenMPoint( 0 );
+    } else {
+      result = new GenMPoint( GetNoComponents() );
+      if(GetNoComponents()>0){
+        result->units.resize(GetNoComponents());
+      }
+      result->StartBulkLoad();
+      UGenLoc unit;
+      for( int i = 0; i < GetNoComponents(); i++ ){
+        Get( i, unit );
+        result->Add( unit );
+      }
+      result->EndBulkLoad( false );
+    }
+    result->SetDefined(this->IsDefined());
+    return (Attribute*) result;
+
+}
+
+/*
+put new unit. it only inserts the new unit and does not calculate the bounding
+box. 
+
+*/
+void GenMPoint::Add(const UGenLoc& unit)
+{
+  assert(unit.IsDefined());
+  assert(unit.IsValid()); 
+  if(!IsDefined()){
+    SetDefined(false);
+    return; 
+  }
+  units.Append(unit); 
+}
+
+void GenMPoint::EndBulkLoad(const bool sort, const bool checkvalid)
+{
+  Mapping<UGenLoc, GenLoc>::EndBulkLoad(sort, checkvalid); 
+
+}
+
+/*
+the length of a trip 
+
+*/
+double GenMPoint::Length() const
+{
+  assert( IsDefined() );
+  if(!IsDefined()){
+    return -1;
+  }
+  double res = 0;
+  UGenLoc unit;
+  int size = GetNoComponents();
+  for(int i=0;i < size; i++){
+     Get(i,unit);
+     assert(unit.gloc1.GetOid() == unit.gloc2.GetOid()); 
+     double x = fabs(unit.gloc1.GetLoc().loc1 - unit.gloc2.GetLoc().loc1);
+     double y = fabs(unit.gloc1.GetLoc().loc2 - unit.gloc2.GetLoc().loc2);
+     double l = sqrt( pow(x, 2) + pow(y, 2)); 
+     res += l;
+  }
+  return res;
+
+}

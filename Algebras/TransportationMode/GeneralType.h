@@ -238,12 +238,20 @@ public:
       
     }
     
+
    GenLoc(const GenLoc& genl):StandardSpatialAttribute<2>(genl.IsDefined()){
       if(genl.IsDefined()){
         oid = genl.oid;
         loc = genl.loc; 
         SetDefined(true);
       }
+   }
+   GenLoc& operator=(const GenLoc& genloc)
+   {
+    del.isDefined = genloc.del.isDefined;
+    oid = genloc.oid;
+    loc = genloc.loc; 
+    return *this; 
    }
    ~GenLoc()
     {
@@ -283,10 +291,9 @@ public:
   {
       return BoundingBox().Distance(r);
   }
-    
   static void* Cast(void* addr){return new (addr)GenLoc();}
-  unsigned int GetOid(){return oid;}
-  Loc GetLoc(){return loc;}
+  unsigned int GetOid() const {return oid;}
+  Loc GetLoc() const {return loc;}
   private:
     unsigned int oid;
     Loc loc; 
@@ -306,7 +313,7 @@ void CloseGenLoc( const ListExpr typeInfo, Word& w );
 Word CloneGenLoc( const ListExpr typeInfo, const Word& w );
 int SizeOfGenLoc();
 bool CheckGenLoc( ListExpr type, ListExpr& errorInfo );
-
+ostream& operator<<(ostream& o, const GenLoc& gloc); 
 
 ///////////////////////////////////////////////////////////////////////////
 //////////////////////  GenRange /////////////////////////////////////////
@@ -518,5 +525,111 @@ void CloseGenRange( const ListExpr typeInfo, Word& w );
 Word CloneGenRange( const ListExpr typeInfo, const Word& w );
 int SizeOfGenRange();
 bool CheckGenRange( ListExpr type, ListExpr& errorInfo );
+
+/////////////////////////////////////////////////////////////////////
+///////////// temporal unit: UGenLoc ////////////////////////////////
+////////////////////  oid = 0 is for free space  ///////////////////////
+/////////////////////////////////////////////////////////////////////
+class UGenLoc: public SpatialTemporalUnit<GenLoc,3>
+{
+  public:
+  UGenLoc(){}; 
+  UGenLoc(bool def):SpatialTemporalUnit<GenLoc,3>(def){}
+  UGenLoc(const Interval<Instant>& interval, const GenLoc& loc1, 
+          const GenLoc& loc2, int m):
+  SpatialTemporalUnit<GenLoc,3>(interval),gloc1(loc1),gloc2(loc2),tm(m)
+  {
+    assert(gloc1.GetOid() == gloc2.GetOid()); 
+    SetDefined(loc1.IsDefined() && loc2.IsDefined()); 
+  }
+  UGenLoc(const UGenLoc& source):
+  SpatialTemporalUnit<GenLoc,3>(source.IsDefined())
+  {
+    timeInterval = source.timeInterval; 
+    gloc1 = source.gloc1;
+    gloc2 = source.gloc2;
+    del.refs = 1;
+    del.SetDelete(); 
+    del.isDefined = source.del.isDefined; 
+  }
+  UGenLoc& operator=(const UGenLoc& ugenloc)
+  {
+    timeInterval = ugenloc.timeInterval;
+    gloc1 = ugenloc.gloc1;
+    gloc2 = ugenloc.gloc2;
+    del.isDefined = ugenloc.del.isDefined;
+    return *this; 
+  }
+
+  void TemporalFunction( const Instant& t,
+                               GenLoc& result,
+                               bool ignoreLimits ) const; 
+  bool Passes( const GenLoc& gloc ) const; 
+  bool At( const GenLoc& p, TemporalUnit<GenLoc>& res ) const; 
+
+  static void* Cast(void* addr){return new (addr)UGenLoc();}
+  inline size_t Sizeof() const { return sizeof(*this);}
+  UGenLoc* Clone() const;
+  void CopyFrom(const Attribute* right); 
+  const Rectangle<3> BoundingBox() const; 
+  double Distance(const Rectangle<3>& rect) const
+  {
+    return BoundingBox().Distance(rect); 
+  }
+  inline bool IsEmpty() const
+  {
+    return !IsDefined(); 
+  }
+  GenLoc gloc1;
+  GenLoc gloc2;
+  int tm; 
+};
+ListExpr OutUGenLoc( ListExpr typeInfo, Word value );
+Word InUGenLoc( const ListExpr typeInfo, const ListExpr instance,
+       const int errorPos, ListExpr& errorInfo, bool& correct ); 
+
+bool OpenUGenLoc(SmiRecord& valueRecord, size_t& offset,
+                 const ListExpr typeInfo, Word& value); 
+bool SaveUGenLoc(SmiRecord& valueRecord, size_t& offset,
+                 const ListExpr typeInfo, Word& value); 
+Word CreateUGenLoc(const ListExpr typeInfo);
+void DeleteUGenLoc(const ListExpr typeInfo, Word& w); 
+void CloseUGenLoc( const ListExpr typeInfo, Word& w ); 
+Word CloneUGenLoc( const ListExpr typeInfo, const Word& w ); 
+int SizeOfUGenLoc();
+bool CheckUGenLoc( ListExpr type, ListExpr& errorInfo );
+ListExpr UGenLocProperty();
+
+
+/////////////////////////////////////////////////////////////////////
+///////////// general moving objects ////////////////////////////////
+/////////////////////////////////////////////////////////////////////
+/*
+the bounding box for genmpoint should be calculated somewhere else because it
+needs the object identifier to calculate the absolute coordinates in space 
+
+*/
+class GenMPoint:public Mapping<UGenLoc,GenLoc>
+{
+  public:
+    GenMPoint(){}
+    GenMPoint(const int n):Mapping<UGenLoc,GenLoc>(n)
+    {
+      del.refs = 1;
+      del.SetDelete();
+      del.isDefined = true;
+    }
+    void Clear();
+    void CopyFrom(const Attribute* right); 
+    Attribute* Clone() const; 
+    void Add(const UGenLoc& unit); 
+    void EndBulkLoad(const bool sort = true, const bool checkvalid = false); 
+    double Length() const; 
+
+}; 
+
+
+bool CheckGenMPoint( ListExpr type, ListExpr& errorInfo );
+ListExpr GenMPointProperty();
 
 #endif

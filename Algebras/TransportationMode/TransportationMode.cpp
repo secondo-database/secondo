@@ -2226,6 +2226,35 @@ TypeConstructor genrange(
         SizeOfGenRange,                 //sizeof function
         CheckGenRange ); 
 
+TypeConstructor ugenloc(
+        "ugenloc",                     //name
+        UGenLocProperty,              //property function describing signature
+        OutUGenLoc,      InUGenLoc,     //Out and In functions
+        0,              0,            //SaveTo and RestoreFrom List functions
+        CreateUGenLoc,   DeleteUGenLoc, //object creation and deletion
+        OpenUGenLoc,     SaveUGenLoc,   // object open and save
+
+        CloseUGenLoc,    CloneUGenLoc,  //object close and clone
+        UGenLoc::Cast,
+        SizeOfUGenLoc,                 //sizeof function
+        CheckUGenLoc ); 
+
+TypeConstructor genmpoint(
+        "genmpoint",                     //name
+        GenMPointProperty,            //property function describing signature
+        OutMapping<GenMPoint, UGenLoc,OutUGenLoc>, //Out functions 
+        InMapping<GenMPoint, UGenLoc, InUGenLoc>,  //In functions
+        0,              0,            //SaveTo and RestoreFrom List functions
+        CreateMapping<GenMPoint>, //object creation 
+        DeleteMapping<GenMPoint>, //object deletion
+        OpenAttribute<GenMPoint>,  //object open 
+        SaveAttribute<GenMPoint>,   // object save
+        CloseMapping<GenMPoint>,CloneMapping<GenMPoint>,//object close and clone
+        CastMapping<GenMPoint>,
+        SizeOfMapping<GenMPoint>,              //sizeof function
+        CheckGenMPoint); 
+        
+        
 const string SpatialSpecRefId =
 "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
 "( <text>genloc -> int</text--->"
@@ -11876,6 +11905,10 @@ class TransportationModeAlgebra : public Algebra
     genloc.AssociateKind("DATA"); 
     AddTypeConstructor(&genrange);
     genrange.AssociateKind("DATA"); 
+    AddTypeConstructor(&ugenloc);
+    ugenloc.AssociateKind("DATA");
+    AddTypeConstructor(&genmpoint); 
+    genmpoint.AssociateKind("DATA"); 
     ////operators for partition regions//////////////////////////
     AddOperator(&checksline);
     AddOperator(&modifyboundary);
@@ -11885,7 +11918,7 @@ class TransportationModeAlgebra : public Algebra
     AddOperator(&decomposeregion);
     AddOperator(&fillpavement);
 
-    //////////operators for build the graph model on pavement////////////
+    //////////operators for building the graph model on pavements//////////
     AddOperator(&getpavenode1);
     AddOperator(&getpaveedge1);
     AddOperator(&getpavenode2);
