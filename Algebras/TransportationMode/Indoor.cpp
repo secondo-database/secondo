@@ -5011,7 +5011,8 @@ void IndoorNav::IndoorShortestPath_Room(int id1, int id2,
   int cur_size = expand_queue.size();
 
   double w = 0.0; 
-  double hw = start_p.Distance(end_p);
+//  double hw = start_p.Distance(end_p);
+  double hw = 0.0; 
   Line3D* l3d = new Line3D(0);
   IPath_elem elem(-1, cur_size, id1, w + hw, w, *l3d, s_room_oid);
   path_queue.push(elem);
@@ -5076,8 +5077,12 @@ void IndoorNav::IndoorShortestPath_Room(int id1, int id2,
 
       int cur_size = expand_queue.size();
 
-      double w = top.real_w + path->Length(); 
-      double hw = p.Distance(end_p);
+//      double w = top.real_w + path->Length(); 
+//      double hw = p.Distance(end_p);
+      double w = top.real_w; 
+      if(path->Length() > 0.0) w++; //one more room 
+      double hw = 0.0; 
+      
       IPath_elem elem(pos_expand_path, cur_size, 
                       neighbor_id, w + hw, w, *path, groom_oid);
       path_queue.push(elem);
@@ -5110,7 +5115,6 @@ void IndoorNav::IndoorShortestPath_Room(int id1, int id2,
 //    dest.path.Print();
     
     groom_oid_list.push_back(dest.groom_oid); 
-
 
     vector<TupleId> temp_list; 
     for(int i = groom_oid_list.size() - 1;i >= 0;i--){
@@ -5255,7 +5259,10 @@ void IndoorNav::ShortestPath_Time(GenLoc* gloc1, GenLoc* gloc2,
 
 
 /*
-path with minimum travelling time 
+path with minimum travelling time.
+it should calculate two shortest path: one is without elevator and the other
+might include elevator. if it includes the elevator, then the cost on the 
+elevator is rest (uncertain value). Finally, compare the two costs. 
 
 */
 void IndoorNav::Path_StartDoor_EndLoc_Time(int id, GenLoc* gloc2, 
@@ -5292,8 +5299,10 @@ void IndoorNav::Path_StartDoor_EndLoc_Time(int id, GenLoc* gloc2,
     ConnectEndLoc(gloc2, tid_list[i], rel, groom_btree, l3d_end); 
    
     assert(gri1 == groom_oid2); 
-    IndoorShortestPath_Time(id, tid_list[i], candidate_path, l3d_s, 
+    IndoorShortestPath_Time1(id, tid_list[i], candidate_path, l3d_s, 
                             l3d_end, timecost, param, rel, groom_btree);
+    IndoorShortestPath_Time2(id, tid_list[i], candidate_path, l3d_s, 
+                            l3d_end, timecost, param, rel, groom_btree); 
     door_tuple->DeleteIfAllowed(); 
     
     delete l3d_end; 
@@ -5308,9 +5317,10 @@ A star algorithm can still be applied.
 distance: Euclidean distance is set as the path length
 speed: the maximum speed between person and elevator 
 heuristic value = distacne div speed 
+It searches the path without elevator 
 
 */
-void IndoorNav::IndoorShortestPath_Time(int id1, int id2, 
+void IndoorNav::IndoorShortestPath_Time1(int id1, int id2, 
                            vector<Line3D>& candidate_path, Line3D* l3d_s, 
                            Line3D* l3d_d, vector<double>& timecost,
                            I_Parameter& param, Relation* rel, BTree* btree)
@@ -5406,7 +5416,13 @@ void IndoorNav::IndoorShortestPath_Time(int id1, int id2,
       int neighbor_id = 
       ((CcInt*)edge_tuple->GetAttribute(IndoorGraph::I_DOOR_TID2))->GetIntval();
       Line3D* path = (Line3D*)edge_tuple->GetAttribute(IndoorGraph::I_PATH);
-
+      int groom_oid = 
+      ((CcInt*)edge_tuple->GetAttribute(IndoorGraph::I_GROOM_OID))->GetIntval();
+     
+      if(IsElevator(groom_oid, rel, btree)){
+        edge_tuple->DeleteIfAllowed(); 
+        continue; 
+      }
 
       if(visit_flag1[neighbor_id - 1]){
 
@@ -5425,9 +5441,6 @@ void IndoorNav::IndoorShortestPath_Time(int id1, int id2,
 
      int cur_size = expand_queue.size();
      ////////////// set the weight //////////////////////////////////////
-
-     int groom_oid = 
-     ((CcInt*)edge_tuple->GetAttribute(IndoorGraph::I_GROOM_OID))->GetIntval(); 
 
      double w = top.real_w + 
       SetTimeWeight(path->Length(), groom_oid, rel, btree, param, h_list);
@@ -5514,6 +5527,35 @@ void IndoorNav::IndoorShortestPath_Time(int id1, int id2,
 }
 
 /*
+check whether the room is an elevator 
+
+*/
+bool IndoorNav::IsElevator(int groom_oid, Relation* rel, BTree* btree)
+{
+
+  CcInt* search_id = new CcInt(true, groom_oid);
+  BTreeIterator* btree_iter = btree->ExactMatch(search_id);
+  int groom_tid = 0; 
+  while(btree_iter->Next()){
+     groom_tid = btree_iter->GetId();
+     break; 
+  }
+  delete btree_iter;
+  delete search_id;
+
+  assert(1 <= groom_tid && groom_tid <= rel->GetNoTuples()); 
+  Tuple* groom_tuple = rel->GetTuple(groom_tid, false);
+  string type = ((CcString*)groom_tuple->GetAttribute(I_Type))->GetValue();
+  groom_tuple->DeleteIfAllowed(); 
+
+  if(GetRoomEnum(type) == EL){//////////// an elevator
+    return true; 
+  }else
+    return false; 
+}
+
+
+/*
 calculate the time cost of an edge: use the length of path and speed value 
 
 */
@@ -5540,7 +5582,233 @@ float IndoorNav::SetTimeWeight(double l, int groom_oid, Relation* rel,
   if(GetRoomEnum(type) != EL){////////////not an elevator
     return l/param.speed_person; 
   }
+  cout<<"should not visit here"<<endl;
+  assert(false);
+  return l/param.speed_elevator; 
 
+}
+
+/*
+the weight in the priority queue is changed to time instead of distance 
+A star algorithm can still be applied. 
+distance: Euclidean distance is set as the path length
+speed: the maximum speed between person and elevator 
+heuristic value = distacne div speed 
+
+If the shortest path uses the elevator, the weight value should be reset 
+
+*/
+void IndoorNav::IndoorShortestPath_Time2(int id1, int id2, 
+                           vector<Line3D>& candidate_path, Line3D* l3d_s, 
+                           Line3D* l3d_d, vector<double>& timecost,
+                           I_Parameter& param, Relation* rel, BTree* btree)
+{
+
+  if(id1 == id2){
+    cout<<"two doors are equal"<<endl;
+//    assert(false); 
+    return; 
+  }
+
+  Relation* node_rel = ig->GetNodeRel(); 
+
+  Tuple* door_tuple1 = node_rel->GetTuple(id1, false);
+  Tuple* door_tuple2 = node_rel->GetTuple(id2, false);
+  Line3D* l3d1 = (Line3D*)door_tuple1->GetAttribute(IndoorGraph::I_DOOR_LOC_3D);
+  Line3D* l3d2 = (Line3D*)door_tuple2->GetAttribute(IndoorGraph::I_DOOR_LOC_3D);
+  
+  Point3D start_p, end_p;
+
+  if(MiddlePoint(l3d1, start_p) == false || 
+     MiddlePoint(l3d2, end_p) == false){
+    cout<<"incorrect door "<<endl;
+    assert(false);
+  }
+
+
+  door_tuple1->DeleteIfAllowed(); 
+  door_tuple2->DeleteIfAllowed(); 
+  
+  priority_queue<IPath_elem> path_queue;
+  vector<IPath_elem> expand_queue;
+  
+  vector<bool> visit_flag1;////////////door visit 
+  for(int i = 1; i <= node_rel->GetNoTuples();i++)
+    visit_flag1.push_back(false);
+
+  ///////////  initialize the queue //////////////////////////////
+  int cur_size = expand_queue.size();
+
+  double w = 0; 
+  double hw = start_p.Distance(end_p); 
+  Line3D* l3d = new Line3D(0);
+  IPath_elem elem(-1, cur_size, id1, w + hw, w, *l3d);
+  path_queue.push(elem);
+  expand_queue.push_back(elem); 
+  delete l3d; 
+
+ //////////////////////////////////////////////////////////////////
+  bool find = false;
+  IPath_elem dest;//////////destination
+  while(path_queue.empty() == false){
+    IPath_elem top = path_queue.top();
+    path_queue.pop();
+
+    if(visit_flag1[top.tri_index - 1])continue; 
+
+    if(top.tri_index == id2){
+       cout<<"find the shortest path"<<endl;
+       find = true;
+       dest = top;
+       break;
+    }
+    
+    
+    Tuple* door_tuple = node_rel->GetTuple(top.tri_index, false);
+    /////////////////get the position of the door////////////////////////////
+    Point3D q;
+    Line3D* door_loc = 
+      (Line3D*)door_tuple->GetAttribute(IndoorGraph::I_DOOR_LOC_3D); 
+    assert(MiddlePoint(door_loc, q));
+
+    door_tuple->DeleteIfAllowed(); 
+
+   ////////find its adjacecy element, and push them into queue and path//////
+    vector<int> adj_list;
+    ig->FindAdj(top.tri_index, adj_list);
+
+    /////////////////////////////////////////////////////////////
+    int pos_expand_path = top.cur_index;
+
+    for(unsigned int i = 0;i < adj_list.size();i++){
+
+      Tuple* edge_tuple = ig->GetEdgeRel()->GetTuple(adj_list[i], false);
+      int neighbor_id = 
+      ((CcInt*)edge_tuple->GetAttribute(IndoorGraph::I_DOOR_TID2))->GetIntval();
+      Line3D* path = (Line3D*)edge_tuple->GetAttribute(IndoorGraph::I_PATH);
+      int groom_oid = 
+      ((CcInt*)edge_tuple->GetAttribute(IndoorGraph::I_GROOM_OID))->GetIntval();
+
+      if(visit_flag1[neighbor_id - 1]){
+
+        edge_tuple->DeleteIfAllowed();
+        continue; 
+      }
+
+     Tuple* door_tuple1 = node_rel->GetTuple(neighbor_id, false);
+
+     Line3D* l = (Line3D*)door_tuple1->GetAttribute(IndoorGraph::I_DOOR_LOC_3D);
+     Point3D p;
+
+     assert(MiddlePoint(l, p));//get the point of next door 
+     door_tuple1->DeleteIfAllowed(); 
+
+
+     int cur_size = expand_queue.size();
+     ////////////// set the weight //////////////////////////////////////
+
+     double w = top.real_w + path->Length(); 
+     double hw =  p.Distance(end_p); 
+     //////////////////////////////////////////////////////////////////////
+     IPath_elem elem(pos_expand_path, cur_size, 
+                      neighbor_id, w + hw, w, *path, groom_oid);
+     path_queue.push(elem);
+     expand_queue.push_back(elem); 
+
+     edge_tuple->DeleteIfAllowed();
+    }
+
+    visit_flag1[top.tri_index - 1] = true; 
+
+  }
+
+  ////////////////construct the result//////////////////////////////
+  if(find){
+    double cost_t = 0; 
+//    cout<<"cost_t "<<cost_t<<endl; 
+
+    vector<Point3D> ps_list; 
+    double elevator_length = 0; 
+    while(dest.prev_index != -1){
+      if(dest.path.Size() > 0){
+          int groom_oid = dest.groom_oid;
+          if(IsElevator(groom_oid, rel, btree))//if the path belongs to lift 
+              elevator_length += dest.path.Length(); 
+
+          if(ps_list.size() == 0){
+              for(int i = dest.path.Size() - 1;i >= 0;i--){
+                  Point3D q;
+                  dest.path.Get(i, q);
+                  ps_list.push_back(q);
+              }
+            }else{
+              for(int i = dest.path.Size() - 2;i >= 0;i--){
+                  Point3D q;
+                  dest.path.Get(i, q);
+                  ps_list.push_back(q);
+              }
+          }
+      }
+      dest = expand_queue[dest.prev_index];
+    }
+
+    if(dest.path.Size() > 0){
+      for(int i = dest.path.Size() - 2;i >= 0;i--){
+        Point3D q;
+        dest.path.Get(i, q);
+        ps_list.push_back(q);
+      }
+    }
+
+    Line3D* l3d = new Line3D(0);
+    l3d->StartBulkLoad();
+    //////////////////connect to the start point////////////////////
+    for(int i = 0;i < l3d_s->Size() - 1;i++){
+      Point3D q;
+      l3d_s->Get(i, q);
+      *l3d += q; 
+    }
+    ///////////////////////////////////////////////////////////////
+
+    for(int i = ps_list.size() - 1;i >= 0; i--){
+      *l3d += ps_list[i];
+    }
+    ////////////////////connect to the end point/////////////////////
+    for(int i = 1;i < l3d_d->Size();i++){
+      Point3D q;
+      l3d_d->Get(i, q);
+      *l3d += q; 
+    }
+
+    l3d->EndBulkLoad(); 
+    candidate_path.push_back(*l3d);
+    if(elevator_length > 0.0){
+      cost_t = (l3d->Length() - elevator_length) / param.speed_person; 
+      cost_t += CostInElevator( elevator_length, param); 
+    }else
+      cost_t = l3d->Length() / param.speed_person; 
+
+    delete l3d; 
+
+    timecost.push_back(cost_t);
+  }
+
+}
+
+/*
+the uncertain cost value on an elevator: 
+let l be absolute length of two floors and h be the distance between two 
+consecutive floors, there are n floors. 
+the distribution is: l, l+h, l+2h, l+3h, ...l+2nh
+
+*/
+float IndoorNav::CostInElevator(double l, I_Parameter& param)
+{
+  vector<float> h_list; //all possible values 
+  for(int i = 0;i <= 2*param.num_floors;i++){
+    h_list.push_back(l + i*param.floor_height);
+  }
+  
   struct timeval tval;
   struct timezone tzone;
 
@@ -5550,7 +5818,8 @@ float IndoorNav::SetTimeWeight(double l, int groom_oid, Relation* rel,
 
   const int size = h_list.size();
   int index =  lrand48() % size;  
-  
+//  cout<<"index "<<index<<endl; 
+
   return h_list[index]/param.speed_elevator; 
 }
 

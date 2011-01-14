@@ -1125,7 +1125,9 @@ struct IndoorNav{
                         priority_queue<IPath_elem>& path_queue, 
                         vector<IPath_elem>& expand_path);
    bool MiddlePoint(Line3D* l, Point3D& p); 
+   ////////////////////////////////////////////////////////////////////
    /////////////////////////minimum number of rooms////////////////////
+   ////////////////////////////////////////////////////////////////////
    void ShortestPath_Room(GenLoc* gloc1, GenLoc* gloc2, 
                             Relation* rel, BTree* btree);
    void Path_StartDoor_EndLoc_Room(int id, GenLoc* d, 
@@ -1134,17 +1136,25 @@ struct IndoorNav{
    void IndoorShortestPath_Room(int id1, int id2,
                                 vector< vector<TupleId> >& candidate_path,
                                 int s_tid, int e_tid); 
+   /////////////////////////////////////////////////////////////////////
    ///////////////////////minimum travelling time///////////////////////
+   /////////////////////////////////////////////////////////////////////
    void ShortestPath_Time(GenLoc* gloc1, GenLoc* gloc2, 
                             Relation* rel, BTree* btree);
    void Path_StartDoor_EndLoc_Time(int id, GenLoc* d, 
                            vector<Line3D>& candidate_path, Line3D* s,
                            Relation* rel, BTree* btree, vector<double>&,
                                    I_Parameter& param);
-   void IndoorShortestPath_Time(int id1, int id2, 
+   void IndoorShortestPath_Time1(int id1, int id2, 
                            vector<Line3D>& candidate_path, 
                            Line3D* s, Line3D* d, vector<double>& timecost,
                            I_Parameter& param, Relation* rel, BTree* btree);
+   void IndoorShortestPath_Time2(int id1, int id2, 
+                           vector<Line3D>& candidate_path, 
+                           Line3D* s, Line3D* d, vector<double>& timecost,
+                           I_Parameter& param, Relation* rel, BTree* btree);
+   bool IsElevator(int groom_oid, Relation* rel, BTree* btree); 
+   float CostInElevator(double l, I_Parameter& param); 
    float SetTimeWeight(double l, int groom_oid, Relation* rel, 
                        BTree* btree, I_Parameter& param, vector<float>& h_list);
 };
