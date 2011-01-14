@@ -41,6 +41,7 @@ endif
 ALGEBRA_DIRS := Standard-C++
 ALGEBRAS     := StandardAlgebra
 ALGEBRA_DEPS :=
+ALGEBRA_LINK_FLAGS := 
 ALGEBRA_DEP_DIRS := $(SECONDO_SDK)/lib
 
 ALGEBRA_DIRS += FText
@@ -244,6 +245,15 @@ ALGEBRAS     += CollectionAlgebra
 
 ALGEBRA_DIRS  += Cluster
 ALGEBRAS      += ClusterAlgebra
+
+
+#ALGEBRA_DIRS += Distributed
+#ALGEBRAS     += DistributedAlgebra
+#ALGEBRA_DEPS += ZThread
+## on max os X the framework CoreServices must be added
+## uncomment the next line if you use mac os
+##ALGEBRA_LINK_FLAGS += -framework CoreServices
+
 
 #ALGEBRA_DIRS  += Constraint
 #ALGEBRAS      += ConstraintAlgebra
