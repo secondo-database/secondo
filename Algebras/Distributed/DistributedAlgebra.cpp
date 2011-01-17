@@ -1987,7 +1987,8 @@ distributeFun (Word* args, Word& result, int message, Word& local, Supplier s)
       qp->Request(args[0].addr,current);
           
       number++; 
-      cout << toString_d(number) << " tuples sent!" << endl;
+      if ( number % 1000 == 0 )
+        cout << toString_d(number) << " tuples sent!" << endl;
    }
      
    ex.wait();     
@@ -2060,14 +2061,16 @@ static ListExpr loopTypeMap(ListExpr args)
             !nl->IsEqual(nl->Third(map),"typeerror"))
          {
             if(nl->Equal(nl->Second(array),nl->Second(map)))
-               return nl->ThreeElemList(
-                                 nl->SymbolAtom("APPEND"),
-                                 nl->TwoElemList(nl->StringAtom(nl->ToString(
-                                    nl->Third(nl->Second(nl->Second(args))))),
-                                       nl->StringAtom(nl->ToString(
+              return nl->ThreeElemList(
+                nl->SymbolAtom("APPEND"),
+                nl->TwoElemList(
+                  nl->TextAtom(nl->ToString(
+                        nl->Third(nl->Second(nl->Second(args))))),
+                  nl->StringAtom(nl->ToString(
                         nl->First(nl->Second(nl->Second(nl->Second(args))))))),
-                                nl->TwoElemList(nl->SymbolAtom("darray"),
-                                                            nl->Third(map)));
+                nl->TwoElemList(
+                  nl->SymbolAtom("darray"),
+                  nl->Third(map)));
          }
       }
    }
@@ -2085,9 +2088,9 @@ static int loopValueMap
      
    SecondoCatalog* sc = SecondoSystem::GetCatalog();
    ListExpr type = sc->NumericType(nl->Second((qp->GetType(s))));
-   string command = ((CcString*)(args[2]).addr)->GetValue();
+   string command = ((FText*)args[2].addr)->GetValue();
    string elementname = ((CcString*)(args[3].addr))->GetValue();
-   command = replaceAll(command,elementname,"!");
+   command = replaceAll(command, elementname, "!");
   
      
    ZThread::ThreadedExecutor exec;DServer* server;
@@ -2103,14 +2106,14 @@ static int loopValueMap
    w[1].addr = &command;
    
    ((DArray*)(result.addr))->initialize(type,
-                                                      name,
-                                                      alt->getSize(),
-                                                      alt->getServerList());   
+                               name,
+                               alt->getSize(),
+                               alt->getServerList());   
                                                       
    DServerManager* man = alt->getServerManager();
    //DServer* server = 0;
           
-   //Mutliply worker connections
+   //Multiply worker connections
    int server_no = man->getNoOfServers();
    int rel_server = (size / server_no);
    
@@ -2141,7 +2144,7 @@ static int loopValueMap
          server = (server->getChilds())[child];
       
       list<int>* l = new list<int>; l->push_front(i);
-      server->setCmd("execute",l,w);
+      server->setCmd("execute", l, w);
       ex = new DServerExecutor(server);
       exec.execute(ex);
    }
