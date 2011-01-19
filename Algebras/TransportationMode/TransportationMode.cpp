@@ -60,6 +60,7 @@ namespace TransportationMode{
 /////////////////////////////////////////////////////////////////////////////
 ////////////////////////   Indoor data Type//////////////////////////////////
 ///////////// point3d line3d floor3d door3d groom ///////////////////
+//////////////////// functions are in Indoor.h  /////////////////////////////
 ////////////////////////////////////////////////////////////////////////////
 
 TypeConstructor point3d(
@@ -87,8 +88,6 @@ TypeConstructor line3d(
         SizeOfLine3D,                 //sizeof function
         CheckLine3D );
 
-
-//////////////////// functions are in Indoor.h  /////////////////////////////
 TypeConstructor door3d(
         "door3d",                     //name
         Door3DProperty,               //property function describing signature
@@ -100,8 +99,6 @@ TypeConstructor door3d(
         CastDoor3D,                   //cast function
         SizeOfDoor3D,                 //sizeof function
         CheckDoor3D ); 
-
-///////////////   functions are in Indoor.h   ////////////////////////////////
 
 TypeConstructor groom(
         "groom",                     //name
@@ -127,6 +124,34 @@ TypeConstructor floor3d(
      CheckFloor3D
 );
 
+TypeConstructor upoint3d(
+        "upoint3d",                     //name
+        UPoint3DProperty,              //property function describing signature
+        OutUPoint3D,      InUPoint3D,     //Out and In functions
+        0,              0,            //SaveTo and RestoreFrom List functions
+        CreateUPoint3D,   DeleteUPoint3D, //object creation and deletion
+        OpenUPoint3D,    SaveUPoint3D,   // object open and save
+
+        CloseUPoint3D,    CloneUPoint3D,  //object close and clone
+        UPoint3D::Cast,
+        SizeOfUPoint3D,                 //sizeof function
+        CheckUPoint3D );
+
+TypeConstructor mpoint3d(
+        "mpoint3d",                     //name
+        MPoint3DProperty,            //property function describing signature
+        OutMapping<MPoint3D, UPoint3D,OutUPoint3D>, //Out functions 
+        InMapping<MPoint3D, UPoint3D, InUPoint3D>,  //In functions
+        0,              0,            //SaveTo and RestoreFrom List functions
+        CreateMapping<MPoint3D>, //object creation 
+        DeleteMapping<MPoint3D>, //object deletion
+        OpenAttribute<MPoint3D>,  //object open 
+        SaveAttribute<MPoint3D>,   // object save
+        CloseMapping<MPoint3D>,CloneMapping<MPoint3D>,//object close and clone
+        CastMapping<MPoint3D>,
+        SizeOfMapping<MPoint3D>,              //sizeof function
+        CheckMPoint3D); 
+        
 /////////////////////////////////////////////////////////////////////////////
 ///////////////////////  Indoor Operators    /////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////
@@ -213,12 +238,12 @@ const string SpatialSpecTranslateGRoom =
 const string SpatialSpecLengthLine3D =
 "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
 "( <text>line3d -> real</text--->"
-"<text> length_l3d(_) </text--->"
+"<text> size(_) </text--->"
 "<text>return the length of a 3D line</text--->"
-"<text>query length_3d(l3d1)</text---> ) )";
+"<text>query size(l3d1)</text---> ) )";
 
 
-const string SpatialSpecBBoxLine3D =
+const string SpatialSpecBBox3D =
 "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
 "( <text>line3d -> rect3</text--->"
 "<text> bbox3d(_) </text--->"
@@ -320,6 +345,15 @@ const string SpatialSpecIndoorNavigation =
 "<text>indoornavigation(ig,genloc,genloc,rel,btree, int) </text--->"
 "<text>indoor trip planning</text--->"
 "<text>query indoornavigation(ig, gloc1, gloc2, building_uni, btree_groom 0)"
+" count </text---> ) )";
+
+ const string SpatialSpecGenerateMO1 =
+"( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+"( <text>indoorgraph x rel x btree x rtree x int x periods ->"
+" (stream (tuple( (x1 t1)(x2 t2)...(xn tn)))</text--->"
+"<text>generate_mo1(indoorgraph, rel,btree, rtree, int, periods) </text--->"
+"<text>create indoor moving objects</text--->"
+"<text>query generate_mo1(ig1, fernuni, btree_groom, rtree_groom, 20, Monday)"
 " count </text---> ) )";
 
 
@@ -536,14 +570,14 @@ ListExpr TranslateGroomTypeMap(ListExpr args)
 TypeMap function for operator length l3d 
 
 */
-ListExpr LengthLine3DTypeMap(ListExpr args)
+ListExpr LengthTMTypeMap(ListExpr args)
 {
   if(nl->ListLength(args) != 1){
       string err = "line3d expected";
       return listutils::typeError(err);
   }
   ListExpr arg1 = nl->First(args);
-  if(nl->IsEqual(arg1, "line3d"))
+  if(nl->IsEqual(arg1, "line3d") || nl->IsEqual(arg1, "genrange"))
       return nl->SymbolAtom("real");
 
   return nl->SymbolAtom("typeerror");
@@ -554,14 +588,14 @@ ListExpr LengthLine3DTypeMap(ListExpr args)
 TypeMap function for operator bbox3d 
 
 */
-ListExpr BBoxLine3DTypeMap(ListExpr args)
+ListExpr BBox3DTypeMap(ListExpr args)
 {
   if(nl->ListLength(args) != 1){
       string err = "line3d expected";
       return listutils::typeError(err);
   }
   ListExpr arg1 = nl->First(args);
-  if(nl->IsEqual(arg1, "line3d"))
+  if(nl->IsEqual(arg1, "line3d") || nl->IsEqual(arg1, "groom"))
       return nl->SymbolAtom("rect3");
 
   return nl->SymbolAtom("typeerror");
@@ -1152,6 +1186,69 @@ ListExpr IndoorNavigationTypeMap(ListExpr args)
 
 
 /*
+TypeMap function for operator generate mo1
+
+*/
+ListExpr GenerateMO1TypeMap(ListExpr args)
+{
+  if(nl->ListLength(args) != 6){
+      string err = "indoorgraph x rel x btree x rtree x int x periods";
+      return listutils::typeError(err);
+  }
+  ListExpr arg1 = nl->First(args);
+  ListExpr arg2 = nl->Second(args);
+  ListExpr arg3 = nl->Third(args);
+  ListExpr arg4 = nl->Fourth(args); 
+  ListExpr arg5 = nl->Fifth(args);
+  ListExpr arg6 = nl->Sixth(args);
+
+  ListExpr xType;
+  nl->ReadFromString(IndoorNav::Indoor_GRoom_Door, xType); 
+  if (nl->IsAtom(arg1) && nl->AtomType(arg1) == SymbolType &&
+      nl->SymbolValue(arg1) == "indoorgraph" &&
+      listutils::isRelDescription(arg2) && 
+      listutils::isBTreeDescription(arg3) && 
+      listutils::isRTreeDescription(arg4)){
+      if(CompareSchemas(arg2, xType) && 
+        nl->IsAtom(arg5) && nl->AtomType(arg5) == SymbolType &&
+        nl->SymbolValue(arg6) == "periods"){
+        ListExpr result; 
+        if(nl->SymbolValue(arg5) == "int"){
+            result =
+              nl->TwoElemList(
+                nl->SymbolAtom("stream"),
+                  nl->TwoElemList(
+                    nl->SymbolAtom("tuple"),
+                      nl->OneElemList(
+                        nl->TwoElemList(nl->SymbolAtom("IndoorTrip"),
+                                      nl->SymbolAtom("mpoint3d"))
+                  )
+                )
+              );
+        }else if(nl->SymbolValue(arg5) == "real"){
+            result =
+              nl->TwoElemList(
+                nl->SymbolAtom("stream"),
+                  nl->TwoElemList(
+                    nl->SymbolAtom("tuple"),
+                      nl->TwoElemList(
+                        nl->TwoElemList(nl->SymbolAtom("IndoorTrip"),
+                                      nl->SymbolAtom("mpoint3d")),
+                        nl->TwoElemList(nl->SymbolAtom("GenTrip"),
+                                      nl->SymbolAtom("genmo"))
+                  )
+                )
+              );
+        }
+        return result;
+      }else
+        return nl->SymbolAtom("schema error"); 
+  }
+  return nl->SymbolAtom("typeerror");
+}
+
+
+/*
 ValueMap function for operator thefloor
 
 */
@@ -1399,6 +1496,23 @@ int LengthLine3DValueMap(Word* args, Word& result, int message,
   return 0;
 }
 
+/*
+ValueMap function for operator length l3d  
+
+*/
+int LengthGenRangeValueMap(Word* args, Word& result, int message,
+                    Word& local, Supplier s)
+{
+  result = qp->ResultStorage( s );
+  GenRange* gr = (GenRange *)args[0].addr; 
+  CcReal* pResult = static_cast<CcReal*>(result.addr);
+
+  if(gr->IsDefined() )
+    pResult->Set(true, gr->Length());
+  else
+    pResult->Set(false, 0);
+  return 0;
+}
 
 /*
 ValueMap function for operator bbox l3d  
@@ -1413,6 +1527,24 @@ int BBoxLine3DValueMap(Word* args, Word& result, int message,
   
   if(l->IsDefined() )
     *pResult = l->BoundingBox();
+  else
+    pResult->SetDefined(false);
+  return 0;
+}
+
+/*
+ValueMap function for operator bbox groom   
+
+*/
+int BBoxGRoomValueMap(Word* args, Word& result, int message,
+                    Word& local, Supplier s)
+{
+  result = qp->ResultStorage( s );
+  GRoom* groom = (GRoom *)args[0].addr; 
+  Rectangle<3>* pResult = static_cast<Rectangle<3>*>(result.addr);
+  
+  if(groom->IsDefined() )
+    *pResult = groom->BoundingBox3D();
   else
     pResult->SetDefined(false);
   return 0;
@@ -1842,7 +1974,7 @@ int OpTMGetAdjNodeIGValueMap ( Word* args, Word& result, int message,
 
 
 /*
-ValueMap function for operator createdoorbox 
+ValueMap function for operator generateip1 
 
 */
 int GenerateIP1ValueMap(Word* args, Word& result, int message,
@@ -1985,6 +2117,112 @@ int IndoorNavigationValueMap(Word* args, Word& result, int message,
 }
 
 
+/*
+ValueMap function for operator generatemo1 
+
+*/
+int GenerateMO1_I_ValueMap(Word* args, Word& result, int message,
+                    Word& local, Supplier in_pSupplier)
+{
+
+  IndoorNav* indoor_nav;
+
+  switch(message){
+      case OPEN:{
+        IndoorGraph* ig = (IndoorGraph*)args[0].addr;
+        Relation* rel = (Relation*)args[1].addr;
+        BTree* btree = (BTree*)args[2].addr;
+        R_Tree<3,TupleId>* rtree = (R_Tree<3,TupleId>*)args[3].addr;
+        int num = ((CcInt*)args[4].addr)->GetIntval();
+        Periods* peri = (Periods*)args[5].addr; 
+        
+        indoor_nav = new IndoorNav(rel, NULL);
+        indoor_nav->resulttype =
+            new TupleType(nl->Second(GetTupleResultType(in_pSupplier)));
+
+        indoor_nav->GenerateMO1(ig, btree, rtree, num, peri, false);
+        local.setAddr(indoor_nav);
+        return 0;
+      }
+      case REQUEST:{
+          if(local.addr == NULL) return CANCEL;
+          indoor_nav = (IndoorNav*)local.addr;
+          if(indoor_nav->count == indoor_nav->mo_list.size())
+                          return CANCEL;
+          Tuple* tuple = new Tuple(indoor_nav->resulttype);
+          tuple->PutAttribute(0,
+                new MPoint3D(indoor_nav->mo_list[indoor_nav->count]));
+
+          result.setAddr(tuple);
+          indoor_nav->count++;
+          return YIELD;
+      }
+      case CLOSE:{
+          if(local.addr){
+            indoor_nav = (IndoorNav*)local.addr;
+            delete indoor_nav;
+            local.setAddr(Address(0));
+          }
+          return 0;
+      }
+  }
+  return 0;
+}
+
+/*
+ValueMap function for operator generatemo1 
+
+*/
+int GenerateMO1_I_GenMO_ValueMap(Word* args, Word& result, int message,
+                    Word& local, Supplier in_pSupplier)
+{
+
+  IndoorNav* indoor_nav;
+
+  switch(message){
+      case OPEN:{
+        IndoorGraph* ig = (IndoorGraph*)args[0].addr;
+        Relation* rel = (Relation*)args[1].addr;
+        BTree* btree = (BTree*)args[2].addr;
+        R_Tree<3,TupleId>* rtree = (R_Tree<3,TupleId>*)args[3].addr;
+        int num = (int)((CcReal*)args[4].addr)->GetRealval();
+        Periods* peri = (Periods*)args[5].addr; 
+        
+        indoor_nav = new IndoorNav(rel, NULL);
+        indoor_nav->resulttype =
+            new TupleType(nl->Second(GetTupleResultType(in_pSupplier)));
+
+        indoor_nav->GenerateMO1(ig, btree, rtree, num, peri, true);
+        local.setAddr(indoor_nav);
+        return 0;
+      }
+      case REQUEST:{
+          if(local.addr == NULL) return CANCEL;
+          indoor_nav = (IndoorNav*)local.addr;
+          if(indoor_nav->count == indoor_nav->mo_list.size())
+                          return CANCEL;
+          Tuple* tuple = new Tuple(indoor_nav->resulttype);
+          tuple->PutAttribute(0,
+                new MPoint3D(indoor_nav->mo_list[indoor_nav->count]));
+          tuple->PutAttribute(1,
+                new GenMO(indoor_nav->genmo_list[indoor_nav->count]));
+
+          result.setAddr(tuple);
+          indoor_nav->count++;
+          return YIELD;
+      }
+      case CLOSE:{
+          if(local.addr){
+            indoor_nav = (IndoorNav*)local.addr;
+            delete indoor_nav;
+            local.setAddr(Address(0));
+          }
+          return 0;
+      }
+  }
+  return 0;
+}
+
 Operator thefloor("thefloor",
     SpatialSpecTheFloor,
     TheFloorValueMap,
@@ -2081,19 +2319,53 @@ Operator translate_groom("translate_groom",
     TranslateGroomTypeMap
 );
 
-Operator length_l3d("length_l3d",
+ValueMapping TMLengthValueMap[]={
+LengthLine3DValueMap,
+LengthGenRangeValueMap
+};
+
+
+int LengthTMSelect(ListExpr args)
+{
+  ListExpr arg1 = nl->First(args);
+  if(nl->IsAtom(arg1) && nl->IsEqual(arg1, "line3d"))
+    return 0;
+  if(nl->IsAtom(arg1) && nl->IsEqual(arg1, "genrange"))
+    return 1;
+
+  return -1;
+}
+
+Operator length_l3d("size",
     SpatialSpecLengthLine3D,
-    LengthLine3DValueMap,
-    Operator::SimpleSelect,
-    LengthLine3DTypeMap
+    2,
+    TMLengthValueMap,
+    LengthTMSelect,
+    LengthTMTypeMap
 );
 
+ValueMapping BBox3DValueMap[]={
+BBoxLine3DValueMap,
+BBoxGRoomValueMap
+};
+
+int BBox3DSelect(ListExpr args)
+{
+  ListExpr arg1 = nl->First(args);
+  if(nl->IsAtom(arg1) && nl->IsEqual(arg1, "line3d"))
+    return 0;
+  if(nl->IsAtom(arg1) && nl->IsEqual(arg1, "groom"))
+    return 1;
+
+  return -1;
+}
 
 Operator bbox3d("bbox3d",
-    SpatialSpecBBoxLine3D,
-    BBoxLine3DValueMap,
-    Operator::SimpleSelect,
-    BBoxLine3DTypeMap
+    SpatialSpecBBox3D,
+    2,
+    BBox3DValueMap,
+    BBox3DSelect,
+    BBox3DTypeMap
 );
 
 Operator createdoor3d("createdoor3d",
@@ -2180,6 +2452,32 @@ Operator indoornavigation("indoornavigation",
     IndoorNavigationTypeMap
 );
 
+
+ValueMapping GenerateMO1ValueMap[]={
+GenerateMO1_I_ValueMap,
+GenerateMO1_I_GenMO_ValueMap
+};
+
+int GenerateMO1Select(ListExpr args)
+{
+  ListExpr arg = nl->Fifth(args);
+  if(nl->IsAtom(arg) && nl->IsEqual(arg, "int"))
+    return 0;
+  if(nl->IsAtom(arg) && nl->IsEqual(arg, "real"))
+    return 1;
+
+  return -1;
+}
+
+
+Operator generate_mo1("generate_mo1",
+    SpatialSpecGenerateMO1,
+    2,
+    GenerateMO1ValueMap,
+    GenerateMO1Select,
+    GenerateMO1TypeMap
+);
+
 ///////////////////////////////////////////////////////////////////////////
 ////////////////////  general data type  /////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -2239,22 +2537,22 @@ TypeConstructor ugenloc(
         SizeOfUGenLoc,                 //sizeof function
         CheckUGenLoc ); 
 
-TypeConstructor genmpoint(
-        "genmpoint",                     //name
-        GenMPointProperty,            //property function describing signature
-        OutMapping<GenMPoint, UGenLoc,OutUGenLoc>, //Out functions 
-        InMapping<GenMPoint, UGenLoc, InUGenLoc>,  //In functions
+TypeConstructor genmo(
+        "genmo",                     //name
+        GenMOProperty,            //property function describing signature
+        OutMapping<GenMO, UGenLoc,OutUGenLoc>, //Out functions 
+        InMapping<GenMO, UGenLoc, InUGenLoc>,  //In functions
         0,              0,            //SaveTo and RestoreFrom List functions
-        CreateMapping<GenMPoint>, //object creation 
-        DeleteMapping<GenMPoint>, //object deletion
-        OpenAttribute<GenMPoint>,  //object open 
-        SaveAttribute<GenMPoint>,   // object save
-        CloseMapping<GenMPoint>,CloneMapping<GenMPoint>,//object close and clone
-        CastMapping<GenMPoint>,
-        SizeOfMapping<GenMPoint>,              //sizeof function
-        CheckGenMPoint); 
-        
-        
+        CreateMapping<GenMO>, //object creation 
+        DeleteMapping<GenMO>, //object deletion
+        OpenAttribute<GenMO>,  //object open 
+        SaveAttribute<GenMO>,   // object save
+        CloseMapping<GenMO>,CloneMapping<GenMO>,//object close and clone
+        CastMapping<GenMO>,
+        SizeOfMapping<GenMO>,              //sizeof function
+        CheckGenMO); 
+
+
 const string SpatialSpecRefId =
 "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
 "( <text>genloc -> int</text--->"
@@ -2263,7 +2561,40 @@ const string SpatialSpecRefId =
 "<text>query ref_id (genloc1)</text---> ) )";
 
 
+const string SpatialSpecGenMODeftime =
+"( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+"( <text>genmo -> periods</text--->"
+"<text>deftime (_) </text--->"
+"<text>get the deftime time of a generic moving object</text--->"
+"<text>query deftime (genmo)</text---> ) )";
 
+const string SpatialSpecGenMONoComponents =
+"( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+"( <text>genmo -> int</text--->"
+"<text>no_components (_) </text--->"
+"<text>get the number of units in a generic moving object</text--->"
+"<text>query no_components(genmo)</text---> ) )"; 
+
+const string SpatialSpecLowRes =
+"( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+"( <text>genmo -> genmo</text--->"
+"<text>genmo (_) </text--->"
+"<text>return the low resolution of generic moving object</text--->"
+"<text>query lowres(genmo1)</text---> ) )";
+
+const string SpatialSpecTMTrajectory =
+"( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+"( <text>genmo -> genrange</text--->"
+"<text>trajectory (_) </text--->"
+"<text>get the trajectory of a moving object</text--->"
+"<text>query trajectory(genmo)</text---> ) )"; 
+
+const string SpatialSpecGetMode =
+"( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+"( <text>genmo -> (stream(((x1 t1) ... (xn tn)))</text--->"
+"<text>getmode (_) </text--->"
+"<text>return the transportation modes</text--->"
+"<text>query getmode(genmo1)</text---> ) )";
 
 /*
 ValueMap function for operator get the reference id 
@@ -2290,6 +2621,200 @@ int RefIdIORefValueMap(Word* args, Word& result, int message,
       ((CcInt*)result.addr)->Set(true, ref->GetOid());
   }else
     ((CcInt*)result.addr)->Set(false, 0);
+  return 0;
+}
+
+
+/*
+get the deftime time periods for a generic moving object 
+
+*/
+int GenMODeftimeValueMap(Word* args, Word& result, int message,
+                    Word& local, Supplier s)
+{
+  GenMO* mo = (GenMO*)args[0].addr;
+  result = qp->ResultStorage(s);
+  if(mo->IsDefined()){
+      mo->DefTime(*(Periods*)result.addr); 
+  }
+  return 0;
+}
+
+/*
+get the deftime time periods for indoor moving objects
+
+*/
+
+int MP3dDeftimeValueMap(Word* args, Word& result, int message,
+                    Word& local, Supplier s)
+{
+  MPoint3D* mo = (MPoint3D*)args[0].addr;
+  result = qp->ResultStorage(s);
+  if(mo->IsDefined()){
+      mo->DefTime(*(Periods*)result.addr); 
+  }
+  return 0;
+}
+
+/*
+get the number of units for a generic moving object 
+
+*/
+int GenMONoComponentsValueMap(Word* args, Word& result, int message,
+                    Word& local, Supplier s)
+{
+  GenMO* mo = (GenMO*)args[0].addr;
+  result = qp->ResultStorage(s);
+  if(mo->IsDefined()){
+      ((CcInt*)result.addr)->Set(true, mo->GetNoComponents());
+  }else
+      ((CcInt*)result.addr)->Set(false, 0);
+  return 0;
+}
+
+/*
+get the number of units for indoor moving objects
+
+*/
+int MP3dNoComponentsValueMap(Word* args, Word& result, int message,
+                    Word& local, Supplier s)
+{
+  MPoint3D* mo = (MPoint3D*)args[0].addr;
+  result = qp->ResultStorage(s);
+  if(mo->IsDefined()){
+      ((CcInt*)result.addr)->Set(true, mo->GetNoComponents());
+  }else
+      ((CcInt*)result.addr)->Set(false, 0);
+  return 0;
+}
+
+/*
+get the number of units for genrange 
+
+*/
+int GenRangeNoComponentsValueMap(Word* args, Word& result, int message,
+                    Word& local, Supplier s)
+{
+  GenRange* genrange = (GenRange*)args[0].addr;
+  result = qp->ResultStorage(s);
+  if(genrange->IsDefined()){
+      ((CcInt*)result.addr)->Set(true, genrange->ElemSize());
+  }else
+      ((CcInt*)result.addr)->Set(false, 0);
+  return 0;
+}
+
+/*
+get the number of units for groom 
+
+*/
+int GRoomNoComponentsValueMap(Word* args, Word& result, int message,
+                    Word& local, Supplier s)
+{
+  GRoom* groom = (GRoom*)args[0].addr;
+  result = qp->ResultStorage(s);
+  if(groom->IsDefined()){
+      ((CcInt*)result.addr)->Set(true, groom->Size());
+  }else
+      ((CcInt*)result.addr)->Set(false, 0);
+  return 0;
+}
+
+
+/*
+get low resolution representation for a generic moving object 
+
+*/
+int LowResGenMOValueMap(Word* args, Word& result, int message,
+                    Word& local, Supplier s)
+{
+  GenMO* mo = (GenMO*)args[0].addr;
+  result = qp->ResultStorage(s);
+  GenMO* presult = (GenMO*)result.addr; 
+  if(mo->IsDefined()){
+    mo->LowRes(*presult); 
+  }
+  return 0;
+}
+
+
+/*
+get the trajectory for a generic moving object
+
+*/
+int GenMOTrajectoryValueMap(Word* args, Word& result, int message,
+                    Word& local, Supplier s)
+{
+  GenMO* mo = (GenMO*)args[0].addr;
+  result = qp->ResultStorage(s);
+  GenRange* presult = (GenRange*)result.addr; 
+  if(mo->IsDefined()){
+    mo->Trajectory(*presult); 
+  }
+  return 0;
+}
+
+/*
+get the trajectory of indoor moving objects 
+
+*/
+int MP3dTrajectoryValueMap(Word* args, Word& result, int message,
+                    Word& local, Supplier s)
+{
+
+  MPoint3D* mo3d = (MPoint3D*)args[0].addr;
+  result = qp->ResultStorage(s);
+  Line3D* presult = (Line3D*)result.addr; 
+  if(mo3d->IsDefined()){
+    mo3d->Trajectory(*presult); 
+  }
+  return 0;
+}
+
+
+/*
+get the transportation modes for a generic moving object 
+
+*/
+int GetModeValueMap(Word* args, Word& result, int message,
+                    Word& local, Supplier in_pSupplier)
+{
+  GenMObject* mo;
+
+  switch(message){
+      case OPEN:{
+        GenMO* genmo = (GenMO*)args[0].addr;
+        
+        mo = new GenMObject();
+        mo->resulttype =
+            new TupleType(nl->Second(GetTupleResultType(in_pSupplier)));
+
+        mo->GetTM(genmo);
+        local.setAddr(mo);
+        return 0;
+      }
+      case REQUEST:{
+          if(local.addr == NULL) return CANCEL;
+          mo = (GenMObject*)local.addr;
+          if(mo->count == mo->tm_list.size())
+                          return CANCEL;
+          Tuple* tuple = new Tuple(mo->resulttype);
+          tuple->PutAttribute(0,
+                new CcString(true, GetTMStr(mo->tm_list[mo->count])));
+
+          result.setAddr(tuple);
+          mo->count++;
+          return YIELD;
+      }
+      case CLOSE:{
+          if(local.addr){
+            mo = (GenMObject*)local.addr;
+            delete mo;
+            local.setAddr(Address(0));
+          }
+          return 0;
+      }
+  }
   return 0;
 }
 
@@ -2327,6 +2852,91 @@ ListExpr RefIdTypeMap(ListExpr args)
   return nl->SymbolAtom("typeerror");
 }
 
+/*
+TypeMap function for operator deftime 
+
+*/
+ListExpr GenMODeftimeTypeMap(ListExpr args)
+{
+  if(nl->ListLength(args) != 1){
+      string err = "genmo expected";
+      return listutils::typeError(err);
+  }
+  ListExpr arg1 = nl->First(args);
+  if(nl->IsEqual(arg1, "genmo") || nl->IsEqual(arg1, "mpoint3d"))
+    return nl->SymbolAtom("periods");
+
+  return nl->SymbolAtom("typeerror");
+}
+
+/*
+TypeMap function for operator no components  
+
+*/
+ListExpr GenMONoComponentsTypeMap(ListExpr args)
+{
+  if(nl->ListLength(args) != 1){
+      string err = "genmo expected";
+      return listutils::typeError(err);
+  }
+  ListExpr arg1 = nl->First(args);
+  if(nl->IsEqual(arg1, "genmo") || 
+     nl->IsEqual(arg1, "mpoint3d") ||
+     nl->IsEqual(arg1, "genrange") || nl->IsEqual(arg1, "groom"))
+    return nl->SymbolAtom("int");
+
+  return nl->SymbolAtom("typeerror");
+}
+
+/*
+TypeMap function for operator lowres  
+
+*/
+ListExpr LowResTypeMap(ListExpr args)
+{
+  if(nl->ListLength(args) != 1){
+      string err = "genmo expected";
+      return listutils::typeError(err);
+  }
+  ListExpr arg1 = nl->First(args);
+  if(nl->IsEqual(arg1, "genmo"))
+    return nl->SymbolAtom("genmo");
+
+  return nl->SymbolAtom("typeerror");
+}
+
+
+/*
+TypeMap function for operator getmode
+
+*/
+ListExpr GetModeTypeMap(ListExpr args)
+{
+  if(nl->ListLength(args) != 1){
+      string err = "genmo expected";
+      return listutils::typeError(err);
+  }
+  ListExpr arg1 = nl->First(args);
+  if(nl->IsEqual(arg1, "genmo")){
+      ListExpr result =
+          nl->TwoElemList(
+              nl->SymbolAtom("stream"),
+                nl->TwoElemList(
+
+                  nl->SymbolAtom("tuple"),
+                      nl->OneElemList(
+                        nl->TwoElemList(nl->SymbolAtom("TM"),
+                                    nl->SymbolAtom("string"))
+                  )
+                )
+          );
+    return result;
+  }  
+
+  return nl->SymbolAtom("typeerror");
+}
+
+
 Operator ref_id("ref_id",
     SpatialSpecRefId,
     2,
@@ -2334,6 +2944,124 @@ Operator ref_id("ref_id",
     RefIdOpSelect,
     RefIdTypeMap
 );
+
+int TMDeftimeOpSelect(ListExpr args)
+{
+  ListExpr arg1 = nl->First(args);
+  if(nl->IsAtom(arg1) && nl->IsEqual(arg1, "genmo"))
+    return 0;
+  if(nl->IsAtom(arg1) && nl->IsEqual(arg1, "mpoint3d"))
+    return 1;
+
+  return -1;
+}
+
+
+ValueMapping GenMODeftimeValueMapVM[]={
+  GenMODeftimeValueMap,
+  MP3dDeftimeValueMap
+};
+
+Operator genmodeftime("deftime",
+    SpatialSpecGenMODeftime,
+    2,
+    GenMODeftimeValueMapVM,
+    TMDeftimeOpSelect,
+    GenMODeftimeTypeMap
+);
+
+
+ValueMapping GenMONoComponentsValueMapVM[]={
+  GenMONoComponentsValueMap,
+  MP3dNoComponentsValueMap, 
+  GenRangeNoComponentsValueMap,
+  GRoomNoComponentsValueMap
+};
+
+int TMNoComponentsOpSelect(ListExpr args)
+{
+  ListExpr arg1 = nl->First(args);
+  if(nl->IsAtom(arg1) && nl->IsEqual(arg1, "genmo"))
+    return 0;
+  if(nl->IsAtom(arg1) && nl->IsEqual(arg1, "mpoint3d"))
+    return 1;
+  if(nl->IsAtom(arg1) && nl->IsEqual(arg1, "genrange"))
+    return 2;
+  if(nl->IsAtom(arg1) && nl->IsEqual(arg1, "groom"))
+    return 3;
+
+  return -1;
+}
+
+Operator genmonocomponents("no_components",
+    SpatialSpecGenMONoComponents,
+    4,
+    GenMONoComponentsValueMapVM,
+    TMNoComponentsOpSelect,
+    GenMONoComponentsTypeMap
+);
+
+
+Operator lowres("lowres",
+    SpatialSpecLowRes,
+    LowResGenMOValueMap,
+    Operator::SimpleSelect,
+    LowResTypeMap
+);
+
+
+ValueMapping TMTrajectoryValueMapVM[]={
+  GenMOTrajectoryValueMap,
+  MP3dTrajectoryValueMap, 
+};
+
+int TMTrajectoryOpSelect(ListExpr args)
+{
+  ListExpr arg1 = nl->First(args);
+  if(nl->IsAtom(arg1) && nl->IsEqual(arg1, "genmo"))
+    return 0;
+  if(nl->IsAtom(arg1) && nl->IsEqual(arg1, "mpoint3d"))
+    return 1;
+  return -1;
+}
+
+/*
+TypeMap function for operator trajectory
+
+*/
+ListExpr TMTrajectoryTypeMap(ListExpr args)
+{
+  if(nl->ListLength(args) != 1){
+      string err = "genmo expected";
+      return listutils::typeError(err);
+  }
+  ListExpr arg1 = nl->First(args);
+  if(nl->IsEqual(arg1, "genmo"))
+    return nl->SymbolAtom("genrange");
+
+  if(nl->IsEqual(arg1, "mpoint3d"))
+    return nl->SymbolAtom("line3d");
+
+  return nl->SymbolAtom("typeerror");
+}
+
+Operator tmtrajectory("trajectory",
+    SpatialSpecTMTrajectory,
+    2,
+    TMTrajectoryValueMapVM,
+    TMTrajectoryOpSelect,
+    TMTrajectoryTypeMap
+);
+
+
+
+Operator getmode("getmode",
+    SpatialSpecGetMode,
+    GetModeValueMap,
+    Operator::SimpleSelect,
+    GetModeTypeMap
+);
+
 
 /////////////////////////////////////////////////////////////////////////////
 ///////////////////   general data type   ///////////////////////////////////
@@ -3038,6 +3766,27 @@ const string OpTMCreateTimeTable2NewSpec  =
     "count;</text--->"
     ") )";
 
+    
+const string OpTMSplitUBahnSpec  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+    "\"Example\" ) "
+    "( <text>rel x attr1 x attr2 "
+    "->(stream (tuple( (x1 t1)(x2 t2)...(xn tn)))</text--->"
+    "<text>splitubahn(rel, attr, attr );</text--->"
+    "<text>represent the ubahn line in a new way </text--->"
+    "<text>query splitubahn(UBahn, Name, geoData) count;</text--->"
+    ") )";
+
+const string OpTMTrainsToGenMOSpec  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+    "\"Example\" ) "
+    "( <text>rel1 x rel2 x btree "
+    "->(stream (tuple( (x1 t1)(x2 t2)...(xn tn)))</text--->"
+    "<text>trainstogenmo(rel1, rel2, btree );</text--->"
+    "<text>convert trains to generic moving objects </text--->"
+    "<text>query trainstogenmo(Trains, ubahn_line, btree_ub_line) count;"
+    "</text--->) )";
+    
 const string OpTMInstant2DaySpec  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" "
     "\"Example\" ) "
@@ -7203,6 +7952,124 @@ ListExpr OpTMCreateTimeTable2NewTypeMap ( ListExpr args )
       return res; 
 }
 
+/*
+represent the UBahn line in a new way  
+(lineid int)(geoData1 line)(geoData2 sline)
+
+*/
+
+ListExpr OpTMSplitUBahnTypeMap ( ListExpr args )
+{
+  if ( nl->ListLength ( args ) != 3 )
+  {
+    return  nl->SymbolAtom ( "list length should be 3" );
+  }
+  
+  ListExpr param1 = nl->First ( args );
+  if(!IsRelDescription(param1))
+    return nl->SymbolAtom ( "typeerror: param1 should be a relation" );
+  
+ 
+  ListExpr attrName1 = nl->Second ( args );
+  ListExpr attrType1;
+  string aname1 = nl->SymbolValue(attrName1);
+  int j1 = listutils::findAttribute(nl->Second(nl->Second(param1)),
+                      aname1,attrType1);
+
+  if(j1 == 0 || !listutils::isSymbol(attrType1,"string")){
+      return listutils::typeError("attr name" + aname1 + "not found"
+                      "or not of type string");
+  }
+
+  ListExpr attrName2 = nl->Third ( args );
+  ListExpr attrType2;
+  string aname2 = nl->SymbolValue(attrName2);
+  int j2 = listutils::findAttribute(nl->Second(nl->Second(param1)),
+                      aname2, attrType2);
+
+  if(j2 == 0 || !listutils::isSymbol(attrType2, "line")){
+      return listutils::typeError("attr name" + aname2 + "not found"
+                      "or not of type line");
+  }
+
+  ListExpr res = nl->TwoElemList(
+            nl->SymbolAtom("stream"),
+            nl->TwoElemList(
+                nl->SymbolAtom("tuple"),
+                nl->TwoElemList(
+                    nl->TwoElemList(
+                        nl->SymbolAtom("lineid"),
+                        nl->SymbolAtom("int")),
+                    nl->TwoElemList(
+                        nl->SymbolAtom("geoData"),
+                        nl->SymbolAtom("sline"))
+                    )));
+      return nl->ThreeElemList(
+        nl->SymbolAtom("APPEND"),
+        nl->TwoElemList(nl->IntAtom(j1),nl->IntAtom(j2)), res);
+}
+
+
+/*
+conver berlintest trains to generic moving objects 
+
+*/
+
+ListExpr OpTMTrainsToGenMOTypeMap ( ListExpr args )
+{
+  if ( nl->ListLength ( args ) != 3 )
+  {
+    return  nl->SymbolAtom ( "list length should be 3" );
+  }
+  
+  ListExpr param1 = nl->First ( args );
+  if(!IsRelDescription(param1))
+    return nl->SymbolAtom ( "typeerror: param1 should be a relation" );
+  
+  ListExpr xType1;
+  nl->ReadFromString(UBTrain::TrainsTypeInfo, xType1); 
+  if(!CompareSchemas(param1, xType1)){
+    return listutils::typeError("rel1 scheam should be" + 
+                                UBTrain::TrainsTypeInfo);
+  }
+
+  ListExpr param2 = nl->Second ( args );
+  if(!IsRelDescription(param2))
+    return nl->SymbolAtom ( "typeerror: param2 should be a relation" );
+  
+  ListExpr xType2;
+  nl->ReadFromString(UBTrain::UBahnLineInfo, xType2); 
+  if(!CompareSchemas(param2, xType2)){
+    return listutils::typeError("rel2 scheam should be" + 
+                               UBTrain::UBahnLineInfo);
+  }
+
+  ListExpr param3 = nl->Third ( args );
+  if(!listutils::isBTreeDescription(param3))
+    return nl->SymbolAtom ( "typeerror: param3 should be a btree" );
+
+
+  ListExpr res = nl->TwoElemList(
+            nl->SymbolAtom("stream"),
+            nl->TwoElemList(
+                nl->SymbolAtom("tuple"),
+                nl->FourElemList(
+                    nl->TwoElemList(
+                        nl->SymbolAtom("Id"),
+                        nl->SymbolAtom("int")),
+                    nl->TwoElemList(
+                        nl->SymbolAtom("Line"),
+                        nl->SymbolAtom("int")),
+                    nl->TwoElemList(
+                        nl->SymbolAtom("Up"),
+                        nl->SymbolAtom("bool")),
+                    nl->TwoElemList(
+                        nl->SymbolAtom("Trip"),
+                        nl->SymbolAtom("genmo"))
+                    )));
+  return  res;
+}
+
 
 /*
 TypeMap fun for operator instant2day
@@ -11125,6 +11992,115 @@ int OpTMCreateTimeTable2NewValueMap ( Word* args, Word& result, int message,
 
 
 /*
+represent the ubahn in a new way (lineid:int)(geoData1:line)(geoData2:sline)
+
+*/
+int OpTMSplitUBahnValueMap ( Word* args, Word& result, int message,
+                         Word& local, Supplier in_pSupplier )
+{
+
+  UBTrain* ubtrain;
+  switch(message){
+      case OPEN:{
+
+        Relation* r = (Relation*)args[0].addr; 
+        int attr1 = ((CcInt*)args[3].addr)->GetIntval() - 1; 
+        int attr2 = ((CcInt*)args[4].addr)->GetIntval() - 1; 
+        
+        ubtrain = new UBTrain(r, NULL, NULL);
+        ubtrain->resulttype =
+            new TupleType(nl->Second(GetTupleResultType(in_pSupplier)));
+
+        ubtrain->SplitUBahn(attr1, attr2);
+        local.setAddr(ubtrain);
+        return 0;
+      }
+      case REQUEST:{
+          if(local.addr == NULL) return CANCEL;
+          ubtrain = (UBTrain*)local.addr;
+          if(ubtrain->count == ubtrain->line_id_list.size())return CANCEL;
+
+          Tuple* tuple = new Tuple(ubtrain->resulttype);
+          tuple->PutAttribute(0, 
+                       new CcInt(true,ubtrain->line_id_list[ubtrain->count]));
+          tuple->PutAttribute(1, 
+                             new SimpleLine(ubtrain->geodata[ubtrain->count]));
+
+          result.setAddr(tuple);
+          ubtrain->count++;
+          return YIELD;
+      }
+      case CLOSE:{
+          if(local.addr){
+            ubtrain = (UBTrain*)local.addr;
+            delete ubtrain;
+            local.setAddr(Address(0));
+          }
+          return 0;
+      }
+  }
+  return 0;
+
+}
+
+/*
+convert trains to generic moving objects 
+
+*/
+int OpTMTrainsToGenMOValueMap ( Word* args, Word& result, int message,
+                         Word& local, Supplier in_pSupplier )
+{
+
+  UBTrain* ubtrain;
+  switch(message){
+      case OPEN:{
+        
+        Relation* r1 = (Relation*)args[0].addr;
+        Relation* r2 = (Relation*)args[1].addr; 
+        BTree* btree = (BTree*)args[2].addr; 
+
+        ubtrain = new UBTrain(r1, r2, btree);
+        ubtrain->resulttype =
+            new TupleType(nl->Second(GetTupleResultType(in_pSupplier)));
+
+        ubtrain->TrainsToGenMO();
+        local.setAddr(ubtrain);
+        return 0;
+      }
+      case REQUEST:{
+          if(local.addr == NULL) return CANCEL;
+          ubtrain = (UBTrain*)local.addr;
+          if(ubtrain->count == ubtrain->id_list.size())return CANCEL;
+
+          Tuple* tuple = new Tuple(ubtrain->resulttype);
+          tuple->PutAttribute(0, 
+                       new CcInt(true,ubtrain->id_list[ubtrain->count]));
+          tuple->PutAttribute(1, 
+                       new CcInt(true,ubtrain->line_id_list[ubtrain->count]));
+          tuple->PutAttribute(2,
+                      new CcBool(true,ubtrain->direction_list[ubtrain->count]));
+
+          tuple->PutAttribute(3,
+                       new GenMO(ubtrain->genmo_list[ubtrain->count]));
+
+          result.setAddr(tuple);
+          ubtrain->count++;
+          return YIELD;
+      }
+      case CLOSE:{
+          if(local.addr){
+            ubtrain = (UBTrain*)local.addr;
+            delete ubtrain;
+            local.setAddr(Address(0));
+          }
+          return 0;
+      }
+  }
+  return 0;
+
+}
+
+/*
 get the day of an instant 
 
 */
@@ -11851,6 +12827,24 @@ Operator create_time_table2_new(
 );
 
 
+Operator splitubahn(
+  "splitubahn",
+  OpTMSplitUBahnSpec,
+  OpTMSplitUBahnValueMap,
+  Operator::SimpleSelect,
+  OpTMSplitUBahnTypeMap
+); 
+
+
+Operator trainstogenmo(
+  "trainstogenmo",
+  OpTMTrainsToGenMOSpec,
+  OpTMTrainsToGenMOValueMap,
+  Operator::SimpleSelect,
+  OpTMTrainsToGenMOTypeMap
+); 
+
+
 Operator instant2day(
   "instant2day",
   OpTMInstant2DaySpec,
@@ -11891,13 +12885,16 @@ class TransportationModeAlgebra : public Algebra
     AddTypeConstructor( &floor3d);
     AddTypeConstructor( &door3d);
     AddTypeConstructor( &groom);
-
+    AddTypeConstructor( &upoint3d);
+    AddTypeConstructor( &mpoint3d); 
 
     point3d.AssociateKind("DATA");
     line3d.AssociateKind("DATA");
     floor3d.AssociateKind("DATA");
     door3d.AssociateKind("DATA");
     groom.AssociateKind("DATA");
+    upoint3d.AssociateKind("DATA"); 
+    mpoint3d.AssociateKind("DATA"); 
     ////////////////////general data type ////////////////////////
     AddTypeConstructor(&ioref);
     ioref.AssociateKind("DATA"); 
@@ -11907,8 +12904,8 @@ class TransportationModeAlgebra : public Algebra
     genrange.AssociateKind("DATA"); 
     AddTypeConstructor(&ugenloc);
     ugenloc.AssociateKind("DATA");
-    AddTypeConstructor(&genmpoint); 
-    genmpoint.AssociateKind("DATA"); 
+    AddTypeConstructor(&genmo); 
+    genmo.AssociateKind("DATA"); 
     ////operators for partition regions//////////////////////////
     AddOperator(&checksline);
     AddOperator(&modifyboundary);
@@ -11989,6 +12986,10 @@ class TransportationModeAlgebra : public Algebra
     AddOperator(&create_train_stop);//create UBahn Train Stops 
     AddOperator(&create_time_table2);//create time table for train stop 
     AddOperator(&create_time_table2_new);//compact storage of train time tables 
+    ///////////////////////////////////////////////////////////////////
+    ///////////convert berlin trains to genmo///////////////
+    AddOperator(&splitubahn); 
+    AddOperator(&trainstogenmo); 
     ////////////////////////////////////////////////////////////////////
     ////////////////  Indoor Operators   ///////////////////////////////
     ////////////////////////////////////////////////////////////////////
@@ -12018,14 +13019,22 @@ class TransportationModeAlgebra : public Algebra
     AddOperator(&createigraph);//create indoor graph 
     AddOperator(&getadjnode_ig); //get adjacent node 
     AddOperator(&generate_ip1);//generate indoor positions 
-    //indoor navigation 
+    AddOperator(&generate_mo1);//generate moving objects:int indoor,real:+genmo
+    //////////////  indoor navigation ////////////////////////////////////////
     AddOperator(&indoornavigation);indoornavigation.SetUsesArgsInTypeMapping();
+    ////////////////////////////////////////////////////////////////////
     /////////////////  others  /////////////////////////////////////////
     AddOperator(&instant2day); 
     AddOperator(&outputregion);//output the vertices in correct order 
     /////////non-temporal operators for generic data types////////////////////
     AddOperator(&ref_id); 
-    ////////////////////////////////////////////////////////////////////
+    /////////temporal operators for generic data types////////////////////
+    AddOperator(&genmodeftime);
+    AddOperator(&genmonocomponents);
+    AddOperator(&lowres); 
+    AddOperator(&tmtrajectory); 
+    AddOperator(&getmode); 
+
   }
   ~TransportationModeAlgebra() {};
  private:

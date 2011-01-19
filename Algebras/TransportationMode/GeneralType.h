@@ -230,12 +230,13 @@ public:
     StandardSpatialAttribute<2>(true), oid(o), loc()
     {
 //      cout<<"Constructor1()"<<endl;
+        assert(oid >= 0); 
     }
-    
+
     GenLoc(const unsigned int o, Loc l):
     StandardSpatialAttribute<2>(true), oid(o), loc(l)
     {
-      
+      assert(oid >= 0); 
     }
     
 
@@ -244,6 +245,7 @@ public:
         oid = genl.oid;
         loc = genl.loc; 
         SetDefined(true);
+        assert(oid >= 0); 
       }
    }
    GenLoc& operator=(const GenLoc& genloc)
@@ -251,6 +253,7 @@ public:
     del.isDefined = genloc.del.isDefined;
     oid = genloc.oid;
     loc = genloc.loc; 
+    assert(oid >= 0); 
     return *this; 
    }
    ~GenLoc()
@@ -262,6 +265,7 @@ public:
       oid = o;
       loc = l;
       SetDefined(true);
+      assert(oid >= 0); 
     }
   inline size_t Sizeof() const{return sizeof(*this);}
   inline bool IsEmpty() const{return !IsDefined();}
@@ -294,6 +298,7 @@ public:
   static void* Cast(void* addr){return new (addr)GenLoc();}
   unsigned int GetOid() const {return oid;}
   Loc GetLoc() const {return loc;}
+  void SetLoc(Loc& l){loc = l;}
   private:
     unsigned int oid;
     Loc loc; 
@@ -490,7 +495,7 @@ public:
   {
       return BoundingBox().Distance(r);
   }
-    
+  double Length(); 
   static void* Cast(void* addr){return new (addr)GenRange();}
   /////////////very important two functions////////////////////
   ////////especially genrange is an attribute in a relation/////
@@ -561,9 +566,8 @@ class UGenLoc: public SpatialTemporalUnit<GenLoc,3>
     return *this; 
   }
 
-  void TemporalFunction( const Instant& t,
-                               GenLoc& result,
-                               bool ignoreLimits ) const; 
+  void TemporalFunction( const Instant& t, GenLoc& result,
+                               bool ignoreLimits ) const;
   bool Passes( const GenLoc& gloc ) const; 
   bool At( const GenLoc& p, TemporalUnit<GenLoc>& res ) const; 
 
@@ -579,6 +583,18 @@ class UGenLoc: public SpatialTemporalUnit<GenLoc,3>
   inline bool IsEmpty() const
   {
     return !IsDefined(); 
+  }
+  int GetOid(){ 
+    if(IsDefined()){
+        assert(gloc1.GetOid() == gloc2.GetOid()); 
+        return gloc1.GetOid(); 
+    }else
+      return -1; 
+  }
+  int GetTM(){
+    if(IsDefined())return tm;
+    else
+      return -1; 
   }
   GenLoc gloc1;
   GenLoc gloc2;
@@ -599,7 +615,7 @@ Word CloneUGenLoc( const ListExpr typeInfo, const Word& w );
 int SizeOfUGenLoc();
 bool CheckUGenLoc( ListExpr type, ListExpr& errorInfo );
 ListExpr UGenLocProperty();
-
+ostream& operator<<(ostream& o, const UGenLoc& gloc);
 
 /////////////////////////////////////////////////////////////////////
 ///////////// general moving objects ////////////////////////////////
@@ -609,27 +625,39 @@ the bounding box for genmpoint should be calculated somewhere else because it
 needs the object identifier to calculate the absolute coordinates in space 
 
 */
-class GenMPoint:public Mapping<UGenLoc,GenLoc>
+class GenMO:public Mapping<UGenLoc,GenLoc>
 {
   public:
-    GenMPoint(){}
-    GenMPoint(const int n):Mapping<UGenLoc,GenLoc>(n)
+    GenMO(){}
+    GenMO(const int n):Mapping<UGenLoc,GenLoc>(n)
     {
       del.refs = 1;
       del.SetDelete();
       del.isDefined = true;
     }
+    GenMO(const GenMO& mo);
     void Clear();
     void CopyFrom(const Attribute* right); 
     Attribute* Clone() const; 
     void Add(const UGenLoc& unit); 
     void EndBulkLoad(const bool sort = true, const bool checkvalid = false); 
-    double Length() const; 
+    void LowRes(GenMO& mo);
+    void Trajectory(GenRange& genrange);
+};
 
+
+bool CheckGenMO( ListExpr type, ListExpr& errorInfo );
+ListExpr GenMOProperty();
+
+
+
+struct GenMObject{
+  unsigned int count;
+  TupleType* resulttype; 
+  vector<int> tm_list; 
+  GenMObject(){ count = 0; resulttype = NULL;} 
+  ~GenMObject(){if(resulttype != NULL) delete resulttype;}
+  void GetTM(GenMO* mo); 
+  
 }; 
-
-
-bool CheckGenMPoint( ListExpr type, ListExpr& errorInfo );
-ListExpr GenMPointProperty();
-
 #endif

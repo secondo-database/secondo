@@ -246,11 +246,28 @@ ListExpr OutGenLoc( ListExpr typeInfo, Word value )
     return nl->TheEmptyList();
   }
   
-  Loc loc = genl->GetLoc();
-  ListExpr loc_list = nl->TwoElemList(
+  if(genl->GetOid() > 0){
+      Loc loc = genl->GetLoc();
+      if(loc.loc1 >= 0.0 && loc.loc2 >= 0.0){
+          ListExpr loc_list = nl->TwoElemList(
                     nl->RealAtom(loc.loc1),
                     nl->RealAtom(loc.loc2));
-  return nl->TwoElemList(nl->IntAtom(genl->GetOid()), loc_list);
+      return nl->TwoElemList(nl->IntAtom(genl->GetOid()), loc_list);
+      }else if(loc.loc1 >= 0.0 && loc.loc2 < 0.0){
+        ListExpr loc_list = nl->OneElemList(nl->RealAtom(loc.loc1));
+        return nl->TwoElemList(nl->IntAtom(genl->GetOid()), loc_list);
+      }else if(loc.loc1 < 0.0 && loc.loc2 < 0.0){
+        return nl->OneElemList(nl->IntAtom(genl->GetOid()));
+      }else
+      return nl->TheEmptyList(); 
+  }else{  //free space oid = 0 
+          Loc loc = genl->GetLoc();
+          ListExpr loc_list = nl->TwoElemList(
+                    nl->RealAtom(loc.loc1),
+                    nl->RealAtom(loc.loc2));
+          return nl->OneElemList(loc_list);
+  }
+
 }
 
 
@@ -393,8 +410,8 @@ bool CheckGenLoc( ListExpr type, ListExpr& errorInfo )
 ostream& operator<<(ostream& o, const GenLoc& gloc)
 {
   if(gloc.IsDefined()){
-    o<<"oid "<<gloc.GetOid()<<" loc1 "<<gloc.GetLoc().loc1
-     <<" loc2 "<<gloc.GetLoc().loc2; 
+    o<<"oid "<<gloc.GetOid()<<" ("<<gloc.GetLoc().loc1
+     <<" "<<gloc.GetLoc().loc2<<" )"; 
   }else
     o<<" undef";
   return o;
@@ -419,6 +436,21 @@ void GenRange::Add(unsigned int id, Line* l, int s)
     l->Get(i, hs);
     seglist.Append(hs);
   }
+}
+
+/*
+the length of a genrange object 
+
+*/
+double GenRange::Length()
+{
+  double l = 0; 
+  for(int i = 0;i < SegSize();i++){
+    HalfSegment hs;
+    GetSeg(i, hs); 
+    l += hs.Length(); 
+  }
+  return l; 
 }
 
 /*
@@ -630,7 +662,7 @@ ListExpr OutUGenLoc( ListExpr typeInfo, Word value )
 {
 //  cout<<"OutUGenLoc"<<endl; 
   UGenLoc* ugenloc = (UGenLoc*)(value.addr);
-  if(!ugenloc->IsDefined()){
+  if(ugenloc->IsDefined() == false){
     return nl->SymbolAtom("undef");
   }
 
@@ -647,6 +679,7 @@ ListExpr OutUGenLoc( ListExpr typeInfo, Word value )
     ListExpr genloc1 = OutGenLoc(nl->TheEmptyList(), &(ugenloc->gloc1));
     ListExpr genloc2 = OutGenLoc(nl->TheEmptyList(), &(ugenloc->gloc2));
     ListExpr tm = nl->StringAtom(GetTMStr(ugenloc->tm)); 
+
 
     return nl->FourElemList(timeintervalList,genloc1,genloc2,tm); 
 }
@@ -1090,6 +1123,17 @@ void UGenLoc::CopyFrom(const Attribute* right)
   del.isDefined = ugloc->del.isDefined; 
 }
 
+ostream& operator<<(ostream& o, const UGenLoc& gloc)
+{
+  if(gloc.IsDefined()){
+    o<<gloc.timeInterval<<" "<<gloc.gloc1<<" "
+     <<gloc.gloc2<<" "<<GetTMStr(gloc.tm); 
+  }else
+    o<<" undef";
+  return o;
+
+}
+
 /*
 it returns the 3D bounding box. at somewhere else, the program should check
 the object identifier to know whether the movement is outdoor or indoor. if 
@@ -1116,7 +1160,7 @@ const Rectangle<3> UGenLoc::BoundingBox() const
 //////////////////////////////////////////////////////////////////////////
 //////////////////////general moving objects//////////////////////////////
 //////////////////////////////////////////////////////////////////////////
-ListExpr GenMPointProperty()
+ListExpr GenMOProperty()
 {
   return (nl->TwoElemList(
             nl->FourElemList(nl->StringAtom("Signature"),
@@ -1129,26 +1173,48 @@ ListExpr GenMPointProperty()
       nl->StringAtom("((interval (1 (10.0 1.0))(1 (12.0 3.0)) Indoor))"))));
 }
 
-
-bool CheckGenMPoint( ListExpr type, ListExpr& errorInfo )
+bool CheckGenMO( ListExpr type, ListExpr& errorInfo )
 {
 //  cout<<"CheckGenMPoint"<<endl; 
-  return (nl->IsEqual( type, "genmpoint" ));
+  return (nl->IsEqual( type, "genmo" ));
 }
 
-void GenMPoint::Clear()
+
+void GenMO::Clear()
 {
   Mapping<UGenLoc, GenLoc>::Clear();
+}
+
+
+GenMO::GenMO(const GenMO& mo):Mapping<UGenLoc,GenLoc>(0)
+{
+    del.refs = 1;
+    del.SetDelete();
+    del.isDefined = mo.IsDefined();
+
+    Clear();
+    if( !this->IsDefined() ) {
+      return;
+    }
+    StartBulkLoad();
+    UGenLoc unit;
+    for( int i = 0; i < mo.GetNoComponents(); i++ ){
+      mo.Get( i, unit );
+      Add( unit );
+//      cout<<unit<<endl; 
+    }
+    EndBulkLoad( false );
+
 }
 
 /*
 copy it from another data 
 
 */
-void GenMPoint::CopyFrom(const Attribute* right)
+void GenMO::CopyFrom(const Attribute* right)
 {
-
-    const GenMPoint *genmo = (const GenMPoint*)right;
+    cout<<"CopyFrom "<<endl; 
+    const GenMO *genmo = (const GenMO*)right;
     assert( genmo->IsOrdered() );
     Clear();
     this->SetDefined(genmo->IsDefined());
@@ -1162,17 +1228,16 @@ void GenMPoint::CopyFrom(const Attribute* right)
       Add( unit );
     }
     EndBulkLoad( false );
-
 }
 
-Attribute* GenMPoint::Clone() const
+Attribute* GenMO::Clone() const
 {
     assert( IsOrdered() );
-    GenMPoint *result;
+    GenMO *result;
     if( !this->IsDefined() ){
-      result = new GenMPoint( 0 );
+      result = new GenMO( 0 );
     } else {
-      result = new GenMPoint( GetNoComponents() );
+      result = new GenMO( GetNoComponents() );
       if(GetNoComponents()>0){
         result->units.resize(GetNoComponents());
       }
@@ -1194,7 +1259,7 @@ put new unit. it only inserts the new unit and does not calculate the bounding
 box. 
 
 */
-void GenMPoint::Add(const UGenLoc& unit)
+void GenMO::Add(const UGenLoc& unit)
 {
   assert(unit.IsDefined());
   assert(unit.IsValid()); 
@@ -1202,36 +1267,62 @@ void GenMPoint::Add(const UGenLoc& unit)
     SetDefined(false);
     return; 
   }
+  assert(unit.gloc1.GetOid() == unit.gloc2.GetOid()); 
   units.Append(unit); 
 }
 
-void GenMPoint::EndBulkLoad(const bool sort, const bool checkvalid)
+void GenMO::EndBulkLoad(const bool sort, const bool checkvalid)
 {
   Mapping<UGenLoc, GenLoc>::EndBulkLoad(sort, checkvalid); 
 
 }
 
+
 /*
-the length of a trip 
+low resolution for a generic moving object (oid,tm)
 
 */
-double GenMPoint::Length() const
+void GenMO::LowRes(GenMO& mo)
 {
-  assert( IsDefined() );
-  if(!IsDefined()){
-    return -1;
-  }
-  double res = 0;
-  UGenLoc unit;
-  int size = GetNoComponents();
-  for(int i=0;i < size; i++){
-     Get(i,unit);
-     assert(unit.gloc1.GetOid() == unit.gloc2.GetOid()); 
-     double x = fabs(unit.gloc1.GetLoc().loc1 - unit.gloc2.GetLoc().loc1);
-     double y = fabs(unit.gloc1.GetLoc().loc2 - unit.gloc2.GetLoc().loc2);
-     double l = sqrt( pow(x, 2) + pow(y, 2)); 
-     res += l;
-  }
-  return res;
+    mo.Clear();
 
+    mo.StartBulkLoad();
+    UGenLoc unit;
+    Loc loc(-1.0, -1.0);
+    for( int i = 0; i < GetNoComponents(); i++ ){
+      Get( i, unit );
+      unit.gloc1.SetLoc(loc); 
+      unit.gloc2.SetLoc(loc); 
+      mo.Add( unit );
+//      cout<<unit<<endl; 
+    }
+    mo.EndBulkLoad( false );
+}
+
+/*
+get the trajectory of a generic moving object. it needs the space 
+because loc1 loc2 have different meanings for different infrastructures 
+
+*/
+void GenMO::Trajectory(GenRange& genrange)
+{
+  cout<<"GenMO::Trajectory() not implemented"<<endl; 
+}
+
+
+/////////////////////////////////////////////////////////////////////////
+/////////////// get information from generic moving objects///////////////
+/////////////////////////////////////////////////////////////////////////
+void GenMObject::GetTM(GenMO* mo)
+{
+  tm_list.clear(); 
+  for(int i = 0;i < mo->GetNoComponents();i++){
+    UGenLoc unit;
+    mo->Get(i, unit);
+    int tm = unit.GetTM(); 
+    assert(tm >= 0); 
+    if(tm_list.size() == 0)tm_list.push_back(tm); 
+    else if(tm_list[tm_list.size() - 1] != tm)
+      tm_list.push_back(tm); 
+  }
 }
