@@ -5502,3 +5502,163 @@ void UBTrain::GetTimeInstantStop(MPoint& mo, Point loc, Instant& arrove_t)
   assert(false);
 }
 
+/*
+split the UBhan represent to get the line id 
+the name for the UBahn is the form   (U1, U12, U15)
+
+*/
+void UBTrain::SplitUBahn(int attr1, int attr2)
+{
+  vector<UBhan_Id_Geo> ub_lines; 
+  
+//  cout<<"attr1 "<<attr1<<" attr2 "<<attr2<<endl; 
+  for(int i = 1;i <= rel1->GetNoTuples();i++){
+    Tuple* ubahn_tuple = rel1->GetTuple(i, false);
+    string name = ((CcString*)ubahn_tuple->GetAttribute(attr1))->GetValue(); 
+//    cout<<"name "<<name<<endl; 
+    char* str = new char[name.size() + 1];
+    strcpy(str, name.c_str()); 
+    char* sub_str = strtok(str, ","); 
+    while(sub_str != NULL){
+      string number1(sub_str);
+//      cout<<number1<<endl; 
+      string number2(number1,1);
+//      cout<<number2<<endl; 
+      int id = atoi(number2.c_str()); 
+//      cout<<"id "<<id<<endl; 
+      sub_str=strtok(NULL, ",");
+      Line* l = (Line*)ubahn_tuple->GetAttribute(attr2); 
+      AddToUBahn(id, l, ub_lines);
+    } 
+    delete[] str; 
+
+    ubahn_tuple->DeleteIfAllowed();
+  }
+
+  for(unsigned int i = 0;i < ub_lines.size();i++){
+    line_id_list.push_back(ub_lines[i].lineid);
+    SimpleLine* sl = new SimpleLine(0);
+    sl->fromLine(ub_lines[i].geodata);
+    geodata.push_back(*sl); 
+    delete sl;
+  }
+
+}
+
+/*
+add the line with id to the result vector 
+
+*/
+void UBTrain::AddToUBahn(int id, Line* l, vector<UBhan_Id_Geo>& ub_lines)
+{
+  if(ub_lines.size() == 0){
+    UBhan_Id_Geo* idgeo = new UBhan_Id_Geo(id, *l);
+    ub_lines.push_back(*idgeo);
+    delete idgeo; 
+  }else{
+    unsigned int i = 0;
+    for(;i < ub_lines.size();i++){
+        if(ub_lines[i].lineid == id){
+          Line* res = new Line(0);
+          ub_lines[i].geodata.Union(*l, *res); 
+          ub_lines[i].geodata = *res; 
+          delete res; 
+          break; 
+        }
+    }
+    if(i == ub_lines.size()){
+        UBhan_Id_Geo* idgeo = new UBhan_Id_Geo(id, *l);
+        ub_lines.push_back(*idgeo);
+        delete idgeo; 
+    }
+  }
+}
+
+string UBTrain::TrainsTypeInfo = 
+"(rel (tuple ((Id int) (Line int) (Up bool) (Trip mpoint))))"; 
+
+string UBTrain::UBahnLineInfo = 
+"(rel (tuple ((lineid int) (geoData sline))))";
+
+/*
+convert berlintest trains to generic moving objects 
+
+*/
+void UBTrain::TrainsToGenMO()
+{
+  for(int i = 1;i <= rel1->GetNoTuples();i++){
+    Tuple* train_tuple = rel1->GetTuple(i, false); 
+    int id = ((CcInt*)train_tuple->GetAttribute(TRAIN_ID))->GetIntval();
+    int line_id = ((CcInt*)train_tuple->GetAttribute(TRAIN_LINE))->GetIntval();
+    bool up = ((CcBool*)train_tuple->GetAttribute(TRAIN_UP))->GetBoolval();
+    MPoint* mp = ((MPoint*)train_tuple->GetAttribute(TRAIN_TRIP)); 
+    
+    GenMO* genmo = new GenMO(0); 
+    
+    MPToGenMO(mp, genmo, line_id, up); 
+    
+    id_list.push_back(id); 
+    line_id_list.push_back(line_id); 
+    direction_list.push_back(up);
+    genmo_list.push_back(*genmo);
+
+    delete genmo; 
+    train_tuple->DeleteIfAllowed(); 
+
+
+//    break; 
+  }
+
+}
+
+/*
+convert a moving point to a generic moving object 
+
+*/
+void UBTrain::MPToGenMO(MPoint* mp, GenMO* mo, int l_id, bool up)
+{
+    mo->StartBulkLoad(); 
+    CcInt* search_id = new CcInt(true, l_id);
+    BTreeIterator* btree_iter = btree1->ExactMatch(search_id);
+    SimpleLine* sl = new SimpleLine(0);
+    int ub_line_id; 
+    while(btree_iter->Next()){
+        Tuple* tuple = rel2->GetTuple(btree_iter->GetId(), false);
+        ub_line_id = ((CcInt*)tuple->GetAttribute(UB_LINE_ID))->GetIntval();
+        SimpleLine* l = (SimpleLine*)tuple->GetAttribute(UB_LINE_GEODATA); 
+        *sl = *l; 
+        tuple->DeleteIfAllowed();
+    }
+    delete btree_iter;
+    delete search_id;
+    assert(ub_line_id == l_id); 
+//    cout<<"line length "<<sl->Length()<<endl; 
+    
+    for(int i = 0;i < mp->GetNoComponents();i++){
+      UPoint unit1;
+      mp->Get(i, unit1); 
+      double pos1;
+      double pos2;
+      assert(sl->AtPoint(unit1.p0, up, pos1));
+      assert(sl->AtPoint(unit1.p1, up, pos2));
+//      cout<<"pos1 "<<pos1<<" pos2 "<<pos2<<endl; 
+
+
+      Loc loc1(pos1,-1); 
+      Loc loc2(pos2,-1); 
+      GenLoc gloc1(ub_line_id, loc1);
+      GenLoc gloc2(ub_line_id, loc2);
+      int tm = GetTM("Tube"); 
+      //////////////////////////////////////////////////////////////////
+      /////////////correct way to create UGenLoc///////////////////////
+      //////////////////////////////////////////////////////////////////
+      UGenLoc* unit2 = new UGenLoc(unit1.timeInterval, gloc1, gloc2, tm);
+//      if(i %2 == 0) //for debuging time intervals are not consequent 
+        mo->Add(*unit2); 
+      delete unit2; 
+      
+    }
+    delete sl; 
+    
+    mo->EndBulkLoad();
+}

@@ -67,6 +67,7 @@ Oct, 2010 Jianqiu xu
 #include "Symbols.h"
 #include "Partition.h"
 #include "PaveGraph.h"
+#include "GeneralType.h"
 
 /*
 store cell id and the number of road sections intersecting it.
@@ -537,6 +538,22 @@ struct UBTrainTrip{
 
 };
 
+struct UBhan_Id_Geo{
+  int lineid;
+  Line geodata;
+  UBhan_Id_Geo():geodata(0){}
+  UBhan_Id_Geo(int id, const Line& l):lineid(id), geodata(l){}
+  UBhan_Id_Geo(const UBhan_Id_Geo& ub):
+  lineid(ub.lineid), geodata(ub.geodata){}
+  UBhan_Id_Geo& operator=(const UBhan_Id_Geo& ub)
+  {
+    lineid = ub.lineid;
+    geodata = ub.geodata;
+    return *this; 
+  }
+};
+
+
 struct UBTrain{
   Relation* rel1;
   Relation* rel2;
@@ -558,6 +575,13 @@ struct UBTrain{
   vector<Periods> duration; //the whole life time for one day 
   vector<double> schedule_interval; //time interval for each bus trip 
   
+  vector<SimpleLine> geodata; 
+  
+  vector<GenMO> genmo_list; 
+  
+  static string TrainsTypeInfo;
+  static string UBahnLineInfo;
+  
   UBTrain(){count = 0;resulttype = NULL;}
   UBTrain(Relation* r):rel1(r),count(0),resulttype(NULL){}
   UBTrain(Relation* r1,Relation* r2,BTree* b):
@@ -565,13 +589,19 @@ struct UBTrain{
   ~UBTrain(){if(resulttype != NULL) delete resulttype;}
 
   //////////    for UBahn Trips ///////////////////////////////////////
-  enum UBAHN_TRIN{T_ID,T_LINE,T_UP,T_TRIP,T_SCHEDULE};
+  enum UBAHN_TRAIN{T_ID,T_LINE,T_UP,T_TRIP,T_SCHEDULE};
   /////////////// Train Stops ///////////////////////////////////////
   enum UBAHN_STOP{T_LINEID,T_STOP_LOC,T_STOP_ID}; 
   
+  //////////////////// Trains and UBahn Line////////////////////
+  ///////////////////convert trains to genmo///////////////////////
+  enum UBAHN_TRAINS{TRAIN_ID = 0, TRAIN_LINE, TRAIN_UP, TRAIN_TRIP};
+  enum UBAHN_LINE{UB_LINE_ID = 0, UB_LINE_GEODATA}; 
+  
+  
   unsigned int count;
   TupleType* resulttype;
-  
+
   void CreateUBTrains(int,int,int,Periods*);
   void CreateUBTrainTrip(vector<UBTrainTrip> trip_list, Periods* peri); 
   void CreateTrainTrip(vector<UBTrainTrip>, Periods*);
@@ -585,7 +615,16 @@ struct UBTrain{
                               int count_id);
   void TimeTableCompact(vector<MPoint>&,Point,int,int,bool,int);
   void GetTimeInstantStop(MPoint& mo, Point loc, Instant& st);
+ ////////////////////////////////////////////////////////////////////////////
+ ////////////////// covert berlin trains to generic moving objects//////////
+ //////////////////////////////////////////////////////////////////////////
+ void SplitUBahn(int attr1, int attr2); 
+ void AddToUBahn(int id, Line* l, vector<UBhan_Id_Geo>& ub_lines); 
+ void TrainsToGenMO(); 
+ void MPToGenMO(MPoint* mp, GenMO* mo, int l_id, bool up); 
 };
+
+
 
 
 #endif
