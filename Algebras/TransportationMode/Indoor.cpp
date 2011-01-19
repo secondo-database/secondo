@@ -196,6 +196,15 @@ bool OpenPoint3D(SmiRecord& valueRecord, size_t& offset,
   return value.addr != NULL;
 }
 
+ostream& operator<<(ostream& o, const Point3D& loc)
+{
+  if(loc.IsDefined()){
+    o<<"( "<<loc.GetX()<<" "<<loc.GetY()<<" "<<loc.GetZ()<<" )"; 
+  }else
+    o<<" undef";
+  return o;
+
+}
 ///////////////////////////////////////////////////////////////////////////
 /////////////////////// Line3D ////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////
@@ -364,6 +373,35 @@ void Line3D::Print()
   }
 
 }
+
+const Rectangle<3> Line3D::BoundingBox() const
+{
+//  return new Rectangle<3>(true,0.0,0.0,0.0,0.0,0.0,0.0);
+//  cout<<"Rectangle<3> BoundingBox "<<endl; 
+  double min[3];
+  double max[3];
+  for(int i = 0;i < 3;i++){
+    min[i] = numeric_limits<double>::max();
+    max[i] = numeric_limits<double>::min();
+  }
+
+  for(int i = 0;i < points.Size();i++){
+      Point3D p;
+      points.Get(i, p);
+
+      min[0] = MIN(p.GetX(), min[0]);
+      min[1] = MIN(p.GetY(), min[1]);
+      min[2] = MIN(p.GetZ(), min[2]);
+      
+      max[0] = MAX(p.GetX(), max[0]);
+      max[1] = MAX(p.GetY(), max[1]);
+      max[2] = MAX(p.GetZ(), max[2]);
+  }
+
+  Rectangle<3> bbox3d(true, min, max);
+  return bbox3d; 
+}
+
 
 /*
 List Representation
@@ -1494,6 +1532,36 @@ float GRoom::GetHighHeight()
 }
 
 /*
+get the 3D box of a groom 
+
+*/
+const Rectangle<3> GRoom::BoundingBox3D() const
+{
+
+    Rectangle<3> bbox;
+    for( int i = 0; i < Size(); i++ ){
+        Region r(0);
+        float h;
+        Get( i, h, r);
+        if( i == 0 ){
+          Rectangle<2> reg_box = r.BoundingBox(); 
+          bbox = Rectangle<3>(true, reg_box.MinD(0), reg_box.MaxD(0), 
+                       reg_box.MinD(1), reg_box.MaxD(1), 
+                       h, h + ApplyFactor(h));
+        }else{
+          Rectangle<2> reg_box = r.BoundingBox(); 
+          Rectangle<3> bbox1 = 
+                       Rectangle<3>(true, reg_box.MinD(0), reg_box.MaxD(0), 
+                       reg_box.MinD(1), reg_box.MaxD(1), 
+                       h, h + ApplyFactor(h));
+          bbox = bbox.Union(bbox1);
+
+        } 
+    }
+    return bbox;
+}
+
+/*
 Groom Property function 
 
 */
@@ -1922,7 +1990,7 @@ float IndoorNav::NextFloorHeight(float h, vector<float>& floor_height)
 
 void IndoorNav::CreateBox3D(int oid, int tid, Line* l, float h)
 {
-  const double delta_h = 0.01; 
+//  const double delta_h = 0.01; 
 //  cout<<"oid "<<oid<<" tid "<<tid<<" height "<<h<<endl; 
 //  cout<<"line "<<*l<<endl; 
   for(int i = 0;i < l->Size();i++){
@@ -1936,10 +2004,12 @@ void IndoorNav::CreateBox3D(int oid, int tid, Line* l, float h)
       min[0] = MIN(lp.GetX(), rp.GetX());
       min[1] = MIN(lp.GetY(), rp.GetY());
       min[2] = h;
-      
+
       max[0] = MAX(lp.GetX(), rp.GetX());
       max[1] = MAX(lp.GetY(), rp.GetY());
-      max[2] = h + delta_h;
+//      max[2] = h + delta_h;
+      max[2] = h + ApplyFactor(h); 
+
       Rectangle<3> bbox3d(true, min, max);
       oid_list.push_back(oid);
       tid_list.push_back(tid);
@@ -1956,18 +2026,30 @@ create a relation storing the doors of a building
 void IndoorNav::CreateDoor1(R_Tree<3, TupleId>* rtree, 
                            int attr1, int attr2, int attr3)
 {
+    ///////////// minimum and maximum height of the building////////////////
+    vector<float> height_list; 
+    for(int i = 1;i <= rel1->GetNoTuples();i++){
+      Tuple* groom_tuple = rel1->GetTuple(i, false);
+      GRoom* groom = (GRoom*)groom_tuple->GetAttribute(I_Room); 
+      height_list.push_back(groom->GetLowHeight());
+      groom_tuple->DeleteIfAllowed();
+    }
+    sort(height_list.begin(), height_list.end()); 
+    ///////////////////////////////////////////////////////////////////////
+    float max_height = height_list[ height_list.size() - 1]; 
+//    cout<<"max_height "<<max_height<<endl; 
+
 //  cout<<"CreateDoor()"<<endl;
 //  cout<<"attr1 "<<attr1<<" attr2 "<<attr2<<" attr3 "<<attr3<<endl; 
   SmiRecordId adr = rtree->RootRecordId();
 
   for(int i = 1;i <= rel2->GetNoTuples();i++){
 
-    
     Tuple* door_tuple = rel2->GetTuple(i, false);
     int oid = ((CcInt*)door_tuple->GetAttribute(attr1))->GetIntval();
     int tid = ((CcInt*)door_tuple->GetAttribute(attr2))->GetIntval();
     Rectangle<3>* bbox3d = (Rectangle<3>*)door_tuple->GetAttribute(attr3);
-    
+
     unsigned int id = door_tuple->GetTupleId();
 
 /*    if(oid != 81){ 
@@ -1976,14 +2058,9 @@ void IndoorNav::CreateDoor1(R_Tree<3, TupleId>* rtree,
     }*/
 
     vector<TupleId> id_list; 
-//    cout<<"oid "<<oid<<" tid "<<tid<<endl; 
-//    cout<<"bbox3d -- line "<<*bbox3d<<endl; 
+//    cout<<"oid "<<oid<<" tid "<<tid<<endl;
+//    cout<<"bbox3d -- line "<<*bbox3d<<endl;
     DFTraverse(rtree, adr, id, bbox3d, attr1, attr2, attr3, id_list);
-
-/*    if(oid != 384){
-      door_tuple->DeleteIfAllowed();
-      continue; 
-    }*/
 
 //    cout<<"neighbor size "<<id_list.size()<<endl; 
 
@@ -1996,15 +2073,41 @@ void IndoorNav::CreateDoor1(R_Tree<3, TupleId>* rtree,
     // the size can be 0 at some special places after translating 
     assert(id_list.size() <= 2);
     ///////////// create the result  ///////////////////////////////
-    ////////// use tid to get the tuple 
-    ///////////use the tuple to get oid and line 
+    //////////   use tid to get the tuple /////////////////////////
+    ///////////  use the tuple to get oid and line ////////////////
 //    if(id_list.size() == 1)
     CreateResDoor(id, oid, tid, id_list, attr1, attr2, attr3);
 
-    /////////////////////////////////////////////////////////////////
+    //////////////special door for the building entrance ///////////////
+    if(id_list.size() == 0 && IsGRoom(tid, rel1)){ 
+      if(AlmostEqual(max_height, bbox3d->MinD(2))){
+//        cout<<"find "<<endl;
+//        cout<<"oid "<<oid<<"tid "<<tid<<" rect "<<*bbox3d<<endl; 
+        /////////////create entrance door for the building//////////////
+        CreateEntranceDoor(id, oid, tid, attr1, attr2, attr3);
+      }
+    }
+
     door_tuple->DeleteIfAllowed();
+
   }
 
+}
+
+/*
+check whether the room is OR or CO. excludes BR, ST, EL
+
+*/
+bool IndoorNav::IsGRoom(int tid, Relation* rel)
+{
+  assert(1 <= tid && tid <= rel->GetNoTuples());
+  Tuple* groom_tuple = rel->GetTuple(tid, false);
+  string type = ((CcString*)groom_tuple->GetAttribute(I_Type))->GetValue(); 
+  groom_tuple->DeleteIfAllowed(); 
+  if(GetRoomEnum(type) == OR || GetRoomEnum(type) == CO)
+    return true;
+  else
+    return false; 
 }
 
 /*
@@ -2104,7 +2207,7 @@ void IndoorNav::CreateResDoor(int id, int oid, int tid, vector<TupleId> id_list,
     box_tuple2->DeleteIfAllowed();
     indoor_tuple2->DeleteIfAllowed();
     indoor_tuple1->DeleteIfAllowed(); 
-    
+
   }
 
 }
@@ -2204,6 +2307,86 @@ void IndoorNav::DFTraverse(R_Tree<3,TupleId>* rtree, SmiRecordId adr,
       }
   }
   delete node;
+
+}
+
+/*
+create entrance door of the building 
+if it is the entrance of the building, we set groom oid1: oid1, groom oid2:-1
+
+*/
+void IndoorNav::CreateEntranceDoor(int id, int oid, int tid, 
+                               int attr1, int attr2, int attr3)
+{
+
+    ///////////////   first door in one groom   ////////////////////
+    Tuple* indoor_tuple1 = rel1->GetTuple(tid, false);
+    int oid1 = ((CcInt*)indoor_tuple1->GetAttribute(I_OID))->GetIntval();
+    assert(oid1 == oid);
+    string type1 = ((CcString*)indoor_tuple1->GetAttribute(I_Type))->GetValue();
+    GRoom* groom1 = (GRoom*)indoor_tuple1->GetAttribute(I_Room);
+    Tuple* box_tuple1 = rel2->GetTuple(id, false);
+    Rectangle<3>* bbox3d_1 = (Rectangle<3>*)box_tuple1->GetAttribute(attr3);
+//    cout<<"bbox3d 1 "<<*bbox3d_1<<endl; 
+    Rectangle<2> groom_box1 = groom1->BoundingBox();
+
+   ///////////////   second door in one groom   ////////////////////
+    Tuple* box_tuple2 = rel2->GetTuple(tid, false);
+    int oid2 = ((CcInt*)box_tuple2->GetAttribute(attr1))->GetIntval();
+    int groom_tid = ((CcInt*)box_tuple2->GetAttribute(attr2))->GetIntval();
+
+    assert(1 <= groom_tid && groom_tid <= rel1->GetNoTuples());
+
+    Tuple* indoor_tuple2 = rel1->GetTuple(groom_tid, false);
+
+    string type2 = ((CcString*)indoor_tuple2->GetAttribute(I_Type))->GetValue();
+    GRoom* groom2 = (GRoom*)indoor_tuple2->GetAttribute(I_Room);
+
+    Rectangle<3>* bbox3d_2 = (Rectangle<3>*)box_tuple2->GetAttribute(attr3);
+    Rectangle<2> groom_box2 = groom2->BoundingBox();
+//    cout<<"bbox3d 2 "<<*bbox3d_2<<endl; 
+    ///////////////////////////////////////////////////////////////////
+    ///////////////create moving bool/////////////////////////////////
+    ///////////////////////////////////////////////////////////////////
+    MBool* mb1 = new MBool(0);
+    CreateDoorState(mb1); 
+
+    bool lift_door = false;
+
+    ////////////////////////////////////////////////////////////////
+    /////////////////////create line //////////////////////////////////
+    ////////////////////////////////////////////////////////////////////
+    
+    Line* l1 = new Line(0);
+    Line* l2 = new Line(0);
+    Line* l3 = new Line(0);
+    Line3D* l3d_1 = new Line3D(0);
+    GRoomDoorLine(bbox3d_1, bbox3d_2, l1, l2, l3, &groom_box1, 
+                  &groom_box2, l3d_1, bbox3d_1->MinD(2));
+
+    ///////////////////// create the door //////////////////////////////
+    Door3D* door_obj1 = new Door3D(oid1, oid2, *l1, *l2, *mb1, lift_door);
+    //////////////////////  result   ///////////////////////////////////
+    door_list.push_back(*door_obj1);
+    line_list.push_back(*l3);
+    groom_id_list1.push_back(oid1);//the room oid 
+    groom_id_list2.push_back(-1);//-1 for entrance door 
+    path_list.push_back(*l3d_1);
+    door_heights.push_back(bbox3d_1->MinD(2));
+
+
+    delete l1;
+    delete l2;
+    delete l3; 
+    delete door_obj1; 
+    delete l3d_1; 
+    delete mb1; 
+
+    /////////////////////////////////////////////////////////////
+    box_tuple1->DeleteIfAllowed();
+    box_tuple2->DeleteIfAllowed();
+    indoor_tuple2->DeleteIfAllowed();
+    indoor_tuple1->DeleteIfAllowed(); 
 
 }
 
@@ -3154,9 +3337,8 @@ create the edges connecting the same door but belong to two rooms
 void IndoorNav::CreateAdjDoor2(R_Tree<3,TupleId>* rtree)
 {
   SmiRecordId adr = rtree->RootRecordId();
-   
+
   for(int i = 1;i <= rel1->GetNoTuples();i++){
-//    if(i != 27) continue; 
 
     Tuple* door_tuple = rel1->GetTuple(i, false);
     int groom_oid = 
@@ -4076,19 +4258,20 @@ void IndoorNav::GenerateIP1(int num)
 
         //non-negative, long integers, uniformly distributed over
         //the interval [0, 2(31)]
-        int x = lrand48()% (xx*100);
-        int y = lrand48()% (yy*100);
+        int x = (lrand48() + 1)% (xx*100);
+        int y = (lrand48() + 1)% (yy*100);
 
         double coord_x = x/100.0;
         double coord_y = y/100.0;
 
-        Coord x_cord = coord_x + bbox.MinD(0);
-        Coord y_cord = coord_y + bbox.MinD(1);
-        p2.Set(x_cord, y_cord); //absolute position 
         p1.Set(coord_x, coord_y); //set back to relative position
         //lower the precision
         Modify_Point_3(p1);
-        Modify_Point_3(p2);
+
+        Coord x_cord = p1.GetX() + bbox.MinD(0);
+        Coord y_cord = p1.GetY() + bbox.MinD(1);
+        p2.Set(x_cord, y_cord); //absolute position 
+
         inside = p2.Inside(*reg);
         count++;
       }
@@ -4107,6 +4290,328 @@ void IndoorNav::GenerateIP1(int num)
   }
 
 }
+
+
+/*
+generate interesting indoor moving objects.
+the result is represented by mpoint3d 
+
+*/
+void IndoorNav::GenerateMO1(IndoorGraph* ig, BTree* btree, 
+                            R_Tree<3,TupleId>* rtree, int num, 
+                            Periods* peri, bool convert)
+{
+  GenerateIP1(num*2); 
+  
+  IndoorNav* indoor_nav = new IndoorNav(ig); 
+
+  Interval<Instant> periods;
+  if(peri->GetNoComponents() == 0){
+    cout<<"not correct time periods"<<endl; 
+    assert(false);
+  }
+  peri->Get(0, periods);
+
+  double speed = GetMinimumDoorWidth(); 
+//  cout<<"human speed "<<speed<<endl; 
+
+
+  int count = 0; 
+  for(unsigned int i = 0;i < genloc_list.size();i++){
+    if(i < genloc_list.size() - 1){
+      GenLoc loc1 = genloc_list[i];
+      GenLoc loc2 = genloc_list[i + 1];
+
+//      GenLoc loc1(144, Loc(4.65, 1.61));
+//      GenLoc loc2(317, Loc(0.91, 2.0));
+
+      if(loc1.GetOid() == loc2.GetOid()) continue; 
+
+      cout<<"loc1 "<<loc1<<" loc2 "<<loc2<<endl;
+      indoor_nav->ShortestPath_Length(&loc1, &loc2, rel1, btree);
+//      cout<<indoor_nav->path_list[count].Length()<<endl;
+      //////////////////////////////////////////////////////////////////
+      Instant start_time = periods.start;
+      start_time.ReadFrom(periods.start.ToDouble() + (i % 5)/(24.0*60.0*60.0));
+      Line3D* l3d = &indoor_nav->path_list[count];
+//      l3d->Print();
+      if(l3d->Length() > 0.0){
+        MPoint3D* mp3d = new MPoint3D(0); 
+        mp3d->StartBulkLoad();
+        for(int j = 0;j < l3d->Size();j++){
+          if(j < l3d->Size() - 1){
+            Point3D p1, p2;
+            l3d->Get(j, p1);
+            l3d->Get(j + 1, p2);
+            AddUnitToMO(mp3d, p1, p2, start_time, speed);
+          }
+        }
+        mp3d->EndBulkLoad(); 
+        mo_list.push_back(*mp3d);
+      ///////////////////////////////////////////////////////////////////
+        if(convert)
+          ToGenLoc(mp3d, rtree);
+        delete mp3d; 
+        count++; 
+      }
+      if(count == num)break; 
+
+//      break; 
+    }
+  }
+
+  delete indoor_nav; 
+
+}
+
+/*
+get the minimum width of door 
+
+*/
+float IndoorNav::GetMinimumDoorWidth()
+{
+  float door_width = numeric_limits<float>::max(); //the speed for person 
+  for(int i = 1;i <= rel1->GetNoTuples();i++){
+      Tuple* groom_tuple = rel1->GetTuple(i, false);
+      Line* door = (Line*)groom_tuple->GetAttribute(I_Door); 
+      for(int j = 0;j < door->Size();j++){
+        HalfSegment hs;
+        door->Get(j, hs);
+        if(!hs.IsLeftDomPoint())continue; 
+        if(hs.Length() < door_width)door_width = hs.Length(); 
+      }
+      groom_tuple->DeleteIfAllowed();
+  }
+  return door_width; 
+}
+
+/*
+add units to the result moving objects 
+
+*/
+void IndoorNav::AddUnitToMO(MPoint3D* mp3d, Point3D& p1, Point3D& p2, 
+                    Instant& start_time, double speed)
+{
+  const double dist_delta = 0.01; 
+
+  double d = p1.Distance(p2); 
+  if(d < speed || AlmostEqual(d, speed) ||
+    (AlmostEqual(p1.GetX(), p2.GetX()) && //for the movement inside an elevator 
+     AlmostEqual(p1.GetY(), p2.GetY()))){ // if split, it can not find a groom 
+
+    Interval<Instant> up_interval; 
+    up_interval.start = start_time;
+    Instant end = start_time;
+    end.ReadFrom(start_time.ToDouble() + d/(24.0*60.0*60.0*speed));
+    up_interval.end = end;
+
+    up_interval.lc = true;
+    up_interval.rc = false; 
+
+    UPoint3D* unit = new UPoint3D(up_interval, p1, p2); 
+    mp3d->Add(*unit); 
+    delete unit;
+    start_time = end; 
+  }else{
+    int no = (int)floor(d/speed); 
+    double x = (p2.GetX() - p1.GetX())/no; 
+    double y = (p2.GetY() - p1.GetY())/no;
+    double z = (p2.GetZ() - p1.GetZ())/no; 
+    for(int i = 0;i < no ;i++){
+      Point3D q1(true, p1.GetX() + i*x, p1.GetY() + i*y, p1.GetZ() + i*z);
+      Point3D q2(true, p1.GetX() + (i+1)*x, 
+                       p1.GetY() + (i+1)*y, p1.GetZ() + (i+1)*z);
+      double dist = q1.Distance(q2); 
+
+      Interval<Instant> up_interval; 
+      up_interval.start = start_time;
+      Instant end = start_time;
+      end.ReadFrom(start_time.ToDouble() + dist/(24.0*60.0*60.0*speed));
+      up_interval.end = end; 
+
+      up_interval.lc = true;
+      up_interval.rc = false; 
+
+      UPoint3D* unit = new UPoint3D(up_interval, q1,q2); 
+      mp3d->Add(*unit); 
+      delete unit; 
+      start_time = end; 
+      if(i == no - 1){
+        Point3D q3 = q2;
+        Point3D q4 = p2;
+        double dist = q3.Distance(q4); 
+        if(dist < dist_delta)continue; 
+
+        up_interval.start = start_time;
+        Instant end = start_time;
+        end.ReadFrom(start_time.ToDouble() + dist/(24.0*60.0*60.0*speed));
+        up_interval.end = end;
+        up_interval.lc = true;
+        up_interval.rc = false; 
+        start_time = up_interval.end; 
+//        cout<<"start "<<up_interval.start<<" end "<<up_interval.end<<endl; 
+//        cout<<"t: "<<up_interval<<"p0: "<<q3<<"p1: "<<q4<<endl;
+
+        UPoint3D* unit = new UPoint3D(up_interval, q3, q4); 
+
+        mp3d->Add(*unit); 
+        delete unit;
+        start_time = end; 
+      }
+    }
+  }
+}
+
+/*
+convert a 3d point to genloc 
+
+*/
+void IndoorNav::ToGenLoc(MPoint3D* mp3d, R_Tree<3,TupleId>* rtree)
+{
+  GenMO* genmo = new GenMO(0); 
+  genmo->StartBulkLoad(); 
+  
+  for(int i = 0;i < mp3d->GetNoComponents();i++){
+      UPoint3D unit;
+      mp3d->Get(i, unit); 
+      GenLoc loc1, loc2;
+      Get_GenLoc(unit.p0, unit.p1, loc1, loc2, rtree);
+
+      UGenLoc* ugenloc = new UGenLoc(unit.timeInterval, loc1, loc2, 
+                                     GetTM("Indoor")); 
+      genmo->Add(*ugenloc);
+      delete ugenloc; 
+  }
+  genmo->EndBulkLoad(); 
+  genmo_list.push_back(*genmo);
+  delete genmo; 
+}
+
+/*
+the two genloc should have the same oid 
+
+*/
+void IndoorNav::Get_GenLoc(Point3D p1, Point3D p2,
+                           GenLoc& loc1, GenLoc& loc2, R_Tree<3,TupleId>* rtree)
+{
+  SmiRecordId adr = rtree->RootRecordId();
+
+  vector<int> tid_list1;
+  vector<int> tid_list2; 
+  DFTraverse(rtree, adr, p1, tid_list1);
+  DFTraverse(rtree, adr, p1, tid_list2); 
+
+// cout<<"p3d_1 "<<p1<<" p3d_2"<<p2<<endl;
+
+  assert(tid_list1.size() > 0);
+  assert(tid_list2.size() > 0);
+
+/*  Tuple* groom_tuple = rel1->GetTuple(tid, false);
+  GRoom* groom = (GRoom*)groom_tuple->GetAttribute(I_Room); 
+  int oid = ((CcInt*)groom_tuple->GetAttribute(I_OID))->GetIntval(); 
+  Rectangle<2> bbox = groom->BoundingBox(); 
+  Loc loc(p.GetX() - bbox.MinD(0), p.GetY() - bbox.MinD(1)); 
+  groom_tuple->DeleteIfAllowed();
+  loc1.SetValue(oid, loc); */
+
+  int tid1, tid2; 
+  for(unsigned int i = 0;i < tid_list1.size();i++){
+    tid1 = tid_list1[i];
+    for(unsigned int j = 0;j < tid_list2.size();j++){
+      tid2 = tid_list2[j]; 
+      if(tid1 == tid2){
+//        cout<<"find "<<endl; 
+        break; 
+      }  
+    }
+  }
+  if(tid1 != tid2){
+    cout<<"do not find the same groom for two locations"<<endl; 
+    assert(false); 
+  }
+ /////////////////////////////////////////////////////////////////////////
+
+  Tuple* groom_tuple = rel1->GetTuple(tid1, false);
+  GRoom* groom = (GRoom*)groom_tuple->GetAttribute(I_Room); 
+  string type = ((CcString*)groom_tuple->GetAttribute(I_Type))->GetValue(); 
+  int oid = ((CcInt*)groom_tuple->GetAttribute(I_OID))->GetIntval(); 
+  Rectangle<2> bbox = groom->BoundingBox(); 
+  groom_tuple->DeleteIfAllowed();
+
+  if(GetRoomEnum(type) == OR || GetRoomEnum(type) == BR || 
+     GetRoomEnum(type) == CO || GetRoomEnum(type) == ST){
+    Loc loc_1(p1.GetX() - bbox.MinD(0), p1.GetY() - bbox.MinD(1)); 
+    Loc loc_2(p2.GetX() - bbox.MinD(0), p2.GetY() - bbox.MinD(1)); 
+
+    loc1.SetValue(oid, loc_1);
+    loc2.SetValue(oid, loc_2);
+  }else if(GetRoomEnum(type) == EL){//move in an elevator,we record the height
+    Loc loc_1(p1.GetZ(), -1); 
+    Loc loc_2(p2.GetZ(), -1); 
+
+    loc1.SetValue(oid, loc_1);
+    loc2.SetValue(oid, loc_2);
+  }else{
+    cout<<"should not be here"<<endl;
+    assert(false); 
+  }
+  
+
+}
+
+
+/*
+check whether a 3d box contains a 3d point 
+
+*/
+bool BBoxContainPoint3D(Rectangle<3> bbox, Point3D& p)
+{
+  assert(bbox.IsDefined());
+  assert(p.IsDefined()); 
+  if( (bbox.MinD(0) < p.GetX() || AlmostEqual(bbox.MinD(0), p.GetX())) &&
+      (bbox.MaxD(0) > p.GetX() || AlmostEqual(bbox.MaxD(0), p.GetX())) &&
+      (bbox.MinD(1) < p.GetY() || AlmostEqual(bbox.MinD(1), p.GetY())) &&
+      (bbox.MaxD(1) > p.GetY() || AlmostEqual(bbox.MaxD(1), p.GetY())) &&
+      (bbox.MinD(2) < p.GetZ() || AlmostEqual(bbox.MinD(2), p.GetZ())) &&
+      (bbox.MaxD(2) > p.GetZ() || AlmostEqual(bbox.MaxD(2), p.GetZ())) )
+    return true; 
+  else
+    return false; 
+
+}
+
+/*
+traverse the 3D rtree to find whether a groom contains the 3d point 
+
+*/
+void IndoorNav::DFTraverse(R_Tree<3,TupleId>* rtree, SmiRecordId adr, 
+                           Point3D p, vector<int>& tid_list)
+{
+  R_TreeNode<3,TupleId>* node = rtree->GetMyNode(adr,false,
+                  rtree->MinEntries(0), rtree->MaxEntries(0));
+  for(int j = 0;j < node->EntryCount();j++){
+      if(node->IsLeaf()){
+              R_TreeLeafEntry<3,TupleId> e =
+                 (R_TreeLeafEntry<3,TupleId>&)(*node)[j];
+              Tuple* groom_tuple = rel1->GetTuple(e.info,false);
+              GRoom* groom = (GRoom*)groom_tuple->GetAttribute(I_Room);
+              Rectangle<3> groom_box = groom->BoundingBox3D();
+              if(BBoxContainPoint3D(groom_box, p)){
+                    tid_list.push_back(e.info);
+              }
+              groom_tuple->DeleteIfAllowed();
+      }else{
+            R_TreeInternalEntry<3> e =
+                (R_TreeInternalEntry<3>&)(*node)[j];
+            if(BBoxContainPoint3D(e.box, p)){
+              DFTraverse(rtree, e.pointer, p, tid_list);
+            }
+      }
+  }
+  delete node;
+
+}
+
 
 
 ostream& operator<<(ostream& o, const IPath_elem& elem)
@@ -4632,7 +5137,7 @@ void IndoorNav::IndoorShortestPath(int id1, int id2,
 //    output<<top<<endl; 
 
     if(top.tri_index == id2){
-       cout<<"find the shortest path"<<endl;
+//       cout<<"find the shortest path"<<endl;
        find = true;
        dest = top;
        break;
@@ -5028,7 +5533,7 @@ void IndoorNav::IndoorShortestPath_Room(int id1, int id2,
     if(visit_flag1[top.tri_index - 1])continue; 
 
     if(top.tri_index == id2){
-       cout<<"find the shortest path"<<endl;
+//       cout<<"find the shortest path"<<endl;
        find = true;
        dest = top;
        break;
@@ -5387,7 +5892,7 @@ void IndoorNav::IndoorShortestPath_Time1(int id1, int id2,
     if(visit_flag1[top.tri_index - 1])continue; 
 
     if(top.tri_index == id2){
-       cout<<"find the shortest path"<<endl;
+//       cout<<"find the shortest path"<<endl;
        find = true;
        dest = top;
        break;
@@ -5657,7 +6162,7 @@ void IndoorNav::IndoorShortestPath_Time2(int id1, int id2,
     if(visit_flag1[top.tri_index - 1])continue; 
 
     if(top.tri_index == id2){
-       cout<<"find the shortest path"<<endl;
+//       cout<<"find the shortest path"<<endl;
        find = true;
        dest = top;
        break;
@@ -5823,3 +6328,451 @@ float IndoorNav::CostInElevator(double l, I_Parameter& param)
   return h_list[index]/param.speed_elevator; 
 }
 
+////////////////////////////////////////////////////////////////////////
+/////////////temporal unit: UPoint3D ///////////////////////////////////
+///////////////////////////////////////////////////////////////////////
+/*
+interporlation function for the location 
+
+*/
+void UPoint3D::TemporalFunction( const Instant& t, Point3D& result,
+                               bool ignoreLimits ) const
+{
+  if( !IsDefined() ||
+      !t.IsDefined() ||
+      (!timeInterval.Contains( t ) && !ignoreLimits) )
+    {
+      result.SetDefined(false);
+    }
+  else if( t == timeInterval.start )
+    {
+      result = p0;
+      result.SetDefined(true);
+    }
+  else if( t == timeInterval.end )
+    {
+      result = p1;
+      result.SetDefined(true);
+    }
+  else
+    {
+      Instant t0 = timeInterval.start;
+      Instant t1 = timeInterval.end;
+
+      
+      double x = (p1.GetX() - p0.GetX()) * ((t - t0) / (t1 - t0)) + p0.GetX();
+      double y = (p1.GetY() - p0.GetY()) * ((t - t0) / (t1 - t0)) + p0.GetY();
+      double z = (p1.GetZ() - p0.GetZ()) * ((t - t0) / (t1 - t0)) + p0.GetZ();
+
+      Point3D p(true, x, y, z);
+      result = p;
+    }
+}
+
+/*
+check whether a location is visited 
+
+*/
+bool UPoint3D::Passes( const Point3D& gloc ) const
+{
+  return false;
+}
+
+/*
+restrict the movement at a location 
+
+*/
+
+bool UPoint3D::At( const Point3D& loc, TemporalUnit<Point3D>& res ) const 
+{
+  return false; 
+}
+
+UPoint3D* UPoint3D::Clone() const
+{
+  UPoint3D* res;
+  if(this->IsDefined()){
+    
+    res = new UPoint3D(timeInterval, p0, p1); 
+    res->del.isDefined = del.isDefined;
+  }else{
+    res = new UPoint3D(false); 
+  }
+  return res; 
+}
+
+
+void UPoint3D::CopyFrom(const Attribute* right)
+{
+  const UPoint3D* loc = static_cast<const UPoint3D*>(right); 
+  if(loc->del.isDefined){
+    timeInterval.CopyFrom(loc->timeInterval);
+    p0 = loc->p0;
+    p1 = loc->p1;
+  }
+  del.isDefined = loc->del.isDefined; 
+}
+
+const Rectangle<4> UPoint3D::BoundingBox() const
+{
+  if(this->IsDefined()){
+
+    return Rectangle<4>(true, 
+                       MIN(p0.GetX(), p1.GetX()),
+                       MAX(p0.GetX(), p1.GetX()), 
+                       MIN(p0.GetY(), p1.GetY()),
+                       MAX(p0.GetY(), p1.GetY()),  
+                       MIN(p0.GetZ(), p1.GetZ()),
+                       MAX(p0.GetZ(), p1.GetZ()),  
+                       timeInterval.start.ToDouble(),
+                       timeInterval.end.ToDouble());
+  }else
+      return Rectangle<4>(false); 
+
+}
+
+
+ListExpr UPoint3DProperty()
+{
+  return (nl->TwoElemList(
+            nl->FourElemList(nl->StringAtom("Signature"),
+                       nl->StringAtom("Example Type List"),
+           nl->StringAtom("List Rep"),
+           nl->StringAtom("Example List")),
+            nl->FourElemList(nl->StringAtom("-> DATA"),
+                       nl->StringAtom("upoint3d"),
+           nl->StringAtom("(<interval,x,y,z>)"),
+      nl->StringAtom("((interval (1.0 12.0 3.0)))"))));
+}
+
+/*
+Output  (interval, p0, p1)
+
+*/
+
+ListExpr OutUPoint3D( ListExpr typeInfo, Word value )
+{
+//  cout<<"OutUPoint3D"<<endl; 
+  UPoint3D* loc = (UPoint3D*)(value.addr);
+  if(!loc->IsDefined()){
+    return nl->SymbolAtom("undef");
+  }
+
+  if( loc->IsEmpty() ){
+    return nl->TheEmptyList();
+  }
+    ListExpr timeintervalList = nl->FourElemList(
+          OutDateTime( nl->TheEmptyList(),
+          SetWord(&loc->timeInterval.start) ),
+          OutDateTime( nl->TheEmptyList(), 
+                       SetWord(&loc->timeInterval.end) ),
+          nl->BoolAtom( loc->timeInterval.lc ),
+          nl->BoolAtom( loc->timeInterval.rc)); 
+    ListExpr loc1 = OutPoint3D(nl->TheEmptyList(), &(loc->p0));
+    ListExpr loc2 = OutPoint3D(nl->TheEmptyList(), &(loc->p1));
+    
+    return nl->ThreeElemList(timeintervalList,loc1,loc2); 
+}
+
+/*
+In function
+
+*/
+Word InUPoint3D( const ListExpr typeInfo, const ListExpr instance,
+       const int errorPos, ListExpr& errorInfo, bool& correct )
+{
+  string errmsg;
+  if ( nl->ListLength( instance ) == 3 ){
+    ListExpr first = nl->First( instance );
+
+    if( nl->ListLength( first ) == 4 &&
+        nl->IsAtom( nl->Third( first ) ) &&
+        nl->AtomType( nl->Third( first ) ) == BoolType &&
+        nl->IsAtom( nl->Fourth( first ) ) &&
+        nl->AtomType( nl->Fourth( first ) ) == BoolType ){
+
+       correct = true;
+       Instant *start = (Instant *)InInstant( nl->TheEmptyList(),
+       nl->First( first ),
+        errorPos, errorInfo, correct ).addr;
+
+      if( !correct || !start->IsDefined() ){
+        errmsg = "InUPoint3D(): Error in first instant (Must be defined!).";
+        errorInfo = nl->Append(errorInfo, nl->StringAtom(errmsg));
+        delete start;
+        return SetWord( Address(0) );
+      }
+
+      Instant *end = (Instant *)InInstant( nl->TheEmptyList(),
+       nl->Second( first ),
+                                           errorPos, errorInfo, correct ).addr;
+
+      if( !correct  || !end->IsDefined() )
+      {
+        errmsg = "InUPoint3D(): Error in second instant (Must be defined!).";
+        errorInfo = nl->Append(errorInfo, nl->StringAtom(errmsg));
+        delete start;
+        delete end;
+        return SetWord( Address(0) );
+      }
+
+      Interval<Instant> tinterval( *start, *end,
+                                   nl->BoolValue( nl->Third( first ) ),
+                                   nl->BoolValue( nl->Fourth( first ) ) );
+      delete start;
+      delete end;
+
+      correct = tinterval.IsValid();
+      if (!correct)
+        {
+          errmsg = "InUPoint3D(): Non valid time interval.";
+          errorInfo = nl->Append(errorInfo, nl->StringAtom(errmsg));
+          return SetWord( Address(0) );
+        }
+
+      //////////////////////////////////////////////////////////////////
+      ListExpr second = nl->Second( instance );
+      if(nl->ListLength(second) != 3){
+        errmsg = "InUPoint3D(): the length for Point3D should be 3.";
+        errorInfo = nl->Append(errorInfo, nl->StringAtom(errmsg));
+        return SetWord( Address(0) );
+      }
+      
+      bool loc1_correct; 
+      Point3D* loc1 = (Point3D*)InPoint3D(typeInfo, second, 
+                                        errorPos,errorInfo, loc1_correct).addr;
+      if(loc1_correct == false){
+          errmsg = "InUPoint3D(): Non correct first location.";
+          errorInfo = nl->Append(errorInfo, nl->StringAtom(errmsg));
+          return SetWord( Address(0) );
+      }
+
+      /////////////////////////////////////////////////////////////////////
+      ListExpr third = nl->Third(instance); 
+      if(nl->ListLength(third) != 3){
+        errmsg = "InUPoint3D(): the length for Point3D should be 3.";
+        errorInfo = nl->Append(errorInfo, nl->StringAtom(errmsg));
+        return SetWord( Address(0) );
+      }
+      bool loc2_correct; 
+      Point3D* loc2 = (Point3D*)InPoint3D(typeInfo, third, 
+                                        errorPos,errorInfo, loc2_correct).addr;
+      if(loc2_correct == false){
+          errmsg = "InUPoint3D(): Non correct second location.";
+          errorInfo = nl->Append(errorInfo, nl->StringAtom(errmsg));
+          return SetWord( Address(0) );
+      }
+
+      /////////////////////////////////////////////////////////////////////
+//      cout<<tinterval<<*loc1<<*loc2<<endl;
+
+      UPoint3D *up = new UPoint3D( tinterval, *loc1, *loc2);
+
+      correct = up->IsValid();
+      if( correct )
+          return SetWord( up );
+
+      errmsg = "InUPoint3D(): Error in start/end point.";
+      errorInfo = nl->Append(errorInfo, nl->StringAtom(errmsg));
+      delete up;
+    }
+  }else if ( nl->IsAtom( instance ) && nl->AtomType( instance ) == SymbolType
+            && nl->SymbolValue( instance ) == "undef" ){
+      UPoint3D *loc = new UPoint3D(false);
+      loc->timeInterval=
+                Interval<DateTime>(DateTime(instanttype),
+                           DateTime(instanttype),true,true);
+      correct = loc->timeInterval.IsValid();
+      if ( correct )
+        return (SetWord( loc ));
+  }
+  errmsg = "InUPoint3D(): Error in representation.";
+  errorInfo = nl->Append(errorInfo, nl->StringAtom(errmsg));
+  correct = false;
+  return SetWord( Address(0) );
+}
+
+/*
+Open a UPoint3D object 
+
+*/
+bool OpenUPoint3D(SmiRecord& valueRecord, size_t& offset,
+                 const ListExpr typeInfo, Word& value)
+{
+//  cout<<"OpenUPoint3D()"<<endl; 
+
+  UPoint3D* genl = (UPoint3D*)Attribute::Open(valueRecord, offset, typeInfo);
+  value = SetWord(genl);
+  return true; 
+}
+
+/*
+Save a UPoint3D object 
+
+*/
+bool SaveUPoint3D(SmiRecord& valueRecord, size_t& offset,
+                 const ListExpr typeInfo, Word& value)
+{
+//  cout<<"SaveUPoint3D"<<endl; 
+  UPoint3D* genl = (UPoint3D*)value.addr; 
+  Attribute::Save(valueRecord, offset, typeInfo, genl);
+  return true; 
+  
+}
+
+Word CreateUPoint3D(const ListExpr typeInfo)
+{
+// cout<<"CreateUPoint3D()"<<endl;
+  return SetWord (new UPoint3D(0));
+}
+
+
+void DeleteUPoint3D(const ListExpr typeInfo, Word& w)
+{
+// cout<<"DeleteUPoint3D()"<<endl;
+  UPoint3D* up = (UPoint3D*)w.addr;
+  delete up;
+   w.addr = NULL;
+}
+
+
+void CloseUPoint3D( const ListExpr typeInfo, Word& w )
+{
+//  cout<<"CloseUPoint3D"<<endl; 
+  ((UPoint3D*)w.addr)->DeleteIfAllowed();
+  w.addr = 0;
+}
+
+Word CloneUPoint3D( const ListExpr typeInfo, const Word& w )
+{
+//  cout<<"CloneUPoint3D"<<endl; 
+  return SetWord( new UPoint3D( *((UPoint3D*)w.addr) ) );
+}
+
+int SizeOfUPoint3D()
+{
+//  cout<<"SizeOfUPoint3D"<<endl; 
+  return sizeof(UPoint3D);
+}
+
+bool CheckUPoint3D( ListExpr type, ListExpr& errorInfo )
+{
+//  cout<<"CheckUPoint3D"<<endl; 
+  return (nl->IsEqual( type, "upoint3d" ));
+}
+
+//////////////////////////////////////////////////////////////////
+//////////  MPoinr3D /////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////
+ListExpr MPoint3DProperty()
+{
+  return (nl->TwoElemList(
+            nl->FourElemList(nl->StringAtom("Signature"),
+                       nl->StringAtom("Example Type List"),
+           nl->StringAtom("List Rep"),
+           nl->StringAtom("Example List")),
+            nl->FourElemList(nl->StringAtom("-> MAPPING"),
+                       nl->StringAtom("mpoint3d"),
+           nl->StringAtom("(u1,...,un)"),
+      nl->StringAtom("((interval (1 10.0 1.0)(1 12.0 3.0)))"))));
+}
+
+
+bool CheckMPoint3D( ListExpr type, ListExpr& errorInfo )
+{
+//  cout<<"CheckMPoint3D"<<endl; 
+  return (nl->IsEqual( type, "mpoint3d" ));
+}
+
+void MPoint3D::Clear()
+{
+  Mapping<UPoint3D, Point3D>::Clear();
+}
+
+
+/*
+copy it from another data 
+
+*/
+void MPoint3D::CopyFrom(const Attribute* right)
+{
+
+    const MPoint3D *mo = (const MPoint3D*)right;
+    assert( mo->IsOrdered() );
+    Clear();
+    this->SetDefined(mo->IsDefined());
+    if( !this->IsDefined() ) {
+      return;
+    }
+    StartBulkLoad();
+    UPoint3D unit;
+    for( int i = 0; i < mo->GetNoComponents(); i++ ){
+      mo->Get( i, unit );
+      Add( unit );
+    }
+    EndBulkLoad( false );
+
+}
+
+Attribute* MPoint3D::Clone() const
+{
+    assert( IsOrdered() );
+    MPoint3D* result;
+    if( !this->IsDefined() ){
+      result = new MPoint3D( 0 );
+    } else {
+      result = new MPoint3D( GetNoComponents() );
+      if(GetNoComponents()>0){
+        result->units.resize(GetNoComponents());
+      }
+      result->StartBulkLoad();
+      UPoint3D unit;
+      for( int i = 0; i < GetNoComponents(); i++ ){
+        Get( i, unit );
+        result->Add( unit );
+      }
+      result->EndBulkLoad( false );
+    }
+    result->SetDefined(this->IsDefined());
+    return (Attribute*) result;
+
+}
+
+/*
+put new unit. it only inserts the new unit and does not calculate the bounding
+box. 
+
+*/
+void MPoint3D::Add(const UPoint3D& unit)
+{
+  assert(unit.IsDefined());
+  assert(unit.IsValid()); 
+  if(!IsDefined()){
+    SetDefined(false);
+    return; 
+  }
+  units.Append(unit); 
+}
+
+void MPoint3D::EndBulkLoad(const bool sort, const bool checkvalid)
+{
+  Mapping<UPoint3D, Point3D>::EndBulkLoad(sort, checkvalid); 
+
+}
+
+/*
+3d line representing the trajectory of indoor moving objects 
+
+*/
+void MPoint3D::Trajectory(Line3D& l)
+{
+  l.StartBulkLoad(); 
+  for(int i = 0;i < GetNoComponents();i++){
+    UPoint3D unit;
+    Get(i, unit); 
+    l += unit.p0;
+    if(i == GetNoComponents() - 1)
+      l+= unit.p1; 
+  }
+  l.EndBulkLoad(); 
+}

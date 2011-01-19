@@ -226,6 +226,7 @@ bool SavePoint3D(SmiRecord& valueRecord, size_t& offset,
                  const ListExpr typeInfo, Word& value);
 bool OpenPoint3D(SmiRecord& valueRecord, size_t& offset,
                  const ListExpr typeInfo, Word& value);
+ostream& operator<<(ostream& o, const Point3D& loc); 
 
 /*
 3D Line 
@@ -257,7 +258,7 @@ class Line3D: public StandardSpatialAttribute<3>
 
     void EndBulkLoad( bool sort = true, bool remDup = true, bool trim = true );
 
-    inline const Rectangle<3> BoundingBox() const;
+    const Rectangle<3> BoundingBox() const;
 
     inline bool IsEmpty() const;
 
@@ -330,33 +331,6 @@ points( ps.Size() )
   }
 }
 
-inline const Rectangle<3> Line3D::BoundingBox() const
-{
-//  return new Rectangle<3>(true,0.0,0.0,0.0,0.0,0.0,0.0);
-//  cout<<"Rectangle<3> BoundingBox "<<endl; 
-  double min[3];
-  double max[3];
-  for(int i = 0;i < 3;i++){
-    min[i] = numeric_limits<double>::max();
-    max[i] = numeric_limits<double>::min();
-  }
-
-  for(int i = 0;i < points.Size();i++){
-      Point3D p;
-      points.Get(i, p);
-
-      min[0] = MIN(p.GetX(), min[0]);
-      min[1] = MIN(p.GetY(), min[1]);
-      min[2] = MIN(p.GetZ(), min[2]);
-      
-      max[0] = MAX(p.GetX(), max[0]);
-      max[1] = MAX(p.GetY(), max[1]);
-      max[2] = MAX(p.GetZ(), max[2]);
-  }
-
-  Rectangle<3> bbox3d(true, min, max);
-  return bbox3d; 
-}
 
 /*inline bool Line3D::Get( const int i, Point& p ) const
 {
@@ -902,10 +876,13 @@ class GRoom:public StandardSpatialAttribute<2>{
    {
       return BoundingBox().Distance(r);
    }
+
+   const Rectangle<3> BoundingBox3D() const;
+
    float GetLowHeight();
    float GetHighHeight();
-   
-   
+
+
   /////////////very important two functions////////////////////
   ////////especially genrange is an attribute in a relation/////
   inline int NumOfFLOBs() const { 
@@ -1002,6 +979,10 @@ struct I_Parameter{
         <<"speed_elevator "<<speed_elevator<<endl; 
   }
 }; 
+class MPoint3D; 
+bool BBoxContainPoint3D(Rectangle<3> bbox, Point3D& p); 
+
+
 struct IndoorNav{
   Relation* rel1; //university room relation 
   Relation* rel2; //door 3d box relation 
@@ -1031,6 +1012,8 @@ struct IndoorNav{
   vector<GRoom> room_list; 
   vector<double> cost_list; 
   
+  vector<MPoint3D> mo_list; 
+  vector<GenMO> genmo_list; 
   int type; 
   /////////////the attribute position for indoor (groom+door) relation 
   static string Indoor_GRoom_Door; 
@@ -1061,6 +1044,7 @@ struct IndoorNav{
   void CreateBox3D(int, int, Line*, float);
   float NextFloorHeight(float h, vector<float>& floor_height);
   ////////////////create a relation storing door////////////////////////
+  bool IsGRoom(int tid, Relation* rel);
   void CreateDoor1(R_Tree<3, TupleId>*, int, int ,int);
   void CreateDoorState(MBool* mb);
   void CreateDoor2();
@@ -1076,7 +1060,9 @@ struct IndoorNav{
                      Line* l1, Line* l2, Line* l3, 
                      const Rectangle<2>*, const Rectangle<2>*, 
                      Line3D* l, float h);
-   ////////////////create a relation storing edges connecting doors////////////
+  void CreateEntranceDoor(int id, int oid, int tid, 
+                               int attr1, int attr2, int attr3); 
+   ////////////////create a relation storing edges connecting doors//////////
    void CreateAdjDoor1(BTree*, int, int ,int, int);
    void CreateAdjDoor2(R_Tree<3,TupleId>*);
    void DFTraverse(R_Tree<3,TupleId>* rtree, SmiRecordId adr, unsigned int id,
@@ -1104,6 +1090,17 @@ struct IndoorNav{
    void GetAdjNodeIG(int oid);
    ////////////////////////// data generation/////////////////////////
    void GenerateIP1(int num);
+   void GenerateMO1(IndoorGraph* ig, BTree* btree, R_Tree<3,TupleId>* rtree,
+                    int num, Periods* peri, bool convert); 
+   float GetMinimumDoorWidth();
+   void AddUnitToMO(MPoint3D* mp3d, Point3D& p1, Point3D& p2, 
+                    Instant& start_time, double speed);
+   void ToGenLoc(MPoint3D* mp3d, R_Tree<3,TupleId>* rtree);
+   void Get_GenLoc(Point3D p1, Point3D p2, GenLoc& loc1, GenLoc& loc2,
+                   R_Tree<3,TupleId>* rtree);
+   void DFTraverse(R_Tree<3,TupleId>* rtree, SmiRecordId adr, 
+                           Point3D p, vector<int>& tid_list);
+
    //////////////////////////shortest path searching////////////////////
    bool IsLocEqual(GenLoc* loc1, GenLoc* loc2, Relation* rel);
    void PathInOneRoom(GenLoc* gloc1, GenLoc* gloc2, Relation* rel, 
@@ -1323,6 +1320,102 @@ public:
 
 };
 
+/////////////////////////////////////////////////////////////////////
+///////////// temporal unit: UPoint3D ///////////////////////////////
+///////////// only for Java3D visualization ////////////////////////
+/////////////////////////////////////////////////////////////////////
+class UPoint3D: public SpatialTemporalUnit<Point3D, 4>
+{
+  public:
+  UPoint3D(){}; 
+  UPoint3D(bool def):SpatialTemporalUnit<Point3D, 4>(def){}
+  UPoint3D(const Interval<Instant>& interval, const Point3D& loc1, 
+          const Point3D& loc2):
+  SpatialTemporalUnit<Point3D, 4>(interval),p0(loc1), p1(loc2)
+  {
+    SetDefined(p0.IsDefined() && p1.IsDefined()); 
+  }
+  UPoint3D(const UPoint3D& source):
+  SpatialTemporalUnit<Point3D, 4>(source.IsDefined())
+  {
+    timeInterval = source.timeInterval; 
+    p0 = source.p0;
+    p1 = source.p1;
+    del.refs = 1;
+    del.SetDelete(); 
+    del.isDefined = source.del.isDefined; 
+  }
+  UPoint3D& operator=(const UPoint3D& loc)
+  {
+    timeInterval = loc.timeInterval;
+    p0 = loc.p0;
+    p1 = loc.p1;
+    del.isDefined = loc.del.isDefined;
+    return *this; 
+  }
 
+  void TemporalFunction( const Instant& t,
+                               Point3D& result,
+                               bool ignoreLimits ) const; 
+  bool Passes( const Point3D& gloc ) const; 
+  bool At( const Point3D& p, TemporalUnit<Point3D>& res ) const; 
+
+  static void* Cast(void* addr){return new (addr)UPoint3D();}
+  inline size_t Sizeof() const { return sizeof(*this);}
+  UPoint3D* Clone() const;
+  void CopyFrom(const Attribute* right); 
+  const Rectangle<4> BoundingBox() const; 
+  double Distance(const Rectangle<4>& rect) const
+  {
+    return BoundingBox().Distance(rect); 
+  }
+  inline bool IsEmpty() const
+  {
+    return !IsDefined(); 
+  }
+  Point3D p0;
+  Point3D p1; 
+};
+
+ListExpr UPoint3DProperty(); 
+bool OpenUPoint3D(SmiRecord& valueRecord, size_t& offset,
+                 const ListExpr typeInfo, Word& value);
+
+bool SaveUPoint3D(SmiRecord& valueRecord, size_t& offset,
+                 const ListExpr typeInfo, Word& value);
+Word CreateUPoint3D(const ListExpr typeInfo);
+void DeleteUPoint3D(const ListExpr typeInfo, Word& w); 
+void CloseUPoint3D( const ListExpr typeInfo, Word& w ); 
+Word CloneUPoint3D( const ListExpr typeInfo, const Word& w ); 
+int SizeOfUPoint3D(); 
+bool CheckUPoint3D( ListExpr type, ListExpr& errorInfo ); 
+Word InUPoint3D( const ListExpr typeInfo, const ListExpr instance,
+       const int errorPos, ListExpr& errorInfo, bool& correct ); 
+ListExpr OutUPoint3D( ListExpr typeInfo, Word value ); 
+/////////////////////////////////////////////////////////////////////
+///////////////////   MPoint3D   ///////////////////////////////////
+/////////////////////////////////////////////////////////////////////
+
+class MPoint3D:public Mapping<UPoint3D,Point3D>
+{
+  public:
+    MPoint3D(){}
+    MPoint3D(const int n):Mapping<UPoint3D, Point3D>(n)
+    {
+      del.refs = 1;
+      del.SetDelete();
+      del.isDefined = true;
+    }
+    void Clear();
+    void CopyFrom(const Attribute* right); 
+    Attribute* Clone() const; 
+    void Add(const UPoint3D& unit); 
+    void EndBulkLoad(const bool sort = true, const bool checkvalid = false);
+    void Trajectory(Line3D& l);
+};
+
+
+bool CheckMPoint3D( ListExpr type, ListExpr& errorInfo );
+ListExpr MPoint3DProperty();
 
 #endif // __INDOOR_H__
