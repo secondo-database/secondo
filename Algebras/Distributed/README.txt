@@ -6,22 +6,18 @@ Installation of ZThread Library:
 	configure
 	make
 	make install
-4. On MacOS, in the file secondo.config.mac_osx located in secondo-sdk, modify 
-   the line
-
-	export SECONDO_LDFLAGS="-L$SECONDO_SDK/auxtools/lib
-
-   to
-
-	 SECONDO_LDFLAGS="-L$SECONDO_SDK/auxtools/lib -framework CoreServices"
 
 Activation of Distributed Algebra:
 
-5. In makefile.algebras, use the three lines
+5. In makefile.algebras, use the lines
 
-ALGEBRA_DIRS 	+= Distributed 
-ALGEBRAS 	+= DistributedAlgebra
-ALGEBRA_DEPS 	+= ZThread
+ALGEBRA_DIRS += Distributed
+ALGEBRAS     += DistributedAlgebra
+ALGEBRA_DEPS += ZThread
+# on max os X the framework CoreServices must be added
+# uncomment the next line if you use mac os
+#ALGEBRA_LINK_FLAGS += -framework CoreServices
+
 
 
 
