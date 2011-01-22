@@ -9,7 +9,7 @@ Installation of ZThread Library:
 
 Activation of Distributed Algebra:
 
-5. In makefile.algebras, use the lines
+4. In makefile.algebras, use the lines
 
 ALGEBRA_DIRS += Distributed
 ALGEBRAS     += DistributedAlgebra
