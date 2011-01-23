@@ -6776,3 +6776,4 @@ void MPoint3D::Trajectory(Line3D& l)
   }
   l.EndBulkLoad(); 
 }
+

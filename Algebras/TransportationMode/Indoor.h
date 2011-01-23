@@ -1418,4 +1418,6 @@ class MPoint3D:public Mapping<UPoint3D,Point3D>
 bool CheckMPoint3D( ListExpr type, ListExpr& errorInfo );
 ListExpr MPoint3DProperty();
 
+
+
 #endif // __INDOOR_H__
