@@ -950,7 +950,7 @@ bool CompTriangle::PolygonConvex()
       cout<<"error: this is not a region"<<endl;
       return false;
   }
-  if(reg->NoComponents() > 1){
+  if(reg->NoComponents() > 1 || NoOfCycles() > 1){
       cout<<"error: there is hole inside or several subregions"<<endl;
       return false;
   }
@@ -967,7 +967,7 @@ bool CompTriangle::PolygonConvex()
   if(sboundary->Size() > 0)
     sp->ReorderLine(sboundary, mhs);
   else{
-    cout<<"can't covert the boundary to a sline, maybe there is a hole"<<endl;
+    cout<<"can't covert the boundary to a sline"<<endl;
     delete boundary;
     delete sboundary;
     return false;
@@ -1010,6 +1010,53 @@ bool CompTriangle::PolygonConvex()
       return true;
    else
       return false;*/
+  return IsConvex(ps);
+  /////////////////////////////////////////////////////////////////////////
+
+}
+
+bool CompTriangle::PolygonConvex2(int& error)
+{
+  if(reg->NoComponents() == 0){
+      cout<<"error: this is not a region"<<endl;
+      error = 1;
+      return false;
+  }
+  if(reg->NoComponents() > 1 || NoOfCycles() > 1){
+      cout<<"error: there is hole inside or several subregions"<<endl;
+      error = 2;
+      return false;
+  }
+
+  Line* boundary = new Line(0);
+  reg->Boundary(boundary);
+//  cout<<"boundary "<<*boundary<<endl;
+  SimpleLine* sboundary = new SimpleLine(0);
+  sboundary->fromLine(*boundary);
+//  cout<<"sboundary size "<<sboundary->Size()<<endl;
+  vector<MyHalfSegment> mhs;
+  //get all the points of the region
+  SpacePartition* sp = new SpacePartition();
+  if(sboundary->Size() > 0)
+    sp->ReorderLine(sboundary, mhs);
+  else{
+    error = 3;
+    cout<<"can't covert the boundary to a sline"<<endl;
+    delete boundary;
+    delete sboundary;
+    return false;
+  }
+  delete boundary;
+  delete sboundary;
+
+/*  for(unsigned int i = 0;i < mhs.size();i++)
+        mhs[i].Print();*/
+
+  vector<Point> ps;
+  for(unsigned int i = 0;i < mhs.size();i++)
+    ps.push_back(mhs[i].from);
+  ///////////////      convex/concave        /////////////////////////////
+  error = 0;
   return IsConvex(ps);
   /////////////////////////////////////////////////////////////////////////
 
@@ -6628,4 +6675,867 @@ void Hole::DiscoverContour(MHSNode* head, Region* r)
             break;
         }
     }
+}
+
+
+///////////////////////////////////////////////////////////////////////
+////////////////// get the maximum area rectangle in a region/////////
+//////////////////////////////////////////////////////////////////////
+bool SortByY(const MyPoint& mp1, const MyPoint& mp2)
+{
+  if(mp1.loc.GetY() < mp2.loc.GetY() ||
+    AlmostEqual(mp1.loc.GetY(), mp2.loc.GetY())) return false; 
+  return true; 
+}
+
+/*
+locate which Quadrant the point belongs to 
+
+*/
+int GetQuadrant(double x, double y, Rectangle<2> reg_box)
+{
+  double m_x = (reg_box.MinD(0) + reg_box.MaxD(0))/2;
+  double m_y = (reg_box.MinD(1) + reg_box.MaxD(1))/2; 
+  if(x < m_x || AlmostEqual(x, m_x)){
+    if(y < m_y || AlmostEqual(y, m_y ))return 3; 
+    else
+      return 2;
+  }else{
+    if(y < m_y || AlmostEqual(y, m_y ))return 4;
+    else
+      return 1;
+  }
+  return -1; 
+}
+
+
+/*
+the region should only have one face. 
+it can be convex or concave, but without holes 
+if the polygon is a triangle, we can directly get the maximum rectangle 
+
+*/
+Rectangle<2> GetMaxRect(Region* reg)
+{
+  if(reg->NoComponents() != 1){
+    cout<<"only one face is allowed"<<endl; 
+    return Rectangle<2>(false, 0.0, 0.0, 0.0, 0.0); 
+
+  }
+  
+  CompTriangle* ct = new CompTriangle(reg);
+  unsigned int no_cyc = ct->NoOfCycles();
+  
+  if(no_cyc != 1){
+    cout<<"has holes inside or no cycle"<<endl; 
+    delete ct; 
+    return Rectangle<2>(false, 0.0, 0.0, 0.0, 0.0);
+
+  }
+
+
+  Line* boundary = new Line(0);
+  reg->Boundary(boundary);
+
+  SimpleLine* sboundary = new SimpleLine(0);
+  sboundary->fromLine(*boundary);
+
+  vector<MyHalfSegment> mhs;
+
+  SpacePartition* sp = new SpacePartition();
+  if(sboundary->Size() > 0)
+    sp->ReorderLine(sboundary, mhs);
+  else{
+    cout<<"can't covert the boundary to a sline"<<endl;
+    delete boundary;
+    delete sboundary;
+    delete sp;
+    delete ct; 
+    return Rectangle<2>(false, 0.0, 0.0, 0.0, 0.0);
+
+  }
+  
+  vector<Point> ps;
+  for(unsigned int i = 0;i < mhs.size();i++)
+    ps.push_back(mhs[i].from);
+
+  if(ct->IsConvex(ps) == false){
+    cout<<"concave polygon"<<endl; 
+    delete ct; 
+    return Rectangle<2>(false, 0.0, 0.0, 0.0, 0.0);
+    
+  }
+  
+  ///////////////////////////////////////////////////////////////////////
+  /////////////// finish checking //////////////////////////////////////
+  //////////////////////////////////////////////////////////////////////
+ 
+  Rectangle<2> reg_box = reg->BoundingBox(); 
+  for(unsigned int i = 0;i < ps.size();i++){
+    double x = ps[i].GetX();
+    double y = ps[i].GetY(); 
+    int range = GetQuadrant(x, y, reg_box);
+    assert(range > 0); 
+    switch(range){
+      case 1:
+            x = floor(x);
+            y = floor(y);
+            break;
+      case 2:
+            x = ceil(x);
+            y = floor(y);
+            break;
+      case 3:
+            x = ceil(x);
+            y = ceil(y);
+            break;
+      case 4:
+            x = floor(x);
+            y = ceil(y); 
+            break; 
+    }
+    ps[i].Set(x,y); 
+  }
+  
+  delete boundary;
+  delete sboundary;
+
+  vector<Region> regs;
+  sp->ComputeRegion(ps, regs);
+
+  delete sp; 
+  delete ct;
+  
+  
+  if(ct->GetClockwise(ps) == false){
+    vector<Point> temp_ps;
+    for(int i = ps.size() - 1; i >= 0;i--)
+      temp_ps.push_back(ps[i]); 
+    ps.clear();
+    for(unsigned int i = 0;i < temp_ps.size();i++)
+      ps.push_back(temp_ps[i]); 
+  }
+  
+  if(ps.size() >= 3){
+      vector<GeomPoint> polygon; 
+      for(unsigned int i = 0;i < ps.size();i++){
+      GeomPoint gp(ps[i].GetX(), ps[i].GetY()); 
+      polygon.push_back(gp); 
+    }
+
+    MaxRect max_rect; 
+    max_rect.Init(); 
+    max_rect.SetPoint(polygon); 
+    if(max_rect.computeEdgeList()){
+        max_rect.computeLargestRectangle(); 
+        if(max_rect.result != -1)
+          return max_rect.RectList[max_rect.result]; 
+        else
+          return Rectangle<2>(false, 0.0, 0.0, 0.0, 0.0); 
+     }else
+        return Rectangle<2>(false, 0.0, 0.0, 0.0, 0.0); 
+  }
+
+//     cout<<"a triangle"<<endl; 
+     return Rectangle<2>(false, 0.0, 0.0, 0.0, 0.0); 
+}
+
+
+/////////////////////////////////////////////////////////////////////////
+//////////// the  following implementation from /////////////////////////
+////H. Alt, D. Hsu, and J. Snoeyink. ////////////////////////////////////
+////////Computing the largest inscribed isothetic rectangle. ///////////
+//////////In Proc. 7th Canadian Conf. Comput. Geom.,/////////////////// 
+////////////Universit'e Laval, Qu'ebec, August 1995, pp. 67--72./////////
+//////// the original code is by Java, I conver it to C, c++/////////////
+/////////////////////////////////////////////////////////////////////////
+
+void MaxRect::SetPoint(vector<GeomPoint>& list)
+{
+  for(unsigned int i = 0;i < list.size();i++){
+//    geo_p_list.push_back(list[i]); 
+      int x = list[i].x;
+      int y = list[i].y;
+      GeomPoint p(x,y);
+
+      // this.polygon.add(p);
+      if (geo_p_list.size() <2){
+            geo_p_list.push_back(p);
+            status = 1;
+            changed = true;
+      }else if (geo_p_list.size() == 2){
+          GeomPoint ha = geo_p_list[0];
+          GeomPoint hb = geo_p_list[1];
+          if (onLeft(ha, hb, p)){
+              geo_p_list.push_back(p);
+              status = 2;
+              changed = true;
+          }else{
+                GeomPoint q = geo_p_list[1];
+                geo_p_list[1] = p;
+                geo_p_list.push_back(q); 
+                status = 2;
+            }
+        }else{
+            geo_p_list.push_back(p); 
+        }
+  }
+
+
+}
+
+
+bool MaxRect::onLeft(GeomPoint a, GeomPoint b, GeomPoint c)
+{
+  int area = (b.x -a.x)*(c.y - a.y) - (c.x - a.x)*(b.y - a.y);
+  return (area<0);
+}
+
+bool MaxRect::pointOutside(GeomPoint p)
+{//, int start, int stop){
+
+   bool ptIn = true, currIn, prevIn = true;
+
+   GeomPoint a = geo_p_list[0];
+   GeomPoint b;
+
+   for(unsigned int i=0; i<geo_p_list.size(); i++){
+      b = geo_p_list[(i+1)%geo_p_list.size()];
+      currIn = onLeft(a, b, p);
+      ptIn = ptIn && currIn;
+      a = b;
+
+     if(prevIn && !currIn){ start = i;} //next point outside, 1st tangent found
+         if(!prevIn && currIn){ stop = i;}  // 2nd tangent 
+         prevIn = currIn;
+
+  }
+        return !ptIn;
+}
+
+
+bool MaxRect::computeEdgeList()
+{
+        GeomPoint a,b;
+        a = geo_p_list[geo_p_list.size()-1];
+        for(unsigned int i = 0; i< geo_p_list.size(); i++){
+            b = (GeomPoint)geo_p_list[i];
+            //b = (GeomPoint)this.elementAt(i+1);
+
+            if (i==0){
+                g_xmin = a.x;
+                g_xmax = a.x;
+                g_ymin = a.y;
+                g_ymax = a.y;
+            }
+            else{
+                if (a.x < g_xmin){
+                    g_xmin = a.x;
+                }
+                if (a.x > g_xmax){
+                    g_xmax  = a.x;
+                    yxmax = a.y;
+                }
+                if (a.y < g_ymin){
+                    g_ymin = a.y;
+                }
+                if (a.y > g_ymax){
+                    g_ymax  = a.y;
+                }
+            }
+            if(a.x == b.x) return false; 
+            
+            GeomEdge* e = new GeomEdge(a,b);
+            geo_e_list.push_back(*e);
+            a = b;
+            delete e; 
+        } //for
+  return true; 
+}
+
+
+/* 
+compute y intersection with an edge
+      first pixel completely inside
+      ceil function if edge is on top, floor otherwise
+      (+y is down)
+      
+*/
+inline int MaxRect::yIntersect(int xi, GeomEdge e)
+{
+
+        int y;
+        double yfirst = (e.m) * (xi-0.5) + e.b;
+        double ylast = (e.m) * (xi+0.5) + e.b;
+
+        if (!e.isTop){
+            y = (int)floor(MIN(yfirst, ylast));
+        }
+        else {
+            y = (int)ceil(MAX(yfirst, ylast));
+        }
+        return y;
+    }
+
+/* 
+find largest pixel completely inside
+look through all edges for intersection
+
+*/
+int MaxRect::xIntersect(int y){
+        int x=0;
+        double x0=0, x1=0;
+        for(unsigned int i=0; i< geo_p_list.size(); i++){
+            GeomEdge e = geo_e_list[i];
+            if (e.isRight && e.ymin <= y && e.ymax >= y){
+                x0 = (double)(y+0.5 - e.b)/e.m;
+                x1 = (double)(y-0.5 - e.b)/e.m;
+            }
+        }
+        x = (int)floor(MIN(x0,x1));
+        //System.out.println("xIntersect, x is " + x);
+        return x;
+    }
+
+
+GeomEdge MaxRect::findEdge(int x, bool isTop)
+{
+        GeomEdge e;
+        GeomEdge emax= geo_e_list[0];
+        //int count = 0;
+        for (unsigned int i=0; i< geo_p_list.size(); i++){
+            e = geo_e_list[i];
+            if (e.xmin == x){
+                if (e.xmax != e.xmin){
+                    if ((e.isTop && isTop)||(!e.isTop && !isTop)){
+                        emax = e;
+                    }
+                }
+            }
+
+        }
+        return emax;
+    }
+/*
+to get more precise data: 
+for the coordinates of original point, we can multiply the value by 1000. 
+because the original code only uses the type int. 
+in the end, we have to div the value by 1000. 
+This depends on the application requirment 
+
+*/
+void MaxRect::computeLargestRectangle(){
+
+        changed = false;
+
+        GeomEdge top, bottom;
+        int ymax, ymin, xright, xlo, xhi;
+        int area, maxArea = 0;
+        int width, height, maxh=0, maxw=0;
+
+        /* all 2-corner and 3-corner largest rectangles */
+        int aAC=0,aBD=0,aABC=0,aABD=0,aACD=0,aBCD=0;
+        GeomPoint pAC, pBD, pABC, pABD, pACD, pBCD;
+        int hAC=0,wAC=0,hBD=0,wBD=0,hABC=0,wABC=0,hABD=0,wABD=0;
+        int hACD=0,wACD=0,hBCD=0,wBCD=0;
+        bool onA, onB, onC, onD;
+
+        GeomPoint maxp(0, 0);
+        pAC = maxp; 
+        pBD = maxp; 
+        pABC = maxp; 
+        pABD = maxp; 
+        pACD = maxp; 
+        pBCD = maxp;
+
+
+        vector<GeomPoint> xint;
+
+        for(int i=0;i< g_ymax;i++){
+            int x = xIntersect(i);
+            GeomPoint px(x, i);
+            xint.push_back(px);
+//            cout<<px.x<<" "<<px.y<<endl; 
+        }
+
+//        cout<<"g_xmin "<<g_xmin<<" g_xmax "<<g_xmax
+//            <<" g_ymin "<<g_ymin<<" g_ymax "<<g_ymax<<endl; 
+
+        //find first top and bottom edges
+        top = findEdge(g_xmin, true);
+        bottom = findEdge(g_xmin, false);
+
+        //scan for rectangle left position
+        for(int xi= g_xmin; xi< g_xmax;xi++){
+
+            ymin = yIntersect(xi, top);
+            ymax = yIntersect(xi, bottom);
+
+            for(int ylo = ymax;ylo>= ymin;ylo--){//ylo from to to bottom
+
+                for(int yhi = ymin; yhi<= ymax; yhi++){
+
+                    if (yhi>ylo){
+
+                        onA = (yhi == ymax && !bottom.isRight);
+                        onD = (ylo == ymin && !top.isRight);
+
+                        //xIntersect(ylo,edgeList);
+                        xlo = (int)((GeomPoint)xint[ylo]).x;
+                        //xIntersect(yhi,edgeList);
+                        xhi = (int)((GeomPoint)xint[yhi]).x;
+
+                        xright = maxp.min(xlo,xhi);
+                        onC = (xright == xlo && yxmax >= ylo);
+                        onB = (xright == xhi && yxmax <= yhi);
+
+                        height = yhi-ylo;
+                        width = xright - xi;
+
+                        if (!fixed){
+                        }//!fixed
+                        else{
+                          int fixedWidth = 
+                          (int)ceil( ((double)height*fixedX)/((double)fixedY));
+                          if (fixedWidth <= width){
+                              width = fixedWidth;
+                          }
+                          else{
+                              width = 0;
+                          }
+                       }
+                        area = width * height;
+                        //AC 
+                        if (onA && onC && !onB && !onD){
+                            if (area > aAC){
+                                aAC = area;
+//                                pAC = new GeomPoint(xi, ylo);
+                                pAC.x = xi;
+                                pAC.y = ylo; 
+//                                cout<<" xi "<<xi<<" ylo "<<ylo<<endl; 
+                                hAC = height;
+                                wAC = width;
+                            }
+                        }
+                        //BD
+                        if (onB && onD && !onA && !onC){
+                            if (area > aBD){
+                                aBD = area;
+//                                pBD = new GeomPoint(xi, ylo);
+                                pBD.x = xi;
+                                pBD.y = ylo; 
+
+                                hBD = height;
+                                wBD = width;
+                            }
+                        }
+                        //ABC
+                        if (onA && onB && onC){
+                            if (area > aABC){
+                                aABC = area;
+//                                pABC = new GeomPoint(xi, ylo);
+                                pABC.x = xi;
+                                pABC.y = ylo; 
+
+                                hABC = height;
+                                wABC = width;
+                            }
+                        }
+                        //ABD
+                        if (onA && onB && onD){
+                            if (area > aABD){
+                                aABD = area;
+//                                pABD = new GeomPoint(xi, ylo);
+                                pABD.x = xi;
+                                pABD.y = ylo; 
+
+                                hABD = height;
+                                wABD = width;
+                            }
+                        }
+                        //ACD
+                        if (onA && onC && onD){
+                            if (area > aACD){
+                                aACD = area;
+//                                pACD = new GeomPoint(xi, ylo);
+                                pACD.x = xi;
+                                pACD.y = ylo; 
+
+                                hACD = height;
+                                wACD = width;
+                            }
+                        }
+                        //BCD
+                        if (onB && onC && onD){
+                            if (area > aBCD){
+                                aBCD = area;
+//                                pBCD = new GeomPoint(xi, ylo);
+                                pBCD.x = xi;
+                                pBCD.y = ylo; 
+
+                                hBCD = height;
+                                wBCD = width;
+                            }
+                        }
+
+                        if(area>maxArea){
+                            maxArea = area;
+//                            maxp = new GeomPoint(xi, ylo);
+                            maxp.x = xi;
+                            maxp.y = ylo; 
+
+                            maxw = width;
+                            maxh = height;
+
+                        }
+                    }//yhi > ylo
+                }//for yhi
+            }//for ylo
+            if (xi == top.xmax){
+                top = findEdge(xi,  true);
+            }
+            if(xi == bottom.xmax){
+                bottom = findEdge(xi, false);
+            }
+        }//xi
+
+        rectp = maxp;
+        recth = maxh;
+        rectw = maxw;
+
+
+/*        RectList.push_back(Rectangle<2>(true, pAC.x, pAC.y, wAC, hAC));
+        RectList.push_back(Rectangle<2>(true, pBD.x, pBD.y, wBD, hBD));
+        RectList.push_back(Rectangle<2>(true, pABC.x, pABC.y, wABC, hABC));
+        RectList.push_back(Rectangle<2>(true, pABD.x, pABD.y, wABD, hABD));
+        RectList.push_back(Rectangle<2>(true, pACD.x, pACD.y, wACD, hACD));
+        RectList.push_back(Rectangle<2>(true, pBCD.x, pBCD.y, wBCD, hBCD));
+        RectList.push_back(Rectangle<2>(true, maxp.x, maxp.y, maxw, maxh));*/
+
+        double x_1 = pAC.x;
+        double x_2 = pAC.x + wAC;
+        double y_1 = pAC.y;
+        double y_2 = pAC.y + hAC; 
+//        Rectangle<2> rect(true, x_1, x_2, y_1, y_2); 
+
+//        cout<<"x1 "<<x_1<<" x2 "<<x_2<<" y1 "<<y_1<<" y2 "<<y_2<<endl; 
+        RectList.push_back(Rectangle<2>(true, x_1, x_2, y_1, y_2)); 
+
+        x_1 = pBD.x; x_2 = x_1 + wBD; y_1 = pBD.y; y_2 = pBD.y + hBD; 
+//        cout<<"x1 "<<x_1<<" x2 "<<x_2<<" y1 "<<y_1<<" y2 "<<y_2<<endl; 
+        RectList.push_back(Rectangle<2>(true, x_1, x_2, y_1, y_2));  
+
+        x_1 = pABC.x; x_2 = x_1 + wABC; y_1 = pABC.y; y_2 = y_1 + hABC;
+//        cout<<"x1 "<<x_1<<" x2 "<<x_2<<" y1 "<<y_1<<" y2 "<<y_2<<endl; 
+        RectList.push_back(Rectangle<2>(true, x_1, x_2, y_1, y_2)); 
+
+        x_1 = pABD.x; x_2 = x_1 + wABD; y_1 = pABD.y; y_2 = y_1 + hABD;
+//        cout<<"x1 "<<x_1<<" x2 "<<x_2<<" y1 "<<y_1<<" y2 "<<y_2<<endl; 
+        RectList.push_back(Rectangle<2>(true, x_1, x_2, y_1, y_2)); 
+
+        x_1 = pACD.x; x_2 = x_1 + wACD; y_1 = pACD.y; y_2 = y_1 + hACD;
+//        cout<<"x1 "<<x_1<<" x2 "<<x_2<<" y1 "<<y_1<<" y2 "<<y_2<<endl; 
+        RectList.push_back(Rectangle<2>(true, x_1, x_2, y_1, y_2));
+
+        x_1 = pBCD.x; x_2 = x_1 + wBCD; y_1 = pBCD.y; y_2 = y_1 + hBCD;
+//        cout<<"x1 "<<x_1<<" x2 "<<x_2<<" y1 "<<y_1<<" y2 "<<y_2<<endl; 
+        RectList.push_back(Rectangle<2>(true, x_1, x_2, y_1, y_2));
+
+        x_1 = maxp.x; x_2 = x_1 + maxw; y_1 = maxp.y; y_2 = y_1 + maxh;
+//        cout<<"x1 "<<x_1<<" x2 "<<x_2<<" y1 "<<y_1<<" y2 "<<y_2<<endl; 
+        RectList.push_back(Rectangle<2>(true, x_1, x_2, y_1, y_2));
+
+
+    float rect_area = 0.0;
+    result = -1; 
+    for(unsigned int i = 0;i < RectList.size();i++){
+//      cout<<RectList[i]<<" area "<<RectList[i].Area()<<endl; 
+      if(RectList[i].IsDefined() == false){
+        result = -1;
+        return; 
+      }
+      if(RectList[i].Area() > rect_area){
+        rect_area = RectList[i].Area();
+        result = i;
+      }
+    }
+//    cout<<RectList[index]<<endl; 
+}
+////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////
+
+/*
+remove some dirty data for regions. two subregions intersect at a point 
+
+*/
+void MaxRect::RemoveDirty(int attr1, int attr2)
+{
+//  cout<<"attr1 "<<attr1<<" attr2 "<<attr2<<endl; 
+  
+  for(int i = 1;i <= rel1->GetNoTuples();i++){
+    Tuple* region_tuple = rel1->GetTuple(i, false); 
+    int reg_id = ((CcInt*)region_tuple->GetAttribute(attr1))->GetIntval();
+    Region* r = (Region*)region_tuple->GetAttribute(attr2); 
+    if(reg_id == 1){ //the outer cycle 
+        reg_id_list.push_back(reg_id);
+        reg_list.push_back(*r);
+        region_tuple->DeleteIfAllowed(); 
+        continue; 
+    }
+
+    CompTriangle* ct = new CompTriangle(r);
+    int error; //0-concave 1 non-region 2 hole or faces 3 dirty region 
+    bool convex = ct->PolygonConvex2(error);
+    if(convex){ //convex polygon 
+        reg_id_list.push_back(reg_id);
+        reg_list.push_back(*r);
+    }else if(convex == false && error == 0){  //concave polygon
+        reg_id_list.push_back(reg_id);
+        reg_list.push_back(*r);
+    }else{
+//      cout<<"dirty data"<<endl; 
+        if(error == 3){ //ignore the first outer cycle, non-region dirty
+          RemoveDirtyRegion(reg_id, r);
+
+//          break; 
+        }
+    }
+
+    delete ct; 
+    region_tuple->DeleteIfAllowed(); 
+  }
+
+}
+
+/*
+a point that appears four times. it is a vertex that two regions intersect 
+
+*/
+void MaxRect::RemoveDirtyRegion(int regid, Region* reg)
+{
+  vector<MyPoint> ps_list;
+  vector<HalfSegment> hs_list; 
+  for(int i = 0;i < reg->Size();i++){
+    HalfSegment hs;
+    reg->Get(i, hs);
+    if(!hs.IsLeftDomPoint())continue; 
+    Point lp = hs.GetLeftPoint();
+    Point rp = hs.GetRightPoint();
+    if(ps_list.size() == 0){
+      ps_list.push_back(MyPoint(lp, 1));
+      ps_list.push_back(MyPoint(rp, 1)); 
+    }else{
+      unsigned int j; 
+      for(j = 0;j < ps_list.size();j++){
+        if(AlmostEqual(ps_list[j].loc, lp)){
+          ps_list[j].dist++; 
+          break;
+        }
+      }
+      if(j == ps_list.size())ps_list.push_back(MyPoint(lp, 1));
+
+      for(j = 0;j < ps_list.size();j++){
+        if(AlmostEqual(ps_list[j].loc, rp)){
+          ps_list[j].dist++; 
+          break;
+        }
+      }
+      if(j == ps_list.size())ps_list.push_back(MyPoint(rp, 1)); 
+    }
+    HalfSegment temp_hs(true, hs.GetLeftPoint(), hs.GetRightPoint()); 
+    hs_list.push_back(temp_hs); 
+  }
+
+  Point dirty_p; 
+  for(unsigned int i = 0;i <ps_list.size();i++){
+//    ps_list[i].Print(); 
+    if((int)(ps_list[i].dist) == 4)dirty_p = ps_list[i].loc; 
+  }
+
+//  cout<<"dirty point "<<dirty_p<<endl; 
+  
+  vector<unsigned int> index_list; 
+  for(unsigned int i = 0;i < hs_list.size();i++){
+    HalfSegment hs = hs_list[i]; 
+    if(AlmostEqual(hs.GetLeftPoint(), dirty_p))index_list.push_back(i);
+    if(AlmostEqual(hs.GetRightPoint(), dirty_p))index_list.push_back(i);
+  }
+  
+  assert(index_list.size() == 4); //four halfsegments 
+//  cout<<hs_list.size()<<endl;
+  vector<HalfSegment> new_hs_list;
+  for(unsigned int i = 0;i < hs_list.size();i++){
+    unsigned int j = 0;
+    for(;j < index_list.size();j++)
+      if(i == index_list[j])break; 
+
+    if(j == index_list.size())new_hs_list.push_back(hs_list[i]); 
+  }
+//  cout<<new_hs_list.size()<<endl; 
+
+
+  vector<SimpleLine> sl_contour;
+
+  for(unsigned int i = 0;i < index_list.size();i++){
+
+      for(unsigned int j = i + 1;j < index_list.size();j++){
+        SimpleLine* sl = new SimpleLine(0);
+        sl->StartBulkLoad();
+
+        vector<HalfSegment> sl_hs_list; 
+
+        HalfSegment hs1 = hs_list[index_list[i]]; 
+        HalfSegment hs2 = hs_list[index_list[j]]; 
+
+        vector<HalfSegment> cut_hs_list;
+        for(unsigned int k = 0;k < index_list.size();k++){
+          if(index_list[k] != index_list[i] && 
+             index_list[k] != index_list[j])
+            cut_hs_list.push_back(hs_list[index_list[k]]); 
+        }
+
+
+        int edgeno = 0; 
+        for(unsigned int k1 = 0;k1 < new_hs_list.size();k1++){
+          HalfSegment hs = new_hs_list[k1];
+
+          unsigned int k2 = 0;
+          for(;k2 < cut_hs_list.size();k2++){
+            if(hs.Intersects(cut_hs_list[k2]))break;
+          }
+          if(k2 == cut_hs_list.size()){
+            hs.attr.edgeno = edgeno++;
+            *sl += hs;
+            hs.SetLeftDomPoint(!hs.IsLeftDomPoint());
+            *sl += hs; 
+          }
+        }
+        *sl += hs1;
+        hs1.SetLeftDomPoint(!hs1.IsLeftDomPoint());
+        *sl += hs1;
+
+        *sl += hs2;
+        hs2.SetLeftDomPoint(!hs2.IsLeftDomPoint());
+        *sl += hs2; 
+
+
+        sl->EndBulkLoad(); 
+        if(sl->Length() > 0)
+          sl_contour.push_back(*sl);
+//        cout<<sl->Length()<<endl; 
+        delete sl; 
+      }
+  }
+
+  //////////// get the refinement region ///////////////////
+  for(unsigned int i = 0;i < sl_contour.size();i++){
+    if(IsCycle(&sl_contour[i])){
+//        cout<<"a cycle"<<endl; 
+//        reg_id_list.push_back(regid);
+//        sl_list.push_back(sl_contour[i]);
+        SpacePartition* sp = new SpacePartition();
+        vector<MyHalfSegment> mhs;
+        sp->ReorderLine(&sl_contour[i], mhs);
+
+        vector<Point> ps;
+        for(unsigned int j = 0;j < mhs.size();j++){
+          ps.push_back(mhs[j].from);
+        }
+        vector<Region> regs;
+        sp->ComputeRegion(ps, regs);
+        if(regs.size() > 0 ){
+          reg_id_list.push_back(regid); 
+          reg_list.push_back(regs[0]);
+        }
+        delete sp; 
+    }
+  }
+
+}
+
+/*
+check whether the simpleline is a cycle 
+
+*/
+bool MaxRect::IsCycle(SimpleLine* sl)
+{
+
+  vector<MyPoint> ps_list;
+ 
+  for(int i = 0;i < sl->Size();i++){
+    HalfSegment hs;
+    sl->Get(i, hs);
+    if(!hs.IsLeftDomPoint())continue; 
+//    cout<<hs<<endl; 
+    Point lp = hs.GetLeftPoint();
+    Point rp = hs.GetRightPoint();
+    if(ps_list.size() == 0){
+      ps_list.push_back(MyPoint(lp, 1));
+      ps_list.push_back(MyPoint(rp, 1)); 
+    }else{
+      unsigned int j; 
+      for(j = 0;j < ps_list.size();j++){
+        if(AlmostEqual(ps_list[j].loc, lp)){
+          ps_list[j].dist++; 
+          break;
+        }
+      }
+      if(j == ps_list.size())ps_list.push_back(MyPoint(lp, 1));
+
+      for(j = 0;j < ps_list.size();j++){
+        if(AlmostEqual(ps_list[j].loc, rp)){
+          ps_list[j].dist++; 
+          break;
+        }
+      }
+      if(j == ps_list.size())ps_list.push_back(MyPoint(rp, 1)); 
+    }
+  }
+  for(unsigned int i = 0;i < ps_list.size();i++){
+      if((int)ps_list[i].dist != 2) return false; 
+  }
+  
+  return true; 
+}
+
+/*
+get the maximum rectangle in a polygon 
+
+*/
+void MaxRect::GetRectangle(int attr1, int attr2)
+{
+//  cout<<"attr1 "<<attr1<<" attr2 "<<attr2<<endl; 
+  
+  for(int i = 1;i <= rel1->GetNoTuples();i++){
+    Tuple* region_tuple = rel1->GetTuple(i, false); 
+    int reg_id = ((CcInt*)region_tuple->GetAttribute(attr1))->GetIntval();
+    cout<<"reg_id "<<reg_id<<endl; 
+    Region* r = (Region*)region_tuple->GetAttribute(attr2); 
+    CompTriangle* ct = new CompTriangle(r);
+    int error; 
+    bool convex = ct->PolygonConvex2(error);
+    if(convex){ //convex polygon 
+
+/*      Rectangle<2> rect_box = GetMaxRect(r); 
+      if(rect_box.IsDefined() && rect_box.Area() > 400.0){
+        reg_id_list.push_back(reg_id); 
+        rect_list.push_back(rect_box);
+      }*/
+
+    }else if(convex == false && error == 0){  //concave polygon
+        ///decompose the convex polygon into several convex polygons ///
+        //      cout<<"concave"<<endl; 
+/*        ct = new CompTriangle(r);
+        ct->NewTriangulation();
+        cout<<ct->triangles.size()<<endl; 
+        delete ct; */
+    }else{
+//      cout<<"dirty data"<<endl; 
+    }
+
+    delete ct; 
+    region_tuple->DeleteIfAllowed(); 
+  }
+
 }

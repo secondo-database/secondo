@@ -153,6 +153,7 @@ struct CompTriangle{
   //detect whether a polygon is a convex or concave
   bool IsConvex(vector<Point>);
   bool PolygonConvex();
+  bool PolygonConvex2(int& error);
   //compute the shortest path between two points inside a polgyon
   void GeoShortestPath(Point*, Point*);
 
@@ -598,4 +599,143 @@ struct Hole{
   bool NoSelfIntersects(Region* r);
   void GetHole(Region* r);
 };
+
+/////////////////////////////////////////////////////////////////////////////
+///////////////////////////search maximum rectangle//////////////////////////
+////////////////////////////////////////////////////////////////////////////
+Rectangle<2> GetMaxRect(Region*);
+Rectangle<2> RectInTriangle(vector<Point>& ps); 
+
+struct GeomPoint{
+    GeomPoint(){}
+    GeomPoint(int ptx, int pty){
+        x = ptx;
+        y = pty;
+    }
+    GeomPoint(const GeomPoint& gp):x(gp.x), y (gp.y){}
+    GeomPoint& operator=(const GeomPoint& gp)
+    {
+      x = gp.x;
+      y = gp.y;
+      return *this; 
+    }
+    int min(int a, int b){
+        if(a<=b) return a; else return b;
+    }
+    int max(int a, int b){
+        if (a>=b) return a; else return b;
+    }
+    void Print()
+    {
+      cout<<"( "<<x<<" "<<y<<" )"<<endl; 
+    }
+    int x;
+    int y; 
+};
+
+
+struct GeomEdge{
+    GeomEdge(){}
+    GeomEdge(GeomPoint p, GeomPoint q){
+        xmin = p.min(p.x, q.x);
+        xmax = p.max(p.x, q.x);
+        ymin = p.min(p.y, q.y);
+        ymax = p.max(p.y, q.y);
+        m = ((double)(q.y-p.y))/((double)(q.x-p.x));
+        b = p.y - m*(p.x);
+        isTop = p.x > q.x; //edge from right to left (ccw)
+        isRight = p.y > q.y; //edge from bottom to top (ccw)
+    }
+    GeomEdge(const GeomEdge& ge):xmin(ge.xmin), xmax(ge.xmax), ymin(ge.ymin),
+    ymax(ge.ymax), m (ge.m), b(ge.b), isTop(ge.isTop), isRight(ge.isRight)
+    {}
+    GeomEdge& operator=(const GeomEdge& ge)
+    {
+      xmin = ge.xmin;
+      xmax = ge.xmax;
+      ymin = ge.ymin;
+      ymax = ge.ymax;
+      isTop = ge.isTop;
+      isRight = ge.isRight;
+      m = ge.m;
+      b = ge.b; 
+      return *this; 
+    }
+
+    void Print(){
+      cout<<"xmin "<<xmin<<" xmax "<<xmax<<" ymin "<<ymin<<" ymax "<<ymax<<endl;
+    }
+
+    int xmin, xmax; /* horiz, +x is right */
+    int ymin, ymax; /* vertical, +y is down */
+    double m,b; /* y = mx + b */
+    bool isTop, isRight; /* position of edge w.r.t. hull */
+}; 
+
+struct MaxRect{
+
+    bool fixed;
+    int fixedX, fixedY;
+    vector<Rectangle<2> > RectList; 
+
+    int status;
+    int start, stop; //tangents for iterative convex hull
+    int g_xmin, g_xmax, g_ymin, g_ymax;  //position of hull
+    int yxmax; //y coord of xmax
+    GeomPoint rectp;
+    int recth, rectw;
+    bool changed;
+
+    int result; 
+
+    vector<GeomPoint> geo_p_list; 
+    vector<GeomEdge>  geo_e_list;
+    /////////////////////////////////////////////////////////////////////////
+    vector<int> reg_id_list; 
+    vector<Rectangle<2> > rect_list; 
+
+    vector<Region> reg_list; 
+    vector<SimpleLine> sl_list; 
+    
+    Relation* rel1; 
+    unsigned int count;
+    TupleType* resulttype;
+
+    MaxRect() {
+      count=0;resulttype = NULL;
+    }
+    MaxRect(Relation* r):rel1(r){
+      count=0;
+      resulttype = NULL;
+    }
+    ~MaxRect(){
+      if(resulttype != NULL) delete resulttype;
+    }
+
+    void Init(){
+        fixed = false;
+        fixedX = 1;
+        fixedY = 1;    
+    }
+    void SetPoint(vector<GeomPoint>& list); 
+
+   // position of point w.r.t. hull edgesign of twice the area of triangle abc
+
+    bool onLeft(GeomPoint a, GeomPoint b, GeomPoint c);
+    bool pointOutside(GeomPoint p);
+    bool computeEdgeList(); 
+    inline int yIntersect(int xi, GeomEdge e); 
+    int xIntersect(int y); 
+    GeomEdge findEdge(int x, bool isTop); 
+    void computeLargestRectangle(); 
+    
+    bool IsCycle(SimpleLine* sl);
+    void RemoveDirty(int attr1, int attr2);
+    void RemoveDirtyRegion(int regid, Region* reg); 
+    
+
+    void GetRectangle(int attr1, int attr2); 
+
+}; 
+
 #endif

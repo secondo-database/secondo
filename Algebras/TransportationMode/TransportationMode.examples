@@ -630,6 +630,27 @@ Example  : query outputregion(r1);
 Result   : "empty"
 
 
+Operator : maxrect 
+Number   : 1
+Signature: region -> rect
+Example  : query area(maxrect(r1));
+Result   : 4.0
+
+
+Operator : getrect 
+Number   : 1
+Signature: rel x attr1 x attr2 -> (stream(((x1 t1) ... (xn tn))))
+Example  : query getrect(region_elems, id, covarea) count;
+Result   : 20 
+
+
+Operator : remove_dirty 
+Number   : 1
+Signature: rel x attr1 x attr2 -> (stream(((x1 t1) ... (xn tn))))
+Example  : query remove_dirty(region_elems, id, covarea) count;
+Result   : 20 
+
+
 Operator : instant2day 
 Number   : 1
 Signature: instant -> int
