@@ -3001,3 +3001,807 @@ Operator genmonocomponents("no_components", //name
     GenMONoComponentsTypeMap //type mapping 
 );
 
+
+Operator lowres("lowres",
+    SpatialSpecLowRes, //specification
+    LowResGenMOValueMap,  //value mapping 
+    Operator::SimpleSelect,
+    LowResTypeMap //type mapping 
+);
+
+
+ValueMapping TMTrajectoryValueMapVM[]={
+  GenMOTrajectoryValueMap,
+  MP3dTrajectoryValueMap, 
+};
+
+int TMTrajectoryOpSelect(ListExpr args)
+{
+  ListExpr arg1 = nl->First(args);
+  if(nl->IsAtom(arg1) && nl->IsEqual(arg1, "genmo"))
+    return 0;
+  if(nl->IsAtom(arg1) && nl->IsEqual(arg1, "mpoint3d"))
+    return 1;
+  return -1;
+}
+
+/*
+TypeMap function for operator trajectory
+
+*/
+ListExpr TMTrajectoryTypeMap(ListExpr args)
+{
+  if(nl->ListLength(args) != 1){
+      string err = "genmo expected";
+      return listutils::typeError(err);
+  }
+  ListExpr arg1 = nl->First(args);
+  if(nl->IsEqual(arg1, "genmo"))
+    return nl->SymbolAtom("genrange");
+
+  if(nl->IsEqual(arg1, "mpoint3d"))
+    return nl->SymbolAtom("line3d");
+
+  return nl->SymbolAtom("typeerror");
+}
+
+Operator tmtrajectory("trajectory",
+    SpatialSpecTMTrajectory,
+    2,
+    TMTrajectoryValueMapVM,
+    TMTrajectoryOpSelect,
+    TMTrajectoryTypeMap
+);
+
+
+
+Operator getmode("getmode",
+    SpatialSpecGetMode,
+    GetModeValueMap,
+    Operator::SimpleSelect,
+    GetModeTypeMap
+);
+
+
+/////////////////////////////////////////////////////////////////////////////
+///////////////////   general data type   ///////////////////////////////////
+////////////////////////////////////////////////////////////////////////////
+
+////////////string for Operator Spec //////////////////////////////////
+const string OpTMCheckSlineSpec  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+    "\"Example\" ) "
+    "( <text>sline-> sline</text--->"
+    "<text>checksline(sline,int)</text--->"
+    "<text>correct dirty route line </text--->"
+    "<text>query routes(n) feed extend[newcurve: checksline(.curve,2)] count"
+    "</text--->"
+    ") )";
+const string OpTMModifyBoundarySpec  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+    "\"Example\" ) "
+    "( <text>rectangle x int -> region</text--->"
+    "<text>modifyboundary(rectangle,2)</text--->"
+    "<text>extend the boundary of road network by a small value</text--->"
+    "<text>query modifyboundary(bbox(rtreeroad),2)"
+    "</text--->"
+    ") )";
+
+const string OpTMSegment2RegionSpec  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+    "\"Example\" ) "
+    "( <text>relation x attr_name x int->"
+    "(stream (tuple( (x1 t1)(x2 t2)...(xn tn)))</text--->"
+    "<text>segment2region(rel,attr, int)</text--->"
+    "<text>extend the halfsegment to a small region </text--->"
+    "<text>query segment2region(allroutes,curve,2) count"
+    "</text--->"
+    ") )";
+
+const string OpTMPaveRegionSpec  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+    "\"Example\" ) "
+    "( <text>network x rel1 x attr x rel2 x attr1 x attr2 x int->"
+    "(stream (tuple( (x1 t1)(x2 t2)...(xn tn)))</text--->"
+    "<text>paveregion(n,rel1,attr,rel2,attr1,attr2,int)</text--->"
+    "<text>cut the intersection region between road and pavement</text--->"
+    "<text>query paveregion(n,allregions_in,inborder, allregions_pave"
+    ",pave1, pave2, roadwidth) count;</text--->"
+    ") )";
+
+const string OpTMJunRegionSpec  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+    "\"Example\" ) "
+    "( <text>network x rel x attr1 x attr2 x int->"
+    "(stream (tuple( (x1 t1)(x2 t2)...(xn tn)))</text--->"
+    "<text>junregion(n,rel,attr1,attr2,int)</text--->"
+    "<text>get the pavement region (zebra crossing) at junctions</text--->"
+    "<text>query junregion(n,allregions,inborder,outborder,roadwidth) count;"
+    "</text--->"
+    ") )";
+
+const string OpTMDecomposeRegionSpec  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+    "\"Example\" ) "
+    "( <text>region->(stream (tuple( (x1 t1)(x2 t2)...(xn tn)))</text--->"
+    "<text>decomposeregion(region)</text--->"
+    "<text>decompose a region by its faces</text--->"
+    "<text>query decomposeregion(partition_regions) count; </text--->"
+    ") )";
+
+const string OpTMFillPavementSpec  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+    "\"Example\" ) "
+    "( <text>network x rel x attr1 x attr2 x int->"
+    "(stream (tuple( (x1 t1)(x2 t2)...(xn tn)))</text--->"
+    "<text>fillpavement(n,rel,attr1,attr2,int)</text--->"
+    "<text>fill the hole between pavements at junction</text--->"
+    "<text>query fillpavement(n, allregions_pave, pave1, pave2, 2)"
+    "count;</text--->"
+    ") )";
+
+const string OpTMGetPaveNode1Spec  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+    "\"Example\" ) "
+    "( <text>network x rel x attr1 x attr2 x attr3->"
+    "(stream (tuple( (x1 t1)(x2 t2)...(xn tn))) </text--->"
+    "<text>getpavenode1(network, rel, attr1, attr2, attr3)</text--->"
+    "<text>decompose the pavements of one road into a set of subregions"
+    "</text--->"
+    "<text>query getpavenode1(n, pave_regions1, oid, pavement1,pavement2);"
+    "</text--->"
+    ") )";
+
+const string OpTMGetPaveEdge1Spec  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+    "\"Example\" ) "
+    "( <text>network x rel x btree x attr1 x attr2 x attr3->"
+    "(stream (tuple( (x1 t1)(x2 t2)...(xn tn))) </text--->"
+    "<text>getpaveedge1(network, rel, btree, attr1, attr2 , attr3)</text--->"
+    "<text>get the commone area of two pavements</text--->"
+    "<text>query getpaveedge1(n, subpaves, btree_pave,oid, rid ,pavement);"
+    "</text--->"
+    ") )";
+
+
+const string OpTMGetPaveNode2Spec  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+    "\"Example\" ) "
+    "( <text>int x rel x attr1 x attr2->"
+    "(stream (tuple( (x1 t1)(x2 t2)...(xn tn))) </text--->"
+    "<text>getpavenode2(int, rel, attr1, attr2)</text--->"
+    "<text>decompose the zebra crossings into a set of subregions"
+    "</text--->"
+    "<text>query getpavenode2(subpaves count, pave_regions2, rid, crossreg)"
+    " count; </text--->"
+    ") )";
+
+
+const string OpTMGetPaveEdge2Spec  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+    "\"Example\" ) "
+    "( <text>rel1 x rel2 x btree x attr1 x attr2 x attr3->"
+    "(stream (tuple( (x1 t1)(x2 t2)...(xn tn))) </text--->"
+    "<text>getpaveedge2(rel1, rel2, btree, attr1, attr2, attr3)</text--->"
+    "<text>get the commone area between zc and pave</text--->"
+    "<text>query getpaveedge2(subpaves2, subpaves,"
+    "btree_pave, oid, rid , pavement) count; </text--->"
+    ") )";
+
+const string OpTMTriangulateSpec  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+    "\"Example\" ) "
+    "( <text>region ->(stream ( (x1 t1)(x2 t2)...(xn tn)) </text--->"
+    "<text>triangulate(region)</text--->"
+    "<text>decompose a polygon into a set of triangles</text--->"
+    "<text>query triangulation(r1) count; </text--->"
+    ") )";
+
+const string OpTMConvexSpec  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+    "\"Example\" ) "
+    "( <text>region -> bool </text--->"
+    "<text>convex(region)</text--->"
+    "<text>detect whether a polygon is convex or concave</text--->"
+    "<text>query convex(r1); </text--->"
+    ") )";
+
+const string OpTMGeospathSpec  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+    "\"Example\" ) "
+    "( <text>point x point x region -> "
+    " (stream (tuple( (x1 t1)(x2 t2)...(xn tn)))</text--->"
+    "<text>geospath(point, point, region)</text--->"
+    "<text>return the geometric shortest path for two points indie a polygon"
+    "</text--->"
+    "<text>query geospath(p1, p2, r1); </text--->"
+    ") )";
+
+const string OpTMCreateDGSpec  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+    "\"Example\" ) "
+    "( <text>int x rel x rel -> dualgraph</text--->"
+    "<text>createdualgraph(int, rel, rel)</text--->"
+    "<text>create a dual graph by the input edge and node relation</text--->"
+    "<text>query createdualgraph(1, edge-rel, node-rel); </text--->"
+    ") )";
+
+const string OpTMNodeDGSpec  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+    "\"Example\" ) "
+    "( <text>dualgraph -> rel</text--->"
+    "<text>nodedualgraph(dualgraph)</text--->"
+    "<text>get the node relation of the graph</text--->"
+    "<text>query nodedualgraph(dg1) count; </text--->"
+    ") )";
+
+const string OpTMWalkSPSpec  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+    "\"Example\" ) "
+    "( <text>dualgraph x visualgraph x rel1 x rel2 x rel3 x rel4 x btree-> "
+    "(stream (tuple( (x1 t1)(x2 t2)...(xn tn)))</text--->"
+    "<text>walk_sp(dg1, vg1, rel, rel, rel, rel, btree)</text--->"
+    "<text>get the shortest path for pedestrian</text--->"
+    "<text>query walk_sp(dg1, vg1, query_loc1, query_loc2,tri_reg_new, "
+    "vertex_tri, btr_vid); </text--->"
+    ") )";
+
+const string OpTMGenerateWPSpec  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+    "\"Example\" ) "
+    "( <text>rel x int-> (stream (tuple( (x1 t1)(x2 t2)...(xn tn)))</text--->"
+    "<text>generate_wp(rel, int)</text--->"
+    "<text>generate random points inside the polygon/triangle</text--->"
+    "<text>query generate_wp(graph_node,5); </text--->"
+    ") )";
+
+const string OpTMZvalSpec  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+    "\"Example\" ) "
+    "( <text>point -> int</text--->"
+    "<text>zval(point)</text--->"
+    "<text>calculate the z-order value of a point</text--->"
+    "<text>query zval(p1); </text--->"
+    ") )";
+
+const string OpTMZcurveSpec  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+    "\"Example\" ) "
+    "( <text>rel x attr ->"
+    "(stream (tuple( (x1 t1)(x2 t2)...(xn tn)))</text--->"
+    "<text>zcurve(rel, attr)</text--->"
+    "<text>calculate the curve of the given points sortby z-order</text--->"
+    "<text>query zcurve(vg_node,elem); </text--->"
+    ") )";
+
+const string OpTMRegVertexSpec  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+    "\"Example\" ) "
+    "( <text>reg ->"
+    "(stream (tuple( (x1 t1)(x2 t2)...(xn tn)))</text--->"
+    "<text>regvertex(region)</text--->"
+    "<text>return the vertex of the region as well as the cycleno</text--->"
+    "<text>query regvertex(node_reg); </text--->"
+    ") )";
+
+const string OpTMTriangulationNewSpec  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+    "\"Example\" ) "
+    "( <text>reg ->"
+    "(stream (tuple( (x1 t1)(x2 t2)...(xn tn)))</text--->"
+    "<text>triangulation_new(region)</text--->"
+    "<text>decompose the region into a set of triangles where each is"
+    "represented by the three points</text--->"
+    "<text>query triangulation_new(r1) count; </text--->"
+    ") )";
+const string OpTMGetDGEdgeSpec  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+    "\"Example\" ) "
+    "( <text>rel1 x rel2 ->(stream (tuple( (x1 t1)(x2 t2)...(xn tn)))</text--->"
+    "<text>get_dg_edge(rel,rel)</text--->"
+    "<text>get the edge relation for the dual graph on the triangles</text--->"
+    "<text>query get_dg_edge(rel1,rel2) count; </text--->"
+    ") )";
+const string OpTMSMCDGTESpec  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+    "\"Example\" ) "
+    "( <text>rel x rtree ->(stream (tuple( (x1 t1)(x2 t2)...(xn tn)))</text--->"
+    "<text>smcdgte(rel, rtree)</text--->"
+    "<text>get the edge relation for the dual graph on the triangles</text--->"
+    "<text>query smcdgte(dg_node, rtree_dg) count; </text--->"
+    ") )";
+const string OpTMGetVNodeSpec  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+    "\"Example\" ) "
+    "( <text>dualgraph x rel1 x rel2 x rel3 x rel4 x btree->"
+    "(stream (tuple( (x1 t1)(x2 t2)...(xn tn)))</text--->"
+    "<text>getvnode(dualgraph, rel1, rel2, rel3, rel4, btree)</text--->"
+    "<text>for a given point, it finds all its visible nodes</text--->"
+    "<text>query getvnode(dg1, query_loc1, tri_reg_new_sort, vgnodes,"
+    "vertex_tri, btr_vid) count;</text--->) )";
+
+const string OpTMGetVGEdgeSpec  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+    "\"Example\" ) "
+    "( <text>dualgraph x rel1 x rel2 x rel3 x btree->"
+    "(stream (tuple( (x1 t1)(x2 t2)...(xn tn)))</text--->"
+    "<text>getvgedge(dualgraph, rel1, rel2, rel3, btree)</text--->"
+    "<text>get the edge relation for the visibility graph</text--->"
+    "<text>query getvgedge(dg1, vgnodes, tri_reg_new_sort,"
+    "vertex_tri, btr_vid) count;</text--->) )";
+
+const string OpTMMyInsideSpec  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+    "\"Example\" ) "
+    "( <text>line x region -> bool</text--->"
+    "<text>line myinside region</text--->"
+    "<text>checks whether a line is completely inside a region</text--->"
+    "<text>query l2 myinside r2; </text--->"
+    ") )";
+
+const string OpTMGetAdjNodeDGSpec  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+    "\"Example\" ) "
+    "( <text>dualgraph x int"
+    "(stream (tuple( (x1 t1)(x2 t2)...(xn tn)))</text--->"
+    "<text>getadjnode_dg(dualgraph,int)</text--->"
+    "<text>for a given node, find its adjacent nodes</text--->"
+    "<text>query getadjnode_dg(dg1,1); </text--->"
+    ") )";
+
+const string OpTMDecomposeTriSpec  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+    "\"Example\" ) "
+    "( <text>rel(stream (tuple( (x1 t1)(x2 t2)...(xn tn)))</text--->"
+    "<text>decomposetri(rel)</text--->"
+    "<text>return the relation between vertices and triangle</text--->"
+    "<text>query decomposetri(tri_reg_new_sort) count; </text--->"
+    ") )";
+
+const string OpTMCreateVGSpec  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+    "\"Example\" ) "
+    "( <text>int x rel x rel -> dualgraph</text--->"
+    "<text>createvgraph(int, rel, rel)</text--->"
+    "<text>create a visibility graph by the input edge and node"
+    "relation</text--->"
+    "<text>query createvgraph(1, edge-rel, node-rel); </text--->"
+    ") )";
+
+const string OpTMGetAdjNodeVGSpec  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+    "\"Example\" ) "
+    "( <text>visualgraph x int"
+    "(stream (tuple( (x1 t1)(x2 t2)...(xn tn)))</text--->"
+    "<text>getadjnode_vg(visualgraph,int)</text--->"
+    "<text>for a given node, find its adjacent nodes</text--->"
+    "<text>query getadjnode_vg(vg1,1); </text--->"
+    ") )";
+
+const string OpTMGetContourSpec  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+    "\"Example\" ) "
+    "( <text>text -> (stream (tuple( (x1 t1)(x2 t2)...(xn tn)))</text--->"
+    "<text>getcontour(text)</text--->"
+    "<text>create regions from the data file</text--->"
+    "<text>query getcontour(pppoly) count; </text--->"
+    ") )";
+const string OpTMGetPolygonSpec  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+    "\"Example\" ) "
+    "( <text>rel x attr -> region</text--->"
+    "<text>getpolygon(rel,attr)</text--->"
+    "<text>create one region by the input relation with contours</text--->"
+    "<text>query getpolygon(allcontours,hole); </text--->"
+    ") )";
+
+const string OpTMGetAllPointsSpec  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+    "\"Example\" ) "
+    "( <text>region -> (stream (tuple( (x1 t1)(x2 t2)...(xn tn)))</text--->"
+    "<text>getallpoints(region)</text--->"
+    "<text>get all vertices of a polygon with its two neighbors</text--->"
+    "<text>query getallpoints(node_reg); </text--->"
+    ") )";
+
+const string OpTMRotationSweepSpec  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+    "\"Example\" ) "
+    "( <text>rel1 x rel2 x bbox x rel3 x attr ->"
+    "(stream (tuple( (x1 t1)(x2 t2)...(xn tn)))</text--->"
+    "<text>rotationsweep(rel,rel,rectangle<2>,rel,attr)</text--->"
+    "<text>search visible points for the given point</text--->"
+    "<text>query rotationsweep(query_loc,allpoints,bbox,holes,hole); </text--->"
+    ") )";
+const string OpTMGetHoleSpec  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+    "\"Example\" ) "
+    "( <text>region -> (stream (tuple( (x1 t1)(x2 t2)...(xn tn)))</text--->"
+    "<text>gethole(r)</text--->"
+    "<text>get all holes of a region</text--->"
+    "<text>query gethole(node_reg) count; </text--->"
+    ") )";
+
+const string OpTMGetSectionsSpec  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+    "\"Example\" ) "
+    "( <text>network x rel1 x rel1 x attr1 x attr2 x attr3"
+    " -> (stream (tuple( (x1 t1)(x2 t2)...(xn tn)))</text--->"
+    "<text>getsections(n, r, r, attr,attr,attr)</text--->"
+    "<text>for each route, get the possible sections where interesting"
+	"points can locate</text--->"
+    "<text>query getsections(n, r, paveregions, curve, rid, crossreg) count;"
+	"</text--->"
+    ") )";
+
+const string OpTMGenInterestP1Spec  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+    "\"Example\" ) "
+    "( <text> rel x rel x attr1 x attr2 x attr3 x attr4"
+    " -> (stream (tuple( (x1 t1)(x2 t2)...(xn tn)))</text--->"
+    "<text>geninterestp1(r, r, attr, attr, attr, attr)</text--->"
+    "<text>generate interesting points locate in pavement</text--->"
+    "<text>query geninterestp1(subsections, pave_regions1, rid, sec,"
+    "pavement1, pavement2) count;</text--->"
+    ") )";
+
+
+const string OpTMGenInterestP2Spec  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+    "\"Example\" ) "
+    "( <text> rel x rel x rtree x attr1 x attr2 x int "
+    " -> (stream (tuple( (x1 t1)(x2 t2)...(xn tn)))</text--->"
+    "<text>geninterestp2(r, r, rtree, attr, attr, int)</text--->"
+    "<text>map the point inot a triangle and represent it by triangle</text--->"
+    "<text>query geninterestp2(interestp, dg_node, rtree_dg, loc2, pavement, 2)"
+    "count;</text--->"
+    ") )";
+
+const string OpTMCellBoxSpec  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+    "\"Example\" ) "
+    "( <text>bbox x int-> (stream (tuple( (x1 t1)(x2 t2)...(xn tn)))</text--->"
+    "<text>cellbox(bbox, 10)</text--->"
+    "<text>partition the bbox into 10 x 10 equal size cells</text--->"
+    "<text>query cellbox(bbox, 10)"
+    "count;</text--->"
+    ") )";
+    
+const string OpTMCreateBusRouteSpec1  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+    "\"Example\" ) "
+    "( <text>network x rel x attr1 x attr2 x attr3 x attr4 x btree"
+    "-> (stream (tuple( (x1 t1)(x2 t2)...(xn tn)))</text--->"
+    "<text>create_bus_route1(n,rel,attr1,attr2,attr3,attr4,btree);"
+    "</text--->"
+    "<text>create bus route1</text--->"
+    "<text>query create_bus_route1(n,street_sections_cell,sid_s,cellid_w_a_c,"
+    "Cnt_a_c,cover_area_b_c,section_cell_index) count;</text--->"
+    ") )";
+    
+const string OpTMCreateBusRouteSpec2  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+    "\"Example\" ) "
+    "( <text>network x rel1 x attr x btree x rel2 x attr1 x attr2 x attr3"
+    "-> (stream (tuple( (x1 t1)(x2 t2)...(xn tn)))</text--->"
+    "<text>create_bus_route2(n,rel,attr,btree,rel2,attr1,attr2,attr3);"
+    "</text--->"
+    "<text>create bus routes</text--->"
+    "<text>query create_bus_route2(n,street_sections_cell,cellid_w_a_c,"
+    "section_cell_index,rough_pair,start_cell_id,end_cell_id,route_type) "
+    "count;</text--->"
+    ") )";
+
+const string OpTMRefineBusRouteSpec  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+    "\"Example\" ) "
+    "( <text>network x rel x attr1 x attr2 x attr3 x attr4"
+    " x attr5 x attr6 -> (stream (tuple( (x1 t1)(x2 t2)...(xn tn)))</text--->"
+    "<text>refine_bus_route(network,rel,attr1,attr2,attr3,attr4,attr5,attr6);"
+    "</text--->"
+    "<text>refine bus routes,filter some bus routes which are similar</text--->"
+    "<text>query refine_bus_route(n,busroutes_temp,br_id,bus_route1,"
+    "bus_route2,start_loc,end_loc,route_type) count;</text--->"
+    ") )";
+
+const string OpTMBusRouteRoadSpec  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+    "\"Example\" ) "
+    "( <text>network x rel x attr1 "
+    "-> (stream (tuple( (x1 t1)(x2 t2)...(xn tn)))</text--->"
+    "<text>bus_route_road(n,rel,attr1);</text--->"
+    "<text>calculate the total length of bus routes in road network</text--->"
+    "<text>query bus_route_road(n,busroutes,bus_route1) count;</text--->"
+    ") )";
+    
+const string OpTMCreateBusRouteSpec3  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+    "\"Example\" ) "
+    "( <text>rel x attr1 x attr2 x attr3 x real"
+    "-> (stream (tuple( (x1 t1)(x2 t2)...(xn tn)))</text--->"
+    "<text>create_bus_route3(rel,attr1,attr2,attr3,real);"
+    "</text--->"
+    "<text>translate bus routes</text--->"
+    "<text>query create_bus_route3(busroutes,br_id,bus_route2,route_type"
+    "roadwidth/2) count;</text--->"
+    ") )";
+    
+const string OpTMCreateBusRouteSpec4  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+    "\"Example\" ) "
+    "( <text>rel1 x attr1 x attr2 x attr3 x attr4 x rel2 x attr1"
+    " x attr2 -> (stream (tuple( (x1 t1)(x2 t2)...(xn tn)))</text--->"
+    "<text>create_bus_route4(rel1,attr1,attr2,attr3,attr4,rel2,attr1,"
+    "attr2);</text--->"
+    "<text>set up and down for bus routes</text--->"
+    "<text>query create_bus_route4(newbusroutes,br_id,bus_route2,"
+    "route_type, br_uid, bus_stops3, br_id, startSmaller) count;</text--->"
+    ") )";
+    
+const string OpTMCreateBusStopSpec1  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+    "\"Example\" ) "
+    "( <text>network x rel x attr1 x attr2 x attr3 x attr4"
+    "-> (stream (tuple( (x1 t1)(x2 t2)...(xn tn)))</text--->"
+    "<text>create_bus_stops1(n,rel,attr1,attr2, attr3, attr4);</text--->"
+    "<text>create bus stops</text--->"
+    "<text>query create_bus_stop1(n,busroutes,br_id,bus_route1,"
+    "bus_route2,route_type) count;</text--->"
+    ") )";
+    
+const string OpTMCreateBusStopSpec2  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+    "\"Example\" ) "
+    "( <text>network x rel x attr1 x attr2 x attr3"
+    "-> (stream (tuple( (x1 t1)(x2 t2)...(xn tn)))</text--->"
+    "<text>create_bus_stops2(n,rel,attr1,attr2, attr3);</text--->"
+    "<text>merge bus stops</text--->"
+    "<text>query create_bus_stop2(n,bus_stops1,br_id,bus_stop_id,bus_stop1) "
+    "count;</text--->"
+    ") )";
+    
+const string OpTMCreateBusStopSpec3  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+    "\"Example\" ) "
+    "( <text>network x rel1 x attr x rel2 x attr1 x attr2 x attr3 x btree"
+    "-> (stream (tuple( (x1 t1)(x2 t2)...(xn tn)))</text--->"
+    "<text>create_bus_stops3(n,rel1,attr,rel2,attr1,attr2,att3,btree);"
+    "</text--->"
+    "<text>merge bus stops</text--->"
+    "<text>query create_bus_stop3(n,busroutes, bus_route1, bus_stops2,"
+    "br_id, bus_stop_id, bus_stop1,btree_sec_id) count;</text--->"
+    ") )";
+    
+    
+const string OpTMCreateBusStopSpec4  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+    "\"Example\" ) "
+    "( <text>rel1 x attr1 x attr2 x rel2 x attr1 x attr2 x attr3 x attr4"
+    "-> (stream (tuple( (x1 t1)(x2 t2)...(xn tn)))</text--->"
+    "<text>create_bus_stops4(rel1,attr_a, attr_b,rel2,attr1,attr2,attr3,attr4);"
+    "</text--->"
+    "<text>new position for bus stops after translate bus route</text--->"
+    "<text>query create_bus_stop5(newbusroutes, bus_route1,bus_route2," 
+    "bus_stops3,br_id, bus_stop_id, bus_stop2,startSmaller) count;</text--->"
+    ") )";
+    
+const string OpTMCreateBusStopSpec5  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+    "\"Example\" ) "
+    "( <text>rel1 x attr x rel2 x attr1 x attr2 x attr3 x attr4 x attr5"
+    "-> (stream (tuple( (x1 t1)(x2 t2)...(xn tn)))</text--->"
+    "<text>create_bus_stops5(rel1,attr,rel2,attr1,attr2,attr3,attr4,attr5);"
+    "</text--->"
+    "<text>set up and down value for each bus stop</text--->"
+    "<text>query create_bus_stop5(final_busroutes, bus_direction," 
+    "bus_stops4,br_id,br_uid, bus_stop_id, bus_stop2,bus_pos) count;</text--->"
+    ") )";
+    
+
+const string OpTMMapToIntSpec  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+    "\"Example\" ) "
+    "( <text>string -> int</text--->"
+    "<text>maptoint(abc);"
+    "</text--->"
+    "<text>map a string value to an int value (for road type)</text--->"
+    "<text>query maptoint(\"abc\") count;</text--->"
+    ") )";
+    
+const string OpTMMapToRealSpec  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+    "\"Example\" ) "
+    "( <text>string -> real</text--->"
+    "<text>maptoreal(abc);"
+    "</text--->"
+    "<text>map a string value to an real value (for road type)</text--->"
+    "<text>query maptoint(\"abc\") count;</text--->"
+    ") )";
+
+const string OpTMGetRouteDensity1Spec  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+    "\"Example\" ) "
+    "( <text>network x rel1 x attr1 x attr2 x btree x rel2 x attr1 x attr2"
+    " x periods1 x periods2 -> "
+    "(stream (tuple( (x1 t1)(x2 t2)...(xn tn)))</text--->"
+    "<text>get_route_density1(network,rel1,attr1,attr2,btree,rel2,attr1, attr2,"
+    "peridos1,periods2);</text--->"
+    "<text>distinguish daytime and night bus routes</text--->"
+    "<text>query get_route_density1(n,traffic_rel1,secid,flow,btree_traffic,"
+     "busroutes,br_id,bus_route1,night1,night2) count;</text--->"
+    ") )";
+
+const string OpTMSETTSNightBusSpec  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+    "\"Example\" ) "
+    "( <text>rel x attr1 x attr2 x attr3 x periods1 x periods2 -> "
+    "(stream (tuple( (x1 t1)(x2 t2)...(xn tn)))</text--->"
+    "<text>set_ts_nightbus(rel,attr1,attr2,attr3,peridos1,periods2);</text--->"
+    "<text>set time schedule for night buses</text--->"
+    "<text>query set_ts_nightbus(night_bus,br_id,duration1,duration2,"
+    "night1,night2) count;</text--->"
+    ") )";
+
+const string OpTMSETTSDayBusSpec  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+    "\"Example\" ) "
+    "( <text>rel x attr1 x attr2 x attr3 x periods1 x periods2 -> "
+    "(stream (tuple( (x1 t1)(x2 t2)...(xn tn)))</text--->"
+    "<text>set_ts_daybus(rel,attr1,attr2,attr3,peridos1,periods2);</text--->"
+    "<text>set time schedule for daytime buses</text--->"
+    "<text>query set_ts_daybus(day_bus,br_id,duration1,duration2,"
+    "night1,night2) count;</text--->"
+    ") )";
+    
+const string OpTMSETBRSpeedBusSpec  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+    "\"Example\" ) "
+    "( <text>network x rel1 x attr1 x attr2 x rel2 x attr x rel3 x attr-> "
+    "(stream (tuple( (x1 t1)(x2 t2)...(xn tn)))</text--->"
+    "<text>set_br_speed(network,rel1,attr1,attr2,rel2,attr,rel3,"
+    "attr);</text--->"
+    "<text>set speed value for each bus route</text--->"
+    "<text>query set_br_speed(n,busroutes,br_i,d,bus_route1,"
+    "streets,Vmax,final_busroutes,startSmaller) count;</text--->"
+    ") )";
+    
+const string OpTMCreateBusSegmentSpeedSpec  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+    "\"Example\" ) "
+    "( <text>rel1 x attr1 x attr2 x attr3 x attr4 x rel2 x attr1 x attr2"
+    " x btree1 x rel3 x btree2-> "
+    "(stream (tuple( (x1 t1)(x2 t2)...(xn tn)))</text--->"
+    "<text>create_bus_segment_speed(rel,attr1,attr2,attr3,attr4,rel,attr1"
+    "attr2, btree, rel, btree);</text--->"
+    "<text>set speed value for each bus route segment </text--->"
+    "<text>query create_bus_segment_speed(final_busroutes, br_id, bus_route, "
+    "bus_direction,startSmaller,final_busstops, bus_pos," 
+    "stop_direction, btree_bs,br_speed, btree_br_speed) count;</text--->"
+    ") )";
+
+const string OpTMCreateNightBusSpec  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+    "\"Example\" ) "
+    "( <text>rel1 x rel2 x btree "
+    "->(stream (tuple( (x1 t1)(x2 t2)...(xn tn)))</text--->"
+    "<text>create_night_bus_mo(rel,rel,btree);</text--->"
+    "<text>create night moving bus </text--->"
+    "<text>query create_night_bus_mo(ts_nightbus, "
+    "bus_segment_speed,btree_seg_speed) count;</text--->"
+    ") )";
+
+const string OpTMCreateDayTimeBusSpec  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+    "\"Example\" ) "
+    "( <text>rel1 x rel2 x btree "
+    "->(stream (tuple( (x1 t1)(x2 t2)...(xn tn)))</text--->"
+    "<text>create_daytime_bus_mo(rel,rel,btree);</text--->"
+    "<text>create daytime moving bus </text--->"
+    "<text>query create_daytime_bus_mo(ts_daybus, "
+    "bus_segment_speed,btree_seg_speed) count;</text--->"
+    ") )";
+
+const string OpTMCreateTimeTable1Spec  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+    "\"Example\" ) "
+    "( <text>rel1 x rel2 x btree "
+    "->(stream (tuple( (x1 t1)(x2 t2)...(xn tn)))</text--->"
+    "<text>create_time_table1(rel,rel,btree);</text--->"
+    "<text>create time table at each spatial location </text--->"
+    "<text>query create_time_table1(final_busstops,all_bus_rel,btree_mo)"
+    "count;</text--->"
+    ") )";
+
+const string OpTMCreateTimeTable1NewSpec  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+    "\"Example\" ) "
+    "( <text>rel1 x rel2 x btree x periods x periods"
+    "->(stream (tuple( (x1 t1)(x2 t2)...(xn tn)))</text--->"
+    "<text>create_time_table1_new(rel,rel,btree,periods,periods);</text--->"
+    "<text>create time table at each spatial location </text--->"
+    "<text>query create_time_table1_new(final_busstops,all_bus_rel,btree_mo,"
+    "night1, night2) count;</text--->"
+    ") )";
+    
+const string OpTMCreateUBTrainsSpec  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+    "\"Example\" ) "
+    "( <text>rel x attr1 x attr2 x attr3 x duration "
+    "->(stream (tuple( (x1 t1)(x2 t2)...(xn tn)))</text--->"
+    "<text>createUBTrains(rel,attr1,attr2,attr3,duration);</text--->"
+    "<text>create UBahn Trains </text--->"
+    "<text>query createUBTrains(UBahnTrains1,Line,Up,Trip,"
+    "UBTrain_time) count;</text--->"
+    ") )";
+    
+const string OpTMCreateUBTrainStopSpec  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+    "\"Example\" ) "
+    "( <text>rel x attr1 x attr2 x attr3 "
+    "->(stream (tuple( (x1 t1)(x2 t2)...(xn tn)))</text--->"
+    "<text>create_train_stop(rel,attr,attr,attr);</text--->"
+    "<text>create UBahn Train Stops </text--->"
+    "<text>query create_train_stop(UBahnTrains,Line,Up,Trip) count;</text--->"
+    ") )";
+
+const string OpTMCreateTimeTable2Spec  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+    "\"Example\" ) "
+    "( <text>rel1 x rel2 x btree "
+    "->(stream (tuple( (x1 t1)(x2 t2)...(xn tn)))</text--->"
+    "<text>create_time_table2(rel,rel,btree);</text--->"
+    "<text>create time table at each spatial location </text--->"
+    "<text>query create_time_table2(train_stops,ubtrains,btree_train)"
+    "count;</text--->"
+    ") )";
+
+const string OpTMCreateTimeTable2NewSpec  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+    "\"Example\" ) "
+    "( <text>rel1 x rel2 x btree "
+    "->(stream (tuple( (x1 t1)(x2 t2)...(xn tn)))</text--->"
+    "<text>create_time_table2_new(rel,rel,btree);</text--->"
+    "<text>compact storage of time tables </text--->"
+    "<text>query create_time_table2_new(train_stops,ubtrains,btree_train)"
+    "count;</text--->"
+    ") )";
+
+    
+const string OpTMSplitUBahnSpec  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+    "\"Example\" ) "
+    "( <text>rel x attr1 x attr2 "
+    "->(stream (tuple( (x1 t1)(x2 t2)...(xn tn)))</text--->"
+    "<text>splitubahn(rel, attr, attr );</text--->"
+    "<text>represent the ubahn line in a new way </text--->"
+    "<text>query splitubahn(UBahn, Name, geoData) count;</text--->"
+    ") )";
+
+const string OpTMTrainsToGenMOSpec  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+    "\"Example\" ) "
+    "( <text>rel1 x rel2 x btree "
+    "->(stream (tuple( (x1 t1)(x2 t2)...(xn tn)))</text--->"
+    "<text>trainstogenmo(rel1, rel2, btree );</text--->"
+    "<text>convert trains to generic moving objects </text--->"
+    "<text>query trainstogenmo(Trains, ubahn_line, btree_ub_line) count;"
+    "</text--->) )";
+    
+const string OpTMInstant2DaySpec  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+    "\"Example\" ) "
+    "( <text>instant -> int </text--->"
+    "<text>instant2day(instant);</text--->"
+    "<text>get the day (int value) of time</text--->"
+    "<text>query instant2day(theInstant(2007,6,3,9,0,0,0));</text--->"
+    ") )";
+
+const string OpTMOutputRegionSpec  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+    "\"Example\" ) "
+    "( <text>region -> string </text--->"
+    "<text>outputregion(region);</text--->"
+    "<text>output the vertices in correct order"
+    "(clockwise for the outer cycle and counter clockwise for holes)</text--->"
+    "<text>query outputregion(r1);</text--->"
+    ") )";
