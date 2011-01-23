@@ -3805,3 +3805,23 @@ const string OpTMOutputRegionSpec  =
     "(clockwise for the outer cycle and counter clockwise for holes)</text--->"
     "<text>query outputregion(r1);</text--->"
     ") )";
+
+const string OpTMMaxRectSpec  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+    "\"Example\" ) "
+    "( <text>region -> rect </text--->"
+    "<text>maxrect(region);</text--->"
+    "<text>get the maximum rectangle area for a region</text--->"
+    "<text>query maxrect(r1);</text--->"
+    ") )";
+
+const string OpTMGetRectSpec  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+    "\"Example\" ) "
+    "( <text>rel x attr1 x attr2 ->(stream (tuple( (x1 t1)(x2 t2)...(xn tn)))"
+     "</text--->"
+    "<text>getrect(rel, attr, attr);</text--->"
+    "<text>get the maximum rectangle area for a region</text--->"
+    "<text>query getrect(region_elem, id, covarea);</text--->"
+    ") )";
+
