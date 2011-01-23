@@ -3825,7 +3825,19 @@ const string OpTMGetRectSpec  =
     "<text>query getrect(region_elems, id, covarea);</text--->"
     ") )";
 
+/*
+remove dirty region data 
 
+*/
+const string OpTMRemoveDirtySpec  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+    "\"Example\" ) "
+    "( <text>rel x attr1 x attr2 ->(stream (tuple( (x1 t1)(x2 t2)...(xn tn)))"
+     "</text--->"
+    "<text>remove_dirty(rel, attr, attr);</text--->"
+    "<text>clear some dirty region data</text--->"
+    "<text>query remove_dirty(region_elems, id, covarea);</text--->"
+    ") )";
 
 ////////////////TypeMap function for operators//////////////////////////////
 
