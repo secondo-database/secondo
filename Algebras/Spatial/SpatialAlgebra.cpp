@@ -4861,14 +4861,15 @@ result.SetDefined(true);
 
 assert( IsOrdered() );
 result.Resize(this->Size());
-result.bbox = this->bbox;
+result.StartBulkLoad();
 HalfSegment hs;
 for( int i = 0; i < Size(); i++ )
 {
   Get( i, hs );
   hs.Translate( x, y );
-  result.line.Put(i,hs);
+  result += hs;
 }
+result.EndBulkLoad();
 }
 
 void Line::Rotate( const Coord& x, const Coord& y,
