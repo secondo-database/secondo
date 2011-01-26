@@ -50,20 +50,8 @@ sockets.
 
 using namespace std;
 
-#include "Algebra.h"
-#include "NestedList.h"
-#include "QueryProcessor.h"
-#include "StandardTypes.h"
-#include "SocketIO.h"
-#include "RelationAlgebra.h"
-#include "TemporalAlgebra.h"
-#include "../FText/FTextAlgebra.h"
-#include "ListUtils.h"
-#include "Symbols.h"
-#include "Serialize.h"
-#include <string>
-#include <cmath>
-#include "../HadoopParallel/HadoopParallelAlgebra.h"
+#include "RemoteStreamAlgebra.h"
+//#include "../HadoopParallel/HadoopParallelAlgebra.h"
 
 #define TRACE_ON
 
@@ -72,6 +60,72 @@ extern QueryProcessor *qp;
 
 const int min_PortNum = 1024;
 const int max_PorNum = 65535;
+
+
+/*
+3 Implementation of get values in TypeMapping function
+
+For arguments used in TypeMapping function,
+if they are not direct string type data,
+use a separated query processor to evaluate its value.
+
+*/
+
+bool getNLArgValueInTM(NList args, NList& value)
+{
+  if ((args.isList()) || (args.isSymbol()))
+  {
+    ListExpr queryList = args.listExpr();
+    bool success;
+    Word queryresultword;
+    string typestring   = "";
+    string errorstring   = "";
+    bool correct = false;
+    bool evaluable = false;
+    bool defined = false;
+    bool isFunction = false;
+    success =
+        QueryProcessor::ExecuteQuery(queryList,
+                                      queryresultword,
+                                      typestring,
+                                      errorstring,
+                                      correct,
+                                      evaluable,
+                                      defined,
+                                      isFunction);
+    ListExpr queryResType;
+    if (!nl->ReadFromString(typestring, queryResType))
+    {
+      cerr << "ERROR! Invalid argument type. "
+          << errorstring << endl;
+      return false;
+    }
+    else
+    {
+      if (correct && evaluable &&
+          defined && (typestring != "typeerror"))
+      {
+        ListExpr valueList = SecondoSystem::GetCatalog()
+          ->OutObject(queryResType, queryresultword);
+        if (!SecondoSystem::GetCatalog()-> DeleteObj(queryResType,
+            queryresultword)) {
+          cerr << "ERROR! Problem in deleting queryresultword\n";
+          return false;
+        }
+        value = NList(valueList);
+        return true;
+      }
+      cerr << "ERROR! Incorrect evaluation for arguments in TM.\n";
+      return false;
+    }
+  }
+  else
+  {
+    value = args;
+    return true;
+  }
+}
+
 
 /*
 
@@ -230,9 +284,9 @@ TReceiveTypeMap(ListExpr args)
   string lenErr = "Operator receive expects a list of length two.";
   string typeErr = "Operator receive expects (string , int)";
   string portErr = "Error! Port number should within [ " +
-      int2string(min_PortNum) + "," + int2string(max_PorNum) + " ]";
+    int2string(min_PortNum) + "," + int2string(max_PorNum) + " ]";
   string connErr = "Error! Connection error of ";
-  string evaErr = "Error! Infeasible evaluation in TM for attribute ";
+  string evaErr = "Error! Infeasible evaluation for attribute ";
 
   if (l.length() != 2)
     return l.typeError(lenErr);
@@ -345,11 +399,11 @@ without reading the tuple themselves.
 
 */
 
-//static const u_int32_t MAX_TUPLESIZE = 65535; //Copy from class Tuple
+//static const u_int32_t MAX_TUPLESIZE = 65535;
 static const u_int32_t MAX_TOTALTUPLESIZE = 655359;
 //(10*2^16 - 1) including huge flobs
 
-static const u_int32_t SOCKET_SIZE = 1024;  //Copy from StreamBuffer
+static const u_int32_t SOCKET_SIZE = 1024; //Copy from StreamBuffer
 static const u_int32_t SOCKET_METASIZE = 2 * sizeof(u_int32_t);
 const u_int32_t SOCKTUP_SIZE = SOCKET_SIZE - SOCKET_METASIZE;
 
@@ -414,7 +468,8 @@ int32_t receiveSocket(Socket* client, char* buf,
     if (get_SockID == expectSockID)
     {
       //Read the sock\_Num of this socket
-      memcpy(&sockNum, sockBuffer + sizeof(int32_t), sizeof(int32_t));
+      memcpy(&sockNum, sockBuffer + sizeof(int32_t),
+          sizeof(int32_t));
       //Read tuple value to allocated buffer
       memcpy(buf, sockBuffer + SOCKET_METASIZE, SOCKTUP_SIZE);
 
@@ -906,7 +961,8 @@ class RemoteStreamAlgebra : public Algebra
 
 extern "C"
 Algebra*
-InitializeRemoteStreamAlgebra( NestedList* nlRef, QueryProcessor* qpRef )
+InitializeRemoteStreamAlgebra( NestedList* nlRef,
+    QueryProcessor* qpRef )
 {
   nl = nlRef;
   qp = qpRef;
