@@ -894,22 +894,27 @@ TReceiveStream(Word* args, Word& result,
 const string sendSpec  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" "
     "\"Example\" ) "
-    "( <text>(stream (tuple x)) int -> int</text--->"
-    "<text>send [ _ , _ ]</text--->"
-    "<text>Listen to a port and send the tuples of "
-    "a stream to a client.</text--->"
-    "<text>query Rel feed send[p1032]</text--->"
+    "( <text>(stream (tuple ((x1 t1) ... (xn tn)))) "
+    "int [xi] -> int</text--->"
+    "<text>_ send [ port , keyAttr ]</text--->"
+    "<text>Send the tuples of a stream to a client through a port."
+    "The optional third parameter select a key attribute, "
+    "and copy its value as the tuple's head value, "
+    "since in parallel join procedure, we need to extract the "
+    "key attribute value in an external Java program.</text--->"
+    "<text></text--->"
     ") )";
 
 const string receiveSpec  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" "
     "\"Example\" ) "
-    "( <text>(stream (tuple x)) int -> int</text--->"
-    "<text>receive [ _ ]</text--->"
-    "<text>Read the tuples of "
-    "a stream.</text--->"
-    "<text>query receive(hostname,p1032) "
-    "consume</text--->"
+    "( <text>string int -> (stream (tuple x))</text--->"
+    "<text>receive ( nodeName , port)</text--->"
+    "<text>Get a stream of tuples from a remote machine "
+    "through a port. No matter the key attribute in send operator "
+    "is specified or not, tuples' head values are always ignored."
+    "</text--->"
+    "<text></text--->"
     ") )";
 
 
