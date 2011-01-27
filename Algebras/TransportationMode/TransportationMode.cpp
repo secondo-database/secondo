@@ -2840,6 +2840,21 @@ int GetModeValueMap(Word* args, Word& result, int message,
   return 0;
 }
 
+/*
+create an empty space with an identify
+
+*/
+int TheSpaceValueMap(Word* args, Word& result, int message,
+                    Word& local, Supplier s)
+{
+
+  int id = ((CcInt*)args[0].addr)->GetIntval();
+  result = qp->ResultStorage(s);
+  Space* sp = (Space*)result.addr; 
+  sp->SetId(id);
+  return 0;
+}
+
 ValueMapping RefIdValueMapVM[]={
   RefIdGenLocValueMap,
   RefIdIORefValueMap
@@ -2954,6 +2969,24 @@ ListExpr GetModeTypeMap(ListExpr args)
           );
     return result;
   }  
+
+  return nl->SymbolAtom("typeerror");
+}
+
+/*
+TypeMap function for operator the space
+
+*/
+ListExpr TheSpaceTypeMap(ListExpr args)
+{
+  if(nl->ListLength(args) != 1){
+      string err = "int expected";
+      return listutils::typeError(err);
+  }
+  ListExpr arg1 = nl->First(args);
+  if(nl->IsEqual(arg1, "int")){
+    return nl->SymbolAtom("space");
+  }
 
   return nl->SymbolAtom("typeerror");
 }
