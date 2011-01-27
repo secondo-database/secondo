@@ -3839,7 +3839,7 @@ const string OpTMRemoveDirtySpec  =
     "<text>query remove_dirty(region_elems, id, covarea);</text--->"
     ") )";
 
-const string OpTMConvexRegSpec  =
+    const string OpTMConvexRegSpec  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" "
     "\"Example\" ) "
     "( <text>rel x attr1 x attr2 ->(stream (tuple( (x1 t1)(x2 t2)...(xn tn)))"
@@ -3858,7 +3858,7 @@ const string OpTMDistributeRegionSpec  =
     "<text>distribute the 2d areas according to the distance</text--->"
     "<text>query distribute_region(new_region_elems, id, covarea);</text--->"
     ") )";
-    
+
 ////////////////TypeMap function for operators//////////////////////////////
 
 /*
@@ -13369,6 +13369,8 @@ class TransportationModeAlgebra : public Algebra
     AddOperator(&outputregion);//output the vertices in correct order 
     AddOperator(&maxrect); //get the maximum rect in a region
     AddOperator(&remove_dirty); //clear dirty data 
+    AddOperator(&convexreg); // get convex polygons from the regions 
+    AddOperator(&distribute_region);//distribute 2d areas for the building 
     AddOperator(&getrect); //get the rectangle from a polygon 
     /////////non-temporal operators for generic data types////////////////////
     AddOperator(&ref_id); 
