@@ -636,11 +636,24 @@ Signature: region -> rect
 Example  : query area(maxrect(r1));
 Result   : 4.0
 
+Operator : convexreg
+Number   : 1
+Signature: rel x attr1 x attr2 -> (stream(((x1 t1) ... (xn tn))))
+Example  : query convexreg(region_elems, id, covarea) count;
+Result   : 20 
+
+
+Operator : distribute_region
+Number   : 1
+Signature: rel x attr1 x attr2 -> (stream(((x1 t1) ... (xn tn))))
+Example  : query distribute_region(sub_regions, id, covarea) count;
+Result   : 20 
+
 
 Operator : getrect 
 Number   : 1
-Signature: rel x attr1 x attr2 -> (stream(((x1 t1) ... (xn tn))))
-Example  : query getrect(region_elems, id, covarea) count;
+Signature: rel x attr1 x attr2 x attr3 x btree x int -> (stream(((x1 t1) ... (xn tn))))
+Example  : query getrect(building_regions, id, covarea, reg_type, btree_building, 10) count;
 Result   : 20 
 
 
@@ -697,5 +710,12 @@ Operator : getmode
 Number   : 1
 Signature: genmo -> (stream(((x1 t1) ... (xn tn))))
 Example  : query getmode(genmo1) count;
+Result   : 1 
+
+
+Operator : thespace 
+Number   : 1
+Signature: int -> space
+Example  : query thespace(1);
 Result   : 1 
 

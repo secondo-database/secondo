@@ -53,6 +53,22 @@ Jan, 2011 Jianqiu xu
 #include "FTextAlgebra.h"
 #include <fstream>
 #include "GeneralType.h"
+///////////////////////////random number generator//////////////////////////
+unsigned long GetRandom()
+{
+    /////// only works in linux /////////////////////////////////////
+  //  struct timeval tval;
+//  struct timezone tzone;
+//  gettimeofday(&tval, &tzone);
+//  srand48(tval.tv_sec);
+// return lrand48();  
+  ///////////////////////////////////////////////////////////////////
+   return gsl_random.NextInt();  
+}
+
+
+//////////////////////////////////////////////////////////////////////
+
 
 ////////////////////////////////////////////////////////////////////////////
 //////////////////// Data Type: IORef ////////////////////////////////////
@@ -1325,4 +1341,208 @@ void GenMObject::GetTM(GenMO* mo)
     else if(tm_list[tm_list.size() - 1] != tm)
       tm_list.push_back(tm); 
   }
+}
+
+//////////////////////////////////////////////////////////////////////
+//////////////////////Global Space////////////////////////////////////
+//////////////////////////////////////////////////////////////////////
+ListExpr SpaceProperty()
+{
+  return (nl->TwoElemList(
+            nl->FourElemList(nl->StringAtom("Signature"),
+                       nl->StringAtom("Example Type List"),
+           nl->StringAtom("List Rep"),
+           nl->StringAtom("Example List")),
+            nl->FourElemList(nl->StringAtom("-> MAPPING"),
+                       nl->StringAtom("space"),
+           nl->StringAtom("(infrastructures)"),
+      nl->StringAtom("(infrastructure objects)"))));
+}
+
+/*
+In function
+
+*/
+Word InSpace( const ListExpr typeInfo, const ListExpr instance,
+       const int errorPos, ListExpr& errorInfo, bool& correct )
+{
+
+  if(!(nl->ListLength(instance) == 1)){
+     string strErrorMessage = "Space(): initial length must be 1.";
+     errorInfo =
+        nl->Append ( errorInfo, nl->StringAtom ( strErrorMessage ) );
+      correct = false;
+    return SetWord(Address(0));
+  }
+
+  ListExpr xIdList = nl->First ( instance );
+  
+  // Read Id
+  if ( !nl->IsAtom ( xIdList ) ||
+          nl->AtomType ( xIdList ) != IntType )
+  {
+    string strErrorMessage = "Space(): Id is missing.";
+    errorInfo = nl->Append ( errorInfo,
+                             nl->StringAtom ( strErrorMessage ) );
+    correct = false;
+    return SetWord(Address(0));
+  }
+  
+    unsigned int space_id = nl->IntValue(xIdList);
+    Space* sp = new Space(space_id);
+    correct = true; 
+    return SetWord(sp);
+
+}
+
+ListExpr OutSpace( ListExpr typeInfo, Word value )
+{
+//  cout<<"OutSpace"<<endl; 
+  Space* sp = (Space*)(value.addr);
+
+ if(!sp->IsDefined()){
+   return nl->SymbolAtom("undef");
+ }
+
+  if(sp->GetNetworkId() > 0){
+      ListExpr list1 = nl->TwoElemList(nl->StringAtom("SpaceId:"), 
+                             nl->IntAtom(sp->GetSpaceId()));
+      ListExpr list2 = nl->TwoElemList(nl->StringAtom("NetworkId:"), 
+                             nl->IntAtom(sp->GetNetworkId()));
+    
+      return nl->TwoElemList(list1,list2); 
+
+  }else{  //free space oid = 0 
+          return nl->TwoElemList(nl->StringAtom("SpaceId:"),
+                                 nl->IntAtom(sp->GetSpaceId()));
+  }
+
+}
+
+
+bool CheckSpace( ListExpr type, ListExpr& errorInfo )
+{
+//  cout<<"CheckSpace"<<endl;
+  return (nl->IsEqual( type, "space" ));
+}
+
+int SizeOfSpace()
+{
+//  cout<<"SizeOfSpacc"<<endl; 
+  return sizeof(Space);
+}
+
+
+Word CreateSpace(const ListExpr typeInfo)
+{
+// cout<<"CreateSpace()"<<endl;
+  return SetWord (new Space());
+}
+
+
+void DeleteSpace(const ListExpr typeInfo, Word& w)
+{
+//  cout<<"DeleteSpace()"<<endl;
+  Space* sp = (Space*)w.addr;
+  delete sp;
+   w.addr = NULL;
+}
+
+
+void CloseSpace( const ListExpr typeInfo, Word& w )
+{
+//  cout<<"CloseSpace"<<endl; 
+  delete static_cast<Space*>(w.addr);
+  w.addr = NULL;
+}
+
+Word CloneSpace( const ListExpr typeInfo, const Word& w )
+{
+//  cout<<"CloneSpace"<<endl; 
+//  return SetWord( new Space( *((Space*)w.addr) ) );
+  return SetWord(Address(0));
+}
+
+bool SaveSpace(SmiRecord& valueRecord, size_t& offset, 
+               const ListExpr typeInfo, Word& value)
+{
+  Space* sp = (Space*)value.addr;
+  return sp->Save(valueRecord, offset, typeInfo); 
+}
+
+bool OpenSpace(SmiRecord& valueRecord, size_t& offset, 
+               const ListExpr typeInfo, Word& value)
+{
+  value.addr = Space::Open(valueRecord, offset, typeInfo);
+  return value.addr != NULL; 
+}
+
+
+Space::Space():
+def(false), space_id(0), network_id(0)
+{
+ 
+}
+
+Space::Space(int id):
+def(true), space_id(id), network_id(0)
+{
+  if(space_id > 0) def = true;
+  else
+    def = false; 
+//  cout<<"space_id "<<space_id<<" def "<<def<<endl; 
+}
+
+Space::Space(SmiRecord& valueRecord, size_t& offset, 
+                     const ListExpr typeInfo):
+def(false), space_id(0), network_id(0)
+{
+//  cout<<"Space::Open()"<<endl; 
+  
+  valueRecord.Read(&def, sizeof(bool), offset);
+  offset += sizeof(bool);
+
+  valueRecord.Read(&space_id, sizeof(int), offset);
+  offset += sizeof(int);
+
+  valueRecord.Read(&network_id, sizeof(int), offset);
+  offset += sizeof(int);
+
+}
+Space::~Space()
+{
+
+}
+
+void Space::SetId(int id)
+{
+  if(id > 0){
+    space_id = id;
+    def = true;
+  }else
+    def = false; 
+
+}
+
+bool Space::Save(SmiRecord& valueRecord, size_t& offset, 
+                 const ListExpr typeInfo)
+{
+//  cout<<"Space::Save()"<<endl; 
+
+  valueRecord.Write(&def, sizeof(bool), offset); 
+  offset += sizeof(bool); 
+
+  valueRecord.Write(&space_id, sizeof(int), offset); 
+  offset += sizeof(int); 
+
+  valueRecord.Write(&network_id, sizeof(int), offset); 
+  offset += sizeof(int); 
+
+  return true; 
+}
+
+Space* Space::Open(SmiRecord& valueRecord, size_t& offset, 
+                 const ListExpr typeInfo)
+{
+    return new Space(valueRecord, offset, typeInfo); 
 }

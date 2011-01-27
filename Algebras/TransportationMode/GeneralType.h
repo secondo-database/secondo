@@ -55,6 +55,7 @@ Jan, 2011 Jianqiu xu
 #include "NetworkAlgebra.h"
 #include "FTextAlgebra.h"
 #include <fstream>
+#include "GSLAlgebra.h"
 
 
 /*
@@ -665,5 +666,52 @@ struct GenMObject{
 //////////////////////////////////////////////////////////////////////
 ////////////////// Space  ////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////
+class Space{
+  public:
+  Space();
+  Space(int id);
+  Space(SmiRecord& valueRecord, size_t& offset, 
+                     const ListExpr typeInfo);
+  ~Space();
+  void SetId(int id);
+  static void* Cast(void* addr){return new (addr)Space();}
+  bool Save(SmiRecord& valueRecord, size_t& offset, const ListExpr typeInfo);
+  static Space* Open(SmiRecord& valueRecord, size_t& offset, 
+                     const ListExpr typeInfo); 
+  bool IsDefined(){return def;}
+  void SetDefined(bool b){def = b;}
+  int GetNetworkId() { return network_id;}
+  int GetSpaceId(){return space_id;}
+  private:
+    bool def; 
+    int space_id; 
+    int network_id;
+    
+//    bool pave; 
+//    Relation* pave_rel;//pavements relation 
+//    BTree* btree_pave;//btree on pavements
+//    R_Tree<2, TupleId>* rtree_pave; //rtree on pavements 
+
+};
+ListExpr SpaceProperty(); 
+bool CheckSpace( ListExpr type, ListExpr& errorInfo );
+int SizeOfSpace();
+Word CloneSpace( const ListExpr typeInfo, const Word& w );
+void CloseSpace( const ListExpr typeInfo, Word& w ); 
+void DeleteSpace(const ListExpr typeInfo, Word& w); 
+Word CreateSpace(const ListExpr typeInfo); 
+bool SaveSpace(SmiRecord& valueRecord, size_t& offset, 
+               const ListExpr typeInfo, Word& value);
+bool OpenSpace(SmiRecord& valueRecord, size_t& offset, 
+               const ListExpr typeInfo, Word& value);
+Word InSpace( const ListExpr typeInfo, const ListExpr instance,
+       const int errorPos, ListExpr& errorInfo, bool& correct ); 
+ListExpr OutSpace( ListExpr typeInfo, Word value );
+//////////////////////////////////////////////////////////////////////
+/////////////////////////////random number generator//////////////////
+//////////////////////////////////////////////////////////////////////
+
+static GslRandomgen gsl_random(true); 
+unsigned long GetRandom(); 
 
 #endif
