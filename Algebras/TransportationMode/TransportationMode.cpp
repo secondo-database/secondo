@@ -12655,6 +12655,111 @@ int OpTMRemoveDirtyValueMap ( Word* args, Word& result, int message,
   
 }
 
+
+/*
+get convex polygons: if it is concave, we decompose it 
+
+*/
+int OpTMConvexRegValueMap ( Word* args, Word& result, int message,
+                         Word& local, Supplier in_pSupplier )
+{
+  MaxRect* max_rect;
+  switch(message){
+      case OPEN:{
+
+        Relation* r = (Relation*)args[0].addr;
+        int attr1 = ((CcInt*)args[3].addr)->GetIntval() - 1;
+        int attr2 = ((CcInt*)args[4].addr)->GetIntval() - 1; 
+
+        max_rect = new MaxRect(r);
+        max_rect->resulttype =
+            new TupleType(nl->Second(GetTupleResultType(in_pSupplier)));
+
+        max_rect->ConvexReg(attr1, attr2);
+        local.setAddr(max_rect);
+        return 0;
+      }
+      case REQUEST:{
+          if(local.addr == NULL) return CANCEL;
+          max_rect = (MaxRect*)local.addr;
+          if(max_rect->count == max_rect->reg_id_list.size())return CANCEL;
+
+          Tuple* tuple = new Tuple(max_rect->resulttype);
+          tuple->PutAttribute(0, 
+                       new CcInt(true,max_rect->reg_id_list[max_rect->count]));
+          tuple->PutAttribute(1, 
+                     new Region(max_rect->reg_list[max_rect->count]));
+
+          result.setAddr(tuple);
+          max_rect->count++;
+          return YIELD;
+      }
+      case CLOSE:{
+          if(local.addr){
+            max_rect = (MaxRect*)local.addr;
+            delete max_rect;
+            local.setAddr(Address(0));
+          }
+          return 0;
+      }
+  }
+  return 0;
+  
+}
+
+/*
+distribute regions according to the distance 
+
+*/
+int OpTMDistributeRegionValueMap ( Word* args, Word& result, int message,
+                         Word& local, Supplier in_pSupplier )
+{
+  MaxRect* max_rect;
+  switch(message){
+      case OPEN:{
+
+        Relation* r = (Relation*)args[0].addr;
+        int attr1 = ((CcInt*)args[3].addr)->GetIntval() - 1;
+        int attr2 = ((CcInt*)args[4].addr)->GetIntval() - 1; 
+
+        max_rect = new MaxRect(r);
+        max_rect->resulttype =
+            new TupleType(nl->Second(GetTupleResultType(in_pSupplier)));
+
+        max_rect->DistributeRegion(attr1, attr2);
+        local.setAddr(max_rect);
+        return 0;
+      }
+      case REQUEST:{
+          if(local.addr == NULL) return CANCEL;
+          max_rect = (MaxRect*)local.addr;
+          if(max_rect->count == max_rect->reg_id_list.size())return CANCEL;
+
+          Tuple* tuple = new Tuple(max_rect->resulttype);
+          tuple->PutAttribute(0, 
+                       new CcInt(true, max_rect->reg_id_list[max_rect->count]));
+          tuple->PutAttribute(1, 
+                     new Region(max_rect->reg_list[max_rect->count]));
+          tuple->PutAttribute(2, 
+                   new CcInt(true, max_rect->reg_type_list[max_rect->count])); 
+
+          result.setAddr(tuple);
+          max_rect->count++;
+          return YIELD;
+      }
+      case CLOSE:{
+          if(local.addr){
+            max_rect = (MaxRect*)local.addr;
+            delete max_rect;
+            local.setAddr(Address(0));
+          }
+          return 0;
+      }
+  }
+  return 0;
+  
+}
+
 ////////////////Operator Constructor///////////////////////////////////////
 Operator checksline(
     "checksline",               // name
