@@ -4796,6 +4796,8 @@ ListExpr OpTMGenerateWPTypeMap ( ListExpr args )
   ListExpr arg1 = nl->First(args);
   ListExpr arg2 = nl->Second(args);
 
+  if(!IsRelDescription(arg1))
+    return listutils::typeError("para1 should be a relation");
 
   ListExpr xType;
   nl->ReadFromString(DualGraph::NodeTypeInfo, xType);
