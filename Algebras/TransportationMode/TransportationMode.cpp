@@ -2552,6 +2552,21 @@ TypeConstructor genmo(
         SizeOfMapping<GenMO>,              //sizeof function
         CheckGenMO); 
 
+TypeConstructor space(
+        "space",                     //name
+        SpaceProperty,            //property function describing signature
+        OutSpace, //Out functions 
+        InSpace,  //In functions
+        0,              0,            //SaveTo and RestoreFrom List functions
+        CreateSpace, //object creation 
+        DeleteSpace, //object deletion
+        OpenSpace,  //object open 
+        SaveSpace,   // object save
+        CloseSpace, CloneSpace,//object close and clone
+        Space::Cast,
+        SizeOfSpace,              //sizeof function
+        CheckSpace); 
+        
 
 const string SpatialSpecRefId =
 "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
@@ -13486,7 +13501,8 @@ class TransportationModeAlgebra : public Algebra
     AddTypeConstructor(&ugenloc);
     ugenloc.AssociateKind("DATA");
     AddTypeConstructor(&genmo); 
-    genmo.AssociateKind("DATA"); 
+    genmo.AssociateKind("DATA");
+    AddTypeConstructor(&space); 
     ////operators for partition regions//////////////////////////
     AddOperator(&checksline);
     AddOperator(&modifyboundary);
