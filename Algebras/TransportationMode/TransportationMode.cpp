@@ -3839,6 +3839,26 @@ const string OpTMRemoveDirtySpec  =
     "<text>query remove_dirty(region_elems, id, covarea);</text--->"
     ") )";
 
+const string OpTMConvexRegSpec  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+    "\"Example\" ) "
+    "( <text>rel x attr1 x attr2 ->(stream (tuple( (x1 t1)(x2 t2)...(xn tn)))"
+     "</text--->"
+    "<text>convexreg(rel, attr, attr);</text--->"
+    "<text>get convex polygons</text--->"
+    "<text>query convexreg(new_region_elems, id, covarea);</text--->"
+    ") )";
+
+const string OpTMDistributeRegionSpec  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+    "\"Example\" ) "
+    "( <text>rel x attr1 x attr2 ->(stream (tuple( (x1 t1)(x2 t2)...(xn tn)))"
+     "</text--->"
+    "<text>distribute_region(rel, attr, attr);</text--->"
+    "<text>distribute the 2d areas according to the distance</text--->"
+    "<text>query distribute_region(new_region_elems, id, covarea);</text--->"
+    ") )";
+    
 ////////////////TypeMap function for operators//////////////////////////////
 
 /*
