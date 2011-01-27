@@ -3883,11 +3883,12 @@ const string OpTMMaxRectSpec  =
 const string OpTMGetRectSpec  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" "
     "\"Example\" ) "
-    "( <text>rel x attr1 x attr2 ->(stream (tuple( (x1 t1)(x2 t2)...(xn tn)))"
-     "</text--->"
-    "<text>getrect(rel, attr, attr);</text--->"
+    "( <text>rel x attr1 x attr2 x attr3 x btree x int ->"
+    "(stream (tuple( (x1 t1)(x2 t2)...(xn tn)))</text--->"
+    "<text>getrect(rel, attr, attr, attr, btree, int);</text--->"
     "<text>get the maximum rectangle area for a region</text--->"
-    "<text>query getrect(region_elems, id, covarea);</text--->"
+    "<text>query getrect(building_regions, id, covarea, reg_type, btree_build "
+    "10);</text--->"
     ") )";
 
 /*
@@ -8254,7 +8255,7 @@ region
 
 ListExpr OpTMGetRectTypeMap ( ListExpr args )
 {
-  if ( nl->ListLength ( args ) != 3 )
+   if ( nl->ListLength ( args ) != 6 )
   {
     return  nl->SymbolAtom ( "list length should be 3" );
   }
@@ -8273,7 +8274,7 @@ ListExpr OpTMGetRectTypeMap ( ListExpr args )
       return listutils::typeError("attr name" + aname1 + "not found"
                       "or not of type int");
   }
-  
+
   ListExpr attrName2 = nl->Third ( args );
   ListExpr attrType2;
   string aname2 = nl->SymbolValue(attrName2);
@@ -8284,6 +8285,24 @@ ListExpr OpTMGetRectTypeMap ( ListExpr args )
       return listutils::typeError("attr name" + aname2 + "not found"
                       "or not of type region");
   }
+
+  ListExpr attrName3 = nl->Fourth ( args );
+  ListExpr attrType3;
+  string aname3 = nl->SymbolValue(attrName3);
+  int j3 = listutils::findAttribute(nl->Second(nl->Second(param1)),
+                      aname3, attrType3);
+
+  if(j3 == 0 || !listutils::isSymbol(attrType3,"int")){
+      return listutils::typeError("attr name" + aname3 + "not found"
+                      "or not of type int");
+  }
+
+  ListExpr param5 = nl->Fifth ( args );
+  if(!listutils::isBTreeDescription(param5))
+    return nl->SymbolAtom ( "typeerror: param5 should be a btree" );
+
+  if(!(nl->IsEqual(nl->Sixth(args),"int")))
+    return nl->SymbolAtom ( "typeerror: param4 should be an int" );
 
   ListExpr res = nl->TwoElemList(
             nl->SymbolAtom("stream"),
@@ -8299,7 +8318,8 @@ ListExpr OpTMGetRectTypeMap ( ListExpr args )
                     )));
       return nl->ThreeElemList(
         nl->SymbolAtom("APPEND"),
-        nl->TwoElemList(nl->IntAtom(j1),nl->IntAtom(j2)), res);
+        nl->ThreeElemList(nl->IntAtom(j1),
+                          nl->IntAtom(j2), nl->IntAtom(j3)), res);
 
 }
 
@@ -12630,14 +12650,18 @@ int OpTMGetRectValueMap ( Word* args, Word& result, int message,
       case OPEN:{
 
         Relation* r = (Relation*)args[0].addr;
-        int attr1 = ((CcInt*)args[3].addr)->GetIntval() - 1;
-        int attr2 = ((CcInt*)args[4].addr)->GetIntval() - 1; 
+        int attr1 = ((CcInt*)args[6].addr)->GetIntval() - 1;
+        int attr2 = ((CcInt*)args[7].addr)->GetIntval() - 1; 
+        int attr3 = ((CcInt*)args[8].addr)->GetIntval() - 1; 
+        BTree* btree = (BTree*)args[4].addr;
+        
+        int no_buildings = ((CcInt*)args[5].addr)->GetIntval(); 
 
         max_rect = new MaxRect(r);
         max_rect->resulttype =
             new TupleType(nl->Second(GetTupleResultType(in_pSupplier)));
 
-        max_rect->GetRectangle(attr1, attr2);
+        max_rect->GetRectangle(attr1, attr2, attr3, btree, no_buildings);
         local.setAddr(max_rect);
         return 0;
       }
@@ -12650,7 +12674,7 @@ int OpTMGetRectValueMap ( Word* args, Word& result, int message,
           tuple->PutAttribute(0, 
                        new CcInt(true,max_rect->reg_id_list[max_rect->count]));
           tuple->PutAttribute(1, 
-                       new Rectangle<2>(max_rect->rect_list[max_rect->count]));
+                     new Rectangle<2>(max_rect->rect_list[max_rect->count]));
 
           result.setAddr(tuple);
           max_rect->count++;
@@ -13499,13 +13523,12 @@ Operator distribute_region(
   OpTMDistributeRegionTypeMap //type mapping 
 );
 
-
-Operator getrect(
-  "getrect",  //name 
-  OpTMGetRectSpec, //specification
-  OpTMGetRectValueMap, //value mapping 
+Operator convexreg(
+  "convexreg",  //name 
+  OpTMConvexRegSpec, //specification
+  OpTMConvexRegValueMap, //value mapping 
   Operator::SimpleSelect,
-  OpTMGetRectTypeMap //type mapping 
+  OpTMConvexRegTypeMap //type mapping 
 );
 
 
