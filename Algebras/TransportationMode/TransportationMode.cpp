@@ -13319,6 +13319,23 @@ Operator remove_dirty(
   OpTMRemoveDirtyTypeMap //type mapping 
 );
 
+Operator distribute_region(
+  "distribute_region",  //name 
+  OpTMDistributeRegionSpec, //specification
+  OpTMDistributeRegionValueMap, //value mapping 
+  Operator::SimpleSelect,
+  OpTMDistributeRegionTypeMap //type mapping 
+);
+
+
+Operator getrect(
+  "getrect",  //name 
+  OpTMGetRectSpec, //specification
+  OpTMGetRectValueMap, //value mapping 
+  Operator::SimpleSelect,
+  OpTMGetRectTypeMap //type mapping 
+);
+
 
 /*
 Main Class for Transportation Mode
