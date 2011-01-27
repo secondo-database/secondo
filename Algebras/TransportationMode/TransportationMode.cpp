@@ -2611,6 +2611,13 @@ const string SpatialSpecGetMode =
 "<text>return the transportation modes</text--->"
 "<text>query getmode(genmo1)</text---> ) )";
 
+const string SpatialSpecTheSpace =
+"( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+"( <text>int -> space </text--->"
+"<text>thespace (_) </text--->"
+"<text>create an empty space</text--->"
+"<text>query thespace(1)</text---> ) )";
+
 /*
 ValueMap function for operator get the reference id 
 
@@ -3076,7 +3083,6 @@ Operator getmode("getmode",
     Operator::SimpleSelect,
     GetModeTypeMap
 );
-
 
 /////////////////////////////////////////////////////////////////////////////
 ///////////////////   general data type   ///////////////////////////////////
@@ -13636,6 +13642,14 @@ class TransportationModeAlgebra : public Algebra
     AddOperator(&lowres);  //low resolution representation 
     AddOperator(&tmtrajectory);  //trajectory 
     AddOperator(&getmode); //get transportation mode 
+    //////////////////space operators/////////////////////////////////////
+    AddOperator(&thespace); //create an empty space
+
+                            //add network infrastructure 
+                            //add pavements infrastructure
+                            //add bus network infrastructure
+                            //add trains network infrastructure
+                            //add indoor infrastructure
 
   }
   ~TransportationModeAlgebra() {};
