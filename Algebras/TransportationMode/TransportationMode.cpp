@@ -2566,7 +2566,6 @@ TypeConstructor space(
         Space::Cast,
         SizeOfSpace,              //sizeof function
         CheckSpace); 
-        
 
 const string SpatialSpecRefId =
 "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
@@ -2611,12 +2610,17 @@ const string SpatialSpecGetMode =
 "<text>return the transportation modes</text--->"
 "<text>query getmode(genmo1)</text---> ) )";
 
+/*
+create an empty space 
+
+*/
 const string SpatialSpecTheSpace =
 "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
 "( <text>int -> space </text--->"
 "<text>thespace (_) </text--->"
 "<text>create an empty space</text--->"
 "<text>query thespace(1)</text---> ) )";
+
 
 /*
 ValueMap function for operator get the reference id 
@@ -3121,12 +3125,14 @@ Operator getmode("getmode",
 create an empty space 
 
 */
+
 Operator thespace("thespace",
     SpatialSpecTheSpace,
     TheSpaceValueMap,
     Operator::SimpleSelect,
     TheSpaceTypeMap
 );
+
 
 /////////////////////////////////////////////////////////////////////////////
 ///////////////////   general data type   ///////////////////////////////////
@@ -3494,9 +3500,9 @@ const string OpTMGetSectionsSpec  =
     " -> (stream (tuple( (x1 t1)(x2 t2)...(xn tn)))</text--->"
     "<text>getsections(n, r, r, attr,attr,attr)</text--->"
     "<text>for each route, get the possible sections where interesting"
-	"points can locate</text--->"
+    "points can locate</text--->"
     "<text>query getsections(n, r, paveregions, curve, rid, crossreg) count;"
-	"</text--->"
+    "</text--->"
     ") )";
 
 const string OpTMGenInterestP1Spec  =
@@ -4862,6 +4868,7 @@ ListExpr OpTMGenerateWPTypeMap ( ListExpr args )
   ListExpr arg1 = nl->First(args);
   ListExpr arg2 = nl->Second(args);
 
+
   if(!IsRelDescription(arg1))
     return listutils::typeError("para1 should be a relation");
 
@@ -5645,7 +5652,7 @@ ListExpr OpTMGetSectionsTypeMap ( ListExpr args )
     if (!(listutils::isRelDescription(param2)))
         return nl->SymbolAtom ( "typeerror" );
 
-    if(nl->IsEqual(nl->First(args),"network")){	
+    if(nl->IsEqual(nl->First(args),"network")){ 
 
       ListExpr result = nl->TwoElemList(
              nl->SymbolAtom("stream"),
@@ -8255,7 +8262,7 @@ region
 
 ListExpr OpTMGetRectTypeMap ( ListExpr args )
 {
-   if ( nl->ListLength ( args ) != 6 )
+  if ( nl->ListLength ( args ) != 6 )
   {
     return  nl->SymbolAtom ( "list length should be 3" );
   }
@@ -8323,64 +8330,6 @@ ListExpr OpTMGetRectTypeMap ( ListExpr args )
 
 }
 
-
-/*
-TypeMap fun for operator remove dirty 
-remove dirty region data 
-
-*/
-
-ListExpr OpTMRemoveDirtyTypeMap ( ListExpr args )
-{
-  if ( nl->ListLength ( args ) != 3 )
-  {
-    return  nl->SymbolAtom ( "list length should be 3" );
-  }
-  ListExpr param1 = nl->First ( args );
-  if(!IsRelDescription(param1))
-    return nl->SymbolAtom ( "typeerror: param1 should be a relation" );
-
-  
-  ListExpr attrName1 = nl->Second ( args );
-  ListExpr attrType1;
-  string aname1 = nl->SymbolValue(attrName1);
-  int j1 = listutils::findAttribute(nl->Second(nl->Second(param1)),
-                      aname1,attrType1);
-
-  if(j1 == 0 || !listutils::isSymbol(attrType1,"int")){
-      return listutils::typeError("attr name" + aname1 + "not found"
-                      "or not of type int");
-  }
-  
-  ListExpr attrName2 = nl->Third ( args );
-  ListExpr attrType2;
-  string aname2 = nl->SymbolValue(attrName2);
-  int j2 = listutils::findAttribute(nl->Second(nl->Second(param1)),
-                      aname2, attrType2);
-
-  if(j2 == 0 || !listutils::isSymbol(attrType2,"region")){
-      return listutils::typeError("attr name" + aname2 + "not found"
-                      "or not of type region");
-  }
-
-  ListExpr res = nl->TwoElemList(
-            nl->SymbolAtom("stream"),
-            nl->TwoElemList(
-                nl->SymbolAtom("tuple"),
-                nl->TwoElemList(
-                    nl->TwoElemList(
-                        nl->SymbolAtom("id"),
-                        nl->SymbolAtom("int")),
-                    nl->TwoElemList(
-                        nl->SymbolAtom("covarea"),
-//                        nl->SymbolAtom("sline"))
-                        nl->SymbolAtom("region"))
-                    )));
-      return nl->ThreeElemList(
-        nl->SymbolAtom("APPEND"),
-        nl->TwoElemList(nl->IntAtom(j1),nl->IntAtom(j2)), res);
-
-}
 
 /*
 TypeMap fun for operator convexreg. get the convex polygons
@@ -8491,6 +8440,65 @@ ListExpr OpTMDistributeRegionTypeMap ( ListExpr args )
                      nl->TwoElemList(
                         nl->SymbolAtom("reg_type"),
                         nl->SymbolAtom("int"))
+                    )));
+      return nl->ThreeElemList(
+        nl->SymbolAtom("APPEND"),
+        nl->TwoElemList(nl->IntAtom(j1),nl->IntAtom(j2)), res);
+
+}
+
+
+/*
+TypeMap fun for operator remove dirty 
+remove dirty region data 
+
+*/
+
+ListExpr OpTMRemoveDirtyTypeMap ( ListExpr args )
+{
+  if ( nl->ListLength ( args ) != 3 )
+  {
+    return  nl->SymbolAtom ( "list length should be 3" );
+  }
+  ListExpr param1 = nl->First ( args );
+  if(!IsRelDescription(param1))
+    return nl->SymbolAtom ( "typeerror: param1 should be a relation" );
+
+  
+  ListExpr attrName1 = nl->Second ( args );
+  ListExpr attrType1;
+  string aname1 = nl->SymbolValue(attrName1);
+  int j1 = listutils::findAttribute(nl->Second(nl->Second(param1)),
+                      aname1,attrType1);
+
+  if(j1 == 0 || !listutils::isSymbol(attrType1,"int")){
+      return listutils::typeError("attr name" + aname1 + "not found"
+                      "or not of type int");
+  }
+  
+  ListExpr attrName2 = nl->Third ( args );
+  ListExpr attrType2;
+  string aname2 = nl->SymbolValue(attrName2);
+  int j2 = listutils::findAttribute(nl->Second(nl->Second(param1)),
+                      aname2, attrType2);
+
+  if(j2 == 0 || !listutils::isSymbol(attrType2,"region")){
+      return listutils::typeError("attr name" + aname2 + "not found"
+                      "or not of type region");
+  }
+
+  ListExpr res = nl->TwoElemList(
+            nl->SymbolAtom("stream"),
+            nl->TwoElemList(
+                nl->SymbolAtom("tuple"),
+                nl->TwoElemList(
+                    nl->TwoElemList(
+                        nl->SymbolAtom("id"),
+                        nl->SymbolAtom("int")),
+                    nl->TwoElemList(
+                        nl->SymbolAtom("covarea"),
+//                        nl->SymbolAtom("sline"))
+                        nl->SymbolAtom("region"))
                     )));
       return nl->ThreeElemList(
         nl->SymbolAtom("APPEND"),
@@ -10570,15 +10578,15 @@ int OpTMGetSectionsValueMap ( Word* args, Word& result, int message,
   StrRS* routesec;
   switch(message){
       case OPEN:{
-		Network* net = (Network*)args[0].addr; 
+        Network* net = (Network*)args[0].addr; 
         Relation* r1 = (Relation*)args[1].addr;
-		Relation* r2 = (Relation*)args[2].addr;
+        Relation* r2 = (Relation*)args[2].addr;
         routesec = new StrRS(net, r1,r2);
         routesec->resulttype =
             new TupleType(nl->Second(GetTupleResultType(in_pSupplier)));
-		int pos1 = ((CcInt*)args[6].addr)->GetIntval() - 1;
-		int pos2 = ((CcInt*)args[7].addr)->GetIntval() - 1; 
-		int pos3 = ((CcInt*)args[8].addr)->GetIntval() - 1;  
+        int pos1 = ((CcInt*)args[6].addr)->GetIntval() - 1;
+        int pos2 = ((CcInt*)args[7].addr)->GetIntval() - 1; 
+        int pos3 = ((CcInt*)args[8].addr)->GetIntval() - 1;  
 
         routesec->GetSections(pos1, pos2, pos3);
         local.setAddr(routesec);
@@ -10591,8 +10599,8 @@ int OpTMGetSectionsValueMap ( Word* args, Word& result, int message,
                           return CANCEL;
 
             Tuple* tuple = new Tuple(routesec->resulttype);
-		    int rid = routesec->rids[routesec->count];
-//		  cout<<"rid "<<rid<<" m1 "<<meas1<<" m2 "<<meas2<<endl; 
+            int rid = routesec->rids[routesec->count];
+//        cout<<"rid "<<rid<<" m1 "<<meas1<<" m2 "<<meas2<<endl; 
             tuple->PutAttribute(0, new CcInt(true, rid));
             tuple->PutAttribute(1, new Line(routesec->lines[routesec->count]));
             result.setAddr(tuple);
@@ -12693,59 +12701,6 @@ int OpTMGetRectValueMap ( Word* args, Word& result, int message,
   
 }
 
-/*
-clear dirty region data. remove dirty region data
-
-*/
-int OpTMRemoveDirtyValueMap ( Word* args, Word& result, int message,
-                         Word& local, Supplier in_pSupplier )
-{
-  MaxRect* max_rect;
-  switch(message){
-      case OPEN:{
-
-        Relation* r = (Relation*)args[0].addr;
-        int attr1 = ((CcInt*)args[3].addr)->GetIntval() - 1;
-        int attr2 = ((CcInt*)args[4].addr)->GetIntval() - 1; 
-
-        max_rect = new MaxRect(r);
-        max_rect->resulttype =
-            new TupleType(nl->Second(GetTupleResultType(in_pSupplier)));
-
-        max_rect->RemoveDirty(attr1, attr2);
-        local.setAddr(max_rect);
-        return 0;
-      }
-      case REQUEST:{
-          if(local.addr == NULL) return CANCEL;
-          max_rect = (MaxRect*)local.addr;
-          if(max_rect->count == max_rect->reg_id_list.size())return CANCEL;
-
-          Tuple* tuple = new Tuple(max_rect->resulttype);
-          tuple->PutAttribute(0, 
-                       new CcInt(true,max_rect->reg_id_list[max_rect->count]));
-//          tuple->PutAttribute(1, 
-//                         new SimpleLine(max_rect->sl_list[max_rect->count]));
-          tuple->PutAttribute(1, 
-                         new Region(max_rect->reg_list[max_rect->count]));
-
-          result.setAddr(tuple);
-          max_rect->count++;
-          return YIELD;
-      }
-      case CLOSE:{
-          if(local.addr){
-            max_rect = (MaxRect*)local.addr;
-            delete max_rect;
-            local.setAddr(Address(0));
-          }
-          return 0;
-      }
-  }
-  return 0;
-  
-}
-
 
 /*
 get convex polygons: if it is concave, we decompose it 
@@ -12833,6 +12788,60 @@ int OpTMDistributeRegionValueMap ( Word* args, Word& result, int message,
                      new Region(max_rect->reg_list[max_rect->count]));
           tuple->PutAttribute(2, 
                    new CcInt(true, max_rect->reg_type_list[max_rect->count])); 
+
+          result.setAddr(tuple);
+          max_rect->count++;
+          return YIELD;
+      }
+      case CLOSE:{
+          if(local.addr){
+            max_rect = (MaxRect*)local.addr;
+            delete max_rect;
+            local.setAddr(Address(0));
+          }
+          return 0;
+      }
+  }
+  return 0;
+  
+}
+
+
+/*
+clear dirty region data. remove dirty region data
+
+*/
+int OpTMRemoveDirtyValueMap ( Word* args, Word& result, int message,
+                         Word& local, Supplier in_pSupplier )
+{
+  MaxRect* max_rect;
+  switch(message){
+      case OPEN:{
+
+        Relation* r = (Relation*)args[0].addr;
+        int attr1 = ((CcInt*)args[3].addr)->GetIntval() - 1;
+        int attr2 = ((CcInt*)args[4].addr)->GetIntval() - 1; 
+
+        max_rect = new MaxRect(r);
+        max_rect->resulttype =
+            new TupleType(nl->Second(GetTupleResultType(in_pSupplier)));
+
+        max_rect->RemoveDirty(attr1, attr2);
+        local.setAddr(max_rect);
+        return 0;
+      }
+      case REQUEST:{
+          if(local.addr == NULL) return CANCEL;
+          max_rect = (MaxRect*)local.addr;
+          if(max_rect->count == max_rect->reg_id_list.size())return CANCEL;
+
+          Tuple* tuple = new Tuple(max_rect->resulttype);
+          tuple->PutAttribute(0, 
+                       new CcInt(true,max_rect->reg_id_list[max_rect->count]));
+//          tuple->PutAttribute(1, 
+//                         new SimpleLine(max_rect->sl_list[max_rect->count]));
+          tuple->PutAttribute(1, 
+                         new Region(max_rect->reg_list[max_rect->count]));
 
           result.setAddr(tuple);
           max_rect->count++;
@@ -13499,14 +13508,6 @@ Operator maxrect(
   OpTMMaxRectTypeMap //type mapping 
 );
 
-Operator getrect(
-  "getrect",  //name 
-  OpTMGetRectSpec, //specification
-  OpTMGetRectValueMap, //value mapping 
-  Operator::SimpleSelect,
-  OpTMGetRectTypeMap //type mapping 
-);
-
 Operator remove_dirty(
   "remove_dirty",   // name
   OpTMRemoveDirtySpec,  // specification
@@ -13514,6 +13515,15 @@ Operator remove_dirty(
   Operator::SimpleSelect,
   OpTMRemoveDirtyTypeMap //type mapping 
 );
+
+Operator convexreg(
+  "convexreg",  //name 
+  OpTMConvexRegSpec, //specification
+  OpTMConvexRegValueMap, //value mapping 
+  Operator::SimpleSelect,
+  OpTMConvexRegTypeMap //type mapping 
+);
+
 
 Operator distribute_region(
   "distribute_region",  //name 
@@ -13523,12 +13533,13 @@ Operator distribute_region(
   OpTMDistributeRegionTypeMap //type mapping 
 );
 
-Operator convexreg(
-  "convexreg",  //name 
-  OpTMConvexRegSpec, //specification
-  OpTMConvexRegValueMap, //value mapping 
+
+Operator getrect(
+  "getrect",  //name 
+  OpTMGetRectSpec, //specification
+  OpTMGetRectValueMap, //value mapping 
   Operator::SimpleSelect,
-  OpTMConvexRegTypeMap //type mapping 
+  OpTMGetRectTypeMap //type mapping 
 );
 
 
@@ -13574,7 +13585,7 @@ class TransportationModeAlgebra : public Algebra
     AddTypeConstructor(&ugenloc);
     ugenloc.AssociateKind("DATA");
     AddTypeConstructor(&genmo); 
-    genmo.AssociateKind("DATA");
+    genmo.AssociateKind("DATA"); 
     AddTypeConstructor(&space); 
     ////operators for partition regions//////////////////////////
     AddOperator(&checksline);
@@ -13617,7 +13628,7 @@ class TransportationModeAlgebra : public Algebra
     AddOperator(&generate_wp3);
     AddOperator(&getcontour);
     AddOperator(&getpolygon);
-    AddOperator(&getsections);	
+    AddOperator(&getsections);  
     AddOperator(&geninterestp1);
     AddOperator(&geninterestp2);
     ///////////////rotational plane sweep algorithm////////////////////
