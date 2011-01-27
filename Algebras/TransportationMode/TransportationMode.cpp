@@ -3839,7 +3839,7 @@ const string OpTMRemoveDirtySpec  =
     "<text>query remove_dirty(region_elems, id, covarea);</text--->"
     ") )";
 
-    const string OpTMConvexRegSpec  =
+const string OpTMConvexRegSpec  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" "
     "\"Example\" ) "
     "( <text>rel x attr1 x attr2 ->(stream (tuple( (x1 t1)(x2 t2)...(xn tn)))"
@@ -8288,6 +8288,122 @@ ListExpr OpTMRemoveDirtyTypeMap ( ListExpr args )
                         nl->SymbolAtom("covarea"),
 //                        nl->SymbolAtom("sline"))
                         nl->SymbolAtom("region"))
+                    )));
+      return nl->ThreeElemList(
+        nl->SymbolAtom("APPEND"),
+        nl->TwoElemList(nl->IntAtom(j1),nl->IntAtom(j2)), res);
+
+}
+
+/*
+TypeMap fun for operator convexreg. get the convex polygons
+
+*/
+
+ListExpr OpTMConvexRegTypeMap ( ListExpr args )
+{
+  if ( nl->ListLength ( args ) != 3 )
+  {
+    return  nl->SymbolAtom ( "list length should be 3" );
+  }
+  ListExpr param1 = nl->First ( args );
+  if(!IsRelDescription(param1))
+    return nl->SymbolAtom ( "typeerror: param1 should be a relation" );
+
+  
+  ListExpr attrName1 = nl->Second ( args );
+  ListExpr attrType1;
+  string aname1 = nl->SymbolValue(attrName1);
+  int j1 = listutils::findAttribute(nl->Second(nl->Second(param1)),
+                      aname1,attrType1);
+
+  if(j1 == 0 || !listutils::isSymbol(attrType1,"int")){
+      return listutils::typeError("attr name" + aname1 + "not found"
+                      "or not of type int");
+  }
+  
+  ListExpr attrName2 = nl->Third ( args );
+  ListExpr attrType2;
+  string aname2 = nl->SymbolValue(attrName2);
+  int j2 = listutils::findAttribute(nl->Second(nl->Second(param1)),
+                      aname2, attrType2);
+
+  if(j2 == 0 || !listutils::isSymbol(attrType2,"region")){
+      return listutils::typeError("attr name" + aname2 + "not found"
+                      "or not of type region");
+  }
+
+  ListExpr res = nl->TwoElemList(
+            nl->SymbolAtom("stream"),
+            nl->TwoElemList(
+                nl->SymbolAtom("tuple"),
+                nl->TwoElemList(
+                    nl->TwoElemList(
+                        nl->SymbolAtom("id"),
+                        nl->SymbolAtom("int")),
+                    nl->TwoElemList(
+                        nl->SymbolAtom("covarea"),
+                        nl->SymbolAtom("region"))
+                    )));
+      return nl->ThreeElemList(
+        nl->SymbolAtom("APPEND"),
+        nl->TwoElemList(nl->IntAtom(j1),nl->IntAtom(j2)), res);
+
+}
+
+
+/*
+TypeMap fun for operator distribute region 
+
+*/
+
+ListExpr OpTMDistributeRegionTypeMap ( ListExpr args )
+{
+  if ( nl->ListLength ( args ) != 3 )
+  {
+    return  nl->SymbolAtom ( "list length should be 3" );
+  }
+  ListExpr param1 = nl->First ( args );
+  if(!IsRelDescription(param1))
+    return nl->SymbolAtom ( "typeerror: param1 should be a relation" );
+
+  
+  ListExpr attrName1 = nl->Second ( args );
+  ListExpr attrType1;
+  string aname1 = nl->SymbolValue(attrName1);
+  int j1 = listutils::findAttribute(nl->Second(nl->Second(param1)),
+                      aname1,attrType1);
+
+  if(j1 == 0 || !listutils::isSymbol(attrType1,"int")){
+      return listutils::typeError("attr name" + aname1 + "not found"
+                      "or not of type int");
+  }
+  
+  ListExpr attrName2 = nl->Third ( args );
+  ListExpr attrType2;
+  string aname2 = nl->SymbolValue(attrName2);
+  int j2 = listutils::findAttribute(nl->Second(nl->Second(param1)),
+                      aname2, attrType2);
+
+  if(j2 == 0 || !listutils::isSymbol(attrType2,"region")){
+      return listutils::typeError("attr name" + aname2 + "not found"
+                      "or not of type region");
+  }
+
+  ListExpr res = nl->TwoElemList(
+            nl->SymbolAtom("stream"),
+            nl->TwoElemList(
+                nl->SymbolAtom("tuple"),
+                nl->ThreeElemList(
+                    nl->TwoElemList(
+                        nl->SymbolAtom("id"),
+                        nl->SymbolAtom("int")),
+                    nl->TwoElemList(
+                        nl->SymbolAtom("covarea"),
+                        nl->SymbolAtom("region")),
+                     nl->TwoElemList(
+                        nl->SymbolAtom("reg_type"),
+                        nl->SymbolAtom("int"))
                     )));
       return nl->ThreeElemList(
         nl->SymbolAtom("APPEND"),
