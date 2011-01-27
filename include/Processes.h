@@ -110,7 +110,7 @@ The class ~ProcessFactory~ offers the following routines:
 #include <windows.h>
 #endif
 
-#define DEFAULT_MAX_PROCESSES 10
+#define DEFAULT_MAX_PROCESSES 100
 /*
 Is the default size of the process collection of the process factory;
 
