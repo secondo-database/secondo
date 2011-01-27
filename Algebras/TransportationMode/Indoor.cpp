@@ -37,6 +37,7 @@ indoor environment
 */
 
 #include "Indoor.h"
+#include "GeneralType.h"
 ////////////////////////////////////////////////////////////////////////
 /////////////////////////// Point3D ////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -3246,7 +3247,7 @@ void IndoorNav::ST_ConnectFloors(int groom_oid, GRoom* groom, Line* l1,
 
     for(int i = middle_path.size() - 1;i >= 0; i--){
         Point p = middle_path[i].to;
-        if(i == middle_path.size() - 1){
+        if(i == (int)(middle_path.size() - 1)){
           Point3D q(true, p.GetX(), p.GetY(), h1);
           *l3d += q;
         }
@@ -4213,18 +4214,19 @@ it contains OR, CO, BR
 void IndoorNav::GenerateIP1(int num)
 {
   int no_rooms = rel1->GetNoTuples(); 
-  struct timeval tval;
-  struct timezone tzone;
-
-  gettimeofday(&tval, &tzone);
-
-  srand48(tval.tv_sec);//second 
+  
+//  struct timeval tval;
+//  struct timezone tzone;
+//  gettimeofday(&tval, &tzone);
+//  srand48(tval.tv_sec);//second 
 //    srand48(tval.tv_usec);//Microseconds
 
   for(int i = 1;i <= num;){
-    int room_oid; 
-    room_oid = lrand48() % no_rooms + 1;
+    unsigned int room_oid; 
+//    room_oid = lrand48() % no_rooms + 1;
 
+    room_oid = GetRandom() % no_rooms + 1; 
+ 
    /////////////////////////////////////////////////////////////////
    ////////////////////special generation//////////////////////////
    ///////////////////////////////////////////////////////////////
@@ -4258,8 +4260,12 @@ void IndoorNav::GenerateIP1(int num)
 
         //non-negative, long integers, uniformly distributed over
         //the interval [0, 2(31)]
-        int x = (lrand48() + 1)% (xx*100);
-        int y = (lrand48() + 1)% (yy*100);
+        
+//        int x = (lrand48() + 1)% (xx*100);
+//       int y = (lrand48() + 1)% (yy*100);
+
+       int x = (GetRandom() + 1)% (xx*100);
+       int y = (GetRandom() + 1)% (yy*100);
 
         double coord_x = x/100.0;
         double coord_y = y/100.0;
@@ -4327,7 +4333,7 @@ void IndoorNav::GenerateMO1(IndoorGraph* ig, BTree* btree,
 
       if(loc1.GetOid() == loc2.GetOid()) continue; 
 
-      cout<<"loc1 "<<loc1<<" loc2 "<<loc2<<endl;
+//      cout<<"loc1 "<<loc1<<" loc2 "<<loc2<<endl;
       indoor_nav->ShortestPath_Length(&loc1, &loc2, rel1, btree);
 //      cout<<indoor_nav->path_list[count].Length()<<endl;
       //////////////////////////////////////////////////////////////////
@@ -6314,16 +6320,16 @@ float IndoorNav::CostInElevator(double l, I_Parameter& param)
     h_list.push_back(l + i*param.floor_height);
   }
   
-  struct timeval tval;
-  struct timezone tzone;
-
-  gettimeofday(&tval, &tzone);
-  srand48(tval.tv_sec); //second
+//  struct timeval tval;
+//  struct timezone tzone;
+//  gettimeofday(&tval, &tzone);
+//  srand48(tval.tv_sec); //second
 //  srand48(tval.tv_usec);  //Microseconds
 
   const int size = h_list.size();
-  int index =  lrand48() % size;  
-//  cout<<"index "<<index<<endl; 
+//  int index =  lrand48() % size;  
+  int index = GetRandom() % size; 
+
 
   return h_list[index]/param.speed_elevator; 
 }

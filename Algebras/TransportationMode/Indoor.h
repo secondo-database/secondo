@@ -75,7 +75,6 @@ Oct. 2010 Jianqiu Xu Move from IndoorAlgebra to Transportation Mode Algebra
 #include "GeneralType.h"
 
 
-
 #define ARR_SIZE(a) sizeof(a)/sizeof(a[0])
 
 Word InHalfSegment( const ListExpr typeInfo, const ListExpr instance,
@@ -1417,7 +1416,5 @@ class MPoint3D:public Mapping<UPoint3D,Point3D>
 
 bool CheckMPoint3D( ListExpr type, ListExpr& errorInfo );
 ListExpr MPoint3DProperty();
-
-
 
 #endif // __INDOOR_H__

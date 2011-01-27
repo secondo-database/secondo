@@ -39,6 +39,8 @@ creating the graph model for walk planning.
 #include "Partition.h"
 #include "Triangulate.h"
 #include "PaveGraph.h"
+#include "GeneralType.h"
+
 
 /*
 Decompose the pavement on one side of the road into a set of subregions
@@ -3583,14 +3585,17 @@ Randomly generates points inside pavement polygon
 void Walk_SP::GenerateData1(int no_p)
 {
   int no_node_graph = rel1->GetNoTuples();
-  struct timeval tval;
-  struct timezone tzone;
-
-  gettimeofday(&tval, &tzone);
-  srand48(tval.tv_sec);
+  
+//  struct timeval tval;
+//  struct timezone tzone;
+//  gettimeofday(&tval, &tzone);
+//  srand48(tval.tv_sec);
 
   for (int i = 1; i <= no_p;){
-      int  m = lrand48() % no_node_graph + 1;
+//      int  m = lrand48() % no_node_graph + 1;
+
+      int m = GetRandom() % no_node_graph + 1; 
+
       Tuple* tuple = rel1->GetTuple(m, false);
       Region* reg = (Region*)tuple->GetAttribute(DualGraph::PAVEMENT);
 
@@ -3614,8 +3619,12 @@ void Walk_SP::GenerateData1(int no_p)
 
         //non-negative, long integers, uniformly distributed over
         //the interval [0, 2(31)]
-        int x = lrand48()% (xx*100);
-        int y = lrand48()% (yy*100);
+//        int x = lrand48()% (xx*100);
+//        int y = lrand48()% (yy*100);
+
+        int x = GetRandom() % (xx*100);
+        int y = GetRandom() % (yy*100);
+
 
         double coord_x = x/100.0;
         double coord_y = y/100.0;
@@ -3644,20 +3653,23 @@ void Walk_SP::GenerateData1(int no_p)
 Randomly generates points inside pavement polygon
 1) randomly selects a polygon/polygon
 2) randomly generates a vertex of the triangle
+3) the point equals to one of triangle vertices 
 
 */
 
 void Walk_SP::GenerateData2(int no_p)
 {
   int no_node_graph = rel1->GetNoTuples();
-  struct timeval tval;
-  struct timezone tzone;
-
-  gettimeofday(&tval, &tzone);
-  srand48(tval.tv_sec);
+//  struct timeval tval;
+//  struct timezone tzone;
+//  gettimeofday(&tval, &tzone);
+//  srand48(tval.tv_sec);
 
   for (int i = 1; i <= no_p;i++){
-      int  m = lrand48() % no_node_graph + 1;
+//      int  m = lrand48() % no_node_graph + 1;
+
+      int m = GetRandom() % no_node_graph + 1; 
+
       Tuple* tuple = rel1->GetTuple(m, false);
       Region* reg = (Region*)tuple->GetAttribute(DualGraph::PAVEMENT);
       Points* ps = new Points(0);
@@ -3665,8 +3677,9 @@ void Walk_SP::GenerateData2(int no_p)
 
       //non-negative, long integers, uniformly distributed over
       //the interval [0, 2(31)]
-      unsigned index = lrand48()%3;
-//      cout<<"index "<<index<<endl;
+//      unsigned index = lrand48()%3;
+      unsigned index = GetRandom() % 3;
+
       Point p2;
       ps->Get(index, p2);
       BBox<2> bbox = reg->BoundingBox();
@@ -3692,14 +3705,18 @@ Randomly generates points inside pavement polygon
 void Walk_SP::GenerateData3(int no_p)
 {
   int no_node_graph = rel1->GetNoTuples();
-  struct timeval tval;
-  struct timezone tzone;
+//  struct timeval tval;
+//  struct timezone tzone;
 
-  gettimeofday(&tval, &tzone);
-  srand48(tval.tv_sec);
+//  gettimeofday(&tval, &tzone);
+//  srand48(tval.tv_sec);
 
  for (int i = 1; i <= no_p;){
-      int  m = lrand48() % no_node_graph + 1;
+
+//      int  m = lrand48() % no_node_graph + 1;
+
+      int  m = GetRandom() % no_node_graph + 1;
+
       Tuple* tuple = rel1->GetTuple(m, false);
       Region* reg = (Region*)tuple->GetAttribute(DualGraph::PAVEMENT);
 
@@ -3731,8 +3748,12 @@ void Walk_SP::GenerateData3(int no_p)
 
         //non-negative, long integers, uniformly distributed over
         //the interval [0, 2(31)]
-        int x = lrand48()% (xx*100);
-        int y = lrand48()% (yy*100);
+
+//        int x = lrand48()% (xx*100);
+//        int y = lrand48()% (yy*100);
+
+        int x = GetRandom() % (xx*100);
+        int y = GetRandom() % (yy*100); 
 
         double coord_x = x/100.0;
         double coord_y = y/100.0;
@@ -5684,7 +5705,7 @@ void RegVertex::DFTraverse(R_Tree<2,TupleId>* rtree,
               Tuple* dg_tuple2 = rel1->GetTuple(e.info,false);
               Region* candi_reg =
                      (Region*)dg_tuple2->GetAttribute(DualGraph::PAVEMENT);
-              if(oid != e.info){
+              if(oid != (int)e.info){
                   ShareEdge(reg, candi_reg, oid,e.info, adj_node);
               }
               dg_tuple2->DeleteIfAllowed();
@@ -6312,18 +6333,24 @@ void Hole::GetContour(unsigned int no_reg)
     sp->ComputeRegion(contour,regions);
     regs.push_back(regions[0]);
     ////////////////////////////////////////////////////////
-    struct timeval tval;
-    struct timezone tzone;
+//    struct timeval tval;
+//    struct timezone tzone;
+//    gettimeofday(&tval, &tzone);
+//    srand48(tval.tv_sec);
 
     unsigned int reg_count = no_reg;
 
-    gettimeofday(&tval, &tzone);
-    srand48(tval.tv_sec);
     while(no_reg > 1){
-      int  px = lrand48() % 98700 + 600;
-      int  py = lrand48() % 98700 + 600;
 
-      int radius = lrand48() % 496 + 5;//5-500 10-1000
+//      int  px = lrand48() % 98700 + 600;
+//      int  py = lrand48() % 98700 + 600;
+      int px = GetRandom() % 98700 + 600;
+      int py = GetRandom() % 98700 + 600;
+
+//      int radius = lrand48() % 496 + 5;//5-500 10-1000
+
+      int radius = GetRandom() % 496 + 5;//5-500 10-1000 
+
       contour.clear();
       regions.clear();
       contour.push_back(Point(true, px - radius, py - radius));
@@ -6338,15 +6365,22 @@ void Hole::GetContour(unsigned int no_reg)
       if(i == regs.size()){
           ///create convex hull
           Points* outer_ps = new Points(0);
-          int outer_ps_no =  lrand48() % 191 + 10;///10-200
+//          int outer_ps_no =  lrand48() % 191 + 10;///10-200
+
+          int outer_ps_no =  GetRandom() % 191 + 10;///10-200
+
 //          int outer_ps_no =  radius;///10-200
           double xmin = px - radius;
           double ymin = py - radius;
           outer_ps->StartBulkLoad();
           vector<Point> temp_ps;
           while(outer_ps_no > 0){
-            int x =  lrand48() %(2*radius*100);
-            int y =  lrand48() %(2*radius*100);
+//            int x =  lrand48() %(2*radius*100);
+//            int y =  lrand48() %(2*radius*100);
+
+            int x =  GetRandom() %(2*radius*100);
+            int y =  GetRandom() %(2*radius*100);
+
             double coord_x = x/100.0 + xmin;
             double coord_y = y/100.0 + ymin;
             Point newp(true,coord_x,coord_y);
@@ -6566,8 +6600,11 @@ void Hole::GetPolygon(int no_ps)
     Points* gen_ps = new Points(0);
     gen_ps->StartBulkLoad();
     while(no_ps > 0){
-        int x =  lrand48() %100000;
-        int y =  lrand48() %100000;
+//        int x =  lrand48() %100000;
+//        int y =  lrand48() %100000;
+        int x = GetRandom() % 100000;
+        int y = GetRandom() % 100000;
+
         double coord_x = x/100.0;
         double coord_y = y/100.0;
         Point p(true,coord_x, coord_y);
@@ -6795,11 +6832,31 @@ Rectangle<2> GetMaxRect(Region* reg)
             break; 
     }
     ps[i].Set(x,y); 
+    if(i > 0){
+      Point p1 = ps[i - 1];
+      Point p2 = ps[i]; 
+      if(AlmostEqual(p1, p2)){
+          delete boundary;
+          delete sboundary;
+
+          delete sp;
+          delete ct; 
+
+          return Rectangle<2>(false, 0.0, 0.0, 0.0, 0.0); 
+      }
+    }
+
   }
   
   delete boundary;
   delete sboundary;
 
+  if(AlmostEqual(ps[0], ps[ps.size() - 1])){
+      delete sp;
+      delete ct; 
+      return Rectangle<2>(false, 0.0, 0.0, 0.0, 0.0); 
+  }
+  
   vector<Region> regs;
   sp->ComputeRegion(ps, regs);
 
@@ -7499,43 +7556,392 @@ bool MaxRect::IsCycle(SimpleLine* sl)
   return true; 
 }
 
+
 /*
 get the maximum rectangle in a polygon 
 
 */
-void MaxRect::GetRectangle(int attr1, int attr2)
+void MaxRect::ConvexReg(int attr1, int attr2)
 {
 //  cout<<"attr1 "<<attr1<<" attr2 "<<attr2<<endl; 
   
   for(int i = 1;i <= rel1->GetNoTuples();i++){
     Tuple* region_tuple = rel1->GetTuple(i, false); 
     int reg_id = ((CcInt*)region_tuple->GetAttribute(attr1))->GetIntval();
-    cout<<"reg_id "<<reg_id<<endl; 
+//    cout<<"reg_id "<<reg_id<<endl; 
+
+/*    if(reg_id != 2572){
+      region_tuple->DeleteIfAllowed();
+      continue; 
+    }*/
+
     Region* r = (Region*)region_tuple->GetAttribute(attr2); 
     CompTriangle* ct = new CompTriangle(r);
     int error; 
     bool convex = ct->PolygonConvex2(error);
     if(convex){ //convex polygon 
-
-/*      Rectangle<2> rect_box = GetMaxRect(r); 
-      if(rect_box.IsDefined() && rect_box.Area() > 400.0){
         reg_id_list.push_back(reg_id); 
-        rect_list.push_back(rect_box);
-      }*/
+        reg_list.push_back(*r);
 
     }else if(convex == false && error == 0){  //concave polygon
         ///decompose the convex polygon into several convex polygons ///
-        //      cout<<"concave"<<endl; 
-/*        ct = new CompTriangle(r);
-        ct->NewTriangulation();
-        cout<<ct->triangles.size()<<endl; 
-        delete ct; */
-    }else{
-//      cout<<"dirty data"<<endl; 
-    }
+//        cout<<"reg_id "<<reg_id<<endl; 
+        CompTriangle* ct1 = new CompTriangle(r);
+        ct1->NewTriangulation();
+//        cout<<ct1->triangles.size()<<endl; 
+        MergeTriangle(ct1, reg_id); 
+        delete ct1; 
 
+    }
     delete ct; 
     region_tuple->DeleteIfAllowed(); 
   }
 
+}
+
+/*
+merge triangles to get convex polygons 
+
+*/
+
+void MaxRect::MergeTriangle(CompTriangle* ct, int reg_id)
+{
+  vector<Region> convex_list; 
+  vector<bool> mark_list; 
+  for(unsigned int i = 0;i < ct->triangles.size();i++)
+    mark_list.push_back(false); 
+  
+  for(unsigned int i = 0;i < ct->triangles.size();i++){
+    if(mark_list[i]) continue; 
+    Region* r1 = &(ct->triangles[i]);
+
+    if(r1->Area() > mini_reg_area){
+        convex_list.push_back(*r1);
+        mark_list[i] = true; 
+        continue; 
+    }
+
+    unsigned int j = i + 1;
+    for(;j < ct->triangles.size();j++){
+      Region* r2 = &(ct->triangles[j]); 
+      if(mark_list[j] == false && NeighborTriangle(r1,r2)){
+        Region* res = new Region(0);
+        r1->Union(*r2, *res);
+        convex_list.push_back(*res);
+        delete res; 
+
+        mark_list[j] = true;
+        break; 
+      }
+    }
+    if(j != ct->triangles.size())
+      mark_list[i] = true; 
+  }
+
+  for(unsigned int i = 0;i < mark_list.size();i++)
+    if(mark_list[i] == false)convex_list.push_back(ct->triangles[i]); 
+  
+  
+  vector<Region> res_list; 
+  for(unsigned int i = 0;i < convex_list.size();i++){
+    CompTriangle* ct1 = new CompTriangle(&convex_list[i]);
+    if(ct1->PolygonConvex()){
+        res_list.push_back(convex_list[i]);
+    }
+    delete ct1; 
+  }
+
+  vector<bool> flag_list;
+  for(unsigned int i = 0;i < res_list.size();i++){
+    flag_list.push_back(true); 
+  }
+  
+  for(unsigned int i = 0;i < res_list.size();i++){
+    if(flag_list[i] == false)continue; 
+    Region* r1 = &(res_list[i]);
+    if(r1->Area() > mini_reg_area){
+//      cout<<"mini area "<<mini_reg_area<<" r1 "<<r1->Area()<<endl; 
+      reg_id_list.push_back(reg_id); 
+      reg_list.push_back(*r1); 
+      flag_list[i] = false; 
+
+      for(unsigned int j = i + 1;j < res_list.size();j++){
+        Region* r2 = &(res_list[j]);
+        if(r1->BoundingBox().Distance(r2->BoundingBox()) < 50.0){
+            flag_list[j] = false; 
+        }
+      }
+    }
+  }
+}
+
+
+struct Region_Oid_Ext:public Region_Oid{
+  int type;
+  double dist;
+  Region_Oid_Ext(){}
+  Region_Oid_Ext(int id, Region& r, int t, double d):
+    Region_Oid(id,r), type(t), dist(d){}
+  Region_Oid_Ext(const Region_Oid_Ext& roe):Region_Oid(roe),
+  type(roe.type), dist(roe.dist){}
+  Region_Oid_Ext& operator=(const Region_Oid_Ext& roe)
+  {
+    Region_Oid::operator=(roe);
+    type = roe.type; 
+    dist = roe.dist;
+    return *this; 
+  }
+  bool operator<(const Region_Oid_Ext& roe) const
+  {
+    return dist < roe.dist;
+  }
+
+}; 
+
+void MaxRect::DistributeRegion(int attr1, int attr2)
+{
+
+  /////////////////////////get the center point//////////////////////////
+  double x_min, x_max;
+  double y_min, y_max; 
+  for(int i = 1;i <= rel1->GetNoTuples();i++){
+    Tuple* region_tuple = rel1->GetTuple(i, false); 
+    Region* r = (Region*)region_tuple->GetAttribute(attr2); 
+    Rectangle<2> bbox = r->BoundingBox();
+    region_tuple->DeleteIfAllowed(); 
+    if(i == 1){
+      x_min = bbox.MinD(0);
+      x_max = bbox.MaxD(0);
+      y_min = bbox.MinD(1);
+      y_max = bbox.MaxD(1); 
+    }else{
+      x_min = MIN(x_min, bbox.MinD(0));
+      x_max = MAX(x_max, bbox.MaxD(0));
+      y_min = MIN(y_min, bbox.MinD(1));
+      y_max = MAX(y_max, bbox.MaxD(1)); 
+    }
+  } 
+
+  Point center_p(true, (x_min+x_max)/2, (y_min+y_max)/2); 
+//  cout<<"center point "<<center_p<<endl; 
+  Point lp(true, x_min, y_min); 
+  
+  double dist1 = center_p.Distance(lp); 
+  
+  
+  vector<Region_Oid_Ext> reg_dist_list; 
+  
+  for(int i = 1;i <= rel1->GetNoTuples();i++){
+    Tuple* region_tuple = rel1->GetTuple(i, false); 
+    Region* r = (Region*)region_tuple->GetAttribute(attr2); 
+    int reg_id = ((CcInt*)region_tuple->GetAttribute(attr1))->GetIntval();
+
+    Rectangle<2> bbox = r->BoundingBox();
+
+/*    reg_id_list.push_back(reg_id); 
+    reg_list.push_back(*r); 
+    if(center_p.Distance(bbox) < dist1/5)
+      reg_type_list.push_back(1);
+    else if(center_p.Distance(bbox) > 2*dist1/5)
+      reg_type_list.push_back(3);
+    else
+      reg_type_list.push_back(2);*/
+
+    double dist = center_p.Distance(bbox);
+    int type; 
+    if(dist < dist1/5)
+      type = 1;
+    else if(dist > 2*dist1/5)
+      type = 3;
+    else
+      type = 2;
+
+    Region_Oid_Ext roe(reg_id, *r, type, dist); 
+    reg_dist_list.push_back(roe); 
+    region_tuple->DeleteIfAllowed(); 
+  }
+
+  sort(reg_dist_list.begin(), reg_dist_list.end()); 
+
+  for(unsigned int i = 0;i < reg_dist_list.size();i++){
+//    cout<<"id "<<reg_dist_list[i].oid
+//        <<" dist "<<reg_dist_list[i].dist
+//        <<" type "<<reg_dist_list[i].type<<endl; 
+
+    reg_id_list.push_back(reg_dist_list[i].oid); 
+    reg_list.push_back(reg_dist_list[i].reg);
+    reg_type_list.push_back(reg_dist_list[i].type); 
+  }
+}
+
+
+/*
+get the maximum rectangle in a polygon 
+
+*/
+void MaxRect::GetRectangle(int attr1, int attr2, int attr3, BTree* btree,
+                           int no_buildings)
+{
+  if(no_buildings > rel1->GetNoTuples()){
+    cout<<"maximum "<<rel1->GetNoTuples()<<" buildings"<<endl;
+    return; 
+  }
+//  cout<<"attr1 "<<attr1<<" attr2 "<<attr2<<endl; 
+  ///////////////////////////////////////////////////////////////////////
+  ///////////// first distribute the areas //////////////////////////////
+  ///////////////////////////////////////////////////////////////////////
+  //  cout<<"create "<<no_buildings<<" buildings "<<endl;
+
+  vector<int> no_type; 
+ for(int i = 1;i <= rel1->GetNoTuples();i++){
+    Tuple* region_tuple = rel1->GetTuple(i, false); 
+    int type = ((CcInt*)region_tuple->GetAttribute(attr3))->GetIntval();
+    if(no_type.size() == 0)
+      no_type.push_back(type);
+    else{
+      unsigned int j = 0;
+      for(;j < no_type.size();j++){
+        if(no_type[j] == type)break;
+      }
+      if(j == no_type.size())no_type.push_back(type); 
+    }
+ }
+ sort(no_type.begin(), no_type.end()); 
+
+ int building_loc_type = no_type.size();
+
+// cout<<"building loc type "<<building_loc_type<<endl; 
+
+ /////////////// the number of buildings for each kind of location////////
+ vector<int> num_build_type; 
+ 
+ for(int i = 0;i < building_loc_type - 1;i++){
+    num_build_type.push_back((int)(no_buildings/building_loc_type));
+ }
+ int count = 0;
+ for(unsigned int i = 0;i < num_build_type.size();i++)
+   count += num_build_type[i]; 
+ assert(count < no_buildings); 
+ num_build_type.push_back(no_buildings - count); 
+ 
+// for(unsigned int i = 0;i < num_build_type.size();i++)
+//  cout<<"loc "<<(i + 1)<<" "<<num_build_type[i]<<endl; 
+ 
+ //////////////////////////////////////////////////////////////////////////
+ vector< vector<int> > build_tid_list; //the tid for each kind of region type 
+
+ for(unsigned int i = 0;i < no_type.size();i++){
+ 
+    CcInt* search_id = new CcInt(true, no_type[i]);
+    BTreeIterator* btree_iter = btree->ExactMatch(search_id);
+    vector<int> tid_list; 
+    while(btree_iter->Next()){
+        Tuple* tuple = rel1->GetTuple(btree_iter->GetId(), false);
+        tid_list.push_back(tuple->GetTupleId());
+        tuple->DeleteIfAllowed();
+    }
+    delete btree_iter;
+    delete search_id;
+    build_tid_list.push_back(tid_list); 
+ }
+
+// for(unsigned int i = 0;i < build_tid_list.size();i++)
+//   cout<<build_tid_list[i].size()<<endl; 
+
+ for(unsigned int i = 0;i < no_type.size();i++){
+  int no_build = num_build_type[i];//number of regions for this kind of distance
+
+  vector<int> region_tid_list; 
+  
+  unsigned int index = 0; 
+  while(no_build > 0 && index < build_tid_list[i].size()){
+//    struct timeval tval;
+//    struct timezone tzone;
+
+//    gettimeofday(&tval, &tzone);
+//    srand48(tval.tv_sec);//second 
+
+//  index = lrand48() % build_tid_list[i].size();
+    index = index % build_tid_list[i].size();
+    int tid = build_tid_list[i][index]; 
+
+    if(region_tid_list.size() == 0){
+      if(AddRect(tid, attr1, attr2)){ 
+        region_tid_list.push_back(tid); 
+        no_build--; 
+      }
+      index++;
+    }else{
+      unsigned int j = 0;
+      for(;j < region_tid_list.size();j++){
+        if(region_tid_list[j] == tid)break;
+      }
+      if(j == region_tid_list.size()){
+        if(AddRect(tid, attr1, attr2)){
+          region_tid_list.push_back(tid);
+          no_build--; 
+        }
+        index++;
+      }
+    }
+  }
+//  cout<< region_tid_list.size()<<endl; 
+ }
+
+  /////////////to get maximum number of rectangles/////// 1376///////
+/*  for(int i = 1;i <= rel1->GetNoTuples();i++){
+    AddRect(i, attr1, attr2); 
+  }*/
+
+}
+
+bool MaxRect::AddRect(int tid, int attr1, int attr2)
+{
+  Tuple* region_tuple = rel1->GetTuple(tid, false); 
+  int reg_id = ((CcInt*)region_tuple->GetAttribute(attr1))->GetIntval();
+//  cout<<"reg_id "<<reg_id<<endl; 
+
+
+  Region* r = (Region*)region_tuple->GetAttribute(attr2); 
+//  cout<<*r<<endl; 
+  
+  Rectangle<2> rect_box = GetMaxRect(r); 
+  region_tuple->DeleteIfAllowed();   
+  
+  double x = fabs(rect_box.MaxD(0) - rect_box.MinD(0));
+  double y = fabs(rect_box.MaxD(1) - rect_box.MinD(1));
+  double min = MIN(x,y);
+  double max = MAX(x,y); 
+
+  if(rect_box.IsDefined() && 
+     rect_box.Area() > mini_rect_area && 
+     rect_box.Area() < maxi_rect_area && (max / min < 5.0)){
+      reg_id_list.push_back(reg_id); 
+      rect_list.push_back(rect_box);
+      return true;
+  }else
+    return false; 
+}
+
+/*
+two triangles share one edge 
+
+*/
+bool MaxRect::NeighborTriangle(Region* reg1, Region* reg2)
+{
+  for(int i = 0;i < reg1->Size();i++){
+      HalfSegment hs1;
+      reg1->Get(i, hs1);
+     for(int j = 0;j < reg2->Size();j++){
+        HalfSegment hs2;
+        reg2->Get(j, hs2);
+        if((AlmostEqual(hs1.GetLeftPoint(),  hs2.GetLeftPoint())&&
+            AlmostEqual(hs1.GetRightPoint(), hs2.GetRightPoint())) ||
+           (AlmostEqual(hs1.GetRightPoint(), hs2.GetLeftPoint()) &&
+            AlmostEqual(hs1.GetLeftPoint(),  hs2.GetRightPoint()))){
+          return true; 
+        }
+     }
+  }   
+  return false; 
 }

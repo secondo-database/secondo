@@ -2663,7 +2663,7 @@ void BusRoute::CreateRoute4(int attr1, int attr2, int attr3, int attr4,
   }
 //  cout<<"start_small_list size "<<start_small_list.size()<<endl; 
 
-  assert(start_small_list.size() == rel1->GetNoTuples() / 2); 
+  assert((int)start_small_list.size() == rel1->GetNoTuples() / 2); 
   
   for(int i = 1;i <= rel1->GetNoTuples();i+=2){
     Tuple* tuple_bus_route1 = rel1->GetTuple(i, false);

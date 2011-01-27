@@ -337,6 +337,7 @@ struct Walk_SP{
   Relation* rel4; //vertex relation (vid int)(triid int)
   BTree* btree;
 
+  
   Walk_SP();
   ~Walk_SP();
   Walk_SP(DualGraph* g1, VisualGraph* g2, Relation* r1, Relation* r2);
@@ -672,6 +673,12 @@ struct GeomEdge{
     bool isTop, isRight; /* position of edge w.r.t. hull */
 }; 
 
+////////////// minimum area for a region and a rectangle ///////////////////
+//////// the building should be complex so that it coveras a large area/////
+const float mini_reg_area = 1000.0; 
+const float mini_rect_area = 800.0; 
+const float maxi_rect_area = 8000.0; 
+
 struct MaxRect{
 
     bool fixed;
@@ -696,7 +703,9 @@ struct MaxRect{
 
     vector<Region> reg_list; 
     vector<SimpleLine> sl_list; 
-    
+
+    vector<int> reg_type_list; 
+   
     Relation* rel1; 
     unsigned int count;
     TupleType* resulttype;
@@ -732,10 +741,17 @@ struct MaxRect{
     bool IsCycle(SimpleLine* sl);
     void RemoveDirty(int attr1, int attr2);
     void RemoveDirtyRegion(int regid, Region* reg); 
+
+
+    void ConvexReg(int attr1, int attr2); 
+    void DistributeRegion(int attr1, int attr2); 
     
+    bool AddRect(int tid, int attr1, int attr2); 
+    void GetRectangle(int attr1, int attr2, int attr3, BTree* btree,
+                      int no_buildings); 
+    void MergeTriangle(CompTriangle* ct, int reg_id);
+    bool NeighborTriangle(Region* r1, Region* r2); 
 
-    void GetRectangle(int attr1, int attr2); 
-
-}; 
+};
 
 #endif
