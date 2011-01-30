@@ -46,6 +46,22 @@ types and functions implemented by the Relation Algebra module.
 
 #include "NestedRelationAlgebra.h"
 #include "ListUtils.h"
+#include "Progress.h"
+#include "../../Tools/Flob/DbArray.h"
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
 
 /*
 
@@ -2925,6 +2941,632 @@ struct extractInfo : OperatorInfo {
   }
 };
 
+
+
+/*
+5.9 Operator ~gettuplesnrel~
+
+5.9.1 Type mapping function of operator ~gettuplesnrel~
+
+*/
+ListExpr GetTuplesTypeMap_nrel(ListExpr args)
+{
+  AlgebraManager *algMgr;
+  algMgr = SecondoSystem::GetAlgebraManager();
+
+  // check for correct parameter list
+  if(nl->IsEmpty(args) || nl->IsAtom(args) || nl->ListLength(args) != 2){
+    return listutils::typeError(
+      "\nExpects exactly 2 arguments.");
+  }
+  // Split arguments into two parts
+  ListExpr streamDescription = nl->First(args),
+           nrelDescription = nl->Second(args);
+
+  // Handle the stream part of arguments
+  if(!listutils::isTupleStream(streamDescription)){
+    return listutils::typeError("Expects a valid tuplestream as 1st argument.");
+  }
+
+  // Handle the nrel part of arguments
+  if(!((nl->ListLength(nrelDescription)==2) && 
+    nl->IsEqual(nl->First(nrelDescription), "nrel"))){
+    return listutils::typeError("Expects a nrel as argument");
+  }  
+  
+  
+
+  // Check for existence of a single tid-attribute
+  int tidIndex = 0;
+  string tidAttrName = "";
+  tidIndex = listutils::findType(nl->Second(nl->Second(streamDescription)),
+                                 nl->SymbolAtom("tid"),
+                                 tidAttrName);
+  if( tidIndex <= 0 ){
+    return listutils::typeError("Stream must contain an attribute of type "
+                                "'tid'.");
+  }
+  else if( tidIndex > 0 ){
+     int tidIndex2 = 0;
+     string tidAttrName2 = "";
+     tidIndex2 = listutils::findType(nl->Second(nl->Second(streamDescription)),
+                                     nl->SymbolAtom("tid"),
+                                     tidAttrName2,
+                                     tidIndex+1);
+     if (tidIndex2 != 0) {
+         return listutils::typeError("Stream must contain at most one attribute"
+                                     " of type 'tid'.");
+     }
+  }
+
+  // remove tid-attribute from stream-attrlist
+  set<string> k;
+  k.insert(tidAttrName);
+  ListExpr tmp, tmpL;
+  int noRemovedAttrs = 0;
+  noRemovedAttrs =
+      listutils::removeAttributes(nl->Second(nl->Second(streamDescription)),
+                                  k,
+                                  tmp,
+                                  tmpL);
+  if(noRemovedAttrs != 1){
+    return listutils::typeError("Stream must contain at most one attribute of "
+                                "type 'tid'.");
+  }
+
+  // append rel-attrlist to modified stream-attrlist
+  ListExpr newAttrList =
+     listutils::concat(tmp, nl->Second(nl->Second(nrelDescription)));
+  //listutils::typeError("after concat");
+  // check whether result attrlist is valid
+  if (!listutils::isAttrList(newAttrList)){
+    return listutils::typeError("Result after merging tuples is not a "
+                               "valid attribute list (Possible reasons: "
+                               "duplicate attribute names or an attribute "
+                               "type is not of kind DATA).");
+  }
+    
+
+  // return resulttype and APPEND tid-attr index in stream-attrlist
+  return
+    nl->ThreeElemList(
+      nl->SymbolAtom("APPEND"),
+      nl->OneElemList(
+        nl->IntAtom(tidIndex)),
+      nl->TwoElemList(
+        nl->SymbolAtom("stream"),
+        nl->TwoElemList(
+          nl->SymbolAtom("tuple"),
+          newAttrList)));
+}
+
+/*
+5.9.2 Value mapping function of operator ~gettuplesnrel~
+
+The template parameter ~TidIndexPos~ specifies the argument number, where
+the attribute index for the tid is stored within the stream argument's
+tuple type. For gettuplesnrel, it is 2.
+
+*/
+
+
+
+#ifndef USE_PROGRESS
+
+// standard version
+
+                 
+struct GetTuplesLocalInfo
+{
+  NestedRelation* nrel;
+  Relation* rel = nrel->getPrimary();
+  int tidIndex;
+  TupleType *resultTupleType;
+};
+
+template<int TidIndexPos>
+    int GetTuples( Word* args, Word& result, int message,
+                   Word& local, Supplier s )
+{ 
+  GetTuplesLocalInfo *localInfo;
+  static MessageCenter* msg = MessageCenter::GetInstance();
+
+  switch (message)
+  {
+    case OPEN :
+    {
+      assert( TidIndexPos == 2 || TidIndexPos == 3);
+      qp->Open(args[0].addr);
+      localInfo = new GetTuplesLocalInfo();
+      localInfo->nrel=(NestedRelation*)(qp->ResultStorage(s).addr); 
+      localInfo->rel=nrel->getPrimary() ;
+      localInfo->resultTupleType =
+          new TupleType(nl->Second(GetTupleResultType(s)));
+      localInfo->tidIndex = ((CcInt*)args[TidIndexPos].addr)->GetIntval() - 1;
+      local.setAddr(localInfo);
+      return 0;
+    }
+
+    case REQUEST :
+    {
+      localInfo = (GetTuplesLocalInfo*)local.addr;
+
+      Word wTuple;
+      qp->Request(args[0].addr, wTuple);
+      while( qp->Received(args[0].addr) )
+      {
+        Tuple* sTuple = (Tuple*)wTuple.addr;
+        Tuple* resultTuple = new Tuple( localInfo->resultTupleType );
+        Tuple* relTuple = localInfo->rel->
+            GetTuple(((TupleIdentifier *)sTuple->
+            GetAttribute(/*localInfo->tidIndex*/4))->GetTid());
+
+        if(!relTuple){
+          NList msg_list(NList("simple") ,
+                    NList("Warning: invalid tuple id"));
+          msg->Send(msg_list);
+          qp->Request(args[0].addr, wTuple);
+        } else {
+          int j = 0;
+
+          // Copy the attributes from the stream tuple
+          for( int i = 0; i < sTuple->GetNoAttributes(); i++ )
+          {
+            if( i != localInfo->tidIndex )
+              resultTuple->CopyAttribute( i, sTuple, j++ );
+          }
+          sTuple->DeleteIfAllowed();
+
+          for( int i = 0; i < relTuple->GetNoAttributes(); i++ )
+          {
+            resultTuple->CopyAttribute( i, relTuple, j++ );
+          }
+          relTuple->DeleteIfAllowed();
+
+          result.setAddr( resultTuple );
+          return YIELD;
+        }
+      }
+      return CANCEL;
+    }
+
+    case CLOSE :
+    {
+      qp->Close(args[0].addr);
+      if(local.addr)
+      {
+        localInfo = (GetTuplesLocalInfo*)local.addr;
+        localInfo->resultTupleType->DeleteIfAllowed();
+        delete localInfo;
+        local.setAddr(Address(0));
+      }
+      return 0;
+    }
+  }
+  return 0;
+  
+}
+
+# else
+
+// progress version
+
+
+struct GetTuplesLocalInfo: public ProgressLocalInfo
+{
+  //NestedRelation* nrel;//=(NestedRelation*)(qp->ResultStorage(s).addr);
+  Relation* rel;//=nrel->getPrimary();
+  int tidIndex;
+  TupleType *resultTupleType;
+};
+
+template<int TidIndexPos>
+    int GetTuples( Word* args, Word& result, int message,
+                   Word& local, Supplier s )
+{    
+  NestedRelation* nrel=(NestedRelation*)(qp->ResultStorage(s).addr);
+  GetTuplesLocalInfo *localInfo;
+  localInfo = (GetTuplesLocalInfo*)local.addr;
+  static MessageCenter* msg = MessageCenter::GetInstance();
+
+  switch (message)
+  {
+    case OPEN :
+    {
+    
+      assert( TidIndexPos == 2 || TidIndexPos == 3);
+      qp->Open(args[0].addr);
+
+      if ( !localInfo )  // first time
+      {
+        localInfo = new GetTuplesLocalInfo();
+        localInfo->rel=nrel->getPrimary() ;
+        localInfo->resultTupleType =
+          new TupleType(nl->Second(GetTupleResultType(s)));
+        localInfo->tidIndex = ((CcInt*)args[TidIndexPos].addr)->GetIntval() - 1;
+
+        local.setAddr(localInfo);
+      }
+      return 0;
+    }
+
+    case REQUEST :
+    {
+      
+      Word wTuple;
+      qp->Request(args[0].addr, wTuple);
+      while( qp->Received(args[0].addr) )
+      {
+        localInfo->read++;
+
+        Tuple* sTuple = (Tuple*)wTuple.addr;
+        Tuple* resultTuple = new Tuple( localInfo->resultTupleType );
+	
+        Tuple* relTuple = localInfo->rel->
+            GetTuple(((TupleIdentifier *)sTuple->
+            GetAttribute(localInfo->tidIndex))->GetTid(),true);
+
+        if(!relTuple){
+          NList msg_list(NList("simple") ,
+                    NList("Warning: invalid tuple id"));
+          msg->Send(msg_list);
+          qp->Request(args[0].addr, wTuple);
+        } else {
+          int j = 0;
+
+          // Copy the attributes from the stream tuple
+          for( int i = 0; i < sTuple->GetNoAttributes(); i++ )
+          {
+            if( i != localInfo->tidIndex )
+              resultTuple->CopyAttribute( i, sTuple, j++ );
+          }
+          sTuple->DeleteIfAllowed();
+
+          for( int i = 0; i < relTuple->GetNoAttributes(); i++ )
+          {
+            resultTuple->CopyAttribute( i, relTuple, j++ );
+          }
+          relTuple->DeleteIfAllowed();
+
+          result.setAddr( resultTuple );
+
+          localInfo->returned++;
+          return YIELD;
+        }
+      }
+      return CANCEL;
+    }
+
+    case CLOSE :
+    {
+      
+      qp->Close(args[0].addr);
+      return 0;
+    }
+
+   
+    case CLOSEPROGRESS :
+    {
+  
+      if ( localInfo )
+      {
+        localInfo->resultTupleType->DeleteIfAllowed();
+        delete localInfo;
+      }
+      local.setAddr(Address(0));
+      return 0;
+    }
+    
+    case REQUESTPROGRESS :
+    {
+
+      ProgressInfo p1;
+      ProgressInfo *pRes;
+      pRes = (ProgressInfo*) result.addr;
+
+      //Experiments described in file Cost functions
+      const double uTuple = 0.061;    //milliseconds per tuple
+      const double vByte = 0.0000628;  //milliseconds per byte
+
+      if( !localInfo || !qp->RequestProgress(args[0].addr, &p1) ) {
+        // ask stream argument
+        return CANCEL;
+      }
+      localInfo->sizesChanged =
+                            (!localInfo->sizesInitialized || p1.sizesChanged);
+      if ( localInfo->sizesChanged ){
+          localInfo->total = (int) p1.Card;
+          localInfo->noAttrs =
+            nl->ListLength(nl->Second(nl->Second(qp->GetType(s))));
+
+          if(!localInfo->sizesInitialized){
+             localInfo->attrSize = new double[localInfo->noAttrs];
+             localInfo->attrSizeExt = new double[localInfo->noAttrs];
+          }
+          // ordering of attributes is:
+          //  attributes from first argument (without the one at tidIndex)
+          //  then relation attributes
+          int no_stream_attrs = p1.noAttrs;
+          int no_rel_attrs = localInfo->noAttrs - (no_stream_attrs - 1);
+          // copy first part of stream attrs
+          int j = 0;
+          for (int i = 0;  i < localInfo->tidIndex; i++) {
+            localInfo->attrSize[j]    = p1.attrSize[i];
+            localInfo->Size          += p1.attrSize[i];
+            localInfo->attrSizeExt[j] = p1.attrSizeExt[i];
+            localInfo->SizeExt       += p1.attrSizeExt[i];
+            j++;
+          }
+          // copy second part of stream attrs
+          for (int i = localInfo->tidIndex+1;  i < no_stream_attrs; i++) {
+            localInfo->attrSize[j]    = p1.attrSize[i];
+            localInfo->Size          += p1.attrSize[i];
+            localInfo->attrSizeExt[j] = p1.attrSizeExt[i];
+            localInfo->SizeExt       += p1.attrSizeExt[i];
+            j++;
+          }
+          // copy rel attrs
+          for ( int i = 0;  i < no_rel_attrs; i++) {
+            localInfo->attrSize[j] = localInfo->rel->GetTotalSize(i)
+                                  / (localInfo->total + 0.001);
+            localInfo->attrSizeExt[j] = localInfo->rel->GetTotalExtSize(i)
+                                  / (localInfo->total + 0.001);
+            localInfo->Size += localInfo->attrSize[j];
+            localInfo->SizeExt += localInfo->attrSizeExt[j];
+            j++;
+          }
+          localInfo->sizesInitialized = true;
+      }
+      pRes->CopySizes(localInfo);
+      pRes->Card = p1.Card;
+      pRes->Time = p1.Time + p1.Card * (uTuple + vByte * localInfo->SizeExt);
+      if ( p1.BTime < 0.1 && pipelinedProgress ) { //non-blocking,
+                                                   //use pipelining
+        pRes->Progress = p1.Progress;
+      } else {
+        pRes->Progress =   ((p1.Progress * p1.Time)
+                         + (localInfo->read / p1.Card)
+                         * (uTuple + vByte * localInfo->SizeExt))
+                         / pRes->Time;
+      }
+      pRes->CopyBlocking(p1);
+      return YIELD;
+      
+    } // case REQUESTPROGRESS
+  } // switch  
+  return 0;
+  
+} 
+
+#endif
+
+
+/*
+5.1.5 Specification of operator ~gettuplesnrel~
+
+*/
+const string gettuplesSpec  =
+      "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
+      "( <text>(stream (tuple ((id tid) (x1 t1)...(xn tn)))) x"
+      " (nrel (tuple ((y1 t1)...(yn tn)))) ->"
+      " (stream (tuple ((x1 t1)...(xn tn) (y1 t1)...(yn tn))))"
+      "</text--->"
+      "<text>_ _ gettuples_nrel</text--->"
+      "<text>Retrieves the tuples in the relation in the second "
+      "argument given by the tuple id in first argument stream. "
+      "The result tuple type is a concatenation of both types "
+      "without the 'tid' attribute.</text--->"
+      "<text>query citiesInd windowintersectsS[r] cities gettuples; "
+      "where citiesInd is e.g. created with 'letidAttrName2t citiesInd = "
+      "cities creatertree [pos]'</text--->"
+      ") )";
+
+/*
+5.1.6 Definition of operator ~gettuplesnrel~
+
+*/
+struct gettuples_nrelInfo : OperatorInfo {
+
+  gettuples_nrelInfo() : OperatorInfo()
+  {
+    name =      "gettuples";
+    signature = "stream(x) -> rel(y)";
+    appendSignature ("stream(x) -> nrel(y)"); 
+    syntax =    "_ _ gettuples_nrel ";
+    meaning =   "  ";
+    example =   " ";
+  }
+};
+Operator gettuples_nrel (
+         "gettuples_nrel",            // name
+         gettuplesSpec,          // specification
+         GetTuples<2>,           // value mapping
+         Operator::SimpleSelect, // trivial selection function
+         GetTuplesTypeMap_nrel        // type mapping
+);
+
+
+
+/*
+5.10.1 Typemapping of operator ~terms~
+
+*/
+ListExpr TermsTypeMap(ListExpr args)
+{
+  ListExpr first, tup, tupFirst, type ;
+  string argstr;
+
+   if(nl->IsEmpty(args) || nl->IsAtom(args) || nl->ListLength(args) != 1){
+    return listutils::typeError(
+      "\nExpects exactly 1 arguments.");
+  }
+
+  first = nl->First(args);
+  nl->WriteToString(argstr, first);
+  CHECK_COND(
+    ((nl->ListLength(first) == 2) &&
+    (TypeOfRelAlgSymbol(nl->First(first)) == stream)) &&
+    (!(nl->IsAtom(nl->Second(first)) ||
+       nl->IsEmpty(nl->Second(first))) &&
+    (TypeOfRelAlgSymbol(nl->First(nl->Second(first))) == tuple)),
+  "Operator expects an argument of type (stream(tuple"
+  "((a1 t1)...(an tn)))).\n"
+  "Operator gets an argument of type '" + argstr + "'.");
+  
+  tup = nl->Second(nl->Second(first));
+  bool containsArel = false;
+  while (!(nl->IsEmpty(tup)) && !containsArel)
+  {
+    tupFirst = nl->First(tup);
+    type = nl->Second(tupFirst);
+    if (!(nl->IsAtom(type)))
+    {
+      type = nl->First(type); 
+      if (nl->IsAtom(type))
+        if(nl->SymbolValue(type) == "arel")
+          containsArel = true;
+    }
+    tup = nl->Rest(tup);
+  }
+  CHECK_COND(containsArel, "Operator expects nested tuples as"
+                           " arguments.");
+  
+  ListExpr temp = NestedRelation::unnestedList(nl->Second(first));
+  string s;
+  CHECK_COND(NestedRelation::namesUnique(temp, s), 
+              "The attributename '" + s + "' in the incoming "
+              "stream is not unique.\n" 
+              "Please make sure that there are no duplicates.");
+  //tid needs to be searched and found for further saving in the array as docid
+  // Check for existence of a single tid-attribute
+  // Split arguments into two parts
+  ListExpr streamDescription = nl->First(args),
+           nrelDescription = nl->Second(args);  
+int tidIndex = 0;
+  string tidAttrName = "";
+  tidIndex = listutils::findType(nl->Second(nl->Second(streamDescription)),
+                                 nl->SymbolAtom("tid"),
+                                 tidAttrName);
+  if( tidIndex <= 0 ){
+    return listutils::typeError("Stream must contain an attribute of type "
+                                "'tid'.");
+  }
+  else if( tidIndex > 0 ){
+     int tidIndex2 = 0;
+     string tidAttrName2 = "";
+     tidIndex2 = listutils::findType(nl->Second(nl->Second(streamDescription)),
+                                     nl->SymbolAtom("tid"),
+                                     tidAttrName2,
+                                     tidIndex+1);
+     if (tidIndex2 != 0) {
+         return listutils::typeError("Stream must contain at most one attribute"
+                                     " of type 'tid'.");
+     }
+  }
+
+  // remove tid-attribute from stream-attrlist
+  set<string> k;
+  k.insert(tidAttrName);
+  ListExpr tmp, tmpL;
+  int noRemovedAttrs = 0;
+  noRemovedAttrs =
+      listutils::removeAttributes(nl->Second(nl->Second(streamDescription)),
+                                  k,
+                                  tmp,
+                                  tmpL);
+  if(noRemovedAttrs != 1){
+    return listutils::typeError("Stream must contain at most one attribute of "
+                                "type 'tid'.");
+  }
+
+  // append rel-attrlist to modified stream-attrlist
+  ListExpr newAttrList =
+     listutils::concat(tmp, nl->Second(nl->Second(nrelDescription)));
+  //listutils::typeError("after concat");
+  // check whether result attrlist is valid
+  if (!listutils::isAttrList(newAttrList)){
+    return listutils::typeError("Result after merging tuples is not a "
+                               "valid attribute list (Possible reasons: "
+                               "duplicate attribute names or an attribute "
+                               "type is not of kind DATA).");
+  }
+    
+
+  // return resulttype and APPEND tid-attr index in stream-attrlist
+  return
+    nl->ThreeElemList(
+      nl->SymbolAtom("APPEND"),
+      nl->OneElemList(
+        nl->IntAtom(tidIndex)),
+      nl->TwoElemList(
+        nl->SymbolAtom("stream"),
+        nl->TwoElemList(
+          nl->SymbolAtom("tuple"),
+          newAttrList)));
+  
+  
+  
+  
+}
+
+
+
+
+
+/*
+5.10.2 Value mapping of operator ~terms~
+
+*/
+/*{ 
+  switch (message)
+  {
+    case OPEN :
+    {
+    }
+
+    case REQUEST :
+    {
+    }
+
+    case CLOSE :
+    {
+    }
+  }
+  return 0;
+  
+}*/
+
+
+
+/*
+5.10.5 Specificaion of operator ~terms~
+
+*/
+const string termsSpec  =
+      "";
+
+
+/*
+5.10.6 Definition of operator ~terms~
+
+*/
+struct termsInfo : OperatorInfo {
+
+  termsInfo() : OperatorInfo()
+  {
+    name =      "";
+    signature = "";
+    appendSignature (""); 
+    syntax =    "";
+    meaning =   "";
+    example =   "";
+  }
+};
+
+
+
+
+
 /*
 6 NestedRelationAlgebra
 
@@ -2944,6 +3586,7 @@ class NestedRelationAlgebra : public Algebra
       AddOperator (unnestOperatorInfo(), unnestValueMap, unnestTypeMap);
       AddOperator (nestedRenameInfo(), nestedRename, nestedRenameTypeMap);
       AddOperator (extractInfo(), extractValueMap, extractTypeMap); 
+      AddOperator (&gettuples_nrel);
       attributeRelationTC.AssociateKind( "DATA" );
 #ifdef USE_PROGRESS
       nest.EnableProgress();
@@ -2954,7 +3597,64 @@ class NestedRelationAlgebra : public Algebra
 };
 
 /*
-7 Initialization
+7 Data Structures
+
+7.1. Struct Doclist
+
+*/
+struct Docidlist{
+  Docidlist() {}
+  int DocID;
+  int position;
+};
+
+
+/*
+7.2 Class Doclist
+
+*/
+
+enum DoclistState {partial,complete};
+
+class Doclist : public Attribute 
+{
+  public:
+    void AppendID(const Docidlist& doc);
+    void Complete();
+    void Destroy();
+    void setTerm(const string term);
+    
+  private:
+    DbArray<Docidlist> doclists;
+    DoclistState state;
+    string term;
+};
+/*
+7.3 needs to be named
+
+*/
+void Doclist::AppendID(const Docidlist& doc)
+{
+  assert (state == partial);
+  doclists.Append(doc);
+  //doclists.Sort; needs to be used
+}
+
+void Doclist::Complete()
+{
+  assert( state == partial );
+  state = complete;
+}
+
+
+void Doclist::Destroy()
+{
+  assert (state==complete);
+  doclists.Destroy();
+}
+
+/*
+8 Initialization
 
 */
 
