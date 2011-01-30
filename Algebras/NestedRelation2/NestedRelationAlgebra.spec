@@ -25,4 +25,4 @@ operator afeed alias AFEED pattern _ op
 operator aconsume alias ACONSUME pattern _ op 
 operator nest alias NEST pattern _ op [ list; _ ] 
 operator unnest alias UNNEST pattern _ op [ _ ]
-  
+operator gettuples_nrel alias GETTUPLES_NREL pattern _ _ op  

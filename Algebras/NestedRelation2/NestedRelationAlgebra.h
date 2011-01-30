@@ -530,3 +530,6 @@ the type of tuple corresponds to the type of the primary relation.
         ListExpr tupleTypeInfo;
         ListExpr primaryTypeInfo;
 };
+
+
+
