@@ -1450,7 +1450,7 @@ void GRoom::Get(const int i, float& h, Region& r) const
           r.EndBulkLoad( true, true, true, false );
 //          cout<<r<<endl; 
     }else{
-      cout<<"not valid index in Get()"<<endl;
+      cout<<"not valid index in GRoom:Get()"<<endl;
       assert(false);
     }
 }

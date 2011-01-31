@@ -220,6 +220,7 @@ struct GP_Point{
   }
 
 };
+class Bus_Stop; 
 
 /*
 structure that is used to create bus network 
@@ -264,7 +265,9 @@ struct BusRoute{
   vector<bool> startSmaller; //used for simpleline
   vector<int> stop_loc_id_list; //different spatial locations for bus stops 
   /////////////////////////////////////
-  
+  vector<Bus_Stop> bus_stop_list; 
+  vector<Point> bus_stop_geodata; 
+  ////////////////////////////////////////////////////////////////
   BusRoute(Network* net,Relation* r1,BTree* b):
   n(net),rel1(r1),btree(b)
   {count = 0;resulttype=NULL;}
@@ -338,6 +341,10 @@ struct BusRoute{
                     int attr_a, int attr_b);
   void CreateBusStop5(int attr,int attr1,int attr2,
                       int attr3,int attr4, int attr5); 
+  ///////////////////////////////////////////////////////////////////////
+  ///////////////////////bus stops//////////////////////////////////////
+  //////////////////////////////////////////////////////////////////////
+  void GetBusStops();
   
 };
 
@@ -407,8 +414,19 @@ struct RoadDenstiy{
   vector<int> unique_id_list; 
   vector<double> schedule_interval;
   
+  
+  static string night_sched_typeinfo;
+  static string day_sched_typeinfo;
+  
+  static string bus_route_speed_typeinfo; 
+  static string bus_stop_typeinfo;
+   
+  static string mo_bus_typeinfo;
+  static string bus_route_typeinfo;
+  static string bus_route_old_typeinfo;
+  
   //for bus route speed relation  
-  enum BR_SPEED{BR_ID = 0, BR_POS, BR_SPEED,BR_SPEED_SEG}; 
+  enum BR_SPEED{BR_ID = 0, BR_POS, BR_SPEED, BR_SPEED_SEG}; 
   //for bus route segment speed relation
   enum BR_SEGMENTD_SPEED{BR_ID1,BUS_DIRECTION,SUB_ROUTE_LINE,
                          SPEED_LIMIT,START_SMALLER,START_LOC,SEGMENT_ID};
@@ -423,7 +441,18 @@ struct RoadDenstiy{
 
   //////////////////////moving bus relation///////////////////////////
   enum MO_BUS{BR_ID5 = 0, MO_BUS_DIRECTION,BUS_TRIP,BUS_TYPE,
-              BUS_DAY,SCHEDULE_ID}; 
+              BUS_DAY,SCHEDULE_ID};
+
+  ///////////////////bus routes relation////////////////////////////////
+  enum BR_ROUTE{BR_ID6 = 0, BR_GEODATA, BR_ROUTE_TYPE, BR_RUID, 
+                BR_DIRECTION, BR_STARTSMALLER}; 
+
+  //////////////////////////////////////////////////////////////////////
+  ////////////////initial bus routes relation//////////////////////////
+  ///////////////with gline information///////////////////////////////
+  enum BR_ROUTE_OLD{BR_ID_OLD = 0, BR_GEODATA1, BR_GEODATA2, BR_START_LOC, 
+                BR_END_LOC, BR_ROUTE_TYPE_OLD}; 
+
 
   RoadDenstiy(){count=0;resulttype = NULL;}
   RoadDenstiy(Network* net,Relation* r1,Relation* r2,BTree* bt):
@@ -491,6 +520,178 @@ struct RoadDenstiy{
   void GetTimeInstantStop(MPoint& mo, Point loc, Instant& arrove_t); 
 };
 
+/*
+!!!!!!!!!!!!! Name BusStop has been used already !!!!!!!!!!!!!!!!!!!!!!!!!!
+
+*/
+class Bus_Stop:public Attribute{
+  public:
+     Bus_Stop(); 
+     Bus_Stop(bool def, int id1 = 0, int id2 = 0);
+     Bus_Stop(const Bus_Stop& bs);
+     ~Bus_Stop(){}
+     Bus_Stop& operator=(const Bus_Stop& bs);
+
+     static void* Cast(void* addr); 
+     int GetBRId() const{return br_id;}
+     int GetStopId() const{return stop_id;}
+
+     inline size_t Sizeof() const{return sizeof(*this);}
+     inline bool IsEmpty() const{return !IsDefined();}
+     int Compare(const Attribute* arg) const{return 0;}
+
+     inline bool Adjacent(const Attribute* arg)const{return false;}
+     Bus_Stop* Clone() const {return new Bus_Stop(*this);}
+     size_t HashValue() const{return (size_t)0;}
+     void CopyFrom(const Attribute* right){*this = *(const Bus_Stop*)right;}
+
+  private:
+    int br_id;
+    int stop_id; 
+};
+
+ListExpr BusStopProperty();
+ListExpr OutBusStop( ListExpr typeInfo, Word value ); 
+Word InBusStop( const ListExpr typeInfo, const ListExpr instance,
+       const int errorPos, ListExpr& errorInfo, bool& correct ); 
+bool OpenBusStop(SmiRecord& valueRecord, size_t& offset,
+                 const ListExpr typeInfo, Word& value);
+bool SaveBusStop(SmiRecord& valueRecord, size_t& offset,
+                 const ListExpr typeInfo, Word& value);
+Word CreateBusStop(const ListExpr typeInfo);
+void DeleteBusStop(const ListExpr typeInfo, Word& w); 
+void CloseBusStop( const ListExpr typeInfo, Word& w ); 
+Word CloneBusStop( const ListExpr typeInfo, const Word& w );
+int SizeOfBusStop(); 
+bool CheckBusStop( ListExpr type, ListExpr& errorInfo );
+
+
+
+/*
+for bus routes, it records the segid in a route, start position in dbarray,
+  number of halfsegments and start smaller value (sline)
+
+*/
+struct BR_Elem{
+  unsigned int br_seg_id;
+  unsigned int start_pos;
+  unsigned int no;
+  bool start_small; 
+  BR_Elem(){}
+  BR_Elem(unsigned int seg_id, unsigned int pos, unsigned int num, bool s):
+  br_seg_id(seg_id), start_pos(pos), no(num), start_small(s){}
+  BR_Elem(const BR_Elem& br_elem):
+  br_seg_id(br_elem.br_seg_id), start_pos(br_elem.start_pos),
+  no(br_elem.no), start_small(br_elem.start_small){}
+  BR_Elem& operator=(const BR_Elem& br_elem)
+  {
+    br_seg_id = br_elem.br_seg_id;
+    start_pos = br_elem.start_pos;
+    no = br_elem.no;
+    start_small = br_elem.start_small;
+    return *this; 
+  }
+  void Print()
+  {
+    cout<<"seg id "<<br_seg_id<<" start_pos "<<start_pos
+        <<"num "<<no<<" start smaller "<<start_small<<endl; 
+  }
+};
+
+
+class Bus_Route:public StandardSpatialAttribute<2>{
+  public:
+    Bus_Route(); 
+    Bus_Route(const int initsize):StandardSpatialAttribute(true),
+    elem_list(initsize), seg_list(initsize), 
+    br_id(0), br_uid(0), start_small(true){}
+    Bus_Route(unsigned int id1, unsigned int id2, bool s):
+    StandardSpatialAttribute(true),
+    elem_list(0), seg_list(0), 
+    br_id(id1), br_uid(id2), start_small(s){}
+
+    ~Bus_Route(){}
+
+
+    inline size_t Sizeof() const{return sizeof(*this);}
+    int Compare(const Attribute* arg) const{return 0;}
+
+    inline bool Adjacent(const Attribute* arg)const{return false;}
+    Bus_Route* Clone() const {return new Bus_Route(*this);}
+    size_t HashValue() const{return (size_t)0;}
+    void CopyFrom(const Attribute* right){*this = *(const Bus_Route*)right;}
+
+    inline int Size() const {return elem_list.Size();}
+    inline bool IsEmpty() const{return Size() == 0;}
+    static void* Cast(void* addr); 
+    void Add(bool s, SimpleLine* sl, int count);
+    void Get(int i, bool& s, SimpleLine& sl); 
+    void GetGeoData(SimpleLine& sl);
+
+    double Length(); 
+    const Rectangle<2> BoundingBox() const;
+    double Distance(const Rectangle<2>& r)const
+    {
+        return BoundingBox().Distance(r);
+    }
+    void StartBulkLoad(); 
+    void EndBulkLoad(); 
+    unsigned int GetBRId() const; 
+    unsigned int GetBRUId() const; 
+    bool GetStartSmaller() const; 
+
+    /////////////very important two functions////////////////////
+   ////////especially genrange is an attribute in a relation/////
+  inline int NumOfFLOBs() const { 
+    return 2;
+  }
+  inline Flob* GetFLOB(const int i) { 
+     if(i < 1)
+      return &elem_list;
+    else 
+      return &seg_list;
+  }
+  
+  private:
+    DbArray<BR_Elem> elem_list;//one bus segment 
+    DbArray<HalfSegment> seg_list;
+    unsigned int br_id;
+    unsigned int br_uid; 
+    bool start_small;
+};
+
+ListExpr BusRouteProperty();
+bool OpenBusRoute(SmiRecord& valueRecord, size_t& offset,
+                 const ListExpr typeInfo, Word& value); 
+bool SaveBusRoute(SmiRecord& valueRecord, size_t& offset,
+                 const ListExpr typeInfo, Word& value); 
+Word CreateBusRoute(const ListExpr typeInfo); 
+
+void DeleteBusRoute(const ListExpr typeInfo, Word& w); 
+void CloseBusRoute( const ListExpr typeInfo, Word& w ); 
+Word CloneBusRoute( const ListExpr typeInfo, const Word& w );
+int SizeOfBusRoute(); 
+bool CheckBusRoute( ListExpr type, ListExpr& errorInfo ); 
+ListExpr OutBusRoute( ListExpr typeInfo, Word value );
+Word InBusRoute( const ListExpr typeInfo, const ListExpr instance,
+       const int errorPos, ListExpr& errorInfo, bool& correct ); 
+
+       
+class BusNetwork{
+  public:
+
+  private:
+    int id;
+            //a relation for bus stops
+            //a relaton for bus routes
+            //a btree on bus stops
+            //a btree on bus routes
+            //an rtree on bus routes
+};
+
+//////////////////////////////////////////////////////////////////////////
+///////////////////////underground trains////////////////////////////////
+/////////////////////////////////////////////////////////////////////////
 
 /*
 To create UBahn trains 

@@ -45,6 +45,12 @@ the start cell can be considered as the start location of a bus route
 and the end cell is the end location of a bus route.
 Then it randomly selectes two locations in these two cells 
 
+it creates three kinds of routes determined by cells 
+high density - low density;
+middle denstiy - low density ; 
+low density - lowdenstiy; 
+
+
 */
 void BusRoute::CreateRoute1(int attr1,int attr2,int attr3,int attr4)
 {
@@ -2843,9 +2849,93 @@ void BusRoute::CreateBusStop5(int attr,int attr1,int attr2,
   }
   
 }
+
+/*
+create bus stops relations with the data type busstop 
+
+*/
+void BusRoute::GetBusStops()
+{
+  for(int i = 1;i <= rel2->GetNoTuples();i++){
+    Tuple* br_tuple = rel2->GetTuple(i, false);
+    int br_id = 
+        ((CcInt*)br_tuple->GetAttribute(RoadDenstiy::BR_ID6))->GetIntval();
+    bool direction = 
+     ((CcBool*)br_tuple->GetAttribute(RoadDenstiy::BR_DIRECTION))->GetBoolval();
+
+     int br_uid = 
+        ((CcInt*)br_tuple->GetAttribute(RoadDenstiy::BR_RUID))->GetIntval();
+
+    CcInt* search_id = new CcInt(true, br_id);
+    BTreeIterator* btree_iter = btree->ExactMatch(search_id);
+    int count = 0; 
+    while(btree_iter->Next()){
+        Tuple* bs_tuple = rel1->GetTuple(btree_iter->GetId(), false);
+        bool d = 
+   ((CcBool*)bs_tuple->GetAttribute(RoadDenstiy::STOP_DIRECTION))->GetBoolval();
+       if(direction == d){
+          int br_id_s = 
+            ((CcInt*)bs_tuple->GetAttribute(RoadDenstiy::BR_ID4))->GetIntval();
+
+          int br_uid_s = 
+            ((CcInt*)bs_tuple->GetAttribute(RoadDenstiy::BR_UID))->GetIntval();
+          assert(br_id_s == br_id); 
+          assert(br_uid == br_uid_s); 
+          int s_id = 
+        ((CcInt*)bs_tuple->GetAttribute(RoadDenstiy::BUS_STOP_ID))->GetIntval();
+          Point* loc = (Point*)bs_tuple->GetAttribute(RoadDenstiy::BUS_LOC);
+
+//          cout<<"busstop_rid "<<br_id_s<<" stop id "<<s_id<<endl; 
+
+//          bus_stop_list.push_back(Bus_Stop(true, br_id_s, s_id));
+          bus_stop_list.push_back(Bus_Stop(true, br_uid_s, s_id));
+          bus_stop_geodata.push_back(*loc); 
+          count++;
+       }
+        bs_tuple->DeleteIfAllowed();
+    }
+    delete btree_iter;
+    delete search_id;
+
+    br_tuple->DeleteIfAllowed();
+  }
+
+}
+
+
 //////////////////////////////////////////////////////////////////////////////
 //      use the road density data to set time schedule for each bus route  ///
 /////////////////////////////////////////////////////////////////////////////
+string RoadDenstiy::bus_route_speed_typeinfo = 
+"(rel (tuple ((br_id int) (br_pos real) (speed_limit real)\
+(route_segment line))))";
+
+string RoadDenstiy::bus_stop_typeinfo = 
+"(rel (tuple ((br_id int) (br_uid int) (bus_stop_id int) (bus_stop point)\
+(bus_pos real) (stop_direction bool))))"; 
+
+
+string RoadDenstiy::night_sched_typeinfo = 
+"(rel (tuple ((br_id int) (duration1 periods) (duration2 periods) (br_interval\
+real))))"; 
+
+string RoadDenstiy::day_sched_typeinfo = 
+"(rel (tuple ((br_id int) (duration1 periods) (duration2 periods) (br_interval1\
+real) (br_interval2 real))))";
+
+string RoadDenstiy::mo_bus_typeinfo = 
+"(rel (tuple ((br_id int) (bus_direction bool) (bus_trip mpoint) (bus_type \
+string) (bus_day string) (schedule_id int))))";
+
+string RoadDenstiy::bus_route_typeinfo = 
+"(rel (tuple ((br_id int) (bus_route line) (route_type int) (br_uid int)\
+(bus_direction bool) (startSmaller bool))))"; 
+
+
+string RoadDenstiy::bus_route_old_typeinfo = 
+"(rel (tuple ((br_id int) (bus_route1 gline) (bus_route2 line)\
+(start_loc point) (end_loc point) (route_type int))))"; 
+
 
 /*
 get night buses. use the network flow value.
@@ -3319,9 +3409,9 @@ void RoadDenstiy::SetBRSpeed(int attr1, int attr2, int attr, int attr_sm)
       pos_speed1.push_back(*ps);
       delete ps;
     }  
-    
+
 //    cout<<" size "<<pos_speed1.size()<<endl; 
-    
+
     delete br; 
     /////////////// merge value /////////////////////////////////
     vector<Pos_Speed> pos_speed2;
@@ -4774,6 +4864,550 @@ void RoadDenstiy::GetTimeInstantStop(MPoint& mo, Point loc, Instant& arrove_t)
   assert(false);
 }
 
+//////////////////////////////////////////////////////////////
+///////////////////Bus Stop///////////////////////////////////
+//////////////////////////////////////////////////////////////
+
+ListExpr BusStopProperty()
+{
+  return (nl->TwoElemList(
+            nl->FourElemList(nl->StringAtom("Signature"),
+                       nl->StringAtom("Example Type List"),
+           nl->StringAtom("List Rep"),
+           nl->StringAtom("Example List")),
+            nl->FourElemList(nl->StringAtom("-> DATA"),
+                       nl->StringAtom("busstop"),
+           nl->StringAtom("(<brid, stopid>) (int int)"),
+           nl->StringAtom("((1 2))"))));
+}
+
+/*
+Output  (brid, stopid) 
+
+*/
+
+ListExpr OutBusStop( ListExpr typeInfo, Word value )
+{
+//  cout<<"OutBusStop"<<endl; 
+  Bus_Stop* bs = (Bus_Stop*)(value.addr);
+  if(!bs->IsDefined()){
+    return nl->SymbolAtom("undef");
+  }
+
+  ListExpr list1 = nl->TwoElemList(nl->StringAtom("Bus Route Id:"), 
+                         nl->IntAtom(bs->GetBRId()));
+
+  ListExpr list2 = nl->TwoElemList(nl->StringAtom("Stop Id:"), 
+                         nl->IntAtom(bs->GetStopId()));
+  return nl->TwoElemList(list1,list2);
+
+}
+
+/*
+In function
+
+*/
+Word InBusStop( const ListExpr typeInfo, const ListExpr instance,
+       const int errorPos, ListExpr& errorInfo, bool& correct )
+{
+  
+//  cout<<"length "<<nl->ListLength(instance)<<endl;
+
+  if( !nl->IsAtom( instance ) ){
+
+    if(nl->ListLength(instance) != 2){
+      cout<<"length should be 2"<<endl; 
+      correct = false;
+      return SetWord(Address(0));
+    }
+    ListExpr first = nl->First(instance);
+    if(!nl->IsAtom(first) || nl->AtomType(first) != IntType){
+      cout<< "busstop(): brid must be int type"<<endl;
+      correct = false;
+      return SetWord(Address(0));
+    }
+    unsigned int id1 = nl->IntValue(first);
+
+    ListExpr second = nl->Second(instance);
+    if(!nl->IsAtom(second) || nl->AtomType(second) != IntType){
+      cout<< "busstop(): stop id must be int type"<<endl;
+      correct = false;
+      return SetWord(Address(0));
+    }
+   unsigned int id2 = nl->IntValue(second);
+   ////////////////very important /////////////////////////////
+    correct = true; 
+  ///////////////////////////////////////////////////////////
+    Bus_Stop* bs = new Bus_Stop(true, id1, id2);
+    return SetWord(bs);
+  }
+
+  correct = false;
+  return SetWord(Address(0));
+}
+
+/*
+Open an reference object 
+
+*/
+bool OpenBusStop(SmiRecord& valueRecord, size_t& offset,
+                 const ListExpr typeInfo, Word& value)
+{
+//  cout<<"OpenBusStop()"<<endl; 
+
+  Bus_Stop* bs = (Bus_Stop*)Attribute::Open(valueRecord, offset, typeInfo);
+  value = SetWord(bs);
+  return true; 
+}
+
+/*
+Save an reference object 
+
+*/
+bool SaveBusStop(SmiRecord& valueRecord, size_t& offset,
+                 const ListExpr typeInfo, Word& value)
+{
+//  cout<<"SaveBusStop"<<endl; 
+  Bus_Stop* bs = (Bus_Stop*)value.addr; 
+  Attribute::Save(valueRecord, offset, typeInfo, bs);
+  return true; 
+}
+
+Word CreateBusStop(const ListExpr typeInfo)
+{
+// cout<<"CreateBusStop()"<<endl;
+  return SetWord (new Bus_Stop(false));
+}
+
+
+void DeleteBusStop(const ListExpr typeInfo, Word& w)
+{
+// cout<<"DeleteBusStop()"<<endl;
+  Bus_Stop* bs = (Bus_Stop*)w.addr;
+  delete bs;
+   w.addr = NULL;
+}
+
+
+void CloseBusStop( const ListExpr typeInfo, Word& w )
+{
+//  cout<<"CloseBusStop"<<endl; 
+  ((Bus_Stop*)w.addr)->DeleteIfAllowed();
+  w.addr = 0;
+}
+
+Word CloneBusStop( const ListExpr typeInfo, const Word& w )
+{
+//  cout<<"CloneBusStop"<<endl; 
+  return SetWord( new Bus_Stop( *((Bus_Stop*)w.addr) ) );
+}
+
+int SizeOfBusStop()
+{
+//  cout<<"SizeOfBusStop"<<endl; 
+  return sizeof(Bus_Stop);
+}
+
+bool CheckBusStop( ListExpr type, ListExpr& errorInfo )
+{
+//  cout<<"CheckBusStop"<<endl; 
+  return (nl->IsEqual( type, "busstop" ));
+}
+
+/*
+type constructure functions 
+
+*/
+Bus_Stop::Bus_Stop():Attribute(){}
+
+Bus_Stop::Bus_Stop(bool def, int id1, int id2):Attribute(def),
+br_id(id1), stop_id(id2)
+{
+  SetDefined(def); 
+}
+Bus_Stop::Bus_Stop(const Bus_Stop& bs):
+Attribute(bs.IsDefined()), br_id(bs.br_id), stop_id(bs.stop_id)
+{
+  SetDefined(bs.IsDefined()); 
+}
+
+Bus_Stop& Bus_Stop::operator=(const Bus_Stop& bs)
+{
+    SetDefined(bs.IsDefined());
+    if(IsDefined()){
+          br_id = bs.GetBRId();
+          stop_id = bs.GetStopId();
+    }
+    return *this;
+}
+
+
+void* Bus_Stop::Cast(void* addr)
+{
+  return new (addr)Bus_Stop; 
+
+}
+
+//////////////////////////////////////////////////////////////
+//////////////////////bus route///////////////////////////////
+//////////////////////////////////////////////////////////////
+ListExpr BusRouteProperty()
+{
+  return (nl->TwoElemList(
+            nl->FourElemList(nl->StringAtom("Signature"),
+                       nl->StringAtom("Example Type List"),
+           nl->StringAtom("List Rep"),
+           nl->StringAtom("Example List")),
+            nl->FourElemList(nl->StringAtom("-> DATA"),
+                       nl->StringAtom("busroute"),
+         nl->StringAtom("((id,uid, start) (<start, segment list>*))"),
+           nl->StringAtom("((1 2 true)((true ((2.0 2.0 3.0 3.0)))))"))));
+}
+
+/*
+Open an reference object 
+
+*/
+bool OpenBusRoute(SmiRecord& valueRecord, size_t& offset,
+                 const ListExpr typeInfo, Word& value)
+{
+//  cout<<"OpenBusRoute()"<<endl; 
+
+  Bus_Route* br = (Bus_Route*)Attribute::Open(valueRecord, offset, typeInfo);
+  value = SetWord(br);
+  return true; 
+}
+
+/*
+Save an reference object 
+
+*/
+bool SaveBusRoute(SmiRecord& valueRecord, size_t& offset,
+                 const ListExpr typeInfo, Word& value)
+{
+//  cout<<"SaveBusRoute"<<endl; 
+  Bus_Route* br = (Bus_Route*)value.addr; 
+  Attribute::Save(valueRecord, offset, typeInfo, br);
+  return true; 
+}
+
+Word CreateBusRoute(const ListExpr typeInfo)
+{
+// cout<<"CreateBusRoute()"<<endl;
+  return SetWord (new Bus_Route(0));
+}
+
+
+void DeleteBusRoute(const ListExpr typeInfo, Word& w)
+{
+// cout<<"DeleteBusRoute()"<<endl;
+  Bus_Route* br = (Bus_Route*)w.addr;
+  delete br;
+   w.addr = NULL;
+}
+
+
+void CloseBusRoute( const ListExpr typeInfo, Word& w )
+{
+//  cout<<"CloseBusRoute"<<endl; 
+  ((Bus_Route*)w.addr)->DeleteIfAllowed();
+  w.addr = 0;
+}
+
+Word CloneBusRoute( const ListExpr typeInfo, const Word& w )
+{
+//  cout<<"CloneBusRoute"<<endl; 
+  return SetWord( new Bus_Route( *((Bus_Route*)w.addr) ) );
+}
+
+int SizeOfBusRoute()
+{
+//  cout<<"SizeOfBusRoute"<<endl; 
+  return sizeof(Bus_Route);
+}
+
+bool CheckBusRoute( ListExpr type, ListExpr& errorInfo )
+{
+//  cout<<"CheckBusRoute"<<endl; 
+  return (nl->IsEqual( type, "busroute" ));
+}
+
+/*
+In function
+
+*/
+Word InBusRoute( const ListExpr typeInfo, const ListExpr instance,
+       const int errorPos, ListExpr& errorInfo, bool& correct )
+{
+  
+//  cout<<"length "<<nl->ListLength(instance)<<endl;
+
+  if( !nl->IsAtom( instance ) ){
+
+    if(nl->ListLength(instance) != 2){
+      cout<<"length should be 2"<<endl; 
+      correct = false;
+      return SetWord(Address(0));
+    }
+    ListExpr first = nl->First(instance);
+    if(nl->ListLength(first) != 3){
+      cout<< "busroute(): the first part should have three parameters"<<endl;
+      correct = false;
+      return SetWord(Address(0));
+    }
+
+    ListExpr first1 = nl->First(first); 
+    if(!nl->IsAtom(first1) || nl->AtomType(first1) != IntType){
+      cout<< "busroute(): bus route id must be int type"<<endl;
+      correct = false;
+      return SetWord(Address(0));
+    }
+    unsigned int br_id = nl->IntValue(first1);
+
+    ListExpr first2 = nl->Second(first); 
+    if(!nl->IsAtom(first2) || nl->AtomType(first2) != IntType){
+      cout<< "busroute(): bus route uid must be int type"<<endl;
+      correct = false;
+      return SetWord(Address(0));
+    }
+    unsigned int br_uid = nl->IntValue(first2);
+
+    ListExpr first3 = nl->Third(first); 
+    if(!nl->IsAtom(first3) || nl->AtomType(first3) != BoolType){
+      cout<< "busroute(): bus route startSmaller must be bool type"<<endl;
+      correct = false;
+      return SetWord(Address(0));
+    }
+    bool startsmall = nl->BoolValue(first3);
+    Bus_Route* br = new Bus_Route(br_id, br_uid, startsmall);
+
+
+    ListExpr geo_list = nl->Second(instance);
+    br->StartBulkLoad();
+    int count = 0; 
+    while(!nl->IsEmpty(geo_list)){
+        ListExpr geo_first = nl->First(geo_list);
+        geo_list = nl->Rest(geo_list);
+        if(nl->ListLength(geo_first) != 2){
+            cout<< "busroute(): segment list should have length 2"<<endl;
+            correct = false;
+            return SetWord(Address(0));
+        }
+
+        bool s = nl->BoolValue(nl->First(geo_first));
+        SimpleLine* sl = (SimpleLine*)InSimpleLine(typeInfo, 
+               nl->Second(geo_first),errorPos, errorInfo, correct).addr;
+//        cout<<s<<" "<<sl->Length()<<endl;
+        br->Add(s, sl, count);
+        count++;
+    }
+    br->EndBulkLoad();
+   ////////////////very important /////////////////////////////
+    correct = true; 
+  ///////////////////////////////////////////////////////////
+    return SetWord(br);
+  }
+
+  correct = false;
+  return SetWord(Address(0));
+}
+
+
+/*
+Output  a sequence of bus segments 
+
+*/
+
+ListExpr OutBusRoute( ListExpr typeInfo, Word value )
+{
+//  cout<<"OutBusRoute"<<endl; 
+  Bus_Route* br = (Bus_Route*)(value.addr);
+  if(!br->IsDefined()){
+    return nl->SymbolAtom("undef");
+  }
+
+  ListExpr list1 = nl->OneElemList(nl->IntAtom(br->GetBRId()));
+  ListExpr list2 = nl->TheEmptyList(); 
+  if(!br->IsEmpty()){
+
+    ListExpr last = list2;
+    bool first = true;
+    for(int i = 0;i < br->Size();i++){
+      bool s;
+      SimpleLine sl(0);
+      br->Get(i, s, sl); 
+
+      ListExpr geo_list = OutSimpleLine(nl->TheEmptyList(), SetWord(&sl));
+      ListExpr flatseg = nl->TwoElemList(nl->BoolAtom(s), geo_list);
+
+      if(first == true){
+          list2 = nl->OneElemList( flatseg );
+          last = list2;
+          first = false; 
+      }else{
+          last = nl->Append( last, flatseg );
+      }
+    }
+  }
+
+  return nl->TwoElemList(list1,list2);
+
+}
+
+Bus_Route::Bus_Route()
+{
+
+}
+
+
+void* Bus_Route::Cast(void* addr)
+{
+  return new (addr)Bus_Route; 
+
+}
+
+unsigned int Bus_Route::GetBRId() const
+{
+  if(IsDefined()) return br_id;
+  else return -1; 
+}
+
+unsigned int Bus_Route::GetBRUId() const
+{
+  if(IsDefined()) return br_uid;
+  else return -1; 
+}
+
+bool Bus_Route::GetStartSmaller() const
+{
+  return start_small;
+
+}
+
+const Rectangle<2> Bus_Route::BoundingBox() const
+{
+    Rectangle<2> bbox;
+    for( int i = 0; seg_list.Size(); i++ ){
+        HalfSegment hs ;
+        seg_list.Get(i, hs);
+        if( i == 0 ){
+          bbox = hs.BoundingBox();
+        }else
+          bbox = bbox.Union(hs.BoundingBox());
+    }
+    return bbox;
+}
+
+/*
+add a new element to the result 
+
+*/
+void Bus_Route::Add(bool s, SimpleLine* sl, int count)
+{
+  BR_Elem br_elem;
+  br_elem.br_seg_id = count;
+  br_elem.start_pos = seg_list.Size(); 
+  br_elem.start_small = s; 
+  int no = 0;
+  for(int i = 0;i < sl->Size();i++){
+    HalfSegment hs;
+    sl->Get(i, hs);
+    if(!hs.IsLeftDomPoint()) continue; 
+    seg_list.Append(hs); 
+    no++;
+  }
+  br_elem.no = no;
+  elem_list.Append(br_elem); 
+}
+
+/*
+get a bus segment from the dbarray 
+
+*/
+void Bus_Route::Get(int i, bool& s, SimpleLine& sl)
+{
+  assert(0 <= i && i < elem_list.Size()); 
+
+  BR_Elem br_elem;
+  elem_list.Get(i, br_elem); 
+  s = br_elem.start_small; 
+
+  sl.StartBulkLoad();
+  
+  for(unsigned int j = br_elem.start_pos; j < br_elem.start_pos + br_elem.no;
+      j++){
+    HalfSegment hs; 
+    seg_list.Get(j ,hs);
+    sl += hs;
+    hs.SetLeftDomPoint(!hs.IsLeftDomPoint());
+    sl += hs;
+  }
+  sl.EndBulkLoad();
+
+}
+
+void Bus_Route::GetGeoData(SimpleLine& sl)
+{
+  sl.StartBulkLoad(); 
+  int edgeno = 0;
+  for(int i = 0;i < seg_list.Size();i++){
+    HalfSegment hs1;
+    seg_list.Get(i, hs1);
+
+    HalfSegment hs2(true, hs1.GetLeftPoint(), hs1.GetRightPoint());
+    hs2.attr.edgeno = edgeno++; 
+    sl += hs2;
+    hs2.SetLeftDomPoint(!hs2.IsLeftDomPoint());
+    sl += hs2; 
+  }
+  sl.EndBulkLoad(); 
+}
+
+double Bus_Route::Length()
+{
+  if(!IsDefined() || IsEmpty() == true) return 0.0; 
+
+  double l = 0.0;
+  for(int i = 0;i < seg_list.Size();i++){
+    HalfSegment hs;
+    seg_list.Get(i, hs);
+    l += hs.Length(); 
+  }
+  return l; 
+}
+
+
+void Bus_Route::StartBulkLoad()
+{
+
+}
+
+/*
+check whether two consequent segments are connected 
+
+*/
+void Bus_Route::EndBulkLoad()
+{
+  for(int i = 0;i < Size() - 1;i++){
+      bool s1, s2;
+      SimpleLine sl1(0), sl2(0); 
+      Get(i, s1, sl1); 
+      Get(i + 1, s2, sl2); 
+      ////////////check the end point of the first bus segment///////.
+      ////////////and the start point of the second bus segment//////
+      Point sp, ep;
+      assert(sl1.AtPosition(sl1.Length(), s1, ep));
+      assert(sl2.AtPosition(0.0, s2, sp));
+      if(!AlmostEqual(ep, sp)){
+        cout<<" end point "<<ep<<" start point "<<sp<<endl; 
+        cout<<"not valid bus segments"<<endl;
+        cout<<"the end point of the first segment should be equal to \
+              the start point of the second segment"<<endl; 
+        break;
+      }
+  }
+
+}
 ////////////////////////////////////////////////////////////////////////////
 //////////////////        Create UBahn Trains    ///////////////////////////
 ////////////////////////////////////////////////////////////////////////////
@@ -5662,3 +6296,6 @@ void UBTrain::MPToGenMO(MPoint* mp, GenMO* mo, int l_id, bool up)
     
     mo->EndBulkLoad();
 }
+
+
+

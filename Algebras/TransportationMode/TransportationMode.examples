@@ -342,18 +342,17 @@ Signature: rel1 x attr x rel2 x attr1 x attr2 x attr3 x attr4 x attr5 -> (stream
 Example  : query create_bus_stop5(final_busroutes,bus_direction,bus_stops4, br_id, br_uid, bus_stop_id, bus_stop2, bus_pos) count; 
 Result   : 10
 
-Operator : maptoint
+Operator : getbusstops
 Number   : 2
-Signature: string -> int
-Example  : query maptoint("abc");
+Signature: rel1 x btree x rel2 -> (stream(((x1 t1) ... (xn tn))))
+Example  : query create_bus_stop5(final_busstops, btree_bs, final_busroutes) count;
 Result   : 10
 
-
-Operator : maptoreal
+Operator : getstopid
 Number   : 2
-Signature: string -> real
-Example  : query maptoreal("abc");
-Result   : 10.0
+Signature: busstop -> int
+Example  : query getstopid([const busstop value (1 2)]);
+Result   : 2
 
 
 Operator : get_route_density1
@@ -718,4 +717,11 @@ Number   : 1
 Signature: int -> space
 Example  : query thespace(1);
 Result   : 1 
+
+
+Operator : genmo_tm_list
+Number   : 1
+Signature: bool -> (stream(((x1 t1) ... (xn tn))))
+Example  : query genmo_tm_list(true) count;
+Result   : 5
 
