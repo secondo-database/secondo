@@ -39,7 +39,7 @@ SelectNL:
 	@echo "If changes are requiered at the ListExpr class, make them in the" >> ListExpr.tmp
 	@echo "Original File 'ListExpr.both'">>ListExpr.tmp
 	@echo "*/">>ListExpr.tmp
-	$(CC) -E -xc -P -C $(PERSISTENT_FLAG) ListExpr.both >>ListExpr.tmp
+	$(GCC) -E -xc -P -C $(PERSISTENT_FLAG) ListExpr.both >>ListExpr.tmp
 	diff ListExpr.tmp ListExpr.java >/dev/null || cp ListExpr.tmp ListExpr.java
 	rm ListExpr.tmp
 

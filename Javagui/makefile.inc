@@ -27,6 +27,9 @@ else
 JAVAC := $(SECONDO_JAVAC)
 endif
 
+GCC := gcc
+
+
 ifndef SECONDO_JAVAH
 JAVAH := javah
 else
