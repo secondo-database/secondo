@@ -31,7 +31,7 @@ GCC := gcc
 
 
 CLASSFILES:= $(shell ls *.java | sed -e "s/java/class/")
-CLASSFILES+=GetEnv.h GetEnv.o $(GetEnvDLL)
+#CLASSFILES+=GetEnv.h GetEnv.o $(GetEnvDLL)
 
 .PHONY: all 
 all: ../sj/lang/ListExpr.class $(CLASSFILES)
@@ -45,31 +45,30 @@ all: ../sj/lang/ListExpr.class $(CLASSFILES)
 	$(JAVAC) -classpath $(CLASSPATH) $<
 
 
-GetEnv.h: GetEnv.java
-	$(JAVAH) -force -classpath .. -o $@ tools.GetEnv
+#GetEnv.h: GetEnv.java
+#	$(JAVAH) -force -classpath .. -o $@ tools.GetEnv
 
-GetEnv.o: GetEnv.c
-	$(GCC) -fPIC -D_REENTRANT -Wall $(JNIINCLUDE) -I. -c $< -o $@ 
+#GetEnv.o: GetEnv.c
+#	$(GCC) -fPIC -D_REENTRANT -Wall $(JNIINCLUDE) -I. -c $< -o $@ 
 
-ifeq ($(platform),win32)
-$(GetEnvDLL): GetEnv.o GetEnv.def
-	$(GCC) $(DLLFLAGS) -Wl,-soname,GetEnv.$(JNI_DLLEXT) -o $@ $^
+#ifeq ($(platform),win32)
+#$(GetEnvDLL): GetEnv.o GetEnv.def
+#	$(GCC) $(DLLFLAGS) -Wl,-soname,GetEnv.$(JNI_DLLEXT) -o $@ $^
 
-GetEnv.def: GetEnv.o
-	dlltool -z $@.tmp $< 
-	sed -e "s#\(.*\)@\(.*\)@.*#\1 = \1@\2#g" $@.tmp > $@
-	rm $@.tmp
+#GetEnv.def: GetEnv.o
+#	dlltool -z $@.tmp $< 
+#	sed -e "s#\(.*\)@\(.*\)@.*#\1 = \1@\2#g" $@.tmp > $@
+#	rm $@.tmp
 
-else
-$(GetEnvDLL): GetEnv.o
-	$(GCC) $(DLLFLAGS) -o $@ $< $(JNI_CCFLAGS)
+#else
+#$(GetEnvDLL): GetEnv.o
+#	$(GCC) $(DLLFLAGS) -o $@ $< $(JNI_CCFLAGS)
 
-endif
+#endif
 
 .PHONY: clean
 clean:
 	rm -f *.class
-	rm -f GetEnv.o GetEnv.h $(GetEnvDLL) GetEnv.def
 	make -C downloadmanager clean
 
 
