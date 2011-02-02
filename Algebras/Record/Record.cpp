@@ -301,9 +301,10 @@ Record::GetElement(int pos) const
      return 0;
   } else {
     // create requested element
+    // TODO: It's not a good idea to have no type information during 
+    //       object creation for some types
     Attribute* elem = static_cast<Attribute*> 
             ((am->CreateObj(elemInfo.algebraId, elemInfo.typeId))(0).addr);
-
 
     // save the flob states
     vector<Flob> savedFlobs;
@@ -663,6 +664,8 @@ Record::Compare(const Attribute* rhs) const
         Attribute* attr2 = record->GetElement(i);
 
         cmp = attr1->Compare(attr2);
+        attr1->DeleteIfAllowed();
+        attr2->DeleteIfAllowed();
       }
     }
   }
