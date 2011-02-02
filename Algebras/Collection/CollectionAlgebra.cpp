@@ -688,16 +688,14 @@ cout << "In" << endl << "    TypeInfo: " << nl->ToString(typeInfo) << endl;
       }
       if(correct) {
         coll->Insert(static_cast<Attribute*>(elemWord.addr), count);
-        (static_cast<Attribute*>(elemWord.addr))->DestroyFlobs();
-        (static_cast<Attribute*>(elemWord.addr))->DeleteIfAllowed(false);
+        (static_cast<Attribute*>(elemWord.addr))->DeleteIfAllowed(true);
       }
     }
     if(correct) {
       coll->Finish();
       w.addr = coll;
     } else {
-      coll->DestroyFlobs();
-      coll->DeleteIfAllowed(false);
+      coll->DeleteIfAllowed(true);
     }
     return w;
   }
@@ -738,8 +736,7 @@ cout << "Out" << endl
     }
     ListExpr last = ret;
     for(int i=1;i<size;i++) {
-      elem->DestroyFlobs();
-      elem->DeleteIfAllowed(false); elem = 0;
+      elem->DeleteIfAllowed(true); elem = 0;
       elem = coll->GetComponent(i);
       elemExpr = (am->OutObj(coll->elemAlgId, coll->elemTypeId))
                               (subtypeInfo, SetWord(elem));
@@ -754,8 +751,7 @@ cout << "Out" << endl
       last = nl->Append(last, app);
     }
     if(elem){
-      elem->DestroyFlobs();
-      elem->DeleteIfAllowed(false);
+      elem->DeleteIfAllowed(true);
     }
     return ret;
   }
@@ -975,8 +971,8 @@ arg.
           Attribute* elem1 = GetComponent(eCnt);
           Attribute* elem2 = collToCompare->GetComponent(eCnt);
           compareResult = elem1->Compare(elem2);
-          elem1->DestroyFlobs(); elem1->DeleteIfAllowed(false);
-          elem2->DestroyFlobs(); elem2->DeleteIfAllowed(false);
+          elem1->DeleteIfAllowed(true);
+          elem2->DeleteIfAllowed(true);
           if(compareResult != 0){
               return compareResult;
           }
@@ -1096,8 +1092,7 @@ cout << "Print" << endl;
         os << "(contained " << times << " times).";
       }
       os << endl;
-      elem->DestroyFlobs();
-      elem->DeleteIfAllowed(false);
+      elem->DeleteIfAllowed(true);
     }
     os << "--- Elements: end ---" << endl;
 #ifdef DEBUG
@@ -1332,8 +1327,7 @@ cout << "SortMerge" << endl;
         elemArrayIndex.Get(pointer2, &index);
         pointer2++;
         if(pointer2<=end) {
-          elem2->DestroyFlobs();
-          elem2->DeleteIfAllowed(false);
+          elem2->DeleteIfAllowed(true);
           elem2 = GetComponent(pointer2);
         } else {
           finished = true;
@@ -1342,8 +1336,7 @@ cout << "SortMerge" << endl;
         elemArrayIndex.Get(pointer1, &index);
         pointer1++;
         if(pointer1<=middle) {
-          elem1->DestroyFlobs();
-          elem1->DeleteIfAllowed(false);
+          elem1->DeleteIfAllowed(true);
           elem1 = GetComponent(pointer1);
         } else {
           finished = true;
@@ -1372,8 +1365,8 @@ cout << "SortMerge" << endl;
       pointer3++;
     }
     delete[] help;
-    if(elem1){ elem1->DestroyFlobs(); elem1->DeleteIfAllowed(false); }
-    if(elem2){ elem2->DestroyFlobs(); elem2->DeleteIfAllowed(false); }
+    if(elem1){  elem1->DeleteIfAllowed(true); }
+    if(elem2){  elem2->DeleteIfAllowed(true); }
   }
 
   CollectionType Collection::GetCollType(const ListExpr collTypeInfo) {
@@ -1528,8 +1521,7 @@ cout << "  Statusbericht GetIndex-Funktion:" << endl
     while(index>-1) {
       Attribute* elem2 = RestoreComponent(index);
       int comp = elem->Compare(elem2);
-      elem2->DestroyFlobs();
-      elem2->DeleteIfAllowed(false);
+      elem2->DeleteIfAllowed(true);
       if(comp==0) {
         return index;
       }
@@ -2293,8 +2285,7 @@ cout << "GetValueMap" << endl;
     }else{
       Attribute* elem = sourceColl->GetComponent(indexVal);
       resAttribute->CopyFrom(elem);
-      elem->DestroyFlobs();
-      elem->DeleteIfAllowed(false);
+      elem->DeleteIfAllowed(true);
     }
 
     return 0;
@@ -2379,7 +2370,7 @@ cout << "DeleteTypeMap" << endl;
         if(componentCount > 0){
           resColl->Insert(elem, componentCount);
         }
-        if(elem) { elem->DestroyFlobs(); elem->DeleteIfAllowed(false); }
+        if(elem) { elem->DeleteIfAllowed(true); }
       }
       resColl->Finish();
     }
@@ -2457,7 +2448,7 @@ cout << "ConcatValueMap" << endl;
     for(int eCnt = 0; eCnt < vector2->GetNoUniqueComponents(); eCnt++){
         Attribute* elem = vector2->GetComponent(eCnt);
         resVector->Insert(elem, 1);
-        elem->DestroyFlobs(); elem->DeleteIfAllowed(false);
+        elem->DeleteIfAllowed(true);
     }
     resVector->Finish();
     return 0;
@@ -2644,18 +2635,16 @@ cout << "MathSetTypeMap" << endl;
       coll1Ended = (noColl1Components <= elementIdx1);
       coll2Ended = (noColl2Components <= elementIdx2);
       if(elem1 && restore1) {
-        elem1->DestroyFlobs();
-        elem1->DeleteIfAllowed(false);
+        elem1->DeleteIfAllowed(true);
         elem1 = 0;
       }
       if(elem2 && restore2) {
-        elem2->DestroyFlobs();
-        elem2->DeleteIfAllowed(false);
+        elem2->DeleteIfAllowed(true);
         elem2 = 0;
       }
     }
-    if(elem1) { elem1->DestroyFlobs(); elem1->DeleteIfAllowed(false); }
-    if(elem2) { elem2->DestroyFlobs(); elem2->DeleteIfAllowed(false); }
+    if(elem1) { elem1->DeleteIfAllowed(true); }
+    if(elem2) { elem2->DeleteIfAllowed(true); }
     for(int iCnt1 = elementIdx1;
                             iCnt1 < coll1->GetNoUniqueComponents(); iCnt1++){
       elem1 = coll1->GetComponent(iCnt1);
@@ -2668,8 +2657,7 @@ cout << "MathSetTypeMap" << endl;
         default:
           break;
       }
-      elem1->DestroyFlobs();
-      elem1->DeleteIfAllowed(false);
+      elem1->DeleteIfAllowed(true);
     }
     for(int iCnt2 = elementIdx2;
                             iCnt2 < coll2->GetNoUniqueComponents(); iCnt2++){
@@ -2682,8 +2670,7 @@ cout << "MathSetTypeMap" << endl;
         default:
           break;
         }
-        elem2->DestroyFlobs();
-        elem2->DeleteIfAllowed(false);
+        elem2->DeleteIfAllowed(true);
     }
     resColl->Finish();
     return 0;
