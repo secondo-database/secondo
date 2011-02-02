@@ -220,7 +220,8 @@ struct GP_Point{
   }
 
 };
-class Bus_Stop; 
+class Bus_Stop;
+class Bus_Route; 
 
 /*
 structure that is used to create bus network 
@@ -267,6 +268,8 @@ struct BusRoute{
   /////////////////////////////////////
   vector<Bus_Stop> bus_stop_list; 
   vector<Point> bus_stop_geodata; 
+  
+  vector<Bus_Route> bus_route_list; 
   ////////////////////////////////////////////////////////////////
   BusRoute(Network* net,Relation* r1,BTree* b):
   n(net),rel1(r1),btree(b)
@@ -342,10 +345,13 @@ struct BusRoute{
   void CreateBusStop5(int attr,int attr1,int attr2,
                       int attr3,int attr4, int attr5); 
   ///////////////////////////////////////////////////////////////////////
-  ///////////////////////bus stops//////////////////////////////////////
+  ///////////////bus stops and bus routes////////////////////////////////
   //////////////////////////////////////////////////////////////////////
   void GetBusStops();
-  
+  void GetBusRoutes(); 
+  void CreateRoutes(vector<TupleId>& tid_list, int br_id,
+                            SimpleLine* sl, bool small, bool d); 
+
 };
 
 /*
@@ -527,14 +533,16 @@ struct RoadDenstiy{
 class Bus_Stop:public Attribute{
   public:
      Bus_Stop(); 
-     Bus_Stop(bool def, int id1 = 0, int id2 = 0);
+     Bus_Stop(bool def, unsigned int id1 = 0, unsigned int id2 = 0, 
+              bool d = true);
      Bus_Stop(const Bus_Stop& bs);
      ~Bus_Stop(){}
      Bus_Stop& operator=(const Bus_Stop& bs);
 
      static void* Cast(void* addr); 
-     int GetBRId() const{return br_id;}
-     int GetStopId() const{return stop_id;}
+     unsigned int GetId() const{return br_id;}
+     unsigned int GetStopId() const{return stop_id;}
+     bool GetUp() const {return up_down;}
 
      inline size_t Sizeof() const{return sizeof(*this);}
      inline bool IsEmpty() const{return !IsDefined();}
@@ -546,8 +554,9 @@ class Bus_Stop:public Attribute{
      void CopyFrom(const Attribute* right){*this = *(const Bus_Stop*)right;}
 
   private:
-    int br_id;
-    int stop_id; 
+    unsigned int br_id;
+    unsigned int stop_id; 
+    bool up_down; 
 };
 
 ListExpr BusStopProperty();
@@ -576,25 +585,22 @@ struct BR_Elem{
   unsigned int br_seg_id;
   unsigned int start_pos;
   unsigned int no;
-  bool start_small; 
   BR_Elem(){}
   BR_Elem(unsigned int seg_id, unsigned int pos, unsigned int num, bool s):
-  br_seg_id(seg_id), start_pos(pos), no(num), start_small(s){}
+  br_seg_id(seg_id), start_pos(pos), no(num){}
   BR_Elem(const BR_Elem& br_elem):
-  br_seg_id(br_elem.br_seg_id), start_pos(br_elem.start_pos),
-  no(br_elem.no), start_small(br_elem.start_small){}
+  br_seg_id(br_elem.br_seg_id), start_pos(br_elem.start_pos), no(br_elem.no){}
   BR_Elem& operator=(const BR_Elem& br_elem)
   {
     br_seg_id = br_elem.br_seg_id;
     start_pos = br_elem.start_pos;
     no = br_elem.no;
-    start_small = br_elem.start_small;
     return *this; 
   }
   void Print()
   {
     cout<<"seg id "<<br_seg_id<<" start_pos "<<start_pos
-        <<"num "<<no<<" start smaller "<<start_small<<endl; 
+        <<"num "<<no<<endl; 
   }
 };
 
@@ -603,12 +609,13 @@ class Bus_Route:public StandardSpatialAttribute<2>{
   public:
     Bus_Route(); 
     Bus_Route(const int initsize):StandardSpatialAttribute(true),
-    elem_list(initsize), seg_list(initsize), 
-    br_id(0), br_uid(0), start_small(true){}
-    Bus_Route(unsigned int id1, unsigned int id2, bool s):
+    elem_list(initsize), seg_list(initsize), br_id(0), up_down(true){}
+    
+    Bus_Route(unsigned int id1, bool d):
     StandardSpatialAttribute(true),
-    elem_list(0), seg_list(0), 
-    br_id(id1), br_uid(id2), start_small(s){}
+    elem_list(0), seg_list(0), br_id(id1), up_down(d){}
+    Bus_Route(const Bus_Route& br); 
+    Bus_Route& operator=(const Bus_Route& br); 
 
     ~Bus_Route(){}
 
@@ -624,9 +631,15 @@ class Bus_Route:public StandardSpatialAttribute<2>{
     inline int Size() const {return elem_list.Size();}
     inline bool IsEmpty() const{return Size() == 0;}
     static void* Cast(void* addr); 
-    void Add(bool s, SimpleLine* sl, int count);
-    void Get(int i, bool& s, SimpleLine& sl); 
+    void Add(SimpleLine* sl, int count);
+    void Get(int i, SimpleLine& sl); 
     void GetGeoData(SimpleLine& sl);
+
+    void GetBusStopGeoData(Bus_Stop* bs, Point* p); 
+    
+    void GetElem(int i, BR_Elem& elem);
+    void GetSeg(int i, HalfSegment& hs);
+    int SegSize(){return seg_list.Size();}
 
     double Length(); 
     const Rectangle<2> BoundingBox() const;
@@ -634,11 +647,10 @@ class Bus_Route:public StandardSpatialAttribute<2>{
     {
         return BoundingBox().Distance(r);
     }
-    void StartBulkLoad(); 
-    void EndBulkLoad(); 
-    unsigned int GetBRId() const; 
-    unsigned int GetBRUId() const; 
-    bool GetStartSmaller() const; 
+    void StartBulkLoad();
+    void EndBulkLoad();
+    unsigned int GetId() const { return br_id;}
+    bool GetUp() const { return up_down;}
 
     /////////////very important two functions////////////////////
    ////////especially genrange is an attribute in a relation/////
@@ -656,8 +668,7 @@ class Bus_Route:public StandardSpatialAttribute<2>{
     DbArray<BR_Elem> elem_list;//one bus segment 
     DbArray<HalfSegment> seg_list;
     unsigned int br_id;
-    unsigned int br_uid; 
-    bool start_small;
+    bool up_down;
 };
 
 ListExpr BusRouteProperty();
@@ -676,19 +687,83 @@ ListExpr OutBusRoute( ListExpr typeInfo, Word value );
 Word InBusRoute( const ListExpr typeInfo, const ListExpr instance,
        const int errorPos, ListExpr& errorInfo, bool& correct ); 
 
-       
+/*
+Bus Network 
+
+*/
 class BusNetwork{
   public:
+  BusNetwork();
+  BusNetwork(bool d, unsigned int i);
+  BusNetwork(SmiRecord& valueRecord, size_t& offset, const ListExpr typeInfo);
 
+  ~BusNetwork();
+  static string BusStopsTypeInfo;
+  static string BusRoutesTypeInfo;
+  static string BusStopsInternal;
+  static string BusStopsBTreeTypeInfo; 
+  static string BusRoutesInternal;
+  static string BusRoutesBTreeTypeInfo; 
+  
+  bool Save(SmiRecord& valueRecord, size_t& offset, const ListExpr typeInfo);
+  static BusNetwork* Open(SmiRecord& valueRecord, size_t& offset, 
+                     const ListExpr typeInfo);
+  enum BN_BS{BN_ID1 = 0, BN_BS};//internal representation 
+  enum BN_BR{BN_ID2 = 0, BN_BR}; //internal representation 
+
+
+  void Load(unsigned int i, Relation* r1, Relation* r2); 
+  void LoadStops(Relation* r);
+  void LoadRoutes(Relation* r); 
+  static void* Cast(void* addr);
+  bool IsDefined() const { return def;}
+  unsigned int GetId() const {return id;}
+  Relation* GetBS_Rel(){return stops_rel;}
+  Relation* GetBR_Rel(){return routes_rel;}
+  
+  void GetBusStopGeoData(Bus_Stop* bs, Point* p);
   private:
-    int id;
-            //a relation for bus stops
-            //a relaton for bus routes
-            //a btree on bus stops
-            //a btree on bus routes
+    bool def; 
+    unsigned int id;
+    Relation* stops_rel; //a relation for bus stops
+    BTree* btree_bs; //a btree on bus stops
+    Relation* routes_rel;  //a relaton for bus routes
+    BTree* btree_br; //a btree on bus routes
+
+
             //an rtree on bus routes
 };
 
+ListExpr BusNetworkProperty();
+ListExpr OutBusNetwork( ListExpr typeInfo, Word value );
+Word InBusNetwork( const ListExpr typeInfo, const ListExpr instance,
+       const int errorPos, ListExpr& errorInfo, bool& correct ); 
+bool SaveBusNetwork(SmiRecord& valueRecord, size_t& offset, 
+               const ListExpr typeInfo, Word& value);
+bool OpenBusNetwork(SmiRecord& valueRecord, size_t& offset, 
+               const ListExpr typeInfo, Word& value);
+void DeleteBusNetwork(const ListExpr typeInfo, Word& w); 
+Word CreateBusNetwork(const ListExpr typeInfo);
+void CloseBusNetwork( const ListExpr typeInfo, Word& w );
+Word CloneBusNetwork( const ListExpr typeInfo, const Word& w ); 
+int SizeOfBusNetwork();
+bool CheckBusNetwork( ListExpr type, ListExpr& errorInfo ); 
+
+
+
+struct BN{
+
+  BusNetwork* bn;
+  vector<Bus_Stop> bs_list; 
+  vector<Bus_Route> br_list; 
+  
+  unsigned int count;
+  TupleType* resulttype;
+  BN(BusNetwork* n);
+  ~BN();
+  void GetStops(); 
+  void GetRoutes(); 
+}; 
 //////////////////////////////////////////////////////////////////////////
 ///////////////////////underground trains////////////////////////////////
 /////////////////////////////////////////////////////////////////////////

@@ -55,6 +55,8 @@ queries moving objects with transportation modes.
 extern NestedList* nl;
 extern QueryProcessor *qp;
 
+static map<int,string> *busnetList;
+
 
 namespace TransportationMode{
 /////////////////////////////////////////////////////////////////////////////
@@ -2500,7 +2502,7 @@ Operator generate_mo1("generate_mo1",
 );
 
 /*
-public transportaton network
+public transportaton network: bus stop, bus route and bus network 
 
 */
 TypeConstructor busstop(
@@ -2531,6 +2533,19 @@ TypeConstructor busroute(
      CheckBusRoute
 );
 
+TypeConstructor busnetwork(
+    "busnetwork",
+     BusNetworkProperty,
+     OutBusNetwork,      InBusNetwork,     //Out and In functions
+     0,              0,            //SaveTo and RestoreFrom List functions
+     CreateBusNetwork,  DeleteBusNetwork, //object creation and deletion
+     OpenBusNetwork,    SaveBusNetwork,   // object open and save
+
+     CloseBusNetwork,    CloneBusNetwork,  //object close and clone
+     BusNetwork::Cast,
+     SizeOfBusNetwork,                 //sizeof function
+     CheckBusNetwork
+);
 
 ///////////////////////////////////////////////////////////////////////////
 ////////////////////  general data type  /////////////////////////////////
@@ -2718,8 +2733,32 @@ int RefIdBusStopValueMap(Word* args, Word& result, int message,
 {
   Bus_Stop* bs = (Bus_Stop*)args[0].addr;
   result = qp->ResultStorage(s);
-  if(bs->IsDefined() && bs->GetBRId() >= 0){
-      ((CcInt*)result.addr)->Set(true, bs->GetBRId());
+  if(bs->IsDefined() && bs->GetId() > 0){
+      ((CcInt*)result.addr)->Set(true, bs->GetId());
+  }else
+    ((CcInt*)result.addr)->Set(false, 0);
+  return 0;
+}
+
+int RefIdBusRouteValueMap(Word* args, Word& result, int message,
+                    Word& local, Supplier s)
+{
+  Bus_Route* br = (Bus_Route*)args[0].addr;
+  result = qp->ResultStorage(s);
+  if(br->IsDefined() && br->GetId() > 0){
+      ((CcInt*)result.addr)->Set(true, br->GetId());
+  }else
+    ((CcInt*)result.addr)->Set(false, 0);
+  return 0;
+}
+
+int RefIdBusNetworkValueMap(Word* args, Word& result, int message,
+                    Word& local, Supplier s)
+{
+  BusNetwork* bn = (BusNetwork*)args[0].addr;
+  result = qp->ResultStorage(s);
+  if(bn->IsDefined() && bn->GetId() > 0){
+      ((CcInt*)result.addr)->Set(true, bn->GetId());
   }else
     ((CcInt*)result.addr)->Set(false, 0);
   return 0;
@@ -2816,6 +2855,22 @@ int GRoomNoComponentsValueMap(Word* args, Word& result, int message,
   result = qp->ResultStorage(s);
   if(groom->IsDefined()){
       ((CcInt*)result.addr)->Set(true, groom->Size());
+  }else
+      ((CcInt*)result.addr)->Set(false, 0);
+  return 0;
+}
+
+/*
+get the number of units for busroute 
+
+*/
+int BusRouteNoComponentsValueMap(Word* args, Word& result, int message,
+                    Word& local, Supplier s)
+{
+  Bus_Route* br = (Bus_Route*)args[0].addr;
+  result = qp->ResultStorage(s);
+  if(br->IsDefined()){
+      ((CcInt*)result.addr)->Set(true, br->Size());
   }else
       ((CcInt*)result.addr)->Set(false, 0);
   return 0;
@@ -2988,7 +3043,9 @@ int GenMOTMListValueMap(Word* args, Word& result, int message,
 ValueMapping RefIdValueMapVM[]={
   RefIdGenLocValueMap,
   RefIdIORefValueMap,
-  RefIdBusStopValueMap
+  RefIdBusStopValueMap,
+  RefIdBusRouteValueMap,
+  RefIdBusNetworkValueMap
 };
 
 int RefIdOpSelect(ListExpr args)
@@ -3000,6 +3057,10 @@ int RefIdOpSelect(ListExpr args)
     return 1;
   if(nl->IsAtom(arg1) && nl->IsEqual(arg1, "busstop"))
     return 2;
+  if(nl->IsAtom(arg1) && nl->IsEqual(arg1, "busroute"))
+    return 3;
+  if(nl->IsAtom(arg1) && nl->IsEqual(arg1, "busnetwork"))
+    return 4;
   return -1;
 }
 
@@ -3016,7 +3077,9 @@ ListExpr RefIdTypeMap(ListExpr args)
   }
   ListExpr arg1 = nl->First(args);
   if(nl->IsEqual(arg1, "genloc") || 
-     nl->IsEqual(arg1, "ioref") || nl->IsEqual(arg1, "busstop"))
+     nl->IsEqual(arg1, "ioref") || 
+     nl->IsEqual(arg1, "busstop") || 
+     nl->IsEqual(arg1, "busroute") || nl->IsEqual(arg1, "busnetwork"))
     return nl->SymbolAtom("int");
 
   return nl->SymbolAtom("typeerror");
@@ -3052,7 +3115,8 @@ ListExpr GenMONoComponentsTypeMap(ListExpr args)
   ListExpr arg1 = nl->First(args);
   if(nl->IsEqual(arg1, "genmo") || 
      nl->IsEqual(arg1, "mpoint3d") ||
-     nl->IsEqual(arg1, "genrange") || nl->IsEqual(arg1, "groom"))
+     nl->IsEqual(arg1, "genrange") || 
+     nl->IsEqual(arg1, "groom") || nl->IsEqual(arg1, "busroute"))
     return nl->SymbolAtom("int");
 
   return nl->SymbolAtom("typeerror");
@@ -3160,7 +3224,7 @@ ListExpr GenMOTMListTypeMap(ListExpr args)
 
 Operator ref_id("ref_id",
     SpatialSpecRefId,
-    3,
+    5,
     RefIdValueMapVM,
     RefIdOpSelect,
     RefIdTypeMap
@@ -3196,7 +3260,8 @@ ValueMapping GenMONoComponentsValueMapVM[]={
   GenMONoComponentsValueMap, 
   MP3dNoComponentsValueMap, 
   GenRangeNoComponentsValueMap,
-  GRoomNoComponentsValueMap
+  GRoomNoComponentsValueMap,
+  BusRouteNoComponentsValueMap
 };
 
 int TMNoComponentsOpSelect(ListExpr args)
@@ -3210,13 +3275,15 @@ int TMNoComponentsOpSelect(ListExpr args)
     return 2;
   if(nl->IsAtom(arg1) && nl->IsEqual(arg1, "groom"))
     return 3;
-
+  if(nl->IsAtom(arg1) && nl->IsEqual(arg1, "busroute"))
+    return 4;
+  
   return -1;
 }
 
 Operator genmonocomponents("no_components", //name 
     SpatialSpecGenMONoComponents, //specification
-    4,
+    5,
     GenMONoComponentsValueMapVM,//value mapping 
     TMNoComponentsOpSelect,
     GenMONoComponentsTypeMap //type mapping 
@@ -3851,14 +3918,81 @@ const string OpTMGetBusStopsSpec  =
     "<text>query getbusstops(final_busstops, btree_bs, final_busroutes)"
     " count;</text--->) )";
 
+const string OpTMGetBusRoutesSpec  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+    "\"Example\" ) "
+    "( <text>rel1 x btree x rel2"
+    "-> (stream (tuple( (x1 t1)(x2 t2)...(xn tn))))</text--->"
+    "<text>getbusroutes(rel1,btree,rel2); </text--->"
+    "<text>create bus routes with data type busroute</text--->"
+    "<text>query getbusroutes(final_busstops, btree_bs, final_busroutes)"
+    " count;</text--->) )";
+
+const string OpTMBRGeoDataSpec  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+    "\"Example\" ) "
+    "( <text>busroute -> sline</text--->"
+    "<text>brgeodata(busroute); </text--->"
+    "<text>get the geometrical data of a bus route</text--->"
+    "<text>query brgeodata(br1);</text--->) )";
+
+const string OpTMBSGeoDataSpec  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+    "\"Example\" ) "
+    "( <text>busstop x busroute -> point</text--->"
+    "<text>bsgeodata(busstop, busroute); </text--->"
+    "<text>get the geometrical data of a bus stop</text--->"
+    "<text>query bsgeodata(bs1, br1);</text--->) )";
+
 const string OpTMGetStopIdSpec  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" "
     "\"Example\" ) "
     "( <text>busstop -> int</text--->"
     "<text>getstopid(busstop); </text--->"
     "<text>get bus stop id</text--->"
-    "<text>query getstopid([const busstop value (1 2)]) ;</text--->) )";
+    "<text>query getstopid([const busstop value (1 2 TRUE)]) ;</text--->) )";
     
+const string OpTMUpDownSpec  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+    "\"Example\" ) "
+    "( <text>busstop -> bool</text--->"
+    "<text>up_down(busstop); </text--->"
+    "<text>get direction of the bus stop</text--->"
+    "<text>query up_down([const busstop value (1 2 TRUE)]) ;</text--->) )";
+
+/*
+create bus network 
+
+*/
+const string OpTMTheBusNetworkSpec  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+    "\"Example\" ) "
+    "( <text>int x rel x rel -> busnetwork</text--->"
+    "<text>thebusnetwork(1, stops_rel, routes_rel); </text--->"
+    "<text>create bus network</text--->"
+    "<text>query busnetwork(1, bus_stops, bus_routes) ;</text--->) )";
+    
+const string OpTMBusStopsSpec  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+    "\"Example\" ) "
+    "( <text>busnetwork -> rel</text--->"
+    "<text>bn_busstops(busnetwork); </text--->"
+    "<text>get bus stops relation</text--->"
+    "<text>query bn_busstops(bn1) ;</text--->) )";
+
+const string OpTMBusRoutesSpec  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+    "\"Example\" ) "
+    "( <text>busnetwork -> rel</text--->"
+    "<text>bn_busroutes(busnetwork); </text--->"
+    "<text>get bus routes relation</text--->"
+    "<text>query bn_busroutes(bn1) ;</text--->) )";
+    
+
+/*
+get traffic data and set time schedule for moving buses 
+
+*/
 const string OpTMGetRouteDensity1Spec  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" "
     "\"Example\" ) "
@@ -7244,15 +7378,110 @@ ListExpr OpTMGetBusStopsTypeMap ( ListExpr args )
             nl->SymbolAtom("stream"),
             nl->TwoElemList(
                 nl->SymbolAtom("tuple"),
-                nl->TwoElemList(
+                nl->OneElemList(
                     nl->TwoElemList(
                         nl->SymbolAtom("bus_stop"),
-                        nl->SymbolAtom("busstop")),
-                    nl->TwoElemList(
-                        nl->SymbolAtom("geoData"),
-                        nl->SymbolAtom("point"))
+                        nl->SymbolAtom("busstop"))
                     )));
       return res;
+}
+
+/*
+TypeMap fun for operator getbusroutes
+
+*/
+
+ListExpr OpTMGetBusRoutesTypeMap ( ListExpr args )
+{
+  if ( nl->ListLength ( args ) != 3 )
+  {
+    return  nl->SymbolAtom ( "list length should be 3" );
+  }
+  
+  ListExpr param1 = nl->First ( args );
+  if(!IsRelDescription(param1))
+    return nl->SymbolAtom ( "typeerror: param1 should be a relation" );
+
+  ListExpr xType1;
+  nl->ReadFromString(RoadDenstiy::bus_stop_typeinfo, xType1); 
+  if(!CompareSchemas(param1, xType1)){
+    return listutils::typeError("rel11 scheam should be" + 
+                                RoadDenstiy::bus_stop_typeinfo);
+  }
+
+  ListExpr param2 = nl->Second ( args );
+  if(!listutils::isBTreeDescription(param2))
+    return nl->SymbolAtom ( "typeerror: param2 should be a btree" );
+
+
+  ListExpr param3 = nl->Third ( args );
+  if(!IsRelDescription(param3))
+    return nl->SymbolAtom ( "typeerror: param3 should be a relation" );
+
+  ListExpr xType2;
+  nl->ReadFromString(RoadDenstiy::bus_route_typeinfo, xType2); 
+  if(!CompareSchemas(param3, xType2)){
+    return listutils::typeError("rel3 scheam should be" + 
+                                RoadDenstiy::bus_route_typeinfo);
+  }
+
+     ListExpr res = nl->TwoElemList(
+            nl->SymbolAtom("stream"),
+            nl->TwoElemList(
+                nl->SymbolAtom("tuple"),
+                nl->OneElemList(
+                    nl->TwoElemList(
+                        nl->SymbolAtom("bus_route"),
+                        nl->SymbolAtom("busroute"))
+                    )));
+      return res;
+}
+
+
+/*
+TypeMap fun for operator brgeodata 
+
+*/
+
+ListExpr OpTMBRGeoDataTypeMap ( ListExpr args )
+{
+  if ( nl->ListLength ( args ) != 1 )
+  {
+    return  nl->SymbolAtom ( "list length should be 1" );
+  }
+  ListExpr param1 = nl->First(args); 
+  
+ if(!(nl->IsAtom(param1) && nl->AtomType(param1) == SymbolType &&
+     nl->SymbolValue(param1) == "busroute")){
+      return nl->SymbolAtom ( "typeerror: param should be busroute" );
+  }
+  return nl->SymbolAtom ( "sline" );
+
+}
+
+
+/*
+TypeMap fun for operator bsgeodata 
+
+*/
+
+ListExpr OpTMBSGeoDataTypeMap ( ListExpr args )
+{
+  if ( nl->ListLength ( args ) != 2 )
+  {
+    return  nl->SymbolAtom ( "list length should be 2" );
+  }
+  ListExpr param1 = nl->First(args); 
+  ListExpr param2 = nl->Second(args); 
+  
+ if(!(nl->IsAtom(param1) && nl->AtomType(param1) == SymbolType &&
+     nl->SymbolValue(param1) == "busstop" && nl->IsAtom(param2) && 
+     nl->AtomType(param2) == SymbolType &&
+     (nl->SymbolValue(param2) == "busroute"||
+      nl->SymbolValue(param2) == "busnetwork"))){
+      return nl->SymbolAtom ( "typeerror: busstop x busroute expected" );
+  }
+  return nl->SymbolAtom ( "point" );
 }
 
 /*
@@ -7274,6 +7503,126 @@ ListExpr OpTMGetStopIdTypeMap ( ListExpr args )
   }
   return nl->SymbolAtom ( "int" );
 }
+
+/*
+TypeMap fun for operator up down
+
+*/
+
+ListExpr OpTMUpDownTypeMap ( ListExpr args )
+{
+  if ( nl->ListLength ( args ) != 1 )
+  {
+    return  nl->SymbolAtom ( "list length should be 1" );
+  }
+  
+  ListExpr param1 = nl->First ( args );
+  if(!(nl->SymbolValue(param1) == "busstop" ||
+       nl->SymbolValue(param1) == "busroute")){
+      return nl->SymbolAtom ( "typeerror: param should be busstop" );
+  }
+  return nl->SymbolAtom ( "bool" );
+}
+
+/*
+TypeMap fun for operator thebusnetwork
+
+*/
+ListExpr OpTMTheBusNetworkTypeMap ( ListExpr args )
+{
+  if ( nl->ListLength ( args ) != 3 )
+  {
+    return  nl->SymbolAtom ( "list length should be 3" );
+  }
+  
+  ListExpr param1 = nl->First ( args );
+  if(!(nl->IsAtom(param1) && nl->AtomType(param1) == SymbolType &&  
+     nl->SymbolValue(param1) == "int")){
+      return nl->SymbolAtom ( "typeerror: param1 should be int" );
+  }
+  
+  ListExpr param2 = nl->Second ( args );
+  
+  ListExpr xType1;
+  nl->ReadFromString(BusNetwork::BusStopsTypeInfo, xType1); 
+  if(!CompareSchemas(param2, xType1)){
+    return listutils::typeError("rel1 scheam should be" + 
+                                BusNetwork::BusStopsTypeInfo);
+  }
+  
+ 
+  ListExpr param3 = nl->Third ( args );
+  ListExpr xType2;
+  nl->ReadFromString(BusNetwork::BusRoutesTypeInfo, xType2); 
+  if(!CompareSchemas(param3, xType2)){
+    return listutils::typeError("rel2 scheam should be" + 
+                                BusNetwork::BusRoutesTypeInfo);
+  }
+ 
+  return nl->SymbolAtom ( "busnetwork" );
+}
+
+/*
+TypeMap fun for operator busstops
+
+*/
+ListExpr OpTMBusStopsTypeMap ( ListExpr args )
+{
+  if ( nl->ListLength ( args ) != 1 )
+  {
+    return  nl->SymbolAtom ( "list length should be 1" );
+  }
+  
+  ListExpr param1 = nl->First(args);
+  if(nl->IsAtom(param1) && nl->AtomType(param1) == SymbolType &&
+     nl->SymbolValue(param1) == "busnetwork"){
+  
+         ListExpr res = nl->TwoElemList(
+            nl->SymbolAtom("stream"),
+            nl->TwoElemList(
+                nl->SymbolAtom("tuple"),
+                nl->OneElemList(
+                    nl->TwoElemList(
+                        nl->SymbolAtom("bus_stop"),
+                        nl->SymbolAtom("busstop"))
+                    )));
+      return res;
+  }
+  return nl->SymbolAtom("typeerror"); 
+
+}
+
+
+/*
+TypeMap fun for operator busroutes
+
+*/
+ListExpr OpTMBusRoutesTypeMap ( ListExpr args )
+{
+  if ( nl->ListLength ( args ) != 1 )
+  {
+    return  nl->SymbolAtom ( "list length should be 1" );
+  }
+  
+  ListExpr param1 = nl->First(args);
+  if(nl->IsAtom(param1) && nl->AtomType(param1) == SymbolType &&
+     nl->SymbolValue(param1) == "busnetwork"){
+  
+         ListExpr res = nl->TwoElemList(
+            nl->SymbolAtom("stream"),
+            nl->TwoElemList(
+                nl->SymbolAtom("tuple"),
+                nl->OneElemList(
+                    nl->TwoElemList(
+                        nl->SymbolAtom("bus_route"),
+                        nl->SymbolAtom("busroute"))
+                    )));
+      return res;
+  }
+  return nl->SymbolAtom("typeerror"); 
+
+}
+
 
 /*
 TypeMap fun for operator getroutedensity1
@@ -11856,9 +12205,9 @@ int OpTMGetBusStopsValueMap ( Word* args, Word& result, int message,
           if(br->count == br->bus_stop_list.size())return CANCEL;
 
           Tuple* tuple = new Tuple(br->resulttype);
-          
+
           tuple->PutAttribute(0, new Bus_Stop(br->bus_stop_list[br->count]));
-          tuple->PutAttribute(1, new Point(br->bus_stop_geodata[br->count]));
+
 
           result.setAddr(tuple);
           br->count++;
@@ -11877,6 +12226,112 @@ int OpTMGetBusStopsValueMap ( Word* args, Word& result, int message,
 
 }
 
+
+/*
+create bus routes with data type bus route
+
+*/
+int OpTMGetBusRoutesValueMap ( Word* args, Word& result, int message,
+                         Word& local, Supplier in_pSupplier )
+{
+
+  BusRoute* br;
+  switch(message){
+      case OPEN:{
+        Relation* r1 = (Relation*)args[0].addr; 
+        BTree* btree = (BTree*)args[1].addr; 
+        Relation* r2 = (Relation*)args[2].addr; 
+
+        br = new BusRoute(NULL,r1, btree,r2);
+        br->resulttype =
+            new TupleType(nl->Second(GetTupleResultType(in_pSupplier)));
+
+        br->GetBusRoutes();
+        local.setAddr(br);
+        return 0;
+      }
+      case REQUEST:{
+          if(local.addr == NULL) return CANCEL;
+          br = (BusRoute*)local.addr;
+          if(br->count == br->bus_route_list.size())return CANCEL;
+
+          Tuple* tuple = new Tuple(br->resulttype);
+
+          tuple->PutAttribute(0, new Bus_Route(br->bus_route_list[br->count]));
+
+          result.setAddr(tuple);
+          br->count++;
+          return YIELD;
+      }
+      case CLOSE:{
+          if(local.addr){
+            br = (BusRoute*)local.addr;
+            delete br;
+            local.setAddr(Address(0));
+          }
+          return 0;
+      }
+  }
+  return 0;
+
+}
+
+
+/*
+get the simpleline of a bus route 
+
+*/
+int OpTMBRGeoDataValueMap ( Word* args, Word& result, int message,
+                         Word& local, Supplier in_pSupplier )
+{
+  result = qp->ResultStorage(in_pSupplier);
+  Bus_Route* br = (Bus_Route*)args[0].addr;
+  if(br->IsDefined()){
+    SimpleLine* res = static_cast<SimpleLine*>(result.addr); 
+    SimpleLine sl(0); 
+    br->GetGeoData(sl);
+    *res = sl; 
+  }
+  return 0;
+}
+
+/*
+get the point of a bus stop
+
+*/
+int OpTMBSGeoData1ValueMap ( Word* args, Word& result, int message,
+                         Word& local, Supplier in_pSupplier )
+{
+  result = qp->ResultStorage(in_pSupplier);
+  Bus_Stop* bs = (Bus_Stop*)args[0].addr; 
+  Bus_Route* br = (Bus_Route*)args[1].addr;
+  
+  if(bs->IsDefined() && br->IsDefined()){
+    Point* res = static_cast<Point*>(result.addr); 
+    br->GetBusStopGeoData(bs, res);
+  }
+  return 0;
+}
+
+/*
+get the point of a bus stop
+
+*/
+int OpTMBSGeoData2ValueMap ( Word* args, Word& result, int message,
+                         Word& local, Supplier in_pSupplier )
+{
+  result = qp->ResultStorage(in_pSupplier);
+  Bus_Stop* bs = (Bus_Stop*)args[0].addr; 
+  BusNetwork* bn = (BusNetwork*)args[1].addr;
+  
+  if(bs->IsDefined() && bn->IsDefined()){
+    Point* res = static_cast<Point*>(result.addr); 
+    bn->GetBusStopGeoData(bs, res);
+  }
+  return 0;
+}
+
+
 /*
 get bus stop id
 
@@ -11891,6 +12346,154 @@ int OpTMGetStopIdValueMap ( Word* args, Word& result, int message,
   else
     ((CcInt*)result.addr)->Set(false, 0);
   return 0;
+}
+
+/*
+get bus stop direction 
+
+*/
+int OpTMBusStopUpDownValueMap ( Word* args, Word& result, int message,
+                         Word& local, Supplier in_pSupplier )
+{
+  result = qp->ResultStorage(in_pSupplier);
+  Bus_Stop* bs = (Bus_Stop*)args[0].addr;
+  if(bs->IsDefined())
+    ((CcBool*)result.addr)->Set(true,bs->GetUp());
+  else
+    ((CcBool*)result.addr)->Set(false, false);
+  return 0;
+}
+
+/*
+get bus route direction 
+
+*/
+int OpTMBusRouteUpDownValueMap ( Word* args, Word& result, int message,
+                         Word& local, Supplier in_pSupplier )
+{
+  result = qp->ResultStorage(in_pSupplier);
+  Bus_Route* br = (Bus_Route*)args[0].addr;
+  if(br->IsDefined())
+    ((CcBool*)result.addr)->Set(true,br->GetUp());
+  else
+    ((CcBool*)result.addr)->Set(false, false);
+  return 0;
+}
+
+/*
+get bus stop id
+
+*/
+int OpTMTheBusNetworkValueMap ( Word* args, Word& result, int message,
+                         Word& local, Supplier in_pSupplier )
+{
+  BusNetwork* bn = (BusNetwork*)qp->ResultStorage(in_pSupplier).addr;
+  int id = ((CcInt*)args[0].addr)->GetIntval(); 
+  map<int,string>::iterator it = busnetList->find ( id );
+  if ( it != busnetList->end() ){
+    cout << "Bus NetworkId used before" << id << endl;
+    return 0;
+  }
+  busnetList->insert ( pair<int,string> ( id, "" ) );
+  Relation* stops = (Relation*)args[1].addr;
+  Relation* routes = (Relation*)args[2].addr; 
+  bn->Load(id, stops, routes);
+  result = SetWord(bn); 
+  return 0;
+}
+
+/*
+get bus stops data from bus network
+
+*/
+int OpTMBusStopsValueMap ( Word* args, Word& result, int message,
+                         Word& local, Supplier in_pSupplier )
+{
+
+  BN* b_n;
+  switch(message){
+      case OPEN:{
+        BusNetwork* bn = (BusNetwork*)args[0].addr; 
+
+        b_n = new BN(bn);
+        b_n->resulttype =
+            new TupleType(nl->Second(GetTupleResultType(in_pSupplier)));
+
+        b_n->GetStops();
+        local.setAddr(b_n);
+        return 0;
+      }
+      case REQUEST:{
+          if(local.addr == NULL) return CANCEL;
+          b_n = (BN*)local.addr;
+          if(b_n->count == b_n->bs_list.size())return CANCEL;
+
+          Tuple* tuple = new Tuple(b_n->resulttype);
+
+          tuple->PutAttribute(0, new Bus_Stop(b_n->bs_list[b_n->count]));
+
+          result.setAddr(tuple);
+          b_n->count++;
+          return YIELD;
+      }
+      case CLOSE:{
+          if(local.addr){
+            b_n = (BN*)local.addr;
+            delete b_n;
+            local.setAddr(Address(0));
+          }
+          return 0;
+      }
+  }
+  return 0;
+
+}
+
+/*
+get bus routes data from bus network
+
+*/
+int OpTMBusRoutesValueMap ( Word* args, Word& result, int message,
+                         Word& local, Supplier in_pSupplier )
+{
+
+  BN* b_n;
+  switch(message){
+      case OPEN:{
+        BusNetwork* bn = (BusNetwork*)args[0].addr; 
+
+        b_n = new BN(bn);
+        b_n->resulttype =
+            new TupleType(nl->Second(GetTupleResultType(in_pSupplier)));
+
+        b_n->GetRoutes();
+        local.setAddr(b_n);
+        return 0;
+      }
+      case REQUEST:{
+          if(local.addr == NULL) return CANCEL;
+          b_n = (BN*)local.addr;
+          if(b_n->count == b_n->br_list.size())return CANCEL;
+
+          Tuple* tuple = new Tuple(b_n->resulttype);
+
+          tuple->PutAttribute(0, new Bus_Route(b_n->br_list[b_n->count]));
+
+          result.setAddr(tuple);
+          b_n->count++;
+          return YIELD;
+      }
+      case CLOSE:{
+          if(local.addr){
+            b_n = (BN*)local.addr;
+            delete b_n;
+            local.setAddr(Address(0));
+          }
+          return 0;
+      }
+  }
+  return 0;
+
 }
 
 /*
@@ -13628,6 +14231,53 @@ Operator getbusstops(
   OpTMGetBusStopsTypeMap
 );
 
+Operator getbusroutes(
+  "getbusroutes",
+  OpTMGetBusRoutesSpec,
+  OpTMGetBusRoutesValueMap,
+  Operator::SimpleSelect,
+  OpTMGetBusRoutesTypeMap
+);
+
+
+Operator brgeodata(
+  "brgeodata",
+  OpTMBRGeoDataSpec,
+  OpTMBRGeoDataValueMap,
+  Operator::SimpleSelect,
+  OpTMBRGeoDataTypeMap
+);
+
+
+ValueMapping OpTMBSGeoDataVM[]=
+{
+  OpTMBSGeoData1ValueMap,
+  OpTMBSGeoData2ValueMap,
+};
+
+int BSGeoDataSelect(ListExpr args)
+{
+  ListExpr arg1 = nl->First(args);
+  ListExpr arg2 = nl->Second(args);
+  if(nl->IsAtom(arg1) && nl->IsEqual(arg1, "busstop") && 
+     nl->IsAtom(arg2) && nl->IsEqual(arg2, "busroute"))
+    return 0;
+  if(nl->IsAtom(arg1) && nl->IsEqual(arg1, "busstop") &&
+     nl->IsAtom(arg2) && nl->IsEqual(arg2, "busnetwork"))
+    return 1;
+
+  return -1;
+}
+
+Operator bsgeodata(
+  "bsgeodata",
+  OpTMBSGeoDataSpec,
+  2, 
+  OpTMBSGeoDataVM,
+  BSGeoDataSelect, 
+  OpTMBSGeoDataTypeMap
+);
+
 Operator getstopid(
   "getstopid",
   OpTMGetStopIdSpec,
@@ -13636,7 +14286,68 @@ Operator getstopid(
   OpTMGetStopIdTypeMap
 );
 
+ValueMapping OpTMUpDownVM[]=
+{
+  OpTMBusStopUpDownValueMap,
+  OpTMBusRouteUpDownValueMap
+};
 
+int UpDownSelect(ListExpr args)
+{
+  ListExpr arg1 = nl->First(args);
+  if(nl->IsAtom(arg1) && nl->IsEqual(arg1, "busstop"))
+    return 0;
+  if(nl->IsAtom(arg1) && nl->IsEqual(arg1, "busroute"))
+    return 1;
+
+  return -1;
+}
+
+Operator up_down(
+  "up_down",
+  OpTMUpDownSpec, 
+  2,
+  OpTMUpDownVM,
+  UpDownSelect,
+  OpTMUpDownTypeMap
+);
+
+/*
+create the bus network 
+
+*/
+
+Operator thebusnetwork(
+  "thebusnetwork",
+  OpTMTheBusNetworkSpec,
+  OpTMTheBusNetworkValueMap,
+  Operator::SimpleSelect,
+  OpTMTheBusNetworkTypeMap
+);
+
+
+Operator bn_busstops(
+  "bn_busstops",
+  OpTMBusStopsSpec,
+  OpTMBusStopsValueMap,
+  Operator::SimpleSelect,
+  OpTMBusStopsTypeMap
+);
+
+
+Operator bn_busroutes(
+  "bn_busroutes",
+  OpTMBusRoutesSpec,
+  OpTMBusRoutesValueMap,
+  Operator::SimpleSelect,
+  OpTMBusRoutesTypeMap
+);
+
+
+/*
+the following are to create moving buses 
+
+*/
 Operator get_route_density1(
   "get_route_density1",
   OpTMGetRouteDensity1Spec,
@@ -13865,6 +14576,7 @@ class TransportationModeAlgebra : public Algebra
     busstop.AssociateKind("DATA"); 
     AddTypeConstructor( &busroute);
     busroute.AssociateKind("DATA"); 
+    AddTypeConstructor( &busnetwork); 
     ////////////////////general data type ////////////////////////
     AddTypeConstructor(&ioref);
     ioref.AssociateKind("DATA"); 
@@ -13942,6 +14654,13 @@ class TransportationModeAlgebra : public Algebra
     AddOperator(&create_bus_stop5); //set up and down for bus stops 
     AddOperator(&getbusstops);//use data type busstop representing bus stops
     AddOperator(&getstopid); 
+    AddOperator(&getbusroutes);//use data type busroute representing bus routes
+    AddOperator(&brgeodata);//get geometrical line of a bus route
+    AddOperator(&bsgeodata);//get the point of a bus stop 
+    AddOperator(&up_down);//get up or down direction for bus stops and routes
+    AddOperator(&thebusnetwork);//create bus network 
+    AddOperator(&bn_busstops);//get bus stops relation
+    AddOperator(&bn_busroutes);//get bus routes relation  
     //////////////preprocess road data to get denstiy value/////////////
     ///////////// create time table and moving buses  //////////////////
     AddOperator(&get_route_density1);//get daytime and night bus routes 
@@ -14046,6 +14765,7 @@ Algebra* InitializeTransportationModeAlgebra( NestedList* nlRef,
     {
     nl = nlRef;
     qp = qpRef;
+    busnetList = new map<int,string>();
   // The C++ scope-operator :: must be used to qualify the full name
   return new TransportationMode::TransportationModeAlgebra();
     }

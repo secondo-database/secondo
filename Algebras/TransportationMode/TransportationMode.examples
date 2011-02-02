@@ -345,14 +345,61 @@ Result   : 10
 Operator : getbusstops
 Number   : 2
 Signature: rel1 x btree x rel2 -> (stream(((x1 t1) ... (xn tn))))
-Example  : query create_bus_stop5(final_busstops, btree_bs, final_busroutes) count;
+Example  : query getbusstops(final_busstops, btree_bs, final_busroutes) count;
 Result   : 10
+
+
+Operator : getbusroutes
+Number   : 2
+Signature: rel1 x btree x rel2 -> (stream(((x1 t1) ... (xn tn))))
+Example  : query getbusstops(final_busstops, btree_bs, final_busroutes) count;
+Result   : 10
+
+Operator : brgeodata
+Number   : 2
+Signature: busroute -> sline
+Example  : query size(brgeodata([const busroute value ((1 TRUE)((((2.0 2.0 2.0 3.0)))) )]));
+Result   : 1.0
+
+Operator : bsgeodata
+Number   : 2
+Signature: busstop x busroute -> point
+Example  : query bsgeodata([const busstop value (1 1 TRUE)], [const busroute value ((1 TRUE)((((2.0 2.0 2.0 3.0)))) )]);
+Result   : (2.0 2.0)
+
+Operator : up_down
+Number   : 2
+Signature: busstop -> bool
+Example  : query up_down([const busstop value (1 1 TRUE)]);
+Result   : TRUE
+
+
+Operator : thebusnetwork
+Number   : 2
+Signature: int x rel x rel -> busnetwork
+Example  : query ref_id(thebusnetwork(1, stops_rel, routes_rel));
+Result   : 1
+
+
+Operator : bn_busstops
+Number   : 2
+Signature: busnetwork -> rel
+Example  : query bn_busstops(bn1) count;
+Result   : 20
+
+
+Operator : bn_busroutes
+Number   : 2
+Signature: busnetwork -> rel
+Example  : query bn_busroutes(bn1) count;
+Result   : 20
 
 Operator : getstopid
 Number   : 2
 Signature: busstop -> int
 Example  : query getstopid([const busstop value (1 2)]);
 Result   : 2
+
 
 
 Operator : get_route_density1
@@ -532,8 +579,8 @@ Result   : 2.0
 Operator : size
 Number   : 1
 Signature: size -> real 
-Example  : query size(l3d1);
-Result   : 3.0
+Example  : query size([const line3d value ((2.0 2.0 2.0)(2.0 2.0 3.0))]);
+Result   : 1.0
 
 
 Operator : bbox3d
