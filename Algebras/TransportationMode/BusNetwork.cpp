@@ -5529,8 +5529,7 @@ Bus_Route::Bus_Route()
 }
 
 Bus_Route::Bus_Route(const Bus_Route& br):
-StandardSpatialAttribute(br.IsDefined()),
-elem_list(0), seg_list(0),
+StandardSpatialAttribute<2>(br.IsDefined()), elem_list(0), seg_list(0),
 br_id(br.GetId()), up_down(br.GetUp())
 {
   if(IsDefined()){
@@ -5872,13 +5871,13 @@ ListExpr OutBusNetwork( ListExpr typeInfo, Word value )
 }
 
 /*
-In function
+In function. there is not nested list expression here.
 
 */
 Word InBusNetwork( const ListExpr typeInfo, const ListExpr instance,
        const int errorPos, ListExpr& errorInfo, bool& correct )
 {
-  
+
 //  cout<<"length "<<nl->ListLength(instance)<<endl;
 
   if( !nl->IsAtom( instance ) ){
@@ -5905,9 +5904,9 @@ Word InBusNetwork( const ListExpr typeInfo, const ListExpr instance,
       return SetWord(Address(0));
     }
     unsigned int id = nl->IntValue(second);
-    
+
     BusNetwork* bn = new BusNetwork(d, id); 
-    
+
    ////////////////very important /////////////////////////////
     correct = true; 
   ///////////////////////////////////////////////////////////
@@ -5922,7 +5921,7 @@ bool SaveBusNetwork(SmiRecord& valueRecord, size_t& offset,
                const ListExpr typeInfo, Word& value)
 {
   BusNetwork* bn = (BusNetwork*)value.addr;
-  return bn->Save(valueRecord, offset, typeInfo); 
+  return bn->Save(valueRecord, offset, typeInfo);
 }
 
 BusNetwork* BusNetwork::Open(SmiRecord& valueRecord, size_t& offset, 
@@ -6187,12 +6186,12 @@ void BusNetwork:: LoadRoutes(Relation* r2)
     br_tuple->DeleteIfAllowed();
   }
 //  cout<<r_rel->GetNoTuples()<<endl; 
-  
+
   ostringstream xRoutesStream;
   xRoutesStream << (long)r_rel;
   string strQuery = "(consume(feed(" + BusRoutesInternal +
                 "(ptr " + xRoutesStream.str() + "))))";
- 
+
 //  cout<<strQuery<<endl; 
 
   Word xResult;
@@ -6212,9 +6211,9 @@ void BusNetwork:: LoadRoutes(Relation* r2)
   QueryExecuted = QueryProcessor::ExecuteQuery(strQuery,xResult);
   assert(QueryExecuted);
   btree_br = (BTree*)xResult.addr;
-  
+
 }
-  
+
 /*
 create a bus network by bus stops relation and bus routes relation 
 
@@ -6244,7 +6243,7 @@ void BusNetwork::GetBusStopGeoData(Bus_Stop* bs, Point* p)
     cout<<"invalid bus stop"<<endl;
     return; 
   }
-  
+
   CcInt* search_id = new CcInt(true, id);
   BTreeIterator* btree_iter = btree_br->ExactMatch(search_id);
   while(btree_iter->Next()){

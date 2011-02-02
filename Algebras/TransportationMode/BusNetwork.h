@@ -608,11 +608,11 @@ struct BR_Elem{
 class Bus_Route:public StandardSpatialAttribute<2>{
   public:
     Bus_Route(); 
-    Bus_Route(const int initsize):StandardSpatialAttribute(true),
+    Bus_Route(const int initsize):StandardSpatialAttribute<2>(true),
     elem_list(initsize), seg_list(initsize), br_id(0), up_down(true){}
     
     Bus_Route(unsigned int id1, bool d):
-    StandardSpatialAttribute(true),
+    StandardSpatialAttribute<2>(true),
     elem_list(0), seg_list(0), br_id(id1), up_down(d){}
     Bus_Route(const Bus_Route& br); 
     Bus_Route& operator=(const Bus_Route& br); 
