@@ -431,6 +431,26 @@ Returns the 3 dimensional spatio-temporal BoundingBox of the ~ugpoint~.
     return p1.GetPosition();
   };
 
+  inline GPoint GetStartPosition()const
+  {
+    return p0;
+  };
+
+  inline GPoint GetEndPosition() const
+  {
+    return p1;
+  };
+
+  inline void SetStartPosition(const GPoint gp)
+  {
+    p0 = gp;
+  };
+
+  inline void SetEndPosition(const GPoint gp)
+  {
+    p1 = gp;
+  };
+
   inline Side GetUnitSide() const
   {
     return p0.GetSide();
@@ -566,6 +586,23 @@ SetMethoden f[ue]r ~ugpoint~
   */
 
   Instant TimeAtPos(double pos) const;
+
+
+
+
+  UReal* NetdistanceFromArg(const GPoint* gp) const;
+
+  /*
+  Returns the network distance from the ~gpoint~ to the ~ugpoint~
+
+  */
+
+  UReal* NetdistanceToArg(const GPoint* gp) const;
+
+  /*
+  Returns the network distance from the ~ugpoint~ to the ~gpoint~
+
+  */
 
 
   /*

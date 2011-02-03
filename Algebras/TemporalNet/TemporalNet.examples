@@ -382,3 +382,18 @@ Number   : 1
 Signature: stream(mgpsecunit) -> stream(tuple((secid int)(partNo int)(dir int)(speed real)(starttime instant)(endtime instant)(leftclosed bool)(rightclosed bool)))
 Example  : query trains feed projecttransformstream [trip] mgp2mgpsecunits3[20000.0] mgpsu2tuple consume;
 Result   : file
+
+
+Operator : netdistancenew
+Number   : 1
+Signature: gpoint x ugpoint -> ureal
+Example  : query netdistancenew([const gpoint value(1 1 0.5 2)], [const ugpoint value( ("2007-01-01-10:10:00.000" "2007-01-01-10:10:01.000" TRUE FALSE)(1 2 2 0.7 1.5))]);
+Result   : (ureal(("2007-01-01-10:10" "2007-01-01-10:10:01" TRUE FALSE)(0.0 69119.99999999607 773.3299430080975 FALSE)))
+Tolerance: 0.01%
+
+Operator : netdistancenew
+Number   : 2
+Signature: ugpoint x gpoint -> ureal
+Example  : query netdistancenew([const ugpoint value( ("2007-01-01-10:10:00.000" "2007-01-01-10:10:01.000" TRUE FALSE)(1 2 2 0.7 1.5))],[const gpoint value(1 1 0.5 2)]);
+Result   : (ureal(("2007-01-01-10:10" "2007-01-01-10:10:01" TRUE FALSE)(0.0 69119.99999999607 773.3299430080975 FALSE)))
+Tolerance: 0.01%
