@@ -403,3 +403,15 @@ Number   : 1
 Signature: gline -> gpoints
 Example  : query getBGP([const gline value(1((1 0.0 100.5)(3 4.5 34.0)))])
 Result   : (gpoints((1 1 100.5 2)(1 3 4.5 2)(1 3 34.0 2)))
+
+Operator : shortestpathtree
+Number   : 1
+Signature: gpoint x network x bool -> gline
+Example  : query shortestpathtree([const gpoint value(1 1 0.5 2)], B_NETWORK, TRUE);
+Result   : file
+
+Operator : shortestpathtree
+Number   : 2
+Signature: gpoint x network x bool x gpoint -> gline
+Example  : query shortestpathtree([const gpoint value(1 1 0.5 2)], B_NETWORK, FALSE, [const gpoint value(1 5 0.6 2)]);
+Result   : file

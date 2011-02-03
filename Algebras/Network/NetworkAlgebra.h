@@ -39,6 +39,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "SpatialAlgebra.h"
 #include "RTreeAlgebra.h"
 
+
 /*
 1.1.2 struct SectTreeEntry
 
@@ -56,7 +57,8 @@ us if the whole section is part described or only a part of the section.
 struct SectTreeEntry{
   SectTreeEntry() {};
 
-  SectTreeEntry(TupleId n, int r, double st, double e, bool stb, bool eb) {
+  SectTreeEntry(const TupleId n, const int r, const double st, const double e,
+                const bool stb, const bool eb) {
     secttid = n;
     rid = r;
     start = st;
@@ -96,6 +98,7 @@ ostream& Print ( ostream& os ) const
 class GPoints;
 class Network;
 class GLine;
+class GPoint;
 
 /*
 2 GLine
@@ -120,18 +123,12 @@ class RouteInterval
   {
   };
 
-  RouteInterval(int in_iRouteId,
-                double in_dStart,
-                double in_dEnd):
+  RouteInterval(const int in_iRouteId,
+                const double in_dStart,
+                const double in_dEnd):
       m_iRouteId(in_iRouteId),
       m_dStart(in_dStart),
       m_dEnd(in_dEnd) {};
-
-  RouteInterval(RouteInterval& ri) :
-    m_iRouteId (ri.m_iRouteId),
-    m_dStart (ri.m_dStart),
-    m_dEnd (ri.m_dEnd)
-    {};
 
   RouteInterval(const RouteInterval& ri):
       m_iRouteId(ri.m_iRouteId),
@@ -147,21 +144,64 @@ interval~.
 
 */
 
-  Rectangle<2> BoundingBox(Network* pNetwork) const;
+  Rectangle<2> BoundingBox(const Network* pNetwork) const;
 
 /*
 Get and Set private values.
 
 */
-  inline int GetRouteId() const {return m_iRouteId;};
-  inline double GetStartPos() const {return m_dStart;};
-  inline double GetEndPos() const {return m_dEnd;};
-  inline void SetRouteId(int rid) {m_iRouteId = rid;};
-  inline void SetStartPos(double pos) {m_dStart = pos;};
-  inline void SetEndPos(double pos){m_dEnd = pos;};
+  inline int GetRouteId() const
+  {
+    return m_iRouteId;
+  };
 
-  bool Contains(RouteInterval *ri);
-  bool Intersects(RouteInterval *ri);
+  inline double GetStartPos() const
+  {
+    return m_dStart;
+  };
+
+  inline double GetEndPos() const
+  {
+    return m_dEnd;
+  };
+
+  inline double GetValue(const bool start) const
+  {
+    if (start) return m_dStart;
+    else return m_dEnd;
+  };
+
+  inline void SetRouteId(const int rid)
+  {
+    m_iRouteId = rid;
+  };
+
+  inline void SetStartPos(const double pos)
+  {
+    m_dStart = pos;
+  };
+
+  inline void SetEndPos(const double pos)
+  {
+    m_dEnd = pos;
+  };
+
+  inline double Length() const
+  {
+    return fabs(GetEndPos() - GetStartPos());
+  }
+
+  RouteInterval& operator=(const RouteInterval& ri)
+  {
+    m_iRouteId = ri.m_iRouteId;
+    m_dStart = ri.m_dStart;
+    m_dEnd = ri.m_dEnd;
+    return *this;
+  }
+
+  bool Contains(const RouteInterval *ri) const;
+  bool Contains(const GPoint *gp)const;
+  bool Intersects(const RouteInterval *ri) const;
   ostream& Print(ostream& os) const;
 
 
@@ -240,9 +280,9 @@ Assignment operator
     return *this;
   }
 
-  void SetRouteId(int r){rid = r;}
-  void SetPosition(double p) {d = p;}
-  void SetSide(Side s){side = s;}
+  void SetRouteId(const int r){rid = r;}
+  void SetPosition(const double p) {d = p;}
+  void SetSide(const Side s){side = s;}
 /*
 
 Private fields.
@@ -290,15 +330,15 @@ class GPoint : public Attribute
     GPoint():Attribute()
     {}
 
-    GPoint(bool def)
+    GPoint(const bool def)
       : Attribute(def)
     {}
 
-    GPoint( bool in_bDefined,
-            int in_iNetworkId,
-            int in_xRid,
-            double in_dLocation,
-            Side in_xSide = None ):
+    GPoint( const bool in_bDefined,
+            const int in_iNetworkId,
+            const int in_xRid,
+            const double in_dLocation,
+            const Side in_xSide = None ):
     Attribute(in_bDefined),
     m_iNetworkId( in_iNetworkId ),
     m_xRouteLocation( in_xRid, in_dLocation, in_xSide )
@@ -363,17 +403,17 @@ Set Methods of ~gpoint~
 
 */
 
-    inline void SetRouteId( int in_rid )
+    inline void SetRouteId( const int in_rid )
     {
       m_xRouteLocation.SetRouteId(in_rid);
     }
 
-    inline void SetPosition( double pos )
+    inline void SetPosition(const  double pos )
     {
       m_xRouteLocation.SetPosition(pos);
     }
 
-    inline void SetSide( Side s )
+    inline void SetSide( const Side s )
     {
       m_xRouteLocation.SetSide(s);
     }
@@ -512,40 +552,43 @@ Returns the network distance between 2 ~gpoint~ using DijkstrasAlgorithm.
 
 */
 
-    double Netdistance (GPoint* toGPoint);
+    double Netdistance (const GPoint* toGPoint) const;
 
 /*
 Returns the network distance between 2 ~gpoint~ using AStar-Algorithm.
 
 */
 
-    double NetdistanceA (GPoint* toGPoint);
-    double NetdistanceA (GPoint* toGPoint, Network* pNetwork);
+    double NetdistanceNew (const GPoint* toGPoint) const;
+    double NetdistanceNew (const GPoint* toGPoint,
+                           const Network* pNetwork) const;
 
-    double NetdistanceNew (GLine* toGLine);
-    double NetdistanceNew (GLine* toGLine, Network* pNetwork);
+    double NetdistanceNew (const GLine* toGLine) const;
+    double NetdistanceNew (const GLine* toGLine,
+                           const Network* pNetwork) const;
 
-    double NetdistanceNew (GPoints* toGPoints);
-    double NetdistanceNew (GPoints* toGPoints, Network* pNetwork);
+    double NetdistanceNew (const GPoints* toGPoints) const;
+    double NetdistanceNew (const GPoints* toGPoints,
+                           const Network* pNetwork) const;
 
 /*
 Never used ?
 
 */
-    double NewNetdistance(GPoint* pToGPoint,GLine* res);//new
+    double NewNetdistance(const GPoint* pToGPoint, GLine* res) const;//new
 
 /*
 Computes the euclidean distance of 2 glines.
 
 */
-    double Distance (GPoint* toGPoint);
+    double Distance (const GPoint* toGPoint) const ;
 
 /*
 Returns true if the gpoint is inside the gline false elsewhere.
 
 */
 
-    bool Inside(GLine *gl);
+    bool Inside( const GLine *gl) const;
 
 /*
 Returns true if two gpoint are identical.
@@ -566,11 +609,11 @@ Returns true if two gpoint are identical.
 
     */
 
-    void ToPoint(Point *& res);
+    void ToPoint(Point *& res) const;
 
     Point* ToPoint() const;
 
-    Point* ToPoint(Network *&pNetwork) const;
+    Point* ToPoint(const Network *&pNetwork) const;
 
 /*
 Returns the spatial Bounding Box of the point which is a rectangle degenerated
@@ -609,10 +652,11 @@ Using DijkstrasAlgorithm
 
 */
 
-  bool ShortestPath(GPoint *ziel, GLine *result,
-                    DbArray<TupleId>* touchedSects = 0);
-  bool ShortestPath(GPoint* ziel, GLine* result, Network* pNetwork,
-                    DbArray<TupleId>* touchedSects = 0);
+  bool ShortestPath(const GPoint *ziel, GLine *result,
+                    DbArray<TupleId>* touchedSects = 0) const;
+  bool ShortestPath(const GPoint* ziel, GLine *result,
+                    const Network* pNetwork,
+                    DbArray<TupleId>* touchedSects = 0) const;
 
 /*
 Returns a gline representing the shortest path between a GPoint.and
@@ -622,20 +666,32 @@ Using AStarAlgorithm
 
 */
 
-  bool ShortestPathAStar(GPoint *ziel, GLine *result,
-                         DbArray<TupleId>* touchedSects = 0);
-  bool ShortestPathAStar(GPoint* ziel, GLine* result, Network *pNetwork,
-                         DbArray<TupleId>* touchedSects = 0);
+  bool ShortestPathAStar(const GPoint *ziel, GLine *result,
+                         DbArray<TupleId>* touchedSects = 0) const;
+  bool ShortestPathAStar(const GPoint* ziel, GLine* result,
+                         const Network *pNetwork,
+                         DbArray<TupleId>* touchedSects = 0) const;
 
-  bool ShortestPathAStar(GLine *ziel, GLine *result,
-                         DbArray<TupleId>* touchedSects = 0);
-  bool ShortestPathAStar(GLine* ziel, GLine* result, Network *pNetwork,
-                         DbArray<TupleId>* touchedSects = 0);
+  bool ShortestPathAStar(const GLine *ziel, GLine *result,
+                         DbArray<TupleId>* touchedSects = 0) const;
+  bool ShortestPathAStar(const GLine* ziel, GLine* result,
+                         const Network *pNetwork,
+                         DbArray<TupleId>* touchedSects = 0) const;
 
-  bool ShortestPathAStar(GPoints *ziel, GLine *result,
-                         DbArray<TupleId>* touchedSects = 0);
-  bool ShortestPathAStar(GPoints* ziel, GLine* result, Network *pNetwork,
-                         DbArray<TupleId>* touchedSects = 0);
+  bool ShortestPathAStar(const GPoints *ziel, GLine *result,
+                         DbArray<TupleId>* touchedSects = 0) const;
+  bool ShortestPathAStar(const GPoints* ziel, GLine* result,
+                         const Network *pNetwork,
+                         DbArray<TupleId>* touchedSects = 0) const;
+
+/*
+Returns the shortest path tree from the source in the given network.
+Complete for complete = true and until every point of the target is reached
+for complete = false.
+
+*/
+ bool ShortestPathTree(const Network* pNetwork, const bool complete,
+                       const GPoint* target, GLine* result) const;
 
 
   private:
@@ -730,7 +786,7 @@ class ConnectivityCode
 Constructs the connectivity code given an integer value ~cc~.
 
 */
-  ConnectivityCode( int in_iCc ):
+  ConnectivityCode( const int in_iCc ):
     m_iConnectivityCode( in_iCc )
   {
   }
@@ -742,22 +798,22 @@ Constructs the connectivity code given the Boolean values for
 all possibilities.
 
 */
-  ConnectivityCode( bool in_bAup_Aup,
-                    bool in_bAup_Adown,
-                    bool in_bAup_Bup,
-                    bool in_bAup_Bdown,
-                    bool in_bAdown_Aup,
-                    bool in_bAdown_Adown,
-                    bool in_bAdown_Bup,
-                    bool in_bAdown_Bdown,
-                    bool in_bBup_Aup,
-                    bool in_bBup_Adown,
-                    bool in_bBup_Bup,
-                    bool in_bBup_Bdown,
-                    bool in_bBdown_Aup,
-                    bool in_bBdown_Adown,
-                    bool in_bBdown_Bup,
-                    bool in_bBdown_Bdown ):
+  ConnectivityCode( const bool in_bAup_Aup,
+                    const bool in_bAup_Adown,
+                    const bool in_bAup_Bup,
+                    const bool in_bAup_Bdown,
+                    const bool in_bAdown_Aup,
+                    const bool in_bAdown_Adown,
+                    const bool in_bAdown_Bup,
+                    const bool in_bAdown_Bdown,
+                    const bool in_bBup_Aup,
+                    const bool in_bBup_Adown,
+                    const bool in_bBup_Bup,
+                    const bool in_bBup_Bdown,
+                    const bool in_bBdown_Aup,
+                    const bool in_bBdown_Adown,
+                    const bool in_bBdown_Bup,
+                    const bool in_bBdown_Bdown ):
     m_iConnectivityCode( (in_bAup_Aup && AUP_AUP) |
                          (in_bAup_Adown && AUP_ADOWN) |
                          (in_bAup_Bup && AUP_BUP) |
@@ -785,7 +841,7 @@ all possibilities.
 Checks if a transition is possible.
 
 */
-  bool IsPossible( Transition in_xTransition ) const
+  bool IsPossible( const Transition in_xTransition ) const
   {
     return in_xTransition & m_iConnectivityCode;
   }
@@ -826,8 +882,8 @@ Constructor
 Constructor giving a section
 
 */
-  DirectedSection( TupleId in_iSectionTid,
-                   bool in_bUpDown):
+  DirectedSection( const TupleId in_iSectionTid,
+                   const bool in_bUpDown):
     m_iSectionTid( in_iSectionTid ),
     m_bUpDown( in_bUpDown )
   {
@@ -855,12 +911,12 @@ Redefinition of the assignment operator.
     return *this;
   }
 
-  bool GetUpDownFlag()
+  bool GetUpDownFlag() const
   {
     return m_bUpDown;
   }
 
-  TupleId GetSectionTid()
+  TupleId GetSectionTid() const
   {
     return m_iSectionTid;
   }
@@ -913,10 +969,10 @@ Constructor
 Constructor giving a section
 
 */
-  DirectedSectionPair(TupleId in_iFirstSectionTid,
-                      bool in_bFirstUpDown,
-                      TupleId in_iSecondSectionTid,
-                      bool in_bSecondUpDown):
+  DirectedSectionPair(const TupleId in_iFirstSectionTid,
+                      const bool in_bFirstUpDown,
+                      const TupleId in_iSecondSectionTid,
+                      const bool in_bSecondUpDown):
     m_iFirstSectionTid( in_iFirstSectionTid ),
     m_bFirstUpDown( in_bFirstUpDown ),
     m_iSecondSectionTid( in_iSecondSectionTid ),
@@ -1004,8 +1060,8 @@ The simple constructor.
 The constructor.
 
 */
-  AdjacencyListEntry( int in_iLow,
-                      int in_iHigh ):
+  AdjacencyListEntry( const int in_iLow,
+                      const int in_iHigh ):
   m_iLow( in_iLow ),
   m_iHigh( in_iHigh )
   {
@@ -1046,7 +1102,7 @@ struct JunctionSortEntry
   {
   }
 
-  JunctionSortEntry(bool in_bFirstRoute,
+  JunctionSortEntry(const bool in_bFirstRoute,
                     Tuple* in_pJunction):
     m_bFirstRoute(in_bFirstRoute),
     m_pJunction(in_pJunction)
@@ -1102,7 +1158,7 @@ struct JunctionSortEntry
 
   }
 
-  double GetOtherRouteMeas()
+  double GetOtherRouteMeas() const
   {
     CcReal* pMeas;
     if(m_bFirstRoute)
@@ -1117,7 +1173,7 @@ struct JunctionSortEntry
 
   }
 
-  int GetOtherRouteId() {
+  int GetOtherRouteId() const {
     CcInt* pRouteId;
     if (m_bFirstRoute) {
       pRouteId = (CcInt*)m_pJunction->GetAttribute(JUNCTION_ROUTE2_ID);
@@ -1128,7 +1184,7 @@ struct JunctionSortEntry
   }
 
 
-  TupleId GetUpSectionId()
+  TupleId GetUpSectionId() const
   {
     TupleId pTid;
     if(m_bFirstRoute)
@@ -1144,7 +1200,7 @@ struct JunctionSortEntry
     return pTid;
   }
 
-  TupleId GetDownSectionId()
+  TupleId GetDownSectionId() const
   {
     TupleId pTid;
     if(m_bFirstRoute)
@@ -1352,7 +1408,7 @@ Method GetId
 Returns the id of this network
 
 */
-    int GetId();
+    int GetId() const;
 
 /*
 GetRoutes
@@ -1361,7 +1417,7 @@ Returns a copy of the ~routes~ relation in external representation.
 This function is used in the ~routes~ operator.
 
 */
-    Relation *GetRoutes();
+    Relation *GetRoutes() const;
 
 /*
 GetJunctions
@@ -1370,7 +1426,7 @@ Returns a copy of the ~junctions~ relation in external representation.
 This function is used in the ~junctions~ operator.
 
 */
-    Relation *GetJunctions();
+    Relation *GetJunctions() const;
 
 /*
 GetJunctionsOnRoute
@@ -1379,7 +1435,7 @@ Returns the junction from the start of the route to the end.
 
 */
     void GetJunctionsOnRoute(CcInt* in_pRouteId,
-                             vector<JunctionSortEntry>& inout_xJunctions);
+                             vector<JunctionSortEntry>& inout_xJunctions) const;
 
 /*
 Returns the section ~tuple~ of the network which includes the ~GPoint~.
@@ -1389,7 +1445,7 @@ relation! If you need the correct tupleId of the sections relation use
 
 */
 
- Tuple*  GetSectionOnRoute(GPoint* in_xGPoint);
+ Tuple*  GetSectionOnRoute(const GPoint* in_xGPoint) const;
 
 /*
 Returns the ~tupleid~  of the section which includes the ~GPoint~ .
@@ -1397,7 +1453,7 @@ Returns the ~tupleid~  of the section which includes the ~GPoint~ .
 */
 
 
- TupleId GetTupleIdSectionOnRoute(GPoint* in_xGPoint);
+ TupleId GetTupleIdSectionOnRoute(const GPoint* in_xGPoint) const;
 
 /*
 GetPointOnRoute
@@ -1406,7 +1462,7 @@ Returns the point value of the GPoint on the route. Used for translation of
 network positions into spatial 2D positions.
 
 */
-  void GetPointOnRoute(const GPoint* in_xGPoint, Point *&res);
+  void GetPointOnRoute(const GPoint* in_xGPoint, Point *&res) const;
 
 /*
 GetRoute
@@ -1415,8 +1471,8 @@ Returns the route tuple for the given route id.
 
 */
 
-  Tuple* GetRoute(int in_RouteId);
-  Tuple* GetRoute(TupleId in_routeTID);
+  Tuple* GetRoute(const int in_RouteId) const;
+  Tuple* GetRoute(const TupleId in_routeTID) const;
 
 /*
 GetRouteCurve
@@ -1425,7 +1481,7 @@ Returns the route curve for the given route id.
 
 */
 
-  SimpleLine GetRouteCurve(int in_iRouteId);
+  SimpleLine GetRouteCurve(const int in_iRouteId) const;
 
 /*
 GetDual
@@ -1434,7 +1490,7 @@ Returns the dual value of the given route id.
 
 */
 
-  bool GetDual(int in_iRouteId);
+  bool GetDual(const int in_iRouteId) const;
 
 /*
 GetLineValueOfRouteInterval
@@ -1445,7 +1501,7 @@ to translate network values into spatial 2D values.
 */
 
   void GetLineValueOfRouteInterval(const RouteInterval* in_rI,
-                                   SimpleLine *out_line);
+                                   SimpleLine *out_line) const;
 
 /*
 GetSections
@@ -1454,7 +1510,7 @@ Returns a copy of the ~sections~ relation in external representation.
 This function is used in the ~sections~ operator.
 
 */
-  Relation *GetSections();
+  Relation *GetSections() const;
 
 /*
 GetNetworkPosOfPoint
@@ -1464,7 +1520,7 @@ elsewhere. Used to translate spatial 2D positions into network positions.
 
 */
 
-  GPoint* GetNetworkPosOfPoint(Point p);
+  GPoint* GetNetworkPosOfPoint(const Point p) const;
 
 /*
 GetSectionsInternal
@@ -1472,7 +1528,7 @@ GetSectionsInternal
 Returns the ~sections~ relation (in internal representation).
 
 */
-    Relation *GetSectionsInternal();
+    Relation *GetSectionsInternal() const;
 
 /*
 Method GetAdjacentSection
@@ -1481,9 +1537,9 @@ downwards bool from the section given by TupleId.
 
 */
 
-    void GetAdjacentSections(TupleId in_iSectionId,
-                             bool in_bUpDown,
-                             vector<DirectedSection> &inout_xSections);
+    void GetAdjacentSections(const TupleId in_iSectionId,
+                             const bool in_bUpDown,
+                             vector<DirectedSection> &inout_xSections) const;
 
 /*
 GetSections on RouteInterval.
@@ -1494,10 +1550,10 @@ Returns a set of sections which are covered by the given ~RouteInterval~
 */
 
     void GetSectionsOfRouteInterval(const RouteInterval *in_ri,
-                                    vector<SectTreeEntry>& io_SectionIds);
+                                    vector<SectTreeEntry>& io_SectionIds) const;
 
     void GetSectionsOfRoutInterval(const RouteInterval *in_ri,
-                                  vector<TupleId> &res);
+                                  vector<TupleId> &res) const;
 
 /*
 Get Routeinterval for Halfsegment defined by point interval. Used to translate
@@ -1505,14 +1561,14 @@ spatial 2D values into network values.
 
 */
 
-    RouteInterval* Find(Point p1, Point p2);
+    RouteInterval* Find(const Point p1, const Point p2) const;
 
 /*
 Get Routepart passed limited by the two points.
 
 */
 
-    RouteInterval* FindInterval(Point p1, Point p2);
+    RouteInterval* FindInterval(const Point p1, const Point p2) const;
 
 
 /*
@@ -1521,16 +1577,18 @@ values of the junction on this routes.
 
 */
 
-void GetJunctionMeasForRoutes(CcInt *pLastRouteId, CcInt *pCurrentSectionRid,
-                                  double& rid1meas, double& rid2meas);
+void GetJunctionMeasForRoutes( CcInt *pLastRouteId,
+                               CcInt *pCurrentSectionRid,
+                              double& rid1meas, double& rid2meas) const;
 
 /*
 Returns the section with the given id.
 
 */
-    Tuple* GetSection(TupleId n);
+    Tuple* GetSection(const TupleId n) const ;
 
-    void FindSP(TupleId j1,TupleId j2,double& length,GLine* res);
+    void FindSP(const TupleId j1, const TupleId j2,
+                double& length, GLine* res) const;
 /*
 4.2.9.4 Secondo Integration Methods of Class ~Network~
 
@@ -1620,17 +1678,25 @@ isDefined
 
 */
 
- int IsDefined();
+ int IsDefined() const;
 
- void SetDefined(bool def)
+ void SetDefined(const bool def)
  {
    m_bDefined = def;
  };
 
 
-  void GetTupleIdSectionOnRouteJun(GPoint* in_xGPoint,vector<TupleId>&);
-  int GetNoJunctions(){return m_pJunctions->GetNoTuples();}
-  int GetNoRoutes(){return m_pRoutes->GetNoTuples();}
+  void GetTupleIdSectionOnRouteJun(const GPoint* in_xGPoint,
+                                   vector<TupleId>&) const;
+  int GetNoJunctions() const
+  {
+    return m_pJunctions->GetNoTuples();
+  }
+
+  int GetNoRoutes() const
+  {
+    return m_pRoutes->GetNoTuples();
+  }
 
 private:
 
@@ -1674,12 +1740,12 @@ Given that all relations are set up, the adjacency lists are created.
 */
   void FillAdjacencyLists();
 
-  void FillAdjacencyPair(TupleId in_pFirstSection,
-                         bool in_bFirstUp,
-                         TupleId in_pSecondSection,
-                         bool in_bSecondUp,
-                         ConnectivityCode in_xCc,
-                         Transition in_xTransition,
+  void FillAdjacencyPair(const TupleId in_pFirstSection,
+                         const bool in_bFirstUp,
+                         const TupleId in_pSecondSection,
+                         const bool in_bSecondUp,
+                         const ConnectivityCode in_xCc,
+                         const Transition in_xTransition,
                          vector<DirectedSectionPair> &inout_xPairs);
 
 /*
@@ -1705,13 +1771,13 @@ for ~gline~ ~routeInterval~.
 
   bool ShorterConnection(Tuple *route, double &start,
                    double &end, double &dpos, double &dpos2, int &rid,
-                   int &ridt, Point p1, Point p2 );
+                   int &ridt, Point p1, Point p2 ) const;
 
   bool ShorterConnection2(Tuple *route, double &start,
                    double &end, double &dpos, double &dpos2, int &rid,
-                   int &ridt, Point p1, Point p2 );
+                   int &ridt, Point p1, Point p2 ) const ;
 
-  bool InShortestPath(GPoint* start, GPoint* end, GLine *result);
+  bool InShortestPath(GPoint* start, GPoint* end, GLine *result) const;
 
 
 /*
@@ -1828,11 +1894,11 @@ The simple constructor. Should not be used.
 the size of the ~DbArray~ is dynamically extended later.
 
 */
-    GLine(int in_iSize);
+    GLine(const int in_iSize);
 
     GLine(const GLine* in_xOther);
 
-    GLine(bool def);
+    GLine(const bool def);
 
     ~GLine() {};
 
@@ -1848,72 +1914,84 @@ the size of the ~DbArray~ is dynamically extended later.
 
     ostream& Print( ostream& os ) const;
 
-    void SetNetworkId(int in_iNetworkId);
+    void SetNetworkId(const int in_iNetworkId);
 
-    void AddRouteInterval(int in_iRouteId,
-                          double in_dStart,
-                          double in_dEnd);
+    void AddRouteInterval(const int in_iRouteId,
+                          const double in_dStart,
+                          const double in_dEnd);
 
-    void AddRouteInterval(RouteInterval ri);
+    void AddRouteInterval(const RouteInterval ri);
 
-    double GetLength ();
-    void SetLength(double l);
+    double GetLength () const;
+    void SetLength(const double l);
 
-    int GetNetworkId();
+    int GetNetworkId() const;
 
     void Get(const int i, RouteInterval &ri) const;
 
     int NoOfComponents() const;
 
-    bool IsSorted();
+    bool IsSorted() const;
 
-    void SetSorted(bool);
+    void SetSorted(const bool b);
 
-    DbArray<RouteInterval>* GetRouteIntervals();
+    DbArray<RouteInterval>* GetRouteIntervals() ;
+
+/*
+Returns true if the gline includes at least one of the gpoints.
+
+*/
+    bool Includes(const GPoints* gps) const;
+    bool Includes(const GPoints* gps, const Network* pNetwork) const;
+
 
 /*
 Computes the network distance of 2 glines.
 
 */
 
-    double Netdistance(GLine* pgl2);
-    double Netdistance ( GLine* pgl2, Network* pNetwork );
+    double Netdistance(const GLine* pgl2) const;
+    double Netdistance (const GLine* pgl2, const Network* pNetwork )const ;
 
-    double NetdistanceNew(GLine* pgl2);
-    double NetdistanceNew(GLine* pgl2, Network* pNetwork);
+    double NetdistanceNew(const GLine* pgl2)const ;
+    double NetdistanceNew(const GLine* pgl2, const Network* pNetwork)const ;
 
-    double NetdistanceNew(GPoint* pgl2);
-    double NetdistanceNew(GPoint* pgl2, Network* pNetwork);
+    double NetdistanceNew(const GPoint* pgl2)const ;
+    double NetdistanceNew(const GPoint* pgl2, const Network* pNetwork)const ;
 
-    double NetdistanceNew(GPoints* pgl2);
-    double NetdistanceNew(GPoints* pgl2, Network* pNetwork);
+    double NetdistanceNew(const GPoints* pgl2) const;
+    double NetdistanceNew(const GPoints* pgl2, const Network* pNetwork)const ;
 
 
-    bool ShortestPath(GLine *to, GLine *result,
-                      DbArray<TupleId>* touchedSects = 0);
-    bool ShortestPath(GLine *to, GLine *result, Network* pNetwork,
-                      DbArray<TupleId>* touchedSects = 0);
+    bool ShortestPathAStar(const GLine *to, GLine *result,
+                      DbArray<TupleId>* touchedSects = 0)const ;
+    bool ShortestPathAStar(const GLine *to, GLine *result,
+                           const Network* pNetwork,
+                      DbArray<TupleId>* touchedSects = 0)const ;
 
-    bool ShortestPath(GPoint *to, GLine *result,
-                      DbArray<TupleId>* touchedSects = 0);
-    bool ShortestPath(GPoint *to, GLine *result, Network* pNetwork,
-                      DbArray<TupleId>* touchedSects = 0);
+    bool ShortestPathAStar(const GPoint *to, GLine *result,
+                      DbArray<TupleId>* touchedSects = 0)const ;
+    bool ShortestPathAStar(const GPoint *to, GLine *result,
+                           const Network* pNetwork,
+                      DbArray<TupleId>* touchedSects = 0)const ;
 
-    bool ShortestPath(GPoints *to, GLine *result,
-                      DbArray<TupleId>* touchedSects = 0);
-    bool ShortestPath(GPoints *to, GLine *result, Network* pNetwork,
-                      DbArray<TupleId>* touchedSects = 0);
+    bool ShortestPathAStar(const GPoints *to, GLine *result,
+                      DbArray<TupleId>* touchedSects = 0)const ;
+    bool ShortestPathAStar(const GPoints *to, GLine *result,
+                           const Network* pNetwork,
+                      DbArray<TupleId>* touchedSects = 0)const ;
 
-    bool ShortestPathBF(GLine *pgl2, GLine *result,
-                        DbArray<TupleId>* touchedSects);
-    bool ShortestPathBF(GLine *pgl2, GLine *result, Network *pNetwork,
-                        DbArray<TupleId>* touchedSects);
+    bool ShortestPathBF(const GLine *pgl2, GLine *result,
+                        DbArray<TupleId>* touchedSects)const ;
+    bool ShortestPathBF(const GLine *pgl2, GLine *result,
+                        const Network *pNetwork,
+                        DbArray<TupleId>* touchedSects)const ;
 /*
 Computes the euclidean distance of 2 glines.
 
 */
 
-    double Distance (GLine* pgl2);
+    double Distance (const GLine* pgl2)const ;
 
 /*
 Computes the union of 2 glines.
@@ -1921,14 +1999,14 @@ Computes the union of 2 glines.
 */
 
 
-void Uniongl (GLine* pgl2, GLine *res);
+void Uniongl (const GLine* pgl2, GLine *res) const ;
 
 /*
 Translates a gline value into a line value.
 
 */
 
-    void Gline2line (Line *res);
+    void Gline2line (Line *res)const ;
 
 
 /*
@@ -1937,7 +2015,7 @@ Returns true if the glines intersect false elswhere.
 */
 
 
-    bool Intersects (GLine* pgl);
+    bool Intersects (const GLine* pgl) const ;
 
 
 /*
@@ -1945,8 +2023,8 @@ Returns the Bounding GPoints of the GLine.
 
 */
 
-    void GetBGP(Network* pNetwork, GPoints* result);
-    void GetBGP(GPoints* result);
+    void GetBGP(const Network* pNetwork, GPoints* result)const ;
+    void GetBGP(GPoints* result)const ;
 
     void Clear();
 
@@ -2007,8 +2085,8 @@ Returns the Bounding GPoints of the GLine.
        m_xRouteIntervals.TrimToSize();
      };
 
-     bool Contains(RouteInterval* ri);
-     bool Intersects(RouteInterval* ri);
+     bool Contains(const RouteInterval* ri)const ;
+     bool Intersects(const RouteInterval* ri)const ;
 
   private:
 
@@ -2061,7 +2139,8 @@ struct RITree {
 
   RITree(){};
 
-  RITree( int ri,double pos1, double pos2, RITree *left = 0, RITree *right = 0){
+  RITree( const int ri, const double pos1, const double pos2
+        , RITree *left = 0, RITree *right = 0){
     m_iRouteId = ri;
     m_dStart = pos1;
     m_dEnd = pos2;
@@ -2077,8 +2156,8 @@ previos changed interval of the father.
 
 */
 
-  double CheckTree(RITree& father, int rid, double pos1, double pos2,
-                   bool bleft) {
+  double CheckTree(RITree& father, int rid, double pos1,
+                   double pos2, bool bleft) {
     if (rid < this->m_iRouteId) {
       if (this->m_left != 0) {
         return this->m_left->CheckTree(*this, rid, pos1, pos2, bleft);
@@ -2161,13 +2240,13 @@ Inserts a ~RouteInterval~ in the ~RITree~ checking if there are already
 ~RouteIntervals~ which overlap or are adjacent to the current ~RouteInterval~.
 
 */
-  void InsertUnit(int rid, double pos1, double pos2)
+  void InsertUnit(const int rid, const double pos1, const double pos2)
   {
     if (pos1 < pos2) Insert(rid, pos1, pos2);
     else Insert(rid, pos2, pos1);
   }
 
-  void Insert (int rid, double pos1, double pos2) {
+  void Insert (const int rid, const double pos1, const double pos2) {
     double test;
     if (rid < this->m_iRouteId) {
       if (this->m_left != 0) {
@@ -2234,7 +2313,7 @@ start positions into ~gline~.
 
 */
 
-  void TreeToGLine (GLine* gline) {
+  void TreeToGLine (GLine* gline) const {
     if (this->m_left != 0) {
       this->m_left->TreeToGLine (gline);
     }
@@ -2250,7 +2329,7 @@ start positions into a ~DbArray~. Used to build trajectory of ~mgpoint~.
 
 */
 
-  void TreeToDbArray (DbArray<RouteInterval>* arr) {
+  void TreeToDbArray (DbArray<RouteInterval>* arr) const {
     if (this->m_left != 0) {
       this->m_left->TreeToDbArray (arr);
     }
@@ -2275,6 +2354,406 @@ Deletes the tree.
   RITree *m_left, *m_right;
 };
 
+/*
+struct RouteIntervalEntry
+
+EntryType for RITreeP
+
+*/
+
+struct RouteIntervalEntry
+{
+  RouteIntervalEntry(){};
+
+  RouteIntervalEntry(const RouteIntervalEntry& rie)
+  {
+    ri = rie.ri;
+    left = rie.left;
+    right = rie.right;
+  }
+
+  RouteIntervalEntry(const RouteInterval& rin, int l = -1, int r = -1)
+  {
+    ri = rin;
+    left = l;
+    right = r;
+  }
+
+  RouteIntervalEntry( const int rid, const double pos1, const double pos2,
+                      const int l = -1, const int r = -1)
+  {
+    ri = RouteInterval(rid, pos1, pos2);
+    left = l;
+    right = r;
+  };
+
+  ~RouteIntervalEntry(){};
+
+  ostream& Print(ostream& os) const
+  {
+    os << "RouteInterval:";
+    ri.Print(os);
+    os << ", left: " << left << ", right: " << right << endl;
+    return os;
+  }
+
+  void operator=(const RouteIntervalEntry& rie)
+  {
+    ri = rie.ri;
+    left = rie.left;
+    right = rie.right;
+  }
+
+  inline RouteInterval GetEntry() const
+  {
+    return ri;
+  }
+
+  inline int GetLeft() const
+  {
+    return left;
+  }
+
+  inline int GetRight() const
+  {
+    return right;
+  }
+
+  inline void SetLeft(const int l)
+  {
+    left = l;
+  }
+
+  inline void SetRight(const int r)
+  {
+    right = r;
+  }
+
+  inline void SetEntry(const int select, const double value)
+  {
+    switch(select)
+    {
+      case(0):
+        ri.SetRouteId((int) value);
+        break;
+
+      case(1):
+        ri.SetStartPos(value);
+        break;
+
+      case(2):
+        ri.SetEndPos(value);
+        break;
+
+      default:
+        break;
+    }
+  }
+
+  RouteInterval ri;
+  int left, right;
+};
+
+/*
+struct RITreeP
+
+Almost the same like RITree but with memory independent data structure.auto
+
+*/
+
+struct RITreeP
+{
+  RITreeP():ritreep(0)
+  {
+    firstFree = 0;
+  }
+
+  RITreeP(const int n):ritreep(n)
+  {
+    firstFree = 0;
+  }
+
+  ~RITreeP(){};
+
+  void Destroy()
+  {
+    ritreep.Destroy();
+  };
+
+  bool IsEmpty() const
+  {
+    return (firstFree == 0);
+  }
+
+  ostream& Print(ostream& os) const
+  {
+    RouteIntervalEntry rie;
+    for (int i = 0; i < firstFree; i++)
+    {
+      ritreep.Get(i,rie);
+      os << i << ".Entry: ";
+      rie.Print(os);
+      os << endl;
+    }
+    return os;
+  }
+/*
+Checks if in the ~RITree~ exist son intervals which are covered by the
+previos changed interval of the father.
+
+*/
+
+ double CheckTree(RouteIntervalEntry& father, const int posfather,
+                  RouteIntervalEntry& testRI, const int postest,
+                  const bool bleft)
+ {
+    assert(postest > -1 && postest < firstFree &&
+           posfather > -1 && posfather < firstFree);
+    RouteIntervalEntry test;
+    ritreep.Get(postest,test);
+    if (testRI.GetEntry().GetRouteId() < test.GetEntry().GetRouteId())
+    {
+      if (test.GetLeft() > -1)
+        return CheckTree(test, postest, testRI, test.GetLeft(), bleft);
+      else
+        return testRI.GetEntry().GetValue(bleft);
+    }
+    else
+    {
+      if (testRI.GetEntry().GetRouteId() > test.GetEntry().GetRouteId())
+      {
+        if (test.GetRight() > -1)
+          return CheckTree(test, postest, testRI, test.GetRight(), bleft);
+        else
+          return testRI.GetEntry().GetValue(bleft);
+      }
+      else
+      {
+        if (testRI.GetEntry().GetEndPos() < test.GetEntry().GetStartPos())
+        {
+          if (test.GetLeft() > -1)
+            return CheckTree(test,  postest, testRI, test.GetLeft(), bleft);
+          else
+            return testRI.GetEntry().GetValue(bleft);
+        }
+        else
+        {
+          if (testRI.GetEntry().GetStartPos() > test.GetEntry().GetEndPos())
+          {
+            if (test.GetRight() > -1 )
+              return CheckTree(test, postest, testRI, test.GetRight(), bleft);
+            else
+              return testRI.GetEntry().GetValue(bleft);
+          }
+          else
+          {
+            // Overlapping interval found. Rebuild Tree and return new interval
+            // limit.
+            if (bleft)
+            {
+              if (test.GetEntry().GetStartPos() <
+                    testRI.GetEntry().GetStartPos())
+                testRI.SetEntry(1,test.GetEntry().GetStartPos());
+              if (father.GetLeft() == postest)
+              {
+                father.SetLeft(test.GetLeft());
+                ritreep.Put(posfather,father);
+                test.SetLeft(-1);
+                ritreep.Put(postest,test);
+              }
+              else
+              {
+                father.SetRight(test.GetLeft());
+                ritreep.Put(posfather,father);
+                test.SetLeft(-1);
+                ritreep.Put(postest,test);
+              }
+              if (father.GetLeft() > -1)
+                return CheckTree(father, posfather, testRI, father.GetLeft(),
+                                 bleft);
+              else
+                return testRI.GetEntry().GetStartPos();
+            }
+            else
+            {
+              if (test.GetEntry().GetEndPos() > testRI.GetEntry().GetEndPos())
+                testRI.SetEntry(2, test.GetEntry().GetEndPos());
+              if (father.GetLeft() == postest)
+              {
+                father.SetLeft(test.GetRight());
+                ritreep.Put(posfather,father);
+                test.SetRight(-1);
+                ritreep.Put(postest,test);
+              }
+              else
+              {
+                father.SetRight(test.GetRight());
+                ritreep.Put(posfather,father);
+                test.SetRight(-1);
+                ritreep.Put(postest,test);
+              }
+              if (father.GetRight() > -1 )
+                return CheckTree(father, posfather, testRI, father.GetRight(),
+                                 bleft);
+              else
+                return testRI.GetEntry().GetEndPos();
+            }
+          }
+        }
+      }
+    }
+    return testRI.GetEntry().GetValue(bleft);
+  };
+
+
+/*
+Inserts a ~RouteInterval~ in the ~RITree~ checking if there are already
+~RouteIntervals~ which overlap or are adjacent to the current ~RouteInterval~.
+
+*/
+  void InsertUnit(const int rid, const double pos1, const double pos2)
+  {
+    if (pos1 < pos2) Insert(rid, pos1, pos2, 0);
+    else Insert(rid, pos2, pos1, 0);
+  }
+
+  void Insert (const bool left, const int pos, RouteIntervalEntry& testRI,
+               const int rid, const int pos1, const int pos2)
+  {
+    if (left) testRI.SetLeft(firstFree);
+    else testRI.SetRight(firstFree);
+    ritreep.Put(pos,testRI);
+    ritreep.Put(firstFree, RouteIntervalEntry(RouteInterval(rid,pos1,pos2),
+                                             -1,-1));
+    firstFree++;
+  }
+
+  void Insert (const int rid, const double pos1, const double pos2, int pos = 0)
+  {
+    if (IsEmpty())
+    {
+      ritreep.Put(firstFree, RouteIntervalEntry(RouteInterval(rid,pos1,pos2),
+                                             -1,-1));
+      firstFree++;
+    }
+    else
+    {
+      RouteIntervalEntry testRI;
+      ritreep.Get(pos, testRI);
+      double test;
+      if (rid < testRI.GetEntry().GetRouteId())
+      {
+        if (testRI.GetLeft() > -1)
+          Insert(rid, pos1, pos2, testRI.GetLeft());
+        else
+          Insert(true, pos, testRI, rid, pos1, pos2);
+      }
+      else
+      {
+        if (rid > testRI.GetEntry().GetRouteId())
+        {
+          if (testRI.GetRight() > -1)
+            Insert(rid, pos1, pos2, testRI.GetRight());
+          else
+            Insert(false,pos,testRI,rid,pos1,pos2);
+        }
+        else
+        {
+          if (pos2 < testRI.GetEntry().GetStartPos())
+          {
+            if (testRI.GetLeft() > -1 )
+              Insert(rid, pos1, pos2, testRI.GetLeft());
+            else
+              Insert(true,pos,testRI,rid,pos1,pos2);
+          }
+          else
+          {
+            if (pos1 > testRI.GetEntry().GetEndPos())
+            {
+              if (testRI.GetRight() > -1)
+                Insert(rid, pos1, pos2, testRI.GetRight());
+              else
+                Insert(false,pos,testRI,rid,pos1,pos2);
+            }
+            else
+            {
+              // Overlapping route intervals merge and check sons if they need
+              // to be corrected too.
+              if (testRI.GetEntry().GetStartPos() > pos1)
+              {
+                testRI.SetEntry(1, pos1);
+                ritreep.Put(pos,testRI);
+                if (testRI.GetLeft() > -1)
+                {
+                  test = CheckTree(testRI, pos, testRI, testRI.GetLeft(),true);
+                  if (testRI.GetEntry().GetStartPos() > test)
+                  {
+                    testRI.SetEntry(1, test);
+                    ritreep.Put(pos,testRI);
+                  }
+                }
+              }
+              if (testRI.GetEntry().GetEndPos() < pos2)
+              {
+                testRI.SetEntry(2,pos2);
+                ritreep.Put(pos,testRI);
+                if (testRI.GetRight() > -1)
+                {
+                  test =
+                    CheckTree(testRI, pos, testRI, testRI.GetRight(),false);
+                  if (testRI.GetEntry().GetEndPos() < test)
+                  {
+                    testRI.SetEntry(2, test);
+                    ritreep.Put(pos,testRI);
+                  }
+                }
+              }
+            }
+          } // endif rid=rid
+        }
+      }
+    }
+  };
+
+/*
+Stores the ~RouteInterval~s of the ~RITree~ sorted by their route ids and
+start positions into ~gline~.
+
+*/
+
+  void TreeToGLine (GLine* gline, int pos) const
+  {
+    assert(pos >= 0 && pos < firstFree);
+    RouteIntervalEntry test;
+    ritreep.Get(pos, test);
+    if (test.GetLeft() > -1)
+      TreeToGLine(gline, test.GetLeft());
+    gline->AddRouteInterval(test.GetEntry());
+    if (test.GetRight() > -1)
+      TreeToGLine (gline, test.GetRight());
+  };
+
+/*
+Stores the ~RouteInterval~s of the ~RITree~ sorted by their route ids and
+start positions into a ~DbArray~. Used to build trajectory of ~mgpoint~.
+
+*/
+
+  void TreeToDbArray (DbArray<RouteInterval>* arr, int pos) const
+  {
+    assert(pos > -1 && pos < firstFree);
+    RouteIntervalEntry test;
+    ritreep.Get(pos,test);
+    if (test.GetLeft() > -1)
+      TreeToDbArray(arr, test.GetLeft());
+    arr->Append(test.GetEntry());
+    if (test.GetRight() > -1)
+      TreeToDbArray (arr, test.GetRight());
+  };
+
+  DbArray<RouteIntervalEntry> ritreep;
+  int firstFree;
+};
 
 class GPointsSections
 {
@@ -2319,9 +2798,9 @@ extern string edistjoinpointlist;
 class GPoints: public Attribute{
 public:
   GPoints();
-  GPoints(int in_iSize);
-  GPoints(bool defined);
-  GPoints(GPoints* in_xOther);
+  GPoints(const int in_iSize);
+  GPoints(const bool defined);
+  GPoints(const GPoints* in_xOther);
   ~GPoints(){}
   ostream& Print(ostream& os)const;
   inline bool IsEmpty()const;
@@ -2355,36 +2834,39 @@ public:
   void CopyFrom(const Attribute* right);
   void FilterAliasGPoints(Network *pNetwork);
   void TrimToSize () {m_xGPoints.TrimToSize();}
-  void MergeAdd(GPoint gp, Network* pNetwork);
-  bool Contains(GPoint gp, Network* pNetwork);
-  bool Contains(GPoint gp);
-  double Netdistance(GPoints* bgp, Network* pNetwork);
-  double Netdistance(GPoints* bgp);
-  double Netdistance(GPoint* gp, Network* pNetwork);
-  double Netdistance(GPoint* gp);
-  double Netdistance(GLine* gl, Network* pNetwork);
-  double Netdistance(GLine* gl);
-  int GetNetworkId();
-  bool ShortestPath(GPoints* bgp, GLine* res,
-                    DbArray<TupleId>* touchedSects = 0);
-  bool ShortestPath(GPoints* bgp, GLine* res, Network* pNetwork,
-                    DbArray<TupleId>* touchedSects = 0);
-  bool ShortestPath(GPoint* gp, GLine* res,
-                    DbArray<TupleId>* touchedSects = 0);
-  bool ShortestPath(GPoint* gp, GLine* res, Network* pNetwork,
-                    DbArray<TupleId>* touchedSects = 0);
-  bool ShortestPath(GLine* gl, GLine* res,
-                    DbArray<TupleId>* touchedSects = 0);
-  bool ShortestPath(GLine* gl, GLine* res, Network* pNetwork,
-                    DbArray<TupleId>* touchedSects = 0);
-  bool Inside(GPoint gp);
-  bool Intersects(GPoints* bgp, Network* pNetwork);
-  bool Intersects(GPoints* bgp);
+  void MergeAdd(const GPoint gp, const Network* pNetwork);
+  bool Contains(const GPoint gp, const Network* pNetwork)const;
+  bool Contains(const GPoint gp)const;
+  double NetdistanceNew(const GPoints* bgp, const Network* pNetwork)const ;
+  double NetdistanceNew(const GPoints* bgp)const ;
+  double NetdistanceNew(const GPoint* gp, const Network* pNetwork)const ;
+  double NetdistanceNew(const GPoint* gp) const ;
+  double NetdistanceNew(const GLine* gl, const Network* pNetwork)const ;
+  double NetdistanceNew(const GLine* gl)const ;
+  int GetNetworkId()const ;
+  bool ShortestPathAStar(const GPoints* bgp, GLine* res,
+                    DbArray<TupleId>* touchedSects = 0)const ;
+  bool ShortestPathAStar(const GPoints* bgp, GLine* res,
+                         const Network* pNetwork,
+                    DbArray<TupleId>* touchedSects = 0)const ;
+  bool ShortestPathAStar(const GPoint* gp, GLine* res,
+                    DbArray<TupleId>* touchedSects = 0)const ;
+  bool ShortestPathAStar(const GPoint* gp, GLine* res,
+                         const Network* pNetwork,
+                    DbArray<TupleId>* touchedSects = 0)const ;
+  bool ShortestPathAStar(const GLine* gl, GLine* res,
+                    DbArray<TupleId>* touchedSects = 0)const ;
+  bool ShortestPathAStar(const GLine* gl, GLine* res,
+                         const Network* pNetwork,
+                    DbArray<TupleId>* touchedSects = 0)const ;
+  bool Inside(const GPoint gp)const ;
+  bool Intersects(const GPoints* bgp, const Network* pNetwork)const;
+  bool Intersects(const GPoints* bgp)const ;
   void Clear();
 
 private:
   void GetSectionTupleIds(DbArray<GPointsSections>* gpSections,
-                         Network* pNetwork);
+                         const Network* pNetwork)const ;
 
   DbArray<GPoint> m_xGPoints;
 };
