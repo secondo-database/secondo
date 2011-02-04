@@ -2759,6 +2759,7 @@ QueryProcessor::DestroyValuesArray()
              ( values[i].algId, values[i].typeId ))( values[i].typeInfo,
                                                      values[i].value );
         }
+        values[i].value.setAddr(0);
       }
     }
   }
@@ -3324,7 +3325,9 @@ the function in a database object.
   isFunction = (tree->nodetype == Operator) ?
      tree->u.op.isFun : false;
 
-  if (!evaluable && !isFunction) {
+  if (!evaluable && !isFunction ) {
+    Destroy(tree, true);
+    tree=0;
     throw ERR_EXPR_NOT_EVALUABLE;
   }
 
@@ -3405,11 +3408,21 @@ Deletes an operator tree object.
               GetCatalog()->LookUpTypeExpr( tree->typeExpr, typeName,
                                             algebraId, typeId ) )
           {
-            if( tree->u.dobj.isConstant )
+           // an object which has the map type contains the
+           // result type as its value, so we have to change the
+           // algebra id and type id from fun to its result type
+            ListExpr t = tree->typeExpr;
+            if(nl->HasLength(t,3) && 
+               (nl->AtomType(nl->First(t))==SymbolType) && 
+               (nl->SymbolValue(nl->First(t))=="map")){
+               GetCatalog()->LookUpTypeExpr( nl->Third(tree->typeExpr), 
+                                             typeName, algebraId, typeId );
+            }
+            if( tree->u.dobj.isConstant ){
               (algebraManager->DeleteObj( algebraId, typeId ))
                 ( GetCatalog()->NumericType( tree->typeExpr ),
                   tree->u.dobj.value );
-            else
+            } else
             {
               if( tree->u.dobj.isModified )
               {
