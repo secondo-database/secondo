@@ -72,7 +72,21 @@
    fun:_ZNSs4_Rep9_S_createEmmRKSaIcE
 }
 
+{
+   Conditional_Jump_error_in_DbEnv__memp_stat 
+   Memcheck:Cond
+   fun:__memp_stat
+   fun:__memp_stat_pp
+   fun:_ZN5DbEnv9memp_statEPP15__db_mpool_statPPP16__db_mpool_fstatj
+   fun:_ZN14SmiEnvironment18GetCacheStatisticsER9CacheInfoRSt6vectorIP8FileInfoSaIS4_EE
+   fun:_ZN16SecondoInterface7SecondoERKSsmibbRmRiS3_RSsS1_b
+   fun:_ZN10SecondoTTY11CallSecondoEv
+}
 
-
-
+{
+   Possible_Leak_in_String_Allocation_new
+   Memcheck:Leak
+   fun:_Znwj
+   fun:_ZNSs4_Rep9_S_createEjjRKSaIcE
+}
 
