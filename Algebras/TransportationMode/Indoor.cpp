@@ -4401,9 +4401,7 @@ void IndoorNav::AddUnitToMO(MPoint3D* mp3d, Point3D& p1, Point3D& p2,
   const double dist_delta = 0.01; 
 
   double d = p1.Distance(p2); 
-  if(d < speed || AlmostEqual(d, speed) ||
-    (AlmostEqual(p1.GetX(), p2.GetX()) && //for the movement inside an elevator 
-     AlmostEqual(p1.GetY(), p2.GetY()))){ // if split, it can not find a groom 
+  if(d < speed || AlmostEqual(d, speed)){ 
 
     Interval<Instant> up_interval; 
     up_interval.start = start_time;
@@ -4418,6 +4416,25 @@ void IndoorNav::AddUnitToMO(MPoint3D* mp3d, Point3D& p1, Point3D& p2,
     mp3d->Add(*unit); 
     delete unit;
     start_time = end; 
+  }else if(AlmostEqual(p1.GetX(), p2.GetX()) && 
+            AlmostEqual(p1.GetY(), p2.GetY())){
+    //for the movement inside an elevator 
+    // if split, it can not find a groom 
+
+    Interval<Instant> up_interval; 
+    up_interval.start = start_time;
+    Instant end = start_time;
+    end.ReadFrom(start_time.ToDouble() + d/(24.0*60.0*60.0*speed));
+    up_interval.end = end;
+
+    up_interval.lc = true;
+    up_interval.rc = false; 
+
+    UPoint3D* unit = new UPoint3D(up_interval, p1, p2); 
+    mp3d->Add(*unit); 
+    delete unit;
+    start_time = end; 
+
   }else{
     int no = (int)floor(d/speed); 
     double x = (p2.GetX() - p1.GetX())/no; 
@@ -5410,15 +5427,124 @@ void IndoorNav::ShortestPath_Room(GenLoc* gloc1, GenLoc* gloc2,
       }
     }
 
+/*    for(unsigned int i = 0;i < candidate_path[index].size();i++){
+
+      Tuple* groom_tuple = rel->GetTuple(candidate_path[index][i],false);
+
+      GRoom* groom = (GRoom*)groom_tuple->GetAttribute(I_Room);
+      int groom_oid = ((CcInt*)groom_tuple->GetAttribute(I_OID))->GetIntval(); 
+//      groom_oid_list.push_back(candidate_path[index][i]);
+      groom_oid_list.push_back(groom_oid);
+      room_list.push_back(*groom);
+      groom_tuple->DeleteIfAllowed(); 
+    }*/
+
     for(unsigned int i = 0;i < candidate_path[index].size();i++){
 
       Tuple* groom_tuple = rel->GetTuple(candidate_path[index][i],false);
-      
-      groom_oid_list.push_back(candidate_path[index][i]); 
-
+      string type = ((CcString*)groom_tuple->GetAttribute(I_Type))->GetValue();
       GRoom* groom = (GRoom*)groom_tuple->GetAttribute(I_Room);
-      room_list.push_back(*groom); 
+      if(GetRoomEnum(type) == EL){//process special part 
+          vector<unsigned int> el_id; 
+          el_id.push_back(candidate_path[index][i]);
+          unsigned int j = i + 1;
+          for(; j < candidate_path[index].size();j++){
+            Tuple* tuple = rel->GetTuple(candidate_path[index][j],false);
+            string groom_type = 
+                      ((CcString*)tuple->GetAttribute(I_Type))->GetValue();
+            if(GetRoomEnum(groom_type) == EL)
+              el_id.push_back(candidate_path[index][j]);
+            else{
+              tuple->DeleteIfAllowed(); 
+              break; 
+            }
+            tuple->DeleteIfAllowed(); 
+          }
+
+          assert(i != 0);
+          /////////start and end locations are in OR or CO
+          assert(j < candidate_path[index].size() - 1);//impossible to end in EL
+
+          Tuple* gr_tuple1 = rel->GetTuple(candidate_path[index][i - 1],false);
+          GRoom* groom1 = (GRoom*)gr_tuple1->GetAttribute(I_Room);
+          float h1 = groom1->GetLowHeight(); 
+          gr_tuple1->DeleteIfAllowed(); 
+
+
+          Tuple* gr_tuple2 = rel->GetTuple(candidate_path[index][j],false);
+          GRoom* groom2 = (GRoom*)gr_tuple2->GetAttribute(I_Room);
+          float h2 = groom2->GetLowHeight(); 
+          gr_tuple2->DeleteIfAllowed(); 
+
+
+          if(h1 < h2){//add after 
+//            cout<<"h1 < h2"<<endl; 
+            for(unsigned int k = 0;k < el_id.size();k++){
+              Tuple* t = rel->GetTuple(el_id[k], false);
+              GRoom* gr = (GRoom*)t->GetAttribute(I_Room);
+              int groom_oid = ((CcInt*)t->GetAttribute(I_OID))->GetIntval(); 
+              groom_oid_list.push_back(groom_oid);
+              room_list.push_back(*gr); 
+              t->DeleteIfAllowed(); 
+            }
+
+            for(int k = 1; k <= rel->GetNoTuples();k++){
+                Tuple* t = rel->GetTuple(k, false);
+                GRoom* gr = (GRoom*)t->GetAttribute(I_Room);
+                string groom_type = 
+                        ((CcString*)t->GetAttribute(I_Type))->GetValue();
+                if(GetRoomEnum(groom_type) == EL && 
+                  AlmostEqual(gr->GetLowHeight(), h2)){
+                  int groom_oid = ((CcInt*)t->GetAttribute(I_OID))->GetIntval();
+                  groom_oid_list.push_back(groom_oid);
+                  room_list.push_back(*gr); 
+                  t->DeleteIfAllowed();
+                  break;
+                }
+
+                t->DeleteIfAllowed();
+            }
+
+          }else{//add before 
+//            cout<<"h1 > h2 "<<"h1 :"<<h1<<" h2: "<<h2<<endl;
+            for(int k = 1; k <= rel->GetNoTuples();k++){
+                Tuple* t = rel->GetTuple(k, false);
+                GRoom* gr = (GRoom*)t->GetAttribute(I_Room);
+                string groom_type = 
+                        ((CcString*)t->GetAttribute(I_Type))->GetValue();
+                if(GetRoomEnum(groom_type) == EL && 
+                  AlmostEqual(gr->GetLowHeight(), h1)){
+                  int groom_oid = ((CcInt*)t->GetAttribute(I_OID))->GetIntval();
+                  groom_oid_list.push_back(groom_oid);
+                  room_list.push_back(*gr); 
+                  t->DeleteIfAllowed();
+//                  cout<<"find "<<endl;
+                  break;
+                }
+
+                t->DeleteIfAllowed();
+            }
+             for(unsigned int k = 0;k < el_id.size();k++){
+              Tuple* t = rel->GetTuple(el_id[k], false);
+              GRoom* gr = (GRoom*)t->GetAttribute(I_Room);
+              int groom_oid = ((CcInt*)t->GetAttribute(I_OID))->GetIntval(); 
+              groom_oid_list.push_back(groom_oid);
+              room_list.push_back(*gr); 
+              t->DeleteIfAllowed(); 
+            }
+
+          }
+
+          i = j - 1;
+      }else{
+
+//        groom_oid_list.push_back(candidate_path[index][i]); 
+        int groom_oid = ((CcInt*)groom_tuple->GetAttribute(I_OID))->GetIntval();
+        groom_oid_list.push_back(groom_oid);
+        room_list.push_back(*groom); 
+      }
       groom_tuple->DeleteIfAllowed(); 
+
     }
 
   }else
@@ -5544,8 +5670,8 @@ void IndoorNav::IndoorShortestPath_Room(int id1, int id2,
        dest = top;
        break;
     }
-    
-    
+
+//    top.Print(); 
     Tuple* door_tuple = node_rel->GetTuple(top.tri_index, false);
     /////////////////get the position of the door////////////////////////////
     Point3D q;
@@ -5593,7 +5719,7 @@ void IndoorNav::IndoorShortestPath_Room(int id1, int id2,
       double w = top.real_w; 
       if(path->Length() > 0.0) w++; //one more room 
       double hw = 0.0; 
-      
+
       IPath_elem elem(pos_expand_path, cur_size, 
                       neighbor_id, w + hw, w, *path, groom_oid);
       path_queue.push(elem);

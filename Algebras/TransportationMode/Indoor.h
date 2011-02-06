@@ -1066,7 +1066,7 @@ struct IndoorNav{
    void CreateAdjDoor2(R_Tree<3,TupleId>*);
    void DFTraverse(R_Tree<3,TupleId>* rtree, SmiRecordId adr, unsigned int id,
                    Line3D* l, vector<TupleId>& id_list, int groom_oid);
-   
+
    void BuildPathEL(int groom_oid, GRoom* groom, vector<int> tid_list, 
                             int attr1, int attr2, 
                             int attr3, int attr4);
@@ -1191,6 +1191,7 @@ struct IPath_elem:public Path_elem{
         <<" weight "<<weight<<" Path "<<endl;
 //    path.Print();
 //    cout<<endl; 
+    cout<<"groom oid "<<groom_oid<<endl;
   }
 };
 
