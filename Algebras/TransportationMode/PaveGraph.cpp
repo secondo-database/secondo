@@ -3360,7 +3360,7 @@ first connects the start and end point to the VG, and then applies A star
 algorithm
 
 */
-void Walk_SP::WalkShortestPath()
+void Walk_SP::WalkShortestPath(Line* res)
 {
 //  cout<<"WalkShortestPath"<<endl;
   if(rel1->GetNoTuples() != 1 || rel2->GetNoTuples() != 1){
@@ -3546,7 +3546,7 @@ void Walk_SP::WalkShortestPath()
   delete vg2;
   /////////////construct path///////////////////////////////////////////
   double len = 0.0;
-  if(find){
+/*  if(find){
     while(dest.prev_index != -1){
       Point p1 = dest.loc;
       int oid1 = dest.tri_index;
@@ -3566,13 +3566,252 @@ void Walk_SP::WalkShortestPath()
       path.push_back(*l);
       len += l->Length();
       delete l;
-      oids1.push_back(oid1);
-      oids2.push_back(oid2);
+      oids1.push_back(oid1); //vertex id 
+      oids2.push_back(oid2); //vertex id 
       /////////////////////////////////////////////////////
     }
+  }*/
+
+  if(find){
+    res->StartBulkLoad();
+    while(dest.prev_index != -1){
+      Point p1 = dest.loc;
+      dest = expand_path[dest.prev_index];
+      Point p2 = dest.loc;
+      /////////////////////////////////////////////////////
+      HalfSegment hs;
+      hs.Set(true, p1, p2);
+      hs.attr.edgeno = 0;
+      *res += hs;
+      hs.SetLeftDomPoint(!hs.IsLeftDomPoint());
+      *res += hs;
+      /////////////////////////////////////////////////////
+    }
+    res->EndBulkLoad(); 
+    len = res->Length(); 
   }
 
   printf("Euclidean length: %.4f Walk length: %.4f\n",loc1.Distance(loc2),len);
+}
+
+/*
+test shortest path for pedestrian 
+
+*/
+void Walk_SP::TestWalkShortestPath(int tid1, int tid2)
+{
+//  cout<<"WalkShortestPath"<<endl;
+  clock_t start, finish;
+  start = clock();
+  
+  Tuple* t1 = rel1->GetTuple(tid1, false);
+  int oid1 = ((CcInt*)t1->GetAttribute(VisualGraph::QOID))->GetIntval();
+  Point* p1 = (Point*)t1->GetAttribute(VisualGraph::QLOC2);
+  Point loc1(*p1);
+
+  Tuple* t2 = rel2->GetTuple(tid2, false);
+  int oid2 = ((CcInt*)t2->GetAttribute(VisualGraph::QOID))->GetIntval();
+  Point* p2 = (Point*)t2->GetAttribute(VisualGraph::QLOC2);
+  Point loc2(*p2);
+
+//  cout<<"tri_id1 "<<oid1<<" tri_id2 "<<oid2<<endl;
+//  cout<<"loc1 "<<loc1<<" loc2 "<<loc2<<endl;
+  int no_node_graph = dg->No_Of_Node();
+  if(oid1 < 1 || oid1 > no_node_graph){
+    cout<<"loc1 does not exist"<<endl;
+    return;
+  }
+  if(oid2 < 1 || oid2 > no_node_graph){
+    cout<<"loc2 does not exist"<<endl;
+    return;
+  }
+  if(AlmostEqual(loc1,loc2)){
+    cout<<"start location equals to end location"<<endl;
+    return;
+  }
+  Tuple* tuple1 = dg->GetNodeRel()->GetTuple(oid1, false);
+  Region* reg1 = (Region*)tuple1->GetAttribute(DualGraph::PAVEMENT);
+
+  if(loc1.Inside(*reg1) == false){
+    tuple1->DeleteIfAllowed();
+    cout<<"point1 is not inside the polygon"<<endl;
+    return;
+  }
+  Tuple* tuple2 = dg->GetNodeRel()->GetTuple(oid2, false);
+  Region* reg2 = (Region*)tuple2->GetAttribute(DualGraph::PAVEMENT);
+
+  if(loc2.Inside(*reg2) == false){
+    tuple1->DeleteIfAllowed();
+    tuple2->DeleteIfAllowed();
+    cout<<"point2 is not inside the polygon"<<endl;
+    return;
+  }
+  tuple1->DeleteIfAllowed();
+  tuple2->DeleteIfAllowed();
+  ///////////////////////////////////////////////////////////////////////
+  priority_queue<WPath_elem> path_queue;
+  vector<WPath_elem> expand_path;
+  ////////////////find all visibility nodes to start node/////////
+  ///////connect them to the visibility graph/////////////////////
+  VGraph* vg1 = new VGraph(dg, NULL, rel3, vg->GetNodeRel());
+  vg1->rel4 = rel4;
+  vg1->btree = btree;
+  vg1->GetVisibilityNode(oid1, loc1);
+
+  assert(vg1->oids1.size() == vg1->p_list.size());
+
+  if(vg1->oids1.size() == 1){//start point equasl to triangle vertex
+    double w = loc1.Distance(loc2);
+    path_queue.push(WPath_elem(-1, 0, vg1->oids1[0], w, loc1, 0.0));
+    expand_path.push_back(WPath_elem(-1, 0, vg1->oids1[0], w, loc1, 0.0));
+
+  }else{
+    double w = loc1.Distance(loc2);
+    path_queue.push(WPath_elem(-1, 0, -1, w,  loc1,0.0));//start location
+    expand_path.push_back(WPath_elem(-1, 0, -1, w, loc1,0.0));//start location
+    int prev_index = 0;
+//    cout<<"vnode id ";
+    for(unsigned int i = 0;i < vg1->oids1.size();i++){
+//      cout<<vg1->oids1[i]<<" ";
+      int expand_path_size = expand_path.size();
+      double d = loc1.Distance(vg1->p_list[i]);
+      w = d + vg1->p_list[i].Distance(loc2);
+      path_queue.push(WPath_elem(prev_index, expand_path_size,
+                      vg1->oids1[i], w, vg1->p_list[i], d));
+      expand_path.push_back(WPath_elem(prev_index, expand_path_size,
+                      vg1->oids1[i], w, vg1->p_list[i], d));
+    }
+  }
+//  cout<<endl;
+  delete vg1;
+  ////////////////find all visibility nodes to the end node/////////
+  VGraph* vg2 = new VGraph(dg, NULL, rel3, vg->GetNodeRel());
+  vg2->rel4 = rel4;
+  vg2->btree = btree;
+  vg2->GetVisibilityNode(oid2, loc2);
+
+  assert(vg2->oids1.size() == vg2->p_list.size());
+  //if the end node equals to triangle vertex.
+  //it can be connected by adjacency list
+  //we don't conenct it to the visibility graph
+  if(vg2->oids1.size() == 1){
+//      cout<<"end point id "<<vg2->oids1[0]<<endl;
+  }
+  Points* neighbor_end = new Points(0);
+  neighbor_end->StartBulkLoad();
+  if(vg2->oids1.size() > 1){
+    for(unsigned int i = 0;i < vg2->oids1.size();i++){
+        Tuple* loc_tuple = vg->GetNodeRel()->GetTuple(vg2->oids1[i], false);
+        Point* loc = (Point*)loc_tuple->GetAttribute(VisualGraph::LOC);
+        *neighbor_end += *loc;
+        loc_tuple->DeleteIfAllowed();
+    }
+    neighbor_end->EndBulkLoad();
+  }
+
+  /////////////////////searching path///////////////////////////////////
+  bool find = false;
+
+  vector<bool> mark_flag;
+  for(int i = 1;i <= vg->GetNodeRel()->GetNoTuples();i++)
+    mark_flag.push_back(false);
+
+  WPath_elem dest;
+  while(path_queue.empty() == false){
+        WPath_elem top = path_queue.top();
+        path_queue.pop();
+//        top.Print();
+
+        if(AlmostEqual(top.loc, loc2)){
+          cout<<"find the path"<<endl;
+          find = true;
+          dest = top;
+          break;
+        }
+        //do not consider the start point
+        //if it does not equal to the triangle vertex
+        //its adjacent nodes have been found already and put into the queue
+        if(top.tri_index > 0 && mark_flag[top.tri_index - 1] == false){
+          vector<int> adj_list;
+          vg->FindAdj(top.tri_index, adj_list);
+          int pos_expand_path = top.cur_index;
+          for(unsigned int i = 0;i < adj_list.size();i++){
+            if(mark_flag[adj_list[i] - 1]) continue;
+            int expand_path_size = expand_path.size();
+
+            Tuple* loc_tuple = vg->GetNodeRel()->GetTuple(adj_list[i], false);
+            Point* loc = (Point*)loc_tuple->GetAttribute(VisualGraph::LOC);
+
+            double w1 = top.real_w + top.loc.Distance(*loc);
+            double w2 = w1 + loc->Distance(loc2);
+            path_queue.push(WPath_elem(pos_expand_path, expand_path_size,
+                                adj_list[i], w2 ,*loc, w1));
+            expand_path.push_back(WPath_elem(pos_expand_path, expand_path_size,
+                            adj_list[i], w2, *loc, w1));
+
+            loc_tuple->DeleteIfAllowed();
+
+            mark_flag[top.tri_index - 1] = true;
+          }
+        }
+
+        ////////////check visibility points to the end point////////////
+        if(neighbor_end->Size() > 0){
+            const double delta_dist = 0.1;//in theory, it should be 0.0
+            if(top.loc.Distance(neighbor_end->BoundingBox()) < delta_dist){
+              for(unsigned int i = 0;i < vg2->oids1.size();i++){
+                if(top.tri_index == vg2->oids1[i]){
+                  int pos_expand_path = top.cur_index;
+                  int expand_path_size = expand_path.size();
+
+                  double w1 = top.real_w + top.loc.Distance(loc2);
+                  double w2 = w1;
+                  path_queue.push(WPath_elem(pos_expand_path, expand_path_size,
+                                -1, w2 ,loc2, w1));
+                  expand_path.push_back(WPath_elem(pos_expand_path,
+                            expand_path_size,
+                            -1, w2, loc2, w1));
+                  break;
+                }
+              }
+            }
+        }
+        ///////////////////////////////////////////////////////////////
+  }
+
+  delete neighbor_end;
+  delete vg2;
+  /////////////construct path///////////////////////////////////////////
+  double len = 0.0;
+  if(find){
+    Line* l =  new Line(0);
+    l->StartBulkLoad();
+    while(dest.prev_index != -1){
+      Point p1 = dest.loc;
+      dest = expand_path[dest.prev_index];
+      Point p2 = dest.loc;
+      /////////////////////////////////////////////////////
+      HalfSegment hs;
+      hs.Set(true, p1, p2);
+      hs.attr.edgeno = 0;
+      *l += hs;
+      hs.SetLeftDomPoint(!hs.IsLeftDomPoint());
+      *l += hs;
+      /////////////////////////////////////////////////////
+    }
+    oids1.push_back(tid1); //vertex id 
+    oids2.push_back(tid2); //vertex id 
+
+    l->EndBulkLoad();
+    path.push_back(*l);
+    len = l->Length();
+    delete l;
+
+    finish = clock();
+    printf("tid1: %d, tid2: %d, Euclidean: %.4f Walk: %.4f Time: %f\n",
+           tid1, tid2, loc1.Distance(loc2),len, 
+           (double)(finish - start) / CLOCKS_PER_SEC);
+  }
 }
 
 /*

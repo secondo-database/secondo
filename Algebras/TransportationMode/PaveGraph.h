@@ -341,7 +341,8 @@ struct Walk_SP{
   Walk_SP();
   ~Walk_SP();
   Walk_SP(DualGraph* g1, VisualGraph* g2, Relation* r1, Relation* r2);
-  void WalkShortestPath();
+  void WalkShortestPath(Line* res);
+  void TestWalkShortestPath(int, int);
   void GenerateData1(int no_p);
   void GenerateData2(int no_p);
   void GenerateData3(int no_p);
