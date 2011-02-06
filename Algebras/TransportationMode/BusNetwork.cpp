@@ -5986,14 +5986,14 @@ bool CheckBusNetwork( ListExpr type, ListExpr& errorInfo )
 }
 
 BusNetwork::BusNetwork():
-def(false), id(0), stops_rel(NULL), btree_bs(NULL), 
+def(false), bn_id(0), stops_rel(NULL), btree_bs(NULL), 
 routes_rel(NULL), btree_br(NULL)
 {
 
 }
 
-BusNetwork::BusNetwork(bool d, unsigned int i): def(d), id(i), stops_rel(NULL), 
-btree_bs(NULL), routes_rel(NULL), btree_br(NULL)
+BusNetwork::BusNetwork(bool d, unsigned int i): def(d), bn_id(i), 
+stops_rel(NULL), btree_bs(NULL), routes_rel(NULL), btree_br(NULL)
 {
 
 }
@@ -6004,12 +6004,13 @@ read the data from record
 */
 BusNetwork::BusNetwork(SmiRecord& valueRecord, size_t& offset, 
                        const ListExpr typeInfo):
-stops_rel(NULL), btree_bs(NULL), routes_rel(NULL), btree_br(NULL)
+def(false), bn_id(0), stops_rel(NULL), btree_bs(NULL), 
+routes_rel(NULL), btree_br(NULL)
 {
   valueRecord.Read(&def, sizeof(bool), offset);
   offset += sizeof(bool);
 
-  valueRecord.Read(&id, sizeof(int), offset);
+  valueRecord.Read(&bn_id, sizeof(int), offset);
   offset += sizeof(int);
 
   ListExpr xType;
@@ -6069,7 +6070,7 @@ bool BusNetwork::Save(SmiRecord& valueRecord, size_t& offset,
   valueRecord.Write(&def, sizeof(bool), offset); 
   offset += sizeof(bool); 
 
-  valueRecord.Write(&id, sizeof(int), offset); 
+  valueRecord.Write(&bn_id, sizeof(int), offset); 
   offset += sizeof(int); 
 
   ListExpr xType;
@@ -6224,7 +6225,7 @@ void BusNetwork::Load(unsigned int i, Relation* r1, Relation* r2)
     def = false;
     return;
   }
-  id = i; 
+  bn_id = i; 
 
   LoadStops(r1);
   LoadRoutes(r2); 

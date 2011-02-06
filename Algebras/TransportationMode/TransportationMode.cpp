@@ -3546,13 +3546,24 @@ const string OpTMWalkSPSpec  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" "
     "\"Example\" ) "
     "( <text>dualgraph x visualgraph x rel1 x rel2 x rel3 x rel4 x btree-> "
-    "(stream (tuple( (x1 t1)(x2 t2)...(xn tn)))</text--->"
+    "line</text--->"
     "<text>walk_sp(dg1, vg1, rel, rel, rel, rel, btree)</text--->"
     "<text>get the shortest path for pedestrian</text--->"
     "<text>query walk_sp(dg1, vg1, query_loc1, query_loc2,tri_reg_new, "
     "vertex_tri, btr_vid); </text--->"
     ") )";
 
+const string OpTMTestWalkSPSpec  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+    "\"Example\" ) "
+    "( <text>dualgraph x visualgraph x rel1 x rel2 x rel3 x rel4 x btree-> "
+    "(stream (tuple( (x1 t1)(x2 t2)...(xn tn)))</text--->"
+    "<text>walk_sp(dg1, vg1, rel, rel, rel, rel, btree)</text--->"
+    "<text>get the shortest path for pedestrian</text--->"
+    "<text>query walk_sp(dg1, vg1, query_loc1, query_loc2,tri_reg_new, "
+    "vertex_tri, btr_vid); </text--->"
+    ") )";
+    
 const string OpTMGenerateWPSpec  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" "
     "\"Example\" ) "
@@ -4662,7 +4673,12 @@ ListExpr OpTMGetPaveNode1TypeMap ( ListExpr args )
   ListExpr attrName2 = nl->Fourth(args);
   ListExpr attrName3 = nl->Fifth(args);
 
-
+  if(!(listutils::isRelDescription(param2) &&
+        nl->IsAtom(param1) && nl->AtomType(param1) == SymbolType &&
+        nl->SymbolValue(param1) == "network")){
+      return nl->SymbolAtom ( "typeerror" );
+  }
+  
   ListExpr attrType1;
   string aname1 = nl->SymbolValue(attrName1);
   int j1 = listutils::findAttribute(nl->Second(nl->Second(param2)),
@@ -4694,11 +4710,6 @@ ListExpr OpTMGetPaveNode1TypeMap ( ListExpr args )
                       "or not of type region");
   }
 
-
-    if (listutils::isRelDescription(param2) &&
-        nl->IsAtom(param1) && nl->AtomType(param1) == SymbolType &&
-        nl->SymbolValue(param1) == "network"){
-
     ListExpr result =
           nl->TwoElemList(
               nl->SymbolAtom("stream"),
@@ -4720,8 +4731,6 @@ ListExpr OpTMGetPaveNode1TypeMap ( ListExpr args )
 //     nl->TwoElemList(nl->IntAtom(j1),nl->IntAtom(j2)),result);
     nl->ThreeElemList(nl->IntAtom(j1),nl->IntAtom(j2),nl->IntAtom(j3)),result);
 
-  }
-  return nl->SymbolAtom ( "typeerror" );
 }
 
 /*
@@ -5136,6 +5145,73 @@ ListExpr OpTMWalkSPTypeMap ( ListExpr args )
      nl->IsAtom(arg1) && nl->AtomType(arg1) == SymbolType &&
      nl->SymbolValue(arg1) == "visualgraph" ){
 
+/*       ListExpr result =
+          nl->TwoElemList(
+              nl->SymbolAtom("stream"),
+                nl->TwoElemList(
+
+                  nl->SymbolAtom("tuple"),
+                      nl->ThreeElemList(
+                        nl->TwoElemList(nl->SymbolAtom("oid1"),
+                                    nl->SymbolAtom("int")),
+                        nl->TwoElemList(nl->SymbolAtom("oid2"),
+                                    nl->SymbolAtom("int")),
+                        nl->TwoElemList(nl->SymbolAtom("connection"),
+                                    nl->SymbolAtom("line"))
+                  )
+                )
+          );
+    return result;*/
+
+    return nl->SymbolAtom("line");
+  }
+
+  return nl->SymbolAtom ( "typeerror" );
+}
+
+/*
+TypeMap fun for operator testwalksp
+
+*/
+
+ListExpr OpTMTestWalkSPTypeMap ( ListExpr args )
+{
+  if ( nl->ListLength ( args ) != 7 )
+  {
+    return ( nl->SymbolAtom ( "typeerror" ) );
+  }
+  ListExpr arg0 = nl->First(args);
+  ListExpr arg1 = nl->Second(args);
+  ListExpr arg2 = nl->Third(args);
+  ListExpr arg3 = nl->Fourth(args);
+  ListExpr arg5 = nl->Fifth(args);
+  ListExpr arg6 = nl->Sixth(args);
+  ListExpr arg7 = nl->Nth(7, args);
+
+  ListExpr xType;
+  nl->ReadFromString(VisualGraph::QueryTypeInfo, xType);
+  if(!CompareSchemas(arg2, xType))return nl->SymbolAtom ( "typeerror" );
+
+  if(!CompareSchemas(arg3, xType))return nl->SymbolAtom ( "typeerror" );
+
+
+  ListExpr xType2;
+  nl->ReadFromString(DualGraph::TriangleTypeInfo3, xType2);
+  if(!CompareSchemas(arg5, xType2))return nl->SymbolAtom ( "typeerror" );
+
+  ListExpr xType4;
+  nl->ReadFromString(DualGraph::TriangleTypeInfo4, xType4);
+  if(!CompareSchemas(arg6, xType4))return nl->SymbolAtom ( "typeerror" );
+
+  if(!listutils::isBTreeDescription(arg7))
+    return nl->SymbolAtom("typeerror");
+
+
+  if(nl->IsAtom(arg0) && nl->AtomType(arg0) == SymbolType &&
+     nl->SymbolValue(arg0) == "dualgraph"&&
+     nl->IsAtom(arg1) && nl->AtomType(arg1) == SymbolType &&
+     nl->SymbolValue(arg1) == "visualgraph" ){
+
        ListExpr result =
           nl->TwoElemList(
               nl->SymbolAtom("stream"),
@@ -5153,6 +5229,7 @@ ListExpr OpTMWalkSPTypeMap ( ListExpr args )
                 )
           );
     return result;
+
   }
 
   return nl->SymbolAtom ( "typeerror" );
@@ -10096,7 +10173,7 @@ int OpTMWalkSPValueMap ( Word* args, Word& result, int message,
                          Word& local, Supplier in_pSupplier )
 {
 
-  Walk_SP* wsp;
+/*  Walk_SP* wsp;
   switch(message){
       case OPEN:{
         DualGraph* dg = (DualGraph*)args[0].addr;
@@ -10139,11 +10216,88 @@ int OpTMWalkSPValueMap ( Word* args, Word& result, int message,
           }
           return 0;
       }
-  }
-  return 0;
+  }*/
+
+      DualGraph* dg = (DualGraph*)args[0].addr;
+      VisualGraph* vg = (VisualGraph*)args[1].addr;
+      Relation* r1 = (Relation*)args[2].addr;
+      Relation* r2 = (Relation*)args[3].addr;
+      Relation* r3 = (Relation*)args[4].addr;
+      Relation* r4 = (Relation*)args[5].addr;
+  
+      Walk_SP* wsp = new Walk_SP(dg, vg, r1, r2);
+      wsp->rel3 = r3;
+      wsp->rel4 = r4;
+      wsp->btree = (BTree*)args[6].addr;
+
+      result = qp->ResultStorage(in_pSupplier);
+      Line* res = static_cast<Line*>(result.addr);
+      wsp->WalkShortestPath(res);
+      delete wsp; 
+      return 0;
 
 }
 
+/*
+Value Mapping for testwalksp  operator
+return the shortest path for pedestrian
+
+*/
+
+int OpTMTestWalkSPValueMap ( Word* args, Word& result, int message,
+                         Word& local, Supplier in_pSupplier )
+{
+
+  Walk_SP* wsp;
+  switch(message){
+      case OPEN:{
+        DualGraph* dg = (DualGraph*)args[0].addr;
+        VisualGraph* vg = (VisualGraph*)args[1].addr;
+        Relation* r1 = (Relation*)args[2].addr;
+        Relation* r2 = (Relation*)args[3].addr;
+        Relation* r3 = (Relation*)args[4].addr;
+        Relation* r4 = (Relation*)args[5].addr;
+
+        wsp = new Walk_SP(dg, vg, r1, r2);
+        wsp->rel3 = r3;
+        wsp->rel4 = r4;
+        wsp->btree = (BTree*)args[6].addr;
+        wsp->resulttype =
+            new TupleType(nl->Second(GetTupleResultType(in_pSupplier)));
+
+        for(int i = 1;i <= r1->GetNoTuples();i++){
+            for(int j = i + 1;j <= r2->GetNoTuples();j++)
+                wsp->TestWalkShortestPath(i, j);
+        }
+        local.setAddr(wsp);
+        return 0;
+      }
+      case REQUEST:{
+          if(local.addr == NULL) return CANCEL;
+          wsp = (Walk_SP*)local.addr;
+          if(wsp->count == wsp->oids1.size())
+                          return CANCEL;
+
+          Tuple* tuple = new Tuple(wsp->resulttype);
+          tuple->PutAttribute(0, new CcInt(true,wsp->oids1[wsp->count]));
+          tuple->PutAttribute(1, new CcInt(true, wsp->oids2[wsp->count]));
+          tuple->PutAttribute(2, new Line(wsp->path[wsp->count]));
+          result.setAddr(tuple);
+          wsp->count++;
+          return YIELD;
+      }
+      case CLOSE:{
+
+          if(local.addr){
+            wsp = (Walk_SP*)local.addr;
+            delete wsp;
+            local.setAddr(Address(0));
+          }
+          return 0;
+      }
+  }
+  return 0;
+}
 
 /*
 Value Mapping for generatewp1  operator
@@ -13916,6 +14070,14 @@ Operator walk_sp(
     OpTMWalkSPTypeMap
 );
 
+Operator test_walk_sp(
+    "test_walk_sp",
+    OpTMTestWalkSPSpec,
+    OpTMTestWalkSPValueMap,
+    Operator::SimpleSelect,
+    OpTMTestWalkSPTypeMap
+);
+
 Operator generate_wp1(
     "generate_wp1",
     OpTMGenerateWPSpec,
@@ -14616,6 +14778,7 @@ class TransportationModeAlgebra : public Algebra
     AddOperator(&createvgraph);
     AddOperator(&getadjnode_vg);
     AddOperator(&walk_sp);
+    AddOperator(&test_walk_sp); 
     ///////////////////dual graph/////////////////////////////////////
     AddOperator(&zval);
     AddOperator(&zcurve);

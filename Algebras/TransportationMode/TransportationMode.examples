@@ -112,6 +112,12 @@ Signature: dualgraph x visualgraph x rel1 x rel2 x rel3 x rel4 x btree -> line
 Example  : query walk_sp(dg1, vg1, query_loc1, query_loc2, tri_reg_new, vertex_tri, btr_vid);
 Result   : file_platform
 
+Operator : test_walk_sp
+Number   : 2
+Signature: dualgraph x visualgraph x rel1 x rel2 x rel3 x rel4 x btree -> line
+Example  : query test_walk_sp(dg1, vg1, query_loc1 feed head[1] consume, query_loc1 feed head[2] consume, tri_reg_new, vertex_tri, btr_vid);
+Result   : 1
+
 Operator : generate_wp1
 Number   : 2
 Signature: rel x int  -> (stream(tuple ((x1 t1) ... (xn tn))))

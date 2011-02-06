@@ -635,13 +635,13 @@ class Bus_Route:public StandardSpatialAttribute<2>{
     void Get(int i, SimpleLine& sl); 
     void GetGeoData(SimpleLine& sl);
 
-    void GetBusStopGeoData(Bus_Stop* bs, Point* p); 
-    
+    void GetBusStopGeoData(Bus_Stop* bs, Point* p);
+
     void GetElem(int i, BR_Elem& elem);
     void GetSeg(int i, HalfSegment& hs);
     int SegSize(){return seg_list.Size();}
 
-    double Length(); 
+    double Length();
     const Rectangle<2> BoundingBox() const;
     double Distance(const Rectangle<2>& r)const
     {
@@ -717,14 +717,14 @@ class BusNetwork{
   void LoadRoutes(Relation* r); 
   static void* Cast(void* addr);
   bool IsDefined() const { return def;}
-  unsigned int GetId() const {return id;}
+  unsigned int GetId() const {return bn_id;}
   Relation* GetBS_Rel(){return stops_rel;}
   Relation* GetBR_Rel(){return routes_rel;}
   
   void GetBusStopGeoData(Bus_Stop* bs, Point* p);
   private:
     bool def; 
-    unsigned int id;
+    unsigned int bn_id;
     Relation* stops_rel; //a relation for bus stops
     BTree* btree_bs; //a btree on bus stops
     Relation* routes_rel;  //a relaton for bus routes
