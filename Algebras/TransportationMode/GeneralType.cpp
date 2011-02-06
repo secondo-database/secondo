@@ -143,7 +143,7 @@ Word InIORef( const ListExpr typeInfo, const ListExpr instance,
     
     ListExpr second = nl->Second(instance);
     if(!nl->IsAtom(second) || nl->AtomType(second) != StringType){
-      cout<< "ioref(): loc.loc2 must be string type"<<endl;
+      cout<< "ioref(): parameter2 must be string type"<<endl;
       correct = false;
       return SetWord(Address(0));
     }
@@ -1341,6 +1341,15 @@ void GenMObject::GetTM(GenMO* mo)
     else if(tm_list[tm_list.size() - 1] != tm)
       tm_list.push_back(tm); 
   }
+}
+
+void GenMObject::GetTMStr(bool v)
+{
+  if(v == false)return;
+  for(unsigned int i = 0;i < ARR_SIZE(genmo_tmlist);i++){
+      tm_str_list.push_back(genmo_tmlist[i]);
+  }
+
 }
 
 //////////////////////////////////////////////////////////////////////

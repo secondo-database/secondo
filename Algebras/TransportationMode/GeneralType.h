@@ -76,7 +76,7 @@ instead of int, real, or enum
 
 */
 
-const string str_tm[] = {"Bus", "Walk", "Indoor", "Car", "Tube", 
+const string str_tm[] = {"Bus", "Walk", "Indoor", "Car", "Metro", 
                          "Train", "Bicycle"}; 
 inline int GetTM(string s)
 {
@@ -145,6 +145,15 @@ class IORef:public Attribute{
     {
 
     }
+    IORef& operator=(const IORef& ref)
+    {
+        SetDefined(ref.IsDefined());
+        if(IsDefined()){
+          oid = ref.GetOid();
+          label = ref.GetLabel();
+        }
+        return *this;
+    }
     void SetValue(unsigned int o, string s)
     {
       oid = o;
@@ -175,8 +184,8 @@ class IORef:public Attribute{
 
     
   static void* Cast(void* addr){return new (addr)IORef();}
-  unsigned GetOid(){return oid;}
-  unsigned int GetLabel(){return label;}
+  unsigned int GetOid() const {return oid;}
+  unsigned int GetLabel() const{return label;}
   void Print(){
     cout<<"oid "<<oid<<" label "<<GetSymbolStr(label)<<endl; 
   }
@@ -621,6 +630,14 @@ ostream& operator<<(ostream& o, const UGenLoc& gloc);
 /////////////////////////////////////////////////////////////////////
 ///////////// general moving objects ////////////////////////////////
 /////////////////////////////////////////////////////////////////////
+const string genmo_tmlist[] = 
+{"Walk", "Indoor", "Bus", "Car", "Metro", 
+"Walk;Car", "Walk;Bus", "Walk;Indoor", "Walk;Metro",
+"Walk;Bus;Metro", "Walk;Indoor;Car", "Walk;Indoor;Bus","Walk;Indoor;Metro",
+"Walk;Indoor;Bus;Metro"};
+
+
+
 /*
 the bounding box for genmpoint should be calculated somewhere else because it
 needs the object identifier to calculate the absolute coordinates in space 
@@ -656,10 +673,11 @@ struct GenMObject{
   unsigned int count;
   TupleType* resulttype; 
   vector<int> tm_list; 
+  vector<string> tm_str_list; 
   GenMObject(){ count = 0; resulttype = NULL;} 
   ~GenMObject(){if(resulttype != NULL) delete resulttype;}
   void GetTM(GenMO* mo); 
-  
+  void GetTMStr(bool v);
 }; 
 
 
@@ -707,6 +725,7 @@ bool OpenSpace(SmiRecord& valueRecord, size_t& offset,
 Word InSpace( const ListExpr typeInfo, const ListExpr instance,
        const int errorPos, ListExpr& errorInfo, bool& correct ); 
 ListExpr OutSpace( ListExpr typeInfo, Word value );
+
 //////////////////////////////////////////////////////////////////////
 /////////////////////////////random number generator//////////////////
 //////////////////////////////////////////////////////////////////////
