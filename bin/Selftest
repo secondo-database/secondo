@@ -4,7 +4,7 @@
 #
 # 12.12.2006, M. Spiekermann
 
-export SECONDO_PARAM_RTFlags="DEBUG:DemangleStackTrace,CMSG:Color,CTLG:SkipExamples,SI:PrintCounters"
+export SECONDO_PARAM_RTFlags="DEBUG:DemangleStackTrace,CMSG:Color,CTLG:SkipExamples,SI:PrintCounters,SMI:AutoRemoveLogs"
 
 # On linux the variable below will use a less efficient
 # malloc implementation which does error detection and aborts

@@ -118,12 +118,15 @@ SmiEnvironment::SmiType SmiEnvironment::smiType = SmiEnvironment::SmiBerkeleyDB;
 u_int32_t
 SmiEnvironment::Implementation::AutoCommitFlag = DB_AUTO_COMMIT;
 
-SmiEnvironment::Implementation::Implementation()
+SmiEnvironment::Implementation::Implementation(const bool log_auto_remove)
   : bdbHome( "" ), tmpHome( "" ), tmpId( 0 ), envClosed( false ),
     usrTxn( 0 ), txnStarted( false ), txnMustAbort( false ),
     bdbDatabases( 0 ), bdbSeq( 0 ), bdbCatalog( 0 ), bdbCatalogIndex( 0 )
 {
   bdbEnv = new DbEnv( DB_CXX_NO_EXCEPTIONS );
+  if(log_auto_remove){
+    bdbEnv->log_set_config(DB_LOG_AUTO_REMOVE, 1);
+  }
   tmpEnv = 0;
   dbHandles.reserve( DEFAULT_DBHANDLE_ALLOCATION_COUNT );
   SmiDbHandleEntry dummy(0);
@@ -188,6 +191,13 @@ SmiEnvironment::Implementation::AllocateDbHandle()
     cerr << "Allocate: returned idx = " << idx << endl;
 
   return (idx);
+}
+
+
+void SmiEnvironment::Implementation::SetAutoRemoveLogs(bool enable){
+   if(bdbEnv){
+      bdbEnv->log_set_config(DB_LOG_AUTO_REMOVE, enable?1:0);
+   }
 }
 
 int SmiEnvironment::Implementation::FindOpen(const string& fileName,
@@ -852,7 +862,7 @@ SmiEnvironment::Implementation::DeleteDatabase( const string& dbname )
 SmiEnvironment::SmiEnvironment()
 {
   //cerr << "*** Constructor SmiEnvironment ***" << endl;
-  impl = new Implementation();
+  impl = new Implementation(true);
 }
 
 SmiEnvironment::~SmiEnvironment()
@@ -861,6 +871,15 @@ SmiEnvironment::~SmiEnvironment()
   delete impl;
   impl = 0;
 }
+
+
+void SmiEnvironment::SetAutoRemoveLogs(const bool enable){
+   if(instance.impl){
+      instance.impl->SetAutoRemoveLogs(enable);
+   }
+}
+
+
 
 void
 SmiEnvironment::SetSmiError( const SmiError smiErr,

@@ -345,6 +345,11 @@ SecondoInterface::Initialize( const string& user, const string& pswd,
     {
       SmiEnvironment::SetUser( user ); // TODO: Check for valid user/pswd
       ok = true;
+      if(RTFlag::isActive("SMI:AutoRemoveLogs")){
+         SmiEnvironment::SetAutoRemoveLogs(true);
+      } else {
+         SmiEnvironment::SetAutoRemoveLogs(false);
+      }
     }
     else
     {

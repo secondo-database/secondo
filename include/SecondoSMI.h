@@ -1075,6 +1075,13 @@ Allows to set an SmiError code and a system error code or an error message.
 
 
   static void UpdateCatalog();
+  
+
+static void SetAutoRemoveLogs(const bool enable);
+/*
+Forces the deletion of non required log files. Disables catastropic recovery.
+
+*/
 
  
  private:
@@ -1155,6 +1162,10 @@ Translate an SMI error code into a message!
 */
   static bool CallRegistrar( const string& dbname, 
       const string& cmd, string& answer );
+
+
+
+
 
 /*
 Auxiliary function to handle communication with the registrar process

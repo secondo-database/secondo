@@ -126,6 +126,9 @@ RTFlags +=  Server:BinaryTransfer
 # Switch off the transaction and logging subsystem of Berkeley-DB
 #RTFlags += SMI:NoTransactions
 
+# Remove non required log files 
+RTFlags += SMI:AutoRemoveLogs
+
 #RTFlags += SMI:DbHandles
 
 # Show how often the requested buffersize could not be

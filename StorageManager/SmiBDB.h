@@ -426,9 +426,17 @@ catalog. The function returns "true"[4] if the deletion was successful.
 
 */
 
+  void SetAutoRemoveLogs(const bool enable);
+/*
+Enforces a deletion of non-longer required log files if enabled=true.
+A "catastrophic recovery" is not available in  this case.
+
+*/
+
+
 
  protected:
-  Implementation();
+  Implementation(const bool auto_remove_logs);
   ~Implementation();
  private:
 
