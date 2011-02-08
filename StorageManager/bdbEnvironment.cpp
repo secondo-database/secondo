@@ -79,6 +79,7 @@ now be more compatible.
 #include "StopWatch.h"
 #include "CacheInfo.h"
 #include "WinUnix.h"
+#include "DbVersion.h"
 
 #ifndef SECONDO_WIN32
 #include <libgen.h>
@@ -124,9 +125,11 @@ SmiEnvironment::Implementation::Implementation(const bool log_auto_remove)
     bdbDatabases( 0 ), bdbSeq( 0 ), bdbCatalog( 0 ), bdbCatalogIndex( 0 )
 {
   bdbEnv = new DbEnv( DB_CXX_NO_EXCEPTIONS );
+#if DB_VERSION_REQUIRED(4,8)  
   if(log_auto_remove){
     bdbEnv->log_set_config(DB_LOG_AUTO_REMOVE, 1);
   }
+#endif  
   tmpEnv = 0;
   dbHandles.reserve( DEFAULT_DBHANDLE_ALLOCATION_COUNT );
   SmiDbHandleEntry dummy(0);
@@ -195,9 +198,11 @@ SmiEnvironment::Implementation::AllocateDbHandle()
 
 
 void SmiEnvironment::Implementation::SetAutoRemoveLogs(bool enable){
+#if DB_VERSION_REQUIRED(4,8)	
    if(bdbEnv){
       bdbEnv->log_set_config(DB_LOG_AUTO_REMOVE, enable?1:0);
    }
+#endif   
 }
 
 int SmiEnvironment::Implementation::FindOpen(const string& fileName,
