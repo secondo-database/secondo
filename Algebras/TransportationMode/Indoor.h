@@ -981,6 +981,23 @@ struct I_Parameter{
 class MPoint3D; 
 bool BBoxContainPoint3D(Rectangle<3> bbox, Point3D& p); 
 
+struct Elevator{
+  float h;
+  double t1, t2; //two arrive time instants
+  double m_t, w_t; 
+  Elevator(){}
+  Elevator(float height, double a, double b, double mt, double wt):h(height),
+          t1(a), t2(b), m_t(mt), w_t(wt){}
+  Elevator(const Elevator& el):h(el.h), t1(el.t1), t2(el.t2), 
+          m_t(el.m_t), w_t(el.w_t){}
+  bool operator<(const Elevator& el) const{
+    return h < el.h; 
+  }
+  void Print()
+  {
+    printf("h:%f t1:%.12f t2:%.12f\n", h, t1, t2);
+  }
+};
 
 struct IndoorNav{
   Relation* rel1; //university room relation 
@@ -1089,11 +1106,16 @@ struct IndoorNav{
    void GetAdjNodeIG(int oid);
    ////////////////////////// data generation/////////////////////////
    void GenerateIP1(int num);
+   void InitializeElevator(Interval<Instant>& periods, 
+                                   vector<Elevator>& elev_list, double speed);
    void GenerateMO1(IndoorGraph* ig, BTree* btree, R_Tree<3,TupleId>* rtree,
                     int num, Periods* peri, bool convert); 
    float GetMinimumDoorWidth();
    void AddUnitToMO(MPoint3D* mp3d, Point3D& p1, Point3D& p2, 
                     Instant& start_time, double speed);
+   void AddUnitToMO_Elevator(MPoint3D* mp3d, vector<Point3D>& , 
+                    Instant& start_time, Instant& st, vector<Elevator>&);
+
    void ToGenLoc(MPoint3D* mp3d, R_Tree<3,TupleId>* rtree);
    void Get_GenLoc(Point3D p1, Point3D p2, GenLoc& loc1, GenLoc& loc2,
                    R_Tree<3,TupleId>* rtree);

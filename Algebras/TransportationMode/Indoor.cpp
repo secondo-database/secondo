@@ -4214,7 +4214,7 @@ it contains OR, CO, BR
 void IndoorNav::GenerateIP1(int num)
 {
   int no_rooms = rel1->GetNoTuples(); 
-  
+
 //  struct timeval tval;
 //  struct timezone tzone;
 //  gettimeofday(&tval, &tzone);
@@ -4297,6 +4297,70 @@ void IndoorNav::GenerateIP1(int num)
 
 }
 
+/*
+initialize the elevator schedule 
+
+*/
+void IndoorNav::InitializeElevator(Interval<Instant>& periods, 
+                                   vector<Elevator>& elev_list, 
+                                   double speed)
+{
+  for(int i = 1;i <= rel1->GetNoTuples();i++){
+    Tuple* groom_tuple = rel1->GetTuple(i, false);
+    string type = ((CcString*)groom_tuple->GetAttribute(I_Type))->GetValue();
+    if(GetRoomEnum(type) == EL){
+        GRoom* groom = (GRoom*)groom_tuple->GetAttribute(I_Room);
+        float h = groom->GetLowHeight();
+        Elevator elevator(h, 0.0, 0.0, 0.0, 0.0);
+        elev_list.push_back(elevator); 
+    }
+    groom_tuple->DeleteIfAllowed(); 
+  }
+
+
+  if(elev_list.size() == 1){
+     cout<<"only one floor, should not have elevator"<<endl; 
+     return; 
+  }
+  sort(elev_list.begin(), elev_list.end());
+
+
+  int n_floor = (int)elev_list.size(); 
+  double stay = 10.0/(24.0*60.0*60.0); //at each floor stay 10 seconds 
+  double delta_h = fabs(elev_list[1].h - elev_list[0].h);
+  double time_move = delta_h /(24.0*60.0*60.0*speed); 
+  
+  ///////////////////////////////////////////////////////////////
+  ////////////t1: higher -- lower////////////////////////////////
+  ////////////t2: lower -- hihger////////////////////////////////
+  ///////////////////////////////////////////////////////////////
+
+  elev_list[n_floor - 1].t1 = 0.0;
+  elev_list[n_floor - 1].t2 = elev_list[n_floor - 1].t1 + 
+                              2*time_move*(n_floor-1) + 
+                              stay*((n_floor-2)*2 + 2);
+  elev_list[n_floor - 1].m_t = time_move;
+  elev_list[n_floor - 1].w_t = stay; 
+
+  for(int i = n_floor - 2;i >= 0;i --){
+    elev_list[i].t1 = elev_list[i + 1].t1 + stay + time_move; 
+    elev_list[i].t2 = elev_list[i + 1].t2 - stay - time_move; 
+    elev_list[i].m_t = time_move;
+    elev_list[i].w_t = stay; 
+  }
+
+  for(unsigned int i = 0;i < elev_list.size();i++){
+//    elev_list[i].Print(); 
+    Instant t1 = periods.start;
+    t1.ReadFrom(elev_list[i].t1); 
+
+    Instant t2 = periods.start;
+    t2.ReadFrom(elev_list[i].t2);
+
+//    cout<<"first arrive "<<t1<<" second arrive "<<t2<<endl; 
+  }
+
+}
 
 /*
 generate interesting indoor moving objects.
@@ -4308,7 +4372,7 @@ void IndoorNav::GenerateMO1(IndoorGraph* ig, BTree* btree,
                             Periods* peri, bool convert)
 {
   GenerateIP1(num*2); 
-  
+
   IndoorNav* indoor_nav = new IndoorNav(ig); 
 
   Interval<Instant> periods;
@@ -4319,8 +4383,11 @@ void IndoorNav::GenerateMO1(IndoorGraph* ig, BTree* btree,
   peri->Get(0, periods);
 
   double speed = GetMinimumDoorWidth(); 
-//  cout<<"human speed "<<speed<<endl; 
 
+  vector<Elevator> elev_list;
+
+  InitializeElevator(periods, elev_list, speed);
+  
 
   int count = 0; 
   for(unsigned int i = 0;i < genloc_list.size();i++){
@@ -4328,17 +4395,26 @@ void IndoorNav::GenerateMO1(IndoorGraph* ig, BTree* btree,
       GenLoc loc1 = genloc_list[i];
       GenLoc loc2 = genloc_list[i + 1];
 
-//      GenLoc loc1(144, Loc(4.65, 1.61));
-//      GenLoc loc2(317, Loc(0.91, 2.0));
+/*      Loc loc_1(0.3, 0.4);
+      Loc loc_2(0.2, 0.5);
+      loc1.SetValue(71, loc_1);
+      loc2.SetValue(153, loc_2);*/  //using elevator, for testing 
 
-      if(loc1.GetOid() == loc2.GetOid()) continue; 
+//      cout<<"loc1 "<<loc1<<" loc2 "<<loc2<<endl; 
+      
+      if(loc1.GetOid() == loc2.GetOid()) continue;
 
 //      cout<<"loc1 "<<loc1<<" loc2 "<<loc2<<endl;
       indoor_nav->ShortestPath_Length(&loc1, &loc2, rel1, btree);
 //      cout<<indoor_nav->path_list[count].Length()<<endl;
       //////////////////////////////////////////////////////////////////
       Instant start_time = periods.start;
-      start_time.ReadFrom(periods.start.ToDouble() + (i % 5)/(24.0*60.0*60.0));
+//    start_time.ReadFrom(periods.start.ToDouble() + (i % 5)/(24.0*60.0*60.0));
+
+    //in several minutes: 60 secondos for 30 persons
+    start_time.ReadFrom(periods.start.ToDouble() + 
+                        (GetRandom() % (num*2))/(24.0*60.0*60.0)); 
+
       Line3D* l3d = &indoor_nav->path_list[count];
 //      l3d->Print();
       if(l3d->Length() > 0.0){
@@ -4349,7 +4425,37 @@ void IndoorNav::GenerateMO1(IndoorGraph* ig, BTree* btree,
             Point3D p1, p2;
             l3d->Get(j, p1);
             l3d->Get(j + 1, p2);
-            AddUnitToMO(mp3d, p1, p2, start_time, speed);
+            ///////////////process the movement in an elevator 
+            if(AlmostEqual(p1.GetX(), p2.GetX()) && 
+                AlmostEqual(p1.GetY(), p2.GetY()) && elev_list.size() > 1){
+
+                float delta_h = fabs(elev_list[1].h - elev_list[0].h); 
+                if(AlmostEqual(delta_h, p1.Distance(p2))){
+                    vector<Point3D> p3d_list; 
+                    p3d_list.push_back(p1);
+                    p3d_list.push_back(p2);
+                    int k = j + 1;
+                    for(;k < l3d->Size();k++){
+                      if(k < l3d->Size() - 1){
+                        Point3D q1, q2;
+                        l3d->Get(k, q1);
+                        l3d->Get(k + 1, q2);
+
+                        if(AlmostEqual(q1.GetX(), q2.GetX()) && 
+                          AlmostEqual(q1.GetY(), q2.GetY())){//elevator 
+                              p3d_list.push_back(q2);
+                        }else
+                          break; 
+                    }
+                  }
+                  k--;
+                  j = k;
+
+                  AddUnitToMO_Elevator(mp3d, p3d_list, start_time,
+                  periods.start, elev_list);
+                }
+            }else 
+                AddUnitToMO(mp3d, p1, p2, start_time, speed);
           }
         }
         mp3d->EndBulkLoad(); 
@@ -4362,12 +4468,116 @@ void IndoorNav::GenerateMO1(IndoorGraph* ig, BTree* btree,
       }
       if(count == num)break; 
 
-//      break; 
     }
   }
 
   delete indoor_nav; 
 
+}
+
+/*
+add temporal units (for movement in an elevator)
+
+*/
+void IndoorNav::AddUnitToMO_Elevator(MPoint3D* mp3d, vector<Point3D>& p3d_list, 
+                    Instant& start_time, Instant& st, 
+                     vector<Elevator>& elev_list)
+{
+  assert(p3d_list.size() >= 2 && elev_list.size() >= 2); 
+  ////////////get the time for waiting///////////////////////////////////
+  double relative_start = start_time.ToDouble() - st.ToDouble(); 
+  double cycle_time = elev_list[elev_list.size() - 1].t2 - 
+                      elev_list[elev_list.size() - 1].t1;
+
+  while(relative_start > cycle_time){
+    relative_start -= cycle_time;
+  }
+
+//  printf("relative time %.12f\n", relative_start*86400000); 
+  Instant t = start_time;
+  t.ReadFrom(relative_start + st.ToDouble());
+//  cout<<"relative time "<<t<<endl; 
+
+  float h1 = p3d_list[0].GetZ(); 
+  float h2 = p3d_list[ p3d_list.size() - 1].GetZ(); 
+
+  double wait_time = 0.0;
+  for(unsigned int i = 0;i < elev_list.size();i++){
+    if(AlmostEqual(h1, elev_list[i].h)){
+      if(h1 < h2){ //check t2 
+            if(elev_list[i].t2 > relative_start){
+                wait_time = elev_list[i].t2 - relative_start;
+            }else{
+                wait_time = elev_list[i].t2 + cycle_time - relative_start;
+            }
+      }else{//check t1
+            if(elev_list[i].t1 > relative_start){
+                wait_time = elev_list[i].t1 - relative_start;
+            }else{
+                wait_time = elev_list[i].t1 + cycle_time - relative_start;
+            }
+      }
+     break; 
+    }
+  }
+
+//  printf("wait time %.12f, %.12f\n", wait_time, wait_time*86400000); 
+    ////////////////////unit for waiting/////////////////////////
+    if(wait_time > 0.0){
+      Interval<Instant> up_interval; 
+      up_interval.start = start_time;
+      Instant end = start_time;
+      end.ReadFrom(start_time.ToDouble() + wait_time);
+      up_interval.end = end;
+
+      up_interval.lc = true;
+      up_interval.rc = false; 
+      Point3D p = p3d_list[0];
+      UPoint3D* unit = new UPoint3D(up_interval, p, p); 
+      mp3d->Add(*unit); 
+      delete unit;
+      start_time = end; 
+    }
+  ////////////////////////////////////////////////////////////////////////////
+  for(int i = 0;i < (int) p3d_list.size();i++){
+    if(i < (int)(p3d_list.size() - 1)){
+        Point3D p1 = p3d_list[i];
+        Point3D p2 = p3d_list[i + 1];
+
+        Interval<Instant> up_interval; 
+        up_interval.start = start_time;
+        Instant end = start_time;
+        end.ReadFrom(start_time.ToDouble() + elev_list[0].m_t);
+        up_interval.end = end;
+
+        up_interval.lc = true;
+        up_interval.rc = false; 
+        UPoint3D* unit = new UPoint3D(up_interval, p1, p2); 
+        mp3d->Add(*unit); 
+        delete unit;
+        start_time = end; 
+
+        if(i < (int)(p3d_list.size() - 2)){
+          Interval<Instant> up_interval2; 
+          up_interval2.start = start_time;
+          Instant end2 = start_time;
+          end2.ReadFrom(start_time.ToDouble() + elev_list[0].w_t);
+          up_interval2.end = end2;
+
+          up_interval2.lc = true;
+          up_interval2.rc = false; 
+          UPoint3D* unit = new UPoint3D(up_interval2, p2, p2); 
+          mp3d->Add(*unit); 
+          delete unit;
+          start_time = end2; 
+
+        }
+    }
+
+  }
+
+
+  ////////////////////////////////////////////////////////////////////////////
 }
 
 /*
@@ -4401,12 +4611,14 @@ void IndoorNav::AddUnitToMO(MPoint3D* mp3d, Point3D& p1, Point3D& p2,
   const double dist_delta = 0.01; 
 
   double d = p1.Distance(p2); 
-  if(d < speed || AlmostEqual(d, speed)){ 
+  if(d < speed || AlmostEqual(d, speed)){//staircase movement 
 
     Interval<Instant> up_interval; 
     up_interval.start = start_time;
     Instant end = start_time;
-    end.ReadFrom(start_time.ToDouble() + d/(24.0*60.0*60.0*speed));
+//    end.ReadFrom(start_time.ToDouble() + d/(24.0*60.0*60.0*speed));
+    //////////set 0.75---1, a little slow /////////////////////////
+    end.ReadFrom(start_time.ToDouble() + 0.75/(24.0*60.0*60.0));
     up_interval.end = end;
 
     up_interval.lc = true;
