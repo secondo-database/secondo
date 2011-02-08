@@ -126,7 +126,7 @@ RTFlags +=  Server:BinaryTransfer
 # Switch off the transaction and logging subsystem of Berkeley-DB
 #RTFlags += SMI:NoTransactions
 
-# Remove non required log files 
+# Remove non required log files , this will only take effekt if berkeley db version >4.8 is used
 RTFlags += SMI:AutoRemoveLogs
 
 #RTFlags += SMI:DbHandles
