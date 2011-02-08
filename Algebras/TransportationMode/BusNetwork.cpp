@@ -5325,6 +5325,18 @@ void* Bus_Stop::Cast(void* addr)
 
 }
 
+ostream& operator<<(ostream& o, const Bus_Stop& bs)
+{
+  if(bs.IsDefined()){
+    o<<"br_id "<< bs.GetId()<<" "
+    <<"stop id "<<bs.GetStopId()<<" "
+    <<"direction "<<bs.GetUp()<<endl; 
+  }else
+    o<<"undef"<<endl;
+
+  return o;
+}
+
 //////////////////////////////////////////////////////////////
 //////////////////////bus route///////////////////////////////
 //////////////////////////////////////////////////////////////
@@ -6297,6 +6309,293 @@ void BN::GetRoutes()
     br_tuple->DeleteIfAllowed();
   }
 }
+
+
+bool BSCompare(const Bus_Stop& bs1, const Bus_Stop& bs2)
+{
+  if(bs1.GetId() < bs2.GetId()) return true;
+  else if(bs1.GetId() == bs2.GetId()){
+    if(bs1.GetStopId() < bs2.GetStopId()){
+        return true; 
+    }else
+      return false; 
+  }else
+    return false; 
+}
+
+/*
+map bus stops to the pavements 
+
+*/
+
+void BN::MapBSToPavements(R_Tree<2,TupleId>* rtree, Relation* pave_rel, int w)
+{
+  vector<Bus_Stop> stop_list;
+
+  for(int i = 1;i <= bn->GetBS_Rel()->GetNoTuples();i++){
+    Tuple* bs_tuple = bn->GetBS_Rel()->GetTuple(i, false);
+    Bus_Stop* bs = (Bus_Stop*)bs_tuple->GetAttribute(BusNetwork::BN_BS);
+    stop_list.push_back(*bs);
+    bs_tuple->DeleteIfAllowed(); 
+  }
+
+//  cout<<stop_list.size()<<endl; 
+
+  sort(stop_list.begin(), stop_list.end(), BSCompare); 
+
+  for(unsigned int i = 0;i < stop_list.size();){
+    Bus_Stop bs1 = stop_list[i];
+    Bus_Stop bs2 = stop_list[i + 1];
+    assert(bs1.GetId() == bs2.GetId() && bs1.GetStopId() == bs2.GetStopId()); 
+    i += 2;
+    MapToPavment(bs1, bs2, rtree, pave_rel, w);
+
+//    break;
+  }
+
+}
+
+/*
+map a bus stop to a point in the pavement. It creates a line connecting the two
+bus stops and extends the line. Then, it gets the intersection points of the 
+line and pavements. 
+
+*/
+void BN::MapToPavment(Bus_Stop& bs1, Bus_Stop& bs2, R_Tree<2,TupleId>* rtree, 
+                    Relation* pave_rel, int w)
+{
+  ////////////////construct a line connecting the two bus stops//////
+  Point p1;
+  bn->GetBusStopGeoData(&bs1, &p1);
+
+  Point p2;
+  bn->GetBusStopGeoData(&bs2, &p2);
+
+//  cout<<"bs1 "<<bs1<<"bs2 "<<bs2<<endl; 
+//  cout<<"loc1 "<<p1<<" loc2 "<<p2<<endl; 
+
+  Line* l = new Line(0);
+  l->StartBulkLoad();
+  if(AlmostEqual(p1.GetX(), p2.GetX())){
+    double miny = MIN(p1.GetY(), p2.GetY());
+    double maxy = MAX(p1.GetY(), p2.GetY());
+    Point lp(true, p1.GetX(), miny - w);
+    Point rp(true, p1.GetX(), maxy + w);
+    HalfSegment hs(true, lp, rp);
+    hs.attr.edgeno = 0; 
+    *l += hs;
+    hs.SetLeftDomPoint(!hs.IsLeftDomPoint());
+    *l += hs;
+  }else if(AlmostEqual(p1.GetY(), p2.GetY())){
+    double minx = MIN(p1.GetX(), p2.GetX());
+    double maxx = MAX(p1.GetX(), p2.GetX());
+    Point lp(true, minx - w, p1.GetY());
+    Point rp(true, maxx + w, p1.GetY());
+    HalfSegment hs(true, lp, rp);
+    hs.attr.edgeno = 0; 
+    *l += hs;
+    hs.SetLeftDomPoint(!hs.IsLeftDomPoint());
+    *l += hs;
+  }else{
+    double a = (p1.GetY() - p2.GetY())/(p1.GetX() - p2.GetX()); 
+    double b = p1.GetY() - a*p1.GetX();
+    double minx = MIN(p1.GetX(), p2.GetX());
+    double maxx = MAX(p1.GetX(), p2.GetX());
+    minx -= w;
+    maxx += w; 
+    Point lp(true, minx, a*minx + b);
+    Point rp(true, maxx, a*maxx + b);
+    HalfSegment hs(true, lp, rp);
+    hs.attr.edgeno = 0; 
+    *l += hs;
+    hs.SetLeftDomPoint(!hs.IsLeftDomPoint());
+    *l += hs;
+  }
+
+  l->EndBulkLoad();
+  //////////////////////////////////////////////////////////////////////////// 
+  ////////////////get the intersection point of the line and pavements///////
+  ////////////////////////////////////////////////////////////////////////////
+//  cout<<"l length: "<<l->Length()<<" dist p1 p2 "<<p1.Distance(p2)<<endl; 
+
+  vector<MyPoint_Tid> it_p_list; 
+
+  SmiRecordId adr = rtree->RootRecordId();
+  DFTraverse(rtree, pave_rel, adr, l, it_p_list);
+  delete l;
+
+//  cout<<it_p_list.size()<<endl;
+  
+  assert(it_p_list.size() >= 2); 
+  Point midp(true, (p1.GetX() + p2.GetX())/2, (p1.GetY() + p2.GetY())/2); 
+  
+/*  for(unsigned int i = 0;i < it_p_list.size();i++){
+      bs_list.push_back(bs1);
+      Loc loc(0.0, 0.0); 
+      GenLoc genloc(1, loc); 
+      genloc_list.push_back(genloc); 
+      geo_list.push_back(it_p_list[i].loc); 
+  }*/
+
+  ////////////get the two closest points ////////////////////////////
+  for(unsigned int i = 0;i < it_p_list.size();i++){
+      it_p_list[i].dist = it_p_list[i].loc.Distance(midp); 
+  }
+  
+  vector<MyPoint_Tid> it_p_list1; 
+  vector<MyPoint_Tid> it_p_list2; 
+  
+  if(AlmostEqual(p1.GetX(), p2.GetX())){
+    for(unsigned int i = 0;i < it_p_list.size();i++){
+        if(it_p_list[i].loc.GetY() > midp.GetY()){
+          it_p_list1.push_back(it_p_list[i]);
+        }else
+          it_p_list2.push_back(it_p_list[i]);
+    }
+  }else{
+    for(unsigned int i = 0;i < it_p_list.size();i++){
+        if(it_p_list[i].loc.GetX() > midp.GetX()){
+          it_p_list1.push_back(it_p_list[i]);
+        }else
+          it_p_list2.push_back(it_p_list[i]);
+    }
+  }
+
+  sort(it_p_list1.begin(), it_p_list1.end());
+  sort(it_p_list2.begin(), it_p_list2.end());
+
+//  it_p_list1[0].Print();
+//  it_p_list2[0].Print();
+  //////////////////////////////////////////////////////////////////////////
+  ///////////////map each point to its corresponding bus stop///////////////
+  /////////////////////////////////////////////////////////////////////////
+  
+  double d1 = it_p_list1[0].loc.Distance(p1);
+  double d2 = it_p_list1[0].loc.Distance(p2);
+  if(d1 < d2){
+      // it_p_list1[0] -- p1 bs1, it_p_list2[0] -- p2 bs2
+      Tuple* pave_tuple1 = pave_rel->GetTuple(it_p_list1[0].tid, false);
+      int oid1 = 
+          ((CcInt*)pave_tuple1->GetAttribute(DualGraph::OID))->GetIntval(); 
+      Region* reg1 = (Region*)pave_tuple1->GetAttribute(DualGraph::PAVEMENT);
+      Point q1 = it_p_list1[0].loc; 
+
+      Loc loc1(q1.GetX() - reg1->BoundingBox().MinD(0), 
+               q1.GetY() - reg1->BoundingBox().MinD(1)); 
+
+      GenLoc genloc1(oid1, loc1); 
+      assert(q1.Inside(*reg1));
+      pave_tuple1->DeleteIfAllowed(); 
+      bs_list.push_back(bs1);
+      genloc_list.push_back(genloc1); 
+      geo_list.push_back(it_p_list1[0].loc); 
+
+      /////////////////////////////////////////////////////////////////////
+      Tuple* pave_tuple2 = pave_rel->GetTuple(it_p_list2[0].tid, false);
+      int oid2 = 
+          ((CcInt*)pave_tuple2->GetAttribute(DualGraph::OID))->GetIntval(); 
+      Region* reg2 = (Region*)pave_tuple2->GetAttribute(DualGraph::PAVEMENT);
+      Point q2 = it_p_list2[0].loc; 
+
+      Loc loc2(q2.GetX() - reg2->BoundingBox().MinD(0), 
+               q2.GetY() - reg2->BoundingBox().MinD(1)); 
+
+      GenLoc genloc2(oid2, loc2); 
+      assert(q2.Inside(*reg2));
+      pave_tuple2->DeleteIfAllowed(); 
+
+      bs_list.push_back(bs2); 
+      genloc_list.push_back(genloc2); 
+      geo_list.push_back(it_p_list2[0].loc);
+
+//      cout<<"tid1 "<<it_p_list1[0].tid<<" tid2 "<<it_p_list2[0].tid<<endl;
+
+  }else{
+     //it_p_list1[0] -- p2 bs2, it_p_list2[0] -- p1 bs1
+
+      Tuple* pave_tuple1 = pave_rel->GetTuple(it_p_list1[0].tid, false);
+      int oid1 = 
+          ((CcInt*)pave_tuple1->GetAttribute(DualGraph::OID))->GetIntval(); 
+      Region* reg1 = (Region*)pave_tuple1->GetAttribute(DualGraph::PAVEMENT);
+      Point q1 = it_p_list1[0].loc; 
+
+      Loc loc1(q1.GetX() - reg1->BoundingBox().MinD(0),
+               q1.GetY() - reg1->BoundingBox().MinD(1));
+
+      GenLoc genloc1(oid1, loc1); 
+      assert(q1.Inside(*reg1));
+      pave_tuple1->DeleteIfAllowed(); 
+      bs_list.push_back(bs2);
+      genloc_list.push_back(genloc1); 
+      geo_list.push_back(it_p_list1[0].loc); 
+
+      /////////////////////////////////////////////////////////////////////
+      Tuple* pave_tuple2 = pave_rel->GetTuple(it_p_list2[0].tid, false);
+      int oid2 = 
+          ((CcInt*)pave_tuple2->GetAttribute(DualGraph::OID))->GetIntval(); 
+      Region* reg2 = (Region*)pave_tuple2->GetAttribute(DualGraph::PAVEMENT);
+      Point q2 = it_p_list2[0].loc; 
+
+      Loc loc2(q2.GetX() - reg2->BoundingBox().MinD(0), 
+               q2.GetY() - reg2->BoundingBox().MinD(1)); 
+
+      GenLoc genloc2(oid2, loc2); 
+      assert(q2.Inside(*reg2));
+      pave_tuple2->DeleteIfAllowed(); 
+
+      bs_list.push_back(bs1); 
+      genloc_list.push_back(genloc2); 
+      geo_list.push_back(it_p_list2[0].loc);
+
+//      cout<<"tid1 "<<it_p_list1[0].tid<<" tid2 "<<it_p_list2[0].tid<<endl;
+  }
+
+}
+
+/*
+Using depth first method to travese the R-tree to find all pavements intersect
+the line and get the intersection points 
+
+*/
+void BN::DFTraverse(R_Tree<2,TupleId>* rtree, Relation* rel, 
+                           SmiRecordId adr, Line* l,
+                           vector<MyPoint_Tid>& it_p_list)
+{
+  R_TreeNode<2,TupleId>* node = rtree->GetMyNode(adr,false,
+                  rtree->MinEntries(0), rtree->MaxEntries(0));
+  for(int j = 0;j < node->EntryCount();j++){
+      if(node->IsLeaf()){
+              R_TreeLeafEntry<2,TupleId> e =
+                 (R_TreeLeafEntry<2,TupleId>&)(*node)[j];
+              Tuple* dg_tuple2 = rel->GetTuple(e.info,false);
+              Region* candi_reg =
+                     (Region*)dg_tuple2->GetAttribute(DualGraph::PAVEMENT);
+              if(l->Intersects(candi_reg->BoundingBox())){
+                  Line* l1 = new Line(0);
+                  candi_reg->Boundary(l1);
+                  Points* ps = new Points(0);
+                  l->Crossings(*l1, *ps); 
+                  for(int i = 0;i < ps->Size();i++){
+                    Point p;
+                    ps->Get(i, p);
+                    MyPoint_Tid mpt(p, 0.0, e.info); 
+                    it_p_list.push_back(mpt);
+                  }
+                  delete ps;
+                  delete l1;
+              }
+              dg_tuple2->DeleteIfAllowed();
+      }else{
+            R_TreeInternalEntry<2> e =
+                (R_TreeInternalEntry<2>&)(*node)[j];
+            if(l->Intersects(e.box)){
+              DFTraverse(rtree, rel, e.pointer, l, it_p_list);
+            }
+      }
+  }
+  delete node;
+}
+
 
 ////////////////////////////////////////////////////////////////////////////
 //////////////////        Create UBahn Trains    ///////////////////////////

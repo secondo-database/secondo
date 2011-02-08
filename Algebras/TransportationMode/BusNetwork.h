@@ -573,7 +573,7 @@ void CloseBusStop( const ListExpr typeInfo, Word& w );
 Word CloneBusStop( const ListExpr typeInfo, const Word& w );
 int SizeOfBusStop(); 
 bool CheckBusStop( ListExpr type, ListExpr& errorInfo );
-
+ostream& operator<<(ostream& o, const Bus_Stop& bs); 
 
 
 /*
@@ -750,6 +750,23 @@ int SizeOfBusNetwork();
 bool CheckBusNetwork( ListExpr type, ListExpr& errorInfo ); 
 
 
+struct MyPoint_Tid:public MyPoint{
+    int tid; 
+    MyPoint_Tid(){}
+    MyPoint_Tid(const Point& p1, double d1, int i):
+    MyPoint(p1,d1),tid(i){}
+    MyPoint_Tid(const MyPoint_Tid& mpt):MyPoint(mpt), tid(mpt.tid){}
+    MyPoint_Tid& operator=(const MyPoint_Tid& mpt)
+    {
+        MyPoint::operator=(mpt);
+        tid = mpt.tid; 
+        return *this; 
+    }
+     void Print()
+    {
+        cout<<" loc " <<loc<<" dist "<<dist<<" tid "<<tid<<endl; 
+    }
+};
 
 struct BN{
 
@@ -757,12 +774,21 @@ struct BN{
   vector<Bus_Stop> bs_list; 
   vector<Bus_Route> br_list; 
   
+  vector<GenLoc> genloc_list;
+  vector<Point> geo_list; 
   unsigned int count;
   TupleType* resulttype;
   BN(BusNetwork* n);
   ~BN();
-  void GetStops(); 
-  void GetRoutes(); 
+  void GetStops();
+  void GetRoutes();
+  
+  void MapBSToPavements(R_Tree<2,TupleId>* rtree, Relation* pave_rel, int w);
+  void MapToPavment(Bus_Stop& bs1, Bus_Stop& bs2, R_Tree<2,TupleId>* rtree, 
+                    Relation* pave_rel, int w);
+  void DFTraverse(R_Tree<2,TupleId>* rtree, Relation* rel, 
+                           SmiRecordId adr, Line* l,
+                           vector<MyPoint_Tid>& it_p_list);
 }; 
 //////////////////////////////////////////////////////////////////////////
 ///////////////////////underground trains////////////////////////////////
