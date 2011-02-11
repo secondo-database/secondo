@@ -1578,22 +1578,24 @@ void BusRoute::MergeBusStop1(vector<BusStop>& stop_list)
         sec_pos1 = sec_pos2;
         sec_pos2 = temp; 
       }
-      
-      
-      int interval = curve->Length() / dist_val;
-      
+
+
+//      int interval = curve->Length() / dist_val;
+      int interval = (int) (curve->Length() / dist_val);
+
 /*      cout<<"interval "<<interval
           <<"curve length "<<curve->Length()<<endl; */
-          
+
       for(unsigned int i = 0;i < stop_list.size();i++){
         double stop_pos = stop_list[i].pos;
 //        int interval_pos = stop_pos / dist_val;
-        int interval_pos = (stop_pos - sec_pos1)/ dist_val;
-        
+//        int interval_pos = (stop_pos - sec_pos1)/ dist_val;
+        int interval_pos = (int)((stop_pos - sec_pos1)/ dist_val);
+
 /*        stop_list[i].Print();
         cout<<"stop_pos "<<stop_pos
             <<" interval_pos "<<interval_pos<<endl; */
-        
+
         assert(interval_pos >= 0 && interval_pos <= interval);
         double new_pos = dist_val / 4 + interval_pos*dist_val; 
         if(new_pos > curve->Length()){
