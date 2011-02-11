@@ -57,8 +57,8 @@ And includes one method:
 #include <winsock2.h>
 #endif
 
-const string rmDefaultPath = /*$HOME/*/":secondo/bin/parallel/";
-bool getNLArgValueInTM(NList args, NList& value);
+const string rmDefaultPath = ":secondo/bin/parallel/";
+const int MAX_COPYTIMES = 5;
 
 /*
 1.1 deLocalInfo Class
@@ -84,7 +84,6 @@ private:
 
   TupleType *resultTupleType;
 
-//  Tuple* makeTuple(Word stream, int index, ListExpr typeInfo, int sig);
   Tuple* makeTuple(Word stream, int index, int sig);
 
 public:
@@ -156,7 +155,8 @@ private:
   GenericRelationIterator* getNewProducts();
 
 public:
-  phjLocalInfo(Word _stream, Supplier s, ListExpr ttA, ListExpr ttB);
+  phjLocalInfo(Word _stream, Supplier s,
+               ListExpr ttA, ListExpr ttB);
 
   ~phjLocalInfo()
   {
@@ -213,7 +213,8 @@ private:
   int tupNum;
 
 
-  //Get the tuples within one bucket, and fill them into tupleBuffers
+  //Get the tuples within one bucket,
+  //and fill them into tupleBuffers
   void loadTuples();
 public:
   pjLocalInfo(Word inputStream, Supplier fun, Supplier s,
@@ -431,51 +432,123 @@ public:
       Array* machines = 0, int servIndex = -1, int att = -1)
   {
     //Fetch binary file from remote machine.
-    if (machines && att > 0)
+    bool fileFound = false;
+    bool isLocal = false;
+    if (!machines)
+      isLocal = true;
+
+    string hostName, targetName = "";
+    if (!isLocal)
     {
-      char hostName[255];
-      memset(hostName, '\0', sizeof(hostName));
-      if (0 != gethostname(hostName, sizeof(hostName) - 1 ))
+      char buf[255];
+      memset(buf, '\0', sizeof(buf));
+      if (0 != gethostname(buf, sizeof(buf) - 1 ))
       {
         cerr << "Error: Can't get localhost name" << endl;
         return false;
       }
-
-      int aSize = machines->getSize();
-      do
-      {
-        string servName =
-            ((CcString*)(machines->
-                getElement((servIndex++) % aSize)).addr)->GetValue();
-
-        //If the file is on local machine, don't delete it.
-        if (0 != strcmp(hostName, servName.c_str()))
-        {
-          filePath += "_" + servName;
-          FileSystem::DeleteFileOrFolder(filePath);
-          system(("scp " + servName + rmDefaultPath + relName
-              + " " + filePath).c_str());
-        }
-        else
-          break;
-      }while((--att) > 0
-          && !FileSystem::FileOrFolderExists(filePath));
+      hostName.assign(buf);
     }
 
-    if (!FileSystem::FileOrFolderExists(filePath))
+    cerr << "isLocal: " << (isLocal ? "true" : "false") << endl;
+
+    while(!fileFound && (isLocal || (att-- > 0)))
+    {
+      string servName, rFileName;
+      if (!isLocal)
+      {
+        int aSize = machines->getSize();
+        servName =
+            ((CcString*)(machines->
+             getElement((servIndex++) % aSize)).addr)->GetValue();
+        if (0 == targetName.length())
+          targetName = servName;
+
+        rFileName = relName;
+        if (targetName.compare(hostName) != 0 &&
+            targetName.compare(servName) != 0)
+          rFileName += ("_" + targetName);
+      }
+
+      cerr << "rFileName: " << rFileName << endl;
+      cerr << "hostName : " << hostName << endl;
+      cerr << "servName : " << servName << endl;
+
+      //Find the file before reading it.
+      int findTimes = MAX_COPYTIMES;
+      while (!fileFound && (findTimes-- > 0))
+      {
+        FILE *fs;
+        char qBuf[1024];
+        memset(qBuf, '\0', sizeof(qBuf));
+        string qStr;
+        if (isLocal || (0 == servName.compare(hostName)))
+          qStr = "ls " + filePath + " 2>/dev/null";
+        else
+          qStr = "ssh " + servName +
+                 " ls " + rmDefaultPath.substr(1) + rFileName +
+                 " 2>/dev/null";
+        cerr << "qStr: " << qStr << endl;
+        fs = popen(qStr.c_str(), "r");
+        if (fgets(qBuf, sizeof(qBuf), fs) != NULL)
+          fileFound = true;
+        pclose(fs);
+      }
+
+      if (!fileFound)
+      {
+        if (!isLocal)
+        {
+          //Attempt the next possible candidate node if have
+//          att--;
+//          servIndex++;
+          continue;
+        }
+        else
+        {
+          //Specify to fetch the local file, but it's not exist.
+          cerr << "Error: Local file: " << filePath
+               << " is NOT exist!\n";
+          return false;
+        }
+      }
+
+      //Found the file on the local or remote node
+      if (!isLocal && (0 != servName.compare(hostName)))
+      {
+/*
+Find the file on the remote node, attempt to copy it to local node.
+The file that ~filePath~ point to is assumed as an old file,
+and is deleted before the copy starts.
+If the copy doesn't work for MAX\_COPYTIMES times,
+then try the next possible candidate node.
+
+*/
+        int copyTimes = MAX_COPYTIMES;
+        filePath += ("_" + targetName);
+        FileSystem::DeleteFileOrFolder(filePath);
+        do
+        {
+          system(("scp " + servName + rmDefaultPath + rFileName +
+                  " " + filePath).c_str());
+        }while ((--copyTimes > 0) &&
+            !FileSystem::FileOrFolderExists(filePath));
+        if (0 > copyTimes)
+          fileFound = false;
+      }
+    }
+
+    if (!fileFound)
     {
       cerr << "Error: File '" << filePath
            << "' doesn't exist!\n" << endl;
       return false;
     }
-    else
+    tupleBlockFile = new ifstream(filePath.c_str(), ios::binary);
+    if (!tupleBlockFile->good())
     {
-      tupleBlockFile = new ifstream(filePath.c_str(), ios::binary);
-      if (!tupleBlockFile->good())
-      {
-        cerr << "Error accessing file '" << filePath << "'\n\n";
-        tupleBlockFile = 0;
-      }
+      cerr << "Error accessing file '" << filePath << "'\n\n";
+      tupleBlockFile = 0;
     }
 
     if (tupleBlockFile)
@@ -599,5 +672,78 @@ public:
     }
   }
 };
+
+/*
+1.7 fList class
+
+*/
+class fList
+{
+public:
+  fList(NList typeList, string fileName);
+  ~fList();
+
+  static Word In(const ListExpr typeInfo,
+                 const ListExpr instance,
+                 const int errorPos,
+                 ListExpr& errorInfo,
+                 bool& correct);
+  static ListExpr Out(ListExpr typeInfo,
+                      Word value);
+
+  //Status methods
+  static bool Open(SmiRecord& valueRecord,
+                   size_t& offset,
+                   const ListExpr typeInfo,
+                   Word& value);  //Unnecessary
+  static bool Save(SmiRecord& valueRecord,
+                   size_t& offset,
+                   const ListExpr typeInfo,
+                   Word& w);
+
+  static void Close(const ListExpr typeInfo, Word& w);
+  static Word Create(const ListExpr typeInfo);
+  static void Delete(const ListExpr typeInfo, Word& w);
+  static Word Clone(const ListExpr typeInfo,
+                    const Word& w);
+  static bool CheckFList(ListExpr type, ListExpr& errorInfo)
+  {
+    return (nl->IsEqual(type, "flist"));
+  }
+
+
+  //Auxiliary methods
+  int SizeOfObj();
+
+  //Get the next possible location of a cell file
+  int getNextLoc(int rowNum, int columnNum);
+private:
+  fList() {}
+
+  NList *objectType;
+  vector< vector< vector<int> > > *fileLocList;
+
+  //partition number, maximum node number, maximum candidate number
+  int partNum, mrNum, mnNum, mcNum;
+  string fileName;
+  bool isAvailable;
+
+  bool setLocList(NList fllist);
+
+  inline string getFileName(){
+    return fileName;
+  }
+  inline int getPartNum() { return partNum; }
+  inline int getMaxRowNum() { return mrNum; }
+  inline int getMaxNodeNum() { return mnNum; }
+  inline int getMaxCandidateNum() { return mcNum; }
+  inline vector< vector< vector<int> > >* getLocList(){
+    return fileLocList;
+  }
+
+
+  friend class ConstructorFunctions<fList>;
+};
+
 
 #endif /* HADOOPPARALLELALGEBRA_H_ */
