@@ -116,7 +116,21 @@ Operator : test_walk_sp
 Number   : 2
 Signature: dualgraph x visualgraph x rel1 x rel2 x rel3 x rel4 x btree -> line
 Example  : query test_walk_sp(dg1, vg1, query_loc1 feed head[1] consume, query_loc1 feed head[2] consume, tri_reg_new, vertex_tri, btr_vid);
+Result   : file_platform
+
+Operator: setpave_rid
+Number  : 2
+Signature: rel1 x rel2 x rtree -> (stream(tuple ((x1 t1) ... (xn tn))))
+Example  : query setpave_rid(dg_node, graph_node, rtree_pave)  count;
 Result   : 1
+
+
+Operator : pave_loc_togp
+Number   : 2
+Signature: rel1 x rel2 x btree x network -> (stream(tuple ((x1 t1) ... (xn tn))))
+Example  : query pave_loc_togp(query_loc1, dg_node, btree_dg, n) count;
+Result   : 1
+
 
 Operator : generate_wp1
 Number   : 2

@@ -333,6 +333,14 @@ struct Walk_SP{
 
   vector<Point> q_loc1;
   vector<Point> q_loc2;
+  
+  vector<int> oid_list; 
+  vector<int> rid_list;
+  vector<Region> reg_list; 
+  
+  vector<GPoint> gp_list; 
+  vector<Point> p_list; 
+  
   Relation* rel3; //triangle relation (v1 int)(v2 int)(v3 int)(centroid point)
   Relation* rel4; //vertex relation (vid int)(triid int)
   BTree* btree;
@@ -346,6 +354,13 @@ struct Walk_SP{
   void GenerateData1(int no_p);
   void GenerateData2(int no_p);
   void GenerateData3(int no_p);
+  
+  
+  void DFTraverse(R_Tree<2,TupleId>* rtree, SmiRecordId adr, Region* reg, 
+                  vector<int>& r_id_list);
+  void SetPaveRid(R_Tree<2,TupleId>* rtree);
+  void PaveLocToGP(Network* n);
+  void PaveLocToGPoint(Point* loc, Network* n, vector<int> route_id_list);
 };
 
 /*

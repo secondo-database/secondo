@@ -3591,7 +3591,7 @@ void Walk_SP::WalkShortestPath(Line* res)
     len = res->Length(); 
   }
 
-  printf("Euclidean length: %.4f Walk length: %.4f\n",loc1.Distance(loc2),len);
+// printf("Euclidean length: %.4f Walk length: %.4f\n",loc1.Distance(loc2),len);
 }
 
 /*
@@ -4022,6 +4022,188 @@ void Walk_SP::GenerateData3(int no_p)
       tuple->DeleteIfAllowed();
   }
 }
+
+/*
+set pavement rid 
+
+*/
+void Walk_SP::SetPaveRid(R_Tree<2,TupleId>* rtree)
+{
+  
+  SmiRecordId adr = rtree->RootRecordId();
+  for(int i = 1;i <= rel1->GetNoTuples();i++){
+    Tuple* tri_tuple = rel1->GetTuple(i, false);
+    int oid = ((CcInt*)tri_tuple->GetAttribute(DualGraph::OID))->GetIntval();
+    Region* reg = (Region*)tri_tuple->GetAttribute(DualGraph::PAVEMENT);
+    vector<int> r_id_list; 
+
+    DFTraverse(rtree, adr, reg, r_id_list);
+
+//    cout<<"tid "<<i <<" oid "<<oid<<endl; 
+
+    if(r_id_list.size() == 0){
+      cout<<"do not find road "<<endl; 
+      cout<<"tid "<<i <<" oid "<<oid<<endl;
+//      break; 
+      continue;
+    }
+
+    for(unsigned int j = 0;j < r_id_list.size();j++){
+        oid_list.push_back(oid);
+        rid_list.push_back(r_id_list[j]); 
+        reg_list.push_back(*reg); 
+    }
+
+    tri_tuple->DeleteIfAllowed(); 
+  }
+
+}
+
+/*
+Using depth first method to travese the R-tree to find the big pavement 
+intersects the triangle (decomposed from the big pavement)
+
+*/
+void Walk_SP::DFTraverse(R_Tree<2,TupleId>* rtree, SmiRecordId adr, Region* reg,
+                  vector<int>& r_id_list)
+{
+  R_TreeNode<2,TupleId>* node = rtree->GetMyNode(adr,false,
+                  rtree->MinEntries(0), rtree->MaxEntries(0));
+  for(int j = 0;j < node->EntryCount();j++){
+      if(node->IsLeaf()){
+              R_TreeLeafEntry<2,TupleId> e =
+                 (R_TreeLeafEntry<2,TupleId>&)(*node)[j];
+              Tuple* dg_tuple2 = rel2->GetTuple(e.info, false);
+              Region* candi_reg =
+                     (Region*)dg_tuple2->GetAttribute(DualGraph::PAVEMENT);
+              if(reg->Intersects(*candi_reg)){
+                 int rid = 
+                 ((CcInt*)dg_tuple2->GetAttribute(DualGraph::RID))->GetIntval();
+                 unsigned int i = 0;
+                 for(;i < r_id_list.size();i++)
+                   if(r_id_list[i] == rid)break;
+                 if(i == r_id_list.size())
+                    r_id_list.push_back(rid);
+              }
+              dg_tuple2->DeleteIfAllowed();
+      }else{
+            R_TreeInternalEntry<2> e =
+                (R_TreeInternalEntry<2>&)(*node)[j];
+            if(e.box.Intersects(reg->BoundingBox())){
+                DFTraverse(rtree, e.pointer, reg, r_id_list);
+            }
+      }
+  }
+  delete node;
+
+
+}
+
+
+/*
+map points in pavements to gpoints 
+
+*/
+void Walk_SP::PaveLocToGP(Network* n)
+{
+  //rel1 query locations , rel2 dgnode 
+  for(int i = 1;i <= rel1->GetNoTuples();i++){
+    Tuple* tuple1 = rel1->GetTuple(i, false);
+    int oid = ((CcInt*)tuple1->GetAttribute(VisualGraph::QOID))->GetIntval(); 
+    Point* loc = (Point*)tuple1->GetAttribute(VisualGraph::QLOC2); 
+
+    /////////////////find which road the pavement corresponds to////////
+    CcInt* search_id = new CcInt(true, oid);
+    BTreeIterator* btree_iter = btree->ExactMatch(search_id);
+    vector<int> route_id_list;
+    while(btree_iter->Next()){
+        Tuple* tuple = rel2->GetTuple(btree_iter->GetId(), false);
+        int rid = ((CcInt*)tuple->GetAttribute(DualGraph::RID))->GetIntval();
+        route_id_list.push_back(rid); 
+        tuple->DeleteIfAllowed();
+    }
+    delete btree_iter;
+    delete search_id;
+
+//    for(unsigned int i = 0;i < route_id_list.size();i++)
+//      cout<<"rid "<<route_id_list[i]<<endl; 
+
+//    cout<<"oid "<<oid<<" rid "<<rid<<endl;
+    PaveLocToGPoint(loc, n, route_id_list);
+
+    tuple1->DeleteIfAllowed(); 
+
+//    break; 
+  }
+
+
+}
+
+/*
+for a point, location in pavement, find its mapping gpoint 
+
+*/
+struct MyPoint_Id:public MyPoint{
+    int id; 
+    MyPoint_Id(){}
+    MyPoint_Id(const Point& p, double d, int i):
+    MyPoint(p,d),id(i){}
+    MyPoint_Id(const MyPoint_Id& mpi):
+    MyPoint(mpi), id(mpi.id){}
+    MyPoint_Id& operator=(const MyPoint_Id& mpi)
+    {
+        MyPoint::operator=(mpi);
+        id = mpi.id; 
+        return *this; 
+    }
+     void Print()
+    {
+        cout<<" loc " <<loc<<" dist "<<dist<<" id "<<id<<endl; 
+    }
+};
+
+void Walk_SP::PaveLocToGPoint(Point* loc, Network* n, 
+                              vector<int> route_id_list)
+{
+  vector<MyPoint_Id> mp_list; 
+  for(unsigned int i = 0;i < route_id_list.size();i++){
+    int rid = route_id_list[i];
+    Tuple* route_tuple = n->GetRoute(rid);
+    SimpleLine* l = (SimpleLine*)route_tuple->GetAttribute(ROUTE_CURVE);
+//    cout<<"l : "<<l->Length()<<endl; 
+    for(int j = 0;j < l->Size();j++){
+      HalfSegment hs;
+      l->Get(j, hs);
+      if(!hs.IsLeftDomPoint())continue; 
+
+      SpacePartition* sp = new SpacePartition();
+      Point res; 
+      double dist = sp->GetClosestPoint(hs, *loc, res); 
+      delete sp;
+      MyPoint_Id mp(res, dist, rid); 
+      mp_list.push_back(mp); 
+    }
+    route_tuple->DeleteIfAllowed(); 
+  }
+  assert(mp_list.size() > 0); 
+  sort(mp_list.begin(), mp_list.end());
+  Tuple* route_tuple = n->GetRoute(mp_list[0].id); 
+  SimpleLine* sl = (SimpleLine*)route_tuple->GetAttribute(ROUTE_CURVE); 
+  bool s = 
+      ((CcBool*)route_tuple->GetAttribute(ROUTE_STARTSSMALLER))->GetBoolval();
+  double pos;
+  assert(sl->AtPoint(mp_list[0].loc, s, pos)); 
+  GPoint gp(true, n->GetId(), mp_list[0].id, pos);
+  route_tuple->DeleteIfAllowed();
+  p_list.push_back(mp_list[0].loc); 
+  gp_list.push_back(gp);
+
+}
+
+/*
+type constructors 
+
+*/
 VGraph::VGraph()
 {
   dg = NULL;
@@ -7937,6 +8119,11 @@ struct Region_Oid_Ext:public Region_Oid{
 
 }; 
 
+/*
+distribute 2D areas for buildings according to their distance to the city
+center point 
+
+*/
 void MaxRect::DistributeRegion(int attr1, int attr2)
 {
 

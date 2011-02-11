@@ -3558,12 +3558,35 @@ const string OpTMTestWalkSPSpec  =
     "\"Example\" ) "
     "( <text>dualgraph x visualgraph x rel1 x rel2 x rel3 x rel4 x btree-> "
     "(stream (tuple( (x1 t1)(x2 t2)...(xn tn)))</text--->"
-    "<text>walk_sp(dg1, vg1, rel, rel, rel, rel, btree)</text--->"
+    "<text>walk_sp(dualgraph, visibilitygraph, rel, rel, rel, rel,"
+     " btree)</text--->"
     "<text>get the shortest path for pedestrian</text--->"
     "<text>query walk_sp(dg1, vg1, query_loc1, query_loc2,tri_reg_new, "
     "vertex_tri, btr_vid); </text--->"
     ") )";
-    
+
+const string OpTMPaveLocToGPSpec  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+    "\"Example\" ) "
+    "( <text>rel1 x rel2 x btree x network-> "
+    "(stream (tuple( (x1 t1)(x2 t2)...(xn tn)))</text--->"
+    "<text>pave_loc_togp(rel, rel, btree, network)</text--->"
+    "<text>map points in pavements to gpoints</text--->"
+    "<text>query pave_loc_togp(query_loc1, dg_node, btree_dg, n)"
+     " count; </text--->"
+    ") )";
+
+const string OpTMSetPaveRidSpec  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+    "\"Example\" ) "
+    "( <text>rel1 x rel2 x rtree-> "
+    "(stream (tuple( (x1 t1)(x2 t2)...(xn tn)))</text--->"
+    "<text>setpave_rid(rel1, rel2, rtree)</text--->"
+    "<text>set rid for each pavement</text--->"
+    "<text>query setpave_rid(dg_node, graph_node, rtree_pave) "
+     " count; </text--->"
+    ") )";
+
 const string OpTMGenerateWPSpec  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" "
     "\"Example\" ) "
@@ -5244,6 +5267,117 @@ ListExpr OpTMTestWalkSPTypeMap ( ListExpr args )
   }
 
   return nl->SymbolAtom ( "typeerror" );
+}
+
+/*
+TypeMap fun for operator pave loc togp
+
+*/
+
+ListExpr OpTMPaveLocToGPTypeMap ( ListExpr args )
+{
+  if ( nl->ListLength ( args ) != 4 )
+  {
+    return ( nl->SymbolAtom ( "typeerror" ) );
+  }
+  ListExpr arg1 = nl->First(args);
+  ListExpr arg2 = nl->Second(args);
+  ListExpr arg3 = nl->Third(args);
+  ListExpr arg4 = nl->Fourth(args);
+ 
+  if(!IsRelDescription(arg1))
+    return listutils::typeError("para1 should be a relation");
+
+  ListExpr xType1;
+  nl->ReadFromString(VisualGraph::QueryTypeInfo, xType1);
+  if(!CompareSchemas(arg1, xType1))return nl->SymbolAtom ( "typeerror" );
+
+
+  if(!IsRelDescription(arg2))
+    return listutils::typeError("para2 should be a relation");
+
+  ListExpr xType2;
+  nl->ReadFromString(DualGraph::NodeTypeInfo, xType2);
+  if(!CompareSchemas(arg2, xType2))return nl->SymbolAtom ( "typeerror" );
+
+  if(!listutils::isBTreeDescription(arg3))
+    return listutils::typeError("para3 should be a btree");
+
+  if(nl->IsAtom(arg4) && nl->AtomType(arg4) == SymbolType &&
+     nl->SymbolValue(arg4) == "network"){
+
+       ListExpr result =
+          nl->TwoElemList(
+              nl->SymbolAtom("stream"),
+                nl->TwoElemList(
+
+                  nl->SymbolAtom("tuple"),
+                      nl->TwoElemList(
+                        nl->TwoElemList(nl->SymbolAtom("fs_loc"),
+                                    nl->SymbolAtom("point")),
+                        nl->TwoElemList(nl->SymbolAtom("rn_loc"),
+                                    nl->SymbolAtom("gpoint"))
+
+                  )
+                )
+          );
+    return result;
+
+  }
+
+  return nl->SymbolAtom ( "typeerror" );
+}
+
+/*
+TypeMap fun for operator setpave rid 
+
+*/
+
+ListExpr OpTMSetPaveRidTypeMap ( ListExpr args )
+{
+  if ( nl->ListLength ( args ) != 3 )
+  {
+    return ( nl->SymbolAtom ( "typeerror" ) );
+  }
+  ListExpr arg1 = nl->First(args);
+  ListExpr arg2 = nl->Second(args);
+  ListExpr arg3 = nl->Third(args);
+ 
+  if(!IsRelDescription(arg1))
+    return listutils::typeError("para1 should be a relation");
+
+  ListExpr xType1;
+  nl->ReadFromString(DualGraph::NodeTypeInfo, xType1);
+  if(!CompareSchemas(arg1, xType1))return nl->SymbolAtom ( "typeerror" );
+
+
+  if(!IsRelDescription(arg2))
+    return listutils::typeError("para2 should be a relation");
+
+  ListExpr xType2;
+  nl->ReadFromString(DualGraph::NodeTypeInfo, xType2);
+  if(!CompareSchemas(arg2, xType2))return nl->SymbolAtom ( "typeerror" );
+
+  if(!listutils::isRTreeDescription(arg3))
+    return listutils::typeError("para3 should be a rtree");
+
+        ListExpr result =
+          nl->TwoElemList(
+              nl->SymbolAtom("stream"),
+                nl->TwoElemList(
+
+                  nl->SymbolAtom("tuple"),
+                      nl->ThreeElemList(
+                        nl->TwoElemList(nl->SymbolAtom("oid"),
+                                    nl->SymbolAtom("int")),
+                        nl->TwoElemList(nl->SymbolAtom("rid"),
+                                    nl->SymbolAtom("int")),
+                        nl->TwoElemList(nl->SymbolAtom("pavement"),
+                                      nl->SymbolAtom("region"))
+                  )
+                )
+          );
+      return result;
 }
 
 /*
@@ -10363,6 +10497,114 @@ int OpTMTestWalkSPValueMap ( Word* args, Word& result, int message,
   return 0;
 }
 
+
+/*
+Value Mapping for pave loctogp  operator
+map locations in pavements to gpoints 
+
+*/
+
+int OpTMPaveLocToGPValueMap ( Word* args, Word& result, int message,
+                         Word& local, Supplier in_pSupplier )
+{
+
+  Walk_SP* wsp;
+  switch(message){
+      case OPEN:{
+        Relation* r1 = (Relation*)args[0].addr;
+        Relation* r2 = (Relation*)args[1].addr;
+        BTree* btree = (BTree*)args[2].addr;
+        Network* n = (Network*)args[3].addr;
+
+        wsp = new Walk_SP(NULL, NULL, r1, r2);
+        wsp->btree = btree;
+        wsp->resulttype =
+            new TupleType(nl->Second(GetTupleResultType(in_pSupplier)));
+
+        wsp->PaveLocToGP(n);
+        local.setAddr(wsp);
+        return 0;
+      }
+      case REQUEST:{
+          if(local.addr == NULL) return CANCEL;
+          wsp = (Walk_SP*)local.addr;
+//          if(wsp->count == wsp->gp_list.size())
+          if(wsp->count == wsp->p_list.size())
+                          return CANCEL;
+
+          Tuple* tuple = new Tuple(wsp->resulttype);
+          tuple->PutAttribute(0, new Point(wsp->p_list[wsp->count]));
+          tuple->PutAttribute(1, new GPoint(wsp->gp_list[wsp->count]));
+          result.setAddr(tuple);
+          wsp->count++;
+          return YIELD;
+      }
+      case CLOSE:{
+
+          if(local.addr){
+            wsp = (Walk_SP*)local.addr;
+            delete wsp;
+            local.setAddr(Address(0));
+          }
+          return 0;
+      }
+  }
+  return 0;
+}
+
+
+/*
+Value Mapping for setpave rid  operator
+set road id for each pavement 
+
+*/
+
+int OpTMSetPaveRidValueMap ( Word* args, Word& result, int message,
+                         Word& local, Supplier in_pSupplier )
+{
+
+  Walk_SP* wsp;
+  switch(message){
+      case OPEN:{
+        Relation* r1 = (Relation*)args[0].addr;
+        Relation* r2 = (Relation*)args[1].addr;
+        R_Tree<2,TupleId>* rtree = (R_Tree<2,TupleId>*)args[2].addr;
+
+        wsp = new Walk_SP(NULL, NULL, r1, r2);
+        wsp->resulttype =
+            new TupleType(nl->Second(GetTupleResultType(in_pSupplier)));
+
+        wsp->SetPaveRid(rtree);
+        local.setAddr(wsp);
+        return 0;
+      }
+      case REQUEST:{
+          if(local.addr == NULL) return CANCEL;
+          wsp = (Walk_SP*)local.addr;
+          if(wsp->count == wsp->oid_list.size())
+                          return CANCEL;
+
+          Tuple* tuple = new Tuple(wsp->resulttype);
+          tuple->PutAttribute(0, new CcInt(true, wsp->oid_list[wsp->count]));
+          tuple->PutAttribute(1, new CcInt(true, wsp->rid_list[wsp->count]));
+          tuple->PutAttribute(2, new Region(wsp->reg_list[wsp->count]));
+          result.setAddr(tuple);
+          wsp->count++;
+          return YIELD;
+      }
+      case CLOSE:{
+
+          if(local.addr){
+            wsp = (Walk_SP*)local.addr;
+            delete wsp;
+            local.setAddr(Address(0));
+          }
+          return 0;
+      }
+  }
+  return 0;
+}
+
 /*
 Value Mapping for generatewp1  operator
 generate random points insidy pavement polgyon
@@ -14196,6 +14438,25 @@ Operator test_walk_sp(
     OpTMTestWalkSPTypeMap
 );
 
+
+Operator setpave_rid(
+    "setpave_rid",
+    OpTMSetPaveRidSpec,
+    OpTMSetPaveRidValueMap,
+    Operator::SimpleSelect,
+    OpTMSetPaveRidTypeMap
+);
+
+
+Operator pave_loc_togp(
+    "pave_loc_togp",
+    OpTMPaveLocToGPSpec,
+    OpTMPaveLocToGPValueMap,
+    Operator::SimpleSelect,
+    OpTMPaveLocToGPTypeMap
+);
+
+
 Operator generate_wp1(
     "generate_wp1",
     OpTMGenerateWPSpec,
@@ -14902,8 +15163,10 @@ class TransportationModeAlgebra : public Algebra
     AddOperator(&getvgedge);
     AddOperator(&createvgraph);
     AddOperator(&getadjnode_vg);
-    AddOperator(&walk_sp);
+    AddOperator(&walk_sp);//trip planning for pedestrian 
     AddOperator(&test_walk_sp); 
+    AddOperator(&setpave_rid);//set rid value for each pavement 
+    AddOperator(&pave_loc_togp);//map pavements locations to gpoints 
     ///////////////////dual graph/////////////////////////////////////
     AddOperator(&zval);
     AddOperator(&zcurve);
