@@ -749,7 +749,7 @@ GRoom: a set of 3D regions. the implementation is similar as for GenRange
 class GRoom:public StandardSpatialAttribute<2>{ 
   public:
     GRoom(){}
-    GRoom(const int initsize):StandardSpatialAttribute(true),
+    GRoom(const int initsize):StandardSpatialAttribute<2>(true),
     elem_list(initsize), seg_list(initsize){}
 
 

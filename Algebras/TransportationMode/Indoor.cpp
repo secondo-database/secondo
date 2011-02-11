@@ -4411,9 +4411,9 @@ void IndoorNav::GenerateMO1(IndoorGraph* ig, BTree* btree,
       Instant start_time = periods.start;
 //    start_time.ReadFrom(periods.start.ToDouble() + (i % 5)/(24.0*60.0*60.0));
 
-    //in several minutes: 60 secondos for 30 persons
+    //in several minutes: 60 seconds for 12 persons
     start_time.ReadFrom(periods.start.ToDouble() + 
-                        (GetRandom() % (num*2))/(24.0*60.0*60.0)); 
+                        (GetRandom() % (num*5))/(24.0*60.0*60.0));
 
       Line3D* l3d = &indoor_nav->path_list[count];
 //      l3d->Print();
