@@ -104,12 +104,12 @@ symbols for data type. to make it more readable, I use string insteand of enum
 */ 
 const string symbol_type[] = {"MPPTN", "GROOM", "REGION", "LINE", "FREESPACE"};
 
-inline unsigned int GetSymbol(string s)
+inline int GetSymbol(string s)
 {
 //  int symbol_size = sizeof(symbol_type)/sizeof(symbol_type[0]);
-  unsigned int symbol_size = ARR_SIZE(symbol_type);
+  int symbol_size = ARR_SIZE(symbol_type);
 //  cout<<"tm_size "<<tm_size<<endl; 
-  for(unsigned int i = 0;i < symbol_size;i++){
+  for(int i = 0;i < symbol_size;i++){
       if(symbol_type[i].compare(s) == 0)return i;
   }
   return -1;
