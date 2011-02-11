@@ -65,12 +65,17 @@ but includes tuples of different schemes.
 #include "Base64.h"
 #include "regex.h"
 #include "FileSystem.h"
+#include "../RemoteStream/RemoteStreamAlgebra.h"
 
 using namespace symbols;
 using namespace std;
 
 extern NestedList* nl;
 extern QueryProcessor* qp;
+
+
+string
+tranStr(const string& s, const string& from, const string& to);
 
 /*
 2 Operator ~doubleexport~
@@ -107,10 +112,10 @@ struct doubleExportInfo : OperatorInfo
   {
     name = "doubleexport";
     signature =
-        "stream (tuple((a1 t1) ... (ai ti) ... (an tm)))"
-        "x stream (tuple((b1 p1) ... (bj tj) ... (bm tm)))"
-        "x ai x bj -> "
-        "stream (tuple (key:string) (value:string))";
+        "stream(tuple(a1 ... ai ... an)) "
+        "x stream(tuple(b1 ... bj ... bm)) "
+        "x ai x bj -> stream(tuple"
+        "(key:string)(value:string))";
     syntax = "_ _ doubleexport[_ , _]";
     meaning = "Mix two relations into (key, value) pairs";
   }
@@ -394,7 +399,8 @@ struct paraHashJoinInfo : OperatorInfo
         "stream(tuple((key:int) (value:text)))"
         "x (rel(tuple((a1 t1) ... (an tn))))"
         "x (rel(tuple((b1 p1) ... (bm pm))))"
-        "-> stream(tuple((a1 t1) ... (an tn)(b1 p1) ... (bm pm)))";
+        "-> stream(tuple((a1 t1) ... "
+        "(an tn)(b1 p1) ... (bm pm)))";
     syntax = "_ _ _ parahashjoin";
     meaning = "Execute join on a hash partitioned relation";
   }
@@ -451,7 +457,7 @@ ListExpr paraHashJoinTypeMap(ListExpr args)
         renameList(nl->Second(nl->Second(relB)), "2");
     ListExpr resultAttrList = ConcatLists(rAtupNList, rBtupNList);
     ListExpr resultList = nl->TwoElemList(nl->SymbolAtom("stream"),
-          nl->TwoElemList(nl->SymbolAtom("tuple"), resultAttrList));
+        nl->TwoElemList(nl->SymbolAtom("tuple"), resultAttrList));
 
     return resultList;
 
@@ -741,7 +747,8 @@ struct TUPSTREAMInfo : OperatorInfo
         "( (rel(T1)) ... ) -> stream(T1)";
     syntax = "type operator";
     meaning = "Extract the tuple of a relation "
-        "from the first argument, and forward it as a stream";
+        "from the first argument, "
+        "and forward it as a stream";
   }
 };
 
@@ -753,7 +760,8 @@ ListExpr TUPSTREAMType( ListExpr args)
   first = nl->First(args);
   CHECK_COND(listutils::isRelDescription(first),
       "rel(tuple(...)) expected");
-  return nl->TwoElemList(nl->SymbolAtom(STREAM), nl->Second(first));
+  return nl->TwoElemList(nl->SymbolAtom(STREAM),
+                         nl->Second(first));
 }
 
 
@@ -793,7 +801,8 @@ ListExpr TUPSTREAM2Type( ListExpr args)
   second = nl->Second(args);
   CHECK_COND(listutils::isRelDescription(second),
       "rel(tuple(...)) expected");
-  return nl->TwoElemList(nl->SymbolAtom(STREAM), nl->Second(second));
+  return nl->TwoElemList(nl->SymbolAtom(STREAM),
+                         nl->Second(second));
 }
 
 
@@ -821,7 +830,8 @@ struct TUPSTREAM3Info : OperatorInfo
         "( T1 T2 (rel(T3)) ... ) -> stream(T3)";
     syntax = "type operator";
     meaning = "Extract the tuple of a relation "
-        "from the third argument, and forward it as a stream";
+        "from the third argument, "
+        "and forward it as a stream";
   }
 };
 
@@ -833,7 +843,8 @@ ListExpr TUPSTREAM3Type( ListExpr args)
   third = nl->Third(args);
   CHECK_COND(listutils::isRelDescription(third),
       "rel(tuple(...)) expected");
-  return nl->TwoElemList(nl->SymbolAtom(STREAM), nl->Second(third));
+  return nl->TwoElemList(nl->SymbolAtom(STREAM),
+                         nl->Second(third));
 }
 
 /*
@@ -895,8 +906,8 @@ struct paraJoinInfo : OperatorInfo
     signature =
         "( (stream(tuple((key int)(value text))))"
         "x(rel(tuple(T1))) x (rel(tuple(T2)))"
-        "x(map (stream(T1)) (stream(T2)) (stream(T1 T2))) )"
-        " -> stream(tuple(T1 T2))";
+        "x(map (stream(T1)) (stream(T2)) "
+        "(stream(T1 T2))) ) -> stream(tuple(T1 T2))";
     syntax = "_ _ _ parajoin [fun]";
     meaning = "join mixed tuples from two relations";
   }
@@ -962,8 +973,8 @@ ListExpr paraJoinTypeMap( ListExpr args )
         else
         {
           ErrorReporter::ReportError(
-              "Operator parajoin expects parameter function "
-              "as (map (stream(T1)) (stream(T2)) (stream(T1 T2)))");
+            "Operator parajoin expects parameter function "
+            "as (map (stream(T1)) (stream(T2)) (stream(T1 T2)))");
           return nl->TypeError();
         }
       }
@@ -1284,8 +1295,8 @@ struct paraJoin2Info : OperatorInfo
     name = "parajoin2";
     signature =
         "( (stream(tuple(T1))) x (stream(tuple(T2)))"
-        "x (map (stream(T1)) (stream(T2)) (stream(T1 T2))) )"
-        " -> stream(tuple(T1 T2))";
+        "x (map (stream(T1)) (stream(T2)) "
+        "(stream(T1 T2))) ) -> stream(tuple(T1 T2))";
     syntax = "_ _ parajoin2 [ _, _ ; fun]";
     meaning = "use parameter join function to merge join two "
               "input sorted streams according to key values.";
@@ -1356,11 +1367,13 @@ ListExpr paraJoin2TypeMap(ListExpr args)
             "parajoin2 expects two key attributes with same type.");
 
       NList attrResult;
-      if (mapList.first().isSymbol(Symbols::MAP())
-          && mapList.second().first().isSymbol(Symbols::STREAM())
-          && mapList.second().second().first().isSymbol(Symbols::TUPLE())
-          && mapList.third().first().isSymbol(Symbols::STREAM())
-          && mapList.third().second().first().isSymbol(Symbols::TUPLE())
+      if (mapList.first().isSymbol(symbols::MAP)
+          && mapList.second().first().isSymbol(symbols::STREAM)
+          && mapList.second().
+             second().first().isSymbol(symbols::TUPLE)
+          && mapList.third().first().isSymbol(symbols::STREAM)
+          && mapList.third().
+             second().first().isSymbol(symbols::TUPLE)
           && mapList.fourth().checkStreamTuple(attrResult)  )
       {
         NList resultStream =
@@ -1641,8 +1654,8 @@ struct add0TupleInfo : OperatorInfo
   {
     name = "add0Tuple";
     signature =
-        "(  (stream(tuple((keyT string)(valueT text))))"
-        "-> stream(tuple((keyT string)(valueT text)))  )";
+        "((stream(tuple((keyT string)(valueT text))))"
+        "-> stream(tuple((keyT string)(valueT text))) )";
     syntax = "_ add0Tuple";
     meaning = "Separate tuples by inserting 0 tuples";
   }
@@ -1784,65 +1797,6 @@ int add0TupleValueMap(Word* args, Word& result,
 }
 
 
-/*
-For arguments used in TypeMapping function,
-if they are not direct string type data,
-use a separated query processor to evaluate its value.
-
-*/
-
-bool getNLArgValueInTM(NList args, NList& value)
-{
-  if ((args.isList()) || (args.isSymbol()))
-  {
-    ListExpr queryList = args.listExpr();
-    bool success;
-    Word queryresultword;
-    string typestring   = "";
-    string errorstring   = "";
-    bool correct = false;
-    bool evaluable = false;
-    bool defined = false;
-    bool isFunction = false;
-    success =
-        QueryProcessor::ExecuteQuery(queryList,
-                                      queryresultword,
-                                      typestring,
-                                      errorstring,
-                                      correct,
-                                      evaluable,
-                                      defined,
-                                      isFunction);
-    ListExpr queryResType;
-    if (!nl->ReadFromString(typestring, queryResType))
-    {
-      cerr << "ERROR! Invalid argument type. " << errorstring << endl;
-      return false;
-    }
-    else
-    {
-      if (correct && evaluable && defined && (typestring != "typeerror"))
-      {
-        ListExpr valueList = SecondoSystem::GetCatalog() ->OutObject(
-            queryResType, queryresultword);
-        if (!SecondoSystem::GetCatalog()-> DeleteObj(queryResType,
-            queryresultword)) {
-          cerr << "ERROR! Problem in deleting queryresultword" << endl;
-          return false;
-        }
-        value = NList(valueList);
-        return true;
-      }
-      cerr << "ERROR! Incorrect evaluation for arguments in TM." << endl;
-      return false;
-    }
-  }
-  else
-  {
-    value = args;
-    return true;
-  }
-}
 
 /*
 5.15 Operator ~fconsume~
@@ -1966,8 +1920,8 @@ ListExpr FConsumeTypeMap(ListExpr args)
                "[int] [string] [string] "
                " [ array(string) x int x int x int] )";
   string err1 = "The file name should NOT be empty!";
-  string err2 = "ERROR! The file path doesn't exist. \n";
-  string err3 = "ERROR! Infeasible evaluation in TM for attribute ";
+  string err2 = "ERROR!The file path doesn't exist. \n";
+  string err3 = "ERROR!Infeasible evaluation in TM for attribute ";
 
   //all possible argument length: 3|4|5|6| 7|8|9|10
   int len = l.length();
@@ -1987,7 +1941,7 @@ ListExpr FConsumeTypeMap(ListExpr args)
   if(!l.first().first().checkStreamTuple(attr) )
     return l.typeError(typeErr);
 
-  if (!l.second().first().isSymbol(Symbols::STRING()) )
+  if (!l.second().first().isSymbol(symbols::STRING) )
     return l.typeError(typeErr);
   NList fnList;
   if (!getNLArgValueInTM(l.second().second(), fnList))
@@ -1997,7 +1951,7 @@ ListExpr FConsumeTypeMap(ListExpr args)
   if (0 == fileName.length())
     return l.typeError(err1);
 
-  if (!l.third().first().isSymbol(Symbols::TEXT()) )
+  if (!l.third().first().isSymbol(symbols::TEXT) )
     return l.typeError(typeErr);
 
   //Create the type file.
@@ -2016,7 +1970,8 @@ ListExpr FConsumeTypeMap(ListExpr args)
   }
   FileSystem::AppendItem(filePath, typeFileName);
   ofstream typeFile(filePath.c_str());
-  NList resultList = NList(NList("rel"), l.first().first().second());
+  NList resultList = NList(NList("rel"),
+                           l.first().first().second());
   if (!typeFile.good())
   {
     return l.typeError(err2 + filePath);
@@ -2033,9 +1988,9 @@ ListExpr FConsumeTypeMap(ListExpr args)
   if (len > 3)
   {
     int nodeArgLoc[2] = {-1 , -1 };
-    if (l.fourth().first().isSymbol(Symbols::INT()))
+    if (l.fourth().first().isSymbol(symbols::INT))
       haveIndex = true;
-    else if (l.fourth().first().isSymbol(Symbols::STRING()))
+    else if (l.fourth().first().isSymbol(symbols::STRING))
       nodeArgLoc[0] = 4;
     else
       return l.typeError(typeErr);
@@ -2045,7 +2000,7 @@ ListExpr FConsumeTypeMap(ListExpr args)
       case 4:
           break;
       case 5:
-        if (l.fifth().first().isSymbol(Symbols::STRING())){
+        if (l.fifth().first().isSymbol(symbols::STRING)){
           if (haveIndex)
             nodeArgLoc[0] = 5;
           else
@@ -2053,8 +2008,8 @@ ListExpr FConsumeTypeMap(ListExpr args)
           break;
         }
       case 6:
-        if ((l.fifth().first().isSymbol(Symbols::STRING())
-            && l.sixth().first().isSymbol(Symbols::STRING()))){
+        if ((l.fifth().first().isSymbol(symbols::STRING)
+            && l.sixth().first().isSymbol(symbols::STRING))){
           nodeArgLoc[0] = 5;
           nodeArgLoc[1] = 6;
         break;
@@ -2088,12 +2043,12 @@ ListExpr FConsumeTypeMap(ListExpr args)
     NList dtList = l.elem(++drmPos).first();
 
     if (!(arrayList.first().isSymbol("array")
-        && arrayList.second().isSymbol(Symbols::STRING())))
+        && arrayList.second().isSymbol(symbols::STRING)))
       return l.typeError(typeErr);
 
-    if (!( siList.isSymbol(Symbols::INT())
-        && tiList.isSymbol(Symbols::INT())
-        && dtList.isSymbol(Symbols::INT())))
+    if (!( siList.isSymbol(symbols::INT)
+        && tiList.isSymbol(symbols::INT)
+        && dtList.isSymbol(symbols::INT)))
       return l.typeError(typeErr);
   }
 
@@ -2101,7 +2056,7 @@ ListExpr FConsumeTypeMap(ListExpr args)
   appList.append(NList(haveIndex));
 
   return NList(NList("APPEND"), appList,
-               NList(Symbols::BOOL())).listExpr();
+               NList(symbols::BOOL)).listExpr();
 }
 
 
@@ -2181,7 +2136,8 @@ int FConsumeValueMap(Word* args, Word& result,
     }
 
     //Statistic information
-    ListExpr relTypeList = qp->GetSupplierTypeExpr(qp->GetSon(s,0));
+    ListExpr relTypeList =
+        qp->GetSupplierTypeExpr(qp->GetSon(s,0));
     TupleType *tt = new TupleType(SecondoSystem::GetCatalog()
                         ->NumericType(nl->Second(relTypeList)));
     vector<double> attrExtSize(tt->GetNoAttributes());
@@ -2260,12 +2216,14 @@ int FConsumeValueMap(Word* args, Word& result,
         dupliMachines[(si -1)] = false;
       }
 
+      string sName =
+      ((CcString*)(machines->getElement(si - 1)).addr)->GetValue();
       for(int i = 0; i < aSize; i++)
       {
         if (dupliMachines[i])
-          system(("scp " + blockFileName + " "
-            + ((CcString*)(machines->getElement(i)).addr)->GetValue()
-            + rmDefaultPath + relName ).c_str());
+          system(("scp " + blockFileName + " " +
+           ((CcString*)(machines->getElement(i)).addr)->GetValue()
+           + rmDefaultPath + relName + "_" + sName ).c_str());
       }
 
       if (!keepLocal)
@@ -2288,8 +2246,8 @@ int FConsumeValueMap(Word* args, Word& result,
     ProgressInfo* pRes;
     const double uConsume = 0.024;   //millisecs per tuple
     const double vConsume = 0.0003;  //millisecs per byte in
-                                        //  root/extension
-    const double wConsume = 0.001338;  //millisecs per byte in FLOB
+                                     //  root/extension
+    const double wConsume = 0.001338;//millisecs per byte in FLOB
 
     fcli = (fconsumeLocalInfo*) local.addr;
     pRes = (ProgressInfo*) result.addr;
@@ -2311,8 +2269,9 @@ int FConsumeValueMap(Word* args, Word& result,
       {
         if (fcli->state == 0)
         {
-          if ( p1.BTime < 0.1 && pipelinedProgress ) //non-blocking,
-                                                     //use pipelining
+          if ( p1.BTime < 0.1 && pipelinedProgress )
+            //non-blocking,
+            //use pipelining
             pRes->Progress = p1.Progress;
           else
             pRes->Progress =
@@ -2435,7 +2394,7 @@ ListExpr FFeedTypeMap(ListExpr args)
   string err2 = "ERROR! Type file NOT exist!\n";
   string err3 = "ERROR! A tuple relation type list is "
       "NOT contained in file: ";
-  string err4 = "ERROR! Infeasible evaluation in TM for attribute ";
+  string err4 ="ERROR! Infeasible evaluation in TM for attribute ";
 
   //operator only accept 2|3|4|5|6|7 arguments
   int len = l.length();
@@ -2445,7 +2404,7 @@ ListExpr FFeedTypeMap(ListExpr args)
 
   bool drMode = (len > 4) ? true : false;  //data remote mode
 
-  if (!l.first().first().isSymbol(Symbols::STRING()))
+  if (!l.first().first().isSymbol(symbols::STRING))
     return l.typeError(typeErr);
   NList fnList;
   if (!getNLArgValueInTM(l.first().second(), fnList))
@@ -2456,7 +2415,7 @@ ListExpr FFeedTypeMap(ListExpr args)
     return l.typeError(err1);
 
   //only for test the getNLArgValueInTM
-  if (!l.second().first().isSymbol(Symbols::TEXT()))
+  if (!l.second().first().isSymbol(symbols::TEXT))
     return l.typeError(typeErr);
   NList fpList;
   if (!getNLArgValueInTM(l.second().second(), fpList))
@@ -2479,17 +2438,17 @@ ListExpr FFeedTypeMap(ListExpr args)
     case 2:
       break;
     case 3:{
-      if (l.third().first().isSymbol(Symbols::INT()))
+      if (l.third().first().isSymbol(symbols::INT))
         haveIndex = true;
-      else if (l.third().first().isSymbol(Symbols::STRING()))
+      else if (l.third().first().isSymbol(symbols::STRING))
         rtnPos = 3;
       else
         return l.typeError(typeErr);
       break;
     }
     case 4:{
-      if (!(l.third().first().isSymbol(Symbols::INT())
-          && l.fourth().first().isSymbol(Symbols::STRING())))
+      if (!(l.third().first().isSymbol(symbols::INT)
+          && l.fourth().first().isSymbol(symbols::STRING)))
         return l.typeError(typeErr);
       haveIndex = true;
       rtnPos = 4;
@@ -2522,15 +2481,16 @@ ListExpr FFeedTypeMap(ListExpr args)
     //remote mode
     int drmPos = len - 3 + 1;  //Three arguments from the end
     if (!(l.elem(drmPos).first().first().isSymbol("array")
-        && l.elem(drmPos).first().second().isSymbol(Symbols::STRING())))
+        && l.elem(drmPos).first().
+           second().isSymbol(symbols::STRING)))
       return l.typeError(typeErr);
-    if (!l.elem(++drmPos).first().isSymbol(Symbols::INT()))
+    if (!l.elem(++drmPos).first().isSymbol(symbols::INT))
       return l.typeError(typeErr);
-    if(!l.elem(++drmPos).first().isSymbol(Symbols::INT()))
+    if(!l.elem(++drmPos).first().isSymbol(symbols::INT))
       return l.typeError(typeErr);
   }
   NList streamType =
-      NList(NList(Symbols::STREAM()),
+      NList(NList(symbols::STREAM),
       NList(NList(relType).second()));
 
   return NList(NList("APPEND"),
@@ -2762,7 +2722,8 @@ ListExpr hdpJoinTypeMap(ListExpr args)
         "  stream(tuple(T1 T2))))";
     string err2 = "operator hadoopjoin ecpects "
         "both input streams contain attribute Partition";
-    string err3 = "ERROR! Infeasible evaluation in TM for attribute ";
+    string err3 =
+        "ERROR! Infeasible evaluation in TM for attribute ";
 
     string streamStr[2] = {"", ""};
     for (int argIndex = 1; argIndex <= 2; argIndex++)
@@ -2776,16 +2737,16 @@ ListExpr hdpJoinTypeMap(ListExpr args)
     }
 
     if (!(l.third().first().first().isSymbol("array")
-        && l.third().first().second().isSymbol(Symbols::STRING())))
+        && l.third().first().second().isSymbol(symbols::STRING)))
       return l.typeError(typeErr);
 
-    if (!l.fourth().first().isSymbol(Symbols::INT()))
+    if (!l.fourth().first().isSymbol(symbols::INT))
       return l.typeError(typeErr);
 
-    if (!l.fifth().first().isSymbol(Symbols::INT()))
+    if (!l.fifth().first().isSymbol(symbols::INT))
       return l.typeError(typeErr);
 
-    if (!l.sixth().first().isSymbol(Symbols::STRING()))
+    if (!l.sixth().first().isSymbol(symbols::STRING))
       return l.typeError(typeErr);
     NList rnList;
     if (!getNLArgValueInTM(l.sixth().second(), rnList))
@@ -2795,7 +2756,7 @@ ListExpr hdpJoinTypeMap(ListExpr args)
     string mapStr = l.elem(7).second().fourth().convertToString();
     NList mapList = l.elem(7).first();
     NList attrAB, attr[2];
-    if (mapList.first().isSymbol(Symbols::MAP())
+    if (mapList.first().isSymbol(symbols::MAP)
         && mapList.second().checkStreamTuple(attr[0])
         && mapList.third().checkStreamTuple(attr[1])
         && mapList.fourth().checkStreamTuple(attrAB))
@@ -2844,8 +2805,8 @@ ListExpr hdpJoinTypeMap(ListExpr args)
           << typeFileName << endl;
 
       // result type
-      NList a1(NList("mIndex"), NList(INT));
-      NList a2(NList("pIndex"), NList(INT));
+      NList a1(NList("mIndex"), NList(symbols::INT));
+      NList a2(NList("pIndex"), NList(symbols::INT));
 
       NList result(NList(STREAM),
                    NList(NList(TUPLE), NList(a1, a2)));
@@ -2899,7 +2860,8 @@ int hdpJoinValueMap(Word* args, Word& result,
       for (int i = 1; i <= maSize; i++)
       {
         string nodeName =
-            ((CcString*)machines->getElement(i - 1).addr)->GetValue();
+            ((CcString*)machines->
+                getElement(i - 1).addr)->GetValue();
         if (masterIndex == i)
           masterName = nodeName;
         else{
@@ -2930,15 +2892,15 @@ int hdpJoinValueMap(Word* args, Word& result,
       //1 evaluate the hadoop program
       stringstream queryStr;
       queryStr << "hadoop jar HdpSec.jar dna.HSJoin \\\n"
-          << "\"" << masterName << "\" "
-          << masterIndex << " "
-          << "\"" << slaveList << "\" "
-          << "\"" << slaveIndexList << "\" "
-          << dbName << " \\\n"
-          << "\"" << mrQuery[0] << "\" \\\n"
-          << "\"" << mrQuery[1] << "\" \\\n"
-          << "\"" << mrQuery[2] << "\" \\\n"
-          << rtNum << " " << rName << endl;
+        << "\"" << masterName << "\" "
+        << masterIndex << " "
+        << "\"" << slaveList << "\" "
+        << "\"" << slaveIndexList << "\" "
+        << dbName << " \\\n"
+        << "\"" << tranStr(mrQuery[0], "\"", "\\\"") << "\" \\\n"
+        << "\"" << tranStr(mrQuery[1], "\"", "\\\"") << "\" \\\n"
+        << "\"" << tranStr(mrQuery[2], "\"", "\\\"") << "\" \\\n"
+        << rtNum << " " << rName << endl;
       int rtn;
       rtn = system("hadoop dfs -rmr OUTPUT");
       rtn = system(queryStr.str().c_str());
@@ -2992,7 +2954,42 @@ int hdpJoinValueMap(Word* args, Word& result,
   return 0;
 }
 
-Operator hadoopjoinOp(HdpJoinInfo(), hdpJoinValueMap, hdpJoinTypeMap);
+Operator hadoopjoinOp(HdpJoinInfo(),
+                      hdpJoinValueMap,
+                      hdpJoinTypeMap);
+
+
+/*
+6 Auxiliary functions
+
+*/
+string tranStr(const string& s,
+                 const string& from, const string& to)
+{
+  string result = s;
+
+  size_t fLen = from.length();
+  size_t tLen = to.length();
+  size_t end = s.size();
+  size_t p1 = 0;
+  size_t p2 = 0;
+
+  while (p1 < end)
+  {
+    p2 = result.find_first_of(from, p1);
+
+    if ( p2 != string::npos)
+    {
+      result.replace(p2, fLen, to);
+      p1 = p2 + tLen;
+    }
+    else
+      p1 = end;
+  }
+
+  return result;
+}
+
 
 /*
 3 Class ~HadoopParallelAlgebra~
@@ -3013,6 +3010,9 @@ public:
   HadoopParallelAlgebra() :
     Algebra()
   {
+
+//    AddTypeConstructor(&flTC);
+
 
     AddOperator(doubleExportInfo(),
         doubleExportValueMap, doubleExportTypeMap);
