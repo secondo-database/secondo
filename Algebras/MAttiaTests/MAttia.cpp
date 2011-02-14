@@ -13,7 +13,7 @@
 
   void NDefUnit(MBool* arg, CcBool* nval, MBool* res)
   {
-    bool debugme=true;
+    bool debugme=false;
     res->Clear();
     res->StartBulkLoad();
     UBool uarg;
@@ -25,10 +25,10 @@
       return;
     }
     arg->Get(0, uarg);
-    uarg.Print(cout);
+    //uarg.Print(cout);
     uBool2.CopyFrom(&uarg);  
     res->MergeAdd(uBool2);
-    res->Print(cout);
+    //res->Print(cout);
     uBool.timeInterval.lc = !uarg.timeInterval.rc;
     uBool.timeInterval.start = uarg.timeInterval.end;
     for( int i = 1; i < arg->GetNoComponents(); i++) 
@@ -43,12 +43,12 @@
               && uBool.timeInterval.lc && uBool.timeInterval.rc))
       {
         res->MergeAdd(uBool);
-        res->Print(cout);
+        //res->Print(cout);
       }
 
         uBool2.CopyFrom(&uarg);  
         res->MergeAdd(uBool2);
-        res->Print(cout);
+        //res->Print(cout);
         uBool.timeInterval.lc = !uarg.timeInterval.rc;
         uBool.timeInterval.start = uarg.timeInterval.end;
     }
@@ -142,6 +142,7 @@ string GenerateConnectedRandomConstraints(int numPreds, int numConstraints)
 
   }
   delete[] ConnectedSet;
+  return "";
 }
 
 string GenerateRandSTPPExpr2(int alias)
@@ -362,7 +363,7 @@ bool RunSTPQExperiment1Queries(string selectfrom, int count,
 
 ListExpr RandomMBoolTypeMap(ListExpr args)
 {
-  cout<<nl->ToString(args);
+  //cout<<nl->ToString(args);
   CHECK_COND( nl->ListLength(args) == 1 &&
    nl->IsAtom(nl->First(args)) && (nl->SymbolValue(nl->First(args))== "instant")
    ,"Operator randommbool expects one parameter.");
@@ -371,7 +372,7 @@ ListExpr RandomMBoolTypeMap(ListExpr args)
 
 ListExpr PassMBoolTypeMap(ListExpr args)
 {
-  cout<<nl->ToString(args);
+  //cout<<nl->ToString(args);
   CHECK_COND( nl->ListLength(args) == 1 &&
     nl->IsAtom(nl->First(args)) && (nl->SymbolValue(nl->First(args))== "mbool")
     , "Operator passmbool expects one parameter.");
@@ -381,7 +382,7 @@ ListExpr PassMBoolTypeMap(ListExpr args)
 
 ListExpr RunSTPQExperiment1QueriesTM(ListExpr args)
 {
-  cout<<nl->ToString(args);
+  //cout<<nl->ToString(args);
   CHECK_COND( nl->ListLength(args) == 1 &&
    nl->IsAtom(nl->First(args)) && (nl->SymbolValue(nl->First(args))== "string") 
     , "Operator RunSTPQExperiment1QueriesTM expects one parameter.");
@@ -391,7 +392,7 @@ ListExpr RunSTPQExperiment1QueriesTM(ListExpr args)
 
 ListExpr RunSTPQExperiment2QueriesTM(ListExpr args)
 {
-  cout<<nl->ToString(args);
+  //cout<<nl->ToString(args);
   CHECK_COND( nl->ListLength(args) == 1 &&
     nl->IsAtom(nl->First(args)) && (nl->SymbolValue(nl->First(args))== "string")
     , "Operator RunSTPQExperiment1QueriesTM expects one parameter.");
@@ -416,6 +417,27 @@ ListExpr NDefUnitTM(ListExpr args){
   }
   ErrorReporter::ReportError("mbool x bool expected");
   return nl->SymbolAtom( "typeerror" );
+}
+
+ListExpr RandomShiftDelayTM( ListExpr typeList )
+{
+  CHECK_COND(nl->ListLength(typeList) == 4 &&
+      nl->IsAtom(nl->First(typeList)) &&
+      (nl->SymbolValue(nl->First(typeList))== "mpoint") &&
+      nl->IsAtom(nl->Second(typeList)) &&
+      (nl->SymbolValue(nl->Second(typeList))== "duration")&&
+      nl->IsAtom(nl->Third(typeList)) &&
+      (nl->SymbolValue(nl->Third(typeList))== "real")&&
+      nl->IsAtom(nl->Fourth(typeList)) &&
+      (nl->SymbolValue(nl->Fourth(typeList))== "real"),
+      "randomshiftdelay operator expects (mpoint duration real real) but got "
+      + nl->ToString(typeList))
+
+      return (nl->SymbolAtom("mpoint"));
+}
+
+ListExpr TestTM(ListExpr args){
+  return nl->SymbolAtom( "bool" );
 }
 
 void CreateRandomMBool(Instant starttime, MBool& result)
@@ -465,6 +487,74 @@ int PassMBool(Word* args, Word& result, int message, Word& local, Supplier s)
   return 0;
 }
 
+
+void RandomShiftDelay( const MPoint* actual, const Instant* threshold, 
+    double dx, double dy, MPoint& res)
+{
+  bool debugme= false;
+
+  MPoint delayed(actual->GetNoComponents());
+  UPoint first(0), next(0);
+  UPoint *shifted,*temp, *cur;
+  int xshift=0, yshift=0;
+  int rmillisec=0, rday=0;
+  actual->Get( 0, first );
+  cur=new UPoint(first);
+  for( int i = 1; i < actual->GetNoComponents(); i++ )
+  {
+    actual->Get( i, next );
+
+    rmillisec= rand()% threshold->GetAllMilliSeconds();
+    rday=0;
+    if(threshold->GetDay()> 0) rday = rand()% threshold->GetDay();
+    DateTime delta(rday,rmillisec,durationtype) ;
+    xshift= rand() % ((int)dx +1);
+    yshift= rand() % ((int)dy +1);
+    shifted= new UPoint(*cur);
+    delete cur;
+    temp= new UPoint(next);
+    if(rmillisec > rand()%24000 )
+    {
+      if((shifted->timeInterval.end + delta) <  next.timeInterval.end )
+      {
+        shifted->timeInterval.end += delta ;
+        temp->timeInterval.start= shifted->timeInterval.end;
+        shifted->p1.Set(shifted->p1.GetX()+xshift, shifted->p1.GetY()+yshift);
+        temp->p0.Set(shifted->p1.GetX(), shifted->p1.GetY());
+      }
+    }
+    else
+    {
+      if((shifted->timeInterval.end - delta) >shifted->timeInterval.start)
+      {
+        shifted->timeInterval.end -= delta ;
+        temp->timeInterval.start= shifted->timeInterval.end;
+        shifted->p1.Set(shifted->p1.GetX()-xshift, shifted->p1.GetY()-yshift);
+        temp->p0.Set(shifted->p1.GetX(), shifted->p1.GetY());
+      }
+    }
+    cur=temp;
+    if(debugme)
+    {
+      cout.flush();
+      cout<<"\n original "; cur->Print(cout);
+      cout<<"\n shifted " ; shifted->Print(cout);
+      cout.flush();
+    }
+    delayed.Add(*shifted);
+    delete shifted;
+  }
+  delayed.Add(*temp);
+  delete temp;
+  res.CopyFrom(&delayed);
+  if(debugme)
+  {
+    res.Print(cout);
+    cout.flush();
+  }
+  return;
+}
+
 /*
 Value mapping function for the operator ~ndefunit~
 
@@ -472,7 +562,7 @@ Value mapping function for the operator ~ndefunit~
 int NDefUnitVM( ArgVector args, Word& result,
     int msg, Word& local, Supplier s )
 {
-  bool debugme=true;
+  bool debugme=false;
   MBool *arg = static_cast<MBool*>( args[0].addr );
   CcBool *ndefval = static_cast<CcBool*>( args[1].addr );
 
@@ -491,6 +581,7 @@ int NDefUnitVM( ArgVector args, Word& result,
   }
   return 0;
 }
+
 
 
 
@@ -567,6 +658,69 @@ int RunSTPQExperiment2QueriesVM(Word* args, Word& result,
   return 0;
 }
 
+int RandomShiftDelayVM(ArgVector args, Word& result,
+    int msg, Word& local, Supplier s )
+{
+  MPoint *pActual = static_cast<MPoint*>( args[0].addr );
+  Instant *threshold = static_cast<Instant*>(args[1].addr );
+  double dx = static_cast<CcReal*>(args[2].addr )->GetRealval();
+  double dy = static_cast<CcReal*>(args[3].addr )->GetRealval();
+  
+  
+  MPoint* shifted = (MPoint*) qp->ResultStorage(s).addr;
+
+  if(pActual->GetNoComponents()<2 || !pActual->IsDefined())
+    shifted->CopyFrom(pActual);
+    else
+    {
+      RandomShiftDelay(pActual, threshold, dx, dy, *shifted);
+    }
+  result= SetWord(shifted); 
+  //This looks redundant but it is really necessary. After 2 hours of 
+  //debugging, it seems that the "result" word is not correctly set 
+  //by the query processor to point to the results.
+
+  return 0;
+}
+
+
+int StretchVM( ArgVector args, Word& result,
+    int msg, Word& local, Supplier s )
+{
+  bool debugme=false; 
+  MPoint *mpoint = static_cast<MPoint*>( args[0].addr );
+  MPoint *mpref  = static_cast<MPoint*>( args[1].addr );
+  int numAnchors = static_cast<CcInt*>( args[2].addr )->GetIntval();
+  double distThreshold = static_cast<CcReal*>( args[3].addr )->GetRealval();
+  
+  return 0;
+}
+
+int TestVM( ArgVector args, Word& result,
+    int msg, Word& local, Supplier s )
+{
+  bool debugme=false;
+  result = qp->ResultStorage(s);
+  CcBool* res= static_cast<CcBool*>(result.addr);
+  
+  list<int> lst;
+  
+  for(int i=0; i<10; ++i)
+    lst.push_back(i);
+  list<int>::iterator it= lst.begin();
+  cerr<<*it<<endl;
+  ++it;
+  cerr<<*it<<endl;
+  
+  for(int i=100; i<103; ++i)
+    lst.push_front(i);
+  
+  lst.erase(it++);
+  cerr<<*it<<endl;
+  res->Set(true, true);
+  return 0;
+}
+
 const string PatternSpec  =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" "
   "\"Example\" ) "
@@ -579,8 +733,28 @@ const string PatternSpec  =
   "<text>under construction </text--->"
   ") )";
 
+const string RandomShiftDelaySpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+  "\"Example\" ) "
+  "( <text>mpoint x duration x real x real-> mpoint</text--->"
+  "<text>randomdelay(schedule, delay_threshold, dx, dy)</text--->"
+  "<text>Given an mpoint and a duration value, the operator randomly shift the" 
+  "start and end intstants of every unit in the mpoint. This gives the "
+  "effect of having positive and negative delays and spatial shifts in the "
+  "movement. The random shift values are bound by the given threshold."
+  "</text---> <text>query randomdelay(train7)</text--->"
+  ") )";
 
-
+const string TestSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+  "\"Example\" ) "
+  "( <text> -> bool</text--->"
+  "<text>query test()</text--->"
+  "<text>A dummy opertor to test code blocks. The idea is to have a fast way to"
+  " code blocks. This operator has a type map, value map, spec, ..., and all "
+  "other necessary functions for a SECONDO operator. One just needs to place "
+  "the code block in the value mapping function and let it yield true if the "
+  "code block works fine, false otherwise. test  </text---> "
+  "<text>query test()</text--->"
+  ") )";
 /*
 
 4.1.4 Definition of operator ~pattern~
@@ -628,6 +802,24 @@ OperatorInfo NDefUnitOperatorInfo( "ndefunit",
 Operator ndefunit( NDefUnitOperatorInfo,
     NDefUnitVM,
     NDefUnitTM);
+
+Operator randomshiftdelay (
+    "randomshiftdelay",               // name
+    RandomShiftDelaySpec,             // specification
+    RandomShiftDelayVM,                 // value mapping
+    Operator::SimpleSelect, // trivial selection function
+    RandomShiftDelayTM          // type mapping
+);
+
+Operator test (
+    "mytest",               // name
+    TestSpec,             // specification
+    TestVM,                 // value mapping
+    Operator::SimpleSelect, // trivial selection function
+    TestTM          // type mapping
+);
+
+
 MAttiaAlgebra::MAttiaAlgebra():Algebra() {
   // TODO Auto-generated constructor stub
 
@@ -648,6 +840,8 @@ MAttiaAlgebra::MAttiaAlgebra():Algebra() {
   AddOperator(&opRunSTPQExperiment1Queries);
   AddOperator(&opRunSTPQExperiment2Queries);
   AddOperator(&ndefunit);
+  AddOperator(&randomshiftdelay);
+  AddOperator(&test);
 }
 
 MAttiaAlgebra::~MAttiaAlgebra() {

@@ -19,3 +19,14 @@ Signature : mbool x bool -> mbool
 Example   : query ndefunit(mdirection(train7) > 90.0, TRUE)
 Result    : file
  
+Operator : randomshiftdelay
+Number   : 1
+Signature: mpoint x duration x real x real -> mpoint
+Example  : query randomdelay(train7, create_duration(0, 13000), 20.5, 50.0 ) 
+Result   : file
+
+Operator : mytest
+Number   : 1
+Signature: -> bool
+Example  : query ten feed extend[t: mytest()] count 
+Result   : 10 
