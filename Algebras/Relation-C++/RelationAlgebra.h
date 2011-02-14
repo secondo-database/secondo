@@ -1986,6 +1986,7 @@ class TupleBufferIterator : public GenericRelationIterator
 {
   public:
     TupleBufferIterator( const TupleBuffer& buffer );
+    TupleBufferIterator( const TupleBuffer& buffer, TupleType* tt );
 /*
 The constructor.
 
@@ -1996,6 +1997,7 @@ The destructor.
 
 */
     Tuple *GetNextTuple();
+    Tuple *GetNextTuple( const list<int>& attrList );
 /*
 Returns the next tuple of the buffer. Returns 0 if the end of the
 buffer is reached.
@@ -2027,7 +2029,12 @@ The current tuple if it is in memory.
 The iterator if it is not in memory.
 
 */
+  TupleType* outtype;
+/*
+The type of the tuples in the TupleBuffer. 
+Required for the feedproject operator.
 
+*/
 
 };
 
@@ -2083,6 +2090,7 @@ The destructor. Deletes (if allowed) all tuples.
 
 
     virtual GenericRelationIterator *MakeScan() const;
+    virtual GenericRelationIterator *MakeScan(TupleType* tt) const;
 
 /*
 inherited ~virtual~ functions.

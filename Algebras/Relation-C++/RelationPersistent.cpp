@@ -1822,6 +1822,11 @@ GenericRelationIterator *TupleBuffer::MakeScan() const
   return new TupleBufferIterator( *this );
 }
 
+GenericRelationIterator *TupleBuffer::MakeScan(TupleType* tt) const
+{
+  return new TupleBufferIterator( *this, tt);
+}
+
 bool TupleBuffer::GetTupleFileStats( SmiStatResultType &result )
 {
   if( !inMemory && diskBuffer->GetTupleFileStats(result) ){
@@ -1854,6 +1859,19 @@ TupleBufferIterator::TupleBufferIterator( const TupleBuffer& tupleBuffer ):
     tupleBuffer.inMemory ?
       0 :
       tupleBuffer.diskBuffer->MakeScan() )
+  {}
+
+TupleBufferIterator::TupleBufferIterator( 
+    const TupleBuffer& tupleBuffer, TupleType* tt ):
+  readData_Bytes( Counter::getRef(CTR_TBUF_BYTES_R) ),
+  readData_Pages( Counter::getRef(CTR_TBUF_PAGES_R) ),
+  tupleBuffer( tupleBuffer ),
+  currentTuple( 0 ),
+  diskIterator(
+    tupleBuffer.inMemory ?
+      0 :
+      tupleBuffer.diskBuffer->MakeScan() ),
+  outtype( tt )    
   {}
 /*
 The constructor.
@@ -1888,6 +1906,32 @@ Tuple *TupleBufferIterator::GetNextTuple()
     result->IncReference();
     currentTuple++;
 
+    return result;
+  }
+}
+
+Tuple *TupleBufferIterator::GetNextTuple(const list<int>& attrList)
+{
+  if( diskIterator )
+  {
+    Tuple* t = diskIterator->GetNextTuple(attrList);
+    if (t)
+      readData_Bytes += t->GetExtSize();
+    return t;
+  }
+  else
+  {
+    if( currentTuple == tupleBuffer.memoryBuffer.size() )
+      return 0;
+
+    Tuple *t =
+      tupleBuffer.memoryBuffer[currentTuple];
+    
+    Tuple *result = new Tuple( outtype );
+    list<int>::const_iterator iter = attrList.begin();
+    for(int i=0 ; iter != attrList.end(); ++iter, ++i )
+      result->CopyAttribute(*iter, t, i);
+    currentTuple++;
     return result;
   }
 }
