@@ -1,0 +1,8 @@
+Database : berlintest
+Restore  : NO
+
+Operator : twed
+Number   : 1
+Signature: (mset mset map(intset intset bool)) -> real
+Example  : query intstream(1,3) collectintset 
+Result   : TRUE
