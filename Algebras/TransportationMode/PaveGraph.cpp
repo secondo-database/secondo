@@ -7232,6 +7232,7 @@ Rectangle<2> GetMaxRect(Region* reg)
   for(unsigned int i = 0;i < ps.size();i++){
     double x = ps[i].GetX();
     double y = ps[i].GetY(); 
+    assert(!(x < 0.0 || y < 0.0));
     int range = GetQuadrant(x, y, reg_box);
     assert(range > 0); 
     switch(range){
@@ -7314,7 +7315,6 @@ Rectangle<2> GetMaxRect(Region* reg)
         return Rectangle<2>(false, 0.0, 0.0, 0.0, 0.0); 
   }
 
-//     cout<<"a triangle"<<endl; 
      return Rectangle<2>(false, 0.0, 0.0, 0.0, 0.0); 
 }
 
@@ -7548,10 +7548,13 @@ void MaxRect::computeLargestRectangle(){
 
             ymin = yIntersect(xi, top);
             ymax = yIntersect(xi, bottom);
+//            cout<<"xi "<<xi<<" ymin "<<ymin<<" ymax "<<ymax<<endl;
 
             for(int ylo = ymax;ylo>= ymin;ylo--){//ylo from to to bottom
-
+//                cout<<"ylo "<<ylo<<"ymin "<<ymin<<"ymax "<<ymax<<endl;
                 for(int yhi = ymin; yhi<= ymax; yhi++){
+
+//                    cout<<"yhi "<<yhi<<endl; 
 
                     if (yhi>ylo){
 
@@ -7979,7 +7982,7 @@ bool MaxRect::IsCycle(SimpleLine* sl)
 
 
 /*
-get the maximum rectangle in a polygon 
+get neighbor triangles to get convex polygons 
 
 */
 void MaxRect::ConvexReg(int attr1, int attr2)
@@ -8096,117 +8099,14 @@ void MaxRect::MergeTriangle(CompTriangle* ct, int reg_id)
   }
 }
 
-
-struct Region_Oid_Ext:public Region_Oid{
-  int type;
-  double dist;
-  Region_Oid_Ext(){}
-  Region_Oid_Ext(int id, Region& r, int t, double d):
-    Region_Oid(id,r), type(t), dist(d){}
-  Region_Oid_Ext(const Region_Oid_Ext& roe):Region_Oid(roe),
-  type(roe.type), dist(roe.dist){}
-  Region_Oid_Ext& operator=(const Region_Oid_Ext& roe)
-  {
-    Region_Oid::operator=(roe);
-    type = roe.type; 
-    dist = roe.dist;
-    return *this; 
-  }
-  bool operator<(const Region_Oid_Ext& roe) const
-  {
-    return dist < roe.dist;
-  }
-
-}; 
-
 /*
-distribute 2D areas for buildings according to their distance to the city
-center point 
+get the maximum rectangle in a polygon. the input has an integer showing how
+many rectangles it needs. The result is the corresponding number of 
+rectangles. 
 
 */
-void MaxRect::DistributeRegion(int attr1, int attr2)
-{
-
-  /////////////////////////get the center point//////////////////////////
-  double x_min, x_max;
-  double y_min, y_max; 
-  for(int i = 1;i <= rel1->GetNoTuples();i++){
-    Tuple* region_tuple = rel1->GetTuple(i, false); 
-    Region* r = (Region*)region_tuple->GetAttribute(attr2); 
-    Rectangle<2> bbox = r->BoundingBox();
-    region_tuple->DeleteIfAllowed(); 
-    if(i == 1){
-      x_min = bbox.MinD(0);
-      x_max = bbox.MaxD(0);
-      y_min = bbox.MinD(1);
-      y_max = bbox.MaxD(1); 
-    }else{
-      x_min = MIN(x_min, bbox.MinD(0));
-      x_max = MAX(x_max, bbox.MaxD(0));
-      y_min = MIN(y_min, bbox.MinD(1));
-      y_max = MAX(y_max, bbox.MaxD(1)); 
-    }
-  } 
-
-  Point center_p(true, (x_min+x_max)/2, (y_min+y_max)/2); 
-//  cout<<"center point "<<center_p<<endl; 
-  Point lp(true, x_min, y_min); 
-  
-  double dist1 = center_p.Distance(lp); 
-  
-  
-  vector<Region_Oid_Ext> reg_dist_list; 
-  
-  for(int i = 1;i <= rel1->GetNoTuples();i++){
-    Tuple* region_tuple = rel1->GetTuple(i, false); 
-    Region* r = (Region*)region_tuple->GetAttribute(attr2); 
-    int reg_id = ((CcInt*)region_tuple->GetAttribute(attr1))->GetIntval();
-
-    Rectangle<2> bbox = r->BoundingBox();
-
-/*    reg_id_list.push_back(reg_id); 
-    reg_list.push_back(*r); 
-    if(center_p.Distance(bbox) < dist1/5)
-      reg_type_list.push_back(1);
-    else if(center_p.Distance(bbox) > 2*dist1/5)
-      reg_type_list.push_back(3);
-    else
-      reg_type_list.push_back(2);*/
-
-    double dist = center_p.Distance(bbox);
-    int type; 
-    if(dist < dist1/5)
-      type = 1;
-    else if(dist > 2*dist1/5)
-      type = 3;
-    else
-      type = 2;
-
-    Region_Oid_Ext roe(reg_id, *r, type, dist); 
-    reg_dist_list.push_back(roe); 
-    region_tuple->DeleteIfAllowed(); 
-  }
-
-  sort(reg_dist_list.begin(), reg_dist_list.end()); 
-
-  for(unsigned int i = 0;i < reg_dist_list.size();i++){
-//    cout<<"id "<<reg_dist_list[i].oid
-//        <<" dist "<<reg_dist_list[i].dist
-//        <<" type "<<reg_dist_list[i].type<<endl; 
-
-    reg_id_list.push_back(reg_dist_list[i].oid); 
-    reg_list.push_back(reg_dist_list[i].reg);
-    reg_type_list.push_back(reg_dist_list[i].type); 
-  }
-}
-
-
-/*
-get the maximum rectangle in a polygon 
-
-*/
-void MaxRect::GetRectangle(int attr1, int attr2, int attr3, BTree* btree,
-                           int no_buildings)
+void MaxRect::GetRectangle(int attr1, int attr2, int attr3, int attr4, 
+                           BTree* btree, int no_buildings)
 {
   if(no_buildings > rel1->GetNoTuples()){
     cout<<"maximum "<<rel1->GetNoTuples()<<" buildings"<<endl;
@@ -8221,7 +8121,7 @@ void MaxRect::GetRectangle(int attr1, int attr2, int attr3, BTree* btree,
   vector<int> no_type; 
  for(int i = 1;i <= rel1->GetNoTuples();i++){
     Tuple* region_tuple = rel1->GetTuple(i, false); 
-    int type = ((CcInt*)region_tuple->GetAttribute(attr3))->GetIntval();
+    int type = ((CcInt*)region_tuple->GetAttribute(attr4))->GetIntval();
     if(no_type.size() == 0)
       no_type.push_back(type);
     else{
@@ -8288,65 +8188,50 @@ void MaxRect::GetRectangle(int attr1, int attr2, int attr3, BTree* btree,
 //    srand48(tval.tv_sec);//second 
 
 //  index = lrand48() % build_tid_list[i].size();
-    index = index % build_tid_list[i].size();
+//    index = index % build_tid_list[i].size();
+    index = GetRandom() % build_tid_list[i].size();
     int tid = build_tid_list[i][index]; 
 
     if(region_tid_list.size() == 0){
-      if(AddRect(tid, attr1, attr2)){ 
+        AddRect(tid, attr1, attr2, attr3, attr4);
         region_tid_list.push_back(tid); 
         no_build--; 
-      }
-      index++;
+        index++;
     }else{
       unsigned int j = 0;
       for(;j < region_tid_list.size();j++){
         if(region_tid_list[j] == tid)break;
       }
       if(j == region_tid_list.size()){
-        if(AddRect(tid, attr1, attr2)){
+          AddRect(tid, attr1, attr2, attr3, attr4); 
           region_tid_list.push_back(tid);
           no_build--; 
-        }
-        index++;
+          index++;
       }
     }
   }
 //  cout<< region_tid_list.size()<<endl; 
  }
 
-  /////////////to get maximum number of rectangles/////// 1376///////
-/*  for(int i = 1;i <= rel1->GetNoTuples();i++){
-    AddRect(i, attr1, attr2); 
-  }*/
-
 }
 
-bool MaxRect::AddRect(int tid, int attr1, int attr2)
+void MaxRect::AddRect(int tid, int attr1, int attr2, int attr3, int attr4)
 {
   Tuple* region_tuple = rel1->GetTuple(tid, false); 
   int reg_id = ((CcInt*)region_tuple->GetAttribute(attr1))->GetIntval();
 //  cout<<"reg_id "<<reg_id<<endl; 
 
+  Rectangle<2>* r = (Rectangle<2>*)region_tuple->GetAttribute(attr2); 
+  int poly_id = ((CcInt*)region_tuple->GetAttribute(attr3))->GetIntval();
+  int reg_type = ((CcInt*)region_tuple->GetAttribute(attr4))->GetIntval();
 
-  Region* r = (Region*)region_tuple->GetAttribute(attr2); 
-//  cout<<*r<<endl; 
-  
-  Rectangle<2> rect_box = GetMaxRect(r); 
-  region_tuple->DeleteIfAllowed();   
-  
-  double x = fabs(rect_box.MaxD(0) - rect_box.MinD(0));
-  double y = fabs(rect_box.MaxD(1) - rect_box.MinD(1));
-  double min = MIN(x,y);
-  double max = MAX(x,y); 
+  reg_id_list.push_back(reg_id);
+  rect_list.push_back(*r);
+  poly_id_list.push_back(poly_id);
+  reg_type_list.push_back(reg_type);
 
-  if(rect_box.IsDefined() && 
-     rect_box.Area() > mini_rect_area && 
-     rect_box.Area() < maxi_rect_area && (max / min < 5.0)){
-      reg_id_list.push_back(reg_id); 
-      rect_list.push_back(rect_box);
-      return true;
-  }else
-    return false; 
+  region_tuple->DeleteIfAllowed();
+
 }
 
 /*
@@ -8370,4 +8255,138 @@ bool MaxRect::NeighborTriangle(Region* reg1, Region* reg2)
      }
   }   
   return false; 
+}
+
+
+/*
+for the input relation, it gets a maximum rectangle for each region 
+
+*/
+void MaxRect::GetRectangle2(int attr1, int attr2)
+{
+//  cout<<"attr "<<attr1<<" attr2 "<<attr2<<endl; 
+
+  int reg_id = 1; 
+  for(int i = 1;i <= rel1->GetNoTuples();i++){
+    Tuple* poly_tuple = rel1->GetTuple(i, false); 
+    int poly_id = ((CcInt*)poly_tuple->GetAttribute(attr1))->GetIntval();
+    Region* poly = (Region*)poly_tuple->GetAttribute(attr2); 
+
+    CompTriangle* ct = new CompTriangle(poly);
+    ct->NewTriangulation();
+//    cout<<ct->triangles.size()<<endl; 
+
+    vector<Rectangle<2> > rect_box_list; 
+
+    for(unsigned int j = 0;j < ct->triangles.size();j++){
+      if(ct->triangles[j].Area() > mini_tri_area && 
+        ct->triangles[j].Area() < maxi_tri_area){
+//          printf("%f\n",ct->triangles[j].Area());
+
+          if(ValidRegion(&ct->triangles[j])){//coordinates should be positive 
+            Rectangle<2> rect_box = GetMaxRect(&ct->triangles[j]); 
+//            cout<<rect_box<<endl;
+            if(rect_box.IsDefined()){
+                double x = fabs(rect_box.MaxD(0) - rect_box.MinD(0));
+                double y = fabs(rect_box.MaxD(1) - rect_box.MinD(1));
+                double min = MIN(x,y);
+                double max = MAX(x,y); 
+              if(rect_box.Area() > mini_rect_area && 
+                 rect_box.Area() < maxi_rect_area && (max / min < 5.0)){
+/*                    reg_id_list.push_back(reg_id);
+                    rect_list.push_back(rect_box);
+                    poly_id_list.push_back(poly_id); 
+                    reg_id++; */
+                    rect_box_list.push_back(rect_box); 
+               }
+            }
+          }else{
+            Rectangle<2> bbox = ct->triangles[j].BoundingBox();
+            double minx = bbox.MinD(0);
+            double miny = bbox.MinD(1);
+            double tran_x = fabs(minx) + 1.0;
+            double tran_y = fabs(miny) + 1.0; 
+            Region* r = new Region(0);
+            ct->triangles[j].Translate(tran_x, tran_y, *r); 
+            assert(ValidRegion(r));
+            Rectangle<2> rect_box = GetMaxRect(r); 
+            if(rect_box.IsDefined()){
+                double x = fabs(rect_box.MaxD(0) - rect_box.MinD(0));
+                double y = fabs(rect_box.MaxD(1) - rect_box.MinD(1));
+                double min = MIN(x,y);
+                double max = MAX(x,y); 
+              if(rect_box.Area() > mini_rect_area && 
+                 rect_box.Area() < maxi_rect_area && (max / min < 5.0)){
+                    double mini[2], maxi[2];
+                    mini[0] = rect_box.MinD(0) - tran_x;
+                    mini[1] = rect_box.MinD(1) - tran_y;
+                    maxi[0] = rect_box.MaxD(0) - tran_x;
+                    maxi[1] = rect_box.MaxD(1) - tran_y; 
+                    Rectangle<2>* res_box = new Rectangle<2>(true, mini, maxi);
+
+/*                    reg_id_list.push_back(reg_id);
+                    rect_list.push_back(res_box);
+                    poly_id_list.push_back(poly_id); 
+                    reg_id++; */
+                    rect_box_list.push_back(res_box); 
+
+                    delete res_box; 
+               }
+            }
+            delete r;
+          }
+      }
+    }
+    delete ct; 
+    poly_tuple->DeleteIfAllowed(); 
+
+    
+      //////////the distance between two buildings should be large////////
+      for(unsigned int k1 = 0;k1 < rect_box_list.size();k1++){
+        Rectangle<2> bbox1 = rect_box_list[k1];
+        unsigned int k2 = k1;
+        for(k2 += 1;k2 < rect_box_list.size();k2++){
+          Rectangle<2> bbox2 = rect_box_list[k2];
+          if(bbox1.Distance(bbox2) < mini_dist_build) break; 
+        }
+        if(k2 == rect_box_list.size()){
+          reg_id_list.push_back(reg_id);
+          rect_list.push_back(bbox1);
+          poly_id_list.push_back(poly_id); 
+          reg_id++;
+        }
+      }
+  }
+}
+
+/*
+check whether all coordinates are positive. because for the function 
+GetMaxRect(), all coordinates should be positive 
+
+*/
+bool MaxRect::ValidRegion(Region* r)
+{
+  for(int i = 0;i < r->Size();i++){
+    HalfSegment hs;
+    r->Get(i, hs);
+    if(!hs.IsLeftDomPoint())continue; 
+    Point lp = hs.GetLeftPoint();
+    Point rp = hs.GetRightPoint(); 
+    if(lp.GetX() < 0.0)return false;
+    if(lp.GetY() < 0.0)return false;
+    if(rp.GetX() < 0.0)return false;
+    if(rp.GetY() < 0.0)return false;
+  }
+  return true; 
+}
+
+/*
+classify the 2d rectangle areas into several groups by the area  
+small areas might be for personl apartments.
+big areas might be airport, shopping mall 
+
+*/
+int MaxRect::GetRectType(float area)
+{
+  return 0; 
 }

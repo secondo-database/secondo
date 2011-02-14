@@ -4235,7 +4235,7 @@ const string OpTMMaxRectSpec  =
     "<text>query maxrect(r1);</text--->"
     ") )";
 
-const string OpTMGetRectSpec  =
+const string OpTMGetRect2Spec  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" "
     "\"Example\" ) "
     "( <text>rel x attr1 x attr2 x attr3 x btree x int ->"
@@ -4244,6 +4244,16 @@ const string OpTMGetRectSpec  =
     "<text>get the maximum rectangle area for a region</text--->"
     "<text>query getrect(building_regions, id, covarea, reg_type, btree_build "
     "10);</text--->"
+    ") )";
+    
+const string OpTMGetRect1Spec  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+    "\"Example\" ) "
+    "( <text>rel x attr1 x attr2->"
+    "(stream (tuple( (x1 t1)(x2 t2)...(xn tn)))</text--->"
+    "<text>getrect2(rel, attr, attr);</text--->"
+    "<text>get the maximum rectangle area for a region</text--->"
+    "<text>query getrect2(new_region_elems2, id, covarea);</text--->"
     ") )";
 
 /*
@@ -4258,26 +4268,6 @@ const string OpTMRemoveDirtySpec  =
     "<text>remove_dirty(rel, attr, attr);</text--->"
     "<text>clear some dirty region data</text--->"
     "<text>query remove_dirty(region_elems, id, covarea);</text--->"
-    ") )";
-
-const string OpTMConvexRegSpec  =
-    "( ( \"Signature\" \"Syntax\" \"Meaning\" "
-    "\"Example\" ) "
-    "( <text>rel x attr1 x attr2 ->(stream (tuple( (x1 t1)(x2 t2)...(xn tn)))"
-     "</text--->"
-    "<text>convexreg(rel, attr, attr);</text--->"
-    "<text>get convex polygons</text--->"
-    "<text>query convexreg(new_region_elems, id, covarea);</text--->"
-    ") )";
-
-const string OpTMDistributeRegionSpec  =
-    "( ( \"Signature\" \"Syntax\" \"Meaning\" "
-    "\"Example\" ) "
-    "( <text>rel x attr1 x attr2 ->(stream (tuple( (x1 t1)(x2 t2)...(xn tn)))"
-     "</text--->"
-    "<text>distribute_region(rel, attr, attr);</text--->"
-    "<text>distribute the 2d areas according to the distance</text--->"
-    "<text>query distribute_region(new_region_elems, id, covarea);</text--->"
     ") )";
 
 ////////////////TypeMap function for operators//////////////////////////////
@@ -9188,11 +9178,11 @@ region
 
 */
 
-ListExpr OpTMGetRectTypeMap ( ListExpr args )
+ListExpr OpTMGetRect2TypeMap ( ListExpr args )
 {
-  if ( nl->ListLength ( args ) != 6 )
+  if ( nl->ListLength ( args ) != 7 )
   {
-    return  nl->SymbolAtom ( "list length should be 3" );
+    return  nl->SymbolAtom ( "list length should be 7" );
   }
   ListExpr param1 = nl->First ( args );
   if(!IsRelDescription(param1))
@@ -9216,9 +9206,9 @@ ListExpr OpTMGetRectTypeMap ( ListExpr args )
   int j2 = listutils::findAttribute(nl->Second(nl->Second(param1)),
                       aname2, attrType2);
 
-  if(j2 == 0 || !listutils::isSymbol(attrType2,"region")){
+  if(j2 == 0 || !listutils::isSymbol(attrType2,"rect")){
       return listutils::typeError("attr name" + aname2 + "not found"
-                      "or not of type region");
+                      "or not of type rect");
   }
 
   ListExpr attrName3 = nl->Fourth ( args );
@@ -9232,96 +9222,57 @@ ListExpr OpTMGetRectTypeMap ( ListExpr args )
                       "or not of type int");
   }
 
-  ListExpr param5 = nl->Fifth ( args );
-  if(!listutils::isBTreeDescription(param5))
-    return nl->SymbolAtom ( "typeerror: param5 should be a btree" );
+  ListExpr attrName4 = nl->Fifth ( args );
+  ListExpr attrType4;
+  string aname4 = nl->SymbolValue(attrName4);
+  int j4 = listutils::findAttribute(nl->Second(nl->Second(param1)),
+                      aname4, attrType4);
 
-  if(!(nl->IsEqual(nl->Sixth(args),"int")))
-    return nl->SymbolAtom ( "typeerror: param4 should be an int" );
+  if(j4 == 0 || !listutils::isSymbol(attrType4,"int")){
+      return listutils::typeError("attr name" + aname3 + "not found"
+                      "or not of type int");
+  }
+
+
+  ListExpr param6 = nl->Sixth ( args );
+  if(!listutils::isBTreeDescription(param6))
+    return nl->SymbolAtom ( "typeerror: param6 should be a btree" );
+
+  if(!(nl->IsEqual(nl->Nth(7, args),"int")))
+    return nl->SymbolAtom ( "typeerror: param7 should be an int" );
 
   ListExpr res = nl->TwoElemList(
             nl->SymbolAtom("stream"),
             nl->TwoElemList(
                 nl->SymbolAtom("tuple"),
-                nl->TwoElemList(
+                nl->FourElemList(
                     nl->TwoElemList(
                         nl->SymbolAtom("reg_id"),
                         nl->SymbolAtom("int")),
                     nl->TwoElemList(
                         nl->SymbolAtom("geoData"),
-                        nl->SymbolAtom("rect"))
-                    )));
-      return nl->ThreeElemList(
-        nl->SymbolAtom("APPEND"),
-        nl->ThreeElemList(nl->IntAtom(j1),
-                          nl->IntAtom(j2), nl->IntAtom(j3)), res);
-
-}
-
-
-/*
-TypeMap fun for operator convexreg. get the convex polygons
-
-*/
-
-ListExpr OpTMConvexRegTypeMap ( ListExpr args )
-{
-  if ( nl->ListLength ( args ) != 3 )
-  {
-    return  nl->SymbolAtom ( "list length should be 3" );
-  }
-  ListExpr param1 = nl->First ( args );
-  if(!IsRelDescription(param1))
-    return nl->SymbolAtom ( "typeerror: param1 should be a relation" );
-
-  
-  ListExpr attrName1 = nl->Second ( args );
-  ListExpr attrType1;
-  string aname1 = nl->SymbolValue(attrName1);
-  int j1 = listutils::findAttribute(nl->Second(nl->Second(param1)),
-                      aname1,attrType1);
-
-  if(j1 == 0 || !listutils::isSymbol(attrType1,"int")){
-      return listutils::typeError("attr name" + aname1 + "not found"
-                      "or not of type int");
-  }
-  
-  ListExpr attrName2 = nl->Third ( args );
-  ListExpr attrType2;
-  string aname2 = nl->SymbolValue(attrName2);
-  int j2 = listutils::findAttribute(nl->Second(nl->Second(param1)),
-                      aname2, attrType2);
-
-  if(j2 == 0 || !listutils::isSymbol(attrType2,"region")){
-      return listutils::typeError("attr name" + aname2 + "not found"
-                      "or not of type region");
-  }
-
-  ListExpr res = nl->TwoElemList(
-            nl->SymbolAtom("stream"),
-            nl->TwoElemList(
-                nl->SymbolAtom("tuple"),
-                nl->TwoElemList(
+                        nl->SymbolAtom("rect")),
                     nl->TwoElemList(
-                        nl->SymbolAtom("id"),
+                        nl->SymbolAtom("poly_id"),
                         nl->SymbolAtom("int")),
                     nl->TwoElemList(
-                        nl->SymbolAtom("covarea"),
-                        nl->SymbolAtom("region"))
+                        nl->SymbolAtom("reg_type"),
+                        nl->SymbolAtom("int"))
                     )));
       return nl->ThreeElemList(
         nl->SymbolAtom("APPEND"),
-        nl->TwoElemList(nl->IntAtom(j1),nl->IntAtom(j2)), res);
-
+        nl->FourElemList(nl->IntAtom(j1), nl->IntAtom(j2), 
+                         nl->IntAtom(j3), nl->IntAtom(j4)), res);
 }
 
 
 /*
-TypeMap fun for operator distribute region 
+TypeMap fun for operator getrect. get the maximum rectangle from a convex
+region 
 
 */
 
-ListExpr OpTMDistributeRegionTypeMap ( ListExpr args )
+ListExpr OpTMGetRect1TypeMap ( ListExpr args )
 {
   if ( nl->ListLength ( args ) != 3 )
   {
@@ -9342,7 +9293,7 @@ ListExpr OpTMDistributeRegionTypeMap ( ListExpr args )
       return listutils::typeError("attr name" + aname1 + "not found"
                       "or not of type int");
   }
-  
+
   ListExpr attrName2 = nl->Third ( args );
   ListExpr attrType2;
   string aname2 = nl->SymbolValue(attrName2);
@@ -9353,6 +9304,7 @@ ListExpr OpTMDistributeRegionTypeMap ( ListExpr args )
       return listutils::typeError("attr name" + aname2 + "not found"
                       "or not of type region");
   }
+
 
   ListExpr res = nl->TwoElemList(
             nl->SymbolAtom("stream"),
@@ -9360,18 +9312,18 @@ ListExpr OpTMDistributeRegionTypeMap ( ListExpr args )
                 nl->SymbolAtom("tuple"),
                 nl->ThreeElemList(
                     nl->TwoElemList(
-                        nl->SymbolAtom("id"),
+                        nl->SymbolAtom("reg_id"),
                         nl->SymbolAtom("int")),
                     nl->TwoElemList(
-                        nl->SymbolAtom("covarea"),
-                        nl->SymbolAtom("region")),
-                     nl->TwoElemList(
-                        nl->SymbolAtom("reg_type"),
+                        nl->SymbolAtom("geoData"),
+                        nl->SymbolAtom("rect")),
+                    nl->TwoElemList(
+                        nl->SymbolAtom("poly_id"),
                         nl->SymbolAtom("int"))
                     )));
       return nl->ThreeElemList(
         nl->SymbolAtom("APPEND"),
-        nl->TwoElemList(nl->IntAtom(j1),nl->IntAtom(j2)), res);
+        nl->TwoElemList(nl->IntAtom(j1), nl->IntAtom(j2)), res);
 
 }
 
@@ -14044,10 +13996,11 @@ int OpTMMaxRectValueMap ( Word* args, Word& result, int message,
 }
 
 /*
-get the maximum rectangle from the region relations 
+according to the user requirement, it gets the corresponding number of 
+rectangles from the input integer 
 
 */
-int OpTMGetRectValueMap ( Word* args, Word& result, int message,
+int OpTMGetRect2ValueMap ( Word* args, Word& result, int message,
                          Word& local, Supplier in_pSupplier )
 {
   MaxRect* max_rect;
@@ -14055,18 +14008,76 @@ int OpTMGetRectValueMap ( Word* args, Word& result, int message,
       case OPEN:{
 
         Relation* r = (Relation*)args[0].addr;
-        int attr1 = ((CcInt*)args[6].addr)->GetIntval() - 1;
-        int attr2 = ((CcInt*)args[7].addr)->GetIntval() - 1; 
-        int attr3 = ((CcInt*)args[8].addr)->GetIntval() - 1; 
-        BTree* btree = (BTree*)args[4].addr;
-        
-        int no_buildings = ((CcInt*)args[5].addr)->GetIntval(); 
+        int attr1 = ((CcInt*)args[7].addr)->GetIntval() - 1;
+        int attr2 = ((CcInt*)args[8].addr)->GetIntval() - 1; 
+        int attr3 = ((CcInt*)args[9].addr)->GetIntval() - 1;
+        int attr4 = ((CcInt*)args[10].addr)->GetIntval() - 1; 
+        BTree* btree = (BTree*)args[5].addr;
+
+        int no_buildings = ((CcInt*)args[6].addr)->GetIntval(); 
 
         max_rect = new MaxRect(r);
         max_rect->resulttype =
             new TupleType(nl->Second(GetTupleResultType(in_pSupplier)));
 
-        max_rect->GetRectangle(attr1, attr2, attr3, btree, no_buildings);
+        max_rect->GetRectangle(attr1, attr2, attr3, attr4, 
+                               btree, no_buildings);
+        local.setAddr(max_rect);
+        return 0;
+      }
+      case REQUEST:{
+          if(local.addr == NULL) return CANCEL;
+          max_rect = (MaxRect*)local.addr;
+          if(max_rect->count == max_rect->reg_id_list.size())return CANCEL;
+
+          Tuple* tuple = new Tuple(max_rect->resulttype);
+          tuple->PutAttribute(0, 
+                       new CcInt(true, max_rect->reg_id_list[max_rect->count]));
+          tuple->PutAttribute(1, 
+                     new Rectangle<2>(max_rect->rect_list[max_rect->count]));
+          tuple->PutAttribute(2,
+                      new CcInt(true, max_rect->poly_id_list[max_rect->count]));
+          tuple->PutAttribute(3,
+                     new CcInt(true, max_rect->reg_type_list[max_rect->count]));
+
+          result.setAddr(tuple);
+          max_rect->count++;
+          return YIELD;
+      }
+      case CLOSE:{
+          if(local.addr){
+            max_rect = (MaxRect*)local.addr;
+            delete max_rect;
+            local.setAddr(Address(0));
+          }
+          return 0;
+      }
+  }
+  return 0;
+  
+}
+
+
+/*
+get the maximum rectangle from the region relations 
+
+*/
+int OpTMGetRect1ValueMap ( Word* args, Word& result, int message,
+                         Word& local, Supplier in_pSupplier )
+{
+  MaxRect* max_rect;
+  switch(message){
+      case OPEN:{
+
+        Relation* r = (Relation*)args[0].addr;
+        int attr1 = ((CcInt*)args[3].addr)->GetIntval() - 1;
+        int attr2 = ((CcInt*)args[4].addr)->GetIntval() - 1; 
+
+        max_rect = new MaxRect(r);
+        max_rect->resulttype =
+            new TupleType(nl->Second(GetTupleResultType(in_pSupplier)));
+
+        max_rect->GetRectangle2(attr1, attr2);
         local.setAddr(max_rect);
         return 0;
       }
@@ -14080,112 +14091,9 @@ int OpTMGetRectValueMap ( Word* args, Word& result, int message,
                        new CcInt(true,max_rect->reg_id_list[max_rect->count]));
           tuple->PutAttribute(1, 
                      new Rectangle<2>(max_rect->rect_list[max_rect->count]));
-
-          result.setAddr(tuple);
-          max_rect->count++;
-          return YIELD;
-      }
-      case CLOSE:{
-          if(local.addr){
-            max_rect = (MaxRect*)local.addr;
-            delete max_rect;
-            local.setAddr(Address(0));
-          }
-          return 0;
-      }
-  }
-  return 0;
-  
-}
-
-
-/*
-get convex polygons: if it is concave, we decompose it 
-
-*/
-int OpTMConvexRegValueMap ( Word* args, Word& result, int message,
-                         Word& local, Supplier in_pSupplier )
-{
-  MaxRect* max_rect;
-  switch(message){
-      case OPEN:{
-
-        Relation* r = (Relation*)args[0].addr;
-        int attr1 = ((CcInt*)args[3].addr)->GetIntval() - 1;
-        int attr2 = ((CcInt*)args[4].addr)->GetIntval() - 1; 
-
-        max_rect = new MaxRect(r);
-        max_rect->resulttype =
-            new TupleType(nl->Second(GetTupleResultType(in_pSupplier)));
-
-        max_rect->ConvexReg(attr1, attr2);
-        local.setAddr(max_rect);
-        return 0;
-      }
-      case REQUEST:{
-          if(local.addr == NULL) return CANCEL;
-          max_rect = (MaxRect*)local.addr;
-          if(max_rect->count == max_rect->reg_id_list.size())return CANCEL;
-
-          Tuple* tuple = new Tuple(max_rect->resulttype);
-          tuple->PutAttribute(0, 
-                       new CcInt(true,max_rect->reg_id_list[max_rect->count]));
-          tuple->PutAttribute(1, 
-                     new Region(max_rect->reg_list[max_rect->count]));
-
-          result.setAddr(tuple);
-          max_rect->count++;
-          return YIELD;
-      }
-      case CLOSE:{
-          if(local.addr){
-            max_rect = (MaxRect*)local.addr;
-            delete max_rect;
-            local.setAddr(Address(0));
-          }
-          return 0;
-      }
-  }
-  return 0;
-  
-}
-
-/*
-distribute regions according to the distance 
-
-*/
-int OpTMDistributeRegionValueMap ( Word* args, Word& result, int message,
-                         Word& local, Supplier in_pSupplier )
-{
-  MaxRect* max_rect;
-  switch(message){
-      case OPEN:{
-
-        Relation* r = (Relation*)args[0].addr;
-        int attr1 = ((CcInt*)args[3].addr)->GetIntval() - 1;
-        int attr2 = ((CcInt*)args[4].addr)->GetIntval() - 1; 
-
-        max_rect = new MaxRect(r);
-        max_rect->resulttype =
-            new TupleType(nl->Second(GetTupleResultType(in_pSupplier)));
-
-        max_rect->DistributeRegion(attr1, attr2);
-        local.setAddr(max_rect);
-        return 0;
-      }
-      case REQUEST:{
-          if(local.addr == NULL) return CANCEL;
-          max_rect = (MaxRect*)local.addr;
-          if(max_rect->count == max_rect->reg_id_list.size())return CANCEL;
-
-          Tuple* tuple = new Tuple(max_rect->resulttype);
-          tuple->PutAttribute(0, 
-                       new CcInt(true, max_rect->reg_id_list[max_rect->count]));
-          tuple->PutAttribute(1, 
-                     new Region(max_rect->reg_list[max_rect->count]));
           tuple->PutAttribute(2, 
-                   new CcInt(true, max_rect->reg_type_list[max_rect->count])); 
-
+                       new CcInt(true,max_rect->poly_id_list[max_rect->count]));
+          
           result.setAddr(tuple);
           max_rect->count++;
           return YIELD;
@@ -15060,32 +14968,22 @@ Operator remove_dirty(
   OpTMRemoveDirtyTypeMap //type mapping 
 );
 
-Operator convexreg(
-  "convexreg",  //name 
-  OpTMConvexRegSpec, //specification
-  OpTMConvexRegValueMap, //value mapping 
+
+Operator getrect2(
+  "getrect2",  //name 
+  OpTMGetRect2Spec, //specification
+  OpTMGetRect2ValueMap, //value mapping 
   Operator::SimpleSelect,
-  OpTMConvexRegTypeMap //type mapping 
+  OpTMGetRect2TypeMap //type mapping 
 );
 
-
-Operator distribute_region(
-  "distribute_region",  //name 
-  OpTMDistributeRegionSpec, //specification
-  OpTMDistributeRegionValueMap, //value mapping 
+Operator getrect1(
+  "getrect1",  //name 
+  OpTMGetRect1Spec, //specification
+  OpTMGetRect1ValueMap, //value mapping 
   Operator::SimpleSelect,
-  OpTMDistributeRegionTypeMap //type mapping 
+  OpTMGetRect1TypeMap //type mapping 
 );
-
-
-Operator getrect(
-  "getrect",  //name 
-  OpTMGetRectSpec, //specification
-  OpTMGetRectValueMap, //value mapping 
-  Operator::SimpleSelect,
-  OpTMGetRectTypeMap //type mapping 
-);
-
 
 /*
 Main Class for Transportation Mode
@@ -15277,9 +15175,8 @@ class TransportationModeAlgebra : public Algebra
     AddOperator(&outputregion);//output the vertices in correct order 
     AddOperator(&maxrect); //get the maximum rect in a region
     AddOperator(&remove_dirty); //clear dirty data 
-    AddOperator(&convexreg); // get convex polygons from the regions 
-    AddOperator(&distribute_region);//distribute 2d areas for the building 
-    AddOperator(&getrect); //get the rectangle from a polygon 
+    AddOperator(&getrect1); //get all rectangles for buildings 
+    AddOperator(&getrect2); //randomly select some of them from input int
     /////////non-temporal operators for generic data types////////////////////
     AddOperator(&ref_id); 
     /////////temporal operators for generic data types////////////////////

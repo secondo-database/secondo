@@ -694,6 +694,9 @@ struct GeomEdge{
 const float mini_reg_area = 1000.0; 
 const float mini_rect_area = 800.0; 
 const float maxi_rect_area = 8000.0; 
+const float mini_tri_area = 100.0; 
+const float maxi_tri_area = 20000.0;
+const float mini_dist_build = 15.0; 
 
 struct MaxRect{
 
@@ -722,9 +725,15 @@ struct MaxRect{
 
     vector<int> reg_type_list; 
    
+    vector<int> poly_id_list; 
+    
     Relation* rel1; 
     unsigned int count;
     TupleType* resulttype;
+    enum BuildingType{HOUSE = 0, APARTMENT, UNIVERSITY, OFFICEBUILDING,
+    CINEMA, SHOPPINGMALL, HOTEL, TRAINSTATION, LIBRARY, SCHOOL,
+    HOSPITAL, AIRPORT}; 
+
 
     MaxRect() {
       count=0;resulttype = NULL;
@@ -760,14 +769,16 @@ struct MaxRect{
 
 
     void ConvexReg(int attr1, int attr2); 
-    void DistributeRegion(int attr1, int attr2); 
-    
-    bool AddRect(int tid, int attr1, int attr2); 
-    void GetRectangle(int attr1, int attr2, int attr3, BTree* btree,
+
+    void AddRect(int tid, int attr1, int attr2, int attr3, int attr4);
+    void GetRectangle(int attr1, int attr2, int attr3, int attr4, BTree* btree,
                       int no_buildings); 
     void MergeTriangle(CompTriangle* ct, int reg_id);
     bool NeighborTriangle(Region* r1, Region* r2); 
 
+    void GetRectangle2(int attr1, int attr2); 
+    int GetRectType(float area); 
+    bool ValidRegion(Region* r); 
 };
 
 #endif
