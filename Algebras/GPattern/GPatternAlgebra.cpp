@@ -1572,8 +1572,8 @@ Evaluating the gpattern results
       mbool = static_cast<MBool*>(value.addr);
       if (mbool->IsDefined())
       {
-        bool inc= accumlator.Buffer(*mbool, tupleCnt, d);
-        //bool inc= accumlator.Buffer(*mbool, tupleCnt);
+        //bool inc= accumlator.Buffer(*mbool, tupleCnt, d);
+        bool inc= accumlator.Buffer(*mbool, tupleCnt);
         //GPatternHelper::removeShortUnits(*mbool, d);
         //accumlator2.Union(*mbool, tupleCnt);
         if(inc) 
@@ -1602,13 +1602,13 @@ Evaluating the gpattern results
       }
     }
     bool changed= true;
-    while(changed && accumlator.GetNoComponents() > 0)
+    while(changed && accumlator.GetNoComponents() > 0 && 0)
     {
       //accumlator2.RemoveSmallUnits(n);
-      changed= GPatternHelper::RemoveUnitsHavingFewNodes(accumlator, ids, n);
+      //changed= GPatternHelper::RemoveUnitsHavingFewNodes(accumlator, ids, n);
 
       //accumlator2.RemoveShortElemParts(d);
-      changed= (accumlator.RemoveShortElemParts(d) || changed );  
+      //changed= (accumlator.RemoveShortElemParts(d) || changed );  
     }
     
     if(debugme)
@@ -1670,6 +1670,8 @@ Evaluating the gpattern results
     for(list<CompressedMSet*>::iterator 
         it= resStream->begin(); it!= resStream->end(); ++it)
     {
+      if(debugme)
+        (*it)->Print(cerr);
       resStreamFinal->push_back(GPatternHelper::EdgeMSet2NodeMSet(*it, ids));
       delete *it;
       *it = 0;

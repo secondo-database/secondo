@@ -719,7 +719,6 @@ private:
   bool validLastUnitValue;
 
 public:
-  
   CompressedMSet();
   
   CompressedMSet(int);
@@ -737,6 +736,7 @@ public:
   set<int>* GetFinalSet();
   
   void WriteToCompressedInMemMSet(CompressedInMemMSet& res);
+  void ReadFromCompressedInMemMSet(CompressedInMemMSet& arg);
   
   ostream& Print( ostream &os );
   

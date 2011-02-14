@@ -70,8 +70,9 @@ public:
   set<int> addedEdges;
   set<int> removedEdges;
   ComponentMessage message;
-  bool ExtendedTillLastChange;
   int label;
+  bool ExtendedTillLastChange;
+
   
   Component():message(NoMessage), label(-1), 
     ExtendedTillLastChange(false){}
@@ -108,19 +109,25 @@ public:
   int get_nodes(set<int>& res);
   ostream& print( ostream &os );
 private:
-  int remove_node_if_isolated(int _node);
+  bool remove_node_if_isolated(int _node);
 };
 
 void InsertEdgesUndirected(
     LWGraph* g, set<int>& edges, vector<pair<int,int> >& edge2nodes);
+void InsertEdgesUndirected(
+    LWGraph* g, set<int>& edges, vector<pair<int,int> >& edge2nodes,
+    set<int>& newNodes);
 
 void FindComponentsOf(
     LWGraph* g, list<Component*>* components, set<int>& roots, 
     vector<pair<int,int> >& edge2nodes, vector<NewComponent>& newComponents);
 
-void RemoveEdgeUndirected(LWGraph* g, int edge, pair<int,int>* edgeNodes);
+int RemoveEdgeUndirected(LWGraph* g, int edge, pair<int,int>* edgeNodes);
 void RemoveEdgesUndirected(
     LWGraph* g, set<int>& edges, vector<pair<int,int> >& edge2nodes);
+void RemoveEdgesUndirected(
+    LWGraph* g, set<int>& edges, vector<pair<int,int> >& edge2nodes, 
+    set<int>& removedNodes);
 //void Cluster(set<int>& edges, vector<pair<int,int> >& edge2nodes,
 //    vector<Component*>& Components);
 

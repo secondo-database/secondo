@@ -4135,6 +4135,16 @@ void CompressedMSet::WriteToCompressedInMemMSet(CompressedInMemMSet& res)
   }
 }
 
+void CompressedMSet::ReadFromCompressedInMemMSet(CompressedInMemMSet& arg)
+{
+  this->Clear();
+  for(list<CompressedInMemUSet>::iterator argUnitIt= 
+    arg.units.begin(); argUnitIt!= arg.units.end(); ++argUnitIt)
+    this->AddUnit((*argUnitIt).added, (*argUnitIt).removed, 
+        (*argUnitIt).starttime, (*argUnitIt).endtime, 
+        (*argUnitIt).lc, (*argUnitIt).rc);
+}
+
 ostream& CompressedMSet::Print( ostream &os )
 {
   CompressedInMemMSet _mset;

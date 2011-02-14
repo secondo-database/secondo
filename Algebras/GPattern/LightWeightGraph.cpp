@@ -415,6 +415,7 @@ int LWGraph::insert_edge_directed(pair<int, int>* _edgeNodes, int& _edge)
 
 int LWGraph::insert_edge_directed(int& _first, int& _second, int& _edge)
 {
+  int resCode=0;
   map<int, list< set< pair<int, int> > >::iterator>::iterator _pos= 
     node_index.find(_first); 
   if(_pos != node_index.end())
@@ -425,6 +426,7 @@ int LWGraph::insert_edge_directed(int& _first, int& _second, int& _edge)
     neighbors.push_back(adj);
     list< set< pair<int, int> > >::iterator it= --neighbors.end();
     node_index.insert(make_pair(_first, it));
+    resCode= 1;
   }
   
   _pos= node_index.find(_second);
@@ -434,19 +436,24 @@ int LWGraph::insert_edge_directed(int& _first, int& _second, int& _edge)
     neighbors.push_back(tmp);
     list< set< pair<int, int> > >::iterator it= --neighbors.end();
     node_index.insert(make_pair(_second, it));
+    resCode+=2;
   }
-  return 0;
+  return resCode; //0 means that the edge introduces no new nodes to the graph
+                  //1 means that _first is a new node
+                  //2 means that _second is a new node
+                  //3 means that both _first and _second are new nodes
 }
 
-int LWGraph::remove_node_if_isolated(int _node)
+bool LWGraph::remove_node_if_isolated(int _node)
 {
+  bool removed= false;
   map<int, list< set< pair<int, int> > >::iterator>::iterator node_pos=
     node_index.find(_node);
   assertIf(node_pos != node_index.end());
   list< set< pair<int, int> > >::iterator node_neighbors_it= (*node_pos).second;
   
   //check whether the node has outbound edges
-  if(! (*node_neighbors_it).empty()) return 0;
+  if(! (*node_neighbors_it).empty()) return false;
   
   //check whether the node has inbound edges 
   for(list< set< pair<int, int> > >::iterator it= 
@@ -454,7 +461,7 @@ int LWGraph::remove_node_if_isolated(int _node)
   {
     for(set<pair<int,int> >::iterator it2= (*it).begin(); it2!= 
       (*it).end(); ++it2)  
-      if((*it2).first == _node) return 0;
+      if((*it2).first == _node) return false;
   }
 
   //there are no inbound or outbound edges for the node. We remove 
@@ -463,7 +470,7 @@ int LWGraph::remove_node_if_isolated(int _node)
   node_index.erase(node_pos);
   node_component.erase(_node);
   
-  return 0;
+  return true; //node is found isolated and removed
 }
 
 int LWGraph::remove_edge_directed(pair<int, int>& _edgeNodes, int& _edge)
@@ -474,6 +481,7 @@ int LWGraph::remove_edge_directed(pair<int, int>& _edgeNodes, int& _edge)
 
 int LWGraph::remove_edge_directed(int& _first, int& _second, int& _edge)
 {
+  int resCode=0;
   bool debugme= false;
   if(debugme)
   {
@@ -488,15 +496,18 @@ int LWGraph::remove_edge_directed(int& _first, int& _second, int& _edge)
   unsigned int erased= (*node_neighbors_it).erase(make_pair(_second, _edge));
   assertIf(erased==1);
   
-  remove_node_if_isolated(_first);
-  remove_node_if_isolated(_second);
-  return 0;
+  if(remove_node_if_isolated(_first)) resCode=1;
+  if(remove_node_if_isolated(_second)) resCode+=2;
+  return resCode;//0 means that the edge removal removes zero nodes in the graph
+                 //1 means that _first node is removed
+                 //2 means that _second node is removed
+                 //3 means that both _first and _second nodes are removed
 }
 
 int LWGraph::nodes_count()
 {
   assertIf(node_index.size() == neighbors.size());
-  return neighbors.size();
+  return node_index.size();
 }
 
 int LWGraph::get_nodes(set<int>& res)
@@ -618,6 +629,32 @@ void InsertEdgesUndirected(
     edgeNodes= &edge2nodes[edge];
     g->insert_edge_directed(edgeNodes, edge);
     g->insert_edge_directed(edgeNodes->second, edgeNodes->first, edge);
+  }
+}
+
+void InsertEdgesUndirected(
+    LWGraph* g, set<int>& edges, vector<pair<int,int> >& edge2nodes,
+    set<int>& newNodes)
+{
+  int resCode;
+  int edge;
+  pair<int, int> *edgeNodes;
+  newNodes.clear();
+  for(set<int>::iterator it= edges.begin(); it!= edges.end(); ++it)
+  {
+    edge= *it;
+    edgeNodes= &edge2nodes[edge];
+    resCode= g->insert_edge_directed(edgeNodes, edge);
+    g->insert_edge_directed(edgeNodes->second, edgeNodes->first, edge);
+    switch(resCode)
+    {
+    case 0: break;
+    case 1: newNodes.insert(edgeNodes->first); break;
+    case 2: newNodes.insert(edgeNodes->second); break;
+    case 3: {newNodes.insert(edgeNodes->second); 
+             newNodes.insert(edgeNodes->first);}break;
+    default: assert(0);
+    }
   }
 }
 
@@ -749,10 +786,36 @@ void RemoveEdgesUndirected(
   }
 }
 
-void RemoveEdgeUndirected(LWGraph* g, int edge, pair<int,int>* edgeNodes)
+void RemoveEdgesUndirected(
+    LWGraph* g, set<int>& edges, vector<pair<int,int> >& edge2nodes, 
+    set<int>& removedNodes)
+{
+  int edge;
+  int resCode;
+  pair<int, int> *edgeNodes;
+  removedNodes.clear();
+  for(set<int>::iterator it= edges.begin(); it!= edges.end(); ++it)
+  {
+    edge= *it;
+    edgeNodes= &edge2nodes[edge];
+    g->remove_edge_directed(*edgeNodes, edge);
+    resCode= g->remove_edge_directed(edgeNodes->second, edgeNodes->first, edge);
+    switch(resCode)
+    {
+    case 0: break;
+    case 1: removedNodes.insert(edgeNodes->second); break;
+    case 2: removedNodes.insert(edgeNodes->first); break;
+    case 3: {removedNodes.insert(edgeNodes->second); 
+             removedNodes.insert(edgeNodes->first);}break;
+    default: assert(0);
+    }
+  }
+}
+
+int RemoveEdgeUndirected(LWGraph* g, int edge, pair<int,int>* edgeNodes)
 {
   g->remove_edge_directed(*edgeNodes, edge);
-  g->remove_edge_directed(edgeNodes->second, edgeNodes->first, edge);  
+  return(g->remove_edge_directed(edgeNodes->second, edgeNodes->first, edge));  
 }
 
 void SetGraphNodesComponent(LWGraph* g, set<int>& nodes, int label)
