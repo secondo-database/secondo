@@ -84,7 +84,8 @@ using namespace RegionInterpol;
 using namespace datetime;
 typedef DateTime Instant;
 extern NestedList *nl;
-extern QueryProcessor* qp;  
+extern QueryProcessor* qp; 
+extern AlgebraManager* am;
 
 
 namespace FLOCK {
