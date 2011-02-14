@@ -1030,9 +1030,10 @@ ListExpr MovingTypeMapMakemvalue( ListExpr args )
      (inputtype != "uint") &&
      (inputtype != "ureal") &&
      (inputtype != "upoint") &&
-     (inputtype != "ustring") ){
+     (inputtype != "ustring") &&
+     (inputtype != "uset")){
     return listutils::typeError("attr type not in {ubool, uint,"
-                                " ustring, ureal, upoint");
+                                " ustring, ureal, upoint, uset");
   }
   attrname = nl->SymbolValue(second);
   j = FindAttribute(nl->Second(nl->Second(first)), attrname, attrtype);
@@ -1049,6 +1050,8 @@ ListExpr MovingTypeMapMakemvalue( ListExpr args )
     attrtype = nl->SymbolAtom( "mint" );
   if( inputtype == "ustring" )
     attrtype = nl->SymbolAtom( "mstring" );
+  if( inputtype == "uset" )
+    attrtype = nl->SymbolAtom( "msset" );  
 //if( inputtype == "uregion" )
 //  attrtype = nl->SymbolAtom( "movingregion");
 
