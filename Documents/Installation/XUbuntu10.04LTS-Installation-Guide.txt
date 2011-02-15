@@ -8,7 +8,7 @@ Installation of Secondo on Xubuntu 10.04
 [ The next steps require a terminal. By pressing the right mouse button
   and selecting "open a new terminal", you can get a terminal.]
 
-3. Update the system 
+3. Update the system
     sudo apt-get upgrade
     sudo apt-get update
 
@@ -33,9 +33,14 @@ Installation of Secondo on Xubuntu 10.04
 Note: steps 3 and 4 can also be done using the synaptic paket manager.
 
 
-5.  Create a file $HOME/.secondorc with the following content:
+5.  After finishing the installation, a file is needed to
+set some environments variables. Because the locations for libraries and
+includes differ for 32 and 64 bit systems, two different sets of commands are
+required. Depending on your installed system, either choose the section for 32
+bit or 64 bit platforms and copy the content into a file called
+$HOME/.secondorc
 
-#---  content of file .secondorc ----
+#---  content of file .secondorc for 32 bit environment ----
 
 
 if [ "$1" == "" ]; then
@@ -61,8 +66,34 @@ export JAVAVER="1.6"
 
 alias secroot='export SECONDO_BUILD_DIR=$PWD'
 
-#---- end of file .secondorc ---
+#---- end of file .secondorc for 32 bit environment ---
 
+#---- content of file .secondorc for 64 bit environment ----
+
+if [ "$1" == "" ]; then
+  SEC_DIR=$HOME/secondo
+else
+  SEC_DIR=$1
+fi
+
+export SECONDO_PLATFORM=linux64
+export SECONDO_BUILD_DIR=$SEC_DIR
+export BERKELEY_DB_LIB="db_cxx"
+export BERKELEY_DB_DIR=/usr
+export J2SDK_ROOT=/usr/lib64/jvm/java-6-openjdk/
+export SWI_HOME_DIR=/usr/lib64/swi-prolog
+export PL_LIB_DIR=$SWI_HOME_DIR/lib/amd64
+export PL_INCLUDE_DIR=$SWI_HOME_DIR/include
+export PL_VERSION=50800
+export SECONDO_JAVA=$J2SDK_ROOT/bin/java
+export readline=true
+export PATH=$PATH:.
+export SECONDO_CONFIG=$SECONDO_BUILD_DIR/bin/SecondoConfig.ini
+export JAVAVER="1.6"
+
+alias secroot='export SECONDO_BUILD_DIR=$PWD'
+
+#---- end of file .secondorc for 64 bit environment ---
 
 Note: Depending on your installation, some paths can differ.
 
