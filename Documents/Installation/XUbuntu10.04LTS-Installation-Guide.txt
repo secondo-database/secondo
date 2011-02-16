@@ -80,18 +80,21 @@ export SECONDO_PLATFORM=linux64
 export SECONDO_BUILD_DIR=$SEC_DIR
 export BERKELEY_DB_LIB="db_cxx"
 export BERKELEY_DB_DIR=/usr
-export J2SDK_ROOT=/usr/lib64/jvm/java-6-openjdk/
-export SWI_HOME_DIR=/usr/lib64/swi-prolog
+export J2SDK_ROOT=/usr/lib/jvm/java-6-openjdk/
+export SWI_HOME_DIR=/usr/lib/swi-prolog
 export PL_LIB_DIR=$SWI_HOME_DIR/lib/amd64
+export PL_DLL_DIR=$SWI_HOME_DIR/lib/amd64
 export PL_INCLUDE_DIR=$SWI_HOME_DIR/include
 export PL_VERSION=50800
+export JPL_DLL=$PL_LIB_DIR/libjpl.so
+export JPL_JAR=$SWI_HOME_DIR/lib/jpl.jar
 export SECONDO_JAVA=$J2SDK_ROOT/bin/java
 export readline=true
 export PATH=$PATH:.
 export SECONDO_CONFIG=$SECONDO_BUILD_DIR/bin/SecondoConfig.ini
 export JAVAVER="1.6"
-export JPL_DLL=/usr/lib/swi-prolog/lib/amd64/libjpl.so
-export JPL_JAR=/usr/share/java/jpl.jar
+
+export LD_LIBRARY_PATH=$BERKELEY_DB_DIR/lib:$SWI_HOME_DIR/lib:$PL_LIB_DIR
 
 alias secroot='export SECONDO_BUILD_DIR=$PWD'
 
