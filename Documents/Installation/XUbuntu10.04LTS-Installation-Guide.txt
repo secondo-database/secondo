@@ -90,6 +90,8 @@ export readline=true
 export PATH=$PATH:.
 export SECONDO_CONFIG=$SECONDO_BUILD_DIR/bin/SecondoConfig.ini
 export JAVAVER="1.6"
+export JPL_DLL=/usr/lib/swi-prolog/lib/amd64/libjpl.so
+export JPL_JAR=/usr/share/java/jpl.jar
 
 alias secroot='export SECONDO_BUILD_DIR=$PWD'
 
