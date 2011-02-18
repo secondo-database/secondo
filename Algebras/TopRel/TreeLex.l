@@ -36,7 +36,6 @@ represented by the 9 intersection matrix.
 */
 
 
-#include "Tree.h" 
 #include "TreeParser.y.h"
 
 
