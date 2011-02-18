@@ -1459,6 +1459,40 @@ Cluster* GetClusterOf(const string name) const;
    
 
 /*
+2.3.12 ~GetClusterNumber~
+
+*/
+int getClusterNumber(const string& name)const{
+   if(name == unSpecified.GetName()){
+     return theClusters.Size();
+   }
+   Cluster c;
+   for(int i=0;i< theClusters.Size(); i++){
+      theClusters.Get(i,c);
+      if(name==c.GetName()){
+        return i;
+      }
+   }
+   return -1;
+}
+
+bool getCluster(const int index, Cluster& result) const{
+   if(index<0){
+        return false;
+    }
+    if(index==theClusters.Size()){
+       result.Equalize(unSpecified);
+       return true;
+    }
+    assert(index < theClusters.Size());
+    theClusters.Get(index, result);
+    return true;
+}
+
+
+
+
+/*
 2.3.12 SetToDefault
 
 Function for easy creating a default predicate group.
@@ -1497,6 +1531,25 @@ std::vector<string> getNames() const{
   }
   return res;
 }
+
+
+unsigned int numOfClusters() const{
+   return theClusters.Size() + 1;
+}
+
+
+void getClusters(const int index, Cluster& result) const{
+   assert(index >= 0);
+   if(index == 0){
+     result.Equalize(unSpecified);
+     return;  
+   }
+   int index2 = index -1;
+   assert(index2 < theClusters.Size());
+   theClusters.Get(index2, result);
+}
+
+
 
 
 private:
