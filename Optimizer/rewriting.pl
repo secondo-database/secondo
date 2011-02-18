@@ -59,12 +59,12 @@ rewriteQuery(Query, RewrittenQuery) :-
 
 /*
 
-14.1 Macros: with $\ldots$ in
+14.1 Macros: defmacro $\ldots$ usemacro
 
 In Queries, users are allowed to define macros. Macros can be used within the
 query and are expanded automatically. A macro declaration is noted as
 
-----  with <macro-mext> as <macro-mnemo> in <SQL-Query>
+----  defmacro <macro-mext> as <macro-mnemo> usemacro <SQL-Query>
 ----
 
 */
@@ -108,20 +108,20 @@ will analyse ~QUeryIn~ for any makro definitions and stote them in a table
 */
 
 extractMacros(QueryIn, QueryOut) :-
-  QueryIn = with(in(Macros,QueryOut)),
+  QueryIn = defmacro(usemacro(Macros,QueryOut)),
   retractMacros,
   makeList(Macros,MacroList),
   extractMacros1(MacroList),
   !.
 
-extractMacros(with(X), Y) :-
+extractMacros(defmacro(X), Y) :-
   concat_atom(['Correct syntax for using macros in queries is \n',
-               '           \'sql with <macro> as <mnemo> in <query>.\'\n',
-               '           \'sql with [<macro> as <mnemo> {, <macro> as ',
-               '<mnemo>}] in <query>.\'.\n'],'',ErrMsg),
+               '           \'sql defmacro <macro> as <mnemo> usemacro <query>.\'\n',
+               '           \'sql defmacro [<macro> as <mnemo> {, <macro> as ',
+               '<mnemo>}] usemacro <query>.\'.\n'],'',ErrMsg),
   write_list(['\nERROR:\t',ErrMsg]),
   !,
-  throw(error_SQL(rewriting_extractMacros(with(X), Y)
+  throw(error_SQL(rewriting_extractMacros(defmacro(X), Y)
                                 ::malformedExpression::ErrMsg)),
   fail.
 

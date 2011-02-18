@@ -3,7 +3,7 @@
 ----
 This file is part of SECONDO.
 
-Copyright (C) 2004-2008, University in Hagen, Faculty of Mathematics and
+Copyright (C) 2004-2008, University Hagen, Faculty of Mathematics and
 Computer Science, Database Systems for New Applications.
 
 SECONDO is free software; you can redistribute it and/or modify
@@ -5620,8 +5620,8 @@ We introduce ~select~, ~from~, ~where~, ~as~, etc. as PROLOG operators:
 :- op(992,  fx,  create).
 :- op(992,  fx,  drop).
 :- op(991,  xfx, by).
-:- op(988,  fx,  with).
-:- op(987, xfx,  in).
+:- op(988,  fx,  defmacro).
+:- op(987, xfx,  usemacro).
 :- op(986, xfx,  first).
 :- op(986, xfx,  last).
 :- op(980, xfx,  orderby).

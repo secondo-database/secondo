@@ -82,6 +82,19 @@ isComparisonOp(<>).
 
 /*
 
+Some operator definitions
+
+*/
+:- op(700, xfx, <>).
+%:- op(700, xfx, =+). % outer join operator
+:- op(940, xfx, in).
+:- op(941, xfx, not).
+:- op(799,  fy, left).
+:- op(799,  fy, outerjoin).
+:- op(799,  fy, right).
+
+/*
+
 ---- isQuery(+Term)
 ----
 
@@ -191,14 +204,6 @@ isSubqueryOp(Op) :-
 isQuantifier(all).
 isQuantifier(any).
 isQuantifier(some).
-
-:- op(700, xfx, <>).
-%:- op(700, xfx, =+). % outer join operator
-:- op(940, xfx, in). % defined with different priority for macros
-:- op(941, xfx, not).
-:- op(799,  fy, left).
-:- op(799,  fy, outerjoin).
-:- op(799,  fy, right).
 
 /*
 
