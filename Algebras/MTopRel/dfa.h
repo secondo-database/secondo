@@ -612,7 +612,7 @@ to be undefined.
 */
 
  bool ReadFrom(const ListExpr value, const ListExpr typeInfo){
-    if(nl->ListLength(value)!=5){
+    if(nl->ListLength(value)!=7){
       SetDefined(false);
       return  false;
     }
@@ -668,10 +668,76 @@ to be undefined.
        SetDefined(false);
        return false;
     }
+
+    ListExpr c2s = nl->Sixth(value);
+    if(nl->AtomType(c2s)!=NoAtom){
+       SetDefined(false);
+       return false;
+    }
+
+    while(!nl->IsEmpty(c2s)){
+     ListExpr first = nl->First(c2s);
+     c2s = nl->Rest(c2s);
+     if(nl->AtomType(first)!=IntType){
+       SetDefined(false);
+       return false;
+     }
+     cluster2Symbol.Append(nl->IntValue(first));
+    }
+
+
+    ListExpr value2 = nl->Rest(value);
+    ListExpr s2c = nl->Sixth(value2);
+    if(nl->AtomType(s2c)!=NoAtom){
+       SetDefined(false);
+       return false;
+    }
+
+    while(!nl->IsEmpty(s2c)){
+     ListExpr first = nl->First(s2c);
+     s2c = nl->Rest(s2c);
+     if(nl->AtomType(first)!=IntType){
+       SetDefined(false);
+       return false;
+     }
+     symbol2Cluster.Append(nl->IntValue(first));
+    }
+
+    if(!isConsistent()){
+      SetDefined(false);
+      return false;
+    }
+
     SetDefined(true);
     return true;
 
  }
+
+
+/*
+~isConsistent~
+
+Checks for consitency.
+   all targets are valid
+   cluster2symbol and symbol2cluster are consistent
+   startState is valid
+   currentState is valid
+   finalStates are valid
+   numOfSymbols corresponds to the num,ber of clusters in predicate group
+
+   possible further checks
+   - isminimal
+
+
+*/
+bool isConsistent() const{
+  // TODO: implement this function
+  return true;
+
+}
+
+
+
 
 
 /*
@@ -715,12 +781,49 @@ Produces a listexpr for the value of this dfa.
       }
     }
 
+    ListExpr sixth;
+    if(cluster2Symbol.Size()==0){
+      sixth = nl->TheEmptyList();
+    } else {
+      int x;
+      cluster2Symbol.Get(0,x);
+      sixth = nl->OneElemList(nl->IntAtom(x));
+      ListExpr last = sixth;
+      for(int i=1; i< cluster2Symbol.Size();i++){
+        cluster2Symbol.Get(i,x);
+        last = nl->Append(last, nl->IntAtom(x));
+      }
+    }
+
+    ListExpr seventh;
+    if(symbol2Cluster.Size()==0){
+      seventh = nl->TheEmptyList();
+    } else {
+      int x;
+      symbol2Cluster.Get(0,x);
+      seventh = nl->OneElemList(nl->IntAtom(x));
+      ListExpr last = seventh;
+      for(int i=1; i< symbol2Cluster.Size();i++){
+        symbol2Cluster.Get(i,x);
+        last = nl->Append(last, nl->IntAtom(x));
+      }
+    }
+
+
     ListExpr typeInfo1 = nl->SymbolAtom("predicategroup");
     ListExpr fourth = predicateGroup.ToListExpr(typeInfo1);
     ListExpr fifth = nl->IntAtom(numOfSymbols);
 
+    ListExpr res = nl->OneElemList(first);
+    ListExpr last = res;
+    last = nl->Append(last, second);
+    last = nl->Append(last, third);
+    last = nl->Append(last, fourth);
+    last = nl->Append(last, fifth);
+    last = nl->Append(last, sixth);
+    last = nl->Append(last, seventh);
 
-    return nl->FiveElemList(first, second, third, fourth, fifth);
+    return res;
  }
 
 
