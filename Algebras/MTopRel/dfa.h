@@ -128,7 +128,7 @@ This constructor should only be used within  the cast function.
 
 */
 
-  TopRelDfa():Attribute(),canDestroy(false) {}
+  TopRelDfa():Attribute(){}
 
 
 /*
@@ -145,8 +145,8 @@ This constructor creates an empty finite automaton.
                               symbol2Cluster(0),
                               cluster2Symbol(0),
                               predicateGroup(0),
-                              numOfSymbols(0),
-                              canDestroy(false) {}
+                              numOfSymbols(0)
+                               {}
 
 /*
 ~Copy Constructor~
@@ -162,8 +162,8 @@ This constructor creates an empty finite automaton.
      symbol2Cluster(0),
      cluster2Symbol(0),
      predicateGroup(0),
-     numOfSymbols(d.numOfSymbols),
-     canDestroy(false) {
+     numOfSymbols(d.numOfSymbols)
+      {
       transitions.copyFrom(d.transitions);
       finalStates.copyFrom(d.finalStates);
       predicateGroup.CopyFrom(&d.predicateGroup);
@@ -333,18 +333,9 @@ when using the names for topological relationships from the predicate group.
      
 
 
-  ~TopRelDfa(){
-     if(canDestroy){
-       finalStates.Destroy();
-       transitions.Destroy();
-     }
-   } // no pointers 
+  ~TopRelDfa(){ } // no pointers 
 
 
-  void Destroy(){
-    canDestroy= true;
-  }
- 
 
 /*
 ~isUsuable~
@@ -354,7 +345,7 @@ successful and the dfs is not already destroyed;
 
 */
   bool isUsuable() const{
-    return startState>=0;
+    return IsDefined() && startState>=0;
   }
 
 
@@ -389,6 +380,28 @@ Checks whether the dfa is in a final state.
     return isFinal;
   }
 
+/*
+~acceptsAll~
+
+This function checks wether the current state is a final state and 
+transistions for all elements of sigma ends in the current state.
+
+*/
+   bool acceptsAll() const{
+     if(!isFinal()){
+        return false;
+     }
+
+     int offset = currentState*numOfSymbols;
+     int next; 
+     for(int i=0; i<numOfSymbols; i++){
+        transitions.Get(offset+i, next);
+        if(next != currentState){
+          return false;
+        }
+     } 
+   }
+
 
 /*
 ~isError~
@@ -410,15 +423,33 @@ Goes into the next state depending on the input.
 
 */
 
-  void next(int clusternum){
+  bool next(int clusternum){
      if((currentState < 0) || (startState<0)){
-        return;
+        return false;
      }
      int symbol;
      cluster2Symbol.Get(clusternum,symbol);
      int index = numOfSymbols*currentState + symbol;
      transitions.Get(index,currentState);
+     return true;
   }
+
+/*
+~next~
+
+make the transition for the given name of the cluster. Returns 
+true iff successful.
+
+*/
+  bool next(string clusterName){
+     if(currentState < 0){
+        return false;
+     }
+     return next(predicateGroup.getClusterNumber(clusterName));
+  }
+
+
+
 
 
 
@@ -427,26 +458,26 @@ Goes into the next state depending on the input.
 
 */
 
-
- int NumOfFLOBs(){
-    return predicateGroup.NumOfFLOBs() + 4;
+ virtual int NumOfFLOBs() const{
+    int res =  predicateGroup.NumOfFLOBs() + 4;
+    return res;
  }
 
- Flob* GetFLOB(int index){
+ Flob* GetFLOB(int index) {
+
    assert(index>=0);
    assert(index < NumOfFLOBs());
+
    if(index < predicateGroup.NumOfFLOBs()){
       return  predicateGroup.GetFLOB(index);
    }
    index = index - predicateGroup.NumOfFLOBs();
-   if(index==0){
-     return &transitions;
-   } else if (index==1) {
-     return &finalStates;
-   } else if(index==2){
-     return &symbol2Cluster;
-   } else if(index==3){
-     return &cluster2Symbol;
+   switch(index){
+     case 0 : return &transitions;
+     case 1 : return &finalStates;
+     case 2 : return &symbol2Cluster;
+     case 3 : return &cluster2Symbol;
+     default : assert(false);
    }
    return 0;
  }
@@ -484,7 +515,6 @@ Goes into the next state depending on the input.
    if(numOfSymbols > d->numOfSymbols){
      return 1;
    }
-   // ignore canDestroy
 
    int comp = predicateGroup.Compare(&(d->predicateGroup));
 
@@ -744,5 +774,4 @@ private:
    DbArray<int> cluster2Symbol; // mapping from cluster number to symbol number
    toprel::PredicateGroup predicateGroup;
    int numOfSymbols;           // size of sigma
-   bool canDestroy;
 };
