@@ -77,6 +77,13 @@ int main(int argc, char** argv){
     
     res->nfa.print(std::cout);
 
+    std::cout << "minimize" << std::endl;
+    res->nfa.minimize();
+    res->nfa.bringStartStateToTop();
+
+
+    res->nfa.print(std::cout);
+
 
     delete res;
 

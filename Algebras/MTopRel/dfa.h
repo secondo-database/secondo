@@ -22,6 +22,13 @@ along with SECONDO; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 ----
 
+
+1 class dfa
+
+This class is the implementation of a finite automaton. 
+
+
+
 */
 
 #include <vector>
@@ -35,17 +42,43 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "IntNfa.h"
 #include "GenericTC.h"
 
+/*
+1.1 Auxiliary Functions
+
+
+
+~lengthSmaller~
+
+
+This function checks whether the length of the first argument string is smaller
+than the length of the second argument string.
+
+*/
 
 
 bool lengthSmaller( const string& s1, const string& s2){
    return s1.length() < s2.length();
 }
 
+/*
+~lengthiGreater~
 
+
+This function checks whether the length of the first argument string is greater
+than the length of the second argument string.
+
+*/
 bool lengthGreater( const string& s1, const string& s2){
    return s1.length() > s2.length();
 }
 
+
+/*
+~num2str~
+
+This function converts an integer to a string.
+
+*/
 string num2str(const int num){
  stringstream s;
  s << num;
@@ -53,8 +86,9 @@ string num2str(const int num){
 
 }
 
+
 /*
-2 some forward declarations
+1.2 some forward declarations
 
 */
 
@@ -62,6 +96,19 @@ int yyparse();
 
 
 int parseString(const char* arg, IntNfa** res);
+
+
+
+/*
+2. Class ~TopRelDfa~
+
+This class provides a finite automaton where the alphabet is provided by the
+members of a predicategroup. This means, if your predicategroup contains
+the topological relationships inside, meet, and disjoint, these the 
+tokens are the alphabet of the automaton.
+
+
+*/
 
 
 class TopRelDfa : public Attribute{
@@ -73,17 +120,38 @@ Constructors
 
 */
 
+
+/*
+~Standard Constructor~
+
+This constructor should only be used within  the cast function.
+
+*/
+
   TopRelDfa():Attribute(),canDestroy(false) {}
 
+
+/*
+~Constructor~
+
+This constructor creates an empty finite automaton.
+
+*/
   TopRelDfa(const int dummy): Attribute(false),
                               startState(-1),
                               currentState(-1),
                               transitions(0),
                               finalStates(0),
+                              symbol2Cluster(0),
+                              cluster2Symbol(0),
                               predicateGroup(0),
                               numOfSymbols(0),
                               canDestroy(false) {}
 
+/*
+~Copy Constructor~
+
+*/
 
    TopRelDfa(const TopRelDfa& d):
      Attribute(d.IsDefined()),
@@ -91,6 +159,8 @@ Constructors
      currentState(d.currentState),
      transitions(0),
      finalStates(0),
+     symbol2Cluster(0),
+     cluster2Symbol(0),
      predicateGroup(0),
      numOfSymbols(d.numOfSymbols),
      canDestroy(false) {
@@ -100,6 +170,11 @@ Constructors
     }
 
 
+/*
+~Assignment Operator~
+
+*/
+
    TopRelDfa& operator=(const TopRelDfa& src){
      Attribute::operator=(src);
      SetDefined(src.IsDefined());
@@ -107,69 +182,134 @@ Constructors
      currentState = src.currentState;
      transitions.copyFrom(src.transitions);
      finalStates.copyFrom(src.finalStates);
+     cluster2Symbol.copyFrom(src.cluster2Symbol);
+     symbol2Cluster.copyFrom(src.symbol2Cluster);
      predicateGroup.CopyFrom(&src.predicateGroup);
      numOfSymbols = src.numOfSymbols;
      return *this;
    }
 
 
+/*
+~setTo~
 
+Sets this automaton to be able to recognize the given regular expression
+when using the names for topological relationships from the predicate group.
+
+
+*/
 
   void setTo(const string& regex,
              const toprel::PredicateGroup& pg) {
     
-
+   /* special case, predicate group is not defined,
+      set this automaton to be undefined and exit.
+   */
     if(!pg.IsDefined()){
-      cout << "pg not defined" << endl;
       SetDefined(false);
       return;
     }  
+
+
+    /*
+      Next, we assign each name to a number. 
+      To be able to process string which a an prefix from another name,
+      the names are sorted by its length decreasing.
+      We replace all names of topological relationships by its number within
+      the regular expression. 
+    */
+
     std::vector<string> names = pg.getNames();
     // sort vector by the  length of its elements
     std::sort(names.begin(), names.end(), lengthGreater); 
 
 
-    // replaces all names 
+
     string changed = regex;
     for(unsigned int i=0;i<names.size();i++){
       string res = " " + num2str(i)+" ";
       changed = replaceAll(changed,names[i],res); 
     }
 
+    // replaces all dots by all possible symbols
+    if(names.size()>0){
+       string repl = "( ";
+       for(unsigned int i=0;i< names.size(); i++){
+          if(i>0){
+             repl += " | ";
+          }
+          repl += num2str(i);
+       } 
+       repl += " )";
+       changed = replaceAll(changed, ".", repl);
+     }
 
-    cout << "parse string" << changed << endl;
 
+
+
+    symbol2Cluster.clean();
+    cluster2Symbol.clean();
+    symbol2Cluster.resize(names.size());
+    cluster2Symbol.resize(names.size());
+
+    for(unsigned int i=0;i< names.size();i++){
+       int clusterNumber = pg.getClusterNumber(names[i]);
+       assert(clusterNumber>=0);
+       cluster2Symbol.Put(clusterNumber, i);
+       symbol2Cluster.Put(i,clusterNumber);
+    }
+
+
+    /*
+     Now, we create a non-deterministic finite automaton from the
+     regular expression. Because we have replaced all names by numbers,
+     we can use an nfa which deals with integer numbers as alphabet.
+
+    */
     IntNfa* nfa = 0;
     parseString(changed.c_str(),&nfa);
 
+
+    /*
+      If there is no return value, parsing of the regular expression is
+      failed. In this case, we set the automaton to be undefined and
+      exit.
+    */ 
     if(nfa==0){ // error in regular expression -> Set to be undefined
-      cout << "invalid regular expression" << endl;
       SetDefined(false);
       return;
     }
+
 
     // construct a "deterministic nfa"
     nfa->nfa.makeDeterministic();
 
+
     if(nfa->nfa.getStartState() < 0){
-      cout << "StartState < 0" << endl;
       SetDefined(false);
       delete nfa;
       return;
     }
-    
+
+    nfa->nfa.minimize();
+
+    nfa->nfa.bringStartStateToTop();
+
+    /*
+      The nfa has no non-deterministic parts at this place.
+      We copy the main memory structure from nfa to this object.
+    */ 
     SetDefined(true);
 
-    cout << "Create the dfa" << endl;
 
-
+    // remove old stuff from db arrays
     transitions.clean();
     finalStates.clean();
  
     for(unsigned int i=0; i< nfa->nfa.numOfStates(); i++){
       finalStates.Append(nfa->nfa.isFinalState(i));
       State<int> state = nfa->nfa.getState(i);
-      for(unsigned int j = 0; j < changed.size(); j++){
+      for(unsigned int j = 0; j < names.size(); j++){
         std::set<int> targets = state.getTransitions(j);
         if(targets.empty()){
           transitions.Append(-1); // mark an error
@@ -181,20 +321,12 @@ Constructors
     }
 
 
-    cout << "equalize predicate group" << endl;
 
     predicateGroup.CopyFrom(&pg);
 
     startState = nfa->nfa.getStartState();
     numOfSymbols = names.size();
-
-
-
-
-    cout << "finished" << endl;
-
- 
-   
+    delete nfa;
 
 
    }
@@ -278,10 +410,12 @@ Goes into the next state depending on the input.
 
 */
 
-  void next(int symbol){
+  void next(int clusternum){
      if((currentState < 0) || (startState<0)){
         return;
      }
+     int symbol;
+     cluster2Symbol.Get(clusternum,symbol);
      int index = numOfSymbols*currentState + symbol;
      transitions.Get(index,currentState);
   }
@@ -295,7 +429,7 @@ Goes into the next state depending on the input.
 
 
  int NumOfFLOBs(){
-    return predicateGroup.NumOfFLOBs() + 2;
+    return predicateGroup.NumOfFLOBs() + 4;
  }
 
  Flob* GetFLOB(int index){
@@ -307,9 +441,14 @@ Goes into the next state depending on the input.
    index = index - predicateGroup.NumOfFLOBs();
    if(index==0){
      return &transitions;
-   } else {
+   } else if (index==1) {
      return &finalStates;
-  }
+   } else if(index==2){
+     return &symbol2Cluster;
+   } else if(index==3){
+     return &cluster2Symbol;
+   }
+   return 0;
  }
 
 
@@ -433,6 +572,15 @@ Goes into the next state depending on the input.
  }
 
 
+/*
+~ReadFrom~
+
+Reads the value of this automaton from the given listexpr.
+If the list does not represent a valid dfa, this will be set
+to be undefined.  
+
+*/
+
  bool ReadFrom(const ListExpr value, const ListExpr typeInfo){
     if(nl->ListLength(value)!=5){
       SetDefined(false);
@@ -495,6 +643,15 @@ Goes into the next state depending on the input.
 
  }
 
+
+/*
+~ToListExpr~
+
+Produces a listexpr for the value of this dfa.
+
+
+*/
+
  ListExpr ToListExpr(const ListExpr typeInfo){
     if(!IsDefined()){
       return nl->SymbolAtom("undef");
@@ -537,6 +694,45 @@ Goes into the next state depending on the input.
  }
 
 
+ ostream& Print( ostream& o ) const{
+   if(!IsDefined()){
+      o << "undefined";
+      return o;
+   }
+
+    o << "DFA" << endl;
+    o << "start state " << startState << endl;
+    o << "current state : " << currentState << endl;
+    o << "state \t symbol \t next state " << endl;
+    o << "num of symbols" << numOfSymbols << endl;
+    for(int i=0;i<transitions.Size() ; i++){
+        int next;
+        transitions.Get(i, &next);
+        int start = i / numOfSymbols;
+        int symb = i % numOfSymbols;
+        int clusterNum;
+        symbol2Cluster.Get(symb,clusterNum);
+        toprel::Cluster c;
+        predicateGroup.getCluster(clusterNum,c);
+        if(next >=0){
+            bool finalstart;
+            finalStates.Get(start,finalstart);
+            string finalstartMark = finalstart?"(*) ":"( ) ";
+            bool finalnext;
+            finalStates.Get(next,finalnext);
+            string finalnextMark = finalnext?"(*) ":"( ) ";
+            o << finalstartMark << start << " \t "  << c.GetName()  
+              << " \t\t " << next << finalnextMark << endl;
+        }
+    }    
+    return o;
+
+ }
+
+
+
+
+
 
 private:
 
@@ -544,6 +740,8 @@ private:
    int currentState;           // current state
    DbArray<int> transitions;   // transition table
    DbArray<bool> finalStates;  // marks an state to be final
+   DbArray<int> symbol2Cluster; // mapping from symbol number to cluster number
+   DbArray<int> cluster2Symbol; // mapping from cluster number to symbol number
    toprel::PredicateGroup predicateGroup;
    int numOfSymbols;           // size of sigma
    bool canDestroy;

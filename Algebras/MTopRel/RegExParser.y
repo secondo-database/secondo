@@ -50,8 +50,8 @@ integer numbers. The Grammar is:
 
 */
 
-#include "IntNfa.h"
 #include "RegExParser.y.h"
+#include "IntNfa.h"
 #include "../../include/Stack.h"
 #include <stdio.h>
 #include <stdlib.h>
@@ -181,10 +181,16 @@ an error.
 int regexerror (const char *error)
 {
   parse_success=0; 
+  if(result){   // kill partially result
+     delete result;  
+  }
   result = 0;
   return 0;
 }
 
+
+
+extern "C"{void lexDestroy();}
 
 /*
 2.5 The parseString function
@@ -196,6 +202,7 @@ the first argument is parsed according to the rules given above.
 
 */
 int parseString(const char* argument, IntNfa** T){
+    lexDestroy();
 
     stack = new Stack<IntNfa*>();
 
@@ -207,6 +214,8 @@ int parseString(const char* argument, IntNfa** T){
           free(regex_last_message);
           regex_last_message=0;
     }
+
+    // kill the stack
     while(!stack->isEmpty()){
       IntNfa* elem = stack->pop();
       if(elem!=result){
@@ -219,6 +228,7 @@ int parseString(const char* argument, IntNfa** T){
     delete stack;
     stack = 0;
 
+    lexDestroy();
     return parse_success;
 }
 

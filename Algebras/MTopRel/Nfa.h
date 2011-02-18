@@ -278,6 +278,88 @@ Returns the contained epsilon transitions.
     return o;
   }
 
+
+/*
+~ReplaceTargets~
+
+replaces all targets contained in the set gives as the first parameter 
+to the new target
+
+*/
+
+void replacesTargets(const std::set<int>& oldTargets, int newTarget){
+
+   unsigned int oldSize = epsilonTransitions.size();
+
+   std::set<int>::iterator it;
+   for(it=oldTargets.begin(); it!=oldTargets.end(); it++){
+     epsilonTransitions.erase(*it);
+   }
+   if(epsilonTransitions.size()!=oldSize){
+       epsilonTransitions.insert(newTarget);
+   }
+
+
+   typename std::map<sigma, std::set<int> >::iterator it2;
+   for( it2 = transitions.begin(); it2!=transitions.end(); it2++){
+       std::set<int>  targets = it2->second;
+       oldSize = targets.size();
+       for(it=oldTargets.begin(); it!=oldTargets.end(); it++){
+         targets.erase(*it);
+       }
+      if(targets.size()!=oldSize){
+        targets.insert(newTarget);
+      }
+      it2->second = targets; 
+   }
+}
+
+
+/*
+~switchTargets~
+
+switch the tagets gives as arguments.
+
+*/
+void switchTargets(const int target1, const int target2){
+   if(target1==target2){
+     return;
+   }
+   bool contains1;
+   bool contains2;
+   contains1 = epsilonTransitions.find(target1) != epsilonTransitions.end();
+   contains2 = epsilonTransitions.find(target2) != epsilonTransitions.end();
+   if(contains1!=contains2){
+     if(contains1){
+        epsilonTransitions.erase(target1);
+        epsilonTransitions.insert(target2);
+     } else {
+        epsilonTransitions.erase(target2);
+        epsilonTransitions.insert(target1);
+     }
+   }
+   typename std::map<sigma, std::set<int> >::iterator it;
+   for( it=transitions.begin(); it!=transitions.end(); it++){
+     contains1 = it->second.find(target1) != it->second.end();
+     contains2 = it->second.find(target2) != it->second.end();
+     if(contains1!=contains2){
+       if(contains1){
+          it->second.erase(target1);
+          it->second.insert(target2);
+       } else {
+          it->second.erase(target2);
+          it->second.insert(target1);
+       }
+     }
+   }
+
+
+}
+
+
+
+
+
 /*
 ~removeState~
 
@@ -296,6 +378,8 @@ void removeState(int state){
      ::removeState(it->second, state);
    }
 }
+
+
 
 
 
@@ -333,7 +417,7 @@ transitions) from this state and returns these.
      std::map<sigma, std::set<int> > remainder;
      typename std::map<sigma, std::set<int> >::iterator it;
      for(it = transitions.begin(); it!=transitions.end(); it++){
-        if(it->second.size() > 1){
+        if(it->second.size() > 1){ // non deterministic transition
            result[it->first] = it->second;
         } else {
            remainder[it->first] = it->second;
@@ -401,11 +485,6 @@ The target states of epsilon transitions.
   std::set<int> epsilonTransitions;
 
 };
-
-
-
-
-
 
 
 
@@ -508,7 +587,7 @@ prints out this nfa
       return o;
    }
    for(unsigned int i=0;i<states.size();i++){
-     if(i==startState){
+     if((signed int)i==startState){
          o << "-> ";
      } else {
          o << "   ";
@@ -586,6 +665,189 @@ bool isDeterministic(){
 }
 
 
+static bool lxor(bool a, bool b){
+    return (a && !b) || (!a && b);
+}
+
+
+/*
+~minimize~
+
+This function computes a minimum automaton from a deterministic one. 
+Returns true if the amount of states could be decreased.
+
+*/
+
+bool minimize(){
+  assert(isDeterministic());
+
+  bool res = false;
+  res = res ||  removeUnreachable();
+  res = res || removeDeadEnds();
+
+  bool marks[states.size()][ states.size()];
+  // initialize matrix, set to true iff the states ares different in there 
+  // isFinal Property
+  for(unsigned int i=0;i<states.size(); i++){
+    marks[i][i] = false; 
+    for(unsigned int j=i+1; j<states.size(); j++){
+       bool value = lxor(isFinalState(i), isFinalState(j));
+       marks[i][j] = value;
+       marks[j][i] = value;          
+    }
+  }
+
+  /*
+  // debug::start
+  std::cout << "initialized matrix for minimization" << std::endl;
+  for(unsigned int i=0;i<states.size(); i++){
+    std::cout << "\t" << i;
+  }
+  std::cout << std::endl;
+  for(unsigned int i=0;i< states.size(); i++){
+    std::cout << i;
+    for(unsigned int j=0;j<states.size(); j++){
+      std::cout << "\t" << marks[i][j];
+    }
+    std::cout << std::endl;
+  }
+  // debug::end
+  */
+
+
+  bool changed = true;
+  while(changed){
+    changed = false;
+    for(unsigned int i=0;i<states.size(); i++){
+      for(unsigned int j=i+1; j < states.size(); j++){
+         if(!marks[i][j]){
+            State<sigma> s_i = states[i];
+            State<sigma> s_j = states[j];
+            std::set<sigma> sigma_i;
+            s_i.extractSigmas(sigma_i);
+            std::set<sigma> sigma_j;
+            s_j.extractSigmas(sigma_j);
+
+            if(sigma_i == sigma_j ){ 
+               bool markFound = false;
+               typename std::set<sigma>::iterator it;
+               for(it = sigma_i.begin(); 
+                         (it != sigma_i.end()) && !markFound;
+                          it++){
+                  int target_i =  *(s_i.getTransitions(*it).begin());
+                  int target_j = *(s_j.getTransitions(*it).begin());
+                  markFound = marks[target_i][ target_j];
+               }
+               if(markFound){ // one of the  target pairs is marked
+                  marks[i][j] = true;
+                  marks[j][i] = true;
+                  changed = true;
+               }
+            } else {
+               marks[i][j] = true;
+               marks[j][i] = true;
+               changed = true;
+            }
+         }
+      }
+    }
+  }
+
+  /*
+  // debug::start
+  std::cout << "completly computed matrix" << std::endl;
+  for(unsigned int i=0;i<states.size(); i++){
+    std::cout << "\t" << i;
+  }
+  std::cout << std::endl;
+  for(unsigned int i=0;i< states.size(); i++){
+    std::cout << i;
+    for(unsigned int j=0;j<states.size(); j++){
+      std::cout << "\t" << marks[i][j];
+    }
+    std::cout << std::endl;
+  }
+  // debug::end
+  */
+
+  // compute the sets of states which could be summarized
+  bool used[states.size()];
+  for(unsigned int i=0; i< states.size(); i++){
+    used[i] = false;
+  }
+
+  std::set<std::set<int> > clusters;
+
+  for(unsigned int i=0; i<states.size(); i++){
+    if(!used[i]){
+      used[i] = true;
+      std::set<int> cluster;
+      cluster.insert(i);
+      for(unsigned int j=i+1; j< states.size(); j++){
+        if(!marks[i][j]){
+           assert(!used[j]);
+           cluster.insert(j);
+           used[j] = true;
+        }
+      }
+      if(cluster.size() > 1){
+         clusters.insert(cluster);
+      }
+    }
+  } 
+
+  /*
+  // debug::start
+  if(clusters.size()>0){
+    std::cout << "found some clusters: " << std::endl;
+    int count =0;
+    typename  std::set<std::set<int> >::iterator it;
+    for( it = clusters.begin(); it!=clusters.end(); it++){
+      std::cout << "Cluster " << count++ << " :";
+      printset(*it, std::cout) << std::endl;
+    }    
+
+  } 
+
+  // debug::end
+  */
+ 
+
+
+  // now, we have clusters which could be summarized
+  if(clusters.size()>0){
+     res = true;
+ 
+     typename std::set<std::set<int> >::iterator it;
+
+     for(it = clusters.begin(); it!= clusters.end(); it++){
+       std::set<int> cluster = *it;
+       int first = *(cluster.begin());
+       cluster.erase(first);
+       if(cluster.find(startState)!=cluster.end()){
+          startState=first;
+        }       
+
+
+       for(unsigned int i=0;i<states.size();i++){
+         states[i].replacesTargets(cluster, first);
+       }
+     } 
+
+     removeUnreachable();
+     removeDeadEnds();
+   }
+
+  return res;
+   
+
+}
+
+
+
+
+
+
 
 
 static unsigned int 
@@ -609,7 +871,9 @@ object.  The automaton is always represented as an nfa.
 
 */
   void makeDeterministic(){
+
      removeEpsilonTransitions();
+
      if(isDeterministic()){
         return;
      }
@@ -630,6 +894,7 @@ object.  The automaton is always represented as an nfa.
            }
         }
      }
+
      
      unsigned int oldsize = states.size();
 
@@ -645,10 +910,14 @@ object.  The automaton is always represented as an nfa.
        states.push_back(s);
      }
 
+
+
      // insert transitions from big states , eventually creating new big states
      unsigned int pos = 0;
      while( pos < newStates.size() ){
+
        std::set<int> current = newStates[pos];
+      
        // collect all sigmas introducing transitions from all contained states
        // from the current state
 
@@ -669,6 +938,24 @@ object.  The automaton is always represented as an nfa.
           if(targets.size()==1){ // target is a simple state
              states[pos+oldsize].insertTransition(s,*(targets.begin()));
           } else {
+             // replace all targets which are "big" by the
+             //  contents stored in newStates
+             std::set<int> newTargets;
+             typename std::set<int>::iterator it;
+             for(it =targets.begin(); it!=targets.end(); it++){
+                unsigned int target = *it;
+                if(target<oldsize){
+                  newTargets.insert(target);
+                } else {
+                  std::set<int> targetset = newStates[target-oldsize];
+                  std::set<int>::iterator it2;
+                  for(it2=targetset.begin(); it2!=targetset.end(); it2++){
+                    newTargets.insert(*it2);
+                  }
+                }
+             }
+             targets=newTargets; 
+
              unsigned int bigsize = newStates.size();
              unsigned int index = retrieveOrCreateIndex(newStates, targets);
              if(newStates.size()!=bigsize){ // create a new state
@@ -684,8 +971,11 @@ object.  The automaton is always represented as an nfa.
 
        pos++;
      }  
+
      removeUnreachable();
+
      removeDeadEnds();
+
   }
 
 
@@ -705,6 +995,32 @@ object.  The automaton is always represented as an nfa.
 
   int getStartState() const{
     return startState;
+  }
+
+
+  void bringStartStateToTop(){
+    if(startState <=0){
+        return;
+    }
+    bool final0 = finalStates.find(0)!=finalStates.end();
+    bool finalStart = finalStates.find(startState) != finalStates.end();
+    if(final0 != finalStart){ // different final property of the 
+                              // states to switch
+       if(final0){
+          finalStates.erase(0);
+          finalStates.insert(startState); 
+       } else {
+          finalStates.erase(startState);
+          finalStates.insert(0);
+       }
+    }    
+    for(unsigned int i=0;i<states.size();i++){
+        states[i].switchTargets(0, startState);
+    }   
+    State<sigma> start = states[startState];
+    states[startState] = states[0];
+    states[0] = start;
+    startState=0;
   }
 
 
@@ -944,21 +1260,22 @@ current start state. This can occur for example after removing epsilon
 transitions.
 
 */
- void removeUnreachable(){
+ bool removeUnreachable(){
    if(states.size()==0){
-     return;
+     return false; // no change
    }
    if(startState>=static_cast<int>(states.size())){
       states.clear();
       finalStates.clear();
       startState = 0;
-      return;
+      return true;
    }
    // there is at least one reachable state
    std::vector<int> unreachable;
    getUnreachable(unreachable);
-    
+   bool res =  unreachable.size()>0;
    removeStates(unreachable); 
+   return res;
  }
 
 
@@ -970,12 +1287,13 @@ final state can be reached.
 
 */
 
-void removeDeadEnds(){
+bool removeDeadEnds(){
    if(finalStates.empty() || states.empty() ){ 
      // the automaton recognize nothing
+     bool res = states.size() > 0;
      states.clear();
      startState = -1;
-     return;
+     return res;
    }
    std::set<int> finalPossible;
    getFinalPossible(finalPossible);
@@ -983,7 +1301,7 @@ void removeDeadEnds(){
      // from the start state never a final state can be reached
      states.clear();
      startState = -1;
-     return;
+     return true;
    }
    std::vector<int> deadEnds;
    for(unsigned int i=0;i<states.size();i++){
@@ -991,7 +1309,9 @@ void removeDeadEnds(){
          deadEnds.push_back(i);
       }
    }
+   bool res = deadEnds.size() > 0;
    removeStates(deadEnds);
+   return res;
 }
 
 
@@ -1112,11 +1432,6 @@ void removeState(int state1){
    }
  }
 
-
- 
-
-
-  
 
 };
 
