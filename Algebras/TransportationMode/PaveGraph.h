@@ -53,7 +53,7 @@ May, 2010 Jianqiu xu
 #include "RelationAlgebra.h"
 #include "ListUtils.h"
 #include "NetworkAlgebra.h"
-
+#include "../Spatial/RegionTools.h"
 #include <fstream>
 #include <stack>
 #include <vector>
@@ -64,6 +64,7 @@ May, 2010 Jianqiu xu
 #include "WinUnix.h"
 #include "AvlTree.h"
 #include "Symbols.h"
+#include "GeneralType.h"
 #include <bitset>
 
 ///////////////////////graph model for walk planning///////////////////////
@@ -700,6 +701,9 @@ const float mini_dist_build = 15.0;
 
 struct MaxRect{
 
+    static string BuildingRectTypeInfo; 
+    static string RegionElemTypeInfo; 
+    
     bool fixed;
     int fixedX, fixedY;
     vector<Rectangle<2> > RectList; 
@@ -724,16 +728,23 @@ struct MaxRect{
     vector<SimpleLine> sl_list; 
 
     vector<int> reg_type_list; 
-   
+
     vector<int> poly_id_list; 
-    
+
     Relation* rel1; 
+    Relation* rel2; 
+    BTree* btree;
+    vector<Point> sp_list;
+    vector<Point> ep_list;
+    vector<Line> path_list; 
+    
     unsigned int count;
     TupleType* resulttype;
     enum BuildingType{HOUSE = 0, APARTMENT, UNIVERSITY, OFFICEBUILDING,
     CINEMA, SHOPPINGMALL, HOTEL, TRAINSTATION, LIBRARY, SCHOOL,
     HOSPITAL, AIRPORT}; 
-
+    enum BuildingRect{REG_ID = 0, GEODATA, POLY_ID, REG_TYPE};
+    enum RegionElem{REGID=0, COVAREA}; 
 
     MaxRect() {
       count=0;resulttype = NULL;
@@ -742,6 +753,14 @@ struct MaxRect{
       count=0;
       resulttype = NULL;
     }
+
+    MaxRect(Relation* r1, Relation* r2, BTree* bt):
+    rel1(r1), rel2(r2), btree(bt){
+      count=0;
+      resulttype = NULL;
+    }
+
+
     ~MaxRect(){
       if(resulttype != NULL) delete resulttype;
     }
@@ -773,12 +792,26 @@ struct MaxRect{
     void AddRect(int tid, int attr1, int attr2, int attr3, int attr4);
     void GetRectangle(int attr1, int attr2, int attr3, int attr4, BTree* btree,
                       int no_buildings); 
+    /////////////////merge several triangles to be convex polygon/////////////
     void MergeTriangle(CompTriangle* ct, int reg_id);
+    /////////////whether two triangle have a commone edge////////////////
     bool NeighborTriangle(Region* r1, Region* r2); 
-
-    void GetRectangle2(int attr1, int attr2); 
+    /////////get the maximum rectangle for each region/////////////////
+    void GetRectangle1(int attr1, int attr2); 
     int GetRectType(float area); 
+    ////////////////check whether all coordinates are positive///////////////
+    ////////////because the function to get maximum rectangle needs all ////
+    /////////////positive coordinates///////////////////////////////////////
     bool ValidRegion(Region* r); 
+    ////////build the path between the entrance of the building and pavement///
+    void PathToBuilding();
+    void SetBoundaryPoint(Point& bounday_p, vector<Rectangle<2> > hole_list, 
+                          Region* r); 
+    void CreateEntranceforBuilding(Region* r, vector<int>& tid_list); 
+    void RegionWithHole(vector<Rectangle<2> >& hole_list, Region* reg);
 };
+
+bool RegContainRect(Region* reg, Rectangle<2>& rect);
+
 
 #endif

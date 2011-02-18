@@ -40,6 +40,7 @@ creating the graph model for walk planning.
 #include "Triangulate.h"
 #include "PaveGraph.h"
 #include "GeneralType.h"
+#include "Indoor.h"
 
 
 /*
@@ -3358,6 +3359,15 @@ struct WPath_elem:public Path_elem{
 using visiblity graph to find the shortest path
 first connects the start and end point to the VG, and then applies A star
 algorithm
+1. (rel (tuple ((v1 int) (v2 int) (v3 int) (centroid point)))):
+for each triangle, we represent it by its three vertices id
+the value of v1 v2 and v3 is the tuple id of the vertex in visibility graph 
+with v1, v2 and v3, we can get the point of the vertex
+
+2. (rel (tuple ((vid int) (triid int))))
+it records the vertex id and the triangle id
+
+these two parameters are used to find all triangles that a vertex belongs to 
 
 */
 void Walk_SP::WalkShortestPath(Line* res)
@@ -3371,11 +3381,13 @@ void Walk_SP::WalkShortestPath(Line* res)
   int oid1 = ((CcInt*)t1->GetAttribute(VisualGraph::QOID))->GetIntval();
   Point* p1 = (Point*)t1->GetAttribute(VisualGraph::QLOC2);
   Point loc1(*p1);
-
+  t1->DeleteIfAllowed(); 
+  
   Tuple* t2 = rel2->GetTuple(1, false);
   int oid2 = ((CcInt*)t2->GetAttribute(VisualGraph::QOID))->GetIntval();
   Point* p2 = (Point*)t2->GetAttribute(VisualGraph::QLOC2);
   Point loc2(*p2);
+  t2->DeleteIfAllowed(); 
 
 //  cout<<"tri_id1 "<<oid1<<" tri_id2 "<<oid2<<endl;
 //  cout<<"loc1 "<<loc1<<" loc2 "<<loc2<<endl;
@@ -3417,8 +3429,7 @@ void Walk_SP::WalkShortestPath(Line* res)
   ////////////////find all visibility nodes to start node/////////
   ///////connect them to the visibility graph/////////////////////
   VGraph* vg1 = new VGraph(dg, NULL, rel3, vg->GetNodeRel());
-  vg1->rel4 = rel4;
-  vg1->btree = btree;
+
   vg1->GetVisibilityNode(oid1, loc1);
 
   assert(vg1->oids1.size() == vg1->p_list.size());
@@ -3445,12 +3456,11 @@ void Walk_SP::WalkShortestPath(Line* res)
                       vg1->oids1[i], w, vg1->p_list[i], d));
     }
   }
-//  cout<<endl;
+
   delete vg1;
   ////////////////find all visibility nodes to the end node/////////
   VGraph* vg2 = new VGraph(dg, NULL, rel3, vg->GetNodeRel());
-  vg2->rel4 = rel4;
-  vg2->btree = btree;
+
   vg2->GetVisibilityNode(oid2, loc2);
 
   assert(vg2->oids1.size() == vg2->p_list.size());
@@ -3654,8 +3664,6 @@ void Walk_SP::TestWalkShortestPath(int tid1, int tid2)
   ////////////////find all visibility nodes to start node/////////
   ///////connect them to the visibility graph/////////////////////
   VGraph* vg1 = new VGraph(dg, NULL, rel3, vg->GetNodeRel());
-  vg1->rel4 = rel4;
-  vg1->btree = btree;
   vg1->GetVisibilityNode(oid1, loc1);
 
   assert(vg1->oids1.size() == vg1->p_list.size());
@@ -3686,8 +3694,6 @@ void Walk_SP::TestWalkShortestPath(int tid1, int tid2)
   delete vg1;
   ////////////////find all visibility nodes to the end node/////////
   VGraph* vg2 = new VGraph(dg, NULL, rel3, vg->GetNodeRel());
-  vg2->rel4 = rel4;
-  vg2->btree = btree;
   vg2->GetVisibilityNode(oid2, loc2);
 
   assert(vg2->oids1.size() == vg2->p_list.size());
@@ -7327,6 +7333,12 @@ Rectangle<2> GetMaxRect(Region* reg)
 ////////////Universit'e Laval, Qu'ebec, August 1995, pp. 67--72./////////
 //////// the original code is by Java, I conver it to C, c++/////////////
 /////////////////////////////////////////////////////////////////////////
+string MaxRect::BuildingRectTypeInfo = 
+"(rel (tuple ((reg_id int) (geoData rect) (poly_id int) (reg_type int))))"; 
+
+string MaxRect::RegionElemTypeInfo = 
+"(rel (tuple ((id int) (covarea region))))" ; 
+
 
 void MaxRect::SetPoint(vector<GeomPoint>& list)
 {
@@ -8257,12 +8269,32 @@ bool MaxRect::NeighborTriangle(Region* reg1, Region* reg2)
   return false; 
 }
 
+/*
+check whether a region contains a rectangle 
+
+*/
+bool RegContainRect(Region* reg, Rectangle<2>& rect)
+{
+    Point p1(true, rect.MinD(0), rect.MinD(1));
+    Point p2(true, rect.MaxD(0), rect.MinD(1));
+    Point p3(true, rect.MaxD(0), rect.MaxD(1));
+    Point p4(true, rect.MinD(0), rect.MaxD(1));
+
+    HalfSegment hs1(true, p1, p2);
+    HalfSegment hs2(true, p2, p3);
+    HalfSegment hs3(true, p3, p4);
+    HalfSegment hs4(true, p1, p4); 
+
+    if(RegContainHS(reg, hs1) && RegContainHS(reg, hs2) &&
+        RegContainHS(reg, hs3) && RegContainHS(reg, hs4))return true;
+    return false; 
+}
 
 /*
 for the input relation, it gets a maximum rectangle for each region 
 
 */
-void MaxRect::GetRectangle2(int attr1, int attr2)
+void MaxRect::GetRectangle1(int attr1, int attr2)
 {
 //  cout<<"attr "<<attr1<<" attr2 "<<attr2<<endl; 
 
@@ -8271,6 +8303,10 @@ void MaxRect::GetRectangle2(int attr1, int attr2)
     Tuple* poly_tuple = rel1->GetTuple(i, false); 
     int poly_id = ((CcInt*)poly_tuple->GetAttribute(attr1))->GetIntval();
     Region* poly = (Region*)poly_tuple->GetAttribute(attr2); 
+//     if(poly_id != 2289){
+//       poly_tuple->DeleteIfAllowed();
+//       continue; 
+//     }
 
     CompTriangle* ct = new CompTriangle(poly);
     ct->NewTriangulation();
@@ -8297,7 +8333,8 @@ void MaxRect::GetRectangle2(int attr1, int attr2)
                     rect_list.push_back(rect_box);
                     poly_id_list.push_back(poly_id); 
                     reg_id++; */
-                    rect_box_list.push_back(rect_box); 
+                    if(RegContainRect(poly, rect_box))
+                        rect_box_list.push_back(rect_box); 
                }
             }
           }else{
@@ -8328,7 +8365,9 @@ void MaxRect::GetRectangle2(int attr1, int attr2)
                     rect_list.push_back(res_box);
                     poly_id_list.push_back(poly_id); 
                     reg_id++; */
-                    rect_box_list.push_back(res_box); 
+
+                    if(RegContainRect(poly, rect_box))
+                        rect_box_list.push_back(res_box); 
 
                     delete res_box; 
                }
@@ -8389,4 +8428,169 @@ big areas might be airport, shopping mall
 int MaxRect::GetRectType(float area)
 {
   return 0; 
+}
+
+
+/*
+build the path between the entrance of the building and pavement area
+which point to select on the polygon boundary:
+which point to set as the entrance of the building on the rectangle 
+
+*/
+void MaxRect::PathToBuilding()
+{
+  cout<<"build the connection between the entrance of building and pavement"
+      <<endl; 
+  /////for each original polygon, it collects all rectangles inside /////
+  //////select point from the polygon boundary //////
+  /////for each rectangle, it also selects a point on its boundary///////
+  for(int i = 1;i <= rel2->GetNoTuples();i++){
+    Tuple* poly_tuple = rel2->GetTuple(i, false);
+    int poly_id = ((CcInt*)poly_tuple->GetAttribute(REGID))->GetIntval(); 
+    
+    if(poly_id != 2289){
+        poly_tuple->DeleteIfAllowed();
+        continue; 
+    }
+
+    CcInt* search_id = new CcInt(true, poly_id);
+    BTreeIterator* btree_iter = btree->ExactMatch(search_id);
+    vector<int> rect_tid_list;
+    while(btree_iter->Next()){
+        Tuple* tuple = rel1->GetTuple(btree_iter->GetId(), false);
+        int poly_id2 = ((CcInt*)tuple->GetAttribute(POLY_ID))->GetIntval();
+        assert(poly_id == poly_id2);
+        rect_tid_list.push_back(btree_iter->GetId());
+        tuple->DeleteIfAllowed();
+    }
+    delete btree_iter;
+    delete search_id;
+
+    cout<<"poly_id "<<poly_id<<" tid size "<<rect_tid_list.size()<<endl; 
+    if(rect_tid_list.size() > 0){
+      Region* poly = (Region*)poly_tuple->GetAttribute(COVAREA); 
+      CreateEntranceforBuilding(poly, rect_tid_list);
+    }
+
+    poly_tuple->DeleteIfAllowed();
+
+ /*   if(rect_tid_list.size() > 0)
+        break; */
+  }
+
+}
+
+/*
+create the path in the polygon to the building entrance 
+
+*/
+void MaxRect::CreateEntranceforBuilding(Region* r, vector<int>& tid_list)
+{
+  HalfSegment hs;
+  r->Get(0, hs);
+  Point boundary_p = hs.GetLeftPoint(); 
+  vector<Rectangle<2> > hole_list; 
+  
+  for(unsigned int i = 0;i < tid_list.size();i++){
+    Tuple* rect_tuple = rel1->GetTuple(tid_list[i], false);
+//    int reg_id = ((CcInt*)rect_tuple->GetAttribute(REG_ID))->GetIntval();
+//    int poly_id = ((CcInt*)rect_tuple->GetAttribute(POLY_ID))->GetIntval();
+    Rectangle<2>* rect = (Rectangle<2>*)rect_tuple->GetAttribute(GEODATA);
+    hole_list.push_back(*rect);
+    rect_tuple->DeleteIfAllowed();
+  }
+
+  SetBoundaryPoint(boundary_p, hole_list, r); 
+
+  Region* reg = new Region(0);
+  *reg = *r; 
+  RegionWithHole(hole_list, reg);
+  
+  ////////////////create a region using these rectangels as holes/////////////
+ for(unsigned int i = 0;i < tid_list.size();i++){
+    Tuple* rect_tuple = rel1->GetTuple(tid_list[i], false);
+    int reg_id = ((CcInt*)rect_tuple->GetAttribute(REG_ID))->GetIntval();
+    Rectangle<2>* rect = (Rectangle<2>*)rect_tuple->GetAttribute(GEODATA);
+    Point lp(true, rect->MinD(0), rect->MinD(1));
+//    cout<<"poly_id "<<poly_id<<*rect<<endl; 
+    Line* path = new Line(0);
+    cout<<"sp "<<lp<<" ep "<<boundary_p<<endl; 
+    ShortestPath_InRegion(reg, &lp, &boundary_p, path);
+    assert(path->Length() > 0.0);
+    cout<<"length "<<path->Length()<<endl; 
+    reg_id_list.push_back(reg_id);
+    sp_list.push_back(lp);
+    ep_list.push_back(boundary_p); 
+    path_list.push_back(*path);
+
+    delete path;
+    rect_tuple->DeleteIfAllowed();
+  }
+
+
+  delete reg; 
+}
+
+/*
+create a new region where r is outer cycle and the rectangles inside are holes
+
+1. we have all points of all cycle so that we can call the function
+buildRegion(). but very important: for each cycle, 
+the first and the last point should be the same. 
+
+2. we can directly use the outer region minus these rectangles which is much
+simpler 
+
+*/
+void MaxRect::RegionWithHole(vector<Rectangle<2> >& hole_list, Region* reg)
+{
+    
+
+    for(unsigned int i = 0;i < hole_list.size();i++){
+        Region* temp = new Region(hole_list[i]);
+//        cout<<*temp<<endl; 
+        Region* res = new Region(0);
+        reg->Minus(*temp, *res);
+        *reg = *res;
+        delete res;
+        delete temp; 
+    }
+
+}
+
+/*
+set the location on the polygon boundary.It is the end point of the path to the
+building entrance. we first take the centroid point of all rectangles and then
+get the closet point of the polygon boundary to the centroid point. use this
+closest point as the location 
+
+*/
+void MaxRect::SetBoundaryPoint(Point& boundary_p, 
+                               vector<Rectangle<2> > hole_list, Region* r)
+{
+  double x = 0;
+  double y = 0;
+  for(unsigned int i = 0;i < hole_list.size();i++){
+    Rectangle<2> rect = hole_list[i]; 
+    x += (rect.MinD(0) + rect.MaxD(0))/2;
+    y += (rect.MinD(1) + rect.MaxD(1))/2; 
+  }
+  
+  Point centroid(true, x/hole_list.size(), y/hole_list.size()); 
+  double dist = numeric_limits<double>::max(); 
+  for(int i = 0;i < r->Size();i++){
+    HalfSegment hs;
+    r->Get(i, hs);
+    if(!hs.IsLeftDomPoint())continue; 
+    SpacePartition* sp = new SpacePartition(); 
+    Point temp = centroid; 
+    double d = sp->GetClosestPoint(hs, centroid, temp);
+    if(d < dist){
+      dist = d;
+      boundary_p = temp; 
+    } 
+
+    delete sp; 
+  }
+  
 }

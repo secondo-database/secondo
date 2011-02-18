@@ -3545,24 +3545,22 @@ const string OpTMNodeDGSpec  =
 const string OpTMWalkSPSpec  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" "
     "\"Example\" ) "
-    "( <text>dualgraph x visualgraph x rel1 x rel2 x rel3 x rel4 x btree-> "
-    "line</text--->"
-    "<text>walk_sp(dg1, vg1, rel, rel, rel, rel, btree)</text--->"
+    "( <text>dualgraph x visualgraph x rel1 x rel2 x rel3-> line</text--->"
+    "<text>walk_sp(dg1, vg1, rel, rel, rel)</text--->"
     "<text>get the shortest path for pedestrian</text--->"
-    "<text>query walk_sp(dg1, vg1, query_loc1, query_loc2,tri_reg_new, "
-    "vertex_tri, btr_vid); </text--->"
+    "<text>query walk_sp(dg1, vg1, query_loc1, query_loc2,tri_reg_new);"
+    "</text--->"
     ") )";
 
 const string OpTMTestWalkSPSpec  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" "
     "\"Example\" ) "
-    "( <text>dualgraph x visualgraph x rel1 x rel2 x rel3 x rel4 x btree-> "
+    "( <text>dualgraph x visualgraph x rel1 x rel2 x rel3 -> "
     "(stream (tuple( (x1 t1)(x2 t2)...(xn tn)))</text--->"
-    "<text>walk_sp(dualgraph, visibilitygraph, rel, rel, rel, rel,"
-     " btree)</text--->"
+    "<text>walk_sp(dualgraph, visibilitygraph, rel, rel, rel)</text--->"
     "<text>get the shortest path for pedestrian</text--->"
-    "<text>query walk_sp(dg1, vg1, query_loc1, query_loc2,tri_reg_new, "
-    "vertex_tri, btr_vid); </text--->"
+    "<text>query walk_sp(dg1, vg1, query_loc1, query_loc2,tri_reg_new);"
+    "</text--->"
     ") )";
 
 const string OpTMPaveLocToGPSpec  =
@@ -4254,6 +4252,21 @@ const string OpTMGetRect1Spec  =
     "<text>getrect2(rel, attr, attr);</text--->"
     "<text>get the maximum rectangle area for a region</text--->"
     "<text>query getrect2(new_region_elems2, id, covarea);</text--->"
+    ") )";
+
+/*
+build a path between the entrance of the building and the pavement area 
+
+*/
+const string OpTMPathToBuildingSpec  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+    "\"Example\" ) "
+    "( <text>rel1 x rel2 x btree->"
+    "(stream (tuple( (x1 t1)(x2 t2)...(xn tn)))</text--->"
+    "<text>path_to_building(rel, rel, btree);</text--->"
+    "<text>build the connection between building and pavement</text--->"
+    "<text>query path_to_building(building_rect, new_region_elems," 
+    "btree_region_elem);</text--->"
     ") )";
 
 /*
@@ -5133,7 +5146,7 @@ TypeMap fun for operator walksp
 
 ListExpr OpTMWalkSPTypeMap ( ListExpr args )
 {
-  if ( nl->ListLength ( args ) != 7 )
+  if ( nl->ListLength ( args ) != 5 )
   {
     return ( nl->SymbolAtom ( "typeerror" ) );
   }
@@ -5142,50 +5155,34 @@ ListExpr OpTMWalkSPTypeMap ( ListExpr args )
   ListExpr arg2 = nl->Third(args);
   ListExpr arg3 = nl->Fourth(args);
   ListExpr arg5 = nl->Fifth(args);
-  ListExpr arg6 = nl->Sixth(args);
-  ListExpr arg7 = nl->Nth(7, args);
-
+  
+  if(!IsRelDescription(arg2))
+    return listutils::typeError("para3 should be a relation");
+    
   ListExpr xType;
   nl->ReadFromString(VisualGraph::QueryTypeInfo, xType);
   if(!CompareSchemas(arg2, xType))return nl->SymbolAtom ( "typeerror" );
 
+  if(!IsRelDescription(arg3))
+  return listutils::typeError("para4 should be a relation");
+  
   if(!CompareSchemas(arg3, xType))return nl->SymbolAtom ( "typeerror" );
 
 
+  if(!IsRelDescription(arg5))
+  return listutils::typeError("para5 should be a relation");
+  
   ListExpr xType2;
   nl->ReadFromString(DualGraph::TriangleTypeInfo3, xType2);
   if(!CompareSchemas(arg5, xType2))return nl->SymbolAtom ( "typeerror" );
 
-  ListExpr xType4;
-  nl->ReadFromString(DualGraph::TriangleTypeInfo4, xType4);
-  if(!CompareSchemas(arg6, xType4))return nl->SymbolAtom ( "typeerror" );
-
-  if(!listutils::isBTreeDescription(arg7))
-    return nl->SymbolAtom("typeerror");
-
+  
 
   if(nl->IsAtom(arg0) && nl->AtomType(arg0) == SymbolType &&
      nl->SymbolValue(arg0) == "dualgraph"&&
      nl->IsAtom(arg1) && nl->AtomType(arg1) == SymbolType &&
      nl->SymbolValue(arg1) == "visualgraph" ){
 
-/*       ListExpr result =
-          nl->TwoElemList(
-              nl->SymbolAtom("stream"),
-                nl->TwoElemList(
-
-                  nl->SymbolAtom("tuple"),
-                      nl->ThreeElemList(
-                        nl->TwoElemList(nl->SymbolAtom("oid1"),
-                                    nl->SymbolAtom("int")),
-                        nl->TwoElemList(nl->SymbolAtom("oid2"),
-                                    nl->SymbolAtom("int")),
-                        nl->TwoElemList(nl->SymbolAtom("connection"),
-                                    nl->SymbolAtom("line"))
-                  )
-                )
-          );
-    return result;*/
 
     return nl->SymbolAtom("line");
   }
@@ -5200,7 +5197,7 @@ TypeMap fun for operator testwalksp
 
 ListExpr OpTMTestWalkSPTypeMap ( ListExpr args )
 {
-  if ( nl->ListLength ( args ) != 7 )
+  if ( nl->ListLength ( args ) != 5 )
   {
     return ( nl->SymbolAtom ( "typeerror" ) );
   }
@@ -5209,26 +5206,27 @@ ListExpr OpTMTestWalkSPTypeMap ( ListExpr args )
   ListExpr arg2 = nl->Third(args);
   ListExpr arg3 = nl->Fourth(args);
   ListExpr arg5 = nl->Fifth(args);
-  ListExpr arg6 = nl->Sixth(args);
-  ListExpr arg7 = nl->Nth(7, args);
-
+  
+  if(!IsRelDescription(arg2))
+    return listutils::typeError("para3 should be a relation");
+  
   ListExpr xType;
   nl->ReadFromString(VisualGraph::QueryTypeInfo, xType);
   if(!CompareSchemas(arg2, xType))return nl->SymbolAtom ( "typeerror" );
 
+  if(!IsRelDescription(arg3))
+    return listutils::typeError("para4 should be a relation");
+  
   if(!CompareSchemas(arg3, xType))return nl->SymbolAtom ( "typeerror" );
 
+
+  if(!IsRelDescription(arg5))
+    return listutils::typeError("para5 should be a relation");
 
   ListExpr xType2;
   nl->ReadFromString(DualGraph::TriangleTypeInfo3, xType2);
   if(!CompareSchemas(arg5, xType2))return nl->SymbolAtom ( "typeerror" );
 
-  ListExpr xType4;
-  nl->ReadFromString(DualGraph::TriangleTypeInfo4, xType4);
-  if(!CompareSchemas(arg6, xType4))return nl->SymbolAtom ( "typeerror" );
-
-  if(!listutils::isBTreeDescription(arg7))
-    return nl->SymbolAtom("typeerror");
 
 
   if(nl->IsAtom(arg0) && nl->AtomType(arg0) == SymbolType &&
@@ -9327,6 +9325,68 @@ ListExpr OpTMGetRect1TypeMap ( ListExpr args )
 
 }
 
+/*
+TypeMap fun for operator path to building.
+build the connection between the entrance of the building and pavement 
+
+*/
+
+ListExpr OpTMPathToBuildingTypeMap ( ListExpr args )
+{
+  if ( nl->ListLength ( args ) != 3 )
+  {
+    return  nl->SymbolAtom ( "list length should be 3" );
+  }
+  ListExpr param1 = nl->First ( args );
+  if(!IsRelDescription(param1))
+    return nl->SymbolAtom ( "typeerror: param1 should be a relation" );
+
+  ListExpr xType1;
+  nl->ReadFromString(MaxRect::BuildingRectTypeInfo, xType1); 
+  if(!CompareSchemas(param1, xType1)){
+      string err = "rel (tuple ((reg_id int) (geoData rect) (poly_id int) \
+                   (reg_type int))) expected";
+      return listutils::typeError(err);
+  }
+
+  ListExpr param2 = nl->Second ( args );
+  if(!IsRelDescription(param2))
+    return nl->SymbolAtom ( "typeerror: param2 should be a relation" );
+
+  ListExpr xType2;
+  nl->ReadFromString(MaxRect::RegionElemTypeInfo, xType2); 
+  if(!CompareSchemas(param2, xType2)){
+      string err = "rel (tuple ((id int) (covarea region))) expected";
+      return listutils::typeError(err);
+  }
+
+
+  ListExpr param3 = nl->Third(args);
+  if(!listutils::isBTreeDescription(param3))
+    return nl->SymbolAtom ( "typeerror: param3 should be a btree" );
+
+  ListExpr res = nl->TwoElemList(
+            nl->SymbolAtom("stream"),
+            nl->TwoElemList(
+                nl->SymbolAtom("tuple"),
+                nl->FourElemList(
+                    nl->TwoElemList(
+                        nl->SymbolAtom("reg_id"),
+                        nl->SymbolAtom("int")),
+                    nl->TwoElemList(
+                        nl->SymbolAtom("sp"),
+                        nl->SymbolAtom("point")),
+                    nl->TwoElemList(
+                        nl->SymbolAtom("ep"),
+                        nl->SymbolAtom("point")), 
+                    nl->TwoElemList(
+                        nl->SymbolAtom("Path"),
+                        nl->SymbolAtom("line"))
+                    )));
+
+      return res;
+
+}
 
 /*
 TypeMap fun for operator remove dirty 
@@ -10323,62 +10383,14 @@ int OpTMWalkSPValueMap ( Word* args, Word& result, int message,
                          Word& local, Supplier in_pSupplier )
 {
 
-/*  Walk_SP* wsp;
-  switch(message){
-      case OPEN:{
-        DualGraph* dg = (DualGraph*)args[0].addr;
-        VisualGraph* vg = (VisualGraph*)args[1].addr;
-        Relation* r1 = (Relation*)args[2].addr;
-        Relation* r2 = (Relation*)args[3].addr;
-        Relation* r3 = (Relation*)args[4].addr;
-        Relation* r4 = (Relation*)args[5].addr;
-
-        wsp = new Walk_SP(dg, vg, r1, r2);
-        wsp->rel3 = r3;
-        wsp->rel4 = r4;
-        wsp->btree = (BTree*)args[6].addr;
-        wsp->resulttype =
-            new TupleType(nl->Second(GetTupleResultType(in_pSupplier)));
-        wsp->WalkShortestPath();
-        local.setAddr(wsp);
-        return 0;
-      }
-      case REQUEST:{
-          if(local.addr == NULL) return CANCEL;
-          wsp = (Walk_SP*)local.addr;
-          if(wsp->count == wsp->oids1.size())
-                          return CANCEL;
-
-          Tuple* tuple = new Tuple(wsp->resulttype);
-          tuple->PutAttribute(0, new CcInt(true,wsp->oids1[wsp->count]));
-          tuple->PutAttribute(1, new CcInt(true, wsp->oids2[wsp->count]));
-          tuple->PutAttribute(2, new Line(wsp->path[wsp->count]));
-          result.setAddr(tuple);
-          wsp->count++;
-          return YIELD;
-      }
-      case CLOSE:{
-
-          if(local.addr){
-            wsp = (Walk_SP*)local.addr;
-            delete wsp;
-            local.setAddr(Address(0));
-          }
-          return 0;
-      }
-  }*/
-
       DualGraph* dg = (DualGraph*)args[0].addr;
       VisualGraph* vg = (VisualGraph*)args[1].addr;
       Relation* r1 = (Relation*)args[2].addr;
       Relation* r2 = (Relation*)args[3].addr;
       Relation* r3 = (Relation*)args[4].addr;
-      Relation* r4 = (Relation*)args[5].addr;
-  
+
       Walk_SP* wsp = new Walk_SP(dg, vg, r1, r2);
       wsp->rel3 = r3;
-      wsp->rel4 = r4;
-      wsp->btree = (BTree*)args[6].addr;
 
       result = qp->ResultStorage(in_pSupplier);
       Line* res = static_cast<Line*>(result.addr);
@@ -10406,12 +10418,11 @@ int OpTMTestWalkSPValueMap ( Word* args, Word& result, int message,
         Relation* r1 = (Relation*)args[2].addr;
         Relation* r2 = (Relation*)args[3].addr;
         Relation* r3 = (Relation*)args[4].addr;
-        Relation* r4 = (Relation*)args[5].addr;
+
 
         wsp = new Walk_SP(dg, vg, r1, r2);
         wsp->rel3 = r3;
-        wsp->rel4 = r4;
-        wsp->btree = (BTree*)args[6].addr;
+
         wsp->resulttype =
             new TupleType(nl->Second(GetTupleResultType(in_pSupplier)));
 
@@ -14077,7 +14088,7 @@ int OpTMGetRect1ValueMap ( Word* args, Word& result, int message,
         max_rect->resulttype =
             new TupleType(nl->Second(GetTupleResultType(in_pSupplier)));
 
-        max_rect->GetRectangle2(attr1, attr2);
+        max_rect->GetRectangle1(attr1, attr2);
         local.setAddr(max_rect);
         return 0;
       }
@@ -14110,6 +14121,64 @@ int OpTMGetRect1ValueMap ( Word* args, Word& result, int message,
   return 0;
   
 }
+
+
+/*
+build the connection between the entrance of the building and the pavement 
+
+*/
+int OpTMPathToBuildingValueMap ( Word* args, Word& result, int message,
+                         Word& local, Supplier in_pSupplier )
+{
+  MaxRect* max_rect;
+  switch(message){
+      case OPEN:{
+
+        Relation* r1 = (Relation*)args[0].addr;
+        Relation* r2 = (Relation*)args[1].addr;
+        BTree* btree = (BTree*)args[2].addr; 
+
+        max_rect = new MaxRect(r1, r2, btree);
+        max_rect->resulttype =
+            new TupleType(nl->Second(GetTupleResultType(in_pSupplier)));
+
+        max_rect->PathToBuilding();
+        local.setAddr(max_rect);
+        return 0;
+      }
+      case REQUEST:{
+          if(local.addr == NULL) return CANCEL;
+          max_rect = (MaxRect*)local.addr;
+          if(max_rect->count == max_rect->reg_id_list.size())return CANCEL;
+
+          Tuple* tuple = new Tuple(max_rect->resulttype);
+          tuple->PutAttribute(0, 
+                       new CcInt(true,max_rect->reg_id_list[max_rect->count]));
+          tuple->PutAttribute(1, 
+                       new Point(max_rect->sp_list[max_rect->count]));
+          tuple->PutAttribute(2, 
+                       new Point(max_rect->ep_list[max_rect->count]));
+          tuple->PutAttribute(3, 
+                       new Line(max_rect->path_list[max_rect->count]));
+
+
+          result.setAddr(tuple);
+          max_rect->count++;
+          return YIELD;
+      }
+      case CLOSE:{
+          if(local.addr){
+            max_rect = (MaxRect*)local.addr;
+            delete max_rect;
+            local.setAddr(Address(0));
+          }
+          return 0;
+      }
+  }
+  return 0;
+
+}
+
 
 
 /*
@@ -14985,6 +15054,16 @@ Operator getrect1(
   OpTMGetRect1TypeMap //type mapping 
 );
 
+
+Operator path_to_building(
+  "path_to_building",  //name 
+  OpTMPathToBuildingSpec, //specification
+  OpTMPathToBuildingValueMap, //value mapping 
+  Operator::SimpleSelect,
+  OpTMPathToBuildingTypeMap //type mapping 
+);
+
+
 /*
 Main Class for Transportation Mode
 
@@ -15066,13 +15145,13 @@ class TransportationModeAlgebra : public Algebra
     AddOperator(&setpave_rid);//set rid value for each pavement 
     AddOperator(&pave_loc_togp);//map pavements locations to gpoints 
     ///////////////////dual graph/////////////////////////////////////
-    AddOperator(&zval);
-    AddOperator(&zcurve);
+    AddOperator(&zval);//z-order value of a point
+    AddOperator(&zcurve);//create a curve for the points sorted by z-order
     AddOperator(&regvertex);
     AddOperator(&triangulation_new);
     AddOperator(&get_dg_edge);
     AddOperator(&getadjnode_dg);
-    AddOperator(&smcdgte);
+    AddOperator(&smcdgte);//simple method to create dual graph, traverse RTree
     ////////////////////data process///////////////////////////////////
     AddOperator(&generate_wp1);
     AddOperator(&generate_wp2);
@@ -15173,10 +15252,14 @@ class TransportationModeAlgebra : public Algebra
     /////////////////  others  /////////////////////////////////////////
     AddOperator(&instant2day); 
     AddOperator(&outputregion);//output the vertices in correct order 
+    ////////////////////////////////////////////////////////////////////
+    //////////////////2D areas for buildings///////////////////////////
+    ///////////////////////////////////////////////////////////////////
     AddOperator(&maxrect); //get the maximum rect in a region
     AddOperator(&remove_dirty); //clear dirty data 
     AddOperator(&getrect1); //get all rectangles for buildings 
     AddOperator(&getrect2); //randomly select some of them from input int
+    AddOperator(&path_to_building);//connect building entrance and pavement
     /////////non-temporal operators for generic data types////////////////////
     AddOperator(&ref_id); 
     /////////temporal operators for generic data types////////////////////

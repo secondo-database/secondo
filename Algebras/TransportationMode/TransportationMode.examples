@@ -108,14 +108,14 @@ Result   : 77
 
 Operator : walk_sp
 Number   : 2
-Signature: dualgraph x visualgraph x rel1 x rel2 x rel3 x rel4 x btree -> line
-Example  : query walk_sp(dg1, vg1, query_loc1, query_loc2, tri_reg_new, vertex_tri, btr_vid);
+Signature: dualgraph x visualgraph x rel1 x rel2 x rel3  -> line
+Example  : query walk_sp(dg1, vg1, query_loc1, query_loc2, tri_reg_new);
 Result   : file_platform
 
 Operator : test_walk_sp
 Number   : 2
-Signature: dualgraph x visualgraph x rel1 x rel2 x rel3 x rel4 x btree -> line
-Example  : query test_walk_sp(dg1, vg1, query_loc1 feed head[1] consume, query_loc1 feed head[2] consume, tri_reg_new, vertex_tri, btr_vid);
+Signature: dualgraph x visualgraph x rel1 x rel2 x rel3 -> line
+Example  : query test_walk_sp(dg1, vg1, query_loc1 feed head[1] consume, query_loc1 feed head[2] consume, tri_reg_new);
 Result   : file_platform
 
 Operator: setpave_rid
@@ -725,6 +725,13 @@ Example  : query getrect1(new_region_elems, id, covarea) count;
 Result   : 20 
 
 
+Operator : path_to_building 
+Number   : 1
+Signature: rel1 x rel2 x btree-> (stream(((x1 t1) ... (xn tn))))
+Example  : query path_to_building(building_rect, new_region_elems, btree_region_elem) count;
+Result   : 20 
+
+
 Operator : remove_dirty 
 Number   : 1
 Signature: rel x attr1 x attr2 -> (stream(((x1 t1) ... (xn tn))))
@@ -791,6 +798,6 @@ Result   : 1
 Operator : genmo_tm_list
 Number   : 1
 Signature: bool -> (stream(((x1 t1) ... (xn tn))))
-Example  : query genmo_tm_list(true) count;
+Example  : query genmo_tm_list(TRUE) count;
 Result   : 5
 
