@@ -1534,10 +1534,10 @@ feedproject_vm(Word* args, Word& result, int message, Word& local, Supplier s)
 const string FeedSpec  =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" "
   "\"Example\" ) "
-  "( <text>(rel x) -> (stream x)</text--->"
+  "( <text>rel(X) | trel(X) | orel(X,Y) -> stream(X)</text--->"
   "<text>_ feed</text--->"
-  "<text>Produces a stream from a relation by "
-  "scanning the relation tuple by tuple.</text--->"
+  "<text>Produces a stream from a relation, temporal relation, or ordered "
+  "relation by scanning the relation tuple by tuple.</text--->"
   "<text>query cities feed consume</text--->"
   ") )";
 
@@ -3563,8 +3563,10 @@ TCountTypeMap(ListExpr args)
   ListExpr arg = nl->First(args);
   if(!listutils::isRelDescription(arg,true) &&
      !listutils::isRelDescription(arg,false) &&
+     !listutils::isOrelDescription(arg) &&
      !listutils::isTupleStream(arg)){
-    ErrorReporter::ReportError( "rel(tuple(...)) or (trel(tuple(...))"
+    ErrorReporter::ReportError( "rel(tuple(...)), orel(tuple(...),(...)), "
+                                " (trel(tuple(...))"
                                 " or stream(tuple(...)) expected");
     return nl->TypeError();
   }
@@ -3851,11 +3853,12 @@ TCountStream2(Word* args, Word& result, int message,
 const string TCountSpec  =
 "( ( \"Signature\" \"Syntax\" \"Meaning\" "
 "\"Example\" ) "
-"( <text>((stream/rel (tuple x))) -> int"
+"( <text>stream(tuple X) -> int, \n"
+"rel(tuple(X) | orel(tuple(X) | trel(tuple(X) -> int"
 "</text--->"
 "<text>_ count</text--->"
 "<text>Count number of tuples within a stream "
-"or a relation of tuples.</text--->"
+"or a relation (persistent, temporal, or ordered) of tuples.</text--->"
 "<text>query cities count or query cities "
 "feed count</text--->"
 ") )";
@@ -3871,7 +3874,8 @@ TCountSelect( ListExpr args )
   if (TypeOfRelAlgSymbol(nl->First(first)) == stream)
     return 0;
   else if( TypeOfRelAlgSymbol(nl->First(first)) == rel
-           || TypeOfRelAlgSymbol(nl->First(first)) == trel )
+           || TypeOfRelAlgSymbol(nl->First(first)) == trel 
+           || listutils::isOrelDescription(first))
     return 1;
   return -1;
 }
