@@ -232,307 +232,10 @@ Necessary to difference between an empty and an undefined collection.
 //#define DEBUG
 //#define DEBUGHEAD
 
-
-#include "Algebra.h"
-#include "NestedList.h"
-#include "NList.h"
-#include "LogMsg.h"
-#include "QueryProcessor.h"
-#include "ConstructorTemplates.h"
-#include "StandardTypes.h"
-#include "Attribute.h"
-#include "../../Tools/Flob/Flob.h"
-#include "../../Tools/Flob/DbArray.h"
-
-
-extern NestedList* nl;
-extern QueryProcessor* qp;
-
-#include "TypeMapUtils.h"
-#include "Symbols.h"
-
-using namespace symbols;
-using namespace mappings;
-
-#include <vector>
-#include <string>
+#include "CollectionAlgebra.h"
 using namespace std;
 
-/*
-3 Implementation of types
-
-*/
-namespace collection {
-
-  enum CollectionType {vector, set, multiset, undef};
-
-/*
-3.1 Class header
-
-*/
-  class Collection : public Attribute {
-    public:
-
-    Collection(CollectionType type, const ListExpr typeInfo,
-                  const int buckets = 10);
-
-    Collection(const Collection& coll, bool empty = false);
-
-    Collection(CollectionType type);//only to be used in Create-function
-
-    ~Collection();
-
-
-    static Word In(const ListExpr typeInfo, const ListExpr instance,
-                   const int errorPos, ListExpr& errorInfo, bool& correct);
-
-    static ListExpr Out(ListExpr typeInfo, Word value);
-
-    static Word Create(const ListExpr typeInfo);
-
-    static void Delete(const ListExpr typeInfo, Word& w);
-
-    static void Close(const ListExpr typeInfo, Word& w);
-
-    static Word Clone (const ListExpr typeInfo, const Word& w);
-
-    static bool KindCheck(ListExpr type, ListExpr& errorInfo);
-
-    static int SizeOfObj();
-
-    size_t Sizeof() const;
-
-    int NumOfFLOBs() const;
-
-    Flob* GetFLOB(const int i);
-
-    static bool Open(SmiRecord& valueRecord, size_t& offset,
-                     const ListExpr typeInfo, Word& value);
-
-    static bool Save(SmiRecord& valueRecord, size_t& offset,
-                     const ListExpr typeInfo, Word& value);
-
-    int Compare(const Attribute* arg) const;
-
-    size_t HashValue() const;
-
-    void Sort();
-
-    void CopyFrom(const Attribute* right);
-
-    bool Adjacent(const Attribute* arg) const;
-
-    Collection* Clone() const;
-
-    void Finish();
-
-    ostream& Print( ostream& os ) const;
-
-    static void* Cast(void* addr);
-
-    void Insert(Attribute* elem, const int count);
-/*
-Inserts elem count times.
-
-If the collection is a set, the elem is only inserted once, and only, if it
-isn't inserted yet.
-
-If the collection is a multiset, we have two cases:
-
-Case 1: The element is inserted already.
-
-In this case we just increment elemCount of this element with count.
-
-Case 2: The element is not inserted yet.
-
-In this case we save this element in our FLOB and set elemCount of this
-element to count.
-
-If the collection is a vector, the element is saved, if it hasn't been saved
-yet and the index of this element is inserted in elemArrayIndex count times.
-
-*/
-
-    CollectionType GetMyCollType() const;
-
-//     ListExpr GetMyTypeInfo() const;
-
-    int Contains(const Attribute* elem) const;
-/*
-If our collection is a vector or set, it returns 1 if elem is contained, else
-0. If our collection is a multiset, it returns, how often elem is contained.
-
-*/
-
-    Attribute* GetComponent(const int pos) const;
-/*
-Returns the component at position pos.
-
-Note that in case of a multiset, we only return every element once, regardless
-of how often this element is contained. So the maximum position is not
-GetNoComponents(), but GetNoUniqueComponents()!
-
-*/
-
-    int GetComponentCount(const int pos) const;
-/*
-Returns, how often this element is contained in our collection.
-
-If our collection is a vector or a set, only 0 (is not contained) or 1 (is
-contained) is returned.
-
-Consider the remarks about GetComponent(pos)!
-
-*/
-
-    int GetNoComponents() const;
-/*
-Returns the number of components contained in our collection.
-
-NOT to be used as limit for position of a GetComponent(pos) or
-GetComponentCount(pos) call.
-
-Use GetNoUniqueComponents() instead!
-
-*/
-
-    int GetNoUniqueComponents() const;
-/*
-Returns the number of components contained in our collection.
-
-Since for a multiset it counts every element only once, regardless of how often
-it is realy contained, this function is to be used as limit for
-GetComponent(pos) or GetComponentCount(pos).
-
-*/
-
-    Collection* Union(const Collection* coll) const;
-
-    Collection* Intersection(const Collection* coll) const;
-
-    Collection* Difference(const Collection* coll) const;
-
-    Collection* Delete(const Attribute* elem) const;
-
-    void Clear();
-
-/*
-Resets the Collection to well-defined settings.
-Does NOT change the ~defined~ flag!
-
-*/
-
-
-    private:
-    Collection() {}
-
-    static void GetIds(int& algebraId, int& typeId, const ListExpr typeInfo);
-/*
-Sets the algebraId and typeId to the Ids of our subtype, given with
-nl->Second(typeInfo).
-
-*/
-
-    void SortMerge(const int start, const int end);
-/*
-fehlt noch was
-
-*/
-
-    static CollectionType GetCollType(const ListExpr coll);
-
-    int GetIndex(const Attribute* elem) const;
-/*
-If the result is greater than -1, you can get elem by calling
-RestoreComponent(result) or GetComponent(result).
-If elem is not saved yet, -1 is returned.
-
-*/
-
-    void InsertIndex(const Attribute* elem, const int index);
-
-    void SaveComponent(Attribute* elem, const int count);
-
-    Attribute* RestoreComponent(const int pos) const;
-
-    void AddHashValue(const int value, const int count);
-
-    int elemAlgId, elemTypeId;
-    int size;
-/*
-If our collection is a multiset, we use this variable to save the number of
-our components.
-
-*/
-
-    int numOfBuckets;
-/*
-Number of buckets used for our element hashing.
-See firstElemHashValue and nextElemHashValue.
-
-*/
-
-    size_t hashValue;
-    CollectionType collType;
-
-    DbArray<size_t> elemFLOBDataOffset;
-/*
-We use this DBArray to save the offsets at which the FLOB contents of the
-elements are saved in elementData;
-
-*/
-
-    DbArray<int> elemCount;
-/*
-This DBArray is used only, if our collection is a multiset, to save the count
-of every element.
-
-*/
-
-    DbArray<int> elemArrayIndex;
-/*
-Returns the index for every element, where index[*]sizeOfObj is the
-offset of the desired elem in the elements FLOB.
-Also, elemFLOBDataOffset(index) returns the offset, where
-the contents of the FLOBs of the desired element are saved.
-
-Used for faster sorting of set and multiset, since we only must sort this array
-instead of the arrays elemData, elemDataEnd, elemCount, firstElemHashValue and
-nextElemHashValue, which all depend on each other.
-
-Also we only have to save every element once.
-If it has to be inserted again, we just append the index belonging to this
-element to elemArrayIndex (if the collection is a vector), or we increment
-elemCount(index) (if the collection is a multiset).
-
-*/
-
-    DbArray<int> firstElemHashValue;
-    DbArray<int> nextElemHashValue;
-/*
-To allow a fast search of an element, we save the index of the first element
-with (hashvalue mod numOfBuckets) in this array at (hashvalue mod
-numOfBuckets).
-If another element has (hashvalue mod numOfBuckets) its index is saved at
-nextElemHashValue(index of first element).
-If an element is inserted, at nextElemHashValue(index of this element) a -1 is
-saved.
-
-If we choose our numOfBuckets reasonable, searching an element becomes very
-fast.
-
-*/
-
-    Flob elements;
-    Flob elementData;
-/*
-In this FLOB we save the data of our elements.
-
-*/
-
-  }; //end of class Collection
-
-
+using namespace collection;
 /*
 3.2 Implementation of class functions
 
@@ -545,6 +248,7 @@ Create a Collection of type (vector, set, multiset or undef) with typeInfo.
 */
   Collection::Collection(const CollectionType type, const ListExpr typeInfo,
                                 const int buckets /* = 10 */):
+    ::Attribute(false),
     size(0), hashValue(0), collType(type),
     elemFLOBDataOffset(0), elemCount(0), elemArrayIndex(0),
     firstElemHashValue(0), nextElemHashValue(0),
@@ -570,6 +274,7 @@ Create a Collection by copying all data from coll.
 
 */
   Collection::Collection(const Collection& coll, const bool empty /* =false */):
+    ::Attribute(false),
     elemFLOBDataOffset(0), elemCount(0), elemArrayIndex(0),
     firstElemHashValue(0), nextElemHashValue(0), elements(0), elementData(0)
   {
@@ -611,6 +316,7 @@ of our subtype there.
 
 */
   Collection::Collection(CollectionType type):
+    ::Attribute(false),
     elemAlgId(0), elemTypeId(0), size(0), numOfBuckets(0),
     hashValue(0), collType(type), elemFLOBDataOffset(0),
     elemCount(0), elemArrayIndex(0), firstElemHashValue(0),
@@ -688,14 +394,16 @@ cout << "In" << endl << "    TypeInfo: " << nl->ToString(typeInfo) << endl;
       }
       if(correct) {
         coll->Insert(static_cast<Attribute*>(elemWord.addr), count);
-        (static_cast<Attribute*>(elemWord.addr))->DeleteIfAllowed(true);
+        (static_cast<Attribute*>(elemWord.addr))->DestroyFlobs();
+        (static_cast<Attribute*>(elemWord.addr))->DeleteIfAllowed(false);
       }
     }
     if(correct) {
       coll->Finish();
       w.addr = coll;
     } else {
-      coll->DeleteIfAllowed(true);
+      coll->DestroyFlobs();
+      coll->DeleteIfAllowed(false);
     }
     return w;
   }
@@ -736,7 +444,8 @@ cout << "Out" << endl
     }
     ListExpr last = ret;
     for(int i=1;i<size;i++) {
-      elem->DeleteIfAllowed(true); elem = 0;
+      elem->DestroyFlobs();
+      elem->DeleteIfAllowed(false); elem = 0;
       elem = coll->GetComponent(i);
       elemExpr = (am->OutObj(coll->elemAlgId, coll->elemTypeId))
                               (subtypeInfo, SetWord(elem));
@@ -751,7 +460,8 @@ cout << "Out" << endl
       last = nl->Append(last, app);
     }
     if(elem){
-      elem->DeleteIfAllowed(true);
+      elem->DestroyFlobs();
+      elem->DeleteIfAllowed(false);
     }
     return ret;
   }
@@ -766,12 +476,22 @@ Creates an empty, undefined collection without subtype for the Query Processor.
 #ifdef DEBUGHEAD
 cout << "Create: " << nl->ToString(typeInfo) << endl;
 #endif
+
+ if (nl -> IsEmpty(typeInfo))
+   {
+#ifdef DEBUGHEAD
+     cout << "returning Empty Collection" << endl;
+#endif
+     return (SetWord(new Collection(undef))); // create an undefined collection
+   }
+
     Word w = SetWord(Address(0));
     if(nl->ListLength(typeInfo)!=2) {
       cout << "  Statusbericht Create: Liste != 2!" << endl;
       assert(false);
       return w;
     }
+
     ListExpr collTypeInfo;
     if(nl->IsAtom(nl->First(typeInfo))) {
 #ifdef DEBUG
@@ -781,6 +501,7 @@ cout << "Create: " << nl->ToString(typeInfo) << endl;
     } else {
       collTypeInfo = nl->First(typeInfo);
     }
+
     CollectionType collType = GetCollType(collTypeInfo);
     if(collType==undef) {
 #ifdef DEBUG
@@ -788,6 +509,7 @@ cout << "Create: " << nl->ToString(typeInfo) << endl;
 #endif
       return w;
     }
+
     Collection* coll;
     if(nl->IsAtom(nl->First(typeInfo))) {
       coll = new Collection(collType);
@@ -971,8 +693,8 @@ arg.
           Attribute* elem1 = GetComponent(eCnt);
           Attribute* elem2 = collToCompare->GetComponent(eCnt);
           compareResult = elem1->Compare(elem2);
-          elem1->DeleteIfAllowed(true);
-          elem2->DeleteIfAllowed(true);
+          elem1->DestroyFlobs(); elem1->DeleteIfAllowed(false);
+          elem2->DestroyFlobs(); elem2->DeleteIfAllowed(false);
           if(compareResult != 0){
               return compareResult;
           }
@@ -1092,7 +814,8 @@ cout << "Print" << endl;
         os << "(contained " << times << " times).";
       }
       os << endl;
-      elem->DeleteIfAllowed(true);
+      elem->DestroyFlobs();
+      elem->DeleteIfAllowed(false);
     }
     os << "--- Elements: end ---" << endl;
 #ifdef DEBUG
@@ -1327,7 +1050,8 @@ cout << "SortMerge" << endl;
         elemArrayIndex.Get(pointer2, &index);
         pointer2++;
         if(pointer2<=end) {
-          elem2->DeleteIfAllowed(true);
+          elem2->DestroyFlobs();
+          elem2->DeleteIfAllowed(false);
           elem2 = GetComponent(pointer2);
         } else {
           finished = true;
@@ -1336,7 +1060,8 @@ cout << "SortMerge" << endl;
         elemArrayIndex.Get(pointer1, &index);
         pointer1++;
         if(pointer1<=middle) {
-          elem1->DeleteIfAllowed(true);
+          elem1->DestroyFlobs();
+          elem1->DeleteIfAllowed(false);
           elem1 = GetComponent(pointer1);
         } else {
           finished = true;
@@ -1365,8 +1090,8 @@ cout << "SortMerge" << endl;
       pointer3++;
     }
     delete[] help;
-    if(elem1){  elem1->DeleteIfAllowed(true); }
-    if(elem2){  elem2->DeleteIfAllowed(true); }
+    if(elem1){ elem1->DestroyFlobs(); elem1->DeleteIfAllowed(false); }
+    if(elem2){ elem2->DestroyFlobs(); elem2->DeleteIfAllowed(false); }
   }
 
   CollectionType Collection::GetCollType(const ListExpr collTypeInfo) {
@@ -1521,7 +1246,8 @@ cout << "  Statusbericht GetIndex-Funktion:" << endl
     while(index>-1) {
       Attribute* elem2 = RestoreComponent(index);
       int comp = elem->Compare(elem2);
-      elem2->DeleteIfAllowed(true);
+      elem2->DestroyFlobs();
+      elem2->DeleteIfAllowed(false);
       if(comp==0) {
         return index;
       }
@@ -1750,7 +1476,7 @@ cout << "ContainsInValueMap" << endl;
     }
 
     int contained = coll->Contains(elem);
-    if(coll->GetMyCollType()==multiset) {
+    if(coll->GetMyCollType()==collection::multiset) {
       (static_cast<CcInt*>(result.addr))->Set(true, contained);
     } else {
       (static_cast<CcBool*>(result.addr))->Set(true, (contained==1));
@@ -1884,10 +1610,10 @@ cout << "CreateTypeMap: " << nl->ToString(args) << endl;
 #endif
     string resultType;
     switch(collType) {
-      case vector:
+    case collection::vector:
         resultType = VECTOR;
         break;
-      case set:
+      case collection::set:
         resultType = SET;
         break;
       default:
@@ -1996,15 +1722,15 @@ cout << "CollectTypeMap: " << nl->ToString(args) << endl;
       string resultType;
 
       switch(targetType){
-      case vector:
+      case collection::vector:
         operatorName = "collect_vector";
         resultType = "vector";
         break;
-      case set:
+      case collection::set:
         operatorName = "collect_set";
         resultType = "set";
         break;
-      case multiset:
+      case collection::multiset:
         operatorName = "collect_multiset";
         resultType = "multiset";
         break;
@@ -2222,6 +1948,7 @@ cout << "ComponentsValueMap" << endl;
 
   };
 
+namespace collection {
 /*
 4.6 Implementation of operator get
 
@@ -2285,7 +2012,8 @@ cout << "GetValueMap" << endl;
     }else{
       Attribute* elem = sourceColl->GetComponent(indexVal);
       resAttribute->CopyFrom(elem);
-      elem->DeleteIfAllowed(true);
+      elem->DestroyFlobs();
+      elem->DeleteIfAllowed(false);
     }
 
     return 0;
@@ -2370,7 +2098,7 @@ cout << "DeleteTypeMap" << endl;
         if(componentCount > 0){
           resColl->Insert(elem, componentCount);
         }
-        if(elem) { elem->DeleteIfAllowed(true); }
+        if(elem) { elem->DestroyFlobs(); elem->DeleteIfAllowed(false); }
       }
       resColl->Finish();
     }
@@ -2448,7 +2176,7 @@ cout << "ConcatValueMap" << endl;
     for(int eCnt = 0; eCnt < vector2->GetNoUniqueComponents(); eCnt++){
         Attribute* elem = vector2->GetComponent(eCnt);
         resVector->Insert(elem, 1);
-        elem->DeleteIfAllowed(true);
+        elem->DestroyFlobs(); elem->DeleteIfAllowed(false);
     }
     resVector->Finish();
     return 0;
@@ -2635,16 +2363,18 @@ cout << "MathSetTypeMap" << endl;
       coll1Ended = (noColl1Components <= elementIdx1);
       coll2Ended = (noColl2Components <= elementIdx2);
       if(elem1 && restore1) {
-        elem1->DeleteIfAllowed(true);
+        elem1->DestroyFlobs();
+        elem1->DeleteIfAllowed(false);
         elem1 = 0;
       }
       if(elem2 && restore2) {
-        elem2->DeleteIfAllowed(true);
+        elem2->DestroyFlobs();
+        elem2->DeleteIfAllowed(false);
         elem2 = 0;
       }
     }
-    if(elem1) { elem1->DeleteIfAllowed(true); }
-    if(elem2) { elem2->DeleteIfAllowed(true); }
+    if(elem1) { elem1->DestroyFlobs(); elem1->DeleteIfAllowed(false); }
+    if(elem2) { elem2->DestroyFlobs(); elem2->DeleteIfAllowed(false); }
     for(int iCnt1 = elementIdx1;
                             iCnt1 < coll1->GetNoUniqueComponents(); iCnt1++){
       elem1 = coll1->GetComponent(iCnt1);
@@ -2657,7 +2387,8 @@ cout << "MathSetTypeMap" << endl;
         default:
           break;
       }
-      elem1->DeleteIfAllowed(true);
+      elem1->DestroyFlobs();
+      elem1->DeleteIfAllowed(false);
     }
     for(int iCnt2 = elementIdx2;
                             iCnt2 < coll2->GetNoUniqueComponents(); iCnt2++){
@@ -2670,7 +2401,8 @@ cout << "MathSetTypeMap" << endl;
         default:
           break;
         }
-        elem2->DeleteIfAllowed(true);
+        elem2->DestroyFlobs();
+        elem2->DeleteIfAllowed(false);
     }
     resColl->Finish();
     return 0;
@@ -3026,7 +2758,7 @@ struct isdefInfo : OperatorInfo {
 and operators
 
 */
-  class CollectionAlgebra : public Algebra {
+class CollectionAlgebra : public Algebra {
     public:
     CollectionAlgebra() : Algebra() {
       AddTypeConstructor(&vectorTC);
@@ -3046,17 +2778,17 @@ and operators
       AddOperator(addInfo(), InsertValueMap<false>,
                   InsertTypeMap<false>);
       AddOperator(CreateVectorInfo(), CreateValueMap,
-                  CreateTypeMap<vector>);
+                  CreateTypeMap<collection::vector>);
       AddOperator(CreateSetInfo(), CreateValueMap,
-                  CreateTypeMap<set>);
+                  CreateTypeMap<collection::set>);
       AddOperator(CreateMultisetInfo(), CreateValueMap,
-                  CreateTypeMap<multiset>);
-      AddOperator(collectSetInfo(), CollectValueMap<set>,
-                  CollectTypeMap<set>);
-      AddOperator(collectMultisetInfo(), CollectValueMap<multiset>,
-                  CollectTypeMap<multiset>);
-      AddOperator(collectVectorInfo(), CollectValueMap<vector>,
-                  CollectTypeMap<vector>);
+                  CreateTypeMap<collection::multiset>);
+      AddOperator(collectSetInfo(), CollectValueMap<collection::set>,
+                  CollectTypeMap<collection::set>);
+      AddOperator(collectMultisetInfo(), CollectValueMap<collection::multiset>,
+                  CollectTypeMap<collection::multiset>);
+      AddOperator(collectVectorInfo(), CollectValueMap<collection::vector>,
+                  CollectTypeMap<collection::vector>);
       AddOperator(componentsInfo(), ComponentsValueMap,
                   ComponentsTypeMap);
       AddOperator(getInfo(), GetValueMap,
@@ -3083,10 +2815,7 @@ and operators
     }
     ~CollectionAlgebra() {};
   };
-
-} //end of namespace collection
-
-
+} // end namespace collection
 /*
 6 Initialization
 
