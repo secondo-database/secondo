@@ -1024,6 +1024,44 @@ object.  The automaton is always represented as an nfa.
   }
 
 
+  bool createFrom(int startState, 
+                  const std::vector<State<sigma> >& states, 
+                  const std::set<int>& finalStates){
+
+    // 1check for consistency
+
+    // 1.1 check start state
+    int numOfStates = states.size();
+    if( (startState<0) || (startState >= numOfStates)){
+       return  false;
+    }
+    // 1.2 all elements of finalStates must be valid
+    typename std::set<int>::const_iterator it1;
+    for( it1 = finalStates.begin(); it1 != finalStates.end(); it1++){
+      int s = *it1;
+      if(s<0 || s>=numOfStates){
+         return false;
+      }
+    }
+
+    // 1.2 all targets must be valid states
+    typename std::map<sigma, std::set<int> >::const_iterator it2;
+    for(it2 = states.begin(); it2!=states.end(); it2++){
+       for(it1 = it2->begin(); it1 != it2->end(); it1++){
+         int s = *it1;
+         if(s<0 || s>=numOfStates){
+            return false;
+         }
+       }
+    }
+   
+    this->startState = startState;
+    this->states = states;
+    this->finalStates = finalStates;
+ }
+
+
+
 private:
  
 /*
