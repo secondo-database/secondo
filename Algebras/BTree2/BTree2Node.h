@@ -1000,7 +1000,7 @@ void BTreeNode<KEYTYPE,VALUETYPE>::WriteRecord( SmiRecord& record ) {
     int offset = 0;
     int size = GetSizeInRecord();
     char buffer[size + 1];
-    //memset( buffer, 0, size + 1 );
+    memset( buffer, 0, size + 1 );
 
     // Caveat! ProbeIsInternal depends on the order here
     // Caveat! SizeOfEmptyNode() depends on entries here
