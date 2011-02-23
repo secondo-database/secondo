@@ -731,9 +731,44 @@ Checks for consitency.
 
 */
 bool isConsistent() const{
-  // TODO: implement this function
-  return true;
 
+  if(startState==-1){ // empty automaton
+    if(currentState != -1){
+      return false;
+    }
+    if(transitions.Size()!=0){
+      return false;
+    }
+    if(finalStates.Size()!=0){
+      return false;
+    }
+  }
+
+   // the size of the transitions array must be a multiple 
+   // of the number of symbols
+   if( (transitions.Size() % numOfSymbols) != 0){
+     return false;
+   }
+   int numOfStates = transitions.Size() / numOfSymbols;
+   if(startState <0 || startState>=numOfStates){
+      return false;
+   }
+   if(finalStates.Size() != numOfStates){
+       return false;
+   }
+
+   // it should be exist at least 1 final state
+   bool finalFound = false;
+   for(int i=0;(i<numOfStates) && !finalFound ; i++){
+     bool b;
+     finalStates.Get(i,b);
+     finalFound = finalFound || b;
+   }
+   if(!finalFound){
+      return false;
+   }
+
+   return true;
 }
 
 
