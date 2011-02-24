@@ -1698,7 +1698,21 @@ geometry.
   double Distance(const Rectangle<2>& r) const;
 
 
+/*
+~SetStartSmaller~
 
+*/
+  void SetStartSmaller(const bool smaller) {
+    startSmaller = smaller;
+  }
+
+/*
+~GetStartSmaller~
+
+*/
+bool GetStartSmaller() const {
+  return IsDefined() && startSmaller;
+}
 
 /*
 ~AtPosition~
@@ -1734,7 +1748,7 @@ geometry.
 ~Union~
 
 */
-bool Intersects(const SimpleLine& l) const;
+  bool Intersects(const SimpleLine& l) const;
 
 
 /*
@@ -1794,10 +1808,6 @@ The following functions are needed to act as an attribute type.
   bool SelectSubsequentSegment();
 
   bool getWaypoint(Point& destination) const;
-
-  inline bool GetStartSmaller() const{
-    return startSmaller;
-  }
 
   bool IsCycle()const {
     return isCycle;

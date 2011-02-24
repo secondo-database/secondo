@@ -3175,7 +3175,7 @@ bool HalfSegment::InnerIntersects( const HalfSegment& hs ) const
 
 
 
-  
+
 bool HalfSegment::Intersection( const HalfSegment& hs, Point& resp ) const
 {
   double k, a, K, A;
@@ -3185,12 +3185,12 @@ bool HalfSegment::Intersection( const HalfSegment& hs, Point& resp ) const
     return false;
   }*/
 
-  
+
   if(!BoundingBox().Intersects(hs.BoundingBox())){ //old implementation but ok
     resp.SetDefined(false);
-    return false; 
+    return false;
   }
-  
+
   resp.SetDefined( true );
 
   Coord xl = lp.GetX(),
@@ -3308,7 +3308,7 @@ bool HalfSegment::Intersection( const HalfSegment& hs, Point& resp ) const
 
   return false;
 }
- 
+
 /*bool HalfSegment::Intersection( const HalfSegment& hs, Point& resp ) const {
 
 
@@ -3345,7 +3345,7 @@ bool HalfSegment::Intersection( const HalfSegment& hs, Point& resp ) const
     return false;
   }
 
-  // check for equal direction. 
+  // check for equal direction.
   // if so, only the endpoints must be checked
   if(AlmostEqual(dx1*dy2, dy1*dx2)){
     if(AlmostEqual(lp, hs.rp)){
@@ -3354,13 +3354,13 @@ bool HalfSegment::Intersection( const HalfSegment& hs, Point& resp ) const
     }
     if(AlmostEqual(rp, hs.lp)){
        resp = rp;
-       return true; 
+       return true;
     }
     return false;
   }
 
   // different directions, no overlaps possible
- 
+
   // checks for almost equal endpoints
   if(AlmostEqual(lp,hs.rp) ||
      AlmostEqual(lp,hs.lp)) {
@@ -3369,12 +3369,12 @@ bool HalfSegment::Intersection( const HalfSegment& hs, Point& resp ) const
   }
 
   if( AlmostEqual(rp,hs.rp) ||
-    AlmostEqual(rp,hs.lp)){ 
+    AlmostEqual(rp,hs.lp)){
     resp=rp;
     return true;
   }
 
- 
+
 
   // normal computation: just solve the equations given
   // by the points ;-)
@@ -3386,17 +3386,17 @@ bool HalfSegment::Intersection( const HalfSegment& hs, Point& resp ) const
   if(fabs(dx1) > fabs(dy1)){
 //  if(fabs(dx1) > 0){
     delta2 = ((y0_1-y0_2)*dx1 + (x0_2-x0_1)*dy1) / ((dx1*dy2) - (dx2-dy1));
-    delta1 = (x0_2+delta2*(dx2)-x0_1) / dx1; 
+    delta1 = (x0_2+delta2*(dx2)-x0_1) / dx1;
   } else {
     delta2 = (dy1*(x0_2-x0_1) + dx1*(y0_1-y0_2)) / ( (dy2*dx1) - (dx2*dy1));
     delta1 = (y0_2+delta2*dy2-y0_1) / dy1;
     way1 = false;
   }
 
-  
 
 
-  // corrections from rounding errors 
+
+  // corrections from rounding errors
   if(AlmostEqual(delta1,0) && delta1<0){
     delta1 = 0;
   }
@@ -3413,7 +3413,7 @@ bool HalfSegment::Intersection( const HalfSegment& hs, Point& resp ) const
 
   double x = x0_1+delta1*dx1;
   double y = y0_1+delta1*dy1;
-  
+
   if( (delta1<0) || (delta1>1) || (delta2<0) || (delta2>1) ){
     // intersection point outside one of the segments
     resp.Set(x,y);
@@ -6913,6 +6913,12 @@ int SimpleLine::Compare(const Attribute* arg)const{
   if(segments.Size() > line->segments.Size()){
     return 1;
   }
+  if(startSmaller && !line->startSmaller) {
+    return 1;
+  }
+  if(!startSmaller && line->startSmaller) {
+    return -1;
+  }
   int cmp;
   HalfSegment hs1;
   HalfSegment hs2;
@@ -6938,9 +6944,10 @@ ostream& operator<<(ostream& o, const SimpleLine& cl){
 }
 
 Word
- InSimpleLine( const ListExpr typeInfo, const ListExpr instance,
+ InSimpleLine( const ListExpr typeInfo, const ListExpr instance1,
                const int errorPos, ListExpr& errorInfo, bool& correct ){
 
+ ListExpr instance = instance1;
  correct = true;
  if(nl->IsEqual(instance,"undef")){
     SimpleLine* line = new SimpleLine( 0 );
@@ -6951,6 +6958,14 @@ Word
  if(nl->AtomType(instance)!=NoAtom){
     correct=false;
     return SetWord(Address(0));
+ }
+
+ bool startSmaller = true;
+ if(nl->HasLength(instance,2)){
+   if(nl->AtomType(nl->Second(instance))==BoolType){
+     startSmaller = nl->BoolValue(nl->Second(instance));
+     instance = nl->First(instance);
+   }
  }
  HalfSegment* hs;
  SimpleLine* line= new SimpleLine(10);
@@ -6989,6 +7004,7 @@ Word
    line->DeleteIfAllowed();
    return SetWord(Address(0));
  }else{
+   line->SetStartSmaller(startSmaller);
    return SetWord(line);
  }
 }
@@ -7005,7 +7021,8 @@ Word
    }
 
    if( l->IsEmpty() ){
-     return nl->TheEmptyList();
+     return nl->TwoElemList( nl->TheEmptyList(),
+                             nl->BoolAtom( l->GetStartSmaller() ) );
    }
 
    result = nl->TheEmptyList();
@@ -7031,7 +7048,8 @@ Word
         }
       }
    }
-   return result;
+   return nl->TwoElemList( result,
+                           nl->BoolAtom( l->GetStartSmaller() ) );
 }
 
  Word CreateSimpleLine( const ListExpr typeInfo ) {
@@ -7068,10 +7086,10 @@ int SizeOfSimpleLine() {
               nl->StringAtom("Example List")),
             nl->FourElemList(
               nl->StringAtom("-> DATA"),
-              nl->StringAtom("line"),
-              nl->StringAtom("(<segment>*) where segment is "
-                             "(<x1><y1><x2><y2>)"),
-              nl->StringAtom("( (1 1 2 2)(2 2 1 4) )")));
+              nl->StringAtom("sline"),
+              nl->TextAtom("( (<segment>*) <bool> ) where segment is "
+                             "(<x1><y1><x2><y2>) and bool is TRUE or FALSE"),
+              nl->StringAtom("( ( (1 1 2 2) (2 2 1 4) ) FALSE )")));
 }
 
 bool CheckSimpleLine( ListExpr type, ListExpr& errorInfo ){
@@ -7513,7 +7531,7 @@ bool Region::Contains( const HalfSegment& hs ) const
       else if( hs.Intersects(auxhs)){
               if(auxhs.Contains(hs.GetLeftPoint()) ||
                   auxhs.Contains(hs.GetRightPoint()) ||
-                  hs.Contains(auxhs.GetLeftPoint()) || 
+                  hs.Contains(auxhs.GetLeftPoint()) ||
                   hs.Contains(auxhs.GetRightPoint()))
                     checkMidPoint = true;
               else{ //the intersection point that is not the endpoint
@@ -13348,6 +13366,37 @@ ListExpr SpatialCollectPointsTM(ListExpr args){
   return nl->SymbolAtom("points");
 }
 
+ListExpr SpatialTMSetStartSmaller(ListExpr args){
+  if(!nl->HasLength(args,2)){
+    return listutils::typeError("Expected (sline x bool).");
+  }
+  if(listutils::isSymbol(nl->First(args),"sline") &&
+     listutils::isSymbol(nl->Second(args),"bool")){
+     return nl->SymbolAtom("sline");
+  }
+  return listutils::typeError("Expected (sline x bool).");
+}
+
+ListExpr SpatialTMGetStartSmaller(ListExpr args){
+  if(!nl->HasLength(args,1)){
+    return listutils::typeError("Expected: sline.");
+  }
+  if(listutils::isSymbol(nl->First(args),"sline")){
+      return nl->SymbolAtom("bool");
+    }
+    return listutils::typeError("Expected: sline.");
+}
+
+ListExpr SpatialTMCreateSline(ListExpr args){
+  if(!nl->HasLength(args,2)){
+    return listutils::typeError("Expected (point x point).");
+  }
+  if(listutils::isSymbol(nl->First(args),"point") &&
+     listutils::isSymbol(nl->Second(args),"point")){
+      return nl->SymbolAtom("sline");
+    }
+    return listutils::typeError("Expected (point x point).");
+}
 
 /*
 10.3 Selection functions
@@ -16264,6 +16313,60 @@ int SpatialCollect_PointsVM(Word* args, Word& result, int message,
 
 }
 
+
+int SpatialVMSetStartSmaller(Word* args, Word& result, int message,
+                             Word& local, Supplier s){
+  SimpleLine* l = static_cast<SimpleLine*>(args[0].addr);
+  CcBool* b = static_cast<CcBool*>(args[1].addr);
+  result = qp->ResultStorage(s);
+  SimpleLine* res = static_cast<SimpleLine*>(result.addr);
+  if(!l->IsDefined() || !b->IsDefined()){
+    res->SetDefined(false);
+  } else {
+    res->CopyFrom(l);
+    res->SetStartSmaller(b->GetBoolval());
+  }
+  return 0;
+}
+
+int SpatialVMGetStartSmaller(Word* args, Word& result, int message,
+                             Word& local, Supplier s){
+  SimpleLine* l = static_cast<SimpleLine*>(args[0].addr);
+  result = qp->ResultStorage(s);
+  CcBool* res = static_cast<CcBool*>(result.addr);
+  if(!l->IsDefined()){
+    res->SetDefined(false);
+  } else {
+    res->Set(true,l->GetStartSmaller());
+  }
+  return 0;
+}
+
+int SpatialVMCreateSline(Word* args, Word& result, int message,
+                             Word& local, Supplier s){
+  Point* p1 = static_cast<Point*>(args[0].addr);
+  Point* p2 = static_cast<Point*>(args[1].addr);
+  result = qp->ResultStorage(s);
+  SimpleLine* res = static_cast<SimpleLine*>(result.addr);
+  if(!p1->IsDefined() || !p1->IsDefined()){
+      res->SetDefined(false);
+  } else if(AlmostEqual(*p1,*p2)){
+      res->Clear();
+      res->SetDefined(true);
+  } else {
+    res->Clear();
+    res->SetDefined(true);
+    res->StartBulkLoad();
+    HalfSegment hs(true, *p1, *p2);
+    *res += hs;
+    hs.SetLeftDomPoint(false);
+    *res += hs;
+    res->EndBulkLoad();
+    res->SetStartSmaller(*p1 < *p2);
+  }
+  return 0;
+}
+
 /*
 10.5 Definition of operators
 
@@ -17085,6 +17188,34 @@ const string SpatialSpecCollectPoints  =
    "<text>query [const points value ()] feed collect_points[true])</text--->"
    ") )";
 
+const string SpatialSpecSetStartSmaller  =
+"( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+"( <text>sline x bool  -> sline </text--->"
+"<text> set_startsmaller( l, b ) </text--->"
+"<text>Sets the starting flag for a simple line 'l' to 'b'. </text--->"
+"<text>query get_startsmaller(set_startsmaller(fromline(BGrenzenLine),FALSE)) "
+"= FALSE</text--->"
+") )";
+
+const string SpatialSpecGetStartSmaller  =
+"( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+"( <text>sline -> bool </text--->"
+"<text> get_startsmaller( l ) </text--->"
+"<text>Retrieves the starting flag for a simple line 'l'. </text--->"
+"<text>query get_startsmaller(set_startsmaller(fromline(BGrenzenLine),FALSE)) "
+"= FALSE</text--->"
+") )";
+
+const string SpatialSpecCreateSline  =
+"( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+"( <text>poin x point -> sline </text--->"
+"<text> create_sline( p1, p2 ) </text--->"
+"<text>Creates a simple line, directed from p1 to p2. If p1 = p2, the result is"
+" empty.</text--->"
+"<text>query atposition(create_sline(makepoint(10,10),makepoint(0,0)),0.0,TRUE)"
+"= makepoint(10,10)</text--->"
+") )";
+
 /*
 10.5.3 Definition of the operators
 
@@ -17539,6 +17670,28 @@ Operator spatialcollect_points (
   SpatialCollectPointsSelect,
   SpatialCollectPointsTM);
 
+Operator spatialsetstartsmaller (
+  "set_startsmaller",
+  SpatialSpecSetStartSmaller,
+  SpatialVMSetStartSmaller,
+  Operator::SimpleSelect,
+  SpatialTMSetStartSmaller);
+
+Operator spatialgetstartsmaller (
+  "get_startsmaller",
+  SpatialSpecGetStartSmaller,
+  SpatialVMGetStartSmaller,
+  Operator::SimpleSelect,
+  SpatialTMGetStartSmaller);
+
+Operator spatial_create_sline (
+  "create_sline",
+  SpatialSpecCreateSline,
+  SpatialVMCreateSline,
+  Operator::SimpleSelect,
+  SpatialTMCreateSline
+);
+
 /*
 5.15 Operator ~makepoint~
 
@@ -17904,10 +18057,12 @@ class SpatialAlgebra : public Algebra
     AddOperator( &spatialcollect_points);
     AddOperator( &spatialmakepoint );
     AddOperator( &halfSegmentsOp );
+    AddOperator( &spatialsetstartsmaller ) ;
+    AddOperator( &spatialgetstartsmaller ) ;
+    AddOperator( &spatial_create_sline ) ;
   }
   ~SpatialAlgebra() {};
 };
-
 
 /*
 12 Initialization

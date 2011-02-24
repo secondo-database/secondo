@@ -796,5 +796,25 @@ Result   : TRUE
 Operator : halfSegments
 Number   : 1
 Signature: region -> stream(tuple(  ... ))
-Example  : query halfSegments(zoogarten) count 
+Example  : query halfSegments(zoogarten) count
 Result   : 56
+
+
+Operator : get_startsmaller
+Number   : 1
+Signature: sline -> bool
+Example  : query get_startsmaller(set_startsmaller(fromline(BGrenzenLine),FALSE))
+Result   : FALSE
+
+
+Operator : set_startsmaller
+Number   : 1
+Signature: sline x bool -> sline
+Example  : query get_startsmaller(set_startsmaller(fromline(BGrenzenLine),FALSE))
+Result   : FALSE
+
+Operator : create_sline
+Number   : 1
+Signature: point x point -> sline
+Example  : query atposition(create_sline(makepoint(10,10),makepoint(0,0)),0.0,TRUE) = makepoint(10,10)
+Result   : TRUE

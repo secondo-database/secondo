@@ -59,4 +59,8 @@ operator collect_line alias COLLECTLINE pattern _ op [ _ ]
 operator collect_sline alias COLLECTSLINE pattern _ op [ _ ]
 operator collect_points alias COLLECTPOINTS pattern _ op [ _ ]
 operator makepoint alias MAKEPOINT pattern op ( _  )
+operator get_startsmaller alias GET_STARTSMALLER pattern op ( _ )
+operator set_startsmaller alias SET_STARTSMALLER pattern op ( _ , _ )
+operator create_sline alias CREATE_SLINE pattern op (_, _)
+
 
