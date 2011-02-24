@@ -4406,8 +4406,8 @@ void
 QueryProcessor::SetModified( const Supplier s )
 {
   OpTree tree = (OpTree) s;
-  if( tree->nodetype != Object ) {
-   throw qp_error("Supplier s is not an object");
+  if( tree->nodetype != Object ) { // ignore for non object nodes
+    return;
   }
   tree->u.dobj.isModified = true;
 }
