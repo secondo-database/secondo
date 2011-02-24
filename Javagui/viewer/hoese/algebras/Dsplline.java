@@ -81,11 +81,11 @@ public class Dsplline extends DisplayGraph {
    * @see sj.lang.ListExpr
    * @see <a href="Dspllinesrc.html#ScanValue">Source</a>
   */
-  public void ScanValue (ListExpr value) {
+  public boolean ScanValue (ListExpr value, Point2D.Double last1, Point2D.Double last2) {
     if(isUndefined(value)){
        defined=false;
        GP=null;
-       return;
+       return false;
     }
     defined=true;
     double koord[] = new double[4];
@@ -96,17 +96,17 @@ public class Dsplline extends DisplayGraph {
     while (!value.isEmpty()) {
       ListExpr v = value.first();
       if (v.listLength() != 4) {
-        Reporter.writeError("Error: No correct line expression: 4 elements needed");
+        Reporter.writeError("Error: No correct segment expression: 4 elements needed");
         GP=null;
         err = true;
-        return;
+        return false;
       }
       for (int koordindex = 0; koordindex < 4; koordindex++) {
         Double d = LEUtils.readNumeric(v.first());
         if (d == null) { // error detected
           err = true;
           GP=null;
-          return;
+          return false;
         }
         koord[koordindex] = d.doubleValue();
         v = v.rest();
@@ -116,7 +116,7 @@ public class Dsplline extends DisplayGraph {
 					 err = true; 
            Reporter.debug("error in project segment ("+koord[0]+","+koord[1]+")->"+koord[2]+","+koord[3]+")");
            GP=null;
-           return;
+           return false;
 				}else{ 
 					 x1 = aPoint.x;
 					 y1 = aPoint.y;
@@ -124,10 +124,13 @@ public class Dsplline extends DisplayGraph {
 							err = true;
               GP=null;
               Reporter.debug("error in project segment ("+koord[0]+","+koord[1]+")->"+koord[2]+","+koord[3]+")");
-              return;
+              return false;
 					 }else{
 							x2 = aPoint.x;
 							y2 = aPoint.y;
+
+              last1.setLocation(x1,y1);
+              last2.setLocation(x2,y2);
 
               if(first){
                  GP.moveTo((float)x1,(float)y1);
@@ -161,9 +164,20 @@ public class Dsplline extends DisplayGraph {
     }
     if(first){ // empty line
        GP=null;
+       return false;
     }
+    return true;
   }
 
+
+
+  public void ScanValue(ListExpr value){
+
+    Point2D.Double p1 = new Point2D.Double();
+    Point2D.Double p2 = new Point2D.Double();
+
+    ScanValue(value,p1,p2);
+  }
 
   public void init (String name, int nameWidth, int indent, ListExpr type, ListExpr value, QueryResult qr) {
     AttrName = extendString(name,nameWidth, indent);
