@@ -1980,11 +1980,11 @@ opSignature(edges, graph, [graph],[stream,[tuple,[[edge,edge]]]],[]).
 opSignature(vertices, graph, [path],[stream,[tuple,[[vertex,vertex]]]],[]).
 opSignature(vertices, graph, [graph],[stream,[tuple,[[vertex,vertex]]]],[]).
 opSignature(partof, graph, [graph,graph],bool,[exp]).
-opSignature(key, graph, [vertex],int,[]).
-opSignature(pos, graph, [vertex],point,[]).
-opSignature(source, graph, [edge],int,[]).
-opSignature(target, graph, [edge],int,[]).
-opSignature(cost, graph, [edge],real,[]).
+opSignature(get_key, graph, [vertex],int,[]).
+opSignature(get_pos, graph, [vertex],point,[]).
+opSignature(get_source, graph, [edge],int,[]).
+opSignature(get_target, graph, [edge],int,[]).
+opSignature(get_cost, graph, [edge],real,[]).
 opSignature(placenodes, graph, [graph],graph,[exp]).
 opSignature(merge, graph, [graph,graph],graph,[exp]).
 opSignature(constgraph, graph, [[stream,[tuple,X]],A1,A2,
