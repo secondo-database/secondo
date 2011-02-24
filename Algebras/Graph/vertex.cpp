@@ -406,16 +406,16 @@ int graphpos(Word* args, Word& result, int message, Word& local, Supplier s)
 string const keySpec = 
     "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
     "( <text>vertex -> int</text--->"
-    "<text>key ( _ )</text--->"
+    "<text>get_key ( _ )</text--->"
     "<text>the key of the vertex</text--->"
-    "<text>key(v1)</text---> ) )";
+    "<text>get_key(v1)</text---> ) )";
 
 string const posSpec = 
     "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
     "( <text>vertex -> point</text--->"
-    "<text>pos ( _ )</text--->"
+    "<text>get_pos ( _ )</text--->"
     "<text>the position of the vertex</text--->"
-    "<text>pos(v1)</text---> ) )";
+    "<text>get_pos(v1)</text---> ) )";
 
 
 /*
@@ -424,7 +424,7 @@ string const posSpec =
 returns the key of the vertex
 
 */
-Operator graph_key("key", keySpec, graphkey, Operator::SimpleSelect, 
+Operator graph_key("get_key", keySpec, graphkey, Operator::SimpleSelect, 
     VertexIntTypeMap);
 
 /*
@@ -434,6 +434,6 @@ returns the position of the vertex
 
 */
 
-Operator graph_pos("pos", posSpec, graphpos, Operator::SimpleSelect, 
+Operator graph_pos("get_pos", posSpec, graphpos, Operator::SimpleSelect, 
     VertexPointTypeMap);
 

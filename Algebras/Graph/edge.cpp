@@ -390,25 +390,25 @@ int graphcost(Word* args, Word& result, int message, Word& local, Supplier s)
 string const sourceSpec =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
    "( <text>edge -> int</text--->"
-   "<text>source ( _ )</text--->"
+   "<text>get_source ( _ )</text--->"
    "<text>the source vertex of the edge</text--->"
-   "<text>source(e1)</text---> ) )";
+   "<text>get_source(e1)</text---> ) )";
 
 
 string const targetSpec =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
   "( <text>edge -> int</text--->"
-  "<text>target ( _ )</text--->"
+  "<text>get_target ( _ )</text--->"
   "<text>the target vertex of the edge</text--->"
-  "<text>target(e1)</text---> ) )";
+  "<text>get_target(e1)</text---> ) )";
 
 
 string const costSpec =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
   "( <text>edge -> real</text--->"
-  "<text>cost ( _ )</text--->"
+  "<text>get_cost ( _ )</text--->"
   "<text>the cost of the edge</text--->"
-  "<text>cost(e1)</text---> ) )";
+  "<text>get_cost(e1)</text---> ) )";
 
 
 
@@ -418,7 +418,7 @@ string const costSpec =
 returns the key of the source vertex
 
 */
-Operator graph_source("source", sourceSpec, graphsource,
+Operator graph_source("get_source", sourceSpec, graphsource,
   Operator::SimpleSelect, EdgeIntTypeMap);
 
 /*
@@ -427,7 +427,7 @@ Operator graph_source("source", sourceSpec, graphsource,
 returns the key of the target vertex
 
 */
-Operator graph_target("target", targetSpec, graphtarget,
+Operator graph_target("get_target", targetSpec, graphtarget,
   Operator::SimpleSelect, EdgeIntTypeMap);
 
 /*
@@ -436,6 +436,6 @@ Operator graph_target("target", targetSpec, graphtarget,
 returns the cost of the edge
 
 */
-Operator graph_cost("cost", costSpec, graphcost,
+Operator graph_cost("get_cost", costSpec, graphcost,
   Operator::SimpleSelect, EdgeRealTypeMap);
 

@@ -58,10 +58,10 @@ Example  : query sightsgraphrel feed constgraphpoints[id_s1,id_s2,distance(.geoD
 Result   : file
 
 
-Operator : cost
+Operator : get_cost
 Number   : 1
 Signature: edge -> real
-Example  : query cost(sightsedge1)
+Example  : query get_cost(sightsedge1)
 Result   : 2684.77197265625
 
 
@@ -86,10 +86,10 @@ Example  : query shortestpath(sightsgraph1,24,16) equalway shortestpath(sightsgr
 Result   : FALSE
 
 
-Operator : key
+Operator : get_key
 Number   : 1
 Signature: vertex -> int
-Example  : query key(thevertex(sightsgraph1,17))
+Example  : query get_key(thevertex(sightsgraph1,17))
 Result   : 17
 
 
@@ -129,10 +129,10 @@ Result   : file
 Tolerance : %0.001
 
 
-Operator : pos
+Operator : get_pos
 Number   : 1
 Signature: vertex -> point
-Example  : query pos(thevertex(sightsgraph1,17))
+Example  : query get_pos(thevertex(sightsgraph1,17))
 Result   : (point (4574.0 8247.0))
    
 
@@ -164,17 +164,17 @@ Example  : query shortestpath(sightsgraph2,thevertex(sightsgraph2,1),thevertex(s
 Result   : file
 
 
-Operator : source
+Operator : get_source
 Number   : 1
 Signature: edge -> int
-Example  : query source(sightsedge1)
+Example  : query get_source(sightsedge1)
 Result   : 17
 
 
-Operator : target
+Operator : get_target
 Number   : 1
 Signature: edge -> int
-Example  : query target(sightsedge1)
+Example  : query get_target(sightsedge1)
 Result   : 25
 
 
