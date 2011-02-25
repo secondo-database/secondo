@@ -239,9 +239,11 @@ definitions of our four classes: ~CcInt~, ~CcReal~, ~CcBool~, ~CcString~.
 #include <algorithm>
 
 #include <math.h>
+#include <cmath>
 #include <cstdlib>
 #include <unistd.h>
 #include <errno.h>
+#include <cerrno>
 #include <time.h>       //needed for random number generator
 
 
@@ -977,7 +979,26 @@ int ifthenelseSelect(ListExpr args){
 }
 
 
+/*
+4.3.2 Selecttion Function for int | real
 
+*/
+int CcNumRealSelect( ListExpr args ){
+  return listutils::isSymbol(nl->First(args),"int") ? 0 : 1;
+}
+
+
+/*
+4.3.3 Selecttion Function for {int | real} x {int | real}
+
+*/
+int CcNumNumRealSelect( ListExpr args ){
+  if(listutils::isSymbol(nl->First(args),"int")){
+    return listutils::isSymbol(nl->Second(args),"int") ? 0 : 1;
+  } else {
+    return listutils::isSymbol(nl->Second(args),"int") ? 2 : 3;
+  }
+}
 
 /*
 4.2.2 Type mapping function CcMathTypeMapdiv
@@ -1324,7 +1345,7 @@ ListExpr ifthenelseType(ListExpr args)
   arg3 = nl->Third( args );
 
   if(!listutils::isSymbol(arg1, CcBool::BasicType())){
-    return listutils::typeError("The 1st argument must be of type bool."); 
+    return listutils::typeError("The 1st argument must be of type bool.");
   }
 
   if(!listutils::isDATA(arg2) && !listutils::isStream(arg2)){
@@ -1574,6 +1595,47 @@ ListExpr CcTypeMapTinDATAexpplus2TinDATA( ListExpr args )
   return type.listExpr();
 }
 
+
+/*
+4.2.18 Type mapping function for: int | real -> real
+
+*/
+ListExpr CcTypeMapNumReal( ListExpr args ){
+  if(!nl->HasLength(args, 1)){
+    return listutils::typeError("Expected real or int (only 1 argument!).");
+  }
+  ListExpr arg = nl->First(args);
+  if(listutils::isNumericType(arg)){
+    return nl->SymbolAtom("real");
+  }
+  return listutils::typeError("Expected real or int.");
+}
+
+/*
+4.2.18 Type mapping function for: int | real -> real
+
+*/
+ListExpr CcTypeMapEmptyReal( ListExpr args ){
+  if(!nl->HasLength(args,0)){
+    return listutils::typeError("Expected no argument.");
+  }
+  return nl->SymbolAtom("real");
+}
+
+/*
+4.2.19 Type mapping function for: {int | real} x {int | real} -> real
+
+*/
+ListExpr CcTypeMapNumNumReal( ListExpr args ){
+  if(!nl->HasLength(args,2)){
+    return listutils::typeError("Expected {int | real} x {int | real}");
+  }
+  if(    listutils::isNumericType(nl->First(args))
+      && listutils::isNumericType(nl->Second(args))){
+    return nl->SymbolAtom("real");
+  }
+  return listutils::typeError("Expected {int | real} x {int | real}");
+}
 
 /*
 4.4 Value mapping functions of operator ~+~
@@ -3045,7 +3107,7 @@ are separated by a space character.
 }
 
 int
-ifthenelseDataFun(Word* args, Word& result, 
+ifthenelseDataFun(Word* args, Word& result,
                  int message, Word& local, Supplier s)
 {
     if(message==OPEN || message==REQUEST){
@@ -3076,20 +3138,20 @@ ifthenelseDataFun(Word* args, Word& result,
 
 
 int
-ifthenelseStreamFun(Word* args, Word& result, 
+ifthenelseStreamFun(Word* args, Word& result,
                     int message, Word& local, Supplier s)
 {
 
   switch(message){
 
-    case OPEN:{   
+    case OPEN:{
           if(local.addr){
               delete  (int*) local.addr;
               local.addr = 0;
           }
           qp->Request(args[0].addr, result);
           CcBool* arg1 = (CcBool*) result.addr;
-          if ( !arg1->IsDefined() ) { 
+          if ( !arg1->IsDefined() ) {
              return 0; // create an empty stream
           } else {
             int index = ( arg1->GetBoolval() ? 1 : 2 );
@@ -3104,7 +3166,7 @@ ifthenelseStreamFun(Word* args, Word& result,
           }
           int index = *((int *) local.addr);
           qp->Request(args[index].addr, result);
-          return qp->Received(args[index].addr)?YIELD: CANCEL; 
+          return qp->Received(args[index].addr)?YIELD: CANCEL;
     }
 
     case CLOSE: {
@@ -3114,7 +3176,7 @@ ifthenelseStreamFun(Word* args, Word& result,
           int index = *((int *) local.addr);
           qp->Close(args[index].addr);
           delete (int*) local.addr;
-          local.addr=0;        
+          local.addr=0;
           return 0;
     }
 
@@ -3130,12 +3192,12 @@ ifthenelseStreamFun(Word* args, Word& result,
           ProgressInfo p1;
           ProgressInfo *pRes;
           pRes = (ProgressInfo*) result.addr;
-          if ( qp->RequestProgress(args[index].addr, &p1) ) {    
+          if ( qp->RequestProgress(args[index].addr, &p1) ) {
               pRes->Copy(p1);
               return YIELD;
           } else {
              return CANCEL;
-          }    
+          }
     }
     default: abort();
    }
@@ -3806,7 +3868,105 @@ int CCgetminmaxvaluemap( Word* args, Word& result, int message,
   return 0;
 }
 
+/*
+4.27 Trigonometric functions: sin, cos, tan, arcsin, arccos, arctan, pi
 
+*/
+enum TrigonOps {sin_op, cos_op, tan_op, arcsin_op, arccos_op, arctan_op,
+                deg2rad_op, rad2deg_op};
+
+template<class T, int OP>
+int CCtrigonVM (Word* args, Word& result, int message, Word& local, Supplier s )
+{
+  T* arg = static_cast<T*>(args[0].addr);
+  result = qp->ResultStorage( s );
+  CcReal* res = static_cast<CcReal*>(result.addr);
+
+  if(!arg->IsDefined()){
+    res->SetDefined(false);
+    return 0;
+  }
+
+  double a = arg->GetValue();
+  double r = 0.0;
+  errno=0;
+
+  switch(OP){
+    case sin_op : {
+        r = sin(a);
+        break;
+      }
+    case cos_op: {
+      r = cos(a);
+      break;
+    }
+    case tan_op: {
+      r = tan(a);
+      break;
+    }
+    case arcsin_op : {
+      r = asin(a);
+      break;
+    }
+    case arccos_op: {
+      r = acos(a);
+      break;
+    }
+    case arctan_op: {
+      r = atan(a);
+      break;
+    }
+    case deg2rad_op: {
+      r = (a * M_PI)/180.0;
+      break;
+    }
+    case rad2deg_op: {
+      r = (180 * a)/M_PI;
+      break;
+    }
+    default: assert( false );
+  }
+  res->Set(errno==0,r);
+  errno=0;
+  return 0;
+}
+
+int CcPi (Word* args, Word& result, int message, Word& local, Supplier s )
+{
+  result = qp->ResultStorage( s );
+  CcReal* res = static_cast<CcReal*>(result.addr);
+  res->Set(true,M_PI);
+  return 0;
+}
+
+int CcE (Word* args, Word& result, int message, Word& local, Supplier s )
+{
+  result = qp->ResultStorage( s );
+  CcReal* res = static_cast<CcReal*>(result.addr);
+  res->Set(true,M_E);
+  return 0;
+}
+
+template<class T1, class T2>
+int CClogBVM (Word* args, Word& result, int message, Word& local, Supplier s )
+{
+  T1* v = static_cast<T1*>(args[0].addr);
+  T2* b = static_cast<T2*>(args[1].addr);
+  result = qp->ResultStorage( s );
+  CcReal* res = static_cast<CcReal*>(result.addr);
+  if(!v->IsDefined() || !b->IsDefined()){
+    res->SetDefined(false);
+    return 0;
+  }
+  double vd = v->GetValue();
+  double bd = b->GetValue();
+  if(vd<=0 || bd <=0){
+    res->SetDefined(false);
+    return 0;
+  }
+  res->Set(true,log(vd)/log(bd));
+  return 0;
+}
 /*
 5 Definition of operators
 
@@ -3909,6 +4069,37 @@ ValueMapping ccnum2stringvaluemap[] =
                           { CcNum2String<CcReal>, CcNum2String<CcInt> };
 ValueMapping abs_vms[] = { abs_vm<CcReal, double>, abs_vm<CcInt, int>, 0 };
 ValueMapping cccharvaluemap[] = { CcCharFun };
+
+ValueMapping CCsinVM[] = {
+  CCtrigonVM<CcInt, sin_op>,
+  CCtrigonVM<CcReal, sin_op>, 0};
+ValueMapping CCcosVM[] = {
+  CCtrigonVM<CcInt, cos_op>,
+  CCtrigonVM<CcReal, cos_op>, 0};
+ValueMapping CCtanVM[] = {
+  CCtrigonVM<CcInt, tan_op>,
+  CCtrigonVM<CcReal, tan_op>, 0};
+ValueMapping CCarcsinVM[] = {
+  CCtrigonVM<CcInt, arcsin_op>,
+  CCtrigonVM<CcReal, arcsin_op>, 0};
+ValueMapping CCarccosVM[] = {
+  CCtrigonVM<CcInt, arccos_op>,
+  CCtrigonVM<CcReal, arccos_op>, 0};
+ValueMapping CCarctanVM[] = {
+  CCtrigonVM<CcInt, arctan_op>,
+  CCtrigonVM<CcReal, arctan_op>, 0};
+ValueMapping CCdeg2radVM[] = {
+    CCtrigonVM<CcInt, deg2rad_op>,
+    CCtrigonVM<CcReal, deg2rad_op>, 0};
+ValueMapping CCrad2degVM[] = {
+      CCtrigonVM<CcInt, rad2deg_op>,
+      CCtrigonVM<CcReal, rad2deg_op>, 0};
+ValueMapping CClogBmap[] = {
+        CClogBVM<CcInt, CcInt>,
+        CClogBVM<CcInt, CcReal>,
+        CClogBVM<CcReal, CcInt>,
+        CClogBVM<CcReal, CcReal>, 0};
+
 
 const string CCSpecAdd  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
                           "\"Example\" )"
@@ -4463,6 +4654,98 @@ const string CClengthSpec =
     ") )";
 
 /*
+Trigonometric functions
+
+*/
+const string CCsinSpec =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
+    "( <text> int | real -> real </text--->"
+    "<text>sin( v )</text--->"
+    "<text>Returns the sinus of v (v is given in rad).</text--->"
+    "<text>query sin(deg2rad(90))</text--->"
+    ") )";
+
+const string CCcosSpec =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
+    "( <text> int | real -> real </text--->"
+    "<text>cos( v )</text--->"
+    "<text>Returns the cosinus of v (v is given in rad).</text--->"
+    "<text>query cos(deg2rad(90))</text--->"
+    ") )";
+
+const string CCtanSpec =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
+    "( <text> int | real -> real </text--->"
+    "<text>tan( v )</text--->"
+    "<text>Returns the tangens of v (v is given in rad).</text--->"
+    "<text>query tan(deg2rad(90))</text--->"
+    ") )";
+
+const string CCarcsinSpec =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
+    "( <text> int | real -> real </text--->"
+    "<text>arcsin( v )</text--->"
+    "<text>Returns the arcussinus of v (v is given in rad).</text--->"
+    "<text>query arcsin(sin(deg2rad(90)))</text--->"
+    ") )";
+
+const string CCarccosSpec =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
+    "( <text> int | real -> real </text--->"
+    "<text>arccos( v )</text--->"
+    "<text>Returns the arcuscosinus of v (v is given in rad).</text--->"
+    "<text>query arccos(sin(deg2rad(90)))</text--->"
+    ") )";
+
+const string CCarctanSpec =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
+    "( <text> int | real -> real </text--->"
+    "<text>arctan( v )</text--->"
+    "<text>Returns the arcustangens of v (v is given in rad).</text--->"
+    "<text>query arctan(tan(deg2rad(90)))</text--->"
+    ") )";
+
+const string CCpiSpec =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
+    "( <text> -> real </text--->"
+    "<text>const_pi()</text--->"
+    "<text>Returns pi (= 3.14159...)</text--->"
+    "<text>query sin(const_pi())</text--->"
+    ") )";
+
+const string CCdeg2radSpec =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
+    "( <text> int | real -> real </text--->"
+    "<text>deg2rad( v )</text--->"
+    "<text>Convert angle from degrees to radians.</text--->"
+    "<text>query arctan(tan(deg2rad(90)))</text--->"
+    ") )";
+
+const string CCrad2degSpec =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
+    "( <text> int | real -> real </text--->"
+    "<text>rad2deg( v )</text--->"
+    "<text>Convert angle from radians to degrees.</text--->"
+    "<text>query rad2deg(const_pi())</text--->"
+    ") )";
+
+const string CCeSpec =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
+    "( <text> -> real </text--->"
+    "<text>const_e()</text--->"
+    "<text>Returns E (= 2.718281828459...)</text--->"
+    "<text>query const_e()</text--->"
+    ") )";
+
+const string CClogBSpec =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
+    "( <text> {int | real} x {int | real} -> real </text--->"
+    "<text>logB( val , base)</text--->"
+    "<text>Returns the logarithm of 'val' to the given 'base'.</text--->"
+    "<text>query logB(const_e()*const_e(),const_e())</text--->"
+    ") )";
+
+/*
 Operator instance definitions
 
 */
@@ -4636,6 +4919,35 @@ Operator cclength( "length", CClengthSpec, CcLengthvaluemap,
                    Operator::SimpleSelect, TypeMap1<CcString, CcInt>);
 
 /*
+Trigonometric functions
+
+*/
+
+Operator ccsin( "sin", CCsinSpec, 2, CCsinVM, CcNumRealSelect,
+                CcTypeMapNumReal);
+Operator cccos( "cos", CCcosSpec, 2, CCcosVM, CcNumRealSelect,
+                CcTypeMapNumReal);
+Operator cctan( "tan", CCtanSpec, 2, CCtanVM, CcNumRealSelect,
+                CcTypeMapNumReal);
+Operator ccarcsin( "arcsin", CCarcsinSpec, 2, CCarcsinVM, CcNumRealSelect,
+                   CcTypeMapNumReal);
+Operator ccarccos( "arccos", CCarccosSpec, 2, CCarccosVM, CcNumRealSelect,
+                   CcTypeMapNumReal);
+Operator ccarctan( "arctan", CCarctanSpec, 2, CCarctanVM, CcNumRealSelect,
+                   CcTypeMapNumReal);
+Operator ccpi( "const_pi", CCpiSpec, CcPi, Operator::SimpleSelect,
+               CcTypeMapEmptyReal);
+Operator ccdeg2rad( "deg2rad", CCdeg2radSpec, 2, CCdeg2radVM, CcNumRealSelect,
+                              CcTypeMapNumReal);
+Operator ccrad2deg( "rad2deg", CCrad2degSpec, 2, CCrad2degVM, CcNumRealSelect,
+                               CcTypeMapNumReal);
+
+Operator cce( "const_e", CCeSpec, CcE, Operator::SimpleSelect,
+                               CcTypeMapEmptyReal);
+Operator cclogb("logB", CClogBSpec, 4, CClogBmap, CcNumNumRealSelect,
+                                               CcTypeMapNumNumReal);
+
+/*
 6 Class ~CcAlgebra~
 
 The last steps in adding an algebra to the Secondo system are
@@ -4742,6 +5054,18 @@ class CcAlgebra1 : public Algebra
     AddOperator( &ccgetminval );
     AddOperator( &ccgetmaxval );
     AddOperator( &cclength );
+
+    AddOperator( &ccsin );
+    AddOperator( &cccos );
+    AddOperator( &cctan );
+    AddOperator( &ccarcsin );
+    AddOperator( &ccarccos );
+    AddOperator( &ccarctan );
+    AddOperator( &ccpi );
+    AddOperator( &ccdeg2rad );
+    AddOperator( &ccrad2deg );
+    AddOperator( &cce );
+    AddOperator( &cclogb );
 
     AddOperator( setoptionInfo(), setoption_vm, setoption_tm );
     AddOperator( absInfo(), abs_vms, abs_sf, abs_tm );

@@ -208,6 +208,35 @@ Signature: int -> int
 Example  : query log (200)
 Result   : 7
 
+Operator : logB
+Number   : 1
+Signature: int x int -> real
+Example  : query logB(1024,2)
+Result   : 10.0
+
+Operator : logB
+Number   : 2
+Signature: int x real -> real
+Example  : query logB(256,2.0)
+Result   : 8.0
+
+Operator : logB
+Number   : 3
+Signature: real x int -> real
+Example  : query logB(1000.0,10)
+Result   : 3.0
+
+Operator : logB
+Number   : 4
+Signature: real x real -> real
+Example  : query logB(1000.0,10.0)
+Result   : 3.0
+
+Operator : const_e
+Number   : 4
+Signature:  -> real
+Example  : query logB(const_e()*const_e(),const_e())
+Result   : 2.0
 
 Operator : minus
 Number   : 1
@@ -478,15 +507,123 @@ Example  : query getMaxVal(45, -45, 12, 0, -75, 5)
 Result   : 45
 
 
-Operator : length 
+Operator : length
 Number   : 1
 Signature: string -> int
 Example  : query length("Secondo")
 Result   : 7
 
-Operator : assert 
+Operator : assert
 Number   : 1
-Signature: bool -> bool 
+Signature: bool -> bool
 Example  : query assert( 8 = 8)
 Result   : TRUE
+
+Operator : const_const_pi
+Number   : 1
+Signature:  -> real
+Example  : query sin(const_pi())
+Result   : 0.0
+Tolerance: 0.0000001
+
+Operator : deg2rad
+Number   : 1
+Signature: int -> real
+Example  : query rad2deg(deg2rad(45))
+Result   : 45.0
+
+Operator : deg2rad
+Number   : 2
+Signature: real -> real
+Example  : query rad2deg(deg2rad(90.0))
+Result   : 90.0
+
+Operator : rad2deg
+Number   : 1
+Signature: int -> real
+Example  : query rad2deg(deg2rad(45))
+Result   : 45.0
+
+Operator : rad2deg
+Number   : 2
+Signature: real -> real
+Example  : query rad2deg(deg2rad(90.0))
+Result   : 90.0
+
+
+Operator : sin
+Number   : 1
+Signature: real -> real
+Example  : query sin(const_pi())
+Result   : 0.0
+Tolerance: 0.0000001
+
+Operator : sin
+Number   : 2
+Signature: int -> real
+Example  : query sin(0)
+Result   : 0.0
+
+Operator : cos
+Number   : 1
+Signature: real -> real
+Example  : query cos(const_pi())
+Result   : -1.0
+
+Operator : cos
+Number   : 2
+Signature: int -> real
+Example  : query cos(0)
+Result   : 1.0
+
+Operator : tan
+Number   : 1
+Signature: real -> real
+Example  : query tan(const_pi())
+Result   : 0.0
+Tolerance: 0.000001
+
+Operator : tan
+Number   : 2
+Signature: int -> real
+Example  : query tan(0)
+Result   : 0.0
+
+Operator : arcsin
+Number   : 1
+Signature: real -> real
+Example  : query arcsin(sin(const_pi()/2.0)) - (const_pi() / 2.0)
+Result   : 0.0
+Tolerance: 0.00001
+
+Operator : arcsin
+Number   : 2
+Signature: int -> real
+Example  : query arcsin(0)
+Result   : 0.0
+
+Operator : arccos
+Number   : 1
+Signature: real -> real
+Example  : query arccos(cos(const_pi())) = const_pi()
+Result   : TRUE
+
+Operator : arccos
+Number   : 2
+Signature: int -> real
+Example  : query arccos(1)
+Result   : 0.0
+
+Operator : arctan
+Number   : 1
+Signature: real -> real
+Example  : query arctan(tan(const_pi()))
+Result   : 0.0
+Tolerance: 0.00000001
+
+Operator : arctan
+Number   : 2
+Signature: int -> real
+Example  : query arctan(0)
+Result   : 0.0
 

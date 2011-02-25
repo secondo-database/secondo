@@ -84,3 +84,16 @@ operator compare alias COMPARE pattern op ( _, _ )
 
 operator getMinVal alias GETMINVAL pattern op ( _ )
 operator getMaxVal alias GETMAXVAL pattern op ( _ )
+
+operator sin alias SIN pattern op ( _ )
+operator cos alias COS pattern op ( _ )
+operator tan alias TAN pattern op ( _ )
+operator arcsin alias ARCSIN pattern op ( _ )
+operator arccos alias ARCCOS pattern op ( _ )
+operator arctan alias ARCTAN pattern op ( _ )
+operator const_pi alias CONST_PI pattern op ( )
+operator const_e alias CONST_E pattern op ( )
+operator rad2deg alias RAD2DEG pattern op ( _ )
+operator deg2rad alias DEG2RAD pattern op ( _ )
+operator logB alias LOGB pattern op ( _ , _ )
+
