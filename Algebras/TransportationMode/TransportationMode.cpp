@@ -3880,12 +3880,13 @@ const string OpTMCreateBusRouteSpec4  =
 const string OpTMCreateBusStopSpec1  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" "
     "\"Example\" ) "
-    "( <text>network x rel x attr1 x attr2 x attr3 x attr4"
+    "( <text>network x rel1 x attr1 x attr2 x attr3 x attr4 x rel2 x btree"
     "-> (stream (tuple( (x1 t1)(x2 t2)...(xn tn)))</text--->"
-    "<text>create_bus_stops1(n,rel,attr1,attr2, attr3, attr4);</text--->"
+    "<text>create_bus_stops1(n,rel1,attr1,attr2, attr3, attr4, rel2, btree);"
+    "</text--->"
     "<text>create bus stops</text--->"
     "<text>query create_bus_stop1(n,busroutes,br_id,bus_route1,"
-    "bus_route2,route_type) count;</text--->"
+    "bus_route2,route_type,subpaves2, btree_pave2) count;</text--->"
     ") )";
     
 const string OpTMCreateBusStopSpec2  =
@@ -4031,6 +4032,52 @@ const string OpTMMapBsToPaveSpec  =
     "<text>map bus stops to pavement areas</text--->"
     "<text>query mapbstopave(bn1, rtree_dg, dg_node, roadwidth)"
     " count ;</text--->) )";
+
+/*
+build the connection between bus stops and pavements 
+
+*/
+const string OpTMBsNeighbors1Spec  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+    "\"Example\" ) "
+    "( <text>dualgraph x visibility graph x rel1 x rel2 x rtree"
+     " -> (stream(((x1 t1) ... (xn tn))))</text--->"
+    "<text>bs_neighbors1(dual graph, visibility graph rel, rel, rtree);"
+    " </text--->"
+    "<text>for each bus stop find its neighbor bus stops</text--->"
+   "<text>query bs_neighbors1(dg, vg, tri_reg_new, bs_pave_sort, rtree_bs_pave)"
+    " count ;</text--->) )";
+
+const string OpTMBsNeighbors2Spec  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+    "\"Example\" ) "
+    "( <text>busnetwork -> (stream(((x1 t1) ... (xn tn))))</text--->"
+    "<text>bs_neighbors2(busnetwork)</text--->"
+    "<text>bus stops with the same 2D point, but different bus routes</text--->"
+   "<text>query bs_neighbors2(bn1) count ;</text--->) )";
+
+/*
+create a graph on bus network including pavements connection 
+
+*/
+const string OpTMCreateBusGraphSpec  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+    "\"Example\" ) "
+    "( <text>int x rel1 x rel2 -> busgraph</text--->"
+    "<text>createbgraph(int, rel, rel)</text--->"
+    "<text>create a bus network graph by the input edges and nodes"
+    "relation</text--->"
+    "<text>query createbgraph(1, node-rel, edge1); </text--->"
+    ") )";
+
+const string OpTMGetAdjNodeBGSpec  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+    "\"Example\" ) "
+    "( <text>busgraph x int -> (stream(((x1 t1) ... (xn tn))))</text--->"
+    "<text>getadjnode_bg(busgraph, int)</text--->"
+    "<text>get the neighbor nodes of a given graph node</text--->"
+    "<text>query getadjnodebg(bg1, 2); </text--->"
+    ") )";
 
 /*
 get traffic data and set time schedule for moving buses 
@@ -4224,6 +4271,10 @@ const string OpTMOutputRegionSpec  =
     "<text>query outputregion(r1);</text--->"
     ") )";
 
+/*
+get the maximum rectangle from a convex polygon 
+
+*/
 const string OpTMMaxRectSpec  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" "
     "\"Example\" ) "
@@ -7002,7 +7053,7 @@ create bus stop
 
 ListExpr OpTMCreateBusStopTypeMap1 ( ListExpr args )
 {
-  if ( nl->ListLength ( args ) != 6 )
+  if ( nl->ListLength ( args ) != 8 )
   {
     return  nl->SymbolAtom ( "list length should be 6" );
   }
@@ -7055,7 +7106,23 @@ ListExpr OpTMCreateBusStopTypeMap1 ( ListExpr args )
   if(j4 == 0 || !listutils::isSymbol(attrType4,"int"))
       return listutils::typeError("attr name" + aname4 + "not found"
                       "or not of type int");
-                      
+
+
+  ListExpr param7 = nl->Nth (7, args );
+  if(!IsRelDescription(param7))
+    return nl->SymbolAtom ( "typeerror: param7 should be relation" );
+  ListExpr xType;
+  nl->ReadFromString(DualGraph::NodeTypeInfo, xType); 
+  if(!CompareSchemas(param7, xType)){
+    return listutils::typeError("rel2 scheam should be" + 
+                                DualGraph::NodeTypeInfo);
+  }
+
+  ListExpr param8 = nl->Nth (8, args );
+  if(!listutils::isBTreeDescription(param8))
+    return nl->SymbolAtom ( "typeerror: param8 should be a btree" );
+
+
      ListExpr res = nl->TwoElemList(
             nl->SymbolAtom("stream"),
             nl->TwoElemList(
@@ -7588,10 +7655,14 @@ ListExpr OpTMGetBusStopsTypeMap ( ListExpr args )
             nl->SymbolAtom("stream"),
             nl->TwoElemList(
                 nl->SymbolAtom("tuple"),
-                nl->OneElemList(
+//                nl->OneElemList(
+                nl->TwoElemList(
                     nl->TwoElemList(
                         nl->SymbolAtom("bus_stop"),
-                        nl->SymbolAtom("busstop"))
+                        nl->SymbolAtom("busstop")), 
+                    nl->TwoElemList(
+                        nl->SymbolAtom("stop_geodata"),
+                        nl->SymbolAtom("point"))
                     )));
       return res;
 }
@@ -7886,6 +7957,190 @@ ListExpr OpTMMapBsToPaveTypeMap ( ListExpr args )
 
 }
 
+/*
+TypeMap fun for operator bsneighbors1 
+
+*/
+ListExpr OpTMBsNeighbors1TypeMap ( ListExpr args )
+{
+  if ( nl->ListLength ( args ) != 5 )
+  {
+    return  nl->SymbolAtom ( "list length should be 5" );
+  }
+
+  ListExpr arg1 = nl->First(args);
+  ListExpr arg2 = nl->Second(args);
+
+
+  if(!(nl->IsAtom(arg1) && nl->AtomType(arg1) == SymbolType &&
+     nl->SymbolValue(arg1) == "dualgraph"))
+    return nl->SymbolAtom ( "typeerror: param1 should be dual graph");
+
+  if(!(nl->IsAtom(arg2) && nl->AtomType(arg2) == SymbolType &&
+     nl->SymbolValue(arg2) == "visualgraph" ))
+    return nl->SymbolAtom ( "typeerror: param2 should be visibility graph");
+
+  ListExpr arg3 = nl->Third ( args );
+  if(!IsRelDescription(arg3))
+  return listutils::typeError("param3 should be a relation");
+  
+  ListExpr xType1;
+  nl->ReadFromString(DualGraph::TriangleTypeInfo3, xType1);
+  if(!CompareSchemas(arg3, xType1))
+    return nl->SymbolAtom ( "rel1 scheam should be" + 
+                                DualGraph::TriangleTypeInfo3 );
+  
+  
+  ListExpr arg4 = nl->Fourth ( args );
+  if(!listutils::isRelDescription(arg4))
+      return nl->SymbolAtom("typeerror:param4 should be a relation");
+
+  ListExpr xType2;
+  nl->ReadFromString(BN::BusStopsPaveTypeInfo, xType2); 
+  if(!CompareSchemas(arg4, xType2)){
+    return listutils::typeError("rel2 scheam should be" + 
+                                BN::BusStopsPaveTypeInfo);
+  }
+
+  ListExpr arg5 = nl->Fifth ( args );
+  if(!listutils::isRTreeDescription(arg5))
+      return nl->SymbolAtom("typeerror:param5 should be an rtree");
+
+
+    ListExpr res = nl->TwoElemList(
+            nl->SymbolAtom("stream"),
+            nl->TwoElemList(
+                nl->SymbolAtom("tuple"),
+                nl->FourElemList(
+                    nl->TwoElemList(
+                        nl->SymbolAtom("bus_uoid"),
+                        nl->SymbolAtom("int")), 
+                    nl->TwoElemList(
+                        nl->SymbolAtom("bus_stop1"),
+                        nl->SymbolAtom("busstop")),
+                    nl->TwoElemList(
+                        nl->SymbolAtom("bus_stop2"),
+                        nl->SymbolAtom("busstop")),
+                    nl->TwoElemList(
+                        nl->SymbolAtom("Path"),
+                        nl->SymbolAtom("sline"))
+                    )));
+  return res;
+
+}
+
+/*
+TypeMap fun for operator bsneighbors2 
+
+*/
+ListExpr OpTMBsNeighbors2TypeMap ( ListExpr args )
+{
+  if ( nl->ListLength ( args ) != 1 )
+  {
+    return  nl->SymbolAtom ( "list length should be 1" );
+  }
+
+  ListExpr arg1 = nl->First(args);
+
+  if(!(nl->IsAtom(arg1) && nl->AtomType(arg1) == SymbolType &&
+     nl->SymbolValue(arg1) == "busnetwork"))
+    return nl->SymbolAtom ( "typeerror: param1 should be busnetwork");
+
+    ListExpr res = nl->TwoElemList(
+            nl->SymbolAtom("stream"),
+            nl->TwoElemList(
+                nl->SymbolAtom("tuple"),
+                nl->ThreeElemList(
+                    nl->TwoElemList(
+                        nl->SymbolAtom("bus_stop1"),
+                        nl->SymbolAtom("busstop")),
+                    nl->TwoElemList(
+                        nl->SymbolAtom("bus_stop2"),
+                        nl->SymbolAtom("busstop")),
+                    nl->TwoElemList(
+                        nl->SymbolAtom("bus_uoid"),
+                        nl->SymbolAtom("int"))
+                    )));
+  return res;
+
+}
+
+
+/*
+TypeMap fun for operator createbgraph
+
+*/
+
+ListExpr OpTMCreateBusGraphTypeMap ( ListExpr args )
+{
+  if ( nl->ListLength ( args ) != 3 )
+  {
+    return ( nl->SymbolAtom ( "typeerror" ) );
+  }
+  ListExpr xIdDesc = nl->First(args);
+  ListExpr xNodeDesc = nl->Second(args);
+  ListExpr xEdgeDesc1 = nl->Third(args);
+  
+  if(!nl->IsEqual(xIdDesc, "int")) return nl->SymbolAtom ( "typeerror" );
+  if(!IsRelDescription(xNodeDesc))
+      return nl->SymbolAtom ( "typeerror" );
+
+  ListExpr xType1;
+  nl->ReadFromString(BusGraph::NodeTypeInfo, xType1);
+  if(!CompareSchemas(xNodeDesc, xType1))return nl->SymbolAtom ( "typeerror" );
+
+  if(!IsRelDescription(xEdgeDesc1))
+      return nl->SymbolAtom ( "typeerror" );
+
+  ListExpr xType2;
+  nl->ReadFromString(BusGraph::EdgeTypeInfo1, xType2);
+  if(!CompareSchemas(xEdgeDesc1, xType2))return nl->SymbolAtom ( "typeerror" );
+
+  return nl->SymbolAtom ( "busgraph" );
+}
+
+
+/*
+TypeMap fun for operator getadjnode bg
+
+*/
+
+ListExpr OpTMGetAdjNodeBGTypeMap ( ListExpr args )
+{
+  if ( nl->ListLength ( args ) != 2 )
+  {
+    return ( nl->SymbolAtom ( "typeerror" ) );
+  }
+  ListExpr param1 = nl->First(args);
+  ListExpr param2 = nl->Second(args);
+  
+  
+  if(!(nl->IsAtom(param1) && nl->AtomType(param1) == SymbolType &&  
+     nl->SymbolValue(param1) == "busgraph")){
+      return nl->SymbolAtom ( "typeerror: param1 should be busgraph" );
+  }
+  if(!nl->IsEqual(param2, "int")) return nl->SymbolAtom ( "typeerror" );
+  
+  
+  ListExpr res = nl->TwoElemList(
+            nl->SymbolAtom("stream"),
+            nl->TwoElemList(
+                nl->SymbolAtom("tuple"),
+
+                nl->ThreeElemList(
+                    nl->TwoElemList(
+                        nl->SymbolAtom("bus_stop1"),
+                        nl->SymbolAtom("busstop")),
+                    nl->TwoElemList(
+                        nl->SymbolAtom("bus_stop2"),
+                        nl->SymbolAtom("busstop")),
+                    nl->TwoElemList(
+                        nl->SymbolAtom("Path"),
+                        nl->SymbolAtom("sline"))
+                    )));
+  return res; 
+
+}
 
 /*
 TypeMap fun for operator getroutedensity1
@@ -12305,17 +12560,19 @@ int OpTMCreateBusStopValueMap1 ( Word* args, Word& result, int message,
       case OPEN:{
         Network* n = (Network*)args[0].addr;
         Relation* r1 = (Relation*)args[1].addr; 
-        
-        int attr1 = ((CcInt*)args[6].addr)->GetIntval() - 1;
-        int attr2 = ((CcInt*)args[7].addr)->GetIntval() - 1;
-        int attr3 = ((CcInt*)args[8].addr)->GetIntval() - 1;
-        int attr4 = ((CcInt*)args[9].addr)->GetIntval() - 1;
+        Relation* r2 = (Relation*)args[6].addr;
+        BTree* btree = (BTree*)args[7].addr; 
+
+        int attr1 = ((CcInt*)args[8].addr)->GetIntval() - 1;
+        int attr2 = ((CcInt*)args[9].addr)->GetIntval() - 1;
+        int attr3 = ((CcInt*)args[10].addr)->GetIntval() - 1;
+        int attr4 = ((CcInt*)args[11].addr)->GetIntval() - 1;
         
         br = new BusRoute(n,r1,NULL,NULL);
         br->resulttype =
             new TupleType(nl->Second(GetTupleResultType(in_pSupplier)));
         
-        br->CreateBusStop1(attr1, attr2, attr3, attr4);
+        br->CreateBusStop1(attr1, attr2, attr3, attr4, r2, btree);
         local.setAddr(br);
         return 0;
       }
@@ -12630,7 +12887,7 @@ int OpTMGetBusStopsValueMap ( Word* args, Word& result, int message,
           Tuple* tuple = new Tuple(br->resulttype);
 
           tuple->PutAttribute(0, new Bus_Stop(br->bus_stop_list[br->count]));
-
+          tuple->PutAttribute(1, new Point(br->bus_stop_geodata[br->count]));
 
           result.setAddr(tuple);
           br->count++;
@@ -12955,6 +13212,184 @@ int OpTMMapBsToPaveValueMap ( Word* args, Word& result, int message,
           tuple->PutAttribute(1, new GenLoc(b_n->genloc_list[b_n->count]));
           tuple->PutAttribute(2, new Point(b_n->geo_list[b_n->count]));
 
+
+          result.setAddr(tuple);
+          b_n->count++;
+          return YIELD;
+      }
+      case CLOSE:{
+          if(local.addr){
+            b_n = (BN*)local.addr;
+            delete b_n;
+            local.setAddr(Address(0));
+          }
+          return 0;
+      }
+  }
+  return 0;
+
+}
+
+
+/*
+bs neighbors. for each bus stop, find neighbor bus stops 
+(connected by pavements)
+
+*/
+int OpTMBsNeighbor1ValueMap ( Word* args, Word& result, int message,
+                         Word& local, Supplier in_pSupplier )
+{
+
+  BN* b_n;
+  switch(message){
+      case OPEN:{
+        DualGraph* dg = (DualGraph*)args[0].addr;
+        VisualGraph* vg = (VisualGraph*)args[1].addr;
+        Relation* tri_rel = (Relation*)args[2].addr;
+        Relation* bs_pave_rel = (Relation*)args[3].addr;
+        R_Tree<2,TupleId>* rtree = (R_Tree<2,TupleId>*)args[4].addr; 
+
+
+        b_n = new BN(NULL);
+        b_n->resulttype =
+            new TupleType(nl->Second(GetTupleResultType(in_pSupplier)));
+
+        b_n->BsNeighbors1(dg, vg, tri_rel, bs_pave_rel, rtree);
+        local.setAddr(b_n);
+        return 0;
+      }
+      case REQUEST:{
+          if(local.addr == NULL) return CANCEL;
+          b_n = (BN*)local.addr;
+          if(b_n->count == b_n->bs_list1.size())return CANCEL;
+
+          Tuple* tuple = new Tuple(b_n->resulttype);
+
+         tuple->PutAttribute(0, new CcInt(true, b_n->bs_uoid_list[b_n->count]));
+          tuple->PutAttribute(1, new Bus_Stop(b_n->bs_list1[b_n->count]));
+          tuple->PutAttribute(2, new Bus_Stop(b_n->bs_list2[b_n->count]));
+          tuple->PutAttribute(3, new SimpleLine(b_n->path_sl_list[b_n->count]));
+
+          result.setAddr(tuple);
+          b_n->count++;
+          return YIELD;
+      }
+      case CLOSE:{
+          if(local.addr){
+            b_n = (BN*)local.addr;
+            delete b_n;
+            local.setAddr(Address(0));
+          }
+          return 0;
+      }
+  }
+  return 0;
+
+}
+
+/*
+bs neighbors. for each bus stop, find neighbor bus stops 
+they have the same spatial location but belong to different bus routes 
+
+*/
+int OpTMBsNeighbor2ValueMap ( Word* args, Word& result, int message,
+                         Word& local, Supplier in_pSupplier )
+{
+
+  BN* b_n;
+  switch(message){
+      case OPEN:{
+        BusNetwork* bn = (BusNetwork*)args[0].addr;
+
+        b_n = new BN(bn);
+        b_n->resulttype =
+            new TupleType(nl->Second(GetTupleResultType(in_pSupplier)));
+
+        b_n->BsNeighbors2();
+        local.setAddr(b_n);
+        return 0;
+      }
+      case REQUEST:{
+          if(local.addr == NULL) return CANCEL;
+          b_n = (BN*)local.addr;
+          if(b_n->count == b_n->bs_list1.size())return CANCEL;
+
+          Tuple* tuple = new Tuple(b_n->resulttype);
+
+          tuple->PutAttribute(0, new Bus_Stop(b_n->bs_list1[b_n->count]));
+          tuple->PutAttribute(1, new Bus_Stop(b_n->bs_list2[b_n->count]));
+         tuple->PutAttribute(2, new CcInt(true, b_n->bs_uoid_list[b_n->count]));
+
+          result.setAddr(tuple);
+          b_n->count++;
+          return YIELD;
+      }
+      case CLOSE:{
+          if(local.addr){
+            b_n = (BN*)local.addr;
+            delete b_n;
+            local.setAddr(Address(0));
+          }
+          return 0;
+      }
+  }
+  return 0;
+
+}
+
+
+/*
+Value Mapping for  createbusgraph  operator
+
+*/
+
+int OpTMCreateBusGraphValueMap ( Word* args, Word& result, int message,
+                         Word& local, Supplier in_pSupplier )
+{
+  BusGraph* bg = (BusGraph*)qp->ResultStorage(in_pSupplier).addr;
+  int bg_id = ((CcInt*)args[0].addr)->GetIntval();
+  Relation* node_rel = (Relation*)args[1].addr;
+  Relation* edge_rel1 = (Relation*)args[2].addr;
+  
+  bg->Load(bg_id, node_rel, edge_rel1);
+  result = SetWord(bg);
+  return 0;
+}
+
+
+
+/*
+for each bus stop, find neighbor bus stops by searching on the bus graph 
+
+*/
+int OpTMGetAdjNodeBGValueMap ( Word* args, Word& result, int message,
+                         Word& local, Supplier in_pSupplier )
+{
+
+  BN* b_n;
+  switch(message){
+      case OPEN:{
+        BusGraph* bg = (BusGraph*)args[0].addr;
+        int nodeid = ((CcInt*)args[1].addr)->GetIntval();
+
+        b_n = new BN(NULL);
+        b_n->resulttype =
+            new TupleType(nl->Second(GetTupleResultType(in_pSupplier)));
+
+        b_n->GetAdjNodeBG(bg, nodeid);
+        local.setAddr(b_n);
+        return 0;
+      }
+      case REQUEST:{
+          if(local.addr == NULL) return CANCEL;
+          b_n = (BN*)local.addr;
+          if(b_n->count == b_n->bs_list1.size())return CANCEL;
+
+          Tuple* tuple = new Tuple(b_n->resulttype);
+
+          tuple->PutAttribute(0, new Bus_Stop(b_n->bs_list1[b_n->count]));
+          tuple->PutAttribute(1, new Bus_Stop(b_n->bs_list2[b_n->count]));
+          tuple->PutAttribute(2, new SimpleLine(b_n->path_sl_list[b_n->count]));
 
           result.setAddr(tuple);
           b_n->count++;
@@ -14380,6 +14815,20 @@ TypeConstructor indoorgraph("indoorgraph", IndoorGraph::BaseGraphProp,
       IndoorGraph::CheckIndoorGraph
 );
 
+/*
+bus graph built on bus network and pavements 
+connects from one bus stop to another by bus and walk 
+
+*/
+TypeConstructor busgraph("busgraph", BusGraph::BusGraphProp,
+      BusGraph::OutBusGraph, BusGraph::InBusGraph,
+      0, 0,
+      BusGraph::CreateBusGraph, BusGraph::DeleteBusGraph,
+      BusGraph::OpenBusGraph, BusGraph::SaveBusGraph,
+      BusGraph::CloseBusGraph, BusGraph::CloneBusGraph,
+      BusGraph::CastBusGraph, BusGraph::SizeOfBusGraph,
+      BusGraph::CheckBusGraph
+);
 
 
 Operator createdualgraph(
@@ -14870,6 +15319,50 @@ Operator mapbstopave(
 );
 
 /*
+build connections between bus stops: 1) neighbor connected by pavements; 
+2) the same 2D point but belong to different bus routes 
+
+*/
+
+Operator bs_neighbors1(
+  "bs_neighbors1", 
+  OpTMBsNeighbors1Spec,
+  OpTMBsNeighbor1ValueMap,
+  Operator::SimpleSelect,
+  OpTMBsNeighbors1TypeMap
+);
+
+
+Operator bs_neighbors2(
+  "bs_neighbors2", 
+  OpTMBsNeighbors2Spec,
+  OpTMBsNeighbor2ValueMap,
+  Operator::SimpleSelect,
+  OpTMBsNeighbors2TypeMap
+);
+
+/*
+a graph on bus network including pavements connection 
+
+*/
+Operator createbgraph(
+  "createbgraph", 
+  OpTMCreateBusGraphSpec,
+  OpTMCreateBusGraphValueMap,
+  Operator::SimpleSelect,
+  OpTMCreateBusGraphTypeMap
+);
+
+Operator getadjnode_bg(
+  "getadjnode_bg", 
+  OpTMGetAdjNodeBGSpec,
+  OpTMGetAdjNodeBGValueMap,
+  Operator::SimpleSelect,
+  OpTMGetAdjNodeBGTypeMap
+);
+
+
+/*
 the following are to create moving buses 
 
 */
@@ -15066,6 +15559,7 @@ Operator path_to_building(
 
 /*
 Main Class for Transportation Mode
+data types and operators 
 
 */
 class TransportationModeAlgebra : public Algebra
@@ -15080,7 +15574,8 @@ class TransportationModeAlgebra : public Algebra
     visualgraph.AssociateKind("VISUALGRAPH");
     AddTypeConstructor(&indoorgraph);
     indoorgraph.AssociateKind("INDOORGRAPH");
-    ////////////    Indoor   Data Type   //////////////////////////
+    AddTypeConstructor(&busgraph); 
+    /*   Indoor   Data Type   */
     AddTypeConstructor( &point3d);
     AddTypeConstructor( &line3d);
     AddTypeConstructor( &floor3d);
@@ -15166,7 +15661,7 @@ class TransportationModeAlgebra : public Algebra
     AddOperator(&rotationsweep);
     AddOperator(&gethole);
     //////////////////////////////////////////////////////////////////
-    ////////////////////create bus network//////////////////////////
+    /*create bus network*/
     ///////////////// bus stops and bus routes  //////////////////////
     AddOperator(&cellbox);
     AddOperator(&create_bus_route1); //rough representation
@@ -15190,9 +15685,13 @@ class TransportationModeAlgebra : public Algebra
     AddOperator(&bn_busstops);//get bus stops relation
     AddOperator(&bn_busroutes);//get bus routes relation  
     ////////////////////////////////////////////////////////////////////////
-    ////////////////////////grpah for the bus network///////////////////////
+    /*grpah for the bus network*/
     ///////////////////////////////////////////////////////////////////////
-    AddOperator(&mapbstopave); 
+    AddOperator(&mapbstopave); //map bus stops to the pavements 
+    AddOperator(&bs_neighbors1); //for each bus stop (pavement), find  neighbors
+    AddOperator(&bs_neighbors2);//bus stops with same 2D point, different routes
+    AddOperator(&createbgraph);//create bus network graph 
+    AddOperator(&getadjnode_bg); //get neighbor nodes of a given node in bg 
 
     //////////////preprocess road data to get denstiy value/////////////
     ///////////// create time table and moving buses  //////////////////
