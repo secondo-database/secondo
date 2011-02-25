@@ -519,7 +519,7 @@ Signature: bool -> bool
 Example  : query assert( 8 = 8)
 Result   : TRUE
 
-Operator : const_const_pi
+Operator : const_pi
 Number   : 1
 Signature:  -> real
 Example  : query sin(const_pi())
