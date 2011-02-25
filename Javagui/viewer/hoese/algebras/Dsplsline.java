@@ -25,6 +25,10 @@ import  java.awt.geom.*;
 import  java.awt.*;
 import  sj.lang.ListExpr;
 import  viewer.hoese.*;
+import java.util.Vector;
+import java.util.Iterator;
+import java.util.Stack;
+import tools.Reporter;
 
 
 /**
@@ -62,16 +66,206 @@ public Shape getRenderObject(int num, AffineTransform at){
    return null;
 }
 
+
+public static boolean almostEqual(double a, double b){
+   return Math.abs(a-b) < 0.00000001;
+}
+
+public static boolean almostEqual(Point2D.Double p1, Point2D.Double p2){
+   return almostEqual(p1.x,p2.x) && almostEqual(p1.y,p2.y);
+}
+
+public static boolean isLess(Point2D.Double p1, Point2D.Double p2){
+   if(almostEqual(p1.x,p2.x)){
+      if(almostEqual(p1.y,p2.y)){
+         return false;
+      } else {
+          return p1.y < p2.y;
+      }
+    }
+    return p1.x < p2.x;
+
+   
+}
+
+public static void reverse(Vector<Point2D.Double >  v){
+  Stack<Point2D.Double> stack = new Stack<Point2D.Double>();
+  for(int i=0;i<v.size();i++){
+       stack.push(v.get(i));
+  }
+  v.clear();
+  while(!stack.isEmpty()){
+     v.add(stack.pop());
+  }
+}
+
+
+private boolean insertSegment(Vector<Vector<Point2D.Double>> sequences, double x1, double y1, double x2, double y2){
+   Point2D.Double p1 = new Point2D.Double(x1,y1);
+   Point2D.Double p2 = new Point2D.Double(x2,y2);
+   Vector<Vector<Point2D.Double>> connectedSequences = new Vector<Vector<Point2D.Double>>();
+   Iterator<Vector<Point2D.Double>> it = sequences.iterator();
+   while(it.hasNext() && connectedSequences.size() < 2){
+     Vector<Point2D.Double> seq = it.next();
+     if( almostEqual(seq.get(0),p1) || almostEqual(seq.get(0),p2) ||
+         almostEqual(seq.get(seq.size()-1), p1) || almostEqual(seq.get(seq.size()-1),p2)){
+         connectedSequences.add(seq);
+     } 
+   }
+   if(connectedSequences.size()==0){ // new unconnected segment
+     Vector<Point2D.Double> newSeq = new Vector<Point2D.Double>();
+     newSeq.add(p1);
+     newSeq.add(p2);
+     sequences.add(newSeq);
+   } else { // new segment extends a single sequence
+     // extend the first sequence by one point
+     Vector<Point2D.Double> seq = connectedSequences.get(0);
+     if(almostEqual(p1,seq.get(0))){
+        seq.add(0,p2); 
+     } else if(almostEqual(p2,seq.get(0))){
+        seq.add(0,p1);
+     } else if(almostEqual(p1,seq.get(seq.size()-1))){
+        seq.add(p2);
+     } else {
+        seq.add(p1);
+     }
+     if(connectedSequences.size()==2){ // we have to connect both sequences
+        Vector<Point2D.Double> seq2 = connectedSequences.get(1);
+        if(almostEqual(seq.get(seq.size()-1), seq2.get(0))){ // seq2 extends seq
+           sequences.remove(seq2);
+           seq.addAll(seq2);
+        }  else if(almostEqual(seq2.get(seq2.size()-1),seq.get(0))){ // seq extends seq2
+           seq2.addAll(seq);
+           sequences.remove(seq);
+        } else if( almostEqual(seq.get(seq.size()-1),seq2.get(seq2.size()-1))) { // both endpoints are equal
+           sequences.remove(seq2);
+           reverse(seq2);
+           seq.addAll(seq2);
+        } else if(almostEqual(seq.get(0),seq2.get(0))){ // both starting points are equal
+            reverse(seq);
+            seq.addAll(seq2);
+            sequences.remove(seq2);
+        } else { // not a sline
+           return false;
+        }
+     }
+
+
+   }
+   return true;   
+}
+
+
 public void ScanValue(ListExpr value){
 
-   p1 = new Point2D.Double();
-   p2 = new Point2D.Double();
+  if(isUndefined(value)){
+     defined = false;
+     GP = null;
+     return;
+  }
+
+  defined = true;
+
+  boolean startSmaller = true;
+  if(value.listLength()==2 && value.second().atomType()==ListExpr.BOOL_ATOM){ // new style
+     startSmaller = value.second().boolValue();
+     value = value.first();
+  }
+  // try to build a point sequence from the shuffled segments
+  if(value.isEmpty()){
+    GP = null;
+    return;
+  }
    
-   boolean ok = super.ScanValue(value,p1,p2);
-   if(!ok){
-      p1=null;
-      p2=null;
-   }
+  Vector<Vector<Point2D.Double> > pointSequences = new Vector<Vector<Point2D.Double> >();
+
+  while(!value.isEmpty()){
+    ListExpr segment = value.first();
+    value = value.rest();
+    if(segment.listLength()!=4){
+        Reporter.writeError("Error: No correct segment expression: 4 elements needed");
+        GP=null;
+        err = true;
+        return;
+    }
+    Double X1 = LEUtils.readNumeric(segment.first());
+    Double Y1 = LEUtils.readNumeric(segment.second());
+    Double X2 = LEUtils.readNumeric(segment.third());
+    Double Y2 = LEUtils.readNumeric(segment.fourth());
+    if(X1==null || X2==null || Y1==null || Y2==null){
+        Reporter.writeError("Error: No correct segment expression: 4 elements needed");
+        GP=null;
+        err = true;
+        return;
+    }
+    double x1 = X1.doubleValue();
+    double y1 = Y1.doubleValue();
+    double x2 = X2.doubleValue();
+    double y2 = Y2.doubleValue();
+    // prject the coordinates if possible
+    try{
+      if(!ProjectionManager.project(x1,y1,aPoint)){
+        Reporter.writeError("Error: Problem in projection of coordinates");
+        GP=null;
+        err = true;
+        return;
+      }
+      x1 = aPoint.x;
+      y1 = aPoint.y;
+      if(!ProjectionManager.project(x2,y2,aPoint)){
+        Reporter.writeError("Error: Problem in projection of coordinates");
+        GP=null;
+        err = true;
+        return;
+      }
+      x2 = aPoint.x;
+      y2 = aPoint.y;
+    } catch(Exception e){
+        Reporter.writeError("Error: No correct segment expression: 4 elements needed");
+        GP=null;
+        err = true;
+        return;
+    }
+    if(!insertSegment(pointSequences, x1,y1,x2,y2)){
+      Reporter.writeError("found problem in reconstructing pointsequence");
+    }
+  }
+  if(pointSequences.size()!=1){
+     Reporter.writeError("Error: the segments do not form a simple line, no arrow will be drawn");
+     isArrow = false;
+  } else {
+     Vector<Point2D.Double> sequence = pointSequences.get(0);
+     if(sequence.size()<2){
+        Reporter.writeError("Error: internal error, found sequnece with less than 2 points");
+        GP=null;
+        err = true;
+        return;
+     }
+     boolean useEnd = startSmaller && isLess(sequence.get(0) , sequence.get(sequence.size()-1));
+     if(useEnd){ // arrow points to the end of the sequence
+        this.p1 = sequence.get(sequence.size()-2);
+        this.p2 = sequence.get(sequence.size()-1);
+     }  else { // arrow points to the start of the sequence
+        this.p1 = sequence.get(1);
+        this.p2 = sequence.get(0);
+     }   
+  }
+
+  GP = new GeneralPath();
+  Iterator<Vector<Point2D.Double>> it = pointSequences.iterator();
+  while(it.hasNext()){
+    Vector<Point2D.Double> sequence = it.next();
+    for(int i=0;i<sequence.size(); i++){
+      Point2D.Double p = sequence.get(i);
+      if(i==0){
+         GP.moveTo((float)p.x, (float)p.y);
+      } else {
+         GP.lineTo((float)p.x,(float)p.y); 
+      }
+    }
+  } 
+  defined = true;
+  err = false;
 }
 
 
