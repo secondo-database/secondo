@@ -3886,7 +3886,7 @@ Word IndoorGraph::InIndoorGraph(ListExpr in_xTypeInfo,
 
 ListExpr IndoorGraph::OutIndoorGraph(ListExpr typeInfo, Word value)
 {
-//  cout<<"OutVisualGraph()"<<endl;
+//  cout<<"OutIndoorGraph()"<<endl;
   IndoorGraph* ig = (IndoorGraph*)value.addr;
   return ig->Out(typeInfo);
 }
@@ -4144,8 +4144,10 @@ void IndoorGraph::Load(int id, Relation* r1, Relation* r2)
     entry_adj_list.Append(ListEntry(start, end));
 //    cout<<"end "<<end<<endl;
     delete nodeid;
+    
   }
 
+  
   delete btree_node_oid1;
   /////////////////////////////////////////////////////////////////////////
   /////////////////////////build a btree on node rel////////////////////////
@@ -4318,7 +4320,7 @@ void IndoorNav::InitializeElevator(Interval<Instant>& periods,
   }
 
 
-  if(elev_list.size() == 1){
+  if(elev_list.size() < 2){
      cout<<"only one floor, should not have elevator"<<endl; 
      return; 
   }
@@ -7110,6 +7112,7 @@ void MPoint3D::EndBulkLoad(const bool sort, const bool checkvalid)
 */
 void MPoint3D::Trajectory(Line3D& l)
 {
+  l.Clear();
   l.StartBulkLoad(); 
   for(int i = 0;i < GetNoComponents();i++){
     UPoint3D unit;
@@ -7120,4 +7123,8 @@ void MPoint3D::Trajectory(Line3D& l)
   }
   l.EndBulkLoad(); 
 }
+
+
+
+
 

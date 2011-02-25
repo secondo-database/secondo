@@ -1315,7 +1315,7 @@ public:
                      bool& inout_bCorrect);
   IndoorGraph(SmiRecord&, size_t&, const ListExpr);
   //////////////////////////////////////////////////////////////
-  void Load(int, Relation*,Relation*);
+  void Load(int, Relation*, Relation*);
   static ListExpr OutIndoorGraph(ListExpr typeInfo, Word value);
   ListExpr Out(ListExpr typeInfo);
   static bool CheckIndoorGraph(ListExpr type, ListExpr& errorInfo);
