@@ -330,8 +330,8 @@ Result   : 10
 
 Operator : create_bus_stop1
 Number   : 2
-Signature: network x rel x attr1 x attr2 x attr3 x attr4 -> (stream(((x1 t1) ... (xn tn))))
-Example  : query create_bus_stop1(n,busroutes,br_id,bus_route1,bus_route2,route_type) count; 
+Signature: network x rel1 x attr1 x attr2 x attr3 x attr4 x rel2 x btree-> (stream(((x1 t1) ... (xn tn))))
+Example  : query create_bus_stop1(n,busroutes,br_id,bus_route1,bus_route2,route_type,subpaves2, btree_pave2) count; 
 Result   : 10
 
 
@@ -420,6 +420,33 @@ Number   : 2
 Signature: busnetwork x rtree x rel x int -> (stream(((x1 t1) ... (xn tn))))
 Example  : query mapbstopave(bn1, rtree_dg, dg_node, roadwidth) count;
 Result   : 20
+
+
+Operator : bs_neighbors1
+Number   : 2
+Signature: dualgraph x visibility graph x rel1 x rel2 x rtree -> (stream(((x1 t1) ... (xn tn))))
+Example  : query bs_neighbors1(dg, vg, tri_reg_new, bs_pave_sort, rtree_bs_pave) count;
+Result   : 20
+
+Operator : bs_neighbors2
+Number   : 2
+Signature: busnetwork -> (stream(((x1 t1) ... (xn tn))))
+Example  : query bs_neighbors2(bn1) count;
+Result   : 20
+
+
+Operator : createbgraph
+Number   : 2
+Signature: int x rel1 x rel2 -> busgraph
+Example  : query createbgraph(1, node_rel, edge_rel1);
+Result   : file_platform
+
+Operator : getadjnode_bg
+Number   : 2
+Signature: busgraph x int  -> (stream(((x1 t1) ... (xn tn))))
+Example  : query getadjnode_bg(bg1, 2) count;
+Result   : 0
+
 
 
 Operator : getstopid
@@ -666,7 +693,7 @@ Result   : 25.0
 Operator : createigraph
 Number   : 2
 Signature: int x rel x rel -> indoorgraph
-Example  : query createigraph(1, edge_rel, node_rel);
+Example  : query createigraph(1, node_rel, edge_rel);
 Result   : file_platform
 
 Operator : getadjnode_ig

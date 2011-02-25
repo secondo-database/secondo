@@ -302,13 +302,17 @@ struct BusRoute{
   int FilterBusRoute(GLine* gl1, GLine* gl2, int id1, int id2);
   float BusRouteInRoad(int);
   /////////////////////////////create bus stops/////////////////////
-  void CreateBusStop1(int attr1,int attr2,int attr3, int attr4); 
+  void CreateBusStop1(int attr1,int attr2,int attr3, int attr4,
+                      Relation*, BTree*); 
   void CreateStops(int br_id, GLine* gl, Line* l, int route_type); 
   bool FindNextStop(vector<SectTreeEntry> sec_list,
                     unsigned int& last_sec_index,double& last_sec_start,
                     double& last_sec_end, double& last_sec_gp_pos,
                     double next_stop_dist, 
                     double dist_to_jun, vector<bool> start_from); 
+
+  void CheckBusStopZC(unsigned int cur_size, Relation*,BTree*); 
+  ////////////////////////////////////////////////////////////////////
   void CreateBusStop2(int attr1,int attr2,int attr3); 
   void MergeBusStop1(vector<BusStop>& temp_list); 
   void CreateBusStop3(int attr,int attr1,int attr2,int attr3); 
@@ -552,6 +556,8 @@ class Bus_Stop:public Attribute{
      Bus_Stop* Clone() const {return new Bus_Stop(*this);}
      size_t HashValue() const{return (size_t)0;}
      void CopyFrom(const Attribute* right){*this = *(const Bus_Stop*)right;}
+     int GetUOid();
+     ostream& Print(ostream& os)const; 
 
   private:
     unsigned int br_id;
@@ -702,13 +708,15 @@ class BusNetwork{
   static string BusRoutesTypeInfo;
   static string BusStopsInternal;
   static string BusStopsBTreeTypeInfo; 
+  static string BusStopsRTreeTypeInfo; 
   static string BusRoutesInternal;
   static string BusRoutesBTreeTypeInfo; 
   
   bool Save(SmiRecord& valueRecord, size_t& offset, const ListExpr typeInfo);
   static BusNetwork* Open(SmiRecord& valueRecord, size_t& offset, 
                      const ListExpr typeInfo);
-  enum BN_BS{BN_ID1 = 0, BN_BS};//internal representation 
+  enum BN_INODE{NODE_BS1 = 0, NODE_BS2};
+  enum BN_BS{BN_ID1 = 0, BN_BS, BS_U_OID, BS_GEO};//internal representation 
   enum BN_BR{BN_ID2 = 0, BN_BR}; //internal representation 
 
 
@@ -720,6 +728,7 @@ class BusNetwork{
   unsigned int GetId() const {return bn_id;}
   Relation* GetBS_Rel(){return stops_rel;}
   Relation* GetBR_Rel(){return routes_rel;}
+  R_Tree<2,TupleId>* GetBS_RTree() { return rtree_bs;}
   
   void GetBusStopGeoData(Bus_Stop* bs, Point* p);
   private:
@@ -730,8 +739,8 @@ class BusNetwork{
     Relation* routes_rel;  //a relaton for bus routes
     BTree* btree_br; //a btree on bus routes
 
-
-            //an rtree on bus routes
+    BTree* btree_bs_uoid; 
+    R_Tree<2,TupleId>* rtree_bs; //an rtree on bus routes
 };
 
 ListExpr BusNetworkProperty();
@@ -768,6 +777,8 @@ struct MyPoint_Tid:public MyPoint{
     }
 };
 
+class BusGraph; 
+
 struct BN{
 
   BusNetwork* bn;
@@ -778,6 +789,17 @@ struct BN{
   vector<Point> geo_list; 
   unsigned int count;
   TupleType* resulttype;
+  
+  static string BusStopsPaveTypeInfo;
+  enum BusStopPave{BN_BUSSTOP, BN_PAVE_LOC1, BN_PAVE_LOC2}; 
+
+  vector<Bus_Stop> bs_list1;
+  vector<Bus_Stop> bs_list2;
+  vector<Line> path_list; 
+  vector<SimpleLine> path_sl_list; 
+  vector<int> bs_uoid_list; 
+  
+  
   BN(BusNetwork* n);
   ~BN();
   void GetStops();
@@ -789,7 +811,92 @@ struct BN{
   void DFTraverse(R_Tree<2,TupleId>* rtree, Relation* rel, 
                            SmiRecordId adr, Line* l,
                            vector<MyPoint_Tid>& it_p_list);
+  ///////////////for each bus stop, find the neighbor bus stops///////////////
+  void BsNeighbors1(DualGraph* dg, VisualGraph* vg, Relation* rel1,
+                   Relation* rel2, R_Tree<2,TupleId>* rtree);
+  void DFTraverse2(R_Tree<2,TupleId>* rtree, Relation* rel, 
+                 SmiRecordId adr, Point* l, vector<int>& neighbor_list, double);
+  bool FindNeighbor(int tid1, int tid2, DualGraph* dg, VisualGraph* vg,
+                   Relation* rel1, Relation* rel2, double dist, Line* res);
+
+  
+  void BsNeighbors2();
+  void DFTraverse3(R_Tree<2,TupleId>* rtree, Relation* rel,
+                   SmiRecordId adr, Point* loc, vector<int>& neighbor_list);
+                   
+  /////////////////////////////////////////////////////////////////////
+  void GetAdjNodeBG(BusGraph*, int);
 }; 
+
+/*
+bus network graph: three kinds of edges 
+1. neighbor bus stops connected by path in the pavements
+2. bus stops with the same spatial location but belong to different routes
+3. moving buses from one bus stop to its next one in the same route 
+two kinds of trip planning:shortest distance, minimum travelling time 
+
+*/
+class BusGraph{
+  public:
+    static string NodeTypeInfo;
+    static string NodeInternalTypeInfo;
+    static string NodeBTreeTypeInfo; 
+    static string EdgeTypeInfo1; 
+    static string EdgeInternalTypeInfo1;
+
+    enum BGNodeTypeInfo{BG_NODE = 0, BG_NODE_GEO, BG_NODE_UOID}; 
+    enum BGEdgeTypeInfo1{BG_UOID1 = 0, BG_E_BS1,BG_E_BS2,BG_PATH1,BG_E_BS2_TID};
+
+    BusGraph();
+    BusGraph(ListExpr in_xValue,int in_iErrorPos,
+                     ListExpr& inout_xErrorInfo,
+                     bool& inout_bCorrect);
+    BusGraph(SmiRecord&, size_t&, const ListExpr);
+
+    ~BusGraph();
+    static ListExpr BusGraphProp();
+    static bool CheckBusGraph(ListExpr type, ListExpr& errorInfo);
+    static int SizeOfBusGraph();
+    static void* CastBusGraph(void* addr);
+    static Word CloneBusGraph(const ListExpr typeInfo, const Word& w); 
+    static void CloseBusGraph(const ListExpr typeInfo, Word& w); 
+    static Word CreateBusGraph(const ListExpr typeInfo);
+    static void DeleteBusGraph(const ListExpr typeInfo, Word& w); 
+    static Word InBusGraph(ListExpr in_xTypeInfo,
+                            ListExpr in_xValue,
+                            int in_iErrorPos, ListExpr& inout_xErrorInfo,
+                            bool& inout_bCorrect);
+    static ListExpr OutBusGraph(ListExpr typeInfo, Word value); 
+    static bool SaveBusGraph(SmiRecord& valueRecord, size_t& offset,
+                           const ListExpr typeInfo, Word& value);
+    static bool OpenBusGraph(SmiRecord& valueRecord, size_t& offset,
+                           const ListExpr typeInfo, Word& value); 
+    static BusGraph* Open(SmiRecord& valueRecord,size_t& offset,
+                          const ListExpr typeInfo);
+
+    ListExpr Out(ListExpr typeInfo); 
+    bool Save(SmiRecord& in_xValueRecord,size_t& inout_iOffset,
+              const ListExpr in_xTypeInfo); 
+
+    void Load(int, Relation*, Relation*);
+    void LoadEdge1(Relation* edge); 
+
+    void FindAdj1(int node_id, vector<int>& list);
+    
+    unsigned int bg_id;
+    Relation* node_rel;
+    BTree* btree_node; 
+    Relation* edge_rel1;
+
+    DbArray<int> adj_list1;
+    DbArray<ListEntry> entry_adj_list1;
+
+/*    Relation* edge_rel2;
+    DbArray<int> adj_list2;
+    DbArray<ListEntry> entry_adj_list2;*/
+};
+
+
 //////////////////////////////////////////////////////////////////////////
 ///////////////////////underground trains////////////////////////////////
 /////////////////////////////////////////////////////////////////////////
