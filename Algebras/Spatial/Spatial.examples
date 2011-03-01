@@ -747,7 +747,7 @@ Operator  : makesline
 Number    : 3
 Signature : point x point -> sline
 Example   : query makesline(makepoint(0,0),makepoint(100.0,-100.0))
-Result    : (sline ((0.0 0.0 100.0 -100.0)))
+Result    : (sline (((0.0 0.0 100.0 -100.0)) TRUE))
 Tolerance : %0.001
 
 
