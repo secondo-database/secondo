@@ -5066,7 +5066,7 @@ void RoadDenstiy::CreatTableAtStopNight(vector<MPoint>& mo_list, Point& loc,
     night2->Get(0, periods2);
 
 //    cout<<"peri1 "<<*night1<<" peri2 "<<*night2<<endl; 
-    
+
     double e1 = periods1.end.ToDouble();
 
     vector<MPoint> mo_list1;
@@ -5105,7 +5105,7 @@ void RoadDenstiy::CreatTableAtStop(vector<MPoint> trip_list, Point& loc,
   Instant start_time_0 = up1.timeInterval.start;
   Instant st = start_time_0;
   GetTimeInstantStop(start_mo_0, loc,st); 
-  
+
   /////////////cut second and millsecond /////////////////////////////
   int second_val_s = st.GetSecond(); 
   int msecond_val_s = st.GetMillisecond(); 
@@ -5114,18 +5114,17 @@ void RoadDenstiy::CreatTableAtStop(vector<MPoint> trip_list, Point& loc,
                        msecond_val_s/(24.0*60.0*60.0*1000.0);
   st.ReadFrom(double_s);
   /////////////////////////////////////////////////////////////////
-  
+
   MPoint start_mo_1 = trip_list[1];
   UPoint up2;
   start_mo_1.Get(0, up1);//the start time of second trip 
   Instant start_time_1 = up1.timeInterval.start;
-  
 
   ///////////  get time interval for schedule  ///////////////////
   double sch_interval = start_time_1.ToDouble() - start_time_0.ToDouble();
   assert(sch_interval > 0.0);
 //  cout<<"schedule "<<sch_interval*24.0*60.0*60.0<<" seconds"<<endl; 
-  
+
   ////////////////last bus trip ////////////////////////////////////
   MPoint end_mo = trip_list[trip_list.size() - 1];
   UPoint up3;
@@ -5133,7 +5132,7 @@ void RoadDenstiy::CreatTableAtStop(vector<MPoint> trip_list, Point& loc,
   Instant end_time  = up3.timeInterval.start; 
   /////////////////cut second and millsecond ////////////////////////////////
   Instant et = end_time;
-  
+
   GetTimeInstantStop(end_mo, loc, et); 
 
   int second_val_e = et.GetSecond(); 
@@ -5159,15 +5158,23 @@ void RoadDenstiy::CreatTableAtStop(vector<MPoint> trip_list, Point& loc,
 
 
   bus_stop_loc.push_back(loc);
-  br_id_list.push_back(br_id);
-  bus_stop_id_list.push_back(stop_id);
-  br_direction.push_back(dir);
+
+//   br_id_list.push_back(br_id);
+//   bus_stop_id_list.push_back(stop_id);
+//   br_direction.push_back(dir);
+
+  Bus_Stop* bs = new Bus_Stop(true, br_id, stop_id, dir);
+  bs_list.push_back(*bs); 
+  bs_uoid_list.push_back(bs->GetUOid());
+  delete bs; 
+
+
   duration1.push_back(*peri);
   unique_id_list.push_back(count_id);
   schedule_interval.push_back(sch_interval);
   delete peri; 
 
-  
+
     ////////////////////////    check time  ////////////////////////////// 
   for(unsigned int i = 0;i < trip_list.size();i++){ 
     MPoint mo = trip_list[i];
@@ -5180,7 +5187,7 @@ void RoadDenstiy::CreatTableAtStop(vector<MPoint> trip_list, Point& loc,
 }
 
 /*
-get the time that the train arrives at this point(stop)
+get the time that the bus arrives at this point(stop)
 
 */
 void RoadDenstiy::GetTimeInstantStop(MPoint& mo, Point loc, Instant& arrove_t)
@@ -5201,7 +5208,7 @@ void RoadDenstiy::GetTimeInstantStop(MPoint& mo, Point loc, Instant& arrove_t)
             double d_et = et.ToDouble();
             assert(AlmostEqual(fabs(d_st-d_et), stop_time));//check 30 seconds
             arrove_t = st; 
-            return; 
+            return;
       }
  }
   assert(false);
@@ -6458,7 +6465,12 @@ void BusNetwork::GetBusStopGeoData(Bus_Stop* bs, Point* p)
 
 
 string BN::BusStopsPaveTypeInfo =
-"(rel (tuple ((bus_stop busstop) (pave_loc1 genloc) (pave_loc2 point))))";
+"(rel (tuple ((bus_stop busstop) (pave_loc1 genloc)\
+(pave_loc2 point)(bus_stop_loc point))))";
+
+string BN::BusTimeTableTypeInfo = 
+"(rel (tuple ((stop_loc point) (bus_stop busstop) (whole_time periods) \
+(schedule_interval real) (loc_id int) (bus_uoid int))))";
 
 
 BN::BN(BusNetwork* n):bn(n), count(0), resulttype(NULL)
@@ -6808,17 +6820,7 @@ void BN::BsNeighbors1(DualGraph* dg, VisualGraph* vg, Relation* rel1,
     int neighbor_no = 0;
     for(unsigned int j = 0;j < neighbor_list.size();j++){
       if(neighbor_list[j] != i){
-/*        bs_list1.push_back(*bs);
 
-        Tuple* bs_pave_tuple2 = rel2->GetTuple(neighbor_list[j], false);
-        Bus_Stop* bs_neighbor = 
-                 (Bus_Stop*)bs_pave_tuple2->GetAttribute(BN_BUSSTOP);
-        bs_list2.push_back(*bs_neighbor); 
-        bs_pave_tuple2->DeleteIfAllowed(); 
-
-        Line* l = new Line(0);
-        path_list.push_back(*l); 
-        delete l;*/
         Line* path = new Line(0);
         if(FindNeighbor(i, neighbor_list[j], dg, vg, rel1, 
                        rel2, neighbor_dist, path)){
@@ -6835,11 +6837,82 @@ void BN::BsNeighbors1(DualGraph* dg, VisualGraph* vg, Relation* rel1,
               SimpleLine* sl = new SimpleLine(0); 
               sl->fromLine(*path);
               path_sl_list.push_back(*sl); 
-              delete sl; 
-//              path_list.push_back(*path); 
+
 
 //              cout<<path->Length()<<endl; 
+              //////////////////////////////////////////////////////////////
+              /////connection between bus stops and their mapping points /// 
+              ///////////////in the pavement///////////////////////////////
+              //////this is a special connection, I defint it does not /////
+              /////////belong to pavement area///////////////////////////////
+              ///////////////////////////////////////////////////////////////
+              Point* bus_loc1 = 
+                      (Point*)bs_pave_tuple->GetAttribute(BN_BUSLOC); 
+              Point* bus_loc2 = (Point*)tuple2->GetAttribute(BN_BUSLOC); 
+              Point sl_sp;
+              assert(sl->AtPosition(0.0, true, sl_sp)); 
+              double d1 = sl_sp.Distance(*bus_loc1);
+              double d2 = sl_sp.Distance(*bus_loc2);
+//              cout<<"d1 "<<d1<<" d2 "<<d2<<endl; 
+              if(d1 < d2){
+                Point sl_ep;
+                assert(sl->AtPosition(sl->Length(), true, sl_ep)); 
+                HalfSegment hs1(true, *bus_loc1, sl_sp);
+                HalfSegment hs2(true, *bus_loc2, sl_ep);
+
+                SimpleLine* sub_sl1 = new SimpleLine(0);
+                sub_sl1->StartBulkLoad();
+                hs1.attr.edgeno = 0;
+                *sub_sl1 += hs1;
+                hs1.SetLeftDomPoint(!hs1.IsLeftDomPoint());
+                *sub_sl1 += hs1;
+                sub_sl1->EndBulkLoad();
+                sub_path1.push_back(*sub_sl1);
+                delete sub_sl1; 
+
+                SimpleLine* sub_sl2 = new SimpleLine(0);
+                sub_sl2->StartBulkLoad();
+                hs2.attr.edgeno = 0;
+                *sub_sl2 += hs2;
+                hs2.SetLeftDomPoint(!hs2.IsLeftDomPoint());
+                *sub_sl2 += hs2;
+                sub_sl2->EndBulkLoad();
+                sub_path2.push_back(*sub_sl2); 
+                delete sub_sl2; 
+
+              }else{
+                Point sl_ep;
+                assert(sl->AtPosition(sl->Length(), true, sl_ep)); 
+                HalfSegment hs1(true, *bus_loc2, sl_sp);
+                HalfSegment hs2(true, *bus_loc1, sl_ep);
+
+                SimpleLine* sub_sl1 = new SimpleLine(0);
+                sub_sl1->StartBulkLoad();
+                hs1.attr.edgeno = 0;
+                *sub_sl1 += hs1;
+                hs1.SetLeftDomPoint(!hs1.IsLeftDomPoint());
+                *sub_sl1 += hs1;
+                sub_sl1->EndBulkLoad();
+                sub_path1.push_back(*sub_sl1);
+                delete sub_sl1; 
+
+                SimpleLine* sub_sl2 = new SimpleLine(0);
+                sub_sl2->StartBulkLoad();
+                hs2.attr.edgeno = 0;
+                *sub_sl2 += hs2;
+                hs2.SetLeftDomPoint(!hs2.IsLeftDomPoint());
+                *sub_sl2 += hs2;
+                sub_sl2->EndBulkLoad();
+                sub_path2.push_back(*sub_sl2); 
+                delete sub_sl2; 
+
+              }
+
+
+              //////////////////////////////////////////////////////
+
               bs_uoid_list.push_back(bs1->GetUOid());
+              delete sl; 
            }
            neighbor_no++;
            tuple2->DeleteIfAllowed(); 
@@ -6848,9 +6921,6 @@ void BN::BsNeighbors1(DualGraph* dg, VisualGraph* vg, Relation* rel1,
         delete path; 
 
       }
-    }
-    if(neighbor_no > 5){
-//      cout<<*bs1<<" "<<neighbor_no<<endl;
     }
 
     bs_pave_tuple->DeleteIfAllowed(); 
@@ -7136,7 +7206,7 @@ bool BN::FindNeighbor(int tid1, int tid2, DualGraph* dg, VisualGraph* vg,
 /*
 for each bus stop, find the bus stops that have the same spatial location but
   belong to different bus routes. these are the places that people can do
-  transfer 
+  transfer. we also return the unique id of the first bus stop
 
 */
 void BN::BsNeighbors2()
@@ -7222,14 +7292,18 @@ void BN::GetAdjNodeBG(BusGraph* bg, int nodeid)
       cout<<"invalid node id "<<endl; 
       return; 
   }
-  
+
   Tuple* bs_tuple = bg->node_rel->GetTuple(nodeid, false);
   Bus_Stop* bs1 = (Bus_Stop*)bs_tuple->GetAttribute(BusGraph::BG_NODE);
+//  cout<<*bs1<<endl; 
 
-  vector<int> tid_list; 
-  bg->FindAdj1(nodeid, tid_list); 
-  for(unsigned int i = 0;i < tid_list.size();i++){
-    Tuple* edge_tuple = bg->edge_rel1->GetTuple(tid_list[i], false);
+  /////////////////////////////////////////////////////////////////////////
+  ///////////////the first kind of connection by pavements/////////////////
+  /////////////////////////////////////////////////////////////////////////
+  vector<int> tid_list1; 
+  bg->FindAdj1(nodeid, tid_list1); 
+  for(unsigned int i = 0;i < tid_list1.size();i++){
+    Tuple* edge_tuple = bg->edge_rel1->GetTuple(tid_list1[i], false);
     Bus_Stop* bs2 = (Bus_Stop*)edge_tuple->GetAttribute(BusGraph::BG_E_BS2); 
     SimpleLine* path = 
              (SimpleLine*)edge_tuple->GetAttribute(BusGraph::BG_PATH1);
@@ -7240,10 +7314,46 @@ void BN::GetAdjNodeBG(BusGraph* bg, int nodeid)
     edge_tuple->DeleteIfAllowed();
   }
 
+  ///////////////////////////////////////////////////////////////////////////
+  //////the second kind of connection (no path; the same spatial location)////
+  ////////////////////////////////////////////////////////////////////////////
+  vector<int> tid_list2; 
+  bg->FindAdj2(nodeid, tid_list2); 
+  for(unsigned int i = 0;i < tid_list2.size();i++){
+    Tuple* edge_tuple = bg->edge_rel2->GetTuple(tid_list2[i], false);
+    Bus_Stop* bs2 = (Bus_Stop*)edge_tuple->GetAttribute(BusGraph::BG_E2_BS2); 
+    SimpleLine* path = new SimpleLine(0);
+    path->StartBulkLoad();
+    path->EndBulkLoad(); 
+    bs_list1.push_back(*bs1);
+    bs_list2.push_back(*bs2);
+    path_sl_list.push_back(*path);
+    delete path; 
+    edge_tuple->DeleteIfAllowed();
+    
+  }
+  ////////////////////////////////////////////////////////////////////
+  //////the third kind of connection (connected by moving buses)//////
+  ////////////////////////////////////////////////////////////////////
+  
+  vector<int> tid_list3; 
+  bg->FindAdj3(nodeid, tid_list3); 
+//  cout<<"connection 3 size: "<<tid_list3.size()<<endl; 
+  for(unsigned int i = 0;i < tid_list3.size();i++){
+    Tuple* edge_tuple = bg->edge_rel3->GetTuple(tid_list3[i], false);
+    Bus_Stop* bs2 = (Bus_Stop*)edge_tuple->GetAttribute(BusGraph::BG_E3_BS2); 
+    SimpleLine* path = 
+          (SimpleLine*)edge_tuple->GetAttribute(BusGraph::BG_PATH3);
+    bs_list1.push_back(*bs1);
+    bs_list2.push_back(*bs2);
+    path_sl_list.push_back(*path);
+
+    edge_tuple->DeleteIfAllowed();
+  }
 
   bs_tuple->DeleteIfAllowed(); 
   
-//  /* test  adjacency list*/
+//  /* test  adjacency list1*/
 //  for(int i = 1;i <= bg->node_rel->GetNoTuples();i++){
 //    Tuple* node_tuple = bg->node_rel->GetTuple(i, false);
 //    cout<<*node_tuple<<endl; 
@@ -7280,8 +7390,228 @@ void BN::GetAdjNodeBG(BusGraph* bg, int nodeid)
 //    node_tuple->DeleteIfAllowed();
 //   }
 
+
+//  /* test  adjacency list2*/
+//  for(int i = 1;i <= bg->node_rel->GetNoTuples();i++){
+//    Tuple* node_tuple = bg->node_rel->GetTuple(i, false);
+// 
+//     vector<int> tid_list; 
+//     bg->FindAdj2(i, tid_list); 
+//    for(unsigned int j = 0;j < tid_list.size();j++){
+//       Tuple* edge_tuple = bg->edge_rel2->GetTuple(tid_list[j], false);
+//      Bus_Stop* bs2 = (Bus_Stop*)edge_tuple->GetAttribute(BusGraph::BG_E_BS2);
+//       edge_tuple->DeleteIfAllowed();
+//     }
+// 
+//    if(tid_list.size() > 0){
+//       cout<<*node_tuple<<" neighbor size "<<tid_list.size()<<endl;
+//    }
+//    node_tuple->DeleteIfAllowed();
+//   }
+
+//  /* test  adjacency list3*/
+//   for(int i = 1;i <= bg->node_rel->GetNoTuples();i++){
+//    Tuple* node_tuple = bg->node_rel->GetTuple(i, false);
+// 
+//     vector<int> tid_list; 
+//     bg->FindAdj3(i, tid_list); 
+//     for(unsigned int j = 0;j < tid_list.size();j++){
+//       Tuple* edge_tuple = bg->edge_rel3->GetTuple(tid_list[j], false);
+//       edge_tuple->DeleteIfAllowed();
+//     }
+// 
+//     if(tid_list.size() > 0){
+//       cout<<" neighbor size "<<tid_list.size()<<endl;
+//    }
+//     node_tuple->DeleteIfAllowed();
+//   }
+
 }
 
+/*
+find connections of two adjacent bus stops in one route.
+they are connected by the bus 
+
+*/
+void BN::BsNeighbors3(Relation* table_rel, Relation* mo_rel, BTree* btree_mo)
+{
+//  int count = 0; 
+  for(int i = 1;i <= table_rel->GetNoTuples();i++){
+    Tuple* bs_table_tuple = table_rel->GetTuple(i, false); 
+    int bs_uoid = 
+          ((CcInt*)bs_table_tuple->GetAttribute(BN_T_BUS_UOID))->GetIntval();
+    vector<int> tid_list; 
+    tid_list.push_back(i);
+    int j = i + 1;
+    while(j <= table_rel->GetNoTuples()){
+      Tuple* tuple = table_rel->GetTuple(j, false);
+      int bs_uoid2 = ((CcInt*)tuple->GetAttribute(BN_T_BUS_UOID))->GetIntval();
+      tuple->DeleteIfAllowed();
+      if(bs_uoid2 == bs_uoid){
+        tid_list.push_back(j);
+        j++; 
+      }else{
+        i = j - 1; 
+        break; 
+      } 
+    }
+//    cout<<tid_list.size()<<endl;
+    ////////////////////////////////////////////
+//    count += tid_list.size();
+    ConnectionOneRoute(table_rel, tid_list, mo_rel, btree_mo);
+    ////////////////////////////////////////////
+
+    if(j > table_rel->GetNoTuples()){
+        bs_table_tuple->DeleteIfAllowed();
+        break;
+    }
+
+  }
+//  cout<<count<<endl; 
+
+}
+
+/*
+for a bus stop, find the connection to its consecutive bus stop in one route
+for the last stop(no connection), 
+we can set the length of the path (empty) as zero 
+
+*/
+void BN::ConnectionOneRoute(Relation* table_rel, vector<int> tid_list, 
+                            Relation* mo_rel, BTree* btree_mo)
+{
+  const double delta_dist = 0.01;
+  for(unsigned int i = 0;i < tid_list.size();i++){
+    Tuple* table_tuple = table_rel->GetTuple(tid_list[i], false);
+    Point* bs_loc = (Point*)table_tuple->GetAttribute(BN_T_GEOBS);
+    Bus_Stop* bs = (Bus_Stop*)table_tuple->GetAttribute(BN_T_BS);
+    Periods* peri = (Periods*)table_tuple->GetAttribute(BN_T_P);
+    double schedu = ((CcReal*)table_tuple->GetAttribute(BN_T_S))->GetRealval();
+    int bs_uoid = 
+        ((CcInt*)table_tuple->GetAttribute(BN_T_BUS_UOID))->GetIntval();
+
+
+    /////////////////find the bus trip./////////////////////////////////
+    /////////////////get the path to the next bus stop if exists////////////
+//    int count = 0;
+    CcInt* search_id = new CcInt(true, bs->GetId());
+    BTreeIterator* btree_iter = btree_mo->ExactMatch(search_id);
+    while(btree_iter->Next()){
+      Tuple* mo_tuple = mo_rel->GetTuple(btree_iter->GetId(), false);
+      unsigned int bus_r_id = 
+            ((CcInt*)mo_tuple->GetAttribute(RoadDenstiy::BR_ID5))->GetIntval();
+      assert(bus_r_id == bs->GetId()); 
+      bool dir =  ((CcBool*)mo_tuple->GetAttribute( 
+                  RoadDenstiy::MO_BUS_DIRECTION))->GetBoolval();
+
+      bool find = false; 
+      if(dir == bs->GetUp()){ //the same direction 
+          MPoint* mo = (MPoint*)mo_tuple->GetAttribute(RoadDenstiy::BUS_TRIP);
+
+          /////////////////////////////////////////////////////////////////
+          ////////////////find the bus stop in units///////////////////////
+          ////////////////////////////////////////////////////////////////
+          int j = 0;
+          for(;j < mo->GetNoComponents();j++){
+            UPoint up;
+            mo->Get(j, up);
+            Point lp = up.p0;
+            Point rp = up.p1;
+
+            if(bs_loc->Distance(lp) < delta_dist && 
+               bs_loc->Distance(rp) < delta_dist){
+//              count++;
+              break;
+            }
+          }
+          assert(j < mo->GetNoComponents()); 
+
+          if(j == mo->GetNoComponents() - 1){///last stop in the route 
+//            cout<<"the last bus stop"<<endl; 
+          }else{
+            MPoint sub_move(0);
+            sub_move.StartBulkLoad();
+
+            //////the leaving time of the bus, not arrival time 
+            for(j++;j < mo->GetNoComponents();j++){//start from the next unit 
+              UPoint up;
+              mo->Get(j, up);
+              Point lp = up.p0;
+              Point rp = up.p1;
+              if(lp.Distance(rp) < delta_dist)//next bus stop 
+                break;
+              else{
+                sub_move.Add(up); 
+              }
+            }
+            sub_move.EndBulkLoad();
+
+//            cout<<sl->Length()<<endl; 
+            if(dir){
+              Bus_Stop* neighbor_bs = 
+              new Bus_Stop(true, bs->GetId(), bs->GetStopId() + 1, bs->GetUp());
+              /////////////////////////////////////////////////////////////////
+              ///////////////////////store the result -2///////////////////////
+              ////////////////////////////////////////////////////////////////
+              bs_uoid_list.push_back(bs_uoid);
+              bs_list1.push_back(*bs);
+              bs_list2.push_back(*neighbor_bs); 
+              bus_trip_list.push_back(sub_move);
+              duration.push_back(*peri);
+              schedule_interval.push_back(schedu);
+              
+              Line traj(0);
+              sub_move.Trajectory(traj); 
+              SimpleLine sl_traj(0); 
+              sl_traj.fromLine(traj); 
+              path_sl_list.push_back(sl_traj); 
+
+              delete neighbor_bs;
+            }else{
+              Bus_Stop* neighbor_bs =
+              new Bus_Stop(true, bs->GetId(), bs->GetStopId() - 1, bs->GetUp());
+              /////////////////////////////////////////////////////////////////
+              ///////////////////////store the result -3///////////////////////
+              ////////////////////////////////////////////////////////////////
+              bs_uoid_list.push_back(bs_uoid);
+              bs_list1.push_back(*bs);
+              bs_list2.push_back(*neighbor_bs); 
+              bus_trip_list.push_back(sub_move);
+              duration.push_back(*peri);
+              schedule_interval.push_back(schedu);
+
+              Line traj(0);
+              sub_move.Trajectory(traj); 
+              SimpleLine sl_traj(0); 
+              sl_traj.fromLine(traj); 
+              path_sl_list.push_back(sl_traj); 
+              
+
+              delete neighbor_bs; 
+            }
+
+            assert(j < mo->GetNoComponents()); 
+
+          }
+          ///////////////////////////////////////////////////////////////////
+          find = true; 
+      }
+      mo_tuple->DeleteIfAllowed();
+      if(find)break; 
+    }
+    delete btree_iter;
+    delete search_id;
+    /////////////////////////////////////////////////////////////////////
+/*    cout<<"count "<<count<<endl;
+    cout<<*bs<<endl;
+    assert(count == 1);*/
+
+    table_tuple->DeleteIfAllowed();
+    
+  }
+
+
+}
 
 ///////////////////////////////////////////////////////////////////////////
 ////////////////////  Bus Network Graph  //////////////////////////////////
@@ -7295,10 +7625,26 @@ string BusGraph::NodeBTreeTypeInfo =
 
 string BusGraph::EdgeTypeInfo1 = 
 "(rel (tuple ((bus_uoid int)(bus_stop1 busstop)(bus_stop2 busstop)(Path sline)\
-)))"; 
+(SubPath1 sline)(SubPath2 sline))))"; 
 string BusGraph::EdgeInternalTypeInfo1 = 
 "(rel (tuple ((bus_uoid int)(bus_stop1 busstop)(bus_stop2 busstop)(Path sline)\
+(SubPath1 sline)(SubPath2 sline)(bus_stop2_tid int))))"; 
+
+string BusGraph::EdgeTypeInfo2 = 
+"(rel (tuple ((bus_uoid int)(bus_stop1 busstop)(bus_stop2 busstop))))";
+string BusGraph::EdgeInternalTypeInfo2 = 
+"(rel (tuple ((bus_uoid int)(bus_stop1 busstop)(bus_stop2 busstop)\
 (bus_stop2_tid int))))"; 
+
+/*
+bustrip: time --- bus leaving time
+whole time:  time --- bus arrival time (30 seconds waiting)
+
+*/
+string BusGraph::EdgeTypeInfo3 = 
+"(rel (tuple ((bus_uoid int)(bus_stop1 busstop)(bus_stop2 busstop)\
+(whole_time periods)(schedule_interval real)(bustrip mpoint)(Path sline)\
+(bus_stop2_tid int))))";
 
 
 
@@ -7414,8 +7760,10 @@ BusGraph* BusGraph::Open(SmiRecord& valueRecord,size_t& offset,
 
 
 
-BusGraph::BusGraph():bg_id(0), node_rel(NULL), btree_node(NULL),edge_rel1(NULL),
-adj_list1(0), entry_adj_list1(0)
+BusGraph::BusGraph():bg_id(0), node_rel(NULL), btree_node(NULL),
+edge_rel1(NULL), adj_list1(0), entry_adj_list1(0), 
+edge_rel2(NULL), adj_list2(0), entry_adj_list2(0),
+edge_rel3(NULL), adj_list3(0), entry_adj_list3(0)
 {
 //  cout<<"BusGraph::BusGraph()"<<endl;
 }
@@ -7425,21 +7773,27 @@ BusGraph::~BusGraph()
   if(node_rel != NULL) node_rel->Close();
   if(btree_node != NULL) delete btree_node; 
   if(edge_rel1 != NULL) edge_rel1->Close(); 
+  if(edge_rel2 != NULL) edge_rel2->Close(); 
+  if(edge_rel3 != NULL) edge_rel3->Close(); 
 }
 
 
 BusGraph::BusGraph(ListExpr in_xValue,int in_iErrorPos,
                      ListExpr& inout_xErrorInfo,
                      bool& inout_bCorrect):
-bg_id(0), node_rel(NULL), btree_node(NULL), edge_rel1(NULL),
-adj_list1(0), entry_adj_list1(0)
+bg_id(0), node_rel(NULL), btree_node(NULL), 
+edge_rel1(NULL), adj_list1(0), entry_adj_list1(0), 
+edge_rel2(NULL), adj_list2(0), entry_adj_list2(0),
+edge_rel3(NULL), adj_list3(0), entry_adj_list3(0)
 {
 //  cout<<"BusGraph::BusGraph(ListExpr)"<<endl;
 }
 
 BusGraph::BusGraph(SmiRecord& in_xValueRecord, size_t& inout_iOffset,
 const ListExpr in_xTypeInfo):bg_id(0), node_rel(NULL), btree_node(NULL),
-edge_rel1(NULL), adj_list1(0), entry_adj_list1(0)
+edge_rel1(NULL), adj_list1(0), entry_adj_list1(0), 
+edge_rel2(NULL), adj_list2(0), entry_adj_list2(0),
+edge_rel3(NULL), adj_list3(0), entry_adj_list3(0)
 {
   in_xValueRecord.Read(&bg_id,sizeof(int),inout_iOffset);
   inout_iOffset += sizeof(int);
@@ -7490,6 +7844,69 @@ edge_rel1(NULL), adj_list1(0), entry_adj_list1(0)
    inout_iOffset += bufsize;
    free(buf);
 
+   
+  /***********************Open relation for edge2*********************/
+  nl->ReadFromString(EdgeInternalTypeInfo2, xType);
+  xNumericType = SecondoSystem::GetCatalog()->NumericType(xType);
+  edge_rel2 = Relation::Open(in_xValueRecord, inout_iOffset, xNumericType);
+  if(!edge_rel2) {
+    node_rel->Delete();
+    delete btree_node; 
+    edge_rel1->Delete(); 
+    adj_list1.clean();
+    entry_adj_list1.clean(); 
+    return;
+  }
+  
+    /////////////////open adjacency list2////////////////////////////////
+   bufsize = sizeof(FlobId) + sizeof(SmiSize) + 2*sizeof(int);
+   offset = 0;
+   buf = (char*) malloc(bufsize);
+   in_xValueRecord.Read(buf, bufsize, inout_iOffset);
+   inout_iOffset += bufsize;
+   assert(buf != NULL);
+   adj_list2.restoreHeader(buf,offset);
+   free(buf);
+   offset = 0;
+   buf = (char*) malloc(bufsize);
+   in_xValueRecord.Read(buf, bufsize, inout_iOffset);
+   assert(buf != NULL);
+   entry_adj_list2.restoreHeader(buf,offset);
+   inout_iOffset += bufsize;
+   free(buf);
+
+  /***********************Open relation for edge3*********************/
+  nl->ReadFromString(EdgeTypeInfo3, xType);
+  xNumericType = SecondoSystem::GetCatalog()->NumericType(xType);
+  edge_rel3 = Relation::Open(in_xValueRecord, inout_iOffset, xNumericType);
+  if(!edge_rel3) {
+    node_rel->Delete();
+    delete btree_node; 
+    edge_rel1->Delete(); 
+    adj_list1.clean();
+    entry_adj_list1.clean(); 
+    edge_rel2->Delete();
+    adj_list2.clean();
+    entry_adj_list2.clean(); 
+    return;
+  }
+  
+   /////////////////open adjacency list3////////////////////////////////
+   bufsize = sizeof(FlobId) + sizeof(SmiSize) + 2*sizeof(int);
+   offset = 0;
+   buf = (char*) malloc(bufsize);
+   in_xValueRecord.Read(buf, bufsize, inout_iOffset);
+   inout_iOffset += bufsize;
+   assert(buf != NULL);
+   adj_list3.restoreHeader(buf,offset);
+   free(buf);
+   offset = 0;
+   buf = (char*) malloc(bufsize);
+   in_xValueRecord.Read(buf, bufsize, inout_iOffset);
+   assert(buf != NULL);
+   entry_adj_list3.restoreHeader(buf,offset);
+   inout_iOffset += bufsize;
+   free(buf);
 
 }
 
@@ -7553,8 +7970,8 @@ bool BusGraph::Save(SmiRecord& in_xValueRecord,size_t& inout_iOffset,
   /////////////////adjacency list 1//////////////////////////////
    SecondoCatalog *ctlg = SecondoSystem::GetCatalog();
    SmiRecordFile *rf = ctlg->GetFlobFile();
-   
-   
+
+
    adj_list1.saveToFile(rf, adj_list1);
    SmiSize offset = 0;
    size_t bufsize = adj_list1.headerSize()+ 2*sizeof(int);
@@ -7576,9 +7993,61 @@ bool BusGraph::Save(SmiRecord& in_xValueRecord,size_t& inout_iOffset,
 
    /////////////////////////////////////////////////////////////////////////
 
+ /************************save edge2****************************/
+  nl->ReadFromString(EdgeInternalTypeInfo2,xType);
+  xNumericType = SecondoSystem::GetCatalog()->NumericType(xType);
+  if(!edge_rel2->Save(in_xValueRecord,inout_iOffset,xNumericType))
+      return false;
 
+  /////////////////adjacency list 2//////////////////////////////
 
-  return true; 
+   adj_list2.saveToFile(rf, adj_list2);
+   offset = 0;
+   bufsize = adj_list2.headerSize()+ 2*sizeof(int);
+   buf = (char*) malloc(bufsize);
+   adj_list2.serializeHeader(buf,offset);
+   assert(offset==bufsize);
+   in_xValueRecord.Write(buf, bufsize, inout_iOffset);
+   inout_iOffset += bufsize;
+   free(buf);
+
+   entry_adj_list2.saveToFile(rf, entry_adj_list2);
+   offset = 0;
+   buf = (char*) malloc(bufsize);
+   entry_adj_list2.serializeHeader(buf,offset);
+   assert(offset==bufsize);
+   in_xValueRecord.Write(buf,bufsize, inout_iOffset);
+   free(buf);
+   inout_iOffset += bufsize;
+
+  /************************save edge3****************************/
+  nl->ReadFromString(EdgeTypeInfo3,xType);
+  xNumericType = SecondoSystem::GetCatalog()->NumericType(xType);
+  if(!edge_rel3->Save(in_xValueRecord,inout_iOffset,xNumericType))
+      return false;
+
+    /////////////////adjacency list 3//////////////////////////////
+
+   adj_list3.saveToFile(rf, adj_list3);
+   offset = 0;
+   bufsize = adj_list3.headerSize()+ 2*sizeof(int);
+   buf = (char*) malloc(bufsize);
+   adj_list3.serializeHeader(buf,offset);
+   assert(offset==bufsize);
+   in_xValueRecord.Write(buf, bufsize, inout_iOffset);
+   inout_iOffset += bufsize;
+   free(buf);
+
+   entry_adj_list3.saveToFile(rf, entry_adj_list3);
+   offset = 0;
+   buf = (char*) malloc(bufsize);
+   entry_adj_list3.serializeHeader(buf,offset);
+   assert(offset==bufsize);
+   in_xValueRecord.Write(buf,bufsize, inout_iOffset);
+   free(buf);
+   inout_iOffset += bufsize;
+
+   return true; 
 }
 
 /*
@@ -7587,7 +8056,8 @@ edge1: the path in the pavement connecting two nearby bus stops
 edge2: 
 
 */
-void BusGraph::Load(int id, Relation* r1, Relation* edge1)
+void BusGraph::Load(int id, Relation* r1, Relation* edge1, 
+                    Relation* edge2, Relation* edge3)
 {
 //   cout<<"BusGraph::Load()"<<endl; 
 
@@ -7640,8 +8110,10 @@ void BusGraph::Load(int id, Relation* r1, Relation* edge1)
   btree_node = (BTree*)xResult.addr;
 
   //////////////////////////////load edges////////////////////////////
-  LoadEdge1(edge1);
-
+  LoadEdge1(edge1);///connected by pavements path 
+  LoadEdge2(edge2);///same spatial location, doing transfer 
+  LoadEdge3(edge3);//moving buses in the same route 
+  
 }
 
 /*
@@ -7650,16 +8122,6 @@ edges for pavement connectiong
 */
 void BusGraph::LoadEdge1(Relation* r)
 {
-  
-//   ostringstream xEdgePtrStream;
-//   xEdgePtrStream<<(long)r;
-//   string strQuery = "(consume(sort(feed(" + EdgeTypeInfo1 +
-//                 "(ptr " + xEdgePtrStream.str() + ")))))";
-//   Word xResult;
-//   int QueryExecuted = QueryProcessor::ExecuteQuery(strQuery, xResult);
-//   assert(QueryExecuted);
-//   edge_rel1 = (Relation*)xResult.addr;
-
   //////////////////////////////////////////////////////////////////////
   ////////////////////add the tid of the second bus stop/////////////////
   ////////////////////more efficient for query processing///////////////
@@ -7676,6 +8138,8 @@ void BusGraph::LoadEdge1(Relation* r)
     Bus_Stop* bs1 = (Bus_Stop*)edge_tuple->GetAttribute(BG_E_BS1);
     Bus_Stop* bs2 = (Bus_Stop*)edge_tuple->GetAttribute(BG_E_BS2);
     SimpleLine* sl = (SimpleLine*)edge_tuple->GetAttribute(BG_PATH1); 
+    SimpleLine* sl1 = (SimpleLine*)edge_tuple->GetAttribute(BG_SUBPATH1); 
+    SimpleLine* sl2 = (SimpleLine*)edge_tuple->GetAttribute(BG_SUBPATH2); 
 
 
     Tuple* new_edge_tuple = new Tuple(nl->Second(xNumType)); 
@@ -7683,7 +8147,9 @@ void BusGraph::LoadEdge1(Relation* r)
     new_edge_tuple->PutAttribute(BG_E_BS1, new Bus_Stop(*bs1));
     new_edge_tuple->PutAttribute(BG_E_BS2, new Bus_Stop(*bs2));
     new_edge_tuple->PutAttribute(BG_PATH1, new SimpleLine(*sl));
-
+    new_edge_tuple->PutAttribute(BG_SUBPATH1, new SimpleLine(*sl1));
+    new_edge_tuple->PutAttribute(BG_SUBPATH2, new SimpleLine(*sl2));
+    
     int bs2_tid = -1;
     //////////////////////use btree built on node rel//////////////////////////
 
@@ -7761,13 +8227,227 @@ void BusGraph::LoadEdge1(Relation* r)
 
     bs_tuple->DeleteIfAllowed();
 
-    if(end > start)
-      cout<<i<<" no "<<(end-start)<<endl; 
   }
 
   delete btree;
 
 }
+
+
+/*
+edges for bus stops with the same spatial location but belong to different
+bus routes 
+
+*/
+void BusGraph::LoadEdge2(Relation* r)
+{
+
+//  cout<<r->GetNoTuples()<<endl; 
+  //////////////////////////////////////////////////////////////////////
+  ////////////////////add the tid of the second bus stop/////////////////
+  ////////////////////more efficient for query processing///////////////
+  //////////////////////////////////////////////////////////////////////
+
+  ListExpr xTypeInfo;
+  nl->ReadFromString(EdgeInternalTypeInfo2, xTypeInfo);
+  ListExpr xNumType = SecondoSystem::GetCatalog()->NumericType(xTypeInfo);
+  Relation* e_rel = new Relation(xNumType, true);
+  for(int i = 1;i <= r->GetNoTuples();i++){
+    Tuple* edge_tuple = r->GetTuple(i, false);
+
+    int bs_uoid = ((CcInt*)edge_tuple->GetAttribute(BG_UOID2))->GetIntval();
+    Bus_Stop* bs1 = (Bus_Stop*)edge_tuple->GetAttribute(BG_E2_BS1);
+    Bus_Stop* bs2 = (Bus_Stop*)edge_tuple->GetAttribute(BG_E2_BS2);
+
+
+    Tuple* new_edge_tuple = new Tuple(nl->Second(xNumType)); 
+    new_edge_tuple->PutAttribute(BG_UOID2, new CcInt(true, bs_uoid));
+    new_edge_tuple->PutAttribute(BG_E2_BS1, new Bus_Stop(*bs1));
+    new_edge_tuple->PutAttribute(BG_E2_BS2, new Bus_Stop(*bs2));
+
+    int bs2_tid = -1;
+    //////////////////////use btree built on node rel//////////////////////////
+
+    CcInt* search_id = new CcInt(true, bs2->GetUOid());
+    BTreeIterator* btree_iter = btree_node->ExactMatch(search_id);
+    while(btree_iter->Next()){
+      bs2_tid = btree_iter->GetId();
+    }
+    delete btree_iter;
+    delete search_id;
+    assert(bs2_tid > 0 && bs2_tid <= node_rel->GetNoTuples()); 
+    new_edge_tuple->PutAttribute(BG_E2_BS2_TID, new CcInt(true, bs2_tid));
+    ///////////////////////////////////////////////////////////////////////////
+
+    e_rel->AppendTuple(new_edge_tuple);
+    new_edge_tuple->DeleteIfAllowed();
+    edge_tuple->DeleteIfAllowed();
+  }
+
+
+  ostringstream xEdgePtrStream;
+  xEdgePtrStream<<(long)e_rel;
+
+  string strQuery = "(consume(feed(" + EdgeInternalTypeInfo2 +
+                "(ptr " + xEdgePtrStream.str() + "))))";
+
+  Word xResult;
+  int QueryExecuted = QueryProcessor::ExecuteQuery(strQuery, xResult);
+  assert(QueryExecuted);
+  edge_rel2 = (Relation*)xResult.addr;
+
+  e_rel->Delete();
+
+
+//  cout<<"edge2 rel no "<<edge_rel2->GetNoTuples()<<endl; 
+
+
+  //////////////////create adjacency list////////////////////////////////////
+  ostringstream xNodeOidPtrStream1;
+  xNodeOidPtrStream1 << (long)edge_rel2;
+  strQuery = "(createbtree (" + EdgeInternalTypeInfo2 +
+             "(ptr " + xNodeOidPtrStream1.str() + "))" + "bus_uoid)";
+  QueryExecuted = QueryProcessor::ExecuteQuery(strQuery,xResult);
+  assert(QueryExecuted);
+  BTree* btree = (BTree*)xResult.addr;
+
+  /////////////////////////////////////////////////////////////////////////
+  /////////the adjacent list here is different from dual graph and 
+  ///////// visibility graph. it is the same as indoor graph ////////////
+  //////////in dual graph and visibility graph, we store the node id/////
+  /////////now we store the edge id because the weight, path is stored
+  ////////in the edge relation ////////////////////////////////////////
+  //////////////////////////////////////////////////////////////////////
+
+  for(int i = 1;i <= node_rel->GetNoTuples();i++){
+    Tuple* bs_tuple = node_rel->GetTuple(i, false);
+    Bus_Stop* bs = (Bus_Stop*)bs_tuple->GetAttribute(BG_NODE);
+
+    CcInt* nodeid = new CcInt(true, bs->GetUOid());
+    BTreeIterator* btree_iter = btree->ExactMatch(nodeid);
+    int start = adj_list2.Size();
+    while(btree_iter->Next()){
+      Tuple* edge_tuple = edge_rel2->GetTuple(btree_iter->GetId(), false);
+
+      adj_list2.Append(edge_tuple->GetTupleId());//get the edge tuple id 
+
+      edge_tuple->DeleteIfAllowed();
+    }
+    delete btree_iter;
+
+    int end = adj_list2.Size();
+    entry_adj_list2.Append(ListEntry(start, end));
+
+    delete nodeid;
+
+    bs_tuple->DeleteIfAllowed();
+
+  }
+
+  delete btree;
+
+}
+
+
+/*
+edges for bus stops belonging to the same route, the bus stops are connected
+by moving buses 
+
+*/
+void BusGraph::LoadEdge3(Relation* e_rel)
+{
+//  cout<<e_rel->GetNoTuples()<<endl; 
+  
+  ostringstream xEdgePtrStream;
+  xEdgePtrStream<<(long)e_rel;
+
+  string strQuery = "(consume(feed(" + EdgeTypeInfo3 +
+                "(ptr " + xEdgePtrStream.str() + "))))";
+
+  Word xResult;
+  int QueryExecuted = QueryProcessor::ExecuteQuery(strQuery, xResult);
+  assert(QueryExecuted);
+  edge_rel3 = (Relation*)xResult.addr;
+//  Relation* edge_rel3 = (Relation*)xResult.addr;
+  
+  GenericRelationIterator* edgeiter = edge_rel3->MakeScan();
+  Tuple* edge_tuple; 
+  while((edge_tuple = edgeiter->GetNextTuple()) != 0){
+
+
+    //////////////////////use btree built on node rel////////////////////////
+
+    Bus_Stop* bs2 = (Bus_Stop*)edge_tuple->GetAttribute(BG_E3_BS2);
+    int bs2_tid = -1;
+    CcInt* search_id = new CcInt(true, bs2->GetUOid());
+    BTreeIterator* btree_iter = btree_node->ExactMatch(search_id);
+    while(btree_iter->Next()){
+      bs2_tid = btree_iter->GetId();
+    }
+    delete btree_iter;
+    delete search_id;
+    assert(bs2_tid > 0 && bs2_tid <= node_rel->GetNoTuples()); 
+//     int bs2_tid_old = 
+//         ((CcInt*)edge_tuple->GetAttribute(BG_E3_BS2_TID))->GetIntval();
+
+    /////////////////////////////////////////////////////////////////////////
+    vector<int> xIndices;
+    xIndices.push_back(BG_E3_BS2_TID);
+    vector<Attribute*> xAttrs;
+    xAttrs.push_back(new CcInt(true, bs2_tid)); 
+    edge_rel3->UpdateTuple(edge_tuple,xIndices,xAttrs);
+//    cout<<"old "<<bs2_tid_old<<" new "<<bs2_tid<<endl; 
+  }
+
+//  edge_rel3->Delete(); 
+
+
+ //////////////////create adjacency list////////////////////////////////////
+  ostringstream xNodeOidPtrStream1;
+  xNodeOidPtrStream1 << (long)edge_rel3;
+  strQuery = "(createbtree (" + EdgeTypeInfo3 +
+             "(ptr " + xNodeOidPtrStream1.str() + "))" + "bus_uoid)";
+  QueryExecuted = QueryProcessor::ExecuteQuery(strQuery,xResult);
+  assert(QueryExecuted);
+  BTree* btree = (BTree*)xResult.addr;
+
+  /////////////////////////////////////////////////////////////////////////
+  /////////the adjacent list here is different from dual graph and 
+  ///////// visibility graph. it is the same as indoor graph ////////////
+  //////////in dual graph and visibility graph, we store the node id/////
+  /////////now we store the edge id because the weight, path is stored
+  ////////in the edge relation ////////////////////////////////////////
+  //////////////////////////////////////////////////////////////////////
+
+  for(int i = 1;i <= node_rel->GetNoTuples();i++){
+    Tuple* bs_tuple = node_rel->GetTuple(i, false);
+    Bus_Stop* bs = (Bus_Stop*)bs_tuple->GetAttribute(BG_NODE);
+
+    CcInt* nodeid = new CcInt(true, bs->GetUOid());
+    BTreeIterator* btree_iter = btree->ExactMatch(nodeid);
+    int start = adj_list3.Size();
+    while(btree_iter->Next()){
+      Tuple* edge_tuple = edge_rel2->GetTuple(btree_iter->GetId(), false);
+
+      adj_list3.Append(edge_tuple->GetTupleId());//get the edge tuple id 
+
+      edge_tuple->DeleteIfAllowed();
+    }
+    delete btree_iter;
+
+    int end = adj_list3.Size();
+    entry_adj_list3.Append(ListEntry(start, end));
+
+    delete nodeid;
+
+    bs_tuple->DeleteIfAllowed();
+
+  }
+
+  delete btree;
+  
+}
+
 
 /*
 adjacency list for the first kind of edge (pavements)
@@ -7789,6 +8469,46 @@ void BusGraph::FindAdj1(int node_id, vector<int>& list)
 
 }
 
+/*
+adjacency list for the second kind of edge 
+(bus stops with the same spatial location but belong to different bus routes)
+
+*/
+void BusGraph::FindAdj2(int node_id, vector<int>& list)
+{
+  ListEntry list_entry;
+  entry_adj_list2.Get(node_id - 1, list_entry);
+  int low = list_entry.low;
+  int high = list_entry.high;
+  int j = low;
+  while(j < high){
+      int oid;
+      adj_list2.Get(j, oid);
+      j++;
+      list.push_back(oid);
+  }
+
+}
+
+/*
+adjacency list for the third kind of edge 
+two adjacent bus stops are connected by moving buses 
+
+*/
+void BusGraph::FindAdj3(int node_id, vector<int>& list)
+{
+  ListEntry list_entry;
+  entry_adj_list3.Get(node_id - 1, list_entry);
+  int low = list_entry.low;
+  int high = list_entry.high;
+  int j = low;
+  while(j < high){
+      int oid;
+      adj_list3.Get(j, oid);
+      j++;
+      list.push_back(oid);
+  }
+}
 
 ////////////////////////////////////////////////////////////////////////////
 //////////////////        Create UBahn Trains    ///////////////////////////

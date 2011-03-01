@@ -434,11 +434,17 @@ Signature: busnetwork -> (stream(((x1 t1) ... (xn tn))))
 Example  : query bs_neighbors2(bn1) count;
 Result   : 20
 
+Operator : bs_neighbors3
+Number   : 2
+Signature: rel1 x rel2 x btree -> (stream(((x1 t1) ... (xn tn))))
+Example  : query bs_neighbors3(bus_time_table_compact, all_bus_rel, btree_mo) count;
+Result   : 20
+
 
 Operator : createbgraph
 Number   : 2
-Signature: int x rel1 x rel2 -> busgraph
-Example  : query createbgraph(1, node_rel, edge_rel1);
+Signature: int x rel1 x rel2 x rel3 x rel4 -> busgraph
+Example  : query createbgraph(1, node_rel, edge_rel1, edge_rel2, edge_rel3);
 Result   : file_platform
 
 Operator : getadjnode_bg

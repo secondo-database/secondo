@@ -382,6 +382,8 @@ struct Pos_Speed{
   }
 };
 
+class Bus_Stop; 
+
 struct RoadDenstiy{
   Network* n;
   Relation* rel1; //1. density relation  2. bus route relation
@@ -423,6 +425,8 @@ struct RoadDenstiy{
   vector<Instant> schedule_time; 
   vector<int> unique_id_list; 
   vector<double> schedule_interval;
+  vector<Bus_Stop> bs_list;
+  vector<int> bs_uoid_list; 
   
   
   static string night_sched_typeinfo;
@@ -557,7 +561,7 @@ class Bus_Stop:public Attribute{
      size_t HashValue() const{return (size_t)0;}
      void CopyFrom(const Attribute* right){*this = *(const Bus_Stop*)right;}
      int GetUOid();
-     ostream& Print(ostream& os)const; 
+     ostream& Print(ostream& os) const; 
 
   private:
     unsigned int br_id;
@@ -791,13 +795,22 @@ struct BN{
   TupleType* resulttype;
   
   static string BusStopsPaveTypeInfo;
-  enum BusStopPave{BN_BUSSTOP, BN_PAVE_LOC1, BN_PAVE_LOC2}; 
+  enum BusStopPave{BN_BUSSTOP = 0, BN_PAVE_LOC1, BN_PAVE_LOC2, BN_BUSLOC}; 
+  static string BusTimeTableTypeInfo; 
+  enum BusStopTimeTable{BN_T_GEOBS = 0, BN_T_BS, BN_T_P, 
+                        BN_T_S,BN_T_LOC_ID, BN_T_BUS_UOID}; 
 
   vector<Bus_Stop> bs_list1;
   vector<Bus_Stop> bs_list2;
   vector<Line> path_list; 
   vector<SimpleLine> path_sl_list; 
+  vector<SimpleLine> sub_path1;
+  vector<SimpleLine> sub_path2; 
+  
   vector<int> bs_uoid_list; 
+  vector<double> schedule_interval;
+  vector<Periods> duration;
+  vector<MPoint> bus_trip_list; 
   
   
   BN(BusNetwork* n);
@@ -823,9 +836,14 @@ struct BN{
   void BsNeighbors2();
   void DFTraverse3(R_Tree<2,TupleId>* rtree, Relation* rel,
                    SmiRecordId adr, Point* loc, vector<int>& neighbor_list);
-                   
+
   /////////////////////////////////////////////////////////////////////
   void GetAdjNodeBG(BusGraph*, int);
+  
+  void BsNeighbors3(Relation*, Relation*, BTree*);
+  void ConnectionOneRoute(Relation* table_rel, vector<int> tid_list, 
+                            Relation* mo_rel, BTree* btree_mo); 
+ 
 }; 
 
 /*
@@ -833,6 +851,8 @@ bus network graph: three kinds of edges
 1. neighbor bus stops connected by path in the pavements
 2. bus stops with the same spatial location but belong to different routes
 3. moving buses from one bus stop to its next one in the same route 
+for the last stop, its neigbor stop is itself and the path is empty(length 0)
+
 two kinds of trip planning:shortest distance, minimum travelling time 
 
 */
@@ -841,11 +861,21 @@ class BusGraph{
     static string NodeTypeInfo;
     static string NodeInternalTypeInfo;
     static string NodeBTreeTypeInfo; 
+
     static string EdgeTypeInfo1; 
     static string EdgeInternalTypeInfo1;
 
+    static string EdgeTypeInfo2;
+    static string EdgeInternalTypeInfo2;
+
+    static string EdgeTypeInfo3; 
+
     enum BGNodeTypeInfo{BG_NODE = 0, BG_NODE_GEO, BG_NODE_UOID}; 
-    enum BGEdgeTypeInfo1{BG_UOID1 = 0, BG_E_BS1,BG_E_BS2,BG_PATH1,BG_E_BS2_TID};
+    enum BGEdgeTypeInfo1{BG_UOID1 = 0, BG_E_BS1,BG_E_BS2,BG_PATH1,
+                         BG_SUBPATH1, BG_SUBPATH2, BG_E_BS2_TID};
+    enum BGEdgeTypeInfo2{BG_UOID2 = 0, BG_E2_BS1, BG_E2_BS2, BG_E2_BS2_TID};
+    enum BGEdgeTypeInfo3{BG_UOID3 = 0, BG_E3_BS1, BG_E3_BS2, BG_LIFETIME, 
+                         BG_SCHEDULE, BG_BUSTRIP, BG_PATH3, BG_E3_BS2_TID}; 
 
     BusGraph();
     BusGraph(ListExpr in_xValue,int in_iErrorPos,
@@ -878,22 +908,33 @@ class BusGraph{
     bool Save(SmiRecord& in_xValueRecord,size_t& inout_iOffset,
               const ListExpr in_xTypeInfo); 
 
-    void Load(int, Relation*, Relation*);
-    void LoadEdge1(Relation* edge); 
+    void Load(int, Relation*, Relation*, Relation*, Relation*);
+    void LoadEdge1(Relation* edge1); 
+    void LoadEdge2(Relation* edge2); 
+    void LoadEdge3(Relation* edge3); 
 
     void FindAdj1(int node_id, vector<int>& list);
+    void FindAdj2(int node_id, vector<int>& list);
+    void FindAdj3(int node_id, vector<int>& list);
     
     unsigned int bg_id;
     Relation* node_rel;
     BTree* btree_node; 
-    Relation* edge_rel1;
-
+    
+    Relation* edge_rel1;//edges: pavement path 
     DbArray<int> adj_list1;
     DbArray<ListEntry> entry_adj_list1;
 
-/*    Relation* edge_rel2;
+    Relation* edge_rel2;//edges: with the same spatial location 
     DbArray<int> adj_list2;
-    DbArray<ListEntry> entry_adj_list2;*/
+    DbArray<ListEntry> entry_adj_list2;
+
+
+    Relation* edge_rel3; //edges: moving buses in the same route 
+    DbArray<int> adj_list3;
+    DbArray<ListEntry> entry_adj_list3;
+
+
 };
 
 
