@@ -17082,7 +17082,11 @@ const string SpatialSpecMakeSLine  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
     "( <text>point x point  -> line </text--->"
     "<text> makesline( _, _ )  </text--->"
-    "<text>Create a one-segment sline from the arguments.</text--->"
+    "<text>Create a one-segment sline from the arguments. The starting point "
+    "is determined automatically based on the ordering of point values: the "
+    "'smaller' argument becomes the sline's starting point. If you want to "
+    "determine the starting point by yourself, use operator 'create_sline' "
+    "instead!</text--->"
     "<text>query makesline([const point value (0 0)],"
            " [ const point value (100 40)])</text--->"
     ") )";
