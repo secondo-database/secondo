@@ -197,7 +197,7 @@ Result   : 50
 Operator : cellnumber
 Number   : 2
 Signature: rect x cellgrid2d ->  stream(int)
-Example  : query cellnumber(rectangle2(3.0, 25.0, 3.0, 25.0), createCellGrid2D(0.0, 0.0, 2.0, 5.0,  6)) printstream count
+Example  : query cellnumber(rectangle2(3.0, 25.0, 3.0, 25.0), createCellGrid2D(0.0, 0.0, 2.0, 5.0, 16)) printstream count
 Result   : 60
 
 
