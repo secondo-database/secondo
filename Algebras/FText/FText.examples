@@ -145,6 +145,54 @@ Signature: text x string -> bool
 Example  : query 'hello world' contains " wo"
 Result   : TRUE
 
+Operator : contains
+Number   : 7
+Signature: string x text -> bool
+Example  : query "hello world" contains " wo"
+Result   : TRUE
+
+Operator : contains
+Number   : 8
+Signature: string x text -> bool
+Example  : query "hello world" contains "lox"
+Result   : FALSE
+
+Operator : contains
+Number   : 9
+Signature: string x string -> bool
+Example  : query "hello world" contains " wo"
+Result   : TRUE
+
+Operator : contains
+Number   : 10
+Signature: string x string -> bool
+Example  : query "hello world" contains "lox"
+Result   : FALSE
+
+Operator : contains
+Number   : 11
+Signature: string x string -> bool
+Example  : query [const string value undef] contains "lox"
+Result   : (bool undef)
+
+Operator : contains
+Number   : 12
+Signature: string x text -> bool
+Example  : query "hello world" contains [const text value undef]
+Result   : (bool undef)
+
+Operator : contains
+Number   : 13
+Signature: string x text -> bool
+Example  : query [const string value undef] contains 'lox'
+Result   : (bool undef)
+
+Operator : contains
+Number   : 14
+Signature: text x text -> bool
+Example  : query [const text value undef] contains [const text value undef]
+Result   : (bool undef)
+
 Operator : dice
 Number   : 1
 Signature: int x text x text -> real

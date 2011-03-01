@@ -109,43 +109,6 @@ using namespace std;
 //extern AlgebraManager* am;
 
 /*
-The following function is used to replace all occurences of a pattern within a
-string by an other pattern.
-
-REMOVE, after new NList has been checked in
-
-*/
-
-// string replaceAll(const string& textStr,
-//                   const string& patternOldStr,
-//                   const string& patternNewStr)
-// {
-//   stringstream sstextReplaced;
-//   size_t lastpos = 0;
-//   size_t pos = 0;
-//   if( patternOldStr.length() == 0 )
-//   {
-//     return textStr;
-//   }
-//   do {
-//     lastpos = pos;
-//     pos = textStr.find(patternOldStr, pos);
-//     if (pos != string::npos)
-//     {
-//       size_t len = pos - lastpos;
-//       sstextReplaced << textStr.substr(lastpos,len) << patternNewStr;
-//       pos += patternOldStr.length();
-//     }
-//     else
-//     {
-//       sstextReplaced << textStr.substr(lastpos, textStr.length()-lastpos);
-//     }
-//   } while ( (pos != string::npos) && (pos < textStr.length()) );
-//   return sstextReplaced.str();
-// }
-
-
-/*
 2 Type Constructor ~text~
 
 2.1 Data Structure - Class ~FText~
@@ -310,14 +273,12 @@ The following Functions must be defined if we want to use ~text~ as an attribute
 
 */
 
-Word
-CreateFText( const ListExpr typeInfo )
+Word CreateFText( const ListExpr typeInfo )
 {
   return (SetWord(new FText( false )));
 }
 
-void
-DeleteFText( const ListExpr typeInfo, Word& w )
+void DeleteFText( const ListExpr typeInfo, Word& w )
 {
   if(traces)
     cout << '\n' << "Start DeleteFText" << '\n';
@@ -333,8 +294,7 @@ DeleteFText( const ListExpr typeInfo, Word& w )
 2.8 ~Open~-function
 
 */
-bool
-OpenFText( SmiRecord& valueRecord,
+bool OpenFText( SmiRecord& valueRecord,
                 size_t& offset,
                 const ListExpr typeInfo,
                 Word& value )
@@ -351,8 +311,7 @@ OpenFText( SmiRecord& valueRecord,
 2.9 ~Save~-function
 
 */
-bool
-SaveFText( SmiRecord& valueRecord,
+bool SaveFText( SmiRecord& valueRecord,
                 size_t& offset,
                 const ListExpr typeInfo,
                 Word& value )
@@ -366,8 +325,7 @@ SaveFText( SmiRecord& valueRecord,
 }
 
 
-void
-CloseFText( const ListExpr typeInfo, Word& w )
+void CloseFText( const ListExpr typeInfo, Word& w )
 {
   if(traces)
     cout << '\n' << "Start CloseFText" << '\n';
@@ -375,22 +333,19 @@ CloseFText( const ListExpr typeInfo, Word& w )
   w.addr = 0;
 }
 
-Word
-CloneFText( const ListExpr typeInfo, const Word& w )
+Word CloneFText( const ListExpr typeInfo, const Word& w )
 {
   if(traces)
     cout << '\n' << "Start CloneFText" << '\n';
   return SetWord( ((FText *)w.addr)->Clone() );
 }
 
-int
-SizeOfFText()
+int SizeOfFText()
 {
   return sizeof( FText );
 }
 
-void*
-CastFText( void* addr )
+void* CastFText( void* addr )
 {
   if(traces)
     cout << '\n' << "Start CastFText" << '\n';
@@ -404,8 +359,7 @@ CastFText( void* addr )
 
 */
 
-ListExpr
-OutFText( ListExpr typeInfo, Word value )
+ListExpr OutFText( ListExpr typeInfo, Word value )
 {
   if(traces)
     cout << '\n' << "Start OutFText" << '\n';
@@ -429,8 +383,7 @@ OutFText( ListExpr typeInfo, Word value )
 }
 
 
-Word
-InFText( const ListExpr typeInfo, const ListExpr instance,
+Word InFText( const ListExpr typeInfo, const ListExpr instance,
        const int errorPos, ListExpr& errorInfo, bool& correct )
 {
   if(traces)
@@ -478,8 +431,7 @@ InFText( const ListExpr typeInfo, const ListExpr instance,
 
 */
 
-ListExpr
-FTextProperty()
+ListExpr FTextProperty()
 {
   return
   (
@@ -504,8 +456,7 @@ FTextProperty()
 }
 
 
-ListExpr
-SVGProperty()
+ListExpr SVGProperty()
 {
   return
   (
@@ -537,8 +488,7 @@ This function checks whether the type constructor is applied correctly.
 
 */
 
-bool
-CheckFText( ListExpr type, ListExpr& errorInfo )
+bool CheckFText( ListExpr type, ListExpr& errorInfo )
 {
   if(traces)
     cout <<'\n'<<"Start CheckFText"<<'\n';
@@ -554,8 +504,7 @@ CheckFText( ListExpr type, ListExpr& errorInfo )
 }
 
 
-bool
-CheckSVG( ListExpr type, ListExpr& errorInfo )
+bool CheckSVG( ListExpr type, ListExpr& errorInfo )
 {
   return nl->IsEqual( type, "svg");
 }
@@ -603,12 +552,15 @@ returns a list expression for the result type, otherwise the symbol ~typeerror~.
 
 */
 
-ListExpr
-TypeMapTextTextBool( ListExpr args )
+/*
+Typemapping text x text [->] bool
+
+*/
+ListExpr TypeMap_Text_Text__Bool( ListExpr args )
 {
   if(traces)
   {
-    cout <<'\n'<<"Start TypeMapTextTextBool"<<'\n';
+    cout <<'\n'<<"Start TypeMap_Text_Text__Bool"<<'\n';
     nl->WriteToFile("/dev/tty",args);
   }
   ListExpr arg1, arg2;
@@ -623,17 +575,41 @@ TypeMapTextTextBool( ListExpr args )
   }
 
   if(traces)
-    cout <<"End TypeMapTextTextBool with typeerror"<<'\n';
+    cout <<"End TypeMap_Text_Text__Bool with typeerror"<<'\n';
   return nl->SymbolAtom("typeerror");
 }
 
+/*
+Typemapping {text|string} x {text|string} [->] bool
 
-ListExpr
-TypeMapTextStringBool( ListExpr args )
+*/
+ListExpr TypeMap_TextString_TextString__Bool( ListExpr args )
+{
+  if(nl->ListLength(args)!=2){
+    return listutils::typeError("Expected 2 arguments.");
+  }
+  ListExpr arg1 = nl->First(args);
+  if(   !listutils::isSymbol(arg1,symbols::TEXT)
+     && !listutils::isSymbol(arg1,symbols::STRING)){
+    return listutils::typeError("{text|string} x {text|string} expected.");
+  }
+  ListExpr arg2 = nl->Second(args);
+  if(   !listutils::isSymbol(arg2,symbols::TEXT)
+     && !listutils::isSymbol(arg2,symbols::STRING)){
+      return listutils::typeError("{text|string} x {text|string} expected.");
+    }
+  return nl->SymbolAtom(symbols::BOOL);
+}
+
+/*
+Typemapping: text x string [->] bool
+
+*/
+ListExpr TypeMap_Text_String__Bool( ListExpr args )
 {
   if(traces)
     {
-    cout <<'\n'<<"Start TypeMapTextStringBool"<<'\n';
+    cout <<'\n'<<"Start TypeMap_Text_String__Bool"<<'\n';
     nl->WriteToFile("/dev/tty",args);
     }
   ListExpr arg1, arg2;
@@ -648,34 +624,41 @@ TypeMapTextStringBool( ListExpr args )
   }
 
   if(traces)
-    cout <<"End TypeMapTextStringBool with typeerror"<<'\n';
+    cout <<"End TypeMap_Text_String__Bool with typeerror"<<'\n';
   return nl->SymbolAtom("typeerror");
 }
 
+/*
+Typemapping text [->] int
 
-ListExpr
-TypeMapTextInt( ListExpr args )
+*/
+
+ListExpr TypeMap_Text__Int( ListExpr args )
 {
   if(traces)
-    cout << '\n' << "Start TypeMapTextInt" << '\n';
+    cout << '\n' << "Start TypeMap_Text__Int" << '\n';
   if ( nl->ListLength(args) == 1 )
   {
     ListExpr arg1= nl->First(args);
     if ( nl->IsEqual(arg1, typeName))
     {
       if(traces)
-        cout << '\n' << "Start TypeMapTextInt" << '\n';
+        cout << '\n' << "Start TypeMap_Text__Int" << '\n';
       return nl->SymbolAtom("int");
     }
   }
 
   if(traces)
-    cout <<"End TypeMapTextInt with typeerror"<<'\n';
+    cout <<"End TypeMap_Text__Int with typeerror"<<'\n';
   return nl->SymbolAtom("typeerror");
 }
 
-ListExpr
-TypeMapkeywords( ListExpr args ){
+/*
+Typemap: text [->] stream(string)
+
+*/
+
+ListExpr TypeMap_text__stringstream( ListExpr args ){
   ListExpr arg;
   string nlchrs;
 
@@ -689,8 +672,11 @@ TypeMapkeywords( ListExpr args ){
   return nl->SymbolAtom("typeerror");
 }
 
-ListExpr
-TypeMapsentences( ListExpr args ){
+/*
+Typemap: text [->] stream(text)
+
+*/
+ListExpr TypeMap_text__textstream( ListExpr args ){
   ListExpr arg;
 
   if ( nl->ListLength(args) == 1 )
@@ -702,7 +688,11 @@ TypeMapsentences( ListExpr args ){
   return nl->SymbolAtom("typeerror");
 }
 
-ListExpr TypeMapDice(ListExpr args){
+/*
+Typemap: int x text x text [->] real
+
+*/
+ListExpr TypeMap_int_text_text__real(ListExpr args){
   if(nl->ListLength(args)!=3){
        ErrorReporter::ReportError("three arguments required");
        return nl->SymbolAtom("typeerror");
@@ -754,8 +744,7 @@ ListExpr TypeGetCatalog( ListExpr args )
 }
 
 /*
-
-Type Mapping for operators ~substr~
+Type Mapping for operators ~substr~: {text|string} x int x int [->] string
 
 */
 ListExpr TypeFTextSubstr( ListExpr args )
@@ -780,7 +769,7 @@ ListExpr TypeFTextSubstr( ListExpr args )
 
 /*
 
-Type Mapping for operators ~subtext~
+Type Mapping for operators ~subtext~: text x int x int [->] text
 
 */
 ListExpr TypeFTextSubtext( ListExpr args )
@@ -805,10 +794,10 @@ ListExpr TypeFTextSubtext( ListExpr args )
 
 /*
 
-Type Mapping for operator ~find~
+Type Mapping for operator ~find~: {string|text} x {string|text} [->] stream(int)
 
 */
-ListExpr FTextTypeMapFind( ListExpr args )
+ListExpr TypeMap_textstring_textstring__intstream( ListExpr args )
 {
   NList type(args);
 
@@ -829,10 +818,10 @@ ListExpr FTextTypeMapFind( ListExpr args )
 
 /*
 
-Type Mapping for signature ~text [->] bool~
+Type Mapping: text [->] bool
 
 */
-ListExpr FTextTypeMapTextBool( ListExpr args )
+ListExpr TypeMap_text__bool( ListExpr args )
 {
   NList type(args);
 
@@ -847,10 +836,10 @@ ListExpr FTextTypeMapTextBool( ListExpr args )
 
 /*
 
-Type Mapping for signature ~text [->] text~
+Type Mapping:  text [->] text
 
 */
-ListExpr FTextTypeMapTextText( ListExpr args )
+ListExpr TypeMap_text__text( ListExpr args )
 {
   if(nl->ListLength(args)!=1){
     return listutils::typeError("single text expected");
@@ -860,7 +849,6 @@ ListExpr FTextTypeMapTextText( ListExpr args )
     return listutils::typeError("text expected");
   }
   return nl->SymbolAtom(symbols::TEXT);
-
 }
 
 /*
@@ -1061,7 +1049,7 @@ Type Mapping for ~isDBObject~:
 ----
 
 */
-ListExpr FTextTypeMapString2Bool( ListExpr args )
+ListExpr TypeMap_string__bool( ListExpr args )
 {
   NList type(args);
   if(type.hasLength(1) && (type.first()  == symbols::STRING))
@@ -1165,7 +1153,7 @@ Type Mapping Function for ~chartext~
 
 */
 
-ListExpr FTextTypeIntText( ListExpr args )
+ListExpr TypeMap_int__text( ListExpr args )
 {
   NList type(args);
   if( type.hasLength(1) && (type.first() == symbols::INT) )
@@ -1177,25 +1165,6 @@ ListExpr FTextTypeIntText( ListExpr args )
 
 
 /*
-Type Mapping Function for ~toupper~, ~tolower~
-
-----
-     text --> text
-----
-
-*/
-
-ListExpr FTextTypeTextText( ListExpr args )
-{
-  NList type(args);
-  if( type.hasLength(1) && (type.first() == symbols::TEXT) )
-  {
-    return NList(symbols::TEXT).listExpr();
-  }
-  return NList::typeError("Expected 'text'.");
-}
-
-/*
 Type Mapping Function for ~tostring~
 
 ----
@@ -1204,7 +1173,7 @@ Type Mapping Function for ~tostring~
 
 */
 
-ListExpr FTextTypeTextString( ListExpr args )
+ListExpr TypeMap_text__string( ListExpr args )
 {
   NList type(args);
   if( type.hasLength(1) && (type.first() == symbols::TEXT) )
@@ -1223,7 +1192,7 @@ Type Mapping Function for ~totext~
 
 */
 
-ListExpr FTextTypeStringText( ListExpr args )
+ListExpr TypeMap_string__text( ListExpr args )
 {
   NList type(args);
   if( type.hasLength(1) && (type.first() == symbols::STRING) )
@@ -1341,10 +1310,10 @@ ListExpr FTextTypeReceiveTextStreamUDP( ListExpr args )
 
 
 /*
-2.50.1 ~text2svgTM~
+2.50.1 ~TypeMap\_text\_\_svg~
 
 */
-ListExpr text2svgTM(ListExpr args){
+ListExpr TypeMap_text__svg(ListExpr args){
    if(nl->ListLength(args)!=1){
       ErrorReporter::ReportError("One argument expected");
       return nl->TypeError();
@@ -1358,10 +1327,10 @@ ListExpr text2svgTM(ListExpr args){
 
 
 /*
-2.50.2 ~svg2textTM~
+2.50.2 ~TypeMap\_svg\_\_text~
 
 */
-ListExpr svg2textTM(ListExpr args){
+ListExpr TypeMap_svg__text(ListExpr args){
    if(nl->ListLength(args)!=1){
       ErrorReporter::ReportError("One argument expected");
       return nl->TypeError();
@@ -1406,7 +1375,7 @@ return nl->SymbolAtom("string");
 }
 
 /*
-checkpw
+checkpw: {string | text} x {string | text} [->] bool
 
 */
 ListExpr checkpwTM(ListExpr args){
@@ -1520,11 +1489,11 @@ ListExpr StringtypeStringtypeBool2TextTM(ListExpr args){
 
 
 /*
-2.55 ~getDatabaseName~
+2.55 ~getDatabaseName~: () [->] string
 
 */
 
-ListExpr empty2stringTM(ListExpr args){
+ListExpr TypeMap_empty__string(ListExpr args){
   NList type(args);
   int noargs = nl->ListLength(args);
   if( noargs != 0 ) {
@@ -1535,16 +1504,16 @@ ListExpr empty2stringTM(ListExpr args){
 
 
 /*
-2.55 ~Stringtype2TextTM~
+2.55 ~TypeMap\_textstring\_\_text~
 
----- {string|text} --> text
+---- {text | string} --> text
 ----
 
 Used by ~deleteObject~, ~getObjectValueNL~, ~getObjectTypeNL~.
 
 */
 
-ListExpr Stringtype2TextTM(ListExpr args){
+ListExpr TypeMap_textstring__text(ListExpr args){
   NList type(args);
   int noargs = nl->ListLength(args);
   if(    (noargs != 1)
@@ -1559,71 +1528,53 @@ ListExpr Stringtype2TextTM(ListExpr args){
 
 */
 
-int
-ValMapTextStringBool ( Word* args, Word& result,
-                       int message, Word& local, Supplier s)
-
 /*
-Value Mapping for the ~contains~ operator with the operands text and string.
+Value Mapping for the ~contains~ operator
 
 */
-
+template<class T1, class T2>
+int ValMapContains( Word* args, Word& result,
+                    int message, Word& local, Supplier s)
 {
-  if(traces)
-    cout <<'\n'<<"Start ValMapTextStringBool"<<'\n';
-  FText* ftext1= ((FText*)args[0].addr);
-  CcString* string1= ((CcString*)args[1].addr);
+  if(traces){
+    cout <<'\n'<<"Start ValMapContains"<<'\n';
+  }
 
-  result = qp->ResultStorage(s); //query processor has provided
-          //a CcBool instance to take the result
-  ((CcBool*)
-    result.addr)->Set( true,
-                       ftext1->SearchString( *string1->GetStringval() ));
-          //the first argument says the boolean
-          //value is defined, the second is the
-          //real boolean value)
+  T1* text    = static_cast<T1*>(args[0].addr);
+  T2* pattern = static_cast<T2*>(args[1].addr);
+  result = qp->ResultStorage(s);
+  CcBool* res = static_cast<CcBool*>(result.addr);
 
-  if(traces)
-    cout <<"End ValMapTextStringBool"<<'\n';
+  if(!text->IsDefined() || !pattern->IsDefined()){
+    res->SetDefined(false);
+  } else {
+    string t = text->GetValue();
+    string p = pattern->GetValue();
+    res->Set( true, (t.find(p) != string::npos) );
+  }
+
+  if(traces){
+    cout <<"End ValMapContains"<<'\n';
+  }
   return 0;
 }
 
-
-int
-ValMapTextTextBool ( Word* args, Word& result,
-                     int message, Word& local, Supplier s)
-
-/*
-Value Mapping for the ~contains~ operator with two text operands.
-
-*/
-
+ValueMapping FText_VMMap_Contains[] =
 {
-  if(traces)
-    cout <<'\n'<<"Start ValMapTextTextBool"<<'\n';
-  FText* ftext1= ((FText*)args[0].addr);
-  FText* ftext2= ((FText*)args[1].addr);
-
-  result = qp->ResultStorage(s); //query processor has provided
-          //a CcBool instance to take the result
-  ((CcBool*)result.addr)->Set(true, ftext1->SearchString( ftext2->GetValue() ));
-          //the first argument says the boolean
-          //value is defined, the second is the
-          //real boolean value)
-
-  if(traces)
-    cout <<"End ValMapTextTextBool"<<'\n';
-  return 0;
-}
+  ValMapContains<CcString, FText>,    //  0
+  ValMapContains<FText, CcString>,    //  1
+  ValMapContains<FText, FText>,       //  2
+  ValMapContains<CcString, CcString>  //  3
+};
 
 
-int
-ValMapTextInt (Word* args, Word& result, int message, Word& local, Supplier s)
 /*
 Value Mapping for the ~length~ operator with a text and a string operator .
 
 */
 
+int ValMapTextInt(Word* args, Word& result, int message,
+                  Word& local, Supplier s)
 {
   if(traces)
     cout <<'\n'<<"Start ValMapTextInt"<<'\n';
@@ -1833,9 +1784,8 @@ The length of a string is three characters or more.
   return -1;
 }
 
-int
-ValMapsentences (Word* args, Word& result, int message,
-         Word& local, Supplier s)
+int ValMapsentences (Word* args, Word& result, int message,
+                     Word& local, Supplier s)
 {
   struct TheText {int start, strlength; char* subw;}* thetext;
   int textcursor = 0, state = 0;
@@ -1958,9 +1908,8 @@ ValMapsentences (Word* args, Word& result, int message,
 
 
 
-int
-ValMapDice_t_t(Word* args, Word& result, int message,
-                Word& local, Supplier s){
+int ValMapDice_t_t(Word* args, Word& result, int message,
+                   Word& local, Supplier s){
   result = qp->ResultStorage(s);
   CcInt* arg1 = (CcInt*) args[0].addr;
   FText* arg2 = (FText*) args[1].addr;
@@ -2266,7 +2215,7 @@ ValueMapping cryptvm[] = {
 */
 template<class T1, class T2>
 int checkpwVM(Word* args, Word& result, int message,
-            Word& local, Supplier s ) {
+              Word& local, Supplier s ) {
 
   result = qp->ResultStorage(s);
   CcBool* res = static_cast<CcBool*>(result.addr);
@@ -2308,7 +2257,7 @@ int checkpwSelect(ListExpr args){
 */
 template<class T>
 int md5VM(Word* args, Word& result, int message,
-            Word& local, Supplier s ) {
+          Word& local, Supplier s ) {
 
    result = qp->ResultStorage(s);
    CcString* res = static_cast<CcString*>(result.addr);
@@ -2378,7 +2327,7 @@ ValueMapping md5vm[] = {
 
 template<class T1, class T2>
 int blowfish_encodeVM(Word* args, Word& result, int message,
-            Word& local, Supplier s ) {
+                      Word& local, Supplier s ) {
 
   result = qp->ResultStorage(s);
   FText* res = static_cast<FText*>(result.addr);
@@ -2422,7 +2371,7 @@ ValueMapping blowfish_encodevm[] = {
 };
 
  // Selection function
- int blowfish_encodeSelect(ListExpr args){
+int blowfish_encodeSelect(ListExpr args){
    string s1 = nl->SymbolValue(nl->First(args));
    string s2 = nl->SymbolValue(nl->Second(args));
    if(s1=="string" && s2=="string") return 0;
@@ -2430,7 +2379,7 @@ ValueMapping blowfish_encodevm[] = {
    if(s1=="text" && s2=="string") return 2;
    if(s1=="text" && s2=="text") return 3;
    return -1; // type mapping and selection are not compatible
- }
+}
 
 /*
 
@@ -2453,7 +2402,7 @@ int fromHex(unsigned char s){
 
 template<class T1, class T2>
 int blowfish_decodeVM(Word* args, Word& result, int message,
-            Word& local, Supplier s ) {
+                      Word& local, Supplier s ) {
 
   result = qp->ResultStorage(s);
   FText* res = static_cast<FText*>(result.addr);
@@ -2499,9 +2448,9 @@ ValueMapping blowfish_decodevm[] = {
 };
 
  // Selection function
- int blowfish_decodeSelect(ListExpr args){
+int blowfish_decodeSelect(ListExpr args){
    return blowfish_encodeSelect(args);
- }
+}
 
 /*
 4.29 Operator ~find~
@@ -2520,7 +2469,7 @@ struct ValMapFindLocalInfo{
 
 template<class T1, class T2>
 int FTextValMapFind( Word* args, Word& result, int message,
-                      Word& local, Supplier s )
+                     Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
   T1 *Ctext = 0;
@@ -2613,7 +2562,7 @@ int SVG2TEXTVM( Word* args, Word& result, int message,
 
 
 
-int FTextSelectFunFind( ListExpr args )
+int SelectFun_TextString_TextString( ListExpr args )
 {
   NList type(args);
   if( (type.first() == NList(symbols::STRING)) &&
@@ -2736,7 +2685,7 @@ OP: 0,  1, 2,  3, 4, 5
 */
 template<class T1, class T2, int OP>
 int FTextValMapComparePred( Word* args, Word& result, int message,
-                         Word& local, Supplier s )
+                            Word& local, Supplier s )
 {
   assert( (OP >=0) && (OP <=5) );
 
@@ -3044,7 +2993,7 @@ Value Mapping Function for Operator ~replace~
 // {text|string} x {text|string} x {text|string} --> text
 template<class T1, class T2, class T3>
 int FTextValMapReplace( Word* args, Word& result, int message,
-                          Word& local, Supplier s )
+                        Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
   FText* Res = static_cast<FText*>(result.addr);
@@ -3481,7 +3430,7 @@ void FTextGetIds(int& algebraId, int& typeId, const ListExpr typeInfo)
 
 template<class T>
 int FTextValueMapToObject( Word* args, Word& result, int message,
-                                 Word& local, Supplier s )
+                           Word& local, Supplier s )
 {
   T* InText= static_cast<T*>(args[0].addr);
   result = qp->ResultStorage( s );
@@ -3675,7 +3624,7 @@ Any status and error messages from the session are appended to the result text
 
 template<class T1, class T2, class T3, class T4, class T5>
 int FTextValueMapSendTextUDP( Word* args, Word& result, int message,
-                               Word& local, Supplier s )
+                              Word& local, Supplier s )
 {
   result      = qp->ResultStorage( s );
   FText* Res  = static_cast<FText*>(result.addr);
@@ -3895,8 +3844,8 @@ bool FromString( const std::string& str, T& result )
 }
 
 template<class T1, class T2>
-    int FTextValueMapReceiveTextUDP( Word* args, Word& result, int message,
-                                     Word& local, Supplier s )
+int FTextValueMapReceiveTextUDP( Word* args, Word& result, int message,
+                                 Word& local, Supplier s )
 {
   bool *finished             = 0;
 
@@ -4307,7 +4256,7 @@ Operator ~letObject~
 */
 template <class T1, class T2>
 int ftextletObjectVM( Word* args, Word& result, int message,
-                                     Word& local, Supplier s )
+                      Word& local, Supplier s )
 {
   result      = qp->ResultStorage( s );
   FText *Res  = reinterpret_cast<FText*>(result.addr);
@@ -4483,7 +4432,7 @@ Operator ~deleteObject~
 
 template<class T1>
 int ftextdeleteObjectVM( Word* args, Word& result, int message,
-                                     Word& local, Supplier s )
+                         Word& local, Supplier s )
 {
   result               = qp->ResultStorage( s );
   FText *Res           = reinterpret_cast<FText*>(result.addr);
@@ -4543,7 +4492,7 @@ Operator ~createObject~
 */
 template <class T1, class T2>
 int ftextcreateObjectVM( Word* args, Word& result, int message,
-                                     Word& local, Supplier s )
+                         Word& local, Supplier s )
 {
   result      = qp->ResultStorage( s );
   FText *Res  = reinterpret_cast<FText*>(result.addr);
@@ -4652,7 +4601,8 @@ ValueMapping ftextcreateobject_vm[] = {
          ftextcreateObjectVM<CcString, CcString>,
          ftextcreateObjectVM<CcString, FText>,
          ftextcreateObjectVM<FText,    CcString>,
-         ftextcreateObjectVM<FText,    FText> };
+         ftextcreateObjectVM<FText,    FText>
+};
 
 /*
 Operator ~getObjectTypeNL~
@@ -4695,7 +4645,8 @@ int ftextgetObjectTypeNL_VM( Word* args, Word& result, int message,
 // value mapping array
 ValueMapping ftextgetObjectTypeNL_vm[] = {
          ftextgetObjectTypeNL_VM<CcString>,
-         ftextgetObjectTypeNL_VM<FText> };
+         ftextgetObjectTypeNL_VM<FText>
+};
 
 /*
 Operator ~getObjectValueNL~
@@ -4703,7 +4654,7 @@ Operator ~getObjectValueNL~
 */
 template <class T1>
 int ftextgetObjectValueNL_VM( Word* args, Word& result, int message,
-                                     Word& local, Supplier s )
+                              Word& local, Supplier s )
 {
   result      = qp->ResultStorage( s );
   FText *Res  = reinterpret_cast<FText*>(result.addr);
@@ -4737,7 +4688,8 @@ int ftextgetObjectValueNL_VM( Word* args, Word& result, int message,
 // value mapping array
 ValueMapping ftextgetObjectValueNL_vm[] = {
          ftextgetObjectValueNL_VM<CcString>,
-         ftextgetObjectValueNL_VM<FText> };
+         ftextgetObjectValueNL_VM<FText>
+};
 
 /*
 Operator ~getDatabaseName~
@@ -4745,7 +4697,7 @@ Operator ~getDatabaseName~
 */
 
 int getDatabaseName_VM( Word* args, Word& result, int message,
-                                    Word& local, Supplier s )
+                        Word& local, Supplier s )
 {
   result         = qp->ResultStorage( s );
   CcString *Res  = reinterpret_cast<CcString*>(result.addr);
@@ -4764,23 +4716,15 @@ Used to explain signature, syntax and meaning of the operators of the type ~text
 
 */
 
-const string containsStringSpec =
+const string containsSpec =
   "( (\"Signature\" \"Syntax\" \"Meaning\" )"
     "("
-    "<text>(" +typeName+" string) -> bool</text--->"
-    "<text>_ contains _</text--->"
-    "<text>Search string in "+typeName+".</text--->"
+    "<text>({text | string)} x {text |string) -> bool</text--->"
+    "<text>_a_ contains _b_</text--->"
+    "<text>Returns whether _a_ contains pattern _g_.</text--->"
     ")"
   ")";
 
-const string containsTextSpec =
-  "( (\"Signature\" \"Syntax\" \"Meaning\" )"
-    "("
-    "<text>("+typeName+" "+typeName+") -> bool</text--->"
-    "<text>_ contains _</text--->"
-    "<text>Search second "+typeName+" in first "+typeName+".</text--->"
-    ")"
-  ")";
 
 const string lengthSpec =
   "( (\"Signature\" \"Syntax\" \"Meaning\" )"
@@ -5263,27 +5207,17 @@ const string getDatabaseNameSpec  =
     ") )";
 
 /*
-The Definition of the operators of the type ~text~.
+Operator Definitions
 
 */
-
-Operator containsString
+Operator contains
 (
   "contains",           //name
-  containsStringSpec,   //specification
-  ValMapTextStringBool, //value mapping
-  Operator::SimpleSelect,         //trivial selection function
-  TypeMapTextStringBool //type mapping
-);
-
-
-Operator containsText
-(
-  "contains",           //name
-  containsTextSpec,     //specification
-  ValMapTextTextBool,   //value mapping
-  Operator::SimpleSelect,         //trivial selection function
-  TypeMapTextTextBool   //type mapping
+  containsSpec,         //specification
+  4,                    //no. of value mappings
+  FText_VMMap_Contains, //value mapping
+  SelectFun_TextString_TextString,   //selection function
+  TypeMap_TextString_TextString__Bool   //type mapping
 );
 
 Operator length
@@ -5292,7 +5226,7 @@ Operator length
   lengthSpec,           //specification
   ValMapTextInt,        //value mapping
   Operator::SimpleSelect,         //trivial selection function
-  TypeMapTextInt        //type mapping
+  TypeMap_Text__Int        //type mapping
 );
 
 Operator getkeywords
@@ -5301,7 +5235,7 @@ Operator getkeywords
   keywordsSpec,          //specification
   ValMapkeywords,        //value mapping
   Operator::SimpleSelect,          //trivial selection function
-  TypeMapkeywords        //type mapping
+  TypeMap_text__stringstream        //type mapping
 );
 
 Operator getsentences
@@ -5310,7 +5244,7 @@ Operator getsentences
   sentencesSpec,          //specification
   ValMapsentences,        //value mapping
   Operator::SimpleSelect,           //trivial selection function
-  TypeMapsentences        //type mapping
+  TypeMap_text__textstream        //type mapping
 );
 
 Operator diceCoeff(
@@ -5318,7 +5252,7 @@ Operator diceCoeff(
    diceSpec,
    ValMapDice_t_t,
    Operator::SimpleSelect,
-   TypeMapDice
+   TypeMap_int_text_text__real
 );
 
 Operator ftextgetcatalog
@@ -5354,8 +5288,8 @@ Operator ftextfind
     FTextfindSpec,
     4,
     FText_VMMap_Find,
-    FTextSelectFunFind,
-    FTextTypeMapFind
+    SelectFun_TextString_TextString,
+    TypeMap_textstring_textstring__intstream
     );
 
 Operator ftextisempty
@@ -5364,7 +5298,7 @@ Operator ftextisempty
     FTextisemptySpec,
     FTextValMapIsEmpty,
     Operator::SimpleSelect,
-    FTextTypeMapTextBool
+    TypeMap_text__bool
     );
 
 Operator ftexttrim
@@ -5373,7 +5307,7 @@ Operator ftexttrim
     FTexttrimSpec,
     FTextValMapTrim,
     Operator::SimpleSelect,
-    FTextTypeMapTextText
+    TypeMap_text__text
     );
 
 Operator ftextplus
@@ -5471,7 +5405,7 @@ Operator isDBObject
     FTextIsDBObjectSpec,
     FTextValueMapIsDBObject,
     Operator::SimpleSelect,
-    FTextTypeMapString2Bool
+    TypeMap_string__bool
     );
 
 Operator getTypeNL
@@ -5509,7 +5443,7 @@ Operator chartext
     FTextChartextSpec,
     FTextValueMapChartext,
     Operator::SimpleSelect,
-    FTextTypeIntText
+    TypeMap_int__text
     );
 
 Operator ftexttoupper
@@ -5518,7 +5452,7 @@ Operator ftexttoupper
     FTextToUpperSpec,
     FTextValueMapChangeCase<false>,
     Operator::SimpleSelect,
-    FTextTypeTextText
+    TypeMap_text__text
     );
 
 Operator ftexttolower
@@ -5527,7 +5461,7 @@ Operator ftexttolower
     FTextToLowerSpec,
     FTextValueMapChangeCase<true>,
     Operator::SimpleSelect,
-    FTextTypeTextText
+    TypeMap_text__text
     );
 
 Operator ftexttostring
@@ -5536,7 +5470,7 @@ Operator ftexttostring
     FTextTextToStringSpec,
     FTextValueMapConvert<true, FText, CcString>,
     Operator::SimpleSelect,
-    FTextTypeTextString
+    TypeMap_text__string
     );
 
 Operator ftexttotext
@@ -5545,7 +5479,7 @@ Operator ftexttotext
     FTextStringToTextSpec,
     FTextValueMapConvert<false, CcString, FText>,
     Operator::SimpleSelect,
-    FTextTypeStringText
+    TypeMap_string__text
     );
 
 Operator ftsendtextUDP
@@ -5584,7 +5518,7 @@ Operator svg2text
   svg2textSpec,   //specification
   SVG2TEXTVM, //value mapping
   Operator::SimpleSelect,         //trivial selection function
-  svg2textTM //type mapping
+  TypeMap_svg__text //type mapping
 );
 
 Operator text2svg
@@ -5593,7 +5527,7 @@ Operator text2svg
   text2svgSpec,   //specification
   SVG2TEXTVM, //value mapping
   Operator::SimpleSelect,         //trivial selection function
-  text2svgTM //type mapping
+  TypeMap_text__svg //type mapping
 );
 
 Operator crypt
@@ -5642,7 +5576,7 @@ Operator ftextletObject ( "letObject", ftextletObjectSpec,
 
 Operator ftextdeleteObject ( "deleteObject", ftextdeleteObjectSpec,
                            2, ftextdeleteobject_vm, ftextdeleteobjectselect,
-                           Stringtype2TextTM
+                           TypeMap_textstring__text
     );
 
 Operator ftextcreateObject ( "createObject", ftextcreateObjectSpec,
@@ -5662,12 +5596,12 @@ Operator ftextcreateObject ( "createObject", ftextcreateObjectSpec,
 
 Operator ftextgetObjectTypeNL ( "getObjectTypeNL", ftextgetObjectTypeNLSpec,
                            2, ftextgetObjectTypeNL_vm, ftextdeleteobjectselect,
-                           Stringtype2TextTM
+                           TypeMap_textstring__text
     );
 
 Operator ftextgetObjectValueNL ("getObjectValueNL",ftextgetObjectValueNLSpec,
                            2,ftextgetObjectValueNL_vm, ftextdeleteobjectselect,
-                           Stringtype2TextTM
+                           TypeMap_textstring__text
     );
 
 Operator getDatabaseName
@@ -5676,7 +5610,7 @@ Operator getDatabaseName
    getDatabaseNameSpec,        //specification
    getDatabaseName_VM,         //value mapping
    Operator::SimpleSelect,     //trivial selection function
-   empty2stringTM              //type mapping
+   TypeMap_empty__string              //type mapping
 );
 
 /*
@@ -5697,8 +5631,7 @@ public:
     svg.AssociateKind("DATA");
     ftext.AssociateKind("INDEXABLE");
     ftext.AssociateKind("CSVIMPORTABLE");
-    AddOperator( &containsString );
-    AddOperator( &containsText );
+    AddOperator( &contains );
     AddOperator( &length );
     AddOperator( &getkeywords );
     AddOperator( &getsentences );
