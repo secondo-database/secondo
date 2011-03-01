@@ -15985,11 +15985,11 @@ class TransportationModeAlgebra : public Algebra
     AddOperator(&thespace); //create an empty space
 
                             //add network infrastructure 
-                            //add pavements infrastructure
-                            //add bus network infrastructure
+                            //add pavements infrastructure (graph)
+                            //add bus network infrastructure (graph)
                             //add trains network infrastructure
                             //add indoor infrastructure
-                            //addgraph(pavement or busnetwork, graph)
+
    //////////////////////////////////////////////////////////////////////////
    ////////////////////// generate generic moving objects///////////////////
    /////////////////////////////////////////////////////////////////////////

@@ -632,9 +632,9 @@ ostream& operator<<(ostream& o, const UGenLoc& gloc);
 /////////////////////////////////////////////////////////////////////
 const string genmo_tmlist[] = 
 {"Walk", "Indoor", "Bus", "Car", "Metro", 
-"Walk;Car", "Walk;Bus", "Walk;Indoor", "Walk;Metro",
+"Walk;Car", "Walk;Bus", "Walk;Indoor", "Walk;Metro", "Walk;Taxi",
 "Walk;Bus;Metro", "Walk;Indoor;Car", "Walk;Indoor;Bus","Walk;Indoor;Metro",
-"Walk;Indoor;Bus;Metro"};
+"Walk;Indoor;Taxi", "Walk;Indoor;Bus;Metro"};
 
 
 

@@ -3320,39 +3320,7 @@ Walk_SP:: ~Walk_SP()
   if(resulttype != NULL) delete resulttype;
 }
 
-/*
-structure for shortest path searching
 
-*/
-struct WPath_elem:public Path_elem{
-  double weight;
-  Point loc;
-  double real_w;
-  WPath_elem(){}
-  WPath_elem(int p, int c, int t, double w, Point& q,double w2):
-                    Path_elem(p, c, t), weight(w), loc(q), real_w(w2){}
-  WPath_elem(const WPath_elem& wp):Path_elem(wp),
-            weight(wp.weight),loc(wp.loc), real_w(wp.real_w){}
-  WPath_elem& operator=(const WPath_elem& wp)
-  {
-//    cout<<"SPath_elem ="<<endl;
-    Path_elem::operator=(wp);
-    weight = wp.weight;
-    loc = wp.loc;
-    real_w = wp.real_w;
-    return *this;
-  }
-  bool operator<(const WPath_elem& wp) const
-  {
-    return weight > wp.weight;
-  }
-
-  void Print()
-  {
-    cout<<" tri_index" <<tri_index<<" loc "<<loc
-        <<" realweight "<<real_w<<" weight "<<weight<<endl;
-  }
-};
 
 
 /*
@@ -8441,13 +8409,14 @@ void MaxRect::PathToBuilding()
 {
   cout<<"build the connection between the entrance of building and pavement"
       <<endl; 
+  cout<<"not completed finished"<<endl;
   /////for each original polygon, it collects all rectangles inside /////
   //////select point from the polygon boundary //////
   /////for each rectangle, it also selects a point on its boundary///////
   for(int i = 1;i <= rel2->GetNoTuples();i++){
     Tuple* poly_tuple = rel2->GetTuple(i, false);
     int poly_id = ((CcInt*)poly_tuple->GetAttribute(REGID))->GetIntval(); 
-    
+
     if(poly_id != 2289){
         poly_tuple->DeleteIfAllowed();
         continue; 
