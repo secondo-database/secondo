@@ -10643,36 +10643,22 @@ Algorithm to compute the shortest path.
 
 */
 
-ListExpr OpShortestPathTypeMap ( ListExpr in_xArgs )
+ListExpr OpShortestPathTypeMap ( ListExpr args )
 {
-  if ( nl->ListLength ( in_xArgs ) != 2 )
-    return ( nl->SymbolAtom ( "typeerror" ) );
-
-  ListExpr xGPoint1Desc = nl->First ( in_xArgs );
-  ListExpr xGPoint2Desc = nl->Second ( in_xArgs );
-// ListExpr xGPoint3Desc = nl->Third(in_xArgs);
-
-  if ( ( !nl->IsAtom ( xGPoint1Desc ) ) ||
-          nl->AtomType ( xGPoint1Desc ) != SymbolType ||
-          nl->SymbolValue ( xGPoint1Desc ) != "gpoint" )
+  NList param(args);
+  if (param.length() != 2)
   {
-    return ( nl->SymbolAtom ( "typeerror" ) );
+    return listutils::typeError("shortest_path expects 2 arguments.");
   }
 
-  if ( ( !nl->IsAtom ( xGPoint2Desc ) ) ||
-          nl->AtomType ( xGPoint2Desc ) != SymbolType ||
-          nl->SymbolValue ( xGPoint2Desc ) != "gpoint" )
-  {
-    return ( nl->SymbolAtom ( "typeerror" ) );
-  }
-  //if((!nl->IsAtom(xGPoint3Desc))|| (!nl->IsEqual(xGPoint3Desc,"network"))) {
-  //  return (nl->SymbolAtom("typeerror"));
-  //}
-
-  return nl->SymbolAtom ( "gline" );
+  if ((param.first().isSymbol("gpoint") && param.second().isSymbol("gpoint")) ||
+      (param.first().isSymbol("gline") && param.second().isSymbol("gline")))
+    return nl->SymbolAtom("gline");
+  else
+    return listutils::typeError("Both arguments should be gpoint or gline");
 }
 
-int OpShortestPathValueMapping ( Word* args,
+int OpShortestPath_gpgp ( Word* args,
                                  Word& result,
                                  int message,
                                  Word& local,
@@ -10691,12 +10677,51 @@ int OpShortestPathValueMapping ( Word* args,
   return 0;
 }
 
+int OpShortestPath_glgl ( Word* args,
+                                 Word& result,
+                                 int message,
+                                 Word& local,
+                                 Supplier in_xSupplier )
+{
+  result = qp->ResultStorage(in_xSupplier);
+  GLine* pGLine = static_cast<GLine*>(result.addr);
+  GLine *pFromGLine = ( GLine* ) args[0].addr;
+  GLine *pToGLine = ( GLine* ) args[1].addr;
+  Network* pNetwork = NetworkManager::GetNetworkNew(pFromGLine->GetNetworkId(),
+                                                    netList);
+  pGLine->SetSorted ( false );
+  pGLine->SetDefined ( pFromGLine->ShortestPathBF( pToGLine, pGLine, pNetwork,
+                                                   0 ) );
+  NetworkManager::CloseNetwork(pNetwork);
+  return 0;
+}
+
+int OpShortestPathSelect ( ListExpr args )
+{
+  ListExpr arg1 = nl->First ( args );
+  ListExpr arg2 = nl->Second ( args );
+  if ( nl->SymbolValue ( arg1 ) == "gpoint" &&
+          nl->SymbolValue ( arg2 ) == "gpoint" )
+    return 0;
+  if ( nl->SymbolValue ( arg1 ) == "gline" &&
+          nl->SymbolValue ( arg2 ) == "gline" )
+    return 1;
+  return -1; // This point should never be reached
+};
+
+ValueMapping OpShortestPathValMap[] =
+{
+  OpShortestPath_gpgp,
+  OpShortestPath_glgl
+};
+
 struct shortestpathInfo:OperatorInfo{
   shortestpathInfo():OperatorInfo(){
     name = "shortest_path";
     signature = "gpoint X gpoint -> gline";
+    appendSignature ("gline X gline -> gline");
     syntax = "shortest_path (_,_)";
-    meaning = "Returns the shortest path between objects using Dijkstra.";
+    meaning = "Dijkstra for gpoint. Bruteforce for gline.";
   }
 };
 
@@ -11641,8 +11666,8 @@ class NetworkAlgebra : public Algebra
       AddOperator ( unionInfo(), OpNetUnionValueMap, OpNetUnionTypeMap);
       AddOperator ( distanceInfo(), OpNetDistancemap, OpNetDistanceselect,
                     OpNetDistanceTypeMap);
-      AddOperator ( shortestpathInfo(), OpShortestPathValueMapping,
-                    OpShortestPathTypeMap);
+      AddOperator ( shortestpathInfo(), OpShortestPathValMap,
+                    OpShortestPathSelect, OpShortestPathTypeMap);
       AddOperator ( shortestpathAstarInfo(), OpShortestPathAStarMap,
                     OpShortestPathAStarSelect, OpShortestPathAStarTypeMap);
       AddOperator ( getBGPInfo(), OpGetBGPValueMap, OpGetBGPTypeMap);
