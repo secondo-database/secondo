@@ -2101,7 +2101,7 @@ bool CheckURealDerivable(const UReal* unit)
 {
     assert( unit->IsDefined() );
     UReal* tmp_unit = (UReal*)unit;
-    return tmp_unit->r;
+    return !tmp_unit->r;
 }
 
 
