@@ -1193,8 +1193,8 @@ The owner must be __first__ or __second__.
 */
 avlseg::ExtendedHalfSegment avlseg::AVLSegment::convertToExtendedHs(bool lpd,
                             avlseg::ownertype owner/* = both*/)const{
-   assert( owner!=both || this->owner==first || this->owner==second);
-   assert( owner==both || owner==first || owner==second);
+   //assert( owner!=both || this->owner==first || this->owner==second);
+   //assert( owner==both || owner==first || owner==second);
 
    bool insideAbove;
    if(owner==both){
