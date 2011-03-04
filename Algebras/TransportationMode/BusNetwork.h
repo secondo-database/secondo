@@ -455,7 +455,7 @@ struct RoadDenstiy{
 
   //////////////////////moving bus relation///////////////////////////
   enum MO_BUS{BR_ID5 = 0, MO_BUS_DIRECTION,BUS_TRIP,BUS_TYPE,
-              BUS_DAY,SCHEDULE_ID};
+              BUS_DAY,SCHEDULE_ID, MO_BUS_OID};
 
   ///////////////////bus routes relation////////////////////////////////
   enum BR_ROUTE{BR_ID6 = 0, BR_GEODATA, BR_ROUTE_TYPE, BR_RUID, 
@@ -561,6 +561,7 @@ class Bus_Stop:public Attribute{
      size_t HashValue() const{return (size_t)0;}
      void CopyFrom(const Attribute* right){*this = *(const Bus_Stop*)right;}
      int GetUOid();
+     bool operator==(const Bus_Stop& bs);
      ostream& Print(ostream& os) const; 
 
   private:
@@ -697,6 +698,7 @@ ListExpr OutBusRoute( ListExpr typeInfo, Word value );
 Word InBusRoute( const ListExpr typeInfo, const ListExpr instance,
        const int errorPos, ListExpr& errorInfo, bool& correct ); 
 
+class BusGraph; 
 /*
 Bus Network 
 
@@ -713,7 +715,7 @@ class BusNetwork{
   static string BusStopsInternal;
   static string BusStopsBTreeTypeInfo; 
   static string BusStopsRTreeTypeInfo; 
-  static string BusRoutesInternal;
+
   static string BusRoutesBTreeTypeInfo; 
   
   bool Save(SmiRecord& valueRecord, size_t& offset, const ListExpr typeInfo);
@@ -721,7 +723,7 @@ class BusNetwork{
                      const ListExpr typeInfo);
   enum BN_INODE{NODE_BS1 = 0, NODE_BS2};
   enum BN_BS{BN_ID1 = 0, BN_BS, BS_U_OID, BS_GEO};//internal representation 
-  enum BN_BR{BN_ID2 = 0, BN_BR}; //internal representation 
+  enum BN_BR{BN_ID2 = 0, BN_BR, BN_BR_OID}; //representation 
 
 
   void Load(unsigned int i, Relation* r1, Relation* r2); 
@@ -735,16 +737,28 @@ class BusNetwork{
   R_Tree<2,TupleId>* GetBS_RTree() { return rtree_bs;}
   
   void GetBusStopGeoData(Bus_Stop* bs, Point* p);
+  void SetGraphId(int g_id);
+  bool IsGraphInit(){return graph_init;}
+  unsigned int GraphId(){return graph_id;}
+  BusGraph* GetBusGraph();
+  void CloseBusGraph(BusGraph* bg);
+
   private:
     bool def; 
     unsigned int bn_id;
+    bool graph_init; 
+    unsigned int graph_id; 
+    
     Relation* stops_rel; //a relation for bus stops
     BTree* btree_bs; //a btree on bus stops
     Relation* routes_rel;  //a relaton for bus routes
     BTree* btree_br; //a btree on bus routes
 
     BTree* btree_bs_uoid; 
-    R_Tree<2,TupleId>* rtree_bs; //an rtree on bus routes
+    R_Tree<2,TupleId>* rtree_bs; //an rtree on bus stops
+
+                        //a relation for moving buses 
+                        //maximum speed of all moving buses (heuristic value)
 };
 
 ListExpr BusNetworkProperty();
@@ -806,11 +820,13 @@ struct BN{
   vector<SimpleLine> path_sl_list; 
   vector<SimpleLine> sub_path1;
   vector<SimpleLine> sub_path2; 
+  vector<SimpleLine> path2_sl_list; 
   
   vector<int> bs_uoid_list; 
   vector<double> schedule_interval;
   vector<Periods> duration;
   vector<MPoint> bus_trip_list; 
+  vector<double> time_cost_list; 
   
   
   BN(BusNetwork* n);
@@ -849,6 +865,8 @@ struct BN{
 /*
 bus network graph: three kinds of edges 
 1. neighbor bus stops connected by path in the pavements
+the path between bus stops and their pavements (subpath1, subpath2)
+this kind of connection can be defined as in free space 
 2. bus stops with the same spatial location but belong to different routes
 3. moving buses from one bus stop to its next one in the same route 
 for the last stop, its neigbor stop is itself and the path is empty(length 0)
@@ -863,19 +881,15 @@ class BusGraph{
     static string NodeBTreeTypeInfo; 
 
     static string EdgeTypeInfo1; 
-    static string EdgeInternalTypeInfo1;
-
     static string EdgeTypeInfo2;
-    static string EdgeInternalTypeInfo2;
-
     static string EdgeTypeInfo3; 
 
     enum BGNodeTypeInfo{BG_NODE = 0, BG_NODE_GEO, BG_NODE_UOID}; 
     enum BGEdgeTypeInfo1{BG_UOID1 = 0, BG_E_BS1,BG_E_BS2,BG_PATH1,
-                         BG_SUBPATH1, BG_SUBPATH2, BG_E_BS2_TID};
+                         BG_SUBPATH1, BG_SUBPATH2, BG_PATH2, BG_E_BS2_TID};
     enum BGEdgeTypeInfo2{BG_UOID2 = 0, BG_E2_BS1, BG_E2_BS2, BG_E2_BS2_TID};
     enum BGEdgeTypeInfo3{BG_UOID3 = 0, BG_E3_BS1, BG_E3_BS2, BG_LIFETIME, 
-                         BG_SCHEDULE, BG_BUSTRIP, BG_PATH3, BG_E3_BS2_TID}; 
+                         BG_SCHEDULE, BG_PATH3, BG_TIMECOST, BG_E3_BS2_TID};
 
     BusGraph();
     BusGraph(ListExpr in_xValue,int in_iErrorPos,
@@ -916,11 +930,13 @@ class BusGraph{
     void FindAdj1(int node_id, vector<int>& list);
     void FindAdj2(int node_id, vector<int>& list);
     void FindAdj3(int node_id, vector<int>& list);
+    int GetBusStop_Tid(Bus_Stop* bs);
     
     unsigned int bg_id;
+    double min_t; //minimum time of all bus stops time duration 
     Relation* node_rel;
-    BTree* btree_node; 
-    
+    BTree* btree_node; //btree on bus stop unique id 
+
     Relation* edge_rel1;//edges: pavement path 
     DbArray<int> adj_list1;
     DbArray<ListEntry> entry_adj_list1;
@@ -934,10 +950,105 @@ class BusGraph{
     DbArray<int> adj_list3;
     DbArray<ListEntry> entry_adj_list3;
 
+};
 
+/*
+for shortest path searching  in bus network 
+
+*/
+struct BNPath_elem:public Path_elem{
+  double weight;
+  double real_w;
+  SimpleLine path;
+  int tm;
+  bool valid; //false: transfering without moving 
+  
+  bool b_w;
+  double w;//speical case for time waiting for the bus 
+  BNPath_elem():path(0){}
+  BNPath_elem(int p, int c, int t, double w1, double w2, SimpleLine& sl,
+              int m, bool b = true):Path_elem(p, c, t), weight(w1), real_w(w2), 
+              path(sl), tm(m), valid(b), b_w(false), w(0){}
+  BNPath_elem(const BNPath_elem& wp):Path_elem(wp),
+            weight(wp.weight),real_w(wp.real_w),
+            path(wp.path), tm(wp.tm), valid(wp.valid), b_w(wp.b_w), w(wp.w){}
+  BNPath_elem& operator=(const BNPath_elem& wp)
+  {
+    Path_elem::operator=(wp);
+    weight = wp.weight;
+    real_w = wp.real_w;
+    path = wp.path;  
+    tm = wp.tm;
+    valid = wp.valid; 
+    b_w = wp.b_w;
+    w = wp.w;
+    return *this;
+  }
+  void SetW(double d)
+  {
+    if(d > 0.0){
+      b_w = true;
+      w = d; 
+    }
+  }
+  bool operator<(const BNPath_elem& ip) const
+  {
+    return weight > ip.weight;
+  }
+
+  void Print()
+  {
+    cout<<" tri_index " <<tri_index<<" realweight "<<real_w
+        <<" weight "<<weight<<" tm "<<str_tm[tm]<<endl;
+  }
 };
 
 
+/*
+navigation for bus network 
+
+*/
+struct BNNav{
+  BusNetwork* bn;
+  
+  vector<SimpleLine> path_list; 
+  vector<string> tm_list; 
+  vector<string> bs1_list;
+  vector<string> bs2_list; 
+  vector<Periods> peri_list; 
+  vector<double> time_cost_list; 
+
+  vector<Bus_Stop> bs_list;
+  vector<Point> bs_geo_list; 
+  unsigned int count;
+  TupleType* resulttype;
+  
+  int type; 
+  BNNav(){count = 0; resulttype = NULL;}
+  BNNav(BusNetwork* n):bn(n)
+  { count = 0; 
+    resulttype = NULL;
+  }
+
+  ~BNNav(){if(resulttype != NULL) delete resulttype;}
+  
+  void ShortestPath_Length(Bus_Stop* bs1, Bus_Stop* bs2, Instant*);
+  void ShortestPath_LengthDebug(Bus_Stop* bs1, Bus_Stop* bs2, Instant*);
+  void ShortestPath_Time(Bus_Stop* bs1, Bus_Stop* bs2, Instant*);
+  void ShortestPath_TimeDebug(Bus_Stop* bs1, Bus_Stop* bs2, Instant*);
+  
+  void InitializeQueue1(Bus_Stop* bs1, Bus_Stop* bs2, 
+                            priority_queue<BNPath_elem>& path_queue, 
+                            vector<BNPath_elem>& expand_queue, 
+                            BusNetwork* bn, BusGraph* bg,
+                            Point&, Point&);
+  void InitializeQueue2(Bus_Stop* bs1, Bus_Stop* bs2, 
+                            priority_queue<BNPath_elem>& path_queue, 
+                            vector<BNPath_elem>& expand_queue, 
+                            BusNetwork* bn, BusGraph* bg,
+                            Point&, Point&);
+
+};
 //////////////////////////////////////////////////////////////////////////
 ///////////////////////underground trains////////////////////////////////
 /////////////////////////////////////////////////////////////////////////

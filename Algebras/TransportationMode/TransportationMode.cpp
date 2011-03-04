@@ -51,12 +51,17 @@ queries moving objects with transportation modes.
 #include "Triangulate.h"
 #include "BusNetwork.h"
 #include "Indoor.h"
+#include <sys/timeb.h>
 
 extern NestedList* nl;
 extern QueryProcessor *qp;
 
-static map<int,string> *busnetList;
-
+double TM_DiffTimeb(struct timeb* t1, struct timeb* t2)
+{
+  double dt1 = t1->time + (double)t1->millitm/1000.0;
+  double dt2 = t2->time + (double)t2->millitm/1000.0;
+  return dt1 - dt2; 
+}
 
 namespace TransportationMode{
 /////////////////////////////////////////////////////////////////////////////
@@ -2679,6 +2684,13 @@ const string SpatialSpecGetMode =
 "<text>return the transportation modes</text--->"
 "<text>query getmode(genmo1)</text---> ) )";
 
+const string SpatialSpecAddInfraGraph =
+"( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+"( <text>busnetwork x busgraph -> busnetwork </text--->"
+"<text>addinfragraph (busnetwork,busgraph) </text--->"
+"<text>add navigation graph to the corresponding infrastructure</text--->"
+"<text>query addinfragraph(bn1,bg1)</text---> ) )";
+
 /*
 create an empty space 
 
@@ -2761,6 +2773,12 @@ int RefIdBusNetworkValueMap(Word* args, Word& result, int message,
       ((CcInt*)result.addr)->Set(true, bn->GetId());
   }else
     ((CcInt*)result.addr)->Set(false, 0);
+  
+  if(bn->IsGraphInit())
+      cout<<"bus graph id "<<bn->GraphId()<<endl;
+  else
+      cout<<"bus graph not initialized"<<endl; 
+
   return 0;
 }
 
@@ -2972,6 +2990,44 @@ int GetModeValueMap(Word* args, Word& result, int message,
       }
   }
   return 0;
+}
+
+
+/*
+add bus graph to bus network infrastructure 
+
+*/
+int AddBusNetworkGraphValueMap(Word* args, Word& result, int message,
+                    Word& local, Supplier s)
+{
+  static int flag = 0;
+  switch(message){
+    case OPEN:
+      return 0;
+    case REQUEST:
+          if(flag == 0){
+            BusNetwork* bn = (BusNetwork*)args[0].addr;
+            BusGraph* bg = (BusGraph*)args[1].addr; 
+            bn->SetGraphId(bg->bg_id);
+            Tuple* t = new Tuple(nl->Second(GetTupleResultType(s)));
+            t->PutAttribute(0, new CcInt(true, bn->GetId()));
+            t->PutAttribute(1, new CcInt(true, bn->GraphId()));
+            result.setAddr(t);
+            flag = 1;
+            return YIELD;
+          }else{
+            flag = 0;
+            return CANCEL;
+          } 
+    case CLOSE:
+
+        qp->SetModified(qp->GetSon(s,0));
+        local.setAddr(Address(0));
+        return 0;
+  }
+  
+  return 0;
+  
 }
 
 /*
@@ -3349,6 +3405,68 @@ Operator getmode("getmode",
     Operator::SimpleSelect,
     GetModeTypeMap
 );
+
+/*
+add navigation graph to the infrastructure
+bus network, pavement, indoor, train network
+
+*/
+ValueMapping TMAddInfraGraphValueMapVM[]={
+  AddBusNetworkGraphValueMap
+};
+
+int TMAddInfraGraphOpSelect(ListExpr args)
+{
+  ListExpr arg1 = nl->First(args);
+  ListExpr arg2 = nl->Second(args);
+  if(nl->IsAtom(arg1) && nl->IsEqual(arg1, "busnetwork") &&
+    nl->IsAtom(arg2) && nl->IsEqual(arg2, "busgraph"))
+    return 0;
+  return -1;
+}
+
+/*
+TypeMap function for operator addinfragraph
+
+*/
+ListExpr AddInfraGraphTypeMap(ListExpr args)
+{
+  if(nl->ListLength(args) != 2){
+      string err = "two parameters expected";
+      return listutils::typeError(err);
+  }
+  ListExpr arg1 = nl->First(args);
+  ListExpr arg2 = nl->Second(args);
+  if(nl->IsEqual(arg1, "busnetwork") && nl->IsEqual(arg2, "busgraph")){
+//    return nl->SymbolAtom("bool");
+//    return nl->SymbolAtom("busnetwork");
+
+      ListExpr reslist = nl->TwoElemList(
+        nl->SymbolAtom("stream"),
+        nl->TwoElemList(
+          nl->SymbolAtom("tuple"),
+          nl->TwoElemList(
+            nl->TwoElemList(nl->SymbolAtom("bus network id"),
+                            nl->SymbolAtom("int")),
+            nl->TwoElemList(nl->SymbolAtom("bus graph id"),
+                            nl->SymbolAtom("int"))
+          )
+        )
+      );
+    return reslist;
+  }
+
+  return nl->SymbolAtom("typeerror");
+}
+
+Operator addinfragraph("addinfragraph",
+    SpatialSpecAddInfraGraph,
+    1,
+    TMAddInfraGraphValueMapVM,
+    TMAddInfraGraphOpSelect,
+    AddInfraGraphTypeMap
+);
+
 
 /*
 create an empty space 
@@ -4088,6 +4206,27 @@ const string OpTMGetAdjNodeBGSpec  =
     "<text>query getadjnodebg(bg1, 2); </text--->"
     ") )";
 
+const string OpTMBNNavigationSpec  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+    "\"Example\" ) "
+    "( <text>busstop x busstop x busnetwork x instant x int"
+    " -> (stream(((x1 t1) ... (xn tn))))</text--->"
+    "<text>bnnavigation(busstop,bussstop,busnetwork,instant,int)</text--->"
+    "<text>navigation in bus network system</text--->"
+    "<text>query bnnavigation(bs1, bs2, bn1, "
+    "theInstant(2010,12,5,16,0,0,0),0) count; </text--->"
+    ") )";
+
+const string OpTMTestBNNavigationSpec  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+    "\"Example\" ) "
+    "( <text>rel x rel x busnetwork x instant x int-> bool</text--->"
+    "<text>test_bnnavigation(rel,rel,busnetwork,instant,int)</text--->"
+    "<text>test the operator bnnavigation</text--->"
+    "<text>query test_bnnavigation(bus_stops, bus_stops, bn1, "
+    "theInstant(2010,12,5,16,0,0,0),0) count; </text--->"
+    ") )";
+    
 /*
 get traffic data and set time schedule for moving buses 
 
@@ -7719,7 +7858,10 @@ ListExpr OpTMGetBusRoutesTypeMap ( ListExpr args )
             nl->SymbolAtom("stream"),
             nl->TwoElemList(
                 nl->SymbolAtom("tuple"),
-                nl->OneElemList(
+                nl->TwoElemList(
+                    nl->TwoElemList(
+                        nl->SymbolAtom("br_id"),
+                        nl->SymbolAtom("int")),
                     nl->TwoElemList(
                         nl->SymbolAtom("bus_route"),
                         nl->SymbolAtom("busroute"))
@@ -8020,10 +8162,11 @@ ListExpr OpTMBsNeighbors1TypeMap ( ListExpr args )
             nl->SymbolAtom("stream"),
             nl->TwoElemList(
                 nl->SymbolAtom("tuple"),
-                nl->SixElemList(
-                    nl->TwoElemList(
+                nl->Cons(
+                  nl->TwoElemList(
                         nl->SymbolAtom("bus_uoid"),
                         nl->SymbolAtom("int")), 
+                  nl->SixElemList(
                     nl->TwoElemList(
                         nl->SymbolAtom("bus_stop1"),
                         nl->SymbolAtom("busstop")),
@@ -8038,7 +8181,10 @@ ListExpr OpTMBsNeighbors1TypeMap ( ListExpr args )
                         nl->SymbolAtom("sline")), 
                     nl->TwoElemList(
                         nl->SymbolAtom("SubPath2"),
-                        nl->SymbolAtom("sline"))
+                        nl->SymbolAtom("sline")),
+                    nl->TwoElemList(
+                        nl->SymbolAtom("Path2"),
+                        nl->SymbolAtom("sline")))
                     )));
   return res;
 
@@ -8121,26 +8267,26 @@ ListExpr OpTMBsNeighbors3TypeMap ( ListExpr args )
                 nl->Cons(
                     nl->TwoElemList(
                         nl->SymbolAtom("bus_uoid"),
-                        nl->SymbolAtom("int")), 
-                nl->SixElemList(
-                    nl->TwoElemList(
+                        nl->SymbolAtom("int")),
+                    nl->SixElemList(
+                      nl->TwoElemList(
                         nl->SymbolAtom("bus_stop1"),
                         nl->SymbolAtom("busstop")),
-                    nl->TwoElemList(
+                      nl->TwoElemList(
                         nl->SymbolAtom("bus_stop2"),
                         nl->SymbolAtom("busstop")),
-                    nl->TwoElemList(
+                      nl->TwoElemList(
                         nl->SymbolAtom("whole_time"),
                         nl->SymbolAtom("periods")),
-                    nl->TwoElemList(
+                      nl->TwoElemList(
                         nl->SymbolAtom("schedule_interval"),
                         nl->SymbolAtom("real")),
-                    nl->TwoElemList(
-                        nl->SymbolAtom("bustrip"),
-                        nl->SymbolAtom("mpoint")),
-                    nl->TwoElemList(
+                      nl->TwoElemList(
                         nl->SymbolAtom("Path"),
-                        nl->SymbolAtom("sline")))
+                        nl->SymbolAtom("sline")),
+                      nl->TwoElemList(
+                        nl->SymbolAtom("TimeCost"),
+                        nl->SymbolAtom("real")))
                     )));
   return res;
 
@@ -8239,6 +8385,203 @@ ListExpr OpTMGetAdjNodeBGTypeMap ( ListExpr args )
   return res; 
 
 }
+
+
+/*
+TypeMap fun for operator bnnavigation
+
+*/
+
+ListExpr OpTMBNNavigationTypeMap ( ListExpr args )
+{
+  if ( nl->ListLength ( args ) != 5 )
+  {
+    return ( nl->SymbolAtom ( "typeerror" ) );
+  }
+  ListExpr arg1 = nl->First(args);
+  ListExpr arg2 = nl->Second(args);
+  ListExpr arg3 = nl->Third(args);
+  ListExpr arg4 = nl->Fourth(args);
+  ListExpr arg5 = nl->Fifth(args);
+  
+  if(!(nl->IsAtom(nl->First(arg1)) && 
+       nl->AtomType(nl->First(arg1)) == SymbolType &&
+       nl->SymbolValue(nl->First(arg1)) == "busstop")){
+      string err = "param1 should be busstop";
+      return listutils::typeError(err);
+  }
+  
+  if(!(nl->IsAtom(nl->First(arg2)) && 
+       nl->AtomType(nl->First(arg2)) == SymbolType &&
+       nl->SymbolValue(nl->First(arg2)) == "busstop")){
+      string err = "param2 should be busstop";
+      return listutils::typeError(err);
+  }
+  
+  if(!(nl->IsAtom(nl->First(arg3)) && 
+       nl->AtomType(nl->First(arg3)) == SymbolType &&
+       nl->SymbolValue(nl->First(arg3)) == "busnetwork")){
+      string err = "param3 should be bus network";
+      return listutils::typeError(err);
+  }
+  
+  if(!(nl->IsAtom(nl->First(arg4)) && 
+       nl->AtomType(nl->First(arg4)) == SymbolType &&
+       nl->SymbolValue(nl->First(arg4)) == "instant")){
+      string err = "param4 should be instant";
+      return listutils::typeError(err);
+  }
+  
+    
+  if(!(nl->IsAtom(nl->First(arg5)) && 
+       nl->AtomType(nl->First(arg5)) == SymbolType &&
+       nl->SymbolValue(nl->First(arg5)) == "int" )){
+      string err = "param5 should be int";
+      return listutils::typeError(err);
+  }
+  
+  int n = nl->IntValue(nl->Second(arg5));
+  ListExpr result; 
+  switch(n){
+    case 0: 
+          result =
+          nl->TwoElemList(
+              nl->SymbolAtom("stream"),
+                nl->TwoElemList(
+                  nl->SymbolAtom("tuple"),
+                      nl->FourElemList(
+                        nl->TwoElemList(nl->SymbolAtom("Path"),
+                                    nl->SymbolAtom("sline")),
+                        nl->TwoElemList(nl->SymbolAtom("TM"),
+                                    nl->SymbolAtom("string")),
+                        nl->TwoElemList(nl->SymbolAtom("BS1"),
+                                    nl->SymbolAtom("string")),
+                        nl->TwoElemList(nl->SymbolAtom("BS2"),
+                                    nl->SymbolAtom("string"))
+                  )
+                )
+          );
+        break;
+    case 1: 
+          result =
+          nl->TwoElemList(
+              nl->SymbolAtom("stream"),
+                nl->TwoElemList(
+                  nl->SymbolAtom("tuple"),
+                      nl->SixElemList(
+                        nl->TwoElemList(nl->SymbolAtom("Path"),
+                                    nl->SymbolAtom("sline")),
+                        nl->TwoElemList(nl->SymbolAtom("TM"),
+                                    nl->SymbolAtom("string")),
+                        nl->TwoElemList(nl->SymbolAtom("BS1"),
+                                    nl->SymbolAtom("string")),
+                        nl->TwoElemList(nl->SymbolAtom("BS2"),
+                                    nl->SymbolAtom("string")),
+                        nl->TwoElemList(nl->SymbolAtom("Duration"),
+                                    nl->SymbolAtom("periods")),
+                        nl->TwoElemList(nl->SymbolAtom("TimeCost"),
+                                    nl->SymbolAtom("real"))
+                  )
+                )
+          );
+        break;
+    case 2://return all visisted bus stops 
+       result =
+          nl->TwoElemList(
+              nl->SymbolAtom("stream"),
+                nl->TwoElemList(
+                  nl->SymbolAtom("tuple"),
+                      nl->TwoElemList(
+                        nl->TwoElemList(nl->SymbolAtom("bus_stop"),
+                                    nl->SymbolAtom("busstop")),
+                        nl->TwoElemList(nl->SymbolAtom("geoData"),
+                                    nl->SymbolAtom("point"))
+                  )
+                )
+          );
+        break; 
+    case 3://return all visisted bus stops 
+       result =
+          nl->TwoElemList(
+              nl->SymbolAtom("stream"),
+                nl->TwoElemList(
+                  nl->SymbolAtom("tuple"),
+                      nl->TwoElemList(
+                        nl->TwoElemList(nl->SymbolAtom("bus_stop"),
+                                    nl->SymbolAtom("busstop")),
+                        nl->TwoElemList(nl->SymbolAtom("geoData"),
+                                    nl->SymbolAtom("point"))
+                  )
+                )
+          );
+        break; 
+    default:
+      string err = "the value of fifth parameter([0,1]) is not correct";
+      return listutils::typeError(err);
+  }
+
+  return result; 
+
+}
+
+/*
+TypeMap fun for operator testbnnavigation
+
+*/
+
+ListExpr OpTMTestBNNavigationTypeMap ( ListExpr args )
+{
+  if ( nl->ListLength ( args ) != 5 )
+  {
+    return ( nl->SymbolAtom ( "typeerror" ) );
+  }
+  ListExpr arg1 = nl->First(args);
+  ListExpr arg2 = nl->Second(args);
+  ListExpr arg3 = nl->Third(args);
+  ListExpr arg4 = nl->Fourth(args);
+  ListExpr arg5 = nl->Fifth(args);
+
+  if(!IsRelDescription(nl->First(arg1)))
+      return nl->SymbolAtom ( "typeerror" );
+
+  ListExpr xType;
+  nl->ReadFromString(BusGraph::NodeTypeInfo, xType);
+  if(!CompareSchemas(nl->First(arg1), xType))
+    return nl->SymbolAtom ( "typeerror" );
+
+  if(!IsRelDescription(nl->First(arg2)))
+      return nl->SymbolAtom ( "typeerror" );
+
+  nl->ReadFromString(BusGraph::NodeTypeInfo, xType);
+  if(!CompareSchemas(nl->First(arg2), xType))
+      return nl->SymbolAtom ( "typeerror" );
+
+
+  if(!(nl->IsAtom(nl->First(arg3)) && 
+       nl->AtomType(nl->First(arg3)) == SymbolType &&
+       nl->SymbolValue(nl->First(arg3)) == "busnetwork")){
+      string err = "param3 should be bus network";
+      return listutils::typeError(err);
+  }
+  
+  if(!(nl->IsAtom(nl->First(arg4)) && 
+       nl->AtomType(nl->First(arg4)) == SymbolType &&
+       nl->SymbolValue(nl->First(arg4)) == "instant")){
+      string err = "param4 should be instant";
+      return listutils::typeError(err);
+  }
+  
+    
+  if(!(nl->IsAtom(nl->First(arg5)) && 
+       nl->AtomType(nl->First(arg5)) == SymbolType &&
+       nl->SymbolValue(nl->First(arg5)) == "int" )){
+      string err = "param5 should be int";
+      return listutils::typeError(err);
+  }  
+  return nl->SymbolAtom ( "bool" );
+
+}
+
 
 /*
 TypeMap fun for operator getroutedensity1
@@ -13060,7 +13403,8 @@ int OpTMGetBusRoutesValueMap ( Word* args, Word& result, int message,
 
           Tuple* tuple = new Tuple(br->resulttype);
 
-          tuple->PutAttribute(0, new Bus_Route(br->bus_route_list[br->count]));
+          tuple->PutAttribute(0, new CcInt(br->br_id_list[br->count]));
+          tuple->PutAttribute(1, new Bus_Route(br->bus_route_list[br->count]));
 
           result.setAddr(tuple);
           br->count++;
@@ -13183,6 +13527,60 @@ int OpTMBusRouteUpDownValueMap ( Word* args, Word& result, int message,
   return 0;
 }
 
+
+
+/*
+check whether the bus network id has been used already 
+
+*/
+bool ChekBusNetworkId(unsigned int bn_id)
+{
+  ListExpr xObjectList = SecondoSystem::GetCatalog()->ListObjects();
+  xObjectList = nl->Rest(xObjectList);
+  while(!nl->IsEmpty(xObjectList))
+  {
+    // Next element in list
+    ListExpr xCurrent = nl->First(xObjectList);
+    xObjectList = nl->Rest(xObjectList);
+
+    // Type of object is at fourth position in list
+    ListExpr xObjectType = nl->First(nl->Fourth(xCurrent));
+    if(nl->IsAtom(xObjectType) &&
+       nl->SymbolValue(xObjectType) == "busnetwork")
+    {
+      // Get name of the network
+      ListExpr xObjectName = nl->Second(xCurrent);
+      string strObjectName = nl->SymbolValue(xObjectName);
+
+      // Load object to find out the id of the network. Normally their
+      // won't be to much networks in one database giving us a good
+      // chance to load only the wanted network.
+      Word xValue;
+      bool bDefined;
+      bool bOk = SecondoSystem::GetCatalog()->GetObject(strObjectName,
+                                                        xValue,
+                                                        bDefined);
+      if(!bDefined || !bOk)
+      {
+        // Undefined network
+        continue;
+      }
+      BusNetwork* bn = (BusNetwork*)xValue.addr;
+
+      if(bn->GetId() == bn_id)
+      {
+        SecondoSystem::GetCatalog()->CloseObject(nl->SymbolAtom("busnetwork"),
+                                               xValue);
+        return false;
+      }
+
+      SecondoSystem::GetCatalog()->CloseObject(nl->SymbolAtom("busnetwork"),
+                                               xValue);
+    }
+  }
+  return true; 
+}
+
 /*
 get bus stop id
 
@@ -13192,16 +13590,22 @@ int OpTMTheBusNetworkValueMap ( Word* args, Word& result, int message,
 {
   BusNetwork* bn = (BusNetwork*)qp->ResultStorage(in_pSupplier).addr;
   int id = ((CcInt*)args[0].addr)->GetIntval(); 
-  map<int,string>::iterator it = busnetList->find ( id );
-  if ( it != busnetList->end() ){
-    cout << "Bus NetworkId used before" << id << endl;
-    return 0;
+  if(ChekBusNetworkId(id)){
+    Relation* stops = (Relation*)args[1].addr;
+    Relation* routes = (Relation*)args[2].addr; 
+    bn->Load(id, stops, routes);
+    result = SetWord(bn); 
+  }else{
+    cout<<"invalid bus network id "<<id<<endl; 
+    while(ChekBusNetworkId(id) == false || id <= 0){
+      id++;
+    }
+    cout<<"new bus network id "<<id<<endl; 
+    Relation* stops = (Relation*)args[1].addr;
+    Relation* routes = (Relation*)args[2].addr; 
+    bn->Load(id, stops, routes);
+    result = SetWord(bn); 
   }
-  busnetList->insert ( pair<int,string> ( id, "" ) );
-  Relation* stops = (Relation*)args[1].addr;
-  Relation* routes = (Relation*)args[2].addr; 
-  bn->Load(id, stops, routes);
-  result = SetWord(bn); 
   return 0;
 }
 
@@ -13394,7 +13798,7 @@ int OpTMBsNeighbor1ValueMap ( Word* args, Word& result, int message,
           tuple->PutAttribute(3, new SimpleLine(b_n->path_sl_list[b_n->count]));
           tuple->PutAttribute(4, new SimpleLine(b_n->sub_path1[b_n->count]));
           tuple->PutAttribute(5, new SimpleLine(b_n->sub_path2[b_n->count]));
-
+         tuple->PutAttribute(6, new SimpleLine(b_n->path2_sl_list[b_n->count]));
           result.setAddr(tuple);
           b_n->count++;
           return YIELD;
@@ -13500,8 +13904,9 @@ int OpTMBsNeighbor3ValueMap ( Word* args, Word& result, int message,
           tuple->PutAttribute(3, new Periods(b_n->duration[b_n->count]));
           tuple->PutAttribute(4, 
                           new CcReal(true, b_n->schedule_interval[b_n->count]));
-          tuple->PutAttribute(5, new MPoint(b_n->bus_trip_list[b_n->count]));
-          tuple->PutAttribute(6, new SimpleLine(b_n->path_sl_list[b_n->count]));
+          tuple->PutAttribute(5, new SimpleLine(b_n->path_sl_list[b_n->count]));
+          tuple->PutAttribute(6, 
+                              new CcReal(true,b_n->time_cost_list[b_n->count]));
 
           result.setAddr(tuple);
           b_n->count++;
@@ -13520,6 +13925,58 @@ int OpTMBsNeighbor3ValueMap ( Word* args, Word& result, int message,
 
 }
 
+/*
+check whether the bus graph id has been used already 
+
+*/
+bool ChekBusGraphId(unsigned int bg_id)
+{
+  ListExpr xObjectList = SecondoSystem::GetCatalog()->ListObjects();
+  xObjectList = nl->Rest(xObjectList);
+  while(!nl->IsEmpty(xObjectList))
+  {
+    // Next element in list
+    ListExpr xCurrent = nl->First(xObjectList);
+    xObjectList = nl->Rest(xObjectList);
+
+    // Type of object is at fourth position in list
+    ListExpr xObjectType = nl->First(nl->Fourth(xCurrent));
+    if(nl->IsAtom(xObjectType) &&
+       nl->SymbolValue(xObjectType) == "busgraph")
+    {
+      // Get name of the network
+      ListExpr xObjectName = nl->Second(xCurrent);
+      string strObjectName = nl->SymbolValue(xObjectName);
+
+      // Load object to find out the id of the network. Normally their
+      // won't be to much networks in one database giving us a good
+      // chance to load only the wanted network.
+      Word xValue;
+      bool bDefined;
+      bool bOk = SecondoSystem::GetCatalog()->GetObject(strObjectName,
+                                                        xValue,
+                                                        bDefined);
+      if(!bDefined || !bOk)
+      {
+        // Undefined network
+        continue;
+      }
+      BusGraph* bg = (BusGraph*)xValue.addr;
+
+      if(bg->bg_id == bg_id)
+      {
+        SecondoSystem::GetCatalog()->CloseObject(nl->SymbolAtom("busgraph"),
+                                               xValue);
+        return false;
+      }
+
+      SecondoSystem::GetCatalog()->CloseObject(nl->SymbolAtom("busgraph"),
+                                               xValue);
+    }
+  }
+  return true; 
+}
+
 
 /*
 Value Mapping for  createbusgraph  operator
@@ -13531,13 +13988,27 @@ int OpTMCreateBusGraphValueMap ( Word* args, Word& result, int message,
 {
   BusGraph* bg = (BusGraph*)qp->ResultStorage(in_pSupplier).addr;
   int bg_id = ((CcInt*)args[0].addr)->GetIntval();
-  Relation* node_rel = (Relation*)args[1].addr;
-  Relation* edge_rel1 = (Relation*)args[2].addr;
-  Relation* edge_rel2 = (Relation*)args[3].addr; 
-  Relation* edge_rel3 = (Relation*)args[4].addr; 
+  if(ChekBusGraphId(bg_id)){
+    Relation* node_rel = (Relation*)args[1].addr;
+    Relation* edge_rel1 = (Relation*)args[2].addr;
+    Relation* edge_rel2 = (Relation*)args[3].addr; 
+    Relation* edge_rel3 = (Relation*)args[4].addr; 
   
-  bg->Load(bg_id, node_rel, edge_rel1, edge_rel2, edge_rel3);
-  result = SetWord(bg);
+    bg->Load(bg_id, node_rel, edge_rel1, edge_rel2, edge_rel3);
+    result = SetWord(bg);
+  }else{
+    cout<<"invalid bus graph id "<<bg_id<<endl; 
+    while(ChekBusGraphId(bg_id) == false || bg_id <= 0){
+      bg_id++;
+    }
+    cout<<"new bus graph id "<<bg_id<<endl; 
+    Relation* node_rel = (Relation*)args[1].addr;
+    Relation* edge_rel1 = (Relation*)args[2].addr;
+    Relation* edge_rel2 = (Relation*)args[3].addr; 
+    Relation* edge_rel3 = (Relation*)args[4].addr; 
+    bg->Load(bg_id, node_rel, edge_rel1, edge_rel2, edge_rel3);
+    result = SetWord(bg);
+  }
   return 0;
 }
 
@@ -13597,6 +14068,201 @@ int OpTMGetAdjNodeBGValueMap ( Word* args, Word& result, int message,
   }
   return 0;
 
+}
+
+/*
+navigation system in the bus network. 
+it provides two kinds of shortest path from one bus stop to another:
+1) length; 2) time 
+
+*/
+int OpTMBNNavigationValueMap(Word* args, Word& result, int message,
+                    Word& local, Supplier in_pSupplier)
+{
+  BNNav* bn_nav;
+
+  switch(message){
+      case OPEN:{
+        Bus_Stop* bs1 = (Bus_Stop*)args[0].addr;
+        Bus_Stop* bs2 = (Bus_Stop*)args[1].addr;
+        BusNetwork* bn = (BusNetwork*)args[2].addr;
+        Instant* query_time = (Instant*)args[3].addr;
+        int type = ((CcInt*)args[4].addr)->GetIntval();
+
+        bn_nav = new BNNav(bn);
+        bn_nav->resulttype =
+            new TupleType(nl->Second(GetTupleResultType(in_pSupplier)));
+        bn_nav->type = type; 
+        switch(type){
+          case 0: 
+                  bn_nav->ShortestPath_Length(bs1, bs2, query_time);
+                  break;
+          case 1: 
+                  bn_nav->ShortestPath_Time(bs1, bs2, query_time);
+                  break;
+          case 2: 
+                  bn_nav->ShortestPath_LengthDebug(bs1, bs2, query_time);
+                  break;
+          case 3: 
+                  bn_nav->ShortestPath_TimeDebug(bs1, bs2, query_time);
+                  break;
+          default:
+                  cout<<"invalid type "<<type<<endl;
+                  break; 
+        }
+
+        local.setAddr(bn_nav);
+        return 0;
+      }
+      case REQUEST:{
+          if(local.addr == NULL) return CANCEL;
+          bn_nav = (BNNav*)local.addr;
+          if(bn_nav->type == 0){
+             if(bn_nav->count == bn_nav->path_list.size())
+                          return CANCEL;
+              Tuple* tuple = new Tuple(bn_nav->resulttype);
+              tuple->PutAttribute(0,
+                        new SimpleLine(bn_nav->path_list[bn_nav->count]));
+              tuple->PutAttribute(1,
+                              new CcString(bn_nav->tm_list[bn_nav->count]));
+              tuple->PutAttribute(2,
+                              new CcString(bn_nav->bs1_list[bn_nav->count]));
+              tuple->PutAttribute(3,
+                              new CcString(bn_nav->bs2_list[bn_nav->count]));
+
+              result.setAddr(tuple);
+              bn_nav->count++;
+              return YIELD;
+          }else if(bn_nav->type == 1){
+              if(bn_nav->count == bn_nav->path_list.size())
+                          return CANCEL;
+              Tuple* tuple = new Tuple(bn_nav->resulttype);
+              tuple->PutAttribute(0,
+                        new SimpleLine(bn_nav->path_list[bn_nav->count]));
+              tuple->PutAttribute(1,
+                              new CcString(bn_nav->tm_list[bn_nav->count]));
+              tuple->PutAttribute(2,
+                              new CcString(bn_nav->bs1_list[bn_nav->count]));
+              tuple->PutAttribute(3,
+                              new CcString(bn_nav->bs2_list[bn_nav->count]));
+              tuple->PutAttribute(4,
+                              new Periods(bn_nav->peri_list[bn_nav->count]));
+              tuple->PutAttribute(5,
+                       new CcReal(true,bn_nav->time_cost_list[bn_nav->count]));
+
+              result.setAddr(tuple);
+              bn_nav->count++;
+              return YIELD;
+          }else if(bn_nav->type == 2){
+              if(bn_nav->count == bn_nav->bs_list.size())
+                          return CANCEL;
+              Tuple* tuple = new Tuple(bn_nav->resulttype);
+              tuple->PutAttribute(0,
+                        new Bus_Stop(bn_nav->bs_list[bn_nav->count]));
+              tuple->PutAttribute(1,
+                              new Point(bn_nav->bs_geo_list[bn_nav->count]));
+
+              result.setAddr(tuple);
+              bn_nav->count++;
+              return YIELD;
+          }else if(bn_nav->type == 3){
+              if(bn_nav->count == bn_nav->bs_list.size())
+                          return CANCEL;
+              Tuple* tuple = new Tuple(bn_nav->resulttype);
+              tuple->PutAttribute(0,
+                        new Bus_Stop(bn_nav->bs_list[bn_nav->count]));
+              tuple->PutAttribute(1,
+                              new Point(bn_nav->bs_geo_list[bn_nav->count]));
+
+              result.setAddr(tuple);
+              bn_nav->count++;
+              return YIELD;
+          }assert(false);
+      }
+      case CLOSE:{
+          if(local.addr){
+            bn_nav = (BNNav*)local.addr;
+            delete bn_nav;
+            local.setAddr(Address(0));
+          }
+          return 0;
+      }
+  }
+  return 0;
+}
+
+
+
+/*
+test the operator bnnavigation 
+
+*/
+int OpTMTestBNNavigationValueMap(Word* args, Word& result, int message,
+                    Word& local, Supplier in_pSupplier)
+{
+  Relation* rel1 = (Relation*)args[0].addr;
+  Relation* rel2 = (Relation*)args[1].addr;
+  BusNetwork* bn = (BusNetwork*)args[2].addr;
+  Instant* query_time = (Instant*)args[3].addr;
+  int type = ((CcInt*)args[4].addr)->GetIntval();
+
+  BNNav* bn_nav = new BNNav(bn);
+  bn_nav->type = type; 
+  int count = 1; 
+  for(int i = 1;i <= rel1->GetNoTuples();i++){
+    Tuple* bs1_tuple = rel1->GetTuple(i, false); 
+    Bus_Stop* bs1 = (Bus_Stop*)bs1_tuple->GetAttribute(BusGraph::BG_NODE);
+
+    for(int j = 1;j <= rel2->GetNoTuples();j++){
+      if(i == j) continue; 
+      clock_t start, finish;// the total CPU time 
+      start = clock(); //the total CPU time
+
+      struct timeb t1;
+      struct timeb t2;
+      ftime(&t1);
+
+      Tuple* bs2_tuple = rel2->GetTuple(j, false); 
+      Bus_Stop* bs2 = (Bus_Stop*)bs2_tuple->GetAttribute(BusGraph::BG_NODE);
+      switch(type){
+          case 0:
+                  cout<<"count "<<count<<endl;
+                  count++;
+                  bn_nav->ShortestPath_Length(bs1, bs2, query_time);
+                  if(bn_nav->path_list.size() > 0){
+                    double l = 0.0;;
+                    for(unsigned int k = 0;k < bn_nav->path_list.size();k++)
+                      l += bn_nav->path_list[k].Length();
+                    cout<<"bs1: "<<*bs1<<" bs2: "<<*bs2
+                       <<" length "<<l<<endl;
+                    bn_nav->path_list.clear();
+                    bn_nav->tm_list.clear();
+                    bn_nav->bs1_list.clear();
+                    bn_nav->bs2_list.clear();
+                  }
+                  break;
+          case 1:
+                  bn_nav->ShortestPath_Time(bs1, bs2, query_time);
+                  break;
+          default:
+                  cout<<"invalid type "<<type<<endl;
+                  break; 
+      }
+      bs2_tuple->DeleteIfAllowed();
+      finish = clock();
+      ftime(&t2);
+
+      printf("CPU time :%.3f seconds: Real time: %.3f\n\n", 
+            (double)(finish - start)/CLOCKS_PER_SEC, TM_DiffTimeb(&t2, &t1));
+    }
+    bs1_tuple->DeleteIfAllowed(); 
+  }
+
+  delete bn_nav;
+
+  result = qp->ResultStorage(in_pSupplier);
+  ((CcBool*)result.addr)->Set(true, true);
+  return 0;
 }
 
 /*
@@ -14103,16 +14769,6 @@ int OpTMCreateTimeTable1NewValueMap ( Word* args, Word& result, int message,
           if(rd->count == rd->bus_stop_loc.size())return CANCEL;
 
           Tuple* tuple = new Tuple(rd->resulttype);
-//       tuple->PutAttribute(0, new Point(rd->bus_stop_loc[rd->count])); 
-//       tuple->PutAttribute(1, new CcInt(true, rd->br_id_list[rd->count]));
-//       tuple->PutAttribute(2, 
-//                           new CcInt(true, rd->bus_stop_id_list[rd->count]));
-//       tuple->PutAttribute(3, new CcBool(true, rd->br_direction[rd->count]));
-//       tuple->PutAttribute(4, new Periods(rd->duration1[rd->count])); 
-//       tuple->PutAttribute(5,
-//                         new CcReal(true,rd->schedule_interval[rd->count]));
-//       tuple->PutAttribute(6, 
-//                         new CcInt(true, rd->unique_id_list[rd->count]));
 
           tuple->PutAttribute(0, new Point(rd->bus_stop_loc[rd->count]));
           tuple->PutAttribute(1, new Bus_Stop(rd->bs_list[rd->count]));
@@ -14124,7 +14780,6 @@ int OpTMCreateTimeTable1NewValueMap ( Word* args, Word& result, int message,
           tuple->PutAttribute(5, 
                          new CcInt(true, rd->bs_uoid_list[rd->count]));
 
-                         
           result.setAddr(tuple);
           rd->count++;
           return YIELD;
@@ -15572,6 +16227,22 @@ Operator getadjnode_bg(
   OpTMGetAdjNodeBGTypeMap
 );
 
+Operator bnnavigation(
+  "bnnavigation", 
+  OpTMBNNavigationSpec,
+  OpTMBNNavigationValueMap,
+  Operator::SimpleSelect,
+  OpTMBNNavigationTypeMap
+);
+
+Operator test_bnnavigation(
+  "test_bnnavigation", 
+  OpTMTestBNNavigationSpec,
+  OpTMTestBNNavigationValueMap,
+  Operator::SimpleSelect,
+  OpTMTestBNNavigationTypeMap
+);
+
 
 /*
 the following are to create moving buses 
@@ -15904,7 +16575,8 @@ class TransportationModeAlgebra : public Algebra
     AddOperator(&bs_neighbors3);//connected by moving buses 
     AddOperator(&createbgraph);//create bus network graph 
     AddOperator(&getadjnode_bg); //get neighbor nodes of a given node in bg 
-
+    AddOperator(&bnnavigation);bnnavigation.SetUsesArgsInTypeMapping();
+   AddOperator(&test_bnnavigation);test_bnnavigation.SetUsesArgsInTypeMapping();
     //////////////preprocess road data to get denstiy value/////////////
     ///////////// create time table and moving buses  //////////////////
     AddOperator(&get_route_density1);//get daytime and night bus routes 
@@ -15982,6 +16654,7 @@ class TransportationModeAlgebra : public Algebra
     /////////////////////////////////////////////////////////////////////
     //////////////////space operators/////////////////////////////////////
     //////////////////////////////////////////////////////////////////////
+    AddOperator(&addinfragraph);
     AddOperator(&thespace); //create an empty space
 
                             //add network infrastructure 
@@ -16012,7 +16685,6 @@ Algebra* InitializeTransportationModeAlgebra( NestedList* nlRef,
     {
     nl = nlRef;
     qp = qpRef;
-    busnetList = new map<int,string>();
   // The C++ scope-operator :: must be used to qualify the full name
   return new TransportationMode::TransportationModeAlgebra();
     }

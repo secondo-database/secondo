@@ -76,6 +76,10 @@ instead of int, real, or enum
 
 */
 
+
+enum tm_value{TM_BUS = 0, TM_WALK, TM_INDOOR, TM_CAR, TM_METRO, 
+TM_TRAIN, TM_BICYCLE};
+
 const string str_tm[] = {"Bus", "Walk", "Indoor", "Car", "Metro", 
                          "Train", "Bicycle"}; 
 inline int GetTM(string s)

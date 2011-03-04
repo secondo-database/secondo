@@ -453,7 +453,17 @@ Signature: busgraph x int  -> (stream(((x1 t1) ... (xn tn))))
 Example  : query getadjnode_bg(bg1, 2) count;
 Result   : 0
 
+Operator : bnnavigation
+Number   : 2
+Signature: busstop x busstop x busnetwork x instant x int-> (stream(((x1 t1) ... (xn tn))))
+Example  : query bnnavigation(bs1, bs2, bn1,theInstant(2010,12,5,0,0,0,0) ,0) count;
+Result   : 1
 
+Operator : test_bnnavigation
+Number   : 2
+Signature: rel x rel x busnetwork x instant x int-> (stream(((x1 t1) ... (xn tn))))
+Example  : query test_bnnavigation(bus_stops, bus_stops, bn1,theInstant(2010,12,5,0,0,0,0) ,0);
+Result   : TRUE
 
 Operator : getstopid
 Number   : 2
@@ -826,6 +836,12 @@ Number   : 1
 Signature: int -> space
 Example  : query thespace(1);
 Result   : 1 
+
+Operator : addinfragraph 
+Number   : 1
+Signature: busnetwork x busgraph -> busnetwork
+Example  : query bn_busstops(addinfragraph(bn1,bg1)) count;
+Result   : 20
 
 
 Operator : genmo_tm_list
