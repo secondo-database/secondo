@@ -3727,7 +3727,7 @@ DoclistState Doclist::GetState()
 
 
 //Auxiliary Functions for Doclist
-void Doclist::invert(string text)
+vector<wordpos> Doclist::invert(string text)
 {
 	//Länge des eingabetextes
 	int laenge=text.length();
@@ -3761,9 +3761,6 @@ void Doclist::invert(string text)
 		//mehrfache satz und leerzeichen rausnehmen
 		else if (!(wort==""))
 		{
-			cout << "Position:" << zaehler << " Wort:" 
-      << wort << endl;
-			
 			//pos und wort in struct schreiben
 			wp.wort=wort;
 			wp.pos=zaehler;
@@ -3781,14 +3778,8 @@ void Doclist::invert(string text)
 		}
 	}
 	sort(wpvector.begin(), wpvector.end(),wortpos());
-/*	
-	int j;
-	int k=wpvector.size();
-	for (j=0; j<k;j++)
-	{
-		cout << wpvector[j].wort << " " << wpvector[j].pos <<endl;
-	}
-*/
+	return wpvector;
+
 }
 
 

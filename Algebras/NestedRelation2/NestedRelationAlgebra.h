@@ -566,7 +566,6 @@ class Doclist : public Attribute
     Doclist(bool Defined, string Term, Docidlist& Doc, DoclistState State);
     string GetTerm() const;
     DoclistState GetState();
-    Doclist GetDocList() const;
     Doclist *Clone() const;
     void AppendID(const Docidlist& doc);
     void Complete();
@@ -580,7 +579,7 @@ class Doclist : public Attribute
     size_t Sizeof() const;
     size_t HashValue() const;
     void CopyFrom(const Attribute* right);
-    void invert(string); //has to be changed to a funktion
+    vector<wordpos> invert(string); 
     
   private:
     DbArray<Docidlist> doclists;
