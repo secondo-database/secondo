@@ -532,4 +532,59 @@ the type of tuple corresponds to the type of the primary relation.
 };
 
 
+/*
+4 class Doclist
 
+*/
+
+struct Docidlist{
+  Docidlist() {}
+  int DocID;
+  int position;
+};
+
+struct wortpos
+{
+	bool operator () (wortpos const& a,wortpos const& b) const
+	{
+		if (a.wort<b.wort) return true;
+		if (a.wort>b.wort) return false;
+		if (a.pos<b.pos) return true;
+		if (a.pos>b.pos) return false;
+		return false;
+	}
+	string wort;
+	int pos;
+} wp;
+
+enum DoclistState {partial,complete};
+
+class Doclist : public Attribute 
+{
+  public:
+    Doclist();
+    Doclist(bool Defined, string Term, Docidlist& Doc, DoclistState State);
+    string GetTerm() const;
+    DoclistState GetState();
+    Doclist GetDocList() const;
+    Doclist *Clone() const;
+    void AppendID(const Docidlist& doc);
+    void Complete();
+    void Destroy();
+    void setTerm(const string term);
+    int NumOfFLOBs() const;
+    Flob *GetFLOB(const int i);
+    int Compare(const Attribute* attr) const;
+    bool Adjacent(const Attribute* attr) const;
+    bool IsDefined() const;
+    size_t Sizeof() const;
+    size_t HashValue() const;
+    void CopyFrom(const Attribute* right);
+    void invert(string); //has to be changed to a funktion
+    
+  private:
+    DbArray<Docidlist> doclists;
+    DoclistState state;
+    bool defined;
+    string term;
+};

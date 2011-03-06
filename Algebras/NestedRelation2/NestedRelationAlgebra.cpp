@@ -48,9 +48,13 @@ types and functions implemented by the Relation Algebra module.
 #include "ListUtils.h"
 #include "Progress.h"
 #include "../../Tools/Flob/DbArray.h"
+#include <string>
+#include <iostream>
+#include <vector>
+#include <algorithm>
 
 
-
+using namespace std;
 
 
   
@@ -3201,7 +3205,6 @@ template<int TidIndexPos>
 
         Tuple* sTuple = (Tuple*)wTuple.addr;
         Tuple* resultTuple = new Tuple( localInfo->resultTupleType );
-	
         Tuple* relTuple = localInfo->rel->
             GetTuple(((TupleIdentifier *)sTuple->
             GetAttribute(localInfo->tidIndex))->GetTid(),true);
@@ -3600,39 +3603,39 @@ class NestedRelationAlgebra : public Algebra
 7 Data Structures
 
 7.1. Struct Doclist
-
 */
-struct Docidlist{
-  Docidlist() {}
-  int DocID;
-  int position;
-};
+
 
 
 /*
 7.2 Class Doclist
 
 */
+// moved to header file
 
-enum DoclistState {partial,complete};
 
-class Doclist : public Attribute 
-{
-  public:
-    void AppendID(const Docidlist& doc);
-    void Complete();
-    void Destroy();
-    void setTerm(const string term);
-    
-  private:
-    DbArray<Docidlist> doclists;
-    DoclistState state;
-    string term;
-};
 /*
 7.3 needs to be named
 
 */
+Doclist::Doclist()
+{}
+
+Doclist::Doclist(bool Defined, string Term, Docidlist& Doc, DoclistState State)
+{
+  defined=Defined;
+  term=Term;
+  doclists.Append(Doc);
+  state=State;
+}
+
+string Doclist::GetTerm() const
+{
+  return term;
+}
+
+
+
 void Doclist::AppendID(const Docidlist& doc)
 {
   assert (state == partial);
@@ -3652,6 +3655,144 @@ void Doclist::Destroy()
   assert (state==complete);
   doclists.Destroy();
 }
+
+int Doclist::NumOfFLOBs() const
+{
+  return 1;
+}
+
+Flob *Doclist::GetFLOB(const int i)
+{
+  assert( i >= 0 && i < NumOfFLOBs() );
+  return &doclists;
+}
+
+int Doclist::Compare(const Attribute* attr) const
+{
+ const Doclist * d = (const Doclist* )(attr);
+ if ( !d ) return (-1);
+
+ if (!IsDefined() && !(attr->IsDefined()))  return 0;
+ else if (!IsDefined())  return -1;
+    else  if (!(attr->IsDefined())) return 1;
+       else
+       {
+         if ((this->GetTerm()) > (d->GetTerm())) return 1;
+         else if ((this->GetTerm()) < (d->GetTerm())) return -1;
+         else return 0;
+       }
+}
+
+bool Doclist::Adjacent(const Attribute* attr) const
+{
+  return 0;
+}
+
+Doclist *Doclist::Clone() const
+{
+  return (new Doclist( *this));
+}
+
+bool Doclist::IsDefined() const
+{
+  return true;
+}
+ 
+size_t Doclist::Sizeof() const
+{
+  return sizeof( *this );
+}
+
+size_t Doclist::HashValue() const
+{
+  if( !IsDefined() ){
+    return 0;
+  }
+  return 1 ;
+}
+    
+void Doclist::CopyFrom(const Attribute* attr)
+{
+  const Doclist * d = (const Doclist*)attr;
+  defined = d->defined;
+  term = d->term;
+  state = d->state;
+  doclists = d->doclists;
+}
+
+DoclistState Doclist::GetState()
+{
+  return state;
+}
+
+
+//Auxiliary Functions for Doclist
+void Doclist::invert(string text)
+{
+	//Länge des eingabetextes
+	int laenge=text.length();
+
+	//char array mit Länge von Eingabetext initialisieren
+	char *textarray=new char[laenge];
+
+	//Eingabetext zeichenweise in Array kopieren
+	strcpy(textarray,text.c_str());
+	
+	int i;
+	int zaehler=0;
+	string wort="";
+	
+	
+	//vector als dynamisches array initialisieren
+	vector<wortpos> wpvector;
+	
+	//Array zeichenweise durchlaufen
+	for (i=0; i<=laenge; i++)
+	{
+		//satzzeichen und leerzeichen rausnehmen
+		if (!(textarray[i]==' ' || textarray[i]==',' || 
+    textarray[i]=='.' || textarray[i]==':' || 
+    textarray[i]==';' || textarray[i]=='!' || 
+    textarray[i]=='?'||i==laenge))
+		{
+			wort=wort+textarray[i];
+		}
+
+		//mehrfache satz und leerzeichen rausnehmen
+		else if (!(wort==""))
+		{
+			cout << "Position:" << zaehler << " Wort:" 
+      << wort << endl;
+			
+			//pos und wort in struct schreiben
+			wp.wort=wort;
+			wp.pos=zaehler;
+
+			//struct in vector speichern
+			wpvector.push_back(wp);
+			zaehler=i+1;
+			wort="";
+		}
+		//weiter nummerieren bei mehrfachen satz und leerzeichen
+		else 
+		{
+			zaehler=i+1;
+			wort="";
+		}
+	}
+	sort(wpvector.begin(), wpvector.end(),wortpos());
+/*	
+	int j;
+	int k=wpvector.size();
+	for (j=0; j<k;j++)
+	{
+		cout << wpvector[j].wort << " " << wpvector[j].pos <<endl;
+	}
+*/
+}
+
+
+
 
 /*
 8 Initialization
