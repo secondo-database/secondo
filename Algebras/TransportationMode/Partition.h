@@ -64,6 +64,9 @@ March, 2010 Jianqiu xu
 #include "WinUnix.h"
 #include "AvlTree.h"
 #include "Symbols.h"
+#include "GeneralType.h"
+
+
 /*
 5 Auxiliary structures for plane sweep algorithms
 

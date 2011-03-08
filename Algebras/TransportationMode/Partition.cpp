@@ -6005,18 +6005,23 @@ void StrRS::GenPoints1(int attr_pos1, int attr_pos2, int attr_pos3,
     srand48(tval.tv_sec);
     while(no_ps > 0){
         //randomly selects a section
-        int  m = lrand48() % no_sub_sec + 1;
+//        int  m = lrand48() % no_sub_sec + 1;
+        int  m = GetRandom() % no_sub_sec + 1;
+
         Tuple* tuple_sec = r1->GetTuple(m, false); 
         int rid = ((CcInt*)tuple_sec->GetAttribute(attr_pos1))->GetIntval();
         Line* l = (Line*)tuple_sec->GetAttribute(attr_pos2);
         //randomly selects a halfsegment in the section 
         int no_hs = l->Size(); 
-        int hs_index =  lrand48()%no_hs;
+//        int hs_index =  lrand48()% no_hs;
+        int hs_index =  GetRandom()% no_hs;
         HalfSegment hs;
         l->Get(hs_index, hs);
         double length = hs.Length();
         if(length > dist_deta){
-            int pos = lrand48()% ((int)floor(length));
+//            int pos = lrand48()% ((int)floor(length));
+            int pos = GetRandom() % ((int)floor(length));
+
             assert(0 <= pos && pos <= length);
 //            cout<<"rid "<<rid<<" length "<<length<<" pos "<<pos<<endl; 
             Point ip;
