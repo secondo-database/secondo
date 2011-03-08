@@ -455,7 +455,7 @@ struct RoadDenstiy{
 
   //////////////////////moving bus relation///////////////////////////
   enum MO_BUS{BR_ID5 = 0, MO_BUS_DIRECTION,BUS_TRIP,BUS_TYPE,
-              BUS_DAY,SCHEDULE_ID, MO_BUS_OID};
+              BUS_DAY,SCHEDULE_ID};
 
   ///////////////////bus routes relation////////////////////////////////
   enum BR_ROUTE{BR_ID6 = 0, BR_GEODATA, BR_ROUTE_TYPE, BR_RUID, 
@@ -712,11 +712,13 @@ class BusNetwork{
   ~BusNetwork();
   static string BusStopsTypeInfo;
   static string BusRoutesTypeInfo;
-  static string BusStopsInternal;
+  static string BusStopsInternalTypeInfo;
   static string BusStopsBTreeTypeInfo; 
   static string BusStopsRTreeTypeInfo; 
 
   static string BusRoutesBTreeTypeInfo; 
+  static string BusRoutesBTreeUOidTypeInfo; 
+  static string BusTripsTypeInfo; 
   
   bool Save(SmiRecord& valueRecord, size_t& offset, const ListExpr typeInfo);
   static BusNetwork* Open(SmiRecord& valueRecord, size_t& offset, 
@@ -724,16 +726,19 @@ class BusNetwork{
   enum BN_INODE{NODE_BS1 = 0, NODE_BS2};
   enum BN_BS{BN_ID1 = 0, BN_BS, BS_U_OID, BS_GEO};//internal representation 
   enum BN_BR{BN_ID2 = 0, BN_BR, BN_BR_OID}; //representation 
+  enum BN_BTP{BN_BUSTRIP = 0, BN_BUS_OID};
 
-
-  void Load(unsigned int i, Relation* r1, Relation* r2); 
+  void Load(unsigned int i, Relation* r1, Relation* r2, Relation* r3); 
   void LoadStops(Relation* r);
   void LoadRoutes(Relation* r); 
+  void LoadBuses(Relation* r);
   static void* Cast(void* addr);
   bool IsDefined() const { return def;}
   unsigned int GetId() const {return bn_id;}
   Relation* GetBS_Rel(){return stops_rel;}
   Relation* GetBR_Rel(){return routes_rel;}
+  Relation* GetBT_Rel(){return bustrips_rel;}
+  double GetMaxSpeed(){return max_bus_speed;}
   R_Tree<2,TupleId>* GetBS_RTree() { return rtree_bs;}
   
   void GetBusStopGeoData(Bus_Stop* bs, Point* p);
@@ -748,17 +753,21 @@ class BusNetwork{
     unsigned int bn_id;
     bool graph_init; 
     unsigned int graph_id; 
+    double max_bus_speed;//maximum speed of all moving buses (heuristic value)
     
     Relation* stops_rel; //a relation for bus stops
     BTree* btree_bs; //a btree on bus stops
     Relation* routes_rel;  //a relaton for bus routes
     BTree* btree_br; //a btree on bus routes
 
-    BTree* btree_bs_uoid; 
+    BTree* btree_bs_uoid; //a btree on bus stops for unique oid 
     R_Tree<2,TupleId>* rtree_bs; //an rtree on bus stops
 
-                        //a relation for moving buses 
-                        //maximum speed of all moving buses (heuristic value)
+    BTree* btree_br_uoid; //a btree on bus routes for unique oid 
+
+    Relation* bustrips_rel; //a relation for moving buses 
+
+    
 };
 
 ListExpr BusNetworkProperty();
@@ -818,6 +827,7 @@ struct BN{
   vector<Bus_Stop> bs_list2;
   vector<Line> path_list; 
   vector<SimpleLine> path_sl_list; 
+  vector<int> type_list; 
   vector<SimpleLine> sub_path1;
   vector<SimpleLine> sub_path2; 
   vector<SimpleLine> path2_sl_list; 
@@ -854,7 +864,8 @@ struct BN{
                    SmiRecordId adr, Point* loc, vector<int>& neighbor_list);
 
   /////////////////////////////////////////////////////////////////////
-  void GetAdjNodeBG(BusGraph*, int);
+  void GetAdjNodeBG1(BusGraph*, int);
+  void GetAdjNodeBG2(BusGraph*, Bus_Stop* bs);
   
   void BsNeighbors3(Relation*, Relation*, BTree*);
   void ConnectionOneRoute(Relation* table_rel, vector<int> tid_list, 
@@ -869,7 +880,7 @@ the path between bus stops and their pavements (subpath1, subpath2)
 this kind of connection can be defined as in free space 
 2. bus stops with the same spatial location but belong to different routes
 3. moving buses from one bus stop to its next one in the same route 
-for the last stop, its neigbor stop is itself and the path is empty(length 0)
+for the last stop, it has no neigbor stops
 
 two kinds of trip planning:shortest distance, minimum travelling time 
 
@@ -1020,6 +1031,9 @@ struct BNNav{
 
   vector<Bus_Stop> bs_list;
   vector<Point> bs_geo_list; 
+  
+  vector<GenMO> genmo_list;
+  
   unsigned int count;
   TupleType* resulttype;
   
@@ -1030,6 +1044,8 @@ struct BNNav{
     resulttype = NULL;
   }
 
+
+  
   ~BNNav(){if(resulttype != NULL) delete resulttype;}
   
   void ShortestPath_Length(Bus_Stop* bs1, Bus_Stop* bs2, Instant*);
@@ -1047,6 +1063,11 @@ struct BNNav{
                             vector<BNPath_elem>& expand_queue, 
                             BusNetwork* bn, BusGraph* bg,
                             Point&, Point&);
+
+  ///////////////////////moving buses (mpoint) to genmo////////////////////
+  void BusToGenMO(Relation* r1, Relation* r2, BTree* btree);
+  void MPToGenMO(MPoint* mp, unsigned int br_id, bool dir, Relation* br_rel,
+                 BTree* btree);
 
 };
 //////////////////////////////////////////////////////////////////////////
@@ -1156,7 +1177,7 @@ struct UBTrain{
   
   //////////////////// Trains and UBahn Line////////////////////
   ///////////////////convert trains to genmo///////////////////////
-  enum UBAHN_TRAINS{TRAIN_ID = 0, TRAIN_LINE, TRAIN_UP, TRAIN_TRIP};
+  enum UBAHN_TRAINS{TRAIN_LINE_ID = 0, TRAIN_TRIP};
   enum UBAHN_LINE{UB_LINE_ID = 0, UB_LINE_GEODATA}; 
   
   
@@ -1182,7 +1203,7 @@ struct UBTrain{
  void SplitUBahn(int attr1, int attr2); 
  void AddToUBahn(int id, Line* l, vector<UBhan_Id_Geo>& ub_lines); 
  void TrainsToGenMO(); 
- void MPToGenMO(MPoint* mp, GenMO* mo, int l_id, bool up); 
+ void MPToGenMO(MPoint* mp, GenMO* mo, int l_id); 
 };
 
 
