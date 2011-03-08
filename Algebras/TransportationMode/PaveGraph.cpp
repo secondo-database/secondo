@@ -3810,6 +3810,7 @@ void Walk_SP::GenerateData1(int no_p)
       int m = GetRandom() % no_node_graph + 1; 
 
       Tuple* tuple = rel1->GetTuple(m, false);
+      int oid = ((CcInt*)tuple->GetAttribute(DualGraph::OID))->GetIntval(); 
       Region* reg = (Region*)tuple->GetAttribute(DualGraph::PAVEMENT);
 
       if(reg->Area() < 0.5){ //too small area, not useful for a human
@@ -3825,15 +3826,6 @@ void Walk_SP::GenerateData1(int no_p)
       bool inside = false;
       int count = 1;
       while(inside == false && count <= 100){
-        //signed long integers, uniformly distributed over
-        //the interval [-2(31), 2(31)]
-//        int x = mrand48()% (xx*100);
-//        int y = mrand48()% (yy*100);
-
-        //non-negative, long integers, uniformly distributed over
-        //the interval [0, 2(31)]
-//        int x = lrand48()% (xx*100);
-//        int y = lrand48()% (yy*100);
 
         int x = GetRandom() % (xx*100);
         int y = GetRandom() % (yy*100);
@@ -3853,7 +3845,8 @@ void Walk_SP::GenerateData1(int no_p)
         count++;
       }
       if(inside){
-        oids.push_back(m);
+//        oids.push_back(m);
+        oids.push_back(oid); 
         q_loc1.push_back(p1);
         q_loc2.push_back(p2);
         i++;
@@ -3873,24 +3866,17 @@ Randomly generates points inside pavement polygon
 void Walk_SP::GenerateData2(int no_p)
 {
   int no_node_graph = rel1->GetNoTuples();
-//  struct timeval tval;
-//  struct timezone tzone;
-//  gettimeofday(&tval, &tzone);
-//  srand48(tval.tv_sec);
 
   for (int i = 1; i <= no_p;i++){
-//      int  m = lrand48() % no_node_graph + 1;
-
       int m = GetRandom() % no_node_graph + 1; 
 
       Tuple* tuple = rel1->GetTuple(m, false);
+      int oid = ((CcInt*)tuple->GetAttribute(DualGraph::OID))->GetIntval(); 
       Region* reg = (Region*)tuple->GetAttribute(DualGraph::PAVEMENT);
       Points* ps = new Points(0);
       reg->Vertices(ps);
 
-      //non-negative, long integers, uniformly distributed over
-      //the interval [0, 2(31)]
-//      unsigned index = lrand48()%3;
+
       unsigned index = GetRandom() % 3;
 
       Point p2;
@@ -3898,7 +3884,8 @@ void Walk_SP::GenerateData2(int no_p)
       BBox<2> bbox = reg->BoundingBox();
       Point p1(true, p2.GetX() - bbox.MinD(0), p2.GetY() - bbox.MinD(1));
 
-      oids.push_back(m);
+//      oids.push_back(m);
+      oids.push_back(oid); 
       q_loc1.push_back(p1);//relative position in the polygon
       q_loc2.push_back(p2);//absolute position
 
@@ -3931,6 +3918,7 @@ void Walk_SP::GenerateData3(int no_p)
       int  m = GetRandom() % no_node_graph + 1;
 
       Tuple* tuple = rel1->GetTuple(m, false);
+      int oid = ((CcInt*)tuple->GetAttribute(DualGraph::OID))->GetIntval(); 
       Region* reg = (Region*)tuple->GetAttribute(DualGraph::PAVEMENT);
 
       if(reg->Area() < 0.5){ //too small area, not useful for a human
@@ -3954,16 +3942,6 @@ void Walk_SP::GenerateData3(int no_p)
       }
 
       while(inside == false && count <= 100){
-        //signed long integers, uniformly distributed over
-        //the interval [-2(31), 2(31)]
-//        int x = mrand48()% (xx*100);
-//        int y = mrand48()% (yy*100);
-
-        //non-negative, long integers, uniformly distributed over
-        //the interval [0, 2(31)]
-
-//        int x = lrand48()% (xx*100);
-//        int y = lrand48()% (yy*100);
 
         int x = GetRandom() % (xx*100);
         int y = GetRandom() % (yy*100); 
@@ -3988,7 +3966,8 @@ void Walk_SP::GenerateData3(int no_p)
         count++;
       }
       if(inside){
-        oids.push_back(m);
+//        oids.push_back(m);
+        oids.push_back(oid); 
         q_loc1.push_back(p1);
         q_loc2.push_back(p2);
         i++;
@@ -8562,4 +8541,273 @@ void MaxRect::SetBoundaryPoint(Point& boundary_p,
     delete sp; 
   }
   
+}
+
+///////////////////////////////////////////////////////////////////////////
+///////////////Infrastructure Region Based Outdoor Pavement////////////////
+///////////////////////////////////////////////////////////////////////////
+ListExpr PavementProperty()
+{
+  return (nl->TwoElemList(
+            nl->FourElemList(nl->StringAtom("Signature"),
+                       nl->StringAtom("Example Type List"),
+           nl->StringAtom("List Rep"),
+           nl->StringAtom("Example List")),
+            nl->FourElemList(nl->StringAtom("-> DATA"),
+                       nl->StringAtom("pavement"),
+         nl->StringAtom("((def, id))"),
+           nl->StringAtom("((TRUE 1))"))));
+}
+/*
+output the pavement infrastructure 
+
+*/
+ListExpr OutPavement( ListExpr typeInfo, Word value )
+{
+//  cout<<"OutPavement"<<endl; 
+  Pavement* pn = (Pavement*)(value.addr);
+  if(!pn->IsDefined()){
+    return nl->SymbolAtom("undef");
+  }
+
+  ListExpr list1 = nl->TwoElemList(
+               nl->StringAtom("Pavement Id:"), 
+               nl->IntAtom(pn->GetId()));
+  
+  ListExpr list2 = nl->TheEmptyList(); 
+  if(pn->IsDGInit()){
+      list2 = nl->TwoElemList(
+               nl->StringAtom("Dual Graph Id:"), 
+               nl->IntAtom(pn->GetDGId()));
+  }else
+    list2 = nl->OneElemList( nl->StringAtom("Dual Graph undef"));
+    
+  ListExpr list3 = nl->TheEmptyList(); 
+  if(pn->IsVGInit()){
+      list3 = nl->TwoElemList(
+               nl->StringAtom("Visbility Graph Id:"), 
+               nl->IntAtom(pn->GetVGId()));
+  }else
+    list3 = nl->OneElemList( nl->StringAtom("Visibility Graph undef"));
+
+
+  ListExpr list4 = nl->TheEmptyList(); 
+  
+  return nl->FourElemList(list1, list2, list3, list4);
+}
+
+/*
+In function. there is not nested list expression here.
+
+*/
+Word InPavement( const ListExpr typeInfo, const ListExpr instance,
+       const int errorPos, ListExpr& errorInfo, bool& correct )
+{
+
+//  cout<<"length "<<nl->ListLength(instance)<<endl;
+
+  if( !nl->IsAtom( instance ) ){
+
+    if(nl->ListLength(instance) != 2){
+      cout<<"length should be 2"<<endl; 
+      correct = false;
+      return SetWord(Address(0));
+    }
+    ListExpr first = nl->First(instance);
+    ListExpr second = nl->Second(instance);
+
+    if(!nl->IsAtom(first) || nl->AtomType(first) != BoolType){
+      cout<< "pavement(): definition must be bool type"<<endl;
+      correct = false;
+      return SetWord(Address(0));
+    }
+    bool d = nl->BoolValue(first);
+
+
+    if(!nl->IsAtom(second) || nl->AtomType(second) != IntType){
+      cout<< "pavement(): pavement infrastructure id must be int type"<<endl;
+      correct = false;
+      return SetWord(Address(0));
+    }
+    unsigned int id = nl->IntValue(second);
+
+    Pavement* pn = new Pavement(d, id); 
+
+   ////////////////very important /////////////////////////////
+    correct = true; 
+  ///////////////////////////////////////////////////////////
+    return SetWord(pn);
+  }
+
+  correct = false;
+  return SetWord(Address(0));
+}
+
+bool SavePavement(SmiRecord& valueRecord, size_t& offset, 
+               const ListExpr typeInfo, Word& value)
+{
+  Pavement* pn = (Pavement*)value.addr;
+  return pn->Save(valueRecord, offset, typeInfo);
+}
+
+bool OpenPavement(SmiRecord& valueRecord, size_t& offset, 
+               const ListExpr typeInfo, Word& value)
+{
+  value.addr = Pavement::Open(valueRecord, offset, typeInfo);
+  return value.addr != NULL; 
+}
+
+Word CreatePavement(const ListExpr typeInfo)
+{
+// cout<<"CreatePavement()"<<endl;
+  return SetWord (new Pavement());
+}
+
+
+void DeletePavement(const ListExpr typeInfo, Word& w)
+{
+// cout<<"DeletePavement()"<<endl;
+  Pavement* pn = (Pavement*)w.addr;
+  delete pn;
+   w.addr = NULL;
+}
+
+void ClosePavement( const ListExpr typeInfo, Word& w )
+{
+//  cout<<"ClosePavement"<<endl; 
+  delete static_cast<Pavement*>(w.addr); 
+  w.addr = 0;
+}
+
+Word ClonePavement( const ListExpr typeInfo, const Word& w )
+{
+//  cout<<"ClonePavement"<<endl; 
+  return SetWord( new Address(0));
+}
+
+
+void* Pavement::Cast(void* addr)
+{
+  return NULL;
+}
+
+int SizeOfPavement()
+{
+//  cout<<"SizeOfPavement"<<endl; 
+  return sizeof(Pavement);
+}
+
+bool CheckPavement( ListExpr type, ListExpr& errorInfo )
+{
+//  cout<<"CheckPavement"<<endl; 
+  return (nl->IsEqual( type, "pavement" ));
+}
+
+
+string Pavement::PaveTypeInfo =
+"(rel(tuple((oid int)(rid int)(pavement region))))";
+
+
+Pavement::Pavement():def(false), pave_id(0), dg_init(false), dg_id(0), 
+vg_init(false), vg_id(0)
+{
+
+
+}
+
+
+Pavement::Pavement(bool d, unsigned int i):def(d), pave_id(i),
+dg_init(false), dg_id(0), vg_init(false), vg_id(0)
+{
+
+
+
+}
+
+Pavement::Pavement(SmiRecord& valueRecord, size_t& offset, 
+                   const ListExpr typeInfo):def(false), pave_id(0), 
+dg_init(false), dg_id(0), vg_init(false), vg_id(0)
+{
+
+
+  valueRecord.Read(&def, sizeof(bool), offset);
+  offset += sizeof(bool);
+
+  valueRecord.Read(&pave_id, sizeof(int), offset);
+  offset += sizeof(int);
+
+  valueRecord.Read(&dg_init, sizeof(bool), offset);
+  offset += sizeof(bool);
+
+  valueRecord.Read(&dg_id, sizeof(int), offset);
+  offset += sizeof(int);
+
+  valueRecord.Read(&vg_init, sizeof(bool), offset);
+  offset += sizeof(bool);
+
+  valueRecord.Read(&vg_id, sizeof(int), offset);
+  offset += sizeof(int);
+
+
+}
+
+Pavement::~Pavement()
+{
+
+
+
+}
+
+/*
+create the pavement infrastructure by a relation storing all triangles 
+
+*/
+void Pavement::Load(unsigned int i, Relation* r)
+{
+  if(i < 1){
+    def = false;
+    return;
+  }
+  pave_id = i; 
+
+  def = true; 
+
+}
+
+bool Pavement::Save(SmiRecord& valueRecord, size_t& offset, 
+                      const ListExpr typeInfo)
+{
+  
+//  cout<<"Pavement::Save"<<endl; 
+
+  valueRecord.Write(&def, sizeof(bool), offset); 
+  offset += sizeof(bool); 
+
+  valueRecord.Write(&pave_id, sizeof(int), offset); 
+  offset += sizeof(int); 
+
+  valueRecord.Write(&dg_init, sizeof(bool), offset); 
+  offset += sizeof(bool); 
+
+  valueRecord.Write(&dg_id, sizeof(int), offset); 
+  offset += sizeof(int); 
+
+  valueRecord.Write(&vg_init, sizeof(bool), offset); 
+  offset += sizeof(bool); 
+
+  valueRecord.Write(&vg_id, sizeof(int), offset); 
+  offset += sizeof(int); 
+
+  return true; 
+}
+
+/*
+open a pavement object 
+
+*/
+Pavement* Pavement::Open(SmiRecord& valueRecord, size_t& offset, 
+                     const ListExpr typeInfo)
+{
+  return new Pavement(valueRecord, offset, typeInfo); 
+
 }

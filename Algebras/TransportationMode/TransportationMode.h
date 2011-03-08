@@ -58,7 +58,7 @@ March, 2010 Jianqiu xu
 #include <fstream>
 #include "GeneralType.h"
 
-
+double TM_DiffTimeb(struct timeb* t1, struct timeb* t2);
 
 #endif
 

@@ -847,5 +847,58 @@ struct MaxRect{
 
 bool RegContainRect(Region* reg, Rectangle<2>& rect);
 
+/*
+for the infrastructure Region Based Outdoor 
+
+*/
+
+class Pavement{
+public:
+  Pavement();
+  Pavement(bool d, unsigned int i);
+  Pavement(SmiRecord& valueRecord, size_t& offset, const ListExpr typeInfo);
+  
+  static string PaveTypeInfo; 
+  
+  enum PavementTypeInfo{P_OID = 0, P_RID, P_PAVEMENT};
+
+  ~Pavement();
+  
+  bool IsDefined() const { return def;}
+  unsigned int GetId() const {return pave_id;}
+  void Load(unsigned int i, Relation* r);
+  bool IsDGInit(){return dg_init;}
+  bool IsVGInit(){return vg_init;}
+  unsigned int GetDGId(){return dg_id;}
+  unsigned int GetVGId(){return vg_id;}
+  
+  bool Save(SmiRecord& valueRecord, size_t& offset, const ListExpr typeInfo);
+  static Pavement* Open(SmiRecord& valueRecord, size_t& offset, 
+                     const ListExpr typeInfo);
+
+  static void* Cast(void* addr);
+  private:
+    bool def; 
+    unsigned int pave_id;
+    bool dg_init; 
+    unsigned int dg_id; 
+    bool vg_init; 
+    unsigned int vg_id; 
+
+};
+ListExpr PavementProperty();
+ListExpr OutPavement( ListExpr typeInfo, Word value ); 
+Word InPavement( const ListExpr typeInfo, const ListExpr instance,
+       const int errorPos, ListExpr& errorInfo, bool& correct );
+bool OpenPavement(SmiRecord& valueRecord, size_t& offset, 
+               const ListExpr typeInfo, Word& value); 
+bool SavePavement(SmiRecord& valueRecord, size_t& offset, 
+               const ListExpr typeInfo, Word& value);
+Word CreatePavement(const ListExpr typeInfo);
+void DeletePavement(const ListExpr typeInfo, Word& w);
+void ClosePavement( const ListExpr typeInfo, Word& w );
+Word ClonePavement( const ListExpr typeInfo, const Word& w ); 
+int SizeOfPavement(); 
+bool CheckPavement( ListExpr type, ListExpr& errorInfo ); 
 
 #endif

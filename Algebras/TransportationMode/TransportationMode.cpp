@@ -2552,6 +2552,25 @@ TypeConstructor busnetwork(
      CheckBusNetwork
 );
 
+/*
+for the infrastructure region based outdoor 
+
+*/
+
+TypeConstructor pavement(
+    "pavement",
+     PavementProperty,
+     OutPavement,      InPavement,     //Out and In functions
+     0,              0,            //SaveTo and RestoreFrom List functions
+     CreatePavement,  DeletePavement, //object creation and deletion
+     OpenPavement,    SavePavement,   // object open and save
+
+     ClosePavement,    ClonePavement,  //object close and clone
+     Pavement::Cast,
+     SizeOfPavement,                 //sizeof function
+     CheckPavement
+);
+
 ///////////////////////////////////////////////////////////////////////////
 ////////////////////  general data type  /////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -2634,8 +2653,8 @@ TypeConstructor space(
         0,              0,            //SaveTo and RestoreFrom List functions
         CreateSpace, //object creation 
         DeleteSpace, //object deletion
-        OpenSpace,  //object open 
-        SaveSpace,   // object save
+        OpenAttribute<Space>,//        OpenSpace,  //object open 
+        SaveAttribute<Space>,//        SaveSpace,   // object save
         CloseSpace, CloneSpace,//object close and clone
         Space::Cast,
         SizeOfSpace,              //sizeof function
@@ -2648,6 +2667,13 @@ const string SpatialSpecRefId =
 "<text>get the reference id of a genloc object</text--->"
 "<text>query ref_id (genloc1)</text---> ) )";
 
+
+const string SpatialSpecSetMORefId =
+"( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+"( <text>genmo -> (stream uT)</text--->"
+"<text>ref_id (_) </text--->"
+"<text>get the reference id of a generic moving object</text--->"
+"<text>query ref_id (genmo1)</text---> ) )";
 
 const string SpatialSpecGenMODeftime =
 "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
@@ -2686,7 +2712,7 @@ const string SpatialSpecGetMode =
 
 const string SpatialSpecAddInfraGraph =
 "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-"( <text>busnetwork x busgraph -> busnetwork </text--->"
+"( <text>busnetwork x busgraph -> (stream(((x1 t1) ... (xn tn))) </text--->"
 "<text>addinfragraph (busnetwork,busgraph) </text--->"
 "<text>add navigation graph to the corresponding infrastructure</text--->"
 "<text>query addinfragraph(bn1,bg1)</text---> ) )";
@@ -2702,6 +2728,19 @@ const string SpatialSpecTheSpace =
 "<text>create an empty space</text--->"
 "<text>query thespace(1)</text---> ) )";
 
+const string SpatialSpecPutInfra =
+"( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+"( <text>space x network ->  (stream(((x1 t1) ... (xn tn))) </text--->"
+"<text>putinfra (space, network) </text--->"
+"<text>add infrastructures to the space</text--->"
+"<text>query putinfra(space_1, rn)</text---> ) )";
+
+const string SpatialSpecGetInfra =
+"( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+"( <text>space x string ->  rel </text--->"
+"<text>getinfra (space, \"LINE\") </text--->"
+"<text>get required infrastructure from the space</text--->"
+"<text>query getinfra(space_1, \"LINE\")</text---> ) )";
 
 const string SpatialSpecGenMOTMList =
 "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
@@ -2782,6 +2821,78 @@ int RefIdBusNetworkValueMap(Word* args, Word& result, int message,
   return 0;
 }
 
+/*
+it returns a set of reference id for genmo and genrange 
+
+*/
+int GenMORefIdGenLocValueMap(Word* args, Word& result, int message,
+                    Word& local, Supplier s)
+{
+  GenMObject* mo;
+
+  switch(message){
+      case OPEN:{
+        GenMO* genmo = (GenMO*)args[0].addr;
+        mo = new GenMObject();
+        mo->GetIdList(genmo);
+        local.setAddr(mo);
+        return 0;
+      }
+      case REQUEST:{
+          if(local.addr == NULL) return CANCEL;
+          mo = (GenMObject*)local.addr;
+          if(mo->count == mo->id_list.size()) return CANCEL;
+          CcInt* id = new CcInt(true, mo->id_list[mo->count]);
+          mo->count++;
+          result = SetWord(id);
+          return YIELD;
+      }
+      case CLOSE:{
+          if(local.addr){
+            mo = (GenMObject*)local.addr;
+            delete mo;
+            local.setAddr(Address(0));
+          }
+          return 0;
+      }
+  }
+  return 0;
+}
+
+int GenRangeRefIdGenLocValueMap(Word* args, Word& result, int message,
+                    Word& local, Supplier s)
+{
+  GenMObject* mo;
+
+  switch(message){
+      case OPEN:{
+        GenRange* genrange = (GenRange*)args[0].addr;
+        mo = new GenMObject();
+        mo->GetIdList(genrange);
+        local.setAddr(mo);
+        return 0;
+      }
+      case REQUEST:{
+          if(local.addr == NULL) return CANCEL;
+          mo = (GenMObject*)local.addr;
+          if(mo->count == mo->id_list.size()) return CANCEL;
+          CcInt* id = new CcInt(true, mo->id_list[mo->count]);
+          mo->count++;
+          result = SetWord(id);
+          return YIELD;
+      }
+      case CLOSE:{
+          if(local.addr){
+            mo = (GenMObject*)local.addr;
+            delete mo;
+            local.setAddr(Address(0));
+          }
+          return 0;
+      }
+  }
+  return 0;
+  return 0;
+}
 
 /*
 get the deftime time periods for a generic moving object 
@@ -3046,6 +3157,59 @@ int TheSpaceValueMap(Word* args, Word& result, int message,
 }
 
 /*
+add road network infrastructure to the space 
+
+*/
+int PutInfraRNValueMap(Word* args, Word& result, int message,
+                    Word& local, Supplier s)
+{
+  static int flag = 0;
+  switch(message){
+    case OPEN:
+      return 0;
+    case REQUEST:
+          if(flag == 0){
+            Space* space = (Space*)args[0].addr;
+            Network* n = (Network*)args[1].addr; 
+            space->AddRoadNetwork(n);
+            Tuple* t = new Tuple(nl->Second(GetTupleResultType(s)));
+            t->PutAttribute(0, new CcInt(true, space->GetSpaceId()));
+            t->PutAttribute(1, new CcInt(true, n->GetId()));
+            result.setAddr(t);
+            flag = 1;
+            return YIELD;
+          }else{
+            flag = 0;
+            return CANCEL;
+          } 
+    case CLOSE:
+
+        qp->SetModified(qp->GetSon(s,0));
+        local.setAddr(Address(0));
+        return 0;
+  }
+  
+  return 0;
+  
+}
+
+/*
+get network infrastructure from the space 
+
+*/
+int GetInfraValueMap(Word* args, Word& result, int message,
+                    Word& local, Supplier s)
+{
+  Space* space = (Space*)args[0].addr;
+  string type = ((CcString*)args[1].addr)->GetValue();
+  result = SetWord(space->GetInfra(type));
+  Relation* resultSt = (Relation*)qp->ResultStorage(s).addr;
+  resultSt->Close();
+  qp->ChangeResultStorage(s, result);
+  return 0;
+}
+
+/*
 output all possible transportation modes of generic moving objects 
 
 */
@@ -3120,6 +3284,25 @@ int RefIdOpSelect(ListExpr args)
   return -1;
 }
 
+ValueMapping SetRefIdValueMapVM[]={
+  GenMORefIdGenLocValueMap,
+  GenRangeRefIdGenLocValueMap
+};
+
+
+/*
+for getting the reference id 
+
+*/
+int GenMORefIdOpSelect(ListExpr args)
+{
+  ListExpr arg1 = nl->First(args);
+  if(nl->IsAtom(arg1) && nl->IsEqual(arg1, "genmo"))
+    return 0;
+  if(nl->IsAtom(arg1) && nl->IsEqual(arg1, "genrange"))
+    return 1;
+  return -1;
+}
 
 /*
 TypeMap function for operator ref id  
@@ -3137,6 +3320,23 @@ ListExpr RefIdTypeMap(ListExpr args)
      nl->IsEqual(arg1, "busstop") || 
      nl->IsEqual(arg1, "busroute") || nl->IsEqual(arg1, "busnetwork"))
     return nl->SymbolAtom("int");
+
+  return nl->SymbolAtom("typeerror");
+}
+
+/*
+TypeMap function for operator setref id  
+
+*/
+ListExpr SetRefIdTypeMap(ListExpr args)
+{
+  if(nl->ListLength(args) != 1){
+      string err = "genmo  expected";
+      return listutils::typeError(err);
+  }
+  ListExpr arg1 = nl->First(args);
+  if(nl->IsEqual(arg1, "genmo") ||nl->IsEqual(arg1, "genrange"))
+    return nl->TwoElemList(nl->SymbolAtom("stream"),nl->SymbolAtom("int"));
 
   return nl->SymbolAtom("typeerror");
 }
@@ -3284,6 +3484,15 @@ Operator ref_id("ref_id",
     RefIdValueMapVM,
     RefIdOpSelect,
     RefIdTypeMap
+);
+
+
+Operator setref_id("ref_id",
+    SpatialSpecSetMORefId,
+    2,
+    SetRefIdValueMapVM,
+    GenMORefIdOpSelect,
+    SetRefIdTypeMap
 );
 
 int TMDeftimeOpSelect(ListExpr args)
@@ -3459,6 +3668,71 @@ ListExpr AddInfraGraphTypeMap(ListExpr args)
   return nl->SymbolAtom("typeerror");
 }
 
+/*
+TypeMap function for operator putinfra
+
+*/
+ListExpr PutInfraTypeMap(ListExpr args)
+{
+  if(nl->ListLength(args) != 2){
+      string err = "two parameters expected";
+      return listutils::typeError(err);
+  }
+  ListExpr arg1 = nl->First(args);
+  ListExpr arg2 = nl->Second(args);
+  if(nl->IsEqual(arg1, "space") && nl->IsEqual(arg2, "network")){
+
+      ListExpr reslist = nl->TwoElemList(
+        nl->SymbolAtom("stream"),
+        nl->TwoElemList(
+          nl->SymbolAtom("tuple"),
+          nl->TwoElemList(
+            nl->TwoElemList(nl->SymbolAtom("space id"),
+                            nl->SymbolAtom("int")),
+            nl->TwoElemList(nl->SymbolAtom("road network id"),
+                            nl->SymbolAtom("int"))
+          )
+        )
+      );
+    return reslist;
+  }
+
+
+  return nl->SymbolAtom("typeerror");
+}
+
+/*
+TypeMap function for operator gettinfra
+
+*/
+ListExpr GetInfraTypeMap(ListExpr args)
+{
+  if(nl->ListLength(args) != 2){
+      string err = "two parameters expected";
+      return listutils::typeError(err);
+  }
+  ListExpr arg1 = nl->First(args);
+  ListExpr arg2 = nl->Second(args);
+  if(nl->IsEqual(nl->First(arg1), "space") && 
+    listutils::isSymbol(nl->First(arg2), CcString::BasicType())){
+    string type  = nl->StringValue(nl->Second(arg2));
+    if(GetSymbol(type) == IF_LINE){
+      ListExpr xType;
+      nl->ReadFromString(Network::routesTypeInfo, xType);
+      return xType; 
+    }if(GetSymbol(type) == IF_FREESPACE){
+      ListExpr xType;
+      nl->ReadFromString(Space::FreeSpaceTypeInfo, xType);
+      return xType; 
+    }else{
+      string err = "infrastructure type error";
+      return listutils::typeError(err);
+    }
+  }
+
+  return nl->SymbolAtom("typeerror");
+}
+
 Operator addinfragraph("addinfragraph",
     SpatialSpecAddInfraGraph,
     1,
@@ -3478,6 +3752,40 @@ Operator thespace("thespace",
     TheSpaceValueMap,
     Operator::SimpleSelect,
     TheSpaceTypeMap
+);
+
+/*
+put infrastructures to the space 
+
+*/
+
+ValueMapping PutInfraValueMapVM[]={
+  PutInfraRNValueMap
+};
+
+int PutInfraOpSelect(ListExpr args)
+{
+  ListExpr arg1 = nl->First(args);
+  ListExpr arg2 = nl->Second(args);
+  if(nl->IsAtom(arg1) && nl->IsEqual(arg1, "space") &&
+    nl->IsAtom(arg2) && nl->IsEqual(arg2, "network"))
+    return 0;
+  return -1;
+}
+
+Operator putinfra("putinfra",
+    SpatialSpecPutInfra,
+    1,
+    PutInfraValueMapVM,
+    PutInfraOpSelect,
+    PutInfraTypeMap
+);
+
+Operator getinfra("getinfra",
+    SpatialSpecGetInfra,
+    GetInfraValueMap,
+    Operator::SimpleSelect,
+    GetInfraTypeMap
 );
 
 
@@ -4112,16 +4420,28 @@ const string OpTMUpDownSpec  =
     "<text>query up_down([const busstop value (1 2 TRUE)]) ;</text--->) )";
 
 /*
+create region based outdoor infrastructure 
+
+*/
+const string OpTMThePavementSpec  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+    "\"Example\" ) "
+    "( <text>int x rel -> pavement</text--->"
+    "<text>thepavement(1, rel); </text--->"
+    "<text>create pavement infrastructure</text--->"
+    "<text>query thepavement(1, dg_node) ;</text--->) )";
+    
+/*
 create bus network 
 
 */
 const string OpTMTheBusNetworkSpec  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" "
     "\"Example\" ) "
-    "( <text>int x rel x rel -> busnetwork</text--->"
-    "<text>thebusnetwork(1, stops_rel, routes_rel); </text--->"
+    "( <text>int x rel x rel x rel -> busnetwork</text--->"
+    "<text>thebusnetwork(1, rel, rel, rel); </text--->"
     "<text>create bus network</text--->"
-    "<text>query busnetwork(1, bus_stops, bus_routes) ;</text--->) )";
+    "<text>query busnetwork(1, bus_stops, bus_routes, bus) ;</text--->) )";
     
 const string OpTMBusStopsSpec  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" "
@@ -4390,14 +4710,14 @@ const string OpTMSplitUBahnSpec  =
     "<text>query splitubahn(UBahn, Name, geoData) count;</text--->"
     ") )";
 
-const string OpTMTrainsToGenMOSpec  =
+const string OpTMRefMO2GenMOSpec  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" "
     "\"Example\" ) "
     "( <text>rel1 x rel2 x btree "
     "->(stream (tuple( (x1 t1)(x2 t2)...(xn tn)))</text--->"
-    "<text>trainstogenmo(rel1, rel2, btree );</text--->"
+    "<text>refmo2genmo(rel1, rel2, btree );</text--->"
     "<text>convert trains to generic moving objects </text--->"
-    "<text>query trainstogenmo(Trains, ubahn_line, btree_ub_line) count;"
+    "<text>query refmo2genmo(Trains, ubahn_line, btree_ub_line) count;"
     "</text--->) )";
     
 const string OpTMInstant2DaySpec  =
@@ -7957,14 +8277,44 @@ ListExpr OpTMUpDownTypeMap ( ListExpr args )
 }
 
 /*
+TypeMap fun for operator thepavement 
+
+*/
+ListExpr OpTMThePavementTypeMap ( ListExpr args )
+{
+  if ( nl->ListLength ( args ) != 2 )
+  {
+    return  nl->SymbolAtom ( "list length should be 2" );
+  }
+  
+  ListExpr param1 = nl->First ( args );
+  if(!(nl->IsAtom(param1) && nl->AtomType(param1) == SymbolType &&  
+     nl->SymbolValue(param1) == "int")){
+      return nl->SymbolAtom ( "typeerror: param1 should be int" );
+  }
+  
+  ListExpr param2 = nl->Second ( args );
+  
+  ListExpr xType1;
+  nl->ReadFromString(Pavement::PaveTypeInfo, xType1); 
+  if(!CompareSchemas(param2, xType1)){
+    return listutils::typeError("rel1 scheam should be" + 
+                                Pavement::PaveTypeInfo);
+  }
+  
+  return nl->SymbolAtom ( "pavement" );
+}
+
+
+/*
 TypeMap fun for operator thebusnetwork
 
 */
 ListExpr OpTMTheBusNetworkTypeMap ( ListExpr args )
 {
-  if ( nl->ListLength ( args ) != 3 )
+  if ( nl->ListLength ( args ) != 4 )
   {
-    return  nl->SymbolAtom ( "list length should be 3" );
+    return  nl->SymbolAtom ( "list length should be 4" );
   }
   
   ListExpr param1 = nl->First ( args );
@@ -7991,6 +8341,14 @@ ListExpr OpTMTheBusNetworkTypeMap ( ListExpr args )
                                 BusNetwork::BusRoutesTypeInfo);
   }
  
+  ListExpr param4 = nl->Fourth ( args );
+  ListExpr xType3;
+  nl->ReadFromString(BusNetwork::BusTripsTypeInfo, xType3); 
+  if(!CompareSchemas(param4, xType3)){
+    return listutils::typeError("rel3 scheam should be" + 
+                                BusNetwork::BusTripsTypeInfo);
+  }
+  
   return nl->SymbolAtom ( "busnetwork" );
 }
 
@@ -8363,15 +8721,15 @@ ListExpr OpTMGetAdjNodeBGTypeMap ( ListExpr args )
      nl->SymbolValue(param1) == "busgraph")){
       return nl->SymbolAtom ( "typeerror: param1 should be busgraph" );
   }
-  if(!nl->IsEqual(param2, "int")) return nl->SymbolAtom ( "typeerror" );
-  
-  
+  if(!(nl->IsEqual(param2, "int") || nl->IsEqual(param2, "busstop")))
+    return nl->SymbolAtom ( "typeerror" );
+
   ListExpr res = nl->TwoElemList(
             nl->SymbolAtom("stream"),
             nl->TwoElemList(
                 nl->SymbolAtom("tuple"),
 
-                nl->ThreeElemList(
+                nl->FourElemList(
                     nl->TwoElemList(
                         nl->SymbolAtom("bus_stop1"),
                         nl->SymbolAtom("busstop")),
@@ -8380,7 +8738,10 @@ ListExpr OpTMGetAdjNodeBGTypeMap ( ListExpr args )
                         nl->SymbolAtom("busstop")),
                     nl->TwoElemList(
                         nl->SymbolAtom("Path"),
-                        nl->SymbolAtom("sline"))
+                        nl->SymbolAtom("sline")),
+                    nl->TwoElemList(
+                        nl->SymbolAtom("Type"),
+                        nl->SymbolAtom("int"))
                     )));
   return res; 
 
@@ -8516,7 +8877,7 @@ ListExpr OpTMBNNavigationTypeMap ( ListExpr args )
           );
         break; 
     default:
-      string err = "the value of fifth parameter([0,1]) is not correct";
+      string err = "the value of fifth parameter([0,3]) is not correct";
       return listutils::typeError(err);
   }
 
@@ -9781,59 +10142,103 @@ conver berlintest trains to generic moving objects
 
 */
 
-ListExpr OpTMTrainsToGenMOTypeMap ( ListExpr args )
+ListExpr OpTMRefMO2GenMOTypeMap ( ListExpr args )
 {
-  if ( nl->ListLength ( args ) != 3 )
+  if ( nl->ListLength ( args ) != 4 )
   {
-    return  nl->SymbolAtom ( "list length should be 3" );
+    return  nl->SymbolAtom ( "list length should be 4" );
   }
   
-  ListExpr param1 = nl->First ( args );
-  if(!IsRelDescription(param1))
-    return nl->SymbolAtom ( "typeerror: param1 should be a relation" );
+  ListExpr param1 = nl->First(args); 
+ 
+  if(!(nl->IsAtom(nl->First(param1)) && 
+       nl->AtomType(nl->First(param1)) == SymbolType &&
+       nl->SymbolValue(nl->First(param1)) == "string" )){
+      string err = "param1 should be string";
+      return listutils::typeError(err);
+  }
   
-  ListExpr xType1;
-  nl->ReadFromString(UBTrain::TrainsTypeInfo, xType1); 
-  if(!CompareSchemas(param1, xType1)){
-    return listutils::typeError("rel1 scheam should be" + 
+  string str = nl->StringValue(nl->Second(param1));
+  if(GetTM(str) == TM_METRO){
+      ListExpr param2 = nl->Second ( args );
+      if(!IsRelDescription(nl->First(param2)))
+      return nl->SymbolAtom ( "typeerror: param2 should be a relation" );
+  
+      ListExpr xType1;
+      nl->ReadFromString(UBTrain::TrainsTypeInfo, xType1); 
+      if(!CompareSchemas(nl->First(param2), xType1)){
+      return listutils::typeError("rel1 scheam should be" + 
                                 UBTrain::TrainsTypeInfo);
-  }
-
-  ListExpr param2 = nl->Second ( args );
-  if(!IsRelDescription(param2))
-    return nl->SymbolAtom ( "typeerror: param2 should be a relation" );
+      }
+      ListExpr param3 = nl->Third ( args );
+      if(!IsRelDescription(nl->First(param3)))
+        return nl->SymbolAtom ( "typeerror: param3 should be a relation" );
   
-  ListExpr xType2;
-  nl->ReadFromString(UBTrain::UBahnLineInfo, xType2); 
-  if(!CompareSchemas(param2, xType2)){
-    return listutils::typeError("rel2 scheam should be" + 
+      ListExpr xType2;
+      nl->ReadFromString(UBTrain::UBahnLineInfo, xType2); 
+      if(!CompareSchemas(nl->First(param3), xType2)){
+        return listutils::typeError("rel2 scheam should be" + 
                                UBTrain::UBahnLineInfo);
-  }
+      }
 
-  ListExpr param3 = nl->Third ( args );
-  if(!listutils::isBTreeDescription(param3))
-    return nl->SymbolAtom ( "typeerror: param3 should be a btree" );
+      ListExpr param4 = nl->Fourth ( args );
+      if(!listutils::isBTreeDescription(nl->First(param4)))
+      return nl->SymbolAtom ( "typeerror: param4 should be a btree" );
 
 
-  ListExpr res = nl->TwoElemList(
+      ListExpr res = nl->TwoElemList(
             nl->SymbolAtom("stream"),
             nl->TwoElemList(
                 nl->SymbolAtom("tuple"),
-                nl->FourElemList(
+                nl->OneElemList(
                     nl->TwoElemList(
-                        nl->SymbolAtom("Id"),
-                        nl->SymbolAtom("int")),
-                    nl->TwoElemList(
-                        nl->SymbolAtom("Line"),
-                        nl->SymbolAtom("int")),
-                    nl->TwoElemList(
-                        nl->SymbolAtom("Up"),
-                        nl->SymbolAtom("bool")),
-                    nl->TwoElemList(
-                        nl->SymbolAtom("Trip"),
+                        nl->SymbolAtom("metrotrip"),
                         nl->SymbolAtom("genmo"))
                     )));
-  return  res;
+      return  res;
+  }else if(GetTM(str) == TM_BUS){
+      
+      ListExpr param2 = nl->Second ( args );
+      if(!IsRelDescription(nl->First(param2)))
+      return nl->SymbolAtom ( "typeerror: param2 should be a relation" );
+  
+      ListExpr xType1;
+      nl->ReadFromString(RoadDenstiy::mo_bus_typeinfo, xType1); 
+      if(!CompareSchemas(nl->First(param2), xType1)){
+      return listutils::typeError("rel1 scheam should be" + 
+                                RoadDenstiy::mo_bus_typeinfo);
+      }
+      
+       ListExpr param3 = nl->Third ( args );
+      if(!IsRelDescription(nl->First(param3)))
+        return nl->SymbolAtom ( "typeerror: param3 should be a relation" );
+  
+      ListExpr xType2;
+      nl->ReadFromString(BusNetwork::BusRoutesTypeInfo, xType2); 
+      if(!CompareSchemas(nl->First(param3), xType2)){
+        return listutils::typeError("rel2 scheam should be" + 
+                               BusNetwork::BusRoutesTypeInfo);
+      }
+
+      ListExpr param4 = nl->Fourth ( args );
+      if(!listutils::isBTreeDescription(nl->First(param4)))
+      return nl->SymbolAtom ( "typeerror: param4 should be a btree" );
+
+
+      ListExpr res = nl->TwoElemList(
+            nl->SymbolAtom("stream"),
+            nl->TwoElemList(
+                nl->SymbolAtom("tuple"),
+                nl->OneElemList(
+                    nl->TwoElemList(
+                        nl->SymbolAtom("bustrip"),
+                        nl->SymbolAtom("genmo"))
+                    )));
+      return  res;
+  
+  }else{
+      return nl->SymbolAtom ( "typeerror" );
+  }
 }
 
 
@@ -13527,7 +13932,83 @@ int OpTMBusRouteUpDownValueMap ( Word* args, Word& result, int message,
   return 0;
 }
 
+/*
+check whether the bus network id has been used already 
 
+*/
+bool ChekPavementId(unsigned int pn_id)
+{
+  ListExpr xObjectList = SecondoSystem::GetCatalog()->ListObjects();
+  xObjectList = nl->Rest(xObjectList);
+  while(!nl->IsEmpty(xObjectList))
+  {
+    // Next element in list
+    ListExpr xCurrent = nl->First(xObjectList);
+    xObjectList = nl->Rest(xObjectList);
+
+    // Type of object is at fourth position in list
+    ListExpr xObjectType = nl->First(nl->Fourth(xCurrent));
+    if(nl->IsAtom(xObjectType) &&
+       nl->SymbolValue(xObjectType) == "pavement")
+    {
+      // Get name of the pavement 
+      ListExpr xObjectName = nl->Second(xCurrent);
+      string strObjectName = nl->SymbolValue(xObjectName);
+
+      // Load object to find out the id of the pavement. Normally their
+      // won't be to much networks in one database giving us a good
+      // chance to load only the wanted network.
+      Word xValue;
+      bool bDefined;
+      bool bOk = SecondoSystem::GetCatalog()->GetObject(strObjectName,
+                                                        xValue,
+                                                        bDefined);
+      if(!bDefined || !bOk)
+      {
+        // Undefined network
+        continue;
+      }
+      Pavement* pn = (Pavement*)xValue.addr;
+
+      if(pn->GetId() == pn_id)
+      {
+        SecondoSystem::GetCatalog()->CloseObject(nl->SymbolAtom("pavement"),
+                                               xValue);
+        return false;
+      }
+
+      SecondoSystem::GetCatalog()->CloseObject(nl->SymbolAtom("pavement"),
+                                               xValue);
+    }
+  }
+  return true; 
+}
+
+/*
+create the pavement infrastructure 
+
+*/
+int OpTMThePavementValueMap ( Word* args, Word& result, int message,
+                         Word& local, Supplier in_pSupplier )
+{
+  Pavement* pn = (Pavement*)qp->ResultStorage(in_pSupplier).addr;
+  int id = ((CcInt*)args[0].addr)->GetIntval(); 
+  if(ChekPavementId(id)){
+    Relation* paves = (Relation*)args[1].addr;
+    pn->Load(id, paves);
+    result = SetWord(pn); 
+  }else{
+    cout<<"invalid pavement id "<<id<<endl; 
+    while(ChekPavementId(id) == false || id <= 0){
+      id++;
+    }
+    cout<<"new pavement id "<<id<<endl; 
+    Relation* paves = (Relation*)args[1].addr;
+    pn->Load(id, paves);
+    result = SetWord(pn); 
+  }
+  return 0;
+}
 
 /*
 check whether the bus network id has been used already 
@@ -13582,7 +14063,7 @@ bool ChekBusNetworkId(unsigned int bn_id)
 }
 
 /*
-get bus stop id
+create the bus network infrastructure 
 
 */
 int OpTMTheBusNetworkValueMap ( Word* args, Word& result, int message,
@@ -13592,8 +14073,9 @@ int OpTMTheBusNetworkValueMap ( Word* args, Word& result, int message,
   int id = ((CcInt*)args[0].addr)->GetIntval(); 
   if(ChekBusNetworkId(id)){
     Relation* stops = (Relation*)args[1].addr;
-    Relation* routes = (Relation*)args[2].addr; 
-    bn->Load(id, stops, routes);
+    Relation* routes = (Relation*)args[2].addr;
+    Relation* buses = (Relation*)args[3].addr;
+    bn->Load(id, stops, routes, buses);
     result = SetWord(bn); 
   }else{
     cout<<"invalid bus network id "<<id<<endl; 
@@ -13603,7 +14085,8 @@ int OpTMTheBusNetworkValueMap ( Word* args, Word& result, int message,
     cout<<"new bus network id "<<id<<endl; 
     Relation* stops = (Relation*)args[1].addr;
     Relation* routes = (Relation*)args[2].addr; 
-    bn->Load(id, stops, routes);
+    Relation* buses = (Relation*)args[3].addr; 
+    bn->Load(id, stops, routes, buses);
     result = SetWord(bn); 
   }
   return 0;
@@ -14016,9 +14499,10 @@ int OpTMCreateBusGraphValueMap ( Word* args, Word& result, int message,
 
 /*
 for each bus stop, find neighbor bus stops by searching on the bus graph 
+  the input is bus stop node id 
 
 */
-int OpTMGetAdjNodeBGValueMap ( Word* args, Word& result, int message,
+int OpTMGetAdjNodeBGIntValueMap ( Word* args, Word& result, int message,
                          Word& local, Supplier in_pSupplier )
 {
 
@@ -14032,12 +14516,12 @@ int OpTMGetAdjNodeBGValueMap ( Word* args, Word& result, int message,
         b_n->resulttype =
             new TupleType(nl->Second(GetTupleResultType(in_pSupplier)));
 
-        b_n->GetAdjNodeBG(bg, nodeid);
+        b_n->GetAdjNodeBG1(bg, nodeid);
         ////////////for testing///////////////////
-//         for(int i = 1;i <= bg->node_rel->GetNoTuples(); i++){
-//               nodeid = i; 
-//               b_n->GetAdjNodeBG(bg, nodeid);
-//         }
+//      for(int i = 1;i <= bg->node_rel->GetNoTuples(); i++){
+//          nodeid = i; 
+//          b_n->GetAdjNodeBG1(bg, nodeid);
+//      }
 
         local.setAddr(b_n);
         return 0;
@@ -14052,6 +14536,67 @@ int OpTMGetAdjNodeBGValueMap ( Word* args, Word& result, int message,
           tuple->PutAttribute(0, new Bus_Stop(b_n->bs_list1[b_n->count]));
           tuple->PutAttribute(1, new Bus_Stop(b_n->bs_list2[b_n->count]));
           tuple->PutAttribute(2, new SimpleLine(b_n->path_sl_list[b_n->count]));
+          tuple->PutAttribute(3, new CcInt(true,b_n->type_list[b_n->count]));
+
+          result.setAddr(tuple);
+          b_n->count++;
+          return YIELD;
+      }
+      case CLOSE:{
+          if(local.addr){
+            b_n = (BN*)local.addr;
+            delete b_n;
+            local.setAddr(Address(0));
+          }
+          return 0;
+      }
+  }
+  return 0;
+
+}
+
+/*
+for each bus stop, find neighbor bus stops by searching on the bus graph 
+  the input is bus stop 
+
+*/
+int OpTMGetAdjNodeBGBSValueMap ( Word* args, Word& result, int message,
+                         Word& local, Supplier in_pSupplier )
+{
+
+  BN* b_n;
+  switch(message){
+      case OPEN:{
+        BusGraph* bg = (BusGraph*)args[0].addr;
+        Bus_Stop* bs = (Bus_Stop*)args[1].addr;
+
+        b_n = new BN(NULL);
+        b_n->resulttype =
+            new TupleType(nl->Second(GetTupleResultType(in_pSupplier)));
+
+        b_n->GetAdjNodeBG2(bg, bs);
+        ////////////for testing///////////////////
+//      for(int i = 1;i <= bg->node_rel->GetNoTuples(); i++){
+//          Tuple* bs_tuple = bg->node_rel->GetTuple(i, false);
+//          Bus_Stop* bs = (Bus_Stop*)bs_tuple->GetAttribute(BusGraph::BG_NODE);
+//          b_n->GetAdjNodeBG2(bg, bs);
+//          bs_tuple->DeleteIfAllowed();
+//      }
+
+        local.setAddr(b_n);
+        return 0;
+      }
+      case REQUEST:{
+          if(local.addr == NULL) return CANCEL;
+          b_n = (BN*)local.addr;
+          if(b_n->count == b_n->bs_list1.size())return CANCEL;
+
+          Tuple* tuple = new Tuple(b_n->resulttype);
+
+          tuple->PutAttribute(0, new Bus_Stop(b_n->bs_list1[b_n->count]));
+          tuple->PutAttribute(1, new Bus_Stop(b_n->bs_list2[b_n->count]));
+          tuple->PutAttribute(2, new SimpleLine(b_n->path_sl_list[b_n->count]));
+          tuple->PutAttribute(3, new CcInt(true, b_n->type_list[b_n->count]));
 
           result.setAddr(tuple);
           b_n->count++;
@@ -14208,7 +14753,7 @@ int OpTMTestBNNavigationValueMap(Word* args, Word& result, int message,
 
   BNNav* bn_nav = new BNNav(bn);
   bn_nav->type = type; 
-  int count = 1; 
+
   for(int i = 1;i <= rel1->GetNoTuples();i++){
     Tuple* bs1_tuple = rel1->GetTuple(i, false); 
     Bus_Stop* bs1 = (Bus_Stop*)bs1_tuple->GetAttribute(BusGraph::BG_NODE);
@@ -14226,8 +14771,6 @@ int OpTMTestBNNavigationValueMap(Word* args, Word& result, int message,
       Bus_Stop* bs2 = (Bus_Stop*)bs2_tuple->GetAttribute(BusGraph::BG_NODE);
       switch(type){
           case 0:
-                  cout<<"count "<<count<<endl;
-                  count++;
                   bn_nav->ShortestPath_Length(bs1, bs2, query_time);
                   if(bn_nav->path_list.size() > 0){
                     double l = 0.0;;
@@ -14243,6 +14786,17 @@ int OpTMTestBNNavigationValueMap(Word* args, Word& result, int message,
                   break;
           case 1:
                   bn_nav->ShortestPath_Time(bs1, bs2, query_time);
+                  if(bn_nav->path_list.size() > 0){
+                    double l = 0.0;;
+                    for(unsigned int k = 0;k < bn_nav->path_list.size();k++)
+                      l += bn_nav->path_list[k].Length();
+                    cout<<"bs1: "<<*bs1<<" bs2: "<<*bs2
+                       <<" length "<<l<<endl;
+                    bn_nav->path_list.clear();
+                    bn_nav->tm_list.clear();
+                    bn_nav->bs1_list.clear();
+                    bn_nav->bs2_list.clear();
+                  }
                   break;
           default:
                   cout<<"invalid type "<<type<<endl;
@@ -15096,20 +15650,21 @@ int OpTMSplitUBahnValueMap ( Word* args, Word& result, int message,
 }
 
 /*
-convert trains to generic moving objects 
+convert trains, buses to generic moving objects 
 
 */
-int OpTMTrainsToGenMOValueMap ( Word* args, Word& result, int message,
+int OpTMRefMO2GenMOValueMap ( Word* args, Word& result, int message,
                          Word& local, Supplier in_pSupplier )
 {
+  string tm = ((CcString*)args[0].addr)->GetValue();
+  if(GetTM(tm) == TM_METRO){ /////////metros 
+      UBTrain* ubtrain;
+      switch(message){
+        case OPEN:{
 
-  UBTrain* ubtrain;
-  switch(message){
-      case OPEN:{
-        
-        Relation* r1 = (Relation*)args[0].addr;
-        Relation* r2 = (Relation*)args[1].addr; 
-        BTree* btree = (BTree*)args[2].addr; 
+        Relation* r1 = (Relation*)args[1].addr;
+        Relation* r2 = (Relation*)args[2].addr; 
+        BTree* btree = (BTree*)args[3].addr; 
 
         ubtrain = new UBTrain(r1, r2, btree);
         ubtrain->resulttype =
@@ -15118,35 +15673,70 @@ int OpTMTrainsToGenMOValueMap ( Word* args, Word& result, int message,
         ubtrain->TrainsToGenMO();
         local.setAddr(ubtrain);
         return 0;
-      }
-      case REQUEST:{
+        }
+        case REQUEST:{
           if(local.addr == NULL) return CANCEL;
           ubtrain = (UBTrain*)local.addr;
-          if(ubtrain->count == ubtrain->id_list.size())return CANCEL;
+          if(ubtrain->count == ubtrain->genmo_list.size())return CANCEL;
 
           Tuple* tuple = new Tuple(ubtrain->resulttype);
-          tuple->PutAttribute(0, 
-                       new CcInt(true,ubtrain->id_list[ubtrain->count]));
-          tuple->PutAttribute(1, 
-                       new CcInt(true,ubtrain->line_id_list[ubtrain->count]));
-          tuple->PutAttribute(2,
-                      new CcBool(true,ubtrain->direction_list[ubtrain->count]));
-
-          tuple->PutAttribute(3,
+          tuple->PutAttribute(0,
                        new GenMO(ubtrain->genmo_list[ubtrain->count]));
 
           result.setAddr(tuple);
           ubtrain->count++;
           return YIELD;
-      }
-      case CLOSE:{
+        }
+        case CLOSE:{
           if(local.addr){
             ubtrain = (UBTrain*)local.addr;
             delete ubtrain;
             local.setAddr(Address(0));
           }
           return 0;
-      }
+        }
+    }
+  }else if(GetTM(tm) == TM_BUS){///////////////moving buses 
+      BNNav* bn_nav;
+      switch(message){
+        case OPEN:{
+
+        Relation* r1 = (Relation*)args[1].addr;
+        Relation* r2 = (Relation*)args[2].addr; 
+        BTree* btree = (BTree*)args[3].addr; 
+
+        bn_nav = new BNNav(NULL);
+        bn_nav->resulttype =
+            new TupleType(nl->Second(GetTupleResultType(in_pSupplier)));
+
+        bn_nav->BusToGenMO(r1, r2, btree);
+        local.setAddr(bn_nav);
+        return 0;
+        }
+        case REQUEST:{
+          if(local.addr == NULL) return CANCEL;
+          bn_nav = (BNNav*)local.addr;
+          if(bn_nav->count == bn_nav->genmo_list.size())return CANCEL;
+
+          Tuple* tuple = new Tuple(bn_nav->resulttype);
+          tuple->PutAttribute(0,
+                       new GenMO(bn_nav->genmo_list[bn_nav->count]));
+
+          result.setAddr(tuple);
+          bn_nav->count++;
+          return YIELD;
+        }
+        case CLOSE:{
+          if(local.addr){
+            bn_nav = (BNNav*)local.addr;
+            delete bn_nav;
+            local.setAddr(Address(0));
+          }
+          return 0;
+        }
+    }
+  
+  
   }
   return 0;
 
@@ -16177,6 +16767,19 @@ Operator mapbstopave(
 );
 
 /*
+create the region based outdoor infrastructure 
+
+*/
+Operator thepavement(
+  "thepavement",
+  OpTMThePavementSpec,
+  OpTMThePavementValueMap,
+  Operator::SimpleSelect,
+  OpTMThePavementTypeMap
+);
+
+
+/*
 build connections between bus stops: 1) neighbor connected by pavements; 
 2) the same 2D point but belong to different bus routes 
 
@@ -16219,11 +16822,29 @@ Operator createbgraph(
   OpTMCreateBusGraphTypeMap
 );
 
+ValueMapping OpTMGetAdjNodeBGVM[]=
+{
+  OpTMGetAdjNodeBGIntValueMap,
+  OpTMGetAdjNodeBGBSValueMap
+};
+
+int GetAdjNodeBGSelect(ListExpr args)
+{
+  ListExpr arg2 = nl->Second(args);
+  if(nl->IsAtom(arg2) && nl->IsEqual(arg2, "int"))
+    return 0;
+  if(nl->IsAtom(arg2) && nl->IsEqual(arg2, "busstop"))
+    return 1;
+
+  return -1;
+}
+
 Operator getadjnode_bg(
   "getadjnode_bg", 
   OpTMGetAdjNodeBGSpec,
-  OpTMGetAdjNodeBGValueMap,
-  Operator::SimpleSelect,
+  2,
+  OpTMGetAdjNodeBGVM,
+  GetAdjNodeBGSelect,
   OpTMGetAdjNodeBGTypeMap
 );
 
@@ -16368,12 +16989,12 @@ Operator splitubahn(
 ); 
 
 
-Operator trainstogenmo(
-  "trainstogenmo",
-  OpTMTrainsToGenMOSpec,
-  OpTMTrainsToGenMOValueMap,
+Operator refmo2genmo(
+  "refmo2genmo",
+  OpTMRefMO2GenMOSpec,
+  OpTMRefMO2GenMOValueMap,
   Operator::SimpleSelect,
-  OpTMTrainsToGenMOTypeMap
+  OpTMRefMO2GenMOTypeMap
 ); 
 /////////////////////////////////////////////////////////////////////////////
 /////////////////// auxiliary operators////////////////////////////////////
@@ -16473,13 +17094,22 @@ class TransportationModeAlgebra : public Algebra
     groom.AssociateKind("DATA");
     upoint3d.AssociateKind("DATA"); 
     mpoint3d.AssociateKind("DATA"); 
+    ///////////////////////////////////////////////////////////////////
     //////////////////////public transportation network////////////////
+    ///////////////////////////////////////////////////////////////////
     AddTypeConstructor( &busstop);
     busstop.AssociateKind("DATA"); 
     AddTypeConstructor( &busroute);
     busroute.AssociateKind("DATA"); 
     AddTypeConstructor( &busnetwork); 
+    ///////////////////////////////////////////////////////////
+    //////////////////////  Pavement //////////////////////////
+    ///////////////////////////////////////////////////////////
+    AddTypeConstructor( &pavement); 
+
+    //////////////////////////////////////////////////////////////
     ////////////////////general data type ////////////////////////
+    //////////////////////////////////////////////////////////////
     AddTypeConstructor(&ioref);
     ioref.AssociateKind("DATA"); 
     AddTypeConstructor(&genloc);
@@ -16491,7 +17121,10 @@ class TransportationModeAlgebra : public Algebra
     AddTypeConstructor(&genmo); 
     genmo.AssociateKind("DATA"); 
     AddTypeConstructor(&space); 
+    space.AssociateKind("DATA");
+    /////////////////////////////////////////////////////////////
     ////operators for partition regions//////////////////////////
+    /////////////////////////////////////////////////////////////
     AddOperator(&checksline);
     AddOperator(&modifyboundary);
     AddOperator(&segment2region);
@@ -16510,7 +17143,9 @@ class TransportationModeAlgebra : public Algebra
     AddOperator(&geospath);
     AddOperator(&createdualgraph);
     AddOperator(&nodedualgraph);
+    //////////////////////////////////////////////////////////////////
     ///////////////////visibility graph///////////////////////////////
+    //////////////////////////////////////////////////////////////////
     AddOperator(&getvnode);
     AddOperator(&myinside);
     AddOperator(&decomposetri);
@@ -16538,7 +17173,10 @@ class TransportationModeAlgebra : public Algebra
     AddOperator(&getsections);  
     AddOperator(&geninterestp1);
     AddOperator(&geninterestp2);
+    AddOperator(&thepavement); //create region based outdoor infrastructure 
+    ///////////////////////////////////////////////////////////////////
     ///////////////rotational plane sweep algorithm////////////////////
+    //////////////////////////////////////////////////////////////////
     AddOperator(&getallpoints);
     AddOperator(&rotationsweep);
     AddOperator(&gethole);
@@ -16598,7 +17236,7 @@ class TransportationModeAlgebra : public Algebra
     ///////////////////////////////////////////////////////////////////
     ///////////convert berlin trains to genmo///////////////
     AddOperator(&splitubahn); 
-    AddOperator(&trainstogenmo); 
+    AddOperator(&refmo2genmo); refmo2genmo.SetUsesArgsInTypeMapping();
     ////////////////////////////////////////////////////////////////////
     ////////////////  Indoor Operators   ///////////////////////////////
     ////////////////////////////////////////////////////////////////////
@@ -16646,6 +17284,7 @@ class TransportationModeAlgebra : public Algebra
     /////////non-temporal operators for generic data types////////////////////
     AddOperator(&ref_id); 
     /////////temporal operators for generic data types////////////////////
+    AddOperator(&setref_id);//genmo, genrange, a set of ref ids 
     AddOperator(&genmodeftime); //get the define time of generic moving objects
     AddOperator(&genmonocomponents); //get number of components
     AddOperator(&lowres);  //low resolution representation 
@@ -16654,14 +17293,16 @@ class TransportationModeAlgebra : public Algebra
     /////////////////////////////////////////////////////////////////////
     //////////////////space operators/////////////////////////////////////
     //////////////////////////////////////////////////////////////////////
-    AddOperator(&addinfragraph);
+    AddOperator(&addinfragraph);//add navigation graph for each infrastructure
     AddOperator(&thespace); //create an empty space
-
-                            //add network infrastructure 
+    AddOperator(&putinfra); //add network infrastructure
                             //add pavements infrastructure (graph)
                             //add bus network infrastructure (graph)
                             //add trains network infrastructure
                             //add indoor infrastructure
+
+    //retrieve required infrastructure relation 
+    AddOperator(&getinfra); getinfra.SetUsesArgsInTypeMapping();
 
    //////////////////////////////////////////////////////////////////////////
    ////////////////////// generate generic moving objects///////////////////
