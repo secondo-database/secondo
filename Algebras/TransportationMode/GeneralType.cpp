@@ -1352,9 +1352,39 @@ void GenMObject::GetTMStr(bool v)
 
 }
 
+/*
+get the reference id of generic moving objects 
+
+*/
+void GenMObject::GetIdList(GenMO* genmo)
+{
+    for( int i = 0; i < genmo->GetNoComponents(); i++ ){
+      UGenLoc unit;
+      genmo->Get( i, unit );
+      assert(unit.gloc1.GetOid() == unit.gloc2.GetOid()); 
+      id_list.push_back(unit.gloc1.GetOid()); 
+    }
+}
+
+/*
+get the reference id of genrange objects
+
+*/
+
+void GenMObject::GetIdList(GenRange* gr)
+{
+    for(int i = 0;i < gr->ElemSize();i++){
+      GenRangeElem elem;
+      gr->GetElem(i, elem); 
+      id_list.push_back(elem.oid); 
+    }
+}
+
 //////////////////////////////////////////////////////////////////////
 //////////////////////Global Space////////////////////////////////////
 //////////////////////////////////////////////////////////////////////
+string Space::FreeSpaceTypeInfo = "(rel (tuple ((oid int))))";
+
 ListExpr SpaceProperty()
 {
   return (nl->TwoElemList(
@@ -1385,7 +1415,7 @@ Word InSpace( const ListExpr typeInfo, const ListExpr instance,
   }
 
   ListExpr xIdList = nl->First ( instance );
-  
+
   // Read Id
   if ( !nl->IsAtom ( xIdList ) ||
           nl->AtomType ( xIdList ) != IntType )
@@ -1398,7 +1428,7 @@ Word InSpace( const ListExpr typeInfo, const ListExpr instance,
   }
   
     unsigned int space_id = nl->IntValue(xIdList);
-    Space* sp = new Space(space_id);
+    Space* sp = new Space(true, space_id);
     correct = true; 
     return SetWord(sp);
 
@@ -1412,20 +1442,30 @@ ListExpr OutSpace( ListExpr typeInfo, Word value )
  if(!sp->IsDefined()){
    return nl->SymbolAtom("undef");
  }
+ ListExpr space_list = nl->TwoElemList(nl->StringAtom("SpaceId:"),
+                        nl->IntAtom(sp->GetSpaceId())); 
 
-  if(sp->GetNetworkId() > 0){
-      ListExpr list1 = nl->TwoElemList(nl->StringAtom("SpaceId:"), 
-                             nl->IntAtom(sp->GetSpaceId()));
-      ListExpr list2 = nl->TwoElemList(nl->StringAtom("NetworkId:"), 
-                             nl->IntAtom(sp->GetNetworkId()));
-    
-      return nl->TwoElemList(list1,list2); 
-
-  }else{  //free space oid = 0 
-          return nl->TwoElemList(nl->StringAtom("SpaceId:"),
-                                 nl->IntAtom(sp->GetSpaceId()));
-  }
-
+ ListExpr infra_list = nl->TheEmptyList();
+ bool bFirst = true;
+ ListExpr xNext = nl->TheEmptyList();
+ ListExpr xLast = nl->TheEmptyList();
+ for(int i = 0;i < sp->Size();i++){
+  InfraRef inf_ref;
+  sp->Get(i, inf_ref); 
+  string str = GetSymbolStr(inf_ref.infra_type);
+  ListExpr list1 = nl->OneElemList(nl->StringAtom(str));
+  ListExpr list2 = nl->TwoElemList(nl->StringAtom("InfraId:"),
+                        nl->IntAtom(inf_ref.infra_id));
+  xNext = nl->TwoElemList(list1, list2);
+  if(bFirst){
+      infra_list = nl->OneElemList(xNext);
+      xLast = infra_list;
+      bFirst = false;
+  }else
+    xLast = nl->Append(xLast,xNext);
+ }
+ 
+ return nl->TwoElemList(space_list, infra_list);
 }
 
 
@@ -1445,7 +1485,7 @@ int SizeOfSpace()
 Word CreateSpace(const ListExpr typeInfo)
 {
 // cout<<"CreateSpace()"<<endl;
-  return SetWord (new Space());
+  return SetWord (new Space(false));
 }
 
 
@@ -1472,52 +1512,37 @@ Word CloneSpace( const ListExpr typeInfo, const Word& w )
   return SetWord(Address(0));
 }
 
-bool SaveSpace(SmiRecord& valueRecord, size_t& offset, 
-               const ListExpr typeInfo, Word& value)
+
+Space::Space(const Space& sp):Attribute(sp.IsDefined()), infra_list(0)
 {
-  Space* sp = (Space*)value.addr;
-  return sp->Save(valueRecord, offset, typeInfo); 
+  if(sp.IsDefined()){
+    def = sp.def;
+    space_id = sp.space_id; 
+    for(int i = 0;i < sp.Size();i++){
+      InfraRef inf_ref; 
+      sp.Get(i, inf_ref); 
+      infra_list.Append(inf_ref);
+    }
+  }
+
 }
 
-bool OpenSpace(SmiRecord& valueRecord, size_t& offset, 
-               const ListExpr typeInfo, Word& value)
+
+Space& Space::operator=(const Space& sp)
 {
-  value.addr = Space::Open(valueRecord, offset, typeInfo);
-  return value.addr != NULL; 
+  SetDefined(sp.IsDefined());
+  if(def){
+    space_id = sp.space_id;
+    for(int i = 0;i < sp.Size();i++){
+      InfraRef inf_ref; 
+      sp.Get(i, inf_ref); 
+      infra_list.Append(inf_ref);
+    }
+  }
+  return *this; 
 }
 
 
-Space::Space():
-def(false), space_id(0), network_id(0)
-{
- 
-}
-
-Space::Space(int id):
-def(true), space_id(id), network_id(0)
-{
-  if(space_id > 0) def = true;
-  else
-    def = false; 
-//  cout<<"space_id "<<space_id<<" def "<<def<<endl; 
-}
-
-Space::Space(SmiRecord& valueRecord, size_t& offset, 
-                     const ListExpr typeInfo):
-def(false), space_id(0), network_id(0)
-{
-//  cout<<"Space::Open()"<<endl; 
-  
-  valueRecord.Read(&def, sizeof(bool), offset);
-  offset += sizeof(bool);
-
-  valueRecord.Read(&space_id, sizeof(int), offset);
-  offset += sizeof(int);
-
-  valueRecord.Read(&network_id, sizeof(int), offset);
-  offset += sizeof(int);
-
-}
 Space::~Space()
 {
 
@@ -1533,25 +1558,174 @@ void Space::SetId(int id)
 
 }
 
-bool Space::Save(SmiRecord& valueRecord, size_t& offset, 
-                 const ListExpr typeInfo)
+
+/*
+get infrastructure ref representation 
+
+*/
+void Space::Get(int i, InfraRef& inf_ref) const 
 {
-//  cout<<"Space::Save()"<<endl; 
-
-  valueRecord.Write(&def, sizeof(bool), offset); 
-  offset += sizeof(bool); 
-
-  valueRecord.Write(&space_id, sizeof(int), offset); 
-  offset += sizeof(int); 
-
-  valueRecord.Write(&network_id, sizeof(int), offset); 
-  offset += sizeof(int); 
-
-  return true; 
+  assert(0 <= i && i < infra_list.Size());
+  infra_list.Get(i, inf_ref);
 }
 
-Space* Space::Open(SmiRecord& valueRecord, size_t& offset, 
-                 const ListExpr typeInfo)
+void Space::Add(InfraRef& inf_ref)
 {
-    return new Space(valueRecord, offset, typeInfo); 
+  infra_list.Append(inf_ref); 
 }
+
+/*
+add network infrastructure to the space 
+
+*/
+void Space::AddRoadNetwork(Network* n)
+{
+  InfraRef inf_ref; 
+  if(!n->IsDefined()){
+    cout<<"road network is not defined"<<endl;
+    return; 
+  }
+  inf_ref.infra_id = n->GetId();
+  inf_ref.infra_type = GetSymbol("LINE"); 
+  int min_id = numeric_limits<int>::max();
+  int max_id = numeric_limits<int>::min();
+  Relation* routes_rel = n->GetRoutes();
+  for(int i = 1;i <= routes_rel->GetNoTuples();i++){
+    Tuple* route_tuple = routes_rel->GetTuple(i, false);
+    int rid = ((CcInt*)route_tuple->GetAttribute(ROUTE_ID))->GetIntval(); 
+    if(rid < min_id) min_id = rid;
+    if(rid > max_id) max_id = rid; 
+    route_tuple->DeleteIfAllowed(); 
+  }
+  inf_ref.ref_id_low = min_id;
+  inf_ref.ref_id_high = max_id; 
+  if(CheckExist(inf_ref) == false){
+      inf_ref.Print(); 
+      Add(inf_ref); 
+  }else
+    cout<<"this infrastructure exists already"<<endl; 
+}
+
+/*
+check whether the infrastructure has been added already 
+
+*/
+bool Space::CheckExist(InfraRef& inf_ref)
+{
+  for(int i = 0;i < infra_list.Size();i++){
+    InfraRef elem;
+    infra_list.Get(i, elem); 
+    if(elem.infra_type == inf_ref.infra_type && 
+       elem.infra_id == inf_ref.infra_id)return true; 
+  }
+  return false; 
+}
+
+/*
+get the required infrastructure relation 
+
+*/
+Relation* Space::GetInfra(string type)
+{
+  Relation* result = NULL;
+  int infra_type = GetSymbol(type);
+
+  if(infra_type == IF_LINE){ //////////road network 
+      Network* rn = LoadRoutes(IF_LINE);
+      if(rn != NULL){ 
+          result = rn->GetRoutes()->Clone();
+          CloseRoadNetwork(rn);
+      }else{
+          cout<<"road network does exist "<<endl; 
+          ListExpr xTypeInfo;
+          nl->ReadFromString(Network::routesTypeInfo, xTypeInfo);
+          ListExpr xNumType = 
+                SecondoSystem::GetCatalog()->NumericType(xTypeInfo);
+          result = new Relation(xNumType, true);
+      }
+   }else if(infra_type == IF_FREESPACE){//////////free space 
+       ListExpr xTypeInfo;
+       nl->ReadFromString(FreeSpaceTypeInfo, xTypeInfo);
+       ListExpr xNumType = 
+                SecondoSystem::GetCatalog()->NumericType(xTypeInfo);
+       result = new Relation(xNumType, true);
+   }else{
+        cout<<"wrong type or does not exist"<<endl;
+   }
+  if(result == NULL){/////////returns an empty relation 
+      ListExpr xTypeInfo;
+      nl->ReadFromString(FreeSpaceTypeInfo, xTypeInfo);
+      ListExpr xNumType = SecondoSystem::GetCatalog()->NumericType(xTypeInfo);
+      result = new Relation(xNumType, true);
+  }
+  return result; 
+}
+
+/*
+Load the routes relation 
+
+*/
+Network* Space:: LoadRoutes(int type)
+{
+  InfraRef rn_ref; 
+  bool found = false; 
+  for(int i = 0;i < infra_list.Size();i++){
+    InfraRef elem;
+    infra_list.Get(i, elem); 
+    if(elem.infra_type == type){
+       rn_ref = elem; 
+       found = true;
+       break; 
+    }
+  }
+  if(found){
+      ListExpr xObjectList = SecondoSystem::GetCatalog()->ListObjects();
+      xObjectList = nl->Rest(xObjectList);
+      while(!nl->IsEmpty(xObjectList)){
+          // Next element in list
+          ListExpr xCurrent = nl->First(xObjectList);
+          xObjectList = nl->Rest(xObjectList);
+          // Type of object is at fourth position in list
+          ListExpr xObjectType = nl->First(nl->Fourth(xCurrent));
+          if(nl->IsAtom(xObjectType) &&
+              nl->SymbolValue(xObjectType) == "network"){
+            // Get name of the bus graph 
+            ListExpr xObjectName = nl->Second(xCurrent);
+            string strObjectName = nl->SymbolValue(xObjectName);
+
+            // Load object to find out the id of the network. Normally their
+            // won't be to much networks in one database giving us a good
+            // chance to load only the wanted network.
+            Word xValue;
+            bool bDefined;
+            bool bOk = SecondoSystem::GetCatalog()->GetObject(strObjectName,
+                                                        xValue,
+                                                        bDefined);
+            if(!bDefined || !bOk){
+              // Undefined
+              continue;
+            }
+            Network* rn = (Network*)xValue.addr;
+            if(rn->GetId() == rn_ref.infra_id){
+              // This is the bus graph we have been looking for
+              return rn;
+            }
+          }
+      }
+  }
+    return NULL;
+}
+
+/*
+close the bus graph 
+
+*/
+void Space::CloseRoadNetwork(Network* rn)
+{
+  if(rn == NULL) return; 
+  Word xValue;
+  xValue.addr = rn;
+  SecondoSystem::GetCatalog()->CloseObject(nl->SymbolAtom( "network" ),
+                                           xValue);
+}
+

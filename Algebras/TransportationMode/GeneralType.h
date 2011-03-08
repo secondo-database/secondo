@@ -106,7 +106,11 @@ inline string GetTMStr(int tm)
 symbols for data type. to make it more readable, I use string insteand of enum
 
 */ 
-const string symbol_type[] = {"MPPTN", "GROOM", "REGION", "LINE", "FREESPACE"};
+enum InfraSymbol{IF_BUSSTOP = 0, IF_BUSROUTE, IF_MPPTN,
+IF_GROOM, IF_REGION, IF_LINE, IF_FREESPACE}; 
+
+const string symbol_type[] = 
+{"BUSSTOP", "BUSROUTE", "MPPTN", "GROOM", "REGION", "LINE", "FREESPACE"};
 
 inline int GetSymbol(string s)
 {
@@ -122,8 +126,8 @@ inline string GetSymbolStr(int symbol)
 {
 //  int symbol_size = sizeof(symbol_type)/sizeof(symbol_type[0]);
   int symbol_size = ARR_SIZE(symbol_type);
-  assert(0 <= symbol && symbol < symbol_size);
-  return symbol_type[symbol];
+  if(0 <= symbol && symbol < symbol_size) return symbol_type[symbol];
+  else return "none"; 
 }
 /*
 reference data type (oid, symbol), oid = 0 is for free space 
@@ -161,11 +165,14 @@ class IORef:public Attribute{
     void SetValue(unsigned int o, string s)
     {
       oid = o;
-      label = GetSymbol(s); 
-      if(label >= 0)
+      if(GetSymbol(s) >= 0){
+        label = GetSymbol(s);
         SetDefined(true);
-      else
+      }  
+      else{
+        cout<<"invalid symbol"<<endl;
         SetDefined(false);
+      }
 //      cout<<"oid "<<oid <<" label "<<label<<endl; 
     }
   inline size_t Sizeof() const{return sizeof(*this);}
@@ -678,42 +685,97 @@ struct GenMObject{
   TupleType* resulttype; 
   vector<int> tm_list; 
   vector<string> tm_str_list; 
+  vector<int> id_list; 
+  
   GenMObject(){ count = 0; resulttype = NULL;} 
   ~GenMObject(){if(resulttype != NULL) delete resulttype;}
   void GetTM(GenMO* mo); 
   void GetTMStr(bool v);
+  void GetIdList(GenMO*);
+  void GetIdList(GenRange* gr); 
 }; 
 
 
 //////////////////////////////////////////////////////////////////////
 ////////////////// Space  ////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////
-class Space{
+/*
+ref representation for each infrastructure 
+
+*/
+struct InfraRef{
+  int infra_id; 
+  int infra_type; 
+  int ref_id_low;
+  int ref_id_high; 
+  InfraRef(){}
+  InfraRef(int id, int t):infra_id(id), infra_type(t), 
+                          ref_id_low(0), ref_id_high(0){}
+  InfraRef(const InfraRef& iref):infra_id(iref.infra_id), 
+  infra_type(iref.infra_type), ref_id_low(iref.ref_id_low),
+  ref_id_high(iref.ref_id_high){}
+  void SetIdRange(int l, int h)
+  {
+    assert(l >= 0 && l < h);
+    ref_id_low = l;
+    ref_id_high = h;
+  }
+  InfraRef& operator=(const InfraRef& iref)
+  {
+    infra_id = iref.infra_id;
+    infra_type = iref.infra_type;
+    ref_id_low = iref.ref_id_low;
+    ref_id_high = iref.ref_id_high;
+    return *this; 
+  }
+  void Print()
+  {
+    cout<<"ref id "<<infra_id<<" infra "<<GetSymbolStr(infra_type)
+        <<" low refid "<<ref_id_low<<" high refid "<<ref_id_high<<endl; 
+  }
+}; 
+
+class Space:public Attribute{
   public:
-  Space();
-  Space(int id);
-  Space(SmiRecord& valueRecord, size_t& offset, 
-                     const ListExpr typeInfo);
+  static string FreeSpaceTypeInfo; 
+  
+  Space():Attribute(){}
+  Space(const Space& sp);
+  Space(bool d, int id = 0):Attribute(d), def(true), 
+                            space_id(id),infra_list(0){}
+
+  Space& operator=(const Space& sp); 
   ~Space();
   void SetId(int id);
   static void* Cast(void* addr){return new (addr)Space();}
-  bool Save(SmiRecord& valueRecord, size_t& offset, const ListExpr typeInfo);
-  static Space* Open(SmiRecord& valueRecord, size_t& offset, 
-                     const ListExpr typeInfo); 
-  bool IsDefined(){return def;}
+  bool IsDefined() const{return def;}
   void SetDefined(bool b){def = b;}
-  int GetNetworkId() { return network_id;}
   int GetSpaceId(){return space_id;}
+  
+  inline size_t Sizeof() const{return sizeof(*this);}
+  int Compare(const Attribute* arg) const{return 0;}
+  inline bool Adjacent(const Attribute* arg)const{return false;}
+  Space* Clone() const {return new Space(*this);}
+  size_t HashValue() const{return (size_t)0;}
+  void CopyFrom(const Attribute* right){*this = *(const Space*)right;}
+  
+  /////////////very important two functions////////////////////
+  inline int NumOfFLOBs() const { return 1;}
+  inline Flob* GetFLOB(const int i) { return &infra_list;}
+
+  inline int Size() const {return infra_list.Size();}
+  void Get(int i, InfraRef& inf_ref) const;
+  void Add(InfraRef& inf_ref);
+  void AddRoadNetwork(Network* n);
+  bool CheckExist(InfraRef&  inf_ref); 
+  Relation* GetInfra(string type);
+  Network* LoadRoutes(int type); 
+  void CloseRoadNetwork(Network* rn);
+
   private:
     bool def; 
     int space_id; 
-    int network_id;
-    
-//    bool pave; 
-//    Relation* pave_rel;//pavements relation 
-//    BTree* btree_pave;//btree on pavements
-//    R_Tree<2, TupleId>* rtree_pave; //rtree on pavements 
-
+    DbArray<InfraRef> infra_list; 
 };
 ListExpr SpaceProperty(); 
 bool CheckSpace( ListExpr type, ListExpr& errorInfo );
@@ -722,13 +784,11 @@ Word CloneSpace( const ListExpr typeInfo, const Word& w );
 void CloseSpace( const ListExpr typeInfo, Word& w ); 
 void DeleteSpace(const ListExpr typeInfo, Word& w); 
 Word CreateSpace(const ListExpr typeInfo); 
-bool SaveSpace(SmiRecord& valueRecord, size_t& offset, 
-               const ListExpr typeInfo, Word& value);
-bool OpenSpace(SmiRecord& valueRecord, size_t& offset, 
-               const ListExpr typeInfo, Word& value);
+
 Word InSpace( const ListExpr typeInfo, const ListExpr instance,
        const int errorPos, ListExpr& errorInfo, bool& correct ); 
 ListExpr OutSpace( ListExpr typeInfo, Word value );
+
 
 //////////////////////////////////////////////////////////////////////
 /////////////////////////////random number generator//////////////////
