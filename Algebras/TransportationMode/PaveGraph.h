@@ -158,6 +158,11 @@ struct WPath_elem:public Path_elem{
 };
 
 struct RPoint;
+struct MyPoint; 
+struct MySegDist; 
+struct MyHalfSegment; 
+struct SpacePartition; 
+
 struct CompTriangle{
   Region* reg;
   vector<Region> triangles;
@@ -312,7 +317,7 @@ public:
     static DualGraph* Open(SmiRecord& valueRecord,size_t& offset,
                           const ListExpr typeInfo);
     //////////////////////////////////////////////////////////////////
-
+    int min_tri_oid_1; //smaller than the minimum tri oid (minoid - 1)
 
 };
 
@@ -624,11 +629,12 @@ inline void Modify_Point_3(Point& p)
     p.Set(x,y);
 }
 
-struct MHSNode{
-  MyHalfSegment mhs;
-  MHSNode* next;
-  MHSNode(MyHalfSegment hs, MHSNode* pointer):mhs(hs),next(pointer){}
-};
+// struct MHSNode{
+//   MyHalfSegment mhs;
+//   MHSNode* next;
+//   MHSNode(MyHalfSegment hs, MHSNode* pointer):mhs(hs),next(pointer){}
+// };
+struct MHSNode; 
 
 struct Hole{
   Hole(char* input):in(input){count = 0;resulttype=NULL;}
@@ -871,12 +877,21 @@ public:
   bool IsVGInit(){return vg_init;}
   unsigned int GetDGId(){return dg_id;}
   unsigned int GetVGId(){return vg_id;}
+  Relation* GetPaveRel();
+  void SetDualGraphId(int id);
+  void SetVisualGraphId(int id);
+  DualGraph* GetDualGraph();
+  void CloseDualGraph(DualGraph* dg);
+  
+  VisualGraph* GetVisualGraph();
+  void CloseVisualGraph(VisualGraph* dg);
   
   bool Save(SmiRecord& valueRecord, size_t& offset, const ListExpr typeInfo);
   static Pavement* Open(SmiRecord& valueRecord, size_t& offset, 
                      const ListExpr typeInfo);
 
   static void* Cast(void* addr);
+  
   private:
     bool def; 
     unsigned int pave_id;
@@ -884,6 +899,8 @@ public:
     unsigned int dg_id; 
     bool vg_init; 
     unsigned int vg_id; 
+
+    Relation* pave_rel; 
 
 };
 ListExpr PavementProperty();

@@ -41,6 +41,7 @@ creating the graph model for walk planning.
 #include "PaveGraph.h"
 #include "GeneralType.h"
 #include "Indoor.h"
+#include "Partition.h"
 
 
 /*
@@ -3065,8 +3066,11 @@ const ListExpr in_xTypeInfo)
   /********************Save graph id ****************************/
   in_xValueRecord.Write(&g_id,sizeof(int),inout_iOffset);
   inout_iOffset += sizeof(int);
-
-
+ 
+  ////////////minimum oid - 1/////////////////////////////////////
+  in_xValueRecord.Write(&min_tri_oid_1,sizeof(int),inout_iOffset);
+  inout_iOffset += sizeof(int);
+  
   ListExpr xType;
   ListExpr xNumericType;
   /************************save node****************************/
@@ -3150,7 +3154,10 @@ const ListExpr in_xTypeInfo)
   in_xValueRecord.Read(&g_id,sizeof(int),inout_iOffset);
   inout_iOffset += sizeof(int);
 
-
+   /***********************minimum oid -1********************************/
+  in_xValueRecord.Read(&min_tri_oid_1,sizeof(int),inout_iOffset);
+  inout_iOffset += sizeof(int);
+  
   ListExpr xType;
   ListExpr xNumericType;
   /***********************Open relation for node*********************/
@@ -3244,18 +3251,37 @@ void DualGraph::Load(int id, Relation* r1, Relation* r2)
   assert(QueryExecuted);
   BTree* btree_node_oid2 = (BTree*)xResult.addr;
 
-
+  ////////////////////////////////////////////////////////////////////////
+  /////////////////get minimum triangle oid///////////////////////////////
+  ////////////////////////////////////////////////////////////////////////
+  int min_tri_oid = numeric_limits<int>::max(); 
+  for(int i = 1;i <= node_rel->GetNoTuples();i++){
+    Tuple* tri_tuple = node_rel->GetTuple(i, false);
+    int tri_oid = ((CcInt*)tri_tuple->GetAttribute(OID))->GetIntval();
+    if(tri_oid < min_tri_oid) min_tri_oid = tri_oid; 
+    tri_tuple->DeleteIfAllowed(); 
+  }
+//  cout<<"min tri oid "<<min_tri_oid<<endl; 
+  min_tri_oid--; 
+  min_tri_oid_1 = min_tri_oid; 
+  assert(min_tri_oid_1 >= 0); 
 //  cout<<"b-tree on edge is finished....."<<endl;
 
   for(int i = 1;i <= node_rel->GetNoTuples();i++){
-    CcInt* nodeid = new CcInt(true, i);
+    Tuple* tri_tuple = node_rel->GetTuple(i, false);
+    int tri_oid = ((CcInt*)tri_tuple->GetAttribute(OID))->GetIntval();
+    tri_tuple->DeleteIfAllowed(); 
+
+    CcInt* nodeid = new CcInt(true, tri_oid);
+
     BTreeIterator* btree_iter1 = btree_node_oid1->ExactMatch(nodeid);
     int start = adj_list.Size();
 //    cout<<"start "<<start<<endl;
     while(btree_iter1->Next()){
       Tuple* edge_tuple = edge_rel->GetTuple(btree_iter1->GetId(), false);
       int oid = ((CcInt*)edge_tuple->GetAttribute(OIDSECOND))->GetIntval();
-      adj_list.Append(oid);
+//      adj_list.Append(oid);
+      adj_list.Append(oid - min_tri_oid_1);//actually, it is node tuple id >= 1
       edge_tuple->DeleteIfAllowed();
     }
     delete btree_iter1;
@@ -3264,13 +3290,14 @@ void DualGraph::Load(int id, Relation* r1, Relation* r2)
     while(btree_iter2->Next()){
       Tuple* edge_tuple = edge_rel->GetTuple(btree_iter2->GetId(), false);
       int oid = ((CcInt*)edge_tuple->GetAttribute(OIDFIRST))->GetIntval();
-      adj_list.Append(oid);
+//      adj_list.Append(oid);
+      adj_list.Append(oid - min_tri_oid_1);//actually, it is node tuple id >= 1
       edge_tuple->DeleteIfAllowed();
     }
     delete btree_iter2;
     int end = adj_list.Size();
     entry_adj_list.Append(ListEntry(start, end));
-//    cout<<"end "<<end<<endl;
+
     delete nodeid;
   }
 
@@ -3359,6 +3386,9 @@ void Walk_SP::WalkShortestPath(Line* res)
 
 //  cout<<"tri_id1 "<<oid1<<" tri_id2 "<<oid2<<endl;
 //  cout<<"loc1 "<<loc1<<" loc2 "<<loc2<<endl;
+  oid1 -= dg->min_tri_oid_1;
+  oid2 -= dg->min_tri_oid_1; 
+
   int no_node_graph = dg->No_Of_Node();
   if(oid1 < 1 || oid1 > no_node_graph){
     cout<<"loc1 does not exist"<<endl;
@@ -3461,10 +3491,11 @@ void Walk_SP::WalkShortestPath(Line* res)
   while(path_queue.empty() == false){
         WPath_elem top = path_queue.top();
         path_queue.pop();
-//        top.Print();
+//         cout<<"top elem "<<endl; 
+//         top.Print();
 
         if(AlmostEqual(top.loc, loc2)){
-          cout<<"find the path"<<endl;
+//          cout<<"find the path"<<endl;
           find = true;
           dest = top;
           break;
@@ -3493,6 +3524,8 @@ void Walk_SP::WalkShortestPath(Line* res)
             loc_tuple->DeleteIfAllowed();
 
             mark_flag[top.tri_index - 1] = true;
+//             cout<<"neighbor "<<endl; 
+//             expand_path[expand_path.size() - 1].Print(); 
           }
         }
 
@@ -3524,32 +3557,6 @@ void Walk_SP::WalkShortestPath(Line* res)
   delete vg2;
   /////////////construct path///////////////////////////////////////////
   double len = 0.0;
-/*  if(find){
-    while(dest.prev_index != -1){
-      Point p1 = dest.loc;
-      int oid1 = dest.tri_index;
-      dest = expand_path[dest.prev_index];
-      Point p2 = dest.loc;
-      int oid2 = dest.tri_index;
-      /////////////////////////////////////////////////////
-      Line* l =  new Line(0);
-      l->StartBulkLoad();
-      HalfSegment hs;
-      hs.Set(true, p1, p2);
-      hs.attr.edgeno = 0;
-      *l += hs;
-      hs.SetLeftDomPoint(!hs.IsLeftDomPoint());
-      *l += hs;
-      l->EndBulkLoad();
-      path.push_back(*l);
-      len += l->Length();
-      delete l;
-      oids1.push_back(oid1); //vertex id 
-      oids2.push_back(oid2); //vertex id 
-      /////////////////////////////////////////////////////
-    }
-  }*/
-
   if(find){
     res->StartBulkLoad();
     while(dest.prev_index != -1){
@@ -3594,6 +3601,9 @@ void Walk_SP::TestWalkShortestPath(int tid1, int tid2)
 
 //  cout<<"tri_id1 "<<oid1<<" tri_id2 "<<oid2<<endl;
 //  cout<<"loc1 "<<loc1<<" loc2 "<<loc2<<endl;
+  oid1 -= dg->min_tri_oid_1;
+  oid2 -= dg->min_tri_oid_1; 
+
   int no_node_graph = dg->No_Of_Node();
   if(oid1 < 1 || oid1 > no_node_graph){
     cout<<"loc1 does not exist"<<endl;
@@ -3697,13 +3707,13 @@ void Walk_SP::TestWalkShortestPath(int tid1, int tid2)
 //        top.Print();
 
         if(AlmostEqual(top.loc, loc2)){
-          cout<<"find the path"<<endl;
+//          cout<<"find the path"<<endl;
           find = true;
           dest = top;
           break;
         }
         //do not consider the start point
-        //if it does not equal to the triangle vertex
+        //if it is equal to the triangle vertex
         //its adjacent nodes have been found already and put into the queue
         if(top.tri_index > 0 && mark_flag[top.tri_index - 1] == false){
           vector<int> adj_list;
@@ -4189,7 +4199,9 @@ get all adjacent nodes for a given node. dual graph
 void VGraph::GetAdjNodeDG(int oid)
 {
     vector<int> adj_list;
-    dg->FindAdj(oid, adj_list);
+    assert(dg->min_tri_oid_1 >= 0); 
+    dg->FindAdj(oid - dg->min_tri_oid_1, adj_list);
+//    cout<<" tid "<<oid - dg->min_tri_oid_1<<endl; 
     for(unsigned int i = 0;i < adj_list.size();i++){
 
       Tuple* node_tuple = dg->GetNodeRel()->GetTuple(adj_list[i], false);
@@ -4255,13 +4267,12 @@ void VGraph::GetVNodeOnVertex(int vid, Point* query_p)
       int triangle_id =
           ((CcInt*)ver_tri->GetAttribute(DualGraph::TRIID))->GetIntval();
 
-//      cout<<"triangle_id "<<triangle_id<<endl;
+//       cout<<"tid_start "<<tid_start<<endl; 
+//       cout<<"triangle_id "<<triangle_id<<endl;
       ///////////for debuging///////////////////////
-/*      if(triangle_id != 140581){
-        ver_tri->DeleteIfAllowed();
-        continue;
-      }*/
-
+      assert((triangle_id - dg->min_tri_oid_1) >= 1); 
+      triangle_id = triangle_id - dg->min_tri_oid_1; 
+      assert(triangle_id >= 1 && triangle_id <= rel2->GetNoTuples()); 
       Tuple* tri_tuple = rel2->GetTuple(triangle_id, false);
       int v1 =((CcInt*)tri_tuple->GetAttribute(DualGraph::V1))->GetIntval();
       int v2 =((CcInt*)tri_tuple->GetAttribute(DualGraph::V2))->GetIntval();
@@ -4324,15 +4335,19 @@ create the edge relation for the visibility graph
 */
 void VGraph::GetVGEdge()
 {
+//  cout<<dg->min_tri_oid_1<<endl; 
   for(int i = 1;i <= rel1->GetNoTuples();i++){
-//    for(int i = 1;i <= 5000;i++){
-//      if(i != 1465) continue;
-//      cout<<"i "<<i<<endl;
 
       Tuple* vertex_tuple = rel1->GetTuple(i, false);
       int vid =
           ((CcInt*)vertex_tuple->GetAttribute(VisualGraph::OID))->GetIntval();
       Point* p1 = (Point*)vertex_tuple->GetAttribute(VisualGraph::LOC);
+
+//       if(vid != 1200){
+//         vertex_tuple->DeleteIfAllowed();
+//         continue; 
+//       }
+
       GetVNodeOnVertex(vid, p1);
       for(unsigned int j = 0;j < oids1.size();j++){
           oids2.push_back(vid);
@@ -4795,6 +4810,7 @@ void VGraph::DFTraverse(int tri_id, Clamp& clamp, int pre_id, int type1)
     int v3 =((CcInt*)tri_tuple->GetAttribute(DualGraph::V3))->GetIntval();
     tri_tuple->DeleteIfAllowed();
     Triangle tri1(v1, v2, v3);
+//    cout<<"v1 "<<v1<<"v2 "<<v2<<" v3 "<<v3<<endl; 
 //    cout<<"adj_list size "<<adj_list.size()<<endl;
     for(unsigned int i = 0;i < adj_list.size();i++){
 //      cout<<" adj_list DF "<<adj_list[i]<<" i "<<i<<endl;
@@ -4977,8 +4993,8 @@ find all triangles that contain vertex (vid) and depth first searching
 */
 void VGraph::FindTriContainVertex(int vid, int tri_id, Point* query_p)
 {
-    cout<<"FindTriContainVertex() "<<endl;
-    cout<<"vid "<<vid<<"tri_id "<<tri_id<<endl;
+//    cout<<"FindTriContainVertex() "<<endl;
+//    cout<<"vid "<<vid<<"tri_id "<<tri_id<<endl;
 
     CcInt* vertex_id = new CcInt(true, vid);
     BTreeIterator* btreeiter = btree->ExactMatch(vertex_id);
@@ -4987,7 +5003,7 @@ void VGraph::FindTriContainVertex(int vid, int tri_id, Point* query_p)
       int triangle_id =
           ((CcInt*)ver_tri->GetAttribute(DualGraph::TRIID))->GetIntval();
       if(triangle_id != tri_id){
-        cout<<"triangle_id "<<triangle_id<<endl;
+//        cout<<"triangle_id "<<triangle_id<<endl;
         Tuple* tri_tuple = rel2->GetTuple(triangle_id, false);
         int v1 =((CcInt*)tri_tuple->GetAttribute(DualGraph::V1))->GetIntval();
         int v2 =((CcInt*)tri_tuple->GetAttribute(DualGraph::V2))->GetIntval();
@@ -5093,7 +5109,7 @@ check the triangle with the only given type
 void VGraph::GetVisibleNode2(int tri_id, Point* query_p, int type)
 {
 
-//  cout<<"GetVisibleNode2() "<<"query tri_id "<<tri_id<<endl;
+//cout<<"GetVisibleNode2() "<<"query tri_id "<<tri_id + dg->min_tri_oid_1<<endl;
 
   const double pi = 3.14159;
   const double delta = 0.0001;
@@ -5107,16 +5123,16 @@ void VGraph::GetVisibleNode2(int tri_id, Point* query_p, int type)
   int v3 =((CcInt*)tri_tuple1->GetAttribute(DualGraph::V3))->GetIntval();
   tri_tuple1->DeleteIfAllowed();
   Triangle tri1(v1, v2, v3);
-
+//  cout<<"v1 "<<v1<<" v2 "<<v2<<" v3 "<<v3<<endl; 
   ///////////////////////////////////////////////////////////////////////
   for(unsigned int i = 0;i < adj_list.size();i++){
-//    cout<<"adj_list GVN "<<adj_list[i]<<endl;
+//    cout<<"adj_list GVN "<<adj_list[i] + dg->min_tri_oid_1<<endl;
     Tuple* tri_tuple = rel2->GetTuple(adj_list[i], false);
     int ver1 =((CcInt*)tri_tuple->GetAttribute(DualGraph::V1))->GetIntval();
     int ver2 =((CcInt*)tri_tuple->GetAttribute(DualGraph::V2))->GetIntval();
     int ver3 =((CcInt*)tri_tuple->GetAttribute(DualGraph::V3))->GetIntval();
     tri_tuple->DeleteIfAllowed();
-
+//    cout<<"ver1 "<<ver1<<" ver2 "<<ver2<<" ver3 "<<ver3<<endl; 
     ///////////////////////////////////////////////////////////////////////
     Tuple* loc_tuple1 = rel3->GetTuple(ver1, false);
     Point* p1 = (Point*)loc_tuple1->GetAttribute(VisualGraph::LOC);
@@ -5585,6 +5601,8 @@ void VGraph::GetVNode()
           new Point(*((Point*)query_tuple->GetAttribute(VisualGraph::QLOC2)));
   query_tuple->DeleteIfAllowed();
 
+  query_oid -= dg->min_tri_oid_1; 
+  assert(1 <= query_oid && query_oid <= dg->node_rel->GetNoTuples()); 
   /////////three vertices of the triangle////////////////////////
   Tuple* tri_tuple1 = rel2->GetTuple(query_oid, false);
   int v1 =((CcInt*)tri_tuple1->GetAttribute(DualGraph::V1))->GetIntval();
@@ -5595,6 +5613,9 @@ void VGraph::GetVNode()
   ///if the query_p equals to one of the triangle vertices ///
   if(GetVNode_QV(query_oid, query_p,v1,v2,v3)){
   }else{
+    //////////////////////////////////////////////////////////////////////////
+    ////////three vertices of the triangle that the point is located in///////
+    //////////////////////////////////////////////////////////////////////////
     oids1.push_back(v1);
     oids1.push_back(v2);
     oids1.push_back(v3);
@@ -6521,6 +6542,12 @@ from the input data file, it creates a lot of contours
 collect regions from original data, where each tuple is a halfsegment
 
 */
+struct MHSNode{
+  MyHalfSegment mhs;
+  MHSNode* next;
+  MHSNode(MyHalfSegment hs, MHSNode* pointer):mhs(hs),next(pointer){}
+};
+
 bool RegionCom(const Region& r1, const Region& r2)
 {
   return r1.Area() > r2.Area();
@@ -8617,7 +8644,7 @@ Word InPavement( const ListExpr typeInfo, const ListExpr instance,
     ListExpr second = nl->Second(instance);
 
     if(!nl->IsAtom(first) || nl->AtomType(first) != BoolType){
-      cout<< "pavement(): definition must be bool type"<<endl;
+      cout<< "pavenetwork(): definition must be bool type"<<endl;
       correct = false;
       return SetWord(Address(0));
     }
@@ -8625,7 +8652,7 @@ Word InPavement( const ListExpr typeInfo, const ListExpr instance,
 
 
     if(!nl->IsAtom(second) || nl->AtomType(second) != IntType){
-      cout<< "pavement(): pavement infrastructure id must be int type"<<endl;
+      cout<< "pavenetwork(): pavement infrastructure id must be int type"<<endl;
       correct = false;
       return SetWord(Address(0));
     }
@@ -8700,7 +8727,7 @@ int SizeOfPavement()
 bool CheckPavement( ListExpr type, ListExpr& errorInfo )
 {
 //  cout<<"CheckPavement"<<endl; 
-  return (nl->IsEqual( type, "pavement" ));
+  return (nl->IsEqual( type, "pavenetwork" ));
 }
 
 
@@ -8709,7 +8736,7 @@ string Pavement::PaveTypeInfo =
 
 
 Pavement::Pavement():def(false), pave_id(0), dg_init(false), dg_id(0), 
-vg_init(false), vg_id(0)
+vg_init(false), vg_id(0), pave_rel(NULL)
 {
 
 
@@ -8717,7 +8744,7 @@ vg_init(false), vg_id(0)
 
 
 Pavement::Pavement(bool d, unsigned int i):def(d), pave_id(i),
-dg_init(false), dg_id(0), vg_init(false), vg_id(0)
+dg_init(false), dg_id(0), vg_init(false), vg_id(0), pave_rel(NULL)
 {
 
 
@@ -8726,7 +8753,7 @@ dg_init(false), dg_id(0), vg_init(false), vg_id(0)
 
 Pavement::Pavement(SmiRecord& valueRecord, size_t& offset, 
                    const ListExpr typeInfo):def(false), pave_id(0), 
-dg_init(false), dg_id(0), vg_init(false), vg_id(0)
+dg_init(false), dg_id(0), vg_init(false), vg_id(0), pave_rel(NULL)
 {
 
 
@@ -8748,13 +8775,21 @@ dg_init(false), dg_id(0), vg_init(false), vg_id(0)
   valueRecord.Read(&vg_id, sizeof(int), offset);
   offset += sizeof(int);
 
+  ListExpr xType;
+  ListExpr xNumericType;
+  /***********************Open relation for triangles*********************/
+  nl->ReadFromString(PaveTypeInfo,xType);
+  xNumericType = SecondoSystem::GetCatalog()->NumericType(xType);
+  pave_rel = Relation::Open(valueRecord, offset, xNumericType);
+  if(!pave_rel) {
+   return;
+  }
 
 }
 
 Pavement::~Pavement()
 {
-
-
+  if(pave_rel != NULL) pave_rel->Close(); 
 
 }
 
@@ -8765,12 +8800,27 @@ create the pavement infrastructure by a relation storing all triangles
 void Pavement::Load(unsigned int i, Relation* r)
 {
   if(i < 1){
+    cout<<"invalid id "<<i<<endl; 
     def = false;
     return;
   }
   pave_id = i; 
 
   def = true; 
+  
+  ostringstream xRoutesStream;
+  xRoutesStream << (long)r;
+  string strQuery = "(consume(feed(" + PaveTypeInfo +
+                "(ptr " + xRoutesStream.str() + "))))";
+
+//  cout<<strQuery<<endl; 
+
+  Word xResult;
+  int QueryExecuted = QueryProcessor::ExecuteQuery(strQuery, xResult);
+  assert(QueryExecuted);
+  pave_rel = (Relation*)xResult.addr; 
+  
+//  cout<<pave_rel->GetNoTuples()<<endl; 
 
 }
 
@@ -8798,6 +8848,16 @@ bool Pavement::Save(SmiRecord& valueRecord, size_t& offset,
   valueRecord.Write(&vg_id, sizeof(int), offset); 
   offset += sizeof(int); 
 
+  
+  ListExpr xType;
+  ListExpr xNumericType;
+
+  ////////////////////triangles relation/////////////////////////////
+  nl->ReadFromString(PaveTypeInfo, xType);
+  xNumericType = SecondoSystem::GetCatalog()->NumericType(xType);
+  if(!pave_rel->Save(valueRecord,offset,xNumericType))
+      return false;
+
   return true; 
 }
 
@@ -8811,3 +8871,144 @@ Pavement* Pavement::Open(SmiRecord& valueRecord, size_t& offset,
   return new Pavement(valueRecord, offset, typeInfo); 
 
 }
+
+/*
+set the dual graph id for the pavement 
+
+*/
+void Pavement::SetDualGraphId(int id)
+{
+  dg_id = id;
+  dg_init = true;
+}
+
+
+/*
+set the visual graph id for the pavement 
+
+*/
+void Pavement::SetVisualGraphId(int id)
+{
+  vg_id = id;
+  vg_init = true; 
+}
+
+/*
+load dual graph if it is stored 
+
+*/
+DualGraph* Pavement::GetDualGraph()
+{
+  if(dg_init == false) return NULL;
+  
+  ListExpr xObjectList = SecondoSystem::GetCatalog()->ListObjects();
+  xObjectList = nl->Rest(xObjectList);
+  while(!nl->IsEmpty(xObjectList))
+  {
+    // Next element in list
+    ListExpr xCurrent = nl->First(xObjectList);
+    xObjectList = nl->Rest(xObjectList);
+
+    // Type of object is at fourth position in list
+    ListExpr xObjectType = nl->First(nl->Fourth(xCurrent));
+    if(nl->IsAtom(xObjectType) &&
+       nl->SymbolValue(xObjectType) == "dualgraph"){
+      // Get name of the dual graph 
+      ListExpr xObjectName = nl->Second(xCurrent);
+      string strObjectName = nl->SymbolValue(xObjectName);
+
+      // Load object to find out the id of the dual graph. 
+      Word xValue;
+      bool bDefined;
+      bool bOk = SecondoSystem::GetCatalog()->GetObject(strObjectName,
+                                                        xValue,
+                                                        bDefined);
+      if(!bDefined || !bOk)
+      {
+        // Undefined 
+        continue;
+      }
+      DualGraph* dg = (DualGraph*)xValue.addr;
+      if(dg->g_id == dg_id){
+        // This is the dual graph we have been looking for
+        return dg;
+      }
+    }
+  }
+  return NULL;
+}
+
+void Pavement::CloseDualGraph(DualGraph* dg)
+{
+  if(dg == NULL) return; 
+  Word xValue;
+  xValue.addr = dg;
+  SecondoSystem::GetCatalog()->CloseObject(nl->SymbolAtom( "dualgraph" ),
+                                           xValue);
+}
+
+/*
+load visual graph if it is stored 
+
+*/
+VisualGraph* Pavement::GetVisualGraph()
+{
+  if(vg_init == false) return NULL;
+  
+  ListExpr xObjectList = SecondoSystem::GetCatalog()->ListObjects();
+  xObjectList = nl->Rest(xObjectList);
+  while(!nl->IsEmpty(xObjectList))
+  {
+    // Next element in list
+    ListExpr xCurrent = nl->First(xObjectList);
+    xObjectList = nl->Rest(xObjectList);
+
+    // Type of object is at fourth position in list
+    ListExpr xObjectType = nl->First(nl->Fourth(xCurrent));
+    if(nl->IsAtom(xObjectType) &&
+       nl->SymbolValue(xObjectType) == "visualgraph"){
+      // Get name of the visual graph 
+      ListExpr xObjectName = nl->Second(xCurrent);
+      string strObjectName = nl->SymbolValue(xObjectName);
+
+      // Load object to find out the id of the visual graph. 
+      Word xValue;
+      bool bDefined;
+      bool bOk = SecondoSystem::GetCatalog()->GetObject(strObjectName,
+                                                        xValue,
+                                                        bDefined);
+      if(!bDefined || !bOk)
+      {
+        // Undefined 
+        continue;
+      }
+      VisualGraph* vg = (VisualGraph*)xValue.addr;
+      if(vg->g_id == vg_id){
+        // This is the dual graph we have been looking for
+        return vg;
+      }
+    }
+  }
+  return NULL;
+
+}
+
+
+void Pavement::CloseVisualGraph(VisualGraph* vg)
+{
+  if(vg == NULL) return; 
+  Word xValue;
+  xValue.addr = vg;
+  SecondoSystem::GetCatalog()->CloseObject(nl->SymbolAtom( "visualgraph" ),
+                                           xValue);
+}
+
+Relation* Pavement::GetPaveRel()
+{
+  if(IsDefined()) return pave_rel;
+  else return NULL;
+}
+
+
+
+

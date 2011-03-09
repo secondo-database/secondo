@@ -558,6 +558,10 @@ int locate_endpoint(point_t *v, point_t *vo, int r)
       fprintf(stderr, "Haggu !!!!!\n");
       break;
     }
+
+    cout<<__FILE__<<" "<<__LINE__<<endl; 
+    assert(false);
+    return 0; 
 }
 
 

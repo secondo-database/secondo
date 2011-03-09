@@ -710,6 +710,7 @@ class BusNetwork{
   BusNetwork(SmiRecord& valueRecord, size_t& offset, const ListExpr typeInfo);
 
   ~BusNetwork();
+  
   static string BusStopsTypeInfo;
   static string BusRoutesTypeInfo;
   static string BusStopsInternalTypeInfo;
@@ -754,6 +755,8 @@ class BusNetwork{
     bool graph_init; 
     unsigned int graph_id; 
     double max_bus_speed;//maximum speed of all moving buses (heuristic value)
+    unsigned int min_br_oid;//smallest bus route oid
+    unsigned int min_bt_oid; //smallest bus trip oid 
     
     Relation* stops_rel; //a relation for bus stops
     BTree* btree_bs; //a btree on bus stops

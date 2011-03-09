@@ -57,7 +57,6 @@ Jan, 2011 Jianqiu xu
 #include <fstream>
 #include "GSLAlgebra.h"
 
-
 /*
 technique macro definition 
 
@@ -106,11 +105,12 @@ inline string GetTMStr(int tm)
 symbols for data type. to make it more readable, I use string insteand of enum
 
 */ 
-enum InfraSymbol{IF_BUSSTOP = 0, IF_BUSROUTE, IF_MPPTN,
+enum InfraSymbol{IF_BUSSTOP = 0, IF_BUSROUTE, IF_MPPTN, IF_BUSNETWORK,
 IF_GROOM, IF_REGION, IF_LINE, IF_FREESPACE}; 
 
 const string symbol_type[] = 
-{"BUSSTOP", "BUSROUTE", "MPPTN", "GROOM", "REGION", "LINE", "FREESPACE"};
+{"BUSSTOP", "BUSROUTE", "MPPTN", "BUSNETWORK", "GROOM", 
+"REGION", "LINE", "FREESPACE"};
 
 inline int GetSymbol(string s)
 {
@@ -730,10 +730,14 @@ struct InfraRef{
   }
   void Print()
   {
-    cout<<"ref id "<<infra_id<<" infra "<<GetSymbolStr(infra_type)
+    cout<<"ref id "<<infra_id<<" infra type "<<GetSymbolStr(infra_type)
         <<" low refid "<<ref_id_low<<" high refid "<<ref_id_high<<endl; 
   }
 }; 
+
+class Pavement;
+
+class BusNetwork; 
 
 class Space:public Attribute{
   public:
@@ -769,9 +773,18 @@ class Space:public Attribute{
   void AddRoadNetwork(Network* n);
   bool CheckExist(InfraRef&  inf_ref); 
   Relation* GetInfra(string type);
-  Network* LoadRoutes(int type); 
+  Network* LoadNetwork(int type); 
   void CloseRoadNetwork(Network* rn);
 
+  void AddPavement(Pavement* pn);
+  Pavement* LoadPavement(int type); 
+  void ClosePavement(Pavement* pn);
+  
+  void AddBusNetwork(BusNetwork* bn);
+  
+  BusNetwork* LoadBusNetwork(int type); 
+  void CloseBusNetwork(BusNetwork* bn);
+  
   private:
     bool def; 
     int space_id; 

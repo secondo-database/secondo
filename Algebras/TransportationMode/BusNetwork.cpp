@@ -6147,6 +6147,7 @@ bool CheckBusNetwork( ListExpr type, ListExpr& errorInfo )
 
 BusNetwork::BusNetwork():
 def(false), bn_id(0), graph_init(false), graph_id(0), max_bus_speed(0),
+min_br_oid(0), min_bt_oid(0), 
 stops_rel(NULL), btree_bs(NULL), 
 routes_rel(NULL), btree_br(NULL), btree_bs_uoid(NULL), rtree_bs(NULL),
 btree_br_uoid(NULL), bustrips_rel(NULL)
@@ -6156,6 +6157,7 @@ btree_br_uoid(NULL), bustrips_rel(NULL)
 
 BusNetwork::BusNetwork(bool d, unsigned int i): def(d), bn_id(i), 
 graph_init(false), graph_id(0), max_bus_speed(0),
+min_br_oid(0), min_bt_oid(0), 
 stops_rel(NULL), btree_bs(NULL), routes_rel(NULL), btree_br(NULL),
 btree_bs_uoid(NULL), rtree_bs(NULL), btree_br_uoid(NULL), bustrips_rel(NULL)
 {
@@ -6169,6 +6171,7 @@ read the data from record
 BusNetwork::BusNetwork(SmiRecord& valueRecord, size_t& offset, 
                        const ListExpr typeInfo):
 def(false), bn_id(0), graph_init(false), graph_id(0), max_bus_speed(0),
+min_br_oid(0), min_bt_oid(0), 
 stops_rel(NULL), btree_bs(NULL), 
 routes_rel(NULL), btree_br(NULL), btree_bs_uoid(NULL), rtree_bs(NULL),
 btree_br_uoid(NULL), bustrips_rel(NULL)
@@ -6176,19 +6179,24 @@ btree_br_uoid(NULL), bustrips_rel(NULL)
   valueRecord.Read(&def, sizeof(bool), offset);
   offset += sizeof(bool);
 
-  valueRecord.Read(&bn_id, sizeof(int), offset);
-  offset += sizeof(int);
+  valueRecord.Read(&bn_id, sizeof(unsigned int), offset);
+  offset += sizeof(unsigned int);
 
   valueRecord.Read(&graph_init, sizeof(bool), offset);
   offset += sizeof(bool);
 
-  valueRecord.Read(&graph_id, sizeof(int), offset);
-  offset += sizeof(int);
+  valueRecord.Read(&graph_id, sizeof(unsigned int), offset);
+  offset += sizeof(unsigned int);
 
   valueRecord.Read(&max_bus_speed, sizeof(double), offset);
   offset += sizeof(double);
 
-  
+  valueRecord.Read(&min_br_oid, sizeof(unsigned int), offset);
+  offset += sizeof(unsigned int);
+
+  valueRecord.Read(&min_bt_oid, sizeof(unsigned int), offset);
+  offset += sizeof(unsigned int);
+
   ListExpr xType;
   ListExpr xNumericType;
   /***********************Open relation for busstops*********************/
@@ -6306,17 +6314,23 @@ bool BusNetwork::Save(SmiRecord& valueRecord, size_t& offset,
   valueRecord.Write(&def, sizeof(bool), offset); 
   offset += sizeof(bool); 
 
-  valueRecord.Write(&bn_id, sizeof(int), offset); 
-  offset += sizeof(int); 
+  valueRecord.Write(&bn_id, sizeof(unsigned int), offset); 
+  offset += sizeof(unsigned int); 
 
   valueRecord.Write(&graph_init, sizeof(bool), offset); 
   offset += sizeof(bool); 
 
-  valueRecord.Write(&graph_id, sizeof(int), offset); 
-  offset += sizeof(int); 
+  valueRecord.Write(&graph_id, sizeof(unsigned int), offset); 
+  offset += sizeof(unsigned int); 
 
   valueRecord.Write(&max_bus_speed, sizeof(double), offset);
   offset += sizeof(double); 
+
+  valueRecord.Write(&min_br_oid, sizeof(unsigned int), offset); 
+  offset += sizeof(unsigned int); 
+
+  valueRecord.Write(&min_bt_oid, sizeof(unsigned int), offset); 
+  offset += sizeof(unsigned int); 
 
   ListExpr xType;
   ListExpr xNumericType;
@@ -6472,7 +6486,17 @@ void BusNetwork:: LoadRoutes(Relation* r2)
   assert(QueryExecuted);
   routes_rel = (Relation*)xResult.addr; 
   
-
+  ///////////////////get the minimum bus route oid//////////////////////////
+  int temp_id = numeric_limits<int>::max(); 
+  for(int i = 1;i <= routes_rel->GetNoTuples();i++){
+    Tuple* br_tuple = routes_rel->GetTuple(i, false);
+    int id = ((CcInt*)br_tuple->GetAttribute(BN_BR_OID))->GetIntval();
+    if(id < temp_id) temp_id = id;
+    br_tuple->DeleteIfAllowed(); 
+  }
+  min_br_oid = temp_id; 
+//  cout<<"min br oid "<<min_br_oid<<endl; 
+  
    //////////////////////////////////////////////////////////////////
   //////////////////////btree on bus routes brid/////////////////////
   //////////////////////////////////////////////////////////////////
@@ -6484,9 +6508,8 @@ void BusNetwork:: LoadRoutes(Relation* r2)
   QueryExecuted = QueryProcessor::ExecuteQuery(strQuery,xResult);
   assert(QueryExecuted);
   btree_br = (BTree*)xResult.addr;
-  
-  
-  
+
+
    //////////////////////////////////////////////////////////////////
   //////////////////////btree on bus routes unique oid///////////////
   //////////////////////////////////////////////////////////////////
@@ -6520,12 +6543,14 @@ void BusNetwork:: LoadBuses(Relation* r3)
   assert(QueryExecuted);
   bustrips_rel = (Relation*)xResult.addr; 
 
+  
+  
 //  cout<<"size "<<bustrips_rel->GetNoTuples()<<endl; 
 
  //////////////////////////////////////////////////////////////////////
  //////////////////////set maximum bus speed///////////////////////////
  /////////////////////////////////////////////////////////////////////
- 
+ int temp_id = numeric_limits<int>::max();
  for(int i = 1;i <= bustrips_rel->GetNoTuples();i++){
   Tuple* bus_tuple = bustrips_rel->GetTuple(i, false);
   GenMO* mo = (GenMO*)bus_tuple->GetAttribute(BN_BUSTRIP);
@@ -6547,10 +6572,16 @@ void BusNetwork:: LoadBuses(Relation* r3)
           }
       }
   }
+  int id = ((CcInt*)bus_tuple->GetAttribute(BN_BUS_OID))->GetIntval();
+  if(id < temp_id) temp_id = id; 
+  
   bus_tuple->DeleteIfAllowed();
 
  }
- cout<<"max bus speed "<<max_bus_speed*60*60/1000.0<<"km/h "<<endl; 
+ min_bt_oid = temp_id; 
+ cout<<"max bus speed "<<max_bus_speed*60*60/1000.0<<"km/h "<<endl;
+// cout<<"min bus trip oid "<<min_bt_oid<<endl; 
+
 }
 
 /*
@@ -6634,9 +6665,7 @@ BusGraph* BusNetwork::GetBusGraph()
       ListExpr xObjectName = nl->Second(xCurrent);
       string strObjectName = nl->SymbolValue(xObjectName);
 
-      // Load object to find out the id of the network. Normally their
-      // won't be to much networks in one database giving us a good
-      // chance to load only the wanted network.
+      // Load object to find out the id of the network. 
       Word xValue;
       bool bDefined;
       bool bOk = SecondoSystem::GetCatalog()->GetObject(strObjectName,
@@ -7283,6 +7312,9 @@ bool BN::FindNeighbor(int tid1, int tid2, DualGraph* dg, VisualGraph* vg,
   int no_node_graph = dg->No_Of_Node();
   int oid1 = gloc1.GetOid();
   int oid2 = gloc2.GetOid(); 
+  oid1 -= dg->min_tri_oid_1;
+  oid2 -= dg->min_tri_oid_1; 
+  
   if(oid1 < 1 || oid1 > no_node_graph){
     cout<<"loc1 does not exist"<<endl;
     return false;

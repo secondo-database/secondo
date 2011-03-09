@@ -2557,8 +2557,8 @@ for the infrastructure region based outdoor
 
 */
 
-TypeConstructor pavement(
-    "pavement",
+TypeConstructor pavenetwork(
+    "pavenetwork",
      PavementProperty,
      OutPavement,      InPavement,     //Out and In functions
      0,              0,            //SaveTo and RestoreFrom List functions
@@ -2803,6 +2803,10 @@ int RefIdBusRouteValueMap(Word* args, Word& result, int message,
   return 0;
 }
 
+/*
+get bus network infrastructure id
+
+*/
 int RefIdBusNetworkValueMap(Word* args, Word& result, int message,
                     Word& local, Supplier s)
 {
@@ -2818,6 +2822,39 @@ int RefIdBusNetworkValueMap(Word* args, Word& result, int message,
   else
       cout<<"bus graph not initialized"<<endl; 
 
+  return 0;
+}
+
+/*
+get pavement infrastructure id
+
+*/
+int RefIdPavementValueMap(Word* args, Word& result, int message,
+                    Word& local, Supplier s)
+{
+  Pavement* pn = (Pavement*)args[0].addr;
+  result = qp->ResultStorage(s);
+  if(pn->IsDefined() && pn->GetId() > 0){////0 is for free space 
+      ((CcInt*)result.addr)->Set(true, pn->GetId());
+  }else
+    ((CcInt*)result.addr)->Set(false, 0);
+
+  return 0;
+}
+
+/*
+get road network infrastructure id 
+
+*/
+int RefIdRoadNetworkValueMap(Word* args, Word& result, int message,
+                    Word& local, Supplier s)
+{
+  Network* rn = (Network*)args[0].addr;
+  result = qp->ResultStorage(s);
+  if(rn->IsDefined() && rn->GetId() > 0){////0 is for free space 
+      ((CcInt*)result.addr)->Set(true, rn->GetId());
+  }else
+    ((CcInt*)result.addr)->Set(false, 0);
   return 0;
 }
 
@@ -3141,6 +3178,81 @@ int AddBusNetworkGraphValueMap(Word* args, Word& result, int message,
   
 }
 
+
+/*
+add dual graph to pavement infrastructure 
+
+*/
+int AddPaveDualGraphValueMap(Word* args, Word& result, int message,
+                    Word& local, Supplier s)
+{
+  static int flag = 0;
+  switch(message){
+    case OPEN:
+      return 0;
+    case REQUEST:
+          if(flag == 0){
+            Pavement* pn = (Pavement*)args[0].addr;
+            DualGraph* dg = (DualGraph*)args[1].addr; 
+            pn->SetDualGraphId(dg->g_id);
+            Tuple* t = new Tuple(nl->Second(GetTupleResultType(s)));
+            t->PutAttribute(0, new CcInt(true, pn->GetId()));
+            t->PutAttribute(1, new CcInt(true, pn->GetDGId()));
+            result.setAddr(t);
+            flag = 1;
+            return YIELD;
+          }else{
+            flag = 0;
+            return CANCEL;
+          } 
+    case CLOSE:
+
+        qp->SetModified(qp->GetSon(s,0));
+        local.setAddr(Address(0));
+        return 0;
+  }
+  
+  return 0;
+  
+}
+
+/*
+add visibility graph to pavement infrastructure 
+
+*/
+int AddPaveVisualGraphValueMap(Word* args, Word& result, int message,
+                    Word& local, Supplier s)
+{
+  static int flag = 0;
+  switch(message){
+    case OPEN:
+      return 0;
+    case REQUEST:
+          if(flag == 0){
+            Pavement* pn = (Pavement*)args[0].addr;
+            VisualGraph* vg = (VisualGraph*)args[1].addr; 
+            pn->SetVisualGraphId(vg->g_id);
+            Tuple* t = new Tuple(nl->Second(GetTupleResultType(s)));
+            t->PutAttribute(0, new CcInt(true, pn->GetId()));
+            t->PutAttribute(1, new CcInt(true, pn->GetVGId()));
+            result.setAddr(t);
+            flag = 1;
+            return YIELD;
+          }else{
+            flag = 0;
+            return CANCEL;
+          } 
+    case CLOSE:
+
+        qp->SetModified(qp->GetSon(s,0));
+        local.setAddr(Address(0));
+        return 0;
+  }
+  
+  return 0;
+  
+}
+
 /*
 create an empty space with an identify
 
@@ -3175,6 +3287,78 @@ int PutInfraRNValueMap(Word* args, Word& result, int message,
             Tuple* t = new Tuple(nl->Second(GetTupleResultType(s)));
             t->PutAttribute(0, new CcInt(true, space->GetSpaceId()));
             t->PutAttribute(1, new CcInt(true, n->GetId()));
+            result.setAddr(t);
+            flag = 1;
+            return YIELD;
+          }else{
+            flag = 0;
+            return CANCEL;
+          } 
+    case CLOSE:
+
+        qp->SetModified(qp->GetSon(s,0));
+        local.setAddr(Address(0));
+        return 0;
+  }
+  return 0;
+}
+
+/*
+add pavement infrastructure to the space 
+
+*/
+int PutInfraPaveValueMap(Word* args, Word& result, int message,
+                    Word& local, Supplier s)
+{
+  static int flag = 0;
+  switch(message){
+    case OPEN:
+      return 0;
+    case REQUEST:
+          if(flag == 0){
+            Space* space = (Space*)args[0].addr;
+            Pavement* pn = (Pavement*)args[1].addr; 
+            space->AddPavement(pn);
+            Tuple* t = new Tuple(nl->Second(GetTupleResultType(s)));
+            t->PutAttribute(0, new CcInt(true, space->GetSpaceId()));
+            t->PutAttribute(1, new CcInt(true, pn->GetId()));
+            result.setAddr(t);
+            flag = 1;
+            return YIELD;
+          }else{
+            flag = 0;
+            return CANCEL;
+          } 
+    case CLOSE:
+
+        qp->SetModified(qp->GetSon(s,0));
+        local.setAddr(Address(0));
+        return 0;
+  }
+  
+  return 0;
+  
+}
+
+/*
+add bus network infrastructure to the space 
+
+*/
+int PutInfraBNValueMap(Word* args, Word& result, int message,
+                    Word& local, Supplier s)
+{
+  static int flag = 0;
+  switch(message){
+    case OPEN:
+      return 0;
+    case REQUEST:
+          if(flag == 0){
+            Space* space = (Space*)args[0].addr;
+            BusNetwork* bn = (BusNetwork*)args[1].addr; 
+            space->AddBusNetwork(bn);
+            Tuple* t = new Tuple(nl->Second(GetTupleResultType(s)));
+            t->PutAttribute(0, new CcInt(true, space->GetSpaceId()));
+            t->PutAttribute(1, new CcInt(true, bn->GetId()));
             result.setAddr(t);
             flag = 1;
             return YIELD;
@@ -3265,7 +3449,9 @@ ValueMapping RefIdValueMapVM[]={
   RefIdIORefValueMap,
   RefIdBusStopValueMap,
   RefIdBusRouteValueMap,
-  RefIdBusNetworkValueMap
+  RefIdBusNetworkValueMap,
+  RefIdPavementValueMap,
+  RefIdRoadNetworkValueMap
 };
 
 int RefIdOpSelect(ListExpr args)
@@ -3281,6 +3467,10 @@ int RefIdOpSelect(ListExpr args)
     return 3;
   if(nl->IsAtom(arg1) && nl->IsEqual(arg1, "busnetwork"))
     return 4;
+  if(nl->IsAtom(arg1) && nl->IsEqual(arg1, "pavenetwork"))
+    return 5;
+  if(nl->IsAtom(arg1) && nl->IsEqual(arg1, "network"))
+    return 6;
   return -1;
 }
 
@@ -3311,14 +3501,16 @@ TypeMap function for operator ref id
 ListExpr RefIdTypeMap(ListExpr args)
 {
   if(nl->ListLength(args) != 1){
-      string err = "genloc or genrange expected";
+      string err = "one parameter expected";
       return listutils::typeError(err);
   }
   ListExpr arg1 = nl->First(args);
   if(nl->IsEqual(arg1, "genloc") || 
      nl->IsEqual(arg1, "ioref") || 
      nl->IsEqual(arg1, "busstop") || 
-     nl->IsEqual(arg1, "busroute") || nl->IsEqual(arg1, "busnetwork"))
+     nl->IsEqual(arg1, "busroute") || 
+     nl->IsEqual(arg1, "busnetwork") || 
+     nl->IsEqual(arg1, "pavenetwork") || nl->IsEqual(arg1, "network"))
     return nl->SymbolAtom("int");
 
   return nl->SymbolAtom("typeerror");
@@ -3480,7 +3672,7 @@ ListExpr GenMOTMListTypeMap(ListExpr args)
 
 Operator ref_id("ref_id",
     SpatialSpecRefId,
-    5,
+    7,
     RefIdValueMapVM,
     RefIdOpSelect,
     RefIdTypeMap
@@ -3621,7 +3813,9 @@ bus network, pavement, indoor, train network
 
 */
 ValueMapping TMAddInfraGraphValueMapVM[]={
-  AddBusNetworkGraphValueMap
+  AddBusNetworkGraphValueMap,
+  AddPaveDualGraphValueMap,
+  AddPaveVisualGraphValueMap,
 };
 
 int TMAddInfraGraphOpSelect(ListExpr args)
@@ -3631,6 +3825,12 @@ int TMAddInfraGraphOpSelect(ListExpr args)
   if(nl->IsAtom(arg1) && nl->IsEqual(arg1, "busnetwork") &&
     nl->IsAtom(arg2) && nl->IsEqual(arg2, "busgraph"))
     return 0;
+  if(nl->IsAtom(arg1) && nl->IsEqual(arg1, "pavenetwork") &&
+    nl->IsAtom(arg2) && nl->IsEqual(arg2, "dualgraph"))
+    return 1;
+  if(nl->IsAtom(arg1) && nl->IsEqual(arg1, "pavenetwork") &&
+    nl->IsAtom(arg2) && nl->IsEqual(arg2, "visualgraph"))
+    return 2;
   return -1;
 }
 
@@ -3647,8 +3847,6 @@ ListExpr AddInfraGraphTypeMap(ListExpr args)
   ListExpr arg1 = nl->First(args);
   ListExpr arg2 = nl->Second(args);
   if(nl->IsEqual(arg1, "busnetwork") && nl->IsEqual(arg2, "busgraph")){
-//    return nl->SymbolAtom("bool");
-//    return nl->SymbolAtom("busnetwork");
 
       ListExpr reslist = nl->TwoElemList(
         nl->SymbolAtom("stream"),
@@ -3664,7 +3862,39 @@ ListExpr AddInfraGraphTypeMap(ListExpr args)
       );
     return reslist;
   }
+  if(nl->IsEqual(arg1, "pavenetwork") && nl->IsEqual(arg2, "dualgraph")){
 
+      ListExpr reslist = nl->TwoElemList(
+        nl->SymbolAtom("stream"),
+        nl->TwoElemList(
+          nl->SymbolAtom("tuple"),
+          nl->TwoElemList(
+            nl->TwoElemList(nl->SymbolAtom("pavement id"),
+                            nl->SymbolAtom("int")),
+            nl->TwoElemList(nl->SymbolAtom("dual graph id"),
+                            nl->SymbolAtom("int"))
+          )
+        )
+      );
+    return reslist;
+  }
+  if(nl->IsEqual(arg1, "pavenetwork") && nl->IsEqual(arg2, "visualgraph")){
+
+      ListExpr reslist = nl->TwoElemList(
+        nl->SymbolAtom("stream"),
+        nl->TwoElemList(
+          nl->SymbolAtom("tuple"),
+          nl->TwoElemList(
+            nl->TwoElemList(nl->SymbolAtom("pavement id"),
+                            nl->SymbolAtom("int")),
+            nl->TwoElemList(nl->SymbolAtom("visibility graph id"),
+                            nl->SymbolAtom("int"))
+          )
+        )
+      );
+    return reslist;
+  }
+  
   return nl->SymbolAtom("typeerror");
 }
 
@@ -3696,8 +3926,38 @@ ListExpr PutInfraTypeMap(ListExpr args)
       );
     return reslist;
   }
+  if(nl->IsEqual(arg1, "space") && nl->IsEqual(arg2, "pavenetwork")){
 
+      ListExpr reslist = nl->TwoElemList(
+        nl->SymbolAtom("stream"),
+        nl->TwoElemList(
+          nl->SymbolAtom("tuple"),
+          nl->TwoElemList(
+            nl->TwoElemList(nl->SymbolAtom("space id"),
+                            nl->SymbolAtom("int")),
+            nl->TwoElemList(nl->SymbolAtom("pavement id"),
+                            nl->SymbolAtom("int"))
+          )
+        )
+      );
+    return reslist;
+  }
+  if(nl->IsEqual(arg1, "space") && nl->IsEqual(arg2, "busnetwork")){
 
+      ListExpr reslist = nl->TwoElemList(
+        nl->SymbolAtom("stream"),
+        nl->TwoElemList(
+          nl->SymbolAtom("tuple"),
+          nl->TwoElemList(
+            nl->TwoElemList(nl->SymbolAtom("space id"),
+                            nl->SymbolAtom("int")),
+            nl->TwoElemList(nl->SymbolAtom("busnetwork id"),
+                            nl->SymbolAtom("int"))
+          )
+        )
+      );
+    return reslist;
+  }
   return nl->SymbolAtom("typeerror");
 }
 
@@ -3716,13 +3976,29 @@ ListExpr GetInfraTypeMap(ListExpr args)
   if(nl->IsEqual(nl->First(arg1), "space") && 
     listutils::isSymbol(nl->First(arg2), CcString::BasicType())){
     string type  = nl->StringValue(nl->Second(arg2));
-    if(GetSymbol(type) == IF_LINE){
+    if(GetSymbol(type) == IF_LINE){//////////road network 
       ListExpr xType;
       nl->ReadFromString(Network::routesTypeInfo, xType);
       return xType; 
-    }if(GetSymbol(type) == IF_FREESPACE){
+    }else if(GetSymbol(type) == IF_FREESPACE){ ///////free space 
       ListExpr xType;
       nl->ReadFromString(Space::FreeSpaceTypeInfo, xType);
+      return xType; 
+    }else if(GetSymbol(type) == IF_REGION){///////pavement infrastructure 
+      ListExpr xType;
+      nl->ReadFromString(Pavement::PaveTypeInfo, xType);
+      return xType; 
+    }else if(GetSymbol(type) == IF_BUSSTOP){//////////bus stops 
+      ListExpr xType;
+      nl->ReadFromString(BusNetwork::BusStopsInternalTypeInfo, xType);
+      return xType; 
+    }else if(GetSymbol(type) == IF_BUSROUTE){ ////bus routes 
+      ListExpr xType;
+      nl->ReadFromString(BusNetwork::BusRoutesTypeInfo, xType);
+      return xType; 
+    }else if(GetSymbol(type) == IF_MPPTN){ ///////////////bus trips 
+      ListExpr xType;
+      nl->ReadFromString(BusNetwork::BusTripsTypeInfo, xType);
       return xType; 
     }else{
       string err = "infrastructure type error";
@@ -3735,7 +4011,7 @@ ListExpr GetInfraTypeMap(ListExpr args)
 
 Operator addinfragraph("addinfragraph",
     SpatialSpecAddInfraGraph,
-    1,
+    3,
     TMAddInfraGraphValueMapVM,
     TMAddInfraGraphOpSelect,
     AddInfraGraphTypeMap
@@ -3760,7 +4036,9 @@ put infrastructures to the space
 */
 
 ValueMapping PutInfraValueMapVM[]={
-  PutInfraRNValueMap
+  PutInfraRNValueMap,
+  PutInfraPaveValueMap,
+  PutInfraBNValueMap
 };
 
 int PutInfraOpSelect(ListExpr args)
@@ -3770,12 +4048,18 @@ int PutInfraOpSelect(ListExpr args)
   if(nl->IsAtom(arg1) && nl->IsEqual(arg1, "space") &&
     nl->IsAtom(arg2) && nl->IsEqual(arg2, "network"))
     return 0;
+  if(nl->IsAtom(arg1) && nl->IsEqual(arg1, "space") &&
+    nl->IsAtom(arg2) && nl->IsEqual(arg2, "pavenetwork"))
+    return 1;
+  if(nl->IsAtom(arg1) && nl->IsEqual(arg1, "space") &&
+    nl->IsAtom(arg2) && nl->IsEqual(arg2, "busnetwork"))
+    return 2;
   return -1;
 }
 
 Operator putinfra("putinfra",
     SpatialSpecPutInfra,
-    1,
+    3,
     PutInfraValueMapVM,
     PutInfraOpSelect,
     PutInfraTypeMap
@@ -3968,24 +4252,34 @@ const string OpTMNodeDGSpec  =
     "<text>query nodedualgraph(dg1) count; </text--->"
     ") )";
 
-const string OpTMWalkSPSpec  =
+const string OpTMWalkSPOldSpec  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" "
     "\"Example\" ) "
     "( <text>dualgraph x visualgraph x rel1 x rel2 x rel3-> line</text--->"
-    "<text>walk_sp(dg1, vg1, rel, rel, rel)</text--->"
+    "<text>walk_sp_old(dg1, vg1, rel, rel, rel)</text--->"
     "<text>get the shortest path for pedestrian</text--->"
-    "<text>query walk_sp(dg1, vg1, query_loc1, query_loc2,tri_reg_new);"
+    "<text>query walk_sp_old(dg1, vg1, query_loc1, query_loc2,tri_reg_new);"
     "</text--->"
     ") )";
 
+const string OpTMWalkSPSpec  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+    "\"Example\" ) "
+    "( <text>pavement x rel1 x rel2 x rel3-> line</text--->"
+    "<text>walk_sp(pn, rel, rel, rel)</text--->"
+    "<text>get the shortest path for pedestrian</text--->"
+    "<text>query walk_sp(pn, query_loc1, query_loc2,tri_reg_new);"
+    "</text--->"
+    ") )";
+    
 const string OpTMTestWalkSPSpec  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" "
     "\"Example\" ) "
     "( <text>dualgraph x visualgraph x rel1 x rel2 x rel3 -> "
     "(stream (tuple( (x1 t1)(x2 t2)...(xn tn)))</text--->"
-    "<text>walk_sp(dualgraph, visibilitygraph, rel, rel, rel)</text--->"
+    "<text>test_walk_sp(dualgraph, visibilitygraph, rel, rel, rel)</text--->"
     "<text>get the shortest path for pedestrian</text--->"
-    "<text>query walk_sp(dg1, vg1, query_loc1, query_loc2,tri_reg_new);"
+    "<text>query test_walk_sp(dg1, vg1, query_loc1, query_loc2,tri_reg_new);"
     "</text--->"
     ") )";
 
@@ -4426,7 +4720,7 @@ create region based outdoor infrastructure
 const string OpTMThePavementSpec  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" "
     "\"Example\" ) "
-    "( <text>int x rel -> pavement</text--->"
+    "( <text>int x rel -> pavenetwork</text--->"
     "<text>thepavement(1, rel); </text--->"
     "<text>create pavement infrastructure</text--->"
     "<text>query thepavement(1, dg_node) ;</text--->) )";
@@ -5659,11 +5953,11 @@ ListExpr OpTMNodeDGTypeMap ( ListExpr args )
 }
 
 /*
-TypeMap fun for operator walksp
+TypeMap fun for operator walkspold with dual graph and visual graph 
 
 */
 
-ListExpr OpTMWalkSPTypeMap ( ListExpr args )
+ListExpr OpTMWalkSPOldTypeMap ( ListExpr args )
 {
   if ( nl->ListLength ( args ) != 5 )
   {
@@ -5708,6 +6002,54 @@ ListExpr OpTMWalkSPTypeMap ( ListExpr args )
 
   return nl->SymbolAtom ( "typeerror" );
 }
+
+/*
+TypeMap fun for operator walksp with pavement infrastructure 
+
+*/
+
+ListExpr OpTMWalkSPTypeMap ( ListExpr args )
+{
+  if ( nl->ListLength ( args ) != 4 )
+  {
+    return ( nl->SymbolAtom ( "typeerror" ) );
+  }
+  
+  ListExpr arg1 = nl->First(args);
+  ListExpr arg2 = nl->Second(args);
+  ListExpr arg3 = nl->Third(args);
+  ListExpr arg4 = nl->Fourth(args);
+  
+  if(!IsRelDescription(arg2))
+    return listutils::typeError("para3 should be a relation");
+    
+  ListExpr xType;
+  nl->ReadFromString(VisualGraph::QueryTypeInfo, xType);
+  if(!CompareSchemas(arg2, xType))return nl->SymbolAtom ( "typeerror" );
+
+  if(!IsRelDescription(arg3))
+  return listutils::typeError("para4 should be a relation");
+  
+  if(!CompareSchemas(arg3, xType))return nl->SymbolAtom ( "typeerror" );
+
+
+  if(!IsRelDescription(arg4))
+  return listutils::typeError("para4 should be a relation");
+  
+  ListExpr xType2;
+  nl->ReadFromString(DualGraph::TriangleTypeInfo3, xType2);
+  if(!CompareSchemas(arg4, xType2))return nl->SymbolAtom ( "typeerror" );
+
+  if(nl->IsAtom(arg1) && nl->AtomType(arg1) == SymbolType &&
+     nl->SymbolValue(arg1) == "pavenetwork"){
+
+
+    return nl->SymbolAtom("line");
+  }
+
+  return nl->SymbolAtom ( "typeerror" );
+}
+
 
 /*
 TypeMap fun for operator testwalksp
@@ -6215,7 +6557,7 @@ ListExpr OpTMGetVNodeTypeMap ( ListExpr args )
 }
 
 /*
-TypeMap fun for operator getvgedge
+TypeMap fun for operator getvgedge: get the edge relation for visibility graph
 
 */
 
@@ -6228,9 +6570,8 @@ ListExpr OpTMGetVGEdgeTypeMap ( ListExpr args )
   ListExpr arg1 = nl->First(args);
   ListExpr arg2 = nl->Second(args);
   ListExpr arg3 = nl->Third(args);
-//  ListExpr arg4 = nl->Fourth(args);
-  ListExpr arg5 = nl->Fourth(args);
-  ListExpr arg6 = nl->Fifth(args);
+  ListExpr arg4 = nl->Fourth(args);
+  ListExpr arg5 = nl->Fifth(args);
 
   ListExpr xType1;
   nl->ReadFromString(VisualGraph::NodeTypeInfo, xType1);
@@ -6243,9 +6584,9 @@ ListExpr OpTMGetVGEdgeTypeMap ( ListExpr args )
 
   ListExpr xType4;
   nl->ReadFromString(DualGraph::TriangleTypeInfo4, xType4);
-  if(!CompareSchemas(arg5, xType4))return nl->SymbolAtom ( "typeerror" );
+  if(!CompareSchemas(arg4, xType4))return nl->SymbolAtom ( "typeerror" );
 
-  if(!listutils::isBTreeDescription(arg6))
+  if(!listutils::isBTreeDescription(arg5))
     return nl->SymbolAtom("typeerror");
 
 
@@ -8302,7 +8643,7 @@ ListExpr OpTMThePavementTypeMap ( ListExpr args )
                                 Pavement::PaveTypeInfo);
   }
   
-  return nl->SymbolAtom ( "pavement" );
+  return nl->SymbolAtom ( "pavenetwork" );
 }
 
 
@@ -11500,15 +11841,14 @@ int OpTMNodeDGValueMap ( Word* args, Word& result, int message,
 
 
 /*
-Value Mapping for walksp  operator
+Value Mapping for walkspold  operator
 return the shortest path for pedestrian
 
 */
 
-int OpTMWalkSPValueMap ( Word* args, Word& result, int message,
+int OpTMWalkSPOldValueMap ( Word* args, Word& result, int message,
                          Word& local, Supplier in_pSupplier )
 {
-
       DualGraph* dg = (DualGraph*)args[0].addr;
       VisualGraph* vg = (VisualGraph*)args[1].addr;
       Relation* r1 = (Relation*)args[2].addr;
@@ -11523,11 +11863,51 @@ int OpTMWalkSPValueMap ( Word* args, Word& result, int message,
       wsp->WalkShortestPath(res);
       delete wsp; 
       return 0;
-
 }
 
 /*
-Value Mapping for testwalksp  operator
+Value Mapping for walksp  operator
+return the shortest path for pedestrian
+
+*/
+
+int OpTMWalkSPValueMap ( Word* args, Word& result, int message,
+                         Word& local, Supplier in_pSupplier )
+{
+      Pavement* pn = (Pavement*)args[0].addr;
+
+      Relation* r1 = (Relation*)args[1].addr;
+      Relation* r2 = (Relation*)args[2].addr;
+      Relation* r3 = (Relation*)args[3].addr;
+      result = qp->ResultStorage(in_pSupplier);
+      if(pn->IsDGInit() == false){
+        cout<<"dual graph is not initialized"<<endl;
+        return 0;
+      }
+      if(pn->IsVGInit() == false){
+        cout<<"visual graph is not initialized"<<endl;
+        return 0;
+      }
+      DualGraph* dg = pn->GetDualGraph();
+      VisualGraph* vg = pn->GetVisualGraph();
+      if(dg == NULL || vg == NULL){
+        cout<<"graph invalid"<<endl;
+        return 0; 
+      }
+
+      Walk_SP* wsp = new Walk_SP(dg, vg, r1, r2);
+      wsp->rel3 = r3;
+
+      Line* res = static_cast<Line*>(result.addr);
+      wsp->WalkShortestPath(res);
+      delete wsp; 
+      pn->CloseDualGraph(dg);
+      pn->CloseVisualGraph(vg); 
+      return 0;
+}
+
+/*
+Value Mapping for testwalksp old  operator
 return the shortest path for pedestrian
 
 */
@@ -12219,7 +12599,6 @@ int OpTMGetVGEdgeValueMap ( Word* args, Word& result, int message,
         DualGraph* dg = (DualGraph*)args[0].addr;
         Relation* r1 = (Relation*)args[1].addr;
         Relation* r2 = (Relation*)args[2].addr;
-
 
         vg = new VGraph(dg, r1, r2, r1);
         vg->resulttype =
@@ -13949,7 +14328,7 @@ bool ChekPavementId(unsigned int pn_id)
     // Type of object is at fourth position in list
     ListExpr xObjectType = nl->First(nl->Fourth(xCurrent));
     if(nl->IsAtom(xObjectType) &&
-       nl->SymbolValue(xObjectType) == "pavement")
+       nl->SymbolValue(xObjectType) == "pavenetwork")
     {
       // Get name of the pavement 
       ListExpr xObjectName = nl->Second(xCurrent);
@@ -13972,12 +14351,12 @@ bool ChekPavementId(unsigned int pn_id)
 
       if(pn->GetId() == pn_id)
       {
-        SecondoSystem::GetCatalog()->CloseObject(nl->SymbolAtom("pavement"),
+        SecondoSystem::GetCatalog()->CloseObject(nl->SymbolAtom("pavenetwork"),
                                                xValue);
         return false;
       }
 
-      SecondoSystem::GetCatalog()->CloseObject(nl->SymbolAtom("pavement"),
+      SecondoSystem::GetCatalog()->CloseObject(nl->SymbolAtom("pavenetwork"),
                                                xValue);
     }
   }
@@ -16296,12 +16675,12 @@ Operator nodedualgraph(
     OpTMNodeDGTypeMap
 );
 
-Operator walk_sp(
-    "walk_sp",
-    OpTMWalkSPSpec,
-    OpTMWalkSPValueMap,
+Operator walk_sp_old(
+    "walk_sp_old",
+    OpTMWalkSPOldSpec,
+    OpTMWalkSPOldValueMap,
     Operator::SimpleSelect,
-    OpTMWalkSPTypeMap
+    OpTMWalkSPOldTypeMap
 );
 
 Operator test_walk_sp(
@@ -16310,6 +16689,14 @@ Operator test_walk_sp(
     OpTMTestWalkSPValueMap,
     Operator::SimpleSelect,
     OpTMTestWalkSPTypeMap
+);
+
+Operator walk_sp(
+    "walk_sp",
+    OpTMWalkSPSpec,
+    OpTMWalkSPValueMap,
+    Operator::SimpleSelect,
+    OpTMWalkSPTypeMap
 );
 
 
@@ -17105,7 +17492,7 @@ class TransportationModeAlgebra : public Algebra
     ///////////////////////////////////////////////////////////
     //////////////////////  Pavement //////////////////////////
     ///////////////////////////////////////////////////////////
-    AddTypeConstructor( &pavement); 
+    AddTypeConstructor( &pavenetwork); 
 
     //////////////////////////////////////////////////////////////
     ////////////////////general data type ////////////////////////
@@ -17141,19 +17528,20 @@ class TransportationModeAlgebra : public Algebra
     AddOperator(&triangulation);
     AddOperator(&convex);
     AddOperator(&geospath);
-    AddOperator(&createdualgraph);
+    AddOperator(&createdualgraph);///////create a dual graph 
     AddOperator(&nodedualgraph);
     //////////////////////////////////////////////////////////////////
     ///////////////////visibility graph///////////////////////////////
     //////////////////////////////////////////////////////////////////
-    AddOperator(&getvnode);
+    AddOperator(&getvnode);//get visible points of a given point 
     AddOperator(&myinside);
     AddOperator(&decomposetri);
     AddOperator(&getvgedge);
-    AddOperator(&createvgraph);
-    AddOperator(&getadjnode_vg);
+    AddOperator(&createvgraph);//create a visibility graph 
+    AddOperator(&getadjnode_vg);//get adjacent nodes for a visibility graph node
+    AddOperator(&walk_sp_old);//trip planning for pedestrian 
+    AddOperator(&test_walk_sp); //test the algorithm of trip planning 
     AddOperator(&walk_sp);//trip planning for pedestrian 
-    AddOperator(&test_walk_sp); 
     AddOperator(&setpave_rid);//set rid value for each pavement 
     AddOperator(&pave_loc_togp);//map pavements locations to gpoints 
     ///////////////////dual graph/////////////////////////////////////
@@ -17161,8 +17549,8 @@ class TransportationModeAlgebra : public Algebra
     AddOperator(&zcurve);//create a curve for the points sorted by z-order
     AddOperator(&regvertex);
     AddOperator(&triangulation_new);
-    AddOperator(&get_dg_edge);
-    AddOperator(&getadjnode_dg);
+    AddOperator(&get_dg_edge);//create dual graph edge relation 
+    AddOperator(&getadjnode_dg);//get adjacent nodes for a dual graph node 
     AddOperator(&smcdgte);//simple method to create dual graph, traverse RTree
     ////////////////////data process///////////////////////////////////
     AddOperator(&generate_wp1);
@@ -17178,7 +17566,7 @@ class TransportationModeAlgebra : public Algebra
     ///////////////rotational plane sweep algorithm////////////////////
     //////////////////////////////////////////////////////////////////
     AddOperator(&getallpoints);
-    AddOperator(&rotationsweep);
+    AddOperator(&rotationsweep);//rotational plan sweep to find visible points 
     AddOperator(&gethole);
     //////////////////////////////////////////////////////////////////
     /*create bus network*/

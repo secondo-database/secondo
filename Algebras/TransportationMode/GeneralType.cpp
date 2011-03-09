@@ -53,6 +53,9 @@ Jan, 2011 Jianqiu xu
 #include "FTextAlgebra.h"
 #include <fstream>
 #include "GeneralType.h"
+#include "PaveGraph.h"
+#include "BusNetwork.h"
+
 ///////////////////////////random number generator//////////////////////////
 unsigned long GetRandom()
 {
@@ -1456,7 +1459,15 @@ ListExpr OutSpace( ListExpr typeInfo, Word value )
   ListExpr list1 = nl->OneElemList(nl->StringAtom(str));
   ListExpr list2 = nl->TwoElemList(nl->StringAtom("InfraId:"),
                         nl->IntAtom(inf_ref.infra_id));
-  xNext = nl->TwoElemList(list1, list2);
+  ListExpr list3 = nl->TwoElemList(
+                           nl->TwoElemList(
+                                nl->StringAtom("min ref id:"),
+                                nl->IntAtom(inf_ref.ref_id_low)),
+                           nl->TwoElemList(
+                                nl->StringAtom("max ref id:"),
+                                nl->IntAtom(inf_ref.ref_id_high)));
+
+  xNext = nl->ThreeElemList(list1, list2, list3);
   if(bFirst){
       infra_list = nl->OneElemList(xNext);
       xLast = infra_list;
@@ -1608,21 +1619,28 @@ void Space::AddRoadNetwork(Network* n)
 
 /*
 check whether the infrastructure has been added already 
+and overlapping oids 
 
 */
 bool Space::CheckExist(InfraRef& inf_ref)
 {
+
   for(int i = 0;i < infra_list.Size();i++){
     InfraRef elem;
     infra_list.Get(i, elem); 
     if(elem.infra_type == inf_ref.infra_type && 
-       elem.infra_id == inf_ref.infra_id)return true; 
+       elem.infra_id == inf_ref.infra_id) return true; 
+
+    if(inf_ref.ref_id_low > elem.ref_id_high || 
+       inf_ref.ref_id_high < elem.ref_id_low){
+    }else
+      return true; 
   }
   return false; 
 }
 
 /*
-get the required infrastructure relation 
+get the required infrastructure relation by type 
 
 */
 Relation* Space::GetInfra(string type)
@@ -1631,7 +1649,7 @@ Relation* Space::GetInfra(string type)
   int infra_type = GetSymbol(type);
 
   if(infra_type == IF_LINE){ //////////road network 
-      Network* rn = LoadRoutes(IF_LINE);
+      Network* rn = LoadNetwork(IF_LINE);
       if(rn != NULL){ 
           result = rn->GetRoutes()->Clone();
           CloseRoadNetwork(rn);
@@ -1649,6 +1667,60 @@ Relation* Space::GetInfra(string type)
        ListExpr xNumType = 
                 SecondoSystem::GetCatalog()->NumericType(xTypeInfo);
        result = new Relation(xNumType, true);
+   }else if(infra_type == IF_REGION){ //////pavement 
+      Pavement* pn = LoadPavement(IF_REGION);
+      if(pn != NULL){ 
+          result = pn->GetPaveRel()->Clone();
+          ClosePavement(pn);
+      }else{
+          cout<<"pavement does exist "<<endl; 
+          ListExpr xTypeInfo;
+          nl->ReadFromString(Pavement::PaveTypeInfo, xTypeInfo);
+          ListExpr xNumType = 
+                SecondoSystem::GetCatalog()->NumericType(xTypeInfo);
+          result = new Relation(xNumType, true);
+      }
+   }else if(infra_type == IF_BUSSTOP){ ////bus stops 
+        BusNetwork* bn = LoadBusNetwork(IF_BUSNETWORK);
+        if(bn != NULL){ 
+          result = bn->GetBS_Rel()->Clone();
+          CloseBusNetwork(bn);
+        }else{
+          cout<<"bus network does exist "<<endl; 
+          ListExpr xTypeInfo;
+          nl->ReadFromString(BusNetwork::BusStopsInternalTypeInfo, xTypeInfo);
+          ListExpr xNumType = 
+                SecondoSystem::GetCatalog()->NumericType(xTypeInfo);
+          result = new Relation(xNumType, true);
+        }
+   }else if(infra_type == IF_BUSROUTE){ ///bus routes 
+        BusNetwork* bn = LoadBusNetwork(IF_BUSNETWORK);
+        if(bn != NULL){ 
+          result = bn->GetBR_Rel()->Clone();
+          CloseBusNetwork(bn);
+        }else{
+          cout<<"bus network does exist "<<endl; 
+          ListExpr xTypeInfo;
+          nl->ReadFromString(BusNetwork::BusRoutesTypeInfo, xTypeInfo);
+          ListExpr xNumType = 
+                SecondoSystem::GetCatalog()->NumericType(xTypeInfo);
+          result = new Relation(xNumType, true);
+        }
+
+   }else if(infra_type == IF_MPPTN){ ///bus trips 
+        BusNetwork* bn = LoadBusNetwork(IF_BUSNETWORK);
+        if(bn != NULL){ 
+          result = bn->GetBT_Rel()->Clone();
+          CloseBusNetwork(bn);
+        }else{
+          cout<<"bus network does exist "<<endl; 
+          ListExpr xTypeInfo;
+          nl->ReadFromString(BusNetwork::BusTripsTypeInfo, xTypeInfo);
+          ListExpr xNumType = 
+                SecondoSystem::GetCatalog()->NumericType(xTypeInfo);
+          result = new Relation(xNumType, true);
+        }
+
    }else{
         cout<<"wrong type or does not exist"<<endl;
    }
@@ -1662,10 +1734,10 @@ Relation* Space::GetInfra(string type)
 }
 
 /*
-Load the routes relation 
+Load the road network
 
 */
-Network* Space:: LoadRoutes(int type)
+Network* Space:: LoadNetwork(int type)
 {
   InfraRef rn_ref; 
   bool found = false; 
@@ -1707,7 +1779,7 @@ Network* Space:: LoadRoutes(int type)
             }
             Network* rn = (Network*)xValue.addr;
             if(rn->GetId() == rn_ref.infra_id){
-              // This is the bus graph we have been looking for
+              // This is the road network we have been looking for
               return rn;
             }
           }
@@ -1717,7 +1789,7 @@ Network* Space:: LoadRoutes(int type)
 }
 
 /*
-close the bus graph 
+close the road network 
 
 */
 void Space::CloseRoadNetwork(Network* rn)
@@ -1729,3 +1801,212 @@ void Space::CloseRoadNetwork(Network* rn)
                                            xValue);
 }
 
+
+/*
+add pavement infrastructure to the space 
+
+*/
+void Space::AddPavement(Pavement* pn)
+{
+  InfraRef inf_ref; 
+  if(!pn->IsDefined()){
+    cout<<"pavement is not defined"<<endl;
+    return; 
+  }
+  inf_ref.infra_id = pn->GetId();
+  inf_ref.infra_type = GetSymbol("REGION"); 
+  int min_id = numeric_limits<int>::max();
+  int max_id = numeric_limits<int>::min();
+  Relation* pave_rel = pn->GetPaveRel();
+  for(int i = 1;i <= pave_rel->GetNoTuples();i++){
+    Tuple* pave_tuple = pave_rel->GetTuple(i, false);
+    int id = ((CcInt*)pave_tuple->GetAttribute(Pavement::P_OID))->GetIntval();
+    if(id < min_id) min_id = id;
+    if(id > max_id) max_id = id; 
+    pave_tuple->DeleteIfAllowed(); 
+  }
+  inf_ref.ref_id_low = min_id;
+  inf_ref.ref_id_high = max_id; 
+  if(CheckExist(inf_ref) == false){
+      inf_ref.Print(); 
+      Add(inf_ref); 
+  }else{
+    cout<<"insert infrastructure wroing"<<endl; 
+    cout<<"infrastructure exists already or wrong oid"<<endl; 
+  }
+}
+
+/*
+load pavement infrastructure 
+
+*/
+Pavement* Space::LoadPavement(int type)
+{
+  InfraRef rn_ref; 
+  bool found = false; 
+  for(int i = 0;i < infra_list.Size();i++){
+    InfraRef elem;
+    infra_list.Get(i, elem); 
+    if(elem.infra_type == type){
+       rn_ref = elem; 
+       found = true;
+       break; 
+    }
+  }
+  if(found){
+      ListExpr xObjectList = SecondoSystem::GetCatalog()->ListObjects();
+      xObjectList = nl->Rest(xObjectList);
+      while(!nl->IsEmpty(xObjectList)){
+          // Next element in list
+          ListExpr xCurrent = nl->First(xObjectList);
+          xObjectList = nl->Rest(xObjectList);
+          // Type of object is at fourth position in list
+          ListExpr xObjectType = nl->First(nl->Fourth(xCurrent));
+          if(nl->IsAtom(xObjectType) &&
+              nl->SymbolValue(xObjectType) == "pavenetwork"){
+            // Get name of the bus graph 
+            ListExpr xObjectName = nl->Second(xCurrent);
+            string strObjectName = nl->SymbolValue(xObjectName);
+
+            // Load object to find out the id of the pavement
+            Word xValue;
+            bool bDefined;
+            bool bOk = SecondoSystem::GetCatalog()->GetObject(strObjectName,
+                                                        xValue,
+                                                        bDefined);
+            if(!bDefined || !bOk){
+              // Undefined
+              continue;
+            }
+            Pavement* pn = (Pavement*)xValue.addr;
+            if((int)pn->GetId() == rn_ref.infra_id){
+              // This is the pavement we have been looking for
+
+              return pn;
+            }
+          }
+      }
+  }
+  return NULL;
+}
+
+
+void Space::ClosePavement(Pavement* pn)
+{
+ if(pn == NULL) return; 
+  Word xValue;
+  xValue.addr = pn;
+  SecondoSystem::GetCatalog()->CloseObject(nl->SymbolAtom( "pavenetwork" ),
+                                           xValue);
+}
+
+/*
+add bus network into the space 
+
+*/
+void Space::AddBusNetwork(BusNetwork* bn)
+{
+  InfraRef inf_ref; 
+  if(!bn->IsDefined()){
+    cout<<"bus network is not defined"<<endl;
+    return; 
+  }
+  inf_ref.infra_id = bn->GetId();
+  inf_ref.infra_type = GetSymbol("BUSNETWORK"); 
+  int min_id = numeric_limits<int>::max();
+  int max_id = numeric_limits<int>::min();
+  Relation* bn_routes = bn->GetBR_Rel();
+  for(int i = 1;i <= bn_routes->GetNoTuples();i++){
+    Tuple* br_tuple = bn_routes->GetTuple(i, false);
+    int br_id = 
+       ((CcInt*)br_tuple->GetAttribute(BusNetwork::BN_BR_OID))->GetIntval();
+    if(br_id < min_id) min_id = br_id;
+    if(br_id > max_id) max_id = br_id; 
+    br_tuple->DeleteIfAllowed(); 
+  }
+
+  Relation* bn_bus = bn->GetBT_Rel();
+  for(int i = 1;i <= bn_bus->GetNoTuples();i++){
+    Tuple* bus_tuple = bn_bus->GetTuple(i, false);
+    int bus_id = 
+       ((CcInt*)bus_tuple->GetAttribute(BusNetwork::BN_BUS_OID))->GetIntval();
+    if(bus_id < min_id) min_id = bus_id;
+    if(bus_id > max_id) max_id = bus_id; 
+    bus_tuple->DeleteIfAllowed(); 
+  }
+
+
+  inf_ref.ref_id_low = min_id;
+  inf_ref.ref_id_high = max_id; 
+  if(CheckExist(inf_ref) == false){
+      inf_ref.Print(); 
+      Add(inf_ref); 
+  }else
+    cout<<"this infrastructure exists already"<<endl; 
+
+}
+
+/*
+load the bus network 
+
+*/
+BusNetwork* Space::LoadBusNetwork(int type)
+{
+
+  InfraRef rn_ref; 
+  bool found = false; 
+  for(int i = 0;i < infra_list.Size();i++){
+    InfraRef elem;
+    infra_list.Get(i, elem); 
+    if(elem.infra_type == type){
+       rn_ref = elem; 
+       found = true;
+       break; 
+    }
+  }
+  if(found){
+      ListExpr xObjectList = SecondoSystem::GetCatalog()->ListObjects();
+      xObjectList = nl->Rest(xObjectList);
+      while(!nl->IsEmpty(xObjectList)){
+          // Next element in list
+          ListExpr xCurrent = nl->First(xObjectList);
+          xObjectList = nl->Rest(xObjectList);
+          // Type of object is at fourth position in list
+          ListExpr xObjectType = nl->First(nl->Fourth(xCurrent));
+          if(nl->IsAtom(xObjectType) &&
+              nl->SymbolValue(xObjectType) == "busnetwork"){
+            // Get name of the bus graph 
+            ListExpr xObjectName = nl->Second(xCurrent);
+            string strObjectName = nl->SymbolValue(xObjectName);
+
+            // Load object to find out the id of the pavement
+            Word xValue;
+            bool bDefined;
+            bool bOk = SecondoSystem::GetCatalog()->GetObject(strObjectName,
+                                                        xValue,
+                                                        bDefined);
+            if(!bDefined || !bOk){
+              // Undefined
+              continue;
+            }
+            BusNetwork* bn = (BusNetwork*)xValue.addr;
+            if((int)bn->GetId() == rn_ref.infra_id){
+              // This is the busnetwork we have been looking for
+
+              return bn;
+            }
+          }
+      }
+  }
+  return NULL;
+
+}
+
+void Space::CloseBusNetwork(BusNetwork* bn)
+{
+  if(bn == NULL) return; 
+  Word xValue;
+  xValue.addr = bn;
+  SecondoSystem::GetCatalog()->CloseObject(nl->SymbolAtom( "busnetwork" ),
+                                           xValue);
+}
