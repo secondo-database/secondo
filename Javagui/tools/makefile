@@ -34,11 +34,11 @@ CLASSFILES:= $(shell ls *.java | sed -e "s/java/class/")
 #CLASSFILES+=GetEnv.h GetEnv.o $(GetEnvDLL)
 
 .PHONY: all 
-all: ../sj/lang/ListExpr.class $(CLASSFILES)
+all: ../secondoInterface/SecondoInterface.jar $(CLASSFILES)
 	make -C downloadmanager
 
-../sj/lang/ListExpr.class:
-	make -C ../sj
+../secondoInterface/SecondoInterface.jar:
+	make -C ../secondoInterface/SecondoInterface.jar
 
 
 %.class: %.java

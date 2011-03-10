@@ -21,7 +21,6 @@ package viewer.hoese.algebras.periodic;
 
 import sj.lang.ListExpr;
 import viewer.hoese.DateTime;
-import gui.Environment;
 import tools.Reporter;
 
 /** This class provides an abstraction of time
@@ -239,7 +238,7 @@ private Time correct(){
      milliseconds = (milliseconds - dif2*MILLISECONDS);
   }
 
-  if(Environment.DEBUG_MODE){
+  if(tools.Environment.DEBUG_MODE){
      if(milliseconds<0 || milliseconds>=MILLISECONDS){
         Reporter.writeError("Time::Correct() has computes a wrong value \n"+
                             "Oldms :"+oldms+"\n"+

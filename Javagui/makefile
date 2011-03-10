@@ -46,9 +46,10 @@ demo:
 	@find -maxdepth 1 -not -name . -not -name Demotmp -exec cp -r {} Demotmp \;
 	@find Demotmp -type d -name CVS -exec rm -rf {} \; 2>/dev/null || echo ""
 	@find Demotmp -name "*java" -exec rm -f {} \;
-	@echo "extract third party jar files"
+	@echo "extract third party jar files and SecondoInterface"
 	@rm -rf Demotmp/lib
 	@cd Demotmp;find ../lib -name "*jar" -exec jar -xf {} \; ; cd ..
+	@cd Demotmp;find ../secondoInterface -name "*jar" -exec jar -xf {} \; ; cd ..
 	@cp res/*.gif Demotmp/res
 	@echo "Main-Class: gui.MainWindow" > Manifest.txt
 	@rm Demotmp/GBS* 
@@ -79,7 +80,7 @@ removedoc:
 
 .PHONY: makedirs
 makedirs:
-	make -C sj all
+	make -C secondoInterface SecondoInterface.jar
 	make -C communication all
 	make -C extern all
 	make -C components all
@@ -89,30 +90,11 @@ makedirs:
 	make -C viewer viewers
 	make -C tools all
 
-.PHONY: external # create a version for external use
-external:
-	rm -rf external
-	mkdir external
-	find -maxdepth 1 \! -name external \! -name '.' -exec cp -r {} external \;
-	sed -i 's#GUIPATH *:=.*#GUIPATH := $$(SECONDO_BUILD_DIR)/Javagui/external#g' external/makefile.inc
-	make -sC external clean
-	find external -type d -name "CVS" | sed "s#.*#rm -r &#g" | sh
-	rm -r external/viewer/jpeg
-	rm -r external/viewer/midi
-	rm external/viewer/MP3V.java
-	rm external/viewer/hoese/algebras/Dsplpicture.java
-	rm external/viewer/MidiViewer.java
-	sed -i -e "s#midi# #g"  -e "s#jpeg# #g" -e "s#MP3V.class# #g" -e "s#MidiViewer.class# #g" external/viewer/makefile
-	@#make -C external
-	@#make -C external clean
-	sed -i 's#GUIPATH *:=.*#GUIPATH := $$(SECONDO_BUILD_DIR)/Javagui#g' external/makefile.inc
-
-	
 
 
 .PHONY: clean # removes the documentation and all .class files
 clean: removedoc
-	make -C sj clean
+	make -C secondoInterface clean
 	make -C communication clean
 	make -C components clean
 	make -C extern clean

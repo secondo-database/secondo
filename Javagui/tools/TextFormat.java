@@ -51,21 +51,21 @@ class TextFormat{
 
 
  public static void printWarning(String message){
-    if(gui.Environment.FORMATTED_TEXT)
+    if(tools.Environment.FORMATTED_TEXT)
         System.err.println(RED+"Warning: "+CYAN+message+NORMAL);
     else
         System.err.println("Warning: "+message);
  }
 
  public static void printError(String message){
-    if(gui.Environment.FORMATTED_TEXT)
+    if(tools.Environment.FORMATTED_TEXT)
         System.err.println(RED+"Error: "+message+NORMAL);
     else
         System.err.println("Error: "+message);
  }
  
  public static void printInfo(String message){
-    if(gui.Environment.FORMATTED_TEXT)
+    if(tools.Environment.FORMATTED_TEXT)
         System.err.println(GREEN+"Info: "+message+NORMAL);
     else
         System.err.println("Info: "+message);

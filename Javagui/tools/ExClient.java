@@ -67,7 +67,7 @@ public static void main(String[] args){
 
   si.useBinaryLists(true); 
 
-  gui.Environment.MEASURE_TIME=false; // supress some messages
+  tools.Environment.MEASURE_TIME=false; // supress some messages
 
 
   if(!si.connect()){

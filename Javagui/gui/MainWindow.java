@@ -296,12 +296,6 @@ public MainWindow(String Title,String user,String passwd){
  int maxStringLength=48;
  useEntropy=false;
  if(config_file_ok){
-     String useGetEnv = Config.getProperty("USE_GETENV");
-     if(useGetEnv!=null && useGetEnv.toLowerCase().trim().equals("false")){
-        Environment.USE_GETENV = false;
-     }
-     useGetEnv = null;
-
      String UseEntropy = Config.getProperty("USE_ENTROPY");
      if(UseEntropy!=null){
         if(UseEntropy.toLowerCase().trim().equals("true"))
@@ -312,7 +306,7 @@ public MainWindow(String Title,String user,String passwd){
      String UseFormattedText = Config.getProperty("FORMATTED_TEXT");
      if(UseFormattedText!=null){
         if(UseFormattedText.toLowerCase().trim().equals("true")){
-           Environment.FORMATTED_TEXT=true;
+           tools.Environment.FORMATTED_TEXT=true;
         }
      }
      UseFormattedText=null;
@@ -325,27 +319,27 @@ public MainWindow(String Title,String user,String passwd){
 
      String Encoding = Config.getProperty("ENCODING");
      if(Encoding!=null){
-        gui.Environment.ENCODING=Encoding.trim();
-        if(gui.Environment.ENCODING.length()==0){
-           gui.Environment.ENCODING=null;
+        tools.Environment.ENCODING=Encoding.trim();
+        if(tools.Environment.ENCODING.length()==0){
+           tools.Environment.ENCODING=null;
         }
      }
 
      String OldObjectStyle = Config.getProperty("OLD_OBJECT_STYLE");
-     Environment.OLD_OBJECT_STYLE=OldObjectStyle!=null && 
+     gui.Environment.OLD_OBJECT_STYLE=OldObjectStyle!=null && 
                                   OldObjectStyle.toLowerCase().trim().equals("true");
      OldObjectStyle=null;
 
      String TraceServerCommands = Config.getProperty("TRACE_SERVER_COMMANDS");
      if(TraceServerCommands!=null && TraceServerCommands.trim().toLowerCase().equals("true")){
-        Environment.TRACE_SERVER_COMMANDS = true;  
+        tools.Environment.TRACE_SERVER_COMMANDS = true;  
      }
 
      String ScriptStyle = Config.getProperty("SCRIPT_STYLE");
      if(ScriptStyle!=null){
         ScriptStyle = ScriptStyle.trim().toUpperCase();
         if(ScriptStyle.equals("GUI")){
-          Environment.TTY_STYLED_SCRIPT=false;
+          gui.Environment.TTY_STYLED_SCRIPT=false;
         }
      }
 
@@ -353,7 +347,7 @@ public MainWindow(String Title,String user,String passwd){
      if(extensions!=null){
         StringTokenizer st = new StringTokenizer(extensions);
         while(st.hasMoreTokens()){
-            Environment.insertExtension(st.nextToken());  
+            gui.Environment.insertExtension(st.nextToken());  
         }  
      }
 
@@ -361,7 +355,7 @@ public MainWindow(String Title,String user,String passwd){
      String CommandStyle = Config.getProperty("COMMAND_STYLE");
      if(CommandStyle!=null){
        if(CommandStyle.trim().toUpperCase().equals("TTY")){
-          Environment.TTY_STYLED_COMMAND=true;
+          gui.Environment.TTY_STYLED_COMMAND=true;
        }
      }
 
@@ -489,7 +483,7 @@ public MainWindow(String Title,String user,String passwd){
              if(Cand instanceof SecondoViewer){
                 Reporter.writeInfo("addViewer "+ViewerName);
                 addViewer((SecondoViewer)Cand);
-                boolean tm = Environment.TESTMODE != Environment.NO_TESTMODE;
+                boolean tm = tools.Environment.TESTMODE != tools.Environment.NO_TESTMODE;
                 ((SecondoViewer)Cand).enableTestmode(tm);
               }
              else{
@@ -513,26 +507,26 @@ public MainWindow(String Title,String user,String passwd){
          DEBUG_MODE=true;
       }
    }
-   Environment.DEBUG_MODE = DEBUG_MODE;
+   tools.Environment.DEBUG_MODE = DEBUG_MODE;
 
    String ShowCommand = Config.getProperty("SHOW_COMMAND");
    if(ShowCommand!=null && ShowCommand.toLowerCase().equals("true")){
-       Environment.SHOW_COMMAND = true;
+       tools.Environment.SHOW_COMMAND = true;
    }
-   Reporter.writeInfo("ShowCommand " + Environment.SHOW_COMMAND); 
+   Reporter.writeInfo("ShowCommand " + tools.Environment.SHOW_COMMAND); 
 
 
    String Measure_Time = Config.getProperty("MEASURE_TIME");
-   Environment.MEASURE_TIME=Measure_Time!=null &&
+   tools.Environment.MEASURE_TIME=Measure_Time!=null &&
                             Measure_Time.toLowerCase().trim().equals("true");
-   if(Environment.MEASURE_TIME){
+   if(tools.Environment.MEASURE_TIME){
      Reporter.writeInfo("Enable messages about used time.");
    }
 
    String Measure_Memory = Config.getProperty("MEASURE_MEMORY");
-   Environment.MEASURE_MEMORY=Measure_Memory!=null &&
+   tools.Environment.MEASURE_MEMORY=Measure_Memory!=null &&
                             Measure_Memory.toLowerCase().trim().equals("true");
-   if(Environment.MEASURE_MEMORY){
+   if(tools.Environment.MEASURE_MEMORY){
       Reporter.writeInfo("Enable messages about the used memory.");
    }
 
@@ -745,7 +739,7 @@ public MainWindow(String Title,String user,String passwd){
 
   OList.setMaxStringLength(maxStringLength);
   ListExpr.setMaxStringLength(maxStringLength);
-  Environment.MAX_STRING_LENGTH = maxStringLength;
+  tools.Environment.MAX_STRING_LENGTH = maxStringLength;
 
   if(StartScript!=null ){
       StartScript = StartScript.trim();
@@ -755,7 +749,7 @@ public MainWindow(String Title,String user,String passwd){
          executeFile(StartScript,true);
       }
       else{ // ignore errors in StartScript in testmode
-         executeFile(StartScript,Environment.TESTMODE!=Environment.NO_TESTMODE);
+         executeFile(StartScript,tools.Environment.TESTMODE!=tools.Environment.NO_TESTMODE);
       }
    }
 
@@ -1413,14 +1407,14 @@ public boolean execGuiCommand(String command){
      command = command.substring(16).trim();
      StringTokenizer st = new StringTokenizer(command);
      while(st.hasMoreTokens()){
-        Environment.insertExtension(st.nextToken());
+        gui.Environment.insertExtension(st.nextToken());
      }
      ComPanel.showPrompt();
   } else if(command.startsWith("deleteExtensions")){
      command = command.substring(16).trim();
      StringTokenizer st = new StringTokenizer(command);
      while(st.hasMoreTokens()){
-        Environment.removeExtension(st.nextToken());
+        gui.Environment.removeExtension(st.nextToken());
      }
      ComPanel.showPrompt();
   }else if(command.startsWith("set")){
@@ -1435,11 +1429,11 @@ public boolean execGuiCommand(String command){
         String value = st.nextToken();
         if(var.equals("debugmode")){
            if(value.equals("true")){
-             Environment.DEBUG_MODE = true;
+             tools.Environment.DEBUG_MODE = true;
              ComPanel.appendText("enable debug mode");
              ComPanel.showPrompt();
            }else if(value.equals("false")){
-             Environment.DEBUG_MODE = false;
+             tools.Environment.DEBUG_MODE = false;
              ComPanel.appendText("disable debug mode");
              ComPanel.showPrompt();
            } else{
@@ -1448,11 +1442,11 @@ public boolean execGuiCommand(String command){
            }
         }  else if(var.equals("timemeasures")){
            if(value.equals("true")){
-             Environment.MEASURE_TIME = true;
+             tools.Environment.MEASURE_TIME = true;
              ComPanel.appendText("enable time measures");
              ComPanel.showPrompt();
            }else if(value.equals("false")){
-             Environment.MEASURE_TIME = false;
+             tools.Environment.MEASURE_TIME = false;
              ComPanel.appendText("disable time measures");
              ComPanel.showPrompt();
            } else{
@@ -1461,11 +1455,11 @@ public boolean execGuiCommand(String command){
            }
         } else if(var.equals("formattedtext")){
            if(value.equals("true")){
-             Environment.FORMATTED_TEXT = true;
+             tools.Environment.FORMATTED_TEXT = true;
              ComPanel.appendText("enable colorized text");
              ComPanel.showPrompt();
            }else if(value.equals("false")){
-             Environment.FORMATTED_TEXT = false;
+             tools.Environment.FORMATTED_TEXT = false;
              ComPanel.appendText("disable colorized text");
              ComPanel.showPrompt();
            } else{
@@ -1474,11 +1468,11 @@ public boolean execGuiCommand(String command){
            }
         } else if(var.equals("showcommand")){
            if(value.equals("true")){
-             Environment.SHOW_COMMAND = true;
+             tools.Environment.SHOW_COMMAND = true;
              ComPanel.appendText("show command before executing it");
              ComPanel.showPrompt();
            }else if(value.equals("false")){
-             Environment.SHOW_COMMAND = false;
+             tools.Environment.SHOW_COMMAND = false;
              ComPanel.appendText("do not show command before executing it");
              ComPanel.showPrompt();
            } else{
@@ -1487,11 +1481,11 @@ public boolean execGuiCommand(String command){
            }
         } else if(var.equals("servertrace")){
            if(value.equals("true")){
-             Environment.TRACE_SERVER_COMMANDS = true;
+             tools.Environment.TRACE_SERVER_COMMANDS = true;
              ComPanel.appendText("enable tracing of client server protocol");
              ComPanel.showPrompt();
            }else if(value.equals("false")){
-             Environment.TRACE_SERVER_COMMANDS= false;
+             tools.Environment.TRACE_SERVER_COMMANDS= false;
              ComPanel.appendText("disable tracing of client server protocol");
              ComPanel.showPrompt();
            } else{
@@ -1500,11 +1494,11 @@ public boolean execGuiCommand(String command){
            }
        } else if(var.equals("commandstyle")){
            if(value.equals("tty")){
-             Environment.TTY_STYLED_COMMAND = true;
+             gui.Environment.TTY_STYLED_COMMAND = true;
              ComPanel.appendText("use commands in tty style");
              ComPanel.showPrompt();
            }else if(value.equals("gui")){
-             Environment.TTY_STYLED_COMMAND= false;
+             gui.Environment.TTY_STYLED_COMMAND= false;
              ComPanel.appendText("use commands in gui style");
              ComPanel.showPrompt();
            } else{
@@ -1513,11 +1507,11 @@ public boolean execGuiCommand(String command){
            }
        } else if(var.equals("scriptstyle")){
            if(value.equals("tty")){
-             Environment.TTY_STYLED_SCRIPT = true;
+             gui.Environment.TTY_STYLED_SCRIPT = true;
              ComPanel.appendText("use scripts in tty style");
              ComPanel.showPrompt();
            }else if(value.equals("gui")){
-             Environment.TTY_STYLED_SCRIPT= false;
+             gui.Environment.TTY_STYLED_SCRIPT= false;
              ComPanel.appendText("use scripts in gui style");
              ComPanel.showPrompt();
            } else{
@@ -1548,7 +1542,7 @@ public boolean execGuiCommand(String command){
   * @param ignoreErrors stop if an errors is detected and the value is false
   * @return number of errors occured*/
 public int executeFile(String fileName, boolean ignoreErrors){
-  if(Environment.TTY_STYLED_SCRIPT){
+  if(gui.Environment.TTY_STYLED_SCRIPT){
      return executeTTYScript(fileName,ignoreErrors);
   }else{
      return executeSimpleFile(fileName,ignoreErrors);
@@ -2024,21 +2018,21 @@ public static void main(String[] args){
   String testFileName = null;
   while(argspos < args.length){
      if(args[argspos].equals("--testmode")){
-        Environment.TESTMODE = Environment.SIMPLE_TESTMODE;
+        tools.Environment.TESTMODE = tools.Environment.SIMPLE_TESTMODE;
         argspos++;
         if(argspos<args.length){
           testFileName = args[argspos];
           argspos++;
         }
      } else if(args[argspos].equals("--testmode2")){
-        Environment.TESTMODE = Environment.EXTENDED_TESTMODE;
+        tools.Environment.TESTMODE = tools.Environment.EXTENDED_TESTMODE;
         argspos++;
         if(argspos<args.length){
           testFileName = args[argspos];
           argspos++;
         }
      } else if(args[argspos].equals("--testrunner")){
-        Environment.TESTMODE = Environment.TESTRUNNER_MODE;
+        tools.Environment.TESTMODE = tools.Environment.TESTRUNNER_MODE;
         argspos++;
         if(argspos<args.length){
           testFileName = args[argspos];
@@ -2070,7 +2064,7 @@ public static void main(String[] args){
 
   File testfile=null;
   // extract the file from the second argument
-  if(Environment.TESTMODE != Environment.NO_TESTMODE){
+  if(tools.Environment.TESTMODE != tools.Environment.NO_TESTMODE){
      if(testFileName!=null && !testFileName.equals("")){
         testfile = new File(args[1]);
         if(!testfile.exists()){
@@ -2111,15 +2105,15 @@ public static void main(String[] args){
   SecGui.setVisible(true);
 
   // simple testmode
-  if(Environment.TESTMODE == Environment.SIMPLE_TESTMODE && testfile!=null){
+  if(tools.Environment.TESTMODE == tools.Environment.SIMPLE_TESTMODE && testfile!=null){
      Reporter.writeInfo("Run Testfile");
      SecGui.executeFile(testfile.getAbsolutePath(),true);
   }
 
 
    // extended testmode
-  if(Environment.TESTMODE == Environment.EXTENDED_TESTMODE){
-     Environment.DEBUG_MODE=true;
+  if(tools.Environment.TESTMODE == tools.Environment.EXTENDED_TESTMODE){
+     tools.Environment.DEBUG_MODE=true;
      if(testfile==null){
         Reporter.writeError("the extended testmode requires an testfile ");
         SecGui.shutdown(1);
@@ -2139,9 +2133,9 @@ public static void main(String[] args){
      SecGui.shutdown(errors);
   } 
 
-  if(Environment.TESTMODE==Environment.TESTRUNNER_MODE){
+  if(tools.Environment.TESTMODE==tools.Environment.TESTRUNNER_MODE){
       Reporter.writeInfo(" ======    TESTRUNNER MODE ====");
-      Environment.DEBUG_MODE=true;
+      tools.Environment.DEBUG_MODE=true;
       if(testfile==null){
          Reporter.writeError("file expected");
       }else{
@@ -2808,17 +2802,17 @@ private void createMenuBar(){
 /** clear the History, the ObjectList and the Content of all Viewers */
 public void clearAll(){
   long usedMemory=0;
-  if(Environment.MEASURE_MEMORY){
-      usedMemory=Environment.usedMemory();
+  if(tools.Environment.MEASURE_MEMORY){
+      usedMemory=tools.Environment.usedMemory();
   } 
   ComPanel.clear();
   OList.clearList();
   for(int i=0;i<AllViewers.size();i++)
      ((SecondoViewer) AllViewers.get(i)).removeAll();
   System.gc();
-  if(Environment.MEASURE_MEMORY){
+  if(tools.Environment.MEASURE_MEMORY){
      Reporter.writeInfo("Memory difference by clear: "+
-                         Environment.formatMemory(Environment.usedMemory()-usedMemory));
+                         tools.Environment.formatMemory(tools.Environment.usedMemory()-usedMemory));
   }
 }
 

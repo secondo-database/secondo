@@ -35,7 +35,7 @@ public class Formatstring implements viewer.update.LEFormatter{
    }
 
    public ListExpr StringToListExpr(String value){
-       if(value.length()>gui.Environment.MAX_STRING_LENGTH)
+       if(value.length()>tools.Environment.MAX_STRING_LENGTH)
            return null;
        if(value.indexOf("\"")>=0)
            return null;

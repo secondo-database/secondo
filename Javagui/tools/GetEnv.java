@@ -1,7 +1,6 @@
 
 package tools;
 
-import gui.Environment;
 
 
 /** This class provides the getenv mechanism.
@@ -16,10 +15,6 @@ import gui.Environment;
   * library path of the Java VM.
   **/
 public class GetEnv{
-  /** variable denoting the possibility to use the 
-    * mechanism embedded in Java. 
-    **/
-  private static boolean simple = isSimple();
 
   /** Declaration of the c implementation **/
   private static native String getEnvFromC(String name);
@@ -28,26 +23,7 @@ public class GetEnv{
     * specified name 
     **/
   public static String getEnv(String name){
-    if(simple){
         return System.getenv(name);
-    } else{
-        if(Environment.USE_GETENV){
-           return getEnvFromC(name);
-        }else{
-          Reporter.writeError("getenv disabled but called");
-          return name;
-        }
-    }
-  }
-
-  /** checks for version 1.4 **/
-  private static boolean isSimple(){
-     try{
-        return !System.getProperty("java.version").startsWith("1.4"); 
-     }catch(Exception e){
-        Reporter.writeError("cannot find out the currently used java version");
-        return false;
-     }
   }
 
   /** function for testing this class */
@@ -59,19 +35,6 @@ public class GetEnv{
       }   catch(Exception e){}
     }
 
-  }
-
-  static {
-   if(Environment.USE_GETENV){
-      try{ 
-         System.loadLibrary("GetEnv");
-      }catch(Exception e){
-          Reporter.writeError("cannot load the GetEnv native library. please check your library path!");
-          Reporter.writeWarning("The getEnv mechanism will not be available");
-          Reporter.debug(e);
-          Environment.USE_GETENV=false; 
-      }
-   }
   }
 
 }

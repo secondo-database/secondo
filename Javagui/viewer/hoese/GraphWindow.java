@@ -322,7 +322,7 @@ public class GraphWindow extends JLayeredPane
     Background bgi = getBackgroundObject();
     if(bgi==null){
       repaint();
-      if(gui.Environment.DEBUG_MODE){
+      if(tools.Environment.DEBUG_MODE){
           Reporter.writeError("cannot find the background ");
       }
       return;

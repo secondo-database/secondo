@@ -206,7 +206,7 @@ This methode searches for metadata in the byterepresentation for jpeg.
 	private void processJpegMetaData(byte[] buf)
 	{
 	    int len = 1;
-            if(gui.Environment.DEBUG_MODE)
+            if(tools.Environment.DEBUG_MODE)
   	       Reporter.debug("PictureIcon jpeg meta M_COM="
 	  		           + M_COM
 			           + " M_SOS="

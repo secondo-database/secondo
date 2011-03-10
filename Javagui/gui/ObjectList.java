@@ -362,7 +362,7 @@ public void selectObject(SecondoObject SO){
 }
 
 public void clearList(){
-  long usedMemory = Environment.MEASURE_MEMORY?Environment.usedMemory():0L;
+  long usedMemory = tools.Environment.MEASURE_MEMORY?tools.Environment.usedMemory():0L;
 
   int len=Objects.size();
   for(int i=0;i<len;i++){
@@ -375,10 +375,10 @@ public void clearList(){
   }
   System.gc();
   updateList();
-  if(Environment.MEASURE_MEMORY){
+  if(tools.Environment.MEASURE_MEMORY){
      Reporter.writeInfo("Memory difference by clearing object list: "+
-                         Environment.formatMemory(Environment.usedMemory()-usedMemory));
-     Environment.printMemoryUsage();
+                         tools.Environment.formatMemory(tools.Environment.usedMemory()-usedMemory));
+     tools.Environment.printMemoryUsage();
   }
 }
 
@@ -458,9 +458,9 @@ public void showAll(){
   * @return number of loaded Objects
   */
 public int loadObject(){
-       if(Environment.MEASURE_MEMORY){ 
+       if(tools.Environment.MEASURE_MEMORY){ 
           Reporter.writeInfo("Memory used before loading object ");
-          Environment.printMemoryUsage();
+          tools.Environment.printMemoryUsage();
        }
        int number = 0;
        File CurrentDir = FileChooser.getCurrentDirectory();
@@ -480,9 +480,9 @@ public int loadObject(){
               }
            }
        }
-       if(Environment.MEASURE_MEMORY){ 
+       if(tools.Environment.MEASURE_MEMORY){ 
           Reporter.writeInfo("Memory used after loading object ");
-          Environment.printMemoryUsage();
+          tools.Environment.printMemoryUsage();
        }
        return number;
 }
@@ -671,9 +671,9 @@ public boolean saveSelectedObject(){
  // delete the selected object from list **/
  public boolean removeSelectedObject(){
    boolean removed = false;
-   if(Environment.MEASURE_MEMORY){ 
+   if(tools.Environment.MEASURE_MEMORY){ 
        Reporter.writeInfo("Memory used before deleting objects ");
-       Environment.printMemoryUsage();
+       tools.Environment.printMemoryUsage();
    }
    int[] indices = Content.getSelectedIndices();
    if (indices.length==0){
@@ -692,27 +692,27 @@ public boolean saveSelectedObject(){
        }
     }
    }
-   if(Environment.MEASURE_MEMORY){ 
+   if(tools.Environment.MEASURE_MEMORY){ 
        Reporter.writeInfo("Memory used after deleting objects ");
-       Environment.printMemoryUsage();
+       tools.Environment.printMemoryUsage();
    }
    return removed;
  }
 
  // remove the given Object
  public void removeObject(SecondoObject SO){
-   if(Environment.MEASURE_MEMORY){ 
+   if(tools.Environment.MEASURE_MEMORY){ 
        Reporter.writeInfo("Memory used before deleting object ");
-       Environment.printMemoryUsage();
+       tools.Environment.printMemoryUsage();
    }
    int index = Objects.indexOf(SO);
    if(index>=0){
       myListModel.remove(index);
       Objects.remove(index);
    }
-   if(Environment.MEASURE_MEMORY){ 
+   if(tools.Environment.MEASURE_MEMORY){ 
        Reporter.writeInfo("Memory used after deleting object ");
-       Environment.printMemoryUsage();
+       tools.Environment.printMemoryUsage();
    }
  }
 
@@ -783,9 +783,9 @@ public boolean storeSelectedObject(){
 
 
 public void addEntry(SecondoObject SO){
- if(Environment.MEASURE_MEMORY){ 
+ if(tools.Environment.MEASURE_MEMORY){ 
        Reporter.writeInfo("Memory used before adding object ");
-       Environment.printMemoryUsage();
+       tools.Environment.printMemoryUsage();
  }
   if(SO!=null){
      if (Objects.indexOf(SO)<0){   // object not in list
@@ -813,9 +813,9 @@ public void addEntry(SecondoObject SO){
             markAsNoDisplayed(SO);
      }
   }   
- if(Environment.MEASURE_MEMORY){ 
+ if(tools.Environment.MEASURE_MEMORY){ 
        Reporter.writeInfo("Memory used after adding object ");
-       Environment.printMemoryUsage();
+       tools.Environment.printMemoryUsage();
  }
 }
 

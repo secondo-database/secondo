@@ -30,7 +30,6 @@ import java.awt.image.*;
 import java.awt.event.*;
 import javax.swing.event.*;
 import viewer.HoeseViewer;
-import gui.Environment;
 import tools.Reporter;
 
 /**
@@ -896,7 +895,7 @@ public class ViewConfig extends javax.swing.JDialog {
     try {
       NewCat = (Category)templCat.clone();
     } catch (Exception e) {
-       if(Environment.DEBUG_MODE){
+       if(tools.Environment.DEBUG_MODE){
           Reporter.writeError("Error in cloning of category");
        }
        return null;

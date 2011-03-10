@@ -5,7 +5,7 @@ fi
 
 FEF="-Dfile.encoding=UTF-8"
 
-CP="lib/java_cup_v10k_runtime.jar"$S"lib/jl0.4.jar"$S"."$S"lib/14_os_jpedal.jar""$S"lib/je.jar$S"lib/grappa1_2.jar"$S"lib/batik.jar"
+CP="lib/java_cup_v10k_runtime.jar"$S"lib/jl0.4.jar"$S"."$S"lib/14_os_jpedal.jar""$S"lib/je.jar$S"lib/grappa1_2.jar"$S"lib/batik.jar"$S"secondoInterface/SecondoInterface.jar"
 
 if [ -n "$SECONDO_JAVA" ]; then
   JAVA=$SECONDO_JAVA
@@ -13,5 +13,8 @@ if [ -n "$SECONDO_JAVA" ]; then
 else 
   JAVA="java"
 fi
+
+
+echo classpath= $CP
 
 $JAVA  -Xmx1024M -Djava.library.path=lib $FEF -classpath $CP gui.MainWindow $*

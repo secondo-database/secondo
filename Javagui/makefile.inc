@@ -83,6 +83,10 @@ ifdef SECONDO_JAVART
 CLASSPATH := $(CLASSPATH):$(SECONDO_JAVART)
 endif
 
+CLASSPATH := $(CLASSPATH):$(GUIPATH)/secondoInterface/SecondoInterface.jar
+
+
+
 JARS := $(JLEXCLASSESPATH):$(CUPCLASSESPATH)
 JARS := $(JARS):$(LIBPATH)/jl0.4.jar
 JARS := $(JARS):$(LIBPATH)/14_os_jpedal.jar

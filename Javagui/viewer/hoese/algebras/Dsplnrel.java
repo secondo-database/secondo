@@ -10,12 +10,12 @@ import java.awt.*;
 public class Dsplnrel extends DsplGeneric{
 	 public void init (String name, int nameWidth, int indent, ListExpr type, ListExpr value, QueryResult qr) {
 		 long startTime=0;
-		 if(gui.Environment.MEASURE_TIME){
+		 if(tools.Environment.MEASURE_TIME){
 			 startTime = System.currentTimeMillis();
 		 }
 		 long usedMemory=0;
-		 if(gui.Environment.MEASURE_MEMORY){
-			 usedMemory=gui.Environment.usedMemory();
+		 if(tools.Environment.MEASURE_MEMORY){
+			 usedMemory=tools.Environment.usedMemory();
 		 }
 		 int maxAttribNameLen = maxAttributLength(type.second().second());
 		 while (!value.isEmpty()) {
@@ -25,13 +25,13 @@ public class Dsplnrel extends DsplGeneric{
 		    	qr.addEntry("---------");
 		}
 			    
-		if(gui.Environment.MEASURE_TIME){
+		if(tools.Environment.MEASURE_TIME){
 		 Reporter.writeInfo(" Building nested relation has taken :"+
 		             (System.currentTimeMillis()-startTime)+" milliseconds");
 		}
-		if(gui.Environment.MEASURE_MEMORY){
+		if(tools.Environment.MEASURE_MEMORY){
 		 Reporter.writeInfo("Memory-Difference :"+ 
-		             gui.Environment.formatMemory( gui.Environment.usedMemory()-usedMemory));
+		             tools.Environment.formatMemory( tools.Environment.usedMemory()-usedMemory));
 		}
 	 }
 	 

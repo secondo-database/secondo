@@ -185,7 +185,7 @@ public class CommandPanel extends JScrollPane {
    */
   public void appendText (String txt) {
     SystemArea.append(txt);
-    if(Environment.TESTMODE != Environment.NO_TESTMODE ){
+    if(tools.Environment.TESTMODE != tools.Environment.NO_TESTMODE ){
       Reporter.writeInfo(txt);
     }
   }
@@ -695,10 +695,10 @@ public class CommandPanel extends JScrollPane {
 
      // optimize the select-clause
      long starttime=0;
-     if(Environment.MEASURE_TIME)
+     if(tools.Environment.MEASURE_TIME)
         starttime = System.currentTimeMillis();
      String opt = OptInt.optimize_execute(SelectClause,OpenedDatabase,Err,false);
-     if(Environment.MEASURE_TIME){
+     if(tools.Environment.MEASURE_TIME){
         Reporter.writeInfo("used time to optimize query: "+(System.currentTimeMillis()-starttime)+" ms");
      }
      if(Err.value!=ErrorCodes.NO_ERROR){  // error in optimization
@@ -794,14 +794,14 @@ public class CommandPanel extends JScrollPane {
           }
        }
        long starttime=0;
-       if(Environment.MEASURE_TIME)
+       if(tools.Environment.MEASURE_TIME)
           starttime = System.currentTimeMillis();
 
        int OptCommandLength = eval?EvalString.length():OptString.length();
 
        String answer = sendToOptimizer(command.substring(OptCommandLength));
 
-       if(Environment.MEASURE_TIME)
+       if(tools.Environment.MEASURE_TIME)
           Reporter.writeInfo("used time for optimizing: "+(System.currentTimeMillis()-starttime)+" ms");
 
        if(answer==null){
@@ -869,7 +869,7 @@ public class CommandPanel extends JScrollPane {
           }
           appendText("\n" + command + "...");
           long starttime=0;
-          if(Environment.MEASURE_TIME){
+          if(tools.Environment.MEASURE_TIME){
                starttime = System.currentTimeMillis();
           }
 
@@ -879,7 +879,7 @@ public class CommandPanel extends JScrollPane {
                                    errorPos, 
                                    errorMessage);
 
-           if(Environment.MEASURE_TIME){
+           if(tools.Environment.MEASURE_TIME){
                  Reporter.writeInfo("used time for query: "+
                  (System.currentTimeMillis()-starttime)+" ms");
             }
@@ -979,7 +979,7 @@ public class CommandPanel extends JScrollPane {
     StringBuffer errorMessage = new StringBuffer();
 
     long starttime=0;
-    if(Environment.MEASURE_TIME)
+    if(tools.Environment.MEASURE_TIME)
         starttime = System.currentTimeMillis();
 
      // Executes the remote command.
@@ -988,7 +988,7 @@ public class CommandPanel extends JScrollPane {
                              errorCode, 
                              errorPos, 
                              errorMessage);
-    if(Environment.MEASURE_TIME){
+    if(tools.Environment.MEASURE_TIME){
        Reporter.writeInfo("used time for query: "+(System.currentTimeMillis()-starttime)+" ms");
     }
 
@@ -1016,14 +1016,14 @@ public class CommandPanel extends JScrollPane {
     StringBuffer errorMessage = new StringBuffer();
 
     long starttime=0;
-    if(Environment.MEASURE_TIME)
+    if(tools.Environment.MEASURE_TIME)
        starttime = System.currentTimeMillis();
 
     // Executes the remote command.
     Secondointerface.secondo(command,           //Command to execute.
                              resultList, 
                              errorCode, errorPos, errorMessage);
-    if(Environment.MEASURE_TIME){
+    if(tools.Environment.MEASURE_TIME){
        Reporter.writeInfo("used time for query: "+(System.currentTimeMillis()-starttime)+" ms");
     }
 
@@ -1280,7 +1280,7 @@ public class CommandPanel extends JScrollPane {
        int keyCode = e.getKeyCode();
        int mod = e.getModifiersEx();
        if(keyCode==KeyEvent.VK_ENTER){
-           if(Environment.TTY_STYLED_COMMAND){
+           if(gui.Environment.TTY_STYLED_COMMAND){
               processReturnInTTYMode(e);
            } else{
               processReturnInGuiMode(e);
@@ -1361,7 +1361,7 @@ public class CommandPanel extends JScrollPane {
             }
             // handle more separators here
             String word = query.substring(Math.max(pos1,pos2));
-            Vector ext = Environment.getExtensions(word);
+            Vector ext = gui.Environment.getExtensions(word);
             int size = ext.size();
             if(size==0){ // no extension found 
                return;
