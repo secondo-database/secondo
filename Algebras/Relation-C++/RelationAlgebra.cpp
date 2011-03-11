@@ -5199,6 +5199,10 @@ ListExpr RenameAttrTypeMap(ListExpr args){
   ListExpr renames = nl->Second(args);
   ListExpr attrList = nl->Second(nl->Second(stream));
 
+ if(nl->AtomType(renames)!=NoAtom){
+    return listutils::typeError("second argument must be a list of renamings");
+ } 
+
   while(!nl->IsEmpty(renames)){
     ListExpr rename = nl->First(renames);
     renames = nl->Rest(renames);
