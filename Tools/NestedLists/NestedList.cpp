@@ -534,8 +534,8 @@ NestedList::HasLength( ListExpr list, const int n ) const
     return false;
   }
 
-  if(IsEmpty(list)){
-    return n==0;
+  if(n==0){
+    return IsEmpty(list);
   }
   
   int result = 0;
