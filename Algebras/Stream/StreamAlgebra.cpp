@@ -2923,7 +2923,8 @@ streamCountType( ListExpr args )
           }
       }
     }
-  nl->WriteToString(outstr, nl->First(args));
+
+  nl->WriteToString(outstr, (args));
   ErrorReporter::ReportError("Operator count expects only a single "
                              "argument of type (stream T), T "
                              "in kind DATA. The argument provided "
@@ -3083,8 +3084,9 @@ streamPrintstreamType( ListExpr args )
   ListExpr stream, errorInfo;
   string out;
 
+ 
+
   errorInfo = nl->OneElemList(nl->SymbolAtom("ERROR"));
-  stream = nl->First(args);
 
   if ( nl->ListLength(args) != 1 )
     {
@@ -3093,6 +3095,7 @@ streamPrintstreamType( ListExpr args )
       return nl->SymbolAtom("typeerror");
     }
 
+  stream = nl->First(args);
   // test first argument for stream(T), T in kind DATA
   if (     nl->IsAtom(stream)
            || !(nl->ListLength(stream) == 2)
