@@ -9994,6 +9994,10 @@ ListExpr EqualizeUTM(ListExpr args){
 
 ListExpr MIntHatTypeMap(ListExpr args){
    string err = "mint expected";
+   if(nl->ListLength(args)!=1){
+     ErrorReporter::ReportError(err);
+     return nl->TypeError();
+   }
    if(nl->IsEqual(nl->First(args),"mint"))
          return nl->SymbolAtom("mint");
    ErrorReporter::ReportError(err);
