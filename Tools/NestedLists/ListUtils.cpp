@@ -465,6 +465,7 @@ double getNumValue(ListExpr n){
   } else {
     assert(false);
   }
+  return 0.0;
 }
 
 bool isNumericType(ListExpr n){

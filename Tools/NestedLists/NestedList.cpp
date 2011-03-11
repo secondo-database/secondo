@@ -530,9 +530,14 @@ a list, and -1, if it is an atom.
 bool
 NestedList::HasLength( ListExpr list, const int n ) const
 {
-  if ( IsAtom(list) )
+  if ( IsAtom(list) ){
     return false;
+  }
 
+  if(IsEmpty(list)){
+    return n==0;
+  }
+  
   int result = 0;
   while ( !IsEmpty( list ) && (result < n) )
   {
