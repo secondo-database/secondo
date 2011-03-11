@@ -320,7 +320,7 @@ ListExpr EdgeIntTypeMap(ListExpr args)
     {
       ErrorReporter::ReportError(
         "Type mapping function got paramater of type " +
-        nl->SymbolValue(arg));
+        nl->ToString(arg));
     }
   }
   else
@@ -344,7 +344,7 @@ ListExpr EdgeRealTypeMap(ListExpr args)
     {
       ErrorReporter::ReportError(
         "Type mapping function got paramater of type " +
-        nl->SymbolValue(arg));
+        nl->ToString(arg));
     }
   }
   else

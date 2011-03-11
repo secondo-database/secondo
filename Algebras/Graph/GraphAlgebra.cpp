@@ -122,7 +122,7 @@ ListExpr theVertexMap ( ListExpr args ) {
          (nl->AtomType(arg2) == SymbolType))
        ErrorReporter::ReportError(
                 "Type mapping function got parameters of type "+
-                nl->SymbolValue(arg1)+" and "+nl->SymbolValue(arg2));
+                nl->ToString(arg1)+" and "+nl->ToString(arg2));
      else
        ErrorReporter::ReportError(
                 "Type mapping function got wrong types as parameters.");
@@ -154,7 +154,7 @@ ListExpr minMaxDegreeMap ( ListExpr args ) {
          (nl->AtomType(arg2) == SymbolType))
        ErrorReporter::ReportError(
               "Type mapping function got parameters of type "+
-              nl->SymbolValue(arg1)+" and "+nl->SymbolValue(arg2));
+              nl->ToString(arg1)+" and "+nl->ToString(arg2));
      else
        ErrorReporter::ReportError(
               "Type mapping function got wrong types as parameters.");
@@ -586,7 +586,7 @@ ListExpr GraphGraphTypeMap(ListExpr args)
     {
       ErrorReporter::ReportError(
         "Operator 'placenodes' got paramater of type " +
-        nl->SymbolValue(arg));
+        nl->ToString(arg));
     }
   }
   else
@@ -618,7 +618,7 @@ ListExpr GraphGraphGraphTypeMap(ListExpr args)
     {
       ErrorReporter::ReportError(
           "GraphGraphGraphTypeMap got paramaters of type " +
-        nl->SymbolValue(arg1) + " and " + nl->SymbolValue(arg2));
+        nl->ToString(arg1) + " and " + nl->ToString(arg2));
     }
   }
   else
@@ -650,7 +650,7 @@ ListExpr GraphGraphBoolTypeMap(ListExpr args)
     {
       ErrorReporter::ReportError(
           "GraphGraphBoolTypeMap got paramaters of type " +
-        nl->SymbolValue(arg1) + " and " + nl->SymbolValue(arg2));
+        nl->ToString(arg1) + " and " + nl->ToString(arg2));
     }
   }
   else
