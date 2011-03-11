@@ -95,6 +95,76 @@ ostream& Print ( ostream& os ) const
   bool startbool, endbool;
 };
 
+class ShortestPathTreeEntry
+{
+  public:
+  ShortestPathTreeEntry(){};
+
+  ShortestPathTreeEntry(const double d, const bool up):
+    dist(d),upDown(up)
+  {};
+
+  ~ShortestPathTreeEntry(){};
+
+  void SetDist(const double d)
+  {
+    dist = d;
+  }
+
+  void SetUpDown (const bool up)
+  {
+    upDown = up;
+  }
+
+  double GetDist() const
+  {
+    return dist;
+  }
+
+  bool GetUpDown() const
+  {
+    return upDown;
+  }
+
+  private:
+    double dist;
+    bool upDown;
+};
+
+struct AdjacentSectionsPair
+{
+  AdjacentSectionsPair(){};
+
+  AdjacentSectionsPair(const int sid, const bool up) :
+    secID(sid),upDown(up)
+  {};
+
+  ~ AdjacentSectionsPair(){};
+
+  inline int GetSectionID() const
+  {
+    return secID;
+  }
+
+  inline bool GetUpDownFlag() const
+  {
+    return upDown;
+  }
+
+  inline void SetSectionID(const int sid)
+  {
+    secID = sid;
+  }
+
+  inline void SetUpDownFlag(const bool up)
+  {
+    upDown = up;
+  }
+
+  int secID;
+  bool upDown;
+};
+
 class GPoints;
 class Network;
 class GLine;
@@ -685,14 +755,15 @@ Using AStarAlgorithm
                          DbArray<TupleId>* touchedSects = 0) const;
 
 /*
-Returns the shortest path tree from the source in the given network.
-Complete for complete = true and until every point of the target is reached
-for complete = false.
+Returns the shortest path tree from the gpoint to all sections of the
+network. The distances are stored in an DbArray<double>, where the index
+of the Array-Field is two times the section number for up sections and
+two times the section number plus one for down sections.
 
 */
- bool ShortestPathTree(const Network* pNetwork, const bool complete,
-                       const GPoint* target, GLine* result) const;
 
+ void ShortestPathTree(const Network* pNetwork,
+                       DbArray<ShortestPathTreeEntry> *res);
 
   private:
 
@@ -1541,6 +1612,9 @@ downwards bool from the section given by TupleId.
                              const bool in_bUpDown,
                              vector<DirectedSection> &inout_xSections) const;
 
+    void GetAdjacentSections(const int sectId, const bool upDown,
+                             DbArray<AdjacentSectionsPair> *resArray) const;
+
 /*
 GetSections on RouteInterval.
 
@@ -1688,14 +1762,19 @@ isDefined
 
   void GetTupleIdSectionOnRouteJun(const GPoint* in_xGPoint,
                                    vector<TupleId>&) const;
-  int GetNoJunctions() const
+  inline int GetNoJunctions() const
   {
     return m_pJunctions->GetNoTuples();
   }
 
-  int GetNoRoutes() const
+  inline int GetNoRoutes() const
   {
     return m_pRoutes->GetNoTuples();
+  }
+
+  inline int GetNoSections() const
+  {
+    return m_pSections->GetNoTuples();
   }
 
 private:
@@ -2870,6 +2949,7 @@ private:
 
   DbArray<GPoint> m_xGPoints;
 };
+
 
 
 #endif // __NETWORK_ALGEBRA_H__

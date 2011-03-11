@@ -406,12 +406,12 @@ Result   : (gpoints((1 1 100.5 2)(1 3 4.5 2)(1 3 34.0 2)))
 
 Operator : shortestpathtree
 Number   : 1
-Signature: gpoint x network x bool -> gline
-Example  : query shortestpathtree([const gpoint value(1 1 0.5 2)], B_NETWORK, TRUE);
+Signature: gpoint x network -> stream(tuple((int)(real)))
+Example  : query shortestpathtree([const gpoint value(1 1 0.5 2)], B_NETWORK) consume;
 Result   : file
 
-Operator : shortestpathtree
-Number   : 2
-Signature: gpoint x network x bool x gpoint -> gline
-Example  : query shortestpathtree([const gpoint value(1 1 0.5 2)], B_NETWORK, FALSE, [const gpoint value(1 5 0.6 2)]);
+Operator : getAdjacentSections
+Number   : 1
+Signature: network X int X bool -> stream(tuple(int bool)))
+Example  : query getAdjacentSections(B_NETWORK, 1, TRUE) consume;
 Result   : file
