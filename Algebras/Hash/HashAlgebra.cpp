@@ -1691,10 +1691,14 @@ value            --> string
 
 ListExpr getFileInfoHashTypeMap(ListExpr args)
 {
+  
+  if(nl->ListLength(args)!=1){
+    return NList::typeError("1 arguiment expected.");
+  }
+
   ListExpr btreeDescription = nl->First(args);
 
-  if(    (nl->ListLength(args) != 1)
-      || nl->IsAtom(btreeDescription)
+  if( nl->IsAtom(btreeDescription)
       || (nl->ListLength(btreeDescription) != 3)
     ) {
     return NList::typeError("1st argument is not a hash table.");

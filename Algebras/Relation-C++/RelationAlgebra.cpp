@@ -5173,7 +5173,7 @@ RenameTypeMap( ListExpr args )
 ListExpr RenameAttrTypeMap(ListExpr args){
 
 
-  if(!nl->ListLength(args)==2){
+  if(nl->ListLength(args)!=2){
      return listutils::typeError("two arguments expected");
   }
 
