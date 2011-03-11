@@ -525,7 +525,7 @@ Creates an iterator for this ~CTable~, pointing beyond the last valid slot.
 */
 
   const string StateToStr(); 
-  long GetSlotSize() { return slotSize; }
+  intptr_t GetSlotSize() { return slotSize; }
 
 /* 
 
@@ -554,8 +554,8 @@ private:
                     // which uses memory more efficiently
  
     // calculation of allocated memory	 
-    long dT = ((long)++ptrT); 
-    long db = ((long)++ptrb);
+    intptr_t dT = ((intptr_t)++ptrT); 
+    intptr_t db = ((intptr_t)++ptrb);
     slotSize = dT + db; 
   }
   
@@ -566,7 +566,7 @@ private:
   bool setFALSE;     // Reference Values needed for the 
   bool setTRUE;      // PArray.Put(int index, T& elem) method
   T* dummyElem;
-	T lastAccessedElem;          // For speed up of []operator implementation
+	T lastAccessedElem; // For speed up of []operator implementation
 	Cardinal lastAccessedIndex;
 
   PagedArray<T>* table;        // Array of table elements
@@ -580,7 +580,7 @@ private:
 
 #endif // common member variables
 
-  long slotSize;
+  intptr_t slotSize;
   bool isPersistent;       // Flag indicating the implemented model
   Cardinal elemCount;      // Size of compact table
   Cardinal leastFree;      // Position of free slot
