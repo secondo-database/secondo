@@ -2267,7 +2267,7 @@ bool UPoint::AtRegion(const Region *r, vector<UPoint> &result) const {
   // create a halfsegment hs using Trajectory() and compute intersection
   vector<UPoint> tmpresult(0);
   UPoint ures(false);
-  Instant t_left(instanttype),  t_right(instanttype), 
+  Instant t_left(instanttype),  t_right(instanttype),
           t_start(instanttype), t_end(instanttype);
 
   // handle linear intersections
@@ -9143,12 +9143,13 @@ ListExpr MovingTypeMapgk(ListExpr args){
 
 ListExpr DelayOperatorTypeMapping( ListExpr typeList )
 {
-	if(nl->ListLength(typeList) == 2 &&
-			nl->IsAtom(nl->First(typeList)) &&
-			  (nl->SymbolValue(nl->First(typeList))== "mpoint") &&
-			nl->IsAtom(nl->Second(typeList)) &&
-			  (nl->SymbolValue(nl->Second(typeList))== "mpoint"))
-		return (nl->SymbolAtom("mreal"));
+  if( nl->ListLength(typeList) == 2 &&
+      nl->IsAtom(nl->First(typeList)) &&
+      (nl->SymbolValue(nl->First(typeList))== "mpoint") &&
+      nl->IsAtom(nl->Second(typeList)) &&
+      (nl->SymbolValue(nl->Second(typeList))== "mpoint") ) {
+    return (nl->SymbolAtom("mreal"));
+  }
 
 /*
 Not implemented:
@@ -9157,11 +9158,11 @@ Not implemented:
       (necessary to compute the distance traversed)
 
 */
-	string argstr;
-	nl->WriteToString(argstr, typeList);
-	cmsg.typeError("delay operator expects a list with structure "
-			"(mpoint mpoint), but got " + argstr);
-	return nl->GetErrorList();
+  string argstr;
+  nl->WriteToString(argstr, typeList);
+  ErrorReporter::ReportError("delay operator expects a list with structure "
+                             "(mpoint mpoint), but got " + argstr);
+  return nl->TypeError();
 
 }
 
@@ -10151,10 +10152,11 @@ signatures:
 
 ListExpr DistanceTraversedOperatorTypeMapping( ListExpr typeList )
 {
-	if(nl->ListLength(typeList) == 1 &&
-			nl->IsAtom(nl->First(typeList)) &&
-			(nl->SymbolValue(nl->First(typeList))== "mpoint") )
-		return (nl->SymbolAtom("mreal"));
+  if( nl->ListLength(typeList) == 1 &&
+      nl->IsAtom(nl->First(typeList)) &&
+      (nl->SymbolValue(nl->First(typeList))== "mpoint") ) {
+    return (nl->SymbolAtom("mreal"));
+  }
 
 /*
 Not implemented:
@@ -10162,11 +10164,11 @@ Not implemented:
       (necessary to compute the distance traversed)
 
 */
-		string argstr;
-		nl->WriteToString(argstr, typeList);
-		cmsg.typeError("distancetraversed operator expects a list with "
-				"structure (mpoint), but got " + argstr);
-		return nl->GetErrorList();
+  string argstr;
+  nl->WriteToString(argstr, typeList);
+  ErrorReporter::ReportError("distancetraversed operator expects a list with "
+                             "structure (mpoint), but got " + argstr);
+  return nl->TypeError();
 }
 
 /*
