@@ -35,6 +35,9 @@ ListExpr getentry2::TypeMapping(ListExpr args)
     return listutils::typeError("one or two arguments expected");
   }
   ListExpr first = nl->First(args);
+  if(nl->ListLength(first) < 1){
+    return listutils::typeError("first arg is not a btree2");
+  }
   if (!listutils::isSymbol(nl->First(first),"btree2")) {
     return listutils::typeError("first arg is not a btree2");
   }
