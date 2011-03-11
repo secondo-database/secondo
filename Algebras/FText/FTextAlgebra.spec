@@ -59,6 +59,8 @@ operator getObjectTypeNL alias GETOBJECTTYPENL pattern op ( _ )
 operator getObjectValueNL alias GETOBJECTVALUENL pattern op ( _ )
 operator toobject alias TOOBJECT pattern op(_, _)
 operator getDatabaseName alias GETDATABASENAME pattern op( _ )
+operator matchingOperatorNames alias MATCHINGOPERATORNAMES  pattern op( _,_ )
+operator matchingOperators alias MATCHINGOPERATORS  pattern op( _,_ )
 
 operator md5 alias MD5 pattern op(_,_)
 operator checkpw alias CHECKPW pattern op(_,_)

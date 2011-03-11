@@ -708,3 +708,19 @@ Number   : 1
 Signature: -> string
 Example  : query getDatabaseName()
 Result   : "BERLINTEST"
+
+
+Operator : matchingOperatorNames
+Number   : 1
+Signature: any -> stream(string)
+Example  : query matchingOperators(Trains) count > 4;
+Result   : TRUE
+
+
+Operator : matchingOperators
+Number   : 1
+Signature: ANY -> stream(tuple([ OperatorName: string,AlgebraName : string, ResultType : text,Signature  : text, Syntax : text, Meaning : text, Example : text, Remark : text]))
+Example  : query matchingOperators(Trains) filter[.OperatorName contains "matchingOp"] count > 1
+Result   : TRUE
+
+

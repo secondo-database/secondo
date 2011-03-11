@@ -1523,6 +1523,74 @@ ListExpr TypeMap_textstring__text(ListExpr args){
   return NList(symbols::TEXT).listExpr();
 }
 
+
+
+/*
+2.56 TypeMap ~matchingOperatorsNames~
+
+any -> stream(string)  
+
+*/
+
+ListExpr matchingOperatorNamesTM(ListExpr args){
+    ListExpr res =  nl->TwoElemList(nl->SymbolAtom("stream"), 
+                                    nl->SymbolAtom("string"));
+    return nl->ThreeElemList(nl->SymbolAtom("APPEND"),
+               nl->OneElemList(nl->TextAtom(nl->ToString(args))),
+               res);
+}
+
+/*
+2.57 TypeMap ~matchingOperators~
+
+  ANY -> stream(tuple(( OperatorName: string, 
+                        AlgebraName : string,
+                        ResultType : text,
+                        Signature  : text,
+                        Syntax : text,
+                        Meaning : text,
+                        Example : text,
+                        Reamrk : text)))
+                        
+*/
+
+ListExpr matchingOperatorsTM(ListExpr args){
+
+    ListExpr attrList = nl->OneElemList(nl->TwoElemList(
+                           nl->SymbolAtom("OperatorName"), 
+                           nl->SymbolAtom(CcString::BasicType())));
+    ListExpr last = attrList;
+    last = nl->Append(last, nl->TwoElemList( 
+                              nl->SymbolAtom("AlgebraName"), 
+                              nl->SymbolAtom(CcString::BasicType())));
+    last = nl->Append(last, nl->TwoElemList( 
+                              nl->SymbolAtom("ResultType"), 
+                              nl->SymbolAtom(FText::BasicType())));
+    last = nl->Append(last, nl->TwoElemList( 
+                              nl->SymbolAtom("Signature"), 
+                              nl->SymbolAtom(FText::BasicType())));
+    last = nl->Append(last, nl->TwoElemList( 
+                              nl->SymbolAtom("Syntax"), 
+                              nl->SymbolAtom(FText::BasicType())));
+    last = nl->Append(last, nl->TwoElemList( 
+                              nl->SymbolAtom("Meaning"), 
+                              nl->SymbolAtom(FText::BasicType())));
+    last = nl->Append(last, nl->TwoElemList( 
+                              nl->SymbolAtom("Example"), 
+                              nl->SymbolAtom(FText::BasicType())));
+    last = nl->Append(last, nl->TwoElemList( 
+                              nl->SymbolAtom("Remark"), 
+                              nl->SymbolAtom(FText::BasicType())));
+                                        
+    ListExpr res = nl->TwoElemList(nl->SymbolAtom("stream"),
+                     nl->TwoElemList( nl->SymbolAtom("tuple"),attrList));
+    return nl->ThreeElemList(nl->SymbolAtom("APPEND"),
+                       nl->OneElemList(nl->TextAtom(nl->ToString(args))),
+                             res);
+}
+
+
+
 /*
 3.3 Value Mapping Functions
 
@@ -4706,6 +4774,132 @@ int getDatabaseName_VM( Word* args, Word& result, int message,
   return 0;
 }
 
+class matchingOpsLocalInfo{
+ public:
+    matchingOpsLocalInfo(ListExpr argList, 
+                         ListExpr attrList):pos(0),ops() {
+       cout << nl->ToString(attrList) << endl;
+       tupleType = new TupleType(attrList);
+       ops = am->matchingOperators(argList);
+    }
+
+    matchingOpsLocalInfo(ListExpr argList):pos(0),ops(),tupleType(0) {
+       ops = am->matchingOperators(argList);
+    }
+
+    CcString* nextName(){
+       if(pos<ops.size()){
+          CcString* r = new CcString(ops[pos].first.second->GetName());
+          pos++;
+          return r;
+       }
+       return 0;
+    }
+
+    Tuple* nextTuple(){
+
+        if(pos>=ops.size()){
+          return 0;
+        } 
+        pair< pair<int,Operator*>, ListExpr> op = ops[pos];
+        pos++;
+        Tuple* res = new Tuple(tupleType);
+        // opName
+        res->PutAttribute(0, new CcString(op.first.second->GetName())); 
+        // algName
+        res->PutAttribute(1, new CcString(am->GetAlgebraName(op.first.first)));
+        // resType
+        ListExpr resultList = op.second;
+        if(nl->HasLength(resultList,3) &&
+           listutils::isSymbol(nl->First(resultList),"APPEND")){
+           resultList = nl->Third(resultList);
+        }
+        res->PutAttribute(2, new FText(true,nl->ToString(resultList)));
+       
+
+         OperatorInfo oi = op.first.second->GetOpInfo();
+        // signature
+        res->PutAttribute(3, new FText(true,oi.signature));
+        // syntax
+        res->PutAttribute(4, new FText(true,oi.syntax));
+
+        // meaning
+        res->PutAttribute(5, new FText(true,oi.meaning));
+ 
+        // Example
+        res->PutAttribute(6, new FText(true,oi.example));
+
+        // Remark
+        res->PutAttribute(7, new FText(true,oi.remark));
+        return  res;
+    }
+
+    ~matchingOpsLocalInfo(){
+      if(tupleType){
+         tupleType->DeleteIfAllowed();
+         tupleType = 0;
+      }
+      
+    }
+
+
+
+ private:
+   size_t pos;
+   vector< pair< pair<int,Operator*>, ListExpr> > ops;
+   TupleType* tupleType;
+};
+
+
+template<bool onlyNames>
+int matchingOperatorsVM( Word* args, Word& result, int message,
+                        Word& local, Supplier s )
+{
+   switch(message){
+     case OPEN: {
+       if(local.addr){
+         delete (matchingOpsLocalInfo*) local.addr;
+         local.addr = 0;
+       }
+       int noSons = qp->GetNoSons(s);
+       FText* t = (FText*) args[noSons-1].addr;
+       ListExpr argList;
+       nl->ReadFromString(t->GetValue(),argList);
+       if(onlyNames){
+          local.addr= new matchingOpsLocalInfo(argList);
+       } else { 
+          local.addr= new matchingOpsLocalInfo(argList,
+                               nl->Second(GetTupleResultType(s)));
+       }
+       return 0;
+    }
+    case REQUEST:{
+       if(!local.addr){
+          return CANCEL;
+       }
+       if(onlyNames){
+          result.addr = ((matchingOpsLocalInfo*) local.addr)->nextName();
+       } else {
+          result.addr = ((matchingOpsLocalInfo*) local.addr)->nextTuple();
+       }
+       return result.addr?YIELD:CANCEL;
+    }
+    case CLOSE: {
+       if(local.addr){
+         delete (matchingOpsLocalInfo*) local.addr;
+         local.addr = 0;
+       }
+       return 0;
+    }
+
+  }
+  return -1;
+
+}
+
+
+
+
 /*
 3.4 Definition of Operators
 
@@ -5206,6 +5400,38 @@ const string getDatabaseNameSpec  =
     "<text>query getDatabaseName()</text--->"
     ") )";
 
+
+const string matchingOperatorNamesSpec  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+    "( <text>  ANY -> stream(string) </text--->"
+    "<text> matchingOperatorNames(arg1, arg2, ...) </text--->"
+    "<text>Returns the names of operators which could be "
+           "applied to the types coming from "
+    "  evaluation of the arguments  </text--->"
+    "<text>query matchingOperatorNamess(Trains) count</text--->"
+    ") )";
+
+
+
+const string matchingOperatorsSpec  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+    "( <text>  ANY -> stream(tuple(( \n"
+    "          OperatorName: string,\n" 
+    "          AlgebraName : string,\n"
+    "           ResultType : text,\n"
+    "           Signature  : text,\n"
+    "               Syntax : text,\n"
+    "              Meaning : text,\n"
+    "              Example : text,\n"
+    "               Remark : text)))\n"
+    " </text--->"
+    "<text> query matchingOperators(arg1, arg2, ...) </text--->"
+    "<text>Returns the operators which could be applied to the"
+    " types coming from "
+    "  evaluation of the arguments  </text--->"
+    "<text>query matchingOperators(Trains) tconsume</text--->"
+    ") )";
+
 /*
 Operator Definitions
 
@@ -5613,6 +5839,29 @@ Operator getDatabaseName
    TypeMap_empty__string              //type mapping
 );
 
+
+Operator matchingOperatorNames
+(
+   "matchingOperatorNames",          //name
+   matchingOperatorNamesSpec,        //specification
+   matchingOperatorsVM<true>,         //value mapping
+   Operator::SimpleSelect,     //trivial selection function
+   matchingOperatorNamesTM              //type mapping
+);
+
+
+Operator matchingOperators
+(
+   "matchingOperators",          //name
+   matchingOperatorsSpec,        //specification
+   matchingOperatorsVM<false>,         //value mapping
+   Operator::SimpleSelect,     //trivial selection function
+   matchingOperatorsTM              //type mapping
+);
+
+
+
+
 /*
 5 Creating the algebra
 
@@ -5678,6 +5927,8 @@ public:
     AddOperator( &ftextgetObjectTypeNL);
     AddOperator( &ftextgetObjectValueNL);
     AddOperator( &getDatabaseName);
+    AddOperator( &matchingOperatorNames);
+    AddOperator( &matchingOperators);
 
     LOGMSG( "FText:Trace",
       cout <<"End FTextAlgebra() : Algebra()"<<'\n';
