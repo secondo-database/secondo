@@ -2027,11 +2027,23 @@ ListExpr FilterTypeMap(ListExpr args)
     ErrorReporter::ReportError("two arguments expected");
     return nl->TypeError();
   }
+  if(!nl->HasLength(nl->First(args),2)){
+    ErrorReporter::ReportError("the first argument "
+                               " should be a (type, expression) pair");
+    return nl->TypeError();
+  }
+
   if(!listutils::isTupleStream(nl->First(nl->First(args)))){
     ErrorReporter::ReportError("first argument must be a stream of tuples");
     return nl->TypeError();
   }
 
+  if(!nl->HasLength(nl->Second(args),2)){
+    ErrorReporter::ReportError("the second argument "
+                               " should be a (type, expression) pair");
+    return nl->TypeError();
+
+  }
   ListExpr map = nl->First(nl->Second(args));
   if(!listutils::isMap<1>(map)){
      ErrorReporter::ReportError("map expected as the second argument");
