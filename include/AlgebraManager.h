@@ -487,6 +487,20 @@ the list may contain further information to describe the error.
 
   void UpdateOperatorUsage(SystemInfoRel* table);
 
+/*
+~matching operators~
+
+This function returns all operators which can process the given type expression.
+the result consists of pairs with the first component is a pair of algebra id and
+operator pointer, the second part of the top pair is the result type when this
+operator would be applied to this type expression.
+
+*/
+
+  vector< pair< pair<int,Operator*>, ListExpr> > 
+        matchingOperators(const ListExpr arguments);
+
+
  private:
   NestedList*              nl;
 /*

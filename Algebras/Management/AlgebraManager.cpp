@@ -33,6 +33,7 @@ of a pointer to a function.
 */
 
 #include <string>
+#include <utility>
 #include <algorithm>
 #include <fstream>
 
@@ -462,3 +463,39 @@ AlgebraManager::UpdateOperatorUsage(SystemInfoRel* table) {
     }
   }
 }
+
+
+
+vector< pair< pair<int,Operator*>, ListExpr> > 
+      AlgebraManager::matchingOperators(const ListExpr arguments){
+
+   vector< pair< pair<int,Operator*>, ListExpr> > result;
+   result.clear();
+   ListExpr typeError = nl->SymbolAtom("typeerror");
+   for(size_t a=0;a<algebra.size();a++){
+     Algebra* alg = algebra[a];
+     if(alg!=0){
+       for(int o=0; o< alg->GetNumOps(); o++){
+         Operator* op = alg->GetOperator(o);
+         try{
+            ListExpr res = op->CallTypeMapping(arguments);
+            if(!nl->Equal(res,typeError)){
+              pair<int, Operator*> p1(a,op);
+              pair<pair<int, Operator*>, ListExpr> p(p1, res);
+              result.push_back(p);
+            } 
+
+         } catch (...){
+            cerr << "Problem in Typemapping of operator " << op->GetName() 
+                 << " in Algebra" << GetAlgebraName(a) << endl;
+            cerr << "Throws an exception when called with " 
+                 << nl->ToString(arguments) << endl;
+         }
+       }
+     } 
+   }
+
+   return result;
+}
+
+
