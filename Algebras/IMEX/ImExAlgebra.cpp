@@ -2271,6 +2271,9 @@ ListExpr shpimport2TM(ListExpr args){
       return listutils::typeError("one argument expected");
    }
    ListExpr arg = nl->First(args);
+   if(nl->ListLength(arg) !=2){
+      return listutils::typeError("Error, argument has to consists of 2 parts");
+   }
    ListExpr type = nl->First(arg);
    ListExpr value = nl->Second(arg);
 

@@ -2003,6 +2003,10 @@ Type mapping ~updatebtree~
 ListExpr allUpdatesBTreeTypeMap( const ListExpr& args, string opName )
 {
 
+  if(!nl->HasLength(args,3)){
+     ErrorReporter::ReportError("3 arguments expected");
+     return nl->TypeError();
+  }
   /* Split argument in three parts */
   ListExpr streamDescription = nl->First(args);
   ListExpr btreeDescription = nl->Second(args);

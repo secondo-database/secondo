@@ -908,7 +908,7 @@ Operator creatertree (
 ListExpr WindowIntersectsTypeMap(ListExpr args)
 {
 
-  if( nl->IsEmpty(args) || nl->IsAtom(args) || !nl->ListLength(args) == 3){
+  if( nl->IsEmpty(args) || nl->IsAtom(args) || nl->ListLength(args) != 3){
     return listutils::typeError("Expects exactly 3 arguments.");
   }
   /* Split argument in three parts */
@@ -1368,7 +1368,7 @@ Operator windowintersects (
 */
 ListExpr WindowIntersectsSTypeMap(ListExpr args)
 {
-  if( nl->IsEmpty(args) || nl->IsAtom(args) || !nl->ListLength(args) == 2){
+  if( nl->IsEmpty(args) || nl->IsAtom(args) || nl->ListLength(args) != 2){
     return listutils::typeError("Expects exactly 2 arguments.");
   }
   /* Split argument in two parts */
