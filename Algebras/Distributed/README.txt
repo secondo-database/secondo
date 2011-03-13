@@ -18,6 +18,12 @@ ALGEBRA_DEPS += ZThread
 # uncomment the next line if you use mac os
 #ALGEBRA_LINK_FLAGS += -framework CoreServices
 
+5. Add the following line to your .secondorc (or .bashrc) file:
+
+export LD_LIBRARY_PATH=/usr/local/lib:$LD_LIBRARY_PATH
+
+if /usr/local/lib/ is the place where make install has put libZThread.a
+
 
 
 
