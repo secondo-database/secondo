@@ -1827,7 +1827,7 @@ ListExpr SizeOfTM(ListExpr args){
 ListExpr CreateClusterTM(ListExpr args){
    if(nl->ListLength(args)!=2){
       ErrorReporter::ReportError("CreateCluster expects 2 arguments\n");
-      return nl->SymbolAtom("typerror");
+      return nl->TypeError();
    }
    if( nl->IsEqual(nl->First(args),"string") &&
        (nl->IsEqual(nl->Second(args),"string") ||
@@ -1875,7 +1875,7 @@ ListExpr MultiSetOpsTM(ListExpr args){
           if(!nl->IsEqual(nl->First(rest),"int9m")){
               ErrorReporter::ReportError("elements must be from"
                                          " the same type");
-              return  nl->SymbolAtom("typerror");
+              return  nl->TypeError();
           }
           rest = nl->Rest(rest);
       }
@@ -1886,7 +1886,7 @@ ListExpr MultiSetOpsTM(ListExpr args){
           if(!nl->IsEqual(nl->First(rest),"cluster")){
               ErrorReporter::ReportError("elements must be from the"
                                          " same type");
-              return  nl->SymbolAtom("typerror");
+              return  nl->TypeError();
           }
           rest = nl->Rest(rest);
       }
