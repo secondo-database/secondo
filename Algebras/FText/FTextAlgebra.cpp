@@ -4778,7 +4778,6 @@ class matchingOpsLocalInfo{
  public:
     matchingOpsLocalInfo(ListExpr argList, 
                          ListExpr attrList):pos(0),ops() {
-       cout << nl->ToString(attrList) << endl;
        tupleType = new TupleType(attrList);
        ops = am->matchingOperators(argList);
     }
