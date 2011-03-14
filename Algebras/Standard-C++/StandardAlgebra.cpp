@@ -930,21 +930,34 @@ type - a generic function called ~SimpleMap~ or ~SimpleMaps~ can be used.
 
 */
 
-const string maps_arith[5][3] =
+const string maps_arith[4][3] =
 {
   {INT,    INT,    INT},
   {INT,    REAL,   REAL},
   {REAL,   INT,    REAL},
   {REAL,   REAL,   REAL},
-  {STRING, STRING, STRING}
 };
 
 ListExpr
 CcMathTypeMap( ListExpr args )
 {
-  return SimpleMaps<5,3>(maps_arith, args);
+  return SimpleMaps<4,3>(maps_arith, args);
 }
 
+const string maps_plus[5][3] =
+{
+  {INT,    INT,    INT},
+  {INT,    REAL,   REAL},
+  {REAL,   INT,    REAL},
+  {REAL,   REAL,   REAL},
+  {STRING, STRING, STRING},
+};
+
+ListExpr
+CcPlusTypeMap( ListExpr args )
+{
+  return SimpleMaps<5,3>(maps_plus, args);
+}
 
 /*
 4.2.2 Selection Functions
@@ -966,9 +979,15 @@ is applied to correct arguments.
 int
 CcMathSelectCompute( ListExpr args )
 {
-  return SimpleSelect<5,3>(maps_arith, args);
+  return SimpleSelect<4,3>(maps_arith, args);
 }
 
+
+int
+CcPlusSelectCompute( ListExpr args )
+{
+  return SimpleSelect<5,3>(maps_plus, args);
+}
 
 int ifthenelseSelect(ListExpr args){
    if(listutils::isStream(nl->Second(args))){
@@ -4751,7 +4770,7 @@ Operator instance definitions
 */
 
 Operator ccplus( "+", CCSpecAdd, 5, ccplusmap,
-                 CcMathSelectCompute, CcMathTypeMap );
+                 CcPlusSelectCompute, CcPlusTypeMap );
 
 Operator ccminus( "-", CCSpecSub, 4, ccminusmap,
                   CcMathSelectCompute, CcMathTypeMap );

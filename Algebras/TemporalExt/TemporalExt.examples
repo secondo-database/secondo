@@ -178,8 +178,8 @@ Result   : "Zitadelle"
 Operator : initial
 Number   : 1
 Signature: mstring -> istring
-Example  : query val(initial(train7upsights))
-Result   : "Flughafen Sch�nefeld"
+Example  : query val(initial(train7downsights))
+Result   : "Rathaus Spandau"
 
 Operator : inst
 Number   : 1
