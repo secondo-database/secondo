@@ -534,9 +534,6 @@ NestedList::HasLength( ListExpr list, const int n ) const
     return false;
   }
 
-  if(n==0){
-    return IsEmpty(list);
-  }
   
   int result = 0;
   while ( !IsEmpty( list ) && (result < n) )
@@ -544,7 +541,30 @@ NestedList::HasLength( ListExpr list, const int n ) const
     result++;
     list = Rest( list );
   }
-  return (result == n);
+  return (result == n) && (IsEmpty(list));
+}
+
+/*
+~HasMinLength~
+
+Returns true iff the Given Listexpr contains at least n elements.
+
+*/
+bool
+NestedList::HasMinLength( ListExpr list, const int n ) const
+{
+  if ( IsAtom(list) ){
+    return false;
+  }
+
+  
+  int result = 0;
+  while ( !IsEmpty( list ) && (result < n) )
+  {
+    result++;
+    list = Rest( list );
+  }
+  return (result == n) ;
 }
 
 
