@@ -384,16 +384,23 @@ Example  : query trains feed projecttransformstream [trip] mgp2mgpsecunits3[2000
 Result   : file
 
 
-Operator : netdistancenew
+Operator : netdistance
 Number   : 1
 Signature: gpoint x ugpoint -> ureal
-Example  : query netdistancenew([const gpoint value(1 1 0.5 2)], [const ugpoint value( ("2007-01-01-10:10:00.000" "2007-01-01-10:10:01.000" TRUE FALSE)(1 2 2 0.7 1.5))]);
+Example  : query netdistance([const gpoint value(1 1 0.5 2)], [const ugpoint value( ("2007-01-01-10:10:00.000" "2007-01-01-10:10:01.000" TRUE FALSE)(1 2 2 0.7 1.5))]);
 Result   : (ureal(("2007-01-01-10:10" "2007-01-01-10:10:01" TRUE FALSE)(0.0 69119.99999999607 773.3299430080975 FALSE)))
 Tolerance: 0.01%
 
-Operator : netdistancenew
+Operator : netdistance
 Number   : 2
 Signature: ugpoint x gpoint -> ureal
-Example  : query netdistancenew([const ugpoint value( ("2007-01-01-10:10:00.000" "2007-01-01-10:10:01.000" TRUE FALSE)(1 2 2 0.7 1.5))],[const gpoint value(1 1 0.5 2)]);
+Example  : query netdistance([const ugpoint value( ("2007-01-01-10:10:00.000" "2007-01-01-10:10:01.000" TRUE FALSE)(1 2 2 0.7 1.5))],[const gpoint value(1 1 0.5 2)]);
 Result   : (ureal(("2007-01-01-10:10" "2007-01-01-10:10:01" TRUE FALSE)(0.0 69119.99999999607 773.3299430080975 FALSE)))
+Tolerance: 0.01%
+
+Operator : netdistance
+Number   : 3
+Signature: ugpoint x ugpoint -> ureal
+Example  : query netdistance([const ugpoint value( ("2007-01-01-10:10:00.000" "2007-01-01-10:10:01.000" TRUE FALSE)(1 2 2 0.7 1.5))],[const ugpoint value( ("2007-01-01-10:10:00.000" "2007-01-01-10:10:01.000" TRUE FALSE)(1 5 2 0.5 1.7))]);
+Result   : (ureal(("2007-01-01-10:10" "2007-01-01-10:10:01" TRUE FALSE)(0.0 172800.0 875.1372427706414 FALSE)))
 Tolerance: 0.01%

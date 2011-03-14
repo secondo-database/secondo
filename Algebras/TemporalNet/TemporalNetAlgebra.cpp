@@ -5995,7 +5995,7 @@ Network Distance computation for ~ugpoint~ values.
 UReal* UGPoint::NetdistanceFromArg(const GPoint* gp) const
 {
   if (!IsDefined() || gp == 0 || !gp->IsDefined() ||
-      p0.GetNetworkId() != gp->GetNetworkId())
+      GetNetworkId() != gp->GetNetworkId())
     return new UReal(false);
 
   Network *pNetwork = NetworkManager::GetNetworkNew(p0.GetNetworkId(), netList);
@@ -6024,7 +6024,7 @@ UReal* UGPoint::NetdistanceFromArg(const GPoint* gp) const
 UReal* UGPoint::NetdistanceToArg(const GPoint* gp) const
 {
   if (!IsDefined() || !gp->IsDefined() ||
-      p0.GetNetworkId()!= gp->GetNetworkId())
+      GetNetworkId()!= gp->GetNetworkId())
     return new UReal(false);
   Network *pNetwork = NetworkManager::GetNetworkNew(p0.GetNetworkId(), netList);
   GLine *pPath = new GLine(0);
@@ -6047,6 +6047,39 @@ UReal* UGPoint::NetdistanceToArg(const GPoint* gp) const
   return new UReal(false);
 }
 
+UReal* UGPoint::Netdistance(const UGPoint* ugp) const
+{
+  if (!IsDefined() || !ugp->IsDefined() ||
+      GetNetworkId()!= ugp->GetNetworkId() ||
+      GetUnitTimeInterval() != ugp->GetUnitTimeInterval())
+    return new UReal(false);
+  Network *pNetwork = NetworkManager::GetNetworkNew(p0.GetNetworkId(), netList);
+  GLine *pPath = new GLine(0);
+  GPoint startPos = ugp->GetStartPosition();
+  GPoint endPos = ugp->GetEndPosition();
+  if (p0.ShortestPathAStar(&startPos,pPath,pNetwork))
+  {
+    NetworkManager::CloseNetwork(pNetwork);
+    RouteInterval firstRI, lastRI;
+    double startdist = pPath->GetLength();
+    pPath->Get(0, firstRI);
+    double enddist = startdist;
+
+    if (firstRI.Contains(&p1))
+      enddist = enddist - fabs(p0.GetPosition()-p1.GetPosition());
+    else
+      enddist = enddist + fabs(p0.GetPosition()-p1.GetPosition());
+    if (lastRI.Contains(&endPos))
+      enddist = enddist - fabs(endPos.GetPosition() - startPos.GetPosition());
+    else
+      enddist = enddist + fabs(endPos.GetPosition() - startPos.GetPosition());
+    pPath->DeleteIfAllowed();
+    return new UReal(GetUnitTimeInterval(), startdist, enddist);
+  }
+  NetworkManager::CloseNetwork(pNetwork);
+  pPath->DeleteIfAllowed();
+  return new UReal(false);
+}
 
 struct ugpointInfo:ConstructorInfo{
   ugpointInfo(){
@@ -9290,9 +9323,9 @@ ListExpr OpNetdistanceTypeMap( ListExpr args )
         param.second().isSymbol("ugpoint")))
     return
       listutils::typeError("2.argument should be gpoint or ugpoint.");
-  if (param.first() == param.second())
+  if (param.first() == param.second() && param.first().isSymbol("gpoint"))
     return
-      listutils::typeError("1. and 2.argument should be different types");
+      listutils::typeError("1.and 2.argument must be upgoint or different.");
   return nl->SymbolAtom ( "ureal" );
 }
 
@@ -9344,9 +9377,35 @@ int OpNetdistanceMovFix(Word* args,
   return 0;
 };
 
+template<class MovPos1, class MovPos2>
+int OpNetdistanceMovMov(Word* args,
+                  Word& result,
+                  int message,
+                  Word& local,
+                  Supplier in_xSupplier)
+{
+  // Get (empty) return value
+  UReal* pDistance = (UReal*)qp->ResultStorage(in_xSupplier).addr;
+  result = SetWord( pDistance);
+  // Get input values
+  MovPos1* pFrom = (MovPos1*)args[0].addr;
+  MovPos2* pTo = (MovPos2*)args[1].addr;
+  if(pFrom == NULL || !pFrom->IsDefined() ||
+     pTo == NULL || !pTo->IsDefined())
+  {
+    cerr << "Both arguments must be well defined" << endl;
+    pDistance->SetDefined(false);
+    return 0;
+  }
+  *pDistance = *(pFrom->Netdistance(pTo));
+  return 0;
+};
+
+
 ValueMapping OpNetdistanceValueMap[] = {
   OpNetdistanceFixMov<GPoint, UGPoint>,
-  OpNetdistanceMovFix<UGPoint, GPoint>
+  OpNetdistanceMovFix<UGPoint, GPoint>,
+  OpNetdistanceMovMov<UGPoint, UGPoint>
 };
 
 int OpNetdistanceSelect( ListExpr args )
@@ -9360,14 +9419,18 @@ int OpNetdistanceSelect( ListExpr args )
   if ( nl->SymbolValue(arg1) == "ugpoint" &&
        nl->SymbolValue(arg2) == "gpoint")
     return 1;
+  if (nl->SymbolValue(arg1) == "ugpoint" &&
+      nl->SymbolValue(arg2) == "ugpoint")
+    return 2;
   return -1; // This point should never be reached
 }
 
 struct NetdistanceInfo:OperatorInfo{
   NetdistanceInfo(){
-    name = "netdistancenew";
+    name = "netdistance";
     signature = "gpoint X ugpoint -> ureal";
     appendSignature("ugpoint X gpoint -> ureal");
+    appendSignature("ugpoint X ugpoint -> ureal");
     syntax = "netdistance(_,_)";
     meaning = "Computes the netdistance from 1.to 2. argument";
   }

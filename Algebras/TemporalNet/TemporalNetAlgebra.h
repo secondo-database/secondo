@@ -416,6 +416,11 @@ Returns the 3 dimensional spatio-temporal BoundingBox of the ~ugpoint~.
 
   */
 
+  inline int GetNetworkId() const
+  {
+    return p0.GetNetworkId();
+  };
+
   inline int GetUnitRid() const
   {
     return p0.GetRouteId();
@@ -587,22 +592,27 @@ SetMethoden f[ue]r ~ugpoint~
 
   Instant TimeAtPos(double pos) const;
 
+/*
+  Returns the network distance from the ~gpoint~ to the ~ugpoint~
 
-
+*/
 
   UReal* NetdistanceFromArg(const GPoint* gp) const;
 
-  /*
-  Returns the network distance from the ~gpoint~ to the ~ugpoint~
+/*
+Returns the network distance from the ~ugpoint~ to the ~gpoint~
 
-  */
+*/
 
   UReal* NetdistanceToArg(const GPoint* gp) const;
 
-  /*
-  Returns the network distance from the ~ugpoint~ to the ~gpoint~
 
-  */
+/*
+Returns the network distance from the ~ugpoint~ to the ~gpoint~
+
+*/
+
+  UReal* Netdistance(const UGPoint* ugp) const;
 
 
   /*
