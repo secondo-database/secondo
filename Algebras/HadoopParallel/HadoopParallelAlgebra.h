@@ -54,7 +54,6 @@ And includes one method:
 #include <signal.h>
 #include "../Array/ArrayAlgebra.h"
 #ifdef SECONDO_WIN32
-//#include <winsock2.h>
 #include "Win32Socket.h"
 #endif
 
