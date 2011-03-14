@@ -258,7 +258,7 @@ ListExpr PictureColordistTypeMap(ListExpr args) {
     {
             ErrorReporter::ReportError(
                 "expected 'picture' as first argument but received '"
-                +nl->SymbolValue(arg1)
+                +nl->ToString(arg1)
                 +"'");
 
             return (nl->SymbolAtom("typeerror"));
@@ -267,7 +267,7 @@ ListExpr PictureColordistTypeMap(ListExpr args) {
     {
             ErrorReporter::ReportError(
                 "expected 'int' as second argument but received '"
-                +nl->SymbolValue(arg2)
+                +nl->ToString(arg2)
                 +"'");
 
             return (nl->SymbolAtom("typeerror"));
@@ -302,7 +302,7 @@ ListExpr PictureEqualsTypeMap(ListExpr args) {
     {
             ErrorReporter::ReportError(
                 "expected 'picture' as first argument but received '"
-                +nl->SymbolValue(arg1)
+                +nl->ToString(arg1)
                 +"'");
 
             return (nl->SymbolAtom("typeerror"));
@@ -311,7 +311,7 @@ ListExpr PictureEqualsTypeMap(ListExpr args) {
     {
             ErrorReporter::ReportError(
                 "expected 'picture' as second argument but received '"
-                +nl->SymbolValue(arg2)
+                +nl->ToString(arg2)
                 +"'");
 
             return (nl->SymbolAtom("typeerror"));
@@ -320,7 +320,7 @@ ListExpr PictureEqualsTypeMap(ListExpr args) {
     {
             ErrorReporter::ReportError(
                 "expected 'int' as third argument but received '"
-                +nl->SymbolValue(arg3)
+                +nl->ToString(arg3)
                 +"'");
 
             return (nl->SymbolAtom("typeerror"));
@@ -329,7 +329,7 @@ ListExpr PictureEqualsTypeMap(ListExpr args) {
     {
             ErrorReporter::ReportError(
                 "expected 'int' as fourth argument but received '"
-                +nl->SymbolValue(arg4)
+                +nl->ToString(arg4)
                 +"'");
 
             return (nl->SymbolAtom("typeerror"));
@@ -365,7 +365,7 @@ ListExpr PictureLikeTypeMap(ListExpr args) {
     {
             ErrorReporter::ReportError(
                 "expected 'picture' as first argument but received '"
-                +nl->SymbolValue(arg1)
+                +nl->ToString(arg1)
                 +"'");
 
             return (nl->SymbolAtom("typeerror"));
@@ -374,7 +374,7 @@ ListExpr PictureLikeTypeMap(ListExpr args) {
     {
             ErrorReporter::ReportError(
                 "expected 'int' or 'real' as second argument but received '"
-                +nl->SymbolValue(arg2)
+                +nl->ToString(arg2)
                 +"'");
 
             return (nl->SymbolAtom("typeerror"));
@@ -383,7 +383,7 @@ ListExpr PictureLikeTypeMap(ListExpr args) {
     {
             ErrorReporter::ReportError(
                 "expected 'int' or 'real' as third argument but received '"
-                +nl->SymbolValue(arg3)
+                +nl->ToString(arg3)
                 +"'");
 
             return (nl->SymbolAtom("typeerror"));
@@ -392,7 +392,7 @@ ListExpr PictureLikeTypeMap(ListExpr args) {
     {
             ErrorReporter::ReportError(
                 "expected 'int' as fourth argument but received '"
-                +nl->SymbolValue(arg4)
+                +nl->ToString(arg4)
                 +"'");
 
             return (nl->SymbolAtom("typeerror"));
@@ -401,7 +401,7 @@ ListExpr PictureLikeTypeMap(ListExpr args) {
     {
             ErrorReporter::ReportError(
                 "expected 'int' as fifth argument but received '"
-                +nl->SymbolValue(arg5)
+                +nl->ToString(arg5)
                 +"'");
 
             return (nl->SymbolAtom("typeerror"));
@@ -410,9 +410,9 @@ ListExpr PictureLikeTypeMap(ListExpr args) {
     {
             ErrorReporter::ReportError(
                 "second and third argument must have same type but received '"
-                +nl->SymbolValue(arg2)
+                +nl->ToString(arg2)
                 +"' and '"
-                +nl->SymbolValue(arg3)
+                +nl->ToString(arg3)
                 +"'");
 
             return (nl->SymbolAtom("typeerror"));
