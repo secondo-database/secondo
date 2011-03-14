@@ -2270,7 +2270,14 @@ ListExpr ksmallestTM(ListExpr args){
   ListExpr NumberList;
   ListExpr Last;
   ListExpr attrType = nl->TheEmptyList();
+  
+  if(nl->AtomType(AttrList)!=NoAtom){
+    return listutils::typeError(err);
+  }
+
+
   while(!nl->IsEmpty(AttrList)){
+     
      ListExpr Attr = nl->First(AttrList);
      if(nl->AtomType(Attr)!=SymbolType){
         ErrorReporter::ReportError(err);
