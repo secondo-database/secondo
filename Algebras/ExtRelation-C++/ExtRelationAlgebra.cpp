@@ -1982,7 +1982,7 @@ ListExpr krdupTM(ListExpr args){
       ListExpr attr = nl->First(attrnameList);
       pos++;
       attrnameList = nl->Rest(attrnameList);
-      if(!nl->AtomType(attr)==SymbolType){
+      if(nl->AtomType(attr)!=SymbolType){
         ErrorReporter::ReportError("argument is not "
                                    " an attribute name");
         return nl->TypeError();
