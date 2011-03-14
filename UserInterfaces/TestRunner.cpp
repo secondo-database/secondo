@@ -964,7 +964,7 @@ TestRunner::ProcessExamples()
        ListExpr list = nl->Empty();          
        resultOk = nl->ReadFromString(info.result, list);
        // Anaylize list and extract a platform specific result if necessary!
-       if ( nl->HasLength(list,1) ) {
+       if ( nl->HasMinLength(list,1) ) {
        ListExpr list1 = nl->First(list);
        if( nl->IsEqual(list1,"platform") )
        {     
@@ -972,9 +972,9 @@ TestRunner::ProcessExamples()
          string token = WinUnix::getPlatformStr();       
          while ( !nl->IsEmpty(list2) ) {
            //cout << nl->ToString(list2) << endl;
-           if ( nl->HasLength(list2, 1) ) {
+           if ( nl->HasMinLength(list2, 1) ) {
              ListExpr tmpList = nl->First(list2);
-             if( nl->HasLength(tmpList, 1) 
+             if( nl->HasMinLength(tmpList, 1) 
                   && nl->IsEqual(nl->First(tmpList), token) ) {
                list = nl->Second(tmpList);
                cout << "Using result for " << token << endl;
