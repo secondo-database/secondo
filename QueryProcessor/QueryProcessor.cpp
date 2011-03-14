@@ -2130,7 +2130,7 @@ will be processed.
               string operatorStr = nl->SymbolValue(nl->First(first));
               ListExpr opList = nl->Third( first );
 
-              if ( !nl->HasLength(opList,1)  ) {
+              if ( !nl->HasMinLength(opList,1)  ) {
     stringstream err;
     err << "Expecting a list but got " << nl->ToString(opList);
           throw qp_error( err.str() );
