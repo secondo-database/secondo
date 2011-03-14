@@ -1,6 +1,6 @@
 #This file is part of SECONDO.
 #
-#Copyright (C) 2004, University in Hagen, Department of Computer Science, 
+#Copyright (C) 2004, University in Hagen, Department of Computer Science,
 #Database Systems for New Applications.
 #
 #SECONDO is free software; you can redistribute it and/or modify
@@ -150,7 +150,7 @@ query Staedte2 inserttuple["Hagen", 206000, 5800, "02331", "HA"] count;
 
 #testcase inserttuple2
 #yields (int 1)
-query Staedte feed {a} Staedte2 feed {b} symmjoin[.SName_a = ..SName_b] 
+query Staedte feed {a} Staedte2 feed {b} symmjoin[.SName_a = ..SName_b]
   filter[.SName_a contains "Hagen"] count;
 
 #testcase inserttuplesave1
@@ -159,17 +159,17 @@ query Staedte3 Staedte3I inserttuplesave["Hagen", 206000, 5800, "02331", "HA"] c
 
 #testcase inserttuplesave2
 #yields (int 1)
-query Staedte feed {a} Staedte3 feed {b} symmjoin[.SName_a = ..SName_b] 
+query Staedte feed {a} Staedte3 feed {b} symmjoin[.SName_a = ..SName_b]
   filter[.SName_a contains "Hagen"] count;
 
 #testcase inserttuplesave3
 #yields (int 3)
-query Staedte feed {a} Staedte3I feed {b} symmjoin[.SName_a = ..SName_b] 
+query Staedte feed {a} Staedte3I feed {b} symmjoin[.SName_a = ..SName_b]
   filter[.SName_a contains "Hagen"] count;
 
 #testcase updatedirect1
 #yields (int 1)
-query Staedte2 feed filter[.SName contains "Hagen"] Staedte2 updatedirect[Bev: .Bev + 1000000000] count; 
+query Staedte2 feed filter[.SName contains "Hagen"] Staedte2 updatedirect[Bev: .Bev + 1000000000] count;
 
 #testcase updatedirect2
 #yields (int 1)
@@ -177,13 +177,13 @@ query Staedte feed {a} Staedte2 feed {b} symmjoin[(.Bev_a + 1000000000) = ..Bev_
 
 #testcase updatesearch1
 #yields (int 1)
-query Staedte2 feed filter[.SName contains "Hagen"] Staedte2 
+query Staedte2 feed filter[.SName contains "Hagen"] Staedte2
   updatesearch[SName: "NewHagen", Bev: .Bev - 1000000000] count;
 
 #testcase updatesearch2
 #yields (int 1)
-query Staedte feed {a} Staedte2 feed {b} 
-  symmjoin[(.SName_a # ..SName_b) and (..SName_b contains .SName_a) and (.Bev_a = ..Bev_b)] count; 
+query Staedte feed {a} Staedte2 feed {b}
+  symmjoin[(.SName_a # ..SName_b) and (..SName_b contains .SName_a) and (.Bev_a = ..Bev_b)] count;
 
 #testcase updatedirectsave1
 #yields (int 1)
