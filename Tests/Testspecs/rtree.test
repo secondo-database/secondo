@@ -22,7 +22,7 @@
 # (Runner can be found in directory UserInterfaces)
 
 #setup
-restore database rtreetest_berlin from $(SECONDO_BUILD_DIR)/bin/berlintest;
+restore database rtreetest_berlin from '$(SECONDO_BUILD_DIR)/bin/berlintest';
 open database rtreetest_berlin;
 
 let strassen_geoData_1 = strassen creatertree[geoData];
