@@ -92,7 +92,7 @@ public class Route
   public Route(ListExpr in_xList) 
     throws Exception 
   {
-    
+
     Vector xSegments = new Vector();
 
     // Read values for the list
@@ -105,6 +105,14 @@ public class Route
     System.out.println("Route " + m_iId);
     
     // Read segments
+
+    
+    if(xLineList.listLength()==2 && xLineList.second().atomType()==ListExpr.BOOL_ATOM){ // new style
+       // startSmaller = xLineList.second().boolxLineList();
+       // ignore startSmaller of the simple line because we have stored it also in the network
+       xLineList = xLineList.first();
+    }
+
     while (!xLineList.isEmpty()) {
       ListExpr xSegmentList = xLineList.first();
       if (xSegmentList.listLength() != 4) {
