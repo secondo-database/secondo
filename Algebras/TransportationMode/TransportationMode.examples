@@ -712,7 +712,6 @@ Signature: rel x rtree -> (stream(((x1 t1) ... (xn tn))))
 Example  : query createadjdoor2(node_rel,rtree_node) count;
 Result   : 300
 
-
 Operator : path_in_region 
 Number   : 1
 Signature: region x point x point -> line 

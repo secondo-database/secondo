@@ -301,6 +301,7 @@ const string SpatialSpecCreateAdjDoor1 =
 "<text>query createadjdoor1(building_uni, node_rel, createbtree, "
 "Door, door_loc, groom_oid1, doorheight) count</text---> ) )";
 
+
 const string SpatialSpecCreateAdjDoor2 =
 "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
 "( <text>rel x rtree "
@@ -1911,6 +1912,7 @@ int CreateAdjDoor2ValueMap(Word* args, Word& result, int message,
   return 0;
 }
 
+
 /*
 ValueMap function for operator path in region  
 
@@ -1924,8 +1926,17 @@ int PathInRegionValueMap(Word* args, Word& result, int message,
   Point* d = (Point *)args[2].addr; 
   
   Line* pResult = (Line *)result.addr;
-  ShortestPath_InRegion(reg, s, d, pResult);
   
+  CompTriangle* ct = new CompTriangle(reg);
+  if(ct->ComplexRegion() == 0)
+    ShortestPath_InRegion(reg, s, d, pResult);
+  else if(ct->ComplexRegion() == 1){
+      ShortestPath_InRegionNew(reg, s, d, pResult);
+  }
+  else
+      cout<<"error "<<endl; 
+
+  delete ct; 
   return 0;
 }
 
@@ -2439,7 +2450,6 @@ Operator createadjdoor2("createadjdoor2",
     Operator::SimpleSelect,
     CreateAdjDoor2TypeMap
 );
-
 
 Operator path_in_region("path_in_region",
     SpatialSpecPathInRegion,
@@ -5984,12 +5994,10 @@ ListExpr OpTMWalkSPOldTypeMap ( ListExpr args )
 
   if(!IsRelDescription(arg5))
   return listutils::typeError("para5 should be a relation");
-  
+
   ListExpr xType2;
   nl->ReadFromString(DualGraph::TriangleTypeInfo3, xType2);
   if(!CompareSchemas(arg5, xType2))return nl->SymbolAtom ( "typeerror" );
-
-  
 
   if(nl->IsAtom(arg0) && nl->AtomType(arg0) == SymbolType &&
      nl->SymbolValue(arg0) == "dualgraph"&&
@@ -16216,7 +16224,7 @@ string GetRegVertices(Region* reg)
           }
           cout<<endl; 
         }else{////////////holes 
-          cout<<"holes"<<endl; 
+          cout<<"hole "<<endl; 
           if(clock == false){
             for(unsigned int j = 0;j < ps.size();j++){
              printf("(%f %f)\n",ps[j].GetX(),ps[j].GetY());
@@ -16238,7 +16246,8 @@ string GetRegVertices(Region* reg)
 }
 
 /*
-output the regino vertex 
+output the regino vertex. it will be used to get the vertices of a region.
+the result is used as nested list input 
 
 */
 int OpTMOutputRegionValueMap ( Word* args, Word& result, int message,
@@ -17648,8 +17657,9 @@ class TransportationModeAlgebra : public Algebra
     AddOperator(&createdoorbox); //create a 3d box for each door 
     AddOperator(&createdoor1);//the node relation for the graph (doors)
     AddOperator(&createdoor2);//the node relation for the graph (virtual doors)
-    AddOperator(&createadjdoor1); //the edge relation for the graph 
-    AddOperator(&createadjdoor2); //the edge relation for the graph 
+    AddOperator(&createadjdoor1); //the edge relation for indoor graph 
+    AddOperator(&createadjdoor2); //the edge relation for indoor graph 
+
     AddOperator(&path_in_region);//shortest path between two points inside a reg
     AddOperator(&createigraph);//create indoor graph 
     AddOperator(&getadjnode_ig); //get adjacent node 
