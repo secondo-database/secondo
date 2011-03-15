@@ -7443,6 +7443,7 @@ void IndoorNav::IndoorShortestPath_Time1(int id1, int id2,
       prune_time = cost_t;
     else if(cost_t < prune_time)
       prune_time = cost_t; 
+
   }
 
 }
@@ -7504,7 +7505,10 @@ float IndoorNav::SetTimeWeight(double l, int groom_oid, Relation* rel,
 
   if(GetRoomEnum(type) != EL){////////////not an elevator
     return l/param.speed_person; 
+  }else if(GetRoomEnum(type) == EL){
+    return l/param.speed_elevator;
   }
+
   cout<<"should not visit here"<<endl;
   assert(false);
   return l/param.speed_elevator; 
@@ -7621,8 +7625,8 @@ void IndoorNav::IndoorShortestPath_Time2(int id1, int id2,
        dest = top;
        break;
     }
-    
-    
+
+
     Tuple* door_tuple = node_rel->GetTuple(top.tri_index, false);
     /////////////////get the position of the door////////////////////////////
     Point3D q;
@@ -7665,7 +7669,9 @@ void IndoorNav::IndoorShortestPath_Time2(int id1, int id2,
      int cur_size = expand_queue.size();
      ////////////// set the weight //////////////////////////////////////
 
-     double w = top.real_w + path->Length(); 
+     double w = top.real_w + 
+        SetTimeWeight(path->Length(), groom_oid, rel, btree, param);
+
      double hw =  p.Distance(end_p); 
      //////////////////////////////////////////////////////////////////////
      IPath_elem elem(pos_expand_path, cur_size, 
@@ -7757,6 +7763,7 @@ void IndoorNav::IndoorShortestPath_Time2(int id1, int id2,
       prune_time = cost_t;
     else if(cost_t < prune_time)
       prune_time = cost_t; 
+
   }
 
 }
