@@ -99,7 +99,8 @@ class TestRunner : public Application
  private:
 
   typedef enum { Success, Error, Result, 
-                 Unknown, UndefinedObj, Coverage, Bug} YieldState;
+                 Unknown, UndefinedObj, 
+                 Coverage, Bug, Unpredictable} YieldState;
 
   map<YieldState, string> yieldStateStr;
 
@@ -176,6 +177,7 @@ class TestRunner : public Application
   typedef vector< ExampleInfo > ExampleVec; 
   ExampleVec crashes;
   ExampleVec bugs;
+  ExampleVec unpredictable;
   ExampleVec errors;
 
   typedef vector< string > StringVec; 
@@ -262,13 +264,14 @@ TestRunner::TestRunner( const TTYParameter& tp )
   tmp << color(red) << la << color(normal);
   leftArrow = tmp.str();
 
-  yieldStateStr[Success]      = "Success";
-  yieldStateStr[Error]        = "Error";
-  yieldStateStr[Result]       = "Result";
-  yieldStateStr[Unknown]      = "Unknown";
-  yieldStateStr[UndefinedObj] = "UndefinedObj";
-  yieldStateStr[Coverage]     = "Coverage";
-  yieldStateStr[Bug]          = "Bug";
+  yieldStateStr[Success]       = "Success";
+  yieldStateStr[Error]         = "Error";
+  yieldStateStr[Result]        = "Result";
+  yieldStateStr[Unknown]       = "Unknown";
+  yieldStateStr[UndefinedObj]  = "UndefinedObj";
+  yieldStateStr[Coverage]      = "Coverage";
+  yieldStateStr[Bug]           = "Bug";
+  yieldStateStr[Unpredictable] = "Unpredictable";
 
 
 }
@@ -431,6 +434,9 @@ TestRunner::ShowErrorSummary() const
     cout << "There were " << crashes.size() << " omitted queries "
          << "which are known to crash" << endl; 
 
+  if (unpredictable.size() > 0)
+    cout << "There were " << unpredictable.size() << " queries "
+         << "having an unpredictable result" << endl; 
 
   if (missingOpsNo > 0)
   {
@@ -979,13 +985,15 @@ TestRunner::ProcessExamples()
                list = nl->Second(tmpList);
                cout << "Using result for " << token << endl;
                if ( nl->IsEqual(list, "bug") )
-                 info.resultType = ExampleInfo::Bug;            
+                 info.resultType = ExampleInfo::Bug;           
+               if ( nl->IsEqual(list, "unpredictable") )
+                 info.resultType = ExampleInfo::Unpredictable;            
                if ( nl->IsEqual(list, "file") )
                  info.resultType = ExampleInfo::File;           
                if ( nl->IsEqual(list, "platform") )
                  info.resultType = ExampleInfo::PlatformFile;           
                if ( nl->IsEqual(list, "crashes") )
-                 info.resultType = ExampleInfo::PlatformFile;           
+                 info.resultType = ExampleInfo::Crash;           
                break;        
              }
              else
@@ -1066,6 +1074,13 @@ TestRunner::ProcessExamples()
        CallSecondo2();
        break;
      }
+     
+     case ExampleInfo::Unpredictable: {
+       yieldState = Unpredictable;
+       unpredictable.push_back(info); 
+       CallSecondo2();
+       break;
+     }
 
      case ExampleInfo::Crash: {
        crashes.push_back(info); 
@@ -1073,6 +1088,8 @@ TestRunner::ProcessExamples()
        cout << "Not executed! Known to crash." << endl; 
        break;
      }
+
+
      default: {
        yieldState = Result; 
        CallSecondo2();
@@ -1300,9 +1317,9 @@ TestRunner::CallSecondo()
       {
         if( yieldState == Bug) {
           ShowTestSuccessMsg("Known bug! The result is ignored!");
-        }
-        else if( yieldState == Error)
-        {
+        } else if(yieldState == Unpredictable){
+          ShowTestSuccessMsg("Unpredictable result! The result is ignored!");
+        } else if( yieldState == Error) {
           if (errorCode)
           {       
            ShowTestSuccessMsg("returned an error as expected.");

@@ -48,7 +48,7 @@ using namespace std;
 struct ExampleInfo {
 
   typedef enum { List, Atom, 
-                 File, PlatformFile, Bug, Crash, Invalid} Type;
+                 File, PlatformFile, Bug, Crash, Unpredictable, Invalid} Type;
 
   string opName;
   string aliasName;
@@ -400,10 +400,11 @@ a*bc* with single characters a,b and c.
 
       case Remark: {
            if (!match(Remark, false)) {
-            if (info->resultType == ExampleInfo::Bug) {
+            if ( (info->resultType == ExampleInfo::Bug) || 
+                 (info->resultType == ExampleInfo::Unpredictable)) {
               cerr << errMsg()
                    << "Expecting a remark field which describes "
-                   << "the specified bug!"
+                   << "the specified bug/ why the result is unpredictable!"
                    << endl;
               info->remark = "";
               return false;
@@ -588,6 +589,9 @@ over all examples
       return ExampleInfo::Bug; 
     if (result=="crashes")
       return ExampleInfo::Crash;
+
+    if (result=="unpredictable")
+      return ExampleInfo::Unpredictable;
 
     // otherwise a list atom
     if (result=="TRUE" || result=="FALSE")
