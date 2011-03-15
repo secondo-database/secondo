@@ -2720,7 +2720,7 @@ private:
     file.read(reinterpret_cast<char*>(&noRecords),4);
     file.read(reinterpret_cast<char*>(&headerLength),2);
     file.read(reinterpret_cast<char*>(&recordSize),2);
-    if(!WinUnix::isLittleEndian){
+    if(!WinUnix::isLittleEndian()){
        noRecords = WinUnix::convertEndian(noRecords);
        headerLength = WinUnix::convertEndian(headerLength);
        recordSize = WinUnix::convertEndian(recordSize);
