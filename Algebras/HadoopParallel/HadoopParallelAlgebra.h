@@ -59,7 +59,7 @@ And includes one method:
 
 const string rmDefaultPath = ":secondo/bin/parallel/";
 const int MAX_COPYTIMES = 5;
-const int MAX_FILEHANDLENUM = 100;
+const int MAX_FILEHANDLENUM = 200;
 
 string
 tranStr(const string& s, const string& from, const string& to);
@@ -687,22 +687,33 @@ public:
 class fileInfo{
 public:
   fileInfo(size_t _hv, string _fp, size_t _an):
-  cnt(0), totalExtSize(0),totalSize(0)
+  cnt(0), totalExtSize(0),totalSize(0),
+  lastTupleIndex(0), fileOpen(false)
   {
     blockFileName = _fp + "_" + int2string(_hv);
     attrExtSize.resize(_an);
     attrSize.resize(_an);
   }
 
-  bool openNewFile()
+  bool openFile()
   {
-    blockFile.open(blockFileName.c_str(), ios::binary);
-    bool ok = blockFile.good();
-    blockFile.close();
-    return ok;
+    ios_base::openmode mode = ios::binary;
+    if (lastTupleIndex == 0)
+      mode |= ios::app;
+    blockFile.open(blockFileName.c_str(), mode);
+    fileOpen = true;
+    return blockFile.good();
   }
-  bool writeTuple(Tuple* tuple, int attrIndex,
-      TupleType* exTupleType)
+
+  void closeFile()
+  {
+    if (isFileOpen())
+      blockFile.close();
+    fileOpen = false;
+  }
+
+  bool writeTuple(Tuple* tuple, size_t tupleIndex,
+       int attrIndex, TupleType* exTupleType)
   {
     size_t coreSize = 0;
     size_t extensionSize = 0;
@@ -725,10 +736,9 @@ public:
 
     char* tBlock = (char*)malloc(tupleBlockSize);
     newTuple->WriteToBin(tBlock, coreSize, extensionSize, flobSize);
-    blockFile.open(blockFileName.c_str(), ios::binary | ios::app);
     blockFile.write(tBlock, tupleBlockSize);
-    blockFile.close();
     free(tBlock);
+    lastTupleIndex = tupleIndex;
     cnt++;
 
     return true;
@@ -737,7 +747,6 @@ public:
   int writeLastDscr()
   {
     // write a zero after all tuples to indicate the end.
-    blockFile.open(blockFileName.c_str(), ios::binary | ios::app);
     u_int32_t endMark = 0;
     blockFile.write((char*)&endMark, sizeof(endMark));
 
@@ -758,7 +767,6 @@ public:
     u_int32_t descSize = descStr.size() + 1;
     blockFile.write(descStr.c_str(), descSize);
     blockFile.write((char*)&descSize, sizeof(descSize));
-    blockFile.close();
 
     return cnt;
   }
@@ -771,7 +779,10 @@ public:
   string getFileName() {
     return blockFileName;
   }
-
+  bool isFileOpen()
+  {  return fileOpen;  }
+  size_t getLastTupleIndex()
+  {  return lastTupleIndex;  }
 private:
   string blockFileName;
   ofstream blockFile;
@@ -781,12 +792,9 @@ private:
   int totalSize;
   vector<double> attrExtSize;
   vector<double> attrSize;
-};
 
-struct fileHandle
-{
-  ofstream* blockFilePointer;
-  int count;
+  size_t lastTupleIndex;
+  bool fileOpen;
 };
 
 class FDistributeLocalInfo
@@ -802,14 +810,17 @@ private:
     else
       return hashValue;
   }
+  bool openFile(fileInfo* tgtFile);
 
   string filePath;
   map<size_t, fileInfo*> fileList;
   map<size_t, fileInfo*>::iterator fit;
-  map<size_t, fileHandle> fileHandles;
+
   size_t nBuckets;
   int attrIndex;
   TupleType *resultTupleType, *exportTupleType;
+  int openFilesNum;
+  size_t tupleCounter;
 
 public:
   FDistributeLocalInfo(string baseName, string path,

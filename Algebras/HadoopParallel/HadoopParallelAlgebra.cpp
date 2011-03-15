@@ -2959,12 +2959,24 @@ Operator hadoopjoinOp(HdpJoinInfo(),
 /*
 5.16 Operator ~fdistribute~
 
-~fdistribute~ partition a tuple stream into several binary files
+~fdistribute~ partitions a tuple stream into several binary files
 based on a specific attribute value, along with a linear scan.
 These files could be read by ~ffeed~ operator.
-This operator is used to partly replace the
-~groupby~ + ~fconsume~ operations,
+This operator is used to replace the expensive ~groupby~ + ~fconsume~ operations,
 which need sort the tuple stream first.
+
+The operator accepts at least 4 parameters:
+a tuple stream, files' base name, files' path and keyAttributeName.
+The first three are same as ~fconsume~ operator,
+the fourth parameter defines the key attribute
+by whose hash value tuples are partitioned.
+
+If the fifth parameter nBuckets is given, then tuples are
+evenly partitioned to buckets based on modulo function,
+or else these tuples are partitioned based on
+keyAttribute values' hash numbers directly,
+which may partitions these tuples NOT evenly.
+
 
 5.16.0 Specification
 
@@ -2977,13 +2989,15 @@ struct FDistributeInfo : OperatorInfo {
     name = "fdistribute";
     signature =
         "stream(tuple(...)) x fileName x path "
-        "x attrName x nBucket"
+        "x attrName x [nBuckets]"
         "-> stream(tuple(fileSufix, value))";
-    syntax = "_ fconsume[ _ , _ , _ , _ ]";
+    syntax = "_ fconsume[ _ , _ , _ , {_} ]";
     meaning =   "Export a stream of tuples into files. "
         "Files are separated by their suffix index,"
         "which is a hash value based on the value of the "
-        "given attribute and the bucket number parameters.";
+        "given attribute and the bucket number parameters."
+        "If parameter nBuckets is not given, "
+        "tuples are uneven partitioned.";
   }
 
 };
@@ -3002,6 +3016,7 @@ ListExpr FDistributeTypeMap(ListExpr args)
       "basis partition attribute: ";
   string err1 = "ERROR!Infeasible evaluation in TM for attribute ";
   string err2 = "The file name should NOT be empty!";
+  string err3 = "Fail by openning file: ";
 
   int len = l.length();
   bool evenMode = true;
@@ -3060,10 +3075,10 @@ ListExpr FDistributeTypeMap(ListExpr args)
   string filePath = fpList.str();
   filePath = getFilePath(filePath, typeFileName);
   ofstream typeFile(filePath.c_str());
-  NList resultList = NList(NList(REL), NList(NList(TUPLE), newAL));
-
+  NList resultList =
+          NList(NList(REL), NList(NList(TUPLE), newAL));
   if (!typeFile.good())
-    return l.typeError(err2 + filePath);
+    return l.typeError(err3 + filePath);
   else
   {
     typeFile << resultList.convertToString() << endl;
@@ -3071,8 +3086,9 @@ ListExpr FDistributeTypeMap(ListExpr args)
   }
   typeFile.close();
 
-  NList outAttrList = NList(NList(NList("suffix"), NList(INT)),
-                            NList(NList("tupNum"), NList(INT)));
+  NList outAttrList =
+           NList(NList(NList("suffix"), NList(INT)),
+                 NList(NList("tupNum"), NList(INT)));
   NList outList = NList().tupleStreamOf(outAttrList);
 
   return NList(NList("APPEND"),
@@ -3113,8 +3129,10 @@ int FDistributeValueMap(Word* args, Word& result,
       int nBucket = 0;
       if (evenMode)
         nBucket = ((CcInt*)args[4].addr)->GetValue();
-      int attrIndex = ((CcInt*)args[pos++].addr)->GetValue() - 1;
-      string inTupleTypeStr = ((FText*)args[pos].addr)->GetValue();
+      int attrIndex =
+            ((CcInt*)args[pos++].addr)->GetValue() - 1;
+      string inTupleTypeStr =
+               ((FText*)args[pos].addr)->GetValue();
 
       ListExpr inTupleTypeList;
       nl->ReadFromString(inTupleTypeStr, inTupleTypeList);
@@ -3173,7 +3191,8 @@ int FDistributeValueMap(Word* args, Word& result,
 FDistributeLocalInfo::FDistributeLocalInfo(
     string _bn, string _pt, int _nb, int _ai,
     ListExpr _rtl, ListExpr _itl)
-: nBuckets(_nb), attrIndex(_ai)
+: nBuckets(_nb), attrIndex(_ai),
+  openFilesNum(0), tupleCounter(0)
 {
   filePath = getFilePath(_pt, _bn);
   resultTupleType = new TupleType(nl->Second(_rtl));
@@ -3196,13 +3215,49 @@ bool FDistributeLocalInfo::insertTuple(Word tupleWord)
     fp = new fileInfo(fileSfx, filePath,
         exportTupleType->GetNoAttributes());
     fileList.insert(pair<size_t, fileInfo*>(fileSfx, fp));
-    if (!fp->openNewFile())
-      ok = false; //Block file create fail
   }
-  if (!(ok && fp->writeTuple(tuple, attrIndex, exportTupleType)))
-    cerr << "Block File " << fp->getFileName() << " Write Fail.\n";
+  ok = openFile(fp);
+
+  if (!(ok &&
+        fp->writeTuple(tuple, tupleCounter,
+                       attrIndex, exportTupleType)))
+    cerr << "Block File " << fp->getFileName()
+    << " Write Fail.\n";
+  tupleCounter++;
   tuple->DeleteIfAllowed();
 
+  return ok;
+}
+
+bool FDistributeLocalInfo::openFile(fileInfo* tgtFile)
+{
+  if (tgtFile->isFileOpen())
+    return true;
+
+  if (openFilesNum >= MAX_FILEHANDLENUM)
+  {
+    //release one file handle, find the idle file handle
+    map<size_t, fileInfo*>::iterator lit;
+    map<size_t, fileInfo*>::const_iterator idler;
+    size_t idlerIndex = UINT_MAX;
+    for (lit = fileList.begin(); lit != fileList.end(); lit++)
+    {
+      if ((*lit).second->isFileOpen())
+      {
+        size_t ltIndex =
+          (*lit).second->getLastTupleIndex();
+        if (idlerIndex > ltIndex){
+          idler = lit;
+          idlerIndex = ltIndex;
+        }
+      }
+    }
+    (*idler).second->closeFile();
+    openFilesNum--;
+  }
+
+  bool ok = tgtFile->openFile();
+  openFilesNum++;
   return ok;
 }
 
@@ -3218,12 +3273,17 @@ Tuple* FDistributeLocalInfo::closeOneFile()
   {
     int suffix = (*fit).first;
     fileInfo* fp = (*fit).second;
-    int count = fp->writeLastDscr();
+    bool ok = openFile(fp);
 
-    tuple = new Tuple(resultTupleType);
-    tuple->PutAttribute(0, new CcInt(suffix));
-    tuple->PutAttribute(1, new CcInt(count));
-
+    if ( ok )
+    {
+      int count = fp->writeLastDscr();
+      tuple = new Tuple(resultTupleType);
+      tuple->PutAttribute(0, new CcInt(suffix));
+      tuple->PutAttribute(1, new CcInt(count));
+    }
+    fp->closeFile();
+    openFilesNum--;
     fit++;
   }
   return tuple;
