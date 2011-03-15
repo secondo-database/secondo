@@ -1384,23 +1384,29 @@ SmiEnvironment::OpenDatabase( const string& dbname )
   if ( dbOpened )
     return ERR_DATABASE_OPEN;
 
-  SetDatabaseName( dbname );
-  if ( SmiEnvironment::Implementation::LookUpDatabase( database ) )
-  {
-    if ( InitializeDatabase() )
+  if(SetDatabaseName( dbname )){
+    if ( SmiEnvironment::Implementation::LookUpDatabase( database ) )
     {
-      RegisterDatabase( database );
-      dbOpened = true;
+      if ( InitializeDatabase() )
+      {
+        RegisterDatabase( database );
+        dbOpened = true;
+      }
+      else
+      {
+        ok = ERR_SYSTEM_ERROR;
+        SetError2( E_SMI_DB_OPEN, "Initializing the database failed." );
+      }
     }
     else
     {
-      ok = ERR_SYSTEM_ERROR;
-      SetError2( E_SMI_DB_OPEN, "Initializing the database failed." );
+      ok = ERR_IDENT_UNKNOWN_DB_NAME;
     }
   }
   else
   {
-    ok = ERR_IDENT_UNKNOWN_DB_NAME;
+    SetError( E_SMI_DB_INVALIDNAME );
+    ok = E_SMI_DB_INVALIDNAME;
   }
 
   TRACE_LEAVE
@@ -1477,50 +1483,54 @@ SmiEnvironment::EraseDatabase( const string& dbname )
   bool ok = true;
   if ( !dbOpened )
   {
-    SetDatabaseName( dbname );
-    if ( SmiEnvironment::Implementation::LookUpDatabase( database ) )
-    {
-      if ( LockDatabase( database ) )
+    if(SetDatabaseName( dbname )){
+      if ( SmiEnvironment::Implementation::LookUpDatabase( database ) )
       {
-        DbEnv* dbenv = instance.impl->bdbEnv;
-        SmiEnvironment::Implementation::DeleteDatabase( database );
-        string oldHome = FileSystem::GetCurrentFolder();
-        FileSystem::SetCurrentFolder( instance.impl->bdbHome );
-        FilenameList fnl;
-        if ( FileSystem::FileSearch( database, fnl, 0, 3 ) )
+        if ( LockDatabase( database ) )
         {
-          vector<string>::const_iterator iter = fnl.begin();
-          while ( iter != fnl.end() )
+          DbEnv* dbenv = instance.impl->bdbEnv;
+          SmiEnvironment::Implementation::DeleteDatabase( database );
+          string oldHome = FileSystem::GetCurrentFolder();
+          FileSystem::SetCurrentFolder( instance.impl->bdbHome );
+          FilenameList fnl;
+          if ( FileSystem::FileSearch( database, fnl, 0, 3 ) )
           {
-            Db*    dbp   = new Db( dbenv, DB_CXX_NO_EXCEPTIONS );
-            string fileName(*iter);
-            cout << "Removing " << fileName << endl;
-            int rc = dbp->remove( fileName.c_str(), 0, 0 );
-            ok = ok && (rc == 0);
-            SetBDBError( rc );
-            delete dbp;
-            iter++;
+            vector<string>::const_iterator iter = fnl.begin();
+            while ( iter != fnl.end() )
+            {
+              Db*    dbp   = new Db( dbenv, DB_CXX_NO_EXCEPTIONS );
+              string fileName(*iter);
+              cout << "Removing " << fileName << endl;
+              int rc = dbp->remove( fileName.c_str(), 0, 0 );
+              ok = ok && (rc == 0);
+              SetBDBError( rc );
+              delete dbp;
+              iter++;
+            }
+            ok = ok && FileSystem::EraseFolder( database );
           }
-          ok = ok && FileSystem::EraseFolder( database );
+          else
+            cerr<<"\nWarning: database " << database
+                << ": database folder not found.\n";
+          FileSystem::SetCurrentFolder( oldHome );
+          ok = ok && UnlockDatabase( database );
+          if ( !ok ) {
+            SetError( E_SMI_DB_ERASE );
+          }
         }
         else
-          cerr<<"\nWarning: database " << database
-              << ": database folder not found.\n";
-        FileSystem::SetCurrentFolder( oldHome );
-        ok = ok && UnlockDatabase( database );
-        if ( !ok ) {
-          SetError( E_SMI_DB_ERASE );
+        {
+          SetError( E_SMI_DB_NOTLOCKED );
+          ok = false;
         }
       }
-      else
-      {
-        SetError( E_SMI_DB_NOTLOCKED );
-        ok = false;
+      else {
+        // database does not exist. Nothing to erase!
       }
-    }
-    else {
-      // database does not exist. Nothing to erase!
-    }
+   } else {
+     SetError(E_SMI_DB_INVALIDNAME);
+     ok = false;
+   }
   }
   else
   {

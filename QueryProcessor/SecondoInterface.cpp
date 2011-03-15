@@ -946,6 +946,7 @@ moved to separate functions. This kind of functions should be named Command\_<na
           case ERR_DATABASE_OPEN:
           case ERR_IDENT_UNKNOWN_DB_NAME:
           case ERR_PROBLEM_IN_READING_FILE:
+          case E_SMI_DB_INVALIDNAME:
           {
             break;
           }

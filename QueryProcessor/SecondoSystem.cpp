@@ -545,21 +545,24 @@ This is done by closing, destroying and recreating the database.
 
 */
           DestroyDatabase ( dbname );
-          CreateDatabase( dbname );
 
+          if(CreateDatabase( dbname )) {
 /*
 Load database types and objects from file named ~filename~.
 
 */
-          if ( RestoreCatalog( types, objects, errorInfo ) )
-          {
-            rc = ERR_NO_ERROR; // Database successfully restored
+            if ( RestoreCatalog( types, objects, errorInfo ) )
+            {
+              rc = ERR_NO_ERROR; // Database successfully restored
+            }
+            else
+            {
+              rc = ERR_IN_DEFINITIONS_FILE; // Error in types or objects
+            }
+             SmiEnvironment::UpdateCatalog();
+          } else {
+             rc = E_SMI_DB_INVALIDNAME;
           }
-          else
-          {
-            rc = ERR_IN_DEFINITIONS_FILE; // Error in types or objects
-          }
-	  SmiEnvironment::UpdateCatalog();
         }
         else
         {
