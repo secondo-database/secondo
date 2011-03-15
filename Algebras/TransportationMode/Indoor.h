@@ -984,7 +984,7 @@ bool BBoxContainPoint3D(Rectangle<3> bbox, Point3D& p);
 struct Elevator{
   float h;
   double t1, t2; //two arrive time instants
-  double m_t, w_t; 
+  double m_t, w_t; //moving time and waiting time 
   Elevator(){}
   Elevator(float height, double a, double b, double mt, double wt):h(height),
           t1(a), t2(b), m_t(mt), w_t(wt){}
@@ -1099,9 +1099,16 @@ struct IndoorNav{
                          float h1, float h2, vector<MySegHeight>&); 
 
    void ConstructMiddlePath(GRoom* groom, vector<MySegHeight>& middle_path); 
-   void BuildPathORAndCO(int groom_oid, GRoom* groom, 
+   void BuildPathOR(int groom_oid, GRoom* groom, 
                   vector<int> tid_list, int attr1, int attr2, 
                   int attr3, int attr4);
+   bool BuildPathCO(int groom_oid, GRoom* groom, 
+                  vector<int> tid_list, int attr1, int attr2, 
+                  int attr3, int attr4);
+   void ConnectComplexRegion(int groom_oid, Line* l1, Line* l2,
+                             int tid1, int tid2, float h,
+                             DualGraph* dg, VisualGraph* vg, 
+                             Relation* tri_rel, Region* reg);
    /////////////////////////////////////////////////////////////////////
    void GetAdjNodeIG(int oid);
    ////////////////////////// data generation/////////////////////////
@@ -1128,17 +1135,15 @@ struct IndoorNav{
                       BTree* btree); 
    void ShortestPath_Length(GenLoc* gloc1, GenLoc* gloc2, 
                             Relation* rel, BTree* btree);
+   bool DeadDoor(int door_tid, int groom_oid, int groom_oid_end);
 
-   void ConnectStartLoc(GenLoc* gloc, int door_tid, Relation* rel, 
-                        BTree* btree, Line3D* l3d_start); 
-   void Path_StartDoor_EndLoc(int id, GenLoc* d, 
-                           vector<Line3D>& candidate_path, Line3D* s,
-                           Relation* rel, BTree* btree);
-   void ConnectEndLoc(GenLoc* gloc, int door_tid, Relation* rel, BTree* btree,
-                        Line3D* l3d_end); 
-   void IndoorShortestPath(int id1, int id2, 
-                           vector<Line3D>& candidate_path, 
-                           Line3D* s, Line3D* d);
+   bool ConnectStartLoc(GenLoc* gloc,  vector<int> tid_list, Relation* rel,
+                         BTree* btree, vector<Line3D>&);
+   bool ConnectEndLoc(GenLoc* gloc,  vector<int> tid_list, Relation* rel,
+                         BTree* btree, vector<Line3D>&);
+
+   void IndoorShortestPath(int id1, int id2, vector<Line3D>& candidate_path, 
+                           Line3D* s, Line3D* d, double& prune_dist);
    void InitializeQueue(int id, Point3D* start_p, Point3D* end_p, 
                         priority_queue<IPath_elem>& path_queue, 
                         vector<IPath_elem>& expand_path);
@@ -1148,9 +1153,6 @@ struct IndoorNav{
    ////////////////////////////////////////////////////////////////////
    void ShortestPath_Room(GenLoc* gloc1, GenLoc* gloc2, 
                             Relation* rel, BTree* btree);
-   void Path_StartDoor_EndLoc_Room(int id, GenLoc* d, 
-                           vector< vector<TupleId> >& candidate_path, 
-                                   int stid, int etid);
    void IndoorShortestPath_Room(int id1, int id2,
                                 vector< vector<TupleId> >& candidate_path,
                                 int s_tid, int e_tid); 
@@ -1159,22 +1161,21 @@ struct IndoorNav{
    /////////////////////////////////////////////////////////////////////
    void ShortestPath_Time(GenLoc* gloc1, GenLoc* gloc2, 
                             Relation* rel, BTree* btree);
-   void Path_StartDoor_EndLoc_Time(int id, GenLoc* d, 
-                           vector<Line3D>& candidate_path, Line3D* s,
-                           Relation* rel, BTree* btree, vector<double>&,
-                                   I_Parameter& param);
+   
    void IndoorShortestPath_Time1(int id1, int id2, 
                            vector<Line3D>& candidate_path, 
                            Line3D* s, Line3D* d, vector<double>& timecost,
-                           I_Parameter& param, Relation* rel, BTree* btree);
+                           I_Parameter& param, Relation* rel, 
+                           BTree* btree, double& prune_time);
    void IndoorShortestPath_Time2(int id1, int id2, 
                            vector<Line3D>& candidate_path, 
                            Line3D* s, Line3D* d, vector<double>& timecost,
-                           I_Parameter& param, Relation* rel, BTree* btree);
+                           I_Parameter& param, Relation* rel, 
+                           BTree* btree, double& prune_time);
    bool IsElevator(int groom_oid, Relation* rel, BTree* btree); 
    float CostInElevator(double l, I_Parameter& param); 
    float SetTimeWeight(double l, int groom_oid, Relation* rel, 
-                       BTree* btree, I_Parameter& param, vector<float>& h_list);
+                       BTree* btree, I_Parameter& param);
 };
 
 /*
@@ -1290,6 +1291,21 @@ void FindAdj(Region* reg, PointAndID top, vector<bool>& visit_flag,
              vector<HalfSegment>& seg_list); 
 bool SegAvailable(HalfSegment hs, vector<HalfSegment>& set_list); 
 void GetBoundaryPoints(Region* r, vector<Point>& ps, unsigned int); 
+
+
+/*
+create dual graph and visual graph in secondo
+
+*/
+void ShortestPath_InRegionNew(Region* reg, Point* s, Point* d, Line* pResult);
+bool EuclideanConnection(Region* reg, Point*s, Point* d, Line* pResult);
+bool CheckCommand(string& str1, string& str2, ListExpr& parsedCommand);
+bool RunCommand(SecondoCatalog* ctlg, ListExpr parsedCommand, string str);
+void GetSecondoObj(Region* reg, vector<string>& obj_name);
+void DeleteSecondoObj(vector<string> obj_name); 
+void FindPointInDG(DualGraph* dg, Point* loc1, Point* loc2, int& id1, int& id2);
+void FindPointInDG1(DualGraph* dg, Point* loc1, int& id1);
+
 
 
 /*
@@ -1439,5 +1455,15 @@ class MPoint3D:public Mapping<UPoint3D,Point3D>
 
 bool CheckMPoint3D( ListExpr type, ListExpr& errorInfo );
 ListExpr MPoint3DProperty();
+
+///////////////////////////////////////////////////////////////
+//////////different types of buildings/////////////////////////
+///////////////////////////////////////////////////////////////
+
+// enum building_type{BUILD_UNI = 0, BUILD_OFFICE24, BUILD_CINEMA, 
+// BUILD_TRAINSTATION};
+// 
+// const string str_build_type[] = {"UNI", "OFFICE24", "CINEMA", "TRAINSTATION"
+//                          }; 
 
 #endif // __INDOOR_H__
