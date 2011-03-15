@@ -73,10 +73,6 @@ using namespace std;
 extern NestedList* nl;
 extern QueryProcessor* qp;
 
-
-string
-tranStr(const string& s, const string& from, const string& to);
-
 /*
 2 Operator ~doubleexport~
 
@@ -1899,8 +1895,8 @@ struct FConsumeInfo : OperatorInfo {
         "x [ array(string) x selfIndex "
         "x targetIndex x dupTimes ] -> bool";
     syntax =    "_ fconsume[ _ , _ , _ , _ , _ , _, _, _, _ ]";
-    meaning =   "Export a stream of tuples into files, "
-        "and may duplicate them to some remote machines.\n"
+    meaning =   "Export a stream of tuples into a file, "
+        "and may duplicate the file to some remote machines.\n"
         "The number of arguments are changed "
         "along with different mode.";
   }
@@ -2902,6 +2898,7 @@ int hdpJoinValueMap(Word* args, Word& result,
         << "\"" << tranStr(mrQuery[2], "\"", "\\\"") << "\" \\\n"
         << rtNum << " " << rName << endl;
       int rtn;
+//      cout << queryStr.str() << endl;
       rtn = system("hadoop dfs -rmr OUTPUT");
       rtn = system(queryStr.str().c_str());
 
@@ -2912,6 +2909,7 @@ int hdpJoinValueMap(Word* args, Word& result,
 
       FILE *fs;
       char buf[MAX_STRINGSIZE];
+//      fs = popen("cat pjResult", "r");
       fs = popen("hadoop dfs -cat OUTPUT/part*", "r");
 
       while(fgets(buf, sizeof(buf), fs))
@@ -2958,6 +2956,282 @@ Operator hadoopjoinOp(HdpJoinInfo(),
                       hdpJoinValueMap,
                       hdpJoinTypeMap);
 
+/*
+5.16 Operator ~fdistribute~
+
+~fdistribute~ partition a tuple stream into several binary files
+based on a specific attribute value, along with a linear scan.
+These files could be read by ~ffeed~ operator.
+This operator is used to partly replace the
+~groupby~ + ~fconsume~ operations,
+which need sort the tuple stream first.
+
+5.16.0 Specification
+
+*/
+
+struct FDistributeInfo : OperatorInfo {
+
+  FDistributeInfo() : OperatorInfo()
+  {
+    name = "fdistribute";
+    signature =
+        "stream(tuple(...)) x fileName x path "
+        "x attrName x nBucket"
+        "-> stream(tuple(fileSufix, value))";
+    syntax = "_ fconsume[ _ , _ , _ , _ ]";
+    meaning =   "Export a stream of tuples into files. "
+        "Files are separated by their suffix index,"
+        "which is a hash value based on the value of the "
+        "given attribute and the bucket number parameters.";
+  }
+
+};
+
+/*
+5.16.1 Type mapping
+
+*/
+ListExpr FDistributeTypeMap(ListExpr args)
+{
+  NList l(args);
+  string lenErr = "operator fdistribute expects 4/5 arguments.";
+  string tpeErr = "operator fdistribute expects "
+      "(stream(tuple)) x string x text x symbol x [int]";
+  string attErr = "operator fdistribute cannot find the "
+      "basis partition attribute: ";
+  string err1 = "ERROR!Infeasible evaluation in TM for attribute ";
+  string err2 = "The file name should NOT be empty!";
+
+  int len = l.length();
+  bool evenMode = true;
+  if (4 == len)
+    evenMode = false;
+  else if (5 != len)
+    return l.typeError(lenErr);
+
+  NList attrsList;
+  if (!l.first().first().checkStreamTuple(attrsList))
+    return l.typeError(tpeErr);
+
+  if (!l.second().first().isSymbol(symbols::STRING))
+    return l.typeError(tpeErr);
+  NList fnList; //get the file name
+  if (!getNLArgValueInTM(l.second().second(), fnList))
+    return l.typeError(err1 + "fileName");
+  string fileName = fnList.str();
+  if (0 == fileName.length())
+    return l.typeError(err2);
+
+  if (!l.third().first().isSymbol(symbols::TEXT))
+    return l.typeError(tpeErr);
+
+  //Identify attribute
+  if (!l.fourth().first().isAtom())
+    return l.typeError(tpeErr);
+  string attrName = l.fourth().second().str();
+  ListExpr attrType;
+  int attrIndex = listutils::findAttribute(
+      attrsList.listExpr(), attrName, attrType);
+  if (attrIndex < 1)
+    return l.typeError(attErr + attrName);
+
+  if (evenMode)
+    if (!l.fifth().first().isSymbol(symbols::INT))
+      return l.typeError(tpeErr);
+
+  //Remove the attribute used for partition the relation
+  NList newAL; //new attribute list
+  NList rest = attrsList;
+  while(!rest.isEmpty())
+  {
+    NList elem = rest.first();
+    rest.rest();
+
+    if (elem.first().str() != attrName)
+      newAL.append(elem);
+  }
+
+  //Create the type file in local disk
+  string typeFileName = fileName + "_type";
+  NList fpList;
+  if (!getNLArgValueInTM(l.third().second(), fpList))
+    return l.typeError(err1 + "filePath");
+  string filePath = fpList.str();
+  filePath = getFilePath(filePath, typeFileName);
+  ofstream typeFile(filePath.c_str());
+  NList resultList = NList(NList(REL), NList(NList(TUPLE), newAL));
+
+  if (!typeFile.good())
+    return l.typeError(err2 + filePath);
+  else
+  {
+    typeFile << resultList.convertToString() << endl;
+    cerr << "Created type file " << filePath << endl;
+  }
+  typeFile.close();
+
+  NList outAttrList = NList(NList(NList("suffix"), NList(INT)),
+                            NList(NList("tupNum"), NList(INT)));
+  NList outList = NList().tupleStreamOf(outAttrList);
+
+  return NList(NList("APPEND"),
+               NList(
+                 NList(attrIndex),
+                 NList(
+                   NList(NList(TUPLE), newAL).convertToString(),
+                     true, true)),
+               outList).listExpr();
+}
+
+/*
+5.16.2 Value mapping
+
+*/
+int FDistributeValueMap(Word* args, Word& result,
+    int message, Word& local, Supplier s)
+{
+  string relName, path;
+  FDistributeLocalInfo* fdli = 0;
+  Word elem;
+
+  switch(message)
+  {
+    case OPEN: {
+      SecondoCatalog* sc = SecondoSystem::GetCatalog();
+      qp->Open(args[0].addr);
+
+      relName = ((CcString*)args[1].addr)->GetValue();
+      path = ((FText*)args[2].addr)->GetValue();
+
+      int pos = 5;
+      bool evenMode = true;
+      if (qp->GetNoSons(s) < 7){
+        pos--;
+        evenMode = false;
+      }
+      int nBucket = 0;
+      if (evenMode)
+        nBucket = ((CcInt*)args[4].addr)->GetValue();
+      int attrIndex = ((CcInt*)args[pos++].addr)->GetValue() - 1;
+      string inTupleTypeStr = ((FText*)args[pos].addr)->GetValue();
+
+      ListExpr inTupleTypeList;
+      nl->ReadFromString(inTupleTypeStr, inTupleTypeList);
+      inTupleTypeList = sc->NumericType(inTupleTypeList);
+
+      ListExpr resultTupleList = GetTupleResultType(s);
+
+      fdli = (FDistributeLocalInfo*) local.addr;
+      if (fdli) delete fdli;
+      fdli = new FDistributeLocalInfo(
+               relName, path, nBucket, attrIndex,
+               resultTupleList, inTupleTypeList);
+      local.setAddr(fdli);
+
+      //Write tuples to files completely
+      qp->Open(args[0].addr);
+      qp->Request(args[0].addr, elem);
+      while(qp->Received(args[0].addr))
+      {
+        if (!fdli->insertTuple(elem))
+          break;
+
+        qp->Request(args[0].addr, elem);
+      }
+      qp->Close(args[0].addr);
+      fdli->startCloseFiles();
+      return 0;
+    }
+    case REQUEST: {
+      fdli = static_cast<FDistributeLocalInfo*>(local.addr);
+      if (!fdli)
+        return CANCEL;
+
+      //Return the counters of each file
+      Tuple* tuple = fdli->closeOneFile();
+      if (tuple)
+      {
+        result.setAddr(tuple);
+        return YIELD;
+      }
+      return CANCEL;
+    }
+    case CLOSE: {
+
+
+      fdli = static_cast<FDistributeLocalInfo*>(local.addr);
+
+      delete fdli;
+      local.addr = 0;
+      return 0;
+    }
+  }
+  return 0;
+}
+
+FDistributeLocalInfo::FDistributeLocalInfo(
+    string _bn, string _pt, int _nb, int _ai,
+    ListExpr _rtl, ListExpr _itl)
+: nBuckets(_nb), attrIndex(_ai)
+{
+  filePath = getFilePath(_pt, _bn);
+  resultTupleType = new TupleType(nl->Second(_rtl));
+  exportTupleType = new TupleType(_itl);
+}
+
+bool FDistributeLocalInfo::insertTuple(Word tupleWord)
+{
+  Tuple *tuple = static_cast<Tuple*>(tupleWord.addr);
+  size_t fileSfx = HashTuple(tuple);
+  bool ok = true;
+
+  map<size_t, fileInfo*>::iterator mit;
+  mit = fileList.find(fileSfx);
+  fileInfo* fp;
+  if (mit != fileList.end())
+    fp = (*mit).second;
+  else
+  {
+    fp = new fileInfo(fileSfx, filePath,
+        exportTupleType->GetNoAttributes());
+    fileList.insert(pair<size_t, fileInfo*>(fileSfx, fp));
+    if (!fp->openNewFile())
+      ok = false; //Block file create fail
+  }
+  if (!(ok && fp->writeTuple(tuple, attrIndex, exportTupleType)))
+    cerr << "Block File " << fp->getFileName() << " Write Fail.\n";
+  tuple->DeleteIfAllowed();
+
+  return ok;
+}
+
+void FDistributeLocalInfo::startCloseFiles()
+{
+  fit = fileList.begin();
+}
+
+Tuple* FDistributeLocalInfo::closeOneFile()
+{
+  Tuple* tuple = 0;
+  if (fit != fileList.end())
+  {
+    int suffix = (*fit).first;
+    fileInfo* fp = (*fit).second;
+    int count = fp->writeLastDscr();
+
+    tuple = new Tuple(resultTupleType);
+    tuple->PutAttribute(0, new CcInt(suffix));
+    tuple->PutAttribute(1, new CcInt(count));
+
+    fit++;
+  }
+  return tuple;
+}
+
+Operator fdistributeOp(FDistributeInfo(),
+                       FDistributeValueMap,
+                       FDistributeTypeMap);
 
 /*
 6 Auxiliary functions
@@ -2990,6 +3264,17 @@ string tranStr(const string& s,
   return result;
 }
 
+string getFilePath(string path, const string fileName)
+{
+  if (0 == path.length())
+  {
+    path = FileSystem::GetCurrentFolder();
+    FileSystem::AppendItem(path, "parallel");
+  }
+  FileSystem::AppendItem(path, fileName);
+  return path;
+}
+
 
 /*
 3 Class ~HadoopParallelAlgebra~
@@ -3010,10 +3295,6 @@ public:
   HadoopParallelAlgebra() :
     Algebra()
   {
-
-//    AddTypeConstructor(&flTC);
-
-
     AddOperator(doubleExportInfo(),
         doubleExportValueMap, doubleExportTypeMap);
     AddOperator(paraHashJoinInfo(),
@@ -3040,6 +3321,9 @@ public:
 
     AddOperator(&hadoopjoinOp);
     hadoopjoinOp.SetUsesArgsInTypeMapping();
+
+    AddOperator(&fdistributeOp);
+    fdistributeOp.SetUsesArgsInTypeMapping();
 
 #ifdef USE_PROGRESS
     fconsumeOp.EnableProgress();

@@ -59,6 +59,12 @@ And includes one method:
 
 const string rmDefaultPath = ":secondo/bin/parallel/";
 const int MAX_COPYTIMES = 5;
+const int MAX_FILEHANDLENUM = 100;
+
+string
+tranStr(const string& s, const string& from, const string& to);
+string
+getFilePath(string path, const string fileName);
 
 /*
 1.1 deLocalInfo Class
@@ -671,6 +677,158 @@ public:
       return t;
     }
   }
+};
+
+
+/*
+1.7 fDistributeLocalInfo class
+
+*/
+class fileInfo{
+public:
+  fileInfo(size_t _hv, string _fp, size_t _an):
+  cnt(0), totalExtSize(0),totalSize(0)
+  {
+    blockFileName = _fp + "_" + int2string(_hv);
+    attrExtSize.resize(_an);
+    attrSize.resize(_an);
+  }
+
+  bool openNewFile()
+  {
+    blockFile.open(blockFileName.c_str(), ios::binary);
+    bool ok = blockFile.good();
+    blockFile.close();
+    return ok;
+  }
+  bool writeTuple(Tuple* tuple, int attrIndex,
+      TupleType* exTupleType)
+  {
+    size_t coreSize = 0;
+    size_t extensionSize = 0;
+    size_t flobSize = 0;
+
+    //The tuple written to the file need remove the key attribute
+    Tuple* newTuple = new Tuple(exTupleType);
+    int j = 0;
+    for (int i = 0; i < tuple->GetNoAttributes(); i++)
+    {
+      if (i != attrIndex)
+        newTuple->CopyAttribute(i, tuple, j++);
+    }
+
+    size_t tupleBlockSize =
+        newTuple->GetBlockSize(coreSize, extensionSize, flobSize,
+                        &attrExtSize, &attrSize);
+    totalSize += (coreSize + extensionSize + flobSize);
+    totalExtSize += (coreSize + extensionSize);
+
+    char* tBlock = (char*)malloc(tupleBlockSize);
+    newTuple->WriteToBin(tBlock, coreSize, extensionSize, flobSize);
+    blockFile.open(blockFileName.c_str(), ios::binary | ios::app);
+    blockFile.write(tBlock, tupleBlockSize);
+    blockFile.close();
+    free(tBlock);
+    cnt++;
+
+    return true;
+  }
+
+  int writeLastDscr()
+  {
+    // write a zero after all tuples to indicate the end.
+    blockFile.open(blockFileName.c_str(), ios::binary | ios::app);
+    u_int32_t endMark = 0;
+    blockFile.write((char*)&endMark, sizeof(endMark));
+
+    // build a description list of output tuples
+    NList descList;
+    descList.append(NList(cnt));
+    descList.append(NList(totalExtSize));
+    descList.append(NList(totalSize));
+    int attrNum = attrExtSize.size();
+    for(int i = 0; i < attrNum; i++)
+    {
+      descList.append(NList(attrExtSize[i]));
+      descList.append(NList(attrSize[i]));
+    }
+
+    //put the base64 code of the description list to the file end.
+    string descStr = binEncode(descList.listExpr());
+    u_int32_t descSize = descStr.size() + 1;
+    blockFile.write(descStr.c_str(), descSize);
+    blockFile.write((char*)&descSize, sizeof(descSize));
+    blockFile.close();
+
+    return cnt;
+  }
+  ~fileInfo()
+  {
+    attrExtSize.erase(attrExtSize.begin(), attrExtSize.end());
+    attrSize.erase(attrSize.begin(), attrSize.end());
+  }
+
+  string getFileName() {
+    return blockFileName;
+  }
+
+private:
+  string blockFileName;
+  ofstream blockFile;
+
+  int cnt;
+  int totalExtSize;
+  int totalSize;
+  vector<double> attrExtSize;
+  vector<double> attrSize;
+};
+
+struct fileHandle
+{
+  ofstream* blockFilePointer;
+  int count;
+};
+
+class FDistributeLocalInfo
+{
+
+private:
+  size_t HashTuple(Tuple* tuple)
+  {
+    size_t hashValue =
+        ((Attribute*)tuple->GetAttribute(attrIndex))->HashValue();
+    if (nBuckets != 0)
+      return hashValue % nBuckets;
+    else
+      return hashValue;
+  }
+
+  string filePath;
+  map<size_t, fileInfo*> fileList;
+  map<size_t, fileInfo*>::iterator fit;
+  map<size_t, fileHandle> fileHandles;
+  size_t nBuckets;
+  int attrIndex;
+  TupleType *resultTupleType, *exportTupleType;
+
+public:
+  FDistributeLocalInfo(string baseName, string path,
+                       int nBuckets, int attrIndex,
+                       ListExpr resultTupleType,
+                       ListExpr inputTupleType);
+
+  bool insertTuple(Word tuple);
+  void startCloseFiles();
+  Tuple* closeOneFile();
+  ~FDistributeLocalInfo(){
+    fileList.clear();
+    if (resultTupleType)
+      resultTupleType->DeleteIfAllowed();
+    if (exportTupleType)
+      exportTupleType->DeleteIfAllowed();
+  }
+
+
 };
 
 /*
