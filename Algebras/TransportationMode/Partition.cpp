@@ -2950,7 +2950,7 @@ void SpacePartition::ReorderLine(SimpleLine* sline,
 {
     if(!(sline->Size() > 0)){
       cout<<__FILE__<<" "<<__LINE__<<" line empty "<<endl; 
-      return; 
+      assert(false);
     }
     Point sp;
     assert(sline->AtPosition(0.0,true,sp));

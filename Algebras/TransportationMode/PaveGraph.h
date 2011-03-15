@@ -194,6 +194,7 @@ struct CompTriangle{
   bool IsConvex(vector<Point>);
   bool PolygonConvex();
   bool PolygonConvex2(int& error);
+  int ComplexRegion(); 
   //compute the shortest path between two points inside a polgyon
   void GeoShortestPath(Point*, Point*);
 
@@ -390,6 +391,8 @@ struct Walk_SP{
   ~Walk_SP();
   Walk_SP(DualGraph* g1, VisualGraph* g2, Relation* r1, Relation* r2);
   void WalkShortestPath(Line* res);
+  void WalkShortestPath2(int oid1, int oid2, Point loc1, Point loc2,
+                                Line* res);
   void TestWalkShortestPath(int, int);
   void GenerateData1(int no_p);
   void GenerateData2(int no_p);

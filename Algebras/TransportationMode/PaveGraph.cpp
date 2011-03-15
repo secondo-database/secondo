@@ -1067,6 +1067,51 @@ bool CompTriangle::PolygonConvex2(int& error)
 }
 
 /*
+number of vertices is larger than 100. 
+it is a concave polgyon with holes inside 
+
+if it is a complex region, when it needs to compute the shortest path inside.
+  we do not call the simple method, but build the dual graph, visual graph and
+  an auxiliary relation. 
+  1:complex region 0 not complex region -1: error 
+
+*/
+int CompTriangle::ComplexRegion()
+{
+  int nocom = reg->NoComponents();
+  if(nocom == 0){
+      cout<<"error: this is not a region"<<endl;
+      return -1;
+  }
+  if(nocom > 1){
+      cout<<"error: several subregions"<<endl;
+      return -1;
+  }
+
+  if(reg->Size()< 80) return 0; 
+
+  vector<int> no_cycles(reg->Size(), -1);
+
+  for(int i = 0;i < reg->Size();i++){
+      HalfSegment hs;
+      reg->Get(i, hs);
+      if(!hs.IsLeftDomPoint())continue;
+      int cycleno = hs.attr.cycleno;
+      no_cycles[cycleno] = cycleno;
+  }
+
+  unsigned int no_cyc = 0;
+  for(unsigned int i = 0;i < no_cycles.size();i++){
+    if(no_cycles[i] != -1) no_cyc++;
+    else
+      break;
+  }
+  if(no_cyc < 4) return 0;
+  else return 1; /////////there are many holes inside 
+}
+
+
+/*
 get a sequence of triangles where the shoretest path should pass through
 
 */
@@ -2179,11 +2224,10 @@ void CompTriangle::NewTriangulation()
 
   PolygonContourPoint(no_cyc, no_p_contour, ps_contour_x, ps_contour_y);
 
-/*  for(unsigned int i = 0;i < no_cyc;i++)
-    cout<<no_p_contour[i]<<endl;*/
+ //  cout<<"finish creating contour for the polgyon"<<endl;
+//   for(unsigned int i = 0;i < no_cyc;i++)
+//     cout<<no_p_contour[i]<<endl;
 
-
-//  cout<<"finish creating contour for the polgyon"<<endl;
 //  cout<<"no vertices "<<ps_contour_x.size()<<endl;
 
   ///call the algorithm implemented by Atul Narkhede and Dinesh Manocha ///////
@@ -3404,7 +3448,11 @@ void Walk_SP::WalkShortestPath(Line* res)
   }
   Tuple* tuple1 = dg->GetNodeRel()->GetTuple(oid1, false);
   Region* reg1 = (Region*)tuple1->GetAttribute(DualGraph::PAVEMENT);
-
+  
+  CompTriangle* ct1 = new CompTriangle(reg1);
+  assert(ct1->PolygonConvex()); 
+  delete ct1; 
+  
   if(loc1.Inside(*reg1) == false){
     tuple1->DeleteIfAllowed();
     cout<<"point1 is not inside the polygon"<<endl;
@@ -3413,6 +3461,10 @@ void Walk_SP::WalkShortestPath(Line* res)
   Tuple* tuple2 = dg->GetNodeRel()->GetTuple(oid2, false);
   Region* reg2 = (Region*)tuple2->GetAttribute(DualGraph::PAVEMENT);
 
+  CompTriangle* ct2 = new CompTriangle(reg2);
+  assert(ct2->PolygonConvex()); 
+  delete ct2; 
+  
   if(loc2.Inside(*reg2) == false){
     tuple1->DeleteIfAllowed();
     tuple2->DeleteIfAllowed();
@@ -3421,162 +3473,9 @@ void Walk_SP::WalkShortestPath(Line* res)
   }
   tuple1->DeleteIfAllowed();
   tuple2->DeleteIfAllowed();
-  ///////////////////////////////////////////////////////////////////////
-  priority_queue<WPath_elem> path_queue;
-  vector<WPath_elem> expand_path;
-  ////////////////find all visibility nodes to start node/////////
-  ///////connect them to the visibility graph/////////////////////
-  VGraph* vg1 = new VGraph(dg, NULL, rel3, vg->GetNodeRel());
+  
+  WalkShortestPath2(oid1, oid2, loc1, loc2, res);
 
-  vg1->GetVisibilityNode(oid1, loc1);
-
-  assert(vg1->oids1.size() == vg1->p_list.size());
-
-  if(vg1->oids1.size() == 1){//start point equasl to triangle vertex
-    double w = loc1.Distance(loc2);
-    path_queue.push(WPath_elem(-1, 0, vg1->oids1[0], w, loc1, 0.0));
-    expand_path.push_back(WPath_elem(-1, 0, vg1->oids1[0], w, loc1, 0.0));
-
-  }else{
-    double w = loc1.Distance(loc2);
-    path_queue.push(WPath_elem(-1, 0, -1, w,  loc1,0.0));//start location
-    expand_path.push_back(WPath_elem(-1, 0, -1, w, loc1,0.0));//start location
-    int prev_index = 0;
-//    cout<<"vnode id ";
-    for(unsigned int i = 0;i < vg1->oids1.size();i++){
-//      cout<<vg1->oids1[i]<<" ";
-      int expand_path_size = expand_path.size();
-      double d = loc1.Distance(vg1->p_list[i]);
-      w = d + vg1->p_list[i].Distance(loc2);
-      path_queue.push(WPath_elem(prev_index, expand_path_size,
-                      vg1->oids1[i], w, vg1->p_list[i], d));
-      expand_path.push_back(WPath_elem(prev_index, expand_path_size,
-                      vg1->oids1[i], w, vg1->p_list[i], d));
-    }
-  }
-
-  delete vg1;
-  ////////////////find all visibility nodes to the end node/////////
-  VGraph* vg2 = new VGraph(dg, NULL, rel3, vg->GetNodeRel());
-
-  vg2->GetVisibilityNode(oid2, loc2);
-
-  assert(vg2->oids1.size() == vg2->p_list.size());
-  //if the end node equals to triangle vertex.
-  //it can be connected by adjacency list
-  //we don't conenct it to the visibility graph
-  if(vg2->oids1.size() == 1){
-//      cout<<"end point id "<<vg2->oids1[0]<<endl;
-  }
-  Points* neighbor_end = new Points(0);
-  neighbor_end->StartBulkLoad();
-  if(vg2->oids1.size() > 1){
-    for(unsigned int i = 0;i < vg2->oids1.size();i++){
-        Tuple* loc_tuple = vg->GetNodeRel()->GetTuple(vg2->oids1[i], false);
-        Point* loc = (Point*)loc_tuple->GetAttribute(VisualGraph::LOC);
-        *neighbor_end += *loc;
-        loc_tuple->DeleteIfAllowed();
-    }
-    neighbor_end->EndBulkLoad();
-  }
-
-  /////////////////////searching path///////////////////////////////////
-  bool find = false;
-
-  vector<bool> mark_flag;
-  for(int i = 1;i <= vg->GetNodeRel()->GetNoTuples();i++)
-    mark_flag.push_back(false);
-
-  WPath_elem dest;
-  while(path_queue.empty() == false){
-        WPath_elem top = path_queue.top();
-        path_queue.pop();
-//         cout<<"top elem "<<endl; 
-//         top.Print();
-
-        if(AlmostEqual(top.loc, loc2)){
-//          cout<<"find the path"<<endl;
-          find = true;
-          dest = top;
-          break;
-        }
-        //do not consider the start point
-        //if it does not equal to the triangle vertex
-        //its adjacent nodes have been found already and put into the queue
-        if(top.tri_index > 0 && mark_flag[top.tri_index - 1] == false){
-          vector<int> adj_list;
-          vg->FindAdj(top.tri_index, adj_list);
-          int pos_expand_path = top.cur_index;
-          for(unsigned int i = 0;i < adj_list.size();i++){
-            if(mark_flag[adj_list[i] - 1]) continue;
-            int expand_path_size = expand_path.size();
-
-            Tuple* loc_tuple = vg->GetNodeRel()->GetTuple(adj_list[i], false);
-            Point* loc = (Point*)loc_tuple->GetAttribute(VisualGraph::LOC);
-
-            double w1 = top.real_w + top.loc.Distance(*loc);
-            double w2 = w1 + loc->Distance(loc2);
-            path_queue.push(WPath_elem(pos_expand_path, expand_path_size,
-                                adj_list[i], w2 ,*loc, w1));
-            expand_path.push_back(WPath_elem(pos_expand_path, expand_path_size,
-                            adj_list[i], w2, *loc, w1));
-
-            loc_tuple->DeleteIfAllowed();
-
-            mark_flag[top.tri_index - 1] = true;
-//             cout<<"neighbor "<<endl; 
-//             expand_path[expand_path.size() - 1].Print(); 
-          }
-        }
-
-        ////////////check visibility points to the end point////////////
-        if(neighbor_end->Size() > 0){
-            const double delta_dist = 0.1;//in theory, it should be 0.0
-            if(top.loc.Distance(neighbor_end->BoundingBox()) < delta_dist){
-              for(unsigned int i = 0;i < vg2->oids1.size();i++){
-                if(top.tri_index == vg2->oids1[i]){
-                  int pos_expand_path = top.cur_index;
-                  int expand_path_size = expand_path.size();
-
-                  double w1 = top.real_w + top.loc.Distance(loc2);
-                  double w2 = w1;
-                  path_queue.push(WPath_elem(pos_expand_path, expand_path_size,
-                                -1, w2 ,loc2, w1));
-                  expand_path.push_back(WPath_elem(pos_expand_path,
-                            expand_path_size,
-                            -1, w2, loc2, w1));
-                  break;
-                }
-              }
-            }
-        }
-        ///////////////////////////////////////////////////////////////
-  }
-
-  delete neighbor_end;
-  delete vg2;
-  /////////////construct path///////////////////////////////////////////
-  double len = 0.0;
-  if(find){
-    res->StartBulkLoad();
-    while(dest.prev_index != -1){
-      Point p1 = dest.loc;
-      dest = expand_path[dest.prev_index];
-      Point p2 = dest.loc;
-      /////////////////////////////////////////////////////
-      HalfSegment hs;
-      hs.Set(true, p1, p2);
-      hs.attr.edgeno = 0;
-      *res += hs;
-      hs.SetLeftDomPoint(!hs.IsLeftDomPoint());
-      *res += hs;
-      /////////////////////////////////////////////////////
-    }
-    res->EndBulkLoad(); 
-    len = res->Length(); 
-  }
-
-// printf("Euclidean length: %.4f Walk length: %.4f\n",loc1.Distance(loc2),len);
 }
 
 /*
@@ -3620,6 +3519,10 @@ void Walk_SP::TestWalkShortestPath(int tid1, int tid2)
   Tuple* tuple1 = dg->GetNodeRel()->GetTuple(oid1, false);
   Region* reg1 = (Region*)tuple1->GetAttribute(DualGraph::PAVEMENT);
 
+  CompTriangle* ct1 = new CompTriangle(reg1);
+  assert(ct1->PolygonConvex()); 
+  delete ct1; 
+  
   if(loc1.Inside(*reg1) == false){
     tuple1->DeleteIfAllowed();
     cout<<"point1 is not inside the polygon"<<endl;
@@ -3628,6 +3531,10 @@ void Walk_SP::TestWalkShortestPath(int tid1, int tid2)
   Tuple* tuple2 = dg->GetNodeRel()->GetTuple(oid2, false);
   Region* reg2 = (Region*)tuple2->GetAttribute(DualGraph::PAVEMENT);
 
+  CompTriangle* ct2 = new CompTriangle(reg2);
+  assert(ct2->PolygonConvex()); 
+  delete ct2; 
+  
   if(loc2.Inside(*reg2) == false){
     tuple1->DeleteIfAllowed();
     tuple2->DeleteIfAllowed();
@@ -3636,6 +3543,28 @@ void Walk_SP::TestWalkShortestPath(int tid1, int tid2)
   }
   tuple1->DeleteIfAllowed();
   tuple2->DeleteIfAllowed();
+  
+  if(oid1 == oid2){/////////////start and end point are located on the same tri
+      Line* res = new Line(0);
+      res->StartBulkLoad();
+      /////////////////////////////////////////////////////
+      HalfSegment hs;
+      hs.Set(true, loc1, loc2);
+      hs.attr.edgeno = 0;
+      *res += hs;
+      hs.SetLeftDomPoint(!hs.IsLeftDomPoint());
+      *res += hs;
+      /////////////////////////////////////////////////////
+      res->EndBulkLoad(); 
+      oids1.push_back(tid1); //vertex id 
+      oids2.push_back(tid2); //vertex id 
+      path.push_back(*res);
+//   double len = res->Length(); 
+// printf("Euclidean length: %.4f Walk length: %.4f\n",loc1.Distance(loc2),len);
+      delete res; 
+      return; 
+  }
+
   ///////////////////////////////////////////////////////////////////////
   priority_queue<WPath_elem> path_queue;
   vector<WPath_elem> expand_path;
@@ -3795,6 +3724,204 @@ void Walk_SP::TestWalkShortestPath(int tid1, int tid2)
     printf("tid1: %d, tid2: %d, Euclidean: %.4f Walk: %.4f Time: %f\n",
            tid1, tid2, loc1.Distance(loc2),len, 
            (double)(finish - start) / CLOCKS_PER_SEC);
+  }
+}
+
+/*
+called by WalkShortestPath
+
+*/
+void Walk_SP::WalkShortestPath2(int oid1, int oid2, Point loc1, Point loc2,
+                                Line* res)
+{
+//  cout<<"WalkShortestPath2"<<endl;
+//  cout<<"tri_id1 "<<oid1<<" tri_id2 "<<oid2<<endl;
+//  cout<<"loc1 "<<loc1<<" loc2 "<<loc2<<endl;
+  
+  int no_node_graph = dg->No_Of_Node();
+  if(oid1 < 1 || oid1 > no_node_graph){
+    cout<<"loc1 does not exist"<<endl;
+    return;
+  }
+  if(oid2 < 1 || oid2 > no_node_graph){
+    cout<<"loc2 does not exist"<<endl;
+    return;
+  }
+  if(AlmostEqual(loc1,loc2)){
+    cout<<"start location equals to end location"<<endl;
+    return;
+  }
+
+  if(oid1 == oid2){/////////////start and end point are located on the same tri
+      res->StartBulkLoad();
+      /////////////////////////////////////////////////////
+      HalfSegment hs;
+      hs.Set(true, loc1, loc2);
+      hs.attr.edgeno = 0;
+      *res += hs;
+      hs.SetLeftDomPoint(!hs.IsLeftDomPoint());
+      *res += hs;
+      /////////////////////////////////////////////////////
+      res->EndBulkLoad(); 
+//    double len = res->Length(); 
+// printf("Euclidean length: %.4f Walk length: %.4f\n",loc1.Distance(loc2),len);
+    return; 
+  }
+
+
+  ///////////////////////////////////////////////////////////////////////
+  priority_queue<WPath_elem> path_queue;
+  vector<WPath_elem> expand_path;
+  ////////////////find all visibility nodes to start node/////////
+  ///////connect them to the visibility graph/////////////////////
+  VGraph* vg1 = new VGraph(dg, NULL, rel3, vg->GetNodeRel());
+
+  vg1->GetVisibilityNode(oid1, loc1);
+
+  assert(vg1->oids1.size() == vg1->p_list.size());
+
+  if(vg1->oids1.size() == 1){//start point equasl to triangle vertex
+    double w = loc1.Distance(loc2);
+    path_queue.push(WPath_elem(-1, 0, vg1->oids1[0], w, loc1, 0.0));
+    expand_path.push_back(WPath_elem(-1, 0, vg1->oids1[0], w, loc1, 0.0));
+
+  }else{
+    double w = loc1.Distance(loc2);
+    path_queue.push(WPath_elem(-1, 0, -1, w,  loc1,0.0));//start location
+    expand_path.push_back(WPath_elem(-1, 0, -1, w, loc1,0.0));//start location
+    int prev_index = 0;
+//    cout<<"vnode id ";
+    for(unsigned int i = 0;i < vg1->oids1.size();i++){
+//      cout<<vg1->oids1[i]<<" ";
+      int expand_path_size = expand_path.size();
+      double d = loc1.Distance(vg1->p_list[i]);
+      w = d + vg1->p_list[i].Distance(loc2);
+      path_queue.push(WPath_elem(prev_index, expand_path_size,
+                      vg1->oids1[i], w, vg1->p_list[i], d));
+      expand_path.push_back(WPath_elem(prev_index, expand_path_size,
+                      vg1->oids1[i], w, vg1->p_list[i], d));
+    }
+  }
+
+  delete vg1;
+  ////////////////find all visibility nodes to the end node/////////
+  VGraph* vg2 = new VGraph(dg, NULL, rel3, vg->GetNodeRel());
+
+  vg2->GetVisibilityNode(oid2, loc2);
+
+  assert(vg2->oids1.size() == vg2->p_list.size());
+  //if the end node equals to triangle vertex.
+  //it can be connected by adjacency list
+  //we don't conenct it to the visibility graph
+  if(vg2->oids1.size() == 1){
+//      cout<<"end point id "<<vg2->oids1[0]<<endl;
+  }
+  Points* neighbor_end = new Points(0);
+  neighbor_end->StartBulkLoad();
+  if(vg2->oids1.size() > 1){
+    for(unsigned int i = 0;i < vg2->oids1.size();i++){
+        Tuple* loc_tuple = vg->GetNodeRel()->GetTuple(vg2->oids1[i], false);
+        Point* loc = (Point*)loc_tuple->GetAttribute(VisualGraph::LOC);
+        *neighbor_end += *loc;
+        loc_tuple->DeleteIfAllowed();
+    }
+    neighbor_end->EndBulkLoad();
+  }
+
+  /////////////////////searching path///////////////////////////////////
+  bool find = false;
+
+  vector<bool> mark_flag;
+  for(int i = 1;i <= vg->GetNodeRel()->GetNoTuples();i++)
+    mark_flag.push_back(false);
+
+  WPath_elem dest;
+  while(path_queue.empty() == false){
+        WPath_elem top = path_queue.top();
+        path_queue.pop();
+//         cout<<"top elem "<<endl; 
+//         top.Print();
+
+        if(AlmostEqual(top.loc, loc2)){
+//          cout<<"find the path"<<endl;
+          find = true;
+          dest = top;
+          break;
+        }
+        //do not consider the start point
+        //if it does not equal to the triangle vertex
+        //its adjacent nodes have been found already and put into the queue
+        if(top.tri_index > 0 && mark_flag[top.tri_index - 1] == false){
+          vector<int> adj_list;
+          vg->FindAdj(top.tri_index, adj_list);
+          int pos_expand_path = top.cur_index;
+          for(unsigned int i = 0;i < adj_list.size();i++){
+            if(mark_flag[adj_list[i] - 1]) continue;
+            int expand_path_size = expand_path.size();
+
+            Tuple* loc_tuple = vg->GetNodeRel()->GetTuple(adj_list[i], false);
+            Point* loc = (Point*)loc_tuple->GetAttribute(VisualGraph::LOC);
+
+            double w1 = top.real_w + top.loc.Distance(*loc);
+            double w2 = w1 + loc->Distance(loc2);
+            path_queue.push(WPath_elem(pos_expand_path, expand_path_size,
+                                adj_list[i], w2 ,*loc, w1));
+            expand_path.push_back(WPath_elem(pos_expand_path, expand_path_size,
+                            adj_list[i], w2, *loc, w1));
+
+            loc_tuple->DeleteIfAllowed();
+
+            mark_flag[top.tri_index - 1] = true;
+//             cout<<"neighbor "<<endl; 
+//             expand_path[expand_path.size() - 1].Print(); 
+          }
+        }
+
+        ////////////check visibility points to the end point////////////
+        if(neighbor_end->Size() > 0){
+            const double delta_dist = 0.1;//in theory, it should be 0.0
+            if(top.loc.Distance(neighbor_end->BoundingBox()) < delta_dist){
+              for(unsigned int i = 0;i < vg2->oids1.size();i++){
+                if(top.tri_index == vg2->oids1[i]){
+                  int pos_expand_path = top.cur_index;
+                  int expand_path_size = expand_path.size();
+
+                  double w1 = top.real_w + top.loc.Distance(loc2);
+                  double w2 = w1;
+                  path_queue.push(WPath_elem(pos_expand_path, expand_path_size,
+                                -1, w2 ,loc2, w1));
+                  expand_path.push_back(WPath_elem(pos_expand_path,
+                            expand_path_size,
+                            -1, w2, loc2, w1));
+                  break;
+                }
+              }
+            }
+        }
+        ///////////////////////////////////////////////////////////////
+  }
+
+  delete neighbor_end;
+  delete vg2;
+  /////////////construct path///////////////////////////////////////////
+  double len = 0.0;
+  if(find){
+    res->StartBulkLoad();
+    while(dest.prev_index != -1){
+      Point p1 = dest.loc;
+      dest = expand_path[dest.prev_index];
+      Point p2 = dest.loc;
+      /////////////////////////////////////////////////////
+      HalfSegment hs;
+      hs.Set(true, p1, p2);
+      hs.attr.edgeno = 0;
+      *res += hs;
+      hs.SetLeftDomPoint(!hs.IsLeftDomPoint());
+      *res += hs;
+      /////////////////////////////////////////////////////
+    }
+    res->EndBulkLoad(); 
+    len = res->Length(); 
   }
 }
 
