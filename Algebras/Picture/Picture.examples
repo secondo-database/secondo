@@ -18,9 +18,9 @@ Result   : file
 Operator : cut
 Number   : 1
 Signature: picture x int x int x int x int -> picture
-Example  : query theater cut [ 100, 100, 400, 200 ] 
-Result   : file
-
+Example  : query (theater cut [ 100, 100, 400, 200 ]) height
+Result   : 200
+Remark   : Result of the picture depends on the used Jpeg lib version
 
 Operator : display
 Number   : 1
@@ -54,8 +54,8 @@ Result   : "paper.jpg"
 Operator : flipleft
 Number   : 1
 Signature: picture x int -> picture
-Example  : query paper flipleft [ 1 ] 
-Result   : file
+Example  : query (paper width) = (paper flipleft [ 1 ] height)
+Result   : TRUE
 
 
 Operator : height
@@ -95,8 +95,8 @@ Result   : FALSE
 Operator : mirror
 Number   : 1
 Signature: picture x bool -> picture
-Example  : query paper mirror [ TRUE ] 
-Result   : file
+Example  : query (paper width) = (paper mirror [ TRUE ] width)
+Result   : TRUE
 
 
 Operator : picturedate
