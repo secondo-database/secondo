@@ -5,7 +5,7 @@ Installation of ZThread Library:
 3. Within that directory, execute the steps
 	configure
 	make
-	make install
+	make install (with root permissions, e.g. "sudo make install")
 
 Activation of Distributed Algebra:
 
