@@ -498,4 +498,43 @@ vector< pair< pair<int,Operator*>, ListExpr> >
    return result;
 }
 
+bool AlgebraManager::findOperator(const string& name, 
+                                  const ListExpr argList, 
+                                  ListExpr& resultList, 
+                                  int& algId,
+                                  int& opId){
+
+   ListExpr typeError = nl->SymbolAtom("typeerror");
+
+   for(size_t a=0;a<algebra.size();a++){
+     Algebra* alg = algebra[a];
+     if(alg!=0){
+       for(int o=0; o< alg->GetNumOps(); o++){
+         Operator* op = alg->GetOperator(o);
+         if(op->GetName() == name){
+           try{
+              ListExpr res = op->CallTypeMapping(argList);
+              if(!nl->Equal(res,typeError)){ //  appropriate operator found
+                 algId = a;
+                 opId = o;
+                 resultList = res;
+                 return true;
+              } 
+           } catch (...){
+              cerr << "Problem in Typemapping of operator " << op->GetName() 
+                   << " in Algebra" << GetAlgebraName(a) << endl;
+              cerr << "Throws an exception when called with " 
+                   << nl->ToString(argList) << endl;
+           }
+        }
+      }
+    }
+  }
+  algId = 0;
+  opId = 0;
+  resultList = nl->TheEmptyList();
+  return false;
+}
+
+
 

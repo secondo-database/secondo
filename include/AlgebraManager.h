@@ -501,6 +501,21 @@ operator would be applied to this type expression.
         matchingOperators(const ListExpr arguments);
 
 
+/*
+~findOperator~
+
+Search for an operator named __name__ accepting arglist as arguments.
+If an operator is found, all outParameters (resultList, algId, opId) are
+set and the result is true. Otherwise, the result will be false.
+
+*/
+bool findOperator(const string& name,    //name of the operator 
+                  const ListExpr argList,//arguments 
+                  ListExpr& resultList,  // result type
+                  int& algId,            // algebra id
+                  int& opId);            // operator id
+
+
  private:
   NestedList*              nl;
 /*
