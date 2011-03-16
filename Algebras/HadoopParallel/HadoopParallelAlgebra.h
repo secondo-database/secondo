@@ -59,7 +59,7 @@ And includes one method:
 
 const string rmDefaultPath = ":secondo/bin/parallel/";
 const int MAX_COPYTIMES = 5;
-const int MAX_FILEHANDLENUM = 200;
+const size_t MAX_FILEHANDLENUM = 100;
 
 string
 tranStr(const string& s, const string& from, const string& to);
@@ -735,7 +735,8 @@ public:
     totalExtSize += (coreSize + extensionSize);
 
     char* tBlock = (char*)malloc(tupleBlockSize);
-    newTuple->WriteToBin(tBlock, coreSize, extensionSize, flobSize);
+    newTuple->WriteToBin(tBlock, coreSize,
+                         extensionSize, flobSize);
     blockFile.write(tBlock, tupleBlockSize);
     free(tBlock);
     lastTupleIndex = tupleIndex;
@@ -783,6 +784,7 @@ public:
   {  return fileOpen;  }
   size_t getLastTupleIndex()
   {  return lastTupleIndex;  }
+
 private:
   string blockFileName;
   ofstream blockFile;
@@ -797,6 +799,10 @@ private:
   bool fileOpen;
 };
 
+bool static compFileInfo(fileInfo* fi1, fileInfo* fi2)
+{
+  return fi1->getLastTupleIndex() < fi2->getLastTupleIndex();
+}
 class FDistributeLocalInfo
 {
 
@@ -815,6 +821,9 @@ private:
   string filePath;
   map<size_t, fileInfo*> fileList;
   map<size_t, fileInfo*>::iterator fit;
+  //the ~openFileList~ keeps at most
+  //MAX_FILEHANDLENUM opened files handles.
+  vector<fileInfo*> openFileList;
 
   size_t nBuckets;
   int attrIndex;

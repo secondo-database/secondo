@@ -2977,6 +2977,9 @@ or else these tuples are partitioned based on
 keyAttribute values' hash numbers directly,
 which may partitions these tuples NOT evenly.
 
+In both even or uneven partition mode,
+the key attribute will be removed from the export tuple files,
+just like what ~distribute~ operator does.
 
 5.16.0 Specification
 
@@ -2992,12 +2995,13 @@ struct FDistributeInfo : OperatorInfo {
         "x attrName x [nBuckets]"
         "-> stream(tuple(fileSufix, value))";
     syntax = "_ fconsume[ _ , _ , _ , {_} ]";
-    meaning =   "Export a stream of tuples into files. "
-        "Files are separated by their suffix index,"
-        "which is a hash value based on the value of the "
-        "given attribute and the bucket number parameters."
-        "If parameter nBuckets is not given, "
-        "tuples are uneven partitioned.";
+    meaning =   "Export a stream of tuples into files that can "
+        "be read by ffeed operator. "
+        "Files are separated by their suffix index, "
+        "which is a hash value based on the given attribute value"
+        "and number of set buckets. "
+        "If the parameter nBuckets is not given, "
+        "tuples may uneven partitioned.";
   }
 
 };
@@ -3177,7 +3181,6 @@ int FDistributeValueMap(Word* args, Word& result,
     }
     case CLOSE: {
 
-
       fdli = static_cast<FDistributeLocalInfo*>(local.addr);
 
       delete fdli;
@@ -3216,13 +3219,12 @@ bool FDistributeLocalInfo::insertTuple(Word tupleWord)
         exportTupleType->GetNoAttributes());
     fileList.insert(pair<size_t, fileInfo*>(fileSfx, fp));
   }
-  ok = openFile(fp);
+    ok = openFile(fp);
 
   if (!(ok &&
         fp->writeTuple(tuple, tupleCounter,
                        attrIndex, exportTupleType)))
-    cerr << "Block File " << fp->getFileName()
-    << " Write Fail.\n";
+    cerr << "Block File " << fp->getFileName() << " Write Fail.\n";
   tupleCounter++;
   tuple->DeleteIfAllowed();
 
@@ -3234,30 +3236,16 @@ bool FDistributeLocalInfo::openFile(fileInfo* tgtFile)
   if (tgtFile->isFileOpen())
     return true;
 
-  if (openFilesNum >= MAX_FILEHANDLENUM)
+  if (openFileList.size() >= MAX_FILEHANDLENUM)
   {
-    //release one file handle, find the idle file handle
-    map<size_t, fileInfo*>::iterator lit;
-    map<size_t, fileInfo*>::const_iterator idler;
-    size_t idlerIndex = UINT_MAX;
-    for (lit = fileList.begin(); lit != fileList.end(); lit++)
-    {
-      if ((*lit).second->isFileOpen())
-      {
-        size_t ltIndex =
-          (*lit).second->getLastTupleIndex();
-        if (idlerIndex > ltIndex){
-          idler = lit;
-          idlerIndex = ltIndex;
-        }
-      }
-    }
-    (*idler).second->closeFile();
-    openFilesNum--;
+    sort(openFileList.begin(), openFileList.end(), compFileInfo);
+    vector<fileInfo*>::iterator idler = openFileList.begin();
+    (*idler)->closeFile();
+    openFileList.erase(idler);
   }
 
   bool ok = tgtFile->openFile();
-  openFilesNum++;
+  openFileList.push_back(tgtFile);
   return ok;
 }
 
