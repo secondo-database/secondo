@@ -56,7 +56,7 @@ simplequery :  SELECT STAR FROM sources {
 sources:  ID {
       char* relname = $1; 
       // check whether a database is opened
-      ListExpr res;
+ /*      ListExpr res;
       int errorCode = 0;
       int errorPos =0;
       string errorMsg ="";
@@ -73,7 +73,7 @@ sources:  ID {
       if(errorCode!=0){
         
       }
-
+   */
 
      }
 ;
@@ -114,20 +114,3 @@ bool checkOptimizerQuery(const char* argument, char*& errmsg){
 
 
 
-int
-main(int argc, char* argv[]) {
-   if(argc<1){
-     return 1;
-   }
-   char* err=0;
-  
-   bool ok = checkOptimizerQuery(argv[1],err);
-   
-   if(ok){
-      printf("query is valid\n");
-   } else {
-      printf("invalid query %s\n",err);
-      free(err); 
-   }
-
-}
