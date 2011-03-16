@@ -5,6 +5,10 @@
 #include <string.h>
 
 
+#include "NestedList.h"
+#include "SecondoInterface.h"
+
+
 #define YYDEBUG 1
 #define YYERROR_VERBOSE 1
 
@@ -16,6 +20,10 @@ extern "C"{
  void opt_scan_string(const char* argument);
 }
 #endif
+
+
+extern NestedList* nl;       // use global si
+extern SecondoInterface* si;  // use the same si as the rest of prolog
 
 
 char* err_message;
@@ -46,7 +54,27 @@ simplequery :  SELECT STAR FROM sources {
 ;
 
 sources:  ID {
-         char* relname = $1; 
+      char* relname = $1; 
+      // check whether a database is opened
+      ListExpr res;
+      int errorCode = 0;
+      int errorPos =0;
+      string errorMsg ="";
+      si->Secondo("query getDatabaseName()",
+                  0, // command as nested list
+                  1, // command level
+                  true, // command as text
+                  false, // result as texta
+                  res,
+                  errorCode,
+                  errorPos,
+                  errorMsg);
+
+      if(errorCode!=0){
+        
+      }
+
+
      }
 ;
 
@@ -86,7 +114,7 @@ bool checkOptimizerQuery(const char* argument, char*& errmsg){
 
 
 
-
+int
 main(int argc, char* argv[]) {
    if(argc<1){
      return 1;
