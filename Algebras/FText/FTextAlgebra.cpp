@@ -1592,6 +1592,61 @@ ListExpr matchingOperatorsTM(ListExpr args){
 
 
 /*
+2.58 ~checkOperatorTypeMap~
+
+  string x any x any x any ... -> text
+
+Checks whether an operator exists having the name given as the first argument and whether this 
+operator can applied to the remaining arguments. The result contains the result type of the 
+first applyable operator or is undefined if no such operator exists.
+
+*/
+
+
+ListExpr CheckOperatorTypeMapTM(ListExpr args){
+   if(!nl->HasMinLength(args,1)){
+      return listutils::typeError(" string x any x any x ... expected");
+   }
+   ListExpr first = nl->First(args);
+   if(!listutils::isSymbol(first, CcString::BasicType())){
+      return listutils::typeError(" string x any x any x ... expected");
+   }
+   ListExpr rest = nl->Rest(args);
+   return nl->ThreeElemList(nl->SymbolAtom("APPEND"), 
+                             nl->OneElemList(nl->TextAtom(nl->ToString(rest))), 
+                             nl->SymbolAtom(FText::BasicType()));
+}
+
+
+/*
+2.58 ~checkOperatorTypeMap2~
+
+  string x text | string x string -> text
+
+Checks whether an operator exists having the name given as the first argument and whether this 
+operator can be applied to the type given as a nested list within a string or text.
+The result contains the result type of the first applyable operator or is undefined if no 
+such operator exists.
+
+*/
+ListExpr CheckOperatorTypeMap2TM(ListExpr args){
+   if(!nl->HasLength(args,2)){
+      return listutils::typeError(" string x {string | text} expected");
+   }
+   ListExpr first = nl->First(args);
+   ListExpr second = nl->Second(args);
+   if(!listutils::isSymbol(first, CcString::BasicType()) ||
+      (!listutils::isSymbol(second,FText::BasicType())&&
+       !listutils::isSymbol(second,CcString::BasicType()))){
+      return listutils::typeError(" string x {string | text} expected");
+   }
+   return  nl->SymbolAtom(FText::BasicType()); 
+}
+
+
+
+
+/*
 3.3 Value Mapping Functions
 
 */
@@ -4554,6 +4609,11 @@ int ftextdeleteobjectselect( ListExpr args )
   return -1;
 }
 
+
+int CheckOperatorTypeMapSelect(ListExpr args){
+  return listutils::isSymbol(nl->Second(args),FText::BasicType())?0:1;
+}
+
 /*
 Operator ~createObject~
 
@@ -4896,8 +4956,48 @@ int matchingOperatorsVM( Word* args, Word& result, int message,
 
 }
 
+template<class T>
+int CheckOperatorTypeMapVM( Word* args, Word& result, int message,
+                        Word& local, Supplier s )
+{
 
+  CcString* opName = static_cast<CcString*>(args[0].addr);
+  T* t = static_cast<T*>(args[qp->GetNoSons(s)-1].addr);
+  result = qp->ResultStorage(s);
+  FText* res = static_cast<FText*>(result.addr);
+  if(!opName->IsDefined() || !t->IsDefined()){
+    res->SetDefined(false);
+  } else {
+     ListExpr list;
+     if(!nl->ReadFromString(t->GetValue(),list)){
+       res->SetDefined(false);
+     } else {
+       
+       ListExpr restype;
+       int algid;
+       int opid;
+       bool found = am->findOperator(opName->GetValue(), list, 
+                                     restype, algid,opid);
+       if(found){
+           // remove append if found
+           if(nl->HasLength(restype,3) && 
+              listutils::isSymbol(nl->First(restype),"APPEND")){
+              restype = nl->Third(restype);
+           }
+           res->Set(true,nl->ToString(restype));
+       } else {
+           res->SetDefined(false);
+       }
+     }
+ } 
+ return 0; 
 
+}
+
+ValueMapping CheckOperatorTypeMap_vm[] = {
+         CheckOperatorTypeMapVM<FText>,
+         CheckOperatorTypeMapVM<CcString>
+};
 
 /*
 3.4 Definition of Operators
@@ -5431,6 +5531,33 @@ const string matchingOperatorsSpec  =
     "<text>query matchingOperators(Trains) tconsume</text--->"
     ") )";
 
+
+
+const string CheckOperatorTypeMapSpec  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+    "( <text>  string x ANY -> text </text--->"
+    "<text> checkOperatorTypeMap(opname, arg1, ...) </text--->"
+    "<text>Checks whether an operator opname exists which can be "
+           "process the arguments arg_1,...arg_n."
+    " The reulting text contains the type of the result as a nested list or"
+    " an undefined text if such an operator does not exist."
+    " </text--->"
+    "<text>query checkOperatorTypeMap(\"+\",1,1) count</text--->"
+    ") )";
+
+
+const string CheckOperatorTypeMap2Spec  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+    "( <text>  string x {text | string}  -> text </text--->"
+    "<text> checkOperatorTypeMap2(opname, arguments) </text--->"
+    "<text>Checks whether an operator opname exists which can be "
+           "process arguments. Arguments contains a nested list" 
+           "describing the arguments"
+    " The resulting text contains the type of the result as a nested list or"
+    " an undefined text if such an operator does not exist."
+    " </text--->"
+    "<text>query checkOperatorTypeMap2(\"+\",\"int int\") count</text--->"
+    ") )";
 /*
 Operator Definitions
 
@@ -5859,7 +5986,25 @@ Operator matchingOperators
 );
 
 
+Operator checkOperatorTypeMap 
+(
+   "checkOperatorTypeMap",          //name
+   CheckOperatorTypeMapSpec,        //specification
+   CheckOperatorTypeMapVM<FText>,         //value mapping
+   Operator::SimpleSelect,     //trivial selection function
+   CheckOperatorTypeMapTM              //type mapping
+);
 
+
+
+Operator checkOperatorTypeMap2 (
+   "checkOperatorTypeMap2",          //name
+   CheckOperatorTypeMapSpec,        //specification
+   2,
+   CheckOperatorTypeMap_vm, 
+   CheckOperatorTypeMapSelect,             //type mapping
+   CheckOperatorTypeMap2TM              //type mapping
+    );
 
 /*
 5 Creating the algebra
@@ -5928,6 +6073,8 @@ public:
     AddOperator( &getDatabaseName);
     AddOperator( &matchingOperatorNames);
     AddOperator( &matchingOperators);
+    AddOperator( &checkOperatorTypeMap);
+    AddOperator( &checkOperatorTypeMap2);
 
     LOGMSG( "FText:Trace",
       cout <<"End FTextAlgebra() : Algebra()"<<'\n';

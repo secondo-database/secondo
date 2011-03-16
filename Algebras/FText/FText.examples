@@ -724,3 +724,23 @@ Example  : query matchingOperators(Trains) filter[.OperatorName contains "matchi
 Result   : TRUE
 
 
+Operator : checkOperatorTypeMap
+Number   : 1
+Signature: string x ANY -> text
+Example  : query checkOperatorTypeMap("+",1,1)
+Result   : (text 'int')
+
+Operator : checkOperatorTypeMap2
+Number   : 1
+Signature: string x text -> text
+Example  : query checkOperatorTypeMap2("+",'(int int)')
+Result   : (text 'int')
+
+
+Operator : checkOperatorTypeMap2
+Number   : 2
+Signature: string x string -> text
+Example  : query checkOperatorTypeMap2("+","(int int)")
+Result   : (text 'int')
+
+
