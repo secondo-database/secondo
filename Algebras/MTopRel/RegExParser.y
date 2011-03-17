@@ -80,7 +80,6 @@ IntNfa* result;
 Stack<IntNfa*>* stack=0;
 char* regex_last_message=0;
 
-// %name-prefix="regex"
 %}
 
 /*
