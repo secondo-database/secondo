@@ -9195,21 +9195,29 @@ ListExpr OpTMBNNavigationTypeMap ( ListExpr args )
                 )
           );
         break;
-    case 2://return all visisted bus stops 
-       result =
+    case 2: 
+          result =
           nl->TwoElemList(
               nl->SymbolAtom("stream"),
                 nl->TwoElemList(
                   nl->SymbolAtom("tuple"),
-                      nl->TwoElemList(
-                        nl->TwoElemList(nl->SymbolAtom("bus_stop"),
-                                    nl->SymbolAtom("busstop")),
-                        nl->TwoElemList(nl->SymbolAtom("geoData"),
-                                    nl->SymbolAtom("point"))
+                      nl->SixElemList(
+                        nl->TwoElemList(nl->SymbolAtom("Path"),
+                                    nl->SymbolAtom("sline")),
+                        nl->TwoElemList(nl->SymbolAtom("TM"),
+                                    nl->SymbolAtom("string")),
+                        nl->TwoElemList(nl->SymbolAtom("BS1"),
+                                    nl->SymbolAtom("string")),
+                        nl->TwoElemList(nl->SymbolAtom("BS2"),
+                                    nl->SymbolAtom("string")),
+                        nl->TwoElemList(nl->SymbolAtom("Duration"),
+                                    nl->SymbolAtom("periods")),
+                        nl->TwoElemList(nl->SymbolAtom("TimeCost"),
+                                    nl->SymbolAtom("real"))
                   )
                 )
           );
-        break; 
+        break;
     case 3://return all visisted bus stops 
        result =
           nl->TwoElemList(
@@ -9225,8 +9233,23 @@ ListExpr OpTMBNNavigationTypeMap ( ListExpr args )
                 )
           );
         break; 
+    case 4://return all visisted bus stops 
+       result =
+          nl->TwoElemList(
+              nl->SymbolAtom("stream"),
+                nl->TwoElemList(
+                  nl->SymbolAtom("tuple"),
+                      nl->TwoElemList(
+                        nl->TwoElemList(nl->SymbolAtom("bus_stop"),
+                                    nl->SymbolAtom("busstop")),
+                        nl->TwoElemList(nl->SymbolAtom("geoData"),
+                                    nl->SymbolAtom("point"))
+                  )
+                )
+          );
+        break; 
     default:
-      string err = "the value of fifth parameter([0,3]) is not correct";
+      string err = "the value of fifth parameter([0,4]) is not correct";
       return listutils::typeError(err);
   }
 
@@ -15032,15 +15055,18 @@ int OpTMBNNavigationValueMap(Word* args, Word& result, int message,
           case 1: 
                   bn_nav->ShortestPath_Time(bs1, bs2, query_time);
                   break;
-          case 2: 
-                  bn_nav->ShortestPath_LengthDebug(bs1, bs2, query_time);
+          case 2:
+                  bn_nav->ShortestPath_Transfer(bs1, bs2, query_time);
                   break;
           case 3: 
+                  bn_nav->ShortestPath_LengthDebug(bs1, bs2, query_time);
+                  break;
+          case 4: 
                   bn_nav->ShortestPath_TimeDebug(bs1, bs2, query_time);
                   break;
           default:
                   cout<<"invalid type "<<type<<endl;
-                  break; 
+                  break;
         }
 
         local.setAddr(bn_nav);
@@ -15086,6 +15112,27 @@ int OpTMBNNavigationValueMap(Word* args, Word& result, int message,
               bn_nav->count++;
               return YIELD;
           }else if(bn_nav->type == 2){
+              if(bn_nav->count == bn_nav->path_list.size())
+                          return CANCEL;
+              Tuple* tuple = new Tuple(bn_nav->resulttype);
+              tuple->PutAttribute(0,
+                        new SimpleLine(bn_nav->path_list[bn_nav->count]));
+              tuple->PutAttribute(1,
+                              new CcString(bn_nav->tm_list[bn_nav->count]));
+              tuple->PutAttribute(2,
+                              new CcString(bn_nav->bs1_list[bn_nav->count]));
+              tuple->PutAttribute(3,
+                              new CcString(bn_nav->bs2_list[bn_nav->count]));
+              tuple->PutAttribute(4,
+                              new Periods(bn_nav->peri_list[bn_nav->count]));
+              tuple->PutAttribute(5,
+                       new CcReal(true,bn_nav->time_cost_list[bn_nav->count]));
+
+              result.setAddr(tuple);
+              bn_nav->count++;
+              return YIELD;
+
+          }else if(bn_nav->type == 3){/////////for debuging, return bus stops
               if(bn_nav->count == bn_nav->bs_list.size())
                           return CANCEL;
               Tuple* tuple = new Tuple(bn_nav->resulttype);
@@ -15097,7 +15144,7 @@ int OpTMBNNavigationValueMap(Word* args, Word& result, int message,
               result.setAddr(tuple);
               bn_nav->count++;
               return YIELD;
-          }else if(bn_nav->type == 3){
+          }else if(bn_nav->type == 4){//////for debuging, return bus stops 
               if(bn_nav->count == bn_nav->bs_list.size())
                           return CANCEL;
               Tuple* tuple = new Tuple(bn_nav->resulttype);
@@ -15174,15 +15221,41 @@ int OpTMTestBNNavigationValueMap(Word* args, Word& result, int message,
           case 1:
                   bn_nav->ShortestPath_Time(bs1, bs2, query_time);
                   if(bn_nav->path_list.size() > 0){
-                    double l = 0.0;;
-                    for(unsigned int k = 0;k < bn_nav->path_list.size();k++)
+                    double l = 0.0;
+                    double time_cost = 0.0;
+                    for(unsigned int k = 0;k < bn_nav->path_list.size();k++){
                       l += bn_nav->path_list[k].Length();
+                      time_cost += bn_nav->time_cost_list[k];
+                    }
                     cout<<"bs1: "<<*bs1<<" bs2: "<<*bs2
-                       <<" length "<<l<<endl;
+                       <<" length: "<<l<<" time cost: "<<time_cost<<" s"<<endl;
                     bn_nav->path_list.clear();
                     bn_nav->tm_list.clear();
                     bn_nav->bs1_list.clear();
                     bn_nav->bs2_list.clear();
+                    bn_nav->peri_list.clear(); 
+                    bn_nav->time_cost_list.clear();
+                  }
+
+                  break;
+          case 2:
+                  bn_nav->ShortestPath_Transfer(bs1, bs2, query_time);
+                  if(bn_nav->path_list.size() > 0){
+                    double l = 0.0;
+                    double time_cost = 0.0;
+                    for(unsigned int k = 0;k < bn_nav->path_list.size();k++){
+                      l += bn_nav->path_list[k].Length();
+                      time_cost += bn_nav->time_cost_list[k];
+                    }
+                    cout<<"bs1: "<<*bs1<<" bs2: "<<*bs2
+                        <<" length "<<l<<" time cost "<<time_cost<<" s"<<endl;
+
+                    bn_nav->path_list.clear();
+                    bn_nav->tm_list.clear();
+                    bn_nav->bs1_list.clear();
+                    bn_nav->bs2_list.clear();
+                    bn_nav->peri_list.clear(); 
+                    bn_nav->time_cost_list.clear();
                   }
                   break;
           default:

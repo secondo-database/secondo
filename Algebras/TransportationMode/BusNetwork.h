@@ -978,7 +978,7 @@ struct BNPath_elem:public Path_elem{
   bool valid; //false: transfering without moving 
   
   bool b_w;
-  double w;//speical case for time waiting for the bus 
+  double w;//special case for time waiting for the bus 
   BNPath_elem():path(0){}
   BNPath_elem(int p, int c, int t, double w1, double w2, SimpleLine& sl,
               int m, bool b = true):Path_elem(p, c, t), weight(w1), real_w(w2), 
@@ -1017,6 +1017,63 @@ struct BNPath_elem:public Path_elem{
   }
 };
 
+/*
+for shortest path in bus transfer. two kinds of comparison 
+  because the number of bus transfer does not change so frequently and in 
+  big extent 
+
+*/
+
+struct BNPath_elem2:public Path_elem{
+  int weight;
+  double real_w;
+  SimpleLine path;
+  int tm;
+  bool valid; //false: transfering without moving 
+  
+  bool b_w;
+  double w;//special case for time waiting for the bus 
+  BNPath_elem2():path(0){}
+  BNPath_elem2(int p, int c, int t, int w1, double w2, SimpleLine& sl,
+              int m, bool b = true):Path_elem(p, c, t), weight(w1), real_w(w2), 
+              path(sl), tm(m), valid(b), b_w(false), w(0){}
+  BNPath_elem2(const BNPath_elem2& wp):Path_elem(wp),
+            weight(wp.weight),real_w(wp.real_w),
+            path(wp.path), tm(wp.tm), valid(wp.valid), b_w(wp.b_w), w(wp.w){}
+  BNPath_elem2& operator=(const BNPath_elem2& wp)
+  {
+    Path_elem::operator=(wp);
+    weight = wp.weight;
+    real_w = wp.real_w;
+    path = wp.path;  
+    tm = wp.tm;
+    valid = wp.valid; 
+    b_w = wp.b_w;
+    w = wp.w;
+    return *this;
+  }
+  void SetW(double d)
+  {
+    if(d > 0.0){
+      b_w = true;
+      w = d; 
+    }
+  }
+  bool operator<(const BNPath_elem2& ip) const
+  {
+    if(weight > ip.weight) return true;
+    else if(weight < ip.weight) return false; 
+    else if(weight == ip.weight){
+      return real_w > ip.real_w; 
+    }else assert(false);
+  }
+
+  void Print()
+  {
+    cout<<" tri_index " <<tri_index<<" realweight "<<real_w
+        <<" weight "<<weight<<" tm "<<str_tm[tm]<<endl;
+  }
+};
 
 /*
 navigation for bus network 
@@ -1055,6 +1112,7 @@ struct BNNav{
   void ShortestPath_LengthDebug(Bus_Stop* bs1, Bus_Stop* bs2, Instant*);
   void ShortestPath_Time(Bus_Stop* bs1, Bus_Stop* bs2, Instant*);
   void ShortestPath_TimeDebug(Bus_Stop* bs1, Bus_Stop* bs2, Instant*);
+  void ShortestPath_Transfer(Bus_Stop* bs1, Bus_Stop* bs2, Instant*);
   
   void InitializeQueue1(Bus_Stop* bs1, Bus_Stop* bs2, 
                             priority_queue<BNPath_elem>& path_queue, 
@@ -1064,6 +1122,12 @@ struct BNNav{
   void InitializeQueue2(Bus_Stop* bs1, Bus_Stop* bs2, 
                             priority_queue<BNPath_elem>& path_queue, 
                             vector<BNPath_elem>& expand_queue, 
+                            BusNetwork* bn, BusGraph* bg,
+                            Point&, Point&);
+
+  void InitializeQueue3(Bus_Stop* bs1, Bus_Stop* bs2, 
+                            priority_queue<BNPath_elem2>& path_queue, 
+                            vector<BNPath_elem2>& expand_queue, 
                             BusNetwork* bn, BusGraph* bg,
                             Point&, Point&);
 
