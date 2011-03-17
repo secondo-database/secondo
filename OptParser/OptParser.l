@@ -3,7 +3,7 @@
 #include "parser.h"
 
 
-void lexDestroy(){
+void optlexDestroy(){
      yy_delete_buffer(YY_CURRENT_BUFFER);
     // optlex_destroy();
   }
@@ -37,7 +37,7 @@ star \*
 {select} { return SELECT; }
 {from} { return FROM; }
 {star} {return STAR; }
-{id} { return ID; }
-{variable} {return VARIABLE;}
+{id} {  optlval.strval = yytext; return ID; }
+{variable} { optlval.strval = yytext; return VARIABLE;}
 . { return ERROR; }
 %%

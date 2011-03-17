@@ -22,7 +22,7 @@ via the name argument.
 
 */
   
-  bool isDatabaseOpen(string& name);
+  bool isDatabaseOpen(string& name, string& errorMsg);
 
 
 

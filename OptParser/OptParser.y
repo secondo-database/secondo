@@ -48,24 +48,40 @@ simplequery :  SELECT STAR FROM sources {
 ;
 
 sources:  ID {
+
      string dbname;
-     if(!optutils::isDatabaseOpen(dbname)){
-        opterror("no Database open, querying inpossible.");
+
+  
+     string errorMsg;
+     if(!optutils::isDatabaseOpen(dbname,errorMsg)){
+        opterror(errorMsg.c_str());
         return false;
       } 
+
+     
+
+
       char* relname = $1; 
-      ListExpr type;
+      printf("relname = %s\n",relname);
+      ListExpr type = nl->TheEmptyList();
       string realname;
       if(!optutils::isObject(relname, realname, type)){
+         printf("Not an object");
+
          string err = "Object " + string(relname) + " not known in the database " + dbname;
          opterror(err.c_str());
          return false;
       } 
+
       if(!optutils::isRelationDescription(type)){
          string err = "The object " + realname + " is not a relation.";
+         opterror(err.c_str());
          return false;
        }
+  
+
      }
+
 
   | VARIABLE {
      opterror("The name of a relation must start with a lower case letter");
@@ -85,14 +101,18 @@ int opterror (const char *error)
   return 0;
 }
 
-extern "C"{void lexDestroy();}
+extern "C"{void optlexDestroy();}
 
 
 bool checkOptimizerQuery(const char* argument, char*& errmsg){
-    lexDestroy();
+
+   try{
+
+    optlexDestroy();
  
     opt_scan_string(argument);
-    yyparse();
+
+    optparse();
  
     if(success && err_message){
          free(err_message);
@@ -103,6 +123,11 @@ bool checkOptimizerQuery(const char* argument, char*& errmsg){
         err_message = 0;
      }
      return success;
+  } catch(...){
+      opterror("internal error during parssing");;
+      return false;
+  }
+
 }
 
 

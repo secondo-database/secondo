@@ -7,22 +7,16 @@ include ../makefile.env
 
 
 .PHONY: all
-all: optparser
+all: $(LIBDIR)/liboptparser.a
 
 
-optparser: parser.o scanner.o OptChecker.o OptSecUtils.o
-
-
-#$(CC) $(CCFLAGS) $(SECONDO_OBJECTS) -o optparser parser.o scanner.o OptChecker.o OptSecUtils.o -lstdc++ -lfl
+$(LIBDIR)/liboptparser.a: parser.o scanner.o  OptSecUtils.o
+	$(AR) -rs  $(LIBDIR)/liboptparser.a parser.o scanner.o   OptSecUtils.o
 
 
 
 OptSecUtils.o: OptSecUtils.cpp
 	$(CC) $(CCFLAGS) -c -o OptSecUtils.o OptSecUtils.cpp
-
-
-OptChecker.o: OptChecker.cpp
-	$(CC) $(CCFLAGS) -c -o OptChecker.o OptChecker.cpp
 
 
 parser.o: parser.c
@@ -42,4 +36,4 @@ parser.c: OptParser.y
 
 .PHONY: clean
 clean:
-	rm -f parser.c parser.h scanner.c scanner.o parser.o optparser OptChecker.o OptSecUtils.o
+	rm -f parser.c parser.h scanner.c scanner.o parser.o $(LIBDIR)/liboptparser.a OptChecker.o OptSecUtils.o
