@@ -743,4 +743,66 @@ Signature: string x string -> text
 Example  : query checkOperatorTypeMap2("+","(int int)")
 Result   : (text 'int')
 
+Operator : strequal
+Number   : 1
+Signature: string x string -> bool
+Example  : query strequal("hello","HELLO", FALSE)
+Result   : TRUE
+
+
+Operator : strequal
+Number   : 2
+Signature: string x string -> bool
+Example  : query strequal("hello","HELLO", TRUE)
+Result   : FALSE
+
+Operator : strequal
+Number   : 3
+Signature: string x text -> bool
+Example  : query strequal("hello",'HELLO', FALSE)
+Result   : TRUE
+
+
+Operator : strequal
+Number   : 4
+Signature: string x text -> bool
+Example  : query strequal("hello",'HELLO', TRUE)
+Result   : FALSE
+
+Operator : strequal
+Number   : 5
+Signature: text x string -> bool
+Example  : query strequal('hello',"HELLO", FALSE)
+Result   : TRUE
+
+
+Operator : strequal
+Number   : 6
+Signature: text x string -> bool
+Example  : query strequal('hello',"HELLO", TRUE)
+Result   : FALSE
+
+Operator : strequal
+Number   : 7
+Signature: text x text -> bool
+Example  : query strequal('hello','HELLO', FALSE)
+Result   : TRUE
+
+
+Operator : strequal
+Number   : 8
+Signature: text x text -> bool
+Example  : query strequal('hello','HELLO', TRUE)
+Result   : FALSE
+
+
+Operator : strequal
+Number   : 9
+Signature: text x text -> bool
+Example  : query strequal('hello','HELLO', [const bool value undef])
+Result   : (bool undef)
+
+
+
+
 

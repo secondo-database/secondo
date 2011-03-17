@@ -1644,6 +1644,42 @@ ListExpr CheckOperatorTypeMap2TM(ListExpr args){
 }
 
 
+/*
+2.59 ~strequalTM~
+
+This operator checks two strings (texts) for equality. 
+An additional boolean parameter constrols whether the 
+comparison should be case sensitive.
+
+*/
+ListExpr strequalTM(ListExpr args){
+  string err = "{string, text} x {string,text} x bool expected";
+  if(!nl->HasLength(args,3)){
+    return listutils::typeError(err);
+  }
+  ListExpr first = nl->First(args);
+  ListExpr second = nl->Second(args);
+  ListExpr third = nl->Third(args);
+
+  if( !listutils::isSymbol(first,CcString::BasicType())  &&
+      !listutils::isSymbol(first,FText::BasicType())){
+      return listutils::typeError(err);
+   }
+  if( !listutils::isSymbol(second,CcString::BasicType())  &&
+      !listutils::isSymbol(second,FText::BasicType())){
+      return listutils::typeError(err);
+   }
+
+  if( !listutils::isSymbol(third,CcBool::BasicType())){
+    return listutils::typeError(err);
+  }
+
+  return nl->SymbolAtom(CcBool::BasicType());
+}
+
+
+
+
 
 
 /*
@@ -4614,6 +4650,29 @@ int CheckOperatorTypeMapSelect(ListExpr args){
   return listutils::isSymbol(nl->Second(args),FText::BasicType())?0:1;
 }
 
+int strequal_select(ListExpr args){
+  ListExpr first = nl->First(args);
+  ListExpr second = nl->Second(args);
+  if(listutils::isSymbol(first,CcString::BasicType())){
+     if(listutils::isSymbol(second,CcString::BasicType())){
+       return 0;
+     } else {
+       return 1;
+     }
+  } 
+  if(listutils::isSymbol(first,FText::BasicType())){
+     if(listutils::isSymbol(second,CcString::BasicType())){
+       return 2;
+     } else {
+       return 3;
+     }
+  } 
+  return -1;
+}
+
+
+
+
 /*
 Operator ~createObject~
 
@@ -4998,6 +5057,63 @@ ValueMapping CheckOperatorTypeMap_vm[] = {
          CheckOperatorTypeMapVM<FText>,
          CheckOperatorTypeMapVM<CcString>
 };
+
+template<class T1, class T2>
+int strequalVM( Word* args, Word& result, int message,
+                        Word& local, Supplier s ){
+
+ result = qp->ResultStorage(s);
+ CcBool* res = static_cast<CcBool*>(result.addr);
+ T1* s1 = static_cast<T1*>(args[0].addr);
+ T2* s2 = static_cast<T2*>(args[1].addr);
+ CcBool* c = static_cast<CcBool*>(args[2].addr);
+ if(!c->IsDefined()){
+    res->SetDefined(false);
+    return 0;
+ }
+ if(!s1->IsDefined() && !s2->IsDefined()){
+    res->Set(true,true);
+    return 0;
+ }
+ if(!s1->IsDefined() || !s2->IsDefined()){
+    res->Set(true,false);
+    return 0;
+ }
+ string str1 = s1->GetValue();
+ string str2 = s2->GetValue();
+  
+ if(str1.length() != str2.length()){
+    res->Set(true,false);
+    return 0;
+ }
+
+ if(c->GetValue()){
+    res->Set(true, str1==str2);
+    return 0;
+ }
+
+ // compare two string case insensitive
+ bool eq = true;
+ for (string::const_iterator c1 = str1.begin(), c2 = str2.begin(); 
+     (c1 != str1.end()) && eq; 
+     ++c1, ++c2) {
+        if (tolower(*c1) != tolower(*c2)) {
+            eq = false;
+        }
+ }
+ res->Set(true,eq);
+ return 0;
+}
+
+
+
+ValueMapping strequal_vm[] = {
+    strequalVM<CcString,CcString>,
+    strequalVM<CcString,FText>,
+    strequalVM<FText,CcString>,
+    strequalVM<FText,FText>,
+};
+
 
 /*
 3.4 Definition of Operators
@@ -5558,6 +5674,20 @@ const string CheckOperatorTypeMap2Spec  =
     " </text--->"
     "<text>query checkOperatorTypeMap2(\"+\",\"int int\") count</text--->"
     ") )";
+
+
+const string strequalSpec = 
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+    "( <text> {string, text} x {string, text} x bool -> bool </text--->"
+    "<text> strequals(str1, str2, case_sensitive </text--->"
+    "<text>Checks whether two strings (text or string) are equal. "
+    "The third arguments is for controlling case sensitivity." 
+    "Two undefined strings are treated to be equal. If the boolean value"
+    " is undefined, also the result will be undefined."
+    " </text--->"
+    "<text>query strequal(\"hello\",'HELLO',FALSE) </text--->"
+    ") )";
+
 /*
 Operator Definitions
 
@@ -5999,12 +6129,24 @@ Operator checkOperatorTypeMap
 
 Operator checkOperatorTypeMap2 (
    "checkOperatorTypeMap2",          //name
-   CheckOperatorTypeMapSpec,        //specification
+   CheckOperatorTypeMap2Spec,        //specification
    2,
    CheckOperatorTypeMap_vm, 
    CheckOperatorTypeMapSelect,             //type mapping
    CheckOperatorTypeMap2TM              //type mapping
     );
+
+
+Operator strequal (
+   "strequal",          //name
+   strequalSpec,        //specification
+   4,
+   strequal_vm, 
+   strequal_select,             //type mapping
+   strequalTM              //type mapping
+    );
+
+
 
 /*
 5 Creating the algebra
@@ -6075,6 +6217,7 @@ public:
     AddOperator( &matchingOperators);
     AddOperator( &checkOperatorTypeMap);
     AddOperator( &checkOperatorTypeMap2);
+    AddOperator( &strequal);
 
     LOGMSG( "FText:Trace",
       cout <<"End FTextAlgebra() : Algebra()"<<'\n';
