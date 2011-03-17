@@ -1902,8 +1902,7 @@ The length of a string is three characters or more.
                    { outstr[stringcursor] = c; stringcursor++; };
                    outstr[stringcursor] = '\0';
                    stringcursor = 0;
-                   mystring = new CcString();
-                   mystring->Set(true, &outstr);
+                   mystring = new CcString(true,&outstr);
                    result.setAddr(mystring);
                    thetext->start = ++textcursor;
                    local.addr = thetext;
