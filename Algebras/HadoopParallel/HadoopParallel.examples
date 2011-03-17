@@ -70,5 +70,5 @@ Result   : '(stream (tuple ((mIndex int) (pIndex int))))'
 Operator : fdistribute
 Number   : 1
 Signature: stream(tuple((a1 t1) ... (ai ti) ... (an tm))) x string x text x ai x int -> stream(tuple((sufix int) (ai ti))) 
-Example  : query plz feed fdistribute["plz", '', PLZ, 50] count
+Example  : query plz feed extend[pkg: .PLZ] fdistribute["plz", '', PLZ, 50] count
 Result   : 50

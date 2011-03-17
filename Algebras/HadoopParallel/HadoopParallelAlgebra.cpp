@@ -3180,10 +3180,9 @@ int FDistributeValueMap(Word* args, Word& result,
       return CANCEL;
     }
     case CLOSE: {
-
       fdli = static_cast<FDistributeLocalInfo*>(local.addr);
-
-      delete fdli;
+      if (fdli)
+        delete fdli;
       local.addr = 0;
       return 0;
     }
@@ -3195,7 +3194,7 @@ FDistributeLocalInfo::FDistributeLocalInfo(
     string _bn, string _pt, int _nb, int _ai,
     ListExpr _rtl, ListExpr _itl)
 : nBuckets(_nb), attrIndex(_ai),
-  openFilesNum(0), tupleCounter(0)
+  tupleCounter(0)
 {
   filePath = getFilePath(_pt, _bn);
   resultTupleType = new TupleType(nl->Second(_rtl));
@@ -3219,7 +3218,7 @@ bool FDistributeLocalInfo::insertTuple(Word tupleWord)
         exportTupleType->GetNoAttributes());
     fileList.insert(pair<size_t, fileInfo*>(fileSfx, fp));
   }
-    ok = openFile(fp);
+  ok = openFile(fp);
 
   if (!(ok &&
         fp->writeTuple(tuple, tupleCounter,
@@ -3238,10 +3237,11 @@ bool FDistributeLocalInfo::openFile(fileInfo* tgtFile)
 
   if (openFileList.size() >= MAX_FILEHANDLENUM)
   {
+    //sort fileInfos according to their last tuples' indices
     sort(openFileList.begin(), openFileList.end(), compFileInfo);
-    vector<fileInfo*>::iterator idler = openFileList.begin();
-    (*idler)->closeFile();
-    openFileList.erase(idler);
+    //The last one of the vector is the idler
+    openFileList.back()->closeFile();
+    openFileList.pop_back();
   }
 
   bool ok = tgtFile->openFile();
@@ -3270,8 +3270,6 @@ Tuple* FDistributeLocalInfo::closeOneFile()
       tuple->PutAttribute(0, new CcInt(suffix));
       tuple->PutAttribute(1, new CcInt(count));
     }
-    fp->closeFile();
-    openFilesNum--;
     fit++;
   }
   return tuple;

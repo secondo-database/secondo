@@ -707,7 +707,7 @@ public:
 
   void closeFile()
   {
-    if (isFileOpen())
+    if (fileOpen)
       blockFile.close();
     fileOpen = false;
   }
@@ -739,6 +739,7 @@ public:
                          extensionSize, flobSize);
     blockFile.write(tBlock, tupleBlockSize);
     free(tBlock);
+    newTuple->DeleteIfAllowed();
     lastTupleIndex = tupleIndex;
     cnt++;
 
@@ -773,8 +774,10 @@ public:
   }
   ~fileInfo()
   {
-    attrExtSize.erase(attrExtSize.begin(), attrExtSize.end());
-    attrSize.erase(attrSize.begin(), attrSize.end());
+    if (fileOpen)
+      blockFile.close();
+    attrExtSize.clear();
+    attrSize.clear();
   }
 
   string getFileName() {
@@ -801,7 +804,7 @@ private:
 
 bool static compFileInfo(fileInfo* fi1, fileInfo* fi2)
 {
-  return fi1->getLastTupleIndex() < fi2->getLastTupleIndex();
+  return fi1->getLastTupleIndex() > fi2->getLastTupleIndex();
 }
 class FDistributeLocalInfo
 {
@@ -828,7 +831,6 @@ private:
   size_t nBuckets;
   int attrIndex;
   TupleType *resultTupleType, *exportTupleType;
-  int openFilesNum;
   size_t tupleCounter;
 
 public:
@@ -841,14 +843,17 @@ public:
   void startCloseFiles();
   Tuple* closeOneFile();
   ~FDistributeLocalInfo(){
+    map<size_t, fileInfo*>::iterator fit;
+    for(fit = fileList.begin(); fit != fileList.end(); fit++)
+    { delete (*fit).second; }
+
+    openFileList.clear();
     fileList.clear();
     if (resultTupleType)
       resultTupleType->DeleteIfAllowed();
     if (exportTupleType)
       exportTupleType->DeleteIfAllowed();
   }
-
-
 };
 
 /*
