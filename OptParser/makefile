@@ -5,12 +5,20 @@
 include ../makefile.env
 
 
+
 .PHONY: all
 all: optparser
 
 
-optparser: parser.o scanner.o OptChecker.o
-	$(CC) $(CCFLAGS) -o optparser parser.o scanner.o OptChecker.o -lstdc++ -lfl
+optparser: parser.o scanner.o OptChecker.o OptSecUtils.o
+
+
+#$(CC) $(CCFLAGS) $(SECONDO_OBJECTS) -o optparser parser.o scanner.o OptChecker.o OptSecUtils.o -lstdc++ -lfl
+
+
+
+OptSecUtils.o: OptSecUtils.cpp
+	$(CC) $(CCFLAGS) -c -o OptSecUtils.o OptSecUtils.cpp
 
 
 OptChecker.o: OptChecker.cpp
@@ -34,4 +42,4 @@ parser.c: OptParser.y
 
 .PHONY: clean
 clean:
-	rm -f parser.c parser.h scanner.c scanner.o parser.o optparser OptChecker.o
+	rm -f parser.c parser.h scanner.c scanner.o parser.o optparser OptChecker.o OptSecUtils.o

@@ -14,11 +14,13 @@ void lexDestroy(){
 %option prefix="opt"
 %option noyywrap
 
-
+smallLetter [a-z]
+capital [A-Z]
 letter [a-zA-Z]
 digit [0-9]
 int [+-]?(([1-9][0-9]*)|0)
-id {letter}({letter}|{digit})*
+id {smallLetter}({letter}|{digit})*
+variable {capital}({letter}|{digit})*
 select "select"
 from "from"
 star \*
@@ -36,5 +38,6 @@ star \*
 {from} { return FROM; }
 {star} {return STAR; }
 {id} { return ID; }
+{variable} {return VARIABLE;}
 . { return ERROR; }
 %%

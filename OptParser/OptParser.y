@@ -4,10 +4,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-
-#include "NestedList.h"
-#include "SecondoInterface.h"
-
+#include "OptSecUtils.h"
 
 #define YYDEBUG 1
 #define YYERROR_VERBOSE 1
@@ -21,9 +18,6 @@ extern "C"{
 }
 #endif
 
-
-extern NestedList* nl;       // use global si
-extern SecondoInterface* si;  // use the same si as the rest of prolog
 
 
 char* err_message;
@@ -42,7 +36,7 @@ bool success;
 %name-prefix="opt"
 
 %token SELECT FROM STAR ERROR
-%token<strval> ID
+%token<strval> ID VARIABLE
 
 
 %%
@@ -54,28 +48,30 @@ simplequery :  SELECT STAR FROM sources {
 ;
 
 sources:  ID {
+     string dbname;
+     if(!optutils::isDatabaseOpen(dbname)){
+        opterror("no Database open, querying inpossible.");
+        return false;
+      } 
       char* relname = $1; 
-      // check whether a database is opened
- /*      ListExpr res;
-      int errorCode = 0;
-      int errorPos =0;
-      string errorMsg ="";
-      si->Secondo("query getDatabaseName()",
-                  0, // command as nested list
-                  1, // command level
-                  true, // command as text
-                  false, // result as texta
-                  res,
-                  errorCode,
-                  errorPos,
-                  errorMsg);
-
-      if(errorCode!=0){
-        
-      }
-   */
-
+      ListExpr type;
+      string realname;
+      if(!optutils::isObject(relname, realname, type)){
+         string err = "Object " + string(relname) + " not known in the database " + dbname;
+         opterror(err.c_str());
+         return false;
+      } 
+      if(!optutils::isRelationDescription(type)){
+         string err = "The object " + realname + " is not a relation.";
+         return false;
+       }
      }
+
+  | VARIABLE {
+     opterror("The name of a relation must start with a lower case letter");
+     return false;
+  }
+
 ;
 
 %%
