@@ -80,7 +80,6 @@ class MD5{
 
      static std::string toString(const unsigned char digest[16]){
         std::ostringstream oss;
-        std::string s1((char*)digest);
         oss << std::hex; 
         for(int i=0; i<16;i++){
           if(digest[i] <16){
