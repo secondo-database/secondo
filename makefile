@@ -128,6 +128,7 @@ makedirs:
 	$(MAKE) -C ClientServer
 	$(MAKE) -C Tools
 	$(MAKE) -C StorageManager
+	$(MAKE) -C OptParser
 	$(MAKE) -C Algebras/Management
 	$(MAKE) -C QueryProcessor
 	$(MAKE) -C UserInterfaces

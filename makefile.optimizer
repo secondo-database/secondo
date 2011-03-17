@@ -72,6 +72,8 @@ ifeq ($(platform),mac_osx)
 PLLDFLAGS :=  -L/opt/local/lib -L$(PL_LIB_DIR) -l$(PL_LIB) $(AUXLIBS)/libreadline.a  -lncurses -lm 
 endif
 
+PLLDFLAGS += -loptparser
+
 # define directories for using jpl
 
 ifndef PL_VERSION

@@ -57,6 +57,9 @@ using namespace std;
 #include "TTYParameter.h"
 
 
+#include "../OptParser/OptimizerChecker.h"
+
+
 #ifdef SECONDO_USE_ENTROPY
 #include "../Optimizer/Entropy/entropy.h"
 #endif
@@ -595,6 +598,59 @@ pl_call_secondo(term_t command, term_t result)
   PL_fail;
 }
 
+
+/*
+This functions check a sql construct (given as an atom)
+to be valid using an external parser. On succeed, the
+function will fail. Otherwise, the function succeeds and
+returns the error message using the second argument.
+
+*/
+
+static foreign_t
+pl_check_syntax(term_t command, term_t result)
+{
+
+  char* commandstr = 0;
+
+  int ok1 = PL_get_chars(command,&commandstr, CVT_ALL);
+  if(!ok1){
+     if(!PL_unify_atom_chars(result,"cannot create command")){
+         cerr << "Cannot return result, please use an "
+              << "Variable as the second argument" << endl;
+     }
+     PL_succeed;
+   }
+ 
+   char* errorMessage = 0;
+   bool ok = checkOptimizerQuery(commandstr, errorMessage);
+
+  if(ok){
+     if(errorMessage){
+        free(errorMessage);
+     }
+     PL_fail;
+  } else {
+     if(errorMessage){
+        if(!PL_unify_atom_chars(result,errorMessage)){
+           cerr << "cannot return the error message, may be "
+                << " the second arguemnt is not a variable" << endl;
+           cerr << "errorMessage = " << errorMessage << endl;
+        }
+        free(errorMessage);
+     } else {
+        if(!PL_unify_atom_chars(result,"No error Message available")){
+           cerr << "cannot return the error message, may be "
+               << " the second arguemnt is not a variable" << endl;
+           cerr << "Internal error, no success, but no error message" << endl;
+        }
+
+     }
+     PL_succeed;
+  }
+}
+
+
 /*
 
 4 Function pl\_maximize\_entropy
@@ -661,6 +717,7 @@ PL_extension predicates[] =
   { "secondo", 2, (void*)pl_call_secondo, 0 },
   { "secondo_error_info", 2, (void*)pl_get_error_info, 0 },
   { "secondo_print_le", 1, (void*)pl_print_term_le, 0 },
+  { "check_syntax",2, (void*)pl_check_syntax,0},
 #ifdef SECONDO_USE_ENTROPY
   { "maximize_entropy", 3, (void*)pl_maximize_entropy, 0 },
 #endif
