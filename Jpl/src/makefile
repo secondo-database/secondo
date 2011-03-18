@@ -59,7 +59,7 @@ $(JPL_LIB)/jpl.o: $(JPLVER)/jpl.c
 	$(CC) -c -fPIC -g -o $@ $(INCLUDEFLAGS) $(INITDEF) $<
 
 
-LINK_FLAGS := $(JNI_CCFLAGS) $(PLLDFLAGS) $(JPLDEF) -lrt
+LINK_FLAGS := $(JNI_CCFLAGS) $(PLLDFLAGS) $(JPLDEF) -L$(SECONDO_BUILD_DIR)/lib -lrt
 
 ifeq ($(platform),win32)
 $(JPLDLL): $(CCOBJECTS) 
