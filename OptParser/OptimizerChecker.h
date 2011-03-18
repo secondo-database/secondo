@@ -11,3 +11,16 @@ function has to free this pointer after processing its content.
 */
 
 bool checkOptimizerQuery(const char* argument, char*& errmsg);
+
+
+/*
+Enables or disables an option depending on the value of the
+boolean parameter. If the option is unknown, the result will be
+false, true otherwise.
+
+*/
+bool setSqlParserOption(const string& optionName, const bool enable);
+
+
+
+

@@ -14,17 +14,73 @@ extern SecondoInterface* si;  // use the same si as the rest of prolog
 
 namespace optutils{
 
+
+/*
+Simple copying lists between environments.
+
+
+*/
+void copyList(const NestedList* srcEnv, const ListExpr src,
+              NestedList* targetEnv, ListExpr& target){
+
+    NodeType type = srcEnv->AtomType(src);
+    switch(type){
+       case IntType:      target = targetEnv->IntAtom(srcEnv->IntValue(src));
+                          break;         
+       case StringType:   target = targetEnv->StringAtom(
+                                                   srcEnv->StringValue(src));
+                          break;
+       case BoolType:     target = targetEnv->BoolAtom(
+                                                   srcEnv->BoolValue(src));
+                          break;
+       case RealType:     target = targetEnv->RealAtom(
+                                                 srcEnv->RealValue(src));
+                          break;
+       case SymbolType:   target = targetEnv->SymbolAtom(
+                                                  srcEnv->SymbolValue(src));
+                          break;
+       case TextType:     target = targetEnv->TextAtom( 
+                                                  srcEnv->Text2String(src));
+                          break;
+       case  NoAtom:      if(srcEnv->IsEmpty(src)){
+                             target = targetEnv->TheEmptyList();
+                          } else {
+                             ListExpr elem; // list element in targetEnv
+                             ListExpr rest = src; // remaining list in src env
+
+                             // convert the first element
+                             copyList(srcEnv, srcEnv->First(rest), 
+                                      targetEnv, elem);
+
+                             target = targetEnv->OneElemList(elem);
+                             ListExpr last = target;
+
+                             rest = srcEnv->Rest(rest);
+
+                             while(!srcEnv->IsEmpty(rest)){
+                                copyList(srcEnv, srcEnv->First(rest), 
+                                         targetEnv, elem);
+                                last = targetEnv->Append(last,elem);
+                                rest = srcEnv->Rest(rest);
+                             }
+                          }
+                          break;
+       default: assert(false);
+    } 
+}
+
 /*
 ~dbOpen~
 
 Checks whether a database is opened. If so, its name is returns 
-via the name argument.
+via the name argument. If not, error Message is set to an
+appropriate message.
 
 */
   
   bool isDatabaseOpen(string& name, string& errorMsg ){
     string command = "query getDatabaseName()";
-    ListExpr result;
+    ListExpr result1;
     int errorCode =0;
     int errorPos = 0;
      
@@ -33,10 +89,13 @@ via the name argument.
                 1,                    // command level
                 true,                 // command as text
                 false,                // result as text
-                result,   
+                result1,   
                 errorCode,
                 errorPos,
                 errorMsg);
+
+    ListExpr result;
+    copyList(si->GetNestedList() ,result1, plnl, result);
 
     if(errorCode!=0){
       return false;
@@ -90,6 +149,31 @@ bool isSymbol(ListExpr l){
 }
 
 
+/*
+Retrieves the n-th element from the list. If it is not possible
+ (too less elements or list is an atom), the result is false. 
+Counting starts at zero.
+
+*/
+bool getElement(const ListExpr list, const int index, ListExpr& element){
+
+   if(plnl->IsAtom(list)){
+      return false;
+   }
+   int i=0;
+   ListExpr rest = list;
+   while(i<index && !plnl->IsEmpty(rest)){
+      i++;
+      rest = plnl->Rest(rest);
+   }
+   if(!plnl->HasMinLength(rest,1)){
+     return false;
+   }
+   element = plnl->First(rest);
+   return true;
+}
+
+
 
 /*
 ~isAttr~
@@ -116,7 +200,7 @@ bool isAttr(ListExpr attr){
 */
 
 bool isAttrList(ListExpr list){
-   if(plnl->HasMinLength(list,1)){
+   if(!plnl->HasMinLength(list,1)){
      return false;
    }
    while(!plnl->IsEmpty(list)){
@@ -164,7 +248,58 @@ bool isRelDescription(ListExpr list, const string& reltype = "rel"){
     return false;
   }
 
-  return isTupleDescription(plnl->Second(list));
+  
+  bool res =  isTupleDescription(plnl->Second(list));
+  return res;
+
+}
+
+
+
+bool strequal(const string& s1, const string& s2, const bool case_sensitive){
+   if(s1.length() != s2.length()){
+      return false;
+   }
+   if(case_sensitive){
+     return s1 == s2;
+   }
+   for (string::const_iterator c1 = s1.begin(), c2 = s2.begin();
+        (c1 != s1.end());  ++c1, ++c2) {
+        if (tolower(*c1) != tolower(*c2)) {
+            return false;
+         }
+   }
+   return true;
+}
+
+/*
+Searches within a type description for the attribute with  name attrName and 
+returns the index of this attribute (or -1 if not found). The index counting
+starts at zero. If the search is successful, the type of the attribute is 
+returned in type.
+
+Note that the attrList is not checked to be a valid attribute list. 
+Check it before calling this function.
+
+*/
+
+int find(const string& attrName, const ListExpr attrList, 
+         ListExpr& type, const bool case_sensitive = true){
+
+  ListExpr rest = attrList;
+  int i = 0;
+  while(!plnl->IsEmpty(rest)){
+    ListExpr current = plnl->First(rest);
+    rest = plnl->Rest(rest);
+    if(strequal(plnl->SymbolValue(plnl->First(current)), 
+                attrName, case_sensitive)){
+        type = plnl->Second(current);
+        return i;
+    }
+    i++;
+  } 
+  type = plnl->TheEmptyList();
+  return  -1;
 
 }
 
@@ -175,9 +310,9 @@ bool isRelDescription(ListExpr list, const string& reltype = "rel"){
 ~isObject~
 
 Checks whether in the opened database an object with the given name exists.
-The name is checked case insensitive. If more than one object exists, the first one
-is selected. If a corresponding object was found, its type is returned via
-the type argument.
+The name is checked case insensitive. If more than one object exists, 
+the first one is selected. If a corresponding object was found, its type 
+is returned via the type argument.
 
 */
 
@@ -185,7 +320,7 @@ the type argument.
       
     string command = "query getcatalog()  filter[strequal(.ObjectName, \"" + 
                       name+"\", FALSE)] head[1] tconsume";
-    ListExpr result;
+    ListExpr result1;
     int errorCode =0;
     int errorPos = 0;
     string errorMsg; 
@@ -194,21 +329,27 @@ the type argument.
                 1,                    // command level
                 true,                 // command as text
                 false,                // result as text
-                result,   
+                result1,   
                 errorCode,
                 errorPos,
                 errorMsg);
 
+    ListExpr result;
+    copyList(si->GetNestedList(),result1, plnl, result);
+
+
     if(errorCode!=0){
-      cerr << "Problem in sending command" << endl;
+      cerr << "Problem in querying catalog" << endl;
       cerr << "Error: " << errorMsg;
       return false;
     } 
+
     // try to analyse the result list
     if(!plnl->HasLength(result,2)){
-        cerr << "result list is not well formatted" << endl;
+        cerr << "result list is not well formatted (# 2 elements)" << endl;
         return false;
     }
+
     ListExpr typelist = plnl->First(result);
     ListExpr value = plnl->Second(result);
 
@@ -218,16 +359,77 @@ the type argument.
 
     if(!isRelDescription(typelist,"trel")){
        cerr << "tconsume does not return a trel " << endl;
+       cerr << "received: " << plnl->ToString(typelist) << endl; 
+       return false;
+    }
+    ListExpr typeExpr_type;
+    ListExpr attrList = plnl->Second(plnl->Second(typelist)); 
+    int index = find("TypeExpr",attrList,typeExpr_type, true);
+    if(index<0){
+      cerr << "internal error, TypeExpr not found in output of getcatalog()"
+           << endl;
+      return false;
+    }
+  
+    if(!isSymbol(typeExpr_type,"text")){
+      cerr << "internal error, TypeExpr is not of type text" << endl;
+      return false;
+    } 
+
+    // get the value for typeExpr
+    ListExpr tupleValue = plnl->First(value);
+
+    if(plnl->AtomType(tupleValue)!=NoAtom){
+      cerr << "internal error, invalid representation of a tuple value" << endl;
+      return false;
+    }
+
+    ListExpr typeExpr_value;
+    if(!getElement(tupleValue,index,typeExpr_value)){
+      cerr << "internal error, value of tuple contains too less entries" 
+           << endl;
+      return false;
+    }
+
+    if(plnl->AtomType(typeExpr_value)!=TextType){
+      cerr << "internal error, wrong representation for a text"
+           << " attribute, or undefined" 
+           << endl;
+      return false;
+    }
+    if(!plnl->ReadFromString(plnl->Text2String(typeExpr_value),type)){
+       cerr << "internal error: could not parse the" 
+            << " list for the type expression" 
+            << endl;
        return false;
     }
 
+    // determine the real name of the object
+    ListExpr ObjectName_type;
+    index = find("ObjectName",attrList, ObjectName_type, true);    
+    if(index < 0){
+       cerr << "internal error: could not determine index"
+            << " of ObjectName from getcatalog operation" << endl;
+       return false;
+    }
+    if(!isSymbol(ObjectName_type,"string")){
+       cerr << "internal error: type of ObjectName is not string" << endl;
+       return false;
+    }
+    ListExpr objectName;
 
-
-
-    
-    return false;  
-         
- 
+    if(!getElement(tupleValue,index,objectName)){
+       cerr << "internal error: could not retrieve object"
+            << " name from tuple representation" << endl;
+       return false;
+    }
+    if(plnl->AtomType(objectName)!=StringType){
+       cerr << "internal error: invalid representation for an object name"
+            << endl;
+       return false;
+    }
+    realName = plnl->StringValue(objectName);
+    return true;
   }
 
 

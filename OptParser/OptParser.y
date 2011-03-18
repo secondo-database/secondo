@@ -19,9 +19,18 @@ extern "C"{
 #endif
 
 
+extern NestedList* plnl;
 
 char* err_message;
 bool success;
+
+/*
+some global variables corresponsing the the options.
+
+*/
+bool subqueries = false;
+// insert further options here
+
 
 
 %}
@@ -62,12 +71,9 @@ sources:  TOKEN_ID {
 
 
       char* relname = $1; 
-      printf("relname = %s\n",relname);
-      ListExpr type = nl->TheEmptyList();
+      ListExpr type = plnl->TheEmptyList();
       string realname;
       if(!optutils::isObject(relname, realname, type)){
-         printf("Not an object");
-
          string err = "Object " + string(relname) + " not known in the database " + dbname;
          opterror(err.c_str());
          return false;
@@ -104,6 +110,13 @@ int opterror (const char *error)
 extern "C"{void optlexDestroy();}
 
 
+/*
+
+Main function. Checks a sql query against the requierements of the 
+secondo's optimizer.
+
+*/
+
 bool checkOptimizerQuery(const char* argument, char*& errmsg){
 
    try{
@@ -128,6 +141,19 @@ bool checkOptimizerQuery(const char* argument, char*& errmsg){
       return false;
   }
 
+}
+
+/*
+Sets an compilerOption. If the option is not found, the ersult will be false. 
+
+*/
+bool setSqlParserOption(const string& optionName, const bool enable){
+   if(optionName == "subqueries") {
+       subqueries = enable;
+       return true;
+   }
+   // insert further options here
+   return false;
 }
 
 
