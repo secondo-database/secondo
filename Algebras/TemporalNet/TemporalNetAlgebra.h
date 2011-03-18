@@ -38,8 +38,8 @@ February 2008 -  Simone Jandt
 #include <iostream>
 #include <sstream>
 #include <string>
-#include "NestedList.h"
-#include "QueryProcessor.h"
+#include "../../include/NestedList.h"
+#include "../../include/QueryProcessor.h"
 
 #ifndef __NETWORK_ALGEBRA_H__
 #error NetworkAlgebra.h is needed by TemporalNetAlgebra.h. \
@@ -436,22 +436,22 @@ Returns the 3 dimensional spatio-temporal BoundingBox of the ~ugpoint~.
     return p1.GetPosition();
   };
 
-  inline GPoint GetStartPosition()const
+  inline GPoint GetStartPoint()const
   {
     return p0;
   };
 
-  inline GPoint GetEndPosition() const
+  inline GPoint GetEndPoint() const
   {
     return p1;
   };
 
-  inline void SetStartPosition(const GPoint gp)
+  inline void SetStartPoint(const GPoint gp)
   {
     p0 = gp;
   };
 
-  inline void SetEndPosition(const GPoint gp)
+  inline void SetEndPoint(const GPoint gp)
   {
     p1 = gp;
   };
@@ -597,14 +597,14 @@ SetMethoden f[ue]r ~ugpoint~
 
 */
 
-  UReal* NetdistanceFromArg(const GPoint* gp) const;
+  void NetdistanceFromArg(const GPoint* gp, UReal* result) const;
 
 /*
 Returns the network distance from the ~ugpoint~ to the ~gpoint~
 
 */
 
-  UReal* NetdistanceToArg(const GPoint* gp) const;
+  void NetdistanceToArg(const GPoint* gp, UReal* result) const;
 
 
 /*
@@ -612,7 +612,7 @@ Returns the network distance from the ~ugpoint~ to the ~gpoint~
 
 */
 
-  UReal* Netdistance(const UGPoint* ugp) const;
+  void Netdistance(const UGPoint* ugp, UReal* result) const;
 
 
   /*
@@ -736,6 +736,14 @@ distance function.
     void DistanceN(MGPoint* mgp, MReal* result);
     void DistanceFunction(UGPoint*,UGPoint*,Network*,vector<UReal>&);
     void DivideUGPoint(Network*);
+
+/*
+  Returns the network distance from the ~gpoint~ to the ~mgpoint~
+
+*/
+
+  void NetdistanceFromArg(const GPoint* gp, MReal* result) const;
+
 /*
 Translates an mgpoint into an mpoint value.
 

@@ -34,28 +34,28 @@ Defines, includes, and constants
 
 */
 
-#include "NestedList.h"
-#include "RelationAlgebra.h"
-#include "BTreeAlgebra.h"
-#include "TupleIdentifier.h"
-#include "../../Tools/Flob/DbArray.h"
-#include "../../Tools/Flob/Flob.h"
-#include "StandardTypes.h"
-#include "NetworkAlgebra.h"
-#include "TemporalAlgebra.h"
-#include "TemporalNetAlgebra.h"
-#include "NetworkManager.h"
-#include "ListUtils.h"
-#include "Symbols.h"
 #include <iostream>
 #include <sstream>
 #include <string>
-#include "QueryProcessor.h"
-#include "Algebra.h"
-#include "DateTime.h"
-#include "ConstructorTemplates.h"
-#include "TypeMapUtils.h"
+
+#include "../Relation-C++/RelationAlgebra.h"
+#include "../BTree/BTreeAlgebra.h"
+#include "../TupleIdentifier/TupleIdentifier.h"
+#include "../Network/NetworkAlgebra.h"
+#include "../TemporalNet/TemporalNetAlgebra.h"
 #include "../Temporal/TemporalAlgebra.h"
+#include "../Network/NetworkManager.h"
+#include "../../Tools/Flob/DbArray.h"
+#include "../../Tools/Flob/Flob.h"
+#include "../../include/StandardTypes.h"
+#include "../../include/ListUtils.h"
+#include "../../include/Symbols.h"
+#include "../../include/NestedList.h"
+#include "../../include/QueryProcessor.h"
+#include "../../include/Algebra.h"
+#include "../../include/DateTime.h"
+#include "../../include/ConstructorTemplates.h"
+#include "../../include/TypeMapUtils.h"
 #include "../../include/Operator.h"
 
 
@@ -2986,6 +2986,215 @@ void MGPoint::DistanceN(MGPoint* mgp, MReal* result){
   ug2->DeleteIfAllowed();
   NetworkManager::CloseNetwork(pNetwork);
   result->EndBulkLoad();
+}
+
+/*
+Networkdistance from ~gpoint~ to ~mgpoint~.
+
+*/
+
+void MGPoint::NetdistanceFromArg(const GPoint* gp, MReal* result) const
+{
+  result->Clear();
+  if (!IsDefined() || gp == 0 || !gp->IsDefined() ||
+      GetNetworkId() != gp->GetNetworkId())
+    result->SetDefined(false);
+  else
+  {
+    Network *pNetwork = NetworkManager::GetNetworkNew(GetNetworkId(), netList);
+    DbArray<ShortestPathTreeEntry> *spTree =
+      new DbArray<ShortestPathTreeEntry>(2 * pNetwork->GetNoSections() + 1);
+    ShortestPathTreeEntry spEntryUp(numeric_limits< double >::max(),true);
+    ShortestPathTreeEntry spEntryDown(numeric_limits< double >::max(),false);
+    for (int i = 0; i < spTree->Size(); i++)
+    {
+      if (i%2 == 0)
+        spTree->Put(i,spEntryUp);
+      else
+        spTree->Put(i,spEntryDown);
+    }
+    gp->ShortestPathTree(pNetwork, spTree);
+    ShortestPathTreeEntry actSectionSPEntryUp, actSectionSPEntryDown;
+    UGPoint actMGPUnit;
+    vector<TupleId> passedSections;
+    result->StartBulkLoad();
+    Instant splittime;
+    for (int i = 0; i < units.Size(); i++ )
+    {
+      Get(i,actMGPUnit);
+      double startPos = actMGPUnit.GetUnitStartPos();
+      double endPos = actMGPUnit.GetUnitEndPos();
+      Instant starttime = actMGPUnit.GetUnitStartTime();
+      Instant endtime = actMGPUnit.GetUnitEndTime();
+      passedSections.clear();
+      actMGPUnit.GetPassedSections(pNetwork, passedSections);
+      size_t j = 0;
+      while (j < passedSections.size())
+      {
+        TupleId actSectTid = passedSections[j++];
+        Tuple *pActSect = pNetwork->GetSection(actSectTid);
+        int actSectId =
+          ((CcInt*) pActSect->GetAttribute(SECTION_SID))->GetIntval();
+        double sectMeas1 =
+          ((CcReal*)pActSect->GetAttribute(SECTION_MEAS1))->GetRealval();
+        double sectMeas2 =
+          ((CcReal*)pActSect->GetAttribute(SECTION_MEAS2))->GetRealval();
+        double sectLength = fabs (sectMeas2 - sectMeas1);
+        int pos = 2*actSectId;
+        spTree->Get(pos, actSectionSPEntryUp);
+        spTree->Get(pos+1, actSectionSPEntryDown);
+        double diffDistanceUpDown =
+          fabs (actSectionSPEntryUp.GetDist() -
+                actSectionSPEntryDown.GetDist());
+        double correction = (sectLength - diffDistanceUpDown) / 2;
+        double posOfSameDistance = 0.0;
+        double distOfPosOfSameDistance = 0.0;
+        if (actSectionSPEntryUp.GetDist() < actSectionSPEntryDown.GetDist())
+        {
+          posOfSameDistance = sectMeas2 - correction;
+          distOfPosOfSameDistance =
+            actSectionSPEntryDown.GetDist() - correction;
+        }
+        else
+        {
+          posOfSameDistance = sectMeas1 + correction;
+          distOfPosOfSameDistance = actSectionSPEntryUp.GetDist() + correction;
+        }
+        double startdist = 0.0;
+        if (startPos < posOfSameDistance)
+          startdist =
+            actSectionSPEntryUp.GetDist() + fabs(startPos - sectMeas1);
+        else
+          startdist = actSectionSPEntryDown.GetDist() +
+            fabs(startPos - sectMeas2);
+        double enddist = 0.0;
+        if (endPos < posOfSameDistance)
+          enddist = actSectionSPEntryUp.GetDist() + fabs(endPos - sectMeas1);
+        else
+          enddist = actSectionSPEntryDown.GetDist() + fabs(endPos - sectMeas2);
+        if (passedSections.size() == 1)
+        {
+
+          if ((startPos <= posOfSameDistance && endPos <= posOfSameDistance) ||
+              (startPos >= posOfSameDistance && endPos >= posOfSameDistance))
+          {
+            result->MergeAdd(UReal(actMGPUnit.GetUnitTimeInterval(),
+                                  startdist, enddist));
+
+          }
+          else
+          {
+
+            splittime = actMGPUnit.TimeAtPos(posOfSameDistance);
+            if (starttime != splittime)
+              result->MergeAdd(UReal(Interval<Instant>(starttime, splittime,
+                                                      true, false),
+                                    startdist, distOfPosOfSameDistance));
+
+            if (splittime != endtime)
+              result->MergeAdd(UReal(Interval<Instant>(splittime, endtime,
+                                                    true, false),
+                                  distOfPosOfSameDistance, enddist));
+          }
+        }
+        else
+        {
+          switch(actMGPUnit.MovingDirection())
+          {
+            case Up:
+            {
+              if (startPos >= posOfSameDistance)
+              {
+                splittime = actMGPUnit.TimeAtPos(sectMeas2);
+                if (starttime != splittime)
+                {
+                  result->MergeAdd(UReal(Interval<Instant>(starttime ,
+                                                           splittime,
+                                                           true, false),
+                                  startdist, actSectionSPEntryDown.GetDist()));
+                  starttime = splittime;
+                  startPos = sectMeas2;
+                }
+              }
+              else
+              {
+                splittime = actMGPUnit.TimeAtPos(posOfSameDistance);
+                if (starttime != splittime)
+                {
+                  result->MergeAdd(UReal(Interval<Instant>(starttime ,
+                                                           splittime,
+                                                          true, false),
+                                        startdist, distOfPosOfSameDistance));
+                  starttime = splittime;
+                }
+                splittime = actMGPUnit.TimeAtPos(sectMeas2);
+                if (starttime != splittime)
+                {
+                  result->MergeAdd(UReal(Interval<Instant>(starttime ,
+                                                           splittime,
+                                                          true, false),
+                                        startdist,
+                                        actSectionSPEntryDown.GetDist()));
+                  starttime = splittime;
+                  startPos = sectMeas2;
+                }
+              }
+              break;
+            }
+            case Down:
+            {
+              if (startPos <= posOfSameDistance)
+              {
+                splittime = actMGPUnit.TimeAtPos(sectMeas1);
+                if (starttime != splittime)
+                {
+                  result->MergeAdd(UReal(Interval<Instant>(starttime ,
+                                                           splittime,
+                                                        true, false),
+                                    startdist, actSectionSPEntryUp.GetDist()));
+                  starttime = splittime;
+                  startPos = sectMeas1;
+                }
+              }
+              else
+              {
+                splittime = actMGPUnit.TimeAtPos(posOfSameDistance);
+                if (starttime != splittime)
+                {
+                  result->MergeAdd(UReal(Interval<Instant>(starttime ,splittime,
+                                                        true, false),
+                                      startdist, distOfPosOfSameDistance));
+                  starttime = splittime;
+                  splittime = actMGPUnit.TimeAtPos(sectMeas1);
+                }
+                if (starttime != splittime)
+                {
+                  result->MergeAdd(UReal(Interval<Instant>(starttime ,
+                                                           splittime,
+                                                        true, false),
+                                    startdist, actSectionSPEntryUp.GetDist()));
+                  starttime = splittime;
+                  startPos = sectMeas1;
+                }
+              }
+              break;
+            }
+
+            case None: //should never been reached. No move => only 1 section
+            {
+              break;
+            }
+          }
+        }
+        pActSect->DeleteIfAllowed();
+        pActSect = 0;
+      }
+    }
+    result->EndBulkLoad();
+    spTree->Destroy();
+    delete spTree;
+    NetworkManager::CloseNetwork(pNetwork);
+  }
 }
 
 /*
@@ -5992,93 +6201,127 @@ Network Distance computation for ~ugpoint~ values.
 
 */
 
-UReal* UGPoint::NetdistanceFromArg(const GPoint* gp) const
+void UGPoint::NetdistanceFromArg(const GPoint* gp, UReal* result) const
 {
   if (!IsDefined() || gp == 0 || !gp->IsDefined() ||
       GetNetworkId() != gp->GetNetworkId())
-    return new UReal(false);
-
-  Network *pNetwork = NetworkManager::GetNetworkNew(p0.GetNetworkId(), netList);
-
-  GLine *pPath = new GLine(0);
-
-  if (gp->ShortestPathAStar(&p0,pPath,pNetwork,0))
+    result->SetDefined(false);
+  else
   {
-    NetworkManager::CloseNetwork(pNetwork);
-    RouteInterval lastRI;
-    double dist = pPath->GetLength();
-    pPath->Get(pPath->NoOfComponents()-1, lastRI);
-    pPath->DeleteIfAllowed();
-    if (lastRI.Contains(&p1))
-      return new UReal(GetUnitTimeInterval(), dist,
-                     dist - fabs(p0.GetPosition()-p1.GetPosition()));
+    Network *pNetwork =
+      NetworkManager::GetNetworkNew(p0.GetNetworkId(), netList);
+
+    GLine *pPath = new GLine(0);
+
+    if (gp->ShortestPathAStar(&p0,pPath,pNetwork,0))
+    {
+      if (pPath->NoOfComponents() > 0)
+      {
+        RouteInterval lastRI;
+        double dist = pPath->GetLength();
+        pPath->Get(pPath->NoOfComponents()-1, lastRI);
+        if (lastRI.Contains(&p1))
+          *result = UReal(GetUnitTimeInterval(), dist,
+                        dist - fabs(p0.GetPosition()-p1.GetPosition()));
+        else
+          *result = UReal(GetUnitTimeInterval(), dist,
+                          dist + fabs(p0.GetPosition() - p1.GetPosition()));
+      }
+      else
+        *result = UReal(GetUnitTimeInterval(), 0.0,
+                        fabs(p0.GetPosition() - p1.GetPosition()));
+    }
     else
-      return new UReal(GetUnitTimeInterval(), dist,
-                       dist + fabs(p0.GetPosition() - p1.GetPosition()));
+      result->SetDefined(false);
+    NetworkManager::CloseNetwork(pNetwork);
+    pPath->DeleteIfAllowed();
   }
-  NetworkManager::CloseNetwork(pNetwork);
-  pPath->DeleteIfAllowed();
-  return new UReal(false);
 }
 
-UReal* UGPoint::NetdistanceToArg(const GPoint* gp) const
+void UGPoint::NetdistanceToArg(const GPoint* gp, UReal *result) const
 {
   if (!IsDefined() || !gp->IsDefined() ||
       GetNetworkId()!= gp->GetNetworkId())
-    return new UReal(false);
-  Network *pNetwork = NetworkManager::GetNetworkNew(p0.GetNetworkId(), netList);
-  GLine *pPath = new GLine(0);
-  if (p0.ShortestPathAStar(gp,pPath,pNetwork,0))
+    result->SetDefined(false);
+  else
   {
-    NetworkManager::CloseNetwork(pNetwork);
-    RouteInterval firstRI;
-    double dist = pPath->GetLength();
-    pPath->Get(0, firstRI);
-    pPath->DeleteIfAllowed();
-    if (firstRI.Contains(&p1))
-      return new UReal(GetUnitTimeInterval(), dist,
-                     dist - fabs(p0.GetPosition()-p1.GetPosition()));
+    Network *pNetwork =
+      NetworkManager::GetNetworkNew(p0.GetNetworkId(), netList);
+    GLine *pPath = new GLine(0);
+    if (p0.ShortestPathAStar(gp,pPath,pNetwork,0))
+    {
+      if (pPath->IsDefined() && pPath->NoOfComponents() > 0)
+      {
+        RouteInterval firstRI;
+        double dist = pPath->GetLength();
+        pPath->Get(0, firstRI);
+        if (firstRI.Contains(&p1))
+          *result = UReal(GetUnitTimeInterval(), dist,
+                        dist - fabs(p0.GetPosition() - p1.GetPosition()));
+        else
+          *result = UReal(GetUnitTimeInterval(), dist,
+                          dist + fabs(p0.GetPosition() - p1.GetPosition()));
+      }
+      else
+        *result = UReal(GetUnitTimeInterval(), 0.0,
+                        fabs(p0.GetPosition() - p1.GetPosition()));
+    }
     else
-      return new UReal(GetUnitTimeInterval(), dist,
-                       dist + fabs(p0.GetPosition() - p1.GetPosition()));
+      result->SetDefined(false);
+    NetworkManager::CloseNetwork(pNetwork);
+    pPath->DeleteIfAllowed();
   }
-  NetworkManager::CloseNetwork(pNetwork);
-  pPath->DeleteIfAllowed();
-  return new UReal(false);
 }
 
-UReal* UGPoint::Netdistance(const UGPoint* ugp) const
+void UGPoint::Netdistance(const UGPoint* ugp, UReal* result) const
 {
   if (!IsDefined() || !ugp->IsDefined() ||
       GetNetworkId()!= ugp->GetNetworkId() ||
       GetUnitTimeInterval() != ugp->GetUnitTimeInterval())
-    return new UReal(false);
-  Network *pNetwork = NetworkManager::GetNetworkNew(p0.GetNetworkId(), netList);
-  GLine *pPath = new GLine(0);
-  GPoint startPos = ugp->GetStartPosition();
-  GPoint endPos = ugp->GetEndPosition();
-  if (p0.ShortestPathAStar(&startPos,pPath,pNetwork))
+    result->SetDefined(false);
+  else
   {
+    Network *pNetwork =
+      NetworkManager::GetNetworkNew(p0.GetNetworkId(), netList);
+    GLine *pPath = new GLine(0);
+    GPoint startPos = ugp->GetStartPoint();
+    GPoint endPos = ugp->GetEndPoint();
+    if (p0.ShortestPathAStar(&startPos,pPath,pNetwork))
+    {
+      if (pPath->IsDefined() && pPath->NoOfComponents() > 0)
+      {
+        RouteInterval firstRI, lastRI;
+        double startdist = pPath->GetLength();
+        double enddist = startdist;
+        pPath->Get(0, firstRI);
+        pPath->Get(pPath->NoOfComponents()-1,lastRI);
+        if (firstRI.Contains(&p1))
+          enddist = enddist - fabs(p0.GetPosition()-p1.GetPosition());
+        else
+          enddist = enddist + fabs(p0.GetPosition()-p1.GetPosition());
+        if (lastRI.Contains(&endPos))
+          enddist =
+            enddist - fabs(endPos.GetPosition() - startPos.GetPosition());
+        else
+          enddist =
+            enddist + fabs(endPos.GetPosition() - startPos.GetPosition());
+        *result = UReal(GetUnitTimeInterval(), startdist, enddist);
+      }
+      else
+      {
+        if (GetUnitRid() == ugp->GetUnitRid())
+          *result = UReal(GetUnitTimeInterval(), 0.0,
+                            fabs(endPos.GetPosition() - p1.GetPosition()));
+        else
+          *result = UReal(GetUnitTimeInterval(), 0.0,
+                            endPos.GetPosition() + p1.GetPosition());
+      }
+    }
+    else
+      result->SetDefined(false);
     NetworkManager::CloseNetwork(pNetwork);
-    RouteInterval firstRI, lastRI;
-    double startdist = pPath->GetLength();
-    pPath->Get(0, firstRI);
-    double enddist = startdist;
-
-    if (firstRI.Contains(&p1))
-      enddist = enddist - fabs(p0.GetPosition()-p1.GetPosition());
-    else
-      enddist = enddist + fabs(p0.GetPosition()-p1.GetPosition());
-    if (lastRI.Contains(&endPos))
-      enddist = enddist - fabs(endPos.GetPosition() - startPos.GetPosition());
-    else
-      enddist = enddist + fabs(endPos.GetPosition() - startPos.GetPosition());
     pPath->DeleteIfAllowed();
-    return new UReal(GetUnitTimeInterval(), startdist, enddist);
   }
-  NetworkManager::CloseNetwork(pNetwork);
-  pPath->DeleteIfAllowed();
-  return new UReal(false);
 }
 
 struct ugpointInfo:ConstructorInfo{
@@ -9316,20 +9559,28 @@ ListExpr OpNetdistanceTypeMap( ListExpr args )
   {
     return listutils::typeError("netdistance expects 2 arguments.");
   }
-  if (!(param.first().isSymbol("gpoint") || param.first().isSymbol("ugpoint")))
+  NList firstArg(param.first());
+  NList secondArg(param.second());
+
+  if (!(firstArg.isSymbol("gpoint") || firstArg.isSymbol("ugpoint")))
     return
-        listutils::typeError("1.argument should be gpoint or ugpoint.");
-  if (!(param.second().isSymbol("gpoint") ||
-        param.second().isSymbol("ugpoint")))
+        listutils::typeError("1.argument must be gpoint or ugpoint.");
+  if (!(secondArg.isSymbol("gpoint") || secondArg.isSymbol("ugpoint") ||
+        secondArg.isSymbol("mgpoint")))
     return
-      listutils::typeError("2.argument should be gpoint or ugpoint.");
-  if (param.first() == param.second() && param.first().isSymbol("gpoint"))
+        listutils::typeError("2.argument must be gpoint,ugpoint or mgpoint.");
+  if (firstArg.isSymbol("gpoint") && secondArg.isSymbol("mgpoint"))
+    return nl->SymbolAtom("mreal");
+  if (firstArg.isSymbol("ugpoint") && secondArg.isSymbol("mgpoint"))
     return
-      listutils::typeError("1.and 2.argument must be upgoint or different.");
+      listutils::typeError("2. argument must be gpoint or ugpoint.");
+  if (firstArg == secondArg && firstArg.isSymbol("gpoint"))
+    return
+      listutils::typeError("gpoint x gpoint is not covered here.");
   return nl->SymbolAtom ( "ureal" );
 }
 
-template<class FixPos, class MovPos>
+template<class FixPos, class MovPos, class RetValue>
 int OpNetdistanceFixMov(Word* args,
                   Word& result,
                   int message,
@@ -9337,7 +9588,7 @@ int OpNetdistanceFixMov(Word* args,
                   Supplier in_xSupplier)
 {
   // Get (empty) return value
-  UReal* pDistance = (UReal*)qp->ResultStorage(in_xSupplier).addr;
+  RetValue* pDistance = (RetValue*)qp->ResultStorage(in_xSupplier).addr;
   result = SetWord( pDistance);
   // Get input values
   FixPos* pFrom = (FixPos*)args[0].addr;
@@ -9349,11 +9600,11 @@ int OpNetdistanceFixMov(Word* args,
     pDistance->SetDefined(false);
     return 0;
   }
-  *pDistance  = *(pTo->NetdistanceFromArg(pFrom));
+  pTo->NetdistanceFromArg(pFrom, pDistance);
   return 0;
 };
 
-template<class MovPos, class FixPos>
+template<class MovPos, class FixPos, class RetValue>
 int OpNetdistanceMovFix(Word* args,
                   Word& result,
                   int message,
@@ -9361,7 +9612,7 @@ int OpNetdistanceMovFix(Word* args,
                   Supplier in_xSupplier)
 {
   // Get (empty) return value
-  UReal* pDistance = (UReal*)qp->ResultStorage(in_xSupplier).addr;
+  RetValue* pDistance = (RetValue*)qp->ResultStorage(in_xSupplier).addr;
   result = SetWord( pDistance);
   // Get input values
   MovPos* pFrom = (MovPos*)args[0].addr;
@@ -9373,11 +9624,11 @@ int OpNetdistanceMovFix(Word* args,
     pDistance->SetDefined(false);
     return 0;
   }
-  *pDistance = *(pFrom->NetdistanceToArg(pTo));
+  pFrom->NetdistanceToArg(pTo, pDistance);
   return 0;
 };
 
-template<class MovPos1, class MovPos2>
+template<class MovPos1, class MovPos2, class RetValue>
 int OpNetdistanceMovMov(Word* args,
                   Word& result,
                   int message,
@@ -9385,7 +9636,7 @@ int OpNetdistanceMovMov(Word* args,
                   Supplier in_xSupplier)
 {
   // Get (empty) return value
-  UReal* pDistance = (UReal*)qp->ResultStorage(in_xSupplier).addr;
+  RetValue* pDistance = (RetValue*)qp->ResultStorage(in_xSupplier).addr;
   result = SetWord( pDistance);
   // Get input values
   MovPos1* pFrom = (MovPos1*)args[0].addr;
@@ -9397,15 +9648,16 @@ int OpNetdistanceMovMov(Word* args,
     pDistance->SetDefined(false);
     return 0;
   }
-  *pDistance = *(pFrom->Netdistance(pTo));
+  pFrom->Netdistance(pTo, pDistance);
   return 0;
 };
 
 
 ValueMapping OpNetdistanceValueMap[] = {
-  OpNetdistanceFixMov<GPoint, UGPoint>,
-  OpNetdistanceMovFix<UGPoint, GPoint>,
-  OpNetdistanceMovMov<UGPoint, UGPoint>
+  OpNetdistanceFixMov<GPoint, UGPoint, UReal>,
+  OpNetdistanceMovFix<UGPoint, GPoint, UReal>,
+  OpNetdistanceMovMov<UGPoint, UGPoint, UReal>,
+  OpNetdistanceFixMov<GPoint, MGPoint, MReal>
 };
 
 int OpNetdistanceSelect( ListExpr args )
@@ -9422,6 +9674,9 @@ int OpNetdistanceSelect( ListExpr args )
   if (nl->SymbolValue(arg1) == "ugpoint" &&
       nl->SymbolValue(arg2) == "ugpoint")
     return 2;
+  if (nl->SymbolValue(arg1) == "gpoint" &&
+      nl->SymbolValue(arg2) == "mgpoint")
+    return 3;
   return -1; // This point should never be reached
 }
 
