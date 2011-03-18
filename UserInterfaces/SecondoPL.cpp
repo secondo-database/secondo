@@ -652,6 +652,39 @@ pl_check_syntax(term_t command, term_t result)
 
 
 /*
+Transfers an option the the sql checker parser. fails if the option is unknown. Or
+one of the arguments could not be evaluated
+
+*/
+
+static foreign_t
+pl_set_sql_check_option(term_t optionName, term_t enable)
+{
+  char* optionNameStr = 0;
+
+  // get the option name
+  if(! PL_get_chars(optionName,&optionNameStr, CVT_ALL)){
+     PL_fail;
+   }
+ 
+   // try to get the boolean parameter
+   int enableBool;
+   if(!PL_get_bool(enable,&enableBool)){
+      PL_fail;
+   }
+
+   bool ok = setSqlParserOption(optionNameStr, enableBool);
+   if(ok){
+     PL_succeed;
+   } else {
+     PL_fail;
+   }
+}
+
+
+
+
+/*
 
 4 Function pl\_maximize\_entropy
 
@@ -718,6 +751,7 @@ PL_extension predicates[] =
   { "secondo_error_info", 2, (void*)pl_get_error_info, 0 },
   { "secondo_print_le", 1, (void*)pl_print_term_le, 0 },
   { "check_syntax",2, (void*)pl_check_syntax,0},
+  { "set_sql_check_option",2,(void*)pl_set_sql_check_option,0},
 #ifdef SECONDO_USE_ENTROPY
   { "maximize_entropy", 3, (void*)pl_maximize_entropy, 0 },
 #endif
