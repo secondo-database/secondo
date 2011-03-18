@@ -999,6 +999,12 @@ struct Elevator{
   }
 };
 
+/*
+lowest height. a build can not have such a height 
+
+*/
+#define  INVALID_HEIGHT -10000.0 
+
 struct IndoorNav{
   Relation* rel1; //university room relation 
   Relation* rel2; //door 3d box relation 
@@ -1098,7 +1104,9 @@ struct IndoorNav{
                                    Line* l2, int tid1, int tid2, 
                          float h1, float h2, vector<MySegHeight>&); 
 
-   void ConstructMiddlePath(GRoom* groom, vector<MySegHeight>& middle_path); 
+   void ConstructMiddlePath(GRoom* groom, vector<MySegHeight>& middle_path);
+   void ConstructMiddlePath2(GRoom* groom, vector<Point3D>& middle_path,
+                             float h1, float h2);
    void BuildPathOR(int groom_oid, GRoom* groom, 
                   vector<int> tid_list, int attr1, int attr2, 
                   int attr3, int attr4);
@@ -1113,6 +1121,8 @@ struct IndoorNav{
    void GetAdjNodeIG(int oid);
    ////////////////////////// data generation/////////////////////////
    void GenerateIP1(int num);
+   void GenerateIP2(int num);
+   float GetHeightInST(GRoom* groom, Point p);
    void InitializeElevator(Interval<Instant>& periods, 
                                    vector<Elevator>& elev_list, double speed);
    void GenerateMO1(IndoorGraph* ig, BTree* btree, R_Tree<3,TupleId>* rtree,
@@ -1133,29 +1143,44 @@ struct IndoorNav{
    bool IsLocEqual(GenLoc* loc1, GenLoc* loc2, Relation* rel);
    void PathInOneRoom(GenLoc* gloc1, GenLoc* gloc2, Relation* rel, 
                       BTree* btree); 
+   void PathInOneST(Tuple* groom_tupe, GenLoc* gloc1, GenLoc* gloc2, 
+                    Line3D* l3d);
+   void ComputePath3DST(GRoom* groom, Point loc1, Point loc2, float h1,
+                      float h2, vector<Line3D>& candidate_path);
    void ShortestPath_Length(GenLoc* gloc1, GenLoc* gloc2, 
                             Relation* rel, BTree* btree);
-   bool DeadDoor(int door_tid, int groom_oid, int groom_oid_end);
+   bool DeadDoor(int door_tid, int groom_oid, int groom_oid_end, 
+                 vector<Point3D>& door_list);
 
    bool ConnectStartLoc(GenLoc* gloc,  vector<int> tid_list, Relation* rel,
-                         BTree* btree, vector<Line3D>&);
+                         BTree* btree, vector<Line3D>&, float&, float&);
+   ////////connection start locaton to all doors in staircase///////////////
+   void ConnectStartLocST(Tuple* groom_tuple, GenLoc* gloc,  
+                         vector<int> tid_list, vector<Line3D>& candidate_path);
+  ////////connection end locaton to all doors in staircase///////////////
+   void ConnectEndLocST(Tuple* groom_tuple, GenLoc* gloc,  
+                         vector<int> tid_list, vector<Line3D>& candidate_path);
+
    bool ConnectEndLoc(GenLoc* gloc,  vector<int> tid_list, Relation* rel,
-                         BTree* btree, vector<Line3D>&);
+                         BTree* btree, vector<Line3D>&, float&, float&);
 
    void IndoorShortestPath(int id1, int id2, vector<Line3D>& candidate_path, 
-                           Line3D* s, Line3D* d, double& prune_dist);
+                           Line3D* s, Line3D* d, 
+                           double& prune_dist, float, float, int);
    void InitializeQueue(int id, Point3D* start_p, Point3D* end_p, 
                         priority_queue<IPath_elem>& path_queue, 
                         vector<IPath_elem>& expand_path);
-   bool MiddlePoint(Line3D* l, Point3D& p); 
+   inline bool MiddlePoint(Line3D* l, Point3D& p); 
    ////////////////////////////////////////////////////////////////////
    /////////////////////////minimum number of rooms////////////////////
    ////////////////////////////////////////////////////////////////////
    void ShortestPath_Room(GenLoc* gloc1, GenLoc* gloc2, 
                             Relation* rel, BTree* btree);
+   void GetHeightOfGRoom(int groom_oid1, BTree* groom_btree, Relation* rel, 
+                         float& start_h1, float& start_h2);
    void IndoorShortestPath_Room(int id1, int id2,
                                 vector< vector<TupleId> >& candidate_path,
-                                int s_tid, int e_tid); 
+                                int s_tid, int e_tid, float min_h, float max_h);
    /////////////////////////////////////////////////////////////////////
    ///////////////////////minimum travelling time///////////////////////
    /////////////////////////////////////////////////////////////////////
@@ -1166,12 +1191,14 @@ struct IndoorNav{
                            vector<Line3D>& candidate_path, 
                            Line3D* s, Line3D* d, vector<double>& timecost,
                            I_Parameter& param, Relation* rel, 
-                           BTree* btree, double& prune_time);
+                           BTree* btree, double& prune_time, float, 
+                           float, int);
    void IndoorShortestPath_Time2(int id1, int id2, 
                            vector<Line3D>& candidate_path, 
                            Line3D* s, Line3D* d, vector<double>& timecost,
                            I_Parameter& param, Relation* rel, 
-                           BTree* btree, double& prune_time);
+                           BTree* btree, double& prune_time, float, 
+                           float, int);
    bool IsElevator(int groom_oid, Relation* rel, BTree* btree); 
    float CostInElevator(double l, I_Parameter& param); 
    float SetTimeWeight(double l, int groom_oid, Relation* rel, 

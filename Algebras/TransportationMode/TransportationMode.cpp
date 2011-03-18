@@ -341,10 +341,10 @@ const string OpTMGetAdjNodeIGSpec  =
 
  const string SpatialSpecGenerateIP1 =
 "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-"( <text>rel x int -> (stream (tuple( (x1 t1)(x2 t2)...(xn tn)))</text--->"
-"<text>generate_ip1(rel, int) </text--->"
+"( <text>rel x int x bool->(stream (tuple( (x1 t1)(x2 t2)...(xn tn)))</text--->"
+"<text>generate_ip1(rel, int, bool) </text--->"
 "<text>create indoor positions</text--->"
-"<text>query generate_ip1(building_uni,20) count</text---> ) )";
+"<text>query generate_ip1(building_uni,20, TRUE) count</text---> ) )";
 
 const string SpatialSpecIndoorNavigation =
 "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
@@ -1047,19 +1047,22 @@ TypeMap function for operator generate ip1
 */
 ListExpr GenerateIP1TypeMap(ListExpr args)
 {
-  if(nl->ListLength(args) != 2){
+  if(nl->ListLength(args) != 3){
       string err = "rel x int";
       return listutils::typeError(err);
   }
   ListExpr arg1 = nl->First(args);
   ListExpr arg2 = nl->Second(args);
+  ListExpr arg3 = nl->Third(args);
 
   ListExpr xType;
   nl->ReadFromString(IndoorNav::Indoor_GRoom_Door, xType); 
   if (listutils::isRelDescription(arg1)){
       if(CompareSchemas(arg1, xType) && 
         nl->IsAtom(arg2) && nl->AtomType(arg2) == SymbolType &&
-        nl->SymbolValue(arg2) == "int" ){
+        nl->SymbolValue(arg2) == "int" && nl->IsAtom(arg3) && 
+        nl->AtomType(arg3) == SymbolType &&
+        nl->SymbolValue(arg3) == "bool"){
 
           ListExpr result =
           nl->TwoElemList(
@@ -2024,12 +2027,16 @@ int GenerateIP1ValueMap(Word* args, Word& result, int message,
       case OPEN:{
         Relation* rel = (Relation*)args[0].addr;
         int num = ((CcInt*)args[1].addr)->GetIntval(); 
+        bool type = ((CcBool*)args[2].addr)->GetBoolval();
         
         indoor_nav = new IndoorNav(rel, NULL);
         indoor_nav->resulttype =
             new TupleType(nl->Second(GetTupleResultType(in_pSupplier)));
+        if(type)
+          indoor_nav->GenerateIP1(num);
+        else
+          indoor_nav->GenerateIP2(num);
 
-        indoor_nav->GenerateIP1(num);
         local.setAddr(indoor_nav);
         return 0;
       }
