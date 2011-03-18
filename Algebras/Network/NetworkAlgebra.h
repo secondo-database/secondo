@@ -29,15 +29,15 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #ifndef __NETWORK_ALGEBRA_H__
 #define __NETWORK_ALGEBRA_H__
 
-#include "NestedList.h"
-#include "TupleIdentifier.h"
-#include "RelationAlgebra.h"
-#include "BTreeAlgebra.h"
+#include "../../include/NestedList.h"
+#include "../TupleIdentifier/TupleIdentifier.h"
+#include "../Relation-C++/RelationAlgebra.h"
+#include "../BTree/BTreeAlgebra.h"
 #include "../../Tools/Flob/DbArray.h"
 #include "../../Tools/Flob/Flob.h"
-#include "Attribute.h"
-#include "SpatialAlgebra.h"
-#include "RTreeAlgebra.h"
+#include "../../include/Attribute.h"
+#include "../Spatial/SpatialAlgebra.h"
+#include "../RTree/RTreeAlgebra.h"
 
 
 /*
@@ -106,24 +106,37 @@ class ShortestPathTreeEntry
 
   ~ShortestPathTreeEntry(){};
 
-  void SetDist(const double d)
+  inline void SetDist(const double d)
   {
     dist = d;
   }
 
-  void SetUpDown (const bool up)
+  inline void SetUpDown (const bool up)
   {
     upDown = up;
   }
 
-  double GetDist() const
+  inline double GetDist() const
   {
     return dist;
   }
 
-  bool GetUpDown() const
+  inline  bool GetUpDown() const
   {
     return upDown;
+  }
+
+  ostream& Print(ostream& os) const
+  {
+    os << "Distance: " << dist << ", Up: " << upDown << endl;
+    return os;
+  }
+
+  int Compare(const ShortestPathTreeEntry sp) const
+  {
+    if (dist < sp.dist) return -1;
+    if (dist > sp.dist) return 1;
+    return 0;
   }
 
   private:
@@ -763,7 +776,7 @@ two times the section number plus one for down sections.
 */
 
  void ShortestPathTree(const Network* pNetwork,
-                       DbArray<ShortestPathTreeEntry> *res);
+                       DbArray<ShortestPathTreeEntry> *res) const;
 
   private:
 

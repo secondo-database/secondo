@@ -41,27 +41,27 @@ October 2008 - Jianqiu Xu
 #include <map>
 #include <iterator>
 #include <algorithm>
+#include <limits>
 
-#include "TupleIdentifier.h"
-#include "RelationAlgebra.h"
-#include "BTreeAlgebra.h"
-#include "RTreeAlgebra.h"
+#include "../Relation-C++/RelationAlgebra.h"
+#include "../BTree/BTreeAlgebra.h"
+#include "../RTree/RTreeAlgebra.h"
+#include "../Spatial/SpatialAlgebra.h"
+#include "../Network/NetworkAlgebra.h"
+#include "../Rectangle/RectangleAlgebra.h"
+#include "../Network/NetworkManager.h"
+#include "../TupleIdentifier/TupleIdentifier.h"
 #include "../../Tools/Flob/DbArray.h"
 #include "../../Tools/Flob/Flob.h"
-#include "SpatialAlgebra.h"
-#include "NetworkAlgebra.h"
-#include "RectangleAlgebra.h"
-#include "StandardTypes.h"
-#include "Algebra.h"
-#include "Messages.h"
-#include "NetworkManager.h"
-#include "ListUtils.h"
-#include "ConstructorTemplates.h"
-#include "TypeMapUtils.h"
+#include "../../include/StandardTypes.h"
+#include "../../include/Algebra.h"
+#include "../../include/Messages.h"
+#include "../../include/ListUtils.h"
+#include "../../include/ConstructorTemplates.h"
+#include "../../include/TypeMapUtils.h"
 #include "../../include/Operator.h"
 #include "../../include/Attribute.h"
-#include <limits>
-#include "../TupleIdentifier/TupleIdentifier.h"
+
 
 extern NestedList* nl;
 extern QueryProcessor* qp;
@@ -4595,7 +4595,7 @@ Relation* Network::GetSections()const
 
   Word resultWord;
   int QueryExecuted = QueryProcessor::ExecuteQuery ( querystring, resultWord );
-  assert ( QueryExecuted ); // No ASSERT with side effect, please!
+  assert ( QueryExecuted );
   return ( Relation * ) resultWord.addr;
 }
 
@@ -8097,7 +8097,7 @@ two times the section number plus one for down sections.
 
 
 void GPoint::ShortestPathTree(const Network* pNetwork,
-                               DbArray<ShortestPathTreeEntry> *res)
+                               DbArray<ShortestPathTreeEntry> *res) const
 {
   if (IsDefined() && pNetwork != 0 && pNetwork->IsDefined() &&
       GetNetworkId() == pNetwork->GetId() && res != 0)
@@ -9048,7 +9048,7 @@ Use priorityQueue to find shortestPath.
   res->SetSorted ( false );
   res->SetDefined ( found);
   res->TrimToSize();
-  return true;
+  return found;
 }
 
 bool GPoints::ShortestPathAStar(const GPoint* gp, GLine* res,
