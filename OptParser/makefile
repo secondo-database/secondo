@@ -15,7 +15,7 @@ $(LIBDIR)/liboptparser.a: parser.o scanner.o  OptSecUtils.o
 
 
 
-OptSecUtils.o: OptSecUtils.cpp
+OptSecUtils.o: OptSecUtils.cpp OptSecUtils.h
 	$(CC) $(CCFLAGS) -c -o OptSecUtils.o OptSecUtils.cpp
 
 
@@ -30,7 +30,7 @@ scanner.c: parser.h OptParser.l
 
 parser.h: parser.c
 
-parser.c: OptParser.y
+parser.c: OptParser.y OptSecUtils.h
 	$(YACC)  -d -o parser.c OptParser.y
 
 

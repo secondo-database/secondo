@@ -154,7 +154,7 @@ Checks whether the list is a description of a relation with given relation type;
 
 */
 
-bool isRelDescription(ListExpr list, string reltype = "rel"){
+bool isRelDescription(ListExpr list, const string& reltype = "rel"){
 
   if(!plnl->HasLength(list,2)){
      return false;

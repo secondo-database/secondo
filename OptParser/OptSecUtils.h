@@ -44,7 +44,7 @@ the type argument.
 
 */
   
-  bool isRelationDescription(const ListExpr type);
+  bool isRelDescription(const ListExpr type, const string& reltyp = "rel");
 
 
 

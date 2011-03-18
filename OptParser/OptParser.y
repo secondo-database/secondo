@@ -73,7 +73,7 @@ sources:  ID {
          return false;
       } 
 
-      if(!optutils::isRelationDescription(type)){
+      if(!optutils::isRelDescription(type)){
          string err = "The object " + realname + " is not a relation.";
          opterror(err.c_str());
          return false;
