@@ -3568,9 +3568,9 @@ bool Interval<Alpha>::IsValid() const
 template <class Alpha>
 Interval<Alpha>& Interval<Alpha>::operator=( const Interval<Alpha>& i )
 {
-  if(!i.IsValid()){
-    cout << "invalid interval : " << i << endl;
-  }
+  //if(!i.IsValid()){
+  //  cout << "invalid interval : " << i << endl;
+  //}
   assert( i.IsValid() );
 
   start.CopyFrom( &i.start );
