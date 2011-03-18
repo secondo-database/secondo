@@ -35,19 +35,19 @@ bool success;
 
 %name-prefix="opt"
 
-%token SELECT FROM STAR ERROR
-%token<strval> ID VARIABLE
+%token TOKEN_SELECT TOKEN_FROM TOKEN_STAR TOKEN_ERROR
+%token<strval> TOKEN_ID TOKEN_VARIABLE
 
 
 %%
 
-simplequery :  SELECT STAR FROM sources {
+simplequery :  TOKEN_SELECT TOKEN_STAR TOKEN_FROM sources {
           err_message = 0;      
           success = true;
    }
 ;
 
-sources:  ID {
+sources:  TOKEN_ID {
 
      string dbname;
 
@@ -83,7 +83,7 @@ sources:  ID {
      }
 
 
-  | VARIABLE {
+  | TOKEN_VARIABLE {
      opterror("The name of a relation must start with a lower case letter");
      return false;
   }

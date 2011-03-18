@@ -34,10 +34,10 @@ star \*
 %%
 [ \a\b\f\t\v\n\r]+ { // ignore space
                    }
-{select} { return SELECT; }
-{from} { return FROM; }
-{star} {return STAR; }
-{id} {  optlval.strval = yytext; return ID; }
-{variable} { optlval.strval = yytext; return VARIABLE;}
-. { return ERROR; }
+{select} { return TOKEN_SELECT; }
+{from} { return TOKEN_FROM; }
+{star} {return TOKEN_STAR; }
+{id} {  optlval.strval = yytext; return TOKEN_ID; }
+{variable} { optlval.strval = yytext; return TOKEN_VARIABLE;}
+. { return TOKEN_ERROR; }
 %%
