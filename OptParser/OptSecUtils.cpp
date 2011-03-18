@@ -3,6 +3,15 @@
 
 
 
+Reimplementation of some functions known from the
+Listutils. There are two reasons for reimplementing these
+functions. First, the Listutils environment used 
+the NestedList pointer nl which is available on the kernel.
+Here, we use plnl available on prolog environments. 
+Furthermore, in this implementation some checks are
+ommitted requiring access to the algebra manager (e.g. if a type 
+is in kind data). At this place these checks are not nessecary.
+
 */
 
 #include "NestedList.h"
@@ -131,6 +140,8 @@ appropriate message.
 /*
 ~isSymbol~
 
+Checks whether the list is a symbol and holds the given value.
+
 */
 
 bool isSymbol(ListExpr l,const string& value){
@@ -140,6 +151,12 @@ bool isSymbol(ListExpr l,const string& value){
   return (plnl->SymbolValue(l) == value);
 }
 
+/*
+~isSymbol~
+
+Checks whether a list is a symbol.
+
+*/
 
 bool isSymbol(ListExpr l){
   if(!plnl->AtomType(l)==SymbolType){
@@ -254,7 +271,11 @@ bool isRelDescription(ListExpr list, const string& reltype = "rel"){
 
 }
 
+/*
+Checks whether two strings are equal. Using the boolean parameter,
+the case sensitivity of the comparison can be controlled.
 
+*/
 
 bool strequal(const string& s1, const string& s2, const bool case_sensitive){
    if(s1.length() != s2.length()){

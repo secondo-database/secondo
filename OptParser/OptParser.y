@@ -18,14 +18,21 @@ extern "C"{
 }
 #endif
 
+/*
+Use the prolog nested list plnl.
 
+*/
 extern NestedList* plnl;
 
+/*
+Variables for return value and error message.
+
+*/
 char* err_message;
 bool success;
 
 /*
-some global variables corresponsing the the options.
+some variables corresponding the the options.
 
 */
 bool subqueries = false;
@@ -35,14 +42,26 @@ bool subqueries = false;
 
 %}
 
+/*
+We need the content of some tokens, e.g. for TOKEN_ID. Hence just the
+token is not enough to return. We need some more sophisticated return value.
+For further checks, we have to extend this definition.
 
+*/
 %union {
  char* strval;
  int numval;
 }
 
 
-%name-prefix="opt"
+%name-prefix="opt"  // use opt instead of yy to avoid naming conflicts with other 
+                    // parsers of the system
+
+
+/*
+Define simple token and token holding a value.
+
+*/
 
 %token TOKEN_SELECT TOKEN_FROM TOKEN_STAR TOKEN_ERROR
 %token<strval> TOKEN_ID TOKEN_VARIABLE
@@ -98,7 +117,10 @@ sources:  TOKEN_ID {
 
 %%
 
+/*
+error handling
 
+*/
 int opterror (const char *error)
 {
   success=false;
@@ -107,6 +129,12 @@ int opterror (const char *error)
   return 0;
 }
 
+
+/*
+declaration of a function work around memory leaks.
+
+
+*/
 extern "C"{void optlexDestroy();}
 
 
@@ -137,7 +165,7 @@ bool checkOptimizerQuery(const char* argument, char*& errmsg){
      }
      return success;
   } catch(...){
-      opterror("internal error during parssing");;
+      opterror("internal error during parsing");;
       return false;
   }
 

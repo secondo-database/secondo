@@ -2,7 +2,13 @@
 
 #include "parser.h"
 
+/*
+Some versions of flex have a memeory leak when scanning a 
+string. Calling this function before and after scanning a
+string will remove this memory leak.
 
+
+*/
 void optlexDestroy(){
      yy_delete_buffer(YY_CURRENT_BUFFER);
     // optlex_destroy();
