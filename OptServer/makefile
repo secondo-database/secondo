@@ -41,7 +41,7 @@ ifdef ENTROPY
 endif
 
 LINK_FLAGS := $(ENT_LINK_LIBS) $(LD_LINK_LIBS) \
-              $(JNI_CCFLAGS)
+              $(JNI_CCFLAGS) $(PLLDFLAGS) -lstdc++
 
 ifeq ($(platform),mac_osx)
   LINK_FLAGS += -flat_namespace -undefined suppress
