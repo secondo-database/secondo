@@ -3064,7 +3064,10 @@ bool HalfSegment::Intersects( const HalfSegment& hs ) const
 
 bool HalfSegment::InnerIntersects( const HalfSegment& hs ) const
 {
-  double k, a, K, A;
+  double k = 0.0;
+  double a = 0.0;
+  double K = 0.0;
+  double A = 0.0;
   Coord x0; //, y0;  (x0, y0) is the intersection
 
   Coord xl = lp.GetX(), yl = lp.GetY(),
@@ -3178,7 +3181,10 @@ bool HalfSegment::InnerIntersects( const HalfSegment& hs ) const
 
 bool HalfSegment::Intersection( const HalfSegment& hs, Point& resp ) const
 {
-  double k, a, K, A;
+  double k = 0.0;
+  double a = 0.0;
+  double K = 0.0;
+  double A = 0.0;
 
   /*if( !BoundingBox().Intersects( hs.BoundingBox().Extend(FACTOR) ) ){
     resp.SetDefined( false );
@@ -3551,7 +3557,10 @@ bool HalfSegment::Intersection( const HalfSegment& hs,
 
 bool HalfSegment::Crosses( const HalfSegment& hs ) const
 {
-  double k, a, K, A;
+  double k = 0.0;
+  double a = 0.0;
+  double K = 0.0;
+  double A = 0.0;
 
   if( !BoundingBox().Intersects( hs.BoundingBox() ) )
     return false;
@@ -4067,7 +4076,8 @@ InHalfSegment( const ListExpr typeInfo, const ListExpr instance,
   {
     ListExpr first = nl->First(instance),
              second = nl->Second(instance),
-             firstP, secondP;
+             firstP = nl->TheEmptyList(),
+             secondP = nl->TheEmptyList();
     bool ldp;
 
     if( nl->IsAtom(first) && nl->AtomType(first) == BoolType )
@@ -6493,7 +6503,7 @@ void SimpleLine::SubLine( double pos1, double pos2,
 
   // First search for the first half segment
   LRS lrs( pos1, 0 );
-  int lrsPos;
+  int lrsPos = 0;
   Find( lrs, lrsPos );
 
   LRS lrs2;
@@ -8886,7 +8896,7 @@ void Region::CreateNewSegments(vector <EdgePoint>pointsOnEdge, Region &cr,
 {
   int begin, end, i;
   HalfSegment *hs;
-  AttrType attr;
+  AttrType attr(0);
   EdgePoint dp,dpAux;
 
   if (pointsOnEdge.size()==0) return;
@@ -9050,7 +9060,7 @@ void Region::CreateNewSegmentsWindowVertices(const Rectangle<2> &window,
 
   */
 
-  AttrType attr;
+  AttrType attr(0);
 
   if ( ( (pointsOnEdge[WTOP].size()==0) ||
          (pointsOnEdge[WLEFT].size()==0) )
@@ -11312,7 +11322,8 @@ InRegion_old( const ListExpr typeInfo, const ListExpr instance,
         {
           ListExpr firstPoint = nl->First( CycleNL );
           ListExpr prevPoint = nl->First( CycleNL );
-          ListExpr flagedSeg, currPoint;
+          ListExpr flagedSeg = nl->TheEmptyList();
+          ListExpr currPoint = nl->TheEmptyList();
           CycleNL = nl->Rest( CycleNL );
 
           //Starting to compute a new cycle
