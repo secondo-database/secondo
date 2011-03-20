@@ -1830,8 +1830,81 @@ struct CellGrid{
     x0(_x0), y0(_y0), z0(_z0),
     xWidth(_xw), yWidth(_yw), zWidth(_zw),
     cx(0), cy(0), cz(0),
-    initialized(false), finished(false), is3D(_3D)
+    outGrid(false), finished(false), is3D(_3D)
   {}
+
+/*
+Only if the point locates in the first quadrant,
+then the returned quadrant number is positive 1.
+Or else, the quadrant number is a negative.
+
+*/
+  int ptQuadrant(double x, double y)
+  {
+    int quadrant = 0;
+    if (x < 0.0)
+    {
+      if (y < 0.0)
+        quadrant = 3;
+      else
+        quadrant = 2;
+    }
+    else
+    {
+      if (y < 0.0)
+        quadrant = 4;
+      else
+        quadrant = 1;
+    }
+    quadrant = (quadrant > 1) ? (0 - quadrant) : quadrant;
+    return quadrant;
+  }
+
+  int ptQuadrant(double x, double y, double z)
+  {
+    int quadrant = abs(ptQuadrant(x, y));
+    if (z < 0.0)
+      quadrant += 4;
+    quadrant = (quadrant > 1) ? (0 - quadrant) : quadrant;
+    return quadrant;
+  }
+
+/*
+~cellCord~ function is used to get the coordinate number of a
+specific point in one axis.
+It contains some necessary parameters, like:
+
+  * p0: the value of the original point value
+  * pq: the position of the query point
+  * cw: the width of a cell
+
+Besides, there also exist some unnecessary parameters:
+
+  * outGrid: tell the caller whether the point is outside the scale of the grid
+  * cLIM: the limitation of the grid, by default, it's -1.
+  * isRT: whether the point is the right top point of the given rectangle
+
+*/
+  int cellCord(double p0, double pq, double cw,
+               bool& outGrid,
+               int cLIM = -1,  bool isRT = false)
+  {
+    int CORD = 0;
+    double dt = pq - p0;
+    if ((dt > 0.0) && !AlmostEqual(0.0, dt))
+    {
+      CORD = static_cast<int>(floor(dt/cw));
+      if (isRT && AlmostEqual(pq, CORD*cw))
+        CORD--;
+      //If exists a limitation, and the point exceed it
+      if ((cLIM > 0) && (CORD > cLIM))
+      {
+        CORD = cLIM;
+        outGrid = true;
+      }
+    }
+    return CORD;
+  }
 
   //Set the MBR of the rectangle in the grid
   void setBoundBox(double lbx, double rtx,
@@ -1848,120 +1921,65 @@ struct CellGrid{
       return;
     }
 
+    //The quadrant of the bounding points
+    int lbqt = ptQuadrant((lbx - x0), (lby - y0), (lbz - z0)),
+        rtqt = ptQuadrant((rtx - x0), (rty - y0), (rtz - z0));
+
     //set the LBX, LBY, RTX, RTY;
-    if(AlmostEqual(0.0, ((lbx - x0) / xWidth))){
-      LBX = 0;
-    } else {
-       LBX = static_cast<int>(floor( ((lbx - x0) / xWidth)));
-    }
-    if(AlmostEqual(0.0,((lby - y0) / yWidth))){
-      LBY=0;
-    } else {
-      LBY = static_cast<int>(floor( ((lby - y0) / yWidth)));
-    }
-
-    if (is3D && !AlmostEqual(0.0,((lbz - z0) / zWidth))){
-      LBZ = static_cast<int>(floor(((lbz - z0) / zWidth)));
-    } else { 
-      LBZ = 0;
-    }
-
-    // A rectangle's ceil edge belongs to the lower cell,
-    // and its right edge belongs to the left cell,
-    RTX = static_cast<int>(floor((rtx - x0) / xWidth));
-    if (fabs(rtx - RTX*xWidth - x0) <= 1e-10)
-      RTX--;
-    RTY = static_cast<int>(floor((rty - y0) / yWidth));
-    if (fabs(rty - RTY*yWidth - y0) <= 1e-10)
-      RTY--;
-    if (is3D)
+    if (lbqt < 0 || rtqt < 0)
     {
-      RTZ = static_cast<int>(floor((rtz - z0) / zWidth));
-      if (fabs(rtz - RTZ*zWidth - z0) <= 1e-10)
-        RTZ--;
+      outGrid = true;
+      if (lbqt < 0 && rtqt < 0)
+      {
+        finished = true;
+        return;
+      }
     }
-    else
-      RTZ = 0;
 
 /*
-The cell grid locats in the first quadrant.
-If a rectangle doesn't intersect the first quadrant,
-then gives a warning message and returns an empty int stream.
-
-At the same time, for 2D space,
+For 2D space,
 the cell grid grows infinitely in Y-axis,
 but is limited in X-axis by parameter ~nx~.
 For 3D space, the cell grid is limited in both X and Y axises,
 but grows infinitely in Z-axis.
-Therefore, if any part of the rectangle locates outside the grid,
-a warning message will be given.
+
+The cell grid sits in a limit area in the first quadrant.
+If query rectangle locates outside this area,
+then the outside part is given a uniform cell number of 0.
+And only the part overlapped the given grid is allocated
+with cell numbers that bigger than 0.
 
 */
-    bool nfq = false, log = false;
-    if (RTX < 0 && RTY < 0 && (!is3D || (is3D && (RTZ < 0))))
-      nfq = true;  //not intersect first quadrant
-    if ((RTX - 1 > nx) || (is3D && (RTY - 1 > ny)))
-      log = true;  //locate outside the cell grid
 
-    if(nfq || log)
-    {
-      if (nfq)
-        cerr << "Error: The rectangle doesn't intersect "
-          "the first quadrant. " << endl << endl;
-      else
-        cerr << "Error: The rectangle is outside "
-           "the coverage of the grid. " << endl << endl;
-
-      cerr << "rectangle defined by "
-           <<   "lbx = " << lbx 
-           << ", rtx = " << rtx 
-           << ", lby = " << lby
-           << ", rty = " << rty;
-      if (is3D)
-        cerr << ", lbz = " << lbz
-             << ", rtz = " << rtz;
-      cerr << endl ;
-
-      cerr << "grid defined by"
-           << "  nx = " << nx;
-      if (is3D)
-        cerr << ", ny = " << ny;
-      cerr << ", x0 = " << x0
-           << ", y0 = " << y0;
-      if (is3D)
-        cerr << ", z0 = " << z0;
-       cerr << ", xwidth = " << xWidth
-            << ", ywidth = " << yWidth;
-       if (is3D)
-         cerr << ", zwidth = " << zWidth;
-      cerr << endl << endl;
-      cerr << "LBX = " << LBX << endl;
-      cerr << "LBY = " << LBY << endl;
-      cerr << "LBZ = " << LBZ << endl; 
-      cerr << "RTX = " << RTX << endl;
-      cerr << "RTY = " << RTY << endl;
-      cerr << "RTZ = " << RTZ << endl;
-      finished = true;
-    }
+    LBX = cellCord(x0, lbx, xWidth, outGrid,
+                   nx);
+    LBY = cellCord(y0, lby, yWidth, outGrid,
+                   (is3D?ny:(-1)));
+    LBZ = cellCord(z0, lbz, zWidth, outGrid);
+    RTX = cellCord(x0, rtx, xWidth, outGrid,
+                   (nx-1), true);
+    RTY = cellCord(y0, rty, yWidth, outGrid,
+                   (is3D?(ny-1):(-1)), true);
+    RTZ = cellCord(z0, rtz, zWidth, outGrid,
+                   -1, true);
 
     cx = (LBX >= 0) ? LBX : 0;
     cy = (LBY >= 0) ? LBY : 0;
     cz = (LBZ >= 0) ? LBZ : 0;
-
-    initialized = true;
   }
 
   int getNextCellNum()
   {
     int cellNum = -1;
-    if (!initialized)
+    if (outGrid)
     {
-      cerr << "The grid for cellnumber operator isn't initialized." << endl;
-      cellNum = -1;
+      cellNum = 0;
+      outGrid = false;
     }
     else if (!finished)
     {
-      cellNum = cx + cy * nx + cz * nx * ny + 1;
+      if ((cx <= RTX) && (cy <= RTY))
+        cellNum = cx + cy * nx + cz * nx * ny + 1;
 
       if (cx < RTX)
         cx++;
@@ -1970,7 +1988,7 @@ a warning message will be given.
         cx = LBX;
         cy++;
       }
-      else if (cz < RTZ)
+      else if (cz < RTZ )
       {
         cx = LBX;
         cy = LBY;
@@ -1989,7 +2007,7 @@ a warning message will be given.
   double x0, y0, z0, xWidth, yWidth, zWidth;
   int LBX, LBY, LBZ, RTX, RTY, RTZ; //LB: left-buttom; RT: right-top
   int cx, cy, cz; //Current cell coordinate number
-  bool initialized;
+  bool outGrid;   //Whether the rectangle is outside the given grid
   bool finished;
   bool is3D;
 };
@@ -2057,7 +2075,7 @@ a warning message will be given.
       return CANCEL;
     }else{
       int nextCellNum = grid->getNextCellNum();
-      if (nextCellNum > 0)
+      if (nextCellNum >= 0)
       {
         CcInt* res = new CcInt(true, nextCellNum);
         result.addr = res;
