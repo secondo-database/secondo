@@ -427,9 +427,9 @@ cells' height is set alone.
 */
 
   double length, width, height;
-  double xl, yb, zb, wx, wz;
+  double xl, yb, zb, wx, wz = 0.0;
   double xr, yt, zt;
-  int nx, ny;
+  int nx, ny, nz;
 
   double size[dim];
   for(unsigned i = 0; i < dim; i++)
@@ -452,7 +452,14 @@ cells' height is set alone.
     xr = joinBox->MaxD(0);
     yt = joinBox->MaxD(1);
 
-    nx = int(ceil(length / wx));
+    do
+    {
+      nx = int(ceil(length / wx));
+      if (nx > int(sqrt(INT_MAX)))
+        wx *= 10;
+      else
+        break;
+    }while(1);
 
     (*funargs)[2].setAddr(new CcReal(xl));
     (*funargs)[3].setAddr(new CcReal(yb));
@@ -475,6 +482,18 @@ cells' height is set alone.
     xr = joinBox->MaxD(0);
     yt = joinBox->MaxD(1);
     zt = joinBox->MaxD(2);
+
+    nz = int(ceil(height / wz));
+    do
+    {
+      nx = int(ceil(length / wx));
+      ny = int(ceil(width  / wx));
+      int maxN = max(max(nx,ny),nz);
+      if (maxN > int(pow(INT_MAX,1.0/3.0)))
+        wx *= 10;
+      else
+        break;
+    }while(1);
 
     nx = int(ceil(length / wx));
     ny = int(ceil(width / wx));
