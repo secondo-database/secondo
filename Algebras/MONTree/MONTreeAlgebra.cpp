@@ -35,15 +35,14 @@ May 2008, Victor Almeida
 */
 
 #include <iostream>
-#include "MONTreeAlgebra.h"
-#include "RectangleAlgebra.h"
-#include "TupleIdentifier.h"
-#include "SpatialAlgebra.h"
-#include "HashAlgebra.h"
-#include "HashAlgebra.h"
-#include "NetworkAlgebra.h"
-#include "TemporalAlgebra.h"
-#include "TemporalNetAlgebra.h"
+#include "./MONTreeAlgebra.h"
+#include "../Rectangle/RectangleAlgebra.h"
+#include "../TupleIdentifier/TupleIdentifier.h"
+#include "../Spatial/SpatialAlgebra.h"
+#include "../Hash/HashAlgebra.h"
+#include "../Network/NetworkAlgebra.h"
+#include "../Temporal/TemporalAlgebra.h"
+#include "../TemporalNet/TemporalNetAlgebra.h"
 
 using namespace std;
 
@@ -655,7 +654,10 @@ in the latter, a double index MON-Tree is created using as low
 and high parameters these two last integer numbers.
 
 */
-    ListExpr first, rest, newAttrList, lastNewAttrList;
+    ListExpr first = nl->TheEmptyList();
+    ListExpr rest = nl->TheEmptyList();
+    ListExpr newAttrList = nl->TheEmptyList();
+    ListExpr lastNewAttrList = nl->TheEmptyList();
     int tidIndex = 0;
     string type;
     bool firstcall = true,
@@ -746,8 +748,8 @@ CreateMONTreeSelect (ListExpr args)
     return doubleUp + 0;
   if( nl->SymbolValue(nl->First(relDescription)) == "stream")
   {
-    ListExpr first,
-             rest = attrList;
+    ListExpr first = nl->TheEmptyList();
+    ListExpr rest = attrList;
     while (!nl->IsEmpty(rest))
     {
       first = nl->First(rest);
