@@ -1,8 +1,22 @@
 ########################################################################
 #
-# SECONDO makefile for TopRel  Algebra C++
+# SECONDO makefile for MTopRel  
 #
 ########################################################################
+
+
+CURRENT_ALGEBRA := MTopRelAlgebra
+
+
+ALGEBRA_DEPENDENCIES := StandardAlgebra
+ALGEBRA_DEPENDENCIES += RelationAlgebra
+ALGEBRA_DEPENDENCIES += FunctionAlgebra
+ALGEBRA_DEPENDENCIES += TopRelAlgebra
+ALGEBRA_DEPENDENCIES += FTextAlgebra
+
+
+
+
 
 
 # include global definitions
@@ -21,7 +35,11 @@ CCFLAGS = $(DEFAULTCCFLAGS) -I../FText -I../Rectangle
 # creates a "lib$(MODNAME).a" file in the secondo/lib dir. Rules
 # for creating ".dep" files and ".o" files are defined in makefile.env
 .PHONY: all
-all: $(OBJECTS) $(LIBOBJ)  NFATest 
+all: check_dependencies  $(OBJECTS) $(LIBOBJ)  NFATest 
+
+check_dependencies:
+	 $(check-algebra-dependencies)
+
 
 
 NFATest: NFATest.o Scanner.o RegExParser.o  
