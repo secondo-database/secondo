@@ -512,7 +512,6 @@ rest    : ')'      {$$ = $1;}
 
 atom    : constant    {$$ = $1;}
     | ZZIDENTIFIER    {$$ = $1;}
-    | ZZTEXT    {$$ = $1;}
     | ZZFILE    {$$ = $1;}
     ;
 
