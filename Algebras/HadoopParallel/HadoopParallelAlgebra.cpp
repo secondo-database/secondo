@@ -65,7 +65,6 @@ but includes tuples of different schemes.
 #include "Base64.h"
 #include "regex.h"
 #include "FileSystem.h"
-#include "../RemoteStream/RemoteStreamAlgebra.h"
 
 using namespace symbols;
 using namespace std;
@@ -1940,7 +1939,7 @@ ListExpr FConsumeTypeMap(ListExpr args)
   if (!l.second().first().isSymbol(symbols::STRING) )
     return l.typeError(typeErr);
   NList fnList;
-  if (!getNLArgValueInTM(l.second().second(), fnList))
+  if (!QueryProcessor::GetNLArgValueInTM(l.second().second(), fnList))
     return l.typeError(err3 + "fileName");
   string fileName = fnList.str();
 
@@ -1956,7 +1955,7 @@ ListExpr FConsumeTypeMap(ListExpr args)
   //And the specified path must be an absolute path
   string typeFileName = fileName + "_type";
   NList fpList;
-  if (!getNLArgValueInTM(l.third().second(), fpList))
+  if (!QueryProcessor::GetNLArgValueInTM(l.third().second(), fpList))
     return l.typeError(err3 + "filePath");
   string filePath = fpList.str();
   if (0 == filePath.length())
@@ -2020,7 +2019,7 @@ ListExpr FConsumeTypeMap(ListExpr args)
       if (nodeArgLoc[i] > 0)
       {
         NList nnList;
-        if (!getNLArgValueInTM(
+        if (!QueryProcessor::GetNLArgValueInTM(
                 l.elem(nodeArgLoc[i]).second(), nnList))
           return l.typeError(err3 + " for node " + int2string(i) );
         string nodeName = nnList.str();
@@ -2403,7 +2402,7 @@ ListExpr FFeedTypeMap(ListExpr args)
   if (!l.first().first().isSymbol(symbols::STRING))
     return l.typeError(typeErr);
   NList fnList;
-  if (!getNLArgValueInTM(l.first().second(), fnList))
+  if (!QueryProcessor::GetNLArgValueInTM(l.first().second(), fnList))
     return l.typeError(err4 + "fileName");
   string fileName = fnList.str();
 
@@ -2414,7 +2413,7 @@ ListExpr FFeedTypeMap(ListExpr args)
   if (!l.second().first().isSymbol(symbols::TEXT))
     return l.typeError(typeErr);
   NList fpList;
-  if (!getNLArgValueInTM(l.second().second(), fpList))
+  if (!QueryProcessor::GetNLArgValueInTM(l.second().second(), fpList))
     return l.typeError(err4 + "filePath");
   string filePath = fpList.str();
 
@@ -2457,7 +2456,7 @@ ListExpr FFeedTypeMap(ListExpr args)
   {
     //copy the type file from the remote machine
     NList nnList;
-    if (!getNLArgValueInTM(l.elem(rtnPos).second(), nnList))
+    if (!QueryProcessor::GetNLArgValueInTM(l.elem(rtnPos).second(), nnList))
       return l.typeError(err3 + "node name");
     string nodeName = nnList.str();
 
@@ -2745,7 +2744,7 @@ ListExpr hdpJoinTypeMap(ListExpr args)
     if (!l.sixth().first().isSymbol(symbols::STRING))
       return l.typeError(typeErr);
     NList rnList;
-    if (!getNLArgValueInTM(l.sixth().second(), rnList))
+    if (!QueryProcessor::GetNLArgValueInTM(l.sixth().second(), rnList))
       return l.typeError(err3 + "resultName");
     string resultName = rnList.str();
 
@@ -3036,7 +3035,7 @@ ListExpr FDistributeTypeMap(ListExpr args)
   if (!l.second().first().isSymbol(symbols::STRING))
     return l.typeError(tpeErr);
   NList fnList; //get the file name
-  if (!getNLArgValueInTM(l.second().second(), fnList))
+  if (!QueryProcessor::GetNLArgValueInTM(l.second().second(), fnList))
     return l.typeError(err1 + "fileName");
   string fileName = fnList.str();
   if (0 == fileName.length())
@@ -3074,7 +3073,7 @@ ListExpr FDistributeTypeMap(ListExpr args)
   //Create the type file in local disk
   string typeFileName = fileName + "_type";
   NList fpList;
-  if (!getNLArgValueInTM(l.third().second(), fpList))
+  if (!QueryProcessor::GetNLArgValueInTM(l.third().second(), fpList))
     return l.typeError(err1 + "filePath");
   string filePath = fpList.str();
   filePath = getFilePath(filePath, typeFileName);

@@ -61,72 +61,6 @@ extern QueryProcessor *qp;
 const int min_PortNum = 1024;
 const int max_PorNum = 65535;
 
-
-/*
-3 Implementation of get values in TypeMapping function
-
-For arguments used in TypeMapping function,
-if they are not direct string type data,
-use a separated query processor to evaluate its value.
-
-*/
-
-bool getNLArgValueInTM(NList args, NList& value)
-{
-  if ((args.isList()) || (args.isSymbol()))
-  {
-    ListExpr queryList = args.listExpr();
-    bool success;
-    Word queryresultword;
-    string typestring   = "";
-    string errorstring   = "";
-    bool correct = false;
-    bool evaluable = false;
-    bool defined = false;
-    bool isFunction = false;
-    success =
-        QueryProcessor::ExecuteQuery(queryList,
-                                      queryresultword,
-                                      typestring,
-                                      errorstring,
-                                      correct,
-                                      evaluable,
-                                      defined,
-                                      isFunction);
-    ListExpr queryResType;
-    if (!nl->ReadFromString(typestring, queryResType))
-    {
-      cerr << "ERROR! Invalid argument type. "
-          << errorstring << endl;
-      return false;
-    }
-    else
-    {
-      if (correct && evaluable &&
-          defined && (typestring != "typeerror"))
-      {
-        ListExpr valueList = SecondoSystem::GetCatalog()
-          ->OutObject(queryResType, queryresultword);
-        if (!SecondoSystem::GetCatalog()-> DeleteObj(queryResType,
-            queryresultword)) {
-          cerr << "ERROR! Problem in deleting queryresultword\n";
-          return false;
-        }
-        value = NList(valueList);
-        return true;
-      }
-      cerr << "ERROR! Incorrect evaluation for arguments in TM.\n";
-      return false;
-    }
-  }
-  else
-  {
-    value = args;
-    return true;
-  }
-}
-
-
 /*
 
 2 Overview
@@ -201,7 +135,7 @@ TSendTypeMap(ListExpr args)
   if (!l.second().first().isSymbol(Symbols::INT()))
     return l.typeError(typeErr);
   NList pList;
-  if (!getNLArgValueInTM(l.second().second(), pList))
+  if (!QueryProcessor::GetNLArgValueInTM(l.second().second(), pList))
     return l.typeError(evaErr + "port number");
   int port = pList.intval();
   if (port < min_PortNum || port > max_PorNum)
@@ -299,11 +233,11 @@ TReceiveTypeMap(ListExpr args)
 
   string host, streamTypeStr;
   NList hList;
-  if (!getNLArgValueInTM(l.first().second(), hList))
+  if (!QueryProcessor::GetNLArgValueInTM(l.first().second(), hList))
     return l.typeError(evaErr + "host name");
   host = hList.str();
   NList pList;
-  if (!getNLArgValueInTM(l.second().second(), pList))
+  if (!QueryProcessor::GetNLArgValueInTM(l.second().second(), pList))
     return l.typeError(evaErr + "port number");
   int port = pList.intval();
   if (port < min_PortNum || port > max_PorNum)

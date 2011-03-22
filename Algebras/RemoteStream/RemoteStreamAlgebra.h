@@ -46,6 +46,5 @@ Jan. 2011 Jiamin Lu
 #include <string>
 #include <cmath>
 
-bool getNLArgValueInTM(NList args, NList& value);
 
 #endif /* REMOTESTREAMALGEBRA_H_ */

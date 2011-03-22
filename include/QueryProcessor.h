@@ -169,6 +169,7 @@ such as "ArgVectorPointer"[4], "Supplier"[4], "Word"[4], "Address"[4], etc.
 #include "LogMsg.h"
 #include "StopWatch.h"
 #include "DotSpec.h"
+#include "NList.h"
 
 struct OpNode;
 typedef OpNode* OpTree;
@@ -577,6 +578,14 @@ Also, the result's type expression is in returned in parameter ~typeString~.
 
 */
 
+  static bool GetNLArgValueInTM(const NList& arg, NList& value);
+/*
+A method to evaluate an argument ~arg~ within a type mapping. The
+argument is given as a nested list, evaluated by a new instance of
+the query processor, and returned as a nested list within ~value~.
+Simple string arguments are not evaluated but returned directly.
+
+*/
   void DestroyValuesArray();
 /*
 Destroys the ~values~ array. This function is used when there is a failure

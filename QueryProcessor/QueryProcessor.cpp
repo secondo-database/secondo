@@ -4571,6 +4571,62 @@ QueryProcessor::ExecuteQuery( const ListExpr& commandList,
   return ( defined && correct && evaluable );
 }
 
+bool
+QueryProcessor::GetNLArgValueInTM(const NList& arg, NList& value)
+{
+  if ((arg.isList()) || (arg.isSymbol()))
+  {
+    ListExpr queryList = arg.listExpr();
+    bool success;
+    Word queryresultword;
+    string typestring   = "";
+    string errorstring   = "";
+    bool correct = false;
+    bool evaluable = false;
+    bool defined = false;
+    bool isFunction = false;
+    success =
+        QueryProcessor::ExecuteQuery(queryList,
+                                      queryresultword,
+                                      typestring,
+                                      errorstring,
+                                      correct,
+                                      evaluable,
+                                      defined,
+                                      isFunction);
+    ListExpr queryResType;
+    NestedList* nli = SecondoSystem::GetNestedList();
+    if (!nli->ReadFromString(typestring, queryResType))
+    {
+      cerr << "ERROR! Invalid argument type. "
+          << errorstring << endl;
+      return false;
+    }
+    else
+    {
+      if (correct && evaluable &&
+          defined && (typestring != "typeerror"))
+      {
+        ListExpr valueList = SecondoSystem::GetCatalog()
+          ->OutObject(queryResType, queryresultword);
+        if (!SecondoSystem::GetCatalog()-> DeleteObj(queryResType,
+            queryresultword)) {
+          cerr << "ERROR! Problem in deleting queryresultword\n";
+          return false;
+        }
+        value = NList(valueList);
+        return true;
+      }
+      cerr << "ERROR! Incorrect evaluation for arguments in TM.\n";
+      return false;
+    }
+  }
+  else
+  {
+    value = arg;
+    return true;
+  }
+}
 
 bool ErrorReporter::receivedMessage = false;
 bool ErrorReporter::TypeMapError = false;
