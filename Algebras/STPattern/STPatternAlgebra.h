@@ -58,7 +58,7 @@ paper "Spatiotemporal Pattern Queries"
 #include "Algebra.h"
 
 #include "NestedList.h"
-
+#include "ListUtils.h"
 #include "QueryProcessor.h"
 
 #include "StandardTypes.h"
@@ -235,7 +235,8 @@ Interval<Instant> to Internal<CcReal> for more efficient processing
 */  
   void IntervalInstant2IntervalCcReal(const Interval<Instant>& in, 
       Interval<CcReal>& out);
-
+  void IntervalCcReal2IntervalInstant(const Interval<CcReal>& in,
+      Interval<Instant>& out);
 /*
 The MBool2Vec helper function. It constructs a vector from the true units in the
 MBool argument.
@@ -283,6 +284,7 @@ The list of supported assignments
 */  
   vector< vector<Interval<CcReal> > > SA;
   vector<Supplier> Agenda;
+  vector<bool> UsedAgendaVars;
   
 /*
 A helper data structure to translate the string aliases into their integer
@@ -361,7 +363,20 @@ The GetStart function. It is the impelementation of the "end" operator.
     
 */
   bool GetEnd(string alias, Instant& result);
-  
+
+/*
+The GetSA function. Reads the SA entries.
+
+*/
+  bool GetSA(unsigned int saIndex, unsigned int varIndex, Periods& res);
+
+/*
+The AppendSolutionToTuple function. It appends one sa to the given tuple. The
+function is used inside the stpatternextend/extendstream operators.
+
+*/
+  bool AppendSolutionToTuple(int saIndex, Tuple* oldTup, Tuple* resTup);
+  bool AppendUnDefsToTuple(Tuple* oldTup, Tuple* resTup);
 /*
 The Print function. It is used for debug purposes.
  
@@ -373,6 +388,13 @@ call it before processing every tuple in order to reintialize the CSP.
 
 */
   int Clear();
+/*
+The ResetTuple function. It is used to reset the CSP before evaluating it for
+a new tuple. The Agenda, and the ConstraintGraph are kept. Other members
+related to the evaluation are reset.
+
+*/
+  int ResetTuple();
 };
 
 

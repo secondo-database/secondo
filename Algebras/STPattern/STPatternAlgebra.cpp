@@ -395,6 +395,17 @@ void CSP::IntervalInstant2IntervalCcReal(const Interval<Instant>& in,
 {
   out.start.Set(in.start.IsDefined(), in.start.ToDouble());
   out.end.Set(in.end.IsDefined(), in.end.ToDouble());
+  out.lc= in.lc;
+  out.rc= in.rc;
+}
+
+void CSP::IntervalCcReal2IntervalInstant(const Interval<CcReal>& in,
+    Interval<Instant>& out)
+{
+  out.start.ReadFrom(in.start.GetRealval());
+  out.end.ReadFrom(in.end.GetRealval());
+  out.lc= in.lc;
+  out.rc= in.rc;
 }
 
 /*
@@ -550,7 +561,7 @@ int CSP::PickVariable()
   int index=-1;
   for(unsigned int i=0;i<Agenda.size();i++)
   {
-    if(Agenda[i] != 0)
+    if(!UsedAgendaVars[i])
     {
       vars.push_back(i);
       cnt=0;
@@ -606,6 +617,7 @@ int CSP::PickVariable()
 int CSP::AddVariable(string alias, Supplier handle)
 {
   Agenda.push_back(handle);
+  UsedAgendaVars.push_back(false);
   VarAliasMap[alias]=count;
   count++;
   ConstraintGraph.resize(count);
@@ -640,9 +652,10 @@ bool CSP::Solve()
   while( (varIndex= PickVariable()) != -1)
   {
     qp->Request(Agenda[varIndex], Value);
-    Agenda[varIndex]=0;
+    //Agenda[varIndex]=0;
+    UsedAgendaVars[varIndex]= true;
     MBool2Vec((MBool*)Value.addr, domain);
-    if(domain.size()==0) return false;
+    if(domain.size()==0) {SA.clear(); return false;}
     if(Extend(varIndex, domain)!= 0) return false;
     if(SA.size()==0) return false;
     if(debugme)
@@ -657,6 +670,53 @@ bool CSP::MoveNext()
     iterator++;
   else
     return false;
+  return true;
+}
+
+bool CSP::GetSA(unsigned int saIndex, unsigned int varIndex, Periods& res)
+{
+  res.Clear();
+  if(saIndex >= SA.size() || varIndex >= SA[0].size())
+    return false;
+  Instant t0(instanttype), t1(instanttype);
+  Interval<Instant> resInterval( t0, t1, false, false );
+  IntervalCcReal2IntervalInstant(SA[saIndex][varIndex], resInterval);
+  res.Add(resInterval);
+  return true;
+}
+
+bool CSP::AppendSolutionToTuple(int saIndex, Tuple* oldTup, Tuple* resTup)
+{
+  if(!this->SA.empty())
+  {
+    Periods attrVal(0);
+    for (unsigned int i=0; i < this->Agenda.size();i++)
+    {
+      csp.GetSA(saIndex, i, attrVal);
+      resTup->PutAttribute(oldTup->GetNoAttributes()+i, attrVal.Clone());
+    }
+  }
+  else
+  {
+    Periods undefRes(0);
+    undefRes.SetDefined(false);
+    for (unsigned int i=0; i < this->Agenda.size();i++)
+    {
+      resTup->PutAttribute(oldTup->GetNoAttributes()+i, undefRes.Clone());
+    }
+  }
+  return true;
+}
+
+bool CSP::AppendUnDefsToTuple(Tuple* oldTup, Tuple* resTup)
+{
+  Periods undefRes(0);
+  undefRes.SetDefined(false);
+  for (unsigned int i=0; i < this->Agenda.size();i++)
+  {
+    resTup->PutAttribute(oldTup->GetNoAttributes()+i, undefRes.Clone());
+  }
+
   return true;
 }
 
@@ -703,10 +763,20 @@ int CSP::Clear()
 {
   SA.clear();
   Agenda.clear();
+  UsedAgendaVars.clear();
   ConstraintGraph.clear();
   VarAliasMap.clear();
   assignedVars.clear();
   count=0;
+  iterator=-1;
+  return 0;
+}
+
+int CSP::ResetTuple()
+{
+  SA.clear();
+  UsedAgendaVars.assign(Agenda.size(), false);
+  assignedVars.clear();
   iterator=-1;
   return 0;
 }
@@ -824,6 +894,17 @@ ListExpr STPatternTM(ListExpr args)
     cout.flush();
   }
 
+
+  nl->WriteToString(argstr, args);
+
+  //  //checking for the first parameter tuple(x)
+  if(nl->ListLength(args) != 3)
+  {
+    ErrorReporter::ReportError("Operator stpattern: expects 3 arguments\n"
+        "But got '" + argstr + "'.");
+    return nl->SymbolAtom("typeerror");
+  };
+
   ListExpr tupleExpr = nl->First(args),   //tuple(x)
   NamedPredList  = nl->Second(args),  //named predicate list
   ConstraintList = nl->Third(args);    //STConstraint list
@@ -831,19 +912,24 @@ ListExpr STPatternTM(ListExpr args)
   nl->WriteToString(argstr, tupleExpr);
 
   //  //checking for the first parameter tuple(x)
-  CHECK_COND( (nl->ListLength(tupleExpr) == 2) &&
-      (TypeOfRelAlgSymbol(nl->First(tupleExpr)) == tuple),
-      "Operator stpattern: expects as first argument "
-      "a list with structure (tuple ((a1 t1)...(an tn))).\n"
-      "But got '" + argstr + "'.");
+  if(!((nl->ListLength(tupleExpr) == 2) &&
+      (TypeOfRelAlgSymbol(nl->First(tupleExpr)) == tuple)))
+  {
+    ErrorReporter::ReportError("Operator stpattern: expects as first "
+        "argument a list with structure (tuple ((a1 t1)...(an tn))).\n"
+        "But got '" + argstr + "'.");
+    return nl->SymbolAtom("typeerror");
+  };
 
   //  //checking ofr the second parameter predicatelist
   nl->WriteToString(argstr, NamedPredList);
-  CHECK_COND( ! nl->IsAtom(NamedPredList) ,
-      "Operator  stpattern expects as second argument a "
-      "list of aliased lifted predicates.\n"
-      "But got '" + argstr + "'.\n" );
-
+  if(!(! nl->IsAtom(NamedPredList)))
+  {
+    ErrorReporter::ReportError("Operator stpattern expects as second "
+        "argument a list of aliased lifted predicates.\n"
+        "But got '" + argstr + "'.\n");
+    return nl->SymbolAtom("typeerror");
+  };
   ListExpr NamedPredListRest = NamedPredList;
   ListExpr NamedPred;
   while( !nl->IsEmpty(NamedPredListRest) )
@@ -852,13 +938,15 @@ ListExpr STPatternTM(ListExpr args)
     NamedPredListRest = nl->Rest(NamedPredListRest);
     nl->WriteToString(argstr, NamedPred);
 
-    CHECK_COND
-    ((nl->ListLength(NamedPred) == 2 &&
+    if(!((nl->ListLength(NamedPred) == 2 &&
         nl->IsAtom(nl->First(NamedPred))&&
         nl->IsAtom(nl->Second(NamedPred))&&
-        nl->SymbolValue(nl->Second(NamedPred))== "mbool"),
-        "Operator stpattern: expects a list of aliased predicates. "
-        "But got '" + argstr + "'.");
+        nl->SymbolValue(nl->Second(NamedPred))== "mbool")))
+    {
+      ErrorReporter::ReportError("Operator stpattern: expects a list of "
+          "aliased predicates. \nBut got '" + argstr + "'.");
+      return nl->SymbolAtom("typeerror");
+    };
   }
 
   ListExpr ConstraintListRest = ConstraintList;
@@ -869,11 +957,13 @@ ListExpr STPatternTM(ListExpr args)
     ConstraintListRest = nl->Rest(ConstraintListRest);
     nl->WriteToString(argstr, STConstraint);
 
-    CHECK_COND
-    ((nl->IsAtom(STConstraint)&&
-        nl->SymbolValue(STConstraint)== "bool"),
-        "Operator stpattern: expects a list of temporal connectors. "
-        "But got '" + argstr + "'.");
+    if(!((nl->IsAtom(STConstraint)&&
+        nl->SymbolValue(STConstraint)== "bool")))
+    {
+      ErrorReporter::ReportError("Operator stpattern: expects a list of "
+          "temporal connectors. \nBut got '" + argstr + "'.");
+      return nl->SymbolAtom("typeerror");
+    };
   }
 
   ListExpr result = nl->SymbolAtom("bool");
@@ -897,25 +987,39 @@ ListExpr STPatternExTM(ListExpr args)
     cout.flush();
   }
 
+  if(nl->ListLength(args) != 4)
+  {
+    ErrorReporter::ReportError("Operator stpatternex: expects 4 arguments\n"
+        "But got '" + argstr + "'.");
+    return nl->SymbolAtom("typeerror");
+  }
+
   ListExpr tupleExpr = nl->First(args),   //tuple(x)
   NamedPredList  = nl->Second(args),  //named predicate list
-  ConstraintList = nl->Third(args);    //STConstraint list
+  ConstraintList = nl->Third(args),    //STConstraint list
+  FilterExpr= nl->Fourth(args);
 
   nl->WriteToString(argstr, tupleExpr);
 
   //  //checking for the first parameter tuple(x)
-  CHECK_COND( (nl->ListLength(tupleExpr) == 2) &&
-      (TypeOfRelAlgSymbol(nl->First(tupleExpr)) == tuple),
-      "Operator stpattern: expects as first argument "
-      "a list with structure (tuple ((a1 t1)...(an tn))).\n"
+  if(!((nl->ListLength(tupleExpr) == 2) &&
+        (TypeOfRelAlgSymbol(nl->First(tupleExpr)) == tuple)))
+  {
+    ErrorReporter::ReportError("Operator stpatternex: expects as first "
+      "argument a list with structure (tuple ((a1 t1)...(an tn))).\n"
       "But got '" + argstr + "'.");
+    return nl->SymbolAtom("typeerror");
+  }
 
   //  //checking ofr the second parameter predicatelist
   nl->WriteToString(argstr, NamedPredList);
-  CHECK_COND( ! nl->IsAtom(NamedPredList) ,
-      "Operator  stpattern expects as second argument a "
-      "list of aliased lifted predicates.\n"
-      "But got '" + argstr + "'.\n" );
+  if(nl->IsAtom(NamedPredList))
+  {
+    ErrorReporter::ReportError("Operator  stpatternex expects as second "
+        "argument a list of aliased lifted predicates.\n"
+        "But got '" + argstr + "'.\n");
+    return nl->SymbolAtom("typeerror");
+  }
 
   ListExpr NamedPredListRest = NamedPredList;
   ListExpr NamedPred;
@@ -925,13 +1029,15 @@ ListExpr STPatternExTM(ListExpr args)
     NamedPredListRest = nl->Rest(NamedPredListRest);
     nl->WriteToString(argstr, NamedPred);
 
-    CHECK_COND
-    ((nl->ListLength(NamedPred) == 2 &&
+    if(!((nl->ListLength(NamedPred) == 2 &&
         nl->IsAtom(nl->First(NamedPred))&&
         nl->IsAtom(nl->Second(NamedPred))&&
-        nl->SymbolValue(nl->Second(NamedPred))== "mbool"),
-        "Operator stpattern: expects a list of aliased predicates. "
-        "But got '" + argstr + "'.");
+        nl->SymbolValue(nl->Second(NamedPred))== "mbool")))
+    {
+      ErrorReporter::ReportError("Operator stpatternex: expects a list of "
+          "aliased predicates. But got '" + argstr + "'.");
+      return nl->SymbolAtom("typeerror");
+    }
   }
 
   ListExpr ConstraintListRest = ConstraintList;
@@ -942,17 +1048,277 @@ ListExpr STPatternExTM(ListExpr args)
     ConstraintListRest = nl->Rest(ConstraintListRest);
     nl->WriteToString(argstr, STConstraint);
 
-    CHECK_COND
-    ((nl->IsAtom(STConstraint)&&
-        nl->SymbolValue(STConstraint)== "bool"),
-        "Operator stpattern: expects a list of temporal connectors. "
-        "But got '" + argstr + "'.");
+    if(!((nl->IsAtom(STConstraint)&&
+        nl->SymbolValue(STConstraint)== "bool")))
+    {
+      ErrorReporter::ReportError("Operator stpatternex: expects a list of "
+          "temporal constraints. But got '" + argstr + "'.");
+      return nl->SymbolAtom("typeerror");
+    }
   }
+
+  if(!((nl->IsAtom(FilterExpr)&&
+      nl->SymbolValue(FilterExpr)== "bool")))
+  {
+    ErrorReporter::ReportError("Operator stpatternex: expects a bool as last "
+        "argument, but got '" + argstr + "'.");
+    return nl->SymbolAtom("typeerror");
+  };
 
   ListExpr result = nl->SymbolAtom("bool");
   if(debugme)
   {
     cout<<endl<<endl<<"Operator stpattern accepted the input";
+    cout.flush();
+  }
+  return result;
+}
+
+ListExpr STPatternExtendTM(ListExpr args)
+{
+  bool debugme= false;
+
+  string argstr;
+
+  if(debugme)
+  {
+    cout<<endl<< nl->ToString(args)<<endl;
+    cout.flush();
+  }
+
+  if(nl->ListLength(args) != 3)
+  {
+    ErrorReporter::ReportError("Operator stpatternextend: expects 4 "
+        "arguments.\nBut got '" + argstr + "'.");
+    return nl->SymbolAtom("typeerror");
+  };
+
+  ListExpr StreamExpr = nl->First(args),   //tuple(x)
+  NamedPredList  = nl->Second(args),  //named predicate list
+  ConstraintList = nl->Third(args);    //STConstraint list
+
+  nl->WriteToString(argstr, StreamExpr);
+
+  //  //checking for the first parameter tuple(x)
+  if(!(nl->ListLength(StreamExpr)== 2 && listutils::isTupleStream(StreamExpr)))
+  {
+    ErrorReporter::ReportError("Operator stpatternextend: expects as first "
+        "argument a list with structure (stream(tuple ((a1 t1)...(an tn)))).\n"
+        "But got '" + argstr + "'.");
+    return nl->TypeError();
+  };
+
+  ListExpr TupleExpr = nl->Second(StreamExpr);   //tuple(x)
+  ListExpr AttrList = nl->Second(TupleExpr);
+  ListExpr NewAttrList = nl->OneElemList(nl->First(AttrList));
+  ListExpr lastlistn = NewAttrList;
+  AttrList = nl->Rest(AttrList);
+  while (!(nl->IsEmpty(AttrList)))
+  {
+     lastlistn = nl->Append(lastlistn,nl->First(AttrList));
+     AttrList = nl->Rest(AttrList);
+  }
+
+  //  //checking ofr the second parameter predicatelist
+  nl->WriteToString(argstr, NamedPredList);
+  if(!(! nl->IsAtom(NamedPredList)))
+  {
+    ErrorReporter::ReportError("Operator stpatternextend expects as second "
+        "argument a list of aliased lifted predicates.\n"
+        "But got '" + argstr + "'.\n");
+    return nl->TypeError();
+  };
+  ListExpr NamedPredListRest = NamedPredList;
+  ListExpr NamedPred;
+  while( !nl->IsEmpty(NamedPredListRest) )
+  {
+    NamedPred = nl->First(NamedPredListRest);
+    NamedPredListRest = nl->Rest(NamedPredListRest);
+    nl->WriteToString(argstr, NamedPred);
+
+    if(!((nl->ListLength(NamedPred) == 2 &&
+        nl->IsAtom(nl->First(NamedPred))&&
+        listutils::isMap<1>(nl->Second(NamedPred))&&
+        nl->SymbolValue(nl->Third(nl->Second(NamedPred)))== "mbool")))
+    {
+      ErrorReporter::ReportError("Operator stpatternextend: expects a list of "
+          "aliased predicates. \nBut got '" + argstr + "'.");
+      return nl->TypeError();
+    };
+
+    string aliasStr = nl->SymbolValue(nl->First(NamedPred));
+    ListExpr typeList;
+    int pos = FindAttribute(AttrList, aliasStr, typeList);
+    if(pos!=0){
+       ErrorReporter::ReportError("Operator stpatternextend: the alias" +
+           aliasStr + " is already an attribute name in the input stream");
+       return nl->TypeError();
+    }
+
+    if(SecondoSystem::GetCatalog()->IsTypeName(aliasStr)){
+       ErrorReporter::ReportError("Operator stpatternextend: the alias" +
+           aliasStr + " is known as a DB type");
+       return nl->TypeError();
+    }
+    lastlistn = nl->Append(lastlistn,
+        (nl->TwoElemList(nl->First(NamedPred), nl->SymbolAtom("periods"))));
+  }
+
+  ListExpr ConstraintListRest = ConstraintList;
+  ListExpr STConstraint;
+  while( !nl->IsEmpty(ConstraintListRest) )
+  {
+    STConstraint = nl->First(ConstraintListRest);
+    ConstraintListRest = nl->Rest(ConstraintListRest);
+    nl->WriteToString(argstr, STConstraint);
+
+    if(!((nl->IsAtom(STConstraint)&&
+        nl->SymbolValue(STConstraint)== "bool")))
+    {
+      ErrorReporter::ReportError("Operator stpatternextend: expects a list of "
+          "temporal connectors. \nBut got '" + argstr + "'.");
+      return nl->TypeError();
+    };
+  }
+
+
+
+  ListExpr result= nl->TwoElemList(nl->SymbolAtom("stream"),
+            nl->TwoElemList(nl->SymbolAtom("tuple"),NewAttrList));
+
+  if(debugme)
+  {
+    cout<<endl<<endl<<"Operator stpatternextend accepted the input";
+    cout<<endl<< nl->ToString(result);
+    cout.flush();
+  }
+  return result;
+}
+
+ListExpr STPatternExExtendTM(ListExpr args)
+{
+  bool debugme= false;
+
+  string argstr;
+
+  if(debugme)
+  {
+    cout<<endl<< nl->ToString(args)<<endl;
+    cout.flush();
+  }
+
+  if(nl->ListLength(args) != 4)
+  {
+    ErrorReporter::ReportError("Operator stpatternexextend: expects 4 "
+        "arguments.\nBut got '" + argstr + "'.");
+    return nl->SymbolAtom("typeerror");
+  };
+
+  ListExpr StreamExpr = nl->First(args),   //tuple(x)
+  NamedPredList  = nl->Second(args),  //named predicate list
+  ConstraintList = nl->Third(args),    //STConstraint list
+  FilterExpr= nl->Fourth(args);
+
+  nl->WriteToString(argstr, StreamExpr);
+
+  //  //checking for the first parameter tuple(x)
+  if(!(nl->ListLength(StreamExpr)== 2 && listutils::isTupleStream(StreamExpr)))
+  {
+    ErrorReporter::ReportError("Operator stpatternexextend: expects as first "
+        "argument a list with structure (stream(tuple ((a1 t1)...(an tn)))).\n"
+        "But got '" + argstr + "'.");
+    return nl->TypeError();
+  };
+
+  ListExpr TupleExpr = nl->Second(StreamExpr);   //tuple(x)
+  ListExpr AttrList = nl->Second(TupleExpr);
+  ListExpr NewAttrList = nl->OneElemList(nl->First(AttrList));
+  ListExpr lastlistn = NewAttrList;
+  AttrList = nl->Rest(AttrList);
+  while (!(nl->IsEmpty(AttrList)))
+  {
+     lastlistn = nl->Append(lastlistn,nl->First(AttrList));
+     AttrList = nl->Rest(AttrList);
+  }
+
+  //  //checking ofr the second parameter predicatelist
+  nl->WriteToString(argstr, NamedPredList);
+  if(!(! nl->IsAtom(NamedPredList)))
+  {
+    ErrorReporter::ReportError("Operator stpatternexextend expects as second "
+        "argument a list of aliased lifted predicates.\n"
+        "But got '" + argstr + "'.\n");
+    return nl->TypeError();
+  };
+  ListExpr NamedPredListRest = NamedPredList;
+  ListExpr NamedPred;
+  while( !nl->IsEmpty(NamedPredListRest) )
+  {
+    NamedPred = nl->First(NamedPredListRest);
+    NamedPredListRest = nl->Rest(NamedPredListRest);
+    nl->WriteToString(argstr, NamedPred);
+
+    if(!((nl->ListLength(NamedPred) == 2 &&
+        nl->IsAtom(nl->First(NamedPred))&&
+        listutils::isMap<1>(nl->Second(NamedPred))&&
+        nl->SymbolValue(nl->Third(nl->Second(NamedPred)))== "mbool")))
+    {
+      ErrorReporter::ReportError("Operator stpatternexextend: expects a "
+          "list of aliased predicates. \nBut got '" + argstr + "'.");
+      return nl->TypeError();
+    };
+
+    string aliasStr = nl->SymbolValue(nl->First(NamedPred));
+    ListExpr typeList;
+    int pos = FindAttribute(AttrList, aliasStr, typeList);
+    if(pos!=0){
+       ErrorReporter::ReportError("Operator stpatternexextend: the alias" +
+           aliasStr + " is already an attribute name in the input stream");
+       return nl->TypeError();
+    }
+
+    if(SecondoSystem::GetCatalog()->IsTypeName(aliasStr)){
+       ErrorReporter::ReportError("Operator stpatternexextend: the alias" +
+           aliasStr + " is known as a DB type");
+       return nl->TypeError();
+    }
+    lastlistn = nl->Append(lastlistn,
+        (nl->TwoElemList(nl->First(NamedPred), nl->SymbolAtom("periods"))));
+  }
+
+  ListExpr ConstraintListRest = ConstraintList;
+  ListExpr STConstraint;
+  while( !nl->IsEmpty(ConstraintListRest) )
+  {
+    STConstraint = nl->First(ConstraintListRest);
+    ConstraintListRest = nl->Rest(ConstraintListRest);
+    nl->WriteToString(argstr, STConstraint);
+
+    if(!((nl->IsAtom(STConstraint)&&
+        nl->SymbolValue(STConstraint)== "bool")))
+    {
+      ErrorReporter::ReportError("Operator stpatternexextend: expects a "
+          "list of temporal connectors. \nBut got '" + argstr + "'.");
+      return nl->TypeError();
+    };
+  }
+
+  nl->WriteToString(argstr, FilterExpr);
+  if(! listutils::isMap<1>(FilterExpr) ||
+      nl->ToString(nl->Third(FilterExpr))!= "bool")
+  {
+    ErrorReporter::ReportError("Operator stpatternexextend: expects a "
+        "map(tuple) -> bool as last argument, but got '" + argstr + "'.");
+    return nl->SymbolAtom("typeerror");
+  };
+
+  ListExpr result= nl->TwoElemList(nl->SymbolAtom("stream"),
+            nl->TwoElemList(nl->SymbolAtom("tuple"),NewAttrList));
+
+  if(debugme)
+  {
+    cout<<endl<<endl<<"Operator stpatternexextend accepted the input";
+    cout<<endl<< nl->ToString(result);
     cout.flush();
   }
   return result;
@@ -1074,6 +1440,60 @@ ListExpr RandomDelayTM( ListExpr typeList )
 }
 
 
+void CSPAddPredicates(Supplier& namedpredlist)
+{
+  Supplier namedpred,alias, pred;
+  string aliasstr;
+  int noofpreds= qp->GetNoSons(namedpredlist);
+
+  for(int i=0; i< noofpreds; i++)
+  {
+    namedpred= qp->GetSupplierSon(namedpredlist, i);
+    alias= qp->GetSupplierSon(namedpred, 0);
+    pred = qp->GetSupplierSon(namedpred, 1);
+    aliasstr= nl->ToString(qp->GetType(alias));
+    csp.AddVariable(aliasstr,pred);
+  }
+}
+void CSPAddContraints(Supplier& constraintlist)
+{
+  Supplier constraint, alias1, alias2, stvector;
+  Word Value;
+  string alias1str, alias2str;
+  int noofconstraints= qp->GetNoSons(constraintlist);
+
+  for(int i=0; i< noofconstraints; i++)
+  {
+    constraint = qp->GetSupplierSon(constraintlist, i);
+    alias1= qp->GetSupplierSon(constraint, 0);
+    alias2= qp->GetSupplierSon(constraint, 1);
+    stvector= qp->GetSupplierSon(constraint, 2);
+
+    qp->Request(alias1, Value);
+    alias1str= ((CcString*) Value.addr)->GetValue();
+    qp->Request(alias2, Value);
+    alias2str= ((CcString*) Value.addr)->GetValue();
+    csp.AddConstraint(alias1str,alias2str, stvector);
+  }
+
+}
+
+bool CSPSetPredsArgs(Supplier predList, Tuple* tup)
+{
+
+  ArgVectorPointer funargs;
+  Supplier namedpred,alias,pred;
+  int noofpreds= qp->GetNoSons(predList);
+  for(int i=0; i< noofpreds; i++)
+  {
+    namedpred= qp->GetSupplierSon(predList, i);
+    alias= qp->GetSupplierSon(namedpred, 0);
+    pred = qp->GetSupplierSon(namedpred, 1);
+    funargs = qp->Argument(pred);
+    ((*funargs)[0]).setAddr(tup);
+  }
+  return true;
+}
 
 int CreateSTVectorVM 
 (Word* args, Word& result, int message, Word& local, Supplier s)
@@ -1094,50 +1514,17 @@ int CreateSTVectorVM
 int STPatternVM(Word* args, Word& result, int message, Word& local, Supplier s)
 {
   bool debugme=false;
-  Supplier root, namedpredlist, namedpred,alias, pred, constraintlist,
-  constraint, alias1, alias2, stvector;
-  Word Value;
-  string aliasstr, alias1str, alias2str;
-  int noofpreds, noofconstraints;
-
-
+  Supplier namedpredlist, constraintlist;
   result = qp->ResultStorage( s );
-  root = args[0].addr;
-
   namedpredlist = args[1].addr;
   constraintlist= args[2].addr;
 
-  noofpreds= qp->GetNoSons(namedpredlist);
-  noofconstraints= qp->GetNoSons(constraintlist);
-
   csp.Clear();
-  for(int i=0; i< noofpreds; i++)
-  {
-    namedpred= qp->GetSupplierSon(namedpredlist, i);
-    alias= qp->GetSupplierSon(namedpred, 0);
-    pred = qp->GetSupplierSon(namedpred, 1);
-    aliasstr= nl->ToString(qp->GetType(alias));
-    csp.AddVariable(aliasstr,pred);
-  }
-
-  for(int i=0; i< noofconstraints; i++)
-  {
-    constraint = qp->GetSupplierSon(constraintlist, i);
-    alias1= qp->GetSupplierSon(constraint, 0);
-    alias2= qp->GetSupplierSon(constraint, 1);
-    stvector= qp->GetSupplierSon(constraint, 2);
-
-    qp->Request(alias1, Value);
-    alias1str= ((CcString*) Value.addr)->GetValue();
-    qp->Request(alias2, Value);
-    alias2str= ((CcString*) Value.addr)->GetValue();
-    csp.AddConstraint(alias1str,alias2str, stvector);
-  }
-
-
+  CSPAddPredicates(namedpredlist);
+  CSPAddContraints(constraintlist);
   bool hasSolution=csp.Solve();
-  ((CcBool*)result.addr)->Set(true,hasSolution);
 
+  ((CcBool*)result.addr)->Set(true,hasSolution);
   if(debugme)
   {
     //cout<< "tuple "<<tupleno++ ;
@@ -1145,18 +1532,14 @@ int STPatternVM(Word* args, Word& result, int message, Word& local, Supplier s)
     csp.Print();
     cout.flush();
   }
-
   return 0;
 }
 
 int STPatternExVM(Word* args, Word& result,int message, Word& local, Supplier s)
 {
   bool debugme=false;
-  Supplier root, namedpredlist, namedpred,alias, pred, constraintlist, filter,
-  constraint, alias1, alias2, stvector;
+  Supplier namedpredlist, constraintlist, filter;
   Word Value;
-  string aliasstr, alias1str, alias2str;
-  int noofpreds, noofconstraints;
 
   if(debugme)
   {
@@ -1165,40 +1548,13 @@ int STPatternExVM(Word* args, Word& result,int message, Word& local, Supplier s)
   }
 
   result = qp->ResultStorage( s );
-  root = args[0].addr;
-
   namedpredlist = args[1].addr;
   constraintlist= args[2].addr;
   filter= args[3].addr;
 
-  noofpreds= qp->GetNoSons(namedpredlist);
-  noofconstraints= qp->GetNoSons(constraintlist);
-
   csp.Clear();
-  for(int i=0; i< noofpreds; i++)
-  {
-    namedpred= qp->GetSupplierSon(namedpredlist, i);
-    alias= qp->GetSupplierSon(namedpred, 0);
-    pred = qp->GetSupplierSon(namedpred, 1);
-    aliasstr= nl->ToString(qp->GetType(alias));
-    csp.AddVariable(aliasstr,pred);
-  }
-
-  for(int i=0; i< noofconstraints; i++)
-  {
-    constraint = qp->GetSupplierSon(constraintlist, i);
-    alias1= qp->GetSupplierSon(constraint, 0);
-    alias2= qp->GetSupplierSon(constraint, 1);
-    stvector= qp->GetSupplierSon(constraint, 2);
-
-    qp->Request(alias1, Value);
-    alias1str= ((CcString*) Value.addr)->GetValue();
-    qp->Request(alias2, Value);
-    alias2str= ((CcString*) Value.addr)->GetValue();
-    csp.AddConstraint(alias1str,alias2str, stvector);
-  }
-
-
+  CSPAddPredicates(namedpredlist);
+  CSPAddContraints(constraintlist);
   bool hasSolution=csp.Solve();
 
   if(!hasSolution)
@@ -1215,7 +1571,7 @@ int STPatternExVM(Word* args, Word& result,int message, Word& local, Supplier s)
   }
 
   bool Part2=false;
-  while(csp.MoveNext() && !Part2)
+  while(!Part2 && csp.MoveNext())
   {
     qp->Request(filter, Value);
     Part2= ((CcBool*)Value.addr)->GetValue();
@@ -1227,6 +1583,389 @@ int STPatternExVM(Word* args, Word& result,int message, Word& local, Supplier s)
     if(Part2) cout<<" part2 accepted\n"; else cout<<" part2 rejected\n";
     csp.Print();
     cout.flush();
+  }
+  return 0;
+}
+
+int STPatternExtendVM(
+    Word* args, Word& result, int message, Word& local, Supplier s)
+{
+  bool debugme=false;
+
+  Word t, value;
+  Tuple* tup;
+  TupleType *resultTupleType;
+  ListExpr resultType;
+
+  switch (message)
+  {
+    case OPEN :
+    {
+      Supplier stream, namedpredlist, constraintlist;
+
+      stream = args[0].addr;
+      namedpredlist = args[1].addr;
+      constraintlist= args[2].addr;
+
+      qp->Open(stream);
+      csp.Clear();
+
+      CSPAddPredicates(namedpredlist);
+      CSPAddContraints(constraintlist);
+
+      resultType = GetTupleResultType( s );
+      resultTupleType = new TupleType( nl->Second( resultType ) );
+      local.setAddr( resultTupleType );
+      return 0;
+    }break;
+
+    case REQUEST :
+    {
+      Supplier stream, namedpredlist;
+      resultTupleType = (TupleType *)local.addr;
+      stream= args[0].addr;
+      qp->Request(stream ,t);
+      if (qp->Received(stream))
+      {
+        tup = (Tuple*)t.addr;
+        Tuple *newTuple = new Tuple( resultTupleType );
+        for( int i = 0; i < tup->GetNoAttributes(); i++ ) {
+          //cout << (void*) tup << endl;
+          newTuple->CopyAttribute( i, tup, i );
+        }
+
+        csp.ResetTuple();
+        namedpredlist = args[1].addr;
+        CSPSetPredsArgs(namedpredlist, tup);
+        csp.Solve();
+        csp.AppendSolutionToTuple(0, tup, newTuple);
+
+        tup->DeleteIfAllowed();
+        result.setAddr(newTuple);
+        return YIELD;
+      }
+      else
+        return CANCEL;
+    }break;
+    case CLOSE :
+    {
+      if(local.addr)
+      {
+         ((TupleType *)local.addr)->DeleteIfAllowed();
+         local.setAddr(0);
+      }
+      qp->Close(args[0].addr);
+      csp.Clear();
+    }break;
+    default:
+      assert( 0);
+  }
+  return 0;
+}
+
+int STPatternExExtendVM(
+    Word* args, Word& result, int message, Word& local, Supplier s)
+{
+  bool debugme=false;
+
+  Word t, Value;
+  Tuple* tup;
+  TupleType *resultTupleType;
+  ListExpr resultType;
+
+  switch (message)
+  {
+    case OPEN :
+    {
+      Supplier stream, namedpredlist, constraintlist;
+
+      stream = args[0].addr;
+      namedpredlist = args[1].addr;
+      constraintlist= args[2].addr;
+
+      qp->Open(stream);
+      csp.Clear();
+
+      CSPAddPredicates(namedpredlist);
+      CSPAddContraints(constraintlist);
+
+      resultType = GetTupleResultType( s );
+      resultTupleType = new TupleType( nl->Second( resultType ) );
+      local.setAddr( resultTupleType );
+      return 0;
+    }break;
+
+    case REQUEST :
+    {
+      Supplier stream, namedpredlist, filter;
+      resultTupleType = (TupleType *)local.addr;
+      stream= args[0].addr;
+      qp->Request(stream ,t);
+      if (qp->Received(stream))
+      {
+        tup = (Tuple*)t.addr;
+        Tuple *newTuple = new Tuple( resultTupleType );
+        for( int i = 0; i < tup->GetNoAttributes(); i++ ) {
+          //cout << (void*) tup << endl;
+          newTuple->CopyAttribute( i, tup, i );
+        }
+
+        csp.ResetTuple();
+        namedpredlist = args[1].addr;
+        filter= args[3].addr;
+        CSPSetPredsArgs(namedpredlist, tup);
+        bool hasSolution= csp.Solve();
+        if(!hasSolution)
+          csp.AppendSolutionToTuple(0, tup, newTuple); //Append undef periods
+        else
+        {
+          bool Part2=false;
+          ArgVectorPointer funargs= qp->Argument(filter);
+          ((*funargs)[0]).setAddr(tup);
+          while(!Part2 && csp.MoveNext())
+          {
+            qp->Request(filter, Value);
+            Part2= ((CcBool*)Value.addr)->GetValue();
+          }
+
+          if(Part2)
+            csp.AppendSolutionToTuple(csp.iterator, tup, newTuple);
+          else
+            csp.AppendUnDefsToTuple(tup, newTuple);
+
+          if(debugme)
+          {
+            if(Part2) cout<<" part2 accepted\n"; else cout<<" part2 rejected\n";
+            csp.Print();
+            cout.flush();
+          }
+        }
+        tup->DeleteIfAllowed();
+        result.setAddr(newTuple);
+        return YIELD;
+      }
+      else
+        return CANCEL;
+    }break;
+    case CLOSE :
+    {
+      if(local.addr)
+      {
+         ((TupleType *)local.addr)->DeleteIfAllowed();
+         local.setAddr(0);
+      }
+      qp->Close(args[0].addr);
+      csp.Clear();
+    }break;
+    default:
+      assert( 0);
+  }
+  return 0;
+}
+
+struct STPExtendStreamInfo
+{
+  TupleType *resultTupleType;
+  Tuple* tup;
+};
+
+int STPatternExtendStreamVM(
+    Word* args, Word& result, int message, Word& local, Supplier s)
+{
+  bool debugme= false;
+
+  Word t, value;
+  STPExtendStreamInfo *localInfo;
+  ListExpr resultType;
+
+  switch (message)
+  {
+    case OPEN :
+    {
+      Supplier stream, namedpredlist, constraintlist;
+
+      stream = args[0].addr;
+      namedpredlist = args[1].addr;
+      constraintlist= args[2].addr;
+
+      qp->Open(stream);
+      csp.Clear();
+
+      CSPAddPredicates(namedpredlist);
+      CSPAddContraints(constraintlist);
+
+      localInfo= new STPExtendStreamInfo();
+      resultType = GetTupleResultType( s );
+      localInfo->resultTupleType = new TupleType( nl->Second( resultType ) );
+      localInfo->tup=0;
+      local.setAddr( localInfo );
+      return 0;
+    }break;
+
+    case REQUEST :
+    {
+      Supplier stream, namedpredlist;
+      localInfo= (STPExtendStreamInfo*) local.addr;
+      stream= args[0].addr;
+
+      bool hasMoreSol= csp.MoveNext();
+      while(csp.SA.empty()|| !hasMoreSol)
+      {
+        if(localInfo->tup != 0)
+        {
+          localInfo->tup->DeleteIfAllowed();
+          localInfo->tup= 0;
+        }
+        qp->Request(stream ,t);
+        if (qp->Received(stream))
+          localInfo->tup = (Tuple*)t.addr;
+        else
+          return CANCEL;
+        csp.ResetTuple();
+        namedpredlist = args[1].addr;
+        CSPSetPredsArgs(namedpredlist, localInfo->tup);
+        if(csp.Solve())
+        {
+          hasMoreSol= csp.MoveNext();
+          if(debugme)
+            cerr<< csp.SA.size() << " + ";
+        }
+      }
+
+      if(debugme && 0)
+        cerr<< "\nsa "<<csp.iterator + 1 << "/"<<csp.SA.size();
+
+      Tuple *newTuple = new Tuple( localInfo->resultTupleType );
+      for( int i = 0; i < localInfo->tup->GetNoAttributes(); i++ )
+        newTuple->CopyAttribute( i, localInfo->tup, i );
+
+      csp.AppendSolutionToTuple(csp.iterator, localInfo->tup, newTuple);
+      result.setAddr(newTuple);
+      return YIELD;
+    }break;
+
+    case CLOSE :
+    {
+      if(local.addr != 0)
+      {
+        ((STPExtendStreamInfo*)local.addr)->resultTupleType->DeleteIfAllowed();
+        delete (STPExtendStreamInfo*)local.addr;
+        local.setAddr(0);
+      }
+      qp->Close(args[0].addr);
+      csp.Clear();
+    }break;
+    default:
+      assert( 0);
+  }
+  return 0;
+}
+
+int STPatternExExtendStreamVM(
+    Word* args, Word& result, int message, Word& local, Supplier s)
+{
+  bool debugme=false;
+
+  Word t, Value;
+  STPExtendStreamInfo *localInfo;
+  ListExpr resultType;
+
+  switch (message)
+  {
+    case OPEN :
+    {
+      Supplier stream, namedpredlist, constraintlist;
+
+      stream = args[0].addr;
+      namedpredlist = args[1].addr;
+      constraintlist= args[2].addr;
+
+      qp->Open(stream);
+      csp.Clear();
+
+      CSPAddPredicates(namedpredlist);
+      CSPAddContraints(constraintlist);
+
+      resultType = GetTupleResultType( s );
+      localInfo= new STPExtendStreamInfo();
+      localInfo->resultTupleType = new TupleType( nl->Second( resultType ) );
+      localInfo->tup= 0;
+      local.setAddr(localInfo );
+      return 0;
+    }break;
+
+    case REQUEST :
+    {
+      Supplier stream, namedpredlist, filter;
+      filter= args[3].addr;
+      localInfo = (STPExtendStreamInfo *)local.addr;
+      stream= args[0].addr;
+
+      while(true)
+      {
+        bool hasMoreSol= csp.MoveNext();
+        while(csp.SA.empty() || !hasMoreSol)
+        {
+          if(localInfo->tup != 0)
+          {
+            localInfo->tup->DeleteIfAllowed();
+            localInfo->tup= 0;
+          }
+          qp->Request(stream ,t);
+          if (qp->Received(stream))
+            localInfo->tup = (Tuple*)t.addr;
+          else
+            return CANCEL;
+          csp.ResetTuple();
+          namedpredlist = args[1].addr;
+          CSPSetPredsArgs(namedpredlist, localInfo->tup);
+          if(csp.Solve())
+          {
+            hasMoreSol= csp.MoveNext();
+            if(debugme)
+              cerr<< csp.SA.size() << " + ";
+          }
+        }
+
+        if(debugme)
+          cerr<< "\nsa "<<csp.iterator + 1 << "/"<<csp.SA.size();
+
+        bool Part2=false;
+        ArgVectorPointer funargs= qp->Argument(filter);
+        ((*funargs)[0]).setAddr(localInfo->tup);
+        qp->Request(filter, Value);
+        Part2= ((CcBool*)Value.addr)->GetValue();
+        while(!Part2 && csp.MoveNext())
+        {
+          qp->Request(filter, Value);
+          Part2= ((CcBool*)Value.addr)->GetValue();
+        }
+        if(Part2)
+        {
+          if(debugme)
+            cerr<< "\nsa "<<csp.iterator + 1 << "/"<<csp.SA.size();
+          Tuple *newTuple = new Tuple( localInfo->resultTupleType );
+          for( int i = 0; i < localInfo->tup->GetNoAttributes(); i++ )
+            newTuple->CopyAttribute( i, localInfo->tup, i );
+          csp.AppendSolutionToTuple(csp.iterator, localInfo->tup, newTuple);
+          result.setAddr(newTuple);
+          return YIELD;
+        }
+      }
+    }break;
+    case CLOSE :
+    {
+      if(local.addr != 0)
+      {
+        ((STPExtendStreamInfo*)local.addr)->resultTupleType->DeleteIfAllowed();
+        delete (STPExtendStreamInfo*)local.addr;
+        local.setAddr(0);
+      }
+      qp->Close(args[0].addr);
+      csp.Clear();
+    }break;
+    default:
+      assert( 0);
   }
   return 0;
 }
@@ -1399,6 +2138,62 @@ const string STPatternExSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
   "[const duration value (1 0)] ]] count  </text--->"
   ") )";
 
+const string STPatternExtendSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+  "\"Example\" ) ( <text>stream(tuple(x)) X namedFunlist X constraintList -> "
+  "stream(tuple(x,alias1:Periods,...,alias1:Periods))</text--->"
+  "<text>_ stpatternextend[ namedFunlist;  constraintList ]</text--->"
+  "<text>The operator extends the input stream with the first supported "
+  "assignment. Tuples that doesn't fulfill the pattern are extended with "
+  "undef values.</text--->"
+  "<text>query Trains feed stpatternextend[insnow: .Trip inside msnow,"
+  "isclose: distance(.Trip, mehringdamm)<10.0, fast: speed(.Trip)>8.0 ;"
+  "stconstraint(\"insnow\",\"isclose\",vec(\"aabb\")), "
+  "stconstraint(\"isclose\",\"fast\",vec(\"bbaa\"))  ]] count </text--->"
+  ") )";
+
+const string STPatternExExtendSpec = "( (\"Signature\" \"Syntax\" \"Meaning\" "
+  "\"Example\" ) ( <text>stream(tuple(x)) X namedFunlist X constraintList "
+  "X bool-> stream(tuple(x,alias1:Periods,...,alias1:Periods))</text--->"
+  "<text>_ stpatternexextend[ namedFunlist;  constraintList ]</text--->"
+  "<text>The operator extends the input stream with the first supported "
+  "assignment. Tuples that doesn't fulfill "
+  "the pattern are extended with undef values.</text--->"
+  "<text>query Trains feed stpatternexextend[insnow: .Trip inside msnow,"
+  "isclose: distance(.Trip, mehringdamm)<10.0, fast: speed(.Trip)>8.0 ;"
+  "stconstraint(\"insnow\",\"isclose\",vec(\"aabb\")), "
+  "stconstraint(\"isclose\",\"fast\",vec(\"bbaa\"));  (end(\"b\") - "
+  "start(\"a\")) < [const duration value (1 0)]  ]] count </text--->"
+  ") )";
+
+const string STPatternExtendStreamSpec  = "( ( \"Signature\" \"Syntax\" "
+  "\"Meaning\" "
+  "\"Example\" ) ( <text>stream(tuple(x)) X namedFunlist X constraintList -> "
+  "stream(tuple(x,alias1:Periods,...,alias1:Periods))</text--->"
+  "<text>_ stpatternextend[ namedFunlist;  constraintList ]</text--->"
+  "<text>The operator extends each tuple in the input stream with all the "
+  "supported assignemts (i.e. periods that fulfill the pattern). Tuples that "
+  "doesn't fulfill the pattern don't appear in the results.</text--->"
+  "<text>query Trains feed stpatternextend[insnow: .Trip inside msnow,"
+  "isclose: distance(.Trip, mehringdamm)<10.0, fast: speed(.Trip)>8.0 ;"
+  "stconstraint(\"insnow\",\"isclose\",vec(\"aabb\")), "
+  "stconstraint(\"isclose\",\"fast\",vec(\"bbaa\"))  ]] count </text--->"
+  ") )";
+
+const string STPatternExExtendStreamSpec = "( (\"Signature\" \"Syntax\" "
+  "\"Meaning\" "
+  "\"Example\" ) ( <text>stream(tuple(x)) X namedFunlist X constraintList "
+  "X bool-> stream(tuple(x,alias1:Periods,...,alias1:Periods))</text--->"
+  "<text>_ stpatternexextend[ namedFunlist;  constraintList ]</text--->"
+    "<text>The operator extends each tuple in the input stream with all the "
+    "supported assignemts (i.e. periods that fulfill the pattern). Tuples that "
+    "doesn't fulfill the pattern don't appear in the results.</text--->"
+  "<text>query Trains feed stpatternexextend[insnow: .Trip inside msnow,"
+  "isclose: distance(.Trip, mehringdamm)<10.0, fast: speed(.Trip)>8.0 ;"
+  "stconstraint(\"insnow\",\"isclose\",vec(\"aabb\")), "
+  "stconstraint(\"isclose\",\"fast\",vec(\"bbaa\"));  (end(\"b\") - "
+  "start(\"a\")) < [const duration value (1 0)]  ]] count </text--->"
+  ") )";
+
 const string STConstraintSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
   "\"Example\" ) "
   "( <text>string X string X stvector -> bool</text--->"
@@ -1487,6 +2282,38 @@ Operator stpatternex (
     STPatternExTM        //type mapping
 );
 
+Operator stpatternextend (
+    "stpatternextend",    //name
+    STPatternExtendSpec,     //specification
+    STPatternExtendVM,       //value mapping
+    Operator::SimpleSelect, //trivial selection function
+    STPatternExtendTM        //type mapping
+);
+
+Operator stpatternexextend (
+    "stpatternexextend",    //name
+    STPatternExExtendSpec,     //specification
+    STPatternExExtendVM,       //value mapping
+    Operator::SimpleSelect, //trivial selection function
+    STPatternExExtendTM        //type mapping
+);
+
+Operator stpatternextendstream (
+    "stpatternextendstream",    //name
+    STPatternExtendStreamSpec,     //specification
+    STPatternExtendStreamVM,       //value mapping
+    Operator::SimpleSelect, //trivial selection function
+    STPatternExtendTM        //type mapping
+);
+
+Operator stpatternexextendstream (
+    "stpatternexextendstream",    //name
+    STPatternExExtendStreamSpec,     //specification
+    STPatternExExtendStreamVM,       //value mapping
+    Operator::SimpleSelect, //trivial selection function
+    STPatternExExtendTM        //type mapping
+);
+
 Operator stconstraint (
     "stconstraint",    //name
     STConstraintSpec,     //specification
@@ -1551,10 +2378,18 @@ The spattern and stpatternex operators are registered as lazy variables.
 */
     stpattern.SetRequestsArguments();
     stpatternex.SetRequestsArguments();
+    stpatternextend.SetRequestsArguments();
+    stpatternexextend.SetRequestsArguments();
+    stpatternextendstream.SetRequestsArguments();
+    stpatternexextendstream.SetRequestsArguments();
     AddOperator(&STP::createstvector);
     AddOperator(&STP::stpattern);
     AddOperator(&STP::stconstraint);
     AddOperator(&STP::stpatternex);
+    AddOperator(&STP::stpatternextend);
+    AddOperator(&STP::stpatternexextend);
+    AddOperator(&STP::stpatternextendstream);
+    AddOperator(&STP::stpatternexextendstream);
     AddOperator(&STP::start);
     AddOperator(&STP::end);
     AddOperator(&randommbool);
