@@ -1,8 +1,8 @@
 /*
----- 
+----
 This file is part of SECONDO.
 
-Copyright (C) 2004-2007, University in Hagen, Faculty of Mathematics and Computer Science, 
+Copyright (C) 2004-2007, University in Hagen, Faculty of Mathematics and Computer Science,
 Database Systems for New Applications.
 
 SECONDO is free software; you can redistribute it and/or modify
@@ -39,7 +39,7 @@ This file contains some functions which can be used for simple type mappings.
 using namespace std;
 
 bool
-mappings::CheckSimpleMap( const string map[], size_t n, 
+mappings::CheckSimpleMap( const string map[], size_t n,
 		          ListExpr args, ListExpr& res  ) {
 
   assert(n>=1);
@@ -52,20 +52,20 @@ mappings::CheckSimpleMap( const string map[], size_t n,
     if( !l.isEmpty() ) {
       err << "Expecting an empty input list but got " << l << "!";
       res = l.typeError( err.str() );
-      return false;    
-    }	    
-  }	  
+      return false;
+    }
+  }
   else
-  {	  
-  if (l.length() < n-1) {
-    err << "Expecting a list of length " << n-1 
-	<< " but got " << l << "!";
+  {
+  if (l.length() != n-1) {
+    err << "Expecting a list of length " << n-1
+        << " but got " << l << "!";
     res = l.typeError( err.str() );
     return false;
-  }	  
+  }
 
   while ( i < n-1 ) {
-  
+
     NList sym = l.elem(i+1);
     if ( !sym.isSymbol(map[i]) )
     {
@@ -75,15 +75,15 @@ mappings::CheckSimpleMap( const string map[], size_t n,
        err = "Symbol number " + int2Str(i) + " has incorrect type."
              " Expected " + map[i] + " but got " + sym.str() + "!";
      }
-     else 
+     else
      {
        err = "Symbol number " + int2Str(i) + " has incorrect type."
              " Expected " + map[i] + " but got a complex type!";
      }
-                   
+
       res = l.typeError(err);
       return false;
-    } 
+    }
     i++;
   }
   }
@@ -92,10 +92,10 @@ mappings::CheckSimpleMap( const string map[], size_t n,
 }
 
 ListExpr
-mappings::SimpleMap(const string map[], size_t n, ListExpr args) 
+mappings::SimpleMap(const string map[], size_t n, ListExpr args)
 {
-  ListExpr res;	
-  CheckSimpleMap(map, n, args, res);	
-  return res;  
+  ListExpr res;
+  CheckSimpleMap(map, n, args, res);
+  return res;
 }
 
