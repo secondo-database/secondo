@@ -78,8 +78,11 @@ July 15, 2010 Christian Duentgen added conditionalcommand.
 
 commands  :  command
     |  command ';'
-    |  commands ';' command
+    |  command ';' commands
     ;
+
+
+
 
 command    :  basic
     |  transaction
@@ -168,11 +171,11 @@ basic    :  ZZTYPE ZZIDENTIFIER ZZINFIXOP typeexpr
         PRINTF(")\n");
         $$ = NestedText::AtomC(yacc_outtext->c_str());
         }
-    |  ZZCREATE ZZIDENTIFIER ':' typeexpr
+    |  ZZCREATE ZZNAMING typeexpr
         {
         CLEAR();
         PRINTF("(create "); PRINT($2);
-        PRINTF(" : "); PRINT($4); PRINTF(")\n");
+        PRINTF(" : "); PRINT($3); PRINTF(")\n");
         $$ = NestedText::AtomC(yacc_outtext->c_str());
         }
 
@@ -421,9 +424,10 @@ typeexpr  :  constructor  {$$ = $1;}
 
     |  '[' ']'    {$$ = NestedText::AtomC("()");}
 
-    |  typeexpr ':' typeexpr  {$$ = NestedText::Concat(NestedText::AtomC("("),
+    |  ZZNAMING typeexpr  {$$ = NestedText::Concat(NestedText::AtomC("("),
             NestedText::Concat($1, NestedText::Concat(NestedText::AtomC(" "),
-            NestedText::Concat($3,  NestedText::AtomC(")")))));}
+            NestedText::Concat($2,  NestedText::AtomC(")")))));}
+    
     ;
 
 constructor  :  ZZIDENTIFIER  {$$ = $1;}
@@ -439,13 +443,7 @@ typeexprs  :  typeexpr  {$$ = $1;}
 
 /* valueexpr, general part */
 
-namedfunction  : naming function
-      {$$ = NestedText::Concat(NestedText::AtomC("("),
-        NestedText::Concat($1,
-        NestedText::Concat(NestedText::AtomC(" "),
-        NestedText::Concat($2,
-          NestedText::AtomC(")")))));}
-      | naming valueexpr
+namedfunction  :  naming valueexpr
       {$$ = NestedText::Concat(NestedText::AtomC("("),
         NestedText::Concat($1,
         NestedText::Concat(NestedText::AtomC(" "),
@@ -466,11 +464,11 @@ function  : ZZFUN '(' args ')' valueexpr
         {$$ =  $2;}
     ;
 
-arg    : ZZIDENTIFIER ':' typeexpr
+arg    : ZZNAMING typeexpr
         {$$ = NestedText::Concat(NestedText::AtomC("("),
           NestedText::Concat($1,
             NestedText::Concat(NestedText::AtomC(" "),
-              NestedText::Concat($3, NestedText::AtomC(")") ))));}
+              NestedText::Concat($2, NestedText::AtomC(")") ))));}
     ;
 
 args    : arg    {$$ = $1;}
@@ -536,7 +534,7 @@ elem    : valueexpr    {$$ = $1;}
     | namedfunction    {$$ = $1;}
     ;
 
-naming    : ZZIDENTIFIER ':'  {$$ = $1;}
+naming    : ZZNAMING  {$$ = $1;}
     ;
 
 valueexprlistcomma : valueexpr

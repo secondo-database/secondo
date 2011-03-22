@@ -63,12 +63,32 @@ extern int yylval;
 
 ostringstream* text_sp = 0;
 
+   void trimstr(string& str) {
+      string space = " \t\n\r\v\f\b\a";
+      string::size_type pos = str.find_last_not_of(space);
+      if(pos != string::npos) {
+        str.erase(pos + 1);
+        pos = str.find_first_not_of(space);
+        if(pos != string::npos){
+           str.erase(0, pos);
+        }
+     } else {
+      str.erase(str.begin(), str.end());
+     }
+}
+
+
+
+
+
 #define YY_NO_UNPUT
 %}
 
+space           [ \t\n\r\v\f\b\a]+
 letter         	[a-zA-Z]
 digit          	[0-9]
 ident          	{letter}({letter}|{digit}|_)*
+naming        {ident}{space}*:[^=]
 num1	       	[-+]?{digit}+\.?([eE][-+]?{digit}+)?
 num2	       	[-+]?{digit}*\.{digit}+([eE][-+]?{digit}+)?
 number	       	{num1}|{num2}
@@ -79,7 +99,7 @@ file	  	"<file>"[^<\n]+"</file--->"
 
 %%
 
-[ \t\n\r\v\f\b\a]+  	;
+{space}  	;
 
 
 
@@ -135,6 +155,17 @@ endif		{yylval = NestedText::Atom( yytext, yyleng ); return ZZENDIF;}
 while   {yylval = NestedText::Atom( yytext, yyleng ); return ZZWHILE;}
 do   {yylval = NestedText::Atom( yytext, yyleng ); return ZZDO;}
 endwhile   {yylval = NestedText::Atom( yytext, yyleng ); return ZZENDWHILE;}
+{naming} { 
+         
+         string value(yytext);
+         yyless(value.length()-1);  // put the char after the colon back to the input stream
+         value = value.substr(0,value.length()-2); // remove colon and the following character
+         trimstr(value);
+         yylval = NestedText::Atom(value.c_str(), value.length());
+         return ZZNAMING;
+       }
+         
+
 
 {textstart}	{if(text_sp)
                    delete text_sp;

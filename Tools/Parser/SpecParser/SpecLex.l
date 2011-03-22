@@ -53,7 +53,7 @@ autobuffer     "!!"
 {space}    ; /* ignore spaces */
 
 {autobuffer}  {return ZZFORCEBUFFER; }
-fun          {yylval.text = strdup(yytext); return ZZFUN;}
+fun          {return ZZFUN;}
 operator     {return ZZOPERATOR;}
 pattern      {return ZZPATTERN;}
 op           {return ZZOP;}
