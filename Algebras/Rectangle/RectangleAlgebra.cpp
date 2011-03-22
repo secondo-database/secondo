@@ -1963,6 +1963,15 @@ with cell numbers that bigger than 0.
     RTZ = cellCord(z0, rtz, zWidth, outGrid,
                    -1, true);
 
+    //Make sure all possible cell numbers don't exceed the range
+    //of the integer type.
+    int maxN = max(RTX, RTY);
+    maxN = (is3D) ? (max(maxN, RTZ)) : maxN;
+    if ((!is3D && (maxN > sqrt(INT_MAX))) ||
+        ( is3D && (maxN > pow(INT_MAX, 1.0/3.0))))
+      cerr << "WARNING!! The grid is too dense, "
+        "part cell number may exceed the range of Integer type.\n";
+
     cx = (LBX >= 0) ? LBX : 0;
     cy = (LBY >= 0) ? LBY : 0;
     cz = (LBZ >= 0) ? LBZ : 0;
