@@ -2993,7 +2993,8 @@ void BaseGraph::FindAdj(int node_id, vector<int>& list)
 /*How can we find the shortest path for any polygon (with or without holes) and
 any startpoint and endpoint?  As far as I know, an exhaustive search is
 required.  However, the search can be optimized a bit so that it doesn’t take
-as long as testing every possible path.*/
+as long as testing every possible path. With the dual graph and visbility graph,
+it can be found efficiently*/
 
 /*build a visibility graph, connect the start and end point to the graph*/
 
@@ -3001,6 +3002,8 @@ string DualGraph::NodeTypeInfo =
   "(rel(tuple((oid int)(rid int)(pavement region))))";
 string DualGraph::EdgeTypeInfo =
   "(rel(tuple((oid1 int)(oid2 int)(commarea line))))";
+string DualGraph::NodeRTreeTypeInfo =  "(rtree (tuple ((oid int)(rid int)\
+(pavement region))) region FALSE)";
 string DualGraph::TriangleTypeInfo1 =
   "(rel(tuple((v1 int)(v2 int)(v3 int)(centroid point)(oid int))))";
 string DualGraph::TriangleTypeInfo2 =
@@ -3012,7 +3015,7 @@ string DualGraph::TriangleTypeInfo4 =
 
 ListExpr DualGraph::OutDualGraph(ListExpr typeInfo, Word value)
 {
-  cout<<"OutDualGraph()"<<endl;
+//  cout<<"OutDualGraph()"<<endl;
   DualGraph* dg = (DualGraph*)value.addr;
   return dg->Out(typeInfo);
 }
@@ -3123,6 +3126,17 @@ const ListExpr in_xTypeInfo)
   if(!node_rel->Save(in_xValueRecord,inout_iOffset,xNumericType))
       return false;
 
+  /************************save sorted node****************************/
+  nl->ReadFromString(NodeTypeInfo,xType);
+  xNumericType = SecondoSystem::GetCatalog()->NumericType(xType);
+  if(!node_rel_sort->Save(in_xValueRecord,inout_iOffset,xNumericType))
+      return false;
+  
+  ///////////////////////save rtree on dual graph nodes///////////////////
+  if(!rtree_node->Save(in_xValueRecord, inout_iOffset)){
+    return false;
+  }
+  
   /************************save edge****************************/
   nl->ReadFromString(EdgeTypeInfo,xType);
   xNumericType = SecondoSystem::GetCatalog()->NumericType(xType);
@@ -3151,6 +3165,7 @@ const ListExpr in_xTypeInfo)
    free(buf);
    inout_iOffset += bufsize;
 
+   
   return true;
 }
 
@@ -3174,16 +3189,18 @@ DualGraph* DualGraph::Open(SmiRecord& valueRecord,size_t& offset,
 DualGraph::~DualGraph()
 {
 //  cout<<"~DualGraph()"<<endl;
+  if(node_rel_sort != NULL) node_rel_sort->Close();
+  if(rtree_node != NULL) delete rtree_node;
 }
 
-DualGraph::DualGraph()
+DualGraph::DualGraph():node_rel_sort(NULL), rtree_node(NULL)
 {
 //  cout<<"DualGraph::DualGraph()"<<endl;
 }
 
 DualGraph::DualGraph(ListExpr in_xValue,int in_iErrorPos,
                      ListExpr& inout_xErrorInfo,
-                     bool& inout_bCorrect)
+                     bool& inout_bCorrect):node_rel_sort(NULL), rtree_node(NULL)
 
 {
 //  cout<<"DualGraph::DualGraph(ListExpr)"<<endl;
@@ -3191,7 +3208,7 @@ DualGraph::DualGraph(ListExpr in_xValue,int in_iErrorPos,
 }
 
 DualGraph::DualGraph(SmiRecord& in_xValueRecord,size_t& inout_iOffset,
-const ListExpr in_xTypeInfo)
+const ListExpr in_xTypeInfo):node_rel_sort(NULL), rtree_node(NULL)
 {
 //   cout<<"DualGraph::DualGraph(SmiRecord)"<<endl;
    /***********************Read graph id********************************/
@@ -3211,12 +3228,34 @@ const ListExpr in_xTypeInfo)
   if(!node_rel) {
     return;
   }
+     
+   //////////////////////node relation after sorting//////////////////////////
+   nl->ReadFromString(NodeTypeInfo,xType);
+   xNumericType = SecondoSystem::GetCatalog()->NumericType(xType);
+   node_rel_sort = Relation::Open(in_xValueRecord, inout_iOffset, xNumericType);
+   if(!node_rel_sort) {
+    node_rel->Delete();
+    return;
+   }
+
+   ///////////////////rtree on dual graph sorted nodes////////////////////
+   Word xValue;
+   if(!(rtree_node->Open(in_xValueRecord,inout_iOffset, 
+        NodeRTreeTypeInfo,xValue))){
+    node_rel->Delete();
+    node_rel_sort->Delete();
+    return;
+  }
+
+  rtree_node = ( R_Tree<2,TupleId>* ) xValue.addr;
+
   /***********************Open relation for edge*********************/
   nl->ReadFromString(EdgeTypeInfo,xType);
   xNumericType = SecondoSystem::GetCatalog()->NumericType(xType);
   edge_rel = Relation::Open(in_xValueRecord, inout_iOffset, xNumericType);
   if(!edge_rel) {
     node_rel->Delete();
+    node_rel_sort->Delete();
     return;
   }
 
@@ -3236,6 +3275,7 @@ const ListExpr in_xTypeInfo)
    entry_adj_list.restoreHeader(buf,offset);
    inout_iOffset += bufsize;
    free(buf);
+
 
 }
 
@@ -3266,6 +3306,10 @@ void DualGraph::Load(int id, Relation* r1, Relation* r2)
   int QueryExecuted = QueryProcessor::ExecuteQuery(strQuery, xResult);
   assert(QueryExecuted);
   node_rel = (Relation*)xResult.addr;
+  ////////////////////////////////////////////////////////
+  /////////////create sorting node relation///////////////
+  ////////////////////////////////////////////////////////
+  LoadSortNode(r1); 
 
   /////////////////edge relation/////////////////////
   ostringstream xEdgePtrStream;
@@ -3364,7 +3408,46 @@ void DualGraph::Load(int id, Relation* r1, Relation* r2)
       }
       cout<<endl;
   }*/
+  
 }
+
+/*
+sort the dual graph node by the bounding box of the region (triangle)
+
+*/
+void DualGraph::LoadSortNode(Relation* r1)
+{
+ 
+  ostringstream xNodePtrStream;
+  xNodePtrStream<<(long)r1;
+  string strQuery = "(consume(sortby(feed(" + NodeTypeInfo +
+                "(ptr " + xNodePtrStream.str() + ")))((pavement asc))))";
+//  cout<<strQuery<<endl;
+  Word xResult;
+  int QueryExecuted = QueryProcessor::ExecuteQuery(strQuery, xResult);
+  assert(QueryExecuted);
+  node_rel_sort = (Relation*)xResult.addr;
+
+//  cout<<node_rel_sort->GetNoTuples()<<endl;
+
+//   for(int i = 1;i <= node_rel_sort->GetNoTuples();i++){
+//     Tuple* tuple = node_rel_sort->GetTuple(i, false);
+//     int oid = ((CcInt*)tuple->GetAttribute(OID))->GetIntval();
+//     cout<<"oid "<<oid<<endl;
+//     tuple->DeleteIfAllowed();
+//   }
+
+  ostringstream xNodesRtree;
+  xNodesRtree << ( long ) node_rel_sort;
+
+  strQuery = "(bulkloadrtree(addid(feed (" + NodeTypeInfo +
+         " (ptr " + xNodesRtree.str() + ")))) pavement)";
+  QueryExecuted = QueryProcessor::ExecuteQuery ( strQuery, xResult );
+  assert ( QueryExecuted );
+  rtree_node = ( R_Tree<2,TupleId>* ) xResult.addr;
+
+}
+
 
 
 Walk_SP::Walk_SP()
@@ -3563,6 +3646,30 @@ void Walk_SP::TestWalkShortestPath(int tid1, int tid2)
 // printf("Euclidean length: %.4f Walk length: %.4f\n",loc1.Distance(loc2),len);
       delete res; 
       return; 
+  }
+  
+  ///////////////////////////////////////////////////////////////////////
+  ///////////////////check Eudlidean Connection//////////////////////////
+  //////////////////////////////////////////////////////////////////////
+  if(EuclideanConnect(loc1, loc2)){
+      Line* res = new Line(0);
+      res->StartBulkLoad();
+      /////////////////////////////////////////////////////
+      HalfSegment hs;
+      hs.Set(true, loc1, loc2);
+      hs.attr.edgeno = 0;
+      *res += hs;
+      hs.SetLeftDomPoint(!hs.IsLeftDomPoint());
+      *res += hs;
+      /////////////////////////////////////////////////////
+      res->EndBulkLoad(); 
+      oids1.push_back(tid1); //vertex id 
+      oids2.push_back(tid2); //vertex id 
+      path.push_back(*res);
+      delete res;
+//    double len = res->Length(); 
+// printf("Euclidean length: %.4f Walk length: %.4f\n",loc1.Distance(loc2),len);
+    return; 
   }
 
   ///////////////////////////////////////////////////////////////////////
@@ -3767,8 +3874,26 @@ void Walk_SP::WalkShortestPath2(int oid1, int oid2, Point loc1, Point loc2,
 // printf("Euclidean length: %.4f Walk length: %.4f\n",loc1.Distance(loc2),len);
     return; 
   }
+  ///////////////////////////////////////////////////////////////////////
+  ///////////////////check Eudlidean Connection//////////////////////////
+  ///////////////////////////////////////////////////////////////////////
+  if(EuclideanConnect(loc1, loc2)){
+      res->StartBulkLoad();
+      /////////////////////////////////////////////////////
+      HalfSegment hs;
+      hs.Set(true, loc1, loc2);
+      hs.attr.edgeno = 0;
+      *res += hs;
+      hs.SetLeftDomPoint(!hs.IsLeftDomPoint());
+      *res += hs;
+      /////////////////////////////////////////////////////
+      res->EndBulkLoad(); 
+//    double len = res->Length(); 
+// printf("Euclidean length: %.4f Walk length: %.4f\n",loc1.Distance(loc2),len);
+    return; 
+  }
 
-
+  
   ///////////////////////////////////////////////////////////////////////
   priority_queue<WPath_elem> path_queue;
   vector<WPath_elem> expand_path;
@@ -3926,6 +4051,69 @@ void Walk_SP::WalkShortestPath2(int oid1, int oid2, Point loc1, Point loc2,
 }
 
 /*
+check whether the two points can be directly reachable by a line 
+
+*/
+bool Walk_SP::EuclideanConnect(Point loc1, Point loc2)
+{
+    Line* l = new Line(0);
+    l->StartBulkLoad();
+    HalfSegment hs;
+    hs.Set(true, loc1, loc2);
+    hs.attr.edgeno = 0;
+    *l += hs;
+    hs.SetLeftDomPoint(!hs.IsLeftDomPoint());
+    *l += hs;
+    l->EndBulkLoad(); 
+    double len1 = l->Length();
+    double len2 = 0.0;
+    DFTraverse2(dg->rtree_node, dg->rtree_node->RootRecordId(), 
+                l, len2);
+    delete l;
+
+//    cout<<"l1: "<<len1<<"l2: "<<len2<<endl;
+
+    if(fabs(len1 - len2) < 0.01) return true;
+
+    return false;
+}
+
+/*
+Using depth first method to travese the R-tree to find all triangles
+intersecting the line and calculate the total intersection length
+
+*/
+void Walk_SP::DFTraverse2(R_Tree<2,TupleId>* rtree, SmiRecordId adr, 
+                          Line* line, double& l)
+{
+  R_TreeNode<2,TupleId>* node = rtree->GetMyNode(adr,false,
+                  rtree->MinEntries(0), rtree->MaxEntries(0));
+  for(int j = 0;j < node->EntryCount();j++){
+      if(node->IsLeaf()){
+              R_TreeLeafEntry<2,TupleId> e =
+                 (R_TreeLeafEntry<2,TupleId>&)(*node)[j];
+              Tuple* dg_tuple = dg->node_rel_sort->GetTuple(e.info, false);
+              Region* candi_reg =
+                     (Region*)dg_tuple->GetAttribute(DualGraph::PAVEMENT);
+              Line* len = new Line(0);
+              line->Intersection(*candi_reg, *len);
+              if(len->Length() > 0.0)
+                l += len->Length();
+              delete len;
+              dg_tuple->DeleteIfAllowed();
+      }else{
+            R_TreeInternalEntry<2> e =
+                (R_TreeInternalEntry<2>&)(*node)[j];
+            if(e.box.Intersects(line->BoundingBox())){
+                DFTraverse2(rtree, e.pointer, line, l);
+            }
+      }
+  }
+  delete node;
+
+}
+
+/*
 Randomly generates points inside pavement polygon
 1) randomly selects a polygon/polygon
 2) randomly generates a number between [xmin,xmax], and [ymin,ymax]
@@ -3954,6 +4142,13 @@ void Walk_SP::GenerateData1(int no_p)
           tuple->DeleteIfAllowed();
           continue;
       }
+
+      /*neighbor triangles for testing Euclidean connection*/
+//       if(!(oid == 96621 || oid == 96619 || oid == 97639)){
+//           tuple->DeleteIfAllowed();
+//           continue; 
+//       }
+
       BBox<2> bbox = reg->BoundingBox();
       int xx = (int)(bbox.MaxD(0) - bbox.MinD(0)) + 1;
       int yy = (int)(bbox.MaxD(1) - bbox.MinD(1)) + 1;
@@ -4186,7 +4381,6 @@ void Walk_SP::DFTraverse(R_Tree<2,TupleId>* rtree, SmiRecordId adr, Region* reg,
   }
   delete node;
 
-
 }
 
 
@@ -4325,6 +4519,15 @@ get all adjacent nodes for a given node. dual graph
 
 void VGraph::GetAdjNodeDG(int oid)
 {
+    if(oid <= dg->min_tri_oid_1 || 
+       oid > dg->min_tri_oid_1 + dg->node_rel->GetNoTuples()){
+        cout<<"invalid oid "<<oid<<endl;
+        cout<<"minimum oid "<<dg->min_tri_oid_1<<endl;
+        cout<<"maximum oid "
+            <<dg->min_tri_oid_1 + dg->node_rel->GetNoTuples()<<endl;
+        return; 
+    }
+
     vector<int> adj_list;
     assert(dg->min_tri_oid_1 >= 0); 
     dg->FindAdj(oid - dg->min_tri_oid_1, adj_list);

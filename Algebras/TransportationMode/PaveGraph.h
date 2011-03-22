@@ -273,6 +273,7 @@ class DualGraph:public BaseGraph{
 public:
     static string NodeTypeInfo;
     static string EdgeTypeInfo;
+    static string NodeRTreeTypeInfo;
 
     /*schema for edge and node*/
     enum DGNodeTypeInfo{OID = 0, RID, PAVEMENT};
@@ -297,6 +298,7 @@ public:
     DualGraph(SmiRecord&, size_t&, const ListExpr);
     ///////////////function for typeconstructor////////////////////////
     void Load(int, Relation*,Relation*);
+    void LoadSortNode(Relation* r1);
     static ListExpr OutDualGraph(ListExpr typeInfo, Word value);
     ListExpr Out(ListExpr typeInfo);
     static Word InDualGraph(ListExpr in_xTypeInfo, ListExpr in_xValue,
@@ -319,6 +321,9 @@ public:
                           const ListExpr typeInfo);
     //////////////////////////////////////////////////////////////////
     int min_tri_oid_1; //smaller than the minimum tri oid (minoid - 1)
+    
+    Relation* node_rel_sort; ///////sort by bbox, better performance for search
+    R_Tree<2,TupleId>* rtree_node;//build an rtree on triangles 
 
 };
 
@@ -393,6 +398,10 @@ struct Walk_SP{
   void WalkShortestPath(Line* res);
   void WalkShortestPath2(int oid1, int oid2, Point loc1, Point loc2,
                                 Line* res);
+  bool EuclideanConnect(Point loc1, Point loc2);
+  void DFTraverse2(R_Tree<2,TupleId>* rtree, SmiRecordId adr, Line* line, 
+                  double& l);
+
   void TestWalkShortestPath(int, int);
   void GenerateData1(int no_p);
   void GenerateData2(int no_p);
@@ -401,6 +410,7 @@ struct Walk_SP{
   
   void DFTraverse(R_Tree<2,TupleId>* rtree, SmiRecordId adr, Region* reg, 
                   vector<int>& r_id_list);
+
   void SetPaveRid(R_Tree<2,TupleId>* rtree);
   void PaveLocToGP(Network* n);
   void PaveLocToGPoint(Point* loc, Network* n, vector<int> route_id_list);
