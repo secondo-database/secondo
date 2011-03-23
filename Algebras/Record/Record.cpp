@@ -313,6 +313,9 @@ Record::GetElement(int pos) const
     }
 
     this->elemData.read((char*)elem, elem->Sizeof(),elemInfo.dataOffset);
+    // assign retrieved data to element
+    elem = static_cast<Attribute*>(
+         (am->Cast(elemInfo.algebraId, elemInfo.typeId))((void*) elem));
 
     // restore the flob states
     for(int i=0;i<elem->NumOfFLOBs();i++){
@@ -322,9 +325,6 @@ Record::GetElement(int pos) const
       elem->GetFLOB(i)->resize(size);
     }
 
-    // assign retrieved data to element
-    elem = static_cast<Attribute*>(
-         (am->Cast(elemInfo.algebraId, elemInfo.typeId))((void*) elem));
 
     // assign external data offset
     size_t offset = elemInfo.extDataOffset;
@@ -853,9 +853,6 @@ Record::Print(ostream& os) const
 
 This area includes the standard ~SECONDO~ methods as there are:
 
-  * Open
-
-  * Save
 
   * In
 
@@ -877,54 +874,6 @@ This area includes the standard ~SECONDO~ methods as there are:
 
 */
 
-/*
-~Open~ returns an appropriate bool value after trying to open the
-record and create the memory part.
-
-*/
-bool
-Record::Open(SmiRecord& valueRecord, size_t& offset,
-             const ListExpr typeInfo, Word& value)
-{
-#ifdef RECORD_DEBUG
-  cerr << "Record::Open(..., " << offset << ", "
-       << nl->ToString(typeInfo) << ", ...)" << endl;
-#endif
-
-  bool isOpen = false;
-  value = SetWord(Address(0));
-
-  Attribute * attr = Attribute::Open(valueRecord, offset, typeInfo);
-  value = SetWord(attr);
-  isOpen = true;
-
-  return isOpen;
-}
-
-/*
-~Save~ returns an appropriated bool value after saving the record to the
-memory part.
-
-*/
-bool
-Record::Save(SmiRecord& valueRecord, size_t& offset,
-                 const ListExpr typeInfo, Word& value)
-{
-#ifdef RECORD_DEBUG
-  cerr << "Record::Save(..., " << offset << ", "
-       << nl->ToString(typeInfo) << ", " << value.addr << ")" << endl;
-#endif
-
-  bool isSaved = false;
-
-  if (value.addr != NULL) {
-    Attribute* attr = static_cast<Attribute*>(value.addr);
-    Attribute::Save(valueRecord, offset, typeInfo, attr);
-    isSaved = true;
-  }
-
-  return isSaved;
-}
 
 /*
 ~In~ function to create a record instance through a nested list.
