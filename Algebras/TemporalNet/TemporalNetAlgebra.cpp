@@ -3401,7 +3401,7 @@ void MGPoint::NetdistanceToArg(const GPoint* gp, MReal* result) const
                 break;
               }
 
-							case None:
+              case None:
               {
                 break;
               }
