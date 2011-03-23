@@ -1,8 +1,8 @@
 /*
----- 
+----
 This file is part of SECONDO.
 
-Copyright (C) 2004, University in Hagen, Department of Computer Science, 
+Copyright (C) 2004, University in Hagen, Department of Computer Science,
 Database Systems for New Applications.
 
 SECONDO is free software; you can redistribute it and/or modify
@@ -88,17 +88,17 @@ December 2005, Victor Almeida deleted the deprecated algebra levels
 (~executable~, ~descriptive~, and ~hibrid~). Only the executable
 level remains. Models are also removed from type constructors.
 
-January 2006, M. Spiekermann. Some declarations were moved to Algebra.h 
+January 2006, M. Spiekermann. Some declarations were moved to Algebra.h
 
 April 2006, M. Spiekermann. Some declarations were moved to AlgebraInit.h
 
 March 2009, M. Spiekermann. Started to do some clean up. The interface seems to be
 overcrowded by functions getting algebra id and type id or operator id. In order to
-make the interface simpler to understand and use and easier to maintain 
-I started to push some functionality into the interfaces TypeConstructor.h 
+make the interface simpler to understand and use and easier to maintain
+I started to push some functionality into the interfaces TypeConstructor.h
 and Operator.h. The new functions ~GetTC~ and ~GetOP~ should be able to replace
-many of the other functions, since most of the other functions simply get pointers 
-of operators and type constructors and call spcific member functions. Moreover they 
+many of the other functions, since most of the other functions simply get pointers
+of operators and type constructors and call spcific member functions. Moreover they
 are not often used in other source files. To be continued ...
 
 
@@ -177,7 +177,7 @@ may be a pointer to some structure. For persistent objects (that are
 currently not in memory) it can be an index into a catalog which tells
 where the object is on disk.
 
-Two default implementations (~DefaultOpen~ and ~DefaultSave~) 
+Two default implementations (~DefaultOpen~ and ~DefaultSave~)
 are supplied which store values in their nested list representation.
 
 The algebra module offers three (sets of) functions for every operator,
@@ -229,7 +229,7 @@ overloaded, identity (on the numbers) is sufficient.
 class AlgebraManager
 {
  public:
-  AlgebraManager( NestedList& nlRef, 
+  AlgebraManager( NestedList& nlRef,
                   GetAlgebraEntryFunction getAlgebraEntryFunc );
 /*
 Creates an instance of the algebra manager. ~nlRef~ is a reference to the
@@ -253,12 +253,12 @@ The list format is :
 */
 
   int GetAlgebraId( const string& algName);
-  const string& GetAlgebraName( const int algId ); 
+  const string& GetAlgebraName( const int algId );
 
 /*
 Returns the id of the algebra with name algName, if this algebra is currently
-included, otherwise 0. The second function returns the name of an algebra 
-specified by algId. 
+included, otherwise 0. The second function returns the name of an algebra
+specified by algId.
 
 */
   void LoadAlgebras();
@@ -301,7 +301,7 @@ to zero.
 Returns the number of operators of algebra ~algebraId~.
 
 */
-  inline int Select( const int algebraId, 
+  inline int Select( const int algebraId,
                      const int operatorId, const ListExpr typeList )
   {
     return getOperator(algebraId, operatorId)->Select(typeList);
@@ -312,18 +312,18 @@ Returns the address of the select function of operator ~operatorId~ of
 algebra ~algebraId~.
 
 */
-  
-  inline int Execute( const int algebraId, const int opFunId, 
-                      ArgVector args, Word& result, int msg, 
-                            Word& local, Supplier tree ) 
-  {       
+
+  inline int Execute( const int algebraId, const int opFunId,
+                      ArgVector args, Word& result, int msg,
+                            Word& local, Supplier tree )
+  {
     int opId  = opFunId % 65536;
     int funId = opFunId / 65536;
-      
-    return getOperator(algebraId, opId)->CallValueMapping( funId, 
-                                                           args, result, 
+
+    return getOperator(algebraId, opId)->CallValueMapping( funId,
+                                                           args, result,
                                                            msg, local, tree );
-  }       
+  }
 
 /*
 Returns the address of the evaluation function of the - possibly
@@ -331,8 +331,8 @@ overloaded - operator ~opFunId~ of algebra ~algebraId~.
 
 */
 
-  inline ListExpr TransformType( const int algebraId, const int operatorId, 
-                                 const ListExpr typeList ) 
+  inline ListExpr TransformType( const int algebraId, const int operatorId,
+                                 const ListExpr typeList )
   {
     return getOperator(algebraId, operatorId)->CallTypeMapping(typeList);
   }
@@ -342,18 +342,18 @@ Returns the address of the type mapping function of operator
 ~operatorId~ of algebra ~algebraId~.
 
 */
-  
+
   int ConstrNumber( const int algebraId );
 /*
 Returns the number of constructors of algebra ~algebraId~.
 
 */
-  TypeConstructor* GetTC(int algId, int typeId); 
+  TypeConstructor* GetTC(int algId, int typeId);
   Operator*        GetOP(int algebraId, int opId);
 /*
-Returns the type constructor (TC) or operator (OP) for a given algebra id and type 
+Returns the type constructor (TC) or operator (OP) for a given algebra id and type
 id (operator id). This pointer can be used to retrieve more detailed information of
-a TC or OP provided by its member functions. 
+a TC or OP provided by its member functions.
 
 */
 
@@ -441,7 +441,7 @@ Returns the address of the object sizeof function of type constructor
 
 */
   bool TypeCheck( const int algebraId,
-                  const int typeId, 
+                  const int typeId,
                   const ListExpr type,
                   ListExpr& errorInfo  );
 /*
@@ -477,11 +477,11 @@ the list may contain further information to describe the error.
 */
 
   inline Operator* getOperator(const int algebraId, const int opId) {
-  
+
   assert( algebraId <= maxAlgebraId + 1);
   assert( algebra[algebraId] != 0 );
   assert( opPtrField[algebraId].size() >= (size_t)opId);
-  
+
   return (opPtrField[algebraId])[opId];
   }
 
@@ -491,15 +491,27 @@ the list may contain further information to describe the error.
 ~matching operators~
 
 This function returns all operators which can process the given type expression.
-the result consists of pairs with the first component is a pair of algebra id and
-operator pointer, the second part of the top pair is the result type when this
+The result consists of pairs with the first component is a pair of algebra id and
+operator id, the second part of the top pair is the result type when this
 operator would be applied to this type expression.
+
+Call __AlgebraManager::GetOP(AldId,OpId)__ to get the according operator object
+for further details, if required.
 
 */
 
-  vector< pair< pair<int,Operator*>, ListExpr> > 
+vector< pair< pair<int,int>, ListExpr> >
         matchingOperators(const ListExpr arguments);
 
+/*
+This functions returns the same information, but restricts its search to the
+algebra specified by the given algebra id.
+
+The results are appended to the reference argument vector.
+
+*/
+void matchingOperators(const int algId, const ListExpr arguments,
+                       vector< pair< pair<int,int>, ListExpr> >& result);
 
 /*
 ~findOperator~
@@ -509,8 +521,8 @@ If an operator is found, all outParameters (resultList, algId, opId) are
 set and the result is true. Otherwise, the result will be false.
 
 */
-bool findOperator(const string& name,    //name of the operator 
-                  const ListExpr argList,//arguments 
+bool findOperator(const string& name,    //name of the operator
+                  const ListExpr argList,//arguments
                   ListExpr& resultList,  // result type
                   int& algId,            // algebra id
                   int& opId);            // operator id
@@ -535,11 +547,11 @@ Is an array for references to all loaded algebra modules.
 */
   multimap<string,TypeCheckFunction> kindTable;
   GetAlgebraEntryFunction getAlgebraEntry;
-  
+
   vector< vector<Operator*> > opPtrField;
 
   void InitOpPtrField();
-  
+
 };
 
 #endif

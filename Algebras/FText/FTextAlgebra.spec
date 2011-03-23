@@ -61,6 +61,12 @@ operator toobject alias TOOBJECT pattern op(_, _)
 operator getDatabaseName alias GETDATABASENAME pattern op( _ )
 operator matchingOperatorNames alias MATCHINGOPERATORNAMES  pattern op( _,_ )
 operator matchingOperators alias MATCHINGOPERATORS  pattern op( _,_ )
+operator sys_getMatchingOperators alias SYS_GETMATCHINGOPERATORS pattern op( _,_ )
+
+operator sys_getAlgebraName alias SYS_GETALGEBRANAME pattern op( _ )
+operator sys_getAlgebraId alias SYS_GETALGEBRAID pattern op( _ )
+operator sys_getOperatorInfo alias SYS_GETOPERATORINFO pattern op( _,_ )
+operator sys_getTypeConstructorInfo alias SYS_GETTYPECONSTRUCTORINFO pattern op( _,_ )
 
 operator md5 alias MD5 pattern op(_,_)
 operator checkpw alias CHECKPW pattern op(_,_)

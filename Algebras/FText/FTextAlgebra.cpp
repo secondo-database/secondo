@@ -71,6 +71,7 @@ October 2008, Christian D[ue]ntgen added operators ~sendtextUDP~ and
 #include "NestedList.h"
 #include "QueryProcessor.h"
 #include "AlgebraManager.h"
+#include "Operator.h"
 #include "StandardTypes.h"
 #include "RelationAlgebra.h"
 #include "SecondoInterface.h"
@@ -269,7 +270,8 @@ namespace ftext{
 
 2.3 Functions for using ~text~ in tuple definitions
 
-The following Functions must be defined if we want to use ~text~ as an attribute type in tuple definitions.
+The following Functions must be defined if we want to use ~text~ as an
+attribute type in tuple definitions.
 
 */
 
@@ -1346,7 +1348,8 @@ ListExpr TypeMap_svg__text(ListExpr args){
 /*
 2.51 ~crypt~
 
- t1 [x t2] -> string , t1, t2 in {string, text}
+---- t1 [x t2] -> string , t1, t2 in {string, text}
+----
 
 */
 
@@ -1403,7 +1406,8 @@ ListExpr checkpwTM(ListExpr args){
 /*
 2.53 ~md5~
 
- t1 [x t2] -> text , t1, t2 in {string, text}
+---- t1 [x t2] -> text , t1, t2 in {string, text}
+----
 
 */
 
@@ -1435,7 +1439,8 @@ return nl->SymbolAtom("string");
 /*
 2.54 ~blowfish~
 
- t1 x t2 -> text , t1, t2 in {string, text}
+---- t1 x t2 -> text , t1, t2 in {string, text}
+----
 
 */
 
@@ -1524,16 +1529,16 @@ ListExpr TypeMap_textstring__text(ListExpr args){
 }
 
 
-
 /*
 2.56 TypeMap ~matchingOperatorsNames~
 
-any -> stream(string)  
+---- any -> stream(string)
+----
 
 */
 
 ListExpr matchingOperatorNamesTM(ListExpr args){
-    ListExpr res =  nl->TwoElemList(nl->SymbolAtom("stream"), 
+    ListExpr res =  nl->TwoElemList(nl->SymbolAtom("stream"),
                                     nl->SymbolAtom("string"));
     return nl->ThreeElemList(nl->SymbolAtom("APPEND"),
                nl->OneElemList(nl->TextAtom(nl->ToString(args))),
@@ -1543,45 +1548,54 @@ ListExpr matchingOperatorNamesTM(ListExpr args){
 /*
 2.57 TypeMap ~matchingOperators~
 
-  ANY -> stream(tuple(( OperatorName: string, 
+----
+  ANY -> stream(tuple(( OperatorName: string,
+                        OperatorId: int,
                         AlgebraName : string,
+                        AlgebraId: int,
                         ResultType : text,
                         Signature  : text,
                         Syntax : text,
                         Meaning : text,
                         Example : text,
-                        Reamrk : text)))
-                        
+                        Remark : text))) @text
+----
+
 */
 
 ListExpr matchingOperatorsTM(ListExpr args){
 
     ListExpr attrList = nl->OneElemList(nl->TwoElemList(
-                           nl->SymbolAtom("OperatorName"), 
+                           nl->SymbolAtom("OperatorName"),
                            nl->SymbolAtom(CcString::BasicType())));
     ListExpr last = attrList;
-    last = nl->Append(last, nl->TwoElemList( 
-                              nl->SymbolAtom("AlgebraName"), 
+    last = nl->Append(last, nl->TwoElemList(
+            nl->SymbolAtom("OperatorId"),nl->SymbolAtom(CcInt::BasicType())));
+    last = nl->Append(last, nl->TwoElemList(
+                              nl->SymbolAtom("AlgebraName"),
                               nl->SymbolAtom(CcString::BasicType())));
-    last = nl->Append(last, nl->TwoElemList( 
-                              nl->SymbolAtom("ResultType"), 
+    last = nl->Append(last, nl->TwoElemList(
+                            nl->SymbolAtom("AlgebraId"),
+                            nl->SymbolAtom(CcInt::BasicType())));
+    last = nl->Append(last, nl->TwoElemList(
+                              nl->SymbolAtom("ResultType"),
                               nl->SymbolAtom(FText::BasicType())));
-    last = nl->Append(last, nl->TwoElemList( 
-                              nl->SymbolAtom("Signature"), 
+    last = nl->Append(last, nl->TwoElemList(
+                              nl->SymbolAtom("Signature"),
                               nl->SymbolAtom(FText::BasicType())));
-    last = nl->Append(last, nl->TwoElemList( 
-                              nl->SymbolAtom("Syntax"), 
+    last = nl->Append(last, nl->TwoElemList(
+                              nl->SymbolAtom("Syntax"),
                               nl->SymbolAtom(FText::BasicType())));
-    last = nl->Append(last, nl->TwoElemList( 
-                              nl->SymbolAtom("Meaning"), 
+    last = nl->Append(last, nl->TwoElemList(
+                              nl->SymbolAtom("Meaning"),
                               nl->SymbolAtom(FText::BasicType())));
-    last = nl->Append(last, nl->TwoElemList( 
-                              nl->SymbolAtom("Example"), 
+    last = nl->Append(last, nl->TwoElemList(
+                              nl->SymbolAtom("Example"),
                               nl->SymbolAtom(FText::BasicType())));
-    last = nl->Append(last, nl->TwoElemList( 
-                              nl->SymbolAtom("Remark"), 
+    last = nl->Append(last, nl->TwoElemList(
+                              nl->SymbolAtom("Remark"),
                               nl->SymbolAtom(FText::BasicType())));
-                                        
+
     ListExpr res = nl->TwoElemList(nl->SymbolAtom("stream"),
                      nl->TwoElemList( nl->SymbolAtom("tuple"),attrList));
     return nl->ThreeElemList(nl->SymbolAtom("APPEND"),
@@ -1589,15 +1603,100 @@ ListExpr matchingOperatorsTM(ListExpr args){
                              res);
 }
 
+/*
+2.57 TypeMap ~sys\_getMatchingOperators~
+
+----
+  int x ANY -> R,
+  {string|text} x int -> R,
+     where R = stream(tuple(( OperatorName: string,
+                              OperatorId: int,
+                              AlgebraName : string,
+                              AlgebraId: int,
+                              ResultType : text,
+                              Signature  : text,
+                              Syntax : text,
+                              Meaning : text,
+                              Example : text,
+                              Remark : text))) @text
+----
+
+*/
+ListExpr sysgetMatchingOperatorsTM(ListExpr args){
+
+    int noargs = nl->ListLength(args);
+    string errmsg = "Expected (int x ...) or ({string|text} x int).";
+    cout << "huhu" << nl->ToString(args) << endl;
+    if( noargs < 1 ) {
+      cout << "huhu 2" << endl;
+      return NList::typeError(errmsg);
+    }
+
+    cout << "huhu 1" << endl;
+    ListExpr first = nl->First(args);
+    if(! listutils::isSymbol(first,CcInt::BasicType())){
+      if(   !listutils::isSymbol(first,CcString::BasicType())
+         && !listutils::isSymbol(first,FText::BasicType())){
+        return listutils::typeError(errmsg);
+      } else {
+        if(    noargs!=2
+            || !listutils::isSymbol(nl->Second(args),CcInt::BasicType())) {
+          return listutils::typeError(errmsg);
+        }
+      }
+    }
+
+    ListExpr attrList = nl->OneElemList(nl->TwoElemList(
+                           nl->SymbolAtom("OperatorName"),
+                           nl->SymbolAtom(CcString::BasicType())));
+    ListExpr last = attrList;
+    last = nl->Append(last, nl->TwoElemList(
+            nl->SymbolAtom("OperatorId"),nl->SymbolAtom(CcInt::BasicType())));
+    last = nl->Append(last, nl->TwoElemList(
+                              nl->SymbolAtom("AlgebraName"),
+                              nl->SymbolAtom(CcString::BasicType())));
+    last = nl->Append(last, nl->TwoElemList(
+                            nl->SymbolAtom("AlgebraId"),
+                            nl->SymbolAtom(CcInt::BasicType())));
+    last = nl->Append(last, nl->TwoElemList(
+                              nl->SymbolAtom("ResultType"),
+                              nl->SymbolAtom(FText::BasicType())));
+    last = nl->Append(last, nl->TwoElemList(
+                              nl->SymbolAtom("Signature"),
+                              nl->SymbolAtom(FText::BasicType())));
+    last = nl->Append(last, nl->TwoElemList(
+                              nl->SymbolAtom("Syntax"),
+                              nl->SymbolAtom(FText::BasicType())));
+    last = nl->Append(last, nl->TwoElemList(
+                              nl->SymbolAtom("Meaning"),
+                              nl->SymbolAtom(FText::BasicType())));
+    last = nl->Append(last, nl->TwoElemList(
+                              nl->SymbolAtom("Example"),
+                              nl->SymbolAtom(FText::BasicType())));
+    last = nl->Append(last, nl->TwoElemList(
+                              nl->SymbolAtom("Remark"),
+                              nl->SymbolAtom(FText::BasicType())));
+
+    ListExpr res = nl->TwoElemList(nl->SymbolAtom("stream"),
+                     nl->TwoElemList( nl->SymbolAtom("tuple"),attrList));
+    if(listutils::isSymbol(first,CcInt::BasicType())) {
+      return nl->ThreeElemList(nl->SymbolAtom("APPEND"),
+                            nl->OneElemList(nl->TextAtom(nl->ToString(args))),
+                            res);
+    } else {
+      return res;
+    }
+}
 
 
 /*
 2.58 ~checkOperatorTypeMap~
 
-  string x any x any x any ... -> text
+----  string x any x any x any ... -> text
+----
 
-Checks whether an operator exists having the name given as the first argument and whether this 
-operator can applied to the remaining arguments. The result contains the result type of the 
+Checks whether an operator exists having the name given as the first argument and whether this
+operator can applied to the remaining arguments. The result contains the result type of the
 first applyable operator or is undefined if no such operator exists.
 
 */
@@ -1612,8 +1711,8 @@ ListExpr CheckOperatorTypeMapTM(ListExpr args){
       return listutils::typeError(" string x any x any x ... expected");
    }
    ListExpr rest = nl->Rest(args);
-   return nl->ThreeElemList(nl->SymbolAtom("APPEND"), 
-                             nl->OneElemList(nl->TextAtom(nl->ToString(rest))), 
+   return nl->ThreeElemList(nl->SymbolAtom("APPEND"),
+                             nl->OneElemList(nl->TextAtom(nl->ToString(rest))),
                              nl->SymbolAtom(FText::BasicType()));
 }
 
@@ -1621,11 +1720,12 @@ ListExpr CheckOperatorTypeMapTM(ListExpr args){
 /*
 2.58 ~checkOperatorTypeMap2~
 
-  string x text | string x string -> text
+----  string x text | string x string -> text
+----
 
-Checks whether an operator exists having the name given as the first argument and whether this 
+Checks whether an operator exists having the name given as the first argument and whether this
 operator can be applied to the type given as a nested list within a string or text.
-The result contains the result type of the first applyable operator or is undefined if no 
+The result contains the result type of the first applyable operator or is undefined if no
 such operator exists.
 
 */
@@ -1640,15 +1740,15 @@ ListExpr CheckOperatorTypeMap2TM(ListExpr args){
        !listutils::isSymbol(second,CcString::BasicType()))){
       return listutils::typeError(" string x {string | text} expected");
    }
-   return  nl->SymbolAtom(FText::BasicType()); 
+   return  nl->SymbolAtom(FText::BasicType());
 }
 
 
 /*
 2.59 ~strequalTM~
 
-This operator checks two strings (texts) for equality. 
-An additional boolean parameter constrols whether the 
+This operator checks two strings (texts) for equality.
+An additional boolean parameter constrols whether the
 comparison should be case sensitive.
 
 */
@@ -4658,14 +4758,14 @@ int strequal_select(ListExpr args){
      } else {
        return 1;
      }
-  } 
+  }
   if(listutils::isSymbol(first,FText::BasicType())){
      if(listutils::isSymbol(second,CcString::BasicType())){
        return 2;
      } else {
        return 3;
      }
-  } 
+  }
   return -1;
 }
 
@@ -4894,60 +4994,76 @@ int getDatabaseName_VM( Word* args, Word& result, int message,
 
 class matchingOpsLocalInfo{
  public:
-    matchingOpsLocalInfo(ListExpr argList, 
+    matchingOpsLocalInfo(ListExpr argList,
                          ListExpr attrList):pos(0),ops() {
        tupleType = new TupleType(attrList);
        ops = am->matchingOperators(argList);
+    }
+
+    matchingOpsLocalInfo(const int algId,
+                         ListExpr argList,
+                         ListExpr attrList):pos(0),ops() {
+       tupleType = new TupleType(attrList);
+       am->matchingOperators(algId, argList, ops);
     }
 
     matchingOpsLocalInfo(ListExpr argList):pos(0),ops(),tupleType(0) {
        ops = am->matchingOperators(argList);
     }
 
-    CcString* nextName(){
-       if(pos<ops.size()){
-          CcString* r = new CcString(ops[pos].first.second->GetName());
-          pos++;
-          return r;
-       }
-       return 0;
+    CcString* nextName() {
+      if( pos < ops.size() ) {
+        Operator* op = am->GetOP(ops[pos].first.first, /** AlgebraId **/
+                                 ops[pos].first.second /** OpId **/ );
+        CcString* r = new CcString(op->GetName());
+        pos++;
+        return r;
+      }
+      return 0;
     }
 
     Tuple* nextTuple(){
 
         if(pos>=ops.size()){
           return 0;
-        } 
-        pair< pair<int,Operator*>, ListExpr> op = ops[pos];
+        }
+        pair< pair<int,int>, ListExpr> op = ops[pos];
         pos++;
+
         Tuple* res = new Tuple(tupleType);
+
+        Operator* currop = am->GetOP(op.first.first, op.first.second);
         // opName
-        res->PutAttribute(0, new CcString(op.first.second->GetName())); 
+        res->PutAttribute(0, new CcString(currop->GetName()));
+        // opId
+        res->PutAttribute(1, new CcInt(true, op.first.second));
         // algName
-        res->PutAttribute(1, new CcString(am->GetAlgebraName(op.first.first)));
+        res->PutAttribute(2, new CcString(am->GetAlgebraName(op.first.first)));
+        // algId
+        res->PutAttribute(3, new CcInt(true, op.first.first));
         // resType
         ListExpr resultList = op.second;
         if(nl->HasLength(resultList,3) &&
            listutils::isSymbol(nl->First(resultList),"APPEND")){
            resultList = nl->Third(resultList);
         }
-        res->PutAttribute(2, new FText(true,nl->ToString(resultList)));
-       
+        res->PutAttribute(4, new FText(true,nl->ToString(resultList)));
 
-         OperatorInfo oi = op.first.second->GetOpInfo();
+
+        OperatorInfo oi = currop->GetOpInfo();
         // signature
-        res->PutAttribute(3, new FText(true,oi.signature));
+        res->PutAttribute(5, new FText(true,oi.signature));
         // syntax
-        res->PutAttribute(4, new FText(true,oi.syntax));
+        res->PutAttribute(6, new FText(true,oi.syntax));
 
         // meaning
-        res->PutAttribute(5, new FText(true,oi.meaning));
- 
+        res->PutAttribute(7, new FText(true,oi.meaning));
+
         // Example
-        res->PutAttribute(6, new FText(true,oi.example));
+        res->PutAttribute(8, new FText(true,oi.example));
 
         // Remark
-        res->PutAttribute(7, new FText(true,oi.remark));
+        res->PutAttribute(9, new FText(true,oi.remark));
         return  res;
     }
 
@@ -4956,14 +5072,14 @@ class matchingOpsLocalInfo{
          tupleType->DeleteIfAllowed();
          tupleType = 0;
       }
-      
+
     }
 
 
 
  private:
-   size_t pos;
-   vector< pair< pair<int,Operator*>, ListExpr> > ops;
+   size_t pos;                                   // used as iterator
+   vector< pair< pair<int,int>, ListExpr> > ops; // ((AlgId,OpId) ResType)
    TupleType* tupleType;
 };
 
@@ -4984,7 +5100,7 @@ int matchingOperatorsVM( Word* args, Word& result, int message,
        nl->ReadFromString(t->GetValue(),argList);
        if(onlyNames){
           local.addr= new matchingOpsLocalInfo(argList);
-       } else { 
+       } else {
           local.addr= new matchingOpsLocalInfo(argList,
                                nl->Second(GetTupleResultType(s)));
        }
@@ -5014,6 +5130,84 @@ int matchingOperatorsVM( Word* args, Word& result, int message,
 
 }
 
+template<bool getsNL, class T>
+int sysgetMatchingOperatorsVM( Word* args, Word& result, int message,
+                               Word& local, Supplier s )
+{
+   switch(message){
+     case OPEN: {
+       if(local.addr){
+         delete (matchingOpsLocalInfo*) local.addr;
+         local.addr = 0;
+       }
+       int noSons = qp->GetNoSons(s);
+       CcInt* AlgId = 0;
+       string val = "";
+       if(getsNL){ // type list from normal argument
+         AlgId = static_cast<CcInt*>(args[1].addr);
+         T* v = static_cast<T*>(args[0].addr);
+         if(!v->IsDefined()){
+           return 0;
+         }
+         val = v->GetValue();
+       } else { // typelist was appended in TypeMapping function
+         AlgId = static_cast<CcInt*>(args[0].addr);
+         FText* t = (FText*) args[noSons-1].addr;
+         val = t->GetValue();
+       }
+       if(   AlgId->IsDefined()
+          && (AlgId->GetValue()>=0)
+          && (AlgId->GetValue()<am->CountAlgebra()) ){
+        ListExpr argList;
+        nl->ReadFromString(val,argList);
+        argList = nl->Rest(argList);
+        local.addr= new matchingOpsLocalInfo(AlgId->GetValue(),
+                                             argList,
+                                             nl->Second(GetTupleResultType(s))
+                                            );
+       }
+       return 0;
+    }
+    case REQUEST:{
+       if(!local.addr){
+          return CANCEL;
+       } else {
+          result.addr = ((matchingOpsLocalInfo*) local.addr)->nextTuple();
+       }
+       return result.addr?YIELD:CANCEL;
+    }
+    case CLOSE: {
+       if(local.addr){
+         delete (matchingOpsLocalInfo*) local.addr;
+         local.addr = 0;
+       }
+       return 0;
+    }
+
+  }
+  return -1;
+
+}
+
+// valuemapping array
+ValueMapping sysgetMatchingOperators_vm[] = {
+  sysgetMatchingOperatorsVM<false, FText>,
+  sysgetMatchingOperatorsVM<true, CcString>,
+  sysgetMatchingOperatorsVM<true, FText>
+};
+
+// selection function
+int sysgetMatchingOperators_select(ListExpr args){
+    NList type(args);
+    if( type.first()=="int" )
+      return 0;
+    if( type.first()=="string" )
+      return 1;
+    if( type.first()=="text" )
+      return 2;
+    return -1;
+}
+
 template<class T>
 int CheckOperatorTypeMapVM( Word* args, Word& result, int message,
                         Word& local, Supplier s )
@@ -5030,15 +5224,15 @@ int CheckOperatorTypeMapVM( Word* args, Word& result, int message,
      if(!nl->ReadFromString(t->GetValue(),list)){
        res->SetDefined(false);
      } else {
-       
+
        ListExpr restype;
        int algid;
        int opid;
-       bool found = am->findOperator(opName->GetValue(), list, 
+       bool found = am->findOperator(opName->GetValue(), list,
                                      restype, algid,opid);
        if(found){
            // remove append if found
-           if(nl->HasLength(restype,3) && 
+           if(nl->HasLength(restype,3) &&
               listutils::isSymbol(nl->First(restype),"APPEND")){
               restype = nl->Third(restype);
            }
@@ -5047,8 +5241,8 @@ int CheckOperatorTypeMapVM( Word* args, Word& result, int message,
            res->SetDefined(false);
        }
      }
- } 
- return 0; 
+ }
+ return 0;
 
 }
 
@@ -5080,7 +5274,7 @@ int strequalVM( Word* args, Word& result, int message,
  }
  string str1 = s1->GetValue();
  string str2 = s2->GetValue();
-  
+
  if(str1.length() != str2.length()){
     res->Set(true,false);
     return 0;
@@ -5093,8 +5287,8 @@ int strequalVM( Word* args, Word& result, int message,
 
  // compare two string case insensitive
  bool eq = true;
- for (string::const_iterator c1 = str1.begin(), c2 = str2.begin(); 
-     (c1 != str1.end()) && eq; 
+ for (string::const_iterator c1 = str1.begin(), c2 = str2.begin();
+     (c1 != str1.end()) && eq;
      ++c1, ++c2) {
         if (tolower(*c1) != tolower(*c2)) {
             eq = false;
@@ -5249,7 +5443,10 @@ const string FTextplusSpec =
     "<text>query ('Hello' + \" world\" + '!')</text--->"
     ") )";
 
-// Compare predicates
+/*
+Comparison predicates
+
+*/
 const string FTextLessSpec  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
     "( <text>text          x {text|string} -> bool\n"
@@ -5305,6 +5502,10 @@ const string FTextNeqSpec  =
     "<text>query 'TestA' # 'TestB'</text--->"
     ") )";
 
+/*
+Special operators for subquery support
+
+*/
 const string FTextEvaluateSpec  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
     "( <text>text [ x bool ] -> stream(tuple((CmdStr text) (Success bool) "
@@ -5376,11 +5577,15 @@ const string FTextToObjectSpec  =
     "<text>query toobject('3.141592653589793116', 1.0)</text--->"
     ") )";
 
+/*
+Type conversion operations
+
+*/
 const string FTextChartextSpec  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
     "( <text>int -> text</text--->"
     "<text>chartext( code )</text--->"
-    "<text>Creates atext of length 1 containing the character specified by "
+    "<text>Creates a text of length 1 containing the character specified by "
     "ASCII symbol code 'code'.</text--->"
     "<text>query chartext(13)"
     "</text--->"
@@ -5426,6 +5631,10 @@ const string FTextStringToTextSpec  =
     "</text--->"
     ") )";
 
+/*
+Operations for sending and receiving text via UDP/IP
+
+*/
 const string FTextSendTextUDPSpec  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
     "( <text>{string|text}^n -> text, 3<=n<=5</text--->"
@@ -5477,7 +5686,10 @@ const string FTextReceiveTextStreamUDPSpec  =
     ") )";
 
 
+/*
+Operations for conversion of text to/from svg
 
+*/
 const string svg2textSpec  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
     "( <text>svg -> text</text--->"
@@ -5496,7 +5708,10 @@ const string text2svgSpec  =
     "</text--->"
     ") )";
 
+/*
+Operations for en-/decryption of texts
 
+*/
 const string cryptSpec  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
     "( <text> t1 [x t2] -> string, t1,t2 in {string, text} </text--->"
@@ -5543,6 +5758,10 @@ const string blowfish_decodeSpec  =
     "</text--->"
     ") )";
 
+/*
+More operations for subquery support
+
+*/
 const string ftextletObjectSpec  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
     "( <text> {string|text} x {string|text} x bool  -> text </text--->"
@@ -5614,24 +5833,18 @@ const string getDatabaseNameSpec  =
     "<text>query getDatabaseName()</text--->"
     ") )";
 
+/*
+Operations for checking type mapping and inquiries on available
+type constructors and operators.
 
-const string matchingOperatorNamesSpec  =
-    "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-    "( <text>  ANY -> stream(string) </text--->"
-    "<text> matchingOperatorNames(arg1, arg2, ...) </text--->"
-    "<text>Returns the names of operators which could be "
-           "applied to the types coming from "
-    "  evaluation of the arguments  </text--->"
-    "<text>query matchingOperatorNamess(Trains) count</text--->"
-    ") )";
-
-
-
+*/
 const string matchingOperatorsSpec  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
     "( <text>  ANY -> stream(tuple(( \n"
-    "          OperatorName: string,\n" 
+    "          OperatorName: string,\n"
+    "           OperatorId : int,\n"
     "          AlgebraName : string,\n"
+    "            AlgebraId : int,\n"
     "           ResultType : text,\n"
     "           Signature  : text,\n"
     "               Syntax : text,\n"
@@ -5647,6 +5860,40 @@ const string matchingOperatorsSpec  =
     ") )";
 
 
+const string sysgetMatchingOperatorsSpec  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+    "( <text>  int x ANY -> R, \n"
+    "{string|text} x int -> R, where R = stream(tuple(( \n"
+    "          OperatorName: string,\n"
+    "           OperatorId : int,\n"
+    "          AlgebraName : string,\n"
+    "            AlgebraId : int,\n"
+    "           ResultType : text,\n"
+    "           Signature  : text,\n"
+    "               Syntax : text,\n"
+    "              Meaning : text,\n"
+    "              Example : text,\n"
+    "               Remark : text)))\n"
+    " </text--->"
+    "<text> sys_getMatchingOperators( AlgId, arg1, arg2, ... ) \n"
+    "sys_getMatchingOperators( TypeNL, AlgId ) </text--->"
+    "<text>Returns the operators from Algebra AlgId, which could be applied to "
+    "the types coming from evaluation of the remaining arguments. Alternatively"
+    ", the text/string argument TypeNL contains the nested list representation "
+    "of the argument list as a string/text.</text--->"
+    "<text>query sys_getMatchingOperators(0, \"Hallo\") tconsume;\n"
+    "query sys_getMatchingOperators('int', 0) tconsume</text--->"
+    ") )";
+
+const string matchingOperatorNamesSpec  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+    "( <text>  ANY -> stream(string) </text--->"
+    "<text> matchingOperatorNames(arg1, arg2, ...) </text--->"
+    "<text>Returns the names of operators which could be "
+    "applied to the types coming from "
+    "  evaluation of the arguments  </text--->"
+    "<text>query matchingOperatorNames(Trains) count</text--->"
+    ") )";
 
 const string CheckOperatorTypeMapSpec  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
@@ -5666,7 +5913,7 @@ const string CheckOperatorTypeMap2Spec  =
     "( <text>  string x {text | string}  -> text </text--->"
     "<text> checkOperatorTypeMap2(opname, arguments) </text--->"
     "<text>Checks whether an operator opname exists which can be "
-           "process arguments. Arguments contains a nested list" 
+           "process arguments. Arguments contains a nested list"
            "describing the arguments"
     " The resulting text contains the type of the result as a nested list or"
     " an undefined text if such an operator does not exist."
@@ -5675,12 +5922,12 @@ const string CheckOperatorTypeMap2Spec  =
     ") )";
 
 
-const string strequalSpec = 
+const string strequalSpec =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
     "( <text> {string, text} x {string, text} x bool -> bool </text--->"
     "<text> strequals(str1, str2, case_sensitive </text--->"
     "<text>Checks whether two strings (text or string) are equal. "
-    "The third arguments is for controlling case sensitivity." 
+    "The third arguments is for controlling case sensitivity."
     "Two undefined strings are treated to be equal. If the boolean value"
     " is undefined, also the result will be undefined."
     " </text--->"
@@ -5801,6 +6048,10 @@ Operator ftextplus
     FTextTypeMapPlus
     );
 
+/*
+Comparison predicates
+
+*/
 Operator ftextless
     (
     "<",
@@ -5861,6 +6112,10 @@ Operator ftextneq
     FTextTypeMapComparePred
     );
 
+/*
+Operators for subqueries
+
+*/
 Operator ftextevaluate
     (
     "evaluate",
@@ -5918,6 +6173,10 @@ Operator ftexttoobject
     FTextTypeTextData_Data
     );
 
+/*
+Type conversion operations
+
+*/
 Operator chartext
     (
     "chartext",
@@ -5963,6 +6222,10 @@ Operator ftexttotext
     TypeMap_string__text
     );
 
+/*
+Operations for sending/receiving texts vie UPD/IP
+
+*/
 Operator ftsendtextUDP
     (
     "sendtextUDP",
@@ -5993,6 +6256,10 @@ Operator ftreceivetextstreamUDP
     FTextTypeReceiveTextStreamUDP
     );
 
+/*
+Coverting between text and svg
+
+*/
 Operator svg2text
 (
   "svg2text",           //name
@@ -6011,6 +6278,10 @@ Operator text2svg
   TypeMap_text__svg //type mapping
 );
 
+/*
+En-/decrypting texts
+
+*/
 Operator crypt
     (
     "crypt",
@@ -6050,6 +6321,10 @@ Operator blowfish_decode ( "blowfish_decode", blowfish_decodeSpec,
                            blowfish_decodeTM
     );
 
+/*
+More subquery support
+
+*/
 Operator ftextletObject ( "letObject", ftextletObjectSpec,
                            4, ftextletobject_vm, blowfish_encodeSelect,
                            StringtypeStringtypeBool2TextTM
@@ -6094,7 +6369,10 @@ Operator getDatabaseName
    TypeMap_empty__string              //type mapping
 );
 
+/*
+Checking type mappings, inquiries on type constructors and operators
 
+*/
 Operator matchingOperatorNames
 (
    "matchingOperatorNames",          //name
@@ -6114,8 +6392,46 @@ Operator matchingOperators
    matchingOperatorsTM              //type mapping
 );
 
+Operator sysgetMatchingOperators
+(
+  "sys_getMatchingOperators",              //name
+  sysgetMatchingOperatorsSpec,             //specification
+  3,                                       // no of VM-functions
+  sysgetMatchingOperators_vm,              //value mapping
+  sysgetMatchingOperators_select,          //trivial selection function
+  sysgetMatchingOperatorsTM                //type mapping
+);
 
-Operator checkOperatorTypeMap 
+
+// Operator sysgetAlgebraName
+// (
+// "sys_getAlgebraName",          //name
+//  sys_getAlgebraNameSpec,        //specification
+//  sys_getAlgebraNameVM,         //value mapping
+//  Operator::SimpleSelect,     //trivial selection function
+//  int2stringTM              //type mapping
+//  );
+//
+// Operator sysgetAlgebraId
+// (
+//  "sys_getAlgebraId",          //name
+//   sys_getAlgebraIdSpec,        //specification
+//   sys_getAlgebraIdVM,         //value mapping
+//   Operator::SimpleSelect,     //trivial selection function
+//   string2intTM              //type mapping
+// );
+//
+// Operator sysgetOperatorInfo
+// (
+//  "sys_getOperatorInfo",          //name
+//   sys_getOperatorInfoSpec,        //specification
+//   sys_getOperatorInfoVM,         //value mapping
+//   Operator::SimpleSelect,     //trivial selection function
+//   sys_getOperatorInfoTM              //type mapping
+// );
+//
+
+Operator checkOperatorTypeMap
 (
    "checkOperatorTypeMap",          //name
    CheckOperatorTypeMapSpec,        //specification
@@ -6124,13 +6440,11 @@ Operator checkOperatorTypeMap
    CheckOperatorTypeMapTM              //type mapping
 );
 
-
-
 Operator checkOperatorTypeMap2 (
    "checkOperatorTypeMap2",          //name
    CheckOperatorTypeMap2Spec,        //specification
    2,
-   CheckOperatorTypeMap_vm, 
+   CheckOperatorTypeMap_vm,
    CheckOperatorTypeMapSelect,             //type mapping
    CheckOperatorTypeMap2TM              //type mapping
     );
@@ -6140,11 +6454,30 @@ Operator strequal (
    "strequal",          //name
    strequalSpec,        //specification
    4,
-   strequal_vm, 
+   strequal_vm,
    strequal_select,             //type mapping
    strequalTM              //type mapping
     );
 
+
+// Operator sysgetTypeConstructorInfo
+// (
+//   "sys_getTypeConstructorInfo",          //name
+//   sys_getTypeConstructorInfoSpec,        //specification
+//   sys_getTypeConstructorInfoVM,         //value mapping
+//   Operator::SimpleSelect,     //trivial selection function
+//   sys_getTypeConstructorInfoTM              //type mapping
+// );
+//
+//
+// Operator  sysgetNoAlgebras (
+//   "sys_getNoAlgebras",          //name
+//   SysGetNoAlgebrasSpec,        //specification
+//   SysGetNoAlgebrasVM,         //value mapping
+//   Operator::SimpleSelect,    //trivial selection function
+//   empty2intTM               //type mapping
+// )
+//
 
 
 /*
@@ -6214,6 +6547,12 @@ public:
     AddOperator( &getDatabaseName);
     AddOperator( &matchingOperatorNames);
     AddOperator( &matchingOperators);
+    AddOperator( &sysgetMatchingOperators);
+//     AddOperator( &sysgetAlgebraName);
+//     AddOperator( &sysgetAlgebraId);
+//     AddOperator( &sysgetOperatorInfo);
+//     AddOperator( &sysgetTypeConstructorInfo);
+//     AddOperator( &sysgetNoAlgebras);
     AddOperator( &checkOperatorTypeMap);
     AddOperator( &checkOperatorTypeMap2);
     AddOperator( &strequal);

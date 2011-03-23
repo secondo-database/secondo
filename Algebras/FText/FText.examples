@@ -719,10 +719,16 @@ Result   : TRUE
 
 Operator : matchingOperators
 Number   : 1
-Signature: ANY -> stream(tuple([ OperatorName: string,AlgebraName : string, ResultType : text,Signature  : text, Syntax : text, Meaning : text, Example : text, Remark : text]))
+Signature: ANY -> stream(tuple([ OperatorName: string, OperatorId: int, AlgebraName : string, AlgebraId: int, ResultType : text,Signature : text, Syntax : text, Meaning : text, Example : text, Remark : text]))
 Example  : query matchingOperators(Trains) filter[.OperatorName contains "matchingOp"] count > 1
 Result   : TRUE
 
+
+Operator : sys_getMatchingOperators
+Number   : 1
+Signature: int x ANY -> stream(tuple([ OperatorName: string, OperatorId: int, AlgebraName : string, AlgebraId: int, ResultType : text, Signature  : text, Syntax : text, Meaning : text, Example : text, Remark : text]))
+Example  : query sys_getMatchingOperators(0, "Test") count < 0
+Result   : FALSE
 
 Operator : checkOperatorTypeMap
 Number   : 1
@@ -801,8 +807,5 @@ Number   : 9
 Signature: text x text -> bool
 Example  : query strequal('hello','HELLO', [const bool value undef])
 Result   : (bool undef)
-
-
-
 
 

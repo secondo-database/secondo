@@ -1,8 +1,8 @@
 /*
----- 
+----
 This file is part of SECONDO.
 
-Copyright (C) 2004, University in Hagen, Department of Computer Science, 
+Copyright (C) 2004, University in Hagen, Department of Computer Science,
 Database Systems for New Applications.
 
 SECONDO is free software; you can redistribute it and/or modify
@@ -20,7 +20,7 @@ along with SECONDO; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 ----
 
-August 2004, M. Spiekermann. This comment was inserted to make it a PD-File. Moreover, 
+August 2004, M. Spiekermann. This comment was inserted to make it a PD-File. Moreover,
 implementation of ~GetAlgebraName~ was done.
 
 December 2005, Victor Almeida deleted the deprecated algebra levels
@@ -46,7 +46,7 @@ using namespace std;
 #include "DynamicLibrary.h"
 #include "SystemTables.h"
 
-AlgebraManager::AlgebraManager( NestedList& nlRef, 
+AlgebraManager::AlgebraManager( NestedList& nlRef,
                                 GetAlgebraEntryFunction getAlgebraEntryFunc )
 {
   int j = 0;
@@ -86,7 +86,7 @@ AlgebraManager::ListAlgebras()
   int j = 0;
   ListExpr list = nl->Empty();
   ListExpr lastElem = nl->Empty();
-    
+
   for ( j = 0; (*getAlgebraEntry)( j ).algebraId > 0; j++ )
   {
     if ( (*getAlgebraEntry)( j ).useAlgebra )
@@ -96,7 +96,7 @@ AlgebraManager::ListAlgebras()
         ListExpr alg = nl->SymbolAtom( (*getAlgebraEntry)( j ).algebraName );
         if ( list == nl->TheEmptyList() )
         {
-          list = nl->OneElemList( alg ); 
+          list = nl->OneElemList( alg );
           lastElem = list;
         }
         else
@@ -105,7 +105,7 @@ AlgebraManager::ListAlgebras()
         }
       }
     }
-  } 
+  }
   return (list);
 }
 
@@ -114,7 +114,7 @@ int
 AlgebraManager::GetAlgebraId(const string& algName)
 {
   int j;
-  
+
   for ( j = 0; (*getAlgebraEntry)( j ).algebraId > 0; j++ )
   {
     if ( (*getAlgebraEntry)( j ).useAlgebra )
@@ -129,18 +129,18 @@ AlgebraManager::GetAlgebraId(const string& algName)
   return 0;
 }
 
-const string& 
+const string&
 AlgebraManager::GetAlgebraName( const int algId ) {
-  
+
   static const string unknown("UnknownAlgebra");
   assert( algId >= 0 && algId <= maxAlgebraId );
   map<int, string>::const_iterator it = algebraNames.find(algId);
-	
+
   if ( it != algebraNames.end() ) {
     return it->second;
   } else {
     return unknown;
-  }  
+  }
 }
 
 void
@@ -149,12 +149,12 @@ AlgebraManager::LoadAlgebras()
   QueryProcessor* qp = SecondoSystem::GetQueryProcessor();
   TypeConstructor* tc = 0;
   int j = 0, k = 0;
- 
+
   for ( j = 0; (*getAlgebraEntry)( j ).algebraId > 0; j++ )
   {
     string algNameStr = (*getAlgebraEntry)( j ).algebraName;
     int algId = (*getAlgebraEntry)( j ).algebraId;
-    
+
     if ( (*getAlgebraEntry)( j ).useAlgebra )
     {
       if ( (*getAlgebraEntry)( j ).algebraInit != 0 )
@@ -168,7 +168,7 @@ AlgebraManager::LoadAlgebras()
         string libraryName  = string( "lib" ) + algNameStr;
         string initFuncName = string( "Initialize" ) + algNameStr;
         (*getAlgebraEntry)( j ).dynlib = new DynamicLibrary();
-        transform( libraryName.begin(), libraryName.end(), 
+        transform( libraryName.begin(), libraryName.end(),
                    libraryName.begin(), ToLowerProperFunction );
         if ( (*getAlgebraEntry)( j ).dynlib->Load( libraryName ) )
         {
@@ -177,7 +177,7 @@ AlgebraManager::LoadAlgebras()
                                           ->GetFunctionAddress( initFuncName );
           if ( initFunc != 0 )
           {
-            algebra[(*getAlgebraEntry)( j ).algebraId] 
+            algebra[(*getAlgebraEntry)( j ).algebraId]
                                             = (initFunc)( nl, qp, this );
             loaded = true;
           }
@@ -193,15 +193,15 @@ AlgebraManager::LoadAlgebras()
           continue;
         }
       }
-      for ( k = 0; 
+      for ( k = 0;
             k < algebra[(*getAlgebraEntry)( j ).algebraId]->GetNumTCs(); k++ )
       {
         tc = algebra[(*getAlgebraEntry)( j ).algebraId]
                                                    ->GetTypeConstructor( k );
 
 	NList::setNLRef(nl);
-	//tc ->initKindDataProperties(); 
-        for ( vector<string>::size_type idx = 0; 
+	//tc ->initKindDataProperties();
+        for ( vector<string>::size_type idx = 0;
               idx < tc->kinds.size(); idx++      )
         {
           if ( tc->kinds[idx] != "" )
@@ -220,7 +220,7 @@ AlgebraManager::UnloadAlgebras()
 {
   for ( int j = 0; (*getAlgebraEntry)( j ).algebraId > 0; j++ )
   {
-    if ( (*getAlgebraEntry)( j ).useAlgebra 
+    if ( (*getAlgebraEntry)( j ).useAlgebra
          && (*getAlgebraEntry)( j ).dynlib != 0 )
     {
       (*getAlgebraEntry)( j ).dynlib->Unload();
@@ -281,14 +281,14 @@ AlgebraManager::OperatorNumber( int algebraId )
 void
 AlgebraManager::InitOpPtrField() {
 
-  opPtrField.resize(maxAlgebraId+1);	
+  opPtrField.resize(maxAlgebraId+1);
   for ( int alg = 0; alg <= maxAlgebraId; alg++ ) {
 
     int numOps = 0;
     if (algebra[alg] != 0) {
     numOps = algebra[alg]->GetNumOps();
     opPtrField[alg].resize(numOps+1);
-    for ( int op = 0; op < numOps; op++ ) {      
+    for ( int op = 0; op < numOps; op++ ) {
       opPtrField[alg][op] = algebra[alg]->GetOperator( op );
     }
     }
@@ -345,7 +345,7 @@ AlgebraManager::RestoreFromListObj( int algebraId, int typeId )
                                  ->restoreFromListFunc != 0 )
     return (algebra[algebraId]->GetTypeConstructor( typeId )
                                            ->restoreFromListFunc);
-  else 
+  else
     return (algebra[algebraId]->GetTypeConstructor( typeId )->inFunc);
 }
 
@@ -404,7 +404,7 @@ AlgebraManager::SizeOfObj( int algebraId, int typeId )
 }
 
 bool
-AlgebraManager::TypeCheck( int algebraId, int typeId, 
+AlgebraManager::TypeCheck( int algebraId, int typeId,
                            const ListExpr type, ListExpr& errorInfo )
 {
   return (algebra[algebraId]->GetTypeConstructor( typeId )
@@ -437,7 +437,7 @@ AlgebraManager::CheckKind( const string& kindName,
   return (false);
 }
 
-void 
+void
 AlgebraManager::UpdateOperatorUsage(SystemInfoRel* table) {
 
   table->clear();
@@ -446,7 +446,7 @@ AlgebraManager::UpdateOperatorUsage(SystemInfoRel* table) {
   {
     const int N = OperatorNumber(algId);
     for (int opId = 0; opId < N; opId++) {
-      
+
       string name = GetAlgebraName(algId);
       string algebra = GetOP(algId, opId)->GetName();
       Operator* op = opPtrField[algId][opId];
@@ -457,7 +457,7 @@ AlgebraManager::UpdateOperatorUsage(SystemInfoRel* table) {
            t->name = name;
            t->vmid = i;
            t->calls = op->GetCalls(i);
-           table->append(t,false); 
+           table->append(t,false);
          }
       }
     }
@@ -466,47 +466,52 @@ AlgebraManager::UpdateOperatorUsage(SystemInfoRel* table) {
 
 
 
-vector< pair< pair<int,Operator*>, ListExpr> > 
+vector< pair< pair<int, int>, ListExpr> >
       AlgebraManager::matchingOperators(const ListExpr arguments){
 
-   vector< pair< pair<int,Operator*>, ListExpr> > result;
+   vector< pair< pair<int,int>, ListExpr> > result;
    result.clear();
-   ListExpr typeError = nl->SymbolAtom("typeerror");
-   for(size_t a=0;a<algebra.size();a++){
-     Algebra* alg = algebra[a];
-     if(alg!=0){
-       for(int o=0; o< alg->GetNumOps(); o++){
-         Operator* op = alg->GetOperator(o);
-         try{
-            ListExpr res = op->CallTypeMapping(arguments);
-            if(!nl->Equal(res,typeError)){
-              pair<int, Operator*> p1(a,op);
-              pair<pair<int, Operator*>, ListExpr> p(p1, res);
-              result.push_back(p);
-            } 
-
-         } catch (...){
-            cerr << "Problem in Typemapping of operator " << op->GetName() 
-                 << " in Algebra" << GetAlgebraName(a) << endl;
-            cerr << "Throws an exception when called with " 
-                 << nl->ToString(arguments) << endl;
-         }
-       }
-     } 
+   for(unsigned int a=0 ; a<algebra.size() ; a++){
+     matchingOperators(a, arguments, result);
    }
-
    return result;
 }
 
-bool AlgebraManager::findOperator(const string& name, 
-                                  const ListExpr argList, 
-                                  ListExpr& resultList, 
+void AlgebraManager::matchingOperators(const int algId,
+                                       const ListExpr arguments,
+                       vector< pair< pair<int,int>, ListExpr> >& result){
+  assert( algId>=0);
+  ListExpr typeError = nl->SymbolAtom("typeerror");
+  Algebra* alg = algebra[algId];
+  if(alg!=0){
+    for(int o=0 ; o<alg->GetNumOps() ; o++){
+      Operator* op = alg->GetOperator(o);
+      try{
+          ListExpr res = op->CallTypeMapping(arguments);
+          if(!nl->Equal(res,typeError)){
+            pair<int, int> p1(algId,o);
+            pair<pair<int, int>, ListExpr> p(p1, res);
+            result.push_back(p);
+          }
+      } catch (...){
+          cerr << "Problem in Typemapping of operator " << op->GetName()
+               << " in Algebra" << GetAlgebraName(algId) << endl;
+          cerr << "Throws an exception when called with "
+               << nl->ToString(arguments) << endl;
+      }
+    }
+  }
+}
+
+bool AlgebraManager::findOperator(const string& name,
+                                  const ListExpr argList,
+                                  ListExpr& resultList,
                                   int& algId,
                                   int& opId){
 
    ListExpr typeError = nl->SymbolAtom("typeerror");
 
-   for(size_t a=0;a<algebra.size();a++){
+   for(unsigned int a=0;a<algebra.size();a++){
      Algebra* alg = algebra[a];
      if(alg!=0){
        for(int o=0; o< alg->GetNumOps(); o++){
@@ -519,11 +524,11 @@ bool AlgebraManager::findOperator(const string& name,
                  opId = o;
                  resultList = res;
                  return true;
-              } 
+              }
            } catch (...){
-              cerr << "Problem in Typemapping of operator " << op->GetName() 
+              cerr << "Problem in Typemapping of operator " << op->GetName()
                    << " in Algebra" << GetAlgebraName(a) << endl;
-              cerr << "Throws an exception when called with " 
+              cerr << "Throws an exception when called with "
                    << nl->ToString(argList) << endl;
            }
         }
@@ -535,6 +540,4 @@ bool AlgebraManager::findOperator(const string& name,
   resultList = nl->TheEmptyList();
   return false;
 }
-
-
 
