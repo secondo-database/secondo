@@ -404,3 +404,17 @@ Signature: ugpoint x ugpoint -> ureal
 Example  : query netdistance([const ugpoint value( ("2007-01-01-10:10:00.000" "2007-01-01-10:10:01.000" TRUE FALSE)(1 2 2 0.7 1.5))],[const ugpoint value( ("2007-01-01-10:10:00.000" "2007-01-01-10:10:01.000" TRUE FALSE)(1 5 2 0.5 1.7))]);
 Result   : (ureal(("2007-01-01-10:10" "2007-01-01-10:10:01" TRUE FALSE)(0.0 172800.0 875.1372427706414 FALSE)))
 Tolerance: 0.01%
+
+Operator : netdistance
+Number   : 4
+Signature: gpoint x mgpoint -> mreal
+Example  : query netdistance([const gpoint value(1 1 0.5 1)],[const mgpoint value( (("2007-01-01-10:10:00.000" "2007-01-01-10:10:01.000" TRUE FALSE)(1 5 2 0.5 1.7)))]);
+Result   : (mreal((("2007-01-01-10:10" "2007-01-01-10:10:01" TRUE FALSE)(0.0 103680.0000000039 870.9022548523282 FALSE))))
+Tolerance: 0.01%
+
+Operator : netdistance
+Number   : 5
+Signature: mgpoint x gpoint -> mreal
+Example  : query netdistance([const mgpoint value( (("2007-01-01-10:10:00.000" "2007-01-01-10:10:01.000" TRUE FALSE)(1 5 2 0.5 1.7)))],[const gpoint value(1 1 0.5 1)]);
+Result   : (mreal((("2007-01-01-10:10" "2007-01-01-10:10:01" TRUE FALSE)(0.0 103680.0000000039 870.9022548523282 FALSE))))
+Tolerance: 0.01%

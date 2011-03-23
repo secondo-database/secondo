@@ -3004,15 +3004,6 @@ void MGPoint::NetdistanceFromArg(const GPoint* gp, MReal* result) const
     Network *pNetwork = NetworkManager::GetNetworkNew(GetNetworkId(), netList);
     DbArray<ShortestPathTreeEntry> *spTree =
       new DbArray<ShortestPathTreeEntry>(2 * pNetwork->GetNoSections() + 1);
-    ShortestPathTreeEntry spEntryUp(numeric_limits< double >::max(),true);
-    ShortestPathTreeEntry spEntryDown(numeric_limits< double >::max(),false);
-    for (int i = 0; i < spTree->Size(); i++)
-    {
-      if (i%2 == 0)
-        spTree->Put(i,spEntryUp);
-      else
-        spTree->Put(i,spEntryDown);
-    }
     gp->ShortestPathTree(pNetwork, spTree);
     ShortestPathTreeEntry actSectionSPEntryUp, actSectionSPEntryDown;
     UGPoint actMGPUnit;
@@ -3043,151 +3034,168 @@ void MGPoint::NetdistanceFromArg(const GPoint* gp, MReal* result) const
         int pos = 2*actSectId;
         spTree->Get(pos, actSectionSPEntryUp);
         spTree->Get(pos+1, actSectionSPEntryDown);
-        double diffDistanceUpDown =
-          fabs (actSectionSPEntryUp.GetDist() -
-                actSectionSPEntryDown.GetDist());
-        double correction = (sectLength - diffDistanceUpDown) / 2;
-        double posOfSameDistance = 0.0;
-        double distOfPosOfSameDistance = 0.0;
-        if (actSectionSPEntryUp.GetDist() < actSectionSPEntryDown.GetDist())
-        {
-          posOfSameDistance = sectMeas2 - correction;
-          distOfPosOfSameDistance =
-            actSectionSPEntryDown.GetDist() - correction;
-        }
-        else
-        {
-          posOfSameDistance = sectMeas1 + correction;
-          distOfPosOfSameDistance = actSectionSPEntryUp.GetDist() + correction;
-        }
         double startdist = 0.0;
-        if (startPos < posOfSameDistance)
-          startdist =
-            actSectionSPEntryUp.GetDist() + fabs(startPos - sectMeas1);
-        else
-          startdist = actSectionSPEntryDown.GetDist() +
-            fabs(startPos - sectMeas2);
         double enddist = 0.0;
-        if (endPos < posOfSameDistance)
-          enddist = actSectionSPEntryUp.GetDist() + fabs(endPos - sectMeas1);
-        else
-          enddist = actSectionSPEntryDown.GetDist() + fabs(endPos - sectMeas2);
-        if (passedSections.size() == 1)
+        if (actSectionSPEntryUp.GetDist() == 0.0 &&
+            actSectionSPEntryDown.GetDist() == 0.0)
         {
-
-          if ((startPos <= posOfSameDistance && endPos <= posOfSameDistance) ||
-              (startPos >= posOfSameDistance && endPos >= posOfSameDistance))
+          startdist = fabs(gp->GetPosition() - startPos);
+          enddist = fabs (gp->GetPosition() - endPos);
+          result->MergeAdd(UReal(actMGPUnit.GetUnitTimeInterval(),
+                                 startdist, enddist));
+        }
+        else
+        {
+          double diffDistanceUpDown =
+          fabs (actSectionSPEntryUp.GetDist() -
+          actSectionSPEntryDown.GetDist());
+          double correction = (sectLength - diffDistanceUpDown) / 2;
+          double posOfSameDistance = 0.0;
+          double distOfPosOfSameDistance = 0.0;
+          if (actSectionSPEntryUp.GetDist() < actSectionSPEntryDown.GetDist())
           {
-            result->MergeAdd(UReal(actMGPUnit.GetUnitTimeInterval(),
-                                  startdist, enddist));
-
+            posOfSameDistance = sectMeas2 - correction;
+            distOfPosOfSameDistance =
+            actSectionSPEntryDown.GetDist() - correction;
           }
           else
           {
-
-            splittime = actMGPUnit.TimeAtPos(posOfSameDistance);
-            if (starttime != splittime)
-              result->MergeAdd(UReal(Interval<Instant>(starttime, splittime,
-                                                      true, false),
-                                    startdist, distOfPosOfSameDistance));
-
-            if (splittime != endtime)
-              result->MergeAdd(UReal(Interval<Instant>(splittime, endtime,
-                                                    true, false),
-                                  distOfPosOfSameDistance, enddist));
+            posOfSameDistance = sectMeas1 + correction;
+            distOfPosOfSameDistance =
+              actSectionSPEntryUp.GetDist() + correction;
           }
-        }
-        else
-        {
-          switch(actMGPUnit.MovingDirection())
+          if (startPos < posOfSameDistance)
+            startdist =
+              actSectionSPEntryUp.GetDist() + fabs(startPos - sectMeas1);
+          else
+            startdist =
+              actSectionSPEntryDown.GetDist() + fabs(startPos - sectMeas2);
+          if (endPos < posOfSameDistance)
+            enddist = actSectionSPEntryUp.GetDist() + fabs(endPos - sectMeas1);
+          else
+            enddist =
+              actSectionSPEntryDown.GetDist() + fabs(endPos - sectMeas2);
+          if (passedSections.size() == 1)
           {
-            case Up:
-            {
-              if (startPos >= posOfSameDistance)
-              {
-                splittime = actMGPUnit.TimeAtPos(sectMeas2);
-                if (starttime != splittime)
-                {
-                  result->MergeAdd(UReal(Interval<Instant>(starttime ,
-                                                           splittime,
-                                                           true, false),
-                                  startdist, actSectionSPEntryDown.GetDist()));
-                  starttime = splittime;
-                  startPos = sectMeas2;
-                }
-              }
-              else
-              {
-                splittime = actMGPUnit.TimeAtPos(posOfSameDistance);
-                if (starttime != splittime)
-                {
-                  result->MergeAdd(UReal(Interval<Instant>(starttime ,
-                                                           splittime,
-                                                          true, false),
-                                        startdist, distOfPosOfSameDistance));
-                  starttime = splittime;
-                }
-                splittime = actMGPUnit.TimeAtPos(sectMeas2);
-                if (starttime != splittime)
-                {
-                  result->MergeAdd(UReal(Interval<Instant>(starttime ,
-                                                           splittime,
-                                                          true, false),
-                                        startdist,
-                                        actSectionSPEntryDown.GetDist()));
-                  starttime = splittime;
-                  startPos = sectMeas2;
-                }
-              }
-              break;
-            }
-            case Down:
-            {
-              if (startPos <= posOfSameDistance)
-              {
-                splittime = actMGPUnit.TimeAtPos(sectMeas1);
-                if (starttime != splittime)
-                {
-                  result->MergeAdd(UReal(Interval<Instant>(starttime ,
-                                                           splittime,
-                                                        true, false),
-                                    startdist, actSectionSPEntryUp.GetDist()));
-                  starttime = splittime;
-                  startPos = sectMeas1;
-                }
-              }
-              else
-              {
-                splittime = actMGPUnit.TimeAtPos(posOfSameDistance);
-                if (starttime != splittime)
-                {
-                  result->MergeAdd(UReal(Interval<Instant>(starttime ,splittime,
-                                                        true, false),
-                                      startdist, distOfPosOfSameDistance));
-                  starttime = splittime;
-                  splittime = actMGPUnit.TimeAtPos(sectMeas1);
-                }
-                if (starttime != splittime)
-                {
-                  result->MergeAdd(UReal(Interval<Instant>(starttime ,
-                                                           splittime,
-                                                        true, false),
-                                    startdist, actSectionSPEntryUp.GetDist()));
-                  starttime = splittime;
-                  startPos = sectMeas1;
-                }
-              }
-              break;
-            }
 
-            case None: //should never been reached. No move => only 1 section
+            if ((startPos <= posOfSameDistance && endPos <= posOfSameDistance)||
+                (startPos >= posOfSameDistance && endPos >= posOfSameDistance))
             {
-              break;
+              result->MergeAdd(UReal(actMGPUnit.GetUnitTimeInterval(),
+                                     startdist, enddist));
+
+            }
+            else
+            {
+
+              splittime = actMGPUnit.TimeAtPos(posOfSameDistance);
+              if (starttime != splittime)
+                result->MergeAdd(UReal(Interval<Instant>(starttime, splittime,
+                                                         true, false),
+                                       startdist, distOfPosOfSameDistance));
+
+                if (splittime != endtime)
+                  result->MergeAdd(UReal(Interval<Instant>(splittime, endtime,
+                                                           true, false),
+                                         distOfPosOfSameDistance, enddist));
             }
           }
+          else
+          {
+            switch(actMGPUnit.MovingDirection())
+            {
+              case Up:
+              {
+                if (startPos >= posOfSameDistance)
+                {
+                  splittime = actMGPUnit.TimeAtPos(sectMeas2);
+                  if (starttime != splittime)
+                  {
+                    result->MergeAdd(UReal(Interval<Instant>(starttime ,
+                                                             splittime,
+                                                             true, false),
+                                           startdist,
+                                           actSectionSPEntryDown.GetDist()));
+                    starttime = splittime;
+                    startPos = sectMeas2;
+                  }
+                }
+                else
+                {
+                  splittime = actMGPUnit.TimeAtPos(posOfSameDistance);
+                  if (starttime != splittime)
+                  {
+                    result->MergeAdd(UReal(Interval<Instant>(starttime ,
+                                                             splittime,
+                                                             true, false),
+                                           startdist, distOfPosOfSameDistance));
+                    starttime = splittime;
+                  }
+                  splittime = actMGPUnit.TimeAtPos(sectMeas2);
+                  if (starttime != splittime)
+                  {
+                    result->MergeAdd(UReal(Interval<Instant>(starttime ,
+                                                             splittime,
+                                                             true, false),
+                                           startdist,
+                                           actSectionSPEntryDown.GetDist()));
+                    starttime = splittime;
+                    startPos = sectMeas2;
+                  }
+                }
+                break;
+              }
+              case Down:
+              {
+                if (startPos <= posOfSameDistance)
+                {
+                  splittime = actMGPUnit.TimeAtPos(sectMeas1);
+                  if (starttime != splittime)
+                  {
+                    result->MergeAdd(UReal(Interval<Instant>(starttime ,
+                                                             splittime,
+                                                             true, false),
+                                           startdist,
+                                           actSectionSPEntryUp.GetDist()));
+                    starttime = splittime;
+                    startPos = sectMeas1;
+                  }
+                }
+                else
+                {
+                  splittime = actMGPUnit.TimeAtPos(posOfSameDistance);
+                  if (starttime != splittime)
+                  {
+                    result->MergeAdd(UReal(Interval<Instant>(starttime ,
+                                                             splittime,
+                                                             true, false),
+                                           startdist, distOfPosOfSameDistance));
+                    starttime = splittime;
+                    splittime = actMGPUnit.TimeAtPos(sectMeas1);
+                  }
+                  if (starttime != splittime)
+                  {
+                    result->MergeAdd(UReal(Interval<Instant>(starttime ,
+                                                             splittime,
+                                                             true, false),
+                                           startdist,
+                                           actSectionSPEntryUp.GetDist()));
+                    starttime = splittime;
+                    startPos = sectMeas1;
+                  }
+                }
+                break;
+              }
+
+              case None: //should never been reached. No move => only 1 section
+              {
+                break;
+              }
+            }
+          }
+          pActSect->DeleteIfAllowed();
+          pActSect = 0;
         }
-        pActSect->DeleteIfAllowed();
-        pActSect = 0;
       }
     }
     result->EndBulkLoad();
@@ -3195,6 +3203,221 @@ void MGPoint::NetdistanceFromArg(const GPoint* gp, MReal* result) const
     delete spTree;
     NetworkManager::CloseNetwork(pNetwork);
   }
+}
+
+/*
+Returns the network distance from the ~mgpoint~ to the ~gpoint~
+
+*/
+
+void MGPoint::NetdistanceToArg(const GPoint* gp, MReal* result) const
+{
+  result->Clear();
+  if (!IsDefined() || gp == 0 || !gp->IsDefined() ||
+    GetNetworkId() != gp->GetNetworkId())
+    result->SetDefined(false);
+  else
+  {
+    Network *pNetwork = NetworkManager::GetNetworkNew(GetNetworkId(), netList);
+    DbArray<ShortestPathTreeEntry> *spTree =
+    new DbArray<ShortestPathTreeEntry>(2 * pNetwork->GetNoSections() + 1);
+    gp->ReverseShortestPathTree(pNetwork, spTree);
+    ShortestPathTreeEntry actSectionSPEntryUp, actSectionSPEntryDown;
+    UGPoint actMGPUnit;
+    vector<TupleId> passedSections;
+    result->StartBulkLoad();
+    Instant splittime;
+    for (int i = 0; i < units.Size(); i++ )
+    {
+      Get(i,actMGPUnit);
+      double startPos = actMGPUnit.GetUnitStartPos();
+      double endPos = actMGPUnit.GetUnitEndPos();
+      Instant starttime = actMGPUnit.GetUnitStartTime();
+      Instant endtime = actMGPUnit.GetUnitEndTime();
+      passedSections.clear();
+      actMGPUnit.GetPassedSections(pNetwork, passedSections);
+      size_t j = 0;
+      while (j < passedSections.size())
+      {
+        TupleId actSectTid = passedSections[j++];
+        Tuple *pActSect = pNetwork->GetSection(actSectTid);
+        int actSectId =
+          ((CcInt*) pActSect->GetAttribute(SECTION_SID))->GetIntval();
+        double sectMeas1 =
+          ((CcReal*)pActSect->GetAttribute(SECTION_MEAS1))->GetRealval();
+        double sectMeas2 =
+          ((CcReal*)pActSect->GetAttribute(SECTION_MEAS2))->GetRealval();
+        double sectLength = fabs (sectMeas2 - sectMeas1);
+        int pos = 2*actSectId;
+        spTree->Get(pos, actSectionSPEntryUp);
+        spTree->Get(pos+1, actSectionSPEntryDown);
+        double startdist = 0.0;
+        double enddist = 0.0;
+        if (actSectionSPEntryDown.GetDist() == 0.0 &&
+            actSectionSPEntryUp.GetDist() == 0.0)
+        {
+          startdist = fabs(gp->GetPosition() - startPos);
+          enddist = fabs(gp->GetPosition() - endPos);
+          result->MergeAdd(UReal(actMGPUnit.GetUnitTimeInterval(),
+                                 startdist, enddist));
+        }
+        else
+        {
+          double diffDistanceUpDown =
+            fabs (actSectionSPEntryUp.GetDist() -
+                  actSectionSPEntryDown.GetDist());
+          double correction = (sectLength - diffDistanceUpDown) / 2;
+          double posOfSameDistance = 0.0;
+          double distOfPosOfSameDistance = 0.0;
+          if (actSectionSPEntryUp.GetDist() < actSectionSPEntryDown.GetDist())
+          {
+            posOfSameDistance = sectMeas1 - correction;
+            distOfPosOfSameDistance =
+            actSectionSPEntryDown.GetDist() - correction;
+          }
+          else
+          {
+            posOfSameDistance = sectMeas2 + correction;
+            distOfPosOfSameDistance =
+              actSectionSPEntryUp.GetDist() + correction;
+          }
+          if (startPos < posOfSameDistance)
+            startdist =
+              actSectionSPEntryUp.GetDist() + fabs(startPos - sectMeas2);
+          else
+            startdist =
+              actSectionSPEntryDown.GetDist() + fabs(startPos - sectMeas1);
+          if (endPos < posOfSameDistance)
+            enddist = actSectionSPEntryUp.GetDist() + fabs(endPos - sectMeas2);
+          else
+            enddist =
+              actSectionSPEntryDown.GetDist() + fabs(endPos - sectMeas1);
+          if (passedSections.size() == 1)
+          {
+            if ((startPos <= posOfSameDistance && endPos <= posOfSameDistance)||
+                (startPos >= posOfSameDistance && endPos >= posOfSameDistance))
+            {
+              result->MergeAdd(UReal(actMGPUnit.GetUnitTimeInterval(),
+                                     startdist, enddist));
+            }
+            else
+            {
+              splittime = actMGPUnit.TimeAtPos(posOfSameDistance);
+              if (starttime != splittime)
+                result->MergeAdd(UReal(Interval<Instant>(starttime, splittime,
+                                                         true, false),
+                                       startdist, distOfPosOfSameDistance));
+              if (splittime != endtime)
+                result->MergeAdd(UReal(Interval<Instant>(splittime, endtime,
+                                                           true, false),
+                                         distOfPosOfSameDistance, enddist));
+            }
+          }
+          else
+          {
+            switch(actMGPUnit.MovingDirection())
+            {
+              case Up:
+              {
+                if (startPos >= posOfSameDistance)
+                {
+                  splittime = actMGPUnit.TimeAtPos(sectMeas2);
+                  if (starttime != splittime)
+                  {
+                    result->MergeAdd(UReal(Interval<Instant>(starttime ,
+                                                             splittime,
+                                                             true, false),
+                                           startdist,
+                                           actSectionSPEntryDown.GetDist()));
+                    starttime = splittime;
+                    startPos = sectMeas2;
+                  }
+                }
+                else
+                {
+                  splittime = actMGPUnit.TimeAtPos(posOfSameDistance);
+                  if (starttime != splittime)
+                  {
+                    result->MergeAdd(UReal(Interval<Instant>(starttime ,
+                                                             splittime,
+                                                             true, false),
+                                           startdist, distOfPosOfSameDistance));
+                    starttime = splittime;
+                  }
+                  splittime = actMGPUnit.TimeAtPos(sectMeas2);
+                  if (starttime != splittime)
+                  {
+                    result->MergeAdd(UReal(Interval<Instant>(starttime ,
+                                                             splittime,
+                                                             true, false),
+                                           startdist,
+                                           actSectionSPEntryDown.GetDist()));
+                    starttime = splittime;
+                    startPos = sectMeas2;
+                  }
+                }
+                break;
+              }
+              case Down:
+              {
+                if (startPos <= posOfSameDistance)
+                {
+                  splittime = actMGPUnit.TimeAtPos(sectMeas1);
+                  if (starttime != splittime)
+                  {
+                    result->MergeAdd(UReal(Interval<Instant>(starttime ,
+                                                             splittime,
+                                                             true, false),
+                                           startdist,
+                                           actSectionSPEntryUp.GetDist()));
+                    starttime = splittime;
+                    startPos = sectMeas1;
+                  }
+                }
+                else
+                {
+                  splittime = actMGPUnit.TimeAtPos(posOfSameDistance);
+                  if (starttime != splittime)
+                  {
+                    result->MergeAdd(UReal(Interval<Instant>(starttime ,
+                                                             splittime,
+                                                             true, false),
+                                           startdist,
+                                           distOfPosOfSameDistance));
+                    starttime = splittime;
+                    splittime = actMGPUnit.TimeAtPos(sectMeas1);
+                  }
+                  if (starttime != splittime)
+                  {
+                    result->MergeAdd(UReal(Interval<Instant>(starttime ,
+                                                             splittime,
+                                                             true, false),
+                                           startdist,
+                                           actSectionSPEntryUp.GetDist()));
+                    starttime = splittime;
+                    startPos = sectMeas1;
+                  }
+                }
+                break;
+              }
+
+							case None:
+              {
+                break;
+              }
+            }
+          }
+          pActSect->DeleteIfAllowed();
+          pActSect = 0;
+        }
+      }
+    }
+    result->EndBulkLoad();
+    spTree->Destroy();
+    delete spTree;
+    NetworkManager::CloseNetwork(pNetwork);
+  }
+
 }
 
 /*
@@ -9562,21 +9785,28 @@ ListExpr OpNetdistanceTypeMap( ListExpr args )
   NList firstArg(param.first());
   NList secondArg(param.second());
 
-  if (!(firstArg.isSymbol("gpoint") || firstArg.isSymbol("ugpoint")))
+  if (!(firstArg.isSymbol("gpoint") || firstArg.isSymbol("ugpoint") ||
+        firstArg.isSymbol("mgpoint")))
     return
-        listutils::typeError("1.argument must be gpoint or ugpoint.");
+        listutils::typeError("1.argument must be gpoint, ugpoint or mgpoint.");
+
   if (!(secondArg.isSymbol("gpoint") || secondArg.isSymbol("ugpoint") ||
         secondArg.isSymbol("mgpoint")))
     return
         listutils::typeError("2.argument must be gpoint,ugpoint or mgpoint.");
-  if (firstArg.isSymbol("gpoint") && secondArg.isSymbol("mgpoint"))
+
+  if ((firstArg.isSymbol("gpoint") && secondArg.isSymbol("mgpoint")) ||
+      (firstArg.isSymbol("mgpoint") && secondArg.isSymbol("gpoint")))
     return nl->SymbolAtom("mreal");
-  if (firstArg.isSymbol("ugpoint") && secondArg.isSymbol("mgpoint"))
+
+  if (firstArg.isSymbol("mgpoint") || secondArg.isSymbol("mgpoint"))
     return
-      listutils::typeError("2. argument must be gpoint or ugpoint.");
+      listutils::typeError("netdistance mgpoint only defined for gpoint yet.");
+
   if (firstArg == secondArg && firstArg.isSymbol("gpoint"))
     return
       listutils::typeError("gpoint x gpoint is not covered here.");
+
   return nl->SymbolAtom ( "ureal" );
 }
 
@@ -9657,7 +9887,8 @@ ValueMapping OpNetdistanceValueMap[] = {
   OpNetdistanceFixMov<GPoint, UGPoint, UReal>,
   OpNetdistanceMovFix<UGPoint, GPoint, UReal>,
   OpNetdistanceMovMov<UGPoint, UGPoint, UReal>,
-  OpNetdistanceFixMov<GPoint, MGPoint, MReal>
+  OpNetdistanceFixMov<GPoint, MGPoint, MReal>,
+  OpNetdistanceMovFix<MGPoint, GPoint, MReal>
 };
 
 int OpNetdistanceSelect( ListExpr args )
@@ -9677,6 +9908,9 @@ int OpNetdistanceSelect( ListExpr args )
   if (nl->SymbolValue(arg1) == "gpoint" &&
       nl->SymbolValue(arg2) == "mgpoint")
     return 3;
+  if (nl->SymbolValue(arg1) == "mgpoint" &&
+      nl->SymbolValue(arg2) == "gpoint")
+    return 4;
   return -1; // This point should never be reached
 }
 
@@ -9686,6 +9920,8 @@ struct NetdistanceInfo:OperatorInfo{
     signature = "gpoint X ugpoint -> ureal";
     appendSignature("ugpoint X gpoint -> ureal");
     appendSignature("ugpoint X ugpoint -> ureal");
+    appendSignature("gpoint X mgpoint -> mreal");
+    appendSignature("mgpoint X gpoint -> mreal");
     syntax = "netdistance(_,_)";
     meaning = "Computes the netdistance from 1.to 2. argument";
   }
@@ -9813,3 +10049,4 @@ extern "C" Algebra* InitializeTemporalNetAlgebra( NestedList* in_pNL,
   netList = new map<int,string>();
   return (new TemporalNetAlgebra());
 }
+// kate: indent-mode cstyle; replace-tabs off; tab-width 2;  replace-tabs off; ;

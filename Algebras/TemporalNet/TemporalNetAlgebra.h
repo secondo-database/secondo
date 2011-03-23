@@ -745,6 +745,14 @@ distance function.
   void NetdistanceFromArg(const GPoint* gp, MReal* result) const;
 
 /*
+Returns the network distance from the ~mgpoint~ to the ~gpoint~
+
+*/
+
+ void NetdistanceToArg(const GPoint* gp, MReal* result) const;
+
+
+/*
 Translates an mgpoint into an mpoint value.
 
 */
