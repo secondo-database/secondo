@@ -1336,6 +1336,10 @@ ListExpr STConstraintTM(ListExpr args)
     cout.flush();
   }
 
+  if(!nl->HasLength(args,3)){
+     return listutils::typeError("3 arguments expected");
+  }
+
   ListExpr alias1 = nl->First(args),   //tuple(x)
   alias2  = nl->Second(args),      //named predicate list
   temporalconnector = nl->Third(args);//STConstraint list
