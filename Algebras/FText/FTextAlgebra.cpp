@@ -1688,6 +1688,42 @@ ListExpr sysgetMatchingOperatorsTM(ListExpr args){
     }
 }
 
+/*
+2.58 ~int2stringTM~ TypeMap (e.g. Operator ~sys\_getAlgebraName~
+
+---- int --> string
+----
+
+*/
+ListExpr int2stringTM(ListExpr args){
+  string errmsg = "Expected (int).";
+  if(    (nl->ListLength(args)==1)
+      && listutils::isSymbol(nl->First(args),CcInt::BasicType())
+    ){
+    return nl->SymbolAtom(CcString::BasicType());
+  }
+  return listutils::typeError(errmsg);
+}
+
+/*
+2.58 ~stringORtext2intTM~ TypeMap (e.g. Operator ~sys\_getAlgebraId~
+
+---- {string|text} --> int
+----
+
+*/
+ListExpr stringORtext2intTM(ListExpr args){
+  string errmsg = "Expected (string) or (text).";
+  if(    (nl->ListLength(args)==1)
+      && (    listutils::isSymbol(nl->First(args),CcString::BasicType())
+           || listutils::isSymbol(nl->First(args),FText::BasicType())
+         )
+    ){
+    return nl->SymbolAtom(CcInt::BasicType());
+  }
+  return listutils::typeError(errmsg);
+}
+
 
 /*
 2.58 ~checkOperatorTypeMap~
@@ -5156,8 +5192,8 @@ int sysgetMatchingOperatorsVM( Word* args, Word& result, int message,
          val = t->GetValue();
        }
        if(   AlgId->IsDefined()
-          && (AlgId->GetValue()>=0)
-          && (AlgId->GetValue()<am->CountAlgebra()) ){
+          && (AlgId->GetValue()>0)
+          && (AlgId->GetValue()<=am->getMaxAlgebraId()) ){
         ListExpr argList;
         nl->ReadFromString(val,argList);
         argList = nl->Rest(argList);
@@ -5208,6 +5244,72 @@ int sysgetMatchingOperators_select(ListExpr args){
     return -1;
 }
 
+
+/*
+VM for operator ~sys\_getAlgebraName~
+
+*/
+int sys_getAlgebraNameVM( Word* args, Word& result, int message,
+                        Word& local, Supplier s )
+{
+  result = qp->ResultStorage(s);
+  CcString* res = static_cast<CcString*>(result.addr);
+  CcInt* arg = static_cast<CcInt*>(args[0].addr);
+  if(!arg->IsDefined()){
+    res->SetDefined(false);
+    return 0;
+  }
+  int algId = arg->GetValue();
+  if( (algId < 0) || (algId > am->getMaxAlgebraId()) )
+  {
+    res->Set(false,"UnknownAlgebra");
+    return 0;
+  }
+  string algName = am->GetAlgebraName(algId);
+  res->Set(algName!="UnknownAlgebra",algName);
+  return 0;
+}
+
+/*
+VM for operator ~sys\_getAlgebraId~
+
+*/
+template<class T>
+int sys_getAlgebraIdVM( Word* args, Word& result, int message,
+                        Word& local, Supplier s )
+{
+  result = qp->ResultStorage(s);
+  CcInt* res = static_cast<CcInt*>(result.addr);
+  T* arg = static_cast<T*>(args[0].addr);
+  if(!arg->IsDefined()){
+    res->SetDefined(false);
+    return 0;
+  }
+  int algId = am->GetAlgebraId(arg->GetValue()); // =0 indicates invalid algebra
+  res->Set( algId>0 , algId );
+  return 0;
+}
+
+// valuemapping array
+ValueMapping sys_getAlgebraId_vm[] = {
+  sys_getAlgebraIdVM<CcString>,
+  sys_getAlgebraIdVM<FText>
+};
+
+// selection function
+int sys_getAlgebraId_select(ListExpr args){
+    NList type(args);
+    if( type.first()=="string" )
+      return 0;
+    if( type.first()=="text" )
+      return 1;
+    return -1;
+}
+
+/*
+VM for operator ~checkTypeMap~
+
+*/
 template<class T>
 int CheckOperatorTypeMapVM( Word* args, Word& result, int message,
                         Word& local, Supplier s )
@@ -5885,6 +5987,26 @@ const string sysgetMatchingOperatorsSpec  =
     "query sys_getMatchingOperators('int', 0) tconsume</text--->"
     ") )";
 
+const string sys_getAlgebraNameSpec  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+    "( <text>int -> string</text--->"
+    "<text>sys_getAlgebraName( AlgId )</text--->"
+    "<text>Returns the name of the algebra module indicated by the number "
+    "AlgId. If AlgId is not positive or not associated with an algebra module, "
+    "the result is UNDEF.</text--->"
+    "<text>query sys_getAlgebraName(1)</text--->"
+    ") )";
+
+const string sys_getAlgebraIdSpec  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+    "( <text>{string|text} -> int</text--->"
+    "<text>sys_getAlgebraId( AlgebraName )</text--->"
+    "<text>Returns the numeric AlgebraId associated with the algebra module "
+    "name indicated by AlgebraName. If no algebra is associated with that "
+    "name, the result is UNDEF.</text--->"
+    "<text>query sys_getAlgebraId('StandardAlgebra')</text--->"
+    ") )";
+
 const string matchingOperatorNamesSpec  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
     "( <text>  ANY -> stream(string) </text--->"
@@ -6403,31 +6525,32 @@ Operator sysgetMatchingOperators
 );
 
 
-// Operator sysgetAlgebraName
-// (
-// "sys_getAlgebraName",          //name
-//  sys_getAlgebraNameSpec,        //specification
-//  sys_getAlgebraNameVM,         //value mapping
-//  Operator::SimpleSelect,     //trivial selection function
-//  int2stringTM              //type mapping
-//  );
-//
-// Operator sysgetAlgebraId
-// (
-//  "sys_getAlgebraId",          //name
-//   sys_getAlgebraIdSpec,        //specification
-//   sys_getAlgebraIdVM,         //value mapping
-//   Operator::SimpleSelect,     //trivial selection function
-//   string2intTM              //type mapping
-// );
-//
+Operator sysgetAlgebraName
+(
+"sys_getAlgebraName",           //name
+ sys_getAlgebraNameSpec,       //specification
+ sys_getAlgebraNameVM,        //value mapping
+ Operator::SimpleSelect,     //trivial selection function
+ int2stringTM               //type mapping
+);
+
+Operator sysgetAlgebraId
+(
+"sys_getAlgebraId",             //name
+ sys_getAlgebraIdSpec,         //specification
+ 2,                           // no of VM functions
+ sys_getAlgebraId_vm,        //value mapping
+ sys_getAlgebraId_select,   //trivial selection function
+ stringORtext2intTM        //type mapping
+);
+
 // Operator sysgetOperatorInfo
 // (
 //  "sys_getOperatorInfo",          //name
-//   sys_getOperatorInfoSpec,        //specification
-//   sys_getOperatorInfoVM,         //value mapping
+//   sys_getOperatorInfoSpec,      //specification
+//   sys_getOperatorInfoVM,       //value mapping
 //   Operator::SimpleSelect,     //trivial selection function
-//   sys_getOperatorInfoTM              //type mapping
+//   sys_getOperatorInfoTM      //type mapping
 // );
 //
 
@@ -6548,8 +6671,8 @@ public:
     AddOperator( &matchingOperatorNames);
     AddOperator( &matchingOperators);
     AddOperator( &sysgetMatchingOperators);
-//     AddOperator( &sysgetAlgebraName);
-//     AddOperator( &sysgetAlgebraId);
+    AddOperator( &sysgetAlgebraName);
+    AddOperator( &sysgetAlgebraId);
 //     AddOperator( &sysgetOperatorInfo);
 //     AddOperator( &sysgetTypeConstructorInfo);
 //     AddOperator( &sysgetNoAlgebras);

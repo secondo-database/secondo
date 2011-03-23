@@ -471,7 +471,7 @@ vector< pair< pair<int, int>, ListExpr> >
 
    vector< pair< pair<int,int>, ListExpr> > result;
    result.clear();
-   for(unsigned int a=0 ; a<algebra.size() ; a++){
+   for(unsigned int a=1 ; a<algebra.size() ; a++){ // algId=0 is prohibited
      matchingOperators(a, arguments, result);
    }
    return result;
@@ -480,7 +480,7 @@ vector< pair< pair<int, int>, ListExpr> >
 void AlgebraManager::matchingOperators(const int algId,
                                        const ListExpr arguments,
                        vector< pair< pair<int,int>, ListExpr> >& result){
-  assert( algId>=0);
+  assert( (algId>0) && (algId<algebra.size()) ); // 0 is an invalid algId!
   ListExpr typeError = nl->SymbolAtom("typeerror");
   Algebra* alg = algebra[algId];
   if(alg!=0){
@@ -541,3 +541,10 @@ bool AlgebraManager::findOperator(const string& name,
   return false;
 }
 
+/*
+Return maxAlgebraId
+
+*/
+int AlgebraManager::getMaxAlgebraId() const {
+  return maxAlgebraId;
+}

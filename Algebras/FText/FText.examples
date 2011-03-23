@@ -808,4 +808,32 @@ Signature: text x text -> bool
 Example  : query strequal('hello','HELLO', [const bool value undef])
 Result   : (bool undef)
 
+Operator : sys_getAlgebraName
+Number   : 1
+Signature: int -> string
+Example  : query sys_getAlgebraName(1)
+Result   : (string "StandardAlgebra")
 
+Operator : sys_getAlgebraName
+Number   : 2
+Signature: int -> string
+Example  : query sys_getAlgebraName(0)
+Result   : (string undef)
+
+Operator : sys_getAlgebraId
+Number   : 1
+Signature: string -> int
+Example  : query sys_getAlgebraId("StandardAlgebra")
+Result   : (int 1)
+
+Operator : sys_getAlgebraId
+Number   : 2
+Signature: text -> int
+Example  : query sys_getAlgebraId('RelationAlgebra')
+Result   : (int 3)
+
+Operator : sys_getAlgebraId
+Number   : 3
+Signature: text -> int
+Example  : query sys_getAlgebraId('blablabla')
+Result   : (int undef)

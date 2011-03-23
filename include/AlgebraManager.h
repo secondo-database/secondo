@@ -37,6 +37,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //[<=] [\leq]
 //[#]  [\neq]
 //[tilde] [\verb|~|]
+//[<] [$<$]
+//[>] [$>$]
 
 1 Header File: Algebra Manager
 
@@ -505,7 +507,9 @@ vector< pair< pair<int,int>, ListExpr> >
 
 /*
 This functions returns the same information, but restricts its search to the
-algebra specified by the given algebra id.
+algebra specified by the given algebra id ~algId~.
+
+~algId~ must be [>]0 and [<]algebra.size().
 
 The results are appended to the reference argument vector.
 
@@ -527,6 +531,12 @@ bool findOperator(const string& name,    //name of the operator
                   int& algId,            // algebra id
                   int& opId);            // operator id
 
+
+/*
+Returns the highest algebra id occuring in the vector of algebras.
+
+*/
+int getMaxAlgebraId() const;
 
  private:
   NestedList*              nl;
