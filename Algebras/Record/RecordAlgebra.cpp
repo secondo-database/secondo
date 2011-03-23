@@ -26,6 +26,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 #include <string>
 #include "Algebra.h"
+#include "Attribute.h"
 #include "NestedList.h"
 #include "NList.h"
 #include "ListUtils.h"
@@ -64,7 +65,7 @@ TypeConstructor recordTC(
   Record::Out, Record::In,         // Out and In functions
   0, 0,                            // SaveToList, RestoreFromList functions
   Record::Create, Record::Delete,  // object creation and deletion
-  Record::Open, Record::Save,      // object open, save
+  OpenAttribute<Record>, SaveAttribute<Record>,  // object open, save
   Record::Close, Record::Clone,    // close, and clone
   Record::Cast,                    // cast function
   Record::SizeOfObj,               // sizeof function

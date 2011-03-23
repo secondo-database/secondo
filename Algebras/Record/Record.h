@@ -186,11 +186,6 @@ be implemented for this data type because a record owns FLOB.
 
 
 */
-
-    static bool       Save(SmiRecord& valueRecord, size_t& offset,
-                           const ListExpr typeInfo, Word& value);
-    static bool       Open(SmiRecord& valueRecord, size_t& offset,
-                           const ListExpr typeInfo, Word& value);
     static Word       In(const ListExpr typeInfo, const ListExpr instance,
                          const int errorPos, ListExpr& errorInfo,
                          bool& correct);
