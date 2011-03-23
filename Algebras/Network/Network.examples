@@ -415,3 +415,9 @@ Number   : 1
 Signature: network X int X bool -> stream(tuple(int bool)))
 Example  : query getAdjacentSections(B_NETWORK, 1, TRUE) consume;
 Result   : file
+
+Operator : getReverseAdjacentSections
+Number   : 1
+Signature: network X int X bool -> stream(tuple(int bool)))
+Example  : query getReverseAdjacentSections(B_NETWORK, 2, TRUE) consume;
+Result   : file

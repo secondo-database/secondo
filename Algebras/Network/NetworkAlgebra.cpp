@@ -313,11 +313,11 @@ struct SectTree
   ~SectTree() {};
 
 
-  /*
-  Inserts a section into the tree. If the section is already in the insert is
-  ignored.
+/*
+Inserts a section into the tree. If the section is already in the insert is
+ignored.
 
-  */
+*/
   void Insert (const SectTreeEntry *nEntry )
   {
     if ( nEntry->secttid < value.secttid )
@@ -335,10 +335,10 @@ struct SectTree
     }
   };
 
-  /*
-  Returns a pointer to the node with the given id or 0 if not found.
+/*
+Returns a pointer to the node with the given id or 0 if not found.
 
-  */
+*/
   SectTree* Find (const TupleId n )
   {
     if ( n < value.secttid )
@@ -600,6 +600,13 @@ bool chkPoint03 ( SimpleLine *&route, const Point point,
   return result;
 }
 
+/*
+Almost similar to operator ~chkPoint~ but allowing a greater difference if the
+point is not exactly on the ~sline~.
+
+Used by operator ~point2gpoint~
+
+*/
 bool lastchkPoint03 ( SimpleLine *&route, const Point point,
                       const bool startSmaller,
                       double &pos, double &difference )
@@ -902,16 +909,16 @@ class GPointList
 
     ~GPointList() {}
 
-    /*
-    ~NextGPoint~
+/*
+~NextGPoint~
 
-    This function returns the next GPoint from the GPointList.
-    If there is no more GPoint in the  List the result will be
-    0. This function creates a new GPoint instance via the new
-    operator. The caller of this function has to ensure the
-    deletion of this object.
+This function returns the next GPoint from the GPointList.
+If there is no more GPoint in the  List the result will be
+0. This function creates a new GPoint instance via the new
+operator. The caller of this function has to ensure the
+deletion of this object.
 
-    */
+*/
     const GPoint NextGPoint()
     {
       GPoint pAktGPoint(true);
@@ -981,16 +988,16 @@ class RectangleList
 
     ~RectangleList() {}
 
-    /*
-    ~NextRectangle~
+/*
+~NextRectangle~
 
-    This function returns the next rectangle from the RectangleList.
-    If there is no more route interval in the  List the result will be
-    0. This function creates a new Rectangle instance via the new
-    operator. The caller of this function has to ensure the
-    deletion of this object.
+This function returns the next rectangle from the RectangleList.
+If there is no more route interval in the  List the result will be
+0. This function creates a new Rectangle instance via the new
+operator. The caller of this function has to ensure the
+deletion of this object.
 
-    */
+*/
     const Rectangle<2> NextRectangle()
     {
       Rectangle<2> pAktRectangle;
@@ -1086,6 +1093,11 @@ struct RIStack
   double m_dStart, m_dEnd;
   RIStack *m_next;
 };
+
+/*
+Analogous to RIStack but not limited by main memory.
+
+*/
 
 struct RIStackP
 {
@@ -1207,6 +1219,12 @@ class PQEntry
     TupleId beforeSectID;
 };
 
+/*
+Almost similar to PQEntry but supporting priority values needed by
+A-Star-Algorithm.
+
+*/
+
 class PQEntryA {
   public:
 
@@ -1266,6 +1284,11 @@ class PQEntryA {
     bool beforeUpDown;
 
 };
+
+/*
+Section Entries for data structure used in shortest path search.
+
+*/
 
 struct SectEntry
 {
@@ -1393,6 +1416,11 @@ struct SectEntry
   double distFromStart;
 };
 
+/*
+Helpful datastructure for shortest path search.
+
+*/
+
 struct SectIDTreeEntry
 {
   SectIDTreeEntry(){}
@@ -1474,6 +1502,11 @@ struct SectIDTreeEntry
   SectEntry sE;
   int left, right;
 };
+
+/*
+Not main memory limited data structure supporting shortest path search.
+
+*/
 
 struct SectIDTreeP
 {
@@ -2094,12 +2127,12 @@ struct PrioQueueA
 
   ~PrioQueueA() {};
 
-  /*
-  If a point is reached second time and the prioval of the second way is
-  smaller than on the path found before. The prioval, the valFromStart and the
-  position in the  priority queue must be corrected.
+/*
+If a point is reached second time and the prioval of the second way is
+smaller than on the path found before. The prioval, the valFromStart and the
+position in the  priority queue must be corrected.
 
-  */
+*/
   void CorrectPosition ( const int checkX, const PQEntryA& nElem,
                          SectIDTreeP *sectTree )
   {
@@ -2509,6 +2542,8 @@ Network::Network() :
     m_pBTreeJunctionsByRoute2 ( 0 ),
     m_xAdjacencyList ( 0 ),
     m_xSubAdjacencyList ( 0 ),
+    m_reverseAdjacencyList(0),
+    m_reverseSubAdjancencyList(0),
     m_pBTreeSectionsByRoute ( 0 )
     /*alldistance(0)*/  //only for experimental use with network distances
 {
@@ -2518,7 +2553,9 @@ Network::Network ( SmiRecord& in_xValueRecord,
                    size_t& inout_iOffset,
                    const ListExpr in_xTypeInfo ):
 m_xAdjacencyList(0),
-m_xSubAdjacencyList(0)
+m_xSubAdjacencyList(0),
+m_reverseAdjacencyList(0),
+m_reverseSubAdjancencyList(0)
 {
 
   // Read network id
@@ -2626,8 +2663,6 @@ m_xSubAdjacencyList(0)
     return;
   }
 
-// m_xAdjacencyList.OpenFromRecord(in_xValueRecord, inout_iOffset);
-// m_xSubAdjacencyList.OpenFromRecord(in_xValueRecord,inout_iOffset);
    size_t bufsize = sizeof(FlobId) + sizeof(SmiSize) + 2*sizeof(int);
    SmiSize offset = 0;
    char* buf = (char*) malloc(bufsize);
@@ -2644,6 +2679,22 @@ m_xSubAdjacencyList(0)
    inout_iOffset += bufsize;
    free(buf);
 
+// The same for reverse adjacency lists.
+   bufsize = sizeof(FlobId) + sizeof(SmiSize) + 2*sizeof(int);
+   offset = 0;
+   buf = (char*) malloc(bufsize);
+   in_xValueRecord.Read(buf, bufsize, inout_iOffset);
+   inout_iOffset += bufsize;
+   assert(buf != NULL);
+   m_reverseAdjacencyList.restoreHeader(buf,offset);
+   free(buf);
+   offset = 0;
+   buf = (char*) malloc(bufsize);
+   in_xValueRecord.Read(buf, bufsize, inout_iOffset);
+   assert(buf != NULL);
+   m_reverseSubAdjancencyList.restoreHeader(buf,offset);
+   inout_iOffset += bufsize;
+   free(buf);
   // Open btree for sections
   nl->ReadFromString ( sectionsBTreeTypeInfo, xType );
   xNumericType =SecondoSystem::GetCatalog()->NumericType ( xType );
@@ -2697,6 +2748,8 @@ Network::Network ( ListExpr in_xValue,
     m_pBTreeJunctionsByRoute2 ( 0 ),
     m_xAdjacencyList ( 0 ),
     m_xSubAdjacencyList ( 0 ),
+    m_reverseAdjacencyList(0),
+    m_reverseSubAdjancencyList(0),
     m_pBTreeSectionsByRoute ( 0 )
     /*alldistance(0)*/
 {
@@ -2932,14 +2985,17 @@ void Network::Destroy()
 
 //  m_xAdjacencyList.Destroy();
 //  m_xSubAdjacencyList.Destroy();
+//  m_reverseAdjacencyList.Destroy();
+//  m_reverseSubAdjancencyList.Destroy();
   assert ( m_pBTreeSectionsByRoute != 0 );
   m_pBTreeSectionsByRoute->DeleteFile();
   delete m_pBTreeSectionsByRoute;
   m_pBTreeSectionsByRoute = 0;
-  /*
-  assert(alldistance != 0);
-  delete alldistance;
-  */
+/*
+assert(alldistance != 0);
+delete alldistance;
+
+*/
 }
 
 /*
@@ -3254,18 +3310,18 @@ void Network::FillSections()
         Tuple* pNewSection = new Tuple ( nl->Second ( xNumType ) );
         pNewSection->PutAttribute ( SECTION_RID, new CcInt ( true, iRouteId ) );
         pNewSection->PutAttribute ( SECTION_DUAL, new CcBool ( true, bDual ) );
-        pNewSection->PutAttribute ( SECTION_MEAS1, new CcReal ( true, dStartPos
-) );
-        pNewSection->PutAttribute ( SECTION_MEAS2, new CcReal ( true, dEndPos )
-);
+        pNewSection->PutAttribute ( SECTION_MEAS1, new CcReal ( true,
+                                                                dStartPos) );
+        pNewSection->PutAttribute ( SECTION_MEAS2, new CcReal ( true,
+                                                                dEndPos ));
         pNewSection->PutAttribute ( SECTION_RRC, new TupleIdentifier ( true,
                                     iTupleId ) );
         pNewSection->PutAttribute ( SECTION_CURVE, pLine );
         pNewSection->PutAttribute ( SECTION_CURVE_STARTS_SMALLER,
                                     new CcBool ( true, bLineStartsSmaller ) );
         pNewSection->PutAttribute ( SECTION_SID,
-                                    new CcInt ( true, m_pSections->GetNoTuples()
-+1 ) );
+                                    new CcInt ( true,
+                                                m_pSections->GetNoTuples()+1 ));
         m_pSections->AppendTuple ( pNewSection );
         iSectionTid++;
         pNewSection->DeleteIfAllowed();
@@ -3324,10 +3380,10 @@ void Network::FillSections()
             dCurrentPosOnRoute == 0.0 )
     {
       // Find values for the new section
-      int iRouteId = ( ( CcInt* ) pRoute->GetAttribute ( ROUTE_ID )
-)->GetIntval();
-      bool bDual = ( ( CcBool* ) pRoute->GetAttribute ( ROUTE_DUAL )
-)->GetBoolval();
+      int iRouteId =
+        ( ( CcInt* ) pRoute->GetAttribute ( ROUTE_ID ))->GetIntval();
+      bool bDual =
+        ( ( CcBool* ) pRoute->GetAttribute ( ROUTE_DUAL ))->GetBoolval();
       double dStartPos = dCurrentPosOnRoute;
       double dEndPos = pRouteCurve->Length();
       TupleId iTupleId = pRoute->GetTupleId();
@@ -3368,8 +3424,7 @@ void Network::FillSections()
       Tuple* pNewSection = new Tuple ( nl->Second ( xNumType ) );
       pNewSection->PutAttribute ( SECTION_RID, new CcInt ( true, iRouteId ) );
       pNewSection->PutAttribute ( SECTION_DUAL, new CcBool ( true, bDual ) );
-      pNewSection->PutAttribute ( SECTION_MEAS1, new CcReal ( true, dStartPos )
-);
+      pNewSection->PutAttribute ( SECTION_MEAS1,new CcReal ( true, dStartPos ));
       pNewSection->PutAttribute ( SECTION_MEAS2, new CcReal ( true, dEndPos ) );
       pNewSection->PutAttribute ( SECTION_RRC,
                                   new TupleIdentifier ( true, iTupleId ) );
@@ -3377,8 +3432,7 @@ void Network::FillSections()
       pNewSection->PutAttribute ( SECTION_CURVE_STARTS_SMALLER,
                                   new CcBool ( true, bLineStartsSmaller ) );
       pNewSection->PutAttribute ( SECTION_SID,
-                                  new CcInt ( true, m_pSections->GetNoTuples()
-+1 ) );
+                          new CcInt ( true, m_pSections->GetNoTuples() + 1 ) );
       m_pSections->AppendTuple ( pNewSection );
       iSectionTid++;
       pNewSection->DeleteIfAllowed();
@@ -3481,8 +3535,8 @@ void Network::FillSections()
           xIndices.push_back ( JUNCTION_SECTION_BUP_RC );
         }
         vector<Attribute*> xAttrs;
-        if ( fabs ( xEntry.GetRouteMeas() - xEntryBehind.GetRouteMeas() ) < 0.01
-)
+        if ( fabs ( xEntry.GetRouteMeas() - xEntryBehind.GetRouteMeas() )
+              < 0.01)
         {
           if ( xEntryBehind.m_bFirstRoute )
           {
@@ -3550,7 +3604,7 @@ void Network::FillSections()
   string strQuery = "(createbtree (" + sectionsInternalTypeInfo +
                     " (ptr " + xThisSectionsPtrStream.str() + "))" + " rid)";
   int QueryExecuted = QueryProcessor::ExecuteQuery ( strQuery, xResult );
-  assert ( QueryExecuted ); // no query with side effects, please!
+  assert ( QueryExecuted );
   m_pBTreeSectionsByRoute = ( BTree* ) xResult.addr;
 }
 
@@ -3563,9 +3617,11 @@ void Network::FillAdjacencyLists()
   // Adjust the adjacenzy list to the correct size. From each
   // section four directions are possible - including u-turns
   m_xAdjacencyList.resize ( m_pSections->GetNoTuples() * 2 );
+  m_reverseAdjacencyList.resize(m_pSections->GetNoTuples()*2);
   for ( int i = 0; i < m_pSections->GetNoTuples() * 2; i++ )
   {
     m_xAdjacencyList.Put ( i, AdjacencyListEntry ( -1, -1 ) );
+    m_reverseAdjacencyList.Put(i, AdjacencyListEntry(-1,-1));
   }
 
   GenericRelationIterator* pJunctionsIt = m_pJunctions->MakeScan();
@@ -3576,6 +3632,8 @@ void Network::FillAdjacencyLists()
   // In a first step all pairs of adjacent sections will be collected
   //
   vector<DirectedSectionPair> xList;
+  vector<DirectedSectionPair> xReverseList;
+
   while ( ( pCurrentJunction = pJunctionsIt->GetNextTuple() ) != 0 )
   {
     //////////////////////////////////
@@ -3592,116 +3650,90 @@ void Network::FillAdjacencyLists()
     //
     // (This should also be possible without loading the Section itself)
     //
-    /*TupleIdentifier* pTid;
-    Tuple* pAUp = 0;
-    Tuple* pADown = 0;
-    Tuple* pBUp = 0;
-    Tuple* pBDown = 0;*/
+
     TupleId tidpAUp, tidpADown, tidpBUp, tidpBDown;
 
     tidpAUp = ( ( TupleIdentifier* )
-                pCurrentJunction->GetAttribute ( JUNCTION_SECTION_AUP_RC )
-)->GetTid();
+         pCurrentJunction->GetAttribute ( JUNCTION_SECTION_AUP_RC ))->GetTid();
     tidpADown = ( ( TupleIdentifier* )
-                  pCurrentJunction->GetAttribute ( JUNCTION_SECTION_ADOWN_RC )
-)->GetTid();
+        pCurrentJunction->GetAttribute ( JUNCTION_SECTION_ADOWN_RC ))->GetTid();
     tidpBUp = ( ( TupleIdentifier* )
-                pCurrentJunction->GetAttribute ( JUNCTION_SECTION_BUP_RC )
-)->GetTid();
+       pCurrentJunction->GetAttribute ( JUNCTION_SECTION_BUP_RC ))->GetTid();
     tidpBDown = ( ( TupleIdentifier* )
-                  pCurrentJunction->GetAttribute ( JUNCTION_SECTION_BDOWN_RC )
-)->GetTid();
+        pCurrentJunction->GetAttribute ( JUNCTION_SECTION_BDOWN_RC ))->GetTid();
 
-    /*
-    // First section
-    Attribute* pAttr = pCurrentJunction->GetAttribute(JUNCTION_SECTION_AUP_RC);
-    pTid = (TupleIdentifier*)pAttr;
-    if(pTid->GetTid() > 0)
-    {
-      pAUp = m_pSections->GetTuple(pTid->GetTid());
-    }
-
-    // Second section
-    pAttr = pCurrentJunction->GetAttribute(JUNCTION_SECTION_ADOWN_RC);
-    pTid = (TupleIdentifier*)pAttr;
-    if(pTid->GetTid() > 0)
-    {
-      pADown = m_pSections->GetTuple(pTid->GetTid());
-    }
-
-    // Third section
-    pAttr = pCurrentJunction->GetAttribute(JUNCTION_SECTION_BUP_RC);
-    pTid = (TupleIdentifier*)pAttr;
-    if(pTid->GetTid() > 0)
-    {
-      pBUp = m_pSections->GetTuple(pTid->GetTid());
-    }
-
-    // Fourth section
-    pAttr = pCurrentJunction->GetAttribute(JUNCTION_SECTION_BDOWN_RC);
-    pTid = (TupleIdentifier*)pAttr;
-    if(pTid->GetTid() > 0)
-    {
-      pBDown = m_pSections->GetTuple(pTid->GetTid());
-    }
-    */
     //////////////////////////////////
     //
     // If a section is existing and the transition is possible
-    // it will be added to the list.
+    // it will be added to the adjacency list.
     //
     FillAdjacencyPair ( tidpAUp, false, tidpAUp, true, xCc, AUP_AUP, xList );
-    FillAdjacencyPair ( tidpAUp, false, tidpADown, false, xCc, AUP_ADOWN, xList
-);
+    FillAdjacencyPair ( tidpAUp, false, tidpADown, false, xCc, AUP_ADOWN,
+                        xList);
     FillAdjacencyPair ( tidpAUp, false, tidpBUp, true, xCc, AUP_BUP, xList );
-    FillAdjacencyPair ( tidpAUp, false, tidpBDown, false, xCc, AUP_BDOWN, xList
-);
+    FillAdjacencyPair ( tidpAUp, false, tidpBDown, false, xCc, AUP_BDOWN,
+                        xList);
 
     FillAdjacencyPair ( tidpADown, true, tidpAUp, true, xCc, ADOWN_AUP, xList );
-    FillAdjacencyPair ( tidpADown, true, tidpADown, false, xCc,ADOWN_ADOWN,xList
-);
+    FillAdjacencyPair ( tidpADown, true, tidpADown, false, xCc, ADOWN_ADOWN,
+                        xList);
     FillAdjacencyPair ( tidpADown, true, tidpBUp, true, xCc, ADOWN_BUP, xList );
-    FillAdjacencyPair ( tidpADown, true, tidpBDown, false, xCc,ADOWN_BDOWN,xList
-);
+    FillAdjacencyPair ( tidpADown, true, tidpBDown, false, xCc, ADOWN_BDOWN,
+                        xList);
 
     FillAdjacencyPair ( tidpBUp, false, tidpAUp, true, xCc, BUP_AUP, xList );
-    FillAdjacencyPair ( tidpBUp, false, tidpADown, false, xCc, BUP_ADOWN, xList
-);
+    FillAdjacencyPair ( tidpBUp, false, tidpADown, false, xCc, BUP_ADOWN,
+                        xList);
     FillAdjacencyPair ( tidpBUp, false, tidpBUp, true, xCc, BUP_BUP, xList );
-    FillAdjacencyPair ( tidpBUp, false, tidpBDown, false, xCc, BUP_BDOWN, xList
-);
+    FillAdjacencyPair ( tidpBUp, false, tidpBDown, false, xCc, BUP_BDOWN,
+                        xList);
 
     FillAdjacencyPair ( tidpBDown, true, tidpAUp, true, xCc, BDOWN_AUP, xList );
-    FillAdjacencyPair ( tidpBDown, true, tidpADown, false, xCc,BDOWN_ADOWN,xList
-);
-    FillAdjacencyPair ( tidpBDown, true, tidpBUp, true, xCc,BDOWN_BUP, xList );
-    FillAdjacencyPair ( tidpBDown, true, tidpBDown, false, xCc,BDOWN_BDOWN,xList
-);
-    /*
-    // First section
-    FillAdjacencyPair(pAUp, false, pAUp, true, xCc, AUP_AUP, xList);
-    FillAdjacencyPair(pAUp, false, pADown, false, xCc, AUP_ADOWN, xList);
-    FillAdjacencyPair(pAUp, false, pBUp, true, xCc, AUP_BUP, xList);
-    FillAdjacencyPair(pAUp, false, pBDown, false, xCc, AUP_BDOWN, xList);
+    FillAdjacencyPair ( tidpBDown, true, tidpADown, false, xCc,BDOWN_ADOWN,
+                        xList);
+    FillAdjacencyPair ( tidpBDown, true, tidpBUp, true, xCc, BDOWN_BUP, xList );
+    FillAdjacencyPair ( tidpBDown, true, tidpBDown, false, xCc, BDOWN_BDOWN,
+                        xList);
 
-    // Second section
-    FillAdjacencyPair(pADown, true, pAUp, true, xCc, ADOWN_AUP, xList);
-    FillAdjacencyPair(pADown, true, pADown, false, xCc, ADOWN_ADOWN, xList);
-    FillAdjacencyPair(pADown, true, pBUp, true, xCc, ADOWN_BUP, xList);
-    FillAdjacencyPair(pADown, true, pBDown, false, xCc, ADOWN_BDOWN, xList);
+    //////////////////////////////////////////////////////////////////////////
+    // And the reverse adjacency list.
+    FillReverseAdjacencyPair ( tidpAUp, false, tidpAUp, true, xCc, AUP_AUP,
+                               xReverseList );
+    FillReverseAdjacencyPair ( tidpAUp, false, tidpADown, false, xCc, AUP_ADOWN,
+                               xReverseList);
+    FillReverseAdjacencyPair ( tidpAUp, false, tidpBUp, true, xCc, AUP_BUP,
+                               xReverseList );
+    FillReverseAdjacencyPair ( tidpAUp, false, tidpBDown, false, xCc, AUP_BDOWN,
+                               xReverseList);
 
-    // Third section
-    FillAdjacencyPair(pBUp, false, pAUp, true, xCc, BUP_AUP, xList);
-    FillAdjacencyPair(pBUp, false, pADown, false, xCc, BUP_ADOWN, xList);
-    FillAdjacencyPair(pBUp, false, pBUp, true, xCc, BUP_BUP, xList);
-    FillAdjacencyPair(pBUp, false, pBDown, false, xCc, BUP_BDOWN, xList);
+    FillReverseAdjacencyPair ( tidpADown, true, tidpAUp, true, xCc, ADOWN_AUP,
+                               xReverseList );
+    FillReverseAdjacencyPair ( tidpADown, true, tidpADown, false, xCc,
+                               ADOWN_ADOWN, xReverseList);
+    FillReverseAdjacencyPair ( tidpADown, true, tidpBUp, true, xCc, ADOWN_BUP,
+                               xReverseList );
+    FillReverseAdjacencyPair ( tidpADown, true, tidpBDown, false, xCc,
+                               ADOWN_BDOWN, xReverseList);
 
-    // Fourth section
-    FillAdjacencyPair(pBDown, true, pAUp, true, xCc, BDOWN_AUP, xList);
-    FillAdjacencyPair(pBDown, true, pADown, false, xCc, BDOWN_ADOWN, xList);
-    FillAdjacencyPair(pBDown, true, pBUp, true, xCc, BDOWN_BUP, xList);
-    FillAdjacencyPair(pBDown, true, pBDown, false, xCc, BDOWN_BDOWN, xList);
-    */
+    FillReverseAdjacencyPair ( tidpBUp, false, tidpAUp, true, xCc, BUP_AUP,
+                               xReverseList );
+    FillReverseAdjacencyPair ( tidpBUp, false, tidpADown, false, xCc, BUP_ADOWN,
+                               xReverseList);
+    FillReverseAdjacencyPair ( tidpBUp, false, tidpBUp, true, xCc, BUP_BUP,
+                               xReverseList );
+    FillReverseAdjacencyPair ( tidpBUp, false, tidpBDown, false, xCc, BUP_BDOWN,
+                               xReverseList);
+
+    FillReverseAdjacencyPair ( tidpBDown, true, tidpAUp, true, xCc, BDOWN_AUP,
+                               xReverseList );
+    FillReverseAdjacencyPair ( tidpBDown, true, tidpADown, false, xCc,
+                               BDOWN_ADOWN, xReverseList);
+    FillReverseAdjacencyPair ( tidpBDown, true, tidpBUp, true, xCc, BDOWN_BUP,
+                               xReverseList );
+    FillReverseAdjacencyPair ( tidpBDown, true, tidpBDown, false, xCc,
+                               BDOWN_BDOWN, xReverseList);
+
+
     pCurrentJunction->DeleteIfAllowed();
   }
   delete pJunctionsIt;
@@ -3711,9 +3743,8 @@ void Network::FillAdjacencyLists()
   //
   // Now - as the second step the adjacency lists are filled.
   //
-  // Sort the list by the first directed section
-  stable_sort ( xList.begin(),
-         xList.end() );
+  // Sort the lists by the first directed section
+  stable_sort ( xList.begin(), xList.end() );
 
   DirectedSectionPair xLastPair;
   int iLow = 0;
@@ -3769,6 +3800,74 @@ void Network::FillAdjacencyLists()
   }
   m_xAdjacencyList.TrimToSize();
   m_xSubAdjacencyList.TrimToSize();
+
+  /////////////////////////////////////////////////////////////////////////
+  //
+  // Now - as the third step the reverse adjacency lists are filled.
+  //
+  // Sort the lists by the first directed section
+  stable_sort ( xReverseList.begin(), xReverseList.end() );
+
+  DirectedSectionPair xLastReversePair;
+  iLow = 0;
+  for ( size_t i = 0; i < xReverseList.size(); i++ )
+  {
+    // Get next
+    DirectedSectionPair xReversePair = xReverseList[i];
+    if ( i == 0 )
+    {
+      // Append new entry to sub-list
+      m_reverseSubAdjancencyList.Append (
+        DirectedSection ( xReversePair.m_iSecondSectionTid,
+                          xReversePair.m_bSecondUpDown ) );
+      xLastReversePair = xReversePair;
+    }
+    // Entry in adjacency list if all sections adjacent to one section have
+    // been found. This is the case every time the first section changes. Never
+    // at the first entry and always at the last.
+    if ( i == xReverseList.size() -1 ||
+      (
+        i != 0 &&
+        (
+          xLastReversePair.m_iFirstSectionTid !=
+              xReversePair.m_iFirstSectionTid
+          ||
+          xLastReversePair.m_bFirstUpDown !=
+            xReversePair.m_bFirstUpDown
+        )
+      )
+    )
+    {
+      int iHigh = m_reverseSubAdjancencyList.Size()-1;
+      Tuple *pSect =
+        m_pSections->GetTuple ( xLastReversePair.m_iFirstSectionTid, false );
+      int iSectId =
+      ( ( CcInt* ) pSect->GetAttribute ( SECTION_SID ) )->GetIntval();
+      pSect->DeleteIfAllowed();
+      int iIndex = 2 * ( iSectId-1 );
+      iIndex += xLastReversePair.m_bFirstUpDown ? 1 : 0;
+      m_reverseAdjacencyList.Put ( iIndex, AdjacencyListEntry ( iLow, iHigh ) );
+      iLow = iHigh + 1;
+    }
+
+    // Check if entry allready exists in list. As the list is sorted it
+    // has to be the entry before.
+    if ( i == 0 ||
+      xLastReversePair.m_iFirstSectionTid != xReversePair.m_iFirstSectionTid ||
+      xLastReversePair.m_bFirstUpDown != xReversePair.m_bFirstUpDown ||
+      xLastReversePair.m_iSecondSectionTid !=
+        xReversePair.m_iSecondSectionTid ||
+      xLastReversePair.m_bSecondUpDown != xReversePair.m_bSecondUpDown )
+    {
+      // Append new entry to sub-list
+      m_reverseSubAdjancencyList.Append (
+        DirectedSection ( xReversePair.m_iSecondSectionTid,
+                          xReversePair.m_bSecondUpDown ) );
+    }
+    xLastReversePair = xReversePair;
+  }
+  m_reverseAdjacencyList.TrimToSize();
+  m_reverseSubAdjancencyList.TrimToSize();
 }
 
 /*
@@ -3795,8 +3894,27 @@ void Network::FillAdjacencyPair ( const TupleId in_pFirstSection,
   }
 }
 
+void Network::FillReverseAdjacencyPair ( const TupleId in_pFirstSection,
+                                         const bool in_bFirstUp,
+                                         const TupleId in_pSecondSection,
+                                         const bool in_bSecondUp,
+                                         const ConnectivityCode in_xCc,
+                                         const Transition in_xTransition,
+                                  vector<DirectedSectionPair> &inout_xPairs )
+{
+  if ( in_pFirstSection != 0 &&
+    in_pSecondSection != 0 &&
+    in_xCc.IsPossible ( in_xTransition ) )
+  {
+    inout_xPairs.push_back ( DirectedSectionPair ( in_pSecondSection,
+                                                   in_bSecondUp,
+                                                   in_pFirstSection,
+                                                   in_bFirstUp ) );
+  }
+}
+
 /*
-.
+c.
 
 */
 bool Network::InShortestPath ( GPoint*start, GPoint *to,
@@ -4315,16 +4433,6 @@ int Network::GetId() const
 Relation *Network::GetRoutes() const
 {
   return m_pRoutes;
-/*  ostringstream strRoutesPtr;
-  strRoutesPtr << ( long ) m_pRoutes;
-
-  string querystring = "(consume (feed (" + routesTypeInfo +
-                       " (ptr " + strRoutesPtr.str() + "))))";
-
-  Word resultWord;
-  int QueryExecuted = QueryProcessor::ExecuteQuery ( querystring, resultWord );
-  assert ( QueryExecuted ); // no ASSERT with side effects, please
-  return ( Relation * ) resultWord.addr;*/
 }
 
 
@@ -4338,7 +4446,7 @@ Relation *Network::GetJunctions() const
 
   Word resultWord;
   int QueryExecuted = QueryProcessor::ExecuteQuery ( querystring, resultWord );
-  assert ( QueryExecuted ); // no ASSERT with side effects, please
+  assert ( QueryExecuted );
   return ( Relation * ) resultWord.addr;
 }
 
@@ -4599,15 +4707,16 @@ Relation* Network::GetSections()const
   return ( Relation * ) resultWord.addr;
 }
 
+/*
+Returns adjacent sections of iniSectionTId.
+
+*/
+
 void Network::GetAdjacentSections ( const TupleId in_iSectionTId,
                                     const bool in_bUpDown,
                                     vector<DirectedSection> &inout_xSections )
                                     const
-{/*
-cout << "Network::GetAdjacentsections" << endl;
-cout << "adjList: " << m_xAdjacencyList.print(cout) << endl;
-cout << "subAdjList: " << m_xSubAdjacencyList.print(cout) << endl;
-cout << "in_iSectionTID: " << in_iSectionTId << endl;*/
+{
   inout_xSections.clear();
   Tuple *pSect = GetSection ( in_iSectionTId );
   if ( pSect != 0 )
@@ -4665,6 +4774,77 @@ void Network::GetAdjacentSections(const int sectId, const bool upDown,
     }
   }
 }
+
+/*
+
+Returns reverse adjacent sections of iniSectionTId.
+
+*/
+
+void Network::GetReverseAdjacentSections ( const TupleId in_iSectionTId,
+                                           const bool in_bUpDown,
+                                    vector<DirectedSection> &inout_xSections )
+  const
+{
+  inout_xSections.clear();
+  Tuple *pSect = GetSection ( in_iSectionTId );
+  if ( pSect != 0 )
+  {
+    int iSectionId =
+    ( ( CcInt* ) pSect->GetAttribute ( SECTION_SID ) )->GetIntval();
+    pSect->DeleteIfAllowed();
+    int iIndex = 2 * ( iSectionId-1 )  + ( in_bUpDown ? 1 : 0 );
+    AdjacencyListEntry xEntry;
+    m_reverseAdjacencyList.Get ( iIndex, xEntry );
+    if ( xEntry.m_iHigh != -1 )
+    {
+      int iLow = xEntry.m_iLow;
+      int iHigh = xEntry.m_iHigh;
+
+      for ( int i = iLow; i <= iHigh; i++ )
+      {
+        DirectedSection xSection;
+        m_reverseSubAdjancencyList.Get ( i, xSection );
+
+        bool bUpDownFlag = xSection.GetUpDownFlag();
+        TupleId iSectionTid = xSection.GetSectionTid();
+        inout_xSections.push_back ( DirectedSection ( iSectionTid,
+                                                      bUpDownFlag ) );
+
+      }
+    }
+  }
+}
+
+
+void Network::GetReverseAdjacentSections(const int sectId,
+                                         const bool upDown,
+                                  DbArray<AdjacentSectionsPair> *resArray)
+  const
+{
+  int iIndex = 2 * ( sectId-1 )  + ( upDown ? 1 : 0 );
+  AdjacencyListEntry xEntry;
+  m_reverseAdjacencyList.Get ( iIndex, xEntry );
+  if ( xEntry.m_iHigh != -1 )
+  {
+    int iLow = xEntry.m_iLow;
+    int iHigh = xEntry.m_iHigh;
+
+    for ( int i = iLow; i <= iHigh; i++ )
+    {
+      DirectedSection xSection;
+      m_reverseSubAdjancencyList.Get ( i, xSection );
+
+      bool bUpDownFlag = xSection.GetUpDownFlag();
+      Tuple* sectTuple = GetSection(xSection.GetSectionTid());
+      int sectionID =
+      ((CcInt*)sectTuple->GetAttribute(SECTION_SID))->GetIntval();
+      sectTuple->DeleteIfAllowed();
+      resArray->Append(AdjacentSectionsPair(sectionID, bUpDownFlag));
+    }
+  }
+}
+
 /*
 Returns the route Interval between the two points
 
@@ -5498,17 +5678,6 @@ ListExpr Network::Save ( SmiRecord& in_xValueRecord,
     return false;
   }
 
-   //SmiFileId fileId = 0;
-  //m_xAdjacencyList.SaveToRecord(in_xValueRecord, inout_iOffset, fileId);
-  //m_xSubAdjacencyList.SaveToRecord(in_xValueRecord, inout_iOffset, fileId);
-    //save m_xAdjacencyLlist
-   //Flob *tmpAdjList = &m_xAdjacencyList;
-
- /*  cout << "before storing:" << endl;
-   cout << "adjList" << ((Flob)m_xAdjacencyList) << endl;
-   cout << "adjList" << ((Flob)m_xSubAdjacencyList) << endl;
-  cout << "----" << endl;*/
-
    SecondoCatalog *ctlg = SecondoSystem::GetCatalog();
    SmiRecordFile *rf = ctlg->GetFlobFile();
    m_xAdjacencyList.saveToFile(rf, m_xAdjacencyList);
@@ -5531,7 +5700,25 @@ ListExpr Network::Save ( SmiRecord& in_xValueRecord,
    in_xValueRecord.Write(buf,bufsize, inout_iOffset);
    free(buf);
    inout_iOffset += bufsize;
-
+   //save m_reverseAdjacencyList
+   m_reverseAdjacencyList.saveToFile(rf, m_reverseAdjacencyList);
+   offset = 0;
+   bufsize = m_reverseAdjacencyList.headerSize()+ 2*sizeof(int);
+   buf = (char*) malloc(bufsize);
+   m_reverseAdjacencyList.serializeHeader(buf,offset);
+   assert(offset==bufsize);
+   in_xValueRecord.Write(buf, bufsize, inout_iOffset);
+   inout_iOffset += bufsize;
+   free(buf);
+   //save m_reverseSubAdjacencyList
+   m_reverseSubAdjancencyList.saveToFile(rf, m_reverseSubAdjancencyList);
+   offset = 0;
+   buf = (char*) malloc(bufsize);
+   m_reverseSubAdjancencyList.serializeHeader(buf,offset);
+   assert(offset==bufsize);
+   in_xValueRecord.Write(buf,bufsize, inout_iOffset);
+   free(buf);
+   inout_iOffset += bufsize;
 
   // Save btree for sections
   nl->ReadFromString ( sectionsBTreeTypeInfo, xType );
@@ -5727,12 +5914,12 @@ ROUTE_CURVE );
       }
       pCurrRoute->DeleteIfAllowed();
     }
-    /*
-    If the point exact hits a route the route should be found here. If the point
-    value is not exact on the route curve we try to map it in the next step with
-    bigger tolerance for the hit of the route curve.
+/*
+If the point exact hits a route the route should be found here. If the point
+value is not exact on the route curve we try to map it in the next step with
+bigger tolerance for the hit of the route curve.
 
-    */
+*/
     if ( m_pRTreeRoutes->First ( bbox, res ) )
       pCurrRoute = m_pRoutes->GetTuple ( res.info, false );
     pRouteCurve = ( SimpleLine* ) pCurrRoute->GetAttribute ( ROUTE_CURVE );
@@ -8110,7 +8297,7 @@ void GPoint::ShortestPathTree(const Network* pNetwork,
     visitedSect->Insert(SectIDTreeEntry(
                          SectEntry(startSectionTID,
                                    startSectionTID,
-                                    true, false,
+                                    true, true,
                                     -1,
                                     0.0),
                           -1,-1),
@@ -8210,6 +8397,146 @@ void GPoint::ShortestPathTree(const Network* pNetwork,
         actSection = 0;
       }
        if (actPQEntry != 0)
+      {
+        delete actPQEntry;
+        actPQEntry=0;
+      }
+    }
+    prioQ->Destroy();
+    delete prioQ;
+    visitedSect->Destroy();
+    delete visitedSect;
+    startSection->DeleteIfAllowed();
+  }
+}
+
+/*
+Returns the reverse shortest path tree of the gpoint from all sections of the
+network. The distances are stored in an DbArray<double>, where the index
+of the Array-Field is two times the section number for up sections and
+two times the section number plus one for down sections.
+
+*/
+
+void GPoint::ReverseShortestPathTree(const Network* pNetwork,
+                             DbArray<ShortestPathTreeEntry> *res) const
+{
+  if (IsDefined() && pNetwork != 0 && pNetwork->IsDefined() &&
+    GetNetworkId() == pNetwork->GetId() && res != 0)
+  {
+    TupleId startSectionTID = pNetwork->GetTupleIdSectionOnRoute(this);
+    PrioQueueA *prioQ = new PrioQueueA ( 0 );
+    SectIDTreeP *visitedSect =  new SectIDTreeP ( 0);
+    int pHelp = -1;
+    int sectPos = -1;
+    Tuple* startSection = pNetwork->GetSection(startSectionTID);
+    double sectMeas1 =
+      ((CcReal* )startSection->GetAttribute(SECTION_MEAS1))->GetRealval();
+    double sectMeas2 =
+      ((CcReal*)startSection->GetAttribute(SECTION_MEAS2))->GetRealval();
+    int actRouteId =
+      ((CcInt*)startSection->GetAttribute(SECTION_RID))->GetIntval();
+    int sectID =
+      ((CcInt*)startSection->GetAttribute(SECTION_SID))->GetIntval();
+    res->Put(2*sectID, ShortestPathTreeEntry(0.0, true));
+    res->Put(2*sectID + 1, ShortestPathTreeEntry(0.0, false));
+
+    double dist = fabs(GetPosition() - sectMeas2);
+    visitedSect->Insert(SectIDTreeEntry(
+      SectEntry(startSectionTID,
+                startSectionTID,
+                false, false,
+                -1,
+                0.0),
+                -1,-1),
+                pHelp);
+    visitedSect->Insert(SectIDTreeEntry(
+      SectEntry(startSectionTID,
+                startSectionTID,
+                true, true,
+                -1,
+                0.0),
+                -1,-1),
+                pHelp);
+    vector<DirectedSection> adjSectionList;
+    adjSectionList.clear();
+    pNetwork->GetReverseAdjacentSections (startSectionTID, false,
+                                          adjSectionList );
+    for ( size_t i = 0;  i < adjSectionList.size(); i++ )
+    {
+      DirectedSection actNextSect = adjSectionList[i];
+      prioQ->Insert ( PQEntryA ( actNextSect.GetSectionTid(), dist, dist,
+                                 actNextSect.GetUpDownFlag(),
+                                 startSectionTID, false ),
+                      visitedSect, 0);
+    }
+    adjSectionList.clear();
+    dist = fabs(sectMeas1 - GetPosition());
+
+    pNetwork->GetReverseAdjacentSections ( startSectionTID, true,
+                                    adjSectionList );
+    for ( size_t i = 0;  i < adjSectionList.size(); i++ )
+    {
+      DirectedSection actNextSect = adjSectionList[i];
+      prioQ->Insert ( PQEntryA ( actNextSect.GetSectionTid(), dist,dist,
+                                 actNextSect.GetUpDownFlag(),
+                                 startSectionTID, true ),
+                      visitedSect, 0);
+    }
+    adjSectionList.clear();
+    PQEntryA* actPQEntry = 0;
+    while (!prioQ->IsEmpty())
+    {
+      actPQEntry = prioQ->GetAndDeleteMin(visitedSect);
+      Tuple *actSection = pNetwork->GetSection ( actPQEntry->sectID );
+      sectMeas1 =
+        ((CcReal*)actSection->GetAttribute(SECTION_MEAS1))->GetRealval();
+      sectMeas2 =
+        ((CcReal*)actSection->GetAttribute(SECTION_MEAS2))->GetRealval();
+      actRouteId =
+        ((CcInt*)actSection->GetAttribute(SECTION_RID))->GetIntval();
+      sectPos = 2*actPQEntry->sectID;
+      if (!actPQEntry->upDownFlag)
+        sectPos++;
+      res->Put(sectPos, ShortestPathTreeEntry(actPQEntry->valFromStart,
+                                              actPQEntry->upDownFlag));
+
+      dist = actPQEntry->valFromStart + fabs ( sectMeas2 - sectMeas1 );
+      pNetwork->GetReverseAdjacentSections ( actPQEntry->sectID,
+                                      actPQEntry->upDownFlag,
+                                      adjSectionList );
+      if (adjSectionList.size() != 0)
+      {
+        for ( size_t i = 0; i <adjSectionList.size();i++ )
+        {
+          DirectedSection actNextSect = adjSectionList[i];
+          prioQ->Insert ( PQEntryA ( actNextSect.GetSectionTid(),
+                                     dist,dist,
+                                     actNextSect.GetUpDownFlag(),
+                                     actPQEntry->sectID,
+                                     actPQEntry->upDownFlag),
+                          visitedSect, 0);
+        }
+      }
+      else
+      {
+        if (!actPQEntry->upDownFlag)
+          sectPos--;
+        else
+          sectPos++;
+        res->Put(sectPos,
+                 ShortestPathTreeEntry(actPQEntry->valFromStart +
+                                          fabs(sectMeas2 - sectMeas1),
+                                       !actPQEntry->upDownFlag));
+
+      }
+      adjSectionList.clear();
+      if (actSection != 0)
+      {
+        actSection->DeleteIfAllowed();
+        actSection = 0;
+      }
+      if (actPQEntry != 0)
       {
         delete actPQEntry;
         actPQEntry=0;
@@ -9508,8 +9835,7 @@ int OpNetNetdistance_glgl ( Word* args, Word& result, int message,
 ValueMapping OpNetNetdistancemap[] =
 {
   OpNetNetdistance_gpgp,
-  OpNetNetdistance_glgl,
-  0
+  OpNetNetdistance_glgl
 };
 
 int OpNetNetdistanceselect ( ListExpr args )
@@ -11759,6 +12085,11 @@ ListExpr OpGetAdjacentSectionsTypeMap ( ListExpr args )
   return NList().tupleStreamOf(tupleType).listExpr();
 }
 
+/*
+Helper Struct for Adjacenc Section Lists.
+
+*/
+
 struct AdjacentSectionsInfo
 {
   AdjacentSectionsInfo()
@@ -11780,20 +12111,20 @@ struct AdjacentSectionsInfo
 };
 
 int OpGetAdjacentSectionsValueMap(Word* args, Word& result, int message,
-                               Word& local, Supplier in_pSupplier)
+                                  Word& local, Supplier in_pSupplier)
 {
   AdjacentSectionsInfo *localinfo = 0;
 
   switch(message)
   {
 
-     case OPEN:
-     {
+    case OPEN:
+    {
       Network* pNetwork = (Network*) args[0].addr;
       int sectId =
-        ((CcInt*) args[1].addr)->GetIntval();
+      ((CcInt*) args[1].addr)->GetIntval();
       bool upDownFlag =
-        ((CcBool*) args[2].addr)->GetBoolval();
+      ((CcBool*) args[2].addr)->GetBoolval();
       if (pNetwork != 0 && pNetwork->IsDefined())
       {
         localinfo = new AdjacentSectionsInfo();
@@ -11807,49 +12138,49 @@ int OpGetAdjacentSectionsValueMap(Word* args, Word& result, int message,
       local = SetWord(localinfo);
       return 0;
       break;
-     }
+    }
 
-     case REQUEST:
-     {
-        localinfo = (AdjacentSectionsInfo*) local.addr;
-        if (localinfo != 0 && localinfo->pos < localinfo->resArray->Size())
-        {
-          AdjacentSectionsPair adjSectEntry;
-          localinfo->resArray->Get(localinfo->pos,adjSectEntry);
-          Tuple *res = new Tuple(localinfo->resTupleTyp);
-          res->PutAttribute(0,new CcInt(true,adjSectEntry.GetSectionID()));
-          res->PutAttribute(1,new CcBool(true,adjSectEntry.GetUpDownFlag()));
-          localinfo->pos++;
-          result.setAddr(res);
-          return YIELD;
-        }
-        else
-          return CANCEL;
-        break;
-     }
+    case REQUEST:
+    {
+      localinfo = (AdjacentSectionsInfo*) local.addr;
+      if (localinfo != 0 && localinfo->pos < localinfo->resArray->Size())
+      {
+        AdjacentSectionsPair adjSectEntry;
+        localinfo->resArray->Get(localinfo->pos,adjSectEntry);
+        Tuple *res = new Tuple(localinfo->resTupleTyp);
+        res->PutAttribute(0,new CcInt(true,adjSectEntry.GetSectionID()));
+        res->PutAttribute(1,new CcBool(true,adjSectEntry.GetUpDownFlag()));
+        localinfo->pos++;
+        result.setAddr(res);
+        return YIELD;
+      }
+      else
+        return CANCEL;
+      break;
+    }
 
-     case CLOSE:
-     {
-       localinfo = (AdjacentSectionsInfo*) local.addr;
-       if (localinfo != 0)
+    case CLOSE:
+    {
+      localinfo = (AdjacentSectionsInfo*) local.addr;
+      if (localinfo != 0)
+      {
+        localinfo->Destroy();
+        delete localinfo->resArray;
+        localinfo->resArray = 0;
+        if (localinfo->resTupleTyp != 0)
         {
-          localinfo->Destroy();
-          delete localinfo->resArray;
-          localinfo->resArray = 0;
-          if (localinfo->resTupleTyp != 0)
-          {
-            localinfo->resTupleTyp->DeleteIfAllowed();
-            localinfo->resTupleTyp = 0;
-          }
-          delete localinfo;
-          localinfo = 0;
-          local.setAddr(0);
+          localinfo->resTupleTyp->DeleteIfAllowed();
+          localinfo->resTupleTyp = 0;
         }
-        return 0;
-        break;
-     }
-     default:
-       return 0;
+        delete localinfo;
+        localinfo = 0;
+        local.setAddr(0);
+      }
+      return 0;
+      break;
+    }
+    default:
+      return 0;
   }
 }
 
@@ -11859,6 +12190,96 @@ struct getAdjacentSectionsInfo:OperatorInfo{
     signature = "network X int X bool -> stream(tupel((int)(bool)))";
     syntax = "getAdjacentSections(_,_,_)";
     meaning = "Returns the adjacent sections in given direction.";
+  }
+};
+
+/*
+6.25 Operator ~getReverseAdjacentSections~
+
+Returns the reverse adjacent Sections of the given section.
+
+*/
+
+int OpGetReverseAdjacentSectionsValueMap(Word* args, Word& result, int message,
+                                  Word& local, Supplier in_pSupplier)
+{
+  AdjacentSectionsInfo *localinfo = 0;
+
+  switch(message)
+  {
+
+    case OPEN:
+    {
+      Network* pNetwork = (Network*) args[0].addr;
+      int sectId =
+      ((CcInt*) args[1].addr)->GetIntval();
+      bool upDownFlag =
+      ((CcBool*) args[2].addr)->GetBoolval();
+      if (pNetwork != 0 && pNetwork->IsDefined())
+      {
+        localinfo = new AdjacentSectionsInfo();
+
+        pNetwork->GetReverseAdjacentSections(sectId, upDownFlag,
+                                      localinfo->resArray);
+
+        ListExpr resultType = GetTupleResultType( in_pSupplier );
+        localinfo->resTupleTyp = new TupleType(nl->Second(resultType));
+      }
+      local = SetWord(localinfo);
+      return 0;
+      break;
+    }
+
+    case REQUEST:
+    {
+      localinfo = (AdjacentSectionsInfo*) local.addr;
+      if (localinfo != 0 && localinfo->pos < localinfo->resArray->Size())
+      {
+        AdjacentSectionsPair adjSectEntry;
+        localinfo->resArray->Get(localinfo->pos,adjSectEntry);
+        Tuple *res = new Tuple(localinfo->resTupleTyp);
+        res->PutAttribute(0,new CcInt(true,adjSectEntry.GetSectionID()));
+        res->PutAttribute(1,new CcBool(true,adjSectEntry.GetUpDownFlag()));
+        localinfo->pos++;
+        result.setAddr(res);
+        return YIELD;
+      }
+      else
+        return CANCEL;
+      break;
+    }
+
+    case CLOSE:
+    {
+      localinfo = (AdjacentSectionsInfo*) local.addr;
+      if (localinfo != 0)
+      {
+        localinfo->Destroy();
+        delete localinfo->resArray;
+        localinfo->resArray = 0;
+        if (localinfo->resTupleTyp != 0)
+        {
+          localinfo->resTupleTyp->DeleteIfAllowed();
+          localinfo->resTupleTyp = 0;
+        }
+        delete localinfo;
+        localinfo = 0;
+        local.setAddr(0);
+      }
+      return 0;
+      break;
+    }
+    default:
+      return 0;
+  }
+}
+
+struct getReverseAdjacentSectionsInfo:OperatorInfo{
+  getReverseAdjacentSectionsInfo():OperatorInfo(){
+    name = "getReverseAdjacentSections";
+    signature = "network X int X bool -> stream(tupel((int)(bool)))";
+    syntax = "getReverseAdjacentSections(_,_,_)";
+    meaning = "Returns the reverse adjacent sections.";
   }
 };
 /*
@@ -11930,6 +12351,9 @@ class NetworkAlgebra : public Algebra
       AddOperator ( shortestpathtreeInfo(), OpShortestpathtreeMap,
                     OpShortestpathtreeSelect, OpShortestpathtreeTypeMap);
       AddOperator ( getAdjacentSectionsInfo(), OpGetAdjacentSectionsValueMap,
+                    OpGetAdjacentSectionsTypeMap);
+      AddOperator ( getReverseAdjacentSectionsInfo(),
+                    OpGetReverseAdjacentSectionsValueMap,
                     OpGetAdjacentSectionsTypeMap);
     }
 

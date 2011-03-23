@@ -353,7 +353,8 @@ The simple constructor. Should not be used.
   {}
 
 /*
-Assignment operator
+
+Assignment operator.
 
 */
 
@@ -366,6 +367,7 @@ Assignment operator
   void SetRouteId(const int r){rid = r;}
   void SetPosition(const double p) {d = p;}
   void SetSide(const Side s){side = s;}
+
 /*
 
 Private fields.
@@ -778,6 +780,17 @@ two times the section number plus one for down sections.
  void ShortestPathTree(const Network* pNetwork,
                        DbArray<ShortestPathTreeEntry> *res) const;
 
+/*
+Returns the reverse shortest path tree of the gpoint from all sections of the
+network. The distances are stored in an DbArray<double>, where the index
+of the Array-Field is two times the section number for up sections and
+two times the section number plus one for down sections.
+
+*/
+
+void ReverseShortestPathTree(const Network* pNetwork,
+                             DbArray<ShortestPathTreeEntry> *res) const;
+
   private:
 
 /*
@@ -1076,20 +1089,20 @@ Copy-Constructor
   {
   }
 
+  ~DirectedSectionPair(){};
+
   bool operator<(const DirectedSectionPair& in_xOther) const
   {
-    if(m_iFirstSectionTid != in_xOther.m_iFirstSectionTid)
-    {
-      return m_iFirstSectionTid < in_xOther.m_iFirstSectionTid;
-    }
+    if(m_iFirstSectionTid < in_xOther.m_iFirstSectionTid)
+      return true;
+    if (m_iFirstSectionTid > in_xOther.m_iFirstSectionTid)
+      return false;
     if(m_bFirstUpDown != in_xOther.m_bFirstUpDown)
-    {
       return m_bFirstUpDown;
-    }
-    if(m_iSecondSectionTid != in_xOther.m_iSecondSectionTid)
-    {
-      return m_iSecondSectionTid < in_xOther.m_iSecondSectionTid;
-    }
+    if (m_iSecondSectionTid < in_xOther.m_iSecondSectionTid)
+      return true;
+    if (m_iSecondSectionTid > in_xOther.m_iSecondSectionTid)
+      return false;
     return m_bSecondUpDown;
   }
 
@@ -1628,6 +1641,16 @@ downwards bool from the section given by TupleId.
     void GetAdjacentSections(const int sectId, const bool upDown,
                              DbArray<AdjacentSectionsPair> *resArray) const;
 
+    void GetReverseAdjacentSections(const TupleId in_iSectionId,
+                                    const bool in_bUpDown,
+                                    vector<DirectedSection> &inout_xSections)
+      const;
+
+    void GetReverseAdjacentSections(const int sectId,
+                                    const bool upDown,
+                                    DbArray<AdjacentSectionsPair> *resArray)
+      const;
+
 /*
 GetSections on RouteInterval.
 
@@ -1840,6 +1863,14 @@ Given that all relations are set up, the adjacency lists are created.
                          const Transition in_xTransition,
                          vector<DirectedSectionPair> &inout_xPairs);
 
+  void FillReverseAdjacencyPair (const TupleId in_pFirstSection,
+                                 const bool in_bFirstUp,
+                                 const TupleId in_pSecondSection,
+                                 const bool in_bSecondUp,
+                                 const ConnectivityCode in_xCc,
+                                 const Transition in_xTransition,
+                                 vector<DirectedSectionPair> &inout_xPairs);
+
 /*
 Used for experiments with network distance computation to store precomputed
 distances. Because of the big data overhead and computation time this methods
@@ -1938,11 +1969,15 @@ The adjacency lists of sections.
 
   DbArray<AdjacencyListEntry> m_xAdjacencyList;
 
+  DbArray<DirectedSection> m_xSubAdjacencyList;
+
 /*
-The adjacency lists of sections.
+The reverse adjacency lists of sections.
 
 */
-  DbArray<DirectedSection> m_xSubAdjacencyList;
+
+  DbArray<AdjacencyListEntry> m_reverseAdjacencyList;
+  DbArray<DirectedSection> m_reverseSubAdjancencyList;
 
 /*
 The BTree of the sections route ids.
