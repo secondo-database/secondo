@@ -561,10 +561,6 @@ valueexpr  : ZZIDENTIFIER        {$$ = $1;}
         NestedText::Concat(NestedText::AtomC(" "),
         NestedText::Concat($3,
           NestedText::AtomC(")")  ))));}
-    | ZZIDENTIFIER '(' ')'
-      {$$ = NestedText::Concat(
-        NestedText::AtomC("("),
-        NestedText::Concat($1, NestedText::AtomC(")")) );}
     | attribute        {$$ = $1;}
     | attribute2        {$$ = $1;}
     | '(' valueexpr ')'      {$$ = $2;}
