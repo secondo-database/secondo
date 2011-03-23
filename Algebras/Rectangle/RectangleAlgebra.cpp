@@ -1817,57 +1817,43 @@ int RectangleBboxIntersects( Word* args, Word& result, int message,
 Build a cell grid located in first quadrant,
 and return the number of cells that the rectangle object covers.
 
-*/
-int
-cellNumberVM(Word* args, Word& result,
-                    int message, Word& local, Supplier s)
-{
-struct CellGrid{
-  CellGrid(double _x0, double _y0, double _z0,
-           double _xw, double _yw, double _zw,
-           int _nx, int _ny, bool _3D):
-    nx(_nx), ny(_ny),
-    x0(_x0), y0(_y0), z0(_z0),
-    xWidth(_xw), yWidth(_yw), zWidth(_zw),
-    cx(0), cy(0), cz(0),
-    outGrid(false), finished(false), is3D(_3D)
-  {}
+4.4.13.1 Auxiliary functions for ~cellnumber~ and ~gridintersects~
 
-/*
+~ptQuadrant~ method returns which quadrant a point locates,
+inside 2D or 3D space.
 Only if the point locates in the first quadrant,
-then the returned quadrant number is positive 1.
+the returned quadrant number is positive 1.
 Or else, the quadrant number is a negative.
 
 */
-  int ptQuadrant(double x, double y)
+int ptQuadrant(double x, double y)
+{
+  int quadrant = 0;
+  if (x < 0.0)
   {
-    int quadrant = 0;
-    if (x < 0.0)
-    {
-      if (y < 0.0)
-        quadrant = 3;
-      else
-        quadrant = 2;
-    }
+    if (y < 0.0)
+      quadrant = 3;
     else
-    {
-      if (y < 0.0)
-        quadrant = 4;
-      else
-        quadrant = 1;
-    }
-    quadrant = (quadrant > 1) ? (0 - quadrant) : quadrant;
-    return quadrant;
-  }
-
-  int ptQuadrant(double x, double y, double z)
+      quadrant = 2;
+  } else
   {
-    int quadrant = abs(ptQuadrant(x, y));
-    if (z < 0.0)
-      quadrant += 4;
-    quadrant = (quadrant > 1) ? (0 - quadrant) : quadrant;
-    return quadrant;
+    if (y < 0.0)
+      quadrant = 4;
+    else
+      quadrant = 1;
   }
+  quadrant = (quadrant > 1) ? (0 - quadrant) : quadrant;
+  return quadrant;
+}
+
+int ptQuadrant(double x, double y, double z)
+{
+  int quadrant = abs(ptQuadrant(x, y));
+  if (z < 0.0)
+    quadrant += 4;
+  quadrant = (quadrant > 1) ? (0 - quadrant) : quadrant;
+  return quadrant;
+}
 
 /*
 ~cellCord~ function is used to get the coordinate number of a
@@ -1885,26 +1871,41 @@ Besides, there also exist some unnecessary parameters:
   * isRT: whether the point is the right top point of the given rectangle
 
 */
-  int cellCord(double p0, double pq, double cw,
-               bool& outGrid,
-               int cLIM = -1,  bool isRT = false)
+int cellCord(double p0, double pq, double cw, bool& outGrid, int cLIM = -1,
+    bool isRT = false)
+{
+  int CORD = 0;
+  double dt = pq - p0;
+  if ((dt > 0.0) && !AlmostEqual(0.0, dt))
   {
-    int CORD = 0;
-    double dt = pq - p0;
-    if ((dt > 0.0) && !AlmostEqual(0.0, dt))
+    CORD = static_cast<int> (floor(dt / cw));
+    if (isRT && AlmostEqual(pq, CORD * cw))
+      CORD--;
+    // If exists a limitation, and the point exceed it
+    if ((cLIM > 0) && (CORD > cLIM))
     {
-      CORD = static_cast<int>(floor(dt/cw));
-      if (isRT && AlmostEqual(pq, CORD*cw))
-        CORD--;
-      //If exists a limitation, and the point exceed it
-      if ((cLIM > 0) && (CORD > cLIM))
-      {
-        CORD = cLIM;
-        outGrid = true;
-      }
+      CORD = cLIM;
+      outGrid = true;
     }
-    return CORD;
   }
+  return CORD;
+}
+
+int
+cellNumberVM(Word* args, Word& result,
+                    int message, Word& local, Supplier s)
+{
+struct CellGrid{
+  CellGrid(double _x0, double _y0, double _z0,
+           double _xw, double _yw, double _zw,
+           int _nx, int _ny, bool _3D):
+    nx(_nx), ny(_ny),
+    x0(_x0), y0(_y0), z0(_z0),
+    xWidth(_xw), yWidth(_yw), zWidth(_zw),
+    cx(0), cy(0), cz(0),
+    outGrid(false), finished(false), is3D(_3D)
+  {}
+
 
   //Set the MBR of the rectangle in the grid
   void setBoundBox(double lbx, double rtx,
@@ -2113,7 +2114,7 @@ with cell numbers that bigger than 0.
 }
 
 /*
-4.4.13 Value mapping functions of operator ~gridIntersects~
+4.4.13 Value mapping functions of operator ~gridintersects~
 
 The inputs are:
 (x0, y0, xW, yW, nx, rectA, rectB, cellno).
@@ -2227,30 +2228,28 @@ gridIntersectsVM(Word* args, Word& result,
     return 0;
   }
 
-  LBX = static_cast<int>(floor((interx - x0) / xw));
-  LBY = static_cast<int>(floor((intery - y0) / yw));
-  if (is3D){
-    LBZ = static_cast<int>(floor((interz - z0) / zw));
-  }
-
-  if(LBX < 0 || LBY < 0 || LBZ < 0) {
-    cerr << "RectangleAlgebra::gridIntersects: "
-        "Error, the intersected rectangle locates "
-        "outside of the first quadrant\n\n\n";
-    res->Set( true, false );
+  int lbqt = ptQuadrant((interx - x0), (intery - y0), (interz - z0));
+  if (lbqt < 0)
+  {
+    //The ~common smallest cell~ is not in the first quadrant
+    res->Set(true, (0 == cellno));
     return 0;
   }
 
-  if((LBX - 1 > nx) || (is3D && (LBY - 1 > ny))){
-    cerr << "RectangleAlgebra::gridIntersects: "
-        "Error, the intersected rectangle locates "
-        "outside the defined grid\n\n\n";
-    res->Set( true, false );
+  bool outGrid = false;
+  LBX = cellCord(x0, interx, xw, outGrid, nx);
+  LBY = cellCord(y0, intery, yw, outGrid, (is3D?ny:(-1)));
+  LBZ = cellCord(z0, interz, zw, outGrid);
+
+
+  if(outGrid) {
+    //The ~common smallest cell~ is not in the scale of the grid
+    res->Set( true, (0 == cellno) );
     return 0;
   }
 
   cscNo = LBX + LBY*nx + LBZ*nx*ny + 1;
-  res->Set(true, (cellno == cscNo));
+  res->Set(true, (cscNo == cellno));
 
   return 0;
 }
