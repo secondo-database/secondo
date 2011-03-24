@@ -1605,12 +1605,17 @@ ListExpr CcTypeMapTinDATAexpplus2TinDATA( ListExpr args )
          CheckKind("DATA", type.listExpr(), errorInfo)){
       return NList::typeError("Expected T^n, T in kind DATA, n >= 1.");
   }
-  for(int i = 2; i < noArgs; i++){
-    if( mArgs.elem(i) != type )
-    {
+
+  ListExpr first = nl->First(args);
+  ListExpr rest = nl->Rest(args);
+
+  while(!nl->IsEmpty(rest)){
+    if(!nl->Equal(first, nl->First(rest))){
       return NList::typeError("Expected T^n, T in kind DATA, n >= 1.");
     }
+    rest = nl->Rest(rest);
   }
+
   return type.listExpr();
 }
 
