@@ -1662,6 +1662,20 @@ ListExpr CcTypeMapNumNumReal( ListExpr args ){
 }
 
 /*
+4.2.20 Type mapping function for: real x  real -> real
+
+*/
+ListExpr CcTypeMapRealRealReal( ListExpr args ){
+  if(!nl->HasLength(args,2)){
+    return listutils::typeError("Expected real x real");
+  }
+  if(    listutils::isSymbol(nl->First(args), "real")
+      && listutils::isSymbol(nl->Second(args), "real")){
+    return nl->SymbolAtom("real");
+  }
+  return listutils::typeError("Expected real x real");
+}
+/*
 4.4 Value mapping functions of operator ~+~
 
 A value mapping function implements an operator's main functionality: it takes
@@ -3955,6 +3969,23 @@ int CCtrigonVM (Word* args, Word& result, int message, Word& local, Supplier s )
   return 0;
 }
 
+int CCArctan2VM (
+    Word* args, Word& result, int message, Word& local, Supplier s )
+{
+  CcReal* yarg = static_cast<CcReal*>(args[0].addr);
+  CcReal* xarg = static_cast<CcReal*>(args[1].addr);
+  result = qp->ResultStorage( s );
+  CcReal* res = static_cast<CcReal*>(result.addr);
+
+  if(!yarg->IsDefined() || !xarg->IsDefined()){
+    res->SetDefined(false);
+    return 0;
+  }
+  double r= atan2(yarg->GetRealval(), xarg->GetRealval());
+  res->Set(true, r);
+  return 0;
+}
+
 int CcPi (Word* args, Word& result, int message, Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
@@ -4709,7 +4740,8 @@ const string CCarcsinSpec =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
     "( <text> int | real -> real </text--->"
     "<text>arcsin( v )</text--->"
-    "<text>Returns the arcussinus of v (v is given in rad).</text--->"
+    "<text>Returns the principal value of the arc sine of x, expressed "
+    "in radians, in the interval [-pi/2,+pi/2] radians.</text--->"
     "<text>query arcsin(sin(deg2rad(90)))</text--->"
     ") )";
 
@@ -4717,7 +4749,8 @@ const string CCarccosSpec =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
     "( <text> int | real -> real </text--->"
     "<text>arccos( v )</text--->"
-    "<text>Returns the arcuscosinus of v (v is given in rad).</text--->"
+    "<text>Returns the principal value of the arc cosine of x, "
+    "expressed in radians, in the interval [0,pi] radians.</text--->"
     "<text>query arccos(sin(deg2rad(90)))</text--->"
     ") )";
 
@@ -4725,8 +4758,19 @@ const string CCarctanSpec =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
     "( <text> int | real -> real </text--->"
     "<text>arctan( v )</text--->"
-    "<text>Returns the arcustangens of v (v is given in rad).</text--->"
+    "<text>Returns the principal value of the arc tangent of x, expressed in "
+    "radians, in the interval [-pi/2,+pi/2] radians"
+    " of v (v is given in rad).</text--->"
     "<text>query arctan(tan(deg2rad(90)))</text--->"
+    ") )";
+
+const string CCarctan2Spec =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
+    "( <text> real -> real </text--->"
+    "<text>arctan2( dy, dx )</text--->"
+    "<text>Returns the principal value of the arc tangent of y/x, "
+    "expressed in radians, in the interval [-pi,+pi] radians.</text--->"
+    "<text>query arctan2(tan(deg2rad(90)))</text--->"
     ") )";
 
 const string CCpiSpec =
@@ -4959,6 +5003,8 @@ Operator ccarccos( "arccos", CCarccosSpec, 2, CCarccosVM, CcNumRealSelect,
                    CcTypeMapNumReal);
 Operator ccarctan( "arctan", CCarctanSpec, 2, CCarctanVM, CcNumRealSelect,
                    CcTypeMapNumReal);
+Operator ccarctan2( "arctan2", CCarctan2Spec, CCArctan2VM,
+                    Operator::SimpleSelect, CcTypeMapRealRealReal);
 Operator ccpi( "const_pi", CCpiSpec, CcPi, Operator::SimpleSelect,
                CcTypeMapEmptyReal);
 Operator ccdeg2rad( "deg2rad", CCdeg2radSpec, 2, CCdeg2radVM, CcNumRealSelect,
@@ -5085,6 +5131,7 @@ class CcAlgebra1 : public Algebra
     AddOperator( &ccarcsin );
     AddOperator( &ccarccos );
     AddOperator( &ccarctan );
+    AddOperator( &ccarctan2);
     AddOperator( &ccpi );
     AddOperator( &ccdeg2rad );
     AddOperator( &ccrad2deg );

@@ -627,3 +627,17 @@ Signature: int -> real
 Example  : query arctan(0)
 Result   : 0.0
 
+Operator : arctan2
+Number   : 1
+Signature: real -> real
+Example  : query arctan2(-1.0, -1.0)
+Result   : -2.35619
+Tolerance: 0.0001
+
+Operator : arctan2
+Number   : 2
+Signature: real -> real
+Example  : query arctan(1.0, 1.0)
+Result   : 0.7853981634
+Tolerance: 0.0001
+
