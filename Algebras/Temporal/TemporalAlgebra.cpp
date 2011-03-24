@@ -13579,6 +13579,12 @@ int TurnsOperatorValueMapping( Word* args, Word& result, int message,
             if(    (fabs(diffHead) >= li->minDiff)
                 && (fabs(diffHead) <= li->maxDiff) ) {
               // create attributes for result tuple
+              double x1= li->lastUnit.p0.GetX(), y1= li->lastUnit.p0.GetY(),
+                  x2= li->lastUnit.p1.GetX(), y2= li->lastUnit.p1.GetY(),
+                  x3= li->currUnit.p1.GetX(), y3= li->currUnit.p1.GetY(),
+                  detA= x2*y3 - x3*y2 - x1*y3 + x3*y1 + x1*y2 - x2*y1;
+
+              diffHead= (detA > 0)? fabs(diffHead): -1 * fabs(diffHead);
               lastTime    = new DateTime(li->lastUnit.timeInterval.end);
               currTime    = new DateTime(li->currUnit.timeInterval.start);
               lastPos     = new Point(li->lastUnit.p1);
