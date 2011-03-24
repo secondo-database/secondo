@@ -12,6 +12,8 @@ of a point data type.
 #define POINT_H
 
 #include "Coord.h"
+#include "Geoid.h"
+#include "RectangleAlgebra.h"
 
 class Point;
 class Points;
@@ -220,6 +222,29 @@ Operators redefinition.
 */
     double Direction( const Point& p ) const;
 
+
+/*
+4.1 Spherical geometry operations
+
+While the preceding operations use euclidic geometry, the following operations
+use Spherical geometry.
+
+*/
+
+/*
+4.1.1 Distance
+
+Distance between two points given in geodetic (Lat, Lon)-coordinates.
+The distance is measured along a geoid passed as an argument.
+
+*/
+
+    double DistanceOrthodrome( const Point& p, const Geoid& g) const;
+
+/*
+4.1.2
+
+*/
 
 /*
 4.3.15 Operation ~translate~

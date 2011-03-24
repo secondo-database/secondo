@@ -82,6 +82,9 @@ using namespace std;
 #include <iterator>
 #include <sstream>
 #include <limits>
+#include <errno.h>
+#include <cerrno>
+
 
 #ifndef M_PI
 const double M_PI = acos( -1.0 );
@@ -1023,6 +1026,7 @@ double Point::Distance( const Rectangle<2>& r ) const
   return sqrt( pow( dx, 2 ) + pow( dy, 2 ) );
 }
 
+
 double Point::Direction( const Point& p ) const
 {
   assert(IsDefined());
@@ -1084,6 +1088,78 @@ void Point::Rotate(const Coord& x, const Coord& y,
 
 }
 
+/*
+4.1 Spherical geometry operations
+
+While the preceding operations use euclidic geometry, the following operations
+use Spherical geometry.
+
+*/
+
+/*
+Distance between two points given in geodetic (Lat, Lon)-coordinates.
+The distance is measured along a geoid passed as an argument.
+The result uses the same unit as the geoid'd radius.
+
+*/
+double Point::DistanceOrthodrome( const Point& p, const Geoid& g) const
+{
+  assert(IsDefined() && p.IsDefined());
+  double a = g.getR(); // sphere's equatorical radius (from geoid)
+  double f = g.getF(); // sphere's flattening (from geoid)
+
+  // convert coordinates from degrees to radiant
+  double b1 = GetY(),   l1 = GetX();  // X=longitude, Y=latitude
+  double b2 = p.GetY(), l2 = p.GetX();// X=longitude, Y=latitude
+
+  assert( (l1 >= -180) && (l1 <= 180) );
+  assert( (b1 >= -90) && (b1 <= 90) );
+
+  assert( (l2 >= -180) && (l2 <= 180) );
+  assert( (b2 >= -90) && (b2 <= 90) );
+
+  if(AlmostEqual(*this,p)){
+    return 0.0;
+  }
+  double F = (b1 + b2) * M_PI / 360.0;
+  double G = (b1 - b2) * M_PI / 360.0;
+  double l = (l1 - l2) * M_PI / 360.0;
+
+  // compute approximate distance
+  double coslsq = cos(l) * cos(l);
+  double sinlsq = sin(l) * sin(l);
+  double sinG = sin(G);
+  double cosG = cos(G);
+  double cosF = cos(F);
+  double sinF = sin(F);
+  double sinGsq = sinG*sinG;
+  double cosGsq = cosG*cosG;
+  double sinFsq = sinF*sinF;
+  double cosFsq = cosF*cosF;
+
+  double S = sinGsq*coslsq + cosFsq*sinlsq;
+  double C = cosGsq*coslsq + sinFsq*sinlsq;
+
+  errno = 0;
+  double SoverC = S/C;
+  assert( errno == 0 );
+  assert( SoverC >= 0 );
+  double w = atan(sqrt(SoverC));
+  assert( errno == 0 );
+  double D = 2*w*a;
+
+  // correct the distance
+  double R = sqrt(S*C)/w;
+  assert( errno == 0 );
+  double H1 = (3*R-1)/(2*C);
+  assert( errno == 0 );
+  double H2 = (3*R+1)/(2*S);
+  assert( errno == 0 );
+  double s = D*( 1 + f*H1*sinFsq*cosGsq - f*H2*cosFsq*sinGsq );
+  assert( errno == 0 );
+  assert( s >= 0 );
+  return s;
+}
 
 /*
 4.2 List Representation
@@ -14644,7 +14720,19 @@ ostream& operator<<(ostream& o,const SimplePoint& p) {
 }
 
 
+/*
+Implementation of stream output operator for ~Geoid~ objects
 
+*/
+ostream& operator<<( ostream& o, const Geoid& g ){
+  ios_base::fmtflags oldOptions = o.flags();
+  o.setf(ios_base::fixed,ios_base::floatfield);
+  o.precision(16);
+  o << "(Geoid " << g.getName() << ": r=" << g.getR() << ", if="
+  << g.getIFlat() << ")";
+  o.flags(oldOptions);
+  return o;
+};
 
 
 
@@ -17975,6 +18063,79 @@ Operator halfSegmentsOp (
    halfSegmentsTM );
 
 
+ListExpr distanceOrthodromeTM(ListExpr args){
+  int noargs = nl->ListLength(args);
+  string errmsg = "Expected (point x point) or (point x point x string).";
+  if(noargs < 2){
+    return listutils::typeError(errmsg);
+  }
+  if(   !listutils::isSymbol(nl->First(args),Point::BasicType())
+     || !listutils::isSymbol(nl->Second(args),Point::BasicType()) ){
+    return listutils::typeError(errmsg);
+  }
+  if(noargs==2){
+    return nl->SymbolAtom(CcReal::BasicType());
+  }
+  if(noargs != 3){
+    return listutils::typeError(errmsg);
+  }
+  if(listutils::isSymbol(nl->Third(args),CcString::BasicType())){
+    return nl->SymbolAtom(CcReal::BasicType());
+  }
+  return listutils::typeError(errmsg);
+};
+
+int distanceOrthodromeVM( Word* args, Word& result, int message,
+                          Word& local, Supplier s )
+{
+  result = qp->ResultStorage( s );
+  CcReal* res = static_cast<CcReal*>(result.addr);
+  Point* p1 = static_cast<Point*>(args[0].addr);
+  Point* p2 = static_cast<Point*>(args[1].addr);
+  if(!p1->IsDefined() || !p2->IsDefined()){
+    res->Set(false, 0.0);
+    return 0;
+  }
+  string geoidstr = "WGS1984";
+  if(qp->GetNoSons(s)==3){
+    CcString* geoidStr = static_cast<CcString*>(args[2].addr);
+    if(!geoidStr->IsDefined()){
+      res->Set(false, 0.0);
+      return 0;
+    }
+    geoidstr = geoidStr->GetValue();
+  }
+  bool valid = false;
+  Geoid::GeoidName gn = Geoid::getGeoIdNameFromString(geoidstr,valid);
+  if(!valid){
+    res->Set(false, 0.0);
+    return 0;
+  }
+  Geoid geoid(gn);
+  res->Set(true,p1->DistanceOrthodrome(*p2,geoid));
+  return 0;
+}
+
+const string distanceOrthodromeSpec =
+   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+   "( <text> point x point [ x string] -> real</text--->"
+   "<text>distanceOrthodrome( p1, p2, geoidName ) </text--->"
+   "<text>Returns the length of the orthodrome between point p1 and p2 "
+   "according to the specified geoid. Both points must represent geographic "
+   "coordinates (LON,LAT), where -180<=LON<=180 and -90<=LAT<=90."
+   "Valid geoidNames are " + Geoid::getGeoIdNames() + ". The default geoidName "
+   "is \"WGS1984\". If any argument is invalid or undefined, the result is "
+   "UNDEF.</text--->"
+   "<text>query distanceOrthodrome(makepoint(7.494968217,51.376125146),"
+   "makepoint(-73.984633618, 40.728925452 ),\"WGS1984\")</text---> ) )";
+
+Operator spatial_distanceOrthodrome (
+   "distanceOrthodrome",
+    distanceOrthodromeSpec,
+    distanceOrthodromeVM,
+    Operator::SimpleSelect,
+    distanceOrthodromeTM );
+
 
 /*
 11 Creating the Algebra
@@ -18075,6 +18236,7 @@ class SpatialAlgebra : public Algebra
     AddOperator( &spatialsetstartsmaller ) ;
     AddOperator( &spatialgetstartsmaller ) ;
     AddOperator( &spatial_create_sline ) ;
+    AddOperator( &spatial_distanceOrthodrome );
   }
   ~SpatialAlgebra() {};
 };

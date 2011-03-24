@@ -818,3 +818,11 @@ Number   : 1
 Signature: point x point -> sline
 Example  : query atposition(create_sline(makepoint(10,10),makepoint(0,0)),0.0,TRUE) = makepoint(10,10)
 Result   : TRUE
+
+Operator : distanceOrthodrome
+Number   : 1
+Signature: point x point [x string] -> real
+Example  : query distanceOrthodrome(makepoint(13.4,52.517),makepoint(139.767, 35.7 ),"WGS1984")/1000.0
+Result   : (real 8941.201228)
+Tolerance: 0.2
+
