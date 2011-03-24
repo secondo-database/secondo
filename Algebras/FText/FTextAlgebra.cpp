@@ -6022,7 +6022,7 @@ const string CheckOperatorTypeMapSpec  =
     "( <text>  string x ANY -> text </text--->"
     "<text> checkOperatorTypeMap(opname, arg1, ...) </text--->"
     "<text>Checks whether an operator opname exists which can be "
-           "process the arguments arg_1,...arg_n."
+    "process the arguments arg_1,...arg_n."
     " The reulting text contains the type of the result as a nested list or"
     " an undefined text if such an operator does not exist."
     " </text--->"
