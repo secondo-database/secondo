@@ -4208,7 +4208,7 @@ int RangeRangevaluesBoolExt( Word* args, Word& result, int message,
     }
 
     Interval<CcBool> inter(min, max, true, true);
-    pResult->Add(inter);
+    pResult->MergeAdd(inter);
 
     return 0;
 }
