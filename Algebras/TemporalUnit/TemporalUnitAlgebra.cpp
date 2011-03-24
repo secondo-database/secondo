@@ -3073,40 +3073,36 @@ TypeMapDerivative( ListExpr args )
 int MPointDerivative( Word* args, Word& result, int message,
                       Word& local, Supplier s )
 {
-
   result = qp->ResultStorage( s );
-  MReal* value = (MReal*)args[0].addr;
-  MReal* res = ((MReal*)result.addr);
 
-  UReal Unit;
-  UReal uReal(true);
+  MReal* m = ((MReal*)args[0].addr);
+  MReal* pResult = ((MReal*)result.addr);
+  UReal unitin;
+  UReal unitout(true);
 
-  res->Clear();
-  if ( value->IsDefined() )
-    {
-      res->SetDefined(true);
-      res->StartBulkLoad();
+  pResult->Clear();
+  if( !m->IsDefined() ){
+    pResult->SetDefined( false );
+    return 0;
+  }
+  pResult->SetDefined( true );
+  pResult->StartBulkLoad();
+  for(int i=0;i<m->GetNoComponents();i++)
+  {
+      m->Get(i, unitin);
+      assert( unitin.IsDefined() );
+      if(!unitin.r)
+      {
+          unitout.a = 0.;
+          unitout.b = 2*unitin.a;
+          unitout.c = unitin.b;
+          unitout.r = false;
+          unitout.timeInterval = unitin.timeInterval;
+          pResult->MergeAdd(unitout);
+      }
+  }
+  pResult->EndBulkLoad( false );
 
-      for( int i = 0; i < value->GetNoComponents(); i++ )
-        { // load a real unit
-          value->Get( i, Unit );
-          if (Unit.IsDefined() && !Unit.r)
-            { // The derivative of this quadratic polynom is 2at + b + 0
-              uReal.timeInterval = Unit.timeInterval;
-              uReal.a = 0;
-              uReal.b = 2 * Unit.a;
-              uReal.c = Unit.b;
-              uReal.r = Unit.r;
-              uReal.SetDefined(true);
-              res->MergeAdd( uReal );
-            }
-          // else: Do nothing. Do NOT add an undefined unit!
-          //       (That would conflict e.g. with operator deftime())
-        }
-      res->EndBulkLoad( false ); // no sorting, assuming the input was ordered
-    }
-  else // value is undefined
-    res->SetDefined( false );
   return 0;
 }
 
