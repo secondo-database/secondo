@@ -637,7 +637,14 @@ Tolerance: 0.0001
 Operator : arctan2
 Number   : 2
 Signature: real -> real
-Example  : query arctan(1.0, 1.0)
+Example  : query arctan2(1.0, 1.0)
 Result   : 0.7853981634
+Tolerance: 0.0001
+
+Operator : pow
+Number   : 1
+Signature: {int|real} x {int|real} -> real
+Example  : query pow(2.0, 10)
+Result   : 1024.0
 Tolerance: 0.0001
 
