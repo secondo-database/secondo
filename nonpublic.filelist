@@ -101,11 +101,6 @@ CM-Scripts/public-version.pd
 Algebras/Relation-C++/Measurements-feed-project-consume.sxc
 Algebras/Relation-C++/Measurements-feed-project-consume.xls
 
-Javagui/viewer/hoese/algebras/Dsplpmpoint.java
-Javagui/viewer/hoese/algebras/Dsplpmpoints.java
-Javagui/viewer/hoese/algebras/Dsplpmreal.java
-Javagui/viewer/hoese/algebras/Dsplpmrect.java
-Javagui/viewer/hoese/algebras/Dsplpmregion.java
 
 Javagui/tools/PointDataDisturber.java
 Javagui/tools/DisturberGui.java
