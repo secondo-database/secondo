@@ -97,4 +97,5 @@ operator const_e alias CONST_E pattern op ( )
 operator rad2deg alias RAD2DEG pattern op ( _ )
 operator deg2rad alias DEG2RAD pattern op ( _ )
 operator logB alias LOGB pattern op ( _ , _ )
+operator pow alias POW pattern op ( _ , _ )
 

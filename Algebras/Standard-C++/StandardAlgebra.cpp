@@ -4022,6 +4022,30 @@ int CClogBVM (Word* args, Word& result, int message, Word& local, Supplier s )
   res->Set(true,log(vd)/log(bd));
   return 0;
 }
+
+/*
+Value Mapping for the power operator ~pow~
+
+*/
+template<class T1, class T2>
+int CCpowVM (Word* args, Word& result, int message, Word& local, Supplier s )
+{
+  T1* b = static_cast<T1*>(args[0].addr);
+  T2* e = static_cast<T2*>(args[1].addr);
+  result = qp->ResultStorage( s );
+  CcReal* res = static_cast<CcReal*>(result.addr);
+  if(!b->IsDefined() || !e->IsDefined()){
+    res->SetDefined(false);
+    return 0;
+  }
+  double base = b->GetValue();
+  double exponent = e->GetValue();
+  errno = 0;
+  res->Set(true,pow(base,exponent));
+  res->SetDefined(errno == 0);
+  return 0;
+}
+
 /*
 5 Definition of operators
 
@@ -4154,7 +4178,11 @@ ValueMapping CClogBmap[] = {
         CClogBVM<CcInt, CcReal>,
         CClogBVM<CcReal, CcInt>,
         CClogBVM<CcReal, CcReal>, 0};
-
+ValueMapping CCpowmap[] = {
+        CCpowVM<CcInt, CcInt>,
+        CCpowVM<CcInt, CcReal>,
+        CCpowVM<CcReal, CcInt>,
+        CCpowVM<CcReal, CcReal>, 0};
 
 const string CCSpecAdd  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
                           "\"Example\" )"
@@ -4813,6 +4841,16 @@ const string CClogBSpec =
     "<text>query logB(const_e()*const_e(),const_e())</text--->"
     ") )";
 
+const string CCpowSpec =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
+    "( <text> {int | real} x {int | real} -> real </text--->"
+    "<text>pow( Base , Exponent)</text--->"
+    "<text>Returns Base to the power of Exponent. Returns UNDEF if any "
+    "argument is UNDEF, type real cannot represent the result, or Base is "
+    "negative and Exponent is not an integral value.</text--->"
+    "<text>query pow(2.0, 10)</text--->"
+    ") )";
+
 /*
 Operator instance definitions
 
@@ -5017,6 +5055,10 @@ Operator cce( "const_e", CCeSpec, CcE, Operator::SimpleSelect,
 Operator cclogb("logB", CClogBSpec, 4, CClogBmap, CcNumNumRealSelect,
                                                CcTypeMapNumNumReal);
 
+Operator ccpow("pow", CCpowSpec, 4, CCpowmap, CcNumNumRealSelect,
+                        CcTypeMapNumNumReal);
+
+
 /*
 6 Class ~CcAlgebra~
 
@@ -5137,6 +5179,7 @@ class CcAlgebra1 : public Algebra
     AddOperator( &ccrad2deg );
     AddOperator( &cce );
     AddOperator( &cclogb );
+    AddOperator( &ccpow );
 
     AddOperator( setoptionInfo(), setoption_vm, setoption_tm );
     AddOperator( absInfo(), abs_vms, abs_sf, abs_tm );
