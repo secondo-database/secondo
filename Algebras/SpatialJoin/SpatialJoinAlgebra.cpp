@@ -38,7 +38,7 @@ extern QueryProcessor* qp;
 
 
 /*
-3 Operator ~spatjoin~
+3 Operator ~spatialjoin2~
 
 3.1 Overview
 
