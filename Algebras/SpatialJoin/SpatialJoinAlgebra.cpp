@@ -429,7 +429,7 @@ cells' height is set alone.
   double length, width, height;
   double xl, yb, zb, wx, wz = 0.0;
   double xr, yt, zt;
-  int nx, ny, nz;
+  size_t nx, ny, nz;
 
   double size[dim];
   for(unsigned i = 0; i < dim; i++)
@@ -454,8 +454,8 @@ cells' height is set alone.
 
     do
     {
-      nx = int(ceil(length / wx));
-      if (nx > int(sqrt(INT_MAX)))
+      nx = size_t(ceil(length / wx));
+      if ((nx > size_t(sqrt(INT_MAX))))
         wx *= 10;
       else
         break;
@@ -465,7 +465,7 @@ cells' height is set alone.
     (*funargs)[3].setAddr(new CcReal(yb));
     (*funargs)[4].setAddr(new CcReal(wx));
     (*funargs)[5].setAddr(new CcReal(wx));
-    (*funargs)[6].setAddr(new CcInt(nx));
+    (*funargs)[6].setAddr(new CcInt(int(nx)));
     (*funargs)[7].setAddr(new CcReal(xr));
     (*funargs)[8].setAddr(new CcReal(yt));
 
@@ -483,31 +483,31 @@ cells' height is set alone.
     yt = joinBox->MaxD(1);
     zt = joinBox->MaxD(2);
 
-    nz = int(ceil(height / wz));
     do
     {
-      nx = int(ceil(length / wx));
-      ny = int(ceil(width  / wx));
-      int maxN = max(max(nx,ny),nz);
-      if (maxN > int(pow(INT_MAX,1.0/3.0)))
+      nx = size_t(ceil(length / wx));
+      ny = size_t(ceil(width  / wx));
+      nz = size_t(ceil(height / wz));
+      size_t maxN = max(max(nx,ny),nz);
+      if (maxN > size_t(pow(INT_MAX,1.0/3.0)))
+      {
         wx *= 10;
+        wz *= 10;
+      }
       else
         break;
     }while(1);
-
-    nx = int(ceil(length / wx));
-    ny = int(ceil(width / wx));
 
     (*funargs)[2].setAddr(new CcReal(xl));
     (*funargs)[3].setAddr(new CcReal(yb));
     (*funargs)[4].setAddr(new CcReal(wx));
     (*funargs)[5].setAddr(new CcReal(wx));
-    (*funargs)[6].setAddr(new CcInt(nx));
+    (*funargs)[6].setAddr(new CcInt(int(nx)));
     (*funargs)[7].setAddr(new CcReal(xr));
     (*funargs)[8].setAddr(new CcReal(yt));
     (*funargs)[9].setAddr(new CcReal(zb));
     (*funargs)[10].setAddr(new CcReal(wz));
-    (*funargs)[11].setAddr(new CcInt(ny));
+    (*funargs)[11].setAddr(new CcInt(int(ny)));
     (*funargs)[12].setAddr(new CcReal(zt));
 
   }
