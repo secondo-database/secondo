@@ -27,7 +27,7 @@ MONTreeAlgebra MONTree
 MTreeAlgebra MTree
 NearestNeighborAlgebra NearestNeighbor
 PeriodicAlgebra Periodic
-STPatternAlgebra STPattern
+#STPatternAlgebra STPattern
 TBTreeAlgebra TBTree
 XTreeAlgebra XTree
 
