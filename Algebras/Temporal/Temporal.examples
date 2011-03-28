@@ -252,9 +252,16 @@ Result   : TRUE
 
 Operator : length
 Number   : 1
-Signature: mpoint -> real
+Signature: mpoint [x string] -> real
 Example  : query length(train7)
 Result   : 31662.1260235619
+
+Operator : length
+Number   : 2
+Signature: mpoint [x string] -> real
+Example  : query length([const mpoint value ((("2007-02-27-16:05:54.922" "2007-02-27-16:05:55.922" TRUE FALSE) (7.495008333333334 51.37592333333333 7.495061666666667 51.37594166666667)) (("2007-02-27-16:05:55.922" "2007-02-27-16:05:56.922" TRUE FALSE) (7.495061666666667 51.37594166666667 7.495113333333333 51.37595833333334)) (("2007-02-27-16:05:56.922" "2007-02-27-16:05:57.922" TRUE FALSE) (7.495113333333333 51.37595833333334 7.495146666666667 51.375995)))],"WGS1984")
+Result   : (real 12.9775022159)
+Tolerance: 0.0001
 
 Operator : maximum
 Number   : 1
@@ -412,7 +419,7 @@ Result   : 185
 
 Operator : getunit
 Number   : 1
-Signature: For T in {bool, int, real, point}: mT -> uT
+Signature: mT x int -> uT, where T in {bool, int, real, point}:
 Example  : query getunit(train7, 0)
 Result   : (upoint (("2003-11-20-06:06" "2003-11-20-06:06:08.692" TRUE FALSE) (16821.0 1252.0 16673.0 1387.0)))
 

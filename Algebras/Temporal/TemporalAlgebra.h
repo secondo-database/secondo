@@ -2551,15 +2551,25 @@ Calculates the distance between 2 upoints as a real value.
  }
 
   void Length( CcReal& result ) const;
-
 /*
-Calculates the spatial length of the unit
+Calculates the spatial length of the unit using metric (X,Y) coordinates.
 
 *Precondition*: none
 
 *Result*: the distance of the unit's initial and final value
 
 */
+
+  void Length( const Geoid& g, CcReal& result ) const;
+/*
+Calculates the spatial length of the unit using geographic (LON,LAT)-coordinates.
+
+*Precondition*: none
+
+*Result*: the distance of the unit's initial and final value
+
+*/
+
 
   bool AtRegion(const Region *r, vector<UPoint> &result) const;
 
@@ -3440,11 +3450,25 @@ using a random generator.
 /*
 3.10.5.10 ~length~
 
-Determines the drive distnace of this moving point.
+Determines the drive distance of this moving point (odometer).
+Coordinates are interpreted as metric (X,Y) coordinates.
 Will return a value smaller than zero if this mpoint is not defined
 
 */
   double Length() const;
+
+/*
+Determines the drive distance of this moving point (odometer).
+Coordinates are interpreted as geographic (LON,LAT) coordinates.
+
+If an invalid geographic coordinate is encountered, ~valid~ is set to false,
+otherwise the result is calculated and ~valid~ is set to true.
+
+The same happens, if the Mpoint is undefined. In addition to setting ~valid~ to
+false, the return value will be negative.
+
+*/
+  double Length(const Geoid& g, bool& valid) const;
 
 /*
 3.10.5.11 ~BoundingBox~

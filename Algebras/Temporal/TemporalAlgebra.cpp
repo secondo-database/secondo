@@ -103,6 +103,7 @@ file.
 #include "AlmostEqual.h"
 #include "ListUtils.h"
 #include "Symbols.h"
+#include "Geoid.h"
 
 #include "RefinementStream.h"
 
@@ -2068,6 +2069,18 @@ void UPoint::Length( CcReal& result ) const
     return;
   }
   result.Set(true, p0.Distance(p1));
+  return;
+}
+
+void UPoint::Length( const Geoid& g, CcReal& result ) const
+{
+  if( !this->IsDefined() || !p0.IsDefined() || !p0.IsDefined() ){
+    result.Set(false, 0.0);
+    return;
+  }
+  bool valid = true;
+  result.Set(true, p0.DistanceOrthodrome(p1, g, valid));
+  result.SetDefined(valid);
   return;
 }
 
@@ -6279,6 +6292,22 @@ double MPoint::Length() const{
   return res;
 }
 
+double MPoint::Length(const Geoid& g, bool& valid) const{
+  valid = IsDefined();
+  if(!valid){
+    return -1;
+  }
+  double res = 0;
+  UPoint unit;
+  int size = GetNoComponents();
+  for(int i=0; (valid && (i<size)); i++){
+    Get(i,unit);
+    res += unit.p0.DistanceOrthodrome(unit.p1, g, valid);
+  }
+  return res;
+}
+
+
 void MPoint::Vertices(Points& result) const{
   result.Clear();
   if(!IsDefined()){
@@ -9925,21 +9954,25 @@ ListExpr DisturbTypeMap(ListExpr args){
 /*
 ~LengthTypeMap~
 
+---- mpoint [ x string ] --> real
+----
+
 */
 
 ListExpr LengthTypeMap(ListExpr args){
-  if(nl->ListLength(args)==1){
-     if(nl->IsEqual(nl->First(args),"mpoint")){
-       return nl->SymbolAtom("real");
-     } else {
-       ErrorReporter::ReportError("mpoint expected");
-       return nl->TypeError();
-     }
-  } else {
-    ErrorReporter::ReportError("one argument required");
-    return nl->TypeError();
+  string errmsg = "Expected (mpoint) or (mpoint x string).";
+  int noargs = nl->ListLength(args);
+  if((noargs<1) || (noargs>2)){
+    return listutils::typeError(errmsg);
   }
-
+  if(!listutils::isSymbol(nl->First(args),MPoint::BasicType())){
+    return listutils::typeError(errmsg);
+  }
+  if(    (noargs==2)
+      && (!listutils::isSymbol(nl->Second(args),CcString::BasicType())) ){
+    return listutils::typeError(errmsg);
+  }
+  return nl->SymbolAtom(CcReal::BasicType());
 }
 
 
@@ -13057,7 +13090,25 @@ int LengthVM(Word* args, Word& result, int message,
    MPoint* mp = (MPoint*) args[0].addr;
    if(!mp->IsDefined()){
       res->Set(false, 0.0);
-  } else {
+      return 0;
+  }
+  if(qp->GetNoSons(s)==2){ // variant using (LON,LAT)-coordinates
+    CcString* geoidCcStr = static_cast<CcString*>(args[1].addr);
+    if(!geoidCcStr->IsDefined()){
+      res->Set(false, 0.0);
+      return 0;
+    }
+    string geoidstr = geoidCcStr->GetValue();
+    bool valid = false;
+    Geoid::GeoidName gn = Geoid::getGeoIdNameFromString(geoidstr,valid);
+    if(!valid){
+      res->Set(false, 0.0);
+      return 0;
+    }
+    Geoid geoid(gn);
+    res->Set(true, mp->Length(geoid,valid));
+    res->SetDefined(valid);
+  } else { // normal variant using (X,Y)-coordinates
       res->Set(true, mp->Length());
   }
   return 0;
@@ -14737,10 +14788,9 @@ const string TemporalSpecUnits  =
 
 const string TemporalSpecGetUnit  =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-  "( <text>For T in {bool, int, real, point}:\n"
-  "   mT -> uT</text--->"
-  "<text> getunit( _, _ )</text--->"
-  "<text>Yields the unit at the specified index in moving type object."
+  "( <text> mT x int -> uT, where T in {bool, int, real, point}</text--->"
+  "<text> getunit( M, N )</text--->"
+  "<text>Yields the Nth unit from the moving object M."
   "</text--->"
   "<text>mpoint1 getunit( 0 )</text--->"
   ") )";
@@ -14999,8 +15049,12 @@ const string DisturbSpec =
 const string LengthSpec =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
     "( <text>mpoint -> real </text---> "
-    "<text> length(_) </text--->"
-    "<text>Computes the travelled length of the movement (like an odometer)."
+    "<text> length( Mp [, GeoidName ] ) </text--->"
+    "<text>Computes the travelled length of the movement of object Mp "
+    "(like an odometer). If the optional parameter is used, the coordinates in "
+    "Mp are interpreted as geografic coordinates (LON,LAT) instead of metric "
+    "(X,Y)-coordinates. Valid values for GeoidName are: "
+    + Geoid::getGeoIdNames() + ". Unknown GeoidName results in an UNDEF result."
     "</text--->"
     "<text>query length(train6) </text--->"
     ") )";

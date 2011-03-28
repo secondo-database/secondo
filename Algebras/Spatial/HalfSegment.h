@@ -12,12 +12,13 @@ point. The left point is always smaller than the right one.
 */
 
 #ifndef _HALFSEGMENT_H
-#define _HALFSEGMENT_H 
+#define _HALFSEGMENT_H
 
 
 #include "Coord.h"
 #include "Point.h"
 #include "AttrType.h"
+#include "Geoid.h"
 
 class HalfSegment;
 /*
@@ -103,6 +104,19 @@ Returns the length of the half segmtent, i.e., the distance between the left poi
 right point.
 
 */
+
+    inline double LengthOrthodrome(const Geoid& g, bool& valid) const;
+/*
+Returns the length of the orthodrome defined by the half segment's end points
+with respect to the provided geoid.
+Coordinates of the point values must be in format (LON,LAT), where
+-180<=LON<=180, -90<=LAT<=90.
+
+If an undefined Point or a Point with an invalid geographic coordinate is used,
+~valid~ is set to false, otherwise the result is calculated and ~valid~ is set
+to true.
+
+*/
     inline Point AtPosition( double pos ) const;
 /*
 Returns the point at relative position ~pos~.
@@ -168,7 +182,7 @@ Sets the value of the dominating point flag of a half segment.
 /*
 ~Print~
 
-The usual Print function 
+The usual Print function
 
 */
    ostream& Print(ostream& out) const{
@@ -186,7 +200,7 @@ Prints out this segments as a nested list reprenting a line.
   ostream& PrintAsLine(ostream& out) const{
      Point P1 = GetDomPoint();
      Point P2 = GetSecPoint();
-     out << "(line ((" << P1.GetX() << " " << P1.GetY() << " " 
+     out << "(line ((" << P1.GetX() << " " << P1.GetY() << " "
          << P2.GetX() << " "  << P2.GetY() << ")))";
      return out;
   }

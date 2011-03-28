@@ -166,7 +166,7 @@ OK               (stream ubool) --> bool
 OK  + always:    (       ubool) --> bool
 OK               (stream ubool) --> bool
 
-    length: (upoint) --> real
+OK    length: (upoint [string]) --> real
 
 COMMENTS:
 
@@ -1051,7 +1051,7 @@ ListExpr MovingTypeMapMakemvalue( ListExpr args )
   if( inputtype == "ustring" )
     attrtype = nl->SymbolAtom( "mstring" );
   if( inputtype == "uset" )
-    attrtype = nl->SymbolAtom( "msset" );  
+    attrtype = nl->SymbolAtom( "msset" );
 //if( inputtype == "uregion" )
 //  attrtype = nl->SymbolAtom( "movingregion");
 
@@ -9695,16 +9695,25 @@ Calculate the spatial length of the movement.
 /*
 5.44.1 Type mapping function for ~length~
 
+---- upoint [ x string ] --> real
+----
+
 */
 ListExpr TUTypeMapLength( ListExpr args )
 {
-  if ( nl->ListLength( args ) == 1 )
-  {
-    ListExpr arg1 = nl->First( args );
-    if( nl->IsEqual( arg1, "upoint" )  )
-      return nl->SymbolAtom( "real" );
+  string errmsg = "Expected (upoint) or (upoint x string).";
+  int noargs = nl->ListLength(args);
+  if((noargs<1) || (noargs>2)){
+    return listutils::typeError(errmsg);
   }
-  return nl->SymbolAtom( "typeerror" );
+  if(!listutils::isSymbol(nl->First(args),UPoint::BasicType())){
+    return listutils::typeError(errmsg);
+  }
+  if(    (noargs==2)
+    && (!listutils::isSymbol(nl->Second(args),CcString::BasicType())) ){
+    return listutils::typeError(errmsg);
+  }
+  return nl->SymbolAtom(CcReal::BasicType());
 }
 
 /*
@@ -9716,7 +9725,25 @@ int TUUnitLength(Word* args,Word& result,int message,Word& local,Supplier s)
   result = qp->ResultStorage( s );
   CcReal  *res   = (CcReal*)result.addr;
   UPoint *input = (UPoint*)args[0].addr;
-  input->Length( *res );
+
+  if(qp->GetNoSons(s)==2){ // variant using (LON,LAT)-coordinates
+    CcString* geoidCcStr = static_cast<CcString*>(args[1].addr);
+    if(!geoidCcStr->IsDefined()){
+      res->Set(false, 0.0);
+      return 0;
+    }
+    string geoidstr = geoidCcStr->GetValue();
+    bool valid = false;
+    Geoid::GeoidName gn = Geoid::getGeoIdNameFromString(geoidstr,valid);
+    if(!valid){
+      res->Set(false, 0.0);
+      return 0;
+    }
+    Geoid geoid(gn);
+    input->Length(geoid, *res);
+  } else { // normal variant using (X,Y)-coordinates
+    input->Length( *res );
+  }
   return 0;
 }
 
@@ -9726,10 +9753,14 @@ int TUUnitLength(Word* args,Word& result,int message,Word& local,Supplier s)
 */
 const string TULengthSpec  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-    "( <text> upoint -> real</text--->"
-    "<text> length( _ )</text--->"
+    "( <text> upoint [ x string ] -> real</text--->"
+    "<text> length( Up [, GeoidName ] )</text--->"
     "<text>The operator returns the distance of the unit's initial and final"
-    "position.</text--->"
+    "position. If the optional parameter is not used, spatial coordinates are "
+    "interpreted as metric (X,Y)-pairs, otherwise as geographic (LON,LAT)-"
+    "coordinates. GeoidName defines the geoid used for distance computations."
+    "Valid values are "+ Geoid::getGeoIdNames() +". Invalid coordinates or "
+    "GeoidNames result in UNDEF result.</text--->"
     "<text>query units(Trains feed extract[Trip]) use[fun(U:upoint) "
     "length(U)] transformstream sum[elem]</text--->"
     ") )";
@@ -9754,9 +9785,9 @@ Operator temporalunitlength( "length",
 /*
 5.45 Operator ~canmeet~
 
-The predicate predictes whether two mpoint objects will become close to 
-eachother (in terms of a given distance threshold), within a given time 
-duration assuming that they keep the speed and direction of the given two 
+The predicate predictes whether two mpoint objects will become close to
+eachother (in terms of a given distance threshold), within a given time
+duration assuming that they keep the speed and direction of the given two
 upoints.
 
 */
@@ -9785,7 +9816,7 @@ TypeMapTemporalUnitCanMeet( ListExpr args )
   upoint2 = nl->Second(args);
   distance = nl->Third(args);
   duration = nl->Fourth(args);
-  
+
   // check for compatibility of arguments
   if( !nl->IsAtom(upoint1) || !nl->IsEqual(upoint1, "upoint"))
     {
@@ -9802,7 +9833,7 @@ TypeMapTemporalUnitCanMeet( ListExpr args )
                                   "argument, but gets '" + outstr + "'.");
        return nl->SymbolAtom( "typeerror" );
      }
-     
+
   if( !nl->IsAtom(distance) || !nl->IsEqual(distance, "real"))
      {
        nl->WriteToString(outstr, distance);
@@ -9810,7 +9841,7 @@ TypeMapTemporalUnitCanMeet( ListExpr args )
                                   "argument, but gets '" + outstr + "'.");
        return nl->SymbolAtom( "typeerror" );
      }
-  
+
   if( !nl->IsAtom(duration) || !nl->IsEqual(duration, "duration"))
      {
        nl->WriteToString(outstr, duration);
@@ -9853,13 +9884,13 @@ int TUCanMeet( Word* args, Word& result, int message,
       res->SetDefined( false );
     }
   else
-    { 
+    {
       // calculate result
       res->SetDefined( true );
-      // 1- Extend the two upoints so that their time intervals are equal 
+      // 1- Extend the two upoints so that their time intervals are equal
       UPoint u1ex(*u1), u2ex(*u2);
       Point newPoint;
-      if(u1->timeInterval.start < u2->timeInterval.start) 
+      if(u1->timeInterval.start < u2->timeInterval.start)
         //extend u2 backward
       {
         tThresholdMin = u2->timeInterval.start.ToDouble();
@@ -9875,11 +9906,11 @@ int TUCanMeet( Word* args, Word& result, int message,
         u1ex.timeInterval.start = u2->timeInterval.start;
         u1ex.p0 = newPoint;
       }
-      
+
       if(u1->timeInterval.end < u2->timeInterval.end)
         //extend u1 forward
       {
-        tThresholdMax = u2->timeInterval.end.ToDouble() + 
+        tThresholdMax = u2->timeInterval.end.ToDouble() +
           timeThreshold->ToDouble();
         u1->TemporalFunction(u2->timeInterval.end, newPoint, true);
         u1ex.timeInterval.end = u2->timeInterval.end;
@@ -9888,21 +9919,21 @@ int TUCanMeet( Word* args, Word& result, int message,
       else
         //extend u2 forward
       {
-        tThresholdMax = u1->timeInterval.end.ToDouble() + 
+        tThresholdMax = u1->timeInterval.end.ToDouble() +
                   timeThreshold->ToDouble();
         u2->TemporalFunction(u1->timeInterval.end, newPoint, true);
         u2ex.timeInterval.end = u1->timeInterval.end;
         u2ex.p1 = newPoint;
       }
-  
+
       // 2- Compute the distance between the two extended units
       UReal dist(0);
       u1ex.Distance( u2ex, dist );
       if(debugme)
         dist.Print(cerr);
       // 3- Compute the time when the distance reaches the distThreshould
-      double c= dist.c - ((dist.r)? 
-          distThreshold->GetRealval() * distThreshold->GetRealval(): 
+      double c= dist.c - ((dist.r)?
+          distThreshold->GetRealval() * distThreshold->GetRealval():
             distThreshold->GetRealval());
       double coeff = (dist.b * dist.b) - (4 * dist.a * c);
       if(coeff < 0)
@@ -9914,10 +9945,10 @@ int TUCanMeet( Word* args, Word& result, int message,
       double t1= ((dist.b * -1) + coeff )/ (2 * dist.a);
       double t2= ((dist.b * -1) - coeff )/ (2 * dist.a);
       double intervalStart= u1ex.timeInterval.start.ToDouble();
-      if( (t1 + intervalStart) > tThresholdMin && 
+      if( (t1 + intervalStart) > tThresholdMin &&
           (t1 + intervalStart) < tThresholdMax)
         res->Set(true, true);
-      else if( (t2 + intervalStart) > tThresholdMin && 
+      else if( (t2 + intervalStart) > tThresholdMin &&
           (t2 + intervalStart) < tThresholdMax)
         res->Set(true, true);
       else

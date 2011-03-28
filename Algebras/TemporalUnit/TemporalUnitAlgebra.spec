@@ -1,6 +1,6 @@
 #This file is part of SECONDO.
 
-#Copyright (C) 2008, University in Hagen, 
+#Copyright (C) 2008, University in Hagen,
 #Faculty of Mathematics and  Computer Science,
 #Database Systems for New Applications.
 
