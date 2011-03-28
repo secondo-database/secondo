@@ -1199,10 +1199,13 @@ size_t Tuple::GetBlockSize( size_t& coreSize,
   extensionSize = CalculateBlockSize( coreSize, extSize,
                                       size, *attrExtSize,
                                       *attrSize);
+
+  if (!aes) delete attrExtSize;
+  if (!as)  delete attrSize;
+
   flobSize = (size_t)size - extensionSize - tupleType->GetCoreSize();
   //size = tupleType's core size + extensionSize + flobSize (big flobs)
   return (size_t)size + sizeof(u_int32_t) + sizeof(u_int16_t);
-  //return size;
 }
 
 /*
