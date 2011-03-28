@@ -67,7 +67,7 @@ shows examples of these spatial data types.
 
 #include "HalfSegment.h"
 #include "Coord.h"
-
+#include "Geoid.h"
 
 /*
 Coordinates are represented by real numbers.
@@ -793,15 +793,38 @@ two halfsegments of a segment. The allowed range for the edge numbers is [0..Siz
 6.2 Member functions
 
 */
+
+/*
+length computed for metric (X,Y)-coordinates
+
+*/
     inline double Length() const;
 
-    inline double SpatialSize() const{
-      return Length();
-    }
+/*
+length computed for geographic (LON,LAT)-coordinates and a Geoid
+If any coordinate is invalid, ~valid~ is set to false (true otherwise).
+
+*/
+    double Length(const Geoid& g, bool& valid) const;
+
 /*
 Returns the length of the line, i.e. the sum of the lengths of all segments.
 
 */
+    inline double SpatialSize() const{
+      return Length();
+    }
+
+/*
+Returns the length computed for geographic (LON,LAT)-coordinates and a Geoid
+If any coordinate is invalid, ~valid~ is set to false (true otherwise).
+
+*/
+    inline double SpatialSize(const Geoid& g, bool& valid) const{
+      return Length(g, valid);
+    }
+
+
 //    inline void SetLength( double length );
 /*
 Sets the length of the line.
@@ -1553,15 +1576,27 @@ Constructs a ~SimpleLine~ from a complex one.
 /*
 ~Length~
 
-Returns the length of this SimpleLine;
+Returns the length of this SimpleLine (computed usind metric (X,Y)-coordinates);
 
 */
   inline double Length() const{
     return length;
   }
 
+
+/*
+Returns the simple line's length computed for geographic (LON,LAT)-coordinates
+and a Geoid. If any coordinate is invalid, ~valid~ is set to false (true otherwise).
+
+*/
+  double Length(const Geoid& g, bool& valid) const;
+
   inline double SpatialSize() const{
-     return Length();
+    return Length();
+  }
+
+  inline double SpatialSize(const Geoid& g, bool& valid) const{
+     return Length(g, valid);
   }
 
 
@@ -2811,15 +2846,22 @@ This function finds the face number for a cycle. It finds it the cycle
 is a hole of an existing face, or if it is a cycle of a new face.
 
 */
-   int GetNewFaceNo(HalfSegment &chsS,bool *cycle);
+  int GetNewFaceNo(HalfSegment &chsS,bool *cycle);
 
-   double Area() const;
+  double Area() const;
 
-   double SpatialSize() const{
-     return Area();
-   }
+  double SpatialSize() const{
+    return Area();
+  }
 
-int GetNewFaceNo(const HalfSegment& hsIn, const int startpos) const;
+  double SpatialSize(const Geoid& g, bool& valid) const{
+    cerr << __PRETTY_FUNCTION__ << ": Function not implemented." << endl;
+    assert(false);
+    valid = false;
+    return -666.0;
+  }
+
+  int GetNewFaceNo(const HalfSegment& hsIn, const int startpos) const;
 
 
 /*
@@ -3033,29 +3075,27 @@ class EdgePoint : public Point
 
     inline bool operator<( const EdgePoint& p ) const
     {
-      if( this->x < p.x )
-        return 1;
-      else
-        if( this->x == p.x && this->y < p.y )
-          return 1;
-        else
-          if( this->x == p.x && this->y == p.y )
-          { //If both points has the same coordinates, if they have diferent
+      if( this->x < p.x ){
+        return true;
+      } else if( this->x == p.x && this->y < p.y ){
+        return true;
+      } else if( this->x == p.x && this->y == p.y ) {
+            //If both points has the same coordinates, if they have diferent
             // directions
             // the less one will be that has the attribute direction true i
             // (left and down),
             // otherwise, both have direction true, and the less one will
             // be that was rejected.
             //The rejected points come before accepted points
-            if (this->direction == p.direction)
-            {
-              if (this->rejected)
-                return 1;
+            if (this->direction == p.direction){
+              if (this->rejected){
+                return true;
+              }
+            } else if (this->direction){
+              return true;
             }
-            else if (this->direction)
-              return 1;
           }
-      return 0;
+      return false;
     }
 
 /*
@@ -3140,8 +3180,7 @@ class SCycle
 
     ~SCycle()
     {
-      if (criticalPoint==NULL)
-      {
+      if (criticalPoint==NULL){
         delete criticalPoint;
         criticalPoint=NULL;
       }
@@ -3205,8 +3244,7 @@ inline Point Point::Add( const Point& p ) const
 inline Point& Point::operator=( const Point& p )
 {
   SetDefined( p.IsDefined() );
-  if( IsDefined() )
-  {
+  if( IsDefined() ){
     x = p.x;
     y = p.y;
   }
@@ -3255,10 +3293,12 @@ inline bool Point::operator<=( const Point& p ) const
 inline bool Point::operator<( const Point& p ) const
 {
   assert( IsDefined() && p.IsDefined() );
-  if( !IsDefined() )
+  if( !IsDefined() ){
     return p.IsDefined();
-  if ( !p.IsDefined() )
+  }
+  if ( !p.IsDefined() ){
     return false;
+  }
   bool eqx = AlmostEqual(x,p.x);
   return (!eqx && (x < p.x) ) ||
          (eqx && !AlmostEqual(y,p.y) && (y < p.y));
@@ -3273,10 +3313,12 @@ inline bool Point::operator>=( const Point& p ) const
 inline bool Point::operator>( const Point& p ) const
 {
   assert( IsDefined() && p.IsDefined() );
-  if( !p.IsDefined() )
+  if( !p.IsDefined() ){
     return IsDefined();
-  if ( !IsDefined() )
+  }
+  if ( !IsDefined() ){
     return false;
+  }
   bool eqx = AlmostEqual(x,p.x);
   return (!eqx && (x > p.x)) ||
          (eqx && !AlmostEqual(y,p.y) && (y>p.y));
@@ -3400,16 +3442,20 @@ inline size_t Points::Sizeof() const
 
 inline void Points::SelectFirst() const
 {
-  if( IsEmpty() )
+  if( IsEmpty() ){
     pos = -1;
-  else pos = 0;
+  } else {
+    pos = 0;
+  }
 }
 
 inline void Points::SelectNext() const
 {
-  if( pos >= 0 && pos < Size() - 1 )
+  if( pos >= 0 && pos < Size() - 1 ) {
     pos++;
-  else pos = -1;
+  } else {
+    pos = -1;
+  }
 }
 
 inline bool Points::EndOfPt() const
@@ -3419,8 +3465,7 @@ inline bool Points::EndOfPt() const
 
 inline bool Points::GetPt(Point& p ) const
 {
-  if( pos >= 0 && pos <= Size()-1 )
-  {
+  if( pos >= 0 && pos <= Size()-1 ){
     points.Get( pos, &p );
     return true;
   }
@@ -3550,17 +3595,24 @@ HalfSegment::Length() const
   return rp.Distance( lp );
 }
 
+inline double
+HalfSegment::LengthOrthodrome(const Geoid& g, bool& valid) const
+{
+  return rp.DistanceOrthodrome( lp, g, valid );
+}
+
+
 inline Point
 HalfSegment::AtPosition( double pos ) const
 {
   if( pos < 0 ||
-      AlmostEqual( pos, 0 ) )
+      AlmostEqual( pos, 0 ) ){
     return GetDomPoint();
-
+  }
   if( pos > Length() ||
-      AlmostEqual( pos, Length() ) )
+      AlmostEqual( pos, Length() ) ){
     return GetSecPoint();
-
+  }
   return Point( true,
                 GetDomPoint().GetX() + pos *
                   (GetSecPoint().GetX() - GetDomPoint().GetX()) / Length(),
@@ -3574,10 +3626,11 @@ HalfSegment::AtPoint( const Point& p ) const
   assert( p.IsDefined() );
   assert( Contains( p ) );
   if( AlmostEqual( rp.GetX(), lp.GetX() ) &&
-      AlmostEqual( p.GetX(), rp.GetX() ) )
+      AlmostEqual( p.GetX(), rp.GetX() ) ){
     // the segment is vertical
     return Length() * (p.GetY() - GetDomPoint().GetY()) /
                       (GetSecPoint().GetY() - GetDomPoint().GetY());
+  }
   return Length() * (p.GetX() - GetDomPoint().GetX()) /
                     (GetSecPoint().GetX() - GetDomPoint().GetX());
 }
@@ -3586,9 +3639,9 @@ inline bool
 HalfSegment::SubHalfSegment( double pos1, double pos2,
                                          HalfSegment& result ) const
 {
-  if( AlmostEqual( AtPosition( pos1 ), AtPosition( pos2 ) ) )
+  if( AlmostEqual( AtPosition( pos1 ), AtPosition( pos2 ) ) ){
     return false;
-
+  }
   result.Set( true, AtPosition( pos1 ), AtPosition( pos2 ) );
   return true;
 }

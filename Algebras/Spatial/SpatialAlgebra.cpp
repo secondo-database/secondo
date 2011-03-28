@@ -1097,26 +1097,39 @@ use Spherical geometry.
 */
 
 /*
+Auxiliary Function: Check whether p represents valis geographic coordinates
+
+*/
+bool checkGeographicCoord(const Point& p) {
+  return    (p.GetX() >= -180) && (p.GetX() <= 180)
+         && (p.GetY() >= -90) && (p.GetY() <= 90);
+}
+
+/*
 Distance between two points given in geodetic (Lat, Lon)-coordinates.
 The distance is measured along a geoid passed as an argument.
 The result uses the same unit as the geoid'd radius.
 
+If an undefined Point or a Point with an invalid geographic coordinate is used,
+~valid~ is set to false, otherwise the result is calculated and ~valid~ is set
+to true.
+
 */
-double Point::DistanceOrthodrome( const Point& p, const Geoid& g) const
+double Point::DistanceOrthodrome( const Point& p,
+                                  const Geoid& g,
+                                  bool& valid) const
 {
-  assert(IsDefined() && p.IsDefined());
+  valid =    IsDefined()                 && p.IsDefined()
+          && checkGeographicCoord(*this) && checkGeographicCoord(p);
+  if(!valid){
+    return 0.0;
+  }
   double a = g.getR(); // sphere's equatorical radius (from geoid)
   double f = g.getF(); // sphere's flattening (from geoid)
 
   // convert coordinates from degrees to radiant
   double b1 = GetY(),   l1 = GetX();  // X=longitude, Y=latitude
   double b2 = p.GetY(), l2 = p.GetX();// X=longitude, Y=latitude
-
-  assert( (l1 >= -180) && (l1 <= 180) );
-  assert( (b1 >= -90) && (b1 <= 90) );
-
-  assert( (l2 >= -180) && (l2 <= 180) );
-  assert( (b2 >= -90) && (b2 <= 90) );
 
   if(AlmostEqual(*this,p)){
     return 0.0;
@@ -5967,6 +5980,24 @@ Line* Line::Clone() const
   return new Line( *this );
 }
 
+
+double Line::Length(const Geoid &geoid, bool& valid) const {
+  valid = true;
+  if(!IsDefined()){
+    valid = false;
+    return 0.0;
+  }
+  double length = 0.0;
+  for (int i=0; (valid && (i<Size())) ;i++){
+    HalfSegment hs;
+    Get( i, hs );
+    if( hs.IsLeftDomPoint() ){
+      length += hs.LengthOrthodrome(geoid, valid);;
+    };
+  }
+  return length;
+}
+
 ostream& Line::Print( ostream &os ) const
 {
   ios_base::fmtflags oldOptions = os.flags();
@@ -7022,6 +7053,23 @@ ostream& SimpleLine::Print(ostream& o)const{
   o << "SimpleLine def =" << IsDefined()
     << " size = " << Size() << endl;
   return o;
+}
+
+double SimpleLine::Length(const Geoid &geoid, bool& valid) const {
+  valid = true;
+  if(!IsDefined()){
+    valid = false;
+    return 0.0;
+  }
+  double length = 0.0;
+  for (int i=0; (valid && (i<Size())) ;i++){
+    HalfSegment hs;
+    Get( i, hs );
+    if( hs.IsLeftDomPoint() ){
+      length += hs.LengthOrthodrome(geoid, valid);;
+    };
+  }
+  return length;
 }
 
 ostream& operator<<(ostream& o, const SimpleLine& cl){
@@ -12531,21 +12579,31 @@ This type mapping function is used for the ~size~ operator. This operator
 computes the size of the spatial object. For line, the size is the totle length
 of the line segments.
 
+----
+  {line|sline|region} --> real
+  {line|sline} x string --> real
+----
+
 */
 ListExpr
 SpatialSizeMap( ListExpr args )
 {
-  ListExpr arg1;
-  if ( nl->ListLength( args ) == 1 )
-  {
-    arg1 = nl->First( args );
-    SpatialType st = SpatialTypeOfSymbol(arg1);
-    if(st==stregion || st==stline || st==stsline){
-      return (nl->SymbolAtom( "real" ));
-    }
+  string errmsg = "Expected (region) or ({line|sline} [ x string ]).";
+  int noargs = nl->ListLength( args );
+  if ( (noargs<1) || (noargs >2) ){
+    return listutils::typeError(errmsg);
   }
-
-  return (nl->SymbolAtom( "typeerror" ));
+  ListExpr arg1 = nl->First( args );
+  SpatialType st = SpatialTypeOfSymbol(arg1);
+  if( (st!=stregion) && (st!=stline) && (st!=stsline) ){
+    return listutils::typeError(errmsg);
+  }
+  if( (noargs==2) &&
+      (    (!listutils::isSymbol(nl->Second(args), CcString::BasicType()))
+        || (listutils::isSymbol(nl->First(args),  Region::BasicType())) ) ){
+    return listutils::typeError(errmsg);
+  }
+  return nl->SymbolAtom(CcReal::BasicType());
 }
 
 /*
@@ -14668,9 +14726,26 @@ SpatialSize( Word* args, Word& result, int message,
   T* a = (static_cast<T*>(args[0].addr));
   if(!a->IsDefined()){
     res->SetDefined(false);
-  } else {
-    res->Set(true,a->SpatialSize());
+    return 0;
   }
+  if(qp->GetNoSons(s)==2){ // variant using (LON,LAT)-coordinates
+    CcString* geoidCcStr = static_cast<CcString*>(args[1].addr);
+    if(!geoidCcStr->IsDefined()){
+      res->Set(false, 0.0);
+      return 0;
+    }
+    string geoidstr = geoidCcStr->GetValue();
+    bool valid = false;
+    Geoid::GeoidName gn = Geoid::getGeoIdNameFromString(geoidstr,valid);
+    if(!valid){
+      res->Set(false, 0.0);
+      return 0;
+    }
+    Geoid geoid(gn);
+    res->Set(true,a->SpatialSize(geoid, valid));
+    return 0;
+  } // else: variant using (X,Y)-coordinates
+  res->Set(true,a->SpatialSize());
   return 0;
 }
 
@@ -16710,7 +16785,7 @@ ValueMapping spatialsizemap[] = {
       SpatialSize<Line>,
       SpatialSize<Region>,
       SpatialSize<SimpleLine>
-  };
+};
 
 
 
@@ -16931,10 +17006,18 @@ const string SpatialSpecBbox  =
 
 const string SpatialSpecSize  =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-  "( <text>(line, region, sline) -> real</text--->"
-  "<text> size( _ )</text--->"
-  "<text> return the size (line, sline: length, region: area) of a spatial "
-  "object.</text--->"
+  "( <text> {line|sline|region} -> real \n"
+  " {line|sline} x string -> real</text--->"
+  "<text> size( O [, GeoidName ] )</text--->"
+  "<text>Returns the size (line, sline: length, region: area) of a spatial "
+  "object O. For sline and line objects, the optional parameter Geoid allows "
+  "to compute line lengthes based on (LON,LAT)-coordinates and the geoid "
+  "described by GeoidName instead of metric (X,Y)-coordinates. If GeoidName "
+  "is unknown or O contains invalid spherical coordinates, the result is "
+  "UNDEF. Known GeoidNames are: "+ Geoid::getGeoIdNames() + ".\n"
+  "CAVEAT: For a 'line' the result is only valid if the original segments do "
+  "not cross each other. For 'sline' the result should always be correct."
+  "</text--->"
   "<text> query size(line)</text--->"
   ") )";
 
@@ -17247,7 +17330,7 @@ const string gkSpec  =
    "<text>Projects the argument 'geoobj' using the Gauss Krueger projection "
    "with center meridian 'zone'. Zone width is 3°. If 'zone' is not provided,"
    "2 (center meridian = 6°E, suits the location of Hagen) will be used as a "
-   "default. 'geoobj' is expected to have geografic coordinates (LAT/LON) in °"
+   "default. 'geoobj' is expected to have geografic coordinates (LON,LAT) in °"
    ", the result's coordinates (NORTHING,EASTING) are in metres.</text--->"
    "<text>query gk([const point value (0 0)])</text--->"
    ") )";
@@ -18112,7 +18195,9 @@ int distanceOrthodromeVM( Word* args, Word& result, int message,
     return 0;
   }
   Geoid geoid(gn);
-  res->Set(true,p1->DistanceOrthodrome(*p2,geoid));
+  valid = true;
+  res->Set(true,p1->DistanceOrthodrome(*p2,geoid,valid));
+  res->SetDefined(valid);
   return 0;
 }
 

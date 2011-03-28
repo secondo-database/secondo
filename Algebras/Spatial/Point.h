@@ -237,9 +237,15 @@ use Spherical geometry.
 Distance between two points given in geodetic (Lat, Lon)-coordinates.
 The distance is measured along a geoid passed as an argument.
 
+If an undefined Point or a Point with an invalid geographic coordinate is used,
+~valid~ is set to false, otherwise the result is calculated and ~valid~ is set
+to true.
+
 */
 
-    double DistanceOrthodrome( const Point& p, const Geoid& g) const;
+    double DistanceOrthodrome( const Point& p,
+                               const Geoid& g,
+                               bool& valid) const;
 
 /*
 4.1.2
