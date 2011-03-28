@@ -1960,48 +1960,51 @@ void UPoint::Distance( const UPoint& up, UReal& result ) const
   return;
 }
 
-void UPoint::USpeed( UReal& result ) const
+// scalar velocity
+void UPoint::USpeed( UReal& result, const Geoid* geoid ) const
 {
-  double x0, y0, x1, y1;
-  double duration;
+  double duration = 0.0;;
+  double dist = 0.0;
+  bool valid = true;
+  if ( !IsDefined() ) {
+    valid = false;
+  } else {
+    result.timeInterval = timeInterval;
 
-  if ( !IsDefined() )
-    result.SetDefined( false );
-  else
-    {
-      x0 = p0.GetX();
-      y0 = p0.GetY();
+    DateTime dt = timeInterval.end - timeInterval.start;
+    duration = dt.ToDouble() * 86400;   // value in seconds
 
-      x1 = p1.GetX();
-      y1 = p1.GetY();
-
-      result.timeInterval = timeInterval;
-
-      DateTime dt = timeInterval.end - timeInterval.start;
-      duration = dt.ToDouble() * 86400;   // value in seconds
-
-      if( duration > 0.0 )
-        {
-          /*
-            The point unit can be represented as a function of
-            f(t) = (x0 + x1 * t, y0 + y1 * t).
-            The result of the derivation is the constant (x1,y1).
-            The speed is constant in each time interval.
-            Its value is represented by variable c. The variables a and b
-            are set to zero.
-
-          */
-          result.a = 0;  // speed is constant in the interval
-          result.b = 0;
-          result.c = sqrt(pow( (x1-x0), 2 ) + pow( (y1- y0), 2 ))/duration;
-          result.r = false;
-          result.SetDefined( true );
-        }
-      else
-        result.SetDefined( false );
+    if( duration > 0.0 ){
+      if(geoid){ // (X,Y)-coords
+        double x0 = p0.GetX(), y0 = p0.GetY(),
+               x1 = p1.GetX(), y1 = p1.GetY();
+        /*
+        The point unit is represented as a function
+        f(t) = (x0 + x1 * t, y0 + y1 * t).
+        The result of the derivation is the constant (x1,y1).
+        */
+        dist = sqrt(pow( (x1-x0), 2 ) + pow( (y1- y0), 2 ));
+        valid = true;
+      } else { // (LON.LAT)-coords
+        dist = p0.DistanceOrthodrome(p1,*geoid, valid);
+      }
+      /*
+      The speed is constant in each time interval.
+      Its value is represented by variable c. The variables a and b
+      are set to zero.
+      */
+      result.a = 0;  // speed is constant in the interval
+      result.b = 0;
+      result.c = dist/duration;
+      result.r = false;
+    } else { // duration <= 0.0
+      valid = false;
     }
+  }
+  result.SetDefined(valid);
 }
 
+// component-wise velocity
 void UPoint::UVelocity( UPoint& result ) const
 {
   double x0, y0, x1, y1;
@@ -6148,7 +6151,7 @@ and can be represented as a upoint.
   result.EndBulkLoad( true );
 }
 
-void MPoint::MSpeed( MReal& result ) const
+void MPoint::MSpeed( MReal& result, const Geoid* geoid ) const
 {
   result.Clear();
   if( !IsDefined() ){
@@ -6164,10 +6167,9 @@ void MPoint::MSpeed( MReal& result ) const
 
   for( int i = 0; i < GetNoComponents(); i++ ){
     Get( i, uPoint );
-    uPoint.USpeed( uReal );
+    uPoint.USpeed( uReal, geoid );
     if( uReal.IsDefined() ){
       result.Add( uReal ); // append ureal to mreal
-              //              counter++;
     }
   }
   result.EndBulkLoad( true );
@@ -9952,7 +9954,7 @@ ListExpr DisturbTypeMap(ListExpr args){
 }
 
 /*
-~LengthTypeMap~
+~LengthTypeMap~ (also for operator ~avg\_speed~)
 
 ---- mpoint [ x string ] --> real
 ----
@@ -10087,13 +10089,13 @@ ListExpr SpeedUpTypeMap(ListExpr args){
 }
 
 /*
-~AveSpeedTypeMap~
+~Avg\_SpeedTypeMap~
 
 signatures:
-  mpoint -> real
+  mpoint [ x string ] -> real
 
 */
-ListExpr AveSpeedTypeMap(ListExpr args){
+ListExpr Avg_SpeedTypeMap(ListExpr args){
   string err = "mpoint expected";
   int len = nl->ListLength(args);
   if(len!=1){
@@ -13311,7 +13313,12 @@ int SpeedUpVM( Word* args, Word& result, int message,
    return 0;
 }
 
-int AveSpeedVM( Word* args, Word& result, int message,
+/*
+ValueMapping for operator ~avg\_speed~
+
+*/
+
+int Avg_SpeedVM( Word* args, Word& result, int message,
                           Word& local, Supplier s ) {
    result = qp->ResultStorage(s);
    CcReal* res = static_cast<CcReal*>(result.addr);
@@ -13320,18 +13327,43 @@ int AveSpeedVM( Word* args, Word& result, int message,
      res->Set(false, 0.0);
      return 0;
    }
+   Geoid* geoidptr = 0;
+   bool valid = true;
+   if(qp->GetNoSons(s)==2){ // setting up geoid for (LON,LAT)-variant
+     CcString* geoidCcStr = static_cast<CcString*>(args[1].addr);
+     if(!geoidCcStr->IsDefined()){
+      res->Set(false, 0.0);
+      return 0;
+     }
+     string geoidstr = geoidCcStr->GetValue();
+     bool valid = false;
+     Geoid::GeoidName gn = Geoid::getGeoIdNameFromString(geoidstr,valid);
+     if(!valid){
+      res->Set(false, 0.0);
+      return 0;
+     }
+     geoidptr = new Geoid(gn);
+  }
+
    double length = 0;
-   double time = 0;
+   DateTime totaltime(0,0,durationtype);
    UPoint up;
-   for(int i = 0;i < arg1->GetNoComponents();i++){
+   for(int i = 0; valid && (i<arg1->GetNoComponents()); i++){
     arg1->Get(i,up);
-    Instant inter = up.timeInterval.end - up.timeInterval.start;
-    time += inter.GetDay()*24*60*60+inter.GetAllMilliSeconds()/1000.0;
-    length += up.p0.Distance(up.p1);
+    totaltime += (up.timeInterval.end - up.timeInterval.start);
+    if(geoidptr) { // (LON,LAT)
+      length += up.p0.DistanceOrthodrome(up.p1, *geoidptr, valid);
+    } else {       // (X,Y)
+      length += up.p0.Distance(up.p1);
+    }
    }
-   res->Set(true,length/time);
+   res->Set(valid,length/(totaltime.ToDouble()*86400.0));
+   if(geoidptr){
+     delete geoidptr;
+   }
    return 0;
 }
+
 int SubMoveVM( Word* args, Word& result, int message,
                           Word& local, Supplier s ) {
    result = qp->ResultStorage(s);
@@ -14763,8 +14795,9 @@ const string TemporalSpecgk =
   "<text>Projects the argument 'mp' using the Gauss Krueger projection "
   "with center meridian 'zone'. Zone width is 3°. If 0 <= 'zone' <= 119 is not"
   " provided, 2 (center meridian = 6°E, suits the location of Hagen) will be "
-  "used as a default. 'mp' is expected to have geografic coordinates (LAT/LON) "
-  "in °, the result's coordinates (NORTHING,EASTING) are in metres.</text--->"
+  "used as a default. 'mp' is expected to have geographic coordinates "
+  "(LAT/LON) in °, the result's coordinates (NORTHING,EASTING) are in metres."
+  "</text--->"
   "<text> gk( trip )</text--->"
   ") )";
 
@@ -15046,13 +15079,17 @@ const string DisturbSpec =
     "<text>query train 6 disturb [200.0 , 10.0] </text--->"
     ") )";
 
+/*
+Spec for ~length~
+
+*/
 const string LengthSpec =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
     "( <text>mpoint -> real </text---> "
     "<text> length( Mp [, GeoidName ] ) </text--->"
     "<text>Computes the travelled length of the movement of object Mp "
     "(like an odometer). If the optional parameter is used, the coordinates in "
-    "Mp are interpreted as geografic coordinates (LON,LAT) instead of metric "
+    "Mp are interpreted as geographic coordinates (LON,LAT) instead of metric "
     "(X,Y)-coordinates. Valid values for GeoidName are: "
     + Geoid::getGeoIdNames() + ". Unknown GeoidName results in an UNDEF result."
     "</text--->"
@@ -15107,12 +15144,22 @@ const string speedupSpec =
     "<text>query train1 speedup[2.0]</text--->"
     ") )";
 
-const string avespeedSpec =
+/*
+Spec for ~avg\_speed~
+
+*/
+const string avg_speedSpec =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-    "( <text>mpoint -> real </text---> "
-    "<text> avespeed (_) </text--->"
-    "<text>Query the average speed of a moving point in unit/s "
-    "query avespeed(train1)</text--->"
+    "( <text>mpoint [ x string ] -> real </text---> "
+    "<text> avg_speed ( M [, GeoidName] ) </text--->"
+    "<text>Query the average speed of the moving point M in unit/s. If the "
+    "optional string parameter is not used, coordinates in M are metric (X,Y)-"
+    "pairs. Otherwise, GeoidName specifies a geoid to use for orthodrome-based "
+    "speed calculation (valid GeoidNames are: " + Geoid::getGeoIdNames() +
+    ") and coordinates in M must be valid geographic coordinates (LON,LAT)."
+    "For an invalid GeoidName or invalid geographic coordinates in M, UNDEF is "
+    "returned.</text--->"
+    "<text>query avg_speed(train1)</text--->"
     ") )";
 
 const string submoveSpec =
@@ -15323,7 +15370,10 @@ Operator temporalinst( "inst",
                        temporalinstmap,
                        IntimeSimpleSelect,
                        IntimeTypeMapInstant );
+/*
+More operator specifications...
 
+*/
 Operator temporalval( "val",
                       TemporalSpecVal,
                       4,
@@ -15621,6 +15671,10 @@ Operator extdeftime( "extdeftime",
                       ExtDeftimeSelect,
                       ExtDeftimeTypeMap );
 
+/*
+More operator specifications...
+
+*/
 Operator temporaltherange( "theRange",
                      TemporalTheRangeSpec,
                      5,
@@ -15671,11 +15725,11 @@ Operator speedup( "speedup",
                     Operator::SimpleSelect,
                     SpeedUpTypeMap);
 
-Operator avespeed( "avespeed",
-                    avespeedSpec,
-                    AveSpeedVM,
+Operator avg_speed( "avg_speed",
+                    avg_speedSpec,
+                    Avg_SpeedVM,
                     Operator::SimpleSelect,
-                    AveSpeedTypeMap);
+                    LengthTypeMap);
 
 Operator submove( "submove",
                     submoveSpec,
@@ -15994,7 +16048,7 @@ class TemporalAlgebra : public Algebra
     AddOperator(&hat);
     AddOperator(&restrict);
     AddOperator(&speedup);
-    AddOperator(&avespeed);
+    AddOperator(&avg_speed);
     AddOperator(&submove);
     AddOperator(&temporaluval);
     AddOperator(&mp2onemp);
