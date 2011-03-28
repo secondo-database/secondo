@@ -513,12 +513,17 @@ Signature : mpoint x real -> mpoint
 Example   : query deftime(train1 speedup[2.0])
 Result    : (periods (("2003-11-20-06:03" "2003-11-20-06:23:00.020" TRUE FALSE)))
 
-
-Operator  : avespeed
-Number    : 2
-Signature : mpoint ->  real
-Example   : query avespeed(train1)
+Operator  : avg_speed
+Number    : 1
+Signature : mpoint [ x string ] ->  real
+Example   : query avg_speed(train1)
 Result    : 7.8796161609
+
+Operator  : avg_speed
+Number    : 2
+Signature : mpoint [ x string ] ->  real
+Example   : query avg_speed([const mpoint value ((("2007-02-27-16:05:54.922" "2007-02-27-16:05:55.922" TRUE FALSE) (7.495008333333334 51.37592333333333 7.495061666666667 51.37594166666667)) (("2007-02-27-16:05:55.922" "2007-02-27-16:05:56.922" TRUE FALSE) (7.495061666666667 51.37594166666667 7.495113333333333 51.37595833333334)) (("2007-02-27-16:05:56.922" "2007-02-27-16:05:57.922" TRUE FALSE) (7.495113333333333 51.37595833333334 7.495146666666667 51.375995)))],"WGS1984")
+Result    : 4.325834072
 
 Operator  : submove
 Number    : 2

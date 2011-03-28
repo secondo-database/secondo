@@ -95,6 +95,7 @@ The type system of the Temporal Algebra can be seen below.
 #include "RectangleAlgebra.h"
 #include "DateTime.h"
 #include "AlmostEqual.h"
+#include "Geoid.h"
 
 extern NestedList* nl;
 extern QueryProcessor* qp;
@@ -2263,7 +2264,14 @@ Returns ~true~ if this temporal unit is different to the temporal unit ~i~ and ~
   void Distance( const Point& p, UReal& result ) const;
   //  void UTrajectory( UPoint& unit,Line& line ) const;
   void UTrajectory( Line& line ) const;
-  void USpeed( UReal& result ) const;
+
+  // The scalar velocity as a temporal function
+  // If geoid = 0, metric (X.Y)-coordinates are used within the UPoint.
+  // If geoid points to a valid Geoid object, geografic coordinates (LON,LAT)
+  // are used within the UPoint.
+  void USpeed( UReal& result, const Geoid* geoid = 0 ) const;
+
+  // The vectorial velocity --- (X,Y)-components --- as temporal function
   void UVelocity( UPoint& result ) const;
   void Intersection(const UPoint &other, UPoint &result) const;
 
@@ -3316,7 +3324,14 @@ using a check on bbox.
 
 */
   void Trajectory( Line& line ) const;
-  void MSpeed(  MReal& result ) const;
+
+  // The scalar velocity as a temporal function
+  // If geoid = 0, metric (X.Y)-coordinates are used within the MPoint.
+  // If geoid points to a valid Geoid object, geografic coordinates (LON,LAT)
+  // are used within the MPoint.
+  void MSpeed(  MReal& result, const Geoid* geoid = 0 ) const;
+
+  // The vectorial velocity --- (X,Y)-components --- as temporal function
   void MVelocity( MPoint& result ) const;
 
 /*
