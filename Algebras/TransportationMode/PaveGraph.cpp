@@ -3448,6 +3448,55 @@ void DualGraph::LoadSortNode(Relation* r1)
 
 }
 
+/*
+find all triangles that intersect the input line and return all tid of these
+traingles 
+
+*/
+void DualGraph::LineIntersectTri(Line* l, vector<Line>& line_list)
+{
+    DFTraverse(rtree_node, rtree_node->RootRecordId(), l, line_list);
+}
+
+/*
+Using depth first method to travese the R-tree to find all triangles
+intersecting the line and record the triangle tuple id 
+
+*/
+
+void DualGraph::DFTraverse(R_Tree<2,TupleId>* rtree, SmiRecordId adr, 
+                          Line* line, vector<Line>& line_list)
+{
+  const double delta_dist = 0.001;
+  R_TreeNode<2,TupleId>* node = rtree->GetMyNode(adr,false,
+                  rtree->MinEntries(0), rtree->MaxEntries(0));
+  for(int j = 0;j < node->EntryCount();j++){
+      if(node->IsLeaf()){
+              R_TreeLeafEntry<2,TupleId> e =
+                 (R_TreeLeafEntry<2,TupleId>&)(*node)[j];
+              Tuple* dg_tuple = node_rel_sort->GetTuple(e.info, false);
+              Region* candi_reg =
+                     (Region*)dg_tuple->GetAttribute(DualGraph::PAVEMENT);
+
+              Line* res = new Line(0);
+              line->Intersection(*candi_reg, *res);
+
+              if(res->Length() > delta_dist){
+                line_list.push_back(*res);
+              }
+              delete res;
+              dg_tuple->DeleteIfAllowed();
+      }else{
+            R_TreeInternalEntry<2> e =
+                (R_TreeInternalEntry<2>&)(*node)[j];
+            if(e.box.Intersects(line->BoundingBox())){
+                DFTraverse(rtree, e.pointer, line, line_list);
+            }
+      }
+  }
+  delete node;
+
+}
 
 
 Walk_SP::Walk_SP()
@@ -5851,6 +5900,7 @@ adjacency list
 */
 void VGraph::GetVisibilityNode(int tri_id, Point query_p)
 {
+  assert(1 <= tri_id && tri_id <= rel2->GetNoTuples());
   /////////three vertices of the triangle////////////////////////
   Tuple* tri_tuple1 = rel2->GetTuple(tri_id, false);
   int v1 =((CcInt*)tri_tuple1->GetAttribute(DualGraph::V1))->GetIntval();

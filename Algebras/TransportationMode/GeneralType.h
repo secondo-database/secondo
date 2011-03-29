@@ -57,6 +57,9 @@ Jan, 2011 Jianqiu xu
 #include <fstream>
 #include "GSLAlgebra.h"
 
+
+
+
 /*
 technique macro definition 
 
@@ -77,10 +80,10 @@ instead of int, real, or enum
 
 
 enum tm_value{TM_BUS = 0, TM_WALK, TM_INDOOR, TM_CAR, TM_METRO, 
-TM_TRAIN, TM_BICYCLE};
+TM_TRAIN, TM_BICYCLE, TM_TAXI};
 
 const string str_tm[] = {"Bus", "Walk", "Indoor", "Car", "Metro", 
-                         "Train", "Bicycle"}; 
+                         "Train", "Bicycle", "Taxi"};
 inline int GetTM(string s)
 {
 //  int tm_size = sizeof(str_tm)/sizeof(str_tm[0]);
@@ -393,9 +396,9 @@ public:
     {
 //      cout<<"Constructor1()"<<endl;
     }
-    
-   GenRange(const GenRange& gr):
-   StandardSpatialAttribute<2>(gr.IsDefined()){
+
+   GenRange(const GenRange& gr):StandardSpatialAttribute<2>(gr.IsDefined()),
+                                elemlist(0), seglist(0){
       if(gr.IsDefined()){
 //        cout<<"not implemented"<<endl; 
           GenRange* temp_gr = const_cast<GenRange*>(&gr); 
@@ -404,7 +407,7 @@ public:
             temp_gr->GetElem(i, gelem);
             elemlist.Append(gelem);
           }
-          
+
           for(int i = 0;i < temp_gr->SegSize();i++){
             HalfSegment hs;
             temp_gr->GetSeg(i, hs);
@@ -642,11 +645,12 @@ ostream& operator<<(ostream& o, const UGenLoc& gloc);
 ///////////// general moving objects ////////////////////////////////
 /////////////////////////////////////////////////////////////////////
 const string genmo_tmlist[] = 
-{"Walk", "Indoor", "Bus", "Car", "Metro", 
+{"Walk", "Indoor", "Bus", "Car", "Metro", "Taxi",
 "Walk;Car", "Walk;Bus", "Walk;Indoor", "Walk;Metro", "Walk;Taxi",
 "Walk;Bus;Metro", "Walk;Indoor;Car", "Walk;Indoor;Bus","Walk;Indoor;Metro",
 "Walk;Indoor;Taxi", "Walk;Indoor;Bus;Metro"};
 
+class Space;
 
 
 /*
@@ -671,7 +675,7 @@ class GenMO:public Mapping<UGenLoc,GenLoc>
     void Add(const UGenLoc& unit); 
     void EndBulkLoad(const bool sort = true, const bool checkvalid = false); 
     void LowRes(GenMO& mo);
-    void Trajectory(GenRange& genrange);
+    void Trajectory(GenRange* genrange, Space* sp);
 };
 
 
@@ -679,21 +683,83 @@ bool CheckGenMO( ListExpr type, ListExpr& errorInfo );
 ListExpr GenMOProperty();
 
 
+struct MyHalfSegment;
+class Pavement;
+class DualGraph;
 
+struct IndoorNav2;
+
+/*
+used to generate generic moving objects 
+
+*/
 struct GenMObject{
   unsigned int count;
   TupleType* resulttype; 
   vector<int> tm_list; 
   vector<string> tm_str_list; 
   vector<int> id_list; 
+  static string StreetSpeedInfo;
+  enum StreeSpeed{SPEED_RID = 0, SPEED_VAL}; 
   
+  vector<GenMO> trip1_list;
+  vector<MPoint> trip2_list; 
+  
+  vector<Point> loc_list1;
+  vector<Point> loc_list2;
+  vector<GPoint> gp_list;
+  vector<Line> line_list1;
+
   GenMObject(){ count = 0; resulttype = NULL;} 
   ~GenMObject(){if(resulttype != NULL) delete resulttype;}
-  void GetTM(GenMO* mo); 
+  void GetMode(GenMO* mo); 
   void GetTMStr(bool v);
   void GetIdList(GenMO*);
   void GetIdList(GenRange* gr); 
-}; 
+
+  ///////////////////create generic moving objects///////////////////////
+  void GenerateGenMO(Space* sp, Periods* peri, int mo_no, int type, Relation*);
+  void GenerateGenMO2(Space* sp, Periods* peri, int mo_no, 
+                      int type, Relation*, BTree*, Relation*);
+  //////////////////////////////////////////////////////////////////////////
+  //////////////////////Mode: Car or Taxi///////////////////////////////////
+  //////////////////////////////////////////////////////////////////////////
+  void GenerateGenMO_CarTaxi(Space* sp, Periods* peri, int mo_no, 
+                             Relation* rel, string);
+  void GenerateGPoint(Network* rn, int mo_no, vector<GPoint>& gp_list);
+  void GenerateCarTaxi(Network*, int i, Periods* peri, GLine* newgl,
+                   Relation* rel, Point, string);
+  void CreateCarTrip1(MPoint* mo, vector<MyHalfSegment> seq_halfseg, 
+                      Instant& start_time, double speed);
+  void CreateCarTrip2(MPoint* mo, vector<MyHalfSegment> seq_halfseg, 
+                      Instant& start_time, double speed);
+
+  ///////////////////////////////////////////////////////////////////////
+  /////////////////////Mode:Walk/////////////////////////////////////////
+  ///////////////////////////////////////////////////////////////////////
+  void GenerateGenMO_Walk(Space* sp, Periods* peri, int mo_no, Relation* rel);
+  void GenerateLocPave(Pavement* pm, int mo_no, vector<GenLoc>& genloc_list);
+  void GenerateWalk(DualGraph* dg, int count, Periods* peri, Line* path, 
+                    Point p1);
+
+  //////////////////////////////////////////////////////////////////////////
+  //////////////////////Mode: Walk, Car//////////////////////////////////////
+  //////////////////////////////////////////////////////////////////////////
+  void GenerateGenMO_CarTaxiWalk(Space* sp, Periods* peri, int mo_no, 
+                             Relation* rel, BTree* btree, Relation*, string);
+  void PaveLoc2GPoint(GenLoc loc1, GenLoc loc2, Space* sp, Relation* rel, 
+                      BTree* btree, vector<GPoint>& gp_list, 
+                      vector<Point>& p_list);
+  void ConnectStartMove(GenLoc loc, Point start_loc, MPoint* mo, 
+                        GenMO* genmo, Instant& start_time, 
+                        Pavement* pm, string);
+  void ConnectEndMove(Point start_loc, GenLoc loc, MPoint* mo, 
+                        GenMO* genmo, Instant& start_time, 
+                      Pavement* pm, string);
+  void ConnectGP1GP2(Network*, Point start_loc, GLine* newgl, MPoint* mo,
+                     GenMO* genmo, Instant& start_time,
+                     Relation* speed_rel, string mode);
+};
 
 
 //////////////////////////////////////////////////////////////////////
@@ -735,7 +801,6 @@ struct InfraRef{
   }
 }; 
 
-class Pavement;
 
 class BusNetwork; 
 
@@ -770,24 +835,36 @@ class Space:public Attribute{
   inline int Size() const {return infra_list.Size();}
   void Get(int i, InfraRef& inf_ref) const;
   void Add(InfraRef& inf_ref);
-  void AddRoadNetwork(Network* n);
+
   bool CheckExist(InfraRef&  inf_ref); 
   Relation* GetInfra(string type);
-  Network* LoadNetwork(int type); 
+
+  void AddRoadNetwork(Network* n);
+  Network* LoadRoadNetwork(int type); 
   void CloseRoadNetwork(Network* rn);
 
   void AddPavement(Pavement* pn);
   Pavement* LoadPavement(int type); 
   void ClosePavement(Pavement* pn);
-  
+
   void AddBusNetwork(BusNetwork* bn);
-  
   BusNetwork* LoadBusNetwork(int type); 
   void CloseBusNetwork(BusNetwork* bn);
+
   
+  //////////////////////////////////////////////////////////////////////////
+  ////////////get the submovement in an infrastructure object///////////////
+  /////////////////////////////////////////////////////////////////////////
+  void GetLineInIFObject(int oid, GenLoc gl1, GenLoc gl2, Line* l);
+  void GetLineInRoad(int oid, GenLoc gl1, GenLoc gl2, Line* l);
+  void GetLineInRegion(int oid, GenLoc gl1, GenLoc gl2, Line* l);
+  void GetLineInFreeSpace(GenLoc gl1, GenLoc gl2, Line* l);
+  void GetLineInBusNetwork(int oid, GenLoc gl1, GenLoc gl2, Line* l);
+  void GetLineInGRoom(int oid, GenLoc gl1, GenLoc gl2, Line* l);
+
   private:
     bool def; 
-    int space_id; 
+    int space_id;
     DbArray<InfraRef> infra_list; 
 };
 ListExpr SpaceProperty(); 

@@ -522,42 +522,42 @@ void BusRoute::ConvertGLine(GLine* gl, GLine* newgl)
         }else
           ri_list.push_back(*ri);
       }
-       
-    }  
+
+    }
     delete ri; 
    }
-   
+
    assert(ri_list.size() >= 2); //for bus route, long section 
-   
+
    vector<GP_Point> gp_p_list; 
 
  //  cout<<"after processing "<<endl; 
-   
+
    for(unsigned int i = 0;i < ri_list.size();i++){     
-     
+
         int rid = ri_list[i].GetRouteId();
         double start = ri_list[i].GetStartPos();
         double end = ri_list[i].GetEndPos();
         GPoint* gp1 = new GPoint(true,n->GetId(),rid, start,None);
         Point* p1 = new Point();
         gp1->ToPoint(p1);
-        
+
         GPoint* gp2 = new GPoint(true,n->GetId(),rid, end, None);
         Point* p2 = new Point();
         gp2->ToPoint(p2);
-        
-        GP_Point* gp_p = new GP_Point(rid,start,end,*p1,*p2);        
+
+        GP_Point* gp_p = new GP_Point(rid,start,end,*p1,*p2);
         gp_p_list.push_back(*gp_p);
-        
-        
+
+
         delete gp_p;
         delete p2;
         delete gp2; 
         delete p1;
         delete gp1;
    }  
-   
-   
+
+
    vector<bool> temp_start_from; 
    const double dist_delta = 0.001; 
    for(unsigned int i = 0; i < gp_p_list.size() - 1;i++){
@@ -4340,7 +4340,7 @@ void RoadDenstiy::CreateBusTrip1(MPoint* mo,
   start_time = et; 
   
 }
-                     
+
 /*
 create moving bus units and add them into the trip, 
 !!! it traverse from index big to small in myhalfsegment list 

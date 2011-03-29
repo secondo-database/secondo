@@ -55,6 +55,7 @@ Jan, 2011 Jianqiu xu
 #include "GeneralType.h"
 #include "PaveGraph.h"
 #include "BusNetwork.h"
+#include "Indoor.h"
 
 ///////////////////////////random number generator//////////////////////////
 unsigned long GetRandom()
@@ -1323,16 +1324,33 @@ get the trajectory of a generic moving object. it needs the space
 because loc1 loc2 have different meanings for different infrastructures 
 
 */
-void GenMO::Trajectory(GenRange& genrange)
+void GenMO::Trajectory(GenRange* genrange, Space* sp)
 {
-  cout<<"GenMO::Trajectory() not implemented"<<endl; 
+  for(int i = 0;i < GetNoComponents();i++){
+      UGenLoc unit;
+      Get(i, unit);
+      int oid = unit.gloc1.GetOid();
+      int tm = unit.tm;
+
+      Line* l = new Line(0);
+      l->StartBulkLoad();
+      sp->GetLineInIFObject(oid, unit.gloc1, unit.gloc2, l);
+      l->EndBulkLoad();
+
+      genrange->Add(oid, l, tm);
+      delete l;
+  }
+
 }
 
 
 /////////////////////////////////////////////////////////////////////////
 /////////////// get information from generic moving objects///////////////
 /////////////////////////////////////////////////////////////////////////
-void GenMObject::GetTM(GenMO* mo)
+string GenMObject::StreetSpeedInfo = "(rel (tuple ((id_b int) (Vmax real))))";
+
+
+void GenMObject::GetMode(GenMO* mo)
 {
   tm_list.clear(); 
   for(int i = 0;i < mo->GetNoComponents();i++){
@@ -1382,6 +1400,1305 @@ void GenMObject::GetIdList(GenRange* gr)
       id_list.push_back(elem.oid); 
     }
 }
+
+/*
+create generic moving objects
+
+*/
+void GenMObject::GenerateGenMO(Space* sp, Periods* peri, int mo_no, 
+                               int type, Relation* rel)
+{
+//  cout<<"GenerateGenMO()"<<endl; 
+  if(mo_no < 1){
+    cout<<" invalid number of moving objects "<<mo_no<<endl;
+    return;
+  }
+  
+  if(!(0 <= type && type < int(ARR_SIZE(genmo_tmlist)))){
+    cout<<" invalid type value "<<type<<endl;
+  }
+
+  switch(type){
+    case 1:
+      GenerateGenMO_Walk(sp, peri, mo_no, rel);
+      break;
+
+    case 4:
+      GenerateGenMO_CarTaxi(sp, peri, mo_no, rel, "Car");
+      break;
+
+    case 6:
+      GenerateGenMO_CarTaxi(sp, peri, mo_no, rel, "Taxi");
+      break;
+
+    default:
+      assert(false);
+      break;  
+  }
+
+}
+
+/*
+create generic moving objects
+
+*/
+void GenMObject::GenerateGenMO2(Space* sp, Periods* peri, int mo_no, 
+                               int type, Relation* rel1, 
+                               BTree* btree, Relation* rel2)
+{
+//  cout<<"GenerateGenMO()"<<endl; 
+  if(mo_no < 1){
+    cout<<" invalid number of moving objects "<<mo_no<<endl;
+    return;
+  }
+  if(!(0 <= type && type < int(ARR_SIZE(genmo_tmlist)))){
+    cout<<" invalid type value "<<type<<endl;
+  }
+
+  switch(type){
+    case 7:
+      GenerateGenMO_CarTaxiWalk(sp, peri, mo_no, rel1, btree, rel2, "Car");
+      break;
+    case 11:
+      GenerateGenMO_CarTaxiWalk(sp, peri, mo_no, rel1, btree, rel2, "Taxi");
+      break;
+
+    default:
+      assert(false);
+      break;  
+  }
+
+}
+
+/*
+generic moving objects with transportation mode walk
+
+*/
+void GenMObject::GenerateGenMO_Walk(Space* sp, Periods* peri, 
+                                    int mo_no, Relation* tri_rel)
+{
+
+//  cout<<"Mode Walk "<<endl;
+  const double min_len = 50.0;
+  Pavement* pm = sp->LoadPavement(IF_REGION);
+  vector<GenLoc> genloc_list;
+  GenerateLocPave(pm, mo_no, genloc_list);///generate locations on pavements 
+  int count = 1;
+
+  DualGraph* dg = pm->GetDualGraph();
+  int no_triangle = dg->GetNodeRel()->GetNoTuples();
+  int mini_oid = dg->min_tri_oid_1;
+  VisualGraph* vg = pm->GetVisualGraph();
+
+
+  Walk_SP* wsp = new Walk_SP(dg, vg, NULL, NULL);
+  wsp->rel3 = tri_rel;
+  
+  while(count <= mo_no){
+    int index1 = GetRandom() % genloc_list.size();
+    GenLoc loc1 = genloc_list[index1];
+    int index2 = GetRandom() % genloc_list.size();
+    GenLoc loc2 = genloc_list[index2];
+
+    if(index1 == index2) continue;
+    Point p1(true, loc1.GetLoc().loc1, loc1.GetLoc().loc2);
+    Point p2(true, loc2.GetLoc().loc1, loc2.GetLoc().loc2);
+    if(p1.Distance(p2) < min_len) continue;
+
+
+    int oid1 = loc1.GetOid() - mini_oid;
+//    cout<<"oid1 "<<oid1<<endl;
+    assert(1 <= oid1 && oid1 <= no_triangle);
+
+    int oid2 = loc2.GetOid() - mini_oid;
+//    cout<<"oid2 "<<oid2<<endl;
+    assert(1 <= oid2 && oid2 <= no_triangle);
+
+    Line* path = new Line(0);
+
+    wsp->WalkShortestPath2(oid1, oid2, p1, p2, path);
+//    cout<<"path length "<<path->Length()<<endl; 
+    GenerateWalk(dg, count, peri, path, p1);
+
+    delete path;
+    count++;
+
+  }
+  delete wsp;
+
+  pm->CloseDualGraph(dg);
+  pm->CloseVisualGraph(vg);
+
+  sp->ClosePavement(pm);
+}
+
+/*
+generate locations on the pavment area 
+!!! note that here we put the ----absolute position---- in loc instead of the 
+relative position according to the triangle !!!
+
+*/
+void GenMObject::GenerateLocPave(Pavement* pm, int mo_no, 
+                                 vector<GenLoc>& genloc_list)
+{
+  Walk_SP* wsp = new Walk_SP(NULL, NULL, pm->GetPaveRel(), NULL);
+  wsp->GenerateData1(mo_no*2);
+  for(unsigned int i = 0;i < wsp->oids.size();i++){
+    int oid = wsp->oids[i];
+/*    double loc1 = wsp->q_loc1[i].GetX();
+    double loc2 = wsp->q_loc1[i].GetY();*/
+
+    double loc1 = wsp->q_loc2[i].GetX();
+    double loc2 = wsp->q_loc2[i].GetY();
+
+//    cout<<"oid "<<oid<<" loc1 "<<loc1<<" loc2 "<<loc2<<endl; 
+    Loc loc(loc1, loc2);
+    GenLoc genloc(oid, loc);
+    genloc_list.push_back(genloc);
+  }
+
+  delete wsp;
+}
+
+/*
+generate moving objects with mode walk
+
+*/
+void GenMObject::GenerateWalk(DualGraph* dg, int count, Periods* peri, 
+                              Line* l, Point start_loc)
+{
+   SimpleLine* path = new SimpleLine(0);
+   path->fromLine(*l);
+
+   SpacePartition* sp = new SpacePartition();
+   vector<MyHalfSegment> seq_halfseg; //reorder it from start to end
+   sp->ReorderLine(path, seq_halfseg);
+   delete sp;
+   delete path;
+   Point temp_sp1 = seq_halfseg[0].from; 
+   Point temp_sp2 = seq_halfseg[seq_halfseg.size() - 1].to; 
+   const double delta_dist = 0.01;
+
+   MPoint* mo = new MPoint(0);
+   GenMO* genmo = new GenMO(0);
+   mo->StartBulkLoad();
+   genmo->StartBulkLoad();
+   //////////////////////////////////////////////////////////////
+   ///////////////set start time/////////////////////////////////
+   /////////////////////////////////////////////////////////////
+   Interval<Instant> periods;
+   peri->Get(0, periods);
+   Instant start_time = periods.start;
+   int time_range = 14*60;//14 hours 
+   if(count % 3 == 0)
+     start_time.ReadFrom(periods.start.ToDouble() + 
+                        (GetRandom() % time_range)/(24.0*60.0));
+   else
+    start_time.ReadFrom(periods.end.ToDouble() -
+                        (GetRandom() % time_range)/(24.0*60.0));
+   ///////////////////////////////////////////////////////////////
+   ////////we reference to the big overall large polygon/////////////
+   //////////////////////////////////////////////////////////////////
+   int gen_mo_ref_id = dg->min_tri_oid_1 + dg->GetNodeRel()->GetNoTuples() + 1;
+//   cout<<gen_mo_ref_id<<endl;
+    Rectangle<2> bbox = dg->rtree_node->BoundingBox();
+//    cout<<bbox<<endl;
+   ///////////////////////////////////////////////////////////////////
+
+   if(start_loc.Distance(temp_sp1) < delta_dist){
+        Instant st = start_time;
+        Instant et = start_time; 
+        Interval<Instant> up_interval; 
+        for(unsigned int i = 0;i < seq_halfseg.size();i++){
+            Point from_loc = seq_halfseg[i].from;
+            Point to_loc = seq_halfseg[i].to; 
+
+            double dist = from_loc.Distance(to_loc);
+            double time = dist; //assume the speed for pedestrian is 1.0m
+ 
+            if(dist < delta_dist){//ignore such small segment 
+                if((i + 1) < seq_halfseg.size()){
+                seq_halfseg[i+1].from = from_loc; 
+                }
+                continue; 
+            }
+            //double 1.0 means 1 day 
+            et.ReadFrom(st.ToDouble() + time*1.0/(24.0*60.0*60));
+        ////////////////////create a upoint////////////////////////
+            up_interval.start = st;
+            up_interval.lc = true;
+            up_interval.end = et;
+            up_interval.rc = false; 
+            UPoint* up = new UPoint(up_interval,from_loc,to_loc);
+            mo->Add(*up);
+            delete up; 
+            //////////////////////////////////////////////////////////////
+            st = et; 
+            ////////////////////////////////////////////////////////////////
+            Loc loc1(from_loc.GetX() - bbox.MinD(0), 
+                     from_loc.GetY() - bbox.MinD(1));
+            Loc loc2(to_loc.GetX() - bbox.MinD(0),
+                     to_loc.GetY() - bbox.MinD(1));
+            GenLoc gloc1(gen_mo_ref_id, loc1);
+            GenLoc gloc2(gen_mo_ref_id, loc2);
+            int tm = GetTM("Walk");
+            UGenLoc* unit = new UGenLoc(up_interval, gloc1, gloc2, tm);
+            genmo->Add(*unit); 
+            delete unit; 
+        }
+   }else if(start_loc.Distance(temp_sp2) < delta_dist){
+              Instant st = start_time;
+              Instant et = start_time; 
+              Interval<Instant> up_interval; 
+              for(int i = seq_halfseg.size() - 1;i >= 0;i--){
+                  Point from_loc = seq_halfseg[i].to;
+                  Point to_loc = seq_halfseg[i].from; 
+                  double dist = from_loc.Distance(to_loc);
+                  double time = dist; 
+                  if(dist < delta_dist){//ignore such small segment 
+                        if((i + 1) < seq_halfseg.size()){
+                            seq_halfseg[i+1].from = from_loc; 
+                        }
+                    continue;
+                  }
+                //double 1.0 means 1 day 
+                 et.ReadFrom(st.ToDouble() + time*1.0/(24.0*60.0*60.0));
+
+                 ////////////////////create a upoint////////////////////////
+                  up_interval.start = st;
+                  up_interval.lc = true;
+                  up_interval.end = et;
+                  up_interval.rc = false; 
+                  UPoint* up = new UPoint(up_interval,from_loc,to_loc);
+                  mo->Add(*up);
+                  delete up; 
+                  /////////////////////////////////////////////////////////
+                  st = et;
+                  /////////////////////////////////////////////////////////
+                  Loc loc1(from_loc.GetX() - bbox.MinD(0), 
+                           from_loc.GetY() - bbox.MinD(1));
+                  Loc loc2(to_loc.GetX() - bbox.MinD(0),
+                           to_loc.GetY() - bbox.MinD(1));
+                  GenLoc gloc1(gen_mo_ref_id, loc1);
+                  GenLoc gloc2(gen_mo_ref_id, loc2);
+                  int tm = GetTM("Walk");
+                  UGenLoc* unit = new UGenLoc(up_interval, gloc1, gloc2, tm);
+                  genmo->Add(*unit); 
+                  delete unit; 
+              }
+   }else assert(false);
+
+   mo->EndBulkLoad();
+   genmo->EndBulkLoad();
+  
+   trip1_list.push_back(*genmo);
+   trip2_list.push_back(*mo);
+   delete mo; 
+   delete genmo; 
+   
+}
+
+/*
+generic moving objects with transportation mode car or taxi
+
+*/
+void GenMObject::GenerateGenMO_CarTaxi(Space* sp, Periods* peri, int mo_no, 
+                                   Relation* rel, string mode)
+{
+//  cout<<"Mode Car "<<endl;
+
+  const double min_len = 500.0;
+  Network* rn = sp->LoadRoadNetwork(IF_LINE);
+  vector<GPoint> gp_list; 
+  GenerateGPoint(rn, mo_no, gp_list);/////////get road network locations 
+  int count = 1;
+  while(count <= mo_no){
+    int index1 = GetRandom() % gp_list.size();
+    GPoint gp1 = gp_list[index1];
+//    cout<<"gp1 "<<gp1<<endl;
+    int index2 = GetRandom() % gp_list.size();
+    GPoint gp2 = gp_list[index2];
+    if(index1 == index2) continue; 
+
+    Point* start_loc = new Point();
+    gp1.ToPoint(start_loc);
+
+//      cout<<"gp2 "<<gp2<<endl; 
+    GLine* gl = new GLine(0);
+    gp1.ShortestPath(&gp2, gl);////////compute the shortest path 
+//    cout<<"gline len "<<gl->GetLength()<<endl; 
+    if(gl->GetLength() > min_len){
+        BusRoute* br = new BusRoute(rn, NULL,NULL);
+        GLine* newgl = new GLine(0);
+        br->ConvertGLine(gl, newgl);
+//        cout<<"new gl length "<<newgl->GetLength()<<endl; 
+        GenerateCarTaxi(rn, count, peri, newgl, rel, *start_loc, mode);
+
+        delete newgl; 
+        delete br;
+        count++;
+    }
+    delete gl;
+    delete start_loc; 
+  }
+
+  sp->CloseRoadNetwork(rn);
+}
+
+
+/*
+create a moving object with mode car or taxi
+
+*/
+void GenMObject::GenerateCarTaxi(Network* rn, int i, Periods* peri, 
+                                 GLine* newgl,
+                                 Relation* rel, Point start_loc, string mode)
+{
+  Interval<Instant> periods;
+  peri->Get(0, periods);
+  Instant start_time = periods.start;
+  int time_range = 14*60;//14 hours 
+  if(i % 3 == 0)
+    start_time.ReadFrom(periods.start.ToDouble() + 
+                        (GetRandom() % time_range)/(24.0*60.0));
+  else
+    start_time.ReadFrom(periods.end.ToDouble() -
+                        (GetRandom() % time_range)/(24.0*60.0));
+//  cout<<"start time "<<start_time<<endl;
+
+  MPoint* mo = new MPoint(0);
+  GenMO* genmo = new GenMO(0);
+  mo->StartBulkLoad();
+  genmo->StartBulkLoad(); 
+  const double delta_dist = 0.01;
+
+  for(int i = 0;i < newgl->Size();i++){
+    RouteInterval* ri = new RouteInterval();
+    newgl->Get(i, *ri);
+    int rid = ri->GetRouteId();
+    Tuple* speed_tuple = rel->GetTuple(rid, false);
+    assert(((CcInt*)speed_tuple->GetAttribute(SPEED_RID))->GetIntval() == rid);
+    double speed = 
+      ((CcReal*)speed_tuple->GetAttribute(SPEED_VAL))->GetRealval();
+    speed_tuple->DeleteIfAllowed();
+//    cout<<"rid "<<rid<<" speed "<<speed<<endl; 
+
+    if(speed < 0.0)speed = 10.0;
+    speed = speed * 1000.0/3600.0;// meters in second 
+//    cout<<"rid "<<rid<<" new speed "<<speed<<endl;
+    SimpleLine* sl = new SimpleLine(0);
+    rn->GetLineValueOfRouteInterval(ri, sl);
+    ////////////////////////////////////////////////////////////////////
+    /////////////get the subline of this route interval////////////////
+    ///////////////////////////////////////////////////////////////////
+    SpacePartition* sp = new SpacePartition();
+    vector<MyHalfSegment> seq_halfseg; //reorder it from start to end
+    sp->ReorderLine(sl, seq_halfseg);
+    delete sp;
+    //////////////////////////////////////////////////////////////////
+    delete sl;
+    
+    /////////////////////////////////////////////////////////////////////
+
+    Interval<Instant> unit_interval;
+    unit_interval.start = start_time;
+    unit_interval.lc = true;
+
+    Point temp_sp1 = seq_halfseg[0].from; 
+    Point temp_sp2 = seq_halfseg[seq_halfseg.size() - 1].to; 
+    if(start_loc.Distance(temp_sp1) < delta_dist){
+      CreateCarTrip1(mo, seq_halfseg, start_time, speed);
+
+      start_loc = temp_sp2;
+    }else if(start_loc.Distance(temp_sp2) < delta_dist){
+
+      CreateCarTrip2(mo, seq_halfseg, start_time, speed);
+      start_loc = temp_sp1;
+    }else assert(false);
+
+    unit_interval.end = start_time;
+    unit_interval.rc = false;
+    //////////////////////////////////////////////////////////////
+    ////////////////generic units/////////////////////////////////
+    //////////////////////////////////////////////////////////////
+    Loc loc1(ri->GetStartPos(), -1); 
+    Loc loc2(ri->GetEndPos(), -1); 
+    GenLoc gloc1(ri->GetRouteId(), loc1);
+    GenLoc gloc2(ri->GetRouteId(), loc2);
+    int tm = GetTM(mode); 
+
+    //////////////////////////////////////////////////////////////////
+    /////////////correct way to create UGenLoc///////////////////////
+    //////////////////////////////////////////////////////////////////
+    UGenLoc* unit = new UGenLoc(unit_interval, gloc1, gloc2, tm);
+    genmo->Add(*unit); 
+    delete unit; 
+    delete ri;
+
+  }
+  mo->EndBulkLoad();
+  genmo->EndBulkLoad();
+  
+  trip1_list.push_back(*genmo);
+  trip2_list.push_back(*mo);
+  delete mo; 
+  delete genmo; 
+
+}
+
+/*
+create a set of random gpoint locations 
+
+*/
+void GenMObject::GenerateGPoint(Network* rn, int mo_no, vector<GPoint>& gp_list)
+{
+  Relation* routes_rel = rn->GetRoutes();
+  for (int i = 1; i <= mo_no * 2;i++){
+     int m = GetRandom() % routes_rel->GetNoTuples() + 1;
+     Tuple* road_tuple = routes_rel->GetTuple(m, false);
+     int rid = ((CcInt*)road_tuple->GetAttribute(ROUTE_ID))->GetIntval();
+     SimpleLine* sl = (SimpleLine*)road_tuple->GetAttribute(ROUTE_CURVE);
+//     cout<<"rid "<<rid<<" len: "<<sl->Length()<<endl; 
+     double len = sl->Length();
+     int pos = GetRandom() % (int)len;
+     GPoint gp(true, rn->GetId(), rid, pos);
+     gp_list.push_back(gp);
+     road_tuple->DeleteIfAllowed();
+   }
+}
+
+
+/*
+create moving bus units and add them into the trip, 
+it travers from index small to big in myhalfsegment list 
+use the maxspeed as car speed 
+
+*/
+void GenMObject::CreateCarTrip1(MPoint* mo, vector<MyHalfSegment> seq_halfseg,
+                      Instant& start_time, double speed_val)
+{
+  const double dist_delta = 0.01; 
+  
+  Instant st = start_time;
+  Instant et = start_time; 
+  Interval<Instant> up_interval; 
+  for(unsigned int i = 0;i < seq_halfseg.size();i++){
+    Point from_loc = seq_halfseg[i].from;
+    Point to_loc = seq_halfseg[i].to; 
+
+    double dist = from_loc.Distance(to_loc);
+    double time = dist/speed_val; 
+
+ //   cout<<"dist "<<dist<<" time "<<time<<endl; 
+//    printf("%.10f, %.10f",dist, time); 
+    //////////////////////////////////////////////////////////////
+    if(dist < dist_delta){//ignore such small segment 
+        if((i + 1) < seq_halfseg.size()){
+          seq_halfseg[i+1].from = from_loc; 
+        }
+        continue; 
+    }
+    /////////////////////////////////////////////////////////////////
+
+    //double 1.0 means 1 day 
+    et.ReadFrom(st.ToDouble() + time*1.0/(24.0*60.0*60));
+//    cout<<st<<" "<<et<<endl;
+    ////////////////////create a upoint////////////////////////
+    up_interval.start = st;
+    up_interval.lc = true;
+    up_interval.end = et;
+    up_interval.rc = false; 
+    UPoint* up = new UPoint(up_interval,from_loc,to_loc);
+//    cout<<*up<<endl; 
+    mo->Add(*up);
+    delete up; 
+    //////////////////////////////////////////////////////////////
+    st = et; 
+  }
+
+  start_time = et; 
+
+}
+
+/*
+create moving carunits and add them into the trip, 
+!!! it traverse from index big to small in myhalfsegment list 
+use the maxspeed as car speed 
+
+*/
+void GenMObject::CreateCarTrip2(MPoint* mo, vector<MyHalfSegment> seq_halfseg,
+                      Instant& start_time, double speed_val)
+{
+ const double dist_delta = 0.01; 
+//  cout<<"trip2 max speed "<<speed_val<<" start time "<<start_time<<endl; 
+  Instant st = start_time;
+  Instant et = start_time; 
+  Interval<Instant> up_interval; 
+  for(int i = seq_halfseg.size() - 1;i >= 0;i--){
+    Point from_loc = seq_halfseg[i].to;
+    Point to_loc = seq_halfseg[i].from; 
+    double dist = from_loc.Distance(to_loc);
+    double time = dist/speed_val; 
+
+ //   cout<<"dist "<<dist<<" time "<<time<<endl; 
+    ///////////////////////////////////////////////////////////////////
+    if(dist < dist_delta){//ignore such small segment 
+        if((i + 1) < seq_halfseg.size()){
+          seq_halfseg[i+1].from = from_loc; 
+        }
+        continue; 
+    }
+
+    //double 1.0 means 1 day 
+    et.ReadFrom(st.ToDouble() + time*1.0/(24.0*60.0*60.0));
+//    cout<<st<<" "<<et<<endl;
+    ////////////////////create a upoint////////////////////////
+    up_interval.start = st;
+    up_interval.lc = true;
+    up_interval.end = et;
+    up_interval.rc = false; 
+    UPoint* up = new UPoint(up_interval,from_loc,to_loc);
+    mo->Add(*up);
+    delete up; 
+    //////////////////////////////////////////////////////////////
+    st = et; 
+  }
+
+  start_time = et; 
+
+}
+
+/*
+generate generic moving objects with mode car or taxi and walk
+
+*/
+void GenMObject::GenerateGenMO_CarTaxiWalk(Space* sp, Periods* peri, int mo_no,
+                             Relation* rel, BTree* btree, 
+                                       Relation* speed_rel, string mode)
+{
+
+//  cout<<"Mode Car-Walk "<<endl;
+  const double min_len = 50.0;
+  Pavement* pm = sp->LoadPavement(IF_REGION);
+  vector<GenLoc> genloc_list;
+  GenerateLocPave(pm, mo_no, genloc_list);///generate locations on pavements 
+  int count = 1;
+  Network* rn = sp->LoadRoadNetwork(IF_LINE);
+
+  Interval<Instant> periods;
+  peri->Get(0, periods);
+    
+  while(count <= mo_no){
+    int index1 = GetRandom() % genloc_list.size();
+    GenLoc loc1 = genloc_list[index1];
+    int index2 = GetRandom() % genloc_list.size();
+    GenLoc loc2 = genloc_list[index2];
+
+    if(index1 == index2) continue;
+
+    MPoint* mo = new MPoint(0);
+    mo->StartBulkLoad();
+    GenMO* genmo = new GenMO(0);
+    genmo->StartBulkLoad();
+  
+    
+    Instant start_time = periods.start;
+    int time_range = 14*60;//14 hours 
+  
+    if(count % 3 == 0)//////////one third on sunday 
+      start_time.ReadFrom(periods.start.ToDouble() + 
+                        (GetRandom() % time_range)/(24.0*60.0));
+    else  ////////////two third on Monday 
+      start_time.ReadFrom(periods.end.ToDouble() -
+                        (GetRandom() % time_range)/(24.0*60.0));
+    ////////////////////////////////////////////////////////////////////////
+    /////////////1 map the two positions to gpoints/////////////////////////
+    ///////////////////////////////////////////////////////////////////////
+    vector<GPoint> gpoint_list;
+    vector<Point> p_list;
+    PaveLoc2GPoint(loc1, loc2, sp, rel, btree, gpoint_list, p_list);
+    GPoint gp1 = gpoint_list[0];
+    GPoint gp2 = gpoint_list[1];
+    Point start_loc = p_list[0];
+    Point end_loc = p_list[1];
+    //////////////////////////////////////////////////////////////////////
+    ////////////2 connect the path to the end point//////////////////////
+    //////////////////////////////////////////////////////////////////////
+
+    ConnectStartMove(loc1, start_loc, mo, genmo, start_time, pm, mode);
+
+    //////////////////////////////////////////////////////////////////////
+    ///////////3 shortest path between two gpoints////////////////////////
+    //////////////////////////////////////////////////////////////////////
+    GLine* gl = new GLine(0);
+    gp1.ShortestPath(&gp2, gl);////////compute the shortest path 
+
+    if(gl->GetLength() < min_len){
+      delete gl;
+      continue;
+    }
+
+    BusRoute* br = new BusRoute(rn, NULL,NULL);
+    GLine* newgl = new GLine(0);
+    br->ConvertGLine(gl, newgl);
+    ConnectGP1GP2(rn, start_loc, newgl, mo, genmo, start_time, 
+                  speed_rel, mode);
+
+    delete newgl;
+
+    delete br;
+    delete gl;
+
+    //////////////////////////////////////////////////////////////////////
+    ////////////4 connect the path to the end point//////////////////////
+    //////////////////////////////////////////////////////////////////////
+
+    ConnectEndMove(end_loc, loc2, mo, genmo, start_time, pm, mode);
+
+    ////////////////////////////////////////////////////////////////////
+
+    count++;
+
+    mo->EndBulkLoad();
+    genmo->EndBulkLoad();
+
+    trip1_list.push_back(*genmo);
+    trip2_list.push_back(*mo);
+
+    delete mo;
+    delete genmo; 
+  }
+
+  sp->ClosePavement(pm);
+  sp->CloseRoadNetwork(rn);
+
+}
+
+/*
+map the two points on the pavement to loations on the road network 
+
+*/
+void GenMObject::PaveLoc2GPoint(GenLoc loc1, GenLoc loc2, Space* sp, 
+                                Relation* rel,
+                      BTree* btree, vector<GPoint>& gpoint_list, 
+                                vector<Point>& p_list)
+{
+    Network* rn = sp->LoadRoadNetwork(IF_LINE);
+
+  /////////////////////////////////////////////////////////////////////
+    CcInt* search_id1 = new CcInt(true, loc1.GetOid());
+    BTreeIterator* btree_iter1 = btree->ExactMatch(search_id1);
+    vector<int> route_id_list1;
+    while(btree_iter1->Next()){
+      Tuple* tuple = rel->GetTuple(btree_iter1->GetId(), false);
+      int rid = ((CcInt*)tuple->GetAttribute(DualGraph::RID))->GetIntval();
+      route_id_list1.push_back(rid); 
+      tuple->DeleteIfAllowed();
+    }
+    delete btree_iter1;
+    delete search_id1;
+
+//     for(unsigned int i = 0;i < route_id_list1.size();i++)
+//       cout<<route_id_list1[i]<<endl;
+
+    Point p1(true, loc1.GetLoc().loc1, loc1.GetLoc().loc2);
+
+    Walk_SP* wsp1 = new Walk_SP();
+    wsp1->PaveLocToGPoint(&p1, rn, route_id_list1);
+    GPoint gp1 = wsp1->gp_list[0];
+    Point gp_loc1 = wsp1->p_list[0];
+    delete wsp1;
+    /////////////////////////////////////////////////////////////////////////
+
+    CcInt* search_id2 = new CcInt(true, loc2.GetOid());
+    BTreeIterator* btree_iter2 = btree->ExactMatch(search_id2);
+    vector<int> route_id_list2;
+    while(btree_iter2->Next()){
+        Tuple* tuple = rel->GetTuple(btree_iter2->GetId(), false);
+        int rid = ((CcInt*)tuple->GetAttribute(DualGraph::RID))->GetIntval();
+        route_id_list2.push_back(rid); 
+        tuple->DeleteIfAllowed();
+    }
+    delete btree_iter2;
+    delete search_id2;
+
+//     for(unsigned int i = 0;i < route_id_list2.size();i++)
+//       cout<<route_id_list2[i]<<endl;
+
+    Point p2(true, loc2.GetLoc().loc1, loc2.GetLoc().loc2);
+
+    Walk_SP* wsp2 = new Walk_SP();
+    wsp2->PaveLocToGPoint(&p2, rn, route_id_list2);
+    GPoint gp2 = wsp2->gp_list[0];
+    Point gp_loc2 = wsp2->p_list[0];
+    delete wsp2;
+    ///////////////////////////////////////////////////////////////////////
+    sp->CloseRoadNetwork(rn);
+
+     /////////////////////for debuging/////////////////////////////////
+    //////////start and end locations on the pavement////////////////
+
+//      loc_list1.push_back(p1);
+//    loc_list1.push_back(p2);
+//    loc_list1.push_back(gp_loc1);
+
+    ///////////////start and end gpoint ////////////////////////////////
+//    gp_list.push_back(gp1);
+//    gp_list.push_back(gp2);
+
+    ////////////////////start and end point in space/////////////////////
+//    loc_list2.push_back(gp_loc1);
+//    loc_list2.push_back(gp_loc2);
+
+//    loc_list2.push_back(gp_loc2);
+//    loc_list2.push_back(p2);
+
+    /////////////////////////////////////////////////////////////////////
+    gpoint_list.push_back(gp1);
+    gpoint_list.push_back(gp2);
+    p_list.push_back(gp_loc1);
+    p_list.push_back(gp_loc2);
+
+}
+
+/*
+build the connection from a point on the pavement to the road network point
+subpath1: on the pavement
+subpath2: in the free space (mode: car)
+loc1: point on the pavement; end loc: point maps to a gpoint 
+
+*/
+void GenMObject::ConnectStartMove(GenLoc loc1, Point end_loc, MPoint* mo,
+                        GenMO* genmo, Instant& start_time, 
+                                  Pavement* pm, string mode)
+{
+  const double delta_dist = 0.01;
+  DualGraph* dg = pm->GetDualGraph();
+
+  Point start_loc(true, loc1.GetLoc().loc1, loc1.GetLoc().loc2);
+
+  HalfSegment hs(true, start_loc, end_loc);
+  Line* l = new Line(0);
+  l->StartBulkLoad();
+  hs.attr.edgeno = 0;
+  *l += hs;
+  hs.SetLeftDomPoint(!hs.IsLeftDomPoint());
+  *l += hs;
+  l->EndBulkLoad();
+
+//  cout<<"gp "<<end_loc<<" pave p"<<start_loc<<endl;
+
+  vector<Line> line_list; 
+  dg->LineIntersectTri(l, line_list);
+  
+  if(line_list.size() == 0){/////start location is on the pavement border 
+      double dist = start_loc.Distance(end_loc);
+      double slowspeed = 10.0*1000.0/3600.0;
+      double time = dist/slowspeed;///// define as car or taxi
+    //////////////////////////////////////////////////////////////
+      if(dist > delta_dist){//ingore too small segment 
+          Instant st = start_time;
+          Instant et = start_time; 
+          Interval<Instant> up_interval; 
+          et.ReadFrom(st.ToDouble() + time*1.0/(24.0*60.0*60));
+
+          ////////////////////create a upoint////////////////////////
+          up_interval.start = st;
+          up_interval.lc = true;
+          up_interval.end = et;
+          up_interval.rc = false; 
+          UPoint* up = new UPoint(up_interval, start_loc, end_loc);
+          mo->Add(*up);
+          delete up; 
+          start_time = et;
+          /////////////generic unit/// tm--car or taxi//////////////////////
+          Loc loc1(start_loc.GetX(), start_loc.GetY());
+          Loc loc2(end_loc.GetX(), end_loc.GetY());
+          GenLoc gloc1(0, loc1);
+          GenLoc gloc2(0, loc2);
+          int tm = GetTM(mode);
+          UGenLoc* unit = new UGenLoc(up_interval, gloc1, gloc2, tm);
+          genmo->Add(*unit); 
+          delete unit; 
+      }
+    delete l;
+    pm->CloseDualGraph(dg);
+    return;
+  }
+
+  assert(line_list.size() > 0);
+  /////////////////////////////////////////////////////////////////////
+  ///////////////////get the point on the pavement border/////////////
+  ///////////////////intersection line inside pavement////////////////
+  /////////////////////////////////////////////////////////////////////
+  Line* line = new Line(0);
+  for(unsigned int i = 0;i < line_list.size();i++){
+    Line* temp = new Line(0);
+    line->Union(line_list[i], *temp);
+    *line = *temp;
+    delete temp;
+  }  
+
+     ///////////////////////////////////////////////////////////////
+   ////////we reference to the big overall large polygon/////////////
+   //////////////////////////////////////////////////////////////////
+   
+   int gen_mo_ref_id = dg->min_tri_oid_1 + dg->GetNodeRel()->GetNoTuples() + 1;
+    Rectangle<2> bbox = dg->rtree_node->BoundingBox();
+
+
+//  cout<<line->Length()<<" size "<<line->Size()<<endl; 
+  ///////////////////////////////////////////////////////////////////////
+  //////////// the intersection line still belongs to pavement area//////
+  //////////////////////////////////////////////////////////////////////
+  if(fabs(l->Length() - line->Length()) < delta_dist){///////one movement
+
+//        cout<<"still on pavement "<<endl;
+
+        double dist = start_loc.Distance(end_loc);
+        double time = dist/1.0;///// define as walk
+    //////////////////////////////////////////////////////////////
+       if(dist > delta_dist){//ingore too small segment 
+
+          Instant st = start_time;
+          Instant et = start_time; 
+          Interval<Instant> up_interval; 
+          et.ReadFrom(st.ToDouble() + time*1.0/(24.0*60.0*60));
+
+          ////////////////////create a upoint////////////////////////
+          up_interval.start = st;
+          up_interval.lc = true;
+          up_interval.end = et;
+          up_interval.rc = false; 
+          UPoint* up = new UPoint(up_interval, start_loc, end_loc);
+          mo->Add(*up);
+          delete up; 
+          start_time = et;
+          ////////////////generic unit/// tm--walk////////////////////////
+          Loc loc1(start_loc.GetX() - bbox.MinD(0), 
+                   start_loc.GetY() - bbox.MinD(1));
+          Loc loc2(end_loc.GetX() - bbox.MinD(0),
+                   end_loc.GetY() - bbox.MinD(1));
+          GenLoc gloc1(gen_mo_ref_id, loc1);
+          GenLoc gloc2(gen_mo_ref_id, loc2);
+          int tm = GetTM("Walk");
+          UGenLoc* unit = new UGenLoc(up_interval, gloc1, gloc2, tm);
+          genmo->Add(*unit); 
+          delete unit; 
+        }
+  }else{//////////two movements 
+
+  vector<MyPoint> mp_list;
+  for(int i = 0;i < line->Size();i++){
+    HalfSegment hs;
+    line->Get(i, hs);
+    if(!hs.IsLeftDomPoint())continue;
+    Point lp = hs.GetLeftPoint();
+    Point rp = hs.GetRightPoint();
+    MyPoint mp1(lp, lp.Distance(end_loc));
+    mp_list.push_back(mp1);
+    MyPoint mp2(rp, rp.Distance(end_loc));
+    mp_list.push_back(mp2);
+  }
+  sort(mp_list.begin(), mp_list.end());
+
+//    for(unsigned int i = 0;i < mp_list.size();i++)
+//      mp_list[i].Print();
+//   cout<<endl;
+  Point middle_loc = mp_list[0].loc;
+  ////////////////////movement---1//////from pavemet to border/////////////
+      double dist1 = start_loc.Distance(middle_loc);
+      double time1 = dist1/1.0;///// define as walk
+      if(dist1 > delta_dist){//ingore too small segment 
+
+          Instant st = start_time;
+          Instant et = start_time; 
+          Interval<Instant> up_interval; 
+          et.ReadFrom(st.ToDouble() + time1*1.0/(24.0*60.0*60));
+
+          ////////////////////create a upoint////////////////////////
+          up_interval.start = st;
+          up_interval.lc = true;
+          up_interval.end = et;
+          up_interval.rc = false; 
+          UPoint* up = new UPoint(up_interval, start_loc, middle_loc);
+          mo->Add(*up);
+          delete up; 
+          start_time = et;
+          ////////////////generic unit////////////
+          /////////////tm--walk///////////////////
+          //////////////////////////////////////////
+          Loc loc1(start_loc.GetX() - bbox.MinD(0), 
+                   start_loc.GetY() - bbox.MinD(1));
+          Loc loc2(middle_loc.GetX() - bbox.MinD(0),
+                   middle_loc.GetY() - bbox.MinD(1));
+          GenLoc gloc1(gen_mo_ref_id, loc1);
+          GenLoc gloc2(gen_mo_ref_id, loc2);
+          int tm = GetTM("Walk");
+          UGenLoc* unit = new UGenLoc(up_interval, gloc1, gloc2, tm);
+          genmo->Add(*unit); 
+          delete unit; 
+      }
+
+  ////////////////movement---2/////from border to road line ///free space/////
+      double dist2 = middle_loc.Distance(end_loc);
+      double lowspeed = 10.0*1000/3600.0;
+      double time2 = dist2/lowspeed;///// define as car (slow speed)
+      if(dist2 > delta_dist){//ingore too small segment 
+
+          Instant st = start_time;
+          Instant et = start_time; 
+          Interval<Instant> up_interval; 
+          et.ReadFrom(st.ToDouble() + time2*1.0/(24.0*60.0*60));
+
+          ////////////////////create a upoint////////////////////////
+          up_interval.start = st;
+          up_interval.lc = true;
+          up_interval.end = et;
+          up_interval.rc = false; 
+          UPoint* up = new UPoint(up_interval, middle_loc, end_loc);
+          mo->Add(*up);
+          delete up; 
+          start_time = et;
+          ////////////////generic unit////////////
+          /////////////tm--car or taxi///////////////////
+          //////////////////////////////////////////
+          Loc loc1(middle_loc.GetX(), middle_loc.GetY());
+          Loc loc2(end_loc.GetX(), end_loc.GetY());
+          GenLoc gloc1(0, loc1);///////////0 -- free space 
+          GenLoc gloc2(0, loc2);///////////0 -- free space 
+          int tm = GetTM(mode);
+          UGenLoc* unit = new UGenLoc(up_interval, gloc1, gloc2, tm);
+          genmo->Add(*unit);
+          delete unit;
+
+      }
+  } 
+  //////////////////for debuging show the line//////////////////////////////
+//  cout<<line->Length()<<endl;
+//  line_list1.push_back(*line);
+//  line_list1.push_back(*l);
+
+  delete l;
+  delete line;
+  //////////////////////////////////////////////////////////////////////
+
+  pm->CloseDualGraph(dg);
+}
+
+/*
+build the moving object on the road network
+
+*/
+void GenMObject::ConnectGP1GP2(Network* rn, Point start_loc, GLine* newgl, 
+                               MPoint* mo, GenMO* genmo, Instant& start_time,
+                     Relation* rel, string mode)
+{
+
+    const double delta_dist = 0.01;
+    for(int i = 0;i < newgl->Size();i++){
+        RouteInterval* ri = new RouteInterval();
+        newgl->Get(i, *ri);
+        int rid = ri->GetRouteId();
+        Tuple* speed_tuple = rel->GetTuple(rid, false);
+     assert(((CcInt*)speed_tuple->GetAttribute(SPEED_RID))->GetIntval() == rid);
+        double speed = 
+        ((CcReal*)speed_tuple->GetAttribute(SPEED_VAL))->GetRealval();
+        speed_tuple->DeleteIfAllowed();
+
+      if(speed < 0.0)speed = 10.0;
+      speed = speed * 1000.0/3600.0;// meters in second 
+//    cout<<"rid "<<rid<<" new speed "<<speed<<endl;
+      SimpleLine* sl = new SimpleLine(0);
+      rn->GetLineValueOfRouteInterval(ri, sl);
+    ////////////////////////////////////////////////////////////////////
+    /////////////get the subline of this route interval////////////////
+    ///////////////////////////////////////////////////////////////////
+      SpacePartition* sp = new SpacePartition();
+      vector<MyHalfSegment> seq_halfseg; //reorder it from start to end
+      sp->ReorderLine(sl, seq_halfseg);
+      delete sp;
+    //////////////////////////////////////////////////////////////////
+      delete sl;
+
+    /////////////////////////////////////////////////////////////////////
+
+      Interval<Instant> unit_interval;
+      unit_interval.start = start_time;
+      unit_interval.lc = true;
+
+      Point temp_sp1 = seq_halfseg[0].from; 
+      Point temp_sp2 = seq_halfseg[seq_halfseg.size() - 1].to; 
+      if(start_loc.Distance(temp_sp1) < delta_dist){
+        CreateCarTrip1(mo, seq_halfseg, start_time, speed);
+
+        start_loc = temp_sp2;
+      }else if(start_loc.Distance(temp_sp2) < delta_dist){
+
+        CreateCarTrip2(mo, seq_halfseg, start_time, speed);
+        start_loc = temp_sp1;
+      }else assert(false);
+
+      unit_interval.end = start_time;
+      unit_interval.rc = false;
+      
+    //////////////////////////////////////////////////////////////
+    ////////////////generic units/////////////////////////////////
+    //////////////////////////////////////////////////////////////
+      Loc loc1(ri->GetStartPos(), -1); 
+      Loc loc2(ri->GetEndPos(), -1); 
+      GenLoc gloc1(ri->GetRouteId(), loc1);
+      GenLoc gloc2(ri->GetRouteId(), loc2);
+      int tm = GetTM(mode); 
+
+    //////////////////////////////////////////////////////////////////
+    /////////////correct way to create UGenLoc///////////////////////
+    //////////////////////////////////////////////////////////////////
+      UGenLoc* unit = new UGenLoc(unit_interval, gloc1, gloc2, tm);
+      genmo->Add(*unit); 
+      delete unit; 
+      delete ri;
+
+  }
+   /////////////////////////////////////////////////////////////////////
+   //////////////////for debuging////////////////////////////////////
+   //////////////////////////////////////////////////////////////////
+   
+//     Line* l = new Line(0);
+//     newgl->Gline2line(l);
+//     Line* res = new Line(0);
+//     l->Union(line_list1[line_list1.size() - 1], *res);
+//     line_list1[line_list1.size() - 1] = *res;
+//     delete res;
+//     delete l;
+
+}
+
+
+/*
+build the connection from a point on the pavement to the road network point
+subpath1: on the pavement
+subpath2: in the free space (mode: car)
+loc: point on the pavement; start loc: point maps to a gpoint 
+
+*/
+void GenMObject::ConnectEndMove(Point start_loc, GenLoc loc, MPoint* mo, 
+                        GenMO* genmo, Instant& start_time, 
+                                Pavement* pm, string mode)
+{
+  const double delta_dist = 0.01;
+  DualGraph* dg = pm->GetDualGraph();
+
+  Point end_loc(true, loc.GetLoc().loc1, loc.GetLoc().loc2);
+
+  HalfSegment hs(true, start_loc, end_loc);
+  Line* l = new Line(0);
+  l->StartBulkLoad();
+  hs.attr.edgeno = 0;
+  *l += hs;
+  hs.SetLeftDomPoint(!hs.IsLeftDomPoint());
+  *l += hs;
+  l->EndBulkLoad();
+
+//  cout<<"gp "<<end_loc<<" pave p"<<start_loc<<endl;
+
+  vector<Line> line_list; 
+  dg->LineIntersectTri(l, line_list);
+
+  if(line_list.size() == 0){///////the point on the pavement is on the border
+
+      double dist = start_loc.Distance(end_loc);
+      double slowspeed = 10.0*1000.0/3600.0;
+      double time = dist/slowspeed;///// define as car or taxi
+    //////////////////////////////////////////////////////////////
+      if(dist > delta_dist){//ingore too small segment 
+          Instant st = start_time;
+          Instant et = start_time; 
+          Interval<Instant> up_interval; 
+          et.ReadFrom(st.ToDouble() + time*1.0/(24.0*60.0*60));
+
+          ////////////////////create a upoint////////////////////////
+          up_interval.start = st;
+          up_interval.lc = true;
+          up_interval.end = et;
+          up_interval.rc = false; 
+          UPoint* up = new UPoint(up_interval, start_loc, end_loc);
+          mo->Add(*up);
+          delete up; 
+          start_time = et;
+          /////////////generic unit/// tm--car or taxi//////////////////////
+          Loc loc1(start_loc.GetX(), start_loc.GetY());
+          Loc loc2(end_loc.GetX(), end_loc.GetY());
+          GenLoc gloc1(0, loc1);
+          GenLoc gloc2(0, loc2);
+          int tm = GetTM(mode);
+          UGenLoc* unit = new UGenLoc(up_interval, gloc1, gloc2, tm);
+          genmo->Add(*unit); 
+          delete unit; 
+      }
+    delete l;
+    pm->CloseDualGraph(dg);
+    return;
+  }
+
+  assert(line_list.size() > 0); 
+
+  /////////////////////////////////////////////////////////////////////
+  ///////////////////get the point on the pavement border/////////////
+  //////////////////intersection line inside the pavement//////////////
+  /////////////////////////////////////////////////////////////////////
+  Line* line = new Line(0);
+  for(unsigned int i = 0;i < line_list.size();i++){
+    Line* temp = new Line(0);
+    line->Union(line_list[i], *temp);
+    *line = *temp;
+    delete temp;
+  }
+
+   ///////////////////////////////////////////////////////////////
+   ////////we reference to the big overall large polygon/////////////
+   //////////////////////////////////////////////////////////////////
+
+   int gen_mo_ref_id = dg->min_tri_oid_1 + dg->GetNodeRel()->GetNoTuples() + 1;
+   Rectangle<2> bbox = dg->rtree_node->BoundingBox();
+
+  ///////////////////////////////////////////////////////////////////////
+  //////////// the intersection line still belongs to pavement area//////
+  //////////////////////////////////////////////////////////////////////
+  if(fabs(l->Length() - line->Length()) < delta_dist){///////one movement
+
+//        cout<<"still on pavement "<<endl;
+
+        double dist = start_loc.Distance(end_loc);
+        double time = dist/1.0;///// define as walk
+    //////////////////////////////////////////////////////////////
+       if(dist > delta_dist){//ingore too small segment 
+
+          Instant st = start_time;
+          Instant et = start_time; 
+          Interval<Instant> up_interval; 
+          et.ReadFrom(st.ToDouble() + time*1.0/(24.0*60.0*60));
+
+          ////////////////////create a upoint////////////////////////
+          up_interval.start = st;
+          up_interval.lc = true;
+          up_interval.end = et;
+          up_interval.rc = false; 
+          UPoint* up = new UPoint(up_interval, start_loc, end_loc);
+          mo->Add(*up);
+          delete up; 
+          start_time = et;
+          ////////////////generic unit/// tm--walk////////////////////////
+          Loc loc1(start_loc.GetX() - bbox.MinD(0), 
+                   start_loc.GetY() - bbox.MinD(1));
+          Loc loc2(end_loc.GetX() - bbox.MinD(0),
+                   end_loc.GetY() - bbox.MinD(1));
+          GenLoc gloc1(gen_mo_ref_id, loc1);
+          GenLoc gloc2(gen_mo_ref_id, loc2);
+          int tm = GetTM("Walk");
+          UGenLoc* unit = new UGenLoc(up_interval, gloc1, gloc2, tm);
+          genmo->Add(*unit); 
+          delete unit; 
+        }
+  }else{  //////////two movements 
+        vector<MyPoint> mp_list;
+        for(int i = 0;i < line->Size();i++){
+            HalfSegment hs;
+            line->Get(i, hs);
+            if(!hs.IsLeftDomPoint())continue;
+            Point lp = hs.GetLeftPoint();
+            Point rp = hs.GetRightPoint();
+            MyPoint mp1(lp, lp.Distance(start_loc));
+            mp_list.push_back(mp1);
+            MyPoint mp2(rp, rp.Distance(start_loc));
+            mp_list.push_back(mp2);
+        }
+        sort(mp_list.begin(), mp_list.end());
+        Point middle_loc = mp_list[0].loc;
+      //////////////movement---1//////from road line to pavemet border///////
+        double dist1 = start_loc.Distance(middle_loc);
+        double lowspeed = 10*1000/3600.0;
+        double time1 = dist1/lowspeed;///// define as car or taxi 
+        if(dist1 > delta_dist){//ingore too small segment 
+
+          Instant st = start_time;
+          Instant et = start_time; 
+          Interval<Instant> up_interval; 
+          et.ReadFrom(st.ToDouble() + time1*1.0/(24.0*60.0*60));
+
+          ////////////////////create a upoint////////////////////////
+          up_interval.start = st;
+          up_interval.lc = true;
+          up_interval.end = et;
+          up_interval.rc = false; 
+          UPoint* up = new UPoint(up_interval, start_loc, middle_loc);
+          mo->Add(*up);
+          delete up; 
+          start_time = et;
+          ////////////////generic unit////////////
+          /////////////tm--car or taxi///////////////////
+          //////////////////////////////////////////
+          Loc loc1(start_loc.GetX(), start_loc.GetY());
+          Loc loc2(middle_loc.GetX(), middle_loc.GetY());
+          GenLoc gloc1(0, loc1);///////////0 -- free space 
+          GenLoc gloc2(0, loc2);///////////0 -- free space 
+          int tm = GetTM(mode);
+          UGenLoc* unit = new UGenLoc(up_interval, gloc1, gloc2, tm);
+          genmo->Add(*unit); 
+          delete unit; 
+        }
+
+        ///movement---2/////from pavement border to pavement loc///free space//
+        double dist2 = middle_loc.Distance(end_loc);
+        double time2 = dist2/1.0;///// define as walk
+        if(dist2 > delta_dist){//ingore too small segment 
+
+          Instant st = start_time;
+          Instant et = start_time; 
+          Interval<Instant> up_interval; 
+          et.ReadFrom(st.ToDouble() + time2*1.0/(24.0*60.0*60));
+
+          ////////////////////create a upoint////////////////////////
+          up_interval.start = st;
+          up_interval.lc = true;
+          up_interval.end = et;
+          up_interval.rc = false; 
+          UPoint* up = new UPoint(up_interval, middle_loc, end_loc);
+          mo->Add(*up);
+          delete up; 
+          start_time = et;
+          ////////////////generic unit////////////
+          /////////////tm--walk///////////////////
+          //////////////////////////////////////////
+          Loc loc1(middle_loc.GetX() - bbox.MinD(0), 
+                   middle_loc.GetY() - bbox.MinD(1));
+          Loc loc2(end_loc.GetX() - bbox.MinD(0), 
+                   end_loc.GetY() - bbox.MinD(1));
+          GenLoc gloc1(gen_mo_ref_id, loc1);///walk on the overall pavement
+          GenLoc gloc2(gen_mo_ref_id, loc2);///walk on the overall pavement
+          int tm = GetTM("Walk");
+          UGenLoc* unit = new UGenLoc(up_interval, gloc1, gloc2, tm);
+          genmo->Add(*unit); 
+          delete unit; 
+        }
+  }
+
+  //////////////////for debuging show the line//////////////////////////////
+//  cout<<line->Length()<<endl;
+
+//   Line* res = new Line(0);
+//   l->Union(line_list1[line_list1.size() - 1], *res);
+//   line_list1[line_list1.size() - 1] = *res;
+//   delete res;
+
+
+  delete l;
+  delete line;
+  //////////////////////////////////////////////////////////////////////
+  pm->CloseDualGraph(dg);
+
+}
+
 
 //////////////////////////////////////////////////////////////////////
 //////////////////////Global Space////////////////////////////////////
@@ -1649,7 +2966,7 @@ Relation* Space::GetInfra(string type)
   int infra_type = GetSymbol(type);
 
   if(infra_type == IF_LINE){ //////////road network 
-      Network* rn = LoadNetwork(IF_LINE);
+      Network* rn = LoadRoadNetwork(IF_LINE);
       if(rn != NULL){ 
           result = rn->GetRoutes()->Clone();
           CloseRoadNetwork(rn);
@@ -1737,7 +3054,7 @@ Relation* Space::GetInfra(string type)
 Load the road network
 
 */
-Network* Space:: LoadNetwork(int type)
+Network* Space:: LoadRoadNetwork(int type)
 {
   InfraRef rn_ref; 
   bool found = false; 
@@ -1804,6 +3121,8 @@ void Space::CloseRoadNetwork(Network* rn)
 
 /*
 add pavement infrastructure to the space 
+for the pavement infrastructure, we record the maximum is the largest 
+  triangle id plus 1. the largest id means the overall polygon pavement 
 
 */
 void Space::AddPavement(Pavement* pn)
@@ -1826,7 +3145,7 @@ void Space::AddPavement(Pavement* pn)
     pave_tuple->DeleteIfAllowed(); 
   }
   inf_ref.ref_id_low = min_id;
-  inf_ref.ref_id_high = max_id; 
+  inf_ref.ref_id_high = max_id + 1;///for the overall large region 
   if(CheckExist(inf_ref) == false){
       inf_ref.Print(); 
       Add(inf_ref); 
@@ -2009,4 +3328,174 @@ void Space::CloseBusNetwork(BusNetwork* bn)
   xValue.addr = bn;
   SecondoSystem::GetCatalog()->CloseObject(nl->SymbolAtom( "busnetwork" ),
                                            xValue);
+}
+
+
+/*
+get the movement inside an infrastructure object 
+
+*/
+void Space::GetLineInIFObject(int oid, GenLoc gl1, GenLoc gl2, Line* l)
+{
+  assert(oid >= 0); 
+  
+  InfraRef elem;
+  int infra_type = -1;
+  for(int i = 0;i < infra_list.Size();i++){
+    infra_list.Get(i, elem); 
+    if(elem.ref_id_low <= oid && oid <= elem.ref_id_high){
+      infra_type = elem.infra_type;
+      break;
+    }
+    if(oid == 0){ ///////////////in free space
+      infra_type = IF_FREESPACE;
+      break;
+    }
+  }
+  if(infra_type < 0){
+    cout<<"error no such infrastructure object"<<endl;
+    return;
+  }
+  switch(infra_type){
+    case IF_LINE:
+      cout<<"road network "<<endl;
+      GetLineInRoad(oid, gl1, gl2, l);
+      break;
+
+    case IF_REGION:
+      cout<<"region based outdoor"<<endl;
+      GetLineInRegion(oid, gl1, gl2, l);
+      break; 
+
+    case IF_FREESPACE:
+      cout<<"free space"<<endl;
+      GetLineInFreeSpace(gl1, gl2, l);
+      break;
+
+    case IF_MPPTN:
+      cout<<"bus network"<<endl;
+      GetLineInBusNetwork(oid, gl1, gl2, l);
+      break;
+
+    case IF_GROOM:
+      cout<<"indoor "<<endl;
+      GetLineInGRoom(oid, gl1, gl2, l);
+      break;
+
+    default:
+      assert(false);
+      break;
+  }
+}
+
+/*
+get the sub movement on a road 
+
+*/
+void Space::GetLineInRoad(int oid, GenLoc gl1, GenLoc gl2, Line* l)
+{
+  Network* rn = LoadRoadNetwork(IF_LINE);
+  Tuple* route_tuple = rn->GetRoute(oid);
+  SimpleLine* sl = (SimpleLine*)route_tuple->GetAttribute(ROUTE_CURVE);
+  bool dual = ((CcBool*)route_tuple->GetAttribute(ROUTE_DUAL))->GetBoolval();
+
+//   cout<<"pos1 "<<gl1.GetLoc().loc1<<" "
+//       <<gl2.GetLoc().loc1<<" dual "<<dual<<endl;
+
+  double pos1 = gl1.GetLoc().loc1;
+  double pos2 = gl2.GetLoc().loc1;
+  if(dual){
+    if(pos1 > pos2){
+      double pos = pos1;
+      pos1 = pos2;
+      pos2 = pos;
+    }
+  }else{
+    if(pos1 < pos2){
+      double pos = pos1;
+      pos1 = pos2;
+      pos2 = pos;
+    }
+  }
+
+  SimpleLine* sub_sl = new SimpleLine(0);
+  sl->SubLine(pos1, pos2, dual, *sub_sl);
+  Rectangle<2> bbox = sl->BoundingBox();
+
+//  cout<<"length1 "<<sl->Length()<<" length2 "<<sub_sl->Length()<<endl; 
+
+  int edgeno = 0;
+  for(int i = 0;i < sub_sl->Size();i++){
+    HalfSegment hs1;
+    sub_sl->Get(i, hs1);
+    if(!hs1.IsLeftDomPoint())continue;
+    Point lp = hs1.GetLeftPoint();
+    Point rp = hs1.GetRightPoint();
+    Point newlp(true, lp.GetX() - bbox.MinD(0), lp.GetY() - bbox.MinD(1));
+    Point newrp(true, rp.GetX() - bbox.MinD(0), rp.GetY() - bbox.MinD(1));
+    HalfSegment hs2(true, newlp, newrp);
+    hs2.attr.edgeno = edgeno++;
+    *l += hs2;
+    hs2.SetLeftDomPoint(!hs2.IsLeftDomPoint());
+    *l += hs2;
+  }
+
+  delete sub_sl;
+  route_tuple->DeleteIfAllowed();
+  CloseRoadNetwork(rn);
+
+
+}
+
+
+/*
+get the sub movement in a region
+
+*/
+void Space::GetLineInRegion(int oid, GenLoc gl1, GenLoc gl2, Line* l)
+{
+  Point p1(true, gl1.GetLoc().loc1, gl1.GetLoc().loc2);
+  Point p2(true, gl2.GetLoc().loc1, gl2.GetLoc().loc2);
+  HalfSegment hs(true, p1, p2);
+  hs.attr.edgeno = 0;
+  *l += hs;
+  hs.SetLeftDomPoint(!hs.IsLeftDomPoint());
+  *l += hs;
+}
+
+/*
+get the subment in free space 
+
+*/
+void Space::GetLineInFreeSpace(GenLoc gl1, GenLoc gl2, Line* l)
+{
+  Point p1(true, gl1.GetLoc().loc1, gl1.GetLoc().loc2);
+  Point p2(true, gl2.GetLoc().loc1, gl2.GetLoc().loc2);
+  HalfSegment hs(true, p1, p2);
+  hs.attr.edgeno = 0;
+  *l += hs;
+  hs.SetLeftDomPoint(!hs.IsLeftDomPoint());
+  *l += hs;
+}
+
+/*
+get the sub movement in bus network, bus routes 
+
+*/
+void Space::GetLineInBusNetwork(int oid, GenLoc gl1, GenLoc gl2, Line* l)
+{
+  cout<<"not implemented"<<endl;
+
+
+
+}
+
+/*
+get the sub movement in indoor environment
+
+*/
+void Space::GetLineInGRoom(int oid, GenLoc gl1, GenLoc gl2, Line* l)
+{
+  cout<<"not implemented"<<endl;
+
 }

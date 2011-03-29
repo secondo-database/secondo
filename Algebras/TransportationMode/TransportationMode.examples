@@ -837,9 +837,22 @@ Result   : 1
 
 Operator : trajectory
 Number   : 1
+Signature: mpoint3d -> line3d
+Example  : query size(trajectory([const mpoint3d value ((("2010-12-7-8:03:25" "2010-12-7-8:04:10" TRUE FALSE) (1 2.0 3.0) (1 3.0 3.0)))]));
+Result   : 1
+
+Operator : gentrajectory
+Number   : 1
 Signature: genmo -> genrange
-Example  : query size(trajectory(genmo1));
-Result   : 2.0
+Example  : query size(gentrajectory([const genmo value ((("2010-12-7-8:03:25" "2010-12-7-8:04:10" TRUE FALSE) (1 (2.0 -1.0)) (1 (3.0 -1.0)) "Car"))], space_1));
+Result   : 1
+
+
+Operator : genrangevisible
+Number   : 1
+Signature: genrange -> (stream(((x1 t1) ... (xn tn))))
+Example  : query genrangevisible((gentrajectory([const genmo value ((("2010-12-7-8:03:25" "2010-12-7-8:04:10" TRUE FALSE) (1 (2.0 -1.0)) (1 (3.0 -1.0)) "Car"))], space_1))) count;
+Result   : 1
 
 
 Operator : getmode 
@@ -880,4 +893,18 @@ Number   : 1
 Signature: bool -> (stream(((x1 t1) ... (xn tn))))
 Example  : query genmo_tm_list(TRUE) count;
 Result   : 5
+
+Operator : generate_genmo1
+Number   : 1
+Signature: space x periods x real x int x rel -> (stream(((x1 t1) ... (xn tn))))
+Example  : query generate_genmo1(space_1, TwoDays, 5.0, 4, tmp_streets_speed) count;
+Result   : 5
+
+
+Operator : generate_genmo2
+Number   : 1
+Signature: space x periods x int x int x rel x btree -> (stream(((x1 t1) ... (xn tn))))
+Example  : query generate_genmo2(space_1, TwoDays, 5.0, 7, dg_node_rid, btree_dg_rid, streets_speed) count;
+Result   : 5
+
 

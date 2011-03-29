@@ -319,6 +319,9 @@ public:
                            const ListExpr typeInfo, Word& value);
     static DualGraph* Open(SmiRecord& valueRecord,size_t& offset,
                           const ListExpr typeInfo);
+    void LineIntersectTri(Line*l, vector<Line>& line_list);
+    void DFTraverse(R_Tree<2,TupleId>* rtree, SmiRecordId adr, 
+                          Line* line, vector<Line>& line_list);
     //////////////////////////////////////////////////////////////////
     int min_tri_oid_1; //smaller than the minimum tri oid (minoid - 1)
     

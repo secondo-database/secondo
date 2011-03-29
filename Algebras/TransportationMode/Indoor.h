@@ -752,7 +752,10 @@ class GRoom:public StandardSpatialAttribute<2>{
     GRoom(const int initsize):StandardSpatialAttribute<2>(true),
     elem_list(initsize), seg_list(initsize){}
 
-
+    /////////////////////////////////////////////////////////////
+    ///////!!!copy constructor function has to be implemented////
+    /////////////////////////////////////////////////////////////
+    
     ~GRoom()
     {
 
@@ -1332,7 +1335,6 @@ void GetSecondoObj(Region* reg, vector<string>& obj_name);
 void DeleteSecondoObj(vector<string> obj_name); 
 void FindPointInDG(DualGraph* dg, Point* loc1, Point* loc2, int& id1, int& id2);
 void FindPointInDG1(DualGraph* dg, Point* loc1, int& id1);
-
 
 
 /*
