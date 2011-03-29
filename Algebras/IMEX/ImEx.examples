@@ -284,3 +284,13 @@ Number   : 1
 Signature: -> int
 Example  : query getPageSize() > 0
 Result   : (bool TRUE)
+
+
+Operator : nmeaimport
+Number   : 1
+Signature: text x string -> stream(tuple(...))
+Example  : query nmeaimport('trip.nmea',"GGA") count
+Result   : bug
+Remark   : Not implemented completely
+
+

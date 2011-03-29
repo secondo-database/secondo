@@ -77,6 +77,7 @@ This file contains the implementation import / export operators.
 #include "version.h"
 #include "DbVersion.h"
 #include "RegionTools.h"
+#include "NMEAImporter.h"
 
 
 extern NestedList* nl;
@@ -695,6 +696,168 @@ Operator csvimport( "csvimport",
                     csvimportVM,
                     Operator::SimpleSelect,
                     csvimportTM);
+
+
+
+
+/*
+2 Operator nmeaImport
+
+
+2.1 Type Mapping for nmeaimport
+
+
+The signature is text x string -> stream(tuple(...))
+
+The tuple type depends on the value of the second argument.
+Because this operator evaulates the second argument in type mapping,
+the types are extended to be pairs of (type, list), where list
+is the representation of the value within the query.
+
+
+
+*/
+ListExpr nmeaimportTM(ListExpr args){
+    string err = "text x string expected";
+   if(!nl->HasLength(args,2)){
+      return listutils::typeError(err);
+   }
+   ListExpr first = nl->First(args);
+   ListExpr second = nl->Second(args);
+
+   if(!nl->HasLength(first,2) || !nl->HasLength(second,2)){
+     return listutils::typeError("invalid types for operator"
+                                 " evaluating arguments in type mapping"); 
+   }
+   ListExpr first1 = nl->First(first);
+   if(!listutils::isSymbol(first1,FText::BasicType())){
+      return listutils::typeError(err);
+   }
+   ListExpr second1 = nl->First(second);
+   if(!listutils::isSymbol(second1,CcString::BasicType())){
+      return listutils::typeError(err);
+   }
+   // Evaulate the String value
+   ListExpr val = nl->Second(second);
+
+   Word res;
+   bool success = QueryProcessor::ExecuteQuery(nl->ToString(val),res);
+   if(!success){
+     return listutils::typeError("could not evaluate the value of string");
+   }
+
+   CcString* value = static_cast<CcString*>(res.addr);
+
+   if(!value->IsDefined()) {
+      value->DeleteIfAllowed();
+      return listutils::typeError("string argument evaluated to be undefined"); 
+   }
+   string v = value->GetValue();
+   value->DeleteIfAllowed();
+
+   NMEAImporter imp;
+   if(!imp.setType(v)){
+     return listutils::typeError(v + " is not a known nmea type id, known are "
+                                 + imp.getKnownTypes());
+   } 
+   return nl->TwoElemList(nl->SymbolAtom("stream"), imp.getTupleType());
+
+ 
+}
+
+
+
+
+/*
+2.2 Value Mapping for nmeaimport
+
+*/
+int nmeaimportVM(Word* args, Word& result,
+               int message, Word& local, Supplier s){
+
+  switch(message){
+    case OPEN:{
+      if(local.addr){
+        delete (NMEAImporter*)local.addr;
+        local.addr=0;
+      }
+      FText* fn = static_cast<FText*>(args[0].addr);
+      CcString* t = static_cast<CcString*>(args[1].addr);
+      if(!fn->IsDefined() || !t->IsDefined()){
+         return 0;
+      } 
+      NMEAImporter* imp = new NMEAImporter();
+      if(!imp->setType(t->GetValue())){
+        delete imp;
+        return 0;
+      }
+      string err;
+      if(!imp->scanFile(fn->GetValue(),err)){
+        delete imp;
+        return 0;
+      }
+      local.addr = imp; 
+      return 0;
+    }
+
+   case REQUEST:{
+      if(!local.addr){
+         return CANCEL;
+       }
+       NMEAImporter* imp = static_cast<NMEAImporter*>(local.addr);
+       Tuple* t = imp->nextTuple();
+       result.addr=t;
+       return t?YIELD:CANCEL;
+    }
+
+    case CLOSE:{
+      if(local.addr){
+          NMEAImporter* imp = static_cast<NMEAImporter*>(local.addr);
+          delete imp;
+          local.addr=0;
+      }
+      return 0;
+    }
+
+    default: assert(false);
+
+  }
+
+  return -1;
+}
+
+
+
+/*
+2.3 Specification for nmeaimport
+
+*/
+
+const string nmeaimportSpec  =
+   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+   "( <text> text x string -> rel(tuple(...)) </text--->"
+   "<text> nmeaimport(filename, type) </text--->"
+   "<text> Returns the content of all lines matching type "
+   "as a stream of typles."
+   "The result type depenend of the value of typeid"
+   "</text--->"
+   "<text> nmeaimport('trip.nmea',\"GGA\")</text--->"
+   ") )";
+
+/*
+2.4 Operator instance for nmeaimport
+
+*/
+
+Operator nmeaimport( "nmeaimport",
+                    nmeaimportSpec,
+                    nmeaimportVM,
+                    Operator::SimpleSelect,
+                    nmeaimportTM);
+
+
+
+
 
 
 /*
@@ -2292,7 +2455,13 @@ ListExpr shpimport2TM(ListExpr args){
 
    FText* resText = static_cast<FText*>(res.addr);
 
+   if(!resText->IsDefined()){
+      resText->DeleteIfAllowed();
+       return listutils::typeError("filename evaluated to be undefined");
+   }
+
    string name = resText->GetValue();
+   resText->DeleteIfAllowed();
 
    string shpType;
    bool correct;
@@ -3005,6 +3174,12 @@ ListExpr dbimport2TM(ListExpr args){
    }
 
    FText* resText = static_cast<FText*>(res.addr);
+
+   if(!resText->IsDefined()){
+      resText->DeleteIfAllowed();
+      return listutils::typeError("filename evaluated to be undefined");
+   }
+
 
    string name = resText->GetValue();
    resText->DeleteIfAllowed();
@@ -4646,6 +4821,8 @@ public:
     AddOperator( &getBDBVersion);
     AddOperator( &getSecondoPlatform);
     AddOperator( &getPageSize);
+    AddOperator( &nmeaimport);
+    nmeaimport.SetUsesArgsInTypeMapping(); 
   }
   ~ImExAlgebra() {};
 };
