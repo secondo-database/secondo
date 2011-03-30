@@ -1,0 +1,41 @@
+# restore DBLP tables created by dblp2secondo
+
+let Document = [ const rel(tuple([
+  Type: string,
+  Docid: int, 
+  Authors: text,
+  Title: text,
+  Booktitle: text,
+  Pages: string,
+  Year: string,
+  Journal: text,
+  Volume: string, 
+  Number: string,
+  Month: string, 
+  Url: text,
+  School: text,
+  Publisher: text,
+  Isbn: string] )) value ()
+]
+csvimport['Document',0,"","|"] consume;
+
+let Authordoc = [ const rel(tuple([
+  Name: string,
+  Lclastname: string, 
+  Authorid: int,
+  Docid: int] )) value ()
+]
+csvimport['Authordoc',0,"","|"] consume;
+
+let Author = [ const rel(tuple([
+  Name: string,
+  Lclastname: string,
+  Authorid: int] )) value ()
+]
+csvimport['Author',0,"","|"] consume;
+
+let Keyword = [ const rel(tuple([
+  Docid: int,
+  Word: string] )) value ()
+]
+csvimport['Keyword',0,"","|"] consume;
