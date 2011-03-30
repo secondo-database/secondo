@@ -2,7 +2,7 @@
 ----
 This file is part of SECONDO.
 
-Copyright (C) 2008, University in Hagen, 
+Copyright (C) 2008, University in Hagen,
 Faculty of Mathematics and Computer Science,
 Database Systems for New Applications.
 
@@ -52,7 +52,7 @@ implement all functions required by this class.
 
   ListExpr ToListExpr(const typeInfo ListExpr) const
 ----
-This function converts the calling instance into a nested list. 
+This function converts the calling instance into a nested list.
 In the most cases, the argument ~typeInfo~ can be ignored.
 
 
@@ -64,7 +64,7 @@ In the most cases, the argument ~typeInfo~ can be ignored.
   bool ReadFrom(const ListExpr instance, const ListExpr typeInfo)
 ----
 This function sets the value of the calling instance to this one described
-by the ~instance~ argument. If the list is not a valid representation for 
+by the ~instance~ argument. If the list is not a valid representation for
 this class, the result is __false__ otherwise the result is __true__.
 The second argument can be ignored in the most cases.
 
@@ -73,7 +73,7 @@ The second argument can be ignored in the most cases.
 
 ----
 
-  static string BasicType() 
+  static string BasicType()
 ----
 
 This static function just returns the name for the [secondo] type.
@@ -109,7 +109,7 @@ e.g.
   static bool CheckKind(ListExpr type, ListExpr& errorInfo)
 ----
 
-This function checks whether the nested list ~type~ represents [secondo]'s type 
+This function checks whether the nested list ~type~ represents [secondo]'s type
 for this class.
 
 
@@ -122,8 +122,8 @@ After these preparations, a [secondo] type constructor is just created by:
 ----
 
   GenTC<ClassName> name;
----- 
- 
+----
+
 
 */
 
@@ -133,6 +133,7 @@ After these preparations, a [secondo] type constructor is just created by:
 #include "Attribute.h"
 #include "NestedList.h"
 #include "../Tools/Flob/Flob.h"
+#include "Algebra.h"
 
 extern NestedList* nl;
 
@@ -302,4 +303,4 @@ class GenTC : public TypeConstructor{
 };
 
 
-#endif 
+#endif
