@@ -188,7 +188,6 @@ are converted into valid values.
 ~GetDay~
 
 This function returns the day part of a duration.
-~GetDay~ is only defined for duration types.
 
 */
      int64_t GetDay()const;
