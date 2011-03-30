@@ -3239,8 +3239,16 @@ bool FDistributeLocalInfo::openFile(fileInfo* tgtFile)
     //sort fileInfos according to their last tuples' indices
     sort(openFileList.begin(), openFileList.end(), compFileInfo);
     //The last one of the vector is the idler
-    openFileList.back()->closeFile();
-    openFileList.pop_back();
+    bool poped = false;
+    while(!poped)
+    {
+      if (openFileList.back()->isFileOpen())
+      {
+        openFileList.back()->closeFile();
+        poped = true;
+      }
+      openFileList.pop_back();
+    }
   }
 
   bool ok = tgtFile->openFile();
@@ -3265,6 +3273,7 @@ Tuple* FDistributeLocalInfo::closeOneFile()
     if ( ok )
     {
       int count = fp->writeLastDscr();
+      fp->closeFile();
       tuple = new Tuple(resultTupleType);
       tuple->PutAttribute(0, new CcInt(suffix));
       tuple->PutAttribute(1, new CcInt(count));

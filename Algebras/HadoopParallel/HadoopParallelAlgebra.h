@@ -456,8 +456,6 @@ public:
       hostName.assign(buf);
     }
 
-    cerr << "isLocal: " << (isLocal ? "true" : "false") << endl;
-
     while(!fileFound && (isLocal || (att-- > 0)))
     {
       string servName, rFileName;
@@ -476,10 +474,6 @@ public:
           rFileName += ("_" + targetName);
       }
 
-      cerr << "rFileName: " << rFileName << endl;
-      cerr << "hostName : " << hostName << endl;
-      cerr << "servName : " << servName << endl;
-
       //Find the file before reading it.
       int findTimes = MAX_COPYTIMES;
       while (!fileFound && (findTimes-- > 0))
@@ -494,20 +488,16 @@ public:
           qStr = "ssh " + servName +
                  " ls " + rmDefaultPath.substr(1) + rFileName +
                  " 2>/dev/null";
-        cerr << "qStr: " << qStr << endl;
         fs = popen(qStr.c_str(), "r");
         if (fgets(qBuf, sizeof(qBuf), fs) != NULL)
           fileFound = true;
         pclose(fs);
       }
-
       if (!fileFound)
       {
         if (!isLocal)
         {
           //Attempt the next possible candidate node if have
-//          att--;
-//          servIndex++;
           continue;
         }
         else
@@ -698,7 +688,7 @@ public:
   bool openFile()
   {
     ios_base::openmode mode = ios::binary;
-    if (lastTupleIndex == 0)
+    if (lastTupleIndex > 0)
       mode |= ios::app;
     blockFile.open(blockFileName.c_str(), mode);
     fileOpen = true;
