@@ -436,10 +436,6 @@ extern tdef tdefs[];
 #define  ADHOC_DFLT "adhoc.dss"		/* default file name for adhoc vars */
 
 /******* output macros ********/
-#ifndef SEPARATOR
-/* M. Spiekermann, tuples in Secondo are separated by blanks */ 
-#define SEPARATOR ' ' /* field spearator for generated flat files */
-#endif
 /* Data type flags for a single print routine */
 #define DT_STR		0
 #ifndef MVS
@@ -452,31 +448,72 @@ extern tdef tdefs[];
 #define DT_KEY		4
 #define DT_MONEY	5
 #define DT_CHR		6
+//Above flags are obsolete for Nested List output
 
-int dbg_print(int dt, FILE *tgt, void *data, int len, int eol);
-/* M. Spiekermann, PR_TEXT for SECONDO text atoms added */
-#define PR_STR(f, str, len)		dbg_print(DT_STR, f, (void *)str, len, 1)
-#define PR_VSTR(f, str, len) 	        dbg_print(DT_VSTR, f, (void *)str, len, 1)
-#define PR_VSTR_LAST(f, str, len) 	dbg_print(DT_VSTR, f, (void *)str, len, 0)
-#define PR_TEXT(f, str, len) 	        dbg_print(DT_STR, f, (void *)str, len, 2)
-#define PR_TEXT_LAST(f, str, len) 	dbg_print(DT_STR, f, (void *)str, len, 3)
-#define PR_INT(f, str) 			dbg_print(DT_INT, f, (void *)str, 0, 1)
-#define PR_HUGE(f, str) 		dbg_print(DT_HUGE, f, (void *)str, 0, 1)
-#define PR_KEY(f, str) 			dbg_print(DT_KEY, f, (void *)str, 0, -1)
-#define PR_MONEY(f, str) 		dbg_print(DT_MONEY, f, (void *)str, 0, 1)
-#define PR_CHR(f, str)	 		dbg_print(DT_CHR, f, (void *)&str, 0, 1)
-/* any line prep for a record goes here */
-#define  PR_STRT(fp)   fprintf(fp, "  ( ")  
-/* finish the record here */
-#define  PR_END(fp, last)    fprintf(fp, ")\n"); if (last){ fprintf(fp, ")\n  ()\n) \n"); }
-
+#ifndef SEPARATOR
+#define SEPARATOR '|' /* field spearator for generated flat files */
+#endif
+#ifndef SET_SEEDS
+#define  PR_STR(f,str,len) \
+        if (columnar) fprintf(f, "%-*s", len, str); \
+        else fprintf(f, "%s%c", str, SEPARATOR)
+#ifdef MVS
+#define  PR_VSTR(f,str,len) \
+        fprintf(f, "%c%c%-*s", (len >> 0x10) & 0xFF, \
+                len & 0xFF, len, str)
+#else
+#define  PR_VSTR(f,str,len) PR_STR(f,str,len)
+#endif /* MVS */
+#define  PR_INT(f,long)    \
+        if (columnar) fprintf(f, "%12ld", long); \
+        else fprintf(f,"%ld%c", long, SEPARATOR)
+#ifndef SUPPORT_64BITS
+#define  PR_HUGE(f,data) \
+        if (data[1] == 0) \
+           if (columnar) fprintf(f, "%12ld", data[0]); \
+           else fprintf(f,"%ld%c", data[0], SEPARATOR); \
+        else    \
+           if (columnar) fprintf(f, "%5ld%07ld", data[1], data[0]); \
+           else fprintf(f,"%ld%07ld%c", data[1], data[0], SEPARATOR)
+#else
+#define PR_HUGE(f, data) \
+  fprintf(f, HUGE_FORMAT, data)
+#endif /* SUPPORT_64BITS */
+#define  PR_KEY(f,long)    \
+        fprintf(f,"%ld", long)
+/*
+* problem with the Turbo-C compiler
+*/
+#define MONEY_COL_FMT "%12ld.%02ld"
+#define  PR_MONEY(fp,flt)    \
+        if (columnar) fprintf(fp, MONEY_COL_FMT, \
+                flt/100, ((flt < 0)?-flt:flt)%100); \
+        else fprintf(fp,"%ld.%02ld%c", \
+                flt/100, ((flt < 0)?-flt:flt)%100, SEPARATOR)
+#define  PR_CHR(fp,chr)   \
+        if (columnar) fprintf(fp, "%c ", chr); \
+        else fprintf(fp,"%c%c", chr, SEPARATOR)
+#define  PR_STRT(fp)   /* any line prep for a record goes here */
+#define  PR_END(fp)    fprintf(fp, "\n")   /* finish the record here */
 #ifdef MDY_DATE
-#define  PR_DATE(tgt, yr, mn, dy)	\
+#define  PR_DATE(tgt, yr, mn, dy) \
    sprintf(tgt, "%02d-%02d-19%02d", mn, dy, yr)
 #else
-#define  PR_DATE(tgt, yr, mn, dy)	\
-sprintf(tgt, "19%02d-%02d-%02d", yr, mn, dy)
+#define  PR_DATE(tgt, yr, mn, dy) \
+   sprintf(tgt, "19%02d-%02d-%02d", yr, mn, dy)
 #endif /* DATE_FORMAT */
+#else /* for SET_SEEDS we don't need output macros */
+#define  PR_STR(f,str,len)
+#define  PR_VSTR(f,str,len)
+#define  PR_INT(f,long)
+#define  PR_HUGE(f,data)
+#define  PR_KEY(f,long)
+#define  PR_MONEY(fp,flt)
+#define  PR_CHR(fp,chr)
+#define  PR_STRT(fp)
+#define  PR_END(fp)
+#define  PR_DATE(tgt, yr, mn, dy)
+#endif /* SET_SEEDS */
 
 /*
  * verification macros
