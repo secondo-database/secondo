@@ -154,17 +154,6 @@ static FILE *fp = NULL;
         
    if (fp == NULL) {
      fp = print_prep(CUST, 0);
-     fprintf(fp, "(OBJECT CUSTOMER \n");
-     fprintf(fp, "  ()");
-     fprintf(fp, "  (rel( tuple ( (cCUSTKEY int) \n");
-     fprintf(fp, "                (cNAME string) \n");
-     fprintf(fp, "                (cADDRESS string) \n");
-     fprintf(fp, "                (cNATIONKEY int) \n");
-     fprintf(fp, "                (cPHONE string) \n");
-     fprintf(fp, "                (cACCTBAL real) \n");
-     fprintf(fp, "                (cMKTSEGMENT string) \n");
-     fprintf(fp, "                (cCOMMENT text) )))\n");
-     fprintf(fp, "  ( \n");
    }
 
    PR_STRT(fp);
@@ -176,9 +165,9 @@ static FILE *fp = NULL;
    PR_STR(fp, c->phone, PHONE_LEN);
    PR_MONEY(fp, c->acctbal);
    PR_STR(fp, c->mktsegment, C_MSEG_LEN);
-   PR_TEXT(fp, c->comment, 
+   PR_VSTR(fp, c->comment,
        (columnar)?(long)(ceil(C_CMNT_LEN * V_STR_HGH)):c->clen);
-   PR_END(fp,GLOB_LAST_RECORD);
+   PR_END(fp);
 
    return(0);
 }
@@ -196,23 +185,9 @@ pr_order(order_t *o, int mode)
     {
         if (fp_o) {
             fclose(fp_o);
-	}
+        }
         fp_o = print_prep(ORDER, mode);
         last_mode = mode;
-	
-     fprintf(fp_o, "(OBJECT ORDERS \n");
-     fprintf(fp_o, "  ()");
-     fprintf(fp_o, "  (rel( tuple ( (oORDERKEY int) \n");
-     fprintf(fp_o, "                (oCUSTKEY int) \n");
-     fprintf(fp_o, "                (oORDERSTATUS string) \n");
-     fprintf(fp_o, "                (oTOTALPRICE real) \n");
-     fprintf(fp_o, "                (oORDERDATE instant) \n");
-     fprintf(fp_o, "                (oORDERPRIORITY string) \n");
-     fprintf(fp_o, "                (oCLERK string) \n");
-     fprintf(fp_o, "                (oSHIPPRIORITY int) \n");     
-     fprintf(fp_o, "                (oCOMMENT text) )))\n");
-     fprintf(fp_o, "  ( \n");
-	
     }
 	
     PR_STRT(fp_o);
@@ -224,9 +199,9 @@ pr_order(order_t *o, int mode)
     PR_STR(fp_o, o->opriority, O_OPRIO_LEN);
     PR_STR(fp_o, o->clerk, O_CLRK_LEN);
     PR_INT(fp_o, o->spriority);
-    PR_TEXT_LAST(fp_o, o->comment, 
+    PR_VSTR(fp_o, o->comment,
        (columnar)?(long)(ceil(O_CMNT_LEN * V_STR_HGH)):o->clen);
-    PR_END(fp_o, GLOB_LAST_RECORD);
+    PR_END(fp_o);
 
     return(0);
 }
@@ -248,27 +223,6 @@ pr_line(order_t *o, int mode)
         fp_l = print_prep(LINE, mode);
         last_mode = mode;
 
-     fprintf(fp_l, "(OBJECT LINEITEM \n");
-     fprintf(fp_l, "  ()");
-     fprintf(fp_l, "  (rel( tuple ( (lORDERKEY int) \n");
-     fprintf(fp_l, "                (lPARTKEY int) \n");
-     fprintf(fp_l, "                (lSUPPKEY int) \n");
-     fprintf(fp_l, "                (lLINENUMBER int) \n");
-     fprintf(fp_l, "                (lQUANTITY real) \n");
-     fprintf(fp_l, "                (lEXTENDEDPRICE real) \n");
-     fprintf(fp_l, "                (lDISCOUNT real) \n");
-     fprintf(fp_l, "                (lTAX real) \n");
-     fprintf(fp_l, "                (lRETURNFLAG string) \n");
-     fprintf(fp_l, "                (lLINESTATUS string) \n");
-     fprintf(fp_l, "                (lSHIPDATE instant) \n");
-     fprintf(fp_l, "                (lCOMMITDATE instant) \n"); 
-     fprintf(fp_l, "                (lRECEIPTDATE instant) \n");
-     fprintf(fp_l, "                (lSHIPINSTRUCT string) \n");
-     fprintf(fp_l, "                (lSHIPMODE string) \n");                        
-     fprintf(fp_l, "                (lCOMMENT string) )))\n");
-     fprintf(fp_l, "  ( \n");
-	
-	
     }
 
     for (i = 0; i < o->lines; i++)
@@ -289,9 +243,9 @@ pr_line(order_t *o, int mode)
         PR_STR(fp_l, o->l[i].rdate, DATE_LEN);
         PR_STR(fp_l, o->l[i].shipinstruct, L_INST_LEN);
         PR_STR(fp_l, o->l[i].shipmode, L_SMODE_LEN);
-        PR_VSTR_LAST(fp_l, o->l[i].comment, 
+        PR_VSTR(fp_l, o->l[i].comment,
             (columnar)?(long)(ceil(L_CMNT_LEN * V_STR_HGH)):o->l[i].clen);
-        PR_END(fp_l, GLOB_LAST_RECORD && (i == o->lines-1));
+        PR_END(fp_l);
         }
 
    return(0);
@@ -322,23 +276,11 @@ static FILE *p_fp = NULL;
     {
         p_fp = print_prep(PART, 0);
 
-     fprintf(p_fp, "(OBJECT PART \n");
-     fprintf(p_fp, "  ()");
-     fprintf(p_fp, "  (rel( tuple ( (pPARTKEY int) \n");
-     fprintf(p_fp, "                (pNAME text) \n");
-     fprintf(p_fp, "                (pMFGR string) \n");
-     fprintf(p_fp, "                (pBRAND string) \n");
-     fprintf(p_fp, "                (pTYPE string) \n");
-     fprintf(p_fp, "                (pSIZE int) \n");
-     fprintf(p_fp, "                (pCONTAINER string) \n");
-     fprintf(p_fp, "                (pRETAILPRICE real) \n");                       
-     fprintf(p_fp, "                (pCOMMENT string) )))\n");
-     fprintf(p_fp, "  ( \n");
    }
 
    PR_STRT(p_fp);
    PR_INT(p_fp, part->partkey);
-   PR_TEXT(p_fp, part->name,
+   PR_VSTR(p_fp, part->name,
        (columnar)?(long)P_NAME_LEN:part->nlen);
    PR_STR(p_fp, part->mfgr, P_MFG_LEN);
    PR_STR(p_fp, part->brand, P_BRND_LEN);
@@ -347,9 +289,9 @@ static FILE *p_fp = NULL;
    PR_INT(p_fp, part->size);
    PR_STR(p_fp, part->container, P_CNTR_LEN);
    PR_MONEY(p_fp, part->retailprice);
-   PR_VSTR_LAST(p_fp, part->comment, 
+   PR_VSTR(p_fp, part->comment,
        (columnar)?(long)(ceil(P_CMNT_LEN * V_STR_HGH)):part->clen);
-   PR_END(p_fp, GLOB_LAST_RECORD);
+   PR_END(p_fp);
 
    return(0);
 }
@@ -367,14 +309,6 @@ pr_psupp(part_t *part, int mode)
     {
         ps_fp = print_prep(PSUPP, mode);
 	
-     fprintf(ps_fp, "(OBJECT PARTSUPP \n");
-     fprintf(ps_fp, "  ()");
-     fprintf(ps_fp, "  (rel( tuple ( (psPARTKEY int) \n");
-     fprintf(ps_fp, "                (psSUPPKEY int) \n");
-     fprintf(ps_fp, "                (psAVAILQTY int) \n");
-     fprintf(ps_fp, "                (psSUPPLYCOST real) \n");                 
-     fprintf(ps_fp, "                (psCOMMENT text) )))\n");
-     fprintf(ps_fp, "  ( \n");
    }
 
 
@@ -385,9 +319,9 @@ pr_psupp(part_t *part, int mode)
       PR_INT(ps_fp, part->s[i].suppkey);
       PR_INT(ps_fp, part->s[i].qty);
       PR_MONEY(ps_fp, part->s[i].scost);
-      PR_TEXT_LAST(ps_fp, part->s[i].comment, 
+      PR_VSTR(ps_fp, part->s[i].comment,
        (columnar)?(long)(ceil(PS_CMNT_LEN * V_STR_HGH)):part->s[i].clen);
-      PR_END(ps_fp, GLOB_LAST_RECORD && ( i == SUPP_PER_PART-1) );
+      PR_END(ps_fp);
       }
 
    return(0);
@@ -414,17 +348,6 @@ static FILE *fp = NULL;
    if (fp == NULL)
    {
         fp = print_prep(SUPP, mode);
-
-     fprintf(fp, "(OBJECT SUPPLIER \n");
-     fprintf(fp, "  ()");
-     fprintf(fp, "  (rel( tuple ( (sSUPPKEY int) \n");
-     fprintf(fp, "                (sNAME string) \n");
-     fprintf(fp, "                (sADDRESS string) \n");
-     fprintf(fp, "                (sNATIONKEY int) \n");
-     fprintf(fp, "                (sPHONE string) \n");
-     fprintf(fp, "                (sACCTBAL real) \n");                   
-     fprintf(fp, "                (sCOMMENT text) )))\n");
-     fprintf(fp, "  ( \n");
    }
 
 
@@ -436,9 +359,9 @@ static FILE *fp = NULL;
    PR_INT(fp, supp->nation_code);
    PR_STR(fp, supp->phone, PHONE_LEN);
    PR_MONEY(fp, supp->acctbal);
-   PR_TEXT_LAST(fp, supp->comment, 
+   PR_VSTR(fp, supp->comment,
        (columnar)?(long)(ceil(S_CMNT_LEN * V_STR_HGH)):supp->clen);
-   PR_END(fp, GLOB_LAST_RECORD);
+   PR_END(fp);
 
    return(0);
 }
@@ -451,23 +374,15 @@ static FILE *fp = NULL;
    if (fp == NULL)
    {
         fp = print_prep(NATION, mode);
-
-     fprintf(fp, "(OBJECT NATION \n");
-     fprintf(fp, "  ()");
-     fprintf(fp, "  (rel( tuple ( (nNATIONKEY int) \n");
-     fprintf(fp, "                (nNAME string) \n");
-     fprintf(fp, "                (nREGIONKEY int) \n");                  
-     fprintf(fp, "                (nCOMMENT text) )))\n");
-     fprintf(fp, "  ( \n");
    }
 
    PR_STRT(fp);
    PR_INT(fp, c->code);
    PR_STR(fp, c->text, NATION_LEN);
    PR_INT(fp, c->join);
-   PR_TEXT_LAST(fp, c->comment, 
+   PR_VSTR(fp, c->comment,
        (columnar)?(long)(ceil(N_CMNT_LEN * V_STR_HGH)):c->clen);
-   PR_END(fp, GLOB_LAST_RECORD);
+   PR_END(fp);
 
    return(0);
 }
@@ -481,21 +396,15 @@ static FILE *fp = NULL;
    {
         fp = print_prep(REGION, mode);
 	
-     fprintf(fp, "(OBJECT REGION \n");
-     fprintf(fp, "  ()");
-     fprintf(fp, "  (rel( tuple ( (rREGIONKEY int) \n");
-     fprintf(fp, "                (rNAME string) \n");                 
-     fprintf(fp, "                (rCOMMENT text) )))\n");
-     fprintf(fp, "  ( \n");
    }
 
 
    PR_STRT(fp);
    PR_INT(fp, c->code);
    PR_STR(fp, c->text, REGION_LEN);
-   PR_TEXT_LAST(fp, c->comment, 
+   PR_VSTR(fp, c->comment,
        (columnar)?(long)(ceil(R_CMNT_LEN * V_STR_HGH)):c->clen);
-   PR_END(fp, GLOB_LAST_RECORD);
+   PR_END(fp);
 
    return(0);
 }
@@ -555,7 +464,7 @@ pr_drange(int tbl, long min, long cnt, long num)
                 PR_STRT(dfp);
                 PR_INT(dfp, start);
                 PR_INT(dfp, last);
-                PR_END(dfp, GLOB_LAST_RECORD);
+                PR_END(dfp);
                 }
             else
                 {
@@ -592,7 +501,7 @@ pr_drange(int tbl, long min, long cnt, long num)
 					}
                 PR_STRT(dfp);
                 PR_KEY(dfp, new);
-                PR_END(dfp, GLOB_LAST_RECORD);
+                PR_END(dfp);
                 }
 	start = new;
 	last = new;
@@ -602,7 +511,7 @@ pr_drange(int tbl, long min, long cnt, long num)
 	PR_STRT(dfp);
 	PR_INT(dfp, start);
 	PR_INT(dfp, last);
-	PR_END(dfp, GLOB_LAST_RECORD);
+	PR_END(dfp);
 	}
     
     return(0);

@@ -57,6 +57,8 @@ char* authorlist[200];
 char splitbuffer[50];
 char lowerbuffer[50];
 
+char separator='|';
+
 extern FILE* yyin;
 extern int yylineno;
 extern char* yytext;
@@ -85,27 +87,27 @@ void strtolower(char s[], char t[]) {
 
 void
 printschema() {
-  fprintf(docsfile,"%s"," <text>");
   for (j=0; j < aindex; j++) {
     if (j == (aindex-1)) fprintf(docsfile,"%s", authorlist[j]);          
     else fprintf(docsfile,"%s, ", authorlist[j]);
   }
-  fprintf(docsfile,"%s","</text--->");
-  fprintf(docsfile," <text>%s</text---> ", title);
-  fprintf(docsfile," <text>%s</text---> ", booktitle);
-  fprintf(docsfile," \"%s\" " , pages);
-  fprintf(docsfile," \"%s\" " , year);
-  fprintf(docsfile," <text>%s</text---> " , journal);
-  fprintf(docsfile," \"%s\" " , volume);
-  fprintf(docsfile," \"%s\" " , number);
-  fprintf(docsfile," \"%s\" " , month);
-  fprintf(docsfile," <text>%s</text---> " , url);
-  fprintf(docsfile," <text>%s</text---> ", school);
-  fprintf(docsfile," <text>%s</text---> ", publisher);
-  fprintf(docsfile," \"%s\" )\n" , isbn);
+
+  fprintf(docsfile,"%c",separator);
+  fprintf(docsfile,"%s%c", title, separator);
+  fprintf(docsfile,"%s%c", booktitle, separator);
+  fprintf(docsfile,"%s%c" , pages, separator);
+  fprintf(docsfile,"%s%c" , year, separator);
+  fprintf(docsfile,"%s%c" , journal, separator);
+  fprintf(docsfile,"%s%c" , volume, separator);
+  fprintf(docsfile,"%s%c" , number, separator);
+  fprintf(docsfile,"%s%c" , month, separator);
+  fprintf(docsfile,"%s%c" , url, separator);
+  fprintf(docsfile,"%s%c", school, separator);
+  fprintf(docsfile,"%s%c", publisher, separator);
+  fprintf(docsfile,"%s%c\n" , isbn, separator);
 
   fprintf(tmpkwfile,"%d %s\n",docid,title);
-
+  
   title = ""; author = ""; editor = ""; booktitle = "";
   pages = ""; year = ""; journal = ""; volume = "";
   number = ""; month = ""; url = ""; school = "";
@@ -148,8 +150,8 @@ document        : article { }
                 ;
 
 article         : STARTARTICLE fieldlist ENDARTICLE { 
-                    fprintf(docsfile,"%s","( \"article\" ");
-                    fprintf(docsfile," %d", ++docid);
+                    fprintf(docsfile,"%s%c","article", separator);
+                    fprintf(docsfile,"%d%c", ++docid, separator);
 		            if (authorflag) {
                       for (j=0; j < aindex; j++) {		    
                         key.data = authorlist[j];
@@ -163,13 +165,13 @@ article         : STARTARTICLE fieldlist ENDARTICLE {
                           else { dbp->err(dbp, ret, "DB->put"); }
                         strsplit(splitbuffer, (char*)key.data);
                         strtolower(lowerbuffer, splitbuffer);
-                        fprintf(authorsfile,"( \"%s\" \"%s\" %d )\n",(char*)key.data,lowerbuffer,*(int*)data.data);
-			            fprintf(authordocfile,"( \"%s\" \"%s\" %d %d )\n",(char*)key.data,lowerbuffer,*(int*)data.data,docid);			  
+                        fprintf(authorsfile,"%s%c%s%c%d%c\n",(char*)key.data, separator,lowerbuffer, separator,*(int*)data.data, separator);
+			            fprintf(authordocfile,"%s%c%s%c%d%c%d%c\n",(char*)key.data, separator,lowerbuffer, separator,*(int*)data.data, separator,docid, separator);			  
 	                  }
 			          else {
                         strsplit(splitbuffer, (char*)key.data);
                         strtolower(lowerbuffer, splitbuffer);
-                        fprintf(authordocfile,"( \"%s\" \"%s\" %d %d )\n",(char*)key.data,lowerbuffer,*(int*)data.data,docid);
+                        fprintf(authordocfile,"%s%c%s%c%d%c%d%c\n",(char*)key.data, separator,lowerbuffer, separator,*(int*)data.data, separator,docid, separator);
                       }	
 		            }
 		            }
@@ -181,8 +183,8 @@ article         : STARTARTICLE fieldlist ENDARTICLE {
                 ;
 
 inproceedings   : STARTINPROCEEDINGS fieldlist ENDINPROCEEDINGS {
-                    fprintf(docsfile,"%s","( \"inproceedings\" ");
-                    fprintf(docsfile," %d", ++docid);
+                    fprintf(docsfile,"%s%c","inproceedings", separator);
+                    fprintf(docsfile,"%d%c", ++docid, separator);
 		    if (authorflag) {
                       for (j=0; j < aindex; j++) {		    
                         key.data = authorlist[j];
@@ -196,13 +198,13 @@ inproceedings   : STARTINPROCEEDINGS fieldlist ENDINPROCEEDINGS {
                           else { dbp->err(dbp, ret, "DB->put"); }
                                                   strsplit(splitbuffer, (char*)key.data);
                         strtolower(lowerbuffer, splitbuffer);
-                        fprintf(authorsfile,"( \"%s\" \"%s\" %d )\n",(char*)key.data,lowerbuffer,*(int*)data.data);
-                        fprintf(authordocfile,"( \"%s\" \"%s\" %d %d )\n",(char*)key.data,lowerbuffer,*(int*)data.data,docid);            
+                        fprintf(authorsfile,"%s%c%s%c%d%c\n",(char*)key.data, separator,lowerbuffer, separator,*(int*)data.data, separator);
+                        fprintf(authordocfile,"%s%c%s%c%d%c%d%c\n",(char*)key.data, separator,lowerbuffer, separator,*(int*)data.data, separator,docid, separator);            
                       }
                       else {
                         strsplit(splitbuffer, (char*)key.data);
                         strtolower(lowerbuffer, splitbuffer);
-                        fprintf(authordocfile,"( \"%s\" \"%s\" %d %d )\n",(char*)key.data,lowerbuffer,*(int*)data.data,docid);
+                        fprintf(authordocfile,"%s%c%s%c%d%c%d%c\n",(char*)key.data, separator,lowerbuffer, separator,*(int*)data.data, separator,docid, separator);
                       } 				 	
 		      }
 		    }
@@ -215,8 +217,8 @@ inproceedings   : STARTINPROCEEDINGS fieldlist ENDINPROCEEDINGS {
                 ;
 
 proceedings     : STARTPROCEEDINGS fieldlist ENDPROCEEDINGS { 
-                    fprintf(docsfile,"%s","( \"proceedings\" ");
-                    fprintf(docsfile," %d", ++docid);
+                    fprintf(docsfile,"%s%c","proceedings", separator);
+                    fprintf(docsfile,"%d%c", ++docid, separator);
 		    if (authorflag) {
                       for (j=0; j < aindex; j++) {		    
                         key.data = authorlist[j];
@@ -230,13 +232,13 @@ proceedings     : STARTPROCEEDINGS fieldlist ENDPROCEEDINGS {
                           else { dbp->err(dbp, ret, "DB->put"); }
                                                   strsplit(splitbuffer, (char*)key.data);
                         strtolower(lowerbuffer, splitbuffer);
-                        fprintf(authorsfile,"( \"%s\" \"%s\" %d )\n",(char*)key.data,lowerbuffer,*(int*)data.data);
-                        fprintf(authordocfile,"( \"%s\" \"%s\" %d %d )\n",(char*)key.data,lowerbuffer,*(int*)data.data,docid);            
+                        fprintf(authorsfile,"%s%c%s%c%d%c\n",(char*)key.data, separator,lowerbuffer, separator,*(int*)data.data, separator);
+                        fprintf(authordocfile,"%s%c%s%c%d%c%d%c\n",(char*)key.data, separator,lowerbuffer, separator,*(int*)data.data, separator,docid, separator);            
                       }
                       else {
                         strsplit(splitbuffer, (char*)key.data);
                         strtolower(lowerbuffer, splitbuffer);
-                        fprintf(authordocfile,"( \"%s\" \"%s\" %d %d )\n",(char*)key.data,lowerbuffer,*(int*)data.data,docid);
+                        fprintf(authordocfile,"%s%c%s%c%d%c%d%c",(char*)key.data, separator,lowerbuffer, separator,*(int*)data.data, separator,docid, separator);
                       } 				  	
 		      }
 		    }
@@ -248,8 +250,8 @@ proceedings     : STARTPROCEEDINGS fieldlist ENDPROCEEDINGS {
                 ;
 
 book            : STARTBOOK fieldlist ENDBOOK { 
-                    fprintf(docsfile,"%s","( \"book\" ");
-                    fprintf(docsfile," %d", ++docid);
+                    fprintf(docsfile,"%s%c","book", separator);
+                    fprintf(docsfile,"%d%c", ++docid, separator);
 		    if (authorflag) {
                       for (j=0; j < aindex; j++) {		    
                         key.data = authorlist[j];
@@ -263,13 +265,13 @@ book            : STARTBOOK fieldlist ENDBOOK {
                           else { dbp->err(dbp, ret, "DB->put"); }
                                                   strsplit(splitbuffer, (char*)key.data);
                         strtolower(lowerbuffer, splitbuffer);
-                        fprintf(authorsfile,"( \"%s\" \"%s\" %d )\n",(char*)key.data,lowerbuffer,*(int*)data.data);
-                        fprintf(authordocfile,"( \"%s\" \"%s\" %d %d )\n",(char*)key.data,lowerbuffer,*(int*)data.data,docid);            
+                        fprintf(authorsfile,"%s%c%s%c%d%c\n",(char*)key.data, separator,lowerbuffer, separator,*(int*)data.data, separator);
+                        fprintf(authordocfile,"%s%c%s%c%d%c%d%c\n",(char*)key.data, separator,lowerbuffer, separator,*(int*)data.data, separator,docid, separator);            
                       }
                       else {
                         strsplit(splitbuffer, (char*)key.data);
                         strtolower(lowerbuffer, splitbuffer);
-                        fprintf(authordocfile,"( \"%s\" \"%s\" %d %d )\n",(char*)key.data,lowerbuffer,*(int*)data.data,docid);
+                        fprintf(authordocfile,"%s%c%s%c%d%c%d%c\n",(char*)key.data, separator,lowerbuffer, separator,*(int*)data.data, separator,docid, separator);
                       } 		
 		      }
 		    }
@@ -281,8 +283,8 @@ book            : STARTBOOK fieldlist ENDBOOK {
                 ;
 
 incollection    : STARTINCOLLECTION fieldlist ENDINCOLLECTION { 
-                    fprintf(docsfile,"%s","( \"incollection\" ");
-                    fprintf(docsfile," %d", ++docid);
+                    fprintf(docsfile,"%s%c","incollection", separator);
+                    fprintf(docsfile,"%d%c", ++docid, separator);
 		    if (authorflag) {
                       for (j=0; j < aindex; j++) {		    
                         key.data = authorlist[j];
@@ -296,13 +298,13 @@ incollection    : STARTINCOLLECTION fieldlist ENDINCOLLECTION {
                           else { dbp->err(dbp, ret, "DB->put"); }
                                                   strsplit(splitbuffer, (char*)key.data);
                         strtolower(lowerbuffer, splitbuffer);
-                        fprintf(authorsfile,"( \"%s\" \"%s\" %d )\n",(char*)key.data,lowerbuffer,*(int*)data.data);
-                        fprintf(authordocfile,"( \"%s\" \"%s\" %d %d )\n",(char*)key.data,lowerbuffer,*(int*)data.data,docid);            
+                        fprintf(authorsfile,"%s%c%s%c%d%c\n",(char*)key.data,separator,lowerbuffer, separator,*(int*)data.data, separator);
+                        fprintf(authordocfile,"%s%c%s%c%d%c%d%c\n",(char*)key.data, separator,lowerbuffer, separator,*(int*)data.data, separator,docid, separator);            
                       }
                       else {
                         strsplit(splitbuffer, (char*)key.data);
                         strtolower(lowerbuffer, splitbuffer);
-                        fprintf(authordocfile,"( \"%s\" \"%s\" %d %d )\n",(char*)key.data,lowerbuffer,*(int*)data.data,docid);
+                        fprintf(authordocfile,"%s%c%s%c%d%c%d%c\n",(char*)key.data, separator,lowerbuffer, separator,*(int*)data.data, separator,docid, separator);
                       } 		
 		      }
 		    }
@@ -314,8 +316,8 @@ incollection    : STARTINCOLLECTION fieldlist ENDINCOLLECTION {
                 ;
 
 phdthesis       : STARTPHDTHESIS fieldlist ENDPHDTHESIS { 
-                    fprintf(docsfile,"%s","( \"phdthesis\" ");
-                    fprintf(docsfile," %d", ++docid);
+                    fprintf(docsfile,"%s%c","phdthesis", separator);
+                    fprintf(docsfile,"%d%c", ++docid, separator);
 		    if (authorflag) {
                       for (j=0; j < aindex; j++) {		    
                         key.data = authorlist[j];
@@ -329,13 +331,13 @@ phdthesis       : STARTPHDTHESIS fieldlist ENDPHDTHESIS {
                           else { dbp->err(dbp, ret, "DB->put"); }
                                                   strsplit(splitbuffer, (char*)key.data);
                         strtolower(lowerbuffer, splitbuffer);
-                        fprintf(authorsfile,"( \"%s\" \"%s\" %d )\n",(char*)key.data,lowerbuffer,*(int*)data.data);
-                        fprintf(authordocfile,"( \"%s\" \"%s\" %d %d )\n",(char*)key.data,lowerbuffer,*(int*)data.data,docid);            
+                        fprintf(authorsfile,"%s%c%s%c%d%c\n",(char*)key.data, separator,lowerbuffer, separator,*(int*)data.data, separator);
+                        fprintf(authordocfile,"%s%c%s%c%d%c%d%c\n",(char*)key.data, separator,lowerbuffer, separator,*(int*)data.data, separator,docid, separator);            
                       }
                       else {
                         strsplit(splitbuffer, (char*)key.data);
                         strtolower(lowerbuffer, splitbuffer);
-                        fprintf(authordocfile,"( \"%s\" \"%s\" %d %d )\n",(char*)key.data,lowerbuffer,*(int*)data.data,docid);
+                        fprintf(authordocfile,"%s%c%s%c%d%c%d%c\n",(char*)key.data, separator,lowerbuffer, separator,*(int*)data.data, separator,docid, separator);
                       } 		
 		      }
 		    }
@@ -347,8 +349,8 @@ phdthesis       : STARTPHDTHESIS fieldlist ENDPHDTHESIS {
                 ;
 
 masterthesis    : STARTMASTERTHESIS fieldlist ENDMASTERTHESIS {
-                    fprintf(docsfile,"%s","( \"mastersthesis\" ");
-                    fprintf(docsfile," %d", ++docid);
+                    fprintf(docsfile,"%s%c","mastersthesis", separator);
+                    fprintf(docsfile,"%d%c", ++docid, separator);
 		    if (authorflag) {
                       for (j=0; j < aindex; j++) {		    
                         key.data = authorlist[j];
@@ -362,13 +364,13 @@ masterthesis    : STARTMASTERTHESIS fieldlist ENDMASTERTHESIS {
                           else { dbp->err(dbp, ret, "DB->put"); }
                                                   strsplit(splitbuffer, (char*)key.data);
                         strtolower(lowerbuffer, splitbuffer);
-                        fprintf(authorsfile,"( \"%s\" \"%s\" %d )\n",(char*)key.data,lowerbuffer,*(int*)data.data);
-                        fprintf(authordocfile,"( \"%s\" \"%s\" %d %d )\n",(char*)key.data,lowerbuffer,*(int*)data.data,docid);            
+                        fprintf(authorsfile,"%s%c%s%c%d%c\n",(char*)key.data, separator,lowerbuffer, separator,*(int*)data.data, separator);
+                        fprintf(authordocfile,"%s%c%s%c%d%c%d%c\n",(char*)key.data, separator,lowerbuffer, separator,*(int*)data.data, separator,docid, separator);            
                       }
                       else {
                         strsplit(splitbuffer, (char*)key.data);
                         strtolower(lowerbuffer, splitbuffer);
-                        fprintf(authordocfile,"( \"%s\" \"%s\" %d %d )\n",(char*)key.data,lowerbuffer,*(int*)data.data,docid);
+                        fprintf(authordocfile,"%s%c%s%c%d%c%d%c\n",(char*)key.data, separator,lowerbuffer, separator,*(int*)data.data, separator,docid, separator);
                       } 		
 		      }
 		    }
@@ -380,8 +382,8 @@ masterthesis    : STARTMASTERTHESIS fieldlist ENDMASTERTHESIS {
                 ;
 
 www             : STARTWWW fieldlist ENDWWW {
-                    fprintf(docsfile,"%s","( \"www\" ");
-                    fprintf(docsfile," %d", ++docid);
+                    fprintf(docsfile,"%s%c","www", separator);
+                    fprintf(docsfile," %d%c", ++docid, separator);
 		    if (authorflag) {
                       for (j=0; j < aindex; j++) {		    
                         key.data = authorlist[j];
@@ -395,13 +397,13 @@ www             : STARTWWW fieldlist ENDWWW {
                           else { dbp->err(dbp, ret, "DB->put"); }
                                                   strsplit(splitbuffer, (char*)key.data);
                         strtolower(lowerbuffer, splitbuffer);
-                        fprintf(authorsfile,"( \"%s\" \"%s\" %d )\n",(char*)key.data,lowerbuffer,*(int*)data.data);
-                        fprintf(authordocfile,"( \"%s\" \"%s\" %d %d )\n",(char*)key.data,lowerbuffer,*(int*)data.data,docid);            
+                        fprintf(authorsfile,"%s%c%s%c%d%c\n",(char*)key.data, separator,lowerbuffer, separator,*(int*)data.data, separator);
+                        fprintf(authordocfile,"%s%c%s%c%d%c%d%c\n",(char*)key.data, separator,lowerbuffer, separator,*(int*)data.data, separator,docid, separator);            
                       }
                       else {
                         strsplit(splitbuffer, (char*)key.data);
                         strtolower(lowerbuffer, splitbuffer);
-                        fprintf(authordocfile,"( \"%s\" \"%s\" %d %d )\n",(char*)key.data,lowerbuffer,*(int*)data.data,docid);
+                        fprintf(authordocfile,"%s%c%s%c%d%c%d%c\n",(char*)key.data, separator,lowerbuffer, separator,*(int*)data.data, separator,docid, separator);
                       } 	
 		      }
 		    }
@@ -512,44 +514,6 @@ char** argv;
        yyin = ifile;
     }   
 
-    fprintf(docsfile,"%s","(OBJECT Document\n\t()\n\t(rel\n\t\t(tuple\n\t\t\t(\n");
-    fprintf(docsfile,"%s","\t\t\t(Type string)\n");
-    fprintf(docsfile,"%s","\t\t\t(Docid int)\n");
-    fprintf(docsfile,"%s","\t\t\t(Authors text)\n");
-    fprintf(docsfile,"%s","\t\t\t(Title text)\n");
-    fprintf(docsfile,"%s","\t\t\t(Booktitle text)\n");
-    fprintf(docsfile,"%s","\t\t\t(Pages string)\n");
-    fprintf(docsfile,"%s","\t\t\t(Year string)\n");
-    fprintf(docsfile,"%s","\t\t\t(Journal text)\n");
-    fprintf(docsfile,"%s","\t\t\t(Volume string)\n");
-    fprintf(docsfile,"%s","\t\t\t(Number string)\n");
-    fprintf(docsfile,"%s","\t\t\t(Month string)\n");
-    fprintf(docsfile,"%s","\t\t\t(Url text)\n");
-    fprintf(docsfile,"%s","\t\t\t(School text)\n");
-    fprintf(docsfile,"%s","\t\t\t(Publisher text)\n");
-    fprintf(docsfile,"%s","\t\t\t(Isbn string))))\n(\n");
-
-    fprintf(authordocfile,"%s","(OBJECT Authordoc\n\t()\n\t(rel\n\t\t(tuple\n\t\t\t(\n");
-    fprintf(authordocfile,"%s","\t\t\t(Name string)\n");
-    fprintf(authordocfile,"%s","\t\t\t(Lclastname string)\n");
-    fprintf(authordocfile,"%s","\t\t\t(Authorid int)\n");
-    fprintf(authordocfile,"%s","\t\t\t(Docid int))))\n(\n");
-
-    fprintf(authorsfile,"%s","(OBJECT Author\n\t()\n\t(rel\n\t\t(tuple\n\t\t\t(\n");
-    fprintf(authorsfile,"%s","\t\t\t(Name string)\n");
-    fprintf(authorsfile,"%s","\t\t\t(Lclastname string)\n");
-    fprintf(authorsfile,"%s","\t\t\t(Authorid int))))\n(\n");
-
     yyparse();
-    if(oldstyle){
-       fprintf(docsfile,"%s",")\n\t\t())\n");
-       fprintf(authordocfile,"%s",")\n\t\t())\n");
-       fprintf(authorsfile,"%s",")\n\t\t())\n");
-    }else{
-       fprintf(docsfile,"%s",")\n\t\t)\n");
-       fprintf(authordocfile,"%s",")\n\t\t)\n");
-       fprintf(authorsfile,"%s",")\n\t\t)\n");
-
-    }
     return 0;
 }

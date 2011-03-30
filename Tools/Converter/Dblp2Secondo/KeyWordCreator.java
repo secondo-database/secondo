@@ -41,7 +41,7 @@ private static void showUsage(String Message){
    System.exit(1);
 }
 
-
+private static final char separator = '|';
 
 private static void createTwoRelations(TreeSet Exclusions,String SourceFile,
                                        String WordTarget, String RelTarget, int mlength){
@@ -112,18 +112,13 @@ private static void createTwoRelations(TreeSet Exclusions,String SourceFile,
  // write the word-id-Relation to File
  try{
     Writer out = new OutputStreamWriter(new FileOutputStream(WordTarget));
-    out.write("( OBJECT "+WordTarget+" ()\n"); // open object
-    out.write("   (rel (tuple ( (Id int)(Word string))))\n"); // type
-    out.write("   (\n"); // open value
     Iterator it = Words.iterator();
     int i=0;
     while(it.hasNext()){
-       out.write("       "+it.next()+"\n");
+       out.write(it.next()+"\n");
        if(i++%o1==0)
           System.out.println(i+" words written");
     }
-    out.write("   )\n"); // close value
-    out.write("())\n"); // close object
     out.close();
  } catch(Exception e){
     showUsage("Error in writing file ");
@@ -133,18 +128,13 @@ private static void createTwoRelations(TreeSet Exclusions,String SourceFile,
  int o2 = Size2/10;
  try{
     Writer out = new OutputStreamWriter(new FileOutputStream(RelTarget));
-    out.write("( OBJECT "+RelTarget+" ()\n"); // open object
-    out.write("   (rel (tuple ( (Docid int)(Wordid int))))\n"); // type
-    out.write("   (\n"); // open value
     Iterator it = LineWordRel.iterator();
     int i=0;
     while(it.hasNext()){
-       out.write("       "+it.next()+"\n");
+       out.write(it.next()+"\n");
        if(i++%o2==0)
           System.out.println(i+" word-line relationsships written");
     }
-    out.write("   )\n"); // close value
-    out.write("())\n"); // close object
     out.close();
  } catch(Exception e){
     showUsage("Error in writing file ");
@@ -161,9 +151,6 @@ private static void createSingleRelation(TreeSet Exclusions,String SourceFile,
  try{
     BufferedReader BR = new BufferedReader(new FileReader(SourceFile));
     Writer out = new OutputStreamWriter(new FileOutputStream(TargetFile));
-    out.write("( OBJECT "+TargetFile+" ()\n"); // open object
-    out.write("   (rel (tuple ( (Docid int)(Word string))))\n"); // type
-    out.write("   (\n"); // open value
     while(BR.ready()){
        Line = BR.readLine();
        if(Line!=null){
@@ -191,14 +178,12 @@ private static void createSingleRelation(TreeSet Exclusions,String SourceFile,
            // write keywords from this line to the relation
            Iterator it = KeyWords.iterator();
            while(it.hasNext()){
-              out.write("     ( "+DocIDString+" \""+it.next()+"\" )\n");
+              out.write(DocIDString + separator + it.next() + "\n");
            }
            LineNo++;
         }
     }
     BR.close();
-    out.write("   )\n"); // close value
-    out.write("())\n"); // close object
     out.close();
   } catch(Exception e){
     e.printStackTrace();
