@@ -103,4 +103,6 @@ clean: removedoc
 	make -C tools clean
 	make -C viewer clean
 	rm -rf Demo
+	rm -rf sj
+
 
