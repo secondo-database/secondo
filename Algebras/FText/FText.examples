@@ -837,3 +837,12 @@ Number   : 3
 Signature: text -> int
 Example  : query sys_getAlgebraId('blablabla')
 Result   : (int undef)
+
+
+Operator : tokenize 
+Number   : 1
+Signature: text x string -> stream(text)
+Example  : query tokenize('Hello World', " ") count
+Result   : 2
+
+

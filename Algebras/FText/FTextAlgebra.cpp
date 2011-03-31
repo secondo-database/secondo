@@ -64,6 +64,7 @@ October 2008, Christian D[ue]ntgen added operators ~sendtextUDP~ and
 #include <algorithm>
 #include <iterator>
 #include <functional>
+#include <sstream>
 
 #include "FTextAlgebra.h"
 #include "Attribute.h"
@@ -88,6 +89,7 @@ October 2008, Christian D[ue]ntgen added operators ~sendtextUDP~ and
 #include "ListUtils.h"
 #include "blowfish.h"
 #include "md5.h"
+#include "StringUtils.h"
 #include <math.h>
 #include <time.h>
 #include <sys/timeb.h>
@@ -1815,6 +1817,32 @@ ListExpr strequalTM(ListExpr args){
 
 
 
+/*
+2.60 ~tokenizeTM~
+
+This operator splits a text at delimiters. The mapping is:
+ 
+   text x string -> stream(text)
+
+*/
+ListExpr tokenizeTM(ListExpr args){
+   string err = "text x string expected";
+   if(!nl->HasLength(args,2)){
+     return listutils::typeError(err);
+   }
+
+   if(!listutils::isSymbol(nl->First(args), FText::BasicType()) ||
+      !listutils::isSymbol(nl->Second(args), CcString::BasicType())){
+      return listutils::typeError(err);
+   }
+   return nl->TwoElemList(nl->SymbolAtom("stream"),
+                          nl->SymbolAtom(FText::BasicType()));
+}
+
+
+
+
+
 
 
 
@@ -3308,7 +3336,8 @@ int FTextValMapReplace( Word* args, Word& result, int message,
   string patternOldStr = patternOld->GetValue();
   string patternNewStr = patternNew->GetValue();
   string textReplaced = "";
-  textReplaced = replaceAll(textStr, patternOldStr, patternNewStr);
+  textReplaced = stringutils::replaceAll(textStr, patternOldStr, 
+                                         patternNewStr);
   Res->Set(true, textReplaced);
   return 0;
 }
@@ -3897,7 +3926,7 @@ int FTextValueMapConvert( Word* args, Word& result, int message,
   if(isTextToString)
   {
     string outStr = inStr.substr(0,MAX_STRINGSIZE);
-    outStr = replaceAll(outStr, "\"", "'");
+    outStr = stringutils::replaceAll(outStr, "\"", "'");
     res->Set( true, outStr );
   }
   else
@@ -5411,6 +5440,84 @@ ValueMapping strequal_vm[] = {
 
 
 /*
+  tokenizeVM
+
+*/
+class tokenizeLI{
+public:
+  tokenizeLI(FText* text, CcString* delims){
+     if(!text->IsDefined() || !delims->IsDefined()){
+        st =0;
+        return;
+     }
+     string d = delims->GetValue();
+
+     d = stringutils::replaceAll(d,"\\n","\n");
+     d = stringutils::replaceAll(d,"\\r","\r");
+     // insert more replacements here if required
+     d = stringutils::replaceAll(d,"\\\\","\\");
+
+
+     st = new  stringutils::StringTokenizer(text->GetValue(), d);  
+  }
+
+  ~tokenizeLI(){
+      if(st){
+         delete st;
+         st = 0;
+      }
+  }
+  
+  FText* getNext(){
+     if(!st){
+       return 0;
+     }
+     if(!st->hasNextToken()){
+        delete st;
+        st = 0;
+        return 0;
+     }
+     return new FText(true,st->nextToken());
+  }
+ 
+private: 
+   stringutils::StringTokenizer* st;
+};
+
+int tokenizeVM( Word* args, Word& result, int message,
+                        Word& local, Supplier s ){
+
+   switch(message){
+     case OPEN:{
+        if(local.addr){
+           delete (tokenizeLI*) local.addr;
+        }
+        local.addr = new tokenizeLI(static_cast<FText*>(args[0].addr),
+                                     static_cast<CcString*>(args[1].addr));
+        return 0;
+     }
+     case REQUEST:{
+        if(!local.addr){
+          return CANCEL;
+        }
+        result.addr = ((tokenizeLI*)local.addr)->getNext();
+        return result.addr?YIELD:CANCEL;
+     }
+     case CLOSE:{
+        if(local.addr){
+           delete (tokenizeLI*) local.addr;
+           local.addr = 0;
+        }
+        return 0;
+     }
+   }
+   return -1;
+}
+
+
+
+
+/*
 3.4 Definition of Operators
 
 */
@@ -6056,6 +6163,15 @@ const string strequalSpec =
     "<text>query strequal(\"hello\",'HELLO',FALSE) </text--->"
     ") )";
 
+const string tokenizeSpec =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+    "( <text> text x string -> stream(text) </text--->"
+    "<text> tokeniter(text, delims) </text--->"
+    "<text>Splits the text at the given delimiters and returns . "
+    "each token found as an stream element."
+    " </text--->"
+    "<text>query tokenize('Hello World', \" \") count </text--->"
+    ") )";
 /*
 Operator Definitions
 
@@ -6582,6 +6698,14 @@ Operator strequal (
    strequalTM              //type mapping
     );
 
+Operator tokenize 
+(
+  "tokenize",             //name
+  tokenizeSpec,           //specification
+  tokenizeVM,        //value mapping
+  Operator::SimpleSelect,         //trivial selection function
+  tokenizeTM        //type mapping
+);
 
 // Operator sysgetTypeConstructorInfo
 // (
@@ -6679,6 +6803,7 @@ public:
     AddOperator( &checkOperatorTypeMap);
     AddOperator( &checkOperatorTypeMap2);
     AddOperator( &strequal);
+    AddOperator( &tokenize);
 
     LOGMSG( "FText:Trace",
       cout <<"End FTextAlgebra() : Algebra()"<<'\n';
