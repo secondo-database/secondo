@@ -714,10 +714,15 @@ Because this operator evaulates the second argument in type mapping,
 the types are extended to be pairs of (type, list), where list
 is the representation of the value within the query.
 
-
+Note: This type mapping is also used for operator nmeaimport[_]line.
+If changes are made within this type mapping ensure to check for compatibility
+with the nmeaimport[_]line.operator.
 
 */
+static NMEAImporter* nmeaImporter=0;
+
 ListExpr nmeaimportTM(ListExpr args){
+
     string err = "text x string expected";
    if(!nl->HasLength(args,2)){
       return listutils::typeError(err);
@@ -755,14 +760,16 @@ ListExpr nmeaimportTM(ListExpr args){
    string v = value->GetValue();
    value->DeleteIfAllowed();
 
-   NMEAImporter imp;
-   if(!imp.setType(v)){
+   if(!nmeaImporter){
+      nmeaImporter = new NMEAImporter();
+   }
+   if(!nmeaImporter->setType(v)){
      return listutils::typeError(v + " is not a known nmea type id, known are "
-                                 + imp.getKnownTypes());
-   } 
-   return nl->TwoElemList(nl->SymbolAtom("stream"), imp.getTupleType());
-
+                                 + nmeaImporter->getKnownTypes());
+   }
  
+   return nl->TwoElemList(nl->SymbolAtom("stream"), 
+                          nmeaImporter->getTupleType());
 }
 
 
@@ -835,13 +842,13 @@ int nmeaimportVM(Word* args, Word& result,
 
 const string nmeaimportSpec  =
    "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-   "( <text> text x string -> rel(tuple(...)) </text--->"
+   "( <text> text x string -> streamtuple(...)) </text--->"
    "<text> nmeaimport(filename, type) </text--->"
    "<text> Returns the content of all lines matching type "
    "as a stream of typles."
    "The result type depenend of the value of typeid"
    "</text--->"
-   "<text> nmeaimport('trip.nmea',\"GGA\")</text--->"
+   "<text> query nmeaimport('trip.nmea',\"GGA\") count</text--->"
    ") )";
 
 /*
@@ -855,6 +862,90 @@ Operator nmeaimport( "nmeaimport",
                     Operator::SimpleSelect,
                     nmeaimportTM);
 
+
+
+/*
+3 Operator nmeaimport[_]line
+
+3.1 Type Mapping
+
+Here, we just use the typoe mapping of the nmeaimport[_]line operator
+
+
+3.2 Value Mapping
+
+
+*/
+
+int nmeaimport_lineVM(Word* args, Word& result,
+               int message, Word& local, Supplier s){
+  switch(message){
+    case OPEN:{
+      CcString* t = static_cast<CcString*>(args[1].addr);
+      if(!t->IsDefined()){
+         return 0;
+      } 
+      string* type = new string(t->GetValue());
+      local.addr = type; 
+      return 0;
+    }
+
+   case REQUEST:{
+      if(!local.addr){
+         return CANCEL;
+       }
+       string* type = (string*) local.addr;
+       if(!nmeaImporter){
+          nmeaImporter = new NMEAImporter();
+       }
+       nmeaImporter->setType(*type);
+       delete type;
+       local.addr = 0;
+       FText* line = static_cast<FText*>(args[0].addr);
+       if(!line->IsDefined()){
+          return CANCEL; 
+       }
+       result.addr =  nmeaImporter->getTuple(line->GetValue());
+       return result.addr?YIELD:CANCEL;
+    }
+
+    case CLOSE:{
+      if(local.addr){
+          string* type = static_cast<string*>(local.addr);
+          delete type;
+          local.addr=0;
+      }
+      return 0;
+    }
+    default: assert(false);
+  }
+  return -1;
+}
+
+
+const string nmeaimport_lineSpec  =
+   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+   "( <text> text x string -> stream(tuple(...)) </text--->"
+   "<text> nmeaimport_line(line, type) </text--->"
+   "<text> Returns the the given line lines as a single tuple "
+   "or an empty stream if the line is not a valid of of the given type."
+   "</text--->"
+   "<text> query nmeaimport_line('$GPGGA,090150.383,"
+   "5131.2913,N,00726.9363,E,0,0,,102.5,M,47.5,M,,*45',"
+   "\"GGA\") tconsume</text--->"
+   ") )";
+
+
+/*
+2.4 Operator instance for nmeaimport[_]line
+
+*/
+
+Operator nmeaimport_line( "nmeaimport_line",
+                    nmeaimport_lineSpec,
+                    nmeaimport_lineVM,
+                    Operator::SimpleSelect,
+                    nmeaimportTM);
 
 
 
@@ -4823,6 +4914,8 @@ public:
     AddOperator( &getPageSize);
     AddOperator( &nmeaimport);
     nmeaimport.SetUsesArgsInTypeMapping(); 
+    AddOperator( &nmeaimport_line);
+    nmeaimport_line.SetUsesArgsInTypeMapping(); 
   }
   ~ImExAlgebra() {};
 };

@@ -293,4 +293,9 @@ Example  : query nmeaimport('trip.nmea',"GGA") count
 Result   : bug
 Remark   : Not implemented completely
 
+Operator : nmeaimport_line
+Number   : 1
+Signature: text x string -> stream(tuple(...))
+Example  : query nmeaimport_line('$GPGGA,094154.384,5131.2913,N,00726.9363,E,0,0,,102.5,M,47.5,M,,*42', "GGA") extract[FixQuality]
+Result   : 0
 

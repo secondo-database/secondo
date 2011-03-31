@@ -96,6 +96,17 @@ Donst forget to set the managed type and call scanFile first.
      Tuple* nextTuple();
 
 /*
+~getTuple~
+
+Returns the tuple represented by this arguments. If __line__ does not match
+the current used importer, 0 is returned.
+
+*/
+    Tuple* getTuple(const string& line);
+
+
+
+/*
 ~finishScan~
 
 Closes the unfderlying file if open.

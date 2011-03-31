@@ -1560,6 +1560,19 @@ Returns the Next Tuple corresponding to the currently selected sentence.
        return 0;
      }
 
+
+/*
+~getTuple~
+
+Returns the tuple represented by this arguments. If __line__ does not match
+the current used importer, 0 is returned.
+
+*/
+    Tuple* NMEAImporter::getTuple(const string& line){
+      return importers[position]->getTupleForLine(line);
+    }
+
+
 /*
 ~finishScan~
 
