@@ -80,8 +80,9 @@ class MGPSecUnit : public Attribute
 
     MGPSecUnit();
 
-    MGPSecUnit(bool defined, int secId,  int part, Side direct, double sp,
-               Interval<Instant> timeInterval);
+    MGPSecUnit(const bool defined, const int secId, const int part,
+               const Side direct, const double sp,
+               const Interval<Instant> timeInterval);
 
     MGPSecUnit( const MGPSecUnit& in_xOther );
 
@@ -106,15 +107,15 @@ Get and Set private attributes.
 
     double GetDurationInSeconds() const;
 
-    void SetSecId(int secId);
+    void SetSecId(const int secId);
 
-    void SetPart(int p);
+    void SetPart(const int p);
 
-    void SetDirect(Side dir);
+    void SetDirect(const Side dir);
 
-    void SetSpeed(double x);
+    void SetSpeed(const double x);
 
-    void SetTimeInterval(Interval<Instant> time);
+    void SetTimeInterval(const Interval<Instant> time);
 
     MGPSecUnit& operator=( const MGPSecUnit& in_xOther);
 
@@ -154,7 +155,7 @@ Functions for Secondo integration.
 
     int NumOfFLOBs() const;
 
-    Flob* GetFLOB(const int i);
+    Flob* GetFLOB(const int i) const;
 
     static void* Cast(void* addr);
 
@@ -187,7 +188,7 @@ class UGPoint : public SpatialTemporalUnit<GPoint, 3>
   public:
   UGPoint():SpatialTemporalUnit<GPoint,3>() {};
 
-  UGPoint(bool is_defined):
+  UGPoint(const bool is_defined):
     SpatialTemporalUnit<GPoint, 3>(is_defined)
     {  };
 
@@ -224,7 +225,7 @@ class UGPoint : public SpatialTemporalUnit<GPoint, 3>
            const Side in_Side,
            const double in_Position0,
            const double in_Position1,
-           Network *&pNetwork):
+           const Network *pNetwork):
     SpatialTemporalUnit<GPoint, 3>( interval ),
     p0( true,        // defined
         in_NetworkID,    // NetworkID
@@ -241,7 +242,7 @@ class UGPoint : public SpatialTemporalUnit<GPoint, 3>
   UGPoint( const Interval<Instant>& interval,
            const GPoint& p0,
            const GPoint& p1,
-           Network *&pNetwork):
+           const Network *pNetwork):
     SpatialTemporalUnit<GPoint, 3>( interval ),
     p0( p0 ),
     p1( p1 )
@@ -342,7 +343,7 @@ Returns the 3 dimensional spatio-temporal BoundingBox of the ~ugpoint~.
 
  virtual const Rectangle<3> BoundingBox() const;
 
- Rectangle<3> BoundingBox(Network* &pNetwork) const;
+ Rectangle<3> BoundingBox(const Network* pNetwork) const;
 
  virtual double Distance(const Rectangle<3>& rect) const;
 
@@ -394,7 +395,7 @@ Returns the 3 dimensional spatio-temporal BoundingBox of the ~ugpoint~.
   Returns true if the ~ugpoint~ passes a given ~gpoint~ false elsewhere.
 
   */
-  virtual bool Passes( const GPoint& val ) const;
+  virtual bool Passes( const GPoint& val )const ;
 
   /*
   Returns the ~igpoint~ the ~ugpoint~ was at a given network position.
@@ -519,54 +520,54 @@ Returns the 3 dimensional spatio-temporal BoundingBox of the ~ugpoint~.
       else return None;
   }
 
-  void GetPassedSections(Network* pNet, vector<TupleId>& pS) const;
+  void GetPassedSections(const Network* pNet, vector<TupleId>& pS) const;
 
-  void GetMGPSecUnits(vector<MGPSecUnit>& res, double maxSectLength,
-                     Network *pNet) const;
+  void GetMGPSecUnits(vector<MGPSecUnit>& res, const double maxSectLength,
+                     const Network *pNet) const;
 
 /*
 SetMethoden f[ue]r ~ugpoint~
 
 */
 
-  inline void SetUnitRid(int rid)
+  inline void SetUnitRid(const int rid)
   {
     p0.SetRouteId(rid);
     p1.SetRouteId(rid);
   };
 
-  inline void SetUnitStartPos(double pos)
+  inline void SetUnitStartPos(const double pos)
   {
     p0.SetPosition(pos);
   };
 
-  inline void SetUnitEndPos(double pos)
+  inline void SetUnitEndPos(const double pos)
   {
     p1.SetPosition(pos);
   };
 
-  inline void SetUnitSide(Side a)
+  inline void SetUnitSide(const Side a)
   {
     p0.SetSide(a);
     p1.SetSide(a);
   };
 
-  inline void SetUnitStartTime(Instant time)
+  inline void SetUnitStartTime(const Instant time)
   {
     timeInterval.start = time;
   };
 
-  inline void SetUnitEndTime(Instant time)
+  inline void SetUnitEndTime(const Instant time)
   {
     timeInterval.end = time;
   };
 
-  inline void SetUnitStartTimeBool(bool b)
+  inline void SetUnitStartTimeBool(const bool b)
   {
     timeInterval.lc = b;
   };
 
-  inline void SetUnitEndTimeBool(bool b)
+  inline void SetUnitEndTimeBool(const bool b)
   {
     timeInterval.rc = b;
   };
@@ -583,14 +584,14 @@ SetMethoden f[ue]r ~ugpoint~
 
   */
 
-  void Deftime(Periods &per);
+  void Deftime(Periods &per) const;
 
   /*
   Returns the time instant the ~ugpoint~ was at a given position.
 
   */
 
-  Instant TimeAtPos(double pos) const;
+  Instant TimeAtPos(const double pos) const;
 
 /*
   Returns the network distance from the ~gpoint~ to the ~ugpoint~
@@ -731,11 +732,12 @@ distance function.
 
 */
 
-    void Distance(MGPoint *&mgp, MReal *&result);
-    void DistanceE(MGPoint* mgp, MReal* result);
+    void Distance(const MGPoint *mgp, MReal *result) const;
+    void DistanceE(const MGPoint* mgp, MReal* result) const;
     void DistanceN(MGPoint* mgp, MReal* result);
-    void DistanceFunction(UGPoint*,UGPoint*,Network*,vector<UReal>&);
-    void DivideUGPoint(Network*);
+    void DistanceFunction(const UGPoint*, const UGPoint*, const Network*,
+                          vector<UReal>&) const;
+    void DivideUGPoint(const Network*);
 
 /*
   Returns the network distance from the ~gpoint~ to the ~mgpoint~
@@ -743,6 +745,7 @@ distance function.
 */
 
   void NetdistanceFromArg(const GPoint* gp, MReal* result) const;
+  void NetdistanceFromArgShort(const GPoint* gp, MReal* result)const;
 
 /*
 Returns the network distance from the ~mgpoint~ to the ~gpoint~
@@ -750,13 +753,14 @@ Returns the network distance from the ~mgpoint~ to the ~gpoint~
 */
 
  void NetdistanceToArg(const GPoint* gp, MReal* result) const;
+ void NetdistanceToArgShort(const GPoint* gp, MReal* result) const;
 
 
 /*
 Translates an mgpoint into an mpoint value.
 
 */
-    void Mgpoint2mpoint(MPoint *&mp);
+    void Mgpoint2mpoint(MPoint *mp) const;
 
 /*
 Returns the trajectory of the mgpoint as sorted gline or as DbArray of
@@ -772,41 +776,41 @@ Returns the trajectory of the mgpoint as sorted gline or as DbArray of
 Sets the Trajetory of the MGPoint from a GLine or a DbArray of ~RouteInterval~s
 
 */
-   void SetTrajectory(GLine src);
+   void SetTrajectory(const GLine src);
 
    void SetTrajectory(const DbArray<RouteInterval>& tra);
 
-   void SetTrajectoryDefined(bool defined);
+   void SetTrajectoryDefined(const bool defined);
 
 /*
 Returns the deftime of the mgpoint as periods value.
 
 */
 
-   void Deftime(Periods &res);
+   void Deftime(Periods &res) const;
 
 /*
 Returns true if the mgpoint is defined at least in one of the periods resp.
 at the given Instant.
 
 */
-   bool Present(Periods *&per);
+   bool Present(Periods *per) const;
 
-   bool Present(Instant *&inst);
+   bool Present(Instant *inst) const;
 
 /*
 Sets the length of the trip of the mgpoint.
 
 */
 
-   void SetLength(double x);
+   void SetLength(const double x);
 
 /*
 Returns the length of the trip of the mgpoint.
 
 */
 
-   double Length();
+   double Length() const;
 
    double GetLength() const;
 
@@ -815,61 +819,61 @@ Returns a mgpoint representing the intersection of 2 mgpoints
 
 */
 
-  void Intersection(MGPoint* &mgp, MGPoint *&res);
+  void Intersection(const MGPoint* mgp, MGPoint *res) const;
 
 /*
 Returns true if there exists a intersection of the two mgpoints
 
 */
 
-  bool Intersects(MGPoint* mgp);
+  bool Intersects(const MGPoint* mgp) const;
 
 /*
 Returns a mbool telling when the mgpoint was inside the gline.
 
 */
 
-  void Inside(GLine* &gl, MBool *&res);
+  void Inside(const GLine* gl, MBool *res) const;
 
 
 /*
 Returns a mgpoint restricted to the given periods respectively instant value.
 
 */
-   void Atperiods(Periods *&per, MGPoint *&res);
+   void Atperiods(const Periods *per, MGPoint *res) const;
 
-   void Atinstant(Instant *&inst, Intime<GPoint> *&res);
+   void Atinstant(const Instant *inst, Intime<GPoint> *res) const;
 
 /*
 Returns a mgpoint restricted to the times it was at the given gpoint resp.
 gline.
 
 */
-   void At(GPoint *&gp, MGPoint *&res);
+   void At(const GPoint *gp, MGPoint *res) const;
 
-   void At(GLine *&gl, MGPoint *&res);
+   void At(const GLine *gl, MGPoint *res) const;
 
 /*
 Returns the union of two time disjoint ~mgpoint~. ~undef~ elsewhere.
 
 */
 
-   void Union(MGPoint *mp, MGPoint *res);
+   void Union(const MGPoint *mp, MGPoint *res) const;
 /*
 Returns a mgpoint with smaller number of units because units with speed
 differences lower than d are compacted to be one unit.
 
 */
 
-   void Simplify(double d, MGPoint* res);
+   void Simplify(const double d, MGPoint* res) const;
 
 /*
 Returns true if the mgpoint passes at least once the gpoint resp. gline.
 
 */
-   bool Passes(GPoint *&gp);
+   bool Passes(const GPoint *gp) ;
 
-   bool Passes(GLine *&gl);
+   bool Passes(GLine *gl) ;
 
 /*
 Returns the spatiotemporal 3 dimensional bounding box of the ~mgpoint~.
@@ -889,26 +893,37 @@ Returns the spatiotemporal 3 dimensional bounding box of the ~mgpoint~.
 Restricts a ~mgpoint~ to the given unit intervals.
 
 */
-  void Restrict( const vector< pair<int, int> >& intervals );
-  /*
-  Prints the mgpoint value.
 
-  */
+  void Restrict( const vector< pair<int, int> >& intervals );
+
+/*
+Prints the mgpoint value.
+
+*/
+
   ostream& Print( ostream &os ) const;
+
+/*
+Returns the sections passed by the ~mgpoint~
+
+*/
+
+  void GetPassedSections(SortedTree<Entry<SectionValue> > *result) const;
+  void GetPassedSections(const Network *pNetwork,
+                         SortedTree<Entry<SectionValue> > *result) const;
 
   bool operator==( const MGPoint& r ) const;
 
-  void SetBoundingBoxDefined(bool defined);
+  void SetBoundingBoxDefined(const bool defined);
 
-  void SetBoundingBox(Rectangle<3> mbr);
+  void SetBoundingBox(const Rectangle<3> mbr);
+
+  int Position(const Instant &inst, bool atinst=true) const;
+
+  void GetMGPSecUnits(vector<MGPSecUnit> &res, const double maxSectLength,
+                     const Network *pNet) const;
 
   DbArray<RouteInterval> m_trajectory;
-
-  int Position(const Instant &inst, bool atinst=true);
-
-  void GetMGPSecUnits(vector<MGPSecUnit> &res, double maxSectLength,
-                     Network *pNet) const;
-
   private:
 
   bool m_traj_Defined;

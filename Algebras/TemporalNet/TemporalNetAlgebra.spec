@@ -38,3 +38,4 @@ operator mgp2mgpsecunits3 alias MGP2MGPSECUNITS3 pattern _ op [ _ ]
 operator mgpsu2tuple alias MGPSU2TUPLE pattern _ op
 operator intersects alias INTERSECTS pattern _ infixop _
 operator netdistance alias NETDISTANCE pattern op ( _ , _ )
+operator netdistancenew alias NETDISTANCENEW pattern op ( _ , _ )

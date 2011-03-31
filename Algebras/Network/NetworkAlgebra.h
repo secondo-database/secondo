@@ -23,7 +23,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //paragraph [1] Title: [{\Large \bf \begin{center}] [\end{center}}]
 //paragraph [10] Footnote: [{\footnote{] [}}]
 
-1.1 Declarations Necessary for Algebra Network
+1.1 Declarations and Inclusions Necessary for Algebra Network
 
 */
 #ifndef __NETWORK_ALGEBRA_H__
@@ -38,6 +38,393 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "../../include/Attribute.h"
 #include "../Spatial/SpatialAlgebra.h"
 #include "../RTree/RTreeAlgebra.h"
+
+/*
+2 Helpful Data Types and Data Structures
+
+2.1 ~SectionValue ~
+For some operations in connection with paths we need lists containing
+sections ids and corresponding directions, e.g. in a list of adjacent sections.
+The data type ~SectionValue~ is defined to be used in this lists.
+
+*/
+
+class SectionValue
+{
+public:
+  SectionValue(){};
+
+  SectionValue(const int sid, const bool up): sectId(sid), upDown(up){};
+
+  ~SectionValue(){};
+
+  inline int GetSectionID() const
+  {
+    return sectId;
+  }
+
+  inline bool GetUpDownFlag() const
+  {
+    return upDown;
+  }
+
+  inline void SetSectionID(const int sid)
+  {
+    sectId = sid;
+  }
+
+  inline void SetUpDownFlag(const bool up)
+  {
+    upDown = up;
+  }
+
+  ostream& Print(ostream& os) const
+  {
+    os << "SectId: " << sectId << ", Direction: ";
+    if (upDown) os << "up";
+    else os << "down";
+    os << endl;
+    return os;
+  }
+
+  int Compare(const SectionValue sv) const
+  {
+    if (sectId < sv.GetSectionID()) return -1;
+    if (sectId > sv.GetSectionID()) return 1;
+    if (upDown == sv.GetUpDownFlag()) return 0;
+    if (upDown < sv.GetUpDownFlag()) return -1;
+    return 1;
+  }
+
+  void operator=(const SectionValue sv)
+  {
+    sectId = sv.GetSectionID();
+    upDown = sv.GetUpDownFlag();
+  }
+
+private:
+
+  int sectId;
+  bool upDown;
+
+};
+
+/*
+2.2 ~Entry~
+Extends a arbirtray class object by two int values used as pointers to the
+index of the left respectively right son, to use them as nodes in a tree
+data structure which is embedded in a DbArray to be not limited by available
+main memory ressources.
+
+The class Value must support Compare,Print and operator=.
+
+*/
+
+template <class Value>
+class Entry
+{
+public:
+  Entry<Value>(){};
+
+  Entry<Value>(const Value val, const int left = -1, const int right = -1):
+      value(val), leftSonIndex(left), rightSonIndex(right) {};
+
+  ~Entry(){};
+
+  inline Value GetValue() const  {
+    return value;
+  };
+
+  inline int GetLeftSonIndex() const  {
+    return leftSonIndex;
+  };
+
+  inline int GetRightSonIndex() const  {
+    return rightSonIndex;
+  };
+
+  inline void SetValue(const Value v)  {
+    value = v;
+  }
+
+  inline void SetLeftSonIndex(const int left)  {
+    leftSonIndex = left;
+  };
+
+  inline void SetRightSonIndex(const int right)  {
+    rightSonIndex = right;
+  };
+
+  inline int Compare(const Entry ev) const  {
+    return value.Compare(ev.GetValue());
+  };
+
+  inline int Compare (const Value v) const{
+    return value.Compare(v);
+  }
+
+  ostream& Print(ostream& os) const  {
+    os << "EntryValue: ";
+    value.Print(os);
+    os << "LeftSon: " << leftSonIndex;
+    os << ", RigthSon: " << rightSonIndex << endl;
+    return os;
+  };
+
+private:
+
+  Value value;
+  int leftSonIndex;
+  int rightSonIndex;
+};
+
+/*
+2.3 ~SortedTree~
+Uses a DbArray to store a sorted tree of ~TreeEntry~. The elements can be
+searched, inserted and removed.
+
+*/
+
+template <class TreeEntry>
+class SortedTree {
+
+public:
+
+  SortedTree<TreeEntry>():tree(0) {
+    freePos = 0;
+    numOfElements = 0;
+  };
+
+  SortedTree<TreeEntry>(const int n): tree(n){
+    freePos = 0;
+    numOfElements = 0;
+  };
+
+  ~SortedTree(){};
+
+  void Destroy(){
+    tree.Destroy();
+  };
+
+  ostream& Print(ostream& os) const
+  {
+    TreeEntry elem;
+    for (int i = 0; i < freePos; i++){
+      tree.Get(i,elem);
+      os << i << ".Element: ";
+      elem.Print(os);
+      os << endl;
+    }
+    return os;
+  }
+
+/*
+Returns the index of entry if entry is in the tree. Elsewhere the position
+where entry would have to be inserted. If the tree is empty -1 is returned.
+
+*/
+  int Find(const TreeEntry entry, const int pos, int& posFather) const{
+    assert((0 <= pos && pos < freePos) || (freePos == 0 && pos == 0));
+    if (isEmpty()) return -1;
+    TreeEntry actEntry;
+    tree.Get(pos,actEntry);
+    switch (actEntry.Compare(entry)){
+      case -1:{
+        if (actEntry.GetRightSonIndex() > -1){
+          posFather = pos;
+          return Find(entry, actEntry.GetRightSonIndex(), posFather);
+        } else {
+          posFather = -1;
+          return pos;
+        }
+      }
+
+      case 1:{
+        if (actEntry.GetLeftSonIndex() > -1){
+          posFather = pos;
+          return Find(entry, actEntry.GetLeftSonIndex(),posFather);
+        }
+        else{
+          posFather = -1;
+          return pos;
+        }
+      }
+
+      case 0: {
+        return pos;
+      }
+
+      default:{ //should never been reached
+        posFather = -1;
+        return -1;
+      }
+    }
+  }
+
+
+/*
+Inserts ~TreeEntry~ if it is not inserted before.
+If te is already in the tree, the tree remains unchanged and false is returned.
+
+*/
+  void Insert(const TreeEntry te) {
+    int posFather = -1;
+    int pos = Find(te,0,posFather);
+    if (pos < 0){
+      tree.Put(freePos, te);
+      freePos++;
+      numOfElements++;
+    } else {
+      TreeEntry test;
+      tree.Get(pos,test);
+      switch (test.Compare(te)){
+        case -1:{
+          tree.Put(freePos, te);
+          test.SetRightSonIndex(freePos);
+          tree.Put(pos,test);
+          freePos++;
+          numOfElements++;
+          break;
+        }
+
+        case 1: {
+          tree.Put(freePos, te);
+          test.SetLeftSonIndex(freePos);
+          tree.Put(pos,test);
+          freePos++;
+          numOfElements++;
+          break;
+        }
+
+        default:{
+          break;
+        }
+      }
+    }
+  }
+
+/*
+Removes te from the tree, if it is in there.
+
+*/
+
+  void Remove(const TreeEntry te){
+    int posFather = -1;
+    int pos = Find(te,0,posFather);
+    if (pos >= 0){
+      TreeEntry test;
+      tree.Get(pos,test);
+      if (test.Compare(te) == 0){
+        if (pos > 0){
+          TreeEntry father;
+          tree.Get(posFather, father);
+          if (test.GetRightSonIndex() > 0 && test.GetLeftSonIndex() > 0) {
+            int newPos = test.GetRightSonIndex();
+            int newFatherPos = pos;
+            TreeEntry smallestBigger;
+            tree.Get(newPos,smallestBigger);
+            while (smallestBigger.GetLeftSonIndex() > 0){
+              newFatherPos = newPos;
+              newPos = smallestBigger.GetLeftSonIndex();
+              tree.Get(newPos, smallestBigger);
+            }
+            if (newFatherPos == pos){
+              if (father.GetRightSonIndex() == pos){
+                father.SetRightSonIndex(newPos);
+              } else {
+                father.SetLeftSonIndex(newPos);
+              }
+              smallestBigger.SetLeftSonIndex(test.GetLeftSonIndex());
+              tree.Put(newPos, smallestBigger);
+            } else {
+              TreeEntry newFather;
+              tree.Get(newFatherPos, newFather);
+              newFather.SetLeftSonIndex(smallestBigger.GetRightSonIndex());
+              tree.Put(newFatherPos,newFather);
+              if (father.GetRightSonIndex() == pos){
+                father.SetRightSonIndex(newPos);
+              } else {
+                father.SetLeftSonIndex(newPos);
+              }
+              smallestBigger.SetLeftSonIndex(test.GetLeftSonIndex());
+              smallestBigger.SetRightSonIndex(test.GetRightSonIndex());
+              tree.Put(newPos, smallestBigger);
+            }
+          } else {
+            if (test.GetLeftSonIndex() > 0 || test.GetRightSonIndex() > 0){
+              if (test.GetLeftSonIndex() > 0){
+                if (father.GetRightSonIndex() == pos){
+                  father.SetRightSonIndex(test.GetLeftSonIndex());
+                } else {
+                  father.SetLeftSonIndex(test.GetLeftSonIndex());
+                }
+              } else {
+                if (father.GetRightSonIndex() == pos){
+                  father.SetRightSonIndex(test.GetRightSonIndex());
+                } else {
+                  father.SetLeftSonIndex(test.GetRightSonIndex());
+                }
+              }
+            } else {
+              if (father.GetRightSonIndex() == pos){
+                father.SetRightSonIndex(-1);
+              } else {
+                father.SetLeftSonIndex(-1);
+              }
+            }
+          }
+          tree.Put(posFather,father);
+        } else {
+          if (test.GetRightSonIndex() > 0 && test.GetLeftSonIndex() > 0) {
+            int newPos = test.GetRightSonIndex();
+            int newFatherPos = pos;
+            TreeEntry smallestBigger;
+            tree.Get(newPos,smallestBigger);
+            while (smallestBigger.GetLeftSonIndex() > 0){
+              newFatherPos = newPos;
+              newPos = smallestBigger.GetLeftSonIndex();
+              tree.Get(newPos, smallestBigger);
+            }
+            TreeEntry newFather;
+            tree.Get(newFatherPos, newFather);
+            newFather.SetLeftSonIndex(smallestBigger.GetRightSonIndex());
+            tree.Put(newFatherPos,newFather);
+            smallestBigger.SetLeftSonIndex(test.GetLeftSonIndex());
+            smallestBigger.SetRightSonIndex(test.GetRightSonIndex());
+            tree.Put(pos, smallestBigger);
+          } else {
+            if (test.GetLeftSonIndex() > 0 || test.GetRightSonIndex() > 0){
+              TreeEntry newRoot;
+              if (test.GetLeftSonIndex() > 0){
+                tree.Get(test.GetLeftSonIndex(),newRoot);
+              } else {
+                tree.Get(test.GetRightSonIndex(),newRoot);
+              }
+              tree.Put(pos,newRoot);
+            } else {
+              freePos = 0;
+            }
+          }
+        }
+        numOfElements--;
+      }
+    }
+  }
+
+/*
+Returns true if the tree is empty.
+
+*/
+  inline bool isEmpty() const{
+    return numOfElements == 0;
+  }
+
+private:
+  DbArray<TreeEntry> tree;
+  int freePos;
+  int numOfElements;
+
+};
 
 
 /*
@@ -95,13 +482,14 @@ ostream& Print ( ostream& os ) const
   bool startbool, endbool;
 };
 
+
 class ShortestPathTreeEntry
 {
-  public:
+public:
   ShortestPathTreeEntry(){};
 
   ShortestPathTreeEntry(const double d, const bool up):
-    dist(d),upDown(up)
+        dist(d),upDown(up)
   {};
 
   ~ShortestPathTreeEntry(){};
@@ -139,44 +527,11 @@ class ShortestPathTreeEntry
     return 0;
   }
 
-  private:
-    double dist;
-    bool upDown;
-};
-
-struct AdjacentSectionsPair
-{
-  AdjacentSectionsPair(){};
-
-  AdjacentSectionsPair(const int sid, const bool up) :
-    secID(sid),upDown(up)
-  {};
-
-  ~ AdjacentSectionsPair(){};
-
-  inline int GetSectionID() const
-  {
-    return secID;
-  }
-
-  inline bool GetUpDownFlag() const
-  {
-    return upDown;
-  }
-
-  inline void SetSectionID(const int sid)
-  {
-    secID = sid;
-  }
-
-  inline void SetUpDownFlag(const bool up)
-  {
-    upDown = up;
-  }
-
-  int secID;
+private:
+  double dist;
   bool upDown;
 };
+
 
 class GPoints;
 class Network;
@@ -781,6 +1136,17 @@ two times the section number plus one for down sections.
                        DbArray<ShortestPathTreeEntry> *res) const;
 
 /*
+Almost analogous to shortest path tree but stops computation if all sections
+of ~toReach~ are inserted.
+
+*/
+
+ void ShortestPathTree(const Network* pNetwork,
+                       DbArray<ShortestPathTreeEntry> *res,
+                       SortedTree<Entry<SectionValue> > *toReach) const;
+
+
+/*
 Returns the reverse shortest path tree of the gpoint from all sections of the
 network. The distances are stored in an DbArray<double>, where the index
 of the Array-Field is two times the section number for up sections and
@@ -790,6 +1156,16 @@ two times the section number plus one for down sections.
 
 void ReverseShortestPathTree(const Network* pNetwork,
                              DbArray<ShortestPathTreeEntry> *res) const;
+
+/*
+Almost analogous to reverse shortest path tree but stops computation if all
+sections of ~toReach~ are inserted.
+
+*/
+
+void ReverseShortestPathTree(const Network* pNetwork,
+                             DbArray<ShortestPathTreeEntry> *res,
+                             SortedTree<Entry<SectionValue> > *toReach) const;
 
   private:
 
@@ -1639,7 +2015,7 @@ downwards bool from the section given by TupleId.
                              vector<DirectedSection> &inout_xSections) const;
 
     void GetAdjacentSections(const int sectId, const bool upDown,
-                             DbArray<AdjacentSectionsPair> *resArray) const;
+                             DbArray<SectionValue> *resArray) const;
 
     void GetReverseAdjacentSections(const TupleId in_iSectionId,
                                     const bool in_bUpDown,
@@ -1648,7 +2024,7 @@ downwards bool from the section given by TupleId.
 
     void GetReverseAdjacentSections(const int sectId,
                                     const bool upDown,
-                                    DbArray<AdjacentSectionsPair> *resArray)
+                                    DbArray<SectionValue> *resArray)
       const;
 
 /*

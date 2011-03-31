@@ -73,7 +73,7 @@ Returns true if the ~RouteInterval~ ~pRi~ is found in the set of ~rint~.
 false elsewhere.
 
 */
-bool searchUnit(DbArray<RouteInterval> &rint, int low, int high,
+bool searchUnit(const DbArray<RouteInterval> &rint, int low, int high,
                  RouteInterval pRi){
   RouteInterval rI;
   if (low <= high) {
@@ -111,10 +111,10 @@ bool searchUnit(DbArray<RouteInterval> &rint, int low, int high,
 Returns true if the two given sets of ~RouteIntervals~ at least intersect once.
 
 */
-bool RIsIntersects(DbArray<RouteInterval> &riint1,
-               DbArray<RouteInterval> &riint2,
-               bool sortedri1,
-               bool sortedri2){
+bool RIsIntersects(const DbArray<RouteInterval> &riint1,
+               const DbArray<RouteInterval> &riint2,
+               const bool sortedri1,
+               const bool sortedri2){
   RouteInterval pRi1, pRi2;
   if (!sortedri1) {
     for (int i = 0; i < riint1.Size(); i++){
@@ -164,8 +164,9 @@ bool RIsIntersects(DbArray<RouteInterval> &riint1,
 Returns true if a ~RouteInterval~ is found that contains the ~gpoint~
 
 */
-bool searchRouteInterval(GPoint *pGPoint, DbArray<RouteInterval> &tra,
-                          int low, int high) {
+bool searchRouteInterval(const GPoint *pGPoint,
+                         const DbArray<RouteInterval> &tra,
+                         int low, int high) {
   RouteInterval rI;
   if (low <= high) {
     int mid = (high + low) / 2;
@@ -205,7 +206,7 @@ bool searchRouteInterval(GPoint *pGPoint, DbArray<RouteInterval> &tra,
 Returns true if a ~RouteInterval~ is found that contains the ~gpoint~
 
 */
-bool Includes(DbArray<RouteInterval> &tra, GPoint *gp){
+bool Includes(const DbArray<RouteInterval> &tra, const GPoint *gp){
   if (tra.Size() < 1) return false;
   return (searchRouteInterval(gp, tra, 0, tra.Size()-1));
 }
@@ -215,8 +216,9 @@ Sets parameter movingUp and side for the given Unit. Used by ~mpoint2mgpoint~.
 
 */
 
-void setMoveAndSide(double &startPos, double &endPos, bool &MovingUp,
-                    bool &dual, Side &side){
+void setMoveAndSide(const double &startPos, const double &endPos,
+                    bool &MovingUp,
+                    const bool &dual, Side &side){
   if (MovingUp && startPos <= endPos) { MovingUp = true;}
   else {
     if (MovingUp && startPos > endPos) { MovingUp = false;}
@@ -239,7 +241,7 @@ Gets the parameter Values of the given ~upoint~.Used by
 
 */
 
-void getUnitValues(const UPoint *&curUnit, Point &endPoint, Point &startPoint,
+void getUnitValues(const UPoint *curUnit, Point &endPoint, Point &startPoint,
                    Instant &startTime, Instant &endTime,
                    double &lStartTime, double &lEndTime, double &duration)
 {
@@ -262,8 +264,9 @@ Used by ~mpoint2mgpoint~.
 
 */
 
-bool checkPoint (SimpleLine *&route, Point point, bool startSmaller,
-                   double &pos, double &difference){
+bool checkPoint (const SimpleLine *route, const Point point,
+                 const bool startSmaller,
+                 double &pos, double &difference){
   bool result = false;
   HalfSegment hs;
   double k1, k2;
@@ -340,8 +343,9 @@ bool checkPoint (SimpleLine *&route, Point point, bool startSmaller,
   return result;
 }
 
-bool checkPointN (SimpleLine route, Point point, bool startSmaller,
-                 double &pos)
+bool checkPointN (const SimpleLine route, const Point point,
+                  const  bool startSmaller,
+                  double &pos)
 {
   bool result = false;
   HalfSegment hs;
@@ -418,7 +422,8 @@ Almost Equal to ~checkPoint~ but allows bigger differences. Used by
 
 */
 
-bool checkPoint03 (SimpleLine *&route, Point point, bool startSmaller,
+bool checkPoint03 (const SimpleLine *route, const Point point,
+                   const bool startSmaller,
                    double &pos, double &difference){
   bool result = false;
   HalfSegment hs;
@@ -495,8 +500,9 @@ bool checkPoint03 (SimpleLine *&route, Point point, bool startSmaller,
   return result;
 }
 
-bool lastcheckPoint03 (SimpleLine *&route, Point point, bool startSmaller,
-                   double &pos, double &difference){
+bool lastcheckPoint03 (const SimpleLine *route, const Point point,
+                       const bool startSmaller,
+                       double &pos, double &difference){
   bool result = false;
   HalfSegment hs;
   double k1, k2;
@@ -579,7 +585,7 @@ Two different parameter lists are possible.
 */
 void checkEndOfUGPoint(double startPos, double endPos, Instant startTime,
                        bool bstart, Instant endTime, bool bend, int actRoutInt,
-                       GLine* &pGLine, MBool* &pResult,
+                       const GLine* pGLine, MBool* pResult,
                        int iRouteId){
   RouteInterval pCurrInt;
   UBool interbool(true);
@@ -775,7 +781,7 @@ void checkEndOfUGPoint(double startPos, double endPos, Instant startTime,
 void checkEndOfUGPoint(double startPos, double endPos, Instant startTime,
                        bool bstart, Instant endTime, bool bend,
                        size_t actRoutInt, vector<RouteInterval> &vRI,
-                       MBool* &pResult, int iRouteId){
+                       MBool* pResult, int iRouteId){
   RouteInterval pCurrInt;
   UBool interbool(true);
   double help, factor;
@@ -999,7 +1005,7 @@ Used by operators ~at~ and ~inside~.
 
 */
 
-void getRouteIntervals(GLine *&pGLine, int iRouteId, double mgpstart,
+void getRouteIntervals(const GLine *pGLine, int iRouteId, double mgpstart,
                        double mgpend, int low, int high,
                        vector<RouteInterval> &vRI){
   vRI.clear();
@@ -1071,7 +1077,7 @@ Used by ~refinementMovingGPoint~.
 
 */
 
-int intervalCheck (Interval<Instant> i1, Interval<Instant> i2) {
+int intervalCheck (const Interval<Instant> i1, const Interval<Instant> i2) {
   if (i1.start > i2.end) return 1;
   if (i1.end < i2.start ) return 16;
   if (i1.start > i2.start && i1.start == i2.end && i1.start < i1.end) return 2;
@@ -1112,8 +1118,8 @@ later on ~distance~ and ~netdistance~
 
 */
 
-void refinementMovingGPoint (MGPoint *a, MGPoint *b,
-                             MGPoint *&resA, MGPoint *&resB){
+void refinementMovingGPoint (const MGPoint *a, const MGPoint *b,
+                             MGPoint *resA, MGPoint *resB){
   UGPoint ua, ub;
   GPoint pos1, pos2;
   int i = 0;
@@ -1703,24 +1709,18 @@ double MGPoint::GetLength() const{
   else return 0.0;
 }
 
-double MGPoint::Length(){
+double MGPoint::Length() const{
   if (IsDefined()) return m_length;
   else return 0.0;
 }
 
-void MGPoint::SetBoundingBox(Rectangle<3> mbr){
+void MGPoint::SetBoundingBox(const Rectangle<3> mbr){
   m_bbox = mbr;
 }
 
 void MGPoint::SetTrajectory(const DbArray<RouteInterval>& tra){
   if (tra.Size() > 0){
     m_traj_Defined = true;
-    /*m_trajectory.resize(tra.Size());
-    RouteInterval ri;
-    for (int i = 0; i < tra.Size(); i++) {
-      tra.Get(i,ri);
-      m_trajectory.Put(i,ri);
-    }*/
     m_trajectory.copyFrom(tra);
   } else m_traj_Defined = false;
 }
@@ -1728,12 +1728,6 @@ void MGPoint::SetTrajectory(const DbArray<RouteInterval>& tra){
 void MGPoint::SetTrajectory(GLine src){
   if (src.IsDefined() && src.NoOfComponents() > 0) {
     m_trajectory.copyFrom(*(src.GetRouteIntervals()));
-    /*m_trajectory.resize(src.NoOfComponents());
-    RouteInterval ri;
-    for (int i = 0; i < src.NoOfComponents(); i++) {
-      src.Get(i,ri);
-      m_trajectory.Put(i,ri);
-    }*/
     m_traj_Defined = true;
   }else m_traj_Defined = false;
 }
@@ -1805,7 +1799,7 @@ void MGPoint::Trajectory(GLine* res) {
   res->TrimToSize();
 }
 
-void MGPoint::Deftime(Periods &res){
+void MGPoint::Deftime(Periods &res) const{
     res.Clear();
     Periods per(0);
     UGPoint unit;
@@ -1826,7 +1820,7 @@ Euclidean Distance computing
 
 */
 
-void MGPoint::Distance(MGPoint *&mgp, MReal *&result){
+void MGPoint::Distance(const MGPoint *mgp, MReal *result) const{
   if (IsDefined()&&mgp->IsDefined()){
     MPoint *p1 = new MPoint(0);
     MPoint *p2 = new MPoint(0);
@@ -1865,7 +1859,7 @@ void MGPoint::Distance(MGPoint *&mgp, MReal *&result){
   }
 }
 
-void MGPoint::DistanceE(MGPoint* mgp, MReal* result){
+void MGPoint::DistanceE(const MGPoint* mgp, MReal* result)const{
   //Network* pNetwork = NetworkManager::GetNetwork(mgp->GetNetworkId());
   Network* pNetwork = GetNetwork();
   UReal uReal(true);
@@ -2065,9 +2059,9 @@ void MGPoint::DistanceE(MGPoint* mgp, MReal* result){
   result->EndBulkLoad();
 }
 
-void MGPoint::DistanceFunction(UGPoint* ug1,UGPoint* ug2,Network* pNetwork,
-vector<UReal>& dist)
-{
+void MGPoint::DistanceFunction(const UGPoint* ug1, const UGPoint* ug2,
+                               const Network* pNetwork, vector<UReal>& dist)
+              const{
   assert(ug1->timeInterval.start == ug2->timeInterval.start);
   assert(ug1->timeInterval.end == ug2->timeInterval.end);
   if(*ug1 == *ug2){
@@ -2256,7 +2250,6 @@ vector<UReal>& dist)
       }
     }
   }
-  cout<<l1<<" "<<l2<<" "<<l3<<" "<<l4<<endl;
   GLine* gl1 = new GLine(0);
   GLine* gl2 = new GLine(0);
   GLine* gl3 = new GLine(0);
@@ -2265,15 +2258,6 @@ vector<UReal>& dist)
   double dist2 = ep1_0->NewNetdistance(ep2_1,gl2);
   double dist3 = ep1_1->NewNetdistance(ep2_0,gl3);
   double dist4 = ep1_1->NewNetdistance(ep2_1,gl4);
-  ep1_0->Print(cout);
-  ep1_1->Print(cout);
-  ep2_0->Print(cout);
-  ep2_1->Print(cout);
-  gl1->Print(cout);
-  gl2->Print(cout);
-  gl3->Print(cout);
-  gl4->Print(cout);
-  cout<<dist1<<" "<<dist2<<" "<<dist3<<" "<<dist4<<endl;
   double v1 = ug1->p0.Netdistance(&ug1->p1)/
         (ug1->timeInterval.end-ug1->timeInterval.start).ToDouble();
   double v2 = ug2->p0.Netdistance(&ug2->p1)/
@@ -2736,7 +2720,7 @@ vector<UReal>& dist)
 let p0 and p1 of the UGPoint in the same section
 
 */
-void MGPoint::DivideUGPoint(Network* pNetwork)
+void MGPoint::DivideUGPoint(const Network* pNetwork)
 {
   MGPoint* mgp = new MGPoint(0);
   mgp->StartBulkLoad();
@@ -3001,11 +2985,11 @@ void MGPoint::NetdistanceFromArg(const GPoint* gp, MReal* result) const
     result->SetDefined(false);
   else
   {
-    Network *pNetwork = NetworkManager::GetNetworkNew(GetNetworkId(), netList);
+    Network *pNetwork = GetNetwork();
     DbArray<ShortestPathTreeEntry> *spTree =
       new DbArray<ShortestPathTreeEntry>(2 * pNetwork->GetNoSections() + 1);
-    gp->ShortestPathTree(pNetwork, spTree);
     ShortestPathTreeEntry actSectionSPEntryUp, actSectionSPEntryDown;
+    gp->ShortestPathTree(pNetwork, spTree);
     UGPoint actMGPUnit;
     vector<TupleId> passedSections;
     result->StartBulkLoad();
@@ -3050,6 +3034,7 @@ void MGPoint::NetdistanceFromArg(const GPoint* gp, MReal* result) const
           fabs (actSectionSPEntryUp.GetDist() -
           actSectionSPEntryDown.GetDist());
           double correction = (sectLength - diffDistanceUpDown) / 2;
+          if (AlmostEqual(correction,0.0)) correction = 0.0;
           double posOfSameDistance = 0.0;
           double distOfPosOfSameDistance = 0.0;
           if (actSectionSPEntryUp.GetDist() < actSectionSPEntryDown.GetDist())
@@ -3077,7 +3062,6 @@ void MGPoint::NetdistanceFromArg(const GPoint* gp, MReal* result) const
               actSectionSPEntryDown.GetDist() + fabs(endPos - sectMeas2);
           if (passedSections.size() == 1)
           {
-
             if ((startPos <= posOfSameDistance && endPos <= posOfSameDistance)||
                 (startPos >= posOfSameDistance && endPos >= posOfSameDistance))
             {
@@ -3087,15 +3071,14 @@ void MGPoint::NetdistanceFromArg(const GPoint* gp, MReal* result) const
             }
             else
             {
-
               splittime = actMGPUnit.TimeAtPos(posOfSameDistance);
               if (starttime != splittime)
                 result->MergeAdd(UReal(Interval<Instant>(starttime, splittime,
                                                          true, false),
                                        startdist, distOfPosOfSameDistance));
 
-                if (splittime != endtime)
-                  result->MergeAdd(UReal(Interval<Instant>(splittime, endtime,
+              if (splittime != endtime)
+                result->MergeAdd(UReal(Interval<Instant>(splittime, endtime,
                                                            true, false),
                                          distOfPosOfSameDistance, enddist));
             }
@@ -3117,8 +3100,8 @@ void MGPoint::NetdistanceFromArg(const GPoint* gp, MReal* result) const
                                            startdist,
                                            actSectionSPEntryDown.GetDist()));
                     starttime = splittime;
-                    startPos = sectMeas2;
                   }
+                  startPos = sectMeas2;
                 }
                 else
                 {
@@ -3140,8 +3123,8 @@ void MGPoint::NetdistanceFromArg(const GPoint* gp, MReal* result) const
                                            startdist,
                                            actSectionSPEntryDown.GetDist()));
                     starttime = splittime;
-                    startPos = sectMeas2;
                   }
+                  startPos = sectMeas2;
                 }
                 break;
               }
@@ -3158,8 +3141,8 @@ void MGPoint::NetdistanceFromArg(const GPoint* gp, MReal* result) const
                                            startdist,
                                            actSectionSPEntryUp.GetDist()));
                     starttime = splittime;
-                    startPos = sectMeas1;
                   }
+                  startPos = sectMeas1;
                 }
                 else
                 {
@@ -3171,8 +3154,8 @@ void MGPoint::NetdistanceFromArg(const GPoint* gp, MReal* result) const
                                                              true, false),
                                            startdist, distOfPosOfSameDistance));
                     starttime = splittime;
-                    splittime = actMGPUnit.TimeAtPos(sectMeas1);
                   }
+                  splittime = actMGPUnit.TimeAtPos(sectMeas1);
                   if (starttime != splittime)
                   {
                     result->MergeAdd(UReal(Interval<Instant>(starttime ,
@@ -3181,8 +3164,8 @@ void MGPoint::NetdistanceFromArg(const GPoint* gp, MReal* result) const
                                            startdist,
                                            actSectionSPEntryUp.GetDist()));
                     starttime = splittime;
-                    startPos = sectMeas1;
                   }
+                  startPos = sectMeas1;
                 }
                 break;
               }
@@ -3218,11 +3201,11 @@ void MGPoint::NetdistanceToArg(const GPoint* gp, MReal* result) const
     result->SetDefined(false);
   else
   {
-    Network *pNetwork = NetworkManager::GetNetworkNew(GetNetworkId(), netList);
+    Network *pNetwork = GetNetwork();
     DbArray<ShortestPathTreeEntry> *spTree =
-    new DbArray<ShortestPathTreeEntry>(2 * pNetwork->GetNoSections() + 1);
-    gp->ReverseShortestPathTree(pNetwork, spTree);
+      new DbArray<ShortestPathTreeEntry>(2 * pNetwork->GetNoSections() + 1);
     ShortestPathTreeEntry actSectionSPEntryUp, actSectionSPEntryDown;
+    gp->ReverseShortestPathTree(pNetwork, spTree);
     UGPoint actMGPUnit;
     vector<TupleId> passedSections;
     result->StartBulkLoad();
@@ -3267,31 +3250,33 @@ void MGPoint::NetdistanceToArg(const GPoint* gp, MReal* result) const
             fabs (actSectionSPEntryUp.GetDist() -
                   actSectionSPEntryDown.GetDist());
           double correction = (sectLength - diffDistanceUpDown) / 2;
+          if (AlmostEqual(correction, 0.0))correction = 0.0;
           double posOfSameDistance = 0.0;
           double distOfPosOfSameDistance = 0.0;
           if (actSectionSPEntryUp.GetDist() < actSectionSPEntryDown.GetDist())
           {
-            posOfSameDistance = sectMeas1 - correction;
+            posOfSameDistance = sectMeas2 - correction;
             distOfPosOfSameDistance =
-            actSectionSPEntryDown.GetDist() - correction;
+            actSectionSPEntryDown.GetDist() + correction;
           }
           else
           {
-            posOfSameDistance = sectMeas2 + correction;
+            posOfSameDistance = sectMeas1 + correction;
             distOfPosOfSameDistance =
               actSectionSPEntryUp.GetDist() + correction;
           }
           if (startPos < posOfSameDistance)
             startdist =
-              actSectionSPEntryUp.GetDist() + fabs(startPos - sectMeas2);
+              actSectionSPEntryDown.GetDist() + fabs(startPos - sectMeas1);
           else
             startdist =
-              actSectionSPEntryDown.GetDist() + fabs(startPos - sectMeas1);
+              actSectionSPEntryUp.GetDist() + fabs(startPos - sectMeas2);
           if (endPos < posOfSameDistance)
-            enddist = actSectionSPEntryUp.GetDist() + fabs(endPos - sectMeas2);
-          else
             enddist =
               actSectionSPEntryDown.GetDist() + fabs(endPos - sectMeas1);
+          else
+            enddist =
+              actSectionSPEntryUp.GetDist() + fabs(endPos - sectMeas2);
           if (passedSections.size() == 1)
           {
             if ((startPos <= posOfSameDistance && endPos <= posOfSameDistance)||
@@ -3330,8 +3315,8 @@ void MGPoint::NetdistanceToArg(const GPoint* gp, MReal* result) const
                                            startdist,
                                            actSectionSPEntryDown.GetDist()));
                     starttime = splittime;
-                    startPos = sectMeas2;
                   }
+                  startPos = sectMeas2;
                 }
                 else
                 {
@@ -3353,8 +3338,8 @@ void MGPoint::NetdistanceToArg(const GPoint* gp, MReal* result) const
                                            startdist,
                                            actSectionSPEntryDown.GetDist()));
                     starttime = splittime;
-                    startPos = sectMeas2;
                   }
+                  startPos = sectMeas2;
                 }
                 break;
               }
@@ -3371,8 +3356,8 @@ void MGPoint::NetdistanceToArg(const GPoint* gp, MReal* result) const
                                            startdist,
                                            actSectionSPEntryUp.GetDist()));
                     starttime = splittime;
-                    startPos = sectMeas1;
                   }
+                  startPos = sectMeas1;
                 }
                 else
                 {
@@ -3385,8 +3370,8 @@ void MGPoint::NetdistanceToArg(const GPoint* gp, MReal* result) const
                                            startdist,
                                            distOfPosOfSameDistance));
                     starttime = splittime;
-                    splittime = actMGPUnit.TimeAtPos(sectMeas1);
                   }
+                  splittime = actMGPUnit.TimeAtPos(sectMeas1);
                   if (starttime != splittime)
                   {
                     result->MergeAdd(UReal(Interval<Instant>(starttime ,
@@ -3395,8 +3380,8 @@ void MGPoint::NetdistanceToArg(const GPoint* gp, MReal* result) const
                                            startdist,
                                            actSectionSPEntryUp.GetDist()));
                     starttime = splittime;
-                    startPos = sectMeas1;
                   }
+                  startPos = sectMeas1;
                 }
                 break;
               }
@@ -3417,7 +3402,482 @@ void MGPoint::NetdistanceToArg(const GPoint* gp, MReal* result) const
     delete spTree;
     NetworkManager::CloseNetwork(pNetwork);
   }
+}
 
+/*
+Networkdistance from ~gpoint~ to ~mgpoint~.
+
+*/
+
+void MGPoint::NetdistanceFromArgShort(const GPoint* gp, MReal* result) const
+{
+  result->Clear();
+  if (!IsDefined() || gp == 0 || !gp->IsDefined() ||
+    GetNetworkId() != gp->GetNetworkId())
+    result->SetDefined(false);
+  else
+  {
+    Network *pNetwork = GetNetwork();
+    DbArray<ShortestPathTreeEntry> *spTree =
+      new DbArray<ShortestPathTreeEntry>(2 * pNetwork->GetNoSections() + 1);
+    SortedTree<Entry<SectionValue> > *targets =
+      new SortedTree<Entry<SectionValue> > (0);
+    GetPassedSections(pNetwork, targets);
+    gp->ShortestPathTree(pNetwork, spTree, targets);
+    targets->Destroy();
+    delete targets;
+    targets = 0;
+    ShortestPathTreeEntry actSectionSPEntryUp, actSectionSPEntryDown;
+    UGPoint actMGPUnit;
+    vector<TupleId> passedSections;
+    result->StartBulkLoad();
+    Instant splittime;
+    for (int i = 0; i < units.Size(); i++ )
+    {
+      Get(i,actMGPUnit);
+      double startPos = actMGPUnit.GetUnitStartPos();
+      double endPos = actMGPUnit.GetUnitEndPos();
+      Instant starttime = actMGPUnit.GetUnitStartTime();
+      Instant endtime = actMGPUnit.GetUnitEndTime();
+      passedSections.clear();
+      actMGPUnit.GetPassedSections(pNetwork, passedSections);
+      size_t j = 0;
+      while (j < passedSections.size())
+      {
+        TupleId actSectTid = passedSections[j++];
+        Tuple *pActSect = pNetwork->GetSection(actSectTid);
+        int actSectId =
+          ((CcInt*) pActSect->GetAttribute(SECTION_SID))->GetIntval();
+        double sectMeas1 =
+          ((CcReal*)pActSect->GetAttribute(SECTION_MEAS1))->GetRealval();
+        double sectMeas2 =
+          ((CcReal*)pActSect->GetAttribute(SECTION_MEAS2))->GetRealval();
+        double sectLength = fabs (sectMeas2 - sectMeas1);
+        int pos = 2*actSectId;
+        spTree->Get(pos, actSectionSPEntryUp);
+        spTree->Get(pos+1, actSectionSPEntryDown);
+        double startdist = 0.0;
+        double enddist = 0.0;
+        if (actSectionSPEntryUp.GetDist() == 0.0 &&
+            actSectionSPEntryDown.GetDist() == 0.0)
+        {
+          startdist = fabs(gp->GetPosition() - startPos);
+          enddist = fabs (gp->GetPosition() - endPos);
+          result->MergeAdd(UReal(actMGPUnit.GetUnitTimeInterval(),
+                                 startdist, enddist));
+        }
+        else
+        {
+          double diffDistanceUpDown =
+            fabs (actSectionSPEntryUp.GetDist() -
+                actSectionSPEntryDown.GetDist());
+          double correction = (sectLength - diffDistanceUpDown) / 2;
+          if (AlmostEqual(correction,0.0)) correction = 0.0;
+          double posOfSameDistance = 0.0;
+          double distOfPosOfSameDistance = 0.0;
+          if (actSectionSPEntryUp.GetDist() < actSectionSPEntryDown.GetDist())
+          {
+            posOfSameDistance = sectMeas2 - correction;
+            distOfPosOfSameDistance =
+                        actSectionSPEntryDown.GetDist() - correction;
+          }
+          else
+          {
+            posOfSameDistance = sectMeas1 + correction;
+            distOfPosOfSameDistance =
+                          actSectionSPEntryUp.GetDist() + correction;
+          }
+          if (startPos < posOfSameDistance)
+            startdist =
+              actSectionSPEntryUp.GetDist() + fabs(startPos - sectMeas1);
+          else
+            startdist =
+              actSectionSPEntryDown.GetDist() + fabs(startPos - sectMeas2);
+          if (endPos < posOfSameDistance)
+            enddist = actSectionSPEntryUp.GetDist() + fabs(endPos - sectMeas1);
+          else
+            enddist =
+              actSectionSPEntryDown.GetDist() + fabs(endPos - sectMeas2);
+          if (passedSections.size() == 1)
+          {
+            if ((startPos <= posOfSameDistance && endPos <= posOfSameDistance)||
+              (startPos >= posOfSameDistance && endPos >= posOfSameDistance))
+            {
+              result->MergeAdd(UReal(actMGPUnit.GetUnitTimeInterval(),
+                                     startdist, enddist));
+            }
+            else
+            {
+              splittime = actMGPUnit.TimeAtPos(posOfSameDistance);
+              if (starttime != splittime)
+                result->MergeAdd(UReal(Interval<Instant>(starttime, splittime,
+                                                         true, false),
+                                       startdist, distOfPosOfSameDistance));
+              if (splittime != endtime)
+                result->MergeAdd(UReal(Interval<Instant>(splittime, endtime,
+                                                         true, false),
+                                       distOfPosOfSameDistance, enddist));
+            }
+          }
+          else
+          {
+            switch(actMGPUnit.MovingDirection())
+            {
+              case Up:
+              {
+                if (startPos >= posOfSameDistance){
+                  splittime = actMGPUnit.TimeAtPos(sectMeas2);
+                  if (starttime != splittime)
+                  {
+                    result->MergeAdd(UReal(Interval<Instant>(starttime ,
+                                                             splittime,
+                                                             true, false),
+                                           startdist,
+                                           actSectionSPEntryDown.GetDist()));
+                    starttime = splittime;
+                  }
+                  startPos = sectMeas2;
+                }
+                else
+                {
+                  splittime = actMGPUnit.TimeAtPos(posOfSameDistance);
+                  if (starttime != splittime)
+                  {
+                    result->MergeAdd(UReal(Interval<Instant>(starttime ,
+                                                             splittime,
+                                                             true, false),
+                                           startdist, distOfPosOfSameDistance));
+                    starttime = splittime;
+                  }
+                  splittime = actMGPUnit.TimeAtPos(sectMeas2);
+                  if (starttime != splittime)
+                  {
+                    result->MergeAdd(UReal(Interval<Instant>(starttime ,
+                                                             splittime,
+                                                             true, false),
+                                           startdist,
+                                           actSectionSPEntryDown.GetDist()));
+                    starttime = splittime;
+                  }
+                  startPos = sectMeas2;
+                }
+                break;
+              }
+
+              case Down:
+              {
+                if (startPos <= posOfSameDistance)
+                {
+                  splittime = actMGPUnit.TimeAtPos(sectMeas1);
+                  if (starttime != splittime)
+                  {
+                    result->MergeAdd(UReal(Interval<Instant>(starttime ,
+                                                             splittime,
+                                                             true, false),
+                                           startdist,
+                                           actSectionSPEntryUp.GetDist()));
+                    starttime = splittime;
+                  }
+                  startPos = sectMeas1;
+                }
+                else
+                {
+                  splittime = actMGPUnit.TimeAtPos(posOfSameDistance);
+                  if (starttime != splittime)
+                  {
+                    result->MergeAdd(UReal(Interval<Instant>(starttime ,
+                                                             splittime,
+                                                             true, false),
+                                           startdist, distOfPosOfSameDistance));
+                    starttime = splittime;
+                  }
+                  splittime = actMGPUnit.TimeAtPos(sectMeas1);
+                  if (starttime != splittime)
+                  {
+                    result->MergeAdd(UReal(Interval<Instant>(starttime ,
+                                                             splittime,
+                                                             true, false),
+                                           startdist,
+                                           actSectionSPEntryUp.GetDist()));
+                    starttime = splittime;
+                  }
+                  startPos = sectMeas1;
+                }
+                break;
+              }
+              case None: //should never been reached. No move => only 1 section
+              {
+              break;
+              }
+            }
+          }
+          pActSect->DeleteIfAllowed();
+          pActSect = 0;
+        }
+      }
+    }
+    result->EndBulkLoad();
+    spTree->Destroy();
+    delete spTree;
+    NetworkManager::CloseNetwork(pNetwork);
+  }
+}
+
+/*
+ Returns the network distance from the ~mgpoint~ to the ~gpoint~
+
+*/
+
+void MGPoint::NetdistanceToArgShort(const GPoint* gp, MReal* result) const
+{
+  result->Clear();
+  if (!IsDefined() || gp == 0 || !gp->IsDefined() ||
+    GetNetworkId() != gp->GetNetworkId())
+    result->SetDefined(false);
+  else
+  {
+    Network *pNetwork = GetNetwork();
+    DbArray<ShortestPathTreeEntry> *spTree =
+          new DbArray<ShortestPathTreeEntry>(2 * pNetwork->GetNoSections() + 1);
+    SortedTree<Entry<SectionValue> > *targets =
+      new SortedTree<Entry<SectionValue> >(2*pNetwork->GetNoSections() + 1);
+    GetPassedSections(pNetwork, targets);
+    gp->ReverseShortestPathTree(pNetwork, spTree, targets);
+    ShortestPathTreeEntry actSectionSPEntryUp, actSectionSPEntryDown;
+    targets->Destroy();
+    delete targets;
+    targets = 0;
+    UGPoint actMGPUnit;
+    vector<TupleId> passedSections;
+    result->StartBulkLoad();
+    Instant splittime;
+    for (int i = 0; i < units.Size(); i++ )
+    {
+      Get(i,actMGPUnit);
+      double startPos = actMGPUnit.GetUnitStartPos();
+      double endPos = actMGPUnit.GetUnitEndPos();
+      Instant starttime = actMGPUnit.GetUnitStartTime();
+      Instant endtime = actMGPUnit.GetUnitEndTime();
+      passedSections.clear();
+      actMGPUnit.GetPassedSections(pNetwork, passedSections);
+      size_t j = 0;
+      while (j < passedSections.size())
+      {
+        TupleId actSectTid = passedSections[j++];
+        Tuple *pActSect = pNetwork->GetSection(actSectTid);
+        int actSectId =
+          ((CcInt*) pActSect->GetAttribute(SECTION_SID))->GetIntval();
+        double sectMeas1 =
+          ((CcReal*)pActSect->GetAttribute(SECTION_MEAS1))->GetRealval();
+        double sectMeas2 =
+          ((CcReal*)pActSect->GetAttribute(SECTION_MEAS2))->GetRealval();
+        double sectLength = fabs (sectMeas2 - sectMeas1);
+        int pos = 2*actSectId;
+        spTree->Get(pos, actSectionSPEntryUp);
+        spTree->Get(pos+1, actSectionSPEntryDown);
+        double startdist = 0.0;
+        double enddist = 0.0;
+        if (actSectionSPEntryDown.GetDist() == 0.0 &&
+          actSectionSPEntryUp.GetDist() == 0.0)
+        {
+          startdist = fabs(gp->GetPosition() - startPos);
+          enddist = fabs(gp->GetPosition() - endPos);
+          result->MergeAdd(UReal(actMGPUnit.GetUnitTimeInterval(),
+                                 startdist, enddist));
+        }
+        else
+        {
+          double diffDistanceUpDown =
+            fabs (actSectionSPEntryUp.GetDist() -
+                  actSectionSPEntryDown.GetDist());
+          double correction = (sectLength - diffDistanceUpDown) / 2;
+          if (AlmostEqual(correction, 0.0))correction = 0.0;
+          double posOfSameDistance = 0.0;
+          double distOfPosOfSameDistance = 0.0;
+          if (actSectionSPEntryUp.GetDist() < actSectionSPEntryDown.GetDist())
+          {
+            posOfSameDistance = sectMeas2 - correction;
+            distOfPosOfSameDistance =
+                        actSectionSPEntryDown.GetDist() + correction;
+          }
+          else
+          {
+            posOfSameDistance = sectMeas1 + correction;
+            distOfPosOfSameDistance =
+                          actSectionSPEntryUp.GetDist() + correction;
+          }
+          if (startPos < posOfSameDistance)
+            startdist =
+              actSectionSPEntryDown.GetDist() + fabs(startPos - sectMeas1);
+          else
+            startdist =
+              actSectionSPEntryUp.GetDist() + fabs(startPos - sectMeas2);
+          if (endPos < posOfSameDistance)
+            enddist =
+              actSectionSPEntryDown.GetDist() + fabs(endPos - sectMeas1);
+          else
+            enddist =
+              actSectionSPEntryUp.GetDist() + fabs(endPos - sectMeas2);
+          if (passedSections.size() == 1)
+          {
+            if ((startPos <= posOfSameDistance && endPos <= posOfSameDistance)||
+              (startPos >= posOfSameDistance && endPos >= posOfSameDistance))
+            {
+              result->MergeAdd(UReal(actMGPUnit.GetUnitTimeInterval(),
+                                     startdist, enddist));
+            }
+            else
+            {
+              splittime = actMGPUnit.TimeAtPos(posOfSameDistance);
+              if (starttime != splittime)
+                result->MergeAdd(UReal(Interval<Instant>(starttime, splittime,
+                                                         true, false),
+                                       startdist, distOfPosOfSameDistance));
+              if (splittime != endtime)
+                result->MergeAdd(UReal(Interval<Instant>(splittime, endtime,
+                                                         true, false),
+                                         distOfPosOfSameDistance, enddist));
+            }
+          }
+          else
+          {
+            switch(actMGPUnit.MovingDirection())
+            {
+              case Up:
+              {
+                if (startPos >= posOfSameDistance)
+                {
+                  splittime = actMGPUnit.TimeAtPos(sectMeas2);
+                  if (starttime != splittime)
+                  {
+                    result->MergeAdd(UReal(Interval<Instant>(starttime ,
+                                                             splittime,
+                                                             true, false),
+                                           startdist,
+                                           actSectionSPEntryDown.GetDist()));
+                    starttime = splittime;
+                  }
+                  startPos = sectMeas2;
+                }
+                else
+                {
+                  splittime = actMGPUnit.TimeAtPos(posOfSameDistance);
+                  if (starttime != splittime)
+                  {
+                    result->MergeAdd(UReal(Interval<Instant>(starttime ,
+                                                             splittime,
+                                                             true, false),
+                                           startdist, distOfPosOfSameDistance));
+                    starttime = splittime;
+                  }
+                  splittime = actMGPUnit.TimeAtPos(sectMeas2);
+                  if (starttime != splittime)
+                  {
+                    result->MergeAdd(UReal(Interval<Instant>(starttime ,
+                                                             splittime,
+                                                             true, false),
+                                           startdist,
+                                           actSectionSPEntryDown.GetDist()));
+                    starttime = splittime;
+                  }
+                  startPos = sectMeas2;
+                }
+                break;
+              }
+
+              case Down:
+              {
+                if (startPos <= posOfSameDistance)
+                {
+                  splittime = actMGPUnit.TimeAtPos(sectMeas1);
+                  if (starttime != splittime)
+                  {
+                    result->MergeAdd(UReal(Interval<Instant>(starttime ,
+                                               splittime,
+                                               true, false),
+                             startdist,
+                             actSectionSPEntryUp.GetDist()));
+                    starttime = splittime;
+                  }
+                  startPos = sectMeas1;
+                }
+                else
+                {
+                  splittime = actMGPUnit.TimeAtPos(posOfSameDistance);
+                  if (starttime != splittime)
+                  {
+                    result->MergeAdd(UReal(Interval<Instant>(starttime ,
+                                                             splittime,
+                                                             true, false),
+                                           startdist,
+                                           distOfPosOfSameDistance));
+                    starttime = splittime;
+                  }
+                  splittime = actMGPUnit.TimeAtPos(sectMeas1);
+                  if (starttime != splittime)
+                  {
+                    result->MergeAdd(UReal(Interval<Instant>(starttime ,
+                                                             splittime,
+                                                             true, false),
+                                           startdist,
+                                           actSectionSPEntryUp.GetDist()));
+                    starttime = splittime;
+                  }
+                  startPos = sectMeas1;
+                }
+                break;
+              }
+
+              case None:
+              {
+                break;
+              }
+            }
+          }
+          pActSect->DeleteIfAllowed();
+          pActSect = 0;
+        }
+      }
+    }
+    result->EndBulkLoad();
+    spTree->Destroy();
+    delete spTree;
+    NetworkManager::CloseNetwork(pNetwork);
+  }
+}
+
+/*
+Returns the sections passed by the mgpoint.
+
+*/
+
+void MGPoint::GetPassedSections(SortedTree<Entry<SectionValue> > *result) const{
+  Network *pNetwork = GetNetwork();
+  GetPassedSections(pNetwork, result);
+  NetworkManager::CloseNetwork(pNetwork);
+}
+
+void MGPoint::GetPassedSections(const Network *pNetwork,
+                                SortedTree<Entry<SectionValue> > *result) const{
+  if (IsDefined() && GetNoComponents() > 0){
+    UGPoint actUnit;
+    for (int i = 0; i < GetNoComponents(); i++){
+      Get(i,actUnit);
+      vector<TupleId> passedSections;
+      passedSections.clear();
+      actUnit.GetPassedSections(pNetwork, passedSections);
+      for (size_t j = 0; j < passedSections.size(); j++){
+        TupleId actSectTID = passedSections[j];
+        Tuple *actSectTuple = pNetwork->GetSection(actSectTID);
+        int sectID =
+          ((CcInt*)actSectTuple->GetAttribute(SECTION_SID))->GetIntval();
+        result->Insert(Entry<SectionValue>(SectionValue(sectID, true)));
+        result->Insert(Entry<SectionValue>(SectionValue(sectID, false)));
+        actSectTuple->DeleteIfAllowed();
+        actSectTuple = 0;
+      }
+    }
+  }
 }
 
 /*
@@ -3425,7 +3885,7 @@ Translation from network ~mgpoint~ to spatial ~mpoint~
 
 */
 
-void MGPoint::Mgpoint2mpoint(MPoint *&mp) {
+void MGPoint::Mgpoint2mpoint(MPoint *mp) const {
   if (IsDefined() && !IsEmpty()){
   //Network* pNetwork = NetworkManager::GetNetwork(GetNetworkId());
   Network* pNetwork = GetNetwork();
@@ -3587,7 +4047,7 @@ Checks if ~mgpoint~ is present in the given ~periods~
 
 */
 
-bool MGPoint::Present(Periods *&per) {
+bool MGPoint::Present(Periods *per) const{
   if (!IsDefined() || !per->IsDefined() || IsEmpty() || per->IsEmpty())
     return false;
   Interval<Instant> intper;
@@ -3624,7 +4084,7 @@ Searches binary the unit id of the mpgoint unit which includes the given time
 stamp. Returns -1 if the time stamp is not found.
 
 */
-int MGPoint::Position(const Instant &ins, bool atinst /*=true*/) {
+int MGPoint::Position(const Instant &ins, bool atinst /*=true*/) const {
   if(GetNoComponents() <= 0) return -1;
   int mid = -1;
   int first = 0;
@@ -3654,7 +4114,7 @@ of the periods start to catch the units inside the periods.
 }
 
 
-bool MGPoint::Present(Instant *&per) {
+bool MGPoint::Present(Instant *per) const {
   if (!IsDefined() || IsEmpty()) return false;
   int pos = Position(*per);
   if (pos == -1) return false;
@@ -3665,7 +4125,7 @@ bool MGPoint::Present(Instant *&per) {
 Computes the intersection of two ~mgpoint~
 
 */
-void MGPoint::Intersection(MGPoint *&mgp, MGPoint *&res){
+void MGPoint::Intersection(const MGPoint *mgp, MGPoint *res) const {
 //   DbArray<RouteInterval> tra1 = GetTrajectory();
 //   DbArray<RouteInterval> tra2 = mgp->GetTrajectory();
 //   if (Intersects(tra1,tra2,true, true)){
@@ -3826,7 +4286,7 @@ Returns true if the two mgpoint met at any point of their trips.
 
 */
 
-bool MGPoint::Intersects(MGPoint *mgp)
+bool MGPoint::Intersects(const MGPoint *mgp) const
 {
   UGPoint pCurr1, pCurr2;
   Get(0, pCurr1);
@@ -3997,7 +4457,7 @@ times the ~mgpoint~ is inside the ~gline~ false elsewhere.
 
 */
 
-void MGPoint::Inside(GLine *&gl, MBool *&res){
+void MGPoint::Inside(const GLine *gl, MBool *res) const{
 //   DbArray<RouteInterval> riarr = GetTrajectory();
 //   DbArray<RouteInterval>* riglarr = gl->GetRouteIntervals();
 //   if (Intersects(riarr, *riglarr, true, gl->IsSorted())){
@@ -4328,7 +4788,7 @@ Restricts the ~mgpoint~ to the given ~periods~
 
 */
 
-void MGPoint::Atperiods(Periods *&per, MGPoint *&res){
+void MGPoint::Atperiods(const Periods *per, MGPoint *res) const{
   if(!IsDefined() || !per->IsDefined() || IsEmpty() || per->IsEmpty())
   {
     res->SetDefined(false);
@@ -4482,7 +4942,7 @@ Restricts the ~mgpoint~ to the given ~instant~
 
 */
 
-void MGPoint::Atinstant(Instant *&per, Intime<GPoint> *&res){
+void MGPoint::Atinstant(const Instant *per, Intime<GPoint> *res) const{
   if (IsDefined() && !IsEmpty() && per->IsDefined())
   {
     UGPoint pCurrUnit;
@@ -4506,7 +4966,7 @@ Restricts the ~mgpoint~ to the times it was at the given places.
 
 */
 
-void MGPoint::At(GPoint *&gp, MGPoint *&res){
+void MGPoint::At(const GPoint *gp, MGPoint *res) const{
 //   DbArray<RouteInterval> tra = GetTrajectory();
 //   if (Includes(tra, gp)){
   if (!IsDefined() || IsEmpty() || !gp->IsDefined()) res->SetDefined(false);
@@ -4636,7 +5096,7 @@ void MGPoint::At(GPoint *&gp, MGPoint *&res){
   res->SetBoundingBoxDefined(false);
 }
 
-void MGPoint::At(GLine *&gl, MGPoint *&res){
+void MGPoint::At(const GLine *gl, MGPoint *res) const{
 //   DbArray<RouteInterval> tra = GetTrajectory();
 //   DbArray<RouteInterval>* gltra = gl->GetRouteIntervals();
 //   if (Intersects(tra, *gltra, true, gl->IsSorted())){
@@ -4892,7 +5352,7 @@ Compresses the ~mgpoint~ by equalizing speed differences witch are smaller than
 
 */
 
-void  MGPoint::Simplify(double d, MGPoint* res){
+void  MGPoint::Simplify(const double d, MGPoint* res) const{
   res->StartBulkLoad();
 
   int iNetworkId;
@@ -5038,7 +5498,7 @@ Checks if the ~mgpoint~ passes the given ~gpoint~ respectively ~gline~.
 
 */
 
-bool MGPoint::Passes(GPoint *&gp){
+bool MGPoint::Passes(const GPoint *gp){
   if (!m_traj_Defined){
     GLine *help = new GLine(0);
     Trajectory(help);
@@ -5050,7 +5510,7 @@ bool MGPoint::Passes(GPoint *&gp){
 
 
 
-bool MGPoint::Passes(GLine *&gl){
+bool MGPoint::Passes(GLine *gl){
   if (!m_traj_Defined){
     GLine *help = new GLine(0);
     Trajectory(help);
@@ -5247,8 +5707,8 @@ void MGPoint::Add(const UGPoint& u/*, bool setbbox =true*/){
 }
 
 void MGPoint::GetMGPSecUnits(vector<MGPSecUnit> &res,
-                             double maxSectLength,
-                            Network *pNet) const
+                             const double maxSectLength,
+                             const Network *pNet) const
 {
   res.clear();
   if (IsDefined() && 0 < GetNoComponents())
@@ -5327,15 +5787,6 @@ void MGPoint::GetMGPSecUnits(vector<MGPSecUnit> &res,
     unit.Print(os);
   }
   os << "\n" << endl;
-  /*os <<", constains Trajectory " << m_trajectory.Size() << " intervals:";
-  for (int i = 0; i < m_trajectory.Size(); i++) {
-    const RouteInterval *ri;
-    m_trajectory.Get(i, ri);
-    os << "/n/t";
-    os << "(" << ri->GetRouteId() << ", ";
-    os << ri->GetStartPos() << ", " << ri->GetEndPos() << ")";
-  }
-  os << "\n)" << endl;*/
   return os;
 }
 
@@ -5436,11 +5887,11 @@ DbArray<RouteInterval>& MGPoint::GetTrajectory(){
   return m_trajectory;
 }
 
-void MGPoint::SetTrajectoryDefined(bool defined){
+void MGPoint::SetTrajectoryDefined(const bool defined){
   m_traj_Defined=defined;
 }
 
-void MGPoint::SetBoundingBoxDefined(bool defined){
+void MGPoint::SetBoundingBoxDefined(const bool defined){
   m_bbox.SetDefined(defined);
   if (!defined) m_bbox = Rectangle<3> (false, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
 }
@@ -5451,7 +5902,7 @@ Otherwise the union is undefined.
 
 */
 
-void MGPoint::Union(MGPoint *mp, MGPoint *res)
+void MGPoint::Union(const MGPoint *mp, MGPoint *res) const
 {
   if (IsDefined() && mp->IsDefined() &&
       GetNoComponents() > 0 && mp->GetNoComponents() > 0)
@@ -6014,7 +6465,7 @@ void* UGPoint::Cast(void* addr)
 }
 
 
-void UGPoint::Deftime(Periods &per){
+void UGPoint::Deftime(Periods &per) const{
   per.Clear();
   if (IsDefined()) {
     per.StartBulkLoad();
@@ -6024,7 +6475,7 @@ void UGPoint::Deftime(Periods &per){
   } else per.SetDefined(false);
 }
 
-Instant UGPoint::TimeAtPos(double pos) const{
+Instant UGPoint::TimeAtPos(const double pos) const{
   double factor = fabs(pos - p0.GetPosition())/
                   fabs(p1.GetPosition() - p0.GetPosition());
   return (timeInterval.end - timeInterval.start) * factor + timeInterval.start;
@@ -6143,7 +6594,8 @@ void UGPoint::Distance (const UGPoint &ugp, UReal &ur) const {
    }
  }
 
- void UGPoint::GetPassedSections(Network* pNet, vector<TupleId>& pS) const
+ void UGPoint::GetPassedSections(const Network* pNet,
+                                 vector<TupleId>& pS) const
  {
    const RouteInterval *ri = new RouteInterval(p0.GetRouteId(),p0.GetPosition(),
                                                p1.GetPosition());
@@ -6170,9 +6622,10 @@ void UGPoint::Distance (const UGPoint &ugp, UReal &ur) const {
  }
 
 
- void PartedSection(UGPoint unit, double sectMeas1, double sectMeas2,
-                    double &startPos, int &partNo, double maxSectLength,
-                    int secId, Instant &tStart, Instant &tEnd,
+ void PartedSection(const UGPoint unit, const double sectMeas1,
+                    const double sectMeas2,
+                    double &startPos, int &partNo, const double maxSectLength,
+                    const int secId, Instant &tStart, Instant &tEnd,
                     vector<MGPSecUnit> &res)
 {
   if (unit.MovingDirection() == Up)
@@ -6261,10 +6714,11 @@ void UGPoint::Distance (const UGPoint &ugp, UReal &ur) const {
   }
 }
 
-void NotPartedSection(UGPoint unit, double sectMeas1, double sectMeas2,
-                   double &startPos, int &partNo, double maxSectLength,
-                   int secId, Instant &tStart, Instant &tEnd,
-                   vector<MGPSecUnit> &res)
+void NotPartedSection(const UGPoint unit, const double sectMeas1,
+                      const double sectMeas2, double &startPos, int &partNo,
+                      const double maxSectLength,
+                      const int secId, Instant &tStart, Instant &tEnd,
+                      vector<MGPSecUnit> &res)
 {
   if(unit.MovingDirection() == Up)
   {
@@ -6321,8 +6775,8 @@ void NotPartedSection(UGPoint unit, double sectMeas1, double sectMeas2,
 }
 
  void UGPoint::GetMGPSecUnits(vector<MGPSecUnit>& res,
-                              double maxSectLength,
-                             Network *pNet) const
+                              const double maxSectLength,
+                              const Network *pNet) const
  {
    res.clear();
    vector<TupleId> passedSections;
@@ -6405,7 +6859,7 @@ void NotPartedSection(UGPoint unit, double sectMeas1, double sectMeas2,
 
 
 
-  Rectangle<3> UGPoint::BoundingBox(Network*& pNetwork)const{
+  Rectangle<3> UGPoint::BoundingBox(const Network* pNetwork)const{
     if(IsDefined()){
     RouteInterval *ri = new RouteInterval(p0.GetRouteId(), p0.GetPosition(),
                                          p1.GetPosition());
@@ -6431,8 +6885,7 @@ void UGPoint::NetdistanceFromArg(const GPoint* gp, UReal* result) const
     result->SetDefined(false);
   else
   {
-    Network *pNetwork =
-      NetworkManager::GetNetworkNew(p0.GetNetworkId(), netList);
+    Network *pNetwork = NetworkManager::GetNetworkNew(GetNetworkId(),netList);
 
     GLine *pPath = new GLine(0);
 
@@ -6468,8 +6921,7 @@ void UGPoint::NetdistanceToArg(const GPoint* gp, UReal *result) const
     result->SetDefined(false);
   else
   {
-    Network *pNetwork =
-      NetworkManager::GetNetworkNew(p0.GetNetworkId(), netList);
+    Network *pNetwork = NetworkManager::GetNetworkNew(GetNetworkId(),netList);
     GLine *pPath = new GLine(0);
     if (p0.ShortestPathAStar(gp,pPath,pNetwork,0))
     {
@@ -6504,8 +6956,7 @@ void UGPoint::Netdistance(const UGPoint* ugp, UReal* result) const
     result->SetDefined(false);
   else
   {
-    Network *pNetwork =
-      NetworkManager::GetNetworkNew(p0.GetNetworkId(), netList);
+    Network *pNetwork = NetworkManager::GetNetworkNew(GetNetworkId(),netList);
     GLine *pPath = new GLine(0);
     GPoint startPos = ugp->GetStartPoint();
     GPoint endPos = ugp->GetEndPoint();
@@ -6627,8 +7078,9 @@ MGPSecUnit::MGPSecUnit():Attribute()
 {
 }
 
-MGPSecUnit::MGPSecUnit(bool defined, int secId, int part, Side direct,
-                       double sp, Interval<Instant> timeInterval):
+MGPSecUnit::MGPSecUnit(const bool defined, const int secId, const int part,
+                       const Side direct, const double sp,
+                       const Interval<Instant> timeInterval):
     Attribute(defined),
     m_secId(secId),
     m_part(part),
@@ -6686,27 +7138,27 @@ Interval<Instant> MGPSecUnit::GetTimeInterval() const
 }
 
 
-void MGPSecUnit::SetSecId(int secId)
+void MGPSecUnit::SetSecId(const int secId)
 {
   m_secId = secId;
 }
 
-void MGPSecUnit::SetPart(int p)
+void MGPSecUnit::SetPart(const int p)
 {
   m_part = p;
 }
 
-void MGPSecUnit::SetDirect(Side dir)
+void MGPSecUnit::SetDirect(const Side dir)
 {
   m_direct = dir;
 }
 
-void MGPSecUnit::SetSpeed(double x)
+void MGPSecUnit::SetSpeed(const double x)
 {
   m_speed = x;
 }
 
-void MGPSecUnit::SetTimeInterval(Interval<Instant> time)
+void MGPSecUnit::SetTimeInterval(const Interval<Instant> time)
 {
   m_time = time;
 }
@@ -6907,7 +7359,7 @@ int MGPSecUnit::NumOfFLOBs()const
   return 0;
 }
 
-Flob* MGPSecUnit::GetFLOB(const int i)
+Flob* MGPSecUnit::GetFLOB(const int i) const
 {
   return 0;
 }
@@ -7398,30 +7850,20 @@ Translates a spatial ~MPoint~ into a network based ~MGPoint~.
 
 ListExpr OpMPoint2MGPointTypeMap(ListExpr in_xArgs)
 {
-  if( nl->ListLength(in_xArgs) != 2 ){
-    sendMessages("Expects a list of length 2.");
-    return (nl->SymbolAtom( "typeerror" ));
-  }
-  ListExpr xNetworkIdDesc = nl->First(in_xArgs);
-  ListExpr xMPointDesc = nl->Second(in_xArgs);
+  NList param(in_xArgs);
 
-  if( (!nl->IsAtom(xNetworkIdDesc)) ||
-      !nl->IsEqual(xNetworkIdDesc, "network"))
-  {
-    sendMessages("Expected network as first argument.");
-    return (nl->SymbolAtom("typeerror"));
-  }
+  if( param.length() != 2 )
+    return listutils::typeError("two arguments expected");
 
-  if( (!nl->IsAtom( xMPointDesc )) ||
-      nl->AtomType( xMPointDesc ) != SymbolType ||
-      nl->SymbolValue( xMPointDesc ) != "mpoint" )
-  {
-    sendMessages("Expected mpoint as second argument.");
-    return (nl->SymbolAtom( "typeerror" ));
-  }
+  if (!param.first().isSymbol("network"))
+    return listutils::typeError("first argument must be network");
+
+  if (!param.second().isSymbol("mpoint"))
+    return listutils::typeError("second argument must be mpoint");
 
   return nl->SymbolAtom( "mgpoint" );
 }
+
 /*
 Value mapping function of operator ~mpoint2mgpoint~
 
@@ -7453,19 +7895,16 @@ int OpMPoint2MGPointValueMappingNeu(Word* args,
   if (pNetwork == 0 || !pNetwork->IsDefined())
   {
     res->SetDefined(false);
-    cout << "Network not defined!" << endl;
     return 0;
   }
   MPoint *pMPoint = (MPoint*)args[1].addr;
   if (pMPoint == 0 || !pMPoint->IsDefined())
   {
     res->SetDefined(false);
-    cout << "MPoint is not defined!" << endl;
     return 0;
   }
   if (pMPoint->GetNoComponents() == 0)
   {
-    cout << "MPoint is empty!" << endl;
     res->SetDefined(false);
     return 0;
   }
@@ -7480,7 +7919,6 @@ int OpMPoint2MGPointValueMappingNeu(Word* args,
   RouteInterval *ri = pNetwork->FindInterval(pUPoint.p0, pUPoint.p1);
   if (ri == 0 || ri->GetRouteId() == numeric_limits<int>::max())
   {
-    cout << "First Interval not found!"<< endl;
     res->SetDefined(false);
     return 0;
   }
@@ -7622,7 +8060,6 @@ int OpMPoint2MGPointValueMappingNeu(Word* args,
             GLine *gl = new GLine(0);
             if (!start.ShortestPathAStar(&end,gl))
             {
-              cout << "One unit couldn't be mapped to the network." << endl;
               delete ri;
               ri = 0;
             }
@@ -7662,7 +8099,6 @@ int OpMPoint2MGPointValueMappingNeu(Word* args,
         }
         if (ri == 0)
         {
-          cout << "MPoint lost Network! Translation stopped!" << endl;
           res->EndBulkLoad(true);
           riTree->TreeToDbArray(&(res->m_trajectory));
           res->SetTrajectoryDefined(true);
@@ -7729,29 +8165,27 @@ Returns true if a ~MGPoint~ passes a given ~GPoint~ or ~GLine~.
 
 ListExpr OpPassesTypeMap( ListExpr args )
 {
-  ListExpr arg1, arg2;
-  if ( nl->ListLength( args ) == 2 )
-  {
-    arg1 = nl->First( args );
-    arg2 = nl->Second( args );
+  NList param(args);
 
-    if ( nl->IsAtom(arg1) && nl->AtomType(arg1) == SymbolType &&
-         nl->SymbolValue(arg1) == "mgpoint" ) {
-      if (nl->IsAtom(arg2) && nl->AtomType(arg2) == SymbolType &&
-         (nl->SymbolValue(arg2) == "gpoint" ||
-          nl->SymbolValue(arg2) == "gline")){
-        return (nl->SymbolAtom("bool"));
-      }
-    }
-  }
-  return (nl->SymbolAtom( "typeerror" ));
+  if ( param.length() != 2 )
+    return listutils::typeError("two arguments expected");
+
+  if ( !param.first().isSymbol("mgpoint"))
+    return listutils::typeError("first argument must be mgpoint");
+
+  if (!(param.second().isSymbol("gpoint") ||
+        param.second().isSymbol("gline")))
+    return listutils::typeError("second argument must be gpoint or gline");
+
+  return (nl->SymbolAtom( "bool" ));
 }
 
-int OpPasses_mgpgp(Word* args,
-                                   Word& result,
-                                   int message,
-                                   Word& local,
-                                   Supplier in_xSupplier)
+template<class Arg2>
+int OpPasses(Word* args,
+             Word& result,
+             int message,
+             Word& local,
+             Supplier in_xSupplier)
 {
   // Get (empty) return value
   CcBool* pPasses = (CcBool*)qp->ResultStorage(in_xSupplier).addr;
@@ -7760,63 +8194,31 @@ int OpPasses_mgpgp(Word* args,
   MGPoint* pMGPoint = (MGPoint*)args[0].addr;
   if(pMGPoint == NULL || pMGPoint->GetNoComponents() < 1 ||
       !pMGPoint->IsDefined()) {
-    cerr << "MGPoint not Defined" << endl;
     pPasses->Set(false, false);
     return 0;
   }
-  GPoint* pGPoint = (GPoint*)args[1].addr;
-  if(pGPoint == NULL || !pGPoint->IsDefined()) {
-    cerr << "GPoint not Defined" << endl;
+  Arg2* pArg = (Arg2*)args[1].addr;
+  if(pArg == NULL || !pArg->IsDefined()) {
     pPasses->Set(false, false);
     return 0;
   }
-  pPasses->Set(true, pMGPoint->Passes(pGPoint));
-  return 0;
-};
-
-int OpPasses_mgpgl(Word* args,
-                                   Word& result,
-                                   int message,
-                                   Word& local,
-                                   Supplier in_xSupplier)
-{
-  // Get (empty) return value
-  CcBool* pPasses = (CcBool*)qp->ResultStorage(in_xSupplier).addr;
-  result = SetWord( pPasses);
-  // Get input values
-  MGPoint* pMGPoint = (MGPoint*)args[0].addr;
-  if(pMGPoint == NULL || pMGPoint->GetNoComponents() < 1 ||
-      !pMGPoint->IsDefined()) {
-    cerr << "MGPoint does not exist." << endl;
-    pPasses->Set(false, false);
-    return 0;
-  }
-  GLine* pGLine = (GLine*)args[1].addr;
-  if(pGLine == NULL || !pGLine->IsDefined()) {
-    cerr << "GLine does not exist." << endl;
-    pPasses->Set(false, false);
-    return 0;
-  }
-  pPasses->Set(true, pMGPoint->Passes(pGLine));
+  pPasses->Set(true, pMGPoint->Passes(pArg));
   return 0;
 };
 
 ValueMapping OpPassesvaluemap[] = {
-  OpPasses_mgpgp,
-  OpPasses_mgpgl,
+  OpPasses<GPoint>,
+  OpPasses<GLine>,
   0
 };
 
 int OpPassesSelect( ListExpr args )
 {
-  ListExpr arg1 = nl->First( args );
   ListExpr arg2 = nl->Second( args );
 
-  if ( nl->SymbolValue(arg1) == "mgpoint" &&
-       nl->SymbolValue(arg2) == "gpoint")
+  if ( nl->SymbolValue(arg2) == "gpoint")
     return 0;
-  if ( nl->SymbolValue(arg1) == "mgpoint" &&
-       nl->SymbolValue(arg2) == "gline")
+  if ( nl->SymbolValue(arg2) == "gline")
     return 1;
   return -1; // This point should never be reached
 }
@@ -7844,25 +8246,16 @@ smaller than a given value.
 
 ListExpr OpSimplifyTypeMap(ListExpr in_xArgs)
 {
-  if( nl->ListLength(in_xArgs) != 2 )
-    return (nl->SymbolAtom( "typeerror" ));
+  NList param(in_xArgs);
 
-  ListExpr xMPointDesc = nl->First(in_xArgs);
-  ListExpr xEpsilonDesc = nl->Second(in_xArgs);
+  if (param.length()!= 2 )
+    return listutils::typeError("two arguments expected");
 
-  if( (!nl->IsAtom( xMPointDesc )) ||
-      nl->AtomType( xMPointDesc ) != SymbolType ||
-      nl->SymbolValue( xMPointDesc ) != "mgpoint" )
-  {
-    return (nl->SymbolAtom( "typeerror" ));
-  }
+  if (!param.first().isSymbol("mgpoint"))
+    return listutils::typeError("first argument must be mgpoint");
 
-  if( (!nl->IsAtom( xEpsilonDesc)) ||
-      nl->AtomType( xEpsilonDesc ) != SymbolType ||
-      nl->SymbolValue( xEpsilonDesc ) != "real" )
-  {
-    return (nl->SymbolAtom( "typeerror" ));
-  }
+  if (!param.second().isSymbol("real"))
+    return listutils::typeError("second argument must be real");
 
   return nl->SymbolAtom( "mgpoint" );
 }
@@ -7910,25 +8303,22 @@ Restricts the ~MGPoint~ to the times it was at a given ~GPoint~ or ~GLine~.
 
 ListExpr OpAtTypeMap(ListExpr in_xArgs)
 {
-  ListExpr arg1, arg2;
-  if ( nl->ListLength(  in_xArgs ) == 2 )
-  {
-    arg1 = nl->First( in_xArgs );
-    arg2 = nl->Second( in_xArgs );
+  NList param(in_xArgs);
 
-    if ( nl->IsAtom(arg1) && nl->AtomType(arg1) == SymbolType &&
-         nl->SymbolValue(arg1) == "mgpoint" ) {
-      if (nl->IsAtom(arg2) && nl->AtomType(arg2) == SymbolType &&
-         (nl->SymbolValue(arg2) == "gpoint" ||
-          nl->SymbolValue(arg2) == "gline")){
-        return (nl->SymbolAtom("mgpoint"));
-      }
-    }
-  }
-  return (nl->SymbolAtom( "typeerror" ));
+  if (param.length()!= 2 )
+    return listutils::typeError("two arguments expected");
+
+  if (!param.first().isSymbol("mgpoint"))
+    return listutils::typeError("first argument must be mgpoint");
+
+  if (!(param.second().isSymbol("gpoint") || param.second().isSymbol("gline")))
+    return listutils::typeError("second argument must be gpoint or gline");
+
+  return (nl->SymbolAtom("mgpoint"));
 }
 
-int OpAt_mgpgp(Word* args,
+template<class Arg2>
+int OpAt(Word* args,
                                    Word& result,
                                    int message,
                                    Word& local,
@@ -7942,66 +8332,31 @@ int OpAt_mgpgp(Word* args,
   MGPoint* pMGPoint = (MGPoint*)args[0].addr;
   if(pMGPoint == NULL || pMGPoint->GetNoComponents() < 1 ||
       !pMGPoint->IsDefined()) {
-    cerr << "MGPoint not Defined" << endl;
+    pResult->SetDefined(false);
+    return 1;
+  }
+  Arg2* pArg = (Arg2*)args[1].addr;
+  if(pArg == NULL || !pArg->IsDefined()) {
     pResult->SetDefined(false);
     return 0;
   }
-  GPoint* pGPoint = (GPoint*)args[1].addr;
-  if(pGPoint == NULL || !pGPoint->IsDefined()) {
-    cerr << "GPoint not Defined" << endl;
-    pResult->SetDefined(false);
-    return 0;
-  }
-  pMGPoint->At(pGPoint, pResult);
-  return 0;
-};
-
-
-
-int OpAt_mgpgl(Word* args,
-                                   Word& result,
-                                   int message,
-                                   Word& local,
-                                   Supplier in_xSupplier)
-{
-  // Get (empty) return value
-  MGPoint* pResult = (MGPoint*)qp->ResultStorage(in_xSupplier).addr;
-  result = SetWord( pResult);
-  pResult->Clear();
-  // Get input values
-  MGPoint* pMGPoint = (MGPoint*)args[0].addr;
-  if(pMGPoint == NULL || pMGPoint->GetNoComponents() < 1 ||
-      !pMGPoint->IsDefined()) {
-    cerr << "MGPoint does not exist." << endl;
-    pResult->SetDefined(false);
-    return 0;
-  }
-  GLine* pGLine = (GLine*)args[1].addr;
-  if(pGLine == NULL || !pGLine->IsDefined() || pGLine->NoOfComponents() <= 0) {
-    cerr << "GLine does not exist or is empty." << endl;
-    pResult->SetDefined(false);
-    return 0;
-  }
-  pMGPoint->At(pGLine, pResult);
+  pMGPoint->At(pArg, pResult);
   return 0;
 };
 
 ValueMapping OpAtValueMap[] = {
-  OpAt_mgpgp,
-  OpAt_mgpgl,
+  OpAt<GPoint>,
+  OpAt<GLine>,
   0
 };
 
 int OpAtSelect( ListExpr args )
 {
-  ListExpr arg1 = nl->First( args );
   ListExpr arg2 = nl->Second( args );
 
-  if ( nl->SymbolValue(arg1) == "mgpoint" &&
-       nl->SymbolValue(arg2) == "gpoint")
+  if (nl->SymbolValue(arg2) == "gpoint")
     return 0;
-  if ( nl->SymbolValue(arg1) == "mgpoint" &&
-       nl->SymbolValue(arg2) == "gline")
+  if (nl->SymbolValue(arg2) == "gline")
     return 1;
   return -1; // This point should never be reached
 }
@@ -8025,25 +8380,17 @@ Restricts the ~MGPoint~ to a given time instant.
 
 ListExpr OpAtinstantTypeMap(ListExpr in_xArgs)
 {
-  if( nl->ListLength(in_xArgs) != 2 )
-    return (nl->SymbolAtom( "typeerror" ));
+  NList param(in_xArgs);
 
-  ListExpr xMGPointDesc = nl->First(in_xArgs);
-  ListExpr xInstant = nl->Second(in_xArgs);
+  if( param.length() != 2 )
+    return listutils::typeError("one argument expected");
 
-  if( (!nl->IsAtom( xMGPointDesc )) ||
-      nl->AtomType( xMGPointDesc ) != SymbolType ||
-      nl->SymbolValue( xMGPointDesc ) != "mgpoint" )
-  {
-    return (nl->SymbolAtom( "typeerror" ));
-  }
+  if (!param.first().isSymbol("mgpoint"))
+    return listutils::typeError("first argument must be mgpoint");
+  if (!param.second().isSymbol("instant"))
+    return listutils::typeError("second argument must be instant");
 
-  if (!nl->IsEqual( xInstant, "instant" ))
-  {
-    return (nl->SymbolAtom( "typeerror" ));
-  }
-
-  return nl->SymbolAtom("igpoint");
+  return (nl->SymbolAtom( "igpoint" ));
 }
 
 int OpAtinstantValueMapping(Word* args,
@@ -8094,25 +8441,18 @@ Restricts a ~MGPoint~ to the given periods.
 
 ListExpr OpAtperiodsTypeMap(ListExpr in_xArgs)
 {
-  if( nl->ListLength(in_xArgs) != 2 )
-    return (nl->SymbolAtom( "typeerror" ));
+  NList param(in_xArgs);
 
-  ListExpr xMGPointDesc = nl->First(in_xArgs);
-  ListExpr xPeriods = nl->Second(in_xArgs);
+  if( param.length() != 2 )
+    return listutils::typeError("one argument expected");
 
-  if( (!nl->IsAtom( xMGPointDesc )) ||
-      nl->AtomType( xMGPointDesc ) != SymbolType ||
-      nl->SymbolValue( xMGPointDesc ) != "mgpoint" )
-  {
-    return (nl->SymbolAtom( "typeerror" ));
-  }
+  if (!param.first().isSymbol("mgpoint"))
+    return listutils::typeError("first argument must be mgpoint");
+  if (!param.second().isSymbol("periods"))
+    return listutils::typeError("second argument must be periods");
 
-  if (!nl->IsEqual( xPeriods, "periods" ))
-  {
-    return (nl->SymbolAtom( "typeerror" ));
-  }
+  return (nl->SymbolAtom( "mgpoint" ));
 
-  return nl->SymbolAtom("mgpoint");
 }
 
 int OpAtperiodsValueMapping(Word* args,
@@ -8167,47 +8507,30 @@ Returns the deftime of a ~MGPoint~ respectively a ~ugpoint~ as ~periods~ value.
 
 ListExpr OpDeftimeTypeMap(ListExpr in_xArgs)
 {
-  if( nl->ListLength(in_xArgs) != 1 )
-    return (nl->SymbolAtom( "typeerror" ));
+  NList param(in_xArgs);
 
-  ListExpr xMGPointDesc = nl->First(in_xArgs);
+  if( param.length() != 1 )
+    return listutils::typeError("one argument expected");
 
-  if( (nl->IsAtom( xMGPointDesc )) &&
-      nl->AtomType( xMGPointDesc ) == SymbolType &&
-      (nl->SymbolValue( xMGPointDesc ) == "mgpoint" ||
-      nl->SymbolValue( xMGPointDesc ) == "ugpoint"))
-  {
+  if (param.first().isSymbol("mgpoint") ||
+      param.first().isSymbol("ugpoint"))
     return (nl->SymbolAtom( "periods" ));
-  }
-
-  return nl->SymbolAtom( "typeerror" );
+  else
+    return listutils::typeError("mgpoint or ugpoint expected");
 }
 
-int OpDeftime_ugp(Word* args, Word& result, int message,
-                  Word& local, Supplier in_xSupplier) {
-  Periods* pResult = (Periods*)qp->ResultStorage(in_xSupplier).addr;
-  result = SetWord( pResult );
-  UGPoint* pUGP = (UGPoint*) args[0].addr;
-  pResult->Clear();
-  if (!pUGP->IsDefined()) {
-    pResult->SetDefined(false);
-    return 0;
-  }
-  pUGP->Deftime(*pResult);
-  return 0;
-}
-
-int OpDeftime_mgp(Word* args, Word& result, int message, Word& local,
+template<class Arg>
+int OpDeftime(Word* args, Word& result, int message, Word& local,
                   Supplier in_xSupplier) {
   Periods* res = (Periods*) qp->ResultStorage(in_xSupplier).addr;
   result = SetWord(res);
-  MGPoint* pMGP = (MGPoint*) args[0].addr;
-  if (!pMGP->IsDefined() || pMGP->GetNoComponents() == 0) {
+  Arg* pArg = (Arg*) args[0].addr;
+  if (!pArg->IsDefined()) {
     res->Clear();
     res->SetDefined(false);
-    return 0;
+    return 1;
   } else {
-    pMGP->Deftime(*res);
+    pArg->Deftime(*res);
     return 0;
   }
 }
@@ -8222,8 +8545,8 @@ int OpDeftimeSelect(ListExpr args) {
 };
 
 ValueMapping OpDeftimeValueMapping [] = {
-  OpDeftime_mgp,
-  OpDeftime_ugp,
+  OpDeftime<MGPoint>,
+  OpDeftime<UGPoint>,
   0
 };
 
@@ -8249,18 +8572,15 @@ TypeMapping see operator ~final~.
 
 ListExpr OpFinalInitialTypeMap(ListExpr in_xArgs)
 {
-  if( nl->ListLength(in_xArgs) != 1 )
-    return (nl->SymbolAtom( "typeerror" ));
+  NList param(in_xArgs);
 
-  ListExpr xMGPointDesc = nl->First(in_xArgs);
+  if( param.length() != 1 )
+    return listutils::typeError("one argument expected");
 
-  if( (!nl->IsAtom( xMGPointDesc )) ||
-      nl->AtomType( xMGPointDesc ) != SymbolType ||
-      nl->SymbolValue( xMGPointDesc ) != "mgpoint" )
-  {
-    return (nl->SymbolAtom( "typeerror" ));
-  }
-  return nl->SymbolAtom("igpoint");
+  if (param.first().isSymbol("mgpoint"))
+    return nl->SymbolAtom( "igpoint" );
+  else
+    return listutils::typeError("mgpoint expected");
 }
 
 struct finalInfo:OperatorInfo{
@@ -8300,19 +8620,19 @@ false elsewhere.
 
 ListExpr OpInsideTypeMapping(ListExpr in_xArgs)
 {
-  ListExpr arg1, arg2;
-  if ( nl->ListLength(  in_xArgs ) == 2 )
-  {
-    arg1 = nl->First( in_xArgs );
-    arg2 = nl->Second( in_xArgs );
+  NList param(in_xArgs);
 
-    if ( nl->IsAtom(arg1) && nl->AtomType(arg1) == SymbolType &&
-         nl->SymbolValue(arg1) == "mgpoint" && nl->IsAtom(arg2) &&
-         nl->AtomType(arg2) == SymbolType && nl->SymbolValue(arg2) == "gline"){
-        return (nl->SymbolAtom("mbool"));
-    }
-  }
-  return (nl->SymbolAtom( "typeerror" ));
+  if ( param.length() != 2 )
+    return listutils::typeError("two arguments expected");
+
+  if (!param.first().isSymbol("mgpoint"))
+    return listutils::typeError("first argument must be mgpoint");
+
+  if (!param.second().isSymbol("gline"))
+    return listutils::typeError("Second argument must be gline");
+
+  return (nl->SymbolAtom("mbool"));
+
 }
 
 int OpInsideValueMapping(Word* args,
@@ -8363,19 +8683,15 @@ Returns the time instant of the ~IGPoint~
 
 ListExpr OpInstTypeMap(ListExpr in_xArgs)
 {
-  if( nl->ListLength(in_xArgs) != 1 )
-    return (nl->SymbolAtom( "typeerror" ));
+  NList param(in_xArgs);
 
-  ListExpr xIGPointDesc = nl->First(in_xArgs);
+  if( param.length() != 1 )
+    return listutils::typeError("one argument expected");
 
-  if( (!nl->IsAtom( xIGPointDesc )) ||
-      nl->AtomType( xIGPointDesc ) != SymbolType ||
-      nl->SymbolValue( xIGPointDesc ) != "igpoint" )
-  {
-    return (nl->SymbolAtom( "typeerror" ));
-  }
-
-  return nl->SymbolAtom( "instant" );
+  if (param.first().isSymbol("igpoint"))
+    return nl->SymbolAtom( "instant" );
+  else
+    return listutils::typeError("igpoint expected");
 }
 
 struct instInfo:OperatorInfo{
@@ -8394,22 +8710,6 @@ struct instInfo:OperatorInfo{
 Computes a ~MGPoint~ representing the intersection of two ~MGPoint~.
 
 */
-
-ListExpr OpIntersectionTypeMapping(ListExpr in_xArgs)
-{
-  ListExpr arg1, arg2;
-  if( nl->ListLength(in_xArgs) == 2 ){
-    arg1 = nl->First(in_xArgs);
-    arg2 = nl->Second(in_xArgs);
-    if (nl->IsAtom(arg1) && nl->AtomType(arg1) == SymbolType &&
-        nl->SymbolValue(arg1) == "mgpoint" && nl->IsAtom(arg2) &&
-        nl->AtomType(arg2) == SymbolType &&
-        nl->SymbolValue(arg2) == "mgpoint"){
-        return (nl->SymbolAtom("mgpoint"));
-    }
-  }
-  return (nl->SymbolAtom( "typeerror" ));
-}
 
 int OpIntersectionValueMapping(Word* args,
                                    Word& result,
@@ -8458,18 +8758,16 @@ Returns true if a intersection of the two ~MGPoint~ exists.
 
 ListExpr OpIntersectsTypeMapping(ListExpr in_xArgs)
 {
-  ListExpr arg1, arg2;
-  if( nl->ListLength(in_xArgs) == 2 ){
-    arg1 = nl->First(in_xArgs);
-    arg2 = nl->Second(in_xArgs);
-    if (nl->IsAtom(arg1) && nl->AtomType(arg1) == SymbolType &&
-        nl->SymbolValue(arg1) == "mgpoint" && nl->IsAtom(arg2) &&
-        nl->AtomType(arg2) == SymbolType &&
-        nl->SymbolValue(arg2) == "mgpoint"){
-        return (nl->SymbolAtom("bool"));
-    }
-  }
-  return (nl->SymbolAtom( "typeerror" ));
+  NList param(in_xArgs);
+
+  if (param.length() != 2)
+    return listutils::typeError("2 arguments expected");
+
+  if (!(param.first().isSymbol("mgpoint") &&
+        param.second().isSymbol("mgpoint")))
+    return listutils::typeError("2 mgpoint expected");
+
+  return (nl->SymbolAtom("bool"));
 }
 
 int OpIntersectsValueMapping(Word* args,
@@ -8503,7 +8801,7 @@ int OpIntersectsValueMapping(Word* args,
 struct intersectsInfo:OperatorInfo{
   intersectsInfo(){
     name = "intersects";
-    signature = "mgpoint X mgoint -> bool";
+    signature = "mgpoint X mgpoint -> bool";
     syntax = "_ intersects _";
     meaning = "Returns true if the mgpoint meet at any place.";
   }
@@ -8520,19 +8818,15 @@ Returns true if the ~MGPoint~ has no units.
 
 ListExpr OpIsEmptyTypeMap(ListExpr in_xArgs)
 {
-  if( nl->ListLength(in_xArgs) != 1 )
-    return (nl->SymbolAtom( "typeerror" ));
+  NList param(in_xArgs);
 
-  ListExpr xMGPointDesc = nl->First(in_xArgs);
+  if( param.length() != 1)
+    return listutils::typeError("one argument expected");
 
-  if( (!nl->IsAtom( xMGPointDesc )) ||
-      nl->AtomType( xMGPointDesc ) != SymbolType ||
-      nl->SymbolValue( xMGPointDesc ) != "mgpoint" )
-  {
-    return (nl->SymbolAtom( "typeerror" ));
-  }
-
-  return nl->SymbolAtom("bool");
+  if (param.first().isSymbol("mgpoint"))
+    return nl->SymbolAtom( "bool" );
+  else
+    return listutils::typeError("mgpoint expected.");
 }
 
 int OpIsEmptyValueMapping(Word* args,
@@ -8570,59 +8864,35 @@ Returns the length of the trip of the ~MGPoint~.
 
 ListExpr OpLengthTypeMapping(ListExpr in_xArgs)
 {
-  if( nl->ListLength(in_xArgs) != 1 )
-    return (nl->SymbolAtom( "typeerror" ));
+  NList param(in_xArgs);
 
-  ListExpr xMGPointDesc = nl->First(in_xArgs);
+  if( param.length() != 1)
+    return listutils::typeError("one argument expected");
 
-  if( (!nl->IsAtom( xMGPointDesc )) ||
-      nl->AtomType( xMGPointDesc ) != SymbolType ||(
-      nl->SymbolValue( xMGPointDesc ) != "mgpoint" &&
-      nl->SymbolValue (xMGPointDesc) != "ugpoint"))
-  {
-    return (nl->SymbolAtom( "typeerror" ));
-  }
-
-  return nl->SymbolAtom( "real" );
+  if (param.first().isSymbol("mgpoint") ||
+      param.first().isSymbol("ugpoint"))
+    return nl->SymbolAtom( "real" );
+  else
+    return listutils::typeError("ugpoint or mgpoint expected.");
 }
 
-int OpLength_mgp(Word* args,
-                                   Word& result,
-                                   int message,
-                                   Word& local,
-                                   Supplier in_xSupplier)
+template<class Arg>
+int OpLength(Word* args,
+             Word& result,
+             int message,
+             Word& local,
+             Supplier in_xSupplier)
 {
   result = qp->ResultStorage(in_xSupplier);
   CcReal* pResult = (CcReal*) result.addr;
   // Get input value
-  MGPoint* pMGPoint = (MGPoint*)args[0].addr;
-  if(pMGPoint == NULL || pMGPoint->GetNoComponents() < 1 ||
-      !pMGPoint->IsDefined()) {
-    cmsg.inFunError("MGPoint does not exist.");
+  Arg* pArg = (Arg*)args[0].addr;
+  if(pArg == NULL || !pArg->IsDefined()) {
     pResult->Set(false, 0.0);
-    return 0;
-  }
-  pResult-> Set(true, pMGPoint->Length());
-  return 1;
-}
-
-int OpLength_ugp(Word* args,
-                 Word& result,
-                 int message,
-                 Word& local,
-                 Supplier in_xSupplier)
-{
-  result = qp->ResultStorage(in_xSupplier);
-  CcReal* pResult = (CcReal*) result.addr;
-  // Get input value
-  UGPoint* pUGPoint = (UGPoint*)args[0].addr;
-  if(pUGPoint == NULL || !pUGPoint->IsDefined()) {
-    cmsg.inFunError("UGPoint does not exist.");
-    pResult->Set(false, 0.0);
-    return 0;
-     }
-     pResult-> Set(true, pUGPoint->Length());
-     return 1;
+    return 1;
+   }
+   pResult-> Set(true, pArg->Length());
+   return 0;
 }
 
 int OpLengthSelect(ListExpr args){
@@ -8636,8 +8906,8 @@ int OpLengthSelect(ListExpr args){
 };
 
 ValueMapping OpLengthValueMap[] = {
-  OpLength_mgp,
-  OpLength_ugp,
+  OpLength<MGPoint>,
+  OpLength<UGPoint>,
   0
 };
 
@@ -8661,19 +8931,15 @@ Returns the number of units of a ~MGPoint~.
 
 ListExpr OpNoCompTypeMap(ListExpr in_xArgs)
 {
-  if( nl->ListLength(in_xArgs) != 1 )
-    return (nl->SymbolAtom( "typeerror" ));
+  NList param(in_xArgs);
 
-  ListExpr xMGPointDesc = nl->First(in_xArgs);
+  if (param.length() != 1)
+    return listutils::typeError("one argument expected.");
 
-  if( (!nl->IsAtom( xMGPointDesc )) ||
-      nl->AtomType( xMGPointDesc ) != SymbolType ||
-      nl->SymbolValue( xMGPointDesc ) != "mgpoint" )
-  {
-    return (nl->SymbolAtom( "typeerror" ));
-  }
-
-  return nl->SymbolAtom("int");
+  if (param.first().isSymbol("mgpoint"))
+    return nl->SymbolAtom("int");
+  else
+    return listutils::typeError("mgpoint expected.");
 }
 
 int OpNoCompValueMapping(Word* args,
@@ -8714,71 +8980,43 @@ respectively one of the periods.
 
 ListExpr OpPresentTypeMap(ListExpr in_xArgs)
 {
-  if( nl->ListLength(in_xArgs) == 2 ) {
-    ListExpr arg1 = nl->First(in_xArgs);
-    ListExpr arg2 = nl->Second(in_xArgs);
-    if( nl->IsEqual(arg1,"mgpoint") && (
-      nl->IsEqual(arg2,"instant") || nl->IsEqual(arg2, "periods")))
-      return (nl->SymbolAtom( "bool" ));
-  }
-  return nl->SymbolAtom("typeerror");
+  NList param(in_xArgs);
+
+  if(param.length() != 2 )
+    return listutils::typeError("two arguments expected");
+
+  if (!param.first().isSymbol("mgpoint"))
+    return listutils::typeError("First argument must be mgpoint.");
+
+  if (! (param.second().isSymbol("periods") ||
+         param.second().isSymbol("instant")))
+    return listutils::typeError("Second argument must be periods or instant.");
+
+  return nl->SymbolAtom("bool");
 }
 
-int OpPresent_mgpi(Word* args, Word& result, int message,
-                                Word& local,Supplier in_xSupplier){
-  CcBool* pPresent = (CcBool*)qp->ResultStorage(in_xSupplier).addr;
-  result = SetWord( pPresent );
-  MGPoint* pMGP = (MGPoint*)args[0].addr;
-  if(pMGP == NULL ||!pMGP->IsDefined()) {
-    cerr << "MGPoint does not exist." << endl;
-    pPresent->Set(false, false);
-    return 0;
-  }
-  Instant* ins = (Instant*)args[1].addr;
-  if(ins == NULL || !ins->IsDefined()) {
-    cerr << "Instant is not defined." << endl;
-    pPresent->Set(false, false);
-    return 0;
-  }
-  if (pMGP->GetNoComponents() < 1) {
-    pPresent->Set(true,false);
-    return 0;
-  }
-  pPresent->Set(true,pMGP->Present(ins));
-  return 0;
-};
-
-int OpPresent_mgpp(Word* args,
-                                   Word& result,
-                                   int message,
-                                   Word& local,
-                                   Supplier in_xSupplier)
+template<class Arg1, class Arg2>
+int OpPresent(Word* args,
+              Word& result,
+              int message,
+              Word& local,
+              Supplier in_xSupplier)
 {
   CcBool* pPresent = (CcBool*)qp->ResultStorage(in_xSupplier).addr;
   result = SetWord( pPresent);
   // Get input values
-  MGPoint* pMGPoint = (MGPoint*) args[0].addr;
-  if(pMGPoint == NULL){
-    cerr << "MGPoint == null." << endl;
+  Arg1* pMGPoint = (Arg1*) args[0].addr;
+  Arg2* pTime = (Arg2*) args[1].addr;
+  if (pMGPoint == NULL || pTime == 0 || !pMGPoint->IsDefined() ||
+      !pTime->IsDefined()){
     pPresent->Set(false, false);
-    return 0;
+    return 1;
   }
-  if (!pMGPoint->IsDefined()) {
-    cerr << "MGPoint not defined." << endl;
-    pPresent->Set(false, false);
-    return 0;
-  }
-  Periods* pPeriods = (Periods*)args[1].addr;
-  if(pPeriods == NULL || !pPeriods->IsDefined()) {
-    cerr << "Periods does not exist." << endl;
-    pPresent->Set(false, false);
-    return 0;
-  }
-  if (pMGPoint->GetNoComponents() < 1 || pPeriods->IsEmpty()) {
+  if (pMGPoint->GetNoComponents() < 1) {
     pPresent->Set(true, false);
     return 0;
   }
-  pPresent->Set(true, pMGPoint->Present(pPeriods));
+  pPresent->Set(true, pMGPoint->Present(pTime));
   return 0;
 }
 
@@ -8796,8 +9034,8 @@ int OpPresentSelect(ListExpr args){
 };
 
 ValueMapping OpPresentValueMap[] = {
-  OpPresent_mgpp,
-  OpPresent_mgpi,
+  OpPresent<MGPoint, Periods>,
+  OpPresent<MGPoint, Instant>,
   0
 };
 
@@ -8822,19 +9060,15 @@ Returns the ~GPoint~ value of a ~IGPoint~
 
 ListExpr OpValTypeMap(ListExpr in_xArgs)
 {
-  if( nl->ListLength(in_xArgs) != 1 )
-    return (nl->SymbolAtom( "typeerror" ));
+  NList param(in_xArgs);
 
-  ListExpr xIGPointDesc = nl->First(in_xArgs);
+  if (param.length() != 1)
+    return listutils::typeError("one argument expected");
 
-  if( (!nl->IsAtom( xIGPointDesc )) ||
-      nl->AtomType( xIGPointDesc ) != SymbolType ||
-      nl->SymbolValue( xIGPointDesc ) != "igpoint" )
-  {
-    return (nl->SymbolAtom( "typeerror" ));
-  }
-
-  return nl->SymbolAtom( "gpoint" );
+  if (param.first().isSymbol("igpoint"))
+    return nl->SymbolAtom("gpoint");
+  else
+    return listutils::typeError("igpoint expected");
 }
 
 struct valInfo:OperatorInfo{
@@ -8856,19 +9090,15 @@ Returns the sorted ~GLine~ passed by a ~MGPoint~.
 
 ListExpr OpTrajectoryTypeMap(ListExpr in_xArgs)
 {
-  if( nl->ListLength(in_xArgs) != 1 )
-    return (nl->SymbolAtom( "typeerror" ));
+  NList param(in_xArgs);
 
-  ListExpr xMGPointDesc = nl->First(in_xArgs);
+  if (param.length() != 1)
+    return listutils::typeError("one argument expected");
 
-  if( (!nl->IsAtom( xMGPointDesc )) ||
-      nl->AtomType( xMGPointDesc ) != SymbolType ||
-      nl->SymbolValue( xMGPointDesc ) != "mgpoint" )
-  {
-    return (nl->SymbolAtom( "typeerror" ));
-  }
-
-  return nl->SymbolAtom( "gline" );
+  if (param.first().isSymbol("mgpoint"))
+    return nl->SymbolAtom("gline");
+  else
+    return listutils::typeError("mgpoint expected");
 }
 
 int OpTrajectoryValueMapping(Word* args,
@@ -8917,20 +9147,18 @@ Returns the stream of ~UGPoint~ from the given ~MGPoint~.
 
 ListExpr OpUnitsTypeMap(ListExpr in_xArgs)
 {
-  if( nl->ListLength(in_xArgs) != 1 )
-    return (nl->SymbolAtom( "typeerror" ));
+  NList param(in_xArgs);
 
-  ListExpr xMPointDesc = nl->First(in_xArgs);
+  if (param.length() != 1)
+    return listutils::typeError("one argument expected");
 
-  if( (!nl->IsAtom( xMPointDesc )) ||
-      nl->AtomType( xMPointDesc ) != SymbolType ||
-      nl->SymbolValue( xMPointDesc ) != "mgpoint" )
-  {
-    return (nl->SymbolAtom( "typeerror" ));
-  }
+  if (param.first().isSymbol("mgpoint"))
+    return nl->TwoElemList(nl->SymbolAtom("stream"),
+                           nl->SymbolAtom("ugpoint"));
+  else
+    return listutils::typeError("mgpoint expected");
 
-  return nl->TwoElemList(nl->SymbolAtom("stream"),
-                         nl->SymbolAtom("ugpoint"));
+
 }
 
 struct unitsInfo:OperatorInfo{
@@ -8955,18 +9183,15 @@ and ~unitrid~.
 
 ListExpr OpUnitPosTimeTypeMap(ListExpr in_xArgs)
 {
-  if( nl->ListLength(in_xArgs) != 1 )
-    return (nl->SymbolAtom( "typeerror" ));
+  NList param(in_xArgs);
 
-  ListExpr xMGPointDesc = nl->First(in_xArgs);
+  if (param.length() != 1)
+    return listutils::typeError("one argument expected");
 
-  if( (!nl->IsAtom( xMGPointDesc )) ||
-      nl->AtomType( xMGPointDesc ) != SymbolType ||
-      nl->SymbolValue( xMGPointDesc ) != "ugpoint" )
-  {
-    return (nl->SymbolAtom( "typeerror" ));
-  }
-  return nl->SymbolAtom("real");
+  if (param.first().isSymbol("ugpoint"))
+    return nl->SymbolAtom("real");
+  else
+    return listutils::typeError("ugpoint expected");
 }
 
 int OpUnitEndPosValueMapping( Word* args, Word& result, int message,
@@ -8987,7 +9212,7 @@ int OpUnitEndPosValueMapping( Word* args, Word& result, int message,
 struct unitendposInfo:OperatorInfo{
   unitendposInfo(){
     name = "unitendpos";
-    signature = "ugpoint -> double";
+    signature = "ugpoint -> real";
     syntax = "unitendpos(_)";
     meaning = "Returns the end position of the ugpoint.";
   }
@@ -9021,7 +9246,7 @@ int OpUnitStartPosValueMapping( Word* args, Word& result, int message,
 struct unitstartposInfo:OperatorInfo{
   unitstartposInfo(){
     name = "unitstartpos";
-    signature = "ugpoint -> double";
+    signature = "ugpoint -> real";
     syntax = "unitstartpos(_)";
     meaning = "Returns the start position of the ugpoint.";
   }
@@ -9139,22 +9364,6 @@ timeInterval.end.
 
 */
 
-ListExpr OpUnitBoxTypeMap(ListExpr in_xArgs)
-{
-  if( nl->ListLength(in_xArgs) != 1 )
-    return (nl->SymbolAtom( "typeerror" ));
-
-  ListExpr xMGPointDesc = nl->First(in_xArgs);
-
-  if( (!nl->IsAtom( xMGPointDesc )) ||
-      nl->AtomType( xMGPointDesc ) != SymbolType ||
-      nl->SymbolValue( xMGPointDesc ) != "ugpoint" )
-  {
-    return (nl->SymbolAtom( "typeerror" ));
-  }
-  return nl->SymbolAtom("rect3");
-}
-
 int OpUnitBoxValueMapping( Word* args, Word& result, int message,
                              Word& local, Supplier s ){
   result = qp->ResultStorage( s );
@@ -9186,18 +9395,15 @@ rid, rid, min(p0.pos. p1.pos), max(p0.pos, p1.pos).
 
 ListExpr OpUnitBox2TypeMap(ListExpr in_xArgs)
 {
-  if( nl->ListLength(in_xArgs) != 1 )
-    return (nl->SymbolAtom( "typeerror" ));
+  NList param(in_xArgs);
 
-  ListExpr xMGPointDesc = nl->First(in_xArgs);
+  if (param.length() != 1)
+    return listutils::typeError("one argument expected");
 
-  if( (!nl->IsAtom( xMGPointDesc )) ||
-      nl->AtomType( xMGPointDesc ) != SymbolType ||
-      nl->SymbolValue( xMGPointDesc ) != "ugpoint" )
-  {
-    return (nl->SymbolAtom( "typeerror" ));
-  }
-  return nl->SymbolAtom("rect");
+  if (param.first().isSymbol("ugpoint"))
+    return nl->SymbolAtom( "rect" );
+  else
+    return listutils::typeError("ugpoint expected");
 }
 
 int OpUnitBox2ValueMapping( Word* args, Word& result, int message,
@@ -9217,7 +9423,7 @@ int OpUnitBox2ValueMapping( Word* args, Word& result, int message,
 struct unitbox2Info:OperatorInfo{
   unitbox2Info(){
     name = "unitbox2";
-    signature = "ugpoint -> rect2";
+    signature = "ugpoint -> rect";
     syntax = "unitbox2(_)";
     meaning = "Returns netbox (<rid><rid><min(start,end)><max(start,end)>)";
   }
@@ -9234,18 +9440,15 @@ Returns the spatialtemporal bounding box of the ~ugpoint~.
 
 ListExpr OpUnitBoundingBoxTypeMap(ListExpr in_xArgs)
 {
-  if( nl->ListLength(in_xArgs) != 1 )
-    return (nl->SymbolAtom( "typeerror" ));
+  NList param(in_xArgs);
 
-  ListExpr xMGPointDesc = nl->First(in_xArgs);
+  if (param.length() != 1)
+    return listutils::typeError("one argument expected");
 
-  if( (!nl->IsAtom( xMGPointDesc )) ||
-      nl->AtomType( xMGPointDesc ) != SymbolType ||
-      nl->SymbolValue( xMGPointDesc ) != "ugpoint" )
-  {
-    return (nl->SymbolAtom( "typeerror" ));
-  }
-  return nl->SymbolAtom("rect3");
+  if (param.first().isSymbol("ugpoint"))
+    return nl->SymbolAtom( "rect3" );
+  else
+    return listutils::typeError("ugpoint expected");
 }
 
 int OpUnitBoundingBoxValueMapping( Word* args, Word& result, int message,
@@ -9280,18 +9483,15 @@ Returns the spatialtemporal bounding box of the ~ugpoint~.
 
 ListExpr OpMGPointBoundingBoxTypeMap(ListExpr in_xArgs)
 {
-  if( nl->ListLength(in_xArgs) != 1 )
-    return (nl->SymbolAtom( "typeerror" ));
+  NList param(in_xArgs);
 
-  ListExpr xMGPointDesc = nl->First(in_xArgs);
+  if (param.length() != 1)
+    return listutils::typeError("one argument expected");
 
-  if( (!nl->IsAtom( xMGPointDesc )) ||
-      nl->AtomType( xMGPointDesc ) != SymbolType ||
-      nl->SymbolValue( xMGPointDesc ) != "mgpoint" )
-  {
-    return (nl->SymbolAtom( "typeerror" ));
-  }
-  return nl->SymbolAtom("rect3");
+  if (param.first().isSymbol("mgpoint"))
+    return nl->SymbolAtom( "rect3" );
+  else
+    return listutils::typeError("mgpoint expected");
 }
 
 int OpMGPointBoundingBoxValueMapping( Word* args, Word& result, int message,
@@ -9326,20 +9526,15 @@ Returns the ~mpoint~ value of the given ~MGPoint~.
 
 ListExpr OpMGPoint2MPointTypeMap(ListExpr in_xArgs)
 {
-  if( nl->ListLength(in_xArgs) != 1 ){
-    sendMessages("Expects a list of length 1.");
-    return (nl->SymbolAtom( "typeerror" ));
-  }
+  NList param(in_xArgs);
 
-  ListExpr xsource = nl->First(in_xArgs);
+  if (param.length() != 1)
+    return listutils::typeError("one argument expected");
 
-  if( (!nl->IsAtom(xsource)) ||
-      !nl->IsEqual(xsource, "mgpoint"))
-  {
-    sendMessages("Element must be of type mgpoint.");
-    return (nl->SymbolAtom("typeerror"));
-  }
-  return nl->SymbolAtom( "mpoint" );
+  if (param.first().isSymbol("mgpoint"))
+    return nl->SymbolAtom( "mpoint" );
+  else
+    return listutils::typeError("mgpoint expected");
 }
 
 int OpMGPoint2MPointValueMapping(Word* args,
@@ -9382,19 +9577,16 @@ Computes a mreal representing the Euclidean Distance between the two ~mgpoint~.
 
 ListExpr OpDistanceTypeMapping(ListExpr in_xArgs)
 {
-  ListExpr arg1, arg2;
-  if( nl->ListLength(in_xArgs) == 2 ){
-    arg1 = nl->First(in_xArgs);
-    arg2 = nl->Second(in_xArgs);
-    if (nl->IsAtom(arg1) && nl->AtomType(arg1) == SymbolType &&
-        nl->SymbolValue(arg1) == "mgpoint" && nl->IsAtom(arg2) &&
-        nl->AtomType(arg2) == SymbolType &&
-        nl->SymbolValue(arg2) == "mgpoint")
-    {
-      return (nl->SymbolAtom("mreal"));
-    }
-  }
-  return (nl->SymbolAtom( "typeerror" ));
+  NList param(in_xArgs);
+
+  if (param.length() != 2)
+    return listutils::typeError("2 arguments expected");
+
+  if (!(param.first().isSymbol("mgpoint") &&
+        param.second().isSymbol("mgpoint")))
+    return listutils::typeError("2 mgpoint expected");
+
+  return (nl->SymbolAtom("mreal"));
 }
 
 int OpDistanceValueMapping(Word* args,
@@ -9457,20 +9649,16 @@ undefined elsewhere.
 
 ListExpr OpUnionTypeMap(ListExpr in_xArgs)
 {
-  ListExpr arg1, arg2;
-  if ( nl->ListLength(  in_xArgs ) == 2 )
-  {
-    arg1 = nl->First( in_xArgs );
-    arg2 = nl->Second( in_xArgs );
+  NList param(in_xArgs);
 
-    if ( nl->IsAtom(arg1) && nl->AtomType(arg1) == SymbolType &&
-         nl->SymbolValue(arg1) == "mgpoint" && nl->IsAtom(arg2) &&
-         nl->AtomType(arg2) == SymbolType &&
-         nl->SymbolValue(arg2) == "mgpoint"){
-        return (nl->SymbolAtom("mgpoint"));
-    }
-  }
-  return (nl->SymbolAtom( "typeerror" ));
+  if (param.length() != 2)
+    return listutils::typeError("2 arguments expected");
+
+  if (!(param.first().isSymbol("mgpoint") &&
+        param.second().isSymbol("mgpoint")))
+    return listutils::typeError("2 mgpoint expected");
+
+  return (nl->SymbolAtom("mgpoint"));
 }
 
 int OpUnionValueMapping(Word* args,
@@ -9519,17 +9707,13 @@ Returns the end time instant of a ~UGPoint~ as ~Instant~
 
 ListExpr OpEndStartunitinstTypeMap(ListExpr in_xArgs)
 {
-  if( nl->ListLength(in_xArgs) != 1 )
-    return (nl->SymbolAtom( "typeerror" ));
+  NList param(in_xArgs);
+  if( param.length() != 1 )
+    return listutils::typeError("One argument expected.");
 
-  ListExpr xMGPointDesc = nl->First(in_xArgs);
+  if (!param.first().isSymbol("ugpoint"))
+    return listutils::typeError("ugpoint expected");
 
-  if( (!nl->IsAtom( xMGPointDesc )) ||
-        nl->AtomType( xMGPointDesc ) != SymbolType ||
-        nl->SymbolValue( xMGPointDesc ) != "ugpoint")
-  {
-    return (nl->SymbolAtom( "typeerror" ));
-  }
   return nl->SymbolAtom("instant");
 }
 
@@ -9614,17 +9798,13 @@ Builds a ~MGPoint~ from a single ~UGPoint~
 
 ListExpr OpUgpoint2mgpointTypeMap(ListExpr in_xArgs)
 {
-  if( nl->ListLength(in_xArgs) != 1 )
-    return (nl->SymbolAtom( "typeerror" ));
+  NList param(in_xArgs);
+  if( param.length() != 1 )
+     return listutils::typeError("One argument expected.");
 
-  ListExpr xMGPointDesc = nl->First(in_xArgs);
+  if (!param.first().isSymbol("ugpoint"))
+    return listutils::typeError("ugpoint expected");
 
-  if( (!nl->IsAtom( xMGPointDesc )) ||
-        nl->AtomType( xMGPointDesc ) != SymbolType ||
-        nl->SymbolValue( xMGPointDesc ) != "ugpoint")
-  {
-    return (nl->SymbolAtom( "typeerror" ));
-  }
   return nl->SymbolAtom("mgpoint");
 }
 
@@ -9928,6 +10108,117 @@ struct NetdistanceInfo:OperatorInfo{
 };
 
 /*
+
+5.36 ~netdistancenew~
+
+Computes the shortest path in the network from first to second argument.
+Reduces shortest path tree computation to the necessary sections.
+
+*/
+
+ListExpr OpNetdistanceNewTypeMap( ListExpr args )
+{
+  NList param(args);
+  if (param.length() != 2)
+  {
+    return listutils::typeError("netdistance expects 2 arguments.");
+  }
+    NList firstArg(param.first());
+    NList secondArg(param.second());
+
+    if (!(firstArg.isSymbol("gpoint") || firstArg.isSymbol("mgpoint")))
+      return
+        listutils::typeError("1.argument must be gpoint or mgpoint.");
+
+    if (!(secondArg.isSymbol("gpoint") || secondArg.isSymbol("mgpoint")))
+      return
+        listutils::typeError("2.argument must be gpoint or mgpoint.");
+
+    if ((firstArg.isSymbol("gpoint") && secondArg.isSymbol("mgpoint")) ||
+        (firstArg.isSymbol("mgpoint") && secondArg.isSymbol("gpoint")))
+      return nl->SymbolAtom("mreal");
+    else
+      return
+        listutils::typeError("1. and 2. argument must be different.");
+}
+
+template<class FixPos, class MovPos, class RetValue>
+int OpNetdistanceNewFixMov(Word* args,
+                        Word& result,
+                        int message,
+                        Word& local,
+                        Supplier in_xSupplier)
+{
+  // Get (empty) return value
+    RetValue* pDistance = (RetValue*)qp->ResultStorage(in_xSupplier).addr;
+    result = SetWord( pDistance);
+    // Get input values
+    FixPos* pFrom = (FixPos*)args[0].addr;
+    MovPos* pTo = (MovPos*)args[1].addr;
+    if(pFrom == NULL || !pFrom->IsDefined() ||
+      pTo == NULL || !pTo->IsDefined())
+    {
+      cerr << "Both arguments must be well defined" << endl;
+      pDistance->SetDefined(false);
+      return 0;
+    }
+      pTo->NetdistanceFromArgShort(pFrom, pDistance);
+      return 0;
+};
+
+template<class MovPos, class FixPos, class RetValue>
+int OpNetdistanceNewMovFix(Word* args,
+                        Word& result,
+                        int message,
+                        Word& local,
+                        Supplier in_xSupplier)
+{
+  // Get (empty) return value
+    RetValue* pDistance = (RetValue*)qp->ResultStorage(in_xSupplier).addr;
+    result = SetWord( pDistance);
+    // Get input values
+    MovPos* pFrom = (MovPos*)args[0].addr;
+    FixPos* pTo = (FixPos*)args[1].addr;
+    if(pFrom == NULL || !pFrom->IsDefined() ||
+      pTo == NULL || !pTo->IsDefined())
+    {
+      cerr << "Both arguments must be well defined" << endl;
+      pDistance->SetDefined(false);
+      return 0;
+    }
+      pFrom->NetdistanceToArgShort(pTo, pDistance);
+      return 0;
+};
+
+ValueMapping OpNetdistanceNewValueMap[] = {
+  OpNetdistanceNewFixMov<GPoint, MGPoint, MReal>,
+  OpNetdistanceNewMovFix<MGPoint, GPoint, MReal>
+};
+
+int OpNetdistanceNewSelect( ListExpr args )
+{
+  ListExpr arg1 = nl->First( args );
+  ListExpr arg2 = nl->Second( args );
+  if (nl->SymbolValue(arg1) == "gpoint" &&
+    nl->SymbolValue(arg2) == "mgpoint")
+    return 0;
+  if (nl->SymbolValue(arg1) == "mgpoint" &&
+    nl->SymbolValue(arg2) == "gpoint")
+    return 1;
+  return -1; // This point should never be reached
+}
+
+struct NetdistanceNewInfo:OperatorInfo{
+  NetdistanceNewInfo(){
+    name = "netdistancenew";
+    signature = "gpoint X mgpoint -> mreal";
+    appendSignature("mgpoint X gpoint -> mreal");
+    syntax = "netdistancenew(_,_)";
+    meaning = "Computes the netdistance from 1.to 2. argument";
+  }
+};
+
+/*
 6 Creating the Algebra
 
 */
@@ -9969,7 +10260,7 @@ class TemporalNetAlgebra : public Algebra
     AddOperator(insideInfo(), OpInsideValueMapping, OpInsideTypeMapping);
     AddOperator(instInfo(), IntimeInst<GPoint>, OpInstTypeMap);
     AddOperator(intersectionInfo(), OpIntersectionValueMapping,
-                OpIntersectionTypeMapping);
+                OpUnionTypeMap);
     AddOperator(lengthInfo(), OpLengthValueMap, OpLengthSelect,
                 OpLengthTypeMapping);
     AddOperator(valInfo(), IntimeVal<GPoint>, OpValTypeMap);
@@ -9981,7 +10272,7 @@ class TemporalNetAlgebra : public Algebra
                 OpTrajectoryTypeMap);
     AddOperator(unitsInfo(), MappingUnits<MGPoint, UGPoint>, OpUnitsTypeMap);
     AddOperator(unitridInfo() , OpUnitRidValueMapping, OpUnitPosTimeTypeMap);
-    AddOperator(unitboxInfo(), OpUnitBoxValueMapping, OpUnitBoxTypeMap);
+    AddOperator(unitboxInfo(), OpUnitBoxValueMapping, OpUnitBoundingBoxTypeMap);
     AddOperator(unitstartposInfo(), OpUnitStartPosValueMapping,
                 OpUnitPosTimeTypeMap);
     AddOperator(unitendposInfo() , OpUnitEndPosValueMapping,
@@ -10018,6 +10309,8 @@ class TemporalNetAlgebra : public Algebra
     AddOperator(mgpsu2tupleInfo(), OpMgpsu2tupleValueMap, OpMgpsu2tupleTypeMap);
     AddOperator(NetdistanceInfo(), OpNetdistanceValueMap,
                 OpNetdistanceSelect, OpNetdistanceTypeMap);
+    AddOperator(NetdistanceNewInfo(), OpNetdistanceNewValueMap,
+                OpNetdistanceNewSelect, OpNetdistanceNewTypeMap);
   }
 
 
@@ -10049,4 +10342,4 @@ extern "C" Algebra* InitializeTemporalNetAlgebra( NestedList* in_pNL,
   netList = new map<int,string>();
   return (new TemporalNetAlgebra());
 }
-// kate: indent-mode cstyle; replace-tabs off; tab-width 2;  replace-tabs off; ;
+
