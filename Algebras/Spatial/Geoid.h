@@ -40,161 +40,185 @@ The ~Geoid~ class represents geoids used for spherical geometry.
 #ifndef __GEOID_H__
 #define __GEOID_H__
 
-#include <iostream>
+
 #include <string>
+#include <iostream>
+
+#include "NestedList.h"
+#include "Attribute.h"
+#include "StandardTypes.h"
+#include "NestedList.h"
+#include "GenericTC.h"
+
+
 
 /*
 3 Class Definition
 
 */
-class Geoid {
+class Geoid : public Attribute {
+  // stream output operator. Implementation in file SpatialAlgebra.cpp
+  friend ostream& operator<< (ostream&, const Geoid&);
+
   public:
-    enum GeoidName {WGS1984, Bessel1841, Krasovsky1940,
+    enum GeoidName {UnitSphere, WGS1984, Bessel1841, Krasovsky1940,
                     International1924, GRS1980};
 /*
-Standard constructor returns the  WGS84 geoid.
+Standard constructor does nothing. DO NOT USE!
 
 */
-    Geoid() : name("WGS84"), radius(6378137.000), iflat(298.257223563),
-      flattening(1.0/298.257223563){}
+    Geoid();
+
 /*
-Constructor for arbitrary geoids. ~radius~ and ~iflat~ both must be positive.
-Otherwise, the WGS84 geoid is returned!
+Constructor creates a WGS1984 geoid with given definedness:
+
+*/
+    Geoid(bool _defined);
+
+/*
+Constructor for arbitrary geoids. ~radius~ (must be positive) and ~flattening~
+(must be non-negative).
+Otherwise, the an UNDEF geoid is returned!
 
 */
     Geoid(const string& _name,
           const double _radius,
-          const double,
-          const double _iflat) : name(_name), radius(_radius), iflat(_iflat),
-          flattening(0.0)
-    {
-      if( (iflat > 0) && (radius>0) ) {
-        flattening = 1.0/iflat;
-      } else { // use WGS84 as standard geoid
-        name = "WGS1984";
-        radius = 6378137.000;
-        iflat = 298.257223563;
-        flattening = 1.0/298.257223563;
-      }
-    }
+          const double _flattening);
+
 /*
-Constructor for special, named geoids. If the passed geoid name is unknown,
-the WGS84 geoid is returned instead.
+Constructor for special predefined Geoids.
+Unknown ~GeoidName~ results in an UNDEFINED Geoid!
 
 */
-    Geoid(const GeoidName n) {
-      switch(n)
-      {
-        case WGS1984:
-        { name = "WGS1984";
-          radius = 6378137.000;
-          iflat = 298.257223563;
-          flattening = 1.0/298.257223563;
-          break;
-        }
-        case Bessel1841:
-        { name = "Bessel1841";
-          radius = 6377397.155;
-          iflat = 299.1528434;
-          flattening = 1.0/299.1528434;
-          break;
-        }
-        case Krasovsky1940:
-        { name = "Krasovsky1940";
-          radius = 6378245.0;
-          iflat = 298.3;
-          flattening = 1.0/298.3;
-          break;
-        }
-        case International1924 :
-        { name = "International1924";
-          radius = 6378388.0;
-          iflat = 297.0;
-          flattening = 1.0/297.0;
-          break;
-        }
-        case GRS1980 :
-        { name = "GRS1980";
-          radius = 6378137;
-          iflat = 298.257222101;
-          flattening = 1.0/298.257222101;
-          break;
-        }
-        default :
-        {
-          assert(false);
-        }
-      }
-    }
+    Geoid(const GeoidName n);
 
-    Geoid(const Geoid& g): name(g.name), radius(g.radius),
-                           iflat(g.iflat), flattening(g.flattening){}
-    ~Geoid(){}
+/*
+Copy constructor
 
-    Geoid& operator=(const Geoid& g) {
-      name = g.name;
-      radius = g.radius;
-      iflat = g.iflat;
-      flattening = g.flattening;
-      return *this;
-    }
+*/
+    Geoid(const Geoid& g);
+    ~Geoid();
+
+    Geoid& operator=(const Geoid& g);
+
+/*
+Set the Geoid to a predined set of data.
+
+*/
+    void setPredefinedGeoid(const GeoidName n);
+
 /*
 Functions providing copies of the private data.
 
 */
-    string getName() const { return name; }
-    double getR() const { return radius; }
-    double getIFlat() const { return iflat; }
-    double getF() const { return flattening; }
+    inline string getName() const { return string(name); }
+    inline double getR() const { return radius; }
+    inline double getF() const { return flattening; }
 
 /*
 Function returns a string with the names of all pre-defined geoids. Can be used
 in operator specs.
 
 */
-    static string getGeoIdNames()
-    {
-      return "{WGS1984, Bessel1841, Krasovsky1940, International1924, GRS1980}";
-    }
+  static string getGeoIdNames();
 
 /*
 Get the ~GeoidName~ code for a given geoid name. If the name is unknown, WGS1984
-is returned and return parameer ~valid~ is set to ~false~.
+is returned and return parameter ~valid~ is set to ~false~.
 
 */
-    static GeoidName getGeoIdNameFromString(const string& s, bool& valid){
-      valid = true;
-      if (s == "WGS1984" ){
-        return WGS1984;
-      }
-      if (s == "Bessel1841" ){
-        return Bessel1841;
-      }
-      if (s == "Krasovsky1940" ){
-        return Krasovsky1940;
-      }
-      if (s == "International1924" ){
-        return International1924;
-      }
-      if (s == "GRS1980" ){
-        return GRS1980;
-      }
-      valid = false;
-      return WGS1984;
-    }
+  static GeoidName getGeoIdNameFromString(const string& s, bool& valid);
+
+/*
+Functions overwriting Attribute functions
+
+*/
+  size_t Sizeof() const;
+
+/*
+Compare function.
+A g1 > g2 if g1's radius is larger OR the radius is equal but the flattening is
+smaller OR both are equal, but the name is lexicographically larger:
+
+*/
+  int Compare( const Geoid *rhs ) const;
+  int Compare( const Attribute *rhs ) const;
+
+/*
+Operators for GenericCompare
+
+*/
+  bool operator==(const Geoid& other) const;
+  bool operator!=(const Geoid& other) const;
+  bool operator<(const Geoid& other) const;
+  bool operator<=(const Geoid& other) const;
+  bool operator>(const Geoid& other) const;
+  bool operator>=(const Geoid& other) const;
+
+/*
+Instances are NEVER adjacent:
+
+*/
+  bool Adjacent( const Attribute *attrib ) const;
+
+/*
+Geoid contains no Flobs:
+
+*/
+  inline int NumOfFLOBs() const { return 0; }
+  inline Flob* GetFLOB( const int i ) { assert(false); return 0; }
+
+/*
+Print function
+
+*/
+  virtual ostream& Print( ostream& os ) const;
+
+/*
+Clone function
+
+*/
+  Geoid* Clone() const;
+
+/*
+Hash function
+
+*/
+  size_t HashValue() const;
+  void CopyFrom(const Attribute* arg);
+
+/*
+Functions required for using ~GenericTC.h~
+
+*/
+  static string BasicType() { return "geoid"; }
+
+
+  static ListExpr Property() {
+    return gentc::GenProperty(
+      "-> DATA",
+      BasicType(),
+      "(Name Radius InverseFlattening) | GeoidName | UNDEF",
+      "(\"WSG1984\" 6378137.000 298.257223563) | \"Bessel1841\" "
+      "| Bessel1841 | UNDEF", "valid GeoidNames are: " + getGeoIdNames() + ". "
+      "If GeoidName is unknown, or Radius or InverseFlattening are "
+      "non-positive the geoid's value is set to UNDEF. Name and "
+      "GeoidName may be SymbolAtom or StringAtom; both Radius and "
+      "InverseFlattening may be IntAtom or RealAtom; UNDEF must be "
+      "a SymbolAtom with value UNDEF, undef, UNDEFINED or undefined.");
+}
+
+  static bool CheckKind(ListExpr type, ListExpr& errorInfo) {
+    return nl->IsEqual(type,BasicType());
+  }
+
+  ListExpr ToListExpr(const ListExpr typeInfo ) const;
+  bool ReadFrom(const ListExpr instance, const ListExpr typeInfo);
 
   private:
-    string name;          // Name of the geoid
     double radius;        // Equatorial axis (m)
-    double iflat;         // Inverted flattening 1/f
     double flattening;    // Flattenig
+    STRING_T name;        // Name of the geoid (cannot use string)
 };
-/*
-4 Overloaded output operator
-
-Implemented in file ~SpatialAlgebra.cpp~
-
-*/
-ostream& operator<<( ostream& o, const Geoid& g );
 
 #endif // __GEOID_H__
