@@ -57,6 +57,7 @@ This file contains the implementation import / export operators.
 #include <fstream>
 #include <sys/stat.h>
 #include <stdio.h>
+#include <iostream>
 
 #include "NestedList.h"
 #include "QueryProcessor.h"
@@ -924,16 +925,16 @@ int nmeaimport_lineVM(Word* args, Word& result,
 
 
 const string nmeaimport_lineSpec  =
-   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-   "( <text> text x string -> stream(tuple(...)) </text--->"
-   "<text> nmeaimport_line(line, type) </text--->"
-   "<text> Returns the the given line lines as a single tuple "
-   "or an empty stream if the line is not a valid of of the given type."
-   "</text--->"
-   "<text> query nmeaimport_line('$GPGGA,090150.383,"
-   "5131.2913,N,00726.9363,E,0,0,,102.5,M,47.5,M,,*45',"
-   "\"GGA\") tconsume</text--->"
-   ") )";
+ "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+ "( <text> text x string -> stream(tuple(...)) </text--->"
+ "<text> nmeaimport_line(line, type) </text--->"
+ "<text> Returns the the given line lines as a single tuple "
+ "or an empty stream if the line is not a valid of of the given type."
+ "</text--->"
+ "<text> query nmeaimport_line('$GPGGA,090150.383,"
+ "5131.2913,N,00726.9363,E,0,0,,102.5,M,47.5,M,,*45',"
+ "\"GGA\") tconsume</text--->"
+ ") )";
 
 
 /*
@@ -948,7 +949,112 @@ Operator nmeaimport_line( "nmeaimport_line",
                     nmeaimportTM);
 
 
+/*
+4 Operator ~get[_]lines~
 
+This operator reads a file and returns all lines found in this files into a stream.
+
+
+4.1 Type Mapping
+
+
+*/
+ListExpr get_linesTM(ListExpr args){
+  string err = " string or text expected";
+  if(!nl->HasLength(args,1)){
+    return listutils::typeError(err + "(wrong number of args)");
+  }
+
+  ListExpr arg = nl->First(args);
+  if(!listutils::isSymbol(arg,CcString::BasicType()) &&
+     !listutils::isSymbol(arg,FText::BasicType())){
+    return listutils::typeError(err);
+  }  
+  return nl->TwoElemList(nl->SymbolAtom("stream" ), 
+                         nl->SymbolAtom(FText::BasicType()));
+
+}
+
+/*
+4.2 ValueMapping for ~get[_]lines~
+
+
+*/
+template <class T>
+int get_linesVM(Word* args, Word& result,
+               int message, Word& local, Supplier s){
+
+  switch(message){
+     case OPEN:{
+         if(local.addr){
+           delete (ifstream*)local.addr;
+           local.addr = 0;
+         }
+         T* arg = static_cast<T*>(args[0].addr);
+         if(!arg->IsDefined()){
+           return 0;
+         }
+         ifstream* in = new ifstream();
+         in->open(arg->GetValue().c_str());
+         local.addr = in;
+         return 0;
+     }
+
+     case REQUEST:{
+        if(!local.addr){
+           return CANCEL;
+        }
+        ifstream* in = static_cast<ifstream*>(local.addr);
+        if(!in->good()){
+           return CANCEL;
+        }
+        string line;
+        getline(*in,line);
+        if(!in->good()){
+          return CANCEL;
+        }
+        result.addr = new FText(true, line);
+        return YIELD;
+     }
+
+     case CLOSE:{
+        if(local.addr){
+          ifstream* in = static_cast<ifstream*>(local.addr);
+          in->close();
+          delete in;
+          local.addr = 0;
+        }
+        return 0;
+     }
+  }
+  return -1;
+}
+
+ValueMapping get_linesMAPS[] = {get_linesVM<CcString>,
+                              get_linesVM<FText>};
+
+int get_linesSel(ListExpr args){
+   return listutils::isSymbol(nl->First(args), CcString::BasicType())?0:1;
+} 
+
+
+
+const string get_linesSpec  =
+ "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+ "( <text> {text,string} -> stream(text)</text--->"
+ "<text> get_lines(filename) </text--->"
+ "<text> Returns the lines contained in the given file as stream. "
+ "</text--->"
+ "<text> query get_lines('ten.csv') count</text--->"
+ ") )";
+
+
+Operator get_lines( "get_lines",
+                     get_linesSpec,
+                     2,
+                     get_linesMAPS,
+                     get_linesSel,
+                     get_linesTM);
 
 
 /*
@@ -4916,6 +5022,7 @@ public:
     nmeaimport.SetUsesArgsInTypeMapping(); 
     AddOperator( &nmeaimport_line);
     nmeaimport_line.SetUsesArgsInTypeMapping(); 
+    AddOperator( &get_lines);
   }
   ~ImExAlgebra() {};
 };

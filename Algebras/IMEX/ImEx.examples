@@ -289,13 +289,27 @@ Result   : (bool TRUE)
 Operator : nmeaimport
 Number   : 1
 Signature: text x string -> stream(tuple(...))
-Example  : query nmeaimport('trip.nmea',"GGA") count
-Result   : bug
-Remark   : Not implemented completely
+Example  : query nmeaimport('../Data/import/tripHA_Boeler_Uni.trc',"GGA") count
+Result   : 441
 
 Operator : nmeaimport_line
 Number   : 1
 Signature: text x string -> stream(tuple(...))
 Example  : query nmeaimport_line('$GPGGA,094154.384,5131.2913,N,00726.9363,E,0,0,,102.5,M,47.5,M,,*42', "GGA") extract[FixQuality]
 Result   : 0
+
+
+Operator : get_lines 
+Number   : 1
+Signature: text -> stream(text)
+Example  : query get_lines('ten.csv') count
+Result   : 11
+
+
+Operator : get_lines 
+Number   : 2
+Signature: string -> stream(text)
+Example  : query get_lines("ten.csv") count
+Result   : 11
+
 
