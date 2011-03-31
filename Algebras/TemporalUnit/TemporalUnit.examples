@@ -563,16 +563,24 @@ Result   : TRUE
 
 Operator : speed
 Number   : 1
-Signature: mpoint -> mreal
-Example  : query speed(the_unit(mehringdamm, alexanderplatz, six30, nine, FALSE, TRUE) feed the_mvalue)
-Result   : (mreal ((("2003-11-20-06:30" "2003-11-20-09:00" FALSE TRUE)(0.0 0.0 0.3839392956133162 FALSE))))
+Signature: mpoint [x geoid] -> mreal
+Example  : query speed(the_unit(makepoint(13.4,52.517),makepoint(139.767, 35.7 ), six30, nine, FALSE, TRUE), create_geoid("WGS1984"))
+Result   : (ureal(("2003-11-20-06:30" "2003-11-20-09:00" FALSE TRUE)(0.0 0.0 993.4655267048898 FALSE)))
 
 
 Operator : speed
 Number   : 2
-Signature: upoint -> ureal
+Signature: upoint [x geoid] -> ureal
 Example  : query speed(the_unit(mehringdamm, alexanderplatz, six30, nine, FALSE, TRUE))
 Result   : (ureal (("2003-11-20-06:30" "2003-11-20-09:00" FALSE TRUE)(0.0 0.0 0.3839392956133162 FALSE)))
+
+
+Operator : speed
+Number   : 3
+Signature: upoint [x geoid] -> ureal
+Example  : query val(final(speed(the_unit(makepoint(13.4,52.517),makepoint(139.767, 35.7 ), six30, nine, FALSE, TRUE),create_geoid("WGS1984"))))
+Result   : 993.4655267048898
+Tolerance: 0.0001
 
 
 Operator : the_ivalue

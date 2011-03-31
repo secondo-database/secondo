@@ -1171,7 +1171,6 @@ double Point::DistanceOrthodrome( const Point& p,
   assert( errno == 0 );
   double s = D*( 1 + f*H1*sinFsq*cosGsq - f*H2*cosFsq*sinGsq );
   assert( errno == 0 );
-  cout << "s=" << s << endl;
   assert( s >= 0 );
   return s;
 }
