@@ -1011,6 +1011,8 @@ The assignment operator
      return !IsDefined();
    }
 
+   static string BasicType() { return "uregion"; }
+
 };
 
 
@@ -1202,9 +1204,7 @@ Copy ~MRegion~ instance.
 Return the name of the Secondo type.
 
 */
-  static string BasicType(){
-    return "mregion";
-  }
+  static string BasicType(){ return "movingregion"; }
 
 
 /*
