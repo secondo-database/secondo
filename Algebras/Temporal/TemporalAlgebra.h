@@ -1733,6 +1733,11 @@ class UReal : public StandardTemporalUnit<CcReal>
   }
 
 /*
+Symbol for use in typemappings
+
+*/
+  static const string BasicType(){ return "ureal"; }
+/*
 3.6.2 Operator redefinitions
 
 */
@@ -2592,9 +2597,7 @@ The boolean return value is ~false~, iff either the UPoint or the Region is UNDE
 */
 
 
-   static const string BasicType(){
-     return "upoint";
-   }
+   static const string BasicType(){ return "upoint"; }
 
 
 
@@ -3086,9 +3089,7 @@ Casts this MInt into an MReal.
     void WriteTo(MReal& arg);
 
 
-   static const string BasicType(){
-      return "mint";
-   }
+   static const string BasicType(){ return "mint"; }
    void Hat(MInt& mint);
 
 /*
@@ -3209,9 +3210,7 @@ Precondition: ccvalue.IsDefined() == true
    void AtValue( const CcReal& ccvalue, MReal& result ) const;
 
 
-   static const string BasicType(){
-      return "mreal";
-   }
+   static const string BasicType(){ return "mreal"; }
 
 private:
    void Simplify(const int min, const int max,
@@ -3505,9 +3504,7 @@ Returns the MPoint's minimum bounding rectangle
                             MPoint& result,
                             const bool skipSplit = false) const;
 
-  static const string BasicType(){
-    return "mpoint";
-  }
+  static const string BasicType(){ return "mpoint"; }
 
 /*
 3.10.5.11 ~Delay Operator~
