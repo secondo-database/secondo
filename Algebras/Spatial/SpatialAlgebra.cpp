@@ -59,6 +59,7 @@ using namespace std;
 #include "NestedList.h"
 #include "ListUtils.h"
 #include "Symbols.h"
+#include "GenericTC.h"
 #include "QueryProcessor.h"
 #include "StandardTypes.h"
 #include "SpatialAlgebra.h"
@@ -1170,6 +1171,7 @@ double Point::DistanceOrthodrome( const Point& p,
   assert( errno == 0 );
   double s = D*( 1 + f*H1*sinFsq*cosGsq - f*H2*cosFsq*sinGsq );
   assert( errno == 0 );
+  cout << "s=" << s << endl;
   assert( s >= 0 );
   return s;
 }
@@ -12588,7 +12590,7 @@ of the line segments.
 ListExpr
 SpatialSizeMap( ListExpr args )
 {
-  string errmsg = "Expected (region) or ({line|sline} [ x string ]).";
+  string errmsg = "Expected (region) or ({line|sline} [ x geoid ]).";
   int noargs = nl->ListLength( args );
   if ( (noargs<1) || (noargs >2) ){
     return listutils::typeError(errmsg);
@@ -12599,7 +12601,7 @@ SpatialSizeMap( ListExpr args )
     return listutils::typeError(errmsg);
   }
   if( (noargs==2) &&
-      (    (!listutils::isSymbol(nl->Second(args), CcString::BasicType()))
+      (    (!listutils::isSymbol(nl->Second(args), Geoid::BasicType()))
         || (listutils::isSymbol(nl->First(args),  Region::BasicType())) ) ){
     return listutils::typeError(errmsg);
   }
@@ -13417,6 +13419,51 @@ ListExpr gkTypeMap(ListExpr args){
   }
   ErrorReporter::ReportError("No match.");
   return nl->TypeError();
+}
+
+/*
+Type Mapping: geoid [->] real
+For operators: getRadius, getFlattening
+
+*/
+ListExpr geoid2real_TM(ListExpr args){
+  int noargs = nl->ListLength(args);
+  string errmsg = "Expected ("+Geoid::BasicType()+").";
+  if(noargs!=1){
+    return listutils::typeError(errmsg);
+  }
+  if(listutils::isSymbol(nl->First(args), Geoid::BasicType())){
+    return nl->SymbolAtom(CcReal::BasicType());
+  }
+  return listutils::typeError(errmsg);
+}
+
+/*
+Type Mapping: string [ x {real|int} x {real|int} ] [->] geoid
+For operator: create\_geoid
+
+*/
+ListExpr geoid_create_geoid_TM(ListExpr args){
+  int noargs = nl->ListLength(args);
+  string errmsg = "Expected ("+CcString::BasicType()+" [ x {"
+                +CcInt::BasicType()+"|"+CcReal::BasicType()
+                +"} x {"+CcInt::BasicType()+"|"+CcReal::BasicType()+"} ]).";
+  // allow only 1 or 3 arguments:
+  if( (noargs<1)|| (noargs==2)  || (noargs>3) ){
+    return listutils::typeError(errmsg);
+  }
+  // check first argument
+  if(!listutils::isSymbol(nl->First(args), CcString::BasicType())){
+    return listutils::typeError(errmsg);
+  }
+  // check 2. + 3. argument
+  if(noargs==3){
+    if(    !listutils::isNumericType(nl->Second(args))
+        || !listutils::isNumericType(nl->Third(args)) ){
+      return listutils::typeError(errmsg);
+    }
+  }
+  return nl->SymbolAtom(Geoid::BasicType());
 }
 
 /*
@@ -14729,20 +14776,14 @@ SpatialSize( Word* args, Word& result, int message,
     return 0;
   }
   if(qp->GetNoSons(s)==2){ // variant using (LON,LAT)-coordinates
-    CcString* geoidCcStr = static_cast<CcString*>(args[1].addr);
-    if(!geoidCcStr->IsDefined()){
+    Geoid* g = static_cast<Geoid*>(args[1].addr);
+    if(!g->IsDefined()){
       res->Set(false, 0.0);
       return 0;
     }
-    string geoidstr = geoidCcStr->GetValue();
     bool valid = false;
-    Geoid::GeoidName gn = Geoid::getGeoIdNameFromString(geoidstr,valid);
-    if(!valid){
-      res->Set(false, 0.0);
-      return 0;
-    }
-    Geoid geoid(gn);
-    res->Set(true,a->SpatialSize(geoid, valid));
+    res->Set(true,a->SpatialSize(g, valid));
+    res->SetDefined(valid);
     return 0;
   } // else: variant using (X,Y)-coordinates
   res->Set(true,a->SpatialSize());
@@ -14793,22 +14834,6 @@ ostream& operator<<(ostream& o,const SimplePoint& p) {
         o << "(" << p.getX() << ", " << p.getY() << ")";
         return o;
 }
-
-
-/*
-Implementation of stream output operator for ~Geoid~ objects
-
-*/
-ostream& operator<<( ostream& o, const Geoid& g ){
-  ios_base::fmtflags oldOptions = o.flags();
-  o.setf(ios_base::fixed,ios_base::floatfield);
-  o.precision(16);
-  o << "(Geoid " << g.getName() << ": r=" << g.getR() << ", if="
-  << g.getIFlat() << ")";
-  o.flags(oldOptions);
-  return o;
-};
-
 
 
 /*
@@ -16314,6 +16339,110 @@ int gkVM_x(Word* args, Word& result, int message,
    return 0;
 }
 
+/*
+Operations on geoids
+
+*/
+
+int geoid_getRadius_VM(Word* args, Word& result, int message,
+                    Word& local, Supplier s)
+{
+  result = qp->ResultStorage(s);
+  CcReal* res = static_cast<CcReal*>(result.addr);
+  Geoid* arg = static_cast<Geoid*>(args[0].addr);
+  if(!arg->IsDefined()){
+    res->Set(false, 0.0);
+  } else {
+    res->Set(true, arg->getR());
+  }
+  return 0;
+}
+
+int geoid_getFlattening_VM(Word* args, Word& result, int message,
+                        Word& local, Supplier s)
+{
+  result = qp->ResultStorage(s);
+  CcReal* res = static_cast<CcReal*>(result.addr);
+  Geoid* arg = static_cast<Geoid*>(args[0].addr);
+  if(!arg->IsDefined()){
+    res->Set(false, 0.0);
+  } else {
+    res->Set(true, arg->getF());
+  }
+  return 0;
+}
+
+template<class T1, class T2>
+int geoid_create_geoid_VM(Word* args, Word& result, int message,
+                    Word& local, Supplier s)
+{
+  result = qp->ResultStorage(s);
+  Geoid* res = static_cast<Geoid*>(result.addr);
+  CcString* nameCcStr = static_cast<CcString*>(args[0].addr);
+  T1* radiusT1 = 0;
+  T2* flatteningT2 = 0;
+  int noargs = qp->GetNoSons(s);
+  if(!nameCcStr->IsDefined()){
+    res->SetDefined(false);
+    return 0;
+  }
+  string name = nameCcStr->GetValue();
+  double radius = 1.0;
+  double flattening = 0.0;
+  if(noargs==3){
+    radiusT1 = static_cast<T1*>(args[1].addr);
+    flatteningT2 = static_cast<T2*>(args[2].addr);
+    if(!radiusT1->IsDefined() || !flatteningT2->IsDefined()){
+      res->SetDefined(false);
+      return 0;
+    }
+    radius = radiusT1->GetValue();
+    flattening = flatteningT2->GetValue();
+    if( (radius <= 0.0) || (flattening < 0.0) ){
+      res->SetDefined(false);
+      return 0;
+    }
+    Geoid g(name, radius, flattening);
+    res->CopyFrom(&g);
+    return 0;
+  }
+  bool valid = false;
+  Geoid::GeoidName gc = Geoid::getGeoIdNameFromString(name, valid);
+  if(!valid){
+    res->SetDefined(false);
+    return 0;
+  }
+  res->setPredefinedGeoid(gc);
+  return 0;
+}
+
+ValueMapping geoid_create_geoid_vm[] = {
+  geoid_create_geoid_VM<CcReal,CcReal>, // (string)
+  geoid_create_geoid_VM<CcReal,CcReal>, // (string x real x real)
+  geoid_create_geoid_VM<CcReal,CcInt>,  // (string x real x int)
+  geoid_create_geoid_VM<CcInt,CcReal>,  // (string x int x real)
+  geoid_create_geoid_VM<CcInt,CcInt>    // (string x int x int)
+};
+
+int geoid_create_geoid_SELECT(ListExpr args){
+  if(nl->ListLength(args)==1){ return 0; }
+  ListExpr first = nl->Second(args);
+  ListExpr second = nl->Third(args);
+  if(    listutils::isSymbol(first,CcReal::BasicType())
+      && listutils::isSymbol(second,CcReal::BasicType())){ return 1; }
+  if(    listutils::isSymbol(first,CcReal::BasicType())
+      && listutils::isSymbol(second,CcInt::BasicType())){ return 2; }
+  if(    listutils::isSymbol(first,CcInt::BasicType())
+      && listutils::isSymbol(second,CcReal::BasicType())){ return 3; }
+  if(    listutils::isSymbol(first,CcInt::BasicType())
+      && listutils::isSymbol(second,CcInt::BasicType())){ return 4; }
+  return -1;
+}
+
+/*
+Collecting line and sline
+
+*/
 template<class ResLineType>
 int SpatialCollect_lineVMPointstream(Word* args, Word& result, int message,
                                      Word& local, Supplier s){
@@ -17007,14 +17136,12 @@ const string SpatialSpecBbox  =
 const string SpatialSpecSize  =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
   "( <text> {line|sline|region} -> real \n"
-  " {line|sline} x string -> real</text--->"
-  "<text> size( O [, GeoidName ] )</text--->"
+  " {line|sline} x geoid -> real</text--->"
+  "<text> size( O [, Geoid ] )</text--->"
   "<text>Returns the size (line, sline: length, region: area) of a spatial "
   "object O. For sline and line objects, the optional parameter Geoid allows "
-  "to compute line lengthes based on (LON,LAT)-coordinates and the geoid "
-  "described by GeoidName instead of metric (X,Y)-coordinates. If GeoidName "
-  "is unknown or O contains invalid spherical coordinates, the result is "
-  "UNDEF. Known GeoidNames are: "+ Geoid::getGeoIdNames() + ".\n"
+  "to compute line lengthes based on (LON,LAT)-coordinates instead of metric "
+  "(X,Y)-coordinates.\n"
   "CAVEAT: For a 'line' the result is only valid if the original segments do "
   "not cross each other. For 'sline' the result should always be correct."
   "</text--->"
@@ -17333,6 +17460,37 @@ const string gkSpec  =
    "default. 'geoobj' is expected to have geografic coordinates (LON,LAT) in °"
    ", the result's coordinates (NORTHING,EASTING) are in metres.</text--->"
    "<text>query gk([const point value (0 0)])</text--->"
+   ") )";
+
+/*
+Operations on geoids
+
+*/
+const string geoid_getRadius_SPEC  =
+   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+   "( <text>geoid -> real</text--->"
+   "<text> getRadius( G )  </text--->"
+   "<text>Returns the radius parameter of geoid G.</text--->"
+   "<text>query getRadius([const geoid value WGS1984])</text--->"
+   ") )";
+
+const string geoid_getFlattening_SPEC  =
+   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+   "( <text>geoid -> real</text--->"
+   "<text> getFlattening( G )  </text--->"
+   "<text>Returns the flattening parameter of geoid G.</text--->"
+   "<text>query getFlattening([const geoid value UnitSphere]) = 0.0</text--->"
+   ") )";
+
+const string geoid_create_geoid_SPEC  =
+   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+   "( <text> string [ x {real|int} x {real|int} -> geoid</text--->"
+   "<text> create_geoid( Name [, Radius, Flattening] )  </text--->"
+   "<text>Returns a geoid. If only the string parameter Name is used, it must "
+   "be the name of a predefined geoid (available: "+Geoid::getGeoIdNames()+"). "
+   "Otherwise, Radius must be the positive radius, and 0.0 <= Flattening <= 1.0"
+   "is the flattening parameter (0.0 results a perfect sphere).</text--->"
+   "<text>query create_geoid(\"MyGeoid\", 1.0, 0.5)</text--->"
    ") )";
 
 const string SpatialSpecCollectLine  =
@@ -17831,7 +17989,42 @@ Operator gkOp (
    gkSelect,
    gkTypeMap );
 
+/*
+Operators for creating and querying geoids
 
+*/
+Operator geoid_getRadius
+(
+  "getRadius",
+  geoid_getRadius_SPEC,
+  geoid_getRadius_VM,
+  Operator::SimpleSelect,
+  geoid2real_TM
+);
+
+Operator geoid_getFlattening
+(
+  "getFlattening",
+  geoid_getFlattening_SPEC,
+  geoid_getFlattening_VM,
+  Operator::SimpleSelect,
+  geoid2real_TM
+);
+
+Operator geoid_create_geoid
+(
+  "create_geoid",
+  geoid_create_geoid_SPEC,
+  5,
+  geoid_create_geoid_vm,
+  geoid_create_geoid_SELECT,
+  geoid_create_geoid_TM
+);
+
+/*
+Creating lines and slines
+
+*/
 Operator spatialcollect_line (
   "collect_line",
   SpatialSpecCollectLine,
@@ -18148,7 +18341,7 @@ Operator halfSegmentsOp (
 
 ListExpr distanceOrthodromeTM(ListExpr args){
   int noargs = nl->ListLength(args);
-  string errmsg = "Expected (point x point) or (point x point x string).";
+  string errmsg = "Expected (point x point) or (point x point x geoid).";
   if(noargs < 2){
     return listutils::typeError(errmsg);
   }
@@ -18162,7 +18355,7 @@ ListExpr distanceOrthodromeTM(ListExpr args){
   if(noargs != 3){
     return listutils::typeError(errmsg);
   }
-  if(listutils::isSymbol(nl->Third(args),CcString::BasicType())){
+  if(listutils::isSymbol(nl->Third(args),Geoid::BasicType())){
     return nl->SymbolAtom(CcReal::BasicType());
   }
   return listutils::typeError(errmsg);
@@ -18179,40 +18372,37 @@ int distanceOrthodromeVM( Word* args, Word& result, int message,
     res->Set(false, 0.0);
     return 0;
   }
-  string geoidstr = "WGS1984";
+  Geoid* g = 0;
   if(qp->GetNoSons(s)==3){
-    CcString* geoidStr = static_cast<CcString*>(args[2].addr);
-    if(!geoidStr->IsDefined()){
+    g = static_cast<Geoid*>(args[2].addr);
+    if(!g->IsDefined()){
       res->Set(false, 0.0);
       return 0;
     }
-    geoidstr = geoidStr->GetValue();
+  } else { // use the WGS1984 as the default
+    g = new Geoid(Geoid::WGS1984);
   }
-  bool valid = false;
-  Geoid::GeoidName gn = Geoid::getGeoIdNameFromString(geoidstr,valid);
-  if(!valid){
-    res->Set(false, 0.0);
-    return 0;
-  }
-  Geoid geoid(gn);
-  valid = true;
-  res->Set(true,p1->DistanceOrthodrome(*p2,geoid,valid));
+  bool valid = true;
+  res->Set(true,p1->DistanceOrthodrome(*p2,*g,valid));
   res->SetDefined(valid);
+  if( (qp->GetNoSons(s)!=3) && g) {
+    delete g; g = 0;
+  }
   return 0;
 }
 
 const string distanceOrthodromeSpec =
    "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-   "( <text> point x point [ x string] -> real</text--->"
-   "<text>distanceOrthodrome( p1, p2, geoidName ) </text--->"
+   "( <text> point x point [x geoid] -> real</text--->"
+   "<text>distanceOrthodrome( p1, p2 [, g]) </text--->"
    "<text>Returns the length of the orthodrome between point p1 and p2 "
-   "according to the specified geoid. Both points must represent geographic "
+   "according to the specified geoid g. Both points must represent geographic "
    "coordinates (LON,LAT), where -180<=LON<=180 and -90<=LAT<=90."
-   "Valid geoidNames are " + Geoid::getGeoIdNames() + ". The default geoidName "
-   "is \"WGS1984\". If any argument is invalid or undefined, the result is "
-   "UNDEF.</text--->"
+   "If any argument is invalid or undefined, the result is UNDEF. If no geoid "
+   "is specified, WGS1984 is used as the default geoid.</text--->"
    "<text>query distanceOrthodrome(makepoint(7.494968217,51.376125146),"
-   "makepoint(-73.984633618, 40.728925452 ),\"WGS1984\")</text---> ) )";
+   "makepoint(-73.984633618, 40.728925452 ),create_geoid(\"WGS1984\"))"
+   "</text---> ) )";
 
 Operator spatial_distanceOrthodrome (
    "distanceOrthodrome",
@@ -18220,6 +18410,11 @@ Operator spatial_distanceOrthodrome (
     distanceOrthodromeVM,
     Operator::SimpleSelect,
     distanceOrthodromeTM );
+
+/*
+10 Type Constructor ~geoid~
+*/
+    GenTC<Geoid> geoid_t;
 
 
 /*
@@ -18257,6 +18452,9 @@ class SpatialAlgebra : public Algebra
     points.AssociateKind("SHPEXPORTABLE");
     line.AssociateKind("SHPEXPORTABLE");
     region.AssociateKind("SHPEXPORTABLE");
+
+    AddTypeConstructor(&geoid_t);
+    geoid_t.AssociateKind("DATA");
 
     AddOperator( &spatialisempty );
     AddOperator( &spatialequal );
@@ -18322,6 +18520,9 @@ class SpatialAlgebra : public Algebra
     AddOperator( &spatialgetstartsmaller ) ;
     AddOperator( &spatial_create_sline ) ;
     AddOperator( &spatial_distanceOrthodrome );
+    AddOperator( &geoid_getRadius );
+    AddOperator( &geoid_getFlattening );
+    AddOperator( &geoid_create_geoid );
   }
   ~SpatialAlgebra() {};
 };

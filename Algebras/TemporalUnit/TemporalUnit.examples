@@ -654,14 +654,14 @@ Result   : 23
 
 Operator : length
 Number   : 1
-Signature: upoint [x string] -> real
+Signature: upoint [x geoid] -> real
 Example  : query (units(Trains feed extract[Trip]) use[fun(U:upoint) length(U)] transformstream sum[elem]) = length(Trains feed extract[Trip])
 Result   : TRUE
 
 Operator : length
 Number   : 2
-Signature: upoint [x string] -> real
-Example  : query length([const upoint value (("2011-01-01" "2011-01-02" TRUE FALSE) (0.0 0.0 180.0 0.0))],"WGS1984") / const_pi()
+Signature: upoint [x geoid] -> real
+Example  : query length([const upoint value (("2011-01-01" "2011-01-02" TRUE FALSE) (0.0 0.0 180.0 0.0))],create_geoid("WGS1984")) / const_pi()
 Result   : (real 6378137.000)
 Tolerance: 0.0000001
 

@@ -1975,7 +1975,7 @@ void UPoint::USpeed( UReal& result, const Geoid* geoid ) const
     duration = dt.ToDouble() * 86400;   // value in seconds
 
     if( duration > 0.0 ){
-      if(geoid){ // (X,Y)-coords
+      if(!geoid){ // (X,Y)-coords
         double x0 = p0.GetX(), y0 = p0.GetY(),
                x1 = p1.GetX(), y1 = p1.GetY();
         /*
@@ -6162,17 +6162,20 @@ void MPoint::MSpeed( MReal& result, const Geoid* geoid ) const
 
   UPoint uPoint(false);
   UReal uReal(true);
-  //  int counter = 0;
   result.StartBulkLoad();
+  bool valid = true;
 
-  for( int i = 0; i < GetNoComponents(); i++ ){
+  for( int i = 0; valid && (i < GetNoComponents()); i++ ){
     Get( i, uPoint );
     uPoint.USpeed( uReal, geoid );
     if( uReal.IsDefined() ){
       result.Add( uReal ); // append ureal to mreal
+    } else {
+      valid = false;
     }
   }
   result.EndBulkLoad( true );
+  result.SetDefined( valid );
 }
 
 
@@ -10089,28 +10092,6 @@ ListExpr SpeedUpTypeMap(ListExpr args){
 }
 
 /*
-~Avg\_SpeedTypeMap~
-
-signatures:
-  mpoint [ x string ] -> real
-
-*/
-ListExpr Avg_SpeedTypeMap(ListExpr args){
-  string err = "mpoint expected";
-  int len = nl->ListLength(args);
-  if(len!=1){
-     ErrorReporter::ReportError(err);
-     return nl->TypeError();
-  }
-
-  if(nl->IsEqual(nl->First(args),"mpoint")){
-      return nl->SymbolAtom("real");
-  }
-  ErrorReporter::ReportError(err);
-  return nl->TypeError();
-}
-
-/*
 ~SubMoveTypeMap~
 
 signatures:
@@ -13336,7 +13317,6 @@ int Avg_SpeedVM( Word* args, Word& result, int message,
       return 0;
      }
      string geoidstr = geoidCcStr->GetValue();
-     bool valid = false;
      Geoid::GeoidName gn = Geoid::getGeoIdNameFromString(geoidstr,valid);
      if(!valid){
       res->Set(false, 0.0);
@@ -13360,6 +13340,7 @@ int Avg_SpeedVM( Word* args, Word& result, int message,
    res->Set(valid,length/(totaltime.ToDouble()*86400.0));
    if(geoidptr){
      delete geoidptr;
+     geoidptr = 0;
    }
    return 0;
 }

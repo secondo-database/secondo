@@ -63,4 +63,6 @@ operator get_startsmaller alias GET_STARTSMALLER pattern op ( _ )
 operator set_startsmaller alias SET_STARTSMALLER pattern op ( _ , _ )
 operator create_sline alias CREATE_SLINE pattern op (_, _)
 operator distanceOrthodrome alias DISTANCEORTHODROME pattern op( _, _, _ )
-
+operator create_geoid alias CREATE_GEOID pattern op( _, _, _ )
+operator getRadius alias GETRADIUS pattern op( _ )
+operator getFlattening alias GETFLATTENING pattern op( _ )

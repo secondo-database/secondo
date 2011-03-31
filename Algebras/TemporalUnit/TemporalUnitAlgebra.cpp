@@ -166,7 +166,7 @@ OK               (stream ubool) --> bool
 OK  + always:    (       ubool) --> bool
 OK               (stream ubool) --> bool
 
-OK    length: (upoint [string]) --> real
+OK    length: (upoint [geoid]) --> real
 
 COMMENTS:
 
@@ -9695,13 +9695,13 @@ Calculate the spatial length of the movement.
 /*
 5.44.1 Type mapping function for ~length~
 
----- upoint [ x string ] --> real
+---- upoint [ x geoid ] --> real
 ----
 
 */
 ListExpr TUTypeMapLength( ListExpr args )
 {
-  string errmsg = "Expected (upoint) or (upoint x string).";
+  string errmsg = "Expected (upoint) or (upoint x geoid).";
   int noargs = nl->ListLength(args);
   if((noargs<1) || (noargs>2)){
     return listutils::typeError(errmsg);
@@ -9710,7 +9710,7 @@ ListExpr TUTypeMapLength( ListExpr args )
     return listutils::typeError(errmsg);
   }
   if(    (noargs==2)
-    && (!listutils::isSymbol(nl->Second(args),CcString::BasicType())) ){
+    && (!listutils::isSymbol(nl->Second(args),Geoid::BasicType())) ){
     return listutils::typeError(errmsg);
   }
   return nl->SymbolAtom(CcReal::BasicType());
@@ -9727,20 +9727,12 @@ int TUUnitLength(Word* args,Word& result,int message,Word& local,Supplier s)
   UPoint *input = (UPoint*)args[0].addr;
 
   if(qp->GetNoSons(s)==2){ // variant using (LON,LAT)-coordinates
-    CcString* geoidCcStr = static_cast<CcString*>(args[1].addr);
-    if(!geoidCcStr->IsDefined()){
+    Geoid* g = static_cast<Geoid*>(args[1].addr);
+    if(!g->IsDefined()){
       res->Set(false, 0.0);
       return 0;
     }
-    string geoidstr = geoidCcStr->GetValue();
-    bool valid = false;
-    Geoid::GeoidName gn = Geoid::getGeoIdNameFromString(geoidstr,valid);
-    if(!valid){
-      res->Set(false, 0.0);
-      return 0;
-    }
-    Geoid geoid(gn);
-    input->Length(geoid, *res);
+    input->Length(*g, *res);
   } else { // normal variant using (X,Y)-coordinates
     input->Length( *res );
   }
@@ -9753,14 +9745,12 @@ int TUUnitLength(Word* args,Word& result,int message,Word& local,Supplier s)
 */
 const string TULengthSpec  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-    "( <text> upoint [ x string ] -> real</text--->"
-    "<text> length( Up [, GeoidName ] )</text--->"
+    "( <text> upoint [ x geoid ] -> real</text--->"
+    "<text> length( Up [, Geoid ] )</text--->"
     "<text>The operator returns the distance of the unit's initial and final"
-    "position. If the optional parameter is not used, spatial coordinates are "
-    "interpreted as metric (X,Y)-pairs, otherwise as geographic (LON,LAT)-"
-    "coordinates. GeoidName defines the geoid used for distance computations."
-    "Valid values are "+ Geoid::getGeoIdNames() +". Invalid coordinates or "
-    "GeoidNames result in UNDEF result.</text--->"
+    "position. If the optional parameter Geoid is not used, spatial "
+    "coordinates are interpreted as metric (X,Y)-pairs, otherwise as "
+    "geographic (LON,LAT)-coordinates relative to the passed geoid.</text--->"
     "<text>query units(Trains feed extract[Trip]) use[fun(U:upoint) "
     "length(U)] transformstream sum[elem]</text--->"
     ") )";

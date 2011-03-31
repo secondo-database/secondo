@@ -44,12 +44,14 @@ inclusion of header files concerning Secondo.
 #include "DateTime.h"
 #include "TemporalExtAlgebra.h"
 #include "RefinementStream.h"
+#include "Geoid.h"
 
 extern NestedList* nl;
 extern QueryProcessor *qp;
 
 #include "TypeMapUtils.h"
 #include "Symbols.h"
+#include "ListUtils.h"
 
 using namespace symbols;
 using namespace mappings;
@@ -2774,6 +2776,31 @@ MovingPointExtTypeMapMReal( ListExpr args )
     return nl->SymbolAtom( "typeerror" );
 }
 
+
+/*
+9.1.12 Type mapping function ~MPointOptGeoid2MReal\_TM~
+~Avg\_SpeedTypeMap~
+
+signatures:
+mpoint [ x geoid ] -> real
+
+*/
+ListExpr MPointOptGeoid2MReal_TM(ListExpr args){
+  string errmsg = "Expected (mpoint) or (mpoint x geoid).";
+  int noargs = nl->ListLength(args);
+  if((noargs<1) || (noargs>2)){
+    return listutils::typeError(errmsg);
+  }
+  if(!listutils::isSymbol(nl->First(args),MPoint::BasicType())){
+    return listutils::typeError(errmsg);
+  }
+  if(    (noargs==2)
+    && (!listutils::isSymbol(nl->Second(args),Geoid::BasicType())) ){
+    return listutils::typeError(errmsg);
+  }
+  return nl->SymbolAtom(MReal::BasicType());
+}
+
 /*
 9.1.13 Type mapping function RangeRangevaluesExtTypeMapRange
 
@@ -3692,7 +3719,7 @@ int MRegionPointPassesExt( Word* args, Word& result, int message,
             }
         }
         rs.reset(); // second run
-        while(rs.hasNext()) 
+        while(rs.hasNext())
         {
 
             Interval<Instant> iv;
@@ -4112,53 +4139,31 @@ Last Unit must be created.
 */
 template <class Mapping>
 int MovingSpeedExt( Word* args, Word& result, int message,
-                    Word& local, Supplier s )
-{
-    result = qp->ResultStorage( s );
+                    Word& local, Supplier s ){
+  result = qp->ResultStorage(s);
+  MReal* res = static_cast<MReal*>(result.addr);
+  MPoint* arg1 = static_cast<MPoint*>(args[0].addr);
+  res->Clear();
+  if(!arg1->IsDefined()){
+    res->SetDefined(false);
+    return 0;
+  }
+  res->SetDefined( true );
 
-    Mapping* m = ((Mapping*)args[0].addr);
-    MReal* pResult = ((MReal*)result.addr);
-
-    double speed, distance, t;
-    const Point p0, p1;
-    UPoint unitin;
-    UReal unitout(true);
-
-    pResult->Clear();
-    if( !m->IsDefined() ){
-      pResult->SetDefined( false );
+  Geoid* g = 0;
+  if(qp->GetNoSons(s)==2){ // setting up geoid for (LON,LAT)-variant
+    g = static_cast<Geoid*>(args[1].addr);
+    if(!g->IsDefined()){
+      res->SetDefined(false);
       return 0;
     }
-    pResult->SetDefined( true );
-
-    pResult->StartBulkLoad();
-    for(int i=0;i<m->GetNoComponents();i++)
-    {
-        m->Get(i, unitin);
-        distance = (unitin.p0.Distance(unitin.p1)) * FactorForUnitOfDistance;
-        t = (((unitin.timeInterval.end) -
-              (unitin.timeInterval.start)).ToDouble()) * FactorForUnitOfTime;
-
-        if (t != 0.0)
-        {
-          speed = distance / t;
-          unitout.a = 0.0;
-          unitout.b = 0.0;
-          unitout.c = speed;
-          unitout.r = false;
-          unitout.timeInterval = unitin.timeInterval;
-          unitout.SetDefined(true);
-          pResult->Add(unitout);
-        }
-    }
-
-    cout << endl << endl;
-    cout << "Unit of speed: " << FactorForUnitOfDistance;
-    cout << " * m / " << FactorForUnitOfTime;
-    cout << " * day" << endl << endl;
-    pResult->EndBulkLoad( false );
-
-    return 0;
+  }
+  arg1->MSpeed( *res, g );
+  if(qp->GetNoSons(s)!=2){
+     delete g;
+     g = 0;
+  }
+  return 0;
 }
 
 /*
@@ -5076,9 +5081,13 @@ const string TemporalSpecDerivableExt =
 
 const string TemporalSpecSpeedExt  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-    "( <text>mpoint -> mreal</text--->"
-    "<text>speed_new ( _ )</text--->"
-    "<text>Return scalar Velocity of a mpoint as a mreal.</text--->"
+    "( <text>mpoint [ x geoid ] -> mreal</text--->"
+    "<text>speed_new ( M [, Geoid ] )</text--->"
+    "<text>Query the scalar velocity of the moving point M in unit/s as a mreal"
+    ". If the optional string parameter is not used, coordinates in M are "
+    "metric (X,Y)-pairs. Otherwise, Geoid specifies a geoid to use for "
+    "orthodrome-based speed calculation and coordinates in M must be valid "
+    "geographic coordinates (LON,LAT).</text--->"
     "<text>speed_new ( mp1 )</text--->"
     ") )";
 
@@ -5326,7 +5335,7 @@ Operator temporalspeedext(
     1,
     temporalspeedextmap,
     Operator::SimpleSelect,
-    MovingPointExtTypeMapMReal);
+    MPointOptGeoid2MReal_TM);
 
 Operator rangerangevaluesext(
     "rangevalues",

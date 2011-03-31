@@ -170,7 +170,7 @@ Result   : (mreal((("2005-10-10" "2005-10-20" TRUE TRUE)(0.0 4.0 3.0 FALSE))))
 
 Operator : final
 Number   : 1
-Signature: mstring -> istring        
+Signature: mstring -> istring
 Example  : query val(final([const mstring value ((("2003-11-20" "2003-11-21" TRUE TRUE)"Zitadelle"))]));
 Result   : "Zitadelle"
 
@@ -316,9 +316,9 @@ Result   : TRUE
 
 Operator : speed_new
 Number   : 1
-Signature: mpoint -> mreal
+Signature: mpoint [x geoid] -> mreal
 Example  : query val(initial(speed_new(train7)))
-Result   : 1991238100644.561
+Result   : 23.04673727597871
 
 
 Operator : val
