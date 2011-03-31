@@ -110,6 +110,7 @@ storing tuples and LOBs respectively.
 #include <string.h>
 
 #include "RelationAlgebra.h"
+#include "StringUtils.h"
 
 #include "LogMsg.h"
 #include "QueryProcessor.h"
@@ -1134,7 +1135,7 @@ string Tuple::WriteToBinStr()
   string binStr;
   b64.encode(data, blockSize, binStr);
 
-  return replaceAll(binStr, "\n", "");
+  return stringutils::replaceAll(binStr, "\n", "");
 }
 
 void Tuple::ReadFromBinStr(string binStr)

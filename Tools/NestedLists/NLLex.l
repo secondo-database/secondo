@@ -55,6 +55,7 @@ using namespace std;
 #include "NestedList.h"
 #include "NLParser.h"
 #include "NLParser.tab.hpp"
+#include "StringUtils.h"
 
 #include "CharTransform.h"
 #include "LogMsg.h"
@@ -219,8 +220,8 @@ file		"<file>"[^<]+"</file--->"
 
 <INITIAL>{string}       { UPDATE_COL
       string s(yytext);
-      s = replaceAll(s,"\\\"","\"");
-      s = replaceAll(s,"\\\\","\\");
+      s = stringutils::replaceAll(s,"\\\"","\"");
+      s = stringutils::replaceAll(s,"\\\\","\\");
       yyleng = s.length();
       if ( s.length() - 2 > MAX_STRINGSIZE )
 			{

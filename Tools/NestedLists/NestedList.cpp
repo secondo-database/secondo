@@ -106,6 +106,7 @@ using namespace std;
 #include "WinUnix.h"
 #include "LogMsg.h"
 #include "Counter.h"
+#include "StringUtils.h"
 
 
 
@@ -934,7 +935,8 @@ NestedList::WriteAtom( const ListExpr atom,
       break;
     case StringType:{
        string s(StringValue(atom));
-      s = replaceAll(replaceAll(s,"\\","\\\\"),"\"","\\\"");
+      s = stringutils::replaceAll(
+              stringutils::replaceAll(s,"\\","\\\\"),"\"","\\\"");
       ostr << "\"" << s << "\"";
       break;
     }
@@ -1177,7 +1179,8 @@ within the structure of the list, otherwise, the function result is ~true~.
         break;
       case StringType:{
         string s = StringValue(list);
-        s = replaceAll(replaceAll(s,"\\","\\\\"),"\"","\\\"");
+        s = stringutils::replaceAll(
+               stringutils::replaceAll(s,"\\","\\\\"),"\"","\\\"");
         nlChars << ("\"" + s + "\"");
         break;
       }
@@ -2543,39 +2546,6 @@ NestedList::Text2String( const ListExpr& textAtom ) const {
 }
 
 
-/*
-The following function is used to replace all occurences of a pattern within a
-string by an other pattern.
-
-*/
-
-string replaceAll(const string& textStr,
-                  const string& patternOldStr,
-                  const string& patternNewStr)
-{
-  stringstream sstextReplaced;
-  size_t lastpos = 0;
-  size_t pos = 0;
-  if( patternOldStr.length() == 0 )
-  {
-    return textStr;
-  }
-  do {
-    lastpos = pos;
-    pos = textStr.find(patternOldStr, pos);
-    if (pos != string::npos)
-    {
-      size_t len = pos - lastpos;
-      sstextReplaced << textStr.substr(lastpos,len) << patternNewStr;
-      pos += patternOldStr.length();
-    }
-    else
-    {
-      sstextReplaced << textStr.substr(lastpos, textStr.length()-lastpos);
-    }
-  } while ( (pos != string::npos) && (pos < textStr.length()) );
-  return sstextReplaced.str();
-}
 
 /*
 Replace some critical symbols within strings representing text atoms.
@@ -2585,8 +2555,8 @@ Replace some critical symbols within strings representing text atoms.
 string transformText2Outtext(const string& value)
 {
   string textReplaced = "";
-  textReplaced = replaceAll(value, "\\", "\\\\");
-  textReplaced = replaceAll(textReplaced, "'", "\\'");
+  textReplaced = stringutils::replaceAll(value, "\\", "\\\\");
+  textReplaced = stringutils::replaceAll(textReplaced, "'", "\\'");
   return textReplaced;
 };
 

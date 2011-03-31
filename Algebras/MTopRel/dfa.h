@@ -41,6 +41,7 @@ This class is the implementation of a finite automaton.
 #include "NestedList.h" 
 #include "IntNfa.h"
 #include "GenericTC.h"
+#include "StringUtils.h"
 
 /*
 1.1 Auxiliary Functions
@@ -228,7 +229,7 @@ when using the names for topological relationships from the predicate group.
     string changed = regex;
     for(unsigned int i=0;i<names.size();i++){
       string res = " " + num2str(i)+" ";
-      changed = replaceAll(changed,names[i],res); 
+      changed = stringutils::replaceAll(changed,names[i],res); 
     }
 
     // replaces all dots by all possible symbols
@@ -241,7 +242,7 @@ when using the names for topological relationships from the predicate group.
           repl += num2str(i);
        } 
        repl += " )";
-       changed = replaceAll(changed, ".", repl);
+       changed = stringutils::replaceAll(changed, ".", repl);
      }
 
 

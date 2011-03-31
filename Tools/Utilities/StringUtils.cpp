@@ -28,6 +28,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 
 #include <string>
+#include <sstream>
 #include "StringUtils.h"
 
 namespace stringutils {
@@ -100,5 +101,40 @@ void trim(std::string& str) {
      str.erase(str.begin(), str.end());
     }    
 }
+
+/*
+The following function is used to replace all occurences of a pattern within a
+string by an other pattern.
+
+*/
+
+std::string replaceAll(const std::string& textStr,
+                  const std::string& patternOldStr,
+                  const std::string& patternNewStr)
+{
+  std::stringstream sstextReplaced;
+  size_t lastpos = 0; 
+  size_t pos = 0; 
+  if( patternOldStr.length() == 0 )
+  {
+    return textStr;
+  }
+  do { 
+    lastpos = pos; 
+    pos = textStr.find(patternOldStr, pos);
+    if (pos != std::string::npos)
+    {    
+      size_t len = pos - lastpos;
+      sstextReplaced << textStr.substr(lastpos,len) << patternNewStr;
+      pos += patternOldStr.length();
+    }    
+    else 
+    {    
+      sstextReplaced << textStr.substr(lastpos, textStr.length()-lastpos);
+    }    
+  } while ( (pos != std::string::npos) && (pos < textStr.length()) );
+  return sstextReplaced.str();
+}
+
 
 } // end of namespace stringutils

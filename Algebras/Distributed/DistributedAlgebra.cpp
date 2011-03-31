@@ -49,6 +49,7 @@ Operations on the darray-elements are carried out on the remote machines.
 #include "Remote.h"
 #include "zthread/ThreadedExecutor.h"
 #include "../FText/FTextAlgebra.h"
+#include "StringUtils.h"
 
 using namespace std;
 using namespace symbols;
@@ -1221,9 +1222,9 @@ static int sendFun( Word* args,
    string port = (string)(char*)((CcString*)args[4].addr)->GetStringval();
    string line;
 
-   host = replaceAll(host,"_",".");
-   host = replaceAll(host,"h","");
-   port = replaceAll(port,"p","");
+   host = stringutils::replaceAll(host,"_",".");
+   host = stringutils::replaceAll(host,"h","");
+   port = stringutils::replaceAll(port,"p","");
    
    //Connect to master
    Socket* master = Socket::Connect(host,port,Socket::SockGlobalDomain);
@@ -1357,9 +1358,9 @@ static ListExpr receiveTypeMap( ListExpr args )
    string port = nl->ToString(nl->Second(args));
    string line;
      
-   host = replaceAll(host,"_",".");
-   host = replaceAll(host,"h","");
-   port = replaceAll(port,"p","");
+   host = stringutils::replaceAll(host,"_",".");
+   host = stringutils::replaceAll(host,"h","");
+   port = stringutils::replaceAll(port,"p","");
 
    Socket* master = Socket::Connect(host,port,Socket::SockGlobalDomain);
      
@@ -1406,9 +1407,9 @@ static int receiveFun( Word* args,
    string port = (string)(char*)((CcString*)args[3].addr)->GetStringval();
    string line;
 
-   host = replaceAll(host,"_",".");
-   host = replaceAll(host,"h","");
-   port = replaceAll(port,"p","");
+   host = stringutils::replaceAll(host,"_",".");
+   host = stringutils::replaceAll(host,"h","");
+   port = stringutils::replaceAll(port,"p","");
      
    Socket* master = Socket::Connect(host,port,Socket::SockGlobalDomain);
      
@@ -1559,9 +1560,9 @@ static ListExpr receiverelTypeMap( ListExpr args )
    string port = nl->ToString(nl->Second(args));
    string line;
      
-   host = replaceAll(host,"_",".");
-   host = replaceAll(host,"h","");
-   port = replaceAll(port,"p","");
+   host = stringutils::replaceAll(host,"_",".");
+   host = stringutils::replaceAll(host,"h","");
+   port = stringutils::replaceAll(port,"p","");
 
    Socket* master = Socket::Connect(host,port,Socket::SockGlobalDomain);
      
@@ -1611,9 +1612,9 @@ static int receiverelFun( Word* args,
  
    string line;
    
-   host = replaceAll(host,"_",".");
-   host = replaceAll(host,"h","");
-   port = replaceAll(port,"p","");
+   host = stringutils::replaceAll(host,"_",".");
+   host = stringutils::replaceAll(host,"h","");
+   port = stringutils::replaceAll(port,"p","");
 
    Socket* master = Socket::Connect(host,port,Socket::SockGlobalDomain);
      
@@ -1734,9 +1735,9 @@ static int sendrelFun( Word* args,
    string port = (string)(char*)((CcString*)args[4].addr)->GetStringval();
    string line;
 
-   host = replaceAll(host,"_",".");
-   host = replaceAll(host,"h","");
-   port = replaceAll(port,"p","");
+   host = stringutils::replaceAll(host,"_",".");
+   host = stringutils::replaceAll(host,"h","");
+   port = stringutils::replaceAll(port,"p","");
 
    Socket* master = Socket::Connect(host,port,Socket::SockGlobalDomain);
      
@@ -2090,7 +2091,7 @@ static int loopValueMap
    ListExpr type = sc->NumericType(nl->Second((qp->GetType(s))));
    string command = ((FText*)args[2].addr)->GetValue();
    string elementname = ((CcString*)(args[3].addr))->GetValue();
-   command = replaceAll(command, elementname, "!");
+   command = stringutils::replaceAll(command, elementname, "!");
   
      
    ZThread::ThreadedExecutor exec;DServer* server;

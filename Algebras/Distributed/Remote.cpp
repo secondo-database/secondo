@@ -39,6 +39,7 @@ DServerCreator, DServerExecutor and RelationWriter
 #include "zthread/ThreadedExecutor.h"
 #include "zthread/Mutex.h"
 #include <iostream>
+#include "StringUtils.h"
 
 
 
@@ -141,7 +142,7 @@ DServer::DServer(string n_host,int n_port,string n_name,ListExpr n_type)
         
 
    HostIP = server->GetSocketAddress();
-   HostIP_ = "h" + replaceAll(HostIP,".","_");
+   HostIP_ = "h" + stringutils::replaceAll(HostIP,".","_");
    
    cout << "Connection to Worker on " << host << " established." << endl;
 }
@@ -566,7 +567,8 @@ void DServer::run()
          arg2 = arg->front();
          arg->pop_front();
          
-         string com_a = replaceAll(com,"!","r" + name + toString_d(arg2));
+         string com_a = stringutils::replaceAll(com,"!","r" +
+                                        name + toString_d(arg2));
          
          //A command is executed on the worker
          string cmd;

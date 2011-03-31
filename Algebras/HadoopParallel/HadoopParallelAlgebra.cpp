@@ -65,6 +65,7 @@ but includes tuples of different schemes.
 #include "Base64.h"
 #include "regex.h"
 #include "FileSystem.h"
+#include "StringUtils.h"
 
 using namespace symbols;
 using namespace std;
@@ -323,7 +324,7 @@ string binEncode(ListExpr nestList)
   Base64 b64;
   b64.encodeStream(iss, oss);
   string valueStr = oss.str();
-  valueStr = replaceAll(valueStr, "\n", "");
+  valueStr = stringutils::replaceAll(valueStr, "\n", "");
   return valueStr;
 }
 

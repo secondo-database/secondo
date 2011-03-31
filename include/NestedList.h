@@ -1252,16 +1252,6 @@ to deleting parts of nested lists which are still in use elsewhere.
 };
 
 /*
-The following function is used to replace all occurences of a pattern within a
-string by an other pattern.
-
-*/
-
-string replaceAll(const string& testStr,
-                  const string& patternOldStr,
-                  const string& patternNewStr);
-
-/*
 Replace some critical symbols within strings representing text atoms.
 Replace critical character sequences:
 

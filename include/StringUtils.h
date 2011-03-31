@@ -27,6 +27,10 @@ The implentations can be found at StringUtils.cpp in directory Tools/Utilities.
 
 */
 
+
+#ifndef STRINGUTILS_H
+#define STRINGUTILS_H
+
 #include <string>
 
 
@@ -81,6 +85,18 @@ removes whitespaces at the begin and at the end of the string.
 
 void trim(std::string& str);
 
+/*
+The following function is used to replace all occurences of a pattern within a
+string by an other pattern.
+
+*/
+
+std::string replaceAll(const std::string& textStr,
+                  const std::string& patternOldStr,
+                  const std::string& patternNewStr);
+
 } // end of namespace stringutils
+
+#endif
 
 
