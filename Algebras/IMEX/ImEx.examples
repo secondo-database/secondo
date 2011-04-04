@@ -83,7 +83,7 @@ Result   : '[const point value (0 0)]'
 
 Operator : shpimport
 Number   : 1
-Signature: s x text  -> stream(s)
+Signature: T x text  -> stream(T)
 Example  : query  [const point value (0 0)] shpimport['kinos.shp'] count
 Result   : 83
 
@@ -91,7 +91,7 @@ Result   : 83
 
 Operator : shpimport2
 Number   : 1
-Signature: text  -> stream(s)
+Signature: text  -> stream(T)
 Example  : query  shpimport2('kinos.shp') count
 Result   : 83
 
@@ -299,14 +299,14 @@ Example  : query nmeaimport_line('$GPGGA,094154.384,5131.2913,N,00726.9363,E,0,0
 Result   : 0
 
 
-Operator : get_lines 
+Operator : get_lines
 Number   : 1
 Signature: text -> stream(text)
 Example  : query get_lines('ten.csv') count
 Result   : 11
 
 
-Operator : get_lines 
+Operator : get_lines
 Number   : 2
 Signature: string -> stream(text)
 Example  : query get_lines("ten.csv") count

@@ -490,17 +490,17 @@ ListExpr csvimportTM(ListExpr args){
 
 const string csvimportSpec  =
    "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-   "( <text> rel(tuple(...) x text x int x string [x string] "
+   "( <text>rel(tuple(...) x text x int x string [x string] "
    "-> stream (tuple(...))</text--->"
-   "<text> rel csvimport[filename, headersize, comment, separator] </text--->"
-   "<text> Returns the content of the CSV (Comma Separated Value) 'filename' "
-   "as a stream of tuples. The types are defined by the first argument, 'rel', "
-   "whose tuple type acts as a template for the result tuple type. 'headersize'"
-   " specifies an amount of lines to ignore at the head of the imported "
-   "textfile. 'comment' defines a character that marks comment lines within "
-   "the textfile. 'separator' defines the character that is expected to "
-   "separate the fields within each line of the textfile (default is \",\"."
-   "</text--->"
+   "<text>Rel csvimport[ FileName, HeaderSize, Comment, Separator] </text--->"
+   "<text> Returns the content of the CSV (Comma Separated Value) file "
+   "'FileName' as a stream of tuples. The types are defined by the first "
+   "argument, 'Rel', whose tuple type acts as a template for the result tuple "
+   "type. 'HeaderSize' specifies an amount of lines to ignore at the head of "
+   "the imported textfile. 'Comment' defines a character that marks comment "
+   "lines within the textfile. 'Separator' defines the character that is "
+   "expected to separate the fields within each line of the textfile (default "
+   "is \",\".</text--->"
    "<text> not tested !!!</text--->"
    ") )";
 /*
@@ -733,7 +733,7 @@ ListExpr nmeaimportTM(ListExpr args){
 
    if(!nl->HasLength(first,2) || !nl->HasLength(second,2)){
      return listutils::typeError("invalid types for operator"
-                                 " evaluating arguments in type mapping"); 
+                                 " evaluating arguments in type mapping");
    }
    ListExpr first1 = nl->First(first);
    if(!listutils::isSymbol(first1,FText::BasicType())){
@@ -756,7 +756,7 @@ ListExpr nmeaimportTM(ListExpr args){
 
    if(!value->IsDefined()) {
       value->DeleteIfAllowed();
-      return listutils::typeError("string argument evaluated to be undefined"); 
+      return listutils::typeError("string argument evaluated to be undefined");
    }
    string v = value->GetValue();
    value->DeleteIfAllowed();
@@ -768,8 +768,8 @@ ListExpr nmeaimportTM(ListExpr args){
      return listutils::typeError(v + " is not a known nmea type id, known are "
                                  + nmeaImporter->getKnownTypes());
    }
- 
-   return nl->TwoElemList(nl->SymbolAtom("stream"), 
+
+   return nl->TwoElemList(nl->SymbolAtom("stream"),
                           nmeaImporter->getTupleType());
 }
 
@@ -793,7 +793,7 @@ int nmeaimportVM(Word* args, Word& result,
       CcString* t = static_cast<CcString*>(args[1].addr);
       if(!fn->IsDefined() || !t->IsDefined()){
          return 0;
-      } 
+      }
       NMEAImporter* imp = new NMEAImporter();
       if(!imp->setType(t->GetValue())){
         delete imp;
@@ -804,7 +804,7 @@ int nmeaimportVM(Word* args, Word& result,
         delete imp;
         return 0;
       }
-      local.addr = imp; 
+      local.addr = imp;
       return 0;
     }
 
@@ -843,12 +843,18 @@ int nmeaimportVM(Word* args, Word& result,
 
 const string nmeaimportSpec  =
    "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-   "( <text> text x string -> streamtuple(...)) </text--->"
-   "<text> nmeaimport(filename, type) </text--->"
-   "<text> Returns the content of all lines matching type "
-   "as a stream of typles."
-   "The result type depenend of the value of typeid"
-   "</text--->"
+   "( <text> text x string -> streamtuple( TL )) </text--->"
+   "<text>nmeaimport( FileName, Type) </text--->"
+   "<text>Extracts data from the given text file 'FileName' as a tuple stream "
+   "(or an empty stream if the file contains no valid sentence). For each line"
+   "represents a correct NMEA 0183 sentence of of the specified 'Type', a "
+   "result tuple is created. The result tuple type TL depends on the specified "
+   "sentence type 'Type'. The NMEA 0183 sender prefix (first 2 "
+   "characters after the starting '$') is not considered! The known sentence "
+   "types are:"
+//    +nmeaImporter->getKnownTypes()+ // generic solution crashes at startup
+   "{GGA, GLL, GNS, GSA, GSV, RMC, ZDA}" // using hard-coded list instead!
+   ".</text--->"
    "<text> query nmeaimport('trip.nmea',\"GGA\") count</text--->"
    ") )";
 
@@ -885,9 +891,9 @@ int nmeaimport_lineVM(Word* args, Word& result,
       CcString* t = static_cast<CcString*>(args[1].addr);
       if(!t->IsDefined()){
          return 0;
-      } 
+      }
       string* type = new string(t->GetValue());
-      local.addr = type; 
+      local.addr = type;
       return 0;
     }
 
@@ -904,7 +910,7 @@ int nmeaimport_lineVM(Word* args, Word& result,
        local.addr = 0;
        FText* line = static_cast<FText*>(args[0].addr);
        if(!line->IsDefined()){
-          return CANCEL; 
+          return CANCEL;
        }
        result.addr =  nmeaImporter->getTuple(line->GetValue());
        return result.addr?YIELD:CANCEL;
@@ -926,14 +932,20 @@ int nmeaimport_lineVM(Word* args, Word& result,
 
 const string nmeaimport_lineSpec  =
  "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
- "( <text> text x string -> stream(tuple(...)) </text--->"
- "<text> nmeaimport_line(line, type) </text--->"
- "<text> Returns the the given line lines as a single tuple "
- "or an empty stream if the line is not a valid of of the given type."
- "</text--->"
+ "( <text>text x string -> stream(tuple( TL )) </text--->"
+ "<text>nmeaimport_line( Line, Type) </text--->"
+ "<text>Extracts data from the given text 'Line' as a single tuple (or an empty"
+ " stream if the line is not a valid sentence). The call is successful, if Line"
+ " represents a correct NMEA 0183 sentence of of the given Type. The result "
+ "tuple type TL depends on the specified sentence type ' Type'. The "
+ "NMEA 0183 sender prefix (first 2 characters after the starting '$') is not"
+ "considered! The known sentence types are: "
+ //    +nmeaImporter->getKnownTypes()+ // generic solution crashes at startup
+ "{GGA, GLL, GNS, GSA, GSV, RMC, ZDA}" // using hard-coded list instead!
+ ".</text--->"
  "<text> query nmeaimport_line('$GPGGA,090150.383,"
- "5131.2913,N,00726.9363,E,0,0,,102.5,M,47.5,M,,*45',"
- "\"GGA\") tconsume</text--->"
+ "5131.2913,N,00726.9363,E,0,0,,102.5,M,47.5,M,,*45', \"GGA\") "
+ "tconsume</text--->"
  ") )";
 
 
@@ -969,8 +981,8 @@ ListExpr get_linesTM(ListExpr args){
   if(!listutils::isSymbol(arg,CcString::BasicType()) &&
      !listutils::isSymbol(arg,FText::BasicType())){
     return listutils::typeError(err);
-  }  
-  return nl->TwoElemList(nl->SymbolAtom("stream" ), 
+  }
+  return nl->TwoElemList(nl->SymbolAtom("stream" ),
                          nl->SymbolAtom(FText::BasicType()));
 
 }
@@ -1035,15 +1047,15 @@ ValueMapping get_linesMAPS[] = {get_linesVM<CcString>,
 
 int get_linesSel(ListExpr args){
    return listutils::isSymbol(nl->First(args), CcString::BasicType())?0:1;
-} 
+}
 
 
 
 const string get_linesSpec  =
  "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
- "( <text> {text,string} -> stream(text)</text--->"
- "<text> get_lines(filename) </text--->"
- "<text> Returns the lines contained in the given file as stream. "
+ "( <text>{text,string} -> stream(text)</text--->"
+ "<text>get_lines( FileName ) </text--->"
+ "<text>Returns the content of file 'FileName' line by line as text stream."
  "</text--->"
  "<text> query get_lines('ten.csv') count</text--->"
  ") )";
@@ -2602,10 +2614,12 @@ int shpimportVM(Word* args, Word& result,
 */
 const string shpimportSpec  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-    "( <text> s x text -> stream(s), s in {point, points, line, region}"
+    "( <text>T x text -> stream(T), T in {point, points, line, region}"
     "</text--->"
     "<text> _ shpimport [ _ ] </text--->"
-    "<text> produces a stream of spatial objects from a shapefile</text--->"
+    "<text>Produces a stream of spatial objects of type T from a shapefile. "
+    "The first argument is a dummy parameter. It is required to determine the "
+    "type T of the result stream.</text--->"
     "<text> not tested !!!</text--->"
     ") )";
 
@@ -2646,7 +2660,7 @@ ListExpr shpimport2TM(ListExpr args){
    Word res;
    bool success = QueryProcessor::ExecuteQuery(nl->ToString(value),res);
    if(!success){
-     return listutils::typeError("could not evaluate the value of  " + 
+     return listutils::typeError("could not evaluate the value of  " +
                                   nl->ToString(value) );
    }
 
@@ -2675,9 +2689,12 @@ ListExpr shpimport2TM(ListExpr args){
 
 const string shpimport2Spec  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-    "( <text> text -> stream(s), s in {point, points, line, region}</text--->"
-    "<text> shpimport2(_) </text--->"
-    "<text> produces a stream of spatial objects from a shapefile</text--->"
+    "( <text> text -> stream(T), T in {point, points, line, region}</text--->"
+    "<text>shpimport2(_) </text--->"
+    "<text>Produces a stream of spatial objects from a shapefile. The spatial "
+    "result stream element type T is determined automatically by inspecting "
+    "the import file."
+    "</text--->"
     "<text> query shpimport2('kinos.shp') count</text--->"
     ") )";
 
@@ -2769,7 +2786,7 @@ ListExpr getDBAttrList(string name, bool& correct, string& errorMessage){
   }
   int noRecords = (headerlength-32) / 32;
 
-  
+
 
   f.seekg(0,ios::end);
   if(f.tellg() < headerlength){
@@ -2825,7 +2842,7 @@ ListExpr getDBAttrList(string name, bool& correct, string& errorMessage){
          return listutils::typeError();
       }
      }
-     ListExpr attr = nl->TwoElemList(nl->SymbolAtom(name), 
+     ListExpr attr = nl->TwoElemList(nl->SymbolAtom(name),
                                      nl->SymbolAtom(type));
      if(i==0){ // first elem
        attrList = nl->OneElemList(attr);
@@ -2858,7 +2875,7 @@ int dbtypeVM(Word* args, Word& result,
   string errorMessage = "";
   ListExpr attrList = getDBAttrList(name, correct, errorMessage);
 
-  
+
 
   if(!correct){
      res->SetDefined(false);
@@ -2881,7 +2898,7 @@ int dbtypeVM(Word* args, Word& result,
      first = false;
   }
   resstr << "])) value ()]";
- 
+
   resstr.flush();
   res->Set(true, resstr.str());
   return 0;
@@ -2894,10 +2911,11 @@ int dbtypeVM(Word* args, Word& result,
 
 const string dbtypeSpec  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-    "( <text> text -> text</text--->"
-    "<text> dbtype(filename) </text--->"
-    "<text> returns an object description of the secondo object"
-    " stored within the dbase III file specified by the name</text--->"
+    "( <text>text -> text</text--->"
+    "<text>dbtype( FileName ) </text--->"
+    "<text>Returns an object description of the secondo object"
+    " stored within the dbase III file specified by FileName as a text value."
+    "</text--->"
     "<text> not tested !!!</text--->"
     ") )";
 
@@ -2944,9 +2962,11 @@ ListExpr dbimportTM(ListExpr args){
 
 const string dbimportSpec  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-    "( <text> rel(tuple(...) x text -> stream (tuple(...))</text--->"
-    "<text> rel dbimport[filename] </text--->"
-    "<text> returns the content of the file as a stream </text--->"
+    "( <text>rel(tuple(...) x text -> stream(tuple(...))</text--->"
+    "<text>Rel dbimport[ FileName ] </text--->"
+    "<text>Returns the content of the file as a tuple stream. The result tuple "
+    "type must the passed as a relation Rel of the same tupletype as the "
+    "result stream.</text--->"
     "<text> not tested !!!</text--->"
     ") )";
 
@@ -3327,7 +3347,7 @@ Operator dbimport( "dbimport",
 /*
 8 Operator db3import2
 
-This variant of the db3import operator combines the dbtype and the 
+This variant of the db3import operator combines the dbtype and the
 dbimport operator to a single operator. It exploits a new feature of
 secondo, namely accessing values of constant expressions within type mappings
 not available during the implementation of db3type and db3import.
@@ -3338,10 +3358,10 @@ not available during the implementation of db3type and db3import.
 8.1 Value Mapping
 
 
-The value mapping of this function is text -> stream(tuple(....)) 
+The value mapping of this function is text -> stream(tuple(....))
 
 The tuple type depends on the content of the file specified by the text.
-If the file does not reprensent a valid db3 file, the result will be 
+If the file does not reprensent a valid db3 file, the result will be
 a typeerror.
 
 */
@@ -3352,7 +3372,7 @@ ListExpr dbimport2TM(ListExpr args){
 
    ListExpr arg = nl->First(args);
    // the format must be (text value)
-   // where values represents the value of the text as 
+   // where values represents the value of the text as
    // query expression
    if(nl->ListLength(arg)!=2){
       return listutils::typeError("internal error");
@@ -3386,7 +3406,7 @@ ListExpr dbimport2TM(ListExpr args){
    ListExpr attrList = getDBAttrList(name,correct, errMsg);
    if(!correct){
        return listutils::typeError(errMsg);
-   }   
+   }
    return nl->TwoElemList(nl->SymbolAtom("stream"),
                    nl->TwoElemList(nl->SymbolAtom("tuple"), attrList));
 
@@ -3397,8 +3417,9 @@ ListExpr dbimport2TM(ListExpr args){
 const string dbimport2Spec  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
     "( <text> text -> stream (tuple(...))</text--->"
-    "<text>  dbimport2(filename) </text--->"
-    "<text> returns the content of the file as a stream </text--->"
+    "<text>dbimport2( FileName) </text--->"
+    "<text>Returns the content of file FineName as a stream. The stream tuple "
+    "type is determined automatically by inspecting the file.</text--->"
     "<text> </text--->"
     ") )";
 
@@ -5019,9 +5040,9 @@ public:
     AddOperator( &getSecondoPlatform);
     AddOperator( &getPageSize);
     AddOperator( &nmeaimport);
-    nmeaimport.SetUsesArgsInTypeMapping(); 
+    nmeaimport.SetUsesArgsInTypeMapping();
     AddOperator( &nmeaimport_line);
-    nmeaimport_line.SetUsesArgsInTypeMapping(); 
+    nmeaimport_line.SetUsesArgsInTypeMapping();
     AddOperator( &get_lines);
   }
   ~ImExAlgebra() {};
