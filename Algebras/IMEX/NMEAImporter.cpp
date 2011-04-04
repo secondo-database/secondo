@@ -25,12 +25,12 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 1 Extending the NMEAImporter.
 
 If there are nmea files containing non-supported sentences, the nmeaimporter can
-be extended to these new sentences. 
+be extended to these new sentences.
 
 The this end, two things are to do:
 
 1) Writing a class doing the conversion. This class must be inherited from
-   class NMEALineImporter and has to overwrite all pure virtual functions. 
+   class NMEALineImporter and has to overwrite all pure virtual functions.
    For more information, see this class.
 
 2) Add an instance of the new class to the vector of avialable
@@ -63,10 +63,10 @@ class NMEALineImporter{
 /*
 ~accept~
 
-This fucntion checks whether the managed sentence corresponds to the 
+This fucntion checks whether the managed sentence corresponds to the
 given string.
-For example, within a class managing [$]--GGA sentences, the class 
-checks whether 
+For example, within a class managing [$]--GGA sentences, the class
+checks whether
 the given string is "GGA".
 
 */
@@ -87,9 +87,9 @@ NMEALineImporter, e.g. (tuple ((Time instant)(Lat real)(Lon real))).
 ~createTupleForLine~
 
 Creates a new Tuple from a description. This function must be able to
-handle arbitrary strings. If the list is not of the correct format, e.g. 
+handle arbitrary strings. If the list is not of the correct format, e.g.
 contains not the sentence managed by this importer, the result will be
-0. 
+0.
 
 */
 
@@ -113,7 +113,7 @@ namespace nmea_stringutils{
 /*
 ~char2int~
 
-Converts a character representing a digit into the coressponding 
+Converts a character representing a digit into the coressponding
 interger value. There is no check for validity.
 
 */
@@ -126,15 +126,15 @@ interger value. There is no check for validity.
 /*
 ~getutc~
 
-This function converts a string formatted as hhmmss.ss into an instant. 
+This function converts a string formatted as hhmmss.ss into an instant.
 If the string is not well formatted, the result will be false. Otherwise, the
 day of __currentDay__ , the hour, the minute etc. of the utc code is
 used to create an instant returned in result.
 
 
-*/ 
-  bool getutc(const string& utc, 
-              const datetime::DateTime& currentDay, 
+*/
+  bool getutc(const string& utc,
+              const datetime::DateTime& currentDay,
               datetime::DateTime& result){
      stringutils::StringTokenizer st(utc, ".");
      if(!st.hasNextToken()){
@@ -147,7 +147,7 @@ used to create an instant returned in result.
      }
      if(st.hasNextToken()){
        return false;
-     } 
+     }
      trim(first);
      trim(second);
      // ensure that first and second consist of digits only
@@ -170,33 +170,33 @@ used to create an instant returned in result.
      for(unsigned int i=0;i<second.length(); i++){
         milliseconds += m*char2int(second[i]);
         m = m / 10;
-     } 
+     }
 
 
 
-     int ms[] = {36000, 3600, 600, 60, 10 , 1}; // mutilple for the 
+     int ms[] = {36000, 3600, 600, 60, 10 , 1}; // mutilple for the
      for(unsigned int i=0; i<first.length(); i++){
        int factor = ms[5-i];
        char c = first[first.length()-(i+1)];
-       int num = char2int(c); 
+       int num = char2int(c);
        seconds += factor*num;
      }
-     
+
      milliseconds = milliseconds + 1000*seconds;
- 
+
      result = currentDay;
      //result.setToMidnight();
      datetime::DateTime d(0,milliseconds,datetime::durationtype);
      result += d;
      return true;
-  }  
+  }
 
 /*
 ~getUtc~
 
-Returns a DateTime instance corresponding to the first element of the 
-StringTokenizer given as argument. If the tokenizer does not have a 
-element or the first element does not represent a valid UTC in nmea 
+Returns a DateTime instance corresponding to the first element of the
+StringTokenizer given as argument. If the tokenizer does not have a
+element or the first element does not represent a valid UTC in nmea
 format, the result will be an undefined instant.
 
 */
@@ -218,9 +218,9 @@ datetime::DateTime* getUtc(stringutils::StringTokenizer& st){
 /*
 ~getInt~
 
-Returns the integer represented by the given string. Leading or following 
+Returns the integer represented by the given string. Leading or following
 spaces are ignored. If the values does not represent a valid integer value,
- the result will be 
+ the result will be
 false.
 
 */
@@ -235,9 +235,9 @@ bool getInt(string val, int& result){
      signum = -1;
      val = val.substr(1);
      trim(val);
-  } 
+  }
 
- 
+
   if(val.find_first_not_of("0123456789")!=string::npos){
       return  false;
   }
@@ -266,7 +266,7 @@ bool getReal(const string& s, double& result){
    stringutils::StringTokenizer st(s,".");
    if(!st.hasNextToken()){
      return false;
-   } 
+   }
    string first = st.nextToken();
    int p1;
    if(!getInt(first,p1)){
@@ -368,7 +368,7 @@ bool getDecimal(const string& val, double& result){
      return true;
   }
 
-  
+
 
 
   string mmmm = st.nextToken();
@@ -382,7 +382,7 @@ bool getDecimal(const string& val, double& result){
   if(p1<0){
     return false;
   }
-  result = minutes + p1 / pow(10, (int) mmmm.length());  
+  result = minutes + p1 / pow(10, (int) mmmm.length());
   result = result/60.0; // convert minutes into degree
   return true;
 }
@@ -394,7 +394,7 @@ bool getDecimal(const string& val, double& result){
 /*
 ~getLat~
 
-Converts two strings (first representing a real value, second 
+Converts two strings (first representing a real value, second
 represneting "N" or "S") into a real number.
 
 */
@@ -451,7 +451,7 @@ CcReal* getLat(stringutils::StringTokenizer& st){
 /*
 ~getLon~
 
-Converts two strings (first representing a real value, 
+Converts two strings (first representing a real value,
  second represneting "N" or "S") into
 a real number (longitude).
 
@@ -528,7 +528,7 @@ CcString* getString(stringutils::StringTokenizer& st,
 /*
 ~getInt~
 
-Converts the first element of ~st~ into a CcInt. If ~st~ is empty, or 
+Converts the first element of ~st~ into a CcInt. If ~st~ is empty, or
 does not form an integer, the result is undefined. If allowTrim is set to
 be true, white spces at the begin and the end of the first element of ~st~
 are ignored.
@@ -551,11 +551,11 @@ CcInt* getInt(stringutils::StringTokenizer& st, const bool allowTrim = true){
 
 
 /*
-~getInt~
+~getReal~
 
-Converts the first element of ~st~ into a CcReal. If ~st~ is empty, or 
-does not form a real numer in nmea format, i.e. xxx.xxx, the result is 
-undefined. If allowTrim is set to be true, white spces at the begin and 
+Converts the first element of ~st~ into a CcReal. If ~st~ is empty, or
+does not form a real numer in nmea format, i.e. xxx.xxx, the result is
+undefined. If allowTrim is set to be true, white spces at the begin and
 the end of the first element of ~st~
 are ignored.
 
@@ -574,7 +574,7 @@ CcReal* getReal(stringutils::StringTokenizer& st, const bool allowTrim = true){
   }
   return result;
 }
- 
+
 
 
 
@@ -601,12 +601,12 @@ Initialized some members.
 */
 
      GGAImporter():NMEALineImporter(),
-                   currentDay(datetime::durationtype), 
-                   lastTime(datetime::instanttype), 
+                   currentDay(datetime::durationtype),
+                   lastTime(datetime::instanttype),
                    oneDay(1,0,datetime::durationtype),
                    tupleType(0),
                    typeId("GGA"){
-        
+
         lastTime.SetDefined(false);
         ListExpr numtype = SecondoSystem::GetCatalog()->
                            NumericType(getTupleTypeAsList());
@@ -647,50 +647,50 @@ Returns the type of the tuple when converting a GGA sentence.
                                                     nl->SymbolAtom("string")));
         ListExpr last = attrList;
 
-        last = nl->Append(last,nl->TwoElemList(nl->SymbolAtom("Utc"), 
+        last = nl->Append(last,nl->TwoElemList(nl->SymbolAtom("Utc"),
                                                nl->SymbolAtom("instant")));
 
-        last = nl->Append(last,nl->TwoElemList(nl->SymbolAtom("Lat"), 
-                                               nl->SymbolAtom("real")));
-                                                
-        last = nl->Append(last,nl->TwoElemList(nl->SymbolAtom("Lon"), 
+        last = nl->Append(last,nl->TwoElemList(nl->SymbolAtom("Lat"),
                                                nl->SymbolAtom("real")));
 
-        last = nl->Append(last,nl->TwoElemList(nl->SymbolAtom("FixQuality"), 
+        last = nl->Append(last,nl->TwoElemList(nl->SymbolAtom("Lon"),
+                                               nl->SymbolAtom("real")));
+
+        last = nl->Append(last,nl->TwoElemList(nl->SymbolAtom("FixQuality"),
                                                nl->SymbolAtom("int")));
 
-        last = nl->Append(last,nl->TwoElemList(nl->SymbolAtom("NoSats"), 
+        last = nl->Append(last,nl->TwoElemList(nl->SymbolAtom("NoSats"),
                                                nl->SymbolAtom("int")));
 
-        last = nl->Append(last,nl->TwoElemList(nl->SymbolAtom("HDilution"), 
+        last = nl->Append(last,nl->TwoElemList(nl->SymbolAtom("HDilution"),
                                                nl->SymbolAtom("real")));
-   
-        last = nl->Append(last,nl->TwoElemList(nl->SymbolAtom("Alt"), 
+
+        last = nl->Append(last,nl->TwoElemList(nl->SymbolAtom("Alt"),
                                                nl->SymbolAtom("real")));
-        
-        last = nl->Append(last,nl->TwoElemList(nl->SymbolAtom("AltUnit"), 
+
+        last = nl->Append(last,nl->TwoElemList(nl->SymbolAtom("AltUnit"),
                                                nl->SymbolAtom("string")));
 
-        last = nl->Append(last,nl->TwoElemList(nl->SymbolAtom("Height"), 
+        last = nl->Append(last,nl->TwoElemList(nl->SymbolAtom("Height"),
                                                nl->SymbolAtom("real")));
 
-        
-        last = nl->Append(last,nl->TwoElemList(nl->SymbolAtom("HeightUnit"), 
+
+        last = nl->Append(last,nl->TwoElemList(nl->SymbolAtom("HeightUnit"),
                                                nl->SymbolAtom("string")));
 
-        
+
         last = nl->Append(last,nl->TwoElemList(nl->SymbolAtom("TimeLastUpdate"),
                                                nl->SymbolAtom("real")));
 
 
-        last = nl->Append(last,nl->TwoElemList(nl->SymbolAtom("DGPSStationID"), 
+        last = nl->Append(last,nl->TwoElemList(nl->SymbolAtom("DGPSStationID"),
                                                nl->SymbolAtom("int")));
 
         // ommit checksum
 
         return nl->TwoElemList(nl->SymbolAtom("tuple"), attrList);
-  
-     } 
+
+     }
 /*
 1.6 getTupleForLine
 
@@ -712,7 +712,7 @@ Creates tuple from a description if possible, 0 otherwise.
         }
         Tuple* t = new Tuple(tupleType);
         t->PutAttribute(0, new CcString(true, s.substr(1,2)));
-        
+
         datetime::DateTime* utc = nmea_stringutils::getUtc(st);
         if(utc->IsDefined()){
             utc->Add(&currentDay);
@@ -720,7 +720,7 @@ Creates tuple from a description if possible, 0 otherwise.
                if(*utc < lastTime){
                    utc->Add(&oneDay);
                    currentDay.Add(&oneDay);
-               } 
+               }
             }
             lastTime = *utc;
         }
@@ -821,8 +821,8 @@ class GSAImporter : public NMEALineImporter{
         last = nl->Append( last, nl->TwoElemList(nl->SymbolAtom("VDop"),
                                            nl->SymbolAtom("real")));
         return nl->TwoElemList(nl->SymbolAtom("tuple"),attrList);
-    
-         
+
+
      }
 
      virtual Tuple* getTupleForLine(const string& line){
@@ -862,10 +862,10 @@ class GSAImporter : public NMEALineImporter{
            if(st2.hasNextToken()){
                double v;
                if(nmea_stringutils::getReal(st2.nextToken(),v)){
-                   vdop->Set(true,v); 
+                   vdop->Set(true,v);
                }
 
-           }   
+           }
         }
         t->PutAttribute(17,vdop);
         return t;
@@ -876,7 +876,7 @@ class GSAImporter : public NMEALineImporter{
      }
 
  private:
-    TupleType* tupleType; 
+    TupleType* tupleType;
 
 };
 
@@ -891,8 +891,8 @@ Class importing RMC sentences
 class RMCImporter: public NMEALineImporter{
 
     public:
-      
-      
+
+
      RMCImporter() {
         ListExpr numtype = SecondoSystem::GetCatalog()->
                             NumericType(getTupleTypeAsList());
@@ -905,7 +905,7 @@ class RMCImporter: public NMEALineImporter{
       }
 
      ListExpr getTupleTypeAsList() const {
-       ListExpr attrList = nl->OneElemList(nl->TwoElemList( 
+       ListExpr attrList = nl->OneElemList(nl->TwoElemList(
                                   nl->SymbolAtom("SenID"),
                                   nl->SymbolAtom("string")));
        ListExpr last = attrList;
@@ -923,7 +923,7 @@ class RMCImporter: public NMEALineImporter{
 
        last = nl->Append(last, nl->TwoElemList(nl->SymbolAtom("Speed"),
                                                nl->SymbolAtom("real")));
-       
+
        last = nl->Append(last, nl->TwoElemList(nl->SymbolAtom("Angle"),
                                                nl->SymbolAtom("real")));
 
@@ -960,7 +960,7 @@ class RMCImporter: public NMEALineImporter{
         datetime::DateTime* date = nmea_stringutils::getDate(st);
         datetime::DateTime* time = new datetime::DateTime(date->GetDay(),
                                                  utc->GetAllMilliSeconds(),
-                                                 datetime::instanttype); 
+                                                 datetime::instanttype);
         delete utc;
         delete date;
         t->PutAttribute(1,time);
@@ -972,13 +972,13 @@ class RMCImporter: public NMEALineImporter{
            if(st2.hasNextToken()){
                 string s2 = st2.nextToken();
                 if(s2.length()>0){
-                  magS->Set(true,s2); 
+                  magS->Set(true,s2);
                 }
-           }   
+           }
         }
         t->PutAttribute(8,magS);
-        return t; 
-        
+        return t;
+
 
      }
 
@@ -988,7 +988,7 @@ class RMCImporter: public NMEALineImporter{
 
 
  private:
-    TupleType* tupleType; 
+    TupleType* tupleType;
 };
 
 
@@ -999,7 +999,7 @@ class RMCImporter: public NMEALineImporter{
 
 class ZDAImporter : public NMEALineImporter{
   public:
-     
+
      ZDAImporter() {
         ListExpr numtype = SecondoSystem::GetCatalog()->
                             NumericType(getTupleTypeAsList());
@@ -1010,19 +1010,19 @@ class ZDAImporter : public NMEALineImporter{
          tupleType->DeleteIfAllowed();
          tupleType=0;
       }
-     
+
       string getAcceptedType() const{
          return "ZDA";
       }
 
       ListExpr getTupleTypeAsList() const {
-         ListExpr attrList = nl->OneElemList(nl->TwoElemList( 
+         ListExpr attrList = nl->OneElemList(nl->TwoElemList(
                                     nl->SymbolAtom("SenID"),
                                     nl->SymbolAtom("string")));
          ListExpr last = attrList;
          last = nl->Append(last, nl->TwoElemList(nl->SymbolAtom("Time"),
                                                  nl->SymbolAtom("instant")));
-         
+
          last = nl->Append(last, nl->TwoElemList(nl->SymbolAtom("TimeZoneH"),
                                                  nl->SymbolAtom("int")));
 
@@ -1047,7 +1047,7 @@ class ZDAImporter : public NMEALineImporter{
         t->PutAttribute(0, new CcString(true, s.substr(1,2)));
 
         // extract time
-        datetime::DateTime* utc = nmea_stringutils::getUtc(st); 
+        datetime::DateTime* utc = nmea_stringutils::getUtc(st);
 
         int d,m,y;
         if(!utc->IsDefined() ||
@@ -1056,7 +1056,7 @@ class ZDAImporter : public NMEALineImporter{
            !nmea_stringutils::getInt(st.nextToken(),y)){
            utc->SetDefined(false);
         } else {
-           utc->Set(y,m,d, utc->GetHour(), utc->GetMinute() , 
+           utc->Set(y,m,d, utc->GetHour(), utc->GetMinute() ,
                     utc->GetSecond(), utc->GetMillisecond());
         }
         t->PutAttribute(1,utc);
@@ -1069,7 +1069,7 @@ class ZDAImporter : public NMEALineImporter{
              if(nmea_stringutils::getInt(st2.nextToken(),v)){
                 tzm->Set(true,v);
               }
-          }   
+          }
         }
         t->PutAttribute(3,tzm);
         return t;
@@ -1101,19 +1101,19 @@ class GSVImporter: public NMEALineImporter{
          tupleType->DeleteIfAllowed();
          tupleType=0;
       }
-     
+
       string getAcceptedType() const{
          return "GSV";
       }
 
      virtual ListExpr getTupleTypeAsList() const{
-         ListExpr attrList = nl->OneElemList(nl->TwoElemList( 
+         ListExpr attrList = nl->OneElemList(nl->TwoElemList(
                                     nl->SymbolAtom("SenID"),
                                     nl->SymbolAtom("string")));
          ListExpr last = attrList;
          last = nl->Append(last, nl->TwoElemList(nl->SymbolAtom("NoMsg"),
                                                  nl->SymbolAtom("int")));
-         
+
          last = nl->Append(last, nl->TwoElemList(nl->SymbolAtom("MsgNo"),
                                                  nl->SymbolAtom("int")));
 
@@ -1189,7 +1189,7 @@ class GSVImporter: public NMEALineImporter{
            t->PutAttribute(i+1, nmea_stringutils::getInt(st));
         }
         for(int i=0;i<15; i++){  // 4 infos for 4 satellites except
-                                //  the last info 
+                                //  the last info
                                  // because of checksum
            t->PutAttribute(i+4, nmea_stringutils::getInt(st));
         }
@@ -1231,31 +1231,31 @@ class GLLImporter: public NMEALineImporter{
          tupleType->DeleteIfAllowed();
          tupleType=0;
       }
-     
+
       string getAcceptedType() const{
          return "GLL";
       }
 
      virtual ListExpr getTupleTypeAsList() const{
-         ListExpr attrList = nl->OneElemList(nl->TwoElemList( 
+         ListExpr attrList = nl->OneElemList(nl->TwoElemList(
                                     nl->SymbolAtom("SenID"),
                                     nl->SymbolAtom("string")));
          ListExpr last = attrList;
          last = nl->Append(last, nl->TwoElemList(nl->SymbolAtom("Lat"),
                                                  nl->SymbolAtom("real")));
-         
+
          last = nl->Append(last, nl->TwoElemList(nl->SymbolAtom("Lon"),
                                                  nl->SymbolAtom("real")));
-        
+
          last = nl->Append(last, nl->TwoElemList(nl->SymbolAtom("Time"),
                                                  nl->SymbolAtom("instant")));
 
          last = nl->Append(last, nl->TwoElemList(nl->SymbolAtom("ActiveData"),
                                                  nl->SymbolAtom("string")));
-      
+
          return nl->TwoElemList(nl->SymbolAtom("tuple"), attrList);
       }
-     
+
      virtual Tuple* getTupleForLine(const string& line){
         stringutils::StringTokenizer st(line,",");
         if(!st.hasNextToken()){
@@ -1279,7 +1279,7 @@ class GLLImporter: public NMEALineImporter{
                if(*utc < lastTime){
                    utc->Add(&oneDay);
                    currentDay.Add(&oneDay);
-               } 
+               }
             }
             lastTime = *utc;
         }
@@ -1296,7 +1296,7 @@ class GLLImporter: public NMEALineImporter{
           }
         }
         t->PutAttribute(4, active);
-        return t; 
+        return t;
       }
 
   private:
@@ -1304,7 +1304,7 @@ class GLLImporter: public NMEALineImporter{
      datetime::DateTime lastTime;
      datetime::DateTime oneDay;
      TupleType* tupleType;
-      
+
 };
 
 
@@ -1329,13 +1329,13 @@ class GNSImporter: public NMEALineImporter{
          tupleType->DeleteIfAllowed();
          tupleType=0;
       }
-     
+
       string getAcceptedType() const{
          return "GNS";
       }
 
      virtual ListExpr getTupleTypeAsList() const{
-         ListExpr attrList = nl->OneElemList(nl->TwoElemList( 
+         ListExpr attrList = nl->OneElemList(nl->TwoElemList(
                                     nl->SymbolAtom("SenID"),
                                     nl->SymbolAtom("string")));
          ListExpr last = attrList;
@@ -1347,10 +1347,10 @@ class GNSImporter: public NMEALineImporter{
 
          last = nl->Append(last, nl->TwoElemList(nl->SymbolAtom("Lon"),
                                                  nl->SymbolAtom("real")));
-         
+
          last = nl->Append(last, nl->TwoElemList(nl->SymbolAtom("Mode"),
                                                  nl->SymbolAtom("string")));
-       
+
          last = nl->Append(last, nl->TwoElemList(nl->SymbolAtom("NoSats"),
                                                  nl->SymbolAtom("int")));
 
@@ -1370,7 +1370,7 @@ class GNSImporter: public NMEALineImporter{
 
          last = nl->Append(last, nl->TwoElemList(nl->SymbolAtom("StationId"),
                                                  nl->SymbolAtom("real")));
-         
+
          return nl->TwoElemList(nl->SymbolAtom("tuple"), attrList);
      }
 
@@ -1396,7 +1396,7 @@ class GNSImporter: public NMEALineImporter{
                if(*utc < lastTime){
                    utc->Add(&oneDay);
                    currentDay.Add(&oneDay);
-               } 
+               }
             }
             lastTime = *utc;
         }
@@ -1421,7 +1421,7 @@ class GNSImporter: public NMEALineImporter{
         }
         t->PutAttribute(10, SID);
 
-         
+
         return t;
      }
 
@@ -1432,7 +1432,7 @@ class GNSImporter: public NMEALineImporter{
      TupleType* tupleType;
 
 };
-         
+
 
 
 /*
@@ -1444,13 +1444,13 @@ This class manages a set of NMEALineImporters
 
      NMEAImporter::NMEAImporter():importers(), position(0), in(){
        // the GGA importer must be the first in the vector
-       importers.push_back(new GGAImporter());    
-       importers.push_back(new GSAImporter());    
-       importers.push_back(new RMCImporter());    
-       importers.push_back(new ZDAImporter());    
-       importers.push_back(new GSVImporter());    
-       importers.push_back(new GLLImporter());    
-       importers.push_back(new GNSImporter());    
+       importers.push_back(new GGAImporter());
+       importers.push_back(new GSAImporter());
+       importers.push_back(new RMCImporter());
+       importers.push_back(new ZDAImporter());
+       importers.push_back(new GSVImporter());
+       importers.push_back(new GLLImporter());
+       importers.push_back(new GNSImporter());
        // add further importers here
      }
 
@@ -1506,7 +1506,7 @@ is set to the recognized error.
        if(!in.good()){
          errorMessage = "cannot open file " + fileName;
          return false;
-       } 
+       }
        return true;
      }
 
@@ -1543,7 +1543,7 @@ line importers as a single string (separated by white spaces).
 Returns the Next Tuple corresponding to the currently selected sentence.
 
 */
-     
+
      Tuple* NMEAImporter::nextTuple(){
        if(!in.is_open()){
           return 0;
