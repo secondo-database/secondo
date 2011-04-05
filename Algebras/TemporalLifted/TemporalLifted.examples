@@ -125,14 +125,6 @@ Signature: mregion x region -> mbool
 Example  : query mrain # val(mrain atinstant eight)
 Result   : file
 
-
-Operator : + alias PLUS
-Number   : 1
-Signature: mint x mint -> mint
-Example  : query noAtCenter + noAtTiergarten
-Result   : file
-
-
 Operator : <= alias LOWEREQUAL
 Number   : 1
 Signature: int x mint -> mbool
@@ -963,6 +955,29 @@ Signature: mregion x line -> mpoint
 Example  : query mrain2 minus train7sections
 Result   : file
 
+Operator : -
+Number   : 1
+Signature: {mint x mreal, int, real} x {mint x mreal, int, real} -> {mint, mreal}
+Example  : query no_components(noAtCenter - 3.5)
+Result   : 21
+
+Operator : +
+Number   : 1
+Signature: {mint x mreal, int, real} x {mint x mreal, int, real} -> {mint, mreal}
+Example  : query no_components(speed(train6) + speed(train7))
+Result   : 206
+
+Operator : *
+Number   : 1
+Signature: {mint x mreal, int, real} x {mint x mreal, int, real} -> {mint, mreal}
+Example  : query minimum(squareddistance(train7, train6) * noAtCenter)
+Result   : 0.0 
+
+Operator : /
+Number   : 1
+Signature: {mint x mreal, int, real} x {mint x mreal, int, real} -> {mint, mreal}
+Example  : query minimum(squareddistance(train7, train6))/ minimum(squareddistance(train7, train6)/3)
+Result   : 3.0
 
 Operator : no_components
 Number   : 1

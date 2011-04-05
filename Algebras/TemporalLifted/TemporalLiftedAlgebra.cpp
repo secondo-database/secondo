@@ -3413,6 +3413,1004 @@ static void MovingBoolMSOperators(  const MBool& op1, const CcBool& op2,
   result.EndBulkLoad(false);
 }
 
+
+/*
+1.1 Methods to compute ~multiplication, division~ of MInt, MReal
+
+*/
+
+void MovingAddMII(MInt* op1, CcInt* op2, MInt* result, int op)
+{
+  if(TLA_DEBUG)
+    cout<<"MovingAddMII called"<<endl;
+  result->Clear();
+  if( !op1->IsDefined() || !op2->IsDefined()){
+    result->SetDefined( false );
+    return;
+  }
+  result->SetDefined( true );
+
+  UInt uin(true), ures(true);  //part of the Result
+  int val2= op2->GetIntval() * op;
+
+  result->Resize(op1->GetNoComponents());
+  result->StartBulkLoad();
+  for( int i = 0; i < op1->GetNoComponents(); i++)
+  {
+    op1->Get(i, uin);
+    if(!(uin.IsDefined() && op2->IsDefined()))
+        continue;
+    ures.timeInterval.CopyFrom(uin.timeInterval);
+    ures.constValue.Set(true, uin.constValue.GetIntval() + val2);
+    result->MergeAdd(ures);
+  }
+  result->EndBulkLoad(false);
+}
+
+void MovingAddMIR(MInt* op1, CcReal* op2, MReal* result, int op)
+{
+  if(TLA_DEBUG)
+    cout<<"MovingAddMIR called"<<endl;
+  result->Clear();
+  if( !op1->IsDefined() || !op2->IsDefined()){
+    result->SetDefined( false );
+    return;
+  }
+  result->SetDefined( true );
+
+  UInt uin(true);
+  UReal ures(true);  //part of the Result
+  double val2= op2->GetRealval() * op;
+
+  result->Resize(op1->GetNoComponents());
+  result->StartBulkLoad();
+  for( int i = 0; i < op1->GetNoComponents(); i++)
+  {
+    op1->Get(i, uin);
+    if(!(uin.IsDefined() && op2->IsDefined()))
+        continue;
+    ures.timeInterval.CopyFrom(uin.timeInterval);
+    ures.a= 0;  ures.b= 0; ures.c= uin.constValue.GetIntval() + val2;
+    ures.r= false;
+    ures.SetDefined(true);
+    result->MergeAdd(ures);
+  }
+  result->EndBulkLoad(false);
+}
+
+void MovingAddMRR(MReal* op1, CcReal* op2, MReal* result, int op)
+{
+  if(TLA_DEBUG)
+    cout<<"MovingAddMRR called"<<endl;
+  result->Clear();
+  if( !op1->IsDefined() || !op2->IsDefined()){
+    result->SetDefined( false );
+    return;
+  }
+  result->SetDefined( true );
+
+  UReal uin(true), ures(true);  //part of the Result
+  double val2= op2->GetRealval() * op;
+
+  result->Resize(op1->GetNoComponents());
+  result->StartBulkLoad();
+  for( int i = 0; i < op1->GetNoComponents(); i++)
+  {
+    op1->Get(i, uin);
+    if(!(uin.IsDefined() && op2->IsDefined() && !uin.r))
+        continue;
+    ures.timeInterval.CopyFrom(uin.timeInterval);
+    ures.a= uin.a;  ures.b= uin.b; ures.c= uin.c + val2;
+    ures.r= uin.r;
+    ures.SetDefined(true);
+    result->MergeAdd(ures);
+  }
+  result->EndBulkLoad(false);
+}
+
+void MovingAddMRI(MReal* op1, CcInt* op2, MReal* result, int op)
+{
+  if(TLA_DEBUG)
+    cout<<"MovingAddMRI called"<<endl;
+  result->Clear();
+  if( !op1->IsDefined() || !op2->IsDefined()){
+    result->SetDefined( false );
+    return;
+  }
+  result->SetDefined( true );
+
+  UReal uin(true), ures(true);  //part of the Result
+  int val2= op2->GetIntval()  * op;
+
+  result->Resize(op1->GetNoComponents());
+  result->StartBulkLoad();
+  for( int i = 0; i < op1->GetNoComponents(); i++)
+  {
+    op1->Get(i, uin);
+    if(!(uin.IsDefined() && op2->IsDefined() && !uin.r))
+        continue;
+    ures.timeInterval.CopyFrom(uin.timeInterval);
+    ures.a= uin.a;  ures.b= uin.b; ures.c= uin.c + val2;
+    ures.r= uin.r;
+    ures.SetDefined(true);
+    result->MergeAdd(ures);
+  }
+  result->EndBulkLoad(false);
+}
+
+void MovingAddIMI(CcInt* op1, MInt* op2, MInt* result, int op)
+{
+  if(TLA_DEBUG)
+    cout<<"MovingAddIMI called"<<endl;
+  result->Clear();
+  if( !op1->IsDefined() || !op2->IsDefined()){
+    result->SetDefined( false );
+    return;
+  }
+  result->SetDefined( true );
+
+  UInt uin(true), ures(true);  //part of the Result
+  int val1= op1->GetIntval();
+
+  result->Resize(op2->GetNoComponents());
+  result->StartBulkLoad();
+  for( int i = 0; i < op2->GetNoComponents(); i++)
+  {
+    op2->Get(i, uin);
+    if(!(uin.IsDefined() && op1->IsDefined()))
+        continue;
+    ures.timeInterval.CopyFrom(uin.timeInterval);
+    ures.constValue.Set(true, val1 + op * uin.constValue.GetIntval());
+    result->MergeAdd(ures);
+  }
+  result->EndBulkLoad(false);
+}
+void MovingAddRMI(CcReal* op1, MInt* op2, MReal* result, int op)
+{
+  if(TLA_DEBUG)
+    cout<<"MovingAddRMI called"<<endl;
+  result->Clear();
+  if( !op1->IsDefined() || !op2->IsDefined()){
+    result->SetDefined( false );
+    return;
+  }
+  result->SetDefined( true );
+
+  UInt uin(true);
+  UReal ures(true);  //part of the Result
+  double val1= op1->GetRealval();
+
+  result->Resize(op2->GetNoComponents());
+  result->StartBulkLoad();
+  for( int i = 0; i < op2->GetNoComponents(); i++)
+  {
+    op2->Get(i, uin);
+    if(!(uin.IsDefined() && op2->IsDefined() ))
+        continue;
+    ures.timeInterval.CopyFrom(uin.timeInterval);
+    ures.a= 0;  ures.b= 0; ures.c= op * val1 - uin.constValue.GetIntval();
+    ures.r= false;
+    ures.SetDefined(true);
+    result->MergeAdd(ures);
+  }
+  result->EndBulkLoad(false);
+}
+
+void MovingAddRMR(CcReal* op1, MReal* op2, MReal* result, int op)
+{
+  if(TLA_DEBUG)
+    cout<<"MovingAddRMR called"<<endl;
+  result->Clear();
+  if( !op1->IsDefined() || !op2->IsDefined()){
+    result->SetDefined( false );
+    return;
+  }
+  result->SetDefined( true );
+
+  UReal uin(true);
+  UReal ures(true);  //part of the Result
+  double val1= op1->GetRealval();
+
+  result->Resize(op2->GetNoComponents());
+  result->StartBulkLoad();
+  for( int i = 0; i < op2->GetNoComponents(); i++)
+  {
+    op2->Get(i, uin);
+    if(!(uin.IsDefined() && op2->IsDefined() && !uin.r ))
+        continue;
+    ures.timeInterval.CopyFrom(uin.timeInterval);
+    ures.a= uin.a;  ures.b= uin.b; ures.c= val1 + op * uin.c;
+    ures.r= false;
+    ures.SetDefined(true);
+    result->MergeAdd(ures);
+  }
+  result->EndBulkLoad(false);
+}
+
+void MovingAddIMR(CcInt* op1, MReal* op2, MReal* result,int op)
+{
+  if(TLA_DEBUG)
+    cout<<"MovingAddIMR called"<<endl;
+  result->Clear();
+  if( !op1->IsDefined() || !op2->IsDefined()){
+    result->SetDefined( false );
+    return;
+  }
+  result->SetDefined( true );
+
+  UReal uin(true);
+  UReal ures(true);  //part of the Result
+  int val1= op1->GetIntval();
+
+  result->Resize(op2->GetNoComponents());
+  result->StartBulkLoad();
+  for( int i = 0; i < op2->GetNoComponents(); i++)
+  {
+    op2->Get(i, uin);
+    if(!(uin.IsDefined() && op2->IsDefined() && !uin.r ))
+        continue;
+    ures.timeInterval.CopyFrom(uin.timeInterval);
+    ures.a= uin.a;  ures.b= uin.b; ures.c= val1 + op * uin.c;
+    ures.r= false;
+    ures.SetDefined(true);
+    result->MergeAdd(ures);
+  }
+  result->EndBulkLoad(false);
+}
+void MovingAddMIMI(MInt* op1, MInt* op2, MInt* result, int op)
+{
+  if(TLA_DEBUG)
+    cout<<"MovingAddMIMI called"<<endl;
+
+  if( !op1->IsDefined() || !op2->IsDefined() ){
+    result->SetDefined( false );
+    return;
+  }
+  result->SetDefined( true );
+  UInt uInt(true);  //part of the Result
+
+  RefinementPartition<MInt, MInt, UInt, UInt> rp(*op1, *op2);
+
+  result->Clear();
+  result->StartBulkLoad();
+  for(unsigned int i = 0; i < rp.Size(); i++)
+  {
+    Interval<Instant> iv;
+    int u1Pos;
+    int u2Pos;
+    UInt u1;
+    UInt u2;
+
+    rp.Get(i, iv, u1Pos, u2Pos);
+
+    if (u1Pos == -1 || u2Pos == -1)
+      continue;
+    else {
+      if(TLA_DEBUG)
+        cout<<"Both operators existant in interval iv #"<<i<<endl;
+      op1->Get(u1Pos, u1);
+      op2->Get(u2Pos, u2);
+      if(!(u1.IsDefined() && u2.IsDefined()))
+        continue;
+    }
+    uInt.timeInterval = iv;
+
+    uInt.constValue.Set(true,
+      u1.constValue.GetIntval() + op * u2.constValue.GetIntval());
+
+    result->MergeAdd(uInt);
+  }
+  result->EndBulkLoad(false);
+}
+
+void MovingAddMIMR(MInt* op1, MReal* op2, MReal* result, int op)
+{
+  if(TLA_DEBUG)
+    cout<<"MovingAddMIMR called"<<endl;
+
+  if( !op1->IsDefined() || !op2->IsDefined() ){
+    result->SetDefined( false );
+    return;
+  }
+  result->SetDefined( true );
+  UReal uReal(true);  //part of the Result
+
+  RefinementPartition<MInt, MReal, UInt, UReal> rp(*op1, *op2);
+
+  result->Clear();
+  result->StartBulkLoad();
+  for(unsigned int i = 0; i < rp.Size(); i++)
+  {
+    Interval<Instant> iv;
+    int u1Pos;
+    int u2Pos;
+    UInt u1;
+    UReal u2;
+
+    rp.Get(i, iv, u1Pos, u2Pos);
+
+    if (u1Pos == -1 || u2Pos == -1)
+      continue;
+    else {
+      if(TLA_DEBUG)
+        cout<<"Both operators existant in interval iv #"<<i<<endl;
+      op1->Get(u1Pos, u1);
+      op2->Get(u2Pos, u2);
+      if(!(u1.IsDefined() && u2.IsDefined() && !u2.r))
+        continue;
+    }
+    uReal.timeInterval = iv;
+
+    uReal.a= op * u2.a;   uReal.b= op * u2.b;
+    uReal.c= u1.constValue.GetIntval() + op * u2.c;
+    uReal.SetDefined(true);
+
+    result->MergeAdd(uReal);
+  }
+  result->EndBulkLoad(false);
+}
+
+void MovingAddMRMR(MReal* op1, MReal* op2, MReal* result,int op)
+{
+  if(TLA_DEBUG)
+    cout<<"MovingAddMRMR called"<<endl;
+
+  if( !op1->IsDefined() || !op2->IsDefined() ){
+    result->SetDefined( false );
+    return;
+  }
+  result->SetDefined( true );
+  UReal uReal(true);  //part of the Result
+
+  RefinementPartition<MReal, MReal, UReal, UReal> rp(*op1, *op2);
+
+  result->Clear();
+  result->StartBulkLoad();
+  for(unsigned int i = 0; i < rp.Size(); i++)
+  {
+    Interval<Instant> iv;
+    int u1Pos;
+    int u2Pos;
+    UReal u1;
+    UReal u2;
+
+    rp.Get(i, iv, u1Pos, u2Pos);
+
+    if (u1Pos == -1 || u2Pos == -1)
+      continue;
+    else {
+      if(TLA_DEBUG)
+        cout<<"Both operators existant in interval iv #"<<i<<endl;
+      op1->Get(u1Pos, u1);
+      op2->Get(u2Pos, u2);
+      if(!(u1.IsDefined() && u2.IsDefined() && !u1.r && !u2.r))
+        continue;
+    }
+    uReal.timeInterval = iv;
+
+    uReal.a= u1.a + op * u2.a;   uReal.b=  u1.a + op * u2.b;
+    uReal.c= u1.c + op * u2.c;
+    uReal.SetDefined(true);
+
+    result->MergeAdd(uReal);
+  }
+  result->EndBulkLoad(false);
+}
+
+void MovingAddMRMI(MReal* op1, MInt* op2, MReal* result, int op)
+{
+  if(TLA_DEBUG)
+    cout<<"MovingAddMIMR called"<<endl;
+
+  if( !op1->IsDefined() || !op2->IsDefined() ){
+    result->SetDefined( false );
+    return;
+  }
+  result->SetDefined( true );
+  UReal uReal(true);  //part of the Result
+
+  RefinementPartition<MReal, MInt, UReal, UInt> rp(*op1, *op2);
+
+  result->Clear();
+  result->StartBulkLoad();
+  for(unsigned int i = 0; i < rp.Size(); i++)
+  {
+    Interval<Instant> iv;
+    int u1Pos;
+    int u2Pos;
+    UReal u1;
+    UInt u2;
+
+    rp.Get(i, iv, u1Pos, u2Pos);
+
+    if (u1Pos == -1 || u2Pos == -1)
+      continue;
+    else {
+      if(TLA_DEBUG)
+        cout<<"Both operators existant in interval iv #"<<i<<endl;
+      op1->Get(u1Pos, u1);
+      op2->Get(u2Pos, u2);
+      if(!(u1.IsDefined() && u2.IsDefined() && !u1.r))
+        continue;
+    }
+    uReal.timeInterval = iv;
+
+    uReal.a= u1.a;   uReal.b= u1.b;
+    uReal.c= u1.c + op * u2.constValue.GetIntval();
+    uReal.SetDefined(true);
+
+    result->MergeAdd(uReal);
+  }
+  result->EndBulkLoad(false);
+}
+
+
+
+void MovingMultiplyMII(MInt* op1, CcInt* op2, MInt* result)
+{
+  if(TLA_DEBUG)
+    cout<<"MovingMultiplyMII called"<<endl;
+  result->Clear();
+  if( !op1->IsDefined() || !op2->IsDefined()){
+    result->SetDefined( false );
+    return;
+  }
+  result->SetDefined( true );
+
+  UInt uin(true), ures(true);  //part of the Result
+  int val2= op2->GetIntval();
+
+  result->Resize(op1->GetNoComponents());
+  result->StartBulkLoad();
+  for( int i = 0; i < op1->GetNoComponents(); i++)
+  {
+    op1->Get(i, uin);
+    if(!(uin.IsDefined() && op2->IsDefined()))
+        continue;
+    ures.timeInterval.CopyFrom(uin.timeInterval);
+    ures.constValue.Set(true, uin.constValue.GetIntval() * val2);
+    result->MergeAdd(ures);
+  }
+  result->EndBulkLoad(false);
+}
+
+void MovingMultiplyMIR(
+    MInt* op1, CcReal* op2, MReal* result, bool inverseSecond)
+{
+  if(TLA_DEBUG)
+    cout<<"MovingMultiplyMIR called"<<endl;
+  result->Clear();
+  if( !op1->IsDefined() || !op2->IsDefined() ||
+      (inverseSecond && AlmostEqual(op2->GetRealval(), 0))){
+    result->SetDefined( false );
+    return;
+  }
+  result->SetDefined( true );
+
+  UInt uin(true);
+  UReal ures(true);  //part of the Result
+  double val2;
+  if(inverseSecond)
+    val2= 1.0 / op2->GetRealval() ;
+  else
+    val2= op2->GetRealval() ;
+
+  result->Resize(op1->GetNoComponents());
+  result->StartBulkLoad();
+  for( int i = 0; i < op1->GetNoComponents(); i++)
+  {
+    op1->Get(i, uin);
+    if(!(uin.IsDefined() && op2->IsDefined()))
+        continue;
+    ures.timeInterval.CopyFrom(uin.timeInterval);
+    ures.a= 0;  ures.b= 0; ures.c= uin.constValue.GetIntval() * val2;
+    ures.r= false;
+    ures.SetDefined(true);
+    result->MergeAdd(ures);
+  }
+  result->EndBulkLoad(false);
+}
+
+void MovingMultiplyMRR(
+    MReal* op1, CcReal* op2, MReal* result, bool inverseSecond)
+{
+  if(TLA_DEBUG)
+    cout<<"MovingMultiplyMRR called"<<endl;
+  result->Clear();
+  if( !op1->IsDefined() || !op2->IsDefined()||
+      (inverseSecond && AlmostEqual(op2->GetRealval(), 0))){
+    result->SetDefined( false );
+    return;
+  }
+  result->SetDefined( true );
+
+  UReal uin(true), ures(true);  //part of the Result
+  double val2;
+  if(inverseSecond)
+    val2= 1.0 / op2->GetRealval() ;
+  else
+    val2= op2->GetRealval() ;
+
+  result->Resize(op1->GetNoComponents());
+  result->StartBulkLoad();
+  for( int i = 0; i < op1->GetNoComponents(); i++)
+  {
+    op1->Get(i, uin);
+    if(!(uin.IsDefined() && op2->IsDefined() && !uin.r))
+        continue;
+    ures.timeInterval.CopyFrom(uin.timeInterval);
+    ures.a= uin.a * val2;  ures.b= uin.b * val2; ures.c= uin.c * val2;
+    ures.r= uin.r;
+    ures.SetDefined(true);
+    result->MergeAdd(ures);
+  }
+  result->EndBulkLoad(false);
+}
+
+void MovingMultiplyMRI(
+    MReal* op1, CcInt* op2, MReal* result, bool inverseSecond)
+{
+  if(TLA_DEBUG)
+    cout<<"MovingMultiplyMRI called"<<endl;
+  result->Clear();
+  if( !op1->IsDefined() || !op2->IsDefined() ||
+      (inverseSecond && (op2->GetIntval() == 0) )){
+    result->SetDefined( false );
+    return;
+  }
+  result->SetDefined( true );
+
+  UReal uin(true), ures(true);  //part of the Result
+  double val2;
+  if(inverseSecond)
+    val2= 1.0 / op2->GetIntval();
+  else
+    val2= op2->GetIntval();
+
+  result->Resize(op1->GetNoComponents());
+  result->StartBulkLoad();
+  for( int i = 0; i < op1->GetNoComponents(); i++)
+  {
+    op1->Get(i, uin);
+    if(!(uin.IsDefined() && op2->IsDefined() && !uin.r))
+        continue;
+    ures.timeInterval.CopyFrom(uin.timeInterval);
+    ures.a= uin.a * val2;  ures.b= uin.b * val2; ures.c= uin.c * val2;
+    ures.r= uin.r;
+    ures.SetDefined(true);
+    result->MergeAdd(ures);
+  }
+  result->EndBulkLoad(false);
+}
+
+void MovingMultiplyIMI(CcInt* op1, MInt* op2, MInt* result)
+{
+  if(TLA_DEBUG)
+    cout<<"MovingMultiplyIMI called"<<endl;
+  result->Clear();
+  if( !op1->IsDefined() || !op2->IsDefined()){
+    result->SetDefined( false );
+    return;
+  }
+  result->SetDefined( true );
+
+  UInt uin(true), ures(true);  //part of the Result
+  int val1= op1->GetIntval();
+
+
+  result->Resize(op2->GetNoComponents());
+  result->StartBulkLoad();
+  for( int i = 0; i < op2->GetNoComponents(); i++)
+  {
+    op2->Get(i, uin);
+    if(!(uin.IsDefined() && op1->IsDefined()))
+        continue;
+    ures.timeInterval.CopyFrom(uin.timeInterval);
+    ures.constValue.Set(true, val1 * uin.constValue.GetIntval());
+    result->MergeAdd(ures);
+  }
+  result->EndBulkLoad(false);
+}
+
+void MovingMultiplyRMI(
+    CcReal* op1, MInt* op2, MReal* result, bool inverseSecond)
+{
+  if(TLA_DEBUG)
+    cout<<"MovingMultiplyRMI called"<<endl;
+  result->Clear();
+  if( !op1->IsDefined() || !op2->IsDefined()){
+    result->SetDefined( false );
+    return;
+  }
+  result->SetDefined( true );
+
+  UInt uin(true);
+  UReal ures(true);  //part of the Result
+  double val1= op1->GetRealval();
+
+  result->Resize(op2->GetNoComponents());
+  result->StartBulkLoad();
+  for( int i = 0; i < op2->GetNoComponents(); i++)
+  {
+    op2->Get(i, uin);
+    if(!(uin.IsDefined() && op2->IsDefined() ))
+        continue;
+    ures.timeInterval.CopyFrom(uin.timeInterval);
+    ures.a= 0;  ures.b= 0;
+    if(inverseSecond)
+    {
+      if(uin.constValue.GetIntval() == 0)
+        ures.SetDefined(false);
+      else
+      {
+        ures.c= val1 / uin.constValue.GetIntval();
+        ures.SetDefined(true);
+      }
+    }
+    else
+    {
+      ures.c= val1 * uin.constValue.GetIntval();
+      ures.SetDefined(true);
+    }
+    ures.r= false;
+    if(ures.IsDefined())
+      result->MergeAdd(ures);
+  }
+  result->EndBulkLoad(false);
+}
+
+void MovingMultiplyRMR(CcReal* op1, MReal* op2, MReal* result)
+{
+  if(TLA_DEBUG)
+    cout<<"MovingMultiplyRMR called"<<endl;
+  result->Clear();
+  if( !op1->IsDefined() || !op2->IsDefined()){
+    result->SetDefined( false );
+    return;
+  }
+  result->SetDefined( true );
+
+  UReal uin(true);
+  UReal ures(true);  //part of the Result
+  double val1= op1->GetRealval();
+
+  result->Resize(op2->GetNoComponents());
+  result->StartBulkLoad();
+  for( int i = 0; i < op2->GetNoComponents(); i++)
+  {
+    op2->Get(i, uin);
+    if(!(uin.IsDefined() && op2->IsDefined() && !uin.r ))
+        continue;
+    ures.timeInterval.CopyFrom(uin.timeInterval);
+    ures.a= val1 * uin.a;  ures.b= val1 * uin.b;  ures.c= val1 * uin.c;
+
+    ures.r= false;
+    ures.SetDefined(true);
+    result->MergeAdd(ures);
+  }
+  result->EndBulkLoad(false);
+}
+
+void MovingMultiplyIMR(CcInt* op1, MReal* op2, MReal* result)
+{
+  if(TLA_DEBUG)
+    cout<<"MovingMultiplyIMR called"<<endl;
+  result->Clear();
+  if( !op1->IsDefined() || !op2->IsDefined()){
+    result->SetDefined( false );
+    return;
+  }
+  result->SetDefined( true );
+
+  UReal uin(true);
+  UReal ures(true);  //part of the Result
+  int val1= op1->GetIntval();
+
+  result->Resize(op2->GetNoComponents());
+  result->StartBulkLoad();
+  for( int i = 0; i < op2->GetNoComponents(); i++)
+  {
+    op2->Get(i, uin);
+    if(!(uin.IsDefined() && op2->IsDefined() && !uin.r ))
+        continue;
+    ures.timeInterval.CopyFrom(uin.timeInterval);
+    ures.a= val1 * uin.a;  ures.b= val1 * uin.b;  ures.c= val1 * uin.c;
+    ures.r= false;
+    ures.SetDefined(true);
+    result->MergeAdd(ures);
+  }
+  result->EndBulkLoad(false);
+}
+
+void MovingMultiplyMIMI(MInt* op1, MInt* op2, MInt* result)
+{
+  if(TLA_DEBUG)
+    cout<<"MovingMultiplyMIMI called"<<endl;
+
+  if( !op1->IsDefined() || !op2->IsDefined() ){
+    result->SetDefined( false );
+    return;
+  }
+  result->SetDefined( true );
+  UInt uInt(true);  //part of the Result
+
+  RefinementPartition<MInt, MInt, UInt, UInt> rp(*op1, *op2);
+
+  result->Clear();
+  result->StartBulkLoad();
+  for(unsigned int i = 0; i < rp.Size(); i++)
+  {
+    Interval<Instant> iv;
+    int u1Pos;
+    int u2Pos;
+    UInt u1;
+    UInt u2;
+
+    rp.Get(i, iv, u1Pos, u2Pos);
+
+    if (u1Pos == -1 || u2Pos == -1)
+      continue;
+    else {
+      if(TLA_DEBUG)
+        cout<<"Both operators existant in interval iv #"<<i<<endl;
+      op1->Get(u1Pos, u1);
+      op2->Get(u2Pos, u2);
+      if(!(u1.IsDefined() && u2.IsDefined()))
+        continue;
+    }
+    uInt.timeInterval = iv;
+
+    uInt.constValue.Set(true,
+      u1.constValue.GetIntval() * u2.constValue.GetIntval());
+
+    result->MergeAdd(uInt);
+  }
+  result->EndBulkLoad(false);
+}
+
+void MovingMultiplyMIMR(MInt* op1, MReal* op2, MReal* result)
+{
+  if(TLA_DEBUG)
+    cout<<"MovingMultiplyMIMR called"<<endl;
+
+  if( !op1->IsDefined() || !op2->IsDefined() ){
+    result->SetDefined( false );
+    return;
+  }
+  result->SetDefined( true );
+  UReal uReal(true);  //part of the Result
+
+  RefinementPartition<MInt, MReal, UInt, UReal> rp(*op1, *op2);
+
+  result->Clear();
+  result->StartBulkLoad();
+  for(unsigned int i = 0; i < rp.Size(); i++)
+  {
+    Interval<Instant> iv;
+    int u1Pos;
+    int u2Pos;
+    UInt u1;
+    UReal u2;
+
+    rp.Get(i, iv, u1Pos, u2Pos);
+
+    if (u1Pos == -1 || u2Pos == -1)
+      continue;
+    else {
+      if(TLA_DEBUG)
+        cout<<"Both operators existant in interval iv #"<<i<<endl;
+      op1->Get(u1Pos, u1);
+      op2->Get(u2Pos, u2);
+      if(!(u1.IsDefined() && u2.IsDefined() && !u2.r))
+        continue;
+    }
+    uReal.timeInterval = iv;
+
+    uReal.a= u1.constValue.GetIntval() * u2.a;
+    uReal.b= u1.constValue.GetIntval() * u2.b;
+    uReal.c= u1.constValue.GetIntval() * u2.c;
+    uReal.SetDefined(true);
+
+    result->MergeAdd(uReal);
+  }
+  result->EndBulkLoad(false);
+}
+
+void MovingMultiplyMRMI(
+    MReal* op1, MInt* op2, MReal* result, bool inverseSecond)
+{
+  if(TLA_DEBUG)
+    cout<<"MovingMultiplyMIMR called"<<endl;
+
+  if( !op1->IsDefined() || !op2->IsDefined() ){
+    result->SetDefined( false );
+    return;
+  }
+  result->SetDefined( true );
+  UReal uReal(true);  //part of the Result
+
+  RefinementPartition<MReal, MInt, UReal, UInt> rp(*op1, *op2);
+
+  result->Clear();
+  result->StartBulkLoad();
+  for(unsigned int i = 0; i < rp.Size(); i++)
+  {
+    Interval<Instant> iv;
+    int u1Pos;
+    int u2Pos;
+    UReal u1;
+    UInt u2;
+
+    rp.Get(i, iv, u1Pos, u2Pos);
+
+    if (u1Pos == -1 || u2Pos == -1)
+      continue;
+    else {
+      if(TLA_DEBUG)
+        cout<<"Both operators existant in interval iv #"<<i<<endl;
+      op1->Get(u1Pos, u1);
+      op2->Get(u2Pos, u2);
+      if(!(u1.IsDefined() && u2.IsDefined() && !u1.r))
+        continue;
+    }
+    uReal.timeInterval = iv;
+
+    if(inverseSecond)
+    {
+      if(AlmostEqual(u2.constValue.GetIntval(), 0))
+        uReal.SetDefined(false);
+      else
+      {
+        uReal.SetDefined(true);
+        uReal.a= u1.a / u2.constValue.GetIntval();
+        uReal.b= u1.b / u2.constValue.GetIntval();
+        uReal.c= u1.c / u2.constValue.GetIntval();
+      }
+    }
+    else
+    {
+      uReal.a= u1.a * u2.constValue.GetIntval();
+      uReal.b= u1.b * u2.constValue.GetIntval();
+      uReal.c= u1.c * u2.constValue.GetIntval();
+      uReal.SetDefined(true);
+    }
+
+    if(uReal.IsDefined())
+      result->MergeAdd(uReal);
+  }
+  result->EndBulkLoad(false);
+}
+
+
+/*
+1.1 Methods to compute ~/~ of MInt, MReal
+
+*/
+
+void MovingDivideMII(MInt* op1, CcInt* op2, MReal* result)
+{
+  if(TLA_DEBUG)
+    cout<<"MovingDivideMII called"<<endl;
+  result->Clear();
+  if( !op1->IsDefined() || !op2->IsDefined()){
+    result->SetDefined( false );
+    return;
+  }
+  result->SetDefined( true );
+
+  UInt uin(true);
+  UReal ures(true);  //part of the Result
+  int val2= op2->GetIntval();
+
+  result->Resize(op1->GetNoComponents());
+  result->StartBulkLoad();
+  for( int i = 0; i < op1->GetNoComponents(); i++)
+  {
+    op1->Get(i, uin);
+    if(!(uin.IsDefined() && op2->IsDefined()))
+        continue;
+    ures.timeInterval.CopyFrom(uin.timeInterval);
+    ures.a= 0; ures.b= 0;
+    ures.c= static_cast<double>(uin.constValue.GetIntval()) / val2;
+    ures.SetDefined(true);
+    result->MergeAdd(ures);
+  }
+  result->EndBulkLoad(false);
+}
+
+void MovingDivideIMI(CcInt* op1, MInt* op2, MReal* result)
+{
+  if(TLA_DEBUG)
+    cout<<"MovingDivideIMI called"<<endl;
+  result->Clear();
+  if( !op1->IsDefined() || !op2->IsDefined()){
+    result->SetDefined( false );
+    return;
+  }
+  result->SetDefined( true );
+
+  UInt uin(true);
+  UReal ures(true);  //part of the Result
+  int val1= op1->GetIntval();
+
+  result->Resize(op2->GetNoComponents());
+  result->StartBulkLoad();
+  for( int i = 0; i < op2->GetNoComponents(); i++)
+  {
+    op2->Get(i, uin);
+    if(!(uin.IsDefined() && op2->IsDefined()))
+        continue;
+    ures.timeInterval.CopyFrom(uin.timeInterval);
+    ures.a= 0; ures.b= 0;
+    if(uin.constValue.GetIntval() == 0)
+      ures.SetDefined(false);
+    else
+    {
+      ures.c= static_cast<double>(val1) / uin.constValue.GetIntval();
+      ures.SetDefined(true);
+    }
+
+    if(ures.IsDefined())
+      result->MergeAdd(ures);
+  }
+  result->EndBulkLoad(false);
+}
+
+void MovingDivideMIMI(
+    MInt* op1, MInt* op2, MReal* result)
+{
+  if(TLA_DEBUG)
+    cout<<"MovingMultiplyMIMR called"<<endl;
+
+  if( !op1->IsDefined() || !op2->IsDefined() ){
+    result->SetDefined( false );
+    return;
+  }
+  result->SetDefined( true );
+  UReal uReal(true);  //part of the Result
+
+  RefinementPartition<MInt, MInt, UInt, UInt> rp(*op1, *op2);
+
+  result->Clear();
+  result->StartBulkLoad();
+  for(unsigned int i = 0; i < rp.Size(); i++)
+  {
+    Interval<Instant> iv;
+    int u1Pos;
+    int u2Pos;
+    UInt u1;
+    UInt u2;
+
+    rp.Get(i, iv, u1Pos, u2Pos);
+
+    if (u1Pos == -1 || u2Pos == -1)
+      continue;
+    else {
+      if(TLA_DEBUG)
+        cout<<"Both operators existant in interval iv #"<<i<<endl;
+      op1->Get(u1Pos, u1);
+      op2->Get(u2Pos, u2);
+      if(!(u1.IsDefined() && u2.IsDefined()))
+        continue;
+    }
+    uReal.timeInterval = iv;
+    if(u2.constValue.GetIntval() == 0)
+      uReal.SetDefined(false);
+    else
+    {
+      uReal.SetDefined(true);
+      uReal.a= static_cast<double>(
+        u2.constValue.GetIntval()) / u2.constValue.GetIntval();
+      uReal.b= static_cast<double>(
+        u2.constValue.GetIntval()) / u2.constValue.GetIntval();
+      uReal.c= static_cast<double>(
+        u2.constValue.GetIntval()) / u2.constValue.GetIntval();
+    }
+    if(uReal.IsDefined())
+      result->MergeAdd(uReal);
+  }
+  result->EndBulkLoad(false);
+}
 /*
 1.1 Method ~MovingCompareBoolMM~
 
@@ -3600,6 +4598,50 @@ static void MovingCompareBoolMS(  const Mapping1& op1, const Operator2& op2,
   }
   result.EndBulkLoad(false);
 }
+
+/*
+1.1 Method ~MovingAddMS~
+
+Adds/Subtracts {mint, mreal} +/- {real, int}.
+
+*/
+template <class Op1M, class Op1U, class Op1S, class Op2S,
+  class ResM, class ResU, class ResS>
+static void MovingAddMS(  const Op1M* op1, const Op2S* op2,
+                                  ResM* result, int op )
+{
+  if(TLA_DEBUG)
+    cout<<"MovingAddMS called"<<endl;
+  result->Clear();
+  if( !op1->IsDefined() || !op2->IsDefined()){
+    result->SetDefined( false );
+    return;
+  }
+  result->SetDefined( true );
+
+  ResU uRes(true);  //part of the Result
+  Op1U u1;
+  Op1S val1;
+  ResS valRes;
+
+  result->Resize(op1->GetNoComponents());
+  result->StartBulkLoad();
+  for(int i = 0; i < op1->GetNoComponents(); i++)
+  {
+     op1->Get(i, u1);
+     if(!(u1.IsDefined() && op2->IsDefined()))
+        continue;
+     uRes.timeInterval = u1.timeInterval;
+     val1= u1.constValue.GetValue();
+     uRes.constValue.Set(true, val1 + op * op2->GetValue());
+    if(TLA_DEBUG){
+      uRes.Print(cout); cout<<"\n";}
+
+     result->MergeAdd(uRes);
+  }
+  result->EndBulkLoad(false);
+}
+
 
 /*
 1.1 Method ~MRealABS~
@@ -3895,6 +4937,185 @@ ListExpr MovingCompareTypeMapMBool( ListExpr args )
   }
   return nl->SymbolAtom( "typeerror" );
 }
+
+/*
+10.1 Type mapping function "MovingAddTypeMap"
+
+This type mapping function is used for the ~-~, ~+~ operators.
+
+*/
+
+ListExpr MovingAddTypeMap( ListExpr args )
+{
+  ListExpr arg1, arg2;
+  if ( nl->ListLength( args ) == 2 )
+  {
+    arg1 = nl->First( args );
+    arg2 = nl->Second( args );
+
+    if( nl->IsEqual( arg1, "mint" )
+     && nl->IsEqual( arg2, "int" ) )
+      return (nl->SymbolAtom( "mint" ));
+
+    if( nl->IsEqual( arg1, "mint" )
+     && nl->IsEqual( arg2, "real" ) )
+      return (nl->SymbolAtom( "mreal" ));
+
+    if( nl->IsEqual( arg1, "mreal" )
+     && nl->IsEqual( arg2, "real" ) )
+      return (nl->SymbolAtom( "mreal" ));
+
+    if( nl->IsEqual( arg1, "mreal" )
+     && nl->IsEqual( arg2, "int" ) )
+      return (nl->SymbolAtom( "mreal" ));
+
+    if( nl->IsEqual( arg1, "int" )
+     && nl->IsEqual( arg2, "mint" ) )
+      return (nl->SymbolAtom( "mint" ));
+
+    if( nl->IsEqual( arg1, "real" )
+     && nl->IsEqual( arg2, "mint" ) )
+      return (nl->SymbolAtom( "mreal" ));
+
+    if( nl->IsEqual( arg1, "real" )
+     && nl->IsEqual( arg2, "mreal" ) )
+      return (nl->SymbolAtom( "mreal" ));
+
+    if( nl->IsEqual( arg1, "int" )
+     && nl->IsEqual( arg2, "mreal" ) )
+      return (nl->SymbolAtom( "mreal" ));
+
+    if( nl->IsEqual( arg1, "mint" )
+     && nl->IsEqual( arg2, "mint" ) )
+      return (nl->SymbolAtom( "mint" ));
+
+    if( nl->IsEqual( arg1, "mint" )
+     && nl->IsEqual( arg2, "mreal" ) )
+      return (nl->SymbolAtom( "mreal" ));
+
+    if( nl->IsEqual( arg1, "mreal" )
+     && nl->IsEqual( arg2, "mreal" ) )
+      return (nl->SymbolAtom( "mreal" ));
+
+    if( nl->IsEqual( arg1, "mreal" )
+     && nl->IsEqual( arg2, "mint" ) )
+      return (nl->SymbolAtom( "mreal" ));
+  }
+  return nl->SymbolAtom( "typeerror" );
+}
+
+/*
+10.1 Type mapping function "MovingMultiplyTypeMap"
+
+This type mapping function is used for the ~multiplication~ operator.
+
+*/
+
+ListExpr MovingMultiplyTypeMap( ListExpr args )
+{
+  ListExpr arg1, arg2;
+  if ( nl->ListLength( args ) == 2 )
+  {
+    arg1 = nl->First( args );
+    arg2 = nl->Second( args );
+
+    if( nl->IsEqual( arg1, "mint" )
+     && nl->IsEqual( arg2, "int" ) )
+      return (nl->SymbolAtom( "mint" ));
+
+    if( nl->IsEqual( arg1, "mint" )
+     && nl->IsEqual( arg2, "real" ) )
+      return (nl->SymbolAtom( "mreal" ));
+
+    if( nl->IsEqual( arg1, "mreal" )
+     && nl->IsEqual( arg2, "real" ) )
+      return (nl->SymbolAtom( "mreal" ));
+
+    if( nl->IsEqual( arg1, "mreal" )
+     && nl->IsEqual( arg2, "int" ) )
+      return (nl->SymbolAtom( "mreal" ));
+
+    if( nl->IsEqual( arg1, "int" )
+     && nl->IsEqual( arg2, "mint" ) )
+      return (nl->SymbolAtom( "mint" ));
+
+    if( nl->IsEqual( arg1, "real" )
+     && nl->IsEqual( arg2, "mint" ) )
+      return (nl->SymbolAtom( "mreal" ));
+
+    if( nl->IsEqual( arg1, "real" )
+     && nl->IsEqual( arg2, "mreal" ) )
+      return (nl->SymbolAtom( "mreal" ));
+
+    if( nl->IsEqual( arg1, "int" )
+     && nl->IsEqual( arg2, "mreal" ) )
+      return (nl->SymbolAtom( "mreal" ));
+
+    if( nl->IsEqual( arg1, "mint" )
+     && nl->IsEqual( arg2, "mint" ) )
+      return (nl->SymbolAtom( "mint" ));
+
+    if( nl->IsEqual( arg1, "mint" )
+     && nl->IsEqual( arg2, "mreal" ) )
+      return (nl->SymbolAtom( "mreal" ));
+
+    if( nl->IsEqual( arg1, "mreal" )
+     && nl->IsEqual( arg2, "mint" ) )
+      return (nl->SymbolAtom( "mreal" ));
+  }
+  return nl->SymbolAtom( "typeerror" );
+}
+
+/*
+10.1 Type mapping function "MovingDivideTypeMap"
+
+This type mapping function is used for the ~/~ operator.
+
+*/
+
+ListExpr MovingDivideTypeMap( ListExpr args )
+{
+  ListExpr arg1, arg2;
+  if ( nl->ListLength( args ) == 2 )
+  {
+    arg1 = nl->First( args );
+    arg2 = nl->Second( args );
+
+    if( nl->IsEqual( arg1, "mint" )
+     && nl->IsEqual( arg2, "int" ) )
+      return (nl->SymbolAtom( "mreal" ));
+
+    if( nl->IsEqual( arg1, "mint" )
+     && nl->IsEqual( arg2, "real" ) )
+      return (nl->SymbolAtom( "mreal" ));
+
+    if( nl->IsEqual( arg1, "mreal" )
+     && nl->IsEqual( arg2, "real" ) )
+      return (nl->SymbolAtom( "mreal" ));
+
+    if( nl->IsEqual( arg1, "mreal" )
+     && nl->IsEqual( arg2, "int" ) )
+      return (nl->SymbolAtom( "mreal" ));
+
+    if( nl->IsEqual( arg1, "int" )
+     && nl->IsEqual( arg2, "mint" ) )
+      return (nl->SymbolAtom( "mreal" ));
+
+    if( nl->IsEqual( arg1, "real" )
+     && nl->IsEqual( arg2, "mint" ) )
+      return (nl->SymbolAtom( "mreal" ));
+
+    if( nl->IsEqual( arg1, "mint" )
+     && nl->IsEqual( arg2, "mint" ) )
+      return (nl->SymbolAtom( "mreal" ));
+
+    if( nl->IsEqual( arg1, "mreal" )
+     && nl->IsEqual( arg2, "mint" ) )
+      return (nl->SymbolAtom( "mreal" ));
+  }
+  return nl->SymbolAtom( "typeerror" );
+}
+
 
 /*
 16.1 Type mapping function ~MovingTypeMapeIntime~
@@ -4434,6 +5655,144 @@ MovingCompareSelect( ListExpr args )
 }
 
 /*
+16.2 Selection function ~MovingAddSelect~
+
+Is used for the ~-~ and ~+~ operations.
+
+*/
+int
+MovingAddSelect( ListExpr args )
+{
+  ListExpr arg1 = nl->First( args ),
+           arg2 = nl->Second( args );
+  if( nl->SymbolValue( arg1 ) == "mint"
+   && nl->SymbolValue( arg2 ) == "int" )
+    return 0;
+  if( nl->SymbolValue( arg1 ) == "mint"
+   && nl->SymbolValue( arg2 ) == "real" )
+    return 1;
+  if( nl->SymbolValue( arg1 ) == "mreal"
+   && nl->SymbolValue( arg2 ) == "real" )
+    return 2;
+  if( nl->SymbolValue( arg1 ) == "mreal"
+   && nl->SymbolValue( arg2 ) == "int" )
+    return 3;
+  if( nl->SymbolValue( arg1 ) == "int"
+   && nl->SymbolValue( arg2 ) == "mint" )
+    return 4;
+  if( nl->SymbolValue( arg1 ) == "real"
+   && nl->SymbolValue( arg2 ) == "mint" )
+    return 5;
+  if( nl->SymbolValue( arg1 ) == "real"
+   && nl->SymbolValue( arg2 ) == "mreal" )
+    return 6;
+  if( nl->SymbolValue( arg1 ) == "int"
+   && nl->SymbolValue( arg2 ) == "mreal" )
+    return 7;
+  if( nl->SymbolValue( arg1 ) == "mint"
+   && nl->SymbolValue( arg2 ) == "mint" )
+    return 8;
+  if( nl->SymbolValue( arg1 ) == "mint"
+   && nl->SymbolValue( arg2 ) == "mreal" )
+    return 9;
+  if( nl->SymbolValue( arg1 ) == "mreal"
+   && nl->SymbolValue( arg2 ) == "mreal" )
+    return 10;
+  if( nl->SymbolValue( arg1 ) == "mreal"
+   && nl->SymbolValue( arg2 ) == "mint" )
+    return 11;
+
+  return -1; // This point should never be reached
+}
+
+/*
+16.2 Selection function ~MovingMultiplySelect~
+
+Is used for the ~multiplication~ operation.
+
+*/
+int
+MovingMultiplySelect( ListExpr args )
+{
+  ListExpr arg1 = nl->First( args ),
+           arg2 = nl->Second( args );
+  if( nl->SymbolValue( arg1 ) == "mint"
+   && nl->SymbolValue( arg2 ) == "int" )
+    return 0;
+  if( nl->SymbolValue( arg1 ) == "mint"
+   && nl->SymbolValue( arg2 ) == "real" )
+    return 1;
+  if( nl->SymbolValue( arg1 ) == "mreal"
+   && nl->SymbolValue( arg2 ) == "real" )
+    return 2;
+  if( nl->SymbolValue( arg1 ) == "mreal"
+   && nl->SymbolValue( arg2 ) == "int" )
+    return 3;
+  if( nl->SymbolValue( arg1 ) == "int"
+   && nl->SymbolValue( arg2 ) == "mint" )
+    return 4;
+  if( nl->SymbolValue( arg1 ) == "real"
+   && nl->SymbolValue( arg2 ) == "mint" )
+    return 5;
+  if( nl->SymbolValue( arg1 ) == "int"
+   && nl->SymbolValue( arg2 ) == "mreal" )
+    return 6;
+  if( nl->SymbolValue( arg1 ) == "real"
+   && nl->SymbolValue( arg2 ) == "mreal" )
+    return 7;
+  if( nl->SymbolValue( arg1 ) == "mint"
+   && nl->SymbolValue( arg2 ) == "mint" )
+    return 8;
+  if( nl->SymbolValue( arg1 ) == "mint"
+   && nl->SymbolValue( arg2 ) == "mreal" )
+    return 9;
+  if( nl->SymbolValue( arg1 ) == "mreal"
+   && nl->SymbolValue( arg2 ) == "mint" )
+    return 10;
+
+  return -1; // This point should never be reached
+}
+
+/*
+16.2 Selection function ~MovingDivideSelect~
+
+Is used for the ~/~ operation.
+
+*/
+int
+MovingDivideSelect( ListExpr args )
+{
+  ListExpr arg1 = nl->First( args ),
+           arg2 = nl->Second( args );
+  if( nl->SymbolValue( arg1 ) == "mint"
+   && nl->SymbolValue( arg2 ) == "int" )
+    return 0;
+  if( nl->SymbolValue( arg1 ) == "mint"
+   && nl->SymbolValue( arg2 ) == "real" )
+    return 1;
+  if( nl->SymbolValue( arg1 ) == "mreal"
+   && nl->SymbolValue( arg2 ) == "real" )
+    return 2;
+  if( nl->SymbolValue( arg1 ) == "mreal"
+   && nl->SymbolValue( arg2 ) == "int" )
+    return 3;
+  if( nl->SymbolValue( arg1 ) == "int"
+   && nl->SymbolValue( arg2 ) == "mint" )
+    return 4;
+  if( nl->SymbolValue( arg1 ) == "real"
+   && nl->SymbolValue( arg2 ) == "mint" )
+    return 5;
+  if( nl->SymbolValue( arg1 ) == "mint"
+   && nl->SymbolValue( arg2 ) == "mint" )
+    return 6;
+  if( nl->SymbolValue( arg1 ) == "mreal"
+   && nl->SymbolValue( arg2 ) == "mint" )
+    return 7;
+
+  return -1; // This point should never be reached
+}
+
+/*
 16.2 Selection function ~MovingDistanceSelect~
 
 Is used for the ~distance~ operation.
@@ -4894,6 +6253,351 @@ int TemporalSMCompare( Word* args, Word& result, int message,
   MovingCompareBoolMS<Mapping1, Unit1, Operator2>
   ( *((Mapping1*)args[1].addr), *((Operator2*)args[0].addr),
    *((MBool*)result.addr), newop);
+
+  return 0;
+}
+
+
+/*
+16.3 Value mapping functions of operators ~-~, ~+~
+for {mint, mreal}
+
+*/
+template<int op>
+int TemporalMIIAdd( Word* args, Word& result, int message,
+ Word& local, Supplier s )
+{
+  result = qp->ResultStorage( s );
+
+  MovingAddMII(
+      static_cast<MInt*>(args[0].addr), static_cast<CcInt*>(args[1].addr),
+      static_cast<MInt*>(result.addr), op);
+
+  return 0;
+}
+
+template<int op>
+int TemporalMIRAdd( Word* args, Word& result, int message,
+ Word& local, Supplier s )
+{
+  result = qp->ResultStorage( s );
+
+  MovingAddMIR(
+      static_cast<MInt*>(args[0].addr), static_cast<CcReal*>(args[1].addr),
+      static_cast<MReal*>(result.addr), op);
+
+  return 0;
+}
+
+template<int op>
+int TemporalMRRAdd( Word* args, Word& result, int message,
+ Word& local, Supplier s )
+{
+  result = qp->ResultStorage( s );
+
+  MovingAddMRR(
+      static_cast<MReal*>(args[0].addr), static_cast<CcReal*>(args[1].addr),
+      static_cast<MReal*>(result.addr), op);
+
+  return 0;
+}
+
+template<int op>
+int TemporalMRIAdd( Word* args, Word& result, int message,
+ Word& local, Supplier s )
+{
+  result = qp->ResultStorage( s );
+
+  MovingAddMRI(
+      static_cast<MReal*>(args[0].addr), static_cast<CcInt*>(args[1].addr),
+      static_cast<MReal*>(result.addr), op);
+
+  return 0;
+}
+
+template<int op>
+int TemporalIMIAdd( Word* args, Word& result, int message,
+ Word& local, Supplier s )
+{
+  result = qp->ResultStorage( s );
+
+  MovingAddIMI(
+      static_cast<CcInt*>(args[0].addr), static_cast<MInt*>(args[1].addr),
+      static_cast<MInt*>(result.addr), op);
+
+  return 0;
+}
+
+template<int op>
+int TemporalRMIAdd( Word* args, Word& result, int message,
+ Word& local, Supplier s )
+{
+  result = qp->ResultStorage( s );
+
+  MovingAddRMI(
+      static_cast<CcReal*>(args[0].addr), static_cast<MInt*>(args[1].addr),
+      static_cast<MReal*>(result.addr), op);
+
+  return 0;
+}
+
+template<int op>
+int TemporalRMRAdd( Word* args, Word& result, int message,
+ Word& local, Supplier s )
+{
+  result = qp->ResultStorage( s );
+
+  MovingAddRMR(
+      static_cast<CcReal*>(args[0].addr), static_cast<MReal*>(args[1].addr),
+      static_cast<MReal*>(result.addr), op);
+
+  return 0;
+}
+
+template<int op>
+int TemporalIMRAdd( Word* args, Word& result, int message,
+ Word& local, Supplier s )
+{
+  result = qp->ResultStorage( s );
+
+  MovingAddIMR(
+      static_cast<CcInt*>(args[0].addr), static_cast<MReal*>(args[1].addr),
+      static_cast<MReal*>(result.addr), op);
+
+  return 0;
+}
+
+template<int op>
+int TemporalMIMIAdd( Word* args, Word& result, int message,
+ Word& local, Supplier s )
+{
+  result = qp->ResultStorage( s );
+
+  MovingAddMIMI(
+      static_cast<MInt*>(args[0].addr), static_cast<MInt*>(args[1].addr),
+      static_cast<MInt*>(result.addr), op);
+
+  return 0;
+}
+
+template<int op>
+int TemporalMIMRAdd( Word* args, Word& result, int message,
+ Word& local, Supplier s )
+{
+  result = qp->ResultStorage( s );
+
+  MovingAddMIMR(
+      static_cast<MInt*>(args[0].addr), static_cast<MReal*>(args[1].addr),
+      static_cast<MReal*>(result.addr), op);
+
+  return 0;
+}
+
+template<int op>
+int TemporalMRMRAdd( Word* args, Word& result, int message,
+ Word& local, Supplier s )
+{
+  result = qp->ResultStorage( s );
+
+  MovingAddMRMR(
+      static_cast<MReal*>(args[0].addr), static_cast<MReal*>(args[1].addr),
+      static_cast<MReal*>(result.addr), op);
+
+  return 0;
+}
+
+template<int op>
+int TemporalMRMIAdd( Word* args, Word& result, int message,
+ Word& local, Supplier s )
+{
+  result = qp->ResultStorage( s );
+
+  MovingAddMRMI(
+      static_cast<MReal*>(args[0].addr), static_cast<MInt*>(args[1].addr),
+      static_cast<MReal*>(result.addr), op);
+
+  return 0;
+}
+
+/*
+16.3 Value mapping functions of the multiplication and division operators
+for {mint, mreal}
+
+*/
+int TemporalMIIMultiply( Word* args, Word& result, int message,
+ Word& local, Supplier s )
+{
+  result = qp->ResultStorage( s );
+
+  MovingMultiplyMII(
+      static_cast<MInt*>(args[0].addr), static_cast<CcInt*>(args[1].addr),
+      static_cast<MInt*>(result.addr));
+
+  return 0;
+}
+
+template<bool inverseSecond>
+int TemporalMIRMultiply( Word* args, Word& result, int message,
+ Word& local, Supplier s )
+{
+  result = qp->ResultStorage( s );
+
+  MovingMultiplyMIR(
+      static_cast<MInt*>(args[0].addr), static_cast<CcReal*>(args[1].addr),
+      static_cast<MReal*>(result.addr), inverseSecond);
+
+  return 0;
+}
+
+template<bool inverseSecond>
+int TemporalMRRMultiply( Word* args, Word& result, int message,
+ Word& local, Supplier s )
+{
+  result = qp->ResultStorage( s );
+
+  MovingMultiplyMRR(
+      static_cast<MReal*>(args[0].addr), static_cast<CcReal*>(args[1].addr),
+      static_cast<MReal*>(result.addr), inverseSecond);
+
+  return 0;
+}
+
+template<bool inverseSecond>
+int TemporalMRIMultiply( Word* args, Word& result, int message,
+ Word& local, Supplier s )
+{
+  result = qp->ResultStorage( s );
+
+  MovingMultiplyMRI(
+      static_cast<MReal*>(args[0].addr), static_cast<CcInt*>(args[1].addr),
+      static_cast<MReal*>(result.addr), inverseSecond);
+
+  return 0;
+}
+
+int TemporalIMIMultiply( Word* args, Word& result, int message,
+ Word& local, Supplier s )
+{
+  result = qp->ResultStorage( s );
+
+  MovingMultiplyIMI(
+      static_cast<CcInt*>(args[0].addr), static_cast<MInt*>(args[1].addr),
+      static_cast<MInt*>(result.addr));
+
+  return 0;
+}
+
+template<bool inverseSecond>
+int TemporalRMIMultiply( Word* args, Word& result, int message,
+ Word& local, Supplier s )
+{
+  result = qp->ResultStorage( s );
+
+  MovingMultiplyRMI(
+      static_cast<CcReal*>(args[0].addr), static_cast<MInt*>(args[1].addr),
+      static_cast<MReal*>(result.addr), inverseSecond);
+
+  return 0;
+}
+
+int TemporalIMRMultiply( Word* args, Word& result, int message,
+ Word& local, Supplier s )
+{
+  result = qp->ResultStorage( s );
+
+  MovingMultiplyIMR(
+      static_cast<CcInt*>(args[0].addr), static_cast<MReal*>(args[1].addr),
+      static_cast<MReal*>(result.addr));
+
+  return 0;
+}
+
+int TemporalRMRMultiply( Word* args, Word& result, int message,
+ Word& local, Supplier s )
+{
+  result = qp->ResultStorage( s );
+
+  MovingMultiplyRMR(
+      static_cast<CcReal*>(args[0].addr), static_cast<MReal*>(args[1].addr),
+      static_cast<MReal*>(result.addr));
+
+  return 0;
+}
+
+int TemporalMIMIMultiply( Word* args, Word& result, int message,
+ Word& local, Supplier s )
+{
+  result = qp->ResultStorage( s );
+
+  MovingMultiplyMIMI(
+      static_cast<MInt*>(args[0].addr), static_cast<MInt*>(args[1].addr),
+      static_cast<MInt*>(result.addr));
+
+  return 0;
+}
+
+int TemporalMIMRMultiply( Word* args, Word& result, int message,
+ Word& local, Supplier s )
+{
+  result = qp->ResultStorage( s );
+
+  MovingMultiplyMIMR(
+      static_cast<MInt*>(args[0].addr), static_cast<MReal*>(args[1].addr),
+      static_cast<MReal*>(result.addr));
+
+  return 0;
+}
+
+template<bool inverseSecond>
+int TemporalMRMIMultiply( Word* args, Word& result, int message,
+ Word& local, Supplier s )
+{
+  result = qp->ResultStorage( s );
+
+  MovingMultiplyMRMI(
+      static_cast<MReal*>(args[0].addr), static_cast<MInt*>(args[1].addr),
+      static_cast<MReal*>(result.addr), inverseSecond);
+
+  return 0;
+}
+
+/*
+16.3 Value mapping functions of operator ~/~
+for {mint, mreal}
+
+*/
+int TemporalMIIDivide( Word* args, Word& result, int message,
+ Word& local, Supplier s )
+{
+  result = qp->ResultStorage( s );
+
+  MovingDivideMII(
+      static_cast<MInt*>(args[0].addr), static_cast<CcInt*>(args[1].addr),
+      static_cast<MReal*>(result.addr));
+
+  return 0;
+}
+
+int TemporalIMIDivide( Word* args, Word& result, int message,
+ Word& local, Supplier s )
+{
+  result = qp->ResultStorage( s );
+
+  MovingDivideIMI(
+      static_cast<CcInt*>(args[0].addr), static_cast<MInt*>(args[1].addr),
+      static_cast<MReal*>(result.addr));
+
+  return 0;
+}
+
+int TemporalMIMIDivide( Word* args, Word& result, int message,
+ Word& local, Supplier s )
+{
+  result = qp->ResultStorage( s );
+
+  MovingDivideMIMI(
+      static_cast<MInt*>(args[0].addr), static_cast<MInt*>(args[1].addr),
+      static_cast<MReal*>(result.addr));
 
   return 0;
 }
@@ -5975,64 +7679,6 @@ int TemporalMIntValueMap( Word* args, Word& result, int message,
   return 0;
 }
 
-/*
-16.3 Value mapping functions of operator ~+~ with two mint-objects
-
-*/
-int TemporalPlusValueMap( Word* args, Word& result, int message,
- Word& local, Supplier s )
-{
-  if(TLA_DEBUG)
-    cout<<"TemporalPlusValueMap called"<<endl;
-
-  result = qp->ResultStorage( s );
-  MInt *op1 = (MInt*)args[0].addr;
-  MInt *op2 = (MInt*)args[1].addr;
-  MInt *pResult = (MInt*)result.addr;
-  if( !op1->IsDefined() || !op2->IsDefined() ){
-    pResult->SetDefined( false );
-    return 0;
-  }
-  pResult->SetDefined( true );
-  UInt uInt(true);  //part of the Result
-
-  RefinementPartition<MInt, MInt, UInt, UInt> rp(*op1, *op2);
-  if(TLA_DEBUG)
-    cout<<"Refinement finished, rp.size: "<<rp.Size()<<endl;
-  pResult->Clear();
-  pResult->StartBulkLoad();
-  for(unsigned int i = 0; i < rp.Size(); i++)
-  {
-    Interval<Instant> iv;
-    int u1Pos;
-    int u2Pos;
-    UInt u1;
-    UInt u2;
-
-    rp.Get(i, iv, u1Pos, u2Pos);
-
-    if (u1Pos == -1 || u2Pos == -1)
-      continue;
-    else {
-      if(TLA_DEBUG)
-        cout<<"Both operators existant in interval iv #"<<i<<endl;
-      op1->Get(u1Pos, u1);
-      op2->Get(u2Pos, u2);
-      if(!(u1.IsDefined() && u2.IsDefined()))
-        continue;
-    }
-    uInt.timeInterval = iv;
-
-    uInt.constValue.Set(true,
-      u1.constValue.GetIntval() + u2.constValue.GetIntval());
-
-    pResult->MergeAdd(uInt);
-  }
-  pResult->EndBulkLoad(false);
-
-  return 0;
-}
-
 
 int eplusVM( Word* args, Word& result, int message,
  Word& local, Supplier s )
@@ -6188,6 +7834,69 @@ static ValueMapping temporalmlessmap[] =     {
                 TemporalMSCompare<MString, UString, CcString, -2>,
                 TemporalSMCompare<MString, UString, CcString, -2>};
 
+static ValueMapping temporalsubtractmap[] =     {
+   TemporalMIIAdd<-1>,
+   TemporalMIRAdd<-1>,
+   TemporalMRRAdd<-1>,
+   TemporalMRIAdd<-1>,
+
+   TemporalIMIAdd<-1>,
+   TemporalRMIAdd<-1>,
+   TemporalRMRAdd<-1>,
+   TemporalIMRAdd<-1>,
+
+   TemporalMIMIAdd<-1>,
+   TemporalMIMRAdd<-1>,
+   TemporalMRMRAdd<-1>,
+   TemporalMRMIAdd<-1>
+   };
+
+static ValueMapping temporaladdmap[] =     {
+   TemporalMIIAdd<1>,
+   TemporalMIRAdd<1>,
+   TemporalMRRAdd<1>,
+   TemporalMRIAdd<1>,
+
+   TemporalIMIAdd<1>,
+   TemporalRMIAdd<1>,
+   TemporalRMRAdd<1>,
+   TemporalIMRAdd<1>,
+
+   TemporalMIMIAdd<1>,
+   TemporalMIMRAdd<1>,
+   TemporalMRMRAdd<1>,
+   TemporalMRMIAdd<1>
+   };
+
+static ValueMapping temporalmultiplymap[] =     {
+    TemporalMIIMultiply,
+    TemporalMIRMultiply<false>,
+    TemporalMRRMultiply<false>,
+    TemporalMRIMultiply<false>,
+
+    TemporalIMIMultiply,
+    TemporalRMIMultiply<false>,
+    TemporalIMRMultiply,
+    TemporalRMRMultiply,
+
+    TemporalMIMIMultiply,
+    TemporalMIMRMultiply,
+    TemporalMRMIMultiply<false>
+    };
+
+static ValueMapping temporaldividemap[] =     {
+    TemporalMIIDivide,
+    TemporalMIRMultiply<true>,
+    TemporalMRRMultiply<true>,
+    TemporalMRIMultiply<true>,
+
+    TemporalIMIDivide,
+    TemporalRMIMultiply<true>,
+
+    TemporalMIMIDivide,
+    TemporalMRMIMultiply<true>
+    };
+
 static ValueMapping temporalmlessequalmap[] =     {
                 TemporalMMCompare<MBool, MBool, UBool, UBool, -1>,
                 TemporalMSCompare<MBool, UBool, CcBool, -1>,
@@ -6342,6 +8051,54 @@ const string TemporalLiftSpecLT
             "<text>_ < _</text--->"
             "<text>Less than.</text--->"
             "<text>query i1 < i2</text--->"
+            ") )";
+
+const string TemporalLiftSpecSubtract
+          = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+            "\"Example\" )"
+            "( <text> (mint x int) ->  mint, (mint x mint) ->  mint,"
+            " (mreal x real) -> mreal, (mreal x mreal) -> mreal,"
+            " (mreal x int) -> mreal, (mint x real) -> mreal,"
+            " (mreal x mint) -> mreal</text--->"
+            "<text>_ - _</text--->"
+            "<text>Subtract</text--->"
+            "<text>query i1 - i2</text--->"
+            ") )";
+
+const string TemporalLiftSpecAdd
+          = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+            "\"Example\" )"
+            "( <text> (mint x int) ->  mint, (mint x mint) ->  mint,"
+            " (mreal x real) -> mreal, (mreal x mreal) -> mreal,"
+            " (mreal x int) -> mreal, (mint x real) -> mreal,"
+            " (mreal x mint) -> mreal</text--->"
+            "<text>_ + _</text--->"
+            "<text>Add</text--->"
+            "<text>query i1 + i2</text--->"
+            ") )";
+
+const string TemporalLiftSpecMultiply
+          = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+            "\"Example\" )"
+            "( <text> (mint x int) ->  mint, (mint x mint) ->  mint,"
+            " (mreal x real) -> mreal, "
+            " (mreal x int) -> mreal, (mint x real) -> mreal,"
+            " (mreal x mint) -> mreal</text--->"
+            "<text>_ * _</text--->"
+            "<text>Multiply</text--->"
+            "<text>query i1 * i2</text--->"
+            ") )";
+
+const string TemporalLiftSpecDivide
+          = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+            "\"Example\" )"
+            "( <text> (mint x int) ->  mreal, (mint x mint) ->  mreal,"
+            " (mreal x real) -> mreal, "
+            " (mreal x int) -> mreal, (mint x real) -> mreal,"
+            " (mreal x mint) -> mreal</text--->"
+            "<text>_ / _</text--->"
+            "<text>Divide</text--->"
+            "<text>query i1 / i2</text--->"
             ") )";
 
 const string TemporalLiftSpecLE
@@ -6519,14 +8276,6 @@ const string temporalmintspec
              " for each existing period and 0 for every hole.</text--->"
              "<text>mmint(per1)</text---> ) )";
 
-const string temporalplusspec
-           = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
-             "\"Example\" ) "
-             "( <text>mint x mint -> mint</text--->"
-             "<text>_ + _</text--->"
-             "<text>Adds two mint-obects when both are existant</text--->"
-             "<text>mi1 + mi2</text---> ) )";
-
 const string eplusSpec
            = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
              "\"Example\" ) "
@@ -6599,6 +8348,34 @@ static Operator temporalmgreaterequal ( ">=",
                             temporalmgreaterequalmap,
                             MovingCompareSelect,
                             MovingCompareTypeMapMBool );
+
+static Operator temporalsubtract ( "-",
+                            TemporalLiftSpecSubtract,
+                            12,
+                            temporalsubtractmap,
+                            MovingAddSelect,
+                            MovingAddTypeMap);
+
+static Operator temporaladd ( "+",
+                            TemporalLiftSpecAdd,
+                            12,
+                            temporaladdmap,
+                            MovingAddSelect,
+                            MovingAddTypeMap);
+
+static Operator temporalmultiply ( "*",
+                            TemporalLiftSpecMultiply,
+                            11,
+                            temporalmultiplymap,
+                            MovingMultiplySelect,
+                            MovingMultiplyTypeMap);
+
+static Operator temporaldivide ( "/",
+                            TemporalLiftSpecDivide,
+                            8,
+                            temporaldividemap,
+                            MovingDivideSelect,
+                            MovingDivideTypeMap);
 
 static Operator isempty("isempty",
                             temporalliftisemptyspec,
@@ -6697,12 +8474,6 @@ static Operator temporalmint("periods2mint",
                             Operator::SimpleSelect,
                             TemporalMIntTypeMap);
 
-static Operator temporalplus("+",
-                            temporalplusspec,
-                            TemporalPlusValueMap,
-                            Operator::SimpleSelect,
-                            TemporalPlusTypeMap);
-
 static Operator eplus("eplus",
                        eplusSpec,
                        eplusVM,
@@ -6756,10 +8527,13 @@ class TemporalLiftedAlgebra : public Algebra
 
     AddOperator( &temporalzero);
     AddOperator( &temporalmint);
-    AddOperator( &temporalplus);
     AddOperator( &eplus);
     AddOperator( &temporalconcat);
     AddOperator( &temporalabs);
+    AddOperator( &temporalsubtract);
+    AddOperator( &temporaladd);
+    AddOperator( &temporalmultiply);
+    AddOperator( &temporaldivide);
     }
     ~TemporalLiftedAlgebra() {}
 };
