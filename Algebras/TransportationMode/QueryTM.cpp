@@ -43,7 +43,160 @@ convert a genrange object to a 2D line in space or 3D line in a building
 */
 void QueryTM::GetLineOrLine3D(GenRange* gr, Space* sp)
 {
-  
+  for(int i = 0;i < gr->Size();i++){
+    Line l(0);
+    GenRangeElem grelem;
+    gr->Get( i, grelem, l);
+    int infra_type = sp->GetInfraType(grelem.oid);
 
+    switch(infra_type){
+      case IF_LINE:
+//        cout<<"road network "<<endl;
+        GetLineInRoad(grelem.oid, &l, sp);
+        break;
+
+      case IF_REGION:
+//        cout<<"region based outdoor"<<endl;
+        GetLineInRegion(grelem.oid, &l, sp);
+        break; 
+
+      case IF_FREESPACE:
+//        cout<<"free space"<<endl;
+        GetLineInFreeSpace(&l);
+        break;
+
+      case IF_MPPTN:
+//        cout<<"bus network"<<endl;
+        GetLineInBusNetwork(grelem.oid, &l, sp);
+        break;
+
+      case IF_GROOM:
+//        cout<<"indoor "<<endl;
+        GetLineInGRoom(grelem.oid, &l, sp);
+        break;
+
+      default:
+        assert(false);
+        break;
+    }
+  }
+
+
+}
+
+/*
+get the overall line in road network 
+
+*/
+void QueryTM::GetLineInRoad(int oid, Line* l, Space* sp)
+{
+  Network* rn = sp->LoadRoadNetwork(IF_LINE);
+  Tuple* route_tuple = rn->GetRoute(oid);
+  SimpleLine* sl = (SimpleLine*)route_tuple->GetAttribute(ROUTE_CURVE);
+  Rectangle<2> bbox = sl->BoundingBox();
+  route_tuple->DeleteIfAllowed();
+  sp->CloseRoadNetwork(rn);
+
+  Line* newl = new Line(0);
+  newl->StartBulkLoad();
+  
+  int edgeno = 0;
+  for(int i = 0;i < l->Size();i++){
+    HalfSegment hs1;
+    l->Get(i, hs1);
+    if(!hs1.IsLeftDomPoint())continue;
+    Point lp = hs1.GetLeftPoint();
+    Point rp = hs1.GetRightPoint();
+    Point newlp(true, lp.GetX() + bbox.MinD(0), lp.GetY() + bbox.MinD(1));
+    Point newrp(true, rp.GetX() + bbox.MinD(0), rp.GetY() + bbox.MinD(1));
+    HalfSegment hs2(true, newlp, newrp);
+    hs2.attr.edgeno = edgeno++;
+    *newl += hs2;
+    hs2.SetLeftDomPoint(!hs2.IsLeftDomPoint());
+    *newl += hs2;
+  }
+  
+  newl->EndBulkLoad();
+  
+  line_list1.push_back(*newl);
+  Line3D* l3d = new Line3D(0);
+  line3d_list.push_back(*l3d);
+  delete l3d;
+  delete newl;
+
+}
+
+
+/*
+get the overall line in region based outdoor 
+
+*/
+void QueryTM::GetLineInRegion(int oid, Line* l, Space* sp)
+{
+  Pavement* pm = sp->LoadPavement(IF_REGION);
+  DualGraph* dg = pm->GetDualGraph();
+  Rectangle<2> bbox = dg->rtree_node->BoundingBox();
+  pm->CloseDualGraph(dg);
+  sp->ClosePavement(pm);
+
+  Line* newl = new Line(0);
+  newl->StartBulkLoad();
+
+  int edgeno = 0;
+  for(int i = 0;i < l->Size();i++){
+    HalfSegment hs1;
+    l->Get(i, hs1);
+    if(!hs1.IsLeftDomPoint())continue;
+    Point lp = hs1.GetLeftPoint();
+    Point rp = hs1.GetRightPoint();
+    Point newlp(true, lp.GetX() + bbox.MinD(0), lp.GetY() + bbox.MinD(1));
+    Point newrp(true, rp.GetX() + bbox.MinD(0), rp.GetY() + bbox.MinD(1));
+    HalfSegment hs2(true, newlp, newrp);
+    hs2.attr.edgeno = edgeno++;
+    *newl += hs2;
+    hs2.SetLeftDomPoint(!hs2.IsLeftDomPoint());
+    *newl += hs2;
+  }
+  
+  newl->EndBulkLoad();
+  
+  line_list1.push_back(*newl);
+  Line3D* l3d = new Line3D(0);
+  line3d_list.push_back(*l3d);
+  delete l3d;
+  delete newl;
+}
+
+/*
+get the overall line in free space 
+
+*/
+void QueryTM::GetLineInFreeSpace(Line* l)
+{
+  line_list1.push_back(*l);
+  Line3D* l3d = new Line3D(0);
+  line3d_list.push_back(*l3d);
+  delete l3d;
+}
+
+/*
+get the overall line in bus network 
+
+*/
+void QueryTM::GetLineInBusNetwork(int oid, Line* l, Space* sp)
+{
+  cout<<"busnetwork not implemented"<<endl;
+
+
+}
+
+
+/*
+get the overall line for indoor environment (line3D)
+
+*/
+void QueryTM::GetLineInGRoom(int oid, Line* l, Space* sp)
+{
+  cout<<"indoor not implemented"<<endl;
 
 }

@@ -88,7 +88,13 @@ struct QueryTM{
   //////////get 2D line in space or 3D line in a building///////////////////
   ////////////////////////////////////////////////////////////////////////////
   void GetLineOrLine3D(GenRange* gr, Space* sp);
+  
+  void GetLineInRoad(int , Line* l, Space* sp);
+  void GetLineInRegion(int , Line* l, Space* sp);
+  void GetLineInFreeSpace(Line* l);
+  void GetLineInBusNetwork(int, Line* l, Space* sp);
+  void GetLineInGRoom(int, Line* l, Space* sp);
 };
 
 
-#endif QUERYTM_H
+#endif

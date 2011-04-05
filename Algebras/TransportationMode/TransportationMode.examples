@@ -762,8 +762,8 @@ Result   : "empty"
 Operator : maxrect 
 Number   : 1
 Signature: region -> rect
-Example  : query area(maxrect(r1));
-Result   : 4.0
+Example  : query size(maxrect([const region value ((((1 1)(5 2)(6 6)(2 5))))]));
+Result   : 4
 
 
 Operator : getrect2 
@@ -808,6 +808,13 @@ Signature: genloc -> int
 Example  : query ref_id([const genloc value (1 (5.0 4.42 ))]);
 Result   : 1
 
+Operator : tm_at
+Number   : 1
+Signature: genmo x string -> genmo
+Example  : query no_components(tm_at([const genmo value ((("2010-12-7-8:03:25" "2010-12-7-8:04:10" TRUE FALSE) (1 (2.0 3.0)) (1 (3.0 3.0)) "Indoor"))], "Indoor"));
+Result   : 1
+
+
 Operator : setref_id
 Number   : 1
 Signature: genmo -> (stream uT)
@@ -819,19 +826,19 @@ Operator : deftime
 Number   : 1
 Signature: genmo -> periods
 Example  : query deftime([const genmo value ((("2010-12-7-8:03:25" "2010-12-7-8:04:10" TRUE FALSE) (1 (2.0 3.0)) (1 (3.0 3.0)) "Indoor"))]);
-Result   : (periods (("2010-12-7-8:03:25" "2010-12-7-8:04:10" TRUE TRUE)))
+Result   : (periods (("2010-12-7-8:03:25" "2010-12-7-8:04:10" TRUE FALSE)))
 
 
 Operator : no_components 
 Number   : 1
 Signature: genmo -> int 
-Example  : query no_components(genmo1);
+Example  : query no_components([const genmo value ((("2010-12-7-8:03:25" "2010-12-7-8:04:10" TRUE FALSE) (1 (2.0 -1.0)) (1 (3.0 -1.0)) "Car"))]);
 Result   : 1 
 
 Operator : lowres 
 Number   : 1
 Signature: genmo -> genmo
-Example  : query no_components(lowres(genmo1));
+Example  : query no_components(lowres([const genmo value ((("2010-12-7-8:03:25" "2010-12-7-8:04:10" TRUE FALSE) (1 (2.0 -1.0)) (1 (3.0 -1.0)) "Car"))]));
 Result   : 1 
 
 
@@ -858,7 +865,7 @@ Result   : 1
 Operator : getmode 
 Number   : 1
 Signature: genmo -> (stream(((x1 t1) ... (xn tn))))
-Example  : query getmode(genmo1) count;
+Example  : query getmode([const genmo value ((("2010-12-7-8:03:25" "2010-12-7-8:04:10" TRUE FALSE) (1 (2.0 -1.0)) (1 (3.0 -1.0)) "Car"))]) count;
 Result   : 1 
 
 
@@ -903,8 +910,13 @@ Result   : 5
 
 Operator : generate_genmo2
 Number   : 1
-Signature: space x periods x int x int x rel x btree -> (stream(((x1 t1) ... (xn tn))))
+Signature: space x periods x int x int x rel x btree x rel -> (stream(((x1 t1) ... (xn tn))))
 Example  : query generate_genmo2(space_1, TwoDays, 5.0, 7, dg_node_rid, btree_dg_rid, streets_speed) count;
 Result   : 5
 
 
+Operator : generate_genmo3
+Number   : 1
+Signature: space x periods x int x int x rel x rel x rtree -> (stream(((x1 t1) ... (xn tn))))
+Example  : query generate_genmo3(space_1, TwoDays, 10, 8, tri_reg_new, bs_pave_sort, rtree_bs_pave)count;
+Result   : 10

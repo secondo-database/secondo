@@ -547,6 +547,12 @@ class Bus_Stop:public Attribute{
      ~Bus_Stop(){}
      Bus_Stop& operator=(const Bus_Stop& bs);
 
+     void Set(unsigned int id1, unsigned int id2, bool d){
+        SetDefined(true);
+        br_id = id1;
+        stop_id = id2;
+        up_down = d;
+     }
      static void* Cast(void* addr); 
      unsigned int GetId() const{return br_id;}
      unsigned int GetStopId() const{return stop_id;}
@@ -720,14 +726,16 @@ class BusNetwork{
   static string BusRoutesBTreeTypeInfo; 
   static string BusRoutesBTreeUOidTypeInfo; 
   static string BusTripsTypeInfo; 
-  
+  static string BusTripBTreeTypeInfo;
+
+
   bool Save(SmiRecord& valueRecord, size_t& offset, const ListExpr typeInfo);
   static BusNetwork* Open(SmiRecord& valueRecord, size_t& offset, 
                      const ListExpr typeInfo);
   enum BN_INODE{NODE_BS1 = 0, NODE_BS2};
   enum BN_BS{BN_ID1 = 0, BN_BS, BS_U_OID, BS_GEO};//internal representation 
   enum BN_BR{BN_ID2 = 0, BN_BR, BN_BR_OID}; //representation 
-  enum BN_BTP{BN_BUSTRIP = 0, BN_BUS_OID};
+  enum BN_BTP{BN_BUSTRIP = 0, BN_BUSTRIP_MP, BN_REFBR_OID, BN_BUS_OID};
 
   void Load(unsigned int i, Relation* r1, Relation* r2, Relation* r3); 
   void LoadStops(Relation* r);
@@ -748,6 +756,9 @@ class BusNetwork{
   unsigned int GraphId(){return graph_id;}
   BusGraph* GetBusGraph();
   void CloseBusGraph(BusGraph* bg);
+
+  int GetMOBus_Oid(Bus_Stop* bs, Point*, Instant& t);
+  int GetMOBus_MP(Bus_Stop* bs, Point*, Instant t, MPoint& mp);
 
   private:
     bool def; 
@@ -770,7 +781,8 @@ class BusNetwork{
 
     Relation* bustrips_rel; //a relation for moving buses 
 
-    
+    BTree* btree_trip_oid;  //a btree on bus trips on unique oid 
+    BTree* btree_trip_br_id; //a btree on bus trips on bus route id 
 };
 
 ListExpr BusNetworkProperty();
@@ -885,7 +897,8 @@ this kind of connection can be defined as in free space
 3. moving buses from one bus stop to its next one in the same route 
 for the last stop, it has no neigbor stops
 
-two kinds of trip planning:shortest distance, minimum travelling time 
+three kinds of trip planning:shortest distance, minimum travelling time,
+minimum number of bus transfers 
 
 */
 class BusGraph{
@@ -1093,6 +1106,11 @@ struct BNNav{
   vector<Point> bs_geo_list; 
   
   vector<GenMO> genmo_list;
+  vector<MPoint> mp_list;
+  
+  vector<Bus_Stop> bs_list1;
+  vector<Bus_Stop> bs_list2;
+  vector<int> br_id_list;
   
   unsigned int count;
   TupleType* resulttype;
@@ -1227,6 +1245,8 @@ struct UBTrain{
   vector<SimpleLine> geodata; 
   
   vector<GenMO> genmo_list; 
+  vector<MPoint> mp_list;
+  vector<int> br_id_list;
   
   static string TrainsTypeInfo;
   static string UBahnLineInfo;

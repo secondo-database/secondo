@@ -5944,7 +5944,11 @@ string BusNetwork::BusRoutesBTreeUOidTypeInfo =
 "(btree (tuple ((br_id int)(bus_route busroute)(oid int))) int)";
 
 string BusNetwork::BusTripsTypeInfo = 
-"(rel (tuple ((bustrip genmo) (oid int))))";
+"(rel (tuple ((bustrip1 genmo) (bustrip2 mpoint) (br_id int)(oid int))))";
+
+string BusNetwork::BusTripBTreeTypeInfo =
+"(btree (tuple ((bustrip1 genmo) (bustrip2 mpoint) (br_id int)(oid int))) int)";
+
 
 ListExpr BusNetworkProperty()
 {
@@ -6150,16 +6154,19 @@ def(false), bn_id(0), graph_init(false), graph_id(0), max_bus_speed(0),
 min_br_oid(0), min_bt_oid(0), 
 stops_rel(NULL), btree_bs(NULL), 
 routes_rel(NULL), btree_br(NULL), btree_bs_uoid(NULL), rtree_bs(NULL),
-btree_br_uoid(NULL), bustrips_rel(NULL)
+btree_br_uoid(NULL), bustrips_rel(NULL), btree_trip_oid(NULL),
+btree_trip_br_id(NULL)
 {
 
+  
 }
 
 BusNetwork::BusNetwork(bool d, unsigned int i): def(d), bn_id(i), 
 graph_init(false), graph_id(0), max_bus_speed(0),
 min_br_oid(0), min_bt_oid(0), 
 stops_rel(NULL), btree_bs(NULL), routes_rel(NULL), btree_br(NULL),
-btree_bs_uoid(NULL), rtree_bs(NULL), btree_br_uoid(NULL), bustrips_rel(NULL)
+btree_bs_uoid(NULL), rtree_bs(NULL), btree_br_uoid(NULL), bustrips_rel(NULL),
+btree_trip_oid(NULL), btree_trip_br_id(NULL)
 {
 
 }
@@ -6174,7 +6181,8 @@ def(false), bn_id(0), graph_init(false), graph_id(0), max_bus_speed(0),
 min_br_oid(0), min_bt_oid(0), 
 stops_rel(NULL), btree_bs(NULL), 
 routes_rel(NULL), btree_br(NULL), btree_bs_uoid(NULL), rtree_bs(NULL),
-btree_br_uoid(NULL), bustrips_rel(NULL)
+btree_br_uoid(NULL), bustrips_rel(NULL), btree_trip_oid(NULL),
+btree_trip_br_id(NULL)
 {
   valueRecord.Read(&def, sizeof(bool), offset);
   offset += sizeof(bool);
@@ -6290,6 +6298,39 @@ btree_br_uoid(NULL), bustrips_rel(NULL)
     delete btree_br_uoid;
     return;
   }
+  
+  ///////////////////btree on bus trips unique id////////////////////////////
+  nl->ReadFromString(BusTripBTreeTypeInfo, xType);
+  xNumericType = SecondoSystem::GetCatalog()->NumericType(xType);
+  btree_trip_oid = BTree::Open(valueRecord, offset, xNumericType);
+  if(!btree_trip_oid) {
+    stops_rel->Delete(); 
+    delete btree_bs;
+    routes_rel->Delete();
+    delete btree_br; 
+    delete btree_bs_uoid;
+    delete rtree_bs; 
+    delete btree_br_uoid;
+    bustrips_rel->Delete();
+    return;
+  }
+  ///////////////////btree on bus trips bus route id/////////////////////////
+  nl->ReadFromString(BusTripBTreeTypeInfo, xType);
+  xNumericType = SecondoSystem::GetCatalog()->NumericType(xType);
+  btree_trip_br_id = BTree::Open(valueRecord, offset, xNumericType);
+  if(!btree_trip_br_id) {
+    stops_rel->Delete(); 
+    delete btree_bs;
+    routes_rel->Delete();
+    delete btree_br; 
+    delete btree_bs_uoid;
+    delete rtree_bs; 
+    delete btree_br_uoid;
+    bustrips_rel->Delete();
+    delete btree_trip_oid;
+    return;
+  }
+  
 }
 
 BusNetwork::~BusNetwork()
@@ -6302,6 +6343,8 @@ BusNetwork::~BusNetwork()
   if(rtree_bs != NULL) delete rtree_bs; 
   if(btree_br_uoid != NULL) delete btree_br_uoid;
   if(bustrips_rel != NULL) bustrips_rel->Close(); 
+  if(btree_trip_oid != NULL) delete btree_trip_oid;
+  if(btree_trip_br_id != NULL) delete btree_trip_br_id;
 
 }
 
@@ -6380,6 +6423,18 @@ bool BusNetwork::Save(SmiRecord& valueRecord, size_t& offset,
   nl->ReadFromString(BusTripsTypeInfo, xType);
   xNumericType = SecondoSystem::GetCatalog()->NumericType(xType);
   if(!bustrips_rel->Save(valueRecord,offset,xNumericType))
+      return false;
+  
+  ///////////////////////btree on bus trips on unique id//////////////////////
+  nl->ReadFromString(BusTripBTreeTypeInfo,xType);
+  xNumericType = SecondoSystem::GetCatalog()->NumericType(xType);
+  if(!btree_trip_oid->Save(valueRecord,offset,xNumericType))
+      return false;
+
+  //////////////////btree on bus trips on bus route  id//////////////////////
+  nl->ReadFromString(BusTripBTreeTypeInfo,xType);
+  xNumericType = SecondoSystem::GetCatalog()->NumericType(xType);
+  if(!btree_trip_br_id->Save(valueRecord,offset,xNumericType))
       return false;
   
   return true; 
@@ -6582,6 +6637,28 @@ void BusNetwork:: LoadBuses(Relation* r3)
  cout<<"max bus speed "<<max_bus_speed*60*60/1000.0<<"km/h "<<endl;
 // cout<<"min bus trip oid "<<min_bt_oid<<endl; 
 
+  ////////////////btree on bus trips oid///////////////////////////
+  ostringstream xEdgeOidPtrStream2;
+  xEdgeOidPtrStream2 << (long)bustrips_rel;
+  strQuery = "(createbtree (" + BusTripsTypeInfo +
+             "(ptr " + xEdgeOidPtrStream2.str() + "))" + "oid)";
+
+  QueryExecuted = QueryProcessor::ExecuteQuery(strQuery,xResult);
+  assert(QueryExecuted);
+  btree_trip_oid = (BTree*)xResult.addr;
+
+  
+  
+  ////////////////btree on bus trips bus route///////////////////////////
+  ostringstream xEdgeOidPtrStream3;
+  xEdgeOidPtrStream3 << (long)bustrips_rel;
+  strQuery = "(createbtree (" + BusTripsTypeInfo +
+             "(ptr " + xEdgeOidPtrStream3.str() + "))" + "br_id)";
+
+  QueryExecuted = QueryProcessor::ExecuteQuery(strQuery,xResult);
+  assert(QueryExecuted);
+  btree_trip_br_id = (BTree*)xResult.addr;
+
 }
 
 /*
@@ -6699,6 +6776,189 @@ void BusNetwork::CloseBusGraph(BusGraph* bg)
                                            xValue);
 }
 
+/*
+given a bus stop and time, it returns oid of the moving bus belonging to 
+that bus route and direction as well as coving the time
+
+*/
+struct Id_Time{
+  int oid;
+  double time;
+  Id_Time(){}
+  Id_Time(int id, double t):oid(id), time(t){}
+  Id_Time(const Id_Time& id_t):oid(id_t.oid), time(id_t.time){}
+  Id_Time& operator=(const Id_Time& id_time)
+  {
+    oid = id_time.oid;
+    time = id_time.time;
+    return *this;
+  }
+  bool operator<(const Id_Time& id_time) const
+  {
+    return time < id_time.time;
+  }
+  void Print()
+  {
+    cout<<"oid "<<oid<<"cost "<<time<<endl;
+  }
+};
+int BusNetwork::GetMOBus_Oid(Bus_Stop* bs, Point* bs_loc, Instant& t)
+{
+//  cout<<"instant "<<t<<endl; 
+  int br_id = bs->GetId();
+  //////////////////////////////////////////////////////////////////
+  ////////////get the unique id for the bus route/////////////////
+  //////////////////////////////////////////////////////////////////
+  CcInt* search_id1 = new CcInt(true, br_id);
+  BTreeIterator* btree_iter1 = btree_br->ExactMatch(search_id1);
+  int br_uoid = 0;
+  while(btree_iter1->Next()){
+      Tuple* tuple = routes_rel->GetTuple(btree_iter1->GetId(), false);
+      Bus_Route* br = (Bus_Route*)tuple->GetAttribute(BusNetwork::BN_BR);
+      if(br->GetUp() == bs->GetUp()){
+        br_uoid = 
+          ((CcInt*)tuple->GetAttribute(BusNetwork::BN_BR_OID))->GetIntval();
+        tuple->DeleteIfAllowed();
+        break;
+      }
+      tuple->DeleteIfAllowed();
+  }
+  delete btree_iter1;
+  delete search_id1;
+  assert(br_uoid > 0);
+
+//  cout<<"br_uoid "<<br_uoid<<endl;
+  ///////////////////////////////////////////////////////////////
+  ///////////////get moving buses moving on the route///////////
+  ///////////////////////////////////////////////////////////////
+  int bus_oid = 0;
+  CcInt* search_id2 = new CcInt(true, br_uoid);
+  BTreeIterator* btree_iter2 = btree_trip_br_id->ExactMatch(search_id2);
+  const double delta_dist = 0.01;
+  vector<Id_Time> res_list;
+
+  while(btree_iter2->Next()){
+      Tuple* tuple = bustrips_rel->GetTuple(btree_iter2->GetId(), false);
+      int brid = 
+         ((CcInt*)tuple->GetAttribute(BN_REFBR_OID))->GetIntval();
+      assert(brid == br_uoid);
+      MPoint* mo_bus = (MPoint*)tuple->GetAttribute(BN_BUSTRIP_MP);
+      Periods* peri = new Periods(0);
+      mo_bus->DefTime(*peri);
+//      cout<<"periods "<<*peri<<endl; 
+      if(peri->Contains(t)){
+//        cout<<"periods containt instant "<<endl;
+
+        for(int i = 0;i < mo_bus->GetNoComponents();i++){
+          UPoint unit;
+          mo_bus->Get(i, unit);
+          Point p0 = unit.p0;
+          Point p1 = unit.p1;
+
+//          cout<<unit.timeInterval<<" dist "<<bs_loc->Distance(p0)<<endl;
+//          cout<<"dist1 "<<bs_loc->Distance(p0)
+//              <<" dist2 "<<bs_loc->Distance(p1)<<endl;
+
+          if(bs_loc->Distance(p0) < delta_dist &&
+             bs_loc->Distance(p1) < delta_dist){
+              bus_oid = ((CcInt*)tuple->GetAttribute(BN_BUS_OID))->GetIntval();
+              double delta_t = 
+                fabs(unit.timeInterval.start.ToDouble() - t.ToDouble());
+              Id_Time* id_time = new Id_Time(bus_oid, delta_t);
+              res_list.push_back(*id_time);
+              delete id_time;
+          }
+        }
+      }
+      delete peri;
+      tuple->DeleteIfAllowed();
+  }
+  delete btree_iter2;
+  delete search_id2;
+  sort(res_list.begin(), res_list.end());
+//  for(unsigned int i = 0;i < res_list.size();i++)
+//    res_list[i].Print();
+//  cout<<"res_list size "<<res_list.size()<<endl;
+  assert(res_list.size() > 0);
+  bus_oid = res_list[0].oid;
+  
+  assert(bus_oid > 0);
+  return bus_oid; 
+}
+
+/*
+given a bus stop and time, it returns mpoint of the moving bus belonging to 
+that bus route and direction as well as coving the time
+
+*/
+int BusNetwork::GetMOBus_MP(Bus_Stop* bs, Point* bs_loc, Instant t, MPoint& mp)
+{
+  int br_id = bs->GetId();
+  //////////////////////////////////////////////////////////////////
+  ////////////get the unique id for the bus route/////////////////
+  //////////////////////////////////////////////////////////////////
+  CcInt* search_id1 = new CcInt(true, br_id);
+  BTreeIterator* btree_iter1 = btree_br->ExactMatch(search_id1);
+  int br_uoid = 0;
+  while(btree_iter1->Next()){
+      Tuple* tuple = routes_rel->GetTuple(btree_iter1->GetId(), false);
+      Bus_Route* br = (Bus_Route*)tuple->GetAttribute(BusNetwork::BN_BR);
+      if(br->GetUp() == bs->GetUp()){
+        br_uoid = 
+          ((CcInt*)tuple->GetAttribute(BusNetwork::BN_BR_OID))->GetIntval();
+        tuple->DeleteIfAllowed();
+        break;
+      }
+      tuple->DeleteIfAllowed();
+  }
+  delete btree_iter1;
+  delete search_id1;
+  assert(br_uoid > 0);
+
+//  cout<<"br_uoid "<<br_uoid<<endl;
+  ///////////////////////////////////////////////////////////////
+  ///////////////get moving buses moving on the route///////////
+  ///////////////////////////////////////////////////////////////
+  int bus_oid = 0;
+  CcInt* search_id2 = new CcInt(true, br_uoid);
+  BTreeIterator* btree_iter2 = btree_trip_br_id->ExactMatch(search_id2);
+  bool found = false;
+  const double delta_dist = 0.01;
+  vector<Id_Time> res_list;
+
+  while(btree_iter2->Next() && found == false){
+      Tuple* tuple = bustrips_rel->GetTuple(btree_iter2->GetId(), false);
+      int brid = 
+         ((CcInt*)tuple->GetAttribute(BN_REFBR_OID))->GetIntval();
+      assert(brid == br_uoid);
+      MPoint* mo_bus = (MPoint*)tuple->GetAttribute(BN_BUSTRIP_MP);
+      Periods* peri = new Periods(0);
+      mo_bus->DefTime(*peri);
+      if(peri->Contains(t)){
+//        cout<<"periods "<<*peri<<endl;
+        for(int i = 0;i < mo_bus->GetNoComponents();i++){
+          UPoint unit;
+          mo_bus->Get(i, unit);
+          Point p0 = unit.p0;
+          Point p1 = unit.p1;
+          if(bs_loc->Distance(p0) < delta_dist &&
+              unit.timeInterval.Contains(t)){
+              mp = *mo_bus;
+              bus_oid = ((CcInt*)tuple->GetAttribute(BN_BUS_OID))->GetIntval();
+              found = true;
+              break;
+          }
+        }
+
+      }
+      delete peri;
+      tuple->DeleteIfAllowed();
+  }
+  delete btree_iter2;
+  delete search_id2;
+  assert(bus_oid > 0);
+  return bus_oid; 
+}
 /////////////////////////////////////////////////////////////////////////////
 
 
@@ -9897,7 +10157,7 @@ void BNNav::ShortestPath_Transfer(Bus_Stop* bs1, Bus_Stop* bs2, Instant* qt)
   ////////////////construct the result//////////////////////////////////
   //////////////////////////////////////////////////////////////////////
   if(find){   ////////constrcut the result 
-      cout<<dest.weight<<" bus transfers"<<endl; 
+//      cout<<dest.weight<<" bus transfers"<<endl; 
       vector<int> id_list; 
       while(dest.prev_index != -1){
        id_list.push_back(dest.cur_index);
@@ -10703,11 +10963,13 @@ void BNNav::MPToGenMO(MPoint* mp,unsigned int br_id, bool dir, Relation* br_rel,
       delete unit2; 
 
     }
-    delete sl; 
+    delete sl;
 
     genmo->EndBulkLoad();
 
     genmo_list.push_back(*genmo);
+    br_id_list.push_back(bus_line_uoid);
+    mp_list.push_back(*mp);
     delete genmo; 
 }
 
@@ -11544,10 +11806,11 @@ void UBTrain::TrainsToGenMO()
     MPToGenMO(mp, genmo, line_id); 
 
     genmo_list.push_back(*genmo);
+    mp_list.push_back(*mp);
+    br_id_list.push_back(line_id);
 
     delete genmo; 
     train_tuple->DeleteIfAllowed(); 
-
 
 //    break; 
   }
