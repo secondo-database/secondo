@@ -4358,6 +4358,19 @@ int RangeRangevaluesStringExt( Word* args, Word& result, int message,
 }
 
 
+bool IntervalRealAlmostIntersects(
+    const Interval<CcReal>& j, const Interval<CcReal>& i )
+{
+  assert( j.IsValid());
+  assert( i.IsValid() );
+  return !( (j.start.CompareAlmost(&i.end) > 0 ) ||
+            ((j.start.CompareAlmost(&i.end) == 0) && ( !j.lc || !i.rc)) ||
+            (j.end.CompareAlmost(&i.start) < 0 ) ||
+            ((j.end.CompareAlmost(&i.start) == 0 ) && (!j.rc || !i.lc))
+          );
+
+}
+
 int RangeRangevaluesRealExt( Word* args, Word& result, int message,
                              Word& local, Supplier s )
 {
@@ -4425,7 +4438,9 @@ int RangeRangevaluesRealExt( Word* args, Word& result, int message,
         cout << "[" << (inter.start).GetValue();
         cout << "," << (inter.end).GetValue() << "]?" << endl;
       }
-      if(inter.Intersects((*iter).second)) {
+
+
+      if(IntervalRealAlmostIntersects(inter, (*iter).second)) {
                 //cout << "Yes" << endl;
         if(inter.start.GetValue() > ((*iter).second).start.GetValue()) {
           inter.start = ((*iter).second).start;
