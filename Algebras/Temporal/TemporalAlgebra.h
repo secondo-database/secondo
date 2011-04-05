@@ -3344,7 +3344,8 @@ using a check on bbox.
 
 */
   void Distance( const Point& p, MReal& result ) const;
-
+  void SquaredDistance( const Point& p, MReal& result ) const;
+  void SquaredDistance( const MPoint& p, MReal& result ) const;
 
 /*
 3.10.5.4 Operation ~Simplify~

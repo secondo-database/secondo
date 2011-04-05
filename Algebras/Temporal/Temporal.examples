@@ -164,6 +164,12 @@ Signature: (mpoint point) -> mreal
 Example  : query distance(train7, mehringdamm)
 Result   : file
 
+Operator : squareddistance
+Number   : 1
+Signature: (mpoint point) -> mreal, (mpoint mpoint) -> mreal
+Example  : query minimum(squareddistance(train7, mehringdamm))
+Result   : 0.0
+
 Operator : disturb
 Number   : 1
 Signature: mpoint x real x real -> mpoint

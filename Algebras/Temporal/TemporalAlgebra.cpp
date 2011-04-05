@@ -4737,6 +4737,70 @@ void MPoint::Distance( const Point& p, MReal& result ) const
   result.EndBulkLoad( false, false );
 }
 
+void MPoint::SquaredDistance( const Point& p, MReal& result ) const
+{
+  result.Clear();
+  if( !IsDefined() || !p.IsDefined() ){
+    result.SetDefined( false );
+    return;
+  }
+  result.SetDefined( true );
+  UPoint uPoint;
+  UReal uReal(true);
+  result.Resize(GetNoComponents());
+  result.StartBulkLoad();
+  for( int i = 0; i < GetNoComponents(); i++ ){
+    Get( i, uPoint );
+    uPoint.Distance( p, uReal );
+    if ( uReal.IsDefined() )
+    {
+      assert(uReal.r);
+      uReal.r= false;
+      result.MergeAdd( uReal );
+    }
+  }
+  result.EndBulkLoad( false, false );
+}
+
+void MPoint::SquaredDistance( const MPoint& p, MReal& result ) const
+{
+  result.Clear();
+  if( !IsDefined() || !p.IsDefined() ){
+    result.SetDefined( false );
+    return;
+  }
+  result.SetDefined( true );
+  UReal uReal(true);
+
+  RefinementPartition<MPoint, MPoint, UPoint, UPoint> rp(*this, p);
+
+  result.Resize(rp.Size());
+  result.StartBulkLoad();
+  for( unsigned int i = 0; i < rp.Size(); i++ )
+  {
+    Interval<Instant> iv;
+    int u1Pos, u2Pos;
+    UPoint u1;
+    UPoint u2;
+
+    rp.Get(i, iv, u1Pos, u2Pos);
+
+    if (u1Pos == -1 || u2Pos == -1)
+      continue;
+    else {
+      Get(u1Pos, u1);
+      p.Get(u2Pos, u2);
+    }
+    if(u1.IsDefined() && u2.IsDefined())
+    { // do not need to test for overlapping deftimes anymore...
+      u1.Distance( u2, uReal );
+      uReal.r= false;
+      result.MergeAdd( uReal );
+    }
+  }
+  result.EndBulkLoad();
+}
+
 // Output an interval
 string iv2string(Interval<Instant> iv){
 
@@ -10389,6 +10453,30 @@ ListExpr GridCellEventsTypeMapping (ListExpr args)
   return resType.listExpr();
 }
 
+/*
+Type mapping function ~SquaredDistance~
+
+It is for the operator ~squareddistance~.
+
+*/
+ListExpr
+SquaredDistanceTypeMap( ListExpr args )
+{
+  if ( nl->ListLength( args ) == 2 )
+  {
+    ListExpr arg1 = nl->First( args ),
+             arg2 = nl->Second( args );
+
+    if((nl->IsEqual( arg1, "mpoint" ) &&
+        nl->IsEqual( arg2, "point" ) ) ||
+       (nl->IsEqual( arg1, "point" ) &&
+        nl->IsEqual( arg2, "mpoint" ) ) ||
+       (nl->IsEqual( arg1, "mpoint" ) &&
+        nl->IsEqual( arg2, "mpoint" ) ))
+        return nl->SymbolAtom( "mreal" );
+  }
+  return nl->SymbolAtom( "typeerror" );
+}
 
 
 /*
@@ -11074,6 +11162,30 @@ int SampleMPointSelect(ListExpr args){
 int restrictSelect(ListExpr args){
    return nl->ListLength(args)==1?0:1;
 }
+
+/*
+
+16.2.36 Selection function for ~squareddistance~
+
+*/
+int SquaredDistanceSelect(ListExpr args){
+  if(nl->IsEqual(nl->First(args),"mpoint") &&
+      nl->IsEqual(nl->Second(args),"point")){
+    return 0;
+  }
+
+  if(nl->IsEqual(nl->First(args),"point") &&
+      nl->IsEqual(nl->Second(args),"point")){
+    return 1;
+  }
+
+  if(nl->IsEqual(nl->First(args),"mpoint") &&
+      nl->IsEqual(nl->Second(args),"mpoint")){
+    return 2;
+  }
+  return -1; // should never occur
+}
+
 
 /*
 1.1.1 Selection Function for ~gridcellevents~
@@ -14170,6 +14282,38 @@ int GridCellEventsVM( Word* args, Word& result, int message,
 }
 
 /*
+16.3.29 Value mapping functions of operator ~squareddistance~
+
+*/
+
+int SquaredDistanceMPPVM( Word* args, Word& result, int message, Word&
+ local, Supplier s )
+{
+  result = qp->ResultStorage( s );
+  ((MPoint*)args[0].addr)->SquaredDistance( *((Point*)args[1].addr),
+   *((MReal*)result.addr) );
+  return 0;
+}
+
+int SquaredDistancePMPVM( Word* args, Word& result, int message, Word&
+ local, Supplier s )
+{
+  result = qp->ResultStorage( s );
+  ((MPoint*)args[1].addr)->SquaredDistance( *((Point*)args[0].addr),
+   *((MReal*)result.addr) );
+  return 0;
+}
+
+int SquaredDistanceMPMPVM( Word* args, Word& result, int message, Word&
+ local, Supplier s )
+{
+  result = qp->ResultStorage( s );
+  ((MPoint*)args[0].addr)->SquaredDistance( *((MPoint*)args[1].addr),
+   *((MReal*)result.addr) );
+  return 0;
+}
+
+/*
 16.4 Definition of operators
 
 Definition of operators is done in a way similar to definition of
@@ -14411,6 +14555,10 @@ ValueMapping maxmap[] = { VM_Max<UReal, CcReal>,
 ValueMapping samplempointmap[] = { SampleMPointVM<false,false>,
                                    SampleMPointVM<true,false>,
                                    SampleMPointVM<true,true>};
+
+ValueMapping mpointsquareddistancemap[]= {SquaredDistanceMPPVM,
+                                          SquaredDistancePMPVM,
+                                          SquaredDistanceMPMPVM};
 
 ValueMapping temporaltherangemap[] = {
   TemporalTheRangeTM<Instant>, // 0
@@ -14723,6 +14871,15 @@ const string TemporalSpecDistance =
   "<text>Returns the moving distance.</text--->"
   "<text>distance( mpoint1, point1 )</text--->"
   ") )";
+
+const string TemporalSpecSquaredDistance =
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+  "( <text>(mpoint point) -> mreal, (mpoint mpoint)->mreal</text--->"
+  "<text>squareddistance( _, _ ) </text--->"
+  "<text>Returns the squared moving distance.</text--->"
+  "<text>squareddistance( mpoint1, point1 )</text--->"
+  ") )";
+
 
 const string TemporalSpecSimplify =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
@@ -15485,6 +15642,13 @@ Operator temporaldistance( "distance",
                            Operator::SimpleSelect,
                            MovingBaseTypeMapMReal );
 
+Operator temporalsquareddistance( "squareddistance",
+                           TemporalSpecSquaredDistance,
+                           3,
+                           mpointsquareddistancemap,
+                           SquaredDistanceSelect,
+                           SquaredDistanceTypeMap );
+
 Operator temporalgps( "gps",
                       GPSSpec,
                       GPSVM,
@@ -16079,6 +16243,7 @@ class TemporalAlgebra : public Algebra
     AddOperator(&turns);
     AddOperator(&mappingtimeshift);
     AddOperator(&gridcellevents);
+    AddOperator(&temporalsquareddistance);
 
     AddOperator(&createCellGrid2D);
 
