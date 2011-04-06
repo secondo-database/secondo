@@ -436,10 +436,10 @@ Signature: string -> text
 Example  : query totext("I'm so tired...")
 Result   : 'I\'m so tired...'
 
-Operator : toobject
+Operator : toObject
 Number   : 1
 Signature: {string|text} x T -> T, where T in DATA
-Example  : query toobject("42", 1)
+Example  : query toObject("42", 1)
 Result   : 42
 
 Operator : isDBObject
@@ -839,10 +839,16 @@ Example  : query sys_getAlgebraId('blablabla')
 Result   : (int undef)
 
 
-Operator : tokenize 
+Operator : tokenize
 Number   : 1
 Signature: text x string -> stream(text)
 Example  : query tokenize('Hello World', " ") count
 Result   : 2
 
 
+Operator : sendtextstreamTCP
+Number   : 1
+Signature: stream({string|text}) x {string|text} x {string|text} x {int|real} x {int|real} -> stream(tuple((Ok bool)(Msg text)(ErrMsg string)))
+Example  : query plz feed head[3] getValueNL sendtextstreamTCP['localhost',"2134",1,1] count
+Result   : 0
+Remark   : No maeningful test with only 1 terminal!

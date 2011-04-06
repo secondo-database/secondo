@@ -56,60 +56,58 @@ October 2008, Christian D[ue]ntgen added operators ~sendtextUDP~ and
 
 */
 
-
+// Standard library includes
+#include <algorithm>
 #include <cstring>
+#include <functional>
 #include <iostream>
+#include <iterator>
+#include <limits>
+#include <math.h>
 #include <sstream>
 #include <string>
-#include <algorithm>
-#include <iterator>
-#include <functional>
 #include <sstream>
+#include <sys/timeb.h>
+#include <time.h>
 
-#include "FTextAlgebra.h"
-#include "Attribute.h"
+// Secondo libraries includes
 #include "Algebra.h"
-#include "NestedList.h"
-#include "QueryProcessor.h"
 #include "AlgebraManager.h"
+#include "Attribute.h"
+#include "blowfish.h"
+#include "Crypt.h"
+#include "DerivedObj.h"
+#include "DiceCoeff.h"
+#include "FTextAlgebra.h"
+#include "ListUtils.h"
+#include "md5.h"
+#include "Messages.h"
+#include "NestedList.h"
+#include "NList.h"
 #include "Operator.h"
-#include "StandardTypes.h"
+#include "QueryProcessor.h"
 #include "RelationAlgebra.h"
 #include "SecondoInterface.h"
-#include "SecondoInterface.h"
-#include "DerivedObj.h"
-#include "NList.h"
-#include "DiceCoeff.h"
-#include "SecParser.h"
-#include "StopWatch.h"
-#include "Symbols.h"
 #include "SecondoSMI.h"
+#include "SecParser.h"
 #include "SocketIO.h"
-#include "Crypt.h"
-#include "ListUtils.h"
-#include "blowfish.h"
-#include "md5.h"
+#include "StandardTypes.h"
+#include "StopWatch.h"
 #include "StringUtils.h"
-#include <math.h>
-#include <time.h>
-#include <sys/timeb.h>
-#include <limits>
+#include "Symbols.h"
 
+// Special includes for debugging
 #define LOGMSG_OFF
 #include "LogMsg.h"
 #undef LOGMSG
 #define LOGMSG(a, b)
 
-
+// Declaration of external (global) objects
 extern NestedList *nl;
 extern QueryProcessor *qp;
 extern AlgebraManager *am;
 
 using namespace std;
-
-//extern NestedList* nl;
-//extern QueryProcessor* qp;
-//extern AlgebraManager* am;
 
 /*
 2 Type Constructor ~text~
@@ -1821,7 +1819,7 @@ ListExpr strequalTM(ListExpr args){
 2.60 ~tokenizeTM~
 
 This operator splits a text at delimiters. The mapping is:
- 
+
    text x string -> stream(text)
 
 */
@@ -1840,10 +1838,66 @@ ListExpr tokenizeTM(ListExpr args){
 }
 
 
+/*
+2.61 ~sendtextstreamTCP\_TM~
 
+----
+stream({string|text}) x {string|text} x {string|text} x {int|real} x {int|real}
+    -> stream(tuple((Ok bool) (Msg text) (ErrMsg string)))
+----
 
-
-
+*/
+ListExpr sendtextstreamTCP_TM (ListExpr args ){
+  int noargs = nl->ListLength(args);
+  string errmsg = "Expected stream({string|text}) x {string|text} x "
+                  "{string|text} x {int|real} x {int|real}.";
+  if( (noargs!=5) ){
+    return listutils::typeError(errmsg);
+  }
+  // check first argument: must be stream(text) or stream(string)
+  ListExpr first = nl->First(args);
+  if(!listutils::isDATAStream(first)){
+    return listutils::typeError("Expected stream(text) or stream(string) as "
+                                "1st argument.");
+  }
+  ListExpr elemtype = nl->Second(first);
+  if(    !listutils::isSymbol(elemtype,CcString::BasicType())
+      && !listutils::isSymbol(elemtype,FText::BasicType()) ){
+    return listutils::typeError("Expected stream(text) or stream(string) as "
+    "1st argument.");
+  }
+  ListExpr iptype = nl->Second(args);
+  if(    !listutils::isSymbol(iptype,CcString::BasicType())
+      && !listutils::isSymbol(iptype,FText::BasicType()) ){
+    return listutils::typeError("Expected '"+CcString::BasicType()+"' or '"
+                +FText::BasicType()+"' as 2nd argument.");
+  }
+  ListExpr porttype = nl->Third(args);
+  if(    !listutils::isSymbol(porttype,CcString::BasicType())
+      && !listutils::isSymbol(porttype,FText::BasicType()) ){
+    return listutils::typeError("Expected '"+CcString::BasicType()+"' or '"
+    +FText::BasicType()+"' as 3rd argument.");
+  }
+  ListExpr timeouttype = nl->Fourth(args);
+  if(    !listutils::isSymbol(timeouttype,CcInt::BasicType())
+      && !listutils::isSymbol(timeouttype,CcReal::BasicType()) ){
+    return listutils::typeError("Expected '"+CcReal::BasicType()+"' or '"
+    +CcInt::BasicType()+"' as 4th argument.");
+  }
+  ListExpr retriestype = nl->Fifth(args);
+  if(    !listutils::isSymbol(retriestype,CcInt::BasicType())
+    && !listutils::isSymbol(retriestype,CcReal::BasicType()) ){
+    return listutils::typeError("Expected '"+CcReal::BasicType()+"' or '"
+    +CcInt::BasicType()+"' as 5th argument.");
+  }
+  NList resTupleType = NList(NList("Ok"),NList(symbols::BOOL)).enclose();
+  resTupleType.append(NList(NList("Msg"),NList(symbols::TEXT)));
+  resTupleType.append(NList(NList("ErrMsg"),NList(symbols::STRING)));
+  NList resType =
+    NList(NList(NList(symbols::STREAM),
+                NList(NList(symbols::TUPLE),resTupleType)));
+  return resType.listExpr();
+}
 
 
 /*
@@ -3336,7 +3390,7 @@ int FTextValMapReplace( Word* args, Word& result, int message,
   string patternOldStr = patternOld->GetValue();
   string patternNewStr = patternNew->GetValue();
   string textReplaced = "";
-  textReplaced = stringutils::replaceAll(textStr, patternOldStr, 
+  textReplaced = stringutils::replaceAll(textStr, patternOldStr,
                                          patternNewStr);
   Res->Set(true, textReplaced);
   return 0;
@@ -3718,7 +3772,7 @@ int FTextSelectFunGetValueNL( ListExpr args )
 
 
 /*
-Value Mapping Function for Operator ~toobject~
+Value Mapping Function for Operator ~toObject~
 
 */
 
@@ -3819,7 +3873,7 @@ int FTextValueMapToObject( Word* args, Word& result, int message,
 }
 
 /*
-ValueMappingArray for ~toobject~
+ValueMappingArray for ~toObject~
 
 */
 
@@ -3830,7 +3884,7 @@ ValueMapping FText_VMMap_ToObject[] =
 };
 
 /*
-Selection function for ~toobject~
+Selection function for ~toObject~
 
 */
 
@@ -4834,9 +4888,6 @@ int strequal_select(ListExpr args){
   return -1;
 }
 
-
-
-
 /*
 Operator ~createObject~
 
@@ -5458,7 +5509,7 @@ public:
      d = stringutils::replaceAll(d,"\\\\","\\");
 
 
-     st = new  stringutils::StringTokenizer(text->GetValue(), d);  
+     st = new  stringutils::StringTokenizer(text->GetValue(), d);
   }
 
   ~tokenizeLI(){
@@ -5467,7 +5518,7 @@ public:
          st = 0;
       }
   }
-  
+
   FText* getNext(){
      if(!st){
        return 0;
@@ -5479,8 +5530,8 @@ public:
      }
      return new FText(true,st->nextToken());
   }
- 
-private: 
+
+private:
    stringutils::StringTokenizer* st;
 };
 
@@ -5514,7 +5565,251 @@ int tokenizeVM( Word* args, Word& result, int message,
    return -1;
 }
 
+/*
+Value Mapping for operator ~sendtextstreamTCP~
 
+*/
+template<class Elem_T>
+class SendtextstreamTCP_LI {
+  public:
+
+    SendtextstreamTCP_LI(const string& _ip,
+                         const string& _port,
+                         const double& _timeout,
+                         const double& _retries,
+                         Word& _streamarg,
+                         ListExpr _resulttype)
+      : client(0),
+        ok(true),
+        inputstream(0),
+        timeout((time_t)_timeout),
+        retries((int)_retries),
+        finished(false),
+        restupletype(0){
+
+      static MessageCenter* msgcenter = MessageCenter::GetInstance();
+
+      // create socket/ connect to remote server
+      retries = (_retries>=1)?_retries:1;
+      timeout = (timeout>0)?_timeout:WAIT_FOREVER;
+      client = Socket::Connect( _ip,
+                                _port,
+                                Socket::SockGlobalDomain,
+                                retries,
+                                timeout);
+      if( !client || !client->IsOk() ){
+        stringstream warning;
+        warning << "Warning: Operator sendtextstreamTCP failed to "
+           <<   "connect to server " << _ip << ":" << _port << " (timeout="
+           << ( (int)timeout ) << "s, retries=" << retries << ").";
+        msgcenter->Send(nl->TwoElemList(nl->SymbolAtom("simple"),
+                                        nl->TextAtom(warning.str())));
+        ok = false;
+        finished = true;
+      } else { // stream is ok
+//         client->GetSocketStream() << "(" << endl
+//               << "(stream " << FText::BasicType() + ")" << endl;
+        // open inputstream
+        inputstream = _streamarg.addr;
+        qp->Open(inputstream);
+        // create result tuple type
+        restupletype = new TupleType(nl->Second(_resulttype));
+      }
+    }
+
+    ~SendtextstreamTCP_LI(){
+      if(client){
+//         if(ok) {
+//           client->GetSocketStream() << ")"<< endl; // send end symbol
+//         }
+        bool shutdownok = client->ShutDown();  // shut down  socket
+        bool closeok = client->Close(); // close socket
+        if(shutdownok && closeok){
+          delete client;
+        } else {
+          cerr << __PRETTY_FUNCTION__
+               <<": CLOSE. Could not delete socket 'client'! Address = "
+               << client << "." << endl;
+        }
+        client = 0;
+      }
+      if(inputstream){
+        qp->Close(inputstream);            // close inputstream
+        inputstream = 0;
+      }
+      // delete restupletype
+      if(restupletype){
+        restupletype->DeleteIfAllowed();        // drop result tupletype
+        restupletype = 0;
+      }
+    }
+
+    Tuple* next(){
+      Word res;
+      if(!ok || finished || !inputstream || !client || !client->IsOk() ){
+        return 0;
+      }
+      Word elem;
+      qp->Request(inputstream, elem);
+      finished = !qp->Received(inputstream);
+      if(finished){
+        return 0;
+      }
+      CcBool* ok_cc = new CcBool(true, true);
+      FText* msg_cc = new FText(true, "");
+      CcString* errmsg_cc = new CcString(true, "");
+      Elem_T* cc_elem = static_cast<Elem_T*>(elem.addr);
+      if(!cc_elem->IsDefined()){
+        ok_cc->Set(true, true);
+        msg_cc->SetDefined(false);
+      } else {
+        string line = cc_elem->GetValue();
+        client->GetSocketStream() << line << endl; // send it
+        bool socketok = client->IsOk();
+        ok_cc->Set(true, socketok);
+        msg_cc->Set(true, line);
+        errmsg_cc->Set(true, (socketok ? "Ok." : client->GetErrorText()) );
+        if(!socketok){
+          ok = false;
+          finished = true;
+        }
+      }
+      Tuple* restuple = new Tuple(restupletype);
+      restuple->PutAttribute(  0,(Attribute*)ok_cc);
+      restuple->PutAttribute(  1,(Attribute*)msg_cc);
+      restuple->PutAttribute(  2,(Attribute*)errmsg_cc);
+      cc_elem->DeleteIfAllowed(); // delete input stream elem
+      return restuple;
+    }
+
+    bool isOk() {
+      return ok;
+    }
+
+    bool isFinished() {
+      return finished;
+    }
+
+  private:
+    Socket* client;
+    bool ok;           // =false means, that an error occured on the socket.
+    void* inputstream;
+    time_t timeout;
+    int retries;
+    bool finished;     // =true means, that no more elements will be delivered
+    TupleType* restupletype;
+};
+
+template<class Elem_T, class RemoteIp_T, class RemotePort_T,
+         class TimeOut_T, class Retries_T>
+int sendtextstreamTCP_VM( Word* args, Word& result, int message,
+                          Word& local, Supplier s )
+{
+  SendtextstreamTCP_LI<Elem_T>* li = 0;
+
+  switch(message){
+    case OPEN:{
+      if(local.addr){
+        delete (SendtextstreamTCP_LI<Elem_T>*) local.addr;
+      }
+      RemoteIp_T*   cc_ip      = static_cast<RemoteIp_T*>(args[1].addr);
+      RemotePort_T* cc_port    = static_cast<RemotePort_T*>(args[2].addr);
+      TimeOut_T*    cc_timeout = static_cast<TimeOut_T*>(args[3].addr);
+      Retries_T*    cc_retries = static_cast<Retries_T*>(args[4].addr);
+      if( !cc_ip->IsDefined() ||
+          !cc_port->IsDefined() ||
+          !cc_timeout->IsDefined() ||
+          !cc_retries->IsDefined()){
+        local.setAddr(0);
+      } else {
+        li = new SendtextstreamTCP_LI<Elem_T>(cc_ip->GetValue(),
+                                              cc_port->GetValue(),
+                                              cc_timeout->GetValue(),
+                                              cc_retries->GetValue(),
+                                              args[0],
+                                              GetTupleResultType(s));
+        if(li->isOk()){
+          local.addr = li;
+        } else {
+          delete li;
+          local.setAddr(0);
+        }
+        return 0;
+      }
+    }
+    case REQUEST:{
+      if(!local.addr){
+        result.setAddr(0);
+        return CANCEL;
+      }
+      li = ((SendtextstreamTCP_LI<Elem_T>*)local.addr);
+      if(li->isFinished()) {
+        result.setAddr(0);
+        return CANCEL;
+      }
+      result.setAddr(li->next());
+      if(result.addr != 0){
+        return YIELD;
+      }
+      return CANCEL;
+    }
+    case CLOSE:{
+      if(local.addr){
+        delete (SendtextstreamTCP_LI<Elem_T>*) local.addr;
+        local.setAddr(0);
+      }
+      result.setAddr(0);
+      return 0;
+    }
+  }
+  return -1;
+}
+
+ValueMapping sendtextstream_vm[] = {
+  sendtextstreamTCP_VM<CcString,CcString,CcString,CcInt,CcInt>,
+  sendtextstreamTCP_VM<CcString,CcString,CcString,CcInt,CcReal>,
+  sendtextstreamTCP_VM<CcString,CcString,CcString,CcReal,CcInt>,
+  sendtextstreamTCP_VM<CcString,CcString,CcString,CcReal,CcReal>,
+  sendtextstreamTCP_VM<CcString,CcString,FText,CcInt,CcInt>,
+  sendtextstreamTCP_VM<CcString,CcString,FText,CcInt,CcReal>,
+  sendtextstreamTCP_VM<CcString,CcString,FText,CcReal,CcInt>,
+  sendtextstreamTCP_VM<CcString,CcString,FText,CcReal,CcReal>,
+  sendtextstreamTCP_VM<CcString,FText,CcString,CcInt,CcInt>,
+  sendtextstreamTCP_VM<CcString,FText,CcString,CcInt,CcReal>,
+  sendtextstreamTCP_VM<CcString,FText,CcString,CcReal,CcInt>,
+  sendtextstreamTCP_VM<CcString,FText,CcString,CcReal,CcReal>,
+  sendtextstreamTCP_VM<CcString,FText,FText,CcInt,CcInt>,
+  sendtextstreamTCP_VM<CcString,FText,FText,CcInt,CcReal>,
+  sendtextstreamTCP_VM<CcString,FText,FText,CcReal,CcInt>,
+  sendtextstreamTCP_VM<CcString,FText,FText,CcReal,CcReal>,
+  sendtextstreamTCP_VM<FText,CcString,CcString,CcInt,CcInt>,
+  sendtextstreamTCP_VM<FText,CcString,CcString,CcInt,CcReal>,
+  sendtextstreamTCP_VM<FText,CcString,CcString,CcReal,CcInt>,
+  sendtextstreamTCP_VM<FText,CcString,CcString,CcReal,CcReal>,
+  sendtextstreamTCP_VM<FText,CcString,FText,CcInt,CcInt>,
+  sendtextstreamTCP_VM<FText,CcString,FText,CcInt,CcReal>,
+  sendtextstreamTCP_VM<FText,CcString,FText,CcReal,CcInt>,
+  sendtextstreamTCP_VM<FText,CcString,FText,CcReal,CcReal>,
+  sendtextstreamTCP_VM<FText,FText,CcString,CcInt,CcInt>,
+  sendtextstreamTCP_VM<FText,FText,CcString,CcInt,CcReal>,
+  sendtextstreamTCP_VM<FText,FText,CcString,CcReal,CcInt>,
+  sendtextstreamTCP_VM<FText,FText,CcString,CcReal,CcReal>,
+  sendtextstreamTCP_VM<FText,FText,FText,CcInt,CcInt>,
+  sendtextstreamTCP_VM<FText,FText,FText,CcInt,CcReal>,
+  sendtextstreamTCP_VM<FText,FText,FText,CcReal,CcInt>,
+  sendtextstreamTCP_VM<FText,FText,FText,CcReal,CcReal>
+};
+
+int sendtextstream_Select(ListExpr args) {
+  int res = 0;
+  if(nl->ListLength(args)!=5){ return -1; }
+  if(listutils::isSymbol(nl->Fifth(args),CcReal::BasicType())){ res +=1; }
+  if(listutils::isSymbol(nl->Fourth(args),CcReal::BasicType())){ res +=2; }
+  if(listutils::isSymbol(nl->Third(args),FText::BasicType())){ res +=4; }
+  if(listutils::isSymbol(nl->Second(args),FText::BasicType())){ res +=8; }
+  if(listutils::isSymbol(nl->Second(args),FText::BasicType())){ res +=16; }
+  return res;
+}
 
 
 /*
@@ -5776,14 +6071,15 @@ const string FTextGetValueNLSpec  =
 
 const string FTextToObjectSpec  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-    "( <text>{text|string} x T -> T, T in DATA>/text--->"
-    "<text>toobject( list, type )</text--->"
-    "<text>Creates an object of type T from a nested list expression 'list'. "
-    "Argument 'type' is only needed for the type mapping, its value will be "
-    "ignored. 'list' is a textual nested list value expression. If the value "
-    "expression does not match the type of 'type', the result will be an "
-    "undefined object of that type.</text--->"
-    "<text>query toobject('3.141592653589793116', 1.0)</text--->"
+    "( <text>{text|string} x T -> T, T in DATA</text--->"
+    "<text>toObject( ValueList, TypePattern )</text--->"
+    "<text>Creates an object of type T from a nested list expression "
+    "'ValueList'. Argument 'TypePattern' is only needed to determine the type "
+    "T of the result mapping, its value will otherwise be be ignored. 'list' "
+    "is a text whose value is a valid nested list value expression for type T. "
+    "If the value expression does not match the type of 'TypePattern', the "
+    "result is an undefined object of type T.</text--->"
+    "<text>query toObject('3.141592653589793116', 1.0)</text--->"
     ") )";
 
 /*
@@ -5853,7 +6149,7 @@ const string FTextSendTextUDPSpec  =
     "on 'myIP' as the sender address/port and returns a text with a send "
     "status report. If optional parameters are omitted or are empty, standard "
     "parameters will be used automatically. DNS is used to lookup for host"
-    "names. Used the UDP connection-less protocol.</text--->"
+    "names. Uses the UDP connection-less protocol.</text--->"
     "<text>query sendtextUDP(\"Hello World!\", '127.0.0.0', '2626')</text--->"
     ") )";
 
@@ -6172,6 +6468,37 @@ const string tokenizeSpec =
     " </text--->"
     "<text>query tokenize('Hello World', \" \") count </text--->"
     ") )";
+
+const string sendtextstreamTCP_Spec =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+    "( <text> stream({string|text}) x {string|text} x  {string|text} x "
+    "{int|real} x {int|real} "
+    "-> stream(tuple((Ok bool)(Msg text)(ErrMsg string))), 2<=n<=4 </text--->"
+    "<text> _ sendtextstreamTCP[ RemoteIP, RemotePort, TimeOut, Retries ] "
+    "</text--->"
+    "<text>Tries to establish a TCP/IP connection to the specified server "
+    "when the result stream is OPENED. If no connection is etsablished"
+    "within 'Retries' attempts with a timeout of 'TimeOut' seconds, "
+    "the result stream is empty. Negative TimeOut deactivates the timeout, "
+    "waiting for the server's rely indefinitively. Less then 1 Retries are "
+    "mapped to 1 attempt.\n"
+    "When requsting a result tuple, one input stream element is sent over the "
+    "link to the server and a tuple is put on the result stream, with 'Ok' = "
+    "TRUE, 'Msg' containing the input stream element, and 'ErrMsg' = \"Ok\". "
+    "UNDEFINED stream elements are not sent, but a result tuple with "
+    "'Ok'=TRUE, 'Msg'=UNDEFINED, 'ErrMsg'=\"Ok. Did not transmit UNDEFINED "
+    "element.\" is created.\n"
+    "When the input stream exhausts, no more results are created. The "
+    "connection is closed when an error occurs or the result stream is closed."
+    "Messages from the remote server are ignored. If the link gets broken or "
+    "some other error occurs during transfer, for the according result stream "
+    "element 'Ok' is set to FALSE, and 'ErrMsg' contains an according error "
+    "message. No further tuples are written to the result stream. Invalid "
+    "arguments result in an empty stream.</text--->"
+    "<text>query 'Hello World!' feed sendtextstreamTCP['localhost', '4387', 2.0"
+    ", 3] count = 0</text--->"
+    ") )";
+
 /*
 Operator Definitions
 
@@ -6403,7 +6730,7 @@ Operator getValueNL
 
 Operator ftexttoobject
     (
-    "toobject",
+    "toObject",
     FTextToObjectSpec,
     2,
     FText_VMMap_ToObject,
@@ -6698,7 +7025,7 @@ Operator strequal (
    strequalTM              //type mapping
     );
 
-Operator tokenize 
+Operator tokenize
 (
   "tokenize",             //name
   tokenizeSpec,           //specification
@@ -6726,6 +7053,15 @@ Operator tokenize
 // )
 //
 
+Operator sendtextstreamTCP
+(
+ "sendtextstreamTCP",
+ sendtextstreamTCP_Spec,
+ 32,
+ sendtextstream_vm,
+ sendtextstream_Select,
+ sendtextstreamTCP_TM
+);
 
 /*
 5 Creating the algebra
@@ -6804,6 +7140,7 @@ public:
     AddOperator( &checkOperatorTypeMap2);
     AddOperator( &strequal);
     AddOperator( &tokenize);
+    AddOperator( &sendtextstreamTCP);
 
     LOGMSG( "FText:Trace",
       cout <<"End FTextAlgebra() : Algebra()"<<'\n';
