@@ -132,6 +132,41 @@ inline string GetSymbolStr(int symbol)
   if(0 <= symbol && symbol < symbol_size) return symbol_type[symbol];
   else return "none"; 
 }
+
+inline int TM2InfraLabel(int tm)
+{
+  int label = -1;
+  switch(tm){
+    case TM_BUS: 
+          label = IF_MPPTN;
+          break;
+    case TM_WALK:
+          label = IF_REGION;
+          break;
+    case TM_INDOOR:
+          label = IF_GROOM;
+          break;
+    case TM_CAR:
+          label = IF_LINE;
+          break;
+    case TM_METRO:
+          label = IF_MPPTN;
+          break; 
+    case TM_TRAIN:
+          label = IF_MPPTN;
+          break;
+    case TM_BICYCLE:
+          label = IF_LINE;
+          break;
+    case TM_TAXI:
+          label = IF_LINE;;
+          break;
+  }
+  assert(label >= 0);
+  return label;
+
+}
+
 /*
 reference data type (oid, symbol), oid = 0 is for free space 
 
@@ -697,6 +732,7 @@ class DualGraph;
 class VisualGraph;
 class Bus_Stop;
 struct BNNav;
+class BusNetwork;
 
 
 struct GenMO_MP{
@@ -735,13 +771,16 @@ struct GenMObject{
   vector<Line> line_list1;
   vector<Line> line_list2;
 
+  vector<int> oid_list;
+  vector<int> label_list; 
+  
   GenMObject(){ count = 0; resulttype = NULL;} 
   ~GenMObject(){if(resulttype != NULL) delete resulttype;}
   void GetMode(GenMO* mo); 
   void GetTMStr(bool v);
   void GetIdList(GenMO*);
   void GetIdList(GenRange* gr); 
-
+  void GetRef(GenMO* mo);
   ///////////////////create generic moving objects///////////////////////
   void GenerateGenMO(Space* sp, Periods* peri, int mo_no, int type, Relation*);
   void GenerateGenMO2(Space* sp, Periods* peri, int mo_no, 
@@ -803,18 +842,29 @@ struct GenMObject{
                            GenLoc loc1, vector<Point> ps_list1, int oid,
                            GenMO* genmo, MPoint* mo, 
                            Instant& start_time, Line* res_path);
+  void ChangeEndBusStop(BusNetwork* bn, DualGraph* dg, 
+                        Bus_Stop cur_bs1, vector<Point>& ps_list2, 
+                       GenLoc& gloc2, Relation* rel2, R_Tree<2,TupleId>* rtree);
+  void NearestBusStop2(Point q, Relation* rel2, 
+                      R_Tree<2,TupleId>* rtree, Point& res, int& oid);
+
   void ConnectEndBusStop(DualGraph* dg, VisualGraph* vg, Relation*,
                            GenLoc loc1, vector<Point> ps_list1, int oid,
                          GenMO* genmo, MPoint* mo, 
                          Instant& start_time, Line* res_path);
-  void ConnectTwoBusStops(BNNav* bn_nav, Point sp, Point ep, GenMO* genmo,
+  int ConnectTwoBusStops(BNNav* bn_nav, Point sp, Point ep, GenMO* genmo,
                           MPoint* mo, Instant& start_time, 
                           DualGraph* dg, Line* res_path);
   void StringToBusStop(string str,  Bus_Stop& bs);
+  void ShortMovement(GenMO* genmo, MPoint* mo, Instant& start_time, 
+                     Point* p1, Point* p2);
   void FindPosInMP(MPoint* mo_bus, Point* start_loc, Point* end_loc, 
                    int& pos1, int& pos2, int index);
   void SetMO_GenMO(MPoint* mo_bus, int pos1, int pos2, Instant& start_time, 
                    MPoint* mo, GenMO* genmo, int mobus_oid);
+  ////////////////////////////////////////////////////////////////////////////
+
+
 };
 
 
@@ -907,9 +957,7 @@ class Space:public Attribute{
   BusNetwork* LoadBusNetwork(int type); 
   void CloseBusNetwork(BusNetwork* bn);
 
-  
 
-  
   int GetInfraType(int oid);
   void OpenInfra(vector<void*>&);
   void CloseInfra(vector<void*>&);

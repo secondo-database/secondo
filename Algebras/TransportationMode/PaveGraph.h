@@ -322,9 +322,12 @@ public:
     void LineIntersectTri(Line*l, vector<Line>& line_list);
     void DFTraverse(R_Tree<2,TupleId>* rtree, SmiRecordId adr, 
                           Line* line, vector<Line>& line_list);
+    int GetTriId_OfPoint(Point& loc);
+    void DFTraverse2(R_Tree<2,TupleId>* rtree, SmiRecordId adr,
+                          Point& loc, vector<int>& tri_oid_list);
     //////////////////////////////////////////////////////////////////
     int min_tri_oid_1; //smaller than the minimum tri oid (minoid - 1)
-    
+
     Relation* node_rel_sort; ///////sort by bbox, better performance for search
     R_Tree<2,TupleId>* rtree_node;//build an rtree on triangles 
 

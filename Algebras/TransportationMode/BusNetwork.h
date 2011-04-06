@@ -1132,6 +1132,9 @@ struct BNNav{
   void ShortestPath_TimeDebug(Bus_Stop* bs1, Bus_Stop* bs2, Instant*);
   void ShortestPath_Transfer(Bus_Stop* bs1, Bus_Stop* bs2, Instant*);
   
+  void ShortestPath_Time2(Bus_Stop* bs1, Bus_Stop* bs2, Instant*);
+  void ShortestPath_Transfer2(Bus_Stop* bs1, Bus_Stop* bs2, Instant*);
+  
   void InitializeQueue1(Bus_Stop* bs1, Bus_Stop* bs2, 
                             priority_queue<BNPath_elem>& path_queue, 
                             vector<BNPath_elem>& expand_queue, 

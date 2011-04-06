@@ -2750,6 +2750,14 @@ const string SpatialSpecGetMode =
 "<text>return the transportation modes</text--->"
 "<text>query getmode(genmo1)</text---> ) )";
 
+
+const string SpatialSpecGetRef =
+"( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+"( <text>genmo -> (stream(((x1 t1) ... (xn tn)))</text--->"
+"<text>getref (_) </text--->"
+"<text>return the referenced objects in a light way</text--->"
+"<text>query getref(genmo1)</text---> ) )";
+
 const string SpatialSpecAddInfraGraph =
 "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
 "( <text>busnetwork x busgraph -> (stream(((x1 t1) ... (xn tn)))) </text--->"
@@ -3277,6 +3285,52 @@ int GetModeValueMap(Word* args, Word& result, int message,
   return 0;
 }
 
+/*
+get the referenced objects for a generic moving object 
+
+*/
+int GetRefValueMap(Word* args, Word& result, int message,
+                    Word& local, Supplier in_pSupplier)
+{
+  GenMObject* mo;
+
+  switch(message){
+      case OPEN:{
+        GenMO* genmo = (GenMO*)args[0].addr;
+
+        mo = new GenMObject();
+        mo->resulttype =
+            new TupleType(nl->Second(GetTupleResultType(in_pSupplier)));
+
+        mo->GetRef(genmo);
+        local.setAddr(mo);
+        return 0;
+      }
+      case REQUEST:{
+          if(local.addr == NULL) return CANCEL;
+          mo = (GenMObject*)local.addr;
+          if(mo->count == mo->oid_list.size())
+                          return CANCEL;
+          Tuple* tuple = new Tuple(mo->resulttype);
+          tuple->PutAttribute(0,new CcInt(true, mo->oid_list[mo->count]));
+          tuple->PutAttribute(1,
+                new CcString(true, GetSymbolStr(mo->label_list[mo->count])));
+
+          result.setAddr(tuple);
+          mo->count++;
+          return YIELD;
+      }
+      case CLOSE:{
+          if(local.addr){
+            mo = (GenMObject*)local.addr;
+            delete mo;
+            local.setAddr(Address(0));
+          }
+          return 0;
+      }
+  }
+  return 0;
+}
 
 /*
 add bus graph to bus network infrastructure 
@@ -3971,6 +4025,38 @@ ListExpr GetModeTypeMap(ListExpr args)
 }
 
 /*
+TypeMap function for operator getref
+
+*/
+ListExpr GetRefTypeMap(ListExpr args)
+{
+  if(nl->ListLength(args) != 1){
+      string err = "genmo expected";
+      return listutils::typeError(err);
+  }
+  ListExpr arg1 = nl->First(args);
+  if(nl->IsEqual(arg1, "genmo")){
+      ListExpr result =
+          nl->TwoElemList(
+              nl->SymbolAtom("stream"),
+                nl->TwoElemList(
+
+                  nl->SymbolAtom("tuple"),
+                      nl->TwoElemList(
+                      nl->TwoElemList(nl->SymbolAtom("RefId"),
+                                    nl->SymbolAtom("int")),
+                        nl->TwoElemList(nl->SymbolAtom("Label"),
+                                    nl->SymbolAtom("string"))
+                  )
+                )
+          );
+    return result;
+  }  
+
+  return nl->SymbolAtom("typeerror");
+}
+
+/*
 TypeMap function for operator the space
 
 */
@@ -4469,6 +4555,13 @@ Operator getmode("getmode",
     GetModeValueMap,
     Operator::SimpleSelect,
     GetModeTypeMap
+);
+
+Operator getref("getref",
+    SpatialSpecGetRef,
+    GetRefValueMap,
+    Operator::SimpleSelect,
+    GetRefTypeMap
 );
 
 /*
@@ -18487,6 +18580,7 @@ class TransportationModeAlgebra : public Algebra
     AddOperator(&gentrajectory);  //trajectory for generic moving objects
     AddOperator(&genrangevisible); //convert to Javagui visible data type
     AddOperator(&getmode); //get transportation modes
+    AddOperator(&getref);//get referenced infrastructure objects 
     /////////////////////////////////////////////////////////////////////
     //////////////////space operators/////////////////////////////////////
     //////////////////////////////////////////////////////////////////////

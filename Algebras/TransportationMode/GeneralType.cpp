@@ -1234,7 +1234,7 @@ copy it from another data
 */
 void GenMO::CopyFrom(const Attribute* right)
 {
-    cout<<"CopyFrom "<<endl; 
+//    cout<<"CopyFrom "<<endl; 
     const GenMO *genmo = (const GenMO*)right;
     assert( genmo->IsOrdered() );
     Clear();
@@ -1395,6 +1395,41 @@ void GenMObject::GetMode(GenMO* mo)
     else if(tm_list[tm_list.size() - 1] != tm)
       tm_list.push_back(tm); 
   }
+}
+
+/*
+get the referenced infrastructure objects in a light way 
+
+*/
+void GenMObject::GetRef(GenMO* mo)
+{
+
+  for(int i = 0;i < mo->GetNoComponents();i++){
+    UGenLoc unit;
+    mo->Get(i, unit);
+    int oid = unit.gloc1.GetOid();
+    int tm = unit.tm;
+    if(oid_list.size() == 0){
+      int infra_label;
+      if(oid == 0)
+          infra_label = IF_FREESPACE;
+      else
+          infra_label = TM2InfraLabel(tm);
+
+      oid_list.push_back(oid);
+      label_list.push_back(infra_label);
+    }else if(oid != oid_list[oid_list.size() - 1]){
+      int infra_label;
+      if(oid == 0)
+          infra_label = IF_FREESPACE;
+      else
+          infra_label = TM2InfraLabel(tm);
+
+      oid_list.push_back(oid);
+      label_list.push_back(infra_label);
+    }
+  }
+
 }
 
 void GenMObject::GetTMStr(bool v)
@@ -2814,7 +2849,6 @@ void GenMObject::GenerateGenMO_BusWalk(Space* sp, Periods* peri, int mo_no,
         if(count % 3 == 0) time_type = true;
         else time_type = false;
 
-        cout<<"time type "<<time_type<<endl; 
 
         if(time_type)
             start_time.ReadFrom(periods.start.ToDouble() + 
@@ -2863,13 +2897,13 @@ void GenMObject::GenerateGenMO_BusWalk(Space* sp, Periods* peri, int mo_no,
         /////////////////////////////////////////////////////////////////
         //////3. get the path in bus network/////////////////////////////
         /////////////////////////////////////////////////////////////////
+        cout<<"time type "<<time_type<<endl; 
         cout<<"bs1 "<<bs1<<" bs2 "<<bs2<<endl; 
         BNNav* bn_nav = new BNNav(bn);
         if(count % 2 == 0)
-            bn_nav->ShortestPath_Time(&bs1, &bs2, &start_time);
+            bn_nav->ShortestPath_Time2(&bs1, &bs2, &start_time);
         else
-            bn_nav->ShortestPath_Transfer(&bs1, &bs2, &start_time);
-
+            bn_nav->ShortestPath_Transfer2(&bs1, &bs2, &start_time);
 
         if(bn_nav->path_list.size() == 0){
 //          cout<<"two unreachable bus stops"<<endl;
@@ -2883,9 +2917,27 @@ void GenMObject::GenerateGenMO_BusWalk(Space* sp, Periods* peri, int mo_no,
         }
 
 
-        ConnectTwoBusStops(bn_nav, ps_list1[1], ps_list2[1],
+        int last_walk_id = ConnectTwoBusStops(bn_nav, ps_list1[1], ps_list2[1],
                            genmo, mo, start_time, dg, res_path);
 
+        ///////////////////////////////////////////////////////////
+        if(last_walk_id > 0){
+          //////change the last bus stop/////////
+          ///change  ps list2, gloc2.oid ///
+          Bus_Stop cur_bs1(true, 0, 0, true);
+          StringToBusStop(bn_nav->bs1_list[last_walk_id], 
+                          cur_bs1);
+
+//           Bus_Stop cur_bs2(true, 0, 0, true);
+//           StringToBusStop(bn_nav->bs2_list[bn_nav->bs2_list.size() - 1], 
+//                           cur_bs2);
+//          cout<<"cur_bs1 "<<cur_bs1<<" cur_bs2 "<<cur_bs2<<endl;
+
+            ChangeEndBusStop(bn, dg, cur_bs1, ps_list2, gloc2, rel2, rtree);
+        }
+
+
+        ////////////////////////////////////////////////////////////
         delete bn_nav;
         ///////////////////////////////////////////////////////////////////
         /////////////4 connect end location to last bus stop////////////////
@@ -2899,12 +2951,10 @@ void GenMObject::GenerateGenMO_BusWalk(Space* sp, Periods* peri, int mo_no,
         mo->EndBulkLoad();
         genmo->EndBulkLoad();
 
-        
         line_list1.push_back(*res_path);
         trip1_list.push_back(*genmo);
         trip2_list.push_back(*mo);
 
-        
         delete res_path;
         delete mo;
         delete genmo;
@@ -3051,8 +3101,6 @@ void GenMObject::ConnectStartBusStop(DualGraph* dg, VisualGraph* vg,
   ///////////////////walk segment////////////////////////////////////
   wsp->WalkShortestPath2(oid1, oid2, p1, p2, path);
   
-  //////////////////////for debuging///////////////////////////
-//  line_list1.push_back(*path);
 
   ////////////////create moving objects///////////////////////////////////
   GenerateWalkMovement(dg, path, p1, genmo, mo, start_time);
@@ -3071,17 +3119,17 @@ void GenMObject::ConnectStartBusStop(DualGraph* dg, VisualGraph* vg,
    hs.SetLeftDomPoint(!hs.IsLeftDomPoint());
    *path2 += hs;
    path2->EndBulkLoad();
-//  line_list2.push_back(*path2);
 
-
-  path->Union(*path2, *res_path);
+   path->Union(*path2, *res_path);
 
   delete path2;
+
+  ShortMovement(genmo, mo, start_time, &ps_list1[0], &ps_list1[1]);
 
   ///////////////////////////////////////////////////////////////////////
   /////////////// create moving objects ////////////////////////////////
   ///////////////////////////////////////////////////////////////////////
-  Instant st = start_time;
+/*  Instant st = start_time;
   Instant et = start_time; 
   Interval<Instant> up_interval; 
   Point from_loc = ps_list1[0];
@@ -3109,12 +3157,8 @@ void GenMObject::ConnectStartBusStop(DualGraph* dg, VisualGraph* vg,
   genmo->Add(*unit); 
   delete unit; 
 
-  start_time = et;
+  start_time = et;*/
   ///////////////////////////////////////////////////////////////////////
-  
-
-  //////////////////////////////////////////////////////////////////////////
-  
   delete path;
   delete wsp;
 }
@@ -3123,17 +3167,31 @@ void GenMObject::ConnectStartBusStop(DualGraph* dg, VisualGraph* vg,
 create the moving object between bus stops in bus network
 
 */
-void GenMObject::ConnectTwoBusStops(BNNav* bn_nav, Point sp, Point ep,
+int GenMObject::ConnectTwoBusStops(BNNav* bn_nav, Point sp, Point ep,
                                     GenMO* genmo, MPoint* mo, 
                                     Instant& start_time, 
                                     DualGraph* dg, Line* res_path)
 {
-//    loc_list1.push_back(sp);
-//    loc_list2.push_back(ep);
+    const double delta_t = 0.01;//seconds
+    const double delta_dist = 0.01;
 
     Line* l = new Line(0); ////////trajectory in bus network
     l->StartBulkLoad();
     int edgeno = 0;
+
+    ////////////////////////////////////////////////////////////////////
+    ///////////////////find the last walk segment///////////////////////
+    ///////////////////////////////////////////////////////////////////
+    int last_walk_id = -1;
+    for(int i = bn_nav->path_list.size() - 1; i >= 0; i--){
+        int tm = GetTM(bn_nav->tm_list[i]);
+        if(tm < 0 ) continue;
+        if(tm == TM_WALK){
+          last_walk_id = i;
+        }else
+          break;
+    }
+    ////////////////////////////////////////////////////////////////////
 
     Bus_Stop last_bs(false, 0, 0, true);
     MPoint mo_bus(0);
@@ -3141,6 +3199,8 @@ void GenMObject::ConnectTwoBusStops(BNNav* bn_nav, Point sp, Point ep,
     int mobus_oid = 0;
 
     for(unsigned int i = 0;i < bn_nav->path_list.size();i++){
+      if(last_walk_id == (int)i) break;/////stop at the last walk segment 
+
       SimpleLine* sl = &(bn_nav->path_list[i]);
       ////////////time cost: second///////////////////
       Bus_Stop bs1(true, 0, 0, true);
@@ -3151,7 +3211,7 @@ void GenMObject::ConnectTwoBusStops(BNNav* bn_nav, Point sp, Point ep,
 
       double t = bn_nav->time_cost_list[i];
       int tm = GetTM(bn_nav->tm_list[i]);
-      ////////////////////////////////////////////////////////////////
+      /////////////////////////////////////////////////////////////
       Point* start_loc = new Point(true, 0, 0);
       bn_nav->bn->GetBusStopGeoData(&bs1, start_loc);
       Point* end_loc = new Point(true, 0, 0);
@@ -3163,15 +3223,69 @@ void GenMObject::ConnectTwoBusStops(BNNav* bn_nav, Point sp, Point ep,
 //       cout<<sl->Length()<<" bs1 "<<bs1<<" bs2 "<<bs2
 //           <<" time "<<t<<" tm "<<bn_nav->tm_list[i]<<endl;
 //       cout<<"start time 1 "<<start_time<<endl;
+      ///////////////////////////////////////////////////////////
 
       Instant temp_start_time = start_time; 
 
       if(tm == TM_WALK){
 
         Line* l1 = new Line(0);
-        sl->toLine(*l1);
-        GenerateWalkMovement(dg, l1, *start_loc, genmo, mo, start_time);
+        ///////////////////////////////////////////////////////////////////
+        /////////////filte the first and last segment//////////////////////
+        /////////////connection between bus stop and its mapping point//////
+        ////this part is not considered as walk segment in the overall region//
+        //////////////////////////////////////////////////////////////////
+        Point new_start_loc;
+        Point new_end_loc;
+        bool init_start = false;
+        bool init_end = false;
+        //        sl->toLine(*l1);
+        l1->StartBulkLoad();
+        int l_edgeno = 0;
+
+        for(int j = 0;j < sl->Size();j++){
+          HalfSegment hs1;
+          sl->Get(j, hs1);
+          if(!hs1.IsLeftDomPoint())continue;
+          Point lp = hs1.GetLeftPoint();
+          Point rp = hs1.GetRightPoint();
+          if(start_loc->Distance(lp) < delta_dist){
+            new_start_loc = rp;
+            init_start = true;
+            continue;
+          }
+          if(start_loc->Distance(rp) < delta_dist){
+            new_start_loc = lp;
+            init_start = true;
+            continue;
+          }
+          if(end_loc->Distance(lp) < delta_dist){
+            new_end_loc = rp;
+            init_end = true;
+            continue;
+          }
+          if(end_loc->Distance(rp) < delta_dist){
+            new_end_loc = lp;
+            init_end = true;
+            continue;
+          }
+          HalfSegment hs2(true, lp, rp);
+          hs2.attr.edgeno = l_edgeno++;
+          *l1 += hs2;
+          hs2.SetLeftDomPoint(!hs2.IsLeftDomPoint());
+          *l1 += hs2;
+        }
+        l1->EndBulkLoad();
+
+        ///////////////////////////////////////////////////////////////
+        assert(init_start && init_end); 
+
+        ShortMovement(genmo, mo, start_time, start_loc, &new_start_loc);
+
+        GenerateWalkMovement(dg, l1, new_start_loc, genmo, mo, start_time);
         delete l1;
+
+        ShortMovement(genmo, mo, start_time, &new_end_loc, end_loc);
         /////////////////////////////////
         MPoint temp_mo(0);
         mo_bus = temp_mo;
@@ -3192,7 +3306,8 @@ void GenMObject::ConnectTwoBusStops(BNNav* bn_nav, Point sp, Point ep,
             up_interval.end = et;
             up_interval.rc = false; 
 
-            if(AlmostEqual(t, 30.0)){///bus waiting at the bus stop
+//            if(AlmostEqual(t, 30.0)){///bus waiting at the bus stop
+            if(fabs(t - 30.0) < delta_t){///bus waiting at the bus stop
                   ////////generic moving objects/////////////////
                   ////////reference to the bus///////////////////
                   /////with bs find br, with br.uoid find mobus///
@@ -3343,11 +3458,9 @@ void GenMObject::ConnectTwoBusStops(BNNav* bn_nav, Point sp, Point ep,
     *res_path = *temp_l;
     delete temp_l;
 
-//    line_list1.push_back(*l);
-//    line_list2.push_back(*l);
-
     delete l;
 
+    return last_walk_id;
 }
 
 
@@ -3400,6 +3513,45 @@ void GenMObject::StringToBusStop(string str, Bus_Stop& bs)
 
 }
 
+
+/*
+the movement between bus stops on the bus network and its mapping points on
+the pavement 
+
+*/
+void GenMObject::ShortMovement(GenMO* genmo, MPoint* mo, Instant& start_time,
+                     Point* p1, Point* p2)
+{
+
+  Instant st = start_time;
+  Instant et = start_time; 
+  Interval<Instant> up_interval; 
+  
+  double dist = p1->Distance(*p2);
+  double slow_speed = 10.0*1000.0/3600.0;
+  double time = dist/slow_speed;
+  et.ReadFrom(st.ToDouble() + time*1.0/(24.0*60.0*60));
+  ////////////////////create a upoint////////////////////////
+  up_interval.start = st;
+  up_interval.lc = true;
+  up_interval.end = et;
+  up_interval.rc = false; 
+  UPoint* up = new UPoint(up_interval, *p1, *p2);
+  mo->Add(*up);
+  delete up; 
+  /////////////////generic units////////////////////////////////
+  Loc loc1(p1->GetX(), p1->GetY());
+  Loc loc2(p2->GetX(), p2->GetY());
+  GenLoc gloc1(0, loc1);
+  GenLoc gloc2(0, loc2);
+  int tm = GetTM("Bus");
+  UGenLoc* unit = new UGenLoc(up_interval, gloc1, gloc2, tm);
+  genmo->Add(*unit); 
+  delete unit; 
+
+  start_time = et;
+
+}
 
 /*
 find the two positions in dbarray units that their spatial location equal to
@@ -3488,6 +3640,70 @@ void GenMObject::SetMO_GenMO(MPoint* mo_bus, int pos1, int pos2,
 }
 
 /*
+change the last bus stop as the last connection in bus network is walk 
+segment. so it can directly walk from the second last bus stop in bus network
+to destination
+
+*/
+void GenMObject::ChangeEndBusStop(BusNetwork* bn, DualGraph* dg, 
+                        Bus_Stop cur_bs1, vector<Point>& ps_list2, 
+                        GenLoc& gloc2, Relation* rel, R_Tree<2,TupleId>* rtree)
+{
+
+  Point* bs_loc = new Point(true, 0, 0);
+  bn->GetBusStopGeoData(&cur_bs1, bs_loc);
+
+  Point res(true, 0, 0);
+  int tri_id = 0;
+  NearestBusStop2(*bs_loc, rel, rtree, res, tri_id);
+  assert(tri_id > 0);
+  ps_list2[0] = res;
+  ps_list2[1] = *bs_loc;
+  Loc loc(gloc2.GetLoc().loc1, gloc2.GetLoc().loc2);
+  gloc2.SetValue(tri_id, loc);
+  delete bs_loc;
+}
+
+/*
+get the mapping point on the pavement of the bus stop and the triangle id
+
+*/
+void GenMObject::NearestBusStop2(Point loc, Relation* rel, 
+                      R_Tree<2,TupleId>* rtree, Point& res, int& oid)
+{
+
+  SmiRecordId adr = rtree->RootRecordId();
+
+  vector<int> tid_list;
+  DFTraverse1(rtree, adr, rel, loc, tid_list);
+
+//  cout<<p<<" "<<tid_list.size()<<endl;
+
+  assert(tid_list.size() > 0);
+
+  vector<MyPoint_Tid> mp_tid_list;
+  for(unsigned int i = 0;i < tid_list.size();i++){
+    Tuple* tuple = rel->GetTuple(tid_list[i], false);
+    Point* q = (Point*)tuple->GetAttribute(BN::BN_PAVE_LOC2);
+    MyPoint_Tid mp_tid(q, q->Distance(loc), tid_list[i]);
+    mp_tid_list.push_back(mp_tid);
+    tuple->DeleteIfAllowed();
+  }
+  sort(mp_tid_list.begin(), mp_tid_list.end());
+
+//  for(unsigned int i = 0;i < mp_tid_list.size();i++)
+//    mp_tid_list[i].Print();
+  Tuple* bs_pave = rel->GetTuple(mp_tid_list[0].tid, false);
+  Point* pave_loc = (Point*)bs_pave->GetAttribute(BN::BN_PAVE_LOC2);
+  GenLoc* bs_gloc = (GenLoc*)bs_pave->GetAttribute(BN::BN_PAVE_LOC1);
+  
+  res = *pave_loc;
+  oid = bs_gloc->GetOid();
+  bs_pave->DeleteIfAllowed();
+
+}
+
+/*
 connect the end location to the nearest bus stop
  bus (free space) + walk 
 
@@ -3515,25 +3731,10 @@ void GenMObject::ConnectEndBusStop(DualGraph* dg, VisualGraph* vg,
   int oid2 = genloc1.GetOid() - mini_oid;
   assert(1 <= oid2 && oid2 <= no_triangle);
 
-
-  /////////////////////////////////////////////////////////////////////////
-  ////connection between bus stop and its mapping point on the pavement////
-  //////////////////////////////////////////////////////////////////////////
-  ///////////////////for debuging/////////////////////////////
-//   Line* path2 = new Line(0);
-//   path2->StartBulkLoad();
-//   HalfSegment hs(true, ps_list1[1], ps_list1[0]);
-//   hs.attr.edgeno = 0;
-//   *path2 += hs;
-//   hs.SetLeftDomPoint(!hs.IsLeftDomPoint());
-//   *path2 += hs;
-//   path2->EndBulkLoad();
-//   line_list1.push_back(*path2);
-//    delete path2; 
   ///////////////////////////////////////////////////////////////////////
   /////////////// create moving objects ////////////////////////////////
   ///////////////////////////////////////////////////////////////////////
-  Instant st = start_time;
+/*  Instant st = start_time;
   Instant et = start_time; 
   Interval<Instant> up_interval; 
   Point from_loc = ps_list1[1];
@@ -3561,9 +3762,10 @@ void GenMObject::ConnectEndBusStop(DualGraph* dg, VisualGraph* vg,
   genmo->Add(*unit); 
   delete unit; 
 
-  start_time = et;
+  start_time = et;*/
   ///////////////////////////////////////////////////////////////////////
-  
+
+  ShortMovement(genmo, mo, start_time, &ps_list1[1], &ps_list1[0]);
   ///////////////////////////////////////////////////////////////////////
   //////////////////walk segment for debuging///////////////////////////
   ///////////////////////////////////////////////////////////////////////
@@ -3579,7 +3781,10 @@ void GenMObject::ConnectEndBusStop(DualGraph* dg, VisualGraph* vg,
   GenerateWalkMovement(dg, path, p1, genmo, mo, start_time);
   /////////////////////////////////////////////////////////////////////////
   
-  
+    /////////////////////////////////////////////////////////////////////////
+  ////connection between bus stop and its mapping point on the pavement////
+  //////////////////////////////////////////////////////////////////////////
+  ///////////////////for debuging/////////////////////////////
    Line* path2 = new Line(0);
    path2->StartBulkLoad();
    HalfSegment hs(true, ps_list1[1], ps_list1[0]);

@@ -3498,7 +3498,54 @@ void DualGraph::DFTraverse(R_Tree<2,TupleId>* rtree, SmiRecordId adr,
 
 }
 
+/*
+find which triangle contains the point 
 
+*/
+int DualGraph::GetTriId_OfPoint(Point& loc)
+{
+    vector<int> tri_oid_list;
+    DFTraverse2(rtree_node, rtree_node->RootRecordId(), loc, tri_oid_list);
+    if(tri_oid_list.size() > 0) return tri_oid_list[0];
+    else
+      return -1;
+}
+
+/*
+find which triangle contains the point 
+
+*/
+void DualGraph::DFTraverse2(R_Tree<2,TupleId>* rtree, SmiRecordId adr, 
+                          Point& loc, vector<int>& tri_oid_list)
+{
+  R_TreeNode<2,TupleId>* node = rtree->GetMyNode(adr,false,
+                  rtree->MinEntries(0), rtree->MaxEntries(0));
+  for(int j = 0;j < node->EntryCount();j++){
+      if(node->IsLeaf()){
+              R_TreeLeafEntry<2,TupleId> e =
+                 (R_TreeLeafEntry<2,TupleId>&)(*node)[j];
+              Tuple* dg_tuple = node_rel_sort->GetTuple(e.info, false);
+              Region* candi_reg =
+                     (Region*)dg_tuple->GetAttribute(PAVEMENT);
+
+              if(loc.Inside(*candi_reg)){
+                  int oid = ((CcInt*)dg_tuple->GetAttribute(OID))->GetIntval();
+                  tri_oid_list.push_back(oid);
+              }
+              dg_tuple->DeleteIfAllowed();
+      }else{
+            R_TreeInternalEntry<2> e =
+                (R_TreeInternalEntry<2>&)(*node)[j];
+            if(loc.Inside(e.box)){
+                DFTraverse2(rtree, e.pointer, loc, tri_oid_list);
+            }
+      }
+  }
+  delete node;
+
+}
+//////////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////////
 Walk_SP::Walk_SP()
 {
   dg = NULL;
