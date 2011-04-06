@@ -55,48 +55,44 @@ October 2008, Christian D[ue]ntgen added operators ~sendtextUDP~ and
 1.1 Includes
 
 */
-
-// Standard library includes
-#include <algorithm>
 #include <cstring>
-#include <functional>
 #include <iostream>
-#include <iterator>
-#include <limits>
-#include <math.h>
 #include <sstream>
 #include <string>
+#include <algorithm>
+#include <iterator>
+#include <functional>
 #include <sstream>
-#include <sys/timeb.h>
-#include <time.h>
 
-// Secondo libraries includes
-#include "Algebra.h"
-#include "AlgebraManager.h"
-#include "Attribute.h"
-#include "blowfish.h"
-#include "Crypt.h"
-#include "DerivedObj.h"
-#include "DiceCoeff.h"
 #include "FTextAlgebra.h"
-#include "ListUtils.h"
-#include "md5.h"
-#include "Messages.h"
+#include "Attribute.h"
+#include "Algebra.h"
 #include "NestedList.h"
-#include "NList.h"
-#include "Operator.h"
 #include "QueryProcessor.h"
+#include "AlgebraManager.h"
+#include "Operator.h"
+#include "StandardTypes.h"
 #include "RelationAlgebra.h"
 #include "SecondoInterface.h"
-#include "SecondoSMI.h"
+#include "DerivedObj.h"
+#include "NList.h"
+#include "DiceCoeff.h"
 #include "SecParser.h"
-#include "SocketIO.h"
-#include "StandardTypes.h"
 #include "StopWatch.h"
-#include "StringUtils.h"
 #include "Symbols.h"
+#include "SecondoSMI.h"
+#include "SocketIO.h"
+#include "Crypt.h"
+#include "ListUtils.h"
+#include "blowfish.h"
+#include "md5.h"
+#include "StringUtils.h"
+#include <math.h>
+#include <time.h>
+#include <sys/timeb.h>
+#include <limits>
 
-// Special includes for debugging
+// includes for debugging
 #define LOGMSG_OFF
 #include "LogMsg.h"
 #undef LOGMSG
@@ -6452,8 +6448,8 @@ const string strequalSpec =
     "( <text> {string, text} x {string, text} x bool -> bool </text--->"
     "<text>strequals( S1, S2, IsCaseSensitive)</text--->"
     "<text>Checks whether two strings (string or text) S1, S2 are equal. "
-    "The third argument controls whether comparison is case sensitivity (TRUE),"
-    " or case insensitive (FALSE)."
+    "The third argument controls whether the comparison is case sensitivity "
+    "(TRUE), or case insensitive (FALSE)."
     "Two undefined strings are always equal. If the boolean value "
     "is undefined, also the result is undefined.</text--->"
     "<text>query strequal(\"hello\",'HELLO',FALSE) </text--->"
@@ -6463,8 +6459,8 @@ const string tokenizeSpec =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
     "( <text> text x string -> stream(text) </text--->"
     "<text> tokenize(Text, Delimiters) </text--->"
-    "<text>Splits the Text at the given Delimiters and returns . "
-    "each token found as an stream element. Delimiters is a concatenation of "
+    "<text>Splits the Text at the given Delimiters and returns "
+    "each found token as an stream element. 'Delimiters' is a concatenation of "
     "all character symbols to be interpreted as delimiters."
     " </text--->"
     "<text>query tokenize('Hello World', \" \") count </text--->"
