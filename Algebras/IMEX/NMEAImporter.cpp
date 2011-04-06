@@ -285,7 +285,7 @@ bool getReal(const string& s, double& result){
    if(!getInt(second,p2)){
      return false;
    }
-   double t = p2 / pow(10, (int)second.length());
+   double t = p2 / pow(10.0f, (int)second.length());
    result += t;
    return true;
 }
@@ -382,7 +382,7 @@ bool getDecimal(const string& val, double& result){
   if(p1<0){
     return false;
   }
-  result = minutes + p1 / pow(10, (int) mmmm.length());
+  result = minutes + p1 / pow(10.0f, (int) mmmm.length());
   result = result/60.0; // convert minutes into degree
   return true;
 }
@@ -1193,7 +1193,7 @@ class GSVImporter: public NMEALineImporter{
                                  // because of checksum
            t->PutAttribute(i+4, nmea_stringutils::getInt(st));
         }
-        CcInt* SNR4 = new CcInt(false,0.0);
+        CcInt* SNR4 = new CcInt(false,0);
         if(st.hasNextToken()){
           stringutils::StringTokenizer st2(st.nextToken(),"*");
           if(st2.hasNextToken()){
