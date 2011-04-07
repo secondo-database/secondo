@@ -83,6 +83,7 @@ void sendMessage ( string in_strMessage )
   xMessageCenter->Send ( xMessage );
 }
 
+
 /*
 Computes a spatial BoundingBox of a RouteInterval
 
@@ -6155,6 +6156,23 @@ GLine::GLine (const int in_iSize ) :
   m_dLength = 0.0;
 }
 
+GLine::GLine(const int networkId,
+             const bool sort,
+             const DbArray<RouteInterval> *rilist):
+  Attribute(sort), m_xRouteIntervals(rilist->Size())
+{
+  m_iNetworkId = networkId;
+  m_bSorted = sort;
+  m_xRouteIntervals.copyFrom(*rilist);
+  m_dLength = 0.0;
+  RouteInterval ri;
+  for (int i = 0; i < rilist->Size(); i++)
+  {
+    rilist->Get(i,ri);
+    m_dLength = m_dLength + ri.Length();
+  }
+}
+
 GLine::GLine ( const GLine* in_xOther ) :
     Attribute(in_xOther->IsDefined()),
     m_xRouteIntervals ( 0 )
@@ -6680,9 +6698,14 @@ Flob* GLine::GetFLOB ( const int i )
   return 0;
 }
 
-DbArray<RouteInterval>* GLine::GetRouteIntervals()
+DbArray<RouteInterval>* GLine::GetRouteIntervals() const
 {
-  if ( IsDefined() ) return &m_xRouteIntervals;
+  DbArray<RouteInterval> * res = new DbArray<RouteInterval>(0);
+  if ( IsDefined() )
+  {
+    res->copyFrom(m_xRouteIntervals);
+    return res;
+  }
   else return 0;
 };
 
@@ -7062,8 +7085,12 @@ double GLine::Distance ( const GLine* pgl2 )const
   else return numeric_limits<double>::max();
 }
 
+/*
+ Computes the union of 2 glines.
 
-void GLine::Uniongl (const  GLine *pgl2, GLine *res )const
+*/
+
+void GLine::Uniongl (const GLine *pgl2, GLine *res )const
 {
   RouteInterval pRi1, pRi2;
   if ( !IsDefined() || NoOfComponents() == 0 )
@@ -7085,7 +7112,7 @@ void GLine::Uniongl (const  GLine *pgl2, GLine *res )const
         pgl2->Get ( 0,pRi2 );
         RITree *ritree = new RITree ( pRi2.GetRouteId(),
                                       pRi2.GetStartPos(), pRi2.GetEndPos(),0,0
-);
+        );
         for ( int j = 1; j < pgl2->NoOfComponents(); j++ )
         {
           pgl2->Get ( j,pRi2 );
@@ -7126,7 +7153,7 @@ void GLine::Uniongl (const  GLine *pgl2, GLine *res )const
           Get ( 0,pRi1 );
           RITree *ritree = new RITree ( pRi1.GetRouteId(),
                                         pRi1.GetStartPos(), pRi1.GetEndPos(),0,0
-);
+          );
           for ( int i = 1; i < NoOfComponents(); i++ )
           {
             Get ( i,pRi1 );
@@ -7203,7 +7230,7 @@ void GLine::Uniongl (const  GLine *pgl2, GLine *res )const
                   {
                     iRouteId = pRi1.GetRouteId();
                     start = min ( pRi1.GetStartPos(), pRi2.GetStartPos() ),
-                            end = max ( pRi1.GetEndPos(), pRi2.GetEndPos() );
+                    end = max ( pRi1.GetEndPos(), pRi2.GetEndPos() );
                     i++;
                     j++;
                     newroute = false;
@@ -7257,8 +7284,8 @@ void GLine::Uniongl (const  GLine *pgl2, GLine *res )const
                                     pRi2.GetEndPos() );
             j++;
           }
-          res->SetDefined ( true );
-          res->SetSorted ( true );
+        res->SetDefined ( true );
+        res->SetSorted ( true );
         }
         else
         {
@@ -7288,6 +7315,7 @@ void GLine::Uniongl (const  GLine *pgl2, GLine *res )const
   }
   res->TrimToSize();
 }
+
 
 void GLine::Gline2line ( Line* res )const
 {
@@ -8539,6 +8567,182 @@ void GPoint::ShortestPathTree(const Network* pNetwork,
 }
 
 /*
+Almost analogous to shortest path tree but stops computation if all sections
+within the maximum distance maxdist are inserted.
+
+*/
+
+void GPoint::Out_Circle(const Network* pNetwork, GLine* res,
+                        const double maxdist) const
+{
+  res->Clear();
+  RITreeP *ritree = new RITreeP(0);
+  if (IsDefined() && pNetwork != 0 && pNetwork->IsDefined() &&
+      GetNetworkId() == pNetwork->GetId() && res != 0)
+  {
+    res->SetDefined(true);
+    res->SetNetworkId(GetNetworkId());
+    TupleId startSectionTID = pNetwork->GetTupleIdSectionOnRoute(this);
+    PrioQueueA *prioQ = new PrioQueueA ( 0 );
+    SectIDTreeP *visitedSect =  new SectIDTreeP ( 0);
+    int pHelp = -1;
+    visitedSect->Insert(SectIDTreeEntry(SectEntry(startSectionTID,
+                                                  startSectionTID,
+                                                  true, true, -1, 0.0),
+                                        -1,-1),
+                        pHelp);
+    visitedSect->Insert(SectIDTreeEntry(SectEntry(startSectionTID,
+                                                  startSectionTID,
+                                                  false, false, -1, 0.0),
+                                        -1,-1),
+                        pHelp);
+    Tuple* startSection = pNetwork->GetSection(startSectionTID);
+    double sectMeas1 =
+      ((CcReal* )startSection->GetAttribute(SECTION_MEAS1))->GetRealval();
+    double sectMeas2 =
+      ((CcReal*)startSection->GetAttribute(SECTION_MEAS2))->GetRealval();
+    int actRouteId =
+      ((CcInt*)startSection->GetAttribute(SECTION_RID))->GetIntval();
+    double dist1 = fabs(GetPosition() - sectMeas1);
+    double dist2 = fabs(GetPosition() - sectMeas2);
+    double length = fabs(sectMeas2 - sectMeas1);
+    bool s1 = true;
+    bool s2 = true;
+    if (length <= maxdist)
+    {
+      ritree->Insert(actRouteId, sectMeas1, sectMeas2);
+    }
+    else
+    {
+      if (dist1 <= maxdist )
+        ritree->Insert(actRouteId, sectMeas1, GetPosition());
+      else
+      {
+        ritree->Insert(actRouteId, GetPosition() - maxdist, GetPosition());
+        s1 = false;
+      }
+      if (dist2 <= maxdist)
+        ritree->Insert(actRouteId, GetPosition(), sectMeas2);
+      else
+      {
+        ritree->Insert(actRouteId, GetPosition(), GetPosition() + maxdist );
+        s2 = false;
+      }
+    }
+    vector<DirectedSection> adjSectionList;
+    adjSectionList.clear();
+    if (s1)
+    {
+      pNetwork->GetAdjacentSections ( startSectionTID, false, adjSectionList );
+      for ( size_t i = 0;  i < adjSectionList.size(); i++ )
+      {
+        DirectedSection actNextSect = adjSectionList[i];
+        prioQ->Insert ( PQEntryA ( actNextSect.GetSectionTid(), dist1, dist1,
+                                   actNextSect.GetUpDownFlag(),
+                                   startSectionTID, false ),
+                        visitedSect, 0);
+      }
+      adjSectionList.clear();
+    }
+    if (s2)
+    {
+      pNetwork->GetAdjacentSections ( startSectionTID, true,
+                                      adjSectionList );
+      for ( size_t i = 0;  i < adjSectionList.size(); i++ ) {
+        DirectedSection actNextSect = adjSectionList[i];
+        prioQ->Insert ( PQEntryA ( actNextSect.GetSectionTid(), dist2, dist2,
+                                   actNextSect.GetUpDownFlag(),
+                                   startSectionTID, true ),
+                        visitedSect, 0);
+      }
+      adjSectionList.clear();
+    }
+    PQEntryA* actPQEntry = 0;
+    double actDist = 0.0;
+    bool reached = false;
+    while (!prioQ->IsEmpty() && !reached)
+    {
+      actPQEntry = prioQ->GetAndDeleteMin(visitedSect);
+      if (actPQEntry->valFromStart > maxdist)
+      {
+        reached = true;
+      }
+      else
+      {
+        Tuple *actSection = pNetwork->GetSection ( actPQEntry->sectID );
+        sectMeas1 =
+          ((CcReal*)actSection->GetAttribute(SECTION_MEAS1))->GetRealval();
+        sectMeas2 =
+          ((CcReal*)actSection->GetAttribute(SECTION_MEAS2))->GetRealval();
+        actRouteId =
+          ((CcInt*)actSection->GetAttribute(SECTION_RID))->GetIntval();
+        length = fabs(sectMeas2 - sectMeas1);
+        actDist = actPQEntry->valFromStart + length;
+        if(actDist <= maxdist)
+        {
+          ritree->Insert(actRouteId, sectMeas1, sectMeas2);
+          pNetwork->GetAdjacentSections ( actPQEntry->sectID,
+                                          actPQEntry->upDownFlag,
+                                          adjSectionList );
+          if (adjSectionList.size() != 0)
+          {
+            for ( size_t i = 0; i <adjSectionList.size();i++ )
+            {
+              DirectedSection actNextSect = adjSectionList[i];
+              prioQ->Insert ( PQEntryA ( actNextSect.GetSectionTid(),
+                                         actDist,actDist,
+                                         actNextSect.GetUpDownFlag(),
+                                         actPQEntry->sectID,
+                                         actPQEntry->upDownFlag),
+                              visitedSect, 0);
+            }
+            adjSectionList.clear();
+          }
+        }
+        else
+        {
+          if (actPQEntry->upDownFlag)
+          {
+            ritree->Insert(actRouteId, sectMeas1,
+                          sectMeas1 + fabs(maxdist - actPQEntry->valFromStart));
+          }
+          else
+          {
+            ritree->Insert(actRouteId,
+                           sectMeas2 - fabs(maxdist - actPQEntry->valFromStart),
+                           sectMeas2);
+          }
+        }
+        if (actSection != 0)
+        {
+          actSection->DeleteIfAllowed();
+          actSection = 0;
+        }
+      }
+      if (actPQEntry != 0)
+      {
+        delete actPQEntry;
+        actPQEntry=0;
+      }
+    }
+    prioQ->Destroy();
+    delete prioQ;
+    visitedSect->Destroy();
+    delete visitedSect;
+    startSection->DeleteIfAllowed();
+    ritree->TreeToGLine(res,0);
+    res->SetSorted(true);
+  }
+  else
+  {
+    res->SetDefined(false);
+  }
+  ritree->Destroy();
+  delete ritree;
+}
+
+
+/*
 Returns the reverse shortest path tree of the gpoint from all sections of the
 network. The distances are stored in an DbArray<double>, where the index
 of the Array-Field is two times the section number for up sections and
@@ -8795,6 +8999,210 @@ void GPoint::ReverseShortestPathTree(const Network* pNetwork,
     delete visitedSect;
     startSection->DeleteIfAllowed();
   }
+}
+
+/*
+Almost analogous to reverse shortest path tree but stops computation if all
+sections from which the gpoint can be reached within maxdist are inserted.
+
+*/
+
+void GPoint::In_Circle(const Network* pNetwork, GLine* res,
+                       const double maxdist) const
+{
+  res->Clear();
+  RITreeP *ritree = new RITreeP(0);
+  if (IsDefined() && pNetwork != 0 && pNetwork->IsDefined() &&
+    GetNetworkId() == pNetwork->GetId() && res != 0)
+  {
+    res->SetDefined(true);
+    res->SetNetworkId(GetNetworkId());
+    TupleId startSectionTID = pNetwork->GetTupleIdSectionOnRoute(this);
+    PrioQueueA *prioQ = new PrioQueueA ( 0 );
+    SectIDTreeP *visitedSect =  new SectIDTreeP ( 0);
+    int pHelp = -1;
+    Tuple* startSection = pNetwork->GetSection(startSectionTID);
+    double sectMeas1 =
+      ((CcReal* )startSection->GetAttribute(SECTION_MEAS1))->GetRealval();
+    double sectMeas2 =
+      ((CcReal*)startSection->GetAttribute(SECTION_MEAS2))->GetRealval();
+    int actRouteId =
+      ((CcInt*)startSection->GetAttribute(SECTION_RID))->GetIntval();
+    double dist1 = fabs(GetPosition() - sectMeas1);
+    double dist2 = fabs(GetPosition() - sectMeas2);
+    double length = fabs(sectMeas2 - sectMeas1);
+    bool s1 = true;
+    bool s2 = true;
+    if (length <= maxdist)
+    {
+      ritree->Insert(actRouteId, sectMeas1, sectMeas2);
+    }
+    else
+    {
+      if (dist1 <= maxdist )
+        ritree->Insert(actRouteId, sectMeas1, GetPosition());
+      else
+      {
+        ritree->Insert(actRouteId, GetPosition() - maxdist, GetPosition());
+        s1 = false;
+      }
+      if (dist2 <= maxdist)
+        ritree->Insert(actRouteId, GetPosition(), sectMeas2);
+      else
+      {
+        ritree->Insert(actRouteId, GetPosition(), GetPosition() + maxdist );
+        s2 = false;
+      }
+    }
+    visitedSect->Insert(SectIDTreeEntry(SectEntry(startSectionTID,
+                                                  startSectionTID,
+                                                  false, false, -1, 0.0),
+                                        -1,-1),
+                        pHelp);
+    visitedSect->Insert(SectIDTreeEntry(SectEntry(startSectionTID,
+                                                  startSectionTID,
+                                                  true, true, -1, 0.0),
+                                        -1,-1),
+                        pHelp);
+    vector<DirectedSection> adjSectionList;
+    adjSectionList.clear();
+    if (s1)
+    {
+      pNetwork->GetReverseAdjacentSections (startSectionTID, false,
+                                            adjSectionList );
+      for ( size_t i = 0;  i < adjSectionList.size(); i++ )
+      {
+        DirectedSection actNextSect = adjSectionList[i];
+        prioQ->Insert ( PQEntryA ( actNextSect.GetSectionTid(), dist2, dist2,
+                                   actNextSect.GetUpDownFlag(),
+                                   startSectionTID, false ),
+                        visitedSect, 0);
+      }
+      adjSectionList.clear();
+    }
+    if (s2)
+    {
+      pNetwork->GetReverseAdjacentSections ( startSectionTID, true,
+                                             adjSectionList );
+      for ( size_t i = 0;  i < adjSectionList.size(); i++ )
+      {
+        DirectedSection actNextSect = adjSectionList[i];
+        prioQ->Insert ( PQEntryA ( actNextSect.GetSectionTid(), dist1, dist1,
+                                   actNextSect.GetUpDownFlag(),
+                                   startSectionTID, true ),
+                        visitedSect, 0);
+      }
+      adjSectionList.clear();
+    }
+    PQEntryA* actPQEntry = 0;
+    double actDist = 0.0;
+    bool reached = false;
+    while (!prioQ->IsEmpty() && !reached)
+    {
+      actPQEntry = prioQ->GetAndDeleteMin(visitedSect);
+      if (actPQEntry->valFromStart > maxdist)
+      {
+        reached = true;
+      }
+      else
+      {
+        Tuple *actSection = pNetwork->GetSection ( actPQEntry->sectID );
+        sectMeas1 =
+          ((CcReal*)actSection->GetAttribute(SECTION_MEAS1))->GetRealval();
+        sectMeas2 =
+          ((CcReal*)actSection->GetAttribute(SECTION_MEAS2))->GetRealval();
+        actRouteId =
+          ((CcInt*)actSection->GetAttribute(SECTION_RID))->GetIntval();
+        length = fabs(sectMeas2 - sectMeas1);
+        actDist = actPQEntry->valFromStart + length;
+        if(actDist <= maxdist)
+        {
+          ritree->Insert(actRouteId, sectMeas1, sectMeas2);
+          pNetwork->GetReverseAdjacentSections ( actPQEntry->sectID,
+                                          actPQEntry->upDownFlag,
+                                          adjSectionList );
+          if (adjSectionList.size() != 0)
+          {
+            for ( size_t i = 0; i <adjSectionList.size();i++ )
+            {
+              DirectedSection actNextSect = adjSectionList[i];
+              prioQ->Insert ( PQEntryA ( actNextSect.GetSectionTid(),
+                                         actDist,actDist,
+                                         actNextSect.GetUpDownFlag(),
+                                         actPQEntry->sectID,
+                                         actPQEntry->upDownFlag),
+                              visitedSect, 0);
+            }
+            adjSectionList.clear();
+          }
+        }
+        else
+        {
+          if (actPQEntry->upDownFlag)
+          {
+            ritree->Insert(actRouteId,
+                           sectMeas2 - fabs(maxdist - actPQEntry->valFromStart),
+                           sectMeas2);
+          }
+          else
+          {
+            ritree->Insert(actRouteId, sectMeas1,
+                          sectMeas1 + fabs(maxdist - actPQEntry->valFromStart));
+          }
+        }
+        if (actSection != 0)
+        {
+          actSection->DeleteIfAllowed();
+          actSection = 0;
+        }
+      }
+      if (actPQEntry != 0)
+      {
+        delete actPQEntry;
+        actPQEntry=0;
+      }
+    }
+    ritree->TreeToGLine(res,0);
+    res->SetSorted(true);
+    prioQ->Destroy();
+    delete prioQ;
+    visitedSect->Destroy();
+    delete visitedSect;
+    startSection->DeleteIfAllowed();
+  }
+  else
+  {
+    res->SetDefined(false);
+  }
+  ritree->Destroy();
+  delete ritree;
+}
+
+/*
+Returns the route intervals whithin distance maxdist from ~GPoint~ ignoring
+connectivity in the junctions.
+
+*/
+
+void GPoint::Circle(const Network* pNetwork, GLine *res,
+                    const double maxdist) const
+{
+  res->Clear();
+  if (IsDefined() && pNetwork != 0 && pNetwork->IsDefined() &&
+    GetNetworkId() == pNetwork->GetId() && res != 0)
+  {
+    res->SetNetworkId(GetNetworkId());
+    res->SetDefined(true);
+    GLine *outcircle = new GLine(0);
+    Out_Circle(pNetwork, outcircle, maxdist);
+    GLine *incircle = new GLine(0);
+    In_Circle(pNetwork, incircle, maxdist);
+    incircle->Uniongl(outcircle, res);
+    outcircle->DeleteIfAllowed();
+    incircle->DeleteIfAllowed();
+    res->SetSorted(true);
+  }
+  else res->SetDefined(false);
 }
 
 /*
@@ -12287,7 +12695,7 @@ ListExpr OpGetAdjacentSectionsTypeMap ( ListExpr args )
   NList param(args);
 
   if(param.length() != 3 )
-    return listutils::typeError("2 arguments expected.");
+    return listutils::typeError("3 arguments expected.");
 
   NList network(param.first());
   if (!network.isSymbol("network"))
@@ -12510,6 +12918,115 @@ struct getReverseAdjacentSectionsInfo:OperatorInfo{
     meaning = "Returns the reverse adjacent sections.";
   }
 };
+
+/*
+6.26 Operators ~circle~, ~incircle~, ~outcircle~
+
+6.26.1 TypeMapping for all operators
+
+*/
+ListExpr circleTypeMap ( ListExpr args )
+{
+  NList param(args);
+
+  if(param.length() != 2 )
+    return listutils::typeError("2 arguments expected.");
+
+  NList gp(param.first());
+  if (!gp.isSymbol("gpoint"))
+    return listutils::typeError("First argument should be gpoint.");
+
+  NList dist(param.second());
+  if (!dist.isSymbol("real"))
+    return listutils::typeError("Second argument should be real.");
+
+  return nl->SymbolAtom("gline");
+}
+
+/*
+6.26.2 ValueMappings and OperatorInfos for cirlce-Operators
+
+6.26.2.1 ~circle~
+
+*/
+int circleValueMap(Word* args, Word& result, int message,
+                   Word& local, Supplier in_pSupplier)
+{
+  GPoint* gp = (GPoint*) args[0].addr;
+  double maxdist = ((CcReal*)args[1].addr)->GetRealval();
+  if (!gp->IsDefined()) return 0;
+  Network *pNetwork = NetworkManager::GetNetworkNew(gp->GetNetworkId(),netList);
+  result = qp->ResultStorage(in_pSupplier);
+  GLine* pGLine = static_cast<GLine*>(result.addr);
+  gp->Circle(pNetwork, pGLine, maxdist);
+  NetworkManager::CloseNetwork(pNetwork);
+  return 1;
+}
+
+struct circleInfo:OperatorInfo{
+  circleInfo():OperatorInfo(){
+    name = "circlen";
+    signature = "gpoint X real -> gline";
+    syntax = "circlen(_,_)";
+    meaning = "Network part within dist around gpoint.";
+  }
+};
+
+/*
+6.26.2.2 ~incircle~
+
+*/
+int inCircleValueMap(Word* args, Word& result, int message,
+                   Word& local, Supplier in_pSupplier)
+{
+  GPoint* gp = (GPoint*) args[0].addr;
+  double maxdist = ((CcReal*)args[1].addr)->GetRealval();
+  if (!gp->IsDefined()) return 0;
+  Network *pNetwork = NetworkManager::GetNetworkNew(gp->GetNetworkId(),netList);
+  result = qp->ResultStorage(in_pSupplier);
+  GLine* pGLine = static_cast<GLine*>(result.addr);
+  gp->In_Circle(pNetwork, pGLine, maxdist);
+  NetworkManager::CloseNetwork(pNetwork);
+  return 1;
+}
+
+struct inCircleInfo:OperatorInfo{
+  inCircleInfo():OperatorInfo(){
+    name = "in_circlen";
+    signature = "gpoint X real -> gline";
+    syntax = "in_circlen(_,_)";
+    meaning = "Network part gpoint can be reached within dist.";
+  }
+};
+
+/*
+6.26.2.3 ~outcircle~
+
+*/
+
+int outCircleValueMap(Word* args, Word& result, int message,
+                     Word& local, Supplier in_pSupplier)
+{
+  GPoint* gp = (GPoint*) args[0].addr;
+  double maxdist = ((CcReal*)args[1].addr)->GetRealval();
+  if (!gp->IsDefined()) return 0;
+  Network *pNetwork = NetworkManager::GetNetworkNew(gp->GetNetworkId(),netList);
+  result = qp->ResultStorage(in_pSupplier);
+  GLine* pGLine = static_cast<GLine*>(result.addr);
+  gp->Out_Circle(pNetwork, pGLine, maxdist);
+  NetworkManager::CloseNetwork(pNetwork);
+  return 1;
+}
+
+struct outCircleInfo:OperatorInfo{
+  outCircleInfo():OperatorInfo(){
+    name = "out_circlen";
+    signature = "gpoint X real -> gline";
+    syntax = "out_circlen(_,_)";
+    meaning = "Network part within dist of gpoint.";
+  }
+};
+
 /*
 7 Creating the ~NetworkAlgebra~
 
@@ -12583,6 +13100,9 @@ class NetworkAlgebra : public Algebra
       AddOperator ( getReverseAdjacentSectionsInfo(),
                     OpGetReverseAdjacentSectionsValueMap,
                     OpGetAdjacentSectionsTypeMap);
+      AddOperator ( inCircleInfo(), inCircleValueMap, circleTypeMap);
+      AddOperator ( outCircleInfo(), outCircleValueMap, circleTypeMap);
+      AddOperator ( circleInfo(), circleValueMap, circleTypeMap);
     }
 
     ~NetworkAlgebra()

@@ -421,3 +421,24 @@ Number   : 1
 Signature: network X int X bool -> stream(tuple(int bool)))
 Example  : query getReverseAdjacentSections(B_NETWORK, 2, TRUE) consume;
 Result   : file
+
+Operator : circlen
+Number   : 1
+Signature: gpoint x real -> gline
+Example  : query circlen([const gpoint value (1 1 30.0 2)], 15.5);
+Result   : (gline(1((1 14.5 45.5))))
+Tolerance: 0.01%
+
+Operator : in_circlen
+Number   : 1
+Signature: gpoint x real -> gline
+Example  : query in_circlen([const gpoint value (1 1 30.0 2)], 15.5);
+Result   : (gline(1((1 14.5 45.5))))
+Tolerance: 0.01%
+
+Operator : out_circlen
+Number   : 1
+Signature: gpoint x real -> gline
+Example  : query out_circlen([const gpoint value (1 1 30.0 2)], 15.5);
+Result   : (gline(1((1 14.5 45.5))))
+Tolerance: 0.01%

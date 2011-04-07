@@ -1167,6 +1167,33 @@ void ReverseShortestPathTree(const Network* pNetwork,
                              DbArray<ShortestPathTreeEntry> *res,
                              SortedTree<Entry<SectionValue> > *toReach) const;
 
+/*
+Returns the route intervals from which the ~GPoint~ can be reached within a
+given distance.
+
+*/
+
+void In_Circle(const Network* pNetwork, GLine *res,
+               const double maxdist) const;
+
+/*
+Returns the route intervals which can be reached from the ~GPoint~ within a
+given distance.
+
+*/
+
+void Out_Circle(const Network* pNetwork, GLine *res,
+                               const double maxdist) const;
+
+/*
+Returns the route intervals whithin distance maxdist from ~GPoint~ ignoring
+connectivity in the junctions.
+
+*/
+void Circle(const Network* pNetwork, GLine *res,
+            const double maxdist) const;
+
+
   private:
 
 /*
@@ -2403,6 +2430,9 @@ the size of the ~DbArray~ is dynamically extended later.
 
     GLine(const bool def);
 
+    GLine(const int networkid, const bool sorted,
+          const DbArray<RouteInterval>* routeIntervals);
+
     ~GLine() {};
 
     GLine( ListExpr in_xValue,
@@ -2438,7 +2468,7 @@ the size of the ~DbArray~ is dynamically extended later.
 
     void SetSorted(const bool b);
 
-    DbArray<RouteInterval>* GetRouteIntervals() ;
+    DbArray<RouteInterval>* GetRouteIntervals() const ;
 
 /*
 Returns true if the gline includes at least one of the gpoints.
@@ -3121,14 +3151,19 @@ Inserts a ~RouteInterval~ in the ~RITree~ checking if there are already
   }
 
   void Insert (const bool left, const int pos, RouteIntervalEntry& testRI,
-               const int rid, const int pos1, const int pos2)
+               const int r, const double p1, const double p2)
   {
     if (left) testRI.SetLeft(firstFree);
     else testRI.SetRight(firstFree);
     ritreep.Put(pos,testRI);
-    ritreep.Put(firstFree, RouteIntervalEntry(RouteInterval(rid,pos1,pos2),
+    ritreep.Put(firstFree, RouteIntervalEntry(RouteInterval(r, p1, p2),
                                              -1,-1));
     firstFree++;
+  }
+
+  void Insert(const RouteInterval ri)
+  {
+    Insert(ri.GetRouteId(), ri.GetStartPos(), ri.GetEndPos());
   }
 
   void Insert (const int rid, const double pos1, const double pos2, int pos = 0)
@@ -3158,7 +3193,7 @@ Inserts a ~RouteInterval~ in the ~RITree~ checking if there are already
           if (testRI.GetRight() > -1)
             Insert(rid, pos1, pos2, testRI.GetRight());
           else
-            Insert(false,pos,testRI,rid,pos1,pos2);
+            Insert(false, pos, testRI, rid, pos1, pos2);
         }
         else
         {
@@ -3167,7 +3202,7 @@ Inserts a ~RouteInterval~ in the ~RITree~ checking if there are already
             if (testRI.GetLeft() > -1 )
               Insert(rid, pos1, pos2, testRI.GetLeft());
             else
-              Insert(true,pos,testRI,rid,pos1,pos2);
+              Insert(true, pos, testRI, rid, pos1, pos2);
           }
           else
           {
@@ -3176,7 +3211,9 @@ Inserts a ~RouteInterval~ in the ~RITree~ checking if there are already
               if (testRI.GetRight() > -1)
                 Insert(rid, pos1, pos2, testRI.GetRight());
               else
-                Insert(false,pos,testRI,rid,pos1,pos2);
+              {
+                Insert(false, pos, testRI, rid, pos1, pos2);
+              }
             }
             else
             {
