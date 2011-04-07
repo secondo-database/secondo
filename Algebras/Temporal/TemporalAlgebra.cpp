@@ -89,6 +89,8 @@ file.
 #include <string>
 #include <stack>
 #include <vector>
+#include <set>
+#include <map>
 #include <algorithm>
 #include "NestedList.h"
 #include "QueryProcessor.h"
@@ -104,6 +106,7 @@ file.
 #include "ListUtils.h"
 #include "Symbols.h"
 #include "Geoid.h"
+#include "MovingRegionAlgebra.h"
 
 #include "RefinementStream.h"
 
@@ -16091,6 +16094,463 @@ Operator createCellGrid2D(
           createCellGrid2DSelect,
           createCellGrid2DTypeMap);
 
+
+/*
+5.2.2 Operator ~getRefinementPartition~
+
+*/
+
+/*
+5.2.2.1 Type Mapping for Operator ~getRefinementPartition~
+
+----
+{mT1|uT1} x {uT2|mT2} -> stream(tuple((Tstart instant)
+                               (Tend instant)
+                               (Tlc bool)
+                               (Trc bool)
+                               (Unit1 uT1)
+                               (Unit2 uT2)
+                               (UnitNo1 int)
+                               (UnitNo2 int))), where
+                    T1, T2 in {point, real, int, bool, string}
+----
+
+Type ~MRegion~ cannot be supported due to its representation using ~URegionEmb~
+internally, but ~URegion~ externally.
+
+*/
+ListExpr GetRefinementPartitionTypeMapping(ListExpr args){
+  int noargs = nl->ListLength(args);
+  string errmsg = "Expected {uT1|mT1} x {uT2|mT2}, where T in "
+                  "{point, int, real, bool, string}";
+  if(noargs!=2){
+    listutils::typeError(errmsg);
+  }
+  set<string> supportedArgTypes;
+  supportedArgTypes.insert(MPoint::BasicType());
+  supportedArgTypes.insert(MReal::BasicType());
+  supportedArgTypes.insert("mint");
+  supportedArgTypes.insert("mbool");
+  supportedArgTypes.insert("mstring");
+  supportedArgTypes.insert(UPoint::BasicType());
+  supportedArgTypes.insert(UReal::BasicType());
+  supportedArgTypes.insert("uint");
+  supportedArgTypes.insert("ubool");
+  supportedArgTypes.insert("ustring");
+
+  // MRegion not supported due to problems with handling URegionEmb/URegion
+
+  ListExpr first = nl->First(args);
+  ListExpr second= nl->Second(args);
+
+  if( !listutils::isASymbolIn(first,supportedArgTypes) ||
+      !listutils::isASymbolIn(second,supportedArgTypes)) {
+    return listutils::typeError(errmsg);
+  }
+
+  map<string,string> tm;
+  tm.insert(pair<string,string>(MPoint::BasicType(),UPoint::BasicType()));
+  tm.insert(pair<string,string>(MReal::BasicType(),UReal::BasicType()));
+  tm.insert(pair<string,string>("mint","uint"));
+  tm.insert(pair<string,string>("mbool","ubool"));
+  tm.insert(pair<string,string>("mstring","ustring"));
+  tm.insert(pair<string,string>(UPoint::BasicType(),UPoint::BasicType()));
+  tm.insert(pair<string,string>(UReal::BasicType(),UReal::BasicType()));
+  tm.insert(pair<string,string>("uint","uint"));
+  tm.insert(pair<string,string>("ubool","ubool"));
+  tm.insert(pair<string,string>("ustring","ustring"));
+  // MRegion not supported due to problems with handling URegionEmb/URegion
+
+  string t1; nl->WriteToString(t1, first);
+  string t2; nl->WriteToString(t2, second);
+  map<string,string>::iterator r1_i = tm.find(t1);
+  map<string,string>::iterator r2_i = tm.find(t2);
+  if((r1_i == tm.end()) || (r2_i == tm.end())){
+    return listutils::typeError(errmsg);
+  }
+  NList resTupleType =NList(NList("Tstart"),NList(symbols::INSTANT)).enclose();
+  resTupleType.append(NList(NList("Tend"),NList(symbols::INSTANT)));
+  resTupleType.append(NList(NList("Tlc"),NList(CcBool::BasicType())));
+  resTupleType.append(NList(NList("Trc"),NList(CcBool::BasicType())));
+  resTupleType.append(NList(NList("Unit1"),NList(r1_i->second)));
+  resTupleType.append(NList(NList("Unit2"),NList(r2_i->second)));
+  resTupleType.append(NList(NList("UnitNo1"),NList(CcInt::BasicType())));
+  resTupleType.append(NList(NList("UnitNo2"),NList(CcInt::BasicType())));
+  NList resType =
+  NList(NList(symbols::STREAM),NList(NList(symbols::TUPLE),resTupleType));
+  return resType.listExpr();
+}
+/*
+5.2.2.2 Value Mapping for Operator ~getRefinementPartition~
+
+*/
+template<class M1, class U1, class M2, class U2>
+class RefinementPartitionLI {
+  public:
+
+    RefinementPartitionLI(M1* _m1, M2* _m2,
+                          ListExpr _restype,
+                          const bool _copy1, const bool _copy2)
+    :m1(_m1), m2(_m2), r(0),
+    restupletype(0), hasmore(false), m1_copy(0), m2_copy(0)
+    {
+      if(_copy1){
+        m1_copy = _m1;
+      }
+      if(_copy2){
+        m2_copy = _m2;
+      }
+      restupletype = new TupleType(nl->Second(_restype));
+      r = new RefinementStream<M1,M2,U1,U2>(m1,m2);
+      hasmore = r->hasNext();
+    }
+
+    ~RefinementPartitionLI(){
+      if(restupletype){
+        restupletype->DeleteIfAllowed();
+        restupletype = 0;
+      }
+      if(r){
+        delete r;
+        r = 0;
+      }
+      if(m1_copy){
+        m1_copy->DeleteIfAllowed();
+        m1_copy = 0;
+      }
+      if(m2_copy){
+        m2_copy->DeleteIfAllowed();
+        m2_copy = 0;
+      }
+    }
+    bool hasMore(){
+      return hasmore;
+    } const
+
+    void next(Tuple* &t){
+      // get next pairing
+      Interval<Instant> iv;
+      int pos1;
+      int pos2;
+      if(r->getNext(iv, pos1, pos2)){
+        // get unit position data
+        CcInt* unit_no1 = new CcInt((pos1>=0), pos1);
+        CcInt* unit_no2 = new CcInt((pos2>=0), pos2);
+
+        // get interval data
+        Instant* tstart = new DateTime(instanttype);
+        Instant* tend   = new DateTime(instanttype);
+        CcBool*  tlc = new CcBool(true, true);
+        CcBool*  trc = new CcBool(true, true);
+        *tstart = iv.start;
+        *tend   = iv.end;
+        tlc->Set(true, iv.lc);
+        trc->Set(true, iv.rc);
+
+        // get unit data
+        U1 u1(true);
+        U2 u2(true);
+        U1* unit1 = new U1(true);
+        U2* unit2 = new U2(true);
+        if(pos1 >= 0){
+          m1->Get(pos1, u1);
+          u1.AtInterval(iv, *unit1);
+        } else {
+          unit1->SetDefined(false);
+        }
+        if(pos2 >= 0){
+          m2->Get(pos2, u2);
+          u2.AtInterval(iv, *unit2);
+        } else {
+          unit2->SetDefined(false);
+        }
+        // create the tuple
+        Tuple* restuple = new Tuple(restupletype);
+        restuple->PutAttribute(0,tstart);
+        restuple->PutAttribute(1,tend);
+        restuple->PutAttribute(2,tlc);
+        restuple->PutAttribute(3,trc);
+        restuple->PutAttribute(4,unit1);
+        restuple->PutAttribute(5,unit2);
+        restuple->PutAttribute(6,unit_no1);
+        restuple->PutAttribute(7,unit_no2);
+
+        // actualize hasmore flag and return restuple
+        hasmore = r->hasNext();
+        t = restuple;
+      } else { // no more results -> clear hasmore and return nullpointer
+        hasmore = false;
+        t = 0;
+      }
+    }
+
+  private:
+    const M1* m1;
+    const M2* m2;
+    RefinementStream<M1,M2,U1,U2>* r;
+    TupleType* restupletype;
+    bool hasmore;
+    M1* m1_copy;
+    M2* m2_copy;
+};
+
+template<class M1, class U1, class M2, class U2, bool IsUnit1, bool IsUnit2>
+int GetRefinementPartitionVM( Word* args, Word& result, int message,
+                              Word& local, Supplier s ){
+  RefinementPartitionLI<M1,U1,M2,U2>* li;
+  switch( message )
+  {
+    case OPEN:{
+      if(local.addr){
+        delete static_cast<RefinementPartitionLI<M1,U1,M2,U2>*>(local.addr);
+        local.setAddr(0);
+      }
+      M1* mo1;
+      if(IsUnit1){
+        mo1 = new M1(1);
+        U1* unit1 = static_cast<U1*>(args[0].addr);
+        if(unit1->IsDefined()){
+          mo1->Add(*unit1);
+        }
+      } else {
+        mo1 = static_cast<M1*>(args[0].addr);
+      }
+      M2* mo2;
+      if(IsUnit2){
+        mo2 = new M2(1);
+        U2* unit2 = static_cast<U2*>(args[1].addr);
+        if(unit2->IsDefined()){
+          mo2->Add(*unit2);
+        }
+      } else {
+        mo2 = static_cast<M2*>(args[1].addr);
+      }
+      li = new
+        RefinementPartitionLI<M1,U1,M2,U2>(mo1,
+                                           mo2,
+                                           GetTupleResultType(s),
+                                           IsUnit1,IsUnit2);
+      local.setAddr(li);
+      return 0;
+    }
+    case REQUEST:{
+      if(!local.addr){
+        return CANCEL;
+      }
+      li = static_cast<RefinementPartitionLI<M1,U1,M2,U2>*>(local.addr);
+      Tuple* t = 0;
+      if(li->hasMore()){
+        li->next(t);
+        if(t){
+          result.setAddr(t);
+          return YIELD;
+        }
+      }
+      return CANCEL;
+    }
+    case CLOSE:{
+      if(local.addr){
+        delete static_cast<RefinementPartitionLI<M1,U1,M2,U2>*>(local.addr);
+        local.setAddr(0);
+      }
+      return 0;
+    }
+    default:{
+      cerr << __PRETTY_FUNCTION__ << "Unknown message = " << message << "."
+           << endl;
+      return -1;
+    }
+  } // end switch
+  cerr << __PRETTY_FUNCTION__ << "Unknown message = " << message << "."
+       << endl;
+  return -1;
+}
+/*
+5.2.2.3 Value Mapping Array for Operator ~getRefinementPartition~
+
+*/
+ValueMapping GetRefinementPartitionValueMapping[] = {
+  GetRefinementPartitionVM<MPoint,UPoint,MPoint,UPoint,false,false>, // 0
+  GetRefinementPartitionVM<MPoint,UPoint,MReal,UReal,false,false>,
+  GetRefinementPartitionVM<MPoint,UPoint,MInt,UInt,false,false>,
+  GetRefinementPartitionVM<MPoint,UPoint,MBool,UBool,false,false>,
+  GetRefinementPartitionVM<MPoint,UPoint,MString,UString,false,false>,
+  GetRefinementPartitionVM<MPoint,UPoint,MPoint,UPoint,false,true>,
+  GetRefinementPartitionVM<MPoint,UPoint,MReal,UReal,false,true>,
+  GetRefinementPartitionVM<MPoint,UPoint,MInt,UInt,false,true>,
+  GetRefinementPartitionVM<MPoint,UPoint,MBool,UBool,false,true>,
+  GetRefinementPartitionVM<MPoint,UPoint,MString,UString,false,true>, // 9
+
+  GetRefinementPartitionVM<MReal,UReal,MPoint,UPoint,false,false>, //10
+  GetRefinementPartitionVM<MReal,UReal,MReal,UReal,false,false>,
+  GetRefinementPartitionVM<MReal,UReal,MInt,UInt,false,false>,
+  GetRefinementPartitionVM<MReal,UReal,MBool,UBool,false,false>,
+  GetRefinementPartitionVM<MReal,UReal,MString,UString,false,false>,
+  GetRefinementPartitionVM<MReal,UReal,MPoint,UPoint,false,true>,
+  GetRefinementPartitionVM<MReal,UReal,MReal,UReal,false,true>,
+  GetRefinementPartitionVM<MReal,UReal,MInt,UInt,false,true>,
+  GetRefinementPartitionVM<MReal,UReal,MBool,UBool,false,true>,
+  GetRefinementPartitionVM<MReal,UReal,MString,UString,false,true>, //19
+
+  GetRefinementPartitionVM<MInt,UInt,MPoint,UPoint,false,false>, //20
+  GetRefinementPartitionVM<MInt,UInt,MReal,UReal,false,false>,
+  GetRefinementPartitionVM<MInt,UInt,MInt,UInt,false,false>,
+  GetRefinementPartitionVM<MInt,UInt,MBool,UBool,false,false>,
+  GetRefinementPartitionVM<MInt,UInt,MString,UString,false,false>,
+  GetRefinementPartitionVM<MInt,UInt,MPoint,UPoint,false,true>,
+  GetRefinementPartitionVM<MInt,UInt,MReal,UReal,false,true>,
+  GetRefinementPartitionVM<MInt,UInt,MInt,UInt,false,true>,
+  GetRefinementPartitionVM<MInt,UInt,MBool,UBool,false,true>,
+  GetRefinementPartitionVM<MInt,UInt,MString,UString,false,true>, //29
+
+  GetRefinementPartitionVM<MBool,UBool,MPoint,UPoint,false,false>, //30
+  GetRefinementPartitionVM<MBool,UBool,MReal,UReal,false,false>,
+  GetRefinementPartitionVM<MBool,UBool,MInt,UInt,false,false>,
+  GetRefinementPartitionVM<MBool,UBool,MBool,UBool,false,false>,
+  GetRefinementPartitionVM<MBool,UBool,MString,UString,false,false>, //34
+  GetRefinementPartitionVM<MBool,UBool,MPoint,UPoint,false,true>, //35
+  GetRefinementPartitionVM<MBool,UBool,MReal,UReal,false,true>,
+  GetRefinementPartitionVM<MBool,UBool,MInt,UInt,false,true>,
+  GetRefinementPartitionVM<MBool,UBool,MBool,UBool,false,true>,
+  GetRefinementPartitionVM<MBool,UBool,MString,UString,false,true>, //39
+
+  GetRefinementPartitionVM<MString,UString,MPoint,UPoint,false,false>, //40
+  GetRefinementPartitionVM<MString,UString,MReal,UReal,false,false>,
+  GetRefinementPartitionVM<MString,UString,MInt,UInt,false,false>,
+  GetRefinementPartitionVM<MString,UString,MBool,UBool,false,false>,
+  GetRefinementPartitionVM<MString,UString,MString,UString,false,false>, //44
+  GetRefinementPartitionVM<MString,UString,MPoint,UPoint,false,true>, //45
+  GetRefinementPartitionVM<MString,UString,MReal,UReal,false,true>,
+  GetRefinementPartitionVM<MString,UString,MInt,UInt,false,true>,
+  GetRefinementPartitionVM<MString,UString,MBool,UBool,false,true>,
+  GetRefinementPartitionVM<MString,UString,MString,UString,false,true>, //49
+
+  GetRefinementPartitionVM<MPoint,UPoint,MPoint,UPoint,true,false>, // 50
+  GetRefinementPartitionVM<MPoint,UPoint,MReal,UReal,true,false>,
+  GetRefinementPartitionVM<MPoint,UPoint,MInt,UInt,true,false>,
+  GetRefinementPartitionVM<MPoint,UPoint,MBool,UBool,true,false>,
+  GetRefinementPartitionVM<MPoint,UPoint,MString,UString,true,false>,
+  GetRefinementPartitionVM<MPoint,UPoint,MPoint,UPoint,true,true>,
+  GetRefinementPartitionVM<MPoint,UPoint,MReal,UReal,true,true>,
+  GetRefinementPartitionVM<MPoint,UPoint,MInt,UInt,true,true>,
+  GetRefinementPartitionVM<MPoint,UPoint,MBool,UBool,true,true>,
+  GetRefinementPartitionVM<MPoint,UPoint,MString,UString,true,true>, // 59
+
+  GetRefinementPartitionVM<MReal,UReal,MPoint,UPoint,true,false>, //60
+  GetRefinementPartitionVM<MReal,UReal,MReal,UReal,true,false>,
+  GetRefinementPartitionVM<MReal,UReal,MInt,UInt,true,false>,
+  GetRefinementPartitionVM<MReal,UReal,MBool,UBool,true,false>,
+  GetRefinementPartitionVM<MReal,UReal,MString,UString,true,false>,
+  GetRefinementPartitionVM<MReal,UReal,MPoint,UPoint,true,true>,
+  GetRefinementPartitionVM<MReal,UReal,MReal,UReal,true,true>,
+  GetRefinementPartitionVM<MReal,UReal,MInt,UInt,true,true>,
+  GetRefinementPartitionVM<MReal,UReal,MBool,UBool,true,true>,
+  GetRefinementPartitionVM<MReal,UReal,MString,UString,true,true>, //69
+
+  GetRefinementPartitionVM<MInt,UInt,MPoint,UPoint,true,false>, //70
+  GetRefinementPartitionVM<MInt,UInt,MReal,UReal,true,false>,
+  GetRefinementPartitionVM<MInt,UInt,MInt,UInt,true,false>,
+  GetRefinementPartitionVM<MInt,UInt,MBool,UBool,true,false>,
+  GetRefinementPartitionVM<MInt,UInt,MString,UString,true,false>,
+  GetRefinementPartitionVM<MInt,UInt,MPoint,UPoint,true,true>,
+  GetRefinementPartitionVM<MInt,UInt,MReal,UReal,true,true>,
+  GetRefinementPartitionVM<MInt,UInt,MInt,UInt,true,true>,
+  GetRefinementPartitionVM<MInt,UInt,MBool,UBool,true,true>,
+  GetRefinementPartitionVM<MInt,UInt,MString,UString,true,true>, //79
+
+  GetRefinementPartitionVM<MBool,UBool,MPoint,UPoint,true,false>, //80
+  GetRefinementPartitionVM<MBool,UBool,MReal,UReal,true,false>,
+  GetRefinementPartitionVM<MBool,UBool,MInt,UInt,true,false>,
+  GetRefinementPartitionVM<MBool,UBool,MBool,UBool,true,false>,
+  GetRefinementPartitionVM<MBool,UBool,MString,UString,true,false>,
+  GetRefinementPartitionVM<MBool,UBool,MPoint,UPoint,true,true>,
+  GetRefinementPartitionVM<MBool,UBool,MReal,UReal,true,true>,
+  GetRefinementPartitionVM<MBool,UBool,MInt,UInt,true,true>,
+  GetRefinementPartitionVM<MBool,UBool,MBool,UBool,true,true>,
+  GetRefinementPartitionVM<MBool,UBool,MString,UString,true,true>, //89
+
+  GetRefinementPartitionVM<MString,UString,MPoint,UPoint,true,false>, //90
+  GetRefinementPartitionVM<MString,UString,MReal,UReal,true,false>,
+  GetRefinementPartitionVM<MString,UString,MInt,UInt,true,false>,
+  GetRefinementPartitionVM<MString,UString,MBool,UBool,true,false>,
+  GetRefinementPartitionVM<MString,UString,MString,UString,true,false>,
+  GetRefinementPartitionVM<MString,UString,MPoint,UPoint,true,true>,
+  GetRefinementPartitionVM<MString,UString,MReal,UReal,true,true>,
+  GetRefinementPartitionVM<MString,UString,MInt,UInt,true,true>,
+  GetRefinementPartitionVM<MString,UString,MBool,UBool,true,true>,
+  GetRefinementPartitionVM<MString,UString,MString,UString,true,true> //99
+};
+
+/*
+5.2.2.4 Selection Function for Operator ~getRefinementPartition~
+
+*/
+int GetRefinementPartitionSelect( ListExpr args ) {
+  int res = 0;
+  // first arg type
+  if(listutils::isSymbol(nl->First(args),MPoint::BasicType())) { res+=0; }
+  else if(listutils::isSymbol(nl->First(args),MReal::BasicType())) { res+=10; }
+  else if(listutils::isSymbol(nl->First(args),"mint")) { res+=20; }
+  else if(listutils::isSymbol(nl->First(args),"mbool")) { res+=30; }
+  else if(listutils::isSymbol(nl->First(args),"mstring")) { res+=40; }
+  else if(listutils::isSymbol(nl->First(args),UPoint::BasicType())) { res+=50; }
+  else if(listutils::isSymbol(nl->First(args),UReal::BasicType())) { res+=60; }
+  else if(listutils::isSymbol(nl->First(args),"uint")) { res+=70; }
+  else if(listutils::isSymbol(nl->First(args),"ubool")) { res+=80; }
+  else if(listutils::isSymbol(nl->First(args),"ustring")) { res+=90; }
+  else {res+= -9999999; }
+  // second arg type
+  if(listutils::isSymbol(nl->Second(args),MPoint::BasicType())) { res+=0; }
+  else if(listutils::isSymbol(nl->Second(args),MReal::BasicType())) { res+=1; }
+  else if(listutils::isSymbol(nl->Second(args),"mint")) { res+=2; }
+  else if(listutils::isSymbol(nl->Second(args),"mbool")) { res+=3; }
+  else if(listutils::isSymbol(nl->Second(args),"mstring")) { res+=4; }
+  else if(listutils::isSymbol(nl->Second(args),UPoint::BasicType())) { res+=5; }
+  else if(listutils::isSymbol(nl->Second(args),UReal::BasicType())) { res+=6; }
+  else if(listutils::isSymbol(nl->Second(args),"uint")) { res+=7; }
+  else if(listutils::isSymbol(nl->Second(args),"ubool")) { res+=8; }
+  else if(listutils::isSymbol(nl->Second(args),"ustring")) { res+=9; }
+  else {res+= -9999999; }
+
+  return (((res>=0)&&(res<=99))?res:-1);
+}
+/*
+5.2.2.5 Specification for Operator ~getRefinementPartition~
+
+*/
+OperatorInfo GetRefinementPartitionOperatorInfo(
+"getRefinementPartion",
+"{mT1|uT1} x {mT2|uT2} -> stream(tuple((Tstart instant)(Tend instant)(Tlc bool)"
+"(Trc bool)(Unit1 uT1)(Unit2 uT2)(UnitNo1 int)(UnitNo2 int))); T1, T2 in "
+"{point, real, int, bool, string}",
+"getRefinementPartion( M1, M2 )",
+"Creates a stream representing the temporal refinement partion of the two "
+"arguments as a stream of tuples. Each result tuple contains a temporal "
+"interval (represented by starting instant Tstart, ending instant Tend, and "
+"closedness parameters Tlc (Tstart included), Trc (Tend includes)), "
+"restrictions of both arguments, M1 and M2, to this interval, and the position "
+"indexes of the according original units within M1 (UnitNo1), M2 (UnitNo2). "
+"If for a given interval one of the arguments is not defined, the according "
+"result unit is set to UNDEFINED. If one argument is UNDEFINED, the result "
+"contains the original units of the other, defined,argument. If M1 and M2 are "
+"both undefined, or both are empty (do not contain any unit) the result stream "
+"is empty.",
+"query getRefinementPartion(train1, train5) count"
+""
+);
+
+
+/*
+5.2.2.6 Operator definition for ~getRefinementPartition~
+
+*/
+Operator getrefinementpartition(
+  GetRefinementPartitionOperatorInfo,
+  GetRefinementPartitionValueMapping,
+  GetRefinementPartitionSelect,
+  GetRefinementPartitionTypeMapping
+);
+
 /*
 6 Creating the Algebra
 
@@ -16244,6 +16704,7 @@ class TemporalAlgebra : public Algebra
     AddOperator(&mappingtimeshift);
     AddOperator(&gridcellevents);
     AddOperator(&temporalsquareddistance);
+    AddOperator(&getrefinementpartition);
 
     AddOperator(&createCellGrid2D);
 

@@ -371,4 +371,3 @@ Number    : 1
 Signature : mpoint x region ->  mbool
 Example   : query Trains feed filter[sometimes(.Trip inside zoogarten)] count
 Result    : 80
-
