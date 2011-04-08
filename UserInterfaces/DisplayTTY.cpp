@@ -1367,6 +1367,10 @@ struct DisplayArray : DisplayFunction {
   virtual void Display( ListExpr type,  ListExpr numType, ListExpr value)
   {
 
+    cout << "T:" << nl -> ToString(type) << endl;
+    cout << "N:" << nl -> ToString(numType) << endl;
+    cout << "V:" << nl -> ToString(value) << endl;
+
     if(nl->ListLength(value)==0)
       cout << "an empty array";
     else{
@@ -1388,6 +1392,60 @@ struct DisplayArray : DisplayFunction {
         value = nl->Rest(value);
       }
       cout << "***************  END ARRAY  ***************";
+
+    }
+  }
+};
+
+/*
+DisplayDArray
+
+*/
+struct DisplayDArray : DisplayFunction { 
+        
+  virtual void Display( ListExpr type,  ListExpr numType, ListExpr value)
+  {
+    if(nl->ListLength(value) == 1)
+      cout << "an empty darray";
+    else{
+      ListExpr AType = nl->Second(type);
+      ListExpr ANumType = nl->Second(numType);
+       // find the idpair
+      ListExpr idpair = ANumType;
+      while(nl->AtomType(nl->First(idpair))!=IntType)
+        idpair = nl->First(idpair);
+
+      int No = 1;
+      bool skipFirst = true;
+      cout << "*************** BEGIN DARRAY ***************" << endl;
+      while( !nl->IsEmpty(value)){
+	if (!skipFirst)
+	  {
+	    cout << "--------------- Field No: ";
+	    cout << No++ << " ---------------" << endl;
+	    CallDisplayFunction( idpair, AType,
+                             ANumType, nl->First(value) );
+	    cout << endl;
+	  }
+	else
+	  {
+	    cout << "---------------  Workers:  ---------------" << endl;
+	    ListExpr workers = nl->First(value);
+	    while (!nl -> IsEmpty(workers))
+	      {
+		ListExpr curworker = nl -> First(workers);
+		cout <<  nl -> ToString(curworker);
+		//cout << "\t";
+		//cout <<  nl -> ToString( nl -> First(nl -> Rest(curworker)));
+		cout << endl;
+		workers = nl -> Rest(workers);
+	      }
+	    cout << endl;
+	    skipFirst = false;
+	  }
+        value = nl->Rest(value);
+      }
+      cout << "***************  END DARRAY  ***************";
 
     }
   }
@@ -2716,6 +2774,7 @@ DisplayTTY::Initialize()
   d.Insert( "rect4",   new DisplayRect4() );
   d.Insert( "rect8",   new DisplayRect8() );
   d.Insert( "array",   new DisplayArray() );
+  d.Insert( "darray",  new DisplayDArray() );
   d.Insert( "point",   new DisplayPoint() );
   d.Insert( "tbtree",  new DisplayTBTree() );
   d.Insert( "binfile", new DisplayBinfile() );
