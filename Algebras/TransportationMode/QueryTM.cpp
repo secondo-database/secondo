@@ -35,6 +35,7 @@ March, 2011 Jianqiu xu
 
 */
 
+#include "BusNetwork.h"
 #include "QueryTM.h"
 
 /*
@@ -43,6 +44,8 @@ convert a genrange object to a 2D line in space or 3D line in a building
 */
 void QueryTM::GetLineOrLine3D(GenRange* gr, Space* sp)
 {
+  BusNetwork* bn = sp->LoadBusNetwork(IF_BUSNETWORK);
+  
   for(int i = 0;i < gr->Size();i++){
     Line l(0);
     GenRangeElem grelem;
@@ -65,9 +68,9 @@ void QueryTM::GetLineOrLine3D(GenRange* gr, Space* sp)
         GetLineInFreeSpace(&l);
         break;
 
-      case IF_MPPTN:
+      case IF_BUSNETWORK:
 //        cout<<"bus network"<<endl;
-        GetLineInBusNetwork(grelem.oid, &l, sp);
+        GetLineInBusNetwork(grelem.oid, &l, bn);
         break;
 
       case IF_GROOM:
@@ -81,6 +84,7 @@ void QueryTM::GetLineOrLine3D(GenRange* gr, Space* sp)
     }
   }
 
+  sp->CloseBusNetwork(bn);
 
 }
 
@@ -180,13 +184,40 @@ void QueryTM::GetLineInFreeSpace(Line* l)
 }
 
 /*
-get the overall line in bus network 
+get the overall line in bus network. oid corresponds to a bus route
 
 */
-void QueryTM::GetLineInBusNetwork(int oid, Line* l, Space* sp)
+void QueryTM::GetLineInBusNetwork(int oid, Line* l, BusNetwork* bn)
 {
-  cout<<"busnetwork not implemented"<<endl;
+  SimpleLine br_sl(0);
+  bn->GetBusRouteGeoData(oid, br_sl);
+  Rectangle<2> bbox = br_sl.BoundingBox();
+  Line* newl = new Line(0);
+  newl->StartBulkLoad();
 
+  int edgeno = 0;
+  for(int i = 0;i < l->Size();i++){
+    HalfSegment hs1;
+    l->Get(i, hs1);
+    if(!hs1.IsLeftDomPoint())continue;
+    Point lp = hs1.GetLeftPoint();
+    Point rp = hs1.GetRightPoint();
+    Point newlp(true, lp.GetX() + bbox.MinD(0), lp.GetY() + bbox.MinD(1));
+    Point newrp(true, rp.GetX() + bbox.MinD(0), rp.GetY() + bbox.MinD(1));
+    HalfSegment hs2(true, newlp, newrp);
+    hs2.attr.edgeno = edgeno++;
+    *newl += hs2;
+    hs2.SetLeftDomPoint(!hs2.IsLeftDomPoint());
+    *newl += hs2;
+  }
+
+  newl->EndBulkLoad();
+
+  line_list1.push_back(*newl);
+  Line3D* l3d = new Line3D(0);
+  line3d_list.push_back(*l3d);
+  delete l3d;
+  delete newl;
 
 }
 

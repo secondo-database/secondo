@@ -109,11 +109,11 @@ symbols for data type. to make it more readable, I use string insteand of enum
 
 */ 
 enum InfraSymbol{IF_BUSSTOP = 0, IF_BUSROUTE, IF_MPPTN, IF_BUSNETWORK,
-IF_GROOM, IF_REGION, IF_LINE, IF_FREESPACE}; 
+IF_GROOM, IF_REGION, IF_LINE, IF_FREESPACE, IF_METRONETWORK, IF_TRAINNETWORK}; 
 
 const string symbol_type[] = 
 {"BUSSTOP", "BUSROUTE", "MPPTN", "BUSNETWORK", "GROOM", 
-"REGION", "LINE", "FREESPACE"};
+"REGION", "LINE", "FREESPACE", "METRONETWORK", "TRAINNETWORK"};
 
 inline int GetSymbol(string s)
 {
@@ -138,7 +138,7 @@ inline int TM2InfraLabel(int tm)
   int label = -1;
   switch(tm){
     case TM_BUS: 
-          label = IF_MPPTN;
+          label = IF_BUSNETWORK;
           break;
     case TM_WALK:
           label = IF_REGION;
@@ -150,10 +150,10 @@ inline int TM2InfraLabel(int tm)
           label = IF_LINE;
           break;
     case TM_METRO:
-          label = IF_MPPTN;
+          label = IF_METRONETWORK;
           break; 
     case TM_TRAIN:
-          label = IF_MPPTN;
+          label = IF_TRAINNETWORK;
           break;
     case TM_BICYCLE:
           label = IF_LINE;
@@ -862,12 +862,40 @@ struct GenMObject{
                    int& pos1, int& pos2, int index);
   void SetMO_GenMO(MPoint* mo_bus, int pos1, int pos2, Instant& start_time, 
                    MPoint* mo, GenMO* genmo, int mobus_oid);
-  ////////////////////////////////////////////////////////////////////////////
-
-
 };
 
 
+/*
+for navgiation 
+
+*/
+
+struct Navigation{
+  unsigned int count;
+  TupleType* resulttype; 
+
+  vector<Point> loc_list1;
+  vector<Point> loc_list2;
+  vector<Point> neighbor1;
+  vector<Point> neighbor2;
+
+  vector<GenMO> trip_list1; 
+  vector<MPoint> trip_list2;
+  
+  Navigation(){ count = 0; resulttype = NULL;} 
+  ~Navigation(){if(resulttype != NULL) delete resulttype;}
+
+  void Navigation1(Space* sp, Relation* rel1, Relation* rel2, 
+                   Instant* start_time, Relation* rel3, Relation* rel4, 
+                   R_Tree<2,TupleId>* rtree);
+  bool NearestBusStop1(Point loc, Relation* rel, R_Tree<2,TupleId>* rtree, 
+                       vector<Bus_Stop>& bs_list1, vector<Point>& ps_list1, 
+                       vector<Point>& ps_list2, vector<GenLoc>& gloc_list1);
+  void DFTraverse1(R_Tree<2,TupleId>* rtree, SmiRecordId adr, 
+                             Relation* rel,
+                             Point query_loc, vector<int>& tid_list);
+
+};
 //////////////////////////////////////////////////////////////////////
 ////////////////// Space  ////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////
@@ -964,12 +992,14 @@ class Space:public Attribute{
   //////////////////////////////////////////////////////////////////////////
   ////////////get the submovement in an infrastructure object///////////////
   /////////////////////////////////////////////////////////////////////////
-  void GetLineInIFObject(int oid, GenLoc gl1, GenLoc gl2, 
-                         Line* l, vector<void*> infra_pointer);
+  void GetLineInIFObject(int& oid, GenLoc gl1, GenLoc gl2, 
+                         Line* l, vector<void*> infra_pointer,
+                         Interval<Instant> time_range, int infra_type);
   void GetLineInRoad(int oid, GenLoc gl1, GenLoc gl2, Line* l, Network*);
   void GetLineInRegion(int oid, GenLoc gl1, GenLoc gl2, Line* l);
   void GetLineInFreeSpace(GenLoc gl1, GenLoc gl2, Line* l);
-  void GetLineInBusNetwork(int oid, GenLoc gl1, GenLoc gl2, Line* l);
+  void GetLineInBusNetwork(int& oid, Line* l,
+                           BusNetwork* bn, Interval<Instant> time_range);
   void GetLineInGRoom(int oid, GenLoc gl1, GenLoc gl2, Line* l);
 
   private:

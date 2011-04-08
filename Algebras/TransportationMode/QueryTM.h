@@ -92,7 +92,7 @@ struct QueryTM{
   void GetLineInRoad(int , Line* l, Space* sp);
   void GetLineInRegion(int , Line* l, Space* sp);
   void GetLineInFreeSpace(Line* l);
-  void GetLineInBusNetwork(int, Line* l, Space* sp);
+  void GetLineInBusNetwork(int, Line* l, BusNetwork* bn);
   void GetLineInGRoom(int, Line* l, Space* sp);
 };
 

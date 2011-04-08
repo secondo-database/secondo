@@ -2828,6 +2828,15 @@ const string SpatialSpecGenerateGMO3TMList =
 "bs_pave_sort, rtree_bs_pave) </text---> ) )";
 
 
+const string SpatialSpecNavigation1List =
+"( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+"( <text> space x rel x rel x instant x rel x rel x rtree"
+" -> (stream(((x1 t1) ... (xn tn))) </text--->"
+"<text>navigation1 (space, rel,rel,instant, rel,rel, rtree) </text--->"
+"<text>navigation with modes bus and walk</text--->"
+"<text>query navigation1(space_1, queryloc1, queryloc2, instant1, tri_reg_new,"
+"bs_pave_sort, rtree_bs_pave) </text---> ) )";
+
 /*
 ValueMap function for operator get the reference id: genloc, ioref, busstop
 
@@ -3810,6 +3819,66 @@ int GenerateGMO3ListValueMap(Word* args, Word& result, int message,
   
 }
 
+
+/*
+navigation with modes Walk and Bus
+
+*/
+int Navigation1ValueMap(Word* args, Word& result, int message,
+                    Word& local, Supplier in_pSupplier)
+{
+ Navigation* nav;
+
+  switch(message){
+      case OPEN:{
+        Space* sp = (Space*)args[0].addr; 
+        Relation* rel1 = (Relation*)args[1].addr;
+        Relation* rel2 = (Relation*)args[2].addr;
+        Instant* start_time = (Instant*)args[3].addr;
+
+        Relation* rel3 = (Relation*)args[4].addr;
+        Relation* rel4 = (Relation*)args[5].addr;
+        R_Tree<2,TupleId>* rtree = (R_Tree<2,TupleId>*)args[6].addr; 
+
+        nav = new Navigation();
+        nav->resulttype =
+            new TupleType(nl->Second(GetTupleResultType(in_pSupplier)));
+
+        nav->Navigation1(sp, rel1, rel2, start_time, rel3, rel4, rtree);
+        local.setAddr(nav);
+
+        return 0;
+      }
+      case REQUEST:{
+        if(local.addr == NULL) return CANCEL;
+        nav = (Navigation*)local.addr;
+        if(nav->count == nav->loc_list1.size()) return CANCEL;
+        Tuple* tuple = new Tuple(nav->resulttype);
+
+        tuple->PutAttribute(0,new Point(nav->loc_list1[nav->count]));
+//        tuple->PutAttribute(1,new Point(nav->neighbor1[nav->count]));
+        tuple->PutAttribute(1,new Point(nav->loc_list2[nav->count]));
+//        tuple->PutAttribute(3,new Point(nav->neighbor2[nav->count]));
+        tuple->PutAttribute(2,new GenMO(nav->trip_list1[nav->count]));
+        tuple->PutAttribute(3,new MPoint(nav->trip_list2[nav->count]));
+
+        result.setAddr(tuple);
+        nav->count++;
+        return YIELD;
+      }
+      case CLOSE:{
+          if(local.addr){
+            nav = (Navigation*)local.addr;
+            delete nav;
+            local.setAddr(Address(0));
+          }
+          return 0;
+      }
+  }
+  return 0;
+  
+}
+
 ValueMapping RefIdValueMapVM[]={
   RefIdGenLocValueMap,
   RefIdIORefValueMap,
@@ -4363,6 +4432,114 @@ ListExpr GenerateGMO3ListTypeMap(ListExpr args)
     return result;
 }
 
+
+/*
+TypeMap function for operator navigation1
+
+*/
+ListExpr Navigation1ListTypeMap(ListExpr args)
+{
+  if(nl->ListLength(args) != 7){
+      string err = "seven input parameter expected";
+      return listutils::typeError(err);
+  }
+
+  ListExpr arg1 = nl->First(args);
+  if(!nl->IsEqual(arg1, "space")){
+      string err = "the first parameter should be space";
+      return listutils::typeError(err);
+  }
+
+  ListExpr arg2 = nl->Second(args);
+
+  if(!IsRelDescription(arg2))
+    return listutils::typeError("para2 should be a relation");
+
+  ListExpr xType;
+  nl->ReadFromString(VisualGraph::QueryTypeInfo, xType);
+  if(!CompareSchemas(arg2, xType))return nl->SymbolAtom ( "typeerror" );
+
+
+  ListExpr arg3 = nl->Third(args);
+  if(!IsRelDescription(arg3))
+    return listutils::typeError("para3 should be a relation");
+
+  if(!CompareSchemas(arg3, xType))return nl->SymbolAtom ( "typeerror" );
+
+
+  ListExpr arg4 = nl->Fourth(args);
+  if(!(nl->IsAtom(arg4) && nl->AtomType(arg4) == SymbolType &&
+       nl->SymbolValue(arg4) == "instant")){
+      string err = "param4 should be instant";
+      return listutils::typeError(err);
+  }
+
+  
+  ListExpr arg5 = nl->Fifth(args);
+  if (!(listutils::isRelDescription(arg5)))
+    return nl->SymbolAtom ( "typeerror" );
+
+  ListExpr xType2;
+  nl->ReadFromString(DualGraph::TriangleTypeInfo3, xType2);
+
+  if(!(CompareSchemas(arg5, xType2)))
+    return nl->SymbolAtom ( "typeerror" );
+
+
+  
+  ListExpr arg6 = nl->Sixth(args);
+  if (!(listutils::isRelDescription(arg6)))
+    return nl->SymbolAtom ( "typeerror" );
+
+  ListExpr xType1;
+  nl->ReadFromString(BN::BusStopsPaveTypeInfo, xType1);
+
+  if(!(CompareSchemas(arg6, xType1)))
+    return nl->SymbolAtom ( "typeerror" );
+
+  ListExpr arg7 = nl->Nth(7, args);
+  if(!listutils::isRTreeDescription(arg7))
+    return listutils::typeError("para7 should be a rtree");
+
+    ListExpr result =
+          nl->TwoElemList(
+              nl->SymbolAtom("stream"),
+                nl->TwoElemList(
+
+                  nl->SymbolAtom("tuple"),
+                      nl->FourElemList(
+                        nl->TwoElemList(nl->SymbolAtom("loc1"),
+                                    nl->SymbolAtom("point")),
+                        nl->TwoElemList(nl->SymbolAtom("loc2"),
+                                    nl->SymbolAtom("point")),
+                        nl->TwoElemList(nl->SymbolAtom("Trip1"),
+                                    nl->SymbolAtom("genmo")),
+                        nl->TwoElemList(nl->SymbolAtom("Trip2"),
+                                    nl->SymbolAtom("mpoint"))
+                  )
+                )
+          );
+
+//     ListExpr result =
+//           nl->TwoElemList(
+//               nl->SymbolAtom("stream"),
+//                 nl->TwoElemList(
+// 
+//                   nl->SymbolAtom("tuple"),
+//                       nl->ThreeElemList(
+//                         nl->TwoElemList(nl->SymbolAtom("Path"),
+//                                     nl->SymbolAtom("line")),
+//                         nl->TwoElemList(nl->SymbolAtom("Trip1"),
+//                                      nl->SymbolAtom("genmo")),
+//                         nl->TwoElemList(nl->SymbolAtom("Trip2"),
+//                                      nl->SymbolAtom("mpoint"))
+//                   )
+//                 )
+//           );
+
+    return result;
+}
+
 Operator ref_id("ref_id",
     SpatialSpecRefId,
     7,
@@ -4863,6 +5040,15 @@ Operator generate_genmo3("generate_genmo3",
     Operator::SimpleSelect,
     GenerateGMO3ListTypeMap
 );
+
+
+Operator navigation1("navigation1",
+    SpatialSpecNavigation1List,
+    Navigation1ValueMap,
+    Operator::SimpleSelect,
+    Navigation1ListTypeMap
+);
+
 
 /////////////////////////////////////////////////////////////////////////////
 ///////////////////   general data type   ///////////////////////////////////
@@ -6754,14 +6940,14 @@ ListExpr OpTMWalkSPOldTypeMap ( ListExpr args )
   ListExpr arg5 = nl->Fifth(args);
   
   if(!IsRelDescription(arg2))
-    return listutils::typeError("para3 should be a relation");
+    return listutils::typeError("para2 should be a relation");
     
   ListExpr xType;
   nl->ReadFromString(VisualGraph::QueryTypeInfo, xType);
   if(!CompareSchemas(arg2, xType))return nl->SymbolAtom ( "typeerror" );
 
   if(!IsRelDescription(arg3))
-  return listutils::typeError("para4 should be a relation");
+  return listutils::typeError("para3 should be a relation");
   
   if(!CompareSchemas(arg3, xType))return nl->SymbolAtom ( "typeerror" );
 
@@ -6803,14 +6989,14 @@ ListExpr OpTMWalkSPTypeMap ( ListExpr args )
   ListExpr arg4 = nl->Fourth(args);
   
   if(!IsRelDescription(arg2))
-    return listutils::typeError("para3 should be a relation");
+    return listutils::typeError("para2 should be a relation");
     
   ListExpr xType;
   nl->ReadFromString(VisualGraph::QueryTypeInfo, xType);
   if(!CompareSchemas(arg2, xType))return nl->SymbolAtom ( "typeerror" );
 
   if(!IsRelDescription(arg3))
-  return listutils::typeError("para4 should be a relation");
+  return listutils::typeError("para3 should be a relation");
   
   if(!CompareSchemas(arg3, xType))return nl->SymbolAtom ( "typeerror" );
 
@@ -18601,6 +18787,10 @@ class TransportationModeAlgebra : public Algebra
    AddOperator(&generate_genmo1);
    AddOperator(&generate_genmo2);
    AddOperator(&generate_genmo3);
+   ///////////////////////////////////////////////////////////////////////
+   ///////////////overall navigation system///////////////////////////////
+   /////////////////////////////////////////////////////////////////////
+   AddOperator(&navigation1);//navigation with modes bus and walk 
 
   }
   ~TransportationModeAlgebra() {};

@@ -759,6 +759,8 @@ class BusNetwork{
 
   int GetMOBus_Oid(Bus_Stop* bs, Point*, Instant& t);
   int GetMOBus_MP(Bus_Stop* bs, Point*, Instant t, MPoint& mp);
+  void GetMOBUS(int oid, MPoint& mp, int& br_uoid);
+  void GetBusRouteGeoData(int br_uoid, SimpleLine& sl);
 
   private:
     bool def; 

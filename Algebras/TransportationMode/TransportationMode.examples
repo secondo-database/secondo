@@ -926,3 +926,11 @@ Number   : 1
 Signature: space x periods x int x int x rel x rel x rtree -> (stream(((x1 t1) ... (xn tn))))
 Example  : query generate_genmo3(space_1, TwoDays, 10, 8, tri_reg_new, bs_pave_sort, rtree_bs_pave)count;
 Result   : 10
+
+
+Operator : navigation1
+Number   : 1
+Signature: space x rel1 x rel2 x instant x rel x rel x rtree -> (stream(((x1 t1) ... (xn tn))))
+Example  : query navigation1(space_1, query_loc1, query_loc2, theInstant(2010,12,6,9,0,0,0), tri_reg_new, bs_pave_sort, rtree_bs_pave) count;
+Result   : 10
+

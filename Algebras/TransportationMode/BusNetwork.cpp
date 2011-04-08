@@ -6959,6 +6959,49 @@ int BusNetwork::GetMOBus_MP(Bus_Stop* bs, Point* bs_loc, Instant t, MPoint& mp)
   assert(bus_oid > 0);
   return bus_oid; 
 }
+
+/*
+find the bus trip by input oid
+
+*/
+void BusNetwork::GetMOBUS(int trip_id, MPoint& mp, int& br_uid)
+{
+
+  CcInt* search_id = new CcInt(true, trip_id);
+  BTreeIterator* btree_iter = btree_trip_oid->ExactMatch(search_id);
+  while(btree_iter->Next()){
+      Tuple* tuple = bustrips_rel->GetTuple(btree_iter->GetId(), false);
+      MPoint* bus_trip = (MPoint*)tuple->GetAttribute(BN_BUSTRIP_MP);
+      int id = ((CcInt*)tuple->GetAttribute(BN_BUS_OID))->GetIntval();
+      assert(id == trip_id);
+      br_uid = ((CcInt*)tuple->GetAttribute(BN_REFBR_OID))->GetIntval();
+      mp = *bus_trip;
+      tuple->DeleteIfAllowed();
+  }
+  delete btree_iter;
+  delete search_id;
+  assert(br_uid > 0);
+}
+
+/*
+from the input bus route unique id, find its geo data
+
+*/
+void BusNetwork::GetBusRouteGeoData(int br_uoid, SimpleLine& sl)
+{
+  CcInt* search_id = new CcInt(true, br_uoid);
+  BTreeIterator* btree_iter = btree_br_uoid->ExactMatch(search_id);
+  while(btree_iter->Next()){
+      Tuple* tuple = routes_rel->GetTuple(btree_iter->GetId(), false);
+      Bus_Route* br = (Bus_Route*)tuple->GetAttribute(BN_BR);
+      br->GetGeoData(sl);
+      tuple->DeleteIfAllowed();
+  }
+  delete btree_iter;
+  delete search_id;
+  
+}
+
 /////////////////////////////////////////////////////////////////////////////
 
 
@@ -9474,14 +9517,27 @@ void BNNav::ShortestPath_Time(Bus_Stop* bs1, Bus_Stop* bs2, Instant* qt)
     int pos_expand_path;
     int cur_size; 
 
+    pos_expand_path = top.cur_index;
     ///////////////////////////////////////////////////////////////////////
     //////////////////////connection 1 by pavements ///////////////////////
     //////////////////////////////////////////////////////////////////////
     vector<int> adj_list1;
     bg->FindAdj1(top.tri_index, adj_list1);
 
-    pos_expand_path = top.cur_index;
-    for(unsigned int i = 0;i < adj_list1.size();i++){
+    bool search_flag = true;
+    BNPath_elem temp_elem = top;
+    while(dest.prev_index != -1){
+      if(temp_elem.tm == TM_BUS){
+          break;
+      }
+      if(temp_elem.tm == TM_WALK){
+          search_flag = false;
+          break;
+      }
+      temp_elem = expand_queue[temp_elem.prev_index];
+    }
+
+    for(unsigned int i = 0;i < adj_list1.size() && search_flag;i++){
       Tuple* edge_tuple = bg->edge_rel1->GetTuple(adj_list1[i], false);
       int neighbor_id1 = 
       ((CcInt*)edge_tuple->GetAttribute(BusGraph::BG_E_BS2_TID))->GetIntval();
@@ -9960,14 +10016,30 @@ void BNNav::ShortestPath_Time2(Bus_Stop* bs1, Bus_Stop* bs2, Instant* qt)
     //////////////////////////////////////////////////////////////////////
     ////for the first bus stop, do not consider walk segment////////////
     if(top.real_w > delta_t){
+        bool search_flag = true;
+        BNPath_elem temp_elem = top;
+        while(dest.prev_index != -1){
+          if(temp_elem.tm == TM_BUS){
+              break;
+          }
+          if(temp_elem.tm == TM_WALK){
+              search_flag = false;
+              break;
+          }
+          temp_elem = expand_queue[temp_elem.prev_index];
+        }
+
         vector<int> adj_list1;
         bg->FindAdj1(top.tri_index, adj_list1);
-        for(unsigned int i = 0;i < adj_list1.size();i++){
+
+        for(unsigned int i = 0;i < adj_list1.size() && search_flag;i++){
           Tuple* edge_tuple = bg->edge_rel1->GetTuple(adj_list1[i], false);
           int neighbor_id1 = 
         ((CcInt*)edge_tuple->GetAttribute(BusGraph::BG_E_BS2_TID))->GetIntval();
           SimpleLine* path = 
-                  (SimpleLine*)edge_tuple->GetAttribute(BusGraph::BG_PATH2);
+                   (SimpleLine*)edge_tuple->GetAttribute(BusGraph::BG_PATH2);
+//           SimpleLine* path = 
+//                    (SimpleLine*)edge_tuple->GetAttribute(BusGraph::BG_PATH1);
 
           if(visit_flag1[neighbor_id1 - 1]){
             edge_tuple->DeleteIfAllowed();
@@ -10422,7 +10494,20 @@ void BNNav::ShortestPath_Transfer(Bus_Stop* bs1, Bus_Stop* bs2, Instant* qt)
     vector<int> adj_list1;
     bg->FindAdj1(top.tri_index, adj_list1);
 
-    for(unsigned int i = 0;i < adj_list1.size();i++){
+    bool search_flag = true;
+    BNPath_elem2 temp_elem = top;
+    while(dest.prev_index != -1){
+        if(temp_elem.tm == TM_BUS){
+            break;
+        }
+        if(temp_elem.tm == TM_WALK){
+            search_flag = false;
+            break;
+        }
+        temp_elem = expand_queue[temp_elem.prev_index];
+    }
+
+    for(unsigned int i = 0;i < adj_list1.size() && search_flag;i++){
       Tuple* edge_tuple = bg->edge_rel1->GetTuple(adj_list1[i], false);
       int neighbor_id1 = 
       ((CcInt*)edge_tuple->GetAttribute(BusGraph::BG_E_BS2_TID))->GetIntval();
@@ -10883,14 +10968,32 @@ void BNNav::ShortestPath_Transfer2(Bus_Stop* bs1, Bus_Stop* bs2, Instant* qt)
     //////////////////////////////////////////////////////////////////////
 
     if(top.real_w > delta_t){
+        ////////////////////////////////////////////////////
+        bool search_flag = true;
+        BNPath_elem2 temp_elem = top;
+        while(dest.prev_index != -1){
+          if(temp_elem.tm == TM_BUS){
+              break;
+          }
+          if(temp_elem.tm == TM_WALK){
+              search_flag = false;
+              break;
+          }
+          temp_elem = expand_queue[temp_elem.prev_index];
+        }
+
+        ////////////////////////////////////////////////////
         vector<int> adj_list1;
         bg->FindAdj1(top.tri_index, adj_list1);
-        for(unsigned int i = 0;i < adj_list1.size();i++){
+        for(unsigned int i = 0;i < adj_list1.size() && search_flag;i++){
           Tuple* edge_tuple = bg->edge_rel1->GetTuple(adj_list1[i], false);
           int neighbor_id1 = 
         ((CcInt*)edge_tuple->GetAttribute(BusGraph::BG_E_BS2_TID))->GetIntval();
           SimpleLine* path = 
                   (SimpleLine*)edge_tuple->GetAttribute(BusGraph::BG_PATH2);
+
+//           SimpleLine* path = 
+//                    (SimpleLine*)edge_tuple->GetAttribute(BusGraph::BG_PATH1);
 
           if(visit_flag1[neighbor_id1 - 1]){
             edge_tuple->DeleteIfAllowed();
@@ -11564,15 +11667,27 @@ void BNNav::ShortestPath_TimeDebug(Bus_Stop* bs1, Bus_Stop* bs2, Instant* qt)
     }
     int pos_expand_path;
     int cur_size; 
-
+    pos_expand_path = top.cur_index;
     ///////////////////////////////////////////////////////////////////////
     //////////////////////connection 1 by pavement ////////////////////////
     //////////////////////////////////////////////////////////////////////
     vector<int> adj_list1;
     bg->FindAdj1(top.tri_index, adj_list1);
 
-    pos_expand_path = top.cur_index;
-    for(unsigned int i = 0;i < adj_list1.size();i++){
+    bool search_flag = true;
+    BNPath_elem temp_elem = top;
+    while(dest.prev_index != -1){
+      if(temp_elem.tm == TM_BUS){
+            break;
+      }
+      if(temp_elem.tm == TM_WALK){
+          search_flag = false;
+          break;
+      }
+      temp_elem = expand_queue[temp_elem.prev_index];
+    }
+
+    for(unsigned int i = 0;i < adj_list1.size() && search_flag;i++){
       Tuple* edge_tuple = bg->edge_rel1->GetTuple(adj_list1[i], false);
       int neighbor_id1 = 
       ((CcInt*)edge_tuple->GetAttribute(BusGraph::BG_E_BS2_TID))->GetIntval();
