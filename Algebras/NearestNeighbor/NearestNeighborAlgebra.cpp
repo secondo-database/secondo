@@ -2246,6 +2246,10 @@ new start and end times can set
 Tuple* changeTupleUnit( Tuple *tuple, int attrNr, Instant start,
   Instant end, bool lc, bool rc)
 {
+  Interval<Instant> iv( start, end, lc, rc);
+  if(! iv.IsValid())
+    return NULL;
+
   Tuple* res = new Tuple( tuple->GetTupleType() );
   for( int ii = 0; ii < tuple->GetNoAttributes(); ++ii)
   {
@@ -2260,7 +2264,7 @@ Tuple* changeTupleUnit( Tuple *tuple, int attrNr, Instant start,
       Coord x1, y1, x2, y2;
       GetPosition( *upointAttr, start, x1, y1);
       GetPosition( *upointAttr, end, x2, y2);
-      Interval<Instant> iv( start, end, lc, rc);
+//      Interval<Instant> iv( start, end, lc, rc);
       UPoint* up = new UPoint( iv, x1, y1, x2, y2);
       res->PutAttribute( ii, up);
     }
@@ -3340,9 +3344,11 @@ int newknearestFun (Word* args, Word& result, int message,
                   elem.pointInTime, posAfterK->lc, rc);
                 posAfterK->start = elem.pointInTime;
                 posAfterK->lc = false;
-                result = SetWord(cloneTuple);
-
-                return YIELD;
+                if(cloneTuple != NULL)
+                {
+                  result = SetWord(cloneTuple);
+                  return YIELD;
+                }
               }
             }
 
@@ -3400,7 +3406,7 @@ int newknearestFun (Word* args, Word& result, int message,
               }
               assert(false);
             }
-            if( cloneTuple )
+            if( cloneTuple != NULL)
             {
               result = SetWord(cloneTuple);
               return YIELD;
@@ -3542,7 +3548,7 @@ int newknearestFun (Word* args, Word& result, int message,
                   localInfo->endTime);
               }
             }
-            if( cloneTuple )
+            if( cloneTuple != NULL )
             {
               result = SetWord(cloneTuple);
               return YIELD;
