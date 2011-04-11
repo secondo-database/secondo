@@ -170,8 +170,8 @@ this case the list representation for input and output of objects (if defined)
 may be used for cloning.
 
 */
-static Word
-genericClone( int algebraId, int typeId, ListExpr typeInfo, Word object )
+Word
+Array::genericClone( int algebraId, int typeId, ListExpr typeInfo, Word object )
 {
   Word clone;
 
@@ -877,7 +877,7 @@ getFun ( Word* args, Word& result, int message, Word& local, Supplier s )
 
    // test to avoid clone the argument
 
-   clonedElement = genericClone(algebraId, typeId, resultType, element);
+   clonedElement = Array::genericClone(algebraId, typeId, resultType, element);
 
    // 
 
@@ -995,7 +995,7 @@ putFun ( Word* args, Word& result, int message, Word& local, Supplier s )
 
     for (int l=0; l < n; l++) {
       element = (l!=i) ? array->getElement(l) : newelement;
-      a[l] = genericClone(algebraId, typeId, typeOfElement, element);
+      a[l] = Array::genericClone(algebraId, typeId, typeOfElement, element);
     }
 
     result = qp->ResultStorage(s);
@@ -1077,7 +1077,7 @@ makearrayFun( Word* args, Word& result, int message, Word& local, Supplier s )
   Word a[n];
 
   for (int i=0; i<n; i++) {
-    a[i] = genericClone(algebraId, typeId, typeOfElement, args[i]);
+    a[i] = Array::genericClone(algebraId, typeId, typeOfElement, args[i]);
   }
 
   result = qp->ResultStorage(s);
@@ -1199,7 +1199,7 @@ sortarrayFun( Word* args, Word& result, int message, Word& local, Supplier s )
 
   for (int i=0; i<n; i++) {
 
-    a[i] = genericClone(algebraId, typeId, typeOfElement,
+    a[i] = Array::genericClone(algebraId, typeId, typeOfElement,
                             array->getElement(index[i].second));
   }
 
@@ -1299,7 +1299,8 @@ tieFun( Word* args, Word& result, int message, Word& local, Supplier s )
       if (i>1) {
         (am->DeleteObj(algebraId, typeId))(typeOfElement, partResult);
       }
-      partResult = genericClone(algebraId, typeId, typeOfElement, funresult);
+      partResult = 
+	Array::genericClone(algebraId, typeId, typeOfElement, funresult);
     }
   }
 
@@ -1406,11 +1407,12 @@ cumulateFun( Word* args, Word& result, int message, Word& local, Supplier s )
       if (funresult.addr != cumResult.addr) {
         //(am->DeleteObj(algebraId, typeId))(typeOfElement, cumResult);
         // SPM: will be deleted by the QP's destroy function.
-        cumResult = genericClone(algebraId, typeId, typeOfElement, funresult);
+        cumResult = 
+	  Array::genericClone(algebraId, typeId, typeOfElement, funresult);
       }
     }
 
-    a[i] = genericClone(algebraId, typeId, typeOfElement, cumResult);
+    a[i] = Array::genericClone(algebraId, typeId, typeOfElement, cumResult);
   }
 
   result = qp->ResultStorage(s);
@@ -1902,7 +1904,7 @@ loopFun( Word* args, Word& result, int message, Word& local, Supplier s )
   for (int i=0; i<n; i++) {
     info = toString(i);
     f.request(array->getElement(i), funresult, info);
-    a[i] = genericClone(algebraId, typeId, typeOfElement, funresult);
+    a[i] = Array::genericClone(algebraId, typeId, typeOfElement, funresult);
   }
 
   result = qp->ResultStorage(s);
@@ -2001,7 +2003,7 @@ loopaFun( Word* args, Word& result, int message, Word& local, Supplier s )
     info = "(" + toString(i) + ", " + toString(i) + ")";
     f.request(firstArray->getElement(i), secondArray->getElement(i),
               funresult, info);
-    a[i] = genericClone(algebraId, typeId, typeOfElement, funresult);
+    a[i] = Array::genericClone(algebraId, typeId, typeOfElement, funresult);
   }
 
   result = qp->ResultStorage(s);
@@ -2073,7 +2075,8 @@ loopbFun( Word* args, Word& result, int message, Word& local, Supplier s )
       info = "(" + toString(i) + ", " + toString(l) + ")";
       f.request(firstArray->getElement(i), secondArray->getElement(l),
                 funresult, info);
-      a[i * m + l] = genericClone(algebraId, typeId, typeOfElement, funresult);
+      a[i * m + l] = 
+	Array::genericClone(algebraId, typeId, typeOfElement, funresult);
     }
   }
 
@@ -2220,7 +2223,7 @@ loopswitchFun( Word* args, Word& result, int message, Word& local, Supplier s )
     info = toString(i);
 
     sw.request(array->getElement(i), funresult, info);
-    a[i] = genericClone(algebraId, typeId, typeOfElement, funresult);
+    a[i] = Array::genericClone(algebraId, typeId, typeOfElement, funresult);
   }
 
   sw.writeSummary();
@@ -2381,7 +2384,7 @@ loopswitchaFun( Word* args, Word& result, int message, Word& local,
 
     sw.request(firstArray->getElement(i), secondArray->getElement(i),
                funresult, info);
-    a[i] = genericClone(algebraId, typeId, typeOfElement, funresult);
+    a[i] = Array::genericClone(algebraId, typeId, typeOfElement, funresult);
   }
 
   sw.writeSummary();
@@ -2459,7 +2462,8 @@ loopswitchbFun( Word* args, Word& result, int message, Word& local,
 
       sw.request(firstArray->getElement(i), secondArray->getElement(l),
                  funresult, info);
-      a[i * m + l] = genericClone(algebraId, typeId, typeOfElement, funresult);
+      a[i * m + l] = 
+	Array::genericClone(algebraId, typeId, typeOfElement, funresult);
 
     }
   }
@@ -2569,7 +2573,7 @@ loopselectFun( Word* args, Word& result, int message, Word& local, Supplier s )
     info = toString(i);
 
     se.request(array->getElement(i), funresult, info);
-    a[i] = genericClone(algebraId, typeId, typeOfElement, funresult);
+    a[i] = Array::genericClone(algebraId, typeId, typeOfElement, funresult);
   }
 
   se.writeSummary();
@@ -2679,7 +2683,7 @@ loopselectaFun( Word* args, Word& result, int message, Word& local,
 
     se.request(firstArray->getElement(i), secondArray->getElement(i),
                funresult, info);
-    a[i] = genericClone(algebraId, typeId, typeOfElement, funresult);
+    a[i] = Array::genericClone(algebraId, typeId, typeOfElement, funresult);
   }
 
   se.writeSummary();
@@ -2772,7 +2776,8 @@ loopselectbFun( Word* args, Word& result, int message, Word& local,
 
       se.request(firstArray->getElement(i), secondArray->getElement(l),
                  funresult, info);
-      a[i * m + l] = genericClone(algebraId, typeId, typeOfElement, funresult);
+      a[i * m + l] = 
+	Array::genericClone(algebraId, typeId, typeOfElement, funresult);
     }
   }
 
@@ -2943,7 +2948,7 @@ partjoinFun( Word* args, Word& result, int message, Word& local, Supplier s )
       f.request(firstArray->getElement(i), secondArray->getElement(j),
                 funresult, info);
 
-      a[c++] = genericClone(algebraId, typeId, typeOfElement, funresult);
+      a[c++] = Array::genericClone(algebraId, typeId, typeOfElement, funresult);
 
       if (i > 0) {
         appendToRel(Acum, firstArray->getElement(i-1));
@@ -2959,7 +2964,7 @@ partjoinFun( Word* args, Word& result, int message, Word& local, Supplier s )
 
       f.request(firstArray->getElement(i), secondArray->getElement(j),
                 funresult, info);
-      a[c++] = genericClone(algebraId, typeId, typeOfElement, funresult);
+      a[c++] = Array::genericClone(algebraId, typeId, typeOfElement, funresult);
 
       appendToRel(Bcum, secondArray->getElement(j));
       j++;
@@ -2981,12 +2986,12 @@ partjoinFun( Word* args, Word& result, int message, Word& local, Supplier s )
     info = "[0;" + toString(i-1) + "] and " + toString(j);
 
     f.request(Acum, secondArray->getElement(j), funresult, info);
-    a[c++] = genericClone(algebraId, typeId, typeOfElement, funresult);
+    a[c++] = Array::genericClone(algebraId, typeId, typeOfElement, funresult);
 
     info = toString(i) + " and [0;" + toString(j) + "]";
 
     f.request(firstArray->getElement(i), Bcum, funresult, info);
-    a[c++] = genericClone(algebraId, typeId, typeOfElement, funresult);
+    a[c++] = Array::genericClone(algebraId, typeId, typeOfElement, funresult);
 
     i++;
     j++;
@@ -3192,7 +3197,7 @@ partjoinswitchFun( Word* args, Word& result, int message, Word& local,
 
       sw.request(firstArray->getElement(i), secondArray->getElement(j),
                  funresult, info);
-      a[c++] = genericClone(algebraId, typeId, typeOfElement, funresult);
+      a[c++] = Array::genericClone(algebraId, typeId, typeOfElement, funresult);
 
       if (i > 0) {
         appendToRel(Acum, firstArray->getElement(i-1));
@@ -3208,7 +3213,7 @@ partjoinswitchFun( Word* args, Word& result, int message, Word& local,
 
       sw.request(firstArray->getElement(i), secondArray->getElement(j),
                  funresult, info);
-      a[c++] = genericClone(algebraId, typeId, typeOfElement, funresult);
+      a[c++] = Array::genericClone(algebraId, typeId, typeOfElement, funresult);
 
       appendToRel(Bcum, secondArray->getElement(j));
       j++;
@@ -3224,12 +3229,12 @@ partjoinswitchFun( Word* args, Word& result, int message, Word& local,
     info = "[0;" + toString(i-1) + "] and " + toString(j);
 
     sw.request(Acum, secondArray->getElement(j), funresult, info);
-    a[c++] = genericClone(algebraId, typeId, typeOfElement, funresult);
+    a[c++] = Array::genericClone(algebraId, typeId, typeOfElement, funresult);
 
     info = toString(i) + " and [0;" + toString(j) + "]";
 
     sw.request(firstArray->getElement(i), Bcum, funresult, info);
-    a[c++] = genericClone(algebraId, typeId, typeOfElement, funresult);
+    a[c++] = Array::genericClone(algebraId, typeId, typeOfElement, funresult);
 
     i++;
     j++;
@@ -3363,7 +3368,7 @@ partjoinselectFun( Word* args, Word& result, int message, Word& local,
 
       se.request(firstArray->getElement(i), secondArray->getElement(j),
                  funresult, info);
-      a[c++] = genericClone(algebraId, typeId, typeOfElement, funresult);
+      a[c++] = Array::genericClone(algebraId, typeId, typeOfElement, funresult);
 
       if (i > 0) {
         appendToRel(Acum, firstArray->getElement(i-1));
@@ -3379,7 +3384,7 @@ partjoinselectFun( Word* args, Word& result, int message, Word& local,
 
       se.request(firstArray->getElement(i), secondArray->getElement(j),
                  funresult, info);
-      a[c++] = genericClone(algebraId, typeId, typeOfElement, funresult);
+      a[c++] = Array::genericClone(algebraId, typeId, typeOfElement, funresult);
 
       appendToRel(Bcum, secondArray->getElement(j));
       j++;
@@ -3395,12 +3400,12 @@ partjoinselectFun( Word* args, Word& result, int message, Word& local,
     info = "[0;" + toString(i-1) + "] and " + toString(j);
 
     se.request(Acum, secondArray->getElement(j), funresult, info);
-    a[c++] = genericClone(algebraId, typeId, typeOfElement, funresult);
+    a[c++] = Array::genericClone(algebraId, typeId, typeOfElement, funresult);
 
     info = toString(i) + " and [0;" + toString(j) + "]";
 
     se.request(firstArray->getElement(i), Bcum, funresult, info);
-    a[c++] = genericClone(algebraId, typeId, typeOfElement, funresult);
+    a[c++] = Array::genericClone(algebraId, typeId, typeOfElement, funresult);
 
     i++;
     j++;
@@ -3577,7 +3582,7 @@ static int
   Word a[n];
 
   for (int i=0; i<n; i++) {
-    a[i] = genericClone(algebraId, typeId, typeOfElement, args[0]);
+    a[i] = Array::genericClone(algebraId, typeId, typeOfElement, args[0]);
   }
 
   result = qp->ResultStorage(s);

@@ -38,6 +38,11 @@ class Array
     int getElemTypeId();
     Word getElement(int);
     void setElement(int, Word);
+
+  static Word genericClone( int algebraId, 
+			    int typeId, 
+			    ListExpr typeInfo, 
+			    Word object );
   private:
     bool defined;
     int size;
