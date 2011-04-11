@@ -1,9 +1,9 @@
-operator width alias WIDTH pattern _ op
-operator height alias HEIGHT pattern _ op
+operator getWidth alias GETWIDTH pattern _ op
+operator getHeight alias GETHEIGHT pattern _ op
 operator isgrayscale alias ISGRAYSCALE pattern _ op
-operator filename alias FILENAME pattern _ op
-operator category alias CATEGORY pattern _ op
-operator picturedate alias PICTUREDATE pattern _ op
+operator getFilename alias GETFILENAME pattern _ op
+operator getCategory alias getCATEGORY pattern _ op
+operator getPictureDate alias GETPICTUREDATE pattern _ op
 operator isportrait alias ISPORTRAIT pattern _ op
 operator colordist alias COLORDIST pattern _ op [ _ ]
 operator equals alias EQUALS pattern _  _ op [ _, _ ]

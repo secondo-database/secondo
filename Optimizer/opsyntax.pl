@@ -75,7 +75,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 :- op(800, xfx, atperiods).
 :- op(800, xfx, attached).
 :- op(800, xfx, before).
-:- op(800, xf , category).
+:- op(800, xf , getCategory).
 :- op(800, xfx, commonborder).
 :- op(800, xfx, commonborderscan).
 :- op(800, xfx, contains).
@@ -90,7 +90,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 :- op(800, xfx, intersects_new).
 :- op(800, xf , isgrayscale).
 :- op(800, xf , isportrait).
-:- op(800, xf , height).
+:- op(800, xf , getHeight).
 :- op(800, xf , leapyear).
 :- op(800, xf , line2region).
 :- op(800, xfx, mod).
@@ -101,7 +101,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 :- op(800, xfx, or).
 :- op(800, xfx, p_intersects).
 :- op(800, xfx, passes).
-:- op(800, xf , picturedate).
+:- op(800, xf , getPictureDate).
 :- op(800, xfx, present).
 :- op(800, xf , rect2region).
 :- op(800, xf , relcount).
@@ -201,7 +201,7 @@ secondoOp( breakpoints,       prefix, 2).
 secondoOp( bulkloadtbtree,    postfixbrackets1, 4).
 secondoOp( bulkloadrtree,     postfixbrackets1, 2).
 secondoOp( cancel,            postfixbrackets1, 2).
-secondoOp( category,          postfix, 1).
+secondoOp( getCategory,       postfix, 1).
 secondoOp( cluster_of,        prefix, 2).
 secondoOp( clustername_of,    prefix, 2).
 secondoOp( colordist,         postfixbrackets1, 2).
@@ -268,7 +268,7 @@ secondoOp( extenddeftime,     prefix, 2).
 secondoOp( extract,           postfixbrackets1, 2).
 secondoOp( exttuplesize,      postfix, 1).
 secondoOp( feed,              postfix, 1).
-secondoOp( filename,          postfix, 1).
+secondoOp( getFilename,       postfix, 1).
 secondoOp( fileSize,          prefix, 2). % also prefix 1
 secondoOp( filter,            postfixbrackets1, 2).
 secondoOp( find,              prefix, 2).
@@ -286,7 +286,7 @@ secondoOp( gps,               prefix, 2).
 secondoOp( hashjoin,          postfixbrackets2, 5).
 secondoOp( hashvalue,         prefix, 2).
 secondoOp( head,              postfixbrackets1, 2).
-secondoOp( height,            postfix, 1).
+secondoOp( getHeight,         postfix, 1).
 secondoOp( insert,            postfix, 2).
 secondoOp( insertrtree,       postfixbrackets2, 3).
 secondoOp( inserttuple,       postfixbrackets1, 2). % also postfixbrackets1, 3+
@@ -355,7 +355,7 @@ secondoOp( partjoinswitch,    postfixbrackets2, 3).
 secondoOp( pcreate,           postfixbrackets1, 2).
 secondoOp( pdelete,           postfix, 1).
 secondoOp( pfeed,             postfixbrackets1, 2).
-secondoOp( picturedate,       postfix, 1).
+secondoOp( getPictureDate,    postfix, 1).
 secondoOp( pjoin2,            postfixbrackets2, 4).
 secondoOp( polylines,         prefix, 2). % also prefix 3 (optional argument)
 secondoOp( polylinesC,        prefix, 2). % also prefix 3 (optional argument)
@@ -459,7 +459,7 @@ secondoOp( use,               postfixbrackets1, 2).
 secondoOp( use2,              postfixbrackets3, 3).
 secondoOp( var,               postfixbrackets1, 2).
 secondoOp( vec,               prefix, 2).
-secondoOp( width,             postfix, 1).
+secondoOp( getWidth,          postfix, 1).
 secondoOp( windowclippingin,  prefix, 2).
 secondoOp( windowclippingout, prefix, 2).
 secondoOp( windowintersects,  postfixbrackets2, 3).

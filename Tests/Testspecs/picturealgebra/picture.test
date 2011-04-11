@@ -193,13 +193,13 @@ let pic15 =
 # test simple operators
 #
 
-#testcase "pic1 height"
+#testcase "pic1 getHeight"
 #yields (int 533)
-query pic1 height
+query pic1 getHeight
 
-#testcase "pic1 width"
+#testcase "pic1 getWidth"
 #yields (int 800)
-query pic1 width
+query pic1 getWidth
 
 #testcase "pic1 isgrayscale"
 #yields (bool FALSE)
@@ -209,13 +209,13 @@ query pic1 isgrayscale
 #yields (bool TRUE)
 query pic14 isgrayscale
 
-#testcase "pic1 filename"
+#testcase "pic1 getFilename"
 #yields (string "test-nebel-orig.jpg")
-query pic1 filename
+query pic1 getFilename
 
-#testcase "pic1 category"
+#testcase "pic1 getCategory"
 #yields (string "test")
-query pic1 category
+query pic1 getCategory
 
 #testcase "pic1 picturedate"
 #yields (instant "2004-12-01-00:26:40.740")
@@ -233,29 +233,29 @@ query pic1 simpleequals pic1
 #yields (bool FALSE)
 query pic1 simpleequals pic2
 
-#testcase "height on undef"
+#testcase "getHeight on undef"
 #yields (int undef)
-query pic1 flipleft [ -1 ] height 
+query pic1 flipleft [ -1 ] getHeight 
 
-#testcase "width on undef"
+#testcase "getWidth on undef"
 #yields (int undef)
-query pic1 flipleft [ -1 ] width
+query pic1 flipleft [ -1 ] getWidth
 
 #testcase "isgrayscale on undef"
 #yields (bool undef)
 query pic1 flipleft [ -1 ] isgrayscale
 
-#testcase "filename on undef"
+#testcase "getFilename on undef"
 #yields (string undef)
-query pic1 flipleft [ -1 ] filename
+query pic1 flipleft [ -1 ] getFilename
 
-#testcase "category on undef"
+#testcase "getCategory on undef"
 #yields (string undef)
-query pic1 flipleft [ -1 ] category
+query pic1 flipleft [ -1 ] getCategory
 
-#testcase "picturedate on undef"
+#testcase "getPictureDate on undef"
 #yields (instant undef)
-query pic1 flipleft [ -1 ] picturedate
+query pic1 flipleft [ -1 ] getPictureDate
 
 #testcase "isportrait on undef"
 #yields (bool undef)

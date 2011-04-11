@@ -105,17 +105,17 @@ static ListExpr Picture2ScalarTypeMap(ListExpr args) {
 static const string pictureWidthSpec =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
     "( <text>picture -> int</text--->"
-    "<text>_ width</text--->"
+    "<text>_ getWidth</text--->"
     "<text>Return width of JPEG picture.</text--->"
-    "<text>pic width</text--->"
+    "<text>pic getWidth</text--->"
     ") )";
 
 static const string pictureHeightSpec =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
     "( <text>picture -> int</text--->"
-    "<text>_ height</text--->"
+    "<text>_ getHeight</text--->"
     "<text>Return height of JPEG picture.</text--->"
-    "<text>pic height</text--->"
+    "<text>pic getHeight</text--->"
     ") )";
 
 static const string pictureIsGrayscaleSpec =
@@ -129,25 +129,25 @@ static const string pictureIsGrayscaleSpec =
 static const string pictureFilenameSpec =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
     "( <text>picture -> string</text--->"
-    "<text>_ filename</text--->"
+    "<text>_ getFilename</text--->"
     "<text>Returns the filename of the JPEG picture.</text--->"
-    "<text>pic filename</text--->"
+    "<text>pic getFilename</text--->"
     ") )";
 
 static const string pictureCategorySpec =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
     "( <text>picture -> string</text--->"
-    "<text>_ category</text--->"
+    "<text>_ getCategory</text--->"
     "<text>Returns the category of the JPEG picture.</text--->"
-    "<text>pic category</text--->"
+    "<text>pic getCategory</text--->"
     ") )";
 
 static const string pictureDateSpec =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
     "( <text>picture -> instant</text--->"
-    "<text>_ instant</text--->"
+    "<text>_ getPictureDate</text--->"
     "<text>Returns the date of the JPEG picture.</text--->"
-    "<text>pic category</text--->"
+    "<text>pic getPictureDate</text--->"
     ") )";
 
 static const string pictureIsPortraitSpec =
@@ -430,7 +430,7 @@ is overloaded.
 */
 
 static Operator height(
-    "height",                              //name
+    "getHeight",                           //name
     pictureHeightSpec,                     //specification
     PictureHeightValueMap,                 //value mapping
     SimpleSelect,                          //mapping selection function
@@ -438,7 +438,7 @@ static Operator height(
 );
 
 static Operator width(
-    "width",                               //name
+    "getWidth",                            //name
     pictureWidthSpec,                      //specification
     PictureWidthValueMap,                  //value mapping
     SimpleSelect,                          //mapping selection function
@@ -454,7 +454,7 @@ static Operator isgrayscale(
 );
 
 static Operator filename(
-    "filename",                            //name
+    "getFilename",                            //name
     pictureFilenameSpec,                   //specification
     PictureFilenameValueMap,               //value mapping
     SimpleSelect,                          //mapping selection function
@@ -462,7 +462,7 @@ static Operator filename(
 );
 
 static Operator category(
-    "category",                            //name
+    "getCategory",                         //name
     pictureCategorySpec,                   //specification
     PictureCategoryValueMap,               //value mapping
     SimpleSelect,                          //mapping selection function
@@ -470,7 +470,7 @@ static Operator category(
 );
 
 static Operator date(
-    "picturedate",                         //name
+    "getPictureDate",                      //name
     pictureDateSpec,                       //specification
     PictureDateValueMap,                   //value mapping
     SimpleSelect,                          //mapping selection function

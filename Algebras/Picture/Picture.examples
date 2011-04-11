@@ -1,10 +1,10 @@
 Database: pictest
 Restore : No
 
-Operator : category
+Operator : getCategory
 Number   : 1
 Signature: picture -> string
-Example  : query theater category
+Example  : query theater getCategory
 Result   : "photo-de"
 
 
@@ -18,7 +18,7 @@ Result   : file
 Operator : cut
 Number   : 1
 Signature: picture x int x int x int x int -> picture
-Example  : query (theater cut [ 100, 100, 400, 200 ]) height
+Example  : query (theater cut [ 100, 100, 400, 200 ]) getHeight
 Result   : 200
 Remark   : Result of the picture depends on the used Jpeg lib version
 
@@ -44,24 +44,24 @@ Example  : query theater export [ "theater.jpg" ]
 Result   : TRUE
 
 
-Operator : filename
+Operator : getFilename
 Number   : 1
 Signature: picture -> string
-Example  : query paper filename
+Example  : query paper getFilename
 Result   : "paper.jpg"
 
 
 Operator : flipleft
 Number   : 1
 Signature: picture x int -> picture
-Example  : query (paper width) = (paper flipleft [ 1 ] height)
+Example  : query (paper getWidth) = (paper flipleft [ 1 ] getHeight)
 Result   : TRUE
 
 
-Operator : height
+Operator : getHeight
 Number   : 1
 Signature: picture -> int
-Example  : query paper height
+Example  : query paper getHeight
 Result   : 533
 
 
@@ -95,21 +95,21 @@ Result   : FALSE
 Operator : mirror
 Number   : 1
 Signature: picture x bool -> picture
-Example  : query (paper width) = (paper mirror [ TRUE ] width)
+Example  : query (paper getWidth) = (paper mirror [ TRUE ] getWidth)
 Result   : TRUE
 
 
-Operator : picturedate
+Operator : getPictureDate
 Number   : 1
 Signature: picture -> instant
-Example  : query paper picturedate
+Example  : query paper getPictureDate
 Result   : (instant "2004-12-01")
 
 
 Operator : scale
 Number   : 1
 Signature: picture x int x int -> picture
-Example  : query paper scale [1000, 1066] height
+Example  : query paper scale [1000, 1066] getHeight
 Result   : 1066
 
 
@@ -131,10 +131,10 @@ Signature: picture x picture -> bool
 Example  : query theater simpleequals theater 
 Result   : TRUE
 
-Operator : width
+Operator : getWidth
 Number   : 1
 Signature: picture -> int
-Example  : query theater width
+Example  : query theater getWidth
 Result   : 800
 
 Operator : contains

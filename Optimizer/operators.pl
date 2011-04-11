@@ -2099,12 +2099,12 @@ opSignature(getcluster, toprel, [predicategroup,string],cluster,[]).
 2.7.28 PictureAlgebra
 
 */
-opSignature(height, picture, [picture],int,[]).
-opSignature(width, picture, [picture],int,[]).
+opSignature(getHeight, picture, [picture],int,[]).
+opSignature(getWidth, picture, [picture],int,[]).
 opSignature(isgrayscale, picture, [picture],bool,[]).
-opSignature(filename, picture, [picture],string,[]).
-opSignature(category, picture, [picture],string,[]).
-opSignature(picturedate, picture, [picture],instant,[]).
+opSignature(getFilename, picture, [picture],string,[]).
+opSignature(getCategory, picture, [picture],string,[]).
+opSignature(getPictureDate, picture, [picture],instant,[]).
 opSignature(isportrait, picture, [picture],bool,[exp]).
 opSignature(colordist, picture, [picture,int],histogram,[exp]).
 opSignature(equals, picture, [picture,picture,int,int],real,[exp]).
