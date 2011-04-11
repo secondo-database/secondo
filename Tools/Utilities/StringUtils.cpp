@@ -56,6 +56,22 @@ Checks whether at least one further token is available.
        } 
 
 /*
+~getRest~
+
+Returns the part of the string which is not processed yet. 
+
+*/
+     std::string StringTokenizer::getRest() const{
+        if(pos>=str.length()){
+           return "";
+        }
+        return str.substr(pos);
+     }
+
+
+
+
+/*
 ~nextToken~
 
 Returns the next token for this tokenizer.
