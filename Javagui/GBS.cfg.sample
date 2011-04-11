@@ -41,7 +41,7 @@ StandardCats= Osnabrueck.cat
 
 
 #Projections to load
-PROJECTIONS Mercator Sinusoidal Miller_Cylindrical Cylindrical PolyConic Orthographic WGSGK
+PROJECTIONS Mercator Sinusoidal Miller_Cylindrical Cylindrical PolyConic Orthographic WGSGK OSMMercator
 
 
 #Icons
