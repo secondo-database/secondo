@@ -40,6 +40,7 @@ public class Dsplmovingreal extends DsplGeneric implements
 
   protected Interval boundingInterval;
   protected Vector Intervals = new Vector(10, 5);
+  protected Vector connectedIntervals = null; 
   protected Vector MRealMaps = new Vector(10, 5);
   protected double PixelTime;
   protected double min=Double.POSITIVE_INFINITY ;
@@ -87,10 +88,20 @@ public class Dsplmovingreal extends DsplGeneric implements
    * @return A JPanel component with the renderer
    */
   public JPanel getTimeRenderer (double PixTime) {
+
+
+
     if(err) // error
        return null;
     if(boundingInterval==null) // empty
        return null;
+
+    if(Intervals.size()>500){
+      if(connectedIntervals==null){
+        connectedIntervals= TimeRenderer.computeConnectedIntervals(Intervals);
+      }
+      return TimeRenderer.getTimeRenderer(PixTime, connectedIntervals, boundingInterval);
+    }
 
     // Create a MRealLabel for each unit and add it to
     // the panel 

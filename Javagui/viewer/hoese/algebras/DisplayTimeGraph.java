@@ -38,53 +38,20 @@ public abstract class DisplayTimeGraph extends DisplayGraph
   Interval TimeBounds;
   Vector Intervals;
 
+  Vector connectedIntervals = null;
   /**
    * A method of the Timed-Interface to render the content of the TimePanel
    * @param PixelTime pixel per hour
    * @return A JPanel component with the renderer
    * @see <a href="DisplayTimeGraphsrc.html#getTimeRenderer">Source</a>
    */
-  public JPanel getTimeRenderer (double PixelTime) {
-    JPanel jp = new JPanel(null);
-    if (Intervals == null)
-      return  null;
-    ListIterator li = Intervals.listIterator();
-    while (li.hasNext()) {
-      Interval in = (Interval)li.next();
-      int start = (int)((in.getStart() - TimeBounds.getStart())*PixelTime);
-      int end = (int)((in.getEnd() - TimeBounds.getStart())*PixelTime);
-      JLabel jc = new JLabel();
-      jc.setOpaque(true);
-      jc.setBackground(Color.yellow);
-      jc.setPreferredSize(new Dimension(1, 10));
-      jc.setBorder(new MatteBorder(2, (in.isLeftclosed()) ? 2 : 0, 2, (in.isRightclosed()) ?
-          2 : 0, Color.black));
-      Dimension d = jc.getPreferredSize();
-      jc.setBounds(start, (int)d.getHeight()*0 + 15, end - start, (int)d.getHeight());
-      
-      
-      jc.setToolTipText(LEUtils.convertTimeToString(in.getStart()) + "..." +
-          LEUtils.convertTimeToString(in.getEnd()));
 
-      jc.addMouseListener(new java.awt.event.MouseAdapter(){
-         public void mouseEntered(java.awt.event.MouseEvent evt){
-                int a = ToolTipManager.sharedInstance().getDismissDelay();
-                if(a!=40000)
-                     oldDelay=a;
-                ToolTipManager.sharedInstance().setDismissDelay(40000);
-               
-         }
-         public void mouseExited(java.awt.event.MouseEvent evt){
-                ToolTipManager.sharedInstance().setDismissDelay(oldDelay);
-         }
-         int oldDelay;   
-       });
 
-      jp.setPreferredSize(new Dimension((int)((TimeBounds.getEnd() - TimeBounds.getStart())*PixelTime),
-          25));
-      jp.add(jc);
-    }
-    return  jp;
+  public JPanel getTimeRenderer(double PixelTime){
+     if(connectedIntervals==null){
+       connectedIntervals = TimeRenderer.computeConnectedIntervals(Intervals);
+     }
+     return TimeRenderer.getTimeRenderer(PixelTime, connectedIntervals, TimeBounds);
   }
 
   /** A method of the Timed-Interface

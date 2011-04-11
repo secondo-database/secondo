@@ -219,23 +219,28 @@ public class Dsplmovingpoint extends DisplayTimeGraph implements LabelAttribute,
   }
 
   public void init (String name, int nameWidth, int indent, ListExpr type, ListExpr value, QueryResult qr) {
+
     AttrName = extendString(name, nameWidth, indent);
     int length = value.listLength();
     Intervals = new Vector(length+2);
     PointMaps = new Vector(length+2);
     ScanValue(value);
+
     if (err) {
       Reporter.writeError("Dsplmovingpoint Error in ListExpr :parsing aborted");
       qr.addEntry(new String("(" + AttrName + ": GTA(mpoint))"));
       return;
     }
-    else
+    else{
+      
       qr.addEntry(this);
+    }
     //ListIterator li=iv.listIterator();
     bounds = null;
     TimeBounds = null;
-    if(Intervals==null) // empty moving point
+    if(Intervals==null){ // empty moving point
        return;
+    }
     for (int j = 0; j < Intervals.size(); j++) {
       Interval in = (Interval)Intervals.elementAt(j);
       PointMap pm = (PointMap)PointMaps.elementAt(j);

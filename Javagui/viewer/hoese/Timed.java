@@ -50,6 +50,9 @@ public interface Timed {
    * @param PixelTime How much timeunits have a pixel.
    */  
   public JPanel getTimeRenderer (double PixelTime);
+
+
+
 }
 
 

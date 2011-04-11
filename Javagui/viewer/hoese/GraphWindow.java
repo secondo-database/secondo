@@ -203,7 +203,8 @@ public class GraphWindow extends JLayeredPane
     int Laynr = ++highest;
     add(lay, new Integer(Laynr));
     mw.updateViewParameter();
-    return  lay.CreateLayerButton(LayerButtonListener, Laynr);
+    JToggleButton res =  lay.CreateLayerButton(LayerButtonListener, Laynr);
+    return res; 
   }
 
   /** Computes the category with the given name.

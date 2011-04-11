@@ -29,6 +29,26 @@ public class Interval {
   private double start, end;
   private boolean leftclosed, rightclosed;
 
+
+  /** Checks whether both intervals are overlapping or touching */
+  public boolean connected(Interval i){
+      if(end < i.start) {
+        return false;
+      }
+      if(end == i.start){
+        return rightclosed || i.leftclosed;
+      }
+      if(start>i.end){
+         return false;
+      }
+      if(start==i.end){
+         return leftclosed || i.rightclosed;
+      }
+      // overlapping intervals
+      return true;
+  }
+
+
   /**
    * Constructor of an interval
    * @param   double astart start-time of the interval
