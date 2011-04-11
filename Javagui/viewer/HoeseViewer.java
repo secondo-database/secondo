@@ -2391,8 +2391,9 @@ public boolean canDisplay(SecondoObject o){
       implements ListSelectionListener {
     public void valueChanged (ListSelectionEvent e) {
       Object o;
-      if (e.getValueIsAdjusting())
+      if (e.getValueIsAdjusting()){
         return;
+      }
       QueryResult theList = (QueryResult)e.getSource();
       if (selBaseObj != null) {
         selBaseObj.setSelected(false);
@@ -2410,7 +2411,7 @@ public boolean canDisplay(SecondoObject o){
       }
       if(theList.getModel().getSize()<1){// an empty list
          GraphDisplay.repaint(); // remove an old selection
-   return;
+         return;
       }
       o = theList.getSelectedValue();
       if (o instanceof Timed) {
@@ -2443,8 +2444,9 @@ public boolean canDisplay(SecondoObject o){
           //selBaseObj.getFrame().show(true);
         }
       }
-      else
+      else{
         GraphDisplay.repaint();
+      }
     }
 
   }
