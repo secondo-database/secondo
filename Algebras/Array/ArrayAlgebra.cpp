@@ -91,7 +91,7 @@ value mapping of the ~summarize~ operator.
 
 June 2006, V. Almeida moved some code to the FunVector.h and FunVector.cpp files
 
-Januar 2007, Some bug fixes. However, loopswitcha and loopselecta still do not work 
+Januar 2007, Some bug fixes. However, loopswitcha and loopselecta still do not work
 for arrays of btree.
 
 
@@ -879,7 +879,7 @@ getFun ( Word* args, Word& result, int message, Word& local, Supplier s )
 
    clonedElement = Array::genericClone(algebraId, typeId, resultType, element);
 
-   // 
+   //
 
     // In the next statement the (by the Query Processor) provided place for
     // the result is not used in order to be flexible with regard to the
@@ -1299,8 +1299,8 @@ tieFun( Word* args, Word& result, int message, Word& local, Supplier s )
       if (i>1) {
         (am->DeleteObj(algebraId, typeId))(typeOfElement, partResult);
       }
-      partResult = 
-	Array::genericClone(algebraId, typeId, typeOfElement, funresult);
+      partResult =
+         Array::genericClone(algebraId, typeId, typeOfElement, funresult);
     }
   }
 
@@ -1407,8 +1407,8 @@ cumulateFun( Word* args, Word& result, int message, Word& local, Supplier s )
       if (funresult.addr != cumResult.addr) {
         //(am->DeleteObj(algebraId, typeId))(typeOfElement, cumResult);
         // SPM: will be deleted by the QP's destroy function.
-        cumResult = 
-	  Array::genericClone(algebraId, typeId, typeOfElement, funresult);
+        cumResult =
+             Array::genericClone(algebraId, typeId, typeOfElement, funresult);
       }
     }
 
@@ -2075,8 +2075,8 @@ loopbFun( Word* args, Word& result, int message, Word& local, Supplier s )
       info = "(" + toString(i) + ", " + toString(l) + ")";
       f.request(firstArray->getElement(i), secondArray->getElement(l),
                 funresult, info);
-      a[i * m + l] = 
-	Array::genericClone(algebraId, typeId, typeOfElement, funresult);
+      a[i * m + l] =
+          Array::genericClone(algebraId, typeId, typeOfElement, funresult);
     }
   }
 
@@ -2462,8 +2462,8 @@ loopswitchbFun( Word* args, Word& result, int message, Word& local,
 
       sw.request(firstArray->getElement(i), secondArray->getElement(l),
                  funresult, info);
-      a[i * m + l] = 
-	Array::genericClone(algebraId, typeId, typeOfElement, funresult);
+      a[i * m + l] =
+        Array::genericClone(algebraId, typeId, typeOfElement, funresult);
 
     }
   }
@@ -2776,8 +2776,8 @@ loopselectbFun( Word* args, Word& result, int message, Word& local,
 
       se.request(firstArray->getElement(i), secondArray->getElement(l),
                  funresult, info);
-      a[i * m + l] = 
-	Array::genericClone(algebraId, typeId, typeOfElement, funresult);
+      a[i * m + l] =
+   Array::genericClone(algebraId, typeId, typeOfElement, funresult);
     }
   }
 
