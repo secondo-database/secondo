@@ -16124,7 +16124,7 @@ ListExpr GetRefinementPartitionTypeMapping(ListExpr args){
   string errmsg = "Expected {uT1|mT1} x {uT2|mT2}, where T in "
                   "{point, int, real, bool, string}";
   if(noargs!=2){
-    listutils::typeError(errmsg);
+    return listutils::typeError(errmsg);
   }
   set<string> supportedArgTypes;
   supportedArgTypes.insert(MPoint::BasicType());
