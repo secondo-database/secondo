@@ -64,6 +64,15 @@ Constructs a tokenizer for the given string and the given delimiters.
        bool hasNextToken() const;
 
 /*
+1.3 getRest
+
+Returns the non processed part of the string.
+
+*/
+      std::string getRest() const;
+
+
+/*
 ~nextToken~
 
 Returns the next token.
