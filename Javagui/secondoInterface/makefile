@@ -3,6 +3,7 @@
 .PHONY: all
 
 all: 
+	make -C lib all
 	make -C tools all
 	make -C sj all
 

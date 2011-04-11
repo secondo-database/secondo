@@ -34,7 +34,7 @@ GENERATEDJAVAFILES = $(SCANERJAVAFILES) $(PARSERJAVAFILES)
 
 JLEX_CLASS = JLex.Main
 
-CUP_CLASS = java_cup.Main
+CUP_CLASS = java_cup10.Main
 
 all: ../ListExpr.class
 

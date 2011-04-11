@@ -46,11 +46,11 @@ gcc -E -xc -P -C [-DPERSISTENT] ListExpr.both.java >ListExpr.java
 
 package  sj.lang;
 
-import  java_cup.runtime.Symbol;
+import  java_cup10.runtime.Symbol;
 import  sj.lang.JavaListExpr.NLParser;
 import java.io.*;
 import  tools.Base64Decoder;
-import  java_cup.runtime.*;
+import  java_cup10.runtime.*;
 import tools.Reporter;
 import java.util.Properties;
 import java.util.Iterator;
