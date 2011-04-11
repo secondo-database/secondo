@@ -1489,10 +1489,11 @@ ListExpr MPoint3DProperty();
 //////////different types of buildings/////////////////////////
 ///////////////////////////////////////////////////////////////
 
-// enum building_type{BUILD_UNI = 0, BUILD_OFFICE24, BUILD_CINEMA, 
+// enum building_type{BUILD_UNIVERSITY = 0, BUILD_OFFICE24, BUILD_CINEMA, 
 // BUILD_TRAINSTATION};
 // 
-// const string str_build_type[] = {"UNI", "OFFICE24", "CINEMA", "TRAINSTATION"
-//                          }; 
+// const string str_build_type[] = {"UNIVERSITY", "OFFICE24", "CINEMA", 
+//"TRAINSTATION"}; 
+
 
 #endif // __INDOOR_H__

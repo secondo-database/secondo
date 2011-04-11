@@ -10178,38 +10178,8 @@ ListExpr OpTMBNNavigationTypeMap ( ListExpr args )
                 )
           );
         break;
-    case 3://return all visisted bus stops 
-       result =
-          nl->TwoElemList(
-              nl->SymbolAtom("stream"),
-                nl->TwoElemList(
-                  nl->SymbolAtom("tuple"),
-                      nl->TwoElemList(
-                        nl->TwoElemList(nl->SymbolAtom("bus_stop"),
-                                    nl->SymbolAtom("busstop")),
-                        nl->TwoElemList(nl->SymbolAtom("geoData"),
-                                    nl->SymbolAtom("point"))
-                  )
-                )
-          );
-        break; 
-    case 4://return all visisted bus stops 
-       result =
-          nl->TwoElemList(
-              nl->SymbolAtom("stream"),
-                nl->TwoElemList(
-                  nl->SymbolAtom("tuple"),
-                      nl->TwoElemList(
-                        nl->TwoElemList(nl->SymbolAtom("bus_stop"),
-                                    nl->SymbolAtom("busstop")),
-                        nl->TwoElemList(nl->SymbolAtom("geoData"),
-                                    nl->SymbolAtom("point"))
-                  )
-                )
-          );
-        break; 
     default:
-      string err = "the value of fifth parameter([0,4]) is not correct";
+      string err = "the value of fifth parameter([0,2]) is not correct";
       return listutils::typeError(err);
   }
 
@@ -16046,15 +16016,10 @@ int OpTMBNNavigationValueMap(Word* args, Word& result, int message,
                   break;
           case 1: 
                   bn_nav->ShortestPath_Time(bs1, bs2, query_time);
+//                  bn_nav->ShortestPath_TimeNew(bs1, bs2, query_time);
                   break;
           case 2:
                   bn_nav->ShortestPath_Transfer(bs1, bs2, query_time);
-                  break;
-          case 3: 
-                  bn_nav->ShortestPath_LengthDebug(bs1, bs2, query_time);
-                  break;
-          case 4: 
-                  bn_nav->ShortestPath_TimeDebug(bs1, bs2, query_time);
                   break;
           default:
                   cout<<"invalid type "<<type<<endl;
@@ -16124,31 +16089,7 @@ int OpTMBNNavigationValueMap(Word* args, Word& result, int message,
               bn_nav->count++;
               return YIELD;
 
-          }else if(bn_nav->type == 3){/////////for debuging, return bus stops
-              if(bn_nav->count == bn_nav->bs_list.size())
-                          return CANCEL;
-              Tuple* tuple = new Tuple(bn_nav->resulttype);
-              tuple->PutAttribute(0,
-                        new Bus_Stop(bn_nav->bs_list[bn_nav->count]));
-              tuple->PutAttribute(1,
-                              new Point(bn_nav->bs_geo_list[bn_nav->count]));
-
-              result.setAddr(tuple);
-              bn_nav->count++;
-              return YIELD;
-          }else if(bn_nav->type == 4){//////for debuging, return bus stops 
-              if(bn_nav->count == bn_nav->bs_list.size())
-                          return CANCEL;
-              Tuple* tuple = new Tuple(bn_nav->resulttype);
-              tuple->PutAttribute(0,
-                        new Bus_Stop(bn_nav->bs_list[bn_nav->count]));
-              tuple->PutAttribute(1,
-                              new Point(bn_nav->bs_geo_list[bn_nav->count]));
-
-              result.setAddr(tuple);
-              bn_nav->count++;
-              return YIELD;
-          }assert(false);
+          }else assert(false);
       }
       case CLOSE:{
           if(local.addr){
@@ -16211,7 +16152,10 @@ int OpTMTestBNNavigationValueMap(Word* args, Word& result, int message,
                   }
                   break;
           case 1:
+                ////////////////no optimization on edges filtering///////////
                   bn_nav->ShortestPath_Time(bs1, bs2, query_time);
+                  ////////////////filtering edges////////////////////////////
+//                  bn_nav->ShortestPath_TimeNew(bs1, bs2, query_time);
                   if(bn_nav->path_list.size() > 0){
                     double l = 0.0;
                     double time_cost = 0.0;
@@ -16231,7 +16175,10 @@ int OpTMTestBNNavigationValueMap(Word* args, Word& result, int message,
 
                   break;
           case 2:
+                  ///////////////no optimization on edges filtering//////////
                   bn_nav->ShortestPath_Transfer(bs1, bs2, query_time);
+                  /////////////////filtering edges///////////////////////////
+//                  bn_nav->ShortestPath_TransferNew(bs1, bs2, query_time);
                   if(bn_nav->path_list.size() > 0){
                     double l = 0.0;
                     double time_cost = 0.0;
