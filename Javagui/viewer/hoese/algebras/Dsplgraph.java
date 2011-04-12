@@ -91,31 +91,6 @@ public void setCategory(Category cat){
     edges = newEdges;
     return true;
 
-/*
-
-
-		Dspledge tmpe,tmpe2;
-		{
-			Vector tmpedges=(Vector)edges.clone();  			//a temporary hashset, where the double edges will be removed
-			for (Iterator i = edges.iterator(); i.hasNext();)
-			{
-				tmpe = ((Dspledge) i.next());
-				tmpe2=new Dspledge(tmpe.point2.x,tmpe.point2.y,tmpe.point1.x,tmpe.point1.y,tmpe.cost);	
-				if(edges.contains(tmpe2)||(tmpe.point1.x==tmpe.point2.x&&tmpe.point1.y==tmpe.point2.y))
-				{					
-					if(tmpedges.contains(tmpe2)&&tmpedges.contains(tmpe)&&!(tmpe.point1.x==tmpe.point2.x&&tmpe.point1.y==tmpe.point2.y))
-						//remove no revective edges
-						tmpedges.remove(tmpe2);
-				}
-				else
-				{
-					return(false);
-				}			
-			}
-			edges=new Vector(tmpedges);
-			return(true);			
-		}
-*/
 
 }
 
@@ -130,10 +105,8 @@ public void setCategory(Category cat){
        } else if(no<verticies.size()+edges.size()) {
            no = no -verticies.size();
            return ((Dspledge)edges.get(no)).getRenderObject(0,af);
-       } else {
-           no = no - (verticies.size()+edges.size());
-           return ((Dspledge)edges.get(no)).getArrow(af);
-       }
+       } 
+       return null;
    }
 
    /** draw all Labels
@@ -171,7 +144,9 @@ public void setCategory(Category cat){
         Dspledge e = (Dspledge) edges.get(i);
       
         // draw arrow
-        g2.fill(af.createTransformedShape(e.getArrow(af)));
+        if(e.isArrow){
+           g2.fill(af.createTransformedShape(e.getArrow(af)));
+        }
 
 
         double d = e.getDirection();

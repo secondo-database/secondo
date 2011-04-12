@@ -285,7 +285,7 @@ public class Dspledge extends Dsplline implements Comparable
 		String tmpstr = "((" + x1 + " " + y1 + " " + x2 + " " + y2 + "))";
 		ListExpr tmp = ListExpr.theEmptyList();
 		tmp.readFromString(tmpstr);
-		super.ScanValue(tmp);
+		super.ScanValue(tmp, false);
 		arrowhead();
 		if (err)
 		{
@@ -412,10 +412,11 @@ public class Dspledge extends Dsplline implements Comparable
   public Shape getArrow(AffineTransform af){
 
    // transform the basicArrow to be in the correct angle at the end of the connection
-   double x1 = point1.getX();
-   double x2 = point2.getX();
-   double y1 = point1.getY();
-   double y2 = point2.getY();
+   double x1,y1,x2,y2;
+   x1 = point1.getX();
+   x2 = point2.getX();
+   y1 = point1.getY();
+   y2 = point2.getY();
 
    AffineTransform aat = new AffineTransform();
 

@@ -81,7 +81,7 @@ public class Dsplline extends DisplayGraph {
    * @see sj.lang.ListExpr
    * @see <a href="Dspllinesrc.html#ScanValue">Source</a>
   */
-  public boolean ScanValue (ListExpr value, Point2D.Double last1, Point2D.Double last2) {
+  public boolean ScanValue (ListExpr value, Point2D.Double last1, Point2D.Double last2, boolean useProjection) {
     if(isUndefined(value)){
        defined=false;
        GP=null;
@@ -112,51 +112,58 @@ public class Dsplline extends DisplayGraph {
         v = v.rest();
       } 
 			try{
-				if(!ProjectionManager.project(koord[0],koord[1],aPoint)){
-					 err = true; 
-           Reporter.debug("error in project segment ("+koord[0]+","+koord[1]+")->"+koord[2]+","+koord[3]+")");
-           GP=null;
-           return false;
-				}else{ 
-					 x1 = aPoint.x;
-					 y1 = aPoint.y;
-					 if(!ProjectionManager.project(koord[2],koord[3],aPoint)){
-							err = true;
-              GP=null;
-              Reporter.debug("error in project segment ("+koord[0]+","+koord[1]+")->"+koord[2]+","+koord[3]+")");
-              return false;
-					 }else{
-							x2 = aPoint.x;
-							y2 = aPoint.y;
+        if(useProjection){ 
+          if(!ProjectionManager.project(koord[0],koord[1],aPoint)){
+					   err = true; 
+             Reporter.debug("error in project segment ("+koord[0]+","+koord[1]+")->"+koord[2]+","+koord[3]+")");
+             GP=null;
+             return false;
+			    }else{ 
+					   x1 = aPoint.x;
+             y1 = aPoint.y;
+             if(!ProjectionManager.project(koord[2],koord[3],aPoint)){
+               err = true;
+               GP=null;
+               Reporter.debug("error in project segment ("+koord[0]+","+koord[1]+")->"+koord[2]+","+koord[3]+")");
+               return false;
+             }else{
+               x2 = aPoint.x;
+               y2 = aPoint.y;
+             }
+          }
+        } else {
+           x1 = koord[0];
+           y1 = koord[1];
+           x2 = koord[2];
+           y2 = koord[3];
+        }
+       
 
-              last1.setLocation(x1,y1);
-              last2.setLocation(x2,y2);
+        last1.setLocation(x1,y1);
+        last2.setLocation(x2,y2);
 
-              if(first){
-                 GP.moveTo((float)x1,(float)y1);
-                 GP.lineTo((float)x2,(float)y2);
-                 first=false;
-                 lastX=x2;
-                 lastY=y2;
-              }else{
-                 if((lastX==x1) && (lastY==y1)){
-                    GP.lineTo((float)x2,(float)y2);
-                    lastX=x2;
-                    lastY=y2;
-                 } else if((lastX==x2) && (lastY==y2)){
-                    GP.lineTo((float)x1,(float)y1);
-                    lastX=x1;
-                    lastY=y1;
-                 } else{ // not connected
-                    GP.moveTo((float)x1,(float)y1);
-                    GP.lineTo((float)x2,(float)y2);
-                    lastX=x2;
-                    lastY=y2;
-                 }
-
-              }
-					 }
-			 }
+        if(first){
+           GP.moveTo((float)x1,(float)y1);
+           GP.lineTo((float)x2,(float)y2);
+           first=false;
+           lastX=x2;
+           lastY=y2;
+         }else{
+           if((lastX==x1) && (lastY==y1)){
+               GP.lineTo((float)x2,(float)y2);
+               lastX=x2;
+               lastY=y2;
+            } else if((lastX==x2) && (lastY==y2)){
+               GP.lineTo((float)x1,(float)y1);
+               lastX=x1;
+               lastY=y1;
+            } else{ // not connected
+                GP.moveTo((float)x1,(float)y1);
+                GP.lineTo((float)x2,(float)y2);
+                lastX=x2;
+                lastY=y2;
+            }
+         }
 			} catch(Exception e){
           Reporter.debug(e); 
 			}
@@ -170,6 +177,9 @@ public class Dsplline extends DisplayGraph {
   }
 
 
+  public boolean ScanValue (ListExpr value, Point2D.Double last1, Point2D.Double last2) {
+      return ScanValue(value,last1, last2, true);
+  }
 
   public void ScanValue(ListExpr value){
 
@@ -177,6 +187,13 @@ public class Dsplline extends DisplayGraph {
     Point2D.Double p2 = new Point2D.Double();
 
     ScanValue(value,p1,p2);
+  }
+  public void ScanValue(ListExpr value, boolean useProjection){
+
+    Point2D.Double p1 = new Point2D.Double();
+    Point2D.Double p2 = new Point2D.Double();
+
+    ScanValue(value,p1,p2, useProjection);
   }
 
   public void init (String name, int nameWidth, int indent, ListExpr type, ListExpr value, QueryResult qr) {
