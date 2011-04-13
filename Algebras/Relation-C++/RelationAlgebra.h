@@ -143,6 +143,7 @@ Attribute.h), ~AttributeType~, and ~RelationDescriptor~.
 #include <iostream>
 #include <map>
 #include <list>
+#include <deque>
 
 //define macro TRACE_ON if trace outputs are needed
 //#define TRACE_ON
@@ -2206,6 +2207,204 @@ Positions start at zero.
 */
 
 
+
+};
+
+
+class CircularTupleBuffer : public GenericRelation
+{
+  public:
+    CircularTupleBuffer(bool _inMemory, TupleType* tT, unsigned int noTuples);
+/*
+The constructor. Creates an empty tuple buffer.
+
+*/
+    ~CircularTupleBuffer();
+/*
+The destructor. Deletes (if allowed) all tuples.
+
+*/
+
+    virtual Tuple* GetTuple( const TupleId& tupleId,
+                             const bool dontReportError ) const;
+
+    virtual Tuple *GetTuple( const TupleId& id,
+                     const int attrIndex,
+                     const vector< pair<int, int> >& intervals,
+                     const bool dontReportError ) const;
+
+    virtual void   Clear();
+    virtual int    GetNoTuples() const;
+    virtual double GetTotalRootSize() const;
+    virtual double GetTotalRootSize(int i) const;
+    virtual double GetTotalExtSize() const;
+    virtual double GetTotalExtSize( int i ) const;
+    virtual double GetTotalSize() const;
+    virtual double GetTotalSize( int i ) const;
+    virtual void   AppendTuple( Tuple *t );
+    virtual bool GetTupleFileStats( SmiStatResultType &result ) ;
+    virtual bool GetLOBFileStats( SmiStatResultType &result ) ;
+
+
+    virtual GenericRelationIterator *MakeScan() const;
+    virtual GenericRelationIterator *MakeScan(TupleType* tt) const;
+
+/*
+This two functions return statistics on the files used to store the core
+tuple data, resp. LOB data of the relation.
+
+Return value will be false, if an error occured.
+
+*/
+
+    virtual bool DeleteTuple(Tuple* t);
+/*
+  The function that deletes the given Tuple from the relation
+
+*/
+    virtual void UpdateTuple( Tuple *tuple,
+                            const vector<int>& changedIndices,
+                            const vector<Attribute *>& newAttrs );
+
+
+/*
+inherited ~virtual~ functions.
+
+Note: The function ~AppendTuple~ does not copy the physical representation of
+FLOBS which are in state "InDiskLarge", since TupleBuffers should only be used
+for intermediate result sets needed in operator implementations.
+
+*/
+
+    inline bool InMemory() const { return inMemory; }
+/*
+Checks if the tuple buffer is empty or not.
+
+*/
+
+
+    friend class CircularTupleBufferIterator;
+
+  private:
+
+  bool inMemory;
+/*
+A flag that tells if the buffer fit in memory or not.
+
+*/
+
+  deque<Tuple*> memoryBuffer;
+/*
+The in-memory representation of the buffer. Used only if inMemory == true
+
+*/
+
+  Relation* diskBuffer;
+  GenericRelationIterator *writeIterator;
+
+/*
+The buffer stored on disk.
+
+*/
+  bool overWrite;
+/*
+A flag that tells if the first write cycle is finished. This is used only when
+the buffer is on disk. Initially it is false. Once it is true, all writes to
+the buffer are overwriting of existing tuples.
+
+*/
+  unsigned int maxNoTuples;
+/*
+The capacity of the buffer.
+
+*/
+
+  double totalExtSize;
+
+/*
+The total size occupied by the tuples in the buffer,
+taking into account the small FLOBs.
+
+*/
+  double totalSize;
+/*
+The total size occupied by the tuples in the buffer,
+taking into account the FLOBs.
+
+*/
+
+  double totalMemSize;
+/*
+The total size of occupied main memory;
+
+*/
+
+  void clearMemory();
+
+  void updateDataStatistics();
+
+
+  Tuple* GetTupleAtPos( const size_t pos ) const;
+  bool SetTupleAtPos( const size_t pos, Tuple* t);
+/*
+Retrieves or assigns a tuple to the memory buffer. If the
+position is out of range or the buffer is not in state inMemory,
+a null pointer or false will be returned.
+
+For a valid position the stored tuple pointer will be returned or assigned.
+Positions start at zero.
+
+*/
+
+};
+
+
+class CircularTupleBufferIterator : public GenericRelationIterator
+{
+  public:
+    CircularTupleBufferIterator( const CircularTupleBuffer& buffer );
+    CircularTupleBufferIterator(
+        const CircularTupleBuffer& buffer, TupleType* tt );
+/*
+The constructor.
+
+*/
+    ~CircularTupleBufferIterator();
+/*
+The destructor.
+
+*/
+    Tuple *GetNextTuple();
+    Tuple *GetNextTuple( const list<int>& attrList );
+/*
+Returns the next tuple of the buffer. Returns 0 if the end of the
+buffer is reached.
+
+*/
+    TupleId GetTupleId() const;
+/*
+Returns the tuple identification of the current tuple.
+
+*/
+
+  private:
+
+  const CircularTupleBuffer& tupleBuffer;
+/*
+A pointer to the tuple buffer.
+
+*/
+  deque<Tuple*>::const_iterator currentTuple;
+/*
+The current tuple if it is in memory.
+
+*/
+  TupleType* outtype;
+/*
+The type of the tuples in the TupleBuffer.
+Required for the feedproject operator.
+
+*/
 
 };
 

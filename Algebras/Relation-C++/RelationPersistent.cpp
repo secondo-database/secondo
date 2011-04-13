@@ -1850,6 +1850,290 @@ bool TupleBuffer::GetLOBFileStats( SmiStatResultType &result )
   return true;
 }
 
+
+
+/*
+3.9 Class ~CircularTupleBuffer~
+
+This class is used to collect tuples for sliding window operators. In this
+persistent version, it is decided during the buffer construction, whether it
+fits into main memory or it will be stored in disk.
+
+*/
+
+CircularTupleBuffer::CircularTupleBuffer(
+    bool _inMemory, TupleType* tT, unsigned int noTuples):
+    inMemory(_inMemory),
+    diskBuffer( 0 ),
+    overWrite(false),
+    maxNoTuples(noTuples),
+    totalExtSize( 0),
+    totalSize( 0 ),
+    totalMemSize( 0 )
+{
+  if(! _inMemory)
+  {
+    diskBuffer = new Relation( tT, true );
+    overWrite= false;
+  }
+}
+/*
+The constructor.
+
+*/
+
+CircularTupleBuffer::~CircularTupleBuffer()
+{
+  clearMemory();
+  if( !inMemory ) {
+    diskBuffer->DeleteAndTruncate();
+    diskBuffer = 0;
+  }
+}
+
+void CircularTupleBuffer::clearMemory()
+{
+   for( deque<Tuple*>::iterator it = memoryBuffer.begin();
+        it != memoryBuffer.end(); it++ )
+   {
+     //cout << (void*) *it << " - " << (*it)->GetNumOfRefs() << endl;
+     //if (*it != 0) {
+       (*it)->DeleteIfAllowed();
+     //}
+   }
+   memoryBuffer.clear();
+   totalSize=0;
+}
+
+/*
+The destructor.
+
+*/
+
+int CircularTupleBuffer::GetNoTuples() const
+{
+  if( inMemory )
+    return memoryBuffer.size();
+  else
+    return diskBuffer->GetNoTuples();
+}
+
+double CircularTupleBuffer::GetTotalRootSize() const
+{
+  if( GetNoTuples() == 0 )
+    return 0;
+
+  if (inMemory)
+    return GetNoTuples() * memoryBuffer[0]->GetRootSize();
+  else
+    return diskBuffer->GetTupleType()->GetTotalSize();
+}
+
+
+double CircularTupleBuffer::GetTotalRootSize(int i) const
+{
+  if( GetNoTuples() == 0 )
+    return 0;
+
+  if (inMemory)
+    return memoryBuffer[0]->GetRootSize(i);
+  else
+    return diskBuffer->GetTupleType()->GetTotalSize();
+}
+
+double CircularTupleBuffer::GetTotalExtSize() const
+{
+  if( inMemory )
+    return totalExtSize;
+  else
+    return diskBuffer->GetTotalExtSize();
+}
+
+double CircularTupleBuffer::GetTotalExtSize(int i) const
+{
+  if( GetNoTuples() == 0 )
+    return 0;
+
+  if( inMemory )
+    return memoryBuffer[0]->GetExtSize(i);
+  else
+    return diskBuffer->GetTotalExtSize(i);
+}
+
+
+double CircularTupleBuffer::GetTotalSize() const
+{
+  if( inMemory )
+    return totalSize;
+  else
+    return diskBuffer->GetTotalSize();
+}
+
+double CircularTupleBuffer::GetTotalSize(int i) const
+{
+  if( GetNoTuples() == 0 )
+    return 0;
+
+  if( inMemory )
+    return memoryBuffer[0]->GetSize(i);
+  else
+    return diskBuffer->GetTotalSize(i);
+}
+
+void CircularTupleBuffer::Clear()
+{
+  if( inMemory )
+  {
+    clearMemory();
+  }
+  else
+  {
+    diskBuffer->DeleteAndTruncate();
+    diskBuffer = 0;
+  }
+}
+
+void CircularTupleBuffer::AppendTuple( Tuple *t )
+{
+  if( inMemory )
+  {
+    t->IncReference();
+    if(memoryBuffer.size() < maxNoTuples)
+      memoryBuffer.push_back( t );
+    else
+    {
+      memoryBuffer.front()->DeleteIfAllowed();
+      memoryBuffer.pop_front();
+      memoryBuffer.push_back( t );
+    }
+    totalMemSize += t->GetMemSize();
+    totalSize += t->GetSize();
+    totalExtSize += t->GetExtSize();
+
+  }
+  else
+  {
+//    t->PinAttributes();
+//    if(! overWrite && (GetNoTuples() < maxNoTuples))
+//      diskBuffer->AppendTupleNoLOBs( t );
+//    else if(! overWrite && (GetNoTuples() == maxNoTuples))
+//    {
+//      overWrite= true;
+//      writeIterator= diskBuffer->MakeScan();
+////      readIterator= diskBuffer->MakeScan();
+////      readIterator->GetNextTuple();
+//    }
+//
+//    if(overWrite)
+//    {
+//      //Advance the writeIterator
+//      Tuple* victim= writeIterator->GetNextTuple();
+//      if(writeIterator->EndOfScan())
+//      {
+//        delete writeIterator;
+//        writeIterator= diskBuffer->MakeScan();
+//        victim= writeIterator->GetNextTuple();
+//      }
+//    }
+  }
+}
+
+Tuple *CircularTupleBuffer::GetTuple( const TupleId& id,
+                              const bool dontReportError ) const
+{
+  if( inMemory )
+  {
+    Tuple* res =  GetTupleAtPos( id );
+    res->IncReference();
+    return res;
+  }
+  else
+  {
+
+  }
+  return 0;
+}
+
+Tuple *CircularTupleBuffer::GetTuple( const TupleId& id,
+                              const int attrIndex,
+                              const vector< pair<int, int> >& intervals,
+                              const bool dontReportError ) const
+{
+  Tuple *t = 0;
+  if( (t = GetTuple( id, dontReportError )) != 0 )
+    t->GetAttribute( attrIndex )->Restrict( intervals );
+  return t;
+}
+
+Tuple* CircularTupleBuffer::GetTupleAtPos( const size_t pos ) const
+{
+  if( inMemory )
+  {
+    if( pos >= 0
+        && pos < memoryBuffer.size()
+        && memoryBuffer[pos] != 0 )
+    {
+      return memoryBuffer[pos];
+    }
+    return 0;
+  }
+  return 0;
+}
+
+bool CircularTupleBuffer::SetTupleAtPos( const size_t pos, Tuple* t)
+{
+  if( inMemory )
+  {
+    if( pos >= 0 && pos < memoryBuffer.size() )
+    {
+      memoryBuffer[pos] = t;
+    }
+    return true;
+  }
+  return false;
+}
+
+GenericRelationIterator *CircularTupleBuffer::MakeScan() const
+{
+  return new CircularTupleBufferIterator( *this );
+}
+
+GenericRelationIterator *CircularTupleBuffer::MakeScan(TupleType* tt) const
+{
+  return new CircularTupleBufferIterator( *this, tt);
+}
+
+bool CircularTupleBuffer::GetTupleFileStats( SmiStatResultType &result )
+{
+  return true;
+}
+
+
+bool CircularTupleBuffer::GetLOBFileStats( SmiStatResultType &result )
+{
+  return true;
+}
+
+
+bool CircularTupleBuffer::DeleteTuple(Tuple* t)
+{
+  //Not implemented
+  return false;
+}
+/*
+The function that deletes the given Tuple from the relation
+
+*/
+void CircularTupleBuffer::UpdateTuple( Tuple *tuple,
+                        const vector<int>& changedIndices,
+                        const vector<Attribute *>& newAttrs )
+{
+  //Not implemented
+  bool Implemented= false;
+  assert(Implemented);
+}
+
+
 /*
 3.9.3 ~TupleBufferIterator~
 
@@ -1950,6 +2234,69 @@ TupleId TupleBufferIterator::GetTupleId() const
   {
     return currentTuple-1;
   }
+}
+
+
+/*
+3.9.3 ~CircularTupleBufferIterator~
+
+*/
+CircularTupleBufferIterator::CircularTupleBufferIterator(
+    const CircularTupleBuffer& _tupleBuffer ):
+  tupleBuffer( _tupleBuffer )
+  {
+    currentTuple= tupleBuffer.memoryBuffer.begin() ;
+  }
+
+CircularTupleBufferIterator::CircularTupleBufferIterator(
+    const CircularTupleBuffer& _tupleBuffer, TupleType* tt ):
+  tupleBuffer( _tupleBuffer ),
+  outtype( tt )
+{
+  currentTuple= tupleBuffer.memoryBuffer.begin();
+}
+/*
+The constructor.
+
+*/
+CircularTupleBufferIterator::~CircularTupleBufferIterator()
+{
+
+}
+/*
+The destructor.
+
+*/
+
+Tuple *CircularTupleBufferIterator::GetNextTuple()
+{
+  if( currentTuple == tupleBuffer.memoryBuffer.end() )
+      return 0;
+
+  Tuple *result = *currentTuple;
+  result->IncReference();
+  ++currentTuple;
+  return result;
+}
+
+Tuple *CircularTupleBufferIterator::GetNextTuple(const list<int>& attrList)
+{
+  if( currentTuple == tupleBuffer.memoryBuffer.end() )
+    return 0;
+
+  Tuple *t = *currentTuple;
+
+  Tuple *result = new Tuple( outtype );
+  list<int>::const_iterator iter = attrList.begin();
+  for(int i=0 ; iter != attrList.end(); ++iter, ++i )
+    result->CopyAttribute(*iter, t, i);
+  ++currentTuple;
+  return result;
+}
+
+TupleId CircularTupleBufferIterator::GetTupleId() const
+{
+  return (*currentTuple)->GetTupleId();
 }
 
 
