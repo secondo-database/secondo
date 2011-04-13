@@ -6779,11 +6779,183 @@ ListExpr GroupByTypeMap2(ListExpr args, const bool memoryImpl = false )
   return result;
 }
 
-
 ListExpr GroupByTypeMap(ListExpr args)
 {
   return GroupByTypeMap2(args);
 }
+
+/*
+2.22 Operator ~slidingwindow~
+
+2.21.1 Type mapping function of operator ~slidingwindow~
+
+Result type of ~slidingwindow~ operation.
+
+----   Let X = tuple ((x1 t1) ... (xn tn)), R = rel(X):
+
+       ( (stream X) (xi1 ... xik) ( (y1 (map R T1)) ... (ym (map R Tm)) ) )
+
+        -> ( APPEND (m p1 ... pm)
+               (stream (tuple (xj1 tj1)... (xjl tjl) (y1 T1) ... (ym Tm))))
+
+       with tj,Ti in kind DATA, xi <> xj and k+l=n, pi <> pj and 1 <= pi <= m.
+       This means attributes xi ... xik are removed from the stream and
+       attributes y1 ... ym are appended. These new attributes represent
+       aggregated values computed by maps of R -> Ti which must have a
+       result type of kind DATA.
+----
+
+*/
+ListExpr SlidingWindowTypeMap(ListExpr args)
+{
+  bool debugme= true;
+  ListExpr first, second, third, fourth;     // list used for analysing input
+  ListExpr listn, lastlistn, listp;  // list used for constructing output
+
+  first = second = third = nl->TheEmptyList();
+  listn = lastlistn = listp = nl->TheEmptyList();
+
+  string tupleSymbolStr = "tuple";
+
+  bool listOk = true;
+  listOk = listOk && ( nl->ListLength(args) == 4 );
+
+  if ( listOk ) {
+    first  = nl->First(args);
+    second = nl->Second(args);
+    third  = nl->Third(args);
+    fourth= nl->Fourth(args);
+
+    // check input list structure
+    listOk = listOk && (nl->ListLength(first) == 2);
+    listOk = listOk && !nl->IsEmpty( fourth );
+  }
+
+  if( !listOk )
+  {
+    stringstream errMsg;
+    errMsg << "slidingwindow: Invalid input list structure. "
+        << "The structure should be a four elem list "
+        << "like (stream (" << tupleSymbolStr
+        << "((x1 t1) ... (xn tn)) int int "
+        << "( (y1 (map R T1)) ... (ym (map R Tm))!";
+
+    ErrorReporter::ReportError(errMsg.str());
+    return nl->SymbolAtom("typeerror");
+  }
+
+
+  // check for tuple stream
+  listOk = listOk &&
+           (nl->ListLength(first) == 2) &&
+           (TypeOfRelAlgSymbol(nl->First(first) == stream)) &&
+           (nl->ListLength(nl->Second(first)) == 2 ) &&
+           (nl->IsEqual(nl->First(nl->Second(first)),tupleSymbolStr)) &&
+           (IsTupleDescription(nl->Second(nl->Second(first))));
+
+  if ( !listOk ) {
+
+    ErrorReporter::ReportError( "slidingwindow: Input is not of type (stream "
+        + tupleSymbolStr + "(...))." );
+    return nl->SymbolAtom("typeerror");
+  }
+
+  // list seems to be ok. Check the second and the third arguments
+  if(! nl->IsEqual(second, "int") )
+  {
+    ErrorReporter::ReportError(
+        "slidingwindow: expected int as a second argument");
+    return nl->TypeError();
+  }
+
+  if(! nl->IsEqual(third, "int") )
+  {
+    ErrorReporter::ReportError(
+        "slidingwindow: expected int as a third argument");
+    return nl->TypeError();
+  }
+
+  // Check the last argument
+  ListExpr rest = fourth;
+
+  while (!(nl->IsEmpty(rest))) // check functions y1 .. ym
+  {
+      // iterate over elements of the 3rd input list
+    ListExpr firstr = nl->First(rest);
+    rest = nl->Rest(rest);
+
+    ListExpr newAttr = nl->First(firstr);
+    ListExpr mapDef = nl->Second(firstr);
+    ListExpr mapOut = nl->Third(mapDef);
+
+      // check list structure
+    bool listOk = true;
+    listOk = listOk && ( nl->IsAtom(newAttr) );
+    listOk = listOk && ( nl->ListLength(mapDef) == 3 );
+    listOk = listOk && ( nl->AtomType(newAttr) == SymbolType );
+    listOk = listOk && ( TypeOfRelAlgSymbol(nl->First(mapDef)) == ccmap );
+//    listOk = listOk && ( nl->Equal(groupType, nl->Second(mapDef)) );
+
+    if( !listOk )
+        // Todo: there could be more fine grained error messages
+    {
+      ErrorReporter::ReportError(
+          "slidingwindow: Function definition is not correct!");
+      return nl->SymbolAtom("typeerror");
+    }
+
+    // check if the Type Constructor belongs to KIND DATA
+    // If the functions result type is typeerror this check will also fail
+    ListExpr errorInfo = nl->OneElemList(nl->SymbolAtom("ErrorInfo"));
+    if ( !am->CheckKind("DATA", mapOut, errorInfo) ) {
+
+      stringstream errMsg;
+      errMsg << "slidingwindow: The aggregate function for attribute \""
+          << nl->SymbolValue(newAttr) << "\""
+          << " returns a type which is not usable in tuples."
+          << " The type constructor \""
+          <<  nl->ToString(mapOut) << "\""
+          << " belongs not to kind DATA!"
+          << ends;
+
+      ErrorReporter::ReportError(errMsg.str());
+      return nl->SymbolAtom("typeerror");
+
+    }
+
+    if (    (nl->EndOfList( lastlistn ) == true)
+         && (nl->IsEmpty( lastlistn ) == false)
+         && (nl->IsAtom( lastlistn ) == false)
+       )
+    { // list already contains group-attributes (not empty)
+      lastlistn = nl->Append(lastlistn,(nl->TwoElemList(newAttr,mapOut)));
+    }
+    else
+    { // no group attribute (list is still empty)
+      listn = nl->OneElemList(nl->TwoElemList(newAttr,mapOut));
+      lastlistn = listn;
+    }
+  } // end of while check functions
+
+  if ( !CompareNames(listn) )
+  { // check if attribute names are unique
+    ErrorReporter::ReportError("slidingwindow: Attribute names are not unique");
+    return nl->SymbolAtom("typeerror");
+  }
+
+  // Type mapping is correct, return result type.
+  ListExpr groupType = nl->TwoElemList( nl->SymbolAtom("stream"),
+      nl->TwoElemList(nl->SymbolAtom("tuple"), listn) );
+
+  if(debugme)
+  {
+    string resstring;
+    nl->WriteToString(resstring, groupType);
+    cerr << "groupbyTypeMap: result = " << resstring << endl;
+  }
+  return groupType;
+}
+
 
 /*
 2.21.2 Value mapping function of operator ~groupby~
@@ -7333,6 +7505,141 @@ int GroupByValueMapping
 
 
 
+struct SlidingWindowLocalInfo
+{
+  TupleType *resultTupleType;
+  bool firstWindow;
+  CircularTupleBuffer* tb;
+
+  SlidingWindowLocalInfo() : tb(0), resultTupleType(0), firstWindow(true){}
+};
+
+int SlidingWindowValueMapping
+(Word* args, Word& result, int message, Word& local, Supplier supplier)
+{
+  bool debugme= false;
+  if(debugme)
+    qp->ListOfTree(supplier, cerr);
+  Tuple *s = 0;
+  Word sWord(Address(0));
+  Word value(Address(0));
+  Supplier  value2;
+  Supplier supplier1;
+  Supplier supplier2;
+  int noOffun = 0;
+  ArgVectorPointer vector;
+  const int indexOfCountArgument = 3;
+  SlidingWindowLocalInfo *gbli = 0;
+
+  // The argument vector contains the following values:
+  // args[0] = stream of tuples
+  // args[1] = list of identifiers
+  // args[2] = list of functions
+  // args[3] = Number of extra arguments
+  // args[4 ...] = args added by APPEND
+
+  switch(message)
+  {
+    case OPEN:
+    {
+      // Get the first tuple pointer and store it in the
+      // GroupBylocalInfo structure
+      gbli = new SlidingWindowLocalInfo();
+      ListExpr resultType = GetTupleResultType( supplier );
+      gbli->resultTupleType = new TupleType( nl->Second( resultType ) );
+      gbli->firstWindow= true;
+      local.setAddr(gbli);
+      qp->Open (args[0].addr);
+
+      return 0;
+    }
+    case REQUEST:
+    {
+      int windowSize, stepSize;
+      windowSize = static_cast<CcInt*>(args[1].addr)->GetIntval();
+      stepSize = static_cast<CcInt*>(args[2].addr)->GetIntval();
+
+      if(local.addr == 0)
+      {
+        return CANCEL;
+      }
+      gbli = (SlidingWindowLocalInfo *)local.addr;
+
+      int i= 0;
+      if(gbli->firstWindow)
+      {
+        gbli->firstWindow= false;
+        gbli->tb= new CircularTupleBuffer(
+            true, gbli->resultTupleType, windowSize);
+        qp->Request(args[0].addr, sWord);
+        while (i++ < windowSize && qp->Received(args[0].addr))
+        {
+          s= static_cast<Tuple*>(sWord.addr);
+          gbli->tb->AppendTuple(s);
+          qp->Request(args[0].addr, sWord);
+          s->DeleteIfAllowed();
+        }
+      }
+      else
+      {
+        qp->Request(args[0].addr, sWord);
+        while (i++ < stepSize && qp->Received(args[0].addr))
+        {
+          s= static_cast<Tuple*>(sWord.addr);
+          gbli->tb->AppendTuple(s);
+          qp->Request(args[0].addr, sWord);
+          s->DeleteIfAllowed();
+        }
+      }
+      if(i == 1) //Steam end
+        return CANCEL;
+
+      // create result tuple
+      Tuple *t = new Tuple( gbli->resultTupleType );
+      value2 = (Supplier)args[3].addr; // list of functions
+      noOffun  =  qp->GetNoSons(value2);
+
+      for(i = 0; i < noOffun; i++)
+      {
+        // prepare arguments for function i
+        supplier1 = qp->GetSupplier(value2, i);
+        supplier2 = qp->GetSupplier(supplier1, 1);
+        vector = qp->Argument(supplier2);
+        // The group was stored in a relation identified by symbol group
+        // which is a typemap operator. Here it is stored in the
+        // argument vector
+        ((*vector)[0]).setAddr(gbli->tb);
+
+        // compute value of function i and put it into the result tuple
+        qp->Request(supplier2, value);
+        t->PutAttribute(i, (Attribute*)value.addr);
+        qp->ReInitResultStorage(supplier2);
+      }
+      result.setAddr(t);
+      return YIELD;
+    }
+    case CLOSE:
+    {
+      if( local.addr != 0 )
+      {
+        gbli = (SlidingWindowLocalInfo *)local.addr;
+        if( gbli->resultTupleType != 0 )
+          gbli->resultTupleType->DeleteIfAllowed();
+        if( gbli->tb != 0 )
+        {
+          gbli->tb->Clear();
+          delete gbli->tb;
+        }
+        delete gbli;
+        local.setAddr(0);
+      }
+      qp->Close(args[0].addr);
+      return 0;
+    }
+  }
+  return 0;
+}
+
 
 /*
 2.21.3 Specification of operator ~groupby~
@@ -7359,6 +7666,33 @@ const string GroupBySpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
                             ") )";
 
 /*
+2.21.6 Specification of operator ~slidingwindow~
+
+*/
+const string SlidingWindowSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+                            "\"Example\" ) "
+                            "( <text>((stream (tuple (a1:d1 ... an:dn))) "
+                            "int int ((bj1 (fun (rel (tuple (a1:d1"
+                            " ... an:dn))) (_))) ... (bjl (fun (rel (tuple"
+                            " (a1:d1 ... an:dn))) (_))))) -> (stream (tuple"
+                            " (bj1 ... bjl)))</text--->"
+                            "<text>_ slidingwindow [int, int; funlist]"
+                            "</text--->"
+                            "<text>Apply a sliding window on a stream of tuples"
+                            " grouping together the tuples within the window."
+                            " The window size and the step size are arguments."
+                            " The groups are fed to the functions. The result"
+                            " tuples are constructed from the results of those"
+                            " functions. If the stream has tuples less than the"
+                            " window size, these tuples are considered one "
+                            " group.</text--->"
+                            "<text>query Employee feed sortby[DeptNr asc] "
+                            "groupby[DeptNr; anz : group feed count] consume"
+                            "</text--->"
+                            ") )";
+
+
+/*
 2.21.4 Definition of operator ~groupby~
 
 */
@@ -7369,6 +7703,19 @@ Operator extrelgroupby (
          Operator::SimpleSelect,          // trivial selection function
          GroupByTypeMap         // type mapping
 );
+
+/*
+2.21.5 Definition of operator ~slidingwindow~
+
+*/
+Operator extrelslidingwindow (
+         "slidingwindow",             // name
+         SlidingWindowSpec,           // specification
+         SlidingWindowValueMapping,   // value mapping
+         Operator::SimpleSelect,          // trivial selection function
+         SlidingWindowTypeMap         // type mapping
+);
+
 
 /*
 2.22 Operator ~aggregate~
@@ -9638,6 +9985,7 @@ class ExtRelationAlgebra : public Algebra
     AddOperator(&extreladdcounter);
     AddOperator(&ksmallest);
     AddOperator(&kbiggest);
+    AddOperator(&extrelslidingwindow);
 
 #ifdef USE_PROGRESS
 // support for progress queries

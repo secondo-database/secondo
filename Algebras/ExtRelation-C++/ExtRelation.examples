@@ -7,6 +7,11 @@ Signature: ((stream x)) -> (rel x)
 Example  : query Orte feed sortby_old[BevT asc] groupby[BevT; Cnt: fun(g: GROUP) g count] filter[.Cnt > 10] consume
 Result   : file
 
+Operator : slidingwindow
+Number   : 1
+Signature: (stream x) -> (stream y)
+Example  : query no_components(units(speed(train7)) transformstream slidingwindow[5, 1; I: inst(initial(group feed tail[1] extract[elem])),  V: group feed extend[V0: val(initial(.elem))] avg[V0]  ]  approximate[I,V] )
+Result   : 90
 
 Operator : aggregate
 Number   : 1

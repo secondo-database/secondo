@@ -38,6 +38,7 @@ operator extendstream alias EXTENDSTREAM pattern _ op [funlist] implicit paramet
 operator projectextendstream alias PROJECTEXTENDSTREAM pattern _ op [list; funlist] implicit parameter tuple type TUPLE
 
 operator groupby alias GROUPBY pattern _ op [list; funlist] implicit parameter group type GROUP
+operator slidingwindow alias SLIDINGWINDOW pattern _ op [_, _; funlist] implicit parameter group type GROUP
 operator mergesec alias MERGESEC pattern _ _ op
 operator mergediff alias MERGEDIFF pattern _ _ op
 operator mergeunion alias MERGEUNION pattern _ _ op
