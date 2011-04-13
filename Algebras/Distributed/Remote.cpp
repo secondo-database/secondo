@@ -38,8 +38,8 @@ DServerCreator, DServerExecutor and RelationWriter
 #include "zthread/Thread.h"
 #include "zthread/ThreadedExecutor.h"
 #include "zthread/Mutex.h"
-#include <iostream>
 #include "StringUtils.h"
+#include <iostream>
 
 
 
@@ -69,7 +69,8 @@ A TCP-connection to the corresponding worker ist opened
 
 DServer::DServer(string n_host,int n_port,string n_name,ListExpr n_type)
 {
-     
+  // cout << "DServer created:" << n_host 
+  //     << ":" << n_port << "  " << n_name << endl;
    host = n_host;
    port = n_port;
    name = n_name;
@@ -79,16 +80,19 @@ DServer::DServer(string n_host,int n_port,string n_name,ListExpr n_type)
    
      
    rel_open = false;
-     
-   num_childs = 0;
-        
+}
+
+bool
+DServer::connectToWorker()
+{        
    string line;
         
    server = Socket::Connect( host, toString_d(port), 
-                                          Socket::SockGlobalDomain );
+                             Socket::SockGlobalDomain );
    
    if(server!=0 && server->IsOk())
    {
+     //cout << "  starting ..." << endl;
       iostream& iosock = server->GetSocketStream();
 
       getline( iosock, line );
@@ -116,6 +120,9 @@ DServer::DServer(string n_host,int n_port,string n_name,ListExpr n_type)
    else 
       errorText = "Connection to the worker couldn't be established!";
         
+   //cout << "  .. done:" << errorText << endl;
+   //cout << "  open db ..." << endl;
+
    iostream& iosock = server->GetSocketStream();
    
    iosock << "<Secondo>" << endl << "1" << endl 
@@ -129,6 +136,7 @@ DServer::DServer(string n_host,int n_port,string n_name,ListExpr n_type)
       do
       {
          getline( iosock, line );
+         //cout << "   " << line << endl;
          /*if (line[line.size() - 1] == '\r')
             line.resize(line.size() - 1);*/
          if(line.find("error") != string::npos)
@@ -141,10 +149,13 @@ DServer::DServer(string n_host,int n_port,string n_name,ListExpr n_type)
       errorText = "Unexpected response from worker (No <SecondoResponse>)";
         
 
+   //cout << "   ... done:" << errorText << endl;
+
    HostIP = server->GetSocketAddress();
    HostIP_ = "h" + stringutils::replaceAll(HostIP,".","_");
    
    cout << "Connection to Worker on " << host << " established." << endl;
+   return true;
 }
 
 /*
@@ -175,12 +186,13 @@ Sets new paramaters that are needed for the run-method
 
 */
 
-void DServer::setCmd(string n_cmd, list<int>* n_arg,Word* n_array)
+void DServer::setCmd(const string& n_cmd, 
+                 list<int>* n_arg,
+                 vector<Word>* inArray)
 {
-        
    cmd = n_cmd;
    arg = n_arg;
-   elements = n_array;
+   m_elements = inArray;
    
 }
 
@@ -194,13 +206,12 @@ Performs the specified operation on the remote system
 
 void DServer::run()
 {
-   
    int arg2;
 
    if(cmd=="write")
    {
-
-      if(rel_open) return;
+      if(rel_open) 
+        return;
       
       int algID,typID;
       extractIds(type,algID,typID);
@@ -236,22 +247,36 @@ void DServer::run()
          //The receiveD-Operator on the worker is called
          string com = "let r" + name + toString_d(arg2) + 
                         " = " + "receiveD(" + HostIP_ + ",p" + port + ")";
-         
+
          iosock << "<Secondo>" << endl << "1" << endl 
                   << com << endl << "</Secondo>" << endl;
                 
          //Callback-connection request from the worker is received
          Socket* gate = Socket::CreateGlobal( HostIP, port);
 
+         if (!(gate -> IsOk()))
+           {
+             errorText = "Could not open connection to worker!\n";
+             errorText += gate -> GetErrorText();
+             return;
+           }
+
          Socket* worker = gate->Accept();
 
+         if (worker == NULL)
+           {
+             errorText = "Could not connect to worker!";
+             return;
+           }
+
          iostream& cbsock1 = worker->GetSocketStream();
-                
+
          //The element-type is sent to the type-mapping-fcts of receiveD
          cbsock1 << "<TYPE>" << endl << nl->ToString(type) 
                      << endl << "</TYPE>" << endl;
                 
          getline(cbsock1,line);
+
          if(line!="<CLOSE>") 
             errorText = (string)"Unexpected response from" 
          + " worker (No <Close> after type transmission)!";
@@ -264,7 +289,7 @@ void DServer::run()
          gate->Close();delete gate;gate=0;
          
          iostream& cbsock = worker->GetSocketStream();
-                
+
          cbsock << "<TYPE>" << endl << nl->ToString(type) 
                     << endl << "</TYPE>" << endl;
 
@@ -277,14 +302,14 @@ void DServer::run()
          recF.AppendRecord(recID,rec);
          size_t size = 0;
          
-         am->SaveObj(algID,typID,rec,size,type,elements[arg2]);
+         am->SaveObj(algID,typID,rec,size,type,(*m_elements)[arg2]);
                 
          char* buffer = new char[size]; 
          rec.Read(buffer,size,0);
          //rec.Truncate(3);
          recF.DeleteRecord(recID);
          recF.Close();
-                
+
          //Size of the binary data is sent
          cbsock << "<SIZE>" << endl << size << endl << "</SIZE>" << endl;
                 
@@ -292,11 +317,11 @@ void DServer::run()
          worker->Write(buffer,size);
          
          delete buffer;
-      
+
          Attribute* a;
          if(t->NumOfFLOBs() > 0 ) 
             a = static_cast<Attribute*>((am->Cast(algID,typID))
-                  ((elements[arg2]).addr));
+                              (((*m_elements)[arg2]).addr));
          
          //Flobs are sent to worker
          for(int i = 0; i < t->NumOfFLOBs(); i++)
@@ -310,7 +335,7 @@ void DServer::run()
             memset(buf,0,1024*n_blocks);
          
             f->read(buf,si,0);
-         
+
             //Size of the Flob is sent
             cbsock << "<FLOB>" << endl << "<SIZE>" << endl 
                        << si << endl << "</SIZE>" << endl;
@@ -318,17 +343,15 @@ void DServer::run()
             //Flob data is sent
             for(int j = 0; j<n_blocks;j++)
                worker->Write(buf+j*1024,1024);
-            
             cbsock << "</FLOB>" << endl;
             
             delete buf;
          }
-      
          cbsock << "<CLOSE>" << endl;
          
                 
          getline(cbsock,line);
-         
+
          if(line!="<FINISH>")
             errorText = (string)"Unexpected response from worker" 
                               + " (No <FINISH> after value transmission";
@@ -409,7 +432,7 @@ void DServer::run()
             rec.Write(buffer,size,0);
             
             size_t s = 0;
-            am->OpenObj(algID,typID,rec,s,type,elements[arg2]);
+            am->OpenObj(algID,typID,rec,s,type,(*m_elements)[arg2]);
                
             recF.DeleteRecord(recID);
             recF.Close();
@@ -448,9 +471,8 @@ void DServer::run()
                for(int i = 0; i< n_blocks; i++)
                   cbsock.read(buf+1024*i,1024);
             
-            
                Attribute* a = static_cast<Attribute*>
-                              ((am->Cast(algID,typID))(elements[arg2].addr));
+             ((am->Cast(algID,typID))((*m_elements)[arg2].addr));
             
                //Flob data is written
                Flob*  f = a->GetFLOB(flobs);
@@ -527,7 +549,7 @@ void DServer::run()
       string line;
       iostream& iosock = server->GetSocketStream();
 
-      string to = ((string*)(elements[0].addr))->data();
+      string to = ((string*)((*m_elements)[0].addr))->data();
                
       while(!arg->empty())
       {
@@ -559,8 +581,8 @@ void DServer::run()
       if(rel_open) return;
       string line;
       iostream& iosock = server->GetSocketStream();
-      string to = ((string*)(elements[0].addr))->data();
-      string com = ((string*)(elements[1].addr))->data();
+      string to = ((string*)((*m_elements)[0].addr))->data();
+      string com = ((string*)((*m_elements)[1].addr))->data();
 
       while(!arg->empty())
       {
@@ -656,7 +678,7 @@ void DServer::run()
                
       string line;
                
-      Tuple *tpl = (Tuple*)elements[0].addr;
+      Tuple *tpl = (Tuple*)(*m_elements)[0].addr;
       
       //Get the tuple size
       size_t cS,eS,fS,size;
@@ -758,8 +780,8 @@ void DServer::run()
          Socket* worker = gate->Accept();
 
          iostream& cbsock = worker->GetSocketStream();
-                
-         GenericRelation* rel = (Relation*)elements[arg2].addr;
+
+         GenericRelation* rel = (Relation*)(*m_elements)[arg2].addr;
          TupleType* tt = new TupleType(nl->Second(type));
                 
          //receive tuples
@@ -832,15 +854,26 @@ Makes more connections to the remote system available
 
 bool DServer::Multiply(int count)
 {
-   if(num_childs > 0) 
+  if(getNumChilds() > 0) 
       return false;
-     
-   num_childs = count - 1; if(count < 1) return true;
-   childs = new DServer*[num_childs];
+
+  if(count < 1) return true;
+
+  int num_childs = count - 1;
      
    for(int i = 0;i<num_childs;i++)
    {
-      childs[i] = new DServer(host,port,name,type);
+     m_childs.push_back( new DServer(host,port,name,type) );
+      try
+        {
+          m_childs.back() -> connectToWorker();
+        }
+      catch(const exception &e)
+        {
+          cout << "Error starting DServer on " 
+               << host << ":" << port << endl;
+          return false;
+        }
    }
    
    return true;
@@ -857,15 +890,13 @@ Eliminates all the cloned DServer-Objects
 
 void DServer::DestroyChilds()
 {
-   for(int i = 0;i<num_childs;i++)
+  for(int i = 0;i<getNumChilds(); i++)
    {
-      childs[i]->Terminate();
-      delete childs[i];
+      m_childs[i]->Terminate();
+      delete m_childs[i];
    }
-     
-   delete childs; childs = 0;
-     
-   num_childs = 0;
+
+  m_childs.clear();
 }
 
 
@@ -894,9 +925,7 @@ DServerManager::DServerManager(ListExpr serverlist_n,
    
    if(size==-1) 
       size=1;
-        
-   serverlist = new DServer*[size];
-        
+                
    ListExpr elem = nl->First(serverlist_n);
    serverlist_n = nl->Rest(serverlist_n);
         
@@ -904,11 +933,13 @@ DServerManager::DServerManager(ListExpr serverlist_n,
    //create DServer-objects
    for(int i = 0; i<size; i++)
    {
-      DServerCreator* c = new DServerCreator(&serverlist[i],
-                                          nl->StringValue(nl->First(elem)),
-                                          nl->IntValue(nl->Second(elem)), 
-                                          name,
-                                          type);
+      DServerCreator* c = new DServerCreator( nl->StringValue(nl->First(elem)),
+                                              nl->IntValue(nl->Second(elem)), 
+                                              name,
+                                              type);
+
+      m_serverlist.push_back( c -> createServer() );
+
       exec.execute(c);
       
       if(i < size-1)
@@ -918,10 +949,11 @@ DServerManager::DServerManager(ListExpr serverlist_n,
       }
    
    }
+
    exec.wait();
    
    for(int i = 0; i< size; i++)
-      errorText = serverlist[i]->geterrorText();
+      errorText = m_serverlist[i]->getErrorText();
 }
 
 /*
@@ -936,12 +968,12 @@ DServerManager::~DServerManager()
 {
    for(int i = 0; i<size; i++)
    {
-      if(serverlist[i] != 0) 
-         serverlist[i]->Terminate();
-      delete serverlist[i];
+      if(m_serverlist[i] != 0) 
+         m_serverlist[i]->Terminate();
+      delete m_serverlist[i];
    }
         
-   delete serverlist;
+   m_serverlist.clear();
 }
 
 /*
@@ -952,9 +984,9 @@ returns the pointer to a DServer
 
 */
 
-DServer* DServerManager::getServerbyID(int id)
+DServer* DServerManager::getServerbyID(int id) const
 {
-   return serverlist[id];
+   return m_serverlist[id];
 }
 
 /*
@@ -966,9 +998,9 @@ underlying distributed array
 
 */
 
-DServer* DServerManager::getServerByIndex(int index)
+DServer* DServerManager::getServerByIndex(int index) const
 {
-   return serverlist[index % size];
+   return m_serverlist[index % size];
 }
 
 /*
@@ -1040,19 +1072,20 @@ void RelationWriter::run()
       l->push_front(index);
      
       //create relation iterator
-      GenericRelation* rel = (Relation*)elements[index].addr;
+
+      GenericRelation* rel = (Relation*)(*m_elements)[index].addr;
       GenericRelationIterator* iter = rel->MakeScan();
       
       Tuple* t;
      
      
-      Word* word = new Word[1];
+      vector<Word> word(1);
 
       t = iter->GetNextTuple();
      
       //open tuple stream to the worker
       word[0].addr = t;
-      worker->setCmd("open_write_rel",l,word);
+      worker->setCmd("open_write_rel",l,&word);
       worker->run();
      
      //send tuples
@@ -1061,7 +1094,7 @@ void RelationWriter::run()
           
          word[0].addr = t;
          t->IncReference();
-         worker->setCmd("write_rel",0,word);
+         worker->setCmd("write_rel",0,&word);
           
          worker->run();
          t->DeleteIfAllowed();
@@ -1071,7 +1104,7 @@ void RelationWriter::run()
       }
      
       //close tuple stream
-      worker->setCmd("close_write_rel",0,0);
+      worker->setCmd("close_write_rel",0);
       worker->run();
      
      
@@ -1096,14 +1129,23 @@ void DServerExecutor::run()
 */
 
 DServerCreator::DServerCreator
-(DServer** s, string h, int p, string n, ListExpr t)
+(string h, int p, string n, ListExpr t)
 {
    string s_type = nl->ToString(t);
    nl->ReadFromString(s_type,type);
-   server = s; host = h; port = p; name = n;
+
+   host = h; port = p; name = n;
 }
+
+DServer*
+DServerCreator::createServer()
+{
+  m_server = new DServer(host,port,name,type);
+  return m_server;
+}
+
 
 void DServerCreator::run()
 {
-   *server = new DServer(host,port,name,type);
+   m_server -> connectToWorker();
 }

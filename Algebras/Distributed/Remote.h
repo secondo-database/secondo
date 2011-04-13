@@ -49,41 +49,42 @@ using namespace std;
 
 class DServer
 {
-   public:
-      DServer(string,int,string,ListExpr);
-      void Terminate();
+public:
+  DServer(string,int,string,ListExpr);
+  void Terminate();
+  bool connectToWorker();
 
-      void setCmd(string,list<int>*,Word*);
-      void run();
-                  
+  void setCmd(const string&,
+              list<int>*, vector<Word>* = 0);
+
+  void run();
                           
-      bool Multiply(int count);
-      DServer** getChilds() { return childs; }
-      void DestroyChilds();
+  bool Multiply(int count);
+  const vector<DServer*> & getChilds() const { return m_childs; }
+  void DestroyChilds();
             
-      int status;
-      int getNumChilds() { return num_childs;}
+  int status;
+  int getNumChilds() { return m_childs.size();}
       
-      string geterrorText() { return errorText; }
+  string getErrorText() { return errorText; }
          
-   private:
-      string host,name,cmd;
-      int port;
-      ListExpr type;
-      list<int>* arg;
+private:
+  string host,name,cmd;
+  int port;
+  ListExpr type;
+  list<int>* arg;
          
-      Word* elements;
+  vector<Word>* m_elements;
 
-      Socket* server;
+  Socket* server;
          
-      Socket* cbworker;
-      
-      int num_childs;
-      DServer** childs;
+  Socket* cbworker;
+
+  vector<DServer*> m_childs;
                   
-      bool rel_open;
+  bool rel_open;
    
-      string errorText;
+  string errorText;
 };
 
 class DServerManager
@@ -92,8 +93,8 @@ class DServerManager
       DServerManager(ListExpr serverlist_n, 
                               string name_n, ListExpr type, int sizeofarray);
       ~DServerManager();
-      DServer* getServerByIndex(int index);
-      DServer* getServerbyID(int id);
+      DServer* getServerByIndex(int index) const;
+      DServer* getServerbyID(int id) const;
      
       int getMultipleServerIndex(int index);
                 
@@ -102,12 +103,13 @@ class DServerManager
         
       int getNoOfServers();
    
-      string geterrorText() { return errorText; }
+      const string& getErrorText() const { return errorText; }
+  void  setErrorText( const string& txt) { errorText = txt; }
      
         
    private:
                 
-      DServer** serverlist;
+  vector<DServer*> m_serverlist;
 
       int size;
       int array_size;
@@ -127,33 +129,34 @@ class DServerExecutor : public ZThread::Runnable
 
 class DServerCreator : public ZThread::Runnable
 {
-   public:
-      DServerCreator(DServer** s, string h, int p, string n, ListExpr t);
+public:
+  DServerCreator(string h, int p, string n, ListExpr t);
    
-      void run();
+  DServer* createServer();
+  void run();
    
-   private:
-      DServer** server;
-      string host,name;
-      int port;
-      ListExpr type;
+private:
+  DServer* m_server;
+  string host,name;
+  int port;
+  ListExpr type;
 };
 
 class DServerMultiplyer : public ZThread::Runnable
 {
-   DServer* server;
-   int count;
+  DServer* server;
+  int count;
    
-   public:
-      DServerMultiplyer(DServer* s, int c)
-      {
-         server=s; count = c;
-      }
+public:
+  DServerMultiplyer(DServer* s, int c)
+  {
+    server=s; count = c;
+  }
    
-      void run()
-      {
-         server->Multiply(count);
-      }
+  void run()
+  {
+    server->Multiply(count);
+  }
 };
    
    
@@ -161,14 +164,18 @@ class DServerMultiplyer : public ZThread::Runnable
 class RelationWriter : public ZThread::Runnable
 {
    DServer* worker;
-   Word* elements;
+  vector<Word>* m_elements;
    list<int>* arg;
    
    public:
-      RelationWriter(DServer* s, Word* e, list<int>* a) 
-         {worker=s; elements = e; arg = a;}
+  RelationWriter(DServer* s, vector<Word>* e, list<int>* a) 
+    : worker(s)
+    , m_elements(e)
+    , arg(a) {}
      
       void run();
+
+  
 };
      
                   
