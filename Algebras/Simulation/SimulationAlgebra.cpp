@@ -716,7 +716,9 @@ int sim_create_trip_VM ( Word* args, Word& result,
             interimEnd.Translate(incrX,incrY);
             s.start    = interimStart;
             s.end      = interimEnd;
-            subsegments.push_back(s);
+            if(!AlmostEqual(s.start,s.end)){
+              subsegments.push_back(s);
+            }
             interimStart = interimEnd;
           }
           assert(ok);
@@ -724,7 +726,9 @@ int sim_create_trip_VM ( Word* args, Word& result,
           s.start    = interimStart;
           s.end      = endPoint;
           assert( endPoint.IsDefined() );
-          subsegments.push_back(s);
+          if(!AlmostEqual(s.start,s.end)){
+            subsegments.push_back(s);
+          }
           startPoint = endPoint;
           currentLine.SelectSubsequentSegment();
         }
@@ -738,41 +742,41 @@ int sim_create_trip_VM ( Word* args, Word& result,
                                       // reenqueued subsegment
             // check whether to stop at the crossing
             double pWait = 0.0;
-            if ( AlmostEqual(lastMaxSpeed,sim_vmax_sidestreet) ) {
-              if ( AlmostEqual(currentVmax,sim_vmax_sidestreet) ) {
+            if ( lastMaxSpeed <= sim_vmax_sidestreet ) {
+              if ( currentVmax <= sim_vmax_sidestreet ) {
                 pWait = sim_dest_param_ss;
               }
-              else if ( AlmostEqual(currentVmax,sim_vmax_mainstreet) ) {
+              else if ( currentVmax <= sim_vmax_mainstreet ) {
                 pWait = sim_dest_param_sm;
               }
-              else if ( AlmostEqual(currentVmax,sim_vmax_freeway) ) {
+              else if ( currentVmax <= sim_vmax_freeway ) {
                 pWait = sim_dest_param_sf;
               }
               else {
-                cout << " S->??? "; pWait = 0.0;
+                cout << " S->? "; pWait = 0.0;
               }
             }
-            else if ( AlmostEqual(lastMaxSpeed,sim_vmax_mainstreet) ) {
-              if ( AlmostEqual(currentVmax,sim_vmax_sidestreet) ) {
+            else if ( lastMaxSpeed <= sim_vmax_mainstreet ) {
+              if ( currentVmax <= sim_vmax_sidestreet ) {
                 pWait = sim_dest_param_ms;}
-                else if ( AlmostEqual(currentVmax,sim_vmax_mainstreet) ) {
+                else if ( currentVmax <= sim_vmax_mainstreet ) {
                   pWait = sim_dest_param_mm;
                 }
-                else if ( AlmostEqual(currentVmax,sim_vmax_freeway) ) {
+                else if ( currentVmax <= sim_vmax_freeway ) {
                   pWait = sim_dest_param_mf;
                 }
                 else {
                   cout << " M->? "; pWait = 0.0;
                 }
             }
-            else if ( AlmostEqual(lastMaxSpeed,sim_vmax_freeway) ) {
-              if ( AlmostEqual(currentVmax,sim_vmax_sidestreet) ) {
+            else if ( lastMaxSpeed <= sim_vmax_freeway ) {
+              if ( currentVmax <= sim_vmax_sidestreet ) {
                 pWait = sim_dest_param_fs;
               }
-              else if ( AlmostEqual(currentVmax,sim_vmax_mainstreet) ) {
+              else if ( currentVmax <= sim_vmax_mainstreet ) {
                 pWait = sim_dest_param_fm;
               }
-              else if ( AlmostEqual(currentVmax,sim_vmax_freeway) ) {
+              else if ( currentVmax <= sim_vmax_freeway ) {
                 pWait = sim_dest_param_ff;
               }
               else {
