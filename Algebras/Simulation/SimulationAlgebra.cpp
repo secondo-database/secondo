@@ -49,6 +49,9 @@ We have to include some GSL headers and the GSLAlgebra.
 #include "NestedList.h"
 #include "QueryProcessor.h"
 #include "StandardTypes.h"
+#include "Messages.h"
+#include "ListUtils.h"
+#include "NList.h"
 #include "DateTime.h"
 
 #include <cstdlib>
@@ -404,8 +407,8 @@ Create a moving point from a stream of lines and a startung instant.
 ListExpr sim_create_trip_TM ( ListExpr args )
 {
   int len = nl->ListLength(args);
-  if(len != 5 && len != 6 ) {
-    ErrorReporter::ReportError("five or six arguments expected");
+  if((len != 5) && (len != 6) && (len != 7)) {
+    ErrorReporter::ReportError("five, six, or seven arguments expected");
     return nl->SymbolAtom("typeerror");
   }
   // extract the attribute names
@@ -519,7 +522,7 @@ ListExpr sim_create_trip_TM ( ListExpr args )
 
   ListExpr arg5 = nl->Fifth(args);
   if ( !(nl->AtomType( arg5 ) == SymbolType) ||
-         !(nl->SymbolValue( arg5 ) == "point")
+         !(nl->SymbolValue( arg5 ) == Point::BasicType())
      ) {
     ErrorReporter::ReportError("fifth argument must be of type 'point'" );
     return (nl->SymbolAtom( "typeerror" ));
@@ -528,14 +531,22 @@ ListExpr sim_create_trip_TM ( ListExpr args )
 
   ListExpr ind;
 
-  if (len == 6 ) {// explicit starting velocity
+  if ( (len == 6) || (len == 7) ) {// explicit starting velocity
     ListExpr arg6 = nl->Sixth(args);
     if ( !(nl->AtomType( arg6 ) == SymbolType) ||
-           !(nl->SymbolValue( arg6 ) == "real")
+           !(nl->SymbolValue( arg6 ) == CcReal::BasicType())
        ) {
       ErrorReporter::
           ReportError("optional sixth argument must be of type 'real'" );
       return (nl->SymbolAtom( "typeerror" ));
+    }
+
+    if(len==7){
+      ListExpr arg7 = nl->Nth(7,args);
+      if(!listutils::isSymbol(arg7,Geoid::BasicType())) {
+        return listutils::typeError("7th argument must be of type '"+
+                                    Geoid::BasicType()+"'.");
+      }
     }
     ind = nl->TwoElemList(nl->IntAtom(a1index),
                           nl->IntAtom(a2index));
@@ -558,30 +569,80 @@ struct Subsegment
 };
 
 
+  // calculate the enclosed angle between (a,b) and (b,c) in degrees
+double calcEnclosedAngle( const Point &a,
+			  const Point &b,
+			  const Point &c,
+			  const Geoid* geoid){
+  double beta = 0.0;
+  errno = 0;
+  if(geoid){ // use sperical trigonometry
+    // very simplistic, works for short distances, but
+    // should be improved!
+    bool ok = true;
+    double la = b.DistanceOrthodrome(c,*geoid, ok); // la = |(b,c)|
+    assert(ok);
+    double lb = a.DistanceOrthodrome(c,*geoid, ok); // lb = |(a,c)|
+    assert(ok);
+    double lc = a.DistanceOrthodrome(b,*geoid, ok); // lc = |(a,b)|
+    assert(ok);
+    assert(la != 0.0);
+    assert(lc != 0.0);
+    double cosb = (la*la + lc*lc - lb*lb) / (2*la*lc);
+    cosb = max(cosb, -1.0);
+    cosb = min(cosb, 1.0);
+    beta = acos ( cosb ) * 180.0 / M_PI;
+    assert(errno == 0);
+  } else { // use euclidean geometry
+    double la = b.Distance(c);
+    double lb = a.Distance(c);
+    double lc = a.Distance(b);
+    double cosb = (la*la + lc*lc - lb*lb) / (2*la*lc);
+    cosb = max(cosb, -1.0);
+    cosb = min(cosb, 1.0);
+    beta = acos ( cosb ) * 180.0 / M_PI;
+    assert(errno == 0);
+  }
+  return beta;
+}
 
 int sim_create_trip_VM ( Word* args, Word& result,
                          int message, Word& local, Supplier s )
 {
-//   cout << "sim_create_trip_VM received message: ";
-//   if (message == OPEN) cout << "OPEN" << endl;
-//   else if (message == REQUEST) cout << "REQUEST" << endl;
-//   else if (message == CLOSE) cout << "CLOSE" << endl;
-//   else if (message == YIELD) cout << "YIELD" << endl;
-//   else if (message == CANCEL) cout << "CANCEL" << endl;
-//   else if (message == CARDINALITY) cout << "CARDINALITY" << endl;
-//   else if (message == PROGRESS) cout << "PROGRESS" << endl;
-//   else cout << "(unknown message)" << endl;
+  //   cout << "sim_create_trip_VM received message: ";
+  //   if (message == OPEN) cout << "OPEN" << endl;
+  //   else if (message == REQUEST) cout << "REQUEST" << endl;
+  //   else if (message == CLOSE) cout << "CLOSE" << endl;
+  //   else if (message == YIELD) cout << "YIELD" << endl;
+  //   else if (message == CANCEL) cout << "CANCEL" << endl;
+  //   else if (message == CARDINALITY) cout << "CARDINALITY" << endl;
+  //   else if (message == PROGRESS) cout << "PROGRESS" << endl;
+  //   else cout << "(unknown message)" << endl;
 
   result = qp->ResultStorage( s );
+  Geoid* geoid = 0;
+  int argoffset = 0;
+  if(qp->GetNoSons(s)==9){
+    argoffset = 1;
+    geoid = static_cast<Geoid*>(args[6].addr);
+  }
   MPoint*        res = ((MPoint*)result.addr);
-  CcInt*  cLineIndex = (CcInt*) args[6].addr;
-  CcInt*  cVmaxIndex = (CcInt*) args[7].addr;
+  CcInt*  cLineIndex = (CcInt*) args[6+argoffset].addr;
+  CcInt*  cVmaxIndex = (CcInt*) args[7+argoffset].addr;
   Instant* instStart = (Instant*) args[3].addr;
   Point*  pointStart = (Point*) args[4].addr;
   CcReal*    cVstart = (CcReal*) args[5].addr;
   long    tuplesReceived = 0;
   long    tuplesAccepted = 0;
   long invalidUnitsCreated = 0;
+
+//   cout << "cLineIndex = "; cLineIndex->Print(cout); cout << endl;
+//   cout << "cVmaxIndex = "; cVmaxIndex->Print(cout); cout << endl;
+//   cout << "instStart = "; instStart->Print(cout); cout << endl;
+//   cout << "pointStart = "; pointStart->Print(cout); cout << endl;
+//   cout << "cVstart = "; cVstart->Print(cout); cout << endl;
+//   cout << "geoid = "; if(geoid){ cout << *geoid; } else { cout << "0"; }
+//   cout << endl;
 
   res->Clear();
   res->SetDefined( true );
@@ -600,8 +661,8 @@ int sim_create_trip_VM ( Word* args, Word& result,
     double    currentSpeed = cVstart->GetRealval();
     double       localVmax = 0.0;
     double    lastMaxSpeed = -1.0;
-    double       lastAlpha = 0.0;
     bool     stopAfterThis = false;
+    bool                ok = true; // flag for DistanceOrthodrome
     Point       startPoint(true,0,0);
     Point         endPoint(true,0,0);
     DateTime dummyDuration(0,0,durationtype);
@@ -634,7 +695,9 @@ int sim_create_trip_VM ( Word* args, Word& result,
         while( currentLine.getWaypoint(endPoint) ) { // for each line segment:
           assert( endPoint.IsDefined() );
           Subsegment s;
-          double l =  startPoint.Distance(endPoint);
+          double l =  geoid?startPoint.DistanceOrthodrome(endPoint,*geoid, ok)
+                           :startPoint.Distance(endPoint);
+          assert(ok);
           double incrX = sim_event_param_subsegmentlength
                 * (endPoint.GetX() - startPoint.GetX()) / l;
           double incrY = sim_event_param_subsegmentlength
@@ -645,8 +708,10 @@ int sim_create_trip_VM ( Word* args, Word& result,
           }
           Point interimStart = startPoint;
           Point interimEnd   = startPoint;
-          while( interimEnd.Distance(endPoint) >=
+          while( (geoid?interimEnd.DistanceOrthodrome(endPoint,*geoid, ok)
+                       :interimEnd.Distance(endPoint)) >=
                  sim_event_param_subsegmentlength ) {
+            assert(ok);
             // divide the remaining segment into subsegments
             interimEnd.Translate(incrX,incrY);
             s.start    = interimStart;
@@ -654,6 +719,7 @@ int sim_create_trip_VM ( Word* args, Word& result,
             subsegments.push_back(s);
             interimStart = interimEnd;
           }
+          assert(ok);
           // add the last subsegment
           s.start    = interimStart;
           s.end      = endPoint;
@@ -772,13 +838,19 @@ int sim_create_trip_VM ( Word* args, Word& result,
             // calculate steepness of curves
             double alpha =
                   !AlmostEqual(subsegments[i].end, subsegments[i+1].end)
-                  ? subsegments[i].end.Direction(subsegments[i+1].end)
-              : lastAlpha;
+                  ? calcEnclosedAngle(subsegments[i].start,
+                                      subsegments[i].end,
+                                      subsegments[i+1].end,
+                                      geoid)
+                  : 0.0;
+            cout.precision(16);
+            // cout << "alpha = " << alpha << endl;
+            // cout << "currentVmax = " << currentVmax << endl;
             double curveMax =
-                  (1.0-( fmod(fabs(lastAlpha-alpha), 180.0) )/180.0)
+                  (1.0-( fmod(fabs(alpha - 180.0), 180.0) )/180.0)
                   * currentVmax;
+            // cout << "curveMax = " << curveMax << endl;
             localVmax = MIN( localVmax, curveMax );
-            lastAlpha = alpha;
             currentSpeed = localVmax;
           } else if (i == subsegments.size()-1 ) {
             // This is the last subsegment. Delete all subsegments,
@@ -793,7 +865,10 @@ int sim_create_trip_VM ( Word* args, Word& result,
             break; // this exits the for()-loop
           }
           // Create a unit for the current subsegment
-          double dist = subsegments[i].start.Distance(subsegments[i].end);
+          double dist = geoid?
+           subsegments[i].start.DistanceOrthodrome(subsegments[i].end,*geoid,ok)
+            :subsegments[i].start.Distance(subsegments[i].end);
+          assert(ok);
           dummyDuration.ReadFrom(dist/currentSpeed/24000L);
             // ^^^^ time used to travel the subsegment t=s/v ^^^
           const Interval<Instant>
@@ -807,7 +882,7 @@ int sim_create_trip_VM ( Word* args, Word& result,
             currentInst += dummyDuration;
           } else {
             invalidUnitsCreated++;
-//             cout << "Invalid unit up = "; up.Print(cout); cout << endl;
+  //             cout << "Invalid unit up = "; up.Print(cout); cout << endl;
           }
           currentPosition = subsegments[i].end;
           if (stopAfterThis) {
@@ -830,7 +905,10 @@ int sim_create_trip_VM ( Word* args, Word& result,
     if( subsegments.size() == 1 ) {
       // there is a subsegment left. Nothing happens here.
       currentSpeed = MAX(currentSpeed, 5.0);
-      double dist = subsegments[0].start.Distance(subsegments[0].end);
+      double dist = geoid?
+        subsegments[0].start.DistanceOrthodrome(subsegments[0].end,*geoid,ok)
+        :subsegments[0].start.Distance(subsegments[0].end);
+      assert(ok);
       dummyDuration.ReadFrom(dist/currentSpeed/24000); // time used to travel
                                                      // the subsegment t=s/v
       const Interval<Instant>
@@ -877,11 +955,12 @@ int sim_create_trip_VM ( Word* args, Word& result,
 
 const string sim_create_trip_Spec  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-    "( <text>stream(tuple(a1: t1) ... (an,tn) x ai x aj x instant x point -> "
-    "mpoint,\nfor ti = line, tj = real, tk = point</text--->"
-    "<text>_ sim_create_trip [LineAttr, VmaxAttr, StartInst, StartPoint ] \n"
-    " _ sim_create_trip [LineAttr, VmaxAttr, StartInst, StartPoint, Vstart ]"
+    "( <text>stream(tuple(a1: t1) ... (an,tn) x ai x aj x instant x point "
+    "[x real [x geoid] ] -> mpoint,\nfor ti = line, tj = real, tk = point"
     "</text--->"
+    "<text>_ sim_create_trip [LineAttr, VmaxAttr, StartInst, StartPoint] \n"
+    " _ sim_create_trip [LineAttr, VmaxAttr, StartInst, StartPoint, Vstart "
+    "[, Geoid] ]</text--->"
     "<text>Creates a mpoint value representing a simulated vehicle, "
     "starting at instant 'StartInst' and 'StartPoint' and moving along a "
     "trajectory formed by the stream of lines received from the stream "
@@ -889,7 +968,9 @@ const string sim_create_trip_Spec  =
     "trajectory and the maximum allowed speed for that street section. The "
     "velocity of the vehicle reflects street topology and random events. "
     "The sixth argument 'Vstart' is optional and sets the vehicle's initial "
-    "velocity. If omitted, Vmax is set to 0.0. </text--->"
+    "velocity. If omitted, Vmax is set to 0.0. The last parameter, Geoid, "
+    "must be used when working with geografic (LAT,LON) coordinates. "
+    "Otherwise euclidean (Easting,Northing) coordinates are used.</text--->"
     "<text>query _ sim_create_trip[ _ ]</text--->"
     ") )";
 
@@ -1224,7 +1305,7 @@ m/h. It has a default value of 1.0 m/d (=0.04167 m/h = 0.6944 mm/min = 0.01157 m
 
 ----
     sim_trips: (mpoint x duration       ) --> (stream mpoint)
-    sim_trips: (mpoint x duration x real) --> (stream mpoint)
+    sim_trips: (mpoint x duration x real [x geoid]) --> (stream mpoint)
 
 ----
 
@@ -1232,49 +1313,45 @@ m/h. It has a default value of 1.0 m/d (=0.04167 m/h = 0.6944 mm/min = 0.01157 m
 
 ListExpr sim_trips_TM ( ListExpr args )
 {
-  ListExpr arg1, arg2, arg3;
-  if ( nl->ListLength( args ) == 2 ) {
-    arg1 = nl->First( args );
-    arg2 = nl->Second( args );
-    if ( nl->AtomType( arg1 ) == SymbolType &&
-         nl->SymbolValue( arg1 ) == "mpoint"  &&
-         nl->AtomType( arg2 ) == SymbolType &&
-         nl->SymbolValue( arg2 ) == "duration") {
-      return nl->TwoElemList(nl->SymbolAtom("stream"),
-                             nl->SymbolAtom("mpoint"));
-    }
+  int noargs = nl->ListLength( args );
+  string errmsg = "Expected (mpoint x duration [x real [x geoid]]).";
+  if((noargs < 2) || (noargs >4)){
+    return listutils::typeError(errmsg);
   }
-
-  if ( nl->ListLength( args ) == 3 ) {
-    arg1 = nl->First( args );
-    arg2 = nl->Second( args );
-    arg3 = nl->Third( args );
-    if ( nl->AtomType( arg1 ) == SymbolType &&
-         nl->SymbolValue( arg1 ) == "mpoint"  &&
-         nl->AtomType( arg2 ) == SymbolType &&
-         nl->SymbolValue( arg2 ) == "duration" &&
-         nl->AtomType( arg3 ) == SymbolType &&
-         nl->SymbolValue( arg3 ) == "real") {
-      return nl->TwoElemList(nl->SymbolAtom("stream"),
-                             nl->SymbolAtom("mpoint"));
-    }
+  if(!listutils::isSymbol(nl->First( args ),MPoint::BasicType())
+     || !listutils::isSymbol(nl->Second( args ),"duration")){
+    return listutils::typeError(errmsg);
   }
-
-  ErrorReporter::
-      ReportError("SimulationAlgebra: sim_trips expected "
-      "(mpoint x duration) or (mpoint x duration x real)");
-  return (nl->SymbolAtom( "typeerror" ));
+  if((noargs>2) && (!listutils::isSymbol(nl->Third(args),CcReal::BasicType()))){
+    return listutils::typeError(errmsg);
+  }
+  if((noargs==4)&&(!listutils::isSymbol(nl->Fourth(args),Geoid::BasicType()))){
+    return listutils::typeError(errmsg);
+  }
+  return nl->TwoElemList(nl->SymbolAtom("stream"),
+                         nl->SymbolAtom(MPoint::BasicType()));
 }
 
-bool IsAlmostStationaryUPoint(const UPoint u, const double minVelocity)
+bool IsAlmostStationaryUPoint(const UPoint u, const double minVelocity,
+                              const Geoid* geoid, bool &ok)
 {
+  ok = true; // return parameter becomes false, iff invalid coordinates are used
   if( !u.IsDefined() ){
     assert (false);
     return false;
   }
   if (AlmostEqual(u.p0,u.p1) || (u.timeInterval.start == u.timeInterval.end) )
     return true;
-  double ds = u.p0.Distance(u.p1);
+  double ds = 0.0;
+  if(geoid){ // geographic coordinates
+//     cout << __PRETTY_FUNCTION__ << "Used Geoid!" << endl;
+    ds = u.p0.DistanceOrthodrome(u.p1,*geoid,ok);
+    if(!ok) {
+      return false;
+    }
+  } else { //euclidean coordinate
+    ds = u.p0.Distance(u.p1);
+  }
   double dt = (u.timeInterval.end - u.timeInterval.start).ToDouble();
   if (ds/dt < minVelocity)
     return true;
@@ -1284,7 +1361,7 @@ bool IsAlmostStationaryUPoint(const UPoint u, const double minVelocity)
 struct SplitMpointLocalInfo
 {
   SplitMpointLocalInfo():
-      pos( 0 ), size( 0 ), finished( true ), u1 ( UPoint(false) )
+      pos( 0 ), size( 0 ), finished( true ), u1 ( UPoint(false) ), geoid( 0 )
       {}
 
   int  pos;       // unit counter
@@ -1293,6 +1370,7 @@ struct SplitMpointLocalInfo
   bool finished;  // whether we are finished or not
   double minVelocity;
   UPoint u1;
+  Geoid* geoid;
 };
 
 int sim_trips_VM ( Word* args, Word& result,
@@ -1304,6 +1382,7 @@ int sim_trips_VM ( Word* args, Word& result,
   result = qp->ResultStorage( s );
   MPoint *res = 0;
   bool newtrip = false;
+  bool ok = true;
 
   switch (message)
   {
@@ -1315,7 +1394,7 @@ int sim_trips_VM ( Word* args, Word& result,
       sli->trip = 0;
       sli->minVelocity = 1.0; // default value for minimum velocity
 
-      if(qp->GetNoSons(s)==3)
+      if( (qp->GetNoSons(s)==3) || (qp->GetNoSons(s)==4) )
       {
         CcReal* mv = (CcReal*)args[2].addr;
         if(!mv->IsDefined())
@@ -1325,6 +1404,16 @@ int sim_trips_VM ( Word* args, Word& result,
           return 0;
         }
         sli->minVelocity = mv->GetRealval() * 24.0;
+
+        if(qp->GetNoSons(s)==4) {
+          sli->geoid = static_cast<Geoid*>(args[3].addr);
+          if(!sli->geoid->IsDefined()){
+            sli->minVelocity = 0;
+            sli->finished = true;
+            sli->u1 = UPoint(false);
+            return 0;
+          }
+        }
         if(sli->minVelocity < 0.0)
         { // negative minimal velocity -> return empty stream
           sli->minVelocity = 0;
@@ -1442,12 +1531,32 @@ int sim_trips_VM ( Word* args, Word& result,
         }
         else // ELSE: No Gap --- consecutive units
         {
-          if ( IsAlmostStationaryUPoint(sli->u1, sli->minVelocity) )
+          if ( IsAlmostStationaryUPoint(sli->u1, sli->minVelocity,
+                                        sli->geoid, ok) )
           // if ( AlmostEqual(sli->u1.p0, sli->u1.p1) )
           { // sli->u1 is constant
+            if(!ok){
+              MessageCenter* msg = MessageCenter::GetInstance();
+              NList msg_list(NList("simple") ,
+                    NList("Warning: invalid geografic coordinate found!"));
+              msg->Send(msg_list);
+              sli->finished = true;
+              result.setAddr(0);
+              return CANCEL;
+            }
             // if ( AlmostEqual(u2.p0, u2.p1) )
-            if ( IsAlmostStationaryUPoint(u2, sli->minVelocity) )
+            if ( IsAlmostStationaryUPoint(u2, sli->minVelocity, sli->geoid, ok))
             { // sli->u1 is constant and u2 is constant
+              if(!ok){
+                MessageCenter* msg = MessageCenter::GetInstance();
+                NList msg_list(NList("simple") ,
+                      NList("Warning: invalid geografic coordinate found!"));
+                msg->Send(msg_list);
+                sli->finished = true;
+                result.setAddr(0);
+                return CANCEL;
+              }
+
               if ( AlmostEqual(sli->u1.p1, u2.p0) )
               // if ( AlmostEqual(sli->u1.p0, u2.p0) )
               { // sli->u1 and u2 are constant AND equalvalue
@@ -1514,6 +1623,16 @@ int sim_trips_VM ( Word* args, Word& result,
             }
             else // sli->u1 is constant, u2 is nonconstant
             {
+              if(!ok){
+                MessageCenter* msg = MessageCenter::GetInstance();
+                NList msg_list(NList("simple") ,
+                      NList("Warning: invalid geografic coordinate found!"));
+                msg->Send(msg_list);
+                sli->finished = true;
+                result.setAddr(0);
+                return CANCEL;
+              }
+
               if ( (sli->u1.timeInterval.end - sli->u1.timeInterval.start )
                     >= *mindur )
               { // u1 is a pause.
@@ -1544,28 +1663,57 @@ int sim_trips_VM ( Word* args, Word& result,
           } // end sli->u1 is constant
           else // sli->u1 is nonconstant
           {
-            if ( IsAlmostStationaryUPoint(u2, sli->minVelocity) )
+            if(!ok){
+              MessageCenter* msg = MessageCenter::GetInstance();
+              NList msg_list(NList("simple") ,
+                    NList("Warning: invalid geografic coordinate found!"));
+              msg->Send(msg_list);
+              sli->finished = true;
+              result.setAddr(0);
+              return CANCEL;
+            }
+            if ( IsAlmostStationaryUPoint(u2, sli->minVelocity, sli->geoid, ok))
             // if (AlmostEqual(u2.p0, u2.p1))
             { // sli->u1 is nonconstant and u2 is constant
               // Add u1 to current trip.
-//               cout << " => Continue u1." << endl;
-//               cout << " Adding (7)"; sli->u1.Print(cout); cout << endl;
+  //               cout << " => Continue u1." << endl;
+  //               cout << " Adding (7)"; sli->u1.Print(cout); cout << endl;
+              if(!ok){
+                MessageCenter* msg = MessageCenter::GetInstance();
+                NList msg_list(NList("simple") ,
+                      NList("Warning: invalid geografic coordinate found!"));
+                msg->Send(msg_list);
+                sli->finished = true;
+                result.setAddr(0);
+                return CANCEL;
+              }
+
               res->MergeAdd( sli->u1 );
               sli->u1 = u2;
               if ( (u2.timeInterval.end - u2.timeInterval.start ) >= *mindur )
               { // start a new trip for current unit u2
-//                 cout << " => Deferred Pause u2. No revisit." << endl;
+  //                 cout << " => Deferred Pause u2. No revisit." << endl;
                 newtrip = true;
               }
               else
               {
-//                 cout << " => Continue u2." << endl;
+  //                 cout << " => Continue u2." << endl;
               }
             }
             else
             { // sli->u1 and u2 are nonconstant
-//               cout << " => Continue u1, u2." << endl;
-//               cout << " Adding (8)"; sli->u1.Print(cout); cout << endl;
+  //               cout << " => Continue u1, u2." << endl;
+  //               cout << " Adding (8)"; sli->u1.Print(cout); cout << endl;
+              if(!ok){
+                MessageCenter* msg = MessageCenter::GetInstance();
+                NList msg_list(NList("simple") ,
+                      NList("Warning: invalid geografic coordinate found!"));
+                msg->Send(msg_list);
+                sli->finished = true;
+                result.setAddr(0);
+                return CANCEL;
+              }
+
               res->MergeAdd( sli->u1 );
               sli->u1 = u2;
             }
@@ -1605,9 +1753,10 @@ int sim_trips_VM ( Word* args, Word& result,
 
 const string sim_trips_Spec  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
-    "( <text> mpoint x duration [ x real ] -> stream(mpoint)</text--->"
+    "( <text> mpoint x duration [ x real [ x geoid ] ] "
+    "-> stream(mpoint)</text--->"
     "<text>M sim_trips[ D ], "
-    "M sim_trips[ D , Vmin ]</text--->"
+    "M sim_trips[ D , Vmin [, Geoid] ]</text--->"
     "<text>Splits a single mpoint 'M' into a stream of mpoints representing"
     "single 'trips'. Endings of trips are recognized by 1) stationary "
     "intervals with a duration of at least 'D', and 2) enclosed undefined "
@@ -1620,7 +1769,10 @@ const string sim_trips_Spec  =
     "Stationary intervals are interpreted as "
     "'pauses' and will be returned as separate trips. For definition gaps, "
     "no Trip will be created. The parameter 'D' must be "
-    "positive ( > create_duration(0) ), 'Vmin' must be non-negative.</text--->"
+    "positive ( > create_duration(0) ), 'Vmin' must be non-negative. If the "
+    "optional last parameter Geoid is used, geografic (LON,LAT) coordinates "
+    "are used, otherwise euclidean (Easting,Northing) coordinates are "
+    "processed.</text--->"
     "<text>query train7 sim_trips[create_duration(0,1000)] count"
     "</text--->"
     ") )";
