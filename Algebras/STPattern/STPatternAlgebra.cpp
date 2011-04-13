@@ -490,13 +490,23 @@ re-checking all the constraints.
 */
 bool CSP::IsSupported(vector<Interval<CcReal> > sa, int index)
 {
-
-  bool supported=false; 
+  bool debugme= false;
+  bool supported=false;
+  if(debugme)
+  {
+    cerr<<endl<<assignedVars.size()<<endl;
+    for(unsigned int u=0; u<assignedVars.size(); u++)
+      cerr<< assignedVars[u];
+  }
   for(unsigned int i=0; i<assignedVars.size()-1; i++)
   {
-    for(unsigned int j=0; j<assignedVars.size(); j++)
+    for(unsigned int j=i; j<assignedVars.size(); j++)
     {
-      if(i== (unsigned int)index || j == (unsigned int)index )
+      if(debugme)
+        cerr<<endl<<"Checking constraints ("<<assignedVars[i] <<
+        ", "<< assignedVars[j] <<") and ("<< assignedVars[j] <<
+        ", "<< assignedVars[i] << ")";
+      if(assignedVars[i]== index || assignedVars[j] == index )
       {
         if(ConstraintGraph[assignedVars[i]][assignedVars[j]].size() != 0)
         {
@@ -751,8 +761,8 @@ void CSP::Print()
   {
     for(unsigned int j=0; j<SA[i].size(); j++)
     {
-      cout<<(SA[i][j].start.GetRealval()-3444)*24*60*60<< "\t "<<
-      (SA[i][j].end.GetRealval()-3444)*24*60*60 <<" | ";
+      cout<<(SA[i][j].start.GetRealval()-2972)*24*60*60<< "\t "<<
+      (SA[i][j].end.GetRealval()-2972)*24*60*60 <<" | ";
     }
     cout<<endl;
   }
