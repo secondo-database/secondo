@@ -41,14 +41,14 @@ public class TimeRenderer{
        if(intervals.size()==0){
           return connectedIntervals;
        }
-       Interval current = (Interval)intervals.get(0); 
+       Interval current = ((Interval)intervals.get(0)).copy(); 
        for(int i=1;i<intervals.size();i++){
           Interval in = (Interval) intervals.get(i);
           if(current.connected(in)){
             current.unionInternal(in);
           } else{
             connectedIntervals.add(current);
-            current = in;
+            current = in.copy();
           }
 
        }
