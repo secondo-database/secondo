@@ -681,8 +681,11 @@ public:
   lastTupleIndex(0), fileOpen(false)
   {
     blockFileName = _fp + "_" + int2string(_hv);
-    attrExtSize.resize(_an);
-    attrSize.resize(_an);
+    attrExtSize = new vector<double>(_an);
+    attrSize = new vector<double>(_an);
+
+//    attrExtSize.resize(_an);
+//    attrSize.resize(_an);
   }
 
   bool openFile()
@@ -725,7 +728,8 @@ public:
     }
     size_t tupleBlockSize =
         newTuple->GetBlockSize(coreSize, extensionSize, flobSize,
-                        &attrExtSize, &attrSize);
+                        attrExtSize, attrSize);
+//                        &attrExtSize, &attrSize);
     totalSize += (coreSize + extensionSize + flobSize);
     totalExtSize += (coreSize + extensionSize);
 
@@ -753,11 +757,11 @@ public:
     descList.append(NList(cnt));
     descList.append(NList(totalExtSize));
     descList.append(NList(totalSize));
-    int attrNum = attrExtSize.size();
+    int attrNum = attrExtSize->size();
     for(int i = 0; i < attrNum; i++)
     {
-      descList.append(NList(attrExtSize[i]));
-      descList.append(NList(attrSize[i]));
+      descList.append(NList((*attrExtSize)[i]));
+      descList.append(NList((*attrSize)[i]));
     }
 
     //put the base64 code of the description list to the file end.
@@ -772,8 +776,10 @@ public:
   {
     if (fileOpen)
       blockFile.close();
-    attrExtSize.clear();
-    attrSize.clear();
+    attrExtSize->clear();
+    delete attrExtSize;
+    attrSize->clear();
+    delete attrSize;
   }
 
   string getFileName() {
@@ -791,8 +797,8 @@ private:
   int cnt;
   int totalExtSize;
   int totalSize;
-  vector<double> attrExtSize;
-  vector<double> attrSize;
+  vector<double>* attrExtSize;
+  vector<double>* attrSize;
 
   size_t lastTupleIndex;
   bool fileOpen;
