@@ -2977,9 +2977,13 @@ or else these tuples are partitioned based on
 keyAttribute values' hash numbers directly,
 which may partitions these tuples NOT evenly.
 
-In both even or uneven partition mode,
-the key attribute will be removed from the export tuple files,
-just like what ~distribute~ operator does.
+It's also possible to accept the sixth parameter,
+KPA (Keep Partition Attribute),
+which indicates whether the key attribute is removed.
+By default it's false, i.e. remove that key attribute,
+just like what the ~distribute~ operator does.
+But if it's set to be true, then the key attribute will
+stay in the result files.
 
 5.16.0 Specification
 
@@ -2992,16 +2996,18 @@ struct FDistributeInfo : OperatorInfo {
     name = "fdistribute";
     signature =
         "stream(tuple(...)) x fileName x path "
-        "x attrName x [nBuckets]"
+        "x attrName x [nBuckets] x [KPA]"
         "-> stream(tuple(fileSufix, value))";
-    syntax = "_ fconsume[ _ , _ , _ , {_} ]";
+    syntax = "_ fconsume[ _ , _ , _ , {_} , {_}]";
     meaning =   "Export a stream of tuples into files that can "
         "be read by ffeed operator. "
         "Files are separated by their suffix index, "
         "which is a hash value based on the given attribute value"
         "and number of set buckets. "
         "If the parameter nBuckets is not given, "
-        "tuples may uneven partitioned.";
+        "tuples may uneven partitioned."
+        "Details about two optional parameters "
+        "are described in the source code";
   }
 
 };
@@ -3013,7 +3019,7 @@ struct FDistributeInfo : OperatorInfo {
 ListExpr FDistributeTypeMap(ListExpr args)
 {
   NList l(args);
-  string lenErr = "operator fdistribute expects 4/5 arguments.";
+  string lenErr = "operator fdistribute expects 4/5/6 arguments.";
   string tpeErr = "operator fdistribute expects "
       "(stream(tuple)) x string x text x symbol x [int]";
   string attErr = "operator fdistribute cannot find the "
@@ -3023,10 +3029,9 @@ ListExpr FDistributeTypeMap(ListExpr args)
   string err3 = "Fail by openning file: ";
 
   int len = l.length();
-  bool evenMode = true;
-  if (4 == len)
-    evenMode = false;
-  else if (5 != len)
+  bool evenMode = false;
+  bool setKPA = false, KPA = false;
+  if ((len < 4) || (len > 6))
     return l.typeError(lenErr);
 
   NList attrsList;
@@ -3055,22 +3060,47 @@ ListExpr FDistributeTypeMap(ListExpr args)
   if (attrIndex < 1)
     return l.typeError(attErr + attrName);
 
-  if (evenMode)
-    if (!l.fifth().first().isSymbol(symbols::INT))
+  if (5 == len)
+  {
+    NList fifth = l.fifth();
+    if (fifth.first().isSymbol(symbols::INT))
+      evenMode = true;
+    else if (fifth.first().isSymbol(symbols::BOOL))
+    {
+      setKPA = true;
+      KPA = fifth.second().boolval();
+    }
+    else
       return l.typeError(tpeErr);
+  }
+  else if (6 == len)
+  {
+    if (!l.fifth().first().isSymbol(symbols::INT) ||
+        !l.sixth().first().isSymbol(symbols::BOOL))
+      return l.typeError(tpeErr);
+    else
+    {
+      evenMode = true;
+      setKPA = true;
+      KPA = l.sixth().second().boolval();
+    }
+  }
 
   //Remove the attribute used for partition the relation
   NList newAL; //new attribute list
-  NList rest = attrsList;
-  while(!rest.isEmpty())
+  if (KPA)
+    newAL = attrsList;
+  else
   {
-    NList elem = rest.first();
-    rest.rest();
-
-    if (elem.first().str() != attrName)
-      newAL.append(elem);
+    NList rest = attrsList;
+    while (!rest.isEmpty())
+    {
+      NList elem = rest.first();
+      rest.rest();
+      if (elem.first().str() != attrName)
+        newAL.append(elem);
+    }
   }
-
   //Create the type file in local disk
   string typeFileName = fileName + "_type";
   NList fpList;
@@ -3097,6 +3127,7 @@ ListExpr FDistributeTypeMap(ListExpr args)
 
   return NList(NList("APPEND"),
                NList(
+                 NList(setKPA, true),
                  NList(attrIndex),
                  NList(
                    NList(NList(TUPLE), newAL).convertToString(),
@@ -3124,19 +3155,35 @@ int FDistributeValueMap(Word* args, Word& result,
       relName = ((CcString*)args[1].addr)->GetValue();
       path = ((FText*)args[2].addr)->GetValue();
 
-      int pos = 5;
-      bool evenMode = true;
-      if (qp->GetNoSons(s) < 7){
-        pos--;
-        evenMode = false;
-      }
+      bool evenMode = false, kpa = false;
       int nBucket = 0;
-      if (evenMode)
+      int len = qp->GetNoSons(s);
+      if (8 == len)
+      {
+        //Set nBucket or kpa
+        bool setKPA = ((CcBool*)args[5].addr)->GetValue();
+        if (setKPA)
+          kpa = ((CcBool*)args[4].addr)->GetValue();
+        else
+        {
+          evenMode = true;
+          nBucket = ((CcInt*)args[4].addr)->GetValue();
+        }
+      }
+      else if (9 == len)
+      {
+        //Set both nBucket and kpa
+        evenMode = true;
         nBucket = ((CcInt*)args[4].addr)->GetValue();
-      int attrIndex =
-            ((CcInt*)args[pos++].addr)->GetValue() - 1;
+        kpa = ((CcBool*)args[5].addr)->GetValue();
+      }
+
+      int tlpos = len -1;      //postition of the type list
       string inTupleTypeStr =
-               ((FText*)args[pos].addr)->GetValue();
+               ((FText*)args[tlpos].addr)->GetValue();
+      tlpos--;
+      int attrIndex =
+            ((CcInt*)args[tlpos].addr)->GetValue() - 1;
 
       ListExpr inTupleTypeList;
       nl->ReadFromString(inTupleTypeStr, inTupleTypeList);
@@ -3147,7 +3194,7 @@ int FDistributeValueMap(Word* args, Word& result,
       fdli = (FDistributeLocalInfo*) local.addr;
       if (fdli) delete fdli;
       fdli = new FDistributeLocalInfo(
-               relName, path, nBucket, attrIndex,
+               relName, path, nBucket, attrIndex, kpa,
                resultTupleList, inTupleTypeList);
       local.setAddr(fdli);
 
@@ -3191,10 +3238,9 @@ int FDistributeValueMap(Word* args, Word& result,
 }
 
 FDistributeLocalInfo::FDistributeLocalInfo(
-    string _bn, string _pt, int _nb, int _ai,
+    string _bn, string _pt, int _nb, int _ai, bool _kpa,
     ListExpr _rtl, ListExpr _itl)
-: nBuckets(_nb), attrIndex(_ai),
-  tupleCounter(0)
+: nBuckets(_nb), attrIndex(_ai), kpa(_kpa), tupleCounter(0)
 {
   filePath = getFilePath(_pt, _bn);
   resultTupleType = new TupleType(nl->Second(_rtl));
@@ -3222,7 +3268,7 @@ bool FDistributeLocalInfo::insertTuple(Word tupleWord)
 
   if (!(ok &&
         fp->writeTuple(tuple, tupleCounter,
-                       attrIndex, exportTupleType)))
+                       attrIndex, exportTupleType, kpa)))
     cerr << "Block File " << fp->getFileName() << " Write Fail.\n";
   tupleCounter++;
   tuple->DeleteIfAllowed();

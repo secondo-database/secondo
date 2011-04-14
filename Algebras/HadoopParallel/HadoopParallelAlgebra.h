@@ -703,21 +703,26 @@ public:
   }
 
   bool writeTuple(Tuple* tuple, size_t tupleIndex,
-       int attrIndex, TupleType* exTupleType)
+       int attrIndex, TupleType* exTupleType, bool kpa)
   {
     size_t coreSize = 0;
     size_t extensionSize = 0;
     size_t flobSize = 0;
 
     //The tuple written to the file need remove the key attribute
-    Tuple* newTuple = new Tuple(exTupleType);
-    int j = 0;
-    for (int i = 0; i < tuple->GetNoAttributes(); i++)
+    Tuple* newTuple;
+    if (kpa)
+      newTuple = tuple;
+    else
     {
-      if (i != attrIndex)
-        newTuple->CopyAttribute(i, tuple, j++);
+      newTuple = new Tuple(exTupleType);
+      int j = 0;
+      for (int i = 0; i < tuple->GetNoAttributes(); i++)
+      {
+        if (i != attrIndex)
+          newTuple->CopyAttribute(i, tuple, j++);
+      }
     }
-
     size_t tupleBlockSize =
         newTuple->GetBlockSize(coreSize, extensionSize, flobSize,
                         &attrExtSize, &attrSize);
@@ -729,8 +734,9 @@ public:
                          extensionSize, flobSize);
     blockFile.write(tBlock, tupleBlockSize);
     free(tBlock);
-    newTuple->DeleteIfAllowed();
-    lastTupleIndex = tupleIndex;
+    if (!kpa)
+      newTuple->DeleteIfAllowed();
+    lastTupleIndex = tupleIndex + 1;
     cnt++;
 
     return true;
@@ -820,12 +826,14 @@ private:
 
   size_t nBuckets;
   int attrIndex;
+  bool kpa;
   TupleType *resultTupleType, *exportTupleType;
   size_t tupleCounter;
 
 public:
   FDistributeLocalInfo(string baseName, string path,
                        int nBuckets, int attrIndex,
+                       bool keepKeyAttribute,
                        ListExpr resultTupleType,
                        ListExpr inputTupleType);
 
