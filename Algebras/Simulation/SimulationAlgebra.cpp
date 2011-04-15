@@ -177,7 +177,7 @@ We will define the following operators:
                                   x real x real x real -> bool
  sim_set_event_params:       real x real x real x real -> bool
  sim_create_trip:            stream(tuple( ... (a_m line) ... (a_n real) ... ))
-                                  x instant -> mpoint
+                                  x instant x real [x real [x geoid] ]-> mpoint
 
 ----
 
@@ -407,144 +407,74 @@ Create a moving point from a stream of lines and a startung instant.
 ListExpr sim_create_trip_TM ( ListExpr args )
 {
   int len = nl->ListLength(args);
-  if((len != 5) && (len != 6) && (len != 7)) {
-    ErrorReporter::ReportError("five, six, or seven arguments expected");
-    return nl->SymbolAtom("typeerror");
+  if((len != 6) && (len != 7) && (len != 8)) {
+    return listutils::typeError("6, 7, or 8 arguments expected.");
   }
-  // extract the attribute names
+
+  // 1st arg: stream
+  ListExpr arg1 = nl->First(args);
+  if(!listutils::isTupleStream(arg1)) {
+    return listutils::typeError("1st argument must be a stream(tuple(X)).");
+  }
+  // extract the attribute names (2nd & 3rd argument)
   ListExpr a1list = nl->Second(args);
   ListExpr a2list = nl->Third(args);
-
-  if(nl->AtomType(a1list)!=SymbolType) {
-    ErrorReporter::ReportError("the second argument has to be a symbol");
-    return nl->SymbolAtom("typeerror");
+  if(!listutils::isSymbol(a1list) || !listutils::isSymbol(a2list)){
+    return listutils::typeError("2nd and 3rd argument must be identifiers.");
   }
-  if(nl->AtomType(a2list)!=SymbolType) {
-    ErrorReporter::ReportError("the third argument has to be a symbol");
-    return nl->SymbolAtom("typeerror");
+  ListExpr attrlist = nl->Second(nl->Second(arg1));
+  ListExpr type1;
+  int a1index= listutils::findAttribute(attrlist,nl->SymbolValue(a1list),type1);
+  if (a1index == 0){
+    return listutils::typeError("Argument 2 must name an attribute from "
+                                "the tuple stream!");
   }
-  string a1 = nl->SymbolValue(a1list);
-  string a2 = nl->SymbolValue(a2list);
-
-  string restype="";
-  int a1index = -1;
-  int a2index = -1;
-
-  ListExpr stype = nl->First(args);
-  if(nl->AtomType(stype)!=NoAtom) {
-    ErrorReporter::ReportError("stream(tuple(...))"
-        " expected as the first argument");
-    return nl->SymbolAtom("typeerror");
+  if(!listutils::isSymbol(type1,Line::BasicType())){
+    return listutils::typeError("Argument 2 must name an attribute of type "
+                                "'line'!");
   }
-
-  if((nl->ListLength(stype)!=2) ||
-      (!nl->IsEqual(nl->First(stype),"stream" ))) {
-    ErrorReporter::ReportError("stream(tuple(...))"
-        " expected as the first argument");
-    return nl->SymbolAtom("typeerror");
+  ListExpr type2;
+  int a2index= listutils::findAttribute(attrlist,nl->SymbolValue(a2list),type2);
+  if (a2index == 0){
+    return listutils::typeError("Argument 3 must name an attribute from "
+                                "the tuple stream!");
   }
-
-  ListExpr ttype = nl->Second(stype);
-
-  if((nl->ListLength(ttype)!=2) ||
-      (!nl->IsEqual(nl->First(ttype),"tuple" ))) {
-    ErrorReporter::ReportError("stream(tuple(...))"
-        " expected as the first argument");
-    return nl->SymbolAtom("typeerror");
+  if(!listutils::isSymbol(type2,CcReal::BasicType())){
+    return listutils::typeError("Argument 3 must name an attribute of type "
+                                "'real'!");
   }
+  a1index--; // translate position to attribute index to use in VM
+  a2index--; // translate position to attribute index to use in VM
 
-  ListExpr attributes = nl->Second(ttype);
-  if(nl->AtomType(attributes)!=NoAtom) {
-    ErrorReporter::ReportError("invalid tuple type");
-    return nl->SymbolAtom("typeerror");
+  // 4th argument: instant
+  ListExpr arg4 = nl->Fourth(args);
+  if(!listutils::isSymbol(arg4,DateTime::BasicType())){
+    return listutils::typeError("Argument 4 must be of type 'instant'!");
   }
-  int pos = 0;
-  while(!nl->IsEmpty(attributes)) {
-    ListExpr attr = nl->First(attributes);
-    if( (nl->AtomType(attr)!=NoAtom) ||
-         (nl->ListLength(attr)!=2)) {
-      ErrorReporter::ReportError("invalid tuple type");
-      return nl->SymbolAtom("typeerror");
-    }
-    ListExpr anl = nl->First(attr);
-    ListExpr atl = nl->Second(attr);
-    if( (nl->AtomType(anl)!=SymbolType) ||
-         (nl->AtomType(atl)!=SymbolType)) {
-      ErrorReporter::ReportError("invalid tuple type");
-      return nl->SymbolAtom("typeerror");
-    }
-
-    string aname = nl->SymbolValue(anl);
-    if(aname==a1) {
-      if(a1index>=0) {
-        ErrorReporter::ReportError("attr name occurs twice");
-        return nl->SymbolAtom("typeerror");
-      }
-      if(!nl->IsEqual(atl,"line")) {
-        ErrorReporter::
-            ReportError("first attr (Trajectory) has to be of type 'line'");
-        return nl->SymbolAtom("typeerror");
-      }
-      a1index = pos;
-    }
-
-    if(aname==a2) {
-      if(a2index >= 0) {
-        ErrorReporter::ReportError("attr name occurs twice");
-        return nl->SymbolAtom("typeerror");
-      }
-      string a2type = nl->SymbolValue(atl);
-      if(a2type=="real") {
-        restype = "mpoint";
-      } else {
-        ErrorReporter::
-            ReportError("seocond attr (maximimum velocity) has to be of"
-            " type 'real'");
-        return nl->SymbolAtom("typeerror");
-      }
-      a2index = pos;
-    }
-    pos++;
-    attributes = nl->Rest(attributes);
-  }
-
-  if(a1index<0) {
-    ErrorReporter::ReportError("first attr name does"
-        " not occur in the typle");
-    return nl->SymbolAtom("typeerror");
-  }
-
-  if(a2index<0) {
-    ErrorReporter::ReportError("second attr name does"
-        " not occur in the typle");
-    return nl->SymbolAtom("typeerror");
-  }
-
+  // 5th argument: point
   ListExpr arg5 = nl->Fifth(args);
-  if ( !(nl->AtomType( arg5 ) == SymbolType) ||
-         !(nl->SymbolValue( arg5 ) == Point::BasicType())
-     ) {
-    ErrorReporter::ReportError("fifth argument must be of type 'point'" );
-    return (nl->SymbolAtom( "typeerror" ));
+  if(!listutils::isSymbol(arg5,Point::BasicType())){
+    return listutils::typeError("Argument 5 must be of type 'point'!");
   }
-
+  // 6th argument: real
+  ListExpr arg6 = nl->Nth(6,args);
+  if ( !listutils::isSymbol(arg6,CcReal::BasicType()) ) {
+    return listutils::typeError("Argument 6 must be of type 'real'" );
+  }
 
   ListExpr ind;
 
-  if ( (len == 6) || (len == 7) ) {// explicit starting velocity
-    ListExpr arg6 = nl->Sixth(args);
-    if ( !(nl->AtomType( arg6 ) == SymbolType) ||
-           !(nl->SymbolValue( arg6 ) == CcReal::BasicType())
-       ) {
-      ErrorReporter::
-          ReportError("optional sixth argument must be of type 'real'" );
-      return (nl->SymbolAtom( "typeerror" ));
+  if ( (len == 7) || (len == 8) ) {// explicit starting velocity
+    ListExpr arg7 = nl->Nth(7,args);
+    if ( !listutils::isSymbol(arg7,CcReal::BasicType()) ) {
+      return listutils::typeError("Optional 7th argument must be of type "
+                                  "'real'" );
     }
 
-    if(len==7){
-      ListExpr arg7 = nl->Nth(7,args);
-      if(!listutils::isSymbol(arg7,Geoid::BasicType())) {
-        return listutils::typeError("7th argument must be of type '"+
+    if(len==8){
+      ListExpr arg8 = nl->Nth(8,args);
+      if(!listutils::isSymbol(arg8,Geoid::BasicType())) {
+        return listutils::typeError("Optional 8th argument must be of type '"+
                                     Geoid::BasicType()+"'.");
       }
     }
@@ -558,7 +488,7 @@ ListExpr sim_create_trip_TM ( ListExpr args )
 
   return nl->ThreeElemList(nl->SymbolAtom("APPEND"),
                            ind,
-                           nl->SymbolAtom(restype));
+                           nl->SymbolAtom(MPoint::BasicType()));
 }
 
 
@@ -568,43 +498,6 @@ struct Subsegment
   Point end;
 };
 
-
-  // calculate the enclosed angle between (a,b) and (b,c) in degrees
-double calcEnclosedAngle( const Point &a,
-			  const Point &b,
-			  const Point &c,
-			  const Geoid* geoid){
-  double beta = 0.0;
-  errno = 0;
-  if(geoid){ // use sperical trigonometry
-    // very simplistic, works for short distances, but
-    // should be improved!
-    bool ok = true;
-    double la = b.DistanceOrthodrome(c,*geoid, ok); // la = |(b,c)|
-    assert(ok);
-    double lb = a.DistanceOrthodrome(c,*geoid, ok); // lb = |(a,c)|
-    assert(ok);
-    double lc = a.DistanceOrthodrome(b,*geoid, ok); // lc = |(a,b)|
-    assert(ok);
-    assert(la != 0.0);
-    assert(lc != 0.0);
-    double cosb = (la*la + lc*lc - lb*lb) / (2*la*lc);
-    cosb = max(cosb, -1.0);
-    cosb = min(cosb, 1.0);
-    beta = acos ( cosb ) * 180.0 / M_PI;
-    assert(errno == 0);
-  } else { // use euclidean geometry
-    double la = b.Distance(c);
-    double lb = a.Distance(c);
-    double lc = a.Distance(b);
-    double cosb = (la*la + lc*lc - lb*lb) / (2*la*lc);
-    cosb = max(cosb, -1.0);
-    cosb = min(cosb, 1.0);
-    beta = acos ( cosb ) * 180.0 / M_PI;
-    assert(errno == 0);
-  }
-  return beta;
-}
 
 int sim_create_trip_VM ( Word* args, Word& result,
                          int message, Word& local, Supplier s )
@@ -622,16 +515,17 @@ int sim_create_trip_VM ( Word* args, Word& result,
   result = qp->ResultStorage( s );
   Geoid* geoid = 0;
   int argoffset = 0;
-  if(qp->GetNoSons(s)==9){
+  if(qp->GetNoSons(s)==10){
     argoffset = 1;
-    geoid = static_cast<Geoid*>(args[6].addr);
+    geoid = static_cast<Geoid*>(args[7].addr);
   }
-  MPoint*        res = ((MPoint*)result.addr);
-  CcInt*  cLineIndex = (CcInt*) args[6+argoffset].addr;
-  CcInt*  cVmaxIndex = (CcInt*) args[7+argoffset].addr;
-  Instant* instStart = (Instant*) args[3].addr;
-  Point*  pointStart = (Point*) args[4].addr;
-  CcReal*    cVstart = (CcReal*) args[5].addr;
+  MPoint*        res = static_cast<MPoint*>(result.addr);
+  CcInt*  cLineIndex = static_cast<CcInt*>(args[7+argoffset].addr);
+  CcInt*  cVmaxIndex = static_cast<CcInt*>(args[8+argoffset].addr);
+  Instant* instStart = static_cast<Instant*>(args[3].addr);
+  Point*  pointStart = static_cast<Point*>(args[4].addr);
+  CcReal*  cTopSpeed = static_cast<CcReal*>(args[5].addr);
+  CcReal*    cVstart = static_cast<CcReal*>(args[6].addr);
   long    tuplesReceived = 0;
   long    tuplesAccepted = 0;
   long invalidUnitsCreated = 0;
@@ -640,6 +534,7 @@ int sim_create_trip_VM ( Word* args, Word& result,
 //   cout << "cVmaxIndex = "; cVmaxIndex->Print(cout); cout << endl;
 //   cout << "instStart = "; instStart->Print(cout); cout << endl;
 //   cout << "pointStart = "; pointStart->Print(cout); cout << endl;
+//   cout << "cTopSpeed = "; topSpeed->Print(cout); cout << endl;
 //   cout << "cVstart = "; cVstart->Print(cout); cout << endl;
 //   cout << "geoid = "; if(geoid){ cout << *geoid; } else { cout << "0"; }
 //   cout << endl;
@@ -647,18 +542,35 @@ int sim_create_trip_VM ( Word* args, Word& result,
   res->Clear();
   res->SetDefined( true );
   res->StartBulkLoad();
+  MessageCenter* msg = MessageCenter::GetInstance();
 
   if( instStart->IsDefined() && pointStart->IsDefined() &&
       cVstart->IsDefined() &&
-      cLineIndex->IsDefined() && cVmaxIndex->IsDefined() ){
+      cLineIndex->IsDefined() && cTopSpeed->IsDefined() &&
+      cVmaxIndex->IsDefined() ){
     vector<Subsegment> subsegments(0);
     int          lineIndex = cLineIndex->GetIntval();
     int          VmaxIndex = cVmaxIndex->GetIntval();
     Instant    currentInst = *instStart;
-    double     currentVmax = 0.0;
+    double            Vtop = cTopSpeed->GetValue();
+    double    currentSpeed = cVstart->GetRealval();
+    if( Vtop<=0.0 ){
+      NList msg_list(NList("simple") ,
+      NList("Warning: invalid top speed in operator create_sim_trip!"));
+      msg->Send(msg_list);
+    }
+    if( currentSpeed<0.0 ){
+      NList msg_list(NList("simple") ,
+      NList("Warning: invalid top speed in operator create_sim_trip!"));
+      msg->Send(msg_list);
+    }
+    if( (Vtop<=0.0) || (currentSpeed<0.0) ){
+      res->SetDefined( false );
+      return 0;
+    }
     Instant    currentTime = *instStart;
     Point  currentPosition = *pointStart;
-    double    currentSpeed = cVstart->GetRealval();
+    double     currentVmax = MIN(Vtop,currentVmax);
     double       localVmax = 0.0;
     double    lastMaxSpeed = -1.0;
     bool     stopAfterThis = false;
@@ -837,15 +749,17 @@ int sim_create_trip_VM ( Word* args, Word& result,
             } else {
               // no event: accelerate up to localVmax
               localVmax =
-                  MIN(currentSpeed+sim_event_param_acceleration, currentVmax);
+                  MIN(MIN(currentSpeed+sim_event_param_acceleration,
+                          currentVmax),
+                          Vtop);
             }
             // calculate steepness of curves
             double alpha =
                   !AlmostEqual(subsegments[i].end, subsegments[i+1].end)
-                  ? calcEnclosedAngle(subsegments[i].start,
-                                      subsegments[i].end,
-                                      subsegments[i+1].end,
-                                      geoid)
+                  ? Point::calcEnclosedAngle(subsegments[i].start,
+                                             subsegments[i].end,
+                                             subsegments[i+1].end,
+                                             geoid)
                   : 0.0;
             cout.precision(16);
             // cout << "alpha = " << alpha << endl;
@@ -854,7 +768,7 @@ int sim_create_trip_VM ( Word* args, Word& result,
                   (1.0-( fmod(fabs(alpha - 180.0), 180.0) )/180.0)
                   * currentVmax;
             // cout << "curveMax = " << curveMax << endl;
-            localVmax = MIN( localVmax, curveMax );
+            localVmax = MIN(MIN( localVmax, curveMax ), Vtop );
             currentSpeed = localVmax;
           } else if (i == subsegments.size()-1 ) {
             // This is the last subsegment. Delete all subsegments,
@@ -942,6 +856,7 @@ int sim_create_trip_VM ( Word* args, Word& result,
     cout << "sim_create_trip_VM: undefined Argument: " << endl;
     cout << "  StartInstant:  " << instStart->IsDefined() << endl;
     cout << "  StartPoint:    " << pointStart->IsDefined() << endl;
+    cout << "  TopSpeed:      " << cTopSpeed->IsDefined(); cout << endl;
     cout << "  StartVelocity: " << cVstart->IsDefined() << endl;
     cout << "  LineIndex:     " << cLineIndex->IsDefined() << endl;
     cout << "  VelocityIndex: " << cVmaxIndex->IsDefined() << endl;
@@ -960,20 +875,20 @@ int sim_create_trip_VM ( Word* args, Word& result,
 const string sim_create_trip_Spec  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
     "( <text>stream(tuple(a1: t1) ... (an,tn) x ai x aj x instant x point "
-    "[x real [x geoid] ] -> mpoint,\nfor ti = line, tj = real, tk = point"
-    "</text--->"
-    "<text>_ sim_create_trip [LineAttr, VmaxAttr, StartInst, StartPoint] \n"
-    " _ sim_create_trip [LineAttr, VmaxAttr, StartInst, StartPoint, Vstart "
-    "[, Geoid] ]</text--->"
+    "x real [x real [x geoid] ] -> mpoint,\n"
+    "for ti = line, tj = real, tk = point</text--->"
+    "<text>_ sim_create_trip [LineAttr, VmaxAttr, StartInst, StartPoint, "
+    ", Vtop [, Vstart [, Geoid] ]</text--->"
     "<text>Creates a mpoint value representing a simulated vehicle, "
     "starting at instant 'StartInst' and 'StartPoint' and moving along a "
     "trajectory formed by the stream of lines received from the stream "
     "argument. The stream contains tuples describing subsequent parts of the "
     "trajectory and the maximum allowed speed for that street section. The "
     "velocity of the vehicle reflects street topology and random events. "
-    "The sixth argument 'Vstart' is optional and sets the vehicle's initial "
-    "velocity. If omitted, Vmax is set to 0.0. The last parameter, Geoid, "
-    "must be used when working with geografic (LAT,LON) coordinates. "
+    "The sixth argument 'Vtop' is to object's top speed. 'Vstart' is optional "
+    "and sets the vehicle's initial velocity. If omitted, Vmax is set to 0.0."
+    " The last parameter 'Geoid' must be used when working with geographic "
+    "(LAT,LON) coordinates. "
     "Otherwise euclidean (Easting,Northing) coordinates are used.</text--->"
     "<text>query _ sim_create_trip[ _ ]</text--->"
     ") )";
