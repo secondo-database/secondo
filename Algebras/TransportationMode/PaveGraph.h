@@ -325,6 +325,8 @@ public:
     int GetTriId_OfPoint(Point& loc);
     void DFTraverse2(R_Tree<2,TupleId>* rtree, SmiRecordId adr,
                           Point& loc, vector<int>& tri_oid_list);
+    void DFTraverse3(R_Tree<2,TupleId>* rtree, SmiRecordId adr,
+                          Point& loc, vector<int>& tri_oid_list, double dist);
     //////////////////////////////////////////////////////////////////
     int min_tri_oid_1; //smaller than the minimum tri oid (minoid - 1)
 
@@ -751,12 +753,42 @@ struct GeomEdge{
 
 ////////////// minimum area for a region and a rectangle ///////////////////
 //////// the building should be complex so that it coveras a large area/////
-const float mini_reg_area = 1000.0; 
-const float mini_rect_area = 800.0; 
-const float maxi_rect_area = 8000.0; 
-const float mini_tri_area = 100.0; 
-const float maxi_tri_area = 20000.0;
+ const float mini_reg_area = 1000.0; 
+// const float mini_rect_area = 800.0; 
+// const float maxi_rect_area = 8000.0; 
+// const float mini_tri_area = 100.0; 
+// const float maxi_tri_area = 20000.0;
+
+
+const float mini_rect_area = 100.0; 
+const float maxi_rect_area = 15000.0; 
+const float mini_tri_area = 200.0; 
+const float maxi_tri_area = 30000.0;
+
 const float mini_dist_build = 15.0; 
+
+struct Build_Rect{
+  int reg_id;
+  Rectangle<2> rect;
+  int poly_id;
+  int reg_type;
+  int build_type;
+  bool init;
+  int quadrant;
+  Build_Rect(){}
+  Build_Rect(int id1, Rectangle<2>& r, int id2, int t):
+  reg_id(id1), rect(r), poly_id(id2), reg_type(t){
+    build_type = 0, init = false; quadrant = 0;
+  }
+  Build_Rect(const Build_Rect& br):reg_id(br.reg_id), rect(br.rect),
+  poly_id(br.poly_id), reg_type(br.reg_type), build_type(br.build_type),
+  init(br.init), quadrant(br.quadrant){}
+  void Print()
+  {
+    cout<<"reg_id "<<reg_id<<" rect "<<rect<<" poly_id "<<poly_id
+        <<" reg_type "<<reg_type<<endl;
+  }
+};
 
 struct MaxRect{
 
@@ -795,13 +827,22 @@ struct MaxRect{
     BTree* btree;
     vector<Point> sp_list;
     vector<Point> ep_list;
+
+    vector<Point> ep_list2;
     vector<Line> path_list; 
+
+    vector<int> build_id_list;
+    vector<GenLoc> genloc_list;
+    vector<int> sp_type_list;
+
+    vector<int> build_type_list;
+    vector<string> build_type2_list;
     
     unsigned int count;
     TupleType* resulttype;
-    enum BuildingType{HOUSE = 0, APARTMENT, UNIVERSITY, OFFICEBUILDING,
-    CINEMA, SHOPPINGMALL, HOTEL, TRAINSTATION, LIBRARY, SCHOOL,
-    HOSPITAL, AIRPORT}; 
+//     enum BuildingType{HOUSE = 0, APARTMENT, UNIVERSITY, OFFICEBUILDING,
+//     CINEMA, SHOPPINGMALL, HOTEL, TRAINSTATION, LIBRARY, SCHOOL,
+//     HOSPITAL, AIRPORT}; 
     enum BuildingRect{REG_ID = 0, GEODATA, POLY_ID, REG_TYPE};
     enum RegionElem{REGID=0, COVAREA}; 
 
@@ -863,11 +904,58 @@ struct MaxRect{
     /////////////positive coordinates///////////////////////////////////////
     bool ValidRegion(Region* r); 
     ////////build the path between the entrance of the building and pavement///
-    void PathToBuilding();
-    void SetBoundaryPoint(Point& bounday_p, vector<Rectangle<2> > hole_list, 
-                          Region* r); 
-    void CreateEntranceforBuilding(Region* r, vector<int>& tid_list); 
-    void RegionWithHole(vector<Rectangle<2> >& hole_list, Region* reg);
+    void PathToBuilding(Space*);
+    void CreateEntranceforBuilding(Region* r, vector<int>& tid_list, 
+                                   DualGraph* dg, int64_t& build_id); 
+    bool RegionWithHole(vector<Rectangle<2> >& hole_list, Region* reg);
+    void SetStartAndEndPoint(Region* r, Rectangle<2>* rect, 
+                             Point& sp, Point& ep);
+    void MapToPavement(DualGraph* , Point loc);
+    ////////////set the type for each rectange(building)///////////////////
+    void SetBuildingType(R_Tree<2,TupleId>* rtree);
+
+    void SetAirPort(vector<Build_Rect>& list, R_Tree<2,TupleId>* rtree);
+    bool NoNeighbor(Build_Rect& br, R_Tree<2,TupleId>* rtree);
+    void DFTraverse1(R_Tree<2,TupleId>* rtree, SmiRecordId adr, 
+                    Rectangle<2>& rect, vector<int>& tri_oid_list);
+
+    void SetTrainStation(vector<Build_Rect>& list);
+
+    void SetCinema(vector<Build_Rect>& build_rect_list, 
+                   unsigned int no, Rectangle<2> bbox);
+    bool NoNeighborCinema(vector<Build_Rect>& list1, Build_Rect br,
+                          Rectangle<2> bbox);
+    
+    void SetHotel(vector<Build_Rect>& build_rect_list, unsigned int no,
+                  Rectangle<2> bbox);
+    bool NoNeighborHotel(vector<Build_Rect>& list1, Build_Rect br,
+                         Rectangle<2> bbox);
+
+    void SetShopMall(vector<Build_Rect>& build_rect_list, unsigned int no,
+                  Rectangle<2> bbox);
+    bool NoNeighborShopMall(vector<Build_Rect>& list1, Build_Rect br,
+                         Rectangle<2> bbox);
+
+    void SetOffice24(vector<Build_Rect>& build_rect_list, unsigned int no);
+
+
+    void SetHospital(vector<Build_Rect>& build_rect_list, unsigned int no);
+    bool NoNeighborHospital(vector<Build_Rect>& list1, Build_Rect br);
+    bool NoNearbyShopMallAndCinema(vector<Build_Rect>& list, Build_Rect br);
+
+    void SetLibrary(vector<Build_Rect>& build_rect_list, unsigned int no);
+    bool NoNeighborLibrary(vector<Build_Rect>& list, Build_Rect br);
+    bool NoNearbyCommercialBuilding(vector<Build_Rect>& list, Build_Rect br);
+    
+    void SetSchool(vector<Build_Rect>& build_rect_list, unsigned int no);
+    bool NoNeighborSchool(vector<Build_Rect>& list, Build_Rect br);
+    
+    void SetUniversity(vector<Build_Rect>& list, unsigned int no);
+    bool NoNeighborUniversity(vector<Build_Rect>& list, Build_Rect br);
+    
+    
+    void SetHouse(vector<Build_Rect>& build_rect_list, unsigned int no);
+    bool NoNearbyNeighbors1(vector<Build_Rect>& list, Build_Rect br);
 };
 
 bool RegContainRect(Region* reg, Rectangle<2>& rect);

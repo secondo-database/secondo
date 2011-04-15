@@ -3544,6 +3544,41 @@ void DualGraph::DFTraverse2(R_Tree<2,TupleId>* rtree, SmiRecordId adr,
   delete node;
 
 }
+
+/*
+find all triangles that their distances to the input point is smaller than 
+the given distance threshold 
+
+*/
+void DualGraph::DFTraverse3(R_Tree<2,TupleId>* rtree, SmiRecordId adr, 
+                          Point& loc, vector<int>& tri_oid_list, double dist)
+{
+  R_TreeNode<2,TupleId>* node = rtree->GetMyNode(adr,false,
+                  rtree->MinEntries(0), rtree->MaxEntries(0));
+  for(int j = 0;j < node->EntryCount();j++){
+      if(node->IsLeaf()){
+              R_TreeLeafEntry<2,TupleId> e =
+                 (R_TreeLeafEntry<2,TupleId>&)(*node)[j];
+              Tuple* dg_tuple = node_rel_sort->GetTuple(e.info, false);
+              Region* candi_reg =
+                     (Region*)dg_tuple->GetAttribute(PAVEMENT);
+
+              if(candi_reg->Distance(loc) < dist){
+                  tri_oid_list.push_back(e.info);
+              }
+              dg_tuple->DeleteIfAllowed();
+      }else{
+            R_TreeInternalEntry<2> e =
+                (R_TreeInternalEntry<2>&)(*node)[j];
+            if(loc.Distance(e.box) < dist){
+                DFTraverse3(rtree, e.pointer, loc, tri_oid_list, dist);
+            }
+      }
+  }
+  delete node;
+
+}
+
 //////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////
 Walk_SP::Walk_SP()
@@ -8838,11 +8873,20 @@ which point to select on the polygon boundary:
 which point to set as the entrance of the building on the rectangle 
 
 */
-void MaxRect::PathToBuilding()
+void MaxRect::PathToBuilding(Space* gl_sp)
 {
-  cout<<"build the connection between the entrance of building and pavement"
-      <<endl; 
-  cout<<"not completed finished"<<endl;
+//  cout<<"build the connection between the entrance of building and pavement"
+//      <<endl;
+
+  Pavement* pave = gl_sp->LoadPavement(IF_REGION);
+  DualGraph* dg = pave->GetDualGraph();
+  int64_t cur_max_ref_id = gl_sp->MaxRefId() + 1;
+//  cout<<" max ref id "<<cur_max_ref_id<<endl; 
+  if(cur_max_ref_id == 0){
+    cout<<"!!! the space is empty"<<endl;
+    return;
+  }
+
   /////for each original polygon, it collects all rectangles inside /////
   //////select point from the polygon boundary //////
   /////for each rectangle, it also selects a point on its boundary///////
@@ -8850,10 +8894,10 @@ void MaxRect::PathToBuilding()
     Tuple* poly_tuple = rel2->GetTuple(i, false);
     int poly_id = ((CcInt*)poly_tuple->GetAttribute(REGID))->GetIntval(); 
 
-    if(poly_id != 2289){
-        poly_tuple->DeleteIfAllowed();
-        continue; 
-    }
+//     if(poly_id != 2494){
+//         poly_tuple->DeleteIfAllowed();
+//         continue; 
+//     }
 
     CcInt* search_id = new CcInt(true, poly_id);
     BTreeIterator* btree_iter = btree->ExactMatch(search_id);
@@ -8868,31 +8912,41 @@ void MaxRect::PathToBuilding()
     delete btree_iter;
     delete search_id;
 
-    cout<<"poly_id "<<poly_id<<" tid size "<<rect_tid_list.size()<<endl; 
+//    cout<<"poly_id "<<poly_id<<" tid size "<<rect_tid_list.size()<<endl; 
     if(rect_tid_list.size() > 0){
       Region* poly = (Region*)poly_tuple->GetAttribute(COVAREA); 
-      CreateEntranceforBuilding(poly, rect_tid_list);
+      CreateEntranceforBuilding(poly, rect_tid_list, dg, cur_max_ref_id);
     }
 
     poly_tuple->DeleteIfAllowed();
 
  /*   if(rect_tid_list.size() > 0)
         break; */
+
   }
+  if(cur_max_ref_id > 999999){
+    cout<<"we assume the first six numbers are for building id"<<endl;
+    cout<<"!!!! building id number overflow !!!"<<endl;
+  }
+
+  pave->CloseDualGraph(dg);
+  gl_sp->ClosePavement(pave);
 
 }
 
 /*
-create the path in the polygon to the building entrance 
+create the path in the polygon for the building entrance 
 
 */
-void MaxRect::CreateEntranceforBuilding(Region* r, vector<int>& tid_list)
+void MaxRect::CreateEntranceforBuilding(Region* r, 
+                                        vector<int>& tid_list, DualGraph* dg,
+                                        int64_t& build_id)
 {
   HalfSegment hs;
   r->Get(0, hs);
   Point boundary_p = hs.GetLeftPoint(); 
   vector<Rectangle<2> > hole_list; 
-  
+
   for(unsigned int i = 0;i < tid_list.size();i++){
     Tuple* rect_tuple = rel1->GetTuple(tid_list[i], false);
 //    int reg_id = ((CcInt*)rect_tuple->GetAttribute(REG_ID))->GetIntval();
@@ -8902,36 +8956,205 @@ void MaxRect::CreateEntranceforBuilding(Region* r, vector<int>& tid_list)
     rect_tuple->DeleteIfAllowed();
   }
 
-  SetBoundaryPoint(boundary_p, hole_list, r); 
-
-  Region* reg = new Region(0);
-  *reg = *r; 
-  RegionWithHole(hole_list, reg);
-  
   ////////////////create a region using these rectangels as holes/////////////
  for(unsigned int i = 0;i < tid_list.size();i++){
     Tuple* rect_tuple = rel1->GetTuple(tid_list[i], false);
     int reg_id = ((CcInt*)rect_tuple->GetAttribute(REG_ID))->GetIntval();
     Rectangle<2>* rect = (Rectangle<2>*)rect_tuple->GetAttribute(GEODATA);
-    Point lp(true, rect->MinD(0), rect->MinD(1));
-//    cout<<"poly_id "<<poly_id<<*rect<<endl; 
-    Line* path = new Line(0);
-    cout<<"sp "<<lp<<" ep "<<boundary_p<<endl; 
-    ShortestPath_InRegion(reg, &lp, &boundary_p, path);
-    assert(path->Length() > 0.0);
-    cout<<"length "<<path->Length()<<endl; 
-    reg_id_list.push_back(reg_id);
-    sp_list.push_back(lp);
-    ep_list.push_back(boundary_p); 
-    path_list.push_back(*path);
+    Point sp(true, 0, 0);
+    Point ep(true, 0, 0);
+    SetStartAndEndPoint(r, rect, sp, ep);
+
+//    cout<<"sp "<<sp<<" ep "<<ep<<endl; 
+     Line* path = new Line(0);
+     if(!AlmostEqual(sp, ep)){
+    //////////////////////////////////////////////////////
+        path->StartBulkLoad();
+        HalfSegment hs(true, sp, ep);
+        hs.attr.edgeno = 0;
+        *path += hs;
+        hs.SetLeftDomPoint(!hs.IsLeftDomPoint());
+        *path += hs;
+        path->EndBulkLoad();
+        assert(path->Length() > 0.0);
+//        cout<<"length "<<path->Length()<<endl; 
+       unsigned int j = 0;
+      for(;j < tid_list.size();j++){
+        if(i == j)continue;
+        Tuple* tuple = rel1->GetTuple(tid_list[j], false);
+        Rectangle<2>* rt = (Rectangle<2>*)tuple->GetAttribute(GEODATA);
+        Region* temp_reg = new Region(*rt);
+        if(path->Intersects(*temp_reg)){
+            delete temp_reg;
+            break;
+         }
+        delete temp_reg;
+      }
+    ///////////////////////////////////////////////////////
+
+      if(j == tid_list.size()){
+        reg_id_list.push_back(reg_id);
+        sp_list.push_back(sp);
+        ep_list.push_back(ep); 
+
+        MapToPavement(dg, ep);
+        /////////////////////////////////////////////////////////////
+        build_id_list.push_back(build_id);
+        build_id++;
+      }
+    }else{
+        reg_id_list.push_back(reg_id);
+        sp_list.push_back(sp);
+        ep_list.push_back(ep); 
+        
+        MapToPavement(dg, ep);
+        /////////////////////////////////////////////////////////
+        build_id_list.push_back(build_id);
+        build_id++;
+    }
 
     delete path;
     rect_tuple->DeleteIfAllowed();
   }
 
-
-  delete reg; 
 }
+/*
+select the middle point of each side of the rectangle 
+choose the one that is the closest to the polygon boundary
+record which side it belongs to
+
+*/
+void MaxRect::SetStartAndEndPoint(Region* r, Rectangle<2>* rect, 
+                             Point& sp, Point& ep)
+{
+  vector<Point> sp_list;
+  double x1 = rect->MinD(0);
+  double x2 = rect->MaxD(0);
+  double y1 = rect->MinD(1);
+  double y2 = rect->MaxD(1);
+  Point p1(true, (x1 + x2)/2, y1);//////////lower
+  Point p2(true, (x1 + x2)/2, y2);///////upper
+  Point p3(true, x1, (y1 + y2)/2);//////////left
+  Point p4(true, x2, (y1 + y2)/2);/////right
+  sp_list.push_back(p1);
+  sp_list.push_back(p2);
+  sp_list.push_back(p3);
+  sp_list.push_back(p4);
+  
+  vector<MyPoint_Ext> point_dist_list;
+  SpacePartition* s_p = new SpacePartition();
+  for(int i = 0;i < r->Size();i++){
+    HalfSegment hs;
+    r->Get(i, hs);
+    if(!hs.IsLeftDomPoint())continue;
+
+    double d;
+    Point cp(true, 0, 0);
+
+    d = s_p->GetClosestPoint(hs, p1, cp);
+    MyPoint_Ext mpe1(p1, cp, d, 1.0);
+
+    d = s_p->GetClosestPoint(hs, p2, cp);
+    MyPoint_Ext mpe2(p2, cp, d, 2.0);
+
+    d = s_p->GetClosestPoint(hs, p3, cp);
+    MyPoint_Ext mpe3(p3, cp, d, 3.0);
+
+    d = s_p->GetClosestPoint(hs, p4, cp);
+    MyPoint_Ext mpe4(p4, cp, d, 4.0);
+
+    point_dist_list.push_back(mpe1);
+    point_dist_list.push_back(mpe2);
+    point_dist_list.push_back(mpe3);
+    point_dist_list.push_back(mpe4);
+
+  }
+  delete s_p;
+  
+  sort(point_dist_list.begin(), point_dist_list.end());
+  
+//   for(unsigned int i = 0;i < point_dist_list.size();i++)
+//     point_dist_list[i].Print();
+
+  sp = point_dist_list[0].loc;
+  ep = point_dist_list[0].loc2;
+
+  ////record the building entrance point on which side of the bounding box////
+  int sp_type = (int)(point_dist_list[0].dist2);
+  sp_type_list.push_back(sp_type);
+
+}
+
+/*
+find the closest point in pavement for the input location 
+
+*/
+void MaxRect::MapToPavement(DualGraph* dg, Point loc)
+{
+  SmiRecordId root_id = dg->rtree_node->RootRecordId();
+  vector<int> tri_oid_list;
+  const double dist = 5.0;
+  dg->DFTraverse3(dg->rtree_node, root_id, loc, tri_oid_list, dist);
+
+  if(tri_oid_list.size() == 0){
+    cout<<"!!! should not happen: no mapping point"<<endl;
+  }
+
+
+  double d = dist + dist;
+  unsigned int index = 0;
+  for(unsigned int i = 0;i < tri_oid_list.size();i++){
+    Tuple* tuple = dg->node_rel_sort->GetTuple(tri_oid_list[i], false);
+    Region* reg = (Region*)tuple->GetAttribute(DualGraph::PAVEMENT);
+//    int oid = ((CcInt*)tuple->GetAttribute(DualGraph::OID))->GetIntval();
+    double d2 = reg->Distance(loc);
+//    cout<<"oid "<<oid<<" dist "<<d2<<endl; 
+    if(d2 < d){
+        d = d2;
+        index = i;
+    }
+    tuple->DeleteIfAllowed();
+  }
+
+  Tuple* tuple = dg->node_rel_sort->GetTuple(tri_oid_list[index], false);
+  Region* reg = (Region*)tuple->GetAttribute(DualGraph::PAVEMENT);
+
+  vector<MyPoint> point_dist_list;
+  SpacePartition* s_p = new SpacePartition();
+  for(int i = 0;i < reg->Size();i++){
+    HalfSegment hs;
+    reg->Get(i, hs);
+    if(!hs.IsLeftDomPoint())continue;
+
+    double d1;
+    Point cp(true, 0, 0);
+    d1 = s_p->GetClosestPoint(hs, loc, cp);
+    MyPoint mpe(cp, d1);
+    point_dist_list.push_back(mpe);
+
+  }
+  delete s_p;
+
+  sort(point_dist_list.begin(), point_dist_list.end());
+  Point map_loc = point_dist_list[0].loc; 
+  ep_list2.push_back(map_loc);
+  int tri_oid = ((CcInt*)tuple->GetAttribute(DualGraph::OID))->GetIntval();
+//  cout<<"tri_oid "<<tri_oid<<endl;
+  
+  Rectangle<2> bbox = reg->BoundingBox();
+  tuple->DeleteIfAllowed();
+  
+  //  if(map_loc.Distance(loc) > 1.0) cout<<map_loc.Distance(loc)<<endl;
+  
+  ////////////////generic location////////////////////////////////
+  ///////relative position inside the triangle///////////////////
+  //////////////////////////////////////////////////////////////////
+  Loc temp_loc(map_loc.GetX() - bbox.MinD(0), map_loc.GetY() - bbox.MinD(1));
+  GenLoc gloc(tri_oid, temp_loc);
+
+  genloc_list.push_back(gloc); 
+}
+
 
 /*
 create a new region where r is outer cycle and the rectangles inside are holes
@@ -8944,11 +9167,10 @@ the first and the last point should be the same.
 simpler 
 
 */
-void MaxRect::RegionWithHole(vector<Rectangle<2> >& hole_list, Region* reg)
+bool MaxRect::RegionWithHole(vector<Rectangle<2> >& hole_list, Region* reg)
 {
-    
 
-    for(unsigned int i = 0;i < hole_list.size();i++){
+/*    for(unsigned int i = 0;i < hole_list.size();i++){
         Region* temp = new Region(hole_list[i]);
 //        cout<<*temp<<endl; 
         Region* res = new Region(0);
@@ -8956,45 +9178,757 @@ void MaxRect::RegionWithHole(vector<Rectangle<2> >& hole_list, Region* reg)
         *reg = *res;
         delete res;
         delete temp; 
-    }
+    }*/
 
+
+  //////////////////////////////////////////////////////////////////////////
+  Region* r = new Region(0);
+
+  for(unsigned int i = 0;i < hole_list.size();i++){
+      Region* temp = new Region(hole_list[i]);
+      Region* res = new Region(0);
+      temp->Union(*r, *res);
+      *r = *res;
+      delete res;
+      delete temp; 
+  }
+
+  Region* res = new Region(0);
+  reg->Minus(*r, *res);
+  *reg = *res;
+
+  delete res;
+  delete r;
+
+  return true;
 }
 
 /*
-set the location on the polygon boundary.It is the end point of the path to the
-building entrance. we first take the centroid point of all rectangles and then
-get the closet point of the polygon boundary to the centroid point. use this
-closest point as the location 
+for each rectangle, it sets which kind of building it is, 
+e.g., office or cinema
+1 airport, 1-2 trainstations, 8 cinemas, 32 hotels,  48 shopping malls,
+20 hospitals, 32 schooles, 4 libraries, 16 universities, 
+
+200 office 24, 
+
+houses and apartments: 1000
+
+
+the left are of type none 
 
 */
-void MaxRect::SetBoundaryPoint(Point& boundary_p, 
-                               vector<Rectangle<2> > hole_list, Region* r)
+void MaxRect::SetBuildingType(R_Tree<2,TupleId>* rtree)
 {
-  double x = 0;
-  double y = 0;
-  for(unsigned int i = 0;i < hole_list.size();i++){
-    Rectangle<2> rect = hole_list[i]; 
-    x += (rect.MinD(0) + rect.MaxD(0))/2;
-    y += (rect.MinD(1) + rect.MaxD(1))/2; 
-  }
-  
-  Point centroid(true, x/hole_list.size(), y/hole_list.size()); 
-  double dist = numeric_limits<double>::max(); 
-  for(int i = 0;i < r->Size();i++){
-    HalfSegment hs;
-    r->Get(i, hs);
-    if(!hs.IsLeftDomPoint())continue; 
-    SpacePartition* sp = new SpacePartition(); 
-    Point temp = centroid; 
-    double d = sp->GetClosestPoint(hs, centroid, temp);
-    if(d < dist){
-      dist = d;
-      boundary_p = temp; 
-    } 
+  Rectangle<2> bbox = rtree->BoundingBox();
+  Point center(true, (bbox.MinD(0) + bbox.MaxD(0))/2, 
+                     (bbox.MinD(1) + bbox.MaxD(1))/2);
 
-    delete sp; 
+  vector<Build_Rect> build_rect_list;
+
+  for(int i = 1;i <= rel1->GetNoTuples();i++){
+    Tuple* tuple = rel1->GetTuple(i, false);
+    int reg_id = ((CcInt*)tuple->GetAttribute(REG_ID))->GetIntval();
+    Rectangle<2>* rect = (Rectangle<2>*)tuple->GetAttribute(GEODATA);
+    int poly_id = ((CcInt*)tuple->GetAttribute(POLY_ID))->GetIntval();
+    int reg_type = ((CcInt*)tuple->GetAttribute(REG_TYPE))->GetIntval();
+
+    Build_Rect br(reg_id, *rect, poly_id, reg_type);
+    Point p(true, (rect->MinD(0) + rect->MaxD(0))/2,
+                  (rect->MinD(1) + rect->MaxD(1))/2);
+    if(p.GetX() > center.GetX()){
+        if(p.GetY() > center.GetY()) br.quadrant = 1;
+        else br.quadrant = 4;
+    }else{
+        if(p.GetY() > center.GetY()) br.quadrant = 2;
+         else br.quadrant = 3;
+    }
+
+    build_rect_list.push_back(br);
+    tuple->DeleteIfAllowed();
   }
   
+//  cout<<build_rect_list.size()<<endl; 
+  
+  ////////////////////////////////////////////////////////////////////
+  /////////////////set up building type//////////////////////////////
+  ///////////////////////////////////////////////////////////////////
+  SetAirPort(build_rect_list, rtree);//1 airport 
+  SetTrainStation(build_rect_list); // a trainstation 
+
+  /////////////////these buildings can be close to each other//////////////
+  SetCinema(build_rect_list, 8, bbox);//maximum 8 cinemas 
+  SetHotel(build_rect_list, 32, bbox);//maximum 32 hotels
+  SetShopMall(build_rect_list, 48, bbox);//maximum 48 shopping malls
+  SetOffice24(build_rect_list, 200);//maximum 200 office24 
+
+  ////////////can not be close to the above three/////////////////////////
+  /////////////but may be close to school or houses, apartments//////////
+  SetHospital(build_rect_list, 20);//maximum 20 hospitals
+
+
+  ///////////////////////////////////////////////////////////////////////
+  //////////////////school library//////////////////////////////////
+  //////////////////////////////////////////////////////////////////
+  SetLibrary(build_rect_list, 4);//maximum 4 libraries 
+  SetSchool(build_rect_list, 32);//maximum 32 schools 
+  SetUniversity(build_rect_list, 16);//maximum 16 universities  
+
+  /////////////////////////////////////////////////////////////////////
+  SetHouse(build_rect_list, 1000);//maximum 1000 houses and apartments 
+
+  ///////////////////////////////////////////////////////////////////
+  for(unsigned int i = 0;i < build_rect_list.size();i++){
+    reg_id_list.push_back(build_rect_list[i].reg_id);
+    rect_list.push_back(build_rect_list[i].rect);
+    poly_id_list.push_back(build_rect_list[i].poly_id);
+    reg_type_list.push_back(build_rect_list[i].reg_type);
+    build_type_list.push_back(build_rect_list[i].build_type);
+    build_type2_list.push_back(GetBuildingStr(build_rect_list[i].build_type));
+  }
+}
+
+/*
+set the airport 
+
+*/
+#define AIRPORT_AREA 9000.0
+bool Build_Rect_COM1(const Build_Rect& br1, const Build_Rect& br2)
+{
+  return br1.reg_type < br2.reg_type;
+}
+/*
+an airport is an place far away from the city center and big enough, and 
+there are no other buildings nearby. 
+
+*/
+void MaxRect::SetAirPort(vector<Build_Rect>& list, R_Tree<2,TupleId>* rtree)
+{
+  sort(list.begin(), list.end(), Build_Rect_COM1);
+/*  for(unsigned int i = 0;i < list.size();i++)
+    list[i].Print();*/
+  for(int i = list.size() - 1;i >= 0;i--){
+    if(list[i].rect.Area() > AIRPORT_AREA && list[i].reg_type == 3 &&
+      list[i].init == false && NoNeighbor(list[i], rtree)){
+//      cout<<"find an airport site"<<endl;
+      list[i].build_type = BUILD_AIRPORT;
+      list[i].init = true;
+      return;
+    }
+  }
+
+  cout<<"no avaialbe place for an airport"<<endl; 
+}
+
+
+/*
+there are no rectangles whose distance to the input rect is smalelr than a 
+distance threshold 
+
+*/
+bool MaxRect::NoNeighbor(Build_Rect& br, R_Tree<2,TupleId>* rtree)
+{
+  
+  vector<int> tid_list;
+  DFTraverse1(rtree, rtree->RootRecordId(), br.rect, tid_list);
+//  cout<<"reg id "<<br.reg_id<<" neighbor size "<<tid_list.size()<<endl;
+//   for(unsigned int i = 0;i < tid_list.size();i++){
+//     cout<<"neighbor "<<tid_list[i]<<" ";
+//   }
+//  cout<<endl;
+
+  if(tid_list.size() == 0) return true;
+  else return false;
+}
+
+void MaxRect::DFTraverse1(R_Tree<2,TupleId>* rtree, SmiRecordId adr, 
+                    Rectangle<2>& rect, vector<int>& tri_oid_list)
+{
+  const double dist = 1000.0; 
+  R_TreeNode<2,TupleId>* node = rtree->GetMyNode(adr,false,
+                  rtree->MinEntries(0), rtree->MaxEntries(0));
+  for(int j = 0;j < node->EntryCount();j++){
+      if(node->IsLeaf()){
+              R_TreeLeafEntry<2,TupleId> e =
+                 (R_TreeLeafEntry<2,TupleId>&)(*node)[j];
+              Tuple* dg_tuple = rel1->GetTuple(e.info, false);
+              Rectangle<2>* reg = 
+                      (Rectangle<2>*)dg_tuple->GetAttribute(GEODATA);
+              int reg_id = 
+                   ((CcInt*)dg_tuple->GetAttribute(REG_ID))->GetIntval();
+              double d = rect.Distance(*reg);
+              if(d > 0.0 && d < dist){
+                  tri_oid_list.push_back(reg_id);
+              }
+              dg_tuple->DeleteIfAllowed();
+      }else{
+            R_TreeInternalEntry<2> e =
+                (R_TreeInternalEntry<2>&)(*node)[j];
+            if(rect.Distance(e.box) < dist){
+                DFTraverse1(rtree, e.pointer, rect, tri_oid_list);
+            }
+      }
+  }
+  delete node;
+}
+
+
+/*
+set the train station 
+
+*/
+#define TRAINSTATION_AREA_MIN 1000.0
+#define TRAINSTATION_AREA_MAX 2000.0
+
+void MaxRect::SetTrainStation(vector<Build_Rect>& list)
+{
+  sort(list.begin(), list.end(), Build_Rect_COM1);
+/*  for(unsigned int i = 0;i < list.size();i++)
+    list[i].Print();*/
+  for(int i = list.size() - 1;i >= 0;i--){
+    if(list[i].rect.Area() > TRAINSTATION_AREA_MIN &&
+       list[i].rect.Area() < TRAINSTATION_AREA_MAX && 
+       list[i].reg_type == 1 &&
+       list[i].init == false){
+//      cout<<"find a train station site"<<endl;
+      list[i].build_type = BUILD_TRAINSTATION;
+      list[i].init = true;
+      return;
+    }
+  }
+
+  cout<<"no avaialbe place for a train station"<<endl; 
+}
+
+
+/*
+set the places for cinemas, uniformly distributed in each quadrant
+
+*/
+#define CINEMA_AREA_MIN 600.0
+#define CINEMA_AREA_MAX 1200.0
+
+void MaxRect::SetCinema(vector<Build_Rect>& list, unsigned int no,
+                        Rectangle<2> bbox)
+{
+  vector<Build_Rect> cand_list; 
+  
+  vector<unsigned int> quad_list;
+  quad_list.push_back(0);
+  quad_list.push_back(0);
+  quad_list.push_back(0);
+  quad_list.push_back(0);
+
+  for(int i = list.size() - 1;i >= 0;i--){
+    if(list[i].rect.Area() > CINEMA_AREA_MIN && 
+       list[i].rect.Area() < CINEMA_AREA_MAX &&
+      (list[i].reg_type == 1 || list[i].reg_type == 2) &&
+      list[i].init == false && NoNeighborCinema(cand_list, list[i], bbox)){
+//      cout<<"find a cinema site"<<endl;
+      if(quad_list[list[i].quadrant - 1] < no / 4){
+        list[i].build_type = BUILD_CINEMA;
+        list[i].init = true;
+        cand_list.push_back(list[i]);
+        quad_list[list[i].quadrant - 1]++;
+        if(cand_list.size() == no)return;
+      }
+    }
+  }
+}
+
+/*
+cinemas should not be close to each other 
+
+*/
+bool MaxRect::NoNeighborCinema(vector<Build_Rect>& list, Build_Rect br,
+                               Rectangle<2> bbox)
+{
+  const double min_dist = 5000.0;
+//   Point p1(true, bbox.MinD(0), bbox.MinD(1));
+//   Point p2(true, bbox.MaxD(0), bbox.MaxD(1));
+//   
+//   const double min_dist = p1.Distance(p2)/4;
+  
+  if(list.size() == 0)return true;
+  for(unsigned int i = 0;i < list.size();i++)
+    if(list[i].rect.Distance(br.rect) < min_dist) return false;
+
+  return true;
+}
+
+
+/*
+set the places for hotels,  uniformly distributed in each quadrant 
+
+*/
+#define HOTEL_AREA_MIN 800.0
+#define HOTEL_AREA_MAX 1200.0
+
+void MaxRect::SetHotel(vector<Build_Rect>& list, unsigned int no,
+                       Rectangle<2> bbox)
+{
+  vector<unsigned int> quad_list;
+  quad_list.push_back(0);
+  quad_list.push_back(0);
+  quad_list.push_back(0);
+  quad_list.push_back(0);
+  
+  vector<Build_Rect> cand_list; 
+  
+  for(int i = list.size() - 1;i >= 0;i--){
+    if(list[i].rect.Area() > HOTEL_AREA_MIN && 
+       list[i].rect.Area() < HOTEL_AREA_MAX &&
+      list[i].init == false && NoNeighborHotel(cand_list, list[i], bbox)){
+//      cout<<"find a hotel site"<<endl;
+      if(quad_list[list[i].quadrant - 1] < no / 4){
+        list[i].build_type = BUILD_HOTEL;
+        list[i].init = true;
+        cand_list.push_back(list[i]);
+        quad_list[list[i].quadrant - 1]++;
+        if(cand_list.size() == no)return;
+      }
+    }
+  }
+}
+
+/*
+hotels should not be close to each other 
+
+*/
+bool MaxRect::NoNeighborHotel(vector<Build_Rect>& list, Build_Rect br,
+                              Rectangle<2> bbox)
+{
+  const double min_dist = 3000.0;
+
+//   Point p1(true, bbox.MinD(0), bbox.MinD(1));
+//   Point p2(true, bbox.MaxD(0), bbox.MaxD(1));
+//   
+//   const double min_dist = p1.Distance(p2)/8;
+
+  if(list.size() == 0)return true;
+  for(unsigned int i = 0;i < list.size();i++)
+    if(list[i].rect.Distance(br.rect) < min_dist) return false;
+
+  return true;
+}
+
+
+/*
+set the places for shopping malls,  uniformly distributed in each quadrant 
+
+*/
+#define SHOPMALL_AREA_MIN 1000.0
+#define SHOPMALL_AREA_MAX 2000.0
+
+void MaxRect::SetShopMall(vector<Build_Rect>& list, unsigned int no,
+                       Rectangle<2> bbox)
+{
+  vector<unsigned int> quad_list;
+  quad_list.push_back(0);
+  quad_list.push_back(0);
+  quad_list.push_back(0);
+  quad_list.push_back(0);
+  
+  vector<Build_Rect> cand_list; 
+  
+  for(int i = list.size() - 1;i >= 0;i--){
+    if(list[i].rect.Area() > SHOPMALL_AREA_MIN && 
+       list[i].rect.Area() < SHOPMALL_AREA_MAX &&
+      list[i].init == false && NoNeighborShopMall(cand_list, list[i], bbox)){
+//      cout<<"find a hotel site"<<endl;
+      if(quad_list[list[i].quadrant - 1] < no / 4){
+        list[i].build_type = BUILD_SHOPPINGMALL;
+        list[i].init = true;
+        cand_list.push_back(list[i]);
+        quad_list[list[i].quadrant - 1]++;
+        if(cand_list.size() == no)return;
+      }
+    }
+  }
+}
+
+/*
+shopping malls should not be close to each other 
+
+*/
+bool MaxRect::NoNeighborShopMall(vector<Build_Rect>& list, Build_Rect br,
+                              Rectangle<2> bbox)
+{
+  const double min_dist = 1500.0;
+
+//   Point p1(true, bbox.MinD(0), bbox.MinD(1));
+//   Point p2(true, bbox.MaxD(0), bbox.MaxD(1));
+//   
+//   const double min_dist = p1.Distance(p2)/8;
+
+  if(list.size() == 0)return true;
+  for(unsigned int i = 0;i < list.size();i++)
+    if(list[i].rect.Distance(br.rect) < min_dist) return false;
+
+  return true;
+}
+
+/*
+set the places for office24,  uniformly distributed in each quadrant 
+
+*/
+#define OFFICE24_AREA_MIN 600.0
+#define OFFICE24_AREA_MAX 2000.0
+
+void MaxRect::SetOffice24(vector<Build_Rect>& list, unsigned int no)
+{
+  vector<unsigned int> quad_list;
+  quad_list.push_back(0);
+  quad_list.push_back(0);
+  quad_list.push_back(0);
+  quad_list.push_back(0);
+
+  vector<Build_Rect> cand_list; 
+
+  vector<unsigned int> reg_type_list;
+  reg_type_list.push_back(0);
+  reg_type_list.push_back(0);
+  reg_type_list.push_back(0);
+
+  
+  for(int i = list.size() - 1;i >= 0;i--){
+    if(list[i].rect.Area() > OFFICE24_AREA_MIN && 
+       list[i].rect.Area() < OFFICE24_AREA_MAX &&
+      list[i].init == false){
+//      cout<<"find a office24 site"<<endl;
+      if(quad_list[list[i].quadrant - 1] < no / 4 && 
+         reg_type_list[list[i].reg_type - 1] < no /3){
+        list[i].build_type = BUILD_OFFICE24;
+        list[i].init = true;
+        cand_list.push_back(list[i]);
+
+        quad_list[list[i].quadrant - 1]++;
+        reg_type_list[list[i].reg_type - 1]++;
+
+        if(cand_list.size() == no)return;
+      }
+    }
+  }
+  
+}
+
+
+/*
+set the places for hospitals ,  uniformly distributed in each quadrant 
+
+*/
+#define HOSPITAL_AREA_MIN 800.0
+#define HOSPITAL_AREA_MAX 1500.0
+
+void MaxRect::SetHospital(vector<Build_Rect>& list, unsigned int no)
+{
+  vector<unsigned int> quad_list;
+  quad_list.push_back(0);
+  quad_list.push_back(0);
+  quad_list.push_back(0);
+  quad_list.push_back(0);
+  
+  vector<Build_Rect> cand_list; 
+  
+  for(int i = list.size() - 1;i >= 0;i--){
+    if(list[i].rect.Area() > HOSPITAL_AREA_MIN && 
+       list[i].rect.Area() < HOSPITAL_AREA_MAX &&
+      list[i].init == false && NoNeighborHospital(cand_list, list[i]) &&
+       NoNearbyShopMallAndCinema(list, list[i])){
+//      cout<<"find a hotel site"<<endl;
+      if(quad_list[list[i].quadrant - 1] < no / 4){
+        list[i].build_type = BUILD_HOSPITAL;
+        list[i].init = true;
+        cand_list.push_back(list[i]);
+        quad_list[list[i].quadrant - 1]++;
+        if(cand_list.size() == no)return;
+      }
+    }
+  }
+}
+
+/*
+hosptials should not be close to each other 
+
+*/
+bool MaxRect::NoNeighborHospital(vector<Build_Rect>& list, Build_Rect br)
+{
+  const double min_dist = 2000.0;
+
+  if(list.size() == 0)return true;
+  for(unsigned int i = 0;i < list.size();i++)
+    if(list[i].rect.Distance(br.rect) < min_dist) return false;
+
+  return true;
+}
+
+/*
+a hospital should not have a shopping mall and cinema so close 
+it is also not too close to a train station 
+
+*/
+bool MaxRect::NoNearbyShopMallAndCinema(vector<Build_Rect>& list, Build_Rect br)
+{
+  const double min_dist1 = 1000.0;
+  const double min_dist2 = 500.0;
+  const double min_dist3 = 300.0;
+
+  if(list.size() == 0)return true;
+  for(unsigned int i = 0;i < list.size();i++){
+    if((list[i].build_type == BUILD_SHOPPINGMALL || 
+        list[i].build_type == BUILD_CINEMA) &&
+        list[i].rect.Distance(br.rect) < min_dist1) return false;
+
+    if(list[i].build_type == BUILD_HOTEL &&
+       list[i].rect.Distance(br.rect) < min_dist2) return false;
+
+    if(list[i].build_type == BUILD_TRAINSTATION &&
+       list[i].rect.Distance(br.rect) < min_dist3) return false;
+  }
+  return true;
+}
+
+/*
+set the places for libraries ,  uniformly distributed in each quadrant 
+
+*/
+#define LIBRARY_AREA_MIN 1000.0
+#define LIBRARY_AREA_MAX 2000.0
+
+void MaxRect::SetLibrary(vector<Build_Rect>& list, unsigned int no)
+{
+  vector<unsigned int> quad_list;
+  quad_list.push_back(0);
+  quad_list.push_back(0);
+  quad_list.push_back(0);
+  quad_list.push_back(0);
+  
+  vector<Build_Rect> cand_list; 
+  
+  for(int i = list.size() - 1;i >= 0;i--){
+    if(list[i].rect.Area() > LIBRARY_AREA_MIN && 
+       list[i].rect.Area() < LIBRARY_AREA_MAX &&
+       list[i].reg_type == 2 &&
+       list[i].init == false && NoNeighborLibrary(cand_list, list[i]) && 
+       NoNearbyCommercialBuilding(list, list[i])){
+//      cout<<"find a hotel site"<<endl;
+      if(quad_list[list[i].quadrant - 1] < no / 4){
+        list[i].build_type = BUILD_LIBRARY;
+        list[i].init = true;
+        cand_list.push_back(list[i]);
+        quad_list[list[i].quadrant - 1]++;
+        if(cand_list.size() == no)return;
+      }
+    }
+  }
+}
+
+/*
+library should not be close to each other 
+
+*/
+bool MaxRect::NoNeighborLibrary(vector<Build_Rect>& list, Build_Rect br)
+{
+  const double min_dist = 3000.0;
+
+  if(list.size() == 0)return true;
+  for(unsigned int i = 0;i < list.size();i++)
+    if(list[i].rect.Distance(br.rect) < min_dist) return false;
+
+  return true;
+}
+
+/*
+a library should not so close to cinemas, hotels, shopping malls 
+
+*/
+bool MaxRect::NoNearbyCommercialBuilding(vector<Build_Rect>& list, 
+                                         Build_Rect br)
+{
+  const double min_dist1 = 1000.0;
+  const double min_dist2 = 500.0;
+  const double min_dist3 = 300.0;
+
+  if(list.size() == 0) return true;
+  for(unsigned int i = 0;i < list.size();i++){
+    if((list[i].build_type == BUILD_SHOPPINGMALL ||
+        list[i].build_type == BUILD_CINEMA) &&
+        list[i].rect.Distance(br.rect) < min_dist1) return false;
+
+    if((list[i].build_type == BUILD_HOTEL || 
+        list[i].build_type == BUILD_HOSPITAL )&&
+       list[i].rect.Distance(br.rect) < min_dist2) return false;
+
+    if(list[i].build_type == BUILD_TRAINSTATION &&
+       list[i].rect.Distance(br.rect) < min_dist3) return false;
+
+  }
+  return true;
+}
+
+
+/*
+set the places for schools,  uniformly distributed in each quadrant 
+
+*/
+#define SCHOOL_AREA_MIN 2000.0
+#define SCHOOL_AREA_MAX 3000.0
+
+void MaxRect::SetSchool(vector<Build_Rect>& list, unsigned int no)
+{
+  vector<unsigned int> quad_list;
+  quad_list.push_back(0);
+  quad_list.push_back(0);
+  quad_list.push_back(0);
+  quad_list.push_back(0);
+  
+  vector<Build_Rect> cand_list; 
+  
+  for(int i = list.size() - 1;i >= 0;i--){
+    if(list[i].rect.Area() > SCHOOL_AREA_MIN && 
+       list[i].rect.Area() < SCHOOL_AREA_MAX &&
+       (list[i].reg_type == 1 || list[i].reg_type == 2)&&
+       list[i].init == false && NoNeighborSchool(cand_list, list[i]) && 
+       NoNearbyCommercialBuilding(list, list[i])){
+//      cout<<"find a school site"<<endl;
+      if(quad_list[list[i].quadrant - 1] < no / 4){
+        list[i].build_type = BUILD_SCHOOL;
+        list[i].init = true;
+        cand_list.push_back(list[i]);
+        quad_list[list[i].quadrant - 1]++;
+        if(cand_list.size() == no)return;
+      }
+    }
+  }
+}
+
+/*
+schools should not be too close to each other 
+
+*/
+bool MaxRect::NoNeighborSchool(vector<Build_Rect>& list, Build_Rect br)
+{
+  const double min_dist = 600.0;
+
+  if(list.size() == 0)return true;
+  for(unsigned int i = 0;i < list.size();i++)
+    if(list[i].rect.Distance(br.rect) < min_dist) return false;
+
+  return true;
+}
+
+/*
+set the places for universities,  uniformly distributed in each quadrant 
+
+*/
+#define UNIVERSITY_AREA_MIN 2000.0
+#define UNIVERSITY_AREA_MAX 5000.0
+
+void MaxRect::SetUniversity(vector<Build_Rect>& list, unsigned int no)
+{
+  vector<unsigned int> quad_list;
+  quad_list.push_back(0);
+  quad_list.push_back(0);
+  quad_list.push_back(0);
+  quad_list.push_back(0);
+
+  vector<Build_Rect> cand_list;
+
+  for(int i = list.size() - 1;i >= 0;i--){
+    if(list[i].rect.Area() > UNIVERSITY_AREA_MIN && 
+       list[i].rect.Area() < UNIVERSITY_AREA_MAX &&
+       (list[i].reg_type == 2 || list[i].reg_type == 3)&&
+       list[i].init == false && NoNeighborUniversity(cand_list, list[i]) && 
+       NoNearbyCommercialBuilding(list, list[i])){
+//      cout<<"find a hotel site"<<endl;
+      if(quad_list[list[i].quadrant - 1] < no / 4){
+        list[i].build_type = BUILD_UNIVERSITY;
+        list[i].init = true;
+        cand_list.push_back(list[i]);
+        quad_list[list[i].quadrant - 1]++;
+        if(cand_list.size() == no)return;
+      }
+    }
+  }
+}
+
+/*
+universities should not be too close to each other 
+
+*/
+bool MaxRect::NoNeighborUniversity(vector<Build_Rect>& list, Build_Rect br)
+{
+  const double min_dist = 500.0;
+
+  if(list.size() == 0)return true;
+  for(unsigned int i = 0;i < list.size();i++)
+    if(list[i].rect.Distance(br.rect) < min_dist) return false;
+
+  return true;
+}
+
+
+
+/*
+set the places for houses,  uniformly distributed in each quadrant 
+
+*/
+#define HOUSE_AREA_MAX 1200.0
+
+void MaxRect::SetHouse(vector<Build_Rect>& list, unsigned int no)
+{
+  vector<unsigned int> quad_list;
+  quad_list.push_back(0);
+  quad_list.push_back(0);
+  quad_list.push_back(0);
+  quad_list.push_back(0);
+  
+  vector<Build_Rect> cand_list; 
+  
+  for(int i = list.size() - 1;i >= 0;i--){
+    if( list[i].rect.Area() < HOUSE_AREA_MAX &&
+//       (list[i].reg_type == 2 || list[i].reg_type == 3)&&
+       list[i].init == false && NoNearbyNeighbors1(list, list[i])){
+//      cout<<"find a personal house site"<<endl;
+      if(quad_list[list[i].quadrant - 1] < no / 4){
+        list[i].build_type = BUILD_HOUSE;
+        list[i].init = true;
+        cand_list.push_back(list[i]);
+        quad_list[list[i].quadrant - 1]++;
+        if(cand_list.size() == no)return;
+      }
+    }
+  }
+}
+
+/*
+neighbor building limitations for personal houses and apartments 
+
+*/
+bool MaxRect::NoNearbyNeighbors1(vector<Build_Rect>& list, Build_Rect br)
+{
+  
+  const double min_dist1 = 800.0;
+  const double min_dist2 = 400.0;
+  const double min_dist3 = 200.0;
+
+  if(list.size() == 0) return true;
+  for(unsigned int i = 0;i < list.size();i++){
+    if((list[i].build_type == BUILD_CINEMA || 
+        list[i].build_type == BUILD_HOTEL) &&
+        list[i].rect.Distance(br.rect) < min_dist1) return false;
+
+    if(list[i].build_type == BUILD_SHOPPINGMALL &&
+       list[i].rect.Distance(br.rect) < min_dist2) return false;
+
+    if(( list[i].build_type == BUILD_SCHOOL || 
+         list[i].build_type == BUILD_HOSPITAL ||
+         list[i].build_type == BUILD_LIBRARY || 
+         list[i].build_type == BUILD_OFFICE24 || 
+         list[i].build_type == BUILD_UNIVERSITY || 
+         list[i].build_type == BUILD_TRAINSTATION ) &&
+       list[i].rect.Distance(br.rect) < min_dist3) return false;
+  }
+  return true;
 }
 
 ///////////////////////////////////////////////////////////////////////////

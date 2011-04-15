@@ -673,6 +673,20 @@ Signature: line3d -> rect3
 Example  : query bbox3d([const line3d value ( (0.0 0.0 0.0) (1.0 1.0 1.0))]);
 Result   : ( (0,0,0) - (1,1,1) )
 
+
+Operator : thebuilding
+Number   : 1
+Signature: int x string x rel x rel -> building
+Example  : query ref_id(thebuilding(1, "UNIVERSITY", fernuni, fernuni_extend));
+Result   : 1
+
+Operator : theindoor 
+Number   : 1
+Signature: int x rel x rel -> indoorinfra
+Example  : query ref_id(1, paths1, buildingplustype);
+Result   : 1
+
+
 Operator : createdoor3d
 Number   : 1
 Signature: rel -> (stream(((x1 t1) ... (xn tn))))
@@ -782,8 +796,15 @@ Result   : 20
 
 Operator : path_to_building 
 Number   : 1
-Signature: rel1 x rel2 x btree-> (stream(((x1 t1) ... (xn tn))))
-Example  : query path_to_building(building_rect, new_region_elems, btree_region_elem) count;
+Signature: rel1 x rel2 x btree x space-> (stream(((x1 t1) ... (xn tn))))
+Example  : query path_to_building(building_rect, new_region_elems, btree_region_elem, space_1) count;
+Result   : 20 
+
+
+Operator : set_building_type 
+Number   : 1
+Signature: rel x rtree -> (stream(((x1 t1) ... (xn tn))))
+Example  : query set_building_type(building_region_type, rtree_build) count;
 Result   : 20 
 
 
@@ -905,7 +926,7 @@ Operator : genmo_tm_list
 Number   : 1
 Signature: bool -> (stream(((x1 t1) ... (xn tn))))
 Example  : query genmo_tm_list(TRUE) count;
-Result   : 5
+Result   : 17
 
 Operator : generate_genmo1
 Number   : 1

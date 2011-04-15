@@ -159,7 +159,36 @@ TypeConstructor mpoint3d(
         CastMapping<MPoint3D>,
         SizeOfMapping<MPoint3D>,              //sizeof function
         CheckMPoint3D); 
-        
+
+TypeConstructor building(
+    "building",
+     BuildingProperty,
+     OutBuilding,      InBuilding,     //Out and In functions
+     0,              0,            //SaveTo and RestoreFrom List functions
+     CreateBuilding,  DeleteBuilding, //object creation and deletion
+     OpenBuilding,    SaveBuilding,   // object open and save
+
+     CloseBuilding,    CloneBuilding,  //object close and clone
+     Building::Cast,
+     SizeOfBuilding,                 //sizeof function
+     CheckBuilding
+);
+
+TypeConstructor indoorinfra(
+    "indoorinfra",
+     IndoorInfraProperty,
+     OutIndoorInfra,      InIndoorInfra,     //Out and In functions
+     0,              0,            //SaveTo and RestoreFrom List functions
+     CreateIndoorInfra,  DeleteIndoorInfra, //object creation and deletion
+     OpenIndoorInfra,    SaveIndoorInfra,   // object open and save
+
+     CloseIndoorInfra,    CloneIndoorInfra,  //object close and clone
+     IndoorInfra::Cast,
+     SizeOfIndoorInfra,                 //sizeof function
+     CheckIndoorInfra
+);
+
+
 /////////////////////////////////////////////////////////////////////////////
 ///////////////////////  Indoor Operators    /////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////
@@ -258,6 +287,20 @@ const string SpatialSpecBBox3D =
 "<text>return the bounding box of a 3D line</text--->"
 "<text>query bbox3d(l3d1)</text---> ) )";
 
+const string SpatialSpecTheBuilding =
+"( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+"( <text>int x string x rel x rel  -> building </text--->"
+"<text>thebuilding(int,string,rel,rel) </text--->"
+"<text>create a building for its rooms</text--->"
+"<text>query thebuilding(1, \"UNIVERSITY\", fernuni, fernuni_extend)"
+"</text---> ) )";
+
+const string SpatialSpecTheIndoor =
+"( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+"( <text>int x rel x rel  -> building </text--->"
+"<text>theindoor(int,rel,rel) </text--->"
+"<text>create the indoor infrastructure </text--->"
+"<text>query theindoor(1,  paths1, buildingplustype) </text---> ) )";
 
 const string SpatialSpecCreateDoor3D =
 "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
@@ -278,7 +321,7 @@ const string SpatialSpecCreateDoorBox =
 const string SpatialSpecCreateDoor1 =
 "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
 "( <text>rel1 x rel2 x rtree x attr1 x attr2 x attr3"
- " -> (stream (tuple( (x1 t1)(x2 t2)...(xn tn)))</text--->"
+ " -> (stream (tuple( (x1 t1)(x2 t2)...(xn tn))))</text--->"
 "<text>createdoor1(rel,rel,rtree,attr,attr,attr) </text--->"
 "<text>create a relation storing doors of a building</text--->"
 "<text>query createdoor1(university, box3d_rel, rtree_box3d, groom_oid, "
@@ -607,6 +650,76 @@ ListExpr BBox3DTypeMap(ListExpr args)
   ListExpr arg1 = nl->First(args);
   if(nl->IsEqual(arg1, "line3d") || nl->IsEqual(arg1, "groom"))
       return nl->SymbolAtom("rect3");
+
+  return nl->SymbolAtom("typeerror");
+}
+
+/*
+TypeMap function for operator thebuilding
+
+*/
+ListExpr TheBuildingTypeMap(ListExpr args)
+{
+  if(nl->ListLength(args) != 4){
+      string err = "int x string x rel x rel";
+      return listutils::typeError(err);
+  }
+
+  ListExpr arg1 = nl->First(args);
+  if(!nl->IsEqual(arg1, "int")){
+     string err = "int expected";
+     return listutils::typeError(err);
+  }
+
+  ListExpr arg2 = nl->Second(args);
+  if(!(listutils::isSymbol(arg2, CcString::BasicType()))){
+     string err = "string expected";
+     return listutils::typeError(err);
+  }
+
+  ListExpr arg3 = nl->Third(args);
+  ListExpr arg4 = nl->Fourth(args);
+  ListExpr xType1;
+  nl->ReadFromString(IndoorNav::Indoor_GRoom_Door, xType1); 
+  ListExpr xType2;
+  nl->ReadFromString(Building::Indoor_GRoom_Door_Extend, xType2); 
+  
+  if (listutils::isRelDescription(arg3) && listutils::isRelDescription(arg4)
+      && CompareSchemas(arg3, xType1) && CompareSchemas(arg4, xType2))
+      return nl->SymbolAtom("building");
+
+  return nl->SymbolAtom("typeerror");
+}
+
+
+/*
+TypeMap function for operator theindoor 
+
+*/
+ListExpr TheIndoorTypeMap(ListExpr args)
+{
+  if(nl->ListLength(args) != 3){
+      string err = "int x rel x rel";
+      return listutils::typeError(err);
+  }
+
+  ListExpr arg1 = nl->First(args);
+  if(!nl->IsEqual(arg1, "int")){
+     string err = "int expected";
+     return listutils::typeError(err);
+  }
+
+
+  ListExpr arg2 = nl->Second(args);
+  ListExpr arg3 = nl->Third(args);
+  ListExpr xType1;
+  nl->ReadFromString(IndoorInfra::BuildingPath_Info, xType1); 
+  ListExpr xType2;
+  nl->ReadFromString(IndoorInfra::BuildingType_Info, xType2); 
+  
+  if (listutils::isRelDescription(arg2) && listutils::isRelDescription(arg3)
+      && CompareSchemas(arg2, xType1) && CompareSchemas(arg3, xType2))
+      return nl->SymbolAtom("indoorinfra");
 
   return nl->SymbolAtom("typeerror");
 }
@@ -1582,6 +1695,163 @@ int BBoxGRoomValueMap(Word* args, Word& result, int message,
 }
 
 /*
+check whether the building id has been used already 
+
+*/
+bool ChekBuildingId(int build_id)
+{
+  ListExpr xObjectList = SecondoSystem::GetCatalog()->ListObjects();
+  xObjectList = nl->Rest(xObjectList);
+  while(!nl->IsEmpty(xObjectList))
+  {
+    // Next element in list
+    ListExpr xCurrent = nl->First(xObjectList);
+    xObjectList = nl->Rest(xObjectList);
+
+    // Type of object is at fourth position in list
+    ListExpr xObjectType = nl->First(nl->Fourth(xCurrent));
+    if(nl->IsAtom(xObjectType) &&
+       nl->SymbolValue(xObjectType) == "building")
+    {
+      // Get name of the pavement 
+      ListExpr xObjectName = nl->Second(xCurrent);
+      string strObjectName = nl->SymbolValue(xObjectName);
+
+      // Load object to find out the id of the pavement. Normally their
+      // won't be to much networks in one database giving us a good
+      // chance to load only the wanted network.
+      Word xValue;
+      bool bDefined;
+      bool bOk = SecondoSystem::GetCatalog()->GetObject(strObjectName,
+                                                        xValue,
+                                                        bDefined);
+      if(!bDefined || !bOk)
+      {
+        // Undefined network
+        continue;
+      }
+      Building* build = (Building*)xValue.addr;
+
+      if(build->GetId() == build_id)
+      {
+        SecondoSystem::GetCatalog()->CloseObject(nl->SymbolAtom("building"),
+                                               xValue);
+        return false;
+      }
+
+      SecondoSystem::GetCatalog()->CloseObject(nl->SymbolAtom("building"),
+                                               xValue);
+    }
+  }
+  return true; 
+}
+
+/*
+ValueMap function for operator thebuilding
+
+*/
+int TheBuildingValueMap(Word* args, Word& result, int message,
+                    Word& local, Supplier in_pSupplier)
+{
+  Building* build = (Building*)qp->ResultStorage(in_pSupplier).addr;
+  int id = ((CcInt*)args[0].addr)->GetIntval();
+  string type = ((CcString*)args[1].addr)->GetValue(); 
+  Relation* rel1 = (Relation*)args[2].addr;
+  Relation* rel2 = (Relation*)args[3].addr;
+  if(ChekBuildingId(id)){
+    build->Load(id, GetBuildingType(type), rel1, rel2);
+    result = SetWord(build);
+  }else{
+    cout<<"invalid building id "<<id<<endl; 
+    while(ChekBuildingId(id) == false || id <= 0){
+      id++;
+    }
+    cout<<"new building id "<<id<<endl;
+    build->Load(id, GetBuildingType(type), rel1, rel2);
+    result = SetWord(build);
+  }
+  return 0;
+}
+
+/*
+check whether the building id has been used already 
+
+*/
+bool ChekIndoorId(int build_id)
+{
+  ListExpr xObjectList = SecondoSystem::GetCatalog()->ListObjects();
+  xObjectList = nl->Rest(xObjectList);
+  while(!nl->IsEmpty(xObjectList))
+  {
+    // Next element in list
+    ListExpr xCurrent = nl->First(xObjectList);
+    xObjectList = nl->Rest(xObjectList);
+
+    // Type of object is at fourth position in list
+    ListExpr xObjectType = nl->First(nl->Fourth(xCurrent));
+    if(nl->IsAtom(xObjectType) &&
+       nl->SymbolValue(xObjectType) == "indoorinfra")
+    {
+      // Get name of the pavement 
+      ListExpr xObjectName = nl->Second(xCurrent);
+      string strObjectName = nl->SymbolValue(xObjectName);
+
+      // Load object to find out the id of the pavement. Normally their
+      // won't be to much networks in one database giving us a good
+      // chance to load only the wanted network.
+      Word xValue;
+      bool bDefined;
+      bool bOk = SecondoSystem::GetCatalog()->GetObject(strObjectName,
+                                                        xValue,
+                                                        bDefined);
+      if(!bDefined || !bOk)
+      {
+        // Undefined network
+        continue;
+      }
+      IndoorInfra* indoor = (IndoorInfra*)xValue.addr;
+
+      if(indoor->GetId() == build_id)
+      {
+        SecondoSystem::GetCatalog()->CloseObject(nl->SymbolAtom("indoorinfra"),
+                                               xValue);
+        return false;
+      }
+
+      SecondoSystem::GetCatalog()->CloseObject(nl->SymbolAtom("indoorinfra"),
+                                               xValue);
+    }
+  }
+  return true; 
+}
+
+/*
+ValueMap function for operator theindoor 
+
+*/
+int TheIndoorValueMap(Word* args, Word& result, int message,
+                    Word& local, Supplier in_pSupplier)
+{
+  IndoorInfra* indoor = (IndoorInfra*)qp->ResultStorage(in_pSupplier).addr;
+  int id = ((CcInt*)args[0].addr)->GetIntval();
+  Relation* rel1 = (Relation*)args[1].addr;
+  Relation* rel2 = (Relation*)args[2].addr;
+  if(ChekIndoorId(id)){
+    indoor->Load(id, rel1, rel2);
+    result = SetWord(indoor);
+  }else{
+    cout<<"invalid indoor infrastructure id "<<id<<endl; 
+    while(ChekIndoorId(id) == false || id <= 0){
+      id++;
+    }
+    cout<<"new indoor infrastructure id "<<id<<endl;
+    indoor->Load(id,  rel1, rel2);
+    result = SetWord(indoor);
+  }
+  return 0;
+}
+
+/*
 ValueMap function for operator createdoor3d
 
 */
@@ -1613,7 +1883,7 @@ int CreateDoor3DValueMap(Word* args, Word& result, int message,
                 new CcInt(true,indoor_nav->groom_oid_list[indoor_nav->count]));
           tuple->PutAttribute(1,
                 new Line3D(indoor_nav->path_list[indoor_nav->count]));
-          
+
           result.setAddr(tuple);
           indoor_nav->count++;
           return YIELD;
@@ -1700,7 +1970,6 @@ int CreateDoor1ValueMap(Word* args, Word& result, int message,
         int attr2 = ((CcInt*)args[7].addr)->GetIntval() - 1;
         int attr3 = ((CcInt*)args[8].addr)->GetIntval() - 1;
 
-        
         indoor_nav = new IndoorNav(rel1, rel2);
         indoor_nav->resulttype =
             new TupleType(nl->Second(GetTupleResultType(in_pSupplier)));
@@ -2415,6 +2684,22 @@ Operator bbox3d("bbox3d",
     BBox3DTypeMap
 );
 
+Operator thebuilding("thebuilding",
+    SpatialSpecTheBuilding,
+    TheBuildingValueMap,
+    Operator::SimpleSelect,
+    TheBuildingTypeMap
+);
+
+
+Operator theindoor("theindoor",
+    SpatialSpecTheIndoor,
+    TheIndoorValueMap,
+    Operator::SimpleSelect,
+    TheIndoorTypeMap
+);
+
+
 Operator createdoor3d("createdoor3d",
     SpatialSpecCreateDoor3D,
     CreateDoor3DValueMap,
@@ -2946,6 +3231,39 @@ int RefIdRoadNetworkValueMap(Word* args, Word& result, int message,
 }
 
 /*
+get building id 
+
+*/
+int RefIdBuildingValueMap(Word* args, Word& result, int message,
+                    Word& local, Supplier s)
+{
+  Building* build = (Building*)args[0].addr;
+  result = qp->ResultStorage(s);
+  if(build->IsDefined() && build->GetId() > 0){////0 is for free space 
+      ((CcInt*)result.addr)->Set(true, build->GetId());
+  }else
+    ((CcInt*)result.addr)->Set(false, 0);
+  return 0;
+}
+
+/*
+get indoorinfra id 
+
+*/
+int RefIdIndoorInfraValueMap(Word* args, Word& result, int message,
+                    Word& local, Supplier s)
+{
+  IndoorInfra* indoor = (IndoorInfra*)args[0].addr;
+  result = qp->ResultStorage(s);
+  if(indoor->IsDefined() && indoor->GetId() > 0){////0 is for free space 
+      ((CcInt*)result.addr)->Set(true, indoor->GetId());
+  }else
+    ((CcInt*)result.addr)->Set(false, 0);
+  return 0;
+}
+
+
+/*
 it returns a set of reference id for genmo and genrange 
 
 */
@@ -3454,6 +3772,43 @@ int AddPaveVisualGraphValueMap(Word* args, Word& result, int message,
 }
 
 /*
+add indoor graph to a building
+
+*/
+int AddIndoorGraphValueMap(Word* args, Word& result, int message,
+                    Word& local, Supplier s)
+{
+  static int flag = 0;
+  switch(message){
+    case OPEN:
+      return 0;
+    case REQUEST:
+          if(flag == 0){
+            Building* build = (Building*)args[0].addr;
+            IndoorGraph* ig = (IndoorGraph*)args[1].addr; 
+            build->SetIndoorGraphId(ig->g_id);
+            Tuple* t = new Tuple(nl->Second(GetTupleResultType(s)));
+            t->PutAttribute(0, new CcInt(true, build->GetId()));
+            t->PutAttribute(1, new CcInt(true, build->GetIGId()));
+            result.setAddr(t);
+            flag = 1;
+            return YIELD;
+          }else{
+            flag = 0;
+            return CANCEL;
+          } 
+    case CLOSE:
+
+        qp->SetModified(qp->GetSon(s,0));
+        local.setAddr(Address(0));
+        return 0;
+  }
+  
+  return 0;
+  
+}
+
+/*
 create an empty space with an identify
 
 */
@@ -3886,7 +4241,9 @@ ValueMapping RefIdValueMapVM[]={
   RefIdBusRouteValueMap,
   RefIdBusNetworkValueMap,
   RefIdPavementValueMap,
-  RefIdRoadNetworkValueMap
+  RefIdRoadNetworkValueMap,
+  RefIdBuildingValueMap,
+  RefIdIndoorInfraValueMap
 };
 
 int RefIdOpSelect(ListExpr args)
@@ -3906,6 +4263,10 @@ int RefIdOpSelect(ListExpr args)
     return 5;
   if(nl->IsAtom(arg1) && nl->IsEqual(arg1, "network"))
     return 6;
+  if(nl->IsAtom(arg1) && nl->IsEqual(arg1, "building"))
+    return 7;
+  if(nl->IsAtom(arg1) && nl->IsEqual(arg1, "indoorinfra"))
+    return 8;
   return -1;
 }
 
@@ -3964,7 +4325,9 @@ ListExpr RefIdTypeMap(ListExpr args)
      nl->IsEqual(arg1, "busstop") || 
      nl->IsEqual(arg1, "busroute") || 
      nl->IsEqual(arg1, "busnetwork") || 
-     nl->IsEqual(arg1, "pavenetwork") || nl->IsEqual(arg1, "network"))
+     nl->IsEqual(arg1, "pavenetwork") || 
+     nl->IsEqual(arg1, "network") || 
+     nl->IsEqual(arg1, "building") || nl->IsEqual(arg1, "indoorinfra"))
     return nl->SymbolAtom("int");
 
   return nl->SymbolAtom("typeerror");
@@ -4542,7 +4905,7 @@ ListExpr Navigation1ListTypeMap(ListExpr args)
 
 Operator ref_id("ref_id",
     SpatialSpecRefId,
-    7,
+    9,
     RefIdValueMapVM,
     RefIdOpSelect,
     RefIdTypeMap
@@ -4750,6 +5113,7 @@ ValueMapping TMAddInfraGraphValueMapVM[]={
   AddBusNetworkGraphValueMap,
   AddPaveDualGraphValueMap,
   AddPaveVisualGraphValueMap,
+  AddIndoorGraphValueMap,
 };
 
 int TMAddInfraGraphOpSelect(ListExpr args)
@@ -4765,6 +5129,9 @@ int TMAddInfraGraphOpSelect(ListExpr args)
   if(nl->IsAtom(arg1) && nl->IsEqual(arg1, "pavenetwork") &&
     nl->IsAtom(arg2) && nl->IsEqual(arg2, "visualgraph"))
     return 2;
+  if(nl->IsAtom(arg1) && nl->IsEqual(arg1, "building") &&
+    nl->IsAtom(arg2) && nl->IsEqual(arg2, "indoorgraph"))
+    return 3;
   return -1;
 }
 
@@ -4829,6 +5196,23 @@ ListExpr AddInfraGraphTypeMap(ListExpr args)
     return reslist;
   }
   
+  if(nl->IsEqual(arg1, "building") && nl->IsEqual(arg2, "indoorgraph")){
+
+      ListExpr reslist = nl->TwoElemList(
+        nl->SymbolAtom("stream"),
+        nl->TwoElemList(
+          nl->SymbolAtom("tuple"),
+          nl->TwoElemList(
+            nl->TwoElemList(nl->SymbolAtom("building id"),
+                            nl->SymbolAtom("int")),
+            nl->TwoElemList(nl->SymbolAtom("indoor graph id"),
+                            nl->SymbolAtom("int"))
+          )
+        )
+      );
+    return reslist;
+  }
+
   return nl->SymbolAtom("typeerror");
 }
 
@@ -4945,7 +5329,7 @@ ListExpr GetInfraTypeMap(ListExpr args)
 
 Operator addinfragraph("addinfragraph",
     SpatialSpecAddInfraGraph,
-    3,
+    4,
     TMAddInfraGraphValueMapVM,
     TMAddInfraGraphOpSelect,
     AddInfraGraphTypeMap
@@ -6032,9 +6416,9 @@ const string OpTMGetRect1Spec  =
     "\"Example\" ) "
     "( <text>rel x attr1 x attr2->"
     "(stream (tuple( (x1 t1)(x2 t2)...(xn tn)))</text--->"
-    "<text>getrect2(rel, attr, attr);</text--->"
+    "<text>getrect1(rel, attr, attr);</text--->"
     "<text>get the maximum rectangle area for a region</text--->"
-    "<text>query getrect2(new_region_elems2, id, covarea);</text--->"
+    "<text>query getrect1(new_region_elems2, id, covarea);</text--->"
     ") )";
 
 /*
@@ -6044,12 +6428,21 @@ build a path between the entrance of the building and the pavement area
 const string OpTMPathToBuildingSpec  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" "
     "\"Example\" ) "
-    "( <text>rel1 x rel2 x btree->"
+    "( <text>rel1 x rel2 x btree x space->"
     "(stream (tuple( (x1 t1)(x2 t2)...(xn tn)))</text--->"
-    "<text>path_to_building(rel, rel, btree);</text--->"
+    "<text>path_to_building(rel, rel, btree, space);</text--->"
     "<text>build the connection between building and pavement</text--->"
     "<text>query path_to_building(building_rect, new_region_elems," 
-    "btree_region_elem);</text--->"
+    "btree_region_elem, space_1);</text--->"
+    ") )";
+    
+const string OpTMSetBuildingTypeSpec  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+    "\"Example\" ) "
+    "( <text>rel x rtree-> (stream (tuple( (x1 t1)(x2 t2)...(xn tn)))</text--->"
+    "<text>set_building_type(rel, rtree);</text--->"
+    "<text>set the type for each building</text--->"
+    "<text>query set_building_type(building_region_type,rtree_build);</text--->"
     ") )";
 
 /*
@@ -11793,9 +12186,9 @@ build the connection between the entrance of the building and pavement
 
 ListExpr OpTMPathToBuildingTypeMap ( ListExpr args )
 {
-  if ( nl->ListLength ( args ) != 3 )
+  if ( nl->ListLength ( args ) != 4 )
   {
-    return  nl->SymbolAtom ( "list length should be 3" );
+    return  nl->SymbolAtom ( "list length should be 4" );
   }
   ListExpr param1 = nl->First ( args );
   if(!IsRelDescription(param1))
@@ -11825,24 +12218,98 @@ ListExpr OpTMPathToBuildingTypeMap ( ListExpr args )
   if(!listutils::isBTreeDescription(param3))
     return nl->SymbolAtom ( "typeerror: param3 should be a btree" );
 
+  ListExpr param4 = nl->Fourth(args);
+  if(!nl->IsEqual(param4, "space"))
+    return nl->SymbolAtom ( "typeerror: param4 should be space" );
+
+
   ListExpr res = nl->TwoElemList(
             nl->SymbolAtom("stream"),
             nl->TwoElemList(
                 nl->SymbolAtom("tuple"),
-                nl->FourElemList(
-                    nl->TwoElemList(
-                        nl->SymbolAtom("reg_id"),
-                        nl->SymbolAtom("int")),
-                    nl->TwoElemList(
-                        nl->SymbolAtom("sp"),
-                        nl->SymbolAtom("point")),
-                    nl->TwoElemList(
-                        nl->SymbolAtom("ep"),
-                        nl->SymbolAtom("point")), 
-                    nl->TwoElemList(
-                        nl->SymbolAtom("Path"),
-                        nl->SymbolAtom("line"))
+                   nl->Cons(
+                      nl->TwoElemList(
+                              nl->SymbolAtom("reg_id"),
+                              nl->SymbolAtom("int")),
+                      nl->SixElemList(
+                            nl->TwoElemList(
+                              nl->SymbolAtom("sp"),
+                              nl->SymbolAtom("point")),
+                            nl->TwoElemList(
+                              nl->SymbolAtom("ep"),
+                              nl->SymbolAtom("point")),
+                            nl->TwoElemList(
+                              nl->SymbolAtom("ep2"),
+                              nl->SymbolAtom("point")),
+                            nl->TwoElemList(
+                              nl->SymbolAtom("sp_type"),
+                              nl->SymbolAtom("int")),
+                            nl->TwoElemList(
+                              nl->SymbolAtom("building_id"),
+                              nl->SymbolAtom("int")),
+                            nl->TwoElemList(
+                              nl->SymbolAtom("ep2_gloc"),
+                              nl->SymbolAtom("genloc")))
                     )));
+
+      return res;
+
+}
+
+/*
+TypeMap fun for operator set building type.
+
+*/
+
+ListExpr OpTMSetBuildingTypeTypeMap ( ListExpr args )
+{
+  if ( nl->ListLength ( args ) != 2 )
+  {
+    return  nl->SymbolAtom ( "list length should be 2" );
+  }
+  ListExpr param1 = nl->First ( args );
+  if(!IsRelDescription(param1))
+    return nl->SymbolAtom ( "typeerror: param1 should be a relation" );
+
+  ListExpr xType1;
+  nl->ReadFromString(MaxRect::BuildingRectTypeInfo, xType1); 
+  if(!CompareSchemas(param1, xType1)){
+      string err = "rel (tuple ((reg_id int) (geoData rect) (poly_id int) \
+                   (reg_type int))) expected";
+      return listutils::typeError(err);
+  }
+
+
+  ListExpr param2 = nl->Second ( args );
+  if(!listutils::isRTreeDescription(param2)){
+      string err = "rtree expected";
+      return listutils::typeError(err);
+  }
+
+  ListExpr res = nl->TwoElemList(
+            nl->SymbolAtom("stream"),
+            nl->TwoElemList(
+                nl->SymbolAtom("tuple"),
+                      nl->SixElemList(
+                            nl->TwoElemList(
+                              nl->SymbolAtom("reg_id"),
+                              nl->SymbolAtom("int")),
+                            nl->TwoElemList(
+                              nl->SymbolAtom("geoData"),
+                              nl->SymbolAtom("rect")),
+                            nl->TwoElemList(
+                              nl->SymbolAtom("poly_id"),
+                              nl->SymbolAtom("int")),
+                            nl->TwoElemList(
+                              nl->SymbolAtom("reg_type"),
+                              nl->SymbolAtom("int")),
+                            nl->TwoElemList(
+                              nl->SymbolAtom("building_type"),
+                              nl->SymbolAtom("int")),
+                            nl->TwoElemList(
+                              nl->SymbolAtom("building_type2"),
+                              nl->SymbolAtom("string")))
+                    ));
 
       return res;
 
@@ -16015,11 +16482,12 @@ int OpTMBNNavigationValueMap(Word* args, Word& result, int message,
                   bn_nav->ShortestPath_Length(bs1, bs2, query_time);
                   break;
           case 1: 
-                  bn_nav->ShortestPath_Time(bs1, bs2, query_time);
-//                  bn_nav->ShortestPath_TimeNew(bs1, bs2, query_time);
+//                  bn_nav->ShortestPath_Time(bs1, bs2, query_time);
+                  bn_nav->ShortestPath_TimeNew(bs1, bs2, query_time);
                   break;
           case 2:
-                  bn_nav->ShortestPath_Transfer(bs1, bs2, query_time);
+//                bn_nav->ShortestPath_Transfer(bs1, bs2, query_time);
+                  bn_nav->ShortestPath_TransferNew(bs1, bs2, query_time);
                   break;
           default:
                   cout<<"invalid type "<<type<<endl;
@@ -16153,9 +16621,9 @@ int OpTMTestBNNavigationValueMap(Word* args, Word& result, int message,
                   break;
           case 1:
                 ////////////////no optimization on edges filtering///////////
-                  bn_nav->ShortestPath_Time(bs1, bs2, query_time);
+//                  bn_nav->ShortestPath_Time(bs1, bs2, query_time);
                   ////////////////filtering edges////////////////////////////
-//                  bn_nav->ShortestPath_TimeNew(bs1, bs2, query_time);
+                  bn_nav->ShortestPath_TimeNew(bs1, bs2, query_time);
                   if(bn_nav->path_list.size() > 0){
                     double l = 0.0;
                     double time_cost = 0.0;
@@ -16176,9 +16644,9 @@ int OpTMTestBNNavigationValueMap(Word* args, Word& result, int message,
                   break;
           case 2:
                   ///////////////no optimization on edges filtering//////////
-                  bn_nav->ShortestPath_Transfer(bs1, bs2, query_time);
+//                  bn_nav->ShortestPath_Transfer(bs1, bs2, query_time);
                   /////////////////filtering edges///////////////////////////
-//                  bn_nav->ShortestPath_TransferNew(bs1, bs2, query_time);
+                  bn_nav->ShortestPath_TransferNew(bs1, bs2, query_time);
                   if(bn_nav->path_list.size() > 0){
                     double l = 0.0;
                     double time_cost = 0.0;
@@ -17416,6 +17884,7 @@ int OpTMGetRect1ValueMap ( Word* args, Word& result, int message,
 
 /*
 build the connection between the entrance of the building and the pavement 
+set the building id and map the point in the pavement area
 
 */
 int OpTMPathToBuildingValueMap ( Word* args, Word& result, int message,
@@ -17428,12 +17897,13 @@ int OpTMPathToBuildingValueMap ( Word* args, Word& result, int message,
         Relation* r1 = (Relation*)args[0].addr;
         Relation* r2 = (Relation*)args[1].addr;
         BTree* btree = (BTree*)args[2].addr; 
+        Space* sp = (Space*)args[3].addr; 
 
         max_rect = new MaxRect(r1, r2, btree);
         max_rect->resulttype =
             new TupleType(nl->Second(GetTupleResultType(in_pSupplier)));
 
-        max_rect->PathToBuilding();
+        max_rect->PathToBuilding(sp);
         local.setAddr(max_rect);
         return 0;
       }
@@ -17450,9 +17920,13 @@ int OpTMPathToBuildingValueMap ( Word* args, Word& result, int message,
           tuple->PutAttribute(2, 
                        new Point(max_rect->ep_list[max_rect->count]));
           tuple->PutAttribute(3, 
-                       new Line(max_rect->path_list[max_rect->count]));
-
-
+                       new Point(max_rect->ep_list2[max_rect->count]));
+          tuple->PutAttribute(4, 
+                      new CcInt(true, max_rect->sp_type_list[max_rect->count]));
+          tuple->PutAttribute(5, 
+                     new CcInt(true, max_rect->build_id_list[max_rect->count]));
+          tuple->PutAttribute(6, 
+                       new GenLoc(max_rect->genloc_list[max_rect->count]));
           result.setAddr(tuple);
           max_rect->count++;
           return YIELD;
@@ -17470,7 +17944,62 @@ int OpTMPathToBuildingValueMap ( Word* args, Word& result, int message,
 
 }
 
+/*
+for each rectangle, it sets which kind of building it is
 
+*/
+int OpTMSetBuildingTypeValueMap ( Word* args, Word& result, int message,
+                         Word& local, Supplier in_pSupplier )
+{
+  MaxRect* max_rect;
+  switch(message){
+      case OPEN:{
+
+        Relation* r1 = (Relation*)args[0].addr;
+        R_Tree<2,TupleId>* rtree = (R_Tree<2,TupleId>*)args[1].addr;
+
+        max_rect = new MaxRect(r1, NULL, NULL);
+        max_rect->resulttype =
+            new TupleType(nl->Second(GetTupleResultType(in_pSupplier)));
+
+        max_rect->SetBuildingType(rtree);
+        local.setAddr(max_rect);
+        return 0;
+      }
+      case REQUEST:{
+          if(local.addr == NULL) return CANCEL;
+          max_rect = (MaxRect*)local.addr;
+          if(max_rect->count == max_rect->reg_id_list.size())return CANCEL;
+
+          Tuple* tuple = new Tuple(max_rect->resulttype);
+          tuple->PutAttribute(0, 
+                       new CcInt(true,max_rect->reg_id_list[max_rect->count]));
+          tuple->PutAttribute(1, 
+                       new Rectangle<2>(max_rect->rect_list[max_rect->count]));
+          tuple->PutAttribute(2, 
+                       new CcInt(true,max_rect->poly_id_list[max_rect->count]));
+          tuple->PutAttribute(3, 
+                      new CcInt(true,max_rect->reg_type_list[max_rect->count]));
+          tuple->PutAttribute(4,
+                   new CcInt(true, max_rect->build_type_list[max_rect->count]));
+          tuple->PutAttribute(5,
+               new CcString(true, max_rect->build_type2_list[max_rect->count]));
+          result.setAddr(tuple);
+          max_rect->count++;
+          return YIELD;
+      }
+      case CLOSE:{
+          if(local.addr){
+            max_rect = (MaxRect*)local.addr;
+            delete max_rect;
+            local.setAddr(Address(0));
+          }
+          return 0;
+      }
+  }
+  return 0;
+
+}
 
 /*
 clear dirty region data. remove dirty region data
@@ -18475,6 +19004,14 @@ Operator path_to_building(
   OpTMPathToBuildingTypeMap //type mapping 
 );
 
+Operator set_building_type(
+  "set_building_type",  //name 
+  OpTMSetBuildingTypeSpec, //specification
+  OpTMSetBuildingTypeValueMap, //value mapping 
+  Operator::SimpleSelect,
+  OpTMSetBuildingTypeTypeMap //type mapping 
+);
+
 
 /*
 Main Class for Transportation Mode
@@ -18522,6 +19059,11 @@ class TransportationModeAlgebra : public Algebra
     //////////////////////  Pavement //////////////////////////
     ///////////////////////////////////////////////////////////
     AddTypeConstructor( &pavenetwork); 
+    ///////////////////////////////////////////////////////////
+    //////////////////////  Building //////////////////////////
+    ///////////////////////////////////////////////////////////
+    AddTypeConstructor( &building); 
+    AddTypeConstructor( &indoorinfra);
 
     //////////////////////////////////////////////////////////////
     ////////////////////general data type ////////////////////////
@@ -18670,6 +19212,8 @@ class TransportationModeAlgebra : public Algebra
     AddOperator(&translate_groom);//translate the 2D region 
     AddOperator(&tm_length);//the length of a 3d line 
     AddOperator(&bbox3d); //return the 3d box of the a line3d 
+    AddOperator(&thebuilding);//create a kind of building 
+    AddOperator(&theindoor);//create the indoor infrastructure 
     ///////////////////////////////////////////////////////////////////////
     //////////////// indoor  navigation //////////////////////////////////
     //////////////////////////////////////////////////////////////////////
@@ -18699,6 +19243,7 @@ class TransportationModeAlgebra : public Algebra
     AddOperator(&getrect1); //get all rectangles for buildings 
     AddOperator(&getrect2); //randomly select some of them from input int
     AddOperator(&path_to_building);//connect building entrance and pavement
+    AddOperator(&set_building_type);//set which type the building is 
     /////////non-temporal operators for generic data types////////////////////
     AddOperator(&ref_id); 
     AddOperator(&tm_at);//at mode, at genloc, at genrange 
