@@ -2270,14 +2270,14 @@ ListExpr ksmallestTM(ListExpr args){
   ListExpr NumberList;
   ListExpr Last;
   ListExpr attrType = nl->TheEmptyList();
-  
+
   if(nl->AtomType(AttrList)!=NoAtom){
     return listutils::typeError(err);
   }
 
 
   while(!nl->IsEmpty(AttrList)){
-     
+
      ListExpr Attr = nl->First(AttrList);
      if(nl->AtomType(Attr)!=SymbolType){
         ErrorReporter::ReportError(err);
@@ -2643,7 +2643,7 @@ Constructs a localinfo tor given k and the attribute indexes by ~attrnumbers~.
 
 /*
 ~insertTuple~
-    
+
 Inserts a tuple into the local buffer. If the buffer would be
 overflow (size [>] k) , the maximum element is removed from the buffer.
 
@@ -2791,17 +2791,17 @@ template<bool smaller>
       ProgressInfo p1;
       ProgressInfo *pRes;
       KSmallestLocalInfo* linfo;
-      
+
       const double uKsmallest = 0.0001287348; //millisecs per tuple
       const double vKsmallest = 0.0000021203; //millisecs per tuple
       const double wKsmallest = 0.0000000661; //millisecs per k
-            
+
       pRes = (ProgressInfo*) result.addr;
       linfo = (KSmallestLocalInfo*) local.addr;
       if(!linfo){
          return CANCEL;
       }
-                  
+
       if (qp->RequestProgress(args[0].addr, &p1))
       {
         pRes->CopySizes(p1);
@@ -2820,7 +2820,7 @@ template<bool smaller>
             (uKsmallest + p1.SizeExt * vKsmallest + k * wKsmallest))/pRes->Time;
         pRes->BTime=pRes->Time;
         pRes->BProgress=pRes->Progress;
-      
+
         return YIELD;
       } else {
          return CANCEL;
@@ -3041,7 +3041,7 @@ IdenticalTypeMap( ListExpr args )
 
 }
 /*
-2.12.2 Specification of operator ~sort~
+2.12.2 Specification of operator ~sort\_old~
 
 */
 const string SortSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
@@ -3049,14 +3049,14 @@ const string SortSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
                          "( <text>((stream (tuple([a1:d1, ... ,an:dn]"
                          ")))) -> (stream (tuple([a1:d1, ... ,an:dn])))"
                          "</text--->"
-                         "<text>_ sort</text--->"
+                         "<text>_ sort_old</text--->"
                          "<text>Sorts input stream lexicographically."
                          "</text--->"
-                         "<text>query cities feed sort consume</text--->"
+                         "<text>query cities feed sort_old consume</text--->"
                          ") )";
 
 /*
-2.12.3 Definition of operator ~sort~
+2.12.3 Definition of operator ~sort\_old~
 
 */
 Operator extrelsort (
@@ -3254,7 +3254,7 @@ int RdupValueMapping(Word* args, Word& result, int message,
           return CANCEL;
         }
       }
-    } case CLOSE: { 
+    } case CLOSE: {
       qp->Close(args[0].addr);
       return 0;
 
@@ -4185,8 +4185,8 @@ class ExtendLocalInfo: public ProgressLocalInfo
 public:
 
   ExtendLocalInfo():resultTupleType(0),stableValue(0),
-                    sizesFinal(false), noOldAttrs(0), 
-                    noNewAttrs(0), attrSizeTmp(0), 
+                    sizesFinal(false), noOldAttrs(0),
+                    noNewAttrs(0), attrSizeTmp(0),
                     attrSizeExtTmp(0) {};
 
   ~ExtendLocalInfo() {
@@ -4651,7 +4651,7 @@ public:
        resultTupleType->DeleteIfAllowed();
        resultTupleType=0;
      }
-  }  
+  }
 
   Word tuplex;
   Word streamy;
@@ -5093,7 +5093,7 @@ int
   Tuple* ctuplex;
   Tuple* ctupley;
   LoopselectLocalInfo *localinfo;
-  
+
   switch ( message )
   {
     case OPEN:
@@ -5219,7 +5219,7 @@ int
         // default guess is the multiplication of cardinalities
             pRes->Card = p1.Card * p2.Card;
           }
-    
+
           pRes->CopySizes(p2);  // tuples are axtracted from fun relation
           // for each tuplex, all matching tupley will be collected,
           // therefore the time for the query for tupley is multiplied
@@ -5237,7 +5237,7 @@ int
       } else {
         return CANCEL;
       }
-     
+
   }
 
   return -1;
@@ -5826,7 +5826,7 @@ class ProjectExtendLocalInfo: public ProgressLocalInfo
 public:
 
   ProjectExtendLocalInfo():
-        resultTupleType(0),stableValue(0), sizesFinal(false), 
+        resultTupleType(0),stableValue(0), sizesFinal(false),
         noOldAttrs(0),noNewAttrs(0),attrSizeTmp(0), attrSizeExtTmp(0) {};
 
   ~ProjectExtendLocalInfo() {
@@ -6458,16 +6458,15 @@ ListExpr GetAttrTypeList (ListExpr l)
 ListExpr ConcatTypeMap( ListExpr args )
 {
   if(nl->ListLength(args)!=2){
-    return listutils::typeError("two tuple streams expected");
+    return listutils::typeError("two streams expected");
   }
   if(!nl->Equal(nl->First(args),nl->Second(args))){
       return listutils::typeError("both arguments must be of the same type");
   }
-  if(!listutils::isTupleStream(nl->First(args))){
-    return listutils::typeError("arguments are not tuple streams");
+  if(!listutils::isStream(nl->First(args))){
+    return listutils::typeError("arguments are no streams");
   }
   return nl->First(args);
-
 }
 /*
 2.20.2 Value mapping function of operator ~concat~
@@ -6476,7 +6475,6 @@ ListExpr ConcatTypeMap( ListExpr args )
 int Concat(Word* args, Word& result, int message, Word& local, Supplier s)
 {
   Word t;
-  Tuple* tuple;
 
   switch (message)
   {
@@ -6484,41 +6482,42 @@ int Concat(Word* args, Word& result, int message, Word& local, Supplier s)
 
       qp->Open(args[0].addr);
       qp->Open(args[1].addr);
-      local.setAddr(new CcInt(true, 0));
+      // start using 1st stream
+      if(local.addr){
+        *(static_cast<bool*>(local.addr)) = false;
+      } else {
+        local.setAddr(new bool(false));
+      }
       return 0;
 
     case REQUEST :
-      if ( (((CcInt*)local.addr)->GetIntval()) == 0)
-      {
+      if(!local.addr) {
+        result.setAddr(0);
+        return CANCEL;
+      }
+      if ( !(*static_cast<bool*>(local.addr)) ){
         qp->Request(args[0].addr, t);
-        if (qp->Received(args[0].addr))
-        {
-          tuple = (Tuple*)t.addr;
-          result.setAddr(tuple);
+        if (qp->Received(args[0].addr)){
+          result.setAddr(t.addr);
           return YIELD;
-        }
-        else
-        {
-          ((CcInt*)local.addr)->Set(1);
+        } else {
+          *(static_cast<bool*>(local.addr)) = true; // start using 2nd stream
         }
       }
       qp->Request(args[1].addr, t);
-      if (qp->Received(args[1].addr))
-      {
-        tuple = (Tuple*)t.addr;
-        result.setAddr(tuple);
+      if (qp->Received(args[1].addr)){
+        result.setAddr(t.addr);
         return YIELD;
-      }
-      else
+      } else {
         return CANCEL;
+      }
 
     case CLOSE :
 
       qp->Close(args[0].addr);
       qp->Close(args[1].addr);
-      if( local.addr != 0 )
-      {
-        ((CcInt*)local.addr)->DeleteIfAllowed();
+      if( local.addr ) {
+        delete (static_cast<bool*>(local.addr));
         local.setAddr(0);
       }
       return 0;
@@ -6532,11 +6531,11 @@ int Concat(Word* args, Word& result, int message, Word& local, Supplier s)
 */
 const string ConcatSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
                            "\"Example\" ) "
-                           "( <text>((stream (tuple (a1:d1 ... an:dn))) "
-                           "(stream (tuple (b1:d1 ... bn:dn)))) -> (stream"
-                           " (tuple (a1:d1 ... an:dn)))</text--->"
+                           "(<text>stream(X) x stream(X) -> stream(X)</text--->"
                            "<text>_ _ concat</text--->"
-                           "<text>Union.</text--->"
+                           "<text>Returns all elements of the first argument "
+                           "followed by all elements from the second argument."
+                           "</text--->"
                            "<text>query ten feed five feed concat consume"
                            "</text--->"
                            ") )";
@@ -7188,7 +7187,7 @@ public:
      if(t){
        t->DeleteIfAllowed();
        t = 0;
-     } 
+     }
      if(resultTupleType){
        resultTupleType->DeleteIfAllowed();
        resultTupleType = 0;
@@ -7511,7 +7510,7 @@ struct SlidingWindowLocalInfo
   bool firstWindow;
   CircularTupleBuffer* tb;
 
-  SlidingWindowLocalInfo() : tb(0), resultTupleType(0), firstWindow(true){}
+  SlidingWindowLocalInfo() : resultTupleType(0), firstWindow(true), tb(0) {}
 };
 
 int SlidingWindowValueMapping
@@ -7528,7 +7527,6 @@ int SlidingWindowValueMapping
   Supplier supplier2;
   int noOffun = 0;
   ArgVectorPointer vector;
-  const int indexOfCountArgument = 3;
   SlidingWindowLocalInfo *gbli = 0;
 
   // The argument vector contains the following values:
@@ -8446,7 +8444,7 @@ class SymmJoinLocalInfo: public ProgressLocalInfo
 {
 public:
 
-   SymmJoinLocalInfo(): resultTupleType(0), rightRel(0), 
+   SymmJoinLocalInfo(): resultTupleType(0), rightRel(0),
        rightIter(0),leftRel(0),leftIter(0),right(false),
        currTuple(0),rightFinished(false),leftFinished(false) {}
 
@@ -8462,19 +8460,19 @@ public:
       if(rightRel){
         delete rightRel;
         rightRel=0;
-      } 
+      }
       if(rightIter){
         delete rightIter;
         rightIter=0;
-      } 
+      }
       if(leftRel){
         delete leftRel;
         leftRel=0;
-      } 
+      }
       if(leftIter){
         delete leftIter;
         leftIter=0;
-      } 
+      }
    }
 
   TupleType *resultTupleType;
@@ -8712,11 +8710,11 @@ SymmJoin(Word* args, Word& result, int message, Word& local, Supplier s)
           pli->currTuple->DeleteIfAllowed();
           pli->currTuple=0;
         }
-        
+
         if(pli->leftIter){
           delete pli->leftIter;
           pli->leftIter = 0;
-        } 
+        }
         if(pli->rightIter){
            delete pli->rightIter;
            pli->rightIter=0;

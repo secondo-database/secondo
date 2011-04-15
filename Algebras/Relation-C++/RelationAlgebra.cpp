@@ -2004,7 +2004,7 @@ Result type of filter operation.
 ----
 
 Type mapping function modified to show the possibility of getting
-not only types but also arguments in the type mapping. This happens 
+not only types but also arguments in the type mapping. This happens
 when an operator
 registers "UsesArgsinTypeMapping". Type list now has the form
 
@@ -2060,23 +2060,23 @@ ListExpr FilterTypeMap(ListExpr args)
     ErrorReporter::ReportError("map and tuple type are not consistent");
     return nl->TypeError();
   }
-  
+
   //just for demonstrating "UsesArgsInTypeMapping"
 
   bool showArguments = false;
   if ( showArguments ) {
         cout << "arguments to the filter operator:" << endl;
 	    cout << "first argument: ";
-		nl->WriteListExpr( nl->Second(nl->First(args)), cout, 2 );  
+		nl->WriteListExpr( nl->Second(nl->First(args)), cout, 2 );
 		cout << endl;
 	    cout << "second argument: ";
-		nl->WriteListExpr( nl->Second(nl->Second(args)), cout, 2 );  
+		nl->WriteListExpr( nl->Second(nl->Second(args)), cout, 2 );
         cout << endl;
 		cout << endl;
   }
 
-  
-  
+
+
   return nl->First(nl->First(args));
 }
 
@@ -2259,7 +2259,7 @@ Filter(Word* args, Word& result, int message,
                         return YIELD;
                   }
 
-          if ( fli->returned >= enoughSuccessesSelection || 
+          if ( fli->returned >= enoughSuccessesSelection ||
 		       fli->returned >= p1.Card * qp->GetSelectivity(s) )
             //stable state assumed now - or more returned than cold estimate
           {
@@ -2859,7 +2859,7 @@ Project(Word* args, Word& result, int message,
   pRes->CopyBlocking(p1);    //non-blocking operator
 
         return YIELD;
-      } else { 
+      } else {
         return CANCEL;
       }
     }
@@ -3592,7 +3592,7 @@ struct CountBothInfo : OperatorInfo {
   {
     name =      "countboth";
     signature = "stream(tuple(y)) x stream(tuple(z)) -> int";
-    syntax =    "_ countboth";
+    syntax =    "_ _ countboth";
     meaning =   "Counts the number of tuples of two input streams. "
           "The streams are requested alternately. The purpose of "
     "this operator is to expose the overhead of the seek time.";
@@ -3886,7 +3886,7 @@ TCountSelect( ListExpr args )
   if (TypeOfRelAlgSymbol(nl->First(first)) == stream)
     return 0;
   else if( TypeOfRelAlgSymbol(nl->First(first)) == rel
-           || TypeOfRelAlgSymbol(nl->First(first)) == trel 
+           || TypeOfRelAlgSymbol(nl->First(first)) == trel
            || listutils::isOrelDescription(first))
     return 1;
   return -1;
@@ -5201,7 +5201,7 @@ ListExpr RenameAttrTypeMap(ListExpr args){
 
  if(nl->AtomType(renames)!=NoAtom){
     return listutils::typeError("second argument must be a list of renamings");
- } 
+ }
 
   while(!nl->IsEmpty(renames)){
     ListExpr rename = nl->First(renames);
