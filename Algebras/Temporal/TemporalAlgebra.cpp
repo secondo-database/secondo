@@ -11914,9 +11914,7 @@ int ApproximateMvalue(Word* args, Word& result,
         if(!first){
           // check order of instants - ignore wrong ordered elements
           if(currentInstant>lastInstant){
-            if(split && (currentInstant - lastInstant) > dur ) {
-              first = true;
-            } else {
+            if(!(split && (currentInstant - lastInstant) > dur )) {
               Interval<Instant> interval(lastInstant, currentInstant,
                                          true ,false);
               if(isContinious){
@@ -11935,19 +11933,7 @@ int ApproximateMvalue(Word* args, Word& result,
           lastValue = currentValue;
           lastInstant = currentInstant;
         }
-      } else { // undefined value found
-        if(!first){
-          first = true;
-          Interval<Instant> interval(lastInstant, currentInstant, true ,false);
-          if(makeContinious){
-            UType unit(interval,lastValue,currentValue);
-            res->MergeAdd(unit);
-          } else {
-            UType unit(interval,lastValue,lastValue);
-            res->MergeAdd(unit);
-          }
-        }
-      }
+      } 
     }
     tuple->DeleteIfAllowed();
     qp->Request(args[0].addr, actual);
