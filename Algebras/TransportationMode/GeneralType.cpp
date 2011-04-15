@@ -4859,6 +4859,24 @@ int Space::GetInfraType(int oid)
 }
 
 /*
+get the maximum reference id in the current space 
+
+*/
+int64_t Space::MaxRefId()
+{
+  int64_t max_ref_id = 0;
+  
+  for(int i = 0;i < infra_list.Size();i++){
+      InfraRef elem;
+      infra_list.Get(i, elem); 
+      if(elem.ref_id_high > max_ref_id){
+        max_ref_id = elem.ref_id_high;
+      }
+  }
+  return max_ref_id;
+}
+
+/*
 get the movement inside an infrastructure object 
 
 */

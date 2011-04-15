@@ -8908,7 +8908,729 @@ void MPoint3D::Trajectory(Line3D& l)
   l.EndBulkLoad(); 
 }
 
+///////////////////////////////////////////////////////////////////////////
+//////////////////////Building////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+string Building::RoomBTreeTypeInfo = "(rel (tuple ((oid int) (Name string) \
+(Type string) (Room groom) (Door line))) int)";
+
+string Building::Indoor_GRoom_Door_Extend = "(rel (tuple ((oid int) \
+(Name string) (Type string) (Room groom) (Door line) (TID tid) (BBox rect3))))";
+
+string Building::RoomRTreeTypeInfo = "(rel (tuple ((oid int) (Name string)\
+(Type string) (Room groom) (Door line) (TID tid) (BBox rect3))) rect3 FALSE)";
+
+ListExpr BuildingProperty()
+{
+  return (nl->TwoElemList(
+            nl->FourElemList(nl->StringAtom("Signature"),
+                       nl->StringAtom("Example Type List"),
+           nl->StringAtom("List Rep"),
+           nl->StringAtom("Example List")),
+            nl->FourElemList(nl->StringAtom("-> DATA"),
+                       nl->StringAtom("building"),
+         nl->StringAtom("((def, id))"),
+           nl->StringAtom("((TRUE 1))"))));
+}
+
+void* Building::Cast(void* addr)
+{
+  return NULL;
+}
+
+int SizeOfBuilding()
+{
+//  cout<<"SizeOfBuilding"<<endl; 
+  return sizeof(Building);
+}
+
+bool CheckBuilding( ListExpr type, ListExpr& errorInfo )
+{
+//  cout<<"CheckBuilding"<<endl; 
+  return (nl->IsEqual( type, "building" ));
+}
 
 
+void CloseBuilding( const ListExpr typeInfo, Word& w )
+{
+//  cout<<"CloseBuilding"<<endl; 
+  delete static_cast<Building*>(w.addr); 
+  w.addr = 0;
+}
+
+Word CloneBuilding( const ListExpr typeInfo, const Word& w )
+{
+//  cout<<"CloneBuilding"<<endl; 
+  return SetWord( new Address(0));
+}
+
+Word CreateBuilding(const ListExpr typeInfo)
+{
+// cout<<"CreateBuilding()"<<endl;
+  return SetWord (new Building());
+}
+
+void DeleteBuilding(const ListExpr typeInfo, Word& w)
+{
+// cout<<"DeleteBuilding()"<<endl;
+  Building* build = (Building*)w.addr;
+  delete build;
+  w.addr = NULL;
+}
+
+
+/*
+In function. there is not nested list expression here.
+
+*/
+Word InBuilding( const ListExpr typeInfo, const ListExpr instance,
+       const int errorPos, ListExpr& errorInfo, bool& correct )
+{
+
+//  cout<<"length "<<nl->ListLength(instance)<<endl;
+
+  if( !nl->IsAtom( instance ) ){
+
+    if(nl->ListLength(instance) != 3){
+      cout<<"length should be 3"<<endl; 
+      correct = false;
+      return SetWord(Address(0));
+    }
+    ListExpr first = nl->First(instance);
+    ListExpr second = nl->Second(instance);
+    ListExpr third = nl->Third(instance);
+
+    if(!nl->IsAtom(first) || nl->AtomType(first) != BoolType){
+      cout<< "building(): definition must be bool type"<<endl;
+      correct = false;
+      return SetWord(Address(0));
+    }
+    bool d = nl->BoolValue(first);
+
+    if(!nl->IsAtom(second) || nl->AtomType(second) != IntType){
+      cout<< "building(): building id must be int type"<<endl;
+      correct = false;
+      return SetWord(Address(0));
+    }
+    unsigned int id = nl->IntValue(second);
+
+    if(!nl->IsAtom(third) || nl->AtomType(third) != StringType){
+      cout<< "building(): building type must be string type"<<endl;
+      correct = false;
+      return SetWord(Address(0));
+    }
+    string type = nl->StringValue(third);
+
+    Building* building = new Building(d, id, GetBuildingType(type)); 
+
+   ////////////////very important /////////////////////////////
+    correct = true; 
+  ///////////////////////////////////////////////////////////
+    return SetWord(building);
+  }
+
+  correct = false;
+  return SetWord(Address(0));
+}
+
+/*
+output the building
+
+*/
+ListExpr OutBuilding( ListExpr typeInfo, Word value )
+{
+//  cout<<"OutBuilding"<<endl; 
+  Building* build = (Building*)(value.addr);
+  if(!build->IsDefined()){
+    return nl->SymbolAtom("undef");
+  }
+
+  ListExpr list1 = nl->TwoElemList(
+               nl->StringAtom("Building Id:"), 
+               nl->IntAtom(build->GetId()));
+
+  ListExpr list2 = nl->TheEmptyList(); 
+  list2 = nl->TwoElemList(
+               nl->StringAtom("Building Type :"), 
+               nl->StringAtom(GetBuildingStr(build->GetType())));
+
+  ListExpr list3 = nl->TheEmptyList();
+  if(build->IsIGInit()){
+      list3 = nl->TwoElemList(
+               nl->StringAtom("Indoor Graph Id:"), 
+               nl->IntAtom(build->GetIGId()));
+  }else
+    list3 = nl->OneElemList( nl->StringAtom("Indoor Graph undef"));
+
+  ListExpr list4 = nl->TheEmptyList(); 
+
+
+  return nl->FourElemList(list1, list2, list3, list4);
+}
+
+bool SaveBuilding(SmiRecord& valueRecord, size_t& offset, 
+               const ListExpr typeInfo, Word& value)
+{
+  Building* build = (Building*)value.addr;
+  return build->Save(valueRecord, offset, typeInfo);
+}
+
+bool OpenBuilding(SmiRecord& valueRecord, size_t& offset, 
+               const ListExpr typeInfo, Word& value)
+{
+  value.addr = Building::Open(valueRecord, offset, typeInfo);
+  return value.addr != NULL; 
+}
+
+Building::Building():def(false), building_id(0), building_type(-1), 
+indoorgraph_init(false), indoorgraph_id(0), rel_rooms(NULL),
+btree_room(NULL), rtree_rel_box(NULL)
+{
+//  cout<<"default constructor"<<endl; 
+}
+
+Building::Building(bool d, int id, unsigned int type): def(d), building_id(id),
+building_type(type), indoorgraph_init(false), indoorgraph_id(0),
+rel_rooms(NULL), btree_room(NULL), rtree_rel_box(NULL)
+{
+//  cout<<id<<" type"<<type<<endl; 
+
+
+}
+
+Building::Building(SmiRecord& valueRecord, size_t& offset, 
+                   const ListExpr typeInfo): def(false), building_id(0),
+building_type(-1), indoorgraph_init(false), indoorgraph_id(0),
+rel_rooms(NULL), btree_room(NULL), rtree_rel_box(NULL)
+{
+
+  valueRecord.Read(&def, sizeof(bool), offset);
+  offset += sizeof(bool);
+
+  valueRecord.Read(&building_id, sizeof(int), offset);
+  offset += sizeof(int);
+
+  valueRecord.Read(&building_type, sizeof(unsigned int), offset);
+  offset += sizeof(unsigned int);
+
+  valueRecord.Read(&indoorgraph_init, sizeof(bool), offset);
+  offset += sizeof(bool);
+
+  valueRecord.Read(&indoorgraph_id, sizeof(unsigned int), offset);
+  offset += sizeof(unsigned int);
+
+
+  ListExpr xType;
+  ListExpr xNumericType;
+  /***********************Open relation for rooms*********************/
+  nl->ReadFromString(IndoorNav::Indoor_GRoom_Door,xType);
+  xNumericType = SecondoSystem::GetCatalog()->NumericType(xType);
+  rel_rooms = Relation::Open(valueRecord, offset, xNumericType);
+  if(!rel_rooms) {
+    return;
+  }
+  
+   nl->ReadFromString(RoomBTreeTypeInfo,xType);
+   xNumericType = SecondoSystem::GetCatalog()->NumericType(xType);
+   btree_room = BTree::Open(valueRecord, offset, xNumericType);
+   if(!btree_room) {
+     rel_rooms->Delete();
+     return;
+   }
+
+  ///////////////////rtree on bus stops //////////////////////////////
+  Word xValue;
+  if(!(rtree_rel_box->Open(valueRecord,offset, RoomRTreeTypeInfo,xValue))){
+    rel_rooms->Delete();
+    delete btree_room;
+    return;
+  }
+
+  rtree_rel_box = ( R_Tree<3,TupleId>* ) xValue.addr;
+
+//  cout<<"rtree root node id "<<rtree_rel_box->RootRecordId()<<endl;
+
+}
+
+Building::~Building()
+{
+  if(rel_rooms != NULL) rel_rooms->Close(); 
+  if(btree_room != NULL) delete btree_room;
+  if(rtree_rel_box != NULL) delete rtree_rel_box;
+
+}
+
+bool Building::Save(SmiRecord& valueRecord, size_t& offset, 
+                    const ListExpr typeInfo)
+{
+  valueRecord.Write(&def, sizeof(bool), offset); 
+  offset += sizeof(bool); 
+
+  valueRecord.Write(&building_id, sizeof(int), offset);
+  offset += sizeof(int); 
+
+  valueRecord.Write(&building_type, sizeof(unsigned int), offset);
+  offset += sizeof(unsigned int);
+
+  valueRecord.Write(&indoorgraph_init, sizeof(bool), offset);
+  offset += sizeof(bool); 
+
+  valueRecord.Write(&indoorgraph_id, sizeof(unsigned int), offset);
+  offset += sizeof(unsigned int); 
+
+  ListExpr xType;
+  ListExpr xNumericType;
+
+  ////////////////////rooms relation/////////////////////////////
+  nl->ReadFromString(IndoorNav::Indoor_GRoom_Door, xType);
+  xNumericType = SecondoSystem::GetCatalog()->NumericType(xType);
+  if(!rel_rooms->Save(valueRecord,offset,xNumericType))
+      return false;
+
+ ////////////////////btree on rooms relation/////////////////////////////
+  nl->ReadFromString(RoomBTreeTypeInfo, xType);
+  xNumericType = SecondoSystem::GetCatalog()->NumericType(xType);
+  if(!btree_room->Save(valueRecord, offset, xNumericType))
+     return false; 
+
+  ////////////////////rtree on rooms relation////////////////////////////
+  if(!rtree_rel_box->Save(valueRecord, offset)){
+    return false;
+  }
+
+  return true;
+}
+
+void Building::SetIndoorGraphId(int gid)
+{
+  if(gid > 0){
+    indoorgraph_id = gid;
+    indoorgraph_init = true;
+  }else{
+    cout<<"invalid indoor graph id "<<gid<<endl;
+    indoorgraph_init = false;
+  }
+}
+
+/*
+return the indoor graph id of a building
+
+*/
+unsigned int Building::GetIGId()
+{
+  if(indoorgraph_init) return indoorgraph_id;
+  else return 0;
+}
+
+Building* Building::Open(SmiRecord& valueRecord, size_t& offset, 
+                     const ListExpr typeInfo)
+{
+  return new Building(valueRecord, offset, typeInfo);
+}
+
+/*
+load a building from input relations
+
+*/
+void Building::Load(int id, int type, Relation* rel1, Relation* rel2)
+{
+  building_id = id;
+  if(type >= 0){
+    building_type = type;
+    def = true;
+  }else{
+    def = true;
+  }
+
+//  cout<<rel1->GetNoTuples()<<" rooms "<<endl; 
+
+ 
+  ostringstream xRoomsStream;
+  xRoomsStream << (long)rel1;
+  string strQuery = "(consume(feed(" + IndoorNav::Indoor_GRoom_Door +
+                "(ptr " + xRoomsStream.str() + "))))";
+
+//  cout<<strQuery<<endl; 
+
+  Word xResult;
+  int QueryExecuted = QueryProcessor::ExecuteQuery(strQuery, xResult);
+  assert(QueryExecuted);
+  rel_rooms = (Relation*)xResult.addr; 
+
+  ////////////////////////////btree on rooms///////////////////////////
+  ostringstream xNodeOidPtrStream2;
+  xNodeOidPtrStream2<< (long)rel1;
+  strQuery = "(createbtree (" + IndoorNav::Indoor_GRoom_Door +
+             "(ptr " + xNodeOidPtrStream2.str() + "))" + "oid)";
+  QueryExecuted = QueryProcessor::ExecuteQuery(strQuery, xResult);
+  assert(QueryExecuted);
+  btree_room = (BTree*)xResult.addr;
+
+
+  ostringstream xRoomsRtree;
+  xRoomsRtree << ( long ) rel2;
+
+  strQuery = "(bulkloadrtree(feed (" + Indoor_GRoom_Door_Extend +
+         " (ptr " + xRoomsRtree.str() + "))) BBox)";
+  QueryExecuted = QueryProcessor::ExecuteQuery ( strQuery, xResult );
+  assert ( QueryExecuted );
+  rtree_rel_box = ( R_Tree<3,TupleId>* ) xResult.addr;
+
+}
+
+///////////////////////////////////////////////////////////////////////
+/////////// Indoor Building Infrastructure/////////////////////////////
+///////////////////////////////////////////////////////////////////////
+string IndoorInfra::BuildingPath_Info = "(rel (tuple ((reg_id int)(sp point)\
+(ep point) (ep2 point) (sp_type int) (building_id int) (ep2_gloc genloc))))";
+
+string IndoorInfra::RegId1BTreeTypeInfo = "(rel (tuple ((reg_id int)(sp point)\
+(ep point) (ep2 point) (sp_type int) (building_id int)\
+(ep2_gloc genloc))) int)";
+
+
+string IndoorInfra::BuildingType_Info = "(rel (tuple ((reg_id int) \
+(geoData rect) (poly_id int) (reg_type int) (building_type int) \
+(building_type2 string))))";
+
+string IndoorInfra::RegId2BTreeTypeInfo = "(rel (tuple ((reg_id int) \
+(geoData rect) (poly_id int) (reg_type int) (building_type int) \
+(building_type2 string))) int)";
+
+
+ListExpr IndoorInfraProperty()
+{
+  return (nl->TwoElemList(
+            nl->FourElemList(nl->StringAtom("Signature"),
+                       nl->StringAtom("Example Type List"),
+           nl->StringAtom("List Rep"),
+           nl->StringAtom("Example List")),
+            nl->FourElemList(nl->StringAtom("-> DATA"),
+                       nl->StringAtom("indoorinfra"),
+         nl->StringAtom("((def, id))"),
+           nl->StringAtom("((TRUE 1))"))));
+}
+
+/*
+In function. there is not nested list expression here.
+
+*/
+Word InIndoorInfra( const ListExpr typeInfo, const ListExpr instance,
+       const int errorPos, ListExpr& errorInfo, bool& correct )
+{
+
+//  cout<<"length "<<nl->ListLength(instance)<<endl;
+
+  if( !nl->IsAtom( instance ) ){
+
+    if(nl->ListLength(instance) != 2){
+      cout<<"length should be 2"<<endl; 
+      correct = false;
+      return SetWord(Address(0));
+    }
+    ListExpr first = nl->First(instance);
+    ListExpr second = nl->Second(instance);
+
+    if(!nl->IsAtom(first) || nl->AtomType(first) != BoolType){
+      cout<< "indoorinfra(): definition must be bool type"<<endl;
+      correct = false;
+      return SetWord(Address(0));
+    }
+    bool d = nl->BoolValue(first);
+
+    if(!nl->IsAtom(second) || nl->AtomType(second) != IntType){
+      cout<< "indoorinfra(): building id must be int type"<<endl;
+      correct = false;
+      return SetWord(Address(0));
+    }
+    unsigned int id = nl->IntValue(second);
+
+    IndoorInfra* indoor = new IndoorInfra(d, id); 
+
+   ////////////////very important /////////////////////////////
+    correct = true; 
+  ///////////////////////////////////////////////////////////
+    return SetWord(indoor);
+  }
+
+  correct = false;
+  return SetWord(Address(0));
+}
+
+/*
+output the indoorinfra
+
+*/
+ListExpr OutIndoorInfra( ListExpr typeInfo, Word value )
+{
+//  cout<<"OutIndoorInfra"<<endl; 
+  IndoorInfra* indoor = (IndoorInfra*)(value.addr);
+  if(!indoor->IsDefined()){
+    return nl->SymbolAtom("undef");
+  }
+
+  ListExpr list1 = nl->TwoElemList(
+               nl->StringAtom("IndoorInfra Id:"), 
+               nl->IntAtom(indoor->GetId()));
+
+  ListExpr list2 = nl->TheEmptyList(); 
+
+
+  return nl->TwoElemList(list1, list2);
+}
+
+bool OpenIndoorInfra(SmiRecord& valueRecord, size_t& offset, 
+               const ListExpr typeInfo, Word& value)
+{
+  value.addr = IndoorInfra::Open(valueRecord, offset, typeInfo);
+  return value.addr != NULL; 
+}
+
+bool SaveIndoorInfra(SmiRecord& valueRecord, size_t& offset, 
+               const ListExpr typeInfo, Word& value)
+{
+  IndoorInfra* indoor = (IndoorInfra*)value.addr;
+  return indoor->Save(valueRecord, offset, typeInfo);
+}
+
+
+Word CreateIndoorInfra(const ListExpr typeInfo)
+{
+// cout<<"CreateIndoorInfra()"<<endl;
+  return SetWord (new IndoorInfra());
+}
+
+void DeleteIndoorInfra(const ListExpr typeInfo, Word& w)
+{
+// cout<<"DeleteIndoorInfra()"<<endl;
+  IndoorInfra* indoor = (IndoorInfra*)w.addr;
+  delete indoor;
+  w.addr = NULL;
+}
+
+void CloseIndoorInfra( const ListExpr typeInfo, Word& w )
+{
+//  cout<<"CloseIndoorInfra"<<endl; 
+  delete static_cast<IndoorInfra*>(w.addr); 
+  w.addr = 0;
+}
+
+Word CloneIndoorInfra( const ListExpr typeInfo, const Word& w )
+{
+//  cout<<"CloneIndoorInfra"<<endl; 
+  return SetWord( new Address(0));
+}
+
+
+void* IndoorInfra::Cast(void* addr)
+{
+  return NULL;
+}
+
+int SizeOfIndoorInfra()
+{
+//  cout<<"SizeOfIndoorInfra"<<endl; 
+  return sizeof(IndoorInfra);
+}
+
+bool CheckIndoorInfra( ListExpr type, ListExpr& errorInfo )
+{
+//  cout<<"CheckIndoorInfra"<<endl; 
+  return (nl->IsEqual( type, "indoorinfra" ));
+}
+
+IndoorInfra::IndoorInfra():def(false),indoor_id(0), building_path(NULL),
+btree_reg_id1(NULL), building_type(NULL), btree_reg_id2(NULL)
+{
+
+
+}
+
+
+IndoorInfra::IndoorInfra(bool b, int id):def(b),indoor_id(id),
+building_path(NULL), btree_reg_id1(NULL), 
+building_type(NULL), btree_reg_id2(NULL)
+{
+
+
+}
+
+IndoorInfra::IndoorInfra(SmiRecord& valueRecord, size_t& offset, 
+                   const ListExpr typeInfo):def(false), indoor_id(0),
+                   building_path(NULL), btree_reg_id1(NULL),
+                   building_type(NULL), btree_reg_id2(NULL)
+{
+
+  valueRecord.Read(&def, sizeof(bool), offset);
+  offset += sizeof(bool);
+
+  valueRecord.Read(&indoor_id, sizeof(int), offset);
+  offset += sizeof(int);
+
+
+  ListExpr xType;
+  ListExpr xNumericType;
+  /**************Open relation for buildings with paths*******************/
+  nl->ReadFromString(BuildingPath_Info, xType);
+  xNumericType = SecondoSystem::GetCatalog()->NumericType(xType);
+  building_path = Relation::Open(valueRecord, offset, xNumericType);
+  if(!building_path) {
+    return;
+  }
+
+//  cout<<"open "<<building_path->GetNoTuples()<<endl;
+
+  ///////////////////btree on relation for buildings with paths//////////////
+   nl->ReadFromString(RegId1BTreeTypeInfo, xType);
+   xNumericType = SecondoSystem::GetCatalog()->NumericType(xType);
+   btree_reg_id1 = BTree::Open(valueRecord, offset, xNumericType);
+   if(!btree_reg_id1) {
+     building_path->Delete();
+     return;
+   }
+
+  nl->ReadFromString(BuildingType_Info,xType);
+  xNumericType = SecondoSystem::GetCatalog()->NumericType(xType);
+  building_type = Relation::Open(valueRecord, offset, xNumericType);
+  if(!building_type) {
+    building_path->Delete();
+    delete btree_reg_id1;
+    return;
+  }
+
+  ///////////////////btree on relation for buildings with paths//////////////
+   nl->ReadFromString(RegId2BTreeTypeInfo, xType);
+   xNumericType = SecondoSystem::GetCatalog()->NumericType(xType);
+   btree_reg_id2 = BTree::Open(valueRecord, offset, xNumericType);
+   if(!btree_reg_id2) {
+     building_path->Delete();
+     delete btree_reg_id1;
+     building_type->Delete();
+     return;
+   }
+
+//  cout<<"open "<<building_type->GetNoTuples()<<endl;
+
+}
+
+IndoorInfra::~IndoorInfra()
+{
+  if(building_path != NULL) building_path->Close();
+  if(btree_reg_id1 != NULL) delete btree_reg_id1;
+  if(building_type != NULL) building_type->Close();
+  if(btree_reg_id2 != NULL) delete btree_reg_id2;
+
+}
+
+IndoorInfra* IndoorInfra::Open(SmiRecord& valueRecord, size_t& offset, 
+                     const ListExpr typeInfo)
+{
+  return new IndoorInfra(valueRecord, offset, typeInfo);
+}
+
+
+bool IndoorInfra::Save(SmiRecord& valueRecord, size_t& offset, 
+                    const ListExpr typeInfo)
+{
+  valueRecord.Write(&def, sizeof(bool), offset); 
+  offset += sizeof(bool); 
+
+  valueRecord.Write(&indoor_id, sizeof(int), offset);
+  offset += sizeof(int); 
+
+  ListExpr xType;
+  ListExpr xNumericType;
+  
+  ////////////////////building with paths relation///////////////////////////
+  nl->ReadFromString(BuildingPath_Info, xType);
+  xNumericType = SecondoSystem::GetCatalog()->NumericType(xType);
+  if(!building_path->Save(valueRecord,offset,xNumericType))
+      return false;
+
+  ///////////////btree on relation for buildings with paths////////////////
+  nl->ReadFromString(RegId1BTreeTypeInfo, xType);
+  xNumericType = SecondoSystem::GetCatalog()->NumericType(xType);
+  if(!btree_reg_id1->Save(valueRecord, offset, xNumericType))
+     return false; 
+
+  ////////////////////building with types relation///////////////////////////
+  nl->ReadFromString(BuildingType_Info, xType);
+  xNumericType = SecondoSystem::GetCatalog()->NumericType(xType);
+  if(!building_type->Save(valueRecord,offset,xNumericType))
+      return false;
+  
+  ///////////////btree on relation for buildings with types////////////////
+  nl->ReadFromString(RegId2BTreeTypeInfo, xType);
+  xNumericType = SecondoSystem::GetCatalog()->NumericType(xType);
+  if(!btree_reg_id2->Save(valueRecord, offset, xNumericType))
+     return false; 
+
+  return true;
+}
+
+/*
+load relations for indoor infrastructure 
+
+*/
+void IndoorInfra::Load(int id, Relation* rel1, Relation* rel2)
+{
+//  cout<<rel1->GetNoTuples()<<endl;
+//  cout<<rel2->GetNoTuples()<<endl; 
+
+  if(id <= 0){
+    def = false;
+    return;
+  }
+  def = true;
+  indoor_id = id; 
+  
+  ///////////////////building relation with paths/////////////////////////////
+  ostringstream xRoomsStream;
+  xRoomsStream << (long)rel1;
+  string strQuery = "(consume(feed(" + BuildingPath_Info +
+                "(ptr " + xRoomsStream.str() + "))))";
+
+//  cout<<strQuery<<endl; 
+
+  Word xResult;
+  int QueryExecuted = QueryProcessor::ExecuteQuery(strQuery, xResult);
+  assert(QueryExecuted);
+  building_path = (Relation*)xResult.addr; 
+  
+  
+  /////////////btree on building relation with paths///////////////////////
+  
+  ostringstream xNodeOidPtrStream2;
+  xNodeOidPtrStream2<< (long)rel1;
+  strQuery = "(createbtree (" + BuildingPath_Info +
+             "(ptr " + xNodeOidPtrStream2.str() + "))" + "reg_id)";
+  QueryExecuted = QueryProcessor::ExecuteQuery(strQuery, xResult);
+  assert(QueryExecuted);
+  btree_reg_id1 = (BTree*)xResult.addr;
+
+  ////////////////building relation with types///////////////////////////////
+
+  ostringstream xRoomsStream2;
+  xRoomsStream2 << (long)rel2;
+  strQuery = "(consume(feed(" + BuildingType_Info +
+                "(ptr " + xRoomsStream2.str() + "))))";
+
+//  cout<<strQuery<<endl; 
+
+  QueryExecuted = QueryProcessor::ExecuteQuery(strQuery, xResult);
+  assert(QueryExecuted);
+  building_type = (Relation*)xResult.addr;
+
+  /////////////btree on building relation with types///////////////////////
+  
+  ostringstream xNodeOidPtrStream4;
+  xNodeOidPtrStream4<< (long)rel2;
+  strQuery = "(createbtree (" + BuildingType_Info +
+             "(ptr " + xNodeOidPtrStream4.str() + "))" + "reg_id)";
+  QueryExecuted = QueryProcessor::ExecuteQuery(strQuery, xResult);
+  assert(QueryExecuted);
+  btree_reg_id2 = (BTree*)xResult.addr;
+
+}
 
 

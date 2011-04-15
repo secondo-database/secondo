@@ -922,8 +922,6 @@ void* CastGRoomD(void* addr);
 int SizeOfGRoom();
 bool CheckGRoom( ListExpr type, ListExpr& errorInfo );
 
-
-
 /*
 for indoor navigation 
 
@@ -1489,11 +1487,185 @@ ListExpr MPoint3DProperty();
 //////////different types of buildings/////////////////////////
 ///////////////////////////////////////////////////////////////
 
-// enum building_type{BUILD_UNIVERSITY = 0, BUILD_OFFICE24, BUILD_CINEMA, 
-// BUILD_TRAINSTATION};
-// 
-// const string str_build_type[] = {"UNIVERSITY", "OFFICE24", "CINEMA", 
-//"TRAINSTATION"}; 
+enum building_type{BUILD_NONE = 0, BUILD_HOUSE,
+BUILD_UNIVERSITY, BUILD_OFFICE24,
+BUILD_CINEMA,  BUILD_TRAINSTATION, BUILD_HOTEL, BUILD_AIRPORT, 
+BUILD_HOSPITAL, BUILD_SHOPPINGMALL, BUILD_SCHOOL, BUILD_LIBRARY};
 
+const string str_build_type[] = {"BUILDING_NONE", "HOUSE",
+"UNIVERSITY", "OFFICE24",
+"CINEMA", "TRAINSTATION", "HOTEL", "AIRPORT", 
+"HOSPITAL", "SHOPPINGMALL", "SCHOOL", "LIBRARY"};
+
+
+inline int GetBuildingType(string s)
+{
+  int build_size = ARR_SIZE(str_build_type);
+  for(int i = 0;i < build_size;i++){
+      if(str_build_type[i].compare(s) == 0)return i;
+  }
+  return -1;
+}
+inline string GetBuildingStr(int build)
+{
+  int build_size = ARR_SIZE(str_build_type); 
+  assert(0 <= build && build < build_size);
+  return str_build_type[build];
+}
+
+
+/*
+for an indoor building which can be of different types: office, university...
+
+*/
+class Building{
+  public:
+
+   Building();
+   Building(bool d, int id, unsigned int type);
+   Building(SmiRecord& valueRecord, size_t& offset, const ListExpr typeInfo);
+
+   static void* Cast(void* addr);
+   int GetId() const {return building_id;}
+   bool IsDefined() const {return def;}
+   bool IsIGInit(){return indoorgraph_init;}
+   unsigned int GetType(){return building_type;}
+   void SetIndoorGraphId(int gid);
+   unsigned int GetIGId();
+
+   bool Save(SmiRecord& valueRecord, size_t& offset, const ListExpr typeInfo);
+   static Building* Open(SmiRecord& valueRecord, size_t& offset, 
+                     const ListExpr typeInfo);
+   void Load(int id, int type, Relation* rel1, Relation* rel2);
+
+   static string RoomBTreeTypeInfo;
+   static string Indoor_GRoom_Door_Extend;
+   static string RoomRTreeTypeInfo;
+  ~Building();
+
+  private:
+    bool def; 
+    int building_id;
+    unsigned int building_type;
+    bool indoorgraph_init;
+    unsigned int indoorgraph_id;
+    Relation* rel_rooms;// a relation for all rooms 
+    BTree* btree_room;// a btree index on room relation
+
+    R_Tree<3, TupleId>* rtree_rel_box;// an rtree on the relation with box 
+
+};
+
+ListExpr BuildingProperty();
+int SizeOfBuilding();
+bool CheckBuilding( ListExpr type, ListExpr& errorInfo );
+Word CloneBuilding( const ListExpr typeInfo, const Word& w );
+void CloseBuilding( const ListExpr typeInfo, Word& w );
+Word CreateBuilding(const ListExpr typeInfo);
+Word InBuilding( const ListExpr typeInfo, const ListExpr instance,
+       const int errorPos, ListExpr& errorInfo, bool& correct );
+ListExpr OutBuilding( ListExpr typeInfo, Word value );
+void DeleteBuilding(const ListExpr typeInfo, Word& w);
+bool SaveBuilding(SmiRecord& valueRecord, size_t& offset, 
+               const ListExpr typeInfo, Word& value);
+bool OpenBuilding(SmiRecord& valueRecord, size_t& offset, 
+               const ListExpr typeInfo, Word& value);
+
+/*
+compressed storage of a building
+
+*/
+struct RefBuild{
+    bool def; 
+    int id;
+    unsigned int type;
+    bool init;
+    unsigned int graph_id;
+    Rectangle<2> rect;
+
+    RefBuild(){}
+    RefBuild(bool d1, int i, unsigned int t, bool d2, 
+             unsigned int gid, Rectangle<2>& r):
+    def(d1), id(i), type(t), init(d2), graph_id(gid), rect(r){}
+    RefBuild(const RefBuild& refb):
+    def(refb.def), id(refb.id), type(refb.type), 
+    init(refb.init), graph_id(refb.graph_id), rect(refb.rect){}
+    bool operator<(const RefBuild& refb) const
+    {
+      return id < refb.id;
+    }
+    void Print()
+    {
+      cout<<"build id "<<id<<" type "<<GetBuildingStr(type)<<endl;
+    }
+};
+
+/*
+for indoor infrastructure
+  building id: the first six numbers 
+  room id: the first six numbers are for building id + room id in that building
+  1. given a room id, we can find the building id, load the building graph 
+  2. we can know the type of the building so that we can load this kind of 
+  building 
+
+*/
+class IndoorInfra{
+  public:
+
+  static string BuildingPath_Info;
+  static string RegId1BTreeTypeInfo;
+  static string BuildingType_Info;
+  static string RegId2BTreeTypeInfo;
+
+  enum IndoorInfra_Path{INDOORIF_REG_ID, INDOORIF_SP, INDOORIF_EP,
+                        INDOORIF_EP2, INDOORIF_SPTYPE,INDOORIF_BUILD_ID,
+                        INDOORIF_EP2_GLOC};
+  enum IndoorInfra_TYPE{INDOORIF_REG_ID_2,INDOORIF_GEODATA,INDOORIF_POLY_ID,
+                        INDOORIF_REG_TYPE,INDOORIF_BUILD_TYPE,
+                        INDOORIF_BUILD_TYPE2};
+
+  IndoorInfra();
+  IndoorInfra(bool d, int id);
+  IndoorInfra(SmiRecord& valueRecord, size_t& offset, 
+                   const ListExpr typeInfo);
+  ~IndoorInfra();
+  static void* Cast(void* addr);
+  int GetId() const {return indoor_id;}
+  bool IsDefined() const {return def;}
+
+  static IndoorInfra* Open(SmiRecord& valueRecord, size_t& offset, 
+                     const ListExpr typeInfo);
+  bool Save(SmiRecord& valueRecord, size_t& offset, const ListExpr typeInfo);
+
+  void Load(int id, Relation* rel1, Relation* rel2);
+  Relation* BuildingPath_Rel(){return building_path;}
+  Relation* BuildingType_Rel(){return building_type;}
+
+  private:
+    bool def;
+    int indoor_id;
+
+    Relation* building_path;//path for building to the pavement 
+    BTree* btree_reg_id1;  //btree on reg id. relation for paths 
+    Relation* building_type; // the type of a building 
+    BTree* btree_reg_id2;  //btree on reg id  relation for types 
+
+    //DbArray<RefBuild> building_list;
+};
+
+ListExpr IndoorInfraProperty();
+Word InIndoorInfra( const ListExpr typeInfo, const ListExpr instance,
+       const int errorPos, ListExpr& errorInfo, bool& correct );
+ListExpr OutIndoorInfra( ListExpr typeInfo, Word value );
+bool OpenIndoorInfra(SmiRecord& valueRecord, size_t& offset, 
+               const ListExpr typeInfo, Word& value);
+bool SaveIndoorInfra(SmiRecord& valueRecord, size_t& offset, 
+               const ListExpr typeInfo, Word& value);
+Word CreateIndoorInfra(const ListExpr typeInfo);
+void DeleteIndoorInfra(const ListExpr typeInfo, Word& w);
+void CloseIndoorInfra( const ListExpr typeInfo, Word& w );
+Word CloneIndoorInfra( const ListExpr typeInfo, const Word& w );
+int SizeOfIndoorInfra();
+bool CheckIndoorInfra( ListExpr type, ListExpr& errorInfo );
 
 #endif // __INDOOR_H__
