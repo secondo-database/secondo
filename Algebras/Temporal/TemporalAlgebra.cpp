@@ -1844,40 +1844,46 @@ void UPoint::AtInterval( const Interval<Instant>& i,
     TemporalFunction( result.timeInterval.end, pResult->p1 );
 }
 
-void UPoint::Distance( const Point& p, UReal& result ) const
+void UPoint::Distance( const Point& p, UReal& result, const Geoid* geoid ) const
 {
-  if( !IsDefined() || ! p.IsDefined() )
-    {
+  bool ok = true; // error flag for spherical geometry operations
+  if( !IsDefined() || !p.IsDefined() || (geoid && !geoid->IsDefined()) ) {
       result.SetDefined(false);
-    }
-  else
-    {
-      result.timeInterval = timeInterval;
+  } else {
+    result.timeInterval = timeInterval;
 
-      DateTime DT = timeInterval.end - timeInterval.start;
-      double dt = DT.ToDouble();
-      double
-        //t0 = timeInterval.start.ToDouble(),
-        x0 = p0.GetX(), y0 = p0.GetY(),
-        x1 = p1.GetX(), y1 = p1.GetY(),
-        x  =  p.GetX(), y  =  p.GetY();
+    DateTime DT = timeInterval.end - timeInterval.start;
+    double dt = DT.ToDouble();
+    double
+      x0 = p0.GetX(), y0 = p0.GetY(),
+      x1 = p1.GetX(), y1 = p1.GetY(),
+      x  =  p.GetX(), y  =  p.GetY();
 
-      if ( AlmostEqual(dt, 0.0) )
-        { // single point unit
-          result.a = 0.0;
-          result.b = 0.0;
-          result.c = pow(x0-x,2) + pow(y0-y,2);
-          result.r = true;
-        }
-      else
-        {
-          result.a = pow((x1-x0)/dt,2)+pow((y1-y0)/dt,2);
-          result.b = 2*((x1-x0)*(x0-x)+(y1-y0)*(y0-y))/dt;
-          result.c = pow(x0-x,2)+pow(y0-y,2);
-          result.r = true;
-        }
-      result.SetDefined(true);
+    if ( AlmostEqual(dt, 0.0) ) { // single point unit
+      result.a = 0.0;
+      result.b = 0.0;
+      if(geoid){  // spherical distance squared
+        result.c = p.DistanceOrthodrome(p0,*geoid,ok);
+        result.c *= result.c;
+      } else {    // euclidean distance squared
+        result.c = (pow(x0-x,2) + pow(y0-y,2));
+      }
+    } else { // linear unit
+      if(geoid){  // spherical distance squared
+        result.a = 0;
+        result.b = 0;
+        result.c = 0;
+        cerr << "Spherical distance not implemented." << endl;
+        assert(false);
+      } else {    // euclidean distance squared
+        result.a = pow((x1-x0)/dt,2)+pow((y1-y0)/dt,2);
+        result.b = 2*((x1-x0)*(x0-x)+(y1-y0)*(y0-y))/dt;
+        result.c = pow(x0-x,2)+pow(y0-y,2);
+      }
     }
+  }
+  result.r = true; // draw square root
+  result.SetDefined(ok);
   return;
 }
 
@@ -1889,14 +1895,22 @@ double UPoint::Distance(const Rectangle<3>& rect) const{
   return BoundingBox().Distance(rect);
 }
 
-void UPoint::Distance( const UPoint& up, UReal& result ) const
+void UPoint::Distance( const UPoint& up, UReal& result,
+                       const Geoid* geoid ) const
 {
-  assert( IsDefined() && up.IsDefined() );
+  assert( IsDefined() );
+  assert( up.IsDefined() );
+  if(geoid){
+    assert( geoid->IsDefined() );
+    cerr << "Sperical diestance computation not implemented!" << endl;
+    assert( false );
+  }
   assert( timeInterval.Intersects(up.timeInterval) );
 
   if(     !IsDefined()
        || !up.IsDefined()
-       || !timeInterval.Intersects(up.timeInterval) ) {
+       || !timeInterval.Intersects(up.timeInterval)
+       || (geoid && !geoid->IsDefined() ) ) {
     result.SetDefined( false );
     return;
   }
@@ -4719,10 +4733,10 @@ void MPoint::Trajectory( Line& line ) const
   line.EndBulkLoad();
 }
 
-void MPoint::Distance( const Point& p, MReal& result ) const
+void MPoint::Distance( const Point& p, MReal& result, const Geoid* geoid ) const
 {
   result.Clear();
-  if( !IsDefined() || !p.IsDefined() ){
+  if( !IsDefined() || !p.IsDefined() || (geoid && !geoid->IsDefined()) ){
     result.SetDefined( false );
     return;
   }
@@ -4733,42 +4747,57 @@ void MPoint::Distance( const Point& p, MReal& result ) const
   result.StartBulkLoad();
   for( int i = 0; i < GetNoComponents(); i++ ){
     Get( i, uPoint );
-    uPoint.Distance( p, uReal );
-    if ( uReal.IsDefined() )
+    uPoint.Distance( p, uReal, geoid );
+    if ( uReal.IsDefined() ) {
       result.MergeAdd( uReal );
-  }
-  result.EndBulkLoad( false, false );
-}
-
-void MPoint::SquaredDistance( const Point& p, MReal& result ) const
-{
-  result.Clear();
-  if( !IsDefined() || !p.IsDefined() ){
-    result.SetDefined( false );
-    return;
-  }
-  result.SetDefined( true );
-  UPoint uPoint;
-  UReal uReal(true);
-  result.Resize(GetNoComponents());
-  result.StartBulkLoad();
-  for( int i = 0; i < GetNoComponents(); i++ ){
-    Get( i, uPoint );
-    uPoint.Distance( p, uReal );
-    if ( uReal.IsDefined() )
-    {
-      assert(uReal.r);
-      uReal.r= false;
-      result.MergeAdd( uReal );
+    } else if(geoid){
+      cerr << __PRETTY_FUNCTION__ << "Invalid geographic coord found!" << endl;
+      result.EndBulkLoad( false, false );
+      result.Clear();
+      result.SetDefined(false);
+      return;
     }
   }
   result.EndBulkLoad( false, false );
 }
 
-void MPoint::SquaredDistance( const MPoint& p, MReal& result ) const
+void MPoint::SquaredDistance( const Point& p, MReal& result,
+                              const Geoid* geoid ) const
 {
   result.Clear();
-  if( !IsDefined() || !p.IsDefined() ){
+  if( !IsDefined() || !p.IsDefined() || (geoid && !geoid->IsDefined()) ){
+    result.SetDefined( false );
+    return;
+  }
+  result.SetDefined( true );
+  UPoint uPoint;
+  UReal uReal(true);
+  result.Resize(GetNoComponents());
+  result.StartBulkLoad();
+  for( int i = 0; i < GetNoComponents(); i++ ){
+    Get( i, uPoint );
+    uPoint.Distance( p, uReal, geoid );
+    if ( uReal.IsDefined() )
+    {
+      assert(uReal.r);
+      uReal.r= false;
+      result.MergeAdd( uReal );
+    } else {
+      cerr << __PRETTY_FUNCTION__ << "Invalid geographic coord found!" << endl;
+      result.EndBulkLoad( false, false );
+      result.Clear();
+      result.SetDefined(false);
+      return;
+    }
+  }
+  result.EndBulkLoad( false, false );
+}
+
+void MPoint::SquaredDistance( const MPoint& p, MReal& result,
+                              const Geoid* geoid ) const
+{
+  result.Clear();
+  if( !IsDefined() || !p.IsDefined() || (geoid && !geoid->IsDefined()) ){
     result.SetDefined( false );
     return;
   }
@@ -4796,7 +4825,15 @@ void MPoint::SquaredDistance( const MPoint& p, MReal& result ) const
     }
     if(u1.IsDefined() && u2.IsDefined())
     { // do not need to test for overlapping deftimes anymore...
-      u1.Distance( u2, uReal );
+      u1.Distance( u2, uReal, geoid );
+      if(!uReal.IsDefined()){
+        cerr << __PRETTY_FUNCTION__
+             << "Invalid geographic coord found!" << endl;
+        result.EndBulkLoad( false, false );
+        result.Clear();
+        result.SetDefined(false);
+        return;
+      }
       uReal.r= false;
       result.MergeAdd( uReal );
     }
@@ -6588,18 +6625,19 @@ it to the result.
       << runit->Print(cout)<<" )"; \
   delete runit;
 
-MReal* MPoint::DelayOperator(const MPoint* actual)
+MReal* MPoint::DelayOperator(const MPoint* actual, const Geoid* geoid)
 {
   bool debugme=false;
-  if( !this->IsDefined() || !actual->IsDefined())
+  if(!this->IsDefined() || !actual->IsDefined() ||
+     (geoid && !geoid->IsDefined()))
     { MReal* res= new MReal(0);  res->SetDefined(false); return res;}
   if(this->GetNoComponents()<1 || actual->GetNoComponents()<1)
     return new MReal(0);
 
   double* partitionActual=new double[actual->GetNoComponents()+1];
   double* partitionSchedule=new double[this->GetNoComponents()+1];
-  MReal* DTActual= actual->DistanceTraversed(partitionActual);
-  MReal* DTSchedule= this->DistanceTraversed(partitionSchedule);
+  MReal* DTActual= actual->DistanceTraversed(partitionActual, geoid);
+  MReal* DTSchedule= this->DistanceTraversed(partitionSchedule, geoid);
   if(!DTActual->IsDefined() || !DTSchedule->IsDefined())
   { MReal* res= new MReal(0);  res->SetDefined(false); return res;}
 
@@ -6883,22 +6921,23 @@ Can happen only if the actual started with immobile units
   return delayRes;
 }
 
-MReal* MPoint::DistanceTraversed( ) const
+MReal* MPoint::DistanceTraversed( const Geoid* geoid ) const
 {
-  if( !IsDefined() ) {
+  if( !IsDefined() || (geoid && !geoid->IsDefined()) ) {
     MReal* res = new MReal(0);
     res->SetDefined( false );
     return res;
   }
   double * p= new double[GetNoComponents()+1];
-  MReal* res= DistanceTraversed(p);
+  MReal* res= DistanceTraversed(p, geoid);
   delete[] p;
   return res;
 }
 
-MReal* MPoint::DistanceTraversed(double* partition ) const
+MReal* MPoint::DistanceTraversed(double* partition, const Geoid* geoid ) const
 {
   bool debugme= false;
+  bool ok = true; // flag for DistanceOrthodrome
   UPoint uPoint;
   Point last;
   MReal* dist= new MReal(GetNoComponents());
@@ -6916,9 +6955,9 @@ otherwise, the result is undefined
   DefTime( defTime );
   if(defTime.GetNoComponents()>1 )
   {
-    MReal* notdef= new MReal(0);
-    notdef->SetDefined(false);
-    return notdef;
+    dist->Clear();
+    dist->SetDefined(false);
+    return dist;
   }
 
   try
@@ -6939,7 +6978,15 @@ otherwise, the result is undefined
       if(last != uPoint.p0)
         throw(1); // The trajectory is not continuous
       dist1= dist2;
-      dist2= dist1 + uPoint.p0.Distance(uPoint.p1);
+      dist2= dist1 + (geoid?uPoint.p0.DistanceOrthodrome(uPoint.p1,geoid,ok)
+                           :uPoint.p0.Distance(uPoint.p1));
+      if(!ok){ // found invalid geographic coordinates
+        cout << "\nFound invalid geographic coordinates: uPoint.p0="
+             << uPoint.p0 << ", uPoint.p1=" << uPoint.p1 << "." << endl
+             << "Returning undefined result!" << endl;
+        dist->SetDefined(false);
+        return dist;
+      }
       last= uPoint.p1;
 
 
@@ -9271,30 +9318,32 @@ ListExpr MovingTypeMapgk(ListExpr args){
   return nl->TypeError();
 }
 
-ListExpr DelayOperatorTypeMapping( ListExpr typeList )
+ListExpr DelayOperatorTypeMapping( ListExpr args )
 {
-  if( nl->ListLength(typeList) == 2 &&
-      nl->IsAtom(nl->First(typeList)) &&
-      (nl->SymbolValue(nl->First(typeList))== MPoint::BasicType()) &&
-      nl->IsAtom(nl->Second(typeList)) &&
-      (nl->SymbolValue(nl->Second(typeList))== MPoint::BasicType()) ) {
-    return (nl->SymbolAtom(MReal::BasicType()));
+  int len = nl->ListLength(args);
+  string errmsg = "Expected mpoint x mpoint [x geoid].";
+  if((len<2) || (len>3)){
+    return listutils::typeError(errmsg);
   }
+  if(!listutils::isSymbol(nl->First(args),MPoint::BasicType())){
+    return listutils::typeError(errmsg);
+  }
+  if(!listutils::isSymbol(nl->Second(args),MPoint::BasicType())){
+    return listutils::typeError(errmsg);
+  }
+  if((len == 3) && (!listutils::isSymbol(nl->Third(args),Geoid::BasicType()))) {
+    return listutils::typeError(errmsg);
+  }
+  /*
+  Not implemented:
+  1- Check that the two moving points have the same trajectory.
+  2- Check the the trajectory is continuos on the spatial space
+  (necessary to compute the distance traversed)
 
-/*
-Not implemented:
-1- Check that the two moving points have the same trajectory.
-2- Check the the trajectory is continuos on the spatial space
-      (necessary to compute the distance traversed)
-
-*/
-  string argstr;
-  nl->WriteToString(argstr, typeList);
-  ErrorReporter::ReportError("delay operator expects a list with structure "
-                             "(mpoint mpoint), but got " + argstr);
-  return nl->TypeError();
-
+  */
+  return (nl->SymbolAtom(MReal::BasicType()));
 }
+
 
 /*
 16.1.12 Type mapping for the ~vertices~  operator
@@ -10267,29 +10316,29 @@ ListExpr P2MpTypeMap(ListExpr args){
 ~DistanceTraversedTypeMap~
 
 signatures:
-  mpoint -> mreal
+  mpoint [ x geoid ]-> mreal
 
 */
 
-ListExpr DistanceTraversedOperatorTypeMapping( ListExpr typeList )
+ListExpr DistanceTraversedOperatorTypeMapping( ListExpr args )
 {
-  if( nl->ListLength(typeList) == 1 &&
-      nl->IsAtom(nl->First(typeList)) &&
-      (nl->SymbolValue(nl->First(typeList))== MPoint::BasicType()) ) {
-    return (nl->SymbolAtom(MReal::BasicType()));
+  int len = nl->ListLength(args);
+  if( (len<1) || (len>2) ){
+    return listutils::typeError("Expected mpoint [x geoid].");
   }
+  if(!listutils::isSymbol(nl->First(args),MPoint::BasicType())){
+    return listutils::typeError("Expected mpoint [x geoid].");
+  }
+  if((len==2) && (!listutils::isSymbol(nl->Second(args),Geoid::BasicType()))){
+    return listutils::typeError("Expected mpoint [x geoid].");
+  }
+  /*
+  Not implemented:
+  1- Check the the trajectory is continuos on the spatial space
+  (necessary to compute the distance traversed)
 
-/*
-Not implemented:
-1- Check the the trajectory is continuos on the spatial space
-      (necessary to compute the distance traversed)
-
-*/
-  string argstr;
-  nl->WriteToString(argstr, typeList);
-  ErrorReporter::ReportError("distancetraversed operator expects a list with "
-                             "structure (mpoint), but got " + argstr);
-  return nl->TypeError();
+  */
+  return (nl->SymbolAtom(MReal::BasicType()));
 }
 
 /*
@@ -11933,7 +11982,7 @@ int ApproximateMvalue(Word* args, Word& result,
           lastValue = currentValue;
           lastInstant = currentInstant;
         }
-      } 
+      }
     }
     tuple->DeleteIfAllowed();
     qp->Request(args[0].addr, actual);
@@ -12023,11 +12072,13 @@ int DelayOperatorValueMapping( ArgVector args, Word& result,
 		int msg, Word& local, Supplier s )
 {
 	bool debugme=false;
-	MPoint *pActual = static_cast<MPoint*>( args[0].addr );
-	MPoint *pScheduled = static_cast<MPoint*>( args[1].addr );
 
+	MPoint* pActual = static_cast<MPoint*>( args[0].addr );
+	MPoint* pScheduled = static_cast<MPoint*>( args[1].addr );
+  Geoid*  geoid = (qp->GetNoSons(s)==3)?static_cast<Geoid*>(args[2].addr):0;
 	MReal* delay= (MReal*) qp->ResultStorage(s).addr;
-	MReal* tmp= pScheduled->DelayOperator(pActual);
+
+  MReal* tmp= pScheduled->DelayOperator(pActual,geoid);
 	delay->CopyFrom(tmp);
 	tmp->DeleteIfAllowed();
 	result= SetWord(delay);
@@ -12052,10 +12103,11 @@ int DistanceTraversedOperatorValueMapping( ArgVector args, Word& result,
 		int msg, Word& local, Supplier s )
 {
 	bool debugme=false;
-	MPoint *p = static_cast<MPoint*>( args[0].addr );
-	MReal* dist= (MReal*) qp->ResultStorage(s).addr;
+	MPoint* p = static_cast<MPoint*>( args[0].addr );
+  MReal* dist= static_cast<MReal*>(qp->ResultStorage(s).addr);
+  Geoid* geoid = (qp->GetNoSons(s)==1)?0:static_cast<Geoid*>(args[1].addr);
 
-	MReal* tmp= p->DistanceTraversed();
+	MReal* tmp= p->DistanceTraversed(geoid);
 	dist->CopyFrom(tmp);
 	tmp->DeleteIfAllowed();
 	result= SetWord(dist);
@@ -15358,19 +15410,21 @@ const string TemporalSpecP2Mp  =
   ") )";
 
 OperatorInfo DelayOperatorInfo( "delay",
-  "mpoint x mpoint -> mreal",
-  "delay(actual, schedule movement)",
-  "At every time instance the result will reflect"
-  " how many seconds is the actual movement delayed"
-  " from the scheduled movement",
+  "mpoint x mpoint [x geoid] -> mreal",
+  "delay(actual, schedule movement [,geoid])",
+  "At every time instance the result will reflect how many seconds is the "
+  "actual movement delayed from the scheduled movement. If 'geoid' is used "
+  "geographic (LON.LAT) coordinates are expected, otherwise euclidean "
+  "coordinates.",
   "");
 
 OperatorInfo DistanceTraversedOperatorInfo( "distancetraversed",
-  "mpoint -> mreal",
-  "distancetraversed(schedule)",
+  "mpoint [x geoid] -> mreal",
+  "distancetraversed(schedule [, geoid])",
   "Given a mpoint that moves continuously in space the operator will return "
-  "a moving real indicating the total distance traversed so far "
-  "by the moving point",
+  "a moving real indicating the total distance (above ground) traversed so far "
+  "by the moving point. If 'geoid' is used, geographic (LON.LAT) coordinates "
+  "are used, euclidean coordinates otherwise.",
   "");
 
 OperatorInfo TurnsOperatorInfo( "turns",

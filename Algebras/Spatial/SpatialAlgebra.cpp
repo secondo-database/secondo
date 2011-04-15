@@ -1027,12 +1027,53 @@ double Point::Distance( const Rectangle<2>& r ) const
   return sqrt( pow( dx, 2 ) + pow( dy, 2 ) );
 }
 
+  // calculate the enclosed angle between (a,b) and (b,c) in degrees
+double Point::calcEnclosedAngle( const Point &a,
+        const Point &b,
+        const Point &c,
+        const Geoid* geoid){
+  double beta = 0.0;
+  errno = 0;
+  if(geoid){ // use sperical trigonometry
+    // very simplistic, works for short distances, but
+    // should be improved!
+    bool ok = true;
+    double la = b.DistanceOrthodrome(c,*geoid, ok); // la = |(b,c)|
+    assert(ok);
+    double lb = a.DistanceOrthodrome(c,*geoid, ok); // lb = |(a,c)|
+    assert(ok);
+    double lc = a.DistanceOrthodrome(b,*geoid, ok); // lc = |(a,b)|
+    assert(ok);
+    assert(la != 0.0);
+    assert(lc != 0.0);
+    double cosb = (la*la + lc*lc - lb*lb) / (2*la*lc);
+    cosb = max(cosb, -1.0);
+    cosb = min(cosb, 1.0);
+    beta = acos ( cosb ) * 180.0 / M_PI;
+    assert(errno == 0);
+  } else { // use euclidean geometry
+    double la = b.Distance(c);
+    double lb = a.Distance(c);
+    double lc = a.Distance(b);
+    double cosb = (la*la + lc*lc - lb*lb) / (2*la*lc);
+    cosb = max(cosb, -1.0);
+    cosb = min(cosb, 1.0);
+    beta = acos ( cosb ) * 180.0 / M_PI;
+    assert(errno == 0);
+  }
+  return beta;
+}
 
-double Point::Direction( const Point& p ) const
+double Point::Direction( const Point& p, const Geoid* geoid ) const
 {
   assert(IsDefined());
   assert(p.IsDefined());
   assert( !AlmostEqual( *this, p ) );
+  if(geoid){
+    assert( geoid->IsDefined() );
+    cerr << "Spherical geometry case not implemented." << endl;
+    assert(false);
+  }
 
   Coord x1 = x,
         y1 = y,
@@ -17026,9 +17067,19 @@ const string SpatialSpecOnBorder  =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
   "( <text>(point x region) -> bool</text--->"
   "<text>_ onborder _</text--->"
-  "<text>TRUE, iff the point is an endpoint or on a border edge of the region."
+  "<text>TRUE, iff the point is on the border of the region."
   "</text--->"
-  "<text>query point onborder line</text--->"
+  "<text>query mehringdamm onborder thecenter</text--->"
+  ") )";
+
+
+const string SpatialSpecIninterior  =
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+  "( <text>(point x region) -> bool</text--->"
+  "<text>_ ininterior _</text--->"
+  "<text>TRUE, iff the point is within the region's interior."
+  "</text--->"
+  "<text>query mehringdamm ininterior thecenter</text--->"
   ") )";
 
 const string SpatialSpecInInterior  =
@@ -17237,7 +17288,8 @@ const string SpatialSpecComponents  =
   "( <text>points -> stream(point), region -> stream(region), "
   "line -> stream(line)</text--->"
   "<text>components( _ )</text--->"
-  "<text>Returns the components of a points or region object as a strem."
+  "<text>Returns the components of a points (the contained point values) or "
+  "region (the contained faces) object as a stream."
   "Both, empty and undefined objects result in empty stream.</text--->"
   "<text>query components(r1) count;</text--->"
   ") )";
@@ -17627,7 +17679,7 @@ Operator spatialonborder (
 
 Operator spatialininterior (
   "ininterior",
-  SpatialSpecOnBorder,
+  SpatialSpecIninterior,
   SpatialInInterior_pr,
   Operator::SimpleSelect,
   PointRegionMapBool );

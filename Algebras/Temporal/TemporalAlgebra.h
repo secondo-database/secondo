@@ -2266,7 +2266,7 @@ Returns ~true~ if this temporal unit is different to the temporal unit ~i~ and ~
   virtual void AtInterval( const Interval<Instant>& i,
                            TemporalUnit<Point>& result ) const;
   void At(const Rectangle<2>& rect, UPoint& result) const;
-  void Distance( const Point& p, UReal& result ) const;
+  void Distance( const Point& p, UReal& result, const Geoid* geoid = 0 ) const;
   //  void UTrajectory( UPoint& unit,Line& line ) const;
   void UTrajectory( Line& line ) const;
 
@@ -2540,11 +2540,12 @@ Computes all events created by a UPoint moving across a regular grid.
     }
   }
 
-  void Distance( const UPoint& up, UReal& result ) const;
+  void Distance( const UPoint& up, UReal& result, const Geoid* geoid = 0) const;
 
 /*
-
 Calculates the distance between 2 upoints as a real value.
+If ~geoid~ is NULL, euclidean geometry is used, spherical geometry otherwise.
+If invalid geographic coordinates are found, the result is UNDEFINED.
 
 *Precondition*: intersecting timeIntervals.
 
@@ -2555,7 +2556,7 @@ Calculates the distance between 2 upoints as a real value.
   virtual double Distance(const Rectangle<3>& rect) const;
 /*
   Computes the distance between the three dimensional line defined by
-  that unit and the rectnagle.
+  that unit and the rectangle.
 
 */
 
@@ -3336,6 +3337,9 @@ using a check on bbox.
 /*
 3.10.5.3 Operation ~distance~
 
+If ~geoid~ is NULL, euclidean geometry is used, spherical geometry otherwise.
+If invalid geographic coordinates are found, the result is UNDEFINED.
+
 *Precondition:* ~X.IsOrdered()~
 
 *Semantics:*
@@ -3343,9 +3347,12 @@ using a check on bbox.
 *Complexity:* $O( n )$, where ~n~ is the number of units of this ~MPoint~
 
 */
-  void Distance( const Point& p, MReal& result ) const;
-  void SquaredDistance( const Point& p, MReal& result ) const;
-  void SquaredDistance( const MPoint& p, MReal& result ) const;
+  void Distance( const Point& p, MReal& result,
+                 const Geoid* geoid=0 ) const;
+  void SquaredDistance( const Point& p, MReal& result,
+                        const Geoid* geoid=0 ) const;
+  void SquaredDistance( const MPoint& p, MReal& result,
+                        const Geoid* geoid=0 ) const;
 
 /*
 3.10.5.4 Operation ~Simplify~
@@ -3515,10 +3522,15 @@ actual movement, the goal is to compute the continuous delay between the two
 MPoints (i.e. How many seconds is the actual movement delayed from the
 schedule).
 
+If ~geoid~ is NULL, euclidean geometry is used, otherwise spherical geometry
+using the provided geoid.
+
+If invalid coordinates are found, the result is UNDEFINED.
+
 */
-    MReal* DelayOperator(const MPoint *actual);
-    MReal* DistanceTraversed(double* ) const;
-    MReal* DistanceTraversed( ) const;
+    MReal* DelayOperator(const MPoint *actual, const Geoid* geoid = 0 );
+    MReal* DistanceTraversed(double*, const Geoid* geoid = 0 ) const;
+    MReal* DistanceTraversed( const Geoid* geoid = 0 ) const;
 
 /*
 3.10.5.11 ~at region~ operators

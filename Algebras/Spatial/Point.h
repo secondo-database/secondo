@@ -210,17 +210,34 @@ Operators redefinition.
 
 */
     double Distance( const Rectangle<2>& r ) const;
+
 /*
+4.3.13 Operation ~calcEnclosedAngle~
+
+Calculates the enclosed angle between (a,b) and (b,c) in degrees.
+If ~geoid~ is NULL, euclidean geometry is used, otherwise the geoid object
+is applied during spherical geometric calculation.
+
+*/
+  static double calcEnclosedAngle( const Point &a,
+                                   const Point &b,
+                                   const Point &c,
+                                   const Geoid* geoid = 0);
+/*
+
 4.3.13 Operation ~direction~
 
 *Precondition:* ~u.IsDefined()~ and ~v.IsDefined()~
 
-*Semantics:* returns the angle of the line from ~u~ to ~v~, measured in degrees.
+*Semantics:* returns the angle of the line from ~[*]this~ to ~p~, measured in degrees.
 
 *Complexity:* $O(1)$
 
+If ~geoid~ is NULL, euclidean geometry is used, otherwise the geoid object
+is applied during spherical geometric calculation.
+
 */
-    double Direction( const Point& p ) const;
+    double Direction( const Point& p, const Geoid* geoid = 0) const;
 
 
 /*
@@ -234,7 +251,7 @@ use Spherical geometry.
 /*
 4.1.1 Distance
 
-Distance between two points given in geodetic (Lat, Lon)-coordinates.
+Distance between two points given in geodetic (Lon,Lat)-coordinates.
 The distance is measured along a geoid passed as an argument.
 
 If an undefined Point or a Point with an invalid geographic coordinate is used,

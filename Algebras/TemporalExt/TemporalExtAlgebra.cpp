@@ -4755,9 +4755,13 @@ int ConcatSValueMap(Word* args, Word& result,
    return 0;
 }
 
-static bool EverNearerThan(MPoint* arg0, MPoint* arg1, double dist){
+static bool EverNearerThan(MPoint* arg0, MPoint* arg1, double dist,
+                           const Geoid* geoid){
   assert( arg0->IsDefined() );
   assert( arg1->IsDefined() );
+  if(geoid){
+    assert( geoid->IsDefined() );
+  }
 
   RefinementStream<MPoint, MPoint, UPoint, UPoint> rs(arg0, arg1);
   Interval<Instant> iv;
@@ -4774,7 +4778,7 @@ static bool EverNearerThan(MPoint* arg0, MPoint* arg1, double dist){
       arg1->Get(u2Pos, u2);
       if(u1.IsDefined() && u2.IsDefined()) {
         correct = false;
-        u1.Distance( u2, uReal );
+        u1.Distance( u2, uReal, geoid );
         if(uReal.Min(correct) < dist && correct){
           return true;
         }
@@ -4784,14 +4788,19 @@ static bool EverNearerThan(MPoint* arg0, MPoint* arg1, double dist){
   return false;
 }
 
-static bool EverNearerThan(Point* arg0, MPoint* arg1, double dist){
+static bool EverNearerThan(Point* arg0, MPoint* arg1, double dist,
+                           const Geoid* geoid){
   assert( arg0->IsDefined() );
   assert( arg1->IsDefined() );
+  if(geoid){
+    assert( geoid->IsDefined() );
+  }
+
   for(int i = 0; i< arg1->GetNoComponents(); i++){
     UPoint upoint;
     arg1->Get(i, upoint);
     UReal ureal(false);
-    upoint.Distance(*arg0, ureal);
+    upoint.Distance(*arg0, ureal, geoid);
     bool correct = false;
     if( ureal.Min(correct) < dist && correct ){
       return true;
@@ -4800,10 +4809,14 @@ static bool EverNearerThan(Point* arg0, MPoint* arg1, double dist){
   return false;
 }
 
-static bool EverNearerThan(MPoint* arg0, Point* arg1, double dist){
+static bool EverNearerThan(MPoint* arg0, Point* arg1, double dist,
+                           const Geoid* geoid){
   assert( arg0->IsDefined() );
   assert( arg1->IsDefined() );
-  return EverNearerThan(arg1,arg0,dist);
+  if(geoid){
+    assert( geoid->IsDefined() );
+  }
+  return EverNearerThan(arg1,arg0,dist,geoid);
 }
 
 
@@ -4816,13 +4829,15 @@ EverNearerThan_vm( Word* args, Word& result, int message,
   S* arg0 = static_cast<S*>(args[0].addr);
   T* arg1 = static_cast<T*>(args[1].addr);
   CcReal* arg2 = static_cast<CcReal*>(args[2].addr);
+  Geoid* geoid = (qp->GetNoSons(s)==4)?static_cast<Geoid*>(args[3].addr):0;
   result = qp->ResultStorage(s);
   CcBool* res = static_cast<CcBool*>(result.addr);
 
-  if(!arg0->IsDefined() || !arg1->IsDefined() || !arg2->IsDefined()){
+  if(!arg0->IsDefined() || !arg1->IsDefined() || !arg2->IsDefined() ||
+     (geoid && !geoid->IsDefined()) ){
      res->Set(false,false);
   } else {
-     res->Set(true,EverNearerThan(arg0, arg1, arg2->GetRealval()));
+     res->Set(true,EverNearerThan(arg0, arg1, arg2->GetRealval(),geoid));
   }
   return (0);
 }
