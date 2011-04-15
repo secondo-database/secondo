@@ -239,6 +239,18 @@ is applied during spherical geometric calculation.
 */
     double Direction( const Point& p, const Geoid* geoid = 0) const;
 
+/*
+ 4.3.13 Operation ~heading~
+
+ Computes the heading (direction on a shere) betwenn points given as 
+ (LON, LAT). The result will be in range 0..360 if both points are defined and
+ not equal. otherwise -1. If the geoid is null, the unit circle is used to compute
+ the heading, otherwise the geoid.
+
+*/
+   double Heading(const Point& p, const Geoid* geoid = 0) const;
+
+
 
 /*
 4.1 Spherical geometry operations

@@ -1107,6 +1107,69 @@ double Point::Direction( const Point& p, const Geoid* geoid ) const
   return direction;
 }
 
+
+double Point::Heading(const Point& p , const Geoid* geoid /*=0*/) const{
+
+   if(!this->IsDefined() || !p.IsDefined()){
+      return -1.0;
+   }
+   if(AlmostEqual(*this, p)){
+      return -1;
+   }
+  
+   double f_a = GetY()*M_PI/180.0;
+   double l_a = GetX()*M_PI/180.0;
+   double f_b = p.GetY()*M_PI/180.0;
+   double l_b = p.GetX()*M_PI/180.0;
+
+   double sin_f_b = sin(f_b);
+   double sin_f_a = sin(f_a);
+   double cos_f_b = cos(f_b);
+   double cos_f_a = cos(f_a);
+
+   double cos_zeta;
+   double zeta;
+   double sin_zeta;
+   if(geoid==0){ // use the unit circle
+      cos_zeta = ( sin_f_a*sin_f_b + cos_f_a*cos_f_b*cos(l_b-l_a));
+      zeta = acos(cos_zeta);
+   } else { // use geoid
+      bool ok;
+      double zeta1 = this->DistanceOrthodrome(p,*geoid, ok);
+      if(!ok){
+        return -1;
+      }
+      zeta = zeta1 / geoid->getR();
+      cos_zeta = cos(zeta);
+   }
+
+   sin_zeta = sin(zeta);
+   
+
+   double cos_alpha;
+   if(fabs(sin_f_a) > fabs(cos_f_a)){
+     cos_alpha = ( (sin_f_b - sin_f_a*cos_zeta) / (sin_f_a*sin_zeta));
+   } else {
+     cos_alpha = ((sin_f_b - sin_f_a*cos_zeta) / (cos_f_a*sin_zeta));
+   }
+   if(cos_alpha < -1.0){ // correct rounding errors
+     cos_alpha = -1.0;
+   }
+   if(cos_alpha > 1.0){
+      cos_alpha = 1.0;
+   }
+   double alpha = acos(cos_alpha);
+
+   double res =  alpha*180.0/M_PI;
+   return res;
+
+ 
+
+}
+
+
+
+
 void Point::Rotate(const Coord& x, const Coord& y,
                           const double alpha, Point& res) const{
 
@@ -12544,25 +12607,27 @@ SpatialDistanceMap( ListExpr args )
 /*
 10.1.10 Type mapping function for operator ~direction~
 
-This type mapping function is used for the ~direction~ operator. This
+This type mapping function is used for the ~direction~ ond for the
+~heading~ perator. This
 operator computes the direction from the first point to the second point.
 
 */
 ListExpr
 SpatialDirectionMap( ListExpr args )
 {
-  ListExpr arg1, arg2;
-  if ( nl->ListLength( args ) == 2 )
-  {
-    arg1 = nl->First( args );
-    arg2 = nl->Second( args );
-
-    if ( SpatialTypeOfSymbol( arg1 ) == stpoint &&
-         SpatialTypeOfSymbol( arg2 ) == stpoint )
-      return (nl->SymbolAtom( "real" ));
+  string err = "Expected point x point. [x geoid] ";
+  int len = nl->ListLength(args);
+  if( (len!=2) && (len!=3)){
+    return listutils::typeError(err);
   }
-
-  return (nl->SymbolAtom( "typeerror" ));
+  if(!listutils::isSymbol(nl->First(args),Point::BasicType()) ||
+     !listutils::isSymbol(nl->Second(args),Point::BasicType())){
+    return listutils::typeError(err);
+  }
+  if( (len==3) && !listutils::isSymbol(nl->Third(args), Geoid::BasicType())){
+    return listutils::typeError(err);
+  }
+  return (nl->SymbolAtom(CcReal::BasicType() ));
 }
 
 /*
@@ -14711,6 +14776,33 @@ SpatialDirection_pp( Word* args, Word& result, int message,
     ((CcReal *)result.addr)->Set( true, p1->Direction( *p2 ) );
   else
     ((CcReal *)result.addr)->SetDefined( false );
+  return 0;
+}
+
+/*
+10.4.22 Value mapping functions of operator ~heading~
+
+*/
+int
+SpatialHeading( Word* args, Word& result, int message,
+                     Word& local, Supplier s )
+{
+
+  result = qp->ResultStorage( s );
+  CcReal* res = static_cast<CcReal*>(result.addr);
+  Point* p1 = static_cast<Point*>(args[0].addr);
+  Point* p2 = static_cast<Point*>(args[1].addr);
+  Geoid* geoid = 0;
+  if(qp->GetNoSons(s)==3){
+     geoid = static_cast<Geoid*>(args[2].addr);
+     if(!geoid->IsDefined()){
+       res->SetDefined(false);
+       return 0;    
+     }
+  }  
+
+  double d = p1->Heading(*p2, geoid);
+  res->Set(d>=0,d);
   return 0;
 }
 
@@ -17151,13 +17243,21 @@ const string SpatialSpecDistance  =
 
 const string SpatialSpecDirection  =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-  "( <text>(point x point) -> real</text--->"
+  "( <text>point x point -> real</text--->"
   "<text>direction( _, _ )</text--->"
   "<text>compute the direction (0 - 360 degree) from one point to "
   "another point.</text--->"
   "<text>query direction(p1, p2)</text--->"
   ") )";
 
+const string SpatialSpecHeading  =
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+  "( <text>point x point -> real</text--->"
+  "<text>heading( _, _ )</text--->"
+  "<text>compute the heading (direction on a sphere) in degree"
+  " from one point to another point.</text--->"
+  "<text>query heading(p1, p2)</text--->"
+  ") )";
 const string SpatialSpecNocomponents  =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
   "( <text>(points||line||region) -> int</text--->"
@@ -17736,6 +17836,13 @@ Operator spatialdirection (
   "direction",
   SpatialSpecDirection,
   SpatialDirection_pp,
+  Operator::SimpleSelect,
+  SpatialDirectionMap );
+
+Operator spatialheading (
+  "heading",
+  SpatialSpecHeading,
+  SpatialHeading,
   Operator::SimpleSelect,
   SpatialDirectionMap );
 
@@ -18525,6 +18632,7 @@ class SpatialAlgebra : public Algebra
     AddOperator( &spatialsingle );
     AddOperator( &spatialdistance );
     AddOperator( &spatialdirection );
+    AddOperator( &spatialheading );
     AddOperator( &spatialnocomponents );
     AddOperator( &spatialnosegments );
     AddOperator( &spatialsize );
