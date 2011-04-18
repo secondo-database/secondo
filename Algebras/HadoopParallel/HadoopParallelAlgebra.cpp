@@ -48,6 +48,7 @@ but includes tuples of different schemes.
 
 */
 
+#include "HadoopParallelAlgebra.h"
 #include <vector>
 #include <iostream>
 #include <string>
@@ -57,9 +58,7 @@ but includes tuples of different schemes.
 #include "Counter.h"
 #include "TupleIdentifier.h"
 #include "LogMsg.h"
-#include "RTreeAlgebra.h"
 #include "ListUtils.h"
-#include "HadoopParallelAlgebra.h"
 #include "FTextAlgebra.h"
 #include "Symbols.h"
 #include "Base64.h"
@@ -3121,8 +3120,8 @@ ListExpr FDistributeTypeMap(ListExpr args)
   typeFile.close();
 
   NList outAttrList =
-           NList(NList(NList("suffix"), NList(INT)),
-                 NList(NList("tupNum"), NList(INT)));
+           NList(NList(NList("suffix"), NList(symbols::INT)),
+                 NList(NList("tupNum"), NList(symbols::INT)));
   NList outList = NList().tupleStreamOf(outAttrList);
 
   return NList(NList("APPEND"),

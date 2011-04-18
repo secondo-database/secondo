@@ -46,16 +46,18 @@ And includes one method:
 #define MAX_WAITING_TIME 10
 
 #include <cstdlib>
-#include "FTextAlgebra.h"
-#include "RTuple.h"
-#include "FileSystem.h"
 #include <stdio.h>
 #include <fcntl.h>
 #include <signal.h>
-#include "../Array/ArrayAlgebra.h"
+#include "RTuple.h"
+#include "FTextAlgebra.h"
 #ifdef SECONDO_WIN32
-#include "Win32Socket.h"
+#include <winsock2.h>
 #endif
+#include "TemporalAlgebra.h"
+#include "Progress.h"
+#include "FileSystem.h"
+#include "../Array/ArrayAlgebra.h"
 
 const string rmDefaultPath = ":secondo/bin/parallel/";
 const int MAX_COPYTIMES = 5;
