@@ -13500,20 +13500,19 @@ Type Mapping for ~gk~
 ListExpr gkTypeMap(ListExpr args){
   int len = nl->ListLength(args);
   if( (len < 1) || (len > 2) ){
-    ErrorReporter::ReportError("One or two arguments expected.");
-    return nl->TypeError();
+    return listutils::typeError(" 1 or 2 arguments expected");
   }
+  string err = "point, points, line, or region  [ x int] expected";
   ListExpr arg = nl->First(args);
-  if(nl->AtomType(arg)!=SymbolType){
-    ErrorReporter::ReportError("Spatial type expected.");
-    return nl->TypeError();
+  if(!listutils::isSymbol(arg)){
+    return listutils::typeError(err);
   }
   string t = nl->SymbolValue(arg);
-  if(!(t=="point" || t=="points" || t=="line" || t=="region")){
-    ErrorReporter::ReportError("Unsupported spatial type.");
-    return nl->TypeError();
+  if(!(t==Point::BasicType() || t==Points::BasicType() ||
+       t==Line::BasicType() || t==Region::BasicType())){
+    return listutils::typeError(err);
   }
-  if( (len==2) && nl->IsEqual(nl->Second(args),"int") ){
+  if( (len==2) && listutils::isSymbol(nl->Second(args),CcInt::BasicType()) ){
     if(t=="point" || t=="points" || t=="line" || t=="region"){
       return nl->SymbolAtom(t); // Zone provided by user
     }
@@ -13522,9 +13521,30 @@ ListExpr gkTypeMap(ListExpr args){
            nl->OneElemList(nl->IntAtom(2)),          // standard zone for Hagen
            nl->SymbolAtom(t));
   }
-  ErrorReporter::ReportError("No match.");
-  return nl->TypeError();
+  return listutils::typeError(err);
 }
+
+/*
+Type Mapping for ~reverseGk~
+
+*/
+ListExpr reverseGkTypeMap(ListExpr args){
+  string err = "point, points, line, or region expected";
+  if(nl->ListLength(args)!=1){
+     return listutils::typeError(err);
+  }
+  ListExpr arg = nl->First(args);
+  if(!listutils::isSymbol(arg)){
+     return listutils::typeError(err);
+  } 
+  string v = nl->SymbolValue(arg);
+  if( (v!=Point::BasicType()) && (v!=Points::BasicType())  &&
+      (v!=Line::BasicType()) && (v!=Region::BasicType())){
+     return listutils::typeError(err);
+  }
+  return nl->SymbolAtom(v);
+}
+
 
 /*
 Type Mapping: geoid [->] real
@@ -14363,6 +14383,14 @@ static int gkSelect(ListExpr args){
   return -1;
 }
 
+static int reverseGkSelect(ListExpr args){
+  string t = nl->SymbolValue(nl->First(args));
+  if(t=="point") return 0;
+  if(t=="points") return 1;
+  if(t=="line") return 2;
+  if(t=="region") return 3;
+  return -1;
+}
 
 
 static int SpatialCollectLineSelect(ListExpr args){
@@ -16405,6 +16433,7 @@ int gkVM_p(Word* args, Word& result, int message,
    return 0;
 }
 
+
 int gkVM_ps(Word* args, Word& result, int message,
           Word& local, Supplier s){
    result = qp->ResultStorage(s);
@@ -16470,6 +16499,119 @@ int gkVM_x(Word* args, Word& result, int message,
    res->EndBulkLoad();
    return 0;
 }
+
+
+/*
+Reverse Gausss Krueger Projection.
+
+
+*/
+
+
+void reverseGK(const Point* arg, Point* result){
+  if(!arg->IsDefined()){
+    result->SetDefined(false);
+    return;
+  }
+  WGSGK gk;
+  bool ok = gk.getOrig(*arg, *result);
+  if(!ok){
+    result->SetDefined(false);
+  }
+}
+
+
+void reverseGK(const Points* arg, Points* result){
+  WGSGK gk;
+  result->Clear();
+  result->Resize(arg->Size());
+  result->StartBulkLoad();
+  for(int i=0; i< arg->Size(); i++){
+    Point p1;
+    arg->Get(i,p1);
+    Point p2;
+    bool ok = gk.getOrig(p1,p2);
+    if(!ok || !p2.IsDefined()){
+       result->Clear();
+       result->EndBulkLoad();
+       result->SetDefined(false);
+       return;
+    }
+    (*result) += p2;
+  }
+  result->EndBulkLoad();
+}
+
+
+
+bool reverseGK(HalfSegment& h, const WGSGK& gk){
+  Point p1 = h.GetLeftPoint();
+  Point p3(false,0,0);
+  bool ok = gk.getOrig(p1,p3);
+  if(!ok || !p3.IsDefined()){
+    return false;
+  }
+  Point p2 = h.GetRightPoint();
+  Point p4(false,0,0);
+  ok = gk.getOrig(p2,p4);
+  if(!ok || !p4.IsDefined()){
+    return false;
+  }
+  h.Set(h.IsLeftDomPoint(), p3, p4);
+  return true;
+}
+
+
+
+
+template <class T>
+void reverseGK(const T* arg, T* result){
+  if(!arg->IsDefined()){
+    result->SetDefined(false);
+    return;
+  }
+  WGSGK gk;
+  result->Clear();
+  result->Resize(arg->Size());
+  result->StartBulkLoad();
+  for(int i=0;i<arg->Size();i++){
+    HalfSegment h;
+    arg->Get(i,h);
+    if(h.IsLeftDomPoint()){
+      if(!reverseGK(h,gk)){
+        result->EndBulkLoad();
+        result->Clear();
+        result->SetDefined(false);
+        return;
+      }
+      (*result) += h;
+      h.SetLeftDomPoint(false);
+      (*result) += h;
+    }
+  } 
+  result->EndBulkLoad();
+}
+
+inline void reverseGK(const Line* arg, Line* result){
+  return reverseGK<Line>(arg,result);
+}
+
+inline void reverseGK(const Region* arg, Region* result){
+  return reverseGK<Region>(arg,result);
+}
+
+
+
+template<class T>
+int reversegkVM(Word* args, Word& result, int message,
+          Word& local, Supplier s){
+   result = qp->ResultStorage(s);
+   T* arg = static_cast<T*>(args[0].addr);
+   T* res = static_cast<T*>(result.addr);
+   reverseGK(arg,res);
+   return 0;
+}
+
 
 /*
 Operations on geoids
@@ -17069,6 +17211,14 @@ ValueMapping gkVM[] = {
           gkVM_x<Region>
       };
 
+
+ValueMapping reverseGKVM[] = {
+          reversegkVM<Point>,
+          reversegkVM<Points>,
+          reversegkVM<Line>,
+          reversegkVM<Region>
+      };
+
 ValueMapping spatialCollectLineMap[] = {
   SpatialCollect_lineVMPointstream<Line>,
   SpatialCollect_lineVMLinestream<SimpleLine,Line>,
@@ -17613,6 +17763,18 @@ const string gkSpec  =
    "<text>query gk([const point value (0 0)])</text--->"
    ") )";
 
+const string reverseGkSpec  =
+   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+   "( <text>t -> t, t in {point, points, line, region} </text--->"
+   "<text> reverseGk( geoobj  )  </text--->"
+   "<text> Converts a spatial objects from Gauss Krueger reference systems"
+   " into geographic coordinates using the WGS1984 ellipsoid. "
+   " The computation is iterative, thus the result is only an approximation."
+   " Whenever problems occur,i.e. if a coordinates is not in the Gauss"
+   " Krueger system,the result will be undefined."
+   "</text--->"
+   "<text>query reverseGk(gk([const point value (7 51)]))</text--->"
+   ") )";
 /*
 Operations on geoids
 
@@ -18147,6 +18309,13 @@ Operator gkOp (
    gkSelect,
    gkTypeMap );
 
+Operator reverseGkOp (
+  "reverseGk",
+   reverseGkSpec,
+   4,
+   reverseGKVM,
+   reverseGkSelect,
+   reverseGkTypeMap );
 /*
 Operators for creating and querying geoids
 
@@ -18670,6 +18839,7 @@ class SpatialAlgebra : public Algebra
     AddOperator( &spatialiscycle);
     AddOperator( &utmOp);
     AddOperator( &gkOp);
+    AddOperator( &reverseGkOp);
     AddOperator( &spatialcollect_line);
     AddOperator( &spatialcollect_sline);
     AddOperator( &spatialcollect_points);
