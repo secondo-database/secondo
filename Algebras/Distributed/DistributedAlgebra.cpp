@@ -278,7 +278,8 @@ void DArray::remove()
       for(int i = 0;i<manager->getNoOfServers();i++)
       {
          DServer* server = manager->getServerbyID(i);
-         server->setCmd("delete",manager->getIndexList(i),&m_elements);
+         server->setCmd(DServer::DS_CMD_DELETE,
+                        manager->getIndexList(i),&m_elements);
          DServerExecutor* server_ex = new DServerExecutor(server);
          exec.execute(server_ex);
       }
@@ -302,13 +303,13 @@ void DArray::refresh(int i)
          (am->DeleteObj(alg_id,typ_id))(type,m_elements[i]);
       
       m_elements[i].addr = (am->CreateObj(alg_id,typ_id))(type).addr;
-      server->setCmd("read_rel",l,&m_elements);
+      server->setCmd(DServer::DS_CMD_READ_REL,l,&m_elements);
       server->run();
    }
    
    else
    {
-      server->setCmd("read",l,&m_elements);
+     server->setCmd(DServer::DS_CMD_READ,l,&m_elements);
       server->run();
    }
    
@@ -338,11 +339,13 @@ void DArray::refresh()
       DServer* server = manager->getServerbyID(i);
       if(isRelation)
       {
-         server->setCmd("read_rel",manager->getIndexList(i),&m_elements);
+        server->setCmd(DServer::DS_CMD_READ_REL,
+                       manager->getIndexList(i),&m_elements);
       }
       else
       {
-         server->setCmd("read",manager->getIndexList(i),&m_elements);
+        server->setCmd(DServer::DS_CMD_READ,
+                       manager->getIndexList(i),&m_elements);
       }
           
       server_ex = new DServerExecutor(server);
@@ -396,7 +399,8 @@ bool DArray::initialize(ListExpr n_type,
        for(int i = 0; i<manager->getNoOfServers();i++)
          {
            DServer* server = manager->getServerbyID(i);
-           server->setCmd("write", manager->getIndexList(i),&m_elements);
+           server->setCmd(DServer::DS_CMD_WRITE,
+                          manager->getIndexList(i),&m_elements);
            DServerExecutor* server_exec = new DServerExecutor(server);
            exec.execute(server_exec);
          }
@@ -497,7 +501,8 @@ void DArray::set(Word n_elem, int i)
       if(!isRelation)
       {
          DServer* server = manager->getServerByIndex(i);
-         server->setCmd("write",l,&m_elements);
+         server->setCmd(DServer::DS_CMD_WRITE,
+                        l,&m_elements);
          server->run();
       }
       else
@@ -550,7 +555,8 @@ void DArray::WriteRelation(int index)
    //open tuple stream to worker
    t = iter->GetNextTuple();
    word[0].addr = t;
-   worker->setCmd("open_write_rel",l,&word);
+   worker->setCmd(DServer::DS_CMD_OPEN_WRITE_REL
+                  ,l,&word);
    worker->run();
      
    //send each tuple
@@ -559,14 +565,15 @@ void DArray::WriteRelation(int index)
           
       word[0].addr = t;
       t->IncReference();
-      worker->setCmd("write_rel",0,&word);
+      worker->setCmd(DServer::DS_CMD_WRITE_REL,
+                     0,&word);
       worker->run();
       t->DeleteIfAllowed();
       t = iter->GetNextTuple();
    }
      
    //close tuple stream
-   worker->setCmd("close_write_rel",0);
+   worker->setCmd(DServer::DS_CMD_CLOSE_WRITE_REL,0);
    worker->run();
      
      
@@ -712,7 +719,7 @@ Word DArray::Clone( const ListExpr typeInfo, const Word& w )
       w[0].addr = &to;
 
       alt->getServerManager()->getServerByIndex(i)
-                  ->setCmd("copy",l,&w);
+        ->setCmd(DServer::DS_CMD_COPY,l,&w);
       
       alt->getServerManager()->getServerByIndex(i)->run();
    }
@@ -1155,7 +1162,7 @@ static int putFun( Word* args,
          array_alt-> 
          getServerManager() -> 
          getServerByIndex(j) -> 
-         setCmd("copy",l,&w);
+           setCmd(DServer::DS_CMD_COPY,l,&w);
          
          array_alt->getServerManager()->getServerByIndex(j)->run();
       }
@@ -1937,7 +1944,7 @@ distributeFun (Word* args, Word& result, int message, Word& local, Supplier s)
       list<int>* l = new list<int>;
       l->push_front(i);
           
-      server->setCmd("open_write_rel",l);
+      server->setCmd(DServer::DS_CMD_OPEN_WRITE_REL, l);
       DServerExecutor* run = new DServerExecutor(server);
       ex.execute(run);      
 //server->run();
@@ -1984,7 +1991,7 @@ distributeFun (Word* args, Word& result, int message, Word& local, Supplier s)
          ZThread::Thread::yield();
       
       server->status = 1;
-      server->setCmd("write_rel",0,w);
+      server->setCmd(DServer::DS_CMD_WRITE_REL,0,w);
       DServerExecutor* exec = new DServerExecutor(server);
       
       ex.execute(exec);
@@ -2009,7 +2016,7 @@ distributeFun (Word* args, Word& result, int message, Word& local, Supplier s)
       if(child > -1)
          server = (server->getChilds())[child];
           
-      server->setCmd("close_write_rel",0);
+      server->setCmd(DServer::DS_CMD_CLOSE_WRITE_REL,0);
       server->run();
    }
      
@@ -2158,7 +2165,7 @@ static int loopValueMap
          server = (server->getChilds())[child];
       
       list<int>* l = new list<int>; l->push_front(i);
-      server->setCmd("execute", l, w);
+      server->setCmd(DServer::DS_CMD_EXEC, l, w);
       ex = new DServerExecutor(server);
       exec.execute(ex);
    }
@@ -2348,6 +2355,172 @@ Operator dtie(
       dtieTypeMap );
 
 
+/*
+5.12 Operator ~dsummarize~
+
+The operator ~dsummarize~ provides a stream of tuples from a darray of
+relations. For this purpose, the operator scans all relations beginning with
+the first relation of the array.
+
+The formal specification of type mapping is:
+
+---- ((darray (rel t))) -> (stream t)
+
+     at which t is of the type tuple
+----
+
+Note that the operator ~dsummarize~ is not exactly inverse to the operator
+~ddistribute~ because the index of the relation is not appended to the
+attributes of the outgoing tuples. If the darray has been constructed by the
+operator ~ddistribute~ the order of the resulting stream in most cases does not
+correspond to the order of the input stream of the operator ~ddistribute~.
+
+*/
+static ListExpr
+dsummarizeTypeMap( ListExpr args )
+{
+  if (nl->ListLength(args) == 1)
+  {
+    ListExpr arrayDesc = nl->First(args);
+
+    if (nl->ListLength(arrayDesc) == 2
+        && nl->IsEqual(nl->First(arrayDesc), "darray"))
+    {
+      ListExpr relDesc = nl->Second(arrayDesc);
+
+      if (nl->ListLength(relDesc) == 2
+          && nl->IsEqual(nl->First(relDesc), "rel"))
+      {
+        ListExpr tupleDesc = nl->Second(relDesc);
+        if (nl->IsEqual(nl->First(tupleDesc), "tuple"))
+        {
+          return nl->TwoElemList(nl->SymbolAtom("stream"),
+                                 nl->Second(relDesc));
+        }
+      }
+    }
+  }
+
+  ErrorReporter::ReportError(
+     "dsummarize: Input type darray( rel( tuple(...))) expected!");
+  return nl->SymbolAtom("typeerror");
+}
+
+static int
+dsummarizeFun( Word* args, Word& result, int message, Word& local, Supplier s )
+{
+  struct DArrayIterator
+  {
+    private:
+    int current;
+    DArray* darray;
+    GenericRelationIterator* rit;
+
+    // create an Tuple iterater for the next array element
+    bool makeNextRelIter()
+    {
+      if (rit)
+        delete rit;
+
+      while (current < darray->getSize())
+      {
+    Relation* r=static_cast<Relation*>(darray->get(current).addr);
+    if (r->GetNoTuples() > 0)
+    {
+      current++;
+      rit = r->MakeScan();
+      return true;
+    }
+    else
+    {
+      current++;
+      continue;
+    }
+      }
+
+      rit=0;
+      return false;
+    }
+
+    public:
+    DArrayIterator(DArray* d, const int pos=0) : current(pos), darray(d), rit(0)
+    {
+      darray->refresh();
+      makeNextRelIter();
+    }
+
+    ~DArrayIterator()
+    {
+      if (rit)
+        delete rit;
+    }
+
+    Tuple* getNextTuple() // try to get next tuple
+    {
+      if (!rit)
+        return 0;
+
+      Tuple* t = rit->GetNextTuple();
+      if ( !t )
+      {
+         if (!makeNextRelIter())
+           return 0;
+         else
+           return rit->GetNextTuple();
+      }
+      return t;
+    }
+  };
+
+  DArrayIterator* dait = 0;
+  dait = (DArrayIterator*)local.addr;
+
+  switch (message) {
+    case OPEN : {
+      dait = new DArrayIterator( (DArray*)args[0].addr );
+      local.addr = dait;
+      return 0;
+    }
+    case REQUEST : {
+
+      Tuple* t = dait->getNextTuple();
+      if (t != 0) {
+        result = SetWord(t);
+        return YIELD;
+      }
+      return CANCEL;
+    }
+    case CLOSE : {
+      if(local.addr)
+      {
+        dait = (DArrayIterator*)local.addr;
+        delete dait;
+        local = SetWord(Address(0));
+      }
+      return 0;
+    }
+    default : {
+      return 0;
+    }
+  }
+  return 0;
+}
+
+const string dsummarizeSpec =
+   "(( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
+    "( <text>((darray (rel t))) -> (stream t)</text--->"
+      "<text>_ dsummarize</text--->"
+      "<text>Produces a stream of the tuples from all relations in the "
+      "darray.</text--->"
+      "<text>query prel dsummarize consume</text---> ))";
+
+Operator dsummarize (
+      "dsummarize",
+      dsummarizeSpec,
+      dsummarizeFun,
+      Operator::SimpleSelect,
+      dsummarizeTypeMap );
+
 /* 
 
 6 Creating the Algebra 
@@ -2373,7 +2546,8 @@ class DistributedAlgebra : public Algebra
          AddOperator( &distributeA);
          AddOperator( &loopA); loopA.SetUsesArgsInTypeMapping();
          AddOperator( &dElementA);
-       AddOperator( &dtie);
+         AddOperator( &dtie);
+         AddOperator( &dsummarize );
       }
       ~DistributedAlgebra() {}
 };

@@ -44,4 +44,6 @@ implicit parameter element type DELEMENT
 operator dtie alias DTIE pattern _ op [ fun ] 
          implicit parameters first, second types DELEMENT, DELEMENT 
 
+operator dsummarize alias DSUMMARIZE pattern _ op
+
 # End DistributedAlgebra.spec

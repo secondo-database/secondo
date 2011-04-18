@@ -45,17 +45,35 @@ RelationWriter and DServerCreator
 
 using namespace std;
 
-
+static int DServerCnt;
 
 class DServer
 {
 public:
+
+  enum CmdType { DS_CMD_NONE = 0,  // undefined
+                 DS_CMD_WRITE,     // writes an element to the worker
+                 DS_CMD_READ,      // reads an element from the worker
+                 DS_CMD_DELETE,    // deletes an element on the worker
+                 DS_CMD_COPY,      // copies an element on the worker
+                 DS_CMD_EXEC,      // exectues a command on each element on
+                                   // the worker
+                 DS_CMD_OPEN_WRITE_REL, // opens a relation on the worker to
+                                        // add elements
+                 DS_CMD_WRITE_REL, // writes a singel tuple to a relation 
+                                   // on the worker
+                 DS_CMD_CLOSE_WRITE_REL, // closes a relation on the worker
+                 DS_CMD_READ_REL,  // reads a tuple from a relation on
+                                   // the worker
+                 
+  };
   DServer(string,int,string,ListExpr);
   void Terminate();
   bool connectToWorker();
 
-  void setCmd(const string&,
-              list<int>*, vector<Word>* = 0);
+  void setCmd(CmdType inCmdType,
+              list<int>* inArgs, 
+              vector<Word>* inElements = 0);
 
   void run();
                           
@@ -69,12 +87,37 @@ public:
   string getErrorText() { return errorText; }
          
 private:
-  string host,name,cmd;
+  class RemoteCommand
+  {
+  public:
+    explicit RemoteCommand(CmdType inCmdType,
+                           list<int>* inArgs, 
+                           vector<Word>* inElements)
+      : m_cmdType( inCmdType )
+      , m_args( inArgs )
+      , m_elements( inElements ) {}
+
+    CmdType       getCmdType() const { return m_cmdType; }
+    list<int>*    getArgs() const { return m_args; }
+    vector<Word>* getElements() const { return m_elements; }
+
+  private:
+    // methods
+    RemoteCommand() {} // no to be used!
+    RemoteCommand(const RemoteCommand&) {} // not to be used!
+
+    // members
+    CmdType m_cmdType;
+    list<int>* m_args;
+    vector<Word>* m_elements;
+  };
+
+  string host,name;
+
+  RemoteCommand* m_cmd;
+
   int port;
   ListExpr type;
-  list<int>* arg;
-         
-  vector<Word>* m_elements;
 
   Socket* server;
          

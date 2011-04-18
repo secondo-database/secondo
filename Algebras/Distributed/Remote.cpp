@@ -67,6 +67,7 @@ A TCP-connection to the corresponding worker ist opened
 
 */
 
+
 DServer::DServer(string n_host,int n_port,string n_name,ListExpr n_type)
 {
   // cout << "DServer created:" << n_host 
@@ -78,8 +79,8 @@ DServer::DServer(string n_host,int n_port,string n_name,ListExpr n_type)
    
    errorText = "OK";
    
-     
    rel_open = false;
+   m_cmd = NULL;
 }
 
 bool
@@ -176,6 +177,10 @@ void DServer::Terminate()
       delete server;
       server=0;
    }
+
+   if (m_cmd != NULL)
+     delete m_cmd;
+   m_cmd = NULL;
 }
 
 /*
@@ -186,14 +191,13 @@ Sets new paramaters that are needed for the run-method
 
 */
 
-void DServer::setCmd(const string& n_cmd, 
-                 list<int>* n_arg,
-                 vector<Word>* inArray)
+void DServer::setCmd(CmdType inCmdType, 
+                     list<int>* inArgs,
+                     vector<Word>* inElements)
 {
-   cmd = n_cmd;
-   arg = n_arg;
-   m_elements = inArray;
-   
+  assert(m_cmd == NULL);
+  
+  m_cmd =  new RemoteCommand(inCmdType, inArgs, inElements);
 }
 
 /*
@@ -206,9 +210,11 @@ Performs the specified operation on the remote system
 
 void DServer::run()
 {
+  assert(m_cmd != NULL);
+    
    int arg2;
 
-   if(cmd=="write")
+   if(m_cmd -> getCmdType() == DS_CMD_WRITE)
    {
       if(rel_open) 
         return;
@@ -220,11 +226,11 @@ void DServer::run()
                 
       TypeConstructor* t = am->GetTC(algID,typID);
       
-      while(!arg->empty())
+      while(!m_cmd -> getArgs() ->empty())
       {
 
-         arg2 = arg->front();
-         arg->pop_front();
+         arg2 = m_cmd -> getArgs() ->front();
+         m_cmd -> getArgs() ->pop_front();
         
          iostream& iosock = server->GetSocketStream();
          string port =toString_d((1800+arg2)); 
@@ -302,7 +308,8 @@ void DServer::run()
          recF.AppendRecord(recID,rec);
          size_t size = 0;
          
-         am->SaveObj(algID,typID,rec,size,type,(*m_elements)[arg2]);
+         am->SaveObj(algID,typID,rec,size,type,
+                     (*(m_cmd -> getElements()))[arg2]);
                 
          char* buffer = new char[size]; 
          rec.Read(buffer,size,0);
@@ -321,7 +328,7 @@ void DServer::run()
          Attribute* a;
          if(t->NumOfFLOBs() > 0 ) 
             a = static_cast<Attribute*>((am->Cast(algID,typID))
-                              (((*m_elements)[arg2]).addr));
+                              (((*(m_cmd -> getElements()))[arg2]).addr));
          
          //Flobs are sent to worker
          for(int i = 0; i < t->NumOfFLOBs(); i++)
@@ -374,7 +381,7 @@ void DServer::run()
                 
    }
         
-   if(cmd=="read")
+   if(m_cmd -> getCmdType() == DS_CMD_READ)
    {
       if(rel_open) return;
       int algID,typID;
@@ -382,11 +389,11 @@ void DServer::run()
                 
       string daten;
                 
-      while(!arg->empty())
+      while(!m_cmd -> getArgs() ->empty())
       {
 
-         arg2 = arg->front();
-         arg->pop_front();
+         arg2 = m_cmd -> getArgs() ->front();
+         m_cmd -> getArgs() ->pop_front();
          string port =toString_d((1500+arg2));
          
          //The sendD-operator on the worker is started       
@@ -432,7 +439,8 @@ void DServer::run()
             rec.Write(buffer,size,0);
             
             size_t s = 0;
-            am->OpenObj(algID,typID,rec,s,type,(*m_elements)[arg2]);
+            am->OpenObj(algID,typID,rec,s,type,
+                        (*(m_cmd -> getElements()))[arg2]);
                
             recF.DeleteRecord(recID);
             recF.Close();
@@ -472,7 +480,7 @@ void DServer::run()
                   cbsock.read(buf+1024*i,1024);
             
                Attribute* a = static_cast<Attribute*>
-             ((am->Cast(algID,typID))((*m_elements)[arg2].addr));
+             ((am->Cast(algID,typID))((*(m_cmd -> getElements()))[arg2].addr));
             
                //Flob data is written
                Flob*  f = a->GetFLOB(flobs);
@@ -516,13 +524,13 @@ void DServer::run()
 
    }
         
-   if(cmd=="delete")
+   if(m_cmd -> getCmdType() == DS_CMD_DELETE)
    {
       if(rel_open) return;
-      while(!arg->empty())
+      while(!m_cmd -> getArgs() ->empty())
       {
-         arg2 = arg->front();
-         arg->pop_front();
+         arg2 = m_cmd -> getArgs() ->front();
+         m_cmd -> getArgs() ->pop_front();
          
          //Element is deleted on the worker
          string line;
@@ -543,18 +551,18 @@ void DServer::run()
    
    }
         
-   if(cmd=="copy")
+   if(m_cmd -> getCmdType() == DS_CMD_COPY)
    {
       if(rel_open) return;
       string line;
       iostream& iosock = server->GetSocketStream();
 
-      string to = ((string*)((*m_elements)[0].addr))->data();
+      string to = ((string*)((*(m_cmd -> getElements()))[0].addr))->data();
                
-      while(!arg->empty())
+      while(!m_cmd -> getArgs() -> empty())
       {
-         arg2 = arg->front();
-         arg->pop_front();
+         arg2 = m_cmd -> getArgs() ->front();
+         m_cmd -> getArgs() ->pop_front();
          
          //Element is copied on the worker
          string cmd;
@@ -575,19 +583,19 @@ void DServer::run()
    
    }
         
-   if(cmd=="execute")
+   if(m_cmd -> getCmdType() == DS_CMD_EXEC)
    {
       
       if(rel_open) return;
       string line;
       iostream& iosock = server->GetSocketStream();
-      string to = ((string*)((*m_elements)[0].addr))->data();
-      string com = ((string*)((*m_elements)[1].addr))->data();
+      string to = ((string*)((*(m_cmd -> getElements()))[0].addr))->data();
+      string com = ((string*)((*(m_cmd -> getElements()))[1].addr))->data();
 
-      while(!arg->empty())
+      while(!m_cmd -> getArgs() ->empty())
       {
-         arg2 = arg->front();
-         arg->pop_front();
+         arg2 = m_cmd -> getArgs() ->front();
+         m_cmd -> getArgs() ->pop_front();
          
          string com_a = stringutils::replaceAll(com,"!","r" +
                                         name + toString_d(arg2));
@@ -612,7 +620,7 @@ void DServer::run()
    }
      
    
-   if(cmd=="open_write_rel")
+   if(m_cmd -> getCmdType() == DS_CMD_OPEN_WRITE_REL)
    {
       if(rel_open) return;
       //Initializes the writing of a tuple-stream, 
@@ -621,7 +629,7 @@ void DServer::run()
       string line;
       iostream& iosock = server->GetSocketStream();
               
-      int arg2 = arg->front();
+      int arg2 = m_cmd -> getArgs() ->front();
       
       string port =toString_d((1800+arg2)); 
       string com = "let r" + name + toString_d(arg2) + 
@@ -671,14 +679,14 @@ void DServer::run()
                
    }
           
-   if(cmd == "write_rel")
+   if(m_cmd -> getCmdType() == DS_CMD_WRITE_REL)
    {
       //Writes a single tuple to an open tuple stream to the worker
       if(!rel_open) return;
                
       string line;
                
-      Tuple *tpl = (Tuple*)(*m_elements)[0].addr;
+      Tuple *tpl = (Tuple*)(*(m_cmd -> getElements()))[0].addr;
       
       //Get the tuple size
       size_t cS,eS,fS,size;
@@ -723,7 +731,7 @@ void DServer::run()
           
    }
           
-   if(cmd == "close_write_rel")
+   if(m_cmd -> getCmdType() == DS_CMD_CLOSE_WRITE_REL)
    {
       //Closes an open tuple stream to the worker
       if(!rel_open) return;
@@ -753,17 +761,17 @@ void DServer::run()
    }
    
 
-   if(cmd == "read_rel")
+   if(m_cmd -> getCmdType() == DS_CMD_READ_REL)
    {
       //Reads an entire relation from the worker
       int algID,typID;
       extractIds(type,algID,typID);
           
-      while(!arg->empty())
+      while(!m_cmd -> getArgs() ->empty())
       {
        
-         arg2 = arg->front();
-         arg->pop_front();
+         arg2 = m_cmd -> getArgs() ->front();
+         m_cmd -> getArgs() ->pop_front();
          
          string line;        
          string port =toString_d((1300+arg2));
@@ -781,7 +789,9 @@ void DServer::run()
 
          iostream& cbsock = worker->GetSocketStream();
 
-         GenericRelation* rel = (Relation*)(*m_elements)[arg2].addr;
+         GenericRelation* rel = 
+           (Relation*)(*(m_cmd -> getElements()))[arg2].addr;
+
          TupleType* tt = new TupleType(nl->Second(type));
                 
          //receive tuples
@@ -836,10 +846,13 @@ void DServer::run()
           
           
    }
-        
-   status = 0;
-   delete arg;
-           
+
+   delete m_cmd -> getArgs();
+   delete m_cmd;
+
+   m_cmd = NULL;
+
+   status = 0;          
    return;
 }
 
@@ -1085,7 +1098,7 @@ void RelationWriter::run()
      
       //open tuple stream to the worker
       word[0].addr = t;
-      worker->setCmd("open_write_rel",l,&word);
+      worker->setCmd(DServer::DS_CMD_OPEN_WRITE_REL,l,&word);
       worker->run();
      
      //send tuples
@@ -1094,7 +1107,7 @@ void RelationWriter::run()
           
          word[0].addr = t;
          t->IncReference();
-         worker->setCmd("write_rel",0,&word);
+         worker->setCmd(DServer::DS_CMD_WRITE_REL,0,&word);
           
          worker->run();
          t->DeleteIfAllowed();
@@ -1104,7 +1117,7 @@ void RelationWriter::run()
       }
      
       //close tuple stream
-      worker->setCmd("close_write_rel",0);
+     worker->setCmd(DServer::DS_CMD_CLOSE_WRITE_REL,0);
       worker->run();
      
      
