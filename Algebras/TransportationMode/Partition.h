@@ -1020,6 +1020,6 @@ struct StrRS{
                               vector<MyPoint>& intersect_ps, Region*, Region*);
 };
 
-#define MYPI 3.1415927
+#define TM_MYPI 3.1415927
 
 #endif

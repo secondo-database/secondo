@@ -2384,7 +2384,7 @@ void CompTriangle::InitializeQueue(priority_queue<RPoint>& allps,
     double angle = sp->GetAngle(query_p, hp, p);
     double dist = query_p.Distance(p);
     if(sp->GetClockwise(query_p, hp, p)){// clockwise
-        angle = 2*MYPI - angle;
+        angle = 2*TM_MYPI - angle;
     }
     RPoint rp(p, angle, dist, reg_id);
     rp.SetNeighbor(*q1, *q2);
@@ -2416,9 +2416,9 @@ void CompTriangle::InitializeAVL( multiset<MySegDist>& sss,
         double angle1 = sp->GetAngle(query_p, hp, p);
         double angle2 = sp->GetAngle(query_p, hp, neighbor);
         if(sp->GetClockwise(query_p, hp, p))
-          angle1 = 2*MYPI-angle1;
+          angle1 = 2*TM_MYPI-angle1;
         if(sp->GetClockwise(query_p, hp, neighbor))
-          angle2 = 2*MYPI-angle2;
+          angle2 = 2*TM_MYPI-angle2;
         if(AlmostEqual(angle1, angle2)){
             double d1 = query_p.Distance(p);
             double d2 = query_p.Distance(neighbor);
@@ -2472,7 +2472,7 @@ void CompTriangle::ProcessNeighbor(multiset<MySegDist>& sss,
 
     double angle = sp->GetAngle(query_p, hp, neighbor);
     if(sp->GetClockwise(query_p, hp, neighbor))
-      angle = 2*MYPI - angle;
+      angle = 2*TM_MYPI - angle;
 
     if(AlmostEqual(angle, rp.angle)){
 //        outfile<<"on the same line as query_p "<<endl;
@@ -2672,9 +2672,9 @@ void CompTriangle::GetVPoints(Relation* rel1, Relation* rel2,
     angle1 = sp->GetAngle(*query_p, hp, neighbors[0]);
     angle2 = sp->GetAngle(*query_p, hp, neighbors[1]);
     if(sp->GetClockwise(*query_p, hp, neighbors[0]))
-      angle1 = 2*MYPI - angle1;
+      angle1 = 2*TM_MYPI - angle1;
     if(sp->GetClockwise(*query_p, hp, neighbors[1]))
-      angle2 = 2*MYPI - angle2;
+      angle2 = 2*TM_MYPI - angle2;
 
     if(angle1 > angle2){
       Point temp = neighbors[0];
