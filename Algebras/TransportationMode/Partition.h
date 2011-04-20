@@ -686,7 +686,7 @@ struct MyPoint{
 };
 
 struct MyPoint_Ext:public MyPoint{
-	Point loc2; 
+	Point loc2;
 	double dist2;
 	MyPoint_Ext(){}
 	MyPoint_Ext(const Point& p1, const Point& p2, double d1, double d2):
@@ -696,14 +696,14 @@ struct MyPoint_Ext:public MyPoint{
 	MyPoint_Ext& operator=(const MyPoint_Ext& mpe)
 	{
 		MyPoint::operator=(mpe);
-		loc2 = mpe.loc2; 
+		loc2 = mpe.loc2;
 		dist2 = mpe.dist2;
-		return *this; 
+		return *this;
 	}
 	 void Print()
   	{
     	cout<<" loc1 " <<loc<<"loc2 "<<loc2
-			<<" dist1 "<<dist<<" dist2 "<<dist2<<endl; 
+			<<" dist1 "<<dist<<" dist2 "<<dist2<<endl;
   	}
 };
 
@@ -855,10 +855,10 @@ struct SpacePartition{
   void ExtendSeg2(vector<MyHalfSegment>& segs,int delta,
                      bool clock_wise, vector<Point>& outer);
 
- //translate a given line with a distance limitation 
+ //translate a given line with a distance limitation
   void ExtendSeg3(vector<MyHalfSegment>& segs,int delta,
                      bool clock_wise, vector<Point>& outer);
-                    
+
   // order the segments so that the end point of last one connects to the start
   // point of the next one, the result is stored as vector<MyHalfSegment>
 
@@ -993,7 +993,7 @@ struct SpacePartition{
 
 /*
 for each route, it returns all possible locations where interesting points
-can locate 
+can locate
 
 */
 struct StrRS{
@@ -1002,24 +1002,22 @@ struct StrRS{
 	Relation* r2;
 	unsigned int count;
 	TupleType* resulttype;
-    vector<int> rids; 
+    vector<int> rids;
 	vector<Line> lines;
     vector<Point> interestps;
-    vector<Point> ps; 
-    vector<bool> ps_type; 
+    vector<Point> ps;
+    vector<bool> ps_type;
 	StrRS();
 	~StrRS();
 	StrRS(Network* net, Relation* rel1, Relation* rel2);
 	void GetSections(int attr_pos1, int attr_pos2, int attr_pos3);
-    void GenPoints1(int attr_pos1, int attr_pos2, int attr_pos3, 
+    void GenPoints1(int attr_pos1, int attr_pos2, int attr_pos3,
                    int attr_pos4, int no_ps);
-    void GenPoints2(R_Tree<2,TupleId>*, int attr_pos1, int attr_pos2, 
+    void GenPoints2(R_Tree<2,TupleId>*, int attr_pos1, int attr_pos2,
                     unsigned int);
     void DFTraverse(R_Tree<2,TupleId>*, SmiRecordId, Point*, int);
-    void GetInterestingPoints(HalfSegment hs, Point ip, 
+    void GetInterestingPoints(HalfSegment hs, Point ip,
                               vector<MyPoint>& intersect_ps, Region*, Region*);
 };
-
-#define MYPI 3.1415927
 
 #endif

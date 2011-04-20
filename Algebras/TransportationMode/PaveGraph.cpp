@@ -653,22 +653,22 @@ CompTriangle:: ~CompTriangle()
 }
 
 /*
-get the clockwise value 
+get the clockwise value
 
 */
 bool CompTriangle::GetClockwise(const vector<Point>& contour)
 {
   float obj_area = Area(contour);
   if(0.0f < obj_area) return false;
-  else return true; 
+  else return true;
 }
 
 /*
-Compute the area of a polygon. It is also used to compute the clockwise 
+Compute the area of a polygon. It is also used to compute the clockwise
 value of a list of points.
 if area > 0.0f, counter-clockwise order
-else clockwise order 
-          
+else clockwise order
+
 */
 
 float CompTriangle::Area(const vector<Point>& contour)
@@ -1067,13 +1067,13 @@ bool CompTriangle::PolygonConvex2(int& error)
 }
 
 /*
-number of vertices is larger than 100. 
-it is a concave polgyon with holes inside 
+number of vertices is larger than 100.
+it is a concave polgyon with holes inside
 
 if it is a complex region, when it needs to compute the shortest path inside.
   we do not call the simple method, but build the dual graph, visual graph and
-  an auxiliary relation. 
-  1:complex region 0 not complex region -1: error 
+  an auxiliary relation.
+  1:complex region 0 not complex region -1: error
 
 */
 int CompTriangle::ComplexRegion()
@@ -1088,7 +1088,7 @@ int CompTriangle::ComplexRegion()
       return -1;
   }
 
-  if(reg->Size()< 80) return 0; 
+  if(reg->Size()< 80) return 0;
 
   vector<int> no_cycles(reg->Size(), -1);
 
@@ -1107,7 +1107,7 @@ int CompTriangle::ComplexRegion()
       break;
   }
   if(no_cyc < 4) return 0;
-  else return 1; /////////there are many holes inside 
+  else return 1; /////////there are many holes inside
 }
 
 
@@ -2382,7 +2382,7 @@ void CompTriangle::InitializeQueue(priority_queue<RPoint>& allps,
     double angle = sp->GetAngle(query_p, hp, p);
     double dist = query_p.Distance(p);
     if(sp->GetClockwise(query_p, hp, p)){// clockwise
-        angle = 2*MYPI - angle;
+        angle = 2*M_PI - angle;
     }
     RPoint rp(p, angle, dist, reg_id);
     rp.SetNeighbor(*q1, *q2);
@@ -2414,9 +2414,9 @@ void CompTriangle::InitializeAVL( multiset<MySegDist>& sss,
         double angle1 = sp->GetAngle(query_p, hp, p);
         double angle2 = sp->GetAngle(query_p, hp, neighbor);
         if(sp->GetClockwise(query_p, hp, p))
-          angle1 = 2*MYPI-angle1;
+          angle1 = 2*M_PI-angle1;
         if(sp->GetClockwise(query_p, hp, neighbor))
-          angle2 = 2*MYPI-angle2;
+          angle2 = 2*M_PI-angle2;
         if(AlmostEqual(angle1, angle2)){
             double d1 = query_p.Distance(p);
             double d2 = query_p.Distance(neighbor);
@@ -2470,7 +2470,7 @@ void CompTriangle::ProcessNeighbor(multiset<MySegDist>& sss,
 
     double angle = sp->GetAngle(query_p, hp, neighbor);
     if(sp->GetClockwise(query_p, hp, neighbor))
-      angle = 2*MYPI - angle;
+      angle = 2*M_PI - angle;
 
     if(AlmostEqual(angle, rp.angle)){
 //        outfile<<"on the same line as query_p "<<endl;
@@ -2670,9 +2670,9 @@ void CompTriangle::GetVPoints(Relation* rel1, Relation* rel2,
     angle1 = sp->GetAngle(*query_p, hp, neighbors[0]);
     angle2 = sp->GetAngle(*query_p, hp, neighbors[1]);
     if(sp->GetClockwise(*query_p, hp, neighbors[0]))
-      angle1 = 2*MYPI - angle1;
+      angle1 = 2*M_PI - angle1;
     if(sp->GetClockwise(*query_p, hp, neighbors[1]))
-      angle2 = 2*MYPI - angle2;
+      angle2 = 2*M_PI - angle2;
 
     if(angle1 > angle2){
       Point temp = neighbors[0];
@@ -3113,11 +3113,11 @@ const ListExpr in_xTypeInfo)
   /********************Save graph id ****************************/
   in_xValueRecord.Write(&g_id,sizeof(int),inout_iOffset);
   inout_iOffset += sizeof(int);
- 
+
   ////////////minimum oid - 1/////////////////////////////////////
   in_xValueRecord.Write(&min_tri_oid_1,sizeof(int),inout_iOffset);
   inout_iOffset += sizeof(int);
-  
+
   ListExpr xType;
   ListExpr xNumericType;
   /************************save node****************************/
@@ -3131,12 +3131,12 @@ const ListExpr in_xTypeInfo)
   xNumericType = SecondoSystem::GetCatalog()->NumericType(xType);
   if(!node_rel_sort->Save(in_xValueRecord,inout_iOffset,xNumericType))
       return false;
-  
+
   ///////////////////////save rtree on dual graph nodes///////////////////
   if(!rtree_node->Save(in_xValueRecord, inout_iOffset)){
     return false;
   }
-  
+
   /************************save edge****************************/
   nl->ReadFromString(EdgeTypeInfo,xType);
   xNumericType = SecondoSystem::GetCatalog()->NumericType(xType);
@@ -3165,7 +3165,7 @@ const ListExpr in_xTypeInfo)
    free(buf);
    inout_iOffset += bufsize;
 
-   
+
   return true;
 }
 
@@ -3218,7 +3218,7 @@ const ListExpr in_xTypeInfo):node_rel_sort(NULL), rtree_node(NULL)
    /***********************minimum oid -1********************************/
   in_xValueRecord.Read(&min_tri_oid_1,sizeof(int),inout_iOffset);
   inout_iOffset += sizeof(int);
-  
+
   ListExpr xType;
   ListExpr xNumericType;
   /***********************Open relation for node*********************/
@@ -3228,7 +3228,7 @@ const ListExpr in_xTypeInfo):node_rel_sort(NULL), rtree_node(NULL)
   if(!node_rel) {
     return;
   }
-     
+
    //////////////////////node relation after sorting//////////////////////////
    nl->ReadFromString(NodeTypeInfo,xType);
    xNumericType = SecondoSystem::GetCatalog()->NumericType(xType);
@@ -3240,7 +3240,7 @@ const ListExpr in_xTypeInfo):node_rel_sort(NULL), rtree_node(NULL)
 
    ///////////////////rtree on dual graph sorted nodes////////////////////
    Word xValue;
-   if(!(rtree_node->Open(in_xValueRecord,inout_iOffset, 
+   if(!(rtree_node->Open(in_xValueRecord,inout_iOffset,
         NodeRTreeTypeInfo,xValue))){
     node_rel->Delete();
     node_rel_sort->Delete();
@@ -3309,7 +3309,7 @@ void DualGraph::Load(int id, Relation* r1, Relation* r2)
   ////////////////////////////////////////////////////////
   /////////////create sorting node relation///////////////
   ////////////////////////////////////////////////////////
-  LoadSortNode(r1); 
+  LoadSortNode(r1);
 
   /////////////////edge relation/////////////////////
   ostringstream xEdgePtrStream;
@@ -3342,23 +3342,23 @@ void DualGraph::Load(int id, Relation* r1, Relation* r2)
   ////////////////////////////////////////////////////////////////////////
   /////////////////get minimum triangle oid///////////////////////////////
   ////////////////////////////////////////////////////////////////////////
-  int min_tri_oid = numeric_limits<int>::max(); 
+  int min_tri_oid = numeric_limits<int>::max();
   for(int i = 1;i <= node_rel->GetNoTuples();i++){
     Tuple* tri_tuple = node_rel->GetTuple(i, false);
     int tri_oid = ((CcInt*)tri_tuple->GetAttribute(OID))->GetIntval();
-    if(tri_oid < min_tri_oid) min_tri_oid = tri_oid; 
-    tri_tuple->DeleteIfAllowed(); 
+    if(tri_oid < min_tri_oid) min_tri_oid = tri_oid;
+    tri_tuple->DeleteIfAllowed();
   }
-//  cout<<"min tri oid "<<min_tri_oid<<endl; 
-  min_tri_oid--; 
-  min_tri_oid_1 = min_tri_oid; 
-  assert(min_tri_oid_1 >= 0); 
+//  cout<<"min tri oid "<<min_tri_oid<<endl;
+  min_tri_oid--;
+  min_tri_oid_1 = min_tri_oid;
+  assert(min_tri_oid_1 >= 0);
 //  cout<<"b-tree on edge is finished....."<<endl;
 
   for(int i = 1;i <= node_rel->GetNoTuples();i++){
     Tuple* tri_tuple = node_rel->GetTuple(i, false);
     int tri_oid = ((CcInt*)tri_tuple->GetAttribute(OID))->GetIntval();
-    tri_tuple->DeleteIfAllowed(); 
+    tri_tuple->DeleteIfAllowed();
 
     CcInt* nodeid = new CcInt(true, tri_oid);
 
@@ -3408,7 +3408,7 @@ void DualGraph::Load(int id, Relation* r1, Relation* r2)
       }
       cout<<endl;
   }*/
-  
+
 }
 
 /*
@@ -3417,7 +3417,7 @@ sort the dual graph node by the bounding box of the region (triangle)
 */
 void DualGraph::LoadSortNode(Relation* r1)
 {
- 
+
   ostringstream xNodePtrStream;
   xNodePtrStream<<(long)r1;
   string strQuery = "(consume(sortby(feed(" + NodeTypeInfo +
@@ -3450,7 +3450,7 @@ void DualGraph::LoadSortNode(Relation* r1)
 
 /*
 find all triangles that intersect the input line and return all tid of these
-traingles 
+traingles
 
 */
 void DualGraph::LineIntersectTri(Line* l, vector<Line>& line_list)
@@ -3460,11 +3460,11 @@ void DualGraph::LineIntersectTri(Line* l, vector<Line>& line_list)
 
 /*
 Using depth first method to travese the R-tree to find all triangles
-intersecting the line and record the triangle tuple id 
+intersecting the line and record the triangle tuple id
 
 */
 
-void DualGraph::DFTraverse(R_Tree<2,TupleId>* rtree, SmiRecordId adr, 
+void DualGraph::DFTraverse(R_Tree<2,TupleId>* rtree, SmiRecordId adr,
                           Line* line, vector<Line>& line_list)
 {
   const double delta_dist = 0.001;
@@ -3499,7 +3499,7 @@ void DualGraph::DFTraverse(R_Tree<2,TupleId>* rtree, SmiRecordId adr,
 }
 
 /*
-find which triangle contains the point 
+find which triangle contains the point
 
 */
 int DualGraph::GetTriId_OfPoint(Point& loc)
@@ -3512,10 +3512,10 @@ int DualGraph::GetTriId_OfPoint(Point& loc)
 }
 
 /*
-find which triangle contains the point 
+find which triangle contains the point
 
 */
-void DualGraph::DFTraverse2(R_Tree<2,TupleId>* rtree, SmiRecordId adr, 
+void DualGraph::DFTraverse2(R_Tree<2,TupleId>* rtree, SmiRecordId adr,
                           Point& loc, vector<int>& tri_oid_list)
 {
   R_TreeNode<2,TupleId>* node = rtree->GetMyNode(adr,false,
@@ -3546,11 +3546,11 @@ void DualGraph::DFTraverse2(R_Tree<2,TupleId>* rtree, SmiRecordId adr,
 }
 
 /*
-find all triangles that their distances to the input point is smaller than 
-the given distance threshold 
+find all triangles that their distances to the input point is smaller than
+the given distance threshold
 
 */
-void DualGraph::DFTraverse3(R_Tree<2,TupleId>* rtree, SmiRecordId adr, 
+void DualGraph::DFTraverse3(R_Tree<2,TupleId>* rtree, SmiRecordId adr,
                           Point& loc, vector<int>& tri_oid_list, double dist)
 {
   R_TreeNode<2,TupleId>* node = rtree->GetMyNode(adr,false,
@@ -3614,13 +3614,13 @@ first connects the start and end point to the VG, and then applies A star
 algorithm
 1. (rel (tuple ((v1 int) (v2 int) (v3 int) (centroid point)))):
 for each triangle, we represent it by its three vertices id
-the value of v1 v2 and v3 is the tuple id of the vertex in visibility graph 
+the value of v1 v2 and v3 is the tuple id of the vertex in visibility graph
 with v1, v2 and v3, we can get the point of the vertex
 
 2. (rel (tuple ((vid int) (triid int))))
 it records the vertex id and the triangle id
 
-these two parameters are used to find all triangles that a vertex belongs to 
+these two parameters are used to find all triangles that a vertex belongs to
 
 */
 void Walk_SP::WalkShortestPath(Line* res)
@@ -3634,18 +3634,18 @@ void Walk_SP::WalkShortestPath(Line* res)
   int oid1 = ((CcInt*)t1->GetAttribute(VisualGraph::QOID))->GetIntval();
   Point* p1 = (Point*)t1->GetAttribute(VisualGraph::QLOC2);
   Point loc1(*p1);
-  t1->DeleteIfAllowed(); 
-  
+  t1->DeleteIfAllowed();
+
   Tuple* t2 = rel2->GetTuple(1, false);
   int oid2 = ((CcInt*)t2->GetAttribute(VisualGraph::QOID))->GetIntval();
   Point* p2 = (Point*)t2->GetAttribute(VisualGraph::QLOC2);
   Point loc2(*p2);
-  t2->DeleteIfAllowed(); 
+  t2->DeleteIfAllowed();
 
 //  cout<<"tri_id1 "<<oid1<<" tri_id2 "<<oid2<<endl;
 //  cout<<"loc1 "<<loc1<<" loc2 "<<loc2<<endl;
   oid1 -= dg->min_tri_oid_1;
-  oid2 -= dg->min_tri_oid_1; 
+  oid2 -= dg->min_tri_oid_1;
 
   int no_node_graph = dg->No_Of_Node();
   if(oid1 < 1 || oid1 > no_node_graph){
@@ -3662,11 +3662,11 @@ void Walk_SP::WalkShortestPath(Line* res)
   }
   Tuple* tuple1 = dg->GetNodeRel()->GetTuple(oid1, false);
   Region* reg1 = (Region*)tuple1->GetAttribute(DualGraph::PAVEMENT);
-  
+
   CompTriangle* ct1 = new CompTriangle(reg1);
-  assert(ct1->PolygonConvex()); 
-  delete ct1; 
-  
+  assert(ct1->PolygonConvex());
+  delete ct1;
+
   if(loc1.Inside(*reg1) == false){
     tuple1->DeleteIfAllowed();
     cout<<"point1 is not inside the polygon"<<endl;
@@ -3676,9 +3676,9 @@ void Walk_SP::WalkShortestPath(Line* res)
   Region* reg2 = (Region*)tuple2->GetAttribute(DualGraph::PAVEMENT);
 
   CompTriangle* ct2 = new CompTriangle(reg2);
-  assert(ct2->PolygonConvex()); 
-  delete ct2; 
-  
+  assert(ct2->PolygonConvex());
+  delete ct2;
+
   if(loc2.Inside(*reg2) == false){
     tuple1->DeleteIfAllowed();
     tuple2->DeleteIfAllowed();
@@ -3687,13 +3687,13 @@ void Walk_SP::WalkShortestPath(Line* res)
   }
   tuple1->DeleteIfAllowed();
   tuple2->DeleteIfAllowed();
-  
+
   WalkShortestPath2(oid1, oid2, loc1, loc2, res);
 
 }
 
 /*
-test shortest path for pedestrian 
+test shortest path for pedestrian
 
 */
 void Walk_SP::TestWalkShortestPath(int tid1, int tid2)
@@ -3701,7 +3701,7 @@ void Walk_SP::TestWalkShortestPath(int tid1, int tid2)
 //  cout<<"WalkShortestPath"<<endl;
   clock_t start, finish;
   start = clock();
-  
+
   Tuple* t1 = rel1->GetTuple(tid1, false);
   int oid1 = ((CcInt*)t1->GetAttribute(VisualGraph::QOID))->GetIntval();
   Point* p1 = (Point*)t1->GetAttribute(VisualGraph::QLOC2);
@@ -3715,7 +3715,7 @@ void Walk_SP::TestWalkShortestPath(int tid1, int tid2)
 //  cout<<"tri_id1 "<<oid1<<" tri_id2 "<<oid2<<endl;
 //  cout<<"loc1 "<<loc1<<" loc2 "<<loc2<<endl;
   oid1 -= dg->min_tri_oid_1;
-  oid2 -= dg->min_tri_oid_1; 
+  oid2 -= dg->min_tri_oid_1;
 
   int no_node_graph = dg->No_Of_Node();
   if(oid1 < 1 || oid1 > no_node_graph){
@@ -3734,9 +3734,9 @@ void Walk_SP::TestWalkShortestPath(int tid1, int tid2)
   Region* reg1 = (Region*)tuple1->GetAttribute(DualGraph::PAVEMENT);
 
   CompTriangle* ct1 = new CompTriangle(reg1);
-  assert(ct1->PolygonConvex()); 
-  delete ct1; 
-  
+  assert(ct1->PolygonConvex());
+  delete ct1;
+
   if(loc1.Inside(*reg1) == false){
     tuple1->DeleteIfAllowed();
     cout<<"point1 is not inside the polygon"<<endl;
@@ -3746,9 +3746,9 @@ void Walk_SP::TestWalkShortestPath(int tid1, int tid2)
   Region* reg2 = (Region*)tuple2->GetAttribute(DualGraph::PAVEMENT);
 
   CompTriangle* ct2 = new CompTriangle(reg2);
-  assert(ct2->PolygonConvex()); 
-  delete ct2; 
-  
+  assert(ct2->PolygonConvex());
+  delete ct2;
+
   if(loc2.Inside(*reg2) == false){
     tuple1->DeleteIfAllowed();
     tuple2->DeleteIfAllowed();
@@ -3757,7 +3757,7 @@ void Walk_SP::TestWalkShortestPath(int tid1, int tid2)
   }
   tuple1->DeleteIfAllowed();
   tuple2->DeleteIfAllowed();
-  
+
   if(oid1 == oid2){/////////////start and end point are located on the same tri
       Line* res = new Line(0);
       res->StartBulkLoad();
@@ -3769,16 +3769,16 @@ void Walk_SP::TestWalkShortestPath(int tid1, int tid2)
       hs.SetLeftDomPoint(!hs.IsLeftDomPoint());
       *res += hs;
       /////////////////////////////////////////////////////
-      res->EndBulkLoad(); 
-      oids1.push_back(tid1); //vertex id 
-      oids2.push_back(tid2); //vertex id 
+      res->EndBulkLoad();
+      oids1.push_back(tid1); //vertex id
+      oids2.push_back(tid2); //vertex id
       path.push_back(*res);
-//   double len = res->Length(); 
+//   double len = res->Length();
 // printf("Euclidean length: %.4f Walk length: %.4f\n",loc1.Distance(loc2),len);
-      delete res; 
-      return; 
+      delete res;
+      return;
   }
-  
+
   ///////////////////////////////////////////////////////////////////////
   ///////////////////check Eudlidean Connection//////////////////////////
   //////////////////////////////////////////////////////////////////////
@@ -3793,14 +3793,14 @@ void Walk_SP::TestWalkShortestPath(int tid1, int tid2)
       hs.SetLeftDomPoint(!hs.IsLeftDomPoint());
       *res += hs;
       /////////////////////////////////////////////////////
-      res->EndBulkLoad(); 
-      oids1.push_back(tid1); //vertex id 
-      oids2.push_back(tid2); //vertex id 
+      res->EndBulkLoad();
+      oids1.push_back(tid1); //vertex id
+      oids2.push_back(tid2); //vertex id
       path.push_back(*res);
       delete res;
-//    double len = res->Length(); 
+//    double len = res->Length();
 // printf("Euclidean length: %.4f Walk length: %.4f\n",loc1.Distance(loc2),len);
-    return; 
+    return;
   }
 
   ///////////////////////////////////////////////////////////////////////
@@ -3950,8 +3950,8 @@ void Walk_SP::TestWalkShortestPath(int tid1, int tid2)
       *l += hs;
       /////////////////////////////////////////////////////
     }
-    oids1.push_back(tid1); //vertex id 
-    oids2.push_back(tid2); //vertex id 
+    oids1.push_back(tid1); //vertex id
+    oids2.push_back(tid2); //vertex id
 
     l->EndBulkLoad();
     path.push_back(*l);
@@ -3960,7 +3960,7 @@ void Walk_SP::TestWalkShortestPath(int tid1, int tid2)
 
     finish = clock();
     printf("tid1: %d, tid2: %d, Euclidean: %.4f Walk: %.4f Time: %f\n",
-           tid1, tid2, loc1.Distance(loc2),len, 
+           tid1, tid2, loc1.Distance(loc2),len,
            (double)(finish - start) / CLOCKS_PER_SEC);
   }
 }
@@ -3975,7 +3975,7 @@ void Walk_SP::WalkShortestPath2(int oid1, int oid2, Point loc1, Point loc2,
 //  cout<<"WalkShortestPath2"<<endl;
 //  cout<<"tri_id1 "<<oid1<<" tri_id2 "<<oid2<<endl;
 //  cout<<"loc1 "<<loc1<<" loc2 "<<loc2<<endl;
-  
+
   int no_node_graph = dg->No_Of_Node();
   if(oid1 < 1 || oid1 > no_node_graph){
     cout<<"loc1 does not exist"<<endl;
@@ -4000,10 +4000,10 @@ void Walk_SP::WalkShortestPath2(int oid1, int oid2, Point loc1, Point loc2,
       hs.SetLeftDomPoint(!hs.IsLeftDomPoint());
       *res += hs;
       /////////////////////////////////////////////////////
-      res->EndBulkLoad(); 
-//    double len = res->Length(); 
+      res->EndBulkLoad();
+//    double len = res->Length();
 // printf("Euclidean length: %.4f Walk length: %.4f\n",loc1.Distance(loc2),len);
-    return; 
+    return;
   }
   ///////////////////////////////////////////////////////////////////////
   ///////////////////check Eudlidean Connection//////////////////////////
@@ -4018,13 +4018,13 @@ void Walk_SP::WalkShortestPath2(int oid1, int oid2, Point loc1, Point loc2,
       hs.SetLeftDomPoint(!hs.IsLeftDomPoint());
       *res += hs;
       /////////////////////////////////////////////////////
-      res->EndBulkLoad(); 
-//    double len = res->Length(); 
+      res->EndBulkLoad();
+//    double len = res->Length();
 // printf("Euclidean length: %.4f Walk length: %.4f\n",loc1.Distance(loc2),len);
-    return; 
+    return;
   }
 
-  
+
   ///////////////////////////////////////////////////////////////////////
   priority_queue<WPath_elem> path_queue;
   vector<WPath_elem> expand_path;
@@ -4095,7 +4095,7 @@ void Walk_SP::WalkShortestPath2(int oid1, int oid2, Point loc1, Point loc2,
   while(path_queue.empty() == false){
         WPath_elem top = path_queue.top();
         path_queue.pop();
-//         cout<<"top elem "<<endl; 
+//         cout<<"top elem "<<endl;
 //         top.Print();
 
         if(AlmostEqual(top.loc, loc2)){
@@ -4128,8 +4128,8 @@ void Walk_SP::WalkShortestPath2(int oid1, int oid2, Point loc1, Point loc2,
             loc_tuple->DeleteIfAllowed();
 
             mark_flag[top.tri_index - 1] = true;
-//             cout<<"neighbor "<<endl; 
-//             expand_path[expand_path.size() - 1].Print(); 
+//             cout<<"neighbor "<<endl;
+//             expand_path[expand_path.size() - 1].Print();
           }
         }
 
@@ -4176,13 +4176,13 @@ void Walk_SP::WalkShortestPath2(int oid1, int oid2, Point loc1, Point loc2,
       *res += hs;
       /////////////////////////////////////////////////////
     }
-    res->EndBulkLoad(); 
-    len = res->Length(); 
+    res->EndBulkLoad();
+    len = res->Length();
   }
 }
 
 /*
-check whether the two points can be directly reachable by a line 
+check whether the two points can be directly reachable by a line
 
 */
 bool Walk_SP::EuclideanConnect(Point loc1, Point loc2)
@@ -4195,10 +4195,10 @@ bool Walk_SP::EuclideanConnect(Point loc1, Point loc2)
     *l += hs;
     hs.SetLeftDomPoint(!hs.IsLeftDomPoint());
     *l += hs;
-    l->EndBulkLoad(); 
+    l->EndBulkLoad();
     double len1 = l->Length();
     double len2 = 0.0;
-    DFTraverse2(dg->rtree_node, dg->rtree_node->RootRecordId(), 
+    DFTraverse2(dg->rtree_node, dg->rtree_node->RootRecordId(),
                 l, len2);
     delete l;
 
@@ -4214,7 +4214,7 @@ Using depth first method to travese the R-tree to find all triangles
 intersecting the line and calculate the total intersection length
 
 */
-void Walk_SP::DFTraverse2(R_Tree<2,TupleId>* rtree, SmiRecordId adr, 
+void Walk_SP::DFTraverse2(R_Tree<2,TupleId>* rtree, SmiRecordId adr,
                           Line* line, double& l)
 {
   R_TreeNode<2,TupleId>* node = rtree->GetMyNode(adr,false,
@@ -4254,7 +4254,7 @@ Randomly generates points inside pavement polygon
 void Walk_SP::GenerateData1(int no_p)
 {
   int no_node_graph = rel1->GetNoTuples();
-  
+
 //  struct timeval tval;
 //  struct timezone tzone;
 //  gettimeofday(&tval, &tzone);
@@ -4263,10 +4263,10 @@ void Walk_SP::GenerateData1(int no_p)
   for (int i = 1; i <= no_p;){
 //      int  m = lrand48() % no_node_graph + 1;
 
-      int m = GetRandom() % no_node_graph + 1; 
+      int m = GetRandom() % no_node_graph + 1;
 
       Tuple* tuple = rel1->GetTuple(m, false);
-      int oid = ((CcInt*)tuple->GetAttribute(DualGraph::OID))->GetIntval(); 
+      int oid = ((CcInt*)tuple->GetAttribute(DualGraph::OID))->GetIntval();
       Region* reg = (Region*)tuple->GetAttribute(DualGraph::PAVEMENT);
 
       if(reg->Area() < 0.5){ //too small area, not useful for a human
@@ -4277,7 +4277,7 @@ void Walk_SP::GenerateData1(int no_p)
       /*neighbor triangles for testing Euclidean connection*/
 //       if(!(oid == 96621 || oid == 96619 || oid == 97639)){
 //           tuple->DeleteIfAllowed();
-//           continue; 
+//           continue;
 //       }
 
       BBox<2> bbox = reg->BoundingBox();
@@ -4309,7 +4309,7 @@ void Walk_SP::GenerateData1(int no_p)
       }
       if(inside){
 //        oids.push_back(m);
-        oids.push_back(oid); 
+        oids.push_back(oid);
         q_loc1.push_back(p1);
         q_loc2.push_back(p2);
         i++;
@@ -4322,7 +4322,7 @@ void Walk_SP::GenerateData1(int no_p)
 Randomly generates points inside pavement polygon
 1) randomly selects a polygon/polygon
 2) randomly generates a vertex of the triangle
-3) the point equals to one of triangle vertices 
+3) the point equals to one of triangle vertices
 
 */
 
@@ -4331,10 +4331,10 @@ void Walk_SP::GenerateData2(int no_p)
   int no_node_graph = rel1->GetNoTuples();
 
   for (int i = 1; i <= no_p;i++){
-      int m = GetRandom() % no_node_graph + 1; 
+      int m = GetRandom() % no_node_graph + 1;
 
       Tuple* tuple = rel1->GetTuple(m, false);
-      int oid = ((CcInt*)tuple->GetAttribute(DualGraph::OID))->GetIntval(); 
+      int oid = ((CcInt*)tuple->GetAttribute(DualGraph::OID))->GetIntval();
       Region* reg = (Region*)tuple->GetAttribute(DualGraph::PAVEMENT);
       Points* ps = new Points(0);
       reg->Vertices(ps);
@@ -4348,7 +4348,7 @@ void Walk_SP::GenerateData2(int no_p)
       Point p1(true, p2.GetX() - bbox.MinD(0), p2.GetY() - bbox.MinD(1));
 
 //      oids.push_back(m);
-      oids.push_back(oid); 
+      oids.push_back(oid);
       q_loc1.push_back(p1);//relative position in the polygon
       q_loc2.push_back(p2);//absolute position
 
@@ -4381,7 +4381,7 @@ void Walk_SP::GenerateData3(int no_p)
       int  m = GetRandom() % no_node_graph + 1;
 
       Tuple* tuple = rel1->GetTuple(m, false);
-      int oid = ((CcInt*)tuple->GetAttribute(DualGraph::OID))->GetIntval(); 
+      int oid = ((CcInt*)tuple->GetAttribute(DualGraph::OID))->GetIntval();
       Region* reg = (Region*)tuple->GetAttribute(DualGraph::PAVEMENT);
 
       if(reg->Area() < 0.5){ //too small area, not useful for a human
@@ -4407,7 +4407,7 @@ void Walk_SP::GenerateData3(int no_p)
       while(inside == false && count <= 100){
 
         int x = GetRandom() % (xx*100);
-        int y = GetRandom() % (yy*100); 
+        int y = GetRandom() % (yy*100);
 
         double coord_x = x/100.0;
         double coord_y = y/100.0;
@@ -4430,7 +4430,7 @@ void Walk_SP::GenerateData3(int no_p)
       }
       if(inside){
 //        oids.push_back(m);
-        oids.push_back(oid); 
+        oids.push_back(oid);
         q_loc1.push_back(p1);
         q_loc2.push_back(p2);
         i++;
@@ -4440,43 +4440,43 @@ void Walk_SP::GenerateData3(int no_p)
 }
 
 /*
-set pavement rid 
+set pavement rid
 
 */
 void Walk_SP::SetPaveRid(R_Tree<2,TupleId>* rtree)
 {
-  
+
   SmiRecordId adr = rtree->RootRecordId();
   for(int i = 1;i <= rel1->GetNoTuples();i++){
     Tuple* tri_tuple = rel1->GetTuple(i, false);
     int oid = ((CcInt*)tri_tuple->GetAttribute(DualGraph::OID))->GetIntval();
     Region* reg = (Region*)tri_tuple->GetAttribute(DualGraph::PAVEMENT);
-    vector<int> r_id_list; 
+    vector<int> r_id_list;
 
     DFTraverse(rtree, adr, reg, r_id_list);
 
-//    cout<<"tid "<<i <<" oid "<<oid<<endl; 
+//    cout<<"tid "<<i <<" oid "<<oid<<endl;
 
     if(r_id_list.size() == 0){
-      cout<<"do not find road "<<endl; 
+      cout<<"do not find road "<<endl;
       cout<<"tid "<<i <<" oid "<<oid<<endl;
-//      break; 
+//      break;
       continue;
     }
 
     for(unsigned int j = 0;j < r_id_list.size();j++){
         oid_list.push_back(oid);
-        rid_list.push_back(r_id_list[j]); 
-        reg_list.push_back(*reg); 
+        rid_list.push_back(r_id_list[j]);
+        reg_list.push_back(*reg);
     }
 
-    tri_tuple->DeleteIfAllowed(); 
+    tri_tuple->DeleteIfAllowed();
   }
 
 }
 
 /*
-Using depth first method to travese the R-tree to find the big pavement 
+Using depth first method to travese the R-tree to find the big pavement
 intersects the triangle (decomposed from the big pavement)
 
 */
@@ -4493,7 +4493,7 @@ void Walk_SP::DFTraverse(R_Tree<2,TupleId>* rtree, SmiRecordId adr, Region* reg,
               Region* candi_reg =
                      (Region*)dg_tuple2->GetAttribute(DualGraph::PAVEMENT);
               if(reg->Intersects(*candi_reg)){
-                 int rid = 
+                 int rid =
                  ((CcInt*)dg_tuple2->GetAttribute(DualGraph::RID))->GetIntval();
                  unsigned int i = 0;
                  for(;i < r_id_list.size();i++)
@@ -4516,16 +4516,16 @@ void Walk_SP::DFTraverse(R_Tree<2,TupleId>* rtree, SmiRecordId adr, Region* reg,
 
 
 /*
-map points in pavements to gpoints 
+map points in pavements to gpoints
 
 */
 void Walk_SP::PaveLocToGP(Network* n)
 {
-  //rel1 query locations , rel2 dgnode 
+  //rel1 query locations , rel2 dgnode
   for(int i = 1;i <= rel1->GetNoTuples();i++){
     Tuple* tuple1 = rel1->GetTuple(i, false);
-    int oid = ((CcInt*)tuple1->GetAttribute(VisualGraph::QOID))->GetIntval(); 
-    Point* loc = (Point*)tuple1->GetAttribute(VisualGraph::QLOC2); 
+    int oid = ((CcInt*)tuple1->GetAttribute(VisualGraph::QOID))->GetIntval();
+    Point* loc = (Point*)tuple1->GetAttribute(VisualGraph::QLOC2);
 
     /////////////////find which road the pavement corresponds to////////
     CcInt* search_id = new CcInt(true, oid);
@@ -4534,32 +4534,32 @@ void Walk_SP::PaveLocToGP(Network* n)
     while(btree_iter->Next()){
         Tuple* tuple = rel2->GetTuple(btree_iter->GetId(), false);
         int rid = ((CcInt*)tuple->GetAttribute(DualGraph::RID))->GetIntval();
-        route_id_list.push_back(rid); 
+        route_id_list.push_back(rid);
         tuple->DeleteIfAllowed();
     }
     delete btree_iter;
     delete search_id;
 
 //    for(unsigned int i = 0;i < route_id_list.size();i++)
-//      cout<<"rid "<<route_id_list[i]<<endl; 
+//      cout<<"rid "<<route_id_list[i]<<endl;
 
 //    cout<<"oid "<<oid<<" rid "<<rid<<endl;
     PaveLocToGPoint(loc, n, route_id_list);
 
-    tuple1->DeleteIfAllowed(); 
+    tuple1->DeleteIfAllowed();
 
-//    break; 
+//    break;
   }
 
 
 }
 
 /*
-for a point, location in pavement, find its mapping gpoint 
+for a point, location in pavement, find its mapping gpoint
 
 */
 struct MyPoint_Id:public MyPoint{
-    int id; 
+    int id;
     MyPoint_Id(){}
     MyPoint_Id(const Point& p, double d, int i):
     MyPoint(p,d),id(i){}
@@ -4568,55 +4568,55 @@ struct MyPoint_Id:public MyPoint{
     MyPoint_Id& operator=(const MyPoint_Id& mpi)
     {
         MyPoint::operator=(mpi);
-        id = mpi.id; 
-        return *this; 
+        id = mpi.id;
+        return *this;
     }
      void Print()
     {
-        cout<<" loc " <<loc<<" dist "<<dist<<" id "<<id<<endl; 
+        cout<<" loc " <<loc<<" dist "<<dist<<" id "<<id<<endl;
     }
 };
 
-void Walk_SP::PaveLocToGPoint(Point* loc, Network* n, 
+void Walk_SP::PaveLocToGPoint(Point* loc, Network* n,
                               vector<int> route_id_list)
 {
-  vector<MyPoint_Id> mp_list; 
+  vector<MyPoint_Id> mp_list;
   for(unsigned int i = 0;i < route_id_list.size();i++){
     int rid = route_id_list[i];
     Tuple* route_tuple = n->GetRoute(rid);
     SimpleLine* l = (SimpleLine*)route_tuple->GetAttribute(ROUTE_CURVE);
-//    cout<<"l : "<<l->Length()<<endl; 
+//    cout<<"l : "<<l->Length()<<endl;
     for(int j = 0;j < l->Size();j++){
       HalfSegment hs;
       l->Get(j, hs);
-      if(!hs.IsLeftDomPoint())continue; 
+      if(!hs.IsLeftDomPoint())continue;
 
       SpacePartition* sp = new SpacePartition();
-      Point res; 
-      double dist = sp->GetClosestPoint(hs, *loc, res); 
+      Point res;
+      double dist = sp->GetClosestPoint(hs, *loc, res);
       delete sp;
-      MyPoint_Id mp(res, dist, rid); 
-      mp_list.push_back(mp); 
+      MyPoint_Id mp(res, dist, rid);
+      mp_list.push_back(mp);
     }
-    route_tuple->DeleteIfAllowed(); 
+    route_tuple->DeleteIfAllowed();
   }
-  assert(mp_list.size() > 0); 
+  assert(mp_list.size() > 0);
   sort(mp_list.begin(), mp_list.end());
-  Tuple* route_tuple = n->GetRoute(mp_list[0].id); 
-  SimpleLine* sl = (SimpleLine*)route_tuple->GetAttribute(ROUTE_CURVE); 
-  bool s = 
+  Tuple* route_tuple = n->GetRoute(mp_list[0].id);
+  SimpleLine* sl = (SimpleLine*)route_tuple->GetAttribute(ROUTE_CURVE);
+  bool s =
       ((CcBool*)route_tuple->GetAttribute(ROUTE_STARTSSMALLER))->GetBoolval();
   double pos;
-  assert(sl->AtPoint(mp_list[0].loc, s, pos)); 
+  assert(sl->AtPoint(mp_list[0].loc, s, pos));
   GPoint gp(true, n->GetId(), mp_list[0].id, pos);
   route_tuple->DeleteIfAllowed();
-  p_list.push_back(mp_list[0].loc); 
+  p_list.push_back(mp_list[0].loc);
   gp_list.push_back(gp);
 
 }
 
 /*
-type constructors 
+type constructors
 
 */
 VGraph::VGraph()
@@ -4650,19 +4650,19 @@ get all adjacent nodes for a given node. dual graph
 
 void VGraph::GetAdjNodeDG(int oid)
 {
-    if(oid <= dg->min_tri_oid_1 || 
+    if(oid <= dg->min_tri_oid_1 ||
        oid > dg->min_tri_oid_1 + dg->node_rel->GetNoTuples()){
         cout<<"invalid oid "<<oid<<endl;
         cout<<"minimum oid "<<dg->min_tri_oid_1<<endl;
         cout<<"maximum oid "
             <<dg->min_tri_oid_1 + dg->node_rel->GetNoTuples()<<endl;
-        return; 
+        return;
     }
 
     vector<int> adj_list;
-    assert(dg->min_tri_oid_1 >= 0); 
+    assert(dg->min_tri_oid_1 >= 0);
     dg->FindAdj(oid - dg->min_tri_oid_1, adj_list);
-//    cout<<" tid "<<oid - dg->min_tri_oid_1<<endl; 
+//    cout<<" tid "<<oid - dg->min_tri_oid_1<<endl;
     for(unsigned int i = 0;i < adj_list.size();i++){
 
       Tuple* node_tuple = dg->GetNodeRel()->GetTuple(adj_list[i], false);
@@ -4728,12 +4728,12 @@ void VGraph::GetVNodeOnVertex(int vid, Point* query_p)
       int triangle_id =
           ((CcInt*)ver_tri->GetAttribute(DualGraph::TRIID))->GetIntval();
 
-//       cout<<"tid_start "<<tid_start<<endl; 
+//       cout<<"tid_start "<<tid_start<<endl;
 //       cout<<"triangle_id "<<triangle_id<<endl;
       ///////////for debuging///////////////////////
-      assert((triangle_id - dg->min_tri_oid_1) >= 1); 
-      triangle_id = triangle_id - dg->min_tri_oid_1; 
-      assert(triangle_id >= 1 && triangle_id <= rel2->GetNoTuples()); 
+      assert((triangle_id - dg->min_tri_oid_1) >= 1);
+      triangle_id = triangle_id - dg->min_tri_oid_1;
+      assert(triangle_id >= 1 && triangle_id <= rel2->GetNoTuples());
       Tuple* tri_tuple = rel2->GetTuple(triangle_id, false);
       int v1 =((CcInt*)tri_tuple->GetAttribute(DualGraph::V1))->GetIntval();
       int v2 =((CcInt*)tri_tuple->GetAttribute(DualGraph::V2))->GetIntval();
@@ -4796,7 +4796,7 @@ create the edge relation for the visibility graph
 */
 void VGraph::GetVGEdge()
 {
-//  cout<<dg->min_tri_oid_1<<endl; 
+//  cout<<dg->min_tri_oid_1<<endl;
   for(int i = 1;i <= rel1->GetNoTuples();i++){
 
       Tuple* vertex_tuple = rel1->GetTuple(i, false);
@@ -4806,7 +4806,7 @@ void VGraph::GetVGEdge()
 
 //       if(vid != 1200){
 //         vertex_tuple->DeleteIfAllowed();
-//         continue; 
+//         continue;
 //       }
 
       GetVNodeOnVertex(vid, p1);
@@ -5271,7 +5271,7 @@ void VGraph::DFTraverse(int tri_id, Clamp& clamp, int pre_id, int type1)
     int v3 =((CcInt*)tri_tuple->GetAttribute(DualGraph::V3))->GetIntval();
     tri_tuple->DeleteIfAllowed();
     Triangle tri1(v1, v2, v3);
-//    cout<<"v1 "<<v1<<"v2 "<<v2<<" v3 "<<v3<<endl; 
+//    cout<<"v1 "<<v1<<"v2 "<<v2<<" v3 "<<v3<<endl;
 //    cout<<"adj_list size "<<adj_list.size()<<endl;
     for(unsigned int i = 0;i < adj_list.size();i++){
 //      cout<<" adj_list DF "<<adj_list[i]<<" i "<<i<<endl;
@@ -5584,7 +5584,7 @@ void VGraph::GetVisibleNode2(int tri_id, Point* query_p, int type)
   int v3 =((CcInt*)tri_tuple1->GetAttribute(DualGraph::V3))->GetIntval();
   tri_tuple1->DeleteIfAllowed();
   Triangle tri1(v1, v2, v3);
-//  cout<<"v1 "<<v1<<" v2 "<<v2<<" v3 "<<v3<<endl; 
+//  cout<<"v1 "<<v1<<" v2 "<<v2<<" v3 "<<v3<<endl;
   ///////////////////////////////////////////////////////////////////////
   for(unsigned int i = 0;i < adj_list.size();i++){
 //    cout<<"adj_list GVN "<<adj_list[i] + dg->min_tri_oid_1<<endl;
@@ -5593,7 +5593,7 @@ void VGraph::GetVisibleNode2(int tri_id, Point* query_p, int type)
     int ver2 =((CcInt*)tri_tuple->GetAttribute(DualGraph::V2))->GetIntval();
     int ver3 =((CcInt*)tri_tuple->GetAttribute(DualGraph::V3))->GetIntval();
     tri_tuple->DeleteIfAllowed();
-//    cout<<"ver1 "<<ver1<<" ver2 "<<ver2<<" ver3 "<<ver3<<endl; 
+//    cout<<"ver1 "<<ver1<<" ver2 "<<ver2<<" ver3 "<<ver3<<endl;
     ///////////////////////////////////////////////////////////////////////
     Tuple* loc_tuple1 = rel3->GetTuple(ver1, false);
     Point* p1 = (Point*)loc_tuple1->GetAttribute(VisualGraph::LOC);
@@ -6063,8 +6063,8 @@ void VGraph::GetVNode()
           new Point(*((Point*)query_tuple->GetAttribute(VisualGraph::QLOC2)));
   query_tuple->DeleteIfAllowed();
 
-  query_oid -= dg->min_tri_oid_1; 
-  assert(1 <= query_oid && query_oid <= dg->node_rel->GetNoTuples()); 
+  query_oid -= dg->min_tri_oid_1;
+  assert(1 <= query_oid && query_oid <= dg->node_rel->GetNoTuples());
   /////////three vertices of the triangle////////////////////////
   Tuple* tri_tuple1 = rel2->GetTuple(query_oid, false);
   int v1 =((CcInt*)tri_tuple1->GetAttribute(DualGraph::V1))->GetIntval();
@@ -7212,7 +7212,7 @@ void Hole::GetContour(unsigned int no_reg)
 
 //      int radius = lrand48() % 496 + 5;//5-500 10-1000
 
-      int radius = GetRandom() % 496 + 5;//5-500 10-1000 
+      int radius = GetRandom() % 496 + 5;//5-500 10-1000
 
       contour.clear();
       regions.clear();
@@ -7584,20 +7584,20 @@ void Hole::DiscoverContour(MHSNode* head, Region* r)
 bool SortByY(const MyPoint& mp1, const MyPoint& mp2)
 {
   if(mp1.loc.GetY() < mp2.loc.GetY() ||
-    AlmostEqual(mp1.loc.GetY(), mp2.loc.GetY())) return false; 
-  return true; 
+    AlmostEqual(mp1.loc.GetY(), mp2.loc.GetY())) return false;
+  return true;
 }
 
 /*
-locate which Quadrant the point belongs to 
+locate which Quadrant the point belongs to
 
 */
 int GetQuadrant(double x, double y, Rectangle<2> reg_box)
 {
   double m_x = (reg_box.MinD(0) + reg_box.MaxD(0))/2;
-  double m_y = (reg_box.MinD(1) + reg_box.MaxD(1))/2; 
+  double m_y = (reg_box.MinD(1) + reg_box.MaxD(1))/2;
   if(x < m_x || AlmostEqual(x, m_x)){
-    if(y < m_y || AlmostEqual(y, m_y ))return 3; 
+    if(y < m_y || AlmostEqual(y, m_y ))return 3;
     else
       return 2;
   }else{
@@ -7605,30 +7605,30 @@ int GetQuadrant(double x, double y, Rectangle<2> reg_box)
     else
       return 1;
   }
-  return -1; 
+  return -1;
 }
 
 
 /*
-the region should only have one face. 
-it can be convex or concave, but without holes 
-if the polygon is a triangle, we can directly get the maximum rectangle 
+the region should only have one face.
+it can be convex or concave, but without holes
+if the polygon is a triangle, we can directly get the maximum rectangle
 
 */
 Rectangle<2> GetMaxRect(Region* reg)
 {
   if(reg->NoComponents() != 1){
-    cout<<"only one face is allowed"<<endl; 
-    return Rectangle<2>(false, 0.0, 0.0, 0.0, 0.0); 
+    cout<<"only one face is allowed"<<endl;
+    return Rectangle<2>(false, 0.0, 0.0, 0.0, 0.0);
 
   }
-  
+
   CompTriangle* ct = new CompTriangle(reg);
   unsigned int no_cyc = ct->NoOfCycles();
-  
+
   if(no_cyc != 1){
-    cout<<"has holes inside or no cycle"<<endl; 
-    delete ct; 
+    cout<<"has holes inside or no cycle"<<endl;
+    delete ct;
     return Rectangle<2>(false, 0.0, 0.0, 0.0, 0.0);
 
   }
@@ -7650,33 +7650,33 @@ Rectangle<2> GetMaxRect(Region* reg)
     delete boundary;
     delete sboundary;
     delete sp;
-    delete ct; 
+    delete ct;
     return Rectangle<2>(false, 0.0, 0.0, 0.0, 0.0);
 
   }
-  
+
   vector<Point> ps;
   for(unsigned int i = 0;i < mhs.size();i++)
     ps.push_back(mhs[i].from);
 
   if(ct->IsConvex(ps) == false){
-    cout<<"concave polygon"<<endl; 
-    delete ct; 
+    cout<<"concave polygon"<<endl;
+    delete ct;
     return Rectangle<2>(false, 0.0, 0.0, 0.0, 0.0);
-    
+
   }
-  
+
   ///////////////////////////////////////////////////////////////////////
   /////////////// finish checking //////////////////////////////////////
   //////////////////////////////////////////////////////////////////////
- 
-  Rectangle<2> reg_box = reg->BoundingBox(); 
+
+  Rectangle<2> reg_box = reg->BoundingBox();
   for(unsigned int i = 0;i < ps.size();i++){
     double x = ps[i].GetX();
-    double y = ps[i].GetY(); 
+    double y = ps[i].GetY();
     assert(!(x < 0.0 || y < 0.0));
     int range = GetQuadrant(x, y, reg_box);
-    assert(range > 0); 
+    assert(range > 0);
     switch(range){
       case 1:
             x = floor(x);
@@ -7692,72 +7692,72 @@ Rectangle<2> GetMaxRect(Region* reg)
             break;
       case 4:
             x = floor(x);
-            y = ceil(y); 
-            break; 
+            y = ceil(y);
+            break;
     }
-    ps[i].Set(x,y); 
+    ps[i].Set(x,y);
     if(i > 0){
       Point p1 = ps[i - 1];
-      Point p2 = ps[i]; 
+      Point p2 = ps[i];
       if(AlmostEqual(p1, p2)){
           delete boundary;
           delete sboundary;
 
           delete sp;
-          delete ct; 
+          delete ct;
 
-          return Rectangle<2>(false, 0.0, 0.0, 0.0, 0.0); 
+          return Rectangle<2>(false, 0.0, 0.0, 0.0, 0.0);
       }
     }
 
   }
-  
+
   delete boundary;
   delete sboundary;
 
   if(AlmostEqual(ps[0], ps[ps.size() - 1])){
       delete sp;
-      delete ct; 
-      return Rectangle<2>(false, 0.0, 0.0, 0.0, 0.0); 
+      delete ct;
+      return Rectangle<2>(false, 0.0, 0.0, 0.0, 0.0);
   }
-  
+
   vector<Region> regs;
   sp->ComputeRegion(ps, regs);
 
-  delete sp; 
+  delete sp;
   delete ct;
-  
-  
+
+
   if(ct->GetClockwise(ps) == false){
     vector<Point> temp_ps;
     for(int i = ps.size() - 1; i >= 0;i--)
-      temp_ps.push_back(ps[i]); 
+      temp_ps.push_back(ps[i]);
     ps.clear();
     for(unsigned int i = 0;i < temp_ps.size();i++)
-      ps.push_back(temp_ps[i]); 
+      ps.push_back(temp_ps[i]);
   }
-  
+
   if(ps.size() >= 3){
-      vector<GeomPoint> polygon; 
+      vector<GeomPoint> polygon;
       for(unsigned int i = 0;i < ps.size();i++){
-      GeomPoint gp(ps[i].GetX(), ps[i].GetY()); 
-      polygon.push_back(gp); 
+      GeomPoint gp(ps[i].GetX(), ps[i].GetY());
+      polygon.push_back(gp);
     }
 
-    MaxRect max_rect; 
-    max_rect.Init(); 
-    max_rect.SetPoint(polygon); 
+    MaxRect max_rect;
+    max_rect.Init();
+    max_rect.SetPoint(polygon);
     if(max_rect.computeEdgeList()){
-        max_rect.computeLargestRectangle(); 
+        max_rect.computeLargestRectangle();
         if(max_rect.result != -1)
-          return max_rect.RectList[max_rect.result]; 
+          return max_rect.RectList[max_rect.result];
         else
-          return Rectangle<2>(false, 0.0, 0.0, 0.0, 0.0); 
+          return Rectangle<2>(false, 0.0, 0.0, 0.0, 0.0);
      }else
-        return Rectangle<2>(false, 0.0, 0.0, 0.0, 0.0); 
+        return Rectangle<2>(false, 0.0, 0.0, 0.0, 0.0);
   }
 
-     return Rectangle<2>(false, 0.0, 0.0, 0.0, 0.0); 
+     return Rectangle<2>(false, 0.0, 0.0, 0.0, 0.0);
 }
 
 
@@ -7765,21 +7765,21 @@ Rectangle<2> GetMaxRect(Region* reg)
 //////////// the  following implementation from /////////////////////////
 ////H. Alt, D. Hsu, and J. Snoeyink. ////////////////////////////////////
 ////////Computing the largest inscribed isothetic rectangle. ///////////
-//////////In Proc. 7th Canadian Conf. Comput. Geom.,/////////////////// 
+//////////In Proc. 7th Canadian Conf. Comput. Geom.,///////////////////
 ////////////Universit'e Laval, Qu'ebec, August 1995, pp. 67--72./////////
 //////// the original code is by Java, I conver it to C, c++/////////////
 /////////////////////////////////////////////////////////////////////////
-string MaxRect::BuildingRectTypeInfo = 
-"(rel (tuple ((reg_id int) (geoData rect) (poly_id int) (reg_type int))))"; 
+string MaxRect::BuildingRectTypeInfo =
+"(rel (tuple ((reg_id int) (geoData rect) (poly_id int) (reg_type int))))";
 
-string MaxRect::RegionElemTypeInfo = 
-"(rel (tuple ((id int) (covarea region))))" ; 
+string MaxRect::RegionElemTypeInfo =
+"(rel (tuple ((id int) (covarea region))))" ;
 
 
 void MaxRect::SetPoint(vector<GeomPoint>& list)
 {
   for(unsigned int i = 0;i < list.size();i++){
-//    geo_p_list.push_back(list[i]); 
+//    geo_p_list.push_back(list[i]);
       int x = list[i].x;
       int y = list[i].y;
       GeomPoint p(x,y);
@@ -7799,11 +7799,11 @@ void MaxRect::SetPoint(vector<GeomPoint>& list)
           }else{
                 GeomPoint q = geo_p_list[1];
                 geo_p_list[1] = p;
-                geo_p_list.push_back(q); 
+                geo_p_list.push_back(q);
                 status = 2;
             }
         }else{
-            geo_p_list.push_back(p); 
+            geo_p_list.push_back(p);
         }
   }
 
@@ -7832,7 +7832,7 @@ bool MaxRect::pointOutside(GeomPoint p)
       a = b;
 
      if(prevIn && !currIn){ start = i;} //next point outside, 1st tangent found
-         if(!prevIn && currIn){ stop = i;}  // 2nd tangent 
+         if(!prevIn && currIn){ stop = i;}  // 2nd tangent
          prevIn = currIn;
 
   }
@@ -7869,23 +7869,23 @@ bool MaxRect::computeEdgeList()
                     g_ymax  = a.y;
                 }
             }
-            if(a.x == b.x) return false; 
-            
+            if(a.x == b.x) return false;
+
             GeomEdge* e = new GeomEdge(a,b);
             geo_e_list.push_back(*e);
             a = b;
-            delete e; 
+            delete e;
         } //for
-  return true; 
+  return true;
 }
 
 
-/* 
+/*
 compute y intersection with an edge
       first pixel completely inside
       ceil function if edge is on top, floor otherwise
       (+y is down)
-      
+
 */
 inline int MaxRect::yIntersect(int xi, GeomEdge e)
 {
@@ -7903,7 +7903,7 @@ inline int MaxRect::yIntersect(int xi, GeomEdge e)
         return y;
     }
 
-/* 
+/*
 find largest pixel completely inside
 look through all edges for intersection
 
@@ -7943,11 +7943,11 @@ GeomEdge MaxRect::findEdge(int x, bool isTop)
         return emax;
     }
 /*
-to get more precise data: 
-for the coordinates of original point, we can multiply the value by 1000. 
-because the original code only uses the type int. 
-in the end, we have to div the value by 1000. 
-This depends on the application requirment 
+to get more precise data:
+for the coordinates of original point, we can multiply the value by 1000.
+because the original code only uses the type int.
+in the end, we have to div the value by 1000.
+This depends on the application requirment
 
 */
 void MaxRect::computeLargestRectangle(){
@@ -7967,11 +7967,11 @@ void MaxRect::computeLargestRectangle(){
         bool onA, onB, onC, onD;
 
         GeomPoint maxp(0, 0);
-        pAC = maxp; 
-        pBD = maxp; 
-        pABC = maxp; 
-        pABD = maxp; 
-        pACD = maxp; 
+        pAC = maxp;
+        pBD = maxp;
+        pABC = maxp;
+        pABD = maxp;
+        pACD = maxp;
         pBCD = maxp;
 
 
@@ -7981,11 +7981,11 @@ void MaxRect::computeLargestRectangle(){
             int x = xIntersect(i);
             GeomPoint px(x, i);
             xint.push_back(px);
-//            cout<<px.x<<" "<<px.y<<endl; 
+//            cout<<px.x<<" "<<px.y<<endl;
         }
 
 //        cout<<"g_xmin "<<g_xmin<<" g_xmax "<<g_xmax
-//            <<" g_ymin "<<g_ymin<<" g_ymax "<<g_ymax<<endl; 
+//            <<" g_ymin "<<g_ymin<<" g_ymax "<<g_ymax<<endl;
 
         //find first top and bottom edges
         top = findEdge(g_xmin, true);
@@ -8002,7 +8002,7 @@ void MaxRect::computeLargestRectangle(){
 //                cout<<"ylo "<<ylo<<"ymin "<<ymin<<"ymax "<<ymax<<endl;
                 for(int yhi = ymin; yhi<= ymax; yhi++){
 
-//                    cout<<"yhi "<<yhi<<endl; 
+//                    cout<<"yhi "<<yhi<<endl;
 
                     if (yhi>ylo){
 
@@ -8024,7 +8024,7 @@ void MaxRect::computeLargestRectangle(){
                         if (!fixed){
                         }//!fixed
                         else{
-                          int fixedWidth = 
+                          int fixedWidth =
                           (int)ceil( ((double)height*fixedX)/((double)fixedY));
                           if (fixedWidth <= width){
                               width = fixedWidth;
@@ -8034,14 +8034,14 @@ void MaxRect::computeLargestRectangle(){
                           }
                        }
                         area = width * height;
-                        //AC 
+                        //AC
                         if (onA && onC && !onB && !onD){
                             if (area > aAC){
                                 aAC = area;
 //                                pAC = new GeomPoint(xi, ylo);
                                 pAC.x = xi;
-                                pAC.y = ylo; 
-//                                cout<<" xi "<<xi<<" ylo "<<ylo<<endl; 
+                                pAC.y = ylo;
+//                                cout<<" xi "<<xi<<" ylo "<<ylo<<endl;
                                 hAC = height;
                                 wAC = width;
                             }
@@ -8052,7 +8052,7 @@ void MaxRect::computeLargestRectangle(){
                                 aBD = area;
 //                                pBD = new GeomPoint(xi, ylo);
                                 pBD.x = xi;
-                                pBD.y = ylo; 
+                                pBD.y = ylo;
 
                                 hBD = height;
                                 wBD = width;
@@ -8064,7 +8064,7 @@ void MaxRect::computeLargestRectangle(){
                                 aABC = area;
 //                                pABC = new GeomPoint(xi, ylo);
                                 pABC.x = xi;
-                                pABC.y = ylo; 
+                                pABC.y = ylo;
 
                                 hABC = height;
                                 wABC = width;
@@ -8076,7 +8076,7 @@ void MaxRect::computeLargestRectangle(){
                                 aABD = area;
 //                                pABD = new GeomPoint(xi, ylo);
                                 pABD.x = xi;
-                                pABD.y = ylo; 
+                                pABD.y = ylo;
 
                                 hABD = height;
                                 wABD = width;
@@ -8088,7 +8088,7 @@ void MaxRect::computeLargestRectangle(){
                                 aACD = area;
 //                                pACD = new GeomPoint(xi, ylo);
                                 pACD.x = xi;
-                                pACD.y = ylo; 
+                                pACD.y = ylo;
 
                                 hACD = height;
                                 wACD = width;
@@ -8100,7 +8100,7 @@ void MaxRect::computeLargestRectangle(){
                                 aBCD = area;
 //                                pBCD = new GeomPoint(xi, ylo);
                                 pBCD.x = xi;
-                                pBCD.y = ylo; 
+                                pBCD.y = ylo;
 
                                 hBCD = height;
                                 wBCD = width;
@@ -8111,7 +8111,7 @@ void MaxRect::computeLargestRectangle(){
                             maxArea = area;
 //                            maxp = new GeomPoint(xi, ylo);
                             maxp.x = xi;
-                            maxp.y = ylo; 
+                            maxp.y = ylo;
 
                             maxw = width;
                             maxh = height;
@@ -8144,121 +8144,121 @@ void MaxRect::computeLargestRectangle(){
         double x_1 = pAC.x;
         double x_2 = pAC.x + wAC;
         double y_1 = pAC.y;
-        double y_2 = pAC.y + hAC; 
-//        Rectangle<2> rect(true, x_1, x_2, y_1, y_2); 
+        double y_2 = pAC.y + hAC;
+//        Rectangle<2> rect(true, x_1, x_2, y_1, y_2);
 
-//        cout<<"x1 "<<x_1<<" x2 "<<x_2<<" y1 "<<y_1<<" y2 "<<y_2<<endl; 
-        RectList.push_back(Rectangle<2>(true, x_1, x_2, y_1, y_2)); 
+//        cout<<"x1 "<<x_1<<" x2 "<<x_2<<" y1 "<<y_1<<" y2 "<<y_2<<endl;
+        RectList.push_back(Rectangle<2>(true, x_1, x_2, y_1, y_2));
 
-        x_1 = pBD.x; x_2 = x_1 + wBD; y_1 = pBD.y; y_2 = pBD.y + hBD; 
-//        cout<<"x1 "<<x_1<<" x2 "<<x_2<<" y1 "<<y_1<<" y2 "<<y_2<<endl; 
-        RectList.push_back(Rectangle<2>(true, x_1, x_2, y_1, y_2));  
+        x_1 = pBD.x; x_2 = x_1 + wBD; y_1 = pBD.y; y_2 = pBD.y + hBD;
+//        cout<<"x1 "<<x_1<<" x2 "<<x_2<<" y1 "<<y_1<<" y2 "<<y_2<<endl;
+        RectList.push_back(Rectangle<2>(true, x_1, x_2, y_1, y_2));
 
         x_1 = pABC.x; x_2 = x_1 + wABC; y_1 = pABC.y; y_2 = y_1 + hABC;
-//        cout<<"x1 "<<x_1<<" x2 "<<x_2<<" y1 "<<y_1<<" y2 "<<y_2<<endl; 
-        RectList.push_back(Rectangle<2>(true, x_1, x_2, y_1, y_2)); 
+//        cout<<"x1 "<<x_1<<" x2 "<<x_2<<" y1 "<<y_1<<" y2 "<<y_2<<endl;
+        RectList.push_back(Rectangle<2>(true, x_1, x_2, y_1, y_2));
 
         x_1 = pABD.x; x_2 = x_1 + wABD; y_1 = pABD.y; y_2 = y_1 + hABD;
-//        cout<<"x1 "<<x_1<<" x2 "<<x_2<<" y1 "<<y_1<<" y2 "<<y_2<<endl; 
-        RectList.push_back(Rectangle<2>(true, x_1, x_2, y_1, y_2)); 
+//        cout<<"x1 "<<x_1<<" x2 "<<x_2<<" y1 "<<y_1<<" y2 "<<y_2<<endl;
+        RectList.push_back(Rectangle<2>(true, x_1, x_2, y_1, y_2));
 
         x_1 = pACD.x; x_2 = x_1 + wACD; y_1 = pACD.y; y_2 = y_1 + hACD;
-//        cout<<"x1 "<<x_1<<" x2 "<<x_2<<" y1 "<<y_1<<" y2 "<<y_2<<endl; 
+//        cout<<"x1 "<<x_1<<" x2 "<<x_2<<" y1 "<<y_1<<" y2 "<<y_2<<endl;
         RectList.push_back(Rectangle<2>(true, x_1, x_2, y_1, y_2));
 
         x_1 = pBCD.x; x_2 = x_1 + wBCD; y_1 = pBCD.y; y_2 = y_1 + hBCD;
-//        cout<<"x1 "<<x_1<<" x2 "<<x_2<<" y1 "<<y_1<<" y2 "<<y_2<<endl; 
+//        cout<<"x1 "<<x_1<<" x2 "<<x_2<<" y1 "<<y_1<<" y2 "<<y_2<<endl;
         RectList.push_back(Rectangle<2>(true, x_1, x_2, y_1, y_2));
 
         x_1 = maxp.x; x_2 = x_1 + maxw; y_1 = maxp.y; y_2 = y_1 + maxh;
-//        cout<<"x1 "<<x_1<<" x2 "<<x_2<<" y1 "<<y_1<<" y2 "<<y_2<<endl; 
+//        cout<<"x1 "<<x_1<<" x2 "<<x_2<<" y1 "<<y_1<<" y2 "<<y_2<<endl;
         RectList.push_back(Rectangle<2>(true, x_1, x_2, y_1, y_2));
 
 
     float rect_area = 0.0;
-    result = -1; 
+    result = -1;
     for(unsigned int i = 0;i < RectList.size();i++){
-//      cout<<RectList[i]<<" area "<<RectList[i].Area()<<endl; 
+//      cout<<RectList[i]<<" area "<<RectList[i].Area()<<endl;
       if(RectList[i].IsDefined() == false){
         result = -1;
-        return; 
+        return;
       }
       if(RectList[i].Area() > rect_area){
         rect_area = RectList[i].Area();
         result = i;
       }
     }
-//    cout<<RectList[index]<<endl; 
+//    cout<<RectList[index]<<endl;
 }
 ////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////
 
 /*
-remove some dirty data for regions. two subregions intersect at a point 
+remove some dirty data for regions. two subregions intersect at a point
 
 */
 void MaxRect::RemoveDirty(int attr1, int attr2)
 {
-//  cout<<"attr1 "<<attr1<<" attr2 "<<attr2<<endl; 
-  
+//  cout<<"attr1 "<<attr1<<" attr2 "<<attr2<<endl;
+
   for(int i = 1;i <= rel1->GetNoTuples();i++){
-    Tuple* region_tuple = rel1->GetTuple(i, false); 
+    Tuple* region_tuple = rel1->GetTuple(i, false);
     int reg_id = ((CcInt*)region_tuple->GetAttribute(attr1))->GetIntval();
-    Region* r = (Region*)region_tuple->GetAttribute(attr2); 
-    if(reg_id == 1){ //the outer cycle 
+    Region* r = (Region*)region_tuple->GetAttribute(attr2);
+    if(reg_id == 1){ //the outer cycle
         reg_id_list.push_back(reg_id);
         reg_list.push_back(*r);
-        region_tuple->DeleteIfAllowed(); 
-        continue; 
+        region_tuple->DeleteIfAllowed();
+        continue;
     }
 
     CompTriangle* ct = new CompTriangle(r);
-    int error; //0-concave 1 non-region 2 hole or faces 3 dirty region 
+    int error; //0-concave 1 non-region 2 hole or faces 3 dirty region
     bool convex = ct->PolygonConvex2(error);
-    if(convex){ //convex polygon 
+    if(convex){ //convex polygon
         reg_id_list.push_back(reg_id);
         reg_list.push_back(*r);
     }else if(convex == false && error == 0){  //concave polygon
         reg_id_list.push_back(reg_id);
         reg_list.push_back(*r);
     }else{
-//      cout<<"dirty data"<<endl; 
+//      cout<<"dirty data"<<endl;
         if(error == 3){ //ignore the first outer cycle, non-region dirty
           RemoveDirtyRegion(reg_id, r);
 
-//          break; 
+//          break;
         }
     }
 
-    delete ct; 
-    region_tuple->DeleteIfAllowed(); 
+    delete ct;
+    region_tuple->DeleteIfAllowed();
   }
 
 }
 
 /*
-a point that appears four times. it is a vertex that two regions intersect 
+a point that appears four times. it is a vertex that two regions intersect
 
 */
 void MaxRect::RemoveDirtyRegion(int regid, Region* reg)
 {
   vector<MyPoint> ps_list;
-  vector<HalfSegment> hs_list; 
+  vector<HalfSegment> hs_list;
   for(int i = 0;i < reg->Size();i++){
     HalfSegment hs;
     reg->Get(i, hs);
-    if(!hs.IsLeftDomPoint())continue; 
+    if(!hs.IsLeftDomPoint())continue;
     Point lp = hs.GetLeftPoint();
     Point rp = hs.GetRightPoint();
     if(ps_list.size() == 0){
       ps_list.push_back(MyPoint(lp, 1));
-      ps_list.push_back(MyPoint(rp, 1)); 
+      ps_list.push_back(MyPoint(rp, 1));
     }else{
-      unsigned int j; 
+      unsigned int j;
       for(j = 0;j < ps_list.size();j++){
         if(AlmostEqual(ps_list[j].loc, lp)){
-          ps_list[j].dist++; 
+          ps_list[j].dist++;
           break;
         }
       }
@@ -8266,42 +8266,42 @@ void MaxRect::RemoveDirtyRegion(int regid, Region* reg)
 
       for(j = 0;j < ps_list.size();j++){
         if(AlmostEqual(ps_list[j].loc, rp)){
-          ps_list[j].dist++; 
+          ps_list[j].dist++;
           break;
         }
       }
-      if(j == ps_list.size())ps_list.push_back(MyPoint(rp, 1)); 
+      if(j == ps_list.size())ps_list.push_back(MyPoint(rp, 1));
     }
-    HalfSegment temp_hs(true, hs.GetLeftPoint(), hs.GetRightPoint()); 
-    hs_list.push_back(temp_hs); 
+    HalfSegment temp_hs(true, hs.GetLeftPoint(), hs.GetRightPoint());
+    hs_list.push_back(temp_hs);
   }
 
-  Point dirty_p; 
+  Point dirty_p;
   for(unsigned int i = 0;i <ps_list.size();i++){
-//    ps_list[i].Print(); 
-    if((int)(ps_list[i].dist) == 4)dirty_p = ps_list[i].loc; 
+//    ps_list[i].Print();
+    if((int)(ps_list[i].dist) == 4)dirty_p = ps_list[i].loc;
   }
 
-//  cout<<"dirty point "<<dirty_p<<endl; 
-  
-  vector<unsigned int> index_list; 
+//  cout<<"dirty point "<<dirty_p<<endl;
+
+  vector<unsigned int> index_list;
   for(unsigned int i = 0;i < hs_list.size();i++){
-    HalfSegment hs = hs_list[i]; 
+    HalfSegment hs = hs_list[i];
     if(AlmostEqual(hs.GetLeftPoint(), dirty_p))index_list.push_back(i);
     if(AlmostEqual(hs.GetRightPoint(), dirty_p))index_list.push_back(i);
   }
-  
-  assert(index_list.size() == 4); //four halfsegments 
+
+  assert(index_list.size() == 4); //four halfsegments
 //  cout<<hs_list.size()<<endl;
   vector<HalfSegment> new_hs_list;
   for(unsigned int i = 0;i < hs_list.size();i++){
     unsigned int j = 0;
     for(;j < index_list.size();j++)
-      if(i == index_list[j])break; 
+      if(i == index_list[j])break;
 
-    if(j == index_list.size())new_hs_list.push_back(hs_list[i]); 
+    if(j == index_list.size())new_hs_list.push_back(hs_list[i]);
   }
-//  cout<<new_hs_list.size()<<endl; 
+//  cout<<new_hs_list.size()<<endl;
 
 
   vector<SimpleLine> sl_contour;
@@ -8312,20 +8312,20 @@ void MaxRect::RemoveDirtyRegion(int regid, Region* reg)
         SimpleLine* sl = new SimpleLine(0);
         sl->StartBulkLoad();
 
-        vector<HalfSegment> sl_hs_list; 
+        vector<HalfSegment> sl_hs_list;
 
-        HalfSegment hs1 = hs_list[index_list[i]]; 
-        HalfSegment hs2 = hs_list[index_list[j]]; 
+        HalfSegment hs1 = hs_list[index_list[i]];
+        HalfSegment hs2 = hs_list[index_list[j]];
 
         vector<HalfSegment> cut_hs_list;
         for(unsigned int k = 0;k < index_list.size();k++){
-          if(index_list[k] != index_list[i] && 
+          if(index_list[k] != index_list[i] &&
              index_list[k] != index_list[j])
-            cut_hs_list.push_back(hs_list[index_list[k]]); 
+            cut_hs_list.push_back(hs_list[index_list[k]]);
         }
 
 
-        int edgeno = 0; 
+        int edgeno = 0;
         for(unsigned int k1 = 0;k1 < new_hs_list.size();k1++){
           HalfSegment hs = new_hs_list[k1];
 
@@ -8337,7 +8337,7 @@ void MaxRect::RemoveDirtyRegion(int regid, Region* reg)
             hs.attr.edgeno = edgeno++;
             *sl += hs;
             hs.SetLeftDomPoint(!hs.IsLeftDomPoint());
-            *sl += hs; 
+            *sl += hs;
           }
         }
         *sl += hs1;
@@ -8346,21 +8346,21 @@ void MaxRect::RemoveDirtyRegion(int regid, Region* reg)
 
         *sl += hs2;
         hs2.SetLeftDomPoint(!hs2.IsLeftDomPoint());
-        *sl += hs2; 
+        *sl += hs2;
 
 
-        sl->EndBulkLoad(); 
+        sl->EndBulkLoad();
         if(sl->Length() > 0)
           sl_contour.push_back(*sl);
-//        cout<<sl->Length()<<endl; 
-        delete sl; 
+//        cout<<sl->Length()<<endl;
+        delete sl;
       }
   }
 
   //////////// get the refinement region ///////////////////
   for(unsigned int i = 0;i < sl_contour.size();i++){
     if(IsCycle(&sl_contour[i])){
-//        cout<<"a cycle"<<endl; 
+//        cout<<"a cycle"<<endl;
 //        reg_id_list.push_back(regid);
 //        sl_list.push_back(sl_contour[i]);
         SpacePartition* sp = new SpacePartition();
@@ -8374,39 +8374,39 @@ void MaxRect::RemoveDirtyRegion(int regid, Region* reg)
         vector<Region> regs;
         sp->ComputeRegion(ps, regs);
         if(regs.size() > 0 ){
-          reg_id_list.push_back(regid); 
+          reg_id_list.push_back(regid);
           reg_list.push_back(regs[0]);
         }
-        delete sp; 
+        delete sp;
     }
   }
 
 }
 
 /*
-check whether the simpleline is a cycle 
+check whether the simpleline is a cycle
 
 */
 bool MaxRect::IsCycle(SimpleLine* sl)
 {
 
   vector<MyPoint> ps_list;
- 
+
   for(int i = 0;i < sl->Size();i++){
     HalfSegment hs;
     sl->Get(i, hs);
-    if(!hs.IsLeftDomPoint())continue; 
-//    cout<<hs<<endl; 
+    if(!hs.IsLeftDomPoint())continue;
+//    cout<<hs<<endl;
     Point lp = hs.GetLeftPoint();
     Point rp = hs.GetRightPoint();
     if(ps_list.size() == 0){
       ps_list.push_back(MyPoint(lp, 1));
-      ps_list.push_back(MyPoint(rp, 1)); 
+      ps_list.push_back(MyPoint(rp, 1));
     }else{
-      unsigned int j; 
+      unsigned int j;
       for(j = 0;j < ps_list.size();j++){
         if(AlmostEqual(ps_list[j].loc, lp)){
-          ps_list[j].dist++; 
+          ps_list[j].dist++;
           break;
         }
       }
@@ -8414,133 +8414,133 @@ bool MaxRect::IsCycle(SimpleLine* sl)
 
       for(j = 0;j < ps_list.size();j++){
         if(AlmostEqual(ps_list[j].loc, rp)){
-          ps_list[j].dist++; 
+          ps_list[j].dist++;
           break;
         }
       }
-      if(j == ps_list.size())ps_list.push_back(MyPoint(rp, 1)); 
+      if(j == ps_list.size())ps_list.push_back(MyPoint(rp, 1));
     }
   }
   for(unsigned int i = 0;i < ps_list.size();i++){
-      if((int)ps_list[i].dist != 2) return false; 
+      if((int)ps_list[i].dist != 2) return false;
   }
-  
-  return true; 
+
+  return true;
 }
 
 
 /*
-get neighbor triangles to get convex polygons 
+get neighbor triangles to get convex polygons
 
 */
 void MaxRect::ConvexReg(int attr1, int attr2)
 {
-//  cout<<"attr1 "<<attr1<<" attr2 "<<attr2<<endl; 
-  
+//  cout<<"attr1 "<<attr1<<" attr2 "<<attr2<<endl;
+
   for(int i = 1;i <= rel1->GetNoTuples();i++){
-    Tuple* region_tuple = rel1->GetTuple(i, false); 
+    Tuple* region_tuple = rel1->GetTuple(i, false);
     int reg_id = ((CcInt*)region_tuple->GetAttribute(attr1))->GetIntval();
-//    cout<<"reg_id "<<reg_id<<endl; 
+//    cout<<"reg_id "<<reg_id<<endl;
 
 /*    if(reg_id != 2572){
       region_tuple->DeleteIfAllowed();
-      continue; 
+      continue;
     }*/
 
-    Region* r = (Region*)region_tuple->GetAttribute(attr2); 
+    Region* r = (Region*)region_tuple->GetAttribute(attr2);
     CompTriangle* ct = new CompTriangle(r);
-    int error; 
+    int error;
     bool convex = ct->PolygonConvex2(error);
-    if(convex){ //convex polygon 
-        reg_id_list.push_back(reg_id); 
+    if(convex){ //convex polygon
+        reg_id_list.push_back(reg_id);
         reg_list.push_back(*r);
 
     }else if(convex == false && error == 0){  //concave polygon
         ///decompose the convex polygon into several convex polygons ///
-//        cout<<"reg_id "<<reg_id<<endl; 
+//        cout<<"reg_id "<<reg_id<<endl;
         CompTriangle* ct1 = new CompTriangle(r);
         ct1->NewTriangulation();
-//        cout<<ct1->triangles.size()<<endl; 
-        MergeTriangle(ct1, reg_id); 
-        delete ct1; 
+//        cout<<ct1->triangles.size()<<endl;
+        MergeTriangle(ct1, reg_id);
+        delete ct1;
 
     }
-    delete ct; 
-    region_tuple->DeleteIfAllowed(); 
+    delete ct;
+    region_tuple->DeleteIfAllowed();
   }
 
 }
 
 /*
-merge triangles to get convex polygons 
+merge triangles to get convex polygons
 
 */
 
 void MaxRect::MergeTriangle(CompTriangle* ct, int reg_id)
 {
-  vector<Region> convex_list; 
-  vector<bool> mark_list; 
+  vector<Region> convex_list;
+  vector<bool> mark_list;
   for(unsigned int i = 0;i < ct->triangles.size();i++)
-    mark_list.push_back(false); 
-  
+    mark_list.push_back(false);
+
   for(unsigned int i = 0;i < ct->triangles.size();i++){
-    if(mark_list[i]) continue; 
+    if(mark_list[i]) continue;
     Region* r1 = &(ct->triangles[i]);
 
     if(r1->Area() > mini_reg_area){
         convex_list.push_back(*r1);
-        mark_list[i] = true; 
-        continue; 
+        mark_list[i] = true;
+        continue;
     }
 
     unsigned int j = i + 1;
     for(;j < ct->triangles.size();j++){
-      Region* r2 = &(ct->triangles[j]); 
+      Region* r2 = &(ct->triangles[j]);
       if(mark_list[j] == false && NeighborTriangle(r1,r2)){
         Region* res = new Region(0);
         r1->Union(*r2, *res);
         convex_list.push_back(*res);
-        delete res; 
+        delete res;
 
         mark_list[j] = true;
-        break; 
+        break;
       }
     }
     if(j != ct->triangles.size())
-      mark_list[i] = true; 
+      mark_list[i] = true;
   }
 
   for(unsigned int i = 0;i < mark_list.size();i++)
-    if(mark_list[i] == false)convex_list.push_back(ct->triangles[i]); 
-  
-  
-  vector<Region> res_list; 
+    if(mark_list[i] == false)convex_list.push_back(ct->triangles[i]);
+
+
+  vector<Region> res_list;
   for(unsigned int i = 0;i < convex_list.size();i++){
     CompTriangle* ct1 = new CompTriangle(&convex_list[i]);
     if(ct1->PolygonConvex()){
         res_list.push_back(convex_list[i]);
     }
-    delete ct1; 
+    delete ct1;
   }
 
   vector<bool> flag_list;
   for(unsigned int i = 0;i < res_list.size();i++){
-    flag_list.push_back(true); 
+    flag_list.push_back(true);
   }
-  
+
   for(unsigned int i = 0;i < res_list.size();i++){
-    if(flag_list[i] == false)continue; 
+    if(flag_list[i] == false)continue;
     Region* r1 = &(res_list[i]);
     if(r1->Area() > mini_reg_area){
-//      cout<<"mini area "<<mini_reg_area<<" r1 "<<r1->Area()<<endl; 
-      reg_id_list.push_back(reg_id); 
-      reg_list.push_back(*r1); 
-      flag_list[i] = false; 
+//      cout<<"mini area "<<mini_reg_area<<" r1 "<<r1->Area()<<endl;
+      reg_id_list.push_back(reg_id);
+      reg_list.push_back(*r1);
+      flag_list[i] = false;
 
       for(unsigned int j = i + 1;j < res_list.size();j++){
         Region* r2 = &(res_list[j]);
         if(r1->BoundingBox().Distance(r2->BoundingBox()) < 50.0){
-            flag_list[j] = false; 
+            flag_list[j] = false;
         }
       }
     }
@@ -8549,26 +8549,26 @@ void MaxRect::MergeTriangle(CompTriangle* ct, int reg_id)
 
 /*
 get the maximum rectangle in a polygon. the input has an integer showing how
-many rectangles it needs. The result is the corresponding number of 
-rectangles. 
+many rectangles it needs. The result is the corresponding number of
+rectangles.
 
 */
-void MaxRect::GetRectangle(int attr1, int attr2, int attr3, int attr4, 
+void MaxRect::GetRectangle(int attr1, int attr2, int attr3, int attr4,
                            BTree* btree, int no_buildings)
 {
   if(no_buildings > rel1->GetNoTuples()){
     cout<<"maximum "<<rel1->GetNoTuples()<<" buildings"<<endl;
-    return; 
+    return;
   }
-//  cout<<"attr1 "<<attr1<<" attr2 "<<attr2<<endl; 
+//  cout<<"attr1 "<<attr1<<" attr2 "<<attr2<<endl;
   ///////////////////////////////////////////////////////////////////////
   ///////////// first distribute the areas //////////////////////////////
   ///////////////////////////////////////////////////////////////////////
   //  cout<<"create "<<no_buildings<<" buildings "<<endl;
 
-  vector<int> no_type; 
+  vector<int> no_type;
  for(int i = 1;i <= rel1->GetNoTuples();i++){
-    Tuple* region_tuple = rel1->GetTuple(i, false); 
+    Tuple* region_tuple = rel1->GetTuple(i, false);
     int type = ((CcInt*)region_tuple->GetAttribute(attr4))->GetIntval();
     if(no_type.size() == 0)
       no_type.push_back(type);
@@ -8577,38 +8577,38 @@ void MaxRect::GetRectangle(int attr1, int attr2, int attr3, int attr4,
       for(;j < no_type.size();j++){
         if(no_type[j] == type)break;
       }
-      if(j == no_type.size())no_type.push_back(type); 
+      if(j == no_type.size())no_type.push_back(type);
     }
  }
- sort(no_type.begin(), no_type.end()); 
+ sort(no_type.begin(), no_type.end());
 
  int building_loc_type = no_type.size();
 
-// cout<<"building loc type "<<building_loc_type<<endl; 
+// cout<<"building loc type "<<building_loc_type<<endl;
 
  /////////////// the number of buildings for each kind of location////////
- vector<int> num_build_type; 
- 
+ vector<int> num_build_type;
+
  for(int i = 0;i < building_loc_type - 1;i++){
     num_build_type.push_back((int)(no_buildings/building_loc_type));
  }
  int count = 0;
  for(unsigned int i = 0;i < num_build_type.size();i++)
-   count += num_build_type[i]; 
- assert(count < no_buildings); 
- num_build_type.push_back(no_buildings - count); 
- 
+   count += num_build_type[i];
+ assert(count < no_buildings);
+ num_build_type.push_back(no_buildings - count);
+
 // for(unsigned int i = 0;i < num_build_type.size();i++)
-//  cout<<"loc "<<(i + 1)<<" "<<num_build_type[i]<<endl; 
- 
+//  cout<<"loc "<<(i + 1)<<" "<<num_build_type[i]<<endl;
+
  //////////////////////////////////////////////////////////////////////////
- vector< vector<int> > build_tid_list; //the tid for each kind of region type 
+ vector< vector<int> > build_tid_list; //the tid for each kind of region type
 
  for(unsigned int i = 0;i < no_type.size();i++){
- 
+
     CcInt* search_id = new CcInt(true, no_type[i]);
     BTreeIterator* btree_iter = btree->ExactMatch(search_id);
-    vector<int> tid_list; 
+    vector<int> tid_list;
     while(btree_iter->Next()){
         Tuple* tuple = rel1->GetTuple(btree_iter->GetId(), false);
         tid_list.push_back(tuple->GetTupleId());
@@ -8616,34 +8616,34 @@ void MaxRect::GetRectangle(int attr1, int attr2, int attr3, int attr4,
     }
     delete btree_iter;
     delete search_id;
-    build_tid_list.push_back(tid_list); 
+    build_tid_list.push_back(tid_list);
  }
 
 // for(unsigned int i = 0;i < build_tid_list.size();i++)
-//   cout<<build_tid_list[i].size()<<endl; 
+//   cout<<build_tid_list[i].size()<<endl;
 
  for(unsigned int i = 0;i < no_type.size();i++){
   int no_build = num_build_type[i];//number of regions for this kind of distance
 
-  vector<int> region_tid_list; 
-  
-  unsigned int index = 0; 
+  vector<int> region_tid_list;
+
+  unsigned int index = 0;
   while(no_build > 0 && index < build_tid_list[i].size()){
 //    struct timeval tval;
 //    struct timezone tzone;
 
 //    gettimeofday(&tval, &tzone);
-//    srand48(tval.tv_sec);//second 
+//    srand48(tval.tv_sec);//second
 
 //  index = lrand48() % build_tid_list[i].size();
 //    index = index % build_tid_list[i].size();
     index = GetRandom() % build_tid_list[i].size();
-    int tid = build_tid_list[i][index]; 
+    int tid = build_tid_list[i][index];
 
     if(region_tid_list.size() == 0){
         AddRect(tid, attr1, attr2, attr3, attr4);
-        region_tid_list.push_back(tid); 
-        no_build--; 
+        region_tid_list.push_back(tid);
+        no_build--;
         index++;
     }else{
       unsigned int j = 0;
@@ -8651,25 +8651,25 @@ void MaxRect::GetRectangle(int attr1, int attr2, int attr3, int attr4,
         if(region_tid_list[j] == tid)break;
       }
       if(j == region_tid_list.size()){
-          AddRect(tid, attr1, attr2, attr3, attr4); 
+          AddRect(tid, attr1, attr2, attr3, attr4);
           region_tid_list.push_back(tid);
-          no_build--; 
+          no_build--;
           index++;
       }
     }
   }
-//  cout<< region_tid_list.size()<<endl; 
+//  cout<< region_tid_list.size()<<endl;
  }
 
 }
 
 void MaxRect::AddRect(int tid, int attr1, int attr2, int attr3, int attr4)
 {
-  Tuple* region_tuple = rel1->GetTuple(tid, false); 
+  Tuple* region_tuple = rel1->GetTuple(tid, false);
   int reg_id = ((CcInt*)region_tuple->GetAttribute(attr1))->GetIntval();
-//  cout<<"reg_id "<<reg_id<<endl; 
+//  cout<<"reg_id "<<reg_id<<endl;
 
-  Rectangle<2>* r = (Rectangle<2>*)region_tuple->GetAttribute(attr2); 
+  Rectangle<2>* r = (Rectangle<2>*)region_tuple->GetAttribute(attr2);
   int poly_id = ((CcInt*)region_tuple->GetAttribute(attr3))->GetIntval();
   int reg_type = ((CcInt*)region_tuple->GetAttribute(attr4))->GetIntval();
 
@@ -8683,7 +8683,7 @@ void MaxRect::AddRect(int tid, int attr1, int attr2, int attr3, int attr4)
 }
 
 /*
-two triangles share one edge 
+two triangles share one edge
 
 */
 bool MaxRect::NeighborTriangle(Region* reg1, Region* reg2)
@@ -8698,15 +8698,15 @@ bool MaxRect::NeighborTriangle(Region* reg1, Region* reg2)
             AlmostEqual(hs1.GetRightPoint(), hs2.GetRightPoint())) ||
            (AlmostEqual(hs1.GetRightPoint(), hs2.GetLeftPoint()) &&
             AlmostEqual(hs1.GetLeftPoint(),  hs2.GetRightPoint()))){
-          return true; 
+          return true;
         }
      }
-  }   
-  return false; 
+  }
+  return false;
 }
 
 /*
-check whether a region contains a rectangle 
+check whether a region contains a rectangle
 
 */
 bool RegContainRect(Region* reg, Rectangle<2>& rect)
@@ -8719,58 +8719,58 @@ bool RegContainRect(Region* reg, Rectangle<2>& rect)
     HalfSegment hs1(true, p1, p2);
     HalfSegment hs2(true, p2, p3);
     HalfSegment hs3(true, p3, p4);
-    HalfSegment hs4(true, p1, p4); 
+    HalfSegment hs4(true, p1, p4);
 
     if(RegContainHS(reg, hs1) && RegContainHS(reg, hs2) &&
         RegContainHS(reg, hs3) && RegContainHS(reg, hs4))return true;
-    return false; 
+    return false;
 }
 
 /*
-for the input relation, it gets a maximum rectangle for each region 
+for the input relation, it gets a maximum rectangle for each region
 
 */
 void MaxRect::GetRectangle1(int attr1, int attr2)
 {
-//  cout<<"attr "<<attr1<<" attr2 "<<attr2<<endl; 
+//  cout<<"attr "<<attr1<<" attr2 "<<attr2<<endl;
 
-  int reg_id = 1; 
+  int reg_id = 1;
   for(int i = 1;i <= rel1->GetNoTuples();i++){
-    Tuple* poly_tuple = rel1->GetTuple(i, false); 
+    Tuple* poly_tuple = rel1->GetTuple(i, false);
     int poly_id = ((CcInt*)poly_tuple->GetAttribute(attr1))->GetIntval();
-    Region* poly = (Region*)poly_tuple->GetAttribute(attr2); 
+    Region* poly = (Region*)poly_tuple->GetAttribute(attr2);
 //     if(poly_id != 2289){
 //       poly_tuple->DeleteIfAllowed();
-//       continue; 
+//       continue;
 //     }
 
     CompTriangle* ct = new CompTriangle(poly);
     ct->NewTriangulation();
-//    cout<<ct->triangles.size()<<endl; 
+//    cout<<ct->triangles.size()<<endl;
 
-    vector<Rectangle<2> > rect_box_list; 
+    vector<Rectangle<2> > rect_box_list;
 
     for(unsigned int j = 0;j < ct->triangles.size();j++){
-      if(ct->triangles[j].Area() > mini_tri_area && 
+      if(ct->triangles[j].Area() > mini_tri_area &&
         ct->triangles[j].Area() < maxi_tri_area){
 //          printf("%f\n",ct->triangles[j].Area());
 
-          if(ValidRegion(&ct->triangles[j])){//coordinates should be positive 
-            Rectangle<2> rect_box = GetMaxRect(&ct->triangles[j]); 
+          if(ValidRegion(&ct->triangles[j])){//coordinates should be positive
+            Rectangle<2> rect_box = GetMaxRect(&ct->triangles[j]);
 //            cout<<rect_box<<endl;
             if(rect_box.IsDefined()){
                 double x = fabs(rect_box.MaxD(0) - rect_box.MinD(0));
                 double y = fabs(rect_box.MaxD(1) - rect_box.MinD(1));
                 double min = MIN(x,y);
-                double max = MAX(x,y); 
-              if(rect_box.Area() > mini_rect_area && 
+                double max = MAX(x,y);
+              if(rect_box.Area() > mini_rect_area &&
                  rect_box.Area() < maxi_rect_area && (max / min < 5.0)){
 /*                    reg_id_list.push_back(reg_id);
                     rect_list.push_back(rect_box);
-                    poly_id_list.push_back(poly_id); 
+                    poly_id_list.push_back(poly_id);
                     reg_id++; */
                     if(RegContainRect(poly, rect_box))
-                        rect_box_list.push_back(rect_box); 
+                        rect_box_list.push_back(rect_box);
                }
             }
           }else{
@@ -8778,56 +8778,56 @@ void MaxRect::GetRectangle1(int attr1, int attr2)
             double minx = bbox.MinD(0);
             double miny = bbox.MinD(1);
             double tran_x = fabs(minx) + 1.0;
-            double tran_y = fabs(miny) + 1.0; 
+            double tran_y = fabs(miny) + 1.0;
             Region* r = new Region(0);
-            ct->triangles[j].Translate(tran_x, tran_y, *r); 
+            ct->triangles[j].Translate(tran_x, tran_y, *r);
             assert(ValidRegion(r));
-            Rectangle<2> rect_box = GetMaxRect(r); 
+            Rectangle<2> rect_box = GetMaxRect(r);
             if(rect_box.IsDefined()){
                 double x = fabs(rect_box.MaxD(0) - rect_box.MinD(0));
                 double y = fabs(rect_box.MaxD(1) - rect_box.MinD(1));
                 double min = MIN(x,y);
-                double max = MAX(x,y); 
-              if(rect_box.Area() > mini_rect_area && 
+                double max = MAX(x,y);
+              if(rect_box.Area() > mini_rect_area &&
                  rect_box.Area() < maxi_rect_area && (max / min < 5.0)){
                     double mini[2], maxi[2];
                     mini[0] = rect_box.MinD(0) - tran_x;
                     mini[1] = rect_box.MinD(1) - tran_y;
                     maxi[0] = rect_box.MaxD(0) - tran_x;
-                    maxi[1] = rect_box.MaxD(1) - tran_y; 
+                    maxi[1] = rect_box.MaxD(1) - tran_y;
                     Rectangle<2>* res_box = new Rectangle<2>(true, mini, maxi);
 
 /*                    reg_id_list.push_back(reg_id);
                     rect_list.push_back(res_box);
-                    poly_id_list.push_back(poly_id); 
+                    poly_id_list.push_back(poly_id);
                     reg_id++; */
 
                     if(RegContainRect(poly, rect_box))
-                        rect_box_list.push_back(res_box); 
+                        rect_box_list.push_back(res_box);
 
-                    delete res_box; 
+                    delete res_box;
                }
             }
             delete r;
           }
       }
     }
-    delete ct; 
-    poly_tuple->DeleteIfAllowed(); 
+    delete ct;
+    poly_tuple->DeleteIfAllowed();
 
-    
+
       //////////the distance between two buildings should be large////////
       for(unsigned int k1 = 0;k1 < rect_box_list.size();k1++){
         Rectangle<2> bbox1 = rect_box_list[k1];
         unsigned int k2 = k1;
         for(k2 += 1;k2 < rect_box_list.size();k2++){
           Rectangle<2> bbox2 = rect_box_list[k2];
-          if(bbox1.Distance(bbox2) < mini_dist_build) break; 
+          if(bbox1.Distance(bbox2) < mini_dist_build) break;
         }
         if(k2 == rect_box_list.size()){
           reg_id_list.push_back(reg_id);
           rect_list.push_back(bbox1);
-          poly_id_list.push_back(poly_id); 
+          poly_id_list.push_back(poly_id);
           reg_id++;
         }
       }
@@ -8835,8 +8835,8 @@ void MaxRect::GetRectangle1(int attr1, int attr2)
 }
 
 /*
-check whether all coordinates are positive. because for the function 
-GetMaxRect(), all coordinates should be positive 
+check whether all coordinates are positive. because for the function
+GetMaxRect(), all coordinates should be positive
 
 */
 bool MaxRect::ValidRegion(Region* r)
@@ -8844,33 +8844,33 @@ bool MaxRect::ValidRegion(Region* r)
   for(int i = 0;i < r->Size();i++){
     HalfSegment hs;
     r->Get(i, hs);
-    if(!hs.IsLeftDomPoint())continue; 
+    if(!hs.IsLeftDomPoint())continue;
     Point lp = hs.GetLeftPoint();
-    Point rp = hs.GetRightPoint(); 
+    Point rp = hs.GetRightPoint();
     if(lp.GetX() < 0.0)return false;
     if(lp.GetY() < 0.0)return false;
     if(rp.GetX() < 0.0)return false;
     if(rp.GetY() < 0.0)return false;
   }
-  return true; 
+  return true;
 }
 
 /*
-classify the 2d rectangle areas into several groups by the area  
+classify the 2d rectangle areas into several groups by the area
 small areas might be for personl apartments.
-big areas might be airport, shopping mall 
+big areas might be airport, shopping mall
 
 */
 int MaxRect::GetRectType(float area)
 {
-  return 0; 
+  return 0;
 }
 
 
 /*
 build the path between the entrance of the building and pavement area
 which point to select on the polygon boundary:
-which point to set as the entrance of the building on the rectangle 
+which point to set as the entrance of the building on the rectangle
 
 */
 void MaxRect::PathToBuilding(Space* gl_sp)
@@ -8881,7 +8881,7 @@ void MaxRect::PathToBuilding(Space* gl_sp)
   Pavement* pave = gl_sp->LoadPavement(IF_REGION);
   DualGraph* dg = pave->GetDualGraph();
   int64_t cur_max_ref_id = gl_sp->MaxRefId() + 1;
-//  cout<<" max ref id "<<cur_max_ref_id<<endl; 
+//  cout<<" max ref id "<<cur_max_ref_id<<endl;
   if(cur_max_ref_id == 0){
     cout<<"!!! the space is empty"<<endl;
     return;
@@ -8892,11 +8892,11 @@ void MaxRect::PathToBuilding(Space* gl_sp)
   /////for each rectangle, it also selects a point on its boundary///////
   for(int i = 1;i <= rel2->GetNoTuples();i++){
     Tuple* poly_tuple = rel2->GetTuple(i, false);
-    int poly_id = ((CcInt*)poly_tuple->GetAttribute(REGID))->GetIntval(); 
+    int poly_id = ((CcInt*)poly_tuple->GetAttribute(REGID))->GetIntval();
 
 //     if(poly_id != 2494){
 //         poly_tuple->DeleteIfAllowed();
-//         continue; 
+//         continue;
 //     }
 
     CcInt* search_id = new CcInt(true, poly_id);
@@ -8912,9 +8912,9 @@ void MaxRect::PathToBuilding(Space* gl_sp)
     delete btree_iter;
     delete search_id;
 
-//    cout<<"poly_id "<<poly_id<<" tid size "<<rect_tid_list.size()<<endl; 
+//    cout<<"poly_id "<<poly_id<<" tid size "<<rect_tid_list.size()<<endl;
     if(rect_tid_list.size() > 0){
-      Region* poly = (Region*)poly_tuple->GetAttribute(COVAREA); 
+      Region* poly = (Region*)poly_tuple->GetAttribute(COVAREA);
       CreateEntranceforBuilding(poly, rect_tid_list, dg, cur_max_ref_id);
     }
 
@@ -8935,17 +8935,17 @@ void MaxRect::PathToBuilding(Space* gl_sp)
 }
 
 /*
-create the path in the polygon for the building entrance 
+create the path in the polygon for the building entrance
 
 */
-void MaxRect::CreateEntranceforBuilding(Region* r, 
+void MaxRect::CreateEntranceforBuilding(Region* r,
                                         vector<int>& tid_list, DualGraph* dg,
                                         int64_t& build_id)
 {
   HalfSegment hs;
   r->Get(0, hs);
-  Point boundary_p = hs.GetLeftPoint(); 
-  vector<Rectangle<2> > hole_list; 
+  Point boundary_p = hs.GetLeftPoint();
+  vector<Rectangle<2> > hole_list;
 
   for(unsigned int i = 0;i < tid_list.size();i++){
     Tuple* rect_tuple = rel1->GetTuple(tid_list[i], false);
@@ -8965,7 +8965,7 @@ void MaxRect::CreateEntranceforBuilding(Region* r,
     Point ep(true, 0, 0);
     SetStartAndEndPoint(r, rect, sp, ep);
 
-//    cout<<"sp "<<sp<<" ep "<<ep<<endl; 
+//    cout<<"sp "<<sp<<" ep "<<ep<<endl;
      Line* path = new Line(0);
      if(!AlmostEqual(sp, ep)){
     //////////////////////////////////////////////////////
@@ -8977,7 +8977,7 @@ void MaxRect::CreateEntranceforBuilding(Region* r,
         *path += hs;
         path->EndBulkLoad();
         assert(path->Length() > 0.0);
-//        cout<<"length "<<path->Length()<<endl; 
+//        cout<<"length "<<path->Length()<<endl;
        unsigned int j = 0;
       for(;j < tid_list.size();j++){
         if(i == j)continue;
@@ -8995,7 +8995,7 @@ void MaxRect::CreateEntranceforBuilding(Region* r,
       if(j == tid_list.size()){
         reg_id_list.push_back(reg_id);
         sp_list.push_back(sp);
-        ep_list.push_back(ep); 
+        ep_list.push_back(ep);
 
         MapToPavement(dg, ep);
         /////////////////////////////////////////////////////////////
@@ -9005,8 +9005,8 @@ void MaxRect::CreateEntranceforBuilding(Region* r,
     }else{
         reg_id_list.push_back(reg_id);
         sp_list.push_back(sp);
-        ep_list.push_back(ep); 
-        
+        ep_list.push_back(ep);
+
         MapToPavement(dg, ep);
         /////////////////////////////////////////////////////////
         build_id_list.push_back(build_id);
@@ -9019,12 +9019,12 @@ void MaxRect::CreateEntranceforBuilding(Region* r,
 
 }
 /*
-select the middle point of each side of the rectangle 
+select the middle point of each side of the rectangle
 choose the one that is the closest to the polygon boundary
 record which side it belongs to
 
 */
-void MaxRect::SetStartAndEndPoint(Region* r, Rectangle<2>* rect, 
+void MaxRect::SetStartAndEndPoint(Region* r, Rectangle<2>* rect,
                              Point& sp, Point& ep)
 {
   vector<Point> sp_list;
@@ -9040,7 +9040,7 @@ void MaxRect::SetStartAndEndPoint(Region* r, Rectangle<2>* rect,
   sp_list.push_back(p2);
   sp_list.push_back(p3);
   sp_list.push_back(p4);
-  
+
   vector<MyPoint_Ext> point_dist_list;
   SpacePartition* s_p = new SpacePartition();
   for(int i = 0;i < r->Size();i++){
@@ -9070,9 +9070,9 @@ void MaxRect::SetStartAndEndPoint(Region* r, Rectangle<2>* rect,
 
   }
   delete s_p;
-  
+
   sort(point_dist_list.begin(), point_dist_list.end());
-  
+
 //   for(unsigned int i = 0;i < point_dist_list.size();i++)
 //     point_dist_list[i].Print();
 
@@ -9086,7 +9086,7 @@ void MaxRect::SetStartAndEndPoint(Region* r, Rectangle<2>* rect,
 }
 
 /*
-find the closest point in pavement for the input location 
+find the closest point in pavement for the input location
 
 */
 void MaxRect::MapToPavement(DualGraph* dg, Point loc)
@@ -9108,7 +9108,7 @@ void MaxRect::MapToPavement(DualGraph* dg, Point loc)
     Region* reg = (Region*)tuple->GetAttribute(DualGraph::PAVEMENT);
 //    int oid = ((CcInt*)tuple->GetAttribute(DualGraph::OID))->GetIntval();
     double d2 = reg->Distance(loc);
-//    cout<<"oid "<<oid<<" dist "<<d2<<endl; 
+//    cout<<"oid "<<oid<<" dist "<<d2<<endl;
     if(d2 < d){
         d = d2;
         index = i;
@@ -9136,23 +9136,23 @@ void MaxRect::MapToPavement(DualGraph* dg, Point loc)
   delete s_p;
 
   sort(point_dist_list.begin(), point_dist_list.end());
-  Point map_loc = point_dist_list[0].loc; 
+  Point map_loc = point_dist_list[0].loc;
   ep_list2.push_back(map_loc);
   int tri_oid = ((CcInt*)tuple->GetAttribute(DualGraph::OID))->GetIntval();
 //  cout<<"tri_oid "<<tri_oid<<endl;
-  
+
   Rectangle<2> bbox = reg->BoundingBox();
   tuple->DeleteIfAllowed();
-  
+
   //  if(map_loc.Distance(loc) > 1.0) cout<<map_loc.Distance(loc)<<endl;
-  
+
   ////////////////generic location////////////////////////////////
   ///////relative position inside the triangle///////////////////
   //////////////////////////////////////////////////////////////////
   Loc temp_loc(map_loc.GetX() - bbox.MinD(0), map_loc.GetY() - bbox.MinD(1));
   GenLoc gloc(tri_oid, temp_loc);
 
-  genloc_list.push_back(gloc); 
+  genloc_list.push_back(gloc);
 }
 
 
@@ -9160,11 +9160,11 @@ void MaxRect::MapToPavement(DualGraph* dg, Point loc)
 create a new region where r is outer cycle and the rectangles inside are holes
 
 1. we have all points of all cycle so that we can call the function
-buildRegion(). but very important: for each cycle, 
-the first and the last point should be the same. 
+buildRegion(). but very important: for each cycle,
+the first and the last point should be the same.
 
 2. we can directly use the outer region minus these rectangles which is much
-simpler 
+simpler
 
 */
 bool MaxRect::RegionWithHole(vector<Rectangle<2> >& hole_list, Region* reg)
@@ -9172,12 +9172,12 @@ bool MaxRect::RegionWithHole(vector<Rectangle<2> >& hole_list, Region* reg)
 
 /*    for(unsigned int i = 0;i < hole_list.size();i++){
         Region* temp = new Region(hole_list[i]);
-//        cout<<*temp<<endl; 
+//        cout<<*temp<<endl;
         Region* res = new Region(0);
         reg->Minus(*temp, *res);
         *reg = *res;
         delete res;
-        delete temp; 
+        delete temp;
     }*/
 
 
@@ -9190,7 +9190,7 @@ bool MaxRect::RegionWithHole(vector<Rectangle<2> >& hole_list, Region* reg)
       temp->Union(*r, *res);
       *r = *res;
       delete res;
-      delete temp; 
+      delete temp;
   }
 
   Region* res = new Region(0);
@@ -9204,23 +9204,23 @@ bool MaxRect::RegionWithHole(vector<Rectangle<2> >& hole_list, Region* reg)
 }
 
 /*
-for each rectangle, it sets which kind of building it is, 
+for each rectangle, it sets which kind of building it is,
 e.g., office or cinema
 1 airport, 1-2 trainstations, 8 cinemas, 32 hotels,  48 shopping malls,
-20 hospitals, 32 schooles, 4 libraries, 16 universities, 
+20 hospitals, 32 schooles, 4 libraries, 16 universities,
 
-200 office 24, 
+200 office 24,
 
 houses and apartments: 1000
 
 
-the left are of type none 
+the left are of type none
 
 */
 void MaxRect::SetBuildingType(R_Tree<2,TupleId>* rtree)
 {
   Rectangle<2> bbox = rtree->BoundingBox();
-  Point center(true, (bbox.MinD(0) + bbox.MaxD(0))/2, 
+  Point center(true, (bbox.MinD(0) + bbox.MaxD(0))/2,
                      (bbox.MinD(1) + bbox.MaxD(1))/2);
 
   vector<Build_Rect> build_rect_list;
@@ -9246,20 +9246,20 @@ void MaxRect::SetBuildingType(R_Tree<2,TupleId>* rtree)
     build_rect_list.push_back(br);
     tuple->DeleteIfAllowed();
   }
-  
-//  cout<<build_rect_list.size()<<endl; 
-  
+
+//  cout<<build_rect_list.size()<<endl;
+
   ////////////////////////////////////////////////////////////////////
   /////////////////set up building type//////////////////////////////
   ///////////////////////////////////////////////////////////////////
-  SetAirPort(build_rect_list, rtree);//1 airport 
-  SetTrainStation(build_rect_list); // a trainstation 
+  SetAirPort(build_rect_list, rtree);//1 airport
+  SetTrainStation(build_rect_list); // a trainstation
 
   /////////////////these buildings can be close to each other//////////////
-  SetCinema(build_rect_list, 8, bbox);//maximum 8 cinemas 
+  SetCinema(build_rect_list, 8, bbox);//maximum 8 cinemas
   SetHotel(build_rect_list, 32, bbox);//maximum 32 hotels
   SetShopMall(build_rect_list, 48, bbox);//maximum 48 shopping malls
-  SetOffice24(build_rect_list, 200);//maximum 200 office24 
+  SetOffice24(build_rect_list, 200);//maximum 200 office24
 
   ////////////can not be close to the above three/////////////////////////
   /////////////but may be close to school or houses, apartments//////////
@@ -9269,12 +9269,12 @@ void MaxRect::SetBuildingType(R_Tree<2,TupleId>* rtree)
   ///////////////////////////////////////////////////////////////////////
   //////////////////school library//////////////////////////////////
   //////////////////////////////////////////////////////////////////
-  SetLibrary(build_rect_list, 4);//maximum 4 libraries 
-  SetSchool(build_rect_list, 32);//maximum 32 schools 
-  SetUniversity(build_rect_list, 16);//maximum 16 universities  
+  SetLibrary(build_rect_list, 4);//maximum 4 libraries
+  SetSchool(build_rect_list, 32);//maximum 32 schools
+  SetUniversity(build_rect_list, 16);//maximum 16 universities
 
   /////////////////////////////////////////////////////////////////////
-  SetHouse(build_rect_list, 1000);//maximum 1000 houses and apartments 
+  SetHouse(build_rect_list, 1000);//maximum 1000 houses and apartments
 
   ///////////////////////////////////////////////////////////////////
   for(unsigned int i = 0;i < build_rect_list.size();i++){
@@ -9288,7 +9288,7 @@ void MaxRect::SetBuildingType(R_Tree<2,TupleId>* rtree)
 }
 
 /*
-set the airport 
+set the airport
 
 */
 #define AIRPORT_AREA 9000.0
@@ -9297,8 +9297,8 @@ bool Build_Rect_COM1(const Build_Rect& br1, const Build_Rect& br2)
   return br1.reg_type < br2.reg_type;
 }
 /*
-an airport is an place far away from the city center and big enough, and 
-there are no other buildings nearby. 
+an airport is an place far away from the city center and big enough, and
+there are no other buildings nearby.
 
 */
 void MaxRect::SetAirPort(vector<Build_Rect>& list, R_Tree<2,TupleId>* rtree)
@@ -9316,18 +9316,18 @@ void MaxRect::SetAirPort(vector<Build_Rect>& list, R_Tree<2,TupleId>* rtree)
     }
   }
 
-  cout<<"no avaialbe place for an airport"<<endl; 
+  cout<<"no avaialbe place for an airport"<<endl;
 }
 
 
 /*
-there are no rectangles whose distance to the input rect is smalelr than a 
-distance threshold 
+there are no rectangles whose distance to the input rect is smalelr than a
+distance threshold
 
 */
 bool MaxRect::NoNeighbor(Build_Rect& br, R_Tree<2,TupleId>* rtree)
 {
-  
+
   vector<int> tid_list;
   DFTraverse1(rtree, rtree->RootRecordId(), br.rect, tid_list);
 //  cout<<"reg id "<<br.reg_id<<" neighbor size "<<tid_list.size()<<endl;
@@ -9340,10 +9340,10 @@ bool MaxRect::NoNeighbor(Build_Rect& br, R_Tree<2,TupleId>* rtree)
   else return false;
 }
 
-void MaxRect::DFTraverse1(R_Tree<2,TupleId>* rtree, SmiRecordId adr, 
+void MaxRect::DFTraverse1(R_Tree<2,TupleId>* rtree, SmiRecordId adr,
                     Rectangle<2>& rect, vector<int>& tri_oid_list)
 {
-  const double dist = 1000.0; 
+  const double dist = 1000.0;
   R_TreeNode<2,TupleId>* node = rtree->GetMyNode(adr,false,
                   rtree->MinEntries(0), rtree->MaxEntries(0));
   for(int j = 0;j < node->EntryCount();j++){
@@ -9351,9 +9351,9 @@ void MaxRect::DFTraverse1(R_Tree<2,TupleId>* rtree, SmiRecordId adr,
               R_TreeLeafEntry<2,TupleId> e =
                  (R_TreeLeafEntry<2,TupleId>&)(*node)[j];
               Tuple* dg_tuple = rel1->GetTuple(e.info, false);
-              Rectangle<2>* reg = 
+              Rectangle<2>* reg =
                       (Rectangle<2>*)dg_tuple->GetAttribute(GEODATA);
-              int reg_id = 
+              int reg_id =
                    ((CcInt*)dg_tuple->GetAttribute(REG_ID))->GetIntval();
               double d = rect.Distance(*reg);
               if(d > 0.0 && d < dist){
@@ -9373,7 +9373,7 @@ void MaxRect::DFTraverse1(R_Tree<2,TupleId>* rtree, SmiRecordId adr,
 
 
 /*
-set the train station 
+set the train station
 
 */
 #define TRAINSTATION_AREA_MIN 1000.0
@@ -9386,7 +9386,7 @@ void MaxRect::SetTrainStation(vector<Build_Rect>& list)
     list[i].Print();*/
   for(int i = list.size() - 1;i >= 0;i--){
     if(list[i].rect.Area() > TRAINSTATION_AREA_MIN &&
-       list[i].rect.Area() < TRAINSTATION_AREA_MAX && 
+       list[i].rect.Area() < TRAINSTATION_AREA_MAX &&
        list[i].reg_type == 1 &&
        list[i].init == false){
 //      cout<<"find a train station site"<<endl;
@@ -9396,7 +9396,7 @@ void MaxRect::SetTrainStation(vector<Build_Rect>& list)
     }
   }
 
-  cout<<"no avaialbe place for a train station"<<endl; 
+  cout<<"no avaialbe place for a train station"<<endl;
 }
 
 
@@ -9410,8 +9410,8 @@ set the places for cinemas, uniformly distributed in each quadrant
 void MaxRect::SetCinema(vector<Build_Rect>& list, unsigned int no,
                         Rectangle<2> bbox)
 {
-  vector<Build_Rect> cand_list; 
-  
+  vector<Build_Rect> cand_list;
+
   vector<unsigned int> quad_list;
   quad_list.push_back(0);
   quad_list.push_back(0);
@@ -9419,7 +9419,7 @@ void MaxRect::SetCinema(vector<Build_Rect>& list, unsigned int no,
   quad_list.push_back(0);
 
   for(int i = list.size() - 1;i >= 0;i--){
-    if(list[i].rect.Area() > CINEMA_AREA_MIN && 
+    if(list[i].rect.Area() > CINEMA_AREA_MIN &&
        list[i].rect.Area() < CINEMA_AREA_MAX &&
       (list[i].reg_type == 1 || list[i].reg_type == 2) &&
       list[i].init == false && NoNeighborCinema(cand_list, list[i], bbox)){
@@ -9436,7 +9436,7 @@ void MaxRect::SetCinema(vector<Build_Rect>& list, unsigned int no,
 }
 
 /*
-cinemas should not be close to each other 
+cinemas should not be close to each other
 
 */
 bool MaxRect::NoNeighborCinema(vector<Build_Rect>& list, Build_Rect br,
@@ -9445,9 +9445,9 @@ bool MaxRect::NoNeighborCinema(vector<Build_Rect>& list, Build_Rect br,
   const double min_dist = 5000.0;
 //   Point p1(true, bbox.MinD(0), bbox.MinD(1));
 //   Point p2(true, bbox.MaxD(0), bbox.MaxD(1));
-//   
+//
 //   const double min_dist = p1.Distance(p2)/4;
-  
+
   if(list.size() == 0)return true;
   for(unsigned int i = 0;i < list.size();i++)
     if(list[i].rect.Distance(br.rect) < min_dist) return false;
@@ -9457,7 +9457,7 @@ bool MaxRect::NoNeighborCinema(vector<Build_Rect>& list, Build_Rect br,
 
 
 /*
-set the places for hotels,  uniformly distributed in each quadrant 
+set the places for hotels,  uniformly distributed in each quadrant
 
 */
 #define HOTEL_AREA_MIN 800.0
@@ -9471,11 +9471,11 @@ void MaxRect::SetHotel(vector<Build_Rect>& list, unsigned int no,
   quad_list.push_back(0);
   quad_list.push_back(0);
   quad_list.push_back(0);
-  
-  vector<Build_Rect> cand_list; 
-  
+
+  vector<Build_Rect> cand_list;
+
   for(int i = list.size() - 1;i >= 0;i--){
-    if(list[i].rect.Area() > HOTEL_AREA_MIN && 
+    if(list[i].rect.Area() > HOTEL_AREA_MIN &&
        list[i].rect.Area() < HOTEL_AREA_MAX &&
       list[i].init == false && NoNeighborHotel(cand_list, list[i], bbox)){
 //      cout<<"find a hotel site"<<endl;
@@ -9491,7 +9491,7 @@ void MaxRect::SetHotel(vector<Build_Rect>& list, unsigned int no,
 }
 
 /*
-hotels should not be close to each other 
+hotels should not be close to each other
 
 */
 bool MaxRect::NoNeighborHotel(vector<Build_Rect>& list, Build_Rect br,
@@ -9501,7 +9501,7 @@ bool MaxRect::NoNeighborHotel(vector<Build_Rect>& list, Build_Rect br,
 
 //   Point p1(true, bbox.MinD(0), bbox.MinD(1));
 //   Point p2(true, bbox.MaxD(0), bbox.MaxD(1));
-//   
+//
 //   const double min_dist = p1.Distance(p2)/8;
 
   if(list.size() == 0)return true;
@@ -9513,7 +9513,7 @@ bool MaxRect::NoNeighborHotel(vector<Build_Rect>& list, Build_Rect br,
 
 
 /*
-set the places for shopping malls,  uniformly distributed in each quadrant 
+set the places for shopping malls,  uniformly distributed in each quadrant
 
 */
 #define SHOPMALL_AREA_MIN 1000.0
@@ -9527,11 +9527,11 @@ void MaxRect::SetShopMall(vector<Build_Rect>& list, unsigned int no,
   quad_list.push_back(0);
   quad_list.push_back(0);
   quad_list.push_back(0);
-  
-  vector<Build_Rect> cand_list; 
-  
+
+  vector<Build_Rect> cand_list;
+
   for(int i = list.size() - 1;i >= 0;i--){
-    if(list[i].rect.Area() > SHOPMALL_AREA_MIN && 
+    if(list[i].rect.Area() > SHOPMALL_AREA_MIN &&
        list[i].rect.Area() < SHOPMALL_AREA_MAX &&
       list[i].init == false && NoNeighborShopMall(cand_list, list[i], bbox)){
 //      cout<<"find a hotel site"<<endl;
@@ -9547,7 +9547,7 @@ void MaxRect::SetShopMall(vector<Build_Rect>& list, unsigned int no,
 }
 
 /*
-shopping malls should not be close to each other 
+shopping malls should not be close to each other
 
 */
 bool MaxRect::NoNeighborShopMall(vector<Build_Rect>& list, Build_Rect br,
@@ -9557,7 +9557,7 @@ bool MaxRect::NoNeighborShopMall(vector<Build_Rect>& list, Build_Rect br,
 
 //   Point p1(true, bbox.MinD(0), bbox.MinD(1));
 //   Point p2(true, bbox.MaxD(0), bbox.MaxD(1));
-//   
+//
 //   const double min_dist = p1.Distance(p2)/8;
 
   if(list.size() == 0)return true;
@@ -9568,7 +9568,7 @@ bool MaxRect::NoNeighborShopMall(vector<Build_Rect>& list, Build_Rect br,
 }
 
 /*
-set the places for office24,  uniformly distributed in each quadrant 
+set the places for office24,  uniformly distributed in each quadrant
 
 */
 #define OFFICE24_AREA_MIN 600.0
@@ -9582,20 +9582,20 @@ void MaxRect::SetOffice24(vector<Build_Rect>& list, unsigned int no)
   quad_list.push_back(0);
   quad_list.push_back(0);
 
-  vector<Build_Rect> cand_list; 
+  vector<Build_Rect> cand_list;
 
   vector<unsigned int> reg_type_list;
   reg_type_list.push_back(0);
   reg_type_list.push_back(0);
   reg_type_list.push_back(0);
 
-  
+
   for(int i = list.size() - 1;i >= 0;i--){
-    if(list[i].rect.Area() > OFFICE24_AREA_MIN && 
+    if(list[i].rect.Area() > OFFICE24_AREA_MIN &&
        list[i].rect.Area() < OFFICE24_AREA_MAX &&
       list[i].init == false){
 //      cout<<"find a office24 site"<<endl;
-      if(quad_list[list[i].quadrant - 1] < no / 4 && 
+      if(quad_list[list[i].quadrant - 1] < no / 4 &&
          reg_type_list[list[i].reg_type - 1] < no /3){
         list[i].build_type = BUILD_OFFICE24;
         list[i].init = true;
@@ -9608,12 +9608,12 @@ void MaxRect::SetOffice24(vector<Build_Rect>& list, unsigned int no)
       }
     }
   }
-  
+
 }
 
 
 /*
-set the places for hospitals ,  uniformly distributed in each quadrant 
+set the places for hospitals ,  uniformly distributed in each quadrant
 
 */
 #define HOSPITAL_AREA_MIN 800.0
@@ -9626,11 +9626,11 @@ void MaxRect::SetHospital(vector<Build_Rect>& list, unsigned int no)
   quad_list.push_back(0);
   quad_list.push_back(0);
   quad_list.push_back(0);
-  
-  vector<Build_Rect> cand_list; 
-  
+
+  vector<Build_Rect> cand_list;
+
   for(int i = list.size() - 1;i >= 0;i--){
-    if(list[i].rect.Area() > HOSPITAL_AREA_MIN && 
+    if(list[i].rect.Area() > HOSPITAL_AREA_MIN &&
        list[i].rect.Area() < HOSPITAL_AREA_MAX &&
       list[i].init == false && NoNeighborHospital(cand_list, list[i]) &&
        NoNearbyShopMallAndCinema(list, list[i])){
@@ -9647,7 +9647,7 @@ void MaxRect::SetHospital(vector<Build_Rect>& list, unsigned int no)
 }
 
 /*
-hosptials should not be close to each other 
+hosptials should not be close to each other
 
 */
 bool MaxRect::NoNeighborHospital(vector<Build_Rect>& list, Build_Rect br)
@@ -9662,8 +9662,8 @@ bool MaxRect::NoNeighborHospital(vector<Build_Rect>& list, Build_Rect br)
 }
 
 /*
-a hospital should not have a shopping mall and cinema so close 
-it is also not too close to a train station 
+a hospital should not have a shopping mall and cinema so close
+it is also not too close to a train station
 
 */
 bool MaxRect::NoNearbyShopMallAndCinema(vector<Build_Rect>& list, Build_Rect br)
@@ -9674,7 +9674,7 @@ bool MaxRect::NoNearbyShopMallAndCinema(vector<Build_Rect>& list, Build_Rect br)
 
   if(list.size() == 0)return true;
   for(unsigned int i = 0;i < list.size();i++){
-    if((list[i].build_type == BUILD_SHOPPINGMALL || 
+    if((list[i].build_type == BUILD_SHOPPINGMALL ||
         list[i].build_type == BUILD_CINEMA) &&
         list[i].rect.Distance(br.rect) < min_dist1) return false;
 
@@ -9688,7 +9688,7 @@ bool MaxRect::NoNearbyShopMallAndCinema(vector<Build_Rect>& list, Build_Rect br)
 }
 
 /*
-set the places for libraries ,  uniformly distributed in each quadrant 
+set the places for libraries ,  uniformly distributed in each quadrant
 
 */
 #define LIBRARY_AREA_MIN 1000.0
@@ -9701,14 +9701,14 @@ void MaxRect::SetLibrary(vector<Build_Rect>& list, unsigned int no)
   quad_list.push_back(0);
   quad_list.push_back(0);
   quad_list.push_back(0);
-  
-  vector<Build_Rect> cand_list; 
-  
+
+  vector<Build_Rect> cand_list;
+
   for(int i = list.size() - 1;i >= 0;i--){
-    if(list[i].rect.Area() > LIBRARY_AREA_MIN && 
+    if(list[i].rect.Area() > LIBRARY_AREA_MIN &&
        list[i].rect.Area() < LIBRARY_AREA_MAX &&
        list[i].reg_type == 2 &&
-       list[i].init == false && NoNeighborLibrary(cand_list, list[i]) && 
+       list[i].init == false && NoNeighborLibrary(cand_list, list[i]) &&
        NoNearbyCommercialBuilding(list, list[i])){
 //      cout<<"find a hotel site"<<endl;
       if(quad_list[list[i].quadrant - 1] < no / 4){
@@ -9723,7 +9723,7 @@ void MaxRect::SetLibrary(vector<Build_Rect>& list, unsigned int no)
 }
 
 /*
-library should not be close to each other 
+library should not be close to each other
 
 */
 bool MaxRect::NoNeighborLibrary(vector<Build_Rect>& list, Build_Rect br)
@@ -9738,10 +9738,10 @@ bool MaxRect::NoNeighborLibrary(vector<Build_Rect>& list, Build_Rect br)
 }
 
 /*
-a library should not so close to cinemas, hotels, shopping malls 
+a library should not so close to cinemas, hotels, shopping malls
 
 */
-bool MaxRect::NoNearbyCommercialBuilding(vector<Build_Rect>& list, 
+bool MaxRect::NoNearbyCommercialBuilding(vector<Build_Rect>& list,
                                          Build_Rect br)
 {
   const double min_dist1 = 1000.0;
@@ -9754,7 +9754,7 @@ bool MaxRect::NoNearbyCommercialBuilding(vector<Build_Rect>& list,
         list[i].build_type == BUILD_CINEMA) &&
         list[i].rect.Distance(br.rect) < min_dist1) return false;
 
-    if((list[i].build_type == BUILD_HOTEL || 
+    if((list[i].build_type == BUILD_HOTEL ||
         list[i].build_type == BUILD_HOSPITAL )&&
        list[i].rect.Distance(br.rect) < min_dist2) return false;
 
@@ -9767,7 +9767,7 @@ bool MaxRect::NoNearbyCommercialBuilding(vector<Build_Rect>& list,
 
 
 /*
-set the places for schools,  uniformly distributed in each quadrant 
+set the places for schools,  uniformly distributed in each quadrant
 
 */
 #define SCHOOL_AREA_MIN 2000.0
@@ -9780,14 +9780,14 @@ void MaxRect::SetSchool(vector<Build_Rect>& list, unsigned int no)
   quad_list.push_back(0);
   quad_list.push_back(0);
   quad_list.push_back(0);
-  
-  vector<Build_Rect> cand_list; 
-  
+
+  vector<Build_Rect> cand_list;
+
   for(int i = list.size() - 1;i >= 0;i--){
-    if(list[i].rect.Area() > SCHOOL_AREA_MIN && 
+    if(list[i].rect.Area() > SCHOOL_AREA_MIN &&
        list[i].rect.Area() < SCHOOL_AREA_MAX &&
        (list[i].reg_type == 1 || list[i].reg_type == 2)&&
-       list[i].init == false && NoNeighborSchool(cand_list, list[i]) && 
+       list[i].init == false && NoNeighborSchool(cand_list, list[i]) &&
        NoNearbyCommercialBuilding(list, list[i])){
 //      cout<<"find a school site"<<endl;
       if(quad_list[list[i].quadrant - 1] < no / 4){
@@ -9802,7 +9802,7 @@ void MaxRect::SetSchool(vector<Build_Rect>& list, unsigned int no)
 }
 
 /*
-schools should not be too close to each other 
+schools should not be too close to each other
 
 */
 bool MaxRect::NoNeighborSchool(vector<Build_Rect>& list, Build_Rect br)
@@ -9817,7 +9817,7 @@ bool MaxRect::NoNeighborSchool(vector<Build_Rect>& list, Build_Rect br)
 }
 
 /*
-set the places for universities,  uniformly distributed in each quadrant 
+set the places for universities,  uniformly distributed in each quadrant
 
 */
 #define UNIVERSITY_AREA_MIN 2000.0
@@ -9834,10 +9834,10 @@ void MaxRect::SetUniversity(vector<Build_Rect>& list, unsigned int no)
   vector<Build_Rect> cand_list;
 
   for(int i = list.size() - 1;i >= 0;i--){
-    if(list[i].rect.Area() > UNIVERSITY_AREA_MIN && 
+    if(list[i].rect.Area() > UNIVERSITY_AREA_MIN &&
        list[i].rect.Area() < UNIVERSITY_AREA_MAX &&
        (list[i].reg_type == 2 || list[i].reg_type == 3)&&
-       list[i].init == false && NoNeighborUniversity(cand_list, list[i]) && 
+       list[i].init == false && NoNeighborUniversity(cand_list, list[i]) &&
        NoNearbyCommercialBuilding(list, list[i])){
 //      cout<<"find a hotel site"<<endl;
       if(quad_list[list[i].quadrant - 1] < no / 4){
@@ -9852,7 +9852,7 @@ void MaxRect::SetUniversity(vector<Build_Rect>& list, unsigned int no)
 }
 
 /*
-universities should not be too close to each other 
+universities should not be too close to each other
 
 */
 bool MaxRect::NoNeighborUniversity(vector<Build_Rect>& list, Build_Rect br)
@@ -9869,7 +9869,7 @@ bool MaxRect::NoNeighborUniversity(vector<Build_Rect>& list, Build_Rect br)
 
 
 /*
-set the places for houses,  uniformly distributed in each quadrant 
+set the places for houses,  uniformly distributed in each quadrant
 
 */
 #define HOUSE_AREA_MAX 1200.0
@@ -9881,9 +9881,9 @@ void MaxRect::SetHouse(vector<Build_Rect>& list, unsigned int no)
   quad_list.push_back(0);
   quad_list.push_back(0);
   quad_list.push_back(0);
-  
-  vector<Build_Rect> cand_list; 
-  
+
+  vector<Build_Rect> cand_list;
+
   for(int i = list.size() - 1;i >= 0;i--){
     if( list[i].rect.Area() < HOUSE_AREA_MAX &&
 //       (list[i].reg_type == 2 || list[i].reg_type == 3)&&
@@ -9901,30 +9901,30 @@ void MaxRect::SetHouse(vector<Build_Rect>& list, unsigned int no)
 }
 
 /*
-neighbor building limitations for personal houses and apartments 
+neighbor building limitations for personal houses and apartments
 
 */
 bool MaxRect::NoNearbyNeighbors1(vector<Build_Rect>& list, Build_Rect br)
 {
-  
+
   const double min_dist1 = 800.0;
   const double min_dist2 = 400.0;
   const double min_dist3 = 200.0;
 
   if(list.size() == 0) return true;
   for(unsigned int i = 0;i < list.size();i++){
-    if((list[i].build_type == BUILD_CINEMA || 
+    if((list[i].build_type == BUILD_CINEMA ||
         list[i].build_type == BUILD_HOTEL) &&
         list[i].rect.Distance(br.rect) < min_dist1) return false;
 
     if(list[i].build_type == BUILD_SHOPPINGMALL &&
        list[i].rect.Distance(br.rect) < min_dist2) return false;
 
-    if(( list[i].build_type == BUILD_SCHOOL || 
+    if(( list[i].build_type == BUILD_SCHOOL ||
          list[i].build_type == BUILD_HOSPITAL ||
-         list[i].build_type == BUILD_LIBRARY || 
-         list[i].build_type == BUILD_OFFICE24 || 
-         list[i].build_type == BUILD_UNIVERSITY || 
+         list[i].build_type == BUILD_LIBRARY ||
+         list[i].build_type == BUILD_OFFICE24 ||
+         list[i].build_type == BUILD_UNIVERSITY ||
          list[i].build_type == BUILD_TRAINSTATION ) &&
        list[i].rect.Distance(br.rect) < min_dist3) return false;
   }
@@ -9947,40 +9947,40 @@ ListExpr PavementProperty()
            nl->StringAtom("((TRUE 1))"))));
 }
 /*
-output the pavement infrastructure 
+output the pavement infrastructure
 
 */
 ListExpr OutPavement( ListExpr typeInfo, Word value )
 {
-//  cout<<"OutPavement"<<endl; 
+//  cout<<"OutPavement"<<endl;
   Pavement* pn = (Pavement*)(value.addr);
   if(!pn->IsDefined()){
     return nl->SymbolAtom("undef");
   }
 
   ListExpr list1 = nl->TwoElemList(
-               nl->StringAtom("Pavement Id:"), 
+               nl->StringAtom("Pavement Id:"),
                nl->IntAtom(pn->GetId()));
-  
-  ListExpr list2 = nl->TheEmptyList(); 
+
+  ListExpr list2 = nl->TheEmptyList();
   if(pn->IsDGInit()){
       list2 = nl->TwoElemList(
-               nl->StringAtom("Dual Graph Id:"), 
+               nl->StringAtom("Dual Graph Id:"),
                nl->IntAtom(pn->GetDGId()));
   }else
     list2 = nl->OneElemList( nl->StringAtom("Dual Graph undef"));
-    
-  ListExpr list3 = nl->TheEmptyList(); 
+
+  ListExpr list3 = nl->TheEmptyList();
   if(pn->IsVGInit()){
       list3 = nl->TwoElemList(
-               nl->StringAtom("Visbility Graph Id:"), 
+               nl->StringAtom("Visbility Graph Id:"),
                nl->IntAtom(pn->GetVGId()));
   }else
     list3 = nl->OneElemList( nl->StringAtom("Visibility Graph undef"));
 
 
-  ListExpr list4 = nl->TheEmptyList(); 
-  
+  ListExpr list4 = nl->TheEmptyList();
+
   return nl->FourElemList(list1, list2, list3, list4);
 }
 
@@ -9997,7 +9997,7 @@ Word InPavement( const ListExpr typeInfo, const ListExpr instance,
   if( !nl->IsAtom( instance ) ){
 
     if(nl->ListLength(instance) != 2){
-      cout<<"length should be 2"<<endl; 
+      cout<<"length should be 2"<<endl;
       correct = false;
       return SetWord(Address(0));
     }
@@ -10019,10 +10019,10 @@ Word InPavement( const ListExpr typeInfo, const ListExpr instance,
     }
     unsigned int id = nl->IntValue(second);
 
-    Pavement* pn = new Pavement(d, id); 
+    Pavement* pn = new Pavement(d, id);
 
    ////////////////very important /////////////////////////////
-    correct = true; 
+    correct = true;
   ///////////////////////////////////////////////////////////
     return SetWord(pn);
   }
@@ -10031,18 +10031,18 @@ Word InPavement( const ListExpr typeInfo, const ListExpr instance,
   return SetWord(Address(0));
 }
 
-bool SavePavement(SmiRecord& valueRecord, size_t& offset, 
+bool SavePavement(SmiRecord& valueRecord, size_t& offset,
                const ListExpr typeInfo, Word& value)
 {
   Pavement* pn = (Pavement*)value.addr;
   return pn->Save(valueRecord, offset, typeInfo);
 }
 
-bool OpenPavement(SmiRecord& valueRecord, size_t& offset, 
+bool OpenPavement(SmiRecord& valueRecord, size_t& offset,
                const ListExpr typeInfo, Word& value)
 {
   value.addr = Pavement::Open(valueRecord, offset, typeInfo);
-  return value.addr != NULL; 
+  return value.addr != NULL;
 }
 
 Word CreatePavement(const ListExpr typeInfo)
@@ -10062,14 +10062,14 @@ void DeletePavement(const ListExpr typeInfo, Word& w)
 
 void ClosePavement( const ListExpr typeInfo, Word& w )
 {
-//  cout<<"ClosePavement"<<endl; 
-  delete static_cast<Pavement*>(w.addr); 
+//  cout<<"ClosePavement"<<endl;
+  delete static_cast<Pavement*>(w.addr);
   w.addr = 0;
 }
 
 Word ClonePavement( const ListExpr typeInfo, const Word& w )
 {
-//  cout<<"ClonePavement"<<endl; 
+//  cout<<"ClonePavement"<<endl;
   return SetWord( new Address(0));
 }
 
@@ -10081,13 +10081,13 @@ void* Pavement::Cast(void* addr)
 
 int SizeOfPavement()
 {
-//  cout<<"SizeOfPavement"<<endl; 
+//  cout<<"SizeOfPavement"<<endl;
   return sizeof(Pavement);
 }
 
 bool CheckPavement( ListExpr type, ListExpr& errorInfo )
 {
-//  cout<<"CheckPavement"<<endl; 
+//  cout<<"CheckPavement"<<endl;
   return (nl->IsEqual( type, "pavenetwork" ));
 }
 
@@ -10096,7 +10096,7 @@ string Pavement::PaveTypeInfo =
 "(rel(tuple((oid int)(rid int)(pavement region))))";
 
 
-Pavement::Pavement():def(false), pave_id(0), dg_init(false), dg_id(0), 
+Pavement::Pavement():def(false), pave_id(0), dg_init(false), dg_id(0),
 vg_init(false), vg_id(0), pave_rel(NULL)
 {
 
@@ -10112,8 +10112,8 @@ dg_init(false), dg_id(0), vg_init(false), vg_id(0), pave_rel(NULL)
 
 }
 
-Pavement::Pavement(SmiRecord& valueRecord, size_t& offset, 
-                   const ListExpr typeInfo):def(false), pave_id(0), 
+Pavement::Pavement(SmiRecord& valueRecord, size_t& offset,
+                   const ListExpr typeInfo):def(false), pave_id(0),
 dg_init(false), dg_id(0), vg_init(false), vg_id(0), pave_rel(NULL)
 {
 
@@ -10150,66 +10150,66 @@ dg_init(false), dg_id(0), vg_init(false), vg_id(0), pave_rel(NULL)
 
 Pavement::~Pavement()
 {
-  if(pave_rel != NULL) pave_rel->Close(); 
+  if(pave_rel != NULL) pave_rel->Close();
 
 }
 
 /*
-create the pavement infrastructure by a relation storing all triangles 
+create the pavement infrastructure by a relation storing all triangles
 
 */
 void Pavement::Load(unsigned int i, Relation* r)
 {
   if(i < 1){
-    cout<<"invalid id "<<i<<endl; 
+    cout<<"invalid id "<<i<<endl;
     def = false;
     return;
   }
-  pave_id = i; 
+  pave_id = i;
 
-  def = true; 
-  
+  def = true;
+
   ostringstream xRoutesStream;
   xRoutesStream << (long)r;
   string strQuery = "(consume(feed(" + PaveTypeInfo +
                 "(ptr " + xRoutesStream.str() + "))))";
 
-//  cout<<strQuery<<endl; 
+//  cout<<strQuery<<endl;
 
   Word xResult;
   int QueryExecuted = QueryProcessor::ExecuteQuery(strQuery, xResult);
   assert(QueryExecuted);
-  pave_rel = (Relation*)xResult.addr; 
-  
-//  cout<<pave_rel->GetNoTuples()<<endl; 
+  pave_rel = (Relation*)xResult.addr;
+
+//  cout<<pave_rel->GetNoTuples()<<endl;
 
 }
 
-bool Pavement::Save(SmiRecord& valueRecord, size_t& offset, 
+bool Pavement::Save(SmiRecord& valueRecord, size_t& offset,
                       const ListExpr typeInfo)
 {
-  
-//  cout<<"Pavement::Save"<<endl; 
 
-  valueRecord.Write(&def, sizeof(bool), offset); 
-  offset += sizeof(bool); 
+//  cout<<"Pavement::Save"<<endl;
 
-  valueRecord.Write(&pave_id, sizeof(int), offset); 
-  offset += sizeof(int); 
+  valueRecord.Write(&def, sizeof(bool), offset);
+  offset += sizeof(bool);
 
-  valueRecord.Write(&dg_init, sizeof(bool), offset); 
-  offset += sizeof(bool); 
+  valueRecord.Write(&pave_id, sizeof(int), offset);
+  offset += sizeof(int);
 
-  valueRecord.Write(&dg_id, sizeof(int), offset); 
-  offset += sizeof(int); 
+  valueRecord.Write(&dg_init, sizeof(bool), offset);
+  offset += sizeof(bool);
 
-  valueRecord.Write(&vg_init, sizeof(bool), offset); 
-  offset += sizeof(bool); 
+  valueRecord.Write(&dg_id, sizeof(int), offset);
+  offset += sizeof(int);
 
-  valueRecord.Write(&vg_id, sizeof(int), offset); 
-  offset += sizeof(int); 
+  valueRecord.Write(&vg_init, sizeof(bool), offset);
+  offset += sizeof(bool);
 
-  
+  valueRecord.Write(&vg_id, sizeof(int), offset);
+  offset += sizeof(int);
+
+
   ListExpr xType;
   ListExpr xNumericType;
 
@@ -10219,22 +10219,22 @@ bool Pavement::Save(SmiRecord& valueRecord, size_t& offset,
   if(!pave_rel->Save(valueRecord,offset,xNumericType))
       return false;
 
-  return true; 
+  return true;
 }
 
 /*
-open a pavement object 
+open a pavement object
 
 */
-Pavement* Pavement::Open(SmiRecord& valueRecord, size_t& offset, 
+Pavement* Pavement::Open(SmiRecord& valueRecord, size_t& offset,
                      const ListExpr typeInfo)
 {
-  return new Pavement(valueRecord, offset, typeInfo); 
+  return new Pavement(valueRecord, offset, typeInfo);
 
 }
 
 /*
-set the dual graph id for the pavement 
+set the dual graph id for the pavement
 
 */
 void Pavement::SetDualGraphId(int id)
@@ -10245,23 +10245,23 @@ void Pavement::SetDualGraphId(int id)
 
 
 /*
-set the visual graph id for the pavement 
+set the visual graph id for the pavement
 
 */
 void Pavement::SetVisualGraphId(int id)
 {
   vg_id = id;
-  vg_init = true; 
+  vg_init = true;
 }
 
 /*
-load dual graph if it is stored 
+load dual graph if it is stored
 
 */
 DualGraph* Pavement::GetDualGraph()
 {
   if(dg_init == false) return NULL;
-  
+
   ListExpr xObjectList = SecondoSystem::GetCatalog()->ListObjects();
   xObjectList = nl->Rest(xObjectList);
   while(!nl->IsEmpty(xObjectList))
@@ -10274,11 +10274,11 @@ DualGraph* Pavement::GetDualGraph()
     ListExpr xObjectType = nl->First(nl->Fourth(xCurrent));
     if(nl->IsAtom(xObjectType) &&
        nl->SymbolValue(xObjectType) == "dualgraph"){
-      // Get name of the dual graph 
+      // Get name of the dual graph
       ListExpr xObjectName = nl->Second(xCurrent);
       string strObjectName = nl->SymbolValue(xObjectName);
 
-      // Load object to find out the id of the dual graph. 
+      // Load object to find out the id of the dual graph.
       Word xValue;
       bool bDefined;
       bool bOk = SecondoSystem::GetCatalog()->GetObject(strObjectName,
@@ -10286,7 +10286,7 @@ DualGraph* Pavement::GetDualGraph()
                                                         bDefined);
       if(!bDefined || !bOk)
       {
-        // Undefined 
+        // Undefined
         continue;
       }
       DualGraph* dg = (DualGraph*)xValue.addr;
@@ -10301,7 +10301,7 @@ DualGraph* Pavement::GetDualGraph()
 
 void Pavement::CloseDualGraph(DualGraph* dg)
 {
-  if(dg == NULL) return; 
+  if(dg == NULL) return;
   Word xValue;
   xValue.addr = dg;
   SecondoSystem::GetCatalog()->CloseObject(nl->SymbolAtom( "dualgraph" ),
@@ -10309,13 +10309,13 @@ void Pavement::CloseDualGraph(DualGraph* dg)
 }
 
 /*
-load visual graph if it is stored 
+load visual graph if it is stored
 
 */
 VisualGraph* Pavement::GetVisualGraph()
 {
   if(vg_init == false) return NULL;
-  
+
   ListExpr xObjectList = SecondoSystem::GetCatalog()->ListObjects();
   xObjectList = nl->Rest(xObjectList);
   while(!nl->IsEmpty(xObjectList))
@@ -10328,11 +10328,11 @@ VisualGraph* Pavement::GetVisualGraph()
     ListExpr xObjectType = nl->First(nl->Fourth(xCurrent));
     if(nl->IsAtom(xObjectType) &&
        nl->SymbolValue(xObjectType) == "visualgraph"){
-      // Get name of the visual graph 
+      // Get name of the visual graph
       ListExpr xObjectName = nl->Second(xCurrent);
       string strObjectName = nl->SymbolValue(xObjectName);
 
-      // Load object to find out the id of the visual graph. 
+      // Load object to find out the id of the visual graph.
       Word xValue;
       bool bDefined;
       bool bOk = SecondoSystem::GetCatalog()->GetObject(strObjectName,
@@ -10340,7 +10340,7 @@ VisualGraph* Pavement::GetVisualGraph()
                                                         bDefined);
       if(!bDefined || !bOk)
       {
-        // Undefined 
+        // Undefined
         continue;
       }
       VisualGraph* vg = (VisualGraph*)xValue.addr;
@@ -10357,7 +10357,7 @@ VisualGraph* Pavement::GetVisualGraph()
 
 void Pavement::CloseVisualGraph(VisualGraph* vg)
 {
-  if(vg == NULL) return; 
+  if(vg == NULL) return;
   Word xValue;
   xValue.addr = vg;
   SecondoSystem::GetCatalog()->CloseObject(nl->SymbolAtom( "visualgraph" ),
