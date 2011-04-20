@@ -10,14 +10,14 @@ include ../../makefile.env
 
 # This is the only macro which must be changed in order to
 # define a module name for an algebra. The rest of this makefile
-# should work for nearly every algebra. 
+# should work for nearly every algebra.
 MODNAME = TopRelAlgebra
 
 # Use the mace CCFLAGS to add special compiler flags if needed.
 # In this case the defaults are sufficient
-CCFLAGS = $(DEFAULTCCFLAGS) -I../FText -I../Rectangle
+CCFLAGS = $(DEFAULTCCFLAGS) -I../FText -I../Rectangle -I../Spatial
 
-# The next rule will create a ".o" file for every ".cpp" file and 
+# The next rule will create a ".o" file for every ".cpp" file and
 # creates a "lib$(MODNAME).a" file in the secondo/lib dir. Rules
 # for creating ".dep" files and ".o" files are defined in makefile.env
 .PHONY: all
@@ -33,10 +33,10 @@ include $(DEP_FILES)
 
 # The rule below creates a library file. Maybe as shared or as static
 # object. In case of a shared object all dependencies to other libraries
-# must be defined. However, currently the command make shared=yes will 
+# must be defined. However, currently the command make shared=yes will
 # not work. But in principle every algebra implementor has to define dependencies
 # to other libraries here, since the make procedure does not know how to do this
-# automatically. 
+# automatically.
 $(LIBOBJ): $(OBJECTS)
 ifeq ($(shared),yes)
 # ... as shared object
@@ -47,7 +47,7 @@ else
 endif
 
 TreeParser.o: TreeParser.y.c
-	$(CC) -c -o TreeParser.o TreeParser.y.c 
+	$(CC) -c -o TreeParser.o TreeParser.y.c
 
 
 TreeParser.y.c: TreeParser.y
@@ -88,7 +88,7 @@ TopRelAlgebra.doc: ../../include/TopRel.h TopRelAlgebra.cpp Tree.h Tree.c TreeLe
 	@echo -e '\n/*\n[\\f]\n\n*/\n' >> TopRelAlgebra.doc
 	@echo -e "\n\n/*\n1 The Makefile\n\n*/\n" >> TopRelAlgebra.doc
 	@cat makefile >>TopRelAlgebra.doc
-	
+
 
 
 # remove all generated stuff

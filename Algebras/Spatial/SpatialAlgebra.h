@@ -52,6 +52,8 @@ shows examples of these spatial data types.
 #ifndef __SPATIAL_ALGEBRA_H__
 #define __SPATIAL_ALGEBRA_H__
 
+#include <math.h>
+#include <cmath>
 #include <fstream>
 #include <stack>
 #include <vector>
@@ -61,7 +63,6 @@ shows examples of these spatial data types.
 #include "RectangleAlgebra.h"
 #include "WinUnix.h"
 #include "AvlTree.h"
-#include "Symbols.h"
 #include "AlmostEqual.h"
 #include "AVLSegment.h"
 
@@ -74,7 +75,6 @@ Coordinates are represented by real numbers.
 
 */
 
-#define PI 3.146264371
 /*
 The $\pi$ value.
 
@@ -104,8 +104,6 @@ Forward declarations.
 // const double FACTOR = 0.00000001; // moved to Attribute.h
 
 inline double ApplyFactor( const double d );
-inline bool AlmostEqual( const HalfSegment& hs1,
-                         const HalfSegment& hs2 );
 
 
 inline int CompareDouble(const double a, const double b){
@@ -267,7 +265,7 @@ Retrieves the point ~p~ at position ~i~ in the point set.
 Assignement operator redefinition.
 
 */
-    bool Contains( const Point& p ) const;
+    bool Contains( const Point& p, const Geoid* geoid=0 ) const;
 /*
 Searches (binary search algorithm) for a point in the point set and
 return ~true~ if found and ~false~ if not.
@@ -275,7 +273,7 @@ return ~true~ if found and ~false~ if not.
 *Precondition:* ~this.IsOrdered() $\&\&$ p.IsDefined()~
 
 */
-    bool Contains( const Points& ps ) const;
+    bool Contains( const Points& ps, const Geoid* geoid=0 ) const;
 /*
 Returns ~true~ if this point set contains the ~ps~ point set and
 ~false~ otherwise.
@@ -356,7 +354,7 @@ the size of ~U~ and ~m~ is the size of ~V~.
 *Complexity:* $O(n+m)$, where ~n~ is the size of ~U~ and m the size of ~V~.
 
 */
-    bool Inside( const Points& ps ) const;
+  bool Inside( const Points& ps, const Geoid* geoid=0 ) const;
 /*
 6.4.4 Operation ~inside~ (with ~line~)
 
@@ -367,7 +365,7 @@ the size of ~U~ and ~m~ is the size of ~V~.
 *Complexity:* $O(m.n)$, where ~m~ is the size of ~U~ and ~n~ the size of ~V~.
 
 */
-    bool Inside( const Line& l ) const;
+  bool Inside( const Line& l, const Geoid* geoid=0 ) const;
 /*
 6.4.4 Operation ~inside~ (with ~region~)
 
@@ -378,7 +376,7 @@ the size of ~U~ and ~m~ is the size of ~V~.
 *Complexity:* $O(m \log n)$, where ~m~ is the size of ~U~ and ~n~ the size of ~V~.
 
 */
-    bool Inside( const Region& r ) const;
+    bool Inside( const Region& r, const Geoid* geoid=0 ) const;
 /*
 5.4.7 Operation ~intersects~ (with ~points~)
 
@@ -389,7 +387,7 @@ the size of ~U~ and ~m~ is the size of ~V~.
 *Complexity:* $O(m+n)$, where ~m~ is the size of ~U~ and ~n~ the size of ~V~.
 
 */
-    bool Intersects( const Points& ps ) const;
+    bool Intersects( const Points& ps, const Geoid* geoid=0 ) const;
 /*
 5.4.7 Operation ~intersects~ (with ~line~)
 
@@ -400,7 +398,7 @@ the size of ~U~ and ~m~ is the size of ~V~.
 *Complexity:* $O(m \log n)$, where ~m~ is the size of ~U~ and ~n~ the size of ~V~.
 
 */
-    bool Intersects( const Line& l ) const;
+    bool Intersects( const Line& l, const Geoid* geoid=0 ) const;
 /*
 5.4.7 Operation ~intersects~ (with ~region~)
 
@@ -411,7 +409,7 @@ the size of ~U~ and ~m~ is the size of ~V~.
 *Complexity:* $O(m \log n)$, where ~m~ is the size of ~U~ and ~n~ the size of ~V~.
 
 */
-    bool Intersects( const Region& r ) const;
+    bool Intersects( const Region& r, const Geoid* geoid=0 ) const;
 /*
 5.4.7 Operation ~adjacent~ (with ~region~)
 
@@ -422,37 +420,41 @@ the size of ~U~ and ~m~ is the size of ~V~.
 *Complexity:* $O(n.m)$, where ~n~ is the size of ~U~ and m the size of ~V~.
 
 */
-    bool Adjacent( const Region& r ) const;
+  bool Adjacent( const Region& r, const Geoid* geoid=0 ) const;
 /*
 5.4.8 Operation ~intersection~
 
 */
-   void Intersection(const Point& p, Points& result) const;
-   void Intersection( const Points& ps, Points& result ) const;
-   void Intersection( const Line& l, Points& result ) const;
-   void Intersection( const Region& r, Points& result ) const;
+  void Intersection(const Point& p, Points& result,
+                    const Geoid* geoid=0) const;
+  void Intersection( const Points& ps, Points& result,
+                     const Geoid* geoid=0 ) const;
+  void Intersection( const Line& l, Points& result,
+                     const Geoid* geoid=0 ) const;
+  void Intersection( const Region& r, Points& result ,
+                     const Geoid* geoid=0) const;
 /*
 5.4.8 Operation ~minus~
 
 */
-    void Minus( const Point& p, Points& result ) const;
-    void Minus( const Points& ps, Points& result ) const;
-    void Minus( const Line& l, Points& result ) const;
-    void Minus( const Region& r, Points& result ) const;
+  void Minus( const Point& p, Points& result, const Geoid* geoid=0 ) const;
+  void Minus( const Points& ps, Points& result, const Geoid* geoid=0 ) const;
+  void Minus( const Line& l, Points& result, const Geoid* geoid=0 ) const;
+  void Minus( const Region& r, Points& result, const Geoid* geoid=0 ) const;
 
 
 /*
 5.4.9 Operation ~union~
 
 */
-    void Union(const Point& p, Points& result ) const;
-    void Union(const Points& ps, Points& result ) const;
-    void Union(const Line& line, Line& result) const;
-    void Union(const Region& region, Region& result) const;
+  void Union(const Point& p, Points& result, const Geoid* geoid=0 ) const;
+  void Union(const Points& ps, Points& result, const Geoid* geoid=0 ) const;
+  void Union(const Line& line, Line& result, const Geoid* geoid=0 ) const;
+  void Union(const Region& region, Region& result, const Geoid* geoid=0 ) const;
 
 
 
-    double Distance( const Point& p ) const;
+    double Distance( const Point& p, const Geoid* geoid=0 ) const;
 /*
 5.4.9 Operation ~distance~ (with ~points~)
 
@@ -463,7 +465,7 @@ the size of ~U~ and ~m~ is the size of ~V~.
 *Complexity:* $O(m.n)$, where ~m~ is the size of ~U~ and ~n~ the size of ~V~
 
 */
-    double Distance( const Points& ps ) const;
+    double Distance( const Points& ps, const Geoid* geoid=0 ) const;
 /*
 5.4.9 Operation ~distance~ (with ~rect2~)
 
@@ -471,7 +473,7 @@ the size of ~U~ and ~m~ is the size of ~V~.
 
 
 */
-    double Distance( const Rectangle<2>& r ) const;
+  double Distance( const Rectangle<2>& r, const Geoid* geoid=0 ) const;
 
 /*
 4.3.14 Operation ~translate~
@@ -619,7 +621,7 @@ as an attribute.
 
 
   static const string BasicType(){
-    return symbols::POINTS;
+    return "points";
   }
 
 
@@ -850,7 +852,7 @@ Returns true iff the line is undefined or empty.
 Returns the number of half segments in the line value.
 
 */
-    bool Contains( const Point& p ) const;
+    bool Contains( const Point& p, const Geoid* geoid=0 ) const;
 /*
 Checks whether the point ~p~ is contained in the line
 
@@ -948,7 +950,7 @@ This instance must must be in bulkload mode.
 *Complexity:* $O(m.n)$, where ~m~ is the size of ~U~ and ~n~ the size of ~V~.
 
 */
-    bool Intersects( const Line& l ) const;
+  bool Intersects( const Line& l, const Geoid* geoid=0 ) const;
 /*
 6.4.4 Operation ~intersects~ (with ~region~)
 
@@ -959,7 +961,7 @@ This instance must must be in bulkload mode.
 *Complexity:* $O(m(n + \log n))$, where ~m~ is the size of ~U~ and ~n~ the size of ~V~.
 
 */
-    bool Intersects( const Region& r ) const;
+bool Intersects( const Region& r, const Geoid* geoid=0 ) const;
 
 
 
@@ -973,7 +975,7 @@ This instance must must be in bulkload mode.
 *Complexity:* $O(m.n)$, where ~m~ is the size of ~U~ and ~n~ the size of ~V~.
 
 */
-    bool Inside( const Line& l ) const;
+    bool Inside( const Line& l, const Geoid* geoid=0 ) const;
 /*
 6.4.4 Operation ~inside~ (with ~region~)
 
@@ -984,7 +986,7 @@ This instance must must be in bulkload mode.
 *Complexity:* $O(m.log(n))$, where ~m~ is the size of ~U~ and ~n~ the size of ~V~.
 
 */
-    bool Inside( const Region& r ) const;
+    bool Inside( const Region& r, const Geoid* geoid=0 ) const;
 /*
 6.4.4 Operation ~adjacent~ (with ~region~)
 
@@ -995,33 +997,35 @@ This instance must must be in bulkload mode.
 *Complexity:* $O(n.m)$, where ~n~ is the size of ~U~ and m the size of ~V~.
 
 */
-    bool Adjacent( const Region& r ) const;
+    bool Adjacent( const Region& r, const Geoid* geoid=0 ) const;
 
 /*
 6.4.4 Operation ~intersection~
 
 */
-    void Intersection(const Point& p, Points& result) const;
-    void Intersection(const Points& ps, Points& result) const;
-    void Intersection( const Line& l, Line& result ) const;
-    void Intersection( const Region& l, Line& result ) const;
+  void Intersection(const Point& p, Points& result, const Geoid* geoid=0) const;
+  void Intersection(const Points& ps, Points& result,
+                    const Geoid* geoid=0) const;
+  void Intersection( const Line& l, Line& result, const Geoid* geoid=0 ) const;
+  void Intersection( const Region& l, Line& result,
+                     const Geoid* geoid=0 ) const;
 /*
 6.4.4 Operation ~minus~
 
 */
-    void Minus( const Point& l, Line& result ) const;
-    void Minus( const Points& l, Line& result ) const;
-    void Minus( const Line& l, Line& result ) const;
-    void Minus( const Region& l, Line& result ) const;
+  void Minus( const Point& l, Line& result, const Geoid* geoid=0 ) const;
+  void Minus( const Points& l, Line& result, const Geoid* geoid=0 ) const;
+  void Minus( const Line& l, Line& result, const Geoid* geoid=0 ) const;
+  void Minus( const Region& l, Line& result, const Geoid* geoid=0 ) const;
 
 /*
 6.4.4 Operation ~union~
 
 */
-    void Union( const Point& l, Line& result ) const;
-    void Union( const Points& l, Line& result ) const;
-    void Union( const Line& l, Line& result ) const;
-    void Union( const Region& l, Region& result ) const;
+  void Union( const Point& l, Line& result, const Geoid* geoid=0 ) const;
+  void Union( const Points& l, Line& result, const Geoid* geoid=0 ) const;
+  void Union( const Line& l, Line& result, const Geoid* geoid=0 ) const;
+  void Union( const Region& l, Region& result, const Geoid* geoid=0 ) const;
 
 /*
 6.4.5 Operation ~crossings~
@@ -1034,7 +1038,7 @@ This instance must must be in bulkload mode.
 is the ~points~ result size.
 
 */
-    void Crossings( const Line& l, Points& result ) const;
+  void Crossings( const Line& l, Points& result, const Geoid* geoid=0 ) const;
 
 
 /*
@@ -1045,7 +1049,7 @@ points where more than 2 segments have a common endpoint.
 
 */
 
-   void Crossings(Points& result) const;
+  void Crossings(Points& result, const Geoid* geoid=0) const;
 
 /*
 6.4.5 Operation ~distance~ (with ~point~)
@@ -1057,8 +1061,8 @@ points where more than 2 segments have a common endpoint.
 *Complexity:* $O(n)$, where ~n~ is the size of ~U~.
 
 */
-    double Distance( const Point& p ) const;
-    double MaxDistance(const Point& p) const;
+    double Distance( const Point& p, const Geoid* geoid=0 ) const;
+    double MaxDistance(const Point& p, const Geoid* geoid=0 ) const;
 /*
 6.4.5 Operation ~distance~ (with ~points~)
 
@@ -1069,7 +1073,7 @@ points where more than 2 segments have a common endpoint.
 *Complexity:* $O(m.n)$, where ~m~ is the size of ~U~ and ~n~ is the size of ~V~.
 
 */
-    double Distance( const Points& ps ) const;
+    double Distance( const Points& ps, const Geoid* geoid=0 ) const;
 /*
 6.4.5 Operation ~distance~ (with ~line~)
 
@@ -1080,7 +1084,7 @@ points where more than 2 segments have a common endpoint.
 *Complexity:* $O(m.n)$, where ~m~ is the size of ~U~ and ~n~ is the size of ~V~.
 
 */
-    double Distance( const Line& l ) const;
+    double Distance( const Line& l, const Geoid* Geoid=0 ) const;
 
 /*
 6.4.5 Operation ~distance~ (with ~rect2~)
@@ -1088,7 +1092,7 @@ points where more than 2 segments have a common endpoint.
 *Precondition:* ~!U.IsEmpty() and !V.IsEmpty()~
 
 */
-    double Distance( const Rectangle<2>& r ) const;
+  double Distance( const Rectangle<2>& r, const Geoid* geoid=0 ) const;
 
 
 /*
@@ -1101,7 +1105,7 @@ points where more than 2 segments have a common endpoint.
 *Complexity:* $O(m.n)$, where ~m~ is the size of ~U~ and ~n~ the size of ~V~
 
 */
-  double MaxDistance(const Rectangle<2>& r) const;
+  double MaxDistance(const Rectangle<2>& r, const Geoid* geoid=0 ) const;
 /*
 6.4.5 Operation ~no\_components~
 
@@ -1157,7 +1161,8 @@ created. We remove them in a final step.
 
 */
     void Simplify(Line& result, const double epsilon,
-                  const Points& importantPoint = Points(0)) const;
+                  const Points& importantPoint = Points(0),
+                  const Geoid* geoid=0 ) const;
 
 
 
@@ -1370,7 +1375,7 @@ as an attribute.
    }
 
    static const string BasicType(){
-      return symbols::LINE;
+      return "line";
    }
 
    const DbArray<HalfSegment>& GetArray() const{
@@ -1652,7 +1657,7 @@ Returns the end point of this simple line.
 Checks whether ~p~ is located on this line.
 
 */
-  bool Contains(const Point& p) const;
+  bool Contains(const Point& p, const Geoid* geoid=0) const;
 
 /*
 ~TrimToSize~
@@ -1671,9 +1676,9 @@ Changes the capacities of the contained arrays to the required size.
 Returns true if SimpleLine start at smaller end point.
 
 */
- inline bool StartsSmaller(){
-   return startSmaller;
- }
+  inline bool StartsSmaller(){
+    return startSmaller;
+  }
 
 /*
 ~Comparison~
@@ -1724,13 +1729,13 @@ geometry.
 
 */
 
-  double Distance(const Point& p )const;
+  double Distance(const Point& p, const Geoid* geoid=0 )const;
 
-  double Distance(const Points& ps ) const;
+  double Distance(const Points& ps, const Geoid* geoid=0 ) const;
 
-  double Distance(const SimpleLine& sl) const;
+  double Distance(const SimpleLine& sl, const Geoid* geoid=0) const;
 
-  double Distance(const Rectangle<2>& r) const;
+  double Distance(const Rectangle<2>& r, const Geoid* geoid=0) const;
 
 
 /*
@@ -1745,9 +1750,9 @@ geometry.
 ~GetStartSmaller~
 
 */
-bool GetStartSmaller() const {
-  return IsDefined() && startSmaller;
-}
+  bool GetStartSmaller() const {
+    return IsDefined() && startSmaller;
+  }
 
 /*
 ~AtPosition~
@@ -1755,7 +1760,7 @@ bool GetStartSmaller() const {
 
 */
   bool AtPosition(double pos, const bool startsSmaller,
-                  Point& p) const;
+                  Point& p, const Geoid* geoid=0) const;
 
 /*
 ~AtPoint~
@@ -1763,7 +1768,7 @@ bool GetStartSmaller() const {
 */
 
   bool AtPoint(const Point& p, const bool startsSmaller,
-               double& result) const;
+               double& result, const Geoid* geoid=0) const;
 
 
 /*
@@ -1777,13 +1782,14 @@ bool GetStartSmaller() const {
 ~Crossings~
 
 */
- void Crossings(const SimpleLine& l, Points& result) const;
+  void Crossings(const SimpleLine& l, Points& result,
+                 const Geoid* geoid=0) const;
 
 /*
 ~Union~
 
 */
-  bool Intersects(const SimpleLine& l) const;
+  bool Intersects(const SimpleLine& l, const Geoid* geoid=0) const;
 
 
 /*
@@ -1838,7 +1844,8 @@ The following functions are needed to act as an attribute type.
   }
 
   bool SelectInitialSegment( const Point& startPoint,
-                             const double tolerance = 1.0);
+                             const double tolerance = 1.0,
+                             const Geoid* geoid=0);
 
   bool SelectSubsequentSegment();
 
@@ -2236,34 +2243,36 @@ Assignement operator redefinition.
 *Complexity:* $O()$, where ~m~ is the size of ~U~ and ~m~ the size of ~V~.
 
 */
-    bool Intersects( const Region& r ) const;
+  bool Intersects( const Region& r, const Geoid* geoid = 0 ) const;
 /*
 6.4.4 Operation ~intersection~
 
 */
-   void Intersection(const Point& p, Points& result) const;
-   void Intersection(const Points& ps, Points& result) const;
-   void Intersection(const Line& l, Line& result) const;
-   void Intersection(const Region& r, Region& result) const;
+  void Intersection(const Point& p, Points& result, const Geoid* geoid=0) const;
+  void Intersection(const Points& ps, Points& result,
+                    const Geoid* geoid=0) const;
+  void Intersection(const Line& l, Line& result, const Geoid* geoid=0) const;
+  void Intersection(const Region& r, Region& result,
+                    const Geoid* geoid=0) const;
 
 /*
 6.4.4 Operation ~Union~
 
 */
-   void Union(const Point& p, Region& result) const;
-   void Union(const Points& ps, Region& result) const;
-   void Union(const Line& l, Region& result) const;
-   void Union(const Region& r, Region& result) const;
+  void Union(const Point& p, Region& result, const Geoid* geoid=0) const;
+  void Union(const Points& ps, Region& result, const Geoid* geoid=0) const;
+  void Union(const Line& l, Region& result, const Geoid* geoid=0) const;
+  void Union(const Region& r, Region& result, const Geoid* geoid=0) const;
 
 
 /*
 6.4.4 Operation ~Minus~
 
 */
-   void Minus(const Point& p, Region& result) const;
-   void Minus(const Points& ps, Region& result) const;
-   void Minus(const Line& l, Region& result) const;
-   void Minus(const Region& r, Region& result) const;
+  void Minus(const Point& p, Region& result, const Geoid* geoid=0) const;
+  void Minus(const Points& ps, Region& result, const Geoid* geoid=0) const;
+  void Minus(const Line& l, Region& result, const Geoid* geoid=0) const;
+  void Minus(const Region& r, Region& result, const Geoid* geoid=0) const;
 
 
 /*
@@ -2276,7 +2285,7 @@ Assignement operator redefinition.
 *Complexity:* $O(m.n)$, where ~m~ is the size of ~U~ and ~n~ the size of ~V~.
 
 */
-    bool Inside( const Region& r ) const;
+  bool Inside( const Region& r, const Geoid* geoid=0 ) const;
 /*
 6.4.4 Operation ~adjacent~
 
@@ -2287,7 +2296,7 @@ Assignement operator redefinition.
 *Complexity:* $O(m.n)$, where ~m~ is the size of ~U~ and ~n~ the size of ~V~.
 
 */
-    bool Adjacent( const Region& r ) const;
+    bool Adjacent( const Region& r, const Geoid* geoid =0 ) const;
 /*
 6.4.4 Operation ~overlaps~
 
@@ -2298,7 +2307,7 @@ Assignement operator redefinition.
 *Complexity:* $O(m.n)$, where ~m~ is the size of ~U~ and ~n~ the size of ~V~.
 
 */
-    bool Overlaps( const Region& r ) const;
+  bool Overlaps( const Region& r, const Geoid* geoid=0 ) const;
 /*
 6.4.4 Operation ~onborder~
 
@@ -2309,7 +2318,7 @@ Assignement operator redefinition.
 *Complexity:* $O(m)$, where ~m~ is the size of ~U~.
 
 */
-    bool OnBorder( const Point& p ) const;
+  bool OnBorder( const Point& p, const Geoid* geoid=0 ) const;
 /*
 6.4.4 Operation ~ininterior~
 
@@ -2320,7 +2329,7 @@ Assignement operator redefinition.
 *Complexity:* $O(m)$, where ~m~ is the size of ~U~.
 
 */
-    bool InInterior( const Point& p ) const;
+  bool InInterior( const Point& p, const Geoid* geoid=0 ) const;
 /*
 6.4.4 Operation ~distance~ (with ~point~)
 
@@ -2331,7 +2340,7 @@ Assignement operator redefinition.
 *Complexity:* $O(m)$, where ~m~ is the size of ~U~.
 
 */
-    double Distance( const Point& p ) const;
+  double Distance( const Point& p, const Geoid* geoid=0 ) const;
 /*
 6.4.4 Operation ~distance~ (with ~points~)
 
@@ -2342,7 +2351,7 @@ Assignement operator redefinition.
 *Complexity:* $O(m.n)$, where ~m~ is the size of ~U~ and ~n~ the size of ~V~.
 
 */
-    double Distance( const Points& p ) const;
+  double Distance( const Points& p, const Geoid* geoid=0 ) const;
 /*
 6.4.4 Operation ~distance~ (with ~points~)
 
@@ -2353,7 +2362,7 @@ Assignement operator redefinition.
 *Complexity:* $O(m.n)$, where ~m~ is the size of ~U~ and ~n~ the size of ~V~.
 
 */
-  double Distance( const Region& r ) const;
+  double Distance( const Region& r, const Geoid* geoid=0 ) const;
 /*
   6.4.4 Operation ~distance~ (with ~region~)
 
@@ -2365,9 +2374,9 @@ Assignement operator redefinition.
 
 */
 
-  double Distance(const Line& l) const;
+  double Distance(const Line& l, const Geoid* geoid=0) const;
 
-  double Distance( const Rectangle<2>& r ) const;
+  double Distance( const Rectangle<2>& r, const Geoid* geoid=0 ) const;
 /*
   6.4.4 Operation ~distance~ (with ~rect2~)
 
@@ -2404,7 +2413,7 @@ and must be deleted outside.
 is the ~points~ result size.
 
 */
-    void TouchPoints( const Line& l, Points& result ) const;
+  void TouchPoints( const Line& l, Points& result, const Geoid* geoid=0 ) const;
 /*
 6.4.5 Operation ~touch[_]points~ (with ~region~)
 
@@ -2416,7 +2425,8 @@ is the ~points~ result size.
 is the ~points~ result size.
 
 */
-    void TouchPoints( const Region& r, Points& result ) const;
+  void TouchPoints( const Region& r, Points& result,
+                    const Geoid* geoid=0 ) const;
 /*
 6.4.5 Operation ~common[_]border~
 
@@ -2428,7 +2438,8 @@ is the ~points~ result size.
 is the ~line~ result size.
 
 */
-    void CommonBorder( const Region& r, Line& result ) const;
+  void CommonBorder( const Region& r, Line& result,
+                     const Geoid* geoid=0 ) const;
 /*
 6.4.5 Operation ~no\_components~
 
@@ -2450,7 +2461,7 @@ is the ~line~ result size.
 *Complexity:* $O(m)$, where ~m~ is the size of ~U~.
 
 */
-    void Vertices( Points* result ) const;
+    void Vertices( Points* result, const Geoid* geoid=0 ) const;
 
 
 /*
@@ -2463,7 +2474,7 @@ is the ~line~ result size.
 *Complexity:* $O(m)$, where ~m~ is the size of ~U~.
 
 */
-    void Boundary(Line* result) const;
+    void Boundary(Line* result, const Geoid* geoid=0) const;
 
 /*
 4.4 Object Traversal Functions
@@ -2503,7 +2514,7 @@ Gets the current half segment from the ~region~ value according to the ~pos~ poi
 *Complexity:* $O( n )$  where ~n~ is the number of segments of the region.
 
 */
-    bool Contains( const Point& p ) const;
+    bool Contains( const Point& p, const Geoid* geoid=0 ) const;
 /*
 7.9 innercontain function
 
@@ -2512,7 +2523,7 @@ Gets the current half segment from the ~region~ value according to the ~pos~ poi
 *Complexity:* $O( n )$  where ~n~ is the number of segments of the region.
 
 */
-    bool InnerContains( const Point& p ) const;
+    bool InnerContains( const Point& p, const Geoid* geoid=0 ) const;
 /*
 7.10 contain function (segment)
 
@@ -2521,7 +2532,7 @@ Gets the current half segment from the ~region~ value according to the ~pos~ poi
 *Complexity:* $O( n )$  where ~n~ is the number of segments of the region.
 
 */
-    bool Contains( const HalfSegment& hs ) const;
+    bool Contains( const HalfSegment& hs, const Geoid* geoid=0 ) const;
 /*
 7.10 inner contain function (segment)
 
@@ -2530,7 +2541,7 @@ Gets the current half segment from the ~region~ value according to the ~pos~ poi
 *Complexity:* $O( n )$  where ~n~ is the number of segments of the region.
 
 */
-    bool InnerContains( const HalfSegment& hs ) const;
+    bool InnerContains( const HalfSegment& hs, const Geoid* geoid=0 ) const;
 /*
 7.10 intersects function (segment)
 
@@ -2539,7 +2550,7 @@ Gets the current half segment from the ~region~ value according to the ~pos~ poi
 *Complexity:* $O( n )$  where ~n~ is the number of segments of the region.
 
 */
-    bool Intersects( const HalfSegment& hs ) const;
+    bool Intersects( const HalfSegment& hs, const Geoid* geoid=0 ) const;
 /*
 7.11 holeedge-contain function
 
@@ -2548,7 +2559,7 @@ Gets the current half segment from the ~region~ value according to the ~pos~ poi
 *Complexity:* $O( n )$  where ~n~ is the number of segments of the region.
 
 */
-    bool HoleEdgeContain( const HalfSegment& hs ) const;
+    bool HoleEdgeContain( const HalfSegment& hs, const Geoid* geoid=0 ) const;
 /*
 The following two functions are used to sort the half segments according to their attributes;
 
@@ -2681,7 +2692,7 @@ result from the clipping of a region to a clip window.
 
 */
   void WindowClippingIn(const Rectangle<2> &window,
-                        Region &clippedRegion) const;
+                        Region &clippedRegion, const Geoid* geoid=0) const;
 
 /*
 7.15.2 Window clipping OUT function
@@ -2692,7 +2703,7 @@ result from the clipping of a region to a clip window.
 */
 
   void WindowClippingOut(const Rectangle<2> &window,
-                         Region &clippedRegion) const;
+                         Region &clippedRegion, const Geoid* geoid=0) const;
 /*
 7.15.3 Get clipped half segment function
 
@@ -2708,7 +2719,8 @@ edge is completly inside the window.
 
 */
   void GetClippedHS(const Rectangle<2> &window,
-                    Region &clippedRegion,bool inside) const;
+                    Region &clippedRegion, bool inside,
+                    const Geoid* geoid=0) const;
 /*
 7.15.4 Get clipped half segment IN function
 
@@ -2720,7 +2732,7 @@ resulting from the clipping of a region to a clip window.
   void GetClippedHSIn(const Rectangle<2> &window,
                       Region &clippedRegion,
                       vector<EdgePoint> pointsOnEdge[4],
-                      int &partnerno) const;
+                      int &partnerno, const Geoid* geoid=0) const;
 /*
 7.15.5 Get clipped half segment OUT function
 
@@ -2731,7 +2743,7 @@ resulting from the clipping of a region to a clip window.
  void GetClippedHSOut(const Rectangle<2> &window,
                       Region &clippedRegion,
                       vector<EdgePoint> pointsOnEdge[4],
-                      int &partnerno) const;
+                      int &partnerno, const Geoid* geoid=0) const;
 /*
 7.15.6 Add clipped half segment function
 
@@ -2756,7 +2768,8 @@ new half segments that lies on edge.
    static bool ClippedHSOnEdge(const Rectangle<2> &window,
                                const HalfSegment &chs,
                                bool clippingIn,
-                               vector<EdgePoint> pointsOnEdge[4]);
+                               vector<EdgePoint> pointsOnEdge[4],
+                               const Geoid* geoid=0);
 /*
 7.15.8 Create new segments function
 
@@ -2766,7 +2779,8 @@ of the points that lies on the window's edges.
 */
    static void CreateNewSegments(vector <EdgePoint>pointsOnEdge, Region &cr,
                                  const Point &bPoint,const Point &ePoint,
-                                 WindowEdge edge,int &partnerno,bool inside);
+                                 WindowEdge edge,int &partnerno,bool inside,
+                                 const Geoid* geoid=0);
 /*
 7.15.9 Create new segments function
 
@@ -2777,7 +2791,8 @@ the window.
 */
    void CreateNewSegmentsWindowVertices(const Rectangle<2> &window,
                                 vector<EdgePoint> pointsOnEdge[4],Region &cr,
-                                int &partnerno,bool inside) const;
+                                int &partnerno,bool inside,
+                                const Geoid* geoid=0) const;
 /*
 7.15.10 Compute region function
 
@@ -2848,7 +2863,7 @@ is a hole of an existing face, or if it is a cycle of a new face.
 */
   int GetNewFaceNo(HalfSegment &chsS,bool *cycle);
 
-  double Area() const;
+  double Area(const Geoid* geoid = 0) const;
 
   double SpatialSize() const{
     return Area();
@@ -2900,7 +2915,7 @@ The region must be defined!
   }
 
   static const string BasicType(){
-    return symbols::REGION;
+    return "region";
   }
 
    inline Region() {}
@@ -3188,7 +3203,7 @@ class SCycle
 };
 
 double Angle(const Point &v, const Point &p1, const Point &p2);
-double VectorSize(const Point &p1, const Point &p2);
+double VectorSize(const Point &p1, const Point &p2, const Geoid* geoid = 0);
 
 /*
 11 The inline functions
@@ -3232,10 +3247,10 @@ inline void Point::Set( const Coord& x, const Coord& y )
   this->y = y;
 }
 
-inline Point Point::Add( const Point& p ) const
+inline Point Point::Add( const Point& p, const Geoid* geoid /*=0*/ ) const
 {
   assert( IsDefined() && p.IsDefined() );
-  if( !IsDefined() || !p.IsDefined() ) {
+  if( !IsDefined() || !p.IsDefined() || (geoid && !geoid->IsDefined()) ) {
     return Point( false, 0.0, 0.0 );
   }
   return Point( true, this->x + p.x, this->y + p.y );
@@ -3482,169 +3497,6 @@ inline void Points::TrimToSize(){
   points.TrimToSize();
 }
 
-/*
-11.3 Class ~HalfSegment~
-
-*/
-inline
-HalfSegment::HalfSegment( bool ldp,
-                          const Point& lp,
-                          const Point& rp ):
-ldp( ldp ),
-lp( lp ),
-rp( rp ),
-attr(-99999)
-{
-  assert(lp.IsDefined());
-  assert(rp.IsDefined());
-  assert( !AlmostEqual( lp, rp ) );
-
-  if( lp > rp )
-  {
-    this->lp = rp;
-    this->rp = lp;
-  }
-}
-
-inline
-HalfSegment::HalfSegment( const HalfSegment& hs ):
-ldp( hs.ldp ),
-lp( hs.lp ),
-rp( hs.rp ),
-attr( hs.attr )
-{
-  assert(lp.IsDefined());
-  assert(rp.IsDefined());
-}
-
-inline const Point&
-HalfSegment::GetLeftPoint() const
-{
-  return lp;
-}
-
-inline const Point&
-HalfSegment::GetRightPoint() const
-{
-  return rp;
-}
-
-inline const Point&
-HalfSegment::GetDomPoint() const
-{
-  if( ldp )
-    return lp;
-  return rp;
-}
-
-inline const Point&
-HalfSegment::GetSecPoint() const
-{
-  if( ldp )
-    return rp;
-  return lp;
-}
-
-inline bool
-HalfSegment::IsLeftDomPoint() const
-{
-  return ldp;
-}
-
-inline void
-HalfSegment::SetLeftDomPoint( bool ldp )
-{
-  this->ldp = ldp;
-}
-
-inline bool HalfSegment::IsVertical()const{
-  return AlmostEqual(lp.GetX(),rp.GetX());
-}
-
-
-inline const Rectangle<2>
-HalfSegment::BoundingBox() const
-{
-  double minx = MIN( GetLeftPoint().GetX(), GetRightPoint().GetX() ),
-         maxx = MAX( GetLeftPoint().GetX(), GetRightPoint().GetX() ),
-         miny = MIN( GetLeftPoint().GetY(), GetRightPoint().GetY() ),
-         maxy = MAX( GetLeftPoint().GetY(), GetRightPoint().GetY() );
-
-  return Rectangle<2>( true,
-                       minx - ApplyFactor(minx),
-                       maxx + ApplyFactor(maxx),
-                       miny - ApplyFactor(miny),
-                       maxy + ApplyFactor(maxy) );
-}
-
-inline const AttrType&
-HalfSegment::GetAttr() const
-{
-  return attr;
-}
-
-inline void
-HalfSegment::SetAttr( AttrType& attr )
-{
-  this->attr = attr;
-}
-
-inline double
-HalfSegment::Length() const
-{
-  return rp.Distance( lp );
-}
-
-inline double
-HalfSegment::LengthOrthodrome(const Geoid& g, bool& valid) const
-{
-  return rp.DistanceOrthodrome( lp, g, valid );
-}
-
-
-inline Point
-HalfSegment::AtPosition( double pos ) const
-{
-  if( pos < 0 ||
-      AlmostEqual( pos, 0 ) ){
-    return GetDomPoint();
-  }
-  if( pos > Length() ||
-      AlmostEqual( pos, Length() ) ){
-    return GetSecPoint();
-  }
-  return Point( true,
-                GetDomPoint().GetX() + pos *
-                  (GetSecPoint().GetX() - GetDomPoint().GetX()) / Length(),
-                GetDomPoint().GetY() + pos *
-                  (GetSecPoint().GetY() - GetDomPoint().GetY()) / Length() );
-}
-
-inline double
-HalfSegment::AtPoint( const Point& p ) const
-{
-  assert( p.IsDefined() );
-  assert( Contains( p ) );
-  if( AlmostEqual( rp.GetX(), lp.GetX() ) &&
-      AlmostEqual( p.GetX(), rp.GetX() ) ){
-    // the segment is vertical
-    return Length() * (p.GetY() - GetDomPoint().GetY()) /
-                      (GetSecPoint().GetY() - GetDomPoint().GetY());
-  }
-  return Length() * (p.GetX() - GetDomPoint().GetX()) /
-                    (GetSecPoint().GetX() - GetDomPoint().GetX());
-}
-
-inline bool
-HalfSegment::SubHalfSegment( double pos1, double pos2,
-                                         HalfSegment& result ) const
-{
-  if( AlmostEqual( AtPosition( pos1 ), AtPosition( pos2 ) ) ){
-    return false;
-  }
-  result.Set( true, AtPosition( pos1 ), AtPosition( pos2 ) );
-  return true;
-}
 
 /*
 11.4 Class ~Line~
@@ -4195,29 +4047,6 @@ private:
 
 
 /*
-11.4 Auxiliary functions
-
-*/
-inline bool AlmostEqual( const Point& p1, const Point& p2 )
-{
-  return AlmostEqual( p1.GetX(), p2.GetX() ) &&
-         AlmostEqual( p1.GetY(), p2.GetY() );
-}
-
-inline bool AlmostEqual( const HalfSegment& hs1, const HalfSegment& hs2 )
-{
-  return AlmostEqual( hs1.GetDomPoint(), hs2.GetDomPoint() ) &&
-         AlmostEqual( hs1.GetSecPoint(), hs2.GetSecPoint() );
-}
-
-inline double ApplyFactor( const double d )
-{
-  if( fabs(d) <= 10.0 )
-    return FACTOR * fabs(d);
-  return FACTOR;
-}
-
-/*
 4 Some classes realizing different projections
 
 
@@ -4246,7 +4075,7 @@ public:
      long lzn = 39;
 
      //long bd = (int)(1+(bw+80)/8);
-     double br = bw*PI/180;
+     double br = bw*M_PI/180;
      double tan1 = tan(br);
      double tan2 = tan1*tan1;
      double tan4 = tan2*tan2;
@@ -4260,7 +4089,7 @@ public:
      double nd = c/sqrt(1+etasq);
      double g = e0*bw + e2*sin(2*br) + e4*sin(4*br) + e6*sin(6*br);
      long lh = (lzn - 30)*6 - 3;
-     double dl = (lw - lh)*PI/180;
+     double dl = (lw - lh)*M_PI/180;
      double dl2 = dl*dl;
      double dl4 = dl2*dl2;
      double dl3 = dl2*dl;
@@ -4300,7 +4129,7 @@ private:
     ex4 = ex2*ex2;
     ex6 = ex4*ex2;
     ex8 = ex4*ex4;
-    e0 = c*(PI/180)*(1 - 3*ex2/4 +
+    e0 = c*(M_PI/180)*(1 - 3*ex2/4 +
                45*ex4/64  - 175*ex6/256  + 11025*ex8/16384);
     e2 = c*(  - 3*ex2/8 + 15*ex4/32  - 525*ex6/1024 +  2205*ex8/4096);
     e4 = c*(15*ex4/256 - 105*ex6/1024 +  2205*ex8/16384);
@@ -4383,7 +4212,8 @@ This function realizes some set operations on two line objects.
 or avlseg::intersection[_]op.
 
 */
-Line* SetOp(const Line& line1, const Line& line2, avlseg::SetOperation op);
+Line* SetOp(const Line& line1, const Line& line2, avlseg::SetOperation op,
+            const Geoid* geoid=0 );
 
 /*
 ~SetOp~
@@ -4393,22 +4223,23 @@ This function realizes some set operations on two region objects.
 or avlseg::intersection[_]op.
 
 */
-Region* SetOp(const Region& reg1, const Region& reg2, avlseg::SetOperation op);
+Region* SetOp(const Region& reg1, const Region& reg2, avlseg::SetOperation op,
+              const Geoid* geoid=0 );
 
 
 
 void SetOp(const Line& line, const Region& region,
-           Line& result, avlseg::SetOperation op);
+           Line& result, avlseg::SetOperation op, const Geoid* geoid=0);
 
 void SetOp(const Line& line, const Region& region,
-           Region& result, avlseg::SetOperation op);
+           Region& result, avlseg::SetOperation op, const Geoid* geoid=0);
 
 
 void SetOp(const Line& line1, const Line& line2,
-           Line& result, avlseg::SetOperation op);
+           Line& result, avlseg::SetOperation op, const Geoid* geoid=0);
 
 void SetOp(const Region& reg1, const Region& reg2,
-          Region& result, avlseg::SetOperation op);
+           Region& result, avlseg::SetOperation op, const Geoid* geoid=0);
 /*
 ~Realminize~
 
@@ -4528,7 +4359,8 @@ avlseg::ownertype selectNext( const Line& line,
 
 void Realminize2(const Line& src, Line& result);
 
-void CommonBorder( const Region& reg1, const Region& reg2, Line& result);
+void CommonBorder( const Region& reg1, const Region& reg2, Line& result,
+                   const Geoid* geoid = 0);
 
 struct P3D;
 

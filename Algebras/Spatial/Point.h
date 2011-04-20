@@ -20,6 +20,10 @@ class Points;
 class Line;
 class Region;
 
+/*
+4.0 Auxiliary functions
+
+*/
 inline bool AlmostEqual( const Point& p1, const Point& p2 );
 
 class Point: public StandardSpatialAttribute<2>
@@ -147,7 +151,7 @@ Operators redefinition.
 *Complexity:* $O(log(n))$, where ~n~ is the size of the point set ~V~
 
 */
-    bool Inside( const Points& ps ) const;
+  bool Inside( const Points& ps, const Geoid* geoid=0 ) const;
 /*
 4.3.8 Operation ~inside~ (with ~rectangle~)
 
@@ -158,7 +162,7 @@ Operators redefinition.
 *Complexity:* $O(1)$
 
 */
-    bool Inside( const Rectangle<2>& r ) const;
+  bool Inside( const Rectangle<2>& r, const Geoid* geoid=0 ) const;
 /*
 6.4.4 Operation ~inside~ (with ~line~)
 
@@ -169,7 +173,7 @@ Operators redefinition.
 *Complexity:* $O(n)$, where ~n~ is the size of ~V~.
 
 */
-    bool Inside( const Line& l ) const;
+  bool Inside( const Line& l, const Geoid* geoid=0 ) const;
 /*
 6.4.4 Operation ~inside~ (with ~region~)
 
@@ -180,18 +184,20 @@ Operators redefinition.
 *Complexity:* $O(log(n))$, where ~n~ is the size of ~V~.
 
 */
-    bool Inside( const Region& r ) const;
+  bool Inside( const Region& r, const Geoid* geoid=0 ) const;
 /*
 4.3.13 Operation ~distance~ (with ~point~)
 
-*Precondition:* ~u.IsDefined()~ and ~v.IsDefined()~
+*Precondition:* ~u.IsDefined()~ and ~v.IsDefined()~ and (~geoid == NULL~ or
+~geoid.IsDefined()~
 
-*Semantics:* $dist(u,v) = \sqrt{(u.x - v.x)^2 + (u.y - v.y)^2}$
+*Semantics:* $dist(u,v) = \sqrt{(u.x - v.x)^2 + (u.y - v.y)^2}$ If ~geoid~ is NULL,
+euclidean geometry is used, otherwise spherical geometry.
 
 *Complexity:* $O(1)$
 
 */
-    double Distance( const Point& p ) const;
+    double Distance( const Point& p, const Geoid* geoid = 0 ) const;
 /*
 4.3.13 Operation ~distance~ (with ~points~)
 
@@ -202,14 +208,38 @@ Operators redefinition.
 *Complexity:* $O(n)$, where ~n~ is the size of ~V~
 
 */
-    double Distance( const Points& ps ) const;
+    double Distance( const Points& ps, const Geoid geoid = 0 ) const;
 /*
 4.3.13 Operation ~distance~ (with ~rect2~)
 
-*Precondition:* ~u.IsDefined()~ and ~V.IsOrdered()~
+*Precondition:* ~u.IsDefined()~ and ~V.IsOrdered()~ and (~geoid == NULL~ or
+~geoid.IsDefined()~
+
+*Semantics:* Returns ~p~'s minimum distances to a member of the pointset ~ps~.
+If ~geoid~ is NULL, euclidean geometry is used, otherwise spherical geometry.
 
 */
-    double Distance( const Rectangle<2>& r ) const;
+    double Distance( const Rectangle<2>& r, const Geoid* geoid=0 ) const;
+
+
+/*
+4.1 Spherical geometry operations
+
+While the preceding operations use euclidic geometry, the following operations
+use Spherical geometry.
+
+*/
+
+/*
+4.1.2 Operation ~checkGeographicCoord~
+
+Return true iff the Point represents valid geographic coordinate, i.e.
+the Point is defined, and
+the X-coordinate represents a valid Longitude ( -180.0<=X<=180.), and
+the Y-coordinate represents a valid Latitude (-90.0<=Y<=90.0).
+
+*/
+  bool checkGeographicCoord() const;
 
 /*
 4.3.13 Operation ~calcEnclosedAngle~
@@ -227,9 +257,9 @@ is applied during spherical geometric calculation.
 
 4.3.13 Operation ~direction~
 
-*Precondition:* ~u.IsDefined()~ and ~v.IsDefined()~
+*Precondition:* ~u.IsDefined()~ and ~v.IsDefined()~ and ~not AlmostEqual(u,p)~
 
-*Semantics:* returns the angle of the line from ~[*]this~ to ~p~, measured in degrees.
+*Semantics:* returns the angle of the line from ~this~ to ~p~, measured in degrees.
 
 *Complexity:* $O(1)$
 
@@ -237,28 +267,23 @@ If ~geoid~ is NULL, euclidean geometry is used, otherwise the geoid object
 is applied during spherical geometric calculation.
 
 */
-    double Direction( const Point& p, const Geoid* geoid = 0) const;
+  double Direction( const Point& p, const Geoid* geoid = 0) const;
 
 /*
- 4.3.13 Operation ~heading~
 
- Computes the heading (direction on a shere) betwenn points given as 
- (LON, LAT). The result will be in range 0..360 if both points are defined and
- not equal. otherwise -1. If the geoid is null, the unit circle is used to compute
- the heading, otherwise the geoid.
+4.3.13 Operation ~heading~
 
-*/
-   double Heading(const Point& p, const Geoid* geoid = 0) const;
-
-
-
-/*
-4.1 Spherical geometry operations
-
-While the preceding operations use euclidic geometry, the following operations
-use Spherical geometry.
+Computes the heading (direction on a sphere) between two points given as
+(LON, LAT). The result will be in range 0..360 if both points are defined and
+not equal. otherwise -1. If the geoid is null, the unit circle is used to compute
+the heading, otherwise the geoid.
 
 */
+  double Heading(const Point& p, const Geoid* geoid = 0) const;
+
+
+  Point MidpointTo(const Point& p, const Geoid* geoid = 0) const;
+
 
 /*
 4.1.1 Distance
@@ -292,7 +317,7 @@ This function moves the position of this Point object instance.
 
 /*
 4.3.15 Operation ~rotate~
-
+.
 This function rotates this point around the point defined by (x,y)
 with a degree of alpha. The result is stored in res.
 
@@ -306,30 +331,34 @@ with a degree of alpha. The result is stored in res.
 4.3.16 Intersection with different other spatial types
 
 */
-   void Intersection(const Point& p, Points& result) const;
-   void Intersection(const Points& ps, Points& result) const;
-   void Intersection(const Line& l, Points& result) const;
-   void Intersection(const Region& r, Points& result) const;
+  void Intersection(const Point& p, Points& result,
+                    const Geoid* geoid=0) const;
+  void Intersection(const Points& ps, Points& result,
+                    const Geoid* geoid=0) const;
+  void Intersection(const Line& l, Points& result,
+                    const Geoid* geoid=0) const;
+  void Intersection(const Region& r, Points& result,
+                    const Geoid* geoid=0) const;
 
 
 /*
 4.3.16 Minus with different other spatial types
 
 */
-   void Minus(const Point& p, Points& result) const;
-   void Minus(const Points& ps, Points& result) const;
-   void Minus(const Line& l, Points& result) const;
-   void Minus(const Region& r, Points& result) const;
+  void Minus(const Point& p, Points& result, const Geoid* geoid=0) const;
+  void Minus(const Points& ps, Points& result, const Geoid* geoid=0) const;
+  void Minus(const Line& l, Points& result, const Geoid* geoid=0) const;
+  void Minus(const Region& r, Points& result, const Geoid* geoid=0) const;
 
 
 /*
 4.3.16 Union with different other spatial types
 
 */
-   void Union(const Point& p, Points& result) const;
-   void Union(const Points& ps, Points& result) const;
-   void Union(const Line& l, Line& result) const;
-   void Union(const Region& r, Region& result) const;
+  void Union(const Point& p, Points& result, const Geoid* geoid=0) const;
+  void Union(const Points& ps, Points& result, const Geoid* geoid=0) const;
+  void Union(const Line& l, Line& result, const Geoid* geoid=0) const;
+  void Union(const Region& r, Region& result, const Geoid* geoid=0) const;
 
 
 
@@ -344,11 +373,9 @@ with a degree of alpha. The result is stored in res.
 *Complexity:* $O(1)$
 
 */
-    inline Point Add( const Point& p ) const;
+  inline Point Add( const Point& p, const Geoid* geoid=0 ) const;
 
-    inline bool IsEmpty()const{
-      return !IsDefined();
-    }
+  inline bool IsEmpty()const{ return !IsDefined(); }
 
 /*
 4.4 Functions needed to import the the ~point~ data type to tuple
@@ -451,6 +478,7 @@ as an attribute.
          uint32_t length = 2;
          WinUnix::writeBigEndian(o,length);
          uint32_t type = 0;
+            void distanceOrthodrome(Point arg1, Geoid arg2, bool arg3);
          WinUnix::writeLittleEndian(o,type);
        } else {
          uint32_t length = 10;
@@ -463,7 +491,7 @@ as an attribute.
     }
 
     static const string BasicType(){
-       return symbols::POINT;
+       return "point";
     }
 
 
@@ -489,5 +517,11 @@ The ~y~ coordinate.
 
 */
 ostream& operator<<( ostream& o, const Point& p );
+
+inline bool AlmostEqual( const Point& p1, const Point& p2 )
+{
+  return AlmostEqual( p1.GetX(), p2.GetX() ) &&
+  AlmostEqual( p1.GetY(), p2.GetY() );
+}
 
 #endif

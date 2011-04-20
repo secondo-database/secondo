@@ -58,7 +58,6 @@ using namespace std;
 #include "Algebra.h"
 #include "NestedList.h"
 #include "ListUtils.h"
-#include "Symbols.h"
 #include "GenericTC.h"
 #include "QueryProcessor.h"
 #include "StandardTypes.h"
@@ -118,12 +117,12 @@ SpatialTypeOfSymbol( ListExpr symbol )
   if ( nl->AtomType( symbol ) == SymbolType )
   {
     string s = nl->SymbolValue( symbol );
-    if ( s == "point"  ) return (stpoint);
-    if ( s == "points" ) return (stpoints);
-    if ( s == "line"   ) return (stline);
-    if ( s == "region" ) return (stregion);
+    if ( s == Point::BasicType()  ) return (stpoint);
+    if ( s == Points::BasicType() ) return (stpoints);
+    if ( s == Line::BasicType()   ) return (stline);
+    if ( s == Region::BasicType() ) return (stregion);
     if ( s == "rect"   ) return (stbox);
-    if ( s == "sline"  ) return (stsline);
+    if ( s == SimpleLine::BasicType()  ) return (stsline);
   }
   return (sterror);
 }
@@ -869,25 +868,28 @@ ostream& Point::Print( ostream &os ) const
   return os << *this;
 }
 
-bool Point::Inside( const Region& r ) const
+bool Point::Inside( const Region& r,
+                    const Geoid* geoid /*=0*/ ) const
 {
-  return r.Contains(*this);
+  return r.Contains(*this,geoid);
 }
 
-bool Point::Inside( const Line& l ) const
+bool Point::Inside( const Line& l,
+                    const Geoid* geoid /*=0*/ ) const
 {
-  return l.Contains(*this);
+  return l.Contains(*this,geoid);
 }
 
-bool Point::Inside( const Points& ps ) const
+bool Point::Inside( const Points& ps,
+                    const Geoid* geoid /*=0*/ ) const
 {
-  return ps.Contains(*this);
+  return ps.Contains(*this,geoid);
 }
 
-bool Point::Inside( const Rectangle<2>& r ) const
+bool Point::Inside( const Rectangle<2>& r, const Geoid* geoid /*=0*/ ) const
 {
   assert( r.IsDefined() );
-  if( !IsDefined() || !r.IsDefined() ){
+  if( !IsDefined() || !r.IsDefined() || (geoid && !geoid->IsDefined()) ){
     return false;
   }
   if( x < r.MinD(0) || x > r.MaxD(0) )
@@ -898,9 +900,10 @@ bool Point::Inside( const Rectangle<2>& r ) const
 }
 
 
-void Point::Intersection(const Point& p, Points& result) const{
+void Point::Intersection(const Point& p, Points& result,
+                         const Geoid* geoid /*=0*/ ) const{
   result.Clear();
-  if(!IsDefined() || !p.IsDefined()){
+  if(!IsDefined() || !p.IsDefined() || (geoid && !geoid->IsDefined()) ){
     result.SetDefined(false);
     return;
   }
@@ -909,22 +912,27 @@ void Point::Intersection(const Point& p, Points& result) const{
     result += *this;
   }
 }
-void Point::Intersection(const Points& ps, Points& result) const{
-  ps.Intersection(*this, result);
+
+void Point::Intersection(const Points& ps, Points& result,
+                         const Geoid* geoid /*=0*/ ) const{
+  ps.Intersection(*this, result, geoid);
 }
 
-void Point::Intersection(const Line& l, Points& result) const{
-  l.Intersection(*this, result);
+void Point::Intersection(const Line& l, Points& result,
+                         const Geoid* geoid /*=0*/) const{
+  l.Intersection(*this, result, geoid);
 }
 
-void Point::Intersection(const Region& r, Points& result) const{
-  r.Intersection(*this, result);
+void Point::Intersection(const Region& r, Points& result,
+                         const Geoid* geoid /*=0*/) const{
+  r.Intersection(*this, result, geoid);
 }
 
 
-void Point::Minus(const Point& p, Points& result) const{
+void Point::Minus(const Point& p, Points& result,
+                  const Geoid* geoid /*=0*/) const{
   result.Clear();
-  if(!IsDefined() || !p.IsDefined()){
+  if(!IsDefined() || !p.IsDefined() || (geoid && !geoid->IsDefined())){
     result.SetDefined(false);
     return;
   }
@@ -934,47 +942,51 @@ void Point::Minus(const Point& p, Points& result) const{
   }
 
 }
-void Point::Minus(const Points& ps, Points& result) const{
+void Point::Minus(const Points& ps, Points& result,
+                  const Geoid* geoid /*=0*/) const{
   result.Clear();
-  if(!IsDefined() || !ps.IsDefined()){
+  if(!IsDefined() || !ps.IsDefined() || (geoid && !geoid->IsDefined())){
     result.SetDefined(false);
     return;
   }
   result.SetDefined(true);
 
-  if(!ps.Contains(*this)){
+  if(!ps.Contains(*this, geoid)){
     result += *this;
   }
 }
 
-void Point::Minus(const Line& l, Points& result) const{
+void Point::Minus(const Line& l, Points& result,
+                  const Geoid* geoid /*=0*/) const{
   result.Clear();
-  if(!IsDefined() || !l.IsDefined()){
+  if(!IsDefined() || !l.IsDefined() || (geoid && !geoid->IsDefined())){
     result.SetDefined(false);
     return;
   }
   result.SetDefined(true);
-  if(!l.Contains(*this)){
+  if(!l.Contains(*this, geoid)){
      result += *this;
   }
 }
 
-void Point::Minus(const Region& r, Points& result) const{
+void Point::Minus(const Region& r, Points& result,
+                  const Geoid* geoid /*=0*/) const{
   result.Clear();
-  if(!IsDefined() || !r.IsDefined()){
+  if(!IsDefined() || !r.IsDefined() || (geoid && !geoid->IsDefined())){
     result.SetDefined(false);
     return;
   }
   result.SetDefined(true);
-  if(!r.Contains(*this)){
+  if(!r.Contains(*this, geoid)){
     result += *this;
   }
 }
 
 
-void Point::Union(const Point& p, Points& result) const{
+void Point::Union(const Point& p, Points& result,
+                  const Geoid* geoid /*=0*/) const{
   result.Clear();
-  if(!IsDefined() || !p.IsDefined()){
+  if(!IsDefined() || !p.IsDefined() || (geoid && !geoid->IsDefined())){
     result.SetDefined(false);
     return;
   }
@@ -985,34 +997,53 @@ void Point::Union(const Point& p, Points& result) const{
   result.EndBulkLoad();
 }
 
-void Point::Union(const Points& ps, Points& result) const{
-  ps.Union(*this, result);
+void Point::Union(const Points& ps, Points& result,
+                  const Geoid* geoid /*=0*/) const{
+  ps.Union(*this, result, geoid);
 }
 
-void Point::Union(const Line& l, Line& result) const{
-  l.Union(*this, result);
+void Point::Union(const Line& l, Line& result,
+                  const Geoid* geoid /*=0*/) const{
+  l.Union(*this, result, geoid);
 }
 
-void Point::Union(const Region& r, Region& result) const{
-  r.Union(*this, result);
+void Point::Union(const Region& r, Region& result,
+                  const Geoid* geoid /*=0*/) const{
+  r.Union(*this, result, geoid);
 }
 
 
 
-double Point::Distance( const Point& p ) const
+double Point::Distance( const Point& p, const Geoid* geoid /* = 0 */ ) const
 {
   assert( IsDefined() );
   assert( p.IsDefined() );
-  double dx = p.x - x,
-         dy = p.y - y;
-
-  return sqrt( pow( dx, 2 ) + pow( dy, 2 ) );
+  assert( !geoid || geoid->IsDefined() );
+  if(geoid){
+    bool ok = false;
+    double d = DistanceOrthodrome(p,geoid,ok);
+    if(ok){
+      return d;
+    } else{
+      assert(false);
+    }
+  } else {
+    double dx = p.x - x,
+           dy = p.y - y;
+    return sqrt( pow( dx, 2 ) + pow( dy, 2 ) );
+  }
 }
 
-double Point::Distance( const Rectangle<2>& r ) const
+double Point::Distance( const Rectangle<2>& r, const Geoid* geoid/*=0*/ ) const
 {
   assert( IsDefined() );
   assert( r.IsDefined() );
+  assert( !geoid || geoid->IsDefined() );
+  if(geoid){
+    cout << __PRETTY_FUNCTION__ << ": Spherical geometry not implemented!"
+         << endl; // TODO: implement spherical gemetry case
+    assert(false);
+  }
   double rxmin = r.MinD(0), rxmax = r.MaxD(0),
          rymin = r.MinD(1), rymax = r.MaxD(1);
   double dx =
@@ -1031,7 +1062,7 @@ double Point::Distance( const Rectangle<2>& r ) const
 double Point::calcEnclosedAngle( const Point &a,
         const Point &b,
         const Point &c,
-        const Geoid* geoid){
+        const Geoid* geoid /* = 0 */){
   double beta = 0.0;
   errno = 0;
   if(geoid){ // use sperical trigonometry
@@ -1064,16 +1095,14 @@ double Point::calcEnclosedAngle( const Point &a,
   return beta;
 }
 
-double Point::Direction( const Point& p, const Geoid* geoid ) const
+double Point::Direction( const Point& p, const Geoid* geoid /* = 0 */) const
 {
   assert(IsDefined());
   assert(p.IsDefined());
   assert( !AlmostEqual( *this, p ) );
   if(geoid){
-    assert( geoid->IsDefined() );
-    cerr << "Spherical geometry case not implemented." << endl;
-    assert(false);
-  }
+    return Heading(p, geoid);
+  } // else: euclidean geometry
 
   Coord x1 = x,
         y1 = y,
@@ -1116,7 +1145,7 @@ double Point::Heading(const Point& p , const Geoid* geoid /*=0*/) const{
    if(AlmostEqual(*this, p)){
       return -1;
    }
-  
+
    double f_a = GetY()*M_PI/180.0;
    double l_a = GetX()*M_PI/180.0;
    double f_b = p.GetY()*M_PI/180.0;
@@ -1144,7 +1173,7 @@ double Point::Heading(const Point& p , const Geoid* geoid /*=0*/) const{
    }
 
    sin_zeta = sin(zeta);
-   
+
 
    double cos_alpha;
    if(fabs(sin_f_a) > fabs(cos_f_a)){
@@ -1163,11 +1192,9 @@ double Point::Heading(const Point& p , const Geoid* geoid /*=0*/) const{
    double res =  alpha*180.0/M_PI;
    return res;
 
- 
+
 
 }
-
-
 
 
 void Point::Rotate(const Coord& x, const Coord& y,
@@ -1201,13 +1228,10 @@ use Spherical geometry.
 
 */
 
-/*
-Auxiliary Function: Check whether p represents valis geographic coordinates
-
-*/
-bool checkGeographicCoord(const Point& p) {
-  return    (p.GetX() >= -180) && (p.GetX() <= 180)
-         && (p.GetY() >= -90) && (p.GetY() <= 90);
+bool Point::checkGeographicCoord() const {
+  return    IsDefined()
+         && (GetX() >= -180) && (GetX() <= 180)
+         && (GetY() >= -90) && (GetY() <= 90);
 }
 
 /*
@@ -1224,8 +1248,7 @@ double Point::DistanceOrthodrome( const Point& p,
                                   const Geoid& g,
                                   bool& valid) const
 {
-  valid =    IsDefined()                 && p.IsDefined()
-          && checkGeographicCoord(*this) && checkGeographicCoord(p);
+  valid =  this->checkGeographicCoord() && p.checkGeographicCoord();
   if(!valid){
     return 0.0;
   }
@@ -1277,6 +1300,43 @@ double Point::DistanceOrthodrome( const Point& p,
   assert( errno == 0 );
   assert( s >= 0 );
   return s;
+}
+
+Coord radToDeg(const Coord & rad) {
+  return (180.0 * rad)/M_PI;
+}
+
+Coord degToRad(const Coord &deg) {
+  return (deg * M_PI)/180.0;
+}
+
+Point Point::MidpointTo(const Point& p, const Geoid* geoid /* = 0 */ ) const
+{
+  if ( !this->IsDefined() || !p.IsDefined() ) {
+    return Point( false );
+  }
+
+  if( AlmostEqual(*this,p) ){ // no calculation required.
+    return *this;
+  }
+  if(geoid){ // spherical geometry
+    // TODO: Use ellipsoid ~geoid~ instead of ideal sphere!
+    bool ok = this->checkGeographicCoord() && p.checkGeographicCoord();
+    double lon1 = degToRad( GetX() );
+    double lat1 = degToRad( GetY() );
+    double lat2 = degToRad( p.GetY() );
+    double dLon = degToRad( p.GetX() - GetX() );
+    errno = 0;
+    double Bx = cos(lat2) * cos(dLon);
+    double By = cos(lat2) * sin(dLon);
+    double lat3 = atan2( sin(lat1)+sin(lat2),
+                         sqrt( (cos(lat1)+Bx)*(cos(lat1)+Bx) + By*By) );
+                         double lon3 = lon1 + atan2(By, cos(lat1) + Bx);
+                         return Point( (ok && (errno == 0)), radToDeg(lat3),
+                                       radToDeg(lon3));
+  } else { // euclidean geometry
+    return Point( true, ( GetX() + p.GetX() )/2.0, ( GetY() + p.GetY() )/2.0 );
+  }
 }
 
 /*
@@ -1399,7 +1459,7 @@ PointProperty()
              nl->StringAtom("Example List")),
            nl->FourElemList(
              nl->StringAtom("-> DATA"),
-             nl->StringAtom("point"),
+             nl->StringAtom(Point::BasicType()),
              nl->StringAtom("(x y)"),
              nl->StringAtom("(10 5)")));
 }
@@ -1414,7 +1474,7 @@ type constructor ~point~ does not have arguments, this is trivial.
 bool
 CheckPoint( ListExpr type, ListExpr& errorInfo )
 {
-  return (listutils::isSymbol( type, "point" ));
+  return (listutils::isSymbol( type, Point::BasicType() ));
 }
 
 /*
@@ -1431,7 +1491,7 @@ void* CastPoint(void* addr)
 
 */
 TypeConstructor point(
-  "point",                    //name
+  Point::BasicType(),                    //name
   PointProperty,              //property function describing signature
   OutPoint,      InPoint,     //Out and In functions
   0,             0,           //SaveToList and RestoreFromList functions
@@ -1864,30 +1924,32 @@ void Points::RemoveDuplicates()
  allPoints.destroy();
 }
 
-bool Points::Contains( const Point& p ) const
+bool Points::Contains( const Point& p, const Geoid* geoid /*=0*/ ) const
 {
   assert( IsDefined() );
   assert( p.IsDefined() );
   assert( IsOrdered() );
+  assert( !geoid || geoid->IsDefined() );
 
   if( IsEmpty() )
     return false;
 
-  if( !p.Inside( bbox ) )
+  if( !p.Inside( bbox, geoid ) )
     return false;
 
   int pos;
   return Find( p, pos, false ); // find using AlmostEqual
 }
 
-bool Points::Contains( const Points& ps ) const
+bool Points::Contains( const Points& ps, const Geoid* geoid /*=0*/ ) const
 {
   assert( IsDefined() );
   assert( IsOrdered() );
   assert( ps.IsDefined() );
   assert( ps.IsOrdered() );
+  assert( !geoid || geoid->IsDefined() );
 
-  if(!IsDefined() || !ps.IsDefined()){
+  if(!IsDefined() || !ps.IsDefined() || (geoid && !geoid->IsDefined()) ){
     return false;
   }
 
@@ -1897,7 +1959,7 @@ bool Points::Contains( const Points& ps ) const
   if( IsEmpty() || ps.IsEmpty() )
     return false;
 
-  if( !bbox.Contains( ps.BoundingBox() ) )
+  if( !bbox.Contains( ps.BoundingBox(), geoid ) )
     return false;
 
   object obj;
@@ -1914,21 +1976,23 @@ bool Points::Contains( const Points& ps ) const
   return true;
 }
 
-bool Points::Inside( const Points& ps ) const
+bool Points::Inside( const Points& ps, const Geoid* geoid /*=0*/ ) const
 {
   assert( IsDefined() );
   assert( IsOrdered() );
   assert( ps.IsDefined() );
   assert( ps.IsOrdered() );
-  return ps.Contains( *this );
+  assert( !geoid || geoid->IsDefined() );
+  return ps.Contains( *this, geoid );
 }
 
-bool Points::Inside( const Line& l ) const
+bool Points::Inside( const Line& l, const Geoid* geoid /*=0*/ ) const
 {
   assert( IsDefined() );
   assert( IsOrdered() );
   assert( l.IsDefined() );
   assert( l.IsOrdered() );
+  assert( !geoid || geoid->IsDefined() );
 
   if( IsEmpty() )
     return true;
@@ -1936,25 +2000,32 @@ bool Points::Inside( const Line& l ) const
   if( l.IsEmpty() )
     return false;
 
-  if( !l.BoundingBox().Contains( bbox ) )
+  if( !l.BoundingBox().Contains( bbox, geoid ) )
     return false;
 
   Point p;
   for( int i = 0; i < Size(); i++ )
   {
     Get( i, p );
-    if( !l.Contains( p ) )
+    if( !l.Contains( p, geoid ) )
       return false;
   }
   return true;
 }
 
-bool Points::Inside( const Region& r ) const
+bool Points::Inside( const Region& r, const Geoid* geoid /*=0*/ ) const
 {
   assert( IsDefined() );
   assert( IsOrdered() );
   assert( r.IsDefined() );
   assert( r.IsOrdered() );
+  assert( !geoid || geoid->IsDefined() );
+
+  if(geoid){
+    cout << __PRETTY_FUNCTION__ << ": Spherical geometry not implemented."
+         <<endl;
+    assert(false); // TODO: Implement spherical geometry case.
+  }
 
   if( IsEmpty() )
     return true;
@@ -1962,30 +2033,31 @@ bool Points::Inside( const Region& r ) const
   if( r.IsEmpty() )
     return false;
 
-  if( !r.BoundingBox().Contains( bbox ) )
+  if( !r.BoundingBox().Contains( bbox, geoid ) )
     return false;
 
   Point p;
   for( int i = 0; i < Size(); i++ )
   {
     Get( i, p );
-    if( !r.Contains( p ) )
+    if( !r.Contains( p, geoid ) )
       return false;
   }
   return true;
 }
 
-bool Points::Intersects( const Points& ps ) const
+bool Points::Intersects( const Points& ps, const Geoid* geoid /*=0*/ ) const
 {
   assert( IsDefined() );
   assert( IsOrdered() );
   assert( ps.IsDefined() );
   assert( ps.IsOrdered() );
+  assert( !geoid || geoid->IsDefined() );
 
-  if( IsEmpty() || ps.IsEmpty() )
+  if( IsEmpty() || ps.IsEmpty() || (geoid && !geoid->IsDefined()) )
     return false;
 
-  if( !bbox.Intersects( ps.BoundingBox() ) )
+  if( !bbox.Intersects( ps.BoundingBox(), geoid ) )
     return false;
 
   object obj;
@@ -2001,64 +2073,85 @@ bool Points::Intersects( const Points& ps ) const
   return false;
 }
 
-bool Points::Intersects( const Line& l ) const
+bool Points::Intersects( const Line& l, const Geoid* geoid /*=0*/ ) const
 {
   assert( IsDefined() );
   assert( IsOrdered() );
   assert( l.IsDefined() );
   assert( l.IsOrdered() );
+  assert( !geoid || geoid->IsDefined() );
 
-  if( IsEmpty() || l.IsEmpty() )
+  if(geoid){
+    cout << __PRETTY_FUNCTION__ << ": Spherical geometry not implemented."
+         <<endl;
+    assert(false); // TODO: Implement spherical geometry case.
+  }
+
+  if( IsEmpty() || l.IsEmpty() || (geoid && !geoid->IsDefined()))
     return false;
 
-  if( !BoundingBox().Intersects( l.BoundingBox() ) )
+  if( !BoundingBox().Intersects( l.BoundingBox(), geoid ) )
     return false;
 
   Point p;
   for( int i = 0; i < Size(); i++ )
   {
     Get( i, p );
-    if( l.Contains( p ) )
+    if( l.Contains( p, geoid ) )
       return true;
   }
 
   return false;
 }
 
-bool Points::Intersects( const Region& r ) const
+bool Points::Intersects( const Region& r, const Geoid* geoid /*=0*/ ) const
 {
   assert( IsDefined() );
   assert( IsOrdered() );
   assert( r.IsDefined() );
   assert( r.IsOrdered() );
+  assert( !geoid || geoid->IsDefined() );
 
-  if( IsEmpty() || r.IsEmpty() )
+  if(geoid){
+    cout << __PRETTY_FUNCTION__ << ": Spherical geometry not implemented."
+         <<endl;
+    assert(false); // TODO: Implement spherical geometry case.
+  }
+
+  if( IsEmpty() || r.IsEmpty() || (geoid && !geoid->IsDefined()) )
     return false;
 
-  if( !BoundingBox().Intersects( r.BoundingBox() ) )
+  if( !BoundingBox().Intersects( r.BoundingBox(), geoid ) )
     return false;
 
   Point p;
   for( int i = 0; i < Size(); i++ )
   {
     Get( i, p );
-    if( r.Contains( p ) )
+    if( r.Contains( p, geoid ) )
       return true;
   }
   return false;
 }
 
-bool Points::Adjacent( const Region& r ) const
+bool Points::Adjacent( const Region& r, const Geoid* geoid /*=0*/ ) const
 {
   assert( IsDefined() );
   assert( IsOrdered() );
   assert( r.IsDefined() );
   assert( r.IsOrdered() );
+  assert( !geoid || geoid->IsDefined() );
 
-  if( IsEmpty() || r.IsEmpty() )
+  if(geoid){
+    cout << __PRETTY_FUNCTION__ << ": Spherical geometry not implemented."
+         <<endl;
+    assert(false); // TODO: Implement spherical geometry case.
+  }
+
+  if( IsEmpty() || r.IsEmpty() || (geoid && !geoid->IsDefined()))
     return false;
 
-  if( !BoundingBox().Intersects( r.BoundingBox() ) )
+  if( !BoundingBox().Intersects( r.BoundingBox(), geoid ) )
     return false;
 
   Point p;
@@ -2067,34 +2160,36 @@ bool Points::Adjacent( const Region& r ) const
   {
     Get( i, p );
 
-    if( !r.Contains( p ) )
+    if( !r.Contains( p, geoid ) )
       continue;
 
     // At least one point is contained in the region
     // If it is not inside the region, then the
     // function will return true.
     found = true;
-    if( r.InnerContains( p ) )
+    if( r.InnerContains( p, geoid ) )
       return false;
   }
   return found;
 }
 
-void Points::Intersection(const Point& p, Points& result) const{
+void Points::Intersection(const Point& p, Points& result,
+                          const Geoid* geoid /*=0*/) const{
    result.Clear();
-   if(!IsDefined() || ! p.IsDefined()){
+   if(!IsDefined() || ! p.IsDefined() || (geoid && !geoid->IsDefined()) ){
      result.SetDefined(false);
      return;
    }
-   if(this->Contains(p)){
+   if(this->Contains(p, geoid)){
       result += p;
    }
 }
 
-void Points::Intersection( const Points& ps, Points& result ) const
+void Points::Intersection( const Points& ps, Points& result,
+                           const Geoid* geoid /*=0*/ ) const
 {
   result.Clear();
-  if( !IsDefined() || !ps.IsDefined() ) {
+  if( !IsDefined() || !ps.IsDefined() || (geoid && !geoid->IsDefined()) ) {
     result.SetDefined( false );
     return;
   }
@@ -2125,10 +2220,11 @@ void Points::Intersection( const Points& ps, Points& result ) const
   result.EndBulkLoad( false, false );
 }
 
-void Points::Intersection( const Line& l, Points& result ) const
+void Points::Intersection( const Line& l, Points& result,
+                           const Geoid* geoid /*=0*/ ) const
 {
   result.Clear();
-  if( !IsDefined() || !l.IsDefined() ) {
+  if( !IsDefined() || !l.IsDefined() || (geoid && !geoid->IsDefined()) ) {
     result.SetDefined( false );
     return;
   }
@@ -2144,16 +2240,17 @@ void Points::Intersection( const Line& l, Points& result ) const
   for( int i = 0; i < Size(); i++ )
   {
     Get( i, p );
-    if( l.Contains( p ) )
+    if( l.Contains( p, geoid ) )
       result += p;
   }
   result.EndBulkLoad( false, false );
 }
 
-void Points::Intersection( const Region& r, Points& result ) const
+void Points::Intersection( const Region& r, Points& result,
+                           const Geoid* geoid /*=0*/ ) const
 {
   result.Clear();
-  if( !IsDefined() || !r.IsDefined() ) {
+  if( !IsDefined() || !r.IsDefined() || (geoid && !geoid->IsDefined()) ) {
     result.SetDefined( false );
     return;
   }
@@ -2169,16 +2266,17 @@ void Points::Intersection( const Region& r, Points& result ) const
   for( int i = 0; i < Size(); i++ )
   {
     Get( i, p );
-    if( r.Contains( p ) )
+    if( r.Contains( p, geoid ) )
       result += p;
   }
   result.EndBulkLoad( false, false );
 }
 
-void Points::Minus( const Point& p, Points& ps ) const
+void Points::Minus( const Point& p, Points& ps,
+                    const Geoid* geoid /*=0*/ ) const
 {
   ps.Clear();
-  if( !IsDefined() || !p.IsDefined() ) {
+  if( !IsDefined() || !p.IsDefined() || (geoid && !geoid->IsDefined()) ) {
     ps.SetDefined( false );
     return;
   }
@@ -2195,10 +2293,11 @@ void Points::Minus( const Point& p, Points& ps ) const
   ps.EndBulkLoad( false, false );
 }
 
-void Points::Minus( const Points& ps, Points& result ) const
+void Points::Minus( const Points& ps, Points& result,
+                    const Geoid* geoid /*=0*/ ) const
 {
   result.Clear();
-  if( !IsDefined() || !ps.IsDefined() ) {
+  if( !IsDefined() || !ps.IsDefined() || (geoid && !geoid->IsDefined()) ) {
     result.SetDefined( false );
     return;
   }
@@ -2233,10 +2332,11 @@ void Points::Minus( const Points& ps, Points& result ) const
   result.EndBulkLoad( false, false );
 }
 
-void Points::Minus( const Line& l, Points& result ) const
+void Points::Minus( const Line& l, Points& result,
+                    const Geoid* geoid /*=0*/ ) const
 {
   result.Clear();
-  if( !IsDefined() || !l.IsDefined() ) {
+  if( !IsDefined() || !l.IsDefined() || (geoid && !geoid->IsDefined()) ) {
     result.SetDefined( false );
     return;
   }
@@ -2249,16 +2349,17 @@ void Points::Minus( const Line& l, Points& result ) const
   for( int i = 0; i < Size(); i++ )
   {
     Get( i, p );
-    if( !l.Contains( p ) )
+    if( !l.Contains( p, geoid ) )
       result += p;
   }
   result.EndBulkLoad( false, false );
 }
 
-void Points::Minus( const Region& r, Points& result ) const
+void Points::Minus( const Region& r, Points& result,
+                    const Geoid* geoid /*=0*/ ) const
 {
   result.Clear();
-  if( !IsDefined() || !r.IsDefined() ) {
+  if( !IsDefined() || !r.IsDefined() || (geoid && !geoid->IsDefined())) {
     result.SetDefined( false );
     return;
   }
@@ -2271,16 +2372,17 @@ void Points::Minus( const Region& r, Points& result ) const
   for( int i = 0; i < Size(); i++ )
   {
     Get( i, p );
-    if( !r.Contains( p ) )
+    if( !r.Contains( p, geoid ) )
       result += p;
   }
   result.EndBulkLoad( false, false );
 }
 
-void Points::Union( const Point& p, Points& result ) const
+void Points::Union( const Point& p, Points& result,
+                    const Geoid* geoid /*=0*/ ) const
 {
   result.Clear();
-  if( !IsDefined() || !p.IsDefined() ) {
+  if( !IsDefined() || !p.IsDefined() || (geoid && !geoid->IsDefined()) ) {
     result.SetDefined( false );
     return;
   }
@@ -2310,10 +2412,11 @@ void Points::Union( const Point& p, Points& result ) const
   result.EndBulkLoad( false, true );
 }
 
-void Points::Union( const Points& ps, Points& result ) const
+void Points::Union( const Points& ps, Points& result,
+                    const Geoid* geoid /*=0*/ ) const
 {
   result.Clear();
-  if( !IsDefined() || !ps.IsDefined() ) {
+  if( !IsDefined() || !ps.IsDefined() || (geoid && !geoid->IsDefined()) ) {
     result.SetDefined( false );
     return;
   }
@@ -2346,70 +2449,69 @@ void Points::Union( const Points& ps, Points& result ) const
 }
 
 
-void Points::Union( const Line& line, Line& result ) const{
-   line.Union(*this,result);
+void Points::Union( const Line& line, Line& result,
+                    const Geoid* geoid /*=0*/ ) const{
+   line.Union(*this,result,geoid);
 }
 
-void Points::Union( const Region& region, Region& result ) const{
-   region.Union(*this,result);
+void Points::Union( const Region& region, Region& result,
+                    const Geoid* geoid /*=0*/) const{
+   region.Union(*this,result,geoid);
 }
 
 
 
-double Points::Distance( const Point& p ) const
+double Points::Distance( const Point& p, const Geoid* geoid /* = 0 */ ) const
 {
   assert( !IsEmpty() );
   assert( p.IsDefined() );
+  assert( !geoid || geoid->IsDefined() );
 
   double result = numeric_limits<double>::max();
-  for( int i = 0; i < Size(); i++ )
-  {
+  for( int i = 0; i < Size(); i++ ){
     Point pi;
     Get( i, pi );
-
-    if( AlmostEqual( p, pi ) )
+    if( AlmostEqual( p, pi ) ){
       return 0.0;
-
-    result = MIN( result, pi.Distance( p ) );
+    }
+    result = MIN( result, pi.Distance( p, geoid ) );
   }
   return result;
 }
 
-double Points::Distance( const Points& ps ) const
+double Points::Distance( const Points& ps, const Geoid* geoid /* = 0 */ ) const
 {
   assert( !IsEmpty() );
   assert( !ps.IsEmpty() );
+  assert( !geoid || geoid->IsDefined() );
 
   double result = numeric_limits<double>::max();
   Point pi, pj;
-  for( int i = 0; i < Size(); i++ )
-  {
+  for( int i = 0; i < Size(); i++ ){
     Get( i, pi );
-
-    for( int j = 0; j < ps.Size(); j++ )
-    {
+    for( int j = 0; j < ps.Size(); j++ ){
       ps.Get( j, pj );
-
-      if( AlmostEqual( pi, pj ) )
+      if( AlmostEqual( pi, pj ) ){
         return 0.0;
-
-      result = MIN( result, pi.Distance( pj ) );
+      }
+      result = MIN( result, pi.Distance( pj, geoid ) );
     }
   }
   return result;
 }
 
-double Points::Distance( const Rectangle<2>& r ) const
+double Points::Distance( const Rectangle<2>& r, const Geoid* geoid/*=0*/ ) const
 {
   assert( IsDefined() );
   assert( !IsEmpty() );
   assert( r.IsDefined() );
+  assert( !geoid || geoid->IsDefined() );
   double result = numeric_limits<double>::max();
   Point pi;
   for( int i = 0; i < Size(); i++ )
   {
     Get( i, pi );
-    result = MIN( result, pi.Distance( r ) );
+    result = MIN( result, pi.Distance( r, geoid ) );
   }
   return result;
 }
@@ -2865,7 +2967,7 @@ PointsProperty()
            nl->StringAtom("List Rep"),
            nl->StringAtom("Example List")),
             nl->FourElemList(nl->StringAtom("-> DATA"),
-                       nl->StringAtom("points"),
+                       nl->StringAtom(Points::BasicType()),
            nl->StringAtom("(<point>*) where point is (<x><y>)"),
            nl->StringAtom("( (10 1)(4 5) )"))));
 }
@@ -2880,7 +2982,7 @@ type constructor ~point~ does not have arguments, this is trivial.
 bool
 CheckPoints( ListExpr type, ListExpr& errorInfo )
 {
-  return (nl->IsEqual( type, "points" ));
+  return (nl->IsEqual( type, Points::BasicType() ));
 }
 
 /*
@@ -2897,7 +2999,7 @@ void* CastPoints(void* addr)
 
 */
 TypeConstructor points(
-        "points",                     //name
+        Points::BasicType(),                     //name
         PointsProperty,               //property function describing signature
         OutPoints,      InPoints,     //Out and In functions
         0,              0,            //SaveTo and RestoreFrom List functions
@@ -3140,10 +3242,12 @@ ostream& operator<<(ostream &os, const HalfSegment& hs)
              <<") ("<< hs.GetLeftPoint() << " "<< hs.GetRightPoint() <<") ";
 }
 
-bool HalfSegment::Intersects( const HalfSegment& hs ) const
+bool HalfSegment::Intersects( const HalfSegment& hs,
+                              const Geoid* geoid /* = 0 */) const
 {
-  double k, a, K, A;
+  assert(!geoid); // spherical geometry not yet implemented!
 
+  double k, a, K, A;
   if( !BoundingBox().Intersects( hs.BoundingBox() ) )
     return false;
 
@@ -3256,8 +3360,14 @@ bool HalfSegment::Intersects( const HalfSegment& hs ) const
   return false;
 }
 
-bool HalfSegment::InnerIntersects( const HalfSegment& hs ) const
+bool HalfSegment::InnerIntersects( const HalfSegment& hs,
+                                   const Geoid* geoid/*=0*/ ) const
 {
+  if(geoid){
+    cerr << __PRETTY_FUNCTION__ << ": Spherical geometry not implemented."
+         << endl;
+    assert( false ); // TODO: implement spherical geometry case
+  }
   double k = 0.0;
   double a = 0.0;
   double K = 0.0;
@@ -3371,277 +3481,258 @@ bool HalfSegment::InnerIntersects( const HalfSegment& hs ) const
 }
 
 
-
-
-bool HalfSegment::Intersection( const HalfSegment& hs, Point& resp ) const
-{
-  double k = 0.0;
-  double a = 0.0;
-  double K = 0.0;
-  double A = 0.0;
-
-  /*if( !BoundingBox().Intersects( hs.BoundingBox().Extend(FACTOR) ) ){
-    resp.SetDefined( false );
-    return false;
-  }*/
-
-
-  if(!BoundingBox().Intersects(hs.BoundingBox())){ //old implementation but ok
-    resp.SetDefined(false);
-    return false;
-  }
-
-  resp.SetDefined( true );
-
-  Coord xl = lp.GetX(),
-        yl = lp.GetY(),
-        xr = rp.GetX(),
-        yr = rp.GetY(),
-        Xl = hs.GetLeftPoint().GetX(),
-        Yl = hs.GetLeftPoint().GetY(),
-        Xr = hs.GetRightPoint().GetX(),
-        Yr = hs.GetRightPoint().GetY();
-
-  if( AlmostEqual( xl, xr ) &&
-      AlmostEqual( Xl, Xr ) )
-    // both segments are vertical
-  {
-    if( AlmostEqual( yr, Yl ) )
-    {
-      resp.Set( xl, yr );
-      return true;
-    }
-    if( AlmostEqual( yl, Yr ) )
-    {
-      resp.Set( xl, yl );
-      return true;
-    }
-    return false;
-  }
-
-  if( !AlmostEqual( xl, xr ) )
-    // this segment is not vertical
-  {
-    k = (yr - yl) / (xr - xl);
-    a = yl - k * xl;
-  }
-
-  if( !AlmostEqual( Xl, Xr ) )
-    // hs is not vertical
-  {
-    K = (Yr - Yl) / (Xr - Xl);
-    A = Yl - K * Xl;
-  }
-
-  if( AlmostEqual( Xl, Xr ) )
-    //only hs is vertical
-  {
-    Coord y0 = k * Xl + a;
-
-    if( ( Xl > xl || AlmostEqual( Xl, xl ) ) &&
-        ( Xl < xr || AlmostEqual( Xl, xr ) ) )
-    {
-      if( ( ( y0 > Yl || AlmostEqual( y0, Yl ) ) &&
-            ( y0 < Yr || AlmostEqual( y0, Yr ) ) ) ||
-          ( ( y0 > Yr || AlmostEqual( y0, Yr ) ) &&
-            ( y0 < Yl || AlmostEqual( y0, Yl ) ) ) )
-        // (Xl, y0) is the intersection point
-      {
-        resp.Set( Xl, y0 );
-        return true;
-      }
-    }
-    return false;
-  }
-
-  if( AlmostEqual( xl, xr ) )
-    // only this segment is vertical
-  {
-    Coord Y0 = K * xl + A;
-
-    if( ( xl > Xl || AlmostEqual( xl, Xl ) ) &&
-        ( xl < Xr || AlmostEqual( xl, Xr ) ) )
-    {
-      if( ( ( Y0 > yl || AlmostEqual( Y0, yl ) ) &&
-            ( Y0 < yr || AlmostEqual( Y0, yr ) ) ) ||
-          ( ( Y0 > yr || AlmostEqual( Y0, yr ) ) &&
-            ( Y0 < yl || AlmostEqual( Y0, yl ) ) ) )
-        // (xl, Y0) is the intersection point
-      {
-        resp.Set( xl, Y0 );
-        return true;
-      }
-    }
-    return false;
-  }
-
-  // both segments are non-vertical
-
-  if( AlmostEqual( k, K ) )
-    // both segments have the same inclination
-  {
-    if( AlmostEqual( rp, hs.lp ) )
-    {
-      resp = rp;
-      return true;
-    }
-    if( AlmostEqual( lp, hs.rp ) )
-    {
-      resp = lp;
-      return true;
-    }
-    return false;
-  }
-
-  Coord x0 = (A - a) / (k - K),
-        y0 = x0 * k + a;
-
-  if( ( x0 > xl || AlmostEqual( x0, xl ) ) &&
-      ( x0 < xr || AlmostEqual( x0, xr ) ) &&
-      ( x0 > Xl || AlmostEqual( x0, Xl ) ) &&
-      ( x0 < Xr || AlmostEqual( x0, Xr ) ) )
-    // the segments intersect at (x0, y0)
-  {
-    resp.Set( x0, y0 );
-    return true;
-  }
-
-  return false;
+// corrected modulo function ( '%' has problems with negative values)
+double fmod2(const double &x, const double &y) {
+  return y - x*floor(y/x);
 }
 
-/*bool HalfSegment::Intersection( const HalfSegment& hs, Point& resp ) const {
-
-
-
-  double x0_1 = this->lp.GetX();
-  double y0_1 = this->lp.GetY();
-  double x1_1 = this->rp.GetX();
-  double y1_1 = this->rp.GetY();
-
-  double x0_2 = hs.lp.GetX();
-  double y0_2 = hs.lp.GetY();
-  double x1_2 = hs.rp.GetX();
-  double y1_2 = hs.rp.GetY();
-
-  double dx1 = x1_1 - x0_1;
-  double dx2 = x1_2 - x0_2;
-  double dy1 = y1_1 - y0_1;
-  double dy2 = y1_2 - y0_2;
-
-
-
-
-  resp.SetDefined(false);
-  // check for degenerated segments
-
-  if(AlmostEqual(dx1,0) && AlmostEqual(dy1,0)){
-    // not a segment
+bool HalfSegment::Intersection( const HalfSegment& hs, Point& resp,
+                                const Geoid* geoid /* = 0 */ ) const
+{
+  if(geoid){ // spherical geometry not yet implemented!
     assert(false);
-    return false;
-  }
-  if(AlmostEqual(dx2,0) && AlmostEqual(dy2,0)){
-    // not a segment
-    assert(false);
-    return false;
-  }
-
-  // check for equal direction.
-  // if so, only the endpoints must be checked
-  if(AlmostEqual(dx1*dy2, dy1*dx2)){
-    if(AlmostEqual(lp, hs.rp)){
-       resp = lp;
-       return true;
+    if(!geoid->IsDefined()){
+      resp.SetDefined(false);
     }
-    if(AlmostEqual(rp, hs.lp)){
-       resp = rp;
-       return true;
+    // see http://williams.best.vwh.net/avform.htm#Intersection
+    Point res(false);//Destination point (UNDEFINED if no unique intersection)
+    Point p1    = this->GetLeftPoint();  //1st segment's starting point
+    Point p1end = this->GetRightPoint(); //1st segment's ending point
+    Point p2    = hs.GetLeftPoint();     //2nd segment' s starting point
+    Point p2end = hs.GetRightPoint();    //2nd segment's ending point
+    if(!p1.checkGeographicCoord()   || !p2.checkGeographicCoord() ||
+      !p1end.checkGeographicCoord() || !p2end.checkGeographicCoord() ) {
+      return false;
     }
-    return false;
-  }
+    double lon1 = degToRad(p1.GetX());
+    double lat1 = degToRad(p1.GetY());
+    double lon2 = degToRad(p2.GetX());
+    double lat2 = degToRad(p2.GetY());
 
-  // different directions, no overlaps possible
+    double brng1 = p1.Heading(p1end,geoid);  //Initial bearing from p1
+    double brng2 = p2.Heading(p2end,geoid);  //Initial bearing from p2
+    if( (brng1<0) || (brng2<0) ){
+      return false;
+    }
+    double brng13 = degToRad(brng1);
+    double brng23 = degToRad(brng2);
 
-  // checks for almost equal endpoints
-  if(AlmostEqual(lp,hs.rp) ||
-     AlmostEqual(lp,hs.lp)) {
-    resp=lp;
+    double dLat = lat2-lat1;
+    double dLon = lon2-lon1;
+    errno = 0;
+    double dist12 = 2*asin( sqrt( sin(dLat/2)*sin(dLat/2) +
+        cos(lat1)*cos(lat2)*sin(dLon/2)*sin(dLon/2) ) );
+    if( (errno !=0) || (dist12 <= 0) ){
+      return false;
+    }
+    // initial/final bearings between points
+    errno = 0;
+    double brngA = acos( ( sin(lat2) - sin(lat1)*cos(dist12) ) /
+                   ( sin(dist12)*cos(lat1) ) );
+    if(errno != 0){
+      brngA = 0;  // protect against rounding
+      errno = 0;
+    }
+    double brngB = acos( ( sin(lat1) - sin(lat2)*cos(dist12) ) /
+                   ( sin(dist12)*cos(lat2) ) );
+    double brng12 = 0;
+    double brng21 = 0;
+    if (sin(lon2-lon1) > 0) {
+        brng12 = brngA;
+        brng21 = 2*M_PI - brngB;
+    } else {
+        brng12 = 2*M_PI - brngA;
+        brng21 = brngB;
+    }
+
+    double alpha1 = fmod2((brng13 - brng12 +M_PI),(2*M_PI)) - M_PI;//angle 2-1-3
+    double alpha2 = fmod2((brng21 - brng23 +M_PI),(2*M_PI)) - M_PI;//angle 1-2-3
+
+    if( (sin(alpha1)==0) && (sin(alpha2)==0) ){// infinite intersections
+      return false;
+    }
+    if( (errno != 0) || (sin(alpha1)*sin(alpha2) < 0) ){//ambiguous intersection
+      return false;
+    }
+    //Ed Williams takes abs of alpha1/alpha2, but seems to break calculation?
+    //alpha1 = fabs(alpha1);
+    //alpha2 = fabs(alpha2);
+
+    double alpha3 = acos( -cos(alpha1)*cos(alpha2) +
+      sin(alpha1)*sin(alpha2)*cos(dist12) );
+    double dist13 = atan2( sin(dist12)*sin(alpha1)*sin(alpha2),
+                           cos(alpha2)+cos(alpha1)*cos(alpha3) );
+    double lat3 = asin( sin(lat1)*cos(dist13) +
+                           cos(lat1)*sin(dist13)*cos(brng13) );
+    double dLon13 = atan2( sin(brng13)*sin(dist13)*cos(lat1),
+                           cos(dist13)-sin(lat1)*sin(lat3) );
+    double lon3 = lon1+dLon13;
+    lon3 = fmod2((lon3+M_PI),(2*M_PI)) - M_PI;  // normalise to -180..180º
+    res.SetDefined( (errno == 0) );
+    res.Set( radToDeg(lon3), radToDeg(lat3) );
+  } else { // euclidean geometry
+    double k = 0.0;
+    double a = 0.0;
+    double K = 0.0;
+    double A = 0.0;
+
+    if(!BoundingBox().Intersects(hs.BoundingBox())){
+      resp.SetDefined(false);
+      return false;
+    }
+
+    resp.SetDefined( true );
+
+    Coord xl = lp.GetX(),
+    yl = lp.GetY(),
+    xr = rp.GetX(),
+    yr = rp.GetY(),
+    Xl = hs.GetLeftPoint().GetX(),
+    Yl = hs.GetLeftPoint().GetY(),
+    Xr = hs.GetRightPoint().GetX(),
+    Yr = hs.GetRightPoint().GetY();
+
+    if( AlmostEqual( xl, xr ) &&
+      AlmostEqual( Xl, Xr ) ){
+      // both segments are vertical
+      if( AlmostEqual( yr, Yl ) ){
+        resp.Set( xl, yr );
+        return true;
+      }
+      if( AlmostEqual( yl, Yr ) ) {
+        resp.Set( xl, yl );
+        return true;
+      }
+      return false;
+    }
+
+    if( !AlmostEqual( xl, xr ) ) { // this segment is not vertical
+      k = (yr - yl) / (xr - xl);
+      a = yl - k * xl;
+    }
+
+    if( !AlmostEqual( Xl, Xr ) ){ // hs is not vertical
+      K = (Yr - Yl) / (Xr - Xl);
+      A = Yl - K * Xl;
+    }
+
+    if( AlmostEqual( Xl, Xr ) ) {//only hs is vertical
+      Coord y0 = k * Xl + a;
+
+      if( ( Xl > xl || AlmostEqual( Xl, xl ) ) &&
+        ( Xl < xr || AlmostEqual( Xl, xr ) ) ){
+        if( ( ( y0 > Yl || AlmostEqual( y0, Yl ) ) &&
+          ( y0 < Yr || AlmostEqual( y0, Yr ) ) ) ||
+          ( ( y0 > Yr || AlmostEqual( y0, Yr ) ) &&
+          ( y0 < Yl || AlmostEqual( y0, Yl ) ) ) ){
+          // (Xl, y0) is the intersection point
+          resp.Set( Xl, y0 );
+        return true;
+        }
+      }
+      return false;
+    }
+
+    if( AlmostEqual( xl, xr ) ){
+      // only this segment is vertical
+      Coord Y0 = K * xl + A;
+
+      if( ( xl > Xl || AlmostEqual( xl, Xl ) ) &&
+        ( xl < Xr || AlmostEqual( xl, Xr ) ) ){
+        if( ( ( Y0 > yl || AlmostEqual( Y0, yl ) ) &&
+          ( Y0 < yr || AlmostEqual( Y0, yr ) ) ) ||
+          ( ( Y0 > yr || AlmostEqual( Y0, yr ) ) &&
+          ( Y0 < yl || AlmostEqual( Y0, yl ) ) ) ){
+          // (xl, Y0) is the intersection point
+          resp.Set( xl, Y0 );
+        return true;
+        }
+      }
+      return false;
+    }
+
+    // both segments are non-vertical
+
+    if( AlmostEqual( k, K ) ){
+      // both segments have the same inclination
+      if( AlmostEqual( rp, hs.lp ) ){
+        resp = rp;
+        return true;
+      }
+      if( AlmostEqual( lp, hs.rp ) ){
+        resp = lp;
+        return true;
+      }
+      return false;
+    }
+
+    Coord x0 = (A - a) / (k - K);
+    Coord y0 = x0 * k + a;
+
+    if( ( x0 > xl || AlmostEqual( x0, xl ) ) &&
+      ( x0 < xr || AlmostEqual( x0, xr ) ) &&
+      ( x0 > Xl || AlmostEqual( x0, Xl ) ) &&
+      ( x0 < Xr || AlmostEqual( x0, Xr ) ) ){
+      // the segments intersect at (x0, y0)
+      resp.Set( x0, y0 );
     return true;
-  }
+    }
 
-  if( AlmostEqual(rp,hs.rp) ||
-    AlmostEqual(rp,hs.lp)){
-    resp=rp;
-    return true;
-  }
-
-
-
-  // normal computation: just solve the equations given
-  // by the points ;-)
-
-
-  double delta2;
-  double delta1;
-  bool way1 = true;
-  if(fabs(dx1) > fabs(dy1)){
-//  if(fabs(dx1) > 0){
-    delta2 = ((y0_1-y0_2)*dx1 + (x0_2-x0_1)*dy1) / ((dx1*dy2) - (dx2-dy1));
-    delta1 = (x0_2+delta2*(dx2)-x0_1) / dx1;
-  } else {
-    delta2 = (dy1*(x0_2-x0_1) + dx1*(y0_1-y0_2)) / ( (dy2*dx1) - (dx2*dy1));
-    delta1 = (y0_2+delta2*dy2-y0_1) / dy1;
-    way1 = false;
-  }
-
-
-
-
-  // corrections from rounding errors
-  if(AlmostEqual(delta1,0) && delta1<0){
-    delta1 = 0;
-  }
-  if(AlmostEqual(delta1,1) && delta1>1){
-    delta1 = 1;
-  }
-
-  if(AlmostEqual(delta2,0) && delta2<0){
-    delta2 = 0;
-  }
-  if(AlmostEqual(delta2,1) && delta2>1){
-    delta2 = 1;
-  }
-
-  double x = x0_1+delta1*dx1;
-  double y = y0_1+delta1*dy1;
-
-  if( (delta1<0) || (delta1>1) || (delta2<0) || (delta2>1) ){
-    // intersection point outside one of the segments
-    resp.Set(x,y);
-    resp.SetDefined(false);
     return false;
-  } else {
-    // check computation by checking the resulting point
-    // agains the resultung point from hs
-
-    if(!AlmostEqual(x,x0_2+delta2*dx2)){
-      cerr << __PRETTY_FUNCTION__ << "@" __FILE__ << ":" << __LINE__ << endl;
-      cerr << "rounding(?) error detected, points are not equal";
-      cerr << " x(this) = " << x << ",  x(hs) = "<< (x0_2*delta2*dx2) << endl;
-    }
-    if(!AlmostEqual(y,y0_2+delta2*dy2)){
-      cerr << __PRETTY_FUNCTION__ << "@" __FILE__ << ":" << __LINE__ << endl;
-      cerr << "rounding(?) error detected, points are not equal";
-      cerr << " y(this) = " << x << ",  y(hs) = "<< (y0_2*delta2*dy2) << endl;
-    }
-    resp.SetDefined(true);
-    resp.Set(x,y);
-    return true;
   }
-}*/
+}
+
 
 bool HalfSegment::Intersection( const HalfSegment& hs,
-                                HalfSegment& reshs ) const
+                                HalfSegment& reshs,
+                                const Geoid* geoid /* = 0 */) const
 {
+  if(geoid) {
+    Point p1s = GetLeftPoint();
+    Point p1e = GetRightPoint();
+    Point p2s = hs.GetLeftPoint();
+    Point p2e = hs.GetRightPoint();
+    bool ok = p1s.checkGeographicCoord() && p1e.checkGeographicCoord() &&
+              p2s.checkGeographicCoord() && p2e.checkGeographicCoord() &&
+              AlmostEqual(Distance( hs, geoid ),0.0);
+    if(!ok){ // error OR no intersection (distance >=0)
+      return false;
+    }
+    Point intersectpoint(false);
+    if( Intersection( hs, intersectpoint, geoid) && intersectpoint.IsDefined()){
+      return false; // intersection is a point;
+    };
+    if( (p1s >0) && (p1e <0) ) { // crosses the +/-180° meridean!
+      Point tmp(p1s);
+      p1s=p1e;
+      p1e=tmp; // swap start/endpoint for *this
+    }
+    if( (p2s >0) && (p2e <0) ) { // crosses the +/-180° meridean!
+      Point tmp(p2s);
+      p2s=p2e;
+      p2e=tmp; // swap start/endpoint for hs
+    }
+    // no special case: crossing the equator (happens once at most!)
+
+    Point leftborder(true);
+    if(AlmostEqual(hs.Distance(p1s, geoid), 0.0))     {// LeftPoint on hs?
+      leftborder = p1s;
+    } else if(AlmostEqual(Distance(p2s, geoid), 0.0)) {// hs.LeftPoint on *this?
+      leftborder = p2s;
+    } else {
+      return false;
+    }
+    Point rightborder(true);
+    if(AlmostEqual(hs.Distance(p1e, geoid), 0.0))    {// RightPoint on hs?
+      leftborder = p1e;
+    } else if(AlmostEqual(Distance(p2e, geoid), 0.0)){// hs.RightPoint on *this?
+      leftborder = p2e;
+    } else {
+      return false;
+    }
+    reshs.Set(true, leftborder, rightborder);
+    return true;
+  } // else: euclidean geometry
   double k, a, K, A;
 
   if( !BoundingBox().Intersects( hs.BoundingBox() ) )
@@ -3749,16 +3840,22 @@ bool HalfSegment::Intersection( const HalfSegment& hs,
   return false;
 }
 
-bool HalfSegment::Crosses( const HalfSegment& hs ) const
+bool HalfSegment::Crosses( const HalfSegment& hs,
+                           const Geoid* geoid/*=0*/ ) const
 {
+  if(geoid){
+    cerr << __PRETTY_FUNCTION__ << ": Spherial geometry not implemented."
+         << endl;
+    assert( false ); // TODO: implement spherical case.
+  }
   double k = 0.0;
   double a = 0.0;
   double K = 0.0;
   double A = 0.0;
 
-  if( !BoundingBox().Intersects( hs.BoundingBox() ) )
+  if( !BoundingBox().Intersects( hs.BoundingBox(),geoid ) ){
     return false;
-
+  }
   Coord xl = lp.GetX(),
         yl = lp.GetY(),
         xr = rp.GetX(),
@@ -3842,22 +3939,26 @@ bool HalfSegment::Crosses( const HalfSegment& hs ) const
   return false;
 }
 
-bool HalfSegment::Inside( const HalfSegment& hs ) const
+bool HalfSegment::Inside( const HalfSegment& hs,
+                          const Geoid* geoid/*=0*/ ) const
 {
-  return hs.Contains( GetLeftPoint() ) &&
-         hs.Contains( GetRightPoint() );
+  return hs.Contains( GetLeftPoint(),geoid ) &&
+         hs.Contains( GetRightPoint(),geoid );
 }
 
-bool HalfSegment::Contains( const Point& p ) const
-{
-  if( !p.IsDefined() ) {
+bool HalfSegment::Contains( const Point& p, const Geoid* geoid/*=0*/ ) const{
+  if( !p.IsDefined() || (geoid && !geoid->IsDefined()) ) {
     assert( p.IsDefined() );
     return false;
   }
+  if(geoid){
+    cerr << __PRETTY_FUNCTION__ << ": Spherical geometry not implemented."
+    << endl;
+  }
   if( AlmostEqual( p, lp ) ||
-      AlmostEqual( p, rp ) )
+      AlmostEqual( p, rp ) ){
     return true;
-
+  }
   Coord xl = lp.GetX(), yl = lp.GetY(),
         xr = rp.GetX(), yr = rp.GetY(),
         x = p.GetX(), y = p.GetY();
@@ -3896,86 +3997,116 @@ bool HalfSegment::Contains( const Point& p ) const
   return false;
 }
 
-double HalfSegment::Distance( const Point& p ) const
+double HalfSegment::Distance( const Point& p,
+                              const Geoid* geoid /* = 0 */) const
 {
   assert( p.IsDefined() );
-  Coord xl = GetLeftPoint().GetX(),
-        yl = GetLeftPoint().GetY(),
-        xr = GetRightPoint().GetX(),
-        yr = GetRightPoint().GetY(),
-        X = p.GetX(),
-        Y = p.GetY();
+  assert( !geoid || geoid->IsDefined() );
+  if(!geoid){ // euclidean geometry
+    Coord xl = GetLeftPoint().GetX(),
+    yl = GetLeftPoint().GetY(),
+    xr = GetRightPoint().GetX(),
+    yr = GetRightPoint().GetY(),
+    X = p.GetX(),
+    Y = p.GetY();
 
-  double result, auxresult;
+    double result, auxresult;
 
-  if( xl == xr || yl == yr )
-  {
-    if( xl == xr) //hs is vertical
+    if( xl == xr || yl == yr )
     {
-      if( (yl <= Y && Y <= yr) || (yr <= Y && Y <= yl) )
-        result = fabs( X - xl );
-      else
+      if( xl == xr) //hs is vertical
       {
-        result = p.Distance( GetLeftPoint() );
-        auxresult = p.Distance( GetRightPoint() );
-        if( result > auxresult )
-          result = auxresult;
+        if( (yl <= Y && Y <= yr) || (yr <= Y && Y <= yl) )
+          result = fabs( X - xl );
+        else
+        {
+          result = p.Distance( GetLeftPoint() );
+          auxresult = p.Distance( GetRightPoint() );
+          if( result > auxresult )
+            result = auxresult;
+        }
+      }
+      else         //hs is horizontal line: (yl==yr)
+      {
+        if( xl <= X && X <= xr )
+          result = fabs( Y - yl );
+        else
+        {
+          result = p.Distance( GetLeftPoint() );
+          auxresult = p.Distance( GetRightPoint() );
+          if( result > auxresult )
+            result = auxresult;
+        }
       }
     }
-    else         //hs is horizontal line: (yl==yr)
-    {
-      if( xl <= X && X <= xr )
-        result = fabs( Y - yl );
-      else
-      {
-        result = p.Distance( GetLeftPoint() );
-        auxresult = p.Distance( GetRightPoint() );
-        if( result > auxresult )
-          result = auxresult;
-      }
-    }
-  }
-  else
-  {
-    double k = (yr - yl) / (xr - xl),
-           a = yl - k * xl,
-           xx = (k * (Y - a) + X) / (k * k + 1),
-           yy = k * xx + a;
-    Coord XX = xx,
-          YY = yy;
-    Point PP( true, XX, YY );
-    if( xl <= XX && XX <= xr )
-      result = p.Distance( PP );
     else
     {
-      result = p.Distance( GetLeftPoint() );
-      auxresult = p.Distance( GetRightPoint() );
-      if( result > auxresult )
-        result = auxresult;
+      double k = (yr - yl) / (xr - xl),
+      a = yl - k * xl,
+      xx = (k * (Y - a) + X) / (k * k + 1),
+      yy = k * xx + a;
+      Coord XX = xx,
+      YY = yy;
+      Point PP( true, XX, YY );
+      if( xl <= XX && XX <= xr )
+        result = p.Distance( PP );
+      else
+      {
+        result = p.Distance( GetLeftPoint() );
+        auxresult = p.Distance( GetRightPoint() );
+        if( result > auxresult )
+          result = auxresult;
+      }
     }
-  }
-  return result;
+    return result;
+  } // else: spherical geometry
+  bool ok = true;
+  double d13 = p.DistanceOrthodrome(GetLeftPoint(),*geoid,ok);
+  // initial bearing from LeftPoint to p
+  double theta13 = GetLeftPoint().Heading(p,geoid); // in deg
+  // initial bearing from LeftPoint to RightPoint
+  double theta12 = GetLeftPoint().Heading(GetRightPoint(),geoid); // in deg
+  double R = geoid->getR();
+  errno = 0;
+  double res = asin(sin(d13/R)*sin((theta13-theta12)*M_PI/180.0))*R;
+  ok = ok && (errno==0) && (theta13>=0.0) && (theta12>=0.0);
+  if(ok){
+    return res;
+  } // else: error
+  return -666.666;
 }
 
-double HalfSegment::Distance( const HalfSegment& hs ) const
+double HalfSegment::Distance( const HalfSegment& hs,
+                              const Geoid* geoid /* = 0 */) const
 {
-  if( Intersects( hs ) ){
-    return 0.0;
-  }
+  assert( !geoid || geoid->IsDefined() );
+  if(!geoid){ // euclidean geometry
+    if( Intersects( hs ) ){
+      return 0.0;
+    }
+    double d1 = MIN( Distance( hs.GetLeftPoint(), geoid ),
+                     Distance( hs.GetRightPoint(), geoid ) );
 
-  double d1 = MIN( Distance( hs.GetLeftPoint() ),
-                   Distance( hs.GetRightPoint() ) );
-
-  double d2 = MIN( hs.Distance(this->GetLeftPoint()),
-                   hs.Distance(this->GetRightPoint()));
-  return MIN(d1,d2);
+    double d2 = MIN( hs.Distance(this->GetLeftPoint(), geoid),
+                     hs.Distance(this->GetRightPoint(), geoid));
+    return MIN(d1,d2);
+  } // else: spherical geometry
+  cout << __PRETTY_FUNCTION__ << ": Spherical geometry not implemented." <<endl;
+  assert(false); // TODO: Implement spherical geometry case.
 }
 
 
-double HalfSegment::Distance(const Rectangle<2>& rect) const{
+double HalfSegment::Distance(const Rectangle<2>& rect,
+                             const Geoid* geoid/*=0*/) const{
 
   assert( rect.IsDefined() );
+  assert( !geoid || geoid->IsDefined() );
 
+  if(geoid){
+    cout << __PRETTY_FUNCTION__ << ": Spherical geometry not implemented."
+        <<endl;
+    assert(false); // TODO: Implement spherical geometry case.
+  }
   if(rect.Contains(lp.BoundingBox()) ||
      rect.Contains(rp.BoundingBox()) ){
     return 0.0;
@@ -3993,38 +4124,38 @@ double HalfSegment::Distance(const Rectangle<2>& rect) const{
   double dist;
   HalfSegment hs;
   if(AlmostEqual(p0,p1)){
-    dist = this->Distance(p0);
+    dist = this->Distance(p0,geoid);
   } else {
     hs.Set(true,p0,p1);
-    dist = this->Distance(hs);
+    dist = this->Distance(hs,geoid);
   }
   if(AlmostEqual(dist,0)){
     return 0.0;
   }
   if(AlmostEqual(p1,p2)){
-    dist = MIN( dist, this->Distance(p1));
+    dist = MIN( dist, this->Distance(p1,geoid));
   } else {
     hs.Set(true,p1,p2);
-    dist = MIN( dist, this->Distance(hs));
+    dist = MIN( dist, this->Distance(hs,geoid));
   }
   if(AlmostEqual(dist,0)){
     return 0.0;
   }
 
   if(AlmostEqual(p2,p3)){
-    dist = MIN(dist, this->Distance(p2));
+    dist = MIN(dist, this->Distance(p2,geoid));
   } else {
     hs.Set(true,p2,p3);
-    dist = MIN( dist, this->Distance(hs));
+    dist = MIN( dist, this->Distance(hs,geoid));
   }
   if(AlmostEqual(dist,0)){
     return 0.0;
   }
   if(AlmostEqual(p3,p0)){
-    dist = MIN(dist, this->Distance(p3));
+    dist = MIN(dist, this->Distance(p3,geoid));
   } else {
     hs.Set(true,p3,p0);
-    dist = MIN( dist, this->Distance(hs));
+    dist = MIN( dist, this->Distance(hs,geoid));
   }
   if(AlmostEqual(dist,0)){
     return 0.0;
@@ -4032,10 +4163,16 @@ double HalfSegment::Distance(const Rectangle<2>& rect) const{
   return dist;
 }
 
-double HalfSegment::MaxDistance(const Rectangle<2>& rect) const{
+double HalfSegment::MaxDistance(const Rectangle<2>& rect,
+                                const Geoid* geoid /*=0*/) const{
 
   assert( rect.IsDefined() );
-
+  assert( !geoid || geoid->IsDefined() );
+  if(geoid){
+    cout << __PRETTY_FUNCTION__ << ": Spherical geometry not implemented."
+         <<endl;
+    assert(false); // TODO: Implement spherical geometry case.
+  }
   // both endpoints are outside the rectangle
   double x0(rect.MinD(0));
   double y0(rect.MinD(1));
@@ -4045,15 +4182,15 @@ double HalfSegment::MaxDistance(const Rectangle<2>& rect) const{
   Point p1(true,x1,y0);
   Point p2(true,x1,y1);
   Point p3(true,x0,y1);
-  double d1 = lp.Distance(p0);
-  double d2 = lp.Distance(p1);
-  double d3 = lp.Distance(p2);
-  double d4 = lp.Distance(p3);
+  double d1 = lp.Distance(p0,geoid);
+  double d2 = lp.Distance(p1,geoid);
+  double d3 = lp.Distance(p2,geoid);
+  double d4 = lp.Distance(p3,geoid);
   double dist1 = MAX(MAX(d1,d2),MAX(d3,d4));
-  d1 = rp.Distance(p0);
-  d2 = rp.Distance(p1);
-  d3 = rp.Distance(p2);
-  d4 = rp.Distance(p3);
+  d1 = rp.Distance(p0,geoid);
+  d2 = rp.Distance(p1,geoid);
+  d3 = rp.Distance(p2,geoid);
+  d4 = rp.Distance(p3,geoid);
   double dist2 = MAX(MAX(d1,d2),MAX(d3,d4));
   double dist = MAX(dist1,dist2);
   return dist;
@@ -4116,9 +4253,18 @@ outcode CompOutCode( double x, double y, double xmin,
 void HalfSegment::CohenSutherlandLineClipping( const Rectangle<2> &window,
                                                double &x0, double &y0,
                                                double &x1, double &y1,
-                                               bool &accept ) const
+                                               bool &accept,
+                                               const Geoid* geoid/*=0*/ ) const
 {
   assert( window.IsDefined() );
+  assert( !geoid || geoid->IsDefined() );
+
+  if(geoid){
+    cerr << __PRETTY_FUNCTION__ << ": Spherical geometry not implemented."
+         << endl;
+    assert( false ); // TODO: implement spherical geometry case
+  }
+
   // Outcodes for P0, P1, and whatever point lies outside the clip rectangle*/
   outcode outcode0, outcode1, outcodeOut;
   double xmin = window.MinD(0)  , xmax = window.MaxD(0),
@@ -4129,21 +4275,15 @@ void HalfSegment::CohenSutherlandLineClipping( const Rectangle<2> &window,
   outcode0 = CompOutCode( x0, y0, xmin, xmax, ymin, ymax);
   outcode1 = CompOutCode( x1, y1, xmin, xmax, ymin, ymax);
 
-  do
-  {
-    if ( !(outcode0 | outcode1) )
-    {
+  do{
+    if ( !(outcode0 | outcode1) ) {
       //"Trivial accept and exit"<<endl;
       accept = true;
       done = true;
-    }
-    else if (outcode0 & outcode1)
-    {
+    } else if (outcode0 & outcode1){
       done = true;
         //"Logical and is true, so trivial reject and exit"<<endl;
-    }
-    else
-    {
+    } else {
       //Failed both tests, so calculate the line segment to clip:
       //from an outside point to an instersection with clip edge.
       double x,y;
@@ -4152,57 +4292,53 @@ void HalfSegment::CohenSutherlandLineClipping( const Rectangle<2> &window,
       //Now find the intersection point;
       //use formulas y = y0 + slope * (x - x0), x = x0 + (1 /slope) * (y-y0).
 
-      if (outcodeOut & TOP)
-        //Divide the line at top of clip rectangle
-      {
+      if (outcodeOut & TOP){ //Divide the line at top of clip rectangle
         x = x0 + (x1 - x0) * (ymax - y0) / (y1 - y0);
         y = ymax;
-      }
-      else if (outcodeOut & BOTTOM)
+      }else if (outcodeOut & BOTTOM){
         //Divide line at bottom edge of clip rectangle
-      {
         x = x0 + (x1 - x0) * (ymin - y0) / (y1 - y0);
         y = ymin;
-      }
-      else if (outcodeOut & RIGHT)
+      }else if (outcodeOut & RIGHT){
         //Divide line at right edge of clip rectangle
-      {
         y = y0 + (y1 - y0) * (xmax - x0) / (x1 - x0);
         x = xmax;
-      }
-      else // divide lene at left edge of clip rectangle
-      {
+      } else {// divide lene at left edge of clip rectangle
         y = y0 + (y1 - y0) * (xmin - x0) / (x1 - x0);
         x = xmin;
       }
 
       //Now we move outside point to intersection point to clip
       //and get ready for next pass
-      if (outcodeOut == outcode0)
-      {
+      if (outcodeOut == outcode0){
         x0 = x;
         y0 = y;
         outcode0 = CompOutCode(x0, y0, xmin, xmax, ymin, ymax);
-      }
-      else
-      {
+      } else {
         x1 = x;
         y1 = y;
         outcode1 = CompOutCode(x1, y1, xmin, xmax, ymin, ymax);
       }
     }
   }
-  while ( done == false);
+  while( done == false );
 }
 
 void HalfSegment::WindowClippingIn( const Rectangle<2> &window,
                                     HalfSegment &hsInside, bool &inside,
                                     bool &isIntersectionPoint,
-                                    Point &intersectionPoint) const
+                                    Point &intersectionPoint,
+                                    const Geoid* geoid/*=0*/) const
 {
   if( !window.IsDefined() ) {
     intersectionPoint.SetDefined( false );
     assert( window.IsDefined() );
+  }
+  assert( !geoid || geoid->IsDefined() );
+  if(geoid){
+    cerr << __PRETTY_FUNCTION__ << ": Spherical geometry not implemented."
+         << endl;
+    assert( false ); // TODO: implement spherical geometry case
   }
 
   double x0 = GetLeftPoint().GetX(),
@@ -4507,231 +4643,224 @@ for( ; i < Size(); i++ )
 return *this;
 }
 
-bool Line::Contains( const Point& p ) const
+bool Line::Contains( const Point& p, const Geoid* geoid/*=0*/ ) const
 {
-assert( IsDefined() );
-assert( p.IsDefined() );
-if( IsEmpty() )
-  return false;
+  assert( IsDefined() );
+  assert( p.IsDefined() );
+  if( IsEmpty() || (geoid&& !geoid->IsDefined()))
+    return false;
 
-int pos;
-if( Find( p, pos ) )
-  return true;
+  int pos;
+  if( Find( p, pos ) )
+    return true;
 
-if( pos >= Size() )
-  return false;
+  if( pos >= Size() )
+    return false;
 
-HalfSegment hs;
-for( ; pos >= 0; pos-- )
-{
+  HalfSegment hs;
+  for( ; pos >= 0; pos-- ){
   Get( pos, hs );
-  if( hs.IsLeftDomPoint() )
-  {
+  if( hs.IsLeftDomPoint() ){
     if( hs.Contains( p ) )
       return true;
+    }
   }
-}
-return false;
-}
-
-bool Line::Intersects( const Line& l ) const
-{
-assert( IsDefined() );
-assert( l.IsDefined() );
-if( IsEmpty() || l.IsEmpty() )
   return false;
+}
 
-assert( IsOrdered() );
-assert( l.IsOrdered() );
-if( !BoundingBox().Intersects( l.BoundingBox() ) )
-  return false;
-
-HalfSegment hs1, hs2;
-for( int i = 0; i < Size(); i++ )
+bool Line::Intersects( const Line& l, const Geoid* geoid/*=0*/ ) const
 {
-  Get( i, hs1 );
-  if( hs1.IsLeftDomPoint() )
+  assert( IsDefined() );
+  assert( l.IsDefined() );
+  if( IsEmpty() || l.IsEmpty() )
+    return false;
+
+  assert( IsOrdered() );
+  assert( l.IsOrdered() );
+  if( !BoundingBox().Intersects( l.BoundingBox() ) )
+    return false;
+
+  HalfSegment hs1, hs2;
+  for( int i = 0; i < Size(); i++ )
   {
-    for( int j = 0; j < l.Size(); j++ )
+    Get( i, hs1 );
+    if( hs1.IsLeftDomPoint() )
     {
-      l.Get( j, hs2 );
-      if (hs2.IsLeftDomPoint())
+      for( int j = 0; j < l.Size(); j++ )
       {
-        if( hs1.Intersects( hs2 ) )
+        l.Get( j, hs2 );
+        if (hs2.IsLeftDomPoint())
+        {
+          if( hs1.Intersects( hs2 ) )
+            return true;
+        }
+      }
+    }
+  }
+  return false;
+}
+
+bool Line::Intersects( const Region& r, const Geoid* geoid/*=0*/ ) const
+{
+  assert( IsDefined() );
+  assert( r.IsDefined() );
+  assert( !geoid || geoid->IsDefined() );
+  if( IsEmpty() || r.IsEmpty() || (geoid && !geoid->IsDefined()) ){
+    return false;
+  }
+  if( !BoundingBox().Intersects( r.BoundingBox(),geoid ) )
+    return false;
+  assert( IsOrdered() );
+  assert( r.IsOrdered() );
+  HalfSegment hsl, hsr;
+  for( int i = 0; i < Size(); i++ ){
+    Get( i, hsl );
+    if( hsl.IsLeftDomPoint() ){
+        for( int j = 0; j < r.Size(); j++ ){
+        r.Get( j, hsr );
+        if( hsr.IsLeftDomPoint() ){
+          if( hsl.Intersects( hsr,geoid ) )
+            return true;
+          }
+        }
+
+      if( r.Contains( hsl.GetLeftPoint(),geoid ) ||
+          r.Contains( hsl.GetRightPoint(),geoid ) ){
           return true;
       }
     }
   }
-}
-return false;
-}
-
-bool Line::Intersects( const Region& r ) const
-{
-assert( IsDefined() );
-assert( r.IsDefined() );
-if( IsEmpty() || r.IsEmpty() )
   return false;
+}
 
-if( !BoundingBox().Intersects( r.BoundingBox() ) )
-  return false;
-
-assert( IsOrdered() );
-assert( r.IsOrdered() );
-HalfSegment hsl, hsr;
-for( int i = 0; i < Size(); i++ )
+bool Line::Inside( const Line& l, const Geoid* geoid/*=0*/ ) const
 {
-  Get( i, hsl );
-  if( hsl.IsLeftDomPoint() )
-  {
-    for( int j = 0; j < r.Size(); j++ )
-    {
-      r.Get( j, hsr );
-      if( hsr.IsLeftDomPoint() )
-      {
-        if( hsl.Intersects( hsr ) )
-          return true;
+  assert( IsDefined() );
+  assert( l.IsDefined() );
+  assert( !geoid || geoid->IsDefined() );
+  if(!IsDefined() || !l.IsDefined() || (geoid && !geoid->IsDefined()) ){
+    return false;
+  }
+  if( IsEmpty() ){
+    return true;
+  }
+  if( l.IsEmpty() ){
+    return false;
+  }
+  if( !l.BoundingBox().Contains( bbox ) ){
+    return false;
+  }
+  assert( IsOrdered() );
+  assert( l.IsOrdered() );
+  HalfSegment hs1, hs2;
+  for( int i = 0; i < Size(); i++ ){
+    Get( i, hs1 );
+    if( hs1.IsLeftDomPoint() ){
+      bool found = false;
+      for( int j = 0; j < l.Size() && !found; j++ ){
+        l.Get( j, hs2 );
+        if( hs2.IsLeftDomPoint() && hs1.Inside( hs2,geoid ) ){
+          found = true;
+        }
       }
-    }
-
-    if( r.Contains( hsl.GetLeftPoint() ) ||
-        r.Contains( hsl.GetRightPoint() ) )
-      return true;
-  }
-}
-return false;
-}
-
-bool Line::Inside( const Line& l ) const
-{
-assert( IsDefined() );
-assert( l.IsDefined() );
-if(!IsDefined() || !l.IsDefined()){
-  return false;
-}
-
-if( IsEmpty() )
-  return true;
-
-if( l.IsEmpty() )
-  return false;
-
-if( !l.BoundingBox().Contains( bbox ) )
-  return false;
-
-assert( IsOrdered() );
-assert( l.IsOrdered() );
-HalfSegment hs1, hs2;
-for( int i = 0; i < Size(); i++ )
-{
-  Get( i, hs1 );
-  if( hs1.IsLeftDomPoint() )
-  {
-    bool found = false;
-    for( int j = 0; j < l.Size() && !found; j++ )
-    {
-      l.Get( j, hs2 );
-      if( hs2.IsLeftDomPoint() && hs1.Inside( hs2 ) )
-        found = true;
-    }
-    if( !found )
-      return false;
-  }
-}
-return true;
-}
-
-bool Line::Inside( const Region& r ) const
-{
-assert( IsDefined() );
-assert( r.IsDefined() );
-if(!IsDefined() || !r.IsDefined()){
-  return false;
-}
-
-if( IsEmpty() )
-  return true;
-
-if( r.IsEmpty() )
-  return false;
-
-if( !r.BoundingBox().Contains( bbox ) )
-  return false;
-
-assert( IsOrdered() );
-assert( r.IsOrdered() );
-HalfSegment hsl;
-for( int i = 0; i < Size(); i++ )
-{
-  Get( i, hsl );
-  if( hsl.IsLeftDomPoint() )
-  {
-    if( !r.Contains( hsl ) )
-      return false;
-  }
-}
-return true;
-}
-
-bool Line::Adjacent( const Region& r ) const
-{
-assert( IsDefined() );
-assert( r.IsDefined() );
-if( IsEmpty() || r.IsEmpty() )
-  return false;
-
-if( !BoundingBox().Intersects( r.BoundingBox() ) )
-  return false;
-
-assert( IsOrdered() );
-assert( r.IsOrdered() );
-HalfSegment hsl, hsr;
-bool found = false;
-for( int i = 0; i < Size(); i++ )
-{
-  Get( i, hsl );
-  if( hsl.IsLeftDomPoint() )
-  {
-    if( r.InnerContains( hsl.GetLeftPoint() ) ||
-        r.InnerContains( hsl.GetRightPoint() ) )
-      return false;
-
-    for( int j = 0; j < r.Size(); j++ )
-    {
-      r.Get( j, hsr );
-      if( hsr.IsLeftDomPoint() )
-      {
-        if( !hsr.Intersects( hsl ) )
-          continue;
-
-        found = true;
-
-        if( hsr.Crosses( hsl ) )
-          return false;
+      if( !found ){
+        return false;
       }
     }
   }
+  return true;
 }
-return found;
+
+bool Line::Inside( const Region& r, const Geoid* geoid/*=0*/ ) const
+{
+  assert( IsDefined() );
+  assert( r.IsDefined() );
+  assert( !geoid || geoid->IsDefined() );
+  if(!IsDefined() || !r.IsDefined() || (geoid && !geoid->IsDefined())){
+    return false;
+  }
+  if( IsEmpty() ){
+    return true;
+  }
+  if( r.IsEmpty() ){
+    return false;
+  }
+  if( !r.BoundingBox().Contains( bbox ) ){
+    return false;
+  }
+  assert( IsOrdered() );
+  assert( r.IsOrdered() );
+  HalfSegment hsl;
+  for( int i = 0; i < Size(); i++ ){
+    Get( i, hsl );
+    if( hsl.IsLeftDomPoint() ){
+      if( !r.Contains( hsl ) ){
+        return false;
+      }
+    }
+  }
+  return true;
+}
+
+bool Line::Adjacent( const Region& r, const Geoid* geoid/*=0*/ ) const
+{
+  assert( IsDefined() );
+  assert( r.IsDefined() );
+  assert( !geoid || geoid->IsDefined() );
+
+  if( IsEmpty() || r.IsEmpty()  || (geoid && !geoid->IsDefined()) ){
+    return false;
+  }
+  if( !BoundingBox().Intersects( r.BoundingBox() ) ){
+    return false;
+  }
+  assert( IsOrdered() );
+  assert( r.IsOrdered() );
+  HalfSegment hsl, hsr;
+  bool found = false;
+  for( int i = 0; i < Size(); i++ ){
+    Get( i, hsl );
+    if( hsl.IsLeftDomPoint() ){
+      if( r.InnerContains( hsl.GetLeftPoint(),geoid ) ||
+          r.InnerContains( hsl.GetRightPoint(),geoid ) ){
+        return false;
+      }
+      for( int j = 0; j < r.Size(); j++ ){
+        r.Get( j, hsr );
+        if( hsr.IsLeftDomPoint() ) {
+          if( !hsr.Intersects( hsl,geoid ) ){
+            continue;
+          }
+          found = true;
+          if( hsr.Crosses( hsl,geoid ) ){
+            return false;
+          }
+        }
+      }
+    }
+  }
+  return found;
 }
 
 
-void Line::Intersection(const Point& p, Points& result)const {
+void Line::Intersection(const Point& p, Points& result,
+                        const Geoid* geoid/*=0*/)const {
  result.Clear();
- if(!IsDefined() || !p.IsDefined()){
+ if(!IsDefined() || !p.IsDefined() || (geoid&& !geoid->IsDefined()) ){
    result.SetDefined(false);
    return;
  }
  result.SetDefined(true);
- if(this->Contains(p)){
+ if(this->Contains(p, geoid)){
    result += p;
  }
 }
 
-void Line::Intersection(const Points& ps, Points& result) const{
+void Line::Intersection(const Points& ps, Points& result,
+                        const Geoid* geoid/*=0*/) const{
 // naive implementation, should be changed to be faster
  result.Clear();
- if(!IsDefined() || !ps.IsDefined()){
+ if(!IsDefined() || !ps.IsDefined() || (geoid&& !geoid->IsDefined())){
    result.SetDefined(false);
    return;
  }
@@ -4739,7 +4868,7 @@ void Line::Intersection(const Points& ps, Points& result) const{
  result.StartBulkLoad();
  for(int i=0;i<ps.Size(); i++){
    ps.Get(i,p);
-   if(this->Contains(p)){
+   if(this->Contains(p,geoid)){
       result += p;
    }
  }
@@ -4747,311 +4876,309 @@ void Line::Intersection(const Points& ps, Points& result) const{
 }
 
 
-void Line::Intersection( const Line& l, Line& result ) const
+void Line::Intersection( const Line& l, Line& result,
+                         const Geoid* geoid/*=0*/ ) const
 {
-SetOp(*this,l,result,avlseg::intersection_op);
+  SetOp(*this,l,result,avlseg::intersection_op, geoid);
 }
 
-void Line::Intersection(const Region& r, Line& result) const{
- r.Intersection(*this,result);
+void Line::Intersection(const Region& r, Line& result,
+                        const Geoid* geoid/*=0*/) const{
+ r.Intersection(*this,result,geoid);
 }
 
-void Line::Minus(const Point& p, Line& result) const {
-result.Clear();
-if(!IsDefined() || !p.IsDefined()){
-  result.SetDefined(false);
-  return;
-}
-result.CopyFrom(this);
-}
-
-void Line::Minus(const Points& ps, Line& result) const {
-result.Clear();
-if(!IsDefined() || !ps.IsDefined()){
-  result.SetDefined(false);
-  return;
-}
-result.CopyFrom(this);
+void Line::Minus(const Point& p, Line& result,
+                 const Geoid* geoid/*=0*/) const {
+  result.Clear();
+  if(!IsDefined() || !p.IsDefined()){
+    result.SetDefined(false);
+    return;
+  }
+  result.CopyFrom(this);
 }
 
-void Line::Minus(const Line& line, Line& result) const{
- SetOp(*this,line,result,avlseg::difference_op);
+void Line::Minus(const Points& ps, Line& result,
+                 const Geoid* geoid/*=0*/) const {
+  result.Clear();
+  if(!IsDefined() || !ps.IsDefined() || (geoid&& !geoid->IsDefined()) ){
+    result.SetDefined(false);
+    return;
+  }
+  result.CopyFrom(this);
 }
 
-void Line::Minus(const Region& region, Line& result) const{
- SetOp(*this,region, result,avlseg::difference_op);
+void Line::Minus(const Line& line, Line& result,
+                 const Geoid* geoid/*=0*/) const{
+ SetOp(*this,line,result,avlseg::difference_op,geoid);
 }
 
-
-void Line::Union(const Point& p, Line& result) const{
-result.Clear();
-if(!IsDefined() || !p.IsDefined()){
-  result.SetDefined(false);
-  return;
-}
-result.CopyFrom(this);
-}
-
-void Line::Union(const Points& ps, Line& result) const{
-result.Clear();
-if(!IsDefined() || !ps.IsDefined()){
-  result.SetDefined(false);
-  return;
-}
-result.CopyFrom(this);
-}
-
-void Line::Union(const Line& line, Line& result) const{
- SetOp(*this, line, result, avlseg::union_op);
-}
-
-void Line::Union(const Region& region, Region& result) const{
- region.Union(*this,result);
+void Line::Minus(const Region& region, Line& result,
+                 const Geoid* geoid/*=0*/) const{
+ SetOp(*this,region, result,avlseg::difference_op,geoid);
 }
 
 
-
-
-void Line::Crossings( const Line& l, Points& result ) const
-{
-result.Clear();
-if( !IsDefined() || !l.IsDefined() ) {
-  result.SetDefined( false );
-  return;
+void Line::Union(const Point& p, Line& result, const Geoid* geoid/*=0*/) const{
+  result.Clear();
+  if(!IsDefined() || !p.IsDefined() || (geoid&& !geoid->IsDefined()) ){
+    result.SetDefined(false);
+    return;
+  }
+  result.CopyFrom(this);
 }
-result.SetDefined( true );
 
-if( IsEmpty() || l.IsEmpty() )
-  return;
+void Line::Union(const Points& ps, Line& result,
+                 const Geoid* geoid/*=0*/) const{
+  result.Clear();
+  if(!IsDefined() || !ps.IsDefined() || (geoid&& !geoid->IsDefined())){
+    result.SetDefined(false);
+    return;
+  }
+  result.CopyFrom(this);
+}
 
-assert( IsOrdered() );
-assert( l.IsOrdered() );
-HalfSegment hs1, hs2;
-Point p;
-result.StartBulkLoad();
-for( int i = 0; i < Size(); i++ )
-{
-  Get( i, hs1 );
+void Line::Union(const Line& line, Line& result,
+                 const Geoid* geoid/*=0*/) const{
+ SetOp(*this, line, result, avlseg::union_op,geoid);
+}
 
-  if( hs1.IsLeftDomPoint() )
-  {
-    for( int j = 0; j < l.Size(); j++ )
-    {
-      l.Get( j, hs2 );
+void Line::Union(const Region& region, Region& result,
+                 const Geoid* geoid/*=0*/) const{
+ region.Union(*this,result,geoid);
+}
 
-      if( hs2.IsLeftDomPoint() )
-      {
-        if( hs1.Intersection( hs2, p ) )
-          result += p;
+
+
+
+void Line::Crossings( const Line& l, Points& result,
+                      const Geoid* geoid/*=0*/ ) const{
+  result.Clear();
+  if( !IsDefined() || !l.IsDefined() || (geoid&& !geoid->IsDefined())) {
+    result.SetDefined( false );
+    return;
+  }
+  result.SetDefined( true );
+  if( IsEmpty() || l.IsEmpty() ){
+    return;
+  }
+  assert( IsOrdered() );
+  assert( l.IsOrdered() );
+  HalfSegment hs1, hs2;
+  Point p;
+  result.StartBulkLoad();
+  for( int i = 0; i < Size(); i++ ){
+    Get( i, hs1 );
+    if( hs1.IsLeftDomPoint() )  {
+      for( int j = 0; j < l.Size(); j++ ){
+        l.Get( j, hs2 );
+        if( hs2.IsLeftDomPoint() ){
+          if( hs1.Intersection( hs2, p, geoid ) ){
+            result += p;
+          }
+        }
       }
     }
   }
-}
-result.EndBulkLoad(true, true); // sort and remove duplicates
+  result.EndBulkLoad(true, true); // sort and remove duplicates
 }
 
-void Line::Crossings(Points& result) const{
-
-result.Clear();
-if(!IsDefined()){
-   result.SetDefined(false);
-   return;
-}
-result.SetDefined(true);
-int i = 0;
-int size = Size();
-Point lastPoint(false);
-HalfSegment hs;
-Point p;
-int count = 0;
-result.StartBulkLoad();
-while(i<size){
-   Get(i,hs);
-   p = hs.GetDomPoint();
-   i++;
-   if(!lastPoint.IsDefined()){ // first point
+void Line::Crossings(Points& result, const Geoid* geoid/*=0*/) const{
+  result.Clear();
+  if(!IsDefined() || (geoid&& !geoid->IsDefined())){
+    result.SetDefined(false);
+    return;
+  }
+  result.SetDefined(true);
+  int i = 0;
+  int size = Size();
+  Point lastPoint(false);
+  HalfSegment hs;
+  Point p;
+  int count = 0;
+  result.StartBulkLoad();
+  while(i<size){
+    Get(i,hs);
+    p = hs.GetDomPoint();
+    i++;
+    if(!lastPoint.IsDefined()){ // first point
+        lastPoint = p;
+        count = 0;
+    } else if(AlmostEqual(lastPoint,p)){
+      count++;
+    } else {
+      if(count>2){ // crossing found
+        result += p;
+      }
       lastPoint = p;
-      count = 0;
-   } else if(AlmostEqual(lastPoint,p)){
-     count++;
-   } else {
-     if(count>2){ // crossing found
-       result += p;
-     }
-     lastPoint = p;
-     count = 1;
-   }
-}
-if(lastPoint.IsDefined() && count>2){
-   result += lastPoint;
-}
-result.EndBulkLoad();
-}
-
-
-
-double Line::Distance( const Point& p ) const
-{
-assert( !IsEmpty() );
-assert( p.IsDefined() );
-if( IsEmpty() || !p.IsDefined()){
-  return -1;
-}
-
-assert( IsOrdered() );
-HalfSegment hs;
-double result = numeric_limits<double>::max();
-
-for( int i = 0; i < Size(); i++ )
-{
-  Get( i, hs );
-
-  if( hs.IsLeftDomPoint() )
-  {
-    if( hs.Contains( p ) )
-      return 0.0;
-
-    result = MIN( result, hs.Distance( p ) );
-  }
-}
-return result;
-}
-double Line::MaxDistance( const Point& p ) const
-{
-assert( !IsEmpty() );
-assert( p.IsDefined() );
-if( IsEmpty() || !p.IsDefined()){
-  return -1;
-}
-
-assert( IsOrdered() );
-HalfSegment hs;
-double result = 0;
-
-for( int i = 0; i < Size(); i++ )
-{
-  Get( i, hs );
-
-  if( hs.IsLeftDomPoint() )
-  {
-    result = MAX( result, hs.Distance( p ) );
-  }
-}
-return result;
-}
-double Line::Distance( const Points& ps ) const
-{
-assert( !IsEmpty() ); // includes !undef
-assert( !ps.IsEmpty() ); // includes !undef
-if( IsEmpty() || ps.IsEmpty()){
-  return -1;
-}
-
-assert( IsOrdered() );
-assert( ps.IsOrdered() );
-HalfSegment hs;
-Point p;
-double result = numeric_limits<double>::max();
-
-for( int i = 0; i < Size(); i++ )
-{
-  Get( i, hs );
-
-  if( hs.IsLeftDomPoint() )
-  {
-    for( int j = 0; j < ps.Size(); j++ )
-    {
-      ps.Get( j, p );
-      if( hs.Contains( p ) )
-        return 0;
-      result = MIN( result, hs.Distance( p ) );
+      count = 1;
     }
   }
-}
-return result;
-}
-
-double Line::Distance( const Line& l ) const
-{
-assert( !IsEmpty() );   // includes !undef
-assert( !l.IsEmpty() ); // includes !undef
-if( IsEmpty() || l.IsEmpty()){
-  return -1;
+  if(lastPoint.IsDefined() && count>2){
+    result += lastPoint;
+  }
+  result.EndBulkLoad();
 }
 
-assert( IsOrdered() );
-assert( l.IsOrdered() );
-HalfSegment hs1, hs2;
-double result = numeric_limits<double>::max();
 
-for( int i = 0; i < Size(); i++ )
-{
-  Get( i, hs1 );
 
-  if( hs1.IsLeftDomPoint() )
-  {
-    for( int j = 0; j < l.Size(); j++ )
-    {
-      l.Get( j, hs2 );
+double Line::Distance( const Point& p, const Geoid* geoid /* = 0 */ ) const {
+  assert( !IsEmpty() );
+  assert( p.IsDefined() );
+  assert(!geoid || geoid->IsDefined() );
+  if( IsEmpty() || !p.IsDefined()){
+    return -1;
+  }
 
-      if( hs1.Intersects( hs2 ) )
+  assert( IsOrdered() );
+  HalfSegment hs;
+  double result = numeric_limits<double>::max();
+
+  for( int i = 0; i < Size(); i++ ){
+    Get( i, hs );
+    if( hs.IsLeftDomPoint() ){
+      if( hs.Contains( p ) ){
         return 0.0;
-
-      result = MIN( result, hs1.Distance( hs2 ) );
+      }
+      result = MIN( result, hs.Distance( p, geoid ) );
     }
   }
-}
-return result;
+  return result;
 }
 
-double Line::Distance( const Rectangle<2>& r ) const {
-assert( !IsEmpty() ); // includes !undef
-assert( IsOrdered() );
-assert( r.IsDefined() );
+double Line::MaxDistance( const Point& p, const Geoid* geoid /* = 0 */ ) const {
+  assert( !IsEmpty() );
+  assert( p.IsDefined() );
+  assert(!geoid || geoid->IsDefined() );
+  if( IsEmpty() || !p.IsDefined()){
+    return -1;
+  }
+  assert( IsOrdered() );
+  HalfSegment hs;
+  double result = 0;
 
-if( IsEmpty() || !r.IsDefined()){
-  return -1;
+  for( int i = 0; i < Size(); i++ ){
+    Get( i, hs );
+    if( hs.IsLeftDomPoint() )  {
+      result = MAX( result, hs.Distance( p, geoid ) );
+    }
+  }
+  return result;
 }
-assert( IsOrdered() );
-HalfSegment hs;
-double dist = numeric_limits<double>::max();
-for(int i=0; i < line.Size() && dist>0; i++){
-   line.Get(i,hs);
-   if(hs.IsLeftDomPoint()){
-     double d = hs.Distance(r);
-     if(d<dist){
-        dist = d;
-     }
-   }
+
+double Line::Distance( const Points& ps, const Geoid* geoid /* = 0 */ ) const {
+  assert( !IsEmpty() ); // includes !undef
+  assert( !ps.IsEmpty() ); // includes !undef
+  assert(!geoid || geoid->IsDefined() );
+  if( IsEmpty() || ps.IsEmpty()){
+    return -1;
+  }
+  assert( IsOrdered() );
+  assert( ps.IsOrdered() );
+  HalfSegment hs;
+  Point p;
+  double result = numeric_limits<double>::max();
+  for( int i = 0; i < Size(); i++ ){
+    Get( i, hs );
+    if( hs.IsLeftDomPoint() ){
+      for( int j = 0; j < ps.Size(); j++ ){
+        ps.Get( j, p );
+        if( hs.Contains( p, geoid ) ){
+          return 0;
+        }
+        result = MIN( result, hs.Distance( p, geoid ) );
+      }
+    }
+  }
+  return result;
 }
-return dist;
-}
-double Line::MaxDistance( const Rectangle<2>& r ) const
+
+double Line::Distance( const Line& l, const Geoid* geoid /* = 0 */ ) const
 {
-assert( !IsEmpty() ); // includes !undef
-assert( r.IsDefined() );
+  assert( !IsEmpty() );   // includes !undef
+  assert( !l.IsEmpty() ); // includes !undef
+  assert(!geoid || geoid->IsDefined() );
+  if( IsEmpty() || l.IsEmpty()){
+    return -1;
+  }
+  assert( IsOrdered() );
+  assert( l.IsOrdered() );
+  HalfSegment hs1, hs2;
+  double result = numeric_limits<double>::max();
+  for( int i = 0; i < Size(); i++ ){
+    Get( i, hs1 );
+    if( hs1.IsLeftDomPoint() ) {
+      for( int j = 0; j < l.Size(); j++ ) {
+        l.Get( j, hs2 );
+        if( hs1.Intersects( hs2, geoid ) ){
+          return 0.0;
+        }
+        result = MIN( result, hs1.Distance( hs2, geoid ) );
+      }
+    }
+  }
+  return result;
+}
 
-if( IsEmpty() || !r.IsDefined()){
-  return -1;
-}
-assert( IsOrdered() );
-HalfSegment hs;
-double dist = 0;
-for(int i=0; i < line.Size(); i++){
-   line.Get(i,hs);
-   if(hs.IsLeftDomPoint()){
-     double d = hs.MaxDistance(r);
-     if(d > dist){
-        dist = d;
-     }
-   }
-}
-return dist;
+double Line::Distance( const Rectangle<2>& r,
+                       const Geoid* geoid /*=0*/ ) const {
+  assert( !IsEmpty() ); // includes !undef
+  assert( IsOrdered() );
+  assert( r.IsDefined() );
+  assert( !geoid || geoid->IsDefined() );
+  if(geoid){
+    cout << __PRETTY_FUNCTION__ << ": Spherical geometry not implemented."
+         <<endl;
+    assert(false); // TODO: Implement spherical geometry case.
+  }
+  if( IsEmpty() || !r.IsDefined() || (geoid && !geoid->IsDefined()) ){
+    return -1;
+  }
+  assert( IsOrdered() );
+  HalfSegment hs;
+  double dist = numeric_limits<double>::max();
+  for(int i=0; i < line.Size() && dist>0; i++){
+    line.Get(i,hs);
+    if(hs.IsLeftDomPoint()){
+      double d = hs.Distance(r,geoid);
+      if(d<dist){
+          dist = d;
+      }
+    }
+  }
+  return dist;
 }
 
-int Line::NoComponents() const
+double Line::MaxDistance( const Rectangle<2>& r,
+                          const Geoid* geoid /*=0*/ ) const
 {
-return noComponents;
+  assert( !IsEmpty() ); // includes !undef
+  assert( r.IsDefined() );
+  assert( !geoid || geoid->IsDefined() );
+  if(geoid){
+    cout << __PRETTY_FUNCTION__ << ": Spherical geometry not implemented."
+         <<endl;
+    assert(false); // TODO: Implement spherical geometry case.
+  }
+  if( IsEmpty() || !r.IsDefined() || (geoid && !geoid-IsDefined()) ){
+    return -1;
+  }
+  assert( IsOrdered() );
+  HalfSegment hs;
+  double dist = 0;
+  for(int i=0; i < line.Size(); i++){
+    line.Get(i,hs);
+    if(hs.IsLeftDomPoint()){
+      double d = hs.MaxDistance(r,geoid);
+      if(d > dist){
+          dist = d;
+      }
+    }
+  }
+  return dist;
+}
+
+int Line::NoComponents() const {
+  return noComponents;
 }
 
 void Line::Translate( const Coord& x, const Coord& y, Line& result ) const
@@ -5151,46 +5278,47 @@ if( !IsEmpty() ) {
 
 
 /*
-Simple function marking some elements between min and  max as used to avoid
+Simple function marking some elements between min and max as used to avoid
 segments degenerated to single points.
 
 */
 static double maxDist(vector<Point>& orig, // points
-                    int min, int max, // range
-                    int& index){  // resultindex
+                      int min, int max, // range
+                      int& index,       // resultindex
+                      const Geoid* geoid=0){
 
-// search the point with the largest distance to the segment between
-// orig[min] and orig[max]
-double maxdist = 0.0;
-int maxindex = -1;
+  // search the point with the largest distance to the segment between
+  // orig[min] and orig[max]
+  double maxdist = 0.0;
+  int maxindex = -1;
 
-try{
-  if(!AlmostEqual(orig.at(min),orig.at(max))){
-    HalfSegment hs(true,orig.at(min),orig.at(max));
-    for(int i=min+1; i<max; i++){
-      double dist = hs.Distance(orig.at(i));
-      if(dist>maxdist){
-        maxdist = dist;
-        maxindex = i;
+  try{
+    if(!AlmostEqual(orig.at(min),orig.at(max))){
+      HalfSegment hs(true,orig.at(min),orig.at(max));
+      for(int i=min+1; i<max; i++){
+        double dist = hs.Distance(orig.at(i),geoid);
+        if(dist>maxdist){
+          maxdist = dist;
+          maxindex = i;
+        }
+      }
+  } else { // special case of a cycle
+      Point p = orig[min];
+      for(int i=min+1; i<max; i++){
+        double dist = p.Distance(orig.at(i),geoid);
+        if(dist>maxdist){
+          maxdist = dist;
+          maxindex = i;
+        }
       }
     }
- } else { // special case of a cycle
-    Point p = orig[min];
-    for(int i=min+1; i<max; i++){
-      double dist = p.Distance(orig.at(i));
-      if(dist>maxdist){
-        maxdist = dist;
-        maxindex = i;
-      }
-    }
+    index = maxindex;
+    return maxdist;
+  } catch (out_of_range){
+      cerr << "min=" << min << " max=" << max << " size="
+          << orig.size() << endl;
+      assert(false);
   }
-  index = maxindex;
-  return maxdist;
-} catch (out_of_range){
-    cerr << "min=" << min << " max=" << max << " size="
-         << orig.size() << endl;
-    assert(false);
-}
 }
 
 
@@ -5206,48 +5334,51 @@ static bool douglas_peucker(vector<Point>& orig, // original line
                      const double epsilon, // maximum derivation
                      bool* use, // result
                      int min, int max,
-                     bool force = false){ // current range
-// always use the endpoints
-use[min] = true;
-use[max] = true;
-if(min+1>=max){ // no inner points, nothing to do
-return false;
-}
-int index;
-double maxdist = maxDist(orig,min,max,index);
-bool cycle = AlmostEqual(orig[min], orig[max]);
-if((maxdist<=epsilon) &&  // line closed enough
-   !cycle &&  // no degenerated segment
-   !force){
-     return false; // all ok, stop recursion
- } else {
-   bool ins = douglas_peucker(orig,epsilon,use,min,index,cycle);
-   if(index>=0){
-      douglas_peucker(orig,epsilon,use,index,max,cycle && !ins);
-   }
-   return true;
- }
+                     bool force = false,
+                     const Geoid* geoid = 0){ // current range
+  // always use the endpoints
+  use[min] = true;
+  use[max] = true;
+  if(min+1>=max){ // no inner points, nothing to do
+    return false;
+  }
+  int index;
+  double maxdist = maxDist(orig,min,max,index,geoid);
+  bool cycle = AlmostEqual(orig[min], orig[max]);
+  if( (maxdist<=epsilon) &&  // line closed enough
+      !cycle &&  // no degenerated segment
+      !force){
+    return false; // all ok, stop recursion
+  } else {
+    bool ins = douglas_peucker(orig,epsilon,use,min,index,cycle,geoid);
+    if(index>=0){
+      douglas_peucker(orig,epsilon,use,index,max,cycle && !ins,geoid);
+    }
+    return true;
+  }
 }
 
 
 
-static void  douglas_peucker(vector<Point>& orig, // original chain of points
-                           const double epsilon, // maximum derivation
-                           bool* use){ // result
-for(unsigned int i=0;i<orig.size();i++){
-   use[i] = false;
-}
-// call the recursive implementation
-douglas_peucker(orig,epsilon, use, 0, orig.size()-1);
+static void  douglas_peucker(vector<Point>& orig,  // original chain of points
+                             const double epsilon, // maximum derivation
+                             bool* use,            // result
+                             const Geoid* geoid = 0){
+  for(unsigned int i=0;i<orig.size();i++){
+    use[i] = false;
+  }
+  // call the recursive implementation
+  douglas_peucker(orig,epsilon, use, 0, orig.size()-1,geoid);
 }
 
 
 
 void Line::Simplify(Line& result, const double epsilon,
-                  const Points& importantPoints /*= Points(0)*/ ) const{
+                    const Points& importantPoints /*= Points(0)*/ ,
+                    const Geoid* geoid /*= 0*/) const{
  result.Clear(); // remove old stuff
 
- if(!IsDefined()){ // this is not defined
+ if( !IsDefined() || (geoid && !geoid->IsDefined()) ){ // this/geoid undefined
     result.SetDefined(false);
     return;
  }
@@ -5373,7 +5504,7 @@ void Line::Simplify(Line& result, const double epsilon,
 
      // determine all segments to use and copy them into the result
      bool use[complete.size()];
-     douglas_peucker(complete,epsilon,use);
+     douglas_peucker(complete,epsilon,use,geoid);
      int size = complete.size();
      Point last = complete[0];
      for(int i=1;i<size;i++){
@@ -6338,7 +6469,7 @@ LineProperty()
              nl->StringAtom("Example List")),
            nl->FourElemList(
              nl->StringAtom("-> DATA"),
-             nl->StringAtom("line"),
+             nl->StringAtom(Line::BasicType()),
              nl->StringAtom("(<segment>*) where segment is "
                "(<x1><y1><x2><y2>)"),
              nl->StringAtom("( (1 1 2 2)(3 3 4 4) )")));
@@ -6354,7 +6485,7 @@ type constructor ~line~ does not have arguments, this is trivial.
 bool
 CheckLine( ListExpr type, ListExpr& errorInfo )
 {
-  return nl->IsEqual( type, "line" );
+  return nl->IsEqual( type, Line::BasicType() );
 }
 
 /*
@@ -6371,7 +6502,7 @@ void* CastLine(void* addr)
 
 */
 TypeConstructor line(
-        "line",                         //name
+        Line::BasicType(),                         //name
         LineProperty,                   //describing signature
         OutLine,        InLine,         //Out and In functions
         0,              0,              //SaveTo and RestoreFrom List functions
@@ -6507,10 +6638,11 @@ Point SimpleLine::EndPoint( bool startsSmaller ) const {
   return StartPoint(!startsSmaller);
 }
 
-bool SimpleLine::Contains( const Point& p ) const {
+bool SimpleLine::Contains( const Point& p,
+                           const Geoid* geoid /*=0*/ ) const {
  assert( IsDefined() );
  assert( p.IsDefined() );
- if( IsEmpty()  || !p.IsDefined() ){
+ if( IsEmpty()  || !p.IsDefined() || (geoid && !geoid->IsDefined()) ){
    return false;
  }
  int pos;
@@ -6525,7 +6657,7 @@ bool SimpleLine::Contains( const Point& p ) const {
  for( ; pos >= 0; pos-- ){
    segments.Get( pos, &hs );
    if( hs.IsLeftDomPoint() ) {
-     if( hs.Contains( p ) ){
+     if( hs.Contains( p, geoid ) ){
        return true;
      }
    }
@@ -6533,101 +6665,110 @@ bool SimpleLine::Contains( const Point& p ) const {
  return false;
 }
 
-double SimpleLine::Distance(const Point& p)const {
+double SimpleLine::Distance(const Point& p, const Geoid* geoid /* = 0 */)const {
   assert( !IsEmpty() );
   assert( p.IsDefined() );
+  assert( ! geoid || geoid->IsDefined() );
   HalfSegment hs;
   double result = numeric_limits<double>::max();
   for( int i = 0; i < Size(); i++ ) {
     Get( i, hs );
     if( hs.IsLeftDomPoint() ) {
-      if( hs.Contains( p ) ){
+      if( hs.Contains( p ), geoid ){
         return 0.0;
       }
-      result = MIN( result, hs.Distance( p ) );
+      result = MIN( result, hs.Distance( p, geoid ) );
     }
   }
   return result;
 }
 
 
-double SimpleLine::Distance(const Points& ps)const{
+double SimpleLine::Distance(const Points& ps, const Geoid* geoid /* =0 */)const{
   assert( !IsEmpty() );
   assert( !ps.IsEmpty() );
+  assert( ! geoid || geoid->IsDefined() );
   HalfSegment hs;
   Point p;
   double result = numeric_limits<double>::max();
-
   for( int i = 0; i < Size(); i++ ) {
     Get( i, hs );
-
     if( hs.IsLeftDomPoint() ) {
       for( int j = 0; j < ps.Size(); j++ ) {
         ps.Get( j, p );
-        if( hs.Contains( p ) ){
+        if( hs.Contains( p, geoid ) ){
           return 0;
         }
-        result = MIN( result, hs.Distance( p ) );
+        result = MIN( result, hs.Distance( p, geoid ) );
       }
     }
   }
   return result;
 }
 
-double SimpleLine::Distance(const SimpleLine& sl)const{
+double SimpleLine::Distance(const SimpleLine& sl,
+                            const Geoid* geoid /* =0 */ )const{
   assert( !IsEmpty() );
   assert( !sl.IsEmpty() );
+  assert( ! geoid || geoid->IsDefined() );
   HalfSegment hs1, hs2;
   double result = numeric_limits<double>::max();
-
   for( int i = 0; i < Size(); i++ ) {
     Get( i, hs1 );
-
     if( hs1.IsLeftDomPoint() ) {
       for( int j = 0; j < sl.Size(); j++ ) {
         sl.Get( j, hs2 );
 
-        if( hs1.Intersects( hs2 ) ){
+        if( hs1.Intersects( hs2, geoid ) ){
           return 0.0;
         }
-        result = MIN( result, hs1.Distance( hs2 ) );
+        result = MIN( result, hs1.Distance( hs2, geoid ) );
       }
     }
   }
   return result;
 }
 
-double SimpleLine::Distance(const Rectangle<2>& r)const{
+double SimpleLine::Distance(const Rectangle<2>& r,
+                            const Geoid* geoid /*=0*/)const{
   assert( !IsEmpty() );
   assert( r.IsDefined() );
+  assert( !geoid || geoid->IsDefined() );
+  if(geoid){
+    cout << __PRETTY_FUNCTION__ << ": Spherical geometry not implemented."
+         <<endl;
+    assert(false); // TODO: Implement spherical geometry case.
+  }
   Line sll(0);
   toLine(sll);
-  return sll.Distance( r );
+  return sll.Distance( r, geoid );
 }
 
-bool SimpleLine::AtPosition( double pos, bool startsSmaller, Point& p ) const {
- if(IsEmpty()){ // subsumes !IsDefined()
+bool SimpleLine::AtPosition( double pos,
+                             bool startsSmaller,
+                             Point& p,
+                             const Geoid* geoid /* = 0 */) const {
+  assert( ! geoid || geoid->IsDefined() );
+  if(IsEmpty() || (geoid && !geoid->IsDefined()) ){ // subsumes !IsDefined()
     p.SetDefined( false );
     return false;
- }
- if( startsSmaller != this->startSmaller ){
-   pos = length - pos;
- }
- LRS lrs( pos, 0 );
- int lrsPos;
- if( !Find( lrs,lrsPos ) ){
-   p.SetDefined( false );
-   return false;
- }
-
- LRS lrs2;
- lrsArray.Get( lrsPos, lrs2 );
-
- HalfSegment hs;
- segments.Get( lrs2.hsPos, &hs );
- p = hs.AtPosition( pos - lrs2.lrsPos );
- p.SetDefined( true );
- return true;
+  }
+  if( startsSmaller != this->startSmaller ){
+    pos = length - pos;
+  }
+  LRS lrs( pos, 0 );
+  int lrsPos;
+  if( !Find( lrs,lrsPos ) ){
+    p.SetDefined( false );
+    return false;
+  }
+  LRS lrs2;
+  lrsArray.Get( lrsPos, lrs2 );
+  HalfSegment hs;
+  segments.Get( lrs2.hsPos, &hs );
+  p = hs.AtPosition( pos - lrs2.lrsPos, geoid );
+  p.SetDefined( true );
+  return true;
 }
 
 /*
@@ -6636,13 +6777,18 @@ bool SimpleLine::AtPosition( double pos, bool startsSmaller, Point& p ) const {
 */
 bool SimpleLine::AtPoint( const Point& p,
                           bool startsSmaller,
-                          double& result ) const {
+                          double& result,
+                          const Geoid* geoid /*=0*/) const {
  assert( !IsEmpty() );
  assert( p.IsDefined() );
- if( IsEmpty() || !p.IsDefined() ){
+ if( IsEmpty() || !p.IsDefined() || (geoid && !geoid->IsDefined()) ){
    return false;
  }
-
+ if(geoid){
+   cout << __PRETTY_FUNCTION__ << ": Spherical geometry not implemented."
+        <<endl;
+   assert(false); // TODO: Implement spherical geometry case.
+ }
  bool found = false;
  HalfSegment hs;
  int pos;
@@ -6652,7 +6798,7 @@ bool SimpleLine::AtPoint( const Point& p,
   } else if( pos < Size() ) {
    for( ; pos >= 0; pos-- ) {
      segments.Get( pos, hs );
-     if( hs.IsLeftDomPoint() && hs.Contains( p ) ) {
+     if( hs.IsLeftDomPoint() && hs.Contains( p, geoid ) ) {
        found = true;
        break;
      }
@@ -6755,7 +6901,8 @@ void SimpleLine::SubLine( double pos1, double pos2,
 }
 
 
-void SimpleLine::Crossings( const SimpleLine& l, Points& result ) const
+void SimpleLine::Crossings( const SimpleLine& l, Points& result,
+                            const Geoid* geoid /*=0*/ ) const
 {
   result.Clear();
   if( !IsDefined() || !l.IsDefined() ) {
@@ -6763,28 +6910,20 @@ void SimpleLine::Crossings( const SimpleLine& l, Points& result ) const
     return;
   }
   result.SetDefined( true );
-
-  if( IsEmpty() || l.IsEmpty() )
+  if( IsEmpty() || l.IsEmpty()  || (geoid && !geoid->IsDefined())){
     return;
-
+  }
   assert( IsOrdered() && l.IsOrdered() );
   HalfSegment hs1, hs2;
   Point p;
-
   result.StartBulkLoad();
-  for( int i = 0; i < Size(); i++ )
-  {
+  for( int i = 0; i < Size(); i++ ){
     Get( i, hs1 );
-
-    if( hs1.IsLeftDomPoint() )
-    {
-      for( int j = 0; j < l.Size(); j++ )
-      {
+    if( hs1.IsLeftDomPoint() ){
+      for( int j = 0; j < l.Size(); j++ ){
         l.Get( j, hs2 );
-
-        if( hs2.IsLeftDomPoint() )
-        {
-          if( hs1.Intersection( hs2, p ) )
+        if( hs2.IsLeftDomPoint() ){
+          if( hs1.Intersection( hs2, p, geoid ) )
             result += p;
         }
       }
@@ -6793,32 +6932,28 @@ void SimpleLine::Crossings( const SimpleLine& l, Points& result ) const
   result.EndBulkLoad(true, true); // sort and remove duplicates
 }
 
-bool SimpleLine::Intersects(const SimpleLine& l) const{
+bool SimpleLine::Intersects(const SimpleLine& l,
+                            const Geoid* geoid /*=0*/ ) const{
   assert( IsDefined() );
   assert( l.IsDefined() );
-   if(!IsDefined() || ! l.IsDefined()){
+  assert( !geoid || geoid->IsDefined() );
+   if(!IsDefined() || ! l.IsDefined() || (geoid && !geoid->IsDefined())){
       return false;
    }
    if(IsEmpty() || l.IsEmpty()){
       return false;
    }
-
-   if(!BoundingBox().Intersects(l.BoundingBox())){
+   if(!geoid && !BoundingBox().Intersects(l.BoundingBox())){
       return false;
    }
-
   HalfSegment hs1, hs2;
-  for( int i = 0; i < Size(); i++ )
-  {
+  for( int i = 0; i < Size(); i++ ){
     Get( i, hs1 );
-    if( hs1.IsLeftDomPoint() )
-    {
-      for( int j = 0; j < l.Size(); j++ )
-      {
+    if( hs1.IsLeftDomPoint() ){
+      for( int j = 0; j < l.Size(); j++ ){
         l.Get( j, hs2 );
-        if (hs2.IsLeftDomPoint())
-        {
-          if( hs1.Intersects( hs2 ) )
+        if (hs2.IsLeftDomPoint()){
+          if( hs1.Intersects( hs2, geoid ) )
             return true;
         }
       }
@@ -6830,9 +6965,11 @@ bool SimpleLine::Intersects(const SimpleLine& l) const{
 
 
 bool SimpleLine::SelectInitialSegment( const Point &startPoint,
-                                       const double tolerance ){
+                                       const double tolerance,
+                                       const Geoid* geoid /* = 0 */){
   assert( IsDefined() );
   assert( startPoint.IsDefined() );
+  assert( ! geoid || geoid->IsDefined() );
   if(isCycle ){
      return false;
   }
@@ -6850,7 +6987,7 @@ bool SimpleLine::SelectInitialSegment( const Point &startPoint,
          // current minimum distance to minDist
          HalfSegment hs;
          segments.Get( pos, hs );
-         distance = hs.GetDomPoint().Distance(startPoint);
+         distance = hs.GetDomPoint().Distance(startPoint, geoid);
          if (distance <= minDist) {
            minDist   = distance;
            currentHS = pos;
@@ -7171,7 +7308,7 @@ double SimpleLine::Length(const Geoid &geoid, bool& valid) const {
     HalfSegment hs;
     Get( i, hs );
     if( hs.IsLeftDomPoint() ){
-      length += hs.LengthOrthodrome(geoid, valid);;
+      length += hs.LengthOrthodrome(geoid, valid);
     };
   }
   return length;
@@ -7325,14 +7462,14 @@ int SizeOfSimpleLine() {
               nl->StringAtom("Example List")),
             nl->FourElemList(
               nl->StringAtom("-> DATA"),
-              nl->StringAtom("sline"),
+              nl->StringAtom(SimpleLine::BasicType()),
               nl->TextAtom("( (<segment>*) <bool> ) where segment is "
                              "(<x1><y1><x2><y2>) and bool is TRUE or FALSE"),
               nl->StringAtom("( ( (1 1 2 2) (2 2 1 4) ) FALSE )")));
 }
 
 bool CheckSimpleLine( ListExpr type, ListExpr& errorInfo ){
-   return nl->IsEqual( type, "sline" );
+   return nl->IsEqual( type, SimpleLine::BasicType() );
 }
 
 void* CastSimpleLine(void* addr) {
@@ -7340,7 +7477,7 @@ void* CastSimpleLine(void* addr) {
 }
 
 TypeConstructor sline(
-     "sline",                         //name
+     SimpleLine::BasicType(),                         //name
      SimpleLineProperty,                   //describing signature
      OutSimpleLine,  InSimpleLine,         //Out and In functions
      0,              0,              //SaveTo and RestoreFrom List functions
@@ -7512,18 +7649,19 @@ void Region::EndBulkLoad( bool sort, bool setCoverageNo,
   ordered = true;
 }
 
-bool Region::Contains( const Point& p ) const
+bool Region::Contains( const Point& p, const Geoid* geoid/*=0*/ ) const
 {
 
   assert( IsDefined() );
   assert( p.IsDefined() );
+  assert( !geoid || geoid->IsDefined() );
 
-  if( IsEmpty() || !p.IsDefined() )
+  if( IsEmpty() || !p.IsDefined() || (geoid && !geoid->IsDefined())){
     return false;
-
-  if( !p.Inside(bbox) )
+  }
+  if( !p.Inside(bbox) ){
     return false;
-
+  }
   assert( IsOrdered() );
   map<int, int> faceISN;
   HalfSegment hs;
@@ -7533,30 +7671,30 @@ bool Region::Contains( const Point& p ) const
   double y0;
 
   //1. find the right place by binary search
-  if( Find( p, startpos ) )
+  if( Find( p, startpos ) ){
     return true;
-
-  if ( startpos == 0 )   //p is smallest
+  }
+  if ( startpos == 0 ){   //p is smallest
     return false;
-  else if ( startpos == Size() )  //p is largest
+  } else if ( startpos == Size() ){  //p is largest
     return false;
+  }
 
   int i = startpos - 1;
 
   //2. deal with equal-x hs's
   region.Get( i, hs );
   while( i > 0 &&
-         hs.GetDomPoint().GetX() == p.GetX() )
-  {
-    if( hs.Contains(p) )
+         hs.GetDomPoint().GetX() == p.GetX() ){
+    if( hs.Contains(p,geoid) ){
       return true;
-
-    if( hs.IsLeftDomPoint() && hs.RayAbove( p, y0 ) )
-    {
-      if( faceISN.find( hs.attr.faceno ) != faceISN.end() )
+    }
+    if( hs.IsLeftDomPoint() && hs.RayAbove( p, y0 ) ){
+      if( faceISN.find( hs.attr.faceno ) != faceISN.end() ){
         faceISN[ hs.attr.faceno ]++;
-      else
+      } else {
         faceISN[ hs.attr.faceno ] = 1;
+      }
     }
     region.Get( --i, hs );
   }
@@ -7568,53 +7706,48 @@ bool Region::Contains( const Point& p ) const
 
   //4. search the region value for coverageno steps
   int touchedNo = 0;
-  while( i >= 0 && touchedNo < coverno )
-  {
+  while( i >= 0 && touchedNo < coverno ){
     this->Get(i, hs);
-
-    if( hs.Contains(p) )
+    if( hs.Contains(p) ){
       return true;
-
+    }
     if( hs.IsLeftDomPoint() &&
         hs.GetLeftPoint().GetX() <= p.GetX() &&
-        p.GetX() <= hs.GetRightPoint().GetX() )
+        p.GetX() <= hs.GetRightPoint().GetX() ){
       touchedNo++;
-
-    if( hs.IsLeftDomPoint() && hs.RayAbove( p, y0 ) )
-    {
-      if( faceISN.find( hs.attr.faceno ) != faceISN.end() )
-        faceISN[ hs.attr.faceno ]++;
-      else
-        faceISN[ hs.attr.faceno ] = 1;
     }
-
+    if( hs.IsLeftDomPoint() && hs.RayAbove( p, y0 ) ){
+      if( faceISN.find( hs.attr.faceno ) != faceISN.end() ){
+        faceISN[ hs.attr.faceno ]++;
+      } else {
+        faceISN[ hs.attr.faceno ] = 1;
+      }
+    }
     i--;  //the iterator
   }
 
   for( map<int, int>::iterator iter = faceISN.begin();
        iter != faceISN.end();
-       iter++ )
-  {
-    if( iter->second % 2 != 0 )
+       iter++ ){
+    if( iter->second % 2 != 0 ){
       return true;
+    }
   }
   return false;
 }
 
-bool Region::InnerContains( const Point& p ) const
+bool Region::InnerContains( const Point& p, const Geoid* geoid/*=0*/ ) const
 {
   assert( IsDefined() );
   assert( p.IsDefined() );
+  assert( !geoid || geoid->IsDefined() );
 
-  if( IsEmpty() || !p.IsDefined() )
+  if( IsEmpty() || !p.IsDefined() || (geoid && !geoid->IsDefined())){
     return false;
-
-  if( IsEmpty() )
+  }
+  if( !p.Inside(bbox) ){
     return false;
-
-  if( !p.Inside(bbox) )
-    return false;
-
+  }
   assert( IsOrdered() );
   map<int, int> faceISN;
   HalfSegment hs;
@@ -7624,30 +7757,29 @@ bool Region::InnerContains( const Point& p ) const
   double y0;
 
   //1. find the right place by binary search
-  if( Find( p, startpos ) )
+  if( Find( p, startpos ) ){
     return false;
-
-  if ( startpos == 0 )   //p is smallest
+  }
+  if ( startpos == 0 ){   //p is smallest
     return false;
-  else if ( startpos == Size() )  //p is largest
+  } else if ( startpos == Size() ){  //p is largest
     return false;
-
+  }
   int i = startpos - 1;
 
   //2. deal with equal-x hs's
   region.Get( i, hs );
   while( i > 0 &&
-         hs.GetDomPoint().GetX() == p.GetX() )
-  {
-    if( hs.Contains(p) )
+         hs.GetDomPoint().GetX() == p.GetX() ){
+    if( hs.Contains(p,geoid) ){
       return false;
-
-    if( hs.IsLeftDomPoint() && hs.RayAbove( p, y0 ) )
-    {
-      if( faceISN.find( hs.attr.faceno ) != faceISN.end() )
+    }
+    if( hs.IsLeftDomPoint() && hs.RayAbove( p, y0 ) ){
+      if( faceISN.find( hs.attr.faceno ) != faceISN.end() ){
         faceISN[ hs.attr.faceno ]++;
-      else
+      } else {
         faceISN[ hs.attr.faceno ] = 1;
+      }
     }
     region.Get( --i, hs );
   }
@@ -7659,136 +7791,110 @@ bool Region::InnerContains( const Point& p ) const
 
   //4. search the region value for coverageno steps
   int touchedNo = 0;
-  while( i >= 0 && touchedNo < coverno )
-  {
+  while( i >= 0 && touchedNo < coverno ){
     this->Get(i, hs);
-
-    if( hs.Contains(p) )
+    if( hs.Contains(p) ){
       return false;
-
+    }
     if( hs.IsLeftDomPoint() &&
         hs.GetLeftPoint().GetX() <= p.GetX() &&
-        p.GetX() <= hs.GetRightPoint().GetX() )
+        p.GetX() <= hs.GetRightPoint().GetX() ){
       touchedNo++;
-
-    if( hs.IsLeftDomPoint() && hs.RayAbove( p, y0 ) )
-    {
-      if( faceISN.find( hs.attr.faceno ) != faceISN.end() )
-        faceISN[ hs.attr.faceno ]++;
-      else
-        faceISN[ hs.attr.faceno ] = 1;
     }
-
+    if( hs.IsLeftDomPoint() && hs.RayAbove( p, y0 ) ){
+      if( faceISN.find( hs.attr.faceno ) != faceISN.end() ){
+        faceISN[ hs.attr.faceno ]++;
+      } else {
+        faceISN[ hs.attr.faceno ] = 1;
+      }
+    }
     i--;  //the iterator
   }
 
   for( map<int, int>::iterator iter = faceISN.begin();
        iter != faceISN.end();
-       iter++ )
-  {
-    if( iter->second % 2 != 0 )
+       iter++ ){
+    if( iter->second % 2 != 0 ){
       return true;
+    }
   }
   return false;
 }
 
-bool Region::Intersects( const HalfSegment& inHs ) const
+bool Region::Intersects( const HalfSegment& inHs,
+                         const Geoid* geoid/*=0*/) const
 {
   assert( IsDefined() );
+  assert( !geoid || geoid->IsDefined() );
   if( !IsEmpty() && bbox.Intersects( inHs.BoundingBox() ) )
   {
-    if( Contains( inHs.GetLeftPoint() ) ||
-        Contains( inHs.GetRightPoint() ) )
+    if( Contains( inHs.GetLeftPoint(), geoid ) ||
+        Contains( inHs.GetRightPoint(), geoid ) ){
       return true;
-
+    }
     HalfSegment hs;
-    for( int i = 0; i < Size(); i++ )
-    {
+    for( int i = 0; i < Size(); i++ ){
       Get( i, hs );
-      if( hs.Intersects( inHs ) )
+      if( hs.Intersects( inHs, geoid ) ){
         return true;
+      }
     }
   }
   return false;
 }
 
-bool Region::Contains( const HalfSegment& hs ) const
+
+bool Region::Contains( const HalfSegment& hs, const Geoid* geoid/*=0*/ ) const
 {
   assert( IsDefined() );
-  if( IsEmpty() )
+  assert( !geoid || geoid->IsDefined() );
+  if(geoid){
+    cerr << __PRETTY_FUNCTION__ << ": Spherical geometry not implemented!."
+         << endl;
+    assert(false); // TODO: implement sperical geometry case
+  }
+  if( IsEmpty() ){
     return false;
-
-  if( !hs.GetLeftPoint().Inside(bbox) ||
-      !hs.GetRightPoint().Inside(bbox) )
+  }
+  if( !hs.GetLeftPoint().Inside(bbox,geoid) ||
+      !hs.GetRightPoint().Inside(bbox,geoid) ){
     return false;
-
-  if( !Contains(hs.GetLeftPoint()) ||
-      !Contains(hs.GetRightPoint()) )
+  }
+  if( !Contains(hs.GetLeftPoint(),geoid) ||
+      !Contains(hs.GetRightPoint(),geoid) ){
     return false;
-
+  }
   HalfSegment auxhs;
   bool checkMidPoint = false;
-
-  //now we know that both endpoints of hs is inside region
-  /*for( int i = 0; i < Size(); i++ )
-  {
-    Get(i, auxhs);
-    if( auxhs.IsLeftDomPoint() )
-    {
-      if( hs.Crosses(auxhs) )
-        return false;
-      else if( hs.Inside(auxhs) )
-       //hs is part of the border
-        return true;
-      else if( hs.Intersects(auxhs) &&
-               ( auxhs.Contains(hs.GetLeftPoint()) ||
-                 auxhs.Contains(hs.GetRightPoint()) ) );
-        checkMidPoint = true;
-    }
-  }
-
-  if( checkMidPoint )
-  {
-    Point midp( true,
-                ( hs.GetLeftPoint().GetX() + hs.GetRightPoint().GetX() ) / 2,
-                ( hs.GetLeftPoint().GetY() + hs.GetRightPoint().GetY() ) / 2 );
-    if( !Contains( midp ) )
-      return false;
-  }*/
-
   vector<Point> intersection_points;
-
   //now we know that both endpoints of hs is inside region
   for( int i = 0; i < Size(); i++ ){
     Get(i, auxhs);
     if( auxhs.IsLeftDomPoint() ){
-      if( hs.Crosses(auxhs) )
+      if( hs.Crosses(auxhs,geoid) ){
         return false;
-      else if( hs.Inside(auxhs) )
-       //hs is part of the border
+      } else if( hs.Inside(auxhs,geoid) ){//hs is part of the border
         return true;
-      else if( hs.Intersects(auxhs)){
-              if(auxhs.Contains(hs.GetLeftPoint()) ||
-                  auxhs.Contains(hs.GetRightPoint()) ||
-                  hs.Contains(auxhs.GetLeftPoint()) ||
-                  hs.Contains(auxhs.GetRightPoint()))
+      } else if( hs.Intersects(auxhs,geoid)){
+              if(auxhs.Contains(hs.GetLeftPoint(),geoid) ||
+                  auxhs.Contains(hs.GetRightPoint(),geoid) ||
+                  hs.Contains(auxhs.GetLeftPoint(),geoid) ||
+                  hs.Contains(auxhs.GetRightPoint(),geoid)){
                     checkMidPoint = true;
-              else{ //the intersection point that is not the endpoint
+              } else { //the intersection point that is not the endpoint
                   Point temp_p;
-                  assert(hs.Intersection(auxhs,temp_p));
+                  assert(hs.Intersection(auxhs,temp_p,geoid));
                   intersection_points.push_back(temp_p);
               }
       }
     }
   }
 
-  if( checkMidPoint )
-  {
+  if( checkMidPoint ){
     Point midp( true,
                 ( hs.GetLeftPoint().GetX() + hs.GetRightPoint().GetX() ) / 2,
                 ( hs.GetLeftPoint().GetY() + hs.GetRightPoint().GetY() ) / 2 );
-    if( !Contains( midp ) )
-      return false;
+    if( !Contains( midp ) ){ return false; }
   }
   for(unsigned int i = 0;i < intersection_points.size();i++){
       //cout<<intersection_points.size()<<endl;
@@ -7799,57 +7905,58 @@ bool Region::Contains( const HalfSegment& hs ) const
       double y2 = (hs.GetRightPoint().GetY() + p.GetY())/2;
       Point midp1(true, x1, y1);
       Point midp2(true, x2, y2);
-      if(!Contains(midp1)) return false;
-      if(!Contains(midp2)) return false;
+      if(!Contains(midp1,geoid)){ return false; }
+      if(!Contains(midp2,geoid)){ return false; }
   }
-
   return true;
 }
 
-bool Region::InnerContains( const HalfSegment& hs ) const
+bool Region::InnerContains( const HalfSegment& hs,
+                            const Geoid* geoid/*=0*/ ) const
 {
   assert( IsDefined() );
-  if( IsEmpty() )
+  assert( !geoid || geoid->IsDefined() );
+  if( IsEmpty() ){
     return false;
-
-  if( !hs.GetLeftPoint().Inside(bbox) ||
-      !hs.GetRightPoint().Inside(bbox) )
+  }
+  if( !hs.GetLeftPoint().Inside(bbox,geoid) ||
+      !hs.GetRightPoint().Inside(bbox,geoid) ){
     return false;
-
-  if( !InnerContains(hs.GetLeftPoint()) ||
-      !InnerContains(hs.GetRightPoint()) )
+  }
+  if( !InnerContains(hs.GetLeftPoint(),geoid) ||
+      !InnerContains(hs.GetRightPoint(),geoid) ){
     return false;
-
+  }
   HalfSegment auxhs;
 
   //now we know that both endpoints of hs are completely inside the region
-  for( int i = 0; i < Size(); i++ )
-  {
+  for( int i = 0; i < Size(); i++ ){
     Get(i, auxhs);
-    if( auxhs.IsLeftDomPoint() )
-    {
-      if( hs.Intersects( auxhs ) )
+    if( auxhs.IsLeftDomPoint() ){
+      if( hs.Intersects( auxhs, geoid ) ){
         return false;
+      }
     }
   }
-
   return true;
 }
 
-bool Region::HoleEdgeContain( const HalfSegment& hs ) const
+bool Region::HoleEdgeContain( const HalfSegment& hs,
+                              const Geoid* geoid/*=0*/ ) const
 {
   assert( IsDefined() );
+  assert( !geoid || geoid->IsDefined() );
   if( !IsEmpty() ) {
     return false;
   }
   HalfSegment auxhs;
-  for( int i = 0; i < Size(); i++ )
-  {
+  for( int i = 0; i < Size(); i++ ){
     Get( i, auxhs );
     if( auxhs.IsLeftDomPoint() &&
         auxhs.attr.cycleno > 0 &&
-        hs.Inside( auxhs ) )
+        hs.Inside( auxhs, geoid ) ){
       return true;
+    }
   }
   return false;
 }
@@ -7858,56 +7965,56 @@ bool Region::HoleEdgeContain( const HalfSegment& hs ) const
 4.4.7 Operation ~intersects~
 
 */
-bool Region::Intersects( const Region &r ) const
+bool Region::Intersects( const Region &r, const Geoid* geoid/*=0*/ ) const
 {
   assert( IsDefined() );
   assert( r.IsDefined() );
-  if( IsEmpty() || r.IsEmpty() )
+  assert( !geoid || geoid->IsDefined() );
+  if( IsEmpty() || r.IsEmpty() || (geoid && !geoid->IsDefined()) ){
     return false;
-
-  if( !BoundingBox().Intersects( r.BoundingBox() ) )
+  }
+  if( !BoundingBox().Intersects( r.BoundingBox(), geoid ) ){
     return false;
-
+  }
   assert( IsOrdered() );
   assert( r.IsOrdered() );
-  if( Inside( r ) || r.Inside( *this ) )
+  if( Inside( r, geoid ) || r.Inside( *this, geoid ) ){
     return true;
-
+  }
   HalfSegment hs1, hs2;
-  for( int i = 0; i < Size(); i++ )
-  {
+  for( int i = 0; i < Size(); i++ ){
     Get( i, hs1 );
-    if( hs1.IsLeftDomPoint() )
-    {
-      for( int j = 0; j < r.Size(); j++ )
-      {
+    if( hs1.IsLeftDomPoint() ){
+      for( int j = 0; j < r.Size(); j++ ){
         r.Get( j, hs2 );
         if( hs2.IsLeftDomPoint() &&
-            hs1.Intersects( hs2 ) )
+            hs1.Intersects( hs2, geoid ) ){
           return true;
+        }
       }
     }
   }
-
   return false;
 }
 
 
-void Region::Intersection(const Point& p, Points& result) const{
+void Region::Intersection(const Point& p, Points& result,
+                          const Geoid* geoid/*=0*/) const{
   result.Clear();
-  if(!IsDefined() || !p.IsDefined()){
+  if(!IsDefined() || !p.IsDefined() || (geoid && !geoid->IsDefined()) ){
     result.SetDefined(false);
     return;
   }
   result.SetDefined(true);
-  if(this->Contains(p)){
+  if(this->Contains(p,geoid)){
     result+= p;
   }
 }
 
-void Region::Intersection(const Points& ps, Points& result) const{
+void Region::Intersection(const Points& ps, Points& result,
+                          const Geoid* geoid/*=0*/) const{
   result.Clear();
-  if(!IsDefined() || !ps.IsDefined()){
+  if(!IsDefined() || !ps.IsDefined() || (geoid && !geoid->IsDefined()) ){
     result.SetDefined(false);
     return;
   }
@@ -7915,24 +8022,27 @@ void Region::Intersection(const Points& ps, Points& result) const{
   result.StartBulkLoad();
   for(int i=0;i<ps.Size();i++){
     ps.Get(i,p);
-    if(this->Contains(p)){
+    if(this->Contains(p,geoid)){
       result += p;
     }
   }
   result.EndBulkLoad(false,false,false);
 }
 
-void Region::Intersection(const Line& l, Line& result) const{
-  SetOp(l,*this,result,avlseg::intersection_op);
+void Region::Intersection(const Line& l, Line& result,
+                          const Geoid* geoid/*=0*/) const{
+  SetOp(l,*this,result,avlseg::intersection_op, geoid);
 }
 
 
-void Region::Intersection(const Region& r, Region& result) const{
-  SetOp(*this,r,result,avlseg::intersection_op);
+void Region::Intersection(const Region& r, Region& result,
+                          const Geoid* geoid/*=0*/) const{
+  SetOp(*this,r,result,avlseg::intersection_op, geoid);
 }
 
-void Region::Union(const Point& p, Region& result) const{
-  if(!IsDefined() || !p.IsDefined()){
+void Region::Union(const Point& p, Region& result,
+                   const Geoid* geoid/*=0*/) const{
+  if(!IsDefined() || !p.IsDefined() || (geoid && !geoid->IsDefined()) ){
     result.Clear();
     result.SetDefined(false);
     return;
@@ -7941,8 +8051,9 @@ void Region::Union(const Point& p, Region& result) const{
   result.CopyFrom(this);
 }
 
-void Region::Union(const Points& ps, Region& result) const{
-  if(!IsDefined() || !ps.IsDefined()){
+void Region::Union(const Points& ps, Region& result,
+                   const Geoid* geoid/*=0*/) const{
+  if(!IsDefined() || !ps.IsDefined() || (geoid && !geoid->IsDefined()) ){
     result.Clear();
     result.SetDefined(false);
     return;
@@ -7951,8 +8062,9 @@ void Region::Union(const Points& ps, Region& result) const{
   result.CopyFrom(this);
 }
 
-void Region::Union(const Line& line, Region& result) const{
-  if(!IsDefined() || !line.IsDefined()){
+void Region::Union(const Line& line, Region& result,
+                   const Geoid* geoid/*=0*/) const{
+  if(!IsDefined() || !line.IsDefined() || (geoid && !geoid->IsDefined()) ){
     result.Clear();
     result.SetDefined(false);
     return;
@@ -7961,13 +8073,15 @@ void Region::Union(const Line& line, Region& result) const{
   result.CopyFrom(this);
 }
 
-void Region::Union(const Region& region, Region& result) const{
-   SetOp(*this,region,result,avlseg::union_op);
+void Region::Union(const Region& region, Region& result,
+                   const Geoid* geoid/*=0*/) const{
+   SetOp(*this,region,result,avlseg::union_op, geoid);
 }
 
 
-void Region::Minus(const Point& p, Region& result) const{
-  if(!IsDefined() || !p.IsDefined()){
+void Region::Minus(const Point& p, Region& result,
+                   const Geoid* geoid/*=0*/) const{
+  if(!IsDefined() || !p.IsDefined() || (geoid && !geoid->IsDefined()) ){
     result.Clear();
     result.SetDefined(false);
     return;
@@ -7976,8 +8090,9 @@ void Region::Minus(const Point& p, Region& result) const{
   result.CopyFrom(this);
 }
 
-void Region::Minus(const Points& ps, Region& result) const{
-  if(!IsDefined() || !ps.IsDefined()){
+void Region::Minus(const Points& ps, Region& result,
+                   const Geoid* geoid/*=0*/) const{
+  if(!IsDefined() || !ps.IsDefined() || (geoid && !geoid->IsDefined()) ){
     result.Clear();
     result.SetDefined(false);
     return;
@@ -7986,8 +8101,9 @@ void Region::Minus(const Points& ps, Region& result) const{
   result.CopyFrom(this);
 }
 
-void Region::Minus(const Line& line, Region& result) const{
-  if(!IsDefined() || !line.IsDefined()){
+void Region::Minus(const Line& line, Region& result,
+                   const Geoid* geoid/*=0*/) const{
+  if(!IsDefined() || !line.IsDefined() || (geoid && !geoid->IsDefined()) ){
     result.Clear();
     result.SetDefined(false);
     return;
@@ -7996,101 +8112,92 @@ void Region::Minus(const Line& line, Region& result) const{
   result.CopyFrom(this);
 }
 
-void Region::Minus(const Region& region, Region& result) const{
-   SetOp(*this,region,result,avlseg::difference_op);
+void Region::Minus(const Region& region, Region& result,
+                   const Geoid* geoid/*=0*/) const{
+   SetOp(*this,region,result,avlseg::difference_op, geoid);
 }
 
 
 
-bool Region::Inside( const Region& r ) const
+bool Region::Inside( const Region& r, const Geoid* geoid/*=0*/ ) const
 {
 
   assert( IsDefined() );
   assert( r.IsDefined() );
+  assert( !geoid || geoid->IsDefined() );
 
-  if(!IsDefined() || !r.IsDefined()){
+  if(!IsDefined() || !r.IsDefined() || (geoid && !geoid->IsDefined()) ){
     return false;
   }
-
-  if( IsEmpty() )
+  if( IsEmpty() ){
     return true;
-
+  }
   if(r.IsEmpty()){
     return false;
   }
-
   assert( IsOrdered() );
   assert( r.IsOrdered() );
-  if( !r.BoundingBox().Contains( bbox ) )
+  if( !r.BoundingBox().Contains( bbox, geoid ) ){
     return false;
-
-  HalfSegment hs1, hs2;
-  for( int i = 0; i < Size(); i++ )
-  {
-    Get( i, hs1 );
-
-    if( hs1.IsLeftDomPoint() )
-    {
-      if( !r.Contains( hs1 ) )
-        return false;
-    }
   }
-
-  bool existhole = false,
-       allholeedgeinside = true;
-
-  for( int j = 0; j < r.Size(); j++ )
-  {
-    r.Get( j, hs2 );
-
-    if( hs2.IsLeftDomPoint() &&
-        hs2.attr.cycleno > 0 )
-    //&& (hs2 is not masked by another face of region2)
-    {
-      if( !HoleEdgeContain( hs2 ) )
-      {
-        existhole=true;
-        if( !Contains( hs2 ) )
-          allholeedgeinside=false;
+  HalfSegment hs1, hs2;
+  for( int i = 0; i < Size(); i++ ){
+    Get( i, hs1 );
+    if( hs1.IsLeftDomPoint() ){
+      if( !r.Contains( hs1,geoid ) ){
+        return false;
       }
     }
   }
-
-  if( existhole && allholeedgeinside )
+  bool existhole = false,
+       allholeedgeinside = true;
+  for( int j = 0; j < r.Size(); j++ ){
+    r.Get( j, hs2 );
+    if( hs2.IsLeftDomPoint() &&
+        hs2.attr.cycleno > 0 ){
+    //&& (hs2 is not masked by another face of region2)
+      if( !HoleEdgeContain( hs2,geoid ) ){
+        existhole=true;
+        if( !Contains( hs2,geoid ) ){
+          allholeedgeinside=false;
+        }
+      }
+    }
+  }
+  if( existhole && allholeedgeinside ){
     return false;
-
+  }
   return true;
 }
 
-bool Region::Adjacent( const Region& r ) const
+bool Region::Adjacent( const Region& r,
+                       const Geoid* geoid/*=0*/ ) const
 {
   assert( IsDefined() );
   assert( r.IsDefined() );
-  if( IsEmpty() || r.IsEmpty() )
+  assert( !geoid || geoid->IsDefined() );
+  if( IsEmpty() || r.IsEmpty() || (geoid && !geoid->IsDefined()) ){
     return false;
-
-  if( !BoundingBox().Intersects( r.BoundingBox() ) )
+  }
+  if( !BoundingBox().Intersects( r.BoundingBox(),geoid ) ){
     return false;
-
+  }
   assert( IsOrdered() );
   assert( r.IsOrdered() );
-  if( Inside( r ) || r.Inside( *this ) )
+  if( Inside( r,geoid ) || r.Inside( *this,geoid ) )
     return false;
 
   HalfSegment hs1, hs2;
   bool found = false;
-  for( int i = 0; i < Size(); i++ )
-  {
+  for( int i = 0; i < Size(); i++ ){
     Get( i, hs1 );
-    if( hs1.IsLeftDomPoint() )
-    {
-      for( int j = 0; j < r.Size(); j++ )
-      {
+    if( hs1.IsLeftDomPoint() ){
+      for( int j = 0; j < r.Size(); j++ ){
         r.Get( j, hs2 );
-        if( hs2.IsLeftDomPoint() && hs1.Intersects( hs2 ) )
-        {
-          if( hs1.Crosses( hs2 ) )
+        if( hs2.IsLeftDomPoint() && hs1.Intersects( hs2,geoid ) ){
+          if( hs1.Crosses( hs2, geoid ) ){
             return false;
+          }
           found = true;
         }
       }
@@ -8099,34 +8206,32 @@ bool Region::Adjacent( const Region& r ) const
   return found;
 }
 
-bool Region::Overlaps( const Region& r ) const
+bool Region::Overlaps( const Region& r, const Geoid* geoid/*=0*/ ) const
 {
   assert( IsDefined() );
   assert( r.IsDefined() );
-  if( IsEmpty() || r.IsEmpty() )
+  assert( !geoid || geoid->IsDefined() );
+  if( IsEmpty() || r.IsEmpty() || (geoid && !geoid->IsDefined()) ){
     return false;
-
-  if( !BoundingBox().Intersects( r.BoundingBox() ) )
+  }
+  if( !BoundingBox().Intersects( r.BoundingBox(),geoid ) ){
     return false;
-
+  }
   assert( IsOrdered() );
   assert( r.IsOrdered() );
   if( Inside( r ) || r.Inside( *this ) )
     return true;
 
   HalfSegment hs1, hs2;
-  for( int i = 0; i < Size(); i++ )
-  {
+  for( int i = 0; i < Size(); i++ ){
     Get( i, hs1 );
-    if( hs1.IsLeftDomPoint() )
-    {
-      for( int j = 0; j < r.Size(); j++ )
-      {
+    if( hs1.IsLeftDomPoint() ){
+      for( int j = 0; j < r.Size(); j++ ){
         r.Get( j, hs2 );
-        if( hs2.IsLeftDomPoint() )
-        {
-          if( hs2.Crosses( hs1 ) )
+        if( hs2.IsLeftDomPoint() ){
+          if( hs2.Crosses( hs1,geoid ) ){
             return true;
+          }
         }
       }
     }
@@ -8134,46 +8239,49 @@ bool Region::Overlaps( const Region& r ) const
   return false;
 }
 
-bool Region::OnBorder( const Point& p ) const
+bool Region::OnBorder( const Point& p, const Geoid* geoid/*=0*/ ) const
 {
   assert( IsDefined() );
   assert( p.IsDefined() );
-  if(IsEmpty() || !p.IsDefined()){
+  assert( !geoid || geoid->IsDefined() );
+  if(IsEmpty() || !p.IsDefined() || (geoid && !geoid->IsDefined()) ){
     return false;
   }
-
   int pos;
-  if( Find( p, pos ) )
-    // the point is found on one half segment
+  if( Find( p, pos ) ){ // the point is found on one half segment
     return true;
-
+  }
   if( pos == 0 ||
-      pos == Size() )
-    // the point is smaller or bigger than all
-    // segments
+      pos == Size() ){ // the point is smaller or bigger than all segments
     return false;
-
+  }
   HalfSegment hs;
   pos--;
-  while( pos >= 0 )
-  {
+  while( pos >= 0 ){
     Get( pos--, hs );
-    if( hs.IsLeftDomPoint() &&
-        hs.Contains( p ) )
+    if( hs.IsLeftDomPoint() && hs.Contains( p,geoid ) ){
       return true;
+    }
   }
   return false;
 }
 
-bool Region::InInterior( const Point& p ) const
+bool Region::InInterior( const Point& p, const Geoid* geoid/*=0*/ ) const
 {
-  return InnerContains( p );
+  return InnerContains( p, geoid );
 }
 
-double Region::Distance( const Point& p ) const
+double Region::Distance( const Point& p, const Geoid* geoid /*=0*/ ) const
 {
   assert( !IsEmpty() ); // subsumes defined
   assert( p.IsDefined() );
+  assert( !geoid || geoid->IsDefined() );
+
+  if(geoid){
+    cout << __PRETTY_FUNCTION__ << ": Spherical geometry not implemented."
+         <<endl;
+    assert(false); // TODO: Implement spherical geometry case.
+  }
 
   assert( IsOrdered() );
   if( Contains( p ) )
@@ -8187,15 +8295,22 @@ double Region::Distance( const Point& p ) const
     Get( i, hs );
 
     if( hs.IsLeftDomPoint() )
-      result = MIN( result, hs.Distance( p ) );
+      result = MIN( result, hs.Distance( p, geoid ) );
   }
   return result;
 }
 
-double Region::Distance( const Rectangle<2>& r ) const
+double Region::Distance( const Rectangle<2>& r,
+                         const Geoid* geoid /*=0*/ ) const
 {
   assert( !IsEmpty() ); // subsumes defined
   assert( r.IsDefined() );
+  assert( !geoid || geoid->IsDefined() );
+    if(geoid){
+    cout << __PRETTY_FUNCTION__ << ": Spherical geometry not implemented."
+         <<endl;
+    assert(false); // TODO: Implement spherical geometry case.
+  }
 
   assert( IsOrdered() );
   Point p1(true,r.MinD(0),r.MinD(1));
@@ -8203,17 +8318,17 @@ double Region::Distance( const Rectangle<2>& r ) const
   Point p3(true,r.MaxD(0),r.MaxD(1));
   Point p4(true,r.MinD(0),r.MaxD(1));
 
-  if(Contains(p1)) return 0.0;
-  if(Contains(p2)) return 0.0;
-  if(Contains(p3)) return 0.0;
-  if(Contains(p4)) return 0.0;
+  if(Contains(p1,geoid)) return 0.0;
+  if(Contains(p2,geoid)) return 0.0;
+  if(Contains(p3,geoid)) return 0.0;
+  if(Contains(p4,geoid)) return 0.0;
 
   HalfSegment hs;
   double mindist = numeric_limits<double>::max();
   for(int i=0;i<region.Size(); i++){
      Get(i,hs);
      if(hs.IsLeftDomPoint()){
-       double d = hs.Distance(r);
+       double d = hs.Distance(r,geoid);
        if(d<mindist){
           mindist = d;
           if(AlmostEqual(mindist,0)){
@@ -8226,9 +8341,15 @@ double Region::Distance( const Rectangle<2>& r ) const
 }
 
 
-double Region::Area() const
+double Region::Area(const Geoid* geoid/*=0*/) const
 {
   assert( IsDefined() );
+  assert( !geoid || geoid->IsDefined() );
+  if(geoid){
+    cerr << __PRETTY_FUNCTION__ << ": Spherical geometry not implemented."
+         << endl; //TODO: Implement spherical geometry case.
+    assert(false);
+  }
   int n = Size();
   double area = 0.0,
          x0 = 0.0, y0 = 0.0,
@@ -8238,28 +8359,18 @@ double Region::Area() const
   double minY = MIN(BoundingBox().MinD(1), +0.0);
 
   HalfSegment hs;
-  for(int i=0; i<n; i++)
-  {
+  for(int i=0; i<n; i++){
     Get( i, hs );
-    if( hs.IsLeftDomPoint() )
-    { // use only one halfsegment
+    if( hs.IsLeftDomPoint() ){ // use only one halfsegment
       x0 = hs.GetLeftPoint().GetX();
       x1 = hs.GetRightPoint().GetX();
       // y0, y1 must be >= 0, so we correct them
       y0 = hs.GetLeftPoint().GetY() - minY;
       y1 = hs.GetRightPoint().GetY() - minY;
-//       cout << "HSegment #" << i
-//           << ": ( (" << x0 << "," << y0
-//           << ") (" << x1 << "," << y1 << ") )"
-//           << hs->attr.insideAbove << endl;
-//       double dx = (x1-x0);
-//       double ay = (y1+y0) * 0.5;
       double a = (x1-x0) * ((y1+y0) * 0.5);
-      if ( hs.attr.insideAbove )
-//    if ( (hs->attr.insideAbove && (hs->attr.cycleno == 0 )) ||
-//          (!hs->attr.insideAbove && (hs->attr.cycleno > 0 ))   )
+      if ( hs.attr.insideAbove ){
         a = -a;
-//       cout << "  dx=" << dx << " ay=" << ay << " a=" << a << endl;
+      }
       area += a;
     }
   }
@@ -8267,115 +8378,116 @@ double Region::Area() const
   return area;
 }
 
-double Region::Distance( const Points& ps ) const
+double Region::Distance( const Points& ps, const Geoid* geoid /*=0*/ ) const
 {
   assert( !IsEmpty() ); // subsumes IsDefined()
   assert( !ps.IsEmpty() ); // subsumes IsDefined()
   assert( IsOrdered() );
   assert( ps.IsOrdered() );
+  assert( !geoid || geoid->IsDefined() );
+
+  if(geoid){
+    cout << __PRETTY_FUNCTION__ << ": Spherical geometry not implemented."
+         <<endl;
+    assert(false); // TODO: Implement spherical geometry case.
+  }
 
   double result = numeric_limits<double>::max();
   Point p;
 
-  for( int i = 0; i < ps.Size(); i++ )
-  {
+  for( int i = 0; i < ps.Size(); i++ ){
     ps.Get( i, p );
-
-    if( Contains( p ) )
+    if( Contains( p ) ){
       return 0.0;
-
+    }
     HalfSegment hs;
-
-    for( int j = 0; j < Size(); j++ )
-    {
+    for( int j = 0; j < Size(); j++ ){
       Get( j, hs );
-
       if( hs.IsLeftDomPoint() )
-        result = MIN( result, hs.Distance( p ) );
+        result = MIN( result, hs.Distance( p, geoid ) );
     }
   }
   return result;
 }
 
-double Region::Distance( const Region &r ) const
+double Region::Distance( const Region &r, const Geoid* geoid /*=0*/ ) const
 {
   assert( !IsEmpty() ); // subsumes IsDefined()
   assert( !r.IsEmpty() ); // subsumes IsDefined()
   assert( IsOrdered() );
   assert( r.IsOrdered() );
+  assert( !geoid || geoid->IsDefined() );
 
-  if( Inside( r ) || r.Inside( *this ) )
+  if(geoid){
+    cout << __PRETTY_FUNCTION__ << ": Spherical geometry not implemented."
+         <<endl;
+    assert(false); // TODO: Implement spherical geometry case.
+  }
+
+  if( Inside( r, geoid ) || r.Inside( *this, geoid ) ){
     return 0.0;
-
+  }
   double result = numeric_limits<double>::max();
   HalfSegment hs1, hs2;
-
-  for( int i = 0; i < Size(); i++ )
-  {
+  for( int i = 0; i < Size(); i++ ){
     Get( i, hs1 );
-    if( hs1.IsLeftDomPoint() )
-    {
-      for( int j = 0; j < r.Size(); j++ )
-      {
+    if( hs1.IsLeftDomPoint() ){
+      for( int j = 0; j < r.Size(); j++ ){
         r.Get( j, hs2 );
-        if( hs2.IsLeftDomPoint() )
-        {
-          if( hs1.Intersects( hs2 ) )
+        if( hs2.IsLeftDomPoint() ){
+          if( hs1.Intersects( hs2, geoid ) ){
             return 0.0;
-
-          result = MIN( result, hs1.Distance( hs2 ) );
+          }
+          result = MIN( result, hs1.Distance( hs2, geoid ) );
         }
       }
     }
   }
-
   return result;
 }
 
 
-double Region::Distance( const Line &l ) const
+double Region::Distance( const Line &l, const Geoid* geoid /*=0*/ ) const
 {
   assert( !IsEmpty() ); // subsumes IsDefined()
   assert( !l.IsEmpty() ); // subsumes IsDefined()
-
-  if( !IsEmpty() || l.IsEmpty() ) {
+  assert( !geoid || geoid->IsDefined() );
+  if(geoid){
+    cout << __PRETTY_FUNCTION__ << ": Spherical geometry not implemented."
+         << endl;
+    assert(false); // TODO: Implement spherical geometry case.
+  }
+  if( !IsEmpty() || l.IsEmpty() || (geoid && !geoid->IsDefined()) ) {
      return -1;
   }
-
   double result = numeric_limits<double>::max();
   HalfSegment hs1, hs2;
-
   for(int i=0; i<l.Size();i++){
      l.Get(i,hs2);
      if(hs2.IsLeftDomPoint()){
-       if(Contains(hs2.GetDomPoint())){
+       if(Contains(hs2.GetDomPoint(),geoid)){
          return 0.0;
        }
-       if(Contains(hs2.GetSecPoint())){
+       if(Contains(hs2.GetSecPoint(),geoid)){
          return 0.0;
        }
      }
   }
 
-  for( int i = 0; i < Size(); i++ )
-  {
+  for( int i = 0; i < Size(); i++ ){
     Get( i, hs1 );
-    if( hs1.IsLeftDomPoint() )
-    {
-      for( int j = 0; j < l.Size(); j++ )
-      {
+    if( hs1.IsLeftDomPoint() ){
+      for( int j = 0; j < l.Size(); j++ ){
         l.Get( j, hs2 );
-        if( hs2.IsLeftDomPoint() )
-        {
-          if( hs1.Intersects( hs2 ) )
+        if( hs2.IsLeftDomPoint() ){
+          if( hs1.Intersects( hs2 ) ){
             return 0.0;
-
-          result = MIN( result, hs1.Distance( hs2 ) );
+          }
+          result = MIN( result, hs1.Distance( hs2, geoid ) );
         }
       }
     }
   }
-
   return result;
 }
 
@@ -8387,52 +8499,6 @@ void Region::Components( vector<Region*>& components )
   if( IsEmpty() ) { // subsumes IsDefined()
     return;
   }
-
-
-// slow implementation
-  /*
-  Region* copy = new Region( *this ); // needed for resorting
-
-  copy->LogicSort(); // sort by faceno, cycleno, edgeno
-
-
-  HalfSegment hs;
-  int currentFaceNo = 0;
-  int edgeno = 0;
-  Region* r = 0;
-  for(int i=0;i<copy->Size();i++){
-     copy->Get(i,hs);
-     if(hs.IsLeftDomPoint()){ // only process left dom segments
-       if(i==0 || hs.attr.faceno!=currentFaceNo){ // next face reached
-         if(r!=0){
-           r->EndBulkLoad();
-           components.push_back(r);
-         }
-         edgeno = 0;
-         r = new Region(1);
-         r->StartBulkLoad();
-         currentFaceNo = hs.attr.faceno;
-       }
-       hs.attr.faceno=0;
-       hs.attr.edgeno=edgeno;
-       (*r) += hs;
-       hs.SetLeftDomPoint(false);
-       (*r) += hs;
-       edgeno++;
-     }
-
-  }
-  if(r!=0){
-    r->EndBulkLoad();
-    components.push_back(r);
-  }
-
-  copy->DeleteIfAllowed();
-
-  */
-
-
-  // fast implementation
   for(int i=0;i<noComponents;i++){
    components.push_back(new Region(1));
    components[i]->StartBulkLoad();
@@ -8444,19 +8510,9 @@ void Region::Components( vector<Region*>& components )
     hs.attr.faceno = 0;
     (*components[face]) += hs;
   }
-
-
   for(int i=0;i<noComponents;i++){
     components[i]->EndBulkLoad(false,false,false,false);
   }
-
-
-
-
-
-
-
-
 }
 
 void Region::Translate( const Coord& x, const Coord& y, Region& result ) const
@@ -8538,10 +8594,11 @@ void Region::Rotate( const Coord& x, const Coord& y,
 
 }
 
-void Region::TouchPoints( const Line& l, Points& result ) const
+void Region::TouchPoints( const Line& l, Points& result,
+                          const Geoid* geoid/*=0*/ ) const
 {
   result.Clear();
-  if( !IsDefined() || !l.IsDefined() ) {
+  if( !IsDefined() || !l.IsDefined() || (geoid && !geoid->IsDefined()) ) {
     result.SetDefined( false );
     return;
   }
@@ -8550,27 +8607,17 @@ void Region::TouchPoints( const Line& l, Points& result ) const
   if( IsEmpty() || l.IsEmpty() ) {
     return;
   }
-
   assert( IsOrdered() && l.IsOrdered() );
-
-
   HalfSegment hs1, hs2;
   Point p;
-
   result.StartBulkLoad();
-  for( int i = 0; i < Size(); i++ )
-  {
+  for( int i = 0; i < Size(); i++ ){
     Get( i, hs1 );
-
-    if( hs1.IsLeftDomPoint() )
-    {
-      for( int j = 0; j < l.Size(); j++ )
-      {
+    if( hs1.IsLeftDomPoint() ){
+      for( int j = 0; j < l.Size(); j++ ){
         l.Get( j, hs2 );
-
-        if( hs2.IsLeftDomPoint() )
-        {
-          if( hs1.Intersection( hs2, p ) ) {
+        if( hs2.IsLeftDomPoint() ){
+          if( hs1.Intersection( hs2, p, geoid ) ) {
             result += p;
           }
         }
@@ -8580,37 +8627,31 @@ void Region::TouchPoints( const Line& l, Points& result ) const
   result.EndBulkLoad();
 }
 
-void Region::TouchPoints( const Region& r, Points& result ) const
+void Region::TouchPoints( const Region& r, Points& result,
+                          const Geoid* geoid/*=0*/ ) const
 {
   result.Clear();
-  if( !IsDefined() || !r.IsDefined() ) {
+  if( !IsDefined() || !r.IsDefined() || (geoid && !geoid->IsDefined()) ) {
     result.SetDefined( false );
     return;
   }
   result.SetDefined( true );
-
-  if( IsEmpty() || r.IsEmpty() )
+  if( IsEmpty() || r.IsEmpty() ){
     return;
-
+  }
   assert( IsOrdered() && r.IsOrdered() );
   HalfSegment hs1, hs2;
   Point p;
-
   result.StartBulkLoad();
-  for( int i = 0; i < Size(); i++ )
-  {
+  for( int i = 0; i < Size(); i++ ){
     Get( i, hs1 );
-
-    if( hs1.IsLeftDomPoint() )
-    {
-      for( int j = 0; j < r.Size(); j++ )
-      {
+    if( hs1.IsLeftDomPoint() ){
+      for( int j = 0; j < r.Size(); j++ ){
         r.Get( j, hs2 );
-
-        if( hs2.IsLeftDomPoint() )
-        {
-          if( hs1.Intersection( hs2, p ) )
+        if( hs2.IsLeftDomPoint() ){
+          if( hs1.Intersection( hs2, p, geoid ) ){
             result += p;
+          }
         }
       }
     }
@@ -8618,39 +8659,31 @@ void Region::TouchPoints( const Region& r, Points& result ) const
   result.EndBulkLoad( true, false );
 }
 
-void Region::CommonBorder( const Region& r, Line& result ) const
+void Region::CommonBorder( const Region& r, Line& result,
+                           const Geoid* geoid/*=0*/ ) const
 {
   result.Clear();
-  if( !IsDefined() || !r.IsDefined() ) {
+  if( !IsDefined() || !r.IsDefined() || (geoid && !geoid->IsDefined()) ) {
     result.SetDefined( false );
     return;
   }
   result.SetDefined( true );
-
-  if( IsEmpty() || r.IsEmpty() )
+  if( IsEmpty() || r.IsEmpty() ){
     return;
-
+  }
   assert( IsOrdered() && r.IsOrdered() );
   HalfSegment hs1, hs2;
   HalfSegment reshs;
   int edgeno = 0;
   Point p;
-
   result.StartBulkLoad();
-  for( int i = 0; i < Size(); i++ )
-  {
+  for( int i = 0; i < Size(); i++ ){
     Get( i, hs1 );
-
-    if( hs1.IsLeftDomPoint() )
-    {
-      for( int j = 0; j < r.Size(); j++ )
-      {
+    if( hs1.IsLeftDomPoint() ){
+      for( int j = 0; j < r.Size(); j++ ){
         r.Get( j, hs2 );
-
-        if( hs2.IsLeftDomPoint() )
-        {
-          if( hs1.Intersection( hs2, reshs ) )
-          {
+        if( hs2.IsLeftDomPoint() ){
+          if( hs1.Intersection( hs2, reshs, geoid ) ){
             reshs.attr.edgeno = edgeno++;
             result += reshs;
             reshs.SetLeftDomPoint( !reshs.IsLeftDomPoint() );
@@ -8669,10 +8702,10 @@ int Region::NoComponents() const
   return noComponents;
 }
 
-void Region::Vertices( Points* result ) const
+void Region::Vertices( Points* result, const Geoid* geoid/*=0*/ ) const
 {
   result->Clear();
-  if(!IsDefined()){
+  if(!IsDefined() || (geoid && !geoid->IsDefined()) ){
     result->SetDefined(false);
     return;
   }
@@ -8680,12 +8713,10 @@ void Region::Vertices( Points* result ) const
   if( IsEmpty() ){
     return;
   }
-
   assert( IsOrdered() );
   HalfSegment hs;
   int size = Size();
-  for( int i = 0; i < size; i++ )
-  {
+  for( int i = 0; i < size; i++ ){
     Get( i, hs );
     Point p = hs.GetDomPoint();
     *result += p;
@@ -8694,24 +8725,22 @@ void Region::Vertices( Points* result ) const
 }
 
 
-void Region::Boundary( Line* result ) const
+void Region::Boundary( Line* result, const Geoid* geoid/*=0*/ ) const
 {
   result->Clear();
-  if(!IsDefined()){
+  if(!IsDefined() || (geoid && !geoid->IsDefined()) ){
       result->SetDefined(false);
       return;
   }
   assert( IsOrdered() );
   result->SetDefined(true);
-
   if( IsEmpty() ){
     return;
   }
   HalfSegment hs;
   result->StartBulkLoad();
   int size = Size();
-  for( int i = 0; i < size; i++ )
-  {
+  for( int i = 0; i < size; i++ ){
     Get( i, hs );
     if(hs.IsLeftDomPoint()){
        hs.attr.edgeno = i;
@@ -8923,14 +8952,21 @@ void Region::SetPartnerNo()
 }
 
 
-double VectorSize(const Point &p1, const Point &p2)
+double VectorSize(const Point &p1, const Point &p2, const Geoid* geoid/*=0*/)
 {
   assert( p1.IsDefined() );
   assert( p2.IsDefined() );
-  double size = pow( (p1.GetX() - p2.GetX()),2)
-                + pow( (p1.GetY() - p2.GetY()),2);
-  size = sqrt(size);
-  return size;
+  assert( !geoid || geoid->IsDefined() );
+  if(geoid){
+    double size = p1.Distance(p1, geoid);
+    assert( size > 0 );
+    return size;
+  }else {
+    double size = pow( (p1.GetX() - p2.GetX()),2)
+                  + pow( (p1.GetY() - p2.GetY()),2);
+    size = sqrt(size);
+    return size;
+  }
 }
 
 //The angle function returns the angle of VP1P2
@@ -8952,7 +8988,7 @@ double Angle(const Point &v, const Point &p1,const Point &p2)
 
   if (p1.GetX() == p2.GetX()){ //the segment is vertical
     if (v.GetY()==p1.GetY()){
-        return PI/2; //horizontal edge
+        return M_PI/2; //horizontal edge
     } else {
         return 0;
     }
@@ -8961,7 +8997,7 @@ double Angle(const Point &v, const Point &p1,const Point &p2)
     if (v.GetY()==p1.GetY()){
       return 0; //horizontal edge
     } else {
-      return PI/2;
+      return M_PI/2;
     }
   }
   coss = double( ( (v.GetX() - p1.GetX()) * (p2.GetX() - p1.GetX()) ) +
@@ -9118,7 +9154,7 @@ bool GetAcceptedPoint( vector <EdgePoint>pointsOnEdge,
 void Region::CreateNewSegments(vector <EdgePoint>pointsOnEdge, Region &cr,
                                 const Point &bPoint,const Point &ePoint,
                                WindowEdge edge,int &partnerno,
-                               bool inside)
+                               bool inside, const Geoid* geoid/*=0*/)
 //The inside attribute indicates if the points on edge will originate
 //segments that are inside the window (its values is true), or outside
 //the window (its value is false)
@@ -9263,7 +9299,8 @@ void Region::CreateNewSegments(vector <EdgePoint>pointsOnEdge, Region &cr,
 
 void Region::CreateNewSegmentsWindowVertices(const Rectangle<2> &window,
                                 vector<EdgePoint> pointsOnEdge[4],Region &cr,
-                                int &partnerno,bool inside) const
+                                             int &partnerno,bool inside,
+                                             const Geoid* geoid/*=0*/) const
 //The inside attribute indicates if the points on edge will originate
 //segments that are inside the window (its values is true), or outside
 //the window (its value is false)
@@ -9272,48 +9309,31 @@ void Region::CreateNewSegmentsWindowVertices(const Rectangle<2> &window,
         trPoint(true,window.MaxD(0),window.MaxD(1)),
         blPoint(true,window.MinD(0),window.MinD(1)),
         brPoint(true,window.MaxD(0),window.MinD(1));
-   bool tl=false, tr=false, bl=false, br=false;
-
-  /*
-  cout<<endl<<"interno"<<endl;
-  cout<<"Left   :"<<window.MinD(0)<<endl;
-  cout<<"Top    :"<<window.MaxD(1)<<endl;
-  cout<<"Right  :"<<window.MaxD(0)<<endl;
-  cout<<"Bottom :"<<window.MinD(1)<<endl;
-
-  cout<<"Points"<<endl;
-  cout<<"tlPoint: "<<tlPoint<<endl;
-  cout<<"trPoint: "<<trPoint<<endl;
-  cout<<"blPoint: "<<blPoint<<endl;
-  cout<<"brPoint: "<<brPoint<<endl;
-
-  */
+  bool tl=false, tr=false, bl=false, br=false;
 
   AttrType attr(0);
-
   if ( ( (pointsOnEdge[WTOP].size()==0) ||
          (pointsOnEdge[WLEFT].size()==0) )
-     && ( this->Contains(tlPoint) ) )
+     && ( this->Contains(tlPoint,geoid) ) ){
       tl = true;
-
+  }
   if ( ( (pointsOnEdge[WTOP].size()==0) ||
          (pointsOnEdge[WRIGHT].size()==0)  )
-       && ( this->Contains(trPoint) ) )
+       && ( this->Contains(trPoint,geoid) ) ){
       tr = true;
-
+  }
   if ( ( (pointsOnEdge[WBOTTOM].size()==0) ||
          (pointsOnEdge[WLEFT].size()==0)  )
-       && ( this->Contains(blPoint) ) )
+       && ( this->Contains(blPoint,geoid) ) ){
       bl = true;
+  }
   if ( ( (pointsOnEdge[WBOTTOM].size()==0) ||
          (pointsOnEdge[WRIGHT].size()==0)  )
-         && ( this->Contains(brPoint) ) )
+         && ( this->Contains(brPoint,geoid) ) ){
       br = true;
-
-
+  }
   //Create top edge
-  if (tl && tr && (pointsOnEdge[WTOP].size()==0))
-  {
+  if (tl && tr && (pointsOnEdge[WTOP].size()==0)){
     HalfSegment *hs;
     hs = new HalfSegment(true, tlPoint, trPoint);
     //If inside == true, then insideAbove attribute of the top and left
@@ -9331,8 +9351,7 @@ void Region::CreateNewSegmentsWindowVertices(const Rectangle<2> &window,
     delete hs;
   }
   //Create left edge
-  if (tl && bl && (pointsOnEdge[WLEFT].size()==0))
-  {
+  if (tl && bl && (pointsOnEdge[WLEFT].size()==0)){
     HalfSegment *hs;
     hs = new HalfSegment(true, tlPoint, blPoint);
     //If inside == true, then insideAbove attribute of the top and left
@@ -9342,7 +9361,6 @@ void Region::CreateNewSegmentsWindowVertices(const Rectangle<2> &window,
     attr.insideAbove = !inside;
     attr.partnerno = partnerno;
     partnerno++;
-
     hs->SetAttr(attr);
     cr+=(*hs);
     hs->SetLeftDomPoint( !hs->IsLeftDomPoint() );
@@ -9350,8 +9368,7 @@ void Region::CreateNewSegmentsWindowVertices(const Rectangle<2> &window,
     delete hs;
   }
   //Create right edge
-  if (tr && br && (pointsOnEdge[WRIGHT].size()==0))
-  {
+  if (tr && br && (pointsOnEdge[WRIGHT].size()==0)){
     HalfSegment *hs;
     hs = new HalfSegment(true, trPoint, brPoint);
     //If inside == true, then insideAbove attribute of the right and bottom
@@ -9361,7 +9378,6 @@ void Region::CreateNewSegmentsWindowVertices(const Rectangle<2> &window,
     attr.insideAbove = inside;
     attr.partnerno = partnerno;
     partnerno++;
-
     hs->SetAttr(attr);
     cr+=(*hs);
     hs->SetLeftDomPoint( !hs->IsLeftDomPoint() );
@@ -9369,8 +9385,7 @@ void Region::CreateNewSegmentsWindowVertices(const Rectangle<2> &window,
     delete hs;
   }
   //Create bottom edge
-  if (bl && br && (pointsOnEdge[WBOTTOM].size()==0))
-  {
+  if (bl && br && (pointsOnEdge[WBOTTOM].size()==0)){
     HalfSegment *hs;
     hs = new HalfSegment(true, blPoint, brPoint);
     //If inside == true, then insideAbove attribute of the right and bottom
@@ -9380,7 +9395,6 @@ void Region::CreateNewSegmentsWindowVertices(const Rectangle<2> &window,
     attr.insideAbove = inside;
     attr.partnerno = partnerno;
     partnerno++;
-
     hs->SetAttr(attr);
     cr+=(*hs);
     hs->SetLeftDomPoint( !hs->IsLeftDomPoint() );
@@ -9390,7 +9404,8 @@ void Region::CreateNewSegmentsWindowVertices(const Rectangle<2> &window,
 }
 
 bool Region::ClippedHSOnEdge(const Rectangle<2> &window,const HalfSegment &hs,
-                             bool clippingIn,vector<EdgePoint> pointsOnEdge[4])
+                             bool clippingIn,vector<EdgePoint> pointsOnEdge[4],
+                             const Geoid* geoid/*=0*/)
 {
 //This function returns true if the segment lies on one of the window's edge.
 // The clipped half segments that lie on the edges must be rejected according to
@@ -9579,29 +9594,26 @@ always the right point of the last segment.
 void Region::GetClippedHSIn(const Rectangle<2> &window,
                             Region &clippedRegion,
                             vector<EdgePoint> pointsOnEdge[4],
-                            int &partnerno) const
+                            int &partnerno,
+                            const Geoid* geoid/*=0*/) const
 {
   HalfSegment hs;
   HalfSegment hsInside;
   bool inside, isIntersectionPoint;
 
   SelectFirst();
-  for(int i=0; i < Size(); i++)
-  {
+  for(int i=0; i < Size(); i++){
     GetHs( hs );
-    if (hs.IsLeftDomPoint())
-    {
+    if (hs.IsLeftDomPoint()){
       Point intersectionPoint;
       hs.WindowClippingIn(window, hsInside, inside,
-                           isIntersectionPoint,intersectionPoint);
-      if (isIntersectionPoint)
+                           isIntersectionPoint,intersectionPoint,geoid);
+      if (isIntersectionPoint){
          AddPointToEdgeArray(intersectionPoint,hs,window, pointsOnEdge);
-      else
-        if ( inside )
-        {
-          bool hsOnEdge = ClippedHSOnEdge(window,hsInside,true,pointsOnEdge);
-          if (!hsOnEdge)
-          {
+      } else if ( inside ) {
+          bool hsOnEdge = ClippedHSOnEdge(window,hsInside,true,
+                                          pointsOnEdge,geoid);
+          if (!hsOnEdge){
             //Add the clipped segment to the new region if it was not rejected
             hsInside.attr.partnerno=partnerno;
             partnerno++;
@@ -9613,7 +9625,7 @@ void Region::GetClippedHSIn(const Rectangle<2> &window,
             //Add the points to the array of the points that lie on
             //some of the window's edges
             const Point& lp = hsInside.GetLeftPoint(),
-                             rp = hsInside.GetRightPoint();
+                         rp = hsInside.GetRightPoint();
 
             //If the point lies on one edge it must be added to the
             //corresponding vector.
@@ -9643,25 +9655,21 @@ void Region::AddClippedHS( const Point &pl,
 void Region::GetClippedHSOut(const Rectangle<2> &window,
                              Region &clippedRegion,
                              vector<EdgePoint> pointsOnEdge[4],
-                             int &partnerno) const
+                             int &partnerno,
+                             const Geoid* geoid/*=0*/) const
 {
-  for (int i=0; i < Size();i++)
-  {
+  for (int i=0; i < Size();i++){
     HalfSegment hs;
     HalfSegment hsInside;
     bool inside=false,isIntersectionPoint=false;
     Get(i,hs);
-
-    if (hs.IsLeftDomPoint())
-    {
+    if (hs.IsLeftDomPoint()){
       Point intersectionPoint;
       hs.WindowClippingIn(window,hsInside, inside,
-                           isIntersectionPoint,intersectionPoint);
-      if (inside)
-      {
+                           isIntersectionPoint,intersectionPoint,geoid);
+      if (inside){
         bool hsOnEdge=false;
-        if (isIntersectionPoint)
-        {
+        if (isIntersectionPoint){
           HalfSegment aux( hs );
           if (hs.GetLeftPoint()!=intersectionPoint)
             clippedRegion.AddClippedHS(aux.GetLeftPoint(),
@@ -9673,29 +9681,27 @@ void Region::GetClippedHSOut(const Rectangle<2> &window,
                                        aux.attr,partnerno);
           AddPointToEdgeArray(intersectionPoint,aux,
                               window, pointsOnEdge);
-        }
-        else
-        {
+        } else {
           hsOnEdge = ClippedHSOnEdge(window, hsInside,
-                                     false, pointsOnEdge);
-          if (!hsOnEdge)
-          {
+                                     false, pointsOnEdge, geoid);
+          if (!hsOnEdge){
             HalfSegment aux( hs );
-            if (hs.GetLeftPoint()!=hsInside.GetLeftPoint())
+            if (hs.GetLeftPoint()!=hsInside.GetLeftPoint()){
              //Add the part of the half segment composed by the left
              //point of hs and the left point of hsInside.
               clippedRegion.AddClippedHS(aux.GetLeftPoint(),
                                          hsInside.GetLeftPoint(),
-                                         aux.attr,partnerno) ;
+                                         aux.attr,partnerno);
+            }
             AddPointToEdgeArray(hsInside.GetLeftPoint(),aux,
                                 window, pointsOnEdge);
-            if (hs.GetRightPoint()!=hsInside.GetRightPoint())
+            if (hs.GetRightPoint()!=hsInside.GetRightPoint()){
              //Add the part of the half segment composed by the right
              //point of hs and the right point of hsInside.
               clippedRegion.AddClippedHS(hsInside.GetRightPoint(),
                                          aux.GetRightPoint(),
                                          aux.attr,partnerno);
-
+            }
             AddPointToEdgeArray(hsInside.GetRightPoint(),aux,
                                 window, pointsOnEdge);
           }
@@ -9715,7 +9721,8 @@ void Region::GetClippedHSOut(const Rectangle<2> &window,
 
 void Region::GetClippedHS(const Rectangle<2> &window,
                           Region &clippedRegion,
-                          bool inside) const
+                          bool inside,
+                          const Geoid* geoid/*=0*/) const
 {
   vector<EdgePoint> pointsOnEdge[4];
     //upper edge, right edge, bottom, left
@@ -9723,11 +9730,11 @@ void Region::GetClippedHS(const Rectangle<2> &window,
 
   clippedRegion.StartBulkLoad();
 
-  if (inside)
+  if (inside){
     GetClippedHSIn(window,clippedRegion,pointsOnEdge,partnerno);
-  else
+  } else {
     GetClippedHSOut(window,clippedRegion,pointsOnEdge,partnerno);
-
+  }
 
   Point bPoint,ePoint;
   bPoint.Set(window.MinD(0),window.MaxD(1)); //left-top
@@ -9746,10 +9753,8 @@ void Region::GetClippedHS(const Rectangle<2> &window,
   ePoint.Set(window.MaxD(0),window.MaxD(1)); //right-top
   CreateNewSegments(pointsOnEdge[WRIGHT],clippedRegion,bPoint,ePoint,
                      WRIGHT,partnerno,inside);
-
   CreateNewSegmentsWindowVertices(window, pointsOnEdge,clippedRegion,
                                   partnerno,inside);
-
   clippedRegion.EndBulkLoad();
 }
 
@@ -10293,27 +10298,28 @@ void Region::ComputeRegion()
 }
 
 void Region::WindowClippingIn(const Rectangle<2> &window,
-                              Region &clippedRegion) const
+                              Region &clippedRegion,
+                              const Geoid* geoid/*=0*/) const
 {
   clippedRegion.Clear();
-  if( !IsDefined() || !window.IsDefined() ) {
+  if( !IsDefined() || !window.IsDefined() || (geoid && !geoid->IsDefined()) ) {
     clippedRegion.SetDefined( false );
     return;
   }
   clippedRegion.SetDefined( true );
   //cout<<endl<<"Original: "<<*this<<endl;
-  if (!this->bbox.Intersects(window))
+  if (!this->bbox.Intersects(window,geoid)){
     return;
+  }
   //If the bounding box of the region is inside the window,
   //then the clippedRegion
   //is equal to the region been clipped.
 
-  if (window.Contains(this->bbox))
+  if (window.Contains(this->bbox,geoid)){
     clippedRegion = *this;
-  else
-  {
+  } else {
     //cout<<endl<<this->bbox<<endl;
-    this->GetClippedHS(window,clippedRegion,true);
+    this->GetClippedHS(window,clippedRegion,true, geoid);
     //cout<<endl<<"Clipped HS:"<<endl<<clippedRegion;
     clippedRegion.ComputeRegion();
   }
@@ -10321,10 +10327,11 @@ void Region::WindowClippingIn(const Rectangle<2> &window,
 }
 
 void Region::WindowClippingOut(const Rectangle<2> &window,
-                               Region &clippedRegion) const
+                               Region &clippedRegion,
+                               const Geoid* geoid/*=0*/) const
 {
   clippedRegion.Clear();
-  if( !IsDefined() || !window.IsDefined() ) {
+  if( !IsDefined() || !window.IsDefined() || (geoid && !geoid->IsDefined()) ) {
     clippedRegion.SetDefined( false );
     return;
   }
@@ -10332,13 +10339,13 @@ void Region::WindowClippingOut(const Rectangle<2> &window,
   //If the bounding box of the region is inside the window,
   //then the clipped region is empty
   //cout<<"region: "<<*this<<endl;
-  if (window.Contains(this->bbox))
+  if (window.Contains(this->bbox,geoid)){
     return;
-  if (!window.Intersects(this->bbox))
+  }
+  if (!window.Intersects(this->bbox,geoid)){
     clippedRegion = *this;
-  else
-  {
-    this->GetClippedHS(window,clippedRegion,false);
+  } else {
+    this->GetClippedHS(window,clippedRegion,false,geoid);
  //   cout<<endl<<"Clipped HS:"<<endl<<clippedRegion;
     clippedRegion.ComputeRegion();
   }
@@ -10627,10 +10634,10 @@ bool IsSpatialType(ListExpr type){
       return false;
    }
    string t = nl->SymbolValue(type);
-   if(t=="point") return true;
-   if(t=="points") return true;
-   if(t=="line") return true;
-   if(t=="region") return true;
+   if(t==Point::BasicType()) return true;
+   if(t==Points::BasicType()) return true;
+   if(t==Line::BasicType()) return true;
+   if(t==Region::BasicType()) return true;
    return false;
 }
 
@@ -11922,7 +11929,7 @@ RegionProperty()
            nl->StringAtom("Example List"),
            nl->StringAtom("Remarks")),
             nl->FiveElemList(nl->StringAtom("-> DATA"),
-                       nl->StringAtom("region"),
+                       nl->StringAtom(Region::BasicType()),
            listreplist,
            examplelist,
            remarkslist)));
@@ -11938,7 +11945,7 @@ type constructor ~point~ does not have arguments, this is trivial.
 bool
 CheckRegion( ListExpr type, ListExpr& errorInfo )
 {
-  return (nl->IsEqual( type, "region" ));
+  return (nl->IsEqual( type, Region::BasicType() ));
 }
 
 
@@ -11947,7 +11954,7 @@ CheckRegion( ListExpr type, ListExpr& errorInfo )
 
 */
 TypeConstructor region(
-        "region",                       //name
+        Region::BasicType(),                       //name
         RegionProperty,                 //describing signature
         OutRegion,      InRegion,       //Out and In functions
         0,              0,              //SaveTo and RestoreFrom List functions
@@ -11988,30 +11995,30 @@ SpatialTypeMapBool( ListExpr args )
     arg2 = nl->Second( args );
     if ( SpatialTypeOfSymbol( arg1 ) == stpoint &&
          SpatialTypeOfSymbol( arg2 ) == stpoint)
-      return (nl->SymbolAtom( "bool" ));
+      return (nl->SymbolAtom( CcBool::BasicType() ));
     if ( SpatialTypeOfSymbol( arg1 ) == stpoints &&
          SpatialTypeOfSymbol( arg2 ) == stpoints)
-      return (nl->SymbolAtom( "bool" ));
+      return (nl->SymbolAtom( CcBool::BasicType() ));
     if ( SpatialTypeOfSymbol( arg1 ) == stline &&
          SpatialTypeOfSymbol( arg2 ) == stline)
-      return (nl->SymbolAtom( "bool" ));
+      return (nl->SymbolAtom( CcBool::BasicType() ));
     if ( SpatialTypeOfSymbol( arg1 ) == stregion &&
          SpatialTypeOfSymbol( arg2 ) == stregion)
-      return (nl->SymbolAtom( "bool" ));
+      return (nl->SymbolAtom( CcBool::BasicType() ));
     if ( SpatialTypeOfSymbol( arg1 ) == stpoint &&
          SpatialTypeOfSymbol( arg2 ) == stpoints)
-      return (nl->SymbolAtom( "bool" ));
+      return (nl->SymbolAtom( CcBool::BasicType() ));
     if ( SpatialTypeOfSymbol( arg1 ) == stpoints &&
          SpatialTypeOfSymbol( arg2 ) == stpoint)
-      return (nl->SymbolAtom( "bool" ));
+      return (nl->SymbolAtom( CcBool::BasicType() ));
     if ( SpatialTypeOfSymbol( arg1 ) == stpoint &&
          SpatialTypeOfSymbol( arg2 ) == stline)
-      return (nl->SymbolAtom( "bool" ));
+      return (nl->SymbolAtom( CcBool::BasicType() ));
     if ( SpatialTypeOfSymbol( arg1 ) == stpoint &&
          SpatialTypeOfSymbol( arg2 ) == stregion)
-      return (nl->SymbolAtom( "bool" ));
+      return (nl->SymbolAtom( CcBool::BasicType() ));
   }
-  return (nl->SymbolAtom( "typeerror" ));
+  return listutils::typeError("");
 }
 
 
@@ -12019,14 +12026,12 @@ ListExpr SpatialTypeMapCompare(ListExpr args){
    string err = " st x st expected, with"
                 " st in {point, points, line, region, sline)";
    if(!nl->HasLength(args,2)){
-     ErrorReporter::ReportError(err);
-     return nl->TypeError();
+     return listutils::typeError(err);
    }
    ListExpr arg1 = nl->First(args);
    ListExpr arg2 = nl->Second(args);
    if(!nl->Equal(arg1,arg2)){
-     ErrorReporter::ReportError(err);
-     return nl->TypeError();
+     return listutils::typeError(err);
    }
    SpatialType st = SpatialTypeOfSymbol(arg1);
    if( st ==  stpoint ||
@@ -12034,10 +12039,9 @@ ListExpr SpatialTypeMapCompare(ListExpr args){
        st == stline   ||
        st == stregion ||
        st == stsline){
-     return nl->SymbolAtom("bool");
+     return nl->SymbolAtom(CcBool::BasicType());
    }
-   ErrorReporter::ReportError(err);
-   return nl->TypeError();
+   return listutils::typeError(err);
 }
 
 ListExpr SpatialTypeMapEqual(ListExpr args){
@@ -12053,20 +12057,20 @@ ListExpr SpatialTypeMapEqual(ListExpr args){
   string s1 = nl->SymbolValue(arg1);
   string s2 = nl->SymbolValue(arg2);
   if(s1==s2){
-    if( (s1==symbols::POINT) ||
-        (s1==symbols::POINTS) ||
-        (s1==symbols::LINE) ||
-        (s1==symbols::REGION) ||
-        (s1==symbols::SLINE)){
-      return nl->SymbolAtom(symbols::BOOL);
+    if( (s1==Point::BasicType()) ||
+        (s1==Points::BasicType()) ||
+        (s1==Line::BasicType()) ||
+        (s1==Region::BasicType()) ||
+        (s1==SimpleLine::BasicType())){
+      return nl->SymbolAtom(CcBool::BasicType());
     }
     return listutils::typeError(err + " (only spatial types allowed");
   }
-  if( (s1==symbols::POINT) && (s2==symbols::POINTS)){
-      return nl->SymbolAtom(symbols::BOOL);
+  if( (s1==Point::BasicType()) && (s2==Points::BasicType())){
+    return nl->SymbolAtom(CcBool::BasicType());
   }
-  if( (s1==symbols::POINTS) && (s2==symbols::POINT)){
-      return nl->SymbolAtom(symbols::BOOL);
+  if( (s1==Points::BasicType()) && (s2==Point::BasicType())){
+    return nl->SymbolAtom(CcBool::BasicType());
   }
   return listutils::typeError(err + " (only spatial types allowed");
 }
@@ -12084,8 +12088,7 @@ ListExpr
 GeoGeoMapBool( ListExpr args )
 {
   ListExpr arg1, arg2;
-  if ( nl->ListLength( args ) == 2 )
-  {
+  if ( nl->ListLength( args ) == 2 ){
     arg1 = nl->First( args );
     arg2 = nl->Second( args );
     if (((SpatialTypeOfSymbol( arg1 ) == stpoint)  ||
@@ -12095,10 +12098,11 @@ GeoGeoMapBool( ListExpr args )
         ((SpatialTypeOfSymbol( arg2 ) == stpoint)  ||
          (SpatialTypeOfSymbol( arg2 ) == stpoints) ||
          (SpatialTypeOfSymbol( arg2 ) == stline)     ||
-         (SpatialTypeOfSymbol( arg2 ) == stregion)))
-      return (nl->SymbolAtom( "bool" ));
+         (SpatialTypeOfSymbol( arg2 ) == stregion))){
+      return (nl->SymbolAtom( CcBool::BasicType() ));
+    }
   }
-  return (nl->SymbolAtom( "typeerror" ));
+  return listutils::typeError("");
 }
 
 /*
@@ -12120,23 +12124,14 @@ IntersectsTM( ListExpr args )
     SpatialType st1 = SpatialTypeOfSymbol( arg1 );
     SpatialType st2 = SpatialTypeOfSymbol( arg2 );
     if ( ((st1 == stpoints) || (st1 == stline) || (st1 == stregion)) &&
-         ((st2 == stpoints) || (st2 == stline) || (st2 == stregion)))
-    {
-      return (nl->SymbolAtom( "bool" ));
+         ((st2 == stpoints) || (st2 == stline) || (st2 == stregion))) {
+      return (nl->SymbolAtom( CcBool::BasicType() ));
+    } else if(st1==stsline && st2==stsline) {
+      return (nl->SymbolAtom( CcBool::BasicType() ));
     }
-    else if(st1==stsline && st2==stsline)
-    {
-      return (nl->SymbolAtom( "bool" ));
-    }
-    else
-    {
-      ErrorReporter::ReportError(" t_1 x t_2 expected,"
-                                 " with t_1, t_2 in {points,line,region}");
-    }
-  } else {
-      ErrorReporter::ReportError("two arguments expected");
   }
-  return (nl->SymbolAtom( "typeerror" ));
+  return listutils::typeError(" t_1 x t_2 expected,"
+                              " with t_1, t_2 in {points,line,region}");
 }
 
 /*
@@ -12147,20 +12142,15 @@ ListExpr
 PointsRegionMapBool( ListExpr args )
 {
   ListExpr arg1, arg2;
-  if ( nl->ListLength( args ) == 2 )
-  {
+  if ( nl->ListLength( args ) == 2 ){
     arg1 = nl->First( args );
     arg2 = nl->Second( args );
     if (((SpatialTypeOfSymbol( arg1 ) == stpoints) ) &&
         ((SpatialTypeOfSymbol( arg2 ) == stregion))){
-      return (nl->SymbolAtom( "bool" ));
-    } else {
-      ErrorReporter::ReportError("points x region expected");
+      return (nl->SymbolAtom( CcBool::BasicType() ));
     }
-  } else {
-      ErrorReporter::ReportError("Two arguments expected");
   }
-  return (nl->SymbolAtom( "typeerror" ));
+  return listutils::typeError("Expected points x region.");
 }
 
 /*
@@ -12171,20 +12161,15 @@ ListExpr
 RegionRegionMapBool( ListExpr args )
 {
   ListExpr arg1, arg2;
-  if ( nl->ListLength( args ) == 2 )
-  {
+  if ( nl->ListLength( args ) == 2 ) {
     arg1 = nl->First( args );
     arg2 = nl->Second( args );
     if (((SpatialTypeOfSymbol( arg1 ) == stregion) ) &&
-        ((SpatialTypeOfSymbol( arg2 ) == stregion)))
-      return (nl->SymbolAtom( "bool" ));
-    else {
-      ErrorReporter::ReportError("region x region expected");
+        ((SpatialTypeOfSymbol( arg2 ) == stregion))){
+      return (nl->SymbolAtom( CcBool::BasicType() ));
     }
-  } else{
-      ErrorReporter::ReportError("two arguments expected");
   }
-  return (nl->SymbolAtom( "typeerror" ));
+  return listutils::typeError("region x region expected");
 }
 
 /*
@@ -12200,15 +12185,11 @@ PointRegionMapBool( ListExpr args )
     arg1 = nl->First( args );
     arg2 = nl->Second( args );
     if (((SpatialTypeOfSymbol( arg1 ) == stpoint) ) &&
-        ((SpatialTypeOfSymbol( arg2 ) == stregion)))
-      return (nl->SymbolAtom( "bool" ));
-    else {
-      ErrorReporter::ReportError("points x region expected");
+        ((SpatialTypeOfSymbol( arg2 ) == stregion))){
+      return (nl->SymbolAtom( CcBool::BasicType() ));
     }
-  } else {
-      ErrorReporter::ReportError("two arguments expected");
   }
-  return (nl->SymbolAtom( "typeerror" ));
+  return listutils::typeError("points x region expected");
 }
 
 
@@ -12220,8 +12201,7 @@ ListExpr
 AdjacentTypeMap( ListExpr args )
 {
   ListExpr arg1, arg2;
-  if ( nl->ListLength( args ) == 2 )
-  {
+  if ( nl->ListLength( args ) == 2 ){
     arg1 = nl->First( args );
     arg2 = nl->Second( args );
     if(
@@ -12235,14 +12215,10 @@ AdjacentTypeMap( ListExpr args )
        (SpatialTypeOfSymbol(arg2)==stline)) ||
       ((SpatialTypeOfSymbol(arg1)==stregion) &&
        (SpatialTypeOfSymbol(arg2)==stregion))){
-      return nl->SymbolAtom("bool");
-    } else {
-      ErrorReporter::ReportError("points x region expected");
+      return nl->SymbolAtom(CcBool::BasicType());
     }
-  } else {
-      ErrorReporter::ReportError("two arguments expected");
   }
-  return (nl->SymbolAtom( "typeerror" ));
+  return listutils::typeError("points x region expected");
 }
 
 
@@ -12285,14 +12261,10 @@ InsideTypeMap( ListExpr args )
 
       ((SpatialTypeOfSymbol(arg1)==stregion) &&
        (SpatialTypeOfSymbol(arg2)==stregion)) ){
-      return nl->SymbolAtom("bool");
-    } else {
-      ErrorReporter::ReportError("points x region expected");
+      return nl->SymbolAtom(CcBool::BasicType());
     }
-  } else {
-      ErrorReporter::ReportError("two arguments expected");
   }
-  return (nl->SymbolAtom( "typeerror" ));
+  return listutils::typeError("points x region expected");
 }
 
 
@@ -12311,17 +12283,17 @@ SpatialTypeMapBool1( ListExpr args )
   {
     arg1 = nl->First( args );
     if ( SpatialTypeOfSymbol( arg1 ) == stpoint )
-      return (nl->SymbolAtom( "bool" ));
+      return (nl->SymbolAtom( CcBool::BasicType() ));
     if ( SpatialTypeOfSymbol( arg1 ) == stpoints )
-      return (nl->SymbolAtom( "bool" ));
+      return (nl->SymbolAtom( CcBool::BasicType() ));
     if ( SpatialTypeOfSymbol( arg1 ) == stline )
-      return (nl->SymbolAtom( "bool" ));
+      return (nl->SymbolAtom( CcBool::BasicType() ));
     if ( SpatialTypeOfSymbol( arg1 ) == stregion )
-      return (nl->SymbolAtom( "bool" ));
+      return (nl->SymbolAtom( CcBool::BasicType() ));
     if ( SpatialTypeOfSymbol( arg1 ) == stsline )
-      return (nl->SymbolAtom( "bool" ));
+      return (nl->SymbolAtom( CcBool::BasicType() ));
   }
-  return (nl->SymbolAtom( "typeerror" ));
+  return listutils::typeError("");
 }
 
 ListExpr SpatialIntersectionTypeMap(ListExpr args){
@@ -12340,32 +12312,32 @@ ListExpr SpatialIntersectionTypeMap(ListExpr args){
   string a1 = nl->SymbolValue(arg1);
   string a2 = nl->SymbolValue(arg2);
 
-  if(a1==symbols::POINT){
-    if(a2==symbols::POINT)  return nl->SymbolAtom(symbols::POINTS);
-    if(a2==symbols::POINTS) return nl->SymbolAtom(symbols::POINTS);
-    if(a2==symbols::LINE)   return nl->SymbolAtom(symbols::POINTS);
-    if(a2==symbols::REGION)  return nl->SymbolAtom(symbols::POINTS);
+  if(a1==Point::BasicType()){
+    if(a2==Point::BasicType())  return nl->SymbolAtom(Points::BasicType());
+    if(a2==Points::BasicType()) return nl->SymbolAtom(Points::BasicType());
+    if(a2==Line::BasicType())   return nl->SymbolAtom(Points::BasicType());
+    if(a2==Region::BasicType())  return nl->SymbolAtom(Points::BasicType());
     return listutils::typeError(err+ ": second arg not a spatial type");
   }
-  if(a1==symbols::POINTS){
-    if(a2==symbols::POINT)  return nl->SymbolAtom(symbols::POINTS);
-    if(a2==symbols::POINTS) return nl->SymbolAtom(symbols::POINTS);
-    if(a2==symbols::LINE)   return nl->SymbolAtom(symbols::POINTS);
-    if(a2==symbols::REGION)  return nl->SymbolAtom(symbols::POINTS);
+  if(a1==Points::BasicType()){
+    if(a2==Point::BasicType())  return nl->SymbolAtom(Points::BasicType());
+    if(a2==Points::BasicType()) return nl->SymbolAtom(Points::BasicType());
+    if(a2==Line::BasicType())   return nl->SymbolAtom(Points::BasicType());
+    if(a2==Region::BasicType())  return nl->SymbolAtom(Points::BasicType());
     return listutils::typeError(err+ ": second arg not a spatial type");
   }
-  if(a1==symbols::LINE){
-    if(a2==symbols::POINT)  return nl->SymbolAtom(symbols::POINTS);
-    if(a2==symbols::POINTS) return nl->SymbolAtom(symbols::POINTS);
-    if(a2==symbols::LINE)   return nl->SymbolAtom(symbols::LINE);
-    if(a2==symbols::REGION)  return nl->SymbolAtom(symbols::LINE);
+  if(a1==Line::BasicType()){
+    if(a2==Point::BasicType())  return nl->SymbolAtom(Points::BasicType());
+    if(a2==Points::BasicType()) return nl->SymbolAtom(Points::BasicType());
+    if(a2==Line::BasicType())   return nl->SymbolAtom(Line::BasicType());
+    if(a2==Region::BasicType())  return nl->SymbolAtom(Line::BasicType());
     return listutils::typeError(err+ ": second arg not a spatial type");
   }
-  if(a1==symbols::REGION){
-    if(a2==symbols::POINT)  return nl->SymbolAtom(symbols::POINTS);
-    if(a2==symbols::POINTS) return nl->SymbolAtom(symbols::POINTS);
-    if(a2==symbols::LINE)   return nl->SymbolAtom(symbols::LINE);
-    if(a2==symbols::REGION)  return nl->SymbolAtom(symbols::REGION);
+  if(a1==Region::BasicType()){
+    if(a2==Point::BasicType())  return nl->SymbolAtom(Points::BasicType());
+    if(a2==Points::BasicType()) return nl->SymbolAtom(Points::BasicType());
+    if(a2==Line::BasicType())   return nl->SymbolAtom(Line::BasicType());
+    if(a2==Region::BasicType())  return nl->SymbolAtom(Region::BasicType());
     return listutils::typeError(err+ ": second arg not a spatial type");
   }
   return listutils::typeError(err+ ": first arg not a spatial type");
@@ -12388,32 +12360,32 @@ ListExpr SpatialMinusTypeMap(ListExpr args){
   string a1 = nl->SymbolValue(arg1);
   string a2 = nl->SymbolValue(arg2);
 
-  if(a1==symbols::POINT){
-    if(a2==symbols::POINT)  return nl->SymbolAtom(symbols::POINTS);
-    if(a2==symbols::POINTS) return nl->SymbolAtom(symbols::POINTS);
-    if(a2==symbols::LINE)   return nl->SymbolAtom(symbols::POINTS);
-    if(a2==symbols::REGION) return nl->SymbolAtom(symbols::POINTS);
+  if(a1==Point::BasicType()){
+    if(a2==Point::BasicType())  return nl->SymbolAtom(Points::BasicType());
+    if(a2==Points::BasicType()) return nl->SymbolAtom(Points::BasicType());
+    if(a2==Line::BasicType())   return nl->SymbolAtom(Points::BasicType());
+    if(a2==Region::BasicType()) return nl->SymbolAtom(Points::BasicType());
     return listutils::typeError(err+ ": second arg not a spatial type");
   }
-  if(a1==symbols::POINTS){
-    if(a2==symbols::POINT)  return nl->SymbolAtom(symbols::POINTS);
-    if(a2==symbols::POINTS) return nl->SymbolAtom(symbols::POINTS);
-    if(a2==symbols::LINE)   return nl->SymbolAtom(symbols::POINTS);
-    if(a2==symbols::REGION) return nl->SymbolAtom(symbols::POINTS);
+  if(a1==Points::BasicType()){
+    if(a2==Point::BasicType())  return nl->SymbolAtom(Points::BasicType());
+    if(a2==Points::BasicType()) return nl->SymbolAtom(Points::BasicType());
+    if(a2==Line::BasicType())   return nl->SymbolAtom(Points::BasicType());
+    if(a2==Region::BasicType()) return nl->SymbolAtom(Points::BasicType());
     return listutils::typeError(err+ ": second arg not a spatial type");
   }
-  if(a1==symbols::LINE){
-    if(a2==symbols::POINT)  return nl->SymbolAtom(symbols::LINE);
-    if(a2==symbols::POINTS) return nl->SymbolAtom(symbols::LINE);
-    if(a2==symbols::LINE)   return nl->SymbolAtom(symbols::LINE);
-    if(a2==symbols::REGION) return nl->SymbolAtom(symbols::LINE);
+  if(a1==Line::BasicType()){
+    if(a2==Point::BasicType())  return nl->SymbolAtom(Line::BasicType());
+    if(a2==Points::BasicType()) return nl->SymbolAtom(Line::BasicType());
+    if(a2==Line::BasicType())   return nl->SymbolAtom(Line::BasicType());
+    if(a2==Region::BasicType()) return nl->SymbolAtom(Line::BasicType());
     return listutils::typeError(err+ ": second arg not a spatial type");
   }
-  if(a1==symbols::REGION){
-    if(a2==symbols::POINT)  return nl->SymbolAtom(symbols::REGION);
-    if(a2==symbols::POINTS) return nl->SymbolAtom(symbols::REGION);
-    if(a2==symbols::LINE)   return nl->SymbolAtom(symbols::REGION);
-    if(a2==symbols::REGION) return nl->SymbolAtom(symbols::REGION);
+  if(a1==Region::BasicType()){
+    if(a2==Point::BasicType())  return nl->SymbolAtom(Region::BasicType());
+    if(a2==Points::BasicType()) return nl->SymbolAtom(Region::BasicType());
+    if(a2==Line::BasicType())   return nl->SymbolAtom(Region::BasicType());
+    if(a2==Region::BasicType()) return nl->SymbolAtom(Region::BasicType());
     return listutils::typeError(err+ ": second arg not a spatial type");
   }
   return listutils::typeError(err+ ": first arg not a spatial type");
@@ -12436,32 +12408,32 @@ ListExpr SpatialUnionTypeMap(ListExpr args){
   string a1 = nl->SymbolValue(arg1);
   string a2 = nl->SymbolValue(arg2);
 
-  if(a1==symbols::POINT){
-    if(a2==symbols::POINT)  return nl->SymbolAtom(symbols::POINTS);
-    if(a2==symbols::POINTS) return nl->SymbolAtom(symbols::POINTS);
-    if(a2==symbols::LINE)   return nl->SymbolAtom(symbols::LINE);
-    if(a2==symbols::REGION)  return nl->SymbolAtom(symbols::REGION);
+  if(a1==Point::BasicType()){
+    if(a2==Point::BasicType())  return nl->SymbolAtom(Points::BasicType());
+    if(a2==Points::BasicType()) return nl->SymbolAtom(Points::BasicType());
+    if(a2==Line::BasicType())   return nl->SymbolAtom(Line::BasicType());
+    if(a2==Region::BasicType())  return nl->SymbolAtom(Region::BasicType());
     return listutils::typeError(err+ ": second arg not a spatial type");
   }
-  if(a1==symbols::POINTS){
-    if(a2==symbols::POINT)  return nl->SymbolAtom(symbols::POINTS);
-    if(a2==symbols::POINTS) return nl->SymbolAtom(symbols::POINTS);
-    if(a2==symbols::LINE)   return nl->SymbolAtom(symbols::LINE);
-    if(a2==symbols::REGION)  return nl->SymbolAtom(symbols::REGION);
+  if(a1==Points::BasicType()){
+    if(a2==Point::BasicType())  return nl->SymbolAtom(Points::BasicType());
+    if(a2==Points::BasicType()) return nl->SymbolAtom(Points::BasicType());
+    if(a2==Line::BasicType())   return nl->SymbolAtom(Line::BasicType());
+    if(a2==Region::BasicType())  return nl->SymbolAtom(Region::BasicType());
     return listutils::typeError(err+ ": second arg not a spatial type");
   }
-  if(a1==symbols::LINE){
-    if(a2==symbols::POINT)  return nl->SymbolAtom(symbols::LINE);
-    if(a2==symbols::POINTS) return nl->SymbolAtom(symbols::LINE);
-    if(a2==symbols::LINE)   return nl->SymbolAtom(symbols::LINE);
-    if(a2==symbols::REGION)  return nl->SymbolAtom(symbols::REGION);
+  if(a1==Line::BasicType()){
+    if(a2==Point::BasicType())  return nl->SymbolAtom(Line::BasicType());
+    if(a2==Points::BasicType()) return nl->SymbolAtom(Line::BasicType());
+    if(a2==Line::BasicType())   return nl->SymbolAtom(Line::BasicType());
+    if(a2==Region::BasicType())  return nl->SymbolAtom(Region::BasicType());
     return listutils::typeError(err+ ": second arg not a spatial type");
   }
-  if(a1==symbols::REGION){
-    if(a2==symbols::POINT)  return nl->SymbolAtom(symbols::REGION);
-    if(a2==symbols::POINTS) return nl->SymbolAtom(symbols::REGION);
-    if(a2==symbols::LINE)   return nl->SymbolAtom(symbols::REGION);
-    if(a2==symbols::REGION)  return nl->SymbolAtom(symbols::REGION);
+  if(a1==Region::BasicType()){
+    if(a2==Point::BasicType())  return nl->SymbolAtom(Region::BasicType());
+    if(a2==Points::BasicType()) return nl->SymbolAtom(Region::BasicType());
+    if(a2==Line::BasicType())   return nl->SymbolAtom(Region::BasicType());
+    if(a2==Region::BasicType())  return nl->SymbolAtom(Region::BasicType());
     return listutils::typeError(err+ ": second arg not a spatial type");
   }
   return listutils::typeError(err+ ": first arg not a spatial type");
@@ -12486,18 +12458,18 @@ SpatialCrossingsTM( ListExpr args )
 
     if ( SpatialTypeOfSymbol( arg1 ) == stline &&
          SpatialTypeOfSymbol( arg2 ) == stline )
-      return (nl->SymbolAtom( "points" ));
+      return (nl->SymbolAtom( Points::BasicType() ));
     if ( SpatialTypeOfSymbol( arg1 ) == stsline &&
          SpatialTypeOfSymbol( arg2 ) == stsline )
-      return (nl->SymbolAtom( "points" ));
+      return (nl->SymbolAtom( Points::BasicType() ));
   }
   if(nl->ListLength(args==1)){ // internal crossings of a single line
     arg1 = nl->First( args );
     if ( SpatialTypeOfSymbol( arg1 ) == stline){
-        return (nl->SymbolAtom( "points" ));
+        return (nl->SymbolAtom( Points::BasicType() ));
     }
   }
-  return (nl->SymbolAtom( "typeerror" ));
+  return listutils::typeError("");
 }
 
 /*
@@ -12516,9 +12488,9 @@ SpatialSingleMap( ListExpr args )
     arg1 = nl->First( args );
 
     if (SpatialTypeOfSymbol( arg1 ) == stpoints)
-      return (nl->SymbolAtom( "point" ));
+      return (nl->SymbolAtom( Point::BasicType() ));
   }
-  return (nl->SymbolAtom( "typeerror" ));
+  return listutils::typeError("");
 }
 
 /*
@@ -12531,77 +12503,82 @@ operator computes the distance between two spatial objects.
 ListExpr
 SpatialDistanceMap( ListExpr args )
 {
-  ListExpr arg1, arg2;
-  if ( nl->ListLength( args ) == 2 )
-  {
-    arg1 = nl->First( args );
-    arg2 = nl->Second( args );
+  int noargs = nl->ListLength(args);
+  string errmsg = "Expected (T1 x T2 [x geoid]) where T1,T2 in "
+                  "{point,points,line,sline,region,rectangle}.";
 
-    SpatialType t1 = SpatialTypeOfSymbol(arg1);
-    SpatialType t2 = SpatialTypeOfSymbol(arg2);
-    ListExpr erg = nl->SymbolAtom("real");
-
-    if ( (t1 == stpoint) && (t2 == stpoint) ){
-      return erg;
-    }else if ( (t1  == stpoint) && (t2 == stpoints) ){
-      return erg;
-    }else if ( (t1 == stpoints) && (t2 == stpoint )) {
-      return erg;
-    } else if ( (t1 == stpoint) && (t2 == stline ) ){
-      return erg;
-    } else if( (t1 == stline) && ( t2 ==  stpoint )){
-      return erg;
-    } else if( (t1  == stpoint) && (t2 == stregion )) {
-      return erg;
-    } else if ( (t1  == stregion) && ( t2 == stpoint )){
-      return erg;
-    } else if ( ( t1 == stpoints) && ( t2 == stpoints )){
-      return erg;
-    } else if ( (t1 == stpoints) && (t2 == stline )){
-      return erg;
-    } else  if ( ( t1 == stline )&&( t2  == stpoints )){
-      return erg;
-    } else if ( (t1 == stpoints) && ( t2  == stregion )){
-      return erg;
-    } else if ( (t1  == stregion) && (t2 == stpoints )){
-      return erg;
-    } else if ( (t1 == stline) && (t2 == stline )){
-      return erg;
-    } else if ( ( t1 == stregion) && ( t2 == stregion )){
-      return erg;
-    } else if ( (t1 == stsline) && (t2 == stpoint)){
-      return erg;
-    } else if( ( t1 == stpoint) && (t2 == stsline)){
-      return erg;
-    } else if(( t1 == stsline) && ( t2 == stpoints)){
-      return erg;
-    } else if((t1==stpoints) && (t2==stsline)){
-      return erg;
-    } else if((t1==stsline) && (t2==stsline)){
-      return erg;
-    } else if((t1==stbox) && (t2==stpoint)){
-      return erg;
-    } else if((t1==stpoint) && (t2==stbox)){
-      return erg;
-    } else if((t1==stbox) && (t2==stpoints)){
-      return erg;
-    } else if((t1==stpoints) && (t2==stbox)){
-      return erg;
-    } else if((t1==stbox) && (t2==stline)){
-      return erg;
-    } else if((t1==stline) && (t2==stbox)){
-      return erg;
-    } else if((t1==stbox) && (t2==stregion)){
-      return erg;
-    } else if((t1==stregion) && (t2==stbox)){
-      return erg;
-    } else if((t1==stbox) && (t2==stsline)){
-      return erg;
-    } else if((t1==stsline) && (t2==stbox)){
-      return erg;
-    }
+  if( (noargs < 2) || (noargs > 3) ){
+    return listutils::typeError(errmsg);
   }
-  return nl->TypeError();
+
+  ListExpr arg1, arg2;
+  arg1 = nl->First( args );
+  arg2 = nl->Second( args );
+
+  SpatialType t1 = SpatialTypeOfSymbol(arg1);
+  SpatialType t2 = SpatialTypeOfSymbol(arg2);
+  ListExpr erg = nl->SymbolAtom(CcReal::BasicType());
+
+  if ( (t1 == stpoint) && (t2 == stpoint) ){
+    return erg;
+  }else if ( (t1  == stpoint) && (t2 == stpoints) ){
+    return erg;
+  }else if ( (t1 == stpoints) && (t2 == stpoint )) {
+    return erg;
+  } else if ( (t1 == stpoint) && (t2 == stline ) ){
+    return erg;
+  } else if( (t1 == stline) && ( t2 ==  stpoint )){
+    return erg;
+  } else if( (t1  == stpoint) && (t2 == stregion )) {
+    return erg;
+  } else if ( (t1  == stregion) && ( t2 == stpoint )){
+    return erg;
+  } else if ( ( t1 == stpoints) && ( t2 == stpoints )){
+    return erg;
+  } else if ( (t1 == stpoints) && (t2 == stline )){
+    return erg;
+  } else  if ( ( t1 == stline )&&( t2  == stpoints )){
+    return erg;
+  } else if ( (t1 == stpoints) && ( t2  == stregion )){
+    return erg;
+  } else if ( (t1  == stregion) && (t2 == stpoints )){
+    return erg;
+  } else if ( (t1 == stline) && (t2 == stline )){
+    return erg;
+  } else if ( ( t1 == stregion) && ( t2 == stregion )){
+    return erg;
+  } else if ( (t1 == stsline) && (t2 == stpoint)){
+    return erg;
+  } else if( ( t1 == stpoint) && (t2 == stsline)){
+    return erg;
+  } else if(( t1 == stsline) && ( t2 == stpoints)){
+    return erg;
+  } else if((t1==stpoints) && (t2==stsline)){
+    return erg;
+  } else if((t1==stsline) && (t2==stsline)){
+    return erg;
+  } else if((t1==stbox) && (t2==stpoint)){
+    return erg;
+  } else if((t1==stpoint) && (t2==stbox)){
+    return erg;
+  } else if((t1==stbox) && (t2==stpoints)){
+    return erg;
+  } else if((t1==stpoints) && (t2==stbox)){
+    return erg;
+  } else if((t1==stbox) && (t2==stline)){
+    return erg;
+  } else if((t1==stline) && (t2==stbox)){
+    return erg;
+  } else if((t1==stbox) && (t2==stregion)){
+    return erg;
+  } else if((t1==stregion) && (t2==stbox)){
+    return erg;
+  } else if((t1==stbox) && (t2==stsline)){
+    return erg;
+  } else if((t1==stsline) && (t2==stbox)){
+    return erg;
+  }
+  return listutils::typeError(errmsg);
 }
 
 /*
@@ -12650,9 +12627,9 @@ SpatialNoComponentsMap( ListExpr args )
     if ((SpatialTypeOfSymbol( arg1 ) == stpoints)||
         (SpatialTypeOfSymbol( arg1 ) == stline)||
         (SpatialTypeOfSymbol( arg1 ) == stregion))
-      return (nl->SymbolAtom( "int" ));
+      return (nl->SymbolAtom( CcInt::BasicType() ));
   }
-  return (nl->SymbolAtom( "typeerror" ));
+  return listutils::typeError("");
 }
 
 /*
@@ -12674,9 +12651,9 @@ SpatialNoSegmentsMap( ListExpr args )
     if ((SpatialTypeOfSymbol( arg1 ) == stline)||
         (SpatialTypeOfSymbol( arg1 ) == stregion)||
         (SpatialTypeOfSymbol(arg1) == stsline))
-        return (nl->SymbolAtom( "int" ));
+        return (nl->SymbolAtom( CcInt::BasicType() ));
   }
-  return (nl->SymbolAtom( "typeerror" ));
+  return listutils::typeError("");
 }
 
 /*
@@ -12731,18 +12708,17 @@ SpatialTouchPointsMap( ListExpr args )
 
     if ( SpatialTypeOfSymbol( arg1 ) == stregion &&
          SpatialTypeOfSymbol( arg2 ) == stregion )
-      return (nl->SymbolAtom( "points" ));
+      return (nl->SymbolAtom( Points::BasicType() ));
 
     if ( SpatialTypeOfSymbol( arg1 ) == stregion &&
          SpatialTypeOfSymbol( arg2 ) == stline )
-      return (nl->SymbolAtom( "points" ));
+      return (nl->SymbolAtom( Points::BasicType() ));
 
     if ( SpatialTypeOfSymbol( arg1 ) == stline &&
          SpatialTypeOfSymbol( arg2 ) == stregion )
-      return (nl->SymbolAtom( "points" ));
+      return (nl->SymbolAtom( Points::BasicType() ));
   }
-
-  return (nl->SymbolAtom( "typeerror" ));
+  return listutils::typeError("");
 }
 
 /*
@@ -12757,21 +12733,18 @@ ListExpr SpatialComponentsMap( ListExpr args )
   {
     if( SpatialTypeOfSymbol( nl->First( args ) ) == stpoints )
       return nl->TwoElemList( nl->SymbolAtom("stream"),
-                              nl->SymbolAtom("point") );
+                              nl->SymbolAtom(Point::BasicType()) );
 
     if( SpatialTypeOfSymbol( nl->First( args ) ) == stregion )
       return nl->TwoElemList( nl->SymbolAtom("stream"),
-                              nl->SymbolAtom("region") );
+                              nl->SymbolAtom(Region::BasicType()) );
 
     if( SpatialTypeOfSymbol( nl->First( args ) ) == stline )
       return nl->TwoElemList( nl->SymbolAtom("stream"),
-                              nl->SymbolAtom("line") );
+                              nl->SymbolAtom(Line::BasicType()) );
 
-    ErrorReporter::ReportError("point, line or region expected");
-    return nl->TypeError();
   }
-  ErrorReporter::ReportError("Wrong number of arguments");
-  return (nl->SymbolAtom( "typeerror" ));
+  return listutils::typeError("point, line or region expected");
 }
 
 /*
@@ -12782,16 +12755,12 @@ ListExpr SpatialVerticesMap(ListExpr args)
 {
   if(nl->ListLength(args)!=1)
   {
-    ErrorReporter::ReportError("one argument expected");
-    return nl->SymbolAtom("typeerror");
+    if( (nl->IsEqual(nl->First(args),Region::BasicType())) ||
+        (nl->IsEqual(nl->First(args),Line::BasicType())) ){
+      return nl->SymbolAtom(Points::BasicType());
+    }
   }
-  if( (nl->IsEqual(nl->First(args),"region")) ||
-      (nl->IsEqual(nl->First(args),"line")) ){
-    return nl->SymbolAtom("points");
-  }
-
-  ErrorReporter::ReportError("region or line required");
-  return nl->SymbolAtom("typeerror");
+  return listutils::typeError("region or line required");
 }
 
 /*
@@ -12802,18 +12771,15 @@ ListExpr SpatialBoundaryMap(ListExpr args)
 {
   if(nl->ListLength(args)!=1)
   {
-    ErrorReporter::ReportError("invalid number of arguments");
-    return nl->SymbolAtom("typeerror");
-  }
-  if( SpatialTypeOfSymbol( nl->First( args ) ) == stregion ){
-     return nl->SymbolAtom("line");
-  }
+    if( SpatialTypeOfSymbol( nl->First( args ) ) == stregion ){
+      return nl->SymbolAtom(Line::BasicType());
+    }
 
-  if( SpatialTypeOfSymbol( nl->First( args ) ) == stline ){
-      return nl->SymbolAtom("points");
+    if( SpatialTypeOfSymbol( nl->First( args ) ) == stline ){
+        return nl->SymbolAtom(Points::BasicType());
+    }
   }
-  ErrorReporter::ReportError("region or line required");
-  return nl->SymbolAtom("typeerror");
+  return listutils::typeError("region or line required");
 }
 
 /*
@@ -12834,10 +12800,9 @@ SpatialCommonBorderMap( ListExpr args )
 
     if ( SpatialTypeOfSymbol( arg1 ) == stregion &&
          SpatialTypeOfSymbol( arg2 ) == stregion )
-      return (nl->SymbolAtom( "line" ));
+      return (nl->SymbolAtom( Line::BasicType() ));
   }
-
-  return (nl->SymbolAtom( "typeerror" ));
+  return listutils::typeError("");
 }
 
 /*
@@ -12862,7 +12827,7 @@ SpatialBBoxMap( ListExpr args )
          SpatialTypeOfSymbol( arg1 ) == stsline )
       return (nl->SymbolAtom( "rect" ));
   }
-  return (nl->SymbolAtom( "typeerror" ));
+  return listutils::typeError("");
 }
 
 /*
@@ -12882,27 +12847,26 @@ SpatialTranslateMap( ListExpr args )
     arg2 = nl->Second( args );
 
     if( SpatialTypeOfSymbol( arg1 ) == stregion &&
-        nl->IsEqual(nl->First( arg2 ), "real") &&
-        nl->IsEqual(nl->Second( arg2 ), "real"))
-      return (nl->SymbolAtom( "region" ));
+        nl->IsEqual(nl->First( arg2 ), CcReal::BasicType()) &&
+        nl->IsEqual(nl->Second( arg2 ), CcReal::BasicType()))
+      return (nl->SymbolAtom( Region::BasicType() ));
 
     if( SpatialTypeOfSymbol( arg1 ) == stline &&
-        nl->IsEqual(nl->First( arg2 ), "real") &&
-        nl->IsEqual(nl->Second( arg2 ), "real"))
-      return (nl->SymbolAtom( "line" ));
+        nl->IsEqual(nl->First( arg2 ), CcReal::BasicType()) &&
+        nl->IsEqual(nl->Second( arg2 ), CcReal::BasicType()))
+      return (nl->SymbolAtom( Line::BasicType() ));
 
     if( SpatialTypeOfSymbol( arg1 ) == stpoints &&
-        nl->IsEqual(nl->First( arg2 ), "real") &&
-        nl->IsEqual(nl->Second( arg2 ), "real"))
-      return (nl->SymbolAtom( "points" ));
+        nl->IsEqual(nl->First( arg2 ), CcReal::BasicType()) &&
+        nl->IsEqual(nl->Second( arg2 ), CcReal::BasicType()))
+      return (nl->SymbolAtom( Points::BasicType() ));
 
     if( SpatialTypeOfSymbol( arg1 ) == stpoint &&
-        nl->IsEqual(nl->First( arg2 ), "real") &&
-        nl->IsEqual(nl->Second( arg2 ), "real"))
-      return (nl->SymbolAtom( "point" ));
+        nl->IsEqual(nl->First( arg2 ), CcReal::BasicType()) &&
+        nl->IsEqual(nl->Second( arg2 ), CcReal::BasicType()))
+      return (nl->SymbolAtom( Point::BasicType() ));
   }
-
-  return nl->SymbolAtom( "typeerror" );
+  return listutils::typeError("");
 }
 
 /*
@@ -12924,9 +12888,9 @@ SpatialRotateMap( ListExpr args )
   ListExpr arg3 = nl->Third(args);
   ListExpr arg4 = nl->Fourth(args);
 
-  if( !nl->IsEqual(arg2,"real") ||
-      !nl->IsEqual(arg3,"real") ||
-      !nl->IsEqual(arg4,"real")){
+  if( !nl->IsEqual(arg2,CcReal::BasicType()) ||
+      !nl->IsEqual(arg3,CcReal::BasicType()) ||
+      !nl->IsEqual(arg4,CcReal::BasicType())){
     ErrorReporter::ReportError("spatial x real x real x real expected");
     return nl->TypeError();
   }
@@ -12936,7 +12900,8 @@ SpatialRotateMap( ListExpr args )
     return nl->TypeError();
   }
   string st = nl->SymbolValue(arg1);
-  if( st!="point" && st!="points" && st!="line" && st!="region"){
+  if( st!=Point::BasicType() && st!=Points::BasicType() &&
+      st!=Line::BasicType() && st!=Region::BasicType()){
     ErrorReporter::ReportError("spatial x real x real x real expected");
     return nl->TypeError();
   }
@@ -12954,13 +12919,10 @@ The signature is points -> point.
 ListExpr SpatialCenterMap(ListExpr args){
 
   if( (nl->ListLength(args)==1) &&
-      (nl->IsEqual(nl->First(args),"points")) ){
-      return nl->SymbolAtom("point");
+      (nl->IsEqual(nl->First(args),Points::BasicType())) ){
+      return nl->SymbolAtom(Point::BasicType());
   }
-
-  ErrorReporter::ReportError("points expected");
-  return nl->TypeError();
-
+  return listutils::typeError("points expected");
 }
 
 
@@ -12974,13 +12936,10 @@ The signature is points -> region.
 ListExpr SpatialConvexhullMap(ListExpr args){
 
   if( (nl->ListLength(args)==1) &&
-      (nl->IsEqual(nl->First(args),"points")) ){
-      return nl->SymbolAtom("region");
+      (nl->IsEqual(nl->First(args),Points::BasicType())) ){
+      return nl->SymbolAtom(Region::BasicType());
   }
-
-  ErrorReporter::ReportError("points expected");
-  return nl->TypeError();
-
+  return listutils::typeError("points expected");
 }
 
 
@@ -13003,13 +12962,12 @@ SpatialWindowClippingMap( ListExpr args )
     arg2 = nl->Second( args );
 
     if ( SpatialTypeOfSymbol( arg1 ) == stline)
-        return (nl->SymbolAtom( "line" ));
+        return (nl->SymbolAtom( Line::BasicType() ));
 
     if ( SpatialTypeOfSymbol( arg1 ) == stregion )
-        return (nl->SymbolAtom( "region" ));
+        return (nl->SymbolAtom( Region::BasicType() ));
   }
-
-  return (nl->SymbolAtom( "typeerror" ));
+  return listutils::typeError("");
 }
 
 /*
@@ -13021,34 +12979,24 @@ scales a spatial object by a given factor.
 */
 ListExpr SpatialScaleMap(ListExpr args)
 {
-   if(nl->ListLength(args)!=2)
-   {
-      ErrorReporter::ReportError("operator scale requires two arguments");
-      return nl->SymbolAtom( "typeerror" );
+   if(nl->ListLength(args)!=2){
+      return listutils::typeError("operator scale requires two arguments");
    }
-
    ListExpr arg1 = nl->First(args);
    ListExpr arg2 = nl->Second(args);
-   if(!(nl->IsEqual(arg2 , "real")))
-   {
-      ErrorReporter::ReportError("the second "
-                                 "argument has to be of type real");
-      return nl->SymbolAtom("typeerror");
+   if(!(nl->IsEqual(arg2 , CcReal::BasicType()))){
+      return listutils::typeError("expectes real as 2nd");
    }
-
-   if(nl->IsEqual(arg1,"region"))
-     return nl->SymbolAtom("region");
-   if(nl->IsEqual(arg1,"line"))
-     return nl->SymbolAtom("line");
-   if(nl->IsEqual(arg1,"point"))
-     return nl->SymbolAtom("point");
-   if(nl->IsEqual(arg1,"points"))
-     return nl->SymbolAtom("points");
-
-   ErrorReporter::ReportError("First argument has to be in "
-                              "{region, line, points, points}");
-   return nl->SymbolAtom( "typeerror" );
-}
+   if(nl->IsEqual(arg1,Region::BasicType()))
+     return nl->SymbolAtom(Region::BasicType());
+   if(nl->IsEqual(arg1,Line::BasicType()))
+     return nl->SymbolAtom(Line::BasicType());
+   if(nl->IsEqual(arg1,Point::BasicType()))
+     return nl->SymbolAtom(Point::BasicType());
+   if(nl->IsEqual(arg1,Points::BasicType()))
+     return nl->SymbolAtom(Points::BasicType());
+   return listutils::typeError("Expected 1st to be of {region, line, "
+                               "points, points}");}
 
 /*
 10.1.6 Type mapping function for operator ~atpoint~
@@ -13070,10 +13018,10 @@ SpatialAtPointMap( ListExpr args )
 
     if ( SpatialTypeOfSymbol( arg1 ) == stsline &&
          SpatialTypeOfSymbol( arg2 ) == stpoint &&
-         nl->IsEqual( arg3, "bool" ) )
-      return (nl->SymbolAtom( "real" ));
+         nl->IsEqual( arg3, CcBool::BasicType() ) )
+      return (nl->SymbolAtom( CcReal::BasicType() ));
   }
-  return (nl->SymbolAtom( "typeerror" ));
+  return listutils::typeError("");
 }
 
 /*
@@ -13094,11 +13042,11 @@ SpatialAtPositionMap( ListExpr args )
     arg3 = nl->Third( args );
 
     if ( SpatialTypeOfSymbol( arg1 ) == stsline &&
-         nl->IsEqual( arg2, "real" ) &&
-         nl->IsEqual( arg3, "bool" ) )
-      return (nl->SymbolAtom( "point" ));
+         nl->IsEqual( arg2, CcReal::BasicType() ) &&
+         nl->IsEqual( arg3, CcBool::BasicType() ) )
+      return (nl->SymbolAtom( Point::BasicType() ));
   }
-  return (nl->SymbolAtom( "typeerror" ));
+  return listutils::typeError("");
 }
 
 /*
@@ -13121,12 +13069,12 @@ SpatialSubLineMap( ListExpr args )
     arg4 = nl->Fourth( args );
 
     if ( SpatialTypeOfSymbol( arg1 ) == stsline &&
-         nl->IsEqual( arg2, "real" ) &&
-         nl->IsEqual( arg3, "real" ) &&
-         nl->IsEqual( arg4, "bool" ) )
-      return (nl->SymbolAtom( "sline" ));
+         nl->IsEqual( arg2, CcReal::BasicType() ) &&
+         nl->IsEqual( arg3, CcReal::BasicType() ) &&
+         nl->IsEqual( arg4, CcBool::BasicType() ) )
+      return (nl->SymbolAtom( SimpleLine::BasicType() ));
   }
-  return (nl->SymbolAtom( "typeerror" ));
+  return listutils::typeError("");
 }
 
 /*
@@ -13147,9 +13095,9 @@ SpatialAddTypeMap( ListExpr args )
 
     if ( SpatialTypeOfSymbol( arg1 ) == stpoint &&
          SpatialTypeOfSymbol( arg2 ) == stpoint )
-      return (nl->SymbolAtom( "point" ));
+      return (nl->SymbolAtom( Point::BasicType() ));
   }
-  return (nl->SymbolAtom( "typeerror" ));
+  return listutils::typeError("");
 }
 
 /*
@@ -13168,9 +13116,9 @@ SpatialGetXYMap( ListExpr args )
     arg1 = nl->First( args );
 
     if ( SpatialTypeOfSymbol( arg1 ) == stpoint )
-      return (nl->SymbolAtom( "real" ));
+      return (nl->SymbolAtom( CcReal::BasicType() ));
   }
-  return (nl->SymbolAtom( "typeerror" ));
+  return listutils::typeError("");
 }
 
 /*
@@ -13189,9 +13137,9 @@ SpatialLine2RegionMap( ListExpr args )
     arg1 = nl->First( args );
 
     if ( SpatialTypeOfSymbol( arg1 ) == stline )
-      return (nl->SymbolAtom( "region" ));
+      return (nl->SymbolAtom( Region::BasicType() ));
   }
-  return (nl->SymbolAtom( "typeerror" ));
+  return listutils::typeError("");
 }
 
 /*
@@ -13210,9 +13158,9 @@ ListExpr
     arg1 = nl->First( args );
 
     if ( SpatialTypeOfSymbol( arg1 ) == stbox )
-      return (nl->SymbolAtom( "region" ));
+      return (nl->SymbolAtom( Region::BasicType() ));
   }
-  return (nl->SymbolAtom( "typeerror" ));
+  return listutils::typeError("");
 }
 
 /*
@@ -13231,9 +13179,9 @@ ListExpr
     arg1 = nl->First( args );
 
     if ( SpatialTypeOfSymbol( arg1 ) == stregion )
-      return (nl->SymbolAtom( "real" ));
+      return (nl->SymbolAtom( CcReal::BasicType() ));
   }
-  return (nl->SymbolAtom( "typeerror" ));
+  return listutils::typeError("");
 }
 
 
@@ -13248,22 +13196,19 @@ this operator is line -> stream(line)
 ListExpr PolylinesMap(ListExpr args){
   int len = nl->ListLength(args);
   if( (len!=2) &&len!=3){
-     ErrorReporter::ReportError("line x bool [x points] expected");
-     return nl->TypeError();
+    return listutils::typeError("line x bool [x points] expected");
   }
-  if(!nl->IsEqual(nl->First(args),"line") ||
-     !nl->IsEqual(nl->Second(args),"bool")){
-     ErrorReporter::ReportError("line  x bool expected");
-     return nl->TypeError();
+  if(!nl->IsEqual(nl->First(args),Line::BasicType()) ||
+     !nl->IsEqual(nl->Second(args),CcBool::BasicType())){
+    return listutils::typeError("line  x bool expected");
   }
   if(len==3){
-     if(!nl->IsEqual(nl->Third(args),"points")){
-       ErrorReporter::ReportError("line x bool [x points] expected");
-       return nl->TypeError();
+     if(!nl->IsEqual(nl->Third(args),Points::BasicType())){
+       return listutils::typeError("line x bool [x points] expected");
      }
   }
   return nl->TwoElemList(nl->SymbolAtom("stream"),
-                         nl->SymbolAtom("line"));
+                         nl->SymbolAtom(Line::BasicType()));
 }
 
 
@@ -13274,21 +13219,18 @@ ListExpr PolylinesMap(ListExpr args){
 ListExpr SimplifyTypeMap(ListExpr args){
    int len = nl->ListLength(args);
    if((len!=2) && (len!=3)){
-      ErrorReporter::ReportError("invalid number of"
+     return listutils::typeError("invalid number of"
                                  " arguments (has to be 2 or 3 )");
-      return nl->TypeError();
    }
-   if(!nl->IsEqual(nl->First(args),"line") ||
-      !nl->IsEqual(nl->Second(args),"real")){
-      ErrorReporter::ReportError("line x real [x points] expected");
-      return nl->TypeError();
+   if(!nl->IsEqual(nl->First(args),Line::BasicType()) ||
+      !nl->IsEqual(nl->Second(args),CcReal::BasicType())){
+     return listutils::typeError("line x real [x points] expected");
    }
    if( (len==3) &&
-       !(nl->IsEqual(nl->Third(args),"points"))){
-       ErrorReporter::ReportError("line x real [ x points] expected");
-       return nl->TypeError();
+       !(nl->IsEqual(nl->Third(args),Points::BasicType()))){
+     return listutils::typeError("line x real [ x points] expected");
    }
-   return nl->SymbolAtom("line");
+   return nl->SymbolAtom(Line::BasicType());
 }
 
 
@@ -13299,16 +13241,14 @@ ListExpr SimplifyTypeMap(ListExpr args){
 */
 ListExpr SegmentsTypeMap(ListExpr args){
   if(nl->ListLength(args)!=1){
-     ErrorReporter::ReportError("Invalid number of arguments");
-     return nl->TypeError();
+    return listutils::typeError("Invalid number of arguments");
   }
-  if(!nl->IsEqual(nl->First(args),"line")){
-     ErrorReporter::ReportError("line expected");
-     return nl->TypeError();
+  if(!nl->IsEqual(nl->First(args),Line::BasicType())){
+    return listutils::typeError("line expected");
   }
   return nl->TwoElemList(
                nl->SymbolAtom("stream"),
-               nl->SymbolAtom("line")
+               nl->SymbolAtom(Line::BasicType())
          );
 }
 
@@ -13320,12 +13260,11 @@ Signatur is points x int -> point
 */
 ListExpr GetTypeMap(ListExpr args){
    if( (nl->ListLength(args)==2) &&
-       (nl->IsEqual(nl->First(args),"points")) &&
-       (nl->IsEqual(nl->Second(args),"int"))){
-      return nl->SymbolAtom("point");
+       (nl->IsEqual(nl->First(args),Points::BasicType())) &&
+       (nl->IsEqual(nl->Second(args),CcInt::BasicType()))){
+      return nl->SymbolAtom(Point::BasicType());
    }
-   ErrorReporter::ReportError("points x int expected");
-   return nl->TypeError();
+   return listutils::typeError("points x int expected");
 }
 
 /*
@@ -13336,11 +13275,10 @@ Signatur is line -> line
 */
 ListExpr RealminizeTypeMap(ListExpr args){
   if( (nl->ListLength(args)==1) &&
-       (nl->IsEqual(nl->First(args),"line"))){
-    return nl->SymbolAtom("line");
+       (nl->IsEqual(nl->First(args),Line::BasicType()))){
+    return nl->SymbolAtom(Line::BasicType());
        }
-       ErrorReporter::ReportError("line expected");
-       return nl->TypeError();
+       return listutils::typeError("line expected");
 }
 
 /*
@@ -13352,15 +13290,13 @@ Signature is point x point -> line
 ListExpr MakeLineTypeMap(ListExpr args){
   int len;
   if((len = nl->ListLength(args))!=2){
-    ErrorReporter::ReportError("two arguments expected, but got " + len);
-    return nl->TypeError();
+    return listutils::typeError("two arguments expected, but got " + len);
   }
-  if(nl->IsEqual(nl->First(args),"point") &&
-     nl->IsEqual(nl->Second(args),"point")){
-     return nl->SymbolAtom("line");
+  if(nl->IsEqual(nl->First(args),Point::BasicType()) &&
+     nl->IsEqual(nl->Second(args),Point::BasicType())){
+     return nl->SymbolAtom(Line::BasicType());
   } else {
-    ErrorReporter::ReportError("point x point expected");
-    return nl->TypeError();
+    return listutils::typeError("point x point expected");
   }
 }
 
@@ -13373,15 +13309,13 @@ Signature is point x point -> sline
 ListExpr MakeSLineTypeMap(ListExpr args){
   int len;
   if((len = nl->ListLength(args))!=2){
-    ErrorReporter::ReportError("two arguments expected, but got " + len);
-    return nl->TypeError();
+    return listutils::typeError("two arguments expected, but got " + len);
   }
-  if(nl->IsEqual(nl->First(args),"point") &&
-     nl->IsEqual(nl->Second(args),"point")){
-     return nl->SymbolAtom("sline");
+  if(nl->IsEqual(nl->First(args),Point::BasicType()) &&
+     nl->IsEqual(nl->Second(args),Point::BasicType())){
+     return nl->SymbolAtom(SimpleLine::BasicType());
   } else {
-    ErrorReporter::ReportError("point x point expected");
-    return nl->TypeError();
+    return listutils::typeError("point x point expected");
   }
 }
 
@@ -13396,16 +13330,14 @@ Signature: ~region~ [x] ~region~ [->] ~line~
 ListExpr CommonBorder2TypeMap(ListExpr args){
 
   if(nl->ListLength(args)!=2){
-     ErrorReporter::ReportError("Wrong number of arguments,"
+    return listutils::typeError("Wrong number of arguments,"
                                 " region x region expected");
-     return nl->TypeError();
   }
-  if(nl->IsEqual(nl->First(args),"region") &&
-     nl->IsEqual(nl->Second(args),"region")){
-     return nl->SymbolAtom("line");
+  if(nl->IsEqual(nl->First(args),Region::BasicType()) &&
+     nl->IsEqual(nl->Second(args),Region::BasicType())){
+     return nl->SymbolAtom(Line::BasicType());
   }
-  ErrorReporter::ReportError(" region x region expected");
-  return nl->TypeError();
+  return listutils::typeError(" region x region expected");
 }
 
 /*
@@ -13421,11 +13353,11 @@ ListExpr toLineTypeMap(ListExpr args){
     ErrorReporter::ReportError(err);
     return nl->TypeError();
   }
-  if(nl->IsEqual(nl->First(args),"sline")){
-    return nl->SymbolAtom("line");
+  if(nl->IsEqual(nl->First(args),SimpleLine::BasicType())){
+    return nl->SymbolAtom(Line::BasicType());
   }
   ErrorReporter::ReportError(err);
-  return nl->TypeError();
+  return listutils::typeError("");
 }
 
 
@@ -13439,14 +13371,12 @@ Signature is :  line [->] sline
 ListExpr fromLineTypeMap(ListExpr args){
   const string err = "line expected";
   if(nl->ListLength(args)!=1){
-    ErrorReporter::ReportError(err);
-    return nl->TypeError();
+    return listutils::typeError(err);
   }
-  if(nl->IsEqual(nl->First(args),"line")){
-    return nl->SymbolAtom("sline");
+  if(nl->IsEqual(nl->First(args),Line::BasicType())){
+    return nl->SymbolAtom(SimpleLine::BasicType());
   }
-  ErrorReporter::ReportError(err);
-  return nl->TypeError();
+  return listutils::typeError(err);
 }
 
 /*
@@ -13462,11 +13392,11 @@ ListExpr isCycleTypeMap(ListExpr args){
     ErrorReporter::ReportError(err);
     return nl->TypeError();
   }
-  if(nl->IsEqual(nl->First(args),"sline")){
-    return nl->SymbolAtom("bool");
+  if(nl->IsEqual(nl->First(args),SimpleLine::BasicType())){
+    return nl->SymbolAtom(CcBool::BasicType());
   }
   ErrorReporter::ReportError(err);
-  return nl->TypeError();
+  return listutils::typeError("");
 }
 
 
@@ -13476,21 +13406,19 @@ Type Mapping for ~utm~
 */
 ListExpr utmTypeMap(ListExpr args){
   if(nl->ListLength(args)!=1){
-    ErrorReporter::ReportError("one argument expected");
-    return nl->TypeError();
+    return listutils::typeError("one argument expected");
   }
   ListExpr arg = nl->First(args);
   string err = "spatial type expected";
   if(nl->AtomType(arg)!=SymbolType){
-    ErrorReporter::ReportError(err);
-    return nl->TypeError();
+    return listutils::typeError(err);
   }
   string t = nl->SymbolValue(arg);
-  if(t=="point" || t=="points" ){ // line and region not implemented yet
+  if(t==Point::BasicType() || t==Points::BasicType() ){
+    // line and region not implemented yet
     return nl->SymbolAtom(t);
   }
-  ErrorReporter::ReportError(err);
-  return nl->TypeError();
+  return listutils::typeError(err);
 }
 
 /*
@@ -13508,12 +13436,13 @@ ListExpr gkTypeMap(ListExpr args){
     return listutils::typeError(err);
   }
   string t = nl->SymbolValue(arg);
-  if(!(t==Point::BasicType() || t==Points::BasicType() ||
-       t==Line::BasicType() || t==Region::BasicType())){
+  if(!( t==Point::BasicType() || t==Points::BasicType() ||
+        t==Line::BasicType() || t==Region::BasicType())){
     return listutils::typeError(err);
   }
   if( (len==2) && listutils::isSymbol(nl->Second(args),CcInt::BasicType()) ){
-    if(t=="point" || t=="points" || t=="line" || t=="region"){
+    if( t==Point::BasicType() || t==Points::BasicType() ||
+        t==Line::BasicType() || t==Region::BasicType()){
       return nl->SymbolAtom(t); // Zone provided by user
     }
   } else if (len==1){
@@ -13536,7 +13465,7 @@ ListExpr reverseGkTypeMap(ListExpr args){
   ListExpr arg = nl->First(args);
   if(!listutils::isSymbol(arg)){
      return listutils::typeError(err);
-  } 
+  }
   string v = nl->SymbolValue(arg);
   if( (v!=Point::BasicType()) && (v!=Points::BasicType())  &&
       (v!=Line::BasicType()) && (v!=Region::BasicType())){
@@ -13616,19 +13545,19 @@ ListExpr SpatialCollectLineTypeMap(ListExpr args){
   }
   ListExpr T = nl->Second(stream);
   set<string> r;
-  r.insert(symbols::POINT);
-  r.insert(symbols::SLINE);
-  r.insert(symbols::LINE);
+  r.insert(Point::BasicType());
+  r.insert(SimpleLine::BasicType());
+  r.insert(Line::BasicType());
 
   if(!listutils::isASymbolIn(T,r)){
     return listutils::typeError("Expects stream element type to be one of "
                                 "{point, sline, line}.");
   }
   ListExpr arg2 = nl->Second(args);
-  if(!listutils::isSymbol(arg2,"bool")){
+  if(!listutils::isSymbol(arg2,CcBool::BasicType())){
     return listutils::typeError("Second argument must be bool.");
   }
-  return nl->SymbolAtom(symbols::LINE);
+  return nl->SymbolAtom(Line::BasicType());
 }
 
 ListExpr SpatialCollectSLineTypeMap(ListExpr args){
@@ -13641,19 +13570,19 @@ ListExpr SpatialCollectSLineTypeMap(ListExpr args){
   }
   ListExpr T = nl->Second(stream);
   set<string> r;
-  r.insert(symbols::POINT);
-  r.insert(symbols::SLINE);
-  r.insert(symbols::LINE);
+  r.insert(Point::BasicType());
+  r.insert(SimpleLine::BasicType());
+  r.insert(Line::BasicType());
 
   if(!listutils::isASymbolIn(T,r)){
     return listutils::typeError("Expects stream element type to be one of "
                                 "{point, sline, line}.");
   }
   ListExpr arg2 = nl->Second(args);
-  if(!listutils::isSymbol(arg2,"bool")){
+  if(!listutils::isSymbol(arg2,CcBool::BasicType())){
     return listutils::typeError("Second argument must be bool.");
   }
-  return nl->SymbolAtom(symbols::SLINE);
+  return nl->SymbolAtom(SimpleLine::BasicType());
 }
 
 
@@ -13672,24 +13601,24 @@ ListExpr SpatialCollectPointsTM(ListExpr args){
   if(!listutils::isSymbol(s,"stream")){
     return listutils::typeError(err);
   }
-  if(!listutils::isSymbol(p,"point") &&
-     !listutils::isSymbol(p,"points")){
+  if(!listutils::isSymbol(p,Point::BasicType()) &&
+     !listutils::isSymbol(p,Points::BasicType())){
     return listutils::typeError(err);
   }
   ListExpr arg2 = nl->Second(args);
-  if(!listutils::isSymbol(arg2,"bool")){
+  if(!listutils::isSymbol(arg2,CcBool::BasicType())){
     return listutils::typeError(err);
   }
-  return nl->SymbolAtom("points");
+  return nl->SymbolAtom(Points::BasicType());
 }
 
 ListExpr SpatialTMSetStartSmaller(ListExpr args){
   if(!nl->HasLength(args,2)){
     return listutils::typeError("Expected (sline x bool).");
   }
-  if(listutils::isSymbol(nl->First(args),"sline") &&
-     listutils::isSymbol(nl->Second(args),"bool")){
-     return nl->SymbolAtom("sline");
+  if(listutils::isSymbol(nl->First(args),SimpleLine::BasicType()) &&
+     listutils::isSymbol(nl->Second(args),CcBool::BasicType())){
+     return nl->SymbolAtom(SimpleLine::BasicType());
   }
   return listutils::typeError("Expected (sline x bool).");
 }
@@ -13698,8 +13627,8 @@ ListExpr SpatialTMGetStartSmaller(ListExpr args){
   if(!nl->HasLength(args,1)){
     return listutils::typeError("Expected: sline.");
   }
-  if(listutils::isSymbol(nl->First(args),"sline")){
-      return nl->SymbolAtom("bool");
+  if(listutils::isSymbol(nl->First(args),SimpleLine::BasicType())){
+      return nl->SymbolAtom(CcBool::BasicType());
     }
     return listutils::typeError("Expected: sline.");
 }
@@ -13708,9 +13637,9 @@ ListExpr SpatialTMCreateSline(ListExpr args){
   if(!nl->HasLength(args,2)){
     return listutils::typeError("Expected (point x point).");
   }
-  if(listutils::isSymbol(nl->First(args),"point") &&
-     listutils::isSymbol(nl->Second(args),"point")){
-      return nl->SymbolAtom("sline");
+  if(listutils::isSymbol(nl->First(args),Point::BasicType()) &&
+     listutils::isSymbol(nl->Second(args),Point::BasicType())){
+      return nl->SymbolAtom(SimpleLine::BasicType());
     }
     return listutils::typeError("Expected (point x point).");
 }
@@ -13749,7 +13678,7 @@ SpatialSelectIsEmpty( ListExpr args )
   if ( SpatialTypeOfSymbol( arg1 ) == stregion )
     return 3;
 
-  if(nl->IsEqual(arg1,"sline")){
+  if(nl->IsEqual(arg1,SimpleLine::BasicType())){
     return 4;
   }
 
@@ -13796,16 +13725,16 @@ int SpatialSelectEqual(ListExpr args){
    ListExpr a2 = nl->Second(args);
    string s1 = nl->SymbolValue(a1);
    if(nl->Equal(a1,a2)){
-     if(s1 == symbols::POINT) return 0;
-     if(s1 == symbols::POINTS) return 1;
-     if(s1 == symbols::LINE) return 2;
-     if(s1 == symbols::REGION) return 3;
-     if(s1 == symbols::SLINE) return 4;
+     if(s1 == Point::BasicType()) return 0;
+     if(s1 == Points::BasicType()) return 1;
+     if(s1 == Line::BasicType()) return 2;
+     if(s1 == Region::BasicType()) return 3;
+     if(s1 == SimpleLine::BasicType()) return 4;
      return -1;
    } else {
      string s2 = nl->SymbolValue(a2);
-     if( (s1==symbols::POINT) && (s2==symbols::POINTS)) return 5;
-     if((s1==symbols::POINTS) && (s2==symbols::POINT)) return 6;
+     if( (s1==Point::BasicType()) && (s2==Points::BasicType())) return 5;
+     if((s1==Points::BasicType()) && (s2==Point::BasicType())) return 6;
    }
    return -1;
 }
@@ -14008,33 +13937,33 @@ int SpatialSetOpSelect(ListExpr args){
   string a1 = nl->SymbolValue(nl->First(args));
   string a2 = nl->SymbolValue(nl->Second(args));
 
-  if(a1==symbols::POINT){
-    if(a2==symbols::POINT)  return 0;
-    if(a2==symbols::POINTS) return 1;
-    if(a2==symbols::LINE)   return 2;
-    if(a2==symbols::REGION) return 3;
+  if(a1==Point::BasicType()){
+    if(a2==Point::BasicType())  return 0;
+    if(a2==Points::BasicType()) return 1;
+    if(a2==Line::BasicType())   return 2;
+    if(a2==Region::BasicType()) return 3;
     return -1;
   }
-  if(a1==symbols::POINTS){
-    if(a2==symbols::POINT)  return 4;
-    if(a2==symbols::POINTS) return 5;
-    if(a2==symbols::LINE)   return 6;
-    if(a2==symbols::REGION) return 7;
+  if(a1==Points::BasicType()){
+    if(a2==Point::BasicType())  return 4;
+    if(a2==Points::BasicType()) return 5;
+    if(a2==Line::BasicType())   return 6;
+    if(a2==Region::BasicType()) return 7;
     return -1;
   }
-  if(a1==symbols::LINE){
-    if(a2==symbols::POINT)  return 8;
-    if(a2==symbols::POINTS) return 9;
-    if(a2==symbols::LINE)   return 10;
-    if(a2==symbols::REGION) return 11;
+  if(a1==Line::BasicType()){
+    if(a2==Point::BasicType())  return 8;
+    if(a2==Points::BasicType()) return 9;
+    if(a2==Line::BasicType())   return 10;
+    if(a2==Region::BasicType()) return 11;
     return -1;
   }
 
-  if(a1==symbols::REGION){
-    if(a2==symbols::POINT)  return 12;
-    if(a2==symbols::POINTS) return 13;
-    if(a2==symbols::LINE)   return 14;
-    if(a2==symbols::REGION) return 15;
+  if(a1==Region::BasicType()){
+    if(a2==Point::BasicType())  return 12;
+    if(a2==Points::BasicType()) return 13;
+    if(a2==Line::BasicType())   return 14;
+    if(a2==Region::BasicType()) return 15;
     return -1;
   }
   return -1;
@@ -14298,10 +14227,10 @@ This select function is used for the ~vertices~ operator.
 */
 int SpatialVerticesSelect( ListExpr args )
 {
-  if( nl->IsEqual(nl->First(args), "line") )
+  if( nl->IsEqual(nl->First(args), Line::BasicType()) )
     return 0;
 
-  if( nl->IsEqual(nl->First(args), "region") )
+  if( nl->IsEqual(nl->First(args), Region::BasicType()) )
     return 1;
 
   return -1; // This point should never be reached
@@ -14315,10 +14244,10 @@ This select function is used for the ~vertices~ operator.
 */
 int SpatialBoundarySelect( ListExpr args )
 {
-  if( nl->IsEqual(nl->First(args), "region") )
+  if( nl->IsEqual(nl->First(args), Region::BasicType()) )
     return 0;
 
-  if( nl->IsEqual(nl->First(args), "line") )
+  if( nl->IsEqual(nl->First(args), Line::BasicType()) )
     return 1;
 
   return -1; // This point should never be reached
@@ -14370,41 +14299,41 @@ static int SpatialSelectCrossings(ListExpr args){
 
 static int utmSelect(ListExpr args){
   string t = nl->SymbolValue(nl->First(args));
-  if(t=="point") return 0;
-  if(t=="points") return 1;
+  if(t==Point::BasicType()) return 0;
+  if(t==Points::BasicType()) return 1;
   return -1;
 }
 static int gkSelect(ListExpr args){
   string t = nl->SymbolValue(nl->First(args));
-  if(t=="point") return 0;
-  if(t=="points") return 1;
-  if(t=="line") return 2;
-  if(t=="region") return 3;
+  if(t==Point::BasicType()) return 0;
+  if(t==Points::BasicType()) return 1;
+  if(t==Line::BasicType()) return 2;
+  if(t==Region::BasicType()) return 3;
   return -1;
 }
 
 static int reverseGkSelect(ListExpr args){
   string t = nl->SymbolValue(nl->First(args));
-  if(t=="point") return 0;
-  if(t=="points") return 1;
-  if(t=="line") return 2;
-  if(t=="region") return 3;
+  if(t==Point::BasicType()) return 0;
+  if(t==Points::BasicType()) return 1;
+  if(t==Line::BasicType()) return 2;
+  if(t==Region::BasicType()) return 3;
   return -1;
 }
 
 
 static int SpatialCollectLineSelect(ListExpr args){
   ListExpr T = nl->Second(nl->First(args));
-  if(listutils::isSymbol(T, symbols::POINT)) return 0;
-  if(listutils::isSymbol(T, symbols::SLINE)) return 1;
-  if(listutils::isSymbol(T, symbols::LINE)) return 2;
+  if(listutils::isSymbol(T, Point::BasicType())) return 0;
+  if(listutils::isSymbol(T, SimpleLine::BasicType())) return 1;
+  if(listutils::isSymbol(T, Line::BasicType())) return 2;
   return -1;
 }
 
 static int SpatialCollectPointsSelect(ListExpr args){
    ListExpr T = nl->Second(nl->First(args));
-   if(listutils::isSymbol(T,"point")) return 0;
-   if(listutils::isSymbol(T,"points")) return 1;
+   if(listutils::isSymbol(T,Point::BasicType())) return 0;
+   if(listutils::isSymbol(T,Points::BasicType())) return 1;
    return -1;
 }
 
@@ -14771,6 +14700,10 @@ int SpatialDistance( Word* args, Word& result, int message,
    CcReal* res = static_cast<CcReal*>(result.addr);
    A* arg1=0;
    B* arg2=0;
+   Geoid* geoid = 0;
+   if(qp->GetNoSons(s) ==3){
+    geoid = static_cast<Geoid*>(args[2].addr);
+   }
    if(symm){
      arg1 = static_cast<A*>(args[1].addr);
      arg2 = static_cast<B*>(args[0].addr);
@@ -14779,10 +14712,10 @@ int SpatialDistance( Word* args, Word& result, int message,
      arg2 = static_cast<B*>(args[1].addr);
    }
    if(!arg1->IsDefined() || !arg2->IsDefined() ||
-      arg1->IsEmpty() || arg2->IsEmpty()){
+      arg1->IsEmpty() || arg2->IsEmpty() || (geoid && !geoid->IsDefined()) ){
       res->SetDefined(false);
    } else {
-     double dist = arg1->Distance(*arg2);
+     double dist = arg1->Distance(*arg2,geoid);
      res->Set(true,dist);
    }
    return 0;
@@ -14825,9 +14758,9 @@ SpatialHeading( Word* args, Word& result, int message,
      geoid = static_cast<Geoid*>(args[2].addr);
      if(!geoid->IsDefined()){
        res->SetDefined(false);
-       return 0;    
+       return 0;
      }
-  }  
+  }
 
   double d = p1->Heading(*p2, geoid);
   res->Set(d>=0,d);
@@ -15114,7 +15047,7 @@ int SpatialRotate( Word* args, Word& result, int message,
       res->SetDefined(false);
       return 0;
   }
-  double angle = a->GetRealval() * PI / 180;
+  double angle = a->GetRealval() * M_PI / 180;
   st->Rotate(x->GetRealval(),y->GetRealval(),angle,*res);
   return 0;
 }
@@ -16332,8 +16265,9 @@ int CommonBorder2VM(Word* args, Word& result, int message,
    result = qp->ResultStorage(s);
    Region* arg1 = static_cast<Region*>(args[0].addr);
    Region* arg2 = static_cast<Region*>(args[1].addr);
+   Geoid* geoid = 0; // TODO: Add spherical geometry case
    Line* res = static_cast<Line*>(result.addr);
-   CommonBorder(*arg2,*arg1,*res);
+   CommonBorder(*arg2,*arg1,*res,geoid);
    return 0;
 }
 
@@ -16588,7 +16522,7 @@ void reverseGK(const T* arg, T* result){
       h.SetLeftDomPoint(false);
       (*result) += h;
     }
-  } 
+  }
   result->EndBulkLoad();
 }
 
@@ -18413,15 +18347,19 @@ TypeMapMakepoint( ListExpr args )
     arg1 = nl->First( args );
     arg2 = nl->Second( args );
 
-    if( nl->IsEqual( arg1, "int" ) && nl->IsEqual( arg2, "int" ) )
+    if( nl->IsEqual( arg1, CcInt::BasicType() ) &&
+      nl->IsEqual( arg2, CcInt::BasicType() ) )
       return nl->ThreeElemList(nl->SymbolAtom("APPEND"),
-               nl->OneElemList(nl->IntAtom(0)), nl->SymbolAtom("point") );
+               nl->OneElemList(nl->IntAtom(0)),
+                               nl->SymbolAtom(Point::BasicType()) );
 
-    if( nl->IsEqual( arg1, "real" ) && nl->IsEqual( arg2, "real" ) )
+    if( nl->IsEqual( arg1, CcReal::BasicType() ) &&
+      nl->IsEqual( arg2, CcReal::BasicType() ) )
       return nl->ThreeElemList(nl->SymbolAtom("APPEND"),
-               nl->OneElemList(nl->IntAtom(1)), nl->SymbolAtom("point") );
+               nl->OneElemList(nl->IntAtom(1)),
+                               nl->SymbolAtom(Point::BasicType()) );
   }
-  return nl->SymbolAtom( "typeerror" );
+  return listutils::typeError("");
 }
 
 /*
@@ -18505,34 +18443,34 @@ ListExpr halfSegmentsTM(ListExpr args){
      return listutils::typeError("one argument expected");
   }
   ListExpr first = nl->First(args);
-  if((listutils::isSymbol(first,"line") ||
-      listutils::isSymbol(first,"region")) ){
+  if((listutils::isSymbol(first,Line::BasicType()) ||
+      listutils::isSymbol(first,Region::BasicType())) ){
 
    ListExpr attrList = nl->OneElemList( nl->TwoElemList(
                                           nl->SymbolAtom("FaceNo"),
-                                          nl->SymbolAtom("int")));
+                                          nl->SymbolAtom(CcInt::BasicType())));
    ListExpr last = attrList;
    last = nl->Append(last, nl->TwoElemList(nl->SymbolAtom("CycleNo"),
-                                           nl->SymbolAtom("int")));
+                                           nl->SymbolAtom(CcInt::BasicType())));
 
 
    last = nl->Append(last, nl->TwoElemList(nl->SymbolAtom("EdgeNo"),
-                                           nl->SymbolAtom("int")));
+                                           nl->SymbolAtom(CcInt::BasicType())));
 
    last = nl->Append(last, nl->TwoElemList(nl->SymbolAtom("CoverageNo"),
-                                           nl->SymbolAtom("int")));
+                                           nl->SymbolAtom(CcInt::BasicType())));
 
    last = nl->Append(last, nl->TwoElemList(nl->SymbolAtom("InsideAbove"),
-                                           nl->SymbolAtom("bool")));
+                                          nl->SymbolAtom(CcBool::BasicType())));
 
    last = nl->Append(last, nl->TwoElemList(nl->SymbolAtom("PartnerNo"),
-                                           nl->SymbolAtom("int")));
+                                           nl->SymbolAtom(CcInt::BasicType())));
 
    last = nl->Append(last, nl->TwoElemList(nl->SymbolAtom("ldp"),
-                                           nl->SymbolAtom("bool")));
+                                          nl->SymbolAtom(CcBool::BasicType())));
 
    last = nl->Append(last, nl->TwoElemList(nl->SymbolAtom("Segment"),
-                                           nl->SymbolAtom("line")));
+                                           nl->SymbolAtom(Line::BasicType())));
 
     return nl->TwoElemList(
          nl->SymbolAtom("stream"),
@@ -18643,7 +18581,7 @@ ValueMapping halfSegmentsvm[] = { halfSegmentsVM<Line>,
 
 
 int halfSegmentsSelect(ListExpr args){
-  return listutils::isSymbol(nl->First(args),"line")?0:1;
+  return listutils::isSymbol(nl->First(args),Line::BasicType())?0:1;
 }
 
 

@@ -570,7 +570,7 @@ int sim_create_trip_VM ( Word* args, Word& result,
     }
     Instant    currentTime = *instStart;
     Point  currentPosition = *pointStart;
-    double     currentVmax = MIN(Vtop,currentVmax);
+    double     currentVmax = MIN(Vtop,currentSpeed);
     double       localVmax = 0.0;
     double    lastMaxSpeed = -1.0;
     bool     stopAfterThis = false;

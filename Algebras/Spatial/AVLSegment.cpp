@@ -54,7 +54,7 @@ ostream& operator<<(ostream& o, const avlseg::ExtendedHalfSegment& hs) {
 
 
 
-bool PointOnSegment(double x, double y, 
+bool PointOnSegment(double x, double y,
                     double x1, double y1,
                     double x2, double y2){
 
@@ -65,7 +65,7 @@ bool PointOnSegment(double x, double y,
 }
 
 /*
- checks whether the dominating points within the halfsegments are sorted 
+ checks whether the dominating points within the halfsegments are sorted
  correctly.
 
 */
@@ -84,7 +84,7 @@ bool checkOrder(const DbArray<HalfSegment>& segs, bool exact){
   for(int i=1;i<segs.Size();i++){
      segs.Get(i,hs2);
      p2 = hs2.GetDomPoint();
-      
+
      double x1 = p1.GetX();
      double y1 = p1.GetY();
      double x2 = p2.GetX();
@@ -109,9 +109,9 @@ bool checkOrder(const DbArray<HalfSegment>& segs, bool exact){
        }
      }
      p1 = p2;
-     
+
   }
-  return true;  
+  return true;
 }
 
 
@@ -154,7 +154,7 @@ As owner only __first__ and __second__ are the allowed values.
 
 */
 
-  avlseg::AVLSegment::AVLSegment(const avlseg::ExtendedHalfSegment& hs, 
+  avlseg::AVLSegment::AVLSegment(const avlseg::ExtendedHalfSegment& hs,
                                  ownertype owner){
 
 
@@ -196,7 +196,7 @@ As owner only __first__ and __second__ are the allowed values.
      originX2 = hs.getOriginX2();
      originY1 = hs.getOriginY1();
      originY2 = hs.getOriginY2();
-     
+
 
   //   assert(CheckPoints());
   }
@@ -295,9 +295,9 @@ This function writes this segment to __out__.
     out << "Segment("<<x1<<", " << y1 << ") -> (" << x2 << ", " << y2 <<") "
         << owner << " [ " << insideAbove_first << ", "
         << insideAbove_second << "] con("
-        << con_below << ", " << con_above << ")" 
-        << "orig = ( (" << originX1 << ", " << originY1 << ") -> (" 
-        << originX2 << ", " << originY2 << "))"; 
+        << con_below << ", " << con_above << ")"
+        << "orig = ( (" << originX1 << ", " << originY1 << ") -> ("
+        << originX2 << ", " << originY2 << "))";
 
   }
 
@@ -305,9 +305,9 @@ This function writes this segment to __out__.
 ~CheckPoints~
 
 This function checks whether the points (x1,y1) and (x2,y2) are
-located on the segment defined by (orinigX1, originY1) and 
+located on the segment defined by (orinigX1, originY1) and
 (originY2, originY2). Furthermore, the distance from (x1,y1) to
-(originX1,originY1) must be smaller than the distance to 
+(originX1,originY1) must be smaller than the distance to
 (originX2, originY2).
 
 */
@@ -376,10 +376,10 @@ interiors.
 ~innerBoxContains~
 
 checks whether (x,y) is not an endpoint of this segment and also
-that the point is located within the bounding box of this segment 
+that the point is located within the bounding box of this segment
 
 */
-  bool avlseg::AVLSegment::innerBoxContains(const double x, 
+  bool avlseg::AVLSegment::innerBoxContains(const double x,
                                             const double y) const{
     if(AlmostEqual(x1,x) && AlmostEqual(y1,y)){
        return false; // endpoint 1
@@ -388,11 +388,11 @@ that the point is located within the bounding box of this segment
        return false; // endpoint 2
     }
 
-    bool xcontains = ( AlmostEqual(x1,x) || AlmostEqual(x2,x) || 
+    bool xcontains = ( AlmostEqual(x1,x) || AlmostEqual(x2,x) ||
                        ((x1<=x) && (x<=x2)));
-    bool ycontains = ( AlmostEqual(y1,y) || AlmostEqual(y2,y) || 
+    bool ycontains = ( AlmostEqual(y1,y) || AlmostEqual(y2,y) ||
                        ((y1<=y) && (y<=y2)) || ((y2<=y)&&(y<=y1)));
-    return xcontains && ycontains; 
+    return xcontains && ycontains;
   }
 
 
@@ -427,7 +427,7 @@ the parameters ~x~ and ~y~ are set to the intersection point.
         x = x1; // compute y for s
         y =  s.originY1 + ((x-s.originX1)/(s.originX2-s.originX1))*
                               (s.originY2 - s.originY1);
-        roundPoint(x,y); 
+        roundPoint(x,y);
         bool res = innerBoxContains(x,y) && s.innerBoxContains(x,y);
         return res;
     }
@@ -540,7 +540,7 @@ common endpoint.
       if(!xOverlaps(s) || !yOverlaps(s)){ // bounding box check
          return true;
       }
-  
+
       if(pointEqual(x1,y1,s.x2,s.y2)){ // common endpoint
         return true;
       }
@@ -553,16 +553,16 @@ common endpoint.
       if(compareSlopes(s)==0){ // parallel or disjoint lines
          return true;
       }
-      
+
       if(pointEqual(x1,y1,s.x1,s.y1)){ // common left end point
          return true;
       }
       if(pointEqual(x2,y2,s.x2,s.y2)){ // common right end point
          return true;
       }
-      
+
       // endpoints within interior of the other segment
-      if(ininterior(s.x1,s.y1)){ 
+      if(ininterior(s.x1,s.y1)){
          return false;
       }
       if(ininterior(s.x2,s.y2)){
@@ -581,7 +581,7 @@ common endpoint.
       return true;
 
   }
-  
+
 
   bool avlseg::AVLSegment::printInnerDisjoint(const avlseg::AVLSegment& s)const{
      cout << "Check for inner disjoint" << endl;
@@ -589,7 +589,7 @@ common endpoint.
          cout << "intersection free by bounding box check" << endl;
          return true;
       }
-  
+
       if(pointEqual(x1,y1,s.x2,s.y2)){ // common endpoina
         cout << "disjoint, because this extends s" << endl;
         return true;
@@ -606,7 +606,7 @@ common endpoint.
          cout << "parallel or disjoint lines" << endl;
          return true;
       }
-      
+
       if(pointEqual(x1,y1,s.x1,s.y1)){ // common left end point
          cout << "disjoint because common left endpoint"
               << " and different slopes" << endl;
@@ -617,9 +617,9 @@ common endpoint.
               << endl;
          return true;
       }
-      
+
       // endpoints within interior of the other segment
-      if(ininterior(s.x1,s.y1)){ 
+      if(ininterior(s.x1,s.y1)){
          cout << "this contains the left endpoint of s " << endl;
          return false;
       }
@@ -677,7 +677,7 @@ common point.
       if(compareSlopes(s)==0){ // parallel or disjoint lines
          return false;
       }
-      if(ininterior(s.x1,s.y1)){ 
+      if(ininterior(s.x1,s.y1)){
          return true;
       }
       if(ininterior(s.x2,s.y2)){
@@ -751,7 +751,7 @@ part of the interior of this segment.
         return false;
      }
      if(isVertical()){
-       return ((y>y1) && (y<y2)) || 
+       return ((y>y1) && (y<y2)) ||
               ((y<y1) && (y>y2)) ;
      }
      double ys = getY(x);
@@ -1018,7 +1018,7 @@ earlier.
     common.con_above = this->con_above;
     common.con_below = this->con_below;
 
-    // for the common part, the origin is not clear. we take just the 
+    // for the common part, the origin is not clear. we take just the
     // line with maximum length;
     common.originX1 = left.originX1;
     common.originY1 = left.originY1;
@@ -1069,7 +1069,7 @@ earlier.
        right.originY2 = originY2;
     }
     common.originX2 = right.originX2;
-    common.originY2 = right.originY2; 
+    common.originY2 = right.originY2;
    // assert(left.CheckPoints());
    // assert(common.CheckPoints());
    // assert(right.CheckPoints());
@@ -1112,17 +1112,17 @@ provided by (x, y). The point must be on the interior of this segment.
      left.originX2 = originX2;
      left.originY1 = originY1;
      left.originY2 = originY2;
-     
+
      right.originX1 = originX1;
      right.originX2 = originX2;
      right.originY1 = originY1;
      right.originY2 = originY2;
-    
+
      //assert(left.CheckPoints());
-     //assert(right.CheckPoints()); 
+     //assert(right.CheckPoints());
 
   }
-  
+
 
   void avlseg::AVLSegment::splitAtRight(const double x, const double y,
                avlseg::AVLSegment& right)const{
@@ -1130,7 +1130,7 @@ provided by (x, y). The point must be on the interior of this segment.
         right = *this;
         return;
      }
-     if(AlmostEqual(x,x2) && AlmostEqual(y,y2)){ 
+     if(AlmostEqual(x,x2) && AlmostEqual(y,y2)){
         // return only the right endpoint
         right = *this;
         right.x1 = x2;
@@ -1140,7 +1140,7 @@ provided by (x, y). The point must be on the interior of this segment.
      if(!AlmostEqual(x,x1) && (x < x1)){
         right = *this;
         return;
-     } 
+     }
 
      right.x1=x;
      right.y1=y;
@@ -1155,7 +1155,7 @@ provided by (x, y). The point must be on the interior of this segment.
      right.originX2 = originX2;
      right.originY1 = originY1;
      right.originY2 = originY2;
-     //assert(right.CheckPoints()); 
+     //assert(right.CheckPoints());
   }
 
 /*
@@ -1353,7 +1353,7 @@ x interval of ~s~.
      }
      double ymin = y1<y2?y1:y2;
      double ymax = y1>y2?y1:y2;
-     
+
      if((ymin>s.y1) && (ymin>s.y2)) return  false;
      if((ymax<s.y1) && (ymax<s.y2)) return false;
      return true;
@@ -1663,7 +1663,7 @@ void splitNeighbours(avltree::AVLTree<avlseg::AVLSegment>& sss,
          leftN = sss.insert2(left1);
          insertEvents(left1, false,true,q1,q2);
        }
-       insertEvents(right1, true,true,q1,q2); 
+       insertEvents(right1, true,true,q1,q2);
     } else if(rightN->ininterior(leftN->getX1(), leftN->getY1())){
        cerr << __LINE__ << "Warning found an element to split too late" << endl;
        sss.remove(*rightN);
@@ -1714,43 +1714,43 @@ void splitNeighbours(avltree::AVLTree<avlseg::AVLSegment>& sss,
           cout << "leftN.isVertical  : " << leftN->isVertical() << endl;
           cout << "rightN.isVertical : " << rightN->isVertical() << endl;
 
-          cout << "leftN.innerDisjoint(rightN) : " 
+          cout << "leftN.innerDisjoint(rightN) : "
                << leftN->innerDisjoint(*rightN) << endl;
-          cout << "rightN.innerDisjoint(leftN) : " 
+          cout << "rightN.innerDisjoint(leftN) : "
                << rightN->innerDisjoint(*leftN) << endl;
-          
-          cout << "leftN.intersects(rightN) : " 
+
+          cout << "leftN.intersects(rightN) : "
                << leftN->intersects(*rightN) << endl;
-          cout << "rightN.intersects(leftN) : " 
+          cout << "rightN.intersects(leftN) : "
                << rightN->intersects(*leftN) << endl;
 
 
-          cout << "leftN.overlaps(rightN) : " 
+          cout << "leftN.overlaps(rightN) : "
                << leftN->overlaps(*rightN) << endl;
-          cout << "rightN.overlaps(leftN) : " 
+          cout << "rightN.overlaps(leftN) : "
                << rightN->overlaps(*leftN) << endl;
-          
-          
-          cout << "leftN.compareTo(rightN) : " 
-               << leftN->compareTo(*rightN) << endl;
-          cout << "rightN.compareTo(leftN) : " 
-               << rightN->compareTo(*leftN) << endl;
-          
 
-          cout << "leftN.compareSlopes(rightN) : " 
+
+          cout << "leftN.compareTo(rightN) : "
+               << leftN->compareTo(*rightN) << endl;
+          cout << "rightN.compareTo(leftN) : "
+               << rightN->compareTo(*leftN) << endl;
+
+
+          cout << "leftN.compareSlopes(rightN) : "
                << leftN->compareSlopes(*rightN) << endl;
-          cout << "rightN.compareSlopes(leftN) : " 
+          cout << "rightN.compareSlopes(leftN) : "
                << rightN->compareSlopes(*leftN) << endl;
-          
- 
-          cout << "leftN.xOverlaps(rightN) : " 
+
+
+          cout << "leftN.xOverlaps(rightN) : "
                << leftN->xOverlaps(*rightN) << endl;
-          cout << "rightN.xOverlaps(leftN) : " 
+          cout << "rightN.xOverlaps(leftN) : "
                << rightN->xOverlaps(*leftN) << endl;
-          
-          cout << "leftN.yOverlaps(rightN) : " 
+
+          cout << "leftN.yOverlaps(rightN) : "
                << leftN->yOverlaps(*rightN) << endl;
-          cout << "rightN.yOverlaps(leftN) : " 
+          cout << "rightN.yOverlaps(leftN) : "
                << rightN->yOverlaps(*leftN) << endl;
 
           leftN->printInnerDisjoint(*rightN);
@@ -2170,8 +2170,8 @@ void Realminize2(const Line& src, Line& result){
     return;
   }
 
-  priority_queue<avlseg::ExtendedHalfSegment,  
-                 vector<avlseg::ExtendedHalfSegment>, 
+  priority_queue<avlseg::ExtendedHalfSegment,
+                 vector<avlseg::ExtendedHalfSegment>,
                  greater<avlseg::ExtendedHalfSegment> > q;
   avltree::AVLTree<avlseg::AVLSegment> sss;
 
@@ -2219,9 +2219,9 @@ void Realminize2(const Line& src, Line& result){
       } else {  // nextHS rightDomPoint
           if(member && member->exactEqualsTo(current)){
              // insert the halfsegments
-             avlseg::ExtendedHalfSegment hs1 = 
+             avlseg::ExtendedHalfSegment hs1 =
                            current.convertToExtendedHs(true);
-             avlseg::ExtendedHalfSegment hs2 = 
+             avlseg::ExtendedHalfSegment hs2 =
                            current.convertToExtendedHs(false);
              hs1.attr.edgeno = edgeno;
              hs2.attr.edgeno = edgeno;
@@ -2285,7 +2285,7 @@ class XRemover: public unary_functor<avlseg::AVLSegment, bool>{
       return *this;
     }
     void setX(double x){
-       value = x; 
+       value = x;
     }
     bool operator()(const avlseg::AVLSegment& s) const{
        double x2 = s.getX2();
@@ -2308,11 +2308,11 @@ DbArray<HalfSegment>* Realminize(const DbArray<HalfSegment>& segments){
   }
 
   priority_queue<avlseg::ExtendedHalfSegment,
-                 vector<avlseg::ExtendedHalfSegment>, 
+                 vector<avlseg::ExtendedHalfSegment>,
                  greater<avlseg::ExtendedHalfSegment> > q1;
   // dummy queue
-  priority_queue<avlseg::ExtendedHalfSegment,  
-                 vector<avlseg::ExtendedHalfSegment>, 
+  priority_queue<avlseg::ExtendedHalfSegment,
+                 vector<avlseg::ExtendedHalfSegment>,
                  greater<avlseg::ExtendedHalfSegment> > q2;
   avltree::AVLTree<avlseg::AVLSegment> sss;
 
@@ -2347,7 +2347,7 @@ DbArray<HalfSegment>* Realminize(const DbArray<HalfSegment>& segments){
          member = &tmpM;
       }
       if(nextHS.IsLeftDomPoint()){
-         if(member && member->overlaps(current)){ 
+         if(member && member->overlaps(current)){
             // overlapping segment found in sss
             double xm = member->getX2();
             double xc = current.getX2();
@@ -2407,7 +2407,7 @@ DbArray<HalfSegment>* Realminize(const DbArray<HalfSegment>& segments){
        avltree::AVLTree<avlseg::AVLSegment>::iterator it = sss.begin();
        double val = avlseg::AVLSegment::getErrorValue();
        vector<const avlseg::AVLSegment*> evilsegments;
-       cout << "start iterating" << endl; 
+       cout << "start iterating" << endl;
        unsigned int size = sss.Size();
        cout << "The tree has " << size << " entries" << endl;
        unsigned int b=0;
@@ -2421,8 +2421,8 @@ DbArray<HalfSegment>* Realminize(const DbArray<HalfSegment>& segments){
           it++;
           assert(b<=size);
        }
-       if(evilsegments.size() > 0){ 
-          cout << "recognized " << evilsegments.size() 
+       if(evilsegments.size() > 0){
+          cout << "recognized " << evilsegments.size()
                << " evil segments" << endl;
           cout << "error_value = " << val << endl;
           unsigned int count = 0;
@@ -2439,18 +2439,18 @@ DbArray<HalfSegment>* Realminize(const DbArray<HalfSegment>& segments){
             evilsegments[i] = 0;
             if(!ok){
               count++;
-            }           
+            }
           }
           if(count != 0){
-            cout << "some (" << count 
+            cout << "some (" << count
                  << " of the evil segments was not found, scan the tree"
                  << " to remove them" << endl;
             xRemover.setX(val);
             cout << "Start removeAll" << endl;
             unsigned int count2 = sss.removeAll(xRemover);
             if(count != count2){
-              cout << count 
-                   << " elements should be remove, but only " << count2 
+              cout << count
+                   << " elements should be remove, but only " << count2
                    << " was found " << endl;
             }
           }
@@ -2487,8 +2487,8 @@ DbArray<HalfSegment>* Split(const DbArray<HalfSegment>& segments){
     return res;
   }
 
-  priority_queue<avlseg::ExtendedHalfSegment, 
-                 vector<avlseg::ExtendedHalfSegment>, 
+  priority_queue<avlseg::ExtendedHalfSegment,
+                 vector<avlseg::ExtendedHalfSegment>,
                  greater<avlseg::ExtendedHalfSegment> > q;
   avltree::AVLTree<avlseg::AVLSegment> sss;
 
@@ -2661,10 +2661,19 @@ This combination can be used for all possible set operations.
 void SetOp(const Line& line1,
            const Line& line2,
            Line& result,
-           avlseg::SetOperation op){
+           avlseg::SetOperation op,
+           const Geoid* geoid/*=0*/){
 
    result.Clear();
-   if(!line1.IsDefined() || !line2.IsDefined()){
+
+   if(geoid){
+     cerr << __PRETTY_FUNCTION__ << ": Spherical geometry not implemented."
+     << endl;
+     assert( false ); // TODO: implement spherical geometry case
+   }
+
+   if(!line1.IsDefined() || !line2.IsDefined() ||
+      (geoid && !geoid->IsDefined()) ){
        result.SetDefined(false);
        return;
    }
@@ -2768,7 +2777,7 @@ void SetOp(const Line& line1,
              // insert the segments into the result
              switch(op){
                 case avlseg::union_op : {
-                     HalfSegment hs1 = 
+                     HalfSegment hs1 =
                            member->convertToExtendedHs(true,avlseg::first);
                      hs1.attr.edgeno = edgeno;
                      result += hs1;
@@ -2811,9 +2820,10 @@ void SetOp(const Line& line1,
 } // setop line x line -> line
 
 
-Line* SetOp(const Line& line1, const Line& line2, avlseg::SetOperation op){
+Line* SetOp(const Line& line1, const Line& line2, avlseg::SetOperation op,
+            const Geoid* geoid/*=0*/){
   Line* result = new Line(1);
-  SetOp(line1,line2,*result,op);
+  SetOp(line1,line2,*result,op,geoid);
   return result;
 }
 
@@ -2827,10 +2837,16 @@ Line* SetOp(const Line& line1, const Line& line2, avlseg::SetOperation op){
 void SetOp(const Region& reg1,
            const Region& reg2,
            Region& result,
-           avlseg::SetOperation op){
+           avlseg::SetOperation op,
+           const Geoid* geoid/*=0*/){
 
+   if(geoid){
+      cerr << __PRETTY_FUNCTION__ << ": Spherical geometry not implemented."
+           << endl;
+      assert( false ); // TODO: implement spherical case
+   }
    result.Clear();
-   if(!reg1.IsDefined() || !reg2.IsDefined()){
+   if(!reg1.IsDefined() || !reg2.IsDefined() || (geoid && !geoid->IsDefined())){
        result.SetDefined(false);
        return;
    }
@@ -2855,7 +2871,7 @@ void SetOp(const Region& reg1,
       }
    }
 
-   if(!reg1.BoundingBox().Intersects(reg2.BoundingBox())){
+   if(!reg1.BoundingBox().Intersects(reg2.BoundingBox(),geoid)){
       switch(op){
         case avlseg::union_op: {
           result.StartBulkLoad();
@@ -2935,7 +2951,7 @@ void SetOp(const Region& reg1,
 
        member = sss.getMember(current,leftN,rightN);
 
-       
+
 
        if(leftN){
           tmpL = *leftN;
@@ -2958,12 +2974,13 @@ void SetOp(const Region& reg1,
                cerr << "stored is " << *member << endl;
                cerr << "current = " << current << endl;
                avlseg::AVLSegment tmp_left, tmp_common, tmp_right;
-               member->split(current,tmp_left, tmp_common, tmp_right, false);
+               member->split(current,tmp_left, tmp_common, tmp_right,
+                             false);
                cerr << "The common part is " << tmp_common << endl;
                cerr << "The lenth = " << tmp_common.length() << endl;
                assert(false);
             }
-            uint32_t parts = member->split(current,left1,common1,right1);
+            uint32_t parts = member->split(current,left1,common1,right1,true);
             sss.remove(*member);
             if(parts & avlseg::LEFT){
               if(!left1.isPoint()){
@@ -3020,8 +3037,8 @@ void SetOp(const Region& reg1,
                  current.con_above = current.con_below-1;
               }
             }
-            // insert element if it was changed 
-            
+            // insert element if it was changed
+
             if(!current.isPoint()){
               sss.insert(current);
               if(!current.exactEqualsTo(currentCopy)){
@@ -3123,9 +3140,10 @@ void SetOp(const Region& reg1,
 
 } // setOP region x region -> region
 
-Region* SetOp(const Region& reg1, const Region& reg2, avlseg::SetOperation op){
+Region* SetOp(const Region& reg1, const Region& reg2, avlseg::SetOperation op,
+              const Geoid* geoid/*=0*/){
   Region* result = new Region(1);
-  SetOp(reg1,reg2,*result,op);
+  SetOp(reg1,reg2,*result,op,geoid);
   return result;
 }
 
@@ -3143,11 +3161,13 @@ the original region value.
 void SetOp(const Region& region,
            const Line& line,
            Region& result,
-           avlseg::SetOperation op){
+           avlseg::SetOperation op,
+           const Geoid* geoid/*=0*/){
 
    assert(op == avlseg::union_op || op == avlseg::difference_op);
    result.Clear();
-   if(!line.IsDefined() || !region.IsDefined()){
+   if(!line.IsDefined() || !region.IsDefined() ||
+      (geoid && !geoid->IsDefined()) ){
       result.SetDefined(false);
       return;
    }
@@ -3165,12 +3185,19 @@ Here, only the ~difference~ and ~intersection~ operation are applicable.
 void SetOp(const Line& line,
            const Region& region,
            Line& result,
-           avlseg::SetOperation op){
+           avlseg::SetOperation op,
+           const Geoid* geoid/*=0*/){
 
   assert(op==avlseg::intersection_op || op == avlseg::difference_op);
 
+  if(geoid){
+    cerr << __PRETTY_FUNCTION__ << ": Spherical geometry not implemented."
+         << endl;
+    assert( false ); // TODO: implement spherical geometry case
+  }
   result.Clear();
-  if(!line.IsDefined() || !region.IsDefined()){
+  if(!line.IsDefined() || !region.IsDefined() ||
+     (geoid && !geoid->IsDefined()) ){
        result.SetDefined(false);
        return;
    }
@@ -3192,7 +3219,7 @@ void SetOp(const Line& line,
    }
 
   priority_queue<avlseg::ExtendedHalfSegment,
-                 vector<avlseg::ExtendedHalfSegment>, 
+                 vector<avlseg::ExtendedHalfSegment>,
                  greater<avlseg::ExtendedHalfSegment> > q1;
   priority_queue<avlseg::ExtendedHalfSegment,
                  vector<avlseg::ExtendedHalfSegment>,
@@ -3312,7 +3339,7 @@ void SetOp(const Line& line,
               case avlseg::intersection_op: {
                 if( (member->getOwner()==avlseg::both) ||
                     (member->getOwner()==avlseg::first && member->con_above>0)){
-                    HalfSegment hs1 = 
+                    HalfSegment hs1 =
                            member->convertToExtendedHs(true,avlseg::first);
                     hs1.attr.edgeno = edgeno;
                     result += hs1;
@@ -3325,7 +3352,7 @@ void SetOp(const Line& line,
               case avlseg::difference_op: {
                 if( (member->getOwner()==avlseg::first) &&
                     (member->con_above==0)){
-                    HalfSegment hs1 = 
+                    HalfSegment hs1 =
                           member->convertToExtendedHs(true,avlseg::first);
                     hs1.attr.edgeno = edgeno;
                     result += hs1;
@@ -3359,10 +3386,19 @@ Signature: ~region~ [x] ~region~ [->] ~line~
 void CommonBorder(
            const Region& reg1,
            const Region& reg2,
-           Line& result){
+           Line& result,
+           const Geoid* geoid/*=0*/){
 
    result.Clear();
-   if(!reg1.IsDefined() || !reg2.IsDefined()){
+
+   if(geoid){
+     cerr << __PRETTY_FUNCTION__ << ": Spherical geometry not implemented."
+     << endl;
+     assert( false ); // TODO: implement spherical geometry case
+   }
+
+   if(!reg1.IsDefined() || !reg2.IsDefined() ||
+      (geoid && !geoid->IsDefined()) ){
        result.SetDefined(false);
        return;
    }
@@ -3450,7 +3486,7 @@ void CommonBorder(
        } else {  // nextHs.IsRightDomPoint
           if(member && member->exactEqualsTo(current)){
               if(member->getOwner()==avlseg::both){
-                 HalfSegment hs = 
+                 HalfSegment hs =
                          member->convertToExtendedHs(true,avlseg::first);
                  hs.attr.edgeno = edgeno;
                  result += hs;

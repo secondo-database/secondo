@@ -709,7 +709,7 @@ Number    : 1
 Signature : point -> point | points -> points | line -> line | region -> region
 Example   : query gk([const point value (1.0 1.0)])
 Result    : (point (1942837.210480324 110590.6736442424))
-Tolerance : 150
+Tolerance : 150.0
 
 Operator  : reverseGk
 Number    : 1
@@ -722,8 +722,8 @@ Operator  : utm
 Number    : 1
 Signature : point -> point | line -> line | region -> region
 Example   : query utm([const point value (1.0 1.0)])
-Result    : (point (166946.8305797719 -5919935.736573189))
-Tolerance : 150
+Result    : (point (166491.8309263389 -5907493.628309446))
+Tolerance : 50.0
 
 
 Operator  : collect_line
