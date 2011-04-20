@@ -286,11 +286,15 @@ the heading, otherwise the geoid.
 
 4.3.14 Operation ~MidpointTo~
 
-Returns the midpoint between ~this~ point and the supplied point ~p~. If one of
-the two Points is undefined, an UNDEFINED Point is returned.
-If $AlmostEqual(this,p)$, this is returned. If ~geoid~ is not NULL, sperical
-geometry is applied, otherwise euclidean geometry. If an invalid geographic
-coordinate is found, the result is UNDEFINED.
+*Precondition:* none.
+
+*Semantics:* Returns the midpoint between ~this~ point and the supplied point ~p~.
+If one of the two Points is undefined, an UNDEFINED Point is returned.
+If AlmostEqual(this,p), this is returned.
+If ~geoid~ is not NULL, Sperical geometry is applied, otherwise Euclidean geometry.
+If an invalid geographic coordinate is found, the result is UNDEFINED.
+
+See http://mathforum.org/library/drmath/view/51822.html for derivation
 
 */
 

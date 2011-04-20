@@ -15,10 +15,22 @@ point. The left point is always smaller than the right one.
 #define _HALFSEGMENT_H
 
 
+#include <math.h>
+#include <cmath>
 #include "Coord.h"
 #include "Point.h"
 #include "AttrType.h"
 #include "Geoid.h"
+
+/*
+5.13 Auxiliary Funktions
+
+*/
+class HalfSegment; // forward declaration
+
+inline bool AlmostEqual( const HalfSegment& hs1, const HalfSegment& hs2 );
+
+inline double ApplyFactor( const double d );
 
 class HalfSegment;
 /*
@@ -98,7 +110,7 @@ Returns the "attr" value associated with a half segment. The "attr" value is use
 process region values.
 
 */
-    inline double Length() const;
+    inline double Length(const Geoid* geoid=0) const;
 /*
 Returns the length of the half segmtent, i.e., the distance between the left point to the
 right point.
@@ -117,7 +129,7 @@ If an undefined Point or a Point with an invalid geographic coordinate is used,
 to true.
 
 */
-    inline Point AtPosition( double pos ) const;
+    inline Point AtPosition( double pos, const Geoid* geoid=0 ) const;
 /*
 Returns the point at relative position ~pos~.
 
@@ -214,43 +226,57 @@ Operator redefinitions.
 */
     int Compare( const HalfSegment& hs ) const;
 /*
-This function make comparison between two halfsegments. The rule of the comparison is specified
-in the ROSE Algebra paper. That is:  the half sgenments will be ordered according to the following values:
+This function make comparison between two halfsegments. The rule of the
+comparison is specified in the ROSE Algebra paper. That is:  the half sgenments
+will be ordered according to the following values:
 dominating points -\verb+>+  LDP flages  -\verb+>+ directions (rotations).
 
 */
-    bool Intersects( const HalfSegment& hs ) const;
+    bool Intersects( const HalfSegment& hs, const Geoid* geoid = 0 ) const;
 /*
-Decides whether two half segments intersect with each other with any kind of intersection.
+Decides whether two half segments intersect with each other with any kind of
+intersection.
+Applies spherical geometry, iff ~geoid~ ist not NULL. If invalid coordinates
+are found, ~false~ is returned.
 
 */
-    bool InnerIntersects( const HalfSegment& hs ) const;
+    bool InnerIntersects( const HalfSegment& hs, const Geoid* geoid=0 ) const;
 /*
-Decides whether two half segments intersect in the following manner: a point of the first segment and an
+Decides whether two half segments intersect in the following manner: a point of
+the first segment and an
 innerpoint of the second segment are the same.
 
 */
-    bool Crosses( const HalfSegment& hs ) const;
+    bool Crosses( const HalfSegment& hs, const Geoid* geoid=0 ) const;
 /*
-Computes whether two half segments intersect in their mid-points. Endpoints are not considered in
-computing the results.
+Computes whether two half segments intersect in their mid-points. Endpoints are
+not considered in computing the results.
 
 */
-    bool Intersection( const HalfSegment& hs, Point& p ) const;
+
+    bool Intersection( const HalfSegment& hs, Point& p,
+                       const Geoid* geoid = 0 ) const;
 /*
-This function computes whether two half segments cross each other and returns the crossing point ~p~.
+This function computes whether two half segments cross each other and returns
+the crossing point ~p~.
+Applies spherical geometry, iff ~geoid~ ist not NULL. If invalid coordinates are
+found, ~false~ is returned and ~p~ is set to UNDEFINED.
 
 */
-    bool Intersection( const HalfSegment& hs, HalfSegment& reshs ) const;
+    bool Intersection( const HalfSegment& hs, HalfSegment& reshs,
+                       const Geoid* geoid = 0 ) const;
 /*
-This function computes whether two half segments intersect each other and returns the resulting
-halfsegment as ~reshs~.
+This function computes whether two half segments intersect each other and
+returns the resulting halfsegment as ~reshs~.
+Applies spherical geometry, iff ~geoid~ ist not NULL. If invalid coordinates are
+found, ~false~ is returned .
 
 */
    void CohenSutherlandLineClipping( const Rectangle<2> &window,
                                      double &x0, double &y0,
                                      double &x1, double &y1,
-                                     bool &accept) const;
+                                     bool &accept,
+                                     const Geoid* geoid=0) const;
 /*
 Implements the Cohen and Sutherland algorithm for clipping a segment to a clipping window.
 
@@ -259,7 +285,8 @@ Implements the Cohen and Sutherland algorithm for clipping a segment to a clippi
                           HalfSegment &hs,
                           bool &inside,
                           bool &isIntersectionPoint,
-                          Point &intersectionPoint) const;
+                          Point &intersectionPoint,
+                          const Geoid* geoid=0) const;
 /*
 Computes the part of the segment that is inside the rectangle ~window~, if
 it exists. The ~inside~ parameter is set to true if there is a partion of the segment
@@ -268,12 +295,12 @@ part of the segment is a point instead of a segment, and if so, ~intersectionPoi
 receives the intersection point.
 
 */
-    bool Inside( const HalfSegment& hs ) const ;
+bool Inside( const HalfSegment& hs, const Geoid* geoid=0 ) const ;
 /*
 Computes whether the half segment is inside the one in ~hs~.
 
 */
-    bool Contains( const Point& p ) const;
+    bool Contains( const Point& p, const Geoid* geoid=0 ) const;
 /*
 Computes whether the point ~p~ is contained in the half segment.
 Uses the ~AlmostEqual~ function.
@@ -281,27 +308,42 @@ Uses the ~AlmostEqual~ function.
 */
     bool RayAbove( const Point& p, double &abovey0 ) const;
 /*
-
 Decides whether a half segment is above a point. This is useful when we want to decide
 whether a point is inside a region.
 
 */
+
     bool RayDown(const Point& p, double &yIntersection) const;
 
 
-    double Distance( const Point& p ) const;
+    double Distance( const Point& p, const Geoid* geoid = 0 ) const;
+
 /*
 Computes the distance from the half segment to the point ~p~.
+If ~geoid~ is not NULL, it is used to compute the minimun distance
+between ~p~ and ~[*]this~ being interpreted as a orthodrome relative to reference
+ellipsoid ~[*]geoid~ and using spherical geometry.
+
+A negative result means, that an error occured during computation (e.g. invalid
+geographic ccordinates).
 
 */
-    double Distance( const HalfSegment& hs ) const;
+
+
+    double Distance( const HalfSegment& hs, const Geoid* geoid = 0 ) const;
 /*
 Computes the minimum distance from two half segments.
+If ~geoid~ is not NULL, it is used to compute the minimun distance
+between both ~hs~ and ~[*]this~ being interpreted as orthodromes relative to
+~[*]geoid~ and using spherical geometry.
+
+A negative result means, that an error occured during computation (e.g. invalid
+geographic ccordinates).
 
 */
 
-    double Distance(const Rectangle<2>& rect) const;
-    double MaxDistance(const Rectangle<2>& rect) const;
+    double Distance(const Rectangle<2>& rect, const Geoid* geoid=0) const;
+    double MaxDistance(const Rectangle<2>& rect, const Geoid* geoid=0) const;
     int LogicCompare( const HalfSegment& hs ) const;
 /*
 Compares two half segments according to their attribute values (~attr~).
@@ -341,6 +383,191 @@ paper.
 */
 };
 
+/*
+6 Implementation of Inline Functions of Class ~HalfSegment~
+
+*/
+inline
+HalfSegment::HalfSegment( bool ldp,
+                          const Point& lp,
+                          const Point& rp ):
+ldp( ldp ),
+lp( lp ),
+rp( rp ),
+attr(-99999)
+{
+  assert(lp.IsDefined());
+  assert(rp.IsDefined());
+  assert( !AlmostEqual( lp, rp ) );
+
+  if( lp > rp )
+  {
+    this->lp = rp;
+    this->rp = lp;
+  }
+}
+
+inline
+HalfSegment::HalfSegment( const HalfSegment& hs ):
+ldp( hs.ldp ),
+lp( hs.lp ),
+rp( hs.rp ),
+attr( hs.attr )
+{
+  assert(lp.IsDefined());
+  assert(rp.IsDefined());
+}
+
+inline const Point&
+HalfSegment::GetLeftPoint() const
+{
+  return lp;
+}
+
+inline const Point&
+HalfSegment::GetRightPoint() const
+{
+  return rp;
+}
+
+inline const Point&
+HalfSegment::GetDomPoint() const
+{
+  if( ldp )
+    return lp;
+  return rp;
+}
+
+inline const Point&
+HalfSegment::GetSecPoint() const
+{
+  if( ldp )
+    return rp;
+  return lp;
+}
+
+inline bool
+HalfSegment::IsLeftDomPoint() const
+{
+  return ldp;
+}
+
+inline void
+HalfSegment::SetLeftDomPoint( bool ldp )
+{
+  this->ldp = ldp;
+}
+
+inline bool HalfSegment::IsVertical()const{
+  return AlmostEqual(lp.GetX(),rp.GetX());
+}
+
+
+inline const Rectangle<2>
+HalfSegment::BoundingBox() const
+{
+  double minx = MIN( GetLeftPoint().GetX(), GetRightPoint().GetX() ),
+         maxx = MAX( GetLeftPoint().GetX(), GetRightPoint().GetX() ),
+         miny = MIN( GetLeftPoint().GetY(), GetRightPoint().GetY() ),
+         maxy = MAX( GetLeftPoint().GetY(), GetRightPoint().GetY() );
+
+  return Rectangle<2>( true,
+                       minx - ApplyFactor(minx),
+                       maxx + ApplyFactor(maxx),
+                       miny - ApplyFactor(miny),
+                       maxy + ApplyFactor(maxy) );
+}
+
+inline const AttrType&
+HalfSegment::GetAttr() const
+{
+  return attr;
+}
+
+inline void
+HalfSegment::SetAttr( AttrType& attr )
+{
+  this->attr = attr;
+}
+
+inline double
+HalfSegment::Length(const Geoid* geoid /*=0*/) const
+{
+  return rp.Distance( lp, geoid );
+}
+
+inline double
+HalfSegment::LengthOrthodrome(const Geoid& g, bool& valid) const
+{
+  return rp.DistanceOrthodrome( lp, g, valid );
+}
+
+
+inline Point
+HalfSegment::AtPosition( double pos, const Geoid* geoid/*=0*/ ) const
+{
+  if( pos < 0 || AlmostEqual( pos, 0 ) ){
+    return GetDomPoint();
+  }
+  double l = Length(geoid);
+  if( pos > l ||  AlmostEqual( pos, l ) ){
+    return GetSecPoint();
+  }
+  if(geoid){
+    cerr<< __PRETTY_FUNCTION__ << "Sperical geometry not implemented." << endl;
+    assert(false);
+    return Point(false);
+  } else {
+    return Point( true,
+                GetDomPoint().GetX() + pos *
+                  (GetSecPoint().GetX() - GetDomPoint().GetX()) / l,
+                GetDomPoint().GetY() + pos *
+                  (GetSecPoint().GetY() - GetDomPoint().GetY()) / l );
+  }
+}
+
+inline double
+HalfSegment::AtPoint( const Point& p ) const
+{
+  assert( p.IsDefined() );
+  assert( Contains( p ) );
+  if( AlmostEqual( rp.GetX(), lp.GetX() ) &&
+      AlmostEqual( p.GetX(), rp.GetX() ) ){
+    // the segment is vertical
+    return Length() * (p.GetY() - GetDomPoint().GetY()) /
+                      (GetSecPoint().GetY() - GetDomPoint().GetY());
+  }
+  return Length() * (p.GetX() - GetDomPoint().GetX()) /
+                    (GetSecPoint().GetX() - GetDomPoint().GetX());
+}
+
+inline bool
+HalfSegment::SubHalfSegment( double pos1, double pos2,
+                                         HalfSegment& result ) const
+{
+  if( AlmostEqual( AtPosition( pos1 ), AtPosition( pos2 ) ) ){
+    return false;
+  }
+  result.Set( true, AtPosition( pos1 ), AtPosition( pos2 ) );
+  return true;
+}
+
+/*
+1.1 Auxiliary Function Implementation
+
+*/
+inline bool AlmostEqual( const HalfSegment& hs1, const HalfSegment& hs2 )
+{
+  return AlmostEqual( hs1.GetDomPoint(), hs2.GetDomPoint() ) &&
+  AlmostEqual( hs1.GetSecPoint(), hs2.GetSecPoint() );
+}
+
+inline double ApplyFactor( const double d )
+{
+  if( fabs(d) <= 10.0 )
+    return FACTOR * fabs(d);
+  return FACTOR;
+}
 
 #endif
 
