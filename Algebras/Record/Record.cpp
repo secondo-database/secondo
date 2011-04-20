@@ -164,7 +164,6 @@ The following includes are neccessary:
 #include "StandardTypes.h"
 #include "SecondoCatalog.h"
 #include "ListIterator.h"
-#include "TemporalAlgebra.h"
 #include <cctype>
 
 
