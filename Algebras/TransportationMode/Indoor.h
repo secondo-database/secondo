@@ -986,11 +986,18 @@ struct Elevator{
   float h;
   double t1, t2; //two arrive time instants
   double m_t, w_t; //moving time and waiting time 
+  Rectangle<2> el_rect;
   Elevator(){}
   Elevator(float height, double a, double b, double mt, double wt):h(height),
-          t1(a), t2(b), m_t(mt), w_t(wt){}
+          t1(a), t2(b), m_t(mt), w_t(wt){
+            double min[2] = {0, 1};
+            double max[2] = {0, 1};
+            Rectangle<2>* r = new Rectangle<2>(true, min, max);
+            el_rect = *r;
+            delete r;
+          }
   Elevator(const Elevator& el):h(el.h), t1(el.t1), t2(el.t2), 
-          m_t(el.m_t), w_t(el.w_t){}
+          m_t(el.m_t), w_t(el.w_t), el_rect(el.el_rect){}
   bool operator<(const Elevator& el) const{
     return h < el.h; 
   }
@@ -999,6 +1006,8 @@ struct Elevator{
     printf("h:%f t1:%.12f t2:%.12f\n", h, t1, t2);
   }
 };
+
+
 
 /*
 lowest height. a build can not have such a height 
@@ -1128,6 +1137,16 @@ struct IndoorNav{
                                    vector<Elevator>& elev_list, double speed);
    void GenerateMO1(IndoorGraph* ig, BTree* btree, R_Tree<3,TupleId>* rtree,
                     int num, Periods* peri, bool convert); 
+   /////////////////////////////////////////////////////////////////////
+   void GenerateMO1_New(IndoorGraph* ig, BTree* btree, R_Tree<3,TupleId>* rtree,
+                    int num, Periods* peri, bool convert);
+   void InitializeElevator_New(Interval<Instant>& periods, 
+                       vector< vector<Elevator> >& elev_list, double speed);
+   void AddUnitToMO_Elevator_New(MPoint3D* mp3d, vector<Point3D>& , 
+                    Instant& start_time, Instant& st, 
+                    vector< vector<Elevator> >&);
+
+   /////////////////////////////////////////////////////////////////////////
    float GetMinimumDoorWidth();
    void AddUnitToMO(MPoint3D* mp3d, Point3D& p1, Point3D& p2, 
                     Instant& start_time, double speed);

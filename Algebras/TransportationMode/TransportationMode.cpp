@@ -2449,12 +2449,15 @@ int GenerateMO1_I_ValueMap(Word* args, Word& result, int message,
         R_Tree<3,TupleId>* rtree = (R_Tree<3,TupleId>*)args[3].addr;
         int num = ((CcInt*)args[4].addr)->GetIntval();
         Periods* peri = (Periods*)args[5].addr; 
-        
+
         indoor_nav = new IndoorNav(rel, NULL);
         indoor_nav->resulttype =
             new TupleType(nl->Second(GetTupleResultType(in_pSupplier)));
 
-        indoor_nav->GenerateMO1(ig, btree, rtree, num, peri, false);
+//      indoor_nav->GenerateMO1(ig, btree, rtree, num, peri, false);
+
+        indoor_nav->GenerateMO1_New(ig, btree, rtree, num, peri, false);
+
         local.setAddr(indoor_nav);
         return 0;
       }
@@ -2501,12 +2504,14 @@ int GenerateMO1_I_GenMO_ValueMap(Word* args, Word& result, int message,
         R_Tree<3,TupleId>* rtree = (R_Tree<3,TupleId>*)args[3].addr;
         int num = (int)((CcReal*)args[4].addr)->GetRealval();
         Periods* peri = (Periods*)args[5].addr; 
-        
+
         indoor_nav = new IndoorNav(rel, NULL);
         indoor_nav->resulttype =
             new TupleType(nl->Second(GetTupleResultType(in_pSupplier)));
 
-        indoor_nav->GenerateMO1(ig, btree, rtree, num, peri, true);
+//        indoor_nav->GenerateMO1(ig, btree, rtree, num, peri, true);
+        indoor_nav->GenerateMO1_New(ig, btree, rtree, num, peri, true);
+
         local.setAddr(indoor_nav);
         return 0;
       }
