@@ -45,7 +45,7 @@ UGrid-Algebra offers the following methods:
 - getTrajectory     -> Returns all history units wich belongs
                        to the stated moving object.
 - currentUpload     -> Returns the current upload.
- 
+
 2 Includes and globals
 
 ******************************************************************************/
@@ -109,7 +109,7 @@ UGridArea ModifyArea(UGridArea AREA)
 {
   double tempX = 0;
   double tempY = 0;
-  
+
   if (AREA.x1 > AREA.x2)
   {
     tempX   = AREA.x2;
@@ -143,7 +143,7 @@ int ComputeLine(double BORDER1 ,double BORDER2, int SPLITS, double POS)
   int i = 0;
 
   while ((BORDER1 + (i*len)) <= POS) i++;
-  
+
   return i-1;
 }
 
@@ -151,7 +151,7 @@ int ComputeLine(double BORDER1 ,double BORDER2, int SPLITS, double POS)
 
 3.4 ComputeIntersection
 
-Computes the intersection point of two lines.
+Computes the intersection point of two lines (A,B), (C,D).
 
 ******************************************************************************/
 
@@ -164,10 +164,10 @@ bool ComputeIntersection( double Ax, double Ay,
 
   double  distAB, cos, sin, newX, ABpos ;
 
-  if (Ax==Bx && Ay==By || Cx==Dx && Cy==Dy) return false;
+  if ( ((Ax==Bx) && (Ay==By)) || ((Cx==Dx) && (Cy==Dy)) ) return false;
 
-  if (Ax==Cx && Ay==Cy || Bx==Cx && By==Cy
-  ||  Ax==Dx && Ay==Dy || Bx==Dx && By==Dy) return false;
+  if ( ((Ax==Cx) && (Ay==Cy)) || ((Bx==Cx) && (By==Cy))
+        ||  ((Ax==Dx) && (Ay==Dy)) || ((Bx==Dx) && (By==Dy)) ) return false;
 
   Bx-=Ax; By-=Ay;
   Cx-=Ax; Cy-=Ay;
@@ -182,15 +182,15 @@ bool ComputeIntersection( double Ax, double Ay,
   newX=Dx*cos+Dy*sin;
   Dy  =Dy*cos-Dx*sin; Dx=newX;
 
-  if (Cy<0. && Dy<0. || Cy>=0. && Dy>=0.) return false;
+  if ( ((Cy<0) && (Dy<0)) || ((Cy>=0) && (Dy>=0)) ) return false;
 
   ABpos=Dx+(Cx-Dx)*Dy/(Dy-Cy);
 
-  if (ABpos<0. || ABpos>distAB) return false;
+  if ( (ABpos<0) || (ABpos>distAB) ) return false;
 
   is->x = Ax+ABpos*cos;
   is->y = Ay+ABpos*sin;
-  
+
   return true;
 }
 
@@ -205,17 +205,17 @@ Creates an UGridBox which constists of a page number and a 3D-rectangle.
 UGridBox* CreateUGridBox( UGridCell* CELLPTR, UGridNode* NODEPTR )
 {
   UGridBox* ugridBox = (UGridBox*)0;
-  
+
   if ( CELLPTR != 0 )
-  { 
+  {
     Rectangle<3>* box = (Rectangle<3>*)0;
-                  box = new Rectangle<3>(true, 
+                  box = new Rectangle<3>(true,
                                     CELLPTR->pos1.x-tol, CELLPTR->pos2.x+tol,
-                                    CELLPTR->pos1.y-tol, CELLPTR->pos2.y+tol, 
+                                    CELLPTR->pos1.y-tol, CELLPTR->pos2.y+tol,
                                     CELLPTR->tiv.start.ToDouble(),
                                     CELLPTR->tiv.end.ToDouble() );
     ugridBox = new UGridBox(CELLPTR->currentPage, true, *box);
-    
+
     // Reset cell
     CELLPTR->pos1.x = 0;
     CELLPTR->pos1.y = 0;
@@ -227,11 +227,11 @@ UGridBox* CreateUGridBox( UGridCell* CELLPTR, UGridNode* NODEPTR )
 
   }
   else if ( NODEPTR != 0 )
-  { 
+  {
     Rectangle<3>* box = (Rectangle<3>*)0;
-                  box = new Rectangle<3>(true, 
+                  box = new Rectangle<3>(true,
                                     NODEPTR->pos1.x-tol, NODEPTR->pos2.x+tol,
-                                    NODEPTR->pos1.y-tol, NODEPTR->pos2.y+tol, 
+                                    NODEPTR->pos1.y-tol, NODEPTR->pos2.y+tol,
                                     NODEPTR->tiv.start.ToDouble(),
                                     NODEPTR->tiv.end.ToDouble());
 
@@ -257,35 +257,35 @@ Modifies the values of a UGridNode in dependence of the UgridBox.
 ******************************************************************************/
 
 void ModifyUGridNode( UGridNode* NODEPTR, UGridBox* BOX )
-{ 
+{
   double x1(BOX->box.MinD(0));
   double x2(BOX->box.MaxD(0));
   double y1(BOX->box.MinD(1));
   double y2(BOX->box.MaxD(1));
-  double t1(BOX->box.MinD(2)); 
-  double t2(BOX->box.MaxD(2)); 
-  
+  double t1(BOX->box.MinD(2));
+  double t2(BOX->box.MaxD(2));
+
   Instant T1 = DateTime(0,0,instanttype);
   Instant T2 = DateTime(0,0,instanttype);
   T1.ReadFrom(t1);
   T2.ReadFrom(t2);
-  
+
   if (x1 < NODEPTR->pos1.x) NODEPTR->pos1.x = x1;
   if (y1 < NODEPTR->pos1.y) NODEPTR->pos1.y = y1;
   if (x2 > NODEPTR->pos2.x) NODEPTR->pos2.x = x2;
   if (y2 > NODEPTR->pos2.y) NODEPTR->pos2.y = y2;
-  
+
   if ((NODEPTR->tiv.lc == false) || (T1 < NODEPTR->tiv.start))
   {
      NODEPTR->tiv.start = T1;
      NODEPTR->tiv.lc = true;
   }
-  if ((NODEPTR->tiv.rc == false) || (T2 > NODEPTR->tiv.end)) 
+  if ((NODEPTR->tiv.rc == false) || (T2 > NODEPTR->tiv.end))
   {
      NODEPTR->tiv.end = T2;
      NODEPTR->tiv.rc = true;
   }
-  
+
   NODEPTR->numEntries++;
 }
 
@@ -333,7 +333,7 @@ bool CheckUGridBox(UGridArea AREA, Instant TIME1, Instant TIME2, UGridBox BOX)
   Instant* boxTivEnd   = new DateTime(0,0,instanttype);
   boxTivStart->ReadFrom(boxT1);
   boxTivEnd->ReadFrom(boxT2);
-  
+
   if ( AREA.x1 <= boxPos2x && AREA.y1 <= boxPos2y &&
        AREA.x2 >= boxPos1x && AREA.y2 >= boxPos1y &&
        TIME1 <= *boxTivEnd && TIME2 >= *boxTivStart )
@@ -367,13 +367,13 @@ UGrid::UGrid(UGridArea AREA, int SPLITS) : suf(0)
   suf = new SmiUpdateFile(pageSize);
   suf->Create();
   header->fileID = suf->GetFileId();
-  
+
   // Create header page
   SmiUpdatePage* headerPage;
   int AppendedPage = suf->AppendNewPage(headerPage);
   assert( AppendedPage );
   header->headerPageNo = headerPage->GetPageNo();
-  
+
   // Create and initialize fontline pages
   SmiUpdatePage* flPage;
   db_pgno_t nextPageNo  = 0;
@@ -393,7 +393,7 @@ UGrid::UGrid(UGridArea AREA, int SPLITS) : suf(0)
     AppendedPage = suf->AppendNewPage(bucketPage);
     assert( AppendedPage );
     bucketPageNo = bucketPage->GetPageNo();
-    
+
     // Write bucket page number into flPage
     flPage->Write(&bucketPageNo, sizeof(db_pgno_t), offset);
     offset += sizeof(db_pgno_t);
@@ -422,7 +422,7 @@ UGrid::UGrid(UGridArea AREA, int SPLITS) : suf(0)
       cellPage->Write(&numEntries, sizeof(db_pgno_t), 0);
     }
   }
-  
+
   // Create and initialize first node page
   SmiUpdatePage* nodePage;
   AppendedPage = suf->AppendNewPage(nodePage);
@@ -431,16 +431,16 @@ UGrid::UGrid(UGridArea AREA, int SPLITS) : suf(0)
   PageSelected = suf->GetPage(header->nodePageNo, nodePage);
   assert( PageSelected );
   nodePage->Write(&nextPageNo, sizeof(db_pgno_t), 0);
-  
+
   // Create a quad-tree like structure
-  header->rootNode = CreateUGridTree((UGridNode*)0, header->numCells, 
+  header->rootNode = CreateUGridTree((UGridNode*)0, header->numCells,
                                       header->splits, header->splits);
-   
+
   // Write header and tree into SmiUpdateFile
   UpdateHeader();
   UpdateUGridTree(header->rootNode, header->numCells,
                   header->splits, header->splits);
-  
+
   // Initialize semaphore
   SetSemaphore(false);
 }
@@ -499,7 +499,7 @@ Word UGrid::In( ListExpr typeInfo, ListExpr instance, int errorPos,
 {
   correct = false;
   Word result = SetWord(Address(0));
-  
+
   // Check list length
   if ( nl->ListLength(instance) != 2 )
   {
@@ -529,7 +529,7 @@ Word UGrid::In( ListExpr typeInfo, ListExpr instance, int errorPos,
   double x2 = nl->RealValue( nl->Second(areaList) );
   double y1 = nl->RealValue( nl->Third(areaList) );
   double y2 = nl->RealValue( nl->Fourth(areaList) );
-  
+
   if (( x2 == x1 ) || (y1 == y2 ))
   {
     cmsg.inFunError("x1/x2 and y1/y2 must be different!");
@@ -572,18 +572,18 @@ Word UGrid::In( ListExpr typeInfo, ListExpr instance, int errorPos,
 ListExpr UGrid::Out(ListExpr typeInfo, Word value )
 {
   UGrid* ugridPtr = static_cast<UGrid*>(value.addr);
-  
+
   // Create area list
   ListExpr area = nl->FourElemList(
   nl->RealAtom(ugridPtr->header->area.x1),
   nl->RealAtom(ugridPtr->header->area.x2),
   nl->RealAtom(ugridPtr->header->area.y1),
   nl->RealAtom(ugridPtr->header->area.y2));
-  
+
   // Create time interval list
   ListExpr  tiv;
   if (ugridPtr->header->numEntries == 0)
-  { 
+  {
     // Time interval is undefined if no entry exist
     tiv = nl->TwoElemList( nl->StringAtom("undefined"),
                            nl->StringAtom("undefined"));
@@ -591,13 +591,13 @@ ListExpr UGrid::Out(ListExpr typeInfo, Word value )
   else if (ugridPtr->header->numEntries == 1)
   {
     // End time is undefined if only one entry exist
-    tiv = nl->TwoElemList(  
+    tiv = nl->TwoElemList(
               OutDateTime(nl->TheEmptyList(),
                           SetWord(&ugridPtr->header->tiv.start)),
                           nl->StringAtom("undefined"));
   }
   else
-  { 
+  {
     // Time interval is defined if UGrid has two entries or more
     tiv = nl->TwoElemList( OutDateTime(nl->TheEmptyList(),
                                        SetWord(&ugridPtr->header->tiv.start)),
@@ -626,7 +626,7 @@ Word UGrid::Create( const ListExpr typeInfo )
 ******************************************************************************/
 
 void UGrid::Delete( const ListExpr typeInfo, Word& w )
-{ 
+{
   UGrid* ugridPtr = static_cast<UGrid*>(w.addr);
   delete ugridPtr;
   w.addr = 0;
@@ -643,23 +643,23 @@ bool UGrid::Open( SmiRecord& valueRecord, size_t& offset,
 {
   SmiFileId fileID;
   db_pgno_t headerPageNo;
-  
+
   bool ok = true;
   ok = ok && valueRecord.Read( &fileID, sizeof(SmiFileId), offset );
   offset += sizeof(SmiFileId);
   ok = ok && valueRecord.Read( &headerPageNo, sizeof(db_pgno_t), offset );
   offset += sizeof(db_pgno_t);
-  
+
   // Create new UGrid object with existing file
   UGrid* ugridPtr = new UGrid(fileID);
   ugridPtr->header->fileID = fileID;
   ugridPtr->header->headerPageNo = headerPageNo;
-  
+
   // Reader header, frontline and UGridTree information from file
   ugridPtr->ReadHeader();
   ugridPtr->ReadFLine();
   UGridHeader* hPtr = ugridPtr->header;
-  hPtr->rootNode = ugridPtr->ReadUGridTree( (UGridNode*)0, 
+  hPtr->rootNode = ugridPtr->ReadUGridTree( (UGridNode*)0,
                    hPtr->area, hPtr->numCells, hPtr->splits, hPtr->splits );
 
   value.addr = ugridPtr;
@@ -674,7 +674,7 @@ bool UGrid::Open( SmiRecord& valueRecord, size_t& offset,
 
 bool UGrid::Save( SmiRecord& valueRecord, size_t& offset,
                   const ListExpr typeInfo, Word& value )
-{ 
+{
   UGrid* ugridPtr = static_cast<UGrid*>(value.addr);
   bool ok = true;
   SmiFileId fileID = ugridPtr->header->fileID;
@@ -693,7 +693,7 @@ bool UGrid::Save( SmiRecord& valueRecord, size_t& offset,
 ******************************************************************************/
 
 void UGrid::Close( const ListExpr typeInfo, Word& w )
-{   
+{
   UGrid* ugridPtr = static_cast<UGrid*>(w.addr);
   delete ugridPtr;
   w.addr = 0;
@@ -779,8 +779,8 @@ UGridNode* UGrid::CreateUGridTree( UGridNode* FATHERNODE, int SQUARES,
 {
   // Create and initialize UGrideNode
   UGridNode* node   = new UGridNode();
-  node->fatherNode  = FATHERNODE;  
-  node->numEntries  = 0; 
+  node->fatherNode  = FATHERNODE;
+  node->numEntries  = 0;
   node->currentPage = (db_pgno_t)0;
   node->pos1        = UnitPos(0,0);
   node->pos2        = UnitPos(0,0);
@@ -788,7 +788,7 @@ UGridNode* UGrid::CreateUGridTree( UGridNode* FATHERNODE, int SQUARES,
   node->tiv.end     = DateTime(0,0,instanttype);
   node->tiv.lc      = false;
   node->tiv.rc      = false;
-   
+
   if (SQUARES > 4)
   {
     // Create left-bottom son
@@ -796,14 +796,14 @@ UGridNode* UGrid::CreateUGridTree( UGridNode* FATHERNODE, int SQUARES,
                                              (RIGHTCOL-((int)sqrt(SQUARES)/2)),
                                               (TOPROW-((int)sqrt(SQUARES)/2)));
     // Create right-bottom son
-    node->rightBottomSon = CreateUGridTree( node, (SQUARES/4), RIGHTCOL, 
+    node->rightBottomSon = CreateUGridTree( node, (SQUARES/4), RIGHTCOL,
                                              (TOPROW-((int)sqrt(SQUARES)/2)));
     // Create left-top son
     node->leftTopSon = CreateUGridTree( node, (SQUARES/4),
                                    (RIGHTCOL-((int)sqrt(SQUARES)/2)), TOPROW );
     // Create right-top son
     node->rightTopSon = CreateUGridTree( node, (SQUARES/4), RIGHTCOL, TOPROW );
- 
+
     node->leftBottomCell  = (UGridCell*)0;
     node->rightBottomCell = (UGridCell*)0;
     node->leftTopCell     = (UGridCell*)0;
@@ -815,16 +815,16 @@ UGridNode* UGrid::CreateUGridTree( UGridNode* FATHERNODE, int SQUARES,
     node->rightBottomSon = (UGridNode*)0;
     node->leftTopSon     = (UGridNode*)0;
     node->leftBottomSon  = (UGridNode*)0;
- 
+
     for (int i = 0; i < 4; i++)
     {
       int col = RIGHTCOL-1;
       int row = TOPROW-1;
-      
+
       if ( i == 0 ) { col = col-1; row = row-1; } // left-bottom cell
       if ( i == 1 ) {              row = row-1; } // right-bottom cell
       if ( i == 2 ) { col = col-1;              } // left-top cell
-     
+
       // Create and initialize UGridCell
       cells[col][row] = new UGridCell();
       UGridCell* cellPtr = cells[col][row];
@@ -837,7 +837,7 @@ UGridNode* UGrid::CreateUGridTree( UGridNode* FATHERNODE, int SQUARES,
       cellPtr->tiv.end = DateTime(0,0,instanttype);
       cellPtr->tiv.lc = false;
       cellPtr->tiv.rc = false;
-      
+
       if ( i == 0 ) node->leftBottomCell  = cellPtr;
       if ( i == 1 ) node->rightBottomCell = cellPtr;
       if ( i == 2 ) node->leftTopCell     = cellPtr;
@@ -881,29 +881,29 @@ void UGrid::InsertUGridBox( UGridNode* NODE, UGridBox* BOX )
         SmiUpdatePage* currentPage;
         int PageSelected = suf->GetPage(NODE->currentPage, currentPage);
         assert( PageSelected );
-        
+
         UGridBox* box;
-        // Current page is nearly full up 
+        // Current page is nearly full up
         // -> write the boxes of all four son cells into page
         size_t offset = sizeof(db_pgno_t) + (boxSize * NODE->numEntries);
-        
+
         // Insert boxes from all four sons(cells)
         for (int i = 0; i < 4; i++)
-        { 
+        {
           // Current page of cell is not empty
           if (i == 0) box =CreateUGridBox(NODE->leftBottomCell, (UGridNode*)0);
           if (i == 1) box =CreateUGridBox(NODE->rightBottomCell,(UGridNode*)0);
           if (i == 2) box =CreateUGridBox(NODE->leftTopCell,    (UGridNode*)0);
           if (i == 3) box =CreateUGridBox(NODE->rightTopCell,   (UGridNode*)0);
-          
+
           if (box != 0)
           {
             ModifyUGridNode( NODE, box );
-            
+
             double minD0(box->box.MinD(0)); double maxD0(box->box.MaxD(0));
             double minD1(box->box.MinD(1)); double maxD1(box->box.MaxD(1));
             double minD2(box->box.MinD(2)); double maxD2(box->box.MaxD(2));
-            
+
             currentPage->Write(&box->pageID, sizeof(db_pgno_t), offset);
             offset +=  sizeof(db_pgno_t);
             currentPage->Write(&box->huPageID, sizeof(bool), offset);
@@ -923,7 +923,7 @@ void UGrid::InsertUGridBox( UGridNode* NODE, UGridBox* BOX )
           }
         }
       }
-      
+
       if (NODE->fatherNode != 0)
       {
         // Create page box
@@ -932,13 +932,13 @@ void UGrid::InsertUGridBox( UGridNode* NODE, UGridBox* BOX )
         {
           // Reset number of node entries
           NODE->numEntries = 0;
-          
+
           // Put current node page back to file
           //suf->PutPage(NODE->currentPage, true);
-          
+
           // Insert box from son node into father node page
           InsertUGridBox( NODE->fatherNode, box );
-          
+
           // Create new node page
           SmiUpdatePage* currentPage;
           int AppendedPage = suf->AppendNewPage(currentPage);
@@ -953,7 +953,7 @@ void UGrid::InsertUGridBox( UGridNode* NODE, UGridBox* BOX )
         SmiUpdatePage* prevPage;
         db_pgno_t nextRootPageNo;
         SmiUpdatePage* nextRootPage;
-        
+
         do
         {
           int PageSelected = suf->GetPage(prevPageNo, prevPage);
@@ -975,7 +975,7 @@ void UGrid::InsertUGridBox( UGridNode* NODE, UGridBox* BOX )
     }
   }
 
-  
+
   SmiUpdatePage* currentPage;
   int PageSelected = suf->GetPage(NODE->currentPage, currentPage);
   assert( PageSelected );
@@ -1017,12 +1017,12 @@ void UGrid::InsertUGridBox( UGridNode* NODE, UGridBox* BOX )
       int PageSelected = suf->GetPage(nextRootPageNo, nextRootPage);
       assert( PageSelected );
       nextRootPage->Read(&nextRootPageNo, sizeof(db_pgno_t), 0);
-    } 
+    }
     while ( nextRootPageNo != 0 );
 
     size_t offset = sizeof(db_pgno_t) + (boxSize * (NODE->numEntries%60));
     ModifyUGridNode( NODE, BOX );
-    
+
     double minD0(BOX->box.MinD(0)); double maxD0(BOX->box.MaxD(0));
     double minD1(BOX->box.MinD(1)); double maxD1(BOX->box.MaxD(1));
     double minD2(BOX->box.MinD(2)); double maxD2(BOX->box.MaxD(2));
@@ -1065,7 +1065,7 @@ void UGrid::DestructUGridTree( UGridNode* NODE, int SQUARES )
   }
   else
   {
-    delete NODE->leftBottomCell;  
+    delete NODE->leftBottomCell;
     delete NODE->rightBottomCell;
     delete NODE->leftTopCell;
     delete NODE->rightTopCell;
@@ -1086,7 +1086,7 @@ void UGrid::ReadHeader()
   SmiUpdatePage* headerPage;
   int PageSelected = suf->GetPage(header->headerPageNo, headerPage);
   assert( PageSelected );
- 
+
   size_t offset = 0;
   headerPage->Read(&header->flPageNo, sizeof(db_pgno_t), offset);
   offset += sizeof(db_pgno_t);
@@ -1148,7 +1148,7 @@ void UGrid::ReadFLine()
       bucketPage->Read(&numEntries, sizeof(int), sizeof(db_pgno_t));
       size_t offset = sizeof(db_pgno_t) + sizeof(int);
       for (int j = 0; j < numEntries; j++)
-      { 
+      {
         UploadUnit  unit;
         bucketPage->Read(&unit, sizeof(UploadUnit), offset);
         offset += sizeof(UploadUnit);
@@ -1176,7 +1176,7 @@ UGridNode* UGrid::ReadUGridTree( UGridNode* FATHERNODE, UGridArea AREA,
     if (header->selectedNodePage == (SmiUpdatePage*)0)
     {
       // Select first node page
-      int PageSelected = 
+      int PageSelected =
           suf->GetPage(header->nodePageNo,header->selectedNodePage);
       assert( PageSelected );
     }
@@ -1196,7 +1196,7 @@ UGridNode* UGrid::ReadUGridTree( UGridNode* FATHERNODE, UGridArea AREA,
   bool   tivLc, tivRc;
   size_t offset = sizeof(db_pgno_t)+(header->currentNodeRecord*nodeSize);
   header->currentNodeRecord++;
-  
+
   UGridNode* node  = new UGridNode();
   node->fatherNode = FATHERNODE;
 
@@ -1222,7 +1222,7 @@ UGridNode* UGrid::ReadUGridTree( UGridNode* FATHERNODE, UGridArea AREA,
   node->tiv.rc     = tivRc;
   node->tiv.start.ReadFrom(tivStart);
   node->tiv.end.ReadFrom(tivEnd);
-   
+
   if (SQUARES > 4)
   {
     node->leftBottomSon = ReadUGridTree(  node, AREA, (SQUARES/4),
@@ -1230,13 +1230,13 @@ UGridNode* UGrid::ReadUGridTree( UGridNode* FATHERNODE, UGridArea AREA,
                                              (TOPROW-((int)sqrt(SQUARES)/2)));
 
     node->rightBottomSon = ReadUGridTree( node, AREA, (SQUARES/4),
-                                              RIGHTCOL, 
+                                              RIGHTCOL,
                                               (TOPROW-((int)sqrt(SQUARES)/2)));
- 
+
     node->leftTopSon = ReadUGridTree( node, AREA, (SQUARES/4),
                                             (RIGHTCOL-((int)sqrt(SQUARES)/2)),
                                              TOPROW );
-                                             
+
     node->rightTopSon = ReadUGridTree(  node, AREA, (SQUARES/4),
                                         RIGHTCOL, TOPROW );
 
@@ -1251,40 +1251,40 @@ UGridNode* UGrid::ReadUGridTree( UGridNode* FATHERNODE, UGridArea AREA,
     node->rightBottomSon = (UGridNode*)0;
     node->leftTopSon     = (UGridNode*)0;
     node->rightTopSon    = (UGridNode*)0;
-  
+
     // Calculate x/y cell length
-    double areaLenX = abs(AREA.x2 - AREA.x1); 
+    double areaLenX = abs(AREA.x2 - AREA.x1);
     double areaLenY = abs(AREA.y2 - AREA.y1);
-    double cellLenX = areaLenX / header->splits; 
+    double cellLenX = areaLenX / header->splits;
     double cellLenY = areaLenY / header->splits;
- 
+
     for (int i = 0; i < 4; i++)
     {
       int col = RIGHTCOL-1;
       int row = TOPROW-1;
-      
+
       if ( i == 0 ) { col = col-1; row = row-1; } // leftBottomCell
       if ( i == 1 ) {              row = row-1; } // rightBottomCell
       if ( i == 2 ) { col = col-1;              } // leftTopCell
-      
+
       // Create new cell object
       cells[col][row] = new UGridCell();
       UGridCell* cellPtr = cells[col][row];
-      
+
       // Assign node pointer
       cellPtr->fatherNode = node;
       if ( i == 0 ) node->leftBottomCell  = cells[col][row];
       if ( i == 1 ) node->rightBottomCell = cells[col][row];
       if ( i == 2 ) node->leftTopCell     = cells[col][row];
       if ( i == 3 ) node->rightTopCell    = cells[col][row];
-      
+
       // Create cell area
       cellPtr->area = UGridArea(0,0,0,0);
       cellPtr->area.x1  = AREA.x1 + (cellLenX * col);
       cellPtr->area.x2  = cellPtr->area.x1 + cellLenX;
-      cellPtr->area.y1  = AREA.y1 + (cellLenY * row); 
+      cellPtr->area.y1  = AREA.y1 + (cellLenY * row);
       cellPtr->area.y2  = cellPtr->area.y1 + cellLenY;
-      
+
       // Read cell data from cell page
       db_pgno_t cellPageNo = header->cellPageNo[(col/8)][(row/8)];
       SmiUpdatePage* cellPage;
@@ -1307,7 +1307,7 @@ UGridNode* UGrid::ReadUGridTree( UGridNode* FATHERNODE, UGridArea AREA,
       cellPage->Read(&tivLc, sizeof(bool), offset);
       offset +=  sizeof(bool);
       cellPage->Read(&tivRc, sizeof(bool), offset);
-      
+
       cellPtr->tiv.start  = DateTime(0,0,instanttype);
       cellPtr->tiv.end    = DateTime(0,0,instanttype);
       cellPtr->tiv.lc     = tivLc;
@@ -1316,7 +1316,7 @@ UGridNode* UGrid::ReadUGridTree( UGridNode* FATHERNODE, UGridArea AREA,
       cellPtr->tiv.end.ReadFrom(tivEnd);
     }
   }
-   
+
   if (SQUARES == header->numCells)
   {
     header->currentNodeRecord = 0;
@@ -1334,11 +1334,11 @@ Writes UGrid-header information into file.
 ******************************************************************************/
 
 void UGrid::UpdateHeader()
-{    
+{
   SmiUpdatePage* headerPage;
   int PageSelected = suf->GetPage(header->headerPageNo, headerPage);
   assert( PageSelected );
-  
+
   size_t offset = 0;
   headerPage->Write(&header->flPageNo, sizeof(db_pgno_t), offset);
   offset += sizeof(db_pgno_t);
@@ -1383,7 +1383,7 @@ void UGrid::UpdateFLine()
   size_t flPageOffset = 0;
 
   for (int i = 0; i < flBuckets; i++)
-  {   
+  {
     SmiUpdatePage* bucketPage;
     db_pgno_t      bucketPageNo;
     db_pgno_t      nextPageNo;
@@ -1440,7 +1440,7 @@ Writes UGridTree information into file.
 
 void UGrid::UpdateUGridTree( UGridNode* NODE, int SQUARES,
                              int RIGHTCOL, int TOPROW )
-{ 
+{
   if((header->currentNodeRecord%64) == 0)
   {
     if (header->selectedNodePage == (SmiUpdatePage*)0)
@@ -1451,7 +1451,7 @@ void UGrid::UpdateUGridTree( UGridNode* NODE, int SQUARES,
       assert( PageSelected );
     }
     else
-    { 
+    {
       // Select next node page
       db_pgno_t nextPageNo;
       header->selectedNodePage->Read(&nextPageNo,sizeof(db_pgno_t),0);
@@ -1473,14 +1473,14 @@ void UGrid::UpdateUGridTree( UGridNode* NODE, int SQUARES,
     }
     header->currentNodeRecord = 0;
   }
-  
+
   // Write node data into page
   size_t offset = sizeof(db_pgno_t) + (header->currentNodeRecord*nodeSize);
   header->currentNodeRecord++;
-  
+
   double tivStart = NODE->tiv.start.ToDouble();
   double tivEnd   = NODE->tiv.end.ToDouble();
-  
+
   header->selectedNodePage->Write(&NODE->numEntries, sizeof(int), offset);
   offset +=  sizeof(int);
   header->selectedNodePage->Write(&NODE->currentPage,sizeof(db_pgno_t),offset);
@@ -1497,7 +1497,7 @@ void UGrid::UpdateUGridTree( UGridNode* NODE, int SQUARES,
   offset +=  sizeof(bool);
   header->selectedNodePage->Write(&NODE->tiv.rc, sizeof(bool), offset);
   offset +=  sizeof(bool);
-   
+
   if (SQUARES > 4)
   {
     UpdateUGridTree( NODE->leftBottomSon, (SQUARES/4),
@@ -1517,23 +1517,23 @@ void UGrid::UpdateUGridTree( UGridNode* NODE, int SQUARES,
     {
       int col = RIGHTCOL-1;
       int row = TOPROW-1;
-      
+
       if ( i == 0 ) { col = col-1; row = row-1; } // leftBottomCell
       if ( i == 1 ) {              row = row-1; } // rightBottomCell
       if ( i == 2 ) { col = col-1;              } // leftTopCell
-      
+
       // Current cell pointer
       UGridCell* cellPtr = cells[col][row];
-    
+
       // Select cell page
       db_pgno_t cellPageNo = header->cellPageNo[(col/8)][(row/8)];
       SmiUpdatePage* cellPage;
       int PageSelected = suf->GetPage(cellPageNo, cellPage);
       assert( PageSelected );
-      
+
       tivStart = cellPtr->tiv.start.ToDouble();
       tivEnd   = cellPtr->tiv.end.ToDouble();
-      
+
       // Write cell data into cell page
       offset =  ((col%8)+((row%8)*8))*cellSize;
       cellPage->Write(&cellPtr->numEntries, sizeof(int), offset);
@@ -1554,7 +1554,7 @@ void UGrid::UpdateUGridTree( UGridNode* NODE, int SQUARES,
       offset +=  sizeof(bool);
     }
   }
-   
+
   if (SQUARES == header->numCells)
   {
     header->currentNodeRecord = 0;
@@ -1581,15 +1581,15 @@ bool UGrid::UpdateUGrid()
   {
     // Lock SmiUpdateFile
     SetSemaphore(true);
-    
+
     // Update header in SmiUpdateFile
     UpdateHeader();
-   
+
     // Update front line in SmiUpdateFile
     UpdateFLine();
-  
+
     // Update UGrid-tree
-    UpdateUGridTree( header->rootNode, header->numCells, 
+    UpdateUGridTree( header->rootNode, header->numCells,
                      header->splits, header->splits );
 
     // Release SmiUpdateFile
@@ -1612,7 +1612,7 @@ void UGrid::insertPageID(db_pgno_t NODEPAGEID, bool HUPAGEID)
   SmiUpdatePage* selectedNodePage;
   int PageSelected = suf->GetPage(NODEPAGEID,selectedNodePage);
   assert( PageSelected );
-  
+
   db_pgno_t  pageID;
   bool       huPageID;
   size_t offset = sizeof(db_pgno_t);
@@ -1623,7 +1623,7 @@ void UGrid::insertPageID(db_pgno_t NODEPAGEID, bool HUPAGEID)
       offset += sizeof(db_pgno_t);
       selectedNodePage->Read(&huPageID, sizeof(bool), offset);
       offset += (sizeof(bool) + (6*sizeof(double)));
-      
+
       if (huPageID && pageID != 0) pages.insert(pageID);
       if (!huPageID) insertPageID(pageID, huPageID);
   }
@@ -1640,14 +1640,14 @@ Finds HistoryUnit pages in the UGridTree.
 void UGrid::FindHistoryPages(UGridArea AREA, Instant TIME1, Instant TIME2,
                              UGridNode* NODE, int SQUARES)
 {
-   if ((NODE->numEntries > 0) && 
+   if ((NODE->numEntries > 0) &&
         CheckUGridNode(AREA,TIME1,TIME2,NODE))
    {
     // Find UGridBoxes in node page
     SmiUpdatePage* selectedNodePage;
     int PageSelected = suf->GetPage(NODE->currentPage,selectedNodePage);
     assert( PageSelected );
-    
+
     size_t offset = sizeof(db_pgno_t);
 
     for (int i = 0; i < NODE->numEntries; i++)
@@ -1664,7 +1664,7 @@ void UGrid::FindHistoryPages(UGridArea AREA, Instant TIME1, Instant TIME2,
           offset = sizeof(db_pgno_t);
         }
       }
-      
+
       // Read UGridBox
       db_pgno_t  pageID;
       bool huPageID;
@@ -1685,13 +1685,13 @@ void UGrid::FindHistoryPages(UGridArea AREA, Instant TIME1, Instant TIME2,
       offset +=  sizeof(double);
       selectedNodePage->Read(&maxD2, sizeof(double), offset);
       offset +=  sizeof(double);
-      
-      Rectangle<3>* rect = new Rectangle<3>(true, minD0-tol, maxD0+tol, 
+
+      Rectangle<3>* rect = new Rectangle<3>(true, minD0-tol, maxD0+tol,
                                                   minD1-tol, maxD1+tol,
                                                   minD2-tol, maxD2+tol);
-      
+
       UGridBox* box = new UGridBox(pageID, huPageID, *rect);
-      
+
       if (CheckUGridBox(AREA,TIME1,TIME2,*box))
       {
         // UGridBox is in searchWindow
@@ -1770,9 +1770,9 @@ bool UGrid::GetSemaphore()
  // Wait until file is released or timeout is 0
  int timeout = 100000;
   while(value && (timeout >= 0))
-  { 
+  {
     headerPage->Read(&value, sizeof(bool), sizeof(UGridHeader));
-    for(int i = 0; i < 10000; i++); 
+    for(int i = 0; i < 10000; i++);
     timeout--;
   }
   return value;
@@ -1823,7 +1823,7 @@ Creates a new UGrid object.
 ******************************************************************************/
 
 ListExpr CreateTM(ListExpr args)
-{  
+{
   if( nl->ListLength( args ) == 2 &&
       nl->IsEqual(nl->First(args),"rect") &&
       nl->IsEqual(nl->Second(args),"int") )
@@ -1843,7 +1843,7 @@ ListExpr CreateTM(ListExpr args)
 int CreateVM(Word* args, Word& result, int message, Word& local, Supplier s)
 {
   UGrid* ugridPtr = static_cast<UGrid*>(qp->ResultStorage(s).addr);
-  
+
   Rectangle<2>* rect = static_cast<Rectangle<2>*>(args[0].addr);
   CcInt*  partitions = static_cast<CcInt*>(args[1].addr);
 
@@ -1854,7 +1854,7 @@ int CreateVM(Word* args, Word& result, int message, Word& local, Supplier s)
   double y2(rect->MaxD(1));
   UGridArea area(x1,y1,x2,y2);
   area = ModifyArea(area);
-  
+
   // Check number of partitions
   int numPartitions = partitions->GetValue();
   if (!(numPartitions == 4096 ||
@@ -1914,22 +1914,22 @@ HistoryUnit* ComputeHistoryUnit( UGridArea AREA, int SPLITS, UnitPos POS1,
   double left      = (startCol)*xLen + AREA.x1;
   double top       = (startRow+1)*yLen + AREA.y1;
   double bottom    = (startRow)*yLen + AREA.y1;
- 
-  // Compute intersection points 
+
+  // Compute intersection points
   UnitPos* isR = new UnitPos(0,0);
   UnitPos* isL = new UnitPos(0,0);
   UnitPos* isT = new UnitPos(0,0);
   UnitPos* isB = new UnitPos(0,0);
- 
-  bool intersectsRight = ComputeIntersection(right, bottom, right, top, 
+
+  bool intersectsRight = ComputeIntersection(right, bottom, right, top,
                                 POS1.x, POS1.y, POS2.x, POS2.y, isR);
-  bool intersectsLeft = ComputeIntersection(left, bottom, left,top, 
+  bool intersectsLeft = ComputeIntersection(left, bottom, left,top,
                                 POS1.x, POS1.y, POS2.x, POS2.y, isL);
-  bool intersectsTop = ComputeIntersection(left, top, right, top, 
+  bool intersectsTop = ComputeIntersection(left, top, right, top,
                                 POS1.x, POS1.y, POS2.x, POS2.y, isT);
   bool intersectsBottom = ComputeIntersection(left, bottom, right, bottom,
                                 POS1.x, POS1.y, POS2.x, POS2.y, isB);
-  
+
   // Create new end point for history unit
   UnitPos p(POS2.x,POS2.y);
   for (int i = 0; i < 4; i++) intersects[i] = false;
@@ -1941,7 +1941,7 @@ HistoryUnit* ComputeHistoryUnit( UGridArea AREA, int SPLITS, UnitPos POS1,
   delete isL;
   delete isT;
   delete isB;
-  
+
   HistoryUnit* hu = new HistoryUnit(0, 0, TIV.start.ToDouble(),
                                     TIV.end.ToDouble(), POS1, p);
   return hu;
@@ -1957,7 +1957,7 @@ the insertStream operator make use of this method.
 ******************************************************************************/
 
 int InsertHandle(UGrid* UGRIDPTR, UploadUnit* UNITPTR)
-{   
+{
   SmiUpdateFile* suf  = UGRIDPTR->GetUpdateFile();
   UGridHeader*    hPtr = UGRIDPTR->GetHeader();
 
@@ -1969,7 +1969,7 @@ int InsertHandle(UGrid* UGRIDPTR, UploadUnit* UNITPTR)
   }
   else if (UNITPTR->GetPos().x < hPtr->area.x2+tol ||
            UNITPTR->GetPos().x > hPtr->area.x1-tol ) return 2;
-  
+
   if (hPtr->area.y1 < hPtr->area.y2)
   {
     if (UNITPTR->GetPos().y < hPtr->area.y1+tol ||
@@ -2007,14 +2007,14 @@ int InsertHandle(UGrid* UGRIDPTR, UploadUnit* UNITPTR)
 
     // Replace UploadUnit in frontline
     UGRIDPTR->frontline[moID%flBuckets][moID] = *UNITPTR;
- 
-    do 
-    {       
+
+    do
+    {
       // Find cell
       int col =ComputeLine(hPtr->area.x1, hPtr->area.x2, hPtr->splits, pos1.x);
       int row =ComputeLine(hPtr->area.y1, hPtr->area.y2, hPtr->splits, pos1.y);
       UGridCell* cellPtr = UGRIDPTR->GetCell(col,row);
-     
+
       SmiUpdatePage* page;
       if ((cellPtr->numEntries % maxHistoryUnits) == 0)
       {
@@ -2023,7 +2023,7 @@ int InsertHandle(UGrid* UGRIDPTR, UploadUnit* UNITPTR)
             // Insert UGridBox into UGrid-tree
           UGridBox* box = CreateUGridBox( cellPtr, (UGridNode*)0 );
           if (box != 0) UGRIDPTR->InsertUGridBox( cellPtr->fatherNode, box );
-      
+
           // Put current page back to disk
           //suf->PutPage(cellPtr->currentPage, true);
         }
@@ -2034,14 +2034,14 @@ int InsertHandle(UGrid* UGRIDPTR, UploadUnit* UNITPTR)
       }
       int PageSelected = suf->GetPage(cellPtr->currentPage, page);
       assert( PageSelected );
-      
+
       // Create/split new history unit
       hu = ComputeHistoryUnit( hPtr->area, hPtr->splits, pos1, pos2, huTiv );
       hu->moID  = moID;
       hu->huID  = hPtr->numEntries;
-      
+
       // Check/modify pos1 and pos2 of cell
-      if ((!cellPtr->tiv.lc) || (cellPtr->pos1.x > hu->pos1.x))   
+      if ((!cellPtr->tiv.lc) || (cellPtr->pos1.x > hu->pos1.x))
          cellPtr->pos1.x = hu->pos1.x;
       if ((!cellPtr->tiv.lc) || (cellPtr->pos1.x > hu->pos2.x))
          cellPtr->pos1.x = hu->pos2.x;
@@ -2057,33 +2057,33 @@ int InsertHandle(UGrid* UGRIDPTR, UploadUnit* UNITPTR)
          cellPtr->pos2.y = hu->pos1.y;
       if ((!cellPtr->tiv.rc) || (cellPtr->pos2.y < hu->pos2.y))
          cellPtr->pos2.y = hu->pos2.y;
-      
+
       // Check/modify UGrid time interval
       if ((!hPtr->tiv.lc) || (hPtr->tiv.start > huTiv.start))
       {
         hPtr->tiv.start = huTiv.start;
         hPtr->tiv.lc = true;
       }
-    
+
       if ((!hPtr->tiv.rc) || (hPtr->tiv.end < huTiv.end))
       {
         hPtr->tiv.end = huTiv.end;
         hPtr->tiv.rc = true;
       }
-      
+
       // Check/modify cell time interval
       if ((!cellPtr->tiv.lc) || (cellPtr->tiv.start > huTiv.start))
       {
         cellPtr->tiv.start = huTiv.start;
         cellPtr->tiv.lc = true;
       }
-      
+
       if ((!cellPtr->tiv.rc) || (cellPtr->tiv.end < huTiv.end))
       {
         cellPtr->tiv.end = huTiv.end;
         cellPtr->tiv.rc = true;
       }
-      
+
       // Initialize tiv and number of entries in page
       if ((cellPtr->numEntries % maxHistoryUnits) == 0)
       {
@@ -2091,19 +2091,19 @@ int InsertHandle(UGrid* UGRIDPTR, UploadUnit* UNITPTR)
         page->Write(&pageEntries, sizeof(int), 0);
         page->Write(&huTiv,sizeof(Interval<Instant>), sizeof(int));
       }
-      
+
       // Check/modify page time interval
       Interval<Instant> pageTiv;
       page->Read(&pageTiv, sizeof(Interval<Instant> ), sizeof(int));
       if (huTiv.start < pageTiv.start) pageTiv.start = huTiv.start;
       if (huTiv.end > pageTiv.end) pageTiv.end = huTiv.end;
-      
+
       // Read number of entries in page
       int pageEntries;
       page->Read( &pageEntries, sizeof(int), 0 );
-      
+
       // Write HistoryUnit in page
-      size_t offset =  sizeof(int) + sizeof(Interval<Instant>) + 
+      size_t offset =  sizeof(int) + sizeof(Interval<Instant>) +
                       + ((pageEntries)*(sizeof(HistoryUnit)));
       page->Write(&hu->moID, sizeof(int), offset );
       offset += sizeof(int);
@@ -2117,14 +2117,14 @@ int InsertHandle(UGrid* UGRIDPTR, UploadUnit* UNITPTR)
       offset += sizeof(UnitPos);
       page->Write( &hu->pos2, sizeof(UnitPos), offset );
       offset += sizeof(UnitPos);
-      
+
       // Increase number of entries in cell and page
       cellPtr->numEntries++;
       pageEntries++;
       page->Write(&pageEntries, sizeof(int), 0);
-       
+
       // Compute offset for next cell
-      if (intersects[0] == true) pos1.x = hu->pos2.x + tol; 
+      if (intersects[0] == true) pos1.x = hu->pos2.x + tol;
       else if (intersects[1] == true) pos1.x = hu->pos2.x - tol;
       else pos1.x = hu->pos2.x;
       if (intersects[2] == true) pos1.y = hu->pos2.y + tol;
@@ -2135,7 +2135,7 @@ int InsertHandle(UGrid* UGRIDPTR, UploadUnit* UNITPTR)
               CompareFloats(pos2.y, hu->pos2.y)) );
   }
   hPtr->numEntries++;
-  
+
   if ((hPtr->numEntries % updateCycle) == 0)
   {
     // Update file
@@ -2182,7 +2182,7 @@ void GenerateErrorMsg(bool error[3])
 
 
 ListExpr InsertUploadTM(ListExpr args)
-{  
+{
   if ( nl->ListLength( args ) == 2 &&
        nl->IsEqual(nl->First(args), "ugrid") &&
        nl->IsEqual(nl->Second(args), "uploadunit"))
@@ -2200,7 +2200,7 @@ ListExpr InsertUploadTM(ListExpr args)
 
 int InsertUploadVM(Word* args, Word& result, int message, Word& local,
                  Supplier s)
-{  
+{
   UGrid*       ugridPtr = static_cast<UGrid*>(args[0].addr);
   UploadUnit* unitPtr = static_cast<UploadUnit*>(args[1].addr);
   bool error[3];
@@ -2213,7 +2213,7 @@ int InsertUploadVM(Word* args, Word& result, int message, Word& local,
   if (res == 1) error[0] = true;
   if (res == 2) error[1] = true;
   if (res == 3) error[2] = true;
-  
+
   // Update file
   if(!ugridPtr->UpdateUGrid()) error[0] = true;
 
@@ -2260,13 +2260,13 @@ Inserts a stream of uploads into UGrid.
 ******************************************************************************/
 
 ListExpr InsertStreamTM(ListExpr args)
-{  
+{
   NList type(args);
   if ( !type.hasLength(3) )
   {
    return listutils::typeError("Expecting three arguments.");
   }
-  
+
   NList first = type.first();
   if ( !first.hasLength(2)  ||
        !first.first().isSymbol(STREAM) ||
@@ -2281,17 +2281,17 @@ ListExpr InsertStreamTM(ListExpr args)
   {
     return NList::typeError( "UGrid object for second argument expected!" );
   }
-  
+
   NList third = type.third();
-  if ( !third.isSymbol() ) 
+  if ( !third.isSymbol() )
   {
     return NList::typeError( "Attribute name for third argument expected!" );
   }
-  
+
   string attrname = type.third().str();
   ListExpr attrtype = nl->Empty();
   int j = FindAttribute(first.second().second().listExpr(),attrname,attrtype);
-  
+
   if ( j != 0 )
   {
     if ( nl->SymbolValue(attrtype) != "uploadunit" )
@@ -2315,21 +2315,21 @@ ListExpr InsertStreamTM(ListExpr args)
 
 int InsertStreamVM(Word* args, Word& result, int message,
                   Word& local, Supplier s)
-{  
+{
   Word currentTupleWord(Address(0));
   int attributeIndex = static_cast<CcInt*>( args[3].addr )->GetIntval() - 1;
   UGrid*    ugridPtr = static_cast<UGrid*>(args[1].addr);
 
   bool error[3];
-  for (int i = 0; i < 3; i++) error[i] = false;         
+  for (int i = 0; i < 3; i++) error[i] = false;
 
   qp->Open(args[0].addr);
   qp->Request(args[0].addr, currentTupleWord);
-  
+
   while(qp->Received(args[0].addr))
   {
     Tuple* currentTuple = static_cast<Tuple*>( currentTupleWord.addr );
-    UploadUnit* currentAttr = 
+    UploadUnit* currentAttr =
     static_cast<UploadUnit*>(currentTuple->GetAttribute(attributeIndex));
     if( currentAttr->IsDefined() )
     {
@@ -2345,7 +2345,7 @@ int InsertStreamVM(Word* args, Word& result, int message,
     qp->Request(args[0].addr, currentTupleWord);
   }
   qp->Close(args[0].addr);
-  
+
   // Update file
   if(!ugridPtr->UpdateUGrid()) error[0] = true;
 
@@ -2390,12 +2390,12 @@ Returns all history units which intersects the search window.
 
 8.1 FindHistoryUnits-method
 
-Finds all history units which intersect the search window. The 
+Finds all history units which intersect the search window. The
 intersectsWindow and the insideWindow operator make use of this method.
 
 ******************************************************************************/
 
-set<HistoryUnit*> FindHistoryUnits( UGrid* UGRIDPTR, UGridArea AREA, 
+set<HistoryUnit*> FindHistoryUnits( UGrid* UGRIDPTR, UGridArea AREA,
                                     Instant TIME1, Instant TIME2)
 {
   UGridHeader* hPtr = UGRIDPTR->GetHeader();
@@ -2403,31 +2403,31 @@ set<HistoryUnit*> FindHistoryUnits( UGrid* UGRIDPTR, UGridArea AREA,
   map<int,HistoryUnit*>::iterator huIt;
   map<int,HistoryUnit*> historyUnits;
   set<HistoryUnit*> hits;
-  
+
   // Check if SmiUpdateFile is released
   if(UGRIDPTR->GetSemaphore()) return hits;;
-   
+
   // Lock SmiUpdateFile
   UGRIDPTR->SetSemaphore(true);
-  
+
   // Check/modify search window
   if ((AREA.x2 < hPtr->area.x1) ||
       (AREA.x1 > hPtr->area.x2) ||
       (AREA.y2 < hPtr->area.y1) ||
       (AREA.y1 > hPtr->area.y2))
       return hits; // Search window does not intersect the UGrid area
-      
+
   if (AREA.x1<hPtr->area.x1) AREA.x1 = hPtr->area.x1+tol;
   if (AREA.x2>hPtr->area.x2) AREA.x2 = hPtr->area.x2-tol;
   if (AREA.y1<hPtr->area.y1) AREA.y1 = hPtr->area.y1+tol;
   if (AREA.y2>hPtr->area.y2) AREA.y2 = hPtr->area.y2-tol;
-  
+
   // Find current pages of cell candidates
   int left  = ComputeLine(hPtr->area.x1, hPtr->area.x2, hPtr->splits, AREA.x1);
   int right = ComputeLine(hPtr->area.x1, hPtr->area.x2, hPtr->splits, AREA.x2);
   int bottom= ComputeLine(hPtr->area.y1, hPtr->area.y2, hPtr->splits, AREA.y1);
   int top   = ComputeLine(hPtr->area.y1, hPtr->area.y2, hPtr->splits, AREA.y2);
-  
+
   // Clear page set
   UGRIDPTR->pages.clear();
 
@@ -2442,11 +2442,11 @@ set<HistoryUnit*> FindHistoryUnits( UGrid* UGRIDPTR, UGridArea AREA,
       }
     }
   }
-  
+
   // Find history pages in UGridTree
   UGRIDPTR->FindHistoryPages(AREA,TIME1,TIME2,UGRIDPTR->GetHeader()->rootNode,
                              UGRIDPTR->GetHeader()->numCells);
-  
+
   db_pgno_t pageID;
   SmiRecord pageRec;
   int moID;
@@ -2458,17 +2458,17 @@ set<HistoryUnit*> FindHistoryUnits( UGrid* UGRIDPTR, UGridArea AREA,
 
   // Find  HistoryUnits in pages
   for (pIt = UGRIDPTR->pages.begin(); pIt != UGRIDPTR->pages.end();)
-  {    
+  {
     pageID = *pIt;
     SmiUpdatePage* page;
     int PageSelected = UGRIDPTR->GetUpdateFile()->GetPage(pageID, page);
     assert( PageSelected );
-    
+
     // Read number of HistoryUnits in page
     int numHU;
     page->Read( &numHU, sizeof(int), 0 );
     size_t offset = sizeof(int) + sizeof(Interval<Instant>);
-    
+
     // Read HistoryUnits
     for (int i = 0; i < numHU; i++)
     {
@@ -2484,7 +2484,7 @@ set<HistoryUnit*> FindHistoryUnits( UGrid* UGRIDPTR, UGridArea AREA,
       offset += sizeof(UnitPos);
       page->Read( &pos2, sizeof(UnitPos), offset );
       offset += sizeof(UnitPos);
-      
+
       // Merge HistoryUnits if necessary
       bool found = false;
       huIt = historyUnits.find(huID);
@@ -2522,7 +2522,7 @@ set<HistoryUnit*> FindHistoryUnits( UGrid* UGRIDPTR, UGridArea AREA,
     Instant huEnd(instanttype);
     huStart.ReadFrom(huPtr->tivStart);
     huEnd.ReadFrom(huPtr->tivEnd);
-    
+
     if ( TIME1   <= huEnd &&
          TIME2   >= huStart &&
        ((AREA.x1 <= huPtr->pos1.x && AREA.y1 <= huPtr->pos1.y  &&
@@ -2533,10 +2533,10 @@ set<HistoryUnit*> FindHistoryUnits( UGrid* UGRIDPTR, UGridArea AREA,
       else delete huPtr;
       historyUnits.erase(huIt++);
   }
-   
+
   // Release SmiUpdateFile
   UGRIDPTR->SetSemaphore(false);
-  
+
   return hits;
 }
 
@@ -2580,12 +2580,12 @@ ListExpr IntersectsWinTM(ListExpr args)
 int IntersectsWinVM(Word* args, Word& result, int message,
                        Word& local, Supplier s)
 {
-  struct Iterator 
+  struct Iterator
   {
     set<HistoryUnit*> hits;
     set<HistoryUnit*>::iterator it;
 
-    Iterator(set<HistoryUnit*> HITS) 
+    Iterator(set<HistoryUnit*> HITS)
     {
       hits = HITS;
       it = hits.begin();
@@ -2597,7 +2597,7 @@ int IntersectsWinVM(Word* args, Word& result, int message,
 
   switch( message )
   {
-    case OPEN: 
+    case OPEN:
    {
       UGrid* ugridPtr     = static_cast<UGrid*>(args[0].addr);
       Rectangle<2>*  rect = static_cast<Rectangle<2>*>(args[1].addr);
@@ -2622,13 +2622,13 @@ int IntersectsWinVM(Word* args, Word& result, int message,
 
       // Find history units which intersect the search window
       set<HistoryUnit*> hits = FindHistoryUnits(ugridPtr,area,*time1,*time2);
-      
+
       // Initialize iterator
       iterator = new Iterator(hits);
       local.addr = iterator;
       return 0;
     }
-    case REQUEST: 
+    case REQUEST:
     {
       if ( (iterator != 0) && (iterator->it != iterator->hits.end()) )
       {
@@ -2659,7 +2659,7 @@ int IntersectsWinVM(Word* args, Word& result, int message,
         return CANCEL;
       }
     }
-    case CLOSE: 
+    case CLOSE:
     {
       if (iterator != 0)
       {
@@ -2668,7 +2668,7 @@ int IntersectsWinVM(Word* args, Word& result, int message,
       }
       return 0;
     }
-    default: 
+    default:
     {
       return -1;
     }
@@ -2736,12 +2736,12 @@ ListExpr InsideWinTM(ListExpr args)
 
 int InsideWinVM(Word* args, Word& result,int message,Word& local,Supplier s)
 {
-  struct Iterator 
+  struct Iterator
   {
     set<HistoryUnit*> hits;
     set<HistoryUnit*>::iterator it;
 
-    Iterator(set<HistoryUnit*> HITS) 
+    Iterator(set<HistoryUnit*> HITS)
     {
       hits = HITS;
       it = hits.begin();
@@ -2753,13 +2753,13 @@ int InsideWinVM(Word* args, Word& result,int message,Word& local,Supplier s)
 
   switch( message )
   {
-    case OPEN: 
+    case OPEN:
    {
      UGrid* ugridPtr     = static_cast<UGrid*>(args[0].addr);
      Rectangle<2>*  rect = static_cast<Rectangle<2>*>(args[1].addr);
      Instant* time1      = static_cast<Instant*>(args[2].addr);
      Instant* time2      = static_cast<Instant*>(args[3].addr);
-     
+
      // Change time values if necessary
      if  (*time1 > *time2 )
      {
@@ -2767,7 +2767,7 @@ int InsideWinVM(Word* args, Word& result,int message,Word& local,Supplier s)
        time2 = time1;
        time1 = temp;
      }
-     
+
      // Create UGrid area
      double x1(rect->MinD(0));
      double x2(rect->MaxD(0));
@@ -2775,7 +2775,7 @@ int InsideWinVM(Word* args, Word& result,int message,Word& local,Supplier s)
      double y2(rect->MaxD(1));
      UGridArea area(x1,y1,x2,y2);
      area = ModifyArea(area);
-     
+
      // Find history units which intersects the search window
      set<HistoryUnit*> tempHits =FindHistoryUnits(ugridPtr,area,*time1,*time2);
 
@@ -2790,7 +2790,7 @@ int InsideWinVM(Word* args, Word& result,int message,Word& local,Supplier s)
        Instant huEnd(instanttype);
        huStart.ReadFrom(ugridPtr->tivStart);
        huEnd.ReadFrom(ugridPtr->tivEnd);
-       
+
        if ( *time1  <= huStart &&
             *time2  >= huEnd &&
             area.x1 <= ugridPtr->pos1.x && area.x1 <= ugridPtr->pos2.x &&
@@ -2802,13 +2802,13 @@ int InsideWinVM(Word* args, Word& result,int message,Word& local,Supplier s)
        }
        else delete ugridPtr;
      }
-      
+
       // Initialize iterator
       iterator = new Iterator(hits);
       local.addr = iterator;
       return 0;
     }
-    case REQUEST: 
+    case REQUEST:
     {
       if ( (iterator != 0) && (iterator->it != iterator->hits.end()) )
       {
@@ -2840,7 +2840,7 @@ int InsideWinVM(Word* args, Word& result,int message,Word& local,Supplier s)
         return CANCEL;
       }
     }
-    case CLOSE: 
+    case CLOSE:
     {
       if (iterator != 0)
       {
@@ -2849,7 +2849,7 @@ int InsideWinVM(Word* args, Word& result,int message,Word& local,Supplier s)
       }
       return 0;
     }
-    default: 
+    default:
     {
       return -1;
     }
@@ -2908,15 +2908,15 @@ ListExpr GetTrajectoryTM(ListExpr args)
 
 ******************************************************************************/
 
-int GetTrajectoryVM( Word* args, Word& result, int message, Word& local, 
+int GetTrajectoryVM( Word* args, Word& result, int message, Word& local,
                      Supplier s )
 {
-  struct Iterator 
+  struct Iterator
   {
     set<HistoryUnit*> hits;
     set<HistoryUnit*>::iterator it;
 
-    Iterator(set<HistoryUnit*> HITS) 
+    Iterator(set<HistoryUnit*> HITS)
     {
       hits = HITS;
       it = hits.begin();
@@ -2928,17 +2928,17 @@ int GetTrajectoryVM( Word* args, Word& result, int message, Word& local,
 
   switch( message )
   {
-    case OPEN: 
+    case OPEN:
    {
      UGrid* ugritPtr  = static_cast<UGrid*>(args[0].addr);
      CcInt* movObjId = static_cast<CcInt*>(args[1].addr);
      int    moID     = movObjId->GetValue();
-     
+
      UGridArea area (ugritPtr->GetHeader()->area.x1,
                      ugritPtr->GetHeader()->area.y1,
                      ugritPtr->GetHeader()->area.x2,
                      ugritPtr->GetHeader()->area.y2);
-    
+
      // Find all history units
      set<HistoryUnit*> tempHits = FindHistoryUnits( ugritPtr, ModifyArea(area),
                                               ugritPtr->GetHeader()->tiv.start,
@@ -2951,20 +2951,20 @@ int GetTrajectoryVM( Word* args, Word& result, int message, Word& local,
           itTempHits++)
      {
        HistoryUnit* ugritPtr = *itTempHits;
-       
+
        if ( moID == ugritPtr->moID )
        {
          hits.insert(ugritPtr);
        }
        else delete ugritPtr;
      }
-      
+
       // Initialize iterator
       iterator = new Iterator(hits);
       local.addr = iterator;
       return 0;
     }
-    case REQUEST: 
+    case REQUEST:
     {
       if ( iterator->it != iterator->hits.end() )
       {
@@ -2996,7 +2996,7 @@ int GetTrajectoryVM( Word* args, Word& result, int message, Word& local,
         return CANCEL;
       }
     }
-    case CLOSE: 
+    case CLOSE:
     {
       if (iterator != 0)
       {
@@ -3005,7 +3005,7 @@ int GetTrajectoryVM( Word* args, Word& result, int message, Word& local,
       }
       return 0;
     }
-    default: 
+    default:
     {
       return -1;
     }
@@ -3062,7 +3062,7 @@ int CurrentUploadVM(Word* args,Word& result,int message,Word& local,Supplier s)
 {
   UGrid* ugridPtr = static_cast<UGrid*>(args[0].addr);
   CcInt* moID   = static_cast<CcInt*>(args[1].addr);
-  
+
   UploadUnit* unitPtr = static_cast<UploadUnit*>(qp->ResultStorage(s).addr);
 
   // Find UploadUnit in frontline
@@ -3070,7 +3070,7 @@ int CurrentUploadVM(Word* args,Word& result,int message,Word& local,Supplier s)
   map<int,UploadUnit>::iterator it;
   it = ugridPtr->frontline[id%flBuckets].find(id);
   if ( it == ugridPtr->frontline[id%flBuckets].end() )
-  { 
+  {
     unitPtr = new UploadUnit();
     unitPtr->SetDefined(false);
   }
@@ -3080,7 +3080,7 @@ int CurrentUploadVM(Word* args,Word& result,int message,Word& local,Supplier s)
     unitPtr->SetDefined(true);
   }
   result.setAddr( unitPtr );
-  return 0;  
+  return 0;
 }
 
 /******************************************************************************
@@ -3111,7 +3111,7 @@ class UGridAlgebra : public Algebra
     UGridAlgebra() : Algebra()
     {
       AddTypeConstructor(&UGridTC);
-      
+
       AddOperator( CreateInfo(),        CreateVM,        CreateTM );
       AddOperator( InsertUploadInfo(),  InsertUploadVM,  InsertUploadTM );
       AddOperator( InsertStreamInfo(),  InsertStreamVM,  InsertStreamTM );
@@ -3131,7 +3131,7 @@ class UGridAlgebra : public Algebra
 
 extern "C"
 Algebra*
-InitializeUGridAlgebra( NestedList *nlRef, 
+InitializeUGridAlgebra( NestedList *nlRef,
                         QueryProcessor *qpRef,
                         AlgebraManager* amRef )
 {

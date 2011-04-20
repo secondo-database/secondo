@@ -47,7 +47,7 @@ SETI-Algebra offers the following methods:
 - getTrajectory     -> Returns all trajectory segments wich belongs
                        to the stated moving object.
 - currentUpload     -> Returns the current upload.
- 
+
 
 2 Includes and globals
 
@@ -113,7 +113,7 @@ SETIArea ModifyArea(SETIArea AREA)
 {
   double tempX = 0;
   double tempY = 0;
-  
+
   if (AREA.x1 > AREA.x2)
   {
     tempX   = AREA.x2;
@@ -147,7 +147,7 @@ int ComputeLine(double BORDER1 ,double BORDER2, int SPLITS, double POS)
   int i = 0;
 
   while ((BORDER1 + (i*len)) <= POS) i++;
-  
+
   return i-1;
 }
 
@@ -155,7 +155,7 @@ int ComputeLine(double BORDER1 ,double BORDER2, int SPLITS, double POS)
 
 3.4 ComputeIntersection
 
-Computes the intersection point of two lines.
+Computes the intersection point of two lines (A,B) and (C,D).
 
 ******************************************************************************/
 
@@ -168,10 +168,10 @@ bool ComputeIntersection( double Ax, double Ay,
 
   double  distAB, cos, sin, newX, ABpos ;
 
-  if (Ax==Bx && Ay==By || Cx==Dx && Cy==Dy) return false;
+  if ( ((Ax==Bx) && (Ay==By)) || ((Cx==Dx) && (Cy==Dy)) ) return false;
 
-  if (Ax==Cx && Ay==Cy || Bx==Cx && By==Cy
-  ||  Ax==Dx && Ay==Dy || Bx==Dx && By==Dy) return false;
+  if ( ((Ax==Cx) && (Ay==Cy)) || ((Bx==Cx) && (By==Cy))
+  ||  ((Ax==Dx) && (Ay==Dy)) || ((Bx==Dx) && (By==Dy)) ) return false;
 
   Bx-=Ax; By-=Ay;
   Cx-=Ax; Cy-=Ay;
@@ -186,15 +186,15 @@ bool ComputeIntersection( double Ax, double Ay,
   newX=Dx*cos+Dy*sin;
   Dy  =Dy*cos-Dx*sin; Dx=newX;
 
-  if (Cy<0. && Dy<0. || Cy>=0. && Dy>=0.) return false;
+  if ( ((Cy<0) && (Dy<0)) || ((Cy>=0) && (Dy>=0)) ) return false;
 
   ABpos=Dx+(Cx-Dx)*Dy/(Dy-Cy);
 
-  if (ABpos<0. || ABpos>distAB) return false;
+  if ( (ABpos<0) || (ABpos>distAB) ) return false;
 
   is->x = Ax+ABpos*cos;
   is->y = Ay+ABpos*sin;
-  
+
   return true;
 }
 
@@ -207,7 +207,7 @@ bool ComputeIntersection( double Ax, double Ay,
 ******************************************************************************/
 
 SETI::SETI(SETIArea AREA, int SPLITS) : suf(0), rtreeFile(0)
-{   
+{
   // Create SETI Header
   header = new SETIHeader(ModifyArea(AREA), SPLITS);
 
@@ -220,13 +220,13 @@ SETI::SETI(SETIArea AREA, int SPLITS) : suf(0), rtreeFile(0)
   rtreeFile = new SmiRecordFile(true, rtreePageSize);
   rtreeFile->Create();
   header->rtreeFileID = rtreeFile->GetFileId();
-  
+
   // Create header page
   SmiUpdatePage* headerPage;
   int AppendedPage = suf->AppendNewPage(headerPage);
   assert( AppendedPage );
   header->headerPageNo = headerPage->GetPageNo();
-  
+
   // Create and initialize fontline pages
   SmiUpdatePage* flPage;
   db_pgno_t nextPageNo  = 0;
@@ -246,7 +246,7 @@ SETI::SETI(SETIArea AREA, int SPLITS) : suf(0), rtreeFile(0)
     AppendedPage = suf->AppendNewPage(bucketPage);
     assert( AppendedPage );
     bucketPageNo = bucketPage->GetPageNo();
-    
+
     // Write bucket page number into flPage
     flPage->Write(&bucketPageNo, sizeof(db_pgno_t), offset);
     offset += sizeof(db_pgno_t);
@@ -268,22 +268,22 @@ SETI::SETI(SETIArea AREA, int SPLITS) : suf(0), rtreeFile(0)
   assert( PageSelected );
   cellPage->Write(&nextPageNo, sizeof(db_pgno_t), 0);
   cellPage->Write(&numEntries, sizeof(int), sizeof(db_pgno_t));
-  
+
   // Calculate x/y cell length
-  double areaLenX = abs(AREA.x2 - AREA.x1); 
+  double areaLenX = abs(AREA.x2 - AREA.x1);
   double areaLenY = abs(AREA.y2 - AREA.y1);
-  double cellLenX = areaLenX / header->splits; 
+  double cellLenX = areaLenX / header->splits;
   double cellLenY = areaLenY / header->splits;
-  
+
   // Create an area partition
   SETIArea partition(0,0,0,0);
-  for (int i = 0; i < header->splits; i++)       
+  for (int i = 0; i < header->splits; i++)
   {
-    for (int j = 0; j < header->splits; j++)    
+    for (int j = 0; j < header->splits; j++)
     {
       partition.x1 = AREA.x1 + (cellLenX * j);
       partition.x2 = partition.x1 + cellLenX;
-      partition.y1 = AREA.y1 + (cellLenY * i); 
+      partition.y1 = AREA.y1 + (cellLenY * i);
       partition.y2 = partition.y1 + cellLenY;
 
       // Create and initialize a new cell object
@@ -295,7 +295,7 @@ SETI::SETI(SETIArea AREA, int SPLITS) : suf(0), rtreeFile(0)
       cells[j][i]->tiv.end = DateTime(0,0,instanttype);
       cells[j][i]->tiv.lc = false;
       cells[j][i]->tiv.rc = false;
-      
+
       // Create RTree for cell
       cells[j][i]->rtreePtr = new R_Tree<2,TupleId>(rtreeFile);
       cells[j][i]->rtreeRecID = cells[j][i]->rtreePtr->HeaderRecordId();
@@ -305,7 +305,7 @@ SETI::SETI(SETIArea AREA, int SPLITS) : suf(0), rtreeFile(0)
   // Write header and cell page into SmiUpdateFile
   UpdateHeader();
   UpdateCells();
-  
+
   // Initialize semaphore
   SetSemaphore(false);
 }
@@ -373,7 +373,7 @@ Word SETI::In( ListExpr typeInfo, ListExpr instance, int errorPos,
 {
   correct = false;
   Word result = SetWord(Address(0));
-  
+
   // Check list length
   if ( nl->ListLength(instance) != 2 )
   {
@@ -403,7 +403,7 @@ Word SETI::In( ListExpr typeInfo, ListExpr instance, int errorPos,
   double x2 = nl->RealValue( nl->Second(areaList) );
   double y1 = nl->RealValue( nl->Third(areaList) );
   double y2 = nl->RealValue( nl->Fourth(areaList) );
-  
+
   if (( x2 == x1 ) || (y1 == y2 ))
   {
     cmsg.inFunError("x1/x2 and y1/y2 must be different!");
@@ -445,18 +445,18 @@ Word SETI::In( ListExpr typeInfo, ListExpr instance, int errorPos,
 ListExpr SETI::Out(ListExpr typeInfo, Word value )
 {
   SETI* setiPtr = static_cast<SETI*>(value.addr);
-  
+
   // Create area list
   ListExpr area = nl->FourElemList(
   nl->RealAtom(setiPtr->header->area.x1),
   nl->RealAtom(setiPtr->header->area.x2),
   nl->RealAtom(setiPtr->header->area.y1),
   nl->RealAtom(setiPtr->header->area.y2));
-  
+
   // Create time interval list
   ListExpr  tiv;
   if (setiPtr->header->numEntries == 0)
-  { 
+  {
     // Time interval is undefined if no entry exist
     tiv = nl->TwoElemList( nl->StringAtom("undefined"),
                            nl->StringAtom("undefined"));
@@ -464,13 +464,13 @@ ListExpr SETI::Out(ListExpr typeInfo, Word value )
   else if (setiPtr->header->numEntries == 1)
   {
     // End time is undefined if only one entry exist
-    tiv = nl->TwoElemList(  
+    tiv = nl->TwoElemList(
               OutDateTime(nl->TheEmptyList(),
                           SetWord(&setiPtr->header->tiv.start)),
                           nl->StringAtom("undefined"));
   }
   else
-  { 
+  {
     // Time interval is defined if SETI has two entries or more
     tiv = nl->TwoElemList(
                OutDateTime(nl->TheEmptyList(),
@@ -500,7 +500,7 @@ Word SETI::Create( const ListExpr typeInfo )
 ******************************************************************************/
 
 void SETI::Delete( const ListExpr typeInfo, Word& w )
-{ 
+{
   SETI* setiPtr = static_cast<SETI*>(w.addr);
   setiPtr->rtreeFile->Close();
   if(setiPtr->rtreeFile->IsOpen()) setiPtr->rtreeFile->Drop();
@@ -650,7 +650,7 @@ void SETI::ReadSETI()
   SmiUpdatePage* headerPage;
   int PageSelected = suf->GetPage(header->headerPageNo, headerPage);
   assert( PageSelected );
- 
+
   size_t offset = 0;
   headerPage->Read(&header->rtreeFileID, sizeof(SmiFileId), offset);
   offset += sizeof(SmiFileId);
@@ -670,7 +670,7 @@ void SETI::ReadSETI()
   offset += sizeof(int);
   headerPage->Read(&header->tiv, sizeof(Interval<Instant>), offset);
   offset += sizeof(Interval<Instant>);
-  
+
   // Read frontline -----------------------------------------------------------
 
   SmiUpdatePage* flPage;
@@ -697,7 +697,7 @@ void SETI::ReadSETI()
       offset = sizeof(db_pgno_t) + sizeof(int);
 
       for (int j = 0; j < numEntries; j++)
-      { 
+      {
         UploadUnit  unit;
         bucketPage->Read(&unit, sizeof(UploadUnit), offset);
         offset += sizeof(UploadUnit);
@@ -707,7 +707,7 @@ void SETI::ReadSETI()
     }
     while(nextPageNo != 0);
   }
-  
+
   // Read cells ---------------------------------------------------------------
 
   SmiUpdatePage* cellPage;
@@ -722,15 +722,15 @@ void SETI::ReadSETI()
   // Open RTree file
   rtreeFile = new SmiRecordFile(pageSize);
   rtreeFile->Open(header->rtreeFileID);
- 
+
   do
-  {  
+  {
     PageSelected = suf->GetPage(cellPageNo, cellPage);
     assert( PageSelected );
     cellPage->Read(&nextPageNo, sizeof(db_pgno_t), 0);
     cellPage->Read(&numEntries, sizeof(int), sizeof(db_pgno_t));
     offset = sizeof(db_pgno_t) + sizeof(int);
-     
+
     for (int k = 0; k < numEntries; k++)
     {
       cells[j-1][i-1] = new SETICell();
@@ -756,10 +756,10 @@ void SETI::ReadSETI()
       cellPtr->tiv.end = DateTime(0,0,instanttype);
       cellPtr->tiv.end.ReadFrom(tivEnd);
 
-      // Create new RTree with existing RTree file/header 
+      // Create new RTree with existing RTree file/header
       cellPtr->rtreePtr = new R_Tree<2,TupleId>( rtreeFile,
                                                  cellPtr->rtreeRecID );
- 
+
       if ((j % header->splits) == 0) { j = 0; i++; }
       j++;
     }
@@ -776,11 +776,11 @@ Writes header information into file.
 ******************************************************************************/
 
 void SETI::UpdateHeader()
-{    
+{
   SmiUpdatePage* headerPage;
   int PageSelected = suf->GetPage(header->headerPageNo, headerPage);
   assert( PageSelected );
-  
+
   size_t offset = 0;
   headerPage->Write(&header->rtreeFileID, sizeof(SmiFileId), offset);
   offset += sizeof(SmiFileId);
@@ -818,7 +818,7 @@ void SETI::UpdateFLine()
   size_t flPageOffset = 0;
 
   for (int i = 0; i < flBuckets; i++)
-  {   
+  {
     SmiUpdatePage* bucketPage;
     db_pgno_t      bucketPageNo;
     db_pgno_t      nextPageNo;
@@ -881,7 +881,7 @@ void SETI::UpdateCells()
 
   int PageSelected = suf->GetPage(header->cellPageNo, cellPage);
   assert( PageSelected );
- 
+
   size_t offset = sizeof(db_pgno_t) + sizeof(int);
   for (int i = 0; i < header->splits; i++)
   {
@@ -956,16 +956,16 @@ bool SETI::UpdateSETI()
   {
     // Lock SmiUpdateFile
    SetSemaphore(true);
-    
+
     // Update header in SmiUpdateFile
     UpdateHeader();
-     
+
     // Update front line in SmiUpdateFile
     UpdateFLine();
-    
+
     // Update cells
     UpdateCells();
-    
+
     // Release SmiUpdateFile
     SetSemaphore(false);
 
@@ -1031,9 +1031,9 @@ bool SETI::GetSemaphore()
  // Wait until file is released or timeout is 0
  int timeout = 100000;
   while(value && (timeout >= 0))
-  { 
+  {
     headerPage->Read(&value, sizeof(bool), sizeof(SETIHeader));
-    for(int i = 0; i < 10000; i++); 
+    for(int i = 0; i < 10000; i++);
     timeout--;
   }
   return value;
@@ -1084,7 +1084,7 @@ Creates a new SETI object.
 ******************************************************************************/
 
 ListExpr CreateTM(ListExpr args)
-{  
+{
   if( nl->ListLength( args ) == 2 &&
       nl->IsEqual(nl->First(args),"rect") &&
       nl->IsEqual(nl->Second(args),"int") )
@@ -1104,7 +1104,7 @@ ListExpr CreateTM(ListExpr args)
 int CreateVM(Word* args, Word& result, int message, Word& local, Supplier s)
 {
   SETI* setiPtr = static_cast<SETI*>(qp->ResultStorage(s).addr);
-  
+
   Rectangle<2>* rect = static_cast<Rectangle<2>*>(args[0].addr);
   CcInt*  partitions = static_cast<CcInt*>(args[1].addr);
 
@@ -1115,7 +1115,7 @@ int CreateVM(Word* args, Word& result, int message, Word& local, Supplier s)
   double y2(rect->MaxD(1));
   SETIArea area(x1,y1,x2,y2);
   area = ModifyArea(area);
-  
+
   // Check number of partitions
   int numPartitions = partitions->GetValue();
    if (!(CompareFloats(fmod(sqrt(numPartitions),1),0) &&
@@ -1175,22 +1175,22 @@ TrjSeg* ComputeTrjSegment( SETIArea AREA, int SPLITS,
   double left      = (startCol)*xLen + AREA.x1;
   double top       = (startRow+1)*yLen + AREA.y1;
   double bottom    = (startRow)*yLen + AREA.y1;
- 
-  // Compute intersection points 
+
+  // Compute intersection points
   UnitPos* isR = new UnitPos(0,0);
   UnitPos* isL = new UnitPos(0,0);
   UnitPos* isT = new UnitPos(0,0);
   UnitPos* isB = new UnitPos(0,0);
- 
-  bool intersectsRight = ComputeIntersection(right, bottom, right, top, 
+
+  bool intersectsRight = ComputeIntersection(right, bottom, right, top,
                                 POS1.x, POS1.y, POS2.x, POS2.y, isR);
-  bool intersectsLeft = ComputeIntersection(left, bottom, left,top, 
+  bool intersectsLeft = ComputeIntersection(left, bottom, left,top,
                                 POS1.x, POS1.y, POS2.x, POS2.y, isL);
-  bool intersectsTop = ComputeIntersection(left, top, right, top, 
+  bool intersectsTop = ComputeIntersection(left, top, right, top,
                                 POS1.x, POS1.y, POS2.x, POS2.y, isT);
   bool intersectsBottom = ComputeIntersection(left, bottom, right, bottom,
                                 POS1.x, POS1.y, POS2.x, POS2.y, isB);
-  
+
   // Create new end point for segment
   UnitPos p(POS2.x,POS2.y);
   for (int i = 0; i < 4; i++) intersects[i] = false;
@@ -1202,9 +1202,9 @@ TrjSeg* ComputeTrjSegment( SETIArea AREA, int SPLITS,
   delete isL;
   delete isT;
   delete isB;
-  
+
   TrjSeg* segment = new TrjSeg(0, 0, TIV.start.ToDouble(),
-                               TIV.end.ToDouble(), POS1, p);   
+                               TIV.end.ToDouble(), POS1, p);
   return segment;
 }
 
@@ -1221,7 +1221,7 @@ int InsertHandle(SETI* SETIPTR, UploadUnit* UNITPTR)
 {
   SmiUpdateFile* suf  = SETIPTR->GetUpdateFile();
   SETIHeader*    hPtr = SETIPTR->GetHeader();
-  
+
   // Ceck UploadUnit
   if (hPtr->area.x1 < hPtr->area.x2)
   {
@@ -1230,7 +1230,7 @@ int InsertHandle(SETI* SETIPTR, UploadUnit* UNITPTR)
   }
   else if (UNITPTR->GetPos().x < hPtr->area.x2+tol ||
            UNITPTR->GetPos().x > hPtr->area.x1-tol ) return 2;
-  
+
   if (hPtr->area.y1 < hPtr->area.y2)
   {
     if (UNITPTR->GetPos().y < hPtr->area.y1+tol ||
@@ -1242,7 +1242,7 @@ int InsertHandle(SETI* SETIPTR, UploadUnit* UNITPTR)
   // Find entry in the frontline
   int moID  = UNITPTR->GetID();
   map<int,UploadUnit>::iterator it;
-  
+
   it = SETIPTR->frontline[moID%flBuckets].find(moID);
   if ( it == SETIPTR->frontline[moID%flBuckets].end() )
   {
@@ -1251,7 +1251,7 @@ int InsertHandle(SETI* SETIPTR, UploadUnit* UNITPTR)
     hPtr->numFlEntries++;
   }
   else
-  {   
+  {
     // Entry found
     if(!suf->IsOpen()) suf->Open(hPtr->fileID, pageSize);
     TrjSeg* segment;
@@ -1265,18 +1265,18 @@ int InsertHandle(SETI* SETIPTR, UploadUnit* UNITPTR)
 
     // Check if the current upload is younger than the last upload
     if(segTiv.start >= segTiv.end) return 3;
-    
+
     // Replace UploadUnit in frontline
     SETIPTR->frontline[moID%flBuckets][moID] = *UNITPTR;
-    
+
     // Insert trajectory segment
-    do 
-    {       
+    do
+    {
       // Find cell
       int col =ComputeLine(hPtr->area.x1, hPtr->area.x2, hPtr->splits, pos1.x);
       int row =ComputeLine(hPtr->area.y1, hPtr->area.y2, hPtr->splits, pos1.y);
       SETICell* cellPtr = SETIPTR->GetCell(col, row);
-     
+
       SmiUpdatePage* page;
       if ((cellPtr->numEntries % maxTrjSeg) == 0)
       {
@@ -1287,14 +1287,14 @@ int InsertHandle(SETI* SETIPTR, UploadUnit* UNITPTR)
           Interval<Instant> pageTiv;
           int PageSelected = suf->GetPage(cellPtr->currentPage, page);
           assert( PageSelected );
-          page->Read(&pageTiv, sizeof(Interval<Instant> ), sizeof(int)); 
-          
-          Rectangle<2> box = Rectangle<2>(true, pageTiv.start.ToDouble()-tol, 
+          page->Read(&pageTiv, sizeof(Interval<Instant> ), sizeof(int));
+
+          Rectangle<2> box = Rectangle<2>(true, pageTiv.start.ToDouble()-tol,
                                                 pageTiv.end.ToDouble()+tol,
                                                 -1.0, 1.0);
           R_TreeLeafEntry<2,TupleId> e(box,cellPtr->currentPage);
           cellPtr->rtreePtr->Insert(e);
-          
+
           // Put current page back to disk
           //suf->PutPage(cellPtr->currentPage, true);
 
@@ -1322,26 +1322,26 @@ int InsertHandle(SETI* SETIPTR, UploadUnit* UNITPTR)
         hPtr->tiv.start = segTiv.start;
         hPtr->tiv.lc = true;
       }
-      
+
       if ((!hPtr->tiv.rc) || (hPtr->tiv.end < segTiv.end))
       {
         hPtr->tiv.end = segTiv.end;
         hPtr->tiv.rc = true;
       }
-      
+
       // Check/modify cell time interval
       if ((!cellPtr->tiv.lc) || (cellPtr->tiv.start > segTiv.start))
       {
         cellPtr->tiv.start = segTiv.start;
         cellPtr->tiv.lc = true;
       }
-      
+
       if ((!cellPtr->tiv.rc) || (cellPtr->tiv.end < segTiv.end))
       {
         cellPtr->tiv.end = segTiv.end;
         cellPtr->tiv.rc = true;
       }
-      
+
       // Initialize tiv and number of entries in page
       if ((cellPtr->numEntries % maxTrjSeg) == 0)
       {
@@ -1349,19 +1349,19 @@ int InsertHandle(SETI* SETIPTR, UploadUnit* UNITPTR)
         page->Write(&pageEntries, sizeof(int), 0);
         page->Write(&segTiv,sizeof(Interval<Instant>), sizeof(int));
       }
-       
+
       // Check/modify page time interval
       Interval<Instant> pageTiv;
       page->Read(&pageTiv, sizeof(Interval<Instant> ), sizeof(int));
       if (segTiv.start < pageTiv.start) pageTiv.start = segTiv.start;
       if (segTiv.end > pageTiv.end) pageTiv.end = segTiv.end;
-      
+
       // Read number of entries in page
       int pageEntries;
       page->Read( &pageEntries, sizeof(int), 0 );
-     
+
       // Write segment in page
-      size_t offset =  sizeof(int) + sizeof(Interval<Instant>) + 
+      size_t offset =  sizeof(int) + sizeof(Interval<Instant>) +
                       + ((pageEntries)*(sizeof(TrjSeg)));
       page->Write(&segment->moID, sizeof(int), offset );
       offset += sizeof(int);
@@ -1375,14 +1375,14 @@ int InsertHandle(SETI* SETIPTR, UploadUnit* UNITPTR)
       offset += sizeof(UnitPos);
       page->Write( &segment->pos2, sizeof(UnitPos), offset );
       offset += sizeof(UnitPos);
-      
+
       // Increase number of entries in cell and page
       cellPtr->numEntries++;
       pageEntries++;
       page->Write(&pageEntries, sizeof(int), 0);
-       
+
       // Compute offset for next cell
-      if (intersects[0] == true) pos1.x = segment->pos2.x + tol; 
+      if (intersects[0] == true) pos1.x = segment->pos2.x + tol;
       else if (intersects[1] == true) pos1.x = segment->pos2.x - tol;
       else pos1.x = segment->pos2.x;
       if (intersects[2] == true) pos1.y = segment->pos2.y + tol;
@@ -1393,7 +1393,7 @@ int InsertHandle(SETI* SETIPTR, UploadUnit* UNITPTR)
               CompareFloats(pos2.y, segment->pos2.y)) );
   }
   hPtr->numEntries++;
-  
+
 
   if ((hPtr->numEntries % updateCycle) == 0)
   {
@@ -1441,7 +1441,7 @@ void GenerateErrorMsg(bool error[3])
 
 
 ListExpr InsertUploadTM(ListExpr args)
-{  
+{
   if ( nl->ListLength( args ) == 2 &&
        nl->IsEqual(nl->First(args), "seti") &&
        nl->IsEqual(nl->Second(args), "uploadunit"))
@@ -1459,10 +1459,10 @@ ListExpr InsertUploadTM(ListExpr args)
 
 int InsertUploadVM(Word* args, Word& result, int message,
                   Word& local, Supplier s)
-{  
+{
   SETI*       setiPtr = static_cast<SETI*>(args[0].addr);
   UploadUnit* unitPtr = static_cast<UploadUnit*>(args[1].addr);
-  
+
   bool error[3];
   for (int i = 0; i < 3; i++) error[i] = false;
 
@@ -1473,7 +1473,7 @@ int InsertUploadVM(Word* args, Word& result, int message,
   if (res == 1) error[0] = true;
   if (res == 2) error[1] = true;
   if (res == 3) error[2] = true;
-  
+
   // Update file
   if(!setiPtr->UpdateSETI()) error[0] = true;
 
@@ -1520,13 +1520,13 @@ Inserts a stream of uploads into SETI.
 ******************************************************************************/
 
 ListExpr InsertStreamTM(ListExpr args)
-{  
+{
   NList type(args);
   if ( !type.hasLength(3) )
   {
    return listutils::typeError("Expecting three arguments.");
   }
-  
+
   NList first = type.first();
   if ( !first.hasLength(2)  ||
        !first.first().isSymbol(STREAM) ||
@@ -1541,17 +1541,17 @@ ListExpr InsertStreamTM(ListExpr args)
   {
     return NList::typeError( "SETI object for second argument expected!" );
   }
-  
+
   NList third = type.third();
-  if ( !third.isSymbol() ) 
+  if ( !third.isSymbol() )
   {
     return NList::typeError( "Attribute name for third argument expected!" );
   }
-  
+
   string attrname = type.third().str();
   ListExpr attrtype = nl->Empty();
   int j = FindAttribute(first.second().second().listExpr(),attrname,attrtype);
-  
+
   if ( j != 0 )
   {
     if ( nl->SymbolValue(attrtype) != "uploadunit" )
@@ -1575,21 +1575,21 @@ ListExpr InsertStreamTM(ListExpr args)
 
 int InsertStreamVM(Word* args, Word& result, int message,
                   Word& local, Supplier s)
-{  
+{
   Word currentTupleWord(Address(0));
   int attributeIndex = static_cast<CcInt*>( args[3].addr )->GetIntval() - 1;
   SETI*      setiPtr = static_cast<SETI*>(args[1].addr);
 
   bool error[3];
-  for (int i = 0; i < 3; i++) error[i] = false;         
+  for (int i = 0; i < 3; i++) error[i] = false;
 
   qp->Open(args[0].addr);
   qp->Request(args[0].addr, currentTupleWord);
-  
+
   while(qp->Received(args[0].addr))
   {
     Tuple* currentTuple = static_cast<Tuple*>( currentTupleWord.addr );
-    UploadUnit* currentAttr = 
+    UploadUnit* currentAttr =
     static_cast<UploadUnit*>(currentTuple->GetAttribute(attributeIndex));
     if( currentAttr->IsDefined() )
     {
@@ -1605,7 +1605,7 @@ int InsertStreamVM(Word* args, Word& result, int message,
     qp->Request(args[0].addr, currentTupleWord);
   }
   qp->Close(args[0].addr);
-  
+
   // Update file
   if(!setiPtr->UpdateSETI()) error[0] = true;
 
@@ -1651,12 +1651,12 @@ Returns all trajectory segments which intersects the search window.
 
 8.1 FindTrjSegments-method
 
-Finds all trajectory segments which intersects the search window. The 
+Finds all trajectory segments which intersects the search window. The
 intersectsWindow and the insideWindow operator make use of this method.
 
 ******************************************************************************/
 
-set<TrjSeg*> FindTrjSegments( SETI* SETIPTR, SETIArea AREA, 
+set<TrjSeg*> FindTrjSegments( SETI* SETIPTR, SETIArea AREA,
                               Instant TIME1, Instant TIME2)
 {
   SETIHeader* hPtr = SETIPTR->GetHeader();
@@ -1665,32 +1665,32 @@ set<TrjSeg*> FindTrjSegments( SETI* SETIPTR, SETIArea AREA,
   map<int,TrjSeg*>::iterator sIt;
   map<int,TrjSeg*> segments;
   set<TrjSeg*> hits;
-  
+
   // Check if SmiUpdateFile is released
   if(SETIPTR->GetSemaphore()) return hits;;
-   
+
   // Lock SmiUpdateFile
   SETIPTR->SetSemaphore(true);
-  
+
   // Check/modify search window
   if ((AREA.x2 < hPtr->area.x1) ||
       (AREA.x1 > hPtr->area.x2) ||
       (AREA.y2 < hPtr->area.y1) ||
       (AREA.y1 > hPtr->area.y2))
       return hits; // Search window does not intersect the SETI area
-      
+
   if (AREA.x1<hPtr->area.x1) AREA.x1 = hPtr->area.x1+tol;
   if (AREA.x2>hPtr->area.x2) AREA.x2 = hPtr->area.x2-tol;
   if (AREA.y1<hPtr->area.y1) AREA.y1 = hPtr->area.y1+tol;
   if (AREA.y2>hPtr->area.y2) AREA.y2 = hPtr->area.y2-tol;
-  
+
   // Find pages which belong to the stated cell candidates
   int left   = ComputeLine(hPtr->area.x1,hPtr->area.x2,hPtr->splits,AREA.x1);
   int right  = ComputeLine(hPtr->area.x1,hPtr->area.x2,hPtr->splits,AREA.x2);
   int bottom = ComputeLine(hPtr->area.y1,hPtr->area.y2,hPtr->splits,AREA.y1);
   int top    = ComputeLine(hPtr->area.y1,hPtr->area.y2,hPtr->splits,AREA.y2);
 
-  Rectangle<2> searchBox = Rectangle<2>(true, TIME1.ToDouble()-0.1, 
+  Rectangle<2> searchBox = Rectangle<2>(true, TIME1.ToDouble()-0.1,
                                               TIME2.ToDouble()+0.1,
                                               -1.0, 1.0);
   for (int i = bottom; i <= top; i++)
@@ -1707,14 +1707,14 @@ set<TrjSeg*> FindTrjSegments( SETI* SETIPTR, SETIArea AREA,
       {
         // Insert page numbers found in RTree
         pages.insert((db_pgno_t)e.info);
-        while ( SETIPTR->GetCell(j,i)->rtreePtr->Next(e) ) 
+        while ( SETIPTR->GetCell(j,i)->rtreePtr->Next(e) )
         {
           pages.insert((db_pgno_t)e.info);
         }
       }
     }
   }
-  
+
   db_pgno_t pageID;
   SmiRecord   pageRec;
   int moID;
@@ -1726,17 +1726,17 @@ set<TrjSeg*> FindTrjSegments( SETI* SETIPTR, SETIArea AREA,
 
   // Find  segments in pages
   for (pIt = pages.begin(); pIt != pages.end();)
-  {    
+  {
     pageID = *pIt;
     SmiUpdatePage* page;
     int PageSelected = SETIPTR->GetUpdateFile()->GetPage(pageID, page);
     assert( PageSelected );
-    
+
     // Read number of segments in page
     int numSegments;
     page->Read( &numSegments, sizeof(int), 0 );
     size_t offset = sizeof(int) + sizeof(Interval<Instant>);
-    
+
     // Read segments in page
     for (int i = 0; i < numSegments; i++)
     {
@@ -1752,7 +1752,7 @@ set<TrjSeg*> FindTrjSegments( SETI* SETIPTR, SETIArea AREA,
       offset += sizeof(UnitPos);
       page->Read( &pos2, sizeof(UnitPos), offset );
       offset += sizeof(UnitPos);
-      
+
       // Merge segments if necessary
       bool found = false;
       sIt = segments.find(segID);
@@ -1790,7 +1790,7 @@ set<TrjSeg*> FindTrjSegments( SETI* SETIPTR, SETIArea AREA,
     Instant segEnd(instanttype);
     segStart.ReadFrom(segPtr->tivStart);
     segEnd.ReadFrom(segPtr->tivEnd);
-    
+
     if ( TIME1   <= segEnd &&
          TIME2   >= segStart &&
        ((AREA.x1 <= segPtr->pos1.x && AREA.y1 <= segPtr->pos1.y  &&
@@ -1804,7 +1804,7 @@ set<TrjSeg*> FindTrjSegments( SETI* SETIPTR, SETIArea AREA,
 
   // Release SmiUpdateFile
   SETIPTR->SetSemaphore(false);
-  
+
   return hits;
 }
 
@@ -1848,12 +1848,12 @@ ListExpr IntersectsWinTM(ListExpr args)
 int IntersectsWinVM(Word* args, Word& result, int message,
                        Word& local, Supplier s)
 {
-  struct Iterator 
+  struct Iterator
   {
     set<TrjSeg*> hits;
     set<TrjSeg*>::iterator it;
 
-    Iterator(set<TrjSeg*> HITS) 
+    Iterator(set<TrjSeg*> HITS)
     {
       hits = HITS;
       it = hits.begin();
@@ -1865,7 +1865,7 @@ int IntersectsWinVM(Word* args, Word& result, int message,
 
   switch( message )
   {
-    case OPEN: 
+    case OPEN:
    {
       SETI* setiPtr       = static_cast<SETI*>(args[0].addr);
       Rectangle<2>*  rect = static_cast<Rectangle<2>*>(args[1].addr);
@@ -1890,13 +1890,13 @@ int IntersectsWinVM(Word* args, Word& result, int message,
 
       // Find trajectory segments which intersect the search window
       set<TrjSeg*> hits = FindTrjSegments( setiPtr, area, *time1, *time2);
-      
+
       // Initialize iterator
       iterator = new Iterator(hits);
       local.addr = iterator;
       return 0;
     }
-    case REQUEST: 
+    case REQUEST:
     {
       if ( (iterator != 0) && (iterator->it != iterator->hits.end()) )
       {
@@ -1927,7 +1927,7 @@ int IntersectsWinVM(Word* args, Word& result, int message,
         return CANCEL;
       }
     }
-    case CLOSE: 
+    case CLOSE:
     {
       if (iterator != 0)
       {
@@ -1936,7 +1936,7 @@ int IntersectsWinVM(Word* args, Word& result, int message,
       }
       return 0;
     }
-    default: 
+    default:
     {
       return -1;
     }
@@ -2002,12 +2002,12 @@ ListExpr InsideWinTM(ListExpr args)
 
 int InsideWinVM(Word* args, Word& result,int message,Word& local,Supplier s)
 {
-  struct Iterator 
+  struct Iterator
   {
     set<TrjSeg*> hits;
     set<TrjSeg*>::iterator it;
 
-    Iterator(set<TrjSeg*> HITS) 
+    Iterator(set<TrjSeg*> HITS)
     {
       hits = HITS;
       it = hits.begin();
@@ -2019,13 +2019,13 @@ int InsideWinVM(Word* args, Word& result,int message,Word& local,Supplier s)
 
   switch( message )
   {
-    case OPEN: 
+    case OPEN:
    {
      SETI* setiPtr       = static_cast<SETI*>(args[0].addr);
      Rectangle<2>*  rect = static_cast<Rectangle<2>*>(args[1].addr);
      Instant* time1      = static_cast<Instant*>(args[2].addr);
      Instant* time2      = static_cast<Instant*>(args[3].addr);
-     
+
      // Change time values if necessary
      if  (*time1 > *time2 )
      {
@@ -2033,7 +2033,7 @@ int InsideWinVM(Word* args, Word& result,int message,Word& local,Supplier s)
        time2 = time1;
        time1 = temp;
      }
-     
+
      // Create SETI area
      double x1(rect->MinD(0));
      double x2(rect->MaxD(0));
@@ -2041,7 +2041,7 @@ int InsideWinVM(Word* args, Word& result,int message,Word& local,Supplier s)
      double y2(rect->MaxD(1));
      SETIArea area(x1,y1,x2,y2);
      area = ModifyArea(area);
-     
+
      // Find trajectory segments which the intersects search window
      set<TrjSeg*> tempHits = FindTrjSegments( setiPtr, area, *time1, *time2);
 
@@ -2056,7 +2056,7 @@ int InsideWinVM(Word* args, Word& result,int message,Word& local,Supplier s)
        Instant segEnd(instanttype);
        segStart.ReadFrom(segPtr->tivStart);
        segEnd.ReadFrom(segPtr->tivEnd);
-       
+
        if ( *time1  <= segStart &&
             *time2  >= segEnd &&
             area.x1 <= segPtr->pos1.x && area.x1 <= segPtr->pos2.x &&
@@ -2068,13 +2068,13 @@ int InsideWinVM(Word* args, Word& result,int message,Word& local,Supplier s)
        }
        else delete segPtr;
      }
-      
+
       // Initialize iterator
       iterator = new Iterator(hits);
       local.addr = iterator;
       return 0;
     }
-    case REQUEST: 
+    case REQUEST:
     {
       if ( (iterator != 0) && (iterator->it != iterator->hits.end()) )
       {
@@ -2105,7 +2105,7 @@ int InsideWinVM(Word* args, Word& result,int message,Word& local,Supplier s)
         return CANCEL;
       }
     }
-    case CLOSE: 
+    case CLOSE:
     {
       if (iterator != 0)
       {
@@ -2114,7 +2114,7 @@ int InsideWinVM(Word* args, Word& result,int message,Word& local,Supplier s)
       }
       return 0;
     }
-    default: 
+    default:
     {
       return -1;
     }
@@ -2173,15 +2173,15 @@ ListExpr GetTrajectoryTM(ListExpr args)
 
 ******************************************************************************/
 
-int GetTrajectoryVM( Word* args, Word& result, int message, Word& local, 
+int GetTrajectoryVM( Word* args, Word& result, int message, Word& local,
                      Supplier s )
 {
-  struct Iterator 
+  struct Iterator
   {
     set<TrjSeg*> hits;
     set<TrjSeg*>::iterator it;
 
-    Iterator(set<TrjSeg*> HITS) 
+    Iterator(set<TrjSeg*> HITS)
     {
       hits = HITS;
       it = hits.begin();
@@ -2193,17 +2193,17 @@ int GetTrajectoryVM( Word* args, Word& result, int message, Word& local,
 
   switch( message )
   {
-    case OPEN: 
+    case OPEN:
    {
      SETI* setiPtr   = static_cast<SETI*>(args[0].addr);
      CcInt* movObjId = static_cast<CcInt*>(args[1].addr);
      int    moID = movObjId->GetValue();
-     
+
      SETIArea area (setiPtr->GetHeader()->area.x1,
                     setiPtr->GetHeader()->area.y1,
                     setiPtr->GetHeader()->area.x2,
                     setiPtr->GetHeader()->area.y2);
-    
+
      // Find all trajectory segments
      set<TrjSeg*> tempHits = FindTrjSegments( setiPtr, ModifyArea(area),
                                               setiPtr->GetHeader()->tiv.start,
@@ -2216,20 +2216,20 @@ int GetTrajectoryVM( Word* args, Word& result, int message, Word& local,
           itTempHits++)
      {
        TrjSeg* segPtr = *itTempHits;
-       
+
        if ( moID == segPtr->moID )
        {
          hits.insert(segPtr);
        }
        else delete segPtr;
      }
-      
+
       // Initialize iterator
       iterator = new Iterator(hits);
       local.addr = iterator;
       return 0;
     }
-    case REQUEST: 
+    case REQUEST:
     {
       if ( iterator->it != iterator->hits.end() )
       {
@@ -2260,7 +2260,7 @@ int GetTrajectoryVM( Word* args, Word& result, int message, Word& local,
         return CANCEL;
       }
     }
-    case CLOSE: 
+    case CLOSE:
     {
       if (iterator != 0)
       {
@@ -2269,7 +2269,7 @@ int GetTrajectoryVM( Word* args, Word& result, int message, Word& local,
       }
       return 0;
     }
-    default: 
+    default:
     {
       return -1;
     }
@@ -2326,7 +2326,7 @@ int CurrentUploadVM(Word* args,Word& result,int message,Word& local,Supplier s)
 {
   SETI* setiPtr = static_cast<SETI*>(args[0].addr);
   CcInt* moID   = static_cast<CcInt*>(args[1].addr);
-  
+
   UploadUnit* unitPtr = static_cast<UploadUnit*>(qp->ResultStorage(s).addr);
 
   // Find UploadUnit in frontline
@@ -2334,7 +2334,7 @@ int CurrentUploadVM(Word* args,Word& result,int message,Word& local,Supplier s)
   map<int,UploadUnit>::iterator it;
   it = setiPtr->frontline[id%flBuckets].find(id);
   if ( it == setiPtr->frontline[id%flBuckets].end() )
-  { 
+  {
     unitPtr = new UploadUnit();
     unitPtr->SetDefined(false);
   }
@@ -2344,7 +2344,7 @@ int CurrentUploadVM(Word* args,Word& result,int message,Word& local,Supplier s)
     unitPtr->SetDefined(true);
   }
   result.setAddr( unitPtr );
-  return 0;  
+  return 0;
 }
 
 /******************************************************************************
@@ -2376,13 +2376,13 @@ Converts a stream of mpoints/moids into a stream of uploadunits.
 bool isMPoint = true;
 
 ListExpr ConvertMP2UUTM(ListExpr args)
-{  
+{
   NList type(args);
   if ( !type.hasLength(4) )
   {
    return listutils::typeError("Expecting four arguments.");
   }
-  
+
   NList first = type.first();
   if ( !first.hasLength(2)  ||
        !first.first().isSymbol(STREAM) ||
@@ -2397,19 +2397,19 @@ ListExpr ConvertMP2UUTM(ListExpr args)
   {
     return NList::typeError( "int for second argument expected!" );
   }
-  
+
   NList third = type.third();
-  if ( !third.isSymbol() ) 
+  if ( !third.isSymbol() )
   {
     return NList::typeError( "Attribute name for third argument expected!" );
   }
 
   NList fourth = type.fourth();
-  if ( !fourth.isSymbol() ) 
+  if ( !fourth.isSymbol() )
   {
     return NList::typeError( "Attribute name for fourth argument expected!" );
   }
-  
+
   string attrname1 = type.third().str();
   ListExpr attrtype1 = nl->Empty();
   int j = FindAttribute(first.second().second().listExpr(),attrname1,attrtype1);
@@ -2417,7 +2417,7 @@ ListExpr ConvertMP2UUTM(ListExpr args)
   string attrname2 = type.fourth().str();
   ListExpr attrtype2 = nl->Empty();
   int k = FindAttribute(first.second().second().listExpr(),attrname2,attrtype2);
-  
+
   if ( j != 0 )
   {
     if ( nl->SymbolValue(attrtype1) != "int" )
@@ -2483,20 +2483,20 @@ int ConvertMP2UUVM(Word* args, Word& result, int message,
 
   switch( message )
   {
-    case OPEN: 
+    case OPEN:
     {
       iterator = new Iterator();
       local.addr = iterator;
       qp->Open(args[0].addr);
       return 0;
     }
-    case REQUEST: 
+    case REQUEST:
     {
       int numUploads = static_cast<CcInt*>( args[1].addr )->GetIntval();
       int attr1 = static_cast<CcInt*>( args[4].addr )->GetIntval() - 1;
       int attr2 = static_cast<CcInt*>( args[5].addr )->GetIntval() - 1;
-    
-      bool received = true; 
+
+      bool received = true;
 
       if (iterator->it == 0)
       {
@@ -2510,7 +2510,7 @@ int ConvertMP2UUVM(Word* args, Word& result, int message,
                               ( iterator->currentTupleWord.addr );
         int moID = static_cast<CcInt*>(currentTuple->GetAttribute(attr1))
                                        ->GetIntval();
-        if (isMPoint) 
+        if (isMPoint)
         {
           MPoint* mp = static_cast<MPoint*>(currentTuple->GetAttribute(attr2));
           UPoint up;
@@ -2546,11 +2546,11 @@ int ConvertMP2UUVM(Word* args, Word& result, int message,
         return CANCEL;
       }
     }
-    case CLOSE: 
+    case CLOSE:
     {
       return 0;
     }
-    default: 
+    default:
     {
       return -1;
     }
@@ -2607,7 +2607,7 @@ class SETIAlgebra : public Algebra
       AddTypeConstructor(&UploadUnitTC);
       AddTypeConstructor(&SETITC);
       UploadUnitTC.AssociateKind( "DATA" );
-      
+
       AddOperator( CreateInfo(),        CreateVM,        CreateTM );
       AddOperator( InsertUploadInfo(),  InsertUploadVM,  InsertUploadTM );
       AddOperator( InsertStreamInfo(),  InsertStreamVM,  InsertStreamTM );
@@ -2628,7 +2628,7 @@ class SETIAlgebra : public Algebra
 
 extern "C"
 Algebra*
-InitializeSETIAlgebra( NestedList *nlRef, 
+InitializeSETIAlgebra( NestedList *nlRef,
                        QueryProcessor *qpRef,
                        AlgebraManager* amRef )
 {
