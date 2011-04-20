@@ -30,7 +30,7 @@ namespace periodic{
 ~Constructor~
 
 This Constructor creates an undefined value of type PMPoints.
-The argument is ignored. 
+The argument is ignored.
 
 */
 PMPoints::PMPoints(int dummy):
@@ -88,7 +88,7 @@ to be equals to the given parameter.
 */
 void PMPoints::Equalize(const PMPoints* P2){
     __TRACE__
- // equalize the arrays 
+ // equalize the arrays
  linearMoves.copyFrom(P2->linearMoves);
  thePoints.copyFrom(P2->thePoints);
  compositeMoves.copyFrom(P2->compositeMoves);
@@ -238,7 +238,7 @@ void PMPoints::CopyFrom(const Attribute* arg){
 ~ToListExpr~
 
 This function returns the ListExpr representing this points.
-The list will also contains the type if the flas is set. 
+The list will also contains the type if the flas is set.
 This means, this list
 is a complete list in format (type value)
 
@@ -250,7 +250,7 @@ ListExpr PMPoints::ToListExpr(const bool typeincluded)const{
    ListExpr value;
    if(!IsDefined())
       value = ::nl->BoolAtom(false);
-   else{   
+   else{
       ListExpr timelist = startTime.ToListExpr(false);
       ListExpr SubMoveList = GetSubMoveList(submove);
       value = ::nl->TwoElemList(timelist,SubMoveList);
@@ -407,7 +407,7 @@ if(::nl->ListLength(value)!=2){
   if(!ResizeArrays(value)){
      if(DEBUG_MODE){
         cerr << __POS__ << ": resizing arrays failed" << endl;
-        cerr << "*************************************" << endl; 
+        cerr << "*************************************" << endl;
      }
      SetDefined(false);
      return false;
@@ -475,7 +475,7 @@ if(::nl->ListLength(value)!=2){
    interval.Equalize(&(CM.interval));
    bbox.Equalize(&(CM.bbox));
    res = true;
-     }   
+     }
   } else if(::nl->IsEqual(SMT,"period")){
      submove.arrayNumber = PERIOD;
      submove.arrayIndex = 0;
@@ -550,33 +550,40 @@ value of the p.m. points represented in the value list.
 bool PMPoints::AddSubMovesSize(const ListExpr value,int &LMSize, int &PtsSize,
                               int &CMSize, int &SMSize,int &PMSize){
     __TRACE__
-// all moves have the length 2
-if(::nl->ListLength(value)!=2)
-   return false;
-ListExpr type = ::nl->First(value);
-if(::nl->AtomType(type)!=SymbolType)
-  return false;
+  // all moves have the length 2
+  if(::nl->ListLength(value)!=2){
+    return false;
+  }
+  ListExpr type = ::nl->First(value);
+  if(::nl->AtomType(type)!=SymbolType){
+    return false;
+  }
   // in a linear move we have to increment the size of LM
-  // and to add the number of contained Points 
+  // and to add the number of contained Points
   if(::nl->IsEqual(type,"linear")){
      LMSize = LMSize +1;
      ListExpr val = ::nl->Second(value);
      if(::nl->AtomType(val)!=NoAtom)
         return false;
-     if(::nl->ListLength(val)==2)
-        if(::nl->AtomType(::nl->Second(val))==BoolType) // undefined 
+     if(::nl->ListLength(val)==2){
+        if(::nl->AtomType(::nl->Second(val))==BoolType){ // undefined
            return true;
-        else
-     return false;
-     if(::nl->ListLength(val)!=3)
-        return false;          
+        } else {
+          return false;
+        }
+     }
+     if(::nl->ListLength(val)!=3){
+        return false;
+     }
      if(::nl->AtomType(::nl->Second(val))!=NoAtom ||
-        ::nl->AtomType(::nl->Third(val))!=NoAtom )
-  return false;
+        ::nl->AtomType(::nl->Third(val))!=NoAtom ){
+        return false;
+     }
      int L1 = ::nl->ListLength(::nl->Second(val));
-     if(L1 != ::nl->ListLength(::nl->Third(val)))
-        return false;         
-     PtsSize += L1; // add the Points of this Linear Move              
+     if(L1 != ::nl->ListLength(::nl->Third(val))){
+        return false;
+     }
+     PtsSize += L1; // add the Points of this Linear Move
      return true;
   }
   if(::nl->IsEqual(type,"composite")){
@@ -618,9 +625,9 @@ to the LinearMoves -array.
 [3] O(1)
 
 */
-bool PMPoints::AddLinearMove(const ListExpr value, 
+bool PMPoints::AddLinearMove(const ListExpr value,
                              int &LMIndex, int &PtsIndex,
-                             int &CMIndex, int &SMIndex, 
+                             int &CMIndex, int &SMIndex,
                              int &PMIndex){
     __TRACE__
   LinearPointsMove LM = LinearPointsMove(0);
@@ -782,14 +789,14 @@ bool PMPoints::AddPeriodMove(const ListExpr value,int &LMIndex, int &PtsIndex,
     return false;
  }
  int rep = ::nl->IntValue(::nl->First(value));
- // rep must be greater than 1 
+ // rep must be greater than 1
  if(rep<=1){
      if(DEBUG_MODE){
         cerr << __POS__ <<  " wrong number of repeatations" << endl;
      }
      return false;
  }
- 
+
  ListExpr SML;
  if(len==2)
      SML = ::nl->Second(value);
@@ -897,12 +904,12 @@ void PMPoints::Breakpoints(Points& res) const{
 ~BreakPoints~
 
 This function computes all locations where a point of this pointsset was
-staying longer than duration. If the duration is less than zero or the 
+staying longer than duration. If the duration is less than zero or the
 duration is zero and inclusive is true, the result will be an undefined
 points value.
 
 */
-Points* PMPoints::Breakpoints(const DateTime* duration, 
+Points* PMPoints::Breakpoints(const DateTime* duration,
                               const bool inclusive) const{
   Points* res = new Points(1);
   Breakpoints(duration,inclusive,*res);
@@ -955,7 +962,7 @@ void PMPoints::Breakpoints(const DateTime* duration,
 ~At~
 
 This function computes the state of this pmpoints at time __instant__.
-If this pmpoints is not defined at this instant, the result will be 
+If this pmpoints is not defined at this instant, the result will be
 an undefined points object.
 
 */
@@ -988,7 +995,7 @@ void PMPoints::At(const DateTime* instant, Points& res)const{
                 sm1.arrayIndex = csm.arrayIndex;
                 sm1.arrayNumber = csm.arrayNumber;
                 sm = &sm1;
-                
+
                 if(sm->arrayNumber==LINEAR){
                    LinearPointsMove  LM;
                    linearMoves.Get(sm->arrayIndex,LM);
@@ -1080,7 +1087,7 @@ bool PMPoints::Final(Points& res)const{
    }
    DateTime DT(startTime);
    DT.Add(interval.GetLength());
-   At(&DT,res); 
+   At(&DT,res);
    return  true;
 }
 
@@ -1120,8 +1127,8 @@ void PMPoints::CorrectDurationSums(){
          GetLength(csm,currentLength);
          duration += currentLength;
       }
-   }   
-} 
+   }
+}
 
 void PMPoints::GetLength(SubMove sm, DateTime& result){
    switch(sm.arrayIndex){
@@ -1159,7 +1166,7 @@ ostream& operator<< (ostream &os, class PMPoints &P){
   if(!P.IsDefined()){
      os << "undefined" << endl;
      return os;
-  }   
+  }
   os << "starttime: " << P.startTime.ToString() << endl;
   os << P.submove << endl;
   os << "defined :" << P.IsDefined() << endl;
@@ -1193,12 +1200,12 @@ ostream& operator<< (ostream &os, class PMPoints &P){
        P.thePoints.Get(j,TP1);
        TP2 = (TP1);
        os << TP2 << endl;
-  }     
+  }
      }
      os << "end content of this linear Move " << endl;
   }
  // os << " please extend the << operator for pmpoints values " << endl;
-  os << " <<<< end PMPoints >>> " << endl; 
+  os << " <<<< end PMPoints >>> " << endl;
   return os;
 }
 

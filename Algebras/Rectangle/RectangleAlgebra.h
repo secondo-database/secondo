@@ -55,6 +55,7 @@ using namespace std;
 #include "stdarg.h"
 #include "Attribute.h"
 #include "Messages.h"
+#include "Geoid.h"
 
 #include <stdio.h>
 
@@ -76,7 +77,8 @@ class StandardSpatialAttribute : public Attribute
     StandardSpatialAttribute(bool defined):Attribute(defined) {}
 
     virtual const Rectangle<dim> BoundingBox() const = 0;
-    virtual double Distance(const Rectangle<dim>& rect) const = 0;
+    virtual double Distance(const Rectangle<dim>& rect,
+                            const Geoid* geoid=0) const = 0;
     virtual bool IsEmpty() const = 0;
 };
 
@@ -136,19 +138,21 @@ Redefinition of operator ~=~.
 
 */
 
-    inline bool Contains( const Rectangle<dim>& r ) const;
+    inline bool Contains( const Rectangle<dim>& r, const Geoid* geoid=0 ) const;
 /*
 Checks if the rectangle contains the rectangle ~r~.
 
 */
 
-    inline bool Intersects( const Rectangle<dim>& r ) const;
+    inline bool Intersects( const Rectangle<dim>& r,
+                            const Geoid* geoid=0 ) const;
 /*
 Checks if the rectangle intersects with rectangle ~r~. Both rectangles
 must be defined.
 
 */
-    inline bool IntersectsUD( const Rectangle<dim>& r ) const;
+inline bool IntersectsUD( const Rectangle<dim>& r,
+                          const Geoid* geoid=0 ) const;
 /*
 Checks if the rectangle intersects with rectangle ~r~. If one of the
 involved rectangles is not defined, the result will be false;
@@ -175,13 +179,13 @@ Redefinition of operator ~!=~.
 
 */
 
-    inline double Area() const;
+    inline double Area(const Geoid* geoid=0) const;
 /*
 Returns the area of a rectangle.
 
 */
 
-    inline double Perimeter() const;
+    inline double Perimeter(const Geoid* geoid=0) const;
 /*
 Returns the perimeter of a rectangle.
 
@@ -200,13 +204,14 @@ Returns the max coord value for the given dimension ~dim~.
 
 */
 
-    inline Rectangle<dim> Union( const Rectangle<dim>& r ) const;
+    inline Rectangle<dim> Union( const Rectangle<dim>& r,
+                                 const Geoid* geoid=0 ) const;
 /*
 Returns the bounding box that contains both this and the rectangle ~r~.
 
 */
 
-    inline double Distance(const Rectangle<dim>& r) const;
+    inline double Distance(const Rectangle<dim>& r, const Geoid* geoid=0) const;
 /*
 Returns the Euclidean distance between two rectangles
 
@@ -217,7 +222,8 @@ Translates the rectangle given the translate vector ~t~.
 
 */
 
-    inline Rectangle<dim> Intersection( const Rectangle<dim>& b ) const;
+    inline Rectangle<dim> Intersection( const Rectangle<dim>& b,
+                                        const Geoid* geoid=0 ) const;
 /*
 Returns the intersection between this and the rectangle ~r~.
 
@@ -527,9 +533,11 @@ Checks if the rectangle contains the rectangle ~r~.
 
 */
 template <unsigned dim>
-inline bool Rectangle<dim>::Contains( const Rectangle<dim>& r ) const
+inline bool Rectangle<dim>::Contains( const Rectangle<dim>& r,
+                                      const Geoid* geoid/*=0*/ ) const
 {
-  assert( (this->del.isDefined) && r.IsDefined() );
+  assert( (this->del.isDefined) && r.IsDefined()
+                                && (!geoid || geoid->IsDefined()) );
 
   for( unsigned i = 0; i < dim; i++ ){
 
@@ -550,9 +558,11 @@ Checks if the rectangle intersects with rectangle ~r~.
 
 */
 template <unsigned dim>
-inline bool Rectangle<dim>::Intersects( const Rectangle<dim>& r ) const
+inline bool Rectangle<dim>::Intersects( const Rectangle<dim>& r,
+                                        const Geoid* geoid/*=0*/ ) const
 {
-  assert( (this->del.isDefined) && r.IsDefined() );
+  assert( this->del.isDefined && r.IsDefined()
+                              && (!geoid || geoid->IsDefined()));
 
   for( unsigned i = 0; i < dim; i++ )
     if( max[i] < r.min[i] || r.max[i] < min[i] )
@@ -563,9 +573,11 @@ inline bool Rectangle<dim>::Intersects( const Rectangle<dim>& r ) const
 
 
 template <unsigned dim>
-inline bool Rectangle<dim>::IntersectsUD( const Rectangle<dim>& r ) const
+inline bool Rectangle<dim>::IntersectsUD( const Rectangle<dim>& r,
+                                          const Geoid* geoid/*=0*/ ) const
 {
-  if(!( (this->del.isDefined) && r.IsDefined() )){
+  if(!this->del.isDefined || !r.IsDefined()
+                          || (geoid && !geoid->IsDefined())){
       return false;
   }
 
@@ -628,11 +640,14 @@ Returns the area of a rectangle.
 
 */
 template <unsigned dim>
-inline double Rectangle<dim>::Area() const
+inline double Rectangle<dim>::Area(const Geoid* geoid /*=0*/) const
 {
-  if( !(this->del.isDefined) )
+  if( !(this->del.isDefined) || (geoid && !geoid->IsDefined()))
     return 0.0;
-
+  if(geoid){
+    cerr << ": Spherical geometry not implemented!" << endl;
+    assert(false);
+  }
   double area = 1.0;
   for( unsigned i = 0; i < dim; i++ )
     area *= max[i] - min[i];
@@ -644,11 +659,14 @@ Returns the perimeter of a rectangle.
 
 */
 template <unsigned dim>
-inline double Rectangle<dim>::Perimeter () const
+inline double Rectangle<dim>::Perimeter (const Geoid* geoid/*=0*/) const
 {
-  if( !(this->del.isDefined) )
+  if( !(this->del.isDefined) || (geoid && !geoid->IsDefined()) )
     return 0.0;
-
+  if(geoid){
+    cerr << ": Spherical geometry not implemented!" << endl;
+    assert(false);
+  }
   double perimeter = 0.0;
   for( unsigned i = 0; i < dim; i++ )
     perimeter += pow( 2, (double)dim-1 ) * ( max[i] - min[i] );
@@ -682,11 +700,15 @@ Returns the bounding box that contains both this and the rectangle ~r~.
 
 */
 template <unsigned dim>
-inline Rectangle<dim> Rectangle<dim>::Union( const Rectangle<dim>& r ) const
+inline Rectangle<dim> Rectangle<dim>::Union( const Rectangle<dim>& r,
+                                             const Geoid* geoid /*=0*/ ) const
 {
-  if( !(this->del.isDefined) || !r.IsDefined() )
+  if( !this->del.isDefined || !r.IsDefined() || (geoid && !geoid->IsDefined()) )
     return Rectangle<dim>( false );
-
+  if(geoid){
+    cerr << ": Spherical geometry not implemented!" << endl;
+    assert(false);
+  }
   double auxmin[dim], auxmax[dim];
   for( unsigned i = 0; i < dim; i++ )
   {
@@ -745,10 +767,11 @@ Returns the intersection between this and the rectangle ~r~.
 */
 template <unsigned dim>
 inline Rectangle<dim>
-      Rectangle<dim>::Intersection( const Rectangle<dim>& r ) const
+Rectangle<dim>::Intersection( const Rectangle<dim>& r,
+                              const Geoid* geoid /*=0*/ ) const
 {
-  if( !(this->del.isDefined)
-        || !r.IsDefined() || !Intersects( r ) )
+  if( !this->del.isDefined || !r.IsDefined() || (geoid && !geoid->IsDefined())
+                           || !Intersects( r,geoid ) )
     return Rectangle<dim>( false );
 
   double auxmin[dim], auxmax[dim];
@@ -785,12 +808,18 @@ Distance: returns the Euclidean distance between two rectangles
 */
 
 template <unsigned dim>
-inline double Rectangle<dim>::Distance(const Rectangle<dim>& r) const
+inline double Rectangle<dim>::Distance(const Rectangle<dim>& r,
+                                       const Geoid* geoid /*=0*/) const
 {
   assert(this->del.isDefined);
   assert(r.del.isDefined );
+  assert( !geoid || geoid->IsDefined() );
+  if(geoid){
+    cout << __PRETTY_FUNCTION__ << ": Spherical geometry not implemented."
+         <<endl;
+    assert(false); // TODO: Implement spherical geometry case.
+  }
   double sum = 0;
-
   for( unsigned i = 0; i < dim; i++ )
   {
     if(r.min[i] >= max[i])

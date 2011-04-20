@@ -2751,16 +2751,16 @@ int Circle( Word* args, Word& result, int message, Word& local, Supplier s )
           for( int i = 0; i < n; i++ )
             {
               // The first point/vertex of the segment
-              angle = i * 2 * PI/n; // angle to starting vertex
+              angle = i * 2 * M_PI/n; // angle to starting vertex
               valueX = x + radius * cos(angle);
               valueY = y + radius * sin(angle);
               Point v1(true, valueX ,valueY);
 
               // The second point/vertex of the segment
               if ((i+1) >= n)            // angle to end vertex
-                angle = 0 * 2 * PI/n;    // for inner vertex
+                angle = 0 * 2 * M_PI/n;    // for inner vertex
               else
-                angle = (i+1) * 2 * PI/n;// for ending = starting vertex
+                angle = (i+1) * 2 * M_PI/n;// for ending = starting vertex
               valueX = x + radius * cos(angle);
               valueY = y + radius * sin(angle);
               Point v2(true, valueX ,valueY);

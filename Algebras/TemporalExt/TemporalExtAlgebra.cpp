@@ -426,7 +426,7 @@ double AngleToXAxis(const Point* p1, const Point* p2, bool &defined)
 #else
   k=(y2 - y1) / (x2 - x1);
 #endif
-  direction=atan(k) * 180 /  PI;
+  direction=atan(k) * 180 / M_PI;
 
       int area;
       if ((x2>x1)&&(y2>y1))

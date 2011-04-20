@@ -281,7 +281,7 @@ bool LinearPointMove::Intersects(const PBBox* window)const{
         window->GetVertex(i,r1,r2);
         A = (r1-p1)*(r2+p2)+(q1-r1)*(q2+r2)+(p1-q1)*(p2+q2);
         if(A==0) return true; // a point on the segment is found
-        if( (A<0)!=isLeft) // a point on the other side 
+        if( (A<0)!=isLeft) // a point on the other side
                            // of the segment is found
            return true;
       }
@@ -336,7 +336,7 @@ changed and false is returned.
 [3] O(1)
 
 */
-bool LinearPointMove::SplitX(const double X, const bool closeFirst, 
+bool LinearPointMove::SplitX(const double X, const bool closeFirst,
                              LinearPointMove& Rest){
    __TRACE__
  if(startX==endX)
@@ -361,7 +361,7 @@ changed and false is returned.
 [3] O(1)
 
 */
-bool LinearPointMove::SplitY(const double Y, const bool closeFirst, 
+bool LinearPointMove::SplitY(const double Y, const bool closeFirst,
                              LinearPointMove& Rest){
    __TRACE__
  if(startY==endY)
@@ -488,14 +488,14 @@ This functions implements the familiar compare function.
    int LinearPointMove::CompareTo(LinearPointMove* LPM){
        if(!defined && !LPM->defined){
           return 0;
-       } 
+       }
        if(!defined && LPM->defined){
           return -1;
        }
        if(defined && !LPM->defined){
           return  1;
        }
-       int comp = interval.CompareTo(&(LPM->interval));  
+       int comp = interval.CompareTo(&(LPM->interval));
        if(comp!=0){
          return comp; // different intervals
        }
@@ -561,9 +561,9 @@ string LinearPointMove::ToString()const{
 This function computes the evolution of the topological relationship
 between this LinearPointMove and the given static point. The caller has
 to allocate enough memory in the resultbuffer, this means that the
-result array has a minimum size of 3. The return value is the number of 
+result array has a minimum size of 3. The return value is the number of
 used array slots (1..3). The resulting LinearInt9M values covers the
-same relative interval as this point it does. 
+same relative interval as this point it does.
 
 [3] O(1)
 
@@ -590,10 +590,10 @@ int LinearPointMove::Toprel(const Point P, LinearInt9MMove* result)const{
   // The point describes a vertical line in the three dimensional space
   // the linear moving point describes an arbitrary segment in this space
   // Because the coordinates of the time dimension is equal for both lines,
-  // we can reduce the problem of the problem whether a point is located 
+  // we can reduce the problem of the problem whether a point is located
   // on a segment.
   double dx = endX-startX;
-  double dy = endY-startY; 
+  double dy = endY-startY;
   double x = P.GetX();
   double y = P.GetY();
   // two simple points, which are the case here, can only be equal
@@ -608,13 +608,13 @@ int LinearPointMove::Toprel(const Point P, LinearInt9MMove* result)const{
         result[0].Set(Requal,interval);
      else
         result[0].Set(Rdisjoint,interval);
-     return 1; 
+     return 1;
   }
-  
+
   // at this point we know that this point is moving
-  // we can conclude that in at most one timepoint the 
-  // points are equal and they are disjoint in all other times 
-  
+  // we can conclude that in at most one timepoint the
+  // points are equal and they are disjoint in all other times
+
   // point, we need a closed interval of length 0
   DateTime DT(durationtype);
   DT.ReadFrom(0.0);
@@ -631,10 +631,10 @@ int LinearPointMove::Toprel(const Point P, LinearInt9MMove* result)const{
          result[0].Set(Requal,EmptyInt);
          RelInterval FI;
          FI.Set(interval.GetLength(),false,interval.IsRightClosed());
-         result[1].Set(Rdisjoint,FI);        
-         return 2; 
+         result[1].Set(Rdisjoint,FI);
+         return 2;
      }
-  }  
+  }
   // special case: P is endpoint of this
   if( (x==endX) && (y==endY)){
     if(!interval.IsRightClosed()){
@@ -649,11 +649,11 @@ int LinearPointMove::Toprel(const Point P, LinearInt9MMove* result)const{
     }
   }
 
-  // check wether P is on the segment 
-  if( (x-startX)*dy == (y-startY)*dx){ // on the line ? 
+  // check wether P is on the segment
+  if( (x-startX)*dy == (y-startY)*dx){ // on the line ?
      // one of dx and dy is different to 0.0 because this case is
      // aready handled above
-   
+
      double delta = dx==0?(y-startY)/dy:(x-startX)/dx;
      if(delta<0 || delta>1){ // not on the segment
          result[0].Set(Rdisjoint,interval);
@@ -673,19 +673,19 @@ int LinearPointMove::Toprel(const Point P, LinearInt9MMove* result)const{
      result[0].Set(Rdisjoint,interval);
      return 1;
  }
-} 
+}
 
 /*
 ~Toprel~
 
 This function computes the moving topological relationship between this
-LinearPointMove and a set of points given by __P__. The number of 
-resulting LinearInt9MMove's depends linearly on the number of the 
-points contained in __P__. Because the size of the result is not 
-constant, we use a vector for storing it.  
+LinearPointMove and a set of points given by __P__. The number of
+resulting LinearInt9MMove's depends linearly on the number of the
+points contained in __P__. Because the size of the result is not
+constant, we use a vector for storing it.
 
 */
-void LinearPointMove::Toprel(const Points& P, 
+void LinearPointMove::Toprel(const Points& P,
                              vector<LinearInt9MMove>& Result)const{
    Result.clear();
    Int9M R;
@@ -713,10 +713,10 @@ void LinearPointMove::Toprel(const Points& P,
    }
    // the pmpoint and the points value contain elements
    assert(P.IsOrdered());
-   /* If the points value contains more than one point, the 
+   /* If the points value contains more than one point, the
       9 intersection matrix will contain an 1 entry at position
       interior exterior at each position. In the other case, it will
-      have an 1 entry either at this position or at the position 
+      have an 1 entry either at this position or at the position
       interior/interior
    */
    R.Set(false,false,false,false,false,false,false,false,true);
@@ -735,11 +735,11 @@ void LinearPointMove::Toprel(const Points& P,
    }
 
    // special case: point is staying
-   if((startX==endX && startY == endY) || 
+   if((startX==endX && startY == endY) ||
        interval.GetLength()->ToDouble()==0){
         Point tmpP(startX,startY);
         if(P.Contains(tmpP))
-             R.SetII(true);  
+             R.SetII(true);
         LinearInt9MMove r1(1);
         r1.Set(R,interval);
         Result.push_back(r1);
@@ -747,7 +747,7 @@ void LinearPointMove::Toprel(const Points& P,
    }
    // we can scan all point in a direction to get the split point ordered
    // first, we have to determine the direction;
-   
+
   // we create an interval of length zero
    DateTime DT(durationtype);
    DT.ReadFrom(0.0);
@@ -761,7 +761,7 @@ void LinearPointMove::Toprel(const Points& P,
       forward = startY<endY;
    else // startX>endX
       forward = false;
-      
+
 
    Point currentPoint1;
    Point currentPoint2;
@@ -782,15 +782,15 @@ void LinearPointMove::Toprel(const Points& P,
           P.Get(size-i-1,currentPoint1);
           currentPoint2 = (currentPoint1);
       }
-   
+
       currentX = currentPoint2.GetX();
       currentY = currentPoint2.GetY();
       currentDelta=PointPosOnSegment(lastX1,lastY1,endX,endY,
-                                      currentX,currentY); 
+                                      currentX,currentY);
        if(currentDelta==0){ // split at starting point
-         // split the interval at the begin 
+         // split the interval at the begin
          if(lastInterval.IsLeftClosed()){
-            R.SetII(true); 
+            R.SetII(true);
             currentMove.Set(R,emptyInterval);
             Result.push_back(currentMove);
             lastInterval.Set(lastInterval.GetLength(),false,
@@ -818,19 +818,19 @@ void LinearPointMove::Toprel(const Points& P,
                Result.push_back(currentMove);
                R.SetII(true);
                currentMove.Set(R,emptyInterval);
-               Result.push_back(currentMove);  
+               Result.push_back(currentMove);
             } else{
                R.SetII(false);
                currentMove.Set(R,lastInterval);
                Result.push_back(currentMove);
             }
-            done = true; 
+            done = true;
       } else if(currentDelta>1){ // no more splitpoints are possible
            R.SetII(false);
            currentMove.Set(R,lastInterval);
            Result.push_back(currentMove);
            done=true;
-       }   
+       }
     }
    if(!done) { // there is an unprocessed rest from the interval
        R.SetII(false);
@@ -842,15 +842,15 @@ void LinearPointMove::Toprel(const Points& P,
 /*
 ~DistanceTo~
 
-This function computes the distance of this LinearPointMove to 
-a fixed point. The result will be of type MovingRealUnit.If this 
-unit is not defined, also the reault will be not defined. In each 
+This function computes the distance of this LinearPointMove to
+a fixed point. The result will be of type MovingRealUnit.If this
+unit is not defined, also the reault will be not defined. In each
 case, the interval of the result will be the same like the interval
 of this unit.
 
 */
 
-   void LinearPointMove::DistanceTo(const double x, const double y, 
+   void LinearPointMove::DistanceTo(const double x, const double y,
                                     MovingRealUnit& result)const{
       if(!defined){
         result.GetFrom(0,0,interval);
@@ -866,7 +866,7 @@ of this unit.
 /*
 ~NearOverlap~
 
-This function checks whether this unit and the argument have an nearly 
+This function checks whether this unit and the argument have an nearly
 common part. I.e. first is checked if the speed difference between both
 units is smaller than the given epsilon value. Additionally, the distance
 between both units must be smaller than the given epsilon value.
@@ -893,12 +893,12 @@ bool LinearPointMove::nearOverlap(const LinearPointMove& lpm,
       double dir2 = lpm.Direction();
       if(abs(dir1-dir2)>epsilonDirection){
           return false;
-      } 
+      }
    } else if(speed1<=epsilonSpeed || speed2<epsilonSpeed){
        // from one arguments, the direction is not evaluable
        return false;
-   } 
-   
+   }
+
    // direction and speed are nearly equal, check the distance
    HalfSegment hs1;
    this->GetHalfSegment(true,hs1);
@@ -925,7 +925,7 @@ double LinearPointMove::Direction()const{
    double len = this->Length();
    y = y/len;
    double angle1 = asin(y);
-   angle1 = angle1*180.0 / PI;
+   angle1 = angle1*180.0 / M_PI;
    if(y>=0 && x>=0){
        return angle1;
    }
@@ -939,7 +939,7 @@ double LinearPointMove::Direction()const{
 ~Speed~
 
 Computes the speed of this unit as distance / time. The optional argument is multiplied
-with the time value. Basically, the speed is given in units per day. 
+with the time value. Basically, the speed is given in units per day.
 
 */
 
@@ -962,7 +962,7 @@ void LinearPointMove::Speed(MovingRealUnit& result) const{
    if(!defined){
       result.SetDefined(false);
       return;
-   } 
+   }
    MRealMap map(0,0,Speed(1),false);
    MovingRealUnit unit(map,interval);
    unit.SetDefined(true);
@@ -1002,13 +1002,13 @@ double LinearPointMove::Length() const{
 ~A stream operator~
 
 This operator can be used for debugging purposes. Its defines
-a formatted output for a LinearPointMove. 
+a formatted output for a LinearPointMove.
 
 */
 
 ostream& operator<<(ostream& os, const LinearPointMove LPM){
       os <<  LPM.ToString();
-      return os; 
+      return os;
    }
 
 } // end of namepsace periodic

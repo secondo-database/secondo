@@ -996,13 +996,13 @@ The assignment operator
   Distance function
 
 */
-   double Distance(const Rectangle<3>& rect) const{
+   double Distance(const Rectangle<3>& rect, const Geoid* geoid = 0) const{
      cerr << "Warning URegion::Distance(rect) not implemented. "
           << "Using Rectangle<3>::Distance(Rectangle<3>) instead!" << endl;
      if(!IsDefined()){
         return -1;
      } else {
-       return BoundingBox().Distance(rect);
+       return BoundingBox().Distance(rect,geoid);
      }
 
    }

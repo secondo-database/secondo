@@ -199,7 +199,8 @@ Operator : mdirection
 Number   : 1
 Signature: mpoint -> mreal
 Example  : query mdirection([const mpoint value((("2003-10-10" "2003-10-20" TRUE TRUE)(2.0 2.0 3.0 3.0)))])
-Result   : (mreal((("2003-10-10" "2003-10-20" TRUE TRUE)(0.0 0.0 44.93318193938277 FALSE))))
+Result   : (mreal((("2003-10-10" "2003-10-20" TRUE TRUE)(0.0 0.0 45.0 FALSE))))
+Tolerance: 0.001
 
 
 Operator : never

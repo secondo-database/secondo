@@ -1887,12 +1887,13 @@ void UPoint::Distance( const Point& p, UReal& result, const Geoid* geoid ) const
   return;
 }
 
-double UPoint::Distance(const Rectangle<3>& rect) const{
+double UPoint::Distance(const Rectangle<3>& rect,
+                        const Geoid* geoid /*=0*/) const{
   cerr << "UPoint::Distance(const Rectangle<3>&) not implemented yet" << endl;
-  if( !IsDefined() || !rect.IsDefined() ){
+  if( !IsDefined() || !rect.IsDefined() || (geoid && !geoid->IsDefined()) ){
     return -1;
   }
-  return BoundingBox().Distance(rect);
+  return BoundingBox().Distance(rect,geoid);
 }
 
 void UPoint::Distance( const UPoint& up, UReal& result,
@@ -1902,8 +1903,8 @@ void UPoint::Distance( const UPoint& up, UReal& result,
   assert( up.IsDefined() );
   if(geoid){
     assert( geoid->IsDefined() );
-    cerr << "Sperical diestance computation not implemented!" << endl;
-    assert( false );
+    cerr << "Spherical diestance computation not implemented!" << endl;
+    assert( false ); // TODO: implement spherical geometry
   }
   assert( timeInterval.Intersects(up.timeInterval) );
 

@@ -27,7 +27,7 @@ The special constructor for the cast function.
 [3] O(1)
 
 */
-RelInterval::RelInterval(){   
+RelInterval::RelInterval(){
    __TRACE__
 }
 
@@ -101,13 +101,13 @@ bool RelInterval::CanAppended(const RelInterval* D2)const {
   if(IsRightClosed())
      return ! D2->IsLeftClosed();
   else
-     return D2->IsLeftClosed(); 
+     return D2->IsLeftClosed();
 }
 
 /*
 ~Contains~
 
-Checks whether T is contained in this RelInterval 
+Checks whether T is contained in this RelInterval
 
 [3] O(1)
 
@@ -171,7 +171,7 @@ This function compares two RelIntervals.
 */
 int RelInterval::CompareTo(const RelInterval* D2)const {
    __TRACE__
-  if(!IsDefined() && !D2->IsDefined()){ 
+  if(!IsDefined() && !D2->IsDefined()){
       return 0;
   }
   if(!IsDefined() && D2->IsDefined()){
@@ -246,7 +246,7 @@ size_t RelInterval::Sizeof() const{
 ~Split~
 
 Splits an interval at the specified position. __delta__ has to be in [0,1].
-The return value indicates whether a rest exists. 
+The return value indicates whether a rest exists.
 
 [3] O(1)
 
@@ -272,11 +272,11 @@ bool RelInterval::Split(const double delta, const bool closeFirst,
 /*
 ~Split~
 
-This function splits an interval at a given point in time. 
+This function splits an interval at a given point in time.
 If the splitting instant is outside the interval, this interval or
 Rest will be undefined. The other one will contain this interval.
-If the spitting point is inside the interval, this interval will 
-end at this endpoint and Rest will begin at duration. The return 
+If the spitting point is inside the interval, this interval will
+end at this endpoint and Rest will begin at duration. The return
 value is always true.
 
 */
@@ -291,7 +291,7 @@ bool RelInterval::Split(const DateTime duration, const bool closeFirst,
    if(duration.LessThanZero()){
       // the complete interval is picked up by Rest
       Rest.Equalize(this);
-      this->ChangeDefined(false); 
+      this->ChangeDefined(false);
       return true;
    }
    // duration left of this interval
@@ -307,11 +307,11 @@ bool RelInterval::Split(const DateTime duration, const bool closeFirst,
       return true;
    }
    // duration right on this interval
-   if(duration==length & (!IsRightClosed() || closeFirst)){
+   if( (duration==length) & (!IsRightClosed() || closeFirst)){
        // Rest will not be defined
        Rest.ChangeDefined(false);
        return true;
-   } 
+   }
   // the splitting instance is inside this interval
    Rest.length = this->length - duration;
    Rest.ChangeRightClosed(this->IsRightClosed());
@@ -364,7 +364,7 @@ void RelInterval::GetLength(DateTime& result)const{
 
 This function stored the length of this interval in the argument of this function.
 The advantage of this function  in contrast to the GetLength function is that
-no memory is allocated by this function. 
+no memory is allocated by this function.
 
 */
 void RelInterval::StoreLength(DateTime& result) const{
@@ -496,7 +496,7 @@ bool RelInterval::ReadFrom(const ListExpr LE, const bool typeincluded){
    ChangeLeftClosed(LC);
    ChangeRightClosed(RC);
    length.Equalize(&time);
-   
+
    return true;
 }
 
@@ -533,7 +533,7 @@ This function sets the closure of this interval at its left end.
 */
 void RelInterval::SetLeftClosed(bool LC){
    this->ChangeLeftClosed(LC);
-}  
+}
 
 /*
 ~SetRightClosed~
@@ -544,7 +544,7 @@ right end of this interval.
 */
 void RelInterval::SetRightClosed(bool RC){
    this->ChangeRightClosed(RC);
-}  
+}
 
 /*
 ~SetClosure~
@@ -626,10 +626,10 @@ double RelInterval::Where(const DateTime* T)const{
 /*
 ~Plus~
 
-This function  adds the argument to this interval. 
+This function  adds the argument to this interval.
 The 'weld point' is included to the new interval regardless
 to the closure properties of the source intervals. The closure on the
-left of this interval will not be changed and the closure on the 
+left of this interval will not be changed and the closure on the
 right is taken from the argument.
 
 */
@@ -669,7 +669,7 @@ RelInterval & RelInterval::operator=(const RelInterval& source){
 /*
 ~Attribute Supporting functions~
 
-The next functions support some operations for using this type 
+The next functions support some operations for using this type
 as an attribute within a relation.
 
 */
@@ -689,7 +689,7 @@ Flob* RelInterval::GetFLOB(const int i){
 bool RelInterval::Adjacent(const Attribute*)const{
    return false;
 }
-/* 
+/*
 ~Changing flags ~
 
 */

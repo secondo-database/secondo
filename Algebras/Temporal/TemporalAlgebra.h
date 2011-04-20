@@ -2553,7 +2553,7 @@ If invalid geographic coordinates are found, the result is UNDEFINED.
 
 */
 
-  virtual double Distance(const Rectangle<3>& rect) const;
+  virtual double Distance(const Rectangle<3>& rect, const Geoid* geoid=0) const;
 /*
   Computes the distance between the three dimensional line defined by
   that unit and the rectangle.
