@@ -11,6 +11,8 @@ of a point data type.
 #ifndef POINT_H
 #define POINT_H
 
+#include <sstream>
+
 #include "Coord.h"
 #include "Geoid.h"
 #include "RectangleAlgebra.h"
@@ -394,6 +396,16 @@ with a degree of alpha. The result is stored in res.
   inline bool IsEmpty()const{ return !IsDefined(); }
 
 /*
+4.3.16 Operation ~toString~
+
+Returns a textual representation of the point. If a ~geoid~ is passed,
+data is represented as geographic coordinates. Otherwise, a euclidean
+coord-pair string is returned.
+
+*/
+  string toString(const Geoid* geoid = 0) const;
+
+/*
 4.4 Functions needed to import the the ~point~ data type to tuple
 
 There are totally 8 functions which are defined as virtual functions. They need
@@ -484,7 +496,6 @@ as an attribute.
     virtual double getMaxY() const{
       return y;
     }
-
     virtual void writeShape(ostream& o, uint32_t RecNo) const{
 
        // first, write the record header

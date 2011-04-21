@@ -911,13 +911,15 @@ Signature: geoid -> real
 Example  : query getFlattening(create_geoid("bla"))
 Result   : (real undef)
 
-
-
 Operator  : heading
 Number    : 1
 Signature : point x point -> real
 Example   : query heading(makepoint(0,0), makepoint(20,0));
 Result    : 90.0
 
-
+Operator  : point2string
+Number    : 1
+Signature : point [x geoid] -> string
+Example   : query point2string(makepoint(7.494968217,51.376125146), create_geoid("WGS1984"))
+Result    : "(51°22'34.05052560\"N, 7°29'41.88558120\"E)"
 

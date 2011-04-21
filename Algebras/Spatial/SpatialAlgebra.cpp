@@ -868,6 +868,38 @@ ostream& Point::Print( ostream &os ) const
   return os << *this;
 }
 
+string Point::toString(const Geoid* geoid /*=0*/) const {
+  if(!IsDefined()){
+    return "undef";
+  }
+  stringstream s;
+  s.setf(ios_base::fixed,ios_base::floatfield);
+  s.precision(8);
+  if(geoid){ // print as geographic coords
+    double lat = GetY();
+    double lon = GetX();
+    string ns = (lat>=0)?"N":"S";
+    string ew = (lon>=0)?"E":"W";
+
+    lat = fabs(lat);
+    int degLat = (int)lat;
+    double resLat = (lat - degLat)*60.0;
+    int minLat = ((int) resLat);
+    double secLat = (resLat - minLat)*60.0;
+
+    lon = fabs(lon);
+    int degLon = (int)lon;
+    double resLon = (lon - degLon)*60.0;
+    int minLon = ((int) resLon);
+    double secLon = (resLon - minLon)*60.0;
+    s << "(" << degLat << "°" << minLat << "'" << secLat << "\"" << ns << ", "
+             << degLon << "°" << minLon << "'" << secLon << "\"" << ew << ")";
+  } else { // print as euclidean coords
+    s << *this;
+  }
+  return s.str();
+}
+
 bool Point::Inside( const Region& r,
                     const Geoid* geoid /*=0*/ ) const
 {
@@ -18677,6 +18709,64 @@ Operator spatial_distanceOrthodrome (
     distanceOrthodromeTM );
 
 /*
+6.16.2 Operator ~point2string~
+
+---- point [ x geoid ] --> string
+----
+
+*/
+
+ListExpr point2stringTM(ListExpr args){
+  int noargs = nl->ListLength(args);
+  string errmsg = "Expected point [x geoid].";
+  if( (noargs<1) || (noargs>2) ){
+    return listutils::typeError(errmsg);
+  }
+  if(!listutils::isSymbol(nl->First(args),Point::BasicType())){
+    return listutils::typeError(errmsg);
+  }
+  if( (noargs == 2) &&
+      !listutils::isSymbol(nl->Second(args),Geoid::BasicType())){
+    return listutils::typeError(errmsg);
+  }
+  return nl->SymbolAtom(CcString::BasicType());
+}
+
+int point2stringVM(Word* args, Word& result, int message,
+                               Word& local, Supplier s){
+  const Point* p = static_cast<const Point*>(args[0].addr);
+  const Geoid* geoid =
+            (qp->GetNoSons(s)==2)?static_cast<const Geoid*>(args[1].addr):0;
+  result = qp->ResultStorage(s);
+  CcString* res = static_cast<CcString*>(result.addr);
+
+  if(!p->IsDefined() || (geoid && !geoid->IsDefined()) ){
+    res->SetDefined(false);
+  } else {
+    res->Set(true,p->toString(geoid));
+  }
+  return 0;
+}
+
+const string point2stringSpec =
+   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+   "( <text> point [x geoid] -> string</text--->"
+   "<text>point2string( P, [, Geoid] ) </text--->"
+   "<text>Returns a textual representation of the point P. If Geoid is not "
+   "provided, the result is a pair of euclidean coordinates, otherwise, it is "
+   "a textual representation of geographic coordinates.</text--->"
+   "<text>query point2string(makepoint(7.494968217,51.376125146), "
+   "create_geoid(\"WGS1984\"))"
+   "</text---> ) )";
+
+Operator point2string (
+    "point2string",
+    point2stringSpec,
+    point2stringVM,
+    Operator::SimpleSelect,
+    point2stringTM );
+
+/*
 10 Type Constructor ~geoid~
 */
     GenTC<Geoid> geoid_t;
@@ -18790,6 +18880,7 @@ class SpatialAlgebra : public Algebra
     AddOperator( &geoid_getRadius );
     AddOperator( &geoid_getFlattening );
     AddOperator( &geoid_create_geoid );
+    AddOperator( &point2string );
   }
   ~SpatialAlgebra() {};
 };
