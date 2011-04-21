@@ -2533,7 +2533,8 @@ void GenMObject::ConnectGP1GP2(Network* rn, Point start_loc, GLine* newgl,
                      Relation* rel, string mode)
 {
 
-    const double delta_dist = 0.01;
+//    const double delta_dist = 0.01;
+
     for(int i = 0;i < newgl->Size();i++){
         RouteInterval* ri = new RouteInterval();
         newgl->Get(i, *ri);
@@ -2567,15 +2568,23 @@ void GenMObject::ConnectGP1GP2(Network* rn, Point start_loc, GLine* newgl,
 
       Point temp_sp1 = seq_halfseg[0].from; 
       Point temp_sp2 = seq_halfseg[seq_halfseg.size() - 1].to; 
-      if(start_loc.Distance(temp_sp1) < delta_dist){
+      double d1 = start_loc.Distance(temp_sp1);
+      double d2 = start_loc.Distance(temp_sp2);
+//      if(start_loc.Distance(temp_sp1) < delta_dist){
+      if(d1 < d2 ){
         CreateCarTrip1(mo, seq_halfseg, start_time, speed);
 
         start_loc = temp_sp2;
-      }else if(start_loc.Distance(temp_sp2) < delta_dist){
+//      }else if(start_loc.Distance(temp_sp2) < delta_dist){
 
+        }else if(d1 > d2){
         CreateCarTrip2(mo, seq_halfseg, start_time, speed);
         start_loc = temp_sp1;
-      }else assert(false);
+      }else{
+        cout<<"start loc "<<start_loc
+            <<" p1 "<<temp_sp1<<" p2 "<<temp_sp2<<endl;
+        assert(false);
+      }
 
       unit_interval.end = start_time;
       unit_interval.rc = false;

@@ -2454,9 +2454,12 @@ int GenerateMO1_I_ValueMap(Word* args, Word& result, int message,
         indoor_nav->resulttype =
             new TupleType(nl->Second(GetTupleResultType(in_pSupplier)));
 
-//      indoor_nav->GenerateMO1(ig, btree, rtree, num, peri, false);
-
-        indoor_nav->GenerateMO1_New(ig, btree, rtree, num, peri, false);
+        unsigned int num_elev = indoor_nav->NumerOfElevators(); 
+        if(num_elev == 1)
+            indoor_nav->GenerateMO1(ig, btree, rtree, num, peri, false);
+        else
+            indoor_nav->GenerateMO1_New(ig, btree, rtree, num, 
+                                    peri, false, num_elev);
 
         local.setAddr(indoor_nav);
         return 0;
@@ -2509,8 +2512,12 @@ int GenerateMO1_I_GenMO_ValueMap(Word* args, Word& result, int message,
         indoor_nav->resulttype =
             new TupleType(nl->Second(GetTupleResultType(in_pSupplier)));
 
-//        indoor_nav->GenerateMO1(ig, btree, rtree, num, peri, true);
-        indoor_nav->GenerateMO1_New(ig, btree, rtree, num, peri, true);
+        unsigned int num_elev = indoor_nav->NumerOfElevators(); 
+        if(num_elev == 1)
+          indoor_nav->GenerateMO1(ig, btree, rtree, num, peri, true);
+        else
+          indoor_nav->GenerateMO1_New(ig, btree, rtree, num, peri, 
+                                      true, num_elev);
 
         local.setAddr(indoor_nav);
         return 0;

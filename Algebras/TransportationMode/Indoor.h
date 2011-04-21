@@ -1138,10 +1138,14 @@ struct IndoorNav{
    void GenerateMO1(IndoorGraph* ig, BTree* btree, R_Tree<3,TupleId>* rtree,
                     int num, Periods* peri, bool convert); 
    /////////////////////////////////////////////////////////////////////
+   unsigned NumerOfElevators();
+   
    void GenerateMO1_New(IndoorGraph* ig, BTree* btree, R_Tree<3,TupleId>* rtree,
-                    int num, Periods* peri, bool convert);
+                  int num, Periods* peri, bool convert, unsigned int num_elev);
+
    void InitializeElevator_New(Interval<Instant>& periods, 
-                       vector< vector<Elevator> >& elev_list, double speed);
+                       vector< vector<Elevator> >& elev_list, 
+                               double speed);
    void AddUnitToMO_Elevator_New(MPoint3D* mp3d, vector<Point3D>& , 
                     Instant& start_time, Instant& st, 
                     vector< vector<Elevator> >&);

@@ -5200,6 +5200,8 @@ void IndoorNav::GenerateMO1(IndoorGraph* ig, BTree* btree,
                             R_Tree<3,TupleId>* rtree, int num, 
                             Periods* peri, bool convert)
 {
+//  cout<<"one elevator "<<endl;
+
   GenerateIP1(num*2); 
 
   IndoorNav* indoor_nav = new IndoorNav(ig); 
@@ -5406,7 +5408,43 @@ void IndoorNav::AddUnitToMO_Elevator(MPoint3D* mp3d, vector<Point3D>& p3d_list,
   ////////////////////////////////////////////////////////////////////////////
 }
 
+/*
+calculate the number of elevators in a building 
 
+*/
+unsigned int IndoorNav::NumerOfElevators()
+{
+  const double delta_dist = 0.001;
+  
+  vector<Point> center_list; 
+  for(int i = 1;i <= rel1->GetNoTuples();i++){
+    Tuple* groom_tuple = rel1->GetTuple(i, false);
+    string type = ((CcString*)groom_tuple->GetAttribute(I_Type))->GetValue();
+    if(GetRoomEnum(type) == EL){
+        GRoom* groom = (GRoom*)groom_tuple->GetAttribute(I_Room);
+        Rectangle<2> bbox = groom->BoundingBox();
+        Point p(true, (bbox.MinD(0) + bbox.MaxD(0))/2, 
+                      (bbox.MinD(1) + bbox.MaxD(1))/2);
+        if(center_list.size() == 0)center_list.push_back(p);
+        else{
+          unsigned int j = 0;
+          for(;j < center_list.size();j++)
+            if(center_list[j].Distance(p) < delta_dist)break;
+          if(j == center_list.size())
+            center_list.push_back(p);
+        }
+    }
+    groom_tuple->DeleteIfAllowed(); 
+  }
+
+  return center_list.size();
+
+}
+
+/*
+several elevators. for each elevator, an array is maintained
+
+*/
 void IndoorNav::InitializeElevator_New(Interval<Instant>& periods, 
                                    vector< vector<Elevator> >& elev_list, 
                                    double speed)
@@ -5433,8 +5471,6 @@ void IndoorNav::InitializeElevator_New(Interval<Instant>& periods,
     }
     groom_tuple->DeleteIfAllowed(); 
   }
-
-  cout<<"number of elevators "<<center_list.size()<<endl;
 
   vector<Elevator> empty_list;
   for(unsigned int i = 0 ; i < center_list.size();i++)
@@ -5471,7 +5507,7 @@ void IndoorNav::InitializeElevator_New(Interval<Instant>& periods,
      return; 
   }
 
-  
+
    for(unsigned int i = 0;i < elev_list.size();i++)
       sort(elev_list[i].begin(), elev_list[i].end());
 
@@ -5522,16 +5558,23 @@ void IndoorNav::InitializeElevator_New(Interval<Instant>& periods,
 //       t2.ReadFrom(periods.start.ToDouble() + elev_list[i][j].t2);
 // 
 //       cout<<"first arrive "<<t1<<" second arrive "<<t2<<endl; 
+//       cout<<"rect "<<elev_list[i][j].el_rect<<" h "<<elev_list[i][j].h<<endl;
 //     }
 //   }
 
 
 }
 
+/*
+generate indoor moving objects where the building can have several elevators 
+
+*/
 void IndoorNav::GenerateMO1_New(IndoorGraph* ig, BTree* btree, 
                             R_Tree<3,TupleId>* rtree, int num, 
-                            Periods* peri, bool convert)
+                            Periods* peri, bool convert, unsigned int num_elev)
 {
+//  cout<<"several elevators "<<endl; 
+
   GenerateIP1(num*2); 
 
   IndoorNav* indoor_nav = new IndoorNav(ig); 
@@ -5548,13 +5591,24 @@ void IndoorNav::GenerateMO1_New(IndoorGraph* ig, BTree* btree,
   vector< vector<Elevator> > elev_list;
 
   InitializeElevator_New(periods, elev_list, speed);
-  
 
-/*  int count = 0; 
+  int count = 0; 
   for(unsigned int i = 0;i < genloc_list.size();i++){
     if(i < genloc_list.size() - 1){
       GenLoc loc1 = genloc_list[i];
       GenLoc loc2 = genloc_list[i + 1];
+
+
+//       Loc loc_1(9.09, 4.94);
+//       Loc loc_2(2.12, 11.28);
+//       loc1.SetValue(15, loc_1);
+//       loc2.SetValue(304, loc_2);
+
+//       Loc loc_1(25.99, 14.37);
+//       Loc loc_2(8.49, 0.51);
+//       loc1.SetValue(311, loc_1);
+//       loc2.SetValue(18, loc_2);
+
 
       if(loc1.GetOid() == loc2.GetOid()) continue;
 
@@ -5625,7 +5679,7 @@ void IndoorNav::GenerateMO1_New(IndoorGraph* ig, BTree* btree,
       if(count == num)break; 
 
     }
-  }*/
+  } 
 
   delete indoor_nav;
 }
@@ -5636,11 +5690,11 @@ void IndoorNav::AddUnitToMO_Elevator_New(MPoint3D* mp3d,
                     Instant& start_time, Instant& st, 
                      vector< vector<Elevator> >& elev_list)
 {
-/*  assert(p3d_list.size() >= 2 && elev_list.size() >= 2); 
+  assert(p3d_list.size() >= 2 && elev_list[0].size() >= 2); 
   ////////////get the time for waiting///////////////////////////////////
   double relative_start = start_time.ToDouble() - st.ToDouble(); 
-  double cycle_time = elev_list[0][elev_list.size() - 1].t2 - 
-                      elev_list[0][elev_list.size() - 1].t1;
+  double cycle_time = elev_list[0][elev_list[0].size() - 1].t2 -
+                      elev_list[0][elev_list[0].size() - 1].t1;
 
   while(relative_start > cycle_time){
     relative_start -= cycle_time;
@@ -5650,36 +5704,55 @@ void IndoorNav::AddUnitToMO_Elevator_New(MPoint3D* mp3d,
   Instant t = start_time;
   t.ReadFrom(relative_start + st.ToDouble());
 //  cout<<"relative time "<<t<<endl; 
+  
 
   float h1 = p3d_list[0].GetZ(); 
   float h2 = p3d_list[ p3d_list.size() - 1].GetZ(); 
+  Point test_p(true, p3d_list[0].GetX(), p3d_list[0].GetY());
 
   double wait_time = 0.0;
   
   bool found = false;
-  
+
+//   cout<<"arrive time "<<start_time<<endl; 
+//   cout<<"cycle time "<<cycle_time<<endl; 
+
+
   for(unsigned int i = 0;i < elev_list.size();i++){
     for(unsigned int j = 0;j < elev_list[i].size();j++){
-        if(AlmostEqual(h1, elev_list[i][j].h)){//point inside rectangle 
+        if(AlmostEqual(h1, elev_list[i][j].h) && 
+           test_p.Inside(elev_list[i][j].el_rect)){ //point inside rectangle 
           if(h1 < h2){ //check t2 
-              if(elev_list[i].t2 > relative_start){
-                wait_time = elev_list[i].t2 - relative_start;
+//               cout<<"h1 < h2 "<<elev_list[i][j].t2
+//                   <<" relative_start"<<relative_start<<endl;
+
+              if(elev_list[i][j].t2 > relative_start){
+                wait_time = elev_list[i][j].t2 - relative_start;
               }else{
-                wait_time = elev_list[i].t2 + cycle_time - relative_start;
+                wait_time = elev_list[i][j].t2 + cycle_time - relative_start;
               }
           }else{//check t1
-              if(elev_list[i].t1 > relative_start){
-                wait_time = elev_list[i].t1 - relative_start;
+//               cout<<"h1 > h2 "<<elev_list[i][j].t1
+//                   <<" relative_start "<<relative_start<<endl;
+
+              if(elev_list[i][j].t1 > relative_start){
+                wait_time = elev_list[i][j].t1 - relative_start;
               }else{
-                wait_time = elev_list[i].t1 + cycle_time - relative_start;
+                wait_time = elev_list[i][j].t1 + cycle_time - relative_start;
               }
         }
         found = true;
+
+        Instant temp = start_time;
+        temp.ReadFrom(start_time.ToDouble() + wait_time);
+//         cout<<"elevator "<<i<<" h1 "<<h1
+//             <<" leave time "<<temp<<" wait time "<<wait_time<<endl;
+
         break;
     }
    }
     if(found)break;
-    
+
   }
 
 //  printf("wait time %.12f, %.12f\n", wait_time, wait_time*86400000); 
@@ -5708,7 +5781,7 @@ void IndoorNav::AddUnitToMO_Elevator_New(MPoint3D* mp3d,
         Interval<Instant> up_interval; 
         up_interval.start = start_time;
         Instant end = start_time;
-        end.ReadFrom(start_time.ToDouble() + elev_list[0].m_t);
+        end.ReadFrom(start_time.ToDouble() + elev_list[0][0].m_t);
         up_interval.end = end;
 
         up_interval.lc = true;
@@ -5722,7 +5795,7 @@ void IndoorNav::AddUnitToMO_Elevator_New(MPoint3D* mp3d,
           Interval<Instant> up_interval2; 
           up_interval2.start = start_time;
           Instant end2 = start_time;
-          end2.ReadFrom(start_time.ToDouble() + elev_list[0].w_t);
+          end2.ReadFrom(start_time.ToDouble() + elev_list[0][0].w_t);
           up_interval2.end = end2;
 
           up_interval2.lc = true;
@@ -5735,7 +5808,7 @@ void IndoorNav::AddUnitToMO_Elevator_New(MPoint3D* mp3d,
         }
     }
 
-  }*/
+  }
 
 }
 
