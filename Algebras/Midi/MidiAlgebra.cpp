@@ -422,8 +422,8 @@ void Midi::GetLyrics(string& result ,bool all, bool lyr,  bool any) const
         currType = currentEvent->GetMetaMessageType();
 
         if (( all & (currType > 0x00 ) & (currType<= 0xFF ))  ||
-            ( lyr & currType == Event::LYRIC )                ||
-            ( any & currType == Event::ANY_TEXT ))
+            ( (lyr & currType) == Event::LYRIC )                ||
+            ( (any & currType) == Event::ANY_TEXT ))
         {
           if(lastType != currType)
           {
@@ -988,7 +988,7 @@ bool InChannelVoiceRun(Event*& actualEvent,stringstream& byteStream,
                        bool& multisysex, bool& sequenceSpecified,
                        bool& runmodepossible,  int tracknr)
 {
-  int datalength;
+  int datalength=2; // ???
 
   if (!runmodepossible)
   {
@@ -1410,8 +1410,8 @@ bool InEvents(Track* actualTrack, int nob, char* bytes, int tracknr )
           }
           else        // end of running mode
           {
-            if ((cha & 0xF0 == 0xF0) &  // sysEx message found
-                (cha & 0x0F != 0x0F))
+            if (((cha & 0xF0) == 0xF0) &  // sysEx message found
+                ((cha & 0x0F) != 0x0F))
             {
               Event* actualEvent = new Event(shortmessage, deltatime);
               if ( InSystemmessage(actualEvent, byteStream,cha, chb,
@@ -1560,7 +1560,7 @@ bool InEvents(Track* actualTrack, int nob, char* bytes, int tracknr )
         nrtracks = (unsigned char)shortw[1] +
                    (unsigned char)shortw[0] * 256;
 
-        if((frmt ==1) || (((frmt ==2) || frmt == 0) & nrtracks == 1 ))
+        if((frmt ==1) || (((frmt ==2) || frmt == 0) && nrtracks == 1 ))
         {
           // correct type -nrtr combination
           byteStream.read( shortw, 2);
@@ -1863,7 +1863,7 @@ void Track::Transpose( bool inPerc, int hfTnSt, int& errorval )
           {
             note = (unsigned int)currentEvent->GetShortMessageData(0);
 
-            if ((note + hfTnSt)< 128 & (note + hfTnSt) > -1)
+            if (((note + hfTnSt)< 128) && ((note + hfTnSt) > -1))
             {
               currentEvent-> SetShortMessageData(0,
                 (unsigned char)(note + hfTnSt));
@@ -1887,7 +1887,7 @@ void Track::Transpose( bool inPerc, int hfTnSt, int& errorval )
         if(!perChannel)
         {
           note = (unsigned int)currentEvent->GetShortMessageData(0);
-          if ((note + hfTnSt) < 128  & (note + hfTnSt) > -1)
+          if (((note + hfTnSt) < 128) && ((note + hfTnSt) > -1))
           {
             currentEvent->SetShortMessageData(0,
               (unsigned char)(note + hfTnSt));
@@ -3671,7 +3671,7 @@ Supplier s)
   string lyS;
   currentMidi->GetLyrics( lyS, all, lyr, any );
 
-  FText::FText* outText = new FText::FText(false, NULL);
+  FText* outText = new FText(false, NULL);
   outText->Set(true,lyS.c_str());
 
   result = qp->ResultStorage(s);
