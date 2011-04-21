@@ -128,12 +128,16 @@ ListExprToTerm(ListExpr expr, NestedList* nl)
     {
       case IntType:
         intValue = nl->IntValue(expr);
-        PL_put_integer(result, intValue);
+        if(! PL_put_integer(result, intValue)){
+          cerr << "Problem in PL_put_integer" << endl;
+        }
         break;
 
       case RealType:
         realValue = nl->RealValue(expr);
-        PL_put_float(result, realValue);
+        if(!PL_put_float(result, realValue)){
+          cerr << "Problem in PL_put_float" << endl;
+        }
         break;
 
       case BoolType:
@@ -179,7 +183,9 @@ ListExprToTerm(ListExpr expr, NestedList* nl)
     for(iter = listElements.begin(); iter != listElements.end(); iter++)
     {
       elem = ListExprToTerm(*iter, nl);
-      PL_cons_list(result, elem, result);
+      if(!PL_cons_list(result, elem, result)){
+          cerr << "Problem in PL_cons_list" << endl;
+      }
     }
   }
 
@@ -268,18 +274,27 @@ TermToListExpr(term_t t, NestedList* nl, bool& error)
       break;
 
     case PL_INTEGER:
-      PL_get_long(t, &intValue);
-      result = nl->IntAtom(intValue);
+      if(PL_get_long(t, &intValue)){
+         result = nl->IntAtom(intValue);
+      } else {
+         result = nl->TheEmptyList(); 
+      }
       break;
 
     case PL_FLOAT:
-      PL_get_float(t, &realValue);
-      result = nl->RealAtom(realValue);
+      if(PL_get_float(t, &realValue)){
+         result = nl->RealAtom(realValue);
+      } else {
+         result = nl->TheEmptyList();
+      }
       break;
 
     case PL_ATOM:
-      PL_get_atom_chars(t, &charValue);
-      result = AtomToListExpr(nl, charValue, error);
+      if(PL_get_atom_chars(t, &charValue)){
+        result = AtomToListExpr(nl, charValue, error);
+      } else {
+         result = nl->TheEmptyList();
+      }
       break;
 
     case PL_STRING:
@@ -393,15 +408,18 @@ FloatListPairToVectorPair( term_t t,
       term_t i_head = PL_new_term_ref();
       term_t i_list = PL_copy_term_ref(o_head);
 
-      PL_get_list(i_list, i_head, i_list);
-      if ( PL_get_integer(i_head, &p.first) )
-        if (    PL_get_list(i_list, i_head, i_list) 
-             && PL_get_float(i_head, &p.second)     )
-          v.push_back(p);
-        else
+      if(PL_get_list(i_list, i_head, i_list)){
+        if ( PL_get_integer(i_head, &p.first) ){
+          if (    PL_get_list(i_list, i_head, i_list) 
+               && PL_get_float(i_head, &p.second)     ) {
+            v.push_back(p);
+          } else {
+            return;
+          }
+        } else {
           return;
-      else
-        return;
+        }
+      }
     }
 
     error = 0;

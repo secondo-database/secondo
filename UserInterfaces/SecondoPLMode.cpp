@@ -108,7 +108,9 @@ SecondoPLMode(TTYParameter& tp)
       term_t t0 = PL_new_term_refs(2),
              t1 = t0+1;
       PL_put_atom_chars(t0, "x");
-      PL_put_list_chars(t1, "");
+      if(!PL_put_list_chars(t1, "")){
+        cerr << "Problem in PL_put_list_chars" << endl;
+      }
       predicate_t p = PL_predicate("member",2,"");
       PL_call_predicate(NULL,PL_Q_NORMAL,p,t0);
       // end VTA 
