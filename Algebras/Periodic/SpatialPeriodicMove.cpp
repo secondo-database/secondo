@@ -30,7 +30,7 @@ SpatialPeriodicMove::SpatialPeriodicMove(int dummy):PeriodicMove(1),bbox(1){}
 
 */
 SpatialPeriodicMove::SpatialPeriodicMove(
-              const SpatialPeriodicMove& source){
+              const SpatialPeriodicMove& source): PeriodicMove(1), bbox(1){
     Equalize(&source);
 }
 

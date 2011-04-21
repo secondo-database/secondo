@@ -108,7 +108,7 @@ private:
 1.2 The Class List
 
 This class provides a double linked list with operations to
-insert, delete, and ieratating over elements.
+insert, delete, and iterating over elements.
 
 */
 

@@ -41,7 +41,8 @@ SpatialCompositeMove::SpatialCompositeMove(int dummy):CompositeMove(1),bbox(1){
 
 */
 SpatialCompositeMove::SpatialCompositeMove(const
-                                SpatialCompositeMove& source){
+                                SpatialCompositeMove& source):
+     CompositeMove(1), bbox(1){
      Equalize(&source);
 }
 

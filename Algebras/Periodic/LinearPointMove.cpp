@@ -18,7 +18,7 @@ namespace periodic{
 */
 LinearPointMove::LinearPointMove(){}
 
-LinearPointMove::LinearPointMove(const LinearPointMove& source){
+LinearPointMove::LinearPointMove(const LinearPointMove& source): interval(0){
     Equalize(&source);
 }
 
@@ -88,9 +88,8 @@ This constructor creates a new LinearPointMOve ignoring the argument.
 [3] O(1)
 
 */
-LinearPointMove::LinearPointMove(int dummy){
+LinearPointMove::LinearPointMove(int dummy): interval(1){
    __TRACE__
- interval=RelInterval(1);
   isStatic=true;
   defined=true;
 }
@@ -469,7 +468,7 @@ function is called.
 
 void LinearPointMove::Equalize(const LinearPointMove* P2){
    __TRACE__
- interval.Equalize(&(P2->interval));
+  interval.Equalize(&(P2->interval));
   startX = P2->startX;
   startY = P2->startY;
   endX = P2->endX;

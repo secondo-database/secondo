@@ -37,10 +37,7 @@ PInterval::PInterval(){}
 
 */
 PInterval::PInterval(int dummy):
-Attribute(true){
-   __TRACE__
-  relinterval=RelInterval(dummy);
-   startTime = DateTime(instanttype);
+  Attribute(true), startTime(datetime::instanttype), relinterval(dummy){
 }
 
 /*
@@ -49,12 +46,8 @@ Attribute(true){
 [3] O(1)
 
 */
-PInterval::PInterval(const DateTime startTime, const RelInterval relinterval):
- Attribute(true){
-   __TRACE__
-  (this->startTime).Equalize(&startTime);
-   (this->relinterval).Equalize(&relinterval);
-}
+PInterval::PInterval(const DateTime _startTime, const RelInterval _relinterval):
+ Attribute(true), startTime(_startTime), relinterval(_relinterval){ }
 
 /*
 ~Append~
@@ -264,6 +257,7 @@ from the argument.
 */
 void PInterval::Equalize(const PInterval* D2){
    __TRACE__
+   Attribute::operator=(*D2);
    startTime.Equalize(&(D2->startTime));
     relinterval.Equalize(&(D2->relinterval));
 }
@@ -503,7 +497,9 @@ string PInterval::ToString()const {
 ~Copy Constructor~
 
 */
-PInterval::PInterval(const PInterval& source){
+PInterval::PInterval(const PInterval& source): 
+   Attribute(source.IsDefined()), startTime(source.startTime), 
+   relinterval(source.relinterval){
    Equalize(&source);
 }
 

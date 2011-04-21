@@ -34,9 +34,10 @@ This constructor creates an empty  box.
 [3] O(1)
 
 */
-PBBox::PBBox(int dummy): Attribute(false){
+PBBox::PBBox(int dummy): Attribute(false), minX(0), maxX(0), 
+                                           minY(0), maxY(0), 
+                                           state(1){
    __TRACE__
-   state = 1;
 }
 
 /*
@@ -49,12 +50,9 @@ containing only the point (x,y).
 
 */
 PBBox::PBBox(const double x, const double y):
-  Attribute(true){
+  Attribute(true), minX(x), maxX(x), minY(y), maxY(y), state(0){
    __TRACE__
-  SetDefined(true);
   SetEmpty(false);
-  minX=maxX=x;
-  minY=maxY=y;
 }
 
 /*
@@ -66,15 +64,10 @@ given rectangle.
 [3] O(1)
 
 */
-PBBox::PBBox(const double minX, const double minY, 
-             const double maxX, const double maxY):
-  Attribute(true){
+PBBox::PBBox(const double _minX, const double _minY, 
+             const double _maxX, const double _maxY):
+  Attribute(true), minX(_minX), maxX(_maxX), minY(_minY), maxY(_maxY), state(0){
    __TRACE__
-  this->minX = minX<maxX?minX:maxX;
-  this->maxX = minX<maxX?maxX:minX;
-  this->minY = minY<maxY?minY:maxY;
-  this->maxY = minY<maxY?maxY:minY;
-  SetDefined(true);
   SetEmpty(false);
 }
 
@@ -84,9 +77,10 @@ PBBox::PBBox(const double minX, const double minY,
 
 */
 PBBox::PBBox(const PBBox& source):
-Attribute(source.IsDefined()){
-  Equalize(&source);
-}
+    Attribute(source.IsDefined()), 
+    minX(source.minX), maxX(source.maxX), 
+    minY(source.minY), maxY(source.maxY), 
+    state(source.state){ }
 
 /*
 ~Destructor~
@@ -339,6 +333,7 @@ as B2.
 */
 void PBBox::Equalize(const PBBox* B2){
     __TRACE__
+  SetDefined(B2->IsDefined());
   minX = B2->minX;
    maxX = B2->maxX;
    minY = B2->minY;
@@ -348,6 +343,7 @@ void PBBox::Equalize(const PBBox* B2){
 
 void PBBox::Equalize(const PBBox& B2){
     __TRACE__
+   Attribute::operator=(B2);
    minX = B2.minX;
    maxX = B2.maxX;
    minY = B2.minY;
@@ -371,7 +367,9 @@ void PBBox::Intersection(const PBBox* B2){
     SetDefined(false);
     return;
   }
-  if(IsEmpty()) return;
+  if(IsEmpty()) {
+      return;
+  }
   if(B2->IsEmpty()){
      SetEmpty(true);
      return;
@@ -587,7 +585,6 @@ void PBBox::SetEmpty(const bool value){
    }else{
      state = state & ~1;
    }
-   
 }
 
 

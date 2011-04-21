@@ -25,7 +25,8 @@ namespace periodic{
 */
 LinearPointsMove::LinearPointsMove(){}
 
-LinearPointsMove::LinearPointsMove(const LinearPointsMove& source){
+LinearPointsMove::LinearPointsMove(const LinearPointsMove& source):
+   interval(0), bbox(0){
    Equalize(&source);
 }
 
