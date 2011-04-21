@@ -255,21 +255,19 @@ extern AlgebraManager *am;
 /*
 4.1 Type investigation auxiliaries
 
-Within this algebra module, we have to handle with values of four different
-types defined in namespace symbols: ~INT~ and ~REAL~, ~BOOL~ and ~STRING~.
-They are constant values of the C++-string class.
+For a standard type T, its type name string is available using static class
+function const string T::BasicType().
 
-Moreover, for type mappings some auxiliary helper functions are defined in the
+For type mappings some auxiliary helper functions are defined in the
 file "TypeMapUtils.h" which defines a namespace mappings.
 
 */
 
 #include "TypeMapUtils.h"
-#include "Symbols.h"
-
+#include "Symbols.h"         // Still required for counter names.
 
 using namespace std;
-using namespace symbols;
+using namespace symbols;     // Still required for counter names.
 using namespace mappings;
 
 
@@ -326,7 +324,7 @@ CcIntProperty()
                              nl->StringAtom("List Rep"),
                              nl->StringAtom("Example List")),
             nl->FourElemList(nl->StringAtom("-> DATA"),
-                             nl->StringAtom("int"),
+                             nl->StringAtom(CcInt::BasicType()),
                              nl->StringAtom("(<intvalue>)"),
                              nl->StringAtom("12 or -32 or 0"))));
 }
@@ -337,7 +335,8 @@ Now we define a function, ~OutInt~, that takes as inputs a type description
 and a pointer to a value of this type. The representation of this value in
 nested list format is returned.
 
-For the simple types int, real, string, bool we don't use the type description at all. We will need it in the case of more complex type constructors,
+For the simple types int, real, string, bool we don't use the type description
+at all. We will need it in the case of more complex type constructors,
 e.g. to be able to compute the nested list representation of a tuple value
 we must know the types of the respective attribute values.
 
@@ -442,7 +441,7 @@ CastInt( void* addr )
 bool
 CheckInt( ListExpr type, ListExpr& errorInfo )
 {
-  return (listutils::isSymbol( type, "int" ));
+  return (listutils::isSymbol( type, CcInt::BasicType() ));
 }
 
 /*
@@ -451,7 +450,7 @@ class ~TypeConstructor~. Constructor arguments are the type constructor's name
 and the four functions previously defined.
 
 */
-TypeConstructor ccInt( "int",            CcIntProperty,
+TypeConstructor ccInt( CcInt::BasicType(),            CcIntProperty,
                        OutCcInt,         InCcInt,
                        0,                0,
                        CreateCcInt,      DeleteCcInt,
@@ -484,7 +483,7 @@ CcRealProperty()
                              nl->StringAtom("List Rep"),
                              nl->StringAtom("Example List")),
             nl->FourElemList(nl->StringAtom("-> DATA"),
-                             nl->StringAtom("real"),
+                             nl->StringAtom(CcReal::BasicType()),
                              nl->StringAtom("(<realvalue>)"),
                              nl->StringAtom("12.0 or -1.342 or 14e-3 "
                              "or .23"))));
@@ -571,11 +570,11 @@ CastReal( void* addr )
 bool
 CheckReal( ListExpr type, ListExpr& errorInfo )
 {
-  return (listutils::isSymbol( type, "real" ));
+  return (listutils::isSymbol( type, CcReal::BasicType() ));
 }
 
 
-TypeConstructor ccReal( "real",       CcRealProperty,
+TypeConstructor ccReal( CcReal::BasicType(),       CcRealProperty,
                         OutCcReal,    InCcReal,
                         0,            0,
                         CreateCcReal, DeleteCcReal,
@@ -614,7 +613,7 @@ CcBoolProperty()
                              nl->StringAtom("List Rep"),
                              nl->StringAtom("Example List")),
             nl->FourElemList(nl->StringAtom("-> DATA"),
-                             nl->StringAtom("bool"),
+                             nl->StringAtom(CcBool::BasicType()),
                              nl->StringAtom("(<boolvalue>)"),
                              nl->StringAtom("TRUE or FALSE"))));
 }
@@ -723,10 +722,10 @@ CastBool( void* addr )
 bool
 CheckBool( ListExpr type, ListExpr& errorInfo )
 {
-  return (listutils::isSymbol( type, "bool" ));
+  return (listutils::isSymbol( type, CcBool::BasicType() ));
 }
 
-TypeConstructor ccBool( "bool",             CcBoolProperty,
+TypeConstructor ccBool( CcBool::BasicType(),             CcBoolProperty,
                         OutCcBool,          InCcBool,
                         0,                  0,
                         CreateCcBool,       DeleteCcBool,
@@ -790,7 +789,7 @@ CcStringProperty()
                              nl->StringAtom("List Rep"),
                              nl->StringAtom("Example List")),
             nl->FourElemList(nl->StringAtom("-> DATA"),
-                             nl->StringAtom("string"),
+                             nl->StringAtom(CcString::BasicType()),
                              nl->StringAtom("(<stringvalue>)"),
                              examplelist)));
 }
@@ -896,10 +895,10 @@ CastString( void* addr )
 bool
 CheckString( ListExpr type, ListExpr& errorInfo )
 {
-  return (listutils::isSymbol( type, "string" ));
+  return (listutils::isSymbol( type, CcString::BasicType() ));
 }
 
-TypeConstructor ccString( "string",       CcStringProperty,
+TypeConstructor ccString( CcString::BasicType(),       CcStringProperty,
                           OutCcString,    InCcString,
                           0,              0,
                           CreateCcString, DeleteCcString,
@@ -932,10 +931,10 @@ type - a generic function called ~SimpleMap~ or ~SimpleMaps~ can be used.
 
 const string maps_arith[4][3] =
 {
-  {INT,    INT,    INT},
-  {INT,    REAL,   REAL},
-  {REAL,   INT,    REAL},
-  {REAL,   REAL,   REAL},
+  {CcInt::BasicType(),    CcInt::BasicType(),    CcInt::BasicType()},
+  {CcInt::BasicType(),    CcReal::BasicType(),   CcReal::BasicType()},
+  {CcReal::BasicType(),   CcInt::BasicType(),    CcReal::BasicType()},
+  {CcReal::BasicType(),   CcReal::BasicType(),   CcReal::BasicType()},
 };
 
 ListExpr
@@ -946,11 +945,11 @@ CcMathTypeMap( ListExpr args )
 
 const string maps_plus[5][3] =
 {
-  {INT,    INT,    INT},
-  {INT,    REAL,   REAL},
-  {REAL,   INT,    REAL},
-  {REAL,   REAL,   REAL},
-  {STRING, STRING, STRING},
+  {CcInt::BasicType(),    CcInt::BasicType(),    CcInt::BasicType()},
+  {CcInt::BasicType(),    CcReal::BasicType(),   CcReal::BasicType()},
+  {CcReal::BasicType(),   CcInt::BasicType(),    CcReal::BasicType()},
+  {CcReal::BasicType(),   CcReal::BasicType(),   CcReal::BasicType()},
+  {CcString::BasicType(), CcString::BasicType(), CcString::BasicType()},
 };
 
 ListExpr
@@ -1003,7 +1002,7 @@ int ifthenelseSelect(ListExpr args){
 
 */
 int CcNumRealSelect( ListExpr args ){
-  return listutils::isSymbol(nl->First(args),"int") ? 0 : 1;
+  return listutils::isSymbol(nl->First(args),CcInt::BasicType()) ? 0 : 1;
 }
 
 
@@ -1012,12 +1011,27 @@ int CcNumRealSelect( ListExpr args ){
 
 */
 int CcNumNumRealSelect( ListExpr args ){
-  if(listutils::isSymbol(nl->First(args),"int")){
-    return listutils::isSymbol(nl->Second(args),"int") ? 0 : 1;
+  if(listutils::isSymbol(nl->First(args),CcInt::BasicType())){
+    return listutils::isSymbol(nl->Second(args),CcInt::BasicType()) ? 0 : 1;
   } else {
-    return listutils::isSymbol(nl->Second(args),"int") ? 2 : 3;
+    return listutils::isSymbol(nl->Second(args),CcInt::BasicType()) ? 2 : 3;
   }
 }
+
+/*
+4.3.4 Selection Function for {int | real} x {int | real} [x {int | real}] [x T]
+
+*/
+int CcNumNumNumRealSelect( ListExpr args ){
+  int res = 0;
+  int noargs = nl->ListLength( args );
+  if(listutils::isSymbol(nl->First(args),CcReal::BasicType())) { res+=4; }
+  if(listutils::isSymbol(nl->Second(args),CcReal::BasicType())) { res+=2; }
+  if(    (noargs > 2)
+      && listutils::isSymbol(nl->Third(args),CcReal::BasicType())){ res +=1; }
+  return res;
+}
+
 
 /*
 4.2.2 Type mapping function CcMathTypeMapdiv
@@ -1032,10 +1046,10 @@ of int is called div in this program).
 
 const string maps_div[4][3] =
 {
-  {INT,  INT,  REAL},
-  {INT,  REAL, REAL},
-  {REAL, INT,  REAL},
-  {REAL, REAL, REAL}
+  {CcInt::BasicType(),  CcInt::BasicType(),  CcReal::BasicType()},
+  {CcInt::BasicType(),  CcReal::BasicType(), CcReal::BasicType()},
+  {CcReal::BasicType(), CcInt::BasicType(),  CcReal::BasicType()},
+  {CcReal::BasicType(), CcReal::BasicType(), CcReal::BasicType()}
 };
 
 ListExpr
@@ -1054,7 +1068,8 @@ It is for the operators mod and div which have ~int~ as input and ~int~ as resul
 ListExpr
 CcMathTypeMap1( ListExpr args )
 {
-  const string mapping[] = {INT, INT, INT};
+  const string mapping[] =
+              {CcInt::BasicType(), CcInt::BasicType(), CcInt::BasicType()};
   return SimpleMap(mapping, 3, args);
 }
 
@@ -1068,10 +1083,10 @@ It is for the operators ~intersection~ and ~minus~.
 
 const string maps_set[4][3] =
 {
-  {INT, INT, INT},
-  {REAL, REAL, REAL},
-  {BOOL, BOOL, BOOL},
-  {STRING, STRING, STRING}
+  {CcInt::BasicType(), CcInt::BasicType(), CcInt::BasicType()},
+  {CcReal::BasicType(), CcReal::BasicType(), CcReal::BasicType()},
+  {CcBool::BasicType(), CcBool::BasicType(), CcBool::BasicType()},
+  {CcString::BasicType(), CcString::BasicType(), CcString::BasicType()}
 };
 
 ListExpr
@@ -1097,35 +1112,35 @@ And for ~int2bool~, ~bool2int~, ~char~.
 ListExpr
 IntInt( ListExpr args )
 {
-  const string mapping[] = {INT, INT};
+  const string mapping[] = {CcInt::BasicType(), CcInt::BasicType()};
   return SimpleMap(mapping, 2, args);
 }
 
 ListExpr
 RealReal( ListExpr args )
 {
-  const string mapping[] = {REAL, REAL};
+  const string mapping[] = {CcReal::BasicType(), CcReal::BasicType()};
   return SimpleMap(mapping, 2, args);
 }
 
 ListExpr
 RealInt( ListExpr args )
 {
-  const string mapping[] = {REAL, INT};
+  const string mapping[] = {CcReal::BasicType(), CcInt::BasicType()};
   return SimpleMap(mapping, 2, args);
 }
 
 ListExpr
 IntReal( ListExpr args )
 {
-  const string mapping[] = {INT, REAL};
+  const string mapping[] = {CcInt::BasicType(), CcReal::BasicType()};
   return SimpleMap(mapping, 2, args);
 }
 
 ListExpr
 IntBool( ListExpr args )
 {
-  const string mapping[] = {INT, BOOL};
+  const string mapping[] = {CcInt::BasicType(), CcBool::BasicType()};
   return SimpleMap(mapping, 2, args);
 }
 
@@ -1143,21 +1158,21 @@ Some operators create integer result without any kind of input, they map
 ListExpr
 EmptyInt( ListExpr args )
 {
-  const string mapping[] = {INT};
+  const string mapping[] = {CcInt::BasicType()};
   return SimpleMap(mapping, 1, args);
 }
 
 ListExpr
 BoolInt( ListExpr args )
 {
-  const string mapping[] = {BOOL, INT};
+  const string mapping[] = {CcBool::BasicType(), CcInt::BasicType()};
   return SimpleMap(mapping, 2, args);
 }
 
 ListExpr
 IntString( ListExpr args )
 {
-  const string mapping[] = {INT, STRING};
+  const string mapping[] = {CcInt::BasicType(), CcString::BasicType()};
   return SimpleMap(mapping, 2, args);
 }
 
@@ -1170,12 +1185,12 @@ It is for the Compare operators which have ~bool~ as resulttype.
 
 const string maps_comp[6][3] =
 {
-  {INT,    INT,    BOOL},
-  {INT,    REAL,   BOOL},
-  {REAL,   INT,    BOOL},
-  {REAL,   REAL,   BOOL},
-  {BOOL,   BOOL,   BOOL},
-  {STRING, STRING, BOOL}
+  {CcInt::BasicType(),    CcInt::BasicType(),    CcBool::BasicType()},
+  {CcInt::BasicType(),    CcReal::BasicType(),   CcBool::BasicType()},
+  {CcReal::BasicType(),   CcInt::BasicType(),    CcBool::BasicType()},
+  {CcReal::BasicType(),   CcReal::BasicType(),   CcBool::BasicType()},
+  {CcBool::BasicType(),   CcBool::BasicType(),   CcBool::BasicType()},
+  {CcString::BasicType(), CcString::BasicType(), CcBool::BasicType()}
 };
 
 
@@ -1207,7 +1222,7 @@ It is for the  operator ~not~ which have ~bool~ as input and resulttype.
 ListExpr
 CcMathTypeMapBool1( ListExpr args )
 {
-  const string mapping[] = {BOOL, BOOL};
+  const string mapping[] = {CcBool::BasicType(), CcBool::BasicType()};
   return SimpleMap(mapping, 2, args);
 }
 
@@ -1221,7 +1236,8 @@ It is for the  operators and and or  which have bool as input and resulttype.
 ListExpr
 CcMathTypeMapBool2( ListExpr args )
 {
-  const string mapping[] = {BOOL, BOOL, BOOL};
+  const string mapping[] =
+            {CcBool::BasicType(), CcBool::BasicType(), CcBool::BasicType()};
   return SimpleMap(mapping, 3, args);
 }
 
@@ -1235,7 +1251,8 @@ It is for the  operators ~starts~ and ~contains~  which have ~string~ as input a
 ListExpr
 CcMathTypeMapBool3( ListExpr args )
 {
-  const string mapping[] = {STRING, STRING, BOOL};
+  const string mapping[] =
+          {CcString::BasicType(), CcString::BasicType(), CcBool::BasicType()};
   return SimpleMap(mapping, 3, args);
 }
 
@@ -1249,10 +1266,10 @@ It is for the  operators ~isempty~ which have ~bool~, ~int~, ~real~, and ~string
 
 const string maps_isempty[4][2] =
 {
-  {BOOL,   BOOL},
-  {INT,    BOOL},
-  {REAL,   BOOL},
-  {STRING, BOOL}
+  {CcBool::BasicType(),   CcBool::BasicType()},
+  {CcInt::BasicType(),    CcBool::BasicType()},
+  {CcReal::BasicType(),   CcBool::BasicType()},
+  {CcString::BasicType(), CcBool::BasicType()}
 };
 
 ListExpr
@@ -1285,7 +1302,7 @@ string ---> string.
 ListExpr
 CcStringMapCcString( ListExpr args )
 {
-  const string mapping[] = {STRING, STRING};
+  const string mapping[] = {CcString::BasicType(), CcString::BasicType()};
   return SimpleMap(mapping, 2, args);
 }
 
@@ -1299,7 +1316,8 @@ string x int x int -> string.
 ListExpr
 SubStrTypeMap( ListExpr args )
 {
-  const string mapping[] = {STRING, INT, INT, STRING};
+  const string mapping[] =  { CcString::BasicType(), CcInt::BasicType(),
+                              CcInt::BasicType(), CcString::BasicType() };
   return SimpleMap(mapping, 4, args);
 }
 
@@ -1314,7 +1332,7 @@ string ---> int.
 static ListExpr
 CcStringMapCcInt( ListExpr args )
 {
-  const string mapping[] = {STRING, INT};
+  const string mapping[] = {CcString::BasicType(), CcInt::BasicType()};
   return SimpleMap(mapping, 2, args);
 }
 
@@ -1334,9 +1352,9 @@ keywordsType( ListExpr args ){
   if ( nl->ListLength(args) == 1 )
   {
     arg = nl->First(args);
-    if ( listutils::isSymbol(arg, "string") )
+    if ( listutils::isSymbol(arg, CcString::BasicType()) )
       return nl->TwoElemList(nl->SymbolAtom("stream"),
-        nl->SymbolAtom("string"));
+        nl->SymbolAtom(CcString::BasicType()));
   }
   return nl->SymbolAtom("typeerror");
 }
@@ -1400,7 +1418,7 @@ ListExpr ifthenelse2Type(ListExpr args)
     arg3 = nl->Third( args );
     errorInfo = nl->OneElemList(nl->SymbolAtom("ERROR"));
 
-    if (nl->Equal(arg2, arg3) && listutils::isSymbol(arg1,"bool"))
+    if (nl->Equal(arg2, arg3) && listutils::isSymbol(arg1,CcBool::BasicType()))
     {
       if ( IsRelDescription(arg2) || IsRelDescription(arg2, true) )
         return arg2;
@@ -1425,10 +1443,14 @@ Type mapping for ~between~ is
 
 const string maps_between[4][4] =
 {
-  {INT,    INT,    INT,    BOOL},
-  {REAL,   REAL,   REAL,   BOOL},
-  {STRING, STRING, STRING, BOOL},
-  {BOOL,   BOOL,   BOOL,   BOOL},
+  {CcInt::BasicType(),    CcInt::BasicType(),
+                                    CcInt::BasicType(),    CcBool::BasicType()},
+  {CcReal::BasicType(),   CcReal::BasicType(),
+                                    CcReal::BasicType(),   CcBool::BasicType()},
+  {CcString::BasicType(), CcString::BasicType(),
+                                    CcString::BasicType(), CcBool::BasicType()},
+  {CcBool::BasicType(),   CcBool::BasicType(),
+                                    CcBool::BasicType(),   CcBool::BasicType()},
 };
 
 ListExpr
@@ -1467,12 +1489,12 @@ CcHashValueTypeMap( ListExpr args )
   ListExpr arg2 = nl->Second(args);
 
   if(!listutils::isDATA(arg1) ||
-     !listutils::isSymbol(arg2,INT)){
+     !listutils::isSymbol(arg2,CcInt::BasicType())){
     ErrorReporter::ReportError("DATA x int expected");
     return nl->TypeError();
   }
 
-  return (nl->SymbolAtom( "int" ));
+  return (nl->SymbolAtom( CcInt::BasicType() ));
 }
 
 /*
@@ -1485,7 +1507,8 @@ Type mapping for ~ldistance~ is string x string [->] int
 
 ListExpr CcLDistTypeMap(ListExpr args)
 {
-  const string mapping[] = {STRING, STRING, INT};
+  const string mapping[] =
+          {CcString::BasicType(), CcString::BasicType(), CcInt::BasicType()};
   return SimpleMap(mapping, 3, args);
 }
 
@@ -1499,7 +1522,8 @@ It is for the  operator ~round~.
 ListExpr
 CcRoundTypeMap( ListExpr args )
 {
-  const string map[] = { REAL, INT, REAL };
+  const string map[] =
+              { CcReal::BasicType(), CcInt::BasicType(), CcReal::BasicType() };
   return SimpleMap(map, 3, args);
 }
 
@@ -1512,8 +1536,8 @@ For operator ~num2string~
 
 const string maps_num2str[2][2] =
 {
-  {REAL, STRING},
-  {INT,  STRING}
+  {CcReal::BasicType(), CcString::BasicType()},
+  {CcInt::BasicType(),  CcString::BasicType()}
 };
 
 ListExpr
@@ -1547,7 +1571,7 @@ ListExpr DATAbool( ListExpr args )
   {
     return NList::typeError("Expected single argument of kind DATA.");
   }
-  return NList(BOOL).listExpr();
+  return NList(CcBool::BasicType()).listExpr();
 }
 
 
@@ -1579,7 +1603,7 @@ ListExpr CcTypeMapTinDATA_TinDATAint( ListExpr args )
   {
     return NList::typeError("Expected T x T for T in kind DATA.");
   }
-  return NList(INT).listExpr();
+  return NList(CcInt::BasicType()).listExpr();
 }
 
 /*
@@ -1630,7 +1654,7 @@ ListExpr CcTypeMapNumReal( ListExpr args ){
   }
   ListExpr arg = nl->First(args);
   if(listutils::isNumericType(arg)){
-    return nl->SymbolAtom("real");
+    return nl->SymbolAtom(CcReal::BasicType());
   }
   return listutils::typeError("Expected real or int.");
 }
@@ -1643,7 +1667,7 @@ ListExpr CcTypeMapEmptyReal( ListExpr args ){
   if(!nl->HasLength(args,0)){
     return listutils::typeError("Expected no argument.");
   }
-  return nl->SymbolAtom("real");
+  return nl->SymbolAtom(CcReal::BasicType());
 }
 
 /*
@@ -1656,9 +1680,58 @@ ListExpr CcTypeMapNumNumReal( ListExpr args ){
   }
   if(    listutils::isNumericType(nl->First(args))
       && listutils::isNumericType(nl->Second(args))){
-    return nl->SymbolAtom("real");
+    return nl->SymbolAtom(CcReal::BasicType());
   }
   return listutils::typeError("Expected {int | real} x {int | real}");
+}
+
+/*
+4.2.19 Type mapping function for: {int|real} x {int|real} [ x {int|real} ] [ x bool ]->real
+
+Appends a bool == FALSE, if the optional bool parameter is not present.
+
+*/
+ListExpr CcTypeMapNumNumOptNumOptBoolReal( ListExpr args ){
+  string errmsg = "Expected {int | real} x {int | real} [ x {int | real} ] "
+                  "[ x bool ]";
+  int noargs = nl->ListLength(args);
+  if( (noargs<2) || (noargs>4)){
+    return listutils::typeError(errmsg);
+  }
+  //check first and second
+  if(!listutils::isNumericType(nl->First(args)) ||
+     !listutils::isNumericType(nl->Second(args)) ){
+    return listutils::typeError(errmsg);
+  }
+  if( noargs== 2 ) { // numeric x numeric: OK, but APPEND bool parameter
+    return nl->ThreeElemList(nl->SymbolAtom("APPEND"),
+                             nl->OneElemList(nl->BoolAtom(false)),
+                             nl->SymbolAtom(CcReal::BasicType()));
+  }
+  // check third and fourth
+  if( noargs==3 ){
+    if( listutils::isSymbol(nl->Third(args),CcBool::BasicType()) ) {
+      // mumeric x numeric x bool: OK.
+      return nl->SymbolAtom(CcReal::BasicType());
+    }
+    if( !listutils::isNumericType(nl->Third(args)) ) {
+      return listutils::typeError(errmsg);
+    } // mumeric x numeric x numeric: OK, but APPEND bool parameter
+    return nl->ThreeElemList(nl->SymbolAtom("APPEND"),
+                             nl->OneElemList(nl->BoolAtom(false)),
+                             nl->SymbolAtom(CcReal::BasicType()));
+  }
+  if( (noargs==4) ){
+    if( !listutils::isNumericType(nl->Third(args)) ) {
+      return listutils::typeError(errmsg);
+    }
+    if( !listutils::isSymbol(nl->Fourth(args),CcBool::BasicType()) ) {
+      return listutils::typeError(errmsg);
+    }
+    return nl->SymbolAtom(CcReal::BasicType()); // mun x num x num x bool: OK.
+  }
+  // should not be reached:
+  return listutils::typeError(errmsg);
 }
 
 /*
@@ -1669,9 +1742,9 @@ ListExpr CcTypeMapRealRealReal( ListExpr args ){
   if(!nl->HasLength(args,2)){
     return listutils::typeError("Expected real x real");
   }
-  if(    listutils::isSymbol(nl->First(args), "real")
-      && listutils::isSymbol(nl->Second(args), "real")){
-    return nl->SymbolAtom("real");
+  if(    listutils::isSymbol(nl->First(args), CcReal::BasicType())
+      && listutils::isSymbol(nl->Second(args), CcReal::BasicType())){
+    return nl->SymbolAtom(CcReal::BasicType());
   }
   return listutils::typeError("Expected real x real");
 }
@@ -3451,7 +3524,7 @@ Map any type to a string
 ListExpr
 CcElapsedTypeMap( ListExpr args )
 {
-  const string mapping[] = {STRING};
+  const string mapping[] = {CcString::BasicType()};
   return SimpleMap(mapping, 1, args);
 }
 
@@ -3517,7 +3590,8 @@ handling streams of tuples.
 
 static ListExpr setoption_tm(ListExpr args)
 {
-  const string mapping[] = {STRING, INT, BOOL};
+  const string mapping[] = {CcString::BasicType(), CcInt::BasicType(),
+                                                          CcBool::BasicType()};
   return SimpleMap(mapping, 3, args);
 }
 
@@ -3566,7 +3640,8 @@ struct absInfo : OperatorInfo {
 
 };
 
-const string maps_abs[2][2] = { {REAL, REAL}, {INT, INT} };
+const string maps_abs[2][2] = { {CcReal::BasicType(), CcReal::BasicType()},
+                                {CcInt::BasicType(),  CcInt::BasicType() } };
 
 static ListExpr
 abs_tm(ListExpr args)
@@ -4047,6 +4122,53 @@ int CCpowVM (Word* args, Word& result, int message, Word& local, Supplier s )
 }
 
 /*
+Value Mapping for the power operator ~dms2deg~
+
+*/
+template<class T1, class T2, class T3>
+int CCdms2degVM (Word* args, Word& result, int message, Word& local,
+                 Supplier s )
+{
+  result = qp->ResultStorage( s );
+  CcReal* res = static_cast<CcReal*>(result.addr);
+
+  int noargs = qp->GetNoSons(s);
+  assert( (noargs==3) || (noargs==4) );
+  T1* ccDeg = static_cast<T1*>(args[0].addr);
+  T2* ccMin = static_cast<T2*>(args[1].addr);
+  T3* ccSec = (noargs==4)?(static_cast<T3*>(args[2].addr)):0;
+  CcBool* ccCheckrange = static_cast<CcBool*>(args[noargs-1].addr); // last
+  if(!ccDeg->IsDefined() || !ccMin->IsDefined() ||
+     (ccSec && !ccSec->IsDefined()) || !ccCheckrange->IsDefined() ){
+    res->Set(false,0.0);
+    return 0;
+  }
+  double deg = ccDeg->GetValue();
+  double min = ccMin->GetValue();
+  double sec = (ccSec)?ccSec->GetValue():0.0;
+  bool checkrange = ccCheckrange->GetBoolval();
+  bool ok = true;
+  double degres = 0.0;
+  if(checkrange){
+    if( !((-60.0<min) && (min<60.0)) || !((-60.0<sec) && (sec<60.0)) ){
+      ok = false;
+    }
+    ok = ok && AlmostEqual(modf(deg,&deg),0.0); // deg must be integral
+    if(noargs==4){
+      ok = ok && AlmostEqual(modf(min,&min),0.0); // min must be integral
+    }
+    degres = fabs(deg) + fabs(min/60.0) + fabs(sec/3600.0);
+    if( (deg<0.0) || (min<0.0) || (sec<0.0) ){ // negative result!
+      degres *= -1.0;
+    }
+  } else { // sum up all components
+    degres = deg + (min/60.0) + (sec/3600.0);
+  }
+  res->Set(ok, degres);
+  return 0;
+}
+
+/*
 5 Definition of operators
 
 Definition of operators is done in a way similar to definition of
@@ -4183,6 +4305,16 @@ ValueMapping CCpowmap[] = {
         CCpowVM<CcInt, CcReal>,
         CCpowVM<CcReal, CcInt>,
         CCpowVM<CcReal, CcReal>, 0};
+
+ValueMapping CCdms2degmap[] = {
+  CCdms2degVM<CcInt, CcInt, CcInt>,
+  CCdms2degVM<CcInt, CcInt, CcReal>,
+  CCdms2degVM<CcInt, CcReal, CcInt>,
+  CCdms2degVM<CcInt, CcReal, CcReal>,
+  CCdms2degVM<CcReal, CcInt, CcInt>,
+  CCdms2degVM<CcReal, CcInt, CcReal>,
+  CCdms2degVM<CcReal, CcReal, CcInt>,
+  CCdms2degVM<CcReal, CcReal, CcReal>, 0};
 
 const string CCSpecAdd  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
                           "\"Example\" )"
@@ -4851,6 +4983,21 @@ const string CCpowSpec =
     "<text>query pow(2.0, 10)</text--->"
     ") )";
 
+const string CCdms2degSpec =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
+    "( <text> {int|real} x {int|real} [x {int|real}] [x bool] -> real</text--->"
+    "<text>dms2deg( Deg , Min [, Sec] [, CheckRange] )</text--->"
+    "<text>Converts an Angle with Deg degrees, Min minutes and Sec seconds into"
+    " a single real value with fractional degrees. If CheckRange is FALSE "
+    " (default), all arguments are converted to degrees and summed up. "
+    "Otherwise only the last numeric argument may be fractional and -60<Min<60,"
+    " and -60<Sec<60 must hold to avoid an UNDEF result. If CheckRange=TRUE, "
+    "the result is calculated using the absolute values of the numeric "
+    "parameters. Then, iff any numeric parameter is negative, the result is "
+    "negative.</text--->"
+    "<text>query dms2deg(7, -17.1, 64, FALSE)</text--->"
+    ") )";
+
 /*
 Operator instance definitions
 
@@ -5058,6 +5205,8 @@ Operator cclogb("logB", CClogBSpec, 4, CClogBmap, CcNumNumRealSelect,
 Operator ccpow("pow", CCpowSpec, 4, CCpowmap, CcNumNumRealSelect,
                         CcTypeMapNumNumReal);
 
+Operator ccdms2deg("dms2deg", CCdms2degSpec, 8, CCdms2degmap,
+                   CcNumNumNumRealSelect, CcTypeMapNumNumOptNumOptBoolReal);
 
 /*
 6 Class ~CcAlgebra~
@@ -5180,6 +5329,7 @@ class CcAlgebra1 : public Algebra
     AddOperator( &cce );
     AddOperator( &cclogb );
     AddOperator( &ccpow );
+    AddOperator( &ccdms2deg );
 
     AddOperator( setoptionInfo(), setoption_vm, setoption_tm );
     AddOperator( absInfo(), abs_vms, abs_sf, abs_tm );

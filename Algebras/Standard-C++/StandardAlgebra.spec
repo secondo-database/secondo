@@ -98,4 +98,5 @@ operator rad2deg alias RAD2DEG pattern op ( _ )
 operator deg2rad alias DEG2RAD pattern op ( _ )
 operator logB alias LOGB pattern op ( _ , _ )
 operator pow alias POW pattern op ( _ , _ )
+operator dms2deg alias DMS2DEG pattern op ( _ , _ , _ , _ )
 
