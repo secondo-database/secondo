@@ -76,7 +76,7 @@ class StandardSpatialAttribute : public Attribute
     StandardSpatialAttribute() {}
     StandardSpatialAttribute(bool defined):Attribute(defined) {}
 
-    virtual const Rectangle<dim> BoundingBox() const = 0;
+    virtual const Rectangle<dim> BoundingBox(const Geoid* geoid = 0) const = 0;
     virtual double Distance(const Rectangle<dim>& rect,
                             const Geoid* geoid=0) const = 0;
     virtual bool IsEmpty() const = 0;
@@ -232,7 +232,7 @@ an attribute in the Relational Algebra.
 
 */
 
-    inline const Rectangle<dim> BoundingBox() const;
+    inline const Rectangle<dim> BoundingBox(const Geoid* geoid = 0) const;
 /*
 Returns the bounding box of the rectangle; this bounding Box is a clone
 of the rectangle.
@@ -753,8 +753,13 @@ of the rectangle.
 
 */
 template <unsigned dim>
-inline const Rectangle<dim> Rectangle<dim>::BoundingBox() const
+inline const Rectangle<dim> Rectangle<dim>::BoundingBox(const Geoid* geoid)const
 {
+  if(geoid){
+    cerr << __PRETTY_FUNCTION__ << ": Spherical geometry not implemented."
+    << endl;
+    assert( !geoid ); // TODO: implement spherical geometry case
+  }
   if( (this->del.isDefined) )
     return Rectangle<dim>( *this );
   else

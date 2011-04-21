@@ -5571,7 +5571,12 @@ void MGPoint::Add(const UGPoint& u/*, bool setbbox =true*/){
   }
 }
 
- Rectangle<3> MGPoint::BoundingBox() const{
+ Rectangle<3> MGPoint::BoundingBox(const Geoid* geoid /*=0*/) const{
+   if(geoid){
+     cerr << __PRETTY_FUNCTION__ << ": Spherical geometry not implemented."
+     << endl;
+     assert( !geoid ); // TODO: implement spherical geometry case
+   }
    if (m_bbox.IsDefined()) return m_bbox;
    else {
     if(IsDefined() && !IsEmpty()){
@@ -6567,7 +6572,12 @@ void UGPoint::Distance (const UGPoint &ugp, UReal &ur) const {
   return;
 }
 
-  const Rectangle<3> UGPoint::BoundingBox()const {
+  const Rectangle<3> UGPoint::BoundingBox(const Geoid* geoid /*=0*/)const {
+    if(geoid){
+      cerr << __PRETTY_FUNCTION__ << ": Spherical geometry not implemented."
+      << endl;
+      assert( !geoid ); // TODO: implement spherical geometry case
+    }
     if (IsDefined()) {
       RouteInterval *ri = new RouteInterval(p0.GetRouteId(), p0.GetPosition(),
                                          p1.GetPosition());
@@ -6585,7 +6595,8 @@ void UGPoint::Distance (const UGPoint &ugp, UReal &ur) const {
     } else return Rectangle<3>(false, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
   }
 
- double UGPoint::Distance(const Rectangle<3>& rect) const{
+ double UGPoint::Distance(const Rectangle<3>& rect,
+                          const Geoid* geoid /*=0*/) const{
    cerr << "Distance function not implemented yet";
    if(!IsDefined() || !rect.IsDefined()){
      return -1;
@@ -6859,7 +6870,13 @@ void NotPartedSection(const UGPoint unit, const double sectMeas1,
 
 
 
-  Rectangle<3> UGPoint::BoundingBox(const Network* pNetwork)const{
+  Rectangle<3> UGPoint::BoundingBox(const Network* pNetwork,
+                                    const Geoid* geoid /*=0*/)const{
+    if(geoid){
+      cerr << __PRETTY_FUNCTION__ << ": Spherical geometry not implemented."
+           << endl;
+      assert( !geoid ); // TODO: implement spherical geometry case
+    }
     if(IsDefined()){
     RouteInterval *ri = new RouteInterval(p0.GetRouteId(), p0.GetPosition(),
                                          p1.GetPosition());

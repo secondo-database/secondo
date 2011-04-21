@@ -38,6 +38,7 @@ Defines, includes, and constants
 #include "../../Tools/Flob/DbArray.h"
 #include "RelationAlgebra.h"
 #include "SpatialAlgebra.h"
+#include "Geoid.h"
 #include "NetworkAlgebra.h"
 #include "NetworkManager.h"
 

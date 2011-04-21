@@ -78,7 +78,7 @@ Returns the ~x~-coordinate.
 Returns the ~y~-coordinate.
 
 */
-    inline const Rectangle<2> BoundingBox() const;
+    inline const Rectangle<2> BoundingBox(const Geoid* geoid = 0) const;
 /*
 Returns the point bounding box which is also a point.
 

@@ -214,7 +214,7 @@ Marks the end of a bulk load and sorts the point set if the argument ~sort~ is s
 5.3 Member functions
 
 */
-    inline const Rectangle<2> BoundingBox() const;
+    inline const Rectangle<2> BoundingBox(const Geoid* geoid = 0) const;
 /*
 Returns the bounding box that spatially contains all points.
 
@@ -832,7 +832,7 @@ If any coordinate is invalid, ~valid~ is set to false (true otherwise).
 Sets the length of the line.
 
 */
-    inline const Rectangle<2> BoundingBox() const;
+    inline const Rectangle<2> BoundingBox(const Geoid* geoid = 0) const;
 /*
 Returns the bounding box of the line.
 
@@ -1611,7 +1611,12 @@ and a Geoid. If any coordinate is invalid, ~valid~ is set to false (true otherwi
 Returns the MBR of this SimpleLine object.
 
 */
-  inline const Rectangle<2> BoundingBox() const{
+  inline const Rectangle<2> BoundingBox(const Geoid* geoid = 0) const{
+    if(geoid){
+      cerr << __PRETTY_FUNCTION__ << ": Spherical geometry not implemented."
+      << endl;
+      assert( !geoid ); // TODO: implement spherical geometry case
+    }
     return bbox;
   }
 
@@ -2110,7 +2115,7 @@ amount really required.
 Sets the number of components with the given argument value ~noComponents~.
 
 */
-    const Rectangle<2> BoundingBox() const;
+    const Rectangle<2> BoundingBox(const Geoid* geoid = 0) const;
 /*
 Returns the bounding box of the region.
 
@@ -3222,8 +3227,13 @@ inline Point::Point( const Point& p ) :
     x( p.x ), y( p.y )
 { }
 
-inline const Rectangle<2> Point::BoundingBox() const
+inline const Rectangle<2> Point::BoundingBox(const Geoid* geoid /*=0*/) const
 {
+  if(geoid){
+    cerr << __PRETTY_FUNCTION__ << ": Spherical geometry not implemented."
+    << endl;
+    assert( !geoid ); // TODO: implement spherical geometry case
+  }
   assert( IsDefined() );
   if( IsDefined() ) {
     return Rectangle<2>( true,
@@ -3396,8 +3406,13 @@ ordered( true )
   }
 }
 
-inline const Rectangle<2> Points::BoundingBox() const
+inline const Rectangle<2> Points::BoundingBox(const Geoid* geoid /*=0*/) const
 {
+  if(geoid){
+    cerr << __PRETTY_FUNCTION__ << ": Spherical geometry not implemented."
+    << endl;
+    assert( !geoid ); // TODO: implement spherical geometry case
+  }
   return bbox;
 }
 
@@ -3556,8 +3571,13 @@ inline double Line::Length() const
 }
 
 
-inline const Rectangle<2> Line::BoundingBox() const
+inline const Rectangle<2> Line::BoundingBox(const Geoid* geoid /*=0*/) const
 {
+  if(geoid){
+    cerr << __PRETTY_FUNCTION__ << ": Spherical geometry not implemented."
+    << endl;
+    assert( !geoid ); // TODO: implement spherical geometry case
+  }
   return bbox;
 }
 
@@ -3657,8 +3677,13 @@ inline void Region::Destroy()
   region.destroy();
 }
 
-inline const Rectangle<2> Region::BoundingBox() const
+inline const Rectangle<2> Region::BoundingBox(const Geoid* geoid /*=0*/) const
 {
+  if(geoid){
+    cerr << __PRETTY_FUNCTION__ << ": Spherical geometry not implemented."
+    << endl;
+    assert( !geoid ); // TODO: implement spherical geometry case
+  }
   return bbox;
 }
 

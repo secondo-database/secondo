@@ -40,6 +40,7 @@ February 2008 -  Simone Jandt
 #include <string>
 #include "../../include/NestedList.h"
 #include "../../include/QueryProcessor.h"
+#include "Geoid.h"
 
 #ifndef __NETWORK_ALGEBRA_H__
 #error NetworkAlgebra.h is needed by TemporalNetAlgebra.h. \
@@ -341,11 +342,11 @@ Returns the 3 dimensional spatio-temporal BoundingBox of the ~ugpoint~.
 
 */
 
- virtual const Rectangle<3> BoundingBox() const;
+ virtual const Rectangle<3> BoundingBox(const Geoid* geoid = 0) const;
 
- Rectangle<3> BoundingBox(const Network* pNetwork) const;
+ Rectangle<3> BoundingBox(const Network* pNetwork, const Geoid* geoid=0) const;
 
- virtual double Distance(const Rectangle<3>& rect) const;
+ virtual double Distance(const Rectangle<3>& rect,const Geoid* geoid = 0) const;
 
  virtual bool IsEmpty() const{ return IsDefined(); }
 
@@ -357,8 +358,13 @@ Returns the 3 dimensional spatio-temporal BoundingBox of the ~ugpoint~.
  of the timeinterval of the ~ugpoint~.
 
  */
-  virtual const Rectangle<3> NetBoundingBox3d() const
+  virtual const Rectangle<3> NetBoundingBox3d(const Geoid* geoid = 0) const
   {
+    if(geoid){
+      cerr << __PRETTY_FUNCTION__ << ": Spherical geometry not implemented."
+           << endl;
+      assert( !geoid ); // TODO: implement spherical geometry case
+    }
     return Rectangle<3> (true,
                         (double) p0.GetRouteId(),
                         (double) p0.GetRouteId(),
@@ -374,9 +380,14 @@ Returns the 3 dimensional spatio-temporal BoundingBox of the ~ugpoint~.
   inates of the ~NetBoundingBox3d~.
 
   */
-  inline const Rectangle<2> NetBoundingBox2d() const
+  inline const Rectangle<2> NetBoundingBox2d(const Geoid* geoid = 0) const
   {
-      return Rectangle<2> (true,
+    if(geoid){
+      cerr << __PRETTY_FUNCTION__ << ": Spherical geometry not implemented."
+      << endl;
+      assert( !geoid ); // TODO: implement spherical geometry case
+    }
+    return Rectangle<2> (true,
                            (double) p0.GetRouteId(),
                            (double) p0.GetRouteId(),
                           min(p0.GetPosition(), p1.GetPosition()),
@@ -880,7 +891,7 @@ Returns the spatiotemporal 3 dimensional bounding box of the ~mgpoint~.
 
 */
 
-  Rectangle<3> BoundingBox() const;
+  Rectangle<3> BoundingBox(const Geoid* geoid = 0) const;
 
 /*
   Adds a unit to the ~mgpoint~ if it is in bulkload state.

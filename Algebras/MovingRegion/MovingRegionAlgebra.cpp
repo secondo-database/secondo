@@ -5218,8 +5218,13 @@ are not border of any region, and create region.
 1.1.1 Method ~BoundingBox()~
 
 */
-const Rectangle<3> URegionEmb::BoundingBox() const {
+const Rectangle<3> URegionEmb::BoundingBox(const Geoid* geoid /*=0*/) const {
     if (MRA_DEBUG) cerr << "URegionEmb::BoundingBox() called" << endl;
+    if(geoid){
+      cerr << __PRETTY_FUNCTION__ << ": Spherical geometry not implemented."
+      << endl;
+      assert( !geoid ); // TODO: implement spherical geometry case
+    }
     return bbox;
 }
 
@@ -6227,8 +6232,13 @@ size_t URegionEmb::HashValue() const{
 1.1.1.1 Method ~BoundingBox()~
 
 */
-const Rectangle<3> URegion::BoundingBox() const {
+const Rectangle<3> URegion::BoundingBox(const Geoid* geoid /*=0*/) const {
     if (MRA_DEBUG) cerr << "URegion::BoundingBox() called" << endl;
+    if(geoid){
+      cerr << __PRETTY_FUNCTION__ << ": Spherical geometry not implemented."
+      << endl;
+      assert( !geoid ); // TODO: implement spherical geometry case
+    }
     return uremb.BoundingBox();
 }
 
@@ -9001,7 +9011,7 @@ int MRegTimeShiftMap( Word* args, Word& result,
 
     if( mapping->IsDefined() &&
         dd->IsDefined() )
-    {    
+    {
       mpResult->SetDefined( true );
       if(mapping->GetNoComponents() == 0)
         return 0;
@@ -9011,7 +9021,7 @@ int MRegTimeShiftMap( Word* args, Word& result,
         mpResult->SetDefined( false );
         return 0;
       }
-      
+
       for( int i = 0; i < mapping->GetNoComponents(); i++ )
       {
         URegion aux( i, *mapping );

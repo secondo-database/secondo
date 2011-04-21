@@ -137,7 +137,7 @@ interval~.
 
 */
 
-  Rectangle<2> BoundingBox(Network* pNetwork) const;
+  Rectangle<2> BoundingBox(Network* pNetwork, const Geoid* geoid = 0) const;
 
 /*
 Get and Set private values.
@@ -512,7 +512,12 @@ to a single point.
 
 */
 
-    inline const Rectangle<2> BoundingBox(){
+    inline const Rectangle<2> BoundingBox(const Geoid* geoid = 0){
+      if(geoid){
+        cerr << __PRETTY_FUNCTION__ << ": Spherical geometry not implemented."
+        << endl;
+        assert( !geoid ); // TODO: implement spherical geometry case
+      }
       if (IsDefined()) {
         Point *p = ToPoint();
         Rectangle<2> result = p->BoundingBox();
@@ -526,7 +531,12 @@ Returns a point degenerated rectangle as network bounding box of the gpoint
 
 */
 
-    inline const Rectangle<2> NetBoundingBox() const {
+    inline const Rectangle<2> NetBoundingBox(const Geoid* geoid = 0) const {
+      if(geoid){
+        cerr << __PRETTY_FUNCTION__ << ": Spherical geometry not implemented."
+        << endl;
+        assert( !geoid ); // TODO: implement spherical geometry case
+      }
       if (IsDefined())
         return Rectangle<2>(true,
                             (double) m_xRouteLocation.rid,

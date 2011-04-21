@@ -1310,7 +1310,7 @@ The destructor.
     virtual SpatialTemporalUnit<Alpha, dim>* Clone() const = 0;
     virtual void CopyFrom( const Attribute* right ) = 0;
     virtual size_t Sizeof() const = 0;
-    virtual const Rectangle<dim> BoundingBox() const = 0;
+    virtual const Rectangle<dim> BoundingBox(const Geoid* geoid = 0) const = 0;
 };
 
 /*
@@ -2500,8 +2500,13 @@ Computes all events created by a UPoint moving across a regular grid.
     del.isDefined = i->del.isDefined;
   }
 
-  virtual const Rectangle<3> BoundingBox() const
+  virtual const Rectangle<3> BoundingBox(const Geoid* geoid = 0) const
   {
+    if(geoid){
+      cerr << __PRETTY_FUNCTION__ << ": Spherical geometry not implemented."
+      << endl;
+      assert( !geoid ); // TODO: implement spherical geometry case
+    }
     if(this->IsDefined()){
       return Rectangle<3>( true, MIN( p0.GetX(), p1.GetX() ),
                                  MAX( p0.GetX(), p1.GetX() ),
@@ -2514,8 +2519,14 @@ Computes all events created by a UPoint moving across a regular grid.
     }
   }
 
-  virtual const Rectangle<3> BoundingBox(const double scaleTime) const
+  virtual const Rectangle<3> BoundingBox(const double scaleTime,
+                                         const Geoid* geoid = 0) const
   {
+    if(geoid){
+      cerr << __PRETTY_FUNCTION__ << ": Spherical geometry not implemented."
+      << endl;
+      assert( !geoid ); // TODO: implement spherical geometry case
+    }
     if(this->IsDefined()){
       return Rectangle<3>( true, MIN( p0.GetX(), p1.GetX() ),
                                  MAX( p0.GetX(), p1.GetX() ),
@@ -2528,8 +2539,13 @@ Computes all events created by a UPoint moving across a regular grid.
     }
   }
 
-  const Rectangle<2> BoundingBoxSpatial() const
+  const Rectangle<2> BoundingBoxSpatial(const Geoid* geoid = 0) const
   {
+    if(geoid){
+      cerr << __PRETTY_FUNCTION__ << ": Spherical geometry not implemented."
+      << endl;
+      assert( !geoid ); // TODO: implement spherical geometry case
+    }
     if(this->IsDefined()){
       return Rectangle<2>( true, MIN( p0.GetX(), p1.GetX() ),
                                  MAX( p0.GetX(), p1.GetX() ),

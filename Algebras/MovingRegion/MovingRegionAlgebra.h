@@ -671,7 +671,7 @@ Return the bounding box of the region unit. This is an $O(1)$ operation
 since the bounding box is calculated when the region unit is created.
 
 */
-    const Rectangle<3> BoundingBox() const;
+    const Rectangle<3> BoundingBox(const Geoid* geoid = 0) const;
 
 /*
 Sets the bounding box.
@@ -917,7 +917,7 @@ Return the bounding box of the region unit. This is an $O(1)$ operation
 since the bounding box is calculated when the region unit is created.
 
 */
-    virtual const Rectangle<3> BoundingBox() const;
+    virtual const Rectangle<3> BoundingBox(const Geoid* geoid = 0) const;
 
 /*
 1.1 Methods for algebra integration
@@ -1002,7 +1002,7 @@ The assignment operator
      if(!IsDefined()){
         return -1;
      } else {
-       return BoundingBox().Distance(rect,geoid);
+       return BoundingBox(geoid).Distance(rect,geoid);
      }
 
    }

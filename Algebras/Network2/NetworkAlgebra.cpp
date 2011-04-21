@@ -81,8 +81,14 @@ Computes a spatial BoundingBox of a RouteInterval
 
 */
 
-Rectangle<2> RouteInterval::BoundingBox ( Network* pNetwork ) const
+Rectangle<2> RouteInterval::BoundingBox ( Network* pNetwork,
+                                          const Geoid* geoid /*=0*/ ) const
 {
+  if(geoid){
+    cerr << __PRETTY_FUNCTION__ << ": Spherical geometry not implemented."
+    << endl;
+    assert( !geoid ); // TODO: implement spherical geometry case
+  }
   if ( AlmostEqual ( m_dStart , m_dEnd ) )
   {
     Point *p = ( GPoint ( true, pNetwork->GetId(), m_iRouteId,
@@ -2643,7 +2649,7 @@ void Network::FillAdjacencyLists()
        )
     {
       int iHigh = m_xSubAdjacencyList.Size()-1;
-      Tuple *pSect = m_pSections->GetTuple ( xLastPair.m_iFirstSectionTid, 
+      Tuple *pSect = m_pSections->GetTuple ( xLastPair.m_iFirstSectionTid,
                                              false );
       int iSectId =
         ( ( CcInt* ) pSect->GetAttribute ( SECTION_SID ) )->GetIntval();
@@ -3994,7 +4000,7 @@ RouteInterval* Network::Find ( Point p1, Point p2 )
     while ( j < pAdjSect2.size() )
     {
       DirectedSection actSection = pAdjSect2[j];
-      pCurrSect = m_pSections->GetTuple ( actSection.GetSectionTid(), 
+      pCurrSect = m_pSections->GetTuple ( actSection.GetSectionTid(),
                                           false );
       rid = ( ( CcInt* ) pCurrSect->GetAttribute ( SECTION_RID ) )->GetIntval();
       pCurrSect->DeleteIfAllowed();
@@ -4876,7 +4882,7 @@ void Network::GetLineValueOfRouteInterval ( const RouteInterval *in_ri,
   BTreeIterator *pRoutesIter = m_pBTreeRoutes->ExactMatch ( pRouteId );
   pRouteId->DeleteIfAllowed();
   Tuple *pRoute = 0;
-  if ( pRoutesIter->Next() ) pRoute = m_pRoutes->GetTuple ( 
+  if ( pRoutesIter->Next() ) pRoute = m_pRoutes->GetTuple (
                                 pRoutesIter->GetId(), false);
   assert ( pRoute != 0 );
   SimpleLine* pLine = ( SimpleLine* ) pRoute->GetAttribute ( ROUTE_CURVE );
