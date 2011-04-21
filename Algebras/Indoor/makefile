@@ -26,7 +26,7 @@
 include ../../makefile.env
 
 MODNAME = SpatialAlgebra
-CCFLAGS = $(DEFAULTCCFLAGS) -I../Rectangle
+CCFLAGS = $(DEFAULTCCFLAGS) -I../Rectangle -I ../Spatial
 
 .PHONY: all
 all: $(OBJECTS) $(LIBOBJ)
