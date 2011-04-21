@@ -1368,7 +1368,7 @@ public:
        provided by the caller. */
     void GetGenre(char *genrename);
     /* Extracts the genre name from the genre code. */
-    char *GetGenreName(byte nr);
+    const char *GetGenreName(byte nr);
 
     char songname [31];
     char author [31];
@@ -1624,7 +1624,7 @@ int ID3::GetYear() {
 Extracts the genre name from the genre code.
 
 */
-char *ID3::GetGenreName(byte nr) {
+const char *ID3::GetGenreName(byte nr) {
     switch(nr) {
         case 0: return "Blues";
         case 1: return "Classic Rock";
