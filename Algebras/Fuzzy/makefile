@@ -35,7 +35,10 @@ JAVA_FILES1=$(subst fuzzyobjects/,,$(JAVA_FILES_TMP))
 JAVA_FILES=$(subst .java,,$(JAVA_FILES1))
 
 .PHONY: all
-all: alljava allcpp
+all:  alljava allcpp
+
+SecondoInterface.jar:
+	make -C $(SECONDO_BUILD_DIR)/Javagui/secondoInterface  SecondoInterface.jar
 
 .PHONY: alljava
 alljava:

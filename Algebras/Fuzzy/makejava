@@ -25,12 +25,12 @@ include makefile.inc
 
 .PHONY:all
 all:
-	(cd $(JAVAINTERFACE_PATH); make all)
-	(cd fuzzyobjects; make all)
+	make -C $(SECONDO_BUILD_DIR)/Javagui/secondoInterface SecondoInterface.jar
+	make -C fuzzyobjects all
 
 .PHONY: clean
 clean: 
-	(cd fuzzyobjects; make clean)
+	make -C fuzzyobjects clean 
 	rm -fr $(DOCPATH)
 
 
