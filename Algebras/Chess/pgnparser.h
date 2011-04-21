@@ -786,10 +786,11 @@ Chessgame* ParseFile( ifstream* file )
   // read Movetext section
   int playerNo=0;
   *file >> pgn;
-  while ( comment || parenthesis != 0 ||
-          ( pgn != "1-0" ) && ( pgn != "0-1" ) &&
+  while ( comment || 
+          (parenthesis != 0) ||
+          (( pgn != "1-0" ) && ( pgn != "0-1" ) &&
           ( pgn != "1/2-1/2" ) && ( pgn != "*" )
-          && !file->eof() )
+          && !file->eof()) )
   {
     if ( comment )
     {
