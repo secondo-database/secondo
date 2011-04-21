@@ -31,6 +31,9 @@ MODNAME = TopRelAlgebra
 # In this case the defaults are sufficient
 CCFLAGS = $(DEFAULTCCFLAGS) -I../FText -I../Rectangle
 
+CCFLAGS += $(ALG_INC_DIRS) -Werror
+
+
 # The next rule will create a ".o" file for every ".cpp" file and 
 # creates a "lib$(MODNAME).a" file in the secondo/lib dir. Rules
 # for creating ".dep" files and ".o" files are defined in makefile.env
