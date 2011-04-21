@@ -47,6 +47,8 @@ floating point values.
 #ifndef NUMERICUTIL_H_
 #define NUMERICUTIL_H_
 
+#include <limits>
+
 using namespace std;
 
 namespace mregionops {
