@@ -2,15 +2,21 @@
 #define FILE_SYMBOLTA
 
 
-/**************************************************************************/
-/* File:   symbolta.hh                                                    */
-/* Author: Joachim Schoeberl                                              */
-/* Date:   01. Jun. 95                                                    */
-/**************************************************************************/
+/*
+
+File:   symbolta.hh                                                    
+Author: Joachim Schoeberl                                              
+Date:   01. Jun. 95                                                    
+
+*/
+
+
+#include <string.h>
 
 /**
    Base class for the generic SYMBOLTABLE.
    An array of identifiers is maintained.
+
 */
 class BASE_SYMBOLTABLE
 {
@@ -35,6 +41,7 @@ public:
    
     To a string an value of the generic type T is associated.
     The string is not copied into the symbol table class!
+
 */
 template <class T>
 class SYMBOLTABLE : public BASE_SYMBOLTABLE
