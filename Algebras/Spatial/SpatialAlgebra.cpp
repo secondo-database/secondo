@@ -12753,10 +12753,10 @@ ListExpr SpatialComponentsMap( ListExpr args )
 */
 ListExpr SpatialVerticesMap(ListExpr args)
 {
-  if(nl->ListLength(args)!=1)
+  if(nl->ListLength(args)==1)
   {
-    if( (nl->IsEqual(nl->First(args),Region::BasicType())) ||
-        (nl->IsEqual(nl->First(args),Line::BasicType())) ){
+    if( (listutils::isSymbol(nl->First(args),Region::BasicType())) ||
+        (listutils::isSymbol(nl->First(args),Line::BasicType())) ){
       return nl->SymbolAtom(Points::BasicType());
     }
   }
@@ -12769,7 +12769,7 @@ ListExpr SpatialVerticesMap(ListExpr args)
 */
 ListExpr SpatialBoundaryMap(ListExpr args)
 {
-  if(nl->ListLength(args)!=1)
+  if(nl->ListLength(args)==1)
   {
     if( SpatialTypeOfSymbol( nl->First( args ) ) == stregion ){
       return nl->SymbolAtom(Line::BasicType());
