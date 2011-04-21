@@ -1140,7 +1140,7 @@ string UDPsocket::readFrom(UDPaddress &sender, const double timeoutSecs)
     errorMsg = "Socket already connected.";
     __UDP_MSG("Socket already connected to " << partnerAddress << "!")
     __UDP_EXIT__
-    return false;
+    return "";
   }
   struct timeval vtTimeout;
   bool hasTimeout = (timeoutSecs>0.0);
@@ -1228,7 +1228,7 @@ string UDPsocket::read(const double timeoutSecs)
     errorMsg = "Socket unconnected.";
     __UDP_MSG("Socket unconnected.")
     __UDP_EXIT__
-    return false;
+    return "";
   }
   if(!myAddress.isOk()){
     ok = false;
