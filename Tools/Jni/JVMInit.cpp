@@ -38,7 +38,8 @@ This module initializes the JNI Environment. \\
 \end{center}
 
 */
-
+#include <stdio.h>
+#include <stdlib.h>
 #include <vector>
 using namespace std;
 
@@ -86,7 +87,7 @@ string  itself is returned. Otherwise
 
 */
 string getAbsolutePath(string Path){
-  if(Path[0]=='/' | Path[0]=='.')
+  if((Path[0]=='/') || (Path[0]=='.'))
     return Path;
   if(PATH_SEPARATOR==';' && Path.size()>1 && Path[1]==':'){
     // an absolute windows path
@@ -121,7 +122,8 @@ In this function a single line of the ini file is analyzed.
 
 */
 void processLine(const string& inputLine,string& classpath,
-                       string& libdir, string& version, string& heapMem,vector<string>& xoptions){
+                       string& libdir, string& version, 
+                       string& heapMem,vector<string>& xoptions){
  // remove comment
  size_t comment = inputLine.find("#");
  string line;
@@ -186,7 +188,8 @@ opened or an error occurs in reading this file, readFile will return
 
 */
 int readFile(const string& FileName,string& classpath,
-                   string& libpath, string& version, string& heapMem,vector<string>&  xoptions){
+                   string& libpath, string& version, 
+                   string& heapMem,vector<string>&  xoptions){
   // open the file
   ifstream infile(FileName.c_str());
   if(!infile){ // error in opening file
