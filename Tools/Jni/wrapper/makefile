@@ -27,14 +27,14 @@ CLASSES += TypeDescription.class TypeDescriptionPanel.class
 
 S=:
 
-CP = $(SECONDO_BUILD_DIR)/Tools/Jni$S$(SECONDO_BUILD_DIR)/Javagui$S$(JARS)
+CP = $(SECONDO_BUILD_DIR)/Tools/Jni$S$(SECONDO_BUILD_DIR)/Javagui/secondoInterface/SecondoInterface.jar
 
 .PHONY: all
 all: sj $(CLASSES)
 
 .PHONY: sj
 sj:
-	make -C $(SECONDO_BUILD_DIR)/Javagui/sj all
+	make -C $(SECONDO_BUILD_DIR)/Javagui/secondoInterface SecondoInterface.jar
 
 %.class: %.java
 	javac -classpath $(CP) $<
