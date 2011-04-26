@@ -1183,7 +1183,8 @@ cluster named ''unspecified'' containing all 512 9-intersection matrices.
 2.3.3 Copy Constructor 
 
 */
-    PredicateGroup(const PredicateGroup& source){
+    PredicateGroup(const PredicateGroup& source): Attribute(source.IsDefined()),
+                                                  theClusters(source.Size()-1){
        Equalize(source);
     }
 
@@ -1242,14 +1243,6 @@ predicate cluster will be the same like this one of the argument.
 
 */
 
-    bool IsDefined() const{
-         return defined;
-    }
-
-    void SetDefined( bool Defined){
-        this->defined = Defined;
-    }
-
     size_t HashValue() const{
        return unSpecified.HashValue();
     }
@@ -1291,7 +1284,7 @@ This function returns the number of contained clusters.
 Note that the unspecified cluster is also counted by this function.
 
 */
-    unsigned int Size(){
+    unsigned int Size() const{
        return theClusters.Size()+1;
     }
 
@@ -1302,7 +1295,7 @@ This function returns true if all possible matrices are contained
 in named clusters.
 
 */
-   bool IsComplete(){
+   bool IsComplete()const {
       return unSpecified.IsEmpty();
    }
 
@@ -1363,7 +1356,7 @@ cluster will contain all 512 possible matrices.
     void MakeEmpty(){ 
         unSpecified.MakeFull();
         theClusters.clean();
-        defined=true;
+        SetDefined(true);
         sorted=true;
     }
 
@@ -1554,7 +1547,6 @@ void getClusters(const int index, Cluster& result) const{
 
 private:
    mutable DbArray<Cluster> theClusters;
-   bool defined;
    bool canDelete;
    mutable bool sorted;
    Cluster unSpecified; // Cluster containing all non-used matrices

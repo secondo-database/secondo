@@ -1126,6 +1126,7 @@ matrices is added.
 
 */
 PredicateGroup::PredicateGroup( const int size ) :
+     Attribute(true),
      theClusters( size ),
      canDelete( false ),
      sorted(true),
@@ -1147,15 +1148,10 @@ is taken from the argument of this function.
 */
 void PredicateGroup::Equalize(const PredicateGroup* PG){
     Cluster tmp;
-    defined  = PG->defined;
+    Attribute::operator=(*PG);
     sorted = PG->sorted;
     canDelete = PG->canDelete;
-    int size = PG->theClusters.Size();
-    theClusters.resize(size);
-    for(int i=0;i<size;i++){
-        PG->theClusters.Get(i,tmp);
-        theClusters.Put(i,tmp);
-    }
+    theClusters.copyFrom(PG->theClusters);
     unSpecified.Equalize(PG->unSpecified);
 }
 
@@ -1171,11 +1167,11 @@ int PredicateGroup::Compare(const Attribute* right) const{
    int cmp;
    const PredicateGroup* PG = static_cast<const PredicateGroup*>(right);
    
-   if(!defined && !PG->defined)
+   if(!IsDefined() && !PG->IsDefined())
       return 0;
-   if(!defined && PG->defined)
+   if(!IsDefined() && PG->IsDefined())
       return -1;
-   if(defined && !PG->defined)
+   if(IsDefined() && !PG->IsDefined())
       return 1;
    // both predicategroups are defined
 
@@ -1242,7 +1238,7 @@ PredicateGroup in nested list format.
 */
 ListExpr PredicateGroup::ToListExpr(const ListExpr typeInfo){
   // we have at least one element in the this predicategroup
-  if(!defined)
+  if(!IsDefined())
       return nl->SymbolAtom("undefined");
   Cluster C;
   if(theClusters.Size()==0)
@@ -1321,7 +1317,7 @@ bool PredicateGroup::ReadFrom(const ListExpr instance, const ListExpr typeInfo){
       LE = nl->Rest(LE);
    }
    // if this state is reached, the list representation is correct
-   defined = true;
+   SetDefined(true);
    theClusters.resize(length);
    for(int i=0;i<length;i++)
        theClusters.Put(i,(AllClusters[i]));
@@ -1465,7 +1461,7 @@ Sets this predicate group to a default (constant) value.
 */
 void PredicateGroup::SetToDefault(){
      MakeEmpty(); // remove all old stuff
-     defined = true;
+     SetDefined(true);
      canDelete=false;
      ListExpr nlCoveredBy = nl->TwoElemList(
                               nl->StringAtom("coveredBy"),
