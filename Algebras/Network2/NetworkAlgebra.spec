@@ -19,3 +19,8 @@ operator gline2line alias GLINE2LINE pattern op ( _ )
 operator isempty alias ISEMPTY pattern op ( _ )
 operator union alias UNION pattern _ infixop _
 operator distance alias DISTANCE pattern op ( _ , _ )
+operator update_sectioncost alias UPDATE_SECTIONCOST pattern op ( _ , _ , _ )
+operator update_sectionduration alias UPDATE_SECTIONDURATION pattern op ( _ , _ , _ )
+operator shortestpath_astarplus alias SHORTESTPATH_ASTARPLUS pattern op ( _ , _ , _ )  
+operator optimizenet alias OPTIMIZENET pattern op ( _ )
+operator print_adjacencylist alias PRINT_ADJACENCYLIST pattern op ( _ )
