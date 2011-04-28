@@ -199,3 +199,50 @@ Signature: gline x gline -> gline
 Example  : query [const gline value(1((1 0.0 0.5)))] union [const gline value(1((1 0.2 1.5)))];
 Result   : (gline(1((1 0.0 1.5))))
 
+Operator : update_sectioncost
+Number   : 1
+Signature: network x int x real -> bool
+Example  : query update_sectioncost(B_NETWORK,1,5.0);
+Result   : TRUE
+
+Operator : update_sectioncost
+Number   : 2
+Signature: network x rel -> bool
+Example  : query update_sectioncost(B_NETWORK,[const rel(tuple([sid: int, cost: real])) value ((1 5.0)(2 27.0))]);
+Result   : TRUE
+
+Operator : update_sectionduration
+Number   : 1
+Signature: network x int x real -> bool
+Example  : query update_sectionduration(B_NETWORK,1,5.0);
+Result   : TRUE
+
+Operator : update_sectionduration
+Number   : 2
+Signature: network x rel -> bool
+Example  : query update_sectioncost(B_NETWORK,[const rel(tuple([sid: int, duration: real])) value ((1 5.0)(2 27.0))]);
+Result   : TRUE
+
+Operator : shortestpath_astarplus
+Number   : 1
+Signature: gpoint x gpoint -> gline
+Example  : query shortestpath_astarplus([const gpoint value (1 1 0.0 0)],[const gpoint value(1 1 0.5 0)]);
+Result   : (gline(1((1 0.0 0.5))))
+
+Operator : shortestpath_astarplus
+Number   : 2
+Signature: gpoint x gpoint x (map real real real real) -> gline
+Example  : query shortestpath_astarplus([const gpoint value (1 1 0.0 0)],[const gpoint value(1 1 0.5 0)], fun(cost: real, duration:real, l:real) (cost -(2* duration)));
+Result   : (gline(1((1 0.0 0.5))))
+
+Operator : optimizenet
+Number   : 1
+Signature: network -> bool
+Example  : query optimizenet(B_NETWORK);
+Result   : TRUE
+
+Operator : print_adjacencylist
+Number   : 1
+Signature: network -> bool
+Example  : query print_adjacencylist(B_NETWORK);
+Result   : TRUE
