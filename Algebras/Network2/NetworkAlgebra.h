@@ -40,6 +40,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "RTreeAlgebra.h"
 #include "Geoid.h"
 
+#include <cstring>
+
 /*
 1.1.2 struct SectTreeEntry
 
@@ -554,6 +556,7 @@ Returns a gline representing the shortest path between two GPoint.
 */
 
   bool ShortestPath(GPoint *ziel, GLine *result);
+  bool ShortestPathAStarPlus ( GPoint *pToGPoint, GLine *result, Word func );
 
   private:
 
@@ -587,7 +590,8 @@ Route location see struct ~rloc~ for detailed fields
                                   ROUTE_LENGTH,
                                   ROUTE_CURVE,
                                   ROUTE_DUAL,
-                                  ROUTE_STARTSSMALLER };
+                                  ROUTE_STARTSSMALLER,
+                                  ROUTE_STARTPOS_ID };
     enum PositionJunctionsRelation { JUNCTION_ROUTE1_ID = 0,
                                      JUNCTION_ROUTE1_MEAS,
                                      JUNCTION_ROUTE2_ID,
@@ -607,7 +611,13 @@ Route location see struct ~rloc~ for detailed fields
                                     SECTION_CURVE,
                                     SECTION_CURVE_STARTS_SMALLER,
                                     SECTION_RRC,
-                                    SECTION_SID};
+                                    SECTION_SID,
+                                    SECTION_PNO_UP,
+                                    SECTION_PNO_DOWN,
+                                    SECTION_SLOT_UP,
+                                    SECTION_SLOT_DOWN,
+                                    SECTION_COST,
+                                    SECTION_DURATION};
 
 
 /*
@@ -800,6 +810,610 @@ A flag indicating the direction: ~true~ means up and ~false~ means down.
 
 */
   bool m_bUpDown;
+};
+
+/*
+4.2.5a Class DirectedSectionInfo
+
+*/
+class DirectedSectionInfo
+{
+  public:
+
+/*
+Constructor
+
+*/
+  DirectedSectionInfo()
+  {
+  }
+
+/*
+Constructor giving a section
+
+*/
+  DirectedSectionInfo( TupleId in_iSectionTid, bool in_bUpDown,
+                       double in_meas1, double in_meas2, int in_rid, 
+		       double in_cost, double in_duration):
+    m_iSectionTid( in_iSectionTid ),
+    m_bUpDown( in_bUpDown ),
+    m_meas1(in_meas1),
+    m_meas2(in_meas2),
+    m_rid(in_rid),
+    m_cost(in_cost),
+    m_duration(in_duration)
+  {
+  }
+
+/*
+Copy-Constructor
+
+*/
+
+  DirectedSectionInfo( const DirectedSectionInfo& in_xSection ):
+    m_iSectionTid( in_xSection.m_iSectionTid),
+    m_bUpDown( in_xSection.m_bUpDown ),
+    m_meas1(in_xSection.m_meas1),
+    m_meas2(in_xSection.m_meas2),
+    m_rid(in_xSection.m_rid) ,
+    m_cost(in_xSection.m_cost),
+    m_duration(in_xSection.m_duration)   
+  {
+  }
+
+/*
+Redefinition of the assignment operator.
+
+*/
+  DirectedSectionInfo& operator=( const DirectedSectionInfo& in_xSection )
+  {
+    m_bUpDown = in_xSection.m_bUpDown;
+    m_iSectionTid = in_xSection.m_iSectionTid;
+    m_meas1 = in_xSection.m_meas1;
+    m_meas2 = in_xSection.m_meas2;
+    m_rid = in_xSection.m_rid;    
+    m_cost = in_xSection.m_cost;
+    m_duration = in_xSection.m_duration;
+    return *this;
+  }
+/*
+Get-methodes for UpdownFlag, SectionTid, Meas2, Meas2, Length, RoutesId, Cost and Duration
+
+*/
+
+  bool GetUpDownFlag()
+  {
+    return m_bUpDown;
+  }
+
+  TupleId GetSectionTid()
+  {
+    return m_iSectionTid;
+  }
+  
+  double GetMeas1(){
+      return m_meas1;
+  }
+  double GetMeas2(){
+      return m_meas2;
+  }
+  double GetLength(){
+      return (m_meas2 - m_meas1);
+  }
+  int GetRid(){
+      return m_rid;
+  }
+  double GetCost(){
+      return m_cost;
+  }
+  double GetDuration(){
+      return m_duration;
+  }
+
+  private:
+/*
+Field with section-pointer
+A pointer to the section.
+
+*/
+  TupleId m_iSectionTid;
+
+/*
+Field Direction-flag
+A flag indicating the direction: ~true~ means up and ~false~ means down.
+
+*/
+  bool m_bUpDown;
+  
+/*
+Field with Meas1 of the section
+
+*/
+  double m_meas1;
+
+/*
+Field with Meas2 of the section
+
+*/
+  double m_meas2;
+
+/*
+Field with rid of the section
+
+*/
+   int m_rid;
+   
+/*
+Field with cost of the section
+
+*/
+    double m_cost;
+
+/*
+Field with duration of the section
+
+*/
+    double m_duration;
+};
+
+
+/*
+4.2.6 Class PageRecord
+
+This class is needed for the list of sections used in each entry in the 
+adjacency-List (it is an alternative of the DirectedSections)
+It saves Sections on a Page. One Page can contain 48 sections with four 
+neighbours. If sections have more then four neighbours, it can happen, that 
+not all Slots are used.
+
+*/
+class PageRecord{
+    private:
+/*
+Constants for the PageRecord
+
+*/
+    const static int MAX_SLOTINDEXSIZE = 193;
+    const static int MAX_PAGESIZE = 3706;
+    const static int MAX_SLOTS =48;
+    const static int OFFSET_SID = 4;
+    const static int OFFSET_UPDOWN = 8;
+    const static int OFFSET_MEAS_1 = 9;
+    const static int OFFSET_MEAS_2 = 17;
+    const static int OFFSET_RID = 25;
+    const static int OFFSET_COST = 29;
+    const static int OFFSET_DURATION = 37;
+    const static int OFFSET_NO_NEIGHBOUR =45;
+    const static int OFFSET_FIRST_NEIGHBOUR = 49;
+    const static int OFFSET_NEXT_NEIGHBOUR = 8;
+    
+    public:
+/*
+default Constructor
+
+*/
+    PageRecord(){
+    }
+/*
+Constructor
+     
+*/ 
+    PageRecord(int size){
+        m_nextFree=0;
+        m_isFull=false;
+        m_slotIndex ={0};
+        m_pageContent = {0};
+    }
+/*
+Copy-Constructor
+
+*/
+    PageRecord( const PageRecord& in_xPage ):
+        m_nextFree(in_xPage.m_nextFree),  
+        m_isFull(in_xPage.m_isFull)
+        {
+            
+        for (int i=0; i< MAX_PAGESIZE; i++){
+            m_pageContent[i]=in_xPage.m_pageContent[i];
+        }
+        for (int i=0; i< MAX_SLOTINDEXSIZE; i++){
+            m_slotIndex[i]=in_xPage.m_slotIndex[i];
+        }
+    } 
+        
+/*
+Redefinition of the assignment operator.
+
+*/
+    PageRecord& operator=( const PageRecord& in_xPage )
+    {
+        m_nextFree = in_xPage.m_nextFree;
+        m_isFull= in_xPage.m_isFull;
+        for (int i=0; i< MAX_PAGESIZE; i++){
+            m_pageContent[i]=in_xPage.m_pageContent[i];
+        }
+        for (int i=0; i< MAX_SLOTINDEXSIZE; i++){
+            m_slotIndex[i]=in_xPage.m_slotIndex[i];
+        }
+        return *this;
+    }
+    
+/*
+Set-Methode for the SectionContent
+stored the content of a section , which ist given by the tid and its 
+Updown-Flag, on the next free space.
+return ~true~, if the section can be inserted, otherwise ~false~
+
+*/
+    bool SetSectionContent(TupleId tId, int sId, bool upDown, double meas1, 
+			   double meas2, int rid, double cost, double duration, 
+		           int noNeighbours, int sindex){
+        //calculate the needed space
+        int space = OFFSET_FIRST_NEIGHBOUR
+                    + (noNeighbours*OFFSET_NEXT_NEIGHBOUR);
+        // check whether the free space is enough
+        if((MAX_PAGESIZE-m_nextFree)< space || sindex > MAX_SLOTS){
+            // not enough space
+            m_isFull = true;
+            return false;
+        }else{
+            // enough space, so put section on the page
+            int actpos = m_nextFree;
+            // convert tID in char and store it at actpos schreiben
+            char c_tid[sizeof(TupleId)];
+            memcpy(c_tid, &tId, sizeof(TupleId)); 
+            SetPageContent(c_tid, actpos, sizeof(TupleId));
+            
+            // convert sID in char and store it at actpos schreiben
+            actpos = m_nextFree + OFFSET_SID;
+            char c_sid[sizeof(int)];
+            memcpy(c_sid, &sId, sizeof(int)); 
+            SetPageContent(c_sid, actpos, sizeof(int));
+            
+            // convert UpDown in char and store it
+            actpos = m_nextFree + OFFSET_UPDOWN;
+            char c_updown[sizeof(bool)];
+            memcpy(c_updown, &upDown, sizeof(bool));
+            SetPageContent(c_updown,actpos,sizeof(bool));
+            
+            // convert meas1 (douple) in char and store it
+            actpos = m_nextFree + OFFSET_MEAS_1;
+            char c_meas1[sizeof(double)];
+            memcpy(c_meas1, &meas1, sizeof(double));
+            SetPageContent(c_meas1,actpos,sizeof(double));
+            
+            // convert meas2 (douple) in char and store it
+            actpos = m_nextFree + OFFSET_MEAS_2;
+            char c_meas2[sizeof(double)];
+            memcpy(c_meas2, &meas2, sizeof(double));
+            SetPageContent(c_meas2,actpos,sizeof(double));
+            
+            // convert rid (int) in char and store it
+            actpos = m_nextFree + OFFSET_RID;
+            char c_rid[sizeof(int)];
+            memcpy(c_rid, &rid, sizeof(int));
+            SetPageContent(c_rid,actpos,sizeof(int));
+            
+            // convert cost (double) in char and store it
+            actpos = m_nextFree + OFFSET_COST;
+            char c_cost[sizeof(double)];
+            memcpy(c_cost, &cost, sizeof(double));
+            SetPageContent(c_cost,actpos,sizeof(double));
+            
+            // convert duration (double) in char and store it
+            actpos = m_nextFree + OFFSET_DURATION;
+            char c_duration[sizeof(double)];
+            memcpy(c_duration, &duration, sizeof(double));
+            SetPageContent(c_duration,actpos,sizeof(double));
+        
+            // convert NoNeightbours in char and store it
+            actpos = m_nextFree + OFFSET_NO_NEIGHBOUR;
+            char c_noNeighbours[sizeof(int)];
+            memcpy(c_noNeighbours, &noNeighbours, sizeof(int));
+            SetPageContent(c_noNeighbours, actpos, sizeof(int));
+        
+            // store the startpos of this section in the slotindex
+            char c_adress[sizeof(int)];
+            memcpy(c_adress, &m_nextFree, sizeof(int));
+            SetSlotContent(c_adress, sindex, sizeof(int));            
+            
+            // calculate next startpos
+            m_nextFree +=space;        
+            return true;
+        }
+    }
+    
+/*
+Set-Methode for the SectionNeighbours
+stored the pagenumber and the slotnumber of a given neighbour 
+by the slotIndex and the neighbourIndex
+
+*/    
+    void SetSectionNeighbour(int slotIndex, int neighbourIndex, 
+			     int nSPage, int nSSlot){
+        // read slotstart-adress from slotindex 
+        int start = GetContentIndex(slotIndex);
+        // calculate start-Adress from actual neighbour
+        int startN = start+OFFSET_FIRST_NEIGHBOUR
+                          +(neighbourIndex*OFFSET_NEXT_NEIGHBOUR);
+        //put neighbourSectionPagenumber and neighbourSecionSlotnumber
+        char c_spage[sizeof(int)];        
+        memcpy(c_spage, &nSPage, sizeof(int));         
+        SetPageContent(c_spage, startN, sizeof(int));   
+        startN += sizeof(int);
+        char c_sslot[sizeof(int)];
+        memcpy(c_sslot, &nSSlot, sizeof(int));
+        SetPageContent(c_sslot, startN, sizeof(int));   
+    }
+/*
+Set-Methode for the cost of a section
+stored the cost of a given section 
+by the slotIndex
+
+*/  
+    void SetSectionCost(int slotIndex, double cost){
+        int start = GetContentIndex(slotIndex)+OFFSET_COST;
+        char c_cost[sizeof(double)];        
+        memcpy(c_cost, &cost, sizeof(double));         
+        SetPageContent(c_cost, start, sizeof(double));
+    }
+/*
+Set-Methode for the Duration of a section
+stored the duration of a given section 
+by the slotIndex
+
+*/  
+	void SetSectionDuration(int slotIndex, double duration){
+        int start = GetContentIndex(slotIndex)+OFFSET_DURATION;
+        char c_duration[sizeof(double)];        
+        memcpy(c_duration, &duration, sizeof(double));         
+        SetPageContent(c_duration, start, sizeof(double));
+    }
+/*
+Get-Methode
+get the neighbour-pagenumber of a spezified neighbour
+
+*/
+    void GetSectionNeighbourPage(int slotIndex, 
+                                 int neighbourIndex, int &inout_nPage){
+        //calculate startAdress 
+        int start = GetContentIndex(slotIndex)
+                    +OFFSET_FIRST_NEIGHBOUR
+                    +(neighbourIndex*OFFSET_NEXT_NEIGHBOUR);
+        //get content 
+        int npage;
+        char* c;
+        GetPageContent(start,sizeof(int), c);
+        memcpy(&npage, c, sizeof(int));
+        inout_nPage = npage;        
+    }
+/*
+Get-Methode
+get the neighbour-slotnumber of a spezified neighbour
+
+*/
+    void GetSectionNeighbourSlot(int slotIndex,
+                                 int neighbourIndex, int &inout_nSlot){
+        //calculate startAdress 
+        int start = GetContentIndex(slotIndex)
+                    +OFFSET_FIRST_NEIGHBOUR
+                    +(neighbourIndex*OFFSET_NEXT_NEIGHBOUR)+ sizeof(int);
+        //get content 
+        int nslot;
+        char* c;
+        GetPageContent(start,sizeof(int), c);
+        memcpy(&nslot, c, sizeof(int));
+        inout_nSlot = nslot;       
+        
+    }
+    
+/*
+Get-Methode
+get the section-TupleId which is stored in the given slot
+
+*/
+    void GetSectionTid(int slotIndex, TupleId &inout_tid){
+        int pos = GetContentIndex(slotIndex);
+        TupleId ntid;
+        char* c;
+        GetPageContent(pos,sizeof(int), c);
+        memcpy(&ntid, c, sizeof(int));    
+        inout_tid = ntid;         
+    }
+    
+/*
+Get-Methode
+get the section-Id which is stored in the given slot
+
+*/
+	void GetSectionId(int slotIndex, int &inout_sid){
+        int pos = GetContentIndex(slotIndex)+OFFSET_SID;
+        int nsid;
+        char* c;
+        GetPageContent(pos,sizeof(int), c);
+        memcpy(&nsid, c, sizeof(int));    
+        inout_sid = nsid;         
+    }
+
+/*
+Get-Methode
+get the updownflag of a section which is stores in the given slot
+
+*/
+    void GetSectionUpdown(int slotIndex, bool &inout_updown){
+        int pos = GetContentIndex(slotIndex)+OFFSET_UPDOWN; 
+        bool nupDown;
+        char *b;
+        GetPageContent(pos,sizeof(bool), b);
+        memcpy(&nupDown, b, sizeof(bool)); 
+        inout_updown = nupDown;
+    }
+    
+/*
+Get-Methode
+get the meas1-attribute of a section which is stores in the given slot
+
+*/
+    void GetSectionMeas1(int slotIndex, double &inout_meas1){
+        int pos = GetContentIndex(slotIndex)+OFFSET_MEAS_1; 
+        double nmeas1;
+        char *m;
+        GetPageContent(pos,sizeof(double), m);
+        memcpy(&nmeas1, m, sizeof(double)); 
+        inout_meas1 = nmeas1;
+    }
+
+/*
+Get-Methode
+get the meas2-attribute of a section which is stores in the given slot
+
+*/
+    void GetSectionMeas2(int slotIndex, double &inout_meas2){
+        int pos = GetContentIndex(slotIndex)+OFFSET_MEAS_2; 
+        double nmeas2;
+        char *m;
+        GetPageContent(pos,sizeof(double), m);
+        memcpy(&nmeas2, m, sizeof(double)); 
+        inout_meas2 = nmeas2;
+    }
+    
+/*
+Get-Methode
+get the rid of a section which is stores in the given slot
+
+*/
+    void GetSectionRid(int slotIndex, int &inout_rid){
+        int pos = GetContentIndex(slotIndex)+OFFSET_RID;
+        int nrid;
+        char* r;
+        GetPageContent(pos,sizeof(int), r);
+        memcpy(&nrid, r, sizeof(int));    
+        inout_rid = nrid;        
+    }
+    
+/*
+Get-Methode
+get the cost of a section which is stored in the given slot
+
+*/
+    void GetSectionCost(int slotIndex, double &inout_cost){
+        int pos = GetContentIndex(slotIndex)+OFFSET_COST;
+        double ncost;
+        char* c;
+        GetPageContent(pos,sizeof(double), c);
+        memcpy(&ncost, c, sizeof(double));    
+        inout_cost = ncost;        
+    }
+     
+/*
+Get-Methode
+get the Duration of a section which is stored in the given slot
+
+*/
+    void GetSectionDuration(int slotIndex, double &inout_duration){
+        int pos = GetContentIndex(slotIndex)+OFFSET_DURATION;
+        double nduration;
+        char* d;
+        GetPageContent(pos,sizeof(double), d);
+        memcpy(&nduration, d, sizeof(double));    
+        inout_duration = nduration;        
+    }
+    
+/*
+Get-Methode
+get number of neighbours of section, which is stored in the given 
+Slotindex
+
+*/
+    void GetSectionNoNeighbours(int slotIndex, int &inout_noN){
+        int pos = GetContentIndex(slotIndex)+OFFSET_NO_NEIGHBOUR;
+        int nnoN;
+        char* n;
+        GetPageContent(pos,sizeof(int), n);
+        memcpy(&nnoN, n, sizeof(int));    
+        inout_noN = nnoN;        
+    }
+    
+    
+    
+    private:
+/*
+private Set-methode to stored content on the page
+
+*/
+       void SetPageContent(char* in_content, int position, unsigned int count){
+            for (unsigned int i=0; i < count; i++){
+                m_pageContent[position] = in_content[i];
+                position++;
+            }
+        }
+/*
+private set-methode to stored content in the slotIndex
+
+*/
+       void SetSlotContent(char* in_content, int slotindex, unsigned int count){
+            int sindex = sizeof(int)*(slotindex-1); 
+            for (unsigned int i=0; i < count; i++){
+                m_slotIndex[sindex] = in_content[i];
+                sindex++;
+            }
+        }
+/*
+private get-methode to get content from the page
+
+*/
+        void GetPageContent(int position, unsigned int count, 
+                            char* &inout_content){
+            char c[count];
+            for (unsigned int i=0; i< count; i++){
+                c[i]=m_pageContent[position];
+                position++;
+            }
+            inout_content = c;
+        }
+/*
+private get-methode to get content from the slotindex
+
+*/
+        int GetContentIndex(int slotIndex){
+            //den Contenindex aus dem Slotindex lesen 
+            int sIndex = sizeof(int)*(slotIndex-1);
+            int posContent;
+            char c_pos[sizeof(int)];
+            for (unsigned int i=0; i<sizeof(int); i++){
+                c_pos[i]=m_slotIndex[sIndex]; 
+                sIndex++;
+            }
+            memcpy(&posContent, c_pos, sizeof(int));
+            return posContent;
+        }
+        
+/*
+Field NextFree, stored the index of the PageContent, where the next 
+section can be inserted
+
+*/
+        int m_nextFree;
+    
+/* 
+Field SlotIndex, that contains MAX\_SLOTS by 4bit for 
+the Index of the Content, to indicate, where a slot is beginning
+
+*/       
+        char m_slotIndex[MAX_SLOTINDEXSIZE];
+        
+/*
+Field PageContent contains ca. 81 Byte for one Slot
+the size of a slot is variable, unused bits are filled with 0
+
+*/
+        char m_pageContent[MAX_PAGESIZE];
+/*
+Field m\_isFull is a bool, if true , when no more space for a 
+new, otherwise false
+
+*/
+        bool m_isFull;           
 };
 
 /*
@@ -1093,6 +1707,7 @@ as string.
 */
 
   static string routesTypeInfo;
+  static string routesInternalTypeInfo;
 
 
 /*
@@ -1386,6 +2001,15 @@ downwards bool from the section given by TupleId.
                              vector<DirectedSection> &inout_xSections);
 
 /*
+Method GetAdjacentSectionsInfo
+Returns a vector of sections which can be reached next upwards respectively
+downwards bool from the section given by TupleId.
+
+*/
+    void GetAdjacentSectionsInfo ( TupleId in_iSectionTId,
+         bool in_bUpDown,vector<DirectedSectionInfo> &inout_xSections );
+
+/*
 GetSections on RouteInterval.
 
 Returns a set of sections which are covered by the given ~RouteInterval~
@@ -1432,6 +2056,30 @@ Returns the section with the given id.
 
     void FindSP(TupleId j1,TupleId j2,double& length,GLine* res);
 /*
+Operator-functions to update the cost of a section
+
+*/
+    bool UpdateSectionCost(int secId,double newCost);   
+    bool UpdateMoreSectionCost(const Relation* in_pCosts);
+/*
+Operator-functions to update the duration of a section
+
+*/
+    bool UpdateSectionDuration(int secId,double newDuration);   
+    bool UpdateMoreSectionDuration(const Relation* in_pDurations);
+/*
+Operator-function to optimize the network
+
+*/
+    bool OptimizeNetwork();
+/*
+Operator-function to print the information of the adjacent sections
+
+*/
+    bool PrintAdjacentSectionInfo();
+    
+/* 
+
 4.2.9.4 Secondo Integration Methods of Class ~Network~
 
 NetworkProp
@@ -1545,7 +2193,10 @@ the ~id~ attribute and creates the B-Tree in this attribute.
 
 */
   void FillRoutes( const Relation *in_pRoutes );
-
+  
+  bool OptimizationRoutes();
+  void QuicksortRoutes(int a[][2], int l, int r);
+  int QuicksortRoutesPartition(int a[][2], int l, int r); 
   void CreateRoutesIndexes();
 
 /*
@@ -1613,6 +2264,12 @@ for ~gline~ ~routeInterval~.
 
   bool InShortestPath(GPoint* start, GPoint* end, GLine *result);
 
+/* 
+Helpfunction to count the neighbours of all sections
+
+*/
+void CountNeighbours(vector<DirectedSectionPair> in_xList);
+
 
 /*
 4.2.9.6 Private fields of Class ~Network~
@@ -1658,6 +2315,13 @@ The BTree in the ~routes~ relation.
 
 */
 
+  BTree* m_pBTreeRoutesByStartposId;
+  
+/*
+The BTree in the routes relation by startpos\_id
+
+*/
+
   R_Tree<2,TupleId> *m_pRTreeRoutes;
 
 /*
@@ -1678,7 +2342,7 @@ The adjacency lists of sections.
 
 */
 
-  DbArray<AdjacencyListEntry> m_xAdjacencyList;
+  DbArray<PageRecord> m_xAdjacencyList;
 
 /*
 The adjacency lists of sections.
@@ -1692,6 +2356,7 @@ The BTree of the sections route ids.
 */
 
   BTree* m_pBTreeSectionsByRoute;
+  BTree* m_pBTreeSections;
 
 /*
 Stores the precomputed distances between every possible pair of two junction
