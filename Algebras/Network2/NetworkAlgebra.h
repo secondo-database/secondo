@@ -834,7 +834,7 @@ Constructor giving a section
 */
   DirectedSectionInfo( TupleId in_iSectionTid, bool in_bUpDown,
                        double in_meas1, double in_meas2, int in_rid, 
-		       double in_cost, double in_duration):
+                       double in_cost, double in_duration):
     m_iSectionTid( in_iSectionTid ),
     m_bUpDown( in_bUpDown ),
     m_meas1(in_meas1),
@@ -1046,8 +1046,8 @@ return ~true~, if the section can be inserted, otherwise ~false~
 
 */
     bool SetSectionContent(TupleId tId, int sId, bool upDown, double meas1, 
-			   double meas2, int rid, double cost, double duration, 
-		           int noNeighbours, int sindex){
+                           double meas2, int rid, double cost, double duration, 
+                           int noNeighbours, int sindex){
         //calculate the needed space
         int space = OFFSET_FIRST_NEIGHBOUR
                     + (noNeighbours*OFFSET_NEXT_NEIGHBOUR);
@@ -1130,7 +1130,7 @@ by the slotIndex and the neighbourIndex
 
 */    
     void SetSectionNeighbour(int slotIndex, int neighbourIndex, 
-			     int nSPage, int nSSlot){
+                             int nSPage, int nSSlot){
         // read slotstart-adress from slotindex 
         int start = GetContentIndex(slotIndex);
         // calculate start-Adress from actual neighbour
@@ -1163,7 +1163,7 @@ stored the duration of a given section
 by the slotIndex
 
 */  
-	void SetSectionDuration(int slotIndex, double duration){
+    void SetSectionDuration(int slotIndex, double duration){
         int start = GetContentIndex(slotIndex)+OFFSET_DURATION;
         char c_duration[sizeof(double)];        
         memcpy(c_duration, &duration, sizeof(double));         
@@ -1226,7 +1226,7 @@ Get-Methode
 get the section-Id which is stored in the given slot
 
 */
-	void GetSectionId(int slotIndex, int &inout_sid){
+    void GetSectionId(int slotIndex, int &inout_sid){
         int pos = GetContentIndex(slotIndex)+OFFSET_SID;
         int nsid;
         char* c;
