@@ -54,7 +54,13 @@ October 2008 - Jianqiu Xu
 #include "Algebra.h"
 #include "Messages.h"
 #include "NetworkManager.h"
-#include "ListUtils.h"
+#include "NestedList.h"
+#include "NList.h"
+#include "QueryProcessor.h"
+#include "AlgebraManager.h"
+#include "../../include/ListUtils.h"
+
+#include "../../include/TypeMapUtils.h" 
 
 extern NestedList* nl;
 extern QueryProcessor* qp;
@@ -1009,6 +1015,23 @@ class PQEntry
       distFromStart = distance;
       upDownFlag = upDown;
       beforeSectID = beforeID;
+      meas1 =0;
+      meas2 =0;
+      rid = 0;
+      costFromStart = 0.0;
+    }
+    PQEntry(TupleId in_aktID, double in_distance, bool in_upDown,
+            TupleId in_beforeID, double in_meas1, double in_meas2, 
+            int in_rid, double in_costs=0.0 ):
+      sectID(in_aktID),
+      distFromStart(in_distance),
+      upDownFlag(in_upDown),
+      beforeSectID(in_beforeID),
+      meas1(in_meas1),
+      meas2(in_meas2),
+      rid(in_rid),
+      costFromStart(in_costs)
+    {
     }
 
     PQEntry ( PQEntry &e )
@@ -1017,6 +1040,10 @@ class PQEntry
       distFromStart = e.distFromStart;
       upDownFlag = e.upDownFlag;
       beforeSectID = e.beforeSectID;
+      meas1 = e.meas1;
+      meas2 = e.meas2;
+      rid = e.rid;
+      costFromStart = e.costFromStart;
     }
     PQEntry ( const PQEntry &e )
     {
@@ -1024,6 +1051,10 @@ class PQEntry
       distFromStart = e.distFromStart;
       upDownFlag = e.upDownFlag;
       beforeSectID = e.beforeSectID;
+      meas1 = e.meas1;
+      meas2 = e.meas2;
+      rid = e.rid;
+      costFromStart = e.costFromStart;
     }
 
     ~PQEntry() {}
@@ -1032,6 +1063,10 @@ class PQEntry
     double distFromStart;
     bool upDownFlag;
     TupleId beforeSectID;
+    double meas1;
+    double meas2;
+    int rid;
+    double costFromStart;
 };
 
 /*
@@ -1183,7 +1218,7 @@ struct PrioQueue
 
   */
   void CorrectPosition ( int checkX, const PQEntry nElem, SectIDTree *pSection,
-                         SectIDTree *sectTree )
+                         SectIDTree *sectTree, bool calcCost=false )
   {
     int act = checkX;
     PQEntry test;
@@ -1195,19 +1230,37 @@ struct PrioQueue
       if ( checkX >= 0 )
       {
         prioQ.Get ( checkX, test );
-        if ( test.distFromStart > nElem.distFromStart )
-        {
-          PQEntry help = test;
-          prioQ.Put ( checkX, nElem );
-          pSection->SetIndex ( checkX );
-          prioQ.Put ( act, help );
-          SectIDTree *thelp = sectTree->Find ( help.sectID );
-          thelp->SetIndex ( act );
-          act = checkX;
+        if(calcCost){
+            if ( test.costFromStart > nElem.costFromStart )
+            {
+              PQEntry help = test;
+              prioQ.Put ( checkX, nElem );
+              pSection->SetIndex ( checkX );
+              prioQ.Put ( act, help );
+              SectIDTree *thelp = sectTree->Find ( help.sectID );
+              thelp->SetIndex ( act );
+              act = checkX;
+            }
+            else
+            {
+              found = true;
+            }
         }
-        else
-        {
-          found = true;
+        else {     
+            if ( test.distFromStart > nElem.distFromStart )
+            {
+              PQEntry help = test;
+              prioQ.Put ( checkX, nElem );
+              pSection->SetIndex ( checkX );
+              prioQ.Put ( act, help );
+              SectIDTree *thelp = sectTree->Find ( help.sectID );
+              thelp->SetIndex ( act );
+              act = checkX;
+            }
+            else
+            {
+              found = true;
+            }
         }
       }
       else
@@ -1217,7 +1270,7 @@ struct PrioQueue
     }
   };
 
-  void Insert ( PQEntry nElem, SectIDTree *sectTree )
+  void Insert ( PQEntry nElem, SectIDTree *sectTree, bool calcCost=false )
   {
     SectIDTree *pSection = sectTree->Find ( nElem.sectID );
     PQEntry old;
@@ -1226,11 +1279,23 @@ struct PrioQueue
       if ( pSection->index != numeric_limits<int>::max() )
       {
         prioQ.Get ( pSection->index, old );
-        if ( nElem.distFromStart < old.distFromStart )
+        if(calcCost)
         {
-          prioQ.Put ( pSection->index, nElem );
-          pSection->SetBeforeSectId ( nElem.beforeSectID );
-          CorrectPosition ( pSection->index, nElem, pSection, sectTree );
+            if ( nElem.costFromStart < old.costFromStart )
+            {
+              prioQ.Put ( pSection->index, nElem );
+              pSection->SetBeforeSectId ( nElem.beforeSectID );
+              CorrectPosition( pSection->index, nElem, pSection, sectTree,true);
+            }
+        }
+        else
+        {
+            if ( nElem.distFromStart < old.distFromStart )
+            {
+              prioQ.Put ( pSection->index, nElem );
+              pSection->SetBeforeSectId ( nElem.beforeSectID );
+              CorrectPosition(pSection->index, nElem, pSection, sectTree,false);
+            }
         }
       }
     }
@@ -1239,12 +1304,13 @@ struct PrioQueue
       prioQ.Put ( firstFree, nElem );
       sectTree->Insert ( nElem.sectID, nElem.beforeSectID, nElem.upDownFlag,
                          firstFree, pSection );
-      CorrectPosition ( firstFree, nElem, pSection ,sectTree );
+      CorrectPosition ( firstFree, nElem, pSection ,sectTree,calcCost );
       firstFree++;
     }
   }
+  
 
-  PQEntry* GetAndDeleteMin ( SectIDTree *sectTree )
+  PQEntry* GetAndDeleteMin ( SectIDTree *sectTree, bool calcCost=false)
   {
     if ( firstFree > 0 )
     {
@@ -1253,7 +1319,11 @@ struct PrioQueue
       PQEntry *retValue = new PQEntry ( result.sectID,
                                         result.distFromStart,
                                         result.upDownFlag,
-                                        result.beforeSectID );
+                                        result.beforeSectID,
+                                        result.meas1,
+                                        result.meas2,
+                                        result.rid,
+                                        result.costFromStart);
       SectIDTree *tRet = sectTree->Find ( result.sectID );
       tRet->SetIndex ( numeric_limits<int>::max() );
       prioQ.Get ( firstFree-1, last );
@@ -1271,33 +1341,67 @@ struct PrioQueue
         {
           prioQ.Get ( checkX, test1 );
           prioQ.Get ( checkX+1, test2 );
-          if ( test1.distFromStart < last.distFromStart ||
-                  test2.distFromStart < last.distFromStart )
+          if(calcCost)
           {
-            if ( test1.distFromStart <= test2.distFromStart )
-            {
-              PQEntry help = test1;
-              prioQ.Put ( checkX, last );
-              pSection->SetIndex ( checkX );
-              prioQ.Put ( act, help );
-              SectIDTree *thelp = sectTree->Find ( help.sectID );
-              thelp->SetIndex ( act );
-              act = checkX;
-            }
-            else
-            {
-              PQEntry help = test2;
-              prioQ.Put ( checkX+1, last );
-              pSection->SetIndex ( checkX+1 );
-              prioQ.Put ( act, help );
-              SectIDTree *thelp = sectTree->Find ( help.sectID );
-              thelp->SetIndex ( act );
-              act = checkX+1;
-            }
+              if ( test1.costFromStart < last.costFromStart ||
+                      test2.costFromStart < last.costFromStart )
+              {
+                if ( test1.costFromStart <= test2.costFromStart )
+                {
+                  PQEntry help = test1;
+                  prioQ.Put ( checkX, last );
+                  pSection->SetIndex ( checkX );
+                  prioQ.Put ( act, help );
+                  SectIDTree *thelp = sectTree->Find ( help.sectID );
+                  thelp->SetIndex ( act );
+                  act = checkX;
+                }
+                else
+                {
+                  PQEntry help = test2;
+                  prioQ.Put ( checkX+1, last );
+                  pSection->SetIndex ( checkX+1 );
+                  prioQ.Put ( act, help );
+                  SectIDTree *thelp = sectTree->Find ( help.sectID );
+                  thelp->SetIndex ( act );
+                  act = checkX+1;
+                }
+              }
+              else
+              {
+                found = true;
+              }
           }
           else
           {
-            found = true;
+              if ( test1.distFromStart < last.distFromStart ||
+                      test2.distFromStart < last.distFromStart )
+              {
+                if ( test1.distFromStart <= test2.distFromStart )
+                {
+                  PQEntry help = test1;
+                  prioQ.Put ( checkX, last );
+                  pSection->SetIndex ( checkX );
+                  prioQ.Put ( act, help );
+                  SectIDTree *thelp = sectTree->Find ( help.sectID );
+                  thelp->SetIndex ( act );
+                  act = checkX;
+                }
+                else
+                {
+                  PQEntry help = test2;
+                  prioQ.Put ( checkX+1, last );
+                  pSection->SetIndex ( checkX+1 );
+                  prioQ.Put ( act, help );
+                  SectIDTree *thelp = sectTree->Find ( help.sectID );
+                  thelp->SetIndex ( act );
+                  act = checkX+1;
+                }
+              }
+              else
+              {
+                found = true;
+              }
           }
         }
         else
@@ -1305,19 +1409,38 @@ struct PrioQueue
           if ( checkX != 0 && checkX == firstFree-1 )
           {
             prioQ.Get ( checkX, test1 );
-            if ( test1.distFromStart < last.distFromStart )
-            {
-              PQEntry help = test1;
-              prioQ.Put ( checkX, last );
-              pSection->SetIndex ( checkX );
-              prioQ.Put ( act, help );
-              SectIDTree *thelp = sectTree->Find ( help.sectID );
-              thelp->SetIndex ( act );
-              act = checkX;
+            if(calcCost){
+                if ( test1.costFromStart < last.costFromStart )
+                {
+                  PQEntry help = test1;
+                  prioQ.Put ( checkX, last );
+                  pSection->SetIndex ( checkX );
+                  prioQ.Put ( act, help );
+                  SectIDTree *thelp = sectTree->Find ( help.sectID );
+                  thelp->SetIndex ( act );
+                  act = checkX;
+                }
+                else
+                {
+                  found = true;
+                }
             }
             else
             {
-              found = true;
+                if ( test1.distFromStart < last.distFromStart )
+                {
+                  PQEntry help = test1;
+                  prioQ.Put ( checkX, last );
+                  pSection->SetIndex ( checkX );
+                  prioQ.Put ( act, help );
+                  SectIDTree *thelp = sectTree->Find ( help.sectID );
+                  thelp->SetIndex ( act );
+                  act = checkX;
+                }
+                else
+                {
+                  found = true;
+                }
             }
           }
         }
@@ -1363,13 +1486,18 @@ struct PrioQueue
 string Network::routesTypeInfo =
     "(rel (tuple ((id int) (length real) (curve sline) "
     "(dual bool) (startsSmaller bool))))";
+    
+string Network::routesInternalTypeInfo =
+    "(rel (tuple ((id int) (length real) (curve sline) "
+    "(dual bool) (startsSmaller bool) (startposid int))))";
+    
 string Network::routesBTreeTypeInfo =
     "(btree (tuple ((id int) (length real) (curve sline) "
-    "(dual bool) (startsSmaller bool))) int)";
+    "(dual bool) (startsSmaller bool) (startposid int) )) int)";
 
 string Network::routesRTreeTypeInfo =
     "(rtree (tuple((id int)(length real)(curve sline)(dual bool)"
-    "(startsSmaller bool))) sline FALSE)";
+    "(startsSmaller bool) (startposid int) )) sline FALSE)";
 
 string Network::junctionsTypeInfo =
     "(rel (tuple ((r1id int) (meas1 real) (r2id int) "
@@ -1391,10 +1519,14 @@ string Network::junctionsBTreeTypeInfo =
     "(sauprc tid) (sadownrc tid)(sbuprc tid) (sbdownrc tid))) int)";
 string Network::sectionsInternalTypeInfo =
     "(rel (tuple ((rid int) (meas1 real) (meas2 real) (dual bool)"
-    "(curve sline)(curveStartsSmaller bool) (rrc tid) (sid int))))";
+    "(curve sline)(curveStartsSmaller bool) (rrc tid) (sid int) "
+    "(pnoup int) (pnodown int) (slotup int) (slotdown int) "
+    "(cost real) (time real))))";
 string Network::sectionsBTreeTypeInfo =
     "(btree (tuple ((rid int) (meas1 real) (meas2 real) (dual bool)"
-    "(curve sline)(curveStartsSmaller bool) (rrc tid) (sid int))) int)";
+    "(curve sline)(curveStartsSmaller bool) (rrc tid) (sid int) "
+    "(pnoup int) (pnodown int) (slotup int) (slotdown int) "
+    "(cost real) (time real) )) int)";
 string Network::distancestorageTypeInfo =
     "(rel (tuple((j1 tid)(j2 tid)(dist real)(sp gline))))";
 
@@ -1410,12 +1542,14 @@ Network::Network() :
     m_pJunctions ( 0 ),
     m_pSections ( 0 ),
     m_pBTreeRoutes ( 0 ),
+    m_pBTreeRoutesByStartposId( 0 ),
     m_pRTreeRoutes ( 0 ),
     m_pBTreeJunctionsByRoute1 ( 0 ),
     m_pBTreeJunctionsByRoute2 ( 0 ),
     m_xAdjacencyList ( 0 ),
     m_xSubAdjacencyList ( 0 ),
-    m_pBTreeSectionsByRoute ( 0 )
+    m_pBTreeSectionsByRoute ( 0 ),
+    m_pBTreeSections (0)
     /*alldistance(0)*/  //only for experimental use with network distances
 {
 }
@@ -1433,7 +1567,7 @@ m_xSubAdjacencyList(0)
 
   // Open routes
   ListExpr xType;
-  nl->ReadFromString ( routesTypeInfo, xType );
+  nl->ReadFromString ( routesInternalTypeInfo, xType );
   ListExpr xNumericType = SecondoSystem::GetCatalog()->NumericType ( xType );
   m_pRoutes = Relation::Open ( in_xValueRecord,
                                inout_iOffset,
@@ -1482,6 +1616,22 @@ m_xSubAdjacencyList(0)
     m_pSections->Delete();
     return;
   }
+  // Open btree for routesByStartposId
+  nl->ReadFromString ( routesBTreeTypeInfo, xType );
+  xNumericType =SecondoSystem::GetCatalog()->NumericType ( xType );
+  m_pBTreeRoutesByStartposId = BTree::Open ( in_xValueRecord,
+                                 inout_iOffset,
+                                 xNumericType );
+
+  if ( !m_pBTreeRoutesByStartposId )
+  {
+    m_pRoutes->Delete();
+    m_pJunctions->Delete();
+    m_pSections->Delete();
+    delete m_pBTreeRoutes;
+    return;
+  }
+  
   //Open  rtree for routes
   Word xValue;
 
@@ -1494,6 +1644,7 @@ m_xSubAdjacencyList(0)
     m_pJunctions->Delete();
     m_pSections->Delete();
     delete m_pBTreeRoutes;
+    delete m_pBTreeRoutesByStartposId;
     return;
   }
 
@@ -1511,6 +1662,7 @@ m_xSubAdjacencyList(0)
     m_pJunctions->Delete();
     m_pSections->Delete();
     delete m_pBTreeRoutes;
+    delete m_pBTreeRoutesByStartposId;
     delete m_pRTreeRoutes;
     return;
   }
@@ -1527,6 +1679,7 @@ m_xSubAdjacencyList(0)
     m_pJunctions->Delete();
     m_pSections->Delete();
     delete m_pBTreeRoutes;
+    delete m_pBTreeRoutesByStartposId;
     delete m_pRTreeRoutes;
     delete m_pBTreeJunctionsByRoute1;
     return;
@@ -1550,7 +1703,7 @@ m_xSubAdjacencyList(0)
    inout_iOffset += bufsize;
    free(buf);
 
-  // Open btree for sections
+  // Open btree for sections by Routes
   nl->ReadFromString ( sectionsBTreeTypeInfo, xType );
   xNumericType =SecondoSystem::GetCatalog()->NumericType ( xType );
   m_pBTreeSectionsByRoute = BTree::Open ( in_xValueRecord,
@@ -1562,9 +1715,30 @@ m_xSubAdjacencyList(0)
     m_pJunctions->Delete();
     m_pSections->Delete();
     delete m_pBTreeRoutes;
+    delete m_pBTreeRoutesByStartposId;
     delete m_pRTreeRoutes;
     delete m_pBTreeJunctionsByRoute1;
     delete m_pBTreeJunctionsByRoute2;
+    return;
+  }
+  
+  // Open btree for sections
+  nl->ReadFromString ( sectionsBTreeTypeInfo, xType );
+  xNumericType =SecondoSystem::GetCatalog()->NumericType ( xType );
+  m_pBTreeSections = BTree::Open ( in_xValueRecord,
+                                          inout_iOffset,
+                                          xNumericType );
+  if ( !m_pBTreeSections )
+  {
+    m_pRoutes->Delete();
+    m_pJunctions->Delete();
+    m_pSections->Delete();
+    delete m_pBTreeRoutes;
+    delete m_pBTreeRoutesByStartposId;
+    delete m_pRTreeRoutes;
+    delete m_pBTreeJunctionsByRoute1;
+    delete m_pBTreeJunctionsByRoute2;
+    delete m_pBTreeSectionsByRoute;
     return;
   }
 
@@ -1598,12 +1772,14 @@ Network::Network ( ListExpr in_xValue,
     m_pJunctions ( 0 ),
     m_pSections ( 0 ),
     m_pBTreeRoutes ( 0 ),
+    m_pBTreeRoutesByStartposId ( 0 ),
     m_pRTreeRoutes ( 0 ),
     m_pBTreeJunctionsByRoute1 ( 0 ),
     m_pBTreeJunctionsByRoute2 ( 0 ),
     m_xAdjacencyList ( 0 ),
     m_xSubAdjacencyList ( 0 ),
-    m_pBTreeSectionsByRoute ( 0 )
+    m_pBTreeSectionsByRoute ( 0 ),
+    m_pBTreeSections (0)
     /*alldistance(0)*/
 {
 
@@ -1793,6 +1969,8 @@ Network::~Network()
   delete m_pSections;
 
   delete m_pBTreeRoutes;
+  
+  delete m_pBTreeRoutesByStartposId;
 
   delete m_pRTreeRoutes;
 
@@ -1801,6 +1979,8 @@ Network::~Network()
   delete m_pBTreeJunctionsByRoute2;
 
   delete m_pBTreeSectionsByRoute;
+  
+  delete m_pBTreeSections;
 
 //  delete alldistance;
 }
@@ -1825,6 +2005,10 @@ void Network::Destroy()
   assert ( m_pBTreeRoutes != 0 );
   m_pBTreeRoutes->DeleteFile();
   delete m_pBTreeRoutes; m_pBTreeRoutes = 0;
+  
+  assert ( m_pBTreeRoutesByStartposId != 0 );
+  m_pBTreeRoutesByStartposId->DeleteFile();
+  delete m_pBTreeRoutesByStartposId; m_pBTreeRoutesByStartposId = 0;
 
   assert ( m_pRTreeRoutes != 0 );
   //m_pRTreeRoutes->DeleteFile();
@@ -1842,6 +2026,12 @@ void Network::Destroy()
   m_pBTreeSectionsByRoute->DeleteFile();
   delete m_pBTreeSectionsByRoute;
   m_pBTreeSectionsByRoute = 0;
+  
+  assert ( m_pBTreeSections != 0 );
+  m_pBTreeSections->DeleteFile();
+  delete m_pBTreeSections;
+  m_pBTreeSections = 0;
+  
   /*
   assert(alldistance != 0);
   delete alldistance;
@@ -1866,41 +2056,256 @@ void Network::Load ( int in_iId,
   m_bDefined = true;
 }
 
+void Network::QuicksortRoutes(int arr[][2], int low, int high)
+{
+    int pivotIndex;
+    if(low < high)
+    {   //split the array and calculate the pivot-element
+        pivotIndex = QuicksortRoutesPartition(arr, low, high);
+        //sort the bottom part
+        QuicksortRoutes(arr, low, pivotIndex-1);
+        //sort the top part
+        QuicksortRoutes(arr, pivotIndex+1,high);        
+    }    
+}
+int Network::QuicksortRoutesPartition(int arr[][2], int low, int high)
+{     
+    //DEBUG cout << "QuicksortPartiton:  mit lowindex: " << low 
+    //             << " und highindex: " << high << endl;
+    int high_vac[2]={0},low_vac[2]={0},pivot[2]={0};
+    pivot[0] = arr[low][0];
+    pivot[1] = arr[low][1];
+    
+    // while the lowindex is less than the highIndex 
+    while(high > low)
+    {   //DEBUG cout << "while high: "<< high  
+        //             << " ist groesser als low: " << low << endl;
+        high_vac[0] = arr[high][0];
+        high_vac[1] = arr[high][1];
+        //DEBUG cout << "highWert " << high_vac[1] << endl;
+        
+        //while the value of the high-element is greater than 
+        //or equal the pivot-element
+        while(pivot[1] <= high_vac[1])
+        {   //DEBUG cout << "while  pivot : "<< pivot[1]  
+            //          << " ist kleiner als hight_vac: " << high_vac[1]<< endl;
+            // if hightindex less then or equal with 
+            // the lowindex BREAK the while-loop
+            if(high <= low) break;
+            high--;
+            high_vac[0] = arr[high][0];
+            high_vac[1] = arr[high][1];
+        }
+        arr[low][0] = high_vac[0];
+        arr[low][1] = high_vac[1];
+        low_vac[0] = arr[low][0];
+        low_vac[1] = arr[low][1];
+        
+        //while the value of the pivot-element is greater than the low-element
+        while(pivot[1] > low_vac[1])
+        {   //cout << "while  pivot : "<< pivot[1]  
+            //       << " ist groesser als low_vac: " << low_vac[1]<< endl;
+            // if hightindex less then or equal with 
+            // the lowindex BREAK the while-loop
+            if(high<=low) break;
+            low++;
+            low_vac[0] = arr[low][0];
+            low_vac[1] = arr[low][1];
+        }
+        arr[high][0] = low_vac[0];
+        arr[high][1] = low_vac[1];
+    }
+    arr[low][0] = pivot[0];
+    arr[low][1] = pivot[1];
+    
+    //return the lowindex value
+    return low;
+}
+bool Network::OptimizeNetwork(){
+    
+    //sort routes
+    OptimizationRoutes(); 
+    
+    //DEBUG
+    //cout << "output of all routes"<< endl;
+    //for (int i =1; i<=m_pRoutes->GetNoTuples();i++){
+        //Tuple *n = m_pRoutes->GetTuple(i,false);
+        //cout <<"("<< ((CcInt*)n->GetAttribute(ROUTE_ID))->GetIntval() << "," 
+        //       << ((CcInt*)n->GetAttribute(ROUTE_STARTPOS_ID))->GetIntval()
+        //       << ")"<<endl;
+        //n->DeleteIfAllowed();
+    //}
+    
+    //update the BTree for routes by startPos_id  
+    delete m_pBTreeRoutesByStartposId;
+    m_pBTreeRoutesByStartposId=0; 
+    ostringstream xThisRoutesPtrStream2;
+    xThisRoutesPtrStream2 << ( long ) m_pRoutes;    
+    string strQuery = "(createbtree (" + routesInternalTypeInfo +
+             " (ptr " + xThisRoutesPtrStream2.str() + "))" + " startposid)";
+    Word xResult;
+    int QueryExecuted = QueryProcessor::ExecuteQuery ( strQuery, xResult );
+    assert ( QueryExecuted ); // no query with side effects, please!
+    m_pBTreeRoutesByStartposId = ( BTree* ) xResult.addr;
+    
+    //Fillsections new
+    delete m_pBTreeSections;
+    delete m_pBTreeSectionsByRoute;
+    int anz = m_pSections->GetNoTuples();
+    for(int z=1;z <= anz ;z++){
+        m_pSections->DeleteTuple(m_pSections->GetTuple(z,false));
+    }    
+    
+    m_pSections->Clear();
+    delete m_pSections;
+    m_pSections = 0;
+    FillSections();   
+    
+    //Update the Adjacencylist
+    //DEBUG cout << "update AdjacencList mit "<< m_xAdjacencyList.Size()<< endl;
+    m_xAdjacencyList.clean(); 
+    m_xAdjacencyList = 0;
+    FillAdjacencyLists();    
+    return true;
+}
+
+
+bool Network::OptimizationRoutes(){
+  Tuple *route;
+  GPoint *gp;
+  Point *p = new Point();
+  int anzElemente = m_pRoutes->GetNoTuples();
+  int testarray[anzElemente][2]; 
+  bool opt= false;
+
+  for (int i =1; i<=m_pRoutes->GetNoTuples();i++)
+    {   
+        route = m_pRoutes->GetTuple(i,false);
+      
+        int id = ((CcInt*) route->GetAttribute(ROUTE_ID))->GetIntval();
+        //bool smaller= 
+        //   ((CcBool*) route->GetAttribute(ROUTE_STARTSSMALLER))->GetBoolval();
+              
+        // dermine points
+        gp = new GPoint(true, GetId(),id, 0.0); 
+        gp->ToPoint(p); 
+        if (p->IsDefined()) opt = true; else return false;
+        testarray[i-1][0] = id;
+        testarray[i-1][1] =  p->GetX();  
+    } 
+    if(opt){
+        //DEBUG for testing 
+        //cout << "vor dem Sortieren" << endl;
+        //for (int k =0; k< anzElemente; k++){
+            //cout << testarray[k][0] <<","  <<testarray[k][1]<< endl;
+        //}
+        QuicksortRoutes(testarray,0,anzElemente-1);
+        
+        //DEBUG for testing
+        //cout << "nach dem Sortieren" << endl;
+        //for (int k =0; k< anzElemente; k++){
+            //cout << testarray[k][0] <<","  <<testarray[k][1]<< endl;
+        //}
+        
+        // update startposId  in m_pRoutes
+        for (int k =0; k< anzElemente; k++){
+            route = m_pRoutes->GetTuple(testarray[k][0],false);
+            
+            vector<int> xIndices;
+            vector<Attribute*> xAttrs;        
+            xIndices.push_back ( ROUTE_STARTPOS_ID );
+            xAttrs.push_back ( new CcInt ( true, k+1 ) );
+            m_pRoutes->UpdateTuple(route, xIndices, xAttrs);              
+        }         
+    }
+    p->DeleteIfAllowed();
+    gp->DeleteIfAllowed();
+    route->DeleteIfAllowed();    
+    return true;
+}
+
+
 /*
 Fill routes relation of network
 
 */
 void Network::FillRoutes ( const Relation *routes )
 {
-  ostringstream xRoutesPtrStream;
-  xRoutesPtrStream << ( long ) routes;
+    //Create new table for the routes
+    ListExpr xTypeInfo;
+    nl->ReadFromString ( routesInternalTypeInfo, xTypeInfo );
+    ListExpr xNumType = SecondoSystem::GetCatalog()->NumericType ( xTypeInfo );
+    Relation *pIntRoutes = new Relation ( xNumType, true );
+    
+    // Iterator for the input-table with routes
+    GenericRelationIterator* pRoutesIter = routes->MakeScan();
+    Tuple* pCurrentRoute;
+    int routeCounter =1;
+    while ( ( pCurrentRoute = pRoutesIter->GetNextTuple() ) != 0 )
+    {
+        // Create tuple for internal table and copy all attributes from input
+        Tuple* pNewRoute = new Tuple ( nl->Second ( xNumType ) );
+        for ( int i = 0; i < pCurrentRoute->GetNoAttributes(); i++ )
+        {
+            pNewRoute->CopyAttribute ( i, pCurrentRoute, i );
+        }
+        // Fill other fields of the table    
+        pNewRoute->PutAttribute(ROUTE_STARTPOS_ID,new CcInt(true,routeCounter));
+        // Append new route
+        pIntRoutes->AppendTuple ( pNewRoute );
+        
+        //clean up
+        pCurrentRoute->DeleteIfAllowed();
+        pNewRoute->DeleteIfAllowed();
+        // increment routeCounter for next route
+        routeCounter++;
+    }
+    delete pRoutesIter;
+    
+    ostringstream xRoutesPtrStream;
+    xRoutesPtrStream << ( long ) pIntRoutes;
 
-  string strQuery = "(consume (sort (feed (" + routesTypeInfo +
-                    " (ptr " + xRoutesPtrStream.str() + ")))))";
+    string strQuery = "(consume (sort (feed (" + routesInternalTypeInfo +
+                        " (ptr " + xRoutesPtrStream.str() + ")))))";
 
-  Word xResult;
-  int QueryExecuted = QueryProcessor::ExecuteQuery ( strQuery, xResult );
-  assert ( QueryExecuted );
-  m_pRoutes = ( Relation * ) xResult.addr;
+    Word xResult;
+    int QueryExecuted = QueryProcessor::ExecuteQuery ( strQuery, xResult );
+    assert ( QueryExecuted );
+    m_pRoutes = ( Relation * ) xResult.addr; 
+    
+    delete pIntRoutes;
+  
+   
+
   // Create B-Tree for the routes
   ostringstream xThisRoutesPtrStream;
   xThisRoutesPtrStream << ( long ) m_pRoutes;
-  strQuery = "(createbtree (" + routesTypeInfo +
+  strQuery = "(createbtree (" + routesInternalTypeInfo +
              " (ptr " + xThisRoutesPtrStream.str() + "))" + " id)";
 
   QueryExecuted = QueryProcessor::ExecuteQuery ( strQuery, xResult );
   assert ( QueryExecuted ); // no query with side effects, please!
   m_pBTreeRoutes = ( BTree* ) xResult.addr;
+  
+  // Create B-Tree for the routes by startPos_id
+  ostringstream xThisRoutesPtrStream2;
+  xThisRoutesPtrStream2 << ( long ) m_pRoutes;
+  strQuery = "(createbtree (" + routesInternalTypeInfo +
+             " (ptr " + xThisRoutesPtrStream2.str() + "))" + " startposid)";
+
+  QueryExecuted = QueryProcessor::ExecuteQuery ( strQuery, xResult );
+  assert ( QueryExecuted ); // no query with side effects, please!
+  m_pBTreeRoutesByStartposId = ( BTree* ) xResult.addr;
+  
   //Create R-Tree for the routes
   ostringstream xNetRoutes;
   xNetRoutes << ( long ) m_pRoutes;
 
-  strQuery = "(bulkloadrtree(sortby(addid(feed (" + routesTypeInfo +
+  strQuery = "(bulkloadrtree(sortby(addid(feed (" + routesInternalTypeInfo +
          " (ptr " + xThisRoutesPtrStream.str() + "))))((curve asc))) curve)";
   QueryExecuted = QueryProcessor::ExecuteQuery ( strQuery, xResult );
   assert ( QueryExecuted );
-  m_pRTreeRoutes = ( R_Tree<2,TupleId>* ) xResult.addr;
-
+  m_pRTreeRoutes = ( R_Tree<2,TupleId>* ) xResult.addr;  
 }
 
 
@@ -2038,13 +2443,13 @@ JUNCTION_ROUTE2_ID );
 }
 
 /*
-Fill routes relation of network
+Fill section relation of network
 
 */
 void Network::FillSections()
 {
-  // The method will iterate over routes
-  GenericRelationIterator* pRoutesIt = m_pRoutes->MakeScan();
+  // The method will iterate over routes by StartposIndex
+  BTreeIterator* pRoutesIt = m_pBTreeRoutesByStartposId->SelectAll();
 
   // Create relation for sections
   ListExpr xType;
@@ -2057,8 +2462,11 @@ void Network::FillSections()
   //
   Tuple* pRoute;
   TupleId iSectionTid = 0;
-  while ( ( pRoute = pRoutesIt->GetNextTuple() ) != 0 )
-  {
+  while ( pRoutesIt->Next() )
+    {
+      pRoute = m_pRoutes->GetTuple(pRoutesIt->GetId(),false);  
+      //DEBUG cout << "Rid "
+      //          <<((CcInt*)pRoute->GetAttribute(ROUTE_ID))->GetIntval()<<endl;
     // Current position on route - starting at the beginning of the route
     double dCurrentPosOnRoute = 0;
     SimpleLine* pRouteCurve = ( SimpleLine* ) pRoute->GetAttribute ( ROUTE_CURVE
@@ -2173,6 +2581,15 @@ void Network::FillSections()
         pNewSection->PutAttribute ( SECTION_SID,
                                     new CcInt ( true, m_pSections->GetNoTuples()
 +1 ) );
+
+        //new Attributes inserted
+        pNewSection->PutAttribute (SECTION_PNO_UP, new CcInt(true,0));
+        pNewSection->PutAttribute (SECTION_PNO_DOWN, new CcInt(true,0));
+        pNewSection->PutAttribute (SECTION_SLOT_UP, new CcInt(true,0));
+        pNewSection->PutAttribute (SECTION_SLOT_DOWN, new CcInt(true,0));
+        pNewSection->PutAttribute (SECTION_COST, new CcReal(true,1.0));
+        pNewSection->PutAttribute (SECTION_DURATION, new CcReal(true,1.0));
+        
         m_pSections->AppendTuple ( pNewSection );
         iSectionTid++;
         pNewSection->DeleteIfAllowed();
@@ -2286,6 +2703,15 @@ void Network::FillSections()
       pNewSection->PutAttribute ( SECTION_SID,
                                   new CcInt ( true, m_pSections->GetNoTuples()
 +1 ) );
+      //new Attributes inserted
+      pNewSection->PutAttribute (SECTION_PNO_UP, new CcInt(true,0));
+      pNewSection->PutAttribute (SECTION_PNO_DOWN, new CcInt(true,0));
+      pNewSection->PutAttribute (SECTION_SLOT_UP, new CcInt(true,0));
+      pNewSection->PutAttribute (SECTION_SLOT_DOWN, new CcInt(true,0));      
+      pNewSection->PutAttribute (SECTION_COST, new CcReal(true,1.0));
+      pNewSection->PutAttribute (SECTION_DURATION, new CcReal(true,1.0));
+        
+        
       m_pSections->AppendTuple ( pNewSection );
       iSectionTid++;
       pNewSection->DeleteIfAllowed();
@@ -2446,10 +2872,7 @@ void Network::FillSections()
   } // End while Routes
   delete pRoutesIt;
 
-
-
-
-  // Create B-Tree for the sections
+  // Create B-Tree for the sections by Routes
   Word xResult;
   ostringstream xThisSectionsPtrStream;
   xThisSectionsPtrStream << ( long ) m_pSections;
@@ -2458,6 +2881,16 @@ void Network::FillSections()
   int QueryExecuted = QueryProcessor::ExecuteQuery ( strQuery, xResult );
   assert ( QueryExecuted ); // no query with side effects, please!
   m_pBTreeSectionsByRoute = ( BTree* ) xResult.addr;
+  //Create B-Tree for the sections
+  
+  Word xResultNewBtree;
+  ostringstream xStream2;
+  xStream2 << (long) m_pSections;
+  string query = "(createbtree (" + sectionsInternalTypeInfo +
+                    " (ptr " + xStream2.str() + "))" + " sid)";
+  int QueryEx = QueryProcessor::ExecuteQuery ( query, xResultNewBtree );
+  assert ( QueryEx ); // no query with side effects, please!
+  m_pBTreeSections = ( BTree* ) xResultNewBtree.addr;
 }
 
 /*
@@ -2465,218 +2898,661 @@ Fill adjacency list of network
 
 */
 void Network::FillAdjacencyLists()
-{
-  // Adjust the adjacenzy list to the correct size. From each
-  // section four directions are possible - including u-turns
-  m_xAdjacencyList.resize ( m_pSections->GetNoTuples() * 2 );
-  for ( int i = 0; i < m_pSections->GetNoTuples() * 2; i++ )
-  {
-    m_xAdjacencyList.Put ( i, AdjacencyListEntry ( -1, -1 ) );
-  }
+{    
+    ////////////////////////////////////////////////////////////////////
+    //In a first step all pairs of adjacent sections will be collected
+    GenericRelationIterator* pJunctionsIt = m_pJunctions->MakeScan();
+    Tuple* pCurrentJunction;
+    vector<DirectedSectionPair> xList;
 
-  GenericRelationIterator* pJunctionsIt = m_pJunctions->MakeScan();
-  Tuple* pCurrentJunction;
-
-  /////////////////////////////////////////////////////////////////////////
-  //
-  // In a first step all pairs of adjacent sections will be collected
-  //
-  vector<DirectedSectionPair> xList;
-  while ( ( pCurrentJunction = pJunctionsIt->GetNextTuple() ) != 0 )
-  {
-    //////////////////////////////////
-    //
-    // Retrieve the connectivity code
-    //
-    int iCc =
-        ( ( CcInt* ) pCurrentJunction->GetAttribute ( JUNCTION_CC )
-)->GetIntval();
-    ConnectivityCode xCc ( iCc );
-
-    //////////////////////////////////
-    //
-    // Retrieve the four sections - if they exist
-    //
-    // (This should also be possible without loading the Section itself)
-    //
-    /*TupleIdentifier* pTid;
-    Tuple* pAUp = 0;
-    Tuple* pADown = 0;
-    Tuple* pBUp = 0;
-    Tuple* pBDown = 0;*/
-    TupleId tidpAUp, tidpADown, tidpBUp, tidpBDown;
-
-    tidpAUp = ( ( TupleIdentifier* )
-                pCurrentJunction->GetAttribute ( JUNCTION_SECTION_AUP_RC )
-)->GetTid();
-    tidpADown = ( ( TupleIdentifier* )
-                  pCurrentJunction->GetAttribute ( JUNCTION_SECTION_ADOWN_RC )
-)->GetTid();
-    tidpBUp = ( ( TupleIdentifier* )
-                pCurrentJunction->GetAttribute ( JUNCTION_SECTION_BUP_RC )
-)->GetTid();
-    tidpBDown = ( ( TupleIdentifier* )
-                  pCurrentJunction->GetAttribute ( JUNCTION_SECTION_BDOWN_RC )
-)->GetTid();
-
-    /*
-    // First section
-    Attribute* pAttr = pCurrentJunction->GetAttribute(JUNCTION_SECTION_AUP_RC);
-    pTid = (TupleIdentifier*)pAttr;
-    if(pTid->GetTid() > 0)
+    while ( ( pCurrentJunction = pJunctionsIt->GetNextTuple() ) != 0 )
     {
-      pAUp = m_pSections->GetTuple(pTid->GetTid());
+        // Retrieve the connectivity code
+        int iCc =
+       (( CcInt* ) pCurrentJunction->GetAttribute ( JUNCTION_CC ))->GetIntval();
+        ConnectivityCode xCc ( iCc );
+
+        // Retrieve the four sections - if they exist
+        TupleId tidpAUp, tidpADown, tidpBUp, tidpBDown;
+        tidpAUp = (( TupleIdentifier* )pCurrentJunction
+                    ->GetAttribute ( JUNCTION_SECTION_AUP_RC ))->GetTid();
+        tidpADown =(( TupleIdentifier* )pCurrentJunction
+                    ->GetAttribute ( JUNCTION_SECTION_ADOWN_RC ))->GetTid();
+        tidpBUp = ( ( TupleIdentifier* )pCurrentJunction
+                    ->GetAttribute ( JUNCTION_SECTION_BUP_RC ))->GetTid();
+        tidpBDown = ( ( TupleIdentifier* )pCurrentJunction
+                    ->GetAttribute ( JUNCTION_SECTION_BDOWN_RC ))->GetTid();
+        
+        // If a section is existing and the transition is possible
+        // it will be added to the list.
+        FillAdjacencyPair ( tidpAUp, false, tidpAUp, true,
+                            xCc, AUP_AUP, xList );
+        FillAdjacencyPair ( tidpAUp, false, tidpADown, false, 
+                            xCc, AUP_ADOWN, xList);
+        FillAdjacencyPair ( tidpAUp, false, tidpBUp, true, 
+                            xCc, AUP_BUP, xList );
+        FillAdjacencyPair ( tidpAUp, false, tidpBDown, false, 
+                            xCc, AUP_BDOWN, xList);
+    
+        FillAdjacencyPair ( tidpADown, true, tidpAUp, true, 
+                            xCc, ADOWN_AUP, xList );
+        FillAdjacencyPair ( tidpADown, true, tidpADown, false, 
+                            xCc,ADOWN_ADOWN,xList);
+        FillAdjacencyPair ( tidpADown, true, tidpBUp, true, 
+                            xCc, ADOWN_BUP, xList );
+        FillAdjacencyPair ( tidpADown, true, tidpBDown, false, 
+                            xCc,ADOWN_BDOWN,xList);
+    
+        FillAdjacencyPair ( tidpBUp, false, tidpAUp, true, 
+                            xCc, BUP_AUP, xList );
+        FillAdjacencyPair ( tidpBUp, false, tidpADown, false, 
+                            xCc, BUP_ADOWN, xList);
+        FillAdjacencyPair ( tidpBUp, false, tidpBUp, true, 
+                            xCc, BUP_BUP, xList );
+        FillAdjacencyPair ( tidpBUp, false, tidpBDown, false, 
+                            xCc, BUP_BDOWN, xList);
+    
+        FillAdjacencyPair ( tidpBDown, true, tidpAUp, true, 
+                            xCc, BDOWN_AUP, xList );
+        FillAdjacencyPair ( tidpBDown, true, tidpADown, false, 
+                            xCc,BDOWN_ADOWN,xList);
+        FillAdjacencyPair ( tidpBDown, true, tidpBUp, true, 
+                            xCc,BDOWN_BUP, xList );
+        FillAdjacencyPair ( tidpBDown, true, tidpBDown, false, 
+                            xCc,BDOWN_BDOWN,xList);
+        
+        pCurrentJunction->DeleteIfAllowed();
     }
+    delete pJunctionsIt;
+    
+    ////////////////////////////////////////////////////////////////////
+    // Now - as the second step the adjacency lists are filled.
 
-    // Second section
-    pAttr = pCurrentJunction->GetAttribute(JUNCTION_SECTION_ADOWN_RC);
-    pTid = (TupleIdentifier*)pAttr;
-    if(pTid->GetTid() > 0)
-    {
-      pADown = m_pSections->GetTuple(pTid->GetTid());
-    }
-
-    // Third section
-    pAttr = pCurrentJunction->GetAttribute(JUNCTION_SECTION_BUP_RC);
-    pTid = (TupleIdentifier*)pAttr;
-    if(pTid->GetTid() > 0)
-    {
-      pBUp = m_pSections->GetTuple(pTid->GetTid());
-    }
-
-    // Fourth section
-    pAttr = pCurrentJunction->GetAttribute(JUNCTION_SECTION_BDOWN_RC);
-    pTid = (TupleIdentifier*)pAttr;
-    if(pTid->GetTid() > 0)
-    {
-      pBDown = m_pSections->GetTuple(pTid->GetTid());
-    }
-    */
-    //////////////////////////////////
-    //
-    // If a section is existing and the transition is possible
-    // it will be added to the list.
-    //
-    FillAdjacencyPair ( tidpAUp, false, tidpAUp, true, xCc, AUP_AUP, xList );
-    FillAdjacencyPair ( tidpAUp, false, tidpADown, false, xCc, AUP_ADOWN, xList
-);
-    FillAdjacencyPair ( tidpAUp, false, tidpBUp, true, xCc, AUP_BUP, xList );
-    FillAdjacencyPair ( tidpAUp, false, tidpBDown, false, xCc, AUP_BDOWN, xList
-);
-
-    FillAdjacencyPair ( tidpADown, true, tidpAUp, true, xCc, ADOWN_AUP, xList );
-    FillAdjacencyPair ( tidpADown, true, tidpADown, false, xCc,ADOWN_ADOWN,xList
-);
-    FillAdjacencyPair ( tidpADown, true, tidpBUp, true, xCc, ADOWN_BUP, xList );
-    FillAdjacencyPair ( tidpADown, true, tidpBDown, false, xCc,ADOWN_BDOWN,xList
-);
-
-    FillAdjacencyPair ( tidpBUp, false, tidpAUp, true, xCc, BUP_AUP, xList );
-    FillAdjacencyPair ( tidpBUp, false, tidpADown, false, xCc, BUP_ADOWN, xList
-);
-    FillAdjacencyPair ( tidpBUp, false, tidpBUp, true, xCc, BUP_BUP, xList );
-    FillAdjacencyPair ( tidpBUp, false, tidpBDown, false, xCc, BUP_BDOWN, xList
-);
-
-    FillAdjacencyPair ( tidpBDown, true, tidpAUp, true, xCc, BDOWN_AUP, xList );
-    FillAdjacencyPair ( tidpBDown, true, tidpADown, false, xCc,BDOWN_ADOWN,xList
-);
-    FillAdjacencyPair ( tidpBDown, true, tidpBUp, true, xCc,BDOWN_BUP, xList );
-    FillAdjacencyPair ( tidpBDown, true, tidpBDown, false, xCc,BDOWN_BDOWN,xList
-);
-    /*
-    // First section
-    FillAdjacencyPair(pAUp, false, pAUp, true, xCc, AUP_AUP, xList);
-    FillAdjacencyPair(pAUp, false, pADown, false, xCc, AUP_ADOWN, xList);
-    FillAdjacencyPair(pAUp, false, pBUp, true, xCc, AUP_BUP, xList);
-    FillAdjacencyPair(pAUp, false, pBDown, false, xCc, AUP_BDOWN, xList);
-
-    // Second section
-    FillAdjacencyPair(pADown, true, pAUp, true, xCc, ADOWN_AUP, xList);
-    FillAdjacencyPair(pADown, true, pADown, false, xCc, ADOWN_ADOWN, xList);
-    FillAdjacencyPair(pADown, true, pBUp, true, xCc, ADOWN_BUP, xList);
-    FillAdjacencyPair(pADown, true, pBDown, false, xCc, ADOWN_BDOWN, xList);
-
-    // Third section
-    FillAdjacencyPair(pBUp, false, pAUp, true, xCc, BUP_AUP, xList);
-    FillAdjacencyPair(pBUp, false, pADown, false, xCc, BUP_ADOWN, xList);
-    FillAdjacencyPair(pBUp, false, pBUp, true, xCc, BUP_BUP, xList);
-    FillAdjacencyPair(pBUp, false, pBDown, false, xCc, BUP_BDOWN, xList);
-
-    // Fourth section
-    FillAdjacencyPair(pBDown, true, pAUp, true, xCc, BDOWN_AUP, xList);
-    FillAdjacencyPair(pBDown, true, pADown, false, xCc, BDOWN_ADOWN, xList);
-    FillAdjacencyPair(pBDown, true, pBUp, true, xCc, BDOWN_BUP, xList);
-    FillAdjacencyPair(pBDown, true, pBDown, false, xCc, BDOWN_BDOWN, xList);
-    */
-    pCurrentJunction->DeleteIfAllowed();
-  }
-  delete pJunctionsIt;
-
-
-  /////////////////////////////////////////////////////////////////////////
-  //
-  // Now - as the second step the adjacency lists are filled.
-  //
-  // Sort the list by the first directed section
-  sort ( xList.begin(),
-         xList.end() );
-
-  DirectedSectionPair xLastPair;
-  int iLow = 0;
-  for ( size_t i = 0; i < xList.size(); i++ )
-  {
-    // Get next
-    DirectedSectionPair xPair = xList[i];
-    if ( i == 0 )
-    {
-      // Append new entry to sub-list
-      m_xSubAdjacencyList.Append ( DirectedSection ( xPair.m_iSecondSectionTid,
-                                   xPair.m_bSecondUpDown ) );
-      xLastPair = xPair;
-    }
-    // Entry in adjacency list if all sections adjacent to one section have
-    // been found. This is the case every time the first section changes. Never
-    // at the first entry and always at the last.
-    if ( i == xList.size() -1 ||
-            (
-                i != 0 &&
-                (
-                    xLastPair.m_iFirstSectionTid != xPair.m_iFirstSectionTid ||
-                    xLastPair.m_bFirstUpDown != xPair.m_bFirstUpDown
-                )
-            )
-       )
-    {
-      int iHigh = m_xSubAdjacencyList.Size()-1;
-      Tuple *pSect = m_pSections->GetTuple ( xLastPair.m_iFirstSectionTid,
-                                             false );
-      int iSectId =
-        ( ( CcInt* ) pSect->GetAttribute ( SECTION_SID ) )->GetIntval();
-      pSect->DeleteIfAllowed();
-      int iIndex = 2 * ( iSectId-1 );
-      iIndex += xLastPair.m_bFirstUpDown ? 1 : 0;
-      m_xAdjacencyList.Put ( iIndex, AdjacencyListEntry ( iLow, iHigh ) );
-      iLow = iHigh + 1;
-    }
-
-    // Check if entry allready exists in list. As the list is sorted it
-    // has to be the entry before.
-    if ( i == 0 ||
+    // Sort the list by the first directed section
+    sort ( xList.begin(), xList.end() );
+    
+    //m_pSections contains a sorted List of all sections 
+    //xList contains all neightbours of one section, if a section has no 
+    //neighbours, there is no Entry in xList for this section
+    
+    //search all neighbours of a section
+    DirectedSectionPair xLastPair;  //stored the last Entry
+    TupleId actTid = 1; //actual TupleId of the section to be processed   
+    int counterN = 0; //counts the neighbours of one section
+    bool flag = true; //toggelt after a pageEntry for section without neighbours
+    DirectedSection actDS = DirectedSection (actTid, flag); 
+    DirectedSection lastDS = DirectedSection(m_pSections->GetNoTuples(),false);
+    
+    PageRecord actPage = PageRecord(0);
+    int actPageNum = 1;
+    int actSlotNum = 1;
+    
+    m_xAdjacencyList.clean();
+    
+    //*****************************************************************
+    // First step to fill the adjacencylist is to identify the number of 
+    // neighbours to calculate the necessery space for a section.  
+    for ( size_t i = 0; i < xList.size(); i++ ){
+        // Get next entry
+        DirectedSectionPair xPair = xList[i];
+        //Special treatment for the first Entry
+        if(i==0){
+            //set last Element 
+            xLastPair = xPair;       
+            //collect all Sections without neighbours, 
+            //there are listed befor the first Entry     
+            while(xPair.m_iFirstSectionTid != actDS.GetSectionTid() 
+                        || xPair.m_bFirstUpDown != actDS.GetUpDownFlag()){
+                // if there is a section without neighbours put it in pageRecord
+                if(xPair.m_iFirstSectionTid != actDS.GetSectionTid() 
+                        || xPair.m_bFirstUpDown != actDS.GetUpDownFlag()){
+                    //get sid, meas1, meas2 and rid
+                    Tuple *pSect = 
+                           m_pSections->GetTuple (actDS.GetSectionTid(),false );
+                    double actMeas1 =
+                    ((CcReal*)pSect->GetAttribute(SECTION_MEAS1))->GetRealval();
+                    double actMeas2 =
+                    ((CcReal*)pSect->GetAttribute(SECTION_MEAS2))->GetRealval();
+                    int actRid =
+                    (( CcInt* )pSect->GetAttribute(SECTION_RID))->GetIntval();
+                    double actCost = 
+                   (( CcReal* )pSect->GetAttribute(SECTION_COST))->GetRealval();
+                    double actDuration = 
+                 ((CcReal*)pSect->GetAttribute(SECTION_DURATION))->GetRealval();
+                    int actSid = 
+                    ((CcInt* )pSect->GetAttribute(SECTION_SID))->GetIntval();
+                    // stored Section-Information in page                   
+                    bool success = actPage.SetSectionContent(
+                         actDS.GetSectionTid(),actSid, actDS.GetUpDownFlag(),
+                         actMeas1,actMeas2,actRid,actCost, actDuration, 0, 
+                         actSlotNum);                    
+                    if(!success){
+                        // page was full, store the pagerecord in adjacencylist
+                        m_xAdjacencyList.Append(actPage);
+                        // reset actSlotNum to 1 and increment actPageNum
+                        actSlotNum = 1;
+                        actPageNum++;                        
+                        //create a new Page and stored section information there
+                        actPage = PageRecord(0);
+                        actPage.SetSectionContent(
+                            actDS.GetSectionTid(),actSid, actDS.GetUpDownFlag(),
+                            actMeas1,actMeas2, actRid, actCost, actDuration , 0,
+                            actSlotNum);
+                    }
+                    //stored PageNum and SlotNum in Section                    
+                    vector<int> xIndices;
+                    vector<Attribute*> xAttrs;
+                    if(actDS.GetUpDownFlag()){
+                        xIndices.push_back (SECTION_PNO_UP);
+                        xIndices.push_back (SECTION_SLOT_UP);
+                    }else{
+                        xIndices.push_back (SECTION_PNO_DOWN);
+                        xIndices.push_back (SECTION_SLOT_DOWN);
+                    }                    
+                    xAttrs.push_back ( new CcInt(true,actPageNum) );           
+                    xAttrs.push_back ( new CcInt(true,actSlotNum) );           
+                    m_pSections->UpdateTuple(pSect, xIndices, xAttrs);
+                    pSect->DeleteIfAllowed();  
+                    
+                    //increment actSlotNum
+                    actSlotNum++; 
+                }
+                //set next actDirectedSection to be processed
+                if(flag){
+                    flag = false;
+                } else {
+                    flag= true;
+                    actTid++;
+                }
+                actDS = DirectedSection(actTid,flag);                    
+            }           
+        }       
+             
+        // Entry in adjacency list if all sections adjacent to one section have
+        // been found. This is the case every time the first section changes. 
+        // Never at the first entry and always at the last.        
+        if (i == xList.size() -1 ||
+            (i != 0 &&
+                (xLastPair.m_iFirstSectionTid != xPair.m_iFirstSectionTid
+                 || xLastPair.m_bFirstUpDown != xPair.m_bFirstUpDown))){
+            if(i==xList.size() -1){
+                counterN++; //last entry, the counter must increment
+            }
+            //all neighbours of a section are found, 
+            //so put the section on the pageRecord
+            //get sid, meas1, meas2 and rid
+            Tuple *pSect = 
+                   m_pSections->GetTuple (xLastPair.m_iFirstSectionTid,false );
+            double actMeas1 =
+            ((CcReal*) pSect->GetAttribute (SECTION_MEAS1))->GetRealval();;
+            double actMeas2 =
+            ((CcReal*) pSect->GetAttribute (SECTION_MEAS2))->GetRealval();
+            int actRid =
+            (( CcInt* )pSect->GetAttribute(SECTION_RID))->GetIntval();
+            double actCost = 
+            (( CcReal* )pSect->GetAttribute(SECTION_COST))->GetRealval();
+            double actDuration = 
+            (( CcReal* )pSect->GetAttribute(SECTION_DURATION))->GetRealval();
+            int actSid =
+            ((CcInt*)pSect->GetAttribute(SECTION_SID))->GetIntval();
+            // stored Section-Information in page 
+            bool success = actPage.SetSectionContent(
+                 xLastPair.m_iFirstSectionTid,actSid, xLastPair.m_bFirstUpDown,
+                 actMeas1,actMeas2,actRid,actCost, actDuration, counterN, 
+                 actSlotNum);
+            if(!success){
+                // page was full, store the pagerecord in adjacencylist
+                m_xAdjacencyList.Append(actPage);
+                // reset actSlotNum to 1 and increment actPageNum
+                actSlotNum = 1;
+                actPageNum++;                        
+                //create a new Page and stored the section information there
+                actPage = PageRecord(0);
+                actPage.SetSectionContent(
+                        xLastPair.m_iFirstSectionTid,actSid, 
+                        xLastPair.m_bFirstUpDown,actMeas1, actMeas2, actRid, 
+                        actCost, actDuration , counterN, actSlotNum);
+            }
+            //stored PageNum and SlotNum in Section           
+            vector<int> xIndices;
+            vector<Attribute*> xAttrs;
+            if(xLastPair.m_bFirstUpDown){
+                xIndices.push_back (SECTION_PNO_UP);
+                xIndices.push_back (SECTION_SLOT_UP);
+            }else{
+                xIndices.push_back (SECTION_PNO_DOWN);
+                xIndices.push_back (SECTION_SLOT_DOWN);
+            }                    
+            xAttrs.push_back ( new CcInt(true,actPageNum) );                   
+            xAttrs.push_back ( new CcInt(true,actSlotNum) );                   
+            m_pSections->UpdateTuple(pSect, xIndices, xAttrs);
+            pSect->DeleteIfAllowed();   
+            
+            //increment actSlotNum
+            actSlotNum++; 
+             
+            //check, if sections are between the last and the actual Entry
+            //exist, which have no neighbours
+            while(xPair.m_iFirstSectionTid != actDS.GetSectionTid() 
+                    || xPair.m_bFirstUpDown != actDS.GetUpDownFlag()){
+               //set next actDirectedSection to be processed              
+               if(flag){
+                    flag = false;
+                } else {
+                    flag= true;
+                    actTid++;
+                }
+                actDS = DirectedSection(actTid,flag); 
+                //if there is a section without neighbours put it in pageRecord
+                if(xPair.m_iFirstSectionTid != actDS.GetSectionTid() 
+                    || xPair.m_bFirstUpDown != actDS.GetUpDownFlag()){
+                    
+                    //get sid, meas1, meas2 and rid
+                    Tuple *pSect = 
+                          m_pSections->GetTuple (actDS.GetSectionTid(),false );
+                    double actMeas1 =
+                    ((CcReal*)pSect->GetAttribute(SECTION_MEAS1))->GetRealval();
+                    double actMeas2 =
+                    ((CcReal*)pSect->GetAttribute(SECTION_MEAS2))->GetRealval();
+                    int actRid =
+                    (( CcInt* )pSect->GetAttribute(SECTION_RID))->GetIntval();
+                    double actCost = 
+                    ((CcReal* )pSect->GetAttribute(SECTION_COST))->GetRealval();
+                    double actDuration = 
+                 ((CcReal*)pSect->GetAttribute(SECTION_DURATION))->GetRealval();
+                    int actSid = 
+                    ((CcInt*)pSect->GetAttribute(SECTION_SID))->GetIntval();
+                    // stored Section-Information in page 
+                    bool success = actPage.SetSectionContent(
+                         actDS.GetSectionTid(),actSid, actDS.GetUpDownFlag(), 
+                         actMeas1, actMeas2,actRid, actCost,actDuration , 0, 
+                         actSlotNum);
+                    if(!success){
+                        // page was full, store the pagerecord in adjacencylist
+                        m_xAdjacencyList.Append(actPage);
+                        // reset actSlotNum to 1 and increment actPageNum
+                        actSlotNum = 1;
+                        actPageNum++;                        
+                        //create a new Page and stored section information there
+                        actPage = PageRecord(0);
+                        actPage.SetSectionContent(
+                            actDS.GetSectionTid(),actSid, actDS.GetUpDownFlag(),
+                            actMeas1, actMeas2,actRid, actCost, actDuration , 0,
+                            actSlotNum);
+                    } 
+                    //stored PageNum and SlotNum in Section                    
+                    vector<int> xIndices;
+                    vector<Attribute*> xAttrs;
+                    if(actDS.GetUpDownFlag()){
+                        xIndices.push_back (SECTION_PNO_UP);
+                        xIndices.push_back (SECTION_SLOT_UP);
+                    }else{
+                        xIndices.push_back (SECTION_PNO_DOWN);
+                        xIndices.push_back (SECTION_SLOT_DOWN);
+                    }                    
+                    xAttrs.push_back ( new CcInt(true,actPageNum) );           
+                    xAttrs.push_back ( new CcInt(true,actSlotNum) );          
+                    m_pSections->UpdateTuple(pSect, xIndices, xAttrs);
+                    pSect->DeleteIfAllowed(); 
+                    
+                    //increment actSlotNum
+                    actSlotNum++; 
+                }           
+            }
+            // reset the counter of neighbours after the Entry in the pageRecord
+            counterN =0;
+        }
+        
+        // Check if entry allready exists in list. As the list is sorted it
+        // has to be the entry before.
+        if ( i == 0 ||
             xLastPair.m_iFirstSectionTid != xPair.m_iFirstSectionTid ||
             xLastPair.m_bFirstUpDown != xPair.m_bFirstUpDown ||
             xLastPair.m_iSecondSectionTid != xPair.m_iSecondSectionTid ||
             xLastPair.m_bSecondUpDown != xPair.m_bSecondUpDown )
-    {
-      // Append new entry to sub-list
-      m_xSubAdjacencyList.Append ( DirectedSection ( xPair.m_iSecondSectionTid,
-                                   xPair.m_bSecondUpDown ) );
+        {
+            counterN++; // the counter of neighbours must increment
+        }                 
+        
+        //check, if sections after the last Entry exist, that have no neighbours
+        if (i == xList.size() -1){
+            
+            while(lastDS.GetSectionTid() != actDS.GetSectionTid() 
+                  || lastDS.GetUpDownFlag() != actDS.GetUpDownFlag()){ 
+                //set next actDirectedSection to be processed              
+                if(flag){
+                    flag = false;
+                } else {
+                    flag= true;
+                    actTid++;
+                }
+                actDS = DirectedSection(actTid,flag); 
+                // if there is a section without neighbours put it in pageRecord
+                if(lastDS.GetSectionTid() != actDS.GetSectionTid() 
+                    || lastDS.GetUpDownFlag() != actDS.GetUpDownFlag()){
+                    //get sid, meas1,meas2and rid 
+                    Tuple *pSect = 
+                           m_pSections->GetTuple (actDS.GetSectionTid(),false );
+                    double actMeas1 =
+                    ((CcReal*)pSect->GetAttribute(SECTION_MEAS1))->GetRealval();
+                    double actMeas2 =
+                    ((CcReal*)pSect->GetAttribute(SECTION_MEAS2))->GetRealval();
+                    int actRid =
+                    (( CcInt* )pSect->GetAttribute(SECTION_RID))->GetIntval();
+                    double actCost = 
+                    (( CcReal*)pSect->GetAttribute(SECTION_COST))->GetRealval();
+                    double actDuration = 
+                 ((CcReal*)pSect->GetAttribute(SECTION_DURATION))->GetRealval();
+                    int actSid = 
+                    ((CcInt*)pSect->GetAttribute(SECTION_SID))->GetIntval();
+                    // stored Section-Information in page 
+                    bool success = actPage.SetSectionContent(
+                         actDS.GetSectionTid(),actSid, actDS.GetUpDownFlag(), 
+                         actMeas1, actMeas2, actRid, actCost, actDuration , 0, 
+                         actSlotNum);
+                    if(!success){
+                        // page was full, store the pagerecord in adjacencylist
+                        m_xAdjacencyList.Append(actPage);
+                        // reset actSlotNum to 1 and increment actPageNum
+                        actSlotNum = 1;
+                        actPageNum++;                        
+                        //create a new Page and stored section information there
+                        actPage = PageRecord(0);
+                        actPage.SetSectionContent(
+                            actDS.GetSectionTid(),actSid, actDS.GetUpDownFlag(),
+                            actMeas1, actMeas2, actRid, actCost, actDuration ,0,
+                            actSlotNum);
+                    } 
+                    //stored PageNum and SlotNum in Section                    
+                    vector<int> xIndices;
+                    vector<Attribute*> xAttrs;
+                    if(actDS.GetUpDownFlag()){
+                        xIndices.push_back (SECTION_PNO_UP);
+                        xIndices.push_back (SECTION_SLOT_UP);
+                    }else{
+                        xIndices.push_back (SECTION_PNO_DOWN);
+                        xIndices.push_back (SECTION_SLOT_DOWN);
+                    }                    
+                    xAttrs.push_back ( new CcInt(true,actPageNum) );
+                    xAttrs.push_back ( new CcInt(true,actSlotNum) );
+                    m_pSections->UpdateTuple(pSect, xIndices, xAttrs);
+                    pSect->DeleteIfAllowed(); 
+                    //increment actSlotNum
+                    actSlotNum++; 
+                             
+                }            
+            }
+        }
+        // set last Entry
+        xLastPair = xPair;
     }
-    xLastPair = xPair;
+    if(xList.size()!= 0){
+        // store last Page in the AdjacencyList
+        m_xAdjacencyList.Append(PageRecord(actPage));
+    }
+    m_xAdjacencyList.TrimToSize(); 
+    
+    //
+    //*****************************************************************
+    // Second step to fill the adjacencylist is to set all pagenumbers and 
+    // Slotindex for the neighbours of a section. Because that information 
+    // is collected in the first Step.     
+    
+    actPageNum =0;              // reset old used variable for actual PageNumber
+    actSlotNum =0;              // reset old used variable for actual SlotNumber
+    actPage = PageRecord(0);    // reset old used variable for actual Page
+    DirectedSectionPair actPair;// actual read sectionPair from xList
+    DirectedSectionPair lastPair;
+    int nCounter=0;// counts the proceeded neighbours start even by 0
+    int actNPage,actNSlot;     // actual PageNR and SlotNR of a Neighboursection
+    TupleId nSTid;              // sectionid and UpDownFlag of a neighbour
+    bool nUpD;            
+    size_t actIndex = 0;           // actual Index of the xList
+    
+    while(actIndex < xList.size()){
+        //get actual element
+        actPair = xList[actIndex];
+        // get actual Tuple from section relation
+        Tuple *pSect = m_pSections->GetTuple (actPair.m_iFirstSectionTid,false);
+        // get page and slotnumber of this DirectionPair
+        if (actPair.m_bFirstUpDown){
+        actPageNum =((CcInt*)pSect->GetAttribute(SECTION_PNO_UP))->GetIntval();
+        actSlotNum =((CcInt*)pSect->GetAttribute(SECTION_SLOT_UP))->GetIntval();
+        }else{
+        actPageNum=((CcInt*)pSect->GetAttribute(SECTION_PNO_DOWN))->GetIntval();
+       actSlotNum=((CcInt*)pSect->GetAttribute(SECTION_SLOT_DOWN))->GetIntval();
+        }  
+        // get page, where the actual section is stored                 
+        m_xAdjacencyList.Get(actPageNum-1, actPage); 
+        nCounter =0;
+        
+        // at first element strored this as last element
+        if(actIndex == 0){
+            lastPair = actPair;
+        }        
+        while(actIndex==0 || 
+             (actPair.m_iFirstSectionTid== lastPair.m_iFirstSectionTid 
+              && actPair.m_bFirstUpDown==lastPair.m_bFirstUpDown)){
+          if(actIndex !=0 &&
+          !(lastPair.m_iSecondSectionTid == xList[actIndex].m_iSecondSectionTid
+          && lastPair.m_bSecondUpDown ==xList[actIndex].m_bSecondUpDown)){
+            // read nSid and nUpD form xList
+            nSTid = lastPair.m_iSecondSectionTid;
+            nUpD = lastPair.m_bSecondUpDown;
+
+            // for each Entry stored Information                 
+            Tuple *pNSect = m_pSections->GetTuple (nSTid,false );            
+            if (nUpD){
+            actNPage = 
+              (( CcInt* )pNSect->GetAttribute(SECTION_PNO_UP))->GetIntval();
+            actNSlot = 
+              (( CcInt* )pNSect->GetAttribute(SECTION_SLOT_UP))->GetIntval();
+            }else{
+            actNPage = 
+              (( CcInt* )pNSect->GetAttribute(SECTION_PNO_DOWN))->GetIntval();
+            actNSlot = 
+              (( CcInt* )pNSect->GetAttribute(SECTION_SLOT_DOWN))->GetIntval();
+            }  
+            pNSect->DeleteIfAllowed(); 
+           
+             // Update the Information on the page   
+             actPage.SetSectionNeighbour(actSlotNum,nCounter,actNPage,actNSlot);
+             nCounter++;  
+            }
+            lastPair = xList[actIndex];
+            actIndex++;    
+        }              
+        
+        // Delete section Tupel if allowed       
+        pSect->DeleteIfAllowed(); 
+        
+        //page stored back in the adjacencyList
+        // get page, where the actual section is stored                 
+        m_xAdjacencyList.Put(actPageNum-1, actPage);     
+        
+        //Reset all used values
+        actPageNum=0;
+        actSlotNum=0;
+        actPage=PageRecord(0);        
+    }    
+   // test output 
+   //of the content from xList, m_xAdjacencyList, m_xSubAdjacencyList
+   // and all neighbourSection which are issued from GetAdjacentSections()
+  /* cout << "Output of xList:" <<endl;
+  DirectedSectionPair actDSP;
+  for(size_t i=0; i< xList.size();i++){
+      cout << "[(" << xList[i].m_iFirstSectionTid << "," 
+           << xList[i].m_bFirstUpDown << ")"
+           << "(" << xList[i].m_iSecondSectionTid << "," 
+           << xList[i].m_bSecondUpDown << ")]" <<endl;
   }
-  m_xAdjacencyList.TrimToSize();
-  m_xSubAdjacencyList.TrimToSize();
+  //print all information which are stored in the PageRecord
+  PrintAdjacentSectionInfo();
+  
+  
+  cout << "output all neighbours with GetAdjacentSections:" << endl;
+  vector<DirectedSection> actVDS;
+  for (int i=1; i<= m_pSections->GetNoTuples();i++){
+      actVDS.clear();
+      cout << "Sec:(" << i <<",0): [";
+      GetAdjacentSections(i,false,actVDS);
+      for(size_t k=0; k<actVDS.size();k++){
+        cout <<"("<< actVDS[k].GetSectionTid() << "," 
+             << actVDS[k].GetUpDownFlag() <<")";
+      }
+      cout << "]" << endl;
+      
+      actVDS.clear();
+      cout << "Sec:(" << i <<",1): [";
+      GetAdjacentSections(i,true,actVDS);
+      for(size_t k=0; k<actVDS.size();k++){
+        cout <<"("<< actVDS[k].GetSectionTid() << "," 
+             << actVDS[k].GetUpDownFlag() <<")";
+      }
+      cout << "]" << endl;      
+  }
+  
+  //statistic output of the numbers of neighbours 
+  CountNeighbours(xList); */  
 }
+/*
+print all information which are stored in the PageRecord of all sections
+
+*/
+bool Network::PrintAdjacentSectionInfo(){
+    
+    cout << "output of all Sections:  (Section_SId,Section_Cost)"<< endl;
+    for (int i =1; i<=m_pSections->GetNoTuples();i++){
+        Tuple *n = m_pSections->GetTuple(i,false);
+        cout <<"("<< ((CcInt*)n->GetAttribute(SECTION_SID))->GetIntval() << "," 
+          << ((CcReal*)n->GetAttribute(SECTION_COST))->GetRealval()<< ")"<<endl;
+        n->DeleteIfAllowed();
+    }
+    
+    cout << "ROUTES over startposid: (Routes_Id, Routes_StartposId)" << endl;
+    BTreeIterator* pRoutesIt = m_pBTreeRoutesByStartposId->SelectAll();
+    Tuple* pRoute;
+    while ( pRoutesIt->Next() )
+    {
+      pRoute = m_pRoutes->GetTuple(pRoutesIt->GetId(),false);
+      cout <<"("<< ((CcInt*)pRoute->GetAttribute(ROUTE_ID))->GetIntval() << "," 
+        << ((CcInt*)pRoute->GetAttribute(ROUTE_STARTPOS_ID))->GetIntval()<< ")"
+        <<endl;
+      pRoute->DeleteIfAllowed();
+    }
+    delete pRoutesIt;
+    
+    
+  cout << "output all neighbours with GetAdjacentSectionsInfo" << endl;
+  cout << "Sec:(SectionTupelId,UpDownFlag):[(NeighborSectionTId,"
+       << " UpDownFlag, Meas1, Meas2, RId, Cost, Time)(..)]" << endl;
+  vector<DirectedSectionInfo> actVDSI; 
+  BTreeIterator* pSectionIt;
+  pSectionIt = m_pBTreeSections->SelectAll();
+  while ( pSectionIt->Next() )
+  {
+    actVDSI.clear();
+    TupleId sTid = pSectionIt->GetId();
+    cout << "Sec:(" << sTid <<",0): [";
+    GetAdjacentSectionsInfo(sTid,false,actVDSI);
+    for(size_t k=0; k<actVDSI.size();k++){
+      cout <<"("<< actVDSI[k].GetSectionTid()<< ","<< actVDSI[k].GetUpDownFlag()
+           <<","<< actVDSI[k].GetMeas1() << "," << actVDSI[k].GetMeas2() << ","
+           << actVDSI[k].GetRid()<<","<< actVDSI[k].GetCost() <<"," 
+           << actVDSI[k].GetDuration()<< ")";
+    }
+    cout << "]" << endl;
+    actVDSI.clear();
+    cout << "Sec:(" << sTid <<",1): [";
+    GetAdjacentSectionsInfo(sTid,true,actVDSI);
+    for(size_t k=0; k<actVDSI.size();k++){
+      cout <<"("<< actVDSI[k].GetSectionTid()<< ","<< actVDSI[k].GetUpDownFlag()
+           <<","<< actVDSI[k].GetMeas1() << "," << actVDSI[k].GetMeas2() << ","
+           << actVDSI[k].GetRid()<<","<< actVDSI[k].GetCost() <<"," 
+           << actVDSI[k].GetDuration()  <<")";
+    }
+    cout << "]" << endl;      
+    
+  }
+  delete pSectionIt;
+  return true;
+} 
+
+/*
+Help-function to calculate the numbers of neighbours of all Sections
+
+*/
+void Network::CountNeighbours(vector<DirectedSectionPair> in_xList){
+    cout << "count all neighbours of all sections:" << endl;
+    //Counter for neighbours, if more then nine, the counter a10 is increased
+    int a0=0,a1=0,a2=0,a3=0,a4=0,a5=0,a6=0,a7=0,a8=0,a9=0,a10=0;
+    int actCounter=0;
+    DirectedSectionPair xLastPair;    
+    
+    //determin the number of neighbours of the sections   
+    actCounter=0;
+    //pass through all pairs
+    for (size_t i=0; i<in_xList.size(); i++){
+        //get next
+        DirectedSectionPair xPair = in_xList[i];
+        
+        //at the first element,remember it as the last pair
+        if(i==0){
+            xLastPair = xPair;
+            actCounter++;
+        }
+        if ( i == in_xList.size() -1 ||
+            (i != 0 &&
+                ( xLastPair.m_iFirstSectionTid != xPair.m_iFirstSectionTid ||
+                  xLastPair.m_bFirstUpDown != xPair.m_bFirstUpDown
+                )
+            )
+        ){
+            switch(actCounter){
+                case 1: a1++;break;
+                case 2: a2++;break;
+                case 3: a3++;break;
+                case 4: a4++;break;
+                case 5: a5++;break;
+                case 6: a6++;break;
+                case 7: a7++;break;
+                case 8: a8++;break;
+                case 9: a9++;break;
+                default: a10++;
+            }
+            actCounter = 0;
+        }
+        if ( i == 0 ||
+
+            xLastPair.m_iFirstSectionTid != xPair.m_iFirstSectionTid ||
+            xLastPair.m_bFirstUpDown != xPair.m_bFirstUpDown ||
+            xLastPair.m_iSecondSectionTid != xPair.m_iSecondSectionTid ||
+            xLastPair.m_bSecondUpDown != xPair.m_bSecondUpDown ){
+                actCounter++;
+        }
+        xLastPair = xPair;    
+    }
+    
+    //determine sections without neighbours  
+    a0 = (m_pSections->GetNoTuples() *2) -(a1+a2+a3+a4+a5+a6+a7+a8+a9+a10);
+    
+    // output of the results
+    cout << "sections without neighbours: " << a0 << endl;
+    cout << "sections with one neighbour: " << a1 << endl; 
+    cout << "sections with two neighbours: " << a2 << endl; 
+    cout << "sections with three neighbours: " << a3 << endl;
+    cout << "sections with four neighbours: " << a4<< endl;  
+    cout << "sections with five neighbours: " << a5 << endl; 
+    cout << "sections with six neighbours: " << a6 << endl; 
+    cout << "sections with seven neighbours: " << a7 << endl; 
+    cout << "sections with eight neighbours: " << a8 << endl;
+    cout << "sections with nine neighbours: " << a9 << endl;  
+    cout << "sections with more than nine neighbours : " << a10 << endl; 
+    
+}
+
+
+
 
 /*
 Build vector of directed section pairs.
@@ -2793,8 +3669,8 @@ bool Network::InShortestPath ( GPoint*start,GPoint *to, GLine *result )
 
 
 
-  int startSectTID = startSection->GetTupleId();
-  int lastSectTID = endSection->GetTupleId();
+  TupleId startSectTID = startSection->GetTupleId();
+  TupleId lastSectTID = endSection->GetTupleId();
 
   if ( startSectTID == lastSectTID )
   {
@@ -3025,7 +3901,7 @@ bool Network::InShortestPath ( GPoint*start,GPoint *to, GLine *result )
 //stack to turn in right order.
 
         RIStack *riStack = new RIStack ( actRouteId, startRI, endRI );
-        int lastSectId = actPQEntry->sectID;
+        TupleId lastSectId = actPQEntry->sectID;
         SectIDTree *pElem = visitedSect->Find ( actPQEntry->beforeSectID );
         bool end = false;
         bool upDown;
@@ -3604,44 +4480,332 @@ Relation* Network::GetSections()
   return ( Relation * ) resultWord.addr;
 }
 
-void Network::GetAdjacentSections ( TupleId in_iSectionTId,
-                                    bool in_bUpDown,
-                                    vector<DirectedSection> &inout_xSections )
-{/*
-cout << "Network::GetAdjacentsections" << endl;
-cout << "adjList: " << m_xAdjacencyList.print(cout) << endl;
-cout << "subAdjList: " << m_xSubAdjacencyList.print(cout) << endl;
-cout << "in_iSectionTID: " << in_iSectionTId << endl;*/
+
+void Network::GetAdjacentSectionsInfo ( TupleId in_iSectionTId,
+                                  bool in_bUpDown,
+                                  vector<DirectedSectionInfo> &inout_xSections )
+{
   inout_xSections.clear();
   Tuple *pSect = GetSection ( in_iSectionTId );
   if ( pSect != 0 )
   {
-    //cout << "found section" << endl;
-    int iSectionId =
-      ( ( CcInt* ) pSect->GetAttribute ( SECTION_SID ) )->GetIntval();
+    // get Sid, SectionPage and SectionSlot
+    int iSectionId, iSectionPage, iSectionSlot;    
+    iSectionId =( ( CcInt* ) pSect->GetAttribute ( SECTION_SID ) )->GetIntval();
+    if (in_bUpDown){
+     iSectionPage=((CcInt*)pSect->GetAttribute(SECTION_PNO_UP))->GetIntval();
+     iSectionSlot=((CcInt*)pSect->GetAttribute(SECTION_SLOT_UP))->GetIntval();
+    }else{
+     iSectionPage=((CcInt*)pSect->GetAttribute(SECTION_PNO_DOWN))->GetIntval();
+     iSectionSlot=((CcInt*)pSect->GetAttribute(SECTION_SLOT_DOWN))->GetIntval();
+    }     
     pSect->DeleteIfAllowed();
-    int iIndex = 2 * ( iSectionId-1 )  + ( in_bUpDown ? 1 : 0 );
-    AdjacencyListEntry xEntry;
-    m_xAdjacencyList.Get ( iIndex, xEntry );
-    if ( xEntry.m_iHigh != -1 )
-    {
-      int iLow = xEntry.m_iLow;
-      int iHigh = xEntry.m_iHigh;
+    if(iSectionPage != 0 && iSectionSlot !=0){
+        //getSectionPage
+        PageRecord xPage;    
+        m_xAdjacencyList.Get ( iSectionPage-1, xPage );
+    
+        //get Number of Neighbours
+        int iNeighbours=0;           
+        xPage.GetSectionNoNeighbours(iSectionSlot, iNeighbours);
+        //Cache for Pages and Slots defined    
+        int **iPagesSlots;
+        iPagesSlots = new int* [iNeighbours];
+        for (int i=0; i<iNeighbours;i++){
+            iPagesSlots[i] = new int[2];
+        }
 
-      for ( int i = iLow; i <= iHigh; i++ )
-      {
-        DirectedSection xSection;
-        m_xSubAdjacencyList.Get ( i, xSection );
-
-        bool bUpDownFlag = xSection.GetUpDownFlag();
-        TupleId iSectionTid = xSection.GetSectionTid();
-        inout_xSections.push_back ( DirectedSection ( iSectionTid,
-                                    bUpDownFlag ) );
-
-      }
+        for(int i =0; i<iNeighbours ;i++){               
+            xPage.GetSectionNeighbourPage(iSectionSlot,i,iPagesSlots[i][0]);
+            xPage.GetSectionNeighbourSlot(iSectionSlot,i,iPagesSlots[i][1]);
+        }   
+            
+        // store all needet attributes of the Neighbour in DirectedSectionInfo 
+        int actPageNum = iSectionPage;
+        bool bUpDownFlag;
+        int iSectionId, irid;
+        double dcost, dduration;
+        TupleId sectionTid;
+        double dmeas1, dmeas2;          
+        
+        for(int i=0; i< iNeighbours; i++){
+            if(actPageNum != iPagesSlots[i][0]){
+                // get new Page 
+                actPageNum = iPagesSlots[i][0];
+                m_xAdjacencyList.Get ( actPageNum-1, xPage ); 
+            }
+            xPage.GetSectionId(iPagesSlots[i][1],iSectionId);
+            xPage.GetSectionUpdown(iPagesSlots[i][1],bUpDownFlag); 
+            xPage.GetSectionMeas1(iPagesSlots[i][1],dmeas1);
+            xPage.GetSectionMeas2(iPagesSlots[i][1],dmeas2);
+            xPage.GetSectionRid(iPagesSlots[i][1],irid); 
+            xPage.GetSectionCost(iPagesSlots[i][1],dcost);
+            xPage.GetSectionDuration(iPagesSlots[i][1],dduration);   
+            xPage.GetSectionTid(iPagesSlots[i][1],sectionTid);
+            
+            inout_xSections.push_back (
+                 DirectedSectionInfo(sectionTid,bUpDownFlag,dmeas1,dmeas2,irid,
+                                     dcost,dduration));   
+        }
+        //Delete Array 
+        for (int i=0; i<iNeighbours;i++){
+            delete [] iPagesSlots[i];
+        }
+        delete [] iPagesSlots;
     }
   }
 }
+
+
+void Network::GetAdjacentSections ( TupleId in_iSectionTId,
+                                    bool in_bUpDown,
+                                    vector<DirectedSection> &inout_xSections )
+{
+  inout_xSections.clear();
+  Tuple *pSect = GetSection ( in_iSectionTId );
+  if ( pSect != 0 )
+  {
+    // get Sid, SectionPage and SectionSlot
+    int iSectionId, iSectionPage, iSectionSlot;
+    iSectionId = ( ( CcInt* )pSect->GetAttribute ( SECTION_SID ) )->GetIntval();
+    if (in_bUpDown){
+     iSectionPage =((CcInt*)pSect->GetAttribute(SECTION_PNO_UP))->GetIntval();
+     iSectionSlot =((CcInt*)pSect->GetAttribute(SECTION_SLOT_UP))->GetIntval();
+    }else{
+     iSectionPage =((CcInt*)pSect->GetAttribute(SECTION_PNO_DOWN))->GetIntval();
+     iSectionSlot=((CcInt*)pSect->GetAttribute(SECTION_SLOT_DOWN))->GetIntval();
+    }     
+    pSect->DeleteIfAllowed();
+    if(iSectionPage != 0 && iSectionSlot !=0){
+        //getSectionPage
+        PageRecord xPage;    
+        m_xAdjacencyList.Get ( iSectionPage-1, xPage );
+    
+        //get Number of Neighbours
+        int iNeighbours=0;        
+        
+        xPage.GetSectionNoNeighbours(iSectionSlot, iNeighbours);
+        //Cache for Pages and Slots defined    
+        int **iPagesSlots;
+        iPagesSlots = new int* [iNeighbours];
+        for (int i=0; i<iNeighbours;i++){
+            iPagesSlots[i] = new int[2];
+        }
+
+        for(int i =0; i<iNeighbours ;i++){               
+            xPage.GetSectionNeighbourPage(iSectionSlot,i,iPagesSlots[i][0]);
+            xPage.GetSectionNeighbourSlot(iSectionSlot,i,iPagesSlots[i][1]);
+        }   
+            
+        // store the Sid and UpDownFlag of the Neighbour in DirectedSection 
+        int actPageNum = iSectionPage;
+        bool bUpDownFlag;
+        int iSectionId;
+        TupleId sectionTid;
+        
+        for(int i=0; i< iNeighbours; i++){
+            
+            if(actPageNum != iPagesSlots[i][0]){
+                // get new Page 
+                actPageNum = iPagesSlots[i][0];
+                m_xAdjacencyList.Get ( actPageNum-1, xPage ); 
+            }
+            xPage.GetSectionId(iPagesSlots[i][1],iSectionId);
+            xPage.GetSectionUpdown(iPagesSlots[i][1],bUpDownFlag); 
+            xPage.GetSectionTid(iPagesSlots[i][1],sectionTid);  
+            inout_xSections.push_back (DirectedSection(sectionTid,bUpDownFlag));
+        }
+        //Delete Array 
+        for (int i=0; i<iNeighbours;i++){
+            delete [] iPagesSlots[i];
+        }
+        delete [] iPagesSlots;
+        
+    }
+  }
+}
+
+/*
+Returns true, if the update of cost for a given section was successful
+
+*/
+bool Network::UpdateSectionCost(int sectId,double newCost){
+    BTreeIterator* pSectIter;
+    CcInt* ciSectId = new CcInt(true,sectId);    
+    pSectIter = m_pBTreeSections->ExactMatch (ciSectId);
+    delete ciSectId;       
+    if(pSectIter->Next()){
+        //get act Tuple
+        Tuple *actSect = 0;
+        actSect = m_pSections->GetTuple(pSectIter->GetId(), false);
+        
+        //save cost in the section relation
+        vector<int> xIndices;
+        vector<Attribute*> xAttrs;        
+        xIndices.push_back ( SECTION_COST );
+        xAttrs.push_back ( new CcReal ( true, newCost ) );
+        m_pSections->UpdateTuple(actSect, xIndices, xAttrs); 
+        
+          
+               
+        //save cost in the PageRecord of the section
+        // read pages und Slots 
+        int pageUp = 
+          ((CcInt* )actSect->GetAttribute(SECTION_PNO_UP))->GetIntval();
+        int slotUp = 
+          ((CcInt* )actSect->GetAttribute(SECTION_SLOT_UP))->GetIntval();
+        int pageDown = 
+          ((CcInt* )actSect->GetAttribute(SECTION_PNO_DOWN))->GetIntval();
+        int slotDown = 
+          ((CcInt* )actSect->GetAttribute(SECTION_SLOT_DOWN))->GetIntval();
+        
+        //get the page and save cost for both entries
+        PageRecord actPage =PageRecord(0);
+        m_xAdjacencyList.Get(pageUp-1, actPage);
+        actPage.SetSectionCost(slotUp, newCost);
+        if(pageDown == pageUp){
+            actPage.SetSectionCost(slotDown, newCost);
+            m_xAdjacencyList.Put(pageUp-1, actPage);
+        }else{
+            m_xAdjacencyList.Put(pageUp-1, actPage);
+            m_xAdjacencyList.Get(pageDown-1, actPage);
+            actPage.SetSectionCost(slotDown, newCost);
+            m_xAdjacencyList.Put(pageDown-1, actPage);
+        }       
+        
+        
+        //clean up
+        actSect->DeleteIfAllowed();
+        delete pSectIter;
+        return true;
+    }
+    else {
+        //errormessage
+        sendMessage ( "the section with the given SectId must exist." );
+        cout << "the section " <<sectId <<"  doesn't exist." <<endl;
+        //clean up
+        delete pSectIter;
+        return false;
+    }              
+}
+
+bool Network::UpdateMoreSectionCost(const Relation* in_pCosts){
+    //DEBUG PrintAdjacentSectionInfo();
+    // check input
+    if(in_pCosts->GetNoTuples() >0){
+        //for each tuple of the Relation 
+        for(int i=1; i<=in_pCosts->GetNoTuples();i++){
+            //Get sid and cost
+            Tuple *actTuple = 0;
+            actTuple = in_pCosts->GetTuple(i, false);
+            int sid = ((CcInt*)actTuple->GetAttribute(0))->GetIntval();
+            double cost = ((CcReal*)actTuple->GetAttribute(1))->GetRealval();
+            
+            //call the function UpdateSectionCost(sid,cost)
+            UpdateSectionCost(sid,cost);
+            
+            // clean up
+            actTuple->DeleteIfAllowed();
+        }   
+        //DEBUG PrintAdjacentSectionInfo();
+        return true;
+    }else{
+        sendMessage ( "the relation is empty." );
+        cout << "the relation is emplty." <<endl;
+        return false;
+    }
+    
+}
+
+/*
+Returns ~true~, if the update of duration for a given section was successful
+
+*/
+bool Network::UpdateSectionDuration(int sectId,double newDuration){
+    BTreeIterator* pSectIter;
+    CcInt* ciSectId = new CcInt(true,sectId);    
+    pSectIter = m_pBTreeSections->ExactMatch (ciSectId);
+    delete ciSectId;       
+    if(pSectIter->Next()){
+        //get act Tuple
+        Tuple *actSect = 0;
+        actSect = m_pSections->GetTuple(pSectIter->GetId(), false);
+        
+        //save duration in the section relation
+        vector<int> xIndices;
+        vector<Attribute*> xAttrs;        
+        xIndices.push_back ( SECTION_DURATION );
+        xAttrs.push_back ( new CcReal ( true, newDuration ) );
+        m_pSections->UpdateTuple(actSect, xIndices, xAttrs);     
+               
+        //save duration in the PageRecord of the section
+        // read pages und Slots 
+        int pageUp = 
+          ((CcInt* )actSect->GetAttribute(SECTION_PNO_UP))->GetIntval();
+        int slotUp = 
+          ((CcInt* )actSect->GetAttribute(SECTION_SLOT_UP))->GetIntval();
+        int pageDown = 
+          ((CcInt* )actSect->GetAttribute(SECTION_PNO_DOWN))->GetIntval();
+        int slotDown = 
+          ((CcInt* )actSect->GetAttribute(SECTION_SLOT_DOWN))->GetIntval();
+        
+        //get the page and save duration for both entries
+        PageRecord actPage;
+        m_xAdjacencyList.Get(pageUp-1, actPage);
+        actPage.SetSectionDuration(slotUp, newDuration);
+        
+        if(pageDown == pageUp){
+            actPage.SetSectionDuration(slotDown, newDuration);
+            m_xAdjacencyList.Put(pageUp-1, actPage);
+        }else{
+            m_xAdjacencyList.Put(pageUp-1, actPage);
+            m_xAdjacencyList.Get(pageDown-1, actPage);
+            actPage.SetSectionDuration(slotDown, newDuration);
+            m_xAdjacencyList.Put(pageDown-1, actPage);
+        }       
+        
+        //clean up
+        actSect->DeleteIfAllowed();
+        delete pSectIter;
+        return true;
+    }
+    else {
+        //errormessage
+        sendMessage ( "the section with the given SectId must exist." );
+        cout << "the section " <<sectId <<"  doesn't exist." <<endl;
+        //clean up
+        delete pSectIter;
+        return false;
+    }              
+}
+
+bool Network::UpdateMoreSectionDuration(const Relation* in_pDurations){
+    //DEBUG PrintAdjacentSectionInfo();
+    // check input
+    if(in_pDurations->GetNoTuples() >0){
+        //for each tuple of the Relation 
+        for(int i=1; i<=in_pDurations->GetNoTuples();i++){
+            //Get sid and duration
+            Tuple *actTuple = 0;
+            actTuple = in_pDurations->GetTuple(i, false);
+            int sid = ((CcInt*)actTuple->GetAttribute(0))->GetIntval();
+            double duration =((CcReal*)actTuple->GetAttribute(1))->GetRealval();
+            
+            //call the function UpdateSectionDuration(sid,duration)
+            UpdateSectionDuration(sid,duration);
+            
+            // clean up
+            actTuple->DeleteIfAllowed();
+        }   
+        //DEBUG PrintAdjacentSectionInfo();
+        return true;
+    }else{
+        sendMessage ( "the relation is empty." );
+        cout << "the relation is emplty." <<endl;
+        return false;
+    }    
+}
+
 
 /*
 Returns the route Interval between the two points
@@ -4415,7 +5579,7 @@ ListExpr Network::Save ( SmiRecord& in_xValueRecord,
 
   // Save routes
   ListExpr xType;
-  nl->ReadFromString ( routesTypeInfo, xType );
+  nl->ReadFromString ( routesInternalTypeInfo, xType );
   ListExpr xNumericType =SecondoSystem::GetCatalog()->NumericType ( xType );
   if ( !m_pRoutes->Save ( in_xValueRecord,
                           inout_iOffset,
@@ -4445,6 +5609,15 @@ ListExpr Network::Save ( SmiRecord& in_xValueRecord,
   nl->ReadFromString ( routesBTreeTypeInfo, xType );
   xNumericType =SecondoSystem::GetCatalog()->NumericType ( xType );
   if ( !m_pBTreeRoutes->Save ( in_xValueRecord,
+                               inout_iOffset,
+                               xNumericType ) )
+  {
+    return false;
+  }
+  // Save btree for routesByStartposId
+  nl->ReadFromString ( routesBTreeTypeInfo, xType );
+  xNumericType =SecondoSystem::GetCatalog()->NumericType ( xType );
+  if ( !m_pBTreeRoutesByStartposId->Save ( in_xValueRecord,
                                inout_iOffset,
                                xNumericType ) )
   {
@@ -4517,6 +5690,18 @@ ListExpr Network::Save ( SmiRecord& in_xValueRecord,
   if ( !m_pBTreeSectionsByRoute->Save ( in_xValueRecord,
                                         inout_iOffset,
                                         xNumericType ) )
+  {
+
+    //cout << "cannot store BTree_sections" << endl;
+
+    return false;
+  }
+  
+  nl->ReadFromString ( sectionsBTreeTypeInfo, xType );
+  xNumericType =SecondoSystem::GetCatalog()->NumericType ( xType );
+  if ( !m_pBTreeSections->Save ( in_xValueRecord,
+                                 inout_iOffset,
+                                 xNumericType ) )
   {
 
     //cout << "cannot store BTree_sections" << endl;
@@ -6181,9 +7366,10 @@ Dijkstras Algorithm. The path is returned as gline value.
 bool GPoint::ShortestPath ( GPoint *to, GLine *result )
 {
 
-  GPoint* start = new GPoint ( true,GetNetworkId(),GetRouteId(),GetPosition() );
+  GPoint* start = 
+       new GPoint ( true,GetNetworkId(),GetRouteId(),GetPosition(), GetSide() );
   GPoint* end = new GPoint ( true,to->GetNetworkId(),to->GetRouteId(),
-                             to->GetPosition() );//copy the gpoint
+                             to->GetPosition(),to->GetSide() );//copy the gpoint
   result->Clear();
   if ( start == 0 || end == 0 || !start->IsDefined() ||
           !end->IsDefined() )
@@ -6317,12 +7503,12 @@ bool GPoint::ShortestPath ( GPoint *to, GLine *result )
 )->GetRealval();
 
     double dist = 0.0;
-    vector<DirectedSection> adjSectionList;
+    vector<DirectedSectionInfo> adjSectionList;
     adjSectionList.clear();
     if ( start->GetSide() == 0 )
     {
       dist = start->GetPosition() - sectMeas1;
-      pNetwork->GetAdjacentSections ( startSectTID, false, adjSectionList );
+      pNetwork->GetAdjacentSectionsInfo ( startSectTID, false, adjSectionList );
       SectIDTree *startTree = new SectIDTree ( startSectTID,
               ( TupleId ) numeric_limits<long>::max(),
               false,
@@ -6330,12 +7516,15 @@ bool GPoint::ShortestPath ( GPoint *to, GLine *result )
       visitedSect = startTree;
       for ( size_t i = 0;  i < adjSectionList.size(); i++ )
       {
-        DirectedSection actNextSect = adjSectionList[i];
+        DirectedSectionInfo actNextSect = adjSectionList[i];
         if ( actNextSect.GetSectionTid() != startSectTID )
         {
           PQEntry *actEntry = new PQEntry ( actNextSect.GetSectionTid(), dist,
                                             actNextSect.GetUpDownFlag(),
-                                            startSectTID );
+                                            startSectTID,
+                                            actNextSect.GetMeas1(),
+                                            actNextSect.GetMeas2(),
+                                            actNextSect.GetRid());
           prioQ->Insert ( *actEntry, visitedSect ) ;
           delete actEntry;
         }
@@ -6352,15 +7541,18 @@ bool GPoint::ShortestPath ( GPoint *to, GLine *result )
                 true,
                 numeric_limits<int>::max() );
         visitedSect = startTree;
-        pNetwork->GetAdjacentSections ( startSectTID, true, adjSectionList );
+        pNetwork->GetAdjacentSectionsInfo ( startSectTID, true, adjSectionList);
         for ( size_t i = 0;  i < adjSectionList.size(); i++ )
         {
-          DirectedSection actNextSect = adjSectionList[i];
+          DirectedSectionInfo actNextSect = adjSectionList[i];
           if ( actNextSect.GetSectionTid() != startSectTID )
           {
             PQEntry *actEntry = new PQEntry ( actNextSect.GetSectionTid(), dist,
                                               actNextSect.GetUpDownFlag(),
-                                              startSectTID );
+                                              startSectTID,
+                                              actNextSect.GetMeas1(),
+                                              actNextSect.GetMeas2(),
+                                              actNextSect.GetRid() );
             prioQ->Insert ( *actEntry, visitedSect );
             delete actEntry;
           }
@@ -6370,12 +7562,12 @@ bool GPoint::ShortestPath ( GPoint *to, GLine *result )
       else
       {
 
-        dist = start->GetPosition() - sectMeas1;
-        pNetwork->GetAdjacentSections ( startSectTID, false, adjSectionList );
+       dist = start->GetPosition() - sectMeas1;
+       pNetwork->GetAdjacentSectionsInfo ( startSectTID, false, adjSectionList);
         bool first = true;
         for ( size_t i = 0;  i < adjSectionList.size(); i++ )
         {
-          DirectedSection actNextSect = adjSectionList[i];
+          DirectedSectionInfo actNextSect = adjSectionList[i];
           if ( actNextSect.GetSectionTid() != startSectTID )
           {
             if ( first )
@@ -6389,7 +7581,10 @@ bool GPoint::ShortestPath ( GPoint *to, GLine *result )
             }
             PQEntry *actEntry = new PQEntry ( actNextSect.GetSectionTid(), dist,
                                               actNextSect.GetUpDownFlag(),
-                                              startSectTID );
+                                              startSectTID,
+                                              actNextSect.GetMeas1(),
+                                              actNextSect.GetMeas2(),
+                                              actNextSect.GetRid() );
 
             prioQ->Insert ( *actEntry, visitedSect );
             delete actEntry;
@@ -6397,10 +7592,10 @@ bool GPoint::ShortestPath ( GPoint *to, GLine *result )
         }
         adjSectionList.clear();
         dist = sectMeas2 -start->GetPosition();
-        pNetwork->GetAdjacentSections ( startSectTID, true, adjSectionList );
+        pNetwork->GetAdjacentSectionsInfo ( startSectTID, true, adjSectionList);
         for ( size_t i = 0;  i < adjSectionList.size(); i++ )
         {
-          DirectedSection actNextSect = adjSectionList[i];
+          DirectedSectionInfo actNextSect = adjSectionList[i];
           if ( actNextSect.GetSectionTid() != startSectTID )
           {
             if ( first )
@@ -6414,7 +7609,10 @@ bool GPoint::ShortestPath ( GPoint *to, GLine *result )
             }
             PQEntry *actEntry = new PQEntry ( actNextSect.GetSectionTid(), dist,
                                               actNextSect.GetUpDownFlag(),
-                                              startSectTID );
+                                              startSectTID,
+                                              actNextSect.GetMeas1(),
+                                              actNextSect.GetMeas2(),
+                                              actNextSect.GetRid() );
 
             prioQ->Insert ( *actEntry, visitedSect );
             delete actEntry;
@@ -6434,13 +7632,8 @@ bool GPoint::ShortestPath ( GPoint *to, GLine *result )
     while ( !prioQ->IsEmpty() && !found )
     {
       actPQEntry = prioQ->GetAndDeleteMin ( visitedSect );
-      Tuple *actSection = pNetwork->GetSection ( actPQEntry->sectID );
-      sectMeas1 =
-          ( ( CcReal* ) actSection->GetAttribute ( SECTION_MEAS1 )
-)->GetRealval();
-      sectMeas2 =
-          ( ( CcReal* ) actSection->GetAttribute ( SECTION_MEAS2 )
-)->GetRealval();
+      sectMeas1 = actPQEntry->meas1;     
+      sectMeas2 = actPQEntry->meas2;
       dist = actPQEntry->distFromStart + fabs ( sectMeas2 - sectMeas1 );
 
 
@@ -6481,26 +7674,27 @@ bool GPoint::ShortestPath ( GPoint *to, GLine *result )
 
         */
         adjSectionList.clear();
-        pNetwork->GetAdjacentSections ( actPQEntry->sectID,
+        pNetwork->GetAdjacentSectionsInfo ( actPQEntry->sectID,
                                         actPQEntry->upDownFlag,
                                         adjSectionList );
         for ( size_t i = 0; i <adjSectionList.size();i++ )
         {
-          DirectedSection actNextSect = adjSectionList[i];
+          DirectedSectionInfo actNextSect = adjSectionList[i];
           if ( actNextSect.GetSectionTid() != actPQEntry->sectID )
           {
             PQEntry *actEntry = new PQEntry ( actNextSect.GetSectionTid(),
                                               dist,
                                               actNextSect.GetUpDownFlag(),
-                                              actPQEntry->sectID );
+                                              actPQEntry->sectID,
+                                              actNextSect.GetMeas1(),
+                                              actNextSect.GetMeas2(),
+                                              actNextSect.GetRid() );
             prioQ->Insert ( *actEntry, visitedSect );
             delete actEntry;
           }
         }
         delete actPQEntry;
         actPQEntry=0;
-        actSection->DeleteIfAllowed();
-        actSection = 0;
       }
       else
       {
@@ -6625,9 +7819,7 @@ bool GPoint::ShortestPath ( GPoint *to, GLine *result )
 
         found = true;
         double startRI, endRI;
-        int actRouteId =
-            ( ( CcInt* ) actSection->GetAttribute ( SECTION_RID )
-)->GetIntval();
+        int actRouteId =actPQEntry->rid;
         if ( actPQEntry->upDownFlag == true )
         {
           startRI = sectMeas1;
@@ -6638,9 +7830,6 @@ bool GPoint::ShortestPath ( GPoint *to, GLine *result )
           startRI = sectMeas2;
           endRI = end->GetPosition();
         }
-
-        actSection->DeleteIfAllowed();
-        actSection = 0;
         /*
         Get the sections used for shortest path and write them in right
         order (from start to end gpoint) in the resulting gline. Because
@@ -6651,7 +7840,7 @@ on a
 
         */
         RIStack *riStack = new RIStack ( actRouteId, startRI, endRI );
-        int lastSectId = actPQEntry->sectID;
+        TupleId lastSectId = actPQEntry->sectID;
         SectIDTree *pElem = visitedSect->Find ( actPQEntry->beforeSectID );
         bool end = false;
         bool upDown;
@@ -6661,7 +7850,7 @@ on a
         while ( !end )
         {
           //GetSection
-          actSection = pNetwork->GetSection ( pElem->sectID );
+          Tuple *actSection = pNetwork->GetSection ( pElem->sectID );
           actRouteId =
               ( ( CcInt* ) actSection->GetAttribute ( SECTION_RID )
 )->GetIntval();
@@ -6684,13 +7873,13 @@ on a
           else
           {
             end = true;
-            pNetwork->GetAdjacentSections ( startSectTID, true, adjSectionList
+            pNetwork->GetAdjacentSectionsInfo (startSectTID, true,adjSectionList
 );
             size_t i = 0;
             bool stsectfound = false;
             while ( i < adjSectionList.size() && !stsectfound )
             {
-              DirectedSection adjSection = adjSectionList[i];
+              DirectedSectionInfo adjSection = adjSectionList[i];
               if ( adjSection.GetSectionTid() == lastSectId )
               {
                 if ( fabs ( start->GetPosition()-sectMeas2 ) > 0.1 )
@@ -6706,12 +7895,12 @@ on a
             adjSectionList.clear();
             if ( !stsectfound )
             {
-              pNetwork->GetAdjacentSections ( startSectTID, false,
+              pNetwork->GetAdjacentSectionsInfo ( startSectTID, false,
                                               adjSectionList );
               i = 0;
               while ( i < adjSectionList.size() && !stsectfound )
               {
-                DirectedSection adjSection = adjSectionList[i];
+                DirectedSectionInfo adjSection = adjSectionList[i];
                 if ( adjSection.GetSectionTid() == lastSectId )
                 {
                   if ( fabs ( start->GetPosition()-sectMeas1 ) > 0.1 )
@@ -6742,11 +7931,6 @@ on a
         delete actPQEntry;
         actPQEntry = 0;
       }
-      if ( actSection )
-      {
-        actSection->DeleteIfAllowed();
-        actSection = 0;
-      }
     }
     if ( visitedSect != 0 ) visitedSect->Remove();
     prioQ->Destroy();
@@ -6762,6 +7946,595 @@ on a
   end->DeleteIfAllowed();
   return true;
 };
+
+/*
+Computes the shortest path between start and end in the network. Using
+AStar Algorithm. The path is returned as gline value.
+
+*/
+
+bool GPoint::ShortestPathAStarPlus(GPoint *pToGPoint,GLine *result,Word func){
+    bool withfunc = false;
+    Word funcResult;
+    ArgVectorPointer funargs;
+    
+    if (func.addr != 0)
+    {
+        withfunc = true;
+        funargs = qp->Argument(func.addr);
+    }
+    
+    //reset the result
+    result->Clear();    
+    //******************************************************************
+    // Check the Inputs whether they exist and are defined
+    //1. generate the startpoint of the search, corresponds with the 
+    //   pToGPoint, because we want to have the right sequence at the end
+    GPoint *end = new GPoint(true, pToGPoint->GetNetworkId(), 
+        pToGPoint->GetRouteId(), pToGPoint->GetPosition(),pToGPoint->GetSide());
+    
+    //2. generate the endpoint of the search, 
+    //   corresponts with the startpoint of the path
+    GPoint *start = 
+       new GPoint(true, GetNetworkId(), GetRouteId(), GetPosition(), GetSide());
+
+    //3. check whether both Points are not 0
+    if ( start == 0 || end == 0 || !start->IsDefined() ||
+          !end->IsDefined() )
+    {
+        sendMessage ( "Both gpoints must exist and be defined." );
+        result->SetDefined ( false );
+        start->DeleteIfAllowed();
+        end->DeleteIfAllowed();
+        return false;
+    }
+    
+    //4. check whether both Points belong to the same network
+    if ( start->GetNetworkId() != end->GetNetworkId() )
+    {
+        sendMessage ( "Both gpoints belong to different networks." );
+        result->SetDefined ( false );
+        start->DeleteIfAllowed();
+        end->DeleteIfAllowed();
+        return false;
+    }
+    
+    //*************************************************
+    // Get sections where the path should start or end
+    //1. get the netwwork and check whether its not null
+    Network* pNetwork = 
+        NetworkManager::GetNetworkNew ( start->GetNetworkId(),netList );
+    if ( pNetwork == 0 )
+    {
+        sendMessage ( "Network not found." );
+        result->SetDefined ( false );
+        start->DeleteIfAllowed();
+        end->DeleteIfAllowed();
+        return false;
+    }  
+    //2. set networkId to the result-gline
+    TupleId netId = start->GetNetworkId();
+    result->SetNetworkId ( start->GetNetworkId() );
+    //3. determin the startsection and check whether its not null
+    TupleId startSectTID = pNetwork->GetTupleIdSectionOnRoute(start);
+    Tuple* startSection = pNetwork->GetSection(startSectTID);
+    if ( startSection == 0 )
+    {
+        sendMessage ( "Starting GPoint not found in network." );
+        NetworkManager::CloseNetwork ( pNetwork );
+        result->SetDefined ( false );
+        start->DeleteIfAllowed();
+        end->DeleteIfAllowed();
+        return false;
+    }
+    //4. determin the endsection and check whether its not null
+    TupleId endSectTID = pNetwork->GetTupleIdSectionOnRoute(end);
+    Tuple* endSection = pNetwork->GetSection(endSectTID);
+    if ( endSection == 0 )
+    {
+        sendMessage ( "End GPoint not found in network." );
+        startSection->DeleteIfAllowed();
+        NetworkManager::CloseNetwork ( pNetwork );
+        result->SetDefined ( false );
+        start->DeleteIfAllowed();
+        end->DeleteIfAllowed();
+        return false;
+    }
+    
+    //******************************************************************
+    // CAlCULATE THE SHORTEST PATH WITH A* 
+    
+    //1. check whether both Points on the same Route
+    //   if true, then the path can be directly calculated
+    if ( startSectTID == endSectTID  ||
+         start->GetRouteId() == end->GetRouteId())
+    {
+        result->AddRouteInterval ( start->GetRouteId(), start->GetPosition(),
+                                   end->GetPosition());
+    }
+    //   else calculate the shortespath with the A* algorithem
+    else{
+        //1. Generate the openlist,which save all known Points on the searchpath
+        //   with the costs and a pointer to its predecessor used a PrioQueue
+        PrioQueue *openList = new PrioQueue(0);
+        //2. Generate the ClosedList, which save alle Points with the sid
+        //   to which the shortest path is known
+        SectIDTree *closeList = 0;
+        //3. other variables, they are needed
+        double dist = 0.0;                  //distance 
+        double totalcost =0.0;                //totalcost of the section
+        double heuristic = 0.0;             //heuristical part of the totalcost
+        vector<DirectedSectionInfo> adjSectionList;
+        adjSectionList.clear();
+        //4. Initialized the OpenList        
+        //Determin the Side of the section, where the point is located
+        //DEBUG cout << start->GetSide()<<endl;
+        if(start->GetSide() == 0) // Down-Side of the section
+        {
+            //4a. Calculate the distance
+            double sectMeas1 = 
+             ((CcReal*)startSection->GetAttribute(SECTION_MEAS1))->GetRealval();
+            dist = start->GetPosition() - sectMeas1;
+            //4b. get the adjacent sections
+           pNetwork->GetAdjacentSectionsInfo(startSectTID,false,adjSectionList);
+            //4c. get startsection and put it in the closelist 
+            SectIDTree *startTree = new SectIDTree ( startSectTID,
+                                        ( TupleId ) numeric_limits<long>::max(),
+                                        false, numeric_limits<int>::max() );
+            closeList = startTree; 
+            //4d. put all adjacent sections in the openlist
+            for ( size_t i = 0;  i < adjSectionList.size(); i++ )
+            {
+                DirectedSectionInfo actNextSect = adjSectionList[i];
+                if (actNextSect.GetSectionTid() != startSectTID)
+                {
+                    //calculate the totalcost
+                    GPoint *sectEP = 
+                      new GPoint(true,netId,
+                                 actNextSect.GetRid(),actNextSect.GetMeas1());
+                    heuristic = sectEP->Distance(end);
+                    if(withfunc)
+                    { //funcargs[0]=cost,funcargs[1]=duration,funcargs[2]=laenge
+                      (*funargs)[0] =new CcReal(true,actNextSect.GetCost());
+                      (*funargs)[1] =new CcReal(true,actNextSect.GetDuration());
+                      (*funargs)[2] =new CcReal(true,actNextSect.GetLength());
+                        qp->Request(func.addr, funcResult);
+                        double fr= ((CcReal*)(funcResult.addr))->GetRealval();
+                        totalcost = fr + heuristic;                        
+                        //DEBUG cout << "ERGEBNIS:" <<totalcost<<endl;
+                    }
+                    else
+                    {
+                        totalcost = actNextSect.GetCost() + heuristic;
+                    }             
+                    //DEBUG
+                    //cout << "section: "<< actNextSect.GetSectionTid()<<"."
+                    //     << actNextSect.GetUpDownFlag() << " heuristic: " 
+                    //     << heuristic<< "+ kosten: "<< actNextSect.GetCost() 
+                    //     <<"=totalcost: "<< totalcost <<endl; 
+                    sectEP->DeleteIfAllowed();
+                    PQEntry *actEntry = new PQEntry(
+                                            actNextSect.GetSectionTid(), 
+                                            dist,
+                                            actNextSect.GetUpDownFlag(),
+                                            startSectTID,
+                                            actNextSect.GetMeas1(),
+                                            actNextSect.GetMeas2(),
+                                            actNextSect.GetRid(),
+                                            totalcost);
+                    openList->Insert (*actEntry, closeList,true);
+                    delete actEntry;
+                }
+            }
+            adjSectionList.clear();                      
+        }//END IF (DownSide)
+        else if(start->GetSide() == 1) //Up-Side of the section
+        {
+            //4a. Calculate the distance
+            double sectMeas2 = 
+            ((CcReal*)startSection->GetAttribute(SECTION_MEAS2))->GetRealval();
+            dist = sectMeas2 - start->GetPosition();
+            //4b. get the adjacent sections
+            pNetwork->GetAdjacentSectionsInfo(startSectTID,true,adjSectionList);
+            //4c. get startsection and put it in the closelist
+            SectIDTree *startTree = new SectIDTree ( startSectTID,
+                                        (TupleId) numeric_limits<long>::max(),
+                                        true, numeric_limits<int>::max() );
+            closeList = startTree;                               
+            //4d. put all adjacent sections in the openlist
+            for ( size_t i = 0;  i < adjSectionList.size(); i++ )
+            {
+                DirectedSectionInfo actNextSect = adjSectionList[i];
+                if ( actNextSect.GetSectionTid() != startSectTID )
+                {
+                    //calculate the totalcost
+                    GPoint *sectEP = 
+                        new GPoint(true,netId, actNextSect.GetRid(), 
+                                   actNextSect.GetMeas2());
+                    heuristic = sectEP->Distance(end);
+                    if(withfunc)
+                    { //funcargs[0]=cost,funcargs[1]=duration,funcargs[2]=laenge
+                      (*funargs)[0] =new CcReal(true,actNextSect.GetCost());
+                      (*funargs)[1] =new CcReal(true,actNextSect.GetDuration());
+                      (*funargs)[2] =new CcReal(true,actNextSect.GetLength());
+                        qp->Request(func.addr, funcResult);
+                        double fr= ((CcReal*)(funcResult.addr))->GetRealval();
+                        totalcost = fr + heuristic;                        
+                        //DEBUG cout << "ERGEBNIS:" <<totalcost<<endl;
+                    }
+                    else
+                    {
+                        totalcost = actNextSect.GetCost() + heuristic;
+                    } 
+                    sectEP->DeleteIfAllowed();
+                    //DEBUG 
+                    //cout << "section: "<< actNextSect.GetSectionTid()<<"."
+                    //     << actNextSect.GetUpDownFlag() << " heuristic: " 
+                    //     << heuristic << "+ kosten: " << actNextSect.GetCost()
+                    //     <<"=totalcost: "<< totalcost <<endl;
+                    PQEntry *actEntry = new PQEntry ( 
+                                            actNextSect.GetSectionTid(), 
+                                            dist,
+                                            actNextSect.GetUpDownFlag(),
+                                            startSectTID,
+                                            actNextSect.GetMeas1(),
+                                            actNextSect.GetMeas2(),
+                                            actNextSect.GetRid(),
+                                            totalcost);
+                    openList->Insert ( *actEntry, closeList, true );
+                    delete actEntry;
+                }
+            }
+            adjSectionList.clear();  
+                
+        }//END ELSE IF (UpSide)
+        else // NONE, not defined both ways must be calculate
+        {
+            bool first = true;
+            //Entries for the DownSide
+            //4a. Calculate the totalcost
+            double sectMeas1 = 
+             ((CcReal*)startSection->GetAttribute(SECTION_MEAS1))->GetRealval();
+            dist = start->GetPosition() - sectMeas1;
+            //4b. get the adjacent sections
+           pNetwork->GetAdjacentSectionsInfo(startSectTID,false,adjSectionList);
+            //4c. put all adjacent sections in the openlist
+            for ( size_t i = 0;  i < adjSectionList.size(); i++ )
+            {
+                DirectedSectionInfo actNextSect = adjSectionList[i];
+                if ( actNextSect.GetSectionTid() != startSectTID )
+                {
+                    if ( first )
+                    {   //4d. get startsection and put it in the closelist
+                        first = false;
+                        SectIDTree *startTree = new SectIDTree ( startSectTID,
+                                        ( TupleId ) numeric_limits<long>::max(),
+                                        false, numeric_limits<int>::max() );
+                        closeList = startTree;
+                    }
+                    //calculate the totalcost
+                    GPoint *sectEP = 
+                      new GPoint(true,netId, actNextSect.GetRid(), 
+                                 actNextSect.GetMeas1());
+                    heuristic = sectEP->Distance(end);
+                    if(withfunc)
+                    { //funcargs[0]=cost,funcargs[1]=duration,funcargs[2]=laenge
+                      (*funargs)[0] =new CcReal(true,actNextSect.GetCost());
+                      (*funargs)[1] =new CcReal(true,actNextSect.GetDuration());
+                      (*funargs)[2] = new CcReal(true,actNextSect.GetLength());
+                        qp->Request(func.addr, funcResult);
+                        double fr= ((CcReal*)(funcResult.addr))->GetRealval();
+                        totalcost = fr + heuristic;                        
+                        //DEBUG cout << "ERGEBNIS:" <<totalcost<<endl;
+                    }
+                    else
+                    {
+                        totalcost = actNextSect.GetCost() + heuristic;
+                    } 
+                    sectEP->DeleteIfAllowed();
+                    //DEBUG 
+                    //cout << "section: "<< actNextSect.GetSectionTid()<<"."
+                    //     << actNextSect.GetUpDownFlag() << " heuristic: " 
+                    //     << heuristic << "+ kosten: " << actNextSect.GetCost()
+                    //     <<"=totalcost: "<< totalcost <<endl;
+                    PQEntry *actEntry = new PQEntry ( 
+                                            actNextSect.GetSectionTid(), 
+                                            dist,
+                                            actNextSect.GetUpDownFlag(),
+                                            startSectTID,
+                                            actNextSect.GetMeas1(),
+                                            actNextSect.GetMeas2(),
+                                            actNextSect.GetRid(),
+                                            totalcost );
+                    openList->Insert ( *actEntry, closeList, true );
+                    delete actEntry;           
+                }
+            }
+            adjSectionList.clear();
+            
+            //Entries for the UpSide
+            //4a. Calculate the distance
+            double sectMeas2 = 
+             ((CcReal*)startSection->GetAttribute(SECTION_MEAS2))->GetRealval();
+            dist = sectMeas2 - start->GetPosition();
+            //4b. get the adjacent sections
+            pNetwork->GetAdjacentSectionsInfo(startSectTID,true,adjSectionList);
+            //4c. put all adjacent sections in the openlist
+            for ( size_t i = 0;  i < adjSectionList.size(); i++ )
+            {
+                DirectedSectionInfo actNextSect = adjSectionList[i];
+                if ( actNextSect.GetSectionTid() != startSectTID )
+                {
+                    if ( first )
+                    {
+                        //4d. get startsection and put it in the closelist
+                        first = false;
+                        SectIDTree *startTree = new SectIDTree ( startSectTID,
+                                        ( TupleId ) numeric_limits<long>::max(),
+                                        true, numeric_limits<int>::max() );
+                        closeList = startTree;
+                    }
+                    //calculate the totalcost
+                    GPoint *sectEP = 
+                         new GPoint(true,netId, actNextSect.GetRid(), 
+                                    actNextSect.GetMeas2());
+                    heuristic = sectEP->Distance(end);
+                    if(withfunc)
+                    { //funcargs[0]=cost,funcargs[1]=duration,funcargs[2]=laenge
+                      (*funargs)[0] =new CcReal(true,actNextSect.GetCost());
+                      (*funargs)[1] =new CcReal(true,actNextSect.GetDuration());
+                      (*funargs)[2] =new CcReal(true,actNextSect.GetLength());
+                        qp->Request(func.addr, funcResult);
+                        double fr= ((CcReal*)(funcResult.addr))->GetRealval();
+                        totalcost = fr + heuristic;                        
+                        //DEBUG cout << "ERGEBNIS:" <<totalcost<<endl;
+                    }
+                    else
+                    {
+                        totalcost = actNextSect.GetCost() + heuristic;
+                    }
+                    sectEP->DeleteIfAllowed();
+                    //DEBUG 
+                    //cout << "section: "<< actNextSect.GetSectionTid()<<"."
+                    //     << actNextSect.GetUpDownFlag() << " heuristic: " 
+                    //     << heuristic << "+ kosten: " << actNextSect.GetCost()
+                    //     <<"=totalcost: "<< totalcost <<endl;
+                    PQEntry *actEntry = new PQEntry ( 
+                                            actNextSect.GetSectionTid(), 
+                                            dist,
+                                            actNextSect.GetUpDownFlag(),
+                                            startSectTID,
+                                            actNextSect.GetMeas1(),
+                                            actNextSect.GetMeas2(),
+                                            actNextSect.GetRid(),
+                                            totalcost );
+                    openList->Insert ( *actEntry, closeList, true );
+                    delete actEntry;           
+                }
+            }
+            adjSectionList.clear();
+        }//END ELSE (BothSide)
+        
+        //5. Use openList to find shortestPath.
+        
+        PQEntry *actPQEntry;
+        bool found = false;
+        vector<PQEntry> candidate;
+        while ( !openList->IsEmpty() && !found )
+        {
+            //5a get the minimum of the openList
+            actPQEntry = openList->GetAndDeleteMin ( closeList, true );
+            //5b calculate the totalcost of this element
+            double sectMeas1 = actPQEntry->meas1;     
+            double sectMeas2 = actPQEntry->meas2;
+            dist = actPQEntry->distFromStart + fabs ( sectMeas2 - sectMeas1 );
+            
+            if ( actPQEntry->sectID != endSectTID )
+            {
+                // Search further in the network unitl reached last section.
+                // Get adjacent sections and insert into priority Queue.
+                adjSectionList.clear();
+                //5c get adjacent section of the actual element
+                pNetwork->GetAdjacentSectionsInfo ( actPQEntry->sectID,
+                                                    actPQEntry->upDownFlag,
+                                                    adjSectionList );
+                for ( size_t i = 0; i <adjSectionList.size();i++ )
+                {
+                    DirectedSectionInfo actNextSect = adjSectionList[i];
+                        if ( actNextSect.GetSectionTid() != actPQEntry->sectID )
+                        {
+                            //calculate the totalcost
+                            GPoint *sectEP;
+                            if(actPQEntry->upDownFlag)
+                                sectEP = new GPoint(true,netId, 
+                                  actNextSect.GetRid(), actNextSect.GetMeas2());
+                            else
+                                sectEP = new GPoint(true,netId, 
+                                  actNextSect.GetRid(), actNextSect.GetMeas1());
+                            heuristic = sectEP->Distance(end);
+                            if(withfunc)
+                           {//fcargs[0]=cost,fcargs[1]=duration,fcargs[2]=laenge
+                             (*funargs)[0]=
+                                     new CcReal(true,actNextSect.GetCost());
+                             (*funargs)[1]=
+                                     new CcReal(true,actNextSect.GetDuration());
+                             (*funargs)[2] = 
+                                     new CcReal(true,actNextSect.GetLength());
+                                qp->Request(func.addr, funcResult);
+                                double fr= 
+                                    ((CcReal*)(funcResult.addr))->GetRealval();
+                                totalcost = fr + heuristic;          
+                                //DEBUG cout << "ERGEBNIS:" <<totalcost<<endl;
+                            }
+                            else
+                            {
+                                totalcost = actNextSect.GetCost() + heuristic;
+                            }       
+                            sectEP->DeleteIfAllowed();
+                            //DEBUG 
+                            //cout << "section: "<< actNextSect.GetSectionTid()
+                            //     <<"."<< actNextSect.GetUpDownFlag() 
+                            //     << " heuristic: "<< heuristic<<"+ vorkosten "
+                            //     << actPQEntry->costFromStart << "+ kosten: " 
+                            //     << actNextSect.GetCost() <<"=totalcost: "
+                            //     << totalcost <<endl;
+                            PQEntry *actEntry = new PQEntry ( 
+                                                actNextSect.GetSectionTid(),
+                                                dist,
+                                                actNextSect.GetUpDownFlag(),
+                                                actPQEntry->sectID,
+                                                actNextSect.GetMeas1(),
+                                                actNextSect.GetMeas2(),
+                                                actNextSect.GetRid(),
+                                                totalcost );
+                            openList->Insert ( *actEntry, closeList, true );
+                            delete actEntry;
+                        }
+                }
+                delete actPQEntry;
+                actPQEntry=0;
+            }//END IF the end is not reached
+            else //shortespath has been found
+            {   //Compute last route interval and resulting gline.
+                found = true;
+                double startRI, endRI;
+                int actRouteId =actPQEntry->rid;
+                if ( actPQEntry->upDownFlag == true )
+                {
+                    startRI = sectMeas1;
+                    endRI = end->GetPosition();
+                }
+                else
+                {
+                    startRI = sectMeas2;
+                    endRI = end->GetPosition();
+                }
+                
+                //6. Get the sections used for shortest path and write them in 
+                //   right order (from start to end gpoint) in the resulting 
+                //   gline. Because Astar gives the sections from end to start 
+                //   we first have to put the result sections on a stack to turn
+                //   in right order.
+
+                RIStack *riStack = new RIStack ( actRouteId, startRI, endRI );
+                TupleId endSectId = actPQEntry->sectID;
+                SectIDTree *pElem = closeList->Find ( actPQEntry->beforeSectID);
+                bool end = false;
+                bool upDown;
+                
+                if ( startRI > endRI 
+                     || fabs ( startRI-endRI ) < 0.1 ) upDown = false;
+                else upDown = true;
+                while ( !end )
+                {
+                   //GetSection
+                   Tuple *actSection = pNetwork->GetSection ( pElem->sectID );
+                   actRouteId = 
+                   ((CcInt*)actSection->GetAttribute(SECTION_RID))->GetIntval();
+                   sectMeas1 = 
+                    ((CcReal*)actSection->GetAttribute(SECTION_MEAS1))
+                                        ->GetRealval();
+                   sectMeas2 =
+                    (( CcReal*)actSection->GetAttribute(SECTION_MEAS2))
+                                         ->GetRealval();
+                    upDown = pElem->upDownFlag;
+                    if ( pElem->sectID != startSectTID )
+                    {
+                        if ( upDown )
+                          riStack->Push(actRouteId,sectMeas1,sectMeas2,riStack);
+                        else
+                          riStack->Push(actRouteId,sectMeas2,sectMeas1,riStack);
+                        endSectId = pElem->sectID;
+                        pElem = closeList->Find ( pElem->beforeSectId );
+                    }
+                    else
+                    {
+                        end = true;
+                        pNetwork->GetAdjacentSectionsInfo(
+                                  startSectTID,true, adjSectionList);
+                        size_t i = 0;
+                        bool stsectfound = false;
+                        while ( i < adjSectionList.size() && !stsectfound )
+                        {
+                            DirectedSectionInfo adjSection = adjSectionList[i];
+                            if ( adjSection.GetSectionTid() == endSectId )
+                            {
+                                if (fabs(start->GetPosition()-sectMeas2 ) > 0.1)
+                                {
+                                  stsectfound = true;
+                                  riStack->Push(
+                                   actRouteId,start->GetPosition(),
+                                   sectMeas2,riStack );
+                                  end = true;
+                                }
+                            }
+                            i++;
+                        }
+                        adjSectionList.clear();
+                        if ( !stsectfound )
+                        {
+                            pNetwork->
+                             GetAdjacentSectionsInfo(
+                               startSectTID,false,adjSectionList);
+                            i = 0;
+                            while ( i < adjSectionList.size() && !stsectfound )
+                            {
+                             DirectedSectionInfo adjSection = adjSectionList[i];
+                              if ( adjSection.GetSectionTid() == endSectId )
+                              {
+                                if (fabs(start->GetPosition()-sectMeas1) > 0.1)
+                                  {
+                                    stsectfound = true;
+                                    riStack->Push (
+                                      actRouteId, start->GetPosition(), 
+                                      sectMeas1,riStack );
+                                    end = true;
+                                  }
+                              }
+                                i++;
+                            }
+                            adjSectionList.clear();
+                        }
+                    }
+                    if ( actSection )
+                    {
+                        actSection->DeleteIfAllowed();
+                        actSection = 0;
+                    }
+                }
+                // Cleanup and return result
+                riStack->StackToGLine ( result );
+                riStack->RemoveStack();
+            }
+            if ( actPQEntry )
+            {
+                delete actPQEntry;
+                actPQEntry = 0;
+            }
+                
+                
+                
+        }// END ELSE shortesPath has been found
+        
+        //clean up
+        if ( closeList != 0 ) closeList->Remove();
+        openList->Destroy();
+        delete openList;
+        
+    }//END ELSE Calculate the shortes path with A*  
+    
+     //clean up
+     endSection->DeleteIfAllowed();
+     startSection->DeleteIfAllowed();
+     NetworkManager::CloseNetwork ( pNetwork );
+     result->SetSorted ( false );
+     result->SetDefined ( true );
+     result->TrimToSize();
+     start->DeleteIfAllowed();
+     end->DeleteIfAllowed();
+     return true;
+}
+
 
 /*
 Returns the x,y point represented by gpoint.
@@ -7805,7 +9578,7 @@ ListExpr OpNetworkRoutesTypeMap ( ListExpr args )
             nl->SymbolValue ( arg1 ) == "network" )
     {
       ListExpr xType;
-      nl->ReadFromString ( Network::routesTypeInfo, xType );
+      nl->ReadFromString ( Network::routesInternalTypeInfo, xType );
       return xType;
     }
   }
@@ -8715,7 +10488,492 @@ Operator networkdistance (
     OpNetDistanceTypeMap        // type mapping
 );
 
+/*
+6.22 Operator ~update\_sectioncost~
 
+*/
+ListExpr OpUpdateSectionCostTypeMap ( ListExpr in_xArgs ){
+    
+    NList param(in_xArgs); 
+    //check the number of arguments
+    if(param.length() <2 || param.length() >3){
+        return listutils::typeError(
+               "update_sectioncost expects either 2 or 3 arguments.");
+    }
+    ListExpr xNetworkDesc = nl->First(in_xArgs);
+    //check the type of the first arguments
+    if ( ( !nl->IsAtom ( xNetworkDesc ) ) ||
+          !nl->IsEqual ( xNetworkDesc, "network" ) )
+    {
+        return listutils::typeError("1.argument should be a network");
+    }
+    
+    
+    if (param.length() == 2) 
+    {   //read the arguments
+        ListExpr xRelDesc = nl->Second(in_xArgs);
+        
+        if ( !IsRelDescription ( xRelDesc ) )
+        {
+            return listutils::typeError( "2.agument should be a relation" );
+        }
+
+        ListExpr xType;
+        string costsTypeInfo = "(rel (tuple ((sid int) (cost real))))";
+        
+        nl->ReadFromString ( costsTypeInfo, xType );
+        if ( !CompareSchemas ( xRelDesc, xType ) )
+        {
+           return listutils::typeError("the pattern of the relation ist wrong");
+        }
+    }
+    if ( param.length() == 3 )
+    {   //read the arguments
+        ListExpr xIdDesc = nl->Second(in_xArgs);        
+        ListExpr xCostDesc = nl->Third(in_xArgs);
+        if (!nl->IsEqual(xIdDesc, "int"))        
+        {   
+            return listutils::typeError("2.argument should be an int.");
+        }   
+        if(!nl->IsEqual (xCostDesc, "real"))
+        {   
+            return listutils::typeError("3.argument should be an real.");
+        }
+        
+    }
+           
+    return nl->SymbolAtom ( "bool" );
+}
+
+int OpUpdateSectionCost_One ( Word* args, Word& result, int message,
+                         Word& local, Supplier in_pSupplier )
+{   
+    Network* pNetwork = ( Network* ) args[0].addr;
+    int secId = (( CcInt* ) args[1].addr)->GetIntval();
+    double newCost = (( CcReal* ) args[2].addr)->GetRealval();
+    result = qp->ResultStorage ( in_pSupplier );
+    CcBool* pResult = ( CcBool* ) result.addr;
+    
+    if ( pNetwork == 0 || !pNetwork->IsDefined() )
+    {
+        string strMessage = "Network is not defined.";
+        cerr << strMessage << endl;
+        sendMessage ( strMessage );
+        pResult->Set ( false, false );
+        return 0;
+    }
+   qp->SetModified(qp->GetSon(in_pSupplier,0));
+   pResult->Set ( true, pNetwork->UpdateSectionCost(secId,newCost)); 
+   return 0;
+}
+int OpUpdateSectionCost_More ( Word* args, Word& result, int message,
+                         Word& local, Supplier in_pSupplier )
+{  
+    Network* pNetwork = ( Network* ) args[0].addr;
+    Relation* pCosts = ( Relation* ) args[1].addr;
+    result = qp->ResultStorage ( in_pSupplier );
+    CcBool* pResult = ( CcBool* ) result.addr;
+    
+    if ( pNetwork == 0 || !pNetwork->IsDefined() )
+    {
+        string strMessage = "Network is not defined.";
+        cerr << strMessage << endl;
+        sendMessage ( strMessage );
+        pResult->Set ( false, false );
+        return 0;
+    }
+   qp->SetModified(qp->GetSon(in_pSupplier,0));
+   pResult->Set ( true, pNetwork->UpdateMoreSectionCost(pCosts)); 
+   return 0;
+}
+ValueMapping OpUpdateSectionCostMap[]=
+{   OpUpdateSectionCost_One,
+    OpUpdateSectionCost_More
+};
+
+int OpUpdateSectionCostSelect(ListExpr in_xArgs){
+     NList param(in_xArgs); 
+    //check the number of arguments
+    if ( param.length() == 3 ){
+        return 0;
+    }
+    if(param.length() == 2){
+        return 1;
+    }
+    return -1;
+}
+
+const string OpUpdateSectionCostSpec  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+    "\"Example\" ) "
+    "( <text> network x A [x real] -> bool with A as int or as rel </text--->"
+    "<text> update_sectioncost(_,_,_) </text--->"
+    "<text>Returns true, when the Update was successful.</text--->"
+    "<text>query update_sectioncost(B_NETWORK,1,5.0)</text--->"
+    ") )";
+
+Operator update_sectioncost (
+    "update_sectioncost",       // name
+    OpUpdateSectionCostSpec,    // specification
+    2,   
+    OpUpdateSectionCostMap,     // value mapping
+    OpUpdateSectionCostSelect,  // selection function    
+    OpUpdateSectionCostTypeMap  // type mapping
+);
+
+/*
+6.23 Operator ~update\_sectionduration~
+
+*/
+ListExpr OpUpdateSectionDurationTypeMap ( ListExpr in_xArgs ){
+    
+    NList param(in_xArgs); 
+    //check the number of arguments
+    if(param.length() <2 || param.length() >3){
+        return listutils::typeError(
+               "update_sectionduration expects either 2 or 3 arguments.");
+    }
+    ListExpr xNetworkDesc = nl->First(in_xArgs);
+    //check the type of the first arguments
+    if ( ( !nl->IsAtom ( xNetworkDesc ) ) ||
+          !nl->IsEqual ( xNetworkDesc, "network" ) )
+    {
+        return listutils::typeError("1.argument should be a network");
+    }
+    
+    
+    if (param.length() == 2) 
+    {   //read the arguments
+        ListExpr xRelDesc = nl->Second(in_xArgs);
+        
+        if ( !IsRelDescription ( xRelDesc ) )
+        {
+            return listutils::typeError( "2.agument should be a relation" );
+        }
+
+        ListExpr xType;
+        string durationsTypeInfo = "(rel (tuple ((sid int) (duration real))))";
+        
+        nl->ReadFromString ( durationsTypeInfo, xType );
+        if ( !CompareSchemas ( xRelDesc, xType ) )
+        {
+           return listutils::typeError("the pattern of the relation ist wrong");
+        }
+    }
+    if ( param.length() == 3 )
+    {   //read the arguments
+        ListExpr xIdDesc = nl->Second(in_xArgs);        
+        ListExpr xDurationDesc = nl->Third(in_xArgs);
+        if (!nl->IsEqual(xIdDesc, "int"))        
+        {   
+            return listutils::typeError("2.argument should be an int.");
+        }   
+        if(!nl->IsEqual (xDurationDesc, "real"))
+        {   
+            return listutils::typeError("3.argument should be an real.");
+        }
+        
+    }
+           
+    return nl->SymbolAtom ( "bool" );
+}
+
+int OpUpdateSectionDuration_One ( Word* args, Word& result, int message,
+                         Word& local, Supplier in_pSupplier )
+{   
+    Network* pNetwork = ( Network* ) args[0].addr;
+    int secId = (( CcInt* ) args[1].addr)->GetIntval();
+    double newDuration = (( CcReal* ) args[2].addr)->GetRealval();
+    result = qp->ResultStorage ( in_pSupplier );
+    CcBool* pResult = ( CcBool* ) result.addr;
+    
+    if ( pNetwork == 0 || !pNetwork->IsDefined() )
+    {
+        string strMessage = "Network is not defined.";
+        cerr << strMessage << endl;
+        sendMessage ( strMessage );
+        pResult->Set ( false, false );
+        return 0;
+    }
+   qp->SetModified(qp->GetSon(in_pSupplier,0));
+   pResult->Set ( true, pNetwork->UpdateSectionDuration(secId,newDuration)); 
+   return 0;
+}
+int OpUpdateSectionDuration_More ( Word* args, Word& result, int message,
+                         Word& local, Supplier in_pSupplier )
+{  
+    Network* pNetwork = ( Network* ) args[0].addr;
+    Relation* pDurations = ( Relation* ) args[1].addr;
+    result = qp->ResultStorage ( in_pSupplier );
+    CcBool* pResult = ( CcBool* ) result.addr;
+    
+    if ( pNetwork == 0 || !pNetwork->IsDefined() )
+    {
+        string strMessage = "Network is not defined.";
+        cerr << strMessage << endl;
+        sendMessage ( strMessage );
+        pResult->Set ( false, false );
+        return 0;
+    }
+   qp->SetModified(qp->GetSon(in_pSupplier,0));
+   pResult->Set ( true, pNetwork->UpdateMoreSectionDuration(pDurations)); 
+   return 0;
+}
+ValueMapping OpUpdateSectionDurationMap[]=
+{   OpUpdateSectionDuration_One,
+    OpUpdateSectionDuration_More
+};
+
+int OpUpdateSectionDurationSelect(ListExpr in_xArgs){
+     NList param(in_xArgs); 
+    //check the number of arguments
+    if ( param.length() == 3 ){
+        return 0;
+    }
+    if(param.length() == 2){
+        return 1;
+    }
+    return -1;
+}
+
+const string OpUpdateSectionDurationSpec  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+    "\"Example\" ) "
+    "( <text> network x A [x real] -> bool with A as int or as rel </text--->"
+    "<text> update_sectionduration(_,_,_) </text--->"
+    "<text>Returns true, when the Update was successful.</text--->"
+    "<text>query update_sectionduration(B_NETWORK,1,5.0)</text--->"
+    ") )";
+
+Operator update_sectionduration (
+    "update_sectionduration",       // name
+    OpUpdateSectionDurationSpec,    // specification
+    2,   
+    OpUpdateSectionDurationMap,     // value mapping
+    OpUpdateSectionDurationSelect,  // selection function    
+    OpUpdateSectionDurationTypeMap  // type mapping
+);
+
+/*
+6.24 Operator ~shortespath\_astarplus~
+
+Returns the shortest path in the ~Network~ between two ~GPoint~. Using 
+AStar-Algorithm to compute the shortest path.
+
+*/
+
+ListExpr OpShortestPathAStarPlusTypeMap ( ListExpr in_xArgs )
+{
+    //check the number of arguments
+    if(nl->ListLength ( in_xArgs )  <2 || nl->ListLength ( in_xArgs ) >3){
+        return listutils::typeError(
+               "shortestpath_astarplus expects either 2 or 3 arguments.");
+    }
+
+    ListExpr xGPoint1Desc = nl->First (in_xArgs);
+    ListExpr xGPoint2Desc = nl->Second (in_xArgs);
+    
+    if ( ( !nl->IsAtom ( xGPoint1Desc ) ) ||
+            nl->AtomType ( xGPoint1Desc ) != SymbolType ||
+            nl->SymbolValue ( xGPoint1Desc ) != "gpoint" )
+    {
+        return listutils::typeError("the first parameter should be a gpoint.");
+    }   
+    if ( ( !nl->IsAtom ( xGPoint2Desc ) ) ||
+            nl->AtomType ( xGPoint2Desc ) != SymbolType ||
+            nl->SymbolValue ( xGPoint2Desc ) != "gpoint" )
+    {
+        return listutils::typeError("the second parameter should be a gpoint.");
+    }    
+        
+    if(nl->ListLength ( in_xArgs ) == 3)
+    {    
+        ListExpr map = nl->Third(in_xArgs);
+        if (  nl->IsAtom( map ) || !( nl->IsEqual(nl->First(map), "map") ) )
+        {
+            return listutils::typeError(
+                   "the third parameter should be a function.");
+        }
+        else
+        {
+            if ( nl->ListLength(map) != 5)
+            {
+              return NList::typeError(
+              "the third parameter should be a function with three parameter.");
+            }
+            if(!( nl->IsEqual(nl->Second(map), "real")) 
+               || !( nl->IsEqual(nl->Third(map), "real")) 
+               || !( nl->IsEqual(nl->Fourth(map), "real")) ){
+             return listutils::typeError(
+             "one or more parameters has the wrong type, it should be a real.");
+            }
+        }
+    }
+    
+    return nl->SymbolAtom ( "gline" );
+}
+
+int OpShortestPathAStarPlusValueMapping ( Word* args,
+                                 Word& result,
+                                 int message,
+                                 Word& local,
+                                 Supplier in_xSupplier )
+{
+  GPoint *pFromGPoint = ( GPoint* ) args[0].addr;
+  GPoint *pToGPoint = ( GPoint* ) args[1].addr;
+  Word func = args[2].addr;  
+  
+  GLine* pGLine = ( GLine* ) qp->ResultStorage ( in_xSupplier ).addr;
+  result = SetWord ( pGLine );
+
+  pGLine->SetSorted ( false );
+  pGLine->SetDefined ( 
+          pFromGPoint->ShortestPathAStarPlus ( pToGPoint, pGLine, func ) );
+  return 0;
+}
+
+const string OpShortestPathAStarPlusSpec  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+    "\"Example\" ) "
+    "( <text>gpoint x gpoint [x A] -> gline with A as (map real real real real)"
+    "</text--->"
+    "<text>shortestpath_astarplus( _ , _ ,_)</t1ext--->"
+    "<text>Calculates the shortest path between two "
+    "gpoints with the astar-algorithm.</text--->"
+    "<text>query shortestpath_astarplus([const gpoint value(1 2 0.0 0)]," 
+    "[const gpoint value(1 10 5.0 1)]);</text--->"
+    ") )";
+
+Operator shortestpath_astarplus (
+    "shortestpath_astarplus",    // name
+    OpShortestPathAStarPlusSpec,          // specification
+    OpShortestPathAStarPlusValueMapping,  // value mapping
+    Operator::SimpleSelect,        // trivial selection function
+    OpShortestPathAStarPlusTypeMap        // type mapping
+);
+
+/*
+6.25 Operator ~optimize\_network~
+
+*/
+
+ListExpr OpOptimizeNetworkTypeMap ( ListExpr in_xArgs )
+{
+    //check the number of arguments
+    if(nl->ListLength ( in_xArgs )  !=1){
+        return listutils::typeError(
+               "optimize_network expects only one argument.");
+    }
+    ListExpr xNetworkDesc = nl->First(in_xArgs);
+    //check the type of the first arguments
+    if ( ( !nl->IsAtom ( xNetworkDesc ) ) ||
+          !nl->IsEqual ( xNetworkDesc, "network" ) )
+    {
+        return listutils::typeError("1.argument should be a network");
+    }
+    return nl->SymbolAtom ( "bool" );
+}
+
+int OpOptimizeNetworkValueMapping ( Word* args,
+                                 Word& result,
+                                 int message,
+                                 Word& local,
+                                 Supplier in_xSupplier )
+{
+    Network* pNetwork = ( Network* ) args[0].addr;
+    result = qp->ResultStorage ( in_xSupplier );
+    CcBool* pResult = ( CcBool* ) result.addr;
+    
+    if ( pNetwork == 0 || !pNetwork->IsDefined() )
+    {
+        string strMessage = "Network is not defined.";
+        cerr << strMessage << endl;
+        sendMessage ( strMessage );
+        pResult->Set ( false, false );
+        return 0;
+    }
+   qp->SetModified(qp->GetSon(in_xSupplier,0));
+   pResult->Set ( true, pNetwork->OptimizeNetwork()); 
+   return 0;
+}
+
+const string OpOptimizeNetworkSpec  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+    "\"Example\" ) "
+    "( <text>network -> bool)" "</text--->"
+    "<text>optimizenet( _ )</t1ext--->"
+    "<text>Optimized the storage of the sections.</text--->"
+    "<text>query optimize_network(B_NETWORK)]);</text--->"
+    ") )";
+
+Operator optimizenet (
+    "optimizenet",    // name
+    OpOptimizeNetworkSpec,         // specification
+    OpOptimizeNetworkValueMapping,  // value mapping
+    Operator::SimpleSelect,        // trivial selection function
+    OpOptimizeNetworkTypeMap        // type mapping
+);
+
+/*
+6.26 Operator ~print\_adjacencylist~
+
+*/
+
+ListExpr OpPrintAdjacencyListTypeMap ( ListExpr in_xArgs )
+{
+    //check the number of arguments
+    if(nl->ListLength ( in_xArgs )  !=1){
+        return listutils::typeError(
+               "optimize_network expects only one argument.");
+    }
+    ListExpr xNetworkDesc = nl->First(in_xArgs);
+    //check the type of the first arguments
+    if ( ( !nl->IsAtom ( xNetworkDesc ) ) ||
+          !nl->IsEqual ( xNetworkDesc, "network" ) )
+    {
+        return listutils::typeError("1.argument should be a network");
+    }
+    return nl->SymbolAtom ( "bool" );
+}
+
+int OpPrintAdjacencyListValueMapping ( Word* args,
+                                 Word& result,
+                                 int message,
+                                 Word& local,
+                                 Supplier in_xSupplier )
+{
+    Network* pNetwork = ( Network* ) args[0].addr;
+    result = qp->ResultStorage ( in_xSupplier );
+    CcBool* pResult = ( CcBool* ) result.addr;
+    
+    if ( pNetwork == 0 || !pNetwork->IsDefined() )
+    {
+        string strMessage = "Network is not defined.";
+        cerr << strMessage << endl;
+        sendMessage ( strMessage );
+        pResult->Set ( false, false );
+        return 0;
+    }
+   pResult->Set ( true, pNetwork->PrintAdjacentSectionInfo()); 
+   return 0;
+}
+
+const string OpPrintAdjacencyListSpec  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+    "\"Example\" ) "
+    "( <text>network -> bool)" "</text--->"
+    "<text>print_adjacencylist( _ )</t1ext--->"
+    "<text>print the informations about the adjacent sections.</text--->"
+    "<text>query print_adjacencylist(B_NETWORK)]);</text--->"
+    ") )";
+
+Operator print_adjacencylist (
+    "print_adjacencylist",    // name
+    OpPrintAdjacencyListSpec,         // specification
+    OpPrintAdjacencyListValueMapping,  // value mapping
+    Operator::SimpleSelect,        // trivial selection function
+    OpPrintAdjacencyListTypeMap        // type mapping
+);
 
 
 
@@ -8761,6 +11019,11 @@ class NetworkAlgebra : public Algebra
       AddOperator ( &networkisempty );
       AddOperator ( &networkunion );
       AddOperator ( &networkdistance );
+      AddOperator ( &update_sectioncost);
+      AddOperator ( &update_sectionduration);
+      AddOperator ( &shortestpath_astarplus);
+      AddOperator ( &optimizenet);
+      AddOperator ( &print_adjacencylist);
 
     }
     ~NetworkAlgebra() {delete netList;};
