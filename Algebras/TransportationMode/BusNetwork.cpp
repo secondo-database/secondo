@@ -6330,7 +6330,7 @@ btree_trip_br_id(NULL)
     delete btree_trip_oid;
     return;
   }
-  
+
 }
 
 BusNetwork::~BusNetwork()

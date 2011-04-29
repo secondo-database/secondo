@@ -366,11 +366,11 @@ const string SpatialSpecPathInRegion =
 const string OpTMCreateIGSpec  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" "
     "\"Example\" ) "
-    "( <text>int x rel x rel -> indoorgraph</text--->"
-    "<text>createigraph(int, rel, rel)</text--->"
+    "( <text>int x rel x rel x string -> indoorgraph</text--->"
+    "<text>createigraph(int, rel, rel, string)</text--->"
     "<text>create an indoor graph by the input edges and nodes"
     "relation</text--->"
-    "<text>query createigraph(1, edge-rel, node-rel); </text--->"
+    "<text>query createigraph(1, edge-rel, node-rel, \"cinema\"); </text--->"
     ") )";
 
 const string OpTMGetAdjNodeIGSpec  =
@@ -1094,13 +1094,14 @@ TypeMap fun for operator createigraph
 
 ListExpr OpTMCreateIGTypeMap ( ListExpr args )
 {
-  if ( nl->ListLength ( args ) != 3 )
+  if ( nl->ListLength ( args ) != 4 )
   {
     return ( nl->SymbolAtom ( "typeerror" ) );
   }
   ListExpr xIdDesc = nl->First(args);
   ListExpr xNodeDesc = nl->Second(args);
   ListExpr xEdgeDesc = nl->Third(args);
+  ListExpr graph_type = nl->Fourth(args);
   if(!nl->IsEqual(xIdDesc, "int")) return nl->SymbolAtom ( "typeerror" );
   if(!IsRelDescription(xEdgeDesc) || !IsRelDescription(xNodeDesc))
       return nl->SymbolAtom ( "typeerror" );
@@ -1111,6 +1112,10 @@ ListExpr OpTMCreateIGTypeMap ( ListExpr args )
 
   nl->ReadFromString(IndoorGraph::EdgeTypeInfo, xType);
   if(!CompareSchemas(xEdgeDesc, xType))return nl->SymbolAtom ( "typeerror" );
+
+  if(!(nl->IsAtom(graph_type) && nl->AtomType(graph_type) == SymbolType &&
+     nl->SymbolValue(graph_type) == "string"))
+    return nl->SymbolAtom ("typeerror");
 
   return nl->SymbolAtom ( "indoorgraph" );
 }
@@ -2225,7 +2230,9 @@ int OpTMCreateIGValueMap ( Word* args, Word& result, int message,
   int ig_id = ((CcInt*)args[0].addr)->GetIntval();
   Relation* node_rel = (Relation*)args[1].addr;
   Relation* edge_rel = (Relation*)args[2].addr;
-  ig->Load(ig_id, node_rel, edge_rel);
+  string type = ((CcString*)args[3].addr)->GetValue();
+  
+  ig->Load(ig_id, node_rel, edge_rel, GetBuildingType(type));
   result = SetWord(ig);
   return 0;
 }
@@ -2455,12 +2462,25 @@ int GenerateMO1_I_ValueMap(Word* args, Word& result, int message,
             new TupleType(nl->Second(GetTupleResultType(in_pSupplier)));
 
         unsigned int num_elev = indoor_nav->NumerOfElevators(); 
-        if(num_elev == 1)
+        if(num_elev <= 1){
+           if(num > 0)
             indoor_nav->GenerateMO1(ig, btree, rtree, num, peri, false);
-        else
-            indoor_nav->GenerateMO1_New(ig, btree, rtree, num, 
+           else ////////special movement to building entrance 
+//        indoor_nav->GenerateMO2_End(ig, btree, rtree, fabs(num), peri, false);
+          ////////////////from building entrance//////////////////////////
+        indoor_nav->GenerateMO2_Start(ig, btree, rtree, fabs(num), peri, false);
+
+        }else{
+            if(num > 0)
+              indoor_nav->GenerateMO1_New(ig, btree, rtree, num, 
                                     peri, false, num_elev);
 
+            else
+              indoor_nav->GenerateMO2_New_Start(ig, btree, rtree, fabs(num),
+                                    peri, false, num_elev);//from entrance
+//              indoor_nav->GenerateMO2_New_End(ig, btree, rtree, fabs(num),
+//                                    peri, false, num_elev);//to entrance
+        }
         local.setAddr(indoor_nav);
         return 0;
       }
@@ -2491,6 +2511,8 @@ int GenerateMO1_I_ValueMap(Word* args, Word& result, int message,
 
 /*
 ValueMap function for operator generatemo1 
+if the number is less then zero, it creates the path from a room to the 
+  building entrance (a special case)
 
 */
 int GenerateMO1_I_GenMO_ValueMap(Word* args, Word& result, int message,
@@ -2513,11 +2535,25 @@ int GenerateMO1_I_GenMO_ValueMap(Word* args, Word& result, int message,
             new TupleType(nl->Second(GetTupleResultType(in_pSupplier)));
 
         unsigned int num_elev = indoor_nav->NumerOfElevators(); 
-        if(num_elev == 1)
-          indoor_nav->GenerateMO1(ig, btree, rtree, num, peri, true);
-        else
-          indoor_nav->GenerateMO1_New(ig, btree, rtree, num, peri, 
+        if(num_elev <= 1){
+          if(num > 0)
+            indoor_nav->GenerateMO1(ig, btree, rtree, num, peri, true);
+          else////////special movement to building entrance 
+//         indoor_nav->GenerateMO2_End(ig, btree, rtree, fabs(num), peri, true);
+
+          ///////////////from building entrance///////////////////////
+         indoor_nav->GenerateMO2_Start(ig, btree, rtree, fabs(num), peri, true);
+        }
+        else{
+          if(num > 0)
+            indoor_nav->GenerateMO1_New(ig, btree, rtree, num, peri, 
                                       true, num_elev);
+           else
+            indoor_nav->GenerateMO2_New_Start(ig, btree, rtree, fabs(num), peri,
+                                      true, num_elev);//from entrance
+//            indoor_nav->GenerateMO2_New_End(ig, btree, rtree, fabs(num), peri,
+//                                      true, num_elev);//to entrance 
+        }
 
         local.setAddr(indoor_nav);
         return 0;
@@ -4285,7 +4321,6 @@ int RefIdOpSelect(ListExpr args)
 ValueMapping TMATValueMapVM[]={
   TMATValueMap
 //  GenLocATValueMap,
-//  GenRangeATValueMap,
 };
 
 int TMATOpSelect(ListExpr args)
@@ -6412,17 +6447,6 @@ const string OpTMMaxRectSpec  =
     "<text>query maxrect(r1);</text--->"
     ") )";
 
-const string OpTMGetRect2Spec  =
-    "( ( \"Signature\" \"Syntax\" \"Meaning\" "
-    "\"Example\" ) "
-    "( <text>rel x attr1 x attr2 x attr3 x btree x int ->"
-    "(stream (tuple( (x1 t1)(x2 t2)...(xn tn)))</text--->"
-    "<text>getrect(rel, attr, attr, attr, btree, int);</text--->"
-    "<text>get the maximum rectangle area for a region</text--->"
-    "<text>query getrect(building_regions, id, covarea, reg_type, btree_build "
-    "10);</text--->"
-    ") )";
-    
 const string OpTMGetRect1Spec  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" "
     "\"Example\" ) "
@@ -6451,10 +6475,12 @@ const string OpTMPathToBuildingSpec  =
 const string OpTMSetBuildingTypeSpec  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" "
     "\"Example\" ) "
-    "( <text>rel x rtree-> (stream (tuple( (x1 t1)(x2 t2)...(xn tn)))</text--->"
-    "<text>set_building_type(rel, rtree);</text--->"
+    "( <text>rel x rtree x space -> "
+    "(stream (tuple( (x1 t1)(x2 t2)...(xn tn)))</text--->"
+    "<text>set_building_type(rel, rtree, space);</text--->"
     "<text>set the type for each building</text--->"
-    "<text>query set_building_type(building_region_type,rtree_build);</text--->"
+    "<text>query set_building_type(building_region_type, "
+    "rtree_build, space_1);</text--->"
     ") )";
 
 /*
@@ -12035,99 +12061,6 @@ ListExpr OpTMMaxRectTypeMap ( ListExpr args )
     return nl->SymbolAtom ( "typeerror: param1 should be region" );
 }
 
-/*
-TypeMap fun for operator getrect. get the maximum rectangle from a convex
-region 
-
-*/
-
-ListExpr OpTMGetRect2TypeMap ( ListExpr args )
-{
-  if ( nl->ListLength ( args ) != 7 )
-  {
-    return  nl->SymbolAtom ( "list length should be 7" );
-  }
-  ListExpr param1 = nl->First ( args );
-  if(!IsRelDescription(param1))
-    return nl->SymbolAtom ( "typeerror: param1 should be a relation" );
-
-  
-  ListExpr attrName1 = nl->Second ( args );
-  ListExpr attrType1;
-  string aname1 = nl->SymbolValue(attrName1);
-  int j1 = listutils::findAttribute(nl->Second(nl->Second(param1)),
-                      aname1,attrType1);
-
-  if(j1 == 0 || !listutils::isSymbol(attrType1,"int")){
-      return listutils::typeError("attr name" + aname1 + "not found"
-                      "or not of type int");
-  }
-
-  ListExpr attrName2 = nl->Third ( args );
-  ListExpr attrType2;
-  string aname2 = nl->SymbolValue(attrName2);
-  int j2 = listutils::findAttribute(nl->Second(nl->Second(param1)),
-                      aname2, attrType2);
-
-  if(j2 == 0 || !listutils::isSymbol(attrType2,"rect")){
-      return listutils::typeError("attr name" + aname2 + "not found"
-                      "or not of type rect");
-  }
-
-  ListExpr attrName3 = nl->Fourth ( args );
-  ListExpr attrType3;
-  string aname3 = nl->SymbolValue(attrName3);
-  int j3 = listutils::findAttribute(nl->Second(nl->Second(param1)),
-                      aname3, attrType3);
-
-  if(j3 == 0 || !listutils::isSymbol(attrType3,"int")){
-      return listutils::typeError("attr name" + aname3 + "not found"
-                      "or not of type int");
-  }
-
-  ListExpr attrName4 = nl->Fifth ( args );
-  ListExpr attrType4;
-  string aname4 = nl->SymbolValue(attrName4);
-  int j4 = listutils::findAttribute(nl->Second(nl->Second(param1)),
-                      aname4, attrType4);
-
-  if(j4 == 0 || !listutils::isSymbol(attrType4,"int")){
-      return listutils::typeError("attr name" + aname3 + "not found"
-                      "or not of type int");
-  }
-
-
-  ListExpr param6 = nl->Sixth ( args );
-  if(!listutils::isBTreeDescription(param6))
-    return nl->SymbolAtom ( "typeerror: param6 should be a btree" );
-
-  if(!(nl->IsEqual(nl->Nth(7, args),"int")))
-    return nl->SymbolAtom ( "typeerror: param7 should be an int" );
-
-  ListExpr res = nl->TwoElemList(
-            nl->SymbolAtom("stream"),
-            nl->TwoElemList(
-                nl->SymbolAtom("tuple"),
-                nl->FourElemList(
-                    nl->TwoElemList(
-                        nl->SymbolAtom("reg_id"),
-                        nl->SymbolAtom("int")),
-                    nl->TwoElemList(
-                        nl->SymbolAtom("geoData"),
-                        nl->SymbolAtom("rect")),
-                    nl->TwoElemList(
-                        nl->SymbolAtom("poly_id"),
-                        nl->SymbolAtom("int")),
-                    nl->TwoElemList(
-                        nl->SymbolAtom("reg_type"),
-                        nl->SymbolAtom("int"))
-                    )));
-      return nl->ThreeElemList(
-        nl->SymbolAtom("APPEND"),
-        nl->FourElemList(nl->IntAtom(j1), nl->IntAtom(j2), 
-                         nl->IntAtom(j3), nl->IntAtom(j4)), res);
-}
-
 
 /*
 TypeMap fun for operator getrect. get the maximum rectangle from a convex
@@ -12207,7 +12140,7 @@ ListExpr OpTMPathToBuildingTypeMap ( ListExpr args )
     return nl->SymbolAtom ( "typeerror: param1 should be a relation" );
 
   ListExpr xType1;
-  nl->ReadFromString(MaxRect::BuildingRectTypeInfo, xType1); 
+  nl->ReadFromString(MaxRect::BuildingRectExtTypeInfo, xType1);
   if(!CompareSchemas(param1, xType1)){
       string err = "rel (tuple ((reg_id int) (geoData rect) (poly_id int) \
                    (reg_type int))) expected";
@@ -12248,24 +12181,48 @@ ListExpr OpTMPathToBuildingTypeMap ( ListExpr args )
                               nl->SymbolAtom("sp"),
                               nl->SymbolAtom("point")),
                             nl->TwoElemList(
+                              nl->SymbolAtom("sp_index"),
+                              nl->SymbolAtom("int")),
+                            nl->TwoElemList(
                               nl->SymbolAtom("ep"),
                               nl->SymbolAtom("point")),
                             nl->TwoElemList(
                               nl->SymbolAtom("ep2"),
                               nl->SymbolAtom("point")),
                             nl->TwoElemList(
-                              nl->SymbolAtom("sp_type"),
-                              nl->SymbolAtom("int")),
-                            nl->TwoElemList(
-                              nl->SymbolAtom("building_id"),
-                              nl->SymbolAtom("int")),
-                            nl->TwoElemList(
                               nl->SymbolAtom("ep2_gloc"),
-                              nl->SymbolAtom("genloc")))
+                              nl->SymbolAtom("genloc")),
+                            nl->TwoElemList(
+                              nl->SymbolAtom("Path"),
+                              nl->SymbolAtom("line")))
                     )));
 
-      return res;
+//   ListExpr res = nl->TwoElemList(
+//             nl->SymbolAtom("stream"),
+//             nl->TwoElemList(
+//                 nl->SymbolAtom("tuple"),
+//                       nl->SixElemList(
+//                             nl->TwoElemList(
+//                               nl->SymbolAtom("reg_id"),
+//                               nl->SymbolAtom("int")),
+//                             nl->TwoElemList(
+//                               nl->SymbolAtom("sp"),
+//                               nl->SymbolAtom("point")),
+//                             nl->TwoElemList(
+//                               nl->SymbolAtom("ep"),
+//                               nl->SymbolAtom("point")),
+//                             nl->TwoElemList(
+//                               nl->SymbolAtom("ep2"),
+//                               nl->SymbolAtom("point")),
+//                             nl->TwoElemList(
+//                               nl->SymbolAtom("ep2_gloc"),
+//                               nl->SymbolAtom("genloc")),
+//                             nl->TwoElemList(
+//                               nl->SymbolAtom("Path"),
+//                               nl->SymbolAtom("line"))
+//                      )));
 
+    return res;
 }
 
 /*
@@ -12275,7 +12232,7 @@ TypeMap fun for operator set building type.
 
 ListExpr OpTMSetBuildingTypeTypeMap ( ListExpr args )
 {
-  if ( nl->ListLength ( args ) != 2 )
+  if ( nl->ListLength ( args ) != 3 )
   {
     return  nl->SymbolAtom ( "list length should be 2" );
   }
@@ -12298,14 +12255,20 @@ ListExpr OpTMSetBuildingTypeTypeMap ( ListExpr args )
       return listutils::typeError(err);
   }
 
-  ListExpr res = nl->TwoElemList(
+  ListExpr param3 = nl->Third ( args );
+  if(!nl->IsEqual(param3, "space"))
+    return nl->SymbolAtom ( "typeerror: param3 should be space" );
+
+
+    ListExpr res = nl->TwoElemList(
             nl->SymbolAtom("stream"),
             nl->TwoElemList(
                 nl->SymbolAtom("tuple"),
-                      nl->SixElemList(
+                      nl->Cons(
                             nl->TwoElemList(
                               nl->SymbolAtom("reg_id"),
                               nl->SymbolAtom("int")),
+                      nl->SixElemList(
                             nl->TwoElemList(
                               nl->SymbolAtom("geoData"),
                               nl->SymbolAtom("rect")),
@@ -12320,11 +12283,12 @@ ListExpr OpTMSetBuildingTypeTypeMap ( ListExpr args )
                               nl->SymbolAtom("int")),
                             nl->TwoElemList(
                               nl->SymbolAtom("building_type2"),
-                              nl->SymbolAtom("string")))
-                    ));
-
-      return res;
-
+                              nl->SymbolAtom("string")),
+                            nl->TwoElemList(
+                              nl->SymbolAtom("building_id"),
+                              nl->SymbolAtom("int")))
+                    )));
+    return res;
 }
 
 /*
@@ -17777,68 +17741,6 @@ int OpTMMaxRectValueMap ( Word* args, Word& result, int message,
     return 0;
 }
 
-/*
-according to the user requirement, it gets the corresponding number of 
-rectangles from the input integer 
-
-*/
-int OpTMGetRect2ValueMap ( Word* args, Word& result, int message,
-                         Word& local, Supplier in_pSupplier )
-{
-  MaxRect* max_rect;
-  switch(message){
-      case OPEN:{
-
-        Relation* r = (Relation*)args[0].addr;
-        int attr1 = ((CcInt*)args[7].addr)->GetIntval() - 1;
-        int attr2 = ((CcInt*)args[8].addr)->GetIntval() - 1; 
-        int attr3 = ((CcInt*)args[9].addr)->GetIntval() - 1;
-        int attr4 = ((CcInt*)args[10].addr)->GetIntval() - 1; 
-        BTree* btree = (BTree*)args[5].addr;
-
-        int no_buildings = ((CcInt*)args[6].addr)->GetIntval(); 
-
-        max_rect = new MaxRect(r);
-        max_rect->resulttype =
-            new TupleType(nl->Second(GetTupleResultType(in_pSupplier)));
-
-        max_rect->GetRectangle(attr1, attr2, attr3, attr4, 
-                               btree, no_buildings);
-        local.setAddr(max_rect);
-        return 0;
-      }
-      case REQUEST:{
-          if(local.addr == NULL) return CANCEL;
-          max_rect = (MaxRect*)local.addr;
-          if(max_rect->count == max_rect->reg_id_list.size())return CANCEL;
-
-          Tuple* tuple = new Tuple(max_rect->resulttype);
-          tuple->PutAttribute(0, 
-                       new CcInt(true, max_rect->reg_id_list[max_rect->count]));
-          tuple->PutAttribute(1, 
-                     new Rectangle<2>(max_rect->rect_list[max_rect->count]));
-          tuple->PutAttribute(2,
-                      new CcInt(true, max_rect->poly_id_list[max_rect->count]));
-          tuple->PutAttribute(3,
-                     new CcInt(true, max_rect->reg_type_list[max_rect->count]));
-
-          result.setAddr(tuple);
-          max_rect->count++;
-          return YIELD;
-      }
-      case CLOSE:{
-          if(local.addr){
-            max_rect = (MaxRect*)local.addr;
-            delete max_rect;
-            local.setAddr(Address(0));
-          }
-          return 0;
-      }
-  }
-  return 0;
-  
-}
-
 
 /*
 get the maximum rectangle from the region relations 
@@ -17916,30 +17818,35 @@ int OpTMPathToBuildingValueMap ( Word* args, Word& result, int message,
             new TupleType(nl->Second(GetTupleResultType(in_pSupplier)));
 
         max_rect->PathToBuilding(sp);
+
+
         local.setAddr(max_rect);
         return 0;
       }
       case REQUEST:{
           if(local.addr == NULL) return CANCEL;
           max_rect = (MaxRect*)local.addr;
-          if(max_rect->count == max_rect->reg_id_list.size())return CANCEL;
+          if(max_rect->count == max_rect->reg_id_list.size()) return CANCEL;
 
           Tuple* tuple = new Tuple(max_rect->resulttype);
-          tuple->PutAttribute(0, 
+
+          tuple->PutAttribute(0,
                        new CcInt(true,max_rect->reg_id_list[max_rect->count]));
-          tuple->PutAttribute(1, 
+          tuple->PutAttribute(1,
                        new Point(max_rect->sp_list[max_rect->count]));
-          tuple->PutAttribute(2, 
+          tuple->PutAttribute(2,
+                     new CcInt(true, max_rect->sp_index_list[max_rect->count]));
+          tuple->PutAttribute(3,
                        new Point(max_rect->ep_list[max_rect->count]));
-          tuple->PutAttribute(3, 
-                       new Point(max_rect->ep_list2[max_rect->count]));
           tuple->PutAttribute(4, 
-                      new CcInt(true, max_rect->sp_type_list[max_rect->count]));
+                        new Point(max_rect->ep_list2[max_rect->count]));
           tuple->PutAttribute(5, 
-                     new CcInt(true, max_rect->build_id_list[max_rect->count]));
+                        new GenLoc(max_rect->genloc_list[max_rect->count]));
           tuple->PutAttribute(6, 
-                       new GenLoc(max_rect->genloc_list[max_rect->count]));
-          result.setAddr(tuple);
+                        new Line(max_rect->path_list[max_rect->count]));
+
+           result.setAddr(tuple);
+
           max_rect->count++;
           return YIELD;
       }
@@ -17969,12 +17876,13 @@ int OpTMSetBuildingTypeValueMap ( Word* args, Word& result, int message,
 
         Relation* r1 = (Relation*)args[0].addr;
         R_Tree<2,TupleId>* rtree = (R_Tree<2,TupleId>*)args[1].addr;
+        Space* sp = (Space*)args[2].addr; 
 
         max_rect = new MaxRect(r1, NULL, NULL);
         max_rect->resulttype =
             new TupleType(nl->Second(GetTupleResultType(in_pSupplier)));
 
-        max_rect->SetBuildingType(rtree);
+        max_rect->SetBuildingType(rtree, sp);
         local.setAddr(max_rect);
         return 0;
       }
@@ -17996,6 +17904,9 @@ int OpTMSetBuildingTypeValueMap ( Word* args, Word& result, int message,
                    new CcInt(true, max_rect->build_type_list[max_rect->count]));
           tuple->PutAttribute(5,
                new CcString(true, max_rect->build_type2_list[max_rect->count]));
+          tuple->PutAttribute(6,
+               new CcInt(true, max_rect->build_id_list[max_rect->count]));
+
           result.setAddr(tuple);
           max_rect->count++;
           return YIELD;
@@ -18990,15 +18901,6 @@ Operator remove_dirty(
   OpTMRemoveDirtyTypeMap //type mapping 
 );
 
-
-Operator getrect2(
-  "getrect2",  //name 
-  OpTMGetRect2Spec, //specification
-  OpTMGetRect2ValueMap, //value mapping 
-  Operator::SimpleSelect,
-  OpTMGetRect2TypeMap //type mapping 
-);
-
 Operator getrect1(
   "getrect1",  //name 
   OpTMGetRect1Spec, //specification
@@ -19253,12 +19155,11 @@ class TransportationModeAlgebra : public Algebra
     AddOperator(&maxrect); //get the maximum rect in a region
     AddOperator(&remove_dirty); //clear dirty data 
     AddOperator(&getrect1); //get all rectangles for buildings 
-    AddOperator(&getrect2); //randomly select some of them from input int
     AddOperator(&path_to_building);//connect building entrance and pavement
     AddOperator(&set_building_type);//set which type the building is 
     /////////non-temporal operators for generic data types////////////////////
     AddOperator(&ref_id); 
-    AddOperator(&tm_at);//at mode, at genloc, at genrange 
+    AddOperator(&tm_at);//at mode, at genloc
     ///////////////////////////////////////////////////////////////////////
     /////////temporal operators for generic data types////////////////////
     //////////////////////////////////////////////////////////////////////

@@ -7762,7 +7762,6 @@ Rectangle<2> GetMaxRect(Region* reg)
      return Rectangle<2>(false, 0.0, 0.0, 0.0, 0.0); 
 }
 
-
 /////////////////////////////////////////////////////////////////////////
 //////////// the  following implementation from /////////////////////////
 ////H. Alt, D. Hsu, and J. Snoeyink. ////////////////////////////////////
@@ -7771,12 +7770,6 @@ Rectangle<2> GetMaxRect(Region* reg)
 ////////////Universit'e Laval, Qu'ebec, August 1995, pp. 67--72./////////
 //////// the original code is by Java, I conver it to C, c++/////////////
 /////////////////////////////////////////////////////////////////////////
-string MaxRect::BuildingRectTypeInfo = 
-"(rel (tuple ((reg_id int) (geoData rect) (poly_id int) (reg_type int))))"; 
-
-string MaxRect::RegionElemTypeInfo = 
-"(rel (tuple ((id int) (covarea region))))" ; 
-
 
 void MaxRect::SetPoint(vector<GeomPoint>& list)
 {
@@ -8195,6 +8188,15 @@ void MaxRect::computeLargestRectangle(){
 ////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////
+string MaxRect::BuildingRectTypeInfo = 
+"(rel (tuple ((reg_id int) (geoData rect) (poly_id int) (reg_type int))))"; 
+
+string MaxRect::RegionElemTypeInfo = 
+"(rel (tuple ((id int) (covarea region))))";
+
+string MaxRect::BuildingRectExtTypeInfo =
+"(rel (tuple ((reg_id int) (geoData rect) (poly_id int) (reg_type int) \
+(building_type int) (building_type2 string) (building_id int))))";
 
 /*
 remove some dirty data for regions. two subregions intersect at a point 
@@ -8549,140 +8551,6 @@ void MaxRect::MergeTriangle(CompTriangle* ct, int reg_id)
   }
 }
 
-/*
-get the maximum rectangle in a polygon. the input has an integer showing how
-many rectangles it needs. The result is the corresponding number of 
-rectangles. 
-
-*/
-void MaxRect::GetRectangle(int attr1, int attr2, int attr3, int attr4, 
-                           BTree* btree, int no_buildings)
-{
-  if(no_buildings > rel1->GetNoTuples()){
-    cout<<"maximum "<<rel1->GetNoTuples()<<" buildings"<<endl;
-    return; 
-  }
-//  cout<<"attr1 "<<attr1<<" attr2 "<<attr2<<endl; 
-  ///////////////////////////////////////////////////////////////////////
-  ///////////// first distribute the areas //////////////////////////////
-  ///////////////////////////////////////////////////////////////////////
-  //  cout<<"create "<<no_buildings<<" buildings "<<endl;
-
-  vector<int> no_type; 
- for(int i = 1;i <= rel1->GetNoTuples();i++){
-    Tuple* region_tuple = rel1->GetTuple(i, false); 
-    int type = ((CcInt*)region_tuple->GetAttribute(attr4))->GetIntval();
-    if(no_type.size() == 0)
-      no_type.push_back(type);
-    else{
-      unsigned int j = 0;
-      for(;j < no_type.size();j++){
-        if(no_type[j] == type)break;
-      }
-      if(j == no_type.size())no_type.push_back(type); 
-    }
- }
- sort(no_type.begin(), no_type.end()); 
-
- int building_loc_type = no_type.size();
-
-// cout<<"building loc type "<<building_loc_type<<endl; 
-
- /////////////// the number of buildings for each kind of location////////
- vector<int> num_build_type; 
- 
- for(int i = 0;i < building_loc_type - 1;i++){
-    num_build_type.push_back((int)(no_buildings/building_loc_type));
- }
- int count = 0;
- for(unsigned int i = 0;i < num_build_type.size();i++)
-   count += num_build_type[i]; 
- assert(count < no_buildings); 
- num_build_type.push_back(no_buildings - count); 
- 
-// for(unsigned int i = 0;i < num_build_type.size();i++)
-//  cout<<"loc "<<(i + 1)<<" "<<num_build_type[i]<<endl; 
- 
- //////////////////////////////////////////////////////////////////////////
- vector< vector<int> > build_tid_list; //the tid for each kind of region type 
-
- for(unsigned int i = 0;i < no_type.size();i++){
- 
-    CcInt* search_id = new CcInt(true, no_type[i]);
-    BTreeIterator* btree_iter = btree->ExactMatch(search_id);
-    vector<int> tid_list; 
-    while(btree_iter->Next()){
-        Tuple* tuple = rel1->GetTuple(btree_iter->GetId(), false);
-        tid_list.push_back(tuple->GetTupleId());
-        tuple->DeleteIfAllowed();
-    }
-    delete btree_iter;
-    delete search_id;
-    build_tid_list.push_back(tid_list); 
- }
-
-// for(unsigned int i = 0;i < build_tid_list.size();i++)
-//   cout<<build_tid_list[i].size()<<endl; 
-
- for(unsigned int i = 0;i < no_type.size();i++){
-  int no_build = num_build_type[i];//number of regions for this kind of distance
-
-  vector<int> region_tid_list; 
-  
-  unsigned int index = 0; 
-  while(no_build > 0 && index < build_tid_list[i].size()){
-//    struct timeval tval;
-//    struct timezone tzone;
-
-//    gettimeofday(&tval, &tzone);
-//    srand48(tval.tv_sec);//second 
-
-//  index = lrand48() % build_tid_list[i].size();
-//    index = index % build_tid_list[i].size();
-    index = GetRandom() % build_tid_list[i].size();
-    int tid = build_tid_list[i][index]; 
-
-    if(region_tid_list.size() == 0){
-        AddRect(tid, attr1, attr2, attr3, attr4);
-        region_tid_list.push_back(tid); 
-        no_build--; 
-        index++;
-    }else{
-      unsigned int j = 0;
-      for(;j < region_tid_list.size();j++){
-        if(region_tid_list[j] == tid)break;
-      }
-      if(j == region_tid_list.size()){
-          AddRect(tid, attr1, attr2, attr3, attr4); 
-          region_tid_list.push_back(tid);
-          no_build--; 
-          index++;
-      }
-    }
-  }
-//  cout<< region_tid_list.size()<<endl; 
- }
-
-}
-
-void MaxRect::AddRect(int tid, int attr1, int attr2, int attr3, int attr4)
-{
-  Tuple* region_tuple = rel1->GetTuple(tid, false); 
-  int reg_id = ((CcInt*)region_tuple->GetAttribute(attr1))->GetIntval();
-//  cout<<"reg_id "<<reg_id<<endl; 
-
-  Rectangle<2>* r = (Rectangle<2>*)region_tuple->GetAttribute(attr2); 
-  int poly_id = ((CcInt*)region_tuple->GetAttribute(attr3))->GetIntval();
-  int reg_type = ((CcInt*)region_tuple->GetAttribute(attr4))->GetIntval();
-
-  reg_id_list.push_back(reg_id);
-  rect_list.push_back(*r);
-  poly_id_list.push_back(poly_id);
-  reg_type_list.push_back(reg_type);
-
-  region_tuple->DeleteIfAllowed();
-
-}
 
 /*
 two triangles share one edge 
@@ -8858,21 +8726,142 @@ bool MaxRect::ValidRegion(Region* r)
 }
 
 /*
-classify the 2d rectangle areas into several groups by the area  
-small areas might be for personl apartments.
-big areas might be airport, shopping mall 
+for each start point, 
+choose the one that is the closest to the polygon boundary
+record which side it belongs to
 
 */
-int MaxRect::GetRectType(float area)
+void MaxRect::SetStartAndEndPoint(Region* r,  
+                             vector<Point>& build_sp_list, 
+                             vector<Point>& build_ep_list)
 {
-  return 0; 
+  SpacePartition* s_p = new SpacePartition();
+
+  for(unsigned int i = 0;i < build_sp_list.size();i++){
+      vector<MyPoint> point_dist_list;
+      for(int j = 0;j < r->Size();j++){
+        HalfSegment hs;
+        r->Get(j, hs);
+        if(!hs.IsLeftDomPoint())continue;
+
+        double d;
+        Point cp(true, 0, 0);
+
+        d = s_p->GetClosestPoint(hs, build_sp_list[i], cp);
+        MyPoint mpe(cp, d);
+        point_dist_list.push_back(mpe);
+      }
+    sort(point_dist_list.begin(), point_dist_list.end());
+
+//     for(unsigned int k = 0;k < point_dist_list.size();k++)
+//        point_dist_list[k].Print();
+
+    build_ep_list.push_back(point_dist_list[0].loc);
+  }
+  delete s_p;
+ 
 }
 
+/////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////
 
 /*
+load the pointers to all types of buildings 
+
+*/
+void MaxRect::OpenBuilding()
+{
+  for(unsigned int i = 0;i < ARR_SIZE(str_build_type);i++){
+    if(i == 0){
+      build_pointer.push_back(NULL);
+      continue;
+    }
+    bool found = false;
+    ListExpr xObjectList = SecondoSystem::GetCatalog()->ListObjects();
+      xObjectList = nl->Rest(xObjectList);
+      while(!nl->IsEmpty(xObjectList)){
+          // Next element in list
+          ListExpr xCurrent = nl->First(xObjectList);
+          xObjectList = nl->Rest(xObjectList);
+          // Type of object is at fourth position in list
+          ListExpr xObjectType = nl->First(nl->Fourth(xCurrent));
+          if(nl->IsAtom(xObjectType) &&
+             nl->SymbolValue(xObjectType) == "building"){
+
+            // Get name of the bus graph 
+            ListExpr xObjectName = nl->Second(xCurrent);
+            string strObjectName = nl->SymbolValue(xObjectName);
+
+            // Load object to find out the id of the pavement
+            Word xValue;
+            bool bDefined;
+            bool bOk = SecondoSystem::GetCatalog()->GetObject(strObjectName,
+                                                        xValue,
+                                                        bDefined);
+            if(!bDefined || !bOk){
+              // Undefined
+              continue;
+            }
+            Building* building = (Building*)xValue.addr;
+            if(building->GetType() == i){
+              build_pointer.push_back(building);
+              found = true;
+              break;
+            }else{
+          SecondoSystem::GetCatalog()->CloseObject(nl->SymbolAtom( "building" ),
+                                           xValue); 
+            }
+          }
+      }
+    if(found == false)
+      build_pointer.push_back(NULL);
+
+  }
+}
+
+void MaxRect::CloseBuilding()
+{
+  for(unsigned int i = 0;i < ARR_SIZE(str_build_type);i++){
+    if(build_pointer[i] != NULL){
+      Word xValue;
+      xValue.addr = build_pointer[i];
+      SecondoSystem::GetCatalog()->CloseObject(nl->SymbolAtom( "building" ),
+                                           xValue);
+    }
+  }
+}
+
+/*
+for each building, it opens and closes the indoor graph 
+
+*/
+void MaxRect::OpenIndoorGraph()
+{
+  for(unsigned int i = 0;i < build_pointer.size();i++){
+    if(build_pointer[i] == NULL){
+      igraph_pointer.push_back(NULL);
+      continue;
+    }
+    igraph_pointer.push_back(build_pointer[i]->OpenIndoorGraph());
+  }
+}
+
+void MaxRect::CloseIndoorGraph()
+{
+  for(unsigned int i = 0;i < igraph_pointer.size();i++){
+    if(igraph_pointer[i] == NULL){
+      continue;
+    }
+    build_pointer[i]->CloseIndoorGraph(igraph_pointer[i]);
+  }
+}
+
+/*
+
 build the path between the entrance of the building and pavement area
 which point to select on the polygon boundary:
 which point to set as the entrance of the building on the rectangle 
+create the path from building entrance to pavement area 
 
 */
 void MaxRect::PathToBuilding(Space* gl_sp)
@@ -8882,12 +8871,16 @@ void MaxRect::PathToBuilding(Space* gl_sp)
 
   Pavement* pave = gl_sp->LoadPavement(IF_REGION);
   DualGraph* dg = pave->GetDualGraph();
-  int64_t cur_max_ref_id = gl_sp->MaxRefId() + 1;
-//  cout<<" max ref id "<<cur_max_ref_id<<endl; 
-  if(cur_max_ref_id == 0){
-    cout<<"!!! the space is empty"<<endl;
-    return;
+
+  ////////////////load all buildings and indoor graphs////////////////////////
+  OpenBuilding();
+  OpenIndoorGraph();
+
+  for(unsigned int i = 0;i < build_pointer.size();i++){
+    if(build_pointer[i] != NULL)cout<<GetBuildingStr(i)<<endl;
+    if(igraph_pointer[i] != NULL)cout<<GetBuildingStr(i)<<endl;
   }
+ ////////////////////////////////////////////////////////////////////
 
   /////for each original polygon, it collects all rectangles inside /////
   //////select point from the polygon boundary //////
@@ -8896,17 +8889,12 @@ void MaxRect::PathToBuilding(Space* gl_sp)
     Tuple* poly_tuple = rel2->GetTuple(i, false);
     int poly_id = ((CcInt*)poly_tuple->GetAttribute(REGID))->GetIntval(); 
 
-//     if(poly_id != 2494){
-//         poly_tuple->DeleteIfAllowed();
-//         continue; 
-//     }
-
     CcInt* search_id = new CcInt(true, poly_id);
     BTreeIterator* btree_iter = btree->ExactMatch(search_id);
     vector<int> rect_tid_list;
     while(btree_iter->Next()){
         Tuple* tuple = rel1->GetTuple(btree_iter->GetId(), false);
-        int poly_id2 = ((CcInt*)tuple->GetAttribute(POLY_ID))->GetIntval();
+        int poly_id2 = ((CcInt*)tuple->GetAttribute(POLY_ID_EXT))->GetIntval();
         assert(poly_id == poly_id2);
         rect_tid_list.push_back(btree_iter->GetId());
         tuple->DeleteIfAllowed();
@@ -8914,35 +8902,37 @@ void MaxRect::PathToBuilding(Space* gl_sp)
     delete btree_iter;
     delete search_id;
 
-//    cout<<"poly_id "<<poly_id<<" tid size "<<rect_tid_list.size()<<endl; 
     if(rect_tid_list.size() > 0){
       Region* poly = (Region*)poly_tuple->GetAttribute(COVAREA); 
-      CreateEntranceforBuilding(poly, rect_tid_list, dg, cur_max_ref_id);
+
+      CreateEntranceforBuilding(poly, rect_tid_list, dg);
     }
 
     poly_tuple->DeleteIfAllowed();
 
- /*   if(rect_tid_list.size() > 0)
-        break; */
-
   }
-  if(cur_max_ref_id > 999999){
-    cout<<"we assume the first six numbers are for building id"<<endl;
-    cout<<"!!!! building id number overflow !!!"<<endl;
-  }
+  
 
   pave->CloseDualGraph(dg);
   gl_sp->ClosePavement(pave);
 
+  /////////////close all buildings and indoor graphs//////////////////////
+  CloseIndoorGraph();
+  CloseBuilding();
+
 }
 
+
+/////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////
+
 /*
-create the path in the polygon for the building entrance 
+create the path in the polygon for the building entrance where the entrances of
+a building is selected from the indoor floor plan
 
 */
 void MaxRect::CreateEntranceforBuilding(Region* r, 
-                                        vector<int>& tid_list, DualGraph* dg,
-                                        int64_t& build_id)
+                                        vector<int>& tid_list, DualGraph* dg)
 {
   HalfSegment hs;
   r->Get(0, hs);
@@ -8951,9 +8941,7 @@ void MaxRect::CreateEntranceforBuilding(Region* r,
 
   for(unsigned int i = 0;i < tid_list.size();i++){
     Tuple* rect_tuple = rel1->GetTuple(tid_list[i], false);
-//    int reg_id = ((CcInt*)rect_tuple->GetAttribute(REG_ID))->GetIntval();
-//    int poly_id = ((CcInt*)rect_tuple->GetAttribute(POLY_ID))->GetIntval();
-    Rectangle<2>* rect = (Rectangle<2>*)rect_tuple->GetAttribute(GEODATA);
+    Rectangle<2>* rect = (Rectangle<2>*)rect_tuple->GetAttribute(GEODATA_EXT);
     hole_list.push_back(*rect);
     rect_tuple->DeleteIfAllowed();
   }
@@ -8961,131 +8949,122 @@ void MaxRect::CreateEntranceforBuilding(Region* r,
   ////////////////create a region using these rectangels as holes/////////////
  for(unsigned int i = 0;i < tid_list.size();i++){
     Tuple* rect_tuple = rel1->GetTuple(tid_list[i], false);
-    int reg_id = ((CcInt*)rect_tuple->GetAttribute(REG_ID))->GetIntval();
-    Rectangle<2>* rect = (Rectangle<2>*)rect_tuple->GetAttribute(GEODATA);
-    Point sp(true, 0, 0);
-    Point ep(true, 0, 0);
-    SetStartAndEndPoint(r, rect, sp, ep);
 
-//    cout<<"sp "<<sp<<" ep "<<ep<<endl; 
-     Line* path = new Line(0);
-     if(!AlmostEqual(sp, ep)){
-    //////////////////////////////////////////////////////
-        path->StartBulkLoad();
-        HalfSegment hs(true, sp, ep);
-        hs.attr.edgeno = 0;
-        *path += hs;
-        hs.SetLeftDomPoint(!hs.IsLeftDomPoint());
-        *path += hs;
-        path->EndBulkLoad();
-        assert(path->Length() > 0.0);
-//        cout<<"length "<<path->Length()<<endl; 
-       unsigned int j = 0;
-      for(;j < tid_list.size();j++){
-        if(i == j)continue;
-        Tuple* tuple = rel1->GetTuple(tid_list[j], false);
-        Rectangle<2>* rt = (Rectangle<2>*)tuple->GetAttribute(GEODATA);
-        Region* temp_reg = new Region(*rt);
-        if(path->Intersects(*temp_reg)){
-            delete temp_reg;
-            break;
-         }
-        delete temp_reg;
-      }
-    ///////////////////////////////////////////////////////
-
-      if(j == tid_list.size()){
-        reg_id_list.push_back(reg_id);
-        sp_list.push_back(sp);
-        ep_list.push_back(ep); 
-
-        MapToPavement(dg, ep);
-        /////////////////////////////////////////////////////////////
-        build_id_list.push_back(build_id);
-        build_id++;
-      }
-    }else{
-        reg_id_list.push_back(reg_id);
-        sp_list.push_back(sp);
-        ep_list.push_back(ep); 
-        
-        MapToPavement(dg, ep);
-        /////////////////////////////////////////////////////////
-        build_id_list.push_back(build_id);
-        build_id++;
+    int reg_id = ((CcInt*)rect_tuple->GetAttribute(REG_ID_EXT))->GetIntval();
+    Rectangle<2>* rect = (Rectangle<2>*)rect_tuple->GetAttribute(GEODATA_EXT);
+    int build_type = 
+        ((CcInt*)rect_tuple->GetAttribute(BUILDING_TYPE))->GetIntval();
+    if(build_type == 0 || build_pointer[build_type] == NULL){
+      rect_tuple->DeleteIfAllowed();
+      continue;
     }
 
-    delete path;
+    vector<Point> build_sp_list;
+    BuildingEntrance(build_type, rect, build_sp_list);
+
+    vector<Point> build_ep_list;
+    SetStartAndEndPoint(r, build_sp_list, build_ep_list);
+
+    for(unsigned int j = 0;j < build_sp_list.size();j++){
+        Point sp = build_sp_list[j];
+        Point ep = build_ep_list[j];
+
+        reg_id_list.push_back(reg_id);
+        sp_list.push_back(sp);
+//        ep_list.push_back(ep);
+//        MapToPavement(dg, ep);
+        /////build the path from building entrance to pavement area//////
+        Path_BuildingPave(sp, ep, rect, r, dg);
+        sp_index_list.push_back(j + 1);
+    }
+
     rect_tuple->DeleteIfAllowed();
   }
 
 }
+
+
 /*
-select the middle point of each side of the rectangle 
-choose the one that is the closest to the polygon boundary
-record which side it belongs to
+set the building entrance point according to the floor plan
 
 */
-void MaxRect::SetStartAndEndPoint(Region* r, Rectangle<2>* rect, 
-                             Point& sp, Point& ep)
+void MaxRect::BuildingEntrance(int build_type, Rectangle<2>* rect, 
+                          vector<Point>& build_sp_list)
 {
-  vector<Point> sp_list;
-  double x1 = rect->MinD(0);
-  double x2 = rect->MaxD(0);
-  double y1 = rect->MinD(1);
-  double y2 = rect->MaxD(1);
-  Point p1(true, (x1 + x2)/2, y1);//////////lower
-  Point p2(true, (x1 + x2)/2, y2);///////upper
-  Point p3(true, x1, (y1 + y2)/2);//////////left
-  Point p4(true, x2, (y1 + y2)/2);/////right
-  sp_list.push_back(p1);
-  sp_list.push_back(p2);
-  sp_list.push_back(p3);
-  sp_list.push_back(p4);
+  double min[2]={0,0};
+  double max[2]={1,1};
+  Rectangle<2> build_area(true, min, max);
+  vector<Point> door_list;
+  ///////////////get the floor plan for 2D areas and entrance point//////////
+  Get2DAreadAndDoor(build_type, build_area, door_list);
+
+  double length = build_area.MaxD(0) - build_area.MinD(0);
+  double width = build_area.MaxD(1) - build_area.MinD(1);
   
-  vector<MyPoint_Ext> point_dist_list;
-  SpacePartition* s_p = new SpacePartition();
-  for(int i = 0;i < r->Size();i++){
-    HalfSegment hs;
-    r->Get(i, hs);
-    if(!hs.IsLeftDomPoint())continue;
+  double length_new = rect->MaxD(0) - rect->MinD(0);
+  double width_new = rect->MaxD(1) - rect->MinD(1);
+  
+  const double delta = 0.001;
+  for(unsigned int i = 0;i < door_list.size();i++){
+    double scale_x = (door_list[i].GetX() - build_area.MinD(0))/length;
+    double scale_y = (door_list[i].GetY() - build_area.MinD(1))/width;
+    double new_x;
+    if(fabs(scale_x) < delta){
+      new_x = rect->MinD(0);
+    }else{
+      new_x = rect->MinD(0) + scale_x*length_new;
+    }
 
-    double d;
-    Point cp(true, 0, 0);
-
-    d = s_p->GetClosestPoint(hs, p1, cp);
-    MyPoint_Ext mpe1(p1, cp, d, 1.0);
-
-    d = s_p->GetClosestPoint(hs, p2, cp);
-    MyPoint_Ext mpe2(p2, cp, d, 2.0);
-
-    d = s_p->GetClosestPoint(hs, p3, cp);
-    MyPoint_Ext mpe3(p3, cp, d, 3.0);
-
-    d = s_p->GetClosestPoint(hs, p4, cp);
-    MyPoint_Ext mpe4(p4, cp, d, 4.0);
-
-    point_dist_list.push_back(mpe1);
-    point_dist_list.push_back(mpe2);
-    point_dist_list.push_back(mpe3);
-    point_dist_list.push_back(mpe4);
-
+    double new_y;
+    if(fabs(scale_y) < delta){
+      new_y = rect->MinD(1);
+    }else{
+      new_y = rect->MinD(1) + scale_y* width_new;
+    }
+    
+    Point new_door(true, new_x, new_y);
+    build_sp_list.push_back(new_door);
   }
-  delete s_p;
-  
-  sort(point_dist_list.begin(), point_dist_list.end());
-  
-//   for(unsigned int i = 0;i < point_dist_list.size();i++)
-//     point_dist_list[i].Print();
-
-  sp = point_dist_list[0].loc;
-  ep = point_dist_list[0].loc2;
-
-  ////record the building entrance point on which side of the bounding box////
-  int sp_type = (int)(point_dist_list[0].dist2);
-  sp_type_list.push_back(sp_type);
 
 }
+
+/*
+get the 2d area for a building and the location of entrance door from the 
+floor plan(indoor graph)
+
+*/
+void MaxRect::Get2DAreadAndDoor(int build_type, Rectangle<2>& build_area, 
+                           vector<Point>& door_list)
+{
+  Building* build = build_pointer[build_type];
+  IndoorGraph* ig = igraph_pointer[build_type];
+  if(build == NULL || ig == NULL){
+    cout<<"such a building or indoor graph are not loaded"<<endl;
+    return;
+  }
+  R_Tree<3, TupleId>* rtree = build->GetRTree();
+  Rectangle<3> bbox = rtree->BoundingBox();
+
+  double min[2], max[2];
+  min[0] = bbox.MinD(0);
+  min[1] = bbox.MinD(1);
+  max[0] = bbox.MaxD(0);
+  max[1] = bbox.MaxD(1);
+  build_area.Set(true, min, max);
+  
+//  cout<<"2D building area "<<build_area;
+//  cout<<"building graph: "<<GetBuildingStr(ig->GetGraphType())<<endl;
+
+  ig->GetEntranceDoor(door_list);
+
+//  cout<<"number of entrance "<<door_list.size()<<endl;
+  
+//   for(unsigned int i = 0;i < door_list.size();i++)
+//     cout<<door_list[i]<<endl;
+
+}
+
+
 
 /*
 find the closest point in pavement for the input location 
@@ -9157,6 +9136,301 @@ void MaxRect::MapToPavement(DualGraph* dg, Point loc)
   genloc_list.push_back(gloc); 
 }
 
+/*
+create the path from building entrance to pavement area
+the path should not accorss the building rectangle 
+
+*/
+void MaxRect::Path_BuildingPave(Point sp, Point ep, Rectangle<2>* rect, 
+                                Region* r, DualGraph* dg)
+{
+   //////////////////////////////////////////////////////////////////////////
+   //////////get the rectangle boundary line excluding the segment//////////
+   ////////////containing the start point///////////////////////////////////
+   /////////////////////////////////////////////////////////////////////////
+    Region* temp_reg = new Region(*rect);
+    Line* boundary_temp = new Line(0);
+    temp_reg->Boundary(boundary_temp);
+    
+    Line* boundary = new Line(0);
+    boundary->StartBulkLoad();
+    int edgeno = 0;
+    for(int i = 0;i < boundary_temp->Size();i++){
+      HalfSegment hs;
+      boundary_temp->Get(i, hs);
+      if(!hs.IsLeftDomPoint() || hs.Contains(sp)) continue;
+      HalfSegment new_hs(true, hs.GetLeftPoint(), hs.GetRightPoint());
+      new_hs.attr.edgeno = edgeno++;
+      *boundary += new_hs;
+      new_hs.SetLeftDomPoint(!hs.IsLeftDomPoint());
+      *boundary += new_hs;
+    }
+    boundary->EndBulkLoad();
+    
+    //////////////////////////////////////////////////////////////
+    //////////////direction connection between sp and ep/////////
+    /////////////////////////////////////////////////////////////
+    Line* path = new Line(0);
+    if(AlmostEqual(sp, ep)){
+        path_list.push_back(*path);
+
+        ep_list.push_back(ep);
+        MapToPavement(dg, ep);
+    }else{
+        path->StartBulkLoad();
+        HalfSegment hs(true, sp, ep);
+        hs.attr.edgeno = 0;
+        *path += hs;
+        hs.SetLeftDomPoint(!hs.IsLeftDomPoint());
+        *path += hs;
+        path->EndBulkLoad();
+        assert(path->Length() > 0.0);
+        Points* ps = new Points(0);
+        path->Crossings(*boundary, *ps);
+
+//        cout<<ps->Size()<<endl;
+
+        if(ps->Size() == 0){
+          path_list.push_back(*path);
+          ep_list.push_back(ep);
+          MapToPavement(dg, ep);
+        }
+        else if(ps->Size() == 1){////////a new end point 
+          //////////////////////////////////////////////////////////////////
+          ////////////select one of the closest vertex to sp////////////////
+          /////////plus the path from sp to the closet point on pavement///
+          ////////////////////////////////////////////////////////////////
+
+          Point p1(true, rect->MinD(0), rect->MinD(1));
+          Point p2(true, rect->MaxD(0), rect->MinD(1));
+          Point p3(true, rect->MaxD(0), rect->MaxD(1));
+          Point p4(true, rect->MinD(0), rect->MaxD(1));
+          vector<Point> p_list;
+          p_list.push_back(p1);
+          p_list.push_back(p2);
+          p_list.push_back(p3);
+          p_list.push_back(p4);
+
+          vector<MyPoint_Ext> mp_list;
+          SpacePartition* s_p = new SpacePartition();
+          for(unsigned int i = 0;i < p_list.size();i++){
+
+            for(int j = 0;j < r->Size();j++){
+                HalfSegment temp_hs;
+                r->Get(j, temp_hs);
+                if(!temp_hs.IsLeftDomPoint())continue;
+
+                double d;
+                Point cp(true, 0, 0);
+                d = s_p->GetClosestPoint(temp_hs, p_list[i], cp);
+
+                MyPoint_Ext mpe(p_list[i], cp, d, 0.0);
+                mp_list.push_back(mpe);
+            }
+          }
+          delete s_p;
+          sort(mp_list.begin(), mp_list.end());
+          Point cp_border = mp_list[0].loc;
+          Point new_ep = mp_list[0].loc2;
+
+          //////////////////////////////////////////////////////////////////
+          ///////////////new path has two parts: sp to cpborder,/////////// 
+          //////////////// cpborder to ep /////////////////////////////////
+          /////////////////////////////////////////////////////////////////
+          Line* path2 = new Line(0);
+          path2->StartBulkLoad();
+          int edgeno = 0;
+
+          if(!AlmostEqual(cp_border, new_ep)){
+            HalfSegment hs(true, cp_border, new_ep);
+            hs.attr.edgeno = edgeno++;
+            *path2 += hs;
+            hs.SetLeftDomPoint(!hs.IsLeftDomPoint());
+            *path2 += hs;
+          }
+
+          PathOnBorder(boundary_temp, sp, cp_border, path2, edgeno);
+
+          path2->EndBulkLoad();
+          path_list.push_back(*path2);
+          delete path2;
+
+          ep_list.push_back(new_ep);
+          MapToPavement(dg, new_ep);
+        }else assert(false);
+
+        delete ps;
+    }
+
+    ///////////////////////////////////////////////////////////////
+    delete boundary_temp;
+    delete temp_reg;
+    delete path;
+    delete boundary; 
+
+}
+
+/*
+calculate the shortest path between two points on a line. 
+the line is a cycle so there are two options
+
+*/
+void MaxRect::PathOnBorder(Line* boundary_temp, Point sp, Point cp_border, 
+                      Line* path2, int& edgeno)
+{
+   SpacePartition* s_p = new SpacePartition();
+   //////////////////find the closest point to sp along the line///////////////
+   if(sp.Inside(*boundary_temp) == false){
+      vector<MyPoint> mp_list;
+      for(int j = 0;j < boundary_temp->Size();j++){
+        HalfSegment temp_hs;
+        boundary_temp->Get(j, temp_hs);
+        if(!temp_hs.IsLeftDomPoint())continue;
+
+        double d;
+        Point cp(true, 0, 0);
+        d = s_p->GetClosestPoint(temp_hs, sp, cp);
+        MyPoint mpe(cp, d);
+        mp_list.push_back(mpe);
+      }
+
+     sort(mp_list.begin(), mp_list.end());
+     Point sp_map = mp_list[0].loc;
+
+     HalfSegment hs(true, sp, sp_map);
+     hs.attr.edgeno = edgeno++;
+     *path2 += hs;
+     hs.SetLeftDomPoint(!hs.IsLeftDomPoint());
+     *path2 += hs;
+
+     sp = sp_map;
+   }
+   ///////////////////////////////////////////////////////////////////////
+   ////////////////connect sp and cp border along the line///////////////
+   ///////////////as the boundary is a cycle, there are two paths///////
+   ///////////////     select the shorter one    ///////////////////////
+   //////////////////////////////////////////////////////////////////////
+
+   SimpleLine* sline = new SimpleLine(0);
+   sline->fromLine(*boundary_temp);
+   vector<MyHalfSegment> seq_halfseg; 
+   s_p->ReorderLine(sline, seq_halfseg);
+   delete sline;
+
+   int index1 = -1;
+   for(unsigned int i = 0;i < seq_halfseg.size();i++){
+    HalfSegment hs(true, seq_halfseg[i].from, seq_halfseg[i].to);
+    if(hs.Contains(sp)){
+      index1 = i;
+      break;
+    }
+   }
+
+   int index2 = -1;
+   for(unsigned int i = 0;i < seq_halfseg.size();i++){
+    HalfSegment hs(true, seq_halfseg[i].from, seq_halfseg[i].to);
+    if(hs.Contains(cp_border)){
+      index2 = i;
+      break;
+    }
+   }
+    assert(0 <= index1 && index1 < (int)seq_halfseg.size());
+    assert(0 <= index2 && index2 < (int)seq_halfseg.size());
+
+ //   cout<<"index1 "<<index1<<" index2 "<<index2<<endl;
+    if(index1 == index2){
+
+     HalfSegment hs(true, sp, cp_border);
+     hs.attr.edgeno = edgeno++;
+     *path2 += hs;
+     hs.SetLeftDomPoint(!hs.IsLeftDomPoint());
+     *path2 += hs;
+    }else{
+      ////////////////////////////////////////////////////////////////
+      ///////////////////find one possible connection/////////////////
+      ///////////////////////////////////////////////////////////////
+      Line* temp = new Line(0);
+      temp->StartBulkLoad();
+      int no = 0;
+      if(index1 < index2 ){
+        for(int i = index1;i <= index2;i++){
+          Point p1, p2;
+          if(i == index1){
+            p1 = sp;
+            p2 = seq_halfseg[i].to;
+          }else if(i == index2){
+            p1 = seq_halfseg[i].from;
+            p2 = cp_border;
+          }else{
+            p1 = seq_halfseg[i].from;
+            p2 = seq_halfseg[i].to;
+          }
+          if(!AlmostEqual(p1,p2)){
+            HalfSegment hs(true, p1, p2);
+            hs.attr.edgeno = no++;
+            *temp += hs;
+            hs.SetLeftDomPoint(!hs.IsLeftDomPoint());
+            *temp += hs;
+          }
+        }
+      }else{
+         for(int i = index2;i <= index1;i++){
+          Point p1, p2;
+          if(i == index2){
+            p1 = cp_border;
+            p2 = seq_halfseg[i].to;
+          }else if(i == index1){
+            p1 = seq_halfseg[i].from;
+            p2 = sp;
+          }else{
+            p1 = seq_halfseg[i].from;
+            p2 = seq_halfseg[i].to;
+          }
+          if(!AlmostEqual(p1,p2)){
+            HalfSegment hs(true, p1, p2);
+            hs.attr.edgeno = no++;
+            *temp += hs;
+            hs.SetLeftDomPoint(!hs.IsLeftDomPoint());
+            *temp += hs;
+          }
+        }
+      }
+      temp->EndBulkLoad();
+      ///////////////////////////////////////////////////////////////////
+      double l1 = temp->Length();
+      double l2 = boundary_temp->Length() - l1;
+//      cout<<"l1 "<<l1<<" l2 "<<l2<<endl;
+      if(l1 < l2){/////////////select temp
+        for(int i = 0;i < temp->Size();i++){
+          HalfSegment hs1;
+          temp->Get(i, hs1);
+          if(!hs1.IsLeftDomPoint())continue;
+          HalfSegment hs2(true, hs1.GetLeftPoint(), hs1.GetRightPoint());
+          hs2.attr.edgeno = edgeno++;
+          *path2 += hs2;
+          hs2.SetLeftDomPoint(!hs2.IsLeftDomPoint());
+          *path2 += hs2;
+        }
+      }else{///////////////select the other one, use bounday minus temp 
+          Line* res = new Line(0);
+          boundary_temp->Minus(*temp, *res);
+          for(int i = 0;i < res->Size();i++){
+              HalfSegment hs1;
+              res->Get(i, hs1);
+              if(!hs1.IsLeftDomPoint())continue;
+              HalfSegment hs2(true, hs1.GetLeftPoint(), hs1.GetRightPoint());
+              hs2.attr.edgeno = edgeno++;
+              *path2 += hs2;
+              hs2.SetLeftDomPoint(!hs2.IsLeftDomPoint());
+              *path2 += hs2;
+          }
+          delete res;
+      }
+      delete temp;
+    }
+    delete s_p;
+}
+
 
 /*
 create a new region where r is outer cycle and the rectangles inside are holes
@@ -9219,7 +9493,7 @@ houses and apartments: 1000
 the left are of type none 
 
 */
-void MaxRect::SetBuildingType(R_Tree<2,TupleId>* rtree)
+void MaxRect::SetBuildingType(R_Tree<2,TupleId>* rtree, Space* gl_sp)
 {
   Rectangle<2> bbox = rtree->BoundingBox();
   Point center(true, (bbox.MinD(0) + bbox.MaxD(0))/2, 
@@ -9279,14 +9553,41 @@ void MaxRect::SetBuildingType(R_Tree<2,TupleId>* rtree)
   SetHouse(build_rect_list, 1000);//maximum 1000 houses and apartments 
 
   ///////////////////////////////////////////////////////////////////
-  for(unsigned int i = 0;i < build_rect_list.size();i++){
-    reg_id_list.push_back(build_rect_list[i].reg_id);
-    rect_list.push_back(build_rect_list[i].rect);
-    poly_id_list.push_back(build_rect_list[i].poly_id);
-    reg_type_list.push_back(build_rect_list[i].reg_type);
-    build_type_list.push_back(build_rect_list[i].build_type);
-    build_type2_list.push_back(GetBuildingStr(build_rect_list[i].build_type));
+  int cur_max_ref_id = gl_sp->MaxRefId() + 1;
+
+  ///////////////////////////////////////////////////////////////
+  ///////////////max int 21474 83647//////////////////////////////
+  /////////////max int64_t 9223372036854775807///////////////////
+  ////////////////////////////////////////////////////////////////
+
+//  cout<<"max int "<<numeric_limits<int>::max()<<endl;
+//  cout<<"max int64_t "<<numeric_limits<int64_t>::max()<<endl;
+
+  if(cur_max_ref_id == 0){
+    cout<<"!!! the space is empty !!!"<<endl;
+    return;
   }
+  //////////////////////////////////////////////////////////////////
+  
+  for(unsigned int i = 0;i < build_rect_list.size();i++){
+    if(build_rect_list[i].build_type > 0){
+      reg_id_list.push_back(build_rect_list[i].reg_id);
+      rect_list.push_back(build_rect_list[i].rect);
+      poly_id_list.push_back(build_rect_list[i].poly_id);
+      reg_type_list.push_back(build_rect_list[i].reg_type);
+      build_type_list.push_back(build_rect_list[i].build_type);
+      build_type2_list.push_back(GetBuildingStr(build_rect_list[i].build_type));
+      build_id_list.push_back(cur_max_ref_id);
+      cur_max_ref_id++;
+    }
+  }
+
+  if(cur_max_ref_id > 999999){
+    cout<<"we assume the first six numbers are for building id"<<endl;
+    cout<<"!!!! building id number overflow !!!"<<endl;
+    assert(false);
+  }
+
 }
 
 /*

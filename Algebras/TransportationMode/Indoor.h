@@ -1046,6 +1046,8 @@ struct IndoorNav{
   
   vector<MPoint3D> mo_list; 
   vector<GenMO> genmo_list; 
+  vector<int> entrance_index;
+  
   int type; 
   /////////////the attribute position for indoor (groom+door) relation 
   static string Indoor_GRoom_Door; 
@@ -1137,6 +1139,15 @@ struct IndoorNav{
                                    vector<Elevator>& elev_list, double speed);
    void GenerateMO1(IndoorGraph* ig, BTree* btree, R_Tree<3,TupleId>* rtree,
                     int num, Periods* peri, bool convert); 
+   //////////////////path to building entrance/////////////////////////////
+   void GenerateMO2_Start(IndoorGraph* ig, BTree* btree, 
+                          R_Tree<3,TupleId>* rtree,
+                    int num, Periods* peri, bool convert);
+   void GenerateMO2_End(IndoorGraph* ig, BTree* btree, R_Tree<3,TupleId>* rtree,
+                    int num, Periods* peri, bool convert);
+   void GetDoorLoc(IndoorGraph* ig, BTree* btree, 
+                   vector<GenLoc>& doorloc_list, vector<int>& door_tid_list);
+
    /////////////////////////////////////////////////////////////////////
    unsigned NumerOfElevators();
    
@@ -1150,6 +1161,12 @@ struct IndoorNav{
                     Instant& start_time, Instant& st, 
                     vector< vector<Elevator> >&);
 
+   void GenerateMO2_New_Start(IndoorGraph* ig, BTree* btree,
+                          R_Tree<3,TupleId>* rtree,
+                  int num, Periods* peri, bool convert, unsigned int num_elev);
+   void GenerateMO2_New_End(IndoorGraph* ig, BTree* btree, 
+                        R_Tree<3,TupleId>* rtree,
+                  int num, Periods* peri, bool convert, unsigned int num_elev);
    /////////////////////////////////////////////////////////////////////////
    float GetMinimumDoorWidth();
    void AddUnitToMO(MPoint3D* mp3d, Point3D& p1, Point3D& p2, 
@@ -1178,6 +1195,12 @@ struct IndoorNav{
 
    bool ConnectStartLoc(GenLoc* gloc,  vector<int> tid_list, Relation* rel,
                          BTree* btree, vector<Line3D>&, float&, float&);
+
+
+   void ShortestPath_Length_Start(GenLoc* gloc1, GenLoc* gloc2, 
+                            Relation* rel, BTree* btree, int start_tid);
+   void ShortestPath_Length_End(GenLoc* gloc1, GenLoc* gloc2, 
+                            Relation* rel, BTree* btree, int end_tid);
    ////////connection start locaton to all doors in staircase///////////////
    void ConnectStartLocST(Tuple* groom_tuple, GenLoc* gloc,  
                          vector<int> tid_list, vector<Line3D>& candidate_path);
@@ -1187,6 +1210,9 @@ struct IndoorNav{
 
    bool ConnectEndLoc(GenLoc* gloc,  vector<int> tid_list, Relation* rel,
                          BTree* btree, vector<Line3D>&, float&, float&);
+
+   bool ConnectEndLoc2(GenLoc* gloc, Relation* rel, BTree* btree, 
+                       vector<Line3D>&, float&, float&);
 
    void IndoorShortestPath(int id1, int id2, vector<Line3D>& candidate_path, 
                            Line3D* s, Line3D* d, 
@@ -1368,7 +1394,8 @@ public:
   static string NodeTypeInfo;
   static string EdgeTypeInfo;
   static string NodeBTreeTypeInfo;
-  
+  static string EntranceTidTypeInfo;
+
   enum IGNodeTypeInfo{I_DOOR = 0, I_DOOR_LOC, I_GROOM_OID1, 
                       I_GROOM_OID2, I_DOOR_LOC_3D, I_DOOR_HEIGHT};
   enum IGEdgeTypeInfo{I_GROOM_OID = 0,I_DOOR_TID1, I_DOOR_TID2, I_PATH};
@@ -1381,7 +1408,7 @@ public:
                      bool& inout_bCorrect);
   IndoorGraph(SmiRecord&, size_t&, const ListExpr);
   //////////////////////////////////////////////////////////////
-  void Load(int, Relation*, Relation*);
+  void Load(int, Relation*, Relation*, int graph_type);
   static ListExpr OutIndoorGraph(ListExpr typeInfo, Word value);
   ListExpr Out(ListExpr typeInfo);
   static bool CheckIndoorGraph(ListExpr type, ListExpr& errorInfo);
@@ -1400,12 +1427,17 @@ public:
                            const ListExpr typeInfo, Word& value);
   bool Save(SmiRecord& in_xValueRecord,size_t& inout_iOffset,
               const ListExpr in_xTypeInfo);
+  int GetGraphType(){return graph_type;}
 
   BTree* GetBTree(){return btree_node;}
+  void GetEntranceDoor(vector<Point>& door_loc);
+  void GetEntranceDoor2(vector<Point>& door_loc, 
+                        vector<int>& groom_list, vector<int>& door_tid_list);
+  
   private:
     BTree* btree_node; //btree on node relation 
-
-
+    Relation* entrance_list;//store tid of door relation for building entrance
+    int graph_type;
 };
 
 /////////////////////////////////////////////////////////////////////
@@ -1565,7 +1597,10 @@ class Building{
    static string Indoor_GRoom_Door_Extend;
    static string RoomRTreeTypeInfo;
   ~Building();
-
+  R_Tree<3, TupleId>* GetRTree(){return rtree_rel_box;}
+  IndoorGraph* OpenIndoorGraph();
+  void CloseIndoorGraph(IndoorGraph* ig);
+  
   private:
     bool def; 
     int building_id;
@@ -1600,26 +1635,22 @@ compressed storage of a building
 */
 struct RefBuild{
     bool def; 
-    int id;
+    int build_id;///real building id
     unsigned int type;
-    bool init;
-    unsigned int graph_id;
     Rectangle<2> rect;
 
     RefBuild(){}
-    RefBuild(bool d1, int i, unsigned int t, bool d2, 
-             unsigned int gid, Rectangle<2>& r):
-    def(d1), id(i), type(t), init(d2), graph_id(gid), rect(r){}
+    RefBuild(bool d, int i, unsigned int t, Rectangle<2>& r):
+    def(d), build_id(i), type(t), rect(r){}
     RefBuild(const RefBuild& refb):
-    def(refb.def), id(refb.id), type(refb.type), 
-    init(refb.init), graph_id(refb.graph_id), rect(refb.rect){}
+    def(refb.def), build_id(refb.build_id), type(refb.type), rect(refb.rect){}
     bool operator<(const RefBuild& refb) const
     {
-      return id < refb.id;
+      return build_id < refb.build_id;
     }
     void Print()
     {
-      cout<<"build id "<<id<<" type "<<GetBuildingStr(type)<<endl;
+      cout<<"build id "<<build_id<<" type "<<GetBuildingStr(type)<<endl;
     }
 };
 
@@ -1640,12 +1671,12 @@ class IndoorInfra{
   static string BuildingType_Info;
   static string RegId2BTreeTypeInfo;
 
-  enum IndoorInfra_Path{INDOORIF_REG_ID, INDOORIF_SP, INDOORIF_EP,
-                        INDOORIF_EP2, INDOORIF_SPTYPE,INDOORIF_BUILD_ID,
-                        INDOORIF_EP2_GLOC};
+  enum IndoorInfra_Path{INDOORIF_REG_ID, INDOORIF_SP, INDOORIF_SP_INDEX,
+                        INDOORIF_EP, INDOORIF_EP2, INDOORIF_EP2_GLOC,
+                        INDOORIF_PATH};
   enum IndoorInfra_TYPE{INDOORIF_REG_ID_2,INDOORIF_GEODATA,INDOORIF_POLY_ID,
                         INDOORIF_REG_TYPE,INDOORIF_BUILD_TYPE,
-                        INDOORIF_BUILD_TYPE2};
+                        INDOORIF_BUILD_TYPE2, INDOORIF_BUILD_ID};
 
   IndoorInfra();
   IndoorInfra(bool d, int id);

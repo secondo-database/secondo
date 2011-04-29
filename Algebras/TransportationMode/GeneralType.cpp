@@ -4871,9 +4871,9 @@ int Space::GetInfraType(int oid)
 get the maximum reference id in the current space 
 
 */
-int64_t Space::MaxRefId()
+int Space::MaxRefId()
 {
-  int64_t max_ref_id = 0;
+  int max_ref_id = 0;
   
   for(int i = 0;i < infra_list.Size();i++){
       InfraRef elem;

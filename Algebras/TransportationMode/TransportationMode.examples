@@ -734,8 +734,8 @@ Result   : 25.0
 
 Operator : createigraph
 Number   : 2
-Signature: int x rel x rel -> indoorgraph
-Example  : query createigraph(1, node_rel, edge_rel);
+Signature: int x rel x rel x string -> indoorgraph
+Example  : query createigraph(1, node_rel, edge_rel, "UNIVERSITY");
 Result   : file_platform
 
 Operator : getadjnode_ig
@@ -780,13 +780,6 @@ Example  : query size(maxrect([const region value ((((1 1)(5 2)(6 6)(2 5))))]));
 Result   : 4
 
 
-Operator : getrect2 
-Number   : 1
-Signature: rel x attr1 x attr2 x attr3 x attr4 x btree x int -> (stream(((x1 t1) ... (xn tn))))
-Example  : query getrect(building_regions, reg_id, geoData, poly_id, reg_type, btree_building, 10) count;
-Result   : 20 
-
-
 Operator : getrect1 
 Number   : 1
 Signature: rel x attr1 x attr2 -> (stream(((x1 t1) ... (xn tn))))
@@ -803,8 +796,8 @@ Result   : 20
 
 Operator : set_building_type 
 Number   : 1
-Signature: rel x rtree -> (stream(((x1 t1) ... (xn tn))))
-Example  : query set_building_type(building_region_type, rtree_build) count;
+Signature: rel x rtree x space-> (stream(((x1 t1) ... (xn tn))))
+Example  : query set_building_type(building_region_type, rtree_build, space_1) count;
 Result   : 20 
 
 

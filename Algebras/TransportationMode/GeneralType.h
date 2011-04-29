@@ -906,10 +906,10 @@ ref representation for each infrastructure
 struct InfraRef{
   int infra_id; 
   int infra_type; 
-//  int ref_id_low;
-//  int ref_id_high;
-  int64_t ref_id_low;
-  int64_t ref_id_high;
+  int ref_id_low; ////////////////max int 21474 83647
+  int ref_id_high;
+//  int64_t ref_id_low; /////////////max int64_t 9223372036854775807
+//  int64_t ref_id_high;
 
   InfraRef(){}
   InfraRef(int id, int t):infra_id(id), infra_type(t), 
@@ -993,7 +993,7 @@ class Space:public Attribute{
   void OpenInfra(vector<void*>&);
   void CloseInfra(vector<void*>&);
   
-  int64_t MaxRefId();
+  int MaxRefId();
   //////////////////////////////////////////////////////////////////////////
   ////////////get the submovement in an infrastructure object///////////////
   /////////////////////////////////////////////////////////////////////////

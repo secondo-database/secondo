@@ -790,11 +790,15 @@ struct Build_Rect{
   }
 };
 
+class Building;
+class IndoorGraph;
+
 struct MaxRect{
 
-    static string BuildingRectTypeInfo; 
-    static string RegionElemTypeInfo; 
-    
+    static string BuildingRectTypeInfo;
+    static string RegionElemTypeInfo;
+    static string BuildingRectExtTypeInfo; 
+
     bool fixed;
     int fixedX, fixedY;
     vector<Rectangle<2> > RectList; 
@@ -826,6 +830,7 @@ struct MaxRect{
     Relation* rel2; 
     BTree* btree;
     vector<Point> sp_list;
+    vector<unsigned int> sp_index_list;
     vector<Point> ep_list;
 
     vector<Point> ep_list2;
@@ -837,14 +842,18 @@ struct MaxRect{
 
     vector<int> build_type_list;
     vector<string> build_type2_list;
-    
+
+
+    vector<Building*> build_pointer;
+    vector<IndoorGraph*> igraph_pointer; 
+
     unsigned int count;
     TupleType* resulttype;
-//     enum BuildingType{HOUSE = 0, APARTMENT, UNIVERSITY, OFFICEBUILDING,
-//     CINEMA, SHOPPINGMALL, HOTEL, TRAINSTATION, LIBRARY, SCHOOL,
-//     HOSPITAL, AIRPORT}; 
+
     enum BuildingRect{REG_ID = 0, GEODATA, POLY_ID, REG_TYPE};
     enum RegionElem{REGID=0, COVAREA}; 
+    enum BuildingRect_Ext{REG_ID_EXT = 0, GEODATA_EXT, POLY_ID_EXT, 
+                          REG_TYPE_EXT, BUILDING_TYPE, BUILDING_TYPE_2};
 
     MaxRect() {
       count=0;resulttype = NULL;
@@ -889,30 +898,40 @@ struct MaxRect{
 
     void ConvexReg(int attr1, int attr2); 
 
-    void AddRect(int tid, int attr1, int attr2, int attr3, int attr4);
-    void GetRectangle(int attr1, int attr2, int attr3, int attr4, BTree* btree,
-                      int no_buildings); 
     /////////////////merge several triangles to be convex polygon/////////////
     void MergeTriangle(CompTriangle* ct, int reg_id);
     /////////////whether two triangle have a commone edge////////////////
     bool NeighborTriangle(Region* r1, Region* r2); 
     /////////get the maximum rectangle for each region/////////////////
     void GetRectangle1(int attr1, int attr2); 
-    int GetRectType(float area); 
+
     ////////////////check whether all coordinates are positive///////////////
     ////////////because the function to get maximum rectangle needs all ////
     /////////////positive coordinates///////////////////////////////////////
     bool ValidRegion(Region* r); 
     ////////build the path between the entrance of the building and pavement///
-    void PathToBuilding(Space*);
-    void CreateEntranceforBuilding(Region* r, vector<int>& tid_list, 
-                                   DualGraph* dg, int64_t& build_id); 
     bool RegionWithHole(vector<Rectangle<2> >& hole_list, Region* reg);
-    void SetStartAndEndPoint(Region* r, Rectangle<2>* rect, 
-                             Point& sp, Point& ep);
+    void SetStartAndEndPoint(Region* r, vector<Point>& build_sp_list,
+                             vector<Point>& build_ep_list);
     void MapToPavement(DualGraph* , Point loc);
+    //////////set the building entrance according to the floor plan////////
+    void OpenBuilding();
+    void OpenIndoorGraph();
+    void CloseIndoorGraph();
+    void CloseBuilding();
+    void PathToBuilding(Space* gl_sp);
+    void CreateEntranceforBuilding(Region* r, vector<int>& tid_list, 
+                                   DualGraph* dg); 
+    void BuildingEntrance(int graph_type, Rectangle<2>* rect, 
+                          vector<Point>& build_sp_list);
+    void Get2DAreadAndDoor(int build_type, Rectangle<2>& build_area, 
+                           vector<Point>& door_list);
+    void Path_BuildingPave(Point sp, Point ep, Rectangle<2>* rect, 
+                                Region* r, DualGraph* dg);
+    void PathOnBorder(Line* boundary_temp, Point sp, Point cp_border, 
+                      Line* path2, int& edgeno);
     ////////////set the type for each rectange(building)///////////////////
-    void SetBuildingType(R_Tree<2,TupleId>* rtree);
+    void SetBuildingType(R_Tree<2,TupleId>* rtree, Space* gl_sp);
 
     void SetAirPort(vector<Build_Rect>& list, R_Tree<2,TupleId>* rtree);
     bool NoNeighbor(Build_Rect& br, R_Tree<2,TupleId>* rtree);
