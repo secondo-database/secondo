@@ -277,6 +277,182 @@ bool STVector::ApplySimple(Interval<CcReal>& p1, Interval<CcReal>& p2,
   }
 }
 
+bool STVector::Vector2PARelations(int rels[12])
+{
+  bool debugme= true;
+  enum relIndex{
+    aA=0, ab=1, aB=2, ba=3, bA=4, bB=5, Ab=6, AB=7, Ba=8, BA=9, Aa=10, Bb=11};
+//defined in TemporalReasoner.h
+//enum PARelation{
+//  lss=0, leq=1, grt=2, geq=3, eql=4, neq=5, uni=6, inc=7, unknown=8};
+  PARelation orTable[][9]=
+    {{lss,leq,neq,uni,leq,neq,uni,inc,lss},
+     {leq,leq,uni,uni,leq,uni,uni,inc,leq},
+     {neq,uni,grt,geq,geq,neq,uni,inc,grt},
+     {uni,uni,geq,geq,geq,uni,uni,inc,geq},
+     {leq,leq,geq,geq,eql,uni,uni,inc,eql},
+     {neq,uni,neq,uni,uni,neq,uni,inc,neq},
+     {uni,uni,uni,uni,uni,uni,uni,inc,uni},
+     {inc,inc,inc,inc,inc,inc,inc,inc,inc},
+     {lss,leq,grt,geq,eql,neq,uni,inc,unknown}
+     };
+
+  int simple=1;
+  PARelation relsSimple[12], relsVector[12], relSimple, relVector, relNew;
+
+  for(int i= 0; i<12; ++i)
+    relsVector[i]= unknown;
+
+  for(int i=0; i<26; i++)
+  {
+    if(v & simple)
+    {
+       if(! Simple2PARelations(simple, (int*)relsSimple)) return false;
+       for(int i= 0; i<12; ++i)
+       {
+         relSimple= relsSimple[i];
+         relVector= relsVector[i];
+         relNew= orTable[relSimple][relVector];
+         relsVector[i]= relNew;
+       }
+    }
+    simple*=2;
+  }
+
+  for(int i= 0; i<12; ++i)
+  {
+    if(relsVector[i]== neq) return false;
+    rels[i]= relsVector[i];
+    if(debugme)
+      cerr<<endl<<i<< ": "<< relsVector[i];
+  }
+  return true;
+}
+
+bool STVector::Simple2PARelations(int simple, int rels[12])
+{
+  enum relIndex{
+    aA=0, ab=1, aB=2, ba=3, bA=4, bB=5, Ab=6, AB=7, Ba=8, BA=9,  Aa=10, Bb=11};
+  //defined in TemporalReasoner.h
+  //enum PARelation{lss=0, leq=1, grt=2, geq=3, eql=4, neq=5, uni=6, inc=7};
+
+  for(int i= 0; i<12; ++i)
+    rels[i]= unknown;
+
+  switch(simple)
+  {
+  case   aabb:
+  {
+    rels[aA]= lss; rels[ab]= lss; rels[aB]= lss;
+    rels[ba]= grt; rels[bA]= grt; rels[bB]= lss;
+    rels[Ab]= lss; rels[AB]= lss; rels[Ba]= grt;
+    rels[BA]= grt; rels[Bb]= grt; rels[Aa]= grt;
+  }break;
+  case   bbaa:
+  {
+    rels[aA]= lss; rels[ab]= grt; rels[aB]= grt;
+    rels[ba]= lss; rels[bA]= lss; rels[bB]= lss;
+    rels[Ab]= grt; rels[AB]= grt; rels[Ba]= lss;
+    rels[BA]= lss; rels[Bb]= grt; rels[Aa]= grt;
+  }break;
+  case   aa_bb:
+  {
+    rels[aA]= lss; rels[ab]= lss; rels[aB]= lss;
+    rels[ba]= grt; rels[bA]= eql; rels[bB]= lss;
+    rels[Ab]= eql; rels[AB]= lss; rels[Ba]= grt;
+    rels[BA]= grt; rels[Bb]= grt; rels[Aa]= grt;
+  }break;
+  case   bb_aa:
+  {
+    rels[aA]= lss; rels[ab]= grt; rels[aB]= eql;
+    rels[ba]= lss; rels[bA]= lss; rels[bB]= lss;
+    rels[Ab]= grt; rels[AB]= grt; rels[Ba]= eql;
+    rels[BA]= lss; rels[Bb]= grt; rels[Aa]= grt;
+  }break;
+  case   abab:
+  {
+    rels[aA]= lss; rels[ab]= lss; rels[aB]= lss;
+    rels[ba]= grt; rels[bA]= lss; rels[bB]= lss;
+    rels[Ab]= grt; rels[AB]= lss; rels[Ba]= grt;
+    rels[BA]= grt; rels[Bb]= grt; rels[Aa]= grt;
+  }break;
+  case   baba:
+  {
+    rels[aA]= lss; rels[ab]= grt; rels[aB]= lss;
+    rels[ba]= lss; rels[bA]= lss; rels[bB]= lss;
+    rels[Ab]= grt; rels[AB]= grt; rels[Ba]= grt;
+    rels[BA]= lss; rels[Bb]= grt; rels[Aa]= grt;
+  }break;
+  case   baab:
+  {
+    rels[aA]= lss; rels[ab]= grt; rels[aB]= lss;
+    rels[ba]= lss; rels[bA]= lss; rels[bB]= lss;
+    rels[Ab]= grt; rels[AB]= lss; rels[Ba]= grt;
+    rels[BA]= grt; rels[Bb]= grt; rels[Aa]= grt;
+  }break;
+  case   abba:
+  {
+    rels[aA]= lss; rels[ab]= lss; rels[aB]= lss;
+    rels[ba]= grt; rels[bA]= lss; rels[bB]= lss;
+    rels[Ab]= grt; rels[AB]= grt; rels[Ba]= grt;
+    rels[BA]= lss; rels[Bb]= grt; rels[Aa]= grt;
+  }break;
+  case   a_bab:
+  {
+    rels[aA]= lss; rels[ab]= eql; rels[aB]= lss;
+    rels[ba]= eql; rels[bA]= lss; rels[bB]= lss;
+    rels[Ab]= grt; rels[AB]= lss; rels[Ba]= grt;
+    rels[BA]= grt; rels[Bb]= grt; rels[Aa]= grt;
+  }break;
+  case   a_bba:
+  {
+    rels[aA]= lss; rels[ab]= eql; rels[aB]= lss;
+    rels[ba]= eql; rels[bA]= lss; rels[bB]= lss;
+    rels[Ab]= grt; rels[AB]= grt; rels[Ba]= grt;
+    rels[BA]= lss; rels[Bb]= grt; rels[Aa]= grt;
+  }break;
+  case   baa_b:
+  {
+    rels[aA]= lss; rels[ab]= grt; rels[aB]= lss;
+    rels[ba]= lss; rels[bA]= lss; rels[bB]= lss;
+    rels[Ab]= grt; rels[AB]= eql; rels[Ba]= grt;
+    rels[BA]= eql; rels[Bb]= grt; rels[Aa]= grt;
+  }break;
+  case   aba_b:
+  {
+    rels[aA]= lss; rels[ab]= lss; rels[aB]= lss;
+    rels[ba]= grt; rels[bA]= lss; rels[bB]= lss;
+    rels[Ab]= grt; rels[AB]= eql; rels[Ba]= grt;
+    rels[BA]= eql; rels[Bb]= grt; rels[Aa]= grt;
+  }break;
+  case   a_ba_b:
+  {
+    rels[aA]= lss; rels[ab]= eql; rels[aB]= lss;
+    rels[ba]= eql; rels[bA]= lss; rels[bB]= lss;
+    rels[Ab]= grt; rels[AB]= eql; rels[Ba]= grt;
+    rels[BA]= eql; rels[Bb]= grt; rels[Aa]= grt;
+  }break;
+  case   a_abb:
+  case   a_a_bb:
+  case   ba_ab:
+  case   bb_a_a:
+  case   bba_a:
+  case   b_baa:
+  case   b_b_aa:
+  case   ab_ba:
+  case   aa_b_b:
+  case   aab_b:
+  case   a_ab_b:
+  case   a_a_b_b:
+  case   b_ba_a:
+    return false;
+  break;
+  default:
+    assert(0); //illegal simple temporal connector
+  }
+  return true;
+}
+
 Word STVector::In( const ListExpr typeInfo, const ListExpr instance,
     const int errorPos, ListExpr& errorInfo, bool& correct )
 {
@@ -389,6 +565,14 @@ void IntervalInstant2IntervalCcReal(const Interval<Instant>& in,
 }
 
 
+CSP::CSP(): PAReasoner(0), count(0),iterator(-1),
+nullInterval(CcReal(true,0.0),CcReal(true,0.0), true,true)
+{}
+
+CSP::~CSP()
+{
+  if(PAReasoner != 0) delete PAReasoner;
+}
 
 void CSP::IntervalInstant2IntervalCcReal(const Interval<Instant>& in, 
     Interval<CcReal>& out)
@@ -624,6 +808,91 @@ int CSP::PickVariable()
   return index;
 }
 
+int CSP::ComputeClosure()
+{
+  bool debugme= true;
+  if(PAReasoner != 0)
+    delete PAReasoner;
+  unsigned int numIntervals= VarAliasMap.size();
+  Supplier IAVectorSupplier;
+  STVector* IAVector;
+  Word Value;
+  enum relIndex{
+    aA=0, ab=1, aB=2, ba=3, bA=4, bB=5, Ab=6, AB=7, Ba=8, BA=9, Aa=10, Bb=11};
+//defined in TemporalReasoner.h
+//enum PARelation{lss=0, leq=1, grt=2, geq=3, eql=4, neq=5, uni=6, inc=7};
+  PARelation PARels[12];
+  int aIndex, AIndex, bIndex, BIndex;
+  PAReasoner = new PointAlgebraReasoner(numIntervals * 2);
+
+  for(unsigned int i=0; i< numIntervals; ++i)
+  {
+    for(unsigned int j=0; j< numIntervals; ++j)
+    {
+      if(! ConstraintGraph[i][j].empty())
+      {
+        //cannot express conjunctive constraints on the same pair of variables
+        if(ConstraintGraph[i][j].size() > 1)
+        {
+          SetClosureResult(notPA);
+          return 2;
+        }
+        IAVectorSupplier= ConstraintGraph[i][j][0];
+        qp->Request(IAVectorSupplier, Value);
+        IAVector = static_cast<STVector*>(Value.addr);
+        if(! IAVector->Vector2PARelations((int*)PARels))
+        {
+          SetClosureResult(notPA);
+          return 2;
+        }
+        aIndex= i*2; AIndex= (i*2)+1; bIndex= j*2; BIndex= (j*2)+1;
+        for(int k=0; k<12; ++k)
+        {
+          if(PARels[k] == unknown) continue;
+          switch(k)
+          {
+          case aA: PAReasoner->Add(aIndex, AIndex, PARels[k]);
+          break;
+          case ab: PAReasoner->Add(aIndex, bIndex, PARels[k]);
+          break;
+          case aB: PAReasoner->Add(aIndex, BIndex, PARels[k]);
+          break;
+          case ba: PAReasoner->Add(bIndex, aIndex, PARels[k]);
+          break;
+          case bA: PAReasoner->Add(bIndex, AIndex, PARels[k]);
+          break;
+          case bB: PAReasoner->Add(bIndex, BIndex, PARels[k]);
+          break;
+          case Ab: PAReasoner->Add(AIndex, bIndex, PARels[k]);
+          break;
+          case AB: PAReasoner->Add(AIndex, BIndex, PARels[k]);
+          break;
+          case Ba: PAReasoner->Add(BIndex, aIndex, PARels[k]);
+          break;
+          case BA: PAReasoner->Add(BIndex, AIndex, PARels[k]);
+          break;
+          case Aa: PAReasoner->Add(AIndex, aIndex, PARels[k]);
+          break;
+          case Bb: PAReasoner->Add(BIndex, bIndex, PARels[k]);
+          break;
+          default: assert(0);
+          }
+        }
+      }
+    }
+  }
+  if(debugme)
+    PAReasoner->Print(cerr);
+  bool isConsistent= PAReasoner->Close();
+  if(isConsistent)
+    SetClosureResult(consistent);
+  else
+    SetClosureResult(inconsistent);
+  if(debugme && isConsistent)
+    PAReasoner->Print(cerr);
+  return isConsistent?1:0;
+}
+
 int CSP::AddVariable(string alias, Supplier handle)
 {
   Agenda.push_back(handle);
@@ -791,6 +1060,14 @@ int CSP::ResetTuple()
   return 0;
 }
 
+void CSP::SetClosureResult(ClosureResult _res)
+{
+  closureRes= _res;
+}
+ClosureResult CSP::GetClosureResult()
+{
+  return closureRes;
+}
 /*
 Auxiliary functions 
 
@@ -1536,9 +1813,12 @@ int STPatternVM(Word* args, Word& result, int message, Word& local, Supplier s)
   csp.Clear();
   CSPAddPredicates(namedpredlist);
   CSPAddContraints(constraintlist);
-  bool hasSolution=csp.Solve();
+  //int closureRes= csp.ComputeClosure();
+  bool hasSolution= false;
+  //if(closureRes != 0 )
+    hasSolution=csp.Solve();
 
-  ((CcBool*)result.addr)->Set(true,hasSolution);
+  ((CcBool*)result.addr)->Set(true, hasSolution);
   if(debugme)
   {
     //cout<< "tuple "<<tupleno++ ;
@@ -1604,7 +1884,7 @@ int STPatternExVM(Word* args, Word& result,int message, Word& local, Supplier s)
 int STPatternExtendVM(
     Word* args, Word& result, int message, Word& local, Supplier s)
 {
-  bool debugme=false;
+  //bool debugme=false;
 
   Word t, value;
   Tuple* tup;

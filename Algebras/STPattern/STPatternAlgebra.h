@@ -55,17 +55,44 @@ paper "Spatiotemporal Pattern Queries"
 
 #ifndef STPATTERNALGEBRA_H_
 #define STPATTERNALGEBRA_H_
+
+#ifndef ALGEBRA_H
 #include "Algebra.h"
+#endif
 
+#ifndef NESTED_LIST_H
 #include "NestedList.h"
-#include "ListUtils.h"
-#include "QueryProcessor.h"
+#endif
 
+#ifndef LISTUTILS_H
+#include "ListUtils.h"
+#endif
+
+#ifndef QUERY_PROCESSOR_H
+#include "QueryProcessor.h"
+#endif
+
+#ifndef STANDARDTYPES_H
 #include "StandardTypes.h"
+#endif
+
+#ifndef CLASS_LOGMSG_H
 #include "LogMsg.h"
+#endif
+
+#ifndef SECONDO_NLIST_H
 #include "NList.h"
+#endif
+
+#ifndef _RELATION_ALGEBRA_H_
 #include "RelationAlgebra.h"
+#endif
+
+#ifndef _TEMPORAL_ALGEBRA_H_
 #include "TemporalAlgebra.h"
+#endif
+
+#include "TemporalReasoner.h"
 #include <map>
 using namespace datetime;
 typedef DateTime Instant;
@@ -109,6 +136,7 @@ enum SimpleConnector {
   a_a_b_b=16777216,
   b_ba_a=33554432
 };
+enum ClosureResult{inconsistent, consistent, notPA};
 
 
 
@@ -200,6 +228,31 @@ Output: fulfilled or not.
 
   bool ApplySimple(Interval<CcReal>& p1, Interval<CcReal>& p2, 
       int simple);
+
+/*
+The Vector2PARelations function converts the IA relation represented in the
+vector into a set of PA relations among the end points of the two intervals.
+The function returns false if the conversion is not possible (i.e., the IA
+relation does not belong to the continuous point algebra. That is, it cannot be
+represented as point relations unless the != relation is used).
+
+The output PA relations are reported in the rels argument. It has 10 places for
+the relations aA ab aB ba bA bB Ab AB Ba BA Aa Bb in order. Each array elem has
+the value 0 (relation not specified), or 1-7 (<, =, >, <=, >=, !=, ?). As
+indicated above, if an elem in rels has the value 6 (!=), the function yields
+false.
+
+*/
+  bool Vector2PARelations(int rels[12]);
+
+/*
+The Simple2PARelations function converts an IA simple relation (i.e., one term)
+into a set of PA relations. It works similar to Vectore2PARelations, yet it is
+able to convert one term only.
+
+*/
+  bool Simple2PARelations(int simple, int rels[12]);
+
   
 /*  
 Secondo framework support functions
@@ -275,7 +328,14 @@ Connectivity rank as in the paper.
 */
   int PickVariable();
 
-    
+/*
+The Temporal Reasoner. It implements temporal reasoning over Point Algebra to
+make sure that the network is consistent, and to help restrict the
+trajectories.
+
+*/
+  PointAlgebraReasoner* PAReasoner;
+  ClosureResult closureRes;
   
 public:
 /*
@@ -313,9 +373,8 @@ A list of the variable that have been consumed so far.
   vector<int> assignedVars;
   
   
-  CSP():count(0),iterator(-1), 
-  nullInterval(CcReal(true,0.0),CcReal(true,0.0), true,true)
-  {}
+  CSP();
+  ~CSP();
   
 /* 
 The AddVariable function.
@@ -337,6 +396,15 @@ Output: error code
 */ 
  
   int AddConstraint(string alias1, string alias2, Supplier handle);
+
+/*
+The ComputeClosure function. It converts the CSP into a PA network, and
+computes the closure of the PA network. The return codes are: 0 for inconsistent
+network, 1 for consistent network, and 2 if the IA not convertible into PA.
+
+*/
+  int ComputeClosure();
+
   
 /*
 The Solve function. It implements the Solve Pattern algorithm in the paper.
@@ -395,8 +463,14 @@ related to the evaluation are reset.
 
 */
   int ResetTuple();
-};
 
+/*
+Reading/writing the closure computation result.
+
+*/
+  void SetClosureResult(ClosureResult _res);
+  ClosureResult GetClosureResult();
+};
 
 } // namespace STP
 
