@@ -23,7 +23,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //paragraph [1] Title: [{\Large \bf \begin{center}] [\end{center}}]
 //paragraph [10] Footnote: [{\footnote{] [}}]
 
-1.1 Declarations Necessary for Algebra Network
+1 Declarations Necessary for Algebra Network
 
 */
 #ifndef __NETWORK_ALGEBRA_H__
@@ -43,7 +43,9 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include <cstring>
 
 /*
-1.1.2 struct SectTreeEntry
+2 Helping structs
+
+2.1 struct SectTreeEntry
 
 The struct ~SectTreeEntry~ is used for the shortest path computation. The
 sections already visited by the Dijkstra's algorithm for shortest path search
@@ -91,11 +93,10 @@ class Network;
 class GLine;
 
 /*
-2 GLine
+2.2 class RouteInterval
 
-Every ~gline~ consists of a set of ~RouteInterval~s stored in a ~DbArray~.
+Every ~gline~ consists of a set of ~RouteInterval~s stored in a ~DBArray~.
 
-2.1 struct RouteInterval
 Each ~RouteInterval~ consists of a ~rid~, ~startpos~ and ~endpos~. Telling to
 which route of the network the route interval belongs to. And giving the start
 and end position of the ~RouteInterval~ of this route.
@@ -134,6 +135,8 @@ class RouteInterval
   ~RouteInterval() {};
 
 /*
+Methode ~BoundingBox~
+
 Computes the spatial Bounding Box of the given ~RouteInterval~ as 2 dimensional
 rectangle. Using the subline of the route curve defined by the given ~route-
 interval~.
@@ -143,7 +146,7 @@ interval~.
   Rectangle<2> BoundingBox(Network* pNetwork, const Geoid* geoid = 0) const;
 
 /*
-Get and Set private values.
+Get- and Set-Methodes for private values.
 
 */
   inline int GetRouteId() const {return m_iRouteId;};
@@ -155,6 +158,8 @@ Get and Set private values.
 
   private:
 /*
+Private fields: 
+
 The route id.
 
 */
@@ -179,7 +184,7 @@ End position on route.
 
 
 /*
-3 class GPoint
+3 GPoint
 
 3.1 enumeration of side
 
@@ -191,6 +196,7 @@ enum Side { Down, Up, None };
 
 /*
 3.2 struct for route location (~rloc~)
+
 Every single position in the network is given by an route location. That means
 by a route id ~rid~, the distance of the position from the start of the route
 ~d~, and the side ~side~ value. If the route is simple side is always ~None~.
@@ -233,7 +239,7 @@ Assignment operator
   void SetSide(Side s){side = s;}
 /*
 
-Private fields.
+Private fields:
 
 Route Id
 
@@ -249,7 +255,7 @@ The distance from the 0.0 point of the route.
   double d;
 
 /*
-side value
+Side value
 
 */
 
@@ -257,7 +263,7 @@ side value
 };
 
 /*
-3.4 class ~gpoint~
+3.3 class ~gpoint~
 
 Represents single positions in the network. Each ~GPoint~ consists of a network
 id the ~gpoint~ belongs to, a ~rloc~ and a boolean defined flag. Because
@@ -271,7 +277,7 @@ class GPoint : public Attribute
   public:
 
 /*
-3.4.1 Constructors and Destructor
+3.3.1 Constructors and Destructor of class ~GPoint~
 
 */
 
@@ -301,10 +307,12 @@ class GPoint : public Attribute
     ~GPoint(){};
 
 /*
-3.4.2 Methods of class ~gpoint~
+3.3.2 Methods of class ~gpoint~
+
+
+Assignment operator
 
 */
-
     GPoint& operator=( const GPoint& in_xOther )
     {
       SetDefined(in_xOther.IsDefined());
@@ -315,6 +323,24 @@ class GPoint : public Attribute
       }
       return *this;
     }
+
+/*
+Equal operator
+
+Returns true if two gpoint are identical.
+
+*/
+
+    bool operator== (const GPoint& p) const;
+
+/*
+Unequal operator
+
+Returns false if two gpoint are identical.
+
+*/
+
+    bool operator!= (const GPoint&p) const;
 
 /*
 Get Methods of ~gpoint~
@@ -361,6 +387,11 @@ Set Methods of ~gpoint~
     {
       m_xRouteLocation.SetSide(s);
     }
+
+/*
+Support Methods of ~gpoint~
+
+*/
 
     size_t Sizeof() const
     {
@@ -438,10 +469,6 @@ Set Methods of ~gpoint~
       return os;
     }
 
-/*
-Functions for Secondo integration.
-
-*/
     static ListExpr OutGPoint( ListExpr typeInfo, Word value );
 
     static Word InGPoint( const ListExpr typeInfo, const ListExpr instance,
@@ -464,6 +491,8 @@ Functions for Secondo integration.
     static bool CheckGPoint( ListExpr type, ListExpr& errorInfo );
 
 /*
+Method ~Netdistance~ and ~NewNetdistance~
+
 Returns the network distance between 2 ~gpoint~
 
 */
@@ -472,36 +501,29 @@ Returns the network distance between 2 ~gpoint~
     double NewNetdistance(GPoint* pToGPoint,GLine* res);//new
 
 /*
-Computes the euclidean distance of 2 glines.
+Method ~Distance~
+
+Computes the euclidean distance of 2 ~gpoint~.
 
 */
     double Distance (GPoint* toGPoint);
 
 /*
-Returns true if the gpoint is inside the gline false elsewhere.
+Method ~Inside~
+
+Returns ~true~ if the gpoint is inside the gline false elsewhere.
 
 */
 
     bool Inside(GLine *gl);
 
+
 /*
-Returns true if two gpoint are identical.
+Method ~ToPoint~
+
+Translates a ~gpoint~ into a ~point~ in the 2D plane.
 
 */
-
-    bool operator== (const GPoint& p) const;
-
-    /*
-    Returns false if two gpoint are identical.
-
-    */
-
-    bool operator!= (const GPoint&p) const;
-
-    /*
-    Translates a ~gpoint~ into a ~point~ in the 2D plane.
-
-    */
 
     void ToPoint(Point *& res);
 
@@ -510,6 +532,8 @@ Returns true if two gpoint are identical.
     Point* ToPoint(Network *&pNetwork) const;
 
 /*
+Method ~BoundingBox~
+
 Returns the spatial Bounding Box of the point which is a rectangle degenerated
 to a single point.
 
@@ -530,6 +554,8 @@ to a single point.
     };
 
 /*
+Method ~NetBoundingBox~
+
 Returns a point degenerated rectangle as network bounding box of the gpoint
 
 */
@@ -551,18 +577,31 @@ Returns a point degenerated rectangle as network bounding box of the gpoint
     };
 
 /*
-Returns a gline representing the shortest path between two GPoint.
+Method ~ShortestPath~
+
+Returns a gline representing the shortest path between two GPoint using 
+the Dijkstras Algorithm.
 
 */
 
   bool ShortestPath(GPoint *ziel, GLine *result);
+
+/*
+Method ~ShortestPathAStarPlus~
+
+Returns a gline representing the shortest path between two GPoint using 
+the AStar Algorithm.
+
+*/
+
   bool ShortestPathAStarPlus ( GPoint *pToGPoint, GLine *result, Word func );
 
   private:
 
 /*
 
-3.4 private Fields of class ~gpoint~
+3.3.3 Private Fields of class ~gpoint~
+
 
 Network id
 
@@ -580,7 +619,7 @@ Route location see struct ~rloc~ for detailed fields
 };
 
 /*
-4. Network
+4 Network
 
 4.1 Enumerations of columns for relations
 
@@ -653,7 +692,7 @@ class ConnectivityCode
 
 
 /*
-4.2.1 Constructor.
+4.2.1 Constructors:
 
 Constructs the connectivity code given an integer value ~cc~.
 
@@ -664,7 +703,7 @@ Constructs the connectivity code given an integer value ~cc~.
   }
 
 /*
-4.2.2 Constructor for boolean values.
+Constructor for boolean values.
 
 Constructs the connectivity code given the Boolean values for
 all possibilities.
@@ -708,7 +747,9 @@ all possibilities.
 
 
 /*
-4.2.3 Method isPossible
+4.2.2 Methods of class ~ConnectivityCode~
+
+Method ~isPossible~
 
 Checks if a transition is possible.
 
@@ -718,10 +759,9 @@ Checks if a transition is possible.
     return in_xTransition & m_iConnectivityCode;
   }
 
-  private:
-
+   private:
 /*
-4.2.4 private fields ConnectivtyCode
+4.2.3 Private fields:  
 
 The connectivity code
 
@@ -732,7 +772,7 @@ The connectivity code
 
 
 /*
-4.2.5 Class DirectedSection
+4.3 Class DirectedSection
 
 This class is needed for the list of sections used in each entry
 in the adjacency-list
@@ -743,7 +783,7 @@ class DirectedSection
   public:
 
 /*
-Constructor
+4.3.1 Constructors of class DirectedSection:
 
 */
   DirectedSection()
@@ -773,6 +813,8 @@ Copy-Constructor
   }
 
 /*
+4.3.2 Methods of class DirectedSection
+
 Redefinition of the assignment operator.
 
 */
@@ -783,6 +825,10 @@ Redefinition of the assignment operator.
     return *this;
   }
 
+/*
+Get-Methods
+
+*/
   bool GetUpDownFlag()
   {
     return m_bUpDown;
@@ -796,16 +842,15 @@ Redefinition of the assignment operator.
   private:
 
 /*
-Field with section-pointer
+4.3.3 Private fields of class DirectedSection
 
-A pointer to the section.
+Field with section-pointer. A pointer to the section.
 
 */
   TupleId m_iSectionTid;
 
 /*
-Field Direction-flag
-
+Field Direction-flag. 
 A flag indicating the direction: ~true~ means up and ~false~ means down.
 
 */
@@ -813,7 +858,10 @@ A flag indicating the direction: ~true~ means up and ~false~ means down.
 };
 
 /*
-4.2.5a Class DirectedSectionInfo
+4.4 Class DirectedSectionInfo
+
+This class is needed for the list of sections used in each entry
+in the new adjacency-list
 
 */
 class DirectedSectionInfo
@@ -821,7 +869,7 @@ class DirectedSectionInfo
   public:
 
 /*
-Constructor
+4.4.1 Constructors of class DirectedSectionInfo
 
 */
   DirectedSectionInfo()
@@ -862,6 +910,8 @@ Copy-Constructor
   }
 
 /*
+4.4.2 Methods of class DirectedSectionInfo
+
 Redefinition of the assignment operator.
 
 */
@@ -877,7 +927,7 @@ Redefinition of the assignment operator.
     return *this;
   }
 /*
-Get-methodes for UpdownFlag, SectionTid, Meas2, Meas2, Length, RoutesId, Cost and Duration
+Get-Methodes for private Fields of class DirectedSectionInfo
 
 */
 
@@ -912,45 +962,46 @@ Get-methodes for UpdownFlag, SectionTid, Meas2, Meas2, Length, RoutesId, Cost an
 
   private:
 /*
-Field with section-pointer
-A pointer to the section.
+4.4.3 Private fields of class DirectedSectionInfo
+
+Field with section-pointer. A pointer to the section.
 
 */
   TupleId m_iSectionTid;
 
 /*
-Field Direction-flag
+Direction-flag: 
 A flag indicating the direction: ~true~ means up and ~false~ means down.
 
 */
   bool m_bUpDown;
   
 /*
-Field with Meas1 of the section
+Meas1 of the section
 
 */
   double m_meas1;
 
 /*
-Field with Meas2 of the section
+Meas2 of the section
 
 */
   double m_meas2;
 
 /*
-Field with rid of the section
+RId of the section
 
 */
    int m_rid;
    
 /*
-Field with cost of the section
+Cost of the section
 
 */
     double m_cost;
 
 /*
-Field with duration of the section
+Duration of the section
 
 */
     double m_duration;
@@ -958,7 +1009,7 @@ Field with duration of the section
 
 
 /*
-4.2.6 Class PageRecord
+4.5 Class PageRecord
 
 This class is needed for the list of sections used in each entry in the 
 adjacency-List (it is an alternative of the DirectedSections)
@@ -970,7 +1021,7 @@ not all Slots are used.
 class PageRecord{
     private:
 /*
-Constants for the PageRecord
+4.5.1 Constants for class PageRecord
 
 */
     const static int MAX_SLOTINDEXSIZE = 193;
@@ -989,13 +1040,15 @@ Constants for the PageRecord
     
     public:
 /*
-default Constructor
+4.5.2 Constructors
+
+Default Constructor
 
 */
     PageRecord(){
     }
 /*
-Constructor
+simple Constructor
      
 */ 
     PageRecord(int size){
@@ -1022,6 +1075,8 @@ Copy-Constructor
     } 
         
 /*
+4.5.3 Methods of class PageRecord
+
 Redefinition of the assignment operator.
 
 */
@@ -1039,7 +1094,8 @@ Redefinition of the assignment operator.
     }
     
 /*
-Set-Methode for the SectionContent
+Method ~SetSectionContent~
+
 stored the content of a section , which ist given by the tid and its 
 Updown-Flag, on the next free space.
 return ~true~, if the section can be inserted, otherwise ~false~
@@ -1124,7 +1180,8 @@ return ~true~, if the section can be inserted, otherwise ~false~
     }
     
 /*
-Set-Methode for the SectionNeighbours
+Method ~SetSectionNeighbour~
+
 stored the pagenumber and the slotnumber of a given neighbour 
 by the slotIndex and the neighbourIndex
 
@@ -1146,7 +1203,8 @@ by the slotIndex and the neighbourIndex
         SetPageContent(c_sslot, startN, sizeof(int));   
     }
 /*
-Set-Methode for the cost of a section
+Method ~SetSectionCost~
+
 stored the cost of a given section 
 by the slotIndex
 
@@ -1158,7 +1216,8 @@ by the slotIndex
         SetPageContent(c_cost, start, sizeof(double));
     }
 /*
-Set-Methode for the Duration of a section
+Method ~SetSectionDuration~
+
 stored the duration of a given section 
 by the slotIndex
 
@@ -1170,8 +1229,9 @@ by the slotIndex
         SetPageContent(c_duration, start, sizeof(double));
     }
 /*
-Get-Methode
-get the neighbour-pagenumber of a spezified neighbour
+Method ~GetSectionNeighbourPage~
+
+gets the neighbour-pagenumber of a spezified neighbour
 
 */
     void GetSectionNeighbourPage(int slotIndex, 
@@ -1188,8 +1248,9 @@ get the neighbour-pagenumber of a spezified neighbour
         inout_nPage = npage;        
     }
 /*
-Get-Methode
-get the neighbour-slotnumber of a spezified neighbour
+Method ~GetSectionNeighbourSlot~
+
+gets the neighbour-slotnumber of a spezified neighbour
 
 */
     void GetSectionNeighbourSlot(int slotIndex,
@@ -1208,8 +1269,9 @@ get the neighbour-slotnumber of a spezified neighbour
     }
     
 /*
-Get-Methode
-get the section-TupleId which is stored in the given slot
+Method ~GetSectionTid~
+
+gets the section-TupleId which is stored in the given slot
 
 */
     void GetSectionTid(int slotIndex, TupleId &inout_tid){
@@ -1222,8 +1284,9 @@ get the section-TupleId which is stored in the given slot
     }
     
 /*
-Get-Methode
-get the section-Id which is stored in the given slot
+Method ~GetSectionId~
+
+gets the section-Id which is stored in the given slot
 
 */
     void GetSectionId(int slotIndex, int &inout_sid){
@@ -1236,8 +1299,8 @@ get the section-Id which is stored in the given slot
     }
 
 /*
-Get-Methode
-get the updownflag of a section which is stores in the given slot
+Method ~GetSectionUpdown~
+gets the updownflag of a section which is stores in the given slot
 
 */
     void GetSectionUpdown(int slotIndex, bool &inout_updown){
@@ -1250,8 +1313,8 @@ get the updownflag of a section which is stores in the given slot
     }
     
 /*
-Get-Methode
-get the meas1-attribute of a section which is stores in the given slot
+Method ~GetSectionMeas1~
+gets the meas1-attribute of a section which is stores in the given slot
 
 */
     void GetSectionMeas1(int slotIndex, double &inout_meas1){
@@ -1264,8 +1327,8 @@ get the meas1-attribute of a section which is stores in the given slot
     }
 
 /*
-Get-Methode
-get the meas2-attribute of a section which is stores in the given slot
+Method ~GetSectionMeas2~
+gets the meas2-attribute of a section which is stores in the given slot
 
 */
     void GetSectionMeas2(int slotIndex, double &inout_meas2){
@@ -1278,8 +1341,8 @@ get the meas2-attribute of a section which is stores in the given slot
     }
     
 /*
-Get-Methode
-get the rid of a section which is stores in the given slot
+Method ~GetSectionRid~
+gets the rid of a section which is stores in the given slot
 
 */
     void GetSectionRid(int slotIndex, int &inout_rid){
@@ -1292,8 +1355,8 @@ get the rid of a section which is stores in the given slot
     }
     
 /*
-Get-Methode
-get the cost of a section which is stored in the given slot
+Method ~GetSectionCost~
+gets the cost of a section which is stored in the given slot
 
 */
     void GetSectionCost(int slotIndex, double &inout_cost){
@@ -1306,8 +1369,8 @@ get the cost of a section which is stored in the given slot
     }
      
 /*
-Get-Methode
-get the Duration of a section which is stored in the given slot
+Method ~GetSectionDuration~
+gets the Duration of a section which is stored in the given slot
 
 */
     void GetSectionDuration(int slotIndex, double &inout_duration){
@@ -1320,8 +1383,8 @@ get the Duration of a section which is stored in the given slot
     }
     
 /*
-Get-Methode
-get number of neighbours of section, which is stored in the given 
+Method ~GetSectionNoNeighbours~
+gets number of neighbours of section, which is stored in the given 
 Slotindex
 
 */
@@ -1335,9 +1398,11 @@ Slotindex
     }
     
     
-    
+ 
     private:
 /*
+4.5.4 Private methods of class ~PageRecord~
+
 private Set-methode to stored content on the page
 
 */
@@ -1389,6 +1454,8 @@ private get-methode to get content from the slotindex
         }
         
 /*
+4.5.5 Private fields of class ~PageRecord~
+
 Field NextFree, stored the index of the PageContent, where the next 
 section can be inserted
 
@@ -1417,7 +1484,7 @@ new, otherwise false
 };
 
 /*
-4.2.7 Class DirectedSectionPair
+4.6 Class DirectedSectionPair
 
 This class is needed for the list of sections used in each entry
 in the adjacency-list
@@ -1428,7 +1495,7 @@ class DirectedSectionPair
   public:
 
 /*
-Constructor
+4.6.1 Constructors:
 
 */
   DirectedSectionPair()
@@ -1462,6 +1529,12 @@ Copy-Constructor
   {
   }
 
+/*
+4.6.2 Methods of class ~DirectedSectionPair~
+
+less than operator
+
+*/
   bool operator<(const DirectedSectionPair& in_xOther) const
   {
     if(m_iFirstSectionTid != in_xOther.m_iFirstSectionTid)
@@ -1479,9 +1552,9 @@ Copy-Constructor
     return m_bSecondUpDown;
   }
 
-
-
 /*
+4.6.3 Private fields of class ~DirectedSectionPair~
+
 Field with a pointer to the first section.
 
 */
@@ -1513,7 +1586,7 @@ Indicating the second section direction: ~true~ means up and ~false~ means down.
 
 
 /*
-4.2.8 Class AdjacencyListEntry
+4.7 Struct AdjacencyListEntry
 
 Used for the adjacency-list of the network
 
@@ -1521,15 +1594,11 @@ Used for the adjacency-list of the network
 struct AdjacencyListEntry
 {
 /*
-The simple constructor.
+4.7.1 Constructors:
 
 */
   AdjacencyListEntry() {}
 
-/*
-The constructor.
-
-*/
   AdjacencyListEntry( int in_iLow,
                       int in_iHigh ):
   m_iLow( in_iLow ),
@@ -1537,10 +1606,6 @@ The constructor.
   {
   }
 
-/*
-The copy constructor.
-
-*/
   AdjacencyListEntry( const AdjacencyListEntry& in_xEntry ):
   m_iLow( in_xEntry.m_iLow ),
   m_iHigh( in_xEntry.m_iHigh )
@@ -1548,6 +1613,8 @@ The copy constructor.
   }
 
 /*
+4.7.2 Private fields of struct ~AdjacencyListEntry~
+
 The lower index in the adjacency lists sub-array.
 
 */
@@ -1561,13 +1628,18 @@ The higher index in the adjacency lists sub-array.
 };
 
 /*
-4.2.9 Class JunctionSortEntry
+4.8 Struct JunctionSortEntry
 
 A helper struct for junction lists.
 
 */
 struct JunctionSortEntry
 {
+
+/*
+4.8.1 Constructors:
+
+*/
   JunctionSortEntry()
   {
   }
@@ -1579,10 +1651,12 @@ struct JunctionSortEntry
   {
   }
 
-  bool m_bFirstRoute;
+/*
+4.8.2 Methods of struct JunctionSortEntry
 
-  Tuple* m_pJunction;
+less than operator
 
+*/
   bool operator<(const JunctionSortEntry& in_xOther) const
   {
     CcReal* xMeas1;
@@ -1610,6 +1684,10 @@ struct JunctionSortEntry
     return (xMeas1->GetRealval() < xMeas2->GetRealval());
   }
 
+/*
+Method ~GetRouteMeas~
+
+*/
   double GetRouteMeas()
   {
     CcReal* pMeas;
@@ -1625,6 +1703,10 @@ struct JunctionSortEntry
 
   }
 
+/*
+Method ~GetOtherRouteMeas~
+
+*/
   double GetOtherRouteMeas()
   {
     CcReal* pMeas;
@@ -1640,6 +1722,10 @@ struct JunctionSortEntry
 
   }
 
+/*
+Method ~GetOtherRouteId~
+
+*/
   int GetOtherRouteId() {
     CcInt* pRouteId;
     if (m_bFirstRoute) {
@@ -1650,7 +1736,10 @@ struct JunctionSortEntry
     return pRouteId->GetIntval();
   }
 
+/*
+Method ~GetUpSectionId~
 
+*/
   TupleId GetUpSectionId()
   {
     TupleId pTid;
@@ -1667,6 +1756,10 @@ struct JunctionSortEntry
     return pTid;
   }
 
+/*
+Method ~GetDownSectionId~
+
+*/
   TupleId GetDownSectionId()
   {
     TupleId pTid;
@@ -1682,12 +1775,20 @@ struct JunctionSortEntry
     }
     return pTid;
   }
+
+/*
+4.8.3 Fields of struct JunctionSortEntry
+
+*/
+  bool m_bFirstRoute;
+
+  Tuple* m_pJunction;
 };
 
 
 
 /*
-4.2.9 Class ~Network~
+4.9 Class ~Network~
 
 Central object of network concept. All other positions are given related to a
 network object.
@@ -1699,14 +1800,17 @@ class Network
 
 /*
 
-4.2.9.1 The public methods of the class ~network~
+4.9.1 Type info of relation of the class ~network~
 
-The internal and external (they are equal) ~routes~ relation type info
-as string.
+The external ~routes~ relation type info as string.
 
 */
-
   static string routesTypeInfo;
+
+/*
+The internal ~routes~ relation type info as string.
+
+*/
   static string routesInternalTypeInfo;
 
 
@@ -1714,50 +1818,42 @@ as string.
 The B-Tree in the ~routes~ relation type info as string.
 
 */
-
   static string routesBTreeTypeInfo;
 
 /*
 The R-Tree in the ~routes~ relation type info as string.
 
 */
-
   static string routesRTreeTypeInfo;
 
 /*
 The B-Tree in the ~junctions~ relation type info as string.
 
 */
-
   static string junctionsBTreeTypeInfo;
-
 
 /*
 The external ~junctions~ relation type info as string.
 
 */
-
   static string junctionsTypeInfo;
 
 /*
 The internal ~junctions~ relation type info as string.
 
 */
-
   static string junctionsInternalTypeInfo;
 
 /*
 The internal ~sections~ relation type info as string.
 
 */
-
   static string sectionsInternalTypeInfo;
 
 /*
-The sectionsBTreeTypeInfo
+The B-Tree in the ~section~ relation type info as string.
 
 */
-
 static string sectionsBTreeTypeInfo;
 
 
@@ -1766,9 +1862,10 @@ static string sectionsBTreeTypeInfo;
 
 */
 static string distancestorageTypeInfo;
+
 /*
 
-4.2.9.2 Constructors of the class ~network~
+4.9.2 Constructors and destructor of the class ~network~
 
 The simple constructor.
 
@@ -1803,30 +1900,13 @@ The destructor.
   ~Network();
 
 /*
+4.9.3 Support function of class ~network~
 
-4.2.9.3 Methods of the class ~network~
+The ~Out~, ~Save~, and ~Open~ functions of the type constructor ~network~.
+The ~In~ function is not provided, given that the creation of the network
+is only done via the ~thenetwork~ operator.
 
-Destroy-Method
-
-This function sets all information inside the network to be
-destroyed when the destructor is called.
-
-*/
-    void Destroy();
-
-/*
-Load-Method
-
-Loads a network given two relations containing the routes and junctions.
-This function corresponds to the operator ~thenetwork~.
-
-*/
-    void Load(int in_iId,
-              const Relation *in_pRoutes,
-              const Relation *in_pJunctions);
-
-/*
-Out-Method
+~Out~-Method
 
 Outputs a network
 
@@ -1834,7 +1914,7 @@ Outputs a network
   ListExpr Out(ListExpr typeInfo);
 
 /*
-Save-Method
+~Save~-Method
 
 Saves all relations of the network
 
@@ -1844,7 +1924,7 @@ Saves all relations of the network
                  const ListExpr typeInfo );
 
 /*
-Open-Method
+~Open~-Method
 
 Opens a network
 
@@ -1852,236 +1932,7 @@ Opens a network
   static Network* Open( SmiRecord& valueRecord,
                         size_t& offset,
                         const ListExpr typeInfo );
-
-/*
-The ~Out~, ~Save~, and ~Open~ functions of the type constructor ~network~.
-The ~In~ function is not provided, given that the creation of the network
-is only done via the ~thenetwork~ operator.
-
-*/
-
-
-/*
-Method GetId
-
-Returns the id of this network
-
-*/
-    int GetId();
-
-/*
-GetRoutes
-
-Returns a copy of the ~routes~ relation in external representation.
-This function is used in the ~routes~ operator.
-
-*/
-    Relation *GetRoutes();
-
-/*
-GetJunctions
-
-Returns a copy of the ~junctions~ relation in external representation.
-This function is used in the ~junctions~ operator.
-
-*/
-    Relation *GetJunctions();
-
-/*
-GetJunctionsOnRoute
-
-Returns the junction from the start of the route to the end.
-
-*/
-    void GetJunctionsOnRoute(CcInt* in_pRouteId,
-                             vector<JunctionSortEntry>& inout_xJunctions);
-
-/*
-Returns the section ~tuple~ of the network which includes the ~GPoint~.
-Attention: The tupleId of the returned Tuple is not the TupleId in the sections
-relation! If you need the correct tupleId of the sections relation use
-~GetTupleIdSectionOnRoute~ instead.
-
-*/
-
- Tuple*  GetSectionOnRoute(GPoint* in_xGPoint);
-
-/*
-Returns the ~tupleid~  of the section which includes the ~GPoint~ .
-
-*/
-
-
- TupleId GetTupleIdSectionOnRoute(GPoint* in_xGPoint);
-
-/*
-GetPointOnRoute
-
-Returns the point value of the GPoint on the route. Used for translation of
-network positions into spatial 2D positions.
-
-*/
-  void GetPointOnRoute(const GPoint* in_xGPoint, Point *&res);
-
-/*
-GetRoute
-
-Returns the route tuple for the given route id.
-
-*/
-
-  Tuple* GetRoute(int in_RouteId);
-  Tuple* GetRoute(TupleId in_routeTID);
-
-/*
-GetRouteCurve
-
-Returns the route curve for the given route id.
-
-*/
-
-  SimpleLine GetRouteCurve(int in_iRouteId);
-
-/*
-GetDual
-
-Returns the dual value of the given route id.
-
-*/
-
-  bool GetDual(int in_iRouteId);
-
-/*
-GetLineValueOfRouteInterval
-
-Returns the ~sline~ representing the ~RouteInterval~ in spatial data. Used
-to translate network values into spatial 2D values.
-
-*/
-
-  void GetLineValueOfRouteInterval(const RouteInterval* in_rI,
-                                   SimpleLine *out_line);
-
-/*
-GetSections
-
-Returns a copy of the ~sections~ relation in external representation.
-This function is used in the ~sections~ operator.
-
-*/
-  Relation *GetSections();
-
-/*
-GetNetworkPosOfPoint
-
-Returns a GPoint representing the point value in the network if possible, undef
-elsewhere. Used to translate spatial 2D positions into network positions.
-
-*/
-
-  GPoint* GetNetworkPosOfPoint(Point p);
-
-/*
-GetSectionsInternal
-
-Returns the ~sections~ relation (in internal representation).
-
-*/
-    Relation *GetSectionsInternal();
-
-/*
-Method GetAdjacentSection
-Returns a vector of sections which can be reached next upwards respectively
-downwards bool from the section given by TupleId.
-
-*/
-
-    void GetAdjacentSections(TupleId in_iSectionId,
-                             bool in_bUpDown,
-                             vector<DirectedSection> &inout_xSections);
-
-/*
-Method GetAdjacentSectionsInfo
-Returns a vector of sections which can be reached next upwards respectively
-downwards bool from the section given by TupleId.
-
-*/
-    void GetAdjacentSectionsInfo ( TupleId in_iSectionTId,
-         bool in_bUpDown,vector<DirectedSectionInfo> &inout_xSections );
-
-/*
-GetSections on RouteInterval.
-
-Returns a set of sections which are covered by the given ~RouteInterval~
-~inri~ as ~DbArray~ of SectTreeEntries.
-
-*/
-
-    void GetSectionsOfRouteInterval(const RouteInterval *in_ri,
-                                    DbArray<SectTreeEntry> *io_SectionIds);
-
-    void GetSectionsOfRoutInterval(const RouteInterval *in_ri,
-                                  vector<TupleId> &res);
-
-/*
-Get Routeinterval for Halfsegment defined by point interval. Used to translate
-spatial 2D values into network values.
-
-*/
-
-    RouteInterval* Find(Point p1, Point p2);
-
-/*
-Get Routepart passed limited by the two points.
-
-*/
-
-    RouteInterval* FindInterval(Point p1, Point p2);
-
-
-/*
-Computes the junction of the two given routes and returns the route measure
-values of the junction on this routes.
-
-*/
-
-void GetJunctionMeasForRoutes(CcInt *pLastRouteId, CcInt *pCurrentSectionRid,
-                                  double& rid1meas, double& rid2meas);
-
-/*
-Returns the section with the given id.
-
-*/
-    Tuple* GetSection(TupleId n);
-
-    void FindSP(TupleId j1,TupleId j2,double& length,GLine* res);
-/*
-Operator-functions to update the cost of a section
-
-*/
-    bool UpdateSectionCost(int secId,double newCost);   
-    bool UpdateMoreSectionCost(const Relation* in_pCosts);
-/*
-Operator-functions to update the duration of a section
-
-*/
-    bool UpdateSectionDuration(int secId,double newDuration);   
-    bool UpdateMoreSectionDuration(const Relation* in_pDurations);
-/*
-Operator-function to optimize the network
-
-*/
-    bool OptimizeNetwork();
-/*
-Operator-function to print the information of the adjacent sections
-
-*/
-    bool PrintAdjacentSectionInfo();
-    
 /* 
-
-4.2.9.4 Secondo Integration Methods of Class ~Network~
-
 NetworkProp
 
 */
@@ -2167,40 +2018,341 @@ SizeOfNetwork
 isDefined
 
 */
-
  int IsDefined();
+ 
+/*
+SetDefined
 
+*/
  void SetDefined(bool def)
  {
    m_bDefined = def;
  };
 
+/*
+4.9.4 Methods of the class ~network~
 
+Method ~Destroy~
+
+This function sets all information inside the network to be
+destroyed when the destructor is called.
+
+*/
+    void Destroy();
+
+/*
+Method ~Load~
+
+Loads a network given two relations containing the routes and junctions.
+This function corresponds to the operator ~thenetwork~.
+
+*/
+    void Load(int in_iId,
+              const Relation *in_pRoutes,
+              const Relation *in_pJunctions);
+
+/*
+Method ~GetId~
+
+Returns the id of this network
+
+*/
+    int GetId();
+
+/*
+Method ~GetRoutes~
+
+Returns a copy of the ~routes~ relation in external representation.
+This function is used in the ~routes~ operator.
+
+*/
+    Relation *GetRoutes();
+
+/*
+Method ~GetJunctions~
+
+Returns a copy of the ~junctions~ relation in external representation.
+This function is used in the ~junctions~ operator.
+
+*/
+    Relation *GetJunctions();
+
+/*
+Method ~GetJunctionsOnRoute~
+
+Returns the junction from the start of the route to the end.
+
+*/
+    void GetJunctionsOnRoute(CcInt* in_pRouteId,
+                             vector<JunctionSortEntry>& inout_xJunctions);
+
+/*
+Method ~GetSectionOnRoute~
+
+Returns the section ~tuple~ of the network which includes the ~GPoint~.
+Attention: The tupleId of the returned Tuple is not the TupleId in the sections
+relation! If you need the correct tupleId of the sections relation use
+~GetTupleIdSectionOnRoute~ instead.
+
+*/
+ Tuple*  GetSectionOnRoute(GPoint* in_xGPoint);
+
+/*
+Method ~GetTupleIdSectionOnRoute~
+Returns the ~tupleid~  of the section which includes the ~GPoint~ .
+
+*/
+ TupleId GetTupleIdSectionOnRoute(GPoint* in_xGPoint);
+
+/*
+Method ~GetPointOnRoute~
+
+Returns the point value of the GPoint on the route. Used for translation of
+network positions into spatial 2D positions.
+
+*/
+  void GetPointOnRoute(const GPoint* in_xGPoint, Point *&res);
+
+/*
+Mehtod ~GetRoute~
+
+Returns the route tuple for the given route id.
+
+*/
+  Tuple* GetRoute(int in_RouteId);
+  Tuple* GetRoute(TupleId in_routeTID);
+
+/*
+Method ~GetRouteCurve~
+
+Returns the route curve for the given route id.
+
+*/
+  SimpleLine GetRouteCurve(int in_iRouteId);
+
+/*
+Method ~GetDual~
+
+Returns the dual value of the given route id.
+
+*/
+  bool GetDual(int in_iRouteId);
+
+/*
+Method ~GetLineValueOfRouteInterval~
+
+Returns the ~sline~ representing the ~RouteInterval~ in spatial data. Used
+to translate network values into spatial 2D values.
+
+*/
+  void GetLineValueOfRouteInterval(const RouteInterval* in_rI,
+                                   SimpleLine *out_line);
+
+/*
+Method ~GetSections~
+
+Returns a copy of the ~sections~ relation in external representation.
+This function is used in the ~sections~ operator.
+
+*/
+  Relation *GetSections();
+
+/*
+Method ~GetNetworkPosOfPoint~ 
+
+Returns a GPoint representing the point value in the network if possible, undef
+elsewhere. Used to translate spatial 2D positions into network positions.
+
+*/
+  GPoint* GetNetworkPosOfPoint(Point p);
+
+/*
+Methode ~GetSectionsInternal~
+
+Returns the ~sections~ relation (in internal representation).
+
+*/
+    Relation *GetSectionsInternal();
+
+/*
+Method ~GetAdjacentSection~
+
+Returns a vector of sections which can be reached next upwards respectively
+downwards bool from the section given by TupleId.
+
+*/
+
+    void GetAdjacentSections(TupleId in_iSectionId,
+                             bool in_bUpDown,
+                             vector<DirectedSection> &inout_xSections);
+
+/*
+Method ~GetAdjacentSectionsInfo~
+
+Returns a vector of sections which can be reached next upwards respectively
+downwards bool from the section given by TupleId.
+
+*/
+    void GetAdjacentSectionsInfo ( TupleId in_iSectionTId,
+         bool in_bUpDown,vector<DirectedSectionInfo> &inout_xSections );
+
+/*
+Method ~GetSectionsOfRouteInterval~
+
+Returns a set of sections which are covered by the given ~RouteInterval~
+~inri~ as ~DbArray~ of SectTreeEntries.
+
+*/
+
+    void GetSectionsOfRouteInterval(const RouteInterval *in_ri,
+                                    DbArray<SectTreeEntry> *io_SectionIds);
+
+    void GetSectionsOfRoutInterval(const RouteInterval *in_ri,
+                                  vector<TupleId> &res);
+
+/*
+Methode ~Find~
+
+Get Routeinterval for Halfsegment defined by point interval. Used to translate
+spatial 2D values into network values.
+
+*/
+
+    RouteInterval* Find(Point p1, Point p2);
+
+/*
+Method ~FindInterval~
+
+Get Routepart passed limited by the two points.
+
+*/
+    RouteInterval* FindInterval(Point p1, Point p2);
+
+
+/*
+Method ~GetJunctionMeasForRoutes~
+
+Computes the junction of the two given routes and returns the route measure
+values of the junction on this routes.
+
+*/
+
+void GetJunctionMeasForRoutes(CcInt *pLastRouteId, CcInt *pCurrentSectionRid,
+                                  double& rid1meas, double& rid2meas);
+
+/*
+Method ~GetSection~
+
+Returns the section with the given id.
+
+*/
+    Tuple* GetSection(TupleId n);
+/*
+Method ~FindSP~
+
+*/
+    void FindSP(TupleId j1,TupleId j2,double& length,GLine* res);
+   
+/*
+Method ~UpdateSectionCost~ and ~UpdateMoreSectionCost~
+
+Update the cost of one or more sections
+
+*/
+    bool UpdateSectionCost(int secId,double newCost);   
+    bool UpdateMoreSectionCost(const Relation* in_pCosts);
+/*
+Methode ~UpdateSectionDuration~ and ~UpdateMoreSectionDuration~
+Update the duration of a section
+
+*/
+    bool UpdateSectionDuration(int secId,double newDuration);   
+    bool UpdateMoreSectionDuration(const Relation* in_pDurations);
+/*
+Methode ~OptimizeNetwork~
+
+optimizes the order of the ~routes~, after that all ~sections~ are generated new 
+and  all structures based on these ~sections~ are adjusted
+
+*/
+    bool OptimizeNetwork();
+/*
+Method ~PrintAdjacentSectionInfo~
+
+Prints informations of ~sections~ which are stored in a ~PageRecord~.
+
+*/
+    bool PrintAdjacentSectionInfo();
+    
+/*
+Method ~GetTupleIdSectionOnRouteJun~
+
+*/
   void GetTupleIdSectionOnRouteJun(GPoint* in_xGPoint,vector<TupleId>&);
+  
+/*
+Method ~GetNoJunctions~
+
+*/
   int GetNoJunctions(){return m_pJunctions->GetNoTuples();}
+  
+/*
+Method ~GetNoRoutes~
+
+*/
   int GetNoRoutes(){return m_pRoutes->GetNoTuples();}
 
 private:
 
 
 /*
-4.2.9.5 Private methods of class ~Network~
+4.9.5 Private methods of class ~Network~
 
-FillRoutes
+Method ~FillRoutes~
 
 Copies the relation given as argument to the ~routes~ relations sorted by
 the ~id~ attribute and creates the B-Tree in this attribute.
 
 */
   void FillRoutes( const Relation *in_pRoutes );
-  
+ 
+/*
+Method ~OptimizationRoutes~
+
+determined for all ~routes~ their lexicographic start point, stores them in an
+array and calls the sort method ~QuicksortRoutes~
+
+*/  
   bool OptimizationRoutes();
+ 
+/*
+Method ~QuicksortRoutes~
+
+calculates the pivot-element-index with the method 
+~QuicksortRoutesPartition~. After that ~QuicksortRoutes~ is recursively called 
+for the upper and lower part of the array
+
+*/
   void QuicksortRoutes(int a[][2], int l, int r);
+
+/*
+Method ~QuicksortRoutesPartition~
+
+split the given array and sorts the array so that all elements before the 
+pivot-element are smaller and all elements that are above the pivot element 
+are larger.
+
+*/
   int QuicksortRoutesPartition(int a[][2], int l, int r); 
+
+/*
+Method ~CreateRoutesIndexes~
+
+*/
   void CreateRoutesIndexes();
 
 /*
-FillJunctions
+Method ~FillJunctions~
 
 Copies the relation given as argument to the ~junctions~ relation appending
 the new attributes.
@@ -2209,7 +2361,7 @@ the new attributes.
   void FillJunctions( const Relation *in_pJunctions );
 
 /*
-FillSections
+Method ~FillSections~
 
 Given the ~routes~ and ~junctions~ relation, the ~sections~ relation
 is retrieved.
@@ -2218,13 +2370,17 @@ is retrieved.
   void FillSections();
 
 /*
-FillAdjacencyLists
+Method ~FillAdjacencyLists~
 
 Given that all relations are set up, the adjacency lists are created.
 
 */
   void FillAdjacencyLists();
 
+/*
+Method ~FillAdjacencyPair~
+
+*/
   void FillAdjacencyPair(TupleId in_pFirstSection,
                          bool in_bFirstUp,
                          TupleId in_pSecondSection,
@@ -2234,6 +2390,8 @@ Given that all relations are set up, the adjacency lists are created.
                          vector<DirectedSectionPair> &inout_xPairs);
 
 /*
+Method ~FillDistanceStorage~
+
 Used for experiments with network distance computation to store precomputed
 distances. Because of the big data overhead and computation time this methods
 and parameters should not be used if not needed. Therefore their calls are
@@ -2244,6 +2402,8 @@ comment out in the code. Of network constructors.
   void FillDistanceStorage();
 
 /*
+Methods ~ShorterConnection~, ~ShorterConnection2~ and ~InShortestPath~
+
 Helpful functions for Find respectively FindInterval. Tests Network if there
 is a shorter connection between the two points p1 and p2 than given by
 start, end.
@@ -2265,14 +2425,15 @@ for ~gline~ ~routeInterval~.
   bool InShortestPath(GPoint* start, GPoint* end, GLine *result);
 
 /* 
-Helpfunction to count the neighbours of all sections
+Method ~CountNeighbours~
+count the neighbours of all sections
 
 */
 void CountNeighbours(vector<DirectedSectionPair> in_xList);
 
 
 /*
-4.2.9.6 Private fields of Class ~Network~
+4.9.6 Private fields of Class ~Network~
 
 The ID of the network
 
@@ -2311,27 +2472,27 @@ The BTree in the ~routes~ relation.
   BTree* m_pBTreeRoutes;
 
 /*
-The BTree in the ~routes~ relation.
+The BTree in the ~routes~ relation by startpos\_id.
 
 */
 
   BTree* m_pBTreeRoutesByStartposId;
-  
+ 
 /*
-The BTree in the routes relation by startpos\_id
+The RTree in the ~routes~ relation
 
-*/
+*/  
 
   R_Tree<2,TupleId> *m_pRTreeRoutes;
 
 /*
-The RTree in the ~routes~ relation
+The BTree in the ~junctions~ relation by route1.
 
 */
   BTree* m_pBTreeJunctionsByRoute1;
 
 /*
-The BTree in the ~junctions~ relation.
+The BTree in the ~junctions~ relation by route2.
 
 */
   BTree* m_pBTreeJunctionsByRoute2;
@@ -2351,14 +2512,20 @@ The adjacency lists of sections.
   DbArray<DirectedSection> m_xSubAdjacencyList;
 
 /*
-The BTree of the sections route ids.
+The BTree in the ~sections~ relation by routeId.
 
 */
 
   BTree* m_pBTreeSectionsByRoute;
+/*
+The BTree in the ~junctions~ relation.
+
+*/
   BTree* m_pBTreeSections;
 
 /*
+Field alldistance
+
 Stores the precomputed distances between every possible pair of two junction
 points. Only for experimental use in network distance computing. Comment out
 in the code if not needed the computational and storage space overhead is to
@@ -2372,7 +2539,9 @@ big.
 
 
 /*
-5 class ~gline~
+5 ~gline~
+
+5.1 class ~GLine~
 
 */
 
@@ -2380,7 +2549,7 @@ big.
 class GLine : public Attribute
 {
 /*
-5.1 Constructors and Destructor
+5.1.1 Constructors and Destructor:
 
 The simple constructor. Should not be used.
 
@@ -2389,6 +2558,8 @@ The simple constructor. Should not be used.
     GLine();
 
 /*
+Constructor 
+
 ~iniSize~ gives the number of expected ~RouteIntervals~. If it is to small
 the size of the ~DbArray~ is dynamically extended later.
 
@@ -2397,15 +2568,15 @@ the size of the ~DbArray~ is dynamically extended later.
 
     GLine(const GLine* in_xOther);
 
-    ~GLine() {};
-
     GLine( ListExpr in_xValue,
          int in_iErrorPos,
          ListExpr& inout_xErrorInfo,
          bool& inout_bCorrect);
-
+         
+    ~GLine() {};
+    
 /*
-5.2 Methods of class ~gline~
+5.1.2 Methods of class ~gline~
 
 */
 
@@ -2486,7 +2657,7 @@ Returns the Bounding GPoints of the GLine.
     bool operator== (const GLine& p) const;
 
 /*
-5.3 Secondo Integration
+5.1.3 Support function of ~gline~ for Secondo Integration
 
 */
 
@@ -2541,7 +2712,7 @@ Returns the Bounding GPoints of the GLine.
   private:
 
 /*
-5.4 Private Fields of class ~gline~
+5.1.4 Private Fields of class ~gline~
 
 The network id.
 
@@ -2577,7 +2748,7 @@ The array of route intervals.
 
 
 /*
-1.2.3 ~struct RITree~
+5.2 ~struct RITree~
 
 Used to compress and sort ~RouteInterval~s. Because many operators take profit
 from sorted ~RouteInterval~s. We sort and compress resulting ~DbArray~s of
@@ -2586,7 +2757,10 @@ from sorted ~RouteInterval~s. We sort and compress resulting ~DbArray~s of
 */
 
 struct RITree {
+/*
+5.2.1 Constructors and Destructor:
 
+*/
   RITree(){};
 
   RITree( int ri,double pos1, double pos2, RITree *left = 0, RITree *right = 0){
@@ -2600,11 +2774,14 @@ struct RITree {
   ~RITree(){};
 
 /*
+5.2.2 Methods of Struct RITree
+
+Method ~CheckTree~
+
 Checks if in the ~RITree~ exist son intervals which are covered by the
 previos changed interval of the father.
 
 */
-
   double CheckTree(RITree& father, int rid, double pos1, double pos2,
                    bool bleft) {
     if (rid < this->m_iRouteId) {
@@ -2685,6 +2862,8 @@ previos changed interval of the father.
   };
 
 /*
+Method ~InsertUnit~
+
 Inserts a ~RouteInterval~ in the ~RITree~ checking if there are already
 ~RouteIntervals~ which overlap or are adjacent to the current ~RouteInterval~.
 
@@ -2695,6 +2874,10 @@ Inserts a ~RouteInterval~ in the ~RITree~ checking if there are already
     else Insert(rid, pos2, pos1);
   }
 
+/*
+Method ~Insert~
+
+*/
   void Insert (int rid, double pos1, double pos2) {
     double test;
     if (rid < this->m_iRouteId) {
@@ -2757,11 +2940,12 @@ Inserts a ~RouteInterval~ in the ~RITree~ checking if there are already
   };
 
 /*
+Method ~TreeToGLine~
+
 Stores the ~RouteInterval~s of the ~RITree~ sorted by their route ids and
 start positions into ~gline~.
 
 */
-
   void TreeToGLine (GLine* gline) {
     if (this->m_left != 0) {
       this->m_left->TreeToGLine (gline);
@@ -2773,6 +2957,8 @@ start positions into ~gline~.
   };
 
 /*
+Method ~TreeToDbArray~
+
 Stores the ~RouteInterval~s of the ~RITree~ sorted by their route ids and
 start positions into a ~DbArray~. Used to build trajectory of ~mgpoint~.
 
@@ -2789,6 +2975,8 @@ start positions into a ~DbArray~. Used to build trajectory of ~mgpoint~.
   };
 
 /*
+Method ~RemoveTree~
+
 Deletes the tree.
 
 */
@@ -2798,24 +2986,42 @@ Deletes the tree.
     delete this;
   };
 
+/*
+5.2.3 Fields of Struct RITree
+
+*/
   int m_iRouteId;
   double m_dStart, m_dEnd;
   RITree *m_left, *m_right;
 };
 
 /*
-6. class GPoints by Jianqiu Xu.
+6 GPoints by Jianqiu Xu.
+
+6.1 string edistjoinpointlist
 
 */
 
 extern string edistjoinpointlist;
 
+/*
+6.2 class GPoints
+
+*/
 class GPoints: public Attribute{
 public:
+/*
+6.2.1 Constructors and Destructor of class ~GPoints~
+
+*/
   GPoints();
   GPoints(int in_iSize);
   GPoints(GPoints* in_xOther);
   ~GPoints(){}
+/*
+6.2.2 Methods of class ~GPoints~
+
+*/
   ostream& Print(ostream& os)const;
   inline bool IsEmpty()const;
   size_t Sizeof()const;
@@ -2850,6 +3056,10 @@ public:
   void TrimToSize () {m_xGPoints.TrimToSize();}
 
 private:
+/*
+6.2.3 Private fields of class ~GPoints~
+
+*/
   DbArray<GPoint> m_xGPoints;
 };
 

@@ -32,6 +32,8 @@ February 2008 -  Simone Jandt
 
 October 2008 - Jianqiu Xu
 
+April-Mai 2011 - Nina Wrede
+
 1.1 Defines, includes, and constants
 
 */
@@ -59,7 +61,6 @@ October 2008 - Jianqiu Xu
 #include "QueryProcessor.h"
 #include "AlgebraManager.h"
 #include "../../include/ListUtils.h"
-
 #include "../../include/TypeMapUtils.h" 
 
 extern NestedList* nl;
@@ -67,7 +68,7 @@ extern QueryProcessor* qp;
 static map<int,string> *netList;
 
 /*
-1 Helping structs, methods and classes
+2 Helping structs, methods and classes
 
 Sending a message via the message-center
 
@@ -1476,11 +1477,11 @@ struct PrioQueue
 };
 
 /*
-2 Class Definitions
+3 Class Definitions
 
-2.1 class ~Network~
+3.1 class ~Network~
 
-2.1.2 Network relations
+3.1.1 Network relations
 
 */
 string Network::routesTypeInfo =
@@ -1512,7 +1513,6 @@ string Network::junctionsInternalTypeInfo =
     "(meas2 real) (cc int) (loc point) (r1rc tid) (r2rc tid) "
     "(sauprc tid) (sadownrc tid)(sbuprc tid) (sbdownrc tid))))";
 
-
 string Network::junctionsBTreeTypeInfo =
     "(btree (tuple ((r1id int) (meas1 real) (r2id int) "
     "(meas2 real) (cc int) (loc point) (r1rc tid) (r2rc tid) "
@@ -1531,7 +1531,7 @@ string Network::distancestorageTypeInfo =
     "(rel (tuple((j1 tid)(j2 tid)(dist real)(sp gline))))";
 
 /*
-2.1.3 Constructors and destructors class ~Network~
+2.1.2 Constructors and destructors class ~Network~
 
 */
 
@@ -1986,9 +1986,11 @@ Network::~Network()
 }
 
 /*
-1.3.1.3 Methods class ~network~
+2.1.3 Methods of class ~network~
 
-Destroy -- Removing a network from the database
+Method ~Destroy~
+
+Removing a network from the database
 
 */
 void Network::Destroy()
@@ -2039,7 +2041,9 @@ void Network::Destroy()
 }
 
 /*
-Load -- Create a network from two external relations
+Method ~Load~
+ 
+Create a network from two external relations
 
 */
 
@@ -2056,6 +2060,138 @@ void Network::Load ( int in_iId,
   m_bDefined = true;
 }
 
+/*
+Method ~OptimizeNetwork~
+
+optimizes the order of the ~routes~, after that all ~sections~ are generated new 
+and  all structures based on these ~sections~ are adjusted
+
+*/
+bool Network::OptimizeNetwork(){
+    
+    //sort routes
+    OptimizationRoutes(); 
+    
+    //DEBUG
+    //cout << "output of all routes"<< endl;
+    //for (int i =1; i<=m_pRoutes->GetNoTuples();i++)
+    //{
+        //Tuple *n = m_pRoutes->GetTuple(i,false);
+        //cout <<"("<< ((CcInt*)n->GetAttribute(ROUTE_ID))->GetIntval() << "," 
+        //       << ((CcInt*)n->GetAttribute(ROUTE_STARTPOS_ID))->GetIntval()
+        //       << ")"<<endl;
+        //n->DeleteIfAllowed();
+    //}
+    
+    //update the BTree for routes by startPos_id  
+    delete m_pBTreeRoutesByStartposId;
+    m_pBTreeRoutesByStartposId=0; 
+    ostringstream xThisRoutesPtrStream2;
+    xThisRoutesPtrStream2 << ( long ) m_pRoutes;    
+    string strQuery = "(createbtree (" + routesInternalTypeInfo +
+             " (ptr " + xThisRoutesPtrStream2.str() + "))" + " startposid)";
+    Word xResult;
+    int QueryExecuted = QueryProcessor::ExecuteQuery ( strQuery, xResult );
+    assert ( QueryExecuted ); // no query with side effects, please!
+    m_pBTreeRoutesByStartposId = ( BTree* ) xResult.addr;
+    
+    //Fillsections new
+    delete m_pBTreeSections;
+    delete m_pBTreeSectionsByRoute;
+    int anz = m_pSections->GetNoTuples();
+    for(int z=1;z <= anz ;z++){
+        m_pSections->DeleteTuple(m_pSections->GetTuple(z,false));
+    }    
+    
+    m_pSections->Clear();
+    delete m_pSections;
+    m_pSections = 0;
+    FillSections();   
+    
+    //Update the Adjacencylist
+    //DEBUG cout << "update AdjacencList mit "<< m_xAdjacencyList.Size()<< endl;
+    m_xAdjacencyList.clean(); 
+    m_xAdjacencyList = 0;
+    FillAdjacencyLists();    
+    return true;
+}
+
+/*
+Mehtod ~OptimizationRoutes~
+
+determined for all ~routes~ their lexicographic start point, stores them in an
+array and calls the sort method ~QuicksortRoutes~
+
+*/
+bool Network::OptimizationRoutes(){
+  Tuple *route;
+  GPoint *gp;
+  Point *p = new Point();
+  int anzElemente = m_pRoutes->GetNoTuples();
+  int testarray[anzElemente][2]; 
+  bool opt= false;
+
+  for (int i =1; i<=m_pRoutes->GetNoTuples();i++)
+    {   
+        route = m_pRoutes->GetTuple(i,false);
+      
+        int id = ((CcInt*) route->GetAttribute(ROUTE_ID))->GetIntval();
+        //bool smaller= 
+        //   ((CcBool*) route->GetAttribute(ROUTE_STARTSSMALLER))->GetBoolval();
+              
+        // dermine points
+        gp = new GPoint(true, GetId(),id, 0.0); 
+        gp->ToPoint(p); 
+        if (p->IsDefined()) opt = true; else return false;
+        testarray[i-1][0] = id;
+        testarray[i-1][1] =  p->GetX();  
+    } 
+    if(opt)
+    {
+        //DEBUG for testing 
+        //cout << "vor dem Sortieren" << endl;
+        //for (int k =0; k< anzElemente; k++)
+        //{
+            //cout << testarray[k][0] <<","  <<testarray[k][1]<< endl;
+        //}
+        QuicksortRoutes(testarray,0,anzElemente-1);
+        
+        //DEBUG for testing
+        //cout << "nach dem Sortieren" << endl;
+        //for (int k =0; k< anzElemente; k++)
+        //{
+            //cout << testarray[k][0] <<","  <<testarray[k][1]<< endl;
+        //}
+        
+        // update startposId  in m_pRoutes
+        for (int k =0; k< anzElemente; k++)
+        {
+            route = m_pRoutes->GetTuple(testarray[k][0],false);
+            
+            vector<int> xIndices;
+            vector<Attribute*> xAttrs;        
+            xIndices.push_back ( ROUTE_STARTPOS_ID );
+            xAttrs.push_back ( new CcInt ( true, k+1 ) );
+            m_pRoutes->UpdateTuple(route, xIndices, xAttrs);              
+        }         
+    }
+    p->DeleteIfAllowed();
+    gp->DeleteIfAllowed();
+    route->DeleteIfAllowed();    
+    return true;
+}
+
+
+
+/*
+Method ~QuicksortRoutes~
+
+calculates the pivot-element-index with the method 
+~QuicksortRoutesPartition~. After that ~QuicksortRoutes~ is recursively called 
+for the upper and lower part of the array
+
+*/
+
 void Network::QuicksortRoutes(int arr[][2], int low, int high)
 {
     int pivotIndex;
@@ -2068,6 +2204,15 @@ void Network::QuicksortRoutes(int arr[][2], int low, int high)
         QuicksortRoutes(arr, pivotIndex+1,high);        
     }    
 }
+
+/*
+Method ~QuicksortRoutesPartition~
+
+split the given array and sorts the array so that all elements before the 
+pivot-element are smaller and all elements that are above the pivot element 
+are larger.
+
+*/
 int Network::QuicksortRoutesPartition(int arr[][2], int low, int high)
 {     
     //DEBUG cout << "QuicksortPartiton:  mit lowindex: " << low 
@@ -2121,111 +2266,12 @@ int Network::QuicksortRoutesPartition(int arr[][2], int low, int high)
     //return the lowindex value
     return low;
 }
-bool Network::OptimizeNetwork(){
-    
-    //sort routes
-    OptimizationRoutes(); 
-    
-    //DEBUG
-    //cout << "output of all routes"<< endl;
-    //for (int i =1; i<=m_pRoutes->GetNoTuples();i++){
-        //Tuple *n = m_pRoutes->GetTuple(i,false);
-        //cout <<"("<< ((CcInt*)n->GetAttribute(ROUTE_ID))->GetIntval() << "," 
-        //       << ((CcInt*)n->GetAttribute(ROUTE_STARTPOS_ID))->GetIntval()
-        //       << ")"<<endl;
-        //n->DeleteIfAllowed();
-    //}
-    
-    //update the BTree for routes by startPos_id  
-    delete m_pBTreeRoutesByStartposId;
-    m_pBTreeRoutesByStartposId=0; 
-    ostringstream xThisRoutesPtrStream2;
-    xThisRoutesPtrStream2 << ( long ) m_pRoutes;    
-    string strQuery = "(createbtree (" + routesInternalTypeInfo +
-             " (ptr " + xThisRoutesPtrStream2.str() + "))" + " startposid)";
-    Word xResult;
-    int QueryExecuted = QueryProcessor::ExecuteQuery ( strQuery, xResult );
-    assert ( QueryExecuted ); // no query with side effects, please!
-    m_pBTreeRoutesByStartposId = ( BTree* ) xResult.addr;
-    
-    //Fillsections new
-    delete m_pBTreeSections;
-    delete m_pBTreeSectionsByRoute;
-    int anz = m_pSections->GetNoTuples();
-    for(int z=1;z <= anz ;z++){
-        m_pSections->DeleteTuple(m_pSections->GetTuple(z,false));
-    }    
-    
-    m_pSections->Clear();
-    delete m_pSections;
-    m_pSections = 0;
-    FillSections();   
-    
-    //Update the Adjacencylist
-    //DEBUG cout << "update AdjacencList mit "<< m_xAdjacencyList.Size()<< endl;
-    m_xAdjacencyList.clean(); 
-    m_xAdjacencyList = 0;
-    FillAdjacencyLists();    
-    return true;
-}
 
-
-bool Network::OptimizationRoutes(){
-  Tuple *route;
-  GPoint *gp;
-  Point *p = new Point();
-  int anzElemente = m_pRoutes->GetNoTuples();
-  int testarray[anzElemente][2]; 
-  bool opt= false;
-
-  for (int i =1; i<=m_pRoutes->GetNoTuples();i++)
-    {   
-        route = m_pRoutes->GetTuple(i,false);
-      
-        int id = ((CcInt*) route->GetAttribute(ROUTE_ID))->GetIntval();
-        //bool smaller= 
-        //   ((CcBool*) route->GetAttribute(ROUTE_STARTSSMALLER))->GetBoolval();
-              
-        // dermine points
-        gp = new GPoint(true, GetId(),id, 0.0); 
-        gp->ToPoint(p); 
-        if (p->IsDefined()) opt = true; else return false;
-        testarray[i-1][0] = id;
-        testarray[i-1][1] =  p->GetX();  
-    } 
-    if(opt){
-        //DEBUG for testing 
-        //cout << "vor dem Sortieren" << endl;
-        //for (int k =0; k< anzElemente; k++){
-            //cout << testarray[k][0] <<","  <<testarray[k][1]<< endl;
-        //}
-        QuicksortRoutes(testarray,0,anzElemente-1);
-        
-        //DEBUG for testing
-        //cout << "nach dem Sortieren" << endl;
-        //for (int k =0; k< anzElemente; k++){
-            //cout << testarray[k][0] <<","  <<testarray[k][1]<< endl;
-        //}
-        
-        // update startposId  in m_pRoutes
-        for (int k =0; k< anzElemente; k++){
-            route = m_pRoutes->GetTuple(testarray[k][0],false);
-            
-            vector<int> xIndices;
-            vector<Attribute*> xAttrs;        
-            xIndices.push_back ( ROUTE_STARTPOS_ID );
-            xAttrs.push_back ( new CcInt ( true, k+1 ) );
-            m_pRoutes->UpdateTuple(route, xIndices, xAttrs);              
-        }         
-    }
-    p->DeleteIfAllowed();
-    gp->DeleteIfAllowed();
-    route->DeleteIfAllowed();    
-    return true;
-}
 
 
 /*
+Method ~FillRoutes~
+
 Fill routes relation of network
 
 */
@@ -2310,6 +2356,8 @@ void Network::FillRoutes ( const Relation *routes )
 
 
 /*
+Method ~FillJunctions~
+
 Fill junctions relation of network
 
 */
@@ -2443,6 +2491,8 @@ JUNCTION_ROUTE2_ID );
 }
 
 /*
+Method ~FillSections~
+
 Fill section relation of network
 
 */
@@ -2894,6 +2944,8 @@ void Network::FillSections()
 }
 
 /*
+Method ~FillAdjacencyLists~
+
 Fill adjacency list of network
 
 */
@@ -3415,8 +3467,47 @@ void Network::FillAdjacencyLists()
   //statistic output of the numbers of neighbours 
   CountNeighbours(xList); */  
 }
+
 /*
-print all information which are stored in the PageRecord of all sections
+Method ~FillAdjacencyPair~
+
+Build vector of directed section pairs.
+
+*/
+
+void Network::FillAdjacencyPair ( TupleId in_pFirstSection,
+                                  bool in_bFirstUp,
+                                  TupleId in_pSecondSection,
+                                  bool in_bSecondUp,
+                                  ConnectivityCode in_xCc,
+                                  Transition in_xTransition,
+                                  vector<DirectedSectionPair> &inout_xPairs )
+{
+  if ( in_pFirstSection != 0 &&
+          in_pSecondSection != 0 &&
+          in_xCc.IsPossible ( in_xTransition ) )
+  {
+    inout_xPairs.push_back ( DirectedSectionPair ( in_pFirstSection,
+                             in_bFirstUp,
+                             in_pSecondSection,
+                             in_bSecondUp ) );
+  }
+}
+
+
+/*
+Method ~PrintAdjacentSectionInfo~
+
+prints informations of ~sections~ which are stored in a ~PageRecord~.
+
+first output: all ~sections~ with there sectionId and cost-value
+
+second output: all ~routes~ iterated over the startposId
+
+third output: all neighbours-information of the ~sections~ 
+
+Sec (SectionTupelId,UpDownFlag):[(NeighborSectionTId, UpDownFlag, Meas1, Meas2, 
+RId, Cost, Time)(..)]
 
 */
 bool Network::PrintAdjacentSectionInfo(){
@@ -3479,7 +3570,10 @@ bool Network::PrintAdjacentSectionInfo(){
 } 
 
 /*
-Help-function to calculate the numbers of neighbours of all Sections
+Method ~CountNeighbours~
+
+calculate the numbers of neighbours of all ~sections~. Only used for internal 
+debug informations.
 
 */
 void Network::CountNeighbours(vector<DirectedSectionPair> in_xList){
@@ -3554,32 +3648,9 @@ void Network::CountNeighbours(vector<DirectedSectionPair> in_xList){
 
 
 
-/*
-Build vector of directed section pairs.
-
-*/
-
-void Network::FillAdjacencyPair ( TupleId in_pFirstSection,
-                                  bool in_bFirstUp,
-                                  TupleId in_pSecondSection,
-                                  bool in_bSecondUp,
-                                  ConnectivityCode in_xCc,
-                                  Transition in_xTransition,
-                                  vector<DirectedSectionPair> &inout_xPairs )
-{
-  if ( in_pFirstSection != 0 &&
-          in_pSecondSection != 0 &&
-          in_xCc.IsPossible ( in_xTransition ) )
-  {
-    inout_xPairs.push_back ( DirectedSectionPair ( in_pFirstSection,
-                             in_bFirstUp,
-                             in_pSecondSection,
-                             in_bSecondUp ) );
-  }
-}
 
 /*
-.
+Method ~InShortestPath~
 
 */
 bool Network::InShortestPath ( GPoint*start,GPoint *to, GLine *result )
@@ -3997,7 +4068,7 @@ bool Network::InShortestPath ( GPoint*start,GPoint *to, GLine *result )
 };
 
 /*
-.
+Method ~FindSP~
 
 */
 void Network::FindSP ( TupleId j1,TupleId j2,double& length,GLine* res )
@@ -4023,7 +4094,7 @@ void Network::FindSP ( TupleId j1,TupleId j2,double& length,GLine* res )
 }
 
 /*
-.
+Method ~FillDistanceStorage~
 
 */
 
@@ -4084,7 +4155,770 @@ void Network::FillDistanceStorage()
 }
 
 /*
-Returning network parameters.
+Method ~UpdateSectionCost~
+
+update the cost of a given ~section~
+
+returns ~true~, if the update was successful, otherwise ~false~
+
+*/
+bool Network::UpdateSectionCost(int sectId,double newCost){
+    BTreeIterator* pSectIter;
+    CcInt* ciSectId = new CcInt(true,sectId);    
+    pSectIter = m_pBTreeSections->ExactMatch (ciSectId);
+    delete ciSectId;       
+    if(pSectIter->Next()){
+        //get act Tuple
+        Tuple *actSect = 0;
+        actSect = m_pSections->GetTuple(pSectIter->GetId(), false);
+        
+        //save cost in the section relation
+        vector<int> xIndices;
+        vector<Attribute*> xAttrs;        
+        xIndices.push_back ( SECTION_COST );
+        xAttrs.push_back ( new CcReal ( true, newCost ) );
+        m_pSections->UpdateTuple(actSect, xIndices, xAttrs); 
+        
+          
+               
+        //save cost in the PageRecord of the section
+        // read pages und Slots 
+        int pageUp = 
+          ((CcInt* )actSect->GetAttribute(SECTION_PNO_UP))->GetIntval();
+        int slotUp = 
+          ((CcInt* )actSect->GetAttribute(SECTION_SLOT_UP))->GetIntval();
+        int pageDown = 
+          ((CcInt* )actSect->GetAttribute(SECTION_PNO_DOWN))->GetIntval();
+        int slotDown = 
+          ((CcInt* )actSect->GetAttribute(SECTION_SLOT_DOWN))->GetIntval();
+        
+        //get the page and save cost for both entries
+        PageRecord actPage =PageRecord(0);
+        m_xAdjacencyList.Get(pageUp-1, actPage);
+        actPage.SetSectionCost(slotUp, newCost);
+        if(pageDown == pageUp){
+            actPage.SetSectionCost(slotDown, newCost);
+            m_xAdjacencyList.Put(pageUp-1, actPage);
+        }else{
+            m_xAdjacencyList.Put(pageUp-1, actPage);
+            m_xAdjacencyList.Get(pageDown-1, actPage);
+            actPage.SetSectionCost(slotDown, newCost);
+            m_xAdjacencyList.Put(pageDown-1, actPage);
+        }       
+        
+        
+        //clean up
+        actSect->DeleteIfAllowed();
+        delete pSectIter;
+        return true;
+    }
+    else {
+        //errormessage
+        sendMessage ( "the section with the given SectId must exist." );
+        cout << "the section " <<sectId <<"  doesn't exist." <<endl;
+        //clean up
+        delete pSectIter;
+        return false;
+    }              
+}
+
+/*
+Method ~UpdateMoreSectionCost~
+
+update the cost of some ~sections~ which are in the given relation.
+
+returns ~true~, if the update was successful, otherwise ~false~
+
+*/
+bool Network::UpdateMoreSectionCost(const Relation* in_pCosts){
+    //DEBUG PrintAdjacentSectionInfo();
+    // check input
+    if(in_pCosts->GetNoTuples() >0){
+        //for each tuple of the Relation 
+        for(int i=1; i<=in_pCosts->GetNoTuples();i++){
+            //Get sid and cost
+            Tuple *actTuple = 0;
+            actTuple = in_pCosts->GetTuple(i, false);
+            int sid = ((CcInt*)actTuple->GetAttribute(0))->GetIntval();
+            double cost = ((CcReal*)actTuple->GetAttribute(1))->GetRealval();
+            
+            //call the function UpdateSectionCost(sid,cost)
+            UpdateSectionCost(sid,cost);
+            
+            // clean up
+            actTuple->DeleteIfAllowed();
+        }   
+        //DEBUG PrintAdjacentSectionInfo();
+        return true;
+    }else{
+        sendMessage ( "the relation is empty." );
+        cout << "the relation is empty." <<endl;
+        return false;
+    }
+    
+}
+
+/*
+Method ~UpdateSectionDuration~
+
+update the duration of a given ~section~
+
+returns ~true~, if the update was successful, otherwise ~false~
+
+*/
+bool Network::UpdateSectionDuration(int sectId,double newDuration){
+    BTreeIterator* pSectIter;
+    CcInt* ciSectId = new CcInt(true,sectId);    
+    pSectIter = m_pBTreeSections->ExactMatch (ciSectId);
+    delete ciSectId;       
+    if(pSectIter->Next()){
+        //get act Tuple
+        Tuple *actSect = 0;
+        actSect = m_pSections->GetTuple(pSectIter->GetId(), false);
+        
+        //save duration in the section relation
+        vector<int> xIndices;
+        vector<Attribute*> xAttrs;        
+        xIndices.push_back ( SECTION_DURATION );
+        xAttrs.push_back ( new CcReal ( true, newDuration ) );
+        m_pSections->UpdateTuple(actSect, xIndices, xAttrs);     
+               
+        //save duration in the PageRecord of the section
+        // read pages und Slots 
+        int pageUp = 
+          ((CcInt* )actSect->GetAttribute(SECTION_PNO_UP))->GetIntval();
+        int slotUp = 
+          ((CcInt* )actSect->GetAttribute(SECTION_SLOT_UP))->GetIntval();
+        int pageDown = 
+          ((CcInt* )actSect->GetAttribute(SECTION_PNO_DOWN))->GetIntval();
+        int slotDown = 
+          ((CcInt* )actSect->GetAttribute(SECTION_SLOT_DOWN))->GetIntval();
+        
+        //get the page and save duration for both entries
+        PageRecord actPage;
+        m_xAdjacencyList.Get(pageUp-1, actPage);
+        actPage.SetSectionDuration(slotUp, newDuration);
+        
+        if(pageDown == pageUp){
+            actPage.SetSectionDuration(slotDown, newDuration);
+            m_xAdjacencyList.Put(pageUp-1, actPage);
+        }else{
+            m_xAdjacencyList.Put(pageUp-1, actPage);
+            m_xAdjacencyList.Get(pageDown-1, actPage);
+            actPage.SetSectionDuration(slotDown, newDuration);
+            m_xAdjacencyList.Put(pageDown-1, actPage);
+        }       
+        
+        //clean up
+        actSect->DeleteIfAllowed();
+        delete pSectIter;
+        return true;
+    }
+    else {
+        //errormessage
+        sendMessage ( "the section with the given SectId must exist." );
+        cout << "the section " <<sectId <<"  doesn't exist." <<endl;
+        //clean up
+        delete pSectIter;
+        return false;
+    }              
+}
+
+/*
+Method ~UpdateMoreSectionDuration~
+
+update the cost of some ~sections~ which are in the given relation.
+
+returns ~true~, if the update was successful, otherwise ~false~
+
+*/
+bool Network::UpdateMoreSectionDuration(const Relation* in_pDurations){
+    //DEBUG PrintAdjacentSectionInfo();
+    // check input
+    if(in_pDurations->GetNoTuples() >0){
+        //for each tuple of the Relation 
+        for(int i=1; i<=in_pDurations->GetNoTuples();i++){
+            //Get sid and duration
+            Tuple *actTuple = 0;
+            actTuple = in_pDurations->GetTuple(i, false);
+            int sid = ((CcInt*)actTuple->GetAttribute(0))->GetIntval();
+            double duration =((CcReal*)actTuple->GetAttribute(1))->GetRealval();
+            
+            //call the function UpdateSectionDuration(sid,duration)
+            UpdateSectionDuration(sid,duration);
+            
+            // clean up
+            actTuple->DeleteIfAllowed();
+        }   
+        //DEBUG PrintAdjacentSectionInfo();
+        return true;
+    }else{
+        sendMessage ( "the relation is empty." );
+        cout << "the relation is emplty." <<endl;
+        return false;
+    }    
+}
+
+
+/*
+Method ~chkStartEndA~
+
+Returns the route Interval between the two points
+
+*/
+void chkStartEndA ( double &StartPos, double &EndPos )
+{
+  double help;
+  if ( StartPos > EndPos )
+  {
+    help = StartPos;
+    StartPos = EndPos;
+    EndPos = help;
+  }
+};
+
+/*
+Method ~ShorterConnection~
+
+*/
+bool Network::ShorterConnection ( Tuple *route, double &start,
+                                  double &end, double &dpos, double &dpos2, 
+                                  int &rid, int &ridt, Point p1, Point p2 )
+{
+  if ( AlmostEqual ( p1.Distance ( p2 ), fabs ( end-start ) ) ) return false;
+  double difference;
+  GPoint *gp = new GPoint ( true, GetId(), route->GetTupleId(), end - 0.01 );
+  TupleId pSection1 = GetTupleIdSectionOnRoute ( gp );
+  gp->DeleteIfAllowed();
+  vector<DirectedSection> pAdjSect1;
+  vector<DirectedSection> pAdjSect2;
+  pAdjSect1.clear();
+  pAdjSect2.clear();
+  GetAdjacentSections ( pSection1,true, pAdjSect1 );
+  GetAdjacentSections ( pSection1,false, pAdjSect2 );
+  if ( pAdjSect1.size() == 0 || pAdjSect2.size() == 0 )
+  {
+    pAdjSect1.clear();
+    pAdjSect2.clear();
+    return false;
+  }
+  else
+  {
+    size_t j = 0;
+    while ( j < pAdjSect1.size() )
+    {
+      DirectedSection actSection = pAdjSect1[j];
+      Tuple *pCurrSect = m_pSections->GetTuple ( actSection.GetSectionTid(),
+                                                 false );
+      ridt = ( ( CcInt* ) pCurrSect->GetAttribute ( SECTION_RID )
+)->GetIntval();
+      pCurrSect->DeleteIfAllowed();
+      if ( ridt != rid )
+      {
+        Tuple *pRoute = GetRoute ( ridt );
+        SimpleLine *pCurve =
+            ( SimpleLine* ) pRoute->GetAttribute ( ROUTE_CURVE );
+        if ( ( chkPoint ( pCurve, p1, true, dpos, difference ) ) &&
+                ( chkPoint ( pCurve, p2, true, dpos2, difference ) ) )
+        {
+          pAdjSect1.clear();
+          pAdjSect2.clear();
+          chkStartEndA ( dpos, dpos2 );
+          pRoute->DeleteIfAllowed();
+          if ( fabs ( dpos2 - dpos ) < fabs ( end - start ) ) return  true;
+          else return false;
+        }
+        pRoute->DeleteIfAllowed();
+      }
+      j++;
+    }
+    pAdjSect1.clear();
+    j = 0;
+    while ( j < pAdjSect2.size() )
+    {
+      DirectedSection actSection = pAdjSect2[j];
+      Tuple *pCurrSect = m_pSections->GetTuple ( actSection.GetSectionTid(),
+                                                 false );
+      ridt = ( ( CcInt* ) pCurrSect->GetAttribute ( SECTION_RID )
+)->GetIntval();
+      pCurrSect->DeleteIfAllowed();
+      if ( ridt != rid )
+      {
+        Tuple *pRoute = GetRoute ( ridt );
+        SimpleLine *pCurve =
+            ( SimpleLine* ) pRoute->GetAttribute ( ROUTE_CURVE );
+        if ( ( chkPoint ( pCurve, p1, true, dpos, difference ) ) &&
+                ( chkPoint ( pCurve, p2, true, dpos2, difference ) ) )
+        {
+          pAdjSect2.clear();
+          chkStartEndA ( dpos, dpos2 );
+          pRoute->DeleteIfAllowed();
+          if ( fabs ( dpos2-dpos ) < fabs ( end - start ) ) return true;
+          else return false;
+        }
+        pRoute->DeleteIfAllowed();
+      }
+      j++;
+    }
+    return false;
+  }
+}
+
+/*
+Method ~ShorterConnection2~
+
+*/
+bool Network::ShorterConnection2 ( Tuple *route, double &start,
+                                   double &end, double &dpos, double &dpos2, 
+                                   int &rid, int &ridt, Point p1, Point p2 )
+{
+  if ( AlmostEqual ( p1.Distance ( p2 ), fabs ( end-start ) ) ) return false;
+  double difference = 0.0;
+  if ( start < end && end > 0.01 ) difference = end - 0.01;
+  else
+    if ( start < end && end <= 0.01 ) difference = 0.01;
+    else
+      if ( start > end ) difference = end + 0.01;
+      else difference = end; //start == end
+  GPoint *gp = new GPoint ( true, GetId(), route->GetTupleId(), difference );
+  TupleId pSection1 = GetTupleIdSectionOnRoute ( gp );
+  gp->DeleteIfAllowed();
+  vector<DirectedSection> pAdjSect1;
+  vector<DirectedSection> pAdjSect2;
+  pAdjSect1.clear();
+  pAdjSect2.clear();
+  GetAdjacentSections ( pSection1,true, pAdjSect1 );
+  GetAdjacentSections ( pSection1,false, pAdjSect2 );
+  if ( pAdjSect1.size() == 0 || pAdjSect2.size() == 0 )
+  {
+    pAdjSect1.clear();
+    pAdjSect2.clear();
+    return false;
+  }
+  else
+  {
+    size_t j = 0;
+    while ( j < pAdjSect1.size() )
+    {
+      DirectedSection actSection = pAdjSect1[j];
+      Tuple *pCurrSect = m_pSections->GetTuple ( actSection.GetSectionTid(),
+                                                 false );
+      ridt = ( ( CcInt* ) pCurrSect->GetAttribute ( SECTION_RID )
+)->GetIntval();
+      pCurrSect->DeleteIfAllowed();
+      if ( ridt != rid )
+      {
+        Tuple *pRoute = GetRoute ( ridt );
+        SimpleLine *pCurve =
+            ( SimpleLine* ) pRoute->GetAttribute ( ROUTE_CURVE );
+        if ( ( chkPoint ( pCurve, p1, true, dpos, difference ) ) &&
+                ( chkPoint ( pCurve, p2, true, dpos2, difference ) ) )
+        {
+          pAdjSect1.clear();
+          pAdjSect2.clear();
+          pRoute->DeleteIfAllowed();
+          if ( fabs ( dpos2 - dpos ) < fabs ( end - start ) ) return  true;
+          else return false;
+        }
+        pRoute->DeleteIfAllowed();
+      }
+      j++;
+    }
+    pAdjSect1.clear();
+    j = 0;
+    while ( j < pAdjSect2.size() )
+    {
+      DirectedSection actSection = pAdjSect2[j];
+      Tuple *pCurrSect = m_pSections->GetTuple ( actSection.GetSectionTid(),
+                                                 false );
+      ridt = ( ( CcInt* ) pCurrSect->GetAttribute ( SECTION_RID )
+)->GetIntval();
+      pCurrSect->DeleteIfAllowed();
+      if ( ridt != rid )
+      {
+        Tuple *pRoute = GetRoute ( ridt );
+        SimpleLine *pCurve =
+            ( SimpleLine* ) pRoute->GetAttribute ( ROUTE_CURVE );
+        if ( ( chkPoint ( pCurve, p1, true, dpos, difference ) ) &&
+                ( chkPoint ( pCurve, p2, true, dpos2, difference ) ) )
+        {
+          pAdjSect2.clear();
+          pRoute->DeleteIfAllowed();
+          if ( fabs ( dpos2-dpos ) < fabs ( end - start ) ) return true;
+          else return false;
+        }
+        pRoute->DeleteIfAllowed();
+      }
+      j++;
+    }
+    return false;
+  }
+}
+
+/*
+Method ~Find~
+
+Searches the route interval between the two given point values.
+
+*/
+RouteInterval* Network::Find ( Point p1, Point p2 )
+{
+  GPoint *gpp1 = GetNetworkPosOfPoint ( p1 );
+  GPoint *gpp2 = GetNetworkPosOfPoint ( p2 );
+  assert ( gpp1->IsDefined() && gpp2->IsDefined() );
+  int rid, ridt;
+  double start, end, dpos, dpos2, difference;
+  if ( gpp1->GetRouteId() == gpp2->GetRouteId() )
+  {
+    rid = gpp1->GetRouteId();
+    start = gpp1->GetPosition();
+    end = gpp2->GetPosition();
+    chkStartEndA ( start,end );
+    Tuple *pRoute = GetRoute ( rid );
+    if ( ShorterConnection ( pRoute, start, end, dpos, dpos2, rid, ridt, p1, p2
+) )
+    {
+      gpp1->DeleteIfAllowed();
+      gpp2->DeleteIfAllowed();
+      pRoute->DeleteIfAllowed();
+      return new RouteInterval ( ridt, dpos, dpos2 );
+    }
+    else
+    {
+      gpp1->DeleteIfAllowed();
+      gpp2->DeleteIfAllowed();
+      pRoute->DeleteIfAllowed();
+      return new RouteInterval ( rid, start, end );
+    }
+  }
+  else   // different RouteIds
+  {
+    Tuple *pRoute = GetRoute ( gpp1->GetRouteId() );
+    SimpleLine *pCurve =
+        ( SimpleLine* ) pRoute->GetAttribute ( ROUTE_CURVE );
+    if ( chkPoint ( pCurve, p2, true, dpos, difference ) )
+    {
+      rid =
+          ( ( CcInt* ) pRoute->GetAttribute ( ROUTE_ID ) )->GetIntval();
+      start = gpp1->GetPosition();
+      end = dpos;
+      chkStartEndA ( start, end );
+      if ( ShorterConnection ( pRoute, start, end, dpos, dpos2, rid, ridt, p1,
+                               p2 ) )
+      {
+        gpp1->DeleteIfAllowed();
+        gpp2->DeleteIfAllowed();
+        pRoute->DeleteIfAllowed();
+        return new RouteInterval ( ridt, dpos, dpos2 );
+      }
+      else
+      {
+        gpp1->DeleteIfAllowed();
+        gpp2->DeleteIfAllowed();
+        pRoute->DeleteIfAllowed();
+        return new RouteInterval ( rid, start, end );
+      }
+    }
+    pRoute->DeleteIfAllowed();
+    pRoute = GetRoute ( gpp2->GetRouteId() );
+    pCurve = ( SimpleLine* ) pRoute->GetAttribute ( ROUTE_CURVE );
+    if ( chkPoint ( pCurve, p1, true, dpos, difference ) )
+    {
+      rid =
+          ( ( CcInt* ) pRoute->GetAttribute ( ROUTE_ID ) )->GetIntval();
+      start = gpp2->GetPosition();
+      end = dpos;
+      chkStartEndA ( start, end );
+      if ( ShorterConnection ( pRoute, start, end, dpos, dpos2, rid, ridt, p1,
+                               p2 ) )
+      {
+        gpp1->DeleteIfAllowed();
+        gpp2->DeleteIfAllowed();
+        pRoute->DeleteIfAllowed();
+        return new RouteInterval ( ridt, dpos, dpos2 );
+      }
+      else
+      {
+        gpp1->DeleteIfAllowed();
+        gpp2->DeleteIfAllowed();
+        pRoute->DeleteIfAllowed();
+        return new RouteInterval ( rid, start, end );
+      }
+    }
+    pRoute->DeleteIfAllowed();
+    TupleId pSection = GetTupleIdSectionOnRoute ( gpp1 );
+    vector<DirectedSection> pAdjSect1;
+    vector<DirectedSection> pAdjSect2;
+    pAdjSect1.clear();
+    pAdjSect2.clear();
+    GetAdjacentSections ( pSection,true, pAdjSect1 );
+    GetAdjacentSections ( pSection,false, pAdjSect2 );
+    size_t j = 0;
+    Tuple *pCurrSect;
+    while ( j < pAdjSect1.size() )
+    {
+      DirectedSection actSection = pAdjSect1[j];
+      pCurrSect = m_pSections->GetTuple ( actSection.GetSectionTid(),
+                                          false );
+      rid = ( ( CcInt* ) pCurrSect->GetAttribute ( SECTION_RID ) )->GetIntval();
+      pCurrSect->DeleteIfAllowed();
+      pRoute = GetRoute ( rid );
+      pCurve = ( SimpleLine* ) pRoute->GetAttribute ( ROUTE_CURVE );
+      if ( ( chkPoint ( pCurve, p1, true, dpos, difference ) ) &&
+              ( chkPoint ( pCurve, p2, true, dpos2, difference ) ) )
+      {
+        start = dpos;
+        end = dpos2;
+        chkStartEndA ( start, end );
+        pAdjSect1.clear();
+        pAdjSect2.clear();
+        if ( ShorterConnection ( pRoute, start, end, dpos, dpos2,
+                                 rid, ridt, p1, p2 ) )
+        {
+          gpp1->DeleteIfAllowed();
+          gpp2->DeleteIfAllowed();
+          pRoute->DeleteIfAllowed();
+          return new RouteInterval ( ridt, dpos, dpos2 );
+        }
+        else
+        {
+          gpp1->DeleteIfAllowed();
+          gpp2->DeleteIfAllowed();
+          pRoute->DeleteIfAllowed();
+          return new RouteInterval ( rid, start, end );
+        }
+      }
+      j++;
+      pRoute->DeleteIfAllowed();
+    }
+    j = 0;
+    pAdjSect1.clear();
+    while ( j < pAdjSect2.size() )
+    {
+      DirectedSection actSection = pAdjSect2[j];
+      pCurrSect = m_pSections->GetTuple ( actSection.GetSectionTid(),
+                                          false );
+      rid = ( ( CcInt* ) pCurrSect->GetAttribute ( SECTION_RID ) )->GetIntval();
+      pCurrSect->DeleteIfAllowed();
+      pRoute = GetRoute ( rid );
+      pCurve = ( SimpleLine* ) pRoute->GetAttribute ( ROUTE_CURVE );
+      if ( ( chkPoint ( pCurve, p1, true, dpos, difference ) ) &&
+              ( chkPoint ( pCurve, p2, true, dpos2, difference ) ) )
+      {
+        start = dpos;
+        end = dpos2;
+        chkStartEndA ( start, end );
+        pAdjSect2.clear();
+        if ( ShorterConnection ( pRoute, start, end, dpos, dpos2,
+                                 rid, ridt, p1, p2 ) )
+        {
+          gpp1->DeleteIfAllowed();
+          gpp2->DeleteIfAllowed();
+          pRoute->DeleteIfAllowed();
+          return new RouteInterval ( ridt, dpos, dpos2 );
+        }
+        else
+        {
+          gpp1->DeleteIfAllowed();
+          gpp2->DeleteIfAllowed();
+          pRoute->DeleteIfAllowed();
+          return new RouteInterval ( rid, start, end );
+        }
+      }
+      j++;
+      pRoute->DeleteIfAllowed();
+    }//should never be reached
+    pAdjSect2.clear();
+  }//should never be reached
+  gpp1->DeleteIfAllowed();
+  gpp2->DeleteIfAllowed();
+  return 0;
+}
+
+
+/*
+Method ~FindInterval~
+
+Returns the route interval for the connection from p1 to p2
+
+*/
+RouteInterval* Network::FindInterval ( Point p1, Point p2 )
+{
+  GPoint *gpp1 = GetNetworkPosOfPoint ( p1 );
+  GPoint *gpp2 = GetNetworkPosOfPoint ( p2 );
+  assert ( gpp1->IsDefined() && gpp2->IsDefined() );
+  int rid, ridt;
+  double start, end, dpos, dpos2, difference;
+  if ( gpp1->GetRouteId() == gpp2->GetRouteId() )
+  {
+    rid = gpp1->GetRouteId();
+    start = gpp1->GetPosition();
+    end = gpp2->GetPosition();
+    Tuple *pRoute = GetRoute ( rid );
+    if ( ShorterConnection2 ( pRoute, start, end, dpos, dpos2, rid, ridt,
+         p1, p2) )
+    {
+      gpp1->DeleteIfAllowed();
+      gpp2->DeleteIfAllowed();
+      pRoute->DeleteIfAllowed();
+      return new RouteInterval ( ridt, dpos, dpos2 );
+    }
+    else
+    {
+      gpp1->DeleteIfAllowed();
+      gpp2->DeleteIfAllowed();
+      pRoute->DeleteIfAllowed();
+      return new RouteInterval ( rid, start, end );
+    }
+  }
+  else
+  {
+    Tuple *pRoute = GetRoute ( gpp1->GetRouteId() );
+    SimpleLine *pCurve =
+        ( SimpleLine* ) pRoute->GetAttribute ( ROUTE_CURVE );
+    if ( chkPoint ( pCurve, p2, true, dpos, difference ) )
+    {
+      rid =
+          ( ( CcInt* ) pRoute->GetAttribute ( ROUTE_ID ) )->GetIntval();
+      start = gpp1->GetPosition();
+      end = dpos;
+      if ( ShorterConnection2 ( pRoute, start, end, dpos, dpos2,
+                                rid, ridt, p1, p2 ) )
+      {
+        gpp1->DeleteIfAllowed();
+        gpp2->DeleteIfAllowed();
+        pRoute->DeleteIfAllowed();
+        return new RouteInterval ( ridt, dpos, dpos2 );
+      }
+      else
+      {
+        gpp1->DeleteIfAllowed();
+        gpp2->DeleteIfAllowed();
+        pRoute->DeleteIfAllowed();
+        return new RouteInterval ( rid, start, end );
+      }
+    }
+    pRoute->DeleteIfAllowed();
+    pRoute = GetRoute ( gpp2->GetRouteId() );
+    pCurve = ( SimpleLine* ) pRoute->GetAttribute ( ROUTE_CURVE );
+    if ( chkPoint ( pCurve, p1, true, dpos, difference ) )
+    {
+      rid =
+          ( ( CcInt* ) pRoute->GetAttribute ( ROUTE_ID ) )->GetIntval();
+      start = dpos;
+      end = gpp2->GetPosition();
+      if ( ShorterConnection2 ( pRoute, start, end, dpos, dpos2,
+                                rid, ridt, p1, p2 ) )
+      {
+        gpp1->DeleteIfAllowed();
+        gpp2->DeleteIfAllowed();
+        pRoute->DeleteIfAllowed();
+        return new RouteInterval ( ridt, dpos, dpos2 );
+      }
+      else
+      {
+        gpp1->DeleteIfAllowed();
+        gpp2->DeleteIfAllowed();
+        pRoute->DeleteIfAllowed();
+        return new RouteInterval ( rid, start, end );
+      }
+    }
+    pRoute->DeleteIfAllowed();
+    TupleId pSection = GetTupleIdSectionOnRoute ( gpp1 );
+    vector<DirectedSection> pAdjSect1;
+    vector<DirectedSection> pAdjSect2;
+    pAdjSect1.clear();
+    pAdjSect2.clear();
+    GetAdjacentSections ( pSection,true, pAdjSect1 );
+    GetAdjacentSections ( pSection,false, pAdjSect2 );
+    size_t j = 0;
+    Tuple *pCurrSect;
+    while ( j < pAdjSect1.size() )
+    {
+      DirectedSection actSection = pAdjSect1[j];
+      pCurrSect = m_pSections->GetTuple ( actSection.GetSectionTid(), false );
+      rid = ( ( CcInt* ) pCurrSect->GetAttribute ( SECTION_RID ) )->GetIntval();
+      pCurrSect->DeleteIfAllowed();
+      pRoute = GetRoute ( rid );
+      pCurve = ( SimpleLine* ) pRoute->GetAttribute ( ROUTE_CURVE );
+      if ( ( chkPoint ( pCurve, p1, true, dpos, difference ) ) &&
+              ( chkPoint ( pCurve, p2, true, dpos2, difference ) ) )
+      {
+        start = dpos;
+        end = dpos2;
+        pAdjSect1.clear();
+        pAdjSect2.clear();
+        if ( ShorterConnection2 ( pRoute, start, end, dpos, dpos2,
+                                  rid, ridt, p1, p2 ) )
+        {
+          gpp1->DeleteIfAllowed();
+          gpp2->DeleteIfAllowed();
+          pRoute->DeleteIfAllowed();
+          return new RouteInterval ( ridt, dpos, dpos2 );
+        }
+        else
+        {
+          gpp1->DeleteIfAllowed();
+          gpp2->DeleteIfAllowed();
+          pRoute->DeleteIfAllowed();
+          return new RouteInterval ( rid, start, end );
+        }
+      }
+      j++;
+      pRoute->DeleteIfAllowed();
+    }
+    j = 0;
+    pAdjSect1.clear();
+    while ( j < pAdjSect2.size() )
+    {
+      DirectedSection actSection = pAdjSect2[j];
+      pCurrSect = m_pSections->GetTuple ( actSection.GetSectionTid(), false );
+      rid = ( ( CcInt* ) pCurrSect->GetAttribute ( SECTION_RID ) )->GetIntval();
+      pCurrSect->DeleteIfAllowed();
+      pRoute = GetRoute ( rid );
+      pCurve = ( SimpleLine* ) pRoute->GetAttribute ( ROUTE_CURVE );
+      if ( ( chkPoint ( pCurve, p1, true, dpos, difference ) ) &&
+              ( chkPoint ( pCurve, p2, true, dpos2, difference ) ) )
+      {
+        start = dpos;
+        end = dpos2;
+        pAdjSect2.clear();
+        if ( ShorterConnection2 ( pRoute, start, end, dpos, dpos2,
+                                  rid, ridt, p1, p2 ) )
+        {
+          gpp1->DeleteIfAllowed();
+          gpp2->DeleteIfAllowed();
+          pRoute->DeleteIfAllowed();
+          return new RouteInterval ( ridt, dpos, dpos2 );
+        }
+        else
+        {
+          gpp1->DeleteIfAllowed();
+          gpp2->DeleteIfAllowed();
+          pRoute->DeleteIfAllowed();
+          return new RouteInterval ( rid, start, end );
+        }
+      }
+      j++;
+      pRoute->DeleteIfAllowed();
+    }//should never be reached
+    pAdjSect2.clear();
+  }//should never be reached
+  gpp1->DeleteIfAllowed();
+  gpp2->DeleteIfAllowed();
+  return 0;
+}
+
+/*
+Get-Methodes of network parameters.
+
+~GetId~, ~GetRoutes~, ~GetJunctions~, ~GetJunctionsOnRoute~, ~GetSection~,
+~GetTupleIdSectionOnRoute~, ~GetTupleIdSectionOnRoute~, ~GetSectionOnRoute~,  
+~GetRoute~, ~GetSectionsOfRouteInterval~, ~GetSectionsOfRoutInterval~,
+~GetPointOnRoute~, ~GetSectionsInternal~, ~GetSections~, 
+~GetAdjacentSectionsInfo~, ~GetAdjacentSections~, ~GetRouteCurve~, ~GetDual~, 
+~GetTupleIdSectionOnRouteJun~, ~GetNetworkPosOfPoint~, 
+~GetJunctionMeasForRoutes~, ~GetLineValueOfRouteInterval~
 
 */
 
@@ -4316,11 +5150,6 @@ Tuple* Network::GetSectionOnRoute ( GPoint* in_xGPoint )
   */
 }
 
-/*
-Returns the tuple from routes relation for the given route id.
-
-*/
-
 Tuple* Network::GetRoute ( int in_RouteId )
 {
   CcInt* pRouteId = new CcInt ( true, in_RouteId );
@@ -4439,10 +5268,6 @@ void Network::GetSectionsOfRoutInterval ( const RouteInterval *ri,
   delete pSectionIter;
 }
 
-/*
-Returns the spatial position of the gpoint.
-
-*/
 void Network::GetPointOnRoute ( const GPoint* in_pGPoint, Point*& res )
 {
   /*Point *res = new Point(false);*/
@@ -4625,382 +5450,6 @@ void Network::GetAdjacentSections ( TupleId in_iSectionTId,
   }
 }
 
-/*
-Returns true, if the update of cost for a given section was successful
-
-*/
-bool Network::UpdateSectionCost(int sectId,double newCost){
-    BTreeIterator* pSectIter;
-    CcInt* ciSectId = new CcInt(true,sectId);    
-    pSectIter = m_pBTreeSections->ExactMatch (ciSectId);
-    delete ciSectId;       
-    if(pSectIter->Next()){
-        //get act Tuple
-        Tuple *actSect = 0;
-        actSect = m_pSections->GetTuple(pSectIter->GetId(), false);
-        
-        //save cost in the section relation
-        vector<int> xIndices;
-        vector<Attribute*> xAttrs;        
-        xIndices.push_back ( SECTION_COST );
-        xAttrs.push_back ( new CcReal ( true, newCost ) );
-        m_pSections->UpdateTuple(actSect, xIndices, xAttrs); 
-        
-          
-               
-        //save cost in the PageRecord of the section
-        // read pages und Slots 
-        int pageUp = 
-          ((CcInt* )actSect->GetAttribute(SECTION_PNO_UP))->GetIntval();
-        int slotUp = 
-          ((CcInt* )actSect->GetAttribute(SECTION_SLOT_UP))->GetIntval();
-        int pageDown = 
-          ((CcInt* )actSect->GetAttribute(SECTION_PNO_DOWN))->GetIntval();
-        int slotDown = 
-          ((CcInt* )actSect->GetAttribute(SECTION_SLOT_DOWN))->GetIntval();
-        
-        //get the page and save cost for both entries
-        PageRecord actPage =PageRecord(0);
-        m_xAdjacencyList.Get(pageUp-1, actPage);
-        actPage.SetSectionCost(slotUp, newCost);
-        if(pageDown == pageUp){
-            actPage.SetSectionCost(slotDown, newCost);
-            m_xAdjacencyList.Put(pageUp-1, actPage);
-        }else{
-            m_xAdjacencyList.Put(pageUp-1, actPage);
-            m_xAdjacencyList.Get(pageDown-1, actPage);
-            actPage.SetSectionCost(slotDown, newCost);
-            m_xAdjacencyList.Put(pageDown-1, actPage);
-        }       
-        
-        
-        //clean up
-        actSect->DeleteIfAllowed();
-        delete pSectIter;
-        return true;
-    }
-    else {
-        //errormessage
-        sendMessage ( "the section with the given SectId must exist." );
-        cout << "the section " <<sectId <<"  doesn't exist." <<endl;
-        //clean up
-        delete pSectIter;
-        return false;
-    }              
-}
-
-bool Network::UpdateMoreSectionCost(const Relation* in_pCosts){
-    //DEBUG PrintAdjacentSectionInfo();
-    // check input
-    if(in_pCosts->GetNoTuples() >0){
-        //for each tuple of the Relation 
-        for(int i=1; i<=in_pCosts->GetNoTuples();i++){
-            //Get sid and cost
-            Tuple *actTuple = 0;
-            actTuple = in_pCosts->GetTuple(i, false);
-            int sid = ((CcInt*)actTuple->GetAttribute(0))->GetIntval();
-            double cost = ((CcReal*)actTuple->GetAttribute(1))->GetRealval();
-            
-            //call the function UpdateSectionCost(sid,cost)
-            UpdateSectionCost(sid,cost);
-            
-            // clean up
-            actTuple->DeleteIfAllowed();
-        }   
-        //DEBUG PrintAdjacentSectionInfo();
-        return true;
-    }else{
-        sendMessage ( "the relation is empty." );
-        cout << "the relation is emplty." <<endl;
-        return false;
-    }
-    
-}
-
-/*
-Returns ~true~, if the update of duration for a given section was successful
-
-*/
-bool Network::UpdateSectionDuration(int sectId,double newDuration){
-    BTreeIterator* pSectIter;
-    CcInt* ciSectId = new CcInt(true,sectId);    
-    pSectIter = m_pBTreeSections->ExactMatch (ciSectId);
-    delete ciSectId;       
-    if(pSectIter->Next()){
-        //get act Tuple
-        Tuple *actSect = 0;
-        actSect = m_pSections->GetTuple(pSectIter->GetId(), false);
-        
-        //save duration in the section relation
-        vector<int> xIndices;
-        vector<Attribute*> xAttrs;        
-        xIndices.push_back ( SECTION_DURATION );
-        xAttrs.push_back ( new CcReal ( true, newDuration ) );
-        m_pSections->UpdateTuple(actSect, xIndices, xAttrs);     
-               
-        //save duration in the PageRecord of the section
-        // read pages und Slots 
-        int pageUp = 
-          ((CcInt* )actSect->GetAttribute(SECTION_PNO_UP))->GetIntval();
-        int slotUp = 
-          ((CcInt* )actSect->GetAttribute(SECTION_SLOT_UP))->GetIntval();
-        int pageDown = 
-          ((CcInt* )actSect->GetAttribute(SECTION_PNO_DOWN))->GetIntval();
-        int slotDown = 
-          ((CcInt* )actSect->GetAttribute(SECTION_SLOT_DOWN))->GetIntval();
-        
-        //get the page and save duration for both entries
-        PageRecord actPage;
-        m_xAdjacencyList.Get(pageUp-1, actPage);
-        actPage.SetSectionDuration(slotUp, newDuration);
-        
-        if(pageDown == pageUp){
-            actPage.SetSectionDuration(slotDown, newDuration);
-            m_xAdjacencyList.Put(pageUp-1, actPage);
-        }else{
-            m_xAdjacencyList.Put(pageUp-1, actPage);
-            m_xAdjacencyList.Get(pageDown-1, actPage);
-            actPage.SetSectionDuration(slotDown, newDuration);
-            m_xAdjacencyList.Put(pageDown-1, actPage);
-        }       
-        
-        //clean up
-        actSect->DeleteIfAllowed();
-        delete pSectIter;
-        return true;
-    }
-    else {
-        //errormessage
-        sendMessage ( "the section with the given SectId must exist." );
-        cout << "the section " <<sectId <<"  doesn't exist." <<endl;
-        //clean up
-        delete pSectIter;
-        return false;
-    }              
-}
-
-bool Network::UpdateMoreSectionDuration(const Relation* in_pDurations){
-    //DEBUG PrintAdjacentSectionInfo();
-    // check input
-    if(in_pDurations->GetNoTuples() >0){
-        //for each tuple of the Relation 
-        for(int i=1; i<=in_pDurations->GetNoTuples();i++){
-            //Get sid and duration
-            Tuple *actTuple = 0;
-            actTuple = in_pDurations->GetTuple(i, false);
-            int sid = ((CcInt*)actTuple->GetAttribute(0))->GetIntval();
-            double duration =((CcReal*)actTuple->GetAttribute(1))->GetRealval();
-            
-            //call the function UpdateSectionDuration(sid,duration)
-            UpdateSectionDuration(sid,duration);
-            
-            // clean up
-            actTuple->DeleteIfAllowed();
-        }   
-        //DEBUG PrintAdjacentSectionInfo();
-        return true;
-    }else{
-        sendMessage ( "the relation is empty." );
-        cout << "the relation is emplty." <<endl;
-        return false;
-    }    
-}
-
-
-/*
-Returns the route Interval between the two points
-
-*/
-
-void chkStartEndA ( double &StartPos, double &EndPos )
-{
-  double help;
-  if ( StartPos > EndPos )
-  {
-    help = StartPos;
-    StartPos = EndPos;
-    EndPos = help;
-  }
-};
-
-bool Network::ShorterConnection ( Tuple *route, double &start,
-                                  double &end, double &dpos, double &dpos2, int
-&rid,
-                                  int &ridt, Point p1, Point p2 )
-{
-  if ( AlmostEqual ( p1.Distance ( p2 ), fabs ( end-start ) ) ) return false;
-  double difference;
-  GPoint *gp = new GPoint ( true, GetId(), route->GetTupleId(), end - 0.01 );
-  TupleId pSection1 = GetTupleIdSectionOnRoute ( gp );
-  gp->DeleteIfAllowed();
-  vector<DirectedSection> pAdjSect1;
-  vector<DirectedSection> pAdjSect2;
-  pAdjSect1.clear();
-  pAdjSect2.clear();
-  GetAdjacentSections ( pSection1,true, pAdjSect1 );
-  GetAdjacentSections ( pSection1,false, pAdjSect2 );
-  if ( pAdjSect1.size() == 0 || pAdjSect2.size() == 0 )
-  {
-    pAdjSect1.clear();
-    pAdjSect2.clear();
-    return false;
-  }
-  else
-  {
-    size_t j = 0;
-    while ( j < pAdjSect1.size() )
-    {
-      DirectedSection actSection = pAdjSect1[j];
-      Tuple *pCurrSect = m_pSections->GetTuple ( actSection.GetSectionTid(),
-                                                 false );
-      ridt = ( ( CcInt* ) pCurrSect->GetAttribute ( SECTION_RID )
-)->GetIntval();
-      pCurrSect->DeleteIfAllowed();
-      if ( ridt != rid )
-      {
-        Tuple *pRoute = GetRoute ( ridt );
-        SimpleLine *pCurve =
-            ( SimpleLine* ) pRoute->GetAttribute ( ROUTE_CURVE );
-        if ( ( chkPoint ( pCurve, p1, true, dpos, difference ) ) &&
-                ( chkPoint ( pCurve, p2, true, dpos2, difference ) ) )
-        {
-          pAdjSect1.clear();
-          pAdjSect2.clear();
-          chkStartEndA ( dpos, dpos2 );
-          pRoute->DeleteIfAllowed();
-          if ( fabs ( dpos2 - dpos ) < fabs ( end - start ) ) return  true;
-          else return false;
-        }
-        pRoute->DeleteIfAllowed();
-      }
-      j++;
-    }
-    pAdjSect1.clear();
-    j = 0;
-    while ( j < pAdjSect2.size() )
-    {
-      DirectedSection actSection = pAdjSect2[j];
-      Tuple *pCurrSect = m_pSections->GetTuple ( actSection.GetSectionTid(),
-                                                 false );
-      ridt = ( ( CcInt* ) pCurrSect->GetAttribute ( SECTION_RID )
-)->GetIntval();
-      pCurrSect->DeleteIfAllowed();
-      if ( ridt != rid )
-      {
-        Tuple *pRoute = GetRoute ( ridt );
-        SimpleLine *pCurve =
-            ( SimpleLine* ) pRoute->GetAttribute ( ROUTE_CURVE );
-        if ( ( chkPoint ( pCurve, p1, true, dpos, difference ) ) &&
-                ( chkPoint ( pCurve, p2, true, dpos2, difference ) ) )
-        {
-          pAdjSect2.clear();
-          chkStartEndA ( dpos, dpos2 );
-          pRoute->DeleteIfAllowed();
-          if ( fabs ( dpos2-dpos ) < fabs ( end - start ) ) return true;
-          else return false;
-        }
-        pRoute->DeleteIfAllowed();
-      }
-      j++;
-    }
-    return false;
-  }
-}
-
-bool Network::ShorterConnection2 ( Tuple *route, double &start,
-                                   double &end, double &dpos, double &dpos2, int
-&rid,
-                                   int &ridt, Point p1, Point p2 )
-{
-  if ( AlmostEqual ( p1.Distance ( p2 ), fabs ( end-start ) ) ) return false;
-  double difference = 0.0;
-  if ( start < end && end > 0.01 ) difference = end - 0.01;
-  else
-    if ( start < end && end <= 0.01 ) difference = 0.01;
-    else
-      if ( start > end ) difference = end + 0.01;
-      else difference = end; //start == end
-  GPoint *gp = new GPoint ( true, GetId(), route->GetTupleId(), difference );
-  TupleId pSection1 = GetTupleIdSectionOnRoute ( gp );
-  gp->DeleteIfAllowed();
-  vector<DirectedSection> pAdjSect1;
-  vector<DirectedSection> pAdjSect2;
-  pAdjSect1.clear();
-  pAdjSect2.clear();
-  GetAdjacentSections ( pSection1,true, pAdjSect1 );
-  GetAdjacentSections ( pSection1,false, pAdjSect2 );
-  if ( pAdjSect1.size() == 0 || pAdjSect2.size() == 0 )
-  {
-    pAdjSect1.clear();
-    pAdjSect2.clear();
-    return false;
-  }
-  else
-  {
-    size_t j = 0;
-    while ( j < pAdjSect1.size() )
-    {
-      DirectedSection actSection = pAdjSect1[j];
-      Tuple *pCurrSect = m_pSections->GetTuple ( actSection.GetSectionTid(),
-                                                 false );
-      ridt = ( ( CcInt* ) pCurrSect->GetAttribute ( SECTION_RID )
-)->GetIntval();
-      pCurrSect->DeleteIfAllowed();
-      if ( ridt != rid )
-      {
-        Tuple *pRoute = GetRoute ( ridt );
-        SimpleLine *pCurve =
-            ( SimpleLine* ) pRoute->GetAttribute ( ROUTE_CURVE );
-        if ( ( chkPoint ( pCurve, p1, true, dpos, difference ) ) &&
-                ( chkPoint ( pCurve, p2, true, dpos2, difference ) ) )
-        {
-          pAdjSect1.clear();
-          pAdjSect2.clear();
-          pRoute->DeleteIfAllowed();
-          if ( fabs ( dpos2 - dpos ) < fabs ( end - start ) ) return  true;
-          else return false;
-        }
-        pRoute->DeleteIfAllowed();
-      }
-      j++;
-    }
-    pAdjSect1.clear();
-    j = 0;
-    while ( j < pAdjSect2.size() )
-    {
-      DirectedSection actSection = pAdjSect2[j];
-      Tuple *pCurrSect = m_pSections->GetTuple ( actSection.GetSectionTid(),
-                                                 false );
-      ridt = ( ( CcInt* ) pCurrSect->GetAttribute ( SECTION_RID )
-)->GetIntval();
-      pCurrSect->DeleteIfAllowed();
-      if ( ridt != rid )
-      {
-        Tuple *pRoute = GetRoute ( ridt );
-        SimpleLine *pCurve =
-            ( SimpleLine* ) pRoute->GetAttribute ( ROUTE_CURVE );
-        if ( ( chkPoint ( pCurve, p1, true, dpos, difference ) ) &&
-                ( chkPoint ( pCurve, p2, true, dpos2, difference ) ) )
-        {
-          pAdjSect2.clear();
-          pRoute->DeleteIfAllowed();
-          if ( fabs ( dpos2-dpos ) < fabs ( end - start ) ) return true;
-          else return false;
-        }
-        pRoute->DeleteIfAllowed();
-      }
-      j++;
-    }
-    return false;
-  }
-}
-
-/*
-
-Returns the route curve for the given route id.
-
-*/
-
 SimpleLine Network::GetRouteCurve ( int in_iRouteId )
 {
   Tuple *pRoute = GetRoute ( in_iRouteId );
@@ -5009,371 +5458,12 @@ SimpleLine Network::GetRouteCurve ( int in_iRouteId )
   return sl;
 }
 
-/*
-  GetDual
-
-  Returns the dual value of the given route id.
-
-*/
-
 bool Network::GetDual ( int in_iRouteId )
 {
   Tuple *pRoute = GetRoute ( in_iRouteId );
   bool dual = ( ( CcBool* ) pRoute->GetAttribute ( ROUTE_DUAL ) )->GetBoolval();
   pRoute->DeleteIfAllowed();
   return dual;
-}
-
-/*
-Searches the route interval between the two given point values.
-
-*/
-
-RouteInterval* Network::Find ( Point p1, Point p2 )
-{
-  GPoint *gpp1 = GetNetworkPosOfPoint ( p1 );
-  GPoint *gpp2 = GetNetworkPosOfPoint ( p2 );
-  assert ( gpp1->IsDefined() && gpp2->IsDefined() );
-  int rid, ridt;
-  double start, end, dpos, dpos2, difference;
-  if ( gpp1->GetRouteId() == gpp2->GetRouteId() )
-  {
-    rid = gpp1->GetRouteId();
-    start = gpp1->GetPosition();
-    end = gpp2->GetPosition();
-    chkStartEndA ( start,end );
-    Tuple *pRoute = GetRoute ( rid );
-    if ( ShorterConnection ( pRoute, start, end, dpos, dpos2, rid, ridt, p1, p2
-) )
-    {
-      gpp1->DeleteIfAllowed();
-      gpp2->DeleteIfAllowed();
-      pRoute->DeleteIfAllowed();
-      return new RouteInterval ( ridt, dpos, dpos2 );
-    }
-    else
-    {
-      gpp1->DeleteIfAllowed();
-      gpp2->DeleteIfAllowed();
-      pRoute->DeleteIfAllowed();
-      return new RouteInterval ( rid, start, end );
-    }
-  }
-  else   // different RouteIds
-  {
-    Tuple *pRoute = GetRoute ( gpp1->GetRouteId() );
-    SimpleLine *pCurve =
-        ( SimpleLine* ) pRoute->GetAttribute ( ROUTE_CURVE );
-    if ( chkPoint ( pCurve, p2, true, dpos, difference ) )
-    {
-      rid =
-          ( ( CcInt* ) pRoute->GetAttribute ( ROUTE_ID ) )->GetIntval();
-      start = gpp1->GetPosition();
-      end = dpos;
-      chkStartEndA ( start, end );
-      if ( ShorterConnection ( pRoute, start, end, dpos, dpos2, rid, ridt, p1,
-                               p2 ) )
-      {
-        gpp1->DeleteIfAllowed();
-        gpp2->DeleteIfAllowed();
-        pRoute->DeleteIfAllowed();
-        return new RouteInterval ( ridt, dpos, dpos2 );
-      }
-      else
-      {
-        gpp1->DeleteIfAllowed();
-        gpp2->DeleteIfAllowed();
-        pRoute->DeleteIfAllowed();
-        return new RouteInterval ( rid, start, end );
-      }
-    }
-    pRoute->DeleteIfAllowed();
-    pRoute = GetRoute ( gpp2->GetRouteId() );
-    pCurve = ( SimpleLine* ) pRoute->GetAttribute ( ROUTE_CURVE );
-    if ( chkPoint ( pCurve, p1, true, dpos, difference ) )
-    {
-      rid =
-          ( ( CcInt* ) pRoute->GetAttribute ( ROUTE_ID ) )->GetIntval();
-      start = gpp2->GetPosition();
-      end = dpos;
-      chkStartEndA ( start, end );
-      if ( ShorterConnection ( pRoute, start, end, dpos, dpos2, rid, ridt, p1,
-                               p2 ) )
-      {
-        gpp1->DeleteIfAllowed();
-        gpp2->DeleteIfAllowed();
-        pRoute->DeleteIfAllowed();
-        return new RouteInterval ( ridt, dpos, dpos2 );
-      }
-      else
-      {
-        gpp1->DeleteIfAllowed();
-        gpp2->DeleteIfAllowed();
-        pRoute->DeleteIfAllowed();
-        return new RouteInterval ( rid, start, end );
-      }
-    }
-    pRoute->DeleteIfAllowed();
-    TupleId pSection = GetTupleIdSectionOnRoute ( gpp1 );
-    vector<DirectedSection> pAdjSect1;
-    vector<DirectedSection> pAdjSect2;
-    pAdjSect1.clear();
-    pAdjSect2.clear();
-    GetAdjacentSections ( pSection,true, pAdjSect1 );
-    GetAdjacentSections ( pSection,false, pAdjSect2 );
-    size_t j = 0;
-    Tuple *pCurrSect;
-    while ( j < pAdjSect1.size() )
-    {
-      DirectedSection actSection = pAdjSect1[j];
-      pCurrSect = m_pSections->GetTuple ( actSection.GetSectionTid(),
-                                          false );
-      rid = ( ( CcInt* ) pCurrSect->GetAttribute ( SECTION_RID ) )->GetIntval();
-      pCurrSect->DeleteIfAllowed();
-      pRoute = GetRoute ( rid );
-      pCurve = ( SimpleLine* ) pRoute->GetAttribute ( ROUTE_CURVE );
-      if ( ( chkPoint ( pCurve, p1, true, dpos, difference ) ) &&
-              ( chkPoint ( pCurve, p2, true, dpos2, difference ) ) )
-      {
-        start = dpos;
-        end = dpos2;
-        chkStartEndA ( start, end );
-        pAdjSect1.clear();
-        pAdjSect2.clear();
-        if ( ShorterConnection ( pRoute, start, end, dpos, dpos2,
-                                 rid, ridt, p1, p2 ) )
-        {
-          gpp1->DeleteIfAllowed();
-          gpp2->DeleteIfAllowed();
-          pRoute->DeleteIfAllowed();
-          return new RouteInterval ( ridt, dpos, dpos2 );
-        }
-        else
-        {
-          gpp1->DeleteIfAllowed();
-          gpp2->DeleteIfAllowed();
-          pRoute->DeleteIfAllowed();
-          return new RouteInterval ( rid, start, end );
-        }
-      }
-      j++;
-      pRoute->DeleteIfAllowed();
-    }
-    j = 0;
-    pAdjSect1.clear();
-    while ( j < pAdjSect2.size() )
-    {
-      DirectedSection actSection = pAdjSect2[j];
-      pCurrSect = m_pSections->GetTuple ( actSection.GetSectionTid(),
-                                          false );
-      rid = ( ( CcInt* ) pCurrSect->GetAttribute ( SECTION_RID ) )->GetIntval();
-      pCurrSect->DeleteIfAllowed();
-      pRoute = GetRoute ( rid );
-      pCurve = ( SimpleLine* ) pRoute->GetAttribute ( ROUTE_CURVE );
-      if ( ( chkPoint ( pCurve, p1, true, dpos, difference ) ) &&
-              ( chkPoint ( pCurve, p2, true, dpos2, difference ) ) )
-      {
-        start = dpos;
-        end = dpos2;
-        chkStartEndA ( start, end );
-        pAdjSect2.clear();
-        if ( ShorterConnection ( pRoute, start, end, dpos, dpos2,
-                                 rid, ridt, p1, p2 ) )
-        {
-          gpp1->DeleteIfAllowed();
-          gpp2->DeleteIfAllowed();
-          pRoute->DeleteIfAllowed();
-          return new RouteInterval ( ridt, dpos, dpos2 );
-        }
-        else
-        {
-          gpp1->DeleteIfAllowed();
-          gpp2->DeleteIfAllowed();
-          pRoute->DeleteIfAllowed();
-          return new RouteInterval ( rid, start, end );
-        }
-      }
-      j++;
-      pRoute->DeleteIfAllowed();
-    }//should never be reached
-    pAdjSect2.clear();
-  }//should never be reached
-  gpp1->DeleteIfAllowed();
-  gpp2->DeleteIfAllowed();
-  return 0;
-}
-
-
-/*
-Returns the route interval for the connection from p1 to p2
-
-*/
-
-RouteInterval* Network::FindInterval ( Point p1, Point p2 )
-{
-  GPoint *gpp1 = GetNetworkPosOfPoint ( p1 );
-  GPoint *gpp2 = GetNetworkPosOfPoint ( p2 );
-  assert ( gpp1->IsDefined() && gpp2->IsDefined() );
-  int rid, ridt;
-  double start, end, dpos, dpos2, difference;
-  if ( gpp1->GetRouteId() == gpp2->GetRouteId() )
-  {
-    rid = gpp1->GetRouteId();
-    start = gpp1->GetPosition();
-    end = gpp2->GetPosition();
-    Tuple *pRoute = GetRoute ( rid );
-    if ( ShorterConnection2 ( pRoute, start, end, dpos, dpos2, rid, ridt,
-         p1, p2) )
-    {
-      gpp1->DeleteIfAllowed();
-      gpp2->DeleteIfAllowed();
-      pRoute->DeleteIfAllowed();
-      return new RouteInterval ( ridt, dpos, dpos2 );
-    }
-    else
-    {
-      gpp1->DeleteIfAllowed();
-      gpp2->DeleteIfAllowed();
-      pRoute->DeleteIfAllowed();
-      return new RouteInterval ( rid, start, end );
-    }
-  }
-  else
-  {
-    Tuple *pRoute = GetRoute ( gpp1->GetRouteId() );
-    SimpleLine *pCurve =
-        ( SimpleLine* ) pRoute->GetAttribute ( ROUTE_CURVE );
-    if ( chkPoint ( pCurve, p2, true, dpos, difference ) )
-    {
-      rid =
-          ( ( CcInt* ) pRoute->GetAttribute ( ROUTE_ID ) )->GetIntval();
-      start = gpp1->GetPosition();
-      end = dpos;
-      if ( ShorterConnection2 ( pRoute, start, end, dpos, dpos2,
-                                rid, ridt, p1, p2 ) )
-      {
-        gpp1->DeleteIfAllowed();
-        gpp2->DeleteIfAllowed();
-        pRoute->DeleteIfAllowed();
-        return new RouteInterval ( ridt, dpos, dpos2 );
-      }
-      else
-      {
-        gpp1->DeleteIfAllowed();
-        gpp2->DeleteIfAllowed();
-        pRoute->DeleteIfAllowed();
-        return new RouteInterval ( rid, start, end );
-      }
-    }
-    pRoute->DeleteIfAllowed();
-    pRoute = GetRoute ( gpp2->GetRouteId() );
-    pCurve = ( SimpleLine* ) pRoute->GetAttribute ( ROUTE_CURVE );
-    if ( chkPoint ( pCurve, p1, true, dpos, difference ) )
-    {
-      rid =
-          ( ( CcInt* ) pRoute->GetAttribute ( ROUTE_ID ) )->GetIntval();
-      start = dpos;
-      end = gpp2->GetPosition();
-      if ( ShorterConnection2 ( pRoute, start, end, dpos, dpos2,
-                                rid, ridt, p1, p2 ) )
-      {
-        gpp1->DeleteIfAllowed();
-        gpp2->DeleteIfAllowed();
-        pRoute->DeleteIfAllowed();
-        return new RouteInterval ( ridt, dpos, dpos2 );
-      }
-      else
-      {
-        gpp1->DeleteIfAllowed();
-        gpp2->DeleteIfAllowed();
-        pRoute->DeleteIfAllowed();
-        return new RouteInterval ( rid, start, end );
-      }
-    }
-    pRoute->DeleteIfAllowed();
-    TupleId pSection = GetTupleIdSectionOnRoute ( gpp1 );
-    vector<DirectedSection> pAdjSect1;
-    vector<DirectedSection> pAdjSect2;
-    pAdjSect1.clear();
-    pAdjSect2.clear();
-    GetAdjacentSections ( pSection,true, pAdjSect1 );
-    GetAdjacentSections ( pSection,false, pAdjSect2 );
-    size_t j = 0;
-    Tuple *pCurrSect;
-    while ( j < pAdjSect1.size() )
-    {
-      DirectedSection actSection = pAdjSect1[j];
-      pCurrSect = m_pSections->GetTuple ( actSection.GetSectionTid(), false );
-      rid = ( ( CcInt* ) pCurrSect->GetAttribute ( SECTION_RID ) )->GetIntval();
-      pCurrSect->DeleteIfAllowed();
-      pRoute = GetRoute ( rid );
-      pCurve = ( SimpleLine* ) pRoute->GetAttribute ( ROUTE_CURVE );
-      if ( ( chkPoint ( pCurve, p1, true, dpos, difference ) ) &&
-              ( chkPoint ( pCurve, p2, true, dpos2, difference ) ) )
-      {
-        start = dpos;
-        end = dpos2;
-        pAdjSect1.clear();
-        pAdjSect2.clear();
-        if ( ShorterConnection2 ( pRoute, start, end, dpos, dpos2,
-                                  rid, ridt, p1, p2 ) )
-        {
-          gpp1->DeleteIfAllowed();
-          gpp2->DeleteIfAllowed();
-          pRoute->DeleteIfAllowed();
-          return new RouteInterval ( ridt, dpos, dpos2 );
-        }
-        else
-        {
-          gpp1->DeleteIfAllowed();
-          gpp2->DeleteIfAllowed();
-          pRoute->DeleteIfAllowed();
-          return new RouteInterval ( rid, start, end );
-        }
-      }
-      j++;
-      pRoute->DeleteIfAllowed();
-    }
-    j = 0;
-    pAdjSect1.clear();
-    while ( j < pAdjSect2.size() )
-    {
-      DirectedSection actSection = pAdjSect2[j];
-      pCurrSect = m_pSections->GetTuple ( actSection.GetSectionTid(), false );
-      rid = ( ( CcInt* ) pCurrSect->GetAttribute ( SECTION_RID ) )->GetIntval();
-      pCurrSect->DeleteIfAllowed();
-      pRoute = GetRoute ( rid );
-      pCurve = ( SimpleLine* ) pRoute->GetAttribute ( ROUTE_CURVE );
-      if ( ( chkPoint ( pCurve, p1, true, dpos, difference ) ) &&
-              ( chkPoint ( pCurve, p2, true, dpos2, difference ) ) )
-      {
-        start = dpos;
-        end = dpos2;
-        pAdjSect2.clear();
-        if ( ShorterConnection2 ( pRoute, start, end, dpos, dpos2,
-                                  rid, ridt, p1, p2 ) )
-        {
-          gpp1->DeleteIfAllowed();
-          gpp2->DeleteIfAllowed();
-          pRoute->DeleteIfAllowed();
-          return new RouteInterval ( ridt, dpos, dpos2 );
-        }
-        else
-        {
-          gpp1->DeleteIfAllowed();
-          gpp2->DeleteIfAllowed();
-          pRoute->DeleteIfAllowed();
-          return new RouteInterval ( rid, start, end );
-        }
-      }
-      j++;
-      pRoute->DeleteIfAllowed();
-    }//should never be reached
-    pAdjSect2.clear();
-  }//should never be reached
-  gpp1->DeleteIfAllowed();
-  gpp2->DeleteIfAllowed();
-  return 0;
 }
 
 
@@ -5441,8 +5531,224 @@ vector<TupleId>& res)
 
 }
 
+GPoint* Network::GetNetworkPosOfPoint ( Point p )
+{
+  const Rectangle<2> orig = p.BoundingBox();
+  const Rectangle<2> bbox = Rectangle<2> ( true,
+                            orig.MinD ( 0 ) - 1.0,
+                            orig.MaxD ( 0 ) + 1.0,
+                            orig.MinD ( 1 ) - 1.0,
+                            orig.MaxD ( 1 ) + 1.0 );
+  R_TreeLeafEntry<2,TupleId> res;
+  Tuple *pCurrRoute = 0;
+  if ( m_pRTreeRoutes->First ( bbox, res ) )
+  {
+    pCurrRoute = m_pRoutes->GetTuple ( res.info, false );
+    // pCurrRoute->PutAttribute(0, new TupleIdentifier(true, res.info));
+  }
+  else
+  {
+    GPoint *result = new GPoint ( false );
+    pCurrRoute->DeleteIfAllowed();
+    return result;
+  }
+  double dpos, difference;
+  SimpleLine* pRouteCurve = ( SimpleLine* ) pCurrRoute->GetAttribute (
+ROUTE_CURVE );
+  if ( chkPoint ( pRouteCurve, p, true, dpos, difference ) )
+  {
+    int rid = ( ( CcInt* ) pCurrRoute->GetAttribute ( ROUTE_ID ) )->GetIntval();
+    GPoint *result = new GPoint ( true, GetId(), rid, dpos, None );
+    pCurrRoute->DeleteIfAllowed();
+    return result;
+  }
+  else
+  {
+    pCurrRoute->DeleteIfAllowed();
+    while ( m_pRTreeRoutes->Next ( res ) )
+    {
+      pCurrRoute = m_pRoutes->GetTuple ( res.info, false );
+      pRouteCurve = ( SimpleLine* ) pCurrRoute->GetAttribute ( ROUTE_CURVE );
+      if ( chkPoint ( pRouteCurve, p, true, dpos, difference ) )
+      {
+        int rid = ( ( CcInt* ) pCurrRoute->GetAttribute ( ROUTE_ID )
+)->GetIntval();
+        GPoint *result = new GPoint ( true, GetId(),
+                                      rid,
+                                      dpos, None );
+        pCurrRoute->DeleteIfAllowed();
+        return result;
+      }
+      pCurrRoute->DeleteIfAllowed();
+    }
+    /*
+    If the point exact hits a route the route should be found here. If the point
+    value is not exact on the route curve we try to map it in the next step with
+    bigger tolerance for the hit of the route curve.
+
+    */
+    if ( m_pRTreeRoutes->First ( bbox, res ) )
+      pCurrRoute = m_pRoutes->GetTuple ( res.info, false );
+    pRouteCurve = ( SimpleLine* ) pCurrRoute->GetAttribute ( ROUTE_CURVE );
+    if ( chkPoint03 ( pRouteCurve, p, true, dpos, difference ) )
+    {
+      int rid = ( ( CcInt* ) pCurrRoute->GetAttribute ( ROUTE_ID )
+)->GetIntval();
+      GPoint *result = new GPoint ( true, GetId(),
+                                    rid,
+                                    dpos, None );
+      pCurrRoute->DeleteIfAllowed();
+      return result;
+    }
+    else
+    {
+      pCurrRoute->DeleteIfAllowed();
+      while ( m_pRTreeRoutes->Next ( res ) )
+      {
+        pCurrRoute = m_pRoutes->GetTuple ( res.info , false);
+        pRouteCurve = ( SimpleLine* ) pCurrRoute->GetAttribute ( ROUTE_CURVE );
+        if ( chkPoint03 ( pRouteCurve, p, true, dpos, difference ) )
+        {
+          int rid = ( ( CcInt* ) pCurrRoute->GetAttribute ( ROUTE_ID )
+)->GetIntval();
+          GPoint *result = new GPoint ( true, GetId(),
+                                        rid,
+                                        dpos, None );
+          pCurrRoute->DeleteIfAllowed();
+          return result;
+        }
+        pCurrRoute->DeleteIfAllowed();
+      }
+    }
+
+    if ( m_pRTreeRoutes->First ( bbox, res ) )
+      pCurrRoute = m_pRoutes->GetTuple ( res.info, false );
+    pRouteCurve = ( SimpleLine* ) pCurrRoute->GetAttribute ( ROUTE_CURVE );
+    if ( lastchkPoint03 ( pRouteCurve, p, true, dpos, difference ) )
+    {
+      int rid = ( ( CcInt* ) pCurrRoute->GetAttribute ( ROUTE_ID )
+)->GetIntval();
+      GPoint *result = new GPoint ( true, GetId(),
+                                    rid,
+                                    dpos, None );
+      pCurrRoute->DeleteIfAllowed();
+      return result;
+    }
+    else
+    {
+      pCurrRoute->DeleteIfAllowed();
+      while ( m_pRTreeRoutes->Next ( res ) )
+      {
+        pCurrRoute = m_pRoutes->GetTuple ( res.info, false );
+        pRouteCurve = ( SimpleLine* ) pCurrRoute->GetAttribute ( ROUTE_CURVE );
+        if ( lastchkPoint03 ( pRouteCurve, p, true, dpos, difference ) )
+        {
+          int rid = ( ( CcInt* ) pCurrRoute->GetAttribute ( ROUTE_ID )
+)->GetIntval();
+          GPoint *result = new GPoint ( true, GetId(),
+                                        rid,
+                                        dpos, None );
+          pCurrRoute->DeleteIfAllowed();
+          return result;
+        }
+        pCurrRoute->DeleteIfAllowed();
+      }
+    } // should not be reached
+    GPoint *result = new GPoint ( false );
+    pCurrRoute->DeleteIfAllowed();
+    return result;
+  }
+}
+
+void Network::GetJunctionMeasForRoutes ( CcInt *pRoute1Id, CcInt *pRoute2Id,
+        double &rid1meas, double &rid2meas )
+{
+  CcInt *pCurrJuncR2id, *pCurrJuncR1id;
+  int iCurrJuncTupleR2id, iCurrJuncR1id, iRoute1Id, iRoute2Id;
+  CcReal *pRid1Meas, *pRid2Meas;
+  bool r1smallerr2, found;
+  BTreeIterator *pJunctionsIt;
+  if ( pRoute1Id->GetIntval() <= pRoute2Id->GetIntval() )
+  {
+    pJunctionsIt = m_pBTreeJunctionsByRoute1->ExactMatch ( pRoute1Id );
+    iRoute1Id = pRoute1Id->GetIntval();
+    iRoute2Id = pRoute2Id->GetIntval();
+    r1smallerr2 = true;
+  }
+  else
+  {
+    pJunctionsIt = m_pBTreeJunctionsByRoute1->ExactMatch ( pRoute2Id );
+    iRoute1Id = pRoute2Id->GetIntval();
+    iRoute2Id = pRoute1Id->GetIntval();
+    r1smallerr2 = false;
+  }
+  found = false;
+  while ( !found && pJunctionsIt->Next() )
+  {
+    Tuple *pCurrJuncTuple = m_pJunctions->GetTuple ( pJunctionsIt->GetId(),
+                                                     false );
+    pCurrJuncR2id = ( CcInt* ) pCurrJuncTuple->GetAttribute ( JUNCTION_ROUTE2_ID
+);
+    iCurrJuncTupleR2id = pCurrJuncR2id->GetIntval();
+    pCurrJuncR1id = ( CcInt* ) pCurrJuncTuple->GetAttribute ( JUNCTION_ROUTE1_ID
+);
+    iCurrJuncR1id = pCurrJuncR1id->GetIntval();
+    if ( iCurrJuncTupleR2id == iRoute2Id && iCurrJuncR1id == iRoute1Id )
+    {
+      found = true;
+      if ( r1smallerr2 )
+      {
+        pRid1Meas = ( CcReal* ) pCurrJuncTuple->GetAttribute (
+JUNCTION_ROUTE1_MEAS );
+        rid1meas = pRid1Meas->GetRealval();
+        pRid2Meas = ( CcReal* ) pCurrJuncTuple->GetAttribute (
+JUNCTION_ROUTE2_MEAS );
+        rid2meas = pRid2Meas->GetRealval();
+      }
+      else
+      {
+        pRid1Meas = ( CcReal* ) pCurrJuncTuple->GetAttribute (
+JUNCTION_ROUTE2_MEAS );
+        rid1meas = pRid1Meas->GetRealval();
+        pRid2Meas = ( CcReal* ) pCurrJuncTuple->GetAttribute (
+JUNCTION_ROUTE1_MEAS );
+        rid2meas = pRid2Meas->GetRealval();
+      }
+    }
+    pCurrJuncTuple->DeleteIfAllowed();
+  }
+  delete pJunctionsIt;
+  if ( !found )
+  {
+    rid1meas = numeric_limits<double>::max();
+    rid2meas = numeric_limits<double>::max();
+  }
+}
+
+void Network::GetLineValueOfRouteInterval ( const RouteInterval *in_ri,
+        SimpleLine *out_Line )
+{
+  CcInt* pRouteId = new CcInt ( true, in_ri->GetRouteId() );
+  BTreeIterator *pRoutesIter = m_pBTreeRoutes->ExactMatch ( pRouteId );
+  pRouteId->DeleteIfAllowed();
+  Tuple *pRoute = 0;
+  if ( pRoutesIter->Next() ) pRoute = m_pRoutes->GetTuple (
+                                pRoutesIter->GetId(), false);
+  assert ( pRoute != 0 );
+  SimpleLine* pLine = ( SimpleLine* ) pRoute->GetAttribute ( ROUTE_CURVE );
+  assert ( pLine != 0 );
+  CcBool* pStSm = ( CcBool* ) pRoute->GetAttribute ( ROUTE_STARTSSMALLER );
+  bool startSmaller = pStSm->GetBoolval();
+  pLine->SubLine ( min ( in_ri->GetStartPos(), in_ri->GetEndPos() ),
+                   max ( in_ri->GetStartPos(), in_ri->GetEndPos() ),
+                   startSmaller, *out_Line );
+  pRoute->DeleteIfAllowed();
+  delete pRoutesIter;
+}
 
 /*
+3.1.4 Support functions of type constructor ~network~
+
 ~Out~-function of type constructor ~network~
 
 */
@@ -5740,7 +6046,10 @@ Network *Network::Open ( SmiRecord& in_xValueRecord,
                        in_xTypeInfo );
 }
 
+/*
+~NetworkProp~-funtion of the type constructor ~network~
 
+*/
 ListExpr Network::NetworkProp()
 {
   ListExpr examplelist = nl->TextAtom();
@@ -5754,12 +6063,20 @@ ListExpr Network::NetworkProp()
                       nl->StringAtom ( "(let n = thenetwork(id, r,j))" ) ) ));
 }
 
+/*
+~OutNetwork~-funtion of the type constructor ~network~
+
+*/
 ListExpr Network::OutNetwork ( ListExpr typeInfo, Word value )
 {
   Network *n = ( Network* ) value.addr;
   return n->Out ( typeInfo );
 }
 
+/*
+~InNetwork~-funtion of the type constructor ~network~
+
+*/
 Word Network::InNetwork ( ListExpr in_xTypeInfo,
                           ListExpr in_xValue,
                           int in_iErrorPos,
@@ -5783,11 +6100,19 @@ Word Network::InNetwork ( ListExpr in_xTypeInfo,
   }
 }
 
+/*
+~CreateNetwork~-funtion of the type constructor ~network~
+
+*/
 Word Network::CreateNetwork ( const ListExpr typeInfo )
 {
   return SetWord ( new Network() );
 }
 
+/*
+~CloseNetwork~-funtion of the type constructor ~network~
+
+*/
 void Network::CloseNetwork ( const ListExpr typeInfo, Word& w )
 {
   delete static_cast<Network*> ( w.addr );
@@ -5806,6 +6131,10 @@ Word Network::CloneNetwork ( const ListExpr typeInfo, const Word& w )
   return SetWord ( Address ( 0 ) );
 }
 
+/*
+~DeleteNetwork~-funtion of the type constructor ~network~
+
+*/
 void Network::DeleteNetwork ( const ListExpr typeInfo, Word& w )
 {
   Network* n = ( Network* ) w.addr;
@@ -5814,16 +6143,28 @@ void Network::DeleteNetwork ( const ListExpr typeInfo, Word& w )
   w.addr = 0;
 }
 
+/*
+~CheckNetwork~-funtion of the type constructor ~network~
+
+*/
 bool Network::CheckNetwork ( ListExpr type, ListExpr& errorInfo )
 {
   return ( nl->IsEqual ( type, "network" ) );
 }
 
+/*
+~CastNetwork~-funtion of the type constructor ~network~
+
+*/
 void* Network::CastNetwork ( void* addr )
 {
   return ( 0 );
 }
 
+/*
+~SaveNetwork~-funtion of the type constructor ~network~
+
+*/
 bool Network::SaveNetwork ( SmiRecord& valueRecord,
                             size_t& offset,
                             const ListExpr typeInfo,
@@ -5834,6 +6175,10 @@ bool Network::SaveNetwork ( SmiRecord& valueRecord,
   return n->Save ( valueRecord, offset, typeInfo );
 }
 
+/*
+~OpenNetwork~-funtion of the type constructor ~network~
+
+*/
 bool Network::OpenNetwork ( SmiRecord& valueRecord,
                             size_t& offset,
                             const ListExpr typeInfo,
@@ -5843,243 +6188,24 @@ bool Network::OpenNetwork ( SmiRecord& valueRecord,
   return value.addr != 0;
 }
 
+/*
+~SizeOfNetwork~-funtion of the type constructor ~network~
+
+*/
 int Network::SizeOfNetwork()
 {
   return 0;
 }
 
+/*
+~IsDefined~-funtion of the type constructor ~network~
+
+*/
 int Network::IsDefined()
 {
   return m_bDefined;
 }
 
-GPoint* Network::GetNetworkPosOfPoint ( Point p )
-{
-  const Rectangle<2> orig = p.BoundingBox();
-  const Rectangle<2> bbox = Rectangle<2> ( true,
-                            orig.MinD ( 0 ) - 1.0,
-                            orig.MaxD ( 0 ) + 1.0,
-                            orig.MinD ( 1 ) - 1.0,
-                            orig.MaxD ( 1 ) + 1.0 );
-  R_TreeLeafEntry<2,TupleId> res;
-  Tuple *pCurrRoute = 0;
-  if ( m_pRTreeRoutes->First ( bbox, res ) )
-  {
-    pCurrRoute = m_pRoutes->GetTuple ( res.info, false );
-    // pCurrRoute->PutAttribute(0, new TupleIdentifier(true, res.info));
-  }
-  else
-  {
-    GPoint *result = new GPoint ( false );
-    pCurrRoute->DeleteIfAllowed();
-    return result;
-  }
-  double dpos, difference;
-  SimpleLine* pRouteCurve = ( SimpleLine* ) pCurrRoute->GetAttribute (
-ROUTE_CURVE );
-  if ( chkPoint ( pRouteCurve, p, true, dpos, difference ) )
-  {
-    int rid = ( ( CcInt* ) pCurrRoute->GetAttribute ( ROUTE_ID ) )->GetIntval();
-    GPoint *result = new GPoint ( true, GetId(), rid, dpos, None );
-    pCurrRoute->DeleteIfAllowed();
-    return result;
-  }
-  else
-  {
-    pCurrRoute->DeleteIfAllowed();
-    while ( m_pRTreeRoutes->Next ( res ) )
-    {
-      pCurrRoute = m_pRoutes->GetTuple ( res.info, false );
-      pRouteCurve = ( SimpleLine* ) pCurrRoute->GetAttribute ( ROUTE_CURVE );
-      if ( chkPoint ( pRouteCurve, p, true, dpos, difference ) )
-      {
-        int rid = ( ( CcInt* ) pCurrRoute->GetAttribute ( ROUTE_ID )
-)->GetIntval();
-        GPoint *result = new GPoint ( true, GetId(),
-                                      rid,
-                                      dpos, None );
-        pCurrRoute->DeleteIfAllowed();
-        return result;
-      }
-      pCurrRoute->DeleteIfAllowed();
-    }
-    /*
-    If the point exact hits a route the route should be found here. If the point
-    value is not exact on the route curve we try to map it in the next step with
-    bigger tolerance for the hit of the route curve.
-
-    */
-    if ( m_pRTreeRoutes->First ( bbox, res ) )
-      pCurrRoute = m_pRoutes->GetTuple ( res.info, false );
-    pRouteCurve = ( SimpleLine* ) pCurrRoute->GetAttribute ( ROUTE_CURVE );
-    if ( chkPoint03 ( pRouteCurve, p, true, dpos, difference ) )
-    {
-      int rid = ( ( CcInt* ) pCurrRoute->GetAttribute ( ROUTE_ID )
-)->GetIntval();
-      GPoint *result = new GPoint ( true, GetId(),
-                                    rid,
-                                    dpos, None );
-      pCurrRoute->DeleteIfAllowed();
-      return result;
-    }
-    else
-    {
-      pCurrRoute->DeleteIfAllowed();
-      while ( m_pRTreeRoutes->Next ( res ) )
-      {
-        pCurrRoute = m_pRoutes->GetTuple ( res.info , false);
-        pRouteCurve = ( SimpleLine* ) pCurrRoute->GetAttribute ( ROUTE_CURVE );
-        if ( chkPoint03 ( pRouteCurve, p, true, dpos, difference ) )
-        {
-          int rid = ( ( CcInt* ) pCurrRoute->GetAttribute ( ROUTE_ID )
-)->GetIntval();
-          GPoint *result = new GPoint ( true, GetId(),
-                                        rid,
-                                        dpos, None );
-          pCurrRoute->DeleteIfAllowed();
-          return result;
-        }
-        pCurrRoute->DeleteIfAllowed();
-      }
-    }
-
-    if ( m_pRTreeRoutes->First ( bbox, res ) )
-      pCurrRoute = m_pRoutes->GetTuple ( res.info, false );
-    pRouteCurve = ( SimpleLine* ) pCurrRoute->GetAttribute ( ROUTE_CURVE );
-    if ( lastchkPoint03 ( pRouteCurve, p, true, dpos, difference ) )
-    {
-      int rid = ( ( CcInt* ) pCurrRoute->GetAttribute ( ROUTE_ID )
-)->GetIntval();
-      GPoint *result = new GPoint ( true, GetId(),
-                                    rid,
-                                    dpos, None );
-      pCurrRoute->DeleteIfAllowed();
-      return result;
-    }
-    else
-    {
-      pCurrRoute->DeleteIfAllowed();
-      while ( m_pRTreeRoutes->Next ( res ) )
-      {
-        pCurrRoute = m_pRoutes->GetTuple ( res.info, false );
-        pRouteCurve = ( SimpleLine* ) pCurrRoute->GetAttribute ( ROUTE_CURVE );
-        if ( lastchkPoint03 ( pRouteCurve, p, true, dpos, difference ) )
-        {
-          int rid = ( ( CcInt* ) pCurrRoute->GetAttribute ( ROUTE_ID )
-)->GetIntval();
-          GPoint *result = new GPoint ( true, GetId(),
-                                        rid,
-                                        dpos, None );
-          pCurrRoute->DeleteIfAllowed();
-          return result;
-        }
-        pCurrRoute->DeleteIfAllowed();
-      }
-    } // should not be reached
-    GPoint *result = new GPoint ( false );
-    pCurrRoute->DeleteIfAllowed();
-    return result;
-  }
-}
-
-
-/*
-~GetJunctionsMeasForRoutes~
-
-Returns the position of a junction on both routes building the junction.
-
-*/
-
-void Network::GetJunctionMeasForRoutes ( CcInt *pRoute1Id, CcInt *pRoute2Id,
-        double &rid1meas, double &rid2meas )
-{
-  CcInt *pCurrJuncR2id, *pCurrJuncR1id;
-  int iCurrJuncTupleR2id, iCurrJuncR1id, iRoute1Id, iRoute2Id;
-  CcReal *pRid1Meas, *pRid2Meas;
-  bool r1smallerr2, found;
-  BTreeIterator *pJunctionsIt;
-  if ( pRoute1Id->GetIntval() <= pRoute2Id->GetIntval() )
-  {
-    pJunctionsIt = m_pBTreeJunctionsByRoute1->ExactMatch ( pRoute1Id );
-    iRoute1Id = pRoute1Id->GetIntval();
-    iRoute2Id = pRoute2Id->GetIntval();
-    r1smallerr2 = true;
-  }
-  else
-  {
-    pJunctionsIt = m_pBTreeJunctionsByRoute1->ExactMatch ( pRoute2Id );
-    iRoute1Id = pRoute2Id->GetIntval();
-    iRoute2Id = pRoute1Id->GetIntval();
-    r1smallerr2 = false;
-  }
-  found = false;
-  while ( !found && pJunctionsIt->Next() )
-  {
-    Tuple *pCurrJuncTuple = m_pJunctions->GetTuple ( pJunctionsIt->GetId(),
-                                                     false );
-    pCurrJuncR2id = ( CcInt* ) pCurrJuncTuple->GetAttribute ( JUNCTION_ROUTE2_ID
-);
-    iCurrJuncTupleR2id = pCurrJuncR2id->GetIntval();
-    pCurrJuncR1id = ( CcInt* ) pCurrJuncTuple->GetAttribute ( JUNCTION_ROUTE1_ID
-);
-    iCurrJuncR1id = pCurrJuncR1id->GetIntval();
-    if ( iCurrJuncTupleR2id == iRoute2Id && iCurrJuncR1id == iRoute1Id )
-    {
-      found = true;
-      if ( r1smallerr2 )
-      {
-        pRid1Meas = ( CcReal* ) pCurrJuncTuple->GetAttribute (
-JUNCTION_ROUTE1_MEAS );
-        rid1meas = pRid1Meas->GetRealval();
-        pRid2Meas = ( CcReal* ) pCurrJuncTuple->GetAttribute (
-JUNCTION_ROUTE2_MEAS );
-        rid2meas = pRid2Meas->GetRealval();
-      }
-      else
-      {
-        pRid1Meas = ( CcReal* ) pCurrJuncTuple->GetAttribute (
-JUNCTION_ROUTE2_MEAS );
-        rid1meas = pRid1Meas->GetRealval();
-        pRid2Meas = ( CcReal* ) pCurrJuncTuple->GetAttribute (
-JUNCTION_ROUTE1_MEAS );
-        rid2meas = pRid2Meas->GetRealval();
-      }
-    }
-    pCurrJuncTuple->DeleteIfAllowed();
-  }
-  delete pJunctionsIt;
-  if ( !found )
-  {
-    rid1meas = numeric_limits<double>::max();
-    rid2meas = numeric_limits<double>::max();
-  }
-}
-
-/*
-Return sLine Value from RouteId
-
-*/
-
-void Network::GetLineValueOfRouteInterval ( const RouteInterval *in_ri,
-        SimpleLine *out_Line )
-{
-  CcInt* pRouteId = new CcInt ( true, in_ri->GetRouteId() );
-  BTreeIterator *pRoutesIter = m_pBTreeRoutes->ExactMatch ( pRouteId );
-  pRouteId->DeleteIfAllowed();
-  Tuple *pRoute = 0;
-  if ( pRoutesIter->Next() ) pRoute = m_pRoutes->GetTuple (
-                                pRoutesIter->GetId(), false);
-  assert ( pRoute != 0 );
-  SimpleLine* pLine = ( SimpleLine* ) pRoute->GetAttribute ( ROUTE_CURVE );
-  assert ( pLine != 0 );
-  CcBool* pStSm = ( CcBool* ) pRoute->GetAttribute ( ROUTE_STARTSSMALLER );
-  bool startSmaller = pStSm->GetBoolval();
-  pLine->SubLine ( min ( in_ri->GetStartPos(), in_ri->GetEndPos() ),
-                   max ( in_ri->GetStartPos(), in_ri->GetEndPos() ),
-                   startSmaller, *out_Line );
-  pRoute->DeleteIfAllowed();
-  delete pRoutesIter;
-}
 
 /*
 Secondo TypeConstructor for class ~Network~
@@ -6097,9 +6223,9 @@ TypeConstructor network ( "network",          Network::NetworkProp,
 
 
 /*
-3 class ~GLine~
+3.2 class ~GLine~
 
-3.1 Constructors
+3.2.1 Constructors
 
 The simple constructor. Should not be used.
 
@@ -6231,7 +6357,7 @@ GLine::GLine ( ListExpr in_xValue,
 }
 
 /*
-3.2 Methods of class ~GLine~
+2.2.2 Methods of class ~GLine~
 
 */
 void GLine::SetNetworkId ( int in_iNetworkId )
@@ -7115,13 +7241,13 @@ TypeConstructor gline (
 
 
 /*
-4 class ~GPoint~
+3.3 class ~GPoint~
 
-4.1 Constructors
+3.3.1 Constructors
 
 See ~network.h~ class definition of ~GPoint~
 
-4.2 Methods of class ~GPoint~
+3.3.2 Methods of class ~GPoint~
 
 */
 Word GPoint::InGPoint ( const ListExpr typeInfo,
@@ -7948,8 +8074,10 @@ on a
 };
 
 /*
-Computes the shortest path between start and end in the network. Using
-AStar Algorithm. The path is returned as gline value.
+Method ~ShortestPathAStarPlus~
+
+Computes the shortest path between start- and endpoint in the network. Using
+AStar-algorithm. The path is returned as gline value.
 
 */
 
@@ -8639,12 +8767,17 @@ TypeConstructor gpoint (
     GPoint::CheckGPoint );                      //kind checking function
 
 /*
-5 Class GPoints implemented by Jianqiu Xu
+3.4 Class GPoints implemented by Jianqiu Xu
 
 */
 
 string edistjoinpointlist = "(rel(tuple((pid int)(p point))))";
 enum edistjoinpointlistrelation {POINTSID = 0,POINTSOBJECT};
+
+/*
+3.4.1 Constructors
+
+*/
 
 GPoints::GPoints():Attribute()
 {}
@@ -8664,6 +8797,10 @@ GPoints::GPoints ( GPoints* in_xOther ) :
   SetDefined(in_xOther->IsDefined());
   TrimToSize();
 }
+/*
+3.4.2 Methods of class ~GPoints~
+
+*/
 
 bool GPoints::IsEmpty() const
 {
@@ -8916,15 +9053,14 @@ TypeConstructor gpoints ( "gpoints",
 
 
 /*
-6 Secondo Operators
+4 Secondo Operators
 
-6.1 Operator ~netdistance~
+4.1 Operator ~netdistance~
 
 Returns the network distance between two ~Gpoints~ or two ~GLines~. Using
 Dijkstras Algorithm for computation of the shortest paths.
 
 */
-
 ListExpr OpNetNetdistanceTypeMap ( ListExpr args )
 {
   if ( nl->ListLength ( args ) != 2 )
@@ -9021,7 +9157,7 @@ Operator networknetdistance (
 );
 
 /*
-6.2 Operator ~gpoint2rect~
+4.2 Operator ~gpoint2rect~
 
 Returns a rectangle degenerated to a point with coordinates rid, rid, pos, pos.
 
@@ -9084,7 +9220,7 @@ Operator networkgpoint2rect (
 );
 
 /*
-6.3 Operator ~inside~
+4.3 Operator ~inside~
 
 Returns true if ths ~GPoint~ is inside the ~GLine~ false elsewhere.
 
@@ -9141,7 +9277,7 @@ Operator networkinside (
 );
 
 /*
-6.4 Operator ~length~
+4.4 Operator ~length~
 
 Returns the length of a ~GLine~.
 
@@ -9194,7 +9330,7 @@ Operator networklength (
 );
 
 /*
-6.5 Operator ~line2gline~
+4.5 Operator ~line2gline~
 
 Translates a spatial ~line~ value into a network ~GLine~ value if possible.
 
@@ -9328,7 +9464,7 @@ Operator sline2gline (
 
 
 /*
-6.6 Operator ~=~
+4.6 Operator ~=~
 
 Returns true if two ~GPoint~s respectively ~GLine~s are identical false
 elsewhere.
@@ -9429,7 +9565,7 @@ Operator netgpequal (
 
 
 /*
-6.7 Operator ~intersects~
+4.7 Operator ~intersects~
 
 Returns true if two ~Gline~ intersect false elsewhere.
 
@@ -9507,7 +9643,7 @@ Operator networkintersects (
 
 
 /*
-6.8 Operator ~junctions~
+4.8 Operator ~junctions~
 
 Returns the junctions relation of the network.
 
@@ -9562,7 +9698,7 @@ Operator networkjunctions (
 
 
 /*
-6.9 Operator ~routes~
+4.9 Operator ~routes~
 
 Returns the routes relation of the network.
 
@@ -9616,7 +9752,7 @@ Operator networkroutes (
 );
 
 /*
-6.10 Operator ~sections~
+4.10 Operator ~sections~
 
 Returns the sections relation of the network.
 
@@ -9672,7 +9808,7 @@ Operator networksections (
 
 
 /*
-6.11 Operator ~thenetwork~
+4.11 Operator ~thenetwork~
 
 Creates a network with the given id, from the given routes and junctions
 relations.
@@ -9759,7 +9895,7 @@ Operator networkthenetwork (
 );
 
 /*
-6.12 Operator ~no\_components~
+4.12 Operator ~no\_components~
 
 Returns the number of ~RouteIntervals~ of the ~GLine~.
 
@@ -9814,7 +9950,7 @@ Operator networknocomponents (
 
 
 /*
-6.13 Operator ~point2gpoint~
+4.13 Operator ~point2gpoint~
 
 Translates a spatial ~Point~ value into a network ~GPoint~ value if possible.
 
@@ -9901,7 +10037,7 @@ Operator point2gpoint (
 );
 
 /*
-6.14 Operator ~gpoint2point~
+4.14 Operator ~gpoint2point~
 
 Translates a ~gpoint~ into a spatial ~Point~ value.
 
@@ -9968,7 +10104,7 @@ Operator gpoint2point (
 
 
 /*
-6.15 Operator ~polygpoint~
+4.15 Operator ~polygpoint~
 
 Returns a  stream of all ~GPoint~ values which are at the same network position
 as the given ~GPoint~. Including the given  ~GPoint~.
@@ -10062,7 +10198,7 @@ Operator polygpoints (
 
 
 /*
-6.16 Operator ~routeintervals~
+4.16 Operator ~routeintervals~
 
 Returns a stream of rectangles representing the ~RouteIntervals~ of the ~GLine~.
 
@@ -10142,7 +10278,7 @@ Operator networkrouteintervals (
 
 
 /*
-6.17 Operator ~shortest\_path~
+4.17 Operator ~shortest\_path~
 
 Returns the shortest path in the ~Network~ between two ~GPoint~. Using Dijkstra
 Algorithm to compute the shortest path.
@@ -10213,7 +10349,7 @@ Operator shortest_path (
 );
 
 /*
-6.18 Operator ~gline2line~
+4.18 Operator ~gline2line~
 
 Returns the ~line~ value of the given ~GLine~.
 
@@ -10275,7 +10411,7 @@ Operator networkgline2line (
 );
 
 /*
-6.19 Operator ~isempty~
+4.19 Operator ~isempty~
 
 Returns if the ~GLine~. is empty.
 
@@ -10331,7 +10467,7 @@ Operator networkisempty (
 );
 
 /*
-6.20 Operator ~union~
+4.20 Operator ~union~
 
 Builds the union of the two given glines as sorted gline.
 
@@ -10390,7 +10526,7 @@ Operator networkunion (
 );
 
 /*
-6.21 Operator ~distance~
+4.21 Operator ~distance~
 
 Returns the Euclidean Distance between two ~Gpoints~ or two ~GLines~.
 
@@ -10489,14 +10625,23 @@ Operator networkdistance (
 );
 
 /*
-6.22 Operator ~update\_sectioncost~
+4.22 Operator ~update\_sectioncost~
+
+Updates the costs of one or more sections. 
+
+The oprator expects two or three arguments. The first argument should be a 
+network. Is the number of arguments two. The second agument should be a relation 
+like (rel (tuple ((sid int) (cost real)))). If the number of arguments is three, 
+then the second argument should be an sectionid (int) and the third argument 
+should be the cost of the section (real).
 
 */
 ListExpr OpUpdateSectionCostTypeMap ( ListExpr in_xArgs ){
     
     NList param(in_xArgs); 
     //check the number of arguments
-    if(param.length() <2 || param.length() >3){
+    if(param.length() <2 || param.length() >3)
+    {
         return listutils::typeError(
                "update_sectioncost expects either 2 or 3 arguments.");
     }
@@ -10566,6 +10711,7 @@ int OpUpdateSectionCost_One ( Word* args, Word& result, int message,
    pResult->Set ( true, pNetwork->UpdateSectionCost(secId,newCost)); 
    return 0;
 }
+
 int OpUpdateSectionCost_More ( Word* args, Word& result, int message,
                          Word& local, Supplier in_pSupplier )
 {  
@@ -10586,6 +10732,7 @@ int OpUpdateSectionCost_More ( Word* args, Word& result, int message,
    pResult->Set ( true, pNetwork->UpdateMoreSectionCost(pCosts)); 
    return 0;
 }
+
 ValueMapping OpUpdateSectionCostMap[]=
 {   OpUpdateSectionCost_One,
     OpUpdateSectionCost_More
@@ -10622,7 +10769,15 @@ Operator update_sectioncost (
 );
 
 /*
-6.23 Operator ~update\_sectionduration~
+4.23 Operator ~update\_sectionduration~
+
+Updates the duration of one or more sections. 
+
+The oprator expects two or three arguments. The first argument should be a 
+network. Is the number of arguments two. The second agument should be a relation 
+like (rel (tuple ((sid int) (duration real)))). If the number of arguments is 
+three, then the second argument should be an sectionid (int) and the third 
+argument should be the duration of the section (real).
 
 */
 ListExpr OpUpdateSectionDurationTypeMap ( ListExpr in_xArgs ){
@@ -10719,6 +10874,7 @@ int OpUpdateSectionDuration_More ( Word* args, Word& result, int message,
    pResult->Set ( true, pNetwork->UpdateMoreSectionDuration(pDurations)); 
    return 0;
 }
+
 ValueMapping OpUpdateSectionDurationMap[]=
 {   OpUpdateSectionDuration_One,
     OpUpdateSectionDuration_More
@@ -10755,10 +10911,14 @@ Operator update_sectionduration (
 );
 
 /*
-6.24 Operator ~shortespath\_astarplus~
+4.24 Operator ~shortespath\_astarplus~
 
 Returns the shortest path in the ~Network~ between two ~GPoint~. Using 
 AStar-Algorithm to compute the shortest path.
+ 
+The operator expects either 2 or 3 arguments. The first and the second argument
+should be a gpoint. If the number of arguments ist three, then the third 
+argument should be a function with three parameters.
 
 */
 
@@ -10853,7 +11013,10 @@ Operator shortestpath_astarplus (
 );
 
 /*
-6.25 Operator ~optimize\_network~
+4.25 Operator ~optimize\_network~
+
+Optimizes the given ~network~ by all routes contained sorted by lexicographic 
+starting point and all sections are rearranged.
 
 */
 
@@ -10915,7 +11078,10 @@ Operator optimizenet (
 );
 
 /*
-6.26 Operator ~print\_adjacencylist~
+4.26 Operator ~print\_adjacencylist~
+
+Prints infromations of routes, sections and their neighbours of the 
+given ~network~.
 
 */
 
@@ -10978,7 +11144,7 @@ Operator print_adjacencylist (
 
 
 /*
-7 Creating the ~NetworkAlgebra~
+5 Creating the ~NetworkAlgebra~
 
 */
 
