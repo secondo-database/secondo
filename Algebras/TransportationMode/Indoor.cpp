@@ -216,6 +216,81 @@ ostream& operator<<(ostream& o, const Point3D& loc)
 ///////////////////////////////////////////////////////////////////////////
 /////////////////////// Line3D ////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////
+Line3D::Line3D( const int initsize ) :
+StandardSpatialAttribute<3>(true),
+points( initsize )
+{ 
+//  cout<<"constructor1 "<<endl; 
+//  cout<<"initsize "<<initsize<<endl; 
+}
+
+Line3D::Line3D( const Line3D& ps ) :
+StandardSpatialAttribute<3>(ps.IsDefined()),
+points( ps.Size() )
+{
+//  cout<<"constructor2"<<endl; 
+  if( IsDefined() ) {
+    assert( ps.IsOrdered() );
+    points.copyFrom(ps.points);
+  }
+}
+
+
+/*inline bool Line3D::Get( const int i, Point& p ) const
+{
+  assert( IsDefined() );
+  return points.Get( i, &p );
+}*/
+
+inline bool Line3D::Get( const int i, Point3D& p ) const
+{
+  assert( IsDefined() && 0 <= i && i < Size());
+  return points.Get( i, &p );
+}
+
+inline int Line3D::Size() const
+{
+  return points.Size();
+}
+
+inline bool Line3D::IsEmpty() const
+{
+  return !IsDefined() || (points.Size() == 0);
+}
+
+inline bool Line3D::IsOrdered() const
+{
+  return true;
+}
+
+inline int Line3D::NumOfFLOBs() const
+{
+  return 1;
+}
+
+
+inline Flob *Line3D::GetFLOB(const int i)
+{
+  assert( i >= 0 && i < NumOfFLOBs() );
+  return &points;
+}
+
+
+inline size_t Line3D::Sizeof() const
+{
+  return sizeof( *this );
+}
+
+
+inline void Line3D::Resize(const int newSize){
+  if(newSize>Size()){
+    points.resize(newSize);
+  }
+}
+
+inline void Line3D::TrimToSize(){
+  points.TrimToSize();
+}
 
 void Line3D::RemoveDuplicates()
 {
@@ -11125,6 +11200,28 @@ void IndoorInfra::Load(int id, Relation* rel1, Relation* rel2)
   assert(QueryExecuted);
   btree_reg_id2 = (BTree*)xResult.addr;
 
+}
+
+/*
+given a reg id, it finds the corresponding tuples in path relation and 
+returns the tuple id for the path relation 
+the path relation stores the path from building entrance to the pavement
+area
+
+*/
+void IndoorInfra::GetPathIDFromTypeID(int reg_id, vector<int>& path_id_list)
+{
+    CcInt* search_id = new CcInt(true, reg_id);
+    BTreeIterator* btree_iter = btree_reg_id1->ExactMatch(search_id);
+    while(btree_iter->Next()){
+      Tuple* tuple = building_path->GetTuple(btree_iter->GetId(), false);
+      int regid = ((CcInt*)tuple->GetAttribute(INDOORIF_REG_ID))->GetIntval();
+      assert(reg_id == regid);
+      path_id_list.push_back(btree_iter->GetId());
+      tuple->DeleteIfAllowed();
+    }
+    delete btree_iter;
+    delete search_id;
 }
 
 
