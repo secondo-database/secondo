@@ -924,6 +924,9 @@ struct MaxRect{
                                    DualGraph* dg); 
     void BuildingEntrance(int graph_type, Rectangle<2>* rect, 
                           vector<Point>& build_sp_list);
+    void BuildingEntranceHouse(Rectangle<2>* rect, 
+                               vector<Point>& build_sp_list,
+                               vector<Point>& build_ep_list, Region* r);
     void Get2DAreadAndDoor(int build_type, Rectangle<2>& build_area, 
                            vector<Point>& door_list);
     void Path_BuildingPave(Point sp, Point ep, Rectangle<2>* rect, 

@@ -56,6 +56,7 @@ Jan, 2011 Jianqiu xu
 #include "FTextAlgebra.h"
 #include <fstream>
 #include "GSLAlgebra.h"
+#include "Indoor2.h"
 
 
 
@@ -733,6 +734,10 @@ class VisualGraph;
 class Bus_Stop;
 struct BNNav;
 class BusNetwork;
+class IndoorInfra;
+class MaxRect;
+class RefBuild;
+
 
 
 struct GenMO_MP{
@@ -761,10 +766,14 @@ struct GenMObject{
   vector<int> id_list; 
   static string StreetSpeedInfo;
   enum StreeSpeed{SPEED_RID = 0, SPEED_VAL}; 
-  
+
   vector<GenMO> trip1_list;
   vector<MPoint> trip2_list; 
-  
+
+  vector<MPoint3D> indoor_mo_list1;
+  vector<MPoint3D> indoor_mo_list2;
+
+
   vector<Point> loc_list1;
   vector<Point> loc_list2;
   vector<GPoint> gp_list;
@@ -773,6 +782,13 @@ struct GenMObject{
 
   vector<int> oid_list;
   vector<int> label_list; 
+  
+  vector<Rectangle<2> > rect_list1;
+  vector<Rectangle<2> > rect_list2;
+  vector<Line> path_list;
+  
+  vector<int> build_type_list1;
+  vector<int> build_type_list2;
   
   GenMObject(){ count = 0; resulttype = NULL;} 
   ~GenMObject(){if(resulttype != NULL) delete resulttype;}
@@ -862,6 +878,31 @@ struct GenMObject{
                    int& pos1, int& pos2, int index);
   void SetMO_GenMO(MPoint* mo_bus, int pos1, int pos2, Instant& start_time, 
                    MPoint* mo, GenMO* genmo, int mobus_oid);
+  /////////////////////////////////////////////////////////////////////////
+  //////////////////////Indoor Walk////////////////////////////////////////
+  /////////////////////////////////////////////////////////////////////////
+  void GenerateGenMO4(Space* sp, IndoorInfra* i_infra,Periods* peri, int mo_no,
+                      int type, Relation*);
+  void CreateBuildingPair(IndoorInfra* i_infra, 
+                          vector<RefBuild>& build_id1_list,
+                          vector<RefBuild>& build_id2_list, int no, 
+                          MaxRect* maxrect);
+  /////////free movement in space where the transportation mode is given///////
+  void GenerateFreeMovement(Line* l, Point start_loc,
+                            GenMO* genmo, MPoint* mo, Instant& start_time,
+                                      string mode);
+  void GenerateFreeMovement2(Point start_loc, Point end_loc,
+                            GenMO* genmo, MPoint* mo, Instant& start_time,
+                                      string mode);
+  void GenerateIndoorMovementToExit(IndoorInfra* i_infra, 
+                                    GenMO* genmo, MPoint* mo, 
+                                    Instant& start_time, Point loc,
+                                    int entrance_index, int reg_id,
+                                     MaxRect* maxrect, Periods* peri);
+  void GenerateIndoorMovementFromExit(IndoorInfra* i_infra, GenMO* genmo,
+                                     MPoint* mo, Instant& start_time, Point loc,
+                                    int entrance_index, int reg_id,
+                                     MaxRect* maxrect, Periods* peri);
 };
 
 

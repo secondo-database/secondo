@@ -830,8 +830,15 @@ struct IndoorNav{
    void GetDoorLoc(IndoorGraph* ig, BTree* btree, 
                    vector<GenLoc>& doorloc_list, vector<int>& door_tid_list);
 
+   /////////create one indoor moving object/////////////////////////////////
+   void GenerateMO3_End(IndoorGraph* ig, BTree* btree, R_Tree<3,TupleId>* rtree,
+                    Instant& start_time, int build_id, int entrance_index,
+                    MPoint3D* mp3d, GenMO* genmo, Periods* peri);
+ void GenerateMO3_Start(IndoorGraph* ig, BTree* btree, R_Tree<3,TupleId>* rtree,
+                    Instant& start_time, int build_id, int entrance_index,
+                    MPoint3D* mp3d, GenMO* genmo, Periods* peri);
    /////////////////////////////////////////////////////////////////////
-   unsigned NumerOfElevators();
+   unsigned int NumerOfElevators();
    
    void GenerateMO1_New(IndoorGraph* ig, BTree* btree, R_Tree<3,TupleId>* rtree,
                   int num, Periods* peri, bool convert, unsigned int num_elev);
@@ -849,6 +856,18 @@ struct IndoorNav{
    void GenerateMO2_New_End(IndoorGraph* ig, BTree* btree, 
                         R_Tree<3,TupleId>* rtree,
                   int num, Periods* peri, bool convert, unsigned int num_elev);
+
+   void GenerateMO3_New_End(IndoorGraph* ig, BTree* btree, 
+                            R_Tree<3,TupleId>* rtree,
+                    Instant& start_time, int build_id, int entrance_index,
+                    MPoint3D* mp3d, GenMO* genmo, Periods* peri,
+                            unsigned int num_elev);
+  void GenerateMO3_New_Start(IndoorGraph* ig, BTree* btree, 
+                            R_Tree<3,TupleId>* rtree,
+                    Instant& start_time, int build_id, int entrance_index,
+                    MPoint3D* mp3d, GenMO* genmo, Periods* peri,
+                            unsigned int num_elev);
+                            
    /////////////////////////////////////////////////////////////////////////
    float GetMinimumDoorWidth();
    void AddUnitToMO(MPoint3D* mp3d, Point3D& p1, Point3D& p2, 
@@ -857,11 +876,16 @@ struct IndoorNav{
                     Instant& start_time, Instant& st, vector<Elevator>&);
 
    void ToGenLoc(MPoint3D* mp3d, R_Tree<3,TupleId>* rtree);
+   void ToGenLoc2(MPoint3D* mp3d, R_Tree<3,TupleId>* rtree, 
+                  int build_id, GenMO* genmo);
+   
    void Get_GenLoc(Point3D p1, Point3D p2, GenLoc& loc1, GenLoc& loc2,
                    R_Tree<3,TupleId>* rtree);
    void DFTraverse(R_Tree<3,TupleId>* rtree, SmiRecordId adr, 
                            Point3D p, vector<int>& tid_list);
 
+   void Get_GenLoc2(Point3D p1, Point3D p2, GenLoc& loc1, GenLoc& loc2,
+                   R_Tree<3,TupleId>* rtree, int building_id);
    //////////////////////////shortest path searching////////////////////
    bool IsLocEqual(GenLoc* loc1, GenLoc* loc2, Relation* rel);
    void PathInOneRoom(GenLoc* gloc1, GenLoc* gloc2, Relation* rel, 
@@ -1163,6 +1187,7 @@ class Building{
    Building();
    Building(bool d, int id, unsigned int type);
    Building(SmiRecord& valueRecord, size_t& offset, const ListExpr typeInfo);
+   ~Building();
 
    static void* Cast(void* addr);
    int GetId() const {return building_id;}
@@ -1180,10 +1205,12 @@ class Building{
    static string RoomBTreeTypeInfo;
    static string Indoor_GRoom_Door_Extend;
    static string RoomRTreeTypeInfo;
-  ~Building();
-  R_Tree<3, TupleId>* GetRTree(){return rtree_rel_box;}
-  IndoorGraph* OpenIndoorGraph();
-  void CloseIndoorGraph(IndoorGraph* ig);
+  
+   Relation* GetRoom_Rel(){return rel_rooms;}
+   BTree* GetBTree(){return btree_room;}
+   R_Tree<3, TupleId>* GetRTree(){return rtree_rel_box;}
+   IndoorGraph* OpenIndoorGraph();
+   void CloseIndoorGraph(IndoorGraph* ig);
   
   private:
     bool def; 
@@ -1242,6 +1269,7 @@ struct RefBuild{
     }
 };
 
+
 /*
 for indoor infrastructure
   building id: the first six numbers 
@@ -1283,11 +1311,13 @@ class IndoorInfra{
   Relation* BuildingPath_Rel(){return building_path;}
   Relation* BuildingType_Rel(){return building_type;}
   void GetPathIDFromTypeID(int reg_id, vector<int>& path_id_list);
+  void GetTypeFromRegId(int reg_id, int& type, int& build_id);
+  int Get_Digit_Build_ID(){return digit_build_id;}
 
   private:
     bool def;
     int indoor_id;
-
+    int digit_build_id; ///the first six or seven number is for building id
     Relation* building_path;//path for building to the pavement 
     BTree* btree_reg_id1;  //btree on reg id. relation for paths 
     Relation* building_type; // the type of a building 

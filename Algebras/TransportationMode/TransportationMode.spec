@@ -160,5 +160,6 @@ operator genmo_tm_list alias GENMO_TM_LIST pattern op(_)
 operator generate_genmo1 alias GENERATE_GENMO1 pattern op(_,_,_,_,_)
 operator generate_genmo2 alias GENERATE_GENMO2 pattern op(_,_,_,_,_,_,_)
 operator generate_genmo3 alias GENERATE_GENMO3 pattern op(_,_,_,_,_,_,_)
+operator generate_genmo4 alias GENERATE_GENMO4 pattern op(_,_,_,_,_,_)
 operator navigation1 alias NAVIGATION1 pattern op(_,_,_,_,_,_,_)
 

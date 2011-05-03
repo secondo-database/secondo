@@ -8954,16 +8954,20 @@ void MaxRect::CreateEntranceforBuilding(Region* r,
     Rectangle<2>* rect = (Rectangle<2>*)rect_tuple->GetAttribute(GEODATA_EXT);
     int build_type = 
         ((CcInt*)rect_tuple->GetAttribute(BUILDING_TYPE))->GetIntval();
-    if(build_type == 0 || build_pointer[build_type] == NULL){
+    if(build_type == 0 || 
+      (build_type > 1 && build_pointer[build_type] == NULL)){
       rect_tuple->DeleteIfAllowed();
       continue;
     }
 
     vector<Point> build_sp_list;
-    BuildingEntrance(build_type, rect, build_sp_list);
-
-    vector<Point> build_ep_list;
-    SetStartAndEndPoint(r, build_sp_list, build_ep_list);
+     vector<Point> build_ep_list;
+    if(build_type > 1){
+      BuildingEntrance(build_type, rect, build_sp_list);
+      SetStartAndEndPoint(r, build_sp_list, build_ep_list);
+    }else{/////////////entrance for personal apartment
+      BuildingEntranceHouse(rect, build_sp_list, build_ep_list, r);
+    }
 
     for(unsigned int j = 0;j < build_sp_list.size();j++){
         Point sp = build_sp_list[j];
@@ -8975,6 +8979,7 @@ void MaxRect::CreateEntranceforBuilding(Region* r,
 //        MapToPavement(dg, ep);
         /////build the path from building entrance to pavement area//////
         Path_BuildingPave(sp, ep, rect, r, dg);
+        /////////////which entrance it is//////////////////////////
         sp_index_list.push_back(j + 1);
     }
 
@@ -9025,6 +9030,59 @@ void MaxRect::BuildingEntrance(int build_type, Rectangle<2>* rect,
     Point new_door(true, new_x, new_y);
     build_sp_list.push_back(new_door);
   }
+
+}
+
+/*
+set the building entrance point for personal apartments
+
+*/
+void MaxRect::BuildingEntranceHouse(Rectangle<2>* rect, 
+                                    vector<Point>& build_sp_list,
+                                    vector<Point>& build_ep_list, Region* r)
+{
+  double min_x = rect->MinD(0);
+  double max_x = rect->MaxD(0);
+
+  double min_y = rect->MinD(1);
+  double max_y = rect->MaxD(1);
+
+  Point p1(true, (min_x + max_x)/2, min_y);
+  Point p2(true, (min_x + max_x)/2, max_y);
+  Point p3(true, min_x, (min_y + max_y)/2);
+  Point p4(true, max_x, (min_y + max_y)/2);
+
+  build_sp_list.push_back(p1);
+  build_sp_list.push_back(p2);
+  build_sp_list.push_back(p3);
+  build_sp_list.push_back(p4);
+  
+  
+  SpacePartition* s_p = new SpacePartition();
+  vector<MyPoint_Ext> point_dist_list;
+
+  for(unsigned int i = 0;i < build_sp_list.size();i++){
+      for(int j = 0;j < r->Size();j++){
+        HalfSegment hs;
+        r->Get(j, hs);
+        if(!hs.IsLeftDomPoint())continue;
+
+        double d;
+        Point cp(true, 0, 0);
+
+        d = s_p->GetClosestPoint(hs, build_sp_list[i], cp);
+        MyPoint_Ext mpe(build_sp_list[i], cp, d, 0.0);
+        point_dist_list.push_back(mpe);
+      }
+  }
+  delete s_p;
+  sort(point_dist_list.begin(), point_dist_list.end());
+
+  build_sp_list.clear();
+  build_ep_list.clear();
+
+  build_sp_list.push_back(point_dist_list[0].loc);
+  build_ep_list.push_back(point_dist_list[0].loc2);
 
 }
 
@@ -9554,8 +9612,7 @@ void MaxRect::SetBuildingType(R_Tree<2,TupleId>* rtree, Space* gl_sp)
 
   ///////////////////////////////////////////////////////////////////
   int cur_max_ref_id = gl_sp->MaxRefId() + 1;
-
-  ///////////////////////////////////////////////////////////////
+    ///////////////////////////////////////////////////////////////
   ///////////////max int 21474 83647//////////////////////////////
   /////////////max int64_t 9223372036854775807///////////////////
   ////////////////////////////////////////////////////////////////
@@ -9566,6 +9623,31 @@ void MaxRect::SetBuildingType(R_Tree<2,TupleId>* rtree, Space* gl_sp)
   if(cur_max_ref_id == 0){
     cout<<"!!! the space is empty !!!"<<endl;
     return;
+  }
+
+  ///////////////////////////////////////////////////////////////////
+  ////////////////to check the minimum and maximum number///////////
+  ///////////////have the same number of digits////////////////////
+  /////////////for example, min:12345 max: 34567///////////////////
+  ////////////but min:12345 max 234567 are wrong!!!////////////////
+  //////////////////////////////////////////////////////////////////
+  int min_id = cur_max_ref_id;
+  int build_no = 0;
+  for(unsigned int i = 0;i < build_rect_list.size();i++){
+    if(build_rect_list[i].build_type > 0){
+        build_no++;
+    }
+  }
+  int max_id = min_id + build_no;
+  char buf1[64], buf2[64];
+  sprintf(buf1, "%d", min_id);
+  sprintf(buf2, "%d", max_id);
+//  cout<<"min_id "<<min_id<<" max_id "<<max_id<<endl;
+  if(strlen(buf1) < strlen(buf2)){////////perhaps + 1000000
+    cout<<"we need to reset the starting number for building id"<<endl;
+    cur_max_ref_id += pow(10, strlen(buf2) + 1);
+    assert(cur_max_ref_id + build_no < numeric_limits<int>::max());
+    assert(false);///////// can be deleted the above code should be correct
   }
   //////////////////////////////////////////////////////////////////
   
@@ -9582,8 +9664,7 @@ void MaxRect::SetBuildingType(R_Tree<2,TupleId>* rtree, Space* gl_sp)
     }
   }
 
-  if(cur_max_ref_id > 999999){
-    cout<<"we assume the first six numbers are for building id"<<endl;
+  if(cur_max_ref_id > numeric_limits<int>::max() - 1){
     cout<<"!!!! building id number overflow !!!"<<endl;
     assert(false);
   }
