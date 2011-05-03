@@ -70,7 +70,7 @@ extern QueryProcessor* qp;
 This class is an extension of the class MPoint declared in the
 TemporalAlgebra.h . It is adding following methods:
 
-~MDirection~, ~Locations~, ~At~, ~Passes~ and Inside
+~Locations~, ~At~, ~Passes~ and Inside
 
 in order to implement the operations:
 
@@ -103,10 +103,6 @@ class MPointExt : public MPoint
 public:
 
     MPointExt() : MPoint() {}
-
-    void MDirection( MReal* result,
-                     const bool useHeading = false,
-                     const Geoid* geoid = 0) const;
 
     void Locations( Points* result ) const;
 

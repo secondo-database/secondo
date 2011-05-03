@@ -2105,6 +2105,32 @@ void UPoint::Length( const Geoid& g, CcReal& result ) const
   return;
 }
 
+void UPoint::Direction( vector<UReal> &result,
+                        const bool useHeading /*= false*/,
+                        const Geoid* geoid    /*= 0*/,
+                        const double epsilon  /*= 0.0000001*/) const
+{
+  UReal uresult(true);
+  if( !IsDefined() || (geoid && ( (epsilon<=0.0) || !geoid->IsDefined()) ) ) {
+    return; // no result
+  }
+  if(!geoid) { // euclidean case
+    uresult.a = 0.;
+    uresult.b = 0.;
+    uresult.c = p0.Direction(p1,useHeading,geoid);
+    uresult.r = false;
+    uresult.timeInterval = timeInterval;
+    uresult.SetDefined( uresult.c>=0 );
+    result.push_back(uresult);
+    return;
+  }
+  // spherical case:
+  cerr << __PRETTY_FUNCTION__ << ": Spherical geometry not implemented."
+       << endl;
+  assert( !geoid );
+  return;
+}
+
 // This function will return the intersection of two upoint values as
 // an upoint value. If the common timeInterval iv is open bounded, and
 // both units would intersect at the open interval limit, there WILL
@@ -5226,6 +5252,42 @@ void MPoint::Reverse(MPoint& result){
     result.EndBulkLoad(false);
 }
 
+void MPoint::Direction( MReal* result,
+                        const bool useHeading /*=false*/,
+                        const Geoid* geoid    /*=0*/,
+                        const double epsilon  /*=0.0000001*/ ) const
+{
+  if( !IsDefined() || ( geoid && (!geoid->IsDefined() || (epsilon<=0.0)) ) ) {
+    result->SetDefined(false);
+    return;
+  }
+
+  if(geoid){ // TODO: implement spherical geometry case
+    cerr << __PRETTY_FUNCTION__ << ": sperical geometry not implemented."
+    << endl;
+    assert(!geoid);
+    result->SetDefined(false);
+    return;
+  }
+
+  vector<UReal> resvector(GetNoComponents());
+  UPoint unitin;
+  for(int i=0;i<GetNoComponents();i++) {
+    Get(i, unitin);
+    unitin.Direction( resvector, useHeading, geoid, epsilon );
+  }
+  result->Clear();
+  result->SetDefined(true);
+  result->StartBulkLoad();
+  for(vector<UReal>::iterator iter = resvector.begin();
+  iter != resvector.end(); iter++){
+    if( iter->IsDefined() && iter->IsValid() ){
+      result->MergeAdd(*iter);
+    }
+  }
+  result->EndBulkLoad( false );
+  return;
+}
 
 
 /*

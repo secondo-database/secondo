@@ -195,18 +195,18 @@ Example  : query locations( train7 at mehringdamm )
 Result   : (points((9396.0 9871.0)))
 
 
-Operator : mdirection
+Operator : direction
 Number   : 1
 Signature: mpoint -> mreal
-Example  : query mdirection([const mpoint value((("2003-10-10" "2003-10-20" TRUE TRUE)(2.0 2.0 3.0 3.0)))])
+Example  : query direction([const mpoint value((("2003-10-10" "2003-10-20" TRUE TRUE)(2.0 2.0 3.0 3.0)))])
 Result   : (mreal((("2003-10-10" "2003-10-20" TRUE TRUE)(0.0 0.0 45.0 FALSE))))
 Tolerance: 0.001
 
 
-Operator : mheading
+Operator : heading
 Number   : 1
 Signature: mpoint -> mreal
-Example  : query mheading([const mpoint value((("2003-10-10" "2003-10-20" TRUE TRUE)(2.0 2.0 3.0 3.0)))])
+Example  : query heading([const mpoint value((("2003-10-10" "2003-10-20" TRUE TRUE)(2.0 2.0 3.0 3.0)))])
 Result   : (mreal((("2003-10-10" "2003-10-20" TRUE TRUE)(0.0 0.0 45.0 FALSE))))
 Tolerance: 0.001
 

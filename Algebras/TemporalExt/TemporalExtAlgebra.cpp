@@ -433,48 +433,6 @@ and point unit, both restricted to this interval, intersect.
 /*
 3 Implementation for methods of classes declared in header file
 
-3.1 Method MDirection of class MPointExt
-
-Parameters:
-
-  result: a pointer to a MReal object
-
-Return: nothing
-
-*/
-
-void MPointExt::MDirection( MReal* result,
-                            const bool useHeading /*=false*/,
-                            const Geoid* geoid    /*=0*/      ) const
-{
-  UPoint unitin;
-  UReal uresult(true);
-
-  if(geoid){ // TODO: implement spherical geometry case
-    cerr << __PRETTY_FUNCTION__ << ": sperical geometry not implemented."
-         << endl;
-    assert(!geoid);
-    result->SetDefined(false);
-    return;
-  }
-
-  result->Clear();
-  result->StartBulkLoad();
-  for(int i=0;i<GetNoComponents();i++) {
-    Get(i, unitin);
-    uresult.a = 0.;
-    uresult.b = 0.;
-    uresult.c = unitin.p0.Direction(unitin.p1,useHeading,geoid);
-    uresult.r = false;
-    uresult.timeInterval = unitin.timeInterval;
-    uresult.SetDefined( uresult.c>=0 );
-    if(uresult.c>=0)
-      result->Add( uresult );
-  }
-  result->EndBulkLoad( false );
-}
-
-/*
 3.2 Method Locations of class MPointExt
 
 Parameters:
@@ -2670,7 +2628,7 @@ MovingRExtTypeMapBool( ListExpr args )
 /*
 9.1.12 Type mapping function ~MovingPointExtTypeMapMReal~
 
-It is for the operators ~speed~, ~mdirection~, and ~heading~
+It is for the operators ~speed~, ~direction~, and ~heading~
 
 */
 ListExpr
@@ -4543,7 +4501,7 @@ int GlobalUnitOfDistanceExt( Word* args, Word& result, int message,
 
 
 /*
-9.3.20 Value mapping function of operator ~mdirection~
+9.3.20 Value mapping function of operator ~direction~
 
 */
 template<bool useHeading>
@@ -4556,8 +4514,8 @@ int MovingMDirectionExt( Word* args, Word& result, int message,
     const MPointExt* m = static_cast<const MPointExt*>(args[0].addr);
     const Geoid* geoid =
       (qp->GetNoSons(s)==2)?static_cast<const Geoid*>(args[1].addr):0;
-
-    m->MDirection( pResult, useHeading, geoid );
+    double epsilon = 0.0000001;
+    m->Direction( pResult, useHeading, geoid, epsilon );
     return 0;
 }
 
@@ -5102,21 +5060,21 @@ const string GlobalSpecUnitOfDistanceExt  =
 const string TemporalSpecMDirectionExt  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
     "( <text>mpoint -> mreal</text--->"
-    "<text>mdirection ( Obj )</text--->"
+    "<text>direction ( Obj )</text--->"
     "<text>Compute the direction of the object Obj's movement as a temporal "
     "function. Result unit is degree [°]. 0<=direction<360, counterclockwise "
     "orientation, starting with 0° along the positive X-halfaxis.</text--->"
-    "<text>query mdirection ( train7 )</text--->"
+    "<text>query direction ( train7 )</text--->"
     ") )";
 
 const string TemporalSpecMHeadingExt  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
     "( <text>mpoint -> mreal</text--->"
-    "<text>mheading ( Obj )</text--->"
+    "<text>heading ( Obj )</text--->"
     "<text>Compute the heading of the object Obj as a temporal function. "
     "Result unit is degree [°]. 0<heading<=360, NORTH = 360°, clockwise "
     "orientation.</text--->"
-    "<text>query mheading ( train7 )</text--->"
+    "<text>query heading ( train7 )</text--->"
     ") )";
 
 const string TemporalSpecLocationsExt  =
@@ -5351,16 +5309,16 @@ Operator temporalvelocityext(
     Operator::SimpleSelect,
     MPointExtTypeMapMPoint);
 
-Operator temporalmdirectionext(
-    "mdirection",
+Operator temporaldirectionext(
+    "direction",
     TemporalSpecMDirectionExt,
     1,
     temporalmdirectionextmap,
     Operator::SimpleSelect,
     MovingPointExtTypeMapMReal);
 
-Operator temporalmheadingext(
-    "mheading",
+Operator temporalheadingext(
+    "heading",
     TemporalSpecMHeadingExt,
     1,
     temporalmheadingextmap,
@@ -5456,8 +5414,8 @@ class TemporalExtAlgebra : public Algebra
         AddOperator( &temporalderivableext );
         AddOperator( &temporalspeedext );
         AddOperator( &temporalvelocityext );
-        AddOperator( &temporalmdirectionext );
-        AddOperator( &temporalmheadingext );
+        AddOperator( &temporaldirectionext );
+        AddOperator( &temporalheadingext );
         AddOperator( &temporallocationsext );
         AddOperator( &temporalatminext );
         AddOperator( &temporalatmaxext );

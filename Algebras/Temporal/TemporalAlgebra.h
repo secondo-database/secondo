@@ -2556,8 +2556,6 @@ Computes all events created by a UPoint moving across a regular grid.
     }
   }
 
-  void Distance( const UPoint& up, UReal& result, const Geoid* geoid = 0) const;
-
 /*
 Calculates the distance between 2 upoints as a real value.
 If ~geoid~ is NULL, euclidean geometry is used, spherical geometry otherwise.
@@ -2569,18 +2567,20 @@ If invalid geographic coordinates are found, the result is UNDEFINED.
 
 */
 
-  virtual double Distance(const Rectangle<3>& rect, const Geoid* geoid=0) const;
+  void Distance( const UPoint& up, UReal& result, const Geoid* geoid = 0) const;
+
 /*
-  Computes the distance between the three dimensional line defined by
-  that unit and the rectangle.
+Computes the distance between the three dimensional line defined by
+that unit and the rectangle.
 
 */
+virtual double Distance(const Rectangle<3>& rect, const Geoid* geoid=0) const;
+
 
   virtual bool IsEmpty() const{
     return !IsDefined();
  }
 
-  void Length( CcReal& result ) const;
 /*
 Calculates the spatial length of the unit using metric (X,Y) coordinates.
 
@@ -2589,8 +2589,9 @@ Calculates the spatial length of the unit using metric (X,Y) coordinates.
 *Result*: the distance of the unit's initial and final value
 
 */
+void Length( CcReal& result ) const;
 
-  void Length( const Geoid& g, CcReal& result ) const;
+
 /*
 Calculates the spatial length of the unit using geographic (LON,LAT)-coordinates.
 
@@ -2599,9 +2600,7 @@ Calculates the spatial length of the unit using geographic (LON,LAT)-coordinates
 *Result*: the distance of the unit's initial and final value
 
 */
-
-
-  bool AtRegion(const Region *r, vector<UPoint> &result) const;
+void Length( const Geoid& g, CcReal& result ) const;
 
 /*
 Calculates the intersection of the UPoint and Region r.
@@ -2613,8 +2612,24 @@ The boolean return value is ~false~, iff either the UPoint or the Region is UNDE
 
 */
 
+  bool AtRegion(const Region *r, vector<UPoint> &result) const;
 
-   static const string BasicType(){ return "upoint"; }
+/*
+Calculates the ~direction~ (when ~useHeading~ is ~false~) resp. the heading
+(when ~true~) of this UPoint. If ~geoid~ is not NULL, spherical geometry is
+applied and the true course is approximated as a series of units according
+to preciseness parameter ~epsilon~.
+
+Any results are appended to the ~result~ vector.
+Attention: UNDEFINED units my be appended!
+
+*/
+  void Direction( vector<UReal> &result,
+                  const bool useHeading = false,
+                  const Geoid* geoid    = 0,
+                  const double epsilon  = 0.0000001) const;
+
+  static const string BasicType(){ return "upoint"; }
 
 
 
@@ -3439,6 +3454,21 @@ Store the reverse of the movement of this instance of a mpoint into result.
 */
   void Reverse(MPoint& result);
 
+
+/*
+3.10.5.7 Direction
+
+Compute the ~direction~ (~useHeading~ is ~false~) resp. ~heading~ (~true~) of a
+moving point.
+If ~geoid~ is not NULL, spherical geometry is applied. In this case, each unit
+may produce several result units, since the true course changes along the
+orthodrome. Parameter ~epsilon~ determines how exact the approximation will be.
+
+*/
+  void Direction( MReal* result,
+                  const bool useHeading = false,
+                  const Geoid* geoid    = 0,
+                  const double epsilon  = 0.0000001) const;
 
 /*
 3.10.5.8 ~Sample~
