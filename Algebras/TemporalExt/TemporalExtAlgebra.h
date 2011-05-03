@@ -104,7 +104,9 @@ public:
 
     MPointExt() : MPoint() {}
 
-    void MDirection( MReal* result ) const;
+    void MDirection( MReal* result,
+                     const bool useHeading = false,
+                     const Geoid* geoid = 0) const;
 
     void Locations( Points* result ) const;
 

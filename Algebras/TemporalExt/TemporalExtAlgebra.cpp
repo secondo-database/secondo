@@ -362,104 +362,6 @@ Find value in a quadratic function with Newtons Method
 
 }
 
-/*
-2.5 Function AngleToXAxis
-
-Parameters:
-
-  p1: a pointer to start point
-  p2: a pointer to end point
-
-Return:
-
-  res: a double. The angle of the line between both points to the X-axis.
-
-NOTE: This function was copied from the SpatialAlgebra, from the
-Value Mapping Function direction\_pp (LFRG)
-
-*/
-double AngleToXAxis(const Point* p1, const Point* p2, bool &defined)
-{
-    double res;
-    double k;
-    double direction;
-
-    if (( p1->IsDefined())&&(p2->IsDefined())&&(*p1!=*p2))
-    {
-      Coord x1=p1->GetX();
-      Coord y1=p1->GetY();
-      Coord x2=p2->GetX();
-      Coord y2=p2->GetY();
-
-      if (x1==x2)
-      {
-        if (y2>y1)
-        {
-          res = 90.;
-          defined = true;
-        }
-        else
-        {
-          res = 270.;
-          defined = true;
-        }
-      }
-
-      if (y1==y2)
-      {
-          if (x2>x1)
-          {
-            res = 0.;
-            defined = true;
-          }
-          else
-          {
-            res = 180.;
-            defined = true;
-          }
-      }
-#ifdef RATIONAL_COORDINATES
-  k=((y2.IsInteger()? y2.IntValue():y2.Value()) -
-        (y1.IsInteger()? y1.IntValue():y1.Value())) /
-       ((x2.IsInteger()? x2.IntValue():x2.Value()) -
-        (x1.IsInteger()? x1.IntValue():x1.Value()));
-#else
-  k=(y2 - y1) / (x2 - x1);
-#endif
-  direction=atan(k) * 180 / M_PI;
-
-      int area;
-      if ((x2>x1)&&(y2>y1))
-      {
-        area=1;
-      }
-      else if ((x2<x1)&&(y2>y1))
-      {
-        area=2;
-        direction=180+direction;
-      }
-      else if ((x2<x1)&&(y2<y1))
-      {
-        area=3;
-        direction=180+direction;
-      }
-      else if ((x2>x1)&&(y2<y1))
-      {
-        area=4;
-        direction=360+direction;
-      }
-
-      res = direction;
-      defined = true;
-    }
-    else
-    {
-      res = 0.;
-      defined = false;
-    }
-
-    return res;
-}
 
 /*
 2.6 Function ~IntersectionRPExt~
@@ -541,11 +443,20 @@ Return: nothing
 
 */
 
-void MPointExt::MDirection( MReal* result) const
+void MPointExt::MDirection( MReal* result,
+                            const bool useHeading /*=false*/,
+                            const Geoid* geoid    /*=0*/      ) const
 {
   UPoint unitin;
   UReal uresult(true);
-  bool defined;
+
+  if(geoid){ // TODO: implement spherical geometry case
+    cerr << __PRETTY_FUNCTION__ << ": sperical geometry not implemented."
+         << endl;
+    assert(!geoid);
+    result->SetDefined(false);
+    return;
+  }
 
   result->Clear();
   result->StartBulkLoad();
@@ -553,12 +464,11 @@ void MPointExt::MDirection( MReal* result) const
     Get(i, unitin);
     uresult.a = 0.;
     uresult.b = 0.;
-    uresult.c = 0.;
+    uresult.c = unitin.p0.Direction(unitin.p1,useHeading,geoid);
     uresult.r = false;
     uresult.timeInterval = unitin.timeInterval;
-    uresult.c = AngleToXAxis( &(unitin.p0), &(unitin.p1), defined );
-    uresult.SetDefined( defined );
-    if(defined)
+    uresult.SetDefined( uresult.c>=0 );
+    if(uresult.c>=0)
       result->Add( uresult );
   }
   result->EndBulkLoad( false );
@@ -2760,7 +2670,7 @@ MovingRExtTypeMapBool( ListExpr args )
 /*
 9.1.12 Type mapping function ~MovingPointExtTypeMapMReal~
 
-It is for the operators ~speed~ ans ~mdirection~.
+It is for the operators ~speed~, ~mdirection~, and ~heading~
 
 */
 ListExpr
@@ -4636,15 +4546,18 @@ int GlobalUnitOfDistanceExt( Word* args, Word& result, int message,
 9.3.20 Value mapping function of operator ~mdirection~
 
 */
+template<bool useHeading>
 int MovingMDirectionExt( Word* args, Word& result, int message,
                          Word& local, Supplier s )
 {
     result = qp->ResultStorage( s );
-
-    MPointExt* m = ((MPointExt*)args[0].addr);
     MReal* pResult = ((MReal*)result.addr);
 
-    m->MDirection( pResult );
+    const MPointExt* m = static_cast<const MPointExt*>(args[0].addr);
+    const Geoid* geoid =
+      (qp->GetNoSons(s)==2)?static_cast<const Geoid*>(args[1].addr):0;
+
+    m->MDirection( pResult, useHeading, geoid );
     return 0;
 }
 
@@ -4956,7 +4869,10 @@ ValueMapping temporalvelocityextmap[] = {
     MovingVelocityExt };
 
 ValueMapping temporalmdirectionextmap[] = {
-    MovingMDirectionExt };
+    MovingMDirectionExt<false> };
+
+ValueMapping temporalmheadingextmap[] = {
+    MovingMDirectionExt<true> };
 
 ValueMapping temporallocationsextmap[] = {
     MovingLocationsExt };
@@ -5186,9 +5102,21 @@ const string GlobalSpecUnitOfDistanceExt  =
 const string TemporalSpecMDirectionExt  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
     "( <text>mpoint -> mreal</text--->"
-    "<text>mdirection ( _ )</text--->"
-    "<text>Compute the angle between X-axis and the mpoints tangent.</text--->"
-    "<text>mdirection ( mp1 )</text--->"
+    "<text>mdirection ( Obj )</text--->"
+    "<text>Compute the direction of the object Obj's movement as a temporal "
+    "function. Result unit is degree [°]. 0<=direction<360, counterclockwise "
+    "orientation, starting with 0° along the positive X-halfaxis.</text--->"
+    "<text>query mdirection ( train7 )</text--->"
+    ") )";
+
+const string TemporalSpecMHeadingExt  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+    "( <text>mpoint -> mreal</text--->"
+    "<text>mheading ( Obj )</text--->"
+    "<text>Compute the heading of the object Obj as a temporal function. "
+    "Result unit is degree [°]. 0<heading<=360, NORTH = 360°, clockwise "
+    "orientation.</text--->"
+    "<text>query mheading ( train7 )</text--->"
     ") )";
 
 const string TemporalSpecLocationsExt  =
@@ -5431,6 +5359,14 @@ Operator temporalmdirectionext(
     Operator::SimpleSelect,
     MovingPointExtTypeMapMReal);
 
+Operator temporalmheadingext(
+    "mheading",
+    TemporalSpecMHeadingExt,
+    1,
+    temporalmheadingextmap,
+    Operator::SimpleSelect,
+    MovingPointExtTypeMapMReal);
+
 Operator temporallocationsext(
     "locations",
     TemporalSpecLocationsExt,
@@ -5521,6 +5457,7 @@ class TemporalExtAlgebra : public Algebra
         AddOperator( &temporalspeedext );
         AddOperator( &temporalvelocityext );
         AddOperator( &temporalmdirectionext );
+        AddOperator( &temporalmheadingext );
         AddOperator( &temporallocationsext );
         AddOperator( &temporalatminext );
         AddOperator( &temporalatmaxext );

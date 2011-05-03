@@ -923,3 +923,21 @@ Signature : point [x geoid] -> string
 Example   : query point2string(makepoint(7.494968217,51.376125146), create_geoid("WGS1984"))
 Result    : "(51°22'34.05052560\"N, 7°29'41.88558120\"E)"
 
+Operator  : midpointBetween
+Number    : 1
+Signature : point x point [x geoid] [x real] -> point
+Example   : query midpointBetween(makepoint(7.494968217,51.376125146), makepoint(0.0,0.0), create_geoid("WGS1984"), 0.75)
+Result    : (point (1.382368149083 13.03345148903))
+Tolerance : 0.0000001
+
+Operator  : direction2heading
+Number    : 1
+Signature : real ->  real
+Example   : query direction2heading(45.5)
+Result    : 44.5
+
+Operator  : heading2direction
+Number    : 1
+Signature : real ->  real
+Example   : query heading2direction(275.0)
+Result    : 175.0

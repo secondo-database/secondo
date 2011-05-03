@@ -13764,15 +13764,17 @@ int TurnsOperatorValueMapping( Word* args, Word& result, int message,
     MPoint* m = static_cast<MPoint*>(args[0].addr);
     CcReal* minDiff = static_cast<CcReal*>(args[1].addr);
     CcReal* maxDiff = static_cast<CcReal*>(args[2].addr);
+    Geoid* geoid = 0; // TODO: implement spherical geometry case!
     DateTime *maxDur = 0;
     int no_args = qp->GetNoSons(s);
     bool deleteMaxDur = false;
+    bool useHead = false; // TODO: Using direction (false) or heading (true)
 
     double lastHead = 0.0, currHead = 0.0, diffHead = 0.0;
     Point *lastPos=0, *currPos=0;
     DateTime *lastTime = 0, *currTime=0;
     CcReal *lastHeading=0, *currHeading=0, *diffHeading=0;
-    bool found = false;
+    bool found = true;
 
     Tuple *newTuple = 0;
     switch( message )
@@ -13823,8 +13825,8 @@ int TurnsOperatorValueMapping( Word* args, Word& result, int message,
           } else {
             // now, we have 2 units. Both are non-static and temporally near
             // enough...
-            lastHead = li->lastUnit.p0.Direction(li->lastUnit.p1);
-            currHead = li->currUnit.p0.Direction(li->currUnit.p1);
+            lastHead = li->lastUnit.p0.Direction(li->lastUnit.p1,useHead,geoid);
+            currHead = li->currUnit.p0.Direction(li->currUnit.p1,useHead,geoid);
             diffHead = currHead - lastHead;
             if(diffHead > 180.0) {
               diffHead = 360.0 - diffHead;

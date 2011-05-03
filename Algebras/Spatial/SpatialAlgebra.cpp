@@ -1127,105 +1127,103 @@ double Point::calcEnclosedAngle( const Point &a,
   return beta;
 }
 
-double Point::Direction( const Point& p, const Geoid* geoid /* = 0 */) const
-{
-  assert(IsDefined());
-  assert(p.IsDefined());
-  assert( !AlmostEqual( *this, p ) );
-  if(geoid){
-    return Heading(p, geoid);
-  } // else: euclidean geometry
 
-  Coord x1 = x,
-        y1 = y,
-        x2 = p.x,
-        y2 = p.y;
+double Point::Direction(const Point& p ,
+                        const bool returnHeading,
+                        const Geoid* geoid        ) const{
 
-  if( AlmostEqual( x1, x2 ) )
-  {
-    if( y2 > y1 )
-      return 90.0;
-    return 270.0;
+  if(!IsDefined() || !p.IsDefined() || (geoid && !geoid->IsDefined()) ){
+    return -1.0;
   }
-
-  if( AlmostEqual( y1, y2 ) )
-  {
-    if( x2 > x1 )
-      return 0.0;
-    return 180.0;
+  if(geoid && (!checkGeographicCoord() || !p.checkGeographicCoord()) ){
+    cerr << __PRETTY_FUNCTION__ << ": Invalid geographic coordinate." << endl;
+    return -1.0;
   }
+  if(AlmostEqual(*this, p)){
+    return -1.0;
+  }
+  errno = 0;
+  double direction = 0;
+  if(!geoid){ //euclidean geometry
+    Coord x1 = x,
+          y1 = y,
+          x2 = p.x,
+          y2 = p.y;
 
-  double k= (y2 - y1) / (x2 - x1),
-         direction = atan( k ) * 180 / M_PI;
-
-  if( x2 < x1 && y2 > y1 )
-    direction = 180 + direction;
-  else if( x2 < x1 && y2 < y1 )
-    direction = 180 + direction;
-  else if( x2 > x1 && y2 < y1 )
-    direction = 360 + direction;
-
-  return direction;
-}
-
-
-double Point::Heading(const Point& p , const Geoid* geoid /*=0*/) const{
-
-   if(!this->IsDefined() || !p.IsDefined()){
-      return -1.0;
-   }
-   if(AlmostEqual(*this, p)){
-      return -1;
-   }
-
-   double f_a = GetY()*M_PI/180.0;
-   double l_a = GetX()*M_PI/180.0;
-   double f_b = p.GetY()*M_PI/180.0;
-   double l_b = p.GetX()*M_PI/180.0;
-
-   double sin_f_b = sin(f_b);
-   double sin_f_a = sin(f_a);
-   double cos_f_b = cos(f_b);
-   double cos_f_a = cos(f_a);
-
-   double cos_zeta;
-   double zeta;
-   double sin_zeta;
-   if(geoid==0){ // use the unit circle
-      cos_zeta = ( sin_f_a*sin_f_b + cos_f_a*cos_f_b*cos(l_b-l_a));
-      zeta = acos(cos_zeta);
-   } else { // use geoid
-      bool ok;
-      double zeta1 = this->DistanceOrthodrome(p,*geoid, ok);
-      if(!ok){
-        return -1;
+    if( AlmostEqual( x1, x2 ) ){
+      if( y2 > y1 ){
+        direction = 90.0;
+      } else {
+        direction = 270.0;
       }
-      zeta = zeta1 / geoid->getR();
-      cos_zeta = cos(zeta);
-   }
+    } else if( AlmostEqual( y1, y2 ) ){
+      if( x2 > x1 ){
+        direction = 0.0;
+      } else {
+        direction = 180.0;
+      }
+    } else {
+      direction = radToDeg( atan2( (y2 - y1) , (x2 - x1) ) );
+      direction = (direction <0.0)?direction+360.0:direction;
+    }
+    if(errno != 0) {
+      cerr << __PRETTY_FUNCTION__ << ": Numerical error in euclidean." << endl;
+      return -1.0;
+    }
+  } else {// spherical geometry
+    double f_a = GetY()*M_PI/180.0;
+    double f_b = p.GetY()*M_PI/180.0;
 
-   sin_zeta = sin(zeta);
+    double sin_f_b = sin(f_b);
+    double sin_f_a = sin(f_a);
+    double cos_f_a = cos(f_a);
+    if(errno!=0){
+      cerr << __PRETTY_FUNCTION__ << ": Numerical error in spherical 1."
+           << endl;
+      return -1.0;
+    }
 
+    double cos_zeta;
+    double zeta;
+    double sin_zeta;
+    bool ok;
+    double zeta1 = this->DistanceOrthodrome(p, *geoid, ok);
+    if(!ok){
+      cerr << __PRETTY_FUNCTION__ << ": Error in DistanceOrthodrome." << endl;
+      return -1.0;
+    }
+    zeta = zeta1 / geoid->getR();
+    cos_zeta = cos(zeta);
+    sin_zeta = sin(zeta);
 
-   double cos_alpha;
-   if(fabs(sin_f_a) > fabs(cos_f_a)){
-     cos_alpha = ( (sin_f_b - sin_f_a*cos_zeta) / (sin_f_a*sin_zeta));
-   } else {
-     cos_alpha = ((sin_f_b - sin_f_a*cos_zeta) / (cos_f_a*sin_zeta));
-   }
-   if(cos_alpha < -1.0){ // correct rounding errors
-     cos_alpha = -1.0;
-   }
-   if(cos_alpha > 1.0){
-      cos_alpha = 1.0;
-   }
-   double alpha = acos(cos_alpha);
+    double cos_alpha;
+    if(fabs(sin_f_a) > fabs(cos_f_a)){
+      cos_alpha = ( (sin_f_b - sin_f_a*cos_zeta) / (sin_f_a*sin_zeta));
+    } else {
+      cos_alpha = ((sin_f_b - sin_f_a*cos_zeta) / (cos_f_a*sin_zeta));
+    }
+    if(cos_alpha < -1.0){ // correct rounding errors
+      cos_alpha = -1.0;
+    }
+    if(cos_alpha > 1.0){
+        cos_alpha = 1.0;
+    }
+    double alpha = acos(cos_alpha);
 
-   double res =  alpha*180.0/M_PI;
-   return res;
-
-
-
+    direction =  alpha*180.0/M_PI;
+    if(errno!=0){
+      cerr << __PRETTY_FUNCTION__ << ": Numerical error in spherical 2."
+           << endl;
+      return -1.0;
+    }
+  }
+  // normalize return value:
+  if(returnHeading){ // return result as standard heading
+    direction = directionToHeading(direction); // already normalized,0<HEAD<=360
+  } else { // return result as standard direction: Normalize to 0<=DIR<360
+    direction = AlmostEqual(direction,360.0)?0.0:direction;
+  }
+  return direction;
 }
 
 
@@ -1262,8 +1260,8 @@ use Spherical geometry.
 
 bool Point::checkGeographicCoord() const {
   return    IsDefined()
-         && (GetX() >= -180) && (GetX() <= 180)
-         && (GetY() >= -90) && (GetY() <= 90);
+         && (GetX() >= -180) && (GetX() <= 180)  // x <-> Longitude (Laenge)
+         && (GetY() >= -90) && (GetY() <= 90);   // y <-> Latitude (Breite)
 }
 
 /*
@@ -1334,14 +1332,6 @@ double Point::DistanceOrthodrome( const Point& p,
   return s;
 }
 
-Coord radToDeg(const Coord & rad) {
-  return (180.0 * rad)/M_PI;
-}
-
-Coord degToRad(const Coord &deg) {
-  return (deg * M_PI)/180.0;
-}
-
 Point Point::MidpointTo(const Point& p, const Geoid* geoid /* = 0 */ ) const
 {
   if ( !this->IsDefined() || !p.IsDefined() ) {
@@ -1354,8 +1344,8 @@ Point Point::MidpointTo(const Point& p, const Geoid* geoid /* = 0 */ ) const
   if(geoid){ // spherical geometry
     // TODO: Use ellipsoid ~geoid~ instead of ideal sphere!
     bool ok = this->checkGeographicCoord() && p.checkGeographicCoord();
-    double lon1 = degToRad( GetX() );
-    double lat1 = degToRad( GetY() );
+    double lon1 = degToRad( GetX() ); // X <-> geogr. Laenge (Longitude)
+    double lat1 = degToRad( GetY() ); // Y <-> geogr. Breite (Latitude)
     double lat2 = degToRad( p.GetY() );
     double dLon = degToRad( p.GetX() - GetX() );
     errno = 0;
@@ -1363,11 +1353,55 @@ Point Point::MidpointTo(const Point& p, const Geoid* geoid /* = 0 */ ) const
     double By = cos(lat2) * sin(dLon);
     double lat3 = atan2( sin(lat1)+sin(lat2),
                          sqrt( (cos(lat1)+Bx)*(cos(lat1)+Bx) + By*By) );
-                         double lon3 = lon1 + atan2(By, cos(lat1) + Bx);
-                         return Point( (ok && (errno == 0)), radToDeg(lat3),
-                                       radToDeg(lon3));
+    double lon3 = lon1 + atan2(By, cos(lat1) + Bx);
+    Point p( true, radToDeg(lon3), radToDeg(lat3) );
+    p.SetDefined( ok && (errno==0) && p.checkGeographicCoord() );
+    return p;
   } else { // euclidean geometry
     return Point( true, ( GetX() + p.GetX() )/2.0, ( GetY() + p.GetY() )/2.0 );
+  }
+}
+
+Point Point::MidpointTo(const Point& p, const Coord& f,
+                        const Geoid* geoid /*=0*/) const{
+  if( !IsDefined() || !p.IsDefined() ||
+      (geoid && !geoid->IsDefined()) || (f<0.0) || (f>1.0) ) {
+  return Point(false);
+  }
+  if(AlmostEqual(f,0.0)) {
+    return *this;
+  }
+  if(AlmostEqual(f,1.0)) {
+    return p;
+  }
+  if(geoid){ // spherical TODO: use ellipsoid instead of ideal sphere
+    double lon1 = degToRad(GetX()); // X <-> geogr. Laenge (Longitude)
+    double lat1 = degToRad(GetY()); // Y <-> geogr. Breite (Latitude)
+    double lon2 = degToRad(p.GetX());
+    double lat2 = degToRad(p.GetY());
+    if( AlmostEqual(lat1,lat2) && AlmostEqual(fabs(lon1-lon2),M_PI) ){
+      return Point(false);
+    }
+    errno = 0;
+    double A = sin(1 - f) / sin(1);
+    double B = sin(f) / sin(1);
+    double C = A * cos(lat1) * cos(lon1) + B * cos(lat2)*cos(lon2);
+    double D = A * cos(lat1) * sin(lon1) + B * cos(lat2) * sin(lon2);
+    double lat = atan2(A * sin(lat1) + B * sin(lat2),sqrt(C*C + D*D));
+    double lon = atan2(D, C);
+    Point p( true, radToDeg(lon), radToDeg(lat) );
+    p.SetDefined( (errno==0) && p.checkGeographicCoord() );
+    return p;
+  } else { // euclidean
+    double x1 = GetX();
+    double y1 = GetY();
+    double x2 = p.GetX();
+    double y2 = p.GetY();
+    double dx = x2-x1;
+    double dy = y2-y1;
+    double x = x1 + (f*dx);
+    double y = y1 + (f*dy);
+    return Point( true, x, y );
   }
 }
 
@@ -3541,8 +3575,8 @@ bool HalfSegment::Intersection( const HalfSegment& hs, Point& resp,
     double lon2 = degToRad(p2.GetX());
     double lat2 = degToRad(p2.GetY());
 
-    double brng1 = p1.Heading(p1end,geoid);  //Initial bearing from p1
-    double brng2 = p2.Heading(p2end,geoid);  //Initial bearing from p2
+    double brng1 = p1.Direction(p1end,false,geoid);  //Initial bearing from p1
+    double brng2 = p2.Direction(p2end,false,geoid);  //Initial bearing from p2
     if( (brng1<0) || (brng2<0) ){
       return false;
     }
@@ -4095,9 +4129,9 @@ double HalfSegment::Distance( const Point& p,
   bool ok = true;
   double d13 = p.DistanceOrthodrome(GetLeftPoint(),*geoid,ok);
   // initial bearing from LeftPoint to p
-  double theta13 = GetLeftPoint().Heading(p,geoid); // in deg
+  double theta13 = GetLeftPoint().Direction(p,false,geoid); // in deg
   // initial bearing from LeftPoint to RightPoint
-  double theta12 = GetLeftPoint().Heading(GetRightPoint(),geoid); // in deg
+  double theta12 = GetLeftPoint().Direction(GetRightPoint(),false,geoid);//[deg]
   double R = geoid->getR();
   errno = 0;
   double res = asin(sin(d13/R)*sin((theta13-theta12)*M_PI/180.0))*R;
@@ -12614,17 +12648,20 @@ SpatialDistanceMap( ListExpr args )
 }
 
 /*
-10.1.10 Type mapping function for operator ~direction~
+10.1.10 Type mapping function for operator ~direction~ and ~heading~
 
-This type mapping function is used for the ~direction~ ond for the
-~heading~ perator. This
-operator computes the direction from the first point to the second point.
+This type mapping function is used for the ~direction~ and for the
+~heading~ perator. This operator computes the direction from the first point
+to the second point.
+
+---- point x point [x geoid] -> real
+----
 
 */
 ListExpr
-SpatialDirectionMap( ListExpr args )
+SpatialDirectionHeadingMap( ListExpr args )
 {
-  string err = "Expected point x point. [x geoid] ";
+  string err = "Expected point x point [x geoid]. ";
   int len = nl->ListLength(args);
   if( (len!=2) && (len!=3)){
     return listutils::typeError(err);
@@ -12640,7 +12677,7 @@ SpatialDirectionMap( ListExpr args )
 }
 
 /*
-10.1.11 Type mapping function for operator ~no\_compoents~
+10.1.11 Type mapping function for operator ~no\_components~
 
 This type mapping function is used for the ~no\_components~ operator. This
 operator computes the number of components of a spatial object. For poins,
@@ -14755,47 +14792,23 @@ int SpatialDistance( Word* args, Word& result, int message,
 
 
 /*
-10.4.21 Value mapping functions of operator ~direction~
+10.4.21 Value mapping function of operator ~direction~ and ~heading~
+
+For ~heading~ the template parameter is ~true~, for ~direction~, is is ~false~.
 
 */
-int
-SpatialDirection_pp( Word* args, Word& result, int message,
-                     Word& local, Supplier s )
+template<bool isHeading>
+int SpatialDirectionHeading_pp( Word* args, Word& result, int message,
+                                Word& local, Supplier s )
 {
-  result = qp->ResultStorage( s );
-  Point *p1 = ((Point*)args[0].addr),
-        *p2 = ((Point*)args[1].addr);
-  if( p1->IsDefined() && p2->IsDefined() && !AlmostEqual( *p1, *p2 ) )
-    ((CcReal *)result.addr)->Set( true, p1->Direction( *p2 ) );
-  else
-    ((CcReal *)result.addr)->SetDefined( false );
-  return 0;
-}
-
-/*
-10.4.22 Value mapping functions of operator ~heading~
-
-*/
-int
-SpatialHeading( Word* args, Word& result, int message,
-                     Word& local, Supplier s )
-{
-
   result = qp->ResultStorage( s );
   CcReal* res = static_cast<CcReal*>(result.addr);
-  Point* p1 = static_cast<Point*>(args[0].addr);
-  Point* p2 = static_cast<Point*>(args[1].addr);
-  Geoid* geoid = 0;
-  if(qp->GetNoSons(s)==3){
-     geoid = static_cast<Geoid*>(args[2].addr);
-     if(!geoid->IsDefined()){
-       res->SetDefined(false);
-       return 0;
-     }
-  }
-
-  double d = p1->Heading(*p2, geoid);
-  res->Set(d>=0,d);
+  const Point *p1 = ((Point*)args[0].addr);
+  const Point *p2 = ((Point*)args[1].addr);
+  const Geoid* geoid =
+            (qp->GetNoSons(s)==3)?static_cast<const Geoid*>(args[2].addr):0;
+  double d = p1->Direction(*p2, isHeading, geoid); // all saveguards included!
+  res->Set(d>=0.0,d);
   return 0;
 }
 
@@ -17360,20 +17373,27 @@ const string SpatialSpecDistance  =
 const string SpatialSpecDirection  =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
   "( <text>point x point -> real</text--->"
-  "<text>direction( _, _ )</text--->"
-  "<text>compute the direction (0 - 360 degree) from one point to "
-  "another point.</text--->"
+  "<text>direction( P1, P2 [, Geoid] )</text--->"
+  "<text>Compute the direction DIR from point P1 to point P1 in degrees "
+  "(0<=DIR<360) using standard mathematical measure (counter-clockwise, "
+  "0.0 degrees means parallel to the X-axis). The direction of a point to "
+  "itself is UNDEFINED. If a Geoid is passed, P1, P2 are expected to be valid "
+  "geographic positions, otherwise euclidean coordinates are assumed.</text--->"
   "<text>query direction(p1, p2)</text--->"
   ") )";
 
 const string SpatialSpecHeading  =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-  "( <text>point x point -> real</text--->"
-  "<text>heading( _, _ )</text--->"
-  "<text>compute the heading (direction on a sphere) in degree"
-  " from one point to another point.</text--->"
+  "( <text>point x point [x geoid] -> real</text--->"
+  "<text>heading( P1, P2 [, Geoid] )</text--->"
+  "<text>Compute the heading HEAD from point P1 to point P1 in degrees "
+  "(0<HEAD<=360) using standard aviation heading (clockwise, 360 degrees "
+  "means NORTH --- 0 is not allowed). The heading of a point to "
+  "itself is UNDEFINED. If a Geoid is passed, P1, P2 are expected to be valid "
+  "geographic positions, otherwise euclidean coordinates are assumed.</text--->"
   "<text>query heading(p1, p2)</text--->"
   ") )";
+
 const string SpatialSpecNocomponents  =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
   "( <text>(points||line||region) -> int</text--->"
@@ -17963,16 +17983,16 @@ Operator spatialdistance (
 Operator spatialdirection (
   "direction",
   SpatialSpecDirection,
-  SpatialDirection_pp,
+  SpatialDirectionHeading_pp<false>,
   Operator::SimpleSelect,
-  SpatialDirectionMap );
+  SpatialDirectionHeadingMap );
 
 Operator spatialheading (
   "heading",
   SpatialSpecHeading,
-  SpatialHeading,
+  SpatialDirectionHeading_pp<true>,
   Operator::SimpleSelect,
-  SpatialDirectionMap );
+  SpatialDirectionHeadingMap );
 
 Operator spatialnocomponents (
   "no_components",
@@ -18767,7 +18787,171 @@ Operator point2string (
     point2stringTM );
 
 /*
+6.16.2 Operator ~midpointBetween~
+
+---- point x point [x geoid] [x real] --> point
+----
+
+If the optional real parameter is not present, a real default parameter with
+value 0.5 is appended.
+
+*/
+ListExpr PointPointOptGeoidOptReal2PointTM(ListExpr args){
+  int noargs = nl->ListLength(args);
+  string errmsg = "Expected point x point [x geoid] [x real].";
+  if( (noargs<2) || (noargs>4) ){
+    return listutils::typeError(errmsg);
+  }
+  if(!listutils::isSymbol(nl->First(args),Point::BasicType())){
+    return listutils::typeError(errmsg);
+  }
+  if(!listutils::isSymbol(nl->Second(args),Point::BasicType())){
+    return listutils::typeError(errmsg);
+  }
+  if( noargs == 2 ) {
+    return nl->ThreeElemList(nl->SymbolAtom("APPEND"),
+                                            nl->OneElemList(nl->RealAtom(0.5)),
+                                            nl->SymbolAtom(Point::BasicType()));
+  }
+  if( noargs == 3 ){
+    if( listutils::isSymbol(nl->Third(args),Geoid::BasicType())) {
+      // special case: append default real parameter of 0.5
+      return nl->ThreeElemList(nl->SymbolAtom("APPEND"),
+                               nl->OneElemList(nl->RealAtom(0.5)),
+                               nl->SymbolAtom(Point::BasicType()));
+    }
+    if( listutils::isSymbol(nl->Third(args),CcReal::BasicType()) ){
+      return nl->SymbolAtom(Point::BasicType());
+    }
+  }
+  if( noargs == 4 ){
+    if( listutils::isSymbol(nl->Third(args),Geoid::BasicType()) &&
+        listutils::isSymbol(nl->Fourth(args),CcReal::BasicType())) {
+      return nl->SymbolAtom(Point::BasicType());
+    }
+  }
+  return listutils::typeError(errmsg);
+}
+
+
+int midpointBetweenVM(Word* args, Word& result, int message,
+                   Word& local, Supplier s){
+  int noargs = qp->GetNoSons(s);
+  const Point* p1 = static_cast<const Point*>(args[0].addr);
+  const Point* p2 = static_cast<const Point*>(args[1].addr);
+  const Geoid* geoid = (noargs==4)?static_cast<const Geoid*>(args[2].addr):0;
+  const CcReal* f = static_cast<const CcReal*>(args[noargs-1].addr);
+  result = qp->ResultStorage(s);
+  Point* res = static_cast<Point*>(result.addr);
+
+  if(!p1->IsDefined() || !p2->IsDefined() || !f->IsDefined() ||
+     (geoid && !geoid->IsDefined()) ){
+    res->SetDefined(false);
+    return 0;
+  }
+  if(geoid){
+    if( !p1->checkGeographicCoord() || !p2->checkGeographicCoord() ||
+        (AlmostEqual(p1->GetY()+p2->GetY(), 0.0) &&
+         AlmostEqual(fabs(p1->GetX() - p2->GetX()), 180.0) ) ) {
+      // points may not be antipodal! points must represent valid geo-coords!
+      res->SetDefined(false);
+      return 0;
+    }
+  }
+  res->SetDefined(true);
+  *res = p1->MidpointTo(*p2,f->GetValue(),geoid);
+  return 0;
+}
+
+const string midpointBetweenSpec =
+"( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+"( <text> point x point [x geoid] [x real] -> point</text--->"
+"<text>midpointbetween( P1, P2 [, Geoid] [, RelDost] ) </text--->"
+"<text>Returns the point with the rlative distance 0.0<=RelDist<=1.0 on the "
+"shortest path from point P1 to point P2. If RelDist is not given, it defaults "
+"to 0.5.If Geoid is passed, the midpoint is with respect to the orthodrome "
+"P1->P2 (the points being geographic coordinates), otherwise the midpoint "
+"in euclidean space. If a Geoid is passed, and P1, P2 are antipodal, the "
+"result is UNDEF.</text--->"
+"<text>query midpointBetween(makepoint(7.494968217,51.376125146), "
+"makepoint(7.0,51.0), create_geoid(\"WGS1984\"), 0.7)</text---> ) )";
+
+Operator spatialmidpointbetween (
+  "midpointBetween",
+  midpointBetweenSpec,
+  midpointBetweenVM,
+  Operator::SimpleSelect,
+  PointPointOptGeoidOptReal2PointTM );
+
+/*
+6.16.3 Operators ~direction2heading~ and ~heading2direction~
+
+---- real --> real
+----
+
+*/
+ListExpr Real2RealTM(ListExpr args){
+  int noargs = nl->ListLength(args);
+  if (noargs!=1 || !listutils::isSymbol(nl->First(args),CcReal::BasicType()) ) {
+    return listutils::typeError("Expected (real).");
+  }
+  return nl->SymbolAtom(CcReal::BasicType());
+}
+
+template<bool toDirection>
+int ConvertDirHeadVM(Word* args, Word& result, int message,
+                     Word& local, Supplier s){
+  const CcReal* c = static_cast<const CcReal*>(args[0].addr);
+  result = qp->ResultStorage(s);
+  CcReal* res = static_cast<CcReal*>(result.addr);
+
+  if(!c->IsDefined()){
+    res->SetDefined(false);
+  } else {
+    double out = (toDirection)?headingToDirection(c->GetValue())
+                              :directionToHeading(c->GetValue());
+    res->Set(true, out );
+  }
+  return 0;
+}
+
+const string DirectionToHeadingSpec =
+"( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+"( <text> real -> real</text--->"
+"<text>direction2heading( D ) </text--->"
+"<text>Converts a direction D (mathematical angle notation, counter-clockwise, "
+"0<=d<360, 0 = directed as the positive X-half-axis) to the navigational "
+"heading value (0<H<=360, clockwise, 360 = NORTH).</text--->"
+"<text>query direction2heading(135.5)</text---> ) )";
+
+const string HeadingToDirectionSpec =
+"( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+"( <text> real -> real</text--->"
+"<text>heading2direction( D ) </text--->"
+"<text>Converts a navigational heading value (0<H<=360, clockwise, 360 = NORTH)"
+"to a direction (mathematical angle notation, counter-clockwise, 0<=d<360, "
+"0 = directed as the positive X-half-axis).</text--->"
+"<text>query heading2direction(135.5)</text---> ) )";
+
+Operator spatialDirectionToHeading (
+"direction2heading",
+ DirectionToHeadingSpec,
+ ConvertDirHeadVM<false>,
+ Operator::SimpleSelect,
+ Real2RealTM
+);
+
+Operator spatialHeadingToDirection (
+"heading2direction",
+ HeadingToDirectionSpec,
+ ConvertDirHeadVM<true>,
+ Operator::SimpleSelect,
+ Real2RealTM
+);
+
+/*
 10 Type Constructor ~geoid~
+
 */
     GenTC<Geoid> geoid_t;
 
@@ -18881,6 +19065,9 @@ class SpatialAlgebra : public Algebra
     AddOperator( &geoid_getFlattening );
     AddOperator( &geoid_create_geoid );
     AddOperator( &point2string );
+    AddOperator( &spatialmidpointbetween );
+    AddOperator( &spatialDirectionToHeading );
+    AddOperator( &spatialHeadingToDirection );
   }
   ~SpatialAlgebra() {};
 };

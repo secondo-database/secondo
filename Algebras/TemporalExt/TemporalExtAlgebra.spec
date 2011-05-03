@@ -38,10 +38,11 @@ operator setunitoftime alias SETUNITOFTIME pattern op ( _ )
 operator setunitofdistance alias SETUNITOFDISTANCE pattern op ( _ )
 operator velocity_new alias VELOCITY_NEW pattern op ( _ )
 operator mdirection alias MDIRECTION pattern op ( _ )
+operator mheading alias MHEADING pattern op ( _ )
 operator locations alias LOCATIONS pattern op ( _ )
 operator atmin alias ATMIN pattern op ( _ )
 operator atmax alias ATMAX pattern op ( _ )
-operator concatS alias CONCATS pattern  _ op 
+operator concatS alias CONCATS pattern  _ op
 operator concatS2 alias CONCATS2 pattern  _ op [ _ ]
 operator everNearerThan alias EVERNEARERTHAN pattern op( _, _, _ )
 operator inside alias INSIDE pattern _ infixop _

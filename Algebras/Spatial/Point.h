@@ -28,40 +28,68 @@ class Region;
 */
 inline bool AlmostEqual( const Point& p1, const Point& p2 );
 
+/*
+Convert an angle from radians to degrees
+
+*/
+inline Coord radToDeg(const Coord & rad);
+
+/*
+Convert an angle from degrees to radians
+
+*/
+inline Coord degToRad(const Coord &deg);
+
+/*
+Convert a standard angle 0<=a<360 to a standard aviation heading 0<h<=360.
+NORTH is always 360 degree, not 0 degree!
+
+*/
+inline double directionToHeading( const double dir );
+
+/*
+Convert a standard aviation heading 0<h<=360 to a standard angle 0<=a<360.
+
+*/
+inline double headingToDirection( const double head );
+
 class Point: public StandardSpatialAttribute<2>
 {
   public:
 /*
-4.1. Constructors and Destructor
+4.1 Constructors and Destructor
+
+This constructor should not be used:
 
 */
     inline Point() {};
-/*
-This constructor should not be used.
 
+/*
 There are two ways of constructing a point:
+
+The first one receives a boolean value ~d~ indicating if the point is defined
+and two coordinate ~x~ and ~y~ values.
 
 */
     inline Point( const bool d,
                   const Coord& x = Coord(),
                   const Coord& y = Coord() );
 /*
-The first one receives a boolean value ~d~ indicating if the point is defined
-and two coordinate ~x~ and ~y~ values.
+The second one receives a point ~p~ as argument and creates a point that is a
+copy of ~p~.
 
 */
     inline Point( const Point& p );
 /*
-The second one receives a point ~p~ as argument and creates a point that is a
-copy of ~p~.
+The destructor.
 
 */
     inline ~Point()
     {}
 /*
-The destructor.
-
 4.2 Member functions
+
+Returns the ~x~-coordinate. For geographic coordinates: the LONgitude
 
 */
     inline const Coord& GetX() const
@@ -69,7 +97,8 @@ The destructor.
       return x;
     }
 /*
-Returns the ~x~-coordinate.
+
+Returns the ~y~-coordinate. For geographic coordinates: the LATitude
 
 */
     inline const Coord& GetY() const
@@ -77,17 +106,17 @@ Returns the ~x~-coordinate.
       return y;
     }
 /*
-Returns the ~y~-coordinate.
+Returns the point bounding box which is also a point.
 
 */
     inline const Rectangle<2> BoundingBox(const Geoid* geoid = 0) const;
 /*
-Returns the point bounding box which is also a point.
+Sets the value of the point object.
 
 */
     inline void Set( const Coord& x, const Coord& y );
 /*
-Sets the value of the point object.
+Operators redefinition.
 
 */
     inline Point& operator=( const Point& p );
@@ -99,8 +128,6 @@ Sets the value of the point object.
     inline Point operator-( const Point& p ) const;
     inline Point operator*( const double d ) const;
 /*
-Operators redefinition.
-
 4.3 Operations
 
 4.3.1 Operation ~scale~
@@ -237,8 +264,8 @@ use Spherical geometry.
 
 Return true iff the Point represents valid geographic coordinate, i.e.
 the Point is defined, and
-the X-coordinate represents a valid Longitude ( -180.0<=X<=180.), and
-the Y-coordinate represents a valid Latitude (-90.0<=Y<=90.0).
+the X-coordinate represents a valid Longitude/Breite ( -180.0<=X<=180.), and
+the Y-coordinate represents a valid Latitude/Laenge (-90.0<=Y<=90.0).
 
 */
   bool checkGeographicCoord() const;
@@ -255,34 +282,50 @@ is applied during spherical geometric calculation.
                                    const Point &b,
                                    const Point &c,
                                    const Geoid* geoid = 0);
+
 /*
 
-4.3.13 Operation ~direction~
+4.3.13 Operation ~Direction~
 
-*Precondition:* ~u.IsDefined()~ and ~v.IsDefined()~ and ~not AlmostEqual(u,p)~
+Computes the direction or heading (resp. direction/heading on a sphere) between
+~Tthis~ point and point ~p~, where both points have coordinates (X,Y), resp.
+(LON, LAT). The result will be in range 0..360
+if both points are defined and not equal.
 
-*Semantics:* returns the angle of the line from ~this~ to ~p~, measured in degrees.
-
-*Complexity:* $O(1)$
+If ~useHeading~ is ~false~, mathematical measuring is used (counter clockwise,
+0 degree means following the direction of the X-axis). If ~useHeadding~ is ~true~,
+geographical direction is used (clockwise, 0 degree means NORTH or following the
+direction of the Y-axis).
 
 If ~geoid~ is NULL, euclidean geometry is used, otherwise the geoid object
 is applied during spherical geometric calculation.
 
+In any error case, the result is negative (-1.0).
+
 */
-  double Direction( const Point& p, const Geoid* geoid = 0) const;
+  double Direction(const Point& p,
+                   const bool returnHeading,
+                   const Geoid* geoid) const;
 
 /*
-
-4.3.13 Operation ~heading~
-
-Computes the heading (direction on a sphere) between two points given as
-(LON, LAT). The result will be in range 0..360 if both points are defined and
-not equal. otherwise -1. If the geoid is null, the unit circle is used to compute
-the heading, otherwise the geoid.
+An alias for backward compatibility
 
 */
-  double Heading(const Point& p, const Geoid* geoid = 0) const;
+  double Direction(const Point& p, const Geoid* geoid = 0 ) const{
+    cerr << __PRETTY_FUNCTION__ << ": WARNING - this function is deprecated!"
+         << endl;
+    return Direction(p, false, geoid);
+  }
 
+/*
+An alias for backward compatibility
+
+*/
+  double Heading(const Point& p, const Geoid* geoid = 0) const {
+    cerr << __PRETTY_FUNCTION__ << ": WARNING - this function is deprecated!"
+         << endl;
+    return Direction(p, true, geoid);
+  }
 
 /*
 
@@ -299,8 +342,21 @@ If an invalid geographic coordinate is found, the result is UNDEFINED.
 See http://mathforum.org/library/drmath/view/51822.html for derivation
 
 */
-
   Point MidpointTo(const Point& p, const Geoid* geoid = 0) const;
+
+/*
+*Precondition*: none.
+
+*Semantics*: Calculates a point (x,y) (if ~geoid~ == 0), res. (lat,lon)
+(if ~geoid~ is not NULL, for a given fraction ~f~ of the distance between ~this~
+and the other Point ~p~. We want the point a fraction f along the great circle
+route from ~this~ to ~p~. ~f~=0 is ~this~. f=1 is ~p~.
+The two points cannot be antipodal
+(i.e. lat1+lat2=0 and abs(lon1-lon2)=pi) because then the route is undefined.
+
+*/
+  Point MidpointTo(const Point& p, const Coord& f,
+                                   const Geoid* geoid = 0) const;
 
 
 /*
@@ -550,5 +606,38 @@ inline bool AlmostEqual( const Point& p1, const Point& p2 )
   return AlmostEqual( p1.GetX(), p2.GetX() ) &&
   AlmostEqual( p1.GetY(), p2.GetY() );
 }
+
+inline double directionToHeading( const double dir )
+{
+  double direction = dir;
+  while( direction<0.0 ) { direction = (360.0 - direction); }
+  if(direction > 360.0)  { direction = fmod(direction,360.0); }
+  double head = (direction<=90)?(90.0-direction):(450.0-direction);
+  if( AlmostEqual(head,0.0) ){
+    head = 360.0; // Map NORTH to heading 360, not to 0
+  }
+  return head;
+}
+
+inline double headingToDirection( const double head )
+{
+  double heading = head;
+  while( heading<0.0 ) { heading = (360.0 - heading); }
+  if(heading > 360.0)  { heading = fmod(heading,360.0); }
+  double dir = (heading<90.0)?(90-heading):(450.0-heading);
+  if( AlmostEqual( dir, 360.0 ) ){ // map 360 degree to 0
+    dir = 0.0;
+  }
+  return dir;
+}
+
+inline Coord radToDeg(const Coord & rad) {
+  return (180.0 * rad)/M_PI;
+}
+
+inline Coord degToRad(const Coord &deg) {
+  return (deg * M_PI)/180.0;
+}
+
 
 #endif

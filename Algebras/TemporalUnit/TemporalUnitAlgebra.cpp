@@ -156,6 +156,7 @@ n/a +      upoint x  points --> (stream ubool)
 n/a +     uregion x  points --> (stream ubool)
 
 n/a + mdirection:    upoint --> ureal
+n/a + mheading:      upoint --> ureal
 
 n/a + area: uregion --> ureal             see TemporalLiftedAlgebra
 
