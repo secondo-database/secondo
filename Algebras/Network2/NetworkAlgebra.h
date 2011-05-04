@@ -1054,8 +1054,18 @@ simple Constructor
     PageRecord(int size){
         m_nextFree=0;
         m_isFull=false;
-        m_slotIndex ={0};
-        m_pageContent = {0};
+        
+        //m_pageContent = {0};
+        for (int i=0; i< MAX_PAGESIZE; i++){
+            m_pageContent[i]=0;
+        }
+        //m_slotIndex ={0};
+        for (int i=0; i< MAX_SLOTINDEXSIZE; i++){
+            m_slotIndex[i]=0;
+        }
+        
+        
+        
     }
 /*
 Copy-Constructor
