@@ -5681,7 +5681,8 @@ void UGPoint::Distance (const UGPoint &ugp, UReal &ur) const {
   return;
 }
 
-  const Rectangle<3> UGPoint::BoundingBox()const {
+  const Rectangle<3> UGPoint::BoundingBox(const Geoid* g )const {
+    assert (g == 0);
     if (IsDefined()) {
       RouteInterval *ri = new RouteInterval(p0.GetRouteId(), p0.GetPosition(),
                                          p1.GetPosition());
@@ -5699,7 +5700,8 @@ void UGPoint::Distance (const UGPoint &ugp, UReal &ur) const {
     } else return Rectangle<3>(false, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
   }
 
- double UGPoint::Distance(const Rectangle<3>& rect) const{
+ double UGPoint::Distance(const Rectangle<3>& rect, const Geoid* g) const{
+   assert( g == 0);
    cerr << "Distance function not implemented yet";
    if(!IsDefined() || !rect.IsDefined()){
      return -1;

@@ -340,11 +340,11 @@ Returns the 3 dimensional spatio-temporal BoundingBox of the ~ugpoint~.
 
 */
 
- virtual const Rectangle<3> BoundingBox() const;
+ virtual const Rectangle<3> BoundingBox(const Geoid* = 0) const;
 
  Rectangle<3> BoundingBox(Network* &pNetwork) const;
 
- virtual double Distance(const Rectangle<3>& rect) const;
+ virtual double Distance(const Rectangle<3>& rect, const Geoid* = 0) const;
 
  virtual bool IsEmpty() const{ return IsDefined(); }
 
