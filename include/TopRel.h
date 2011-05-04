@@ -179,16 +179,15 @@ matrix number leads not to an error, the number is just corrected to tak the las
 9 bits.
 
 */
-       Int9M(const short number){
+       Int9M(const short number): Attribute(true){
            value = number & 511;
-           defined = true;
        }
 
 /*
 2.1.3 Copy Constructor 
 
 */
-        Int9M(const Int9M& source){
+        Int9M(const Int9M& source):Attribute(source.IsDefined()){
            Equalize(source);
         }
 
@@ -240,7 +239,7 @@ range, only the significant bits are used to set the value.
 */
        void SetValue(const short value){
            this->value = value&511;
-           this->defined = true;
+           SetDefined(true);
        }
 
 
@@ -265,7 +264,7 @@ This function realizes an elementwise ''or'' of the matrix entries.
 
        void Union(Int9M* arg){
           value |= arg->value;
-          defined &= arg->defined;
+          SetDefined(IsDefined() && arg->IsDefined());
        }
 /* 
 2.1.9 ~Intersection~
@@ -277,7 +276,7 @@ matrices.
 
        void Intersection(Int9M* arg){
           value &= arg->value;
-          defined &= arg->defined;
+          SetDefined(IsDefined() && arg->IsDefined());
        }
 
 /*
@@ -288,7 +287,7 @@ This function changes the matrix to this one of the given number.
 */
        void SetToNumber(unsigned short number){
            value = number & 511;
-           defined = true;
+           SetDefined(true);
        }
 
 
@@ -302,7 +301,7 @@ Int9M instance is also defined.
 */
   void Fill(){
     value = 511;
-    defined = true;
+    SetDefined(true);
   }
 
 /*
@@ -313,7 +312,7 @@ non-empty. For an undefined isnatnce the result will be __false__.
 
 */
   bool IsFull(){
-    return defined && (value==511);
+    return IsDefined() && (value==511);
   }
 
 /*
@@ -323,7 +322,7 @@ This function checks if all matrix entries are set to be empty.
 
 */
   bool IsEmpty(){
-    return defined && (value==0);
+    return IsDefined() && (value==0);
   }
 
 /*
@@ -483,8 +482,6 @@ an attribute type within secondo relations.
 */
        int Compare(const Attribute* arg) const;
        bool Adjacent(const Attribute*) const {return false;}
-       bool IsDefined() const;
-       void SetDefined( bool defined );
        size_t HashValue() const;
        void CopyFrom(const Attribute* arg);
        Int9M* Clone() const;
@@ -502,10 +499,10 @@ an attribute type within secondo relations.
 
 */
        bool CompareTo(const Int9M M2) const{
-          if(!defined && !M2.defined)
+          if(!IsDefined() && !M2.IsDefined())
             return true;
-          if(!defined) return -1;
-          if(!M2.defined) return 1;
+          if(!IsDefined()) return -1;
+          if(!M2.IsDefined()) return 1;
           if(value>M2.value) return 1;
           if(value<M2.value) return -1;
           return 0;
@@ -559,10 +556,7 @@ an attribute type within secondo relations.
    private:
        // we use the appropriate bits of this value for the different
        // entries in the matrix
-       unsigned short value; 
-       bool defined;
-
-
+       uint16_t value; 
 };
 
 
@@ -1425,9 +1419,9 @@ The caller of this function has to destroy the object produced
 by this function.  
 
 */
-   Cluster* GetClusterOf(Int9M Matrix){
+   Cluster* GetClusterOf(Int9M Matrix) const{
        if(unSpecified.Contains(Matrix))
-          return &unSpecified;
+          return new Cluster(unSpecified);
        int s = theClusters.Size();
        Cluster C;
        for(int i=0;i<s;i++){

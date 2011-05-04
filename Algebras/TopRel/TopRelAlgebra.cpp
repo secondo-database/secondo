@@ -123,7 +123,7 @@ with predefined content.
 */
 Int9M::Int9M(const bool II, const bool IB, const bool IE,
              const bool BI, const bool BB, const bool BE,
-             const bool EI, const bool EB, const bool EE){
+             const bool EI, const bool EB, const bool EE):Attribute(true){
     Set(II,IB,IE,BI,BB,BE,EI,EB,EE);
 }
 
@@ -147,7 +147,7 @@ void Int9M::Set( const bool II, const bool IB, const bool IE,
    SetEB(EB);
    SetEE(EE);
    value = value & 511;
-   defined = true;
+   SetDefined(true);
 }
 
 
@@ -164,8 +164,9 @@ This function returns the NestedList representation of a
 
 */
 ListExpr Int9M::ToListExpr(ListExpr typeInfo) const {
-  if(!defined)
+  if(!IsDefined()){
     return nl->SymbolAtom("undefined");
+  }
   ListExpr Last;
   ListExpr res = Last = nl->OneElemList(nl->BoolAtom(II&value));
   Last = nl->Append(Last,nl->BoolAtom(IB&value));
@@ -193,7 +194,7 @@ or a list containing nine boolean (or int) atoms representing the matrix entries
 bool Int9M::ReadFrom(const ListExpr LE,const ListExpr typeInfo){
    // case uf undefined
    if(nl->IsEqual(LE,"undefined")){
-       defined = false;
+       SetDefined(false);
        return true;
    }
 
@@ -208,7 +209,7 @@ bool Int9M::ReadFrom(const ListExpr LE,const ListExpr typeInfo){
          return false;
       }
       value = (unsigned short) v;
-      defined = true;
+      SetDefined(true);
       return true;
    }
 
@@ -238,7 +239,7 @@ bool Int9M::ReadFrom(const ListExpr LE,const ListExpr typeInfo){
       r = nl->Rest(r);
    }
    value = tmp;
-   defined = true;
+   SetDefined(true);
    return true;
 }
 
@@ -255,7 +256,7 @@ void Int9M::Equalize(const Int9M& value){
 
 void Int9M::Equalize(const Int9M* v){
     this->value = v->value;
-    this->defined = v->defined;
+    SetDefined(v->IsDefined());
 }
 
 /*
@@ -267,12 +268,15 @@ Int9M.
 */
 int Int9M::Compare(const Attribute* arg) const{
     Int9M* v = (Int9M*) arg;
-    if(!defined && !v->defined)
+    if(!IsDefined() && !v->IsDefined()){
         return 0;
-    if(!defined)
+    }
+    if(!IsDefined()){
        return -1;
-    if(!v->defined)
+    }
+    if(!v->IsDefined()){
        return 1;
+    }
 
     if(value < v->value){
        return -1;
@@ -284,27 +288,13 @@ int Int9M::Compare(const Attribute* arg) const{
     
 }
 
-/*
-2.1.9 IsDefined
-
-*/
-bool Int9M::IsDefined() const{ return defined; }
-
-
-/*
-2.1.10 SetDefined
-
-*/
-void Int9M::SetDefined( bool defined ){
-   this->defined=defined;
-}
 
 /*
 2.1.11 HashValue
 
 */
 size_t Int9M::HashValue() const{
-   if(!defined)
+   if(!IsDefined())
       return (size_t) 512;
    else
       return (size_t) value;

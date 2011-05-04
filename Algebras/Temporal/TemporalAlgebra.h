@@ -289,6 +289,68 @@ Compares this and the argument;
   }
 
 
+
+/* 
+~SplitAround~
+
+Divides this interval into several pieces around the given __value__.
+If the value is not included in the interval, the result will only 
+consists of the original interval itself. If the __value__ is one of the
+borders of the interval, the result will hav two entries. One entry consists
+of an interval containing only __value__, the other entry is the remaining
+interval. If __value__ is located inside the interval, the result will have 
+three entries.
+
+*/
+vector<Interval<Alpha> > splitAround(Alpha value) const{
+  vector<Interval<Alpha> > result;
+  if( (value<start) || (value > end) ){
+     result.push_back(*this);
+     return result;
+  }
+  if((value==start) && !lc){
+     result.push_back(*this);
+     return result;
+  }
+  if(value==start){ // lc == true
+    Interval<Alpha> i1(start,start,true,true);
+    result.push_back(i1);
+    if(end>start){ // there is a remaining interval
+       Interval<Alpha> i2(start,end,false,rc);
+       result.push_back(i2);
+    } 
+    return result;
+  }
+  if(value==end && !rc){
+     result.push_back(*this);
+     return result;
+  }
+  if(value==end){
+    if(start<end){
+       Interval<Alpha> i1(start,end,lc,false);
+       result.push_back(i1);
+    }
+    Interval<Alpha> i2(end,end,true,true);
+    result.push_back(i2);
+    return result;
+  }
+  // value is located inside the interval
+  Interval<Alpha> i1(start,value,lc,false);
+  Interval<Alpha> i2(value,value,true,true);
+  Interval<Alpha> i3(value,end,false,rc);
+  result.push_back(i1);
+  result.push_back(i2);
+  result.push_back(i3);
+  return result;
+}
+
+
+
+
+
+
+
+
 /*
 
 3.2.3 Attributes

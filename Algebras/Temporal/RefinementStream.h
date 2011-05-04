@@ -29,6 +29,10 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 */
 
+#ifndef REFINEMENTSTREAM_H
+#define REFINEMENTSTREAM_H
+
+
 
 #include "TemporalAlgebra.h"
 #include <assert.h>
@@ -412,6 +416,6 @@ bool RefinementStream<Mapping1, Mapping2, Unit1, Unit2>::check(){
 
 }
 
-
+#endif
 
 
