@@ -776,6 +776,7 @@ struct GenMObject{
 
   vector<Point> loc_list1;
   vector<Point> loc_list2;
+  
   vector<GPoint> gp_list;
   vector<Line> line_list1;
   vector<Line> line_list2;
@@ -903,6 +904,21 @@ struct GenMObject{
                                      MPoint* mo, Instant& start_time, Point loc,
                                     int entrance_index, int reg_id,
                                      MaxRect* maxrect, Periods* peri);
+  /////////////////////////////////////////////////////////////////////////
+  ////////////////////  Indoor Walk Car(Taxi) /////////////////////////////
+  /////////////////////////////////////////////////////////////////////////
+  void GenerateGenMO5(Space* sp, IndoorInfra* i_infra, Periods* peri, 
+                      int mo_no, int type, Relation* rel1, BTree* btree, 
+                      Relation* rel2);
+  void GenerateGenMO_IndoorWalkCarTaxi(Space* sp, IndoorInfra* i_infra, 
+                                       Periods* peri, int mo_no, 
+                                       Relation* rel1, BTree* btree, 
+                                       Relation* rel2, string);
+  void CreateBuildingPair2(IndoorInfra* i_infra, 
+                          vector<RefBuild>& build_id1_list,
+                          vector<RefBuild>& build_id2_list, int no, 
+                          MaxRect* maxrect);
+  
 };
 
 
